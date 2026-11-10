@@ -19,6 +19,8 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 
 const CELL := WorldData.CELL
+## The frames a second a bot runs at (Main sets Engine.max_fps).
+const FPS := 15
 ## How far from its spawn the bot walks about, and looks for a tree or an animal, in cells.
 const WANDER := 12.0
 const LOOK := 28.0

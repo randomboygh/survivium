@@ -42,6 +42,9 @@ const Mat := preload("res://src/shared/content/materials.gd")
 
 ## Frames a second: the tick's steps, and the time the world is made in (Runner).
 const FPS := 60
+## Seconds between two lines of the log on how the server keeps up, while players are in:
+## its frames a second and its longest frame (a playtest's lag is read from them).
+const LOAD_EVERY := 300.0
 ## Chunks each way round the spawn made before the server listens: the spawn is looked
 ## for within 24 cells of the guess (WorldGen.find_spawn).
 const SPAWN_REACH := 2
@@ -85,6 +88,9 @@ var tunnel: Tunnel
 var real_weather: RealWeather
 var _started := false
 var _stop_at := -1.0
+var _load_clock := 0.0
+var _load_frames := 0
+var _load_worst := 0.0
 var _meta := {}
 
 
@@ -242,6 +248,7 @@ func _process(delta: float) -> void:
 				print(out)
 	server.poll()
 	server.flush()
+	_note_load(delta)
 	if tunnel != null and tunnel.failed == "":
 		if tunnel.poll():
 			say("из интернета: %s" % tunnel.url)
@@ -299,3 +306,22 @@ func say(text: String) -> void:
 	log_lines.append(line)
 	if log_lines.size() > LOG_LINES:
 		log_lines.pop_front()
+
+
+## Counts the frame of `delta` seconds; every LOAD_EVERY with players in, says how the
+## server keeps up.
+func _note_load(delta: float) -> void:
+	if hosted or server.online() == 0:
+		_load_clock = 0.0
+		_load_frames = 0
+		_load_worst = 0.0
+		return
+	_load_clock += delta
+	_load_frames += 1
+	_load_worst = maxf(_load_worst, delta)
+	if _load_clock >= LOAD_EVERY:
+		say("нагрузка: %d кадров в секунду, самый долгий кадр %d мс, игроков %d" % [roundi(_load_frames / _load_clock),
+			roundi(_load_worst * 1000.0), server.online()])
+		_load_clock = 0.0
+		_load_frames = 0
+		_load_worst = 0.0

@@ -337,7 +337,7 @@ func _section_rows(key: String) -> Array:
 				["Луна", ["по фазе"] + MOONS.map(func(m: Array) -> String: return m[0]),
 					func() -> int:
 						for i in MOONS.size():
-							if is_equal_approx(sky.moon_override, MOONS[i][1]):
+							if is_equal_approx(clock.moon_pin, MOONS[i][1]):
 								return i + 1
 						return 0,
 					func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1])],
@@ -868,7 +868,7 @@ func report_text() -> String:
 		Lang.f("Погода: %s%s, облака %.2f, дождь %.2f, снег %.2f, туман %.2f, ветер %.2f к %d°, снег лежит %.2f, лужи %.2f", [
 			clock.WEATHERS[clock.weather].name, "" if clock.weather_auto else " (выбрана)", clock.clouds, clock.rain,
 			clock.snowing, clock.fog, clock.storm_wind, roundi(rad_to_deg(clock.wind_angle)), clock.snow, clock.puddles]),
-		Lang.f("Свет: день %.2f, луна %.2f%s", [sky.daylight, sky.moon, " (выбрана)" if sky.moon_override >= 0.0 else ""]),
+		Lang.f("Свет: день %.2f, луна %.2f%s", [sky.daylight, sky.moon, " (выбрана)" if clock.moon_pin >= 0.0 or sky.moon_override >= 0.0 else ""]),
 		Lang.f("Настройки: %s", [JSON.stringify(s.values)]),
 		Lang.f("Устройство: %s, экран %dx%d, окно %dx%d, %s", [OS.get_name(), DisplayServer.screen_get_size().x,
 			DisplayServer.screen_get_size().y, get_viewport().get_visible_rect().size.x,

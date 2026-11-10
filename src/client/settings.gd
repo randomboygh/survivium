@@ -641,9 +641,12 @@ func set_weather(index: int) -> void:
 		game.session.clock.set_weather(index)
 
 
-## Pins the moonlight (0 new moon .. 1 full moon); -1 follows the phase of the moon.
+## Pins the moonlight (0 new moon .. 1 full moon); -1 follows the phase of the moon. On
+## the server's clock (Clock.moon_pin), so the players on it see the same moon.
 func set_moon(light: float) -> void:
-	game.sky.moon_override = light
+	if game.session == null:
+		return
+	game.session.clock.moon_pin = light
 
 
 ## Moves the clock to `hour` (0-24) of the current day.
