@@ -16,6 +16,8 @@ const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 const RemoteWorkshop := preload("res://src/client/net/remote_workshop.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 const Mirror := preload("res://src/client/net/mirror.gd")
+const Playtest := preload("res://src/client/net/playtest.gd")
+const Bot := preload("res://src/client/input/bot.gd")
 
 
 func run() -> void:
@@ -24,6 +26,18 @@ func run() -> void:
 	_test_server_list()
 	_test_remote_workshop()
 	_test_cells()
+	_test_playtest()
+
+
+## The playtest server's address read out of the link its workflow leaves (a status), and
+## the bot's weapon one it strikes with, not throws.
+func _test_playtest() -> void:
+	_check(Playtest.address_of("https://randomboygh.github.io/survivium/?server=wss://quiet-river.trycloudflare.com")
+		== "wss://quiet-river.trycloudflare.com", "the playtest link gives the server's address")
+	_check(Playtest.address_of("https://x/?a=1&server=wss%3A%2F%2Fa.b&c=2") == "wss://a.b", "a coded address among others")
+	_check(Playtest.address_of("https://x/") == "", "no address in a link without one")
+	var arm: String = Bot._best_weapon()
+	_check(arm == "" or Tools.weapon(arm).tool in ["sword", "knife"], "the bot hunts with a blade: %s" % arm)
 
 
 ## A cell the server changed, on the client's copy of the world: a bed watered keeps its

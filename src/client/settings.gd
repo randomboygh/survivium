@@ -19,6 +19,8 @@ const Minimap := preload("res://src/client/ui/minimap.gd")
 const Music := preload("res://src/client/audio/music.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
+const Playtest := preload("res://src/client/net/playtest.gd")
+const ServerList := preload("res://src/client/net/server_list.gd")
 
 const PATH := "user://settings.cfg"
 ## The language the tools and the scene tests play in, whatever the settings say ("" none):
@@ -777,6 +779,31 @@ func give_tools() -> void:
 				if inv.slots[i] != null and inv.slots[i][0] == id:
 					who.wear(i)
 					break
+
+
+## Opens the page of the playtest server on GitHub (Playtest.open_page): «Run workflow»
+## there starts the test world with bots for two hours.
+func start_test_server() -> void:
+	Playtest.open_page()
+	_note("Нажмите «Run workflow», через 2–3 минуты подключайтесь")
+
+
+## Joins the playtest server running now (Playtest.find) under the name last used.
+func join_test_server() -> void:
+	_note("Ищу тестовый сервер…")
+	Playtest.find(game, func(url: String, why: String) -> void:
+		if url == "":
+			_note(why)
+			return
+		var name: String = ServerList.player_name()
+		game.join_server(url, name if name != "" else "Игрок", ""))
+
+
+func _note(text: String) -> void:
+	if game.hud != null:
+		game.hud.toast(text)
+	else:
+		print(text)
 
 
 func in_test_world() -> bool:

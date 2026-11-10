@@ -1,10 +1,13 @@
 # A server to play on from a phone, for a playtest (stage 1, item 8): run by hand from
 # Actions → «Playtest server» → Run workflow. It runs the game's headless server here, on
 # GitHub's machine, behind a Cloudflare quick tunnel (src/server/tunnel.gd), for the
-# minutes asked, with bots standing at the spawn as extra players. The link to open on
-# the phone (the web build with `?server=wss://…`) is shown on the run's page as a
-# notice, in the summary and as the commit status «playtest-link», about two minutes after
-# the start. The world is not saved.
+# minutes asked, with bots as extra players (src/client/input/bot.gd: they walk about the
+# spawn, talk, make gestures, throw things out, set signs and campfires, fell trees and
+# hunt), so the server runs with «Бесплатные предметы» (free_items) when there are any.
+# The link to open on the phone (the web build with `?server=wss://…`) is shown on the
+# run's page as a notice, in the summary and as the commit status «playtest-link», about
+# two minutes after the start; the game's «Тестирование» → «Подключиться к тестовому
+# серверу» reads it there (src/client/net/playtest.gd). The world is not saved.
 name: Playtest server
 
 on:
@@ -12,13 +15,13 @@ on:
     inputs:
       minutes:
         description: Minutes the server runs (at most 300)
-        default: "60"
+        default: "120"
       seed:
-        description: World seed (empty for a new one, -1 for the test world)
-        default: ""
+        description: World seed (-1 for the test world, empty for a new one)
+        default: "-1"
       bots:
-        description: Bots standing at the spawn (0..3)
-        default: "1"
+        description: Bots playing about the spawn (0..3)
+        default: "3"
 
 permissions:
   contents: read
@@ -69,7 +72,13 @@ jobs:
           seed_args=()
           if [[ "$SEED" =~ ^-?[0-9]+$ ]]; then seed_args=(--seed "$SEED"); fi
           mkdir -p logs link
-          nohup ~/godot/godot --headless --path . -- --server --port 7777 --no-save "${seed_args[@]}" \
+          config_args=()
+          if [ "$bots" -gt 0 ]; then
+            # The bots get what they work with by the recipes, for nothing.
+            printf '[rules]\nfree_items=true\n' > logs/playtest.cfg
+            config_args=(--config "$PWD/logs/playtest.cfg")
+          fi
+          nohup ~/godot/godot --headless --path . -- --server --port 7777 --no-save "${seed_args[@]}" "${config_args[@]}" \
             --tunnel --cloudflared ~/cloudflared </dev/null > logs/server.log 2>&1 &
           server=$!
           link=""
@@ -88,7 +97,7 @@ jobs:
             echo "Открыть на телефоне: $link"
           } >> "$GITHUB_STEP_SUMMARY"
           for i in $(seq "$bots"); do
-            nohup ~/godot/godot --headless --path . -- --join ws://localhost:7777 --name "Бот$i" \
+            nohup ~/godot/godot --headless --path . -- --join ws://localhost:7777 --name "Бот$i" --bot \
               </dev/null > "logs/bot$i.log" 2>&1 &
           done
           echo "$link" > link/link.txt
