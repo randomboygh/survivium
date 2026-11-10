@@ -9,7 +9,7 @@
 **Файлы**
 - `src/shared/game/clock.gd` — часы мира: `step(delta, at)`, `daylight()`, `day_share()`, `sun_time()`,
   `sunrise()` / `sunset()`, `moon_phase_light`, `wind_dir()`, `set_weather`, `settle_weather`,
-  `set_real_weather`, `ground_fog`, `ice`; таблица `WEATHERS` (11 видов: что приносит и как часто по
+  `set_real_weather`, `ground_fog`, `ice`; таблица `WEATHERS` (13 видов, новые в конце: индекс хранят сохранения и сервер; что приносит и как часто по
   сезонам); сигнал `season_changed` (сеанс подключает к нему весенний сброс `WorldActions.on_season`:
   кусты, ветки, скошенная трава — только на часах мира, не на копии); `warm_days` — сколько дней не зимы началось
   (по ним растёт природа, `WorldActions.step_nature`); `to_dict` / `from_dict` (сохранение), `snapshot` / `from_snapshot`

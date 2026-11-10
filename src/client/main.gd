@@ -35,6 +35,7 @@ const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const SkyScript := preload("res://src/client/view/sky.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
 const Controls := preload("res://src/client/input/controls.gd")
+const Bot := preload("res://src/client/input/bot.gd")
 const BuildMode := preload("res://src/client/input/build_mode.gd")
 const FarmMode := preload("res://src/client/input/farm_mode.gd")
 const CameraRig := preload("res://src/client/view/camera_rig.gd")
@@ -147,6 +148,8 @@ var sky: SkyScript
 ## The client's copy of the clock (the server's is `session.clock`).
 var clock: RemoteClock
 var controls: Controls
+## Plays by itself when the command line asks (`--bot`, a playtest's bots), else null.
+var bot: Bot
 ## The build mode (palette, shapes, the blueprint's strokes and its building).
 var build: BuildMode
 ## The farming mode (its palette, the marks of the work on the ground and their work).
@@ -311,6 +314,8 @@ func _ready() -> void:
 		_start_hosting()
 	_read_join()
 	controls = Controls.new(self)
+	if join_url != "" and Bot.asked():
+		bot = Bot.new(self)
 	build = BuildMode.new(self)
 	farm = FarmMode.new(self)
 	settings = SettingsScript.new(self)
@@ -924,7 +929,10 @@ func _process(delta: float) -> void:
 		# The player stands still behind the main menu, lies dead behind the death screen
 		# and asleep behind the sleep screen.
 		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead() and not character.vitals.asleep
-		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
+		if bot != null:
+			player.body.move_input = bot.move(delta) if not character.vitals.asleep else Vector2.ZERO
+		else:
+			player.body.move_input = controls.read_move() if playing else Vector2.ZERO
 		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
 		player.body.load_scale = character.inventory.speed_factor() * character.vitals.speed_factor()
 		player.body.swim_scale = character.skills.boost("swim")

@@ -91,6 +91,24 @@
 "голубой": "light blue"
 "фиолетовый": "purple"
 
+# src/client/input/bot.gd
+"Привет!": "Hi!"
+"Кто-нибудь тут есть?": "Anyone here?"
+"Смотри, что я нашёл": "Look what I found"
+"Пойдём к реке": "Let's go to the river"
+"Тут волки, осторожно": "Wolves here, careful"
+"Хорошая погода": "Nice weather"
+"Я поставил табличку": "I put up a sign"
+"Нужны ветки?": "Need branches?"
+"Давай построим дом": "Let's build a house"
+"Где костёр?": "Where's the campfire?"
+"Я бот, но стараюсь": "I'm a bot, but I'm trying"
+"Здесь был бот": "A bot was here"
+"Осторожно, звери": "Beware of animals"
+"К реке →": "To the river →"
+"Не рубить!": "Do not cut!"
+"Бот %s": "Bot %s"
+
 # src/client/input/build_mode.gd
 "Нет чертежа: нарисуйте его на земле": "No blueprint: draw one on the ground"
 "В сумке нет блоков для чертежа": "No blocks in the bag for the blueprint"
@@ -214,6 +232,11 @@
 "Данные модов перечитаны; новые материалы клеток — только в новом мире": "Mod data reloaded; new block materials only in a new world"
 "Данные модов перечитаны": "Mod data reloaded"
 
+# src/client/net/playtest.gd
+"Нет связи с GitHub": "No connection to GitHub"
+"Тестовый сервер не запущен": "The test server is not running"
+"Сервер ещё запускается — попробуйте через минуту": "The server is still starting — try again in a minute"
+
 # src/client/net/server_list.gd
 "Введите адрес сервера": "Enter the server address"
 "Из браузера — только wss:// (сервер через туннель)": "From a browser — only wss:// (a server through a tunnel)"
@@ -230,6 +253,8 @@
 "Разметка убрана: %d участков": "Marking removed: %d plots"
 "Разметки нет": "No marking"
 "Выдать инструменты можно только в своём мире": "Tools can be given only in your own world"
+"Нажмите «Run workflow», через 2–3 минуты подключайтесь": "Press «Run workflow», then join in 2–3 minutes"
+"Ищу тестовый сервер…": "Looking for the test server…"
 
 # src/client/ui/build_bar.gd
 "Линия: стена": "Line: wall"
@@ -796,6 +821,8 @@
 "стоит": "stopped"
 "Вернуться в свой мир": "Back to your world"
 "Перейти в тестовый мир": "Go to the test world"
+"Запустить тестовый сервер": "Start the test server"
+"Подключиться к тестовому серверу": "Join the test server"
 "Скорость игрока": "Player speed"
 "Рост навыков": "Skill growth"
 "Прыжки": "Jumps"
@@ -1323,6 +1350,8 @@
 "Снегопад": "Snowfall"
 "Метель": "Blizzard"
 "Песчаная буря": "Sandstorm"
+"Облачно": "Partly cloudy"
+"Морось": "Drizzle"
 
 # src/shared/game/fights.gd
 "На этом сервере PvP выключен": "PvP is off on this server"

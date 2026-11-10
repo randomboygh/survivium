@@ -359,6 +359,8 @@ func _section_rows(key: String) -> Array:
 				null,
 				{"action": "Вернуться в свой мир" if s.in_test_world() else "Перейти в тестовый мир",
 					"do": func() -> void: s.switch_test_world()},
+				{"action": "Запустить тестовый сервер", "do": func() -> void: s.start_test_server()},
+				{"action": "Подключиться к тестовому серверу", "do": func() -> void: s.join_test_server()},
 			]
 		"player":
 			return [
