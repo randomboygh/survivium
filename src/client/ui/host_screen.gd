@@ -22,6 +22,7 @@ const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const TextField := preload("res://src/client/ui/text_field.gd")
 
 const WIDTH := 300
 const NAME_WIDTH := 80
@@ -198,6 +199,7 @@ func _field(caption: String, text: String) -> LineEdit:
 	f.text = text
 	f.custom_minimum_size = Vector2(WIDTH - NAME_WIDTH - 4, ROW_H)
 	f.text_submitted.connect(func(_t: String) -> void: f.release_focus())
+	TextField.fit(f)
 	row.add_child(f)
 	return f
 
@@ -340,6 +342,7 @@ func _build_running() -> void:
 			node.say(out)
 		command.clear()
 		_clock = 0.0)
+	TextField.fit(command)
 	_box.add_child(command)
 	_button("Играть", play.emit, true)
 	_stop = _button("Остановить сервер", _ask_stop)

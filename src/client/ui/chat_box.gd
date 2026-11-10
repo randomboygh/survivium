@@ -12,6 +12,7 @@ extends VBoxContainer
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const TextField := preload("res://src/client/ui/text_field.gd")
 
 ## Lines kept, lines shown while closed, seconds a line shows, and its fading at the end.
 const KEPT := 30
@@ -76,8 +77,8 @@ func _ready() -> void:
 	_field.max_length = MAX
 	_field.custom_minimum_size = Vector2(WIDTH - 40, 26)
 	_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_field.select_all_on_focus = false
 	_field.text_submitted.connect(func(_t: String) -> void: submit())
+	TextField.fit(_field)
 	h.add_child(_field)
 	var send := Button.new()
 	send.text = "›"

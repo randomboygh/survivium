@@ -12,6 +12,7 @@ extends Control
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
+const TextField := preload("res://src/client/ui/text_field.gd")
 
 const WIDTH := 240
 const FIELD_H := 30
@@ -109,8 +110,8 @@ func _field(box: Control, caption: String, hint: String) -> LineEdit:
 	var f := LineEdit.new()
 	f.placeholder_text = hint
 	f.custom_minimum_size = Vector2(WIDTH, FIELD_H)
-	f.select_all_on_focus = false
 	f.text_submitted.connect(func(_t: String) -> void: _next_after(f))
+	TextField.fit(f)
 	box.add_child(f)
 	return f
 
