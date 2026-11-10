@@ -83,8 +83,8 @@ func _test_clock() -> void:
 		"the calendar season comes once and stays")
 	clock.real_season = false
 	var ids := Clock.WEATHERS.map(func(d: Dictionary) -> String: return d.id)
-	_check([0, 1, 2, 3, 45, 53, 61, 65, 75, 95, 99].map(func(c: int) -> String: return ids[Clock.weather_of_code(c, 2.0)])
-			== ["clear", "clear", "partly_cloudy", "cloudy", "fog", "drizzle", "rain", "downpour", "snow", "storm", "hail"]
+	_check([0, 3, 45, 61, 65, 75, 95, 99].map(func(c: int) -> String: return ids[Clock.weather_of_code(c, 2.0)])
+			== ["clear", "cloudy", "fog", "rain", "downpour", "snow", "storm", "hail"]
 		and ids[Clock.weather_of_code(73, 15.0)] == "blizzard", "real weather codes become the game's weathers")
 	var real := RealWeather.new()
 	real.clock = clock

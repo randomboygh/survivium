@@ -376,8 +376,6 @@ func on_season(season: int) -> void:
 ## night when the sky is clear.
 func icon() -> String:
 	var name: String = game.clock.weather_icon()
-	if name == "sun_cloud" and daylight <= 0.35:
-		return "cloud"
 	if name != "sun":
 		return name
 	if daylight > 0.35:

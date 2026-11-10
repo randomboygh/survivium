@@ -21,6 +21,8 @@ on:
 
 permissions:
   contents: read
+  # tools/build_info.py reads the merged pull requests for the version.
+  pull-requests: read
 
 concurrency:
   group: playtest
@@ -39,6 +41,13 @@ jobs:
       - uses: ./.github/actions/godot
         with:
           templates: false
+      # The version the clients check on joining (Protocol.build_version): the same as the
+      # web build of main, else the server says «dev» and nobody can join.
+      - name: Version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.sha }}
+        run: python3 tools/build_info.py build_info.json
       - name: Download cloudflared
         run: |
           curl -fsSL --retry 3 -o ~/cloudflared \

@@ -108,27 +108,6 @@ const ICONS := {
 		"wwwwwwwww",
 		".........",
 	],
-	# Partly cloudy: the sun behind a cloud.
-	"sun_cloud": [
-		"......y..",
-		"..y.aaa.y",
-		"...aaaaa.",
-		"..wwwaaa.",
-		".wwwwwa..",
-		"wwwwwwww.",
-		"wwwwwwwww",
-		".........",
-	],
-	# Drizzle: a cloud and a few fine drops.
-	"drizzle": [
-		"..www....",
-		".wwwww.w.",
-		"wwwwwwwww",
-		"wwwwwwwww",
-		".........",
-		"..b....b.",
-		".....b...",
-	],
 	"fog": [
 		".........",
 		"wwwwww...",
