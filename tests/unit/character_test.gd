@@ -727,10 +727,16 @@ func _test_sack_ends() -> void:
 		ch.inventory.add("resources:stone", 20)
 	ch.inventory.add("resources:branch", Items.get_item("resources:branch").stack - 1)
 	ch.at = sack[1]
+	ch.said.clear()
 	acts.pick_up_near(ch)
 	var rest: Array = w.drops.get(key, [[""]])[0]
 	_check(ch.sacks.size() == 1 and rest[0] == Items.SACK and rest.size() == 5 and rest[4] == sack[4],
 		"a sack taken in part keeps its day")
+	for i in 5:
+		acts.pick_up_near(ch)
+	_check(ch.said.is_empty(), "standing by a sack that does not fit the bag does not say so at every pickup (%s)" % [ch.said])
+	_check(not acts.pick_up(ch, key, 0) and not acts.pick_up(ch, key, 0) and ch.said == ["Забрано не всё: сумка полна"],
+		"a tap on it says so, but not twice in a row (%s)" % [ch.said])
 	var changed := []
 	acts.drops_changed.connect(func(k: Vector2i) -> void: changed.append(k))
 	acts.expire_sacks(start + Survivor.SACK_DAYS + 0.01, [ch])
