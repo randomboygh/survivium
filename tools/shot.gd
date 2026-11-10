@@ -1012,6 +1012,10 @@ func _run() -> void:
 					main.menu._update_fx(0.05)
 				main.menu._sparrow.queue_redraw()
 				await process_frame
+			if shot.main_menu == "resume":
+				main.menu._entered = true
+				main.menu._fill_page("top")
+				await process_frame
 			if shot.main_menu in ["single", "multi"]:
 				# A phone's menu on a touch screen: «Создать сервер» is not there.
 				main.menu.host_here = not shot.get("touch", false)
