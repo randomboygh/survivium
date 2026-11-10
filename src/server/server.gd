@@ -626,6 +626,7 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 	# taken away stops it.
 	link.requests.may_debug = is_host(peer.account.key) or config.playtest
 	link.requests.may_cheat = config.playtest
+	link.requests.day_speed = config.day_speed()
 	link.requests.ai_debug = link.requests.ai_debug and link.requests.may_debug
 	var reply: Variant = link.handle_msg(msg)
 	if reply is PackedByteArray and open:

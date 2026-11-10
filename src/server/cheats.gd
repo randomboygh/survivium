@@ -17,9 +17,9 @@ const VITALS := ["hunger", "thirst", "fatigue", "cold"]
 const RULES := ["free_build", "tool_wear", "instant_craft", "free_items", "animal_attacks"]
 
 
-## Takes the switches in `d` for player `who` in `session`; false when `d` is no
-## Dictionary.
-static func apply(session, who, d: Variant) -> bool:
+## Takes the switches in `d` for player `who` in `session` (the pace of time `boost`
+## times the server's own, `day_speed`); false when `d` is no Dictionary.
+static func apply(session, who, d: Variant, day_speed := 1.0) -> bool:
 	if not d is Dictionary:
 		return false
 	var speed := _number(d, "speed", 1.0, MOST_SPEED)
@@ -42,7 +42,7 @@ static func apply(session, who, d: Variant) -> bool:
 	var clock = session.clock
 	var boost := _number(d, "boost", 0.0, MOST_BOOST)
 	if is_finite(boost):
-		clock.time_speed = boost
+		clock.time_speed = day_speed * boost
 	var season := _number(d, "season", 0.0, 3.0)
 	if is_finite(season):
 		clock.season = int(season)

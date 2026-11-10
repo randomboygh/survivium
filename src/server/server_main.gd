@@ -246,6 +246,7 @@ func _open_world() -> bool:
 	if had_save:
 		gen.material_map = Mat.remap(WorldStore.materials_of(meta))
 	var clock := Clock.new()
+	clock.time_speed = config.day_speed()
 	if had_save and meta.get("sky") is Dictionary:
 		clock.from_dict(meta.sky)
 	var placed := Placed.new()
