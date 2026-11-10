@@ -20,6 +20,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const ServerStore := preload("res://src/server/server_store.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
 const Tunnel := preload("res://src/server/tunnel.gd")
+const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const Config := preload("res://src/server/config.gd")
 
 const ROOT := "user://test_saves/server"
@@ -270,6 +271,17 @@ func _run() -> void:
 		_check(main.world.get_cell(floori(at.x / WorldData.CELL), floori(at.y / WorldData.CELL) - 1, floori(at.z / WorldData.CELL))
 			== server.session.world.get_cell(floori(at.x / WorldData.CELL), floori(at.y / WorldData.CELL) - 1, floori(at.z / WorldData.CELL)),
 			"the cells are the server's")
+		# The ring at LOAD_RANGE never comes (the server sends its zone): waited for, the
+		# best of it on the screen kept every other chunk from being built (2026-11-10, a
+		# phone held upright stood at half the loading).
+		var inner := func() -> bool:
+			for dz in range(-ChunkStreamer.LOAD_RANGE + 1, ChunkStreamer.LOAD_RANGE):
+				for dx in range(-ChunkStreamer.LOAD_RANGE + 1, ChunkStreamer.LOAD_RANGE):
+					if not main.chunks.chunk_nodes.has(spawn_key + Vector2i(dx, dz)):
+						return false
+			return true
+		_check(await _until(inner, 60.0), "every chunk inside the server's zone is built, the edge never sent waits aside (%d built)"
+			% main.chunks.chunk_nodes.size())
 		_check(main.placed.things.size() == server.session.placed.things.size() and main.placed.things.size() > 0
 			and main.wildlife.animals.size() == server.session.wildlife.animals.size() and main.clock.season == server.session.clock.season,
 			"the copies of the things, the animals and the clock are full")

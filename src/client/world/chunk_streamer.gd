@@ -101,6 +101,12 @@ var chunk_nodes := {}
 ## (the player's, see focus).
 var pending_chunks: Array[Vector2i] = []
 var load_home := Vector2i(-1000000, 0)
+## Pending chunks whose cells (or their neighbours') have not been made yet: next_chunk
+## passes them over until the generator makes something (_on_generated). Over a socket
+## the server sends only its zone, so the ring at LOAD_RANGE never comes: the best one
+## on the screen, waited for, kept the near chunks at the sides from being built and the
+## loading screen stood at half on a phone held upright (2026-11-10).
+var waiting := {}
 var unload_queue: Array[Vector2i] = []
 ## The near chunks are built by run_jobs a step at a time within LOAD_BUDGET_US
 ## (behind the main menu) instead of whole by build_near (the loading screen, tools).
@@ -325,6 +331,7 @@ func _list_pending() -> void:
 	load_home = home
 	load_reach = reach
 	pending_chunks.clear()
+	waiting.clear()
 	for cz in range(home.y - reach, home.y + reach + 1):
 		for cx in range(home.x - reach, home.x + reach + 1):
 			var key := Vector2i(cx, cz)
@@ -351,8 +358,15 @@ func next_chunk() -> Vector2i:
 	var best_d := INF
 	var half := _screen_half()
 	var here := _at()
+	var all_wait := true
+	for k in pending_chunks:
+		if not waiting.has(k):
+			all_wait = false
+			break
 	for i in pending_chunks.size():
 		var k := pending_chunks[i]
+		if not all_wait and waiting.has(k):
+			continue
 		var d: float
 		if focus.is_finite():
 			d = maxi(absi(k.x - at.x), absi(k.y - at.y))
@@ -510,6 +524,7 @@ func gen_budgets() -> Vector2i:
 ## is not painted bare at TERRAIN: its trees would go from the map until it is SHAPED
 ## again.
 func _on_generated(key: Vector2i, stage: int) -> void:
+	waiting.clear()
 	var parts: Array
 	if stage == WorldGen.SHAPED:
 		parts = [0, 1]
@@ -718,10 +733,14 @@ func run_jobs(spent := 0) -> void:
 					job_budget = load_budget
 				if not gen.needed(job_key).is_empty():
 					# The session has not made it yet: back into the queue, nearest
-					# first again next frame (the player may have walked on).
+					# first again next frame (the player may have walked on), and
+					# another one now if some other is not waited for (see waiting).
 					pending_chunks.append(job_key)
 					has_target = false
-					break
+					if waiting.has(job_key):
+						break
+					waiting[job_key] = true
+					continue
 			elif game.ready_to_play and not paused and not keep_queue.is_empty():
 				# Nothing else to build: a chunk near the player built before it came,
 				# again, to keep its jobs, at the stream budget.
