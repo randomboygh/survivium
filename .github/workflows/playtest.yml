@@ -97,7 +97,9 @@ jobs:
             echo "Открыть на телефоне: $link"
           } >> "$GITHUB_STEP_SUMMARY"
           for i in $(seq "$bots"); do
-            nohup ~/godot/godot --headless --path . -- --join ws://localhost:7777 --name "Бот$i" --bot \
+            # Each bot with its own user:// (else they share one key and put each other
+            # out), below the server's priority.
+            XDG_DATA_HOME="$RUNNER_TEMP/bot$i" nohup nice -n 10 ~/godot/godot --headless --path . -- --join ws://localhost:7777 --name "Бот$i" --bot \
               </dev/null > "logs/bot$i.log" 2>&1 &
           done
           echo "$link" > link/link.txt

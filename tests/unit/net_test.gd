@@ -179,6 +179,10 @@ func _test_requests() -> void:
 	_check(is_equal_approx(clock.time_of_day, 0.5) and clock.weather == Clock.RAIN, "the copy of the clock runs the time of day between snapshots")
 	_check(not clock.from_snapshot([1, 2]) and not clock.from_snapshot(s.clock.snapshot().map(func(_v: Variant) -> String: return "x")),
 		"a snapshot of another shape or of strings is refused")
+	var pinned := RemoteClock.new()
+	s.clock.moon_pin = 0.25
+	_check(pinned.from_snapshot(s.clock.snapshot()) and pinned.moon_pin == 0.25, "the moon the playtest page pins comes with the clock")
+	s.clock.moon_pin = -1.0
 	var told: Array[int] = []
 	var fresh := RemoteClock.new()
 	fresh.season_changed.connect(func(season: int) -> void: told.append(season))

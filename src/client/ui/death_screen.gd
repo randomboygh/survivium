@@ -187,7 +187,10 @@ func update() -> void:
 		game.hud.visible = false
 		print("death screen shown: %s" % _title.text)
 	elif not want and visible:
+		# Over a socket the screen may show again for the frames until the server's word
+		# that the character lives comes (after _revive): the interface comes back with it.
 		visible = false
+		game.hud.visible = true
 	if visible:
 		# The main menu, closing, shows the interface again.
 		game.hud.visible = false

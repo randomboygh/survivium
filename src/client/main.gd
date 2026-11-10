@@ -316,6 +316,10 @@ func _ready() -> void:
 	controls = Controls.new(self)
 	if join_url != "" and Bot.asked():
 		bot = Bot.new(self)
+		# Bots run beside the server on one machine: unbounded, their frames took the
+		# server's processor, and its tick fell behind (the animals lagged, the players'
+		# bodies were put back, 2026-11-10).
+		Engine.max_fps = Bot.FPS
 	build = BuildMode.new(self)
 	farm = FarmMode.new(self)
 	settings = SettingsScript.new(self)
@@ -516,7 +520,9 @@ func _connect() -> void:
 		join_error = "Неверный адрес сервера"
 		return
 	net = socket.net
-	socket.hello(player_name, ServerList.key(join_url), join_password).then(_on_welcome)
+	# A bot comes in new each time: bots started side by side share this device's keys.
+	var key: String = "" if bot != null else ServerList.key(join_url)
+	socket.hello(player_name, key, join_password).then(_on_welcome)
 
 
 func _on_welcome(v: Variant) -> void:
@@ -534,7 +540,8 @@ func _on_welcome(v: Variant) -> void:
 		join_error = "Сервер ответил не по-нашему"
 		return
 	welcome = v
-	ServerList.remember(join_url, str(v.get("key", "")), str(v.get("title", "")))
+	if bot == null:
+		ServerList.remember(join_url, str(v.get("key", "")), str(v.get("title", "")))
 	# The player who made the server here is its host: commands in the chat are theirs.
 	if hosted != null and hosted.server != null:
 		hosted.server.make_host(str(v.get("key", "")))

@@ -119,6 +119,9 @@ var warm_days := 0
 var weather := CLEAR
 ## The weather changes by itself; the playtest page can pin one.
 var weather_auto := true
+## The moonlight the playtest page pins (0 new moon .. 1 full moon), -1 for the phase of
+## the moon; on the server's clock, so every player sees the same (Sky).
+var moon_pin := -1.0
 ## The wind's strength of the real weather (see set_real_weather), or -1: the
 ## weather's own.
 var real_wind := -1.0
@@ -444,7 +447,7 @@ func from_dict(d: Dictionary) -> void:
 const SNAPSHOT: Array[StringName] = [&"day", &"time_of_day", &"time_speed", &"real_time", &"real_season",
 	&"season", &"season_clock", &"weather", &"weather_auto", &"real_wind", &"weather_left", &"rain",
 	&"snowing", &"hail", &"sand", &"fog", &"fog_depth", &"haze", &"storm_wind", &"wind_angle", &"wind_to",
-	&"leaf_fall", &"clouds", &"snow", &"wet", &"puddles", &"morning_fog_pin", &"biome"]
+	&"leaf_fall", &"clouds", &"snow", &"wet", &"puddles", &"morning_fog_pin", &"biome", &"moon_pin"]
 
 
 ## All the clock shows (the time, the season, the weather and what it leaves on the
