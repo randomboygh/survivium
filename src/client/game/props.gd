@@ -134,6 +134,7 @@ func remodel() -> void:
 ## The player places item `id` from the bag (see Placed.put_from_bag) below the level
 ## cut, through the server; true if it was placed (over the loop the reply is in at once).
 func put_from_bag(id: String, slot := -1) -> bool:
+	game.land.expect_post(id)
 	var r = game.net.request(Protocol.PROP_PUT, [id, slot, game.chunks.cut_level])
 	return r.done and r.value is bool and r.value
 

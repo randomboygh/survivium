@@ -11,6 +11,13 @@ const Territory := preload("res://src/shared/game/territory.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Items := preload("res://src/shared/content/items.gd")
+
+## How long after asking to set a post down its claim still starts painting.
+const EXPECT_MS := 10000
+## How many cells over its foot the column of a post's square reaches for a tap (the post
+## stands in it): a tap anywhere in that column is a tap on the post.
+const POST_HEIGHT := 3
 
 ## Something changed: the claims, the squares, the count, the mode.
 signal changed
@@ -27,9 +34,10 @@ var budget := 0
 var painting := false
 ## The claim the player stood in last frame (its id, 0 for none).
 var _in := -1
-## Whether the server told the claims once (a claim of the player's told later is a post
-## they have just set down: painting starts with it).
-var _told := false
+## Until when (Time.get_ticks_msec) a new claim of the player's is a post they have just
+## asked to set down (expect_post): painting starts with it. A claim told otherwise (the
+## world loaded on entering the game, a rejoin) leaves painting off.
+var _expect_until := 0
 
 
 func _init() -> void:
@@ -42,12 +50,19 @@ func take_claims(list: Array) -> void:
 	for id: int in copy.claims:
 		had[id] = true
 	copy.take_claims(list)
-	if _told:
+	if Time.get_ticks_msec() < _expect_until:
 		for claim: Dictionary in copy.claims.values():
 			if not had.has(claim.id) and claim.by == me():
 				# A post just set down: its square is the player's already, the rest to paint.
+				_expect_until = 0
 				toggle_painting(true)
-	_told = true
+
+
+## The player asks the server to set item `id` down: when it claims land (a boundary
+## post), the claim told within a few seconds starts painting.
+func expect_post(id: String) -> void:
+	if Items.get_item(id).get("claims", false):
+		_expect_until = Time.get_ticks_msec() + EXPECT_MS
 
 
 func take_squares(list: Array, all: bool) -> void:
@@ -116,6 +131,38 @@ func tap_post(e: Dictionary) -> bool:
 func is_post_square(cell: Vector3i) -> bool:
 	var claim := copy.claim_at(cell)
 	return own(claim) and claim.sq == Territory.square_of(cell)
+
+
+## Whether the ray from `o` along `d` (in cells) goes into the column of the square of
+## a post of the player's (or their team's) before `far` (how far along it the world's
+## first cell is, INF for none): the post and the ground of its first square answer a
+## tap alike.
+func hits_post_square(o: Vector3, d: Vector3, far: float) -> bool:
+	for claim: Dictionary in copy.claims.values():
+		if not own(claim):
+			continue
+		var lo := Vector3(claim.sq.x * Territory.SQUARE, claim.center.y - 1, claim.sq.y * Territory.SQUARE)
+		var hi := lo + Vector3(Territory.SQUARE, 1 + POST_HEIGHT, Territory.SQUARE)
+		var t := _enter_box(o, d, lo, hi)
+		if t < INF and t <= far + 0.001:
+			return true
+	return false
+
+
+## How far along ray `o`, `d` it enters box `lo`..`hi`; INF when it misses it.
+static func _enter_box(o: Vector3, d: Vector3, lo: Vector3, hi: Vector3) -> float:
+	var t0 := -INF
+	var t1 := INF
+	for axis in 3:
+		if absf(d[axis]) < 0.000001:
+			if o[axis] < lo[axis] or o[axis] > hi[axis]:
+				return INF
+			continue
+		var a := (lo[axis] - o[axis]) / d[axis]
+		var b := (hi[axis] - o[axis]) / d[axis]
+		t0 = maxf(t0, minf(a, b))
+		t1 = minf(t1, maxf(a, b))
+	return t0 if t0 <= t1 and t1 >= 0.0 else INF
 
 
 ## Turns painting on or off as the player asked (painting_toggled tells the HUD).

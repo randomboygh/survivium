@@ -230,12 +230,10 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 		if touch and not _stroke.is_empty():
 			mode().show_stroke(_stroke)
 		return
-	if game.land.has_own():
-		# The square of one's own post starts painting, as the post does.
-		var hit := pick(pos)
-		if not hit.is_empty() and game.land.is_post_square(hit.cell):
-			game.land.toggle_painting(true)
-			return
+	if game.land.has_own() and _on_post_square(pos, pick(pos)):
+		# One's own post or anything in its first square starts painting.
+		game.land.toggle_painting(true)
+		return
 	var use := use_of()
 	var target: Dictionary = game.gathering.target_at(pos)
 	if not target.is_empty() and (use in ["tool", "hand"] or not target.has("bush")):
@@ -636,17 +634,28 @@ func _start_stroke(button: int, pos: Vector2, dig: bool) -> void:
 ## finger then goes over is painted or cleared alike.
 func _start_paint(button: int, pos: Vector2) -> void:
 	var hit := pick(pos)
-	if hit.is_empty():
-		return
-	if game.land.is_post_square(hit.cell):
-		# The square of one's own post: ends painting, as the post does.
+	if _on_post_square(pos, hit):
+		# One's own post or anything in its first square: ends painting.
 		game.land.toggle_painting(false)
+		return
+	if hit.is_empty():
 		return
 	var sq := Territory.square_of(hit.cell)
 	var claim: Dictionary = game.land.claim_of(sq)
 	_stroke = {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "paint": not game.land.own(claim),
 		"square": sq}
 	game.land.paint(sq, _stroke.paint)
+
+
+## Whether a tap at `pos` (`hit` the cell picked there) falls in the first square of a
+## post of the player's (or their team's): on its ground, on the post, or on anything
+## standing in the square up to the post's height, unless the world hides it.
+func _on_post_square(pos: Vector2, hit: Dictionary) -> bool:
+	if not hit.is_empty() and game.land.is_post_square(hit.cell):
+		return true
+	var ray := _ray(pos)
+	var far := INF if hit.is_empty() else _enter(ray[0], ray[1], hit.cell)
+	return game.land.hits_post_square(ray[0], ray[1], far)
 
 
 func _run_stroke() -> void:

@@ -346,6 +346,7 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		var into_wall: bool = (item.get("door", false) or item.get("window", false)) and not item.get("hatch", false) \
 			and hit.normal.y == 0 and built
 		var into_floor: bool = item.get("hatch", false) and hit.normal.y != 0 and built
+		game.land.expect_post(chosen())
 		game.net.request(Protocol.PROP_PUT_AT, [chosen(), cell if into_wall or into_floor else cell + hit.normal])
 		return {}
 	var first := start_cell(hit)
