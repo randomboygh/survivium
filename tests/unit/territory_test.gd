@@ -9,6 +9,7 @@ const Protocol := preload("res://src/shared/net/protocol.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
 const CharacterScript := preload("res://src/shared/game/character.gd")
 const Fights := preload("res://src/shared/game/fights.gd")
+const Land := preload("res://src/client/game/land.gd")
 
 
 func run() -> void:
@@ -22,6 +23,7 @@ func run() -> void:
 	_test_pvp()
 	_test_respawn()
 	_test_decay()
+	_test_client_land()
 
 
 func _test_teams() -> void:
@@ -503,6 +505,44 @@ func _step_back(s, link) -> bool:
 	link.who.teleport(Vector3(14.5, 2.0, 14.5) * WorldData.CELL)
 	s.step_players(0.1)
 	return link.who.position.distance_to(Vector3(30.5, 2.0, 30.5) * WorldData.CELL) < 1.0
+
+
+## The client's copy of the land: a post told on entering the game leaves the marking
+## off, one the player has just asked to set down turns it on; a tap goes to the post
+## anywhere in the column of its first square.
+func _test_client_land() -> void:
+	var land := Land.new()
+	land.game = _Game.new()
+	var post := [[1, Vector3i(10, 5, 10), 7, "Аня"]]
+	land.take_claims([])
+	land.take_claims(post)
+	_check(not land.painting, "the post of a world just loaded does not start the marking")
+	land.take_claims([])
+	land.expect_post("tools:axe")
+	land.take_claims(post)
+	_check(not land.painting, "nor does a claim told after something else set down")
+	land.take_claims([])
+	land.expect_post("tools:boundary_post")
+	land.take_claims(post)
+	_check(land.painting, "a post the player has just set down starts it")
+	var down := Vector3(0.0, -1.0, 0.0)
+	_check(land.hits_post_square(Vector3(11.5, 20.0, 10.5), down, INF), "a tap from above onto the square is the post's")
+	_check(land.hits_post_square(Vector3(10.5, 6.5, 0.0), Vector3(0.0, 0.0, 1.0), INF),
+		"a tap on the post itself from the side is too")
+	_check(not land.hits_post_square(Vector3(12.5, 20.0, 10.5), down, INF), "the next square is not")
+	_check(not land.hits_post_square(Vector3(10.5, 6.5, 0.0), Vector3(0.0, 0.0, 1.0), 5.0),
+		"nor a post hidden behind the world")
+	land.game.welcome = {"id": 8}
+	_check(not land.hits_post_square(Vector3(11.5, 20.0, 10.5), down, INF), "nor another's post")
+
+
+class _Game:
+	var welcome := {"id": 7}
+	var team := _Team.new()
+
+
+class _Team:
+	var view := {}
 
 
 class _Who:
