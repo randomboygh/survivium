@@ -3,7 +3,8 @@ extends ScrollContainer
 ## territory-pvp.md), shown only on a server, where teams are (Main.welcome; the user's
 ## ask 2026-11-02 moved it there from the pause menu): the team's members (the lead
 ## marked «старший», the player «вы»; the lead's tap on a member puts them out), the
-## invitations waiting with «Принять» and «Отказаться», «Выйти из команды», how to
+## invitations waiting with «Принять» and «Отказаться», those the player sent still
+## waiting for an answer, «Выйти из команды», how to
 ## call someone in, the server's rule of fighting players and the newcomer's protection
 ## with «Снять защиту». No title: the tab names it. It follows game.team as it changes,
 ## scrolls when the screen is lower than it (InventoryWindow sets its height), its rows
@@ -77,6 +78,10 @@ func refresh() -> void:
 		_button(_box, "Выйти из команды", team.leave)
 	elif team.invites.is_empty():
 		_box.add_child(UiStyle.label("Вы не в команде", UiStyle.MUTED))
+	for e: Array in team.sent_waiting():
+		var who: String = game.others.people[e[0]].label.text if game.others != null and game.others.people.has(e[0]) \
+			else Lang.f("игрок %d", [e[0]])
+		_box.add_child(UiStyle.label(Lang.f("Вы позвали: %s, ждём ответа", [who]), UiStyle.MUTED))
 	var hint := UiStyle.label("Чтобы позвать в команду, нажмите на игрока рядом", UiStyle.MUTED)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.custom_minimum_size = Vector2(WIDTH, 0)

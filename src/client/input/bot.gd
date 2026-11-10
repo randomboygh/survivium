@@ -3,7 +3,7 @@ extends RefCounted
 ## (.github/workflows/playtest.yml), so a person alone on a phone sees other players
 ## around: it walks about its spawn, talks in the chat, makes gestures, throws things
 ## out, sets signs down and writes on them, lights campfires, fells trees and hunts the
-## animals near (which may turn on it). It asks the server as a player does, by the
+## animals near (which may turn on it), and accepts invitations to a team. It asks the server as a player does, by the
 ## same requests (Protocol); what it has comes from the recipes given for nothing, so
 ## the server runs with the rule «Бесплатные предметы» (Rules.free_items). It takes the
 ## place of the keys and the stick: `move` is the way it walks (Main sets the body's
@@ -32,6 +32,8 @@ const TASK_MOST := 25.0
 const PAUSE := Vector2(1.0, 4.0)
 ## The seconds between two swings asked for (the server paces them anyway).
 const SWING_EVERY := 0.6
+## Seconds before it accepts an invitation to a team.
+const INVITE_WAIT := 2.0
 ## Seconds dead before it comes back.
 const DEAD_WAIT := 6.0
 ## The tasks and how often each is picked.
@@ -64,6 +66,7 @@ var _last_pos := Vector3.INF
 var _still := 0.0
 var _stuck := 0
 var _missed := 0
+var _invited_for := 0.0
 
 
 func _init(g) -> void:
@@ -94,6 +97,13 @@ func move(delta: float) -> Vector2:
 			var at: Vector3 = game.character.home if game.character.home.is_finite() else _home
 			game.net.request(Protocol.REVIVE, [at])
 		return Vector2.ZERO
+	if not game.team.invites.is_empty():
+		# Called into a team: it says yes after a moment.
+		_invited_for += delta
+		if _invited_for > INVITE_WAIT:
+			_invited_for = 0.0
+			game.team.accept(int(game.team.invites[0][0]))
+			game.net.request(Protocol.CHAT, ["Принимаю, я с вами!"])
 	if task == "":
 		_pause -= delta
 		if _pause <= 0.0:

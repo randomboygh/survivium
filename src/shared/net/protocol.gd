@@ -276,7 +276,8 @@ const HEARD := "heard"
 ## The player's team (Teams.view): [{"id", "name", "lead", "members": [[id, name]…]}],
 ## {} for none; on joining and when it changes.
 const TEAM := "team"
-## The invitations to a team waiting for the player: [[[id, name]…]]; when they change.
+## The invitations to a team waiting for the player, and those the player sent that wait
+## for an answer: [[[id, name]…], [[id, seconds left]…]]; when they change.
 const INVITES := "invites"
 ## The claims of land (Territory.claims_view): [[[id, centre cell, by, name, the owner's
 ## rights [team mask, others mask], the owner's colour]…]], all of them, on joining and

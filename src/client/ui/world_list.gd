@@ -1,9 +1,10 @@
 extends Control
 ## The saved worlds (see WorldStore.list_worlds), the one saved last first: a row each
 ## with its seed, kind and day (and when it was saved, in the tooltip). Tapping a row picks that world
-## (`chosen`); "Удалить" asks again and then deletes it from the device. The world
-## being played cannot be deleted. The test world has "Сбросить" in its place, which
-## asks again and forgets its save, so it is laid out anew (played, at once). "Назад" (or Escape) leaves. It covers the whole
+## (`chosen`); the square trash button beside it turns red on the first tap and deletes
+## the world from the device on the second. The world being played cannot be deleted
+## (its button is greyed). The test world's trash button resets it instead: two taps
+## forget its save, so it is laid out anew (played, at once). "Назад" (or Escape) leaves. It covers the whole
 ## screen over a shade of the world behind, the panel in the middle. `game` is the
 ## Main node.
 
@@ -14,10 +15,10 @@ const Mods := preload("res://src/shared/content/mods.gd")
 const WorldSetup := preload("res://src/client/ui/world_setup.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 
-const ROW_WIDTH := 170
+const ROW_WIDTH := 226
 const ROW_H := 36
-## As wide as the widest of «Удалить», «Сбросить», «сейчас».
-const DELETE_WIDTH := 96
+## The trash button is square.
+const DELETE_WIDTH := ROW_H
 ## Rows shown before the list scrolls.
 const VISIBLE_ROWS := 5
 const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
@@ -106,17 +107,18 @@ func _fill() -> void:
 		row.add_child(pick)
 		var del := Button.new()
 		del.focus_mode = Control.FOCUS_NONE
+		del.icon = UiStyle.icon("trash")
+		del.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		del.custom_minimum_size = Vector2(DELETE_WIDTH, ROW_H)
 		if w.seed == WorldStore.TEST_SEED:
-			del.text = "Сбросить"
-			del.tooltip_text = "Вернуть тестовый мир к началу"
+			del.tooltip_text = "Вернуть тестовый мир к началу (нажать дважды)"
 			del.pressed.connect(func() -> void: _reset(del))
 		elif current:
 			# The world being played stays.
-			del.text = "сейчас"
+			del.tooltip_text = "Мир сейчас в игре"
 			del.disabled = true
 		else:
-			del.text = "Удалить"
+			del.tooltip_text = "Удалить мир (нажать дважды)"
 			var dir: String = w.dir
 			del.pressed.connect(func() -> void: _delete(del, dir))
 		row.add_child(del)
@@ -144,7 +146,7 @@ func _reset(button: Button) -> void:
 	_fit.call_deferred()
 
 
-## Whether `button` was asked already; else asks with it (red, its text as it was) and
+## Whether `button` was asked already; else asks with it (red) and
 ## puts back the one asked before.
 func _arm(button: Button) -> bool:
 	if _armed == button:

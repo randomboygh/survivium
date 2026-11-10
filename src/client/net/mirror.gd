@@ -216,8 +216,8 @@ func _on_event(kind: String, args: Variant) -> void:
 			if args is Array and args.size() == 1 and args[0] is Dictionary:
 				game.team.take_team(args[0])
 		Protocol.INVITES:
-			if args is Array and args.size() == 1 and args[0] is Array:
-				game.team.take_invites(args[0])
+			if args is Array and args.size() in [1, 2] and args[0] is Array:
+				game.team.take_invites(args[0], args[1] if args.size() == 2 and args[1] is Array else [])
 		Protocol.CLAIMS:
 			if args is Array and args.size() == 1 and args[0] is Array:
 				game.land.take_claims(args[0])
