@@ -2,7 +2,8 @@ extends "res://src/client/ui/menu_pages.gd"
 ## The main menu (plan/design/ui.md, section 2; plan/architecture/server.md, «Меню и
 ## экраны»): the first screen, over a painted landscape coloured for the time of day of
 ## the device's clock (stars only at night). No world is made behind it: the world is
-## loaded only once the player picks one. Its first page: «Одиночная игра»,
+## loaded only once the player picks one. Its first page: «Продолжить» (only over a
+## running world: closes the menu, back into it), «Одиночная игра»,
 ## «Мультиплеер», «Редактор», «Что нового», «Настройки», «Выход»; the first two open pages of their
 ## own in the same panel, with «Назад» at the bottom.
 ## «Одиночная игра»: "Играть" ("Продолжить" once the world has a save) loads the world
