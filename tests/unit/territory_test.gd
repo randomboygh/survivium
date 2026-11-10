@@ -61,7 +61,7 @@ func _test_teams() -> void:
 
 
 ## Two players on one server: one invites the other near them, who accepts; both are
-## told their team, each sees the other marked in PEOPLE; one far is not invited; a
+## told their team (the one asking first sees the invitation wait), each sees the other marked in PEOPLE; one far is not invited; a
 ## line to the team is said only by one in a team.
 func _test_team_requests() -> void:
 	var w := WorldData.new(8, Vector2i(32, 32))
@@ -87,7 +87,10 @@ func _test_team_requests() -> void:
 	_check(_ask(a, 2, Protocol.TEAM_INVITE, [3]) == false, "a player far away is not invited")
 	_check(_ask(a, 3, Protocol.TEAM_INVITE, [2]) == true, "a player near is invited")
 	var out := _decoded(b.flush())
-	_check(out.has([Protocol.INVITES, [[[1, "Аня"]]]]), "the invited is told who asks: %s" % [out])
+	_check(out.has([Protocol.INVITES, [[[1, "Аня"]], []]]), "the invited is told who asks: %s" % [out])
+	var sent: Array = _decoded(a.flush()).filter(func(e: Array) -> bool: return e[0] == Protocol.INVITES)
+	_check(not sent.is_empty() and sent.back()[1][1].size() == 1 and sent.back()[1][1][0][0] == 2,
+		"the one who asks is told the invitation waits: %s" % [sent])
 	_check(_ask(b, 1, Protocol.TEAM_ACCEPT, [1]) == true and s.teams.together(1, 2), "and accepts")
 	var to_a := _decoded(a.flush())
 	var team: Array = to_a.filter(func(e: Array) -> bool: return e[0] == Protocol.TEAM)

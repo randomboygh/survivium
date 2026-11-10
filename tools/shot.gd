@@ -1152,7 +1152,7 @@ func _run() -> void:
 ## tanned, the craft tab at the rack.
 ## A team for the shots of teams: the player (number 1) leads «Лесные» with Боря,
 ## who stands by them with Вова, not in it; `what` is "invite" (Гена's invitation),
-## "person" (Вова's card, tapped) or "" (the figures alone).
+## "person" (Вова's card, tapped), "chat" (Боря says a line) or "" (the figures alone).
 func _fake_team(main: Node, what: String) -> void:
 	main.welcome["id"] = 1
 	main.welcome["name"] = "Аня"
@@ -1164,6 +1164,8 @@ func _fake_team(main: Node, what: String) -> void:
 		people.append([p[0], p[1], pos, Vector2i(0, 1), ["", ""], 0, false, false, true, "", 0.0, 0, Vector3.INF, {}, p[3]])
 	main.others.take_people(people)
 	main.team.take_invites([[4, "Гена"]] if what == "invite" else [])
+	if what == "chat":
+		main.others.speak(2, "Привет! Пойдём к реке рубить деревья?")
 
 
 ## Land for the shots of territory: a boundary post set down south of the player and

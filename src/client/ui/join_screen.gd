@@ -17,6 +17,8 @@ const TextField := preload("res://src/client/ui/text_field.gd")
 const WIDTH := 240
 const FIELD_H := 30
 const ROW_H := 32
+## A recent server's row and its square trash button.
+const FORGET := 40
 const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
 const MARGIN := 8
 
@@ -30,6 +32,8 @@ var _name: LineEdit
 var _password: LineEdit
 var _error: Label
 var _recent: VBoxContainer
+## The trash button waiting for its second tap.
+var _armed: Button
 var _go: Button
 var _back: Button
 ## The address and the words of the failure the screen opens with.
@@ -136,18 +140,45 @@ func _fill_recent(recent: Array[Dictionary]) -> void:
 		return
 	_recent.add_child(UiStyle.label("Недавние", UiStyle.MUTED))
 	for r: Dictionary in recent:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 4)
 		var b := Button.new()
 		var title: String = r.title if r.title != "" else "Сервер"
 		b.text = "%s\n%s" % [title, _short(r.url)]
 		b.focus_mode = Control.FOCUS_NONE
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.clip_text = true
-		b.custom_minimum_size = Vector2(WIDTH, 40)
+		b.custom_minimum_size = Vector2(WIDTH - FORGET - 4, FORGET)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var url: String = r.url
 		b.pressed.connect(func() -> void:
 			_url.text = url
 			_say(""))
-		_recent.add_child(b)
+		row.add_child(b)
+		var forget := Button.new()
+		forget.focus_mode = Control.FOCUS_NONE
+		forget.icon = UiStyle.icon("trash")
+		forget.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		forget.tooltip_text = "Убрать сервер из списка (нажать дважды)"
+		forget.custom_minimum_size = Vector2(FORGET, FORGET)
+		forget.pressed.connect(func() -> void: _forget(forget, url))
+		row.add_child(forget)
+		_recent.add_child(row)
+
+
+## The first tap turns the trash button red, the second forgets the server
+## (ServerList.forget) and lists the rest.
+func _forget(button: Button, url: String) -> void:
+	if _armed != button:
+		if is_instance_valid(_armed):
+			UiStyle.arm(_armed, false)
+		_armed = button
+		UiStyle.arm(button, true)
+		return
+	_armed = null
+	ServerList.forget(url)
+	print("server forgotten: %s" % url)
+	_fill_recent(ServerList.recent())
 
 
 ## The address without its scheme, as it fits a row.

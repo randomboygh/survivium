@@ -108,6 +108,7 @@
 "К реке →": "To the river →"
 "Не рубить!": "Do not cut!"
 "Бот %s": "Bot %s"
+"Принимаю, я с вами!": "Accepted, I'm with you!"
 
 # src/client/input/build_mode.gd
 "Нет чертежа: нарисуйте его на земле": "No blueprint: draw one on the ground"
@@ -611,6 +612,7 @@
 "если сервер просит": "if the server asks"
 "Подключиться": "Connect"
 "Недавние": "Recent"
+"Убрать сервер из списка (нажать дважды)": "Remove the server from the list (tap twice)"
 "Введите имя": "Enter a name"
 
 # src/client/ui/land_page.gd
@@ -986,6 +988,8 @@
 "исключить": "remove"
 "Выйти из команды": "Leave the team"
 "Вы не в команде": "You are not in a team"
+"игрок %d": "player %d"
+"Вы позвали: %s, ждём ответа": "You invited %s, waiting for an answer"
 "Чтобы позвать в команду, нажмите на игрока рядом": "To invite someone to your team, tap a player nearby"
 "Защита новичка: ещё %d мин": "Newcomer protection: %d min more"
 "Снять защиту": "Drop the protection"
@@ -999,10 +1003,9 @@
 "Тестовый мир\nплощадки · день %d": "Test world\ngrounds · day %d"
 "Сохранён %s, в игре %d мин": "Saved %s, played %d min"
 "\nМоды: %s": "\nMods: %s"
-"Сбросить": "Reset"
-"Вернуть тестовый мир к началу": "Return the test world to its start"
-"сейчас": "now"
-"Удалить": "Delete"
+"Вернуть тестовый мир к началу (нажать дважды)": "Reset the test world (tap twice)"
+"Мир сейчас в игре": "This world is being played"
+"Удалить мир (нажать дважды)": "Delete the world (tap twice)"
 "свой": "custom"
 
 # src/client/ui/world_setup.gd

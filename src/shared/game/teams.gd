@@ -77,6 +77,16 @@ func invites_of(id: int, now: float) -> Array:
 	return out
 
 
+## The players `id` invited who have not answered yet: [[player, seconds left]…].
+func sent_of(id: int, now: float) -> Array:
+	_expire(now)
+	var out := []
+	for to: int in invites:
+		if invites[to].has(id):
+			out.append([to, maxf(0.0, INVITE_TIME - (now - float(invites[to][id])))])
+	return out
+
+
 ## Player `id` (named `name`) accepts the invitation of player `from`: joins their team
 ## (made now if `from` has none, named after them, `from` leading). False when there is
 ## no such invitation, `from` left the world's teams meanwhile into another, or `id` is
@@ -106,11 +116,17 @@ func accept(id: int, name: String, from: int, now: float) -> bool:
 ## Player `id` turns down the invitation of `from` (all of them for `from` 0).
 func decline(id: int, from: int) -> bool:
 	var waiting: Dictionary = invites.get(id, {})
+	# Those who invited learn it (their invitations sent, sent_of).
+	var told: Array = waiting.keys() if from == 0 else ([from] if waiting.has(from) else [])
+	var done: bool
 	if from == 0:
-		return invites.erase(id)
-	var done := waiting.erase(from)
-	if waiting.is_empty():
-		invites.erase(id)
+		done = invites.erase(id)
+	else:
+		done = waiting.erase(from)
+		if waiting.is_empty():
+			invites.erase(id)
+	if not told.is_empty():
+		changed.emit(told)
 	return done
 
 
