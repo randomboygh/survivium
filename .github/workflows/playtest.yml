@@ -56,7 +56,7 @@ jobs:
           bots=$(( ${BOTS//[^0-9]/} + 0 )); [ "$bots" -le 3 ] || bots=3
           seed_args=()
           if [[ "$SEED" =~ ^-?[0-9]+$ ]]; then seed_args=(--seed "$SEED"); fi
-          mkdir -p logs
+          mkdir -p logs link
           nohup ~/godot/godot --headless --path . -- --server --port 7777 --no-save "${seed_args[@]}" \
             --tunnel --cloudflared ~/cloudflared </dev/null > logs/server.log 2>&1 &
           server=$!
@@ -79,8 +79,15 @@ jobs:
             nohup ~/godot/godot --headless --path . -- --join ws://localhost:7777 --name "Бот$i" \
               </dev/null > "logs/bot$i.log" 2>&1 &
           done
+          echo "$link" > link/link.txt
           echo "$server" > logs/server.pid
           echo "$(( $(date +%s) + minutes * 60 ))" > logs/end
+      # The link as an artifact too: it can be read while the run goes on (the logs only after).
+      - name: Keep the link
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playtest-link
+          path: link/link.txt
       - name: Play
         run: |
           server=$(cat logs/server.pid)
