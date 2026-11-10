@@ -44,15 +44,22 @@ func set_tabs(keys: Array, icons: Dictionary, tips: Dictionary) -> bool:
 	if not keys.has(chosen):
 		chosen = keys[0] if not keys.is_empty() else ""
 	if keys != _keys:
+		# The tabs kept stay as they are, lit or not (several kinds come at once when a
+		# craft teaches a dozen recipes, and making and lighting every tab anew took a
+		# frame's share): only the new ones are made, and the column is laid out once.
 		_keys = keys.duplicate()
-		_column.clear_items()
-		_buttons = {}
-		_lit = "-"
+		var kept := {}
+		var list := []
 		for k in keys:
-			var b := TabRow.icon_button(icons.get(k), tips.get(k, ""), func() -> void: pick(k))
-			b.custom_minimum_size = Vector2(SIDE, SIDE - 2)
-			_column.add_item(b)
-			_buttons[k] = b
+			var b: Button = _buttons.get(k)
+			if b == null:
+				b = TabRow.icon_button(icons.get(k), tips.get(k, ""), func() -> void: pick(k))
+				b.custom_minimum_size = Vector2(SIDE, SIDE - 2)
+			kept[k] = b
+			list.append(b)
+		_buttons = kept
+		_column.set_items(list)
+		_lit = "-"
 	else:
 		for k in keys:
 			_buttons[k].icon = UiStyle.centred(icons.get(k))
@@ -84,8 +91,14 @@ func _light() -> void:
 	if _lit == chosen:
 		return
 	_lit = chosen
+	# Only the tabs whose light changes are styled again (each style set lays the
+	# button out anew).
 	for k in _buttons:
-		TabRow.light(_buttons[k], k == chosen)
+		var b: Button = _buttons[k]
+		var on: bool = k == chosen
+		if b.get_meta("lit", false) != on:
+			TabRow.light(b, on)
+			b.set_meta("lit", on)
 	if _buttons.has(chosen):
 		_column.reveal(_keys.find(chosen))
 
