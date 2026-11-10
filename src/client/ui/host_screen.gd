@@ -223,6 +223,9 @@ func _button(text: String, action: Callable, accent := false) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
+	# Acts as the finger lands: the keyboard closing as it does moves the button away
+	# before the finger lifts.
+	b.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	b.custom_minimum_size = Vector2(WIDTH, ROW_H + 4)
 	if accent:
 		UiStyle.accent(b)
