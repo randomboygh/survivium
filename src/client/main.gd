@@ -358,6 +358,8 @@ func _ready() -> void:
 	placed.read_footprints()
 	props.watch(placed)
 	wildlife = RemoteWildlife.new()
+	# Over a socket the animals glide between the server's snapshots.
+	wildlife.smooth = join_url != ""
 	character = CharacterScript.new(self)
 	character.clock = clock
 	character.placed = placed

@@ -27,6 +27,31 @@ func run() -> void:
 	_test_remote_workshop()
 	_test_cells()
 	_test_playtest()
+	_test_glide()
+
+
+## Over a socket the animals glide between the server's snapshots; a far one is put
+## there at once; over the loop each snapshot is taken as it is.
+func _test_glide() -> void:
+	var kind: String = AiRules.SPECIES.keys()[0]
+	var wild := RemoteWildlife.new()
+	wild.smooth = true
+	wild.take_born([1, kind, 0, Vector3.ZERO])
+	var a = wild.by_id(1)
+	wild.take_snap([[1, Vector3(1.0, 0.0, 0.0), 0.0, 1.0, false, false, true, 0.0, false, true, "wander"]])
+	_check(a.pos == Vector3.ZERO and a.gliding, "a snapshot near starts a glide from where the animal is drawn")
+	a.since -= a.span * 0.5
+	wild.glide()
+	_check(a.pos.x > 0.2 and a.pos.x < 0.8 and a.gliding, "half way through, half way there: %s" % a.pos)
+	a.since -= a.span
+	wild.glide()
+	_check(a.pos == Vector3(1.0, 0.0, 0.0) and not a.gliding, "and then there")
+	wild.take_snap([[1, Vector3(10.0, 0.0, 0.0), 0.0, 1.0, false, false, true, 0.0, false, true, "wander"]])
+	_check(a.pos == Vector3(10.0, 0.0, 0.0) and not a.gliding, "a far one is put there at once")
+	var loop := RemoteWildlife.new()
+	loop.take_born([1, kind, 0, Vector3.ZERO])
+	loop.take_snap([[1, Vector3(1.0, 0.0, 0.0), 0.0, 1.0, false, false, true, 0.0, false, true, "wander"]])
+	_check(loop.by_id(1).pos == Vector3(1.0, 0.0, 0.0), "over the loop a snapshot is taken as it is")
 
 
 ## The playtest server's address read out of the link its workflow leaves (a status), and
