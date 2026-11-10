@@ -13,12 +13,15 @@ extends Control
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 const TextField := preload("res://src/client/ui/text_field.gd")
+const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 
 const WIDTH := 240
 const FIELD_H := 30
 const ROW_H := 32
 ## A recent server's row and its square trash button.
 const FORGET := 40
+## Recent servers shown before their list scrolls (as «Загрузить мир», WorldList).
+const RECENT_ROWS := 3
 const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
 const MARGIN := 8
 
@@ -32,6 +35,8 @@ var _name: LineEdit
 var _password: LineEdit
 var _error: Label
 var _recent: VBoxContainer
+var _recent_scroll: ScrollContainer
+var _recent_rows: VBoxContainer
 ## The trash button waiting for its second tap.
 var _armed: Button
 var _go: Button
@@ -76,6 +81,16 @@ func _ready() -> void:
 	_recent = VBoxContainer.new()
 	_recent.add_theme_constant_override("separation", 4)
 	box.add_child(_recent)
+	_recent.add_child(UiStyle.label("Недавние", UiStyle.MUTED))
+	_recent_scroll = ScrollContainer.new()
+	_recent_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_recent.add_child(_recent_scroll)
+	_recent_rows = VBoxContainer.new()
+	_recent_rows.add_theme_constant_override("separation", 4)
+	_recent_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_recent_scroll.add_child(_recent_rows)
+	# A finger dragged over the server buttons scrolls them too.
+	DragScroll.attach(_recent_scroll)
 	_fill_recent(recent)
 	_go = Button.new()
 	_go.text = "Подключиться"
@@ -133,12 +148,13 @@ func _next_after(f: LineEdit) -> void:
 ## A row for each server joined lately: its name and address; a tap puts the address
 ## in the field.
 func _fill_recent(recent: Array[Dictionary]) -> void:
-	for c in _recent.get_children():
+	for c in _recent_rows.get_children():
 		c.queue_free()
-		_recent.remove_child(c)
-	if recent.is_empty():
-		return
-	_recent.add_child(UiStyle.label("Недавние", UiStyle.MUTED))
+		_recent_rows.remove_child(c)
+	_recent.visible = not recent.is_empty()
+	# As tall as the rows, at most RECENT_ROWS, then scrolled.
+	var shown := mini(recent.size(), RECENT_ROWS)
+	_recent_scroll.custom_minimum_size = Vector2(WIDTH, maxi(shown * (FORGET + 4) - 4, 0))
 	for r: Dictionary in recent:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 4)
@@ -163,11 +179,11 @@ func _fill_recent(recent: Array[Dictionary]) -> void:
 		forget.custom_minimum_size = Vector2(FORGET, FORGET)
 		forget.pressed.connect(func() -> void: _forget(forget, url))
 		row.add_child(forget)
-		_recent.add_child(row)
+		_recent_rows.add_child(row)
 
 
 ## The first tap turns the trash button red, the second forgets the server
-## (ServerList.forget) and lists the rest.
+## (ServerList.forget), lists the rest and fits the panel to them.
 func _forget(button: Button, url: String) -> void:
 	if _armed != button:
 		if is_instance_valid(_armed):
@@ -179,6 +195,8 @@ func _forget(button: Button, url: String) -> void:
 	ServerList.forget(url)
 	print("server forgotten: %s" % url)
 	_fill_recent(ServerList.recent())
+	# The panel shrinks to the rows left.
+	_fit.call_deferred()
 
 
 ## The address without its scheme, as it fits a row.
