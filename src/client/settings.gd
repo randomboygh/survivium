@@ -208,6 +208,9 @@ var debug_tips := false
 ## Playtest switch: what the animals near have in mind, drawn over them (AiDebug; F4). Only
 ## in a single game and for a host of a server (Protocol.AI_DEBUG). Not saved.
 var ai_debug := false
+## Playtest switch: under a sign's window, what the page did with the keys (SignWindow
+## KEYS_LOG: the element that has them, the last keys, input and focus). Not saved.
+var keys_log := false
 ## Playtest switch: the level buttons look at any level, not only a few around the
 ## player (see ChunkStreamer.view_range). Not saved.
 var free_view := false

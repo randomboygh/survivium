@@ -11,9 +11,9 @@ extends Control
 ## On the web, while the window is open, the browser's tab hidden or shown again takes the
 ## keys from the field and closes the keyboard, so the next tap opens it as the first time
 ## did (on Android a tab switched and back left the keyboard up with no letter reaching
-## the field, 2026-11-09). For now the window also shows, under its buttons, what the page
-## did with the keys (KEYS_LOG): which element has them, the last keys, input and focus
-## changes, so a phone that still fails tells why.
+## the field, 2026-11-09). With the playtest switch «Журнал клавиш» (Settings.keys_log) the
+## window also shows, under its buttons, what the page did with the keys (KEYS_LOG): which
+## element has them, the last keys, input and focus changes, so a phone that fails tells why.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -149,6 +149,10 @@ func _ready() -> void:
 			# The caret goes after the text written: a phone's keyboard is shown it as the
 			# field takes the keys, before the tap's own place.
 			f.focus_entered.connect(func() -> void: f.caret_column = f.text.length())
+			# The caret is drawn while the field is edited even when the window has no
+			# focus: on the web the keyboard's hidden input takes the page's focus from the
+			# canvas, and a LineEdit hides its caret without it.
+			f.editing_toggled.connect(func(on: bool) -> void: f.caret_force_displayed = on)
 			box.add_child(f)
 			_fields.append(f)
 	else:
@@ -173,6 +177,7 @@ func _ready() -> void:
 		_keys = JavaScriptBridge.get_interface("survivium_keys")
 		if _keys != null:
 			_tab = int(_keys.gen)
+		if _keys != null and game.settings.keys_log:
 			_keys_label = UiStyle.label("", UiStyle.MUTED)
 			_keys_label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 			_keys_label.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
@@ -259,6 +264,8 @@ func _process(delta: float) -> void:
 			if f.has_focus():
 				f.release_focus()
 		DisplayServer.virtual_keyboard_hide()
+	if _keys_label == null:
+		return
 	var fields := ""
 	for f in _fields:
 		fields += ("E" if f.is_editing() else "-") + ("F" if f.has_focus() else "-") + " "
