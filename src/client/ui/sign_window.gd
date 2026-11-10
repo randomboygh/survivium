@@ -8,10 +8,8 @@ extends Control
 ## over a shade of the world behind; when the keyboard leaves the screen too short, the
 ## panel goes to its top. `game` is the Main node. While a field has the keys, they do
 ## not walk the player (Controls._typing).
-## On the web, while the window is open, the browser's tab hidden or shown again takes the
-## keys from the field and closes the keyboard, so the next tap opens it as the first time
-## did (on Android a tab switched and back left the keyboard up with no letter reaching
-## the field, 2026-11-09). With the playtest switch «Журнал клавиш» (Settings.keys_log) the
+## The fields are the game's text fields (TextField.fit: caret, a tab switch on the web).
+## With the playtest switch «Журнал клавиш» (Settings.keys_log) the
 ## window also shows, under its buttons, what the page did with the keys (KEYS_LOG): which
 ## element has them, the last keys, input and focus changes, so a phone that fails tells why.
 
@@ -19,6 +17,7 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const TextField := preload("res://src/client/ui/text_field.gd")
 
 const WIDTH := 240
 const FIELD_H := 26
@@ -99,11 +98,10 @@ var item: String
 var _panel: PanelContainer
 var _fields: Array[LineEdit] = []
 var _note: Label
-## The page's keys log (KEYS_LOG) on the web, the label under the buttons that shows it,
-## how many times the tab was hidden or shown when last read, and the time to the next read.
+## The page's keys log (KEYS_LOG) on the web, the label under the buttons that shows it
+## and the time to the next read.
 var _keys = null
 var _keys_label: Label
-var _tab := 0
 var _keys_in := 0.0
 
 
@@ -143,16 +141,9 @@ func _ready() -> void:
 			f.max_length = int(rec.get("sign_width", 20))
 			f.placeholder_text = Lang.f("Строка %d", [(i + 1)])
 			f.custom_minimum_size = Vector2(WIDTH, FIELD_H)
-			f.select_all_on_focus = false
 			f.text = lines[i] if i < lines.size() else ""
 			f.text_submitted.connect(func(_t: String) -> void: _next_after(f))
-			# The caret goes after the text written: a phone's keyboard is shown it as the
-			# field takes the keys, before the tap's own place.
-			f.focus_entered.connect(func() -> void: f.caret_column = f.text.length())
-			# The caret is drawn while the field is edited even when the window has no
-			# focus: on the web the keyboard's hidden input takes the page's focus from the
-			# canvas, and a LineEdit hides its caret without it.
-			f.editing_toggled.connect(func(on: bool) -> void: f.caret_force_displayed = on)
+			TextField.fit(f)
 			box.add_child(f)
 			_fields.append(f)
 	else:
@@ -172,12 +163,10 @@ func _ready() -> void:
 		if not rec.get("wall", false):
 			box.add_child(_button("Повернуть", turn))
 	box.add_child(_button("Закрыть", close))
-	if writes and OS.has_feature("web"):
+	if writes and OS.has_feature("web") and game.settings.keys_log:
 		JavaScriptBridge.eval(KEYS_LOG, true)
 		_keys = JavaScriptBridge.get_interface("survivium_keys")
 		if _keys != null:
-			_tab = int(_keys.gen)
-		if _keys != null and game.settings.keys_log:
 			_keys_label = UiStyle.label("", UiStyle.MUTED)
 			_keys_label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 			_keys_label.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
@@ -249,23 +238,12 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
-	if _keys == null:
+	if _keys_label == null:
 		return
 	_keys_in -= delta
 	if _keys_in > 0.0:
 		return
 	_keys_in = KEYS_EVERY
-	var tab := int(_keys.gen)
-	if tab != _tab:
-		# The tab was hidden or shown: the field lets go of the keys and the keyboard
-		# closes, so a tap gives them anew.
-		_tab = tab
-		for f in _fields:
-			if f.has_focus():
-				f.release_focus()
-		DisplayServer.virtual_keyboard_hide()
-	if _keys_label == null:
-		return
 	var fields := ""
 	for f in _fields:
 		fields += ("E" if f.is_editing() else "-") + ("F" if f.has_focus() else "-") + " "

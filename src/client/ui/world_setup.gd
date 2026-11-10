@@ -14,6 +14,7 @@ const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const TextField := preload("res://src/client/ui/text_field.gd")
 
 const NAME_WIDTH := 112
 ## The names of the mods are longer than the settings' and have the room the map leaves.
@@ -281,6 +282,7 @@ func _seed_row() -> void:
 	_seed.max_length = 10
 	_seed.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 	_seed.text = str(game.settings.values.world_seed)
+	TextField.fit(_seed)
 	_seed.text_changed.connect(func(t: String) -> void:
 		var digits := ""
 		for ch in t:
