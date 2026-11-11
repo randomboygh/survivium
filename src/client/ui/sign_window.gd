@@ -84,7 +84,9 @@ const KEYS_LOG := """
 		var view = 'in ' + window.innerWidth + 'x' + window.innerHeight + ' sy ' + window.scrollY +
 			(v ? ' vv ' + Math.round(v.width) + 'x' + Math.round(v.height) + '@' + Math.round(v.offsetTop) : '') +
 			(r ? ' cv ' + Math.round(r.width) + 'x' + Math.round(r.height) + '@' + Math.round(r.top) : '');
-		return 'act ' + tag(document.activeElement) + ' tab ' + me.gen + '\\n' + view + '\\n' + me.log.join('\\n');
+		var a = navigator.userActivation;
+		var page = ' page ' + (document.hasFocus() ? 'F' : '-') + (a ? (a.isActive ? 'A' : '-') + (a.hasBeenActive ? 'a' : '-') : '');
+		return 'act ' + tag(document.activeElement) + ' tab ' + me.gen + page + '\\n' + view + '\\n' + me.log.join('\\n');
 	};
 	window.survivium_keys = me;
 })();
