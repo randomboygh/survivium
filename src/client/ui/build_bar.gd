@@ -147,14 +147,9 @@ func _make_panel(panel: HBoxContainer) -> void:
 
 ## The action button of the panel (`_go`) into row `panel`: shown on a PC only (`_show_go`).
 func _add_go(panel: HBoxContainer) -> void:
-	_go = TabRow.small_button("", func() -> void: mode.toggle_auto())
+	_go = TabRow.icon_button(UiStyle.icon("go"), "", func() -> void: mode.toggle_auto())
 	_go.custom_minimum_size = Vector2(BUTTON, BUTTON)
 	panel.add_child(_go)
-
-
-## The work the action button starts, as it is named on it.
-func _go_name() -> String:
-	return "Строить"
 
 
 ## The tip of the action button.
@@ -162,12 +157,12 @@ func _go_tip() -> String:
 	return "Построить весь чертёж рядом (F)"
 
 
-## Shows the action button anew: a PC only, lit with «Стоп» while the work goes on.
+## Shows the action button anew: a PC only, a picture alone (the tip names it), lit with
+## «Остановить» while the work goes on.
 func _show_go() -> void:
 	_go.visible = not game.hud.touch
 	var working: bool = mode.auto
-	_go.icon = UiStyle.centred(UiStyle.icon("pause" if working else "play"))
-	_go.text = "Стоп" if working else _go_name()
+	_go.icon = UiStyle.centred(UiStyle.icon("halt" if working else "go"))
 	_go.tooltip_text = "Остановить (F)" if working else _go_tip()
 	TabRow.light(_go, working)
 

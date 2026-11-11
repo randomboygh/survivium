@@ -61,10 +61,6 @@ func _show_panel() -> void:
 	_show_go()
 
 
-func _go_name() -> String:
-	return "Работать"
-
-
 func _go_tip() -> String:
 	return "Сделать всю работу по разметке рядом (F)"
 
