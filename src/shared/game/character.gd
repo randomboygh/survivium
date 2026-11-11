@@ -457,8 +457,8 @@ func act(action: String, role := "") -> bool:
 
 ## Puts `n` of item `id` (a tool worn by `worn` swings) of quality `q` into the bag and
 ## says what came in; returns how many fit.
-func give(id: String, n: int, worn := 0, q := Inventory.NORMAL) -> int:
-	var got := inventory.add(id, n, worn, null, q)
+func give(id: String, n: int, worn := 0, q := Inventory.NORMAL, text := "") -> int:
+	var got := inventory.add(id, n, worn, null, q, text)
 	note("got", got)
 	if got > 0:
 		say(Lang.line("+%d %s", [got, Items.title(id)]))
