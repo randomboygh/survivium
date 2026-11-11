@@ -20,6 +20,7 @@ func run() -> void:
 	_test_crafting()
 	_test_recipe_mistakes()
 	_test_layers()
+	_test_content_beside()
 	_test_hot_reload()
 
 
@@ -817,6 +818,56 @@ func _scripts(dir: String) -> Array:
 
 
 ## The hot reload (ModReload): the watch over the files sees one added and one taken
+## The mods beside an exported game on a computer (decision 186): found only there and
+## with the core mod in them; read from there, the same records load, and the pictures,
+## sounds and translations come from the plain files.
+func _test_content_beside() -> void:
+	var exe := ProjectSettings.globalize_path("user://beside_test")
+	var dir := exe.path_join("content")
+	_copy_mods("res://content", dir)
+	_check(Content.find_root(exe, true) == dir, "the mods are read from content/ beside an exported game")
+	_check(Content.find_root(exe, false) == Content.BUILT_IN, "but not in the editor, the browser or on a phone")
+	_check(Content.find_root(ProjectSettings.globalize_path("user://"), true) == Content.BUILT_IN,
+		"and not without the core mod there")
+	var ids := Mat.IDS.duplicate()
+	var items := Items.IDS.duplicate()
+	var was: String = Content.ROOT
+	Content.ROOT = dir
+	var problems := Mods.rescan()
+	var spec: Dictionary = AiRules.SPECIES.values().filter(func(sp: Dictionary) -> bool: return sp.get("sprite", "") != "")[0]
+	var pic_path := Content.asset(spec, "sprites/creatures/%s.png" % spec.get("sprite", ""))
+	var pic := Content.picture(pic_path)
+	var sounds := Content.records("sounds")
+	var snd: AudioStream = Content.sound(Content.sound_files(sounds[0])[0]) if not sounds.is_empty() else null
+	_check(problems.is_empty() and Mat.IDS == ids and Items.IDS == items and Content.beside(),
+		"the mods beside load the same as the ones built in: %s" % [problems])
+	_check(pic_path.begins_with(dir) and pic != null and not pic.is_empty(), "a picture is read from its file there: %s" % pic_path)
+	_check(snd != null and not sounds.is_empty(), "and a sound")
+	Content.ROOT = was
+	Mods.rescan()
+	_check(not Content.beside(), "the built-in mods again")
+
+
+## Copies the mods' own files (no imports) of `from` into `to`, emptied first.
+func _copy_mods(from: String, to: String) -> void:
+	if DirAccess.dir_exists_absolute(to):
+		_remove_tree(to)
+	DirAccess.make_dir_recursive_absolute(to)
+	for f in DirAccess.get_files_at(from):
+		if f.get_extension() in ["yaml", "png", "wav"]:
+			DirAccess.copy_absolute(from.path_join(f), to.path_join(f))
+	for d in DirAccess.get_directories_at(from):
+		_copy_mods(from.path_join(d), to.path_join(d))
+
+
+func _remove_tree(dir: String) -> void:
+	for f in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute(dir.path_join(f))
+	for d in DirAccess.get_directories_at(dir):
+		_remove_tree(dir.path_join(d))
+	DirAccess.remove_absolute(dir)
+
+
 ## away, and a reload in a world being played keeps its cells' materials.
 func _test_hot_reload() -> void:
 	var dir := "user://watch_test"

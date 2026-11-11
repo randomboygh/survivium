@@ -10,7 +10,30 @@ const Yaml := preload("res://src/shared/content/yaml.gd")
 ## not in it (edited since, or no cache at all, as in the editor) is parsed as before.
 const PARSED := "res://content_cache.bin"
 
-const ROOT := "res://content"
+## The mods built into the game.
+const BUILT_IN := "res://content"
+## Where the mods are read from (decision 186): in a game exported for a computer, the
+## folder `content/` beside its program when it holds the core mod (the builds ship all
+## the mods there as plain files; one's own mods are folders beside them, and an update
+## replaces only the built-in ones); else, and in the editor, the browser and on a phone,
+## the copy built in.
+static var ROOT := find_root(OS.get_executable_path().get_base_dir(),
+		OS.has_feature("template") and OS.has_feature("pc"))
+
+
+## The mods' folder for a game whose program is in `exe_dir`: `exe_dir/content` when
+## `beside` (an exported game on a computer) and it has `core/mod.yaml`, else BUILT_IN.
+static func find_root(exe_dir: String, beside: bool) -> String:
+	var dir := exe_dir.path_join("content")
+	if beside and FileAccess.file_exists(dir.path_join("core/mod.yaml")):
+		return dir
+	return BUILT_IN
+
+
+## Whether the mods are read from plain files beside the game (find_root), not from the
+## copy built in: their pictures and sounds are then read from the files themselves.
+static func beside() -> bool:
+	return not ROOT.begins_with("res://")
 ## The validator's mode: a soft reference to nothing is a problem too.
 static var strict := false
 

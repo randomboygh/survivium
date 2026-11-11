@@ -7,6 +7,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
+const Content := preload("res://src/shared/content/content.gd")
 
 const TILE := 16
 ## The terrain atlas: TILES tiles a row, ROWS rows (ATLAS_COLUMNS and ATLAS_ROWS in
@@ -155,10 +156,9 @@ static func texture_of(m: int) -> Image:
 
 ## The image at `path` when it is three tiles of TILE px in a row, else null.
 static func _three_tiles(path: String) -> Image:
-	if path == "" or not ResourceLoader.exists(path):
+	if path == "":
 		return null
-	var tex: Texture2D = load(path)
-	var img := tex.get_image() if tex != null else null
+	var img := Content.picture(path)
 	if img == null or img.get_width() != TILE * 3 or img.get_height() != TILE:
 		return null
 	img.convert(Image.FORMAT_RGBA8)
@@ -187,10 +187,7 @@ static func build_plants() -> ImageTexture:
 	# size (the validator reports it).
 	for c in Plants.CUSTOM:
 		var path := Plants.sprite_path(c)
-		if not ResourceLoader.exists(path):
-			continue
-		var tex: Texture2D = load(path)
-		var pic := tex.get_image() if tex != null else null
+		var pic := Content.picture(path)
 		if pic == null or pic.get_width() != PLANT_W * Plants.columns(c) or pic.get_height() != PLANT_H:
 			continue
 		pic.convert(Image.FORMAT_RGBA8)

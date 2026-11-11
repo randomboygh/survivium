@@ -22,9 +22,10 @@ const Yaml := preload("res://src/shared/content/yaml.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Content := preload("res://src/shared/content/content.gd")
 
-const SPRITES := "res://content/core/sprites"
+## The player's pictures (core's sprites/, wherever the mods are read from: Content.ROOT).
+static var SPRITES: String = Content.ROOT + "/core/sprites"
 ## What a hand shows of a thing with neither a sheet nor an icon.
-const LUMP := "res://content/core/sprites/held/lump.png"
+static var LUMP: String = SPRITES + "/held/lump.png"
 ## Colours marking the hands in the hands picture (see player.yaml), the darker ones
 ## behind the body.
 const MARKS := {"right": Color(1, 0, 0), "left": Color(0, 0, 1)}
@@ -94,7 +95,7 @@ static func prepare(worn: Array) -> void:
 ## one (clothes worn, see dressed).
 static func layer(name: String) -> Image:
 	if not _layers.has(name):
-		_layers[name] = _picture(name if name.begins_with("res://") else "%s/player/%s.png" % [SPRITES, name])
+		_layers[name] = _picture(name if "/" in name else "%s/player/%s.png" % [SPRITES, name])
 	return _layers[name]
 
 
@@ -123,7 +124,7 @@ static func _worn_layer(id: String) -> Array:
 	if item.get("look", "") == "":
 		return []
 	var path := Content.asset(item, "sprites/worn/%s.png" % item.look)
-	return [path] if ResourceLoader.exists(path) else []
+	return [path] if Content.exists(path) else []
 
 
 ## Where the hands are, by row and column of the sheet: {"right": hand, "left": hand},
@@ -160,7 +161,7 @@ static func anchors() -> Array:
 ## The sheet of a tool held: its picture at `path`.
 static func held_sheet(path: String) -> Image:
 	if not _held.has(path):
-		_held[path] = _picture(path if ResourceLoader.exists(path) else LUMP)
+		_held[path] = _picture(path if Content.exists(path) else LUMP)
 	return _held[path]
 
 
