@@ -41,11 +41,15 @@ const SKIES := [
 const SUN_RISE := 5.5
 const SUN_SET := 20.5
 ## Stars over the top of the sky (some of them two pixels across), the birds' colour,
-## the size of a pixel of them and the seconds between their flights.
+## the size of a pixel of them, their speed (UI px a second, the same on any screen) and
+## the seconds from one flight's start to the next (more on a screen too wide to cross
+## by then: FLOCK_REST after they are gone).
 const STARS := 40
 const BIRD := Color("#14211b")
 const FLOCK_PX := 2.0
+const FLOCK_SPEED := 40.0
 const FLOCK_EVERY := 14.0
+const FLOCK_REST := 2.0
 ## Columns of the picture from which its head dips when it pecks.
 const SPARROW_HEAD := 5
 ## Seconds a hop takes and how high it goes (UI px), and how far one carries it.
@@ -82,6 +86,8 @@ var _backdrop: Control
 ## What moves over the painted sky (see _draw_motion), and seconds it has been moving.
 var _motion: Control
 var _time := 0.0
+## When (in _time) the flock set off on its flight across.
+var _flock_from := 0.0
 ## The colours of the sky for the hour shown (see _sky_at) and that hour.
 var _sky: Array = NIGHT
 var _sky_hour := -100.0
@@ -288,6 +294,12 @@ func _bird_place() -> Array:
 	return [Rect2(Vector2(floorf(x), top - size.y - lift), size), frame]
 
 
+## The least top of the name (UI px) that leaves the sparrow sitting on it in sight.
+func _title_least_top() -> float:
+	var sit := floorf(_title.size.y * 0.5 - TITLE_SIZE * 0.34) - 3.0 - _sparrow_size().y
+	return maxf(12.0, 4.0 - sit)
+
+
 func _bird_rect() -> Rect2:
 	return _bird_place()[0]
 
@@ -474,11 +486,15 @@ func _draw_motion() -> void:
 			_motion.draw_rect(Rect2(floorf(sx), floorf(sy), px, px), Color(1.0, 0.96, 0.82, (0.45 + 0.55 * blink) * stars))
 	if _sky[3] < 0.5:
 		return
-	# The birds cross every FLOCK_EVERY s, in a loose V.
-	var lap := fmod(_time, FLOCK_EVERY) / 12.0
-	if lap < 1.0:
-		var bx := full.position.x - 20.0 + lap * (full.size.x + 40.0)
-		var by := top + sky_h * 0.35 - lap * sky_h * 0.1
+	# The birds cross at FLOCK_SPEED every FLOCK_EVERY s (or once gone), in a loose V.
+	var way := full.size.x + 40.0
+	var flown := (_time - _flock_from) * FLOCK_SPEED
+	if _time < _flock_from or _time - _flock_from >= maxf(FLOCK_EVERY, way / FLOCK_SPEED + FLOCK_REST):
+		_flock_from = _time
+		flown = 0.0
+	if flown < way:
+		var bx := full.position.x - 20.0 + flown
+		var by := top + sky_h * 0.35 - flown / way * sky_h * 0.1
 		for k in 3:
 			var p := Vector2(floorf(bx - k * 16.0), floorf(by + (k % 2) * 10.0 + k * 3.0))
 			var up := int(_time * 6.0 + k) % 2 == 0

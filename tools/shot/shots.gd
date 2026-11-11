@@ -730,6 +730,10 @@ const SHOTS := {
 	# «Создать сервер» on a computer, before and while it runs.
 	"ui-main-menu-host": {"time": 0.42, "season": 1, "main_menu": "host"},
 	"ui-main-menu-host-running": {"time": 0.42, "season": 1, "main_menu": "host-running"},
+	# The largest interface on a landscape screen: the first page and «Создать сервер»
+	# still fit (the column and the window scroll when they cannot).
+	"ui-main-menu-big": {"time": 0.42, "season": 1, "touch": true, "main_menu": "resume", "ui_size": 4},
+	"ui-main-menu-host-big": {"time": 0.42, "season": 1, "main_menu": "host", "ui_size": 4},
 	"ui-main-menu-join-failed": {"time": 0.42, "season": 1, "touch": true, "main_menu": "join",
 		"error": "Сервер не отвечает"},
 	# The grounds of the test world (TestGround), a run of their own: the player at

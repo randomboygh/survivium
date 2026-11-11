@@ -975,6 +975,10 @@ func _run() -> void:
 		if shot.has("main_menu"):
 			# The painted landscape at the hour asked (the device's clock otherwise).
 			main.MainMenu.hour_override = shot.get("menu_hour", -1.0)
+			# A larger interface, as a landscape phone's (the menu must still fit).
+			if shot.has("ui_size"):
+				main.settings.set_value("ui_size", shot.ui_size)
+				await process_frame
 			main._build_menu()
 			# The landscape only for "sky" and "loading": the world is built already, so it
 			# would fade (the menu holds it while it is open and no world was asked for).

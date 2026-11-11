@@ -38,6 +38,7 @@ extends "res://src/client/ui/menu_pages.gd"
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
 const ShaderWarmup := preload("res://src/client/view/shader_warmup.gd")
+const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 ## Seconds the painted landscape takes to fade once the world's first frames are calm.
 const FADE := 1.2
 ## The sparrow on the name is the game's own (the animals mod's picture, facing right):
@@ -113,9 +114,18 @@ func _ready() -> void:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_column.add_child(panel)
+	# The buttons scroll when a page is taller than the screen (_fit: a landscape phone
+	# with a large interface).
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	panel.add_child(_scroll)
+	DragScroll.attach(_scroll)
 	_box = VBoxContainer.new()
 	_box.add_theme_constant_override("separation", 6)
-	panel.add_child(_box)
+	_room = MarginContainer.new()
+	_room.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(_room)
+	_room.add_child(_box)
 	_fill_page("top")
 
 	_build_loading()
