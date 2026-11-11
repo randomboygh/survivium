@@ -85,6 +85,7 @@ const TracksScript := preload("res://src/client/world/tracks.gd")
 const RoofMap := preload("res://src/client/world/roof_map.gd")
 const MainMenu := preload("res://src/client/ui/main_menu.gd")
 const DeathScreen := preload("res://src/client/ui/death_screen.gd")
+const ButtonTips := preload("res://src/client/ui/button_tips.gd")
 const SaveGame := preload("res://src/client/save_game.gd")
 const SoundScript := preload("res://src/client/audio/sound.gd")
 const Markers := preload("res://src/client/game/markers.gd")
@@ -1141,6 +1142,12 @@ func _build_ui() -> void:
 	add_child(draw_census)
 	freeze_log = FreezeLog.new(self)
 	add_child(freeze_log)
+	# The buttons' hints over everything, the main menu too (with a mouse).
+	var tips := CanvasLayer.new()
+	tips.layer = 3
+	tips.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(tips)
+	tips.add_child(ButtonTips.new(self))
 
 
 ## The main menu in a layer over the interface, open from the start.
