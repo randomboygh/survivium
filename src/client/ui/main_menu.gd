@@ -39,7 +39,6 @@ extends "res://src/client/ui/menu_pages.gd"
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
 const ShaderWarmup := preload("res://src/client/view/shader_warmup.gd")
-const Protocol := preload("res://src/shared/net/protocol.gd")
 ## Seconds the painted landscape takes to fade once the world's first frames are calm.
 const FADE := 1.2
 ## The sparrow on the name is the game's own (the animals mod's picture, facing right):
