@@ -3,8 +3,9 @@ extends VBoxContainer
 ## the panel of the mode in one row, one button each going round its choices: the shape
 ## (line, plane, square, cube) with flattening beside it, the form (a block, the slopes, stairs) with
 ## its turn, how high and how thick the walls are (1–4), drawing or taking off the
-## blueprint joined with taking all of it off near (a second tap to confirm), and leaving
-## the mode; under it the palette: the bag's blocks and things in one row made as the
+## blueprint joined with taking all of it off near (a second tap to confirm), on a PC the
+## action button's work (building the blueprint, F; on a touch screen the big action button
+## does it), and leaving the mode; under it the palette: the bag's blocks and things in one row made as the
 ## hotbar (its frame, cells, arrows and a finger dragging the cells along) with no hands,
 ## its cells in their room: as wide as the hotbar. The chosen one is in the hand in use.
 ## `game` is the Main node, `mode` the mode the bar is of (BuildMode; FarmBar, which
@@ -47,6 +48,9 @@ var _height: Button
 var _thick: Button
 var _mode: Button
 var _clear: Button
+## The mode's action on a PC (the touch screen's action button, F): starts the work of the
+## whole blueprint or the marks near, a second press stops it.
+var _go: Button
 var _palette: PanelContainer
 var _grid: HBoxContainer
 var _prev: Button
@@ -134,10 +138,38 @@ func _make_panel(panel: HBoxContainer) -> void:
 	_mode = marks.get_child(0)
 	_clear = marks.get_child(1)
 	panel.add_child(marks)
+	_add_go(panel)
 	var leave := TabRow.icon_button(UiStyle.icon("close"), "Выйти из режима строительства (B)", func() -> void: game.build.leave())
 	panel.add_child(leave)
 	for b: Button in [_shape, _flatten, _form, _turn, _mode, _clear, leave]:
 		b.custom_minimum_size = Vector2(BUTTON, BUTTON)
+
+
+## The action button of the panel (`_go`) into row `panel`: shown on a PC only (`_show_go`).
+func _add_go(panel: HBoxContainer) -> void:
+	_go = TabRow.small_button("", func() -> void: mode.toggle_auto())
+	_go.custom_minimum_size = Vector2(BUTTON, BUTTON)
+	panel.add_child(_go)
+
+
+## The work the action button starts, as it is named on it.
+func _go_name() -> String:
+	return "Строить"
+
+
+## The tip of the action button.
+func _go_tip() -> String:
+	return "Построить весь чертёж рядом (F)"
+
+
+## Shows the action button anew: a PC only, lit with «Стоп» while the work goes on.
+func _show_go() -> void:
+	_go.visible = not game.hud.touch
+	var working: bool = mode.auto
+	_go.icon = UiStyle.centred(UiStyle.icon("pause" if working else "play"))
+	_go.text = "Стоп" if working else _go_name()
+	_go.tooltip_text = "Остановить (F)" if working else _go_tip()
+	TabRow.light(_go, working)
 
 
 func _row() -> HBoxContainer:
@@ -234,6 +266,7 @@ static func width_for(columns: int) -> float:
 func fit(width: float, portrait := false) -> void:
 	var fixed := 8 + 2 * (ARROW + GAP)
 	_columns = clampi(floori((width - fixed + GAP) / (SLOT + GAP)), 1, COLUMNS_PORTRAIT if portrait else COLUMNS)
+	_show_go()
 	# The forms in the row of the other buttons when they all fit across, else over it.
 	var one: HBoxContainer = _rows.get_child(1)
 	var across := 0.0
@@ -293,6 +326,7 @@ func _show_panel() -> void:
 	TabRow.light(_mode, b.erasing, b.erasing)
 	var confirming := _clear_at > 0 and Time.get_ticks_msec() - _clear_at < CONFIRM_MS
 	TabRow.light(_clear, confirming, confirming)
+	_show_go()
 
 
 ## Shows the palette anew: the mode's items, the chosen one marked.

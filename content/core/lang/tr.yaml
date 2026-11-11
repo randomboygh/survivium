@@ -1230,3 +1230,6 @@
 "Спуск под 45°": "45° iniş"
 "Пляж": "Plaj"
 "Браузер рисует без видеокарты (%s), поэтому игра идёт медленно. Включите в настройках браузера «Использовать графическое ускорение» (в Edge — edge://settings/system, в Chrome — chrome://settings/system) и перезапустите браузер.": "Tarayıcı ekran kartı olmadan çiziyor (%s), bu yüzden oyun yavaş. Tarayıcı ayarlarında «Grafik hızlandırmayı kullan» seçeneğini açın (Edge: edge://settings/system, Chrome: chrome://settings/system) ve tarayıcıyı yeniden başlatın."
+"Построить весь чертёж рядом (F)": "Yakındaki tüm planı inşa et (F)"
+"Остановить (F)": "Durdur (F)"
+"Сделать всю работу по разметке рядом (F)": "Yakındaki tüm işaretli işi yap (F)"

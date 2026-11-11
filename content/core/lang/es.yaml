@@ -1230,3 +1230,6 @@
 "Спуск под 45°": "Bajada a 45°"
 "Пляж": "Playa"
 "Браузер рисует без видеокарты (%s), поэтому игра идёт медленно. Включите в настройках браузера «Использовать графическое ускорение» (в Edge — edge://settings/system, в Chrome — chrome://settings/system) и перезапустите браузер.": "El navegador dibuja sin la tarjeta gráfica (%s), por eso el juego va lento. Activa «Usar aceleración gráfica» en la configuración del navegador (Edge: edge://settings/system, Chrome: chrome://settings/system) y reinicia el navegador."
+"Построить весь чертёж рядом (F)": "Construir todo el plano cercano (F)"
+"Остановить (F)": "Detener (F)"
+"Сделать всю работу по разметке рядом (F)": "Hacer todo el trabajo marcado cercano (F)"
