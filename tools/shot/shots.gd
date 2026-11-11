@@ -217,6 +217,8 @@ const SHOTS := {
 	"gesture-clap": {"time": 0.4, "season": 1, "signs": "none", "gesture": "clap"},
 	"gesture-wheel": {"time": 0.4, "season": 1, "signs": "none", "gesture_wheel": true, "settings": {"solo_social": true}},
 	"signs-window": {"time": 0.4, "season": 1, "signs": "posts", "sign_window": true},
+	# A cross where a death's sack was (Placed.put_grave), who died there over it.
+	"grave": {"time": 0.4, "season": 1, "signs": "grave"},
 	"build-openings-dusk": {"time": 0.8, "season": 1, "moon": 0.0, "openings": "wall"},
 	"build-openings-bag": {"time": 0.4, "season": 1, "openings": "storage", "bag": true},
 	"build-openings-bag-barrel": {"time": 0.4, "season": 1, "openings": "storage", "bag": true, "storage_at": 2},

@@ -204,8 +204,8 @@ func update() -> void:
 
 
 ## What a cross says of the one who died there (`g`, Placed.grave_record), in the language
-## in use: their name, the day they died and how long they lived, the cause, then how far
-## they walked and the two largest counts of that life.
+## in use: their name, the day they died and how long they lived, the cause, how far they
+## walked, then the two largest counts of that life on a line.
 static func grave_text(g: Dictionary) -> String:
 	var called := str(g.get("name", ""))
 	var lines: Array[String] = [Lang.f("Здесь покоится «%s»", [called]) if called != "" else Lang.t("Здесь покоится путник")]
@@ -217,8 +217,10 @@ static func grave_text(g: Dictionary) -> String:
 		if st[0] != "days" and st[0] != "walked" and float(life.get(st[0], 0.0)) > 0.0:
 			counts.append(st)
 	counts.sort_custom(func(a: Array, b: Array) -> bool: return float(life[a[0]]) > float(life[b[0]]))
+	if float(life.get("walked", 0.0)) > 0.0:
+		lines.append("%s %s" % [Lang.t(STATS[1][1]), _value("walked", float(life.walked), [])])
 	var said: Array[String] = []
-	for st: Array in ([STATS[1]] if float(life.get("walked", 0.0)) > 0.0 else []) + counts.slice(0, 2):
+	for st: Array in counts.slice(0, 2):
 		said.append("%s %s" % [Lang.t(st[1]), _value(st[0], float(life[st[0]]), st[2])])
 	if not said.is_empty():
 		lines.append(" · ".join(said))
