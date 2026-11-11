@@ -62,6 +62,7 @@
   `make_creatures.py` с `creature_kit.py` (листы зверей), `make_sparrow.py` (воробей), `make_birds.py` (ворона, сова, утка), `make_frog.py`, `make_fish.py`, `make_rabbit.py`, `make_squirrel.py`, `make_fox.py`, `make_deer.py`, `make_boar.py`, `make_bear.py`, `make_wolf.py`, `make_cat.py`, `make_hedgehog.py`, `make_plant_art.py` (кора,
   растения, плоды новых растений). Нарисованное можно поправить руками.
 - `build_info.py` — версия и «Что нового» для сборки (CI); `web_patch.py` — патч web-сборки для звука
+  и клавиатуры телефона
   (CI, после экспорта); `web_cache.py` — после него: файлы движка получают имя по содержимому
   (`engine-<хэш>.*`), а сама страница (свой `fetch`) хранит wasm в Cache Storage браузера, так что
   после деплоя телефон не качает 9 МБ движка заново (новый движок — новое имя, старый кэш удаляется;

@@ -231,7 +231,7 @@ if (runs('phone')) {
 }
 
 // --- Phone held upright, opening a link to a server --------------------------------
-// The link fills «Присоединиться»; with a name typed in, «Подключиться» starts the game
+// The link fills «Присоединиться»; with a name typed in, the keyboard's Enter starts the game
 // again joined to the server, which is not there: the screen comes back saying why.
 if (runs('upright')) {
   const dpr = 3;
@@ -304,9 +304,13 @@ if (runs('upright')) {
     }
     await page.keyboard.type('Тест');
     await page.waitForTimeout(500);
+    // The keyboard's Enter, pressed in its input, reaches the engine (tools/web_patch.py
+    // VK_ENTER): it passes from the name to the password, and from there joins.
     const before = log.length;
-    await tap(rectOf(shown, 'go'));
-    const asked = await waitFor('joining ', 'joining the server of the link', before);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(1000);
+    await page.keyboard.press('Enter');
+    const asked = await waitFor('joining ', "the keyboard's Enter joining the server of the link", before);
     if (!asked.includes('ws://127.0.0.1:9 as Тест')) errors.push(`upright: joined not as asked: ${asked}`);
     const back = await waitFor('join screen shown', '«Присоединиться» after the failed joining', log.indexOf(asked) + 1);
     if (back && !log.some((t) => / failed: /.test(t))) errors.push('upright: the failed joining said nothing');

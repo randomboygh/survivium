@@ -126,6 +126,21 @@ TOUCH_KEPT = ("function touch_cb(type,evt){if(type===0&&!(window.survivium_tabs&
 # The keyboard's inputs are not a form to fill in.
 VK_INPUT = 'elem.style.outline="none";elem.readonly=true;'
 VK_INPUT_KEPT = 'elem.style.outline="none";elem.setAttribute("autocomplete","off");elem.readonly=true;'
+# The engine hears keys only on the canvas, and the keyboard's one-line input changes no
+# text at Enter, so the phone keyboard's Enter («→», «Готово», «Отправить») reached nothing:
+# the chat was not sent, a field did not pass to the next. The input hands its Enter to the
+# canvas as a press and a release at once (the release may never come once the field closes
+# at the press); `beforeinput` of a line break is the same key from a keyboard that sends no
+# key code for it, heard only when no Enter came just before (strict, no `arguments`).
+VK_ENTER = 'GodotDisplayVK.textinput=create("input");'
+VK_ENTER_KEPT = (VK_ENTER + '(function(elem){"use strict";let last=0;function send(){last=Date.now();'
+    'for(const type of["keydown","keyup"]){GodotConfig.canvas.dispatchEvent(new KeyboardEvent(type,'
+    '{key:"Enter",code:"Enter",keyCode:13,bubbles:true,cancelable:true}))}}'
+    'GodotEventListeners.add(elem,"keydown",function(evt){if(evt.key==="Enter"||evt.keyCode===13){'
+    'evt.preventDefault();if(!evt.repeat){send()}}},false);'
+    'GodotEventListeners.add(elem,"beforeinput",function(evt){if(evt.inputType==="insertLineBreak"'
+    '||evt.inputType==="insertParagraph"){evt.preventDefault();if(Date.now()-last>500){send()}}},false)'
+    '})(GodotDisplayVK.textinput);')
 
 
 def patch(path: Path, old: str, new: str, what: str, count: int = 1) -> None:
@@ -150,6 +165,7 @@ def main() -> None:
     patch(out / "index.js", PITCH, PITCH_KEPT, "the names of the voices whose pitch changes kept")
     patch(out / "index.js", TOUCH, TOUCH_KEPT, "a touch leaves the page's focus with the keyboard's input while it is up")
     patch(out / "index.js", VK_INPUT, VK_INPUT_KEPT, "the keyboard's inputs are not filled in by the browser")
+    patch(out / "index.js", VK_ENTER, VK_ENTER_KEPT, "the phone keyboard's Enter reaches the field")
 
 
 if __name__ == "__main__":
