@@ -1017,6 +1017,10 @@ func _run() -> void:
 				_fake_saves()
 				main.menu._open_worlds()
 				await process_frame
+			if shot.get("dev", false):
+				main.settings.testing_unlocked = true
+				for i in 3:
+					await process_frame
 			if shot.get("egg", false):
 				# The easter egg caught a moment after the sparrow blew up.
 				main.menu._explode()
