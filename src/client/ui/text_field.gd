@@ -9,8 +9,10 @@ extends Node
 ## - on the web, the browser's tab hidden or shown again takes the keys from the field and
 ##   closes the keyboard, so the next tap opens it as the first time did (on Android a tab
 ##   switched and back left the keyboard up with no letter reaching the field);
-## - on a touch screen a finger lifted off the field (on the world, on a button after its
-##   action, on the window's empty place) lets the field go, and so the keyboard closes. While
+## - on a touch screen a touch that begins off the field being edited (on the world, on a
+##   button, on the window's empty place) lets the field go as the finger lifts, after a
+##   button's action, and so the keyboard closes; one that begins on the field never does,
+##   wherever the keyboard coming up moved the field from under the finger. While
 ##   the keyboard is up a touch leaves the page's focus with it (tools/web_patch.py reads `up`
 ##   below), so the keyboard stays up under a finger on a button or on another field, and the
 ##   window does not move under the finger; once the phone puts the keyboard away (`up`
@@ -62,6 +64,8 @@ static var _tabs = null
 var _field: LineEdit
 var _seen := 0
 var _in := 0.0
+## The touch began off the field while it had the keys: it lets it go as it lifts.
+var _armed := false
 
 
 ## Makes `f` behave as every text field of the game does (see the top); returns it.
@@ -97,6 +101,7 @@ func _ready() -> void:
 func _watch(on: bool) -> void:
 	set_process(on and _tabs != null)
 	set_process_input(on)
+	_armed = false
 	if on and _tabs != null:
 		_seen = int(_tabs.gen)
 		_in = EVERY
@@ -114,11 +119,16 @@ func _process(delta: float) -> void:
 		DisplayServer.virtual_keyboard_hide()
 
 
-## A finger lifted off the field lets it go once the interface has had the touch (a button
-## acts first), unless the field took the keys again or another one did.
+## A touch that began off the field lets it go as the finger lifts, once the interface has
+## had the touch (a button acts first), unless the field took the keys again or another one
+## did. Where the finger lifts does not matter: the keyboard coming up moves the field.
 func _input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch and not event.pressed and event.index == 0 \
-			and not _field.get_global_rect().has_point(event.position):
+	if not event is InputEventScreenTouch or event.index != 0:
+		return
+	if event.pressed:
+		_armed = not _field.get_global_rect().has_point(event.position)
+	elif _armed:
+		_armed = false
 		_let_go.call_deferred()
 
 
