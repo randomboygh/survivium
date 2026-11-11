@@ -84,7 +84,9 @@ func _size_pics() -> void:
 			pic.texture = ImageTexture.create_from_image(img)
 		pic.scale = Vector2(1.0 / s, 1.0 / s)
 		pic.size = pic.texture.get_size()
-		pic.position = (Vector2(BUTTON, BUTTON) - pic.size / s) * 0.5
+		# The drawn pixels in the middle (an odd icon has a clear column or row).
+		var used := Rect2(pic.texture.get_image().get_used_rect())
+		pic.position = Vector2(BUTTON, BUTTON) * 0.5 - (used.position + used.size * 0.5) / s
 	_pic_px = px
 
 
