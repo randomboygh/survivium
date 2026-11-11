@@ -1,5 +1,5 @@
 extends RefCounted
-## The haze over the edge of the world built (setting «Дымка на краю», off by default):
+## The haze over the edge of the world built (setting «Дымка на краю», on by default):
 ## where the player outran the building of the chunks (ChunkStreamer), the chunks on the
 ## screen with no ground yet are covered by a haze in the colour of the sky's background
 ## instead of the empty background, and it thins out over FADE world units of the built
