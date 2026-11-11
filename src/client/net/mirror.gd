@@ -118,12 +118,19 @@ func _on_event(kind: String, args: Variant) -> void:
 				game.chunks.unload_chunk(args[0])
 		Protocol.CELLS:
 			if args is Array and game.host == null:
+				# A felled tree comes as all its cells: each column is drawn again once,
+				# from its lowest changed cell, as the server's own world does (ActionsGather.fell).
+				var cols := {}
 				for c in args:
 					if c is Array and c.size() == 2 and c[0] is Vector3i and c[1] is int:
 						var cell: Vector3i = c[0]
 						if game.world.has_chunk(WorldData.chunk_key(cell.x, cell.z)):
 							take_cell(game.world, cell, c[1])
-							game.actions.cell_changed.emit(cell)
+							var col := Vector2i(cell.x, cell.z)
+							if not cols.has(col) or cell.y < cols[col].y:
+								cols[col] = cell
+				for col: Vector2i in cols:
+					game.actions.cell_changed.emit(cols[col])
 		Protocol.TAKEN:
 			if args is Array and args.size() == 2 and args[0] is String and args[1] is Vector3 and game.host == null:
 				game.actions.taken.emit(args[0], args[1])

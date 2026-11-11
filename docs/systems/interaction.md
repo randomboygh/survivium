@@ -11,7 +11,7 @@
   семена ложатся по линии падения (`Felling.fell`, его зовёт `chop`).
 - `src/shared/game/world_actions.gd` — правила рук: `dig` / `dig_at`, `place_at` / `can_place`, `chop`,
   `fell`, `mow` / `mow_swing`, `act_in_front`, `place_in_front`, `swing_air`, сбор с кустов и деревьев,
-  весеннее восстановление. Сигналы: `cell_changed`, `looks_changed`, `drops_changed`, `taken`. Один скрипт,
+  весеннее восстановление. Сигналы: `cell_changed`, `cells_set` (все клетки срубленного дерева: `cell_changed` идёт лишь по нижней в столбце, а копиям мира клиентов нужны все), `looks_changed`, `drops_changed`, `taken`. Один скрипт,
   разделённый по темам цепочкой наследования (решение 168, как 145): каждая часть расширяет предыдущую и
   зовёт только своё и предыдущих, снаружи знают только `world_actions.gd`:
   `actions_base.gd` (состояние, сигнал `cell_changed`, досягаемость, `skilled`, `build_cell`, что позволяет

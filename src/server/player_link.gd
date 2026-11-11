@@ -134,6 +134,7 @@ func _init(s) -> void:
 	wild.stepped.connect(_on_stepped)
 	var actions = session.actions
 	actions.cell_changed.connect(_on_cell)
+	actions.cells_set.connect(_on_cells)
 	placed.cell_changed.connect(_on_cell)
 	actions.drops_changed.connect(_on_drops)
 	actions.looks_changed.connect(_on_looks)
@@ -158,6 +159,7 @@ func leave() -> void:
 	placed.cell_changed.disconnect(_on_cell)
 	var actions = session.actions
 	actions.cell_changed.disconnect(_on_cell)
+	actions.cells_set.disconnect(_on_cells)
 	actions.drops_changed.disconnect(_on_drops)
 	actions.looks_changed.disconnect(_on_looks)
 	actions.taken.disconnect(_on_taken)
@@ -520,6 +522,12 @@ func _on_drops(key: Vector2i) -> void:
 func _on_cell(cell: Vector3i) -> void:
 	if send_world:
 		_cells[cell] = true
+
+
+func _on_cells(cells: Array[Vector3i]) -> void:
+	if send_world:
+		for cell in cells:
+			_cells[cell] = true
 
 
 func _on_looks(key: Vector2i) -> void:
