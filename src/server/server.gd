@@ -186,7 +186,7 @@ func poll() -> void:
 		peer.address = stream.get_connected_host()
 		if _pending() >= PENDING_MAX or _pending(peer.address) >= PENDING_PER_ADDRESS:
 			stream.disconnect_from_host()
-			flag(null, "connections", "слишком много входов без приветствия с " + peer.address, 1)
+			flag(null, "connections", "too many connections without a hello from " + peer.address, 1)
 			continue
 		peer.ws = WebSocketPeer.new()
 		peer.ws.inbound_buffer_size = INBOUND
@@ -263,32 +263,32 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 		return ""
 	var rest := parts[1].strip_edges() if parts.size() > 1 else ""
 	if not COMMANDS.has(parts[0]):
-		return "неизвестная команда «%s»; help — список" % parts[0].left(32)
+		return "unknown command «%s»; help lists them" % parts[0].left(32)
 	if role < COMMANDS[parts[0]]:
-		return "«%s» — только для владельца сервера" % parts[0]
+		return "«%s» is for the server's owner only" % parts[0]
 	match parts[0]:
 		"who":
-			var out: Array[String] = ["Игроков на связи: %d из %d" % [online(), config.max_players]]
+			var out: Array[String] = ["Players online: %d of %d" % [online(), config.max_players]]
 			for a: Account in players():
 				var at: Vector3 = a.link.who.position / WorldData.CELL
-				out.append("  %s (%d)%s: %d, %d, %d" % [a.name, a.id, "" if a.peer != null else ", без связи",
+				out.append("  %s (%d)%s: %d, %d, %d" % [a.name, a.id, "" if a.peer != null else ", offline",
 					floori(at.x), floori(at.y), floori(at.z)])
 			return "\n".join(out)
 		"say":
 			if rest == "":
-				return "say <слова для всех>"
+				return "say <words for everyone>"
 			for key in accounts:
 				accounts[key].link.hear(0, "Сервер", rest)
-			return "сказано: " + rest
+			return "said: " + rest
 		"kick":
 			var a := _find(rest)
 			if a == null:
-				return "нет такого игрока: " + rest
+				return "no such player: " + rest
 			kick(a, "хозяин отключил вас")
-			return "отключён: " + a.name
+			return "kicked: " + a.name
 		"stop":
 			stop()
-			return "сервер останавливается"
+			return "the server is stopping"
 		"give":
 			return _give(rest)
 		"tp":
@@ -298,35 +298,35 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 		"unban":
 			return _unban(rest)
 		"bans":
-			return "заблокированы: " + (", ".join(_banned()) if not _banned().is_empty() else "никто")
+			return "banned: " + (", ".join(_banned()) if not _banned().is_empty() else "nobody")
 		"whitelist":
 			return _whitelist(rest)
 		"op":
 			var a := _find(rest)
 			if a == null:
-				return "op <кто> — дать команды в чате; нет такого игрока: " + rest
+				return "op <who> gives commands in the chat; no such player: " + rest
 			access.hosts[a.key] = a.name
 			_save_access()
-			flag(a, "role", "дан хозяин (op)", 1)
+			flag(a, "role", "made a host (op)", 1)
 			a.link.hear(0, "", "Вы хозяин сервера: команды в чате через «/», /help — список")
-			return "хозяин: " + a.name
+			return "host: " + a.name
 		"deop":
 			var low := rest.to_lower()
 			for key in access.hosts.keys():
 				if str(access.hosts[key]).to_lower() == low or str(key) == rest:
 					access.hosts.erase(key)
 					_save_access()
-					flag(accounts.get(key), "role", "снят хозяин (deop): " + rest, 1)
-					return "больше не хозяин: " + rest
-			return "не хозяин: " + rest
+					flag(accounts.get(key), "role", "no longer a host (deop): " + rest, 1)
+					return "no longer a host: " + rest
+			return "not a host: " + rest
 		"hosts":
-			var names: Array = access.owners.values().map(func(n) -> String: return "%s (владелец)" % n) + access.hosts.values()
-			return "хозяева: " + (", ".join(names) if not names.is_empty() else "только терминал")
+			var names: Array = access.owners.values().map(func(n) -> String: return "%s (owner)" % n) + access.hosts.values()
+			return "hosts: " + (", ".join(names) if not names.is_empty() else "the terminal only")
 		"security":
 			var shown: Array = security_log.slice(-20)
 			if rest != "":
 				shown = security_log.filter(func(e: Dictionary) -> bool: return e.what == rest or e.name == rest).slice(-20)
-			var out: Array[String] = ["журнал безопасности: %d записей" % security_log.size()]
+			var out: Array[String] = ["security log: %d entries" % security_log.size()]
 			for e: Dictionary in shown:
 				out.append("  %s" % _security_line(e))
 			return "\n".join(out)
@@ -339,14 +339,14 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 				return "«test» здесь не работает"
 			return test_command.call(rest, role)
 		"help", "?":
-			return "\n".join(["who — кто в мире; say <слова> — сказать всем; kick <кто> — отключить; stop — остановить сервер",
-				"give <кто> <предмет> [сколько] — дать; tp <кто> <x> <y> <z> | <к кому> — перенести (клетки)",
-				"ban <кто или имя>, unban <имя>, bans — блокировка; whitelist on|off|add <имя>|remove <имя> — пускать только своих",
-				"op <кто>, deop <имя>, hosts — кто может давать команды в чате через «/» (op, deop, stop — владелец)",
-				"security [вид или имя] — что выглядело подозрительно",
-				"reload — перечитать данные модов с диска (горячая перезагрузка: числа, звери, рецепты; клетки мира прежние)",
-				"test bot+|bot- — боты; test worlds, test world <имя>, test new [зерно], test new test — другой мир сервера",
-				"<кто> — имя или номер игрока (who)"])
+			return "\n".join(["who: who is in the world; say <words>: tell everyone; kick <who>: put out; stop: stop the server",
+				"give <who> <item> [count]: give; tp <who> <x> <y> <z> | <to whom>: move (cells)",
+				"ban <who or name>, unban <name>, bans: blocking; whitelist on|off|add <name>|remove <name>: let in only the listed",
+				"op <who>, deop <name>, hosts: who may give commands in the chat with «/» (op, deop, stop: the owner)",
+				"security [kind or name]: what looked suspicious",
+				"reload: read the mods' data from disk again (hot reload: numbers, animals, recipes; the world's cells stay)",
+				"test bot+|bot-: bots; test worlds, test world <name>, test new [seed], test new test: another world for the server",
+				"<who>: a player's name or number (who)"])
 	return ""
 
 
@@ -360,11 +360,11 @@ func reload_mods() -> String:
 		session.reread()
 	for key in accounts:
 		accounts[key].link.hear(0, "", "Сервер перечитал данные модов")
-	var out: Array[String] = ["данные модов перечитаны" if problems.is_empty() else "данные модов перечитаны, ошибок: %d" % problems.size()]
+	var out: Array[String] = ["mod data read again" if problems.is_empty() else "mod data read again, problems: %d" % problems.size()]
 	for p in problems.slice(0, 10):
 		out.append("  " + p)
 	if Mods.cells_kept:
-		out.append("материалы клеток изменились: мир играет прежними, новые — в новом мире")
+		out.append("the cells' materials changed: this world keeps the old ones, a new world takes the new")
 	return "\n".join(out)
 
 
@@ -411,7 +411,7 @@ func _on_chat(text: String, key: String) -> void:
 		return
 	if text.begins_with("/"):
 		if not is_host(key) and not (config.playtest and text.get_slice(" ", 0) == "/test"):
-			flag(a, "command", "команда без прав: " + text.left(40), 1)
+			flag(a, "command", "command without the right: " + text.left(40), 1)
 			a.link.hear(0, "", "Команды через «/» — только для хозяина сервера")
 			return
 		_say("%s (%d): %s" % [a.name, a.id, text])
@@ -432,7 +432,7 @@ func _on_team_chat(text: String, key: String) -> void:
 	var a: Account = accounts.get(key)
 	if a == null:
 		return
-	_say("%s (%d) команде: %s" % [a.name, a.id, text])
+	_say("%s (%d) to the team: %s" % [a.name, a.id, text])
 	for k in accounts:
 		var b: Account = accounts[k]
 		if session.teams.together(a.id, b.id):
@@ -444,22 +444,22 @@ func _save_access() -> void:
 		store.write_access(access)
 
 
-## "give <кто> <предмет> [сколько]": into the player's bag (an item by its id, the
+## "give <who> <item> [count]": into the player's bag (an item by its id, the
 ## end of its id or its name).
 func _give(rest: String) -> String:
 	var args := rest.split(" ", false)
 	if args.size() < 2:
-		return "give <кто> <предмет> [сколько]"
+		return "give <who> <item> [count]"
 	var a := _find(args[0])
 	if a == null:
-		return "нет такого игрока: " + args[0]
+		return "no such player: " + args[0]
 	var n := clampi(int(args[2]), 1, 999) if args.size() > 2 and args[2].is_valid_int() else 1
 	var id := _item(args[1])
 	if id == "":
-		return "нет такого предмета: " + args[1]
+		return "no such item: " + args[1]
 	var got: int = a.link.who.give(id, n)
-	flag(a, "give", "выдано командой: %d × %s" % [got, id], 0)
-	return "выдано %s: %d × %s" % [a.name, got, Items.title(id)]
+	flag(a, "give", "given by command: %d × %s" % [got, id], 0)
+	return "given %s: %d × %s" % [a.name, got, Items.title(id)]
 
 
 ## The item meant by `what`: its id, the part after the colon, or its name.
@@ -477,31 +477,31 @@ static func _item(what: String) -> String:
 func _tp(rest: String) -> String:
 	var args := rest.split(" ", false)
 	if args.size() != 2 and args.size() != 4:
-		return "tp <кто> <x> <y> <z> | tp <кто> <к кому>"
+		return "tp <who> <x> <y> <z> | tp <who> <to whom>"
 	var a := _find(args[0])
 	if a == null:
-		return "нет такого игрока: " + args[0]
+		return "no such player: " + args[0]
 	var to: Vector3
 	if args.size() == 2:
 		var b := _find(args[1])
 		if b == null:
-			return "нет такого игрока: " + args[1]
+			return "no such player: " + args[1]
 		to = b.link.who.position
 	else:
 		for k in range(1, 4):
 			if not args[k].is_valid_int():
-				return "клетки — целые числа: " + rest
+				return "cells are whole numbers: " + rest
 		to = (Vector3(int(args[1]), int(args[2]), int(args[3])) + Vector3(0.5, 0.0, 0.5)) * WorldData.CELL
 	a.link.who.teleport(to)
 	var c := (to / WorldData.CELL).floor()
-	return "%s перенесён на %d, %d, %d" % [a.name, c.x, c.y, c.z]
+	return "%s moved to %d, %d, %d" % [a.name, c.x, c.y, c.z]
 
 
-## "ban <кто или имя>": a player here is put out and their key blocked; a name not
+## "ban <who or name>": a player here is put out and their key blocked; a name not
 ## here is blocked by the name.
 func _ban(rest: String) -> String:
 	if rest == "":
-		return "ban <кто или имя>"
+		return "ban <who or name>"
 	var a := _find(rest)
 	var name := a.name if a != null else rest
 	if not access.banned_names.has(name.to_lower()):
@@ -510,8 +510,8 @@ func _ban(rest: String) -> String:
 		access.banned_keys[a.key] = a.name
 		kick(a, "хозяин заблокировал вас")
 	_save_access()
-	_say("%s заблокирован" % name)
-	return "заблокирован: " + name
+	_say("%s banned" % name)
+	return "banned: " + name
 
 
 ## "unban <имя>": the name and the keys that came with it.
@@ -524,9 +524,9 @@ func _unban(rest: String) -> String:
 			access.banned_keys.erase(key)
 			was = true
 	if not was:
-		return "не заблокирован: " + rest
+		return "not banned: " + rest
 	_save_access()
-	return "разблокирован: " + rest
+	return "unbanned: " + rest
 
 
 func _banned() -> Array:
@@ -538,7 +538,7 @@ func _banned() -> Array:
 	return out
 
 
-## "whitelist on|off|add <имя>|remove <имя>": only the names on the list come in while
+## "whitelist on|off|add <name>|remove <name>": only the names on the list come in while
 ## it is on; turning it on puts those here on it.
 func _whitelist(rest: String) -> String:
 	var args := rest.split(" ", false, 1)
@@ -555,7 +555,7 @@ func _whitelist(rest: String) -> String:
 			access.listed_only = false
 		"add":
 			if name == "":
-				return "whitelist add <имя>"
+				return "whitelist add <name>"
 			if not access.listed.has(name):
 				access.listed.append(name)
 		"remove":
@@ -564,10 +564,10 @@ func _whitelist(rest: String) -> String:
 		"":
 			pass
 		_:
-			return "whitelist on|off|add <имя>|remove <имя>"
+			return "whitelist on|off|add <name>|remove <name>"
 	_save_access()
-	return "только свои: %s; в списке: %s" % ["да" if access.listed_only else "нет",
-		", ".join(access.listed) if not access.listed.is_empty() else "никого"]
+	return "listed only: %s; on the list: %s" % ["yes" if access.listed_only else "no",
+		", ".join(access.listed) if not access.listed.is_empty() else "nobody"]
 
 
 ## Puts `a` out with `why` (words for the player) and takes the character out of the world.
@@ -585,9 +585,9 @@ func kick(a: Account, why: String, code := CLOSE_KICKED) -> void:
 func stop(why := "сервер остановлен", code := CLOSE_STOP) -> void:
 	if store != null and not stopping:
 		if store.save(self):
-			_say("мир сохранён")
+			_say("world saved")
 		else:
-			_say("мир не сохранить: см. ошибки выше")
+			_say("the world could not be saved: see the errors above")
 	stopping = true
 	for peer in peers:
 		if peer.ws.get_ready_state() in [WebSocketPeer.STATE_OPEN, WebSocketPeer.STATE_CONNECTING]:
@@ -617,7 +617,7 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 	var link: PlayerLink = peer.account.link
 	var msg := Protocol.decode(bytes)
 	if msg.is_empty() or not msg[0] is String:
-		flag(peer.account, "malformed", "не сообщение (%d байт)" % bytes.size(), 1)
+		flag(peer.account, "malformed", "not a message (%d bytes)" % bytes.size(), 1)
 		return
 	if msg.size() == 2 and msg[0] == Protocol.BYE:
 		peer.account.linger = linger_of(peer.account)
@@ -649,9 +649,9 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 	var why := _refusal(args, peer.address)
 	if why != "":
 		var who_said := Protocol.clean_text(str(args[2]), NAME_MAX) if args.size() > 2 else "?"
-		_say("%s: отказ (%s) с %s" % [who_said, why, peer.address])
+		_say("%s: refused (%s) from %s" % [who_said, why, peer.address])
 		if why in [Protocol.WHY_PASSWORD, Protocol.WHY_WAIT, Protocol.WHY_BANNED, Protocol.WHY_LIST]:
-			flag(null, "login", "%s: отказ (%s) с %s" % [who_said, why, peer.address], 1)
+			flag(null, "login", "%s: refused (%s) from %s" % [who_said, why, peer.address], 1)
 		peer.ws.put_packet(Protocol.encode(Protocol.reply(seq, {"ok": false, "why": why})))
 		peer.close_after(CLOSE_REFUSED, why)
 		return
@@ -666,7 +666,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		a.name = name
 		a.link.who.player_name = name
 		a.link.rejoin()
-		_say("%s (%d): снова на связи с %s" % [a.name, a.id, peer.address])
+		_say("%s (%d): back online from %s" % [a.name, a.id, peer.address])
 	else:
 		# One who was here before (the character left the world, or the server was
 		# restarted) comes back to it by the key.
@@ -703,7 +703,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		if not wild:
 			wild = true
 			session.start_wildlife(int(world_info.seed))
-		_say("%s (%d): %s с %s (%d из %d)" % [a.name, a.id, "вход" if record.is_empty() else "возвращается",
+		_say("%s (%d): %s from %s (%d of %d)" % [a.name, a.id, "joins" if record.is_empty() else "returns",
 			peer.address, online() + 1, config.max_players])
 	a.peer = peer
 	a.left_at = -1.0
@@ -799,13 +799,13 @@ func _within_rate(peer: Peer, now: float) -> bool:
 		return true
 	peer.refused += 1.0
 	if peer.refused > FLOOD_KICK * MSG_RATE and peer.close_code == 0:
-		flag(peer.account, "flood", "слишком много сообщений: отключён", 2)
+		flag(peer.account, "flood", "too many messages: put out", 2)
 		if peer.account != null:
 			kick(peer.account, "слишком много сообщений", CLOSE_FLOOD)
 		else:
 			peer.close_after(CLOSE_FLOOD, "слишком много сообщений")
 	elif int(peer.refused) % int(MSG_RATE) == 1:
-		flag(peer.account, "flood", "сообщения чаще %d в секунду не читаются" % int(MSG_RATE), 1)
+		flag(peer.account, "flood", "messages more often than %d a second are not read" % int(MSG_RATE), 1)
 	return false
 
 
@@ -827,11 +827,11 @@ func flag(a: Account, what: String, detail: String, level := 1) -> void:
 		_flag_at[k] = [last[0], last[1] + 1]
 		return
 	_flag_at[k] = [now, 0]
-	_say("безопасность: " + _security_line(e) + (" (и ещё %d)" % last[1] if last[1] > 0 else ""))
+	_say("security: " + _security_line(e) + (" (and %d more)" % last[1] if last[1] > 0 else ""))
 
 
 static func _security_line(e: Dictionary) -> String:
-	return "%s [%s] %s%s: %s" % [e.at, ["заметка", "внимание", "меры"][clampi(e.level, 0, 2)], e.what,
+	return "%s [%s] %s%s: %s" % [e.at, ["note", "warning", "action"][clampi(e.level, 0, 2)], e.what,
 		" — %s (%d)" % [e.name, e.id] if e.id != 0 else "", e.detail]
 
 
@@ -853,9 +853,9 @@ func _dropped(peer: Peer) -> void:
 	a.left_at = _now()
 	a.linger = minf(a.linger, linger_of(a))
 	if a.linger > 0.0:
-		_say("%s (%d): связь потеряна, персонаж ждёт %d с" % [a.name, a.id, int(a.linger)])
+		_say("%s (%d): connection lost, the character waits %d s" % [a.name, a.id, int(a.linger)])
 	else:
-		_say("%s (%d): вышел на своей земле" % [a.name, a.id])
+		_say("%s (%d): left on their own land" % [a.name, a.id])
 
 
 ## Seconds the character of `a` stays in the world once they leave: none in their own
@@ -877,7 +877,7 @@ func _forget(a: Account) -> void:
 		a.peer.account = null
 		a.peer = null
 	a.link.leave()
-	_say("%s (%d): персонаж покинул мир" % [a.name, a.id])
+	_say("%s (%d): the character left the world" % [a.name, a.id])
 
 
 func _find(what: String) -> Account:

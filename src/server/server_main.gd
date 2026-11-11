@@ -121,7 +121,7 @@ func start() -> bool:
 		Engine.max_fps = FPS
 		config.read()
 		config.take_args(OS.get_cmdline_user_args())
-	say("Survivium, сборка %s, протокол %d" % [Protocol.build_version(), Protocol.VERSION])
+	say("Survivium, build %s, protocol %d" % [Protocol.build_version(), Protocol.VERSION])
 	if not _open_world():
 		failed = "Мир не открыть: " + (str(log_lines.back()).get_slice("] ", 1) if not log_lines.is_empty() else "")
 		return false
@@ -132,12 +132,12 @@ func start() -> bool:
 		console.start()
 	var err := server.listen()
 	if err != OK:
-		say("не могу слушать порт %d (%s)" % [config.port, error_string(err)])
+		say("cannot listen on port %d (%s)" % [config.port, error_string(err)])
 		failed = "Порт %d занят" % config.port
 		server = null
 		return false
-	say("слушаю порт %d, игроков не больше %d%s" % [config.port, config.max_players,
-		", вход по паролю" if config.password != "" else ""])
+	say("listening on port %d, at most %d players%s" % [config.port, config.max_players,
+		", password required" if config.password != "" else ""])
 	if config.tunnel:
 		open_tunnel()
 	if config.real_weather:
@@ -146,7 +146,7 @@ func start() -> bool:
 		real_weather.report = say
 		real_weather.enabled = true
 		add_child(real_weather)
-		say("погода с улицы: узнаю, где сервер…")
+		say("real weather: finding where the server is…")
 	if config.playtest and not hosted:
 		playtest_host = PlaytestHost.new(self)
 		add_child(playtest_host)
@@ -159,13 +159,13 @@ func start() -> bool:
 func _open_saves() -> void:
 	saves = null
 	if not config.save:
-		say("мир не сохраняется (--no-save)")
+		say("the world is not saved (--no-save)")
 		return
 	saves = ServerStore.new(store, session, {"seed": seed_value, "settings": settings, "mods": mods}, _meta)
 	saves.every = config.autosave
 	var left := saves.clean()
 	if left > 0:
-		say("сохранение было прервано: %d недописанных файлов убрано, мир — с прошлого сохранения" % left)
+		say("a save was cut short: %d unfinished files removed, the world is as of the save before" % left)
 	server.store = saves
 	server.load_access()
 	server.next_id = saves.next_player()
@@ -183,7 +183,7 @@ func _make_server() -> void:
 func renew(new_seed: int, folder := "") -> bool:
 	if server == null or server.stopping:
 		return false
-	say("другой мир (%s): все выходят и заходят снова" % (folder if folder != "" else str(new_seed)))
+	say("another world (%s): everyone leaves and comes in again" % (folder if folder != "" else str(new_seed)))
 	_renew_seed = new_seed
 	_renew_folder = folder
 	server.stop("Сервер переходит в другой мир", Protocol.CLOSE_RENEW)
@@ -219,10 +219,10 @@ func _swap_world() -> void:
 				server.access[k].append(v)
 	server.access.listed_only = server.access.listed_only or access.listed_only
 	if server.listen() != OK:
-		say("не могу слушать порт %d снова" % config.port)
+		say("cannot listen on port %d again" % config.port)
 		_quit()
 		return
-	say("слушаю порт %d снова, мир %d" % [config.port, seed_value])
+	say("listening on port %d again, world %d" % [config.port, seed_value])
 	renewed.emit()
 
 
@@ -232,9 +232,9 @@ func open_tunnel() -> void:
 		return
 	tunnel = Tunnel.new()
 	if tunnel.start(config.port, config.cloudflared):
-		say("туннель: запускаю %s…" % tunnel.program)
+		say("tunnel: starting %s…" % tunnel.program)
 	else:
-		say("туннель: " + tunnel.failed)
+		say("tunnel: " + tunnel.failed)
 
 
 func close_tunnel() -> void:
@@ -252,7 +252,7 @@ func _open_world() -> bool:
 	if store.exists():
 		meta = store.read_json(WorldStore.WORLD)
 		if meta.get("format") != float(WorldStore.FORMAT) or not meta.get("seed") is float:
-			say("сохранение %s не прочитать (формат %s, нужен %d)" % [store.dir, meta.get("format"), WorldStore.FORMAT])
+			say("cannot read the save %s (format %s, %d needed)" % [store.dir, meta.get("format"), WorldStore.FORMAT])
 			return false
 		had_save = true
 		_meta = meta
@@ -260,15 +260,15 @@ func _open_world() -> bool:
 		settings = {}
 		for k: String in WorldGen.DEFAULT_SETTINGS:
 			settings[k] = int(meta.get("settings", {}).get(k, WorldGen.DEFAULT_SETTINGS[k]))
-		say("мир %s: %d чанков сохранено" % [store.dir, store.chunk_count()])
+		say("world %s: %d chunks saved" % [store.dir, store.chunk_count()])
 	elif config.world != "":
-		say("мира %s нет" % store.dir)
+		say("no world %s" % store.dir)
 		return false
 	else:
-		say("новый мир %d %s" % [seed_value, settings])
+		say("new world %d %s" % [seed_value, settings])
 	mods = Mods.of_world(meta) if had_save else Mods.resolve(config.mods if not config.mods.is_empty() else Mods.all()).order
 	for problem in Mods.activate(mods):
-		say("контент: " + str(problem))
+		say("content: " + str(problem))
 	var t0 := Time.get_ticks_msec()
 	var maker: GDScript = load(TEST_GROUND) if seed_value == WorldStore.TEST_SEED else WorldGen
 	var gen = maker.new(seed_value, 48, settings)
@@ -313,7 +313,7 @@ func _open_world() -> bool:
 	runner.pausable = false
 	runner.playing = true
 	add_child(runner)
-	say("место старта %d, %d, %d; земля вокруг сделана за %d мс" % [cell.x, cell.y, cell.z, Time.get_ticks_msec() - t0])
+	say("spawn %d, %d, %d; the land around made in %d ms" % [cell.x, cell.y, cell.z, Time.get_ticks_msec() - t0])
 	return true
 
 
@@ -330,10 +330,10 @@ func _process(delta: float) -> void:
 	_note_load(delta)
 	if tunnel != null and tunnel.failed == "":
 		if tunnel.poll():
-			say("из интернета: %s" % tunnel.url)
-			say("ссылка для друзей: %s" % tunnel.link())
+			say("from the internet: %s" % tunnel.url)
+			say("link for friends: %s" % tunnel.link())
 		elif tunnel.failed != "":
-			say("туннель: " + tunnel.failed)
+			say("tunnel: " + tunnel.failed)
 	if saves != null and not server.stopping:
 		saves.update(delta, server)
 	for line in server.lines:
@@ -366,7 +366,7 @@ func _quit() -> void:
 	if console != null:
 		console.stop()
 	close_tunnel()
-	say("сервер остановлен")
+	say("server stopped")
 	set_process(false)
 	stopped.emit()
 	if quit_on_stop and not hosted:
@@ -402,7 +402,7 @@ func _note_load(delta: float) -> void:
 	_load_frames += 1
 	_load_worst = maxf(_load_worst, delta)
 	if _load_clock >= LOAD_EVERY:
-		say("нагрузка: %d кадров в секунду, самый долгий кадр %d мс, игроков %d" % [roundi(_load_frames / _load_clock),
+		say("load: %d frames a second, longest frame %d ms, players %d" % [roundi(_load_frames / _load_clock),
 			roundi(_load_worst * 1000.0), server.online()])
 		_load_clock = 0.0
 		_load_frames = 0

@@ -187,7 +187,7 @@ func _process(_delta: float) -> void:
 		if _worked and (_next >= _trees.size() or Time.get_ticks_msec() - _shown_at >= SHOW_EVERY_MS):
 			_lay_out(p, near)
 	if game.hud != null:
-		game.hud.perf.note("лучи", t)
+		game.hud.perf.note("sun rays", t)
 
 
 ## Works out the light of the trees near whose light is not of the sun now, the

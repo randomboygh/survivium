@@ -187,19 +187,19 @@ func pick(origin: Vector3, dir: Vector3) -> bool:
 ## its hunger and health; for the one chosen (`full`) the rest too.
 static func card(m: Array, spec: Dictionary, full: bool) -> String:
 	var lines := ["%s: %s" % [Lang.t(spec.get("title", "?")), doing(m)]]
-	lines.append(Lang.f("голод %d%% · здоровье %d/%d", [roundi(float(m[HUNGER]) * 100.0), m[HEALTH], m[MOST]]))
+	lines.append(Lang.f("hunger %d%% · health %d/%d", [roundi(float(m[HUNGER]) * 100.0), m[HEALTH], m[MOST]]))
 	if not full:
 		return "\n".join(lines)
 	if float(m[RAGE]) > 0.0 or float(m[CALM]) > 0.0:
-		lines.append(Lang.f("ярость %d с · покой %d с", [ceili(m[RAGE]), ceili(m[CALM])]))
+		lines.append(Lang.f("rage %d s · calm %d s", [ceili(m[RAGE]), ceili(m[CALM])]))
 	if float(m[HURT]) > 0.0:
-		lines.append(Lang.f("бежит после удара ещё %d с", [ceili(m[HURT])]))
+		lines.append(Lang.f("runs after a hit %d s more", [ceili(m[HURT])]))
 	if float(m[IDLE]) > 0.0:
-		lines.append(Lang.f("стоит ещё %d с", [ceili(m[IDLE])]))
-	lines.append(Lang.f("зрение %d · боится людей ближе %d · рычит ближе %d", [roundi(m[SEEN]), roundi(m[WARY_AT]), roundi(m[CLOSE_AT])]))
+		lines.append(Lang.f("stands %d s more", [ceili(m[IDLE])]))
+	lines.append(Lang.f("sight %d · fears people within %d · growls within %d", [roundi(m[SEEN]), roundi(m[WARY_AT]), roundi(m[CLOSE_AT])]))
 	if int(m[OWNER]) >= 0:
-		lines.append(Lang.f("ручной, хозяин %d", [m[OWNER]]))
-	lines.append(Lang.t("думает каждый шаг: его видят") if m[NEAR] else Lang.t("думает реже: его никто не видит"))
+		lines.append(Lang.f("tame, owner %d", [m[OWNER]]))
+	lines.append(Lang.t("thinks every step: seen") if m[NEAR] else Lang.t("thinks less often: no one sees it"))
 	return "\n".join(lines)
 
 
@@ -210,36 +210,36 @@ static func doing(m: Array) -> String:
 		"flee":
 			match cause:
 				"person":
-					return Lang.t("бежит от человека")
+					return Lang.t("flees a person")
 				"fire":
-					return Lang.t("бежит от огня")
+					return Lang.t("flees fire")
 				"hurt":
-					return Lang.t("бежит от места удара")
+					return Lang.t("flees the place of a hit")
 				"alarm":
-					return Lang.t("бежит: стая в тревоге")
-			return Lang.f("бежит от: %s", [_kind_title(cause)])
+					return Lang.t("flees: the pack is alarmed")
+			return Lang.f("flees: %s", [_kind_title(cause)])
 		"hunt":
-			return Lang.f("охотится на: %s", [_kind_title(cause)])
+			return Lang.f("hunts: %s", [_kind_title(cause)])
 		"rest":
-			return Lang.t("спит: не его время")
+			return Lang.t("sleeps: not its time")
 		"warn":
-			return Lang.t("рычит на человека")
+			return Lang.t("growls at a person")
 		"charge":
-			return Lang.t("охотится на человека") if cause == "hunt_person" else Lang.t("отгоняет человека")
+			return Lang.t("hunts a person") if cause == "hunt_person" else Lang.t("drives a person off")
 		"bite":
-			return Lang.t("кусает")
+			return Lang.t("bites")
 		"bait":
-			return Lang.t("плывёт к поплавку")
+			return Lang.t("swims to the float")
 	if float(m[IDLE]) > 0.0:
-		return Lang.t("стоит")
+		return Lang.t("stands")
 	match cause:
 		"graze":
-			return Lang.t("идёт пастись")
+			return Lang.t("goes to graze")
 		"lead":
-			return Lang.t("идёт за вожаком")
+			return Lang.t("follows the leader")
 		"owner":
-			return Lang.t("с хозяином")
-	return Lang.t("бродит")
+			return Lang.t("with its owner")
+	return Lang.t("wanders")
 
 
 static func _kind_title(kind: String) -> String:

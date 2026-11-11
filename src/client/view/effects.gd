@@ -641,7 +641,7 @@ func pick_shadow_fires(view: Vector2) -> void:
 				best_d = d
 				best = f
 	if best != null and not best.light.shadow_enabled and perf != null:
-		perf.mark("тень огня")
+		perf.mark("fire shadow")
 	# Written only on a change: each write marks the light's cube shadow dirty.
 	for f in fires:
 		if f.light.shadow_enabled != (f == best):

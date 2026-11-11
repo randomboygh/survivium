@@ -962,7 +962,7 @@ func _apply_ground(key: Vector2i, meshes: Array) -> void:
 	cap_cache.erase(key)
 	_caps_ready = -1
 	var nodes: Array = chunk_nodes[key]
-	game.hud.perf.mark("сетка")
+	game.hud.perf.mark("mesh")
 	nodes[0].mesh = meshes[0]
 	nodes[1].mesh = meshes[1]
 	_fit_box(nodes[0])
@@ -1338,7 +1338,7 @@ func update_caps() -> void:
 			node.layers = PixelView.LAYER_GROUND
 			game.world_root.add_child(node)
 			cap_nodes[key] = node
-		game.hud.perf.mark("срез")
+		game.hud.perf.mark("cut")
 		var mesh: Mesh = ChunkMesher.build_cap(world, want, key.x * CHUNK, key.y * CHUNK, CHUNK)
 		var kept: Dictionary = cap_cache.get(key, {})
 		if kept.size() >= CAP_KEPT:

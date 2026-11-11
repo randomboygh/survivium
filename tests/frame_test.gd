@@ -628,13 +628,13 @@ func _run() -> void:
 		"a tap on the state or the clock does not reach the world")
 	# The statistics with their longest lines, two freezes told, do not wrap and stay low.
 	hud.perf.reset()
-	hud.perf.mark("тень огня")
-	hud.perf.mark("сетка")
-	hud.perf.mark("видео", "+512 КБ")
+	hud.perf.mark("fire shadow")
+	hud.perf.mark("mesh")
+	hud.perf.mark("video", "+512 KB")
 	hud.perf.add_frame(1.234)
-	_check(hud.perf.last_freeze[2] == ["видео", "сетка", "тень огня"] and hud.perf.freeze_marks.get("сетка") == 1,
+	_check(hud.perf.last_freeze[2] == ["fire shadow", "mesh", "video"] and hud.perf.freeze_marks.get("mesh") == 1,
 		"a freeze tells what was marked in the frame before it: %s" % [hud.perf.last_freeze])
-	_check(hud.perf.freeze_log.size() == 1 and hud.perf.freeze_log[0][3] == ["видео +512 КБ", "сетка", "тень огня"],
+	_check(hud.perf.freeze_log.size() == 1 and hud.perf.freeze_log[0][3] == ["fire shadow", "mesh", "video +512 KB"],
 		"the freezes' log keeps the marks with what they say: %s" % [hud.perf.freeze_log])
 	_check(hud.perf.freeze_log[0][2][0][0] == hud.perf.REST and hud.perf.freeze_log[0].size() == 5,
 		"time outside the game's code and the drawing is the browser's, with the draw calls: %s" % [hud.perf.freeze_log])
@@ -643,44 +643,44 @@ func _run() -> void:
 		"an ordinary frame is averaged, not logged: %s" % [hud.perf.usual])
 	# A long frame the page saw is told beside the freeze it overlaps; a newer one waits.
 	var page_now := Time.get_ticks_msec()
-	hud.perf._long_frames = [[page_now - 600.0, 1200.0, "кадр 1100,touchmove 40"], [page_now + 500.0, 80.0, "звук 70"]]
+	hud.perf._long_frames = [[page_now - 600.0, 1200.0, "frame 1100,touchmove 40"], [page_now + 500.0, 80.0, "sound 70"]]
 	hud.perf._attach_long_frames()
-	_check(hud.perf.freeze_log[0][3].back() == "страница 1200 мс: кадр 1100,touchmove 40" and hud.perf._long_frames.size() == 1,
+	_check(hud.perf.freeze_log[0][3].back() == "page 1200 ms: frame 1100,touchmove 40" and hud.perf._long_frames.size() == 1,
 		"a long frame of the page is told beside its freeze: %s, left %s" % [hud.perf.freeze_log[0][3], hud.perf._long_frames])
 	hud.perf._long_frames.clear()
 	# A collection the page tells of frames later is told beside the last freeze, once.
-	hud.perf._mark_last_freeze("мусор 93 → 61 МБ")
-	hud.perf._mark_last_freeze("мусор")
-	_check(hud.perf.freeze_log[0][3].back() == "мусор 93 → 61 МБ" and hud.perf.freeze_log[0][3].count("мусор") == 0,
+	hud.perf._mark_last_freeze("garbage 93 → 61 MB")
+	hud.perf._mark_last_freeze("garbage")
+	_check(hud.perf.freeze_log[0][3].back() == "garbage 93 → 61 MB" and hud.perf.freeze_log[0][3].count("garbage") == 0,
 		"a late told collection is marked on the last freeze once: %s" % [hud.perf.freeze_log[0][3]])
 	# The log's window: the ordinary frame first, a tab for each band of length.
 	hud.perf.freeze_log.append([10.0, 250.0, [], [], 1])
 	hud.perf.freeze_log.append([11.0, 70.0, [], [], 1])
 	hud.open_settings("freezes")
 	var log_page = hud._settings
-	_check(log_page._list.get_child(0).text.begins_with("Обычный кадр") and log_page._list.get_child_count() == 1 + 3,
+	_check(log_page._list.get_child(0).text.begins_with("Usual frame") and log_page._list.get_child_count() == 1 + 3,
 		"the freezes' log opens with the ordinary frame and every freeze kept")
 	_check(main.freeze_log.lines("critical").size() == 2 and main.freeze_log.lines("big").size() == 0
 		and main.freeze_log.lines("small").size() == 1 and log_page._tab_buttons.critical.text == "от 200 2",
 		"the freezes' log splits the freezes by their length")
 	log_page.show_section("critical")
-	_check(log_page._list.get_child(1).text.begins_with("0:10  250 мс"), "the critical tab shows the freeze of 250 ms")
+	_check(log_page._list.get_child(1).text.begins_with("0:10  250 ms"), "the critical tab shows the freeze of 250 ms")
 	# The report for a playtest: a line each for the build, the world, the place, the
 	# camera, the time, the weather, the light, the settings, the device, the frame, the
 	# start (its steps, the mods' records, read and loaded), the starts before (this one
 	# kept once the world was built) and the server (the requests through it).
 	log_page.open("report")
 	var report: String = log_page.report_text()
-	_check(report.split("\n").size() == 13 and report.contains("Мир: ") and report.contains("Погода: ")
-		and report.contains("данные модов ") and report.contains("(записей %d: чтение " % Content.record_count())
-		and report.contains("скрипты ") and report.contains(", мир ") and report.contains("Прошлые запуски: ")
-		and report.contains("Сервер: в игре (петля), запросов ") and main.net.requests > 0
+	_check(report.split("\n").size() == 13 and report.contains("World: ") and report.contains("Weather: ")
+		and report.contains("mod data ") and report.contains("(%d records: read " % Content.record_count())
+		and report.contains("scripts ") and report.contains(", world ") and report.contains("Earlier starts: ")
+		and report.contains("Server: in the game (loop), requests ") and main.net.requests > 0
 		and log_page._list.get_child(log_page._list.get_child_count() - 1).text == report, "the playtest report tells the moment: %s" % report)
 	log_page.close()
 	hud.perf.freeze_log.resize(1)
-	hud.perf.last_freeze = [1234.0, [["отрисовка", 1200.0], ["животные", 20.0], ["небо", 9.0]], ["тень огня", "сетка"]]
-	hud.perf.worst_freeze = [2345.0, [["отрисовка", 2300.0], ["камера", 40.0], ["небо", 5.0]]]
-	hud.perf.freeze_marks = {"тень огня": 123, "фигура": 45, "запись": 12, "ничего": 8}
+	hud.perf.last_freeze = [1234.0, [["drawing", 1200.0], ["animals", 20.0], ["sky", 9.0]], ["fire shadow", "mesh"]]
+	hud.perf.worst_freeze = [2345.0, [["drawing", 2300.0], ["camera", 40.0], ["sky", 5.0]]]
+	hud.perf.freeze_marks = {"fire shadow": 123, "figure": 45, "save": 12, "nothing": 8}
 	hud.toggle_stats()
 	await process_frame
 	await process_frame

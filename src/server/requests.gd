@@ -110,7 +110,7 @@ func _do(kind: String, args: Array) -> Variant:
 	_opened.clear()
 	var timed := paced and kind in PACED
 	if timed and _ahead() > WORK_AHEAD:
-		flagged.emit("pace", "%s: %.1f с работы вперёд" % [kind, _owed])
+		flagged.emit("pace", "%s: %.1f s of work ahead" % [kind, _owed])
 		return {} if kind in [Protocol.DIG, Protocol.PLACE, Protocol.FRONT] else false
 	var tool_swing: float = who.tool().get("swing", WORK_STEP) if kind == Protocol.GATHER else WORK_STEP
 	var out: Variant = _rule(kind, args)

@@ -224,7 +224,7 @@ func _run() -> void:
 
 	# The connection lost: the character waits for the key; the player comes back to it.
 	var who: String = server.command("who")
-	_check(who.contains("Аня (1)") and who.contains("Боря (2)") and who.contains("2 из 2"), "who lists the players: %s" % who)
+	_check(who.contains("Аня (1)") and who.contains("Боря (2)") and who.contains("2 of 2"), "who lists the players: %s" % who)
 	var on_server = server.session.players[0]
 	on_server.inventory.add("resources:branch", 3)
 	anya.socket.ws.close()
@@ -487,10 +487,10 @@ func _hosted() -> void:
 	if fake != "":
 		_check(await _until(func() -> bool: return node.tunnel != null and node.tunnel.url != "")
 			and node.tunnel.url == "wss://quiet-river-test.trycloudflare.com"
-			and node.log_lines.any(func(l: String) -> bool: return l.contains("ссылка для друзей: " + Tunnel.PAGE + "?server=wss://quiet-river-test")),
+			and node.log_lines.any(func(l: String) -> bool: return l.contains("link for friends: " + Tunnel.PAGE + "?server=wss://quiet-river-test")),
 			"with the tunnel on, cloudflared runs beside the server and its address goes into the log as a link for friends")
 	var missing := Tunnel.new()
-	_check(not missing.start(PORT, "/nowhere/cloudflared") and missing.failed.contains("cloudflared не найден"),
+	_check(not missing.start(PORT, "/nowhere/cloudflared") and missing.failed.contains("cloudflared not found"),
 		"a cloudflared that is not there says where to get it")
 	var twin_values := values.duplicate()
 	twin_values.tunnel = false
@@ -551,9 +551,9 @@ func _commands(node: Node, host: Bot) -> Array:
 	var who = node.session.players[0]
 	var before: int = who.inventory.count("resources:branch")
 	var out: String = node.command("/give Хозяин branch 3")
-	_check(who.inventory.count("resources:branch") == before + 3 and out.begins_with("выдано"),
+	_check(who.inventory.count("resources:branch") == before + 3 and out.begins_with("given"),
 		"give puts the item into the player's bag: %s" % out)
-	_check(node.command("give Хозяин nothing_like_it").begins_with("нет такого предмета"), "give names a missing item")
+	_check(node.command("give Хозяин nothing_like_it").begins_with("no such item"), "give names a missing item")
 	out = node.command("tp 1 4 30 -5")
 	_check(who.position.distance_to(Vector3(4.5, 30, -4.5) * WorldData.CELL) < 0.01 and out.contains("4, 30, -5"),
 		"tp puts the player at the cells: %s" % out)
@@ -625,9 +625,9 @@ func _chat(node: Node, a: Bot, b: Bot) -> void:
 	_check(node.command("op Чужой").contains("Чужой") and server.is_host(b.reply.value.key)
 		and node.saves.read_access().get("hosts", {}).has(b.reply.value.key), "op makes a host, kept in the world's save")
 	var who = b.socket.net.request(Protocol.CHAT, ["/who"])
-	_check(await _until(func() -> bool: return who.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and str(e[1][2]).begins_with("Игроков на связи"))),
+	_check(await _until(func() -> bool: return who.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and str(e[1][2]).begins_with("Players online"))),
 		"a host's command in the chat is done and answered there")
-	_check(not a.of(Protocol.HEARD).any(func(e: Array) -> bool: return str(e[1][2]).begins_with("Игроков на связи")), "to them alone")
+	_check(not a.of(Protocol.HEARD).any(func(e: Array) -> bool: return str(e[1][2]).begins_with("Players online")), "to them alone")
 	node.command("deop Чужой")
 	_check(not server.is_host(b.reply.value.key), "deop takes it back")
 	_check(not (await _said(b, "")) and not (await _said(b, "   ")), "an empty line is not said")
@@ -722,13 +722,13 @@ func _security(node: Node) -> void:
 		await _frames(1)
 	_check(await _until(func() -> bool: return loud.socket.ended) and loud.socket.close_code == server.CLOSE_FLOOD,
 		"a connection that floods the server is put out (code %d)" % loud.socket.close_code)
-	_check(node.log_lines.any(func(l: String) -> bool: return l.contains("безопасность") and l.contains("flood")),
+	_check(node.log_lines.any(func(l: String) -> bool: return l.contains("security") and l.contains("flood")),
 		"and the security log says why")
 	var quiet := _bot("Тихий", "", "", PORT + 1)
 	_check(await _until(func() -> bool: return quiet.reply.done) and quiet.reply.value.get("ok") == true, "another comes in")
 	node.command("op Тихий")
 	var stop = quiet.socket.net.request(Protocol.CHAT, ["/stop"])
-	_check(await _until(func() -> bool: return stop.done and quiet.of(Protocol.HEARD).any(func(e: Array) -> bool: return str(e[1][2]).contains("владельца")))
+	_check(await _until(func() -> bool: return stop.done and quiet.of(Protocol.HEARD).any(func(e: Array) -> bool: return str(e[1][2]).contains("owner")))
 		and server.listening and not server.stopping, "a host made by op may not stop the server: the owner's command")
 	node.command("deop Тихий")
 	var line = quiet.socket.net.request(Protocol.CHAT, ["раз\nдва\u202E"])

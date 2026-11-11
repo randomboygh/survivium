@@ -72,7 +72,7 @@ func command(rest: String, role: int) -> String:
 				return "Ботов нет"
 			var b: Array = bots.pop_back()
 			OS.kill(b[1])
-			main.say("бот %d убран" % b[0])
+			main.say("bot %d removed" % b[0])
 			return "Бот%d ушёл" % b[0]
 		"hour":
 			var host: Node = main.playtest_host
@@ -82,7 +82,7 @@ func command(rest: String, role: int) -> String:
 		"stop":
 			if not playtest and role < ROLE_OWNER:
 				return "Остановить сервер может только его владелец"
-			main.say("сервер остановлен игроком")
+			main.say("server stopped by a player")
 			main.server.stop()
 			return "Сервер останавливается"
 		"worlds":
@@ -184,8 +184,8 @@ func add_bot() -> int:
 	else:
 		pid = OS.create_process(game[0], game.slice(1))
 	if pid <= 0:
-		main.say("бот %d не запустился" % n)
+		main.say("bot %d did not start" % n)
 		return 0
 	bots.append([n, pid])
-	main.say("бот %d запущен (процесс %d)" % [n, pid])
+	main.say("bot %d started (process %d)" % [n, pid])
 	return n

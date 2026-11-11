@@ -202,7 +202,7 @@ func _process(delta: float) -> void:
 			look.flip = sx
 			look.sprite.scale.x = sx
 	if perf != null:
-		perf.note("животные", t)
+		perf.note("animals", t)
 
 
 ## Turns animal `a` the way it moved since it was last drawn, and counts its walk.

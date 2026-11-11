@@ -255,12 +255,12 @@ func _test_door() -> void:
 func _test_commands() -> void:
 	var cfg := Config.new()
 	var net := Server.new(null, cfg, {})
-	_check(net.command("stop", Server.ROLE_HOST).contains("владельца") and not net.stopping, "a host may not stop the server")
-	_check(net.command("op кто-то", Server.ROLE_HOST).contains("владельца"), "nor give others the commands")
-	_check(net.command("who", Server.ROLE_PLAYER).contains("владельца") and net.command("who", Server.ROLE_HOST).begins_with("Игроков"),
+	_check(net.command("stop", Server.ROLE_HOST).contains("owner") and not net.stopping, "a host may not stop the server")
+	_check(net.command("op кто-то", Server.ROLE_HOST).contains("owner"), "nor give others the commands")
+	_check(net.command("who", Server.ROLE_PLAYER).contains("owner") and net.command("who", Server.ROLE_HOST).begins_with("Players"),
 		"a player gives none; a host gives theirs")
-	_check(net.command("nothing at all").begins_with("неизвестная"), "an unknown command is named as such")
-	_check(net.command("reload", Server.ROLE_PLAYER).contains("владельца"), "a player may not read the mods' data again")
+	_check(net.command("nothing at all").begins_with("unknown"), "an unknown command is named as such")
+	_check(net.command("reload", Server.ROLE_PLAYER).contains("owner"), "a player may not read the mods' data again")
 	var asked: Array = []
 	net.test_command = func(rest: String, _role: int) -> String:
 		asked.append(rest)

@@ -13,7 +13,7 @@ const Lang := preload("res://src/shared/content/lang.gd")
 
 const BANDS := {"all": [0.0, INF], "critical": [200.0, INF], "big": [100.0, 200.0], "small": [0.0, 100.0]}
 ## The parts of an ordinary frame, in the order of PerfPanel.usual after the frame itself.
-const PARTS := ["игра", "движок", "отрисовка", "ввод", "браузер", "конец кадра"]
+const PARTS := ["game", "engine", "drawing", "input", "browser", "frame end"]
 
 var game
 var _torch := false
@@ -40,19 +40,19 @@ func watch() -> void:
 
 
 func _on_cell(_cell: Vector3i) -> void:
-	_mark("клетки")
+	_mark("cells")
 
 
 func _on_placed(_e: Dictionary) -> void:
-	_mark("постройка")
+	_mark("building")
 
 
 func _on_lit(_e: Dictionary) -> void:
-	_mark("огонь")
+	_mark("fire")
 
 
 func _on_season(_season: int) -> void:
-	_mark("сезон")
+	_mark("season")
 
 
 func _mark(what: String) -> void:
@@ -66,29 +66,29 @@ func update() -> void:
 	var player = game.player
 	var torch: bool = player.torch.light_energy > 0.0
 	if torch != _torch:
-		_mark("факел" if torch else "факел погас")
+		_mark("torch" if torch else "torch out")
 	_torch = torch
 	var sun: bool = game.sky.sun.light_energy > 0.0
 	if sun != _sun:
-		_mark("солнце" if sun else "без солнца")
+		_mark("sun" if sun else "no sun")
 	_sun = sun
 	if game.clock.weather != _weather and _weather >= 0:
-		_mark("погода")
+		_mark("weather")
 	_weather = game.clock.weather
 	var ground: bool = player.body.on_ground
 	if ground != _ground:
-		_mark("приземление" if ground else "прыжок")
+		_mark("landing" if ground else "jump")
 	_ground = ground
 	if player.body.swimming != _swimming:
-		_mark("вода")
+		_mark("water")
 	_swimming = player.body.swimming
 	var view := Vector2i(game.view.turn_steps, game.view.tilt_steps)
 	if view != _view:
-		_mark("поворот")
+		_mark("turn")
 	_view = view
 	var paused := get_tree().paused
 	if paused != _paused:
-		_mark("пауза")
+		_mark("pause")
 	_paused = paused
 
 
@@ -101,9 +101,9 @@ func usual_line() -> String:
 		# The three parts of the rest are told where the browser gives them (see PerfPanel._parts).
 		if i < 3 or u[i + 1] >= 0.05:
 			told.append("%s %.1f" % [PARTS[i], u[i + 1]])
-	var line := Lang.f("Обычный кадр %.1f мс: %s", [u[0], ", ".join(told)])
+	var line := Lang.f("Usual frame %.1f ms: %s", [u[0], ", ".join(told)])
 	if OS.has_feature("web"):
-		line += Lang.f(" · полных сборок мусора %d", [perf.collections])
+		line += Lang.f(" · full garbage collections %d", [perf.collections])
 	return line
 
 
@@ -121,11 +121,11 @@ func lines(key: String) -> Array:
 		for p: Array in f[2]:
 			if roundi(p[1]) > 0:
 				parts.append("%s %d" % [p[0], roundi(p[1])])
-		var line := Lang.f("%d:%02d  %d мс: %s", [at / 60, at % 60, roundi(f[1]), ", ".join(parts)])
+		var line := Lang.f("%d:%02d  %d ms: %s", [at / 60, at % 60, roundi(f[1]), ", ".join(parts)])
 		if not f[3].is_empty():
 			line += " · " + ", ".join(f[3])
 		if f.size() > 4:
-			line += Lang.f(" · вызовов %d", [f[4]])
+			line += Lang.f(" · calls %d", [f[4]])
 		out.append([f[1], line])
 	return out
 

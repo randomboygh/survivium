@@ -334,7 +334,7 @@ func update() -> void:
 	copies[next_kind].visible = true
 	next_kind += 1
 	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
-	game.hud.perf.mark("прогрев")
+	game.hud.perf.mark("warm-up")
 
 
 ## Lets the hidden view go.

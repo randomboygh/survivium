@@ -273,4 +273,4 @@ func _process(delta: float) -> void:
 		one.head = at + Vector3(0.0, Body.HEIGHT * CELL + NAME_OVER, 0.0)
 	_place_labels()
 	if perf != null:
-		perf.add("другие", Time.get_ticks_usec() - t)
+		perf.add("others", Time.get_ticks_usec() - t)
