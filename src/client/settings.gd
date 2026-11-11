@@ -7,6 +7,7 @@ extends RefCounted
 ## Saved as user://settings.cfg (IndexedDB in the browser). `game` is the Main node.
 
 const PixelView := preload("res://src/client/view/pixel_view.gd")
+const Crt := preload("res://src/client/view/crt.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
@@ -69,6 +70,9 @@ const DEFAULTS := {
 	# A haze over the chunks on the screen not built yet and the edge of the ones built
 	# (ChunkStreamer.set_haze, EdgeHaze), instead of the empty background.
 	"edge_haze": false,
+	# The old screen look over the world (Crt.LOOKS): 0 off, 1 soft, 2 old. Not part of
+	# the quality presets.
+	"crt": 0,
 	"pixel_scale": 2,
 	"fps_limit": 0,
 	# The interface and the touch controls size, «очень мелкий» to «крупный» (see
@@ -156,7 +160,7 @@ static func _index_limits() -> Dictionary:
 	var volumes := Sound.STEPS + 1
 	return {"time_speed": TIME_SPEEDS.size(), "pixel_scale": PIXEL_SIZES.size(), "fps_limit": FPS_LIMITS.size(),
 		"ui_size": Hud.UI_SIZES.size(), "control_size": Hud.CONTROL_SIZES.size(), "minimap_size": Minimap.SIDES.size(),
-		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "fire_shadows": 4,
+		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "fire_shadows": 4, "crt": Crt.LOOKS.size(),
 		"layer_front_from": CaveLayers.FIRSTS.size(), "layer_front_stretch": CaveLayers.STRETCHES.size(),
 		"layer_above_from": CaveLayers.FIRSTS.size(), "layer_above_stretch": CaveLayers.STRETCHES.size(),
 		"layer_density": CaveLayers.DENSITIES.size(), "layer_line": CaveLayers.LINES.size(),
@@ -460,6 +464,8 @@ func apply() -> void:
 		sky.fog_on = values.fog
 	if game.chunks != null:
 		game.chunks.set_haze(values.edge_haze)
+	if game.view != null and game.view.grade_mat != null:
+		Crt.apply(game.view.grade_mat, values.crt, game.view.viewport.get_texture())
 	if game.effects != null:
 		game.effects.enabled = values.effects
 		game.effects.shadows = values.shadows and values.fire_shadows >= 2
