@@ -700,7 +700,7 @@
 "день %d": "day %d"
 "Браузер рисует без видеокарты (%s), поэтому игра идёт медленно. Включите в настройках браузера «Использовать графическое ускорение» (в Edge — edge://settings/system, в Chrome — chrome://settings/system) и перезапустите браузер.": "The browser draws without the graphics card (%s), so the game runs slowly. Turn on «Use graphics acceleration» in the browser's settings (Edge: edge://settings/system, Chrome: chrome://settings/system) and restart the browser."
 "Браузер выполняет код игры без компиляции (скрипты собирались %d с), поэтому игра идёт медленно. Так бывает в Edge с режимом «Повышение безопасности в Интернете»: выключите его в edge://settings/privacy или добавьте этот сайт в исключения и перезагрузите страницу.": "The browser runs the game's code without compiling it (the scripts took %d s to load), so the game runs slowly. Edge does this with «Enhance your security on the web» on: turn it off in edge://settings/privacy or add this site to its exceptions, then reload the page."
-"Сервер запускают на компьютере: Survivium для Windows или Linux. С телефона и из браузера к нему присоединяются.": "A server is run on a computer: Survivium for Windows or Linux. Phones and browsers join it."
+"Сервер запускают на компьютере: %s для Windows или Linux. С телефона и из браузера к нему присоединяются.": "A server is run on a computer: %s for Windows or Linux. Phones and browsers join it."
 
 # src/client/ui/minimap.gd
 "Карта (M)": "Map (M)"
