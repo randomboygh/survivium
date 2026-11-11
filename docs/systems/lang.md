@@ -69,4 +69,4 @@
 (`set_loading`, подпись полосы, советы), переводится на английский (`Lang.seen`); оставшийся русским
 попадает в `Lang.missed`, и тест падает со списком таких строк.
 
-**Подробнее.** Решение 183 в `plan/README.md`; скриншоты на языке — `tools/shot.gd -- --lang en`.
+**Подробнее.** Руководство переводчика — [../TRANSLATION.md](../TRANSLATION.md) (копия [../TRANSLATION_RU.md](../TRANSLATION_RU.md)); решение 183 в `plan/README.md`; скриншоты на языке — `tools/shot.gd -- --lang en`.
