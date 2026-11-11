@@ -7,6 +7,7 @@ const Warmth := preload("res://src/shared/game/warmth.gd")
 func run() -> void:
 	_test_felling()
 	_test_front_choice()
+	_test_tap_choice()
 	_test_world_actions()
 	_test_placed()
 	_test_stairs_placed()
@@ -121,6 +122,33 @@ func _test_front_choice() -> void:
 	body.on_ground = true
 	var sunk := body.step(Vector3(20.5, 1.6, 20.5) * WorldData.CELL, 1.0 / 60.0, false) / WorldData.CELL
 	_check(is_equal_approx(sunk.y, 2.0), "a body found in the ground stands up onto it (%.2f)" % sunk.y)
+
+
+## A tap or a click on a cell works as the action button does in front, only at the cell:
+## food first, even off a bush beside it, else the cell itself (the user's ask, 2026-11-11).
+func _test_tap_choice() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var who := Who.new()
+	who.position = Vector3(30.5, 2.0, 30.5) * WorldData.CELL
+	var berries := Vector3i(31, 2, 30)
+	var twigs := Vector3i(29, 2, 30)
+	w.add_bush(berries, Bushes.first(true))
+	w.add_bush(twigs, Bushes.first(false))
+	_check(actions.tap_choice(who, Vector3i(31, 1, 31)) == {"bush": berries},
+		"a click on the ground beside a bush with berries picks the berries first")
+	_check(actions.tap_choice(who, Vector3i(29, 1, 31)).is_empty(),
+		"beside a bush with only branches the click works the cell it is aimed at")
+	_check(actions.tap_choice(who, twigs) == {"bush": twigs}, "a click on that bush breaks its branches")
+	var done := actions.dig_at(who, Vector3i(31, 1, 31), Vector3i.UP)
+	_check(not done.is_empty() and w.get_cell(31, 1, 31) == Mat.DIRT
+		and not actions.ripe(berries, Bushes.TYPES[Bushes.first(true)]), "and the click gathers them, not digs")
+	who.item = "tools:wooden_shovel"
+	_check(actions.tap_choice(who, Vector3i(31, 1, 31)).is_empty(), "a shovel digs where it is aimed")
 
 
 ## The rules of the hands run on the world model alone, with a stand-in for the one who
