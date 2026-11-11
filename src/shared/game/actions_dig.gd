@@ -6,6 +6,17 @@ const Grass := preload("res://src/shared/world/grass.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 
 
+## The water surface a tap on `cell` drinks from (or fills a vessel at) with the hand in
+## use of `who`, INF for none.
+func water_tapped(who, cell: Vector3i) -> Vector3:
+	if not _drinks_with(who):
+		return Vector3.INF
+	var bits: int = world.water_col(cell.x, cell.z)
+	if bits != 0 and cell.y <= WorldData.top_level(bits) + 1 and not too_far(who, cell, DRINK_REACH + 1):
+		return Vector3(cell.x + 0.5, WorldData.top_level(bits) + 1.0, cell.z + 0.5) * CELL
+	return Vector3.INF
+
+
 ## Works at `cell`, tapped on its face `normal`, with the hand in use: an axe chops the
 ## tree whose trunk or crown it is, bare hands gather from that tree, hands, a sword or a
 ## scythe cut the grass on top of it, else the tool digs as many cells around it as it
@@ -15,10 +26,9 @@ func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 		return shoot(who, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
 	if Tools.can_fish(who.tool()):
 		return fish(who, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
-	if _drinks_with(who):
-		var bits: int = world.water_col(cell.x, cell.z)
-		if bits != 0 and cell.y <= WorldData.top_level(bits) + 1 and not too_far(who, cell, DRINK_REACH + 1):
-			return drink(who, Vector3(cell.x + 0.5, WorldData.top_level(bits) + 1.0, cell.z + 0.5) * CELL)
+	var water := water_tapped(who, cell)
+	if water.is_finite():
+		return drink(who, water)
 	var m: int = world.get_cell(cell.x, cell.y, cell.z)
 	if cell.y == 0 or m == Mat.AIR:
 		return {}

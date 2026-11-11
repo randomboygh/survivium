@@ -29,14 +29,15 @@ func swing_air(who, at: Vector3) -> Dictionary:
 ## `who` whom they may hit (Fights), else at the animal in front (Wildlife.in_front; only one right by the body
 ## unless `far`), with the hand's power: the player is wounded (Fights.strike); the animal
 ## flees, or dies and leaves its carcass (its species' `carcass`) on the ground where it
-## fell. {} with no one there.
-func strike(who, far := true) -> Dictionary:
-	var s: Vector2i = who.facing_step()
+## fell. {} with no one there. `dir` turns the blow another way than the body faces (a
+## tap on an animal, see WorldActions.dig_at).
+func strike(who, far := true, dir := Vector2.ZERO) -> Dictionary:
+	var way: Vector2 = Vector2(who.facing_step()) if dir == Vector2.ZERO else dir
 	var at: Vector3 = who.position
 	# Only a weapon or a fist hits a player: one working with a tool beside another does not.
 	var weapon := Tools.weapon(who.held())
 	var fist: bool = weapon.is_empty() and who.tool().tool == "hand"
-	var other = _foe(who, Vector2(s), fights.STRIKE_REACH if far else STRIKE_CLOSE, fights.STRIKE_CONE) \
+	var other = _foe(who, way, fights.STRIKE_REACH if far else STRIKE_CLOSE, fights.STRIKE_CONE) \
 		if fights != null and (fist or not weapon.is_empty()) else null
 	if other != null:
 		if not who.act("swing"):
@@ -50,7 +51,7 @@ func strike(who, far := true) -> Dictionary:
 		return blow
 	if wildlife == null:
 		return {}
-	var a = wildlife.in_front(at, Vector2(s), wildlife.STRIKE_REACH if far else wildlife.STRIKE_CLOSE)
+	var a = wildlife.in_front(at, way, wildlife.STRIKE_REACH if far else wildlife.STRIKE_CLOSE)
 	if a == null or not who.act("swing", "hunt"):
 		return {}
 	var arm := Tools.weapon(who.held())
