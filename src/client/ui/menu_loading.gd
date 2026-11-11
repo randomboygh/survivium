@@ -5,6 +5,7 @@ extends "res://src/client/ui/menu_backdrop.gd"
 ## first calm frames of the world before the menu goes.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
@@ -176,13 +177,7 @@ func _build_loading() -> void:
 	row.add_theme_constant_override("separation", 6)
 	box.add_child(row)
 	_build_strip(row)
-	_cancel = Button.new()
-	_cancel.icon = UiStyle.centred(UiStyle.icon("close"))
-	_cancel.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_cancel.tooltip_text = "Отменить загрузку (Esc)"
-	_cancel.focus_mode = Control.FOCUS_NONE
-	_cancel.custom_minimum_size = Vector2(BUTTON_H, BUTTON_H)
-	_cancel.pressed.connect(cancel_loading)
+	_cancel = Kit.icon_button(UiStyle.centred(UiStyle.icon("close")), "Отменить загрузку (Esc)", cancel_loading, BUTTON_H)
 	row.add_child(_cancel)
 	_loading.visible = false
 

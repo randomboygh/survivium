@@ -11,6 +11,7 @@ extends ScrollContainer
 ## inset as the settings' (UiStyle.inset). `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 
@@ -96,10 +97,7 @@ func refresh() -> void:
 
 ## A button of the page, `tag` at its right edge; one with no action is disabled.
 func _button(parent: Node, text: String, action: Callable, tag := "", width := WIDTH) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(width, 30)
+	var b := Kit.button(text, Callable(), width, 30)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	if action.is_valid():
 		b.pressed.connect(action)

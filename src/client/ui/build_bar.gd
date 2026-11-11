@@ -7,29 +7,31 @@ extends VBoxContainer
 ## action button's work (building the blueprint, F; on a touch screen the big action button
 ## does it), and leaving the mode; under it the palette: the bag's blocks and things in one row made as the
 ## hotbar (its frame, cells, arrows and a finger dragging the cells along) with no hands,
-## its cells in their room: as wide as the hotbar. The chosen one is in the hand in use.
+## its cells in their room: as wide as the hotbar (a strip of the UI kit, SlotStrip). The chosen one is in the hand in use.
 ## `game` is the Main node, `mode` the mode the bar is of (BuildMode; FarmBar, which
 ## extends it, is the farming mode's bar with its own panel).
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
+const SlotStrip := preload("res://src/client/ui/kit/slot_strip.gd")
+const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 
-## The hotbar's cells, gaps and arrows (Hud.SLOT, Hud.GAP).
-const SLOT := 40
-const GAP := 4
-const ARROW := 28
+## The hotbar's cells, gaps and arrows (the kit's SlotStrip).
+const SLOT := SlotStrip.SLOT
+const GAP := SlotStrip.GAP
+const ARROW := SlotStrip.ARROW
 ## The most cells shown: the hotbar's slots and its hands' two (eight and two, four and
 ## two on a portrait screen), so the palette is as wide as the hotbar.
 const COLUMNS := 10
 const COLUMNS_PORTRAIT := 6
 ## The panel's buttons, one button tall and at least as wide.
 const BUTTON := 30
-## How long the clear button waits for its second tap, ms.
-const CONFIRM_MS := 3000
+## How long the clear button waits for its second tap, s.
+const CONFIRM_WAIT := 3.0
 const SHAPES := {"line": ["build_line", "Линия: стена"], "plane": ["build_plane", "Плоскость: пол"],
 	"square": ["build_square", "Квадрат: стены вокруг"], "cube": ["build_cube", "Куб: пол, стены и потолок"]}
 const FORMS := [["form_cube", "Блок: целый"], ["form_ramp", "Скос снизу"], ["form_upper", "Скос сверху"],
@@ -52,22 +54,14 @@ var _clear: Button
 ## whole blueprint or the marks near, a second press stops it.
 var _go: Button
 var _palette: PanelContainer
-var _grid: HBoxContainer
-var _prev: Button
-var _next: Button
+## The palette's cells between their arrows (the kit's SlotStrip, as the hotbar's).
+var _strip
 var _slots: Array = []
-## The items on the palette, the first one shown, how many fit.
+## The items on the palette and how many cells fit.
 var _items: Array[String] = []
-var _first := 0
 var _columns := 8
-## The finger dragging the cells along (-1 none), its x in the row where the drag
-## stands, and whether it moved far enough to be a drag, not a tap (as the hotbar's).
-var _swipe := -1
-var _swipe_x := 0.0
-var _swiped := false
-var _cells_row: HBoxContainer
-## When the clear button was tapped first (ms), 0 when it waits for no second tap.
-var _clear_at := 0
+## The clear button asks first (the kit's TwoTap), lit as the tabs are.
+var _asks := TwoTap.new(CONFIRM_WAIT)
 
 
 func _init(g, m = null) -> void:
@@ -95,15 +89,10 @@ func _init(g, m = null) -> void:
 	# As wide as its cells, as the hotbar: the clock goes under its right end (right_edge).
 	_palette.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	add_child(_palette)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", GAP)
-	_palette.add_child(row)
-	_cells_row = row
-	_prev = _arrow(row, "prev", "Предыдущие", func() -> void: _scroll(-1))
-	_grid = HBoxContainer.new()
-	_grid.add_theme_constant_override("separation", GAP)
-	row.add_child(_grid)
-	_next = _arrow(row, "next", "Следующие", func() -> void: _scroll(1))
+	_strip = SlotStrip.new()
+	_strip.scrolled.connect(refresh)
+	_palette.add_child(_strip)
+	_asks.paint = _light_clear
 	mode.changed.connect(refresh)
 	game.character.state_changed.connect(_refresh_later)
 
@@ -212,32 +201,13 @@ func _number(b: Button, n: int, off: bool) -> void:
 	b.custom_minimum_size.x = maxf(BUTTON, box.get_combined_minimum_size().x + 8)
 
 
-## An arrow made as the hotbar's (Hud._icon_button).
-func _arrow(parent: Node, icon: String, tip: String, action: Callable) -> Button:
-	var b := Button.new()
-	b.icon = UiStyle.icon(icon)
-	b.tooltip_text = tip
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(ARROW, SLOT)
-	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	b.add_theme_stylebox_override("normal", UiStyle.panel())
-	b.add_theme_stylebox_override("hover", UiStyle.panel())
-	b.pressed.connect(action)
-	parent.add_child(b)
-	return b
-
-
 ## The clear button: the first tap lights it red and asks for a second within
-## CONFIRM_MS, which takes the blueprints off.
+## CONFIRM_WAIT, which takes the blueprints off.
 func _tap_clear() -> void:
-	if _clear_at > 0 and Time.get_ticks_msec() - _clear_at < CONFIRM_MS:
-		_clear_at = 0
+	if _asks.ask(_clear):
 		mode.clear()
 		return
-	_clear_at = Time.get_ticks_msec()
 	game.hud.toast(_clear_ask())
-	refresh()
-	get_tree().create_timer(CONFIRM_MS / 1000.0).timeout.connect(_clear_timeout)
 
 
 ## What the clear button asks on its first tap.
@@ -245,10 +215,9 @@ func _clear_ask() -> String:
 	return "Нажмите ещё раз, чтобы убрать все чертежи рядом"
 
 
-func _clear_timeout() -> void:
-	if _clear_at > 0 and Time.get_ticks_msec() - _clear_at >= CONFIRM_MS - 50:
-		_clear_at = 0
-		refresh()
+## Lights the clear button red while it waits for its second tap.
+func _light_clear(b: Button, on: bool) -> void:
+	TabRow.light(b, on, on)
 
 
 ## The width the palette takes with `columns` of the big cells.
@@ -319,8 +288,7 @@ func _show_panel() -> void:
 	_mode.icon = UiStyle.centred(UiStyle.icon("build_erase" if b.erasing else "build_draw"))
 	_mode.tooltip_text = "Стирать чертёж (нажать — рисовать)" if b.erasing else "Рисовать чертёж (нажать — стирать)"
 	TabRow.light(_mode, b.erasing, b.erasing)
-	var confirming := _clear_at > 0 and Time.get_ticks_msec() - _clear_at < CONFIRM_MS
-	TabRow.light(_clear, confirming, confirming)
+	_light_clear(_clear, _asks.armed == _clear)
 	_show_go()
 
 
@@ -330,13 +298,13 @@ func _show_palette() -> void:
 	_items = b.palette()
 	# Every cell of the width, empty ones where the bag has less.
 	var shown := _columns
-	_first = clampi(_first, 0, maxi(0, _items.size() - shown))
+	_strip.set_counts(_items.size(), shown)
 	while _slots.size() < shown:
 		var s = HotbarSlot.new(SLOT)
 		s.on_release = true
 		var k := _slots.size()
 		s.pressed.connect(func() -> void: _tap(k))
-		_grid.add_child(s)
+		_strip.cells.add_child(s)
 		_slots.append(s)
 	var inv = game.character.inventory
 	var held: String = b.chosen()
@@ -345,18 +313,13 @@ func _show_palette() -> void:
 		s.visible = i < shown
 		if i >= shown:
 			continue
-		var at := _first + i
+		var at: int = _strip.first + i
 		var id: String = _items[at] if at < _items.size() else ""
 		s.texture = ItemIcons.of_item(id) if id != "" else null
 		var count: int = inv.count(id) if id != "" else 0
 		s.number = "×%d" % count if count > 1 else ""
 		s.selected = id != "" and id == held
 		s.tooltip_text = Lang.t(Items.title(id)) if id != "" else ""
-	var scrolls := _items.size() > shown
-	_prev.visible = scrolls
-	_next.visible = scrolls
-	_prev.disabled = _first <= 0
-	_next.disabled = _first >= _items.size() - shown
 	if _items.is_empty():
 		_slots[0].tooltip_text = _nothing()
 
@@ -368,60 +331,11 @@ func _nothing() -> String:
 
 ## Slot `k` shown was tapped: its item into the hand.
 func _tap(k: int) -> void:
-	var at := _first + k
+	var at: int = _strip.first + k
 	if at < _items.size():
 		mode.choose(_items[at])
-
-
-## The arrows: a cell at a time, as the hotbar's; none past the ends.
-func _scroll(by: int) -> void:
-	var first := clampi(_first + by, 0, maxi(0, _items.size() - _columns))
-	if first != _first:
-		_first = first
-		refresh()
 
 
 ## The x of the palette's right edge in the bar (the clock goes under it).
 func right_edge() -> float:
 	return _palette.position.x + _palette.size.x
-
-
-## A finger dragged along the cells moves them a cell for each cell it passes, as on
-## the hotbar; the tap it began with picks nothing.
-func _input(event: InputEvent) -> void:
-	if not is_visible_in_tree() or not _prev.visible:
-		_swipe = -1
-		return
-	if event is InputEventScreenTouch:
-		if event.pressed and _swipe < 0 and _in_cells(event.position):
-			_swipe = event.index
-			_swipe_x = _row_point(event.position).x
-			_swiped = false
-		elif not event.pressed and event.index == _swipe:
-			_swipe = -1
-	elif event is InputEventScreenDrag and event.index == _swipe:
-		var x := _row_point(event.position).x
-		if not _swiped and absf(x - _swipe_x) > 6.0:
-			_swiped = true
-			for s in _slots:
-				s.cancel_tap()
-		if _swiped:
-			var step := SLOT + GAP
-			while _swipe_x - x >= step:
-				_scroll(1)
-				_swipe_x -= step
-			while x - _swipe_x >= step:
-				_scroll(-1)
-				_swipe_x += step
-
-
-## Screen point `pos` in UI pixels of the row of cells.
-func _row_point(pos: Vector2) -> Vector2:
-	return _cells_row.get_global_transform_with_canvas().affine_inverse() * pos
-
-
-## Whether screen point `pos` is on the cells between the arrows.
-func _in_cells(pos: Vector2) -> bool:
-	var p := _row_point(pos)
-	return p.y >= 0.0 and p.y <= _cells_row.size.y and p.x >= _prev.position.x \
-		and p.x <= _next.position.x + _next.size.x

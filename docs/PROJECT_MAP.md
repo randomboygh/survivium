@@ -23,6 +23,7 @@ src/client/              картинка, ввод и звук этого ус�
   net/                   соединение с сервером (connection.gd), сокет к серверу по сети (socket.gd), сервер внутри игры (local_host.gd — единственный, кто грузит src/server/), копии мира (remote_gen.gd: чанки с сервера), мастерской, вещей на клетках, часов и зверей (mirror.gd, remote_*.gd), недавние серверы (server_list.gd)
   audio/                 шины, ухо, природа, шаги, голоса, музыка
   ui/                    HUD, меню, окна сумки и крафта, настройки, карты, смерть, журнал фризов, стиль
+    kit/                 UI-кит: готовые части окон (окно, кнопки, поля, строки «‹ ›», два касания, лента ячеек)
 shaders/                 3D-шейдеры (общий common.gdshaderinc), цветокор, карта, интерфейс
 content/<мод>/           моды: mod.yaml, README, папки-бандлы с bundle.yaml, data/, sprites/, icons/, models/, textures/, sounds/, lang/ (переводы); common/ общие ассеты
 assets/                  шрифт, заставка, значки интерфейса (ui/), иконки web-страницы (web/, без импорта)
@@ -65,6 +66,7 @@ docs/                    эта документация (audit/ — отчёт�
 | 3D-шейдер | `shaders/`, с `#include "res://shaders/common.gdshaderinc"` ([systems/rendering.md](systems/rendering.md)) |
 | Тест правила | `tests/unit/<тема>_test.gd` и имя темы в `FILES` в `tests/run_tests.gd`; генеративный — `tests/unit/properties_test.gd` ([testing/TESTING_GUIDE.md](testing/TESTING_GUIDE.md)) |
 | Инструмент разработки | `tools/` (рисовалки — `tools/art/`, звук — `tools/sound/`) |
+| Окно или элемент интерфейса | из частей кита `src/client/ui/kit/` ([systems/ui.md](systems/ui.md), «UI-кит»); новая общая часть — в кит и в «Витрину интерфейса» |
 | Картинка интерфейса | `assets/ui/` |
 | Документ о коде | `docs/` (система — `docs/systems/`) |
 | Геймдизайн, решение, задача | библиотека: `plan/design/`, журнал в `plan/README.md`, `plan/backlog.md` |

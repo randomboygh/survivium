@@ -760,7 +760,7 @@ func _run() -> void:
 	var row_at: Vector2 = menu._rows[0].name.global_position
 	var still := true
 	for k in menu._rows[1].values.size():
-		menu._step(1, 1)
+		menu._choices.step(1, 1)
 		await process_frame
 		still = still and menu._rows[0].name.global_position == row_at
 	_check(still, "the rows stay put while values change")
@@ -966,8 +966,8 @@ func _portrait_palette() -> void:
 	await process_frame
 	await process_frame
 	var bar = hud.build_bar
-	_check(bar._columns == bar.COLUMNS_PORTRAIT and bar._slots[0].size.y == hud.SLOT and bar._prev.visible
-		and bar._prev.size.x == hud._prev_button.size.x, "the palette's cells and arrows are the hotbar's (%d cells of %s)"
+	_check(bar._columns == bar.COLUMNS_PORTRAIT and bar._slots[0].size.y == hud.SLOT and bar._strip.prev.visible
+		and bar._strip.prev.size.x == hud._strip.prev.size.x, "the palette's cells and arrows are the hotbar's (%d cells of %s)"
 		% [bar._columns, bar._slots[0].size] + " %s" % [bar._items])
 	var slot = bar._slots[1]
 	var at: Vector2 = slot.get_global_transform_with_canvas() * (slot.size * 0.5)
@@ -976,15 +976,15 @@ func _portrait_palette() -> void:
 	touch.index = 3
 	touch.position = at
 	touch.pressed = true
-	bar._input(touch)
+	bar._strip._input(touch)
 	var drag := InputEventScreenDrag.new()
 	drag.index = 3
 	drag.position = at - Vector2((hud.SLOT + hud.GAP) * hud.scale.x * 2.3, 0.0)
-	bar._input(drag)
+	bar._strip._input(drag)
 	touch.pressed = false
 	touch.position = drag.position
-	bar._input(touch)
-	_check(bar._first == 2 and main.build.chosen() == held, "a finger dragged along the palette scrolls it two cells")
+	bar._strip._input(touch)
+	_check(bar._strip.first == 2 and main.build.chosen() == held, "a finger dragged along the palette scrolls it two cells")
 	# The action button stays down while the mode builds and comes up as it stops (it
 	# stuck down until the bag next changed).
 	# (With no blueprint the mode lets go at its next frame: the hud is asked at once.)
@@ -1025,21 +1025,21 @@ func _portrait_hotbar() -> void:
 	var was := Rect2(hud.position, hud.size * hud.scale)
 	hud.fit(Rect2(0, 0, 1200, 2608))
 	await process_frame
-	_check(hud._visible_slots == 4 and hud._prev_button.visible and hud._next_button.visible,
+	_check(hud._strip.shown == 4 and hud._strip.prev.visible and hud._strip.next.visible,
 		"a portrait screen shows four hotbar slots between arrows")
-	_check(hud._prev_button.disabled and not hud._next_button.disabled, "at the first slot only the next arrow works")
-	hud._next_page()
-	var stepped: int = hud._first
+	_check(hud._strip.prev.disabled and not hud._strip.next.disabled, "at the first slot only the next arrow works")
+	hud._strip.scroll(1)
+	var stepped: int = hud._strip.first
 	for i in 8:
-		hud._next_page()
-	var last: int = hud._first
-	var stopped: bool = hud._next_button.disabled
-	hud._prev_page()
-	_check(stepped == 1 and last == 4 and stopped and hud._first == 3,
+		hud._strip.scroll(1)
+	var last: int = hud._strip.first
+	var stopped: bool = hud._strip.next.disabled
+	hud._strip.scroll(-1)
+	_check(stepped == 1 and last == 4 and stopped and hud._strip.first == 3,
 		"the arrows move the hotbar a slot at a time and stop at the last slot")
 	for i in 8:
-		hud._prev_page()
-	_check(hud._first == 0 and hud._slots[0].visible and not hud._slots[4].visible and hud._prev_button.disabled,
+		hud._strip.scroll(-1)
+	_check(hud._strip.first == 0 and hud._slots[0].visible and not hud._slots[4].visible and hud._strip.prev.disabled,
 		"and back to the first, without going round")
 	await process_frame
 	var slot = hud._slots[1]
@@ -1049,15 +1049,15 @@ func _portrait_hotbar() -> void:
 	touch.index = 3
 	touch.position = at
 	touch.pressed = true
-	hud._input(touch)
+	hud._strip._input(touch)
 	var drag := InputEventScreenDrag.new()
 	drag.index = 3
 	drag.position = at - Vector2((hud.SLOT + hud.GAP) * hud.scale.x * 2.3, 0.0)
-	hud._input(drag)
+	hud._strip._input(drag)
 	touch.pressed = false
 	touch.position = drag.position
-	hud._input(touch)
-	_check(hud._first == 2 and main.controls.held() == held, "a finger dragged along the hotbar scrolls it two slots")
+	hud._strip._input(touch)
+	_check(hud._strip.first == 2 and main.controls.held() == held, "a finger dragged along the hotbar scrolls it two slots")
 	hud.fit(Rect2(0, 0, 2608, 1200))
-	_check(hud._visible_slots == 8 and not hud._prev_button.visible, "a landscape phone screen shows all hotbar slots")
+	_check(hud._strip.shown == 8 and not hud._strip.prev.visible, "a landscape phone screen shows all hotbar slots")
 	hud.fit(was)

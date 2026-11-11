@@ -97,11 +97,7 @@ func _place() -> void:
 	# else as many as fit between the two arrows, four at most in portrait.
 	var fixed := 2 * SLOT + 12 + 3 * GAP + 8
 	var room := w - 2 * MARGIN - fixed
-	if floori(room / (SLOT + GAP)) >= _slots.size():
-		_visible_slots = _slots.size()
-	else:
-		_visible_slots = clampi(floori((room - 2 * (28 + GAP)) / (SLOT + GAP)), 1, 4 if portrait else _slots.size())
-	_first = clampi(_first, 0, _slots.size() - _visible_slots)
+	_strip.set_counts(_slots.size(), SlotStrip.fitting(room, _slots.size(), 4 if portrait else _slots.size()))
 	_show_page()
 	# The build or the farming mode's bar in the hotbar's place: as wide as the room for it.
 	var bar: Control = _shown_bar()
@@ -170,73 +166,7 @@ func _place() -> void:
 
 func _show_page() -> void:
 	for i in _slots.size():
-		_slots[i].visible = i >= _first and i < _first + _visible_slots
-	_next_button.visible = _visible_slots < _slots.size()
-	_prev_button.visible = _next_button.visible
-	# The arrows stop at the ends: the slots do not go round.
-	_prev_button.disabled = _first <= 0
-	_next_button.disabled = _first >= _slots.size() - _visible_slots
-
-
-## The next slot (as a finger dragging the slots one along); none past the last.
-func _next_page() -> void:
-	_scroll(1)
-
-
-## The slot before; none before the first.
-func _prev_page() -> void:
-	_scroll(-1)
-
-
-## Moves the shown slots `by` slots along.
-func _scroll(by: int) -> void:
-	_first = clampi(_first + by, 0, _slots.size() - _visible_slots)
-	_show_page()
-
-
-## A finger dragged along the hotbar slots moves them a slot for each slot it passes;
-## the tap it began with picks nothing.
-func _input(event: InputEvent) -> void:
-	if _bar == null or not _prev_button.visible or not _bar.is_visible_in_tree():
-		_swipe = -1
-		return
-	if event is InputEventScreenTouch:
-		if event.pressed and _swipe < 0 and _in_slots(event.position):
-			_swipe = event.index
-			_swipe_x = _bar_x(event.position)
-			_swiped = false
-		elif not event.pressed and event.index == _swipe:
-			_swipe = -1
-	elif event is InputEventScreenDrag and event.index == _swipe:
-		var x := _bar_x(event.position)
-		if not _swiped and absf(x - _swipe_x) > 6.0:
-			_swiped = true
-			for s in _slots:
-				s.cancel_tap()
-		if _swiped:
-			var step := SLOT + GAP
-			while _swipe_x - x >= step:
-				_scroll(1)
-				_swipe_x -= step
-			while x - _swipe_x >= step:
-				_scroll(-1)
-				_swipe_x += step
-
-
-## Screen point `pos` in UI pixels of the hotbar row.
-func _bar_point(pos: Vector2) -> Vector2:
-	return _bar_row.get_global_transform_with_canvas().affine_inverse() * pos
-
-
-func _bar_x(pos: Vector2) -> float:
-	return _bar_point(pos).x
-
-
-## Whether screen point `pos` is on the slots between the arrows.
-func _in_slots(pos: Vector2) -> bool:
-	var p := _bar_point(pos)
-	return p.y >= 0.0 and p.y <= _bar_row.size.y and p.x >= _prev_button.position.x \
-		and p.x <= _next_button.position.x + _next_button.size.x
+		_slots[i].visible = _strip.is_shown(i)
 
 
 # --- Per-frame state -------------------------------------------------------------
