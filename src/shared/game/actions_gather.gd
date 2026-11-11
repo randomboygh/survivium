@@ -134,7 +134,8 @@ func fell(who, cell: Vector3i) -> bool:
 	elif species.get("log", "") != "" and _extra(who, "chop"):
 		world.heap_drop(species.log, floor_under(cell), 1, randf() * TAU, q)
 	# Each column once, at its lowest changed cell, is enough for the chunks, the roof
-	# map and the minimap.
+	# map and the minimap; the clients' copies of the world need every cell.
+	cells_set.emit(gone)
 	var cols := {}
 	for c in gone:
 		var col := Vector2i(c.x, c.z)
