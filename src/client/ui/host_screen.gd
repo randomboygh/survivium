@@ -132,7 +132,7 @@ func _build_setup() -> void:
 			_world = i
 	_choices.add(_box, "Мир", _worlds.map(_world_title), func() -> int: return _world,
 		func(i: int) -> void: _world = i)
-	_title = _field("Название", str(cfg.get_value("server", "title", "Survivium")))
+	_title = _field("Название", str(cfg.get_value("server", "title", Protocol.game_name())))
 	_title.max_length = 32
 	_port = _field("Порт", str(cfg.get_value("server", "port", Protocol.PORT)))
 	_port.max_length = 5

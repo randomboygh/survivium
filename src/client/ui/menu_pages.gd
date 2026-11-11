@@ -5,6 +5,7 @@ extends "res://src/client/ui/menu_loading.gd"
 ## world asked for, and the panel laid out on the screen with the keyboard's focus.
 
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 const GlWatch := preload("res://src/client/ui/gl_watch.gd")
 ## The menu's own screens are compiled when first opened, not at the game's start
 ## (StartTimes: compiling every script was most of the start).
@@ -203,8 +204,8 @@ func _slow_code() -> void:
 func _host_elsewhere() -> void:
 	if _note != null:
 		return
-	_note = UiStyle.label("Сервер запускают на компьютере: Survivium для Windows или Linux. "
-		+ "С телефона и из браузера к нему присоединяются.", UiStyle.MUTED)
+	_note = UiStyle.label(Lang.f("Сервер запускают на компьютере: %s для Windows или Linux. "
+		+ "С телефона и из браузера к нему присоединяются.", [Protocol.game_name()]), UiStyle.MUTED)
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_note.custom_minimum_size = Vector2(WIDTH, 0)
 	_box.add_child(_note)

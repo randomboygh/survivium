@@ -650,7 +650,7 @@
 "тестовый мир": "test dünyası"
 "зерно %d": "tohum %d"
 "день %d": "gün %d"
-"Сервер запускают на компьютере: Survivium для Windows или Linux. С телефона и из браузера к нему присоединяются.": "Sunucu bir bilgisayarda çalışır: Windows ya da Linux için Survivium. Telefonlar ve tarayıcılar ona katılır."
+"Сервер запускают на компьютере: %s для Windows или Linux. С телефона и из браузера к нему присоединяются.": "Sunucu bir bilgisayarda çalışır: Windows ya da Linux için %s. Telefonlar ve tarayıcılar ona katılır."
 
 # src/client/ui/minimap.gd
 "Карта (M)": "Harita (M)"

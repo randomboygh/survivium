@@ -29,9 +29,20 @@ WEB = "assets/web"
 TOUCH = 180
 CARD_W, CARD_H = 1200, 630
 CARD_PX = 4
-NAME = "SURVIVIUM"
 TAGLINE = ["Неспешное выживание", "в пиксельном мире"]
 EDGE = (0x1A, 0x10, 0x14)
+
+
+def game_name() -> str:
+	"""The game's name, `config/name` in project.godot: the one place it is written."""
+	with open("project.godot", encoding="utf-8") as f:
+		for line in f:
+			if line.startswith("config/name="):
+				return line.split("=", 1)[1].strip().strip('"')
+	return "Survivium"
+
+
+NAME = game_name().upper()
 
 # Colours by name, a few tones of each from light to dark.
 FIRE = [(0xFF, 0xF4, 0xC2), (0xFF, 0xD8, 0x4A), (0xFF, 0x9A, 0x2B), (0xE2, 0x4E, 0x1E), (0x9E, 0x24, 0x1C)]

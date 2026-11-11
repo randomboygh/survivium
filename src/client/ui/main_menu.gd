@@ -85,7 +85,7 @@ func _ready() -> void:
 	_column = VBoxContainer.new()
 	_column.add_theme_constant_override("separation", 6)
 	_screen.add_child(_column)
-	var title := UiStyle.label("SURVIVIUM", UiStyle.ACCENT)
+	var title := UiStyle.label(Protocol.game_name().to_upper(), UiStyle.ACCENT)
 	title.add_theme_font_size_override("font_size", TITLE_SIZE)
 	title.add_theme_color_override("font_outline_color", UiStyle.EDGE)
 	title.add_theme_constant_override("outline_size", 8)

@@ -121,7 +121,7 @@ func start() -> bool:
 		Engine.max_fps = FPS
 		config.read()
 		config.take_args(OS.get_cmdline_user_args())
-	say("Survivium, build %s, protocol %d" % [Protocol.build_version(), Protocol.VERSION])
+	say("%s, build %s, protocol %d" % [Protocol.game_name(), Protocol.build_version(), Protocol.VERSION])
 	if not _open_world():
 		failed = "Мир не открыть: " + (str(log_lines.back()).get_slice("] ", 1) if not log_lines.is_empty() else "")
 		return false

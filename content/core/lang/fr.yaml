@@ -650,7 +650,7 @@
 "тестовый мир": "monde de test"
 "зерно %d": "graine %d"
 "день %d": "jour %d"
-"Сервер запускают на компьютере: Survivium для Windows или Linux. С телефона и из браузера к нему присоединяются.": "Un serveur tourne sur un ordinateur : Survivium pour Windows ou Linux. Téléphones et navigateurs le rejoignent."
+"Сервер запускают на компьютере: %s для Windows или Linux. С телефона и из браузера к нему присоединяются.": "Un serveur tourne sur un ordinateur : %s pour Windows ou Linux. Téléphones et navigateurs le rejoignent."
 
 # src/client/ui/minimap.gd
 "Карта (M)": "Carte (M)"

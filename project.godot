@@ -11,8 +11,10 @@ config_version=5
 [application]
 
 config/name="Survivium"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="godot/app_userdata/Survivium"
 config/version="0.3"
-config/description="Survivium technical prototype: 3D pixel-art world made of levels"
+config/description="A meditative survival sandbox: a 3D pixel-art world made of levels"
 run/main_scene="res://scenes/main.tscn"
 run/flush_stdout_on_print=true
 config/features=PackedStringArray("4.5", "GL Compatibility")

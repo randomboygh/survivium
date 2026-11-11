@@ -897,7 +897,7 @@ func report_text() -> String:
 	var cell := Vector3i((p / game.CELL).floor())
 	var minutes := int(clock.time_of_day * 24.0 * 60.0)
 	var lines := [
-		"Survivium %s · %s · %s" % [info.version, info.commit, info.date],
+		"%s %s · %s · %s" % [Protocol.game_name(), info.version, info.commit, info.date],
 		Lang.f("World: %s, settings %s", ["test" if s.in_test_world() else Lang.f("seed %d", [game.world_seed]),
 			JSON.stringify(game.world_options)]),
 		Lang.f("Player: x %d, y %d, level %d, cut %d", [cell.x, cell.z, cell.y, game.chunks.cut_level]),
