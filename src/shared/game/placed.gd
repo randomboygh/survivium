@@ -32,6 +32,11 @@ extends RefCounted
 ## one hung on a wall (`wall`, ON_WALL) rests by a solid cell beside it, its back to that
 ## cell; one on a post is turned a quarter at a time (turn_sign).
 ##
+## A cross (an item with `grave`, core) is set down by the world, not from a bag, where a
+## death's sack was once its days are up (put_grave): it holds who died there (`grave`,
+## Character.grave_of), shown over it like a sign's text to those near (SignLabels); it is
+## not written on, and taken up in the build mode it is gone, nothing goes into the bag.
+##
 ## Lights (an item with `light` and no `prop`: a torch, a candle, a lantern) are set down
 ## on one cell of their own (`lights`, see put_light_from_bag): not solid, they burn out
 ## their Items.burns seconds where they stand (step) and are gone, as in a hand (also when
@@ -96,6 +101,11 @@ const IN_FLOOR := 3
 const ON_WALL := 4
 ## How near (cells, from the sign's middle) the text of a sign is shown over it.
 const SIGN_READ := 3.0
+## How far (cells) from a sack gone a cross is set down when its own cell is taken.
+const GRAVE_REACH := 3
+## The longest name a cross keeps, and the most counts of a life (Character.grave_of).
+const GRAVE_NAME := 32
+const GRAVE_COUNTS := 16
 
 ## Thing `e` (see things) was placed, as the save had it or anew.
 signal added(e: Dictionary)
@@ -554,12 +564,14 @@ func stand_by(e: Dictionary) -> Vector3:
 ## Places thing `item` (an item with a `prop`) with its north-west cell at `cell`;
 ## `items` is what a thing that stores holds, as Inventory.to_dict() gave it; `lit` false
 ## puts a fire there cold; `fuel` is the seconds a fire has left (below 0: a new one's
-## `fuel_start`).
-func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null, turn := 0, open := false, text := "") -> Dictionary:
+## `fuel_start`); `grave` who died there for a cross (see put_grave).
+func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null, turn := 0, open := false, text := "", grave := {}) -> Dictionary:
 	var rec := Items.get_item(item)
 	var e := {"item": item, "cell": cell, "items": null, "lit": lit or not rec.fire, "turn": posmod(turn, 4)}
 	if rec.get("sign_lines", 0) > 0:
 		e.text = sign_text(item, text)
+	if rec.get("grave", false):
+		e.grave = grave_record(grave)
 	if rec.get("door", false):
 		e.open = open
 	if by is int:
@@ -609,7 +621,8 @@ func from_list(list: Array) -> void:
 				continue
 			put(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
 				not d.get("out", false), float(d.get("fuel", -1.0)), int(d.by) if d.get("by") is float or d.get("by") is int else null,
-				int(d.get("turn", 0)), bool(d.get("open", false)), str(d.get("text", "")))
+				int(d.get("turn", 0)), bool(d.get("open", false)), str(d.get("text", "")),
+				d.get("grave") if d.get("grave") is Dictionary else {})
 
 
 ## The placed things as plain data for the save.
@@ -625,7 +638,7 @@ func to_list() -> Array:
 ## Thing `e` as plain data (one of to_list): {"item", "cell": [x, y, z], "items" what it
 ## holds (Inventory.to_dict) if it stores, "out" true for a fire put out, "fuel" the
 ## seconds a fire has left, "by" who put it from their bag, "turn" when it is turned,
-## "open" for a door open, "text" for a sign written}.
+## "open" for a door open, "text" for a sign written, "grave" for a cross}.
 static func record(e: Dictionary) -> Dictionary:
 	var c: Vector3i = e.cell
 	var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
@@ -646,6 +659,8 @@ static func record(e: Dictionary) -> Dictionary:
 		d.open = true
 	if e.get("text", "") != "":
 		d.text = e.text
+	if e.has("grave"):
+		d.grave = e.grave.duplicate(true)
 	return d
 
 
@@ -832,6 +847,63 @@ func wall_turn(cell: Vector3i, turn: int) -> int:
 		if world.is_solid(back.x, back.y, back.z):
 			return t
 	return turn
+
+
+## True for a cross (an item with `grave`): it tells who died there (see put_grave).
+static func is_grave(e: Dictionary) -> bool:
+	return not is_light(e) and Items.get_item(e.item).get("grave", false)
+
+
+## Who died at a cross as the cross keeps it (Character.grave_of), whatever a save or the
+## server gave: a name of at most GRAVE_NAME letters made safe, a cause, the day, the days
+## lived and at most GRAVE_COUNTS counts of that life, numbers only.
+static func grave_record(g: Dictionary) -> Dictionary:
+	var counts := {}
+	var life: Variant = g.get("life")
+	if life is Dictionary:
+		for k: Variant in life:
+			if counts.size() < GRAVE_COUNTS and k is String and (life[k] is float or life[k] is int):
+				counts[k.left(GRAVE_NAME)] = maxf(0.0, float(life[k]))
+	var day: Variant = g.get("day", 0)
+	var days: Variant = g.get("days", 0.0)
+	return {"name": Protocol.clean_text(str(g.get("name", "")), GRAVE_NAME), "cause": str(g.get("cause", "")).left(64),
+		"day": maxi(0, int(day)) if day is float or day is int else 0,
+		"days": maxf(0.0, float(days)) if days is float or days is int else 0.0, "life": counts}
+
+
+## Sets a cross (the first item with `grave`; none without one) down where a death's sack
+## lay at `at` (world units), saying who died there (`grave`, Character.grave_of): in the
+## sack's cell, or the nearest free one within GRAVE_REACH (at its level, one up, one
+## down) that is air on solid ground, no other thing or light there and none of the bodies
+## of `people` in it; nowhere when there is none. Returns the cross, or {}.
+func put_grave(at: Vector3, grave: Dictionary, people: Array = []) -> Dictionary:
+	var item := Items.grave()
+	if item == "":
+		return {}
+	var home := Vector3i((at / CELL).floor())
+	for r in GRAVE_REACH + 1:
+		for dy: int in [0, 1, -1]:
+			for dz in range(-r, r + 1):
+				for dx in range(-r, r + 1):
+					if maxi(absi(dx), absi(dz)) != r:
+						continue
+					var c := home + Vector3i(dx, dy, dz)
+					if _grave_fits(c, people):
+						var e := put(item, c, null, true, -1.0, null, randi() % 4, false, "", grave)
+						world.note_edit(c.x, c.z)
+						return e
+	return {}
+
+
+## Whether a cross can stand in cell `c` (see put_grave).
+func _grave_fits(c: Vector3i, people: Array) -> bool:
+	if world.get_cell(c.x, c.y, c.z) != Mat.AIR or not world.is_solid(c.x, c.y - 1, c.z) \
+			or world.blockers.has(c) or world.ladders.has(c) or not light_at(c).is_empty() or _in_open_door(c):
+		return false
+	for who in people:
+		if who.has_method("overlaps_cell") and who.overlaps_cell(c):
+			return false
+	return true
 
 
 ## `who` writes `text` on sign `e` (lines joined by "\n", see sign_text), where the land
@@ -1069,6 +1141,10 @@ func take_up(who, e: Dictionary) -> bool:
 		return false
 	if is_light(e):
 		return take_light(who, e)
+	if is_grave(e):
+		_remove(e)
+		who.say("Крест убран")
+		return true
 	if is_fire(e) and not is_hearth(e):
 		who.nag("take", Lang.line("%s не унести: его можно потушить и разобрать", [Items.title(e.item)]))
 		return false

@@ -22,6 +22,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const CharacterScript := preload("res://src/client/game/character.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
 
 const WIDTH := 252
 const BUTTON_H := 30
@@ -38,6 +39,9 @@ const STATS := [["days", "прожито", []], ["walked", "пройдено", [
 	["crafted", "сделано", ["вещь", "вещи", "вещей"]], ["eaten", "поели", ["раз", "раза", "раз"]],
 	["jumps", "прыгнули", ["раз", "раза", "раз"]]]
 const SHADE := Color(0.10, 0.02, 0.02, 0.4)
+## The causes of death (Vitals.hurt_by) as a cross names them (grave_text).
+const GRAVE_CAUSES := {"hunger": "голод", "thirst": "жажда", "cold": "холод", "fire": "огонь",
+	"water": "вода", "fall": "падение с высоты"}
 ## Directions from the respawn point to the sack, clockwise from north (-z).
 const DIRECTIONS := ["к северу", "к северо-востоку", "к востоку", "к юго-востоку", "к югу",
 	"к юго-западу", "к западу", "к северо-западу"]
@@ -197,6 +201,42 @@ func update() -> void:
 		var hud: Control = game.hud
 		if Rect2(hud.position, hud.size * hud.scale) != _fit_for or scale != hud.scale:
 			_fit()
+
+
+## What a cross says of the one who died there (`g`, Placed.grave_record), in the language
+## in use: their name, the day they died and how long they lived, the cause, how far they
+## walked, then the two largest counts of that life on a line.
+static func grave_text(g: Dictionary) -> String:
+	var called := str(g.get("name", ""))
+	var lines: Array[String] = [Lang.f("Здесь покоится «%s»", [called]) if called != "" else Lang.t("Здесь покоится путник")]
+	lines.append(Lang.f("день %d · прожито %s", [int(g.get("day", 0)), _days(float(g.get("days", 0.0)))]))
+	lines.append(Lang.f("Причина: %s", [_grave_cause(str(g.get("cause", "")))]))
+	var life: Dictionary = g.get("life", {})
+	var counts: Array = []
+	for st: Array in STATS:
+		if st[0] != "days" and st[0] != "walked" and float(life.get(st[0], 0.0)) > 0.0:
+			counts.append(st)
+	counts.sort_custom(func(a: Array, b: Array) -> bool: return float(life[a[0]]) > float(life[b[0]]))
+	if float(life.get("walked", 0.0)) > 0.0:
+		lines.append("%s %s" % [Lang.t(STATS[1][1]), _value("walked", float(life.walked), [])])
+	var said: Array[String] = []
+	for st: Array in counts.slice(0, 2):
+		said.append("%s %s" % [Lang.t(st[1]), _value(st[0], float(life[st[0]]), st[2])])
+	if not said.is_empty():
+		lines.append(" · ".join(said))
+	return "\n".join(lines)
+
+
+## The cause of a death (Vitals.hurt_by) as a cross says it, a noun: «голод», «волк»,
+## «игрок «Имя»».
+static func _grave_cause(cause: String) -> String:
+	if cause.begins_with("player:"):
+		var by := cause.substr(7)
+		return Lang.f("игрок «%s»", [by]) if by != "" else Lang.t("другой игрок")
+	if cause.begins_with("animal:"):
+		var spec: Dictionary = AiRules.SPECIES.get(cause.substr(7), {})
+		return Lang.t(str(spec.get("title", "зверь"))).to_lower()
+	return Lang.t(GRAVE_CAUSES.get(cause, "неизвестна"))
 
 
 ## «2 суток», «1 сутки», «5 суток» for `days` game days.

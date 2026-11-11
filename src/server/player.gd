@@ -196,8 +196,8 @@ func say(text: String) -> void:
 	said.emit(text)
 
 
-func lay(kind: String, data: Variant, until := -1.0) -> Vector3:
-	var p := super.lay(kind, data, until)
+func lay(kind: String, data: Variant, until := -1.0, grave := {}) -> Vector3:
+	var p := super.lay(kind, data, until, grave)
 	laid.emit(WorldData.chunk_key(floori(p.x / CELL), floori(p.z / CELL)))
 	return p
 

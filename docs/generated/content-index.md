@@ -23,12 +23,13 @@
 - `sounds` Звуки: `sounds/nature` Природа, `sounds/player` Игрок, `sounds/ui` Интерфейс
 - `tools` Инструменты и крафт: `tools/anvil` Наковальня, `tools/axe` Топор, `tools/bedding` Постель, `tools/big_chest` Большой сундук, `tools/bloomery` Сыродутная печь, `tools/boats` Плот и лодка, `tools/boundary_post` Межевой столб, `tools/bow` Лук, `tools/candle` Сальная свеча, `tools/canvas_backpack` Холщовый рюкзак, `tools/chest` Сундук, `tools/composite_bow` Составной лук, `tools/door` Дверь, `tools/drying_rack` Сушилка, `tools/fence` Забор, `tools/fiber_clothes` Одежда из волокна, `tools/fireplace` Камин, `tools/fishing_rod` Удочка, `tools/forge` Горн, `tools/furniture` Мебель, `tools/hatch` Люк, `tools/hide_clothes` Одежда из шкур, `tools/hoe` Тяпка, `tools/kiln` Печь для обжига, `tools/knife` Нож, `tools/ladder` Приставная лестница, `tools/lantern` Фонарь, `tools/leather_bag` Кожаная сумка, `tools/leather_sling` Кожаная праща, `tools/loom` Ткацкий станок, `tools/needle` Игла, `tools/pickaxe` Кирка, `tools/potters_wheel` Гончарный круг, `tools/scythe` Коса, `tools/shovel` Лопата, `tools/sickle` Серп, `tools/signs` Таблички, `tools/sling` Праща, `tools/spear` Копьё, `tools/stairs` Лестница, `tools/sword` Меч, `tools/tar_torch` Смоляной факел, `tools/torch` Факел, `tools/trap` Живоловка, `tools/watering_can` Лейка, `tools/waterskin` Бурдюк, `tools/wicker_bag` Плетёная котомка, `tools/window` Окно, `tools/workbench` Верстак
 
-## Предметы (`items`, 217)
+## Предметы (`items`, 218)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
 | `core:campfire` | Костёр | Станки |  | `core` | 1. Примитивные инструменты | 1 / 15 | ок |
 | `core:rot` | Гниль | Материалы |  | `core` | 0. Выживание без инструментов | 0 / 23 | предупреждения: 1 |
+| `core:grave` | Крест | Станки | Стоит там, где пропал мешок умершего. Подойди — прочтёшь, кто здесь погиб. | `core` | 0. Выживание без инструментов | 0 / 0 | ок |
 | `materials:brick` | Кирпич | Блоки |  | `materials/brick` | 3. Керамика и ранняя металлургия | 1 / 5 | ок |
 | `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 3. Керамика и ранняя металлургия | 0 / 12 | ок |
 | `materials:cloth` | Ткань | Материалы | Полотно с ткацкого станка. Идёт на бинты и факелы, потом — на одежду. | `materials/cloth` | 2. Дерево, кости и кожа | 1 / 7 | ок |

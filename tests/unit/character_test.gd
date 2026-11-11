@@ -1,6 +1,8 @@
 extends "res://tests/unit/test_case.gd"
 ## The character: the bag, tool wear, vitals, the change log and death.
 
+const DeathScreen := preload("res://src/client/ui/death_screen.gd")
+
 
 func run() -> void:
 	_test_inventory()
@@ -17,6 +19,7 @@ func run() -> void:
 	_test_death()
 	_test_fall()
 	_test_sack_ends()
+	_test_graves()
 	_test_bed_respawn()
 	_test_poultice()
 
@@ -708,8 +711,10 @@ func _test_sack_ends() -> void:
 	var key := WorldData.chunk_key(5, 5)
 	var sack: Array = w.drops[key][0]
 	var start: float = ch.clock.now()
-	_check(sack[0] == Items.SACK and sack.size() == 5 and is_equal_approx(sack[4], start + Survivor.SACK_DAYS)
+	_check(sack[0] == Items.SACK and sack.size() == 6 and is_equal_approx(sack[4], start + Survivor.SACK_DAYS)
 		and ch.sack_ends.size() == 1, "a death's sack knows the day it is gone")
+	_check(sack[5] is Dictionary and sack[5].name == "" and sack[5].cause == ch.death.cause and sack[5].day == ch.death.day,
+		"and who died there, for the cross (%s)" % [sack[5]])
 	_check(ch.death.sack_days == Survivor.SACK_DAYS, "the death screen is told how long it lies")
 	var again := Survivor.new()
 	again.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
@@ -730,8 +735,8 @@ func _test_sack_ends() -> void:
 	ch.said.clear()
 	acts.pick_up_near(ch)
 	var rest: Array = w.drops.get(key, [[""]])[0]
-	_check(ch.sacks.size() == 1 and rest[0] == Items.SACK and rest.size() == 5 and rest[4] == sack[4],
-		"a sack taken in part keeps its day")
+	_check(ch.sacks.size() == 1 and rest[0] == Items.SACK and rest.size() == 6 and rest[4] == sack[4] and rest[5] == sack[5],
+		"a sack taken in part keeps its day and who died there")
 	for i in 5:
 		acts.pick_up_near(ch)
 	_check(ch.said.is_empty(), "standing by a sack that does not fit the bag does not say so at every pickup (%s)" % [ch.said])
@@ -739,9 +744,10 @@ func _test_sack_ends() -> void:
 		"a tap on it says so, but not twice in a row (%s)" % [ch.said])
 	var changed := []
 	acts.drops_changed.connect(func(k: Vector2i) -> void: changed.append(k))
-	acts.expire_sacks(start + Survivor.SACK_DAYS + 0.01, [ch])
+	var gone: Array = acts.expire_sacks(start + Survivor.SACK_DAYS + 0.01, [ch])
 	_check(w.drops.get(key, []).is_empty() and ch.sacks.is_empty() and ch.sack_ends.is_empty() and changed == [key],
 		"after two days the sack is gone, and the maps forget it")
+	_check(gone.size() == 1 and gone[0][0] == sack[1] and gone[0][1] == sack[5], "the world is told where it lay and who died there")
 	var other := Survivor.new()
 	other.clock = ch.clock
 	other.sacks.append(Vector3.ONE)
@@ -751,6 +757,66 @@ func _test_sack_ends() -> void:
 	other.body = Body.new()
 	other._forget_old_sacks()
 	_check(other.sacks.is_empty(), "a sack in a chunk not made is forgotten by the maps on its day too")
+
+
+## Where a death's sack was once its days are up a cross stands (Placed.put_grave), in
+## its cell or the nearest free one; it keeps who died there in the save and tells it
+## (DeathScreen.grave_text); taken up in the build mode it is gone, the bag gets nothing.
+func _test_graves() -> void:
+	var w := WorldData.new(8, Vector2i(16, 16))
+	for z in 16:
+		for x in 16:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var camp := Placed.new()
+	camp.world = w
+	camp.read_footprints()
+	_check(Items.grave() != "", "core has a cross")
+	var g := {"name": "Ёж\u202e", "cause": "cold", "day": 7, "days": 2.25, "life": {"walked": 3200.0, "trees": 14.0, "dug": 3.0, "jumps": 40.0}}
+	var at := Vector3(5.5, 1.0, 5.5) * WorldData.CELL
+	var e: Dictionary = camp.put_grave(at, g)
+	_check(not e.is_empty() and e.cell == Vector3i(5, 1, 5) and Placed.is_grave(e) and not Placed.is_sign(e),
+		"a cross stands in the sack's cell")
+	_check(e.grave.name == "Ёж" and e.grave.day == 7 and e.grave.life.trees == 14.0, "it keeps who died, the name made safe (%s)" % [e.grave])
+	var other: Dictionary = camp.put_grave(at, {})
+	_check(not other.is_empty() and other.cell != e.cell and absi(other.cell.x - 5) <= 1 and absi(other.cell.z - 5) <= 1
+		and other.cell.y == 1, "a second one stands beside it (%s)" % [other.get("cell")])
+	var copy := Placed.new()
+	copy.world = WorldData.new(8, Vector2i(16, 16))
+	copy.read_footprints()
+	copy.from_list(JSON.parse_string(JSON.stringify(camp.to_list())))
+	_check(copy.at(e.cell).get("grave", {}).get("name") == "Ёж" and copy.at(other.cell).has("grave"), "the save keeps it")
+	var text := DeathScreen.grave_text(e.grave)
+	_check(text.contains("«Ёж»") and text.contains("холод") and text.contains("2 дн 6 ч") and text.contains("пройдено 3")
+		and text.contains("прыгнули") and text.contains("срублено") and not text.contains("выкопано"),
+		"it tells who, why, how long, the way walked and the two largest counts (%s)" % text)
+	_check(DeathScreen.grave_text(Placed.grave_record({})).begins_with("Здесь покоится путник"), "a cross of an old sack names no one")
+	var ch := Survivor.new()
+	ch.world = w
+	ch.placed = camp
+	_check(camp.take_up(ch, e) and camp.at(e.cell).is_empty() and ch.inventory.is_empty() and ch.said == ["Крест убран"],
+		"taken up it is gone, nothing in the bag")
+	var full := WorldData.new(8, Vector2i(16, 16))
+	for z in 16:
+		for x in 16:
+			full.set_cell(x, 0, z, Mat.STONE)
+			full.set_cell(x, 1, z, Mat.STONE)
+			full.set_cell(x, 2, z, Mat.STONE)
+	camp.world = full
+	_check(camp.put_grave(at, g).is_empty(), "no cross where there is no room")
+	camp.world = w
+	var poor := Survivor.new()
+	poor.world = w
+	poor.placed = camp
+	poor.clock = Clock.new()
+	poor.body = Body.new()
+	poor.at = Vector3(10.5, 1.0, 10.5) * WorldData.CELL
+	poor.vitals.satiety = 0.0
+	poor.vitals.health = 0.0
+	poor.update(0.1)
+	var crosses := camp.things.filter(func(t: Dictionary) -> bool: return Placed.is_grave(t))
+	_check(poor.is_dead() and w.drops.get(WorldData.chunk_key(10, 10), []).is_empty() and crosses.size() == 2
+		and crosses.any(func(t: Dictionary) -> bool: return absi(t.cell.x - 10) <= 1 and absi(t.cell.z - 10) <= 1),
+		"a death with an empty bag leaves no sack but a cross at once")
 
 
 ## Coming back after death: at the last bed the character set down, lying in it, before
