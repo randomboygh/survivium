@@ -35,6 +35,8 @@ const GlWatch := preload("res://src/client/ui/gl_watch.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+## «Витрина интерфейса», loaded only when opened.
+const GALLERY := "res://src/client/ui/ui_gallery.gd"
 
 ## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
@@ -213,6 +215,17 @@ func _ready() -> void:
 	_back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_back.pressed.connect(_go_back)
 	buttons.add_child(_back)
+
+
+## Opens «Витрина интерфейса» (ui_gallery.gd, made when asked) over this window, which
+## hides meanwhile (its rows would scroll under a finger dragged over the gallery).
+## Returns the gallery.
+func open_gallery() -> Control:
+	var gallery: Control = load(GALLERY).new(game)
+	gallery.closed.connect(func() -> void: visible = true)
+	visible = false
+	get_parent().add_child(gallery)
+	return gallery
 
 
 ## Opens page `which`; from the changes, freezes and report pages «Назад» goes to page
@@ -485,6 +498,7 @@ func _section_rows(key: String) -> Array:
 					game.draw_census.start()},
 				{"action": "Журнал фризов", "do": func() -> void: open("freezes")},
 				{"action": "Данные для теста", "do": func() -> void: open("report")},
+				{"action": "Витрина интерфейса", "do": func() -> void: open_gallery()},
 				{"action": "Перечитать данные модов", "do": func() -> void: s.reload_mods()},
 				null,
 				{"action": "Очистить все данные", "do": func() -> void: s.wipe_all(), "confirm": true},

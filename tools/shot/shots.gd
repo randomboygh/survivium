@@ -652,6 +652,13 @@ const SHOTS := {
 		"menu_end": true},
 	"ui-test-debug": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug"},
 	"ui-test-server": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "server"},
+	# «Витрина интерфейса» (UiGallery), each of its tabs.
+	"ui-gallery-buttons": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "buttons"},
+	"ui-gallery-rows": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "rows"},
+	"ui-gallery-slots": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "slots"},
+	"ui-gallery-fields": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "fields"},
+	"ui-gallery-lists": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "lists"},
+	"ui-gallery-look": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "look"},
 	# The freezes' log and the playtest report, windows of the playtest page.
 	"ui-freezes": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "freezes", "freezes": true},
 	"ui-report": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "report"},
