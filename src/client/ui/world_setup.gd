@@ -117,9 +117,6 @@ func _ready() -> void:
 	var start := Button.new()
 	start.text = "Создать мир"
 	start.focus_mode = Control.FOCUS_NONE
-	# «Создать мир», «Назад» and the dice act as the finger lands: the keyboard of the
-	# seed closing as it does moves them away before the finger lifts.
-	start.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	start.custom_minimum_size = Vector2(0, 36)
 	UiStyle.accent(start)
 	start.pressed.connect(_start)
@@ -130,7 +127,6 @@ func _ready() -> void:
 	var back := Button.new()
 	back.text = "Назад"
 	back.focus_mode = Control.FOCUS_NONE
-	back.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	back.custom_minimum_size = Vector2(96, 36)
 	back.pressed.connect(_back)
 	buttons.add_child(back)
@@ -301,7 +297,6 @@ func _seed_row() -> void:
 	dice.icon = UiStyle.icon("dice")
 	dice.tooltip_text = "Случайное зерно"
 	dice.focus_mode = Control.FOCUS_NONE
-	dice.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	dice.custom_minimum_size = Vector2(ARROW, ARROW)
 	dice.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dice.pressed.connect(func() -> void:
