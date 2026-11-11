@@ -41,7 +41,10 @@ leaves the focus with that input; the game lets the field go when a finger lifts
 Once the phone puts the keyboard away, a touch focuses the canvas as the engine does: kept
 with the input then, the focus opened no keyboard on the next tap (2026-11-10/11, the
 phone's browser com.android.browser). The keyboard's inputs are marked not to be filled in,
-so the browser's password manager does not offer itself on them.
+so the browser's password manager does not offer itself on them, and have 16 px text, so an
+iPhone does not zoom into them. An iPhone opens the keyboard only for an input focused inside
+the touch's own handler, and the engine focuses it a frame later: there the finger lifting
+off a field that asked for the keyboard focuses the input again (2026-11-11).
 
 It fails when the files are not the ones it knows, so an engine upgrade is noticed.
 
@@ -125,7 +128,22 @@ TOUCH_KEPT = ("function touch_cb(type,evt){if(type===0&&!(window.survivium_tabs&
     "{GodotConfig.canvas.focus()}")
 # The keyboard's inputs are not a form to fill in.
 VK_INPUT = 'elem.style.outline="none";elem.readonly=true;'
-VK_INPUT_KEPT = 'elem.style.outline="none";elem.setAttribute("autocomplete","off");elem.readonly=true;'
+# 16 px text: an iPhone zooms the page into a focused input with smaller text.
+VK_INPUT_KEPT = ('elem.style.outline="none";elem.style.fontSize="16px";elem.setAttribute("autocomplete","off");'
+    'elem.readonly=true;')
+# An iPhone opens the keyboard only for an input focused inside the touch's own handler, and
+# the engine focuses it a frame later, when the field took the press. On an iPhone the
+# lifting finger focuses the keyboard's input again when the field asked for it (shown) and
+# the keyboard is not up; elsewhere nothing changes (on Android the input already has the
+# focus then, or is hidden).
+TOUCH_END = "func(type,touches.length);if(evt.cancelable){evt.preventDefault()}}"
+TOUCH_END_KEPT = ("func(type,touches.length);if(type===1&&(/iPad|iPhone|iPod/.test(navigator.userAgent)"
+    "||navigator.platform===\"MacIntel\"&&navigator.maxTouchPoints>1)"
+    "&&!(window.survivium_tabs&&window.survivium_tabs.up)){"
+    "for(const elem of[GodotDisplayVK.textinput,GodotDisplayVK.textarea]){"
+    "if(elem&&elem.style.display===\"block\"){if(document.activeElement===elem){elem.blur();"
+    "elem.style.display=\"block\";elem.readonly=false;elem.disabled=false}elem.focus()}}}"
+    "if(evt.cancelable){evt.preventDefault()}}")
 # The engine hears keys only on the canvas, and the keyboard's one-line input changes no
 # text at Enter, so the phone keyboard's Enter («→», «Готово», «Отправить») reached nothing:
 # the chat was not sent, a field did not pass to the next. The input hands its Enter to the
@@ -164,7 +182,8 @@ def main() -> None:
     patch(out / "index.js", VOLUMES, VOLUMES_KEPT, "the names of the voices whose volumes change kept")
     patch(out / "index.js", PITCH, PITCH_KEPT, "the names of the voices whose pitch changes kept")
     patch(out / "index.js", TOUCH, TOUCH_KEPT, "a touch leaves the page's focus with the keyboard's input while it is up")
-    patch(out / "index.js", VK_INPUT, VK_INPUT_KEPT, "the keyboard's inputs are not filled in by the browser")
+    patch(out / "index.js", VK_INPUT, VK_INPUT_KEPT, "the keyboard's inputs are not filled in by the browser, nor zoomed into")
+    patch(out / "index.js", TOUCH_END, TOUCH_END_KEPT, "an iPhone's keyboard opens as the finger lifts off a field")
     patch(out / "index.js", VK_ENTER, VK_ENTER_KEPT, "the phone keyboard's Enter reaches the field")
 
 
