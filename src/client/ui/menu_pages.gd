@@ -50,6 +50,10 @@ var _fading := false
 var _shown := false
 var _fit_for := Rect2()
 var _column: VBoxContainer
+## Holds the panel's buttons: it scrolls when the page is taller than the room for it.
+var _scroll: ScrollContainer
+## Between the scroll and the buttons: room for its bar while it scrolls.
+var _room: MarginContainer
 
 
 ## The buttons of `page` in the panel, the one to press first lit (and the keyboard on
@@ -431,15 +435,49 @@ func _fit() -> void:
 	_backdrop.queue_redraw()
 	# The name at a fixed height of the screen; the column in the middle of the room under
 	# it, its top no higher than the name's bottom, so pages of any height leave the name
-	# where it is.
+	# where it is. A page too tall for that (a landscape screen, a large interface) puts
+	# the name beside the column where the width allows, or at the very top; what still
+	# does not fit scrolls in the panel.
 	_title.reset_size()
-	_title_at = Vector2((size.x - _title.size.x) * 0.5, maxf(12.0, size.y * TITLE_AT)).floor()
-	_title.position = _title_at
 	_fx.size = size
+	# No scrolling (and no bar) unless the page needs it: the scroll as tall as the buttons.
+	UiStyle.bar_room(_room, false)
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.custom_minimum_size.y = 0.0
+	var box_h := _box.get_combined_minimum_size().y
 	_column.reset_size()
 	var c := _column.size
-	var top := _title.position.y + _title.size.y + GAP
-	_column.position = Vector2((size.x - c.x) * 0.5, maxf(top, top + (size.y - MARGIN - top - c.y) * 0.45)).floor()
+	var t := _title.size
+	var least := _title_least_top()
+	var top := maxf(least, size.y * TITLE_AT) + t.y + GAP
+	# The most the column may take in height; less than it needs: the buttons scroll.
+	var high := c.y
+	var beside := false
+	if top + c.y <= size.y - MARGIN:
+		_title_at = Vector2((size.x - t.x) * 0.5, top - t.y - GAP)
+		_column.position = Vector2((size.x - c.x) * 0.5, top + (size.y - MARGIN - top - c.y) * 0.45)
+	elif t.x + GAP * 2 + c.x + 16 + 2 * MARGIN <= size.x:
+		# Side by side, the pair in the middle of the screen (room for a scroll bar).
+		high = minf(c.y, size.y - 2 * MARGIN)
+		var left := (size.x - t.x - GAP * 2 - c.x) * 0.5
+		_title_at = Vector2(left, (size.y - t.y) * 0.5)
+		_column.position = Vector2(left + t.x + GAP * 2, (size.y - high) * 0.5)
+		beside = true
+	else:
+		_title_at = Vector2((size.x - t.x) * 0.5, least)
+		top = least + t.y + GAP
+		_column.position = Vector2((size.x - c.x) * 0.5, top)
+		high = minf(c.y, size.y - MARGIN - top)
+	if high < c.y:
+		_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		_scroll.custom_minimum_size.y = maxf(box_h - (c.y - high), 40.0)
+		UiStyle.bar_room(_room, true, _scroll)
+		_column.reset_size()
+		if not beside:
+			_column.position.x = (size.x - _column.size.x) * 0.5
+	_title_at = _title_at.floor()
+	_title.position = _title_at
+	_column.position = _column.position.floor()
 	if loading:
 		for side: int in MAP_SIZES:
 			_set_map_side(side)
@@ -457,6 +495,9 @@ func _set_focus(i: int) -> void:
 	if i < 0:
 		return
 	_focus = posmod(i, _order.size())
+	# The keyboard's button in sight when the page scrolls.
+	if _scroll != null and _buttons.has(_order[_focus]):
+		_scroll.ensure_control_visible(_buttons[_order[_focus]])
 	_screen.queue_redraw()
 
 

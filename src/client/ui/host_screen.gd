@@ -23,6 +23,7 @@ const Protocol := preload("res://src/shared/net/protocol.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const TextField := preload("res://src/client/ui/text_field.gd")
+const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 
 const WIDTH := 300
 const NAME_WIDTH := 80
@@ -46,6 +47,11 @@ signal play
 
 var game
 var _panel: PanelContainer
+## Holds the window's rows: it scrolls when they are taller than the screen (a landscape
+## phone, a large interface).
+var _scroll: ScrollContainer
+## Between the scroll and the rows: room for its bar while it scrolls.
+var _room: MarginContainer
 var _box: VBoxContainer
 ## The saved worlds to choose from ({dir, seed, settings, day, …}), the one chosen.
 var _worlds: Array = []
@@ -86,7 +92,14 @@ func _ready() -> void:
 	add_child(_panel)
 	_box = VBoxContainer.new()
 	_box.add_theme_constant_override("separation", 6)
-	_panel.add_child(_box)
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_panel.add_child(_scroll)
+	DragScroll.attach(_scroll)
+	_room = MarginContainer.new()
+	_room.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(_room)
+	_room.add_child(_box)
 	var title := UiStyle.label("Сервер работает" if running() else "Создать сервер", UiStyle.ACCENT)
 	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -96,6 +109,8 @@ func _ready() -> void:
 	else:
 		_build_setup()
 	get_parent().resized.connect(_fit)
+	# Rows shown or added later (an error, the players) fit the window again.
+	_box.minimum_size_changed.connect(_fit, CONNECT_DEFERRED)
 	_fit()
 
 
@@ -443,10 +458,21 @@ func _fit() -> void:
 	var screen: Vector2 = get_parent().size
 	position = Vector2.ZERO
 	size = screen
+	# As tall as its rows, or as the screen lets it: then the rows scroll.
+	# No scrolling (and no bar) unless the rows need it.
+	UiStyle.bar_room(_room, false)
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.custom_minimum_size.y = 0.0
+	var rows := _box.get_combined_minimum_size().y
 	_panel.reset_size()
 	var s := _panel.size
-	_panel.position = Vector2(floorf((screen.x - s.x) * 0.5),
-		floorf((screen.y - s.y) * 0.5) if s.y + 2 * MARGIN <= screen.y else MARGIN)
+	if s.y + 2 * MARGIN > screen.y:
+		_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		_scroll.custom_minimum_size.y = maxf(rows - (s.y + 2 * MARGIN - screen.y), 60.0)
+		UiStyle.bar_room(_room, true, _scroll)
+		_panel.reset_size()
+		s = _panel.size
+	_panel.position = Vector2(floorf((screen.x - s.x) * 0.5), floorf(maxf((screen.y - s.y) * 0.5, MARGIN)))
 	move_to_front()
 	queue_redraw()
 
