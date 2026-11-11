@@ -19,7 +19,7 @@
 | Звери и рыбалка | `src/shared/game/wildlife.gd`, `fishing.gd`, `src/shared/content/ai_rules.gd`, `src/client/game/creatures.gd`, `src/client/view/fishing_line.gd`, `src/client/view/ai_debug.gd` (отладка ИИ) | [systems/wildlife.md](systems/wildlife.md) | `wildlife_test.gd` |
 | Время, сезоны, погода | `src/shared/game/clock.gd`, `storms.gd`, `src/server/real_weather.gd`, `src/client/view/sky.gd` | [systems/time-weather.md](systems/time-weather.md) | `clock_test.gd` |
 | Сохранение | `src/shared/world/world_store.gd`, `src/client/save_game.gd` | [systems/saving.md](systems/saving.md) | `store_test.gd`, `save_test.gd` |
-| Интерфейс и настройки | `src/client/ui/*`, `src/client/settings.gd`, `src/client/game/markers.gd` | [systems/ui.md](systems/ui.md) | `browser_smoke.mjs`; юнит-тестов нет |
+| Интерфейс и настройки | `src/client/ui/*`, `src/client/settings.gd`, `src/client/game/markers.gd` | [systems/ui.md](systems/ui.md) | `browser_smoke.mjs`, `ui_test.gd` (витрина интерфейса) |
 | Звук и музыка | `src/client/audio/*`, `content/sounds/`, `content/music/` | [systems/audio.md](systems/audio.md) | `view_test.gd` (sound) |
 | Языки | `src/shared/content/lang.gd`, `lang/<код>.yaml` модов, `tools/lang_check.py` | [systems/lang.md](systems/lang.md) | `lang_test.gd`, `tools/lang_check.py --strict en` |
 | Тесты, инструменты, CI, версии | `tests/*`, `tools/*`, `.github/*` | [systems/testing.md](systems/testing.md), [testing/](testing/TESTING_GUIDE.md) | `tools/lint.py`, `tools/parse_check.gd` |
