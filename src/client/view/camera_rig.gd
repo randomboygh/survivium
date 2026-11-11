@@ -15,9 +15,9 @@ const CAMERA_HEIGHT := PixelView.CAMERA_HEIGHT
 ## and tilts in steps from the default view, a step making a wall 2 px shorter: STEEPER
 ## steps up and LOWER down, 2 to 16 px a cell under an 8 px top (a wall never drops to
 ## 0 px: the camera looking straight down would draw upright things as lines).
-const TURN_STEP := PI / 4.0
+const TURN_STEP := PixelView.TURN_STEP
 const TURNS := 8
-const TILT_STEP := 0.25
+const TILT_STEP := PixelView.TILT_STEP
 const STEEPER := 3
 const LOWER := 4
 ## The views on the way that the culling boxes hold, this far apart: a turn sweeps
