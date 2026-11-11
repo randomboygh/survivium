@@ -177,7 +177,10 @@ func _process(delta: float) -> void:
 	if not _shown and _column.is_visible_in_tree():
 		# Laid out by now; the browser test taps the buttons from this line.
 		_shown = true
-		StartTimes.mark("menu")
+		# The menu shown only after a world (a scene started again straight into one, the
+		# menu opened from the game) is not a step of the loading.
+		if not game.world_started:
+			StartTimes.mark("menu")
 		print("main menu shown: single %s, multi %s, sparrow %s" % [_buttons.single.get_global_rect(),
 			_buttons.multi.get_global_rect(), _sparrow_hit.get_global_rect()])
 	_screen.queue_redraw()
