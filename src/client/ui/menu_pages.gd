@@ -5,6 +5,7 @@ extends "res://src/client/ui/menu_loading.gd"
 ## world asked for, and the panel laid out on the screen with the keyboard's focus.
 
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+const GlWatch := preload("res://src/client/ui/gl_watch.gd")
 ## The menu's own screens are compiled when first opened, not at the game's start
 ## (StartTimes: compiling every script was most of the start).
 const WORLD_SETUP := "res://src/client/ui/world_setup.gd"
@@ -94,6 +95,8 @@ func _fill_page(page: String) -> void:
 			lit = "multi" if joined or game.hosted != null else "single"
 			if resume:
 				lit = "resume"
+			if GlWatch.software():
+				_slow_drawing()
 		"single":
 			_caption("Одиночная игра")
 			_add_button(_box, "play", "Продолжить", _play_single)
@@ -169,6 +172,17 @@ func _caption(text: String) -> void:
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.custom_minimum_size = Vector2(WIDTH, 0)
 	_box.add_child(l)
+
+
+## The browser draws without the graphics card: why the game is slow, and how to turn
+## the card on, under the buttons.
+func _slow_drawing() -> void:
+	_note = UiStyle.label(Lang.f("Браузер рисует без видеокарты (%s), поэтому игра идёт медленно. "
+		+ "Включите в настройках браузера «Использовать графическое ускорение» (в Edge — edge://settings/system, "
+		+ "в Chrome — chrome://settings/system) и перезапустите браузер.", [GlWatch.renderer()]), UiStyle.ACCENT)
+	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_note.custom_minimum_size = Vector2(WIDTH, 0)
+	_box.add_child(_note)
 
 
 ## «Создать сервер» away from a computer: where it is, under the buttons.

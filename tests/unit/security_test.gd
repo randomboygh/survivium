@@ -9,6 +9,7 @@ extends "res://tests/unit/test_case.gd"
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
 const Server := preload("res://src/server/server.gd")
+const TestCommands := preload("res://src/server/test_commands.gd")
 const Config := preload("res://src/server/config.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const Requests := preload("res://src/server/requests.gd")
@@ -261,13 +262,16 @@ func _test_commands() -> void:
 	_check(net.command("nothing at all").begins_with("неизвестная"), "an unknown command is named as such")
 	_check(net.command("reload", Server.ROLE_PLAYER).contains("владельца"), "a player may not read the mods' data again")
 	var asked: Array = []
-	net.test_command = func(rest: String) -> String:
+	net.test_command = func(rest: String, _role: int) -> String:
 		asked.append(rest)
 		return "ок"
-	_check(net.command("test bot+", Server.ROLE_PLAYER).contains("тестовом") and asked.is_empty(),
-		"«test» does nothing on a server that is not a playtest one")
+	_check(net.command("test bot+", Server.ROLE_PLAYER).contains("хозяина") and asked.is_empty(),
+		"a player gives «test» on no server but a playtest one")
+	_check(net.command("test bot+", Server.ROLE_HOST) == "ок" and asked == ["bot+"], "a host gives it on any")
 	cfg.playtest = true
-	_check(net.command("test bot+", Server.ROLE_PLAYER) == "ок" and asked == ["bot+"], "on a playtest one any player gives it")
+	_check(net.command("test bot-", Server.ROLE_PLAYER) == "ок" and asked == ["bot+", "bot-"], "on a playtest one any player gives it")
+	_check(TestCommands.find_world("../saves").is_empty() and TestCommands.find_world("a/b").is_empty()
+		and TestCommands.find_world("").is_empty(), "«test world» takes a folder's name, never a path")
 	cfg.playtest = false
 	cfg.take_args(PackedStringArray(["--playtest", "--minutes", "-5", "--bots", "-2"]))
 	_check(cfg.playtest and cfg.minutes == 0 and cfg.bots == 0, "a playtest server's numbers from the command line are never below 0")

@@ -9,7 +9,7 @@ extends RefCounted
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
 ## once per flush: after a request, so the client sees the state before the reply, and
 ## after each tick. Over a socket (send_world) the link also brings the client its copy
-## of the world (С3.2): the chunks made within Session.ZONE of the body, nearest first
+## of the world (С3.2): the chunks made within Session.ZONE of the body (farther for a larger screen, Session.reach_for), nearest first
 ## (CHUNK, a few a flush; FORGET beyond Session.DROP; a chunk whose looks changed is sent
 ## again), the cells changed in the chunks it holds (CELLS), the things on the ground
 ## with their list (DROPS) and what was taken (TAKEN); over the loop the client reads
@@ -328,8 +328,8 @@ func flush() -> Array[PackedByteArray]:
 
 
 ## The client's copy of the world: the cells changed in the chunks it holds, the chunks
-## within Session.ZONE of the body it lacks (nearest first, CHUNKS_PER_FLUSH a flush)
-## or whose looks changed, and the chunks it holds beyond Session.DROP.
+## within the zone its screen needs (Session.reach_for) of the body it lacks (nearest first, CHUNKS_PER_FLUSH a flush)
+## or whose looks changed, and the chunks it holds beyond its drop range.
 func _world_events(out: Array[PackedByteArray]) -> void:
 	var cells := []
 	for cell: Vector3i in _cells:
@@ -351,7 +351,10 @@ func _world_events(out: Array[PackedByteArray]) -> void:
 			out.append(_event(Protocol.CHUNK, _packed(key)))
 			n += 1
 	_again.clear()
-	for r in range(0, Session.ZONE + 1):
+	# As far as this player's screen needs (Session.reach_for), not every player's.
+	var reach := Session.reach_for(who.view_half)
+	var drop := reach + Session.DROP - Session.ZONE
+	for r in range(0, reach + 1):
 		if n >= CHUNKS_PER_FLUSH:
 			break
 		for dz in range(-r, r + 1):
@@ -365,7 +368,7 @@ func _world_events(out: Array[PackedByteArray]) -> void:
 				_sent[key] = true
 				n += 1
 	for key: Vector2i in _sent.keys():
-		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > Session.DROP:
+		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > drop:
 			_sent.erase(key)
 			out.append(_event(Protocol.FORGET, [key]))
 

@@ -233,6 +233,12 @@ jobs:
           mkdir -p build/windows build/linux
           ~/godot/godot --headless --path . --export-release "Windows Desktop" build/windows/Survivium.exe
           ~/godot/godot --headless --path . --export-release "Linux" build/linux/Survivium.x86_64
+          # The mods as plain files beside the program (decision 186, Content.find_root):
+          # the game reads them there, one's own mods go beside them, an update replaces
+          # only these; without the folder the copy built in is read.
+          for d in build/windows build/linux; do
+            rsync -a --exclude='*.import' content/ "$d/content/"
+          done
           ls -la build/windows build/linux
           (cd build/windows && zip -qr ../survivium-windows.zip .)
           tar czf build/survivium-linux.tar.gz -C build/linux .
@@ -298,7 +304,7 @@ jobs:
         run: |
           python3 tools/build_info.py build_info.json
           version=$(python3 -c 'import json; print(json.load(open("build_info.json"))["version"])')
-          notes="Сборки игры для ПК из main, версия $version (обновляются с каждым слиянием). Windows: распакуйте и запустите Survivium.exe; сервер из терминала — Survivium.console.exe --headless -- --server. Linux: ./Survivium.x86_64 (сервер: --headless -- --server)."
+          notes="Сборки игры для ПК из main, версия $version (обновляются с каждым слиянием). Windows: распакуйте и запустите Survivium.exe; сервер из терминала — Survivium.console.exe --headless -- --server. Linux: ./Survivium.x86_64 (сервер: --headless -- --server). Моды лежат открытыми файлами в папке content рядом с игрой: их можно править, свои моды кладите туда же отдельными папками; при обновлении заменяйте только встроенные папки."
           if gh release view pc-latest >/dev/null 2>&1; then
             gh release edit pc-latest --prerelease --title "Сборки для ПК ($version)" --notes "$notes"
           else

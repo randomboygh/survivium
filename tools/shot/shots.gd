@@ -643,6 +643,7 @@ const SHOTS := {
 	"ui-test-player-end": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player",
 		"menu_end": true},
 	"ui-test-debug": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug"},
+	"ui-test-server": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "server"},
 	# The freezes' log and the playtest report, windows of the playtest page.
 	"ui-freezes": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "freezes", "freezes": true},
 	"ui-report": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "report"},

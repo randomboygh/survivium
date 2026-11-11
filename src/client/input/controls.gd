@@ -187,6 +187,10 @@ func unhandled_input(event: InputEvent) -> void:
 		# A tap that just misses a button or a panel on the screen is not meant for the world.
 		if event.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT] and game.hud.covers(event.position):
 			return
+		# The wheel over a window or a panel (its list scrolled to the end, or none) is the
+		# window's: Godot passes a wheel on past controls that stop clicks.
+		if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN] and game.hud.wheel_taken():
+			return
 		# With a mouse each button is a hand; a tap on a touch screen uses the hand in use.
 		match event.button_index:
 			MOUSE_BUTTON_LEFT:
@@ -972,8 +976,8 @@ func _show_preview(screen_pos: Vector2, dig: bool) -> void:
 	game.cursor.show_cells(cells if not cells.is_empty() else [cell], not cells.is_empty())
 
 
-## With a mouse, names the cell under the pointer and what the buttons do with it, and
-## frames what the hand in use would work on. On a touch screen the debug hint of a tap
+## With a mouse, frames what the hand in use would work on and, with the playtest switch
+## «debug_tips», names the cell under the pointer and what the buttons do with it. On a touch screen the debug hint of a tap
 ## (see tap) goes away after a while.
 func update_tip(delta: float) -> void:
 	tip_clock += delta
@@ -988,7 +992,9 @@ func update_tip(delta: float) -> void:
 		return
 	tip_clock = 0.0
 	_show_preview(mouse_pos, _stroke.dig if not _stroke.is_empty() else use_of() != "place")
-	game.hud.show_tip(mouse_pos, _tip_text(mouse_pos))
+	# The hint over the ground only with the playtest switch: the frame shows what the
+	# hand would work on, the buttons' hints name the rest (the user's pick, 2026-11-11).
+	game.hud.show_tip(mouse_pos, _tip_text(mouse_pos) if game.settings.debug_tips else "")
 
 
 ## The hint for screen point `pos`: the thing to gather there, else the cell and what the

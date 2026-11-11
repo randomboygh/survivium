@@ -4,11 +4,11 @@ extends RefCounted
 ## folders walked a step at a time too, so a pass over the two thousand and more files takes
 ## many frames and none of them long; at the end of a pass it says whether a file was
 ## changed, added or removed since the pass before. The first pass only learns the times.
-## Works where the files are there: the game run from the project's folder (`can_watch`),
-## not an exported game, whose files are packed.
+## Works where the files are there (`can_watch`): the game run from the project's folder,
+## or an exported game on a computer reading the mods beside it (Content.ROOT, decision
+## 186); not an exported game's copy built in, whose files are packed.
 
-## Where the mods are (Content.ROOT).
-const ROOT := "res://content"
+const ContentFields := preload("res://src/shared/content/content_fields.gd")
 ## The kinds of files a mod is made of.
 const KINDS := ["yaml", "png", "wav"]
 ## Files and folders looked at by a step.
@@ -23,17 +23,18 @@ var _primed := false
 ## Passes done, for the tests.
 var passes := 0
 ## The folder watched (the tests watch one of their own).
-var root := ROOT
+var root: String = ContentFields.ROOT
 
 
-func _init(folder := ROOT) -> void:
-	root = folder
+func _init(folder := "") -> void:
+	root = folder if folder != "" else ContentFields.ROOT
 
 
 ## Whether the files of the mods can be watched here: the game run by the editor's engine
-## from the project's folder, where they are files of their own.
+## from the project's folder, or the mods read from the folder beside an exported game,
+## where they are files of their own.
 static func can_watch() -> bool:
-	return OS.has_feature("editor") and DirAccess.dir_exists_absolute(ROOT)
+	return (OS.has_feature("editor") or ContentFields.beside()) and DirAccess.dir_exists_absolute(ContentFields.ROOT)
 
 
 ## Looks at up to `budget` files and folders; true when a pass ended now and found a file

@@ -85,6 +85,7 @@ const TracksScript := preload("res://src/client/world/tracks.gd")
 const RoofMap := preload("res://src/client/world/roof_map.gd")
 const MainMenu := preload("res://src/client/ui/main_menu.gd")
 const DeathScreen := preload("res://src/client/ui/death_screen.gd")
+const ButtonTips := preload("res://src/client/ui/button_tips.gd")
 const SaveGame := preload("res://src/client/save_game.gd")
 const SoundScript := preload("res://src/client/audio/sound.gd")
 const Markers := preload("res://src/client/game/markers.gd")
@@ -295,6 +296,11 @@ static var host_error := ""
 static var show_host := false
 ## Seconds to wait for a server's welcome.
 const JOIN_WAIT := 15.0
+## Seconds a server going over to another world (Protocol.CLOSE_RENEW) is given to come
+## back, and between two tries to join it again; until when it is tried (msec).
+const REJOIN_WAIT := 60.0
+const REJOIN_EVERY := 2.0
+static var rejoin_until := 0
 
 
 func _ready() -> void:
@@ -334,6 +340,11 @@ func _ready() -> void:
 		WorldStore.root = save_root
 	if join_url == "":
 		save.choose_world()
+	elif hosted != null:
+		# The server made here plays its world's bundles, which a world it went over to
+		# may have changed; this game loads the same ones (one Mods for both).
+		world_mods = hosted.mods.duplicate()
+		pending_mods = []
 	elif not pending_mods.is_empty():
 		world_mods = pending_mods
 		pending_mods = []
@@ -545,6 +556,7 @@ func _on_welcome(v: Variant) -> void:
 		join_error = "Сервер ответил не по-нашему"
 		return
 	welcome = v
+	rejoin_until = 0
 	if bot == null:
 		ServerList.remember(join_url, str(v.get("key", "")), str(v.get("title", "")))
 	# The player who made the server here is its host: commands in the chat are theirs.
@@ -553,6 +565,16 @@ func _on_welcome(v: Variant) -> void:
 
 
 func _on_socket_closed(code: int, reason: String) -> void:
+	if not is_inside_tree():
+		return
+	if code == Protocol.CLOSE_RENEW and not welcome.is_empty():
+		# The server goes over to another world: in again once it is up.
+		print("the server goes over to another world: joining again")
+		rejoin_until = Time.get_ticks_msec() + int(REJOIN_WAIT * 1000.0)
+		if hud != null:
+			hud.set_loading("Сервер переходит в другой мир…")
+		restart.call_deferred()
+		return
 	if server_stopping():
 		return
 	if join_error == "" and welcome.is_empty():
@@ -577,6 +599,8 @@ func start_world() -> void:
 	# Each heavy part says what it does and lets it show first; `world` is set only once
 	# they are done, so nothing runs on a world half made.
 	await _loading_stage("Материки и реки")
+	if not is_inside_tree():
+		return
 	var t0 := Time.get_ticks_msec()
 	# The test world is laid out by hand (see TestGround), every other one from noise.
 	var maker: GDScript = load(TEST_GROUND) if world_seed == WorldStore.TEST_SEED else WorldGen
@@ -588,6 +612,8 @@ func start_world() -> void:
 	StartTimes.spawn_ms = Time.get_ticks_msec() - t0
 	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, StartTimes.spawn_ms])
 	await _loading_stage("Карта и материалы")
+	if not is_inside_tree():
+		return
 	# The atlas first: the biome tints and the map take the materials' colours from it.
 	_build_materials()
 	roof = RoofMap.new()
@@ -596,6 +622,8 @@ func start_world() -> void:
 	if save.has_save:
 		hud.minimap.load_regions(save.store.read_maps())
 	await _loading_stage("Игрок и вещи" if save.has_save else "Игрок и небо")
+	if not is_inside_tree():
+		return
 	world = gen.world
 	# The server's clock and things placed; the save goes to them, and the real weather
 	# of the server inside the game (LocalHost.real_weather).
@@ -640,12 +668,24 @@ func start_world() -> void:
 ## the scene where the server put the character; the chunks come from the server.
 func _join_world() -> void:
 	await _loading_stage("Связь с сервером")
+	if not is_inside_tree():
+		return
 	var since := Time.get_ticks_msec()
 	while welcome.is_empty() and join_error == "":
 		if Time.get_ticks_msec() - since > JOIN_WAIT * 1000.0:
 			join_error = "Сервер не отвечает"
 			break
 		await get_tree().process_frame
+		# The loading was cancelled: the scene is out of the tree, going.
+		if not is_inside_tree():
+			return
+	if join_error != "" and Time.get_ticks_msec() < rejoin_until:
+		# The server is making its other world: tried again a little later.
+		hud.set_loading("Сервер переходит в другой мир…")
+		await get_tree().create_timer(REJOIN_EVERY).timeout
+		if is_inside_tree():
+			restart()
+		return
 	if join_error != "":
 		hud.set_loading(join_error)
 		print("join %s failed: %s" % [join_url, join_error])
@@ -663,6 +703,8 @@ func _join_world() -> void:
 		restart()
 		return
 	await _loading_stage("Материки и реки")
+	if not is_inside_tree():
+		return
 	var t0 := Time.get_ticks_msec()
 	gen = RemoteGen.new(world_seed, 48, world_options)
 	if Array(welcome.materials) != Array(Mat.IDS):
@@ -670,11 +712,15 @@ func _join_world() -> void:
 		gen.material_map = Mat.remap(PackedStringArray(welcome.materials))
 	print("world %d %s of %s: laid out in %d ms" % [world_seed, world_options, join_url, Time.get_ticks_msec() - t0])
 	await _loading_stage("Карта и материалы")
+	if not is_inside_tree():
+		return
 	_build_materials()
 	roof = RoofMap.new()
 	roof.prepare()
 	hud.minimap.setup(gen)
 	await _loading_stage("Игрок и небо")
+	if not is_inside_tree():
+		return
 	world = gen.world
 	world_maker = gen
 	_attach_world()
@@ -802,7 +848,8 @@ func _loading_stage(text: String) -> void:
 	loading_stage = text
 	hud.set_loading(Lang.line("%s…", [text]))
 	await get_tree().process_frame
-	await get_tree().process_frame
+	if is_inside_tree():
+		await get_tree().process_frame
 
 
 ## While the game is paused (its menu open) the world goes on being made and built
@@ -1095,6 +1142,12 @@ func _build_ui() -> void:
 	add_child(draw_census)
 	freeze_log = FreezeLog.new(self)
 	add_child(freeze_log)
+	# The buttons' hints over everything, the main menu too (with a mouse).
+	var tips := CanvasLayer.new()
+	tips.layer = 3
+	tips.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(tips)
+	tips.add_child(ButtonTips.new(self))
 
 
 ## The main menu in a layer over the interface, open from the start.

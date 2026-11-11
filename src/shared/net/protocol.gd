@@ -17,6 +17,9 @@ const VERSION := 1
 ## The port a server listens on when it is not told another (the address a player
 ## types without one goes there).
 const PORT := 7777
+## The close code of a server going over to another world (server_main.renew): the game
+## joins it again by itself.
+const CLOSE_RENEW := 4010
 ## The file CI writes the build's version into (tools/build_info.py); "dev" without it.
 const BUILD_INFO := "res://build_info.json"
 

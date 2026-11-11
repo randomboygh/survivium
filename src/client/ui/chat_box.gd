@@ -6,7 +6,9 @@ extends VBoxContainer
 ## Escape or the button again. While it is open all the recent lines show, the newest
 ## at the bottom. One in a team chooses whom a line goes to by the button before the
 ## field («Рядом» / «Команде»; Protocol.TEAM_CHAT). A line that begins with "/" is a host's command; the server answers
-## it in the chat. `typing` keeps the keys from walking the character. `game` is the
+## it in the chat. Sending a line shows the recent lines again for FADE seconds, the
+## line said among them (in single player, with no server to hear it, it is put in the
+## chat here). `typing` keeps the keys from walking the character. `game` is the
 ## Main node; the HUD places the box (place).
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
@@ -37,6 +39,8 @@ var _whom: Button
 var _shown_key := ""
 ## Lines heard in all: the shown lines change with it even once KEPT are kept.
 var _heard := 0
+## When a line was last sent (seconds): the lines heard before it fade from then on.
+var _sent := -INF
 
 
 func _init(g) -> void:
@@ -125,8 +129,19 @@ func close() -> void:
 func submit() -> void:
 	var text := _field.text.strip_edges()
 	_field.text = ""
+	if text != "":
+		_sent = _now()
 	close()
-	if text != "" and game.net != null:
+	if text == "":
+		return
+	if game.join_url == "":
+		# Single player: no one hears but the player, and there are no commands.
+		if text.begins_with("/"):
+			hear(0, "", "Команды через «/» — только на сервере")
+		else:
+			hear(-1, game.player_name, text.left(MAX))
+		return
+	if game.net != null:
 		print("chat: say %s" % text)
 		if _to_team and game.team.has_team() and not text.begins_with("/"):
 			game.team.say(text)
@@ -144,10 +159,10 @@ func _show_whom() -> void:
 	_field.placeholder_text = "Сказать команде…" if _to_team else "Сказать рядом…"
 
 
-## A line heard: said by player `id` named `who` (0 the server, "" for its answer), to
-## the team when `team` (marked and coloured).
+## A line heard: said by player `id` named `who` (0 the server, "" for its answer; -1
+## the player in single player), to the team when `team` (marked and coloured).
 func hear(id: int, who: String, text: String, team := false) -> void:
-	var own: bool = id != 0 and id == int(game.welcome.get("id", -1))
+	var own: bool = id == -1 or id != 0 and id == int(game.welcome.get("id", -1))
 	# The server's own lines are phrases of the game; the players' are as they wrote them.
 	if id == 0:
 		text = Lang.t(text)
@@ -183,7 +198,7 @@ func _refresh() -> void:
 	var shown: Array[Dictionary] = []
 	for i in range(lines.size() - 1, -1, -1):
 		var l: Dictionary = lines[i]
-		if shown.size() >= (OPEN_SHOWN if open else SHOWN) or (not open and now - l.at > FADE):
+		if shown.size() >= (OPEN_SHOWN if open else SHOWN) or (not open and now - _since(l) > FADE):
 			break
 		shown.push_front(l)
 	var key := "%s|%d|%d" % [open, shown.size(), _heard]
@@ -207,7 +222,7 @@ func _refresh() -> void:
 	set_process(not shown.is_empty() and not open)
 	var labels := _list.get_children()
 	for i in labels.size():
-		var age: float = now - shown[i].at
+		var age: float = now - _since(shown[i])
 		labels[i].modulate.a = 1.0 if open else clampf((FADE - age) / FADE_OUT, 0.0, 1.0)
 
 
@@ -215,6 +230,11 @@ func _input(event: InputEvent) -> void:
 	if typing and event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
 		close()
+
+
+## When line `l` began to fade: when it was heard, or when a line was sent after it.
+func _since(l: Dictionary) -> float:
+	return maxf(l.at, _sent)
 
 
 static func _now() -> float:

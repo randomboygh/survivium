@@ -32,6 +32,9 @@ const CATCH_UP := 1.0
 ## screen shows (a phone held sideways shows about three chunks each way, and the
 ## tallest mountains a few more to the south).
 const ZONE := 5
+## The most chunks a zone may reach for a large screen (a wide window on a computer
+## shows more than ZONE; see reach_for): (2 * 10 + 1)² chunks a player at most.
+const ZONE_MOST := 10
 ## How many times faster time goes while every player sleeps.
 const SLEEP_SPEED := 12.0
 ## Chunks this close to a player are made with the near budget (make_chunks), so the
@@ -42,6 +45,7 @@ const NEAR := 4
 const PAUSE_ZONE := ZONE + 2
 ## Beyond this many chunks from every player the generator forgets chunks nobody
 ## changed. A chunk ZONE away needs the terrain of chunks two farther, which must stay.
+## A screen wider than a phone's moves it out with its zone (drop).
 const DROP := ZONE + 4
 ## Seconds of a player's way ahead the chunks are made for first (see _next_needed):
 ## the rings of chunks to make go round where the player will be, not where it is.
@@ -271,6 +275,30 @@ func push_on(who) -> Vector3:
 # --- The world made around the players ------------------------------------------
 
 
+## The chunks a screen of half extents `half` (world units, Character.view_half) needs
+## made and drawn around the player: the screen's half diagonal and a chunk more, at
+## least ZONE (a phone's screen and the tallest mountains south of it), at most ZONE_MOST.
+static func reach_for(half: Vector2) -> int:
+	if not half.is_finite():
+		return ZONE
+	var chunk := WorldData.CHUNK * WorldData.CELL
+	return clampi(ceili(half.length() / chunk) + 1, ZONE, ZONE_MOST)
+
+
+## How far the zones reach: as far as the largest screen of the players needs.
+func reach() -> int:
+	var r := ZONE
+	for who in players:
+		r = maxi(r, reach_for(who.view_half))
+	return r
+
+
+## Beyond this many chunks from every zone the generator forgets chunks (DROP for the
+## largest screen).
+func drop() -> int:
+	return reach() + DROP - ZONE
+
+
 ## The chunks the world is made around: each player's, and the first respawn point of
 ## one lying dead, so coming back there lands in a world already made (the place of
 ## death stays too).
@@ -305,7 +333,7 @@ func _look(reach: int) -> void:
 	if gen == null:
 		return
 	for key: Vector2i in gen.stages:
-		if _distance(key) > DROP:
+		if _distance(key) > drop():
 			_drop_queue.append(key)
 
 
@@ -433,10 +461,11 @@ func make_chunk(key: Vector2i) -> void:
 ## Forgets up to `n` chunks beyond DROP of every zone (WorldGen.forget); chunks the
 ## players changed stay.
 func forget_far(n := DROPS_PER_CALL) -> void:
-	_look(_zone_reach if _zone_reach > 0 else ZONE)
+	_look(_zone_reach if _zone_reach > 0 else reach())
+	var far := drop()
 	while not _drop_queue.is_empty() and n > 0:
 		var key: Vector2i = _drop_queue.pop_back()
-		if _distance(key) > DROP and gen.forget(key):
+		if _distance(key) > far and gen.forget(key):
 			_all_made = false
 			n -= 1
 
