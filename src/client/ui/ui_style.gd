@@ -1496,6 +1496,16 @@ static func inset(content: Control) -> MarginContainer:
 	return m
 
 
+## Room on the right of `room` (a MarginContainer between a ScrollContainer and what it
+## holds) for the scroll's bar and BAR_GAP before it while `on` (the list is taller than
+## its window), none otherwise: the bar never covers the rows.
+static func bar_room(room: MarginContainer, on: bool, scroll: ScrollContainer = null) -> void:
+	var bar := 0.0
+	if on and scroll != null:
+		bar = scroll.get_v_scroll_bar().get_combined_minimum_size().x
+	room.add_theme_constant_override("margin_right", int(BAR_GAP + bar) if on else 0)
+
+
 ## Panel: two pixels of outline, two of highlight, then the fill; `pad` round what it holds.
 static func panel(pad := PAD) -> StyleBoxTexture:
 	return _nine_patch(12, 4, "panel", PANEL, EDGE, pad)
