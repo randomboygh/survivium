@@ -22,7 +22,9 @@ extends PanelContainer
 ## All the pages are as wide: one or two columns of rows (see fit) and room for the bar.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
-const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
+const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
+const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Settings := preload("res://src/client/settings.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
@@ -44,7 +46,7 @@ const NAME_WIDTH := 150
 ## never widens its row and moves the window.
 const VALUE_WIDTH := 112
 const ARROW := 32
-## How long a button that asks first (see _confirm) waits for the second tap, in seconds.
+## How long a button that asks first (TwoTap) waits for the second tap, in seconds.
 const CONFIRM_WAIT := 4.0
 ## The kinds of change in «Что нового» and their names (tools/build_info.py KINDS).
 const CHANGE_KINDS := {
@@ -97,7 +99,7 @@ var _tab_buttons := {}
 var _tabs_page := ""
 var _version: Label
 var _changes: Button
-## «Очистить журнал» beside «Назад» on the freezes' page (two taps, see _confirm).
+## «Очистить журнал» beside «Назад» on the freezes' page (two taps, TwoTap).
 var _clear: Button
 ## «Скопировать» and «Поделиться» in the same row on the freezes' and the report page:
 ## the text of the page shown (_shown_text).
@@ -115,13 +117,18 @@ var _list: VBoxContainer
 var _legend: PanelContainer
 var _legend_grid: GridContainer
 ## Rows of the page: {"key", "values": Array of String, "get": Callable, "set": Callable, "label": Label}
-var _rows := []
-var _focus := -1
+## The rows «name ‹ value ›» of the page shown (ChoiceRows of the kit).
+var _choices := ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW)
+## The rows, as the tests read them.
+var _rows: Array[Dictionary]:
+	get:
+		return _choices.rows
+## The buttons that ask first: «Очистить журнал», «По умолчанию», the actions with "confirm".
+var _asks := TwoTap.new(CONFIRM_WAIT)
 var _back: Button
 ## «По умолчанию» on the settings page: the first tap asks, the second puts every
 ## setting back as it comes (Settings.reset).
 var _defaults: Button
-var _asking_reset := false
 var _screen := Vector2.ZERO
 ## Rows side by side: 2 on a wide screen too low for them in one column (see fit).
 var _columns := 1
@@ -150,17 +157,11 @@ func _ready() -> void:
 	_tabs.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_tabs)
 	# The rows scroll when the window is taller than a small screen with a big interface.
-	_scroll = ScrollContainer.new()
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	box.add_child(_scroll)
-	_list = VBoxContainer.new()
-	_list.add_theme_constant_override("separation", 4)
-	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# The rows keep their place whether the bar shows or not: a little room on the left,
 	# the bar's on the right.
-	_scroll.add_child(UiStyle.inset(_list))
-	DragScroll.attach(_scroll)
+	_list = Kit.column(4)
+	_scroll = Kit.scroll(_list)
+	box.add_child(_scroll)
 	_scroll.get_v_scroll_bar().value_changed.connect(_on_scrolled)
 	_legend = PanelContainer.new()
 	_legend.add_theme_stylebox_override("panel", UiStyle.field())
@@ -172,49 +173,32 @@ func _ready() -> void:
 	_legend.add_child(_legend_grid)
 	for k in CHANGE_KINDS:
 		_legend_grid.add_child(_change_line(k, CHANGE_KINDS[k], UiStyle.MUTED, 0))
-	_defaults = Button.new()
-	_defaults.focus_mode = Control.FOCUS_NONE
-	_defaults.custom_minimum_size = Vector2(0, 32)
-	_defaults.pressed.connect(_reset_pressed)
+	_defaults = Kit.button("По умолчанию", Callable(), 0, 32)
+	_asks.guard(_defaults, _reset)
 	box.add_child(_defaults)
-	var buttons := HBoxContainer.new()
-	buttons.add_theme_constant_override("separation", 6)
+	var buttons := Kit.row(6)
 	box.add_child(buttons)
-	_changes = Button.new()
-	_changes.text = "Что нового"
-	_changes.focus_mode = Control.FOCUS_NONE
-	_changes.custom_minimum_size = Vector2(0, 32)
-	_changes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_changes.pressed.connect(open.bind("changes", "test"))
-	buttons.add_child(_changes)
-	_copy = Button.new()
-	_copy.text = "Скопировать"
-	_copy.focus_mode = Control.FOCUS_NONE
-	_copy.custom_minimum_size = Vector2(0, 32)
-	_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_copy.pressed.connect(_copy_shown)
-	buttons.add_child(_copy)
-	_share = Button.new()
-	_share.text = "Поделиться"
-	_share.focus_mode = Control.FOCUS_NONE
-	_share.custom_minimum_size = Vector2(0, 32)
-	_share.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_share.pressed.connect(_share_shown)
-	buttons.add_child(_share)
-	_clear = Button.new()
-	_clear.text = "Очистить журнал"
-	_clear.focus_mode = Control.FOCUS_NONE
-	_clear.custom_minimum_size = Vector2(0, 32)
-	_clear.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_clear.pressed.connect(_confirm.bind(_clear, _clear.text, _clear_freezes))
-	buttons.add_child(_clear)
-	_back = Button.new()
-	_back.text = "Назад"
-	_back.focus_mode = Control.FOCUS_NONE
-	_back.custom_minimum_size = Vector2(0, 32)
-	_back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_back.pressed.connect(_go_back)
-	buttons.add_child(_back)
+	_changes = _bottom(buttons, "Что нового", open.bind("changes", "test"))
+	_copy = _bottom(buttons, "Скопировать", _copy_shown)
+	_share = _bottom(buttons, "Поделиться", _share_shown)
+	_clear = _bottom(buttons, "Очистить журнал", Callable())
+	_asks.guard(_clear, _clear_freezes)
+	_back = _bottom(buttons, "Назад", _go_back)
+	_choices.scroll = _scroll
+	_choices.stepped.connect(_stepped)
+
+
+## A row was stepped: the window fits its values again.
+func _stepped(_index: int) -> void:
+	reset_size()
+
+
+## A button of the bottom row, sharing its width with the others.
+func _bottom(row: Node, text: String, action: Callable) -> Button:
+	var b := Kit.button(text, action, 0, 32)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(b)
+	return b
 
 
 ## Opens «Витрина интерфейса» (ui_gallery.gd, made when asked) over this window, which
@@ -271,8 +255,8 @@ func _fill() -> void:
 	for c in _list.get_children():
 		_list.remove_child(c)
 		c.queue_free()
-	_rows.clear()
-	_focus = -1
+	_choices.clear()
+	_asks.disarm()
 	var which := page
 	var info := build_info()
 	_version.text = Lang.f("Версия %s · %s · %s", [info.version, info.commit, info.date])
@@ -286,7 +270,6 @@ func _fill() -> void:
 	_share.visible = which == "report" and OS.has_feature("web") \
 			and int(JavaScriptBridge.eval("typeof navigator.share === 'function' ? 1 : 0", true)) == 1
 	_defaults.visible = which == "settings"
-	_ask_reset(false)
 	_tabs.visible = PAGES.has(which)
 	_legend.visible = which == "changes" and not info.changes.is_empty()
 	_make_tabs(which)
@@ -320,7 +303,7 @@ func _fill() -> void:
 				_add_row(r[0], r[1], r[2], r[3], r[4] if r.size() > 4 else "", r[5] if r.size() > 5 else Callable())
 	visible = true
 	refresh()
-	_set_focus(0)
+	_choices.set_focus(0)
 	_scroll.scroll_vertical = 0
 	if _screen != Vector2.ZERO:
 		fit(_screen)
@@ -730,19 +713,10 @@ static func build_info() -> Dictionary:
 
 ## "Назад": the changes, freezes and report pages go back to where they were opened
 ## from (see open), the other pages close.
-## The first tap on «По умолчанию» asks, the second resets.
-func _reset_pressed() -> void:
-	if not _asking_reset:
-		_ask_reset(true)
-		return
+## «По умолчанию», on its second tap: the settings as they come.
+func _reset() -> void:
 	game.settings.reset()
 	_fill()
-
-
-func _ask_reset(on: bool) -> void:
-	_asking_reset = on
-	_defaults.text = "По умолчанию"
-	UiStyle.arm(_defaults, on)
 
 
 func _go_back() -> void:
@@ -762,18 +736,7 @@ func close() -> void:
 ## clock runs while the playtest page is open); the window is laid out again only when
 ## a label changed.
 func refresh() -> void:
-	var changed := false
-	for r in _rows:
-		var i: int = r.get.call()
-		var text: String = r.other if i < 0 and r.other != "" else r.values[clampi(i, 0, r.values.size() - 1)]
-		if r.label.text != text:
-			r.label.text = text
-			changed = true
-		var on := _works(r)
-		r.left.disabled = not on
-		r.right.disabled = not on
-		r.row.modulate.a = 1.0 if on else 0.4
-	if changed:
+	if _choices.refresh():
 		reset_size()
 
 
@@ -789,10 +752,6 @@ func _process(delta: float) -> void:
 	if _refresh_in <= 0.0:
 		_refresh_in = REFRESH_EVERY
 		refresh()
-
-
-func _works(r: Dictionary) -> bool:
-	return not r.works.is_valid() or r.works.call()
 
 
 ## Sizes the window for a screen `screen` UI pixels large and centres it. The settings
@@ -902,7 +861,7 @@ func _add_freezes(key: String) -> void:
 
 func _clear_freezes() -> void:
 	game.freeze_log.clear()
-	_unarm(_clear, "Очистить журнал")
+	_asks.disarm()
 	_fill()
 
 
@@ -1011,58 +970,19 @@ func _paragraph(text: String, color: Color) -> Label:
 ## A row "name ‹ value ›"; `other` is shown when `getter` gives -1 (none of `values`);
 ## while `works` (if given) says false the row is faded and its arrows do nothing.
 func _add_row(name: String, values: Array, getter: Callable, setter: Callable, other := "", works := Callable()) -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 2)
-	_grid().add_child(row)
-	var label := UiStyle.label(name)
-	label.custom_minimum_size = Vector2(NAME_WIDTH, 0)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(label)
-	var index := _rows.size()
-	var left := _arrow(row, "prev", index, -1)
-	var value := UiStyle.label()
-	value.custom_minimum_size = Vector2(VALUE_WIDTH, 0)
-	value.clip_text = true
-	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(value)
-	var right := _arrow(row, "next", index, 1)
-	_rows.append({"name": label, "values": values, "get": getter, "set": setter, "label": value,
-		"left": left, "right": right, "other": other, "works": works, "row": row})
+	_choices.add(_grid(), name, values, getter, setter, {"other": other, "works": works, "wrap": true})
 
 
 ## A button as wide as a row that does `action` once (a way into the test world); with
 ## `confirm` only when tapped twice. Returns the button.
 func _add_action(text: String, action: Callable, confirm := false) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
+	var b := Kit.button(text, Callable(), ROW_WIDTH, ARROW)
 	if confirm:
-		b.pressed.connect(_confirm.bind(b, text, action))
+		_asks.guard(b, action)
 	else:
 		b.pressed.connect(action)
 	_grid().add_child(b)
 	return b
-
-
-## A button that asks first: the first tap turns it red (for a few seconds, its text
-## as it was), the second does `action`.
-func _confirm(b: Button, text: String, action: Callable) -> void:
-	if not b.get_meta("armed", false):
-		b.set_meta("armed", true)
-		UiStyle.arm(b, true)
-		get_tree().create_timer(CONFIRM_WAIT, true).timeout.connect(_unarm.bind(b, text))
-		return
-	action.call()
-
-
-func _unarm(b: Button, text: String) -> void:
-	if is_instance_valid(b):
-		b.text = text
-		b.set_meta("armed", false)
-		UiStyle.arm(b, false)
 
 
 ## A marker (game.markers, `i`) as a row: its colour, its name and column, and a
@@ -1079,28 +999,14 @@ func _add_place(color: Color, name: String, cell: Vector2i, tip: String) -> void
 	row.add_theme_constant_override("separation", 6)
 	row.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
 	_grid().add_child(row)
-	var swatch := ColorRect.new()
-	swatch.color = UiStyle.DARK_INK
-	swatch.custom_minimum_size = Vector2(14, 14)
-	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var fill := ColorRect.new()
-	fill.color = color
-	fill.position = Vector2(2, 2)
-	fill.size = Vector2(10, 10)
-	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	swatch.add_child(fill)
-	row.add_child(swatch)
+	row.add_child(Kit.swatch(color))
 	var label := UiStyle.label("%s · X %d, Y %d" % [name, cell.x, cell.y])
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.clip_text = true
 	row.add_child(label)
-	var b := Button.new()
-	b.text = "Перейти"
+	var b := Kit.button("Перейти", Callable(), 0, ARROW)
 	b.tooltip_text = tip
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(0, ARROW)
 	b.pressed.connect(func() -> void:
 		game.character.go_to_column(cell)
 		close()
@@ -1111,9 +1017,8 @@ func _add_place(color: Color, name: String, cell: Vector2i, tip: String) -> void
 
 ## A line of muted text as wide as a row.
 func _note(text: String) -> Label:
-	var l := UiStyle.label(text, UiStyle.MUTED)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
+	var l := Kit.note(text, ROW_WIDTH)
+	l.custom_minimum_size.y = ARROW
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	return l
 
@@ -1132,42 +1037,6 @@ func _grid() -> GridContainer:
 	return grid
 
 
-func _arrow(parent: Node, icon: String, row: int, dir: int) -> Button:
-	var b := Button.new()
-	b.icon = UiStyle.icon(icon)
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(ARROW, ARROW)
-	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	b.pressed.connect(func() -> void:
-		_set_focus(row)
-		_step(row, dir))
-	parent.add_child(b)
-	return b
-
-
-## Picks the next (`dir` = 1) or the previous value of row `i`, wrapping around; from
-## none of them (-1, «своё») the first or the last.
-func _step(i: int, dir: int) -> void:
-	var r: Dictionary = _rows[i]
-	if not _works(r):
-		return
-	var n: int = r.values.size()
-	var cur: int = r.get.call()
-	if cur < 0:
-		r.set.call(0 if dir > 0 else n - 1)
-	else:
-		r.set.call(posmod(mini(cur, n - 1) + dir, n))
-	refresh()
-
-
-func _set_focus(i: int) -> void:
-	if _rows.is_empty():
-		return
-	_focus = posmod(i, _rows.size())
-	for j in _rows.size():
-		_rows[j].name.add_theme_color_override("font_color", UiStyle.ACCENT if j == _focus else UiStyle.INK)
-
-
 ## Arrows and Enter on the keyboard, Escape closes.
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible or not (event is InputEventKey and event.pressed):
@@ -1179,18 +1048,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_UP, KEY_W, KEY_DOWN, KEY_S when _rows.is_empty():
 			var down: bool = event.physical_keycode in [KEY_DOWN, KEY_S]
 			_scroll.scroll_vertical += 24 if down else -24
-		KEY_UP, KEY_W:
-			_set_focus(_focus - 1)
-			_scroll.ensure_control_visible(_rows[_focus].name)
-		KEY_DOWN, KEY_S:
-			_set_focus(_focus + 1)
-			_scroll.ensure_control_visible(_rows[_focus].name)
-		KEY_LEFT, KEY_A when not _rows.is_empty():
-			_step(_focus, -1)
-		KEY_RIGHT, KEY_D, KEY_ENTER, KEY_SPACE when not _rows.is_empty():
-			_step(_focus, 1)
+		KEY_ENTER, KEY_SPACE when not _rows.is_empty():
+			_choices.step(_choices.focus, 1)
 		_:
-			return
+			if not _choices.key(event):
+				return
 	get_viewport().set_input_as_handled()
 
 

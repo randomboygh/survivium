@@ -1123,6 +1123,11 @@ func _run() -> void:
 			places.unwall(main.world, Vector3i((main.player.position / CELL).floor()))
 		main.settings.set_value("ui_size", shot.get("ui_size", 2))
 		main.settings.set_value("control_size", shot.get("control_size", 2))
+		# «Витрина интерфейса» goes with its shot (it would cover the next one), before
+		# the window under it closes (it shows that one again).
+		for c in main.hud.get_children():
+			if c.get_script() != null and (c.get_script() as Script).resource_path.ends_with("ui_gallery.gd"):
+				c.close()
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 		if shot.get("test", false):

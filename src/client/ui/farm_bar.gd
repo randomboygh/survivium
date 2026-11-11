@@ -56,8 +56,7 @@ func _show_panel() -> void:
 	_mode.icon = UiStyle.centred(UiStyle.icon("build_erase" if f.erasing else "build_draw"))
 	_mode.tooltip_text = "Стирать разметку (нажать — рисовать)" if f.erasing else "Рисовать разметку (нажать — стирать)"
 	TabRow.light(_mode, f.erasing, f.erasing)
-	var confirming := _clear_at > 0 and Time.get_ticks_msec() - _clear_at < CONFIRM_MS
-	TabRow.light(_clear, confirming, confirming)
+	_light_clear(_clear, _asks.armed == _clear)
 	_show_go()
 
 

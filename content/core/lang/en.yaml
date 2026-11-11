@@ -254,8 +254,6 @@
 "Блок: целый": "Block: whole"
 "Скос снизу": "Slope below"
 "Скос сверху": "Slope above"
-"Предыдущие": "Previous"
-"Следующие": "Next"
 "Выровнять землю: срезать выше, засыпать ямы землёй из сумки": "Level the ground: cut what is higher, fill pits with earth from the bag"
 "Повернуть скос или ступени (Y)": "Turn the slope or stairs (Y)"
 "Высота": "Height"
@@ -597,6 +595,13 @@
 "Убрать сервер из списка (нажать дважды)": "Remove the server from the list (tap twice)"
 "Введите имя": "Enter a name"
 
+# src/client/ui/kit/choice_rows.gd
+"Что входит": "What's included"
+
+# src/client/ui/kit/slot_strip.gd
+"Предыдущие": "Previous"
+"Следующие": "Next"
+
 # src/client/ui/land_page.gd
 "Забрать столб в сумку": "Take the post into the bag"
 "Вы не на размеченной земле": "You are not on marked land"
@@ -766,6 +771,7 @@
 "маленькая": "small"
 "обычная": "normal"
 "большая": "large"
+"По умолчанию": "Defaults"
 "Скопировать": "Copy"
 "Поделиться": "Share"
 "Очистить журнал": "Clear the log"
@@ -906,7 +912,6 @@
 "Тестовый мир": "Test world"
 "Миры сервера — список в чат": "The server's worlds: list in the chat"
 "Читы на сервере": "Cheats on the server"
-"По умолчанию": "Defaults"
 "Список изменений появится в сборке с сайта.": "The list of changes appears in a build from the website."
 "Фризов нет": "No freezes"
 "Таких фризов нет": "No such freezes"
@@ -977,6 +982,7 @@
 "Место: цвет, имя, кнопка": "Place: colour, name, button"
 "Маркер %d · X %d, Y %d": "Marker %d · X %d, Y %d"
 "Ячейки: пустая, с вещью, с числом, рука, клавиша": "Slots: empty, with a thing, a count, a hand, a key"
+"Лента ячеек со стрелками, как хотбар и палитры строительства и земледелия": "A strip of cells between arrows, like the hotbar and the build and farming palettes"
 "Полоска: свет горит, еда свежая, сумка полна": "Strip: light burning, food fresh, bag full"
 "Качество: плохое, простое, обычное, хорошее, отличное": "Quality: poor, plain, normal, good, excellent"
 "Бледная: вещью нельзя пользоваться (нечем стрелять)": "Faded: the thing can't be used (nothing to shoot)"
@@ -985,6 +991,7 @@
 "Виды вещей столбцом со стрелками": "Item kinds in a column with arrows"
 "Поле ввода: что набрано, видно внизу": "Text field: what you type shows below"
 "Введено: %s": "Typed: %s"
+"Поле с подписью, как в «Присоединиться»": "A field with a caption, as in “Join”"
 "Не длиннее восьми букв": "At most eight letters"
 "До 8 букв": "Up to 8 letters"
 "Поле и кнопка в ряд": "Field and button in a row"
@@ -1008,6 +1015,7 @@
 "Ячейка": "Slot"
 "Значки (касание называет значок)": "Icons (a tap names the icon)"
 "пусто": "empty"
+"с %d": "from %d"
 "%d / %d кг": "%d / %d kg"
 
 # src/client/ui/world_list.gd
@@ -1016,9 +1024,9 @@
 "Тестовый мир\nплощадки · день %d": "Test world\ngrounds · day %d"
 "Сохранён %s, в игре %d мин": "Saved %s, played %d min"
 "\nМоды: %s": "\nMods: %s"
+"Удалить мир (нажать дважды)": "Delete the world (tap twice)"
 "Вернуть тестовый мир к началу (нажать дважды)": "Reset the test world (tap twice)"
 "Мир сейчас в игре": "This world is being played"
-"Удалить мир (нажать дважды)": "Delete the world (tap twice)"
 "свой": "custom"
 
 # src/client/ui/world_setup.gd
@@ -1049,7 +1057,6 @@
 "Случайное зерно": "Random seed"
 "Моды": "Mods"
 "Выбрать моды нового мира": "Choose the mods of the new world"
-"Что входит": "What's included"
 
 # src/client/view/sky.gd
 "Наступила весна": "Spring has come"

@@ -1,21 +1,22 @@
-extends Control
+extends "res://src/client/ui/kit/window.gd"
 ## «Витрина интерфейса»: every kind of element the game's windows are made of, on tabs,
 ## each working when tapped (the user's ask 2026-11-11), so a change to a shared piece
-## (UiStyle, TabRow, HotbarSlot, FactChips, IconTabs, ScrollColumn, the settings' rows) is
-## seen at once in all its looks, on a phone too. Opened from «Тестирование» →
+## (the UI kit in src/client/ui/kit/, UiStyle, TabRow, HotbarSlot, FactChips, IconTabs,
+## ScrollColumn) is seen at once in all its looks, on a phone too. It is made of the kit
+## itself: a KitWindow, Kit's buttons and fields, TwoTap, ChoiceRows, SlotStrip. Opened from «Тестирование» →
 ## «Отладка» (SettingsMenu), over a shade of the screen; «Закрыть» or Escape closes it.
 ## The line under the tabs' page tells what the last tap did. Nothing here changes the
 ## game: the rows' values, the weight and the slots' choice live in the window only.
 ## `game` is the Main node.
 
-const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
+const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
+const SlotStrip := preload("res://src/client/ui/kit/slot_strip.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
 const IconTabs := preload("res://src/client/ui/icon_tabs.gd")
 const ScrollColumn := preload("res://src/client/ui/scroll_column.gd")
-const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
-const TextField := preload("res://src/client/ui/text_field.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
@@ -23,19 +24,16 @@ const Lang := preload("res://src/shared/content/lang.gd")
 ## The tabs: key and name.
 const SECTIONS := [["buttons", "Кнопки"], ["rows", "Строки"], ["slots", "Ячейки"],
 	["fields", "Поля"], ["lists", "Списки"], ["look", "Вид"]]
-## Room round the panel, in UI pixels.
-const MARGIN := 8
 ## The widest and tallest the panel's page grows on a big screen.
 const MOST_WIDTH := 480
 const MOST_HEIGHT := 560
 ## The height of the window's buttons and tabs (as the settings').
-const BUTTON_H := 30
+const BUTTON_H := Kit.BUTTON_H
 ## The settings' rows: a name, arrows and the value between (SettingsMenu).
 const NAME_WIDTH := 150
 const VALUE_WIDTH := 112
 const ARROW := 32
 const ROW_WIDTH := NAME_WIDTH + VALUE_WIDTH + 2 * ARROW + 3 * 2
-const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
 ## How long a two-tap button waits for its second tap, and a green one stays green.
 const CONFIRM_WAIT := 4.0
 const GREEN_TIME := 1.5
@@ -47,14 +45,16 @@ signal closed
 var game
 ## The tab shown.
 var section := "buttons"
-var _panel: PanelContainer
 var _tab_buttons := {}
 var _scroll: ScrollContainer
 var _room: MarginContainer
 var _list: VBoxContainer
 var _said: Label
-## The settings' rows of the «Строки» tab: their values and the index chosen, by name.
-var _choices := {}
+## The settings' rows of the «Строки» tab: the index chosen of each, by name, and the rows.
+var _picked := {}
+var _choices := ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW)
+## The buttons that ask first.
+var _asks := TwoTap.new(CONFIRM_WAIT)
 ## The weight on the meter of the «Ячейки» tab, and the meter.
 var _weight := 25.0
 var _meter: Control
@@ -68,16 +68,7 @@ func _init(g) -> void:
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	_panel = PanelContainer.new()
-	add_child(_panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
-	_panel.add_child(box)
-	var title := UiStyle.label("Витрина интерфейса", UiStyle.ACCENT)
-	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
+	build("Витрина интерфейса")
 	var parts := []
 	for s: Array in SECTIONS:
 		parts.append([s[1], "", show_section.bind(s[0])])
@@ -86,22 +77,17 @@ func _ready() -> void:
 	box.add_child(tabs)
 	for i in SECTIONS.size():
 		_tab_buttons[SECTIONS[i][0]] = tabs.get_child(i)
-	_scroll = ScrollContainer.new()
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_list = Kit.column(4)
+	_scroll = Kit.scroll(_list)
+	_room = _list.get_parent()
 	box.add_child(_scroll)
-	_list = VBoxContainer.new()
-	_list.add_theme_constant_override("separation", 4)
-	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_room = UiStyle.inset(_list)
-	_scroll.add_child(_room)
-	DragScroll.attach(_scroll)
 	_said = UiStyle.label("Нажмите на что-нибудь", UiStyle.MUTED)
 	_said.clip_text = true
 	_said.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_said)
-	box.add_child(_button("Закрыть", close))
-	get_parent().resized.connect(_fit)
+	box.add_child(Kit.button("Закрыть", close))
+	_choices.stepped.connect(_stepped)
+	get_parent().resized.connect(fit)
 	show_section(section)
 
 
@@ -116,6 +102,8 @@ func show_section(key: String) -> void:
 	_chosen = null
 	_chips = null
 	_meter = null
+	_choices.clear()
+	_asks.disarm()
 	match key:
 		"buttons":
 			_buttons_page()
@@ -130,12 +118,16 @@ func show_section(key: String) -> void:
 		"look":
 			_look_page()
 	_scroll.scroll_vertical = 0
-	_fit()
+	fit()
 
 
 func close() -> void:
 	closed.emit()
 	queue_free()
+
+
+func back() -> void:
+	close()
 
 
 ## Tells under the page what the last tap did: `what` (a phrase) was pressed.
@@ -149,21 +141,20 @@ func say(what: String) -> void:
 func _buttons_page() -> void:
 	_caption("Кнопки окна: обычная, главная, недоступная")
 	var row := _flow()
-	row.add_child(_button("Обычная", say.bind("Обычная")))
-	var main := _button("Главная", say.bind("Главная"))
-	UiStyle.accent(main)
+	row.add_child(Kit.button("Обычная", say.bind("Обычная")))
+	var main := Kit.accent_button("Главная", say.bind("Главная"))
 	row.add_child(main)
-	var off := _button("Недоступна", say.bind("Недоступна"))
+	var off := Kit.button("Недоступна", say.bind("Недоступна"))
 	off.disabled = true
 	row.add_child(off)
 	_caption("Опасное — в два касания (первое красит красным), удачное горит зелёным")
 	row = _flow()
-	var bin := _button("Удалить", Callable())
-	bin.pressed.connect(_confirm.bind(bin, func() -> void:
+	var bin := Kit.button("Удалить")
+	_asks.guard(bin, func() -> void:
 		say("Удалить")
-		_green(bin)))
+		_green(bin))
 	row.add_child(bin)
-	var copy := _button("Скопировать", Callable())
+	var copy := Kit.button("Скопировать")
 	copy.pressed.connect(func() -> void:
 		say("Скопировать")
 		_green(copy))
@@ -173,6 +164,7 @@ func _buttons_page() -> void:
 	row.add_child(TabRow.small_button("Выбор", say.bind("Выбор")))
 	for icon: String in ["sort_kind", "chest", "lock", "trash", "all"]:
 		row.add_child(TabRow.icon_button(UiStyle.icon(icon), icon, say.bind(icon)))
+	row.add_child(Kit.icon_button("dice", "dice", say.bind("dice")))
 	_caption("Сдвоенные кнопки")
 	row = _flow()
 	row.add_child(TabRow.split([[UiStyle.icon("prev"), "Назад", say.bind("Назад")],
@@ -196,27 +188,24 @@ func _buttons_page() -> void:
 	_caption("Кнопки цвета земли")
 	row = _flow()
 	for i in UiStyle.LAND_COLORS.size():
-		var land := _button(str(i + 1), say.bind(str(i + 1)))
+		var land := Kit.button(str(i + 1), say.bind(str(i + 1)))
 		land.custom_minimum_size.x = BUTTON_H
 		UiStyle.tint(land, UiStyle.LAND_COLORS[i])
 		row.add_child(land)
 	_caption("Кнопки экрана игры: действие, прыжок, прозрачная")
 	row = _flow()
-	var act := _button("Собрать", say.bind("Собрать"))
-	_octagon(act, UiStyle.ACCENT, UiStyle.ACCENT_DARK, UiStyle.DARK_INK)
+	var act := Kit.button("Собрать", say.bind("Собрать"))
+	Kit.octagon_look(act, UiStyle.ACCENT, UiStyle.ACCENT_DARK, UiStyle.DARK_INK)
 	act.custom_minimum_size = Vector2(64, 48)
 	row.add_child(act)
-	var jump := _button("", say.bind("Прыжок"))
+	var jump := Kit.button("", say.bind("Прыжок"))
 	jump.icon = UiStyle.icon("up")
 	jump.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_octagon(jump, UiStyle.BUTTON, UiStyle.BUTTON_SHADE, UiStyle.INK)
+	Kit.octagon_look(jump, UiStyle.BUTTON, UiStyle.BUTTON_SHADE, UiStyle.INK)
 	jump.custom_minimum_size = Vector2(48, 48)
 	row.add_child(jump)
-	var clear := _button("+1", say.bind("+1"))
-	for state in ["normal", "hover", "disabled", "focus"]:
-		clear.add_theme_stylebox_override(state, UiStyle.frame())
-	for state in ["pressed", "hover_pressed"]:
-		clear.add_theme_stylebox_override(state, UiStyle.frame(true))
+	var clear := Kit.button("+1", say.bind("+1"))
+	Kit.see_through(clear)
 	clear.custom_minimum_size = Vector2(BUTTON_H, BUTTON_H)
 	row.add_child(clear)
 
@@ -226,44 +215,31 @@ func _rows_page() -> void:
 	_choice_row("Размер", ["мелкий", "обычный", "крупный"], 1)
 	_choice_row("Звук", ["выкл", "вкл"], 1)
 	_choice_row("Время суток", ["ночь", "утро", "день", "вечер"], 2)
-	var off := _choice_row("Погода", ["сама", "ясно", "дождь"], 0)
-	off.modulate.a = 0.4
-	for c in off.get_children():
-		if c is Button:
-			c.disabled = true
+	# One that cannot change now: faded, its arrows off.
+	_choice_row("Погода", ["сама", "ясно", "дождь"], 0, {"works": func() -> bool: return false})
+	_choices.refresh()
+	_choices.set_focus(0)
 	_caption("Строка-действие и действие в два касания")
-	var go := _button("Перейти в тестовый мир", say.bind("Перейти в тестовый мир"))
-	go.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
-	_list.add_child(go)
-	var wipe := _button("Очистить все данные", Callable())
-	wipe.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
-	wipe.pressed.connect(_confirm.bind(wipe, say.bind("Очистить все данные")))
-	_list.add_child(wipe)
+	_list.add_child(Kit.button("Перейти в тестовый мир", say.bind("Перейти в тестовый мир"), ROW_WIDTH, ARROW))
+	_list.add_child(_asks.guard(Kit.button("Очистить все данные", Callable(), ROW_WIDTH, ARROW),
+		say.bind("Очистить все данные")))
 	_caption("Пояснение")
-	var note := UiStyle.label("Маркеров нет: поставьте их на карте (M).", UiStyle.MUTED)
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
+	var note := Kit.note("Маркеров нет: поставьте их на карте (M).", ROW_WIDTH)
+	note.custom_minimum_size.y = ARROW
 	note.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_list.add_child(note)
 	_caption("Место: цвет, имя, кнопка")
 	for i in 2:
-		var place := HBoxContainer.new()
-		place.add_theme_constant_override("separation", 6)
+		var place := Kit.row(6)
 		place.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
 		_list.add_child(place)
-		var swatch := ColorRect.new()
-		swatch.color = UiStyle.LAND_COLORS[i]
-		swatch.custom_minimum_size = Vector2(12, 12)
-		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		place.add_child(swatch)
+		place.add_child(Kit.swatch(UiStyle.LAND_COLORS[i]))
 		var where := UiStyle.label(Lang.f("Маркер %d · X %d, Y %d", [i + 1, 12 * (i + 1), -40 + 7 * i]))
 		where.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		where.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		where.clip_text = true
 		place.add_child(where)
-		var b := _button("Перейти", say.bind("Перейти"))
-		b.custom_minimum_size.y = ARROW
-		place.add_child(b)
+		place.add_child(Kit.button("Перейти", say.bind("Перейти"), 0, ARROW))
 
 
 func _slots_page() -> void:
@@ -280,6 +256,8 @@ func _slots_page() -> void:
 				s.tag = "Л"
 			3:
 				s.key = "3"
+	_caption("Лента ячеек со стрелками, как хотбар и палитры строительства и земледелия")
+	_add_strip(things)
 	_caption("Полоска: свет горит, еда свежая, сумка полна")
 	row = _flow()
 	var strips := [[0.8, Color(0, 0, 0, 0)], [0.15, Color(0, 0, 0, 0)], [0.6, UiStyle.GOOD], [1.0, UiStyle.DANGER]]
@@ -326,40 +304,32 @@ func _fields_page() -> void:
 	_caption("Поле ввода: что набрано, видно внизу")
 	var who := _field("Имя", 24)
 	who.text_changed.connect(func(t: String) -> void: _said.text = Lang.f("Введено: %s", [t]))
+	_caption("Поле с подписью, как в «Присоединиться»")
+	_list.add_child(Kit.caption("Адрес сервера"))
+	_field("wss://… или ws://адрес:порт", 0)
 	_caption("Пароль")
 	var secret := _field("Пароль", 32)
 	secret.secret = true
 	_caption("Не длиннее восьми букв")
 	_field("До 8 букв", 8)
 	_caption("Поле и кнопка в ряд")
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
+	var row := Kit.row(6)
 	_list.add_child(row)
-	var line := LineEdit.new()
-	line.placeholder_text = "ws://адрес:порт"
-	line.custom_minimum_size = Vector2(0, BUTTON_H - 4)
-	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	TextField.fit(line)
+	var line := Kit.field("ws://адрес:порт")
 	row.add_child(line)
-	row.add_child(_button("Войти", func() -> void: say(line.text if line.text != "" else "Войти")))
+	row.add_child(Kit.button("Войти", func() -> void: say(line.text if line.text != "" else "Войти")))
 
 
 func _lists_page() -> void:
 	_caption("Список прокручивается пальцем и полосой")
-	var inner := ScrollContainer.new()
-	inner.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var rows := Kit.column(4)
+	var inner := Kit.scroll(rows)
 	inner.custom_minimum_size = Vector2(0, 140)
 	_list.add_child(inner)
-	var rows := VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 4)
-	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var room := UiStyle.inset(rows)
-	inner.add_child(room)
-	UiStyle.bar_room(room, true, inner)
-	DragScroll.attach(inner)
+	UiStyle.bar_room(rows.get_parent(), true, inner)
 	for i in 20:
 		var label := Lang.f("Строка %d", [i + 1])
-		var b := _button(label, say.bind(label))
+		var b := Kit.button(label, say.bind(label))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		rows.add_child(b)
 	_caption("Столбец кнопок со стрелками")
@@ -433,34 +403,6 @@ func _flow() -> HFlowContainer:
 	return row
 
 
-## A window's button doing `call` (none when it is not valid).
-func _button(text: String, call: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(0, BUTTON_H)
-	if call.is_valid():
-		b.pressed.connect(call)
-	return b
-
-
-## The first tap turns `b` red for a while, the second does `action` (SettingsMenu._confirm).
-func _confirm(b: Button, action: Callable) -> void:
-	if not b.get_meta("armed", false):
-		b.set_meta("armed", true)
-		UiStyle.arm(b, true)
-		get_tree().create_timer(CONFIRM_WAIT, true).timeout.connect(_unarm.bind(b))
-		return
-	_unarm(b)
-	action.call()
-
-
-func _unarm(b: Button) -> void:
-	if is_instance_valid(b) and b.get_meta("armed", false):
-		b.set_meta("armed", false)
-		UiStyle.arm(b, false)
-
-
 ## Lights `b` green for a moment: what it did worked.
 func _green(b: Button) -> void:
 	UiStyle.succeed(b, true)
@@ -480,51 +422,50 @@ func _pick_tab(tabs: HBoxContainer, b: Button) -> void:
 	say(b.text)
 
 
-## The look of a big touch button of the game's screen (Hud._octagon_look).
-func _octagon(b: Button, fill: Color, shade: Color, ink: Color) -> void:
-	for state in ["normal", "hover", "disabled"]:
-		b.add_theme_stylebox_override(state, UiStyle.octagon(fill, shade))
-	for state in ["pressed", "hover_pressed"]:
-		b.add_theme_stylebox_override(state, UiStyle.octagon(fill, shade, true))
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
-		b.add_theme_color_override(c, ink)
+## A settings' row of the kit (ChoiceRows): `title` over `values`, `at` chosen.
+func _choice_row(title: String, values: Array, at: int, opts := {}) -> void:
+	_picked[title] = at
+	var o := {"wrap": true}
+	o.merge(opts)
+	_choices.add(_list, title, values, func() -> int: return _picked[title],
+		func(i: int) -> void: _picked[title] = i, o)
 
 
-## A settings' row (SettingsMenu._add_row): `title`, ◀ value ▶ over `values`, `at` chosen.
-func _choice_row(title: String, values: Array, at: int) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 2)
-	_list.add_child(row)
-	var label := UiStyle.label(title)
-	label.custom_minimum_size = Vector2(NAME_WIDTH, 0)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(label)
-	var value := UiStyle.label(values[at])
-	value.custom_minimum_size = Vector2(VALUE_WIDTH, 0)
-	value.clip_text = true
-	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_choices[title] = at
-	for dir in [-1, 1]:
-		var b := Button.new()
-		b.icon = UiStyle.icon("prev" if dir < 0 else "next")
-		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(ARROW, ARROW)
-		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		b.pressed.connect(func() -> void:
-			var i: int = posmod(int(_choices[title]) + dir, values.size())
-			_choices[title] = i
-			value.text = values[i]
-			say(values[i]))
-		row.add_child(b)
-		if dir < 0:
-			row.add_child(value)
-	return row
+## A row was stepped: tells the value shown.
+func _stepped(index: int) -> void:
+	var r: Dictionary = _choices.rows[index]
+	say(r.label.text)
 
 
 ## A cell with the picture of thing `id` ("" for none) in `parent`; a tap chooses it and
 ## shows what the thing is under the cells.
+## A strip of the kit (SlotStrip) of all `things`, three cells shown: the arrows and a
+## finger move them along.
+func _add_strip(things: Array) -> void:
+	var strip := SlotStrip.new()
+	_list.add_child(strip)
+	strip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var cells: Array[HotbarSlot] = []
+	for i in 3:
+		var c := HotbarSlot.new(SlotStrip.SLOT)
+		c.on_release = true
+		c.pressed.connect(func() -> void:
+			var at: int = strip.first + i
+			say(Items.title(things[at]) if at < things.size() else "пусто"))
+		strip.cells.add_child(c)
+		cells.append(c)
+	var show := func() -> void:
+		for i in cells.size():
+			var at: int = strip.first + i
+			var id: String = things[at] if at < things.size() else ""
+			cells[i].texture = ItemIcons.of_item(id) if id != "" else null
+			cells[i].key = str(at + 1)
+	strip.scrolled.connect(show)
+	strip.scrolled.connect(func() -> void: say(Lang.f("с %d", [strip.first + 1])))
+	strip.set_counts(things.size(), 3)
+	show.call()
+
+
 func _slot(parent: Node, id: String) -> HotbarSlot:
 	var s := HotbarSlot.new(40)
 	if id != "":
@@ -557,14 +498,9 @@ func _sample_items() -> Array:
 	return out
 
 
-## A text field in the list: `hint` while empty, at most `most` letters.
+## A text field in the list: `hint` while empty, at most `most` letters (0: any).
 func _field(hint: String, most: int) -> LineEdit:
-	var f := LineEdit.new()
-	f.placeholder_text = hint
-	f.max_length = most
-	f.custom_minimum_size = Vector2(0, BUTTON_H - 4)
-	f.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	TextField.fit(f)
+	var f := Kit.field(hint, 0, most)
 	_list.add_child(f)
 	return f
 
@@ -583,30 +519,12 @@ func _add_weight(kg: float) -> void:
 # --- Window -----------------------------------------------------------------------
 
 
-## The panel in the middle of the screen, its page as tall as the screen lets it.
-func _fit() -> void:
-	var screen: Vector2 = get_parent().size
-	position = Vector2.ZERO
-	size = screen
+## The panel's page as tall as the screen lets it.
+func layout(screen: Vector2) -> void:
 	var width := minf(screen.x - 2 * MARGIN - UiStyle.PAD.x - UiStyle.PAD.z, MOST_WIDTH)
 	width = maxf(width, ROW_WIDTH + 2 * UiStyle.BAR_GAP + UiStyle.SCROLL_BAR)
 	_scroll.custom_minimum_size = Vector2(width, 0)
 	UiStyle.bar_room(_room, true, _scroll)
-	_panel.reset_size()
-	var rest := _panel.get_combined_minimum_size().y
+	panel.reset_size()
+	var rest := panel.get_combined_minimum_size().y
 	_scroll.custom_minimum_size.y = clampf(screen.y - 2 * MARGIN - rest, 80.0, MOST_HEIGHT)
-	_panel.reset_size()
-	var s := _panel.size
-	_panel.position = Vector2(floorf((screen.x - s.x) * 0.5), maxf(MARGIN, floorf((screen.y - s.y) * 0.5)))
-	move_to_front()
-	queue_redraw()
-
-
-func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
-		get_viewport().set_input_as_handled()
-		close()
-
-
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), BACKDROP)

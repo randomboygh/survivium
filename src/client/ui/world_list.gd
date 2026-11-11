@@ -1,4 +1,4 @@
-extends Control
+extends "res://src/client/ui/kit/window.gd"
 ## The saved worlds (see WorldStore.list_worlds), the one saved last first: a row each
 ## with its seed, kind and day (and when it was saved, in the tooltip). Tapping a row picks that world
 ## (`chosen`); the square trash button beside it turns red on the first tap and deletes
@@ -8,8 +8,7 @@ extends Control
 ## screen over a shade of the world behind, the panel in the middle. `game` is the
 ## Main node.
 
-const UiStyle := preload("res://src/client/ui/ui_style.gd")
-const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
+const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const WorldSetup := preload("res://src/client/ui/world_setup.gd")
@@ -21,17 +20,15 @@ const ROW_H := 36
 const DELETE_WIDTH := ROW_H
 ## Rows shown before the list scrolls.
 const VISIBLE_ROWS := 5
-const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
 
 signal chosen(seed_value: int, options: Dictionary)
 signal cancelled
 
 var game
-var _panel: PanelContainer
 var _rows: VBoxContainer
 var _scroll: ScrollContainer
-## The delete button waiting for its second tap.
-var _armed: Button
+## The trash buttons: two taps each.
+var _bins := TwoTap.new()
 
 
 func _init(g) -> void:
@@ -39,35 +36,19 @@ func _init(g) -> void:
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	_panel = PanelContainer.new()
-	add_child(_panel)
-	var outer := VBoxContainer.new()
-	outer.add_theme_constant_override("separation", 8)
-	_panel.add_child(outer)
-	var title := UiStyle.label("Загрузить мир", UiStyle.ACCENT)
-	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	outer.add_child(title)
-	_scroll = ScrollContainer.new()
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	outer.add_child(_scroll)
-	_rows = VBoxContainer.new()
-	_rows.add_theme_constant_override("separation", 4)
-	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_scroll.add_child(_rows)
+	build("Загрузить мир", 8)
+	_rows = Kit.column(4)
 	# A finger dragged over the world buttons scrolls them too.
-	DragScroll.attach(_scroll)
-	var back := Button.new()
-	back.text = "Назад"
-	back.focus_mode = Control.FOCUS_NONE
+	_scroll = Kit.scroll(_rows, false)
+	box.add_child(_scroll)
 	# Across the panel, as wide as the rows over it.
-	back.custom_minimum_size = Vector2(0, 36)
-	back.pressed.connect(cancelled.emit)
-	outer.add_child(back)
+	box.add_child(Kit.button("Назад", back, 0, ROW_H))
 	_fill()
-	get_parent().resized.connect(_fit)
-	_fit()
+	show_fitted()
+
+
+func back() -> void:
+	cancelled.emit()
 
 
 ## One row per saved world.
@@ -75,87 +56,61 @@ func _fill() -> void:
 	for c in _rows.get_children():
 		c.queue_free()
 		_rows.remove_child(c)
-	_armed = null
+	_bins.disarm()
 	var worlds := WorldStore.list_worlds()
 	if worlds.is_empty():
-		var none := UiStyle.label("Сохранённых миров пока нет", UiStyle.MUTED)
+		var none := Kit.caption("Сохранённых миров пока нет")
 		none.custom_minimum_size = Vector2(ROW_WIDTH + DELETE_WIDTH + 4, ROW_H)
 		none.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_rows.add_child(none)
 	for w: Dictionary in worlds:
 		var current: bool = w.seed == game.world_seed and w.settings == game.world_options and game.join_url == ""
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 4)
+		var row := Kit.row(4)
 		_rows.add_child(row)
-		var pick := Button.new()
-		pick.text = Lang.f("зерно %d\n%s · день %d", [w.seed, _kind(w.settings), w.day])
+		var seed_value: int = w.seed
+		var options: Dictionary = w.settings
+		var pick := Kit.button(Lang.f("зерно %d\n%s · день %d", [w.seed, _kind(w.settings), w.day]),
+			func() -> void: chosen.emit(seed_value, options), ROW_WIDTH, ROW_H)
 		if w.seed == WorldStore.TEST_SEED:
 			pick.text = Lang.f("Тестовый мир\nплощадки · день %d", [w.day])
 		pick.tooltip_text = Lang.f("Сохранён %s, в игре %d мин", [w.saved.replace("T", " "), int(w.played / 60.0)])
 		if not w.mods.is_empty():
 			pick.tooltip_text += Lang.f("\nМоды: %s", [Mods.summary(Mods.expand(w.mods))])
-		pick.focus_mode = Control.FOCUS_NONE
 		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		pick.custom_minimum_size = Vector2(ROW_WIDTH, ROW_H)
 		# Every row as wide as the widest, its delete button at the same place.
 		pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if current:
 			UiStyle.accent(pick)
-		var seed_value: int = w.seed
-		var options: Dictionary = w.settings
-		pick.pressed.connect(func() -> void: chosen.emit(seed_value, options))
 		row.add_child(pick)
-		var del := Button.new()
-		del.focus_mode = Control.FOCUS_NONE
-		del.icon = UiStyle.icon("trash")
-		del.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		del.custom_minimum_size = Vector2(DELETE_WIDTH, ROW_H)
+		var del := Kit.icon_button("trash", "Удалить мир (нажать дважды)", Callable(), DELETE_WIDTH)
 		if w.seed == WorldStore.TEST_SEED:
 			del.tooltip_text = "Вернуть тестовый мир к началу (нажать дважды)"
-			del.pressed.connect(func() -> void: _reset(del))
+			_bins.guard(del, _reset)
 		elif current:
 			# The world being played stays.
 			del.tooltip_text = "Мир сейчас в игре"
 			del.disabled = true
 		else:
-			del.tooltip_text = "Удалить мир (нажать дважды)"
-			var dir: String = w.dir
-			del.pressed.connect(func() -> void: _delete(del, dir))
+			_bins.guard(del, _delete.bind(w.dir))
 		row.add_child(del)
 	var shown := mini(maxi(worlds.size(), 1), VISIBLE_ROWS)
 	_scroll.custom_minimum_size = Vector2(ROW_WIDTH + DELETE_WIDTH + 4, shown * (ROW_H + 4) - 4)
 
 
-## The first tap asks, the second deletes.
-func _delete(button: Button, dir: String) -> void:
-	if not _arm(button):
-		return
+## Deletes the world (on the trash's second tap).
+func _delete(dir: String) -> void:
 	WorldStore.new(dir).erase()
 	print("world deleted: %s" % dir)
 	_fill()
-	_fit.call_deferred()
+	fit.call_deferred()
 
 
-## The first tap asks, the second forgets the test world's save (Settings.reset_test_world).
-func _reset(button: Button) -> void:
-	if not _arm(button):
-		return
+## Forgets the test world's save (Settings.reset_test_world), on the second tap.
+func _reset() -> void:
 	print("test world reset")
 	game.settings.reset_test_world()
 	_fill()
-	_fit.call_deferred()
-
-
-## Whether `button` was asked already; else asks with it (red) and
-## puts back the one asked before.
-func _arm(button: Button) -> bool:
-	if _armed == button:
-		return true
-	if _armed != null:
-		UiStyle.arm(_armed, false)
-	_armed = button
-	UiStyle.arm(button, true)
-	return false
+	fit.call_deferred()
 
 
 ## The name of the kind of world the settings match (see WorldSetup.KINDS), in the
@@ -166,23 +121,3 @@ static func _kind(settings: Dictionary) -> String:
 		if k[1] == now:
 			return Lang.t(k[0]).to_lower()
 	return Lang.t("свой")
-
-
-func _fit() -> void:
-	var screen: Vector2 = get_parent().size
-	position = Vector2.ZERO
-	size = screen
-	_panel.reset_size()
-	_panel.position = ((screen - _panel.size) * 0.5).floor()
-	move_to_front()
-	queue_redraw()
-
-
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), BACKDROP)
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
-		get_viewport().set_input_as_handled()
-		cancelled.emit()

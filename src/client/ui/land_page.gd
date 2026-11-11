@@ -12,6 +12,7 @@ extends ScrollContainer
 ## settings' (UiStyle.inset). `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
@@ -137,9 +138,7 @@ func _colors(picked: int) -> void:
 	row.add_theme_constant_override("separation", 4)
 	_box.add_child(row)
 	for i in UiStyle.LAND_COLORS.size():
-		var b := Button.new()
-		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(30, 30)
+		var b := Kit.button("", Callable(), 30, 30)
 		b.tooltip_text = "Цвет вашей земли"
 		UiStyle.tint(b, UiStyle.LAND_COLORS[i])
 		if i == picked:

@@ -1,4 +1,4 @@
-extends Control
+extends "res://src/client/ui/kit/window.gd"
 ## «Присоединиться» (plan/architecture/server.md, «Меню и экраны»): the address of a
 ## server (`wss://…` through a tunnel, `ws://адрес:порт` in the home network; read by
 ## ServerList.normalize), the name the player goes by there, the password when the
@@ -8,12 +8,10 @@ extends Control
 ## fields go one under the other, the panel as wide as the narrowest phone held upright
 ## allows; when the keyboard leaves the screen too short, the panel goes to its top so
 ## the fields stay in sight. It covers the whole screen over a shade of the world
-## behind. `game` is the Main node.
+## behind (a window of the UI kit). `game` is the Main node.
 
-const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
-const TextField := preload("res://src/client/ui/text_field.gd")
-const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
+const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 
 const WIDTH := 240
 const FIELD_H := 30
@@ -22,14 +20,11 @@ const ROW_H := 32
 const FORGET := 40
 ## Recent servers shown before their list scrolls (as «Загрузить мир», WorldList).
 const RECENT_ROWS := 3
-const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
-const MARGIN := 8
 
 signal chosen(url: String, name: String, password: String)
 signal cancelled
 
 var game
-var _panel: PanelContainer
 var _url: LineEdit
 var _name: LineEdit
 var _password: LineEdit
@@ -37,8 +32,8 @@ var _error: Label
 var _recent: VBoxContainer
 var _recent_scroll: ScrollContainer
 var _recent_rows: VBoxContainer
-## The trash button waiting for its second tap.
-var _armed: Button
+## The trash buttons: two taps each.
+var _bins := TwoTap.new()
 var _go: Button
 var _back: Button
 ## The address and the words of the failure the screen opens with.
@@ -53,16 +48,7 @@ func _init(g, url := "", error := "") -> void:
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	_panel = PanelContainer.new()
-	add_child(_panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
-	_panel.add_child(box)
-	var title := UiStyle.label("Присоединиться", UiStyle.ACCENT)
-	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
+	build("Присоединиться")
 	var recent := ServerList.recent()
 	_url = _field(box, "Адрес сервера", "wss://… или ws://адрес:порт")
 	_url.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_URL
@@ -73,42 +59,27 @@ func _ready() -> void:
 	_password = _field(box, "Пароль", "если сервер просит")
 	_password.secret = true
 	_password.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_PASSWORD
-	_error = UiStyle.label("", UiStyle.DANGER)
-	_error.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_error.custom_minimum_size = Vector2(WIDTH, 0)
+	_error = Kit.note("", WIDTH, UiStyle.DANGER)
 	box.add_child(_error)
 	_say(_start_error)
-	_recent = VBoxContainer.new()
-	_recent.add_theme_constant_override("separation", 4)
+	_recent = Kit.column(4)
 	box.add_child(_recent)
-	_recent.add_child(UiStyle.label("Недавние", UiStyle.MUTED))
-	_recent_scroll = ScrollContainer.new()
-	_recent_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_recent.add_child(_recent_scroll)
-	_recent_rows = VBoxContainer.new()
-	_recent_rows.add_theme_constant_override("separation", 4)
-	_recent_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_recent_scroll.add_child(_recent_rows)
+	_recent.add_child(Kit.caption("Недавние"))
+	_recent_rows = Kit.column(4)
 	# A finger dragged over the server buttons scrolls them too.
-	DragScroll.attach(_recent_scroll)
+	_recent_scroll = Kit.scroll(_recent_rows, false)
+	_recent.add_child(_recent_scroll)
 	_fill_recent(recent)
-	_go = Button.new()
-	_go.text = "Подключиться"
-	_go.focus_mode = Control.FOCUS_NONE
-	_go.custom_minimum_size = Vector2(WIDTH, ROW_H)
-	UiStyle.accent(_go)
-	_go.pressed.connect(submit)
+	_go = Kit.accent_button("Подключиться", submit, WIDTH, ROW_H)
 	box.add_child(_go)
-	_back = Button.new()
-	var back := _back
-	back.text = "Назад"
-	back.focus_mode = Control.FOCUS_NONE
-	back.custom_minimum_size = Vector2(WIDTH, ROW_H)
-	back.pressed.connect(cancelled.emit)
-	box.add_child(back)
-	get_parent().resized.connect(_fit)
-	_fit()
+	_back = Kit.button("Назад", back, WIDTH, ROW_H)
+	box.add_child(_back)
+	show_fitted()
 	_announce.call_deferred()
+
+
+func back() -> void:
+	cancelled.emit()
 
 
 ## Laid out a frame after it is added: the browser test taps the fields and the
@@ -121,12 +92,9 @@ func _announce() -> void:
 
 ## A field under its name; Enter in it goes to the next one, in the last one joins.
 func _field(box: Control, caption: String, hint: String) -> LineEdit:
-	box.add_child(UiStyle.label(caption, UiStyle.MUTED))
-	var f := LineEdit.new()
-	f.placeholder_text = hint
-	f.custom_minimum_size = Vector2(WIDTH, FIELD_H)
+	box.add_child(Kit.caption(caption))
+	var f := Kit.field(hint, WIDTH, 0, FIELD_H)
 	f.text_submitted.connect(func(_t: String) -> void: _next_after(f))
-	TextField.fit(f)
 	box.add_child(f)
 	return f
 
@@ -147,52 +115,35 @@ func _fill_recent(recent: Array[Dictionary]) -> void:
 	for c in _recent_rows.get_children():
 		c.queue_free()
 		_recent_rows.remove_child(c)
+	_bins.disarm()
 	_recent.visible = not recent.is_empty()
 	# As tall as the rows, at most RECENT_ROWS, then scrolled.
 	var shown := mini(recent.size(), RECENT_ROWS)
 	_recent_scroll.custom_minimum_size = Vector2(WIDTH, maxi(shown * (FORGET + 4) - 4, 0))
 	for r: Dictionary in recent:
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 4)
-		var b := Button.new()
+		var row := Kit.row(4)
 		var title: String = r.title if r.title != "" else "Сервер"
-		b.text = "%s\n%s" % [title, _short(r.url)]
-		b.focus_mode = Control.FOCUS_NONE
+		var url: String = r.url
+		var b := Kit.button("%s\n%s" % [title, _short(r.url)], func() -> void:
+			_url.text = url
+			_say(""), WIDTH - FORGET - 4, FORGET)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.clip_text = true
-		b.custom_minimum_size = Vector2(WIDTH - FORGET - 4, FORGET)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var url: String = r.url
-		b.pressed.connect(func() -> void:
-			_url.text = url
-			_say(""))
 		row.add_child(b)
-		var forget := Button.new()
-		forget.focus_mode = Control.FOCUS_NONE
-		forget.icon = UiStyle.icon("trash")
-		forget.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		forget.tooltip_text = "Убрать сервер из списка (нажать дважды)"
-		forget.custom_minimum_size = Vector2(FORGET, FORGET)
-		forget.pressed.connect(func() -> void: _forget(forget, url))
-		row.add_child(forget)
+		row.add_child(_bins.guard(Kit.icon_button("trash", "Убрать сервер из списка (нажать дважды)", Callable(), FORGET),
+			_forget.bind(url)))
 		_recent_rows.add_child(row)
 
 
-## The first tap turns the trash button red, the second forgets the server
-## (ServerList.forget), lists the rest and fits the panel to them.
-func _forget(button: Button, url: String) -> void:
-	if _armed != button:
-		if is_instance_valid(_armed):
-			UiStyle.arm(_armed, false)
-		_armed = button
-		UiStyle.arm(button, true)
-		return
-	_armed = null
+## Forgets the server (ServerList.forget) on the trash's second tap, lists the rest and
+## fits the panel to them.
+func _forget(url: String) -> void:
 	ServerList.forget(url)
 	print("server forgotten: %s" % url)
 	_fill_recent(ServerList.recent())
 	# The panel shrinks to the rows left.
-	_fit.call_deferred()
+	fit.call_deferred()
 
 
 ## The address without its scheme, as it fits a row.
@@ -227,29 +178,5 @@ static func _secure_page() -> bool:
 func _say(text: String) -> void:
 	_error.text = text
 	_error.visible = text != ""
-	if is_inside_tree():
-		_fit.call_deferred()
-
-
-## The panel in the middle; at the top when it is taller than the screen (the keyboard
-## is up).
-func _fit() -> void:
-	var screen: Vector2 = get_parent().size
-	position = Vector2.ZERO
-	size = screen
-	_panel.reset_size()
-	var s := _panel.size
-	_panel.position = Vector2(floorf((screen.x - s.x) * 0.5),
-		floorf((screen.y - s.y) * 0.5) if s.y + 2 * MARGIN <= screen.y else MARGIN)
-	move_to_front()
-	queue_redraw()
-
-
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), BACKDROP)
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
-		get_viewport().set_input_as_handled()
-		cancelled.emit()
+	if is_inside_tree() and panel != null:
+		fit.call_deferred()

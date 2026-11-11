@@ -1,4 +1,4 @@
-extends Control
+extends "res://src/client/ui/kit/window.gd"
 ## The first screen: the world to make. The seed (typed in or rolled with the dice),
 ## a kind of world that sets the rest at once, and the settings of WorldGen one by one
 ## as rows "name ‹ value ›" like the settings window, with a map of the land around
@@ -9,12 +9,10 @@ extends Control
 ## It covers the whole screen over a shade of the world behind, the panel in the
 ## middle. `game` is the Main node.
 
-const UiStyle := preload("res://src/client/ui/ui_style.gd")
-const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
+const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
-const TextField := preload("res://src/client/ui/text_field.gd")
 
 const NAME_WIDTH := 112
 ## The names of the mods are longer than the settings' and have the room the map leaves.
@@ -39,17 +37,15 @@ const KINDS := [
 	["Равнины", [2, 0, 0, 2, 2]],
 ]
 const OPTIONS := ["size", "water", "mountains", "rivers", "biomes"]
-const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
 
 signal done
 signal cancelled
 
 var game
-var _rows := []
-var _focus := 0
+## The rows of the page shown (ChoiceRows of the kit).
+var _choices := ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW)
 ## The page of rows shown: "world" (the seed and the land), "mods" or "mod:<id>" (its bundles).
 var _page := "world"
-var _panel: PanelContainer
 var _box: BoxContainer
 var _list: VBoxContainer
 ## The rows scroll when the panel is taller than the screen (a phone in landscape).
@@ -70,16 +66,7 @@ func _init(g) -> void:
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	_panel = PanelContainer.new()
-	add_child(_panel)
-	var outer := VBoxContainer.new()
-	outer.add_theme_constant_override("separation", 8)
-	_panel.add_child(outer)
-	var title := UiStyle.label("Новый мир", UiStyle.ACCENT)
-	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	outer.add_child(title)
+	var outer := build("Новый мир", 8)
 	_box = BoxContainer.new()
 	_box.add_theme_constant_override("separation", 10)
 	outer.add_child(_box)
@@ -104,36 +91,20 @@ func _ready() -> void:
 		marker.draw_rect(Rect2(mid - Vector2(2, 2), Vector2(5, 5)), UiStyle.DARK_INK)
 		marker.draw_rect(Rect2(mid - Vector2(1, 1), Vector2(3, 3)), UiStyle.ACCENT))
 	_map.add_child(marker)
-	_scroll = ScrollContainer.new()
-	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_list = Kit.column(4)
+	_scroll = Kit.scroll(_list, false)
 	_box.add_child(_scroll)
-	_list = VBoxContainer.new()
-	_list.add_theme_constant_override("separation", 4)
-	_scroll.add_child(_list)
-	DragScroll.attach(_scroll)
+	_choices.scroll = _scroll
+	_choices.stepped.connect(_on_stepped)
 	_build_rows()
-	_set_focus(1)
-	var start := Button.new()
-	start.text = "Создать мир"
-	start.focus_mode = Control.FOCUS_NONE
-	start.custom_minimum_size = Vector2(0, 36)
-	UiStyle.accent(start)
-	start.pressed.connect(_start)
-	start.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var buttons := HBoxContainer.new()
-	buttons.add_theme_constant_override("separation", 6)
+	_choices.set_focus(1)
+	var buttons := Kit.row(6)
 	outer.add_child(buttons)
-	var back := Button.new()
-	back.text = "Назад"
-	back.focus_mode = Control.FOCUS_NONE
-	back.custom_minimum_size = Vector2(96, 36)
-	back.pressed.connect(_back)
-	buttons.add_child(back)
-	buttons.add_child(start)
-	_start_button = start
-	get_parent().resized.connect(_fit)
-	_fit()
+	buttons.add_child(Kit.button("Назад", back, 96, 36))
+	_start_button = Kit.accent_button("Создать мир", _start, 0, 36)
+	_start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	buttons.add_child(_start_button)
+	show_fitted()
 
 
 ## Fills the list with the rows of `_page`: the seed, the kind of world and the land's
@@ -142,19 +113,20 @@ func _build_rows() -> void:
 	for row in _list.get_children():
 		_list.remove_child(row)
 		row.queue_free()
-	_rows.clear()
+	_choices.clear()
 	var s = game.settings
 	if _page != "world":
 		_mod_rows(s)
-		_refresh()
+		_choices.refresh()
 		return
 	_seed_row()
+	# "Свой" is what the rows below make, not a choice of its own.
 	_add_row("Вид мира", KINDS.map(func(k: Array) -> String: return k[0]) + ["Свой"],
 		_kind, func(i: int) -> void:
 			if i < KINDS.size():
 				for j in OPTIONS.size():
 					s.values["world_" + OPTIONS[j]] = KINDS[i][1][j]
-				s.save())
+				s.save(), {"skip": KINDS.size()})
 	_add_row("Материки", ["малые", "средние", "огромные"], _getter("size"), _setter("size"))
 	_add_row("Вода", LEVELS, _getter("water"), _setter("water"))
 	_add_row("Горы", LEVELS, _getter("mountains"), _setter("mountains"))
@@ -162,7 +134,7 @@ func _build_rows() -> void:
 	_add_row("Биомы", ["мелкие", "обычные", "крупные"], _getter("biomes"), _setter("biomes"))
 	_add_row("Пещеры", LEVELS, _getter("caves"), _setter("caves"))
 	_mods_row()
-	_refresh()
+	_choices.refresh()
 
 
 ## The rows of the mods page, one per mod besides the base game («выкл», «вкл» or how
@@ -180,11 +152,13 @@ func _mod_rows(s) -> void:
 			var m := mod
 			var mine: Array = Mods.bundles(mod)
 			var lit: int = mine.filter(func(b: String) -> bool: return b in on).size()
+			var opts := {"name_width": MOD_NAME_WIDTH, "direct": true,
+				"show": Lang.f("%d из %d", [lit, mine.size()]) if lit > 0 and lit < mine.size() else ""}
+			if mine.size() > 1:
+				opts.open = _show_page.bind("mod:" + mod)
 			_add_row(Mods.mod_title(mod), ["выкл", "вкл"],
 				func() -> int: return 1 if lit == mine.size() else 0,
-				func(i: int) -> void: s.set_world_mod(m, i == 1), MOD_NAME_WIDTH,
-				Lang.f("%d из %d", [lit, mine.size()]) if lit > 0 and lit < mine.size() else "",
-				_show_page.bind("mod:" + mod) if mine.size() > 1 else Callable())
+				func(i: int) -> void: s.set_world_mod(m, i == 1), opts)
 		return
 	var mod := _page.trim_prefix("mod:")
 	_header(Mods.mod_title(mod))
@@ -195,7 +169,7 @@ func _mod_rows(s) -> void:
 		var b := bundle
 		_add_row(Lang.t(Mods.title(bundle)), ["выкл", "вкл"],
 			func() -> int: return 1 if b in on else 0,
-			func(i: int) -> void: s.set_world_mod(b, i == 1), MOD_NAME_WIDTH)
+			func(i: int) -> void: s.set_world_mod(b, i == 1), {"name_width": MOD_NAME_WIDTH, "direct": true})
 		_why_line(Mods.why(bundle, state.dropped))
 
 
@@ -230,14 +204,14 @@ func _header(text: String) -> void:
 func _show_page(page: String) -> void:
 	_page = page
 	_build_rows()
-	_set_focus(1 if _page == "world" else 0)
+	_choices.set_focus(1 if _page == "world" else 0)
 	if is_inside_tree():
-		_fit()
+		fit()
 
 
 ## "Назад": a mod's page goes back to the mods, the mods page to the world's rows, the
 ## world's rows leave the screen.
-func _back() -> void:
+func back() -> void:
 	if _page.begins_with("mod:"):
 		_show_page("mods")
 	elif _page == "mods":
@@ -266,19 +240,13 @@ func _kind() -> int:
 
 
 func _seed_row() -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 2)
+	var row := Kit.row(2)
 	_list.add_child(row)
-	var label := UiStyle.label("Зерно")
-	label.custom_minimum_size = Vector2(NAME_WIDTH, 0)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var label := _choices.name_label("Зерно")
 	row.add_child(label)
-	_seed = LineEdit.new()
-	_seed.custom_minimum_size = Vector2(VALUE_WIDTH + ARROW + 2, ARROW)
-	_seed.max_length = 10
+	_seed = Kit.field("", VALUE_WIDTH + ARROW + 2, 10, ARROW)
 	_seed.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 	_seed.text = str(game.settings.values.world_seed)
-	TextField.fit(_seed)
 	_seed.text_changed.connect(func(t: String) -> void:
 		var digits := ""
 		for ch in t:
@@ -293,33 +261,22 @@ func _seed_row() -> void:
 			_restart_map())
 	_seed.text_submitted.connect(func(_t: String) -> void: _seed.release_focus())
 	row.add_child(_seed)
-	var dice := Button.new()
-	dice.icon = UiStyle.icon("dice")
-	dice.tooltip_text = "Случайное зерно"
-	dice.focus_mode = Control.FOCUS_NONE
-	dice.custom_minimum_size = Vector2(ARROW, ARROW)
-	dice.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dice.pressed.connect(func() -> void:
+	row.add_child(Kit.icon_button("dice", "Случайное зерно", func() -> void:
 		var v := randi_range(1, 999999999)
 		_seed.text = str(v)
 		game.settings.values.world_seed = v
 		game.settings.save()
-		_restart_map())
-	row.add_child(dice)
-	_rows.append({"name": label, "values": [], "get": Callable(), "set": Callable(), "label": null})
+		_restart_map(), ARROW))
+	_choices.add_custom(label)
 
 
 ## The row «Моды»: how many of the mods besides the base game are on, and an arrow
 ## that opens their page.
 func _mods_row() -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 2)
+	var row := Kit.row(2)
 	_list.add_child(row)
-	var label := UiStyle.label("Моды")
-	label.custom_minimum_size = Vector2(NAME_WIDTH, 0)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var label := _choices.name_label("Моды")
 	row.add_child(label)
-	var index := _rows.size()
 	var value := UiStyle.label()
 	value.custom_minimum_size = Vector2(VALUE_WIDTH + ARROW + 2, 0)
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -328,140 +285,41 @@ func _mods_row() -> void:
 	var on: int = game.settings.world_mods().filter(func(b: String) -> bool: return Mods.mod_of(b) != "core").size()
 	value.text = Lang.f("%d из %d", [on, all]) if on < all else "все"
 	row.add_child(value)
-	var b := Button.new()
-	b.icon = UiStyle.icon("next")
-	b.tooltip_text = "Выбрать моды нового мира"
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(ARROW, ARROW)
-	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	b.pressed.connect(func() -> void:
-		_set_focus(index)
-		_show_page("mods"))
-	row.add_child(b)
-	_rows.append({"name": label, "values": [], "get": Callable(), "set": Callable(), "label": null,
-		"open": _show_page.bind("mods")})
+	var index := _choices.add_custom(label, _show_page.bind("mods"))
+	row.add_child(Kit.icon_button("next", "Выбрать моды нового мира", func() -> void:
+		_choices.set_focus(index)
+		_show_page("mods"), ARROW))
 
 
-## A row "name ‹ value ›" of `values` read by `getter` and set by `setter`. A mod's row:
-## `show` stands in for the value's text ("2 из 6", "нужен «Дуб»"), `open` is what its
-## extra button does (its bundles' page), and its arrows go straight to the first or the
-## last value (off, on) instead of round.
-func _add_row(name: String, values: Array, getter: Callable, setter: Callable, name_width := NAME_WIDTH,
-		show := "", open := Callable()) -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 2)
-	_list.add_child(row)
-	var label := UiStyle.label(name)
-	label.custom_minimum_size = Vector2(name_width, 0)
-	label.clip_text = true
-	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(label)
-	var index := _rows.size()
-	_arrow(row, "prev", index, -1)
-	var value := UiStyle.label()
-	value.custom_minimum_size = Vector2(VALUE_WIDTH, 0)
-	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	value.clip_text = true
-	value.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	row.add_child(value)
-	_arrow(row, "next", index, 1)
-	if open.is_valid():
-		var b := Button.new()
-		b.icon = UiStyle.icon("menu")
-		b.tooltip_text = "Что входит"
-		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(ARROW, ARROW)
-		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		b.pressed.connect(open)
-		row.add_child(b)
-	_rows.append({"name": label, "values": values, "get": getter, "set": setter, "label": value, "show": show,
-		"direct": _page != "world"})
+## A row "name ‹ value ›" of `values` read by `getter` and set by `setter` (ChoiceRows'
+## options `opts`: a mod's row shows "2 из 6" for its value, opens its bundles' page by
+## an extra button, and its arrows go straight to off or on).
+func _add_row(name: String, values: Array, getter: Callable, setter: Callable, opts := {}) -> void:
+	_choices.add(_list, name, values, getter, setter, opts)
 
 
-func _arrow(parent: Node, icon: String, row: int, dir: int) -> void:
-	var b := Button.new()
-	b.icon = UiStyle.icon(icon)
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(ARROW, ARROW)
-	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	b.pressed.connect(func() -> void:
-		_set_focus(row)
-		_step(row, dir))
-	parent.add_child(b)
-
-
-## Picks the next (`dir` = 1) or the previous value of row `i`, wrapping around.
-func _step(i: int, dir: int) -> void:
-	if i < 0 or i >= _rows.size():
-		return
-	var r: Dictionary = _rows[i]
-	var n: int = r.values.size()
-	if n == 0:
-		# The row «Моды» opens its page to the right.
-		if dir > 0 and r.has("open"):
-			r.open.call()
-		return
-	var cur: int = clampi(r.get.call(), 0, n - 1)
-	var next := posmod(cur + dir, n)
-	if r.get("direct", false):
-		next = 0 if dir < 0 else n - 1
-	# "Свой" is what the rows below make, not a choice of its own.
-	if _page == "world" and i == 1 and next == KINDS.size():
-		next = posmod(next + dir, n)
-	r.set.call(next)
+## After a row was stepped: the map of the new land, or a mods' page made anew (what a
+## mod's switch did to the others shows only on rows made anew).
+func _on_stepped(i: int) -> void:
 	if _page == "world":
-		_refresh()
 		_restart_map()
 	else:
-		# What a mod's switch did to the others shows only on rows made anew.
 		_build_rows()
-		_set_focus(i)
-		_fit()
-
-
-func _refresh() -> void:
-	for r in _rows:
-		if r.label != null:
-			var i: int = r.get.call()
-			r.label.text = r.values[clampi(i, 0, r.values.size() - 1)] if r.get("show", "") == "" else r.show
-
-
-func _set_focus(i: int) -> void:
-	if _rows.is_empty():
-		# A page with no rows (the mods' page with core alone).
-		_focus = 0
-		return
-	_focus = posmod(i, _rows.size())
-	for j in _rows.size():
-		_rows[j].name.add_theme_color_override("font_color", UiStyle.ACCENT if j == _focus else UiStyle.INK)
-	if _scroll != null and _scroll.is_inside_tree():
-		_scroll.ensure_control_visible(_rows[_focus].name)
+		_choices.set_focus(i)
+		fit()
 
 
 ## Side by side on a wide screen, the map over the rows on a tall one; centred. When the
 ## panel is taller than the screen the rows scroll, so the buttons stay in sight (every
 ## mod adds a row).
-func _fit() -> void:
-	var screen: Vector2 = get_parent().size
-	position = Vector2.ZERO
-	size = screen
+func layout(screen: Vector2) -> void:
 	_box.vertical = screen.x < screen.y
 	_list.reset_size()
 	_scroll.custom_minimum_size = Vector2(_list.size.x + BAR_ROOM, _list.size.y)
-	_panel.reset_size()
-	var over := _panel.size.y - screen.y
+	panel.reset_size()
+	var over := panel.size.y - screen.y
 	if over > 0.0:
 		_scroll.custom_minimum_size.y = maxf(_list.size.y - over, ARROW * 2)
-		_panel.reset_size()
-	_panel.position = ((screen - _panel.size) * 0.5).floor()
-	move_to_front()
-	queue_redraw()
-
-
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), BACKDROP)
 
 
 func _start() -> void:
@@ -509,15 +367,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_start()
 		KEY_ESCAPE:
 			if not event.echo:
-				_back()
-		KEY_UP, KEY_W:
-			_set_focus(_focus - 1)
-		KEY_DOWN, KEY_S:
-			_set_focus(_focus + 1)
-		KEY_LEFT, KEY_A:
-			_step(_focus, -1)
-		KEY_RIGHT, KEY_D:
-			_step(_focus, 1)
+				back()
 		_:
-			return
+			if not _choices.key(event):
+				return
 	get_viewport().set_input_as_handled()

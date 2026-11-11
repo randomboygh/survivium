@@ -16,6 +16,7 @@ const SLAVIC := ["ru", "uk", "pl"]
 ## The languages that write a decimal comma.
 const COMMA := ["ru", "uk", "pl", "de", "fr", "es", "pt", "it", "tr"]
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -172,11 +173,7 @@ func _gap(parent: Node) -> void:
 
 
 func _button(parent: Node, text: String, action: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(0, BUTTON_H)
-	b.pressed.connect(action)
+	var b := Kit.button(text, action, 0, BUTTON_H)
 	parent.add_child(b)
 	return b
 

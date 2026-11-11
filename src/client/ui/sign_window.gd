@@ -1,4 +1,4 @@
-extends Control
+extends "res://src/client/ui/kit/window.gd"
 ## The window a tap on a sign opens (decision 183): its name and its text, a field for
 ## each of its lines (its item's `sign_lines`, `sign_width` letters each) when the
 ## player may build where it stands (Territory "build", the client's copy of the land),
@@ -6,24 +6,20 @@ extends Control
 ## server (Protocol.SIGN_WRITE, Placed.write), «Повернуть» turns a sign that is not on a
 ## wall a quarter (SIGN_TURN), «Закрыть» or Escape closes it. It covers the whole screen
 ## over a shade of the world behind; when the keyboard leaves the screen too short, the
-## panel goes to its top. `game` is the Main node. While a field has the keys, they do
+## panel goes to its top (a window of the UI kit). `game` is the Main node. While a field has the keys, they do
 ## not walk the player (Controls._typing).
 ## The fields are the game's text fields (TextField.fit: caret, a tab switch on the web).
 ## With the playtest switch «Журнал клавиш» (Settings.keys_log) the
 ## window also shows, under its buttons, what the page did with the keys (KEYS_LOG): which
 ## element has them, the last keys, input and focus changes, so a phone that fails tells why.
 
-const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
-const TextField := preload("res://src/client/ui/text_field.gd")
 
 const WIDTH := 240
 const FIELD_H := 26
 const ROW_H := 30
-const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
-const MARGIN := 8
 ## What the page does with the keys, kept once per page (strict, no `arguments`: CLAUDE.md).
 const KEYS_LOG := """
 (function () {
@@ -103,7 +99,6 @@ var game
 ## turned: the record is set down anew).
 var cell: Vector3i
 var item: String
-var _panel: PanelContainer
 var _fields: Array[LineEdit] = []
 var _note: Label
 ## The page's keys log (KEYS_LOG) on the web, the label under the buttons that shows it
@@ -128,30 +123,17 @@ func may_write() -> bool:
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_STOP
 	var rec := Items.get_item(item)
 	var text: String = game.placed.at(cell).get("text", "")
 	var lines := text.split("\n")
-	_panel = PanelContainer.new()
-	add_child(_panel)
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 6)
-	_panel.add_child(box)
-	var title := UiStyle.label(Lang.t(Items.title(item)), UiStyle.ACCENT)
-	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.custom_minimum_size = Vector2(WIDTH, 0)
-	box.add_child(title)
+	build(Lang.t(Items.title(item)))
+	box.get_child(0).custom_minimum_size.x = WIDTH
 	var writes := may_write()
 	if writes:
 		for i in int(rec.get("sign_lines", 0)):
-			var f := LineEdit.new()
-			f.max_length = int(rec.get("sign_width", 20))
-			f.placeholder_text = Lang.f("Строка %d", [(i + 1)])
-			f.custom_minimum_size = Vector2(WIDTH, FIELD_H)
+			var f := Kit.field(Lang.f("Строка %d", [(i + 1)]), WIDTH, int(rec.get("sign_width", 20)), FIELD_H)
 			f.text = lines[i] if i < lines.size() else ""
 			f.text_submitted.connect(func(_t: String) -> void: _next_after(f))
-			TextField.fit(f)
 			box.add_child(f)
 			_fields.append(f)
 	else:
@@ -161,9 +143,7 @@ func _ready() -> void:
 			read.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 		read.custom_minimum_size = Vector2(WIDTH, 0)
 		box.add_child(read)
-	_note = UiStyle.label("" if writes else "Писать может тот, кто строит на этой земле", UiStyle.MUTED)
-	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_note.custom_minimum_size = Vector2(WIDTH, 0)
+	_note = Kit.note("" if writes else "Писать может тот, кто строит на этой земле", WIDTH)
 	_note.visible = _note.text != ""
 	box.add_child(_note)
 	if writes:
@@ -182,21 +162,13 @@ func _ready() -> void:
 			_keys_label.custom_minimum_size = Vector2(WIDTH, KEYS_LINES * 12)
 			_keys_label.max_lines_visible = KEYS_LINES
 			box.add_child(_keys_label)
-	get_parent().resized.connect(_fit)
-	_fit()
+	show_fitted()
 	if not _fields.is_empty() and not game.controls.touch:
 		_fields[0].grab_focus()
 
 
 func _button(text: String, call: Callable, accent := false) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(WIDTH, ROW_H)
-	if accent:
-		UiStyle.accent(b)
-	b.pressed.connect(call)
-	return b
+	return (Kit.accent_button if accent else Kit.button).call(text, call, WIDTH, ROW_H)
 
 
 ## Enter in a field goes to the next one, in the last one saves.
@@ -239,6 +211,11 @@ func close() -> void:
 	queue_free()
 
 
+func back() -> void:
+	close()
+
+
+## Escape closes it even while a field has the keys.
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
@@ -256,21 +233,3 @@ func _process(delta: float) -> void:
 	for f in _fields:
 		fields += ("E" if f.is_editing() else "-") + ("F" if f.has_focus() else "-") + " "
 	_keys_label.text = "%s\nwin %s fields %s" % [str(_keys.text()), "Y" if get_window().has_focus() else "N", fields]
-
-
-## The panel in the middle; at the top when it is taller than the screen (the keyboard
-## is up).
-func _fit() -> void:
-	var screen: Vector2 = get_parent().size
-	position = Vector2.ZERO
-	size = screen
-	_panel.reset_size()
-	var s := _panel.size
-	_panel.position = Vector2(floorf((screen.x - s.x) * 0.5),
-		floorf((screen.y - s.y) * 0.5) if s.y + 2 * MARGIN <= screen.y else MARGIN)
-	move_to_front()
-	queue_redraw()
-
-
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), BACKDROP)
