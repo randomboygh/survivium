@@ -110,18 +110,23 @@ static func origin(kind: String, id: String) -> Dictionary:
 ## else in its mod's `common/`; the bundle's path when neither has it.
 static func asset(rec: Dictionary, rel: String) -> String:
 	var own := "%s/%s/%s" % [ROOT, rec.get("bundle", rec.get("mod", "core")), rel]
-	if ResourceLoader.exists(own) or FileAccess.file_exists(own):
+	if exists(own):
 		return own
 	var common := "%s/%s/common/%s" % [ROOT, rec.get("mod", "core"), rel]
-	if ResourceLoader.exists(common) or FileAccess.file_exists(common):
+	if exists(common):
 		return common
 	return own
+
+
+## Whether file `path` (an `asset`) is there: imported into the game, or a plain file.
+static func exists(path: String) -> bool:
+	return ResourceLoader.exists(path) or FileAccess.file_exists(path)
 
 
 ## The image of picture `path` (an `asset`), null when there is none: read from the file
 ## itself after a hot reload (`live`), else from its import.
 static func picture(path: String) -> Image:
-	if live and FileAccess.file_exists(path):
+	if (live or not path.begins_with("res://")) and FileAccess.file_exists(path):
 		var img := Image.load_from_file(path)
 		if img != null and not img.is_empty():
 			return img
@@ -134,7 +139,7 @@ static func picture(path: String) -> Image:
 ## The sound of file `path` (an `asset`, `.wav`), null when there is none: read from the
 ## file itself after a hot reload (`live`), else from its import.
 static func sound(path: String) -> AudioStream:
-	if live and path.ends_with(".wav") and FileAccess.file_exists(path):
+	if (live or not path.begins_with("res://")) and path.ends_with(".wav") and FileAccess.file_exists(path):
 		var s := AudioStreamWAV.load_from_file(path)
 		if s != null:
 			return s

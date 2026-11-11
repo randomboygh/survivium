@@ -22,10 +22,18 @@
     `entries`), предупреждения об именах, `records` / `find` / `canon` / `origin`, `asset`, `sound_files`.
 - `src/shared/content/yaml.gd` — свой разбор той части YAML, что нужна данным (ключи с `:` внутри,
   `{core:fiber: 1}`).
+- Где лежат моды (решение 186): `Content.ROOT` — папка `content/` рядом с программой в собранной игре на ПК
+  (Windows, Linux), если в ней есть `core/mod.yaml` (`Content.find_root`, `Content.beside()`), иначе встроенная копия
+  `res://content` (`BUILT_IN`; редактор, браузер, телефон, сборка без папки). CI кладёт все моды открытыми файлами
+  (YAML, PNG, WAV, без `.import`) в `content/` рядом с exe в архивах ПК (`.github/workflows/build.yml`, job `pc`);
+  свои моды — отдельными папками там же, обновление заменяет только встроенные. Оттуда картинки и звуки
+  читаются из файлов (`Content.picture`, `Content.sound`, `Content.exists`; рисунки игрока — `Figure.SPRITES`),
+  разобранный YAML берётся из `content_cache.bin`, пока текст файла не менялся, а горячая перезагрузка работает
+  и в собранной игре. Проверка — `content_test.gd` `_test_content_beside` (копия модов в `user://`).
 - Горячая перезагрузка (решение 184): `src/shared/content/content_watch.gd` (`ContentWatch`) смотрит файлы
   `content/` (YAML, PNG, WAV) по `BUDGET` файлов и папок за шаг и в конце прохода говорит, изменился ли, появился
   или пропал файл (первый проход только запоминает время); работает, где файлы лежат сами по себе — игра запущена
-  движком редактора из папки проекта (`can_watch`), не в экспорте и не в браузере. `src/client/mod_reload.gd`
+  движком редактора из папки проекта или собранная игра на ПК с модами рядом (`can_watch`), не встроенная копия и не браузер. `src/client/mod_reload.gd`
   (`ModReload`, модуль Main `mod_reload`) шагает слежку каждый кадр (кроме headless: тесты и инструменты
   перечитывают сами) и перечитывает: `Mods.rescan(true)`, переводы (`Lang.reread`), модели (`VoxelProps.forget`),
   иконки (`ItemIcons.forget`), правила сеанса (`Session.reread`: следы вещей, `Wildlife.reread`), звуки
