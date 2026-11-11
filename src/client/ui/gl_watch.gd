@@ -260,3 +260,52 @@ func take() -> Dictionary:
 	if sections.size() > 2 and sections[2] != "":
 		out.late = Array(sections[2].split(";"))
 	return out
+
+
+## Asks the browser whether it draws without the graphics card (a fresh WebGL2 context
+## with failIfMajorPerformanceCaveat is refused, or the renderer is a software one:
+## SwiftShader, WARP's «Basic Render Driver», llvmpipe), and its renderer's name.
+const GPU_SCRIPT := """
+(function () {
+	'use strict';
+	try {
+		var c = document.createElement('canvas');
+		var fast = c.getContext('webgl2', {failIfMajorPerformanceCaveat: true});
+		var gl = fast || document.createElement('canvas').getContext('webgl2');
+		var name = '';
+		if (gl) {
+			var e = gl.getExtension('WEBGL_debug_renderer_info');
+			name = String(e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+			var lose = gl.getExtension('WEBGL_lose_context');
+			if (lose) lose.loseContext();
+		}
+		var slow = !fast || /swiftshader|llvmpipe|basic render|software|warp/i.test(name);
+		return (slow ? '1' : '0') + name;
+	} catch (x) {
+		return '0';
+	}
+})()
+"""
+## The answer, asked once: [drawn without the graphics card, the renderer's name].
+static var _gpu: Array = []
+
+
+## Whether the browser draws the game without the graphics card (hardware acceleration
+## off in its settings, or the card blocked): then even a strong computer gets a few
+## frames a second (decision 186: Edge at 5 FPS). Always false off the web.
+static func software() -> bool:
+	return _gpu_answer()[0]
+
+
+## The name of what the browser draws with, as it tells it; "" off the web.
+static func renderer() -> String:
+	return _gpu_answer()[1]
+
+
+static func _gpu_answer() -> Array:
+	if _gpu.is_empty():
+		_gpu = [false, ""]
+		if OS.has_feature("web"):
+			var text := str(JavaScriptBridge.eval(GPU_SCRIPT, true))
+			_gpu = [text.begins_with("1"), text.substr(1)]
+	return _gpu

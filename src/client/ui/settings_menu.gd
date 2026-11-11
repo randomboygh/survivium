@@ -31,6 +31,7 @@ const Sound := preload("res://src/client/audio/sound.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
+const GlWatch := preload("res://src/client/ui/gl_watch.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
@@ -940,6 +941,9 @@ func report_text() -> String:
 		StartTimes.line(),
 		Lang.f("Прошлые запуски: %s", [("; ".join(StartTimes.past().slice(0, 3)) if not StartTimes.past().is_empty() else "нет")]),
 	]
+	if OS.has_feature("web"):
+		# English only, like the other internal texts to come (decision 186).
+		lines.append("Browser draws with: %s%s" % [GlWatch.renderer(), " (software, no graphics card)" if GlWatch.software() else ""])
 	if game.net != null:
 		lines.append(Lang.f("Сервер: %s, запросов %d, байт туда %d, обратно %d, кодирование %.1f мс, ждут %d", [
 			Lang.f("по сети %s", [game.join_url]) if game.socket != null else "в игре (петля)",

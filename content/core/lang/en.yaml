@@ -717,6 +717,7 @@
 "площадки": "grounds"
 "зерно %d": "seed %d"
 "день %d": "day %d"
+"Браузер рисует без видеокарты (%s), поэтому игра идёт медленно. Включите в настройках браузера «Использовать графическое ускорение» (в Edge — edge://settings/system, в Chrome — chrome://settings/system) и перезапустите браузер.": "The browser draws without the graphics card (%s), so the game runs slowly. Turn on «Use graphics acceleration» in the browser's settings (Edge: edge://settings/system, Chrome: chrome://settings/system) and restart the browser."
 "Сервер запускают на компьютере: Survivium для Windows или Linux. С телефона и из браузера к нему присоединяются.": "A server is run on a computer: Survivium for Windows or Linux. Phones and browsers join it."
 
 # src/client/ui/minimap.gd
