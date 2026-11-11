@@ -237,6 +237,13 @@ func covers(screen_pos: Vector2) -> bool:
 	return false
 
 
+## Whether the mouse pointer is over some control other than the hotbar (a window, a
+## panel, a button), whose the wheel is: it turns the hotbar only over the world or the bar.
+func wheel_taken() -> bool:
+	var c := get_viewport().gui_get_hovered_control()
+	return c != null and c != _bar and not _bar.is_ancestor_of(c)
+
+
 ## Screen rectangles of the controls, for the F3 debug line and the browser smoke test.
 func debug_rects() -> Dictionary:
 	var out := {}

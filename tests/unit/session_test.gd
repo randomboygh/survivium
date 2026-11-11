@@ -9,6 +9,7 @@ func run() -> void:
 	_test_session()
 	_test_making()
 	_test_lead()
+	_test_reach()
 
 
 func _test_rules() -> void:
@@ -190,3 +191,22 @@ func _test_lead() -> void:
 	s._motion.clear()
 	s._update_leads()
 	_check(s._leads.is_empty(), "a player standing looks nowhere ahead")
+
+
+## The zones reach as far as the widest screen of the players needs (a wide window on a
+## computer), never less than ZONE nor more than ZONE_MOST.
+func _test_reach() -> void:
+	_check(Session.reach_for(Vector2.ZERO) == Session.ZONE, "a screen not told is a zone of ZONE")
+	_check(Session.reach_for(Vector2(24.0, 11.0)) == Session.ZONE, "a phone's screen needs no more than ZONE")
+	_check(Session.reach_for(Vector2(79.0, 20.0)) == Session.ZONE_MOST, "a wide window reaches farther, at most ZONE_MOST")
+	_check(Session.reach_for(Vector2(1e9, 1e9)) == Session.ZONE_MOST and Session.reach_for(Vector2(INF, 0.0)) == Session.ZONE,
+		"a screen too large or not finite is bounded")
+	var gen := WorldGen.new(42, 40)
+	var s := Session.new(gen.world, gen, Clock.new(), Rules.new(), Placed.new())
+	var a := Survivor.new()
+	a.body = Body.new()
+	s.add_player(a, Workshop.new(a, s.placed, s.rules))
+	_check(s.reach() == Session.ZONE and s.drop() == Session.DROP, "a phone's zone and drop as before")
+	a.view_half = Vector2(50.0, 20.0)
+	_check(s.reach() == Session.reach_for(a.view_half) and s.reach() > Session.ZONE and s.drop() == s.reach() + 4,
+		"a wider screen moves the zone and the drop out")
