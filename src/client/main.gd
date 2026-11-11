@@ -809,6 +809,9 @@ func _loading_stage(text: String) -> void:
 ## around the player, so less is left to build when the game goes on (see
 ## ChunkStreamer.paused, Runner).
 func _build_while_paused() -> void:
+	# The tree's signal, so it also comes in the frame a restart takes this scene out.
+	if not is_inside_tree():
+		return
 	if get_tree().paused and socket != null:
 		# The server goes on: what it sends is taken while the game here is paused.
 		socket.poll()

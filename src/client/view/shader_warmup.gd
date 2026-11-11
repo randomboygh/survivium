@@ -116,6 +116,9 @@ func _build() -> void:
 		var key := _key(face)
 		if not kinds.has(key):
 			kinds[key] = face
+		else:
+			# Never in the tree: left, it outlives the game (leaks reported at exit).
+			face.free()
 	# An animal, which may not be around yet: the player's figure on the animals' layer
 	# (the same shader and the same kind of mesh).
 	var figure: MeshInstance3D = game.player.sprite if game.player != null and "sprite" in game.player else null
@@ -127,6 +130,8 @@ func _build() -> void:
 		var key := _key(animal)
 		if not kinds.has(key):
 			kinds[key] = animal
+		else:
+			animal.free()
 	# The names over the others and the letters "z" over a sleeper, shown only later.
 	var label := Label3D.new()
 	label.font = UiStyle.font()
