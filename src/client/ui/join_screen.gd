@@ -95,9 +95,6 @@ func _ready() -> void:
 	_go = Button.new()
 	_go.text = "Подключиться"
 	_go.focus_mode = Control.FOCUS_NONE
-	# Both act as the finger lands: the keyboard closing as it does moves them away
-	# before the finger lifts.
-	_go.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	_go.custom_minimum_size = Vector2(WIDTH, ROW_H)
 	UiStyle.accent(_go)
 	_go.pressed.connect(submit)
@@ -106,7 +103,6 @@ func _ready() -> void:
 	var back := _back
 	back.text = "Назад"
 	back.focus_mode = Control.FOCUS_NONE
-	back.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	back.custom_minimum_size = Vector2(WIDTH, ROW_H)
 	back.pressed.connect(cancelled.emit)
 	box.add_child(back)

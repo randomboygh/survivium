@@ -192,9 +192,6 @@ func _button(text: String, call: Callable, accent := false) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.focus_mode = Control.FOCUS_NONE
-	# Acts as the finger lands: the keyboard closing as it does moves the button away
-	# before the finger lifts.
-	b.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	b.custom_minimum_size = Vector2(WIDTH, ROW_H)
 	if accent:
 		UiStyle.accent(b)
@@ -235,6 +232,9 @@ func turn() -> void:
 
 
 func close() -> void:
+	# The field lets the keys go first, so the phone's keyboard closes with the window.
+	for f in _fields:
+		f.release_focus()
 	closed.emit()
 	queue_free()
 

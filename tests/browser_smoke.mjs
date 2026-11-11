@@ -269,7 +269,39 @@ if (runs('upright')) {
         errors.push(`upright: «Присоединиться»'s ${key} is not on the screen: ${rectOf(shown, key)}`);
       }
     }
+    // The phone's keyboard (src/client/ui/text_field.gd, tools/web_patch.py): while it is up
+    // (the page made lower) a touch leaves the page's focus with its input and a finger
+    // lifted off the field lets the field go; once it is put away, a touch gives the canvas
+    // the focus as the engine does, and a tap on the field focuses the input again.
+    await page.evaluate(() => {
+      window.smokeFoci = [];
+      document.addEventListener('focusin', (e) => window.smokeFoci.push(e.target.id || e.target.tagName));
+    });
+    const keys = () => page.evaluate(() => ({
+      up: !!(window.survivium_tabs && window.survivium_tabs.up),
+      act: document.activeElement ? document.activeElement.id || document.activeElement.tagName : '',
+      foci: window.smokeFoci.splice(0).join(' '),
+    }));
     await tap(rectOf(shown, 'name'));
+    await page.waitForTimeout(500);
+    let k = await keys();
+    if (k.act !== 'INPUT') errors.push(`upright: a tap on the name did not give the keyboard's input the focus: ${JSON.stringify(k)}`);
+    await page.setViewportSize({ width: 390, height: 480 });
+    await page.waitForTimeout(800);
+    await page.touchscreen.tap(4, 4);
+    await page.waitForTimeout(500);
+    k = await keys();
+    if (!k.up) errors.push(`upright: the page made lower is not taken for the keyboard up: ${JSON.stringify(k)}`);
+    if (k.foci.includes('canvas')) errors.push(`upright: a touch with the keyboard up took the focus from its input: ${JSON.stringify(k)}`);
+    if (k.act === 'INPUT') errors.push(`upright: a finger lifted off the field did not let it go: ${JSON.stringify(k)}`);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(800);
+    await tap(rectOf(shown, 'name'));
+    await page.waitForTimeout(500);
+    k = await keys();
+    if (k.up || !k.foci.startsWith('canvas') || k.act !== 'INPUT') {
+      errors.push(`upright: with the keyboard away a tap on the field did not go canvas, then input: ${JSON.stringify(k)}`);
+    }
     await page.keyboard.type('Тест');
     await page.waitForTimeout(500);
     const before = log.length;
