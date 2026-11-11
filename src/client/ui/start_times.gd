@@ -17,6 +17,8 @@ const KEEP := 6
 ## How long each part of the last loading took (msec, see keep_parts), and the shares of
 ## the loading screen's strip the parts take before any loading was kept.
 const PARTS_FILE := "user://load_parts.cfg"
+## Scripts compiled slower than this on a computer's browser: its code runs uncompiled.
+const SLOW_SCRIPTS_MS := 10000.0
 const DEFAULT_SHARES := {"setup": 0.08, "build": 0.6, "warm": 0.12, "settle": 0.2}
 
 ## The steps of this scene's start: name → Time.get_ticks_msec when it ended.
@@ -111,6 +113,26 @@ static func _nav(p: Dictionary) -> String:
 	out.append(Lang.f("request %s", [_s(float(n[1]))]))
 	out.append(Lang.f("response %s", [_s(float(n[2]))]))
 	return " (%s)" % ", ".join(out)
+
+
+## How long the game's scripts took to compile (msec), past the graphics and the mods'
+## data; -1 when not measured (a scene started again). Normally 1–3 s on a computer: much
+## more there means the browser runs the code without compiling it (slow_code).
+static func scripts_ms() -> float:
+	if compiled_ms < 0 or again:
+		return -1.0
+	var p := page()
+	var gl: float = float(p.gl) - float(p.engine) if p.has("gl") else 0.0
+	return maxf(0.0, compiled_ms - gl - Content.read_ms - Content.load_ms)
+
+
+## The browser on a computer runs the game's code many times slower than it can: Edge's
+## «Enhance your security on the web» turns its compiler (JIT) off, and the scripts
+## compiled in 27 s instead of 1.3 (2026-11-11), the world was built in 387 s.
+static func slow_code() -> bool:
+	if not OS.has_feature("web") or OS.has_feature("web_android") or OS.has_feature("web_ios"):
+		return false
+	return scripts_ms() > SLOW_SCRIPTS_MS
 
 
 ## The engine's steps one after another: each with how long it took, from the engine's

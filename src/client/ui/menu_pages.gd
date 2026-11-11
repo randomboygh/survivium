@@ -97,6 +97,8 @@ func _fill_page(page: String) -> void:
 				lit = "resume"
 			if GlWatch.software():
 				_slow_drawing()
+			elif StartTimes.slow_code():
+				_slow_code()
 		"single":
 			_caption("Одиночная игра")
 			_add_button(_box, "play", "Продолжить", _play_single)
@@ -180,6 +182,18 @@ func _slow_drawing() -> void:
 	_note = UiStyle.label(Lang.f("Браузер рисует без видеокарты (%s), поэтому игра идёт медленно. "
 		+ "Включите в настройках браузера «Использовать графическое ускорение» (в Edge — edge://settings/system, "
 		+ "в Chrome — chrome://settings/system) и перезапустите браузер.", [GlWatch.renderer()]), UiStyle.ACCENT)
+	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_note.custom_minimum_size = Vector2(WIDTH, 0)
+	_box.add_child(_note)
+
+
+## The browser runs the game's code uncompiled (StartTimes.slow_code): how to fix it,
+## under the buttons.
+func _slow_code() -> void:
+	_note = UiStyle.label(Lang.f("Браузер выполняет код игры без компиляции (скрипты собирались %d с), поэтому игра идёт "
+		+ "медленно. Так бывает в Edge с режимом «Повышение безопасности в Интернете»: выключите его в "
+		+ "edge://settings/privacy или добавьте этот сайт в исключения и перезагрузите страницу.",
+		[roundi(StartTimes.scripts_ms() / 1000.0)]), UiStyle.ACCENT)
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_note.custom_minimum_size = Vector2(WIDTH, 0)
 	_box.add_child(_note)
