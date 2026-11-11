@@ -118,6 +118,11 @@ const float SHADOW_FLOOR = 0.14;
 global uniform vec2 view_up;
 global uniform float view_squash;
 global uniform float view_slope;
+// The view the camera rests at nearest the one shown (PixelView.set_view): view_up in
+// xy, view_slope in z. What is laid by texels of the picture on the world (the tiles
+// and patterns of slopes) goes by it, so while the camera turns or tilts between its
+// steps the pattern stays on the ground instead of crawling over it.
+global uniform vec3 rest_view;
 // The direction to the sun or the moon in view space as the default view lights it;
 // the light itself is aimed so the shadows fall in place (PixelView.light_dir).
 global uniform vec3 sun_view;
@@ -151,6 +156,14 @@ vec3 unshear_dir(vec3 d) {
 vec2 screen_plane(vec3 p) {
 	vec2 s = shear(p).xz;
 	return vec2(dot(s, vec2(-view_up.y, view_up.x)), -dot(s, view_up));
+}
+
+// Where world point p is on the image plane of the view the camera rests at nearest
+// (rest_view), as screen_plane: the same as it at rest, fixed to the world in between.
+vec2 rest_plane(vec3 p) {
+	vec2 up = rest_view.xy;
+	vec2 s = p.xz + up * (rest_view.z * p.y);
+	return vec2(dot(s, vec2(-up.y, up.x)), -dot(s, up));
 }
 
 // An upright quad drawn at origin o turned to face the camera, which looks along -z
