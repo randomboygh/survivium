@@ -1357,7 +1357,9 @@ static func icon(name: String) -> ImageTexture:
 			for x in row.length():
 				if PALETTE.has(row[x]):
 					img.set_pixel(x, y, PALETTE[row[x]])
-		var even := _even(img)
+		# Drawn shapes whose slanted lines a doubled middle would break (the gestures)
+		# get a clear column (row) instead.
+		var even := _even(img, not (name == "gesture" or name.begins_with("g_")))
 		_icons[name] = ImageTexture.create_from_image(even)
 		remember(_icons[name], even)
 	return _icons[name]
@@ -1387,9 +1389,19 @@ static func remember(texture: Texture2D, img: Image) -> void:
 
 
 ## Image `img` cut to its drawn pixels, with the middle column (row) doubled when it is
-## odd across (down): an odd picture has no middle on an even face.
-static func _even(img: Image) -> Image:
+## odd across (down): an odd picture has no middle on an even face. Without `stretch`
+## a clear column (row) goes on the right (bottom) instead, the picture as drawn.
+static func _even(img: Image, stretch := true) -> Image:
 	img = img.get_region(img.get_used_rect())
+	if not stretch:
+		var w := img.get_width() + img.get_width() % 2
+		var h := img.get_height() + img.get_height() % 2
+		if w != img.get_width() or h != img.get_height():
+			var out := Image.create_empty(w, h, false, img.get_format())
+			out.fill(Color(0, 0, 0, 0))
+			out.blit_rect(img, Rect2i(Vector2i.ZERO, img.get_size()), Vector2i.ZERO)
+			img = out
+		return img
 	if img.get_width() % 2 == 1:
 		var w := img.get_width()
 		var out := Image.create_empty(w + 1, img.get_height(), false, img.get_format())
