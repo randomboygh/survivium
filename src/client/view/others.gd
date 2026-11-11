@@ -8,7 +8,10 @@ extends Node3D
 ## (the entry's last field). A line one says in the chat (HEARD) hangs over the name SAY_TIME
 ## seconds in a balloon. The name and the balloon are the interface's own letters (like
 ## the signs' text, SignLabels), on a layer under the rest of it, put at the head's place
-## on the screen each frame, whole pixels. `game` is the Main node (its `hands` gives the
+## on the screen each frame, whole pixels. A light one holds (a torch, a candle, a
+## lantern: an item with `light`) burns in their hand, its flames there and, for the
+## OTHER_LIGHTS of them nearest the player, its light round them as the player's own
+## torch lights (Sky), without shadows. `game` is the Main node (its `hands` gives the
 ## looks of the things held).
 
 const PlayerScript := preload("res://src/client/view/player.gd")
@@ -18,6 +21,8 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Body := preload("res://src/shared/game/body.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Items := preload("res://src/shared/content/items.gd")
+const SkyView := preload("res://src/client/view/sky.gd")
 
 const CELL := WorldData.CELL
 ## Seconds behind the server's snapshots the figures are drawn.
@@ -38,6 +43,11 @@ const SAY_WIDTH := 150
 const BALLOON := Color("#f3e7cc")
 const BALLOON_INK := Color("#2a1d12")
 const TAIL := 5.0
+## How many of the others' lights in hand light the world at once, the nearest the
+## player's: each is one more omni light on the meshes round it (at most 32 in all).
+const OTHER_LIGHTS := 3
+## Seconds between changes of their lights' flicker.
+const FLICKER_TIME := 0.09
 static var _balloon_box: StyleBoxFlat
 
 var game
@@ -47,8 +57,12 @@ var perf
 ## balloon of what they said, its Label "said", "until" it goes), "head": the point over the
 ## head (world), "snaps": [[time, entry], …],
 ## "work_n": the last work count shown, "hands": the hands shown, "left|right|active",
-## "gear": what is worn shown}
+## "gear": what is worn shown, "light": the brightest light in their hands ("" none),
+## "two": a light in each hand, "flames": the flames of the lights in their hands,
+## made the first time they hold one, "flicker": their light's flicker now}
 var people := {}
+var _flicker_clock := 0.0
+var _rng := RandomNumberGenerator.new()
 ## The layer the names and the balloons are on: the whole interface, under its other parts.
 var _layer: Control
 
@@ -81,9 +95,15 @@ func take_gone(id: int) -> void:
 	one.figure.queue_free()
 	one.label.queue_free()
 	one.line.queue_free()
+	for flame: CPUParticles3D in one.flames:
+		flame.queue_free()
 
 
 func _exit_tree() -> void:
+	for one: Dictionary in people.values():
+		for flame: CPUParticles3D in one.flames:
+			flame.queue_free()
+		one.flames = []
 	if _layer != null:
 		_layer.queue_free()
 		_layer = null
@@ -133,7 +153,8 @@ func _make(at: Vector3) -> Dictionary:
 	# The icon of a gesture over the name.
 	f.gesture_icon_high = NAME_OVER + float(NAME_SIZE + 4) / PixelView.PIXELS_PER_UNIT
 	f.sprite.layers = 1
-	# Its light stays dark (Sky lights only the player's): hidden, the renderer skips it.
+	# Its light is hidden (the renderer skips it) but while they hold a light near the
+	# player (_light_hands).
 	f.torch.visible = false
 	var label := UiStyle.label()
 	# A name as the player wrote it, outlined to read over any ground.
@@ -159,7 +180,8 @@ func _make(at: Vector3) -> Dictionary:
 	line.visible = false
 	_layer_made().add_child(line)
 	return {"figure": f, "label": label, "line": line, "said": said, "tail": tail, "until": 0.0, "head": at,
-		"snaps": [], "work_n": -1, "hands": "", "gear": ""}
+		"snaps": [], "work_n": -1, "hands": "", "gear": "", "light": "", "two": false,
+		"flames": [], "flicker": 1.0}
 
 
 func _layer_made() -> Control:
@@ -242,6 +264,7 @@ func _process(delta: float) -> void:
 		if hands_key != one.hands:
 			one.hands = hands_key
 			f.hold(game.hands.look(str(e[4][0])), game.hands.look(str(e[4][1])), "left" if e[5] == 0 else "right")
+			_take_lights(one, e[4])
 		# What they wear shows on them.
 		if e.size() > 13 and e[13] is Dictionary and str(e[13]) != one.gear:
 			one.gear = str(e[13])
@@ -271,6 +294,72 @@ func _process(delta: float) -> void:
 		f._animate(dir.limit_length(1.0), dir.length(), delta)
 		f.place_sprite()
 		one.head = at + Vector3(0.0, Body.HEIGHT * CELL + NAME_OVER, 0.0)
+	_light_hands(delta)
 	_place_labels()
 	if perf != null:
 		perf.add("others", Time.get_ticks_usec() - t)
+
+
+## What `one` holds in its hands (`hands`, two item ids): the brightest light among them
+## ("" none, as Character.light_held), and whether each hand holds one.
+func _take_lights(one: Dictionary, hands: Array) -> void:
+	var best := ""
+	var lit := 0
+	for id in hands:
+		var light: float = Items.get_item(str(id)).get("light", 0.0) if str(id) != "" else 0.0
+		if light <= 0.0:
+			continue
+		lit += 1
+		if best == "" or light > Items.get_item(best).light:
+			best = str(id)
+	one.light = best
+	one.two = lit > 1
+
+
+## The lights in the others' hands: their flames burn at the flames of the sprites
+## (Player.flames_at), and the OTHER_LIGHTS nearest the player light round them as far as
+## their `light` (two of them Sky.TWO_TORCHES farther, a swimmer's shorter), flickering,
+## brighter the darker round them (Sky.lamp_gain), giving way to the fires near them
+## (Effects.torch_off). How much of it is left to burn the server does not tell: it burns
+## as a new one.
+func _light_hands(delta: float) -> void:
+	_flicker_clock -= delta
+	var flicker := _flicker_clock <= 0.0
+	if flicker:
+		_flicker_clock = FLICKER_TIME
+	var lit: Array = []
+	for one: Dictionary in people.values():
+		var f = one.figure
+		var on: bool = one.light != ""
+		if on:
+			lit.append(one)
+			if one.flames.is_empty() and game.effects != null:
+				one.flames = [game.effects.torch_flame(), game.effects.torch_flame()]
+			if flicker:
+				one.flicker = _rng.randf_range(0.88, 1.05)
+		for i in one.flames.size():
+			var flame: CPUParticles3D = one.flames[i]
+			var burns: bool = on and i < f.flames_at.size() and f.flames_at[i].is_finite()
+			if burns:
+				flame.position = f.flames_at[i]
+			if flame.emitting != burns:
+				flame.emitting = burns
+	var from: Vector3 = game.player.position if game.player != null else Vector3.ZERO
+	if lit.size() > OTHER_LIGHTS:
+		lit.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			return a.figure.position.distance_squared_to(from) < b.figure.position.distance_squared_to(from))
+		lit = lit.slice(0, OTHER_LIGHTS)
+	for one: Dictionary in people.values():
+		var torch: OmniLight3D = one.figure.torch
+		var on: bool = lit.has(one) and game.sky != null
+		if torch.visible != on:
+			torch.visible = on
+		if not on:
+			continue
+		var p: Vector3 = one.figure.position
+		var reach := PixelView.light_range(Items.get_item(one.light).light * (SkyView.TWO_TORCHES if one.two else 1.0)
+				* (SkyView.SWIMMING_TORCH if one.figure.body.swimming else 1.0))
+		if not is_equal_approx(torch.omni_range, reach):
+			torch.omni_range = reach
+		var dark: float = game.sky.lamp_gain(p.y + CELL, game.effects.roofed(p)) * (1.0 - game.effects.torch_off(p))
+		torch.light_energy = SkyView.TORCH_ENERGY * one.flicker * dark
