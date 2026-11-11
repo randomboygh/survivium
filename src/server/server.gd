@@ -35,6 +35,8 @@ const HELLO_WAIT := 10.0
 const SNAP_EVERY := 0.1
 ## Seconds between the other players' snapshots to a player (PlayerLink.people_every).
 const PEOPLE_EVERY := 0.05
+## Seconds between the teammates' columns on the map (Protocol.MATES).
+const MATES_EVERY := 0.5
 ## Bytes a frame may hold going out (the chunks of С3.2 are large), and coming in (a
 ## client sends only small messages: a bigger one is not taken).
 const BUFFER := 4 << 20
@@ -684,6 +686,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		a.link = PlayerLink.new(session)
 		a.link.snap_every = SNAP_EVERY
 		a.link.people_every = PEOPLE_EVERY
+		a.link.mates_every = MATES_EVERY
 		a.link.send_world = true
 		a.link.who.id = a.id
 		a.link.who.player_name = a.name

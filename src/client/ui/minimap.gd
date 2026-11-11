@@ -10,7 +10,8 @@ extends Control
 ## picture here, the picture itself on the whole map. So are the sacks of the player's
 ## deaths, a red dot here kept at the edge while the sack is beyond it, and the
 ## player's markers (Markers), diamonds of their colour kept at the edge too, flags on the
-## whole map. The ground is drawn through shaders/map_ground.gdshader: the corners of
+## whole map, and the player's teammates (Team.mates), round dots of the team's colour
+## kept at the edge, with their names on the whole map. The ground is drawn through shaders/map_ground.gdshader: the corners of
 ## the explored land and of the frame are rounded. The regions are kept in the save
 ## (see save_region, load_regions), so the explored map comes back with the world.
 
@@ -54,6 +55,9 @@ var regions := {}
 var unsaved := {}
 ## The player's markers (set by Hud), or null.
 var markers: Markers
+## The player's team (Team, set by Hud), or null: its other members drawn wherever they
+## are (see draw_mates).
+var team
 ## The land claimed (Land, set by Hud), or null: the player's own drawn everywhere,
 ## others' where the map is explored, each in its owner's colour (see draw_land).
 var land
@@ -476,6 +480,36 @@ func draw_markers(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float,
 					canvas.draw_rect(Rect2(c.x - half + 1, c.y + y, 2 * half - 1, 1), color)
 
 
+## Draws the player's teammates over a map drawn as draw_ground does: a round dot of the
+## team's colour, `r` pixels round its middle, ringed light and outlined dark so it shows
+## on the green of the woods too, kept at the edge while they are beyond it; with
+## `names`, a member's name under the dot when it is inside.
+func draw_mates(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, names := false, r := 1.0) -> void:
+	if team == null:
+		return
+	for m: Array in team.mates:
+		var p := to_screen(Vector2(m[2]), rect, centre, zoom)
+		var box := Rect2(p - Vector2(r + 2, r + 2), Vector2(2 * r + 5, 2 * r + 5))
+		var inside := rect.encloses(box)
+		box.position = box.position.clamp(rect.position, rect.end - box.size)
+		# Each ring with its corners cut, the team's colour in the middle.
+		for ring: Array in [[0, UiStyle.DARK_INK], [1, UiStyle.INK]]:
+			var b := box.grow(-ring[0])
+			canvas.draw_rect(b.grow_individual(-1, 0, -1, 0), ring[1])
+			canvas.draw_rect(b.grow_individual(0, -1, 0, -1), ring[1])
+		canvas.draw_rect(box.grow(-2), UiStyle.TEAM)
+		if not names or not inside:
+			continue
+		var font := UiStyle.font()
+		var text: String = m[1]
+		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE).x
+		var at := Vector2(floorf(box.get_center().x - w * 0.5), box.end.y + UiStyle.FONT_SIZE)
+		if at.y > rect.end.y - 2:
+			at.y = box.position.y - 3
+		canvas.draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE, 4, UiStyle.DARK_INK)
+		canvas.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE, UiStyle.TEAM)
+
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed or event is InputEventScreenTouch and event.pressed:
 		open_map.emit()
@@ -492,13 +526,14 @@ func _draw() -> void:
 	round_rect(self, inner, UNSEEN, CORNER)
 
 
-## Over the ground: the marks, the markers, the shade of the slot's top and left, and
+## Over the ground: the marks, the markers, the teammates, the shade of the slot's top and left, and
 ## the player an amber dot outlined dark in the middle.
 func _draw_top(l: Control) -> void:
 	var inner := Rect2(Vector2.ZERO, l.size)
 	draw_land(l, inner, Vector2(player_cell), 1.0)
 	draw_marks(l, inner, Vector2(player_cell), 1.0)
 	draw_markers(l, inner, Vector2(player_cell), 1.0)
+	draw_mates(l, inner, Vector2(player_cell), 1.0)
 	l.draw_rect(Rect2(CORNER, 0, side - 2 * CORNER, 1), UiStyle.WELL_SHADE)
 	l.draw_rect(Rect2(0, CORNER, 1, side - 2 * CORNER), UiStyle.WELL_SHADE)
 	var mid := (inner.size * 0.5).floor()
