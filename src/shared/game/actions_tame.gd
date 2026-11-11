@@ -52,10 +52,11 @@ static func owner_id(who) -> int:
 
 ## The animal in front of `who` (Wildlife.in_front within TEND_REACH) they could tend with
 ## what they hold: a wild one that eats it from a hand, or their own tame one; null for none.
-func tended(who):
+## `dir` looks another way than the body faces (a tap on an animal, WorldActions.dig_at).
+func tended(who, dir := Vector2.ZERO):
 	if wildlife == null:
 		return null
-	var a = wildlife.in_front(who.position, Vector2(who.facing_step()), TEND_REACH)
+	var a = wildlife.in_front(who.position, Vector2(who.facing_step()) if dir == Vector2.ZERO else dir, TEND_REACH)
 	if a == null:
 		return null
 	var spec: Dictionary = AiRules.SPECIES[a.kind]
@@ -70,10 +71,10 @@ func tended(who):
 
 ## What the action button does to the animal in front (see tended): "feed", "shear",
 ## "stay", "follow", "release" (a live animal in the hand), or "" for nothing.
-func tend_kind(who) -> String:
+func tend_kind(who, dir := Vector2.ZERO) -> String:
 	if released_kind(who.held()) != "":
 		return "release"
-	var a = tended(who)
+	var a = tended(who, dir)
 	if a == null:
 		return ""
 	var spec: Dictionary = AiRules.SPECIES[a.kind]
@@ -94,13 +95,13 @@ func wool_ready(a) -> bool:
 
 ## The action button on the animal in front (see tend_kind): feeds, shears, or tells it
 ## to stay or follow. The swing done, {} for nothing.
-func tend(who) -> Dictionary:
-	var kind := tend_kind(who)
+func tend(who, dir := Vector2.ZERO) -> Dictionary:
+	var kind := tend_kind(who, dir)
 	if kind == "release":
 		return release(who)
 	if kind == "":
 		return {}
-	var a = tended(who)
+	var a = tended(who, dir)
 	var spec: Dictionary = AiRules.SPECIES[a.kind]
 	if not _may(who, _cell_at(a.pos), "hit_animals"):
 		return {"swing": IDLE_SWING}

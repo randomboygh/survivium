@@ -7,6 +7,7 @@ extends PanelContainer
 ## is the Main node (game.team asks the server); the HUD holds it.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 
 ## Seconds the card shows for a tap on a player, and for an invitation.
@@ -97,13 +98,9 @@ func _clear() -> void:
 
 
 func _button(text: String, action: Callable, parent: Node = null) -> void:
-	var b := Button.new()
-	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(0, 26)
-	b.pressed.connect(func() -> void:
+	var b := Kit.button(text, func() -> void:
 		action.call()
-		close())
+		close(), 0, 26)
 	(parent if parent != null else _box).add_child(b)
 
 

@@ -1,8 +1,9 @@
 extends SceneTree
 ## Plays, saves and starts the game again without a screen: what the player dug, where
 ## they stood, the clock, the props, the explored map, the markers and a module's part
-## of the player come back; the playtest page's teleport puts the player down. The
-## saves go to a test folder of their own. Run:
+## of the player come back; the playtest page's teleport puts the player down; a sign's
+## window and the chat answer touches as they should. The saves go to a test folder of
+## their own. Run:
 ## godot --headless --path . --script res://tests/save_test.gd
 
 const Mat := preload("res://src/shared/content/materials.gd")
@@ -63,6 +64,74 @@ func _start() -> Node:
 				"the server makes the world around the player's body before the world is ready")
 		await process_frame
 	return main
+
+
+func _touch(pos: Vector2, down: bool) -> void:
+	var t := InputEventScreenTouch.new()
+	t.position = pos
+	t.pressed = down
+	Input.parse_input_event(t)
+
+
+func _frames(n: int) -> void:
+	for i in n:
+		await process_frame
+
+
+## A sign's window on a touch screen: its buttons act as the finger lifts, and the field keeps
+## the keys while a button is held; a finger lifted off the field lets it go; the world under
+## the window is not touched; closing it lets the keys go.
+func _sign_window(main: Node) -> void:
+	root.size = Vector2i(920, 1600)
+	main.controls.set_touch(true)
+	await _frames(3)
+	main.hud.open_sign({"cell": Vector3i(0, 0, 0), "item": "tools:sign"})
+	await _frames(3)
+	var w: Control = main.hud.sign_window
+	var field: LineEdit = w._fields[0]
+	var buttons: Array = w.find_children("*", "Button", true, false)
+	var shut: Button = buttons[buttons.size() - 1]
+	var at := field.get_global_rect().get_center()
+	var shut_at := shut.get_global_rect().get_center()
+	# The keyboard coming up moves the window: the finger lifts over a button.
+	_touch(at, true)
+	await _frames(2)
+	_touch(shut_at, false)
+	await _frames(3)
+	_check(main.hud.sign_window == w and field.has_focus(),
+		"a touch begun on a line keeps it, lifted over a button that does not act")
+	_touch(at, true)
+	_touch(at, false)
+	await _frames(3)
+	_check(field.has_focus(), "a tap on a sign's line gives it the keys")
+	_check(main.hud.covers(Vector2(4, 4)), "nothing under a sign's window is a tap on the world")
+	var on := shut.get_global_rect().get_center()
+	_touch(on, true)
+	await _frames(3)
+	_check(main.hud.sign_window == w and field.has_focus(), "a button pressed does not act yet, the line keeps the keys")
+	_touch(on, false)
+	await _frames(3)
+	_check(main.hud.sign_window == null and not is_instance_valid(w) or w.is_queued_for_deletion(),
+		"the window closes as the finger lifts off its button")
+	main.hud.open_sign({"cell": Vector3i(0, 0, 0), "item": "tools:sign"})
+	await _frames(3)
+	w = main.hud.sign_window
+	field = w._fields[0]
+	at = field.get_global_rect().get_center()
+	_touch(at, true)
+	_touch(at, false)
+	await _frames(3)
+	_touch(Vector2(4, 4), true)
+	_touch(Vector2(4, 4), false)
+	await _frames(3)
+	_check(main.hud.sign_window == w and not field.has_focus(), "a finger lifted off the line lets it go, the window stays")
+	w.close()
+	await _frames(2)
+	main.hud.chat.open()
+	await _frames(2)
+	_check(main.hud.chat._field.is_editing(), "the chat opens with its field edited (the phone's keyboard up)")
+	main.hud.chat.close()
+	main.controls.set_touch(false)
 
 
 func _run() -> void:
@@ -253,6 +322,7 @@ func _run() -> void:
 	_check(DirAccess.get_files_at(wipe).is_empty() and Array(DirAccess.get_directories_at(wipe)) == ["logs"],
 		"wiping all data leaves nothing but the logs")
 	WorldStore.erase_dir(wipe)
+	await _sign_window(main)
 	main.queue_free()
 	await process_frame
 	WorldStore.new(ROOT).erase()

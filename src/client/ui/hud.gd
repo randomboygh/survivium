@@ -216,14 +216,15 @@ func _ready() -> void:
 	sep_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sep_box.add_child(sep)
 	bar_row.add_child(sep_box)
-	_prev_button = _icon_button(bar_row, "prev", "[previous_slots]", _prev_page)
-	_prev_button.custom_minimum_size = Vector2(28, SLOT)
+	# The hotbar's slots in a strip of the kit: arrows and a finger move them along when
+	# not all fit.
+	_strip = SlotStrip.new("[previous_slots]", "[next_slots]")
+	_strip.scrolled.connect(_show_page)
+	bar_row.add_child(_strip)
 	for i in Inventory.HOTBAR:
-		var s = _slot(bar_row, _select_slot.bind(i))
+		var s = _slot(_strip.cells, _select_slot.bind(i))
 		s.on_release = true
 		_slots.append(s)
-	_next_button = _icon_button(bar_row, "next", "[next_slots]", _next_page)
-	_next_button.custom_minimum_size = Vector2(28, SLOT)
 	_bag_meter = Button.new()
 	_bag_meter.focus_mode = Control.FOCUS_NONE
 	# In the clock's look; as wide as its divisions (_fit_bag_meter).

@@ -9,7 +9,9 @@ extends Control
 ## before and calls only what it or an earlier part defines, and callers know only hud.gd.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
+const SlotStrip := preload("res://src/client/ui/kit/slot_strip.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
 const MapView := preload("res://src/client/ui/map_view.gd")
 const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
@@ -124,16 +126,8 @@ var _hand_left
 var _hand_right
 var _slots := []
 var _bar_row: HBoxContainer
-var _prev_button: Button
-var _next_button: Button
-## The first hotbar slot shown and how many are shown.
-var _first := 0
-var _visible_slots := 8
-## The finger dragging the hotbar slots along (-1 none), its x in the bar where the
-## slots last moved, and whether it has moved far enough to be a drag, not a tap.
-var _swipe := -1
-var _swipe_x := 0.0
-var _swiped := false
+## The hotbar's slots between their arrows (kit's SlotStrip): which are shown.
+var _strip
 var stick
 var _action: Button
 var _jump: Button
@@ -182,27 +176,14 @@ func _slot(parent: Node, action: Callable):
 	return s
 
 
-## The look of a big touch button: an octagon of `fill` with a lip of `shade`, pressed
-## down while held; `ink` for its words.
+## The look of a big touch button (Kit.octagon_look).
 func _octagon_look(b: Button, fill: Color, shade: Color, ink: Color) -> void:
-	for state in ["normal", "hover", "disabled"]:
-		b.add_theme_stylebox_override(state, UiStyle.octagon(fill, shade))
-	for state in ["pressed", "hover_pressed"]:
-		b.add_theme_stylebox_override(state, UiStyle.octagon(fill, shade, true))
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
-		b.add_theme_color_override(c, ink)
+	Kit.octagon_look(b, fill, shade, ink)
 
 
-## Frames a helper button like the others but see-through inside, so it hides little
-## of the world: the level and camera buttons.
+## A helper button see-through inside (Kit.see_through): the level and camera buttons.
 func _see_through(b: Button) -> void:
-	for state in ["normal", "hover", "disabled", "focus"]:
-		b.add_theme_stylebox_override(state, UiStyle.frame())
-	for state in ["pressed", "hover_pressed"]:
-		b.add_theme_stylebox_override(state, UiStyle.frame(true))
-	b.add_theme_color_override("font_outline_color", UiStyle.EDGE)
-	b.add_theme_constant_override("outline_size", 4)
-	b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.3))
+	Kit.see_through(b)
 
 
 ## A label over button `b`, filling it, its text centred and outlined like the
@@ -223,27 +204,14 @@ func _fixed_label(b: Button) -> Label:
 
 
 func _icon_button(parent: Node, icon: String, tip: String, action: Callable) -> Button:
-	var b := Button.new()
-	b.icon = UiStyle.icon(icon) if icon != "" else null
-	b.tooltip_text = tip
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(40, 40)
-	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	b.add_theme_stylebox_override("normal", UiStyle.panel())
-	b.add_theme_stylebox_override("hover", UiStyle.panel())
-	if action.is_valid():
-		b.pressed.connect(action)
+	var b := Kit.framed_button(icon, tip, action)
 	parent.add_child(b)
 	return b
 
 
 func _add_menu_button(parent: Node, text: String, action: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(200, 30)
+	var b := Kit.button(text, action, 200, 30)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.pressed.connect(action)
 	parent.add_child(b)
 	return b
 

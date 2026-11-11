@@ -16,12 +16,14 @@ const SLAVIC := ["ru", "uk", "pl"]
 ## The languages that write a decimal comma.
 const COMMA := ["ru", "uk", "pl", "de", "fr", "es", "pt", "it", "tr"]
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const CharacterScript := preload("res://src/client/game/character.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
 
 const WIDTH := 252
 const BUTTON_H := 30
@@ -38,6 +40,9 @@ const STATS := [["days", "[lived]", []], ["walked", "[walked]", []],
 	["crafted", "[crafted]", ["[item_1]", "[item_2]", "[item_5]"]], ["eaten", "[ate]", ["[time_1]", "[time_2]", "[time_5]"]],
 	["jumps", "[jumped]", ["[time_1]", "[time_2]", "[time_5]"]]]
 const SHADE := Color(0.10, 0.02, 0.02, 0.4)
+## The causes of death (Vitals.hurt_by) as a cross names them (grave_text).
+const GRAVE_CAUSES := {"hunger": "[hunger_n2]", "thirst": "[thirst_n2]", "cold": "[cold]", "fire": "[fire]",
+	"water": "[water_n2]", "fall": "[a_fall_from_a_height]"}
 ## Directions from the respawn point to the sack, clockwise from north (-z).
 const DIRECTIONS := ["[to_the_north]", "[to_the_north_east]", "[to_the_east]", "[to_the_south_east]", "[to_the_south]",
 	"[to_the_south_west]", "[to_the_west]", "[to_the_north_west]"]
@@ -168,11 +173,7 @@ func _gap(parent: Node) -> void:
 
 
 func _button(parent: Node, text: String, action: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(0, BUTTON_H)
-	b.pressed.connect(action)
+	var b := Kit.button(text, action, 0, BUTTON_H)
 	parent.add_child(b)
 	return b
 
@@ -197,6 +198,42 @@ func update() -> void:
 		var hud: Control = game.hud
 		if Rect2(hud.position, hud.size * hud.scale) != _fit_for or scale != hud.scale:
 			_fit()
+
+
+## What a cross says of the one who died there (`g`, Placed.grave_record), in the language
+## in use: their name, the day they died and how long they lived, the cause, how far they
+## walked, then the two largest counts of that life on a line.
+static func grave_text(g: Dictionary) -> String:
+	var called := str(g.get("name", ""))
+	var lines: Array[String] = [Lang.f("[here_lies]", [called]) if called != "" else Lang.t("[here_lies_a_traveller]")]
+	lines.append(Lang.f("[day_lived]", [int(g.get("day", 0)), _days(float(g.get("days", 0.0)))]))
+	lines.append(Lang.f("[cause]", [_grave_cause(str(g.get("cause", "")))]))
+	var life: Dictionary = g.get("life", {})
+	var counts: Array = []
+	for st: Array in STATS:
+		if st[0] != "days" and st[0] != "walked" and float(life.get(st[0], 0.0)) > 0.0:
+			counts.append(st)
+	counts.sort_custom(func(a: Array, b: Array) -> bool: return float(life[a[0]]) > float(life[b[0]]))
+	if float(life.get("walked", 0.0)) > 0.0:
+		lines.append("%s %s" % [Lang.t(STATS[1][1]), _value("walked", float(life.walked), [])])
+	var said: Array[String] = []
+	for st: Array in counts.slice(0, 2):
+		said.append("%s %s" % [Lang.t(st[1]), _value(st[0], float(life[st[0]]), st[2])])
+	if not said.is_empty():
+		lines.append(" · ".join(said))
+	return "\n".join(lines)
+
+
+## The cause of a death (Vitals.hurt_by) as a cross says it, a noun: «голод», «волк»,
+## «игрок «Имя»».
+static func _grave_cause(cause: String) -> String:
+	if cause.begins_with("player:"):
+		var by := cause.substr(7)
+		return Lang.f("[player]", [by]) if by != "" else Lang.t("[another_player]")
+	if cause.begins_with("animal:"):
+		var spec: Dictionary = AiRules.SPECIES.get(cause.substr(7), {})
+		return Lang.t(str(spec.get("title", "[beast]"))).to_lower()
+	return Lang.t(GRAVE_CAUSES.get(cause, "[unknown]"))
 
 
 ## «2 суток», «1 сутки», «5 суток» for `days` game days.

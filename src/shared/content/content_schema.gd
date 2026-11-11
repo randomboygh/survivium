@@ -131,6 +131,9 @@ const SCHEMAS := {
 		"sign_lines": {"type": "int", "min": 0, "max": 8, "default": 0},
 		"sign_width": {"type": "int", "min": 1, "max": 32, "default": 20},
 		"wall": {"type": "bool", "default": false},
+		# A cross (core): set down by the world where a death's sack was once its days are up,
+		# telling who died there to those near, like a sign (Placed.put_grave); never in a bag.
+		"grave": {"type": "bool", "default": false},
 		# Food that spoils: it keeps this many game days (slower in the cold, see
 		# Inventory.spoil), then turns into `rots_to` (nothing if none); 0 keeps for ever.
 		"spoils": {"type": "float", "min": 0.0, "default": 0.0},

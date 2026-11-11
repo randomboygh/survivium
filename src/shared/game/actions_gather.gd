@@ -252,7 +252,7 @@ func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 				world.take_drop(key, i)
 				var rest := _take(who, d, most, false)
 				if not rest.is_empty():
-					world.add_drop(rest[0], rest[1], rest[2], rest[3], rest[4] if rest.size() > 4 else -1.0)
+					world.add_drop(rest[0], rest[1], rest[2], rest[3], rest[4] if rest.size() > 4 else -1.0, _grave(rest))
 				if rest.is_empty() or str(rest[3]) != str(d[3]):
 					taken.emit(d[0], d[1], who)
 				took = true
@@ -283,11 +283,19 @@ static func _forget_sack(who, at: Vector3) -> void:
 			sacks.remove_at(i)
 
 
+## Who died where sack `d` lies (its sixth, Character.grave_of), {} for a sack of an old
+## save or a thing not a sack.
+static func _grave(d: Array) -> Dictionary:
+	return d[5] if d.size() > 5 and d[5] is Dictionary else {}
+
+
 ## The sacks of deaths whose day (the fifth of a drop, Character.SACK_DAYS) is past by
 ## `now` (Clock.now) are gone from the ground with what they hold, in the chunks the
 ## world holds (one forgotten keeps its sack until it is made again); the maps of
-## `players` no longer mark them.
-func expire_sacks(now: float, players: Array) -> void:
+## `players` no longer mark them. Returns where each lay and who died there, [[position
+## (world units), Character.grave_of or {}]…]: a cross stands there (Session, Placed.put_grave).
+func expire_sacks(now: float, players: Array) -> Array:
+	var out := []
 	for key: Vector2i in world.drops.keys():
 		var list: Array = world.drops[key]
 		var gone := false
@@ -297,9 +305,11 @@ func expire_sacks(now: float, players: Array) -> void:
 				world.take_drop(key, i)
 				for who in players:
 					_forget_sack(who, d[1])
+				out.append([d[1], _grave(d)])
 				gone = true
 		if gone:
 			drops_changed.emit(key)
+	return out
 
 
 ## How many of `id` the bag `inv` can take before its weight passes its limit.
@@ -341,7 +351,7 @@ func pick_up(who, key: Vector2i, i: int) -> bool:
 		if not rest.is_empty():
 			left.append(rest)
 	for d: Array in left:
-		world.add_drop(d[0], d[1], d[2], d[3], d[4] if d.size() > 4 else -1.0)
+		world.add_drop(d[0], d[1], d[2], d[3], d[4] if d.size() > 4 else -1.0, _grave(d))
 	drops_changed.emit(key)
 	return took
 

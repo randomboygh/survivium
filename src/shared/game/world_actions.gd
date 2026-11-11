@@ -78,17 +78,137 @@ func act_in_front(who, top: int) -> Dictionary:
 	if work.has("trunk"):
 		return chop(who, work.trunk)
 	if work.has("tree") or work.has("bush"):
-		if gather(who, work):
-			var at: Vector3 = Vector3(work.bush) + Vector3(0.5, 0.4, 0.5) if work.has("bush") \
-				else Vector3(trunk_cell(who, work.tree)) + Vector3(0.5, 0.5, 0.5)
-			return _work(skilled(who, _gather_role(t), t.swing), "", at * CELL, Mat.LEAVES)
-		return {"swing": IDLE_SWING}
+		return _gather_work(who, work)
 	if work.has("mow"):
 		return mow_swing(who, work.mow)
 	if work.has("dig"):
 		var c: Vector3i = work.dig[0]
 		return dig(who, work.dig, Tools.swing_time(t, world.get_cell(c.x, c.y, c.z)))
 	return swing_air(who, Vector3.INF)
+
+
+## Gathers from the tree or the bush of `work` (see front_targets) with the hand in use of
+## `who`: the swing done, or a short wait when there was nothing to take.
+func _gather_work(who, work: Dictionary) -> Dictionary:
+	if not gather(who, work):
+		return {"swing": IDLE_SWING}
+	var t: Dictionary = who.tool()
+	var at: Vector3 = Vector3(work.bush) + Vector3(0.5, 0.4, 0.5) if work.has("bush") \
+		else Vector3(trunk_cell(who, work.tree)) + Vector3(0.5, 0.5, 0.5)
+	return _work(skilled(who, _gather_role(t), t.swing), "", at * CELL, Mat.LEAVES)
+
+
+## A tap or a click on `cell` (on its face `normal`) does what the action button does in
+## front, in the same order, only at that cell instead of in front of the body (the user's
+## ask, 2026-11-11): a shot, a rod or a drink first (the earlier parts aim them at the cell),
+## then an animal standing on the cell is tended or hit, then the farming work on it,
+## then with hands or a sword what is worth most on it and round it is gathered
+## (tap_choice: food, then seeds, then the rest), and only then the earlier parts work the
+## cell itself (a tree there, the grass on it, digging).
+func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
+	var t: Dictionary = who.tool()
+	if Tools.shoots(Tools.weapon(who.held())) or Tools.can_fish(t) or water_tapped(who, cell).is_finite():
+		return super(who, cell, normal)
+	var done := _tap_animal(who, cell)
+	if not done.is_empty():
+		return done
+	var farm: Variant = farm_at(who, cell)
+	if farm != null:
+		return farm
+	var work := tap_choice(who, cell)
+	if work.has("tree") or work.has("bush"):
+		return _gather_work(who, work)
+	if work.has("mow"):
+		return mow_swing(who, work.mow)
+	return super(who, cell, normal)
+
+
+## An animal standing on `cell` (a tap on it, see dig_at) tended (fed, shorn, told to stay
+## or follow) or hit by the hand in use of `who`, turned towards it; {} when none is there
+## or nothing was done to it.
+func _tap_animal(who, cell: Vector3i) -> Dictionary:
+	if wildlife == null:
+		return {}
+	var aim := (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL
+	var on := false
+	for a in wildlife.animals:
+		if a.gone or a.health <= 0 or a.aloft() or absf(a.pos.y - aim.y) > 1.5 * CELL:
+			continue
+		if Vector2(a.pos.x - aim.x, a.pos.z - aim.z).length() <= a.radius + 0.5 * CELL:
+			on = true
+			break
+	if not on:
+		return {}
+	var dir := Vector2(aim.x - who.position.x, aim.z - who.position.z)
+	if dir.length() < 0.05:
+		dir = Vector2.ZERO
+	if not tend_kind(who, dir) in ["", "release"]:
+		var tending := tend(who, dir)
+		if not tending.is_empty():
+			return tending
+	return strike(who, Tools.hunts(Tools.weapon(who.held())), dir)
+
+
+## The tap ring round a tapped cell, in order: the cell itself, the four beside it, the
+## four corners (see tap_choice).
+const TAP_RING: Array[Vector2i] = [Vector2i.ZERO, Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
+	Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]
+
+
+## What a tap or a click on `cell` gathers with hands or a sword (see dig_at), chosen as
+## the action button chooses in front (front_choice), only at the cell instead of in
+## front of the body: food first, also off the trees, bushes and grass right round the
+## cell (TAP_RING), the nearest to it; else what is worth most on the cell itself (seeds,
+## then the rest: the tree it is part of, the bush on it, its grass), so a click on grass
+## or ground still works the cell it is aimed at. {"tree": column}, {"bush": cell},
+## {"mow": cells}, or {} when nothing there gives anything (then the cell is dug).
+func tap_choice(who, cell: Vector3i) -> Dictionary:
+	var t: Dictionary = who.tool()
+	if not t.tool in ["hand", "sword"] or not world.in_bounds(cell.x, cell.y, cell.z):
+		return {}
+	# A tap on a bush or on the air over the ground counts from the ground under it.
+	var ground := cell if world.get_cell(cell.x, cell.y, cell.z) != Mat.AIR else cell + Vector3i.DOWN
+	var best := {}
+	var best_rank := DIG_RANK
+	var own: Variant = tree_of(cell)
+	if own != null and _tree_in_reach(who, own) and useful(who, {"tree": own}):
+		var r := _rank(_gives(who, {"tree": own}))
+		if r < best_rank:
+			best = {"tree": own}
+			best_rank = r
+	for o in TAP_RING:
+		if best_rank == FOOD_RANK:
+			break
+		# Round the cell only food is worth going past the cell for.
+		var top := DIG_RANK if o == Vector2i.ZERO else FOOD_RANK + 1
+		var col := Vector2i(ground.x + o.x, ground.z + o.y)
+		if col != own and world.trees.has(col) and world.log_col(col.x, col.y) != 0 \
+				and absi(trunk_cell(who, col).y - ground.y) <= 3 and _tree_in_reach(who, col) and useful(who, {"tree": col}):
+			var r := _rank(_gives(who, {"tree": col}))
+			if r < best_rank and r < top:
+				best = {"tree": col}
+				best_rank = r
+		for dy in [0, -1, 1]:
+			var c := Vector3i(col.x, ground.y + dy, col.y)
+			var bush := c + Vector3i.UP
+			if world.bushes.has(bush) and not too_far(who, bush, t.reach) and useful(who, {"bush": bush}):
+				var r := _rank(_gives(who, {"bush": bush}))
+				if r < best_rank and r < top:
+					best = {"bush": bush}
+					best_rank = r
+			if Tools.mows(t) and can_mow(c, t) and not too_far(who, c, t.reach):
+				var r := _rank(_mow_gives(c))
+				if r < best_rank and r < top:
+					best = {"mow": mow_targets(who, [c] as Array[Vector3i], t)}
+					best_rank = r
+	return best
+
+
+## Whether the crown of the tree on `col` is in reach of the hand in use of `who` (as
+## gather checks it).
+func _tree_in_reach(who, col: Vector2i) -> bool:
+	var from: Vector3 = who.position / CELL
+	return Vector2(col.x + 0.5 - from.x, col.y + 0.5 - from.z).length() <= who.tool().reach + TREE_SPREAD
 
 
 ## What the action button would do in front of `who` now (see act_in_front), changing

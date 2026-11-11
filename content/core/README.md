@@ -12,13 +12,15 @@ content/core/
   mod.yaml               id: core, название, версия, api
   README.md              этот файл
   data/materials.yaml    пять ячеек движка; порядок задаёт номера ячеек, воздух первым
-  data/items.yaml        костёр (prop: campfire, fire: true); здесь же в шапке описаны все поля предметов
+  data/items.yaml        костёр (prop: campfire, fire: true), гниль, крест на месте пропавшего мешка смерти
+                         (grave: true); здесь же в шапке описаны все поля предметов
   data/creatures.yaml    человек (игрок)
   data/starts.yaml       старт нового мира: умения рук, сумка, лагерь у точки появления
   data/eras.yaml         эпохи прогресса 0–3
   data/skills.yaml       девять навыков персонажа (решение 164)
   sprites/               персонаж (player.yaml: раскладка листов, работы рук), свёрток в руке
-  icons/, textures/      иконка костра, текстуры ячеек основы
+  icons/, textures/      иконки костра, гнили и креста, текстуры ячеек основы
+  models/                модель креста (grave.png, tools/make_models.gd -- grave)
 ```
 
 У основы нет папок-бандлов: она одна запись в наборе мира (`core`).

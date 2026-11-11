@@ -9,12 +9,12 @@ extends VBoxContainer
 ## it in the chat. Sending a line shows the recent lines again for FADE seconds, the
 ## line said among them (in single player, with no server to hear it, it is put in the
 ## chat here). `typing` keeps the keys from walking the character. `game` is the
-## Main node; the HUD places the box (place).
+## Main node; the HUD places the box (place). Its buttons and field are the UI kit's.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
-const TextField := preload("res://src/client/ui/text_field.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
 
 ## Lines kept, lines shown while closed, seconds a line shows, and its fading at the end.
 const KEPT := 30
@@ -61,37 +61,25 @@ func _ready() -> void:
 	_row.mouse_filter = Control.MOUSE_FILTER_STOP
 	_row.visible = false
 	add_child(_row)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 4)
+	var h := Kit.row(4)
 	_row.add_child(h)
-	_whom = Button.new()
-	_whom.focus_mode = Control.FOCUS_NONE
-	# Both buttons act as the finger lands: the keyboard closing as it does moves them
-	# away before the finger lifts.
-	_whom.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
-	_whom.custom_minimum_size = Vector2(0, 26)
+	_whom = Kit.button("", _switch_whom, 0, Kit.FIELD_H)
 	_whom.tooltip_text = "[who_hears_it_those_nearby]"
-	_whom.pressed.connect(func() -> void:
-		_to_team = not _to_team
-		_show_whom()
-		_field.grab_focus())
 	h.add_child(_whom)
-	_field = LineEdit.new()
-	_field.placeholder_text = "[say_to_those_nearby]"
-	_field.max_length = MAX
-	_field.custom_minimum_size = Vector2(WIDTH - 40, 26)
+	_field = Kit.field("[say_to_those_nearby]", WIDTH - 40, MAX)
 	_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_field.text_submitted.connect(func(_t: String) -> void: submit())
-	TextField.fit(_field)
 	h.add_child(_field)
-	var send := Button.new()
-	send.text = "›"
+	var send := Kit.button("›", submit, Kit.FIELD_H, Kit.FIELD_H)
 	send.tooltip_text = "[say]"
-	send.focus_mode = Control.FOCUS_NONE
-	send.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
-	send.custom_minimum_size = Vector2(26, 26)
-	send.pressed.connect(submit)
 	h.add_child(send)
+
+
+## The button of whom a line goes to: the other ones; the field keeps the keys.
+func _switch_whom() -> void:
+	_to_team = not _to_team
+	_show_whom()
+	_field.grab_focus()
 
 
 ## The field is open and has the keys.
@@ -116,6 +104,8 @@ func open() -> void:
 	_show_whom()
 	_row.visible = true
 	_field.grab_focus()
+	# Editing at once: the phone's keyboard comes up with the field, not at a tap on it.
+	_field.edit()
 	_refresh()
 
 

@@ -10,6 +10,7 @@ extends Control
 ## how far; a tap on a marker opens the same window to recolour it or take it off.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
 const Markers := preload("res://src/client/game/markers.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
@@ -113,14 +114,8 @@ func _ready() -> void:
 
 
 func _button(icon: String, tip: String, action: Callable) -> Button:
-	var b := Button.new()
-	b.icon = UiStyle.icon(icon)
-	b.tooltip_text = tip
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(BUTTON, BUTTON)
-	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var b := Kit.icon_button(icon, tip, action, BUTTON)
 	b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.3))
-	b.pressed.connect(action)
 	_buttons.add_child(b)
 	return b
 
@@ -140,25 +135,15 @@ func _build_popup() -> void:
 	row.add_theme_constant_override("separation", 2)
 	box.add_child(row)
 	for i in Markers.COLORS.size():
-		var b := Button.new()
-		b.icon = _swatch(Markers.COLORS[i][1])
-		b.tooltip_text = (Markers.COLORS[i][0] as String).capitalize()
-		b.focus_mode = Control.FOCUS_NONE
-		b.custom_minimum_size = Vector2(BUTTON - 4, BUTTON - 4)
-		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var b := Kit.icon_button(_swatch(Markers.COLORS[i][1]), (Markers.COLORS[i][0] as String).capitalize(),
+			Callable(), BUTTON - 4)
 		b.add_theme_constant_override("h_separation", 0)
 		for state in ["normal", "hover", "pressed", "hover_pressed"]:
 			b.add_theme_stylebox_override(state, _swatch_box(state, false))
 		b.pressed.connect(_pick_color.bind(i))
 		row.add_child(b)
 		_swatches.append(b)
-	_remove = Button.new()
-	_remove.icon = UiStyle.icon("trash")
-	_remove.tooltip_text = "[remove_the_marker]"
-	_remove.focus_mode = Control.FOCUS_NONE
-	_remove.custom_minimum_size = Vector2(BUTTON - 4, BUTTON - 4)
-	_remove.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_remove.pressed.connect(_remove_marker)
+	_remove = Kit.icon_button("trash", "[remove_the_marker]", _remove_marker, BUTTON - 4)
 	row.add_child(_remove)
 
 

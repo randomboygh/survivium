@@ -75,8 +75,12 @@ void fragment() {
 	vec3 src;
 	if (crt_on) {
 		// The tube's curve: the middle swells, the corners bend away and go black.
+		// Offsets go by the screen's long side, the same either way the phone is held; the
+		// bend goes by the diagonal (a corner at 0.5 as on a square), so it is round.
+		float long_side = max(crt_screen.x, crt_screen.y);
 		vec2 cc = sp - 0.5;
-		sp = 0.5 + cc * (1.0 + crt_curve * dot(cc, cc) * 4.0) / (1.0 + crt_curve);
+		vec2 cn = cc * crt_screen.xy / length(crt_screen.xy) * 1.41421;
+		sp = 0.5 + cc * (1.0 + crt_curve * dot(cn, cn) * 4.0) / (1.0 + crt_curve);
 		vec2 out_px = min(sp, 1.0 - sp) * crt_screen.xy;
 		edge = clamp(min(out_px.x, out_px.y) / 2.0, 0.0, 1.0);
 		vec2 read = sp;
@@ -84,19 +88,20 @@ void fragment() {
 			// Rows of two screen pixels wander sideways, a little each frame and in a slow wave.
 			float line = floor(sp.y * crt_screen.y / 2.0);
 			float frame = floor(TIME * 30.0);
-			read.x += (crt_hash(vec2(line, frame)) - 0.5) * crt_jitter + sin(sp.y * 37.0 + TIME * 2.3) * crt_jitter * 0.6;
+			float jit = crt_jitter * long_side / crt_screen.x;
+			read.x += (crt_hash(vec2(line, frame)) - 0.5) * jit + sin(sp.y * 37.0 + TIME * 2.3) * jit * 0.6;
 			// The torn band near the bottom: rows thrown far aside and snow.
 			float band_y = 0.93 + 0.03 * sin(TIME * 0.7);
 			float in_band = 1.0 - smoothstep(0.0, 0.02, abs(sp.y - band_y));
-			read.x += in_band * crt_band * (crt_hash(vec2(line, frame + 7.0)) - 0.3) * 0.03;
+			read.x += in_band * crt_band * (crt_hash(vec2(line, frame + 7.0)) - 0.3) * 0.03 * long_side / crt_screen.x;
 			band = in_band * crt_band;
 		}
 		uv = (read * crt_screen.xy - crt_screen.zw) / picture;
-		float off = crt_rgb * crt_screen.x / picture.x;
+		float off = crt_rgb * long_side / picture.x;
 		src = vec3(texture(TEXTURE, uv + vec2(off, 0.0)).r, texture(TEXTURE, uv).g, texture(TEXTURE, uv - vec2(off, 0.0)).b);
 		if (crt_bleed > 0.0) {
 			// Colour smeared to the right along the row; the brightness stays sharp.
-			float b = crt_bleed * crt_screen.x / picture.x;
+			float b = crt_bleed * long_side / picture.x;
 			vec3 smear = (texture(crt_view, uv - vec2(b, 0.0)).rgb * 2.0 + texture(crt_view, uv - vec2(b * 2.0, 0.0)).rgb
 				+ texture(crt_view, uv).rgb) / 4.0;
 			vec3 w = vec3(0.299, 0.587, 0.114);
@@ -130,8 +135,10 @@ void fragment() {
 		float s = sin(row * 3.14159265);
 		c *= 1.0 - crt_scan * s * s;
 		c *= 1.0 - crt_interlace * float(mod(floor(row) + crt_field, 2.0) < 1.0);
-		// The phosphor stripes: each screen column lights its own colour best.
-		float col = mod(floor(sp.x * crt_screen.x), 3.0);
+		// The phosphor stripes: each column lights its own colour best; a stripe is wider
+		// on a dense screen (a phone), else it is too fine to see.
+		float stripe = max(1.0, floor(max(crt_screen.x, crt_screen.y) / 1100.0 + 0.5));
+		float col = mod(floor(sp.x * crt_screen.x / stripe), 3.0);
 		vec3 mask = vec3(1.0 - crt_mask);
 		mask[int(col)] = 1.0;
 		c *= mask * (1.0 + crt_mask * 0.6);

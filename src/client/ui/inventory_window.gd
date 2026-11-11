@@ -30,6 +30,7 @@ extends PanelContainer
 ## Opens over the running world, which goes on; taps inside it do not reach the world.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
@@ -1141,9 +1142,4 @@ func _chest_cells() -> Array:
 
 
 func _button(text: String, action: Callable) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(0, 30)
-	b.pressed.connect(action)
-	return b
+	return Kit.button(text, action, 0, 30)

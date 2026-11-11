@@ -16,6 +16,15 @@
   персонажа (рядом с `sacks`, в сохранении; у старых мешков — навсегда) снимают метку с карт и без чанка
   (`_forget_old_sacks`, `forget_sack`). Мешок, забранный не целиком, свой день сохраняет. Экран смерти пишет,
   сколько он пролежит (`death.sack_days`).
+  Крест на месте мешка: шестое поле записи мешка — кто умер (`grave_of`: имя игрока, причина, день, сколько
+  прожил, счётчики `life` больше 0). Когда мешок пропадает, `expire_sacks` возвращает, где он лежал и кто умер,
+  а сеанс ставит там крест (`Placed.put_grave`: первый предмет с `grave`, у основы `core:grave`; в клетке
+  мешка или ближайшей свободной в `Placed.GRAVE_REACH` (3) клетках, уровнем выше или ниже; нет места — нет
+  креста). Запись креста (`grave`, чистит `Placed.grave_record`) идёт в сохранение и копиям как у табличек;
+  над крестом в `Placed.SIGN_READ` клетках `sign_labels.gd` пишет `DeathScreen.grave_text`: «Здесь покоится
+  «имя»», день и сколько прожил, причина, пройдено и два самых больших счётчика жизни — на языке игрока.
+  Крест не пишется; убранный в режиме строительства (`take_up`), он исчезает, в сумку ничего не идёт.
+  Смерть с пустой сумкой мешка не оставляет: крест встаёт сразу (`die`), рядом с телом.
   Урон от падения (`_fall` в `update`): высота считается от уровня, где ноги последний раз стояли
   (`Body.standing` — у мира по месту, которое прислал клиент, а не по его слову; прыжок не добавляет),
   больше `Vitals.FALL_SAFE` (4) уровней — `FALL_PER_LEVEL` за каждый сверх (`Vitals.fall`, `hurt_by`
@@ -189,7 +198,7 @@ RefCounted не освободится — см. комментарий в `src/
 `expr` — Variant (поле нетипизированного объекта), — ошибка разбора: тип указывается явно;
 `typed_array = expr if c else []` — ошибка времени выполнения, которая молча обрывает функцию.
 
-**Тесты.** `tests/unit/skills_test.gd` (уровни, опыт за работу, крафт, земля), `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `spoil`, `vitals`, `warmth`, `thirst`, `sleep`, `changes`, `death`, `fall`, `sack_ends`, `bed_respawn`, `poultice`), `actions_test.gd` (`drinking`),
+**Тесты.** `tests/unit/skills_test.gd` (уровни, опыт за работу, крафт, земля), `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `spoil`, `vitals`, `warmth`, `thirst`, `sleep`, `changes`, `death`, `fall`, `sack_ends`, `graves`, `bed_respawn`, `poultice`), `actions_test.gd` (`drinking`),
 `tests/unit/body_test.gd` (`walking_rules`, `water`, `bog`, `slopes`, `steps`, `ground`),
 `tests/save_test.gd`, `tools/sheet.gd` (лист кадров в PNG).
 

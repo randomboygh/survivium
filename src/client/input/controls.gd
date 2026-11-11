@@ -206,9 +206,10 @@ func unhandled_input(event: InputEvent) -> void:
 
 
 ## A tap or a click at `pos` with hand `hand` (pressed with mouse `button`, which may
-## stay held): another player there opens their card (PersonCard), else something to gather or open there first (a thing on the ground or set
-## on it with any hand, a bush with a tool or bare hands), else what the hand's item is
-## for (see Tools.use_of).
+## stay held): another player there opens their card (PersonCard), else something to take or open there first (a thing on the ground or set
+## on it with any hand, a bush with a tool that fells or digs it out), else what the hand's item is
+## for (see Tools.use_of): a tool or bare hands work the cell (or the bush) as the action
+## button works in front, in its order (WorldActions.dig_at).
 func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 	if hand != active:
 		set_active(hand)
@@ -240,6 +241,11 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 		return
 	var use := use_of()
 	var target: Dictionary = game.gathering.target_at(pos)
+	if target.has("bush") and tool_record().tool in ["hand", "sword"]:
+		# Hands and a sword at a bush work as at any cell, as the action button does: what is
+		# worth most there and round it first (WorldActions.dig_at, tap_choice).
+		_start_stroke(button, pos, true, target.bush)
+		return
 	if not target.is_empty() and (use in ["tool", "hand"] or not target.has("bush")):
 		if _cooldown <= 0.0 and game.gathering.gather(target):
 			_cooldown = _hasted(tool_record().swing)
@@ -283,8 +289,11 @@ func update(delta: float) -> void:
 	if _label_clock <= 0.0 and touch:
 		_label_clock = LABEL_TIME
 		game.hud.refresh_action()
+	# Under a sign's window the world is not worked: a stroke ends, the action button
+	# held when it opened does nothing.
+	var covered: bool = game.hud != null and game.hud.sign_window != null
 	if not _stroke.is_empty():
-		if _stroke.held and not Input.is_mouse_button_pressed(_stroke.button):
+		if _stroke.held and (covered or not Input.is_mouse_button_pressed(_stroke.button)):
 			_stroke.held = false
 		if _cooldown <= 0.0 and (_stroke.held or _stroke.pending):
 			_run_stroke()
@@ -302,7 +311,7 @@ func update(delta: float) -> void:
 		if down and not _action_was:
 			mode().toggle_auto()
 		_action_was = down
-	elif action_held or (Input.is_physical_key_pressed(KEY_F) and not _typing()):
+	elif not covered and (action_held or (Input.is_physical_key_pressed(KEY_F) and not _typing())):
 		var acted := _cooldown <= 0.0 and not (_action_was and Tools.can_fish(tool_record()))
 		_action_was = true
 		if acted:
@@ -626,9 +635,13 @@ func _on_plane(screen_pos: Vector2, ref: Vector3i, normal: Vector3i) -> Variant:
 	return cell
 
 
-func _start_stroke(button: int, pos: Vector2, dig: bool) -> void:
+## A stroke of the hand with mouse `button` from screen point `pos`: digging (and all a tap
+## on a cell does, `dig`) or placing; a digging one keeps to cell `at` when given (a bush).
+func _start_stroke(button: int, pos: Vector2, dig: bool, at: Variant = null) -> void:
 	_stroke = {"button": button, "dig": dig, "pos": pos, "held": true, "pending": true, "normal": null,
 		"first": Vector3i.ZERO, "last": Vector3i.ZERO, "axis": -1}
+	if at is Vector3i:
+		_stroke.at = at
 	if _cooldown <= 0.0:
 		_run_stroke()
 
@@ -681,7 +694,7 @@ func _run_stroke() -> void:
 		# A rod casts or pulls once a tap, however long it is held.
 		if _stroke.get("once", false):
 			return
-		var hit := pick(_stroke.pos)
+		var hit := {"cell": _stroke.at, "normal": Vector3i.UP} if _stroke.has("at") else pick(_stroke.pos)
 		if not hit.is_empty():
 			dig_at(hit.cell, hit.normal)
 			_stroke.once = Tools.can_fish(tool_record())

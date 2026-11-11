@@ -94,6 +94,8 @@ static func prop(kind: String, model := "") -> VoxelModel:
 			return signpost()
 		"notice_board":
 			return notice_board()
+		"grave":
+			return grave_cross()
 	return null
 
 
@@ -627,6 +629,33 @@ static func signpost() -> VoxelModel:
 	m.set_voxel(Vector3i(7, 9, 5), dark * 1.2)
 	m.set_voxel(Vector3i(6, 8, 5), wood)
 	m.set_voxel(Vector3i(6, 9, 5), wood)
+	return m
+
+
+## A cross where someone died (Placed.put_grave) on one cell: weathered grey wood, a post
+## a cell and a half high in the middle with a crossbar near its top, facing south, on a
+## low mound of earth with a few stones.
+static func grave_cross() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.56, 0.5, 0.43)
+	var dark := Color(0.36, 0.31, 0.26)
+	var earth := Color(0.38, 0.29, 0.2)
+	var stone := Color(0.55, 0.56, 0.56)
+	for z in range(1, 7):
+		for x in range(2, 6):
+			m.set_voxel(Vector3i(x, 0, z), earth * (0.9 if (x + z) % 3 == 0 else 1.0))
+	for p: Vector3i in [Vector3i(1, 0, 2), Vector3i(6, 0, 5), Vector3i(2, 0, 6), Vector3i(5, 0, 1)]:
+		m.set_voxel(p, stone * (0.9 if p.x % 2 == 0 else 1.05))
+	for y in range(1, 12):
+		for x in [3, 4]:
+			m.set_voxel(Vector3i(x, y, 4), wood * (1.08 if x == 3 else 0.95))
+			m.set_voxel(Vector3i(x, y, 3), dark)
+	for x in range(1, 7):
+		if x == 3 or x == 4:
+			continue
+		for y in [8, 9]:
+			m.set_voxel(Vector3i(x, y, 4), wood * (1.08 if y == 9 else 0.92))
+			m.set_voxel(Vector3i(x, y, 3), dark)
 	return m
 
 

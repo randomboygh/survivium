@@ -207,10 +207,7 @@ func _host_elsewhere() -> void:
 
 
 func _add_button(parent: Node, key: String, text: String, action: Callable, tag := "") -> void:
-	var b := Button.new()
-	b.text = text
-	b.focus_mode = Control.FOCUS_NONE
-	b.custom_minimum_size = Vector2(WIDTH, BUTTON_H)
+	var b := Kit.button(text, Callable(), WIDTH, BUTTON_H)
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	if action.is_valid():
 		b.pressed.connect(action)

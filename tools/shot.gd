@@ -491,6 +491,16 @@ func _run() -> void:
 						# The bottom of the section.
 						await process_frame
 						main.hud.settings_menu()._scroll.scroll_vertical = 100000
+				# «Витрина интерфейса» on tab `gallery` (UiGallery.SECTIONS).
+				if shot.has("gallery"):
+					# The one an earlier shot opened goes first (it would show through the shade).
+					for c in main.hud.get_children():
+						if c.get_script() != null and (c.get_script() as Script).resource_path.ends_with("ui_gallery.gd"):
+							c.close()
+					var gallery: Control = main.hud.settings_menu().open_gallery()
+					await process_frame
+					gallery.show_section(shot.gallery)
+					await process_frame
 				# Buttons of the window tapped once, by their vars (a two-tap one turns red).
 				for b: String in shot.get("press", []):
 					(main.hud.settings_menu().get(b) as Button).pressed.emit()
@@ -1113,6 +1123,11 @@ func _run() -> void:
 			places.unwall(main.world, Vector3i((main.player.position / CELL).floor()))
 		main.settings.set_value("ui_size", shot.get("ui_size", 2))
 		main.settings.set_value("control_size", shot.get("control_size", 2))
+		# «Витрина интерфейса» goes with its shot (it would cover the next one), before
+		# the window under it closes (it shows that one again).
+		for c in main.hud.get_children():
+			if c.get_script() != null and (c.get_script() as Script).resource_path.ends_with("ui_gallery.gd"):
+				c.close()
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 		if shot.get("test", false):

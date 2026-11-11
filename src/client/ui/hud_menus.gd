@@ -228,8 +228,11 @@ func _update_menu() -> void:
 
 ## Whether a tap at `screen_pos` (screen pixels) is on or within SAFE_ZONE of the
 ## buttons and panels on the screen: such a tap that just misses one is not a tap on
-## the world (no digging, no «Слишком далеко»).
+## the world (no digging, no «Слишком далеко»). A sign's window covers the whole screen:
+## nothing under it is touched.
 func covers(screen_pos: Vector2) -> bool:
+	if sign_window != null:
+		return true
 	var room := SAFE_ZONE * scale.x
 	for c: Control in [_top, _level, minimap, _camera, _bar, build_bar, farm_bar, _bag_meter, _clock_panel, vitals, stick, _action, _jump]:
 		if c != null and c.is_visible_in_tree() and c.get_global_rect().grow(room).has_point(screen_pos):

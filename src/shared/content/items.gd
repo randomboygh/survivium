@@ -101,6 +101,15 @@ static func with_prop(kind: String) -> String:
 	return _first("prop", kind)
 
 
+## The id of the first item with `grave` (the cross set where a death's sack was,
+## Placed.put_grave), "" for none.
+static func grave() -> String:
+	for id in IDS:
+		if BY_ID[id].get("grave", false):
+			return id
+	return ""
+
+
 ## The id of the first item used as a `tool` of `kind` (an axe, a pickaxe), "" for none.
 static func with_tool(kind: String) -> String:
 	return _first("tool", kind)

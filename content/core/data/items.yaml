@@ -60,3 +60,18 @@
   stack: 50
   icon: rot
   source: special
+# Крест — его ставит сам мир там, где лежал мешок умершего, когда его дни прошли
+# (Placed.put_grave): над ним, как над табличкой, видно, кто здесь погиб, отчего, сколько
+# прожил и что успел. grave — такой крест; в сумку не попадает: убранный в режиме
+# строительства, он просто исчезает.
+- id: grave
+  title: "[core.items.grave]"
+  description: "[core.items.grave.about]"
+  weight: 2.0
+  stack: 1
+  icon: grave
+  model: grave
+  prop: grave
+  furniture: true
+  grave: true
+  source: special

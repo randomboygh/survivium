@@ -68,8 +68,10 @@ const DEFAULTS := {
 	# Fog drawn on the ground, deep in the low places (Sky._update_fog); off, a plain haze.
 	"fog": true,
 	# A haze over the chunks on the screen not built yet and the edge of the ones built
-	# (ChunkStreamer.set_haze, EdgeHaze), instead of the empty background.
-	"edge_haze": false,
+	# (ChunkStreamer.set_haze, EdgeHaze), instead of the empty background. On by default;
+	# it was off by default under the key `edge_haze`, which saved files still hold and
+	# load ignores, so every player gets it on once.
+	"edge_mist": true,
 	# The old screen look over the world (Crt.LOOKS): 0 off, 1 soft, 2 old. Not part of
 	# the quality presets.
 	"crt": 0,
@@ -463,7 +465,7 @@ func apply() -> void:
 		sky.rays_on = values.sun_rays
 		sky.fog_on = values.fog
 	if game.chunks != null:
-		game.chunks.set_haze(values.edge_haze)
+		game.chunks.set_haze(values.edge_mist)
 	if game.view != null and game.view.grade_mat != null:
 		Crt.apply(game.view.grade_mat, values.crt, game.view.viewport.get_texture())
 	if game.effects != null:
