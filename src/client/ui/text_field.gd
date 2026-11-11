@@ -11,10 +11,7 @@ extends Node
 ##   switched and back left the keyboard up with no letter reaching the field). This node,
 ##   a child of the field, watches the page's count of those switches while the field has
 ##   the keys;
-## - on a touch screen a touch off the field lets it go (and so closes the keyboard) unless
-##   another field takes the keys: the web page leaves its focus with the keyboard's input
-##   while it types (tools/web_patch.py), else a tap on the field closed the keyboard and the
-##   field opened it again at once (2026-11-10).
+## - on a touch screen a touch off the field lets it go unless another field takes the keys.
 
 ## Counts the page's tab switches, once per page (strict, no `arguments`: CLAUDE.md).
 const TABS := """

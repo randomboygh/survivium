@@ -78,7 +78,13 @@ const KEYS_LOG := """
 		add('win blur');
 	});
 	me.text = function () {
-		return 'act ' + tag(document.activeElement) + ' tab ' + me.gen + '\\n' + me.log.join('\\n');
+		var v = window.visualViewport;
+		var c = document.getElementById('canvas');
+		var r = c ? c.getBoundingClientRect() : null;
+		var view = 'in ' + window.innerWidth + 'x' + window.innerHeight + ' sy ' + window.scrollY +
+			(v ? ' vv ' + Math.round(v.width) + 'x' + Math.round(v.height) + '@' + Math.round(v.offsetTop) : '') +
+			(r ? ' cv ' + Math.round(r.width) + 'x' + Math.round(r.height) + '@' + Math.round(r.top) : '');
+		return 'act ' + tag(document.activeElement) + ' tab ' + me.gen + '\\n' + view + '\\n' + me.log.join('\\n');
 	};
 	window.survivium_keys = me;
 })();
@@ -86,7 +92,7 @@ const KEYS_LOG := """
 ## How often the keys' log under the buttons is read again, in seconds.
 const KEYS_EVERY := 0.25
 ## The lines the keys' log takes under the buttons.
-const KEYS_LINES := 9
+const KEYS_LINES := 10
 
 signal closed
 
