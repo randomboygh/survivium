@@ -22,6 +22,7 @@ const LocalHost := preload("res://src/client/net/local_host.gd")
 const Tunnel := preload("res://src/server/tunnel.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const Config := preload("res://src/server/config.gd")
+const Server := preload("res://src/server/server.gd")
 
 const ROOT := "user://test_saves/server"
 const PORT := 7791
@@ -503,6 +504,7 @@ func _hosted() -> void:
 	await _chat(node, pair[0], pair[1])
 	await _trades(node, pair[0], pair[1])
 	await _security(node)
+	await _renew(node)
 	var said := [false]
 	node.stopped.connect(func() -> void: said[0] = true)
 	node.command("stop")
@@ -513,6 +515,33 @@ func _hosted() -> void:
 		_check(node.tunnel == null and not OS.is_process_running(cf_pid), "and the tunnel is closed with it")
 	root.remove_child(node)
 	node.free()
+
+
+## «/test» on a server that is not a playtest one (TestCommands): a host's only; it goes
+## over to another world (saved first, the players put out with Protocol.CLOSE_RENEW to
+## come in again, who may come in kept) and back to a saved one by its folder's name,
+## never by a path.
+func _renew(node: Node) -> void:
+	var a := _bot("Гость", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return a.reply.done) and a.reply.value.get("ok") == true, "a guest comes in before the world changes: %s" % [a.reply.value])
+	var first: int = node.seed_value
+	var folder: String = node.store.dir.get_file()
+	var listed: Array = node.server.access.listed.duplicate()
+	_check(node.server.command("test bot-", Server.ROLE_PLAYER).contains("хозяина"), "a player may not give «test» there")
+	_check(node.command("test bot-") == "Ботов нет", "a host may: no bots yet")
+	_check(node.command("test world ../%s" % folder).begins_with("Нет такого мира") and node.command("test world nowhere").begins_with("Нет такого мира"),
+		"a world is named only by its folder under the saves")
+	_check(node.command("test new 9").contains("мир 9"), "a new world of a seed is asked for")
+	_check(await _until(func() -> bool: return node.seed_value == 9 and node.server.listening and a.socket.ended)
+		and a.socket.close_code == Protocol.CLOSE_RENEW, "the server goes over to it and the players are told to come again (%d)" % a.socket.close_code)
+	_check(node.server.access.listed == listed and node.saves != null, "who may come in stays, and the new world is saved too")
+	var back := _bot("Хозяин", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return back.reply.done) and back.reply.value.get("seed") == 9
+		and back.reply.value.get("playtest") == false and back.reply.value.has("host"), "a player comes into the new world: %s" % [back.reply.value.get("seed")])
+	_check(node.command("test worlds").contains(folder), "the saved worlds are listed by their folders")
+	node.command("test world " + folder)
+	_check(await _until(func() -> bool: return node.seed_value == first and node.server.listening and node.had_save),
+		"and the server goes back to the first one, as it was saved")
 
 
 ## The host's commands (С5.3): give into a bag (by the item's id, its end or its

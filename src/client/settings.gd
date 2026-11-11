@@ -186,8 +186,9 @@ var values := {}
 ## The «Тестирование» buttons (the flask on the screen, the pause menu's row) are there:
 ## the easter egg of the main menu opens them (ten taps on the sparrow of the name).
 ## Not saved: every start of the game has them hidden again (an old «testing_unlocked»
-## key of settings.cfg is no longer read, and the next save drops it).
-var testing_unlocked := false
+## key of settings.cfg is no longer read, and the next save drops it); kept over the
+## restarts of the scene (another world, a server joined or made), so static.
+static var testing_unlocked := false
 ## Playtest switch: how many times faster the clock runs (0 stops it). Not saved.
 var time_boost := 1.0
 ## Playtest switch: the player's speed multiplier. Not saved.
@@ -731,7 +732,7 @@ func send_cheats(once := {}) -> bool:
 	d.merge(once, true)
 	game.net.request(Protocol.CHEATS, [d]).then(func(taken: Variant) -> void:
 		if taken != true:
-			_note("Сервер не принимает читы: это не тестовый сервер"))
+			_note("Сервер не принимает читы: это не тестовый сервер, и вы не его хозяин"))
 	return true
 
 
@@ -838,8 +839,32 @@ func join_test_server() -> void:
 		game.join_server(url, name if name != "" else "Игрок", ""))
 
 
-## Asks the playtest server joined for `what` («/test`what`», PlaytestHost.command):
-## its answer comes back in the chat.
+## A world of this device can be made a server here (LocalHost.host): on a computer,
+## not in the browser.
+func can_host() -> bool:
+	return not OS.has_feature("web") and OS.get_name() in ["Linux", "Windows", "macOS", "FreeBSD"]
+
+
+## Makes the world played a server on this computer with a bot on it (Config.bots,
+## TestCommands): saved first, then hosted as «Создать сервер» would with the server's
+## last settings (user://server.cfg), and joined as its owner.
+func host_with_bot() -> void:
+	if not can_host() or game.join_url != "" or game.save.store == null:
+		return
+	game.save.flush()
+	game.host_server({"world": game.save.store.dir, "seed_value": int(game.world_seed),
+		"settings": game.world_options, "bots": 1,
+		"player": ServerList.player_name() if ServerList.player_name() != "" else "Хозяин"})
+
+
+## The worlds of this device a server made here may go over to (TestCommands
+## «world»), the latest first, the one it plays left out.
+func server_worlds() -> Array:
+	return WorldStore.list_worlds().filter(func(w: Dictionary) -> bool: return w.seed != game.world_seed).slice(0, 8)
+
+
+## Asks the server joined for `what` («/test `what`», TestCommands.command): its answer
+## comes back in the chat.
 func test_server(what: String) -> void:
 	if game.join_url == "" or game.net == null:
 		return

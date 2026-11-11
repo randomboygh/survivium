@@ -65,7 +65,7 @@ const COMMANDS := {"who": ROLE_HOST, "say": ROLE_HOST, "kick": ROLE_HOST, "give"
 	"tp": ROLE_HOST, "ban": ROLE_HOST, "unban": ROLE_HOST, "bans": ROLE_HOST, "whitelist": ROLE_HOST,
 	"hosts": ROLE_HOST, "help": ROLE_HOST, "?": ROLE_HOST, "security": ROLE_HOST, "reload": ROLE_HOST,
 	"op": ROLE_OWNER, "deop": ROLE_OWNER, "stop": ROLE_OWNER,
-	# Any player, on a playtest server only (Config.playtest, PlaytestHost).
+	# Any player on a playtest server (Config.playtest), a host elsewhere (TestCommands).
 	"test": ROLE_PLAYER}
 ## Lines the security log keeps (security), and seconds between two lines of one kind
 ## about one player (the others are counted into the next).
@@ -155,7 +155,7 @@ var access := {"banned_keys": {}, "banned_names": [], "listed_only": false, "lis
 ## What looked wrong, newest last ({"at", "id", "name", "what", "detail", "level"}), and
 ## when each kind about each player was last written (SECURITY_EVERY) with how many since.
 var security_log: Array = []
-## Does «/test <rest>» on a playtest server (PlaytestHost.command), its answer.
+## Does «/test <rest>» for one of a role (TestCommands.command), its answer.
 var test_command: Callable
 var _flag_at := {}
 ## Wrong passwords by address: the times of the last ones; the times new players came.
@@ -333,9 +333,11 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 		"reload":
 			return reload_mods()
 		"test":
-			if not config.playtest or not test_command.is_valid():
-				return "«test» — только на тестовом сервере"
-			return test_command.call(rest)
+			if not config.playtest and role < ROLE_HOST:
+				return "«test» — только для хозяина сервера или на тестовом сервере"
+			if not test_command.is_valid():
+				return "«test» здесь не работает"
+			return test_command.call(rest, role)
 		"help", "?":
 			return "\n".join(["who — кто в мире; say <слова> — сказать всем; kick <кто> — отключить; stop — остановить сервер",
 				"give <кто> <предмет> [сколько] — дать; tp <кто> <x> <y> <z> | <к кому> — перенести (клетки)",
@@ -343,6 +345,7 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 				"op <кто>, deop <имя>, hosts — кто может давать команды в чате через «/» (op, deop, stop — владелец)",
 				"security [вид или имя] — что выглядело подозрительно",
 				"reload — перечитать данные модов с диска (горячая перезагрузка: числа, звери, рецепты; клетки мира прежние)",
+				"test bot+|bot- — боты; test worlds, test world <имя>, test new [зерно], test new test — другой мир сервера",
 				"<кто> — имя или номер игрока (who)"])
 	return ""
 
@@ -579,7 +582,7 @@ func kick(a: Account, why: String, code := CLOSE_KICKED) -> void:
 
 
 ## Closes every connection, telling the players `why`; the characters leave the world.
-func stop(why := "сервер остановлен") -> void:
+func stop(why := "сервер остановлен", code := CLOSE_STOP) -> void:
 	if store != null and not stopping:
 		if store.save(self):
 			_say("мир сохранён")
@@ -588,7 +591,7 @@ func stop(why := "сервер остановлен") -> void:
 	stopping = true
 	for peer in peers:
 		if peer.ws.get_ready_state() in [WebSocketPeer.STATE_OPEN, WebSocketPeer.STATE_CONNECTING]:
-			peer.ws.close(CLOSE_STOP, why)
+			peer.ws.close(code, why)
 	for key in accounts.keys():
 		_forget(accounts[key])
 	if listening:
@@ -622,10 +625,10 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 			peer.close_after(1000, "пока")
 		return
 	# What the animals have in mind only a host may see (Protocol.AI_DEBUG), anyone on a
-	# playtest server, who may also send the playtest switches (Protocol.CHEATS): a role
-	# taken away stops it.
+	# playtest server; the playtest switches (Protocol.CHEATS) the same: a role taken away
+	# stops them.
 	link.requests.may_debug = is_host(peer.account.key) or config.playtest
-	link.requests.may_cheat = config.playtest
+	link.requests.may_cheat = config.playtest or is_host(peer.account.key)
 	link.requests.day_speed = config.day_speed()
 	link.requests.ai_debug = link.requests.ai_debug and link.requests.may_debug
 	var reply: Variant = link.handle_msg(msg)
@@ -711,7 +714,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		access.listed_keys[name.to_lower()] = a.key
 		_save_access()
 	var welcome := {"ok": true, "id": a.id, "key": a.key, "name": a.name, "at": a.link.who.position,
-		"title": config.title}
+		"title": config.title, "playtest": config.playtest, "host": is_host(a.key)}
 	welcome.merge(world_info)
 	peer.ws.put_packet(Protocol.encode(Protocol.reply(seq, welcome)))
 	for b in a.link.flush():

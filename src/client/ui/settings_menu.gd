@@ -7,9 +7,11 @@ extends PanelContainer
 ## under the title (see PAGES): the settings into Игра, Интерфейс (sizes, the minimap,
 ## which HUD buttons show, the full screen, the key hints), Графика, Музыка and Звук
 ## (their volumes, see Sound; Графика starts with the quality preset, any change by
-## hand makes it «своё»); the playtest page into Мир, Игрок, Маркеры, Отладка, with buttons
-## for what is done once (into the test world, the tools into the bag, to a marker set
-## on the map: Маркеры lists them with their colour and column). The playtest page also
+## hand makes it «своё»); the playtest page into Мир, Сервер, Игрок, Пещеры, Маркеры,
+## Отладка, with buttons for what is done once (into the test world, the tools into the
+## bag, to a marker set on the map: Маркеры lists them with their colour and column;
+## Сервер: the playtest server on GitHub apart from the server played on or made here,
+## see _server_rows). The playtest page also
 ## shows the version of the build and opens the list of recent changes ("changes" page,
 ## its legend of kinds above the buttons; the main menu opens it too), no taller than the
 ## settings and scrolling, made CHANGES_STEP changes at a time as it is scrolled down,
@@ -31,6 +33,7 @@ const Content := preload("res://src/shared/content/content.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
+const WorldStore := preload("res://src/shared/world/world_store.gd")
 
 ## Room for a name of 18 letters of the 8 px font; a longer one wraps onto a second line.
 const NAME_WIDTH := 150
@@ -61,7 +64,7 @@ const MOONS := [["новолуние", 0.0], ["серп", 0.4], ["полнолу
 ## The sections of the pages with tabs: key and tab name.
 const PAGES := {
 	"settings": [["game", "Игра"], ["interface", "Интерфейс"], ["graphics", "Графика"], ["music", "Музыка"], ["sound", "Звук"]],
-	"test": [["world", "Мир"], ["player", "Игрок"], ["caves", "Пещеры"], ["marks", "Маркеры"], ["debug", "Отладка"]],
+	"test": [["world", "Мир"], ["server", "Сервер"], ["player", "Игрок"], ["caves", "Пещеры"], ["marks", "Маркеры"], ["debug", "Отладка"]],
 	"freezes": [["all", "Все"], ["critical", "от 200"], ["big", "100–200"], ["small", "50–100"]],
 }
 ## Sections with nothing to set yet: their tabs are dimmed, «скоро».
@@ -356,23 +359,13 @@ func _section_rows(key: String) -> Array:
 				["Ход времени", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "стоит" if v == 0.0 else ("обычный" if v == 1.0 else "×%d" % int(v))),
 					func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),
 					func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i]), "", game_time],
+			] + ([
 				null,
 				{"action": "Вернуться в свой мир" if s.in_test_world() else "Перейти в тестовый мир",
 					"do": func() -> void: s.switch_test_world()},
-				{"action": "Запустить тестовый сервер", "do": func() -> void: s.start_test_server()},
-				{"action": "Подключиться к тестовому серверу", "do": func() -> void: s.join_test_server()},
-			] + ([
-				# On a server: the playtest server's own commands (PlaytestHost).
-				{"action": "Добавить бота", "do": func() -> void: s.test_server("bot+")},
-				{"action": "Убрать бота", "do": func() -> void: s.test_server("bot-")},
-				{"action": "Продлить сервер на час", "do": func() -> void: s.test_server("hour")},
-				{"action": "Остановить тестовый сервер", "do": func() -> void: s.test_server("stop"), "confirm": true},
-				{"action": "Новый мир на сервере", "do": func() -> void: s.test_server("new"), "confirm": true},
-				{"action": "Тестовый мир на сервере заново", "do": func() -> void: s.test_server("new test"), "confirm": true},
-				["Читы на тестовом сервере", ["выкл", "вкл"],
-					func() -> int: return int(s.cheats),
-					func(i: int) -> void: s.set_cheats(i == 1)],
-			] if game.join_url != "" else [])
+			] if game.join_url == "" else [])
+		"server":
+			return _server_rows()
 		"player":
 			return [
 				["Скорость игрока", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),
@@ -618,6 +611,62 @@ func _section_rows(key: String) -> Array:
 
 
 ## A row of the volume setting `key`, «выкл» to «100%» in Sound.STEPS steps.
+## The «Сервер» tab: the playtest server on GitHub (started, joined, given an hour more,
+## stopped) apart from the server this game is on or makes of its world (bots, its
+## world, the switches as cheats), each under its own heading.
+func _server_rows() -> Array:
+	var s = game.settings
+	var joined: bool = game.join_url != ""
+	var playtest: bool = joined and game.welcome.get("playtest") == true
+	var host: bool = joined and (game.hosted != null or game.welcome.get("host") == true)
+	var rows := [{"note": "Тестовый сервер (GitHub)"}]
+	if playtest:
+		rows += [
+			{"action": "Продлить сервер на час", "do": func() -> void: s.test_server("hour")},
+			{"action": "Остановить тестовый сервер", "do": func() -> void: s.test_server("stop"), "confirm": true},
+		]
+	else:
+		rows += [
+			{"action": "Запустить тестовый сервер", "do": func() -> void: s.start_test_server()},
+			{"action": "Подключиться к тестовому серверу", "do": func() -> void: s.join_test_server()},
+		]
+	rows += [null, {"note": "Этот сервер" if joined else "Свой сервер"}]
+	if not joined:
+		if s.can_host():
+			rows += [{"note": "Боты приходят только на сервер: мир станет сервером на этом компьютере, вы войдёте в него хозяином"},
+				{"action": "Сделать мир сервером и позвать бота", "do": func() -> void: s.host_with_bot()}]
+		else:
+			rows.append({"note": "Свой сервер и боты — в версии для компьютера; здесь — на тестовом сервере"})
+		return rows
+	if not playtest and not host:
+		rows.append({"note": "Ботами и миром этого сервера управляет его хозяин"})
+		return rows
+	rows += [
+		{"action": "Добавить бота", "do": func() -> void: s.test_server("bot+")},
+		{"action": "Убрать бота", "do": func() -> void: s.test_server("bot-")},
+		null,
+		{"action": "Тестовый мир на сервере", "do": func() -> void: s.test_server("new test"), "confirm": true},
+		{"action": "Новый мир на сервере", "do": func() -> void: s.test_server("new"), "confirm": true},
+	]
+	if game.hosted != null:
+		# The server is made here: its worlds are this device's.
+		for w: Dictionary in s.server_worlds():
+			rows.append({"action": Lang.f("Мир %d · день %d", [w.seed, w.day]) if w.seed != WorldStore.TEST_SEED else "Тестовый мир",
+				"do": func() -> void: s.test_server("world " + str(w.dir).get_file()), "confirm": true})
+	else:
+		rows.append({"action": "Миры сервера — список в чат", "do": func() -> void: s.test_server("worlds")})
+	if game.hosted != null:
+		rows.append({"action": "Остановить сервер", "do": func() -> void: game.stop_server(), "confirm": true})
+	elif not playtest:
+		rows.append({"action": "Остановить сервер", "do": func() -> void: s.test_server("stop"), "confirm": true})
+	rows += [null,
+		["Читы на сервере", ["выкл", "вкл"],
+			func() -> int: return int(s.cheats),
+			func(i: int) -> void: s.set_cheats(i == 1)],
+	]
+	return rows
+
+
 func _volume_row(name: String, key: String) -> Array:
 	var s = game.settings
 	var steps := ["выкл"]

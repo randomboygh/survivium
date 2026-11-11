@@ -1,7 +1,8 @@
 extends Control
 ## «Создать сервер» (plan/architecture/server.md, «Меню и экраны»; on a computer): the
 ## window of the server made in the game (Main.hosted, LocalHost.host). Before it runs:
-## the world (one of the saved ones, ‹ › go through them, the one played last first),
+## the world (one of the saved ones, ‹ › go through them, the one played last first; the
+## test world always among them, a new one when none of the player's own is saved),
 ## the server's name, its port, a password, how many players it takes, where players
 ## may fight players («PvP»: выключен, по правам территорий, везде) and «Доступ из
 ## интернета» (a Cloudflare quick tunnel, Tunnel; needs cloudflared), «Погода с улицы»
@@ -109,7 +110,14 @@ func running() -> bool:
 func _build_setup() -> void:
 	var cfg := ConfigFile.new()
 	cfg.load("user://server.cfg")
-	_worlds = WorldStore.list_worlds().filter(func(w: Dictionary) -> bool: return w.seed != WorldStore.TEST_SEED)
+	_worlds = WorldStore.list_worlds()
+	if not _worlds.any(func(w: Dictionary) -> bool: return w.seed != WorldStore.TEST_SEED):
+		# No world of its own saved yet: the one the first screen sets up, new.
+		_worlds.push_front({"dir": "", "seed": int(game.settings.values.world_seed),
+			"settings": game.settings.world_options(), "day": 0, "new": true})
+	if not _worlds.any(func(w: Dictionary) -> bool: return w.seed == WorldStore.TEST_SEED):
+		# The test world may be a server too, laid out anew when it has no save.
+		_worlds.append({"dir": "", "seed": WorldStore.TEST_SEED, "settings": {}, "day": 1})
 	for i in _worlds.size():
 		if _worlds[i].seed == game.world_seed and _worlds[i].settings == game.world_options:
 			_world = i
@@ -241,6 +249,12 @@ func _show_world() -> void:
 		_world_label.text = Lang.f("%d · новый", [game.settings.values.world_seed])
 		return
 	var w: Dictionary = _worlds[_world]
+	if w.get("new", false):
+		_world_label.text = Lang.f("%d · новый", [w.seed])
+		return
+	if w.seed == WorldStore.TEST_SEED:
+		_world_label.text = Lang.f("тестовый · день %d", [w.day])
+		return
 	_world_label.text = Lang.f("%d · день %d", [w.seed, w.day])
 
 

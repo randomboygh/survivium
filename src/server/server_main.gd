@@ -3,7 +3,8 @@ extends Node
 ## scenes/server.tscn, which main.gd changes to on `--server` before building anything
 ## of the client (`godot --headless --path . -- --server [--port N] [--world <folder>]
 ## [--seed N] [--players N] [--password <word>] [--config <file>] [--tunnel]
-## [--real-weather] [--playtest …]`, see Config; a playtest server: PlaytestHost; with
+## [--real-weather] [--playtest …]`, see Config; a playtest server: PlaytestHost; bots and
+## other worlds on «/test»: TestCommands; with
 ## `--tunnel` it runs cloudflared beside it and logs the address friends join from the internet, Tunnel, С7; with `--real-weather` the
 ## world's weather is the real one where the server is, RealWeather). It opens
 ## the world the way the game does (a save under user://saves: the bundles it was made
@@ -28,6 +29,7 @@ const ServerStore := preload("res://src/server/server_store.gd")
 const Tunnel := preload("res://src/server/tunnel.gd")
 const RealWeather := preload("res://src/server/real_weather.gd")
 const PlaytestHost := preload("res://src/server/playtest_host.gd")
+const TestCommands := preload("res://src/server/test_commands.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Session := preload("res://src/shared/game/session.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
@@ -89,14 +91,20 @@ var tunnel: Tunnel
 ## The weather of the real world on the world's clock, null without `real_weather` in
 ## the settings.
 var real_weather: RealWeather
+## «/test …»: bots and other worlds (TestCommands); the playtest server's time
+## (PlaytestHost), null on another server.
+var test_commands: TestCommands
+var playtest_host: PlaytestHost
 var _started := false
 var _stop_at := -1.0
 var _load_clock := 0.0
 var _load_frames := 0
 var _load_worst := 0.0
 var _meta := {}
-## The seed of the world renew asked for, while the players are put out; null otherwise.
+## The seed of the world renew asked for, while the players are put out; null otherwise;
+## and its save's folder ("" for the world of the seed).
 var _renew_seed: Variant = null
+var _renew_folder := ""
 
 
 func _ready() -> void:
@@ -118,17 +126,7 @@ func start() -> bool:
 		failed = "Мир не открыть: " + (str(log_lines.back()).get_slice("] ", 1) if not log_lines.is_empty() else "")
 		return false
 	_make_server()
-	if config.save:
-		saves = ServerStore.new(store, session, {"seed": seed_value, "settings": settings, "mods": mods}, _meta)
-		saves.every = config.autosave
-		var left := saves.clean()
-		if left > 0:
-			say("сохранение было прервано: %d недописанных файлов убрано, мир — с прошлого сохранения" % left)
-		server.store = saves
-		server.load_access()
-		server.next_id = saves.next_player()
-	else:
-		say("мир не сохраняется (--no-save)")
+	_open_saves()
 	if config.console and not hosted and OS.get_stdin_type() != OS.STD_HANDLE_INVALID:
 		console = Console.new()
 		console.start()
@@ -150,8 +148,27 @@ func start() -> bool:
 		add_child(real_weather)
 		say("погода с улицы: узнаю, где сервер…")
 	if config.playtest and not hosted:
-		add_child(PlaytestHost.new(self))
+		playtest_host = PlaytestHost.new(self)
+		add_child(playtest_host)
+	test_commands = TestCommands.new(self)
+	add_child(test_commands)
 	return true
+
+
+## The save of the world opened (ServerStore), and who may come in from it.
+func _open_saves() -> void:
+	saves = null
+	if not config.save:
+		say("мир не сохраняется (--no-save)")
+		return
+	saves = ServerStore.new(store, session, {"seed": seed_value, "settings": settings, "mods": mods}, _meta)
+	saves.every = config.autosave
+	var left := saves.clean()
+	if left > 0:
+		say("сохранение было прервано: %d недописанных файлов убрано, мир — с прошлого сохранения" % left)
+	server.store = saves
+	server.load_access()
+	server.next_id = saves.next_player()
 
 
 func _make_server() -> void:
@@ -159,15 +176,17 @@ func _make_server() -> void:
 		"materials": Array(Mat.IDS), "spawn": spawn})
 
 
-## Plays a new world of `new_seed` in place of this one, on an unsaved server (a
-## playtest one, PlaytestHost): the players are put out to come in again, the port and
-## the tunnel stay. False on a server that saves.
-func renew(new_seed: int) -> bool:
-	if config.save or server == null or server.stopping:
+## Plays the world of `new_seed` in place of this one, or the one saved in `folder` (a
+## name under WorldStore.root): this one is saved (Server.stop), the players are put out
+## to come in again (Protocol.CLOSE_RENEW: their games do it by themselves), the port, the tunnel
+## and who may give commands stay. False while stopping.
+func renew(new_seed: int, folder := "") -> bool:
+	if server == null or server.stopping:
 		return false
-	say("новый мир %d: все выходят, заходите снова" % new_seed)
+	say("другой мир (%s): все выходят и заходят снова" % (folder if folder != "" else str(new_seed)))
 	_renew_seed = new_seed
-	server.stop("Новый мир на сервере: зайдите снова")
+	_renew_folder = folder
+	server.stop("Сервер переходит в другой мир", Protocol.CLOSE_RENEW)
 	return true
 
 
@@ -175,19 +194,30 @@ func renew(new_seed: int) -> bool:
 ## again (renew); stops when the new world cannot be made or the port listened on.
 func _swap_world() -> void:
 	config.seed_value = int(_renew_seed)
-	config.world = ""
+	config.world = _renew_folder
 	_renew_seed = null
+	_renew_folder = ""
 	_stop_at = -1.0
 	remove_child(runner)
 	runner.queue_free()
 	had_save = false
 	_meta = {}
+	var access: Dictionary = server.access
 	if not _open_world():
 		_quit()
 		return
 	if real_weather != null:
 		real_weather.clock = session.clock
 	_make_server()
+	_open_saves()
+	# The hosts and the blocked stay the server's, whichever world it plays.
+	for k in ["banned_keys", "hosts", "owners", "listed_keys"]:
+		server.access[k].merge(access[k])
+	for k in ["banned_names", "listed"]:
+		for v in access[k]:
+			if not v in server.access[k]:
+				server.access[k].append(v)
+	server.access.listed_only = server.access.listed_only or access.listed_only
 	if server.listen() != OK:
 		say("не могу слушать порт %d снова" % config.port)
 		_quit()
