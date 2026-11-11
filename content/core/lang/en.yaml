@@ -289,6 +289,7 @@
 "Кому сказать: тем, кто рядом, или своей команде": "Who hears it: those nearby, or your team"
 "Сказать рядом…": "Say to those nearby…"
 "Сказать": "Say"
+"Команды через «/» — только на сервере": "Commands with “/” work only on a server"
 "Команде": "Team"
 "Рядом": "Nearby"
 "Сказать команде…": "Say to the team…"
@@ -613,8 +614,8 @@
 "Имя": "Name"
 "как вас увидят другие": "how others will see you"
 "если сервер просит": "if the server asks"
-"Подключиться": "Connect"
 "Недавние": "Recent"
+"Подключиться": "Connect"
 "Убрать сервер из списка (нажать дважды)": "Remove the server from the list (tap twice)"
 "Введите имя": "Enter a name"
 
