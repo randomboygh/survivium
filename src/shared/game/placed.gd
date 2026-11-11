@@ -1126,7 +1126,8 @@ func _set_down(who, item: Dictionary, slot: int, spot: Vector3i, turn: int, offs
 			_level_ground(spot + o + Vector3i(0, -1, 0))
 		_remove_bush(spot + o)
 	var by: Variant = who.get("id")
-	var e := put(item.id, spot, taken[3] if taken.size() > 3 else null, true, -1.0, by if by is int else 0, turn)
+	# A sign taken up with words on it says them again (Inventory.text_of).
+	var e := put(item.id, spot, taken[3] if taken.size() > 3 else null, true, -1.0, by if by is int else 0, turn, false, Inventory.text_of(taken))
 	world.note_edit(spot.x, spot.z)
 	if item.claims and territory != null:
 		territory.add_claim(who.get("id") if who.get("id") != null else 0, e, str(who.get("player_name") if who.get("player_name") != null else ""))
@@ -1134,7 +1135,7 @@ func _set_down(who, item: Dictionary, slot: int, spot: Vector3i, turn: int, offs
 
 
 ## `who` takes placed thing `e` back into the bag, a thing that stores with what it holds
-## (its weight and theirs go to the bag); not a campfire (see put_out and destroy), and a
+## (its weight and theirs go to the bag), a sign with its words; not a campfire (see put_out and destroy), and a
 ## fireplace only put out (is_hearth). True if it was taken.
 func take_up(who, e: Dictionary) -> bool:
 	if territory != null and not territory.may(who, e.cell, "build"):
@@ -1153,7 +1154,8 @@ func take_up(who, e: Dictionary) -> bool:
 		return false
 	var inv = who.inventory
 	var full: bool = e.items != null and not e.items.is_empty()
-	if (inv.add(e.item, 1, 0, e.items.to_dict()) if full else who.give(e.item, 1)) < 1:
+	# A sign keeps its words in the bag (Inventory.text_of): set down again, it says them.
+	if (inv.add(e.item, 1, 0, e.items.to_dict()) if full else who.give(e.item, 1, 0, Inventory.NORMAL, e.get("text", ""))) < 1:
 		who.nag("full", "Сумка полна")
 		return false
 	if full:

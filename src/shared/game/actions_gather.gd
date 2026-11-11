@@ -366,7 +366,7 @@ func _take(who, d: Array, most := -1, tap := true) -> Array:
 		var rest := []
 		var moved := false
 		for s: Array in d[3]:
-			var got: int = who.inventory.add(s[0], s[1], s[2] if s.size() > 2 else 0, Inventory.held(s), Inventory.quality(s))
+			var got: int = who.inventory.add(s[0], s[1], s[2] if s.size() > 2 else 0, Inventory.held(s), Inventory.quality(s), Inventory.text_of(s))
 			moved = moved or got > 0
 			if got < s[1]:
 				rest.append([s[0], s[1] - got] + s.slice(2))
@@ -382,11 +382,12 @@ func _take(who, d: Array, most := -1, tap := true) -> Array:
 	var n := count(d)
 	var worn: int = d[3].get("worn", 0) if d.size() > 3 and d[3] is Dictionary else 0
 	var q: int = clampi(int(d[3].get("q", Inventory.NORMAL)), Inventory.MIN_QUALITY, Inventory.MAX_QUALITY) if d.size() > 3 and d[3] is Dictionary else Inventory.NORMAL
+	var text: String = str(d[3].get("text", "")).left(Inventory.TEXT_MOST) if d.size() > 3 and d[3] is Dictionary else ""
 	var id: String = Items.get_item(d[0]).get("id", d[0])
-	var got: int = who.give(id, n if most < 0 else mini(n, most), worn, q)
+	var got: int = who.give(id, n if most < 0 else mini(n, most), worn, q, text)
 	if got >= n:
 		return []
-	return [d[0], d[1], d[2], Inventory.drop_data(Inventory.stack(id, n - got, worn, null, q))]
+	return [d[0], d[1], d[2], Inventory.drop_data(Inventory.stack(id, n - got, worn, null, q, text))]
 
 
 ## How many items drop `d` is (see WorldData.drops): its count, or its "n" for a worn tool.
