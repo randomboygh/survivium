@@ -7,6 +7,7 @@ extends RefCounted
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const GradeShader := preload("res://shaders/grade.gdshader")
+const Crt := preload("res://src/client/view/crt.gd")
 
 const CELL := WorldData.CELL
 const CAMERA_HEIGHT := PixelView.CAMERA_HEIGHT
@@ -378,6 +379,9 @@ func update(delta: float) -> void:
 	grade_mat.set_shader_parameter("view_origin", snapped * PixelView.PIXELS_PER_UNIT - Vector2(image_size) / 2.0)
 	container.position = (-Vector2.ONE * PixelView.MARGIN - frac) * view_scale
 	container.position = container.position.round()
+	if game.settings.values.crt != 0:
+		Crt.frame(grade_mat, game.get_viewport().get_visible_rect().size, container.position, view_scale,
+			Engine.get_process_frames())
 	player.place_sprite()
 	RenderingServer.global_shader_parameter_set("player_pos", player.position)
 

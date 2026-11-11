@@ -8,6 +8,14 @@ extends RefCounted
 
 const SHOTS := {
 	"day": {"time": 0.45, "season": 1},
+	# The old screen look (Crt.LOOKS): by day, and by a fire at night for the glow.
+	"crt-soft": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 1}},
+	"crt-old": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 2}},
+	"crt-tape": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 3}},
+	"crt-off": {"time": 0.45, "season": 1, "trees": true},
+	"crt-fire-soft": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"crt": 1}},
+	"crt-fire-old": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"crt": 2}},
+	"crt-fire-tape": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"crt": 3}},
 	"morning": {"time": 0.29, "season": 0},
 	"evening": {"time": 0.72, "season": 1},
 	"night": {"time": 0.95, "season": 1},
