@@ -1450,3 +1450,4 @@
 "Спуск": "Descente"
 "Спуск под 45°": "Descente à 45°"
 "Пляж": "Plage"
+"Браузер рисует без видеокарты (%s), поэтому игра идёт медленно. Включите в настройках браузера «Использовать графическое ускорение» (в Edge — edge://settings/system, в Chrome — chrome://settings/system) и перезапустите браузер.": "Le navigateur dessine sans la carte graphique (%s), le jeu est donc lent. Activez « Utiliser l'accélération graphique » dans les paramètres du navigateur (Edge : edge://settings/system, Chrome : chrome://settings/system) et redémarrez le navigateur."
