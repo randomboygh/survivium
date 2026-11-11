@@ -1231,3 +1231,6 @@
 "Пляж": "Spiaggia"
 "Браузер рисует без видеокарты (%s), поэтому игра идёт медленно. Включите в настройках браузера «Использовать графическое ускорение» (в Edge — edge://settings/system, в Chrome — chrome://settings/system) и перезапустите браузер.": "Il browser disegna senza la scheda grafica (%s), perciò il gioco è lento. Attiva «Usa accelerazione grafica» nelle impostazioni del browser (Edge: edge://settings/system, Chrome: chrome://settings/system) e riavvia il browser."
 "Браузер выполняет код игры без компиляции (скрипты собирались %d с), поэтому игра идёт медленно. Так бывает в Edge с режимом «Повышение безопасности в Интернете»: выключите его в edge://settings/privacy или добавьте этот сайт в исключения и перезагрузите страницу.": "Il browser esegue il codice del gioco senza compilarlo (gli script hanno impiegato %d s a caricarsi), perciò il gioco è lento. Succede in Edge con «Migliora la sicurezza sul Web»: disattivalo in edge://settings/privacy o aggiungi questo sito alle eccezioni e ricarica la pagina."
+"Построить весь чертёж рядом (F)": "Costruire tutto il progetto qui vicino (F)"
+"Остановить (F)": "Ferma (F)"
+"Сделать всю работу по разметке рядом (F)": "Fare tutto il lavoro segnato qui vicino (F)"
