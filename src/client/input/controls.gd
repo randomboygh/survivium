@@ -947,7 +947,9 @@ func _show_preview(screen_pos: Vector2, dig: bool) -> void:
 			game.cursor.show_cells([trunk if t.tool == "axe" else cell], ok)
 			return
 		if Tools.mows(t) and actions.can_mow(cell, t):
-			var mown: Array[Vector3i] = actions.mow_targets(who, [cell], t)
+			# Typed: `actions` is untyped, so a bare [cell] reaches it as an untyped Array.
+			var order: Array[Vector3i] = [cell]
+			var mown: Array[Vector3i] = actions.mow_targets(who, order, t)
 			game.cursor.show_cells(mown if not mown.is_empty() else [cell], not mown.is_empty())
 			return
 		var cells: Array[Vector3i] = actions.dig_targets(who, Tools.area_cells(cell, hit.normal), t)

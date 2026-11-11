@@ -92,6 +92,13 @@ func _init(g) -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	make_buses()
 	read_records()
+	# The interface's voices are there from the start: the main menu's buttons click
+	# before the world (and its 3D voices, see build) is made.
+	for i in UI_VOICES:
+		var p := AudioStreamPlayer.new()
+		p.bus = "UI"
+		add_child(p)
+		_ui_voices.append(p)
 
 
 ## Takes the sound records of the mods loaded (again after a hot reload, ModReload): the
@@ -145,11 +152,6 @@ func build(world_root: Node3D) -> void:
 	_listener.make_current()
 	for i in VOICES:
 		_voices.append(_player_3d(world_root))
-	for i in UI_VOICES:
-		var p := AudioStreamPlayer.new()
-		p.bus = "UI"
-		add_child(p)
-		_ui_voices.append(p)
 	nature = Nature.new(game)
 	steps = Steps.new(game)
 	voices = Voices.new(game)
@@ -252,6 +254,8 @@ func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "S
 		u.pitch_scale = p_scale
 		if not mute:
 			u.play()
+		return
+	if _voices.is_empty():
 		return
 	var v: AudioStreamPlayer3D = free_voice(_voices)
 	v.stream = stream
