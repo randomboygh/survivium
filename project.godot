@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Survivium"
-config/version="0.2"
+config/version="0.3"
 config/description="Survivium technical prototype: 3D pixel-art world made of levels"
 run/main_scene="res://scenes/main.tscn"
 run/flush_stdout_on_print=true

@@ -1,9 +1,14 @@
 # A server to play on from a phone, for a playtest (stage 1, item 8): run by hand from
 # Actions → «Playtest server» → Run workflow. It runs the game's headless server here, on
 # GitHub's machine, behind a Cloudflare quick tunnel (src/server/tunnel.gd), for the
-# minutes asked, with bots standing at the spawn as extra players. The link to open on
-# the phone (the web build with `?server=wss://…`) is shown on the run's page as a
-# notice and in the summary, about two minutes after the start. The world is not saved.
+# minutes asked, with bots as extra players (src/client/input/bot.gd: they walk about the
+# spawn, talk, make gestures, throw things out, set signs and campfires, fell trees and
+# hunt; more are added and taken away in the game, PlaytestHost), so the server runs with
+# «Бесплатные предметы» (free_items).
+# The link to open on the phone (the web build with `?server=wss://…`) is shown on the
+# run's page as a notice, in the summary and as the commit status «playtest-link», about
+# two minutes after the start; the game's «Тестирование» → «Подключиться к тестовому
+# серверу» reads it there (src/client/net/playtest.gd). The world is not saved.
 name: Playtest server
 
 on:
@@ -11,16 +16,20 @@ on:
     inputs:
       minutes:
         description: Minutes the server runs (at most 300)
-        default: "60"
+        default: "120"
       seed:
-        description: World seed (empty for a new one, -1 for the test world)
-        default: ""
+        description: World seed (-1 for the test world, empty for a new one)
+        default: "-1"
       bots:
-        description: Bots standing at the spawn (0..3)
-        default: "1"
+        description: Bots playing about the spawn (0..3)
+        default: "3"
 
 permissions:
   contents: read
+  # tools/build_info.py reads the merged pull requests for the version.
+  pull-requests: read
+  # The link as a commit status.
+  statuses: write
 
 concurrency:
   group: playtest
@@ -39,12 +48,19 @@ jobs:
       - uses: ./.github/actions/godot
         with:
           templates: false
+      # The version the clients check on joining (Protocol.build_version): the same as the
+      # web build of main, else the server says «dev» and nobody can join.
+      - name: Version
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.sha }}
+        run: python3 tools/build_info.py build_info.json
       - name: Download cloudflared
         run: |
           curl -fsSL --retry 3 -o ~/cloudflared \
             "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64"
           chmod +x ~/cloudflared && ~/cloudflared --version
-      # The server and the bots run on in the background after this step, which ends once
+      # The server (and the bots it starts) run on in the background after this step, which ends once
       # the link is there: its log, the notice and the summary show the link during the play.
       - name: Start the server
         env:
@@ -56,9 +72,12 @@ jobs:
           bots=$(( ${BOTS//[^0-9]/} + 0 )); [ "$bots" -le 3 ] || bots=3
           seed_args=()
           if [[ "$SEED" =~ ^-?[0-9]+$ ]]; then seed_args=(--seed "$SEED"); fi
-          mkdir -p logs
-          nohup ~/godot/godot --headless --path . -- --server --port 7777 --no-save "${seed_args[@]}" \
-            --tunnel --cloudflared ~/cloudflared </dev/null > logs/server.log 2>&1 &
+          mkdir -p logs link
+          # The bots get what they work with by the recipes, for nothing (bots may also be
+          # added in the game, «/test bot+»).
+          printf '[rules]\nfree_items=true\n' > logs/playtest.cfg
+          nohup ~/godot/godot --headless --path . -- --server --port 7777 --no-save "${seed_args[@]}" --config "$PWD/logs/playtest.cfg" \
+            --playtest --minutes "$minutes" --bots "$bots" --bot-logs "$PWD/logs" --tunnel --cloudflared ~/cloudflared </dev/null > logs/server.log 2>&1 &
           server=$!
           link=""
           for _ in $(seq 240); do
@@ -75,19 +94,24 @@ jobs:
             echo
             echo "Открыть на телефоне: $link"
           } >> "$GITHUB_STEP_SUMMARY"
-          for i in $(seq "$bots"); do
-            nohup ~/godot/godot --headless --path . -- --join ws://localhost:7777 --name "Бот$i" \
-              </dev/null > "logs/bot$i.log" 2>&1 &
-          done
+          echo "$link" > link/link.txt
           echo "$server" > logs/server.pid
-          echo "$(( $(date +%s) + minutes * 60 ))" > logs/end
+      # The link as a commit status of the run's commit too («playtest-link»): the API gives
+      # it while the run goes on, the job logs only after.
+      - name: Publish the link
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          link=$(cat link/link.txt)
+          jq -n --arg url "$link" '{state: "success", context: "playtest-link", target_url: $url, description: "Ссылка для телефона"}' \
+            | curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -d @- >/dev/null
+      # The server ends itself when its minutes are over (PlaytestHost; «/test hour» in the
+      # game gives it more, «/test stop» stops it) and takes its bots with it.
       - name: Play
         run: |
           server=$(cat logs/server.pid)
-          end=$(cat logs/end)
-          while [ "$(date +%s)" -lt "$end" ] && kill -0 "$server" 2>/dev/null; do sleep 15; done
-          # Nothing to save (--no-save): the server and the bots just end.
-          kill $server 2>/dev/null || true
+          while kill -0 "$server" 2>/dev/null; do sleep 15; done
           pkill -f -- '--join ws://localhost:7777' || true
           cat logs/server.log
       - name: Keep the logs

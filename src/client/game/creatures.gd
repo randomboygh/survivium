@@ -168,6 +168,9 @@ func _process(delta: float) -> void:
 	if wildlife == null:
 		return
 	var t := Time.get_ticks_usec()
+	if wildlife.has_method("glide"):
+		# The server's animals over a socket move between their snapshots (RemoteWildlife).
+		wildlife.glide()
 	var now := Time.get_ticks_msec() * 0.001
 	var beat := now * FLAP_RATE
 	var flip := 1.0 if PixelView.right.x >= 0.0 else -1.0

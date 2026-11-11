@@ -35,6 +35,7 @@ const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const SkyScript := preload("res://src/client/view/sky.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
 const Controls := preload("res://src/client/input/controls.gd")
+const Bot := preload("res://src/client/input/bot.gd")
 const BuildMode := preload("res://src/client/input/build_mode.gd")
 const FarmMode := preload("res://src/client/input/farm_mode.gd")
 const CameraRig := preload("res://src/client/view/camera_rig.gd")
@@ -147,6 +148,8 @@ var sky: SkyScript
 ## The client's copy of the clock (the server's is `session.clock`).
 var clock: RemoteClock
 var controls: Controls
+## Plays by itself when the command line asks (`--bot`, a playtest's bots), else null.
+var bot: Bot
 ## The build mode (palette, shapes, the blueprint's strokes and its building).
 var build: BuildMode
 ## The farming mode (its palette, the marks of the work on the ground and their work).
@@ -311,6 +314,12 @@ func _ready() -> void:
 		_start_hosting()
 	_read_join()
 	controls = Controls.new(self)
+	if join_url != "" and Bot.asked():
+		bot = Bot.new(self)
+		# Bots run beside the server on one machine: unbounded, their frames took the
+		# server's processor, and its tick fell behind (the animals lagged, the players'
+		# bodies were put back, 2026-11-10).
+		Engine.max_fps = Bot.FPS
 	build = BuildMode.new(self)
 	farm = FarmMode.new(self)
 	settings = SettingsScript.new(self)
@@ -349,6 +358,8 @@ func _ready() -> void:
 	placed.read_footprints()
 	props.watch(placed)
 	wildlife = RemoteWildlife.new()
+	# Over a socket the animals glide between the server's snapshots.
+	wildlife.smooth = join_url != ""
 	character = CharacterScript.new(self)
 	character.clock = clock
 	character.placed = placed
@@ -467,6 +478,9 @@ func _start_hosting() -> void:
 	show_host = true
 	var player := str(values.get("player", "Хозяин"))
 	values.erase("player")
+	# The day lasts on the server made here as in the host's own game («Длина суток»).
+	if settings != null:
+		values["day_minutes"] = Clock.DAY_LENGTH / settings.time_speed() / 60.0
 	var node := LocalHost.host(values, get_tree().root)
 	if node.failed != "":
 		host_error = node.failed
@@ -511,7 +525,9 @@ func _connect() -> void:
 		join_error = "Неверный адрес сервера"
 		return
 	net = socket.net
-	socket.hello(player_name, ServerList.key(join_url), join_password).then(_on_welcome)
+	# A bot comes in new each time: bots started side by side share this device's keys.
+	var key: String = "" if bot != null else ServerList.key(join_url)
+	socket.hello(player_name, key, join_password).then(_on_welcome)
 
 
 func _on_welcome(v: Variant) -> void:
@@ -529,7 +545,8 @@ func _on_welcome(v: Variant) -> void:
 		join_error = "Сервер ответил не по-нашему"
 		return
 	welcome = v
-	ServerList.remember(join_url, str(v.get("key", "")), str(v.get("title", "")))
+	if bot == null:
+		ServerList.remember(join_url, str(v.get("key", "")), str(v.get("title", "")))
 	# The player who made the server here is its host: commands in the chat are theirs.
 	if hosted != null and hosted.server != null:
 		hosted.server.make_host(str(v.get("key", "")))
@@ -792,6 +809,9 @@ func _loading_stage(text: String) -> void:
 ## around the player, so less is left to build when the game goes on (see
 ## ChunkStreamer.paused, Runner).
 func _build_while_paused() -> void:
+	# The tree's signal, so it also comes in the frame a restart takes this scene out.
+	if not is_inside_tree():
+		return
 	if get_tree().paused and socket != null:
 		# The server goes on: what it sends is taken while the game here is paused.
 		socket.poll()
@@ -924,7 +944,10 @@ func _process(delta: float) -> void:
 		# The player stands still behind the main menu, lies dead behind the death screen
 		# and asleep behind the sleep screen.
 		var playing: bool = (menu == null or not menu.is_open) and not character.is_dead() and not character.vitals.asleep
-		player.body.move_input = controls.read_move() if playing else Vector2.ZERO
+		if bot != null:
+			player.body.move_input = bot.move(delta) if not character.vitals.asleep else Vector2.ZERO
+		else:
+			player.body.move_input = controls.read_move() if playing else Vector2.ZERO
 		var jump: bool = controls.jump() and playing and (player.body.air_jumps or character.can_jump())
 		player.body.load_scale = character.inventory.speed_factor() * character.vitals.speed_factor()
 		player.body.swim_scale = character.skills.boost("swim")

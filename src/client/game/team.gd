@@ -1,7 +1,8 @@
 extends RefCounted
 ## The player's team as the server tells it (Protocol.TEAM, INVITES; the rules are
 ## src/shared/game/teams.gd): the team ({} for none: "id", "name", "lead", "members"
-## [[id, name]…]) and the invitations waiting ([[id, name]…]). Asks the server to
+## [[id, name]…]), the invitations waiting ([[id, name]…]) and those the player sent
+## waiting for an answer (`sent`: [[id, until (Time seconds)]…]). Asks the server to
 ## invite, accept, decline, leave, put out and rename through `game.net`.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
@@ -12,6 +13,7 @@ signal changed
 var game
 var view := {}
 var invites: Array = []
+var sent: Array = []
 ## Fighting, as the server tells it (Protocol.FIGHT; the rules are src/shared/game/
 ## fights.gd): the server's mode ("off", "land", "all"), whole minutes of the player's
 ## protection as a newcomer left, whole seconds of their fight left.
@@ -25,9 +27,20 @@ func take_team(v: Dictionary) -> void:
 	changed.emit()
 
 
-func take_invites(list: Array) -> void:
+func take_invites(list: Array, out: Array = []) -> void:
 	invites = list.filter(func(e: Variant) -> bool: return e is Array and e.size() == 2 and e[0] is int)
+	var now := Time.get_ticks_msec() / 1000.0
+	sent = []
+	for e: Variant in out:
+		if e is Array and e.size() == 2 and e[0] is int and (e[1] is float or e[1] is int):
+			sent.append([e[0], now + float(e[1])])
 	changed.emit()
+
+
+## The invitations sent still waiting: [[id, seconds left]…].
+func sent_waiting() -> Array:
+	var now := Time.get_ticks_msec() / 1000.0
+	return sent.filter(func(e: Array) -> bool: return e[1] > now).map(func(e: Array) -> Array: return [e[0], e[1] - now])
 
 
 func take_fight(f: Array) -> void:

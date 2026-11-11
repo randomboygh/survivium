@@ -6,8 +6,10 @@ extends Node3D
 ## name over its head. One the server stops telling of (PERSON_GONE: out of the zone or
 ## the world) goes; a member of the player's team has the name in the team's colour
 ## (the entry's last field). A line one says in the chat (HEARD) hangs over the name SAY_TIME
-## seconds. `game` is the Main node (its `hands` gives the looks of the things
-## held).
+## seconds in a balloon. The name and the balloon are the interface's own letters (like
+## the signs' text, SignLabels), on a layer under the rest of it, put at the head's place
+## on the screen each frame, whole pixels. `game` is the Main node (its `hands` gives the
+## looks of the things held).
 
 const PlayerScript := preload("res://src/client/view/player.gd")
 const Figure := preload("res://src/client/view/figure.gd")
@@ -22,23 +24,33 @@ const CELL := WorldData.CELL
 const DELAY := 0.1
 ## Snapshots kept of each: the two round the time drawn, and a couple after.
 const KEPT := 4
-## The name's letters in world pixels, and how high over the head it hangs (world units).
+## The name's height in world pixels (for the gesture's icon over it), and how high over
+## the head its bottom stands (world units).
 const NAME_SIZE := 8
-const NAME_OVER := 0.4
+const NAME_OVER := 0.15
 ## How near a tap's ray passes a figure to pick it, in world units.
 const PICK_REACH := 0.4
-## Seconds a line said shows over the head, and how wide it wraps (world pixels).
+## Seconds a line said shows over the head, and how wide its balloon wraps (UI px).
 const SAY_TIME := 6.0
-const SAY_WIDTH := 110
+const SAY_WIDTH := 150
+## The balloon is a light paper with dark words and a tail to the speaker, unlike the
+## dark panels of the notices and the signs.
+const BALLOON := Color("#f3e7cc")
+const BALLOON_INK := Color("#2a1d12")
+const TAIL := 5.0
+static var _balloon_box: StyleBoxFlat
 
 var game
 ## The performance statistics (PerfPanel), told how long the figures take a frame.
 var perf
-## id -> {"figure": PlayerScript, "label": Label3D, "line": Label3D (what they said, "until"
-## it goes), "snaps": [[time, entry], …],
+## id -> {"figure": PlayerScript, "label": Label (the name), "line": PanelContainer (the
+## balloon of what they said, its Label "said", "until" it goes), "head": the point over the
+## head (world), "snaps": [[time, entry], …],
 ## "work_n": the last work count shown, "hands": the hands shown, "left|right|active",
 ## "gear": what is worn shown}
 var people := {}
+## The layer the names and the balloons are on: the whole interface, under its other parts.
+var _layer: Control
 
 
 ## Takes a PEOPLE event: the entries of those that changed.
@@ -71,12 +83,22 @@ func take_gone(id: int) -> void:
 	one.line.queue_free()
 
 
+func _exit_tree() -> void:
+	if _layer != null:
+		_layer.queue_free()
+		_layer = null
+
+
 ## Player `id` said `text` in the chat: it hangs over their head a while.
 func speak(id: int, text: String) -> void:
 	var one: Dictionary = people.get(id, {})
 	if one.is_empty():
 		return
-	one.line.text = text
+	var said: Label = one.said
+	said.text = text
+	# As wide as the words, wrapped at SAY_WIDTH.
+	var wide: float = UiStyle.font().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE).x
+	said.custom_minimum_size.x = minf(ceilf(wide), SAY_WIDTH)
 	one.line.visible = true
 	one.until = Time.get_ticks_msec() / 1000.0 + SAY_TIME
 
@@ -113,30 +135,79 @@ func _make(at: Vector3) -> Dictionary:
 	f.sprite.layers = 1
 	# Its light stays dark (Sky lights only the player's): hidden, the renderer skips it.
 	f.torch.visible = false
-	var label := _label()
-	var line := _label()
-	line.modulate = UiStyle.INK
-	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	line.width = SAY_WIDTH
-	line.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	line.visible = false
-	return {"figure": f, "label": label, "line": line, "until": 0.0, "snaps": [], "work_n": -1, "hands": "", "gear": ""}
-
-
-func _label() -> Label3D:
-	var label := Label3D.new()
+	var label := UiStyle.label()
+	# A name as the player wrote it, outlined to read over any ground.
 	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-	label.font = UiStyle.font()
-	label.font_size = NAME_SIZE
-	label.outline_size = 4
-	label.pixel_size = 1.0 / PixelView.PIXELS_PER_UNIT
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.no_depth_test = true
-	label.shaded = false
-	label.render_priority = 2
-	label.top_level = true
-	add_child(label)
-	return label
+	label.add_theme_color_override("font_outline_color", UiStyle.EDGE)
+	label.add_theme_constant_override("outline_size", 4)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_layer_made().add_child(label)
+	var line := PanelContainer.new()
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_theme_stylebox_override("panel", _balloon())
+	# The tail under the balloon, pointing at the name (placed in _place_labels).
+	var tail := Polygon2D.new()
+	tail.polygon = PackedVector2Array([Vector2(-TAIL, -2.0), Vector2(TAIL, -2.0), Vector2(0.0, TAIL)])
+	tail.color = BALLOON
+	line.add_child(tail)
+	var said := UiStyle.label()
+	said.add_theme_color_override("font_color", BALLOON_INK)
+	said.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	said.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	line.add_child(said)
+	line.visible = false
+	_layer_made().add_child(line)
+	return {"figure": f, "label": label, "line": line, "said": said, "tail": tail, "until": 0.0, "head": at,
+		"snaps": [], "work_n": -1, "hands": "", "gear": ""}
+
+
+func _layer_made() -> Control:
+	if _layer == null:
+		_layer = Control.new()
+		_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		if game != null and game.hud != null:
+			game.hud.add_child(_layer)
+			game.hud.move_child(_layer, 0)
+		else:
+			add_child(_layer)
+	return _layer
+
+
+## The balloon's box, made once: light, rounded, a dark edge.
+static func _balloon() -> StyleBoxFlat:
+	if _balloon_box == null:
+		_balloon_box = StyleBoxFlat.new()
+		_balloon_box.bg_color = BALLOON
+		_balloon_box.border_color = UiStyle.EDGE
+		_balloon_box.set_border_width_all(1)
+		_balloon_box.set_corner_radius_all(6)
+		_balloon_box.content_margin_left = 6.0
+		_balloon_box.content_margin_right = 6.0
+		_balloon_box.content_margin_top = 2.0
+		_balloon_box.content_margin_bottom = 3.0
+	return _balloon_box
+
+
+## Puts the names and the balloons at the heads' places on the screen.
+func _place_labels() -> void:
+	if _layer == null or game == null or game.view == null:
+		return
+	var t := _layer.get_global_transform()
+	var now := Time.get_ticks_msec() / 1000.0
+	for id in people:
+		var one: Dictionary = people[id]
+		var label: Label = one.label
+		label.reset_size()
+		var at: Vector2 = (game.view.screen_of(one.head) - t.origin) / t.get_scale()
+		label.position = (at - Vector2(label.size.x * 0.5, label.size.y)).floor()
+		var line: PanelContainer = one.line
+		if line.visible:
+			line.visible = now < one.until
+			line.reset_size()
+			line.position = (Vector2(at.x - line.size.x * 0.5, label.position.y - line.size.y - TAIL - 1.0)).floor()
+			one.tail.position = Vector2(floorf(line.size.x * 0.5), line.size.y)
 
 
 func _process(delta: float) -> void:
@@ -199,9 +270,7 @@ func _process(delta: float) -> void:
 			f.facing = SpriteSheet.direction_of(Vector2(e[3]))
 		f._animate(dir.limit_length(1.0), dir.length(), delta)
 		f.place_sprite()
-		one.label.position = PixelView.shear(at + Vector3(0.0, Body.HEIGHT * CELL + NAME_OVER, 0.0))
-		if one.line.visible:
-			one.line.visible = Time.get_ticks_msec() / 1000.0 < one.until
-			one.line.position = one.label.position + Vector3(0.0, float(NAME_SIZE + 2) / PixelView.PIXELS_PER_UNIT, 0.0)
+		one.head = at + Vector3(0.0, Body.HEIGHT * CELL + NAME_OVER, 0.0)
+	_place_labels()
 	if perf != null:
 		perf.add("другие", Time.get_ticks_usec() - t)

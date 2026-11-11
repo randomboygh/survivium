@@ -50,6 +50,9 @@ const WEATHERS := [
 	{"id": "snow", "name": "Снегопад", "icon": "snow", "clouds": 0.8, "snow": 0.6, "wind": 0.4, "chance": [0, 0, 0, 4]},
 	{"id": "blizzard", "name": "Метель", "icon": "snow", "clouds": 0.95, "snow": 1.0, "wind": 2.5, "haze": 0.55, "chance": [0, 0, 0, 1.5]},
 	{"id": "sandstorm", "name": "Песчаная буря", "icon": "sand", "clouds": 0.4, "sand": 1.0, "wind": 2.5, "haze": 0.5, "chance": [0, 0, 0, 0]},
+	# Added later, so last: a weather's index is what saves and the server keep.
+	{"id": "partly_cloudy", "name": "Облачно", "icon": "sun_cloud", "clouds": 0.5, "wind": 0.15, "chance": [3, 3, 3, 2]},
+	{"id": "drizzle", "name": "Морось", "icon": "drizzle", "clouds": 0.85, "rain": 0.15, "fog": 0.3, "fog_depth": 0.8, "wind": 0.3, "chance": [2, 1, 2.5, 0]},
 ]
 const CLEAR := 0
 const RAIN := 4
@@ -80,8 +83,9 @@ const LEAF_FALL_RATE := 1.4
 ## The real weather's codes (WMO, as Open-Meteo gives them) and the kind of
 ## weather each is here; a code left out is the nearest one below it.
 const WMO_WEATHER := {
-	0: "clear", 2: "cloudy", 45: "fog", 48: "dense_fog", 51: "rain", 65: "downpour",
-	66: "rain", 71: "snow", 80: "rain", 82: "downpour", 85: "snow", 95: "storm", 96: "hail",
+	0: "clear", 2: "partly_cloudy", 3: "cloudy", 45: "fog", 48: "dense_fog", 51: "drizzle",
+	61: "rain", 65: "downpour", 66: "rain", 71: "snow", 80: "rain", 82: "downpour", 85: "snow",
+	95: "storm", 96: "hail",
 }
 ## Snow falls as a blizzard in a real wind this strong (m/s); a real wind of
 ## REAL_WIND m/s blows as hard as a wind of 1 here (a blizzard is 2.5).
@@ -115,6 +119,9 @@ var warm_days := 0
 var weather := CLEAR
 ## The weather changes by itself; the playtest page can pin one.
 var weather_auto := true
+## The moonlight the playtest page pins (0 new moon .. 1 full moon), -1 for the phase of
+## the moon; on the server's clock, so every player sees the same (Sky).
+var moon_pin := -1.0
 ## The wind's strength of the real weather (see set_real_weather), or -1: the
 ## weather's own.
 var real_wind := -1.0
@@ -291,7 +298,7 @@ func _begin_season(s: int) -> void:
 ## The name of the weather's icon: rain and hail fall as snow in winter.
 func weather_icon() -> String:
 	var name: String = WEATHERS[weather].icon
-	if season == WINTER and (name == "rain" or name == "hail"):
+	if season == WINTER and (name == "rain" or name == "hail" or name == "drizzle"):
 		return "snow"
 	return name
 
@@ -440,7 +447,7 @@ func from_dict(d: Dictionary) -> void:
 const SNAPSHOT: Array[StringName] = [&"day", &"time_of_day", &"time_speed", &"real_time", &"real_season",
 	&"season", &"season_clock", &"weather", &"weather_auto", &"real_wind", &"weather_left", &"rain",
 	&"snowing", &"hail", &"sand", &"fog", &"fog_depth", &"haze", &"storm_wind", &"wind_angle", &"wind_to",
-	&"leaf_fall", &"clouds", &"snow", &"wet", &"puddles", &"morning_fog_pin", &"biome"]
+	&"leaf_fall", &"clouds", &"snow", &"wet", &"puddles", &"morning_fog_pin", &"biome", &"moon_pin"]
 
 
 ## All the clock shows (the time, the season, the weather and what it leaves on the

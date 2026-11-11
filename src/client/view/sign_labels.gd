@@ -1,27 +1,29 @@
 extends Node3D
-## The text of the signs (Placed.is_sign, decision 183) hung over them, in the letters of
-## the names over the players, to those within Placed.SIGN_READ cells of a sign: a label
-## for each sign written, shown while the player is near, looked for a few times a second.
-## A sign written anew or turned comes back as a thing placed anew (Placed.write), so the
-## label follows the records the copy of the things (RemotePlaced) tells of. `game` is
-## the Main node. While a sign's window is open, none shows.
+## The text of the signs (Placed.is_sign, decision 183) shown over them to those within
+## Placed.SIGN_READ cells of a sign, drawn like the notices (HudMessages.toast): the same
+## framed panel and letters, over the interface, its bottom middle at the sign's top as
+## it is on the screen. A panel for each sign written, shown while the player is near
+## (looked for a few times a second) and moved with the view each frame. A sign written
+## anew or turned comes back as a thing placed anew (Placed.write), so the panel follows
+## the records the copy of the things (RemotePlaced) tells of. `game` is the Main node.
+## While a sign's window is open, none shows.
 
 const Placed := preload("res://src/shared/game/placed.gd")
-const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
 const CELL := WorldData.CELL
-## The letters' size in world pixels, and how far over the sign's top the text's lowest
-## line hangs (world units).
-const TEXT_SIZE := 8
+## How far over the sign's top the panel's bottom stands (world units).
 const TEXT_OVER := 0.12
 ## Seconds between looks at which signs are near.
 const LOOK_EVERY := 0.15
 
 var game
-## The labels of the signs written by their north-west cell: {"e": the record, "label": Label3D}.
+## The panels of the signs written by their north-west cell: {"e": the record, "panel":
+## PanelContainer, "at": the middle of the sign's top, "mid": its middle (world)}.
 var signs := {}
+## The layer the panels are on: the whole interface, under its other parts.
+var _layer: Control
 var _clock := 0.0
 
 
@@ -33,38 +35,45 @@ func watch(placed) -> void:
 		_on_added(e)
 
 
+func _layer_made() -> Control:
+	if _layer == null:
+		_layer = Control.new()
+		_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		game.hud.add_child(_layer)
+		game.hud.move_child(_layer, 0)
+	return _layer
+
+
+func _exit_tree() -> void:
+	if _layer != null:
+		_layer.queue_free()
+		_layer = null
+
+
 func _on_added(e: Dictionary) -> void:
 	if not Placed.is_sign(e) or e.get("text", "") == "":
 		return
 	_on_removed(e)
-	var label := Label3D.new()
+	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var label := UiStyle.label(e.text)
 	# The sign's words as written.
 	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-	label.font = UiStyle.font()
-	label.font_size = TEXT_SIZE
-	label.outline_size = 4
-	label.modulate = UiStyle.INK
-	label.pixel_size = 1.0 / PixelView.PIXELS_PER_UNIT
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.no_depth_test = true
-	label.shaded = false
-	label.render_priority = 2
-	label.top_level = true
-	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	label.text = e.text
-	label.visible = false
-	add_child(label)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel.add_child(label)
+	panel.visible = false
+	_layer_made().add_child(panel)
 	var mid := Placed.center(e)
 	var at := Vector3(mid.x, (e.cell.y + _top(e)) * CELL + TEXT_OVER, mid.z)
-	label.position = PixelView.shear(at)
-	signs[e.cell] = {"e": e, "label": label, "at": mid}
+	signs[e.cell] = {"e": e, "panel": panel, "at": at, "mid": mid}
 
 
 func _on_removed(e: Dictionary) -> void:
 	var one: Dictionary = signs.get(e.cell, {})
 	if one.is_empty():
 		return
-	one.label.queue_free()
+	one.panel.queue_free()
 	signs.erase(e.cell)
 
 
@@ -78,15 +87,29 @@ func _top(e: Dictionary) -> float:
 
 
 func _process(delta: float) -> void:
-	_clock += delta
-	if _clock < LOOK_EVERY or signs.is_empty() or game.player == null:
+	if signs.is_empty() or game.player == null:
 		return
-	_clock = 0.0
+	_clock += delta
+	if _clock >= LOOK_EVERY:
+		_clock = 0.0
+		_look()
+	var t := _layer.get_global_transform()
+	for cell in signs:
+		var one: Dictionary = signs[cell]
+		var panel: PanelContainer = one.panel
+		if panel.visible:
+			panel.reset_size()
+			var at: Vector2 = (game.view.screen_of(one.at) - t.origin) / t.get_scale()
+			panel.position = (at - Vector2(panel.size.x * 0.5, panel.size.y)).floor()
+
+
+## Shows the panels of the signs near the player.
+func _look() -> void:
 	var p: Vector3 = game.player.position
 	var reach := Placed.SIGN_READ * CELL
-	# A sign's window shows the text itself (and the labels would show over its shade).
+	# A sign's window shows the text itself (and the panels would show over its shade).
 	var open: bool = game.hud != null and game.hud.sign_window != null
 	for cell in signs:
 		var one: Dictionary = signs[cell]
-		var d: Vector3 = one.at - p
-		one.label.visible = not open and Vector2(d.x, d.z).length() <= reach and absf(d.y) <= reach
+		var d: Vector3 = one.mid - p
+		one.panel.visible = not open and Vector2(d.x, d.z).length() <= reach and absf(d.y) <= reach

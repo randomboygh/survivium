@@ -55,7 +55,8 @@ var env: Environment
 ## Brightness of a lightning flash, 0 most of the time.
 var flash := 0.0
 var flash_clock := 6.0
-## Moonlight 0 (new moon) .. 1 (full moon), and the playtest override (-1 = by phase).
+## Moonlight 0 (new moon) .. 1 (full moon), and the tools' override (-1: the clock's,
+## Clock.moon_pin, which the playtest page sets on the server).
 var moon := 1.0
 var moon_override := -1.0
 ## How bright the open sky is, 0 on a moonless night .. 1 by day; the torch and the
@@ -129,7 +130,8 @@ func _update_light(delta: float) -> void:
 	var snow: float = clock.snow
 	var h := -cos(time_of_day * TAU)
 	daylight = clock.daylight()
-	moon = moon_override if moon_override >= 0.0 else Clock.moon_phase_light(clock.day + clock.time_of_day)
+	var pin: float = moon_override if moon_override >= 0.0 else clock.moon_pin
+	moon = pin if pin >= 0.0 else Clock.moon_phase_light(clock.day + clock.time_of_day)
 	# Clouds hide the moon; snow on the ground gives its light back.
 	var overcast := clampf((clock.clouds - 0.3) / 0.6, 0.0, 1.0)
 	var moonlight := moon * (1.0 - 0.75 * overcast) * (1.0 + 0.5 * snow)
@@ -376,6 +378,8 @@ func on_season(season: int) -> void:
 ## night when the sky is clear.
 func icon() -> String:
 	var name: String = game.clock.weather_icon()
+	if name == "sun_cloud" and daylight <= 0.35:
+		return "cloud"
 	if name != "sun":
 		return name
 	if daylight > 0.35:

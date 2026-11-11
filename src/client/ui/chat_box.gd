@@ -12,6 +12,7 @@ extends VBoxContainer
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const TextField := preload("res://src/client/ui/text_field.gd")
 
 ## Lines kept, lines shown while closed, seconds a line shows, and its fading at the end.
 const KEPT := 30
@@ -61,6 +62,9 @@ func _ready() -> void:
 	_row.add_child(h)
 	_whom = Button.new()
 	_whom.focus_mode = Control.FOCUS_NONE
+	# Both buttons act as the finger lands: the keyboard closing as it does moves them
+	# away before the finger lifts.
+	_whom.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	_whom.custom_minimum_size = Vector2(0, 26)
 	_whom.tooltip_text = "Кому сказать: тем, кто рядом, или своей команде"
 	_whom.pressed.connect(func() -> void:
@@ -73,13 +77,14 @@ func _ready() -> void:
 	_field.max_length = MAX
 	_field.custom_minimum_size = Vector2(WIDTH - 40, 26)
 	_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_field.select_all_on_focus = false
 	_field.text_submitted.connect(func(_t: String) -> void: submit())
+	TextField.fit(_field)
 	h.add_child(_field)
 	var send := Button.new()
 	send.text = "›"
 	send.tooltip_text = "Сказать"
 	send.focus_mode = Control.FOCUS_NONE
+	send.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	send.custom_minimum_size = Vector2(26, 26)
 	send.pressed.connect(submit)
 	h.add_child(send)

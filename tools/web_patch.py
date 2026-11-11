@@ -32,6 +32,16 @@ phone stopped for a full collection of 50-130 ms every half a minute or so. The 
 writes the time as two 32-bit halves and finds each name among those read before by a
 hash of its bytes, without making a string.
 
+The canvas took the size of the layout viewport (window.innerWidth/innerHeight). On a phone,
+after the keyboard went away, that was at times taller than what the browser shows, and the
+game went on under its bars (2026-11-10, 11-11). The patch sizes it to the visual viewport,
+what is shown, when the page is not zoomed (the page's head script puts the canvas at the
+visual viewport's corner: export_presets.cfg).
+
+(A touch on the canvas still gives it the page's focus, closing the keyboard for a moment
+when the field being edited is tapped: leaving the focus with the keyboard's input instead
+kept the keyboard from opening again once the phone had put it away, 2026-11-11.)
+
 It fails when the files are not the ones it knows, so an engine upgrade is noticed.
 
     python3 tools/web_patch.py [build/web]
@@ -106,6 +116,13 @@ VOLUMES_KEPT = VOLUMES.replace("GodotRuntime.parseString(", "_keptName(")
 PITCH = "function _godot_audio_sample_update_pitch_scale(playbackObjectIdStrPtr,pitchScale){const playbackObjectId=GodotRuntime.parseString(playbackObjectIdStrPtr);"
 PITCH_KEPT = PITCH.replace("GodotRuntime.parseString(", "_keptName(")
 
+# The canvas sized to the visual viewport, when the page is not zoomed.
+SIZE = "width=Math.floor(window.innerWidth*scale);height=Math.floor(window.innerHeight*scale)"
+SIZE_SHOWN = ("const vv=window.visualViewport;const shown=vv&&Math.abs(vv.scale-1)<0.01;"
+    "width=Math.floor((shown?vv.width:window.innerWidth)*scale);"
+    "height=Math.floor((shown?vv.height:window.innerHeight)*scale)")
+
+
 def patch(path: Path, old: str, new: str, what: str, count: int = 1) -> None:
     text = path.read_text()
     if new in text:
@@ -126,6 +143,7 @@ def main() -> None:
     patch(out / "index.js", FEATURE, FEATURE_KEPT, "the names of the browser's features kept, not read into a string each call")
     patch(out / "index.js", VOLUMES, VOLUMES_KEPT, "the names of the voices whose volumes change kept")
     patch(out / "index.js", PITCH, PITCH_KEPT, "the names of the voices whose pitch changes kept")
+    patch(out / "index.js", SIZE, SIZE_SHOWN, "the canvas sized to what the browser shows")
 
 
 if __name__ == "__main__":

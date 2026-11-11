@@ -143,6 +143,9 @@ func _build_loading() -> void:
 	_map_seed.add_theme_color_override("font_outline_color", UiStyle.EDGE)
 	_map_seed.add_theme_constant_override("outline_size", 4)
 	_map_seed.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# A server's address may be longer than the map is wide (a tunnel's name): it wraps,
+	# breaking the name where it must.
+	_map_seed.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_map_seed.position = Vector2(0, Minimap.FRAME + 5)
 	_map_well.add_child(_map_seed)
 	_set_map_side(MAP_SIZES[0])

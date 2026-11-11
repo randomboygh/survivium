@@ -252,7 +252,8 @@ func flush() -> Array[PackedByteArray]:
 		out.append(_event(Protocol.TEAM, [session.teams.view(who.id)]))
 	if _invites:
 		_invites = false
-		out.append(_event(Protocol.INVITES, [session.teams.invites_of(who.id, Time.get_ticks_msec() / 1000.0)]))
+		var now := Time.get_ticks_msec() / 1000.0
+		out.append(_event(Protocol.INVITES, [session.teams.invites_of(who.id, now), session.teams.sent_of(who.id, now)]))
 	if _claims:
 		_claims = false
 		out.append(_event(Protocol.CLAIMS, [session.territory.claims_view()]))
@@ -422,9 +423,9 @@ func _on_squares(list: Array) -> void:
 		_squares.append_array(list)
 
 
-## Player `to` was invited to a team.
-func _on_invited(to: int, _from: int, _name: String) -> void:
-	if to == who.id:
+## Player `to` was invited to a team (or by this one).
+func _on_invited(to: int, from: int, _name: String) -> void:
+	if to == who.id or from == who.id:
 		_invites = true
 
 

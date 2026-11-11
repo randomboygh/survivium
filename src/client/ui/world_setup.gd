@@ -14,6 +14,7 @@ const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const TextField := preload("res://src/client/ui/text_field.gd")
 
 const NAME_WIDTH := 112
 ## The names of the mods are longer than the settings' and have the room the map leaves.
@@ -116,6 +117,9 @@ func _ready() -> void:
 	var start := Button.new()
 	start.text = "Создать мир"
 	start.focus_mode = Control.FOCUS_NONE
+	# «Создать мир», «Назад» and the dice act as the finger lands: the keyboard of the
+	# seed closing as it does moves them away before the finger lifts.
+	start.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	start.custom_minimum_size = Vector2(0, 36)
 	UiStyle.accent(start)
 	start.pressed.connect(_start)
@@ -126,6 +130,7 @@ func _ready() -> void:
 	var back := Button.new()
 	back.text = "Назад"
 	back.focus_mode = Control.FOCUS_NONE
+	back.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	back.custom_minimum_size = Vector2(96, 36)
 	back.pressed.connect(_back)
 	buttons.add_child(back)
@@ -277,6 +282,7 @@ func _seed_row() -> void:
 	_seed.max_length = 10
 	_seed.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 	_seed.text = str(game.settings.values.world_seed)
+	TextField.fit(_seed)
 	_seed.text_changed.connect(func(t: String) -> void:
 		var digits := ""
 		for ch in t:
@@ -295,6 +301,7 @@ func _seed_row() -> void:
 	dice.icon = UiStyle.icon("dice")
 	dice.tooltip_text = "Случайное зерно"
 	dice.focus_mode = Control.FOCUS_NONE
+	dice.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	dice.custom_minimum_size = Vector2(ARROW, ARROW)
 	dice.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dice.pressed.connect(func() -> void:

@@ -16,6 +16,8 @@ const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 const RemoteWorkshop := preload("res://src/client/net/remote_workshop.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 const Mirror := preload("res://src/client/net/mirror.gd")
+const Playtest := preload("res://src/client/net/playtest.gd")
+const Bot := preload("res://src/client/input/bot.gd")
 
 
 func run() -> void:
@@ -24,6 +26,43 @@ func run() -> void:
 	_test_server_list()
 	_test_remote_workshop()
 	_test_cells()
+	_test_playtest()
+	_test_glide()
+
+
+## Over a socket the animals glide between the server's snapshots; a far one is put
+## there at once; over the loop each snapshot is taken as it is.
+func _test_glide() -> void:
+	var kind: String = AiRules.SPECIES.keys()[0]
+	var wild := RemoteWildlife.new()
+	wild.smooth = true
+	wild.take_born([1, kind, 0, Vector3.ZERO])
+	var a = wild.by_id(1)
+	wild.take_snap([[1, Vector3(1.0, 0.0, 0.0), 0.0, 1.0, false, false, true, 0.0, false, true, "wander"]])
+	_check(a.pos == Vector3.ZERO and a.gliding, "a snapshot near starts a glide from where the animal is drawn")
+	a.since -= a.span * 0.5
+	wild.glide()
+	_check(a.pos.x > 0.2 and a.pos.x < 0.8 and a.gliding, "half way through, half way there: %s" % a.pos)
+	a.since -= a.span
+	wild.glide()
+	_check(a.pos == Vector3(1.0, 0.0, 0.0) and not a.gliding, "and then there")
+	wild.take_snap([[1, Vector3(10.0, 0.0, 0.0), 0.0, 1.0, false, false, true, 0.0, false, true, "wander"]])
+	_check(a.pos == Vector3(10.0, 0.0, 0.0) and not a.gliding, "a far one is put there at once")
+	var loop := RemoteWildlife.new()
+	loop.take_born([1, kind, 0, Vector3.ZERO])
+	loop.take_snap([[1, Vector3(1.0, 0.0, 0.0), 0.0, 1.0, false, false, true, 0.0, false, true, "wander"]])
+	_check(loop.by_id(1).pos == Vector3(1.0, 0.0, 0.0), "over the loop a snapshot is taken as it is")
+
+
+## The playtest server's address read out of the link its workflow leaves (a status), and
+## the bot's weapon one it strikes with, not throws.
+func _test_playtest() -> void:
+	_check(Playtest.address_of("https://randomboygh.github.io/survivium/?server=wss://quiet-river.trycloudflare.com")
+		== "wss://quiet-river.trycloudflare.com", "the playtest link gives the server's address")
+	_check(Playtest.address_of("https://x/?a=1&server=wss%3A%2F%2Fa.b&c=2") == "wss://a.b", "a coded address among others")
+	_check(Playtest.address_of("https://x/") == "", "no address in a link without one")
+	var arm: String = Bot._best_weapon()
+	_check(arm == "" or Tools.weapon(arm).tool in ["sword", "knife"], "the bot hunts with a blade: %s" % arm)
 
 
 ## A cell the server changed, on the client's copy of the world: a bed watered keeps its
@@ -165,6 +204,10 @@ func _test_requests() -> void:
 	_check(is_equal_approx(clock.time_of_day, 0.5) and clock.weather == Clock.RAIN, "the copy of the clock runs the time of day between snapshots")
 	_check(not clock.from_snapshot([1, 2]) and not clock.from_snapshot(s.clock.snapshot().map(func(_v: Variant) -> String: return "x")),
 		"a snapshot of another shape or of strings is refused")
+	var pinned := RemoteClock.new()
+	s.clock.moon_pin = 0.25
+	_check(pinned.from_snapshot(s.clock.snapshot()) and pinned.moon_pin == 0.25, "the moon the playtest page pins comes with the clock")
+	s.clock.moon_pin = -1.0
 	var told: Array[int] = []
 	var fresh := RemoteClock.new()
 	fresh.season_changed.connect(func(season: int) -> void: told.append(season))

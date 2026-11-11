@@ -57,6 +57,21 @@ func add_item(c: Control) -> void:
 	_show()
 
 
+## Makes the column buttons `list`, in that order: the buttons it held and `list` keeps
+## stay, the others go (freed), the new ones come in, and the column is laid out once.
+func set_items(list: Array) -> void:
+	for c in box.get_children():
+		if not list.has(c):
+			box.remove_child(c)
+			c.queue_free()
+	for i in list.size():
+		var c: Control = list[i]
+		if c.get_parent() != box:
+			box.add_child(c)
+		box.move_child(c, i)
+	_show()
+
+
 ## Takes every button out (freed).
 func clear_items() -> void:
 	for c in box.get_children():

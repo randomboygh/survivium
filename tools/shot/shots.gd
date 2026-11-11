@@ -618,6 +618,7 @@ const SHOTS := {
 	# Teams (decision 50): a member's name in the team's colour, a tapped player's card,
 	# an invitation, the pause's window «Команда».
 	"team-person": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "person"},
+	"team-chat": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "chat"},
 	"team-invite": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "invite"},
 	"team-panel": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "panel", "team_panel": true},
 	"land": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": false},
@@ -720,6 +721,8 @@ const SHOTS := {
 	"ui-main-menu-worlds": {"time": 0.42, "season": 1, "touch": true, "main_menu": "worlds"},
 	# The pages «Одиночная игра» and «Мультиплеер» («Создать сервер» tapped on a phone),
 	# and «Присоединиться» over a few servers made up for it, then saying why joining failed.
+	# Opened from the pause over a running world: «Продолжить» first.
+	"ui-main-menu-resume": {"time": 0.42, "season": 1, "touch": true, "main_menu": "resume"},
 	"ui-main-menu-single": {"time": 0.42, "season": 1, "touch": true, "main_menu": "single"},
 	"ui-main-menu-multi": {"time": 0.42, "season": 1, "touch": true, "main_menu": "multi", "press_host": true},
 	"ui-main-menu-join": {"time": 0.42, "season": 1, "touch": true, "main_menu": "join"},

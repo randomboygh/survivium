@@ -353,6 +353,13 @@ func _test_sound() -> void:
 	for m in Mat.COUNT:
 		var r: Dictionary = Mat.RECORDS[m]
 		_check(m == Mat.AIR or r.step != "", "%s has a step sound" % r.id)
+	# The main menu's buttons click before the world is built (Sound.build): on a PC the
+	# sound is on from the start, and the release build crashed on a click from no voice.
+	s.unlocked = true
+	s.play("click")
+	s.play("plants:chop", Vector3.ZERO)
+	_check(s._ui_voices.size() == SoundScript.UI_VOICES and s._ui_voices[0].stream != null,
+		"a button clicks before the world is built")
 	s.unlocked = false
 	s.play_later(0.5, "plants:chop", Vector3.ZERO)
 	_check(s._later.is_empty(), "nothing waits to sound before the first tap")

@@ -177,6 +177,11 @@ const FIGHT_BRAVE := "fight_brave"
 ## decision 184): [on]; true when it is on now. Only in a single game and for a host of a
 ## server (Requests.may_debug), never for a player.
 const AI_DEBUG := "ai_debug"
+## The playtest page's switches, on a playtest server only (src/server/cheats.gd,
+## Requests.may_cheat): [{speed, air, skill, heavy, hunger, thirst, fatigue, cold,
+## free_build, tool_wear, instant_craft, free_items, animal_attacks, boost, and once:
+## season, weather, moon, hour}]; true when taken.
+const CHEATS := "cheats"
 
 ## The events: `[kind, args]`, with no reply. From the client, each frame: where its
 ## body is and what it does. From the server: what the player's state became, for the
@@ -276,7 +281,8 @@ const HEARD := "heard"
 ## The player's team (Teams.view): [{"id", "name", "lead", "members": [[id, name]…]}],
 ## {} for none; on joining and when it changes.
 const TEAM := "team"
-## The invitations to a team waiting for the player: [[[id, name]…]]; when they change.
+## The invitations to a team waiting for the player, and those the player sent that wait
+## for an answer: [[[id, name]…], [[id, seconds left]…]]; when they change.
 const INVITES := "invites"
 ## The claims of land (Territory.claims_view): [[[id, centre cell, by, name, the owner's
 ## rights [team mask, others mask], the owner's colour]…]], all of them, on joining and

@@ -67,6 +67,10 @@ func _fill_page(page: String) -> void:
 	var lit := ""
 	match page:
 		"top":
+			# Opened over a running world (the pause menu, the death screen): back into it.
+			var resume: bool = _entered and settled
+			if resume:
+				_add_button(_box, "resume", "Продолжить", close)
 			if game.hosted != null:
 				# Its bundles are the server's while it runs.
 				_add_button(_box, "single", "Одиночная игра", Callable(), "сервер")
@@ -84,6 +88,8 @@ func _fill_page(page: String) -> void:
 					game.save.flush()
 					get_tree().quit())
 			lit = "multi" if joined or game.hosted != null else "single"
+			if resume:
+				lit = "resume"
 		"single":
 			_caption("Одиночная игра")
 			_add_button(_box, "play", "Продолжить", _play_single)

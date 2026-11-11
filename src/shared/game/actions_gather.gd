@@ -250,7 +250,7 @@ func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 						who.nag("heavy", "Сумка тяжёлая: вещи больше не поднимаются сами")
 						continue
 				world.take_drop(key, i)
-				var rest := _take(who, d, most)
+				var rest := _take(who, d, most, false)
 				if not rest.is_empty():
 					world.add_drop(rest[0], rest[1], rest[2], rest[3], rest[4] if rest.size() > 4 else -1.0)
 				if rest.is_empty() or str(rest[3]) != str(d[3]):
@@ -347,15 +347,25 @@ func pick_up(who, key: Vector2i, i: int) -> bool:
 
 
 ## Puts what drop `d` holds into the bag of `who`, no more than `most` of it when given;
-## returns what is left of it ([] for nothing).
-func _take(who, d: Array, most := -1) -> Array:
+## returns what is left of it ([] for nothing). A sack tells what came of it: taken whole,
+## or only part when the bag is full; when nothing at all fit, only a `tap` (pick_up) says
+## so, and at most once in NAG_INTERVAL, since the pickup by the feet (pick_up_near) tries
+## the sack again every PICKUP_INTERVAL while the player stands by it.
+func _take(who, d: Array, most := -1, tap := true) -> Array:
 	if d[0] == Items.SACK:
 		var rest := []
+		var moved := false
 		for s: Array in d[3]:
 			var got: int = who.inventory.add(s[0], s[1], s[2] if s.size() > 2 else 0, Inventory.held(s), Inventory.quality(s))
+			moved = moved or got > 0
 			if got < s[1]:
 				rest.append([s[0], s[1] - got] + s.slice(2))
-		who.say("Вещи из мешка забраны" if rest.is_empty() else "Забрано не всё: сумка полна")
+		if rest.is_empty():
+			who.say("Вещи из мешка забраны")
+		elif moved:
+			who.say("Забрано не всё: сумка полна")
+		elif tap:
+			who.nag("sack_full", "Забрано не всё: сумка полна")
 		if rest.is_empty():
 			_forget_sack(who, d[1])
 		return [] if rest.is_empty() else [d[0], d[1], d[2], rest] + d.slice(4)
