@@ -2,7 +2,8 @@ extends SceneTree
 ## Plays, saves and starts the game again without a screen: what the player dug, where
 ## they stood, the clock, the props, the explored map, the markers and a module's part
 ## of the player come back; the playtest page's teleport puts the player down; a sign's
-## window answers touches as it should. The saves go to a test folder of their own. Run:
+## window and the chat answer touches as they should. The saves go to a test folder of
+## their own. Run:
 ## godot --headless --path . --script res://tests/save_test.gd
 
 const Mat := preload("res://src/shared/content/materials.gd")
@@ -91,6 +92,14 @@ func _sign_window(main: Node) -> void:
 	var buttons: Array = w.find_children("*", "Button", true, false)
 	var shut: Button = buttons[buttons.size() - 1]
 	var at := field.get_global_rect().get_center()
+	var shut_at := shut.get_global_rect().get_center()
+	# The keyboard coming up moves the window: the finger lifts over a button.
+	_touch(at, true)
+	await _frames(2)
+	_touch(shut_at, false)
+	await _frames(3)
+	_check(main.hud.sign_window == w and field.has_focus(),
+		"a touch begun on a line keeps it, lifted over a button that does not act")
 	_touch(at, true)
 	_touch(at, false)
 	await _frames(3)
@@ -118,6 +127,10 @@ func _sign_window(main: Node) -> void:
 	_check(main.hud.sign_window == w and not field.has_focus(), "a finger lifted off the line lets it go, the window stays")
 	w.close()
 	await _frames(2)
+	main.hud.chat.open()
+	await _frames(2)
+	_check(main.hud.chat._field.is_editing(), "the chat opens with its field edited (the phone's keyboard up)")
+	main.hud.chat.close()
 	main.controls.set_touch(false)
 
 

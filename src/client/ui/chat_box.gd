@@ -112,6 +112,8 @@ func open() -> void:
 	_show_whom()
 	_row.visible = true
 	_field.grab_focus()
+	# Editing at once: the phone's keyboard comes up with the field, not at a tap on it.
+	_field.edit()
 	_refresh()
 
 
