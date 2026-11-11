@@ -283,8 +283,11 @@ func update(delta: float) -> void:
 	if _label_clock <= 0.0 and touch:
 		_label_clock = LABEL_TIME
 		game.hud.refresh_action()
+	# Under a sign's window the world is not worked: a stroke ends, the action button
+	# held when it opened does nothing.
+	var covered: bool = game.hud != null and game.hud.sign_window != null
 	if not _stroke.is_empty():
-		if _stroke.held and not Input.is_mouse_button_pressed(_stroke.button):
+		if _stroke.held and (covered or not Input.is_mouse_button_pressed(_stroke.button)):
 			_stroke.held = false
 		if _cooldown <= 0.0 and (_stroke.held or _stroke.pending):
 			_run_stroke()
@@ -302,7 +305,7 @@ func update(delta: float) -> void:
 		if down and not _action_was:
 			mode().toggle_auto()
 		_action_was = down
-	elif action_held or (Input.is_physical_key_pressed(KEY_F) and not _typing()):
+	elif not covered and (action_held or (Input.is_physical_key_pressed(KEY_F) and not _typing())):
 		var acted := _cooldown <= 0.0 and not (_action_was and Tools.can_fish(tool_record()))
 		_action_was = true
 		if acted:

@@ -32,9 +32,16 @@ phone stopped for a full collection of 50-130 ms every half a minute or so. The 
 writes the time as two 32-bit halves and finds each name among those read before by a
 hash of its bytes, without making a string.
 
-The keyboard's input is left as the engine has it (2026-11-10/11): keeping the page's focus
-with it on a touch, or sizing the canvas to the visual viewport, each left the phone's
-keyboard closed (the phone's browser, com.android.browser).
+A touch on the page gives the canvas the page's focus, and so takes it from the hidden input
+the phone's keyboard types into: the keyboard closed under every touch, a tap on the field
+being edited closed it and opened it again, and the screen grew under a finger on a button
+by a field, which moved the button away. While the keyboard is up (the visible area lower
+than the tallest seen, `window.survivium_tabs.up`, src/client/ui/text_field.gd) a touch
+leaves the focus with that input; the game lets the field go when a finger lifts off it.
+Once the phone puts the keyboard away, a touch focuses the canvas as the engine does: kept
+with the input then, the focus opened no keyboard on the next tap (2026-11-10/11, the
+phone's browser com.android.browser). The keyboard's inputs are marked not to be filled in,
+so the browser's password manager does not offer itself on them.
 
 It fails when the files are not the ones it knows, so an engine upgrade is noticed.
 
@@ -110,6 +117,16 @@ VOLUMES_KEPT = VOLUMES.replace("GodotRuntime.parseString(", "_keptName(")
 PITCH = "function _godot_audio_sample_update_pitch_scale(playbackObjectIdStrPtr,pitchScale){const playbackObjectId=GodotRuntime.parseString(playbackObjectIdStrPtr);"
 PITCH_KEPT = PITCH.replace("GodotRuntime.parseString(", "_keptName(")
 
+# A touch starting on the canvas gave it the page's focus; not while the keyboard is up and
+# its input has the focus.
+TOUCH = "function touch_cb(type,evt){if(type===0){GodotConfig.canvas.focus()}"
+TOUCH_KEPT = ("function touch_cb(type,evt){if(type===0&&!(window.survivium_tabs&&window.survivium_tabs.up"
+    "&&(document.activeElement===GodotDisplayVK.textinput||document.activeElement===GodotDisplayVK.textarea)))"
+    "{GodotConfig.canvas.focus()}")
+# The keyboard's inputs are not a form to fill in.
+VK_INPUT = 'elem.style.outline="none";elem.readonly=true;'
+VK_INPUT_KEPT = 'elem.style.outline="none";elem.setAttribute("autocomplete","off");elem.readonly=true;'
+
 
 def patch(path: Path, old: str, new: str, what: str, count: int = 1) -> None:
     text = path.read_text()
@@ -131,6 +148,8 @@ def main() -> None:
     patch(out / "index.js", FEATURE, FEATURE_KEPT, "the names of the browser's features kept, not read into a string each call")
     patch(out / "index.js", VOLUMES, VOLUMES_KEPT, "the names of the voices whose volumes change kept")
     patch(out / "index.js", PITCH, PITCH_KEPT, "the names of the voices whose pitch changes kept")
+    patch(out / "index.js", TOUCH, TOUCH_KEPT, "a touch leaves the page's focus with the keyboard's input while it is up")
+    patch(out / "index.js", VK_INPUT, VK_INPUT_KEPT, "the keyboard's inputs are not filled in by the browser")
 
 
 if __name__ == "__main__":
