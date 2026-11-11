@@ -474,4 +474,13 @@ func show_social(solo: bool) -> void:
 	_place()
 
 
+## Shows or hides the statistics button of the top row («Интерфейс» → «Кнопка
+## статистики»); the panel itself stays as it is (F3 and «Тестирование» open it too).
+func show_stats_button(on: bool) -> void:
+	if _stats_button.visible == on:
+		return
+	_stats_button.visible = on
+	_place()
+
+
 # --- Statistics and menu ---------------------------------------------------------

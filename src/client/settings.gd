@@ -77,6 +77,9 @@ const DEFAULTS := {
 	# The chat and the gestures in single player too (Hud.show_social); on a server
 	# they always show.
 	"solo_social": false,
+	# The statistics button in the top row (Hud.show_stats_button); hidden by default
+	# (decision 186). F3 opens the panel on a computer either way.
+	"stats_button": false,
 	# The corner of the screen (see Hud._place_top): the minimap small, as it comes or
 	# large (Minimap.SIDES), the level buttons beside it and the camera cross under it.
 	"minimap_size": 1,
@@ -503,6 +506,7 @@ func apply() -> void:
 		hud.set_corner(values.minimap_size, values.level_buttons, values.camera_buttons)
 		hud.show_keys(values.show_help)
 		hud.show_social(values.solo_social)
+		hud.show_stats_button(values.stats_button)
 
 
 ## Puts every setting back as it comes, all but the world the setup screen makes.

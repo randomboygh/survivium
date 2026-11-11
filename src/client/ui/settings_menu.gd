@@ -538,6 +538,9 @@ func _section_rows(key: String) -> Array:
 				["Чат и жесты", ["в сети", "всегда"],
 					func() -> int: return int(s.values.solo_social),
 					func(i: int) -> void: s.set_value("solo_social", i == 1)],
+				["Кнопка статистики", ["скрыта", "видна"],
+					func() -> int: return int(s.values.stats_button),
+					func(i: int) -> void: s.set_value("stats_button", i == 1)],
 			])
 			if s.can_fullscreen():
 				rows.append(["Полный экран", ["выкл", "вкл"],
