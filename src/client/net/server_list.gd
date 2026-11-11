@@ -106,7 +106,7 @@ static func normalize(text: String) -> String:
 static func problem(url: String, secure: bool) -> String:
 	var host := url.get_slice("://", 1).get_slice("/", 0).get_slice(":", 0)
 	if url == "" or host == "":
-		return "Введите адрес сервера"
+		return "[enter_the_server_address]"
 	if secure and url.begins_with("ws://") and host != "localhost" and host != "127.0.0.1":
-		return "Из браузера — только wss:// (сервер через туннель)"
+		return "[from_a_browser_only_wss]"
 	return ""

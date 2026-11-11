@@ -44,25 +44,25 @@ func show_person(id: int, name: String, screen_pos: Vector2) -> void:
 		mine = mine or m[0] == id
 	_box.add_child(UiStyle.label(name, UiStyle.TEAM if mine else UiStyle.INK))
 	if mine and team.leads():
-		_button("Исключить из команды", func() -> void: team.kick(id))
+		_button("[remove_from_the_team]", func() -> void: team.kick(id))
 	elif mine:
-		_box.add_child(UiStyle.label("В вашей команде", UiStyle.MUTED))
+		_box.add_child(UiStyle.label("[in_your_team]", UiStyle.MUTED))
 	else:
-		_button("Позвать в команду", func() -> void:
+		_button("[invite_to_the_team]", func() -> void:
 			team.invite(id)
-			game.hud.toast(Lang.line("%s: приглашение отправлено", [name])))
+			game.hud.toast(Lang.line("[invitation_sent]", [name])))
 	_open(screen_pos, SHOW_TIME)
 
 
 ## An invitation from player `id` named `name`: the card at the top of the screen.
 func show_invite(id: int, name: String) -> void:
 	_clear()
-	_box.add_child(UiStyle.label(Lang.f("%s зовёт вас в команду", [name])))
+	_box.add_child(UiStyle.label(Lang.f("[invites_you_to_their_team]", [name])))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	_box.add_child(row)
-	_button("Принять", func() -> void: game.team.accept(id), row)
-	_button("Отказаться", func() -> void: game.team.decline(id), row)
+	_button("[accept]", func() -> void: game.team.accept(id), row)
+	_button("[decline]", func() -> void: game.team.decline(id), row)
 	var hud: Control = get_parent()
 	reset_size()
 	_open(Vector2.INF, INVITE_TIME)

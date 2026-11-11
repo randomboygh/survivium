@@ -1,12 +1,12 @@
 # Рецепт бандла «Удочка»: удилище из веток, леска из верёвки и крючок из кремня, руками.
 - id: fishing_rod
-  title: Удочка
+  title: "[tools.recipes.fishing_rod]"
   makes: fishing_rod
   needs: {resources:branch: 2, materials:cord: 2, resources:flint: 1}
   time: 4
 # Наживка: черви из земли, руками (как камешки для пращи).
 - id: bait
-  title: Наживка
+  title: "[tools.recipes.bait]"
   makes: bait
   count: 4
   needs: {resources:dirt: 1}

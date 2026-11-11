@@ -2,13 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/door/bundle.yaml
-"Дверь": "Porta"
+"[tools.door.bundle]": "Porta"
 
 # content/tools/door/data/items.yaml
-"Створка из досок для проёма в стене. Касание открывает и закрывает.": "Uma folha de tábuas para um vão na parede. Um toque a abre e a fecha."
-"Дверь 2×2": "Porta 2×2"
-"Двустворчатая дверь из досок, на две клетки в ширину и две в высоту.": "Uma porta dupla de tábuas, com duas células de largura e duas de altura."
-"Дверь 2×3": "Porta 2×3"
-"Высокая двустворчатая дверь, на две клетки в ширину и три в высоту.": "Uma porta dupla alta, com duas células de largura e três de altura."
-"Ворота 3×3": "Portão 3×3"
-"Большие двустворчатые ворота из досок для проёма в стене, на три клетки в ширину и три в высоту.": "Um grande portão duplo de tábuas para um vão na parede, com três células de largura e três de altura."
+"[tools.items.door]": "Porta"
+"[tools.items.door.about]": "Uma folha de tábuas para um vão na parede. Um toque a abre e a fecha."
+"[tools.items.door_2x2]": "Porta 2×2"
+"[tools.items.door_2x2.about]": "Uma porta dupla de tábuas, com duas células de largura e duas de altura."
+"[tools.items.door_2x3]": "Porta 2×3"
+"[tools.items.door_2x3.about]": "Uma porta dupla alta, com duas células de largura e três de altura."
+"[tools.items.door_3x3]": "Portão 3×3"
+"[tools.items.door_3x3.about]": "Um grande portão duplo de tábuas para um vão na parede, com três células de largura e três de altura."
+
+# content/tools/door/data/recipes.yaml
+"[tools.recipes.door]": "Porta"
+"[tools.recipes.door_2x2]": "Porta 2×2"
+"[tools.recipes.door_2x3]": "Porta 2×3"
+"[tools.recipes.door_3x3]": "Portão 3×3"

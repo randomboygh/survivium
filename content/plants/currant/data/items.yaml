@@ -1,6 +1,6 @@
 # Предметы бандла: поля — как у предметов основы (content/core/data/items.yaml).
 - id: currant
-  title: Смородина
+  title: "[plants.items.currant]"
   weight: 0.1
   stack: 30
   food: 3
@@ -10,7 +10,7 @@
   icon: currant
   anim: eat
 - id: currant_bush
-  title: Куст смородины
+  title: "[plants.items.currant_bush]"
   weight: 2.0
   stack: 5
   model: bush

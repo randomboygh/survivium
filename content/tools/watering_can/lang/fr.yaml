@@ -2,9 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/watering_can/bundle.yaml
-"Лейка": "Arrosoir"
+"[tools.watering_can.bundle]": "Arrosoir"
 
 # content/tools/watering_can/data/items.yaml
-"Пустая. Возьми в руку и коснись пресной воды, чтобы наполнить.": "Vide. Prenez-le en main et touchez de l'eau douce pour le remplir."
-"Лейка с водой": "Arrosoir plein"
-"Поливает грядки. Воды хватает на десять клеток.": "Arrose les plates-bandes. L'eau suffit pour dix cases."
+"[tools.items.watering_can]": "Arrosoir"
+"[tools.items.watering_can.about]": "Vide. Prenez-le en main et touchez de l'eau douce pour le remplir."
+"[tools.items.watering_can_full]": "Arrosoir plein"
+"[tools.items.watering_can_full.about]": "Arrose les plates-bandes. L'eau suffit pour dix cases."
+
+# content/tools/watering_can/data/recipes.yaml
+"[tools.recipes.watering_can]": "Arrosoir"

@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fiber_clothes/bundle.yaml
-"Одежда из волокна": "Vêtements de fibre"
+"[tools.fiber_clothes.bundle]": "Vêtements de fibre"
 
 # content/tools/fiber_clothes/data/items.yaml
-"Плетёная шапка": "Chapeau tressé"
-"Шапка из сухой травы. Немного греет голову.": "Un chapeau d'herbe sèche. Réchauffe un peu la tête."
-"Травяная накидка": "Cape d'herbe"
-"Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды.": "Une cape de fibre bien tressée sur une corde. La plus chaude des vêtements d'herbe."
-"Обмотки": "Molletières"
-"Полосы волокна, обмотанные вокруг ног и подвязанные верёвкой.": "Des bandes de fibre enroulées autour des jambes et liées par une corde."
-"Лапти": "Chaussons tressés"
-"Плетёная обувь из волокна на верёвочных завязках.": "Des chaussures tressées en fibre avec des lacets de corde."
+"[tools.items.fiber_hat]": "Chapeau tressé"
+"[tools.items.fiber_hat.about]": "Un chapeau d'herbe sèche. Réchauffe un peu la tête."
+"[tools.items.grass_cape]": "Cape d'herbe"
+"[tools.items.grass_cape.about]": "Une cape de fibre bien tressée sur une corde. La plus chaude des vêtements d'herbe."
+"[tools.items.leg_wraps]": "Molletières"
+"[tools.items.leg_wraps.about]": "Des bandes de fibre enroulées autour des jambes et liées par une corde."
+"[tools.items.bast_shoes]": "Chaussons tressés"
+"[tools.items.bast_shoes.about]": "Des chaussures tressées en fibre avec des lacets de corde."
+
+# content/tools/fiber_clothes/data/recipes.yaml
+"[tools.recipes.fiber_hat]": "Chapeau tressé"
+"[tools.recipes.grass_cape]": "Cape d'herbe"
+"[tools.recipes.leg_wraps]": "Molletières"
+"[tools.recipes.bast_shoes]": "Chaussons tressés"

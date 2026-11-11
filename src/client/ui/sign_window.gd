@@ -145,7 +145,7 @@ func _ready() -> void:
 		for i in int(rec.get("sign_lines", 0)):
 			var f := LineEdit.new()
 			f.max_length = int(rec.get("sign_width", 20))
-			f.placeholder_text = Lang.f("Строка %d", [(i + 1)])
+			f.placeholder_text = Lang.f("[line_n3]", [(i + 1)])
 			f.custom_minimum_size = Vector2(WIDTH, FIELD_H)
 			f.text = lines[i] if i < lines.size() else ""
 			f.text_submitted.connect(func(_t: String) -> void: _next_after(f))
@@ -153,22 +153,22 @@ func _ready() -> void:
 			box.add_child(f)
 			_fields.append(f)
 	else:
-		var read := UiStyle.label(text if text != "" else "Здесь ничего не написано", UiStyle.INK if text != "" else UiStyle.MUTED)
+		var read := UiStyle.label(text if text != "" else "[nothing_is_written_here]", UiStyle.INK if text != "" else UiStyle.MUTED)
 		read.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if text != "":
 			read.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 		read.custom_minimum_size = Vector2(WIDTH, 0)
 		box.add_child(read)
-	_note = UiStyle.label("" if writes else "Писать может тот, кто строит на этой земле", UiStyle.MUTED)
+	_note = UiStyle.label("" if writes else "[whoever_builds_on_this_land]", UiStyle.MUTED)
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_note.custom_minimum_size = Vector2(WIDTH, 0)
 	_note.visible = _note.text != ""
 	box.add_child(_note)
 	if writes:
-		box.add_child(_button("Сохранить", save, true))
+		box.add_child(_button("[save]", save, true))
 		if not rec.get("wall", false):
-			box.add_child(_button("Повернуть", turn))
-	box.add_child(_button("Закрыть", close))
+			box.add_child(_button("[turn]", turn))
+	box.add_child(_button("[close]", close))
 	if writes and OS.has_feature("web") and game.settings.keys_log:
 		JavaScriptBridge.eval(KEYS_LOG, true)
 		_keys = JavaScriptBridge.get_interface("survivium_keys")

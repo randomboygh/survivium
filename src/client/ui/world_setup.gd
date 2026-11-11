@@ -28,15 +28,15 @@ const MAP := 128
 const MAP_STEP := 32
 ## Time the map may take a frame, in microseconds.
 const MAP_BUDGET_US := 4000
-const LEVELS := ["мало", "средне", "много"]
+const LEVELS := ["[few]", "[medium_amount]", "[many]"]
 ## Kinds of world and the settings each picks: size, water, mountains, rivers, biomes
 ## (caves are set apart from the kind).
 const KINDS := [
-	["Обычный", [1, 1, 1, 1, 1]],
-	["Материк", [2, 1, 1, 1, 1]],
-	["Острова", [0, 2, 1, 0, 1]],
-	["Горы", [1, 1, 2, 1, 1]],
-	["Равнины", [2, 0, 0, 2, 2]],
+	["[standard]", [1, 1, 1, 1, 1]],
+	["[continent]", [2, 1, 1, 1, 1]],
+	["[islands]", [0, 2, 1, 0, 1]],
+	["[mountains]", [1, 1, 2, 1, 1]],
+	["[plains]", [2, 0, 0, 2, 2]],
 ]
 const OPTIONS := ["size", "water", "mountains", "rivers", "biomes"]
 const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
@@ -76,7 +76,7 @@ func _ready() -> void:
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 8)
 	_panel.add_child(outer)
-	var title := UiStyle.label("Новый мир", UiStyle.ACCENT)
+	var title := UiStyle.label("[new_world]", UiStyle.ACCENT)
 	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(title)
@@ -95,7 +95,7 @@ func _ready() -> void:
 	_map.texture = _texture
 	_map.custom_minimum_size = Vector2(MAP, MAP)
 	_map.stretch_mode = TextureRect.STRETCH_KEEP
-	_map.tooltip_text = Lang.f("Земля вокруг места старта, %d клеток в ширину", [(MAP * MAP_STEP)])
+	_map.tooltip_text = Lang.f("[the_land_around_the_start]", [(MAP * MAP_STEP)])
 	frame.add_child(_map)
 	var marker := Control.new()
 	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -115,7 +115,7 @@ func _ready() -> void:
 	_build_rows()
 	_set_focus(1)
 	var start := Button.new()
-	start.text = "Создать мир"
+	start.text = "[create_a_world]"
 	start.focus_mode = Control.FOCUS_NONE
 	# «Создать мир», «Назад» and the dice act as the finger lands: the keyboard of the
 	# seed closing as it does moves them away before the finger lifts.
@@ -128,7 +128,7 @@ func _ready() -> void:
 	buttons.add_theme_constant_override("separation", 6)
 	outer.add_child(buttons)
 	var back := Button.new()
-	back.text = "Назад"
+	back.text = "[back]"
 	back.focus_mode = Control.FOCUS_NONE
 	back.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	back.custom_minimum_size = Vector2(96, 36)
@@ -153,18 +153,18 @@ func _build_rows() -> void:
 		_refresh()
 		return
 	_seed_row()
-	_add_row("Вид мира", KINDS.map(func(k: Array) -> String: return k[0]) + ["Свой"],
+	_add_row("[world_type]", KINDS.map(func(k: Array) -> String: return k[0]) + ["[custom]"],
 		_kind, func(i: int) -> void:
 			if i < KINDS.size():
 				for j in OPTIONS.size():
 					s.values["world_" + OPTIONS[j]] = KINDS[i][1][j]
 				s.save())
-	_add_row("Материки", ["малые", "средние", "огромные"], _getter("size"), _setter("size"))
-	_add_row("Вода", LEVELS, _getter("water"), _setter("water"))
-	_add_row("Горы", LEVELS, _getter("mountains"), _setter("mountains"))
-	_add_row("Реки и озёра", LEVELS, _getter("rivers"), _setter("rivers"))
-	_add_row("Биомы", ["мелкие", "обычные", "крупные"], _getter("biomes"), _setter("biomes"))
-	_add_row("Пещеры", LEVELS, _getter("caves"), _setter("caves"))
+	_add_row("[continents]", ["[small_continents]", "[medium_continents]", "[huge]"], _getter("size"), _setter("size"))
+	_add_row("[water]", LEVELS, _getter("water"), _setter("water"))
+	_add_row("[mountains]", LEVELS, _getter("mountains"), _setter("mountains"))
+	_add_row("[rivers_and_lakes]", LEVELS, _getter("rivers"), _setter("rivers"))
+	_add_row("[biomes]", ["[small_biomes]", "[normal_biomes]", "[large_biomes]"], _getter("biomes"), _setter("biomes"))
+	_add_row("[caves]", LEVELS, _getter("caves"), _setter("caves"))
 	_mods_row()
 	_refresh()
 
@@ -184,10 +184,10 @@ func _mod_rows(s) -> void:
 			var m := mod
 			var mine: Array = Mods.bundles(mod)
 			var lit: int = mine.filter(func(b: String) -> bool: return b in on).size()
-			_add_row(Mods.mod_title(mod), ["выкл", "вкл"],
+			_add_row(Mods.mod_title(mod), ["[off]", "[on]"],
 				func() -> int: return 1 if lit == mine.size() else 0,
 				func(i: int) -> void: s.set_world_mod(m, i == 1), MOD_NAME_WIDTH,
-				Lang.f("%d из %d", [lit, mine.size()]) if lit > 0 and lit < mine.size() else "",
+				Lang.f("[of_n2]", [lit, mine.size()]) if lit > 0 and lit < mine.size() else "",
 				_show_page.bind("mod:" + mod) if mine.size() > 1 else Callable())
 		return
 	var mod := _page.trim_prefix("mod:")
@@ -197,7 +197,7 @@ func _mod_rows(s) -> void:
 	bundles.sort_custom(func(a: String, b: String) -> bool: return Mods.title(a).naturalnocasecmp_to(Mods.title(b)) < 0)
 	for bundle: String in bundles:
 		var b := bundle
-		_add_row(Lang.t(Mods.title(bundle)), ["выкл", "вкл"],
+		_add_row(Lang.t(Mods.title(bundle)), ["[off]", "[on]"],
 			func() -> int: return 1 if b in on else 0,
 			func(i: int) -> void: s.set_world_mod(b, i == 1), MOD_NAME_WIDTH)
 		_why_line(Mods.why(bundle, state.dropped))
@@ -210,7 +210,7 @@ func _why_line(chain: Array) -> void:
 		return
 	var parts: PackedStringArray = []
 	for need: String in chain:
-		parts.append(Lang.f("нужен «%s»" if parts.is_empty() else "а ему «%s»", [Mods.title(need)]))
+		parts.append(Lang.f("[needs]" if parts.is_empty() else "[and_it_needs]", [Mods.title(need)]))
 	var label := UiStyle.label(", ".join(parts), UiStyle.MUTED)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# Indented, and further from the next row than from its own.
@@ -273,7 +273,7 @@ func _seed_row() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 2)
 	_list.add_child(row)
-	var label := UiStyle.label("Зерно")
+	var label := UiStyle.label("[seed_n2]")
 	label.custom_minimum_size = Vector2(NAME_WIDTH, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(label)
@@ -299,7 +299,7 @@ func _seed_row() -> void:
 	row.add_child(_seed)
 	var dice := Button.new()
 	dice.icon = UiStyle.icon("dice")
-	dice.tooltip_text = "Случайное зерно"
+	dice.tooltip_text = "[random_seed]"
 	dice.focus_mode = Control.FOCUS_NONE
 	dice.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	dice.custom_minimum_size = Vector2(ARROW, ARROW)
@@ -320,7 +320,7 @@ func _mods_row() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 2)
 	_list.add_child(row)
-	var label := UiStyle.label("Моды")
+	var label := UiStyle.label("[mods_n2]")
 	label.custom_minimum_size = Vector2(NAME_WIDTH, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(label)
@@ -331,11 +331,11 @@ func _mods_row() -> void:
 	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	var all: int = Mods.all().filter(func(b: String) -> bool: return Mods.mod_of(b) != "core").size()
 	var on: int = game.settings.world_mods().filter(func(b: String) -> bool: return Mods.mod_of(b) != "core").size()
-	value.text = Lang.f("%d из %d", [on, all]) if on < all else "все"
+	value.text = Lang.f("[of_n2]", [on, all]) if on < all else "[all_n2]"
 	row.add_child(value)
 	var b := Button.new()
 	b.icon = UiStyle.icon("next")
-	b.tooltip_text = "Выбрать моды нового мира"
+	b.tooltip_text = "[choose_the_mods_of_the]"
 	b.focus_mode = Control.FOCUS_NONE
 	b.custom_minimum_size = Vector2(ARROW, ARROW)
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -375,7 +375,7 @@ func _add_row(name: String, values: Array, getter: Callable, setter: Callable, n
 	if open.is_valid():
 		var b := Button.new()
 		b.icon = UiStyle.icon("menu")
-		b.tooltip_text = "Что входит"
+		b.tooltip_text = "[whats_included]"
 		b.focus_mode = Control.FOCUS_NONE
 		b.custom_minimum_size = Vector2(ARROW, ARROW)
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER

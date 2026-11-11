@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/leather_sling/bundle.yaml
-"Кожаная праща": "Шкіряна праща"
+"[tools.leather_sling.bundle]": "Шкіряна праща"
 
 # content/tools/leather_sling/data/items.yaml
-"Ремни и чашка из кожи. Мечет камешки дальше и сильнее верёвочной.": "Шкіряні ремені й кишенька. Кидає камінці далі й сильніше, ніж мотузяна."
+"[tools.items.leather_sling]": "Шкіряна праща"
+"[tools.items.leather_sling.about]": "Шкіряні ремені й кишенька. Кидає камінці далі й сильніше, ніж мотузяна."
+
+# content/tools/leather_sling/data/recipes.yaml
+"[tools.recipes.leather_sling]": "Шкіряна праща"

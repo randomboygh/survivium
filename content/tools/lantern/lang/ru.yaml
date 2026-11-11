@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/lantern/bundle.yaml
+"[tools.lantern.bundle]": "Фонарь"
+
+# content/tools/lantern/data/items.yaml
+"[tools.items.lantern]": "Фонарь"
+"[tools.items.lantern.about]": "Стекло в медной оправе, внутри горит смола. Светит дальше факела и горит намного дольше."
+
+# content/tools/lantern/data/recipes.yaml
+"[tools.recipes.lantern]": "Фонарь"

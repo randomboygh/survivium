@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/leather_bag/bundle.yaml
-"Кожаная сумка": "Шкіряна сумка"
+"[tools.leather_bag.bundle]": "Шкіряна сумка"
 
 # content/tools/leather_bag/data/items.yaml
-"Сшитая из кожи сумка с ремнём через плечо. Надетая за спину, даёт ещё 16 ячеек.": "Зшита зі шкіри сумка з ременем через плече. Надіта за спину, дає ще 16 комірок."
+"[tools.items.leather_bag]": "Шкіряна сумка"
+"[tools.items.leather_bag.about]": "Зшита зі шкіри сумка з ременем через плече. Надіта за спину, дає ще 16 комірок."
+
+# content/tools/leather_bag/data/recipes.yaml
+"[tools.recipes.leather_bag]": "Шкіряна сумка"

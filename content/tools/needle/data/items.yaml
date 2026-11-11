@@ -2,8 +2,8 @@
 # сумке шьёт кожу (рецепты просят `tools: [needle]` и стирают её на `wear`). Поля — как у ножей
 # (content/tools/knife/data/items.yaml).
 - id: bone_needle
-  title: Костяная игла
-  description: Шьёт кожу. Лежит в сумке, пока шьёшь.
+  title: "[tools.items.bone_needle]"
+  description: "[tools.items.bone_needle.about]"
   weight: 0.02
   stack: 1
   model: bone_needle

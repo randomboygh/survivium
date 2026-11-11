@@ -2,15 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/flax/bundle.yaml
-"Лён": "Flax"
+"[plants.flax.bundle]": "Flax"
 
 # content/plants/flax/data/items.yaml
-"Семена льна": "Flax seeds"
-"Гладкие блестящие семена. Посейте их на грядку весной.": "Smooth shiny seeds. Sow them on a bed in spring."
-"Стебли льна": "Flax stems"
-"Срезанный дикий лён. Из него прядут льняную нить.": "Cut wild flax. Linen thread is spun from it."
-"Льняная нить": "Linen thread"
-"Тонкая прочная нить. На ткацком станке из неё ткут ткань.": "A thin strong thread. Cloth is woven from it on a loom."
+"[plants.items.flax_seeds]": "Flax seeds"
+"[plants.items.flax_seeds.about]": "Smooth shiny seeds. Sow them on a bed in spring."
+"[plants.items.flax_stalks]": "Flax stems"
+"[plants.items.flax_stalks.about]": "Cut wild flax. Linen thread is spun from it."
+"[plants.items.linen_thread]": "Linen thread"
+"[plants.items.linen_thread.about]": "A thin strong thread. Cloth is woven from it on a loom."
+
+# content/plants/flax/data/plants.yaml
+"[plants.plants.flax]": "Flax"
+"[plants.plants.sown_flax]": "Flax"
 
 # content/plants/flax/data/recipes.yaml
-"Льняная ткань": "Linen cloth"
+"[plants.recipes.linen_thread]": "Linen thread"
+"[plants.recipes.cloth]": "Linen cloth"

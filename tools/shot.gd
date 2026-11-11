@@ -436,7 +436,7 @@ func _run() -> void:
 					main.session.placed.fuel_changed.emit(e)
 			await create_timer(1.5).timeout
 		if shot.get("toast", false):
-			main.hud.toast("Наступило лето")
+			main.hud.toast("[summer_has_come]")
 			await process_frame
 			await process_frame
 		main.settings.set_value("ui_size", shot.get("ui_size", 2))
@@ -936,7 +936,7 @@ func _run() -> void:
 				var teams = main.session.teams
 				teams.seen(7, "Аня")
 				teams.invite(7, "Аня", 0, 0.0)
-				teams.accept(0, "Игрок", 7, 0.0)
+				teams.accept(0, "[player_n2]", 7, 0.0)
 				for f: Array in [[7, Vector3(6.0, 0.0, 4.0)], [0, Vector3(-5.0, 0.0, 6.0)]]:
 					var spot: Vector3i = camp.spot_near(main.player.position + f[1])
 					if spot.y >= 0:

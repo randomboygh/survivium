@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/silver/bundle.yaml
-"Серебро": "Gümüş"
+"[materials.silver.bundle]": "Gümüş"
 
 # content/materials/silver/data/items.yaml
-"Серебряная руда": "Gümüş cevheri"
-"Серая порода с белыми блёстками самородного серебра. Её берёт бронзовая кирка.": "Doğal gümüşün beyaz pulları olan gri bir kaya. Bronz kazma kazar."
-"Серебряный слиток": "Gümüş külçe"
-"Мягкий белый металл. Из слитков складывают серебряные блоки.": "Yumuşak beyaz bir metal. Külçelerden gümüş bloklar yapılır."
-"Серебряный блок": "Gümüş blok"
-"Гладкий светлый металлический блок для построек.": "Yapılar için pürüzsüz, açık renkli bir metal blok."
+"[materials.items.silver_ore]": "Gümüş cevheri"
+"[materials.items.silver_ore.about]": "Doğal gümüşün beyaz pulları olan gri bir kaya. Bronz kazma kazar."
+"[materials.items.silver_bar]": "Gümüş külçe"
+"[materials.items.silver_bar.about]": "Yumuşak beyaz bir metal. Külçelerden gümüş bloklar yapılır."
+"[materials.items.silver_block]": "Gümüş blok"
+"[materials.items.silver_block.about]": "Yapılar için pürüzsüz, açık renkli bir metal blok."
+
+# content/materials/silver/data/materials.yaml
+"[materials.materials.silver_ore]": "Gümüş cevheri"
+"[materials.materials.silver_block]": "Gümüş blok"
+
+# content/materials/silver/data/recipes.yaml
+"[materials.recipes.silver_bar]": "Gümüş külçe"
+"[materials.recipes.silver_block]": "Gümüş blok"

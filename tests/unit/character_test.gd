@@ -685,7 +685,7 @@ func _test_fall() -> void:
 	for y in range(8, 0, -1):
 		ch.at = Vector3(4.5, float(y), 4.5) * WorldData.CELL
 		ch.update(0.05)
-	_check(ch.is_dead() and ch.death.cause == "fall" and Survivor.cause_text("fall")[0] == "Вы разбились",
+	_check(ch.is_dead() and ch.death.cause == "fall" and Lang.t(Survivor.cause_text("fall")[0]) == "You crashed",
 		"a long fall kills, and the death screen says so")
 
 
@@ -735,7 +735,7 @@ func _test_sack_ends() -> void:
 	for i in 5:
 		acts.pick_up_near(ch)
 	_check(ch.said.is_empty(), "standing by a sack that does not fit the bag does not say so at every pickup (%s)" % [ch.said])
-	_check(not acts.pick_up(ch, key, 0) and not acts.pick_up(ch, key, 0) and ch.said == ["Забрано не всё: сумка полна"],
+	_check(not acts.pick_up(ch, key, 0) and not acts.pick_up(ch, key, 0) and ch.said.map(Lang.t) == ["Not everything was taken: the bag is full"],
 		"a tap on it says so, but not twice in a row (%s)" % [ch.said])
 	var changed := []
 	acts.drops_changed.connect(func(k: Vector2i) -> void: changed.append(k))
@@ -770,11 +770,11 @@ func _test_bed_respawn() -> void:
 	camp.put("core:campfire", Vector3i(2, 1, 2), null, true, -1.0, 0)
 	camp.put("tools:fur_bedroll", Vector3i(10, 1, 10), null, true, -1.0, 7)
 	ch.find_respawns(camp, null)
-	_check(ch.respawn_points()[0][0] == "У своего костра", "with no bed of their own they come back at their fire")
+	_check(Lang.t(ch.respawn_points()[0][0]) == "At your campfire", "with no bed of their own they come back at their fire")
 	var bed: Dictionary = camp.put("tools:fur_bedroll", Vector3i(8, 1, 8), null, true, -1.0, 0)
-	_check(ch.find_respawns(camp, null) and ch.respawn_points()[0][0] == "У своей кровати"
-		and ch.respawn_points()[0][1] == camp.lying_spot(bed) and ch.respawn_points()[1][0] == "У своего костра"
-		and ch.respawn_points().back()[0] == "У костра старта", "their bed comes first, lying in it")
+	_check(ch.find_respawns(camp, null) and Lang.t(ch.respawn_points()[0][0]) == "At your bed"
+		and ch.respawn_points()[0][1] == camp.lying_spot(bed) and Lang.t(ch.respawn_points()[1][0]) == "At your campfire"
+		and Lang.t(ch.respawn_points().back()[0]) == "At the starting campfire", "their bed comes first, lying in it")
 
 
 ## A poultice gives its health back over its time, even hungry, one at a time; a bandage

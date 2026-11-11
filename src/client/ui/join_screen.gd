@@ -14,6 +14,7 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 const TextField := preload("res://src/client/ui/text_field.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const WIDTH := 240
 const FIELD_H := 30
@@ -59,18 +60,18 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	_panel.add_child(box)
-	var title := UiStyle.label("Присоединиться", UiStyle.ACCENT)
+	var title := UiStyle.label("[join]", UiStyle.ACCENT)
 	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
 	var recent := ServerList.recent()
-	_url = _field(box, "Адрес сервера", "wss://… или ws://адрес:порт")
+	_url = _field(box, "[server_address]", "[wss_or_ws_address_port]")
 	_url.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_URL
 	_url.text = _start_url if _start_url != "" else (recent[0].url if not recent.is_empty() else "")
-	_name = _field(box, "Имя", "как вас увидят другие")
+	_name = _field(box, "[name]", "[how_others_will_see_you]")
 	_name.max_length = ServerList.NAME_MAX
 	_name.text = ServerList.player_name()
-	_password = _field(box, "Пароль", "если сервер просит")
+	_password = _field(box, "[password]", "[if_the_server_asks]")
 	_password.secret = true
 	_password.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_PASSWORD
 	_error = UiStyle.label("", UiStyle.DANGER)
@@ -81,7 +82,7 @@ func _ready() -> void:
 	_recent = VBoxContainer.new()
 	_recent.add_theme_constant_override("separation", 4)
 	box.add_child(_recent)
-	_recent.add_child(UiStyle.label("Недавние", UiStyle.MUTED))
+	_recent.add_child(UiStyle.label("[recent]", UiStyle.MUTED))
 	_recent_scroll = ScrollContainer.new()
 	_recent_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_recent.add_child(_recent_scroll)
@@ -93,7 +94,7 @@ func _ready() -> void:
 	DragScroll.attach(_recent_scroll)
 	_fill_recent(recent)
 	_go = Button.new()
-	_go.text = "Подключиться"
+	_go.text = "[connect]"
 	_go.focus_mode = Control.FOCUS_NONE
 	# Both act as the finger lands: the keyboard closing as it does moves them away
 	# before the finger lifts.
@@ -104,7 +105,7 @@ func _ready() -> void:
 	box.add_child(_go)
 	_back = Button.new()
 	var back := _back
-	back.text = "Назад"
+	back.text = "[back]"
 	back.focus_mode = Control.FOCUS_NONE
 	back.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	back.custom_minimum_size = Vector2(WIDTH, ROW_H)
@@ -159,8 +160,8 @@ func _fill_recent(recent: Array[Dictionary]) -> void:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 4)
 		var b := Button.new()
-		var title: String = r.title if r.title != "" else "Сервер"
-		b.text = "%s\n%s" % [title, _short(r.url)]
+		var title: String = r.title if r.title != "" else "[server_name]"
+		b.text = Lang.line("%s\n%s", [title, _short(r.url)])
 		b.focus_mode = Control.FOCUS_NONE
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.clip_text = true
@@ -175,7 +176,7 @@ func _fill_recent(recent: Array[Dictionary]) -> void:
 		forget.focus_mode = Control.FOCUS_NONE
 		forget.icon = UiStyle.icon("trash")
 		forget.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		forget.tooltip_text = "Убрать сервер из списка (нажать дважды)"
+		forget.tooltip_text = "[remove_the_server_from_the]"
 		forget.custom_minimum_size = Vector2(FORGET, FORGET)
 		forget.pressed.connect(func() -> void: _forget(forget, url))
 		row.add_child(forget)
@@ -210,7 +211,7 @@ func submit() -> void:
 	var why := ServerList.problem(url, _secure_page())
 	var name := _name.text.strip_edges()
 	if why == "" and name == "":
-		why = "Введите имя"
+		why = "[enter_a_name]"
 	if why != "":
 		_say(why)
 		return

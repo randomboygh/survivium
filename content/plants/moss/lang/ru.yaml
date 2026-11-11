@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/moss/bundle.yaml
+"[plants.moss.bundle]": "Мох"
+
+# content/plants/moss/data/items.yaml
+"[plants.items.moss]": "Мох"
+"[plants.items.bandage]": "Бинт"
+"[plants.items.poultice]": "Припарка"
+"[plants.items.poultice.about]": "Тёплый мох в бинте. Лечит не сразу, а понемногу, но вдвое больше бинта, даже голодному и замёрзшему."
+
+# content/plants/moss/data/plants.yaml
+"[plants.plants.moss]": "Мох"
+
+# content/plants/moss/data/recipes.yaml
+"[plants.recipes.bandage]": "Бинт"
+"[plants.recipes.poultice]": "Припарка"

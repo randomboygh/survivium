@@ -1,12 +1,12 @@
 # Рецепты бандла «Постель»: подстилку вяжут руками из волокна («Ресурсы») и верёвки («Материалы»),
 # спальник шьют иглой (класс needle, бандл «Игла») из шкур («Животные», бандл «Добыча»).
 - id: grass_mat
-  title: Травяная подстилка
+  title: "[tools.recipes.grass_mat]"
   makes: grass_mat
   needs: {resources:fiber: 10, materials:cord: 2}
   time: 8
 - id: fur_bedroll
-  title: Меховой спальник
+  title: "[tools.recipes.fur_bedroll]"
   makes: fur_bedroll
   needs: {animals:hide: 3, materials:cord: 2}
   tools: [needle]

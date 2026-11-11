@@ -3,7 +3,7 @@
 # Монстера: широкие резные листья подлеска джунглей и мангров, густо в тени крон; даёт волокно.
 - id: monstera
   kind: custom
-  title: Монстера
+  title: "[plants.plants.monstera]"
   sprite: monstera
   frames: 2
   grows: shade

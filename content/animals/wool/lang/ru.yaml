@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/wool/bundle.yaml
+"[animals.wool.bundle]": "Пух"
+
+# content/animals/wool/data/items.yaml
+"[animals.items.rabbit_fluff]": "Заячий пух"
+"[animals.items.rabbit_fluff.about]": "Мягкий пух ручного зайца. Его срезают ножом и прядут в пряжу."
+"[animals.items.wool_yarn]": "Пушистая пряжа"
+"[animals.items.wool_yarn.about]": "Тёплая пряжа из заячьего пуха. На ткацком станке из неё ткут ткань."
+
+# content/animals/wool/data/recipes.yaml
+"[animals.recipes.wool_yarn]": "Пушистая пряжа"
+"[animals.recipes.cloth_from_wool_yarn]": "Ткань из пряжи"

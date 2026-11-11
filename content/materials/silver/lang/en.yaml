@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/silver/bundle.yaml
-"Серебро": "Silver"
+"[materials.silver.bundle]": "Silver"
 
 # content/materials/silver/data/items.yaml
-"Серебряная руда": "Silver ore"
-"Серая порода с белыми блёстками самородного серебра. Её берёт бронзовая кирка.": "A grey rock with white specks of native silver. A bronze pickaxe mines it."
-"Серебряный слиток": "Silver ingot"
-"Мягкий белый металл. Из слитков складывают серебряные блоки.": "A soft white metal. Ingots are put together into silver blocks."
-"Серебряный блок": "Silver block"
-"Гладкий светлый металлический блок для построек.": "A smooth light metal block for buildings."
+"[materials.items.silver_ore]": "Silver ore"
+"[materials.items.silver_ore.about]": "A grey rock with white specks of native silver. A bronze pickaxe mines it."
+"[materials.items.silver_bar]": "Silver ingot"
+"[materials.items.silver_bar.about]": "A soft white metal. Ingots are put together into silver blocks."
+"[materials.items.silver_block]": "Silver block"
+"[materials.items.silver_block.about]": "A smooth light metal block for buildings."
+
+# content/materials/silver/data/materials.yaml
+"[materials.materials.silver_ore]": "Silver ore"
+"[materials.materials.silver_block]": "Silver block"
+
+# content/materials/silver/data/recipes.yaml
+"[materials.recipes.silver_bar]": "Silver ingot"
+"[materials.recipes.silver_block]": "Silver block"

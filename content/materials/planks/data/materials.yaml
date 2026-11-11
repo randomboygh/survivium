@@ -1,6 +1,6 @@
 # Доски как ячейка: рубятся топором. Поля — как у материалов основы.
 - id: planks
-  title: Доски
+  title: "[materials.materials.planks]"
   hotbar: 3
   item: planks
   dig: axe

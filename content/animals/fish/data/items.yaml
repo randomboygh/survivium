@@ -1,8 +1,8 @@
 # Предметы бандла «Рыба»: что ловят удочкой («Удочка» «Инструментов»). Пойманная рыба — настоящая рыба из воды
 # (creatures.yaml, поле catch; окунь — бандла «Окунь»). Сырую рыбу есть можно, жаренная на костре сытнее.
 - id: roach
-  title: Плотва
-  description: Мелкая речная рыба. Её жарят на костре.
+  title: "[animals.items.roach]"
+  description: "[animals.items.roach.about]"
   weight: 0.3
   stack: 10
   food: 3
@@ -12,8 +12,8 @@
   icon: roach
   anim: eat
 - id: pike
-  title: Щука
-  description: Хищница тихих заводей. Её жарят на костре.
+  title: "[animals.items.pike]"
+  description: "[animals.items.pike.about]"
   weight: 1.2
   stack: 10
   food: 6
@@ -23,8 +23,8 @@
   icon: pike
   anim: eat
 - id: salmon
-  title: Лосось
-  description: Рыба холодных северных рек. Её жарят на костре.
+  title: "[animals.items.salmon]"
+  description: "[animals.items.salmon.about]"
   weight: 1.0
   stack: 10
   food: 7
@@ -34,8 +34,8 @@
   icon: salmon
   anim: eat
 - id: cod
-  title: Треска
-  description: Морская рыба холодного берега. Её жарят на костре.
+  title: "[animals.items.cod]"
+  description: "[animals.items.cod.about]"
   weight: 0.9
   stack: 10
   food: 6
@@ -45,8 +45,8 @@
   icon: cod
   anim: eat
 - id: parrotfish
-  title: Рыба-попугай
-  description: Пёстрая рыба тёплого моря. Её жарят на костре.
+  title: "[animals.items.parrotfish]"
+  description: "[animals.items.parrotfish.about]"
   weight: 0.7
   stack: 10
   food: 5
@@ -56,8 +56,8 @@
   icon: parrotfish
   anim: eat
 - id: catfish
-  title: Сом
-  description: Большая рыба тёплых болот и рек. Её жарят на костре.
+  title: "[animals.items.catfish]"
+  description: "[animals.items.catfish.about]"
   weight: 1.6
   stack: 10
   food: 8
@@ -67,8 +67,8 @@
   icon: catfish
   anim: eat
 - id: perch
-  title: Окунь
-  description: Полосатая рыба рек и озёр. Его жарят на костре.
+  title: "[animals.items.perch]"
+  description: "[animals.items.perch.about]"
   weight: 0.5
   stack: 10
   food: 4
@@ -78,8 +78,8 @@
   icon: perch
   anim: eat
 - id: roasted_fish
-  title: Жареная рыба
-  description: Рыба, зажаренная на костре. Сытная.
+  title: "[animals.items.roasted_fish]"
+  description: "[animals.items.roasted_fish.about]"
   weight: 0.3
   stack: 20
   food: 18

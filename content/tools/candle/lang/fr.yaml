@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/candle/bundle.yaml
-"Сальная свеча": "Chandelle de suif"
+"[tools.candle.bundle]": "Chandelle de suif"
 
 # content/tools/candle/data/items.yaml
-"Фитиль в жиру. Светит слабее факела, но горит дольше.": "Une mèche dans la graisse. Éclaire moins qu'une torche, mais dure plus longtemps."
+"[tools.items.tallow_candle]": "Chandelle de suif"
+"[tools.items.tallow_candle.about]": "Une mèche dans la graisse. Éclaire moins qu'une torche, mais dure plus longtemps."
+
+# content/tools/candle/data/recipes.yaml
+"[tools.recipes.tallow_candle]": "Chandelle de suif"

@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sickle/bundle.yaml
-"Серп": "Falcetto"
+"[tools.sickle.bundle]": "Falcetto"
 
 # content/tools/sickle/data/items.yaml
-"Каменный серп": "Falcetto di pietra"
-"Жнёт спелый урожай с грядок, по три клетки за взмах.": "Miete il raccolto maturo dalle aiuole, tre celle per colpo."
-"Медный серп": "Falcetto di rame"
-"Жнёт спелый урожай с грядок, по четыре клетки за взмах.": "Miete il raccolto maturo dalle aiuole, quattro celle per colpo."
-"Железный серп": "Falcetto di ferro"
-"Жнёт спелый урожай с грядок, по пять клеток за взмах.": "Miete il raccolto maturo dalle aiuole, cinque celle per colpo."
+"[tools.items.stone_sickle]": "Falcetto di pietra"
+"[tools.items.stone_sickle.about]": "Miete il raccolto maturo dalle aiuole, tre celle per colpo."
+"[tools.items.copper_sickle]": "Falcetto di rame"
+"[tools.items.copper_sickle.about]": "Miete il raccolto maturo dalle aiuole, quattro celle per colpo."
+"[tools.items.iron_sickle]": "Falcetto di ferro"
+"[tools.items.iron_sickle.about]": "Miete il raccolto maturo dalle aiuole, cinque celle per colpo."
+
+# content/tools/sickle/data/recipes.yaml
+"[tools.recipes.stone_sickle]": "Falcetto di pietra"
+"[tools.recipes.copper_sickle]": "Falcetto di rame"
+"[tools.recipes.iron_sickle]": "Falcetto di ferro"

@@ -35,7 +35,7 @@ colors:
   - "#aabbcc"   # not a comment
 items:
   - id: grass
-    title: Трава
+    title: Grass
     spread: {x: 1, y: -2.5}
   - id: dirt
     nested:
@@ -53,7 +53,7 @@ flat:
 	_check(doc.get("deps") == ["a", "b c", 3, 2.5, true, null], "yaml reads flow lists")
 	_check(doc.get("colors") == ["#aabbcc"], "yaml keeps # inside quotes")
 	var items: Array = doc.get("items", [])
-	_check(items.size() == 3 and items[0] == {"id": "grass", "title": "Трава", "spread": {"x": 1, "y": -2.5}},
+	_check(items.size() == 3 and items[0] == {"id": "grass", "title": "Grass", "spread": {"x": 1, "y": -2.5}},
 		"yaml reads mappings in a list")
 	_check(items.size() == 3 and items[1].get("nested") == [1, 2] and items[2] == {"id": "stone"},
 		"yaml reads nested lists and items on their own line")
@@ -73,7 +73,7 @@ func _test_content() -> void:
 	_check(Content.problems.is_empty(), "core content loads without problems")
 	_check(Mat.check().is_empty() and AiRules.check().is_empty() and Trees.check().is_empty() and Bushes.check().is_empty(),
 		"core content satisfies the engine")
-	_check(Mat.AIR == 0 and Mat.IDS[Mat.GRASS] == "core:grass" and Mat.NAMES[Mat.GRASS] == "Трава", "materials get their indices")
+	_check(Mat.AIR == 0 and Mat.IDS[Mat.GRASS] == "core:grass" and Lang.t(Mat.NAMES[Mat.GRASS]) == "Grass", "materials get their indices")
 	var planks := Mat.index("materials:planks")
 	_check(Mat.PLACEABLE == [Mat.STONE, Mat.DIRT, planks, Mat.index("materials:brick"), Mat.BEACH, Mat.BANK, Mat.LOG,
 			Mat.index("materials:log_wall"), Mat.index("materials:wattle"), Mat.index("materials:cut_stone")],
@@ -105,9 +105,9 @@ func _test_content() -> void:
 	var mod := "res://content/_test"
 	DirAccess.make_dir_recursive_absolute(mod + "/data")
 	_write_file(mod + "/mod.yaml", "id: _test\ntitle: Test\nversion: \"1\"\napi: 1\n")
-	_write_file(mod + "/data/materials.yaml", "- id: Bad Id\n  title: x\n- id: glass\n  title: Стекло\n  solid: maybe\n  weight: 3\n- id: glass\n  title: again\n")
-	_write_file(mod + "/data/creatures.yaml", "- id: bear\n  title: Медведь\n  mass: -1\n  diet: [stones]\n  speed: 1\n  sight: 1\n  human_wariness: 2\n  active: dusk\n")
-	_write_file(mod + "/data/trees.yaml", "- id: pine\n  title: Сосна\n  leaves: needles\n  trunk: [1]\n  crown: [1, 2, 3]\n  tints: []\n")
+	_write_file(mod + "/data/materials.yaml", "- id: Bad Id\n  title: x\n- id: glass\n  title: Glass\n  solid: maybe\n  weight: 3\n- id: glass\n  title: again\n")
+	_write_file(mod + "/data/creatures.yaml", "- id: bear\n  title: Bear\n  mass: -1\n  diet: [stones]\n  speed: 1\n  sight: 1\n  human_wariness: 2\n  active: dusk\n")
+	_write_file(mod + "/data/trees.yaml", "- id: pine\n  title: Pine\n  leaves: needles\n  trunk: [1]\n  crown: [1, 2, 3]\n  tints: []\n")
 	_write_file(mod + "/data/recipes.yaml", "- id: rope\n  title: x\n  makes: materials:cord\n  needs: {resources:fiber: 0}\n- id: dust\n  title: y\n  makes: materials:cord\n  needs: {stone_dust: 1}\n")
 	Content.BUNDLES.append("_test")
 	Content.refresh()
@@ -118,7 +118,7 @@ func _test_content() -> void:
 			if what in p:
 				found[what] = true
 	_check(found.size() == 12, "the loader reports every kind of mistake (%d of 12): %s" % [found.size(), Content.problems])
-	_check(Content.find("materials", "_test:glass").title == "Стекло", "a duplicate id within a mod is skipped")
+	_check(Content.find("materials", "_test:glass").title == "Glass", "a duplicate id within a mod is skipped")
 	Content.BUNDLES.assign(before)
 	for f in ["data/materials.yaml", "data/creatures.yaml", "data/trees.yaml", "data/recipes.yaml", "mod.yaml"]:
 		DirAccess.remove_absolute(mod + "/" + f)
@@ -156,8 +156,8 @@ func _test_mods() -> void:
 	_check(all[0] == "core" and "animals/wolf" in all and "animals/sparrow" in all and "plants/oak" in all and "music" in all and "tools/axe" in all and "sounds/ui" in all
 		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("music") == "music" and not "sounds" in all,
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
-	_check(Mods.title("animals/wolf") == "Волк" and Mods.title("plants/oak") == "Дуб" and Mods.title("music") == "Музыка" and Mods.title("tools/kiln") == "Печь для обжига"
-		and Mods.mod_title("plants") == "Растения" and Mods.bundles("animals").size() == 19 and Mods.bundles("plants").size() == 41
+	_check(Lang.t(Mods.title("animals/wolf")) == "Wolf" and Lang.t(Mods.title("plants/oak")) == "Oak" and Lang.t(Mods.title("music")) == "Music" and Lang.t(Mods.title("tools/kiln")) == "Kiln"
+		and Lang.t(Mods.mod_title("plants")) == "Plants" and Mods.bundles("animals").size() == 19 and Mods.bundles("plants").size() == 41
 		and Mods.bundles("resources") == ["resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/wood"]
 		and Mods.bundles("materials").size() == 20 and Mods.bundles("tools").size() == 49 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
@@ -176,8 +176,8 @@ func _test_mods() -> void:
 		"a bundle's closure is it with what it cannot do without, in load order (a soft reference binds nothing, `requires` does): %s" % [ears])
 	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
-	_check(Lang.t(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants"))) == "Животные (1 из 19), Растения" and Mods.summary(["core"]) == "только основа"
-		and Lang.t(Mods.summary(["core", "plants/oak"])) == "Растения (1 из 41)", "a set is summed up by mods")
+	_check(Lang.t(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants"))) == "Animals (1 of 19), Plants" and Lang.t(Mods.summary(["core"])) == "core only"
+		and Lang.t(Mods.summary(["core", "plants/oak"])) == "Plants (1 of 41)", "a set is summed up by mods")
 	var before := Content.BUNDLES.duplicate()
 	for m in ["_a", "_b", "_c", "_d"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
@@ -554,7 +554,7 @@ func _test_items() -> void:
 		"dug cells give their items")
 	for m in Mat.PLACEABLE:
 		_check(Items.get_item(Items.placed_by[m]).place == Mat.IDS[m], "an item places hotbar block %s" % Mat.IDS[m])
-	_check(Items.get_item("campfire").id == "core:campfire" and Items.title("resources:branch") == "Ветка" and Items.canon("core:branch") == "resources:branch"
+	_check(Items.get_item("campfire").id == "core:campfire" and Lang.t(Items.title("resources:branch")) == "Branch" and Items.canon("core:branch") == "resources:branch"
 		and Items.canon("plants:acorn") == "plants:acorn", "a bare name is a core item, an old id is renamed")
 	_check(Trees.SPECIES[Trees.first(Trees.BROAD)].seed == "plants:acorn" and Items.has(Trees.SPECIES[Trees.first(Trees.NEEDLES)].seed), "tree seeds are items")
 	_check(Bushes.TYPES[Bushes.index("plants:raspberry")].fruit == "plants:raspberry" and Items.food(Bushes.TYPES[Bushes.first(true, 1)].fruit) > 0.0,
@@ -680,16 +680,16 @@ func _test_crafting() -> void:
 	inv.add("resources:fiber", 7)
 	knows.look_at(inv)
 	_check(knows.knows(cord) and "materials:cord" in heard and heard.size() == 2, "a recipe is learned when its materials have been in the bag")
-	_check(Lang.t(Workshop.learned_line(PackedStringArray(["materials:cord"]))) == "Новый рецепт: Верёвка"
-		and Lang.t(Workshop.learned_line(PackedStringArray(["materials:cord", "tools:workbench", "resources:campfire", "tools:torch"]))).begins_with("Новые рецепты: Верёвка, ")
-		and Lang.t(Workshop.learned_line(PackedStringArray(["materials:cord", "tools:workbench", "resources:campfire", "tools:torch"]))).ends_with(" и ещё 2"),
+	_check(Lang.t(Workshop.learned_line(PackedStringArray(["materials:cord"]))) == "New recipe: Cord"
+		and Lang.t(Workshop.learned_line(PackedStringArray(["materials:cord", "tools:workbench", "resources:campfire", "tools:torch"]))).begins_with("New recipes: Cord, ")
+		and Lang.t(Workshop.learned_line(PackedStringArray(["materials:cord", "tools:workbench", "resources:campfire", "tools:torch"]))).ends_with(" and 2 more"),
 		"what one look teaches is told in one line, two names and how many more")
 	var copy := Knowledge.new()
 	copy.from_dict(JSON.parse_string(JSON.stringify(knows.to_dict())))
 	_check(copy.knows(cord) and copy.seen.has("resources:fiber"), "knowledge survives a save")
-	_check(Crafting.why_not(cord, inv, {}) == "" and Lang.t(Crafting.why_not(axe, inv, {})).begins_with("Нужен станок"),
+	_check(Crafting.why_not(cord, inv, {}) == "" and Lang.t(Crafting.why_not(axe, inv, {})).begins_with("Needs a station"),
 		"by hand anywhere, at a station only near it")
-	_check(Lang.t(Crafting.why_not(planks, inv, {"tools:workbench": true})).begins_with("Нужен инструмент"), "planks need an axe in the bag")
+	_check(Lang.t(Crafting.why_not(planks, inv, {"tools:workbench": true})).begins_with("Needs a tool"), "planks need an axe in the bag")
 	var q := CraftQueue.new()
 	_check(q.add(cord, inv) and q.add(cord, inv) and not q.add(cord, inv), "the queue takes the materials of each job")
 	_check(inv.count("resources:fiber") == 1, "materials are gone while queued")

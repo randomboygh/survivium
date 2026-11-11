@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hide_clothes/bundle.yaml
-"Одежда из шкур": "Ubrania ze skór"
+"[tools.hide_clothes.bundle]": "Ubrania ze skór"
 
 # content/tools/hide_clothes/data/items.yaml
-"Меховая шапка": "Futrzana czapka"
-"Шапка из шкуры мехом внутрь. Держит тепло головы в мороз.": "Czapka ze skóry, futrem do środka. Grzeje głowę na mrozie."
-"Шуба": "Futrzany płaszcz"
-"Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна.": "Długie okrycie ze skór, futrem do środka. Z nim zimowa noc nie straszna."
-"Кожаные штаны": "Skórzane spodnie"
-"Штаны из выделанной кожи. Не продуваются ветром.": "Spodnie z wyprawionej skóry. Wiatr ich nie przewiewa."
-"Унты": "Futrzane buty"
-"Высокие сапоги из шкуры на кожаной подошве.": "Wysokie buty ze skóry na skórzanej podeszwie."
+"[tools.items.fur_hat]": "Futrzana czapka"
+"[tools.items.fur_hat.about]": "Czapka ze skóry, futrem do środka. Grzeje głowę na mrozie."
+"[tools.items.fur_coat]": "Futrzany płaszcz"
+"[tools.items.fur_coat.about]": "Długie okrycie ze skór, futrem do środka. Z nim zimowa noc nie straszna."
+"[tools.items.leather_trousers]": "Skórzane spodnie"
+"[tools.items.leather_trousers.about]": "Spodnie z wyprawionej skóry. Wiatr ich nie przewiewa."
+"[tools.items.fur_boots]": "Futrzane buty"
+"[tools.items.fur_boots.about]": "Wysokie buty ze skóry na skórzanej podeszwie."
+
+# content/tools/hide_clothes/data/recipes.yaml
+"[tools.recipes.fur_hat]": "Futrzana czapka"
+"[tools.recipes.fur_coat]": "Futrzany płaszcz"
+"[tools.recipes.leather_trousers]": "Skórzane spodnie"
+"[tools.recipes.fur_boots]": "Futrzane buty"

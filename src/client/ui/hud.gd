@@ -69,7 +69,7 @@ func _ready() -> void:
 	_sleep_room.custom_minimum_size = Vector2(SLEEP_SIZE.x - 8, 0)
 	_sleep_room.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(_sleep_room)
-	_sleep_button = TabRow.icon_button(UiStyle.icon("sleep"), "Лечь спать",
+	_sleep_button = TabRow.icon_button(UiStyle.icon("sleep"), "[go_to_sleep]",
 		func() -> void: game.net.request(Protocol.SLEEP, [true]))
 	_sleep_button.custom_minimum_size = SLEEP_SIZE
 	add_child(_sleep_button)
@@ -97,35 +97,35 @@ func _ready() -> void:
 	_top = HBoxContainer.new()
 	_top.add_theme_constant_override("separation", 6)
 	add_child(_top)
-	_stats_button = _icon_button(_top, "chart", "Статистика", toggle_stats)
+	_stats_button = _icon_button(_top, "chart", "[statistics]", toggle_stats)
 	_stats_button.visible = game.settings.values.stats_button
-	_test_button = _icon_button(_top, "flask", "Тестирование", toggle_test)
+	_test_button = _icon_button(_top, "flask", "[testing]", toggle_test)
 	_test_button.visible = game.settings.testing_unlocked
-	_chat_button = _icon_button(_top, "chat", "Чат (Enter)", func() -> void: chat.toggle())
-	_gesture_button = _icon_button(_top, "gesture", "Жесты (C)", toggle_gestures)
+	_chat_button = _icon_button(_top, "chat", "[chat_enter]", func() -> void: chat.toggle())
+	_gesture_button = _icon_button(_top, "gesture", "[gestures_c]", toggle_gestures)
 	_chat_button.visible = social(game.settings.values.solo_social)
 	_gesture_button.visible = _chat_button.visible
 	game.land.changed.connect(_show_land)
 	game.land.entered.connect(_on_land_entered)
 	game.land.painting_toggled.connect(_on_painting_toggled)
-	_bag_button = _icon_button(_top, "person", "Персонаж, сумка и крафт", toggle_bag)
-	_menu_button = _icon_button(_top, "menu", "Меню", toggle_menu)
+	_bag_button = _icon_button(_top, "person", "[character_bag_and_crafting]", toggle_bag)
+	_menu_button = _icon_button(_top, "menu", "[menu]", toggle_menu)
 
 	# The level buttons in a column beside the minimap, as tall as it.
 	_level = BoxContainer.new()
 	_level.vertical = true
 	_level.add_theme_constant_override("separation", 2)
 	add_child(_level)
-	var up := _icon_button(_level, "up", "Уровень выше", func() -> void: game.chunks.shift_cut(1))
+	var up := _icon_button(_level, "up", "[level_up]", func() -> void: game.chunks.shift_cut(1))
 	# The level itself is a button: a tap on a chosen cut returns to the player's level.
 	_level_label = Button.new()
 	_level_label.focus_mode = Control.FOCUS_NONE
 	_level_label.custom_minimum_size = Vector2(LEVEL_WIDTH, LEVEL_MIDDLE)
-	_level_label.tooltip_text = "Вернуться к уровню игрока"
+	_level_label.tooltip_text = "[back_to_the_players_level]"
 	_level_label.pressed.connect(func() -> void: game.chunks.reset_view_level())
 	_level.add_child(_level_label)
 	_level_text = _fixed_label(_level_label)
-	var down := _icon_button(_level, "down", "Уровень ниже", func() -> void: game.chunks.shift_cut(-1))
+	var down := _icon_button(_level, "down", "[level_down]", func() -> void: game.chunks.shift_cut(-1))
 	for b in [up, down]:
 		b.custom_minimum_size = Vector2(LEVEL_WIDTH, LEVEL_ARROW)
 	_level_up = up
@@ -146,16 +146,16 @@ func _ready() -> void:
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_camera.add_child(c)
 	pad.call()
-	var tilt_up := _icon_button(_camera, "tilt_up", "Наклонить камеру круче", func() -> void: game.view.tilt_by(1))
+	var tilt_up := _icon_button(_camera, "tilt_up", "[tilt_the_camera_steeper]", func() -> void: game.view.tilt_by(1))
 	pad.call()
 	# Held, a turn button turns the camera on smoothly (see CameraRig.hold_turn).
 	# Each shows the arrow of the other side: the way the camera goes round, the world
 	# turning under it the other way (2026-11-02).
-	var turn_left := _icon_button(_camera, "turn_right", "Повернуть мир влево (держать: плавно)", Callable())
+	var turn_left := _icon_button(_camera, "turn_right", "[turn_the_world_left_hold]", Callable())
 	_camera_reset = Button.new()
 	_camera_reset.focus_mode = Control.FOCUS_NONE
 	_camera_reset.custom_minimum_size = Vector2(DPAD_MIDDLE.x, DPAD_MIDDLE.y)
-	_camera_reset.tooltip_text = "Вернуть камеру как была"
+	_camera_reset.tooltip_text = "[put_the_camera_back_as]"
 	_camera_reset.pressed.connect(func() -> void: game.view.reset_turn())
 	_camera.add_child(_camera_reset)
 	_camera_label = _fixed_label(_camera_reset)
@@ -165,13 +165,13 @@ func _ready() -> void:
 	tight.base_font = UiStyle.font()
 	tight.spacing_glyph = -1
 	_camera_label.add_theme_font_override("font", tight)
-	var turn_right := _icon_button(_camera, "turn_left", "Повернуть мир вправо (держать: плавно)", Callable())
+	var turn_right := _icon_button(_camera, "turn_left", "[turn_the_world_right_hold]", Callable())
 	for side: Array in [[turn_left, -1], [turn_right, 1]]:
 		var dir: int = side[1]
 		side[0].button_down.connect(func() -> void: game.view.hold_turn(dir))
 		side[0].button_up.connect(func() -> void: game.view.release_turn(dir))
 	pad.call()
-	var tilt_down := _icon_button(_camera, "tilt_down", "Наклонить камеру ниже", func() -> void: game.view.tilt_by(-1))
+	var tilt_down := _icon_button(_camera, "tilt_down", "[tilt_the_camera_lower]", func() -> void: game.view.tilt_by(-1))
 	pad.call()
 	for b: Button in [tilt_up, tilt_down]:
 		b.custom_minimum_size = Vector2(DPAD_MIDDLE.x, DPAD_SIDE)
@@ -202,9 +202,9 @@ func _ready() -> void:
 	# A tap on a hand makes it the hand in use; on the hand in use it changes what it
 	# holds: the next tool.
 	_hand_left = _slot(bar_row, tap_hand.bind(0))
-	_hand_left.tag = "Л"
+	_hand_left.tag = "[l]"
 	_hand_right = _slot(bar_row, tap_hand.bind(1))
-	_hand_right.tag = "П"
+	_hand_right.tag = "[r]"
 	var sep := ColorRect.new()
 	sep.color = UiStyle.HIGHLIGHT
 	sep.custom_minimum_size = Vector2(4, 30)
@@ -216,13 +216,13 @@ func _ready() -> void:
 	sep_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sep_box.add_child(sep)
 	bar_row.add_child(sep_box)
-	_prev_button = _icon_button(bar_row, "prev", "Предыдущие ячейки", _prev_page)
+	_prev_button = _icon_button(bar_row, "prev", "[previous_slots]", _prev_page)
 	_prev_button.custom_minimum_size = Vector2(28, SLOT)
 	for i in Inventory.HOTBAR:
 		var s = _slot(bar_row, _select_slot.bind(i))
 		s.on_release = true
 		_slots.append(s)
-	_next_button = _icon_button(bar_row, "next", "Следующие ячейки", _next_page)
+	_next_button = _icon_button(bar_row, "next", "[next_slots]", _next_page)
 	_next_button.custom_minimum_size = Vector2(28, SLOT)
 	_bag_meter = Button.new()
 	_bag_meter.focus_mode = Control.FOCUS_NONE
@@ -263,7 +263,7 @@ func _ready() -> void:
 	_action.held.connect(func(on: bool) -> void: game.controls.action_held = on)
 	add_child(_action)
 	_jump = TouchButton.new()
-	_jump.text = "Прыжок"
+	_jump.text = "[jump]"
 	_jump.icon = UiStyle.icon("up")
 	_jump.custom_minimum_size = Vector2(56, 56)
 	_jump.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -336,7 +336,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func clock_text() -> String:
 	var hours := int(game.clock.time_of_day * 24.0)
 	var minutes := int(fmod(game.clock.time_of_day * 24.0 * 60.0, 60.0))
-	return Lang.f("%s · %d° · д. %d · %02d:%02d", [game.clock.SEASONS[game.clock.season], roundi(air()), game.clock.day,
+	return Lang.f("[d_n2]", [game.clock.SEASONS[game.clock.season], roundi(air()), game.clock.day,
 		hours, minutes])
 
 
@@ -441,7 +441,7 @@ func update_state() -> void:
 	_level_up.disabled = game.chunks.cut_base() + 1 > reach.y
 	_level_down.disabled = game.chunks.cut_base() - 1 < reach.x
 	# On two lines, so the column is one button wide.
-	_level_text.text = Lang.f("Срез\n%d", [game.chunks.cut_level]) if cut else Lang.f("Ур.\n%d", [game.player.level()])
+	_level_text.text = Lang.f("[cut]", [game.chunks.cut_level]) if cut else Lang.f("[lv]", [game.player.level()])
 	var ink := UiStyle.ACCENT if cut else UiStyle.INK
 	# A colour set anew tells the label its theme changed, which lays it out again.
 	if _level_ink != ink:

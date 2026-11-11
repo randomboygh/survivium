@@ -2,11 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fence/bundle.yaml
-"Забор": "Çit"
+"[tools.fence.bundle]": "Çit"
 
 # content/tools/fence/data/items.yaml
-"Звено изгороди из жердей. Строится в режиме строительства линией, как стена, и само соединяется с соседними.": "Sırıklardan bir çit parçası. İnşa kipinde duvar gibi çizgi hâlinde kurulur ve komşularına kendiliğinden bağlanır."
-"Калитка": "Bahçe kapısı"
-"Створка из жердей в линию забора, на одну клетку. Касание открывает и закрывает.": "Çit hattında sırıklardan tek hücrelik bir kanat. Bir dokunuş açar ve kapar."
-"Ворота": "Çit kapısı"
-"Две створки из жердей в линию забора, на две клетки в ширину. Касание открывает обе.": "Çit hattında sırıklardan iki kanat, iki hücre genişliğinde. Bir dokunuş ikisini de açar."
+"[tools.items.fence]": "Çit"
+"[tools.items.fence.about]": "Sırıklardan bir çit parçası. İnşa kipinde duvar gibi çizgi hâlinde kurulur ve komşularına kendiliğinden bağlanır."
+"[tools.items.wicket]": "Bahçe kapısı"
+"[tools.items.wicket.about]": "Çit hattında sırıklardan tek hücrelik bir kanat. Bir dokunuş açar ve kapar."
+"[tools.items.gate]": "Çit kapısı"
+"[tools.items.gate.about]": "Çit hattında sırıklardan iki kanat, iki hücre genişliğinde. Bir dokunuş ikisini de açar."
+
+# content/tools/fence/data/recipes.yaml
+"[tools.recipes.fence]": "Çit"
+"[tools.recipes.wicket]": "Bahçe kapısı"
+"[tools.recipes.gate]": "Çit kapısı"

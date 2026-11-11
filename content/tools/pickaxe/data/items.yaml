@@ -6,7 +6,7 @@
 # клетки 2×2 (workbench, kiln, chest), и её флаги: storage, fire, repairs, serves, place_tool;
 # model — её воксельная модель (models/<model>.png).
 - id: stone_pickaxe
-  title: Каменная кирка
+  title: "[tools.items.stone_pickaxe]"
   weight: 2.0
   stack: 1
   model: pickaxe
@@ -20,7 +20,7 @@
   durability: 450
   repair: {resources:flint: 1, materials:cord: 1}
 - id: wooden_pickaxe
-  title: Деревянная кирка
+  title: "[tools.items.wooden_pickaxe]"
   weight: 1.2
   stack: 1
   model: wooden_pickaxe
@@ -34,7 +34,7 @@
   durability: 90
   repair: {materials:planks: 1}
 - id: copper_pickaxe
-  title: Медная кирка
+  title: "[tools.items.copper_pickaxe]"
   weight: 2.4
   stack: 1
   model: copper_pickaxe
@@ -48,7 +48,7 @@
   durability: 1050
   repair: {materials:copper_bar: 1}
 - id: bronze_pickaxe
-  title: Бронзовая кирка
+  title: "[tools.items.bronze_pickaxe]"
   weight: 2.5
   stack: 1
   model: bronze_pickaxe
@@ -62,7 +62,7 @@
   durability: 1650
   repair: {materials:bronze_bar: 1}
 - id: iron_pickaxe
-  title: Железная кирка
+  title: "[tools.items.iron_pickaxe]"
   weight: 2.7
   stack: 1
   model: iron_pickaxe
@@ -76,7 +76,7 @@
   durability: 2400
   repair: {materials:iron_bar: 1}
 - id: steel_pickaxe
-  title: Стальная кирка
+  title: "[tools.items.steel_pickaxe]"
   weight: 2.7
   stack: 1
   model: steel_pickaxe

@@ -80,8 +80,8 @@ const Items := preload("res://src/shared/content/items.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 
 ## Order of the grounds on the map (and in plan/design/ui.md).
-const GROUNDS := ["Ступени", "Ямы", "Пещера", "Звёздная пещера", "Кусты", "Лес", "Материалы", "Домик", "Пруд", "Растения", "Рельеф", "Биомы",
-	"Ручей", "Поле колосьев", "Роща", "Гора", "Лагерь", "Сочетания", "Дом", "Спуск", "Спуск под 45°", "Пляж"]
+const GROUNDS := ["[steps]", "[pits]", "[cave]", "[star_cave]", "[bushes]", "[forest]", "[materials]", "[cabin]", "[pond]", "[plants]", "[relief]", "[biomes]",
+	"[stream]", "[field_of_ears]", "[grove]", "[mountain]", "[camp]", "[combinations]", "[house]", "[descent]", "[descent_at_45]", "[beach]"]
 
 const STEPS := [0, 1, 0, 2, 0, 3, 0, 5]
 ## The farm: beds in rows along x, a row of grass between them (see farm_bed).

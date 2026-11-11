@@ -2,9 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/watering_can/bundle.yaml
-"Лейка": "Kova"
+"[tools.watering_can.bundle]": "Kova"
 
 # content/tools/watering_can/data/items.yaml
-"Пустая. Возьми в руку и коснись пресной воды, чтобы наполнить.": "Boş. Eline al ve doldurmak için tatlı suya dokun."
-"Лейка с водой": "Dolu kova"
-"Поливает грядки. Воды хватает на десять клеток.": "Tarhları sular. Su on hücreye yeter."
+"[tools.items.watering_can]": "Kova"
+"[tools.items.watering_can.about]": "Boş. Eline al ve doldurmak için tatlı suya dokun."
+"[tools.items.watering_can_full]": "Dolu kova"
+"[tools.items.watering_can_full.about]": "Tarhları sular. Su on hücreye yeter."
+
+# content/tools/watering_can/data/recipes.yaml
+"[tools.recipes.watering_can]": "Kova"

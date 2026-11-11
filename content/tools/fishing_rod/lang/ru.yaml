@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fishing_rod/bundle.yaml
+"[tools.fishing_rod.bundle]": "Удочка"
+
+# content/tools/fishing_rod/data/items.yaml
+"[tools.items.fishing_rod]": "Удочка"
+"[tools.items.fishing_rod.about]": "Гибкое удилище с леской и кремнёвым крючком. Закидывают в воду и ждут поклёвки."
+"[tools.items.bait]": "Наживка"
+"[tools.items.bait.about]": "Черви, накопанные в земле. Их надевают на крючок, и рыба клюёт куда чаще."
+
+# content/tools/fishing_rod/data/recipes.yaml
+"[tools.recipes.fishing_rod]": "Удочка"
+"[tools.recipes.bait]": "Наживка"

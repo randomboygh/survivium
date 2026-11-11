@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/signs/bundle.yaml
-"Таблички": "Schilder"
+"[tools.signs.bundle]": "Schilder"
 
 # content/tools/signs/data/items.yaml
-"Табличка": "Schild"
-"Дощечка на колышке. Три строки текста, видно всем, кто подойдёт.": "Ein Brettchen an einem Pflock. Drei Zeilen Text, sichtbar für jeden, der näher kommt."
-"Указатель": "Wegweiser"
-"Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону.": "Ein Pfeil an einem Pfosten. Zwei Zeilen Text; der Pfeil lässt sich in jede Richtung drehen."
-"Доска на стену": "Wandtafel"
-"Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок.": "Eine große Tafel, an die Wand gehängt. Sechs Zeilen Text, für Regeln, Aushänge und Notizen."
+"[tools.items.sign]": "Schild"
+"[tools.items.sign.about]": "Ein Brettchen an einem Pflock. Drei Zeilen Text, sichtbar für jeden, der näher kommt."
+"[tools.items.signpost]": "Wegweiser"
+"[tools.items.signpost.about]": "Ein Pfeil an einem Pfosten. Zwei Zeilen Text; der Pfeil lässt sich in jede Richtung drehen."
+"[tools.items.notice_board]": "Wandtafel"
+"[tools.items.notice_board.about]": "Eine große Tafel, an die Wand gehängt. Sechs Zeilen Text, für Regeln, Aushänge und Notizen."
+
+# content/tools/signs/data/recipes.yaml
+"[tools.recipes.sign]": "Schild"
+"[tools.recipes.signpost]": "Wegweiser"
+"[tools.recipes.notice_board]": "Wandtafel"

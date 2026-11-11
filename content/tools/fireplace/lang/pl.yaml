@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fireplace/bundle.yaml
-"Камин": "Kominek"
+"[tools.fireplace.bundle]": "Kominek"
 
 # content/tools/fireplace/data/items.yaml
-"Кирпичный очаг для дома. Греет как костёр, горит на топливе, на нём можно готовить.": "Ceglane palenisko do domu. Grzeje jak ognisko, pali się opałem i można na nim gotować."
+"[tools.items.fireplace]": "Kominek"
+"[tools.items.fireplace.about]": "Ceglane palenisko do domu. Grzeje jak ognisko, pali się opałem i można na nim gotować."
+
+# content/tools/fireplace/data/recipes.yaml
+"[tools.recipes.fireplace]": "Kominek"

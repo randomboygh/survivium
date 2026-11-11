@@ -3,7 +3,7 @@
 # рисуется бревном «Древесины». Где порода растёт, говорят биомы (content/biomes), не дерево.
 # seed — шишка бандла «Ель» (мягкая ссылка: без «Ели» сосна шишек не даёт).
 - id: pine
-  title: Сосна
+  title: "[plants.trees.pine]"
   shape: umbrella
   leaf: needles
   leaves: needles

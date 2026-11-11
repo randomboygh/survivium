@@ -75,10 +75,10 @@ const GAP_MAIN := 6
 const USE_WIDTH := TabRow.WIDE
 ## What the wide button does: its picture and tooltip.
 const USES := {
-	"take": ["act_take", "Взять в руку"], "eat": ["act_eat", "Съесть одну"], "drink": ["act_eat", "Выпить"], "heal": ["act_heal", "Перевязать раны"],
-	"place": ["act_place", "Поставить рядом"], "plant": ["act_plant", "Посадить перед собой"],
-	"wear": ["act_wear", "Надеть на персонажа"], "build": ["hammer", "Строить: режим строительства"],
-	"farm": ["act_plant", "Огород: режим земледелия"], "launch": ["act_place", "Спустить на воду"], "off": ["take", "Снять"], "free": ["take", "Освободить руку"],
+	"take": ["act_take", "[take_in_hand]"], "eat": ["act_eat", "[eat_one]"], "drink": ["act_eat", "[drink]"], "heal": ["act_heal", "[bandage_wounds]"],
+	"place": ["act_place", "[place_nearby]"], "plant": ["act_plant", "[plant_in_front]"],
+	"wear": ["act_wear", "[put_on_the_character]"], "build": ["hammer", "[build_build_mode]"],
+	"farm": ["act_plant", "[garden_farming_mode]"], "launch": ["act_place", "[launch_on_the_water]"], "off": ["take", "[take_off]"], "free": ["take", "[free_the_hand]"],
 }
 
 var game
@@ -189,8 +189,8 @@ func _ready() -> void:
 	var head := HBoxContainer.new()
 	box.add_child(head)
 	# The tabs joined as one, a button tall, the one shown lit amber (TabRow.tabs).
-	var tabs_row := TabRow.tabs([["Инвентарь", "", show_tab.bind("bag")], ["Крафт", "", show_tab.bind("craft")],
-		["Земля", "", show_tab.bind("land")], ["Команда", "", show_tab.bind("team")]], 30)
+	var tabs_row := TabRow.tabs([["[inventory]", "", show_tab.bind("bag")], ["[craft]", "", show_tab.bind("craft")],
+		["[land]", "", show_tab.bind("land")], ["[team_n3]", "", show_tab.bind("team")]], 30)
 	head.add_child(tabs_row)
 	_bag_tab = tabs_row.get_child(0)
 	_craft_tab = tabs_row.get_child(1)
@@ -207,7 +207,7 @@ func _ready() -> void:
 	_chest_buttons = HBoxContainer.new()
 	_chest_buttons.add_theme_constant_override("separation", 4)
 	head.add_child(_chest_buttons)
-	_chest_buttons.add_child(TabRow.icon_button(UiStyle.icon("take"), "Забрать сундук в сумку", func() -> void:
+	_chest_buttons.add_child(TabRow.icon_button(UiStyle.icon("take"), "[take_the_chest_into_the]", func() -> void:
 		var e := _chest_entry
 		_let_go()
 		game.net.request(Protocol.PROP_TAKE, [e.cell]).then(func(_v: Variant) -> void: refresh())))
@@ -236,7 +236,7 @@ func _ready() -> void:
 	tabs.add_child(team_page)
 	head.add_child(craft.station_buttons)
 	head.add_child(land_page.head_buttons)
-	var shut := TabRow.icon_button(UiStyle.icon("close"), "Закрыть", close)
+	var shut := TabRow.icon_button(UiStyle.icon("close"), "[close]", close)
 	shut.custom_minimum_size = Vector2(30, 30)
 	head.add_child(shut)
 
@@ -297,7 +297,7 @@ func _ready() -> void:
 		_lock = not _lock
 		refresh())
 	sorts.add_child(_lock_button)
-	_manual_button = TabRow.icon_button(UiStyle.icon("swap"), "Сортировать вручную: тап по второй ячейке перекладывает", func() -> void:
+	_manual_button = TabRow.icon_button(UiStyle.icon("swap"), "[sort_by_hand_a_tap]", func() -> void:
 		# The chosen slot stays chosen: the next tap may move it.
 		_manual = not _manual
 		_confirming = false
@@ -306,7 +306,7 @@ func _ready() -> void:
 	var by := []
 	for k in Inventory.SORTS:
 		var icon: Texture2D = ItemIcons.picture("weight") if k == "weight" else UiStyle.icon("sort_" + k)
-		by.append([icon, Lang.f("Сортировать %s (без первого ряда)", [Inventory.SORTS[k]]), sort.bind(k)])
+		by.append([icon, Lang.f("[sort_except_the_first_row]", [Inventory.SORTS[k]]), sort.bind(k)])
 	var sort_by := TabRow.split(by)
 	sorts.add_child(sort_by)
 	# As tall as the stack's picture by the name, so the row keeps its height.
@@ -377,29 +377,29 @@ func _ready() -> void:
 			close())
 	_set_down.icon = UiStyle.centred(UiStyle.icon("act_place"))
 	_set_down.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_set_down.tooltip_text = "Поставить перед собой"
+	_set_down.tooltip_text = "[place_in_front]"
 	_left.add_child(_set_down)
 	# The chosen stack into the chest (out of it when it lies there); all the bag into
 	# it, and all of it back when it holds something.
 	_into = TabRow.split([
-		[UiStyle.icon("to_chest"), "Переложить в сундук", _move_chosen],
+		[UiStyle.icon("to_chest"), "[move_to_the_chest]", _move_chosen],
 		[UiStyle.icon("to_chest_all"), "", _put_all_in_chest],
-		[UiStyle.icon("from_chest_all"), "Забрать всё из сундука", _take_all_from_chest],
+		[UiStyle.icon("from_chest_all"), "[take_everything_from_the_chest]", _take_all_from_chest],
 	])
 	_to_chest = _into.get_child(0)
 	_all_out = _into.get_child(2)
 	_right.add_child(_into)
 	_throw = TabRow.split([
-		[UiStyle.icon("drop_one"), "Выбросить одну", func() -> void: game.net.request(Protocol.THROW, [_at, 1])],
-		[UiStyle.icon("drop_all"), "Выбросить все", func() -> void: game.net.request(Protocol.THROW, [_at, 1 << 20])],
+		[UiStyle.icon("drop_one"), "[drop_one]", func() -> void: game.net.request(Protocol.THROW, [_at, 1])],
+		[UiStyle.icon("drop_all"), "[drop_all]", func() -> void: game.net.request(Protocol.THROW, [_at, 1 << 20])],
 	])
 	# Repair a worn tool (at a station that mends, with what it is mended with), before
 	# throwing away.
-	_repair = TabRow.icon_button(UiStyle.icon("act_repair"), "Починить: у станка для починки, тратит материалы", func() -> void:
+	_repair = TabRow.icon_button(UiStyle.icon("act_repair"), "[repair_at_a_repair_station]", func() -> void:
 		game.net.request(Protocol.REPAIR, [_at]))
 	_right.add_child(_repair)
 	_right.add_child(_throw)
-	_destroy = TabRow.icon_button(UiStyle.icon("trash"), "Уничтожить", func() -> void:
+	_destroy = TabRow.icon_button(UiStyle.icon("trash"), "[destroy]", func() -> void:
 		if _confirming:
 			destroy_chosen()
 		else:
@@ -482,7 +482,7 @@ func _tap_person(k: String) -> void:
 		elif inv.gear.get(k, "") != "":
 			game.net.request(Protocol.TAKE_OFF, [k])
 		else:
-			game.character.nag("wear", "В сумке нечего надеть сюда")
+			game.character.nag("wear", "[nothing_in_the_bag_to]")
 	refresh()
 
 
@@ -717,7 +717,7 @@ func _tap(i: int, chest := -1) -> void:
 	else:
 		var r = game.net.request(Protocol.BAG_PUT, [_where(_from), _at, _where(to), i])
 		if r.done and not (r.value is bool and r.value):
-			game.character.nag("nest", "Сундук с вещами в сундук не положить: сначала поставь его")
+			game.character.nag("nest", "[a_chest_with_things_cant_n2]")
 		_let_go()
 	refresh()
 
@@ -736,8 +736,8 @@ func _move_chosen() -> void:
 	var before: Array = to.slots.duplicate(true)
 	game.net.request(Protocol.BAG_MOVE, [_where(from), at, _where(to)]).then(func(v: Variant) -> void:
 		if v is int and v == 0:
-			game.character.nag("chest", ("Сундук с вещами в сундук не положить" if from.contents(at) != null else "Сундук полон") \
-				if to == chest else "В сумке нет места")
+			game.character.nag("chest", ("[a_chest_with_things_cant_n3]" if from.contents(at) != null else "[the_chest_is_full]") \
+				if to == chest else "[no_room_in_the_bag]")
 		elif from.slots[at] == null:
 			# Chosen where the stack went: the first slot of it that changed.
 			var land := -1
@@ -764,7 +764,7 @@ func _put_all_in_chest() -> void:
 	var had: bool = inv.slots.slice(first).any(func(s) -> bool: return s != null)
 	game.net.request(Protocol.BAG_ALL, [null, _chest_entry.cell, first]).then(func(v: Variant) -> void:
 		if v is int and v == 0 and had:
-			game.character.nag("chest", "Сундук полон")
+			game.character.nag("chest", "[the_chest_is_full]")
 		refresh())
 
 
@@ -776,7 +776,7 @@ func _take_all_from_chest() -> void:
 	_let_go()
 	game.net.request(Protocol.BAG_ALL, [_chest_entry.cell, null, 0]).then(func(v: Variant) -> void:
 		if v is int and v == 0:
-			game.character.nag("chest", "В сумке нет места")
+			game.character.nag("chest", "[no_room_in_the_bag]")
 		refresh())
 
 
@@ -809,7 +809,7 @@ func destroy_chosen() -> void:
 ## Stack `taken` (as Inventory.take_slot gave it) is gone: the bin's toast.
 func _destroyed(taken: Variant) -> void:
 	if taken is Array and taken.size() >= 2:
-		game.hud.toast(Lang.line("Уничтожено: %s ×%d", [Items.title(taken[0]), taken[1]]))
+		game.hud.toast(Lang.line("[destroyed]", [Items.title(taken[0]), taken[1]]))
 	refresh()
 
 
@@ -876,16 +876,16 @@ func refresh() -> void:
 		var out: bool = _from != null and _from != inv
 		_to_chest.disabled = _from == null
 		_to_chest.icon = UiStyle.centred(UiStyle.icon("from_chest" if out else "to_chest"))
-		_to_chest.tooltip_text = "Забрать из сундука" if out else "Переложить в сундук"
-		_into.get_child(1).tooltip_text = Lang.t("Переложить всё в сундук") + (Lang.t(" (без первого ряда: замок)") if _lock else "")
+		_to_chest.tooltip_text = "[take_from_the_chest]" if out else "[move_to_the_chest]"
+		_into.get_child(1).tooltip_text = Lang.t("[move_everything_to_the_chest]") + (Lang.t("[except_the_first_row_locked]") if _lock else "")
 		_all_out.visible = not chest.is_empty()
 	TabRow.light(_lock_button, _lock)
-	_lock_button.tooltip_text = "Замок первого ряда: сортировка и «всё в сундук» его не трогают" if _lock \
-		else "Замок снят: первый ряд тоже сортируется, «всё в сундук» перекладывает всё, что влезет"
+	_lock_button.tooltip_text = "[first_row_lock_sorting_and]" if _lock \
+		else "[lock_off_the_first_row]"
 	for i in _chest_grids.size():
 		var g: Dictionary = _chest_grids[i]
 		_show_slots(_chests[i].items, g.cells)
-		g.grid.tooltip_text = Lang.f("%s · %.1f кг", [Lang.t(Items.title(_chests[i].item)), _chests[i].items.weight()])
+		g.grid.tooltip_text = Lang.f("[kg_n2]", [Lang.t(Items.title(_chests[i].item)), _chests[i].items.weight()])
 	TabRow.light(_manual_button, _manual)
 	_show_info(inv)
 	# The wide button (with a light's «поставить» joined) narrower on a narrow window
@@ -913,7 +913,7 @@ func _show_slots(bag, cells: Array) -> void:
 		var cell = cells[i]
 		cell.texture = ItemIcons.of_item(s[0]) if s != null else null
 		# What is worn stays in the bag, marked.
-		cell.tag = "Н" if bag == game.character.inventory and bag.worn_on(i) != "" else ""
+		cell.tag = "[w]" if bag == game.character.inventory and bag.worn_on(i) != "" else ""
 		cell.number = "×%d" % s[1] if s != null and s[1] > 1 else ""
 		cell.fill = bag.freshness(i)
 		cell.grade = Quality.grade(Inventory.quality(s)) if s != null else -1
@@ -939,15 +939,15 @@ func _show_info(inv) -> void:
 	var s = _from.slots[_at] if _from != null else null
 	var mine: bool = s != null and _from == inv
 	if s == null:
-		_info.text = ("Выбери ячейку, затем куда" if _manual else "Выбери ячейку") \
-			if not inv.is_empty() else "Пусто: подбирай ветки и ягоды"
+		_info.text = ("[pick_a_slot_then_where]" if _manual else "[pick_a_slot]") \
+			if not inv.is_empty() else "[empty_pick_up_branches_and]"
 		_facts.show_groups([])
 	else:
 		var id: String = s[0]
 		# The count only for more than one.
 		# Where it lies the window shows by itself: no «в сундуке» after the name.
 		_info.text = "%s%s%s" % [Lang.t(Items.title(id)), " ×%d" % s[1] if s[1] > 1 else "",
-			" · с вещами" if _from.contents(_at) != null else ""]
+			"[with_things]" if _from.contents(_at) != null else ""]
 		var shoots: String = Items.get_item(id).get("ammo", "")
 		_facts.show_groups(FactChips.item_groups(id, s[1], _from.worn(_at), Inventory.stack_weight(s),
 			game.character.burn_left(id) if mine else 1.0, _from.freshness(_at), inv.count(shoots) if shoots != "" else -1,
@@ -977,7 +977,7 @@ func _show_info(inv) -> void:
 	_throw.get_child(0).disabled = not mine
 	_throw.get_child(1).disabled = not mine or s[1] < 2
 	_destroy.disabled = s == null
-	_destroy.tooltip_text = "Нажми ещё раз — уничтожить навсегда" if _confirming else "Уничтожить"
+	_destroy.tooltip_text = "[press_again_to_destroy_it]" if _confirming else "[destroy]"
 	TabRow.light(_destroy, _confirming, _confirming)
 
 
@@ -997,10 +997,10 @@ func _show_worn(inv) -> void:
 		_facts.show_groups(FactChips.item_groups(id, 1, 0, Items.weight(id), game.character.burn_left(id, k) if hand else 1.0,
 			-1.0, -1, q))
 	elif _worn == "back":
-		_info.text = Lang.f("Сумка: %d ячеек, всегда с собой. Надень котомку, сумку или рюкзак — станет больше", [inv.base])
+		_info.text = Lang.f("[bag_slots_always_with_you]", [inv.base])
 		_facts.show_groups([])
 	else:
-		_info.text = Lang.f("%s: пусто", [title])
+		_info.text = Lang.f("[empty]", [title])
 		_facts.show_groups([])
 	_info.add_theme_color_override("font_color", UiStyle.INK if id != "" else UiStyle.MUTED)
 	_icon.texture = ItemIcons.of_item(id) if id != "" else null

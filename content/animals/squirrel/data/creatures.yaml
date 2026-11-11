@@ -3,7 +3,7 @@
 # sprites/creatures/<sprite>.png этого бандла, три кадра (стоит и два шага); biomes — где он живёт
 # (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml.
 - id: squirrel
-  title: Белка
+  title: "[animals.creatures.squirrel]"
   mass: 0.5
   diet: [plants]
   speed: 5.0

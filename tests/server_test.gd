@@ -372,7 +372,7 @@ func _run() -> void:
 	borya_account[0].left_at -= net.LINGER
 	_check(await _until(func() -> bool: return server.session.players.size() == 1), "and so does Боря's")
 	server.command("say всем привет")
-	_check(await _until(func() -> bool: return back.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1].slice(0, 3) == [0, "Сервер", "всем привет"])),
+	_check(await _until(func() -> bool: return back.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1].slice(0, 3) == [0, "[server_name]", "всем привет"])),
 		"say reaches the players' chat from the server")
 	_check(server.command("kick Аня").contains("Аня"), "kick names the player")
 	_check(await _until(func() -> bool: return back.socket.ended) and back.socket.close_code == 4001
@@ -495,9 +495,9 @@ func _hosted() -> void:
 	var twin_values := values.duplicate()
 	twin_values.tunnel = false
 	var twin: Node = LocalHost.host(twin_values, root)
-	_check(twin.failed == "Порт %d занят" % (PORT + 1), "a second one on the same port says it is taken: %s" % twin.failed)
+	_check(Lang.t(twin.failed) == "Port %d is taken" % (PORT + 1), "a second one on the same port says it is taken: %s" % twin.failed)
 	twin.free()
-	var host := _bot("Хозяин", "", "", PORT + 1)
+	var host := _bot("Host", "", "", PORT + 1)
 	_check(await _until(func() -> bool: return host.reply.done) and host.reply.value.get("ok") == true
 		and host.reply.value.get("title") == "Дача", "a player comes in, told the server's name")
 	var pair: Array = await _commands(node, host)
@@ -527,15 +527,15 @@ func _renew(node: Node) -> void:
 	var first: int = node.seed_value
 	var folder: String = node.store.dir.get_file()
 	var listed: Array = node.server.access.listed.duplicate()
-	_check(node.server.command("test bot-", Server.ROLE_PLAYER).contains("хозяина"), "a player may not give «test» there")
-	_check(node.command("test bot-") == "Ботов нет", "a host may: no bots yet")
-	_check(node.command("test world ../%s" % folder).begins_with("Нет такого мира") and node.command("test world nowhere").begins_with("Нет такого мира"),
+	_check(Lang.t(node.server.command("test bot-", Server.ROLE_PLAYER)).contains("host"), "a player may not give «test» there")
+	_check(node.command("test bot-") == "There are no bots", "a host may: no bots yet")
+	_check(node.command("test world ../%s" % folder).begins_with("No such world") and node.command("test world nowhere").begins_with("No such world"),
 		"a world is named only by its folder under the saves")
-	_check(node.command("test new 9").contains("мир 9"), "a new world of a seed is asked for")
+	_check(node.command("test new 9").contains("world 9"), "a new world of a seed is asked for")
 	_check(await _until(func() -> bool: return node.seed_value == 9 and node.server.listening and a.socket.ended)
 		and a.socket.close_code == Protocol.CLOSE_RENEW, "the server goes over to it and the players are told to come again (%d)" % a.socket.close_code)
 	_check(node.server.access.listed == listed and node.saves != null, "who may come in stays, and the new world is saved too")
-	var back := _bot("Хозяин", "", "", PORT + 1)
+	var back := _bot("Host", "", "", PORT + 1)
 	_check(await _until(func() -> bool: return back.reply.done) and back.reply.value.get("seed") == 9
 		and back.reply.value.get("playtest") == false and back.reply.value.has("host"), "a player comes into the new world: %s" % [back.reply.value.get("seed")])
 	_check(node.command("test worlds").contains(folder), "the saved worlds are listed by their folders")
@@ -550,27 +550,27 @@ func _renew(node: Node) -> void:
 func _commands(node: Node, host: Bot) -> Array:
 	var who = node.session.players[0]
 	var before: int = who.inventory.count("resources:branch")
-	var out: String = node.command("/give Хозяин branch 3")
+	var out: String = node.command("/give Host branch 3")
 	_check(who.inventory.count("resources:branch") == before + 3 and out.begins_with("given"),
 		"give puts the item into the player's bag: %s" % out)
-	_check(node.command("give Хозяин nothing_like_it").begins_with("no such item"), "give names a missing item")
+	_check(node.command("give Host nothing_like_it").begins_with("no such item"), "give names a missing item")
 	out = node.command("tp 1 4 30 -5")
 	_check(who.position.distance_to(Vector3(4.5, 30, -4.5) * WorldData.CELL) < 0.01 and out.contains("4, 30, -5"),
 		"tp puts the player at the cells: %s" % out)
 	var key: String = host.reply.value.key
-	out = node.command("ban Хозяин")
+	out = node.command("ban Host")
 	_check(await _until(func() -> bool: return host.socket.ended) and node.server.accounts.is_empty(),
 		"ban puts the player out: %s" % out)
-	var again := _bot("Хозяин", key, "", PORT + 1)
+	var again := _bot("Host", key, "", PORT + 1)
 	var renamed := _bot("Другой", key, "", PORT + 1)
-	var by_name := _bot("хозяин", "", "", PORT + 1)
+	var by_name := _bot("host", "", "", PORT + 1)
 	_check(await _until(func() -> bool: return again.reply.done and renamed.reply.done and by_name.reply.done)
 		and [again, renamed, by_name].all(func(b: Bot) -> bool: return b.reply.value.get("why") == Protocol.WHY_BANNED),
 		"a banned player is refused by the key, under another name too, and by the name")
 	var kept: Dictionary = node.saves.read_access()
-	_check(kept.get("banned_keys", {}).has(key) and node.command("bans").contains("хозяин"), "bans are kept in the world's save")
-	node.command("unban Хозяин")
-	var back := _bot("Хозяин", key, "", PORT + 1)
+	_check(kept.get("banned_keys", {}).has(key) and node.command("bans").contains("host"), "bans are kept in the world's save")
+	node.command("unban Host")
+	var back := _bot("Host", key, "", PORT + 1)
 	_check(await _until(func() -> bool: return back.reply.done) and back.reply.value.get("ok") == true, "unban lets them in again")
 	node.command("whitelist on")
 	var stranger := _bot("Чужой", "", "", PORT + 1)
@@ -589,38 +589,38 @@ func _commands(node: Node, host: Bot) -> Array:
 func _chat(node: Node, a: Bot, b: Bot) -> void:
 	var server = node.server
 	var spawn: Vector3 = a.reply.value.spawn
-	var pa = server._find("Хозяин").link.who
+	var pa = server._find("Host").link.who
 	var pb = server._find("Чужой").link.who
 	pa.teleport(spawn)
 	pb.teleport(spawn + Vector3(2.0, 0.0, 0.0))
 	var hi = a.socket.net.request(Protocol.CHAT, ["  привет  "])
 	var heard := func(bot: Bot, what: Array) -> bool: return bot.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1].slice(0, 3) == what)
 	var id_a: int = a.reply.value.id
-	_check(await _until(func() -> bool: return hi.done and heard.call(a, [id_a, "Хозяин", "привет"]) and heard.call(b, [id_a, "Хозяин", "привет"]))
+	_check(await _until(func() -> bool: return hi.done and heard.call(a, [id_a, "Host", "привет"]) and heard.call(b, [id_a, "Host", "привет"]))
 		and hi.value == true, "a line of chat is heard by the player near and by the speaker, trimmed")
-	_check(node.log_lines.any(func(l: String) -> bool: return l.contains("Хозяин (%d): привет" % id_a)), "and written to the server's log")
+	_check(node.log_lines.any(func(l: String) -> bool: return l.contains("Host (%d): привет" % id_a)), "and written to the server's log")
 	pb.teleport(spawn + Vector3(server.CHAT_RANGE + 5.0, 0.0, 0.0))
-	var far = a.socket.net.request(Protocol.CHAT, ["далеко"])
-	_check(await _until(func() -> bool: return far.done and heard.call(a, [id_a, "Хозяин", "далеко"])), "the speaker hears their own line")
+	var far = a.socket.net.request(Protocol.CHAT, ["too far"])
+	_check(await _until(func() -> bool: return far.done and heard.call(a, [id_a, "Host", "too far"])), "the speaker hears their own line")
 	await _frames(10)
-	_check(not heard.call(b, [id_a, "Хозяин", "далеко"]), "a player beyond the chat's reach does not hear it")
+	_check(not heard.call(b, [id_a, "Host", "too far"]), "a player beyond the chat's reach does not hear it")
 	# A team: one near is invited and accepts; a line to the team reaches them far away.
 	var id_b: int = b.reply.value.id
 	pb.teleport(spawn + Vector3(2.0, 0.0, 0.0))
 	var inv = a.socket.net.request(Protocol.TEAM_INVITE, [id_b])
-	_check(await _until(func() -> bool: return inv.done and b.of(Protocol.INVITES).any(func(e: Array) -> bool: return e[1][0] == [[id_a, "Хозяин"]]))
+	_check(await _until(func() -> bool: return inv.done and b.of(Protocol.INVITES).any(func(e: Array) -> bool: return e[1][0] == [[id_a, "Host"]]))
 		and inv.value == true, "a player near is invited to a team, and told so")
 	var yes = b.socket.net.request(Protocol.TEAM_ACCEPT, [id_a])
 	_check(await _until(func() -> bool: return yes.done and a.of(Protocol.TEAM).any(func(e: Array) -> bool: return not e[1][0].is_empty() and e[1][0].members.size() == 2)),
 		"accepts, and the team is told to its lead")
 	pb.teleport(spawn + Vector3(server.CHAT_RANGE + 5.0, 0.0, 0.0))
 	var ours = a.socket.net.request(Protocol.TEAM_CHAT, ["свои"])
-	_check(await _until(func() -> bool: return ours.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1] == [id_a, "Хозяин", "свои", true])),
+	_check(await _until(func() -> bool: return ours.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1] == [id_a, "Host", "свои", true])),
 		"a line to the team is heard by a member far away")
 	var bye = b.socket.net.request(Protocol.TEAM_LEAVE, [])
 	_check(await _until(func() -> bool: return bye.done) and bye.value == true and server.session.teams.teams.is_empty(), "the member leaves, and the team of one is gone")
 	var cmd = b.socket.net.request(Protocol.CHAT, ["/who"])
-	_check(await _until(func() -> bool: return cmd.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and str(e[1][2]).contains("хозяина"))),
+	_check(await _until(func() -> bool: return cmd.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and Lang.t(str(e[1][2])).contains("host"))),
 		"a command from a player who is not a host is refused in the chat")
 	_check(node.command("op Чужой").contains("Чужой") and server.is_host(b.reply.value.key)
 		and node.saves.read_access().get("hosts", {}).has(b.reply.value.key), "op makes a host, kept in the world's save")
@@ -645,7 +645,7 @@ func _said(b: Bot, text: String) -> bool:
 func _trades(node: Node, a: Bot, b: Bot) -> void:
 	var server = node.server
 	var spawn: Vector3 = a.reply.value.spawn
-	var pa = server._find("Хозяин").link.who
+	var pa = server._find("Host").link.who
 	var pb = server._find("Чужой").link.who
 	pa.teleport(spawn)
 	pb.teleport(spawn + Vector3(0.5, 0.0, 0.0))
@@ -707,7 +707,7 @@ func _trades(node: Node, a: Bot, b: Bot) -> void:
 func _security(node: Node) -> void:
 	var server = node.server
 	var twin := _bot("Чужой", "", "", PORT + 1)
-	var fake := _bot("сервер", "", "", PORT + 1)
+	var fake := _bot("server", "", "", PORT + 1)
 	_check(await _until(func() -> bool: return twin.reply.done and fake.reply.done)
 		and twin.reply.value.get("why") == Protocol.WHY_TAKEN and fake.reply.value.get("why") == Protocol.WHY_TAKEN,
 		"a name in the world, or the server's own, is not taken: %s, %s" % [twin.reply.value, fake.reply.value])

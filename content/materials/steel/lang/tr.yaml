@@ -2,8 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/steel/bundle.yaml
-"Сталь": "Çelik"
+"[materials.steel.bundle]": "Çelik"
 
 # content/materials/steel/data/items.yaml
-"Стальной слиток": "Çelik külçe"
-"Железо, напитанное углём: твёрже и упруже. Из стали — лучшие инструменты.": "Karbonla doyurulmuş demir: daha sert ve esnek. En iyi aletler çelikten olur."
+"[materials.items.steel_bar]": "Çelik külçe"
+"[materials.items.steel_bar.about]": "Karbonla doyurulmuş demir: daha sert ve esnek. En iyi aletler çelikten olur."
+
+# content/materials/steel/data/recipes.yaml
+"[materials.recipes.steel_bar]": "Çelik külçe"

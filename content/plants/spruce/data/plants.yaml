@@ -4,7 +4,7 @@
 # ветки), а выросший становится елью, если над ним есть место.
 - id: spruce_sapling
   kind: sapling
-  title: Росток ели
+  title: "[plants.plants.spruce_sapling]"
   sprite: spruce_sapling
   across: 2
   frames: 2

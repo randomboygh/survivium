@@ -2,12 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/knife/bundle.yaml
-"Нож": "Couteau"
+"[tools.knife.bundle]": "Couteau"
 
 # content/tools/knife/data/items.yaml
-"Кремнёвый нож": "Couteau de silex"
-"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "Un éclat de silex tranchant emmanché. Dépèce les carcasses et frappe les animaux."
-"Медный нож": "Couteau de cuivre"
-"Бронзовый нож": "Couteau de bronze"
-"Железный нож": "Couteau de fer"
-"Стальной нож": "Couteau d'acier"
+"[tools.items.flint_knife]": "Couteau de silex"
+"[tools.items.flint_knife.about]": "Un éclat de silex tranchant emmanché. Dépèce les carcasses et frappe les animaux."
+"[tools.items.copper_knife]": "Couteau de cuivre"
+"[tools.items.bronze_knife]": "Couteau de bronze"
+"[tools.items.iron_knife]": "Couteau de fer"
+"[tools.items.steel_knife]": "Couteau d'acier"
+
+# content/tools/knife/data/recipes.yaml
+"[tools.recipes.flint_knife]": "Couteau de silex"
+"[tools.recipes.copper_knife]": "Couteau de cuivre"
+"[tools.recipes.bronze_knife]": "Couteau de bronze"
+"[tools.recipes.iron_knife]": "Couteau de fer"
+"[tools.recipes.steel_knife]": "Couteau d'acier"

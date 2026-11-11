@@ -1,0 +1,24 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/scythe/bundle.yaml
+"[tools.scythe.bundle]": "Коса"
+
+# content/tools/scythe/data/items.yaml
+"[tools.items.stone_scythe]": "Каменная коса"
+"[tools.items.wooden_scythe]": "Деревянная коса"
+"[tools.items.copper_scythe]": "Медная коса"
+"[tools.items.bronze_scythe]": "Бронзовая коса"
+"[tools.items.iron_scythe]": "Железная коса"
+"[tools.items.steel_scythe]": "Стальная коса"
+
+# content/tools/scythe/data/recipes.yaml
+"[tools.recipes.stone_scythe]": "Каменная коса"
+"[tools.recipes.wooden_scythe]": "Деревянная коса"
+"[tools.recipes.copper_scythe]": "Медная коса"
+"[tools.recipes.bronze_scythe]": "Бронзовая коса"
+"[tools.recipes.iron_scythe]": "Железная коса"
+"[tools.recipes.steel_scythe]": "Стальная коса"
+
+# content/tools/scythe/data/sounds.yaml
+"[tools.sounds.mow]": "Покос"

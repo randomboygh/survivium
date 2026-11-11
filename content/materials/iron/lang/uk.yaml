@@ -2,12 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/iron/bundle.yaml
-"Железо": "Залізо"
+"[materials.iron.bundle]": "Залізо"
 
 # content/materials/iron/data/items.yaml
-"Железная руда": "Залізна руда"
-"Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка.": "Іржаво-бура важка руда. Її бере бронзове кайло."
-"Крица": "Криця"
-"Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка.": "Пориста грудка заліза зі шлаком із сиродутної печі. У горні з неї виходять два зливки."
-"Железный слиток": "Залізний зливок"
-"Тёмный прочный металл. Из него наковальня и железные инструменты.": "Темний міцний метал. З нього ковадло й залізні інструменти."
+"[materials.items.iron_ore]": "Залізна руда"
+"[materials.items.iron_ore.about]": "Іржаво-бура важка руда. Її бере бронзове кайло."
+"[materials.items.iron_bloom]": "Криця"
+"[materials.items.iron_bloom.about]": "Пориста грудка заліза зі шлаком із сиродутної печі. У горні з неї виходять два зливки."
+"[materials.items.iron_bar]": "Залізний зливок"
+"[materials.items.iron_bar.about]": "Темний міцний метал. З нього ковадло й залізні інструменти."
+
+# content/materials/iron/data/materials.yaml
+"[materials.materials.iron_ore]": "Залізна руда"
+
+# content/materials/iron/data/recipes.yaml
+"[materials.recipes.iron_bloom]": "Криця"
+"[materials.recipes.iron_bar]": "Залізний зливок"

@@ -2,10 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/resources/stone/bundle.yaml
-"Камень": "Stein"
+"[resources.stone.bundle]": "Stein"
 
 # content/resources/stone/data/items.yaml
-"Кремень": "Feuerstein"
+"[resources.items.stone]": "Stein"
+"[resources.items.flint]": "Feuerstein"
 
 # content/resources/stone/data/materials.yaml
-"Осыпь": "Geröll"
+"[resources.materials.scree]": "Geröll"

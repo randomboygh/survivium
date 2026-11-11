@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/signs/bundle.yaml
+"[tools.signs.bundle]": "Таблички"
+
+# content/tools/signs/data/items.yaml
+"[tools.items.sign]": "Табличка"
+"[tools.items.sign.about]": "Дощечка на колышке. Три строки текста, видно всем, кто подойдёт."
+"[tools.items.signpost]": "Указатель"
+"[tools.items.signpost.about]": "Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону."
+"[tools.items.notice_board]": "Доска на стену"
+"[tools.items.notice_board.about]": "Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок."
+
+# content/tools/signs/data/recipes.yaml
+"[tools.recipes.sign]": "Табличка"
+"[tools.recipes.signpost]": "Указатель"
+"[tools.recipes.notice_board]": "Доска на стену"

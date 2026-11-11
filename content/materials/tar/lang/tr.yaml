@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/tar/bundle.yaml
-"Смола": "Katran"
+"[materials.tar.bundle]": "Katran"
 
 # content/materials/tar/data/items.yaml
-"Густая чёрная смола из брёвен. Горит долго и ярко, склеивает.": "Kütüklerden koyu kara katran. Uzun ve parlak yanar, yapıştırır."
+"[materials.items.tar]": "Katran"
+"[materials.items.tar.about]": "Kütüklerden koyu kara katran. Uzun ve parlak yanar, yapıştırır."
+
+# content/materials/tar/data/recipes.yaml
+"[materials.recipes.tar]": "Katran"

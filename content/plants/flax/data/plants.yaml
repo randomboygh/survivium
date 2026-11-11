@@ -3,7 +3,7 @@
 # стебли льна, из которых прядут нить, а иногда и семена (`finds`: предмет и вероятность одного за растение).
 - id: flax
   kind: custom
-  title: Лён
+  title: "[plants.plants.flax]"
   sprite: flax
   frames: 2
   grows: meadow
@@ -18,7 +18,7 @@
 # цветы, спелые золотые коробочки); mown — спелый косят и косой.
 - id: sown_flax
   kind: crop
-  title: Лён
+  title: "[plants.plants.sown_flax]"
   sprite: sown_flax
   frames: 4
   grows: field

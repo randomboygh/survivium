@@ -1,6 +1,6 @@
 # Предметы бандла: поля — как у предметов основы (content/core/data/items.yaml).
 - id: rosehip
-  title: Шиповник
+  title: "[plants.items.rosehip]"
   weight: 0.05
   stack: 50
   food: 2
@@ -10,7 +10,7 @@
   icon: rosehip
   anim: eat
 - id: rosehip_bush
-  title: Куст шиповника
+  title: "[plants.items.rosehip_bush]"
   weight: 2.0
   stack: 5
   model: bush

@@ -45,8 +45,8 @@ at: [x, z]}]}` (так сундук «Инструментов» встаёт в
 
 ```yaml
 - id: iron
-  title: Железо
-  description: Руда, крица, наковальня, железные инструменты.
+  title: "[core.eras.iron]"           # ключ; текст — в lang/<код>.yaml рядом с data/
+  description: "[core.eras.iron.about]"
   order: 4        # место ступени: 0, 1, 2… без повторов
   depth: 12       # сколько шагов изготовления от старта ждать у вещей эпохи (0 — не проверять)
   provisional: [depth]

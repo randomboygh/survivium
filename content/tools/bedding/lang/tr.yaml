@@ -2,10 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/bedding/bundle.yaml
-"Постель": "Döşek"
+"[tools.bedding.bundle]": "Döşek"
 
 # content/tools/bedding/data/items.yaml
-"Травяная подстилка": "Ot döşek"
-"Охапка сухой травы, связанная верёвкой. Спать на ней лучше, чем на голой земле.": "İple bağlanmış bir kucak kuru ot. Üstünde uyumak çıplak toprakta uyumaktan iyidir."
-"Меховой спальник": "Kürk uyku tulumu"
-"Шкуры, сшитые мешком. В нём высыпаются вдвое быстрее.": "Torba biçiminde dikilmiş postlar. İçinde iki kat hızlı dinlenilir."
+"[tools.items.grass_mat]": "Ot döşek"
+"[tools.items.grass_mat.about]": "İple bağlanmış bir kucak kuru ot. Üstünde uyumak çıplak toprakta uyumaktan iyidir."
+"[tools.items.fur_bedroll]": "Kürk uyku tulumu"
+"[tools.items.fur_bedroll.about]": "Torba biçiminde dikilmiş postlar. İçinde iki kat hızlı dinlenilir."
+
+# content/tools/bedding/data/recipes.yaml
+"[tools.recipes.grass_mat]": "Ot döşek"
+"[tools.recipes.fur_bedroll]": "Kürk uyku tulumu"

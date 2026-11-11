@@ -2,11 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/resources/wood/bundle.yaml
-"Дерево": "Madeira"
+"[resources.wood.bundle]": "Madeira"
 
 # content/resources/wood/data/items.yaml
-"Ветка": "Galho"
-"Бревно": "Tora"
+"[resources.items.branch]": "Galho"
+"[resources.items.log]": "Tora"
 
 # content/resources/wood/data/recipes.yaml
-"Костёр": "Fogueira"
+"[resources.recipes.campfire]": "Fogueira"

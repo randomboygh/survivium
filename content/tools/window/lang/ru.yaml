@@ -1,0 +1,24 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/window/bundle.yaml
+"[tools.window.bundle]": "Окно"
+
+# content/tools/window/data/items.yaml
+"[tools.items.window]": "Окно"
+"[tools.items.window.about]": "Рама со стеклом для проёма в стене."
+"[tools.items.window_1x2]": "Окно 1×2"
+"[tools.items.window_1x2.about]": "Высокое окно со стеклом, на клетку в ширину и две в высоту."
+"[tools.items.window_2x1]": "Окно 2×1"
+"[tools.items.window_2x1.about]": "Широкое окно со стеклом, на две клетки в ширину и одну в высоту."
+"[tools.items.window_2x2]": "Окно 2×2"
+"[tools.items.window_2x2.about]": "Большое окно со стеклом, на две клетки в ширину и две в высоту."
+"[tools.items.window_3x2]": "Окно 3×2"
+"[tools.items.window_3x2.about]": "Окно во всю стену, на три клетки в ширину и две в высоту."
+
+# content/tools/window/data/recipes.yaml
+"[tools.recipes.window]": "Окно"
+"[tools.recipes.window_1x2]": "Окно 1×2"
+"[tools.recipes.window_2x1]": "Окно 2×1"
+"[tools.recipes.window_2x2]": "Окно 2×2"
+"[tools.recipes.window_3x2]": "Окно 3×2"

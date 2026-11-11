@@ -6,7 +6,7 @@
 # хлопает крыльями (первый взмах), пока не взлетит.
 # Крылья светлые, каждая бабочка своего цвета из tints.
 - id: butterfly
-  title: Бабочка
+  title: "[animals.creatures.butterfly]"
   mass: 0.01
   diet: [plants]
   speed: 2.5

@@ -1,6 +1,6 @@
 # Кирпич: его обжигают из глины в печи (рецепт в «Инструментах») и ставят блоками.
 - id: brick
-  title: Кирпич
+  title: "[materials.items.brick]"
   weight: 1.5
   stack: 20
   place: brick

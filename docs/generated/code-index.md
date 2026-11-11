@@ -202,7 +202,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/shared/content/crafting.gd`: Recipes: what is made by hand, at a workbench, in a kiln, read from `content/*/data/recipes.yaml` (see Content; plan/design/crafting.md).
 - `src/shared/content/eras.gd`: The eras of progress, read from `content/*/data/eras.yaml` (see Content): the steps from bare hands on (docs/specifications/BUNDLE_SYSTEM.md, section 9), each with its `order` and the `depth` of…
 - `src/shared/content/items.gd`: Items: what a bag holds and what lies on the ground, read from `content/*/data/items.yaml` (see Content).
-- `src/shared/content/lang.gd`: The languages of the game (decision 183, picks 4А–6А).
+- `src/shared/content/lang.gd`: The languages of the game (decisions 183, 186).
 - `src/shared/content/materials.gd`: Cell materials, read from `content/*/data/materials.yaml` (see Content).
 - `src/shared/content/mods.gd`: The set of bundles the game plays with.
 - `src/shared/content/plants.gd`: Plants on grass: what each gives when the layer of grass it grows on is cut (see the material's `mow`).
@@ -291,7 +291,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tests/unit/fences_test.gd`: Fences, wickets and gates, hatches and ladders (stage 1, building): fences join, keep bodies and animals out, are built by line; a gate takes a fence's place; a hatch lies in a floor; a body climbs a…
 - `tests/unit/generation_test.gd`: The generator: chunks the same in any order, mountains, rivers and caves, trees and bushes.
 - `tests/unit/graph_test.gd`: The content graph (src/shared/content/content_graph.gd): the full set comes to every item and recipe from the start by the rules of the hands; on bundles made for the test it finds each dead end of…
-- `tests/unit/lang_test.gd`: The languages (Lang, decision 183): the server's lines with values put together in the reader's language, English read from the lang files, every phrase of the game in it.
+- `tests/unit/lang_test.gd`: The languages (Lang, decisions 183, 186): every phrase a key, the server's lines with values put together in the reader's language, the languages read from the lang files, English with no language…
 - `tests/unit/mesher_test.gd`: The chunk meshes: cells, slopes and cut caps.
 - `tests/unit/net_test.gd`: The protocol between the client and the server (plan/architecture/server.md): the shape of a message on the wire, the requests of a player done by the rules on the server's side through the loop of…
 - `tests/unit/plans_test.gd`: The blueprint (Plans): its shapes, drawing and taking off the ghost, building it cell by cell from the bag with the action button, and its save.
@@ -329,7 +329,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tools/content_report.gd`: Writes the reports docs/ keeps of the content, from the data of every mod as the game loads it (docs/specifications/BUNDLE_SYSTEM.md, section 13), and checks they are fresh: godot --headless --path .…
 - `tools/creature_kit.py`: The kit tools/make_creatures.py draws the animals with: pictures written as text (a character a pixel, each character a colour region and a body part), shaded by their shape and outlined in the…
 - `tools/doc_index.py`: Writes the index docs/ keeps of what the code holds, and checks the docs against the repository:
-- `tools/lang_check.py`: The phrases of the game and what each language lacks (decision 183, src/shared/content/lang.gd).
+- `tools/lang_check.py`: The phrases of the game and what each language lacks (decisions 183, 186, src/shared/content/lang.gd).
 - `tools/lint.py`: Fast checks of the repository that need no Godot, a second or two (CI's `lint` job):
 - `tools/make_bear.py`: Draws the bear's sheet, content/animals/bear/sprites/creatures/bear.png.
 - `tools/make_birds.py`: Draws the sheets of the crow, the owl and the duck, content/animals/<bird>/sprites/creatures/.

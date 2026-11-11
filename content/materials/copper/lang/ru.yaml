@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/copper/bundle.yaml
+"[materials.copper.bundle]": "Медь"
+
+# content/materials/copper/data/items.yaml
+"[materials.items.copper_ore]": "Медная руда"
+"[materials.items.copper_bar]": "Медный слиток"
+
+# content/materials/copper/data/materials.yaml
+"[materials.materials.copper_ore]": "Медная руда"

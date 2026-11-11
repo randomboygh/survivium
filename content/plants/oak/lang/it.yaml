@@ -2,10 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/oak/bundle.yaml
-"Дуб": "Quercia"
+"[plants.oak.bundle]": "Quercia"
 
 # content/plants/oak/data/items.yaml
-"Жёлудь": "Ghianda"
+"[plants.items.acorn]": "Ghianda"
 
 # content/plants/oak/data/plants.yaml
-"Росток дуба": "Germoglio di quercia"
+"[plants.plants.oak_sapling]": "Germoglio di quercia"
+
+# content/plants/oak/data/trees.yaml
+"[plants.trees.oak]": "Quercia"

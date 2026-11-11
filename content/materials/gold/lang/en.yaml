@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/gold/bundle.yaml
-"Золото": "Gold"
+"[materials.gold.bundle]": "Gold"
 
 # content/materials/gold/data/items.yaml
-"Золотая руда": "Gold ore"
-"Кварц с жёлтыми прожилками золота. Её берёт бронзовая кирка.": "Quartz with yellow veins of gold. A bronze pickaxe mines it."
-"Золотой слиток": "Gold ingot"
-"Тяжёлый мягкий жёлтый металл. Из слитков складывают золотые блоки.": "A heavy, soft yellow metal. Ingots are put together into gold blocks."
-"Золотой блок": "Gold block"
-"Блестящий жёлтый блок для построек.": "A shiny yellow block for buildings."
+"[materials.items.gold_ore]": "Gold ore"
+"[materials.items.gold_ore.about]": "Quartz with yellow veins of gold. A bronze pickaxe mines it."
+"[materials.items.gold_bar]": "Gold ingot"
+"[materials.items.gold_bar.about]": "A heavy, soft yellow metal. Ingots are put together into gold blocks."
+"[materials.items.gold_block]": "Gold block"
+"[materials.items.gold_block.about]": "A shiny yellow block for buildings."
+
+# content/materials/gold/data/materials.yaml
+"[materials.materials.gold_ore]": "Gold ore"
+"[materials.materials.gold_block]": "Gold block"
+
+# content/materials/gold/data/recipes.yaml
+"[materials.recipes.gold_bar]": "Gold ingot"
+"[materials.recipes.gold_block]": "Gold block"

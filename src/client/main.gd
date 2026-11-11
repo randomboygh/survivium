@@ -113,11 +113,11 @@ const CELL := WorldData.CELL
 const LOADING_HOLD := 1500
 const LOADING_SHARE := 0.05
 const LOADING_WORK := {
-	"terrain": "Холмы, реки, пещеры",
-	"saved": "Сохранённые места",
-	"trees": "Растут деревья",
-	"shapes": "Склоны и кусты",
-	"meshes": "Земля и трава",
+	"terrain": "[hills_rivers_caves]",
+	"saved": "[saved_places]",
+	"trees": "[growing_trees]",
+	"shapes": "[slopes_and_bushes]",
+	"meshes": "[earth_and_grass]",
 }
 
 var world
@@ -185,7 +185,7 @@ var mirror: Mirror
 ## then: the world comes from the server through `world_maker` (RemoteGen).
 var socket: Socket
 var join_url := ""
-var player_name := "Игрок"
+var player_name := "[player_n2]"
 var join_password := ""
 var welcome := {}
 var join_error := ""
@@ -440,7 +440,7 @@ func _read_join() -> void:
 	if not _args_read:
 		_args_read = true
 		var args := OS.get_cmdline_user_args()
-		var given := {"url": "", "name": "Игрок", "password": ""}
+		var given := {"url": "", "name": "[player_n2]", "password": ""}
 		for i in args.size() - 1:
 			match args[i]:
 				"--join":
@@ -487,7 +487,7 @@ func _start_hosting() -> void:
 	var values := host_ask
 	host_ask = {}
 	show_host = true
-	var player := str(values.get("player", "Хозяин"))
+	var player := str(values.get("player", "[host]"))
 	values.erase("player")
 	# The day lasts on the server made here as in the host's own game («Длина суток»).
 	if settings != null:
@@ -533,7 +533,7 @@ func _connect() -> void:
 	socket = Socket.new()
 	socket.closed.connect(_on_socket_closed)
 	if socket.open(join_url) != OK:
-		join_error = "Неверный адрес сервера"
+		join_error = "[invalid_server_address]"
 		return
 	net = socket.net
 	# A bot comes in new each time: bots started side by side share this device's keys.
@@ -544,16 +544,16 @@ func _connect() -> void:
 func _on_welcome(v: Variant) -> void:
 	if not v is Dictionary or v.get("ok") != true:
 		var why: String = v.get("why", "") if v is Dictionary else ""
-		join_error = {Protocol.WHY_VERSION: "Версия игры другая — обновите страницу",
-			Protocol.WHY_PASSWORD: "Неверный пароль", Protocol.WHY_FULL: "Сервер полон",
-			Protocol.WHY_NAME: "Нужно имя", Protocol.WHY_BANNED: "Хозяин сервера заблокировал вас",
-			Protocol.WHY_LIST: "Сервер пускает только своих: попросите хозяина добавить ваше имя",
-			Protocol.WHY_TAKEN: "Это имя уже занято — выберите другое",
-			Protocol.WHY_WAIT: "Слишком много попыток — подождите минуту"}.get(why, "Сервер не пустил")
+		join_error = {Protocol.WHY_VERSION: "[different_game_version_reload_the]",
+			Protocol.WHY_PASSWORD: "[wrong_password]", Protocol.WHY_FULL: "[server_is_full]",
+			Protocol.WHY_NAME: "[a_name_is_required]", Protocol.WHY_BANNED: "[the_server_host_has_banned]",
+			Protocol.WHY_LIST: "[this_server_lets_in_only]",
+			Protocol.WHY_TAKEN: "[this_name_is_already_taken]",
+			Protocol.WHY_WAIT: "[too_many_attempts_wait_a]"}.get(why, "[the_server_did_not_let]")
 		return
 	if not v.get("seed") is int or not v.get("settings") is Dictionary or not v.get("mods") is Array \
 			or not v.get("materials") is Array or not v.get("at") is Vector3:
-		join_error = "Сервер ответил не по-нашему"
+		join_error = "[the_server_answered_in_an]"
 		return
 	welcome = v
 	rejoin_until = 0
@@ -572,16 +572,16 @@ func _on_socket_closed(code: int, reason: String) -> void:
 		print("the server goes over to another world: joining again")
 		rejoin_until = Time.get_ticks_msec() + int(REJOIN_WAIT * 1000.0)
 		if hud != null:
-			hud.set_loading("Сервер переходит в другой мир…")
+			hud.set_loading("[the_server_is_moving_to_n2]")
 		restart.call_deferred()
 		return
 	if server_stopping():
 		return
 	if join_error == "" and welcome.is_empty():
 		# A browser says nothing of a server that is not there but a code without words.
-		join_error = "Сервер не отвечает" if code < 0 or reason == "" else Lang.line("Сервер закрыл вход: %s", [reason])
+		join_error = "[the_server_does_not_respond]" if code < 0 or reason == "" else Lang.line("[the_server_closed_the_door]", [reason])
 	elif join_error == "":
-		join_error = "Связь с сервером потеряна" if code < 0 else (Lang.line("Сервер: %s", [reason]) if reason != "" else "Сервер закрыл связь")
+		join_error = "[connection_to_the_server_lost]" if code < 0 else (Lang.line("[server_n3]", [reason]) if reason != "" else "[the_server_closed_the_connection]")
 		if hud != null:
 			hud.set_loading(join_error)
 		if menu != null:
@@ -598,7 +598,7 @@ func start_world() -> void:
 		return
 	# Each heavy part says what it does and lets it show first; `world` is set only once
 	# they are done, so nothing runs on a world half made.
-	await _loading_stage("Материки и реки")
+	await _loading_stage("[continents_and_rivers]")
 	if not is_inside_tree():
 		return
 	var t0 := Time.get_ticks_msec()
@@ -611,7 +611,7 @@ func start_world() -> void:
 		gen.material_map = Mat.remap(save.saved_materials)
 	StartTimes.spawn_ms = Time.get_ticks_msec() - t0
 	print("world %d %s: spawn found in %d ms" % [world_seed, world_options, StartTimes.spawn_ms])
-	await _loading_stage("Карта и материалы")
+	await _loading_stage("[map_and_materials]")
 	if not is_inside_tree():
 		return
 	# The atlas first: the biome tints and the map take the materials' colours from it.
@@ -621,7 +621,7 @@ func start_world() -> void:
 	hud.minimap.setup(gen)
 	if save.has_save:
 		hud.minimap.load_regions(save.store.read_maps())
-	await _loading_stage("Игрок и вещи" if save.has_save else "Игрок и небо")
+	await _loading_stage("[player_and_belongings]" if save.has_save else "[player_and_sky]")
 	if not is_inside_tree():
 		return
 	world = gen.world
@@ -667,13 +667,13 @@ func start_world() -> void:
 ## it plays with other bundles, lays the land out from its seed (RemoteGen) and builds
 ## the scene where the server put the character; the chunks come from the server.
 func _join_world() -> void:
-	await _loading_stage("Связь с сервером")
+	await _loading_stage("[connecting_to_the_server]")
 	if not is_inside_tree():
 		return
 	var since := Time.get_ticks_msec()
 	while welcome.is_empty() and join_error == "":
 		if Time.get_ticks_msec() - since > JOIN_WAIT * 1000.0:
-			join_error = "Сервер не отвечает"
+			join_error = "[the_server_does_not_respond]"
 			break
 		await get_tree().process_frame
 		# The loading was cancelled: the scene is out of the tree, going.
@@ -681,7 +681,7 @@ func _join_world() -> void:
 			return
 	if join_error != "" and Time.get_ticks_msec() < rejoin_until:
 		# The server is making its other world: tried again a little later.
-		hud.set_loading("Сервер переходит в другой мир…")
+		hud.set_loading("[the_server_is_moving_to_n2]")
 		await get_tree().create_timer(REJOIN_EVERY).timeout
 		if is_inside_tree():
 			restart()
@@ -702,7 +702,7 @@ func _join_world() -> void:
 		pending_mods = Array(welcome.mods)
 		restart()
 		return
-	await _loading_stage("Материки и реки")
+	await _loading_stage("[continents_and_rivers]")
 	if not is_inside_tree():
 		return
 	var t0 := Time.get_ticks_msec()
@@ -711,14 +711,14 @@ func _join_world() -> void:
 		# The server numbered its materials in its own order: translate.
 		gen.material_map = Mat.remap(PackedStringArray(welcome.materials))
 	print("world %d %s of %s: laid out in %d ms" % [world_seed, world_options, join_url, Time.get_ticks_msec() - t0])
-	await _loading_stage("Карта и материалы")
+	await _loading_stage("[map_and_materials]")
 	if not is_inside_tree():
 		return
 	_build_materials()
 	roof = RoofMap.new()
 	roof.prepare()
 	hud.minimap.setup(gen)
-	await _loading_stage("Игрок и небо")
+	await _loading_stage("[player_and_sky]")
 	if not is_inside_tree():
 		return
 	world = gen.world
@@ -764,7 +764,7 @@ func _watch_actions() -> void:
 ## shaders built ahead (see ShaderWarmup) and the first frames.
 func loading_phase() -> String:
 	if ready_to_play:
-		return "Прогрев шейдеров" if warmup != null else "Первые кадры мира"
+		return "[warming_up_shaders]" if warmup != null else "[first_frames_of_the_world]"
 	if loading_stage != "":
 		return loading_stage
 	var now := Time.get_ticks_msec()
@@ -774,7 +774,7 @@ func loading_phase() -> String:
 			_work_shown = work
 			_work_since = now
 			_work_named[work] = now
-	return LOADING_WORK.get(_work_shown, "Строим окрестности")
+	return LOADING_WORK.get(_work_shown, "[building_the_surroundings]")
 
 
 ## Of the kinds of work that took a fair share (LOADING_SHARE) of the time `spent`

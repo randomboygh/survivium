@@ -9,14 +9,14 @@ extends RefCounted
 ## "time" (seconds), "key" (its number on the wheel)}.
 
 const LIST: Array[Dictionary] = [
-	{"name": "wave", "title": "Помахать", "anim": "wave", "time": 3.0},
-	{"name": "yes", "title": "Да", "anim": "nod", "time": 2.0},
-	{"name": "no", "title": "Нет", "anim": "shake", "time": 2.0},
-	{"name": "point", "title": "Указать", "anim": "point", "time": 3.0},
-	{"name": "beckon", "title": "Сюда", "anim": "beckon", "time": 3.0},
-	{"name": "bow", "title": "Поклон", "anim": "bow", "time": 2.6},
-	{"name": "clap", "title": "Хлопать", "anim": "clap", "time": 3.0},
-	{"name": "sit", "title": "Сесть", "anim": "sit", "time": 0.0},
+	{"name": "wave", "title": "[wave]", "anim": "wave", "time": 3.0},
+	{"name": "yes", "title": "[yes]", "anim": "nod", "time": 2.0},
+	{"name": "no", "title": "[no]", "anim": "shake", "time": 2.0},
+	{"name": "point", "title": "[point]", "anim": "point", "time": 3.0},
+	{"name": "beckon", "title": "[come_here]", "anim": "beckon", "time": 3.0},
+	{"name": "bow", "title": "[bow_down]", "anim": "bow", "time": 2.6},
+	{"name": "clap", "title": "[clap]", "anim": "clap", "time": 3.0},
+	{"name": "sit", "title": "[sit]", "anim": "sit", "time": 0.0},
 ]
 ## Seconds the icon of a gesture shows over the head.
 const ICON_TIME := 2.5

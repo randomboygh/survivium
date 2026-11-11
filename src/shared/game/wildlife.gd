@@ -1416,7 +1416,7 @@ func _fights(a: Animal, spec: Dictionary, fire: Variant) -> bool:
 			a.warn = WARN
 			a.idle = 0.0
 			if near_who.has_method("nag"):
-				near_who.nag("beast_warn", Lang.line("%s угрожает: отойдите", [spec.title]))
+				near_who.nag("beast_warn", Lang.line("[is_threatening_step_back]", [spec.title]))
 		a.target = a.pos
 		a.facing = signf(near_who.position.x - a.pos.x) if absf(near_who.position.x - a.pos.x) > 0.01 else a.facing
 		return true
@@ -1552,7 +1552,7 @@ func _land_bite(a: Animal, spec: Dictionary, who) -> void:
 	if away.length() > 0.01 and "body" in who and who.body != null:
 		who.body.knock(away, KNOCK, KNOCK_HOP)
 	if who.has_method("nag"):
-		who.nag("beast_bite", Lang.line("%s нападает!", [spec.title]))
+		who.nag("beast_bite", Lang.line("[attacks]", [spec.title]))
 	a.bites += 1
 	bit.emit(a, who)
 	if a.hunting:

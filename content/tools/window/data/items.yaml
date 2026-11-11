@@ -1,8 +1,8 @@
 # Окно: рама из досок со стеклом на одну клетку (решение 163, 2А). Ставится в проём стены лицом к
 # игроку, твёрдое; касание забирает его (prop: window, window). Поля — как у предметов основы.
 - id: window
-  title: Окно
-  description: Рама со стеклом для проёма в стене.
+  title: "[tools.items.window]"
+  description: "[tools.items.window.about]"
   weight: 1.5
   stack: 10
   icon: window
@@ -12,8 +12,8 @@
 # Окна шире и выше одной клетки (размер — ширина × высота в клетках): рама из досок по краям, в
 # каждой клетке своя рама с крестом; ставятся в проём такого же размера (клетки — по срезу модели).
 - id: window_1x2
-  title: Окно 1×2
-  description: Высокое окно со стеклом, на клетку в ширину и две в высоту.
+  title: "[tools.items.window_1x2]"
+  description: "[tools.items.window_1x2.about]"
   weight: 3.0
   stack: 10
   icon: window_1x2
@@ -21,8 +21,8 @@
   prop: window_1x2
   window: true
 - id: window_2x1
-  title: Окно 2×1
-  description: Широкое окно со стеклом, на две клетки в ширину и одну в высоту.
+  title: "[tools.items.window_2x1]"
+  description: "[tools.items.window_2x1.about]"
   weight: 3.0
   stack: 10
   icon: window_2x1
@@ -30,8 +30,8 @@
   prop: window_2x1
   window: true
 - id: window_2x2
-  title: Окно 2×2
-  description: Большое окно со стеклом, на две клетки в ширину и две в высоту.
+  title: "[tools.items.window_2x2]"
+  description: "[tools.items.window_2x2.about]"
   weight: 6.0
   stack: 5
   icon: window_2x2
@@ -39,8 +39,8 @@
   prop: window_2x2
   window: true
 - id: window_3x2
-  title: Окно 3×2
-  description: Окно во всю стену, на три клетки в ширину и две в высоту.
+  title: "[tools.items.window_3x2]"
+  description: "[tools.items.window_3x2.about]"
   weight: 9.0
   stack: 5
   icon: window_3x2

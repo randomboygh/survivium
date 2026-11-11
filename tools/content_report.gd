@@ -32,14 +32,14 @@ const CHECKS := "res://docs/generated/content-checks.md"
 ## The kinds by their names in the register, in its order; a kind not here comes after
 ## them under its own name.
 const KINDS := {"items": "Предметы", "recipes": "Рецепты", "materials": "Материалы ячеек", "trees": "Деревья",
-	"bushes": "Кусты", "plants": "Растения", "creatures": "Существа", "biomes": "Биомы", "starts": "Старт", "eras": "Эпохи",
+	"bushes": "[bushes]", "plants": "[plants]", "creatures": "Существа", "biomes": "[biomes]", "starts": "Старт", "eras": "Эпохи",
 	"sounds": "Звуки"}
 ## How the ways of the graph are said (ContentGraph.ways: the `via` of each).
-const VIA := {"world": "мир", "start": "старт", "special": "особый источник", "recipe": "рецепт", "also": "побочно", "craft": "сделать",
-	"spawns": "растёт в биоме", "lives": "живёт в биоме", "is": "это", "place": "поставить", "plant": "посадить",
-	"sow": "посеять", "dig": "копать", "mow": "косить", "fell": "рубить", "gather": "собирать", "dig_out": "выкопать"}
+const VIA := {"world": "[world_n2]", "start": "старт", "special": "особый источник", "recipe": "рецепт", "also": "побочно", "craft": "сделать",
+	"spawns": "растёт в биоме", "lives": "живёт в биоме", "is": "это", "place": "[place_n2]", "plant": "[plant_n2]",
+	"sow": "посеять", "dig": "копать", "mow": "[mow_n2]", "fell": "[chop_n2]", "gather": "собирать", "dig_out": "выкопать"}
 ## The kinds of work of recipes (`process`), in the order of the register of recipes.
-const PROCESS := {"craft": "Изготовление", "refine": "Переработка", "smelt": "Плавка и обжиг", "cook": "Готовка"}
+const PROCESS := {"craft": "[crafting]", "refine": "Переработка", "smelt": "Плавка и обжиг", "cook": "Готовка"}
 ## The checks of the graph (ContentGraph.CHECKS): name, what they find, how to fix it.
 const CHECK_TEXT := {
 	"no_source": ["Нет источника", "предмет не делает ни один рецепт, его не даёт мир и его нет в старте",
@@ -249,7 +249,7 @@ func _start() -> Array:
 	for id: String in s.bag:
 		bag.append("%s ×%d" % [_title("items/" + id), s.bag[id]])
 	var out := ["", "## Старт", "", "Новый мир начинается по записи `%s` «%s»." % [s.id, s.title], "",
-		"- Сумка: %s." % (", ".join(bag) if not bag.is_empty() else "пусто")]
+		"- Сумка: %s." % (", ".join(bag) if not bag.is_empty() else "[empty_n2]")]
 	for e: Dictionary in s.camp:
 		out.append("- У точки появления: %s, %s." % [_title("items/" + e.item), _offset(e.at)])
 	return out
@@ -352,7 +352,7 @@ func _to(id: String) -> String:
 	for f: String in ["place", "plant", "sow", "crop"]:
 		if item[f] != "":
 			var of := {"place": "materials", "plant": "bushes", "sow": "materials", "crop": "plants"}[f] as String
-			parts.append("%s: %s" % [{"place": "блок", "plant": "сажает", "sow": "засевает", "crop": "растит"}[f], _title("%s/%s" % [of, item[f]])])
+			parts.append("%s: %s" % [{"place": "[block]", "plant": "сажает", "sow": "засевает", "crop": "растит"}[f], _title("%s/%s" % [of, item[f]])])
 	for f: String in ["food", "heal", "fuel", "light"]:
 		var v: Variant = item[f]
 		if v is bool and v or (v is float or v is int) and v > 0:
@@ -415,7 +415,7 @@ func _harvest() -> Array:
 		"Что даёт мир каждым действием и чем это сделать: руками или предметом-инструментом (по правилам `Tools`,",
 		"тем же, что в игре). Одинаковое у нескольких записей — одной строкой."]
 	for kind: String in ["materials", "trees", "bushes", "plants"]:
-		out += ["", "### %s" % {"materials": "Клетки", "trees": "Деревья", "bushes": "Кусты", "plants": "Растения"}[kind], "",
+		out += ["", "### %s" % {"materials": "Клетки", "trees": "Деревья", "bushes": "[bushes]", "plants": "[plants]"}[kind], "",
 			"| Что | Действие | Даёт | Чем |", "|---|---|---|---|"]
 		for line: Array in lines:
 			if line[0] == kind:

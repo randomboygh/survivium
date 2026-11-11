@@ -13,653 +13,653 @@
 
 ## Моды и бандлы
 
-- `core` Основа
-- `animals` Животные: `animals/bear` Медведь, `animals/boar` Кабан, `animals/butterfly` Бабочка, `animals/cat` Дикая кошка, `animals/crow` Ворона, `animals/deer` Олень, `animals/duck` Утка, `animals/fish` Рыба, `animals/fox` Лиса, `animals/frog` Лягушка, `animals/game` Добыча, `animals/hedgehog` Ёж, `animals/owl` Сова, `animals/perch` Окунь, `animals/rabbit` Заяц, `animals/sparrow` Воробей, `animals/squirrel` Белка, `animals/wolf` Волк, `animals/wool` Пух
-- `biomes` Биомы: `biomes/alpine_meadow` Альпийский луг, `biomes/beach` Берег, `biomes/birch_grove` Берёзовая роща, `biomes/desert` Пустыня, `biomes/floodplain` Пойма, `biomes/forest` Лес, `biomes/forest_steppe` Лесостепь, `biomes/glacier` Ледник, `biomes/ice_waste` Ледяная пустошь, `biomes/jungle` Джунгли, `biomes/mangrove` Мангровые заросли, `biomes/maple_wood` Кленовник, `biomes/meadow` Луг, `biomes/peat_bog` Торфяное болото, `biomes/pine_wood` Бор, `biomes/plateau` Плато, `biomes/red_rocks` Красные скалы, `biomes/rock` Скалы, `biomes/salt_flat` Солончак, `biomes/savanna` Саванна, `biomes/sea` Море, `biomes/steppe` Степь, `biomes/stony_tundra` Каменистая тундра, `biomes/swamp` Болото, `biomes/taiga` Тайга, `biomes/tropical_beach` Тропический берег, `biomes/tropical_sea` Тропическое море, `biomes/tundra` Тундра
-- `materials` Материалы: `materials/bone_glue` Костный клей, `materials/brick` Кирпич, `materials/bronze` Бронза, `materials/charcoal` Уголь, `materials/cloth` Ткань, `materials/copper` Медь, `materials/cord` Верёвка, `materials/cut_stone` Тёсаный камень, `materials/glass` Стекло, `materials/gold` Золото, `materials/iron` Железо, `materials/leather` Кожа, `materials/log_wall` Сруб, `materials/planks` Доски, `materials/platinum` Платина, `materials/silver` Серебро, `materials/steel` Сталь, `materials/tar` Смола, `materials/tin` Олово, `materials/wattle` Плетень
-- `music` Музыка
-- `plants` Растения: `plants/acacia` Акация, `plants/apple` Яблоня, `plants/banana` Банан, `plants/birch` Берёза, `plants/bird_cherry` Черёмуха, `plants/blueberry` Черника, `plants/carrot` Морковь, `plants/ceiba` Сейба, `plants/cherry` Вишня, `plants/cranberry` Клюква, `plants/currant` Смородина, `plants/deadwood` Сухое дерево, `plants/ears` Колоски, `plants/fern` Папоротник, `plants/fir` Пихта, `plants/flax` Лён, `plants/grass` Травы, `plants/larch` Лиственница, `plants/linden` Липа, `plants/mangrove` Мангр, `plants/maple` Клён, `plants/monstera` Монстера, `plants/moss` Мох, `plants/mushrooms` Грибы, `plants/nettle` Крапива, `plants/oak` Дуб, `plants/palm` Пальма, `plants/peas` Горох, `plants/pine` Сосна, `plants/poplar` Тополь, `plants/raspberry` Малина, `plants/red_maple` Клён красный, `plants/reeds` Тростник, `plants/roasted_acorns` Жареные жёлуди, `plants/rosehip` Шиповник, `plants/rowan` Рябина, `plants/shrub` Куст, `plants/spruce` Ель, `plants/turnip` Репа, `plants/willow` Ива, `plants/wood` Древесина
-- `resources` Ресурсы: `resources/fiber` Волокно, `resources/peat` Торф, `resources/salt` Соль, `resources/snow` Снег, `resources/soil` Грунт, `resources/stone` Камень, `resources/wood` Дерево
-- `sounds` Звуки: `sounds/nature` Природа, `sounds/player` Игрок, `sounds/ui` Интерфейс
-- `tools` Инструменты и крафт: `tools/anvil` Наковальня, `tools/axe` Топор, `tools/bedding` Постель, `tools/big_chest` Большой сундук, `tools/bloomery` Сыродутная печь, `tools/boats` Плот и лодка, `tools/boundary_post` Межевой столб, `tools/bow` Лук, `tools/candle` Сальная свеча, `tools/canvas_backpack` Холщовый рюкзак, `tools/chest` Сундук, `tools/composite_bow` Составной лук, `tools/door` Дверь, `tools/drying_rack` Сушилка, `tools/fence` Забор, `tools/fiber_clothes` Одежда из волокна, `tools/fireplace` Камин, `tools/fishing_rod` Удочка, `tools/forge` Горн, `tools/furniture` Мебель, `tools/hatch` Люк, `tools/hide_clothes` Одежда из шкур, `tools/hoe` Тяпка, `tools/kiln` Печь для обжига, `tools/knife` Нож, `tools/ladder` Приставная лестница, `tools/lantern` Фонарь, `tools/leather_bag` Кожаная сумка, `tools/leather_sling` Кожаная праща, `tools/loom` Ткацкий станок, `tools/needle` Игла, `tools/pickaxe` Кирка, `tools/potters_wheel` Гончарный круг, `tools/scythe` Коса, `tools/shovel` Лопата, `tools/sickle` Серп, `tools/signs` Таблички, `tools/sling` Праща, `tools/spear` Копьё, `tools/stairs` Лестница, `tools/sword` Меч, `tools/tar_torch` Смоляной факел, `tools/torch` Факел, `tools/trap` Живоловка, `tools/watering_can` Лейка, `tools/waterskin` Бурдюк, `tools/wicker_bag` Плетёная котомка, `tools/window` Окно, `tools/workbench` Верстак
+- `core` [core.mod]
+- `animals` [animals.mod]: `animals/bear` [animals.bear.bundle], `animals/boar` [animals.boar.bundle], `animals/butterfly` [animals.butterfly.bundle], `animals/cat` [animals.cat.bundle], `animals/crow` [animals.crow.bundle], `animals/deer` [animals.deer.bundle], `animals/duck` [animals.duck.bundle], `animals/fish` [animals.fish.bundle], `animals/fox` [animals.fox.bundle], `animals/frog` [animals.frog.bundle], `animals/game` [animals.game.bundle], `animals/hedgehog` [animals.hedgehog.bundle], `animals/owl` [animals.owl.bundle], `animals/perch` [animals.perch.bundle], `animals/rabbit` [animals.rabbit.bundle], `animals/sparrow` [animals.sparrow.bundle], `animals/squirrel` [animals.squirrel.bundle], `animals/wolf` [animals.wolf.bundle], `animals/wool` [animals.wool.bundle]
+- `biomes` [biomes.mod]: `biomes/alpine_meadow` [biomes.alpine_meadow.bundle], `biomes/beach` [biomes.beach.bundle], `biomes/birch_grove` [biomes.birch_grove.bundle], `biomes/desert` [biomes.desert.bundle], `biomes/floodplain` [biomes.floodplain.bundle], `biomes/forest` [biomes.forest.bundle], `biomes/forest_steppe` [biomes.forest_steppe.bundle], `biomes/glacier` [biomes.glacier.bundle], `biomes/ice_waste` [biomes.ice_waste.bundle], `biomes/jungle` [biomes.jungle.bundle], `biomes/mangrove` [biomes.mangrove.bundle], `biomes/maple_wood` [biomes.maple_wood.bundle], `biomes/meadow` [biomes.meadow.bundle], `biomes/peat_bog` [biomes.peat_bog.bundle], `biomes/pine_wood` [biomes.pine_wood.bundle], `biomes/plateau` [biomes.plateau.bundle], `biomes/red_rocks` [biomes.red_rocks.bundle], `biomes/rock` [biomes.rock.bundle], `biomes/salt_flat` [biomes.salt_flat.bundle], `biomes/savanna` [biomes.savanna.bundle], `biomes/sea` [biomes.sea.bundle], `biomes/steppe` [biomes.steppe.bundle], `biomes/stony_tundra` [biomes.stony_tundra.bundle], `biomes/swamp` [biomes.swamp.bundle], `biomes/taiga` [biomes.taiga.bundle], `biomes/tropical_beach` [biomes.tropical_beach.bundle], `biomes/tropical_sea` [biomes.tropical_sea.bundle], `biomes/tundra` [biomes.tundra.bundle]
+- `materials` [materials.mod]: `materials/bone_glue` [materials.bone_glue.bundle], `materials/brick` [materials.brick.bundle], `materials/bronze` [materials.bronze.bundle], `materials/charcoal` [materials.charcoal.bundle], `materials/cloth` [materials.cloth.bundle], `materials/copper` [materials.copper.bundle], `materials/cord` [materials.cord.bundle], `materials/cut_stone` [materials.cut_stone.bundle], `materials/glass` [materials.glass.bundle], `materials/gold` [materials.gold.bundle], `materials/iron` [materials.iron.bundle], `materials/leather` [materials.leather.bundle], `materials/log_wall` [materials.log_wall.bundle], `materials/planks` [materials.planks.bundle], `materials/platinum` [materials.platinum.bundle], `materials/silver` [materials.silver.bundle], `materials/steel` [materials.steel.bundle], `materials/tar` [materials.tar.bundle], `materials/tin` [materials.tin.bundle], `materials/wattle` [materials.wattle.bundle]
+- `music` [music.mod]
+- `plants` [plants.mod]: `plants/acacia` [plants.acacia.bundle], `plants/apple` [plants.apple.bundle], `plants/banana` [plants.banana.bundle], `plants/birch` [plants.birch.bundle], `plants/bird_cherry` [plants.bird_cherry.bundle], `plants/blueberry` [plants.blueberry.bundle], `plants/carrot` [plants.carrot.bundle], `plants/ceiba` [plants.ceiba.bundle], `plants/cherry` [plants.cherry.bundle], `plants/cranberry` [plants.cranberry.bundle], `plants/currant` [plants.currant.bundle], `plants/deadwood` [plants.deadwood.bundle], `plants/ears` [plants.ears.bundle], `plants/fern` [plants.fern.bundle], `plants/fir` [plants.fir.bundle], `plants/flax` [plants.flax.bundle], `plants/grass` [plants.grass.bundle], `plants/larch` [plants.larch.bundle], `plants/linden` [plants.linden.bundle], `plants/mangrove` [plants.mangrove.bundle], `plants/maple` [plants.maple.bundle], `plants/monstera` [plants.monstera.bundle], `plants/moss` [plants.moss.bundle], `plants/mushrooms` [plants.mushrooms.bundle], `plants/nettle` [plants.nettle.bundle], `plants/oak` [plants.oak.bundle], `plants/palm` [plants.palm.bundle], `plants/peas` [plants.peas.bundle], `plants/pine` [plants.pine.bundle], `plants/poplar` [plants.poplar.bundle], `plants/raspberry` [plants.raspberry.bundle], `plants/red_maple` [plants.red_maple.bundle], `plants/reeds` [plants.reeds.bundle], `plants/roasted_acorns` [plants.roasted_acorns.bundle], `plants/rosehip` [plants.rosehip.bundle], `plants/rowan` [plants.rowan.bundle], `plants/shrub` [plants.shrub.bundle], `plants/spruce` [plants.spruce.bundle], `plants/turnip` [plants.turnip.bundle], `plants/willow` [plants.willow.bundle], `plants/wood` [plants.wood.bundle]
+- `resources` [resources.mod]: `resources/fiber` [resources.fiber.bundle], `resources/peat` [resources.peat.bundle], `resources/salt` [resources.salt.bundle], `resources/snow` [resources.snow.bundle], `resources/soil` [resources.soil.bundle], `resources/stone` [resources.stone.bundle], `resources/wood` [resources.wood.bundle]
+- `sounds` [sounds.mod]: `sounds/nature` [sounds.nature.bundle], `sounds/player` [sounds.player.bundle], `sounds/ui` [sounds.ui.bundle]
+- `tools` [tools.mod]: `tools/anvil` [tools.anvil.bundle], `tools/axe` [tools.axe.bundle], `tools/bedding` [tools.bedding.bundle], `tools/big_chest` [tools.big_chest.bundle], `tools/bloomery` [tools.bloomery.bundle], `tools/boats` [tools.boats.bundle], `tools/boundary_post` [tools.boundary_post.bundle], `tools/bow` [tools.bow.bundle], `tools/candle` [tools.candle.bundle], `tools/canvas_backpack` [tools.canvas_backpack.bundle], `tools/chest` [tools.chest.bundle], `tools/composite_bow` [tools.composite_bow.bundle], `tools/door` [tools.door.bundle], `tools/drying_rack` [tools.drying_rack.bundle], `tools/fence` [tools.fence.bundle], `tools/fiber_clothes` [tools.fiber_clothes.bundle], `tools/fireplace` [tools.fireplace.bundle], `tools/fishing_rod` [tools.fishing_rod.bundle], `tools/forge` [tools.forge.bundle], `tools/furniture` [tools.furniture.bundle], `tools/hatch` [tools.hatch.bundle], `tools/hide_clothes` [tools.hide_clothes.bundle], `tools/hoe` [tools.hoe.bundle], `tools/kiln` [tools.kiln.bundle], `tools/knife` [tools.knife.bundle], `tools/ladder` [tools.ladder.bundle], `tools/lantern` [tools.lantern.bundle], `tools/leather_bag` [tools.leather_bag.bundle], `tools/leather_sling` [tools.leather_sling.bundle], `tools/loom` [tools.loom.bundle], `tools/needle` [tools.needle.bundle], `tools/pickaxe` [tools.pickaxe.bundle], `tools/potters_wheel` [tools.potters_wheel.bundle], `tools/scythe` [tools.scythe.bundle], `tools/shovel` [tools.shovel.bundle], `tools/sickle` [tools.sickle.bundle], `tools/signs` [tools.signs.bundle], `tools/sling` [tools.sling.bundle], `tools/spear` [tools.spear.bundle], `tools/stairs` [tools.stairs.bundle], `tools/sword` [tools.sword.bundle], `tools/tar_torch` [tools.tar_torch.bundle], `tools/torch` [tools.torch.bundle], `tools/trap` [tools.trap.bundle], `tools/watering_can` [tools.watering_can.bundle], `tools/waterskin` [tools.waterskin.bundle], `tools/wicker_bag` [tools.wicker_bag.bundle], `tools/window` [tools.window.bundle], `tools/workbench` [tools.workbench.bundle]
 
 ## Предметы (`items`, 217)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
-| `core:campfire` | Костёр | Станки |  | `core` | 1. Примитивные инструменты | 1 / 15 | ок |
-| `core:rot` | Гниль | Материалы |  | `core` | 0. Выживание без инструментов | 0 / 23 | предупреждения: 1 |
-| `materials:brick` | Кирпич | Блоки |  | `materials/brick` | 3. Керамика и ранняя металлургия | 1 / 5 | ок |
-| `materials:charcoal` | Уголь | Материалы |  | `materials/charcoal` | 3. Керамика и ранняя металлургия | 0 / 12 | ок |
-| `materials:cloth` | Ткань | Материалы | Полотно с ткацкого станка. Идёт на бинты и факелы, потом — на одежду. | `materials/cloth` | 2. Дерево, кости и кожа | 1 / 7 | ок |
-| `materials:copper_ore` | Медная руда | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 1 / 2 | ок |
-| `materials:copper_bar` | Медный слиток | Материалы |  | `materials/copper` | 3. Керамика и ранняя металлургия | 0 / 19 | ок |
-| `materials:planks` | Доски | Блоки |  | `materials/planks` | 1. Примитивные инструменты | 1 / 66 | ок |
-| `plants:blueberry` | Черника | Еда |  | `plants/blueberry` | 0. Выживание без инструментов | 1 / 1 | предупреждения: 1 |
-| `plants:blueberry_bush` | Кустик черники | Посадки |  | `plants/blueberry` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `plants:cranberry` | Клюква | Еда |  | `plants/cranberry` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `plants:currant` | Смородина | Еда |  | `plants/currant` | 0. Выживание без инструментов | 1 / 1 | предупреждения: 1 |
-| `plants:currant_bush` | Куст смородины | Посадки |  | `plants/currant` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `plants:grass_seeds` | Семена трав | Посадки |  | `plants/grass` | 0. Выживание без инструментов | 1 / 2 | ок |
-| `plants:carrot_seeds` | Семена моркови | Посадки | Мелкие ребристые семена. Посейте их на грядку весной. | `plants/carrot` | 0. Выживание без инструментов | 1 / 2 | ок |
-| `plants:carrot` | Морковь | Еда | Сладкий оранжевый корнеплод. | `plants/carrot` | 0. Выживание без инструментов | 1 / 2 | ок |
-| `plants:mushroom` | Гриб | Еда |  | `plants/mushrooms` | 0. Выживание без инструментов | 1 / 2 | ок |
-| `plants:glow_mushroom` | Светящийся гриб | Еда |  | `plants/mushrooms` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `plants:fried_mushrooms` | Жареные грибы | Еда |  | `plants/mushrooms` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `plants:peas` | Горох | Еда | Сухие горошины. Их едят или сеют на грядку весной. | `plants/peas` | 0. Выживание без инструментов | 1 / 2 | ок |
-| `plants:raspberry` | Малина | Еда |  | `plants/raspberry` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `plants:raspberry_bush` | Куст малины | Посадки |  | `plants/raspberry` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `plants:rosehip` | Шиповник | Еда |  | `plants/rosehip` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `plants:rosehip_bush` | Куст шиповника | Посадки |  | `plants/rosehip` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `plants:shrub_bush` | Куст | Посадки |  | `plants/shrub` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `plants:turnip_seeds` | Семена репы | Посадки | Мелкие тёмные семена. Посейте их на грядку весной. | `plants/turnip` | 0. Выживание без инструментов | 1 / 2 | ок |
-| `plants:turnip` | Репа | Еда | Круглый сладковатый корнеплод. Лежит долго. | `plants/turnip` | 0. Выживание без инструментов | 1 / 2 | ок |
-| `resources:fiber` | Волокно | Материалы |  | `resources/fiber` | 0. Выживание без инструментов | 0 / 22 | ок |
-| `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 1. Примитивные инструменты | 1 / 51 | ок |
-| `plants:moss` | Мох | Материалы |  | `plants/moss` | 0. Выживание без инструментов | 0 / 3 | ок |
-| `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 0 / 2 | ок |
-| `plants:poultice` | Припарка | Лечение | Тёплый мох в бинте. Лечит не сразу, а понемногу, но вдвое больше бинта, даже голодному и замёрзшему. | `plants/moss` | 0. Выживание без инструментов | 0 / 1 | ок |
-| `resources:peat` | Торф | Блоки |  | `resources/peat` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `resources:salt` | Соль | Блоки |  | `resources/salt` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `resources:snow` | Снег | Блоки |  | `resources/snow` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `resources:ice` | Лёд | Блоки |  | `resources/snow` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `resources:dirt` | Земля | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 5 | ок |
-| `resources:sand` | Песок | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 3 | ок |
-| `resources:clay` | Глина | Блоки |  | `resources/soil` | 0. Выживание без инструментов | 1 / 8 | ок |
-| `resources:stone` | Камень | Блоки |  | `resources/stone` | 0. Выживание без инструментов | 1 / 9 | ок |
-| `resources:flint` | Кремень | Материалы |  | `resources/stone` | 0. Выживание без инструментов | 0 / 21 | ок |
-| `resources:branch` | Ветка | Материалы |  | `resources/wood` | 0. Выживание без инструментов | 0 / 67 | ок |
-| `resources:log` | Бревно | Блоки |  | `resources/wood`; патчи: `plants/wood` | 1. Примитивные инструменты | 1 / 28 | ок |
-| `animals:roach` | Плотва | Еда | Мелкая речная рыба. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 1 / 2 | ок |
-| `animals:pike` | Щука | Еда | Хищница тихих заводей. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 1 / 2 | ок |
-| `animals:salmon` | Лосось | Еда | Рыба холодных северных рек. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 1 / 2 | ок |
-| `animals:cod` | Треска | Еда | Морская рыба холодного берега. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 1 / 2 | ок |
-| `animals:parrotfish` | Рыба-попугай | Еда | Пёстрая рыба тёплого моря. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 1 / 2 | ок |
-| `animals:catfish` | Сом | Еда | Большая рыба тёплых болот и рек. Её жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 1 / 2 | ок |
-| `animals:perch` | Окунь | Еда | Полосатая рыба рек и озёр. Его жарят на костре. | `animals/fish` | 1. Примитивные инструменты | 1 / 2 | ок |
-| `animals:roasted_fish` | Жареная рыба | Еда | Рыба, зажаренная на костре. Сытная. | `animals/fish` | 1. Примитивные инструменты | 1 / 7 | ок |
-| `materials:log_wall` | Сруб | Блоки | Отёсанные брёвна для стен и пола. Ставится блоком. | `materials/log_wall` | 1. Примитивные инструменты | 1 / 2 | ок |
-| `materials:wattle` | Плетень | Блоки | Сплетённые ветки. Лёгкая стена, пока нет топора. | `materials/wattle` | 0. Выживание без инструментов | 1 / 2 | ок |
-| `plants:apple` | Яблоко | Еда |  | `plants/apple` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `plants:banana` | Банан | Еда |  | `plants/banana` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `plants:banana_bush` | Куст банана | Посадки |  | `plants/banana` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `plants:acorn` | Жёлудь | Посадки |  | `plants/oak` | 0. Выживание без инструментов | 1 / 3 | ок |
-| `plants:coconut` | Кокос | Еда |  | `plants/palm` | 0. Выживание без инструментов | 0 / 1 | ок |
-| `plants:rowan` | Рябина | Еда |  | `plants/rowan` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `plants:cone` | Шишка | Посадки |  | `plants/spruce` | 0. Выживание без инструментов | 1 / 3 | ок |
-| `tools:boundary_post` | Межевой столб | Станки |  | `tools/boundary_post` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:fence` | Забор | Станки | Звено изгороди из жердей. Строится в режиме строительства линией, как стена, и само соединяется с соседними. | `tools/fence` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:wicket` | Калитка | Станки | Створка из жердей в линию забора, на одну клетку. Касание открывает и закрывает. | `tools/fence` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:gate` | Ворота | Станки | Две створки из жердей в линию забора, на две клетки в ширину. Касание открывает обе. | `tools/fence` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:fiber_hat` | Плетёная шапка | Одежда и сумки | Шапка из сухой травы. Немного греет голову. | `tools/fiber_clothes` | 0. Выживание без инструментов | 0 / 1 | ок |
-| `tools:grass_cape` | Травяная накидка | Одежда и сумки | Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды. | `tools/fiber_clothes` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:leg_wraps` | Обмотки | Одежда и сумки | Полосы волокна, обмотанные вокруг ног и подвязанные верёвкой. | `tools/fiber_clothes` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:bast_shoes` | Лапти | Одежда и сумки | Плетёная обувь из волокна на верёвочных завязках. | `tools/fiber_clothes` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:fishing_rod` | Удочка | Инструменты | Гибкое удилище с леской и кремнёвым крючком. Закидывают в воду и ждут поклёвки. | `tools/fishing_rod` | 1. Примитивные инструменты | 2 / 1 | ок |
-| `tools:bait` | Наживка | Материалы | Черви, накопанные в земле. Их надевают на крючок, и рыба клюёт куда чаще. | `tools/fishing_rod` | 0. Выживание без инструментов | 0 / 2 | ок |
-| `tools:ladder` | Приставная лестница | Станки | Звено лестницы на клетку высоты. Ставится к стене, звено над звеном; по ней лезут вверх и вниз. | `tools/ladder` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:cord_sling` | Праща | Инструменты | Ремень из верёвки: мечет камешки дальше, чем рука. | `tools/sling` | 1. Примитивные инструменты | 2 / 1 | ок |
-| `tools:sling_stone` | Камешки | Материалы | Круглые камешки для пращи. | `tools/sling` | 0. Выживание без инструментов | 0 / 3 | ок |
-| `tools:stairs` | Лестница | Станки | Старая лестница из досок. Теперь ступени строят из любого блока в режиме строительства. | `tools/stairs` | 0. Выживание без инструментов | 0 / 0 | ок |
-| `tools:torch` | Факел | Свет |  | `tools/torch` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:trap` | Живоловка | Станки | Клетка из веток с дверцей на сторожке. Положи внутрь морковь или репу, и заяц сам придёт в неё. | `tools/trap` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:live_rabbit` | Пойманный заяц | Материалы | Живой заяц из живоловки. Возьми его в руку и нажми действие, чтобы выпустить: он уже ручной и пойдёт за тобой. | `tools/trap` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:wicker_bag` | Плетёная котомка | Одежда и сумки | Котомка из волокна на верёвочных лямках. Надетая за спину, даёт ещё 8 ячеек. | `tools/wicker_bag` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:workbench` | Верстак | Станки |  | `tools/workbench` | 1. Примитивные инструменты | 1 / 66 | ок |
-| `materials:cut_stone` | Тёсаный камень | Блоки | Ровные каменные блоки для прочных стен и пола. | `materials/cut_stone` | 1. Примитивные инструменты | 1 / 2 | ок |
-| `tools:big_chest` | Большой сундук | Станки |  | `tools/big_chest` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:bloomery` | Сыродутная печь | Станки |  | `tools/bloomery` | 5. Железо | 1 / 3 | ок |
-| `tools:wooden_bow` | Деревянный лук | Инструменты | Стреляет стрелами дальше всего. | `tools/bow` | 1. Примитивные инструменты | 2 / 2 | ок |
-| `tools:arrow` | Стрела | Материалы | Древко с кремнёвым наконечником. После выстрела её можно подобрать. | `tools/bow` | 1. Примитивные инструменты | 0 / 4 | ок |
-| `tools:chest` | Сундук | Станки |  | `tools/chest` | 1. Примитивные инструменты | 0 / 2 | ок |
-| `tools:door` | Дверь | Станки | Створка из досок для проёма в стене. Касание открывает и закрывает. | `tools/door` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:door_2x2` | Дверь 2×2 | Станки | Двустворчатая дверь из досок, на две клетки в ширину и две в высоту. | `tools/door` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:door_2x3` | Дверь 2×3 | Станки | Высокая двустворчатая дверь, на две клетки в ширину и три в высоту. | `tools/door` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:door_3x3` | Ворота 3×3 | Станки | Большие двустворчатые ворота из досок для проёма в стене, на три клетки в ширину и три в высоту. | `tools/door` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:drying_rack` | Сушилка | Станки | Рама из веток. На ней выделывают шкуры и вялят мясо. | `tools/drying_rack` | 2. Дерево, кости и кожа | 1 / 3 | ок |
-| `animals:small_carcass` | Тушка | Материалы | Мелкий зверь или птица. Разделывается руками. | `animals/game` | 0. Выживание без инструментов | 0 / 9 | ок |
-| `animals:carcass` | Туша | Материалы | Крупный зверь. Разделать её можно только ножом. | `animals/game` | 0. Выживание без инструментов | 0 / 5 | ок |
-| `animals:raw_meat` | Сырое мясо | Еда | Есть можно, но жареное сытнее. | `animals/game` | 0. Выживание без инструментов | 1 / 4 | ок |
-| `animals:roasted_meat` | Жареное мясо | Еда | Мясо, зажаренное на костре. Очень сытное. | `animals/game` | 0. Выживание без инструментов | 1 / 1 | ок |
-| `animals:hide` | Шкура | Материалы | Сырая шкура зверя. | `animals/game` | 0. Выживание без инструментов | 0 / 7 | ок |
-| `animals:bone` | Кость | Материалы |  | `animals/game` | 0. Выживание без инструментов | 0 / 6 | ок |
-| `animals:fat` | Жир | Материалы |  | `animals/game` | 1. Примитивные инструменты | 0 / 3 | ок |
-| `animals:jerky` | Вяленое мясо | Еда | Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно. | `animals/game` | 2. Дерево, кости и кожа | 0 / 1 | ок |
-| `materials:leather` | Кожа | Материалы | Выделанная шкура. Из неё шьют иглой. | `materials/leather` | 2. Дерево, кости и кожа | 1 / 10 | ок |
-| `tools:grass_mat` | Травяная подстилка | Станки | Охапка сухой травы, связанная верёвкой. Спать на ней лучше, чем на голой земле. | `tools/bedding` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:fur_bedroll` | Меховой спальник | Станки | Шкуры, сшитые мешком. В нём высыпаются вдвое быстрее. | `tools/bedding` | 2. Дерево, кости и кожа | 1 / 1 | ок |
-| `tools:tallow_candle` | Сальная свеча | Свет | Фитиль в жиру. Светит слабее факела, но горит дольше. | `tools/candle` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:canvas_backpack` | Холщовый рюкзак | Одежда и сумки | Рюкзак из ткани с кожаными лямками и клапаном. Надетый за спину, даёт ещё 24 ячейки. | `tools/canvas_backpack` | 2. Дерево, кости и кожа | 0 / 1 | ок |
-| `tools:fireplace` | Камин | Станки | Кирпичный очаг для дома. Греет как костёр, горит на топливе, на нём можно готовить. | `tools/fireplace` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
-| `tools:forge` | Горн | Станки |  | `tools/forge` | 3. Керамика и ранняя металлургия | 1 / 9 | ок |
-| `materials:glass` | Стекло | Материалы | Мутноватое зелёное стекло из песка. Идёт на фонарь. | `materials/glass` | 3. Керамика и ранняя металлургия | 0 / 7 | ок |
-| `materials:iron_ore` | Железная руда | Материалы | Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка. | `materials/iron` | 4. Бронза | 0 / 2 | ок |
-| `materials:iron_bloom` | Крица | Материалы | Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка. | `materials/iron` | 5. Железо | 1 / 2 | ок |
-| `materials:iron_bar` | Железный слиток | Материалы | Тёмный прочный металл. Из него наковальня и железные инструменты. | `materials/iron` | 5. Железо | 1 / 21 | ок |
-| `materials:tin_ore` | Оловянная руда | Материалы | Тёмная тяжёлая руда со светлыми крупинками. Её берёт медная кирка. | `materials/tin` | 3. Керамика и ранняя металлургия | 0 / 2 | ок |
-| `materials:tin_bar` | Слиток олова | Материалы | Мягкий серебристый металл. С медью даёт бронзу. | `materials/tin` | 3. Керамика и ранняя металлургия | 0 / 2 | ок |
-| `tools:anvil` | Наковальня | Станки |  | `tools/anvil` | 5. Железо | 1 / 19 | ок |
-| `materials:gold_ore` | Золотая руда | Материалы | Кварц с жёлтыми прожилками золота. Её берёт бронзовая кирка. | `materials/gold` | 4. Бронза | 0 / 2 | ок |
-| `materials:gold_bar` | Золотой слиток | Материалы | Тяжёлый мягкий жёлтый металл. Из слитков складывают золотые блоки. | `materials/gold` | 4. Бронза | 0 / 2 | ок |
-| `materials:gold_block` | Золотой блок | Блоки | Блестящий жёлтый блок для построек. | `materials/gold` | 5. Железо | 1 / 2 | ок |
-| `materials:platinum_ore` | Платиновая руда | Материалы | Тёмная тяжёлая порода с серыми зёрнами платины. Её берёт бронзовая кирка. | `materials/platinum` | 4. Бронза | 0 / 2 | ок |
-| `materials:platinum_bar` | Платиновый слиток | Материалы | Тугоплавкий тяжёлый металл: в горне его плавят долго и с двойным углём. Из слитков складывают платиновые блоки. | `materials/platinum` | 4. Бронза | 0 / 2 | ок |
-| `materials:platinum_block` | Платиновый блок | Блоки | Тяжёлый серо-белый блок для построек. | `materials/platinum` | 5. Железо | 1 / 2 | ок |
-| `materials:silver_ore` | Серебряная руда | Материалы | Серая порода с белыми блёстками самородного серебра. Её берёт бронзовая кирка. | `materials/silver` | 4. Бронза | 0 / 2 | ок |
-| `materials:silver_bar` | Серебряный слиток | Материалы | Мягкий белый металл. Из слитков складывают серебряные блоки. | `materials/silver` | 4. Бронза | 0 / 2 | ок |
-| `materials:silver_block` | Серебряный блок | Блоки | Гладкий светлый металлический блок для построек. | `materials/silver` | 5. Железо | 1 / 2 | ок |
-| `tools:hatch` | Люк | Станки | Крышка из досок для дыры в полу или потолке. Касание открывает и закрывает. | `tools/hatch` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:hatch_2x2` | Люк 2×2 | Станки | Широкая крышка из досок для дыры в полу на две клетки в ширину и две в глубину. | `tools/hatch` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:fur_hat` | Меховая шапка | Одежда и сумки | Шапка из шкуры мехом внутрь. Держит тепло головы в мороз. | `tools/hide_clothes` | 2. Дерево, кости и кожа | 1 / 1 | ок |
-| `tools:fur_coat` | Шуба | Одежда и сумки | Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна. | `tools/hide_clothes` | 2. Дерево, кости и кожа | 1 / 1 | ок |
-| `tools:leather_trousers` | Кожаные штаны | Одежда и сумки | Штаны из выделанной кожи. Не продуваются ветром. | `tools/hide_clothes` | 2. Дерево, кости и кожа | 1 / 1 | ок |
-| `tools:fur_boots` | Унты | Одежда и сумки | Высокие сапоги из шкуры на кожаной подошве. | `tools/hide_clothes` | 2. Дерево, кости и кожа | 1 / 1 | ок |
-| `tools:stone_hoe` | Каменная тяпка | Инструменты | Вскапывает траву и землю в грядку, на которую сеют. | `tools/hoe` | 1. Примитивные инструменты | 2 / 1 | ок |
-| `tools:copper_hoe` | Медная тяпка | Инструменты | Вскапывает две клетки за взмах. | `tools/hoe` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
-| `tools:iron_hoe` | Железная тяпка | Инструменты | Вскапывает три клетки за взмах. | `tools/hoe` | 5. Железо | 1 / 1 | ок |
-| `tools:kiln` | Печь для обжига | Станки |  | `tools/kiln` | 3. Керамика и ранняя металлургия | 1 / 7 | ок |
-| `plants:grain` | Зерно | Посадки |  | `plants/ears` | 0. Выживание без инструментов | 1 / 3 | ок |
-| `plants:flour` | Мука | Материалы |  | `plants/ears` | 0. Выживание без инструментов | 0 / 2 | ок |
-| `plants:flatbread` | Лепёшка | Еда |  | `plants/ears` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
-| `tools:leather_bag` | Кожаная сумка | Одежда и сумки | Сшитая из кожи сумка с ремнём через плечо. Надетая за спину, даёт ещё 16 ячеек. | `tools/leather_bag` | 2. Дерево, кости и кожа | 0 / 1 | ок |
-| `tools:leather_sling` | Кожаная праща | Инструменты | Ремни и чашка из кожи. Мечет камешки дальше и сильнее верёвочной. | `tools/leather_sling` | 2. Дерево, кости и кожа | 2 / 1 | ок |
-| `tools:loom` | Ткацкий станок | Станки |  | `tools/loom` | 2. Дерево, кости и кожа | 1 / 5 | ок |
-| `animals:rabbit_fluff` | Заячий пух | Материалы | Мягкий пух ручного зайца. Его срезают ножом и прядут в пряжу. | `animals/wool` | 0. Выживание без инструментов | 0 / 2 | ок |
-| `animals:wool_yarn` | Пушистая пряжа | Материалы | Тёплая пряжа из заячьего пуха. На ткацком станке из неё ткут ткань. | `animals/wool` | 0. Выживание без инструментов | 0 / 2 | ок |
-| `plants:flax_seeds` | Семена льна | Посадки | Гладкие блестящие семена. Посейте их на грядку весной. | `plants/flax` | 0. Выживание без инструментов | 1 / 2 | ок |
-| `plants:flax_stalks` | Стебли льна | Материалы | Срезанный дикий лён. Из него прядут льняную нить. | `plants/flax` | 0. Выживание без инструментов | 0 / 3 | ок |
-| `plants:linen_thread` | Льняная нить | Материалы | Тонкая прочная нить. На ткацком станке из неё ткут ткань. | `plants/flax` | 0. Выживание без инструментов | 0 / 2 | ок |
-| `tools:table` | Стол | Станки | Дощатый стол на четырёх ножках, на две клетки. | `tools/furniture` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:stool` | Табурет | Станки | Посиди рядом — силы возвращаются вдвое быстрее. | `tools/furniture` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:wooden_bed` | Кровать | Станки | Деревянная кровать с холщовым тюфяком. Сон на ней восстанавливает лучше любой подстилки. | `tools/furniture` | 2. Дерево, кости и кожа | 0 / 1 | ок |
-| `tools:cupboard` | Шкаф | Станки | Высокий шкаф из досок, хранит больше сундука. | `tools/furniture` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:wide_cupboard` | Широкий шкаф | Станки | Шкаф на две клетки в ширину и две в высоту, с четырьмя дверцами. Хранит больше большого сундука. | `tools/furniture` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:barrel` | Бочка | Станки | Бочка в обручах. Еда в ней портится вдвое медленнее. | `tools/furniture` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:rug` | Половик | Станки | Тканый половик для пола, на две клетки. | `tools/furniture` | 2. Дерево, кости и кожа | 0 / 1 | ок |
-| `tools:bone_needle` | Костяная игла | Инструменты | Шьёт кожу. Лежит в сумке, пока шьёшь. | `tools/needle` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:potters_wheel` | Гончарный круг | Станки |  | `tools/potters_wheel` | 1. Примитивные инструменты | 0 / 3 | ок |
-| `tools:raw_pot` | Сырой горшок | Материалы | Вылепленный из глины горшок. Его ещё нужно обжечь в печи. | `tools/potters_wheel` | 1. Примитивные инструменты | 0 / 2 | ок |
-| `tools:pot` | Глиняный горшок | Материалы | Обожжённый горшок. В нём выгоняют смолу и жарят жёлуди; сам он не тратится. | `tools/potters_wheel` | 3. Керамика и ранняя металлургия | 0 / 4 | ок |
-| `materials:bone_glue` | Костный клей | Материалы | Вываренный из костей клей. Склеивает составной лук. | `materials/bone_glue` | 3. Керамика и ранняя металлургия | 0 / 3 | ок |
-| `materials:raw_crucible` | Сырой тигель | Материалы | Толстостенная чаша из глины с песком. Её ещё нужно обжечь в печи. | `materials/bronze` | 1. Примитивные инструменты | 0 / 2 | ок |
-| `materials:crucible` | Тигель | Материалы | Обожжённая чаша для плавки. В ней сплавляют медь с оловом; сама она не тратится. | `materials/bronze` | 3. Керамика и ранняя металлургия | 0 / 3 | ок |
-| `materials:bronze_bar` | Бронзовый слиток | Материалы | Медь с оловом: твёрже меди. Из бронзы — инструменты, которые берут железную руду. | `materials/bronze` | 4. Бронза | 1 / 15 | ок |
-| `materials:steel_bar` | Стальной слиток | Материалы | Железо, напитанное углём: твёрже и упруже. Из стали — лучшие инструменты. | `materials/steel` | 6. Сталь | 1 / 13 | ок |
-| `materials:tar` | Смола | Материалы | Густая чёрная смола из брёвен. Горит долго и ярко, склеивает. | `materials/tar` | 3. Керамика и ранняя металлургия | 0 / 4 | ок |
-| `plants:roasted_acorns` | Жареные жёлуди | Еда | Жёлуди, прокалённые в горшке на костре. Сытные, но горьковатые. | `plants/roasted_acorns` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
-| `tools:stone_axe` | Каменный топор | Инструменты |  | `tools/axe` | 1. Примитивные инструменты | 2 / 1 | ок |
-| `tools:copper_axe` | Медный топор | Инструменты |  | `tools/axe` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
-| `tools:bronze_axe` | Бронзовый топор | Инструменты |  | `tools/axe` | 4. Бронза | 1 / 1 | ок |
-| `tools:iron_axe` | Железный топор | Инструменты |  | `tools/axe` | 5. Железо | 1 / 1 | ок |
-| `tools:steel_axe` | Стальной топор | Инструменты |  | `tools/axe` | 6. Сталь | 1 / 1 | ок |
-| `tools:raft` | Плот | Материалы | Брёвна, связанные верёвкой. Возьми в руку и нажми действие у воды, чтобы спустить его и сесть. | `tools/boats` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:boat` | Лодка | Материалы | Лёгкая лодка из досок, просмолённая. Быстрее плота, но грести ею можно только с вёслами в сумке. | `tools/boats` | 3. Керамика и ранняя металлургия | 2 / 1 | ок |
-| `tools:oars` | Вёсла | Материалы | Пара вёсел. Пока они в сумке, лодка идёт быстро. | `tools/boats` | 1. Примитивные инструменты | 1 / 2 | ок |
-| `tools:composite_bow` | Составной лук | Инструменты | Деревянный лук, усиленный костью и обмотанный кожей. Бьёт дальше и сильнее. | `tools/composite_bow` | 3. Керамика и ранняя металлургия | 2 / 1 | ок |
-| `tools:flint_knife` | Кремнёвый нож | Инструменты | Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя. | `tools/knife` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:copper_knife` | Медный нож | Инструменты |  | `tools/knife` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
-| `tools:bronze_knife` | Бронзовый нож | Инструменты |  | `tools/knife` | 4. Бронза | 1 / 1 | ок |
-| `tools:iron_knife` | Железный нож | Инструменты |  | `tools/knife` | 5. Железо | 1 / 1 | ок |
-| `tools:steel_knife` | Стальной нож | Инструменты |  | `tools/knife` | 6. Сталь | 1 / 1 | ок |
-| `tools:lantern` | Фонарь | Свет | Стекло в медной оправе, внутри горит смола. Светит дальше факела и горит намного дольше. | `tools/lantern` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
-| `tools:stone_pickaxe` | Каменная кирка | Инструменты |  | `tools/pickaxe` | 1. Примитивные инструменты | 2 / 1 | ок |
-| `tools:wooden_pickaxe` | Деревянная кирка | Инструменты |  | `tools/pickaxe` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:copper_pickaxe` | Медная кирка | Инструменты |  | `tools/pickaxe` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
-| `tools:bronze_pickaxe` | Бронзовая кирка | Инструменты |  | `tools/pickaxe` | 4. Бронза | 1 / 1 | ок |
-| `tools:iron_pickaxe` | Железная кирка | Инструменты |  | `tools/pickaxe` | 5. Железо | 1 / 1 | ок |
-| `tools:steel_pickaxe` | Стальная кирка | Инструменты |  | `tools/pickaxe` | 6. Сталь | 1 / 1 | ок |
-| `tools:stone_scythe` | Каменная коса | Инструменты |  | `tools/scythe` | 1. Примитивные инструменты | 2 / 1 | ок |
-| `tools:wooden_scythe` | Деревянная коса | Инструменты |  | `tools/scythe` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:copper_scythe` | Медная коса | Инструменты |  | `tools/scythe` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
-| `tools:bronze_scythe` | Бронзовая коса | Инструменты |  | `tools/scythe` | 4. Бронза | 1 / 1 | ок |
-| `tools:iron_scythe` | Железная коса | Инструменты |  | `tools/scythe` | 5. Железо | 1 / 1 | ок |
-| `tools:steel_scythe` | Стальная коса | Инструменты |  | `tools/scythe` | 6. Сталь | 1 / 1 | ок |
-| `tools:wooden_shovel` | Деревянная лопата | Инструменты |  | `tools/shovel` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:copper_shovel` | Медная лопата | Инструменты |  | `tools/shovel` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
-| `tools:bronze_shovel` | Бронзовая лопата | Инструменты |  | `tools/shovel` | 4. Бронза | 1 / 1 | ок |
-| `tools:iron_shovel` | Железная лопата | Инструменты |  | `tools/shovel` | 5. Железо | 1 / 1 | ок |
-| `tools:steel_shovel` | Стальная лопата | Инструменты |  | `tools/shovel` | 6. Сталь | 1 / 1 | ок |
-| `tools:stone_sickle` | Каменный серп | Инструменты | Жнёт спелый урожай с грядок, по три клетки за взмах. | `tools/sickle` | 1. Примитивные инструменты | 2 / 1 | ок |
-| `tools:copper_sickle` | Медный серп | Инструменты | Жнёт спелый урожай с грядок, по четыре клетки за взмах. | `tools/sickle` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
-| `tools:iron_sickle` | Железный серп | Инструменты | Жнёт спелый урожай с грядок, по пять клеток за взмах. | `tools/sickle` | 5. Железо | 1 / 1 | ок |
-| `tools:sign` | Табличка | Станки | Дощечка на колышке. Три строки текста, видно всем, кто подойдёт. | `tools/signs` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:signpost` | Указатель | Станки | Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону. | `tools/signs` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:notice_board` | Доска на стену | Станки | Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок. | `tools/signs` | 1. Примитивные инструменты | 0 / 1 | ок |
-| `tools:flint_spear` | Кремнёвое копьё | Инструменты | Длинное копьё с кремнёвым наконечником. Его метают в зверя и подбирают снова. | `tools/spear` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:bronze_spear` | Бронзовое копьё | Инструменты |  | `tools/spear` | 4. Бронза | 1 / 1 | ок |
-| `tools:iron_spear` | Железное копьё | Инструменты |  | `tools/spear` | 5. Железо | 1 / 1 | ок |
-| `tools:wooden_sword` | Деревянный меч | Инструменты |  | `tools/sword` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:stone_sword` | Каменный меч | Инструменты |  | `tools/sword` | 1. Примитивные инструменты | 2 / 1 | ок |
-| `tools:copper_sword` | Медный меч | Инструменты |  | `tools/sword` | 3. Керамика и ранняя металлургия | 1 / 1 | ок |
-| `tools:bronze_sword` | Бронзовый меч | Инструменты |  | `tools/sword` | 4. Бронза | 1 / 1 | ок |
-| `tools:iron_sword` | Железный меч | Инструменты |  | `tools/sword` | 5. Железо | 1 / 1 | ок |
-| `tools:steel_sword` | Стальной меч | Инструменты |  | `tools/sword` | 6. Сталь | 1 / 1 | ок |
-| `tools:tar_torch` | Смоляной факел | Свет | Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше. | `tools/tar_torch` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
-| `tools:watering_can` | Лейка | Материалы | Пустая. Возьми в руку и коснись пресной воды, чтобы наполнить. | `tools/watering_can` | 1. Примитивные инструменты | 1 / 2 | ок |
-| `tools:watering_can_full` | Лейка с водой | Инструменты | Поливает грядки. Воды хватает на десять клеток. | `tools/watering_can` | 1. Примитивные инструменты | 1 / 1 | ок |
-| `tools:waterskin` | Бурдюк | Материалы | Кожаный мешок для воды. Возьми в руку и коснись пресной воды, чтобы наполнить. | `tools/waterskin` | 2. Дерево, кости и кожа | 2 / 2 | ок |
-| `tools:waterskin_full` | Бурдюк с водой | Материалы | Полный бурдюк. Утоляет жажду вдали от воды. | `tools/waterskin` | 2. Дерево, кости и кожа | 2 / 1 | ок |
-| `tools:window` | Окно | Станки | Рама со стеклом для проёма в стене. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
-| `tools:window_1x2` | Окно 1×2 | Станки | Высокое окно со стеклом, на клетку в ширину и две в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
-| `tools:window_2x1` | Окно 2×1 | Станки | Широкое окно со стеклом, на две клетки в ширину и одну в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
-| `tools:window_2x2` | Окно 2×2 | Станки | Большое окно со стеклом, на две клетки в ширину и две в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
-| `tools:window_3x2` | Окно 3×2 | Станки | Окно во всю стену, на три клетки в ширину и две в высоту. | `tools/window` | 3. Керамика и ранняя металлургия | 0 / 1 | ок |
+| `core:campfire` | [core.items.campfire] | [stations] |  | `core` | 1. [core.eras.primitive] | 1 / 15 | ок |
+| `core:rot` | [core.items.rot] | [materials] |  | `core` | 0. [core.eras.foraging] | 0 / 23 | предупреждения: 1 |
+| `materials:brick` | [materials.items.brick] | [blocks] |  | `materials/brick` | 3. [core.eras.bronze] | 1 / 5 | ок |
+| `materials:charcoal` | [materials.items.charcoal] | [materials] |  | `materials/charcoal` | 3. [core.eras.bronze] | 0 / 12 | ок |
+| `materials:cloth` | [materials.items.cloth] | [materials] | [materials.items.cloth.about] | `materials/cloth` | 2. [core.eras.bone_leather] | 1 / 7 | ок |
+| `materials:copper_ore` | [materials.items.copper_ore] | [materials] |  | `materials/copper` | 3. [core.eras.bronze] | 1 / 2 | ок |
+| `materials:copper_bar` | [materials.items.copper_bar] | [materials] |  | `materials/copper` | 3. [core.eras.bronze] | 0 / 19 | ок |
+| `materials:planks` | [materials.items.planks] | [blocks] |  | `materials/planks` | 1. [core.eras.primitive] | 1 / 66 | ок |
+| `plants:blueberry` | [plants.items.blueberry] | [food] |  | `plants/blueberry` | 0. [core.eras.foraging] | 1 / 1 | предупреждения: 1 |
+| `plants:blueberry_bush` | [plants.items.blueberry_bush] | [planting] |  | `plants/blueberry` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `plants:cranberry` | [plants.items.cranberry] | [food] |  | `plants/cranberry` | 0. [core.eras.foraging] | 1 / 1 | ок |
+| `plants:currant` | [plants.items.currant] | [food] |  | `plants/currant` | 0. [core.eras.foraging] | 1 / 1 | предупреждения: 1 |
+| `plants:currant_bush` | [plants.items.currant_bush] | [planting] |  | `plants/currant` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `plants:grass_seeds` | [plants.items.grass_seeds] | [planting] |  | `plants/grass` | 0. [core.eras.foraging] | 1 / 2 | ок |
+| `plants:carrot_seeds` | [plants.items.carrot_seeds] | [planting] | [plants.items.carrot_seeds.about] | `plants/carrot` | 0. [core.eras.foraging] | 1 / 2 | ок |
+| `plants:carrot` | [plants.items.carrot] | [food] | [plants.items.carrot.about] | `plants/carrot` | 0. [core.eras.foraging] | 1 / 2 | ок |
+| `plants:mushroom` | [plants.items.mushroom] | [food] |  | `plants/mushrooms` | 0. [core.eras.foraging] | 1 / 2 | ок |
+| `plants:glow_mushroom` | [plants.items.glow_mushroom] | [food] |  | `plants/mushrooms` | 0. [core.eras.foraging] | 1 / 1 | ок |
+| `plants:fried_mushrooms` | [plants.items.fried_mushrooms] | [food] |  | `plants/mushrooms` | 0. [core.eras.foraging] | 1 / 1 | ок |
+| `plants:peas` | [plants.items.peas] | [food] | [plants.items.peas.about] | `plants/peas` | 0. [core.eras.foraging] | 1 / 2 | ок |
+| `plants:raspberry` | [plants.items.raspberry] | [food] |  | `plants/raspberry` | 0. [core.eras.foraging] | 1 / 1 | ок |
+| `plants:raspberry_bush` | [plants.items.raspberry_bush] | [planting] |  | `plants/raspberry` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `plants:rosehip` | [plants.items.rosehip] | [food] |  | `plants/rosehip` | 0. [core.eras.foraging] | 1 / 1 | ок |
+| `plants:rosehip_bush` | [plants.items.rosehip_bush] | [planting] |  | `plants/rosehip` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `plants:shrub_bush` | [plants.items.shrub_bush] | [planting] |  | `plants/shrub` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `plants:turnip_seeds` | [plants.items.turnip_seeds] | [planting] | [plants.items.turnip_seeds.about] | `plants/turnip` | 0. [core.eras.foraging] | 1 / 2 | ок |
+| `plants:turnip` | [plants.items.turnip] | [food] | [plants.items.turnip.about] | `plants/turnip` | 0. [core.eras.foraging] | 1 / 2 | ок |
+| `resources:fiber` | [resources.items.fiber] | [materials] |  | `resources/fiber` | 0. [core.eras.foraging] | 0 / 22 | ок |
+| `materials:cord` | [materials.items.cord] | [materials] |  | `materials/cord` | 1. [core.eras.primitive] | 1 / 51 | ок |
+| `plants:moss` | [plants.items.moss] | [materials] |  | `plants/moss` | 0. [core.eras.foraging] | 0 / 3 | ок |
+| `plants:bandage` | [plants.items.bandage] | [healing] |  | `plants/moss` | 0. [core.eras.foraging] | 0 / 2 | ок |
+| `plants:poultice` | [plants.items.poultice] | [healing] | [plants.items.poultice.about] | `plants/moss` | 0. [core.eras.foraging] | 0 / 1 | ок |
+| `resources:peat` | [resources.items.peat] | [blocks] |  | `resources/peat` | 0. [core.eras.foraging] | 1 / 1 | ок |
+| `resources:salt` | [resources.items.salt] | [blocks] |  | `resources/salt` | 0. [core.eras.foraging] | 1 / 1 | ок |
+| `resources:snow` | [resources.items.snow] | [blocks] |  | `resources/snow` | 0. [core.eras.foraging] | 1 / 1 | ок |
+| `resources:ice` | [resources.items.ice] | [blocks] |  | `resources/snow` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `resources:dirt` | [resources.items.dirt] | [blocks] |  | `resources/soil` | 0. [core.eras.foraging] | 1 / 5 | ок |
+| `resources:sand` | [resources.items.sand] | [blocks] |  | `resources/soil` | 0. [core.eras.foraging] | 1 / 3 | ок |
+| `resources:clay` | [resources.items.clay] | [blocks] |  | `resources/soil` | 0. [core.eras.foraging] | 1 / 8 | ок |
+| `resources:stone` | [resources.items.stone] | [blocks] |  | `resources/stone` | 0. [core.eras.foraging] | 1 / 9 | ок |
+| `resources:flint` | [resources.items.flint] | [materials] |  | `resources/stone` | 0. [core.eras.foraging] | 0 / 21 | ок |
+| `resources:branch` | [resources.items.branch] | [materials] |  | `resources/wood` | 0. [core.eras.foraging] | 0 / 67 | ок |
+| `resources:log` | [resources.items.log] | [blocks] |  | `resources/wood`; патчи: `plants/wood` | 1. [core.eras.primitive] | 1 / 28 | ок |
+| `animals:roach` | [animals.items.roach] | [food] | [animals.items.roach.about] | `animals/fish` | 1. [core.eras.primitive] | 1 / 2 | ок |
+| `animals:pike` | [animals.items.pike] | [food] | [animals.items.pike.about] | `animals/fish` | 1. [core.eras.primitive] | 1 / 2 | ок |
+| `animals:salmon` | [animals.items.salmon] | [food] | [animals.items.salmon.about] | `animals/fish` | 1. [core.eras.primitive] | 1 / 2 | ок |
+| `animals:cod` | [animals.items.cod] | [food] | [animals.items.cod.about] | `animals/fish` | 1. [core.eras.primitive] | 1 / 2 | ок |
+| `animals:parrotfish` | [animals.items.parrotfish] | [food] | [animals.items.parrotfish.about] | `animals/fish` | 1. [core.eras.primitive] | 1 / 2 | ок |
+| `animals:catfish` | [animals.items.catfish] | [food] | [animals.items.catfish.about] | `animals/fish` | 1. [core.eras.primitive] | 1 / 2 | ок |
+| `animals:perch` | [animals.items.perch] | [food] | [animals.items.perch.about] | `animals/fish` | 1. [core.eras.primitive] | 1 / 2 | ок |
+| `animals:roasted_fish` | [animals.items.roasted_fish] | [food] | [animals.items.roasted_fish.about] | `animals/fish` | 1. [core.eras.primitive] | 1 / 7 | ок |
+| `materials:log_wall` | [materials.items.log_wall] | [blocks] | [materials.items.log_wall.about] | `materials/log_wall` | 1. [core.eras.primitive] | 1 / 2 | ок |
+| `materials:wattle` | [materials.items.wattle] | [blocks] | [materials.items.wattle.about] | `materials/wattle` | 0. [core.eras.foraging] | 1 / 2 | ок |
+| `plants:apple` | [plants.items.apple] | [food] |  | `plants/apple` | 0. [core.eras.foraging] | 1 / 1 | ок |
+| `plants:banana` | [plants.items.banana] | [food] |  | `plants/banana` | 0. [core.eras.foraging] | 1 / 1 | ок |
+| `plants:banana_bush` | [plants.items.banana_bush] | [planting] |  | `plants/banana` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `plants:acorn` | [plants.items.acorn] | [planting] |  | `plants/oak` | 0. [core.eras.foraging] | 1 / 3 | ок |
+| `plants:coconut` | [plants.items.coconut] | [food] |  | `plants/palm` | 0. [core.eras.foraging] | 0 / 1 | ок |
+| `plants:rowan` | [plants.items.rowan] | [food] |  | `plants/rowan` | 0. [core.eras.foraging] | 1 / 1 | ок |
+| `plants:cone` | [plants.items.cone] | [planting] |  | `plants/spruce` | 0. [core.eras.foraging] | 1 / 3 | ок |
+| `tools:boundary_post` | [tools.items.boundary_post] | [stations] |  | `tools/boundary_post` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:fence` | [tools.items.fence] | [stations] | [tools.items.fence.about] | `tools/fence` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:wicket` | [tools.items.wicket] | [stations] | [tools.items.wicket.about] | `tools/fence` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:gate` | [tools.items.gate] | [stations] | [tools.items.gate.about] | `tools/fence` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:fiber_hat` | [tools.items.fiber_hat] | [clothes_and_bags] | [tools.items.fiber_hat.about] | `tools/fiber_clothes` | 0. [core.eras.foraging] | 0 / 1 | ок |
+| `tools:grass_cape` | [tools.items.grass_cape] | [clothes_and_bags] | [tools.items.grass_cape.about] | `tools/fiber_clothes` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:leg_wraps` | [tools.items.leg_wraps] | [clothes_and_bags] | [tools.items.leg_wraps.about] | `tools/fiber_clothes` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:bast_shoes` | [tools.items.bast_shoes] | [clothes_and_bags] | [tools.items.bast_shoes.about] | `tools/fiber_clothes` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:fishing_rod` | [tools.items.fishing_rod] | [tools] | [tools.items.fishing_rod.about] | `tools/fishing_rod` | 1. [core.eras.primitive] | 2 / 1 | ок |
+| `tools:bait` | [tools.items.bait] | [materials] | [tools.items.bait.about] | `tools/fishing_rod` | 0. [core.eras.foraging] | 0 / 2 | ок |
+| `tools:ladder` | [tools.items.ladder] | [stations] | [tools.items.ladder.about] | `tools/ladder` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:cord_sling` | [tools.items.cord_sling] | [tools] | [tools.items.cord_sling.about] | `tools/sling` | 1. [core.eras.primitive] | 2 / 1 | ок |
+| `tools:sling_stone` | [tools.items.sling_stone] | [materials] | [tools.items.sling_stone.about] | `tools/sling` | 0. [core.eras.foraging] | 0 / 3 | ок |
+| `tools:stairs` | [tools.items.stairs] | [stations] | [tools.items.stairs.about] | `tools/stairs` | 0. [core.eras.foraging] | 0 / 0 | ок |
+| `tools:torch` | [tools.items.torch] | [light] |  | `tools/torch` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:trap` | [tools.items.trap] | [stations] | [tools.items.trap.about] | `tools/trap` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:live_rabbit` | [tools.items.live_rabbit] | [materials] | [tools.items.live_rabbit.about] | `tools/trap` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:wicker_bag` | [tools.items.wicker_bag] | [clothes_and_bags] | [tools.items.wicker_bag.about] | `tools/wicker_bag` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:workbench` | [tools.items.workbench] | [stations] |  | `tools/workbench` | 1. [core.eras.primitive] | 1 / 66 | ок |
+| `materials:cut_stone` | [materials.items.cut_stone] | [blocks] | [materials.items.cut_stone.about] | `materials/cut_stone` | 1. [core.eras.primitive] | 1 / 2 | ок |
+| `tools:big_chest` | [tools.items.big_chest] | [stations] |  | `tools/big_chest` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:bloomery` | [tools.items.bloomery] | [stations] |  | `tools/bloomery` | 5. [core.eras.iron] | 1 / 3 | ок |
+| `tools:wooden_bow` | [tools.items.wooden_bow] | [tools] | [tools.items.wooden_bow.about] | `tools/bow` | 1. [core.eras.primitive] | 2 / 2 | ок |
+| `tools:arrow` | [tools.items.arrow] | [materials] | [tools.items.arrow.about] | `tools/bow` | 1. [core.eras.primitive] | 0 / 4 | ок |
+| `tools:chest` | [tools.items.chest] | [stations] |  | `tools/chest` | 1. [core.eras.primitive] | 0 / 2 | ок |
+| `tools:door` | [tools.items.door] | [stations] | [tools.items.door.about] | `tools/door` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:door_2x2` | [tools.items.door_2x2] | [stations] | [tools.items.door_2x2.about] | `tools/door` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:door_2x3` | [tools.items.door_2x3] | [stations] | [tools.items.door_2x3.about] | `tools/door` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:door_3x3` | [tools.items.door_3x3] | [stations] | [tools.items.door_3x3.about] | `tools/door` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:drying_rack` | [tools.items.drying_rack] | [stations] | [tools.items.drying_rack.about] | `tools/drying_rack` | 2. [core.eras.bone_leather] | 1 / 3 | ок |
+| `animals:small_carcass` | [animals.items.small_carcass] | [materials] | [animals.items.small_carcass.about] | `animals/game` | 0. [core.eras.foraging] | 0 / 9 | ок |
+| `animals:carcass` | [animals.items.carcass] | [materials] | [animals.items.carcass.about] | `animals/game` | 0. [core.eras.foraging] | 0 / 5 | ок |
+| `animals:raw_meat` | [animals.items.raw_meat] | [food] | [animals.items.raw_meat.about] | `animals/game` | 0. [core.eras.foraging] | 1 / 4 | ок |
+| `animals:roasted_meat` | [animals.items.roasted_meat] | [food] | [animals.items.roasted_meat.about] | `animals/game` | 0. [core.eras.foraging] | 1 / 1 | ок |
+| `animals:hide` | [animals.items.hide] | [materials] | [animals.items.hide.about] | `animals/game` | 0. [core.eras.foraging] | 0 / 7 | ок |
+| `animals:bone` | [animals.items.bone] | [materials] |  | `animals/game` | 0. [core.eras.foraging] | 0 / 6 | ок |
+| `animals:fat` | [animals.items.fat] | [materials] |  | `animals/game` | 1. [core.eras.primitive] | 0 / 3 | ок |
+| `animals:jerky` | [animals.items.jerky] | [food] | [animals.items.jerky.about] | `animals/game` | 2. [core.eras.bone_leather] | 0 / 1 | ок |
+| `materials:leather` | [materials.items.leather] | [materials] | [materials.items.leather.about] | `materials/leather` | 2. [core.eras.bone_leather] | 1 / 10 | ок |
+| `tools:grass_mat` | [tools.items.grass_mat] | [stations] | [tools.items.grass_mat.about] | `tools/bedding` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:fur_bedroll` | [tools.items.fur_bedroll] | [stations] | [tools.items.fur_bedroll.about] | `tools/bedding` | 2. [core.eras.bone_leather] | 1 / 1 | ок |
+| `tools:tallow_candle` | [tools.items.tallow_candle] | [light] | [tools.items.tallow_candle.about] | `tools/candle` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:canvas_backpack` | [tools.items.canvas_backpack] | [clothes_and_bags] | [tools.items.canvas_backpack.about] | `tools/canvas_backpack` | 2. [core.eras.bone_leather] | 0 / 1 | ок |
+| `tools:fireplace` | [tools.items.fireplace] | [stations] | [tools.items.fireplace.about] | `tools/fireplace` | 3. [core.eras.bronze] | 1 / 1 | ок |
+| `tools:forge` | [tools.items.forge] | [stations] |  | `tools/forge` | 3. [core.eras.bronze] | 1 / 9 | ок |
+| `materials:glass` | [materials.items.glass] | [materials] | [materials.items.glass.about] | `materials/glass` | 3. [core.eras.bronze] | 0 / 7 | ок |
+| `materials:iron_ore` | [materials.items.iron_ore] | [materials] | [materials.items.iron_ore.about] | `materials/iron` | 4. [core.eras.alloy] | 0 / 2 | ок |
+| `materials:iron_bloom` | [materials.items.iron_bloom] | [materials] | [materials.items.iron_bloom.about] | `materials/iron` | 5. [core.eras.iron] | 1 / 2 | ок |
+| `materials:iron_bar` | [materials.items.iron_bar] | [materials] | [materials.items.iron_bar.about] | `materials/iron` | 5. [core.eras.iron] | 1 / 21 | ок |
+| `materials:tin_ore` | [materials.items.tin_ore] | [materials] | [materials.items.tin_ore.about] | `materials/tin` | 3. [core.eras.bronze] | 0 / 2 | ок |
+| `materials:tin_bar` | [materials.items.tin_bar] | [materials] | [materials.items.tin_bar.about] | `materials/tin` | 3. [core.eras.bronze] | 0 / 2 | ок |
+| `tools:anvil` | [tools.items.anvil] | [stations] |  | `tools/anvil` | 5. [core.eras.iron] | 1 / 19 | ок |
+| `materials:gold_ore` | [materials.items.gold_ore] | [materials] | [materials.items.gold_ore.about] | `materials/gold` | 4. [core.eras.alloy] | 0 / 2 | ок |
+| `materials:gold_bar` | [materials.items.gold_bar] | [materials] | [materials.items.gold_bar.about] | `materials/gold` | 4. [core.eras.alloy] | 0 / 2 | ок |
+| `materials:gold_block` | [materials.items.gold_block] | [blocks] | [materials.items.gold_block.about] | `materials/gold` | 5. [core.eras.iron] | 1 / 2 | ок |
+| `materials:platinum_ore` | [materials.items.platinum_ore] | [materials] | [materials.items.platinum_ore.about] | `materials/platinum` | 4. [core.eras.alloy] | 0 / 2 | ок |
+| `materials:platinum_bar` | [materials.items.platinum_bar] | [materials] | [materials.items.platinum_bar.about] | `materials/platinum` | 4. [core.eras.alloy] | 0 / 2 | ок |
+| `materials:platinum_block` | [materials.items.platinum_block] | [blocks] | [materials.items.platinum_block.about] | `materials/platinum` | 5. [core.eras.iron] | 1 / 2 | ок |
+| `materials:silver_ore` | [materials.items.silver_ore] | [materials] | [materials.items.silver_ore.about] | `materials/silver` | 4. [core.eras.alloy] | 0 / 2 | ок |
+| `materials:silver_bar` | [materials.items.silver_bar] | [materials] | [materials.items.silver_bar.about] | `materials/silver` | 4. [core.eras.alloy] | 0 / 2 | ок |
+| `materials:silver_block` | [materials.items.silver_block] | [blocks] | [materials.items.silver_block.about] | `materials/silver` | 5. [core.eras.iron] | 1 / 2 | ок |
+| `tools:hatch` | [tools.items.hatch] | [stations] | [tools.items.hatch.about] | `tools/hatch` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:hatch_2x2` | [tools.items.hatch_2x2] | [stations] | [tools.items.hatch_2x2.about] | `tools/hatch` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:fur_hat` | [tools.items.fur_hat] | [clothes_and_bags] | [tools.items.fur_hat.about] | `tools/hide_clothes` | 2. [core.eras.bone_leather] | 1 / 1 | ок |
+| `tools:fur_coat` | [tools.items.fur_coat] | [clothes_and_bags] | [tools.items.fur_coat.about] | `tools/hide_clothes` | 2. [core.eras.bone_leather] | 1 / 1 | ок |
+| `tools:leather_trousers` | [tools.items.leather_trousers] | [clothes_and_bags] | [tools.items.leather_trousers.about] | `tools/hide_clothes` | 2. [core.eras.bone_leather] | 1 / 1 | ок |
+| `tools:fur_boots` | [tools.items.fur_boots] | [clothes_and_bags] | [tools.items.fur_boots.about] | `tools/hide_clothes` | 2. [core.eras.bone_leather] | 1 / 1 | ок |
+| `tools:stone_hoe` | [tools.items.stone_hoe] | [tools] | [tools.items.stone_hoe.about] | `tools/hoe` | 1. [core.eras.primitive] | 2 / 1 | ок |
+| `tools:copper_hoe` | [tools.items.copper_hoe] | [tools] | [tools.items.copper_hoe.about] | `tools/hoe` | 3. [core.eras.bronze] | 1 / 1 | ок |
+| `tools:iron_hoe` | [tools.items.iron_hoe] | [tools] | [tools.items.iron_hoe.about] | `tools/hoe` | 5. [core.eras.iron] | 1 / 1 | ок |
+| `tools:kiln` | [tools.items.kiln] | [stations] |  | `tools/kiln` | 3. [core.eras.bronze] | 1 / 7 | ок |
+| `plants:grain` | [plants.items.grain] | [planting] |  | `plants/ears` | 0. [core.eras.foraging] | 1 / 3 | ок |
+| `plants:flour` | [plants.items.flour] | [materials] |  | `plants/ears` | 0. [core.eras.foraging] | 0 / 2 | ок |
+| `plants:flatbread` | [plants.items.flatbread] | [food] |  | `plants/ears` | 3. [core.eras.bronze] | 0 / 1 | ок |
+| `tools:leather_bag` | [tools.items.leather_bag] | [clothes_and_bags] | [tools.items.leather_bag.about] | `tools/leather_bag` | 2. [core.eras.bone_leather] | 0 / 1 | ок |
+| `tools:leather_sling` | [tools.items.leather_sling] | [tools] | [tools.items.leather_sling.about] | `tools/leather_sling` | 2. [core.eras.bone_leather] | 2 / 1 | ок |
+| `tools:loom` | [tools.items.loom] | [stations] |  | `tools/loom` | 2. [core.eras.bone_leather] | 1 / 5 | ок |
+| `animals:rabbit_fluff` | [animals.items.rabbit_fluff] | [materials] | [animals.items.rabbit_fluff.about] | `animals/wool` | 0. [core.eras.foraging] | 0 / 2 | ок |
+| `animals:wool_yarn` | [animals.items.wool_yarn] | [materials] | [animals.items.wool_yarn.about] | `animals/wool` | 0. [core.eras.foraging] | 0 / 2 | ок |
+| `plants:flax_seeds` | [plants.items.flax_seeds] | [planting] | [plants.items.flax_seeds.about] | `plants/flax` | 0. [core.eras.foraging] | 1 / 2 | ок |
+| `plants:flax_stalks` | [plants.items.flax_stalks] | [materials] | [plants.items.flax_stalks.about] | `plants/flax` | 0. [core.eras.foraging] | 0 / 3 | ок |
+| `plants:linen_thread` | [plants.items.linen_thread] | [materials] | [plants.items.linen_thread.about] | `plants/flax` | 0. [core.eras.foraging] | 0 / 2 | ок |
+| `tools:table` | [tools.items.table] | [stations] | [tools.items.table.about] | `tools/furniture` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:stool` | [tools.items.stool] | [stations] | [tools.items.stool.about] | `tools/furniture` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:wooden_bed` | [tools.items.wooden_bed] | [stations] | [tools.items.wooden_bed.about] | `tools/furniture` | 2. [core.eras.bone_leather] | 0 / 1 | ок |
+| `tools:cupboard` | [tools.items.cupboard] | [stations] | [tools.items.cupboard.about] | `tools/furniture` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:wide_cupboard` | [tools.items.wide_cupboard] | [stations] | [tools.items.wide_cupboard.about] | `tools/furniture` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:barrel` | [tools.items.barrel] | [stations] | [tools.items.barrel.about] | `tools/furniture` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:rug` | [tools.items.rug] | [stations] | [tools.items.rug.about] | `tools/furniture` | 2. [core.eras.bone_leather] | 0 / 1 | ок |
+| `tools:bone_needle` | [tools.items.bone_needle] | [tools] | [tools.items.bone_needle.about] | `tools/needle` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:potters_wheel` | [tools.items.potters_wheel] | [stations] |  | `tools/potters_wheel` | 1. [core.eras.primitive] | 0 / 3 | ок |
+| `tools:raw_pot` | [tools.items.raw_pot] | [materials] | [tools.items.raw_pot.about] | `tools/potters_wheel` | 1. [core.eras.primitive] | 0 / 2 | ок |
+| `tools:pot` | [tools.items.pot] | [materials] | [tools.items.pot.about] | `tools/potters_wheel` | 3. [core.eras.bronze] | 0 / 4 | ок |
+| `materials:bone_glue` | [materials.items.bone_glue] | [materials] | [materials.items.bone_glue.about] | `materials/bone_glue` | 3. [core.eras.bronze] | 0 / 3 | ок |
+| `materials:raw_crucible` | [materials.items.raw_crucible] | [materials] | [materials.items.raw_crucible.about] | `materials/bronze` | 1. [core.eras.primitive] | 0 / 2 | ок |
+| `materials:crucible` | [materials.items.crucible] | [materials] | [materials.items.crucible.about] | `materials/bronze` | 3. [core.eras.bronze] | 0 / 3 | ок |
+| `materials:bronze_bar` | [materials.items.bronze_bar] | [materials] | [materials.items.bronze_bar.about] | `materials/bronze` | 4. [core.eras.alloy] | 1 / 15 | ок |
+| `materials:steel_bar` | [materials.items.steel_bar] | [materials] | [materials.items.steel_bar.about] | `materials/steel` | 6. [core.eras.steel] | 1 / 13 | ок |
+| `materials:tar` | [materials.items.tar] | [materials] | [materials.items.tar.about] | `materials/tar` | 3. [core.eras.bronze] | 0 / 4 | ок |
+| `plants:roasted_acorns` | [plants.items.roasted_acorns] | [food] | [plants.items.roasted_acorns.about] | `plants/roasted_acorns` | 3. [core.eras.bronze] | 0 / 1 | ок |
+| `tools:stone_axe` | [tools.items.stone_axe] | [tools] |  | `tools/axe` | 1. [core.eras.primitive] | 2 / 1 | ок |
+| `tools:copper_axe` | [tools.items.copper_axe] | [tools] |  | `tools/axe` | 3. [core.eras.bronze] | 1 / 1 | ок |
+| `tools:bronze_axe` | [tools.items.bronze_axe] | [tools] |  | `tools/axe` | 4. [core.eras.alloy] | 1 / 1 | ок |
+| `tools:iron_axe` | [tools.items.iron_axe] | [tools] |  | `tools/axe` | 5. [core.eras.iron] | 1 / 1 | ок |
+| `tools:steel_axe` | [tools.items.steel_axe] | [tools] |  | `tools/axe` | 6. [core.eras.steel] | 1 / 1 | ок |
+| `tools:raft` | [tools.items.raft] | [materials] | [tools.items.raft.about] | `tools/boats` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:boat` | [tools.items.boat] | [materials] | [tools.items.boat.about] | `tools/boats` | 3. [core.eras.bronze] | 2 / 1 | ок |
+| `tools:oars` | [tools.items.oars] | [materials] | [tools.items.oars.about] | `tools/boats` | 1. [core.eras.primitive] | 1 / 2 | ок |
+| `tools:composite_bow` | [tools.items.composite_bow] | [tools] | [tools.items.composite_bow.about] | `tools/composite_bow` | 3. [core.eras.bronze] | 2 / 1 | ок |
+| `tools:flint_knife` | [tools.items.flint_knife] | [tools] | [tools.items.flint_knife.about] | `tools/knife` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:copper_knife` | [tools.items.copper_knife] | [tools] |  | `tools/knife` | 3. [core.eras.bronze] | 1 / 1 | ок |
+| `tools:bronze_knife` | [tools.items.bronze_knife] | [tools] |  | `tools/knife` | 4. [core.eras.alloy] | 1 / 1 | ок |
+| `tools:iron_knife` | [tools.items.iron_knife] | [tools] |  | `tools/knife` | 5. [core.eras.iron] | 1 / 1 | ок |
+| `tools:steel_knife` | [tools.items.steel_knife] | [tools] |  | `tools/knife` | 6. [core.eras.steel] | 1 / 1 | ок |
+| `tools:lantern` | [tools.items.lantern] | [light] | [tools.items.lantern.about] | `tools/lantern` | 3. [core.eras.bronze] | 0 / 1 | ок |
+| `tools:stone_pickaxe` | [tools.items.stone_pickaxe] | [tools] |  | `tools/pickaxe` | 1. [core.eras.primitive] | 2 / 1 | ок |
+| `tools:wooden_pickaxe` | [tools.items.wooden_pickaxe] | [tools] |  | `tools/pickaxe` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:copper_pickaxe` | [tools.items.copper_pickaxe] | [tools] |  | `tools/pickaxe` | 3. [core.eras.bronze] | 1 / 1 | ок |
+| `tools:bronze_pickaxe` | [tools.items.bronze_pickaxe] | [tools] |  | `tools/pickaxe` | 4. [core.eras.alloy] | 1 / 1 | ок |
+| `tools:iron_pickaxe` | [tools.items.iron_pickaxe] | [tools] |  | `tools/pickaxe` | 5. [core.eras.iron] | 1 / 1 | ок |
+| `tools:steel_pickaxe` | [tools.items.steel_pickaxe] | [tools] |  | `tools/pickaxe` | 6. [core.eras.steel] | 1 / 1 | ок |
+| `tools:stone_scythe` | [tools.items.stone_scythe] | [tools] |  | `tools/scythe` | 1. [core.eras.primitive] | 2 / 1 | ок |
+| `tools:wooden_scythe` | [tools.items.wooden_scythe] | [tools] |  | `tools/scythe` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:copper_scythe` | [tools.items.copper_scythe] | [tools] |  | `tools/scythe` | 3. [core.eras.bronze] | 1 / 1 | ок |
+| `tools:bronze_scythe` | [tools.items.bronze_scythe] | [tools] |  | `tools/scythe` | 4. [core.eras.alloy] | 1 / 1 | ок |
+| `tools:iron_scythe` | [tools.items.iron_scythe] | [tools] |  | `tools/scythe` | 5. [core.eras.iron] | 1 / 1 | ок |
+| `tools:steel_scythe` | [tools.items.steel_scythe] | [tools] |  | `tools/scythe` | 6. [core.eras.steel] | 1 / 1 | ок |
+| `tools:wooden_shovel` | [tools.items.wooden_shovel] | [tools] |  | `tools/shovel` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:copper_shovel` | [tools.items.copper_shovel] | [tools] |  | `tools/shovel` | 3. [core.eras.bronze] | 1 / 1 | ок |
+| `tools:bronze_shovel` | [tools.items.bronze_shovel] | [tools] |  | `tools/shovel` | 4. [core.eras.alloy] | 1 / 1 | ок |
+| `tools:iron_shovel` | [tools.items.iron_shovel] | [tools] |  | `tools/shovel` | 5. [core.eras.iron] | 1 / 1 | ок |
+| `tools:steel_shovel` | [tools.items.steel_shovel] | [tools] |  | `tools/shovel` | 6. [core.eras.steel] | 1 / 1 | ок |
+| `tools:stone_sickle` | [tools.items.stone_sickle] | [tools] | [tools.items.stone_sickle.about] | `tools/sickle` | 1. [core.eras.primitive] | 2 / 1 | ок |
+| `tools:copper_sickle` | [tools.items.copper_sickle] | [tools] | [tools.items.copper_sickle.about] | `tools/sickle` | 3. [core.eras.bronze] | 1 / 1 | ок |
+| `tools:iron_sickle` | [tools.items.iron_sickle] | [tools] | [tools.items.iron_sickle.about] | `tools/sickle` | 5. [core.eras.iron] | 1 / 1 | ок |
+| `tools:sign` | [tools.items.sign] | [stations] | [tools.items.sign.about] | `tools/signs` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:signpost` | [tools.items.signpost] | [stations] | [tools.items.signpost.about] | `tools/signs` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:notice_board` | [tools.items.notice_board] | [stations] | [tools.items.notice_board.about] | `tools/signs` | 1. [core.eras.primitive] | 0 / 1 | ок |
+| `tools:flint_spear` | [tools.items.flint_spear] | [tools] | [tools.items.flint_spear.about] | `tools/spear` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:bronze_spear` | [tools.items.bronze_spear] | [tools] |  | `tools/spear` | 4. [core.eras.alloy] | 1 / 1 | ок |
+| `tools:iron_spear` | [tools.items.iron_spear] | [tools] |  | `tools/spear` | 5. [core.eras.iron] | 1 / 1 | ок |
+| `tools:wooden_sword` | [tools.items.wooden_sword] | [tools] |  | `tools/sword` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:stone_sword` | [tools.items.stone_sword] | [tools] |  | `tools/sword` | 1. [core.eras.primitive] | 2 / 1 | ок |
+| `tools:copper_sword` | [tools.items.copper_sword] | [tools] |  | `tools/sword` | 3. [core.eras.bronze] | 1 / 1 | ок |
+| `tools:bronze_sword` | [tools.items.bronze_sword] | [tools] |  | `tools/sword` | 4. [core.eras.alloy] | 1 / 1 | ок |
+| `tools:iron_sword` | [tools.items.iron_sword] | [tools] |  | `tools/sword` | 5. [core.eras.iron] | 1 / 1 | ок |
+| `tools:steel_sword` | [tools.items.steel_sword] | [tools] |  | `tools/sword` | 6. [core.eras.steel] | 1 / 1 | ок |
+| `tools:tar_torch` | [tools.items.tar_torch] | [light] | [tools.items.tar_torch.about] | `tools/tar_torch` | 3. [core.eras.bronze] | 0 / 1 | ок |
+| `tools:watering_can` | [tools.items.watering_can] | [materials] | [tools.items.watering_can.about] | `tools/watering_can` | 1. [core.eras.primitive] | 1 / 2 | ок |
+| `tools:watering_can_full` | [tools.items.watering_can_full] | [tools] | [tools.items.watering_can_full.about] | `tools/watering_can` | 1. [core.eras.primitive] | 1 / 1 | ок |
+| `tools:waterskin` | [tools.items.waterskin] | [materials] | [tools.items.waterskin.about] | `tools/waterskin` | 2. [core.eras.bone_leather] | 2 / 2 | ок |
+| `tools:waterskin_full` | [tools.items.waterskin_full] | [materials] | [tools.items.waterskin_full.about] | `tools/waterskin` | 2. [core.eras.bone_leather] | 2 / 1 | ок |
+| `tools:window` | [tools.items.window] | [stations] | [tools.items.window.about] | `tools/window` | 3. [core.eras.bronze] | 0 / 1 | ок |
+| `tools:window_1x2` | [tools.items.window_1x2] | [stations] | [tools.items.window_1x2.about] | `tools/window` | 3. [core.eras.bronze] | 0 / 1 | ок |
+| `tools:window_2x1` | [tools.items.window_2x1] | [stations] | [tools.items.window_2x1.about] | `tools/window` | 3. [core.eras.bronze] | 0 / 1 | ок |
+| `tools:window_2x2` | [tools.items.window_2x2] | [stations] | [tools.items.window_2x2.about] | `tools/window` | 3. [core.eras.bronze] | 0 / 1 | ок |
+| `tools:window_3x2` | [tools.items.window_3x2] | [stations] | [tools.items.window_3x2.about] | `tools/window` | 3. [core.eras.bronze] | 0 / 1 | ок |
 
 ## Рецепты (`recipes`, 162)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
-| `plants:fried_mushrooms` | Жареные грибы | Еда |  | `plants/mushrooms` | 0. Выживание без инструментов | 3 / 0 | ок |
-| `materials:cord` | Верёвка | Материалы |  | `materials/cord` | 0. Выживание без инструментов | 2 / 0 | ок |
-| `plants:bandage` | Бинт | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 3 / 0 | ок |
-| `plants:poultice` | Припарка | Лечение |  | `plants/moss` | 0. Выживание без инструментов | 4 / 0 | ок |
-| `resources:campfire` | Костёр | Станки |  | `resources/wood` | 0. Выживание без инструментов | 3 / 0 | ок |
-| `animals:roasted_fish_from_roach` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `animals:roasted_fish_from_pike` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `animals:roasted_fish_from_salmon` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `animals:roasted_fish_from_cod` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `animals:roasted_fish_from_parrotfish` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `animals:roasted_fish_from_catfish` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `animals:roasted_fish_from_perch` | Жареная рыба | Еда |  | `animals/fish` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `materials:log_wall` | Сруб | Блоки |  | `materials/log_wall` | 1. Примитивные инструменты | 2 / 0 | ок |
-| `materials:wattle` | Плетень | Блоки |  | `materials/wattle` | 0. Выживание без инструментов | 2 / 0 | ок |
-| `tools:boundary_post` | Межевой столб | Станки |  | `tools/boundary_post` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:fence` | Забор | Станки |  | `tools/fence` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:wicket` | Калитка | Станки |  | `tools/fence` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:gate` | Ворота | Станки |  | `tools/fence` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:fiber_hat` | Плетёная шапка | Одежда и сумки |  | `tools/fiber_clothes` | 0. Выживание без инструментов | 2 / 0 | ок |
-| `tools:grass_cape` | Травяная накидка | Одежда и сумки |  | `tools/fiber_clothes` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:leg_wraps` | Обмотки | Одежда и сумки |  | `tools/fiber_clothes` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:bast_shoes` | Лапти | Одежда и сумки |  | `tools/fiber_clothes` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:fishing_rod` | Удочка | Инструменты |  | `tools/fishing_rod` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:bait` | Наживка | Материалы |  | `tools/fishing_rod` | 0. Выживание без инструментов | 2 / 0 | ок |
-| `tools:ladder` | Приставная лестница | Станки |  | `tools/ladder` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:cord_sling` | Праща | Инструменты |  | `tools/sling` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:sling_stone` | Камешки | Материалы |  | `tools/sling` | 0. Выживание без инструментов | 2 / 0 | ок |
-| `tools:torch` | Факел | Свет |  | `tools/torch` | 0. Выживание без инструментов | 3 / 0 | ок |
-| `tools:trap` | Живоловка | Станки |  | `tools/trap` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:wicker_bag` | Плетёная котомка | Одежда и сумки |  | `tools/wicker_bag` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:workbench` | Верстак | Станки |  | `tools/workbench` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `materials:cut_stone` | Тёсаный камень | Блоки |  | `materials/cut_stone` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:big_chest` | Большой сундук | Станки |  | `tools/big_chest` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:bloomery` | Сыродутная печь | Станки |  | `tools/bloomery` | 3. Керамика и ранняя металлургия | 5 / 0 | ок |
-| `tools:wooden_bow` | Деревянный лук | Инструменты |  | `tools/bow` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:arrow` | Стрелы | Материалы |  | `tools/bow` | 1. Примитивные инструменты | 5 / 0 | ок |
-| `tools:chest` | Сундук | Станки |  | `tools/chest` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:door` | Дверь | Станки |  | `tools/door` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:door_2x2` | Дверь 2×2 | Станки |  | `tools/door` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:door_2x3` | Дверь 2×3 | Станки |  | `tools/door` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:door_3x3` | Ворота 3×3 | Станки |  | `tools/door` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:drying_rack` | Сушилка | Станки |  | `tools/drying_rack` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `animals:raw_meat_from_small_carcass` | Разделать тушку | Еда |  | `animals/game` | 0. Выживание без инструментов | 4 / 0 | ок |
-| `animals:raw_meat_from_carcass` | Разделать тушу | Еда |  | `animals/game` | 1. Примитивные инструменты | 5 / 0 | ок |
-| `animals:roasted_meat` | Жареное мясо | Еда |  | `animals/game` | 0. Выживание без инструментов | 4 / 0 | ок |
-| `animals:jerky` | Вяленое мясо | Еда |  | `animals/game` | 2. Дерево, кости и кожа | 3 / 0 | ок |
-| `materials:leather` | Кожа | Материалы |  | `materials/leather` | 2. Дерево, кости и кожа | 4 / 0 | ок |
-| `tools:grass_mat` | Травяная подстилка | Станки |  | `tools/bedding` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:fur_bedroll` | Меховой спальник | Станки |  | `tools/bedding` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:tallow_candle` | Сальная свеча | Свет |  | `tools/candle` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:canvas_backpack` | Холщовый рюкзак | Одежда и сумки |  | `tools/canvas_backpack` | 2. Дерево, кости и кожа | 4 / 0 | ок |
-| `tools:fireplace` | Камин | Станки |  | `tools/fireplace` | 3. Керамика и ранняя металлургия | 5 / 0 | ок |
-| `tools:forge` | Горн | Станки |  | `tools/forge` | 3. Керамика и ранняя металлургия | 5 / 0 | ок |
-| `tools:copper_bar` | Медный слиток | Материалы |  | `tools/forge` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `materials:glass` | Стекло | Материалы |  | `materials/glass` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `materials:iron_bloom` | Крица | Материалы |  | `materials/iron` | 5. Железо | 4 / 0 | ок |
-| `materials:iron_bar` | Железный слиток | Материалы |  | `materials/iron` | 5. Железо | 4 / 0 | ок |
-| `materials:tin_bar` | Слиток олова | Материалы |  | `materials/tin` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:anvil` | Наковальня | Станки |  | `tools/anvil` | 5. Железо | 4 / 0 | ок |
-| `materials:gold_bar` | Золотой слиток | Материалы |  | `materials/gold` | 4. Бронза | 4 / 0 | ок |
-| `materials:gold_block` | Золотой блок | Блоки |  | `materials/gold` | 5. Железо | 3 / 0 | ок |
-| `materials:platinum_bar` | Платиновый слиток | Материалы |  | `materials/platinum` | 4. Бронза | 4 / 0 | ок |
-| `materials:platinum_block` | Платиновый блок | Блоки |  | `materials/platinum` | 5. Железо | 3 / 0 | ок |
-| `materials:silver_bar` | Серебряный слиток | Материалы |  | `materials/silver` | 4. Бронза | 4 / 0 | ок |
-| `materials:silver_block` | Серебряный блок | Блоки |  | `materials/silver` | 5. Железо | 3 / 0 | ок |
-| `tools:hatch` | Люк | Станки |  | `tools/hatch` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:hatch_2x2` | Люк 2×2 | Станки |  | `tools/hatch` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:fur_hat` | Меховая шапка | Одежда и сумки |  | `tools/hide_clothes` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:fur_coat` | Шуба | Одежда и сумки |  | `tools/hide_clothes` | 2. Дерево, кости и кожа | 5 / 0 | ок |
-| `tools:leather_trousers` | Кожаные штаны | Одежда и сумки |  | `tools/hide_clothes` | 2. Дерево, кости и кожа | 4 / 0 | ок |
-| `tools:fur_boots` | Унты | Одежда и сумки |  | `tools/hide_clothes` | 2. Дерево, кости и кожа | 5 / 0 | ок |
-| `tools:stone_hoe` | Каменная тяпка | Инструменты |  | `tools/hoe` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:copper_hoe` | Медная тяпка | Инструменты |  | `tools/hoe` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:iron_hoe` | Железная тяпка | Инструменты |  | `tools/hoe` | 5. Железо | 4 / 0 | ок |
-| `tools:kiln` | Печь для обжига | Станки |  | `tools/kiln` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:brick` | Кирпич | Блоки |  | `tools/kiln` | 3. Керамика и ранняя металлургия | 3 / 0 | ок |
-| `tools:charcoal` | Уголь | Материалы |  | `tools/kiln` | 3. Керамика и ранняя металлургия | 3 / 0 | ок |
-| `plants:flour` | Мука | Материалы |  | `plants/ears` | 0. Выживание без инструментов | 2 / 0 | ок |
-| `plants:flatbread` | Лепёшка | Еда |  | `plants/ears` | 3. Керамика и ранняя металлургия | 3 / 0 | ок |
-| `tools:leather_bag` | Кожаная сумка | Одежда и сумки |  | `tools/leather_bag` | 2. Дерево, кости и кожа | 3 / 0 | ок |
-| `tools:leather_sling` | Кожаная праща | Инструменты |  | `tools/leather_sling` | 2. Дерево, кости и кожа | 3 / 0 | ок |
-| `tools:loom` | Ткацкий станок | Станки |  | `tools/loom` | 1. Примитивные инструменты | 5 / 0 | ок |
-| `tools:cloth_from_cord` | Грубая ткань | Материалы |  | `tools/loom` | 2. Дерево, кости и кожа | 3 / 0 | ок |
-| `animals:wool_yarn` | Пушистая пряжа | Материалы |  | `animals/wool` | 0. Выживание без инструментов | 2 / 0 | ок |
-| `animals:cloth_from_wool_yarn` | Ткань из пряжи | Материалы |  | `animals/wool` | 2. Дерево, кости и кожа | 3 / 0 | ок |
-| `plants:linen_thread` | Льняная нить | Материалы |  | `plants/flax` | 0. Выживание без инструментов | 2 / 0 | ок |
-| `plants:cloth` | Льняная ткань | Материалы |  | `plants/flax` | 2. Дерево, кости и кожа | 3 / 0 | ок |
-| `tools:table` | Стол | Станки |  | `tools/furniture` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:stool` | Табурет | Станки |  | `tools/furniture` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:wooden_bed` | Кровать | Станки |  | `tools/furniture` | 2. Дерево, кости и кожа | 4 / 0 | ок |
-| `tools:cupboard` | Шкаф | Станки |  | `tools/furniture` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:wide_cupboard` | Широкий шкаф | Станки |  | `tools/furniture` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:barrel` | Бочка | Станки |  | `tools/furniture` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:rug` | Половик | Станки |  | `tools/furniture` | 2. Дерево, кости и кожа | 3 / 0 | ок |
-| `tools:bone_needle` | Костяная игла | Инструменты |  | `tools/needle` | 1. Примитивные инструменты | 2 / 0 | ок |
-| `tools:potters_wheel` | Гончарный круг | Станки |  | `tools/potters_wheel` | 1. Примитивные инструменты | 5 / 0 | ок |
-| `tools:raw_pot` | Сырой горшок | Материалы |  | `tools/potters_wheel` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:pot` | Глиняный горшок | Материалы |  | `tools/potters_wheel` | 3. Керамика и ранняя металлургия | 3 / 0 | ок |
-| `materials:bone_glue` | Костный клей | Материалы |  | `materials/bone_glue` | 3. Керамика и ранняя металлургия | 5 / 0 | ок |
-| `materials:raw_crucible` | Сырой тигель | Материалы |  | `materials/bronze` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `materials:crucible` | Тигель | Материалы |  | `materials/bronze` | 3. Керамика и ранняя металлургия | 3 / 0 | ок |
-| `materials:bronze_bar` | Бронзовый слиток | Материалы |  | `materials/bronze` | 3. Керамика и ранняя металлургия | 6 / 0 | ок |
-| `materials:steel_bar` | Стальной слиток | Материалы |  | `materials/steel` | 5. Железо | 5 / 0 | ок |
-| `materials:tar` | Смола | Материалы |  | `materials/tar` | 3. Керамика и ранняя металлургия | 5 / 0 | ок |
-| `plants:roasted_acorns` | Жареные жёлуди | Еда |  | `plants/roasted_acorns` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:stone_axe` | Каменный топор | Инструменты |  | `tools/axe` | 1. Примитивные инструменты | 5 / 0 | ок |
-| `tools:planks` | Доски | Блоки |  | `tools/axe` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:copper_axe` | Медный топор | Инструменты |  | `tools/axe` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:bronze_axe` | Бронзовый топор | Инструменты |  | `tools/axe` | 4. Бронза | 4 / 0 | ок |
-| `tools:iron_axe` | Железный топор | Инструменты |  | `tools/axe` | 5. Железо | 4 / 0 | ок |
-| `tools:steel_axe` | Стальной топор | Инструменты |  | `tools/axe` | 6. Сталь | 4 / 0 | ок |
-| `tools:raft` | Плот | Материалы |  | `tools/boats` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:boat` | Лодка | Материалы |  | `tools/boats` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:oars` | Вёсла | Материалы |  | `tools/boats` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:composite_bow` | Составной лук | Инструменты |  | `tools/composite_bow` | 3. Керамика и ранняя металлургия | 6 / 0 | ок |
-| `tools:arrow_from_bone` | Стрелы с костяным наконечником | Материалы |  | `tools/composite_bow` | 1. Примитивные инструменты | 5 / 0 | ок |
-| `tools:flint_knife` | Кремнёвый нож | Инструменты |  | `tools/knife` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:copper_knife` | Медный нож | Инструменты |  | `tools/knife` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:bronze_knife` | Бронзовый нож | Инструменты |  | `tools/knife` | 4. Бронза | 4 / 0 | ок |
-| `tools:iron_knife` | Железный нож | Инструменты |  | `tools/knife` | 5. Железо | 4 / 0 | ок |
-| `tools:steel_knife` | Стальной нож | Инструменты |  | `tools/knife` | 6. Сталь | 4 / 0 | ок |
-| `tools:lantern` | Фонарь | Свет |  | `tools/lantern` | 3. Керамика и ранняя металлургия | 5 / 0 | ок |
-| `tools:stone_pickaxe` | Каменная кирка | Инструменты |  | `tools/pickaxe` | 1. Примитивные инструменты | 5 / 0 | ок |
-| `tools:wooden_pickaxe` | Деревянная кирка | Инструменты |  | `tools/pickaxe` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:copper_pickaxe` | Медная кирка | Инструменты |  | `tools/pickaxe` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:bronze_pickaxe` | Бронзовая кирка | Инструменты |  | `tools/pickaxe` | 4. Бронза | 4 / 0 | ок |
-| `tools:iron_pickaxe` | Железная кирка | Инструменты |  | `tools/pickaxe` | 5. Железо | 4 / 0 | ок |
-| `tools:steel_pickaxe` | Стальная кирка | Инструменты |  | `tools/pickaxe` | 6. Сталь | 4 / 0 | ок |
-| `tools:stone_scythe` | Каменная коса | Инструменты |  | `tools/scythe` | 1. Примитивные инструменты | 5 / 0 | ок |
-| `tools:wooden_scythe` | Деревянная коса | Инструменты |  | `tools/scythe` | 1. Примитивные инструменты | 5 / 0 | ок |
-| `tools:copper_scythe` | Медная коса | Инструменты |  | `tools/scythe` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:bronze_scythe` | Бронзовая коса | Инструменты |  | `tools/scythe` | 4. Бронза | 4 / 0 | ок |
-| `tools:iron_scythe` | Железная коса | Инструменты |  | `tools/scythe` | 5. Железо | 4 / 0 | ок |
-| `tools:steel_scythe` | Стальная коса | Инструменты |  | `tools/scythe` | 6. Сталь | 4 / 0 | ок |
-| `tools:wooden_shovel` | Деревянная лопата | Инструменты |  | `tools/shovel` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:copper_shovel` | Медная лопата | Инструменты |  | `tools/shovel` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:bronze_shovel` | Бронзовая лопата | Инструменты |  | `tools/shovel` | 4. Бронза | 4 / 0 | ок |
-| `tools:iron_shovel` | Железная лопата | Инструменты |  | `tools/shovel` | 5. Железо | 4 / 0 | ок |
-| `tools:steel_shovel` | Стальная лопата | Инструменты |  | `tools/shovel` | 6. Сталь | 4 / 0 | ок |
-| `tools:stone_sickle` | Каменный серп | Инструменты |  | `tools/sickle` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:copper_sickle` | Медный серп | Инструменты |  | `tools/sickle` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:iron_sickle` | Железный серп | Инструменты |  | `tools/sickle` | 5. Железо | 4 / 0 | ок |
-| `tools:sign` | Табличка | Станки |  | `tools/signs` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:signpost` | Указатель | Станки |  | `tools/signs` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:notice_board` | Доска на стену | Станки |  | `tools/signs` | 1. Примитивные инструменты | 3 / 0 | ок |
-| `tools:flint_spear` | Кремнёвое копьё | Инструменты |  | `tools/spear` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:bronze_spear` | Бронзовое копьё | Инструменты |  | `tools/spear` | 4. Бронза | 4 / 0 | ок |
-| `tools:iron_spear` | Железное копьё | Инструменты |  | `tools/spear` | 5. Железо | 4 / 0 | ок |
-| `tools:wooden_sword` | Деревянный меч | Инструменты |  | `tools/sword` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:stone_sword` | Каменный меч | Инструменты |  | `tools/sword` | 1. Примитивные инструменты | 5 / 0 | ок |
-| `tools:copper_sword` | Медный меч | Инструменты |  | `tools/sword` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:bronze_sword` | Бронзовый меч | Инструменты |  | `tools/sword` | 4. Бронза | 4 / 0 | ок |
-| `tools:iron_sword` | Железный меч | Инструменты |  | `tools/sword` | 5. Железо | 4 / 0 | ок |
-| `tools:steel_sword` | Стальной меч | Инструменты |  | `tools/sword` | 6. Сталь | 4 / 0 | ок |
-| `tools:tar_torch` | Смоляной факел | Свет |  | `tools/tar_torch` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:watering_can` | Лейка | Материалы |  | `tools/watering_can` | 1. Примитивные инструменты | 4 / 0 | ок |
-| `tools:waterskin` | Бурдюк | Материалы |  | `tools/waterskin` | 2. Дерево, кости и кожа | 3 / 0 | ок |
-| `tools:window` | Окно | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:window_1x2` | Окно 1×2 | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:window_2x1` | Окно 2×1 | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:window_2x2` | Окно 2×2 | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
-| `tools:window_3x2` | Окно 3×2 | Станки |  | `tools/window` | 3. Керамика и ранняя металлургия | 4 / 0 | ок |
+| `plants:fried_mushrooms` | [plants.recipes.fried_mushrooms] | [food] |  | `plants/mushrooms` | 0. [core.eras.foraging] | 3 / 0 | ок |
+| `materials:cord` | [materials.recipes.cord] | [materials] |  | `materials/cord` | 0. [core.eras.foraging] | 2 / 0 | ок |
+| `plants:bandage` | [plants.recipes.bandage] | [healing] |  | `plants/moss` | 0. [core.eras.foraging] | 3 / 0 | ок |
+| `plants:poultice` | [plants.recipes.poultice] | [healing] |  | `plants/moss` | 0. [core.eras.foraging] | 4 / 0 | ок |
+| `resources:campfire` | [resources.recipes.campfire] | [stations] |  | `resources/wood` | 0. [core.eras.foraging] | 3 / 0 | ок |
+| `animals:roasted_fish_from_roach` | [animals.recipes.roasted_fish_from_roach] | [food] |  | `animals/fish` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `animals:roasted_fish_from_pike` | [animals.recipes.roasted_fish_from_pike] | [food] |  | `animals/fish` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `animals:roasted_fish_from_salmon` | [animals.recipes.roasted_fish_from_salmon] | [food] |  | `animals/fish` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `animals:roasted_fish_from_cod` | [animals.recipes.roasted_fish_from_cod] | [food] |  | `animals/fish` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `animals:roasted_fish_from_parrotfish` | [animals.recipes.roasted_fish_from_parrotfish] | [food] |  | `animals/fish` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `animals:roasted_fish_from_catfish` | [animals.recipes.roasted_fish_from_catfish] | [food] |  | `animals/fish` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `animals:roasted_fish_from_perch` | [animals.recipes.roasted_fish_from_perch] | [food] |  | `animals/fish` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `materials:log_wall` | [materials.recipes.log_wall] | [blocks] |  | `materials/log_wall` | 1. [core.eras.primitive] | 2 / 0 | ок |
+| `materials:wattle` | [materials.recipes.wattle] | [blocks] |  | `materials/wattle` | 0. [core.eras.foraging] | 2 / 0 | ок |
+| `tools:boundary_post` | [tools.recipes.boundary_post] | [stations] |  | `tools/boundary_post` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:fence` | [tools.recipes.fence] | [stations] |  | `tools/fence` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:wicket` | [tools.recipes.wicket] | [stations] |  | `tools/fence` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:gate` | [tools.recipes.gate] | [stations] |  | `tools/fence` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:fiber_hat` | [tools.recipes.fiber_hat] | [clothes_and_bags] |  | `tools/fiber_clothes` | 0. [core.eras.foraging] | 2 / 0 | ок |
+| `tools:grass_cape` | [tools.recipes.grass_cape] | [clothes_and_bags] |  | `tools/fiber_clothes` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:leg_wraps` | [tools.recipes.leg_wraps] | [clothes_and_bags] |  | `tools/fiber_clothes` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:bast_shoes` | [tools.recipes.bast_shoes] | [clothes_and_bags] |  | `tools/fiber_clothes` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:fishing_rod` | [tools.recipes.fishing_rod] | [tools] |  | `tools/fishing_rod` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:bait` | [tools.recipes.bait] | [materials] |  | `tools/fishing_rod` | 0. [core.eras.foraging] | 2 / 0 | ок |
+| `tools:ladder` | [tools.recipes.ladder] | [stations] |  | `tools/ladder` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:cord_sling` | [tools.recipes.cord_sling] | [tools] |  | `tools/sling` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:sling_stone` | [tools.recipes.sling_stone] | [materials] |  | `tools/sling` | 0. [core.eras.foraging] | 2 / 0 | ок |
+| `tools:torch` | [tools.recipes.torch] | [light] |  | `tools/torch` | 0. [core.eras.foraging] | 3 / 0 | ок |
+| `tools:trap` | [tools.recipes.trap] | [stations] |  | `tools/trap` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:wicker_bag` | [tools.recipes.wicker_bag] | [clothes_and_bags] |  | `tools/wicker_bag` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:workbench` | [tools.recipes.workbench] | [stations] |  | `tools/workbench` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `materials:cut_stone` | [materials.recipes.cut_stone] | [blocks] |  | `materials/cut_stone` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:big_chest` | [tools.recipes.big_chest] | [stations] |  | `tools/big_chest` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:bloomery` | [tools.recipes.bloomery] | [stations] |  | `tools/bloomery` | 3. [core.eras.bronze] | 5 / 0 | ок |
+| `tools:wooden_bow` | [tools.recipes.wooden_bow] | [tools] |  | `tools/bow` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:arrow` | [tools.recipes.arrow] | [materials] |  | `tools/bow` | 1. [core.eras.primitive] | 5 / 0 | ок |
+| `tools:chest` | [tools.recipes.chest] | [stations] |  | `tools/chest` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:door` | [tools.recipes.door] | [stations] |  | `tools/door` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:door_2x2` | [tools.recipes.door_2x2] | [stations] |  | `tools/door` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:door_2x3` | [tools.recipes.door_2x3] | [stations] |  | `tools/door` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:door_3x3` | [tools.recipes.door_3x3] | [stations] |  | `tools/door` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:drying_rack` | [tools.recipes.drying_rack] | [stations] |  | `tools/drying_rack` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `animals:raw_meat_from_small_carcass` | [animals.recipes.raw_meat_from_small_carcass] | [food] |  | `animals/game` | 0. [core.eras.foraging] | 4 / 0 | ок |
+| `animals:raw_meat_from_carcass` | [animals.recipes.raw_meat_from_carcass] | [food] |  | `animals/game` | 1. [core.eras.primitive] | 5 / 0 | ок |
+| `animals:roasted_meat` | [animals.recipes.roasted_meat] | [food] |  | `animals/game` | 0. [core.eras.foraging] | 4 / 0 | ок |
+| `animals:jerky` | [animals.recipes.jerky] | [food] |  | `animals/game` | 2. [core.eras.bone_leather] | 3 / 0 | ок |
+| `materials:leather` | [materials.recipes.leather] | [materials] |  | `materials/leather` | 2. [core.eras.bone_leather] | 4 / 0 | ок |
+| `tools:grass_mat` | [tools.recipes.grass_mat] | [stations] |  | `tools/bedding` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:fur_bedroll` | [tools.recipes.fur_bedroll] | [stations] |  | `tools/bedding` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:tallow_candle` | [tools.recipes.tallow_candle] | [light] |  | `tools/candle` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:canvas_backpack` | [tools.recipes.canvas_backpack] | [clothes_and_bags] |  | `tools/canvas_backpack` | 2. [core.eras.bone_leather] | 4 / 0 | ок |
+| `tools:fireplace` | [tools.recipes.fireplace] | [stations] |  | `tools/fireplace` | 3. [core.eras.bronze] | 5 / 0 | ок |
+| `tools:forge` | [tools.recipes.forge] | [stations] |  | `tools/forge` | 3. [core.eras.bronze] | 5 / 0 | ок |
+| `tools:copper_bar` | [tools.recipes.copper_bar] | [materials] |  | `tools/forge` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `materials:glass` | [materials.recipes.glass] | [materials] |  | `materials/glass` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `materials:iron_bloom` | [materials.recipes.iron_bloom] | [materials] |  | `materials/iron` | 5. [core.eras.iron] | 4 / 0 | ок |
+| `materials:iron_bar` | [materials.recipes.iron_bar] | [materials] |  | `materials/iron` | 5. [core.eras.iron] | 4 / 0 | ок |
+| `materials:tin_bar` | [materials.recipes.tin_bar] | [materials] |  | `materials/tin` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:anvil` | [tools.recipes.anvil] | [stations] |  | `tools/anvil` | 5. [core.eras.iron] | 4 / 0 | ок |
+| `materials:gold_bar` | [materials.recipes.gold_bar] | [materials] |  | `materials/gold` | 4. [core.eras.alloy] | 4 / 0 | ок |
+| `materials:gold_block` | [materials.recipes.gold_block] | [blocks] |  | `materials/gold` | 5. [core.eras.iron] | 3 / 0 | ок |
+| `materials:platinum_bar` | [materials.recipes.platinum_bar] | [materials] |  | `materials/platinum` | 4. [core.eras.alloy] | 4 / 0 | ок |
+| `materials:platinum_block` | [materials.recipes.platinum_block] | [blocks] |  | `materials/platinum` | 5. [core.eras.iron] | 3 / 0 | ок |
+| `materials:silver_bar` | [materials.recipes.silver_bar] | [materials] |  | `materials/silver` | 4. [core.eras.alloy] | 4 / 0 | ок |
+| `materials:silver_block` | [materials.recipes.silver_block] | [blocks] |  | `materials/silver` | 5. [core.eras.iron] | 3 / 0 | ок |
+| `tools:hatch` | [tools.recipes.hatch] | [stations] |  | `tools/hatch` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:hatch_2x2` | [tools.recipes.hatch_2x2] | [stations] |  | `tools/hatch` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:fur_hat` | [tools.recipes.fur_hat] | [clothes_and_bags] |  | `tools/hide_clothes` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:fur_coat` | [tools.recipes.fur_coat] | [clothes_and_bags] |  | `tools/hide_clothes` | 2. [core.eras.bone_leather] | 5 / 0 | ок |
+| `tools:leather_trousers` | [tools.recipes.leather_trousers] | [clothes_and_bags] |  | `tools/hide_clothes` | 2. [core.eras.bone_leather] | 4 / 0 | ок |
+| `tools:fur_boots` | [tools.recipes.fur_boots] | [clothes_and_bags] |  | `tools/hide_clothes` | 2. [core.eras.bone_leather] | 5 / 0 | ок |
+| `tools:stone_hoe` | [tools.recipes.stone_hoe] | [tools] |  | `tools/hoe` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:copper_hoe` | [tools.recipes.copper_hoe] | [tools] |  | `tools/hoe` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:iron_hoe` | [tools.recipes.iron_hoe] | [tools] |  | `tools/hoe` | 5. [core.eras.iron] | 4 / 0 | ок |
+| `tools:kiln` | [tools.recipes.kiln] | [stations] |  | `tools/kiln` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:brick` | [tools.recipes.brick] | [blocks] |  | `tools/kiln` | 3. [core.eras.bronze] | 3 / 0 | ок |
+| `tools:charcoal` | [tools.recipes.charcoal] | [materials] |  | `tools/kiln` | 3. [core.eras.bronze] | 3 / 0 | ок |
+| `plants:flour` | [plants.recipes.flour] | [materials] |  | `plants/ears` | 0. [core.eras.foraging] | 2 / 0 | ок |
+| `plants:flatbread` | [plants.recipes.flatbread] | [food] |  | `plants/ears` | 3. [core.eras.bronze] | 3 / 0 | ок |
+| `tools:leather_bag` | [tools.recipes.leather_bag] | [clothes_and_bags] |  | `tools/leather_bag` | 2. [core.eras.bone_leather] | 3 / 0 | ок |
+| `tools:leather_sling` | [tools.recipes.leather_sling] | [tools] |  | `tools/leather_sling` | 2. [core.eras.bone_leather] | 3 / 0 | ок |
+| `tools:loom` | [tools.recipes.loom] | [stations] |  | `tools/loom` | 1. [core.eras.primitive] | 5 / 0 | ок |
+| `tools:cloth_from_cord` | [tools.recipes.cloth_from_cord] | [materials] |  | `tools/loom` | 2. [core.eras.bone_leather] | 3 / 0 | ок |
+| `animals:wool_yarn` | [animals.recipes.wool_yarn] | [materials] |  | `animals/wool` | 0. [core.eras.foraging] | 2 / 0 | ок |
+| `animals:cloth_from_wool_yarn` | [animals.recipes.cloth_from_wool_yarn] | [materials] |  | `animals/wool` | 2. [core.eras.bone_leather] | 3 / 0 | ок |
+| `plants:linen_thread` | [plants.recipes.linen_thread] | [materials] |  | `plants/flax` | 0. [core.eras.foraging] | 2 / 0 | ок |
+| `plants:cloth` | [plants.recipes.cloth] | [materials] |  | `plants/flax` | 2. [core.eras.bone_leather] | 3 / 0 | ок |
+| `tools:table` | [tools.recipes.table] | [stations] |  | `tools/furniture` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:stool` | [tools.recipes.stool] | [stations] |  | `tools/furniture` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:wooden_bed` | [tools.recipes.wooden_bed] | [stations] |  | `tools/furniture` | 2. [core.eras.bone_leather] | 4 / 0 | ок |
+| `tools:cupboard` | [tools.recipes.cupboard] | [stations] |  | `tools/furniture` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:wide_cupboard` | [tools.recipes.wide_cupboard] | [stations] |  | `tools/furniture` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:barrel` | [tools.recipes.barrel] | [stations] |  | `tools/furniture` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:rug` | [tools.recipes.rug] | [stations] |  | `tools/furniture` | 2. [core.eras.bone_leather] | 3 / 0 | ок |
+| `tools:bone_needle` | [tools.recipes.bone_needle] | [tools] |  | `tools/needle` | 1. [core.eras.primitive] | 2 / 0 | ок |
+| `tools:potters_wheel` | [tools.recipes.potters_wheel] | [stations] |  | `tools/potters_wheel` | 1. [core.eras.primitive] | 5 / 0 | ок |
+| `tools:raw_pot` | [tools.recipes.raw_pot] | [materials] |  | `tools/potters_wheel` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:pot` | [tools.recipes.pot] | [materials] |  | `tools/potters_wheel` | 3. [core.eras.bronze] | 3 / 0 | ок |
+| `materials:bone_glue` | [materials.recipes.bone_glue] | [materials] |  | `materials/bone_glue` | 3. [core.eras.bronze] | 5 / 0 | ок |
+| `materials:raw_crucible` | [materials.recipes.raw_crucible] | [materials] |  | `materials/bronze` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `materials:crucible` | [materials.recipes.crucible] | [materials] |  | `materials/bronze` | 3. [core.eras.bronze] | 3 / 0 | ок |
+| `materials:bronze_bar` | [materials.recipes.bronze_bar] | [materials] |  | `materials/bronze` | 3. [core.eras.bronze] | 6 / 0 | ок |
+| `materials:steel_bar` | [materials.recipes.steel_bar] | [materials] |  | `materials/steel` | 5. [core.eras.iron] | 5 / 0 | ок |
+| `materials:tar` | [materials.recipes.tar] | [materials] |  | `materials/tar` | 3. [core.eras.bronze] | 5 / 0 | ок |
+| `plants:roasted_acorns` | [plants.recipes.roasted_acorns] | [food] |  | `plants/roasted_acorns` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:stone_axe` | [tools.recipes.stone_axe] | [tools] |  | `tools/axe` | 1. [core.eras.primitive] | 5 / 0 | ок |
+| `tools:planks` | [tools.recipes.planks] | [blocks] |  | `tools/axe` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:copper_axe` | [tools.recipes.copper_axe] | [tools] |  | `tools/axe` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:bronze_axe` | [tools.recipes.bronze_axe] | [tools] |  | `tools/axe` | 4. [core.eras.alloy] | 4 / 0 | ок |
+| `tools:iron_axe` | [tools.recipes.iron_axe] | [tools] |  | `tools/axe` | 5. [core.eras.iron] | 4 / 0 | ок |
+| `tools:steel_axe` | [tools.recipes.steel_axe] | [tools] |  | `tools/axe` | 6. [core.eras.steel] | 4 / 0 | ок |
+| `tools:raft` | [tools.recipes.raft] | [materials] |  | `tools/boats` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:boat` | [tools.recipes.boat] | [materials] |  | `tools/boats` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:oars` | [tools.recipes.oars] | [materials] |  | `tools/boats` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:composite_bow` | [tools.recipes.composite_bow] | [tools] |  | `tools/composite_bow` | 3. [core.eras.bronze] | 6 / 0 | ок |
+| `tools:arrow_from_bone` | [tools.recipes.arrow_from_bone] | [materials] |  | `tools/composite_bow` | 1. [core.eras.primitive] | 5 / 0 | ок |
+| `tools:flint_knife` | [tools.recipes.flint_knife] | [tools] |  | `tools/knife` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:copper_knife` | [tools.recipes.copper_knife] | [tools] |  | `tools/knife` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:bronze_knife` | [tools.recipes.bronze_knife] | [tools] |  | `tools/knife` | 4. [core.eras.alloy] | 4 / 0 | ок |
+| `tools:iron_knife` | [tools.recipes.iron_knife] | [tools] |  | `tools/knife` | 5. [core.eras.iron] | 4 / 0 | ок |
+| `tools:steel_knife` | [tools.recipes.steel_knife] | [tools] |  | `tools/knife` | 6. [core.eras.steel] | 4 / 0 | ок |
+| `tools:lantern` | [tools.recipes.lantern] | [light] |  | `tools/lantern` | 3. [core.eras.bronze] | 5 / 0 | ок |
+| `tools:stone_pickaxe` | [tools.recipes.stone_pickaxe] | [tools] |  | `tools/pickaxe` | 1. [core.eras.primitive] | 5 / 0 | ок |
+| `tools:wooden_pickaxe` | [tools.recipes.wooden_pickaxe] | [tools] |  | `tools/pickaxe` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:copper_pickaxe` | [tools.recipes.copper_pickaxe] | [tools] |  | `tools/pickaxe` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:bronze_pickaxe` | [tools.recipes.bronze_pickaxe] | [tools] |  | `tools/pickaxe` | 4. [core.eras.alloy] | 4 / 0 | ок |
+| `tools:iron_pickaxe` | [tools.recipes.iron_pickaxe] | [tools] |  | `tools/pickaxe` | 5. [core.eras.iron] | 4 / 0 | ок |
+| `tools:steel_pickaxe` | [tools.recipes.steel_pickaxe] | [tools] |  | `tools/pickaxe` | 6. [core.eras.steel] | 4 / 0 | ок |
+| `tools:stone_scythe` | [tools.recipes.stone_scythe] | [tools] |  | `tools/scythe` | 1. [core.eras.primitive] | 5 / 0 | ок |
+| `tools:wooden_scythe` | [tools.recipes.wooden_scythe] | [tools] |  | `tools/scythe` | 1. [core.eras.primitive] | 5 / 0 | ок |
+| `tools:copper_scythe` | [tools.recipes.copper_scythe] | [tools] |  | `tools/scythe` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:bronze_scythe` | [tools.recipes.bronze_scythe] | [tools] |  | `tools/scythe` | 4. [core.eras.alloy] | 4 / 0 | ок |
+| `tools:iron_scythe` | [tools.recipes.iron_scythe] | [tools] |  | `tools/scythe` | 5. [core.eras.iron] | 4 / 0 | ок |
+| `tools:steel_scythe` | [tools.recipes.steel_scythe] | [tools] |  | `tools/scythe` | 6. [core.eras.steel] | 4 / 0 | ок |
+| `tools:wooden_shovel` | [tools.recipes.wooden_shovel] | [tools] |  | `tools/shovel` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:copper_shovel` | [tools.recipes.copper_shovel] | [tools] |  | `tools/shovel` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:bronze_shovel` | [tools.recipes.bronze_shovel] | [tools] |  | `tools/shovel` | 4. [core.eras.alloy] | 4 / 0 | ок |
+| `tools:iron_shovel` | [tools.recipes.iron_shovel] | [tools] |  | `tools/shovel` | 5. [core.eras.iron] | 4 / 0 | ок |
+| `tools:steel_shovel` | [tools.recipes.steel_shovel] | [tools] |  | `tools/shovel` | 6. [core.eras.steel] | 4 / 0 | ок |
+| `tools:stone_sickle` | [tools.recipes.stone_sickle] | [tools] |  | `tools/sickle` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:copper_sickle` | [tools.recipes.copper_sickle] | [tools] |  | `tools/sickle` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:iron_sickle` | [tools.recipes.iron_sickle] | [tools] |  | `tools/sickle` | 5. [core.eras.iron] | 4 / 0 | ок |
+| `tools:sign` | [tools.recipes.sign] | [stations] |  | `tools/signs` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:signpost` | [tools.recipes.signpost] | [stations] |  | `tools/signs` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:notice_board` | [tools.recipes.notice_board] | [stations] |  | `tools/signs` | 1. [core.eras.primitive] | 3 / 0 | ок |
+| `tools:flint_spear` | [tools.recipes.flint_spear] | [tools] |  | `tools/spear` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:bronze_spear` | [tools.recipes.bronze_spear] | [tools] |  | `tools/spear` | 4. [core.eras.alloy] | 4 / 0 | ок |
+| `tools:iron_spear` | [tools.recipes.iron_spear] | [tools] |  | `tools/spear` | 5. [core.eras.iron] | 4 / 0 | ок |
+| `tools:wooden_sword` | [tools.recipes.wooden_sword] | [tools] |  | `tools/sword` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:stone_sword` | [tools.recipes.stone_sword] | [tools] |  | `tools/sword` | 1. [core.eras.primitive] | 5 / 0 | ок |
+| `tools:copper_sword` | [tools.recipes.copper_sword] | [tools] |  | `tools/sword` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:bronze_sword` | [tools.recipes.bronze_sword] | [tools] |  | `tools/sword` | 4. [core.eras.alloy] | 4 / 0 | ок |
+| `tools:iron_sword` | [tools.recipes.iron_sword] | [tools] |  | `tools/sword` | 5. [core.eras.iron] | 4 / 0 | ок |
+| `tools:steel_sword` | [tools.recipes.steel_sword] | [tools] |  | `tools/sword` | 6. [core.eras.steel] | 4 / 0 | ок |
+| `tools:tar_torch` | [tools.recipes.tar_torch] | [light] |  | `tools/tar_torch` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:watering_can` | [tools.recipes.watering_can] | [materials] |  | `tools/watering_can` | 1. [core.eras.primitive] | 4 / 0 | ок |
+| `tools:waterskin` | [tools.recipes.waterskin] | [materials] |  | `tools/waterskin` | 2. [core.eras.bone_leather] | 3 / 0 | ок |
+| `tools:window` | [tools.recipes.window] | [stations] |  | `tools/window` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:window_1x2` | [tools.recipes.window_1x2] | [stations] |  | `tools/window` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:window_2x1` | [tools.recipes.window_2x1] | [stations] |  | `tools/window` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:window_2x2` | [tools.recipes.window_2x2] | [stations] |  | `tools/window` | 3. [core.eras.bronze] | 4 / 0 | ок |
+| `tools:window_3x2` | [tools.recipes.window_3x2] | [stations] |  | `tools/window` | 3. [core.eras.bronze] | 4 / 0 | ок |
 
 ## Материалы ячеек (`materials`, 30)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `core:air` | Воздух |  |  | `core` | 0 / 0 | ок |
-| `core:grass` | Трава |  |  | `core` | 4 / 1 | ок |
-| `core:dirt` | Земля |  |  | `core` | 2 / 2 | ок |
-| `core:stone` | Камень |  |  | `core` | 1 / 1 | ок |
-| `core:water` | Вода |  |  | `core` | 0 / 0 | ок |
-| `materials:brick` | Кирпич |  |  | `materials/brick` | 1 / 1 | ок |
-| `materials:copper_ore` | Медная руда | ore |  | `materials/copper` | 1 / 0 | ок |
-| `materials:planks` | Доски |  |  | `materials/planks` | 1 / 1 | ок |
-| `resources:peat` | Торф | peat |  | `resources/peat` | 1 / 1 | ок |
-| `resources:salt` | Соль | salt |  | `resources/salt` | 1 / 1 | ок |
-| `resources:snow` | Снег | snow |  | `resources/snow` | 1 / 1 | ок |
-| `resources:ice` | Лёд | ice |  | `resources/snow` | 1 / 1 | ок |
-| `resources:sand` | Песок | beach |  | `resources/soil` | 2 / 1 | ок |
-| `resources:clay` | Глина | bank |  | `resources/soil` | 1 / 1 | ок |
-| `resources:bed` | Грядка | bed |  | `resources/soil` | 1 / 0 | ок |
-| `resources:bed_wet` | Мокрая грядка | bed_wet |  | `resources/soil` | 1 / 0 | ок |
-| `resources:scree` | Осыпь | scree |  | `resources/stone` | 2 / 0 | ок |
-| `materials:log_wall` | Сруб |  |  | `materials/log_wall` | 1 / 1 | ок |
-| `materials:wattle` | Плетень |  |  | `materials/wattle` | 1 / 1 | ок |
-| `plants:log` | Бревно | trunk |  | `plants/wood` | 1 / 1 | ок |
-| `plants:leaves` | Листва | crown |  | `plants/wood` | 0 / 0 | ок |
-| `materials:cut_stone` | Тёсаный камень |  |  | `materials/cut_stone` | 1 / 1 | ок |
-| `materials:iron_ore` | Железная руда | ore |  | `materials/iron` | 1 / 0 | ок |
-| `materials:tin_ore` | Оловянная руда | ore |  | `materials/tin` | 1 / 0 | ок |
-| `materials:gold_ore` | Золотая руда | ore |  | `materials/gold` | 1 / 0 | ок |
-| `materials:gold_block` | Золотой блок |  |  | `materials/gold` | 1 / 1 | ок |
-| `materials:platinum_ore` | Платиновая руда | ore |  | `materials/platinum` | 1 / 0 | ок |
-| `materials:platinum_block` | Платиновый блок |  |  | `materials/platinum` | 1 / 1 | ок |
-| `materials:silver_ore` | Серебряная руда | ore |  | `materials/silver` | 1 / 0 | ок |
-| `materials:silver_block` | Серебряный блок |  |  | `materials/silver` | 1 / 1 | ок |
+| `core:air` | [core.materials.air] |  |  | `core` | 0 / 0 | ок |
+| `core:grass` | [core.materials.grass] |  |  | `core` | 4 / 1 | ок |
+| `core:dirt` | [core.materials.dirt] |  |  | `core` | 2 / 2 | ок |
+| `core:stone` | [core.materials.stone] |  |  | `core` | 1 / 1 | ок |
+| `core:water` | [core.materials.water] |  |  | `core` | 0 / 0 | ок |
+| `materials:brick` | [materials.materials.brick] |  |  | `materials/brick` | 1 / 1 | ок |
+| `materials:copper_ore` | [materials.materials.copper_ore] | ore |  | `materials/copper` | 1 / 0 | ок |
+| `materials:planks` | [materials.materials.planks] |  |  | `materials/planks` | 1 / 1 | ок |
+| `resources:peat` | [resources.materials.peat] | peat |  | `resources/peat` | 1 / 1 | ок |
+| `resources:salt` | [resources.materials.salt] | salt |  | `resources/salt` | 1 / 1 | ок |
+| `resources:snow` | [resources.materials.snow] | snow |  | `resources/snow` | 1 / 1 | ок |
+| `resources:ice` | [resources.materials.ice] | ice |  | `resources/snow` | 1 / 1 | ок |
+| `resources:sand` | [resources.materials.sand] | beach |  | `resources/soil` | 2 / 1 | ок |
+| `resources:clay` | [resources.materials.clay] | bank |  | `resources/soil` | 1 / 1 | ок |
+| `resources:bed` | [resources.materials.bed] | bed |  | `resources/soil` | 1 / 0 | ок |
+| `resources:bed_wet` | [resources.materials.bed_wet] | bed_wet |  | `resources/soil` | 1 / 0 | ок |
+| `resources:scree` | [resources.materials.scree] | scree |  | `resources/stone` | 2 / 0 | ок |
+| `materials:log_wall` | [materials.materials.log_wall] |  |  | `materials/log_wall` | 1 / 1 | ок |
+| `materials:wattle` | [materials.materials.wattle] |  |  | `materials/wattle` | 1 / 1 | ок |
+| `plants:log` | [plants.materials.log] | trunk |  | `plants/wood` | 1 / 1 | ок |
+| `plants:leaves` | [plants.materials.leaves] | crown |  | `plants/wood` | 0 / 0 | ок |
+| `materials:cut_stone` | [materials.materials.cut_stone] |  |  | `materials/cut_stone` | 1 / 1 | ок |
+| `materials:iron_ore` | [materials.materials.iron_ore] | ore |  | `materials/iron` | 1 / 0 | ок |
+| `materials:tin_ore` | [materials.materials.tin_ore] | ore |  | `materials/tin` | 1 / 0 | ок |
+| `materials:gold_ore` | [materials.materials.gold_ore] | ore |  | `materials/gold` | 1 / 0 | ок |
+| `materials:gold_block` | [materials.materials.gold_block] |  |  | `materials/gold` | 1 / 1 | ок |
+| `materials:platinum_ore` | [materials.materials.platinum_ore] | ore |  | `materials/platinum` | 1 / 0 | ок |
+| `materials:platinum_block` | [materials.materials.platinum_block] |  |  | `materials/platinum` | 1 / 1 | ок |
+| `materials:silver_ore` | [materials.materials.silver_ore] | ore |  | `materials/silver` | 1 / 0 | ок |
+| `materials:silver_block` | [materials.materials.silver_block] |  |  | `materials/silver` | 1 / 1 | ок |
 
 ## Деревья (`trees`, 20)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `plants:acacia` | Акация | broad |  | `plants/acacia` | 2 / 1 | ок |
-| `plants:apple` | Яблоня | broad |  | `plants/apple` | 3 / 1 | ок |
-| `plants:birch` | Берёза | broad |  | `plants/birch` | 2 / 4 | ок |
-| `plants:bird_cherry` | Черёмуха | broad |  | `plants/bird_cherry` | 2 / 5 | ок |
-| `plants:ceiba` | Сейба | broad |  | `plants/ceiba` | 2 / 1 | ок |
-| `plants:cherry` | Вишня | broad |  | `plants/cherry` | 2 / 1 | ок |
-| `plants:deadwood` | Сухое дерево | broad |  | `plants/deadwood` | 2 / 6 | ок |
-| `plants:fir` | Пихта | needles |  | `plants/fir` | 2 / 1 | ок |
-| `plants:larch` | Лиственница | needles |  | `plants/larch` | 2 / 4 | ок |
-| `plants:linden` | Липа | broad |  | `plants/linden` | 2 / 3 | ок |
-| `plants:mangrove` | Мангр | broad |  | `plants/mangrove` | 2 / 1 | ок |
-| `plants:maple` | Клён | broad |  | `plants/maple` | 2 / 2 | ок |
-| `plants:oak` | Дуб | broad |  | `plants/oak` | 3 / 10 | ок |
-| `plants:palm` | Пальма | broad |  | `plants/palm` | 3 / 3 | ок |
-| `plants:pine` | Сосна | needles |  | `plants/pine` | 3 / 3 | ок |
-| `plants:poplar` | Тополь | broad |  | `plants/poplar` | 2 / 3 | ок |
-| `plants:red_maple` | Клён красный | broad |  | `plants/red_maple` | 2 / 1 | ок |
-| `plants:rowan` | Рябина | broad |  | `plants/rowan` | 3 / 4 | ок |
-| `plants:spruce` | Ель | needles |  | `plants/spruce` | 3 / 5 | ок |
-| `plants:willow` | Ива | broad |  | `plants/willow` | 2 / 2 | ок |
+| `plants:acacia` | [plants.trees.acacia] | broad |  | `plants/acacia` | 2 / 1 | ок |
+| `plants:apple` | [plants.trees.apple] | broad |  | `plants/apple` | 3 / 1 | ок |
+| `plants:birch` | [plants.trees.birch] | broad |  | `plants/birch` | 2 / 4 | ок |
+| `plants:bird_cherry` | [plants.trees.bird_cherry] | broad |  | `plants/bird_cherry` | 2 / 5 | ок |
+| `plants:ceiba` | [plants.trees.ceiba] | broad |  | `plants/ceiba` | 2 / 1 | ок |
+| `plants:cherry` | [plants.trees.cherry] | broad |  | `plants/cherry` | 2 / 1 | ок |
+| `plants:deadwood` | [plants.trees.deadwood] | broad |  | `plants/deadwood` | 2 / 6 | ок |
+| `plants:fir` | [plants.trees.fir] | needles |  | `plants/fir` | 2 / 1 | ок |
+| `plants:larch` | [plants.trees.larch] | needles |  | `plants/larch` | 2 / 4 | ок |
+| `plants:linden` | [plants.trees.linden] | broad |  | `plants/linden` | 2 / 3 | ок |
+| `plants:mangrove` | [plants.trees.mangrove] | broad |  | `plants/mangrove` | 2 / 1 | ок |
+| `plants:maple` | [plants.trees.maple] | broad |  | `plants/maple` | 2 / 2 | ок |
+| `plants:oak` | [plants.trees.oak] | broad |  | `plants/oak` | 3 / 10 | ок |
+| `plants:palm` | [plants.trees.palm] | broad |  | `plants/palm` | 3 / 3 | ок |
+| `plants:pine` | [plants.trees.pine] | needles |  | `plants/pine` | 3 / 3 | ок |
+| `plants:poplar` | [plants.trees.poplar] | broad |  | `plants/poplar` | 2 / 3 | ок |
+| `plants:red_maple` | [plants.trees.red_maple] | broad |  | `plants/red_maple` | 2 / 1 | ок |
+| `plants:rowan` | [plants.trees.rowan] | broad |  | `plants/rowan` | 3 / 4 | ок |
+| `plants:spruce` | [plants.trees.spruce] | needles |  | `plants/spruce` | 3 / 5 | ок |
+| `plants:willow` | [plants.trees.willow] | broad |  | `plants/willow` | 2 / 2 | ок |
 
-## Кусты (`bushes`, 6)
-
-| Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
-|---|---|---|---|---|---|---|
-| `plants:blueberry` | Черника |  |  | `plants/blueberry` | 3 / 8 | ок |
-| `plants:currant` | Смородина |  |  | `plants/currant` | 3 / 4 | ок |
-| `plants:raspberry` | Малина |  |  | `plants/raspberry` | 3 / 4 | ок |
-| `plants:rosehip` | Шиповник |  |  | `plants/rosehip` | 3 / 5 | ок |
-| `plants:shrub` | Куст |  |  | `plants/shrub` | 2 / 21 | ок |
-| `plants:banana` | Банан |  |  | `plants/banana` | 3 / 2 | ок |
-
-## Растения (`plants`, 21)
+## [bushes] (`bushes`, 6)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `plants:cranberry` | Клюква | custom |  | `plants/cranberry` | 1 / 0 | ок |
-| `plants:fern` | Папоротник | custom |  | `plants/fern` | 1 / 0 | ок |
-| `plants:tuft` | Трава | tuft |  | `plants/grass` | 1 / 2 | ок |
-| `plants:tall_grass` | Высокая трава | tall_grass |  | `plants/grass`; патчи: `plants/turnip` | 2 / 1 | ок |
-| `plants:flowers` | Цветы | flowers |  | `plants/grass`; патчи: `plants/peas` | 2 / 2 | ок |
-| `plants:herbs` | Травы | herbs |  | `plants/grass`; патчи: `plants/carrot` | 2 / 0 | ок |
-| `plants:carrot` | Морковь | crop |  | `plants/carrot` | 2 / 1 | ок |
-| `plants:monstera` | Монстера | custom |  | `plants/monstera` | 3 / 0 | ок |
-| `plants:mushrooms` | Грибы | mushrooms |  | `plants/mushrooms` | 1 / 2 | ок |
-| `plants:glow_mushrooms` | Светящиеся грибы | glow_mushrooms |  | `plants/mushrooms` | 1 / 0 | ок |
-| `plants:nettle` | Крапива | custom |  | `plants/nettle` | 1 / 0 | ок |
-| `plants:peas` | Горох | crop |  | `plants/peas` | 1 / 1 | ок |
-| `plants:reeds` | Тростник | reeds |  | `plants/reeds` | 1 / 0 | ок |
-| `plants:turnip` | Репа | crop |  | `plants/turnip` | 2 / 1 | ок |
-| `plants:moss` | Мох | moss |  | `plants/moss` | 1 / 0 | ок |
-| `plants:oak_sapling` | Росток дуба | sapling |  | `plants/oak` | 2 / 1 | ок |
-| `plants:spruce_sapling` | Росток ели | sapling |  | `plants/spruce` | 2 / 1 | ок |
-| `plants:ears` | Колоски | ears |  | `plants/ears` | 1 / 2 | ок |
-| `plants:wheat` | Пшеница | crop |  | `plants/ears` | 1 / 1 | ок |
-| `plants:flax` | Лён | custom |  | `plants/flax` | 5 / 0 | ок |
-| `plants:sown_flax` | Лён | crop |  | `plants/flax` | 2 / 1 | ок |
+| `plants:blueberry` | [plants.bushes.blueberry] |  |  | `plants/blueberry` | 3 / 8 | ок |
+| `plants:currant` | [plants.bushes.currant] |  |  | `plants/currant` | 3 / 4 | ок |
+| `plants:raspberry` | [plants.bushes.raspberry] |  |  | `plants/raspberry` | 3 / 4 | ок |
+| `plants:rosehip` | [plants.bushes.rosehip] |  |  | `plants/rosehip` | 3 / 5 | ок |
+| `plants:shrub` | [plants.bushes.shrub] |  |  | `plants/shrub` | 2 / 21 | ок |
+| `plants:banana` | [plants.bushes.banana] |  |  | `plants/banana` | 3 / 2 | ок |
+
+## [plants] (`plants`, 21)
+
+| Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
+|---|---|---|---|---|---|---|
+| `plants:cranberry` | [plants.plants.cranberry] | custom |  | `plants/cranberry` | 1 / 0 | ок |
+| `plants:fern` | [plants.plants.fern] | custom |  | `plants/fern` | 1 / 0 | ок |
+| `plants:tuft` | [plants.plants.tuft] | tuft |  | `plants/grass` | 1 / 2 | ок |
+| `plants:tall_grass` | [plants.plants.tall_grass] | tall_grass |  | `plants/grass`; патчи: `plants/turnip` | 2 / 1 | ок |
+| `plants:flowers` | [plants.plants.flowers] | flowers |  | `plants/grass`; патчи: `plants/peas` | 2 / 2 | ок |
+| `plants:herbs` | [plants.plants.herbs] | herbs |  | `plants/grass`; патчи: `plants/carrot` | 2 / 0 | ок |
+| `plants:carrot` | [plants.plants.carrot] | crop |  | `plants/carrot` | 2 / 1 | ок |
+| `plants:monstera` | [plants.plants.monstera] | custom |  | `plants/monstera` | 3 / 0 | ок |
+| `plants:mushrooms` | [plants.plants.mushrooms] | mushrooms |  | `plants/mushrooms` | 1 / 2 | ок |
+| `plants:glow_mushrooms` | [plants.plants.glow_mushrooms] | glow_mushrooms |  | `plants/mushrooms` | 1 / 0 | ок |
+| `plants:nettle` | [plants.plants.nettle] | custom |  | `plants/nettle` | 1 / 0 | ок |
+| `plants:peas` | [plants.plants.peas] | crop |  | `plants/peas` | 1 / 1 | ок |
+| `plants:reeds` | [plants.plants.reeds] | reeds |  | `plants/reeds` | 1 / 0 | ок |
+| `plants:turnip` | [plants.plants.turnip] | crop |  | `plants/turnip` | 2 / 1 | ок |
+| `plants:moss` | [plants.plants.moss] | moss |  | `plants/moss` | 1 / 0 | ок |
+| `plants:oak_sapling` | [plants.plants.oak_sapling] | sapling |  | `plants/oak` | 2 / 1 | ок |
+| `plants:spruce_sapling` | [plants.plants.spruce_sapling] | sapling |  | `plants/spruce` | 2 / 1 | ок |
+| `plants:ears` | [plants.plants.ears] | ears |  | `plants/ears` | 1 / 2 | ок |
+| `plants:wheat` | [plants.plants.wheat] | crop |  | `plants/ears` | 1 / 1 | ок |
+| `plants:flax` | [plants.plants.flax] | custom |  | `plants/flax` | 5 / 0 | ок |
+| `plants:sown_flax` | [plants.plants.sown_flax] | crop |  | `plants/flax` | 2 / 1 | ок |
 
 ## Существа (`creatures`, 23)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `core:human` | Человек |  |  | `core` | 0 / 0 | ок |
-| `animals:bear` | Медведь |  |  | `animals/bear`; патчи: `biomes/pine_wood` | 5 / 0 | ок |
-| `animals:boar` | Кабан |  |  | `animals/boar`; патчи: `biomes/pine_wood` | 5 / 0 | ок |
-| `animals:butterfly` | Бабочка |  |  | `animals/butterfly` | 1 / 0 | ок |
-| `animals:cat` | Дикая кошка |  |  | `animals/cat` | 3 / 0 | ок |
-| `animals:crow` | Ворона |  |  | `animals/crow` | 2 / 0 | ок |
-| `animals:deer` | Олень |  |  | `animals/deer`; патчи: `biomes/birch_grove`, `biomes/steppe` | 8 / 0 | ок |
-| `animals:duck` | Утка |  |  | `animals/duck` | 1 / 0 | ок |
-| `animals:fox` | Лиса |  |  | `animals/fox`; патчи: `biomes/birch_grove`, `biomes/steppe` | 6 / 0 | ок |
-| `animals:frog` | Лягушка |  |  | `animals/frog` | 0 / 0 | ок |
-| `animals:hedgehog` | Ёж |  |  | `animals/hedgehog`; патчи: `biomes/birch_grove` | 4 / 0 | ок |
-| `animals:owl` | Сова |  |  | `animals/owl`; патчи: `biomes/birch_grove`, `biomes/pine_wood` | 5 / 0 | ок |
-| `animals:perch` | Окунь |  |  | `animals/perch` | 1 / 0 | ок |
-| `animals:rabbit` | Заяц |  |  | `animals/rabbit`; патчи: `biomes/birch_grove`, `biomes/steppe` | 11 / 0 | ок |
-| `animals:sparrow` | Воробей |  |  | `animals/sparrow` | 1 / 0 | ок |
-| `animals:squirrel` | Белка |  |  | `animals/squirrel`; патчи: `biomes/pine_wood` | 5 / 0 | ок |
-| `animals:wolf` | Волк |  |  | `animals/wolf`; патчи: `biomes/pine_wood` | 5 / 0 | ок |
-| `animals:roach` | Плотва |  |  | `animals/fish` | 21 / 0 | ок |
-| `animals:pike` | Щука |  |  | `animals/fish` | 18 / 0 | ок |
-| `animals:salmon` | Лосось |  |  | `animals/fish` | 11 / 0 | ок |
-| `animals:cod` | Треска |  |  | `animals/fish` | 4 / 0 | ок |
-| `animals:parrotfish` | Рыба-попугай |  |  | `animals/fish` | 3 / 0 | ок |
-| `animals:catfish` | Сом |  |  | `animals/fish` | 15 / 0 | ок |
+| `core:human` | [core.creatures.human] |  |  | `core` | 0 / 0 | ок |
+| `animals:bear` | [animals.creatures.bear] |  |  | `animals/bear`; патчи: `biomes/pine_wood` | 5 / 0 | ок |
+| `animals:boar` | [animals.creatures.boar] |  |  | `animals/boar`; патчи: `biomes/pine_wood` | 5 / 0 | ок |
+| `animals:butterfly` | [animals.creatures.butterfly] |  |  | `animals/butterfly` | 1 / 0 | ок |
+| `animals:cat` | [animals.creatures.cat] |  |  | `animals/cat` | 3 / 0 | ок |
+| `animals:crow` | [animals.creatures.crow] |  |  | `animals/crow` | 2 / 0 | ок |
+| `animals:deer` | [animals.creatures.deer] |  |  | `animals/deer`; патчи: `biomes/birch_grove`, `biomes/steppe` | 8 / 0 | ок |
+| `animals:duck` | [animals.creatures.duck] |  |  | `animals/duck` | 1 / 0 | ок |
+| `animals:fox` | [animals.creatures.fox] |  |  | `animals/fox`; патчи: `biomes/birch_grove`, `biomes/steppe` | 6 / 0 | ок |
+| `animals:frog` | [animals.creatures.frog] |  |  | `animals/frog` | 0 / 0 | ок |
+| `animals:hedgehog` | [animals.creatures.hedgehog] |  |  | `animals/hedgehog`; патчи: `biomes/birch_grove` | 4 / 0 | ок |
+| `animals:owl` | [animals.creatures.owl] |  |  | `animals/owl`; патчи: `biomes/birch_grove`, `biomes/pine_wood` | 5 / 0 | ок |
+| `animals:perch` | [animals.creatures.perch] |  |  | `animals/perch` | 1 / 0 | ок |
+| `animals:rabbit` | [animals.creatures.rabbit] |  |  | `animals/rabbit`; патчи: `biomes/birch_grove`, `biomes/steppe` | 11 / 0 | ок |
+| `animals:sparrow` | [animals.creatures.sparrow] |  |  | `animals/sparrow` | 1 / 0 | ок |
+| `animals:squirrel` | [animals.creatures.squirrel] |  |  | `animals/squirrel`; патчи: `biomes/pine_wood` | 5 / 0 | ок |
+| `animals:wolf` | [animals.creatures.wolf] |  |  | `animals/wolf`; патчи: `biomes/pine_wood` | 5 / 0 | ок |
+| `animals:roach` | [animals.creatures.roach] |  |  | `animals/fish` | 21 / 0 | ок |
+| `animals:pike` | [animals.creatures.pike] |  |  | `animals/fish` | 18 / 0 | ок |
+| `animals:salmon` | [animals.creatures.salmon] |  |  | `animals/fish` | 11 / 0 | ок |
+| `animals:cod` | [animals.creatures.cod] |  |  | `animals/fish` | 4 / 0 | ок |
+| `animals:parrotfish` | [animals.creatures.parrotfish] |  |  | `animals/fish` | 3 / 0 | ок |
+| `animals:catfish` | [animals.creatures.catfish] |  |  | `animals/fish` | 15 / 0 | ок |
 
-## Биомы (`biomes`, 28)
+## [biomes] (`biomes`, 28)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `biomes:alpine_meadow` | Альпийский луг | alpine |  | `biomes/alpine_meadow` | 3 / 3 | ок |
-| `biomes:beach` | Берег | beach |  | `biomes/beach` | 0 / 1 | ок |
-| `biomes:birch_grove` | Берёзовая роща | climate |  | `biomes/birch_grove` | 8 / 8 | ок |
-| `biomes:desert` | Пустыня | climate |  | `biomes/desert` | 1 / 2 | ок |
-| `biomes:floodplain` | Пойма | climate |  | `biomes/floodplain` | 6 / 4 | ок |
-| `biomes:forest` | Лес | climate |  | `biomes/forest` | 10 / 13 | ок |
-| `biomes:forest_steppe` | Лесостепь | climate |  | `biomes/forest_steppe` | 6 / 4 | ок |
-| `biomes:glacier` | Ледник | glacier |  | `biomes/glacier` | 0 / 2 | ок |
-| `biomes:ice_waste` | Ледяная пустошь | climate |  | `biomes/ice_waste` | 0 / 2 | ок |
-| `biomes:jungle` | Джунгли | climate |  | `biomes/jungle` | 5 / 3 | ок |
-| `biomes:mangrove` | Мангровые заросли | swamp |  | `biomes/mangrove` | 3 / 3 | ок |
-| `biomes:maple_wood` | Кленовник | climate |  | `biomes/maple_wood` | 8 / 3 | ок |
-| `biomes:meadow` | Луг | climate |  | `biomes/meadow` | 9 / 10 | ок |
-| `biomes:peat_bog` | Торфяное болото | climate |  | `biomes/peat_bog` | 5 / 3 | ок |
-| `biomes:pine_wood` | Бор | climate |  | `biomes/pine_wood` | 5 / 8 | ок |
-| `biomes:plateau` | Плато | plateau |  | `biomes/plateau` | 1 / 3 | ок |
-| `biomes:red_rocks` | Красные скалы | climate |  | `biomes/red_rocks` | 1 / 2 | ок |
-| `biomes:rock` | Скалы | rock |  | `biomes/rock` | 0 / 3 | ок |
-| `biomes:salt_flat` | Солончак | climate |  | `biomes/salt_flat` | 0 / 2 | ок |
-| `biomes:savanna` | Саванна | climate |  | `biomes/savanna` | 4 / 2 | ок |
-| `biomes:sea` | Море | sea |  | `biomes/sea` | 0 / 1 | ок |
-| `biomes:steppe` | Степь | climate |  | `biomes/steppe` | 2 / 6 | ок |
-| `biomes:stony_tundra` | Каменистая тундра | climate |  | `biomes/stony_tundra` | 3 / 2 | ок |
-| `biomes:swamp` | Болото | swamp |  | `biomes/swamp` | 5 / 4 | ок |
-| `biomes:taiga` | Тайга | climate |  | `biomes/taiga` | 7 / 9 | ок |
-| `biomes:tropical_beach` | Тропический берег | beach |  | `biomes/tropical_beach` | 1 / 0 | ок |
-| `biomes:tropical_sea` | Тропическое море | sea |  | `biomes/tropical_sea` | 0 / 2 | ок |
-| `biomes:tundra` | Тундра | climate |  | `biomes/tundra` | 4 / 3 | ок |
+| `biomes:alpine_meadow` | [biomes.biomes.alpine_meadow] | alpine |  | `biomes/alpine_meadow` | 3 / 3 | ок |
+| `biomes:beach` | [biomes.biomes.beach] | beach |  | `biomes/beach` | 0 / 1 | ок |
+| `biomes:birch_grove` | [biomes.biomes.birch_grove] | climate |  | `biomes/birch_grove` | 8 / 8 | ок |
+| `biomes:desert` | [biomes.biomes.desert] | climate |  | `biomes/desert` | 1 / 2 | ок |
+| `biomes:floodplain` | [biomes.biomes.floodplain] | climate |  | `biomes/floodplain` | 6 / 4 | ок |
+| `biomes:forest` | [biomes.biomes.forest] | climate |  | `biomes/forest` | 10 / 13 | ок |
+| `biomes:forest_steppe` | [biomes.biomes.forest_steppe] | climate |  | `biomes/forest_steppe` | 6 / 4 | ок |
+| `biomes:glacier` | [biomes.biomes.glacier] | glacier |  | `biomes/glacier` | 0 / 2 | ок |
+| `biomes:ice_waste` | [biomes.biomes.ice_waste] | climate |  | `biomes/ice_waste` | 0 / 2 | ок |
+| `biomes:jungle` | [biomes.biomes.jungle] | climate |  | `biomes/jungle` | 5 / 3 | ок |
+| `biomes:mangrove` | [biomes.biomes.mangrove] | swamp |  | `biomes/mangrove` | 3 / 3 | ок |
+| `biomes:maple_wood` | [biomes.biomes.maple_wood] | climate |  | `biomes/maple_wood` | 8 / 3 | ок |
+| `biomes:meadow` | [biomes.biomes.meadow] | climate |  | `biomes/meadow` | 9 / 10 | ок |
+| `biomes:peat_bog` | [biomes.biomes.peat_bog] | climate |  | `biomes/peat_bog` | 5 / 3 | ок |
+| `biomes:pine_wood` | [biomes.biomes.pine_wood] | climate |  | `biomes/pine_wood` | 5 / 8 | ок |
+| `biomes:plateau` | [biomes.biomes.plateau] | plateau |  | `biomes/plateau` | 1 / 3 | ок |
+| `biomes:red_rocks` | [biomes.biomes.red_rocks] | climate |  | `biomes/red_rocks` | 1 / 2 | ок |
+| `biomes:rock` | [biomes.biomes.rock] | rock |  | `biomes/rock` | 0 / 3 | ок |
+| `biomes:salt_flat` | [biomes.biomes.salt_flat] | climate |  | `biomes/salt_flat` | 0 / 2 | ок |
+| `biomes:savanna` | [biomes.biomes.savanna] | climate |  | `biomes/savanna` | 4 / 2 | ок |
+| `biomes:sea` | [biomes.biomes.sea] | sea |  | `biomes/sea` | 0 / 1 | ок |
+| `biomes:steppe` | [biomes.biomes.steppe] | climate |  | `biomes/steppe` | 2 / 6 | ок |
+| `biomes:stony_tundra` | [biomes.biomes.stony_tundra] | climate |  | `biomes/stony_tundra` | 3 / 2 | ок |
+| `biomes:swamp` | [biomes.biomes.swamp] | swamp |  | `biomes/swamp` | 5 / 4 | ок |
+| `biomes:taiga` | [biomes.biomes.taiga] | climate |  | `biomes/taiga` | 7 / 9 | ок |
+| `biomes:tropical_beach` | [biomes.biomes.tropical_beach] | beach |  | `biomes/tropical_beach` | 1 / 0 | ок |
+| `biomes:tropical_sea` | [biomes.biomes.tropical_sea] | sea |  | `biomes/tropical_sea` | 0 / 2 | ок |
+| `biomes:tundra` | [biomes.biomes.tundra] | climate |  | `biomes/tundra` | 4 / 3 | ок |
 
 ## Старт (`starts`, 1)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `core:default` | Обычный старт |  | Пустые руки, пустая сумка и костёр у точки появления. | `core`; патчи: `tools/chest` | 2 / 0 | ок |
+| `core:default` | [core.starts.default] |  | [core.starts.default.about] | `core`; патчи: `tools/chest` | 2 / 0 | ок |
 
 ## Эпохи (`eras`, 7)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `core:foraging` | Выживание без инструментов | порядок 0 | Сбор руками, ветки, волокно, камни, ягоды и грибы; простые вещи из них руками. | `core` | 0 / 0 | ок |
-| `core:primitive` | Примитивные инструменты | порядок 1 | Верёвка, костёр, верстак, каменные и деревянные инструменты, брёвна и доски, сундук. | `core` | 0 / 13 | ок |
-| `core:bone_leather` | Дерево, кости и кожа | порядок 2 | Разделка зверей, сушилка, кожа из шкуры с жиром, костяные игла и клей, свеча, луки и праща, ткань. | `core` | 0 / 11 | ок |
-| `core:bronze` | Керамика и ранняя металлургия | порядок 3 | Печь для обжига, кирпич, уголь, горн, медь и медные инструменты. | `core` | 0 / 4 | ок |
-| `core:alloy` | Бронза | порядок 4 | Олово, тигель, бронзовый сплав и бронзовые инструменты, которые берут железную руду. | `core` | 0 / 1 | ок |
-| `core:iron` | Железо | порядок 5 | Железная руда, сыродутная печь и крица, железные слитки, наковальня и железные инструменты. | `core` | 0 / 4 | ок |
-| `core:steel` | Сталь | порядок 6 | Сталь из железа с углём в тигле и стальные инструменты. | `core` | 0 / 1 | ок |
+| `core:foraging` | [core.eras.foraging] | порядок 0 | [core.eras.foraging.about] | `core` | 0 / 0 | ок |
+| `core:primitive` | [core.eras.primitive] | порядок 1 | [core.eras.primitive.about] | `core` | 0 / 13 | ок |
+| `core:bone_leather` | [core.eras.bone_leather] | порядок 2 | [core.eras.bone_leather.about] | `core` | 0 / 11 | ок |
+| `core:bronze` | [core.eras.bronze] | порядок 3 | [core.eras.bronze.about] | `core` | 0 / 4 | ок |
+| `core:alloy` | [core.eras.alloy] | порядок 4 | [core.eras.alloy.about] | `core` | 0 / 1 | ок |
+| `core:iron` | [core.eras.iron] | порядок 5 | [core.eras.iron.about] | `core` | 0 / 4 | ок |
+| `core:steel` | [core.eras.steel] | порядок 6 | [core.eras.steel.about] | `core` | 0 / 1 | ок |
 
 ## Звуки (`sounds`, 56)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `animals:bear` | Рёв медведя |  |  | `animals/bear` | 0 / 0 | ок |
-| `animals:boar` | Хрюканье кабана |  |  | `animals/boar` | 0 / 0 | ок |
-| `animals:cat` | Мяуканье |  |  | `animals/cat` | 0 / 0 | ок |
-| `animals:crow` | Карканье |  |  | `animals/crow` | 0 / 0 | ок |
-| `animals:deer` | Крик оленя |  |  | `animals/deer` | 0 / 0 | ок |
-| `animals:duck` | Кряканье |  |  | `animals/duck` | 0 / 0 | ок |
-| `animals:fox` | Лай лисы |  |  | `animals/fox` | 0 / 0 | ок |
-| `animals:frog` | Кваканье |  |  | `animals/frog` | 0 / 0 | ок |
-| `animals:hedgehog` | Фырканье ежа |  |  | `animals/hedgehog` | 0 / 0 | ок |
-| `animals:owl` | Сова |  |  | `animals/owl` | 0 / 0 | ок |
-| `animals:rabbit` | Писк кролика |  |  | `animals/rabbit` | 0 / 0 | ок |
-| `animals:sparrow` | Чириканье |  |  | `animals/sparrow` | 0 / 0 | ок |
-| `animals:bird` | Птицы |  |  | `animals/sparrow` | 0 / 0 | ок |
-| `animals:squirrel` | Цоканье белки |  |  | `animals/squirrel` | 0 / 0 | ок |
-| `animals:wolf_howl` | Вой волка |  |  | `animals/wolf` | 0 / 0 | ок |
-| `animals:wolf_growl` | Рык волка |  |  | `animals/wolf` | 0 / 0 | ок |
-| `materials:knock` | Стук по доскам |  |  | `materials/planks` | 0 / 0 | ок |
-| `music:note_pluck` | Нота, щипок |  |  | `music` | 0 / 0 | ок |
-| `music:note_bell` | Нота, колокольчик |  |  | `music` | 0 / 0 | ок |
-| `music:pad` | Протяжный тон |  |  | `music` | 0 / 0 | ок |
-| `resources:step_sand` | Шаг по песку |  |  | `resources/soil` | 0 / 0 | ок |
-| `plants:chop` | Удар по дереву |  |  | `plants/wood` | 0 / 0 | ок |
-| `plants:rustle` | Шорох листьев |  |  | `plants/wood` | 0 / 0 | ок |
-| `plants:step_wood` | Шаг по дереву |  |  | `plants/wood` | 0 / 0 | ок |
-| `sounds:wind` | Ветер |  |  | `sounds/nature` | 0 / 0 | ок |
-| `sounds:rain` | Дождь |  |  | `sounds/nature` | 0 / 0 | ок |
-| `sounds:hail` | Град |  |  | `sounds/nature` | 0 / 0 | ок |
-| `sounds:blizzard` | Метель |  |  | `sounds/nature` | 0 / 0 | ок |
-| `sounds:water` | Вода |  |  | `sounds/nature` | 0 / 0 | ок |
-| `sounds:fire` | Костёр |  |  | `sounds/nature` | 0 / 0 | ок |
-| `sounds:crickets` | Сверчки |  |  | `sounds/nature` | 0 / 0 | ок |
-| `sounds:thunder` | Гром |  |  | `sounds/nature` | 0 / 0 | ок |
-| `sounds:step_grass` | Шаг по траве |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:step_dirt` | Шаг по земле |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:step_stone` | Шаг по камню |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:step_snow` | Шаг по снегу |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:step_water` | Шаг по воде |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:swim` | Гребок |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:jump` | Прыжок |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:land` | Приземление |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:land_snow` | Приземление в снег |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:splash` | Всплеск |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:dig` | Копание |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:hit_stone` | Удар по камню |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:place` | Блок поставлен |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:pickup` | Подбор |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:craft` | Сделано |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:eat` | Еда |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:ignite` | Огонь зажжён |  |  | `sounds/player` | 0 / 0 | ок |
-| `sounds:click` | Кнопка |  |  | `sounds/ui` | 0 / 0 | ок |
-| `sounds:tab` | Вкладка |  |  | `sounds/ui` | 0 / 0 | ок |
-| `sounds:open` | Окно открыто |  |  | `sounds/ui` | 0 / 0 | ок |
-| `sounds:close` | Окно закрыто |  |  | `sounds/ui` | 0 / 0 | ок |
-| `sounds:level_up` | Новый уровень навыка |  |  | `sounds/ui` | 0 / 0 | ок |
-| `tools:mow` | Покос |  |  | `tools/scythe` | 0 / 0 | ок |
-| `tools:swish` | Взмах |  |  | `tools/sword` | 0 / 0 | ок |
+| `animals:bear` | [animals.sounds.bear] |  |  | `animals/bear` | 0 / 0 | ок |
+| `animals:boar` | [animals.sounds.boar] |  |  | `animals/boar` | 0 / 0 | ок |
+| `animals:cat` | [animals.sounds.cat] |  |  | `animals/cat` | 0 / 0 | ок |
+| `animals:crow` | [animals.sounds.crow] |  |  | `animals/crow` | 0 / 0 | ок |
+| `animals:deer` | [animals.sounds.deer] |  |  | `animals/deer` | 0 / 0 | ок |
+| `animals:duck` | [animals.sounds.duck] |  |  | `animals/duck` | 0 / 0 | ок |
+| `animals:fox` | [animals.sounds.fox] |  |  | `animals/fox` | 0 / 0 | ок |
+| `animals:frog` | [animals.sounds.frog] |  |  | `animals/frog` | 0 / 0 | ок |
+| `animals:hedgehog` | [animals.sounds.hedgehog] |  |  | `animals/hedgehog` | 0 / 0 | ок |
+| `animals:owl` | [animals.sounds.owl] |  |  | `animals/owl` | 0 / 0 | ок |
+| `animals:rabbit` | [animals.sounds.rabbit] |  |  | `animals/rabbit` | 0 / 0 | ок |
+| `animals:sparrow` | [animals.sounds.sparrow] |  |  | `animals/sparrow` | 0 / 0 | ок |
+| `animals:bird` | [animals.sounds.bird] |  |  | `animals/sparrow` | 0 / 0 | ок |
+| `animals:squirrel` | [animals.sounds.squirrel] |  |  | `animals/squirrel` | 0 / 0 | ок |
+| `animals:wolf_howl` | [animals.sounds.wolf_howl] |  |  | `animals/wolf` | 0 / 0 | ок |
+| `animals:wolf_growl` | [animals.sounds.wolf_growl] |  |  | `animals/wolf` | 0 / 0 | ок |
+| `materials:knock` | [materials.sounds.knock] |  |  | `materials/planks` | 0 / 0 | ок |
+| `music:note_pluck` | [music.sounds.note_pluck] |  |  | `music` | 0 / 0 | ок |
+| `music:note_bell` | [music.sounds.note_bell] |  |  | `music` | 0 / 0 | ок |
+| `music:pad` | [music.sounds.pad] |  |  | `music` | 0 / 0 | ок |
+| `resources:step_sand` | [resources.sounds.step_sand] |  |  | `resources/soil` | 0 / 0 | ок |
+| `plants:chop` | [plants.sounds.chop] |  |  | `plants/wood` | 0 / 0 | ок |
+| `plants:rustle` | [plants.sounds.rustle] |  |  | `plants/wood` | 0 / 0 | ок |
+| `plants:step_wood` | [plants.sounds.step_wood] |  |  | `plants/wood` | 0 / 0 | ок |
+| `sounds:wind` | [sounds.sounds.wind] |  |  | `sounds/nature` | 0 / 0 | ок |
+| `sounds:rain` | [sounds.sounds.rain] |  |  | `sounds/nature` | 0 / 0 | ок |
+| `sounds:hail` | [sounds.sounds.hail] |  |  | `sounds/nature` | 0 / 0 | ок |
+| `sounds:blizzard` | [sounds.sounds.blizzard] |  |  | `sounds/nature` | 0 / 0 | ок |
+| `sounds:water` | [sounds.sounds.water] |  |  | `sounds/nature` | 0 / 0 | ок |
+| `sounds:fire` | [sounds.sounds.fire] |  |  | `sounds/nature` | 0 / 0 | ок |
+| `sounds:crickets` | [sounds.sounds.crickets] |  |  | `sounds/nature` | 0 / 0 | ок |
+| `sounds:thunder` | [sounds.sounds.thunder] |  |  | `sounds/nature` | 0 / 0 | ок |
+| `sounds:step_grass` | [sounds.sounds.step_grass] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:step_dirt` | [sounds.sounds.step_dirt] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:step_stone` | [sounds.sounds.step_stone] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:step_snow` | [sounds.sounds.step_snow] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:step_water` | [sounds.sounds.step_water] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:swim` | [sounds.sounds.swim] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:jump` | [sounds.sounds.jump] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:land` | [sounds.sounds.land] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:land_snow` | [sounds.sounds.land_snow] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:splash` | [sounds.sounds.splash] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:dig` | [sounds.sounds.dig] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:hit_stone` | [sounds.sounds.hit_stone] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:place` | [sounds.sounds.place] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:pickup` | [sounds.sounds.pickup] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:craft` | [sounds.sounds.craft] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:eat` | [sounds.sounds.eat] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:ignite` | [sounds.sounds.ignite] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:click` | [sounds.sounds.click] |  |  | `sounds/ui` | 0 / 0 | ок |
+| `sounds:tab` | [sounds.sounds.tab] |  |  | `sounds/ui` | 0 / 0 | ок |
+| `sounds:open` | [sounds.sounds.open] |  |  | `sounds/ui` | 0 / 0 | ок |
+| `sounds:close` | [sounds.sounds.close] |  |  | `sounds/ui` | 0 / 0 | ок |
+| `sounds:level_up` | [sounds.sounds.level_up] |  |  | `sounds/ui` | 0 / 0 | ок |
+| `tools:mow` | [tools.sounds.mow] |  |  | `tools/scythe` | 0 / 0 | ок |
+| `tools:swish` | [tools.sounds.swish] |  |  | `tools/sword` | 0 / 0 | ок |
 
 ## skills (`skills`, 10)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `core:gathering` | Сбор |  | Ягоды, травы, волокно, плоды и покос. Быстрее собирает, иногда берёт на одну больше. | `core` | 0 / 0 | ок |
-| `core:chopping` | Рубка |  | Деревья и кусты топором. Быстрее рубит, тратит меньше сил, иногда снимает лишнее бревно. | `core` | 0 / 0 | ок |
-| `core:digging` | Копание |  | Земля, песок, камень и руда. Быстрее копает. Выкопать поставленное своими руками опыта не даёт. | `core` | 0 / 0 | ок |
-| `core:crafting` | Ремесло |  | Вещи на руках, у верстака, печи и горна. Быстрее делает, инструменты и одежда выходят прочнее. | `core` | 0 / 0 | ок |
-| `core:building` | Стройка |  | Стены, пол, чертёж и мебель. Быстрее строит. | `core` | 0 / 0 | ок |
-| `core:cooking` | Готовка |  | Жарка, похлёбка, хлеб и всё, что готовят на огне. Быстрее готовит, иногда выходит порция больше. | `core` | 0 / 0 | ок |
-| `core:hunting` | Охота |  | Звери оружием и руками. Быстрее и сильнее бьёт, при разделке туши иногда выходит больше мяса. | `core` | 0 / 0 | ок |
-| `core:fishing` | Рыбалка |  | Рыба на удочку. Иногда вытаскивает две. | `core` | 0 / 0 | ок |
-| `core:swimming` | Плавание |  | Растёт, пока плывёшь. Быстрее плывёт (потом и на плотах, лодках). | `core` | 0 / 0 | ок |
-| `core:farming` | Земледелие |  | Грядки тяпкой, посев, полив и урожай. Быстрее работает на грядках, иногда собирает на одну больше. | `core` | 0 / 0 | ок |
+| `core:gathering` | [core.skills.gathering] |  | [core.skills.gathering.about] | `core` | 0 / 0 | ок |
+| `core:chopping` | [core.skills.chopping] |  | [core.skills.chopping.about] | `core` | 0 / 0 | ок |
+| `core:digging` | [core.skills.digging] |  | [core.skills.digging.about] | `core` | 0 / 0 | ок |
+| `core:crafting` | [core.skills.crafting] |  | [core.skills.crafting.about] | `core` | 0 / 0 | ок |
+| `core:building` | [core.skills.building] |  | [core.skills.building.about] | `core` | 0 / 0 | ок |
+| `core:cooking` | [core.skills.cooking] |  | [core.skills.cooking.about] | `core` | 0 / 0 | ок |
+| `core:hunting` | [core.skills.hunting] |  | [core.skills.hunting.about] | `core` | 0 / 0 | ок |
+| `core:fishing` | [core.skills.fishing] |  | [core.skills.fishing.about] | `core` | 0 / 0 | ок |
+| `core:swimming` | [core.skills.swimming] |  | [core.skills.swimming.about] | `core` | 0 / 0 | ок |
+| `core:farming` | [core.skills.farming] |  | [core.skills.farming.about] | `core` | 0 / 0 | ок |

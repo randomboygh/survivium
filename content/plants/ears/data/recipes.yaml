@@ -1,13 +1,13 @@
 # Рецепты мода «Растения»: что делают из зерна, мха и грибов. Поля рецепта — docs/DATA_MODEL.md;
 # волокно — «Ресурсов», печь — «Инструментов», костёр — основы.
 - id: flour
-  title: Мука
+  title: "[plants.recipes.flour]"
   makes: flour
   needs: {grain: 4}
   process: refine
   time: 4
 - id: flatbread
-  title: Лепёшка
+  title: "[plants.recipes.flatbread]"
   makes: flatbread
   needs: {flour: 2}
   at: tools:kiln

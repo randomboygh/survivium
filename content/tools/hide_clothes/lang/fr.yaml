@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hide_clothes/bundle.yaml
-"Одежда из шкур": "Vêtements de peau"
+"[tools.hide_clothes.bundle]": "Vêtements de peau"
 
 # content/tools/hide_clothes/data/items.yaml
-"Меховая шапка": "Bonnet de fourrure"
-"Шапка из шкуры мехом внутрь. Держит тепло головы в мороз.": "Un bonnet de peau, fourrure à l'intérieur. Garde la tête au chaud dans le gel."
-"Шуба": "Manteau de fourrure"
-"Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна.": "Un long vêtement de peaux, fourrure à l'intérieur. Avec lui, une nuit d'hiver ne fait pas peur."
-"Кожаные штаны": "Pantalon de cuir"
-"Штаны из выделанной кожи. Не продуваются ветром.": "Un pantalon de cuir tanné. Le vent ne le traverse pas."
-"Унты": "Bottes de fourrure"
-"Высокие сапоги из шкуры на кожаной подошве.": "Hautes bottes de peau à semelle de cuir."
+"[tools.items.fur_hat]": "Bonnet de fourrure"
+"[tools.items.fur_hat.about]": "Un bonnet de peau, fourrure à l'intérieur. Garde la tête au chaud dans le gel."
+"[tools.items.fur_coat]": "Manteau de fourrure"
+"[tools.items.fur_coat.about]": "Un long vêtement de peaux, fourrure à l'intérieur. Avec lui, une nuit d'hiver ne fait pas peur."
+"[tools.items.leather_trousers]": "Pantalon de cuir"
+"[tools.items.leather_trousers.about]": "Un pantalon de cuir tanné. Le vent ne le traverse pas."
+"[tools.items.fur_boots]": "Bottes de fourrure"
+"[tools.items.fur_boots.about]": "Hautes bottes de peau à semelle de cuir."
+
+# content/tools/hide_clothes/data/recipes.yaml
+"[tools.recipes.fur_hat]": "Bonnet de fourrure"
+"[tools.recipes.fur_coat]": "Manteau de fourrure"
+"[tools.recipes.leather_trousers]": "Pantalon de cuir"
+"[tools.recipes.fur_boots]": "Bottes de fourrure"

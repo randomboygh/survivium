@@ -6,7 +6,7 @@
 # клетки 2×2 (workbench, kiln, chest), и её флаги: storage, fire, repairs, serves, place_tool;
 # model — её воксельная модель (models/<model>.png).
 - id: wooden_shovel
-  title: Деревянная лопата
+  title: "[tools.items.wooden_shovel]"
   weight: 1.2
   stack: 1
   model: shovel
@@ -20,7 +20,7 @@
   durability: 300
   repair: {materials:planks: 1}
 - id: copper_shovel
-  title: Медная лопата
+  title: "[tools.items.copper_shovel]"
   weight: 1.6
   stack: 1
   model: copper_shovel
@@ -34,7 +34,7 @@
   durability: 900
   repair: {materials:copper_bar: 1}
 - id: bronze_shovel
-  title: Бронзовая лопата
+  title: "[tools.items.bronze_shovel]"
   weight: 1.7
   stack: 1
   model: bronze_shovel
@@ -48,7 +48,7 @@
   durability: 1500
   repair: {materials:bronze_bar: 1}
 - id: iron_shovel
-  title: Железная лопата
+  title: "[tools.items.iron_shovel]"
   weight: 1.9
   stack: 1
   model: iron_shovel
@@ -62,7 +62,7 @@
   durability: 2400
   repair: {materials:iron_bar: 1}
 - id: steel_shovel
-  title: Стальная лопата
+  title: "[tools.items.steel_shovel]"
   weight: 1.9
   stack: 1
   model: steel_shovel

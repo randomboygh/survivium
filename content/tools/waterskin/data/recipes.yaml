@@ -1,6 +1,6 @@
 # Рецепт бандла «Бурдюк»: кожу («Материалы», бандл «Кожа») и верёвку шьют иглой (класс needle, бандл «Игла»).
 - id: waterskin
-  title: Бурдюк
+  title: "[tools.recipes.waterskin]"
   makes: waterskin
   needs: {materials:leather: 1, materials:cord: 1}
   tools: [needle]

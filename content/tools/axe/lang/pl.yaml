@@ -2,14 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/axe/bundle.yaml
-"Топор": "Siekiera"
+"[tools.axe.bundle]": "Siekiera"
 
 # content/tools/axe/data/items.yaml
-"Каменный топор": "Kamienna siekiera"
-"Медный топор": "Miedziana siekiera"
-"Бронзовый топор": "Brązowa siekiera"
-"Железный топор": "Żelazna siekiera"
-"Стальной топор": "Stalowa siekiera"
+"[tools.items.stone_axe]": "Kamienna siekiera"
+"[tools.items.copper_axe]": "Miedziana siekiera"
+"[tools.items.bronze_axe]": "Brązowa siekiera"
+"[tools.items.iron_axe]": "Żelazna siekiera"
+"[tools.items.steel_axe]": "Stalowa siekiera"
 
 # content/tools/axe/data/recipes.yaml
-"Доски": "Deski"
+"[tools.recipes.stone_axe]": "Kamienna siekiera"
+"[tools.recipes.planks]": "Deski"
+"[tools.recipes.copper_axe]": "Miedziana siekiera"
+"[tools.recipes.bronze_axe]": "Brązowa siekiera"
+"[tools.recipes.iron_axe]": "Żelazna siekiera"
+"[tools.recipes.steel_axe]": "Stalowa siekiera"

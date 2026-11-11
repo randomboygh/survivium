@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/wicker_bag/bundle.yaml
-"Плетёная котомка": "Zurrón trenzado"
+"[tools.wicker_bag.bundle]": "Zurrón trenzado"
 
 # content/tools/wicker_bag/data/items.yaml
-"Котомка из волокна на верёвочных лямках. Надетая за спину, даёт ещё 8 ячеек.": "Un zurrón de fibra con correas de cuerda. Puesto a la espalda, da 8 casillas más."
+"[tools.items.wicker_bag]": "Zurrón trenzado"
+"[tools.items.wicker_bag.about]": "Un zurrón de fibra con correas de cuerda. Puesto a la espalda, da 8 casillas más."
+
+# content/tools/wicker_bag/data/recipes.yaml
+"[tools.recipes.wicker_bag]": "Zurrón trenzado"

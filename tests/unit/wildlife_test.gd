@@ -325,7 +325,7 @@ func _test_fishing(w: WorldData) -> void:
 	var fish := _animal(life, "animals:roach", Vector3(px + 8.5, top - Wildlife.DIP * WorldData.CELL, pz + side - 8.0) * WorldData.CELL)
 	var done := actions.fish(who)
 	_check(who.line.is_finite() and done.get("line", Vector3.INF) == who.line and fishing.has_line(who)
-		and who.inventory.count("tools:bait") == 1 and is_equal_approx(who.line.y, top) and not "Рядом с поплавком не видно рыбы" in who.said,
+		and who.inventory.count("tools:bait") == 1 and is_equal_approx(who.line.y, top) and not "No fish to be seen near the float" in who.said,
 		"a rod cast from the shore lays the float on the water, bait on the hook (%v)" % who.line)
 	var t := 0.0
 	while not who.bite and t < 30.0:
@@ -341,7 +341,7 @@ func _test_fishing(w: WorldData) -> void:
 	actions.fish(who)
 	fishing.step(0.05)
 	actions.fish(who)
-	_check(who.inventory.count("tools:bait") == 1 and not fishing.has_line(who) and "Не клюнуло" in who.said,
+	_check(who.inventory.count("tools:bait") == 1 and not fishing.has_line(who) and "No bite" in who.said,
 		"pulled before a bite, the line comes out empty and the bait back into the bag")
 	actions.fish(who)
 	who.position += Vector3(2.0, 0.0, 0.0)
@@ -353,7 +353,7 @@ func _test_fishing(w: WorldData) -> void:
 	done = actions.fish(who)
 	var under := life.under_ice(px * WorldData.CELL + 1.0, pz * WorldData.CELL + 1.0)
 	var roach: Dictionary = AiRules.SPECIES["animals:roach"]
-	_check(not fishing.has_line(who) and "Вода замёрзла: рыба подо льдом не клюёт" in who.said
+	_check(not fishing.has_line(who) and "The water is frozen: fish under the ice don't bite" in who.said
 		and is_equal_approx(under, 5.0 * WorldData.CELL)
 		and life._floor(roach, px * WorldData.CELL + 1.0, pz * WorldData.CELL + 1.0) < under
 		and life.water_top(px * WorldData.CELL + 1.0, pz * WorldData.CELL + 1.0) == -INF,
@@ -626,7 +626,7 @@ func _test_shooting(w: WorldData, life: Wildlife, actions: WorldActions, person:
 	deer.health = AiRules.SPECIES["animals:deer"].health
 	person.item = "tools:wooden_bow"
 	person.inventory.add("tools:wooden_bow", 1)
-	_check(actions.shoot(person).get("swing", 0.0) == WorldActions.IDLE_SWING and person.said.back().begins_with("Нечем стрелять"),
+	_check(actions.shoot(person).get("swing", 0.0) == WorldActions.IDLE_SWING and person.said.back().begins_with("Nothing to shoot"),
 		"a bow with no arrows only says so")
 	person.inventory.add("tools:arrow", 3)
 	var was := deer.health
@@ -932,14 +932,14 @@ func _test_attacks(w: WorldData) -> void:
 	var boar := _animal(life, "animals:boar", at)
 	boar.health = spec.health
 	life.update(0.05)
-	_check(boar.state == "warn" and who.said.back().begins_with("Кабан угрожает"), "a boar growls at one who comes close (%s)" % boar.state)
+	_check(boar.state == "warn" and who.said.back().begins_with("Boar is threatening"), "a boar growls at one who comes close (%s)" % boar.state)
 	var start := Time.get_ticks_msec()
 	var seen := {}
 	while Time.get_ticks_msec() - start < 20000 and bitten.size() < 2:
 		life.update(0.05)
 		seen[boar.state] = true
 	_check(seen.has("charge") and seen.has("bite") and bitten.size() == 2
-		and is_equal_approx(who.vitals.health, Vitals.MAX - 2.0 * spec.bite) and who.said.back() == "Кабан нападает!",
+		and is_equal_approx(who.vitals.health, Vitals.MAX - 2.0 * spec.bite) and who.said.back() == "Boar attacks!",
 		"it goes for them, leaps and bites twice (health %.0f)" % who.vitals.health)
 	_check(boar.foe == null and boar.calm > 0.0 and boar.state != "charge", "then it is done and lets them be")
 	for i in 40:
@@ -998,4 +998,4 @@ func _test_attacks(w: WorldData) -> void:
 	for i in 20:
 		life.update(0.05)
 	_check(boar.state != "warn" and boar.foe == null, "with the attacks off a boar lets people be (%s)" % boar.state)
-	_check(Survivor.cause_text("animal:animals:wolf") == ["Вас загрыз зверь", "волк"], "death by a wolf is told")
+	_check(Survivor.cause_text("animal:animals:wolf").map(Lang.t) == ["An animal mauled you", "Wolf"], "death by a wolf is told")

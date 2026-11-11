@@ -1,18 +1,18 @@
 # Рецепты бандла «Тяпка»: каменную вяжут руками, медную делают на верстаке, железную — на
 # наковальне. Кремень и ветка — «Ресурсы», верёвка, доски и слитки — «Материалы».
 - id: stone_hoe
-  title: Каменная тяпка
+  title: "[tools.recipes.stone_hoe]"
   makes: stone_hoe
   needs: {resources:flint: 1, resources:branch: 1, materials:cord: 1}
   time: 4
 - id: copper_hoe
-  title: Медная тяпка
+  title: "[tools.recipes.copper_hoe]"
   makes: copper_hoe
   needs: {materials:copper_bar: 1, materials:planks: 1}
   at: workbench
   time: 5
 - id: iron_hoe
-  title: Железная тяпка
+  title: "[tools.recipes.iron_hoe]"
   makes: iron_hoe
   needs: {materials:iron_bar: 1, materials:planks: 1}
   at: anvil

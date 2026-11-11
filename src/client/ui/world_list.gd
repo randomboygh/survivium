@@ -45,7 +45,7 @@ func _ready() -> void:
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 8)
 	_panel.add_child(outer)
-	var title := UiStyle.label("Загрузить мир", UiStyle.ACCENT)
+	var title := UiStyle.label("[load_a_world]", UiStyle.ACCENT)
 	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outer.add_child(title)
@@ -59,7 +59,7 @@ func _ready() -> void:
 	# A finger dragged over the world buttons scrolls them too.
 	DragScroll.attach(_scroll)
 	var back := Button.new()
-	back.text = "Назад"
+	back.text = "[back]"
 	back.focus_mode = Control.FOCUS_NONE
 	# Across the panel, as wide as the rows over it.
 	back.custom_minimum_size = Vector2(0, 36)
@@ -78,7 +78,7 @@ func _fill() -> void:
 	_armed = null
 	var worlds := WorldStore.list_worlds()
 	if worlds.is_empty():
-		var none := UiStyle.label("Сохранённых миров пока нет", UiStyle.MUTED)
+		var none := UiStyle.label("[no_saved_worlds_yet]", UiStyle.MUTED)
 		none.custom_minimum_size = Vector2(ROW_WIDTH + DELETE_WIDTH + 4, ROW_H)
 		none.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_rows.add_child(none)
@@ -88,12 +88,12 @@ func _fill() -> void:
 		row.add_theme_constant_override("separation", 4)
 		_rows.add_child(row)
 		var pick := Button.new()
-		pick.text = Lang.f("зерно %d\n%s · день %d", [w.seed, _kind(w.settings), w.day])
+		pick.text = Lang.f("[seed_day]", [w.seed, _kind(w.settings), w.day])
 		if w.seed == WorldStore.TEST_SEED:
-			pick.text = Lang.f("Тестовый мир\nплощадки · день %d", [w.day])
-		pick.tooltip_text = Lang.f("Сохранён %s, в игре %d мин", [w.saved.replace("T", " "), int(w.played / 60.0)])
+			pick.text = Lang.f("[test_world_grounds_day]", [w.day])
+		pick.tooltip_text = Lang.f("[saved_played_min]", [w.saved.replace("T", " "), int(w.played / 60.0)])
 		if not w.mods.is_empty():
-			pick.tooltip_text += Lang.f("\nМоды: %s", [Mods.summary(Mods.expand(w.mods))])
+			pick.tooltip_text += Lang.f("[mods]", [Mods.summary(Mods.expand(w.mods))])
 		pick.focus_mode = Control.FOCUS_NONE
 		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		pick.custom_minimum_size = Vector2(ROW_WIDTH, ROW_H)
@@ -111,14 +111,14 @@ func _fill() -> void:
 		del.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		del.custom_minimum_size = Vector2(DELETE_WIDTH, ROW_H)
 		if w.seed == WorldStore.TEST_SEED:
-			del.tooltip_text = "Вернуть тестовый мир к началу (нажать дважды)"
+			del.tooltip_text = "[reset_the_test_world_tap]"
 			del.pressed.connect(func() -> void: _reset(del))
 		elif current:
 			# The world being played stays.
-			del.tooltip_text = "Мир сейчас в игре"
+			del.tooltip_text = "[this_world_is_being_played]"
 			del.disabled = true
 		else:
-			del.tooltip_text = "Удалить мир (нажать дважды)"
+			del.tooltip_text = "[delete_the_world_tap_twice]"
 			var dir: String = w.dir
 			del.pressed.connect(func() -> void: _delete(del, dir))
 		row.add_child(del)
@@ -165,7 +165,7 @@ static func _kind(settings: Dictionary) -> String:
 	for k: Array in WorldSetup.KINDS:
 		if k[1] == now:
 			return Lang.t(k[0]).to_lower()
-	return Lang.t("свой")
+	return Lang.t("[custom_world]")
 
 
 func _fit() -> void:

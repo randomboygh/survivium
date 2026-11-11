@@ -1,8 +1,8 @@
 # Жареные жёлуди: свой бандл, чтобы дуб не зависел от гончарного круга «Инструментов».
 # Их калят на костре в глиняном горшке, сырые есть нельзя.
 - id: roasted_acorns
-  title: Жареные жёлуди
-  description: Жёлуди, прокалённые в горшке на костре. Сытные, но горьковатые.
+  title: "[plants.items.roasted_acorns]"
+  description: "[plants.items.roasted_acorns.about]"
   weight: 0.1
   stack: 20
   food: 15

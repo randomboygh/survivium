@@ -1,7 +1,7 @@
 # Железная руда: жилы в камне (role: ore), твёрже оловянной: её берёт бронзовая кирка и лучше
 # (hardness 4). Поля — как у материалов основы (content/core/data/materials.yaml).
 - id: iron_ore
-  title: Железная руда
+  title: "[materials.materials.iron_ore]"
   role: ore
   veins: 0.6
   priority: 2

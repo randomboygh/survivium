@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hide_clothes/bundle.yaml
-"Одежда из шкур": "Post giysiler"
+"[tools.hide_clothes.bundle]": "Post giysiler"
 
 # content/tools/hide_clothes/data/items.yaml
-"Меховая шапка": "Kürk başlık"
-"Шапка из шкуры мехом внутрь. Держит тепло головы в мороз.": "Tüyü içe dönük posttan bir başlık. Ayazda başı sıcak tutar."
-"Шуба": "Kürk palto"
-"Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна.": "Tüyü içe dönük postlardan uzun bir giysi. Onunla kış gecesinden korkulmaz."
-"Кожаные штаны": "Deri pantolon"
-"Штаны из выделанной кожи. Не продуваются ветром.": "Tabaklanmış deriden pantolon. Rüzgâr içinden geçmez."
-"Унты": "Kürk çizme"
-"Высокие сапоги из шкуры на кожаной подошве.": "Deri tabanlı, posttan yüksek çizmeler."
+"[tools.items.fur_hat]": "Kürk başlık"
+"[tools.items.fur_hat.about]": "Tüyü içe dönük posttan bir başlık. Ayazda başı sıcak tutar."
+"[tools.items.fur_coat]": "Kürk palto"
+"[tools.items.fur_coat.about]": "Tüyü içe dönük postlardan uzun bir giysi. Onunla kış gecesinden korkulmaz."
+"[tools.items.leather_trousers]": "Deri pantolon"
+"[tools.items.leather_trousers.about]": "Tabaklanmış deriden pantolon. Rüzgâr içinden geçmez."
+"[tools.items.fur_boots]": "Kürk çizme"
+"[tools.items.fur_boots.about]": "Deri tabanlı, posttan yüksek çizmeler."
+
+# content/tools/hide_clothes/data/recipes.yaml
+"[tools.recipes.fur_hat]": "Kürk başlık"
+"[tools.recipes.fur_coat]": "Kürk palto"
+"[tools.recipes.leather_trousers]": "Deri pantolon"
+"[tools.recipes.fur_boots]": "Kürk çizme"

@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hide_clothes/bundle.yaml
-"Одежда из шкур": "Fellkleidung"
+"[tools.hide_clothes.bundle]": "Fellkleidung"
 
 # content/tools/hide_clothes/data/items.yaml
-"Меховая шапка": "Fellmütze"
-"Шапка из шкуры мехом внутрь. Держит тепло головы в мороз.": "Eine Mütze aus Fell, das Haar nach innen. Hält den Kopf im Frost warm."
-"Шуба": "Fellmantel"
-"Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна.": "Ein langes Gewand aus Fellen, das Haar nach innen. Damit schreckt keine Winternacht."
-"Кожаные штаны": "Lederhose"
-"Штаны из выделанной кожи. Не продуваются ветром.": "Eine Hose aus gegerbtem Leder. Der Wind bläst nicht hindurch."
-"Унты": "Fellstiefel"
-"Высокие сапоги из шкуры на кожаной подошве.": "Hohe Stiefel aus Fell mit Ledersohle."
+"[tools.items.fur_hat]": "Fellmütze"
+"[tools.items.fur_hat.about]": "Eine Mütze aus Fell, das Haar nach innen. Hält den Kopf im Frost warm."
+"[tools.items.fur_coat]": "Fellmantel"
+"[tools.items.fur_coat.about]": "Ein langes Gewand aus Fellen, das Haar nach innen. Damit schreckt keine Winternacht."
+"[tools.items.leather_trousers]": "Lederhose"
+"[tools.items.leather_trousers.about]": "Eine Hose aus gegerbtem Leder. Der Wind bläst nicht hindurch."
+"[tools.items.fur_boots]": "Fellstiefel"
+"[tools.items.fur_boots.about]": "Hohe Stiefel aus Fell mit Ledersohle."
+
+# content/tools/hide_clothes/data/recipes.yaml
+"[tools.recipes.fur_hat]": "Fellmütze"
+"[tools.recipes.fur_coat]": "Fellmantel"
+"[tools.recipes.leather_trousers]": "Lederhose"
+"[tools.recipes.fur_boots]": "Fellstiefel"

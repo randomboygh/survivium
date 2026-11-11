@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/biomes/tundra/bundle.yaml
+"[biomes.tundra.bundle]": "Тундра"
+
+# content/biomes/tundra/data/biomes.yaml
+"[biomes.biomes.tundra]": "Тундра"

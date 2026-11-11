@@ -2,9 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hatch/bundle.yaml
-"Люк": "Trampilla"
+"[tools.hatch.bundle]": "Trampilla"
 
 # content/tools/hatch/data/items.yaml
-"Крышка из досок для дыры в полу или потолке. Касание открывает и закрывает.": "Una tapa de tablas para un hueco en el suelo o el techo. Un toque la abre y la cierra."
-"Люк 2×2": "Trampilla 2×2"
-"Широкая крышка из досок для дыры в полу на две клетки в ширину и две в глубину.": "Una tapa ancha de tablas para un hueco en el suelo, de dos celdas de ancho y dos de fondo."
+"[tools.items.hatch]": "Trampilla"
+"[tools.items.hatch.about]": "Una tapa de tablas para un hueco en el suelo o el techo. Un toque la abre y la cierra."
+"[tools.items.hatch_2x2]": "Trampilla 2×2"
+"[tools.items.hatch_2x2.about]": "Una tapa ancha de tablas para un hueco en el suelo, de dos celdas de ancho y dos de fondo."
+
+# content/tools/hatch/data/recipes.yaml
+"[tools.recipes.hatch]": "Trampilla"
+"[tools.recipes.hatch_2x2]": "Trampilla 2×2"

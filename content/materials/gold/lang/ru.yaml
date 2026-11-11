@@ -1,0 +1,21 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/gold/bundle.yaml
+"[materials.gold.bundle]": "Золото"
+
+# content/materials/gold/data/items.yaml
+"[materials.items.gold_ore]": "Золотая руда"
+"[materials.items.gold_ore.about]": "Кварц с жёлтыми прожилками золота. Её берёт бронзовая кирка."
+"[materials.items.gold_bar]": "Золотой слиток"
+"[materials.items.gold_bar.about]": "Тяжёлый мягкий жёлтый металл. Из слитков складывают золотые блоки."
+"[materials.items.gold_block]": "Золотой блок"
+"[materials.items.gold_block.about]": "Блестящий жёлтый блок для построек."
+
+# content/materials/gold/data/materials.yaml
+"[materials.materials.gold_ore]": "Золотая руда"
+"[materials.materials.gold_block]": "Золотой блок"
+
+# content/materials/gold/data/recipes.yaml
+"[materials.recipes.gold_bar]": "Золотой слиток"
+"[materials.recipes.gold_block]": "Золотой блок"

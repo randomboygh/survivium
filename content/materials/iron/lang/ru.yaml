@@ -1,0 +1,20 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/iron/bundle.yaml
+"[materials.iron.bundle]": "Железо"
+
+# content/materials/iron/data/items.yaml
+"[materials.items.iron_ore]": "Железная руда"
+"[materials.items.iron_ore.about]": "Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка."
+"[materials.items.iron_bloom]": "Крица"
+"[materials.items.iron_bloom.about]": "Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка."
+"[materials.items.iron_bar]": "Железный слиток"
+"[materials.items.iron_bar.about]": "Тёмный прочный металл. Из него наковальня и железные инструменты."
+
+# content/materials/iron/data/materials.yaml
+"[materials.materials.iron_ore]": "Железная руда"
+
+# content/materials/iron/data/recipes.yaml
+"[materials.recipes.iron_bloom]": "Крица"
+"[materials.recipes.iron_bar]": "Железный слиток"

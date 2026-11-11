@@ -10,7 +10,7 @@
 # для карты и отчётов. color — цвет на карте. tints — цвета грунта и воды биома вместо их собственных (по
 # именам поля top и water: {sand: "#e6dcbe", water: "#4cc6bc"}). Ссылки на породы и кусты мягкие: без их бандла доля пуста.
 - id: taiga
-  title: Тайга
+  title: "[biomes.biomes.taiga]"
   zone: north
   warmth: [0.2, 0.38]
   trees: {plants:spruce: 0.6, plants:fir: 0.2, plants:larch: 0.12, plants:oak: 0.05, plants:deadwood: 0.03}

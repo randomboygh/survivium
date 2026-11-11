@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/tar_torch/bundle.yaml
-"Смоляной факел": "Katranlı meşale"
+"[tools.tar_torch.bundle]": "Katranlı meşale"
 
 # content/tools/tar_torch/data/items.yaml
-"Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше.": "Katranlı beze sarılmış bir dal. Sıradan meşaleden üç kat uzun yanar ve daha uzağı aydınlatır."
+"[tools.items.tar_torch]": "Katranlı meşale"
+"[tools.items.tar_torch.about]": "Katranlı beze sarılmış bir dal. Sıradan meşaleden üç kat uzun yanar ve daha uzağı aydınlatır."
+
+# content/tools/tar_torch/data/recipes.yaml
+"[tools.recipes.tar_torch]": "Katranlı meşale"

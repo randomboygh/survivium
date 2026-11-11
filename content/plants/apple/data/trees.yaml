@@ -3,7 +3,7 @@
 # рисуется бревном «Древесины». Где порода растёт, говорят биомы (content/biomes), не дерево.
 # seed — яблоко: остаётся от срубленной яблони и собирается руками осенью (seeds).
 - id: apple
-  title: Яблоня
+  title: "[plants.trees.apple]"
   shape: round
   leaf: scales
   leaves: broad

@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ladder/bundle.yaml
+"[tools.ladder.bundle]": "Приставная лестница"
+
+# content/tools/ladder/data/items.yaml
+"[tools.items.ladder]": "Приставная лестница"
+"[tools.items.ladder.about]": "Звено лестницы на клетку высоты. Ставится к стене, звено над звеном; по ней лезут вверх и вниз."
+
+# content/tools/ladder/data/recipes.yaml
+"[tools.recipes.ladder]": "Приставная лестница"

@@ -2,9 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/trap/bundle.yaml
-"Живоловка": "Pułapka żywołowna"
+"[tools.trap.bundle]": "Pułapka żywołowna"
 
 # content/tools/trap/data/items.yaml
-"Клетка из веток с дверцей на сторожке. Положи внутрь морковь или репу, и заяц сам придёт в неё.": "Klatka z gałęzi z opadającymi drzwiczkami. Włóż do środka marchew lub rzepę, a zając sam do niej wejdzie."
-"Пойманный заяц": "Złapany zając"
-"Живой заяц из живоловки. Возьми его в руку и нажми действие, чтобы выпустить: он уже ручной и пойдёт за тобой.": "Żywy zając z pułapki. Weź go do ręki i naciśnij akcję, by go wypuścić: jest już oswojony i pójdzie za tobą."
+"[tools.items.trap]": "Pułapka żywołowna"
+"[tools.items.trap.about]": "Klatka z gałęzi z opadającymi drzwiczkami. Włóż do środka marchew lub rzepę, a zając sam do niej wejdzie."
+"[tools.items.live_rabbit]": "Złapany zając"
+"[tools.items.live_rabbit.about]": "Żywy zając z pułapki. Weź go do ręki i naciśnij akcję, by go wypuścić: jest już oswojony i pójdzie za tobą."
+
+# content/tools/trap/data/recipes.yaml
+"[tools.recipes.trap]": "Pułapka żywołowna"

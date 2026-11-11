@@ -2,7 +2,7 @@
 # текстура коры в textures/ бандла (48×16, как у материала: торец, кора, низ); без поля ствол
 # рисуется бревном «Древесины». Где порода растёт, говорят биомы (content/biomes), не дерево.
 - id: birch
-  title: Берёза
+  title: "[plants.trees.birch]"
   shape: column
   leaf: soft
   leaves: broad

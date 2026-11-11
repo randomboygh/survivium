@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/signs/bundle.yaml
-"Таблички": "Carteles"
+"[tools.signs.bundle]": "Carteles"
 
 # content/tools/signs/data/items.yaml
-"Табличка": "Cartel"
-"Дощечка на колышке. Три строки текста, видно всем, кто подойдёт.": "Una tablilla en una estaca. Tres líneas de texto, visibles para todo el que se acerque."
-"Указатель": "Poste indicador"
-"Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону.": "Una flecha en un poste. Dos líneas de texto; la flecha se puede girar hacia cualquier lado."
-"Доска на стену": "Tablón de pared"
-"Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок.": "Un tablón grande que se cuelga en la pared. Seis líneas de texto, para normas, avisos y notas."
+"[tools.items.sign]": "Cartel"
+"[tools.items.sign.about]": "Una tablilla en una estaca. Tres líneas de texto, visibles para todo el que se acerque."
+"[tools.items.signpost]": "Poste indicador"
+"[tools.items.signpost.about]": "Una flecha en un poste. Dos líneas de texto; la flecha se puede girar hacia cualquier lado."
+"[tools.items.notice_board]": "Tablón de pared"
+"[tools.items.notice_board.about]": "Un tablón grande que se cuelga en la pared. Seis líneas de texto, para normas, avisos y notas."
+
+# content/tools/signs/data/recipes.yaml
+"[tools.recipes.sign]": "Cartel"
+"[tools.recipes.signpost]": "Poste indicador"
+"[tools.recipes.notice_board]": "Tablón de pared"

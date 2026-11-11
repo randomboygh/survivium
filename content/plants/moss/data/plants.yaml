@@ -8,7 +8,7 @@
 # руками, а не срезают (так и пишет подсказка); winter: false — зимой его нет.
 - id: moss
   kind: moss
-  title: Мох
+  title: "[plants.plants.moss]"
   gives: {moss: 1}
   chance: 0.9
   pick: true

@@ -37,7 +37,7 @@ func _test_teams() -> void:
 	_check(not t.accept(3, "Вова", 1, 1.0), "one not invited cannot accept")
 	_check(t.accept(2, "Боря", 1, 2.0) and t.together(1, 2) and t.team_of(1) != 0, "accepting makes a team of the two")
 	var team := t.team_of(1)
-	_check(t.view(2).lead == 1 and t.view(2).name == "Команда Аня" and t.view(2).members == [[1, "Аня"], [2, "Боря"]],
+	_check(t.view(2).lead == 1 and t.view(2).name == "Team Аня" and t.view(2).members == [[1, "Аня"], [2, "Боря"]],
 		"the one who invited leads it, and it is named after them")
 	_check(told.size() == 1 and told[0].has(1) and told[0].has(2), "both are told")
 	_check(t.invite(2, "Боря", 3, 3.0) and t.accept(3, "Вова", 2, 3.5) and t.team_of(3) == team,
@@ -46,7 +46,7 @@ func _test_teams() -> void:
 	_check(t.invite(1, "Аня", 4, 0.0) and t.invites_of(4, Teams.INVITE_TIME + 1.0).is_empty()
 		and not t.accept(4, "Гена", 1, Teams.INVITE_TIME + 1.0), "an invitation left waiting too long is gone")
 	_check(not t.kick(2, 3) and t.kick(1, 3) and t.team_of(3) == 0, "only the lead puts a member out")
-	_check(not t.rename(2, "Лес") and t.rename(1, "  Лесные  ") and t.view(2).name == "Лесные", "only the lead names the team")
+	_check(not t.rename(2, "Forest") and t.rename(1, "  Лесные  ") and t.view(2).name == "Лесные", "only the lead names the team")
 	var saved: Dictionary = JSON.parse_string(JSON.stringify(t.to_dict()))
 	var back := Teams.new()
 	back.from_dict(saved)
@@ -148,7 +148,7 @@ func _test_land() -> void:
 	var copy := Territory.new()
 	copy.take_claims(back.claims_view())
 	copy.take_squares(back.squares_view(), true)
-	_check(copy.squares == back.squares and copy.claims[post].count == 4 and copy.claims[post].name == "Команда Аня",
+	_check(copy.squares == back.squares and copy.claims[post].count == 4 and copy.claims[post].name == "Team Аня",
 		"a client's copy takes what the server tells, named by the team")
 	_check(back.clear_painted() == 3 and back.squares.size() == 1 and back.squares.get(Vector2i(5, 5)) == post
 		and back.claims[post].count == 1 and back.used(1) == 1, "the test page's clearing leaves each post its own square")
@@ -479,8 +479,8 @@ func _test_respawn() -> void:
 		for m: Array in _decoded(link.flush()):
 			if m[0] == Protocol.YOU:
 				told[link.who.id] = m[1].respawns
-	_check(told.get(1, []).size() == 1 and told[1][0][0] == "У своего костра", "its maker is told their own fire: %s" % [told.get(1)])
-	_check(told.get(2, []).size() == 1 and Lang.t(told[2][0][0]) == "У костра «Аня»", "the team the maker's: %s" % [told.get(2)])
+	_check(told.get(1, []).size() == 1 and Lang.t(told[1][0][0]) == "At your campfire", "its maker is told their own fire: %s" % [told.get(1)])
+	_check(told.get(2, []).size() == 1 and Lang.t(told[2][0][0]) == "At “Аня”'s campfire", "the team the maker's: %s" % [told.get(2)])
 	_check(told.get(3, [null]).is_empty() and c.who.respawn_points().size() == 1, "another player none: %s" % [told.get(3)])
 	_check(_ask(b, 1, Protocol.REVIVE, [by + Vector3(0.1, 0.0, 0.0)]) == true and not b.who.is_dead()
 		and b.who.position.distance_to(by) < 0.01, "the team comes back at it")

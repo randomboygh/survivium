@@ -2,4 +2,4 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/mod.yaml
-"Инструменты и крафт": "Attrezzi e fabbricazione"
+"[tools.mod]": "Attrezzi e fabbricazione"

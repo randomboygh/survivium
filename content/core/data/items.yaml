@@ -40,7 +40,7 @@
 # отчётов и поиска (игру они не меняют); provisional — какие её числа предварительные, по именам
 # полей. Запись с id чужой записи заменяет её только с replaces: true, иначе это ошибка.
 - id: campfire
-  title: Костёр
+  title: "[core.items.campfire]"
   era: primitive
   quality_cap: 70
   weight: 3.0
@@ -55,7 +55,7 @@
 # суток она хранится; в холоде дольше). Пока ни на что не идёт, позже — удобрение. source:
 # special — граф видит её и без еды, которая гниёт (в мире без бандлов еды).
 - id: rot
-  title: Гниль
+  title: "[core.items.rot]"
   weight: 0.2
   stack: 50
   icon: rot

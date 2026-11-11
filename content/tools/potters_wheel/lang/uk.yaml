@@ -2,10 +2,16 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/potters_wheel/bundle.yaml
-"Гончарный круг": "Гончарний круг"
+"[tools.potters_wheel.bundle]": "Гончарний круг"
 
 # content/tools/potters_wheel/data/items.yaml
-"Сырой горшок": "Сирий горщик"
-"Вылепленный из глины горшок. Его ещё нужно обжечь в печи.": "Горщик, виліплений із глини. Його ще треба випалити в печі."
-"Глиняный горшок": "Глиняний горщик"
-"Обожжённый горшок. В нём выгоняют смолу и жарят жёлуди; сам он не тратится.": "Випалений горщик. У ньому женуть смолу й смажать жолуді; він не витрачається."
+"[tools.items.potters_wheel]": "Гончарний круг"
+"[tools.items.raw_pot]": "Сирий горщик"
+"[tools.items.raw_pot.about]": "Горщик, виліплений із глини. Його ще треба випалити в печі."
+"[tools.items.pot]": "Глиняний горщик"
+"[tools.items.pot.about]": "Випалений горщик. У ньому женуть смолу й смажать жолуді; він не витрачається."
+
+# content/tools/potters_wheel/data/recipes.yaml
+"[tools.recipes.potters_wheel]": "Гончарний круг"
+"[tools.recipes.raw_pot]": "Сирий горщик"
+"[tools.recipes.pot]": "Глиняний горщик"

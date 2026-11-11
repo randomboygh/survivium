@@ -2,7 +2,7 @@
 # и он становится центром территории своего хозяина и его команды (claims: true; закраска участков
 # вокруг — в режиме «Территория»). Поля — как у предметов основы (content/core/data/items.yaml).
 - id: boundary_post
-  title: Межевой столб
+  title: "[tools.items.boundary_post]"
   era: core:primitive
   weight: 4.0
   stack: 1

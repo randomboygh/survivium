@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sword/bundle.yaml
-"Меч": "Меч"
+"[tools.sword.bundle]": "Меч"
 
 # content/tools/sword/data/items.yaml
-"Деревянный меч": "Дерев'яний меч"
-"Каменный меч": "Кам'яний меч"
-"Медный меч": "Мідний меч"
-"Бронзовый меч": "Бронзовий меч"
-"Железный меч": "Залізний меч"
-"Стальной меч": "Сталевий меч"
+"[tools.items.wooden_sword]": "Дерев'яний меч"
+"[tools.items.stone_sword]": "Кам'яний меч"
+"[tools.items.copper_sword]": "Мідний меч"
+"[tools.items.bronze_sword]": "Бронзовий меч"
+"[tools.items.iron_sword]": "Залізний меч"
+"[tools.items.steel_sword]": "Сталевий меч"
+
+# content/tools/sword/data/recipes.yaml
+"[tools.recipes.wooden_sword]": "Дерев'яний меч"
+"[tools.recipes.stone_sword]": "Кам'яний меч"
+"[tools.recipes.copper_sword]": "Мідний меч"
+"[tools.recipes.bronze_sword]": "Бронзовий меч"
+"[tools.recipes.iron_sword]": "Залізний меч"
+"[tools.recipes.steel_sword]": "Сталевий меч"
 
 # content/tools/sword/data/sounds.yaml
-"Взмах": "Замах"
+"[tools.sounds.swish]": "Замах"

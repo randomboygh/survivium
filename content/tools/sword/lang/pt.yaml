@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sword/bundle.yaml
-"Меч": "Espada"
+"[tools.sword.bundle]": "Espada"
 
 # content/tools/sword/data/items.yaml
-"Деревянный меч": "Espada de madeira"
-"Каменный меч": "Espada de pedra"
-"Медный меч": "Espada de cobre"
-"Бронзовый меч": "Espada de bronze"
-"Железный меч": "Espada de ferro"
-"Стальной меч": "Espada de aço"
+"[tools.items.wooden_sword]": "Espada de madeira"
+"[tools.items.stone_sword]": "Espada de pedra"
+"[tools.items.copper_sword]": "Espada de cobre"
+"[tools.items.bronze_sword]": "Espada de bronze"
+"[tools.items.iron_sword]": "Espada de ferro"
+"[tools.items.steel_sword]": "Espada de aço"
+
+# content/tools/sword/data/recipes.yaml
+"[tools.recipes.wooden_sword]": "Espada de madeira"
+"[tools.recipes.stone_sword]": "Espada de pedra"
+"[tools.recipes.copper_sword]": "Espada de cobre"
+"[tools.recipes.bronze_sword]": "Espada de bronze"
+"[tools.recipes.iron_sword]": "Espada de ferro"
+"[tools.recipes.steel_sword]": "Espada de aço"
 
 # content/tools/sword/data/sounds.yaml
-"Взмах": "Golpe"
+"[tools.sounds.swish]": "Golpe"

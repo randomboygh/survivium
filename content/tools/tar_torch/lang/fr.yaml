@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/tar_torch/bundle.yaml
-"Смоляной факел": "Torche au goudron"
+"[tools.tar_torch.bundle]": "Torche au goudron"
 
 # content/tools/tar_torch/data/items.yaml
-"Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше.": "Une branche enveloppée de toile goudronnée. Brûle trois fois plus longtemps qu'une simple torche et éclaire plus loin."
+"[tools.items.tar_torch]": "Torche au goudron"
+"[tools.items.tar_torch.about]": "Une branche enveloppée de toile goudronnée. Brûle trois fois plus longtemps qu'une simple torche et éclaire plus loin."
+
+# content/tools/tar_torch/data/recipes.yaml
+"[tools.recipes.tar_torch]": "Torche au goudron"

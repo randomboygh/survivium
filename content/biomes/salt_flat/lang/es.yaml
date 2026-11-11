@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/biomes/salt_flat/bundle.yaml
-"Солончак": "Salar"
+"[biomes.salt_flat.bundle]": "Salar"
+
+# content/biomes/salt_flat/data/biomes.yaml
+"[biomes.biomes.salt_flat]": "Salar"

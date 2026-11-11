@@ -39,7 +39,7 @@ const LOG_TALL := 5
 const REFRESH := 0.5
 ## Where players may fight players (Config.pvp), and their words.
 const PVP_MODES := ["off", "land", "all"]
-const PVP_TITLES := ["выключен", "по территориям", "везде"]
+const PVP_TITLES := ["[off_pvp]", "[by_territories]", "[everywhere]"]
 ## Players a server may be set to take.
 const PLAYER_COUNTS := [2, 4, 8, 16, 32]
 
@@ -101,7 +101,7 @@ func _ready() -> void:
 	_room.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_scroll.add_child(_room)
 	_room.add_child(_box)
-	var title := UiStyle.label("Сервер работает" if running() else "Создать сервер", UiStyle.ACCENT)
+	var title := UiStyle.label("[server_running]" if running() else "[create_a_server]", UiStyle.ACCENT)
 	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_box.add_child(title)
@@ -136,7 +136,7 @@ func _build_setup() -> void:
 	for i in _worlds.size():
 		if _worlds[i].seed == game.world_seed and _worlds[i].settings == game.world_options:
 			_world = i
-	var row := _row("Мир")
+	var row := _row("[world_n3]")
 	_arrow(row, "prev", -1)
 	_world_label = UiStyle.label()
 	_world_label.custom_minimum_size = Vector2(WIDTH - NAME_WIDTH - 2 * ARROW - 8, ROW_H)
@@ -145,15 +145,15 @@ func _build_setup() -> void:
 	_world_label.clip_text = true
 	row.add_child(_world_label)
 	_arrow(row, "next", 1)
-	_title = _field("Название", str(cfg.get_value("server", "title", "Survivium")))
+	_title = _field("[title]", str(cfg.get_value("server", "title", "Survivium")))
 	_title.max_length = 32
-	_port = _field("Порт", str(cfg.get_value("server", "port", Protocol.PORT)))
+	_port = _field("[port]", str(cfg.get_value("server", "port", Protocol.PORT)))
 	_port.max_length = 5
 	_port.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
-	_password = _field("Пароль", str(cfg.get_value("server", "password", "")))
-	_password.placeholder_text = "без пароля"
+	_password = _field("[password]", str(cfg.get_value("server", "password", "")))
+	_password.placeholder_text = "[no_password]"
 	_players = int(cfg.get_value("server", "players", 8))
-	row = _row("Игроков")
+	row = _row("[players_max]")
 	var fewer := _arrow_button(row, "prev")
 	fewer.pressed.connect(_step_players.bind(-1))
 	_players_label = UiStyle.label()
@@ -174,21 +174,19 @@ func _build_setup() -> void:
 	row.add_child(_pvp_label)
 	_arrow_button(row, "next").pressed.connect(_step_pvp.bind(1))
 	_tunnel = CheckButton.new()
-	_tunnel.text = "Доступ из интернета"
+	_tunnel.text = "[access_from_the_internet]"
 	_tunnel.focus_mode = Control.FOCUS_NONE
 	_tunnel.button_pressed = bool(cfg.get_value("server", "tunnel", false))
 	_tunnel.custom_minimum_size = Vector2(WIDTH, ROW_H)
 	_box.add_child(_tunnel)
 	_weather = CheckButton.new()
-	_weather.text = "Погода с улицы"
-	_weather.tooltip_text = "Погода в мире — настоящая, там, где этот компьютер"
+	_weather.text = "[real_weather_outside]"
+	_weather.tooltip_text = "[the_weather_in_the_world]"
 	_weather.focus_mode = Control.FOCUS_NONE
 	_weather.button_pressed = bool(cfg.get_value("server", "real_weather", false))
 	_weather.custom_minimum_size = Vector2(WIDTH, ROW_H)
 	_box.add_child(_weather)
-	var note := UiStyle.label("Игроки из домашней сети входят по адресу этого компьютера; "
-		+ "из интернета — через туннель Cloudflare: нужна программа cloudflared рядом с игрой, "
-		+ "аккаунт и роутер не нужны, адрес новый при каждом запуске.", UiStyle.MUTED)
+	var note := UiStyle.label("[players_from_the_home_network]", UiStyle.MUTED)
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.custom_minimum_size = Vector2(WIDTH, 0)
 	_box.add_child(note)
@@ -197,8 +195,8 @@ func _build_setup() -> void:
 	_error.custom_minimum_size = Vector2(WIDTH, 0)
 	_error.visible = game.host_error != ""
 	_box.add_child(_error)
-	_button("Запустить сервер", _start, true)
-	_button("Назад", cancelled.emit)
+	_button("[start_the_server]", _start, true)
+	_button("[back]", cancelled.emit)
 	_show_world()
 	_step_players(0)
 	_step_pvp(0)
@@ -261,16 +259,16 @@ func _button(text: String, action: Callable, accent := false) -> Button:
 
 func _show_world() -> void:
 	if _worlds.is_empty():
-		_world_label.text = Lang.f("%d · новый", [game.settings.values.world_seed])
+		_world_label.text = Lang.f("[new]", [game.settings.values.world_seed])
 		return
 	var w: Dictionary = _worlds[_world]
 	if w.get("new", false):
-		_world_label.text = Lang.f("%d · новый", [w.seed])
+		_world_label.text = Lang.f("[new]", [w.seed])
 		return
 	if w.seed == WorldStore.TEST_SEED:
-		_world_label.text = Lang.f("тестовый · день %d", [w.day])
+		_world_label.text = Lang.f("[test_day]", [w.day])
 		return
-	_world_label.text = Lang.f("%d · день %d", [w.seed, w.day])
+	_world_label.text = Lang.f("[day_n3]", [w.seed, w.day])
 
 
 func _step_players(step: int) -> void:
@@ -289,7 +287,7 @@ func _step_pvp(step: int) -> void:
 func settings() -> Dictionary:
 	var port := int(_port.text) if _port.text.is_valid_int() else 0
 	var out := {"title": _title.text.strip_edges(), "port": port, "max_players": _players,
-		"password": _password.text, "tunnel": _tunnel.button_pressed, "real_weather": _weather.button_pressed, "pvp": PVP_MODES[_pvp], "player": ServerList.player_name() if ServerList.player_name() != "" else "Хозяин"}
+		"password": _password.text, "tunnel": _tunnel.button_pressed, "real_weather": _weather.button_pressed, "pvp": PVP_MODES[_pvp], "player": ServerList.player_name() if ServerList.player_name() != "" else "[host]"}
 	if _worlds.is_empty():
 		out.world = ""
 		out.seed_value = int(game.settings.values.world_seed)
@@ -300,9 +298,9 @@ func settings() -> Dictionary:
 		out.settings = _worlds[_world].settings
 	out.why = ""
 	if port < 1024 or port > 65535:
-		out.why = "Порт — число от 1024 до 65535"
+		out.why = "[the_port_is_a_number]"
 	elif out.title == "":
-		out.why = "Введите название"
+		out.why = "[enter_a_title]"
 	return out
 
 
@@ -324,26 +322,26 @@ func _build_running() -> void:
 	var node: Node = game.hosted
 	_state = UiStyle.label("", UiStyle.INK)
 	_box.add_child(_state)
-	var where := UiStyle.label("Адрес для друзей в домашней сети:", UiStyle.MUTED)
+	var where := UiStyle.label("[address_for_friends_on_the]", UiStyle.MUTED)
 	_box.add_child(where)
 	var addresses := addresses_of(node.config.port)
 	for a: String in addresses:
 		_box.add_child(UiStyle.label(a, UiStyle.ACCENT))
 	if addresses.is_empty():
-		_box.add_child(UiStyle.label("сети нет: только этот компьютер", UiStyle.MUTED))
+		_box.add_child(UiStyle.label("[no_network_this_computer_only]", UiStyle.MUTED))
 	else:
-		var copy := _button("Скопировать адрес", func() -> void:
+		var copy := _button("[copy_the_address]", func() -> void:
 			DisplayServer.clipboard_set(addresses[0]))
 		copy.tooltip_text = addresses[0]
 	if node.tunnel != null:
-		_box.add_child(UiStyle.label("Из интернета:", UiStyle.MUTED))
+		_box.add_child(UiStyle.label("[from_the_internet]", UiStyle.MUTED))
 		_tunnel_label = UiStyle.label("", UiStyle.ACCENT)
 		_tunnel_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_tunnel_label.custom_minimum_size = Vector2(WIDTH, 0)
 		_box.add_child(_tunnel_label)
-		_tunnel_copy = _button("Скопировать ссылку", func() -> void:
+		_tunnel_copy = _button("[copy_the_link]", func() -> void:
 			DisplayServer.clipboard_set(node.tunnel.link()))
-	_box.add_child(UiStyle.label("Игроки", UiStyle.MUTED))
+	_box.add_child(UiStyle.label("[players]", UiStyle.MUTED))
 	_people = VBoxContainer.new()
 	_people.add_theme_constant_override("separation", 4)
 	_box.add_child(_people)
@@ -361,7 +359,7 @@ func _build_running() -> void:
 	_log_scroll.add_child(_log)
 	# The host's commands, as in the terminal; what they answer goes into the log.
 	var command := LineEdit.new()
-	command.placeholder_text = "команда: help — список"
+	command.placeholder_text = "[command_help_the_list]"
 	command.custom_minimum_size = Vector2(WIDTH, ROW_H)
 	command.text_submitted.connect(func(line: String) -> void:
 		if line.strip_edges() == "":
@@ -373,9 +371,9 @@ func _build_running() -> void:
 		_clock = 0.0)
 	TextField.fit(command)
 	_box.add_child(command)
-	_button("Играть", play.emit, true)
-	_stop = _button("Остановить сервер", _ask_stop)
-	_button("Назад", cancelled.emit)
+	_button("[play]", play.emit, true)
+	_stop = _button("[stop_the_server]", _ask_stop)
+	_button("[back]", cancelled.emit)
 	_refresh()
 
 
@@ -391,12 +389,12 @@ static func addresses_of(port: int) -> Array[String]:
 
 ## The first tap asks, the second stops the server.
 func _ask_stop() -> void:
-	if _stop.text != "Точно остановить?":
-		_stop.text = "Точно остановить?"
+	if _stop.text != "[stop_it_for_sure]":
+		_stop.text = "[stop_it_for_sure]"
 		UiStyle.arm(_stop, true)
 		return
 	_stop.disabled = true
-	_stop.text = "Останавливается…"
+	_stop.text = "[stopping]"
 	game.stop_server()
 
 
@@ -415,11 +413,11 @@ func _refresh() -> void:
 	if node == null or node.server == null:
 		return
 	var net = node.server
-	_state.text = Lang.f("порт %d · игроков %d из %d%s", [node.config.port, net.online(), node.config.max_players,
-		" · пароль" if node.config.password != "" else ""])
+	_state.text = Lang.f("[port_players_of]", [node.config.port, net.online(), node.config.max_players,
+		"[password_n2]" if node.config.password != "" else ""])
 	if _tunnel_label != null:
 		var t = node.tunnel
-		var said: String = t.url if t.url != "" else ("ещё запускается…" if t.failed == "" else t.failed)
+		var said: String = t.url if t.url != "" else ("[still_starting]" if t.failed == "" else t.failed)
 		if said != _tunnel_label.text:
 			_tunnel_label.text = said
 			_tunnel_label.add_theme_color_override("font_color", UiStyle.ACCENT if t.url != "" else (UiStyle.MUTED if t.failed == "" else UiStyle.DANGER))
@@ -435,17 +433,17 @@ func _refresh() -> void:
 			c.queue_free()
 			_people.remove_child(c)
 		if people.is_empty():
-			_people.add_child(UiStyle.label("пока никого", UiStyle.MUTED))
+			_people.add_child(UiStyle.label("[nobody_yet]", UiStyle.MUTED))
 		for p: Array in people:
 			var row := HBoxContainer.new()
 			row.add_theme_constant_override("separation", 4)
-			var l := UiStyle.label("%s%s" % [p[0], "" if p[2] else " (нет связи)"])
+			var l := UiStyle.label("%s%s" % [p[0], "" if p[2] else "[no_connection]"])
 			l.custom_minimum_size = Vector2(WIDTH - 100, ROW_H)
 			l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			l.clip_text = true
 			row.add_child(l)
 			var kick := Button.new()
-			kick.text = "Выгнать"
+			kick.text = "[kick]"
 			kick.focus_mode = Control.FOCUS_NONE
 			kick.custom_minimum_size = Vector2(96, ROW_H)
 			var id: int = p[1]

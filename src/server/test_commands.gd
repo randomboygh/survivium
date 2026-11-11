@@ -55,42 +55,42 @@ func stop_bots() -> void:
 func command(rest: String, role: int) -> String:
 	var playtest: bool = main.config.playtest
 	if not playtest and role < ROLE_HOST:
-		return "«test» — только для хозяина сервера или на тестовом сервере"
+		return "«test» is only for the server's host, or on a test server"
 	var words := rest.strip_edges().split(" ", false)
 	var first := words[0] if words.size() > 0 else ""
 	var arg := words[1] if words.size() > 1 else ""
 	match first:
 		"bot+":
 			if bots.size() >= MOST_BOTS:
-				return "Ботов уже %d, больше нельзя" % bots.size()
+				return "There are %d bots already, no more" % bots.size()
 			if not can_start_bots():
-				return "Ботов запускает только сервер на компьютере"
+				return "Only a server on a computer starts bots"
 			var n := add_bot()
-			return "Бот%d идёт на сервер" % n if n > 0 else "Бота не запустить"
+			return "Bot%d is coming to the server" % n if n > 0 else "The bot could not start"
 		"bot-":
 			if bots.is_empty():
-				return "Ботов нет"
+				return "There are no bots"
 			var b: Array = bots.pop_back()
 			OS.kill(b[1])
 			main.say("bot %d removed" % b[0])
-			return "Бот%d ушёл" % b[0]
+			return "Bot%d left" % b[0]
 		"hour":
 			var host: Node = main.playtest_host
 			if host == null:
-				return "Сервер без срока"
+				return "The server has no time limit"
 			return host.extend()
 		"stop":
 			if not playtest and role < ROLE_OWNER:
-				return "Остановить сервер может только его владелец"
+				return "Only the server's owner can stop it"
 			main.say("server stopped by a player")
 			main.server.stop()
-			return "Сервер останавливается"
+			return "The server is stopping"
 		"worlds":
 			return worlds_text()
 		"world":
 			var w := find_world(arg)
 			if w.is_empty():
-				return "Нет такого мира: «%s»; test worlds — список" % arg.left(40)
+				return "No such world: «%s»; test worlds — the list" % arg.left(40)
 			return _renew(int(w.seed), str(w.dir).get_file())
 		"new":
 			if arg == "test":
@@ -98,13 +98,13 @@ func command(rest: String, role: int) -> String:
 			var seed_value := randi_range(1, 99999999)
 			if arg != "":
 				if not arg.is_valid_int() or arg.length() > 10:
-					return "Зерно мира — число"
+					return "A world's seed is a number"
 				seed_value = int(arg)
 			return _renew(seed_value, "")
 		"":
 			var host: Node = main.playtest_host
-			return "Ботов %d, мир %d%s" % [bots.size(), main.seed_value, ", " + host.left_text() if host != null else ""]
-	return "test bot+ | bot- | worlds | world <имя> | new [зерно] | new test | stop" + (" | hour" if playtest else "")
+			return "%d bots, world %d%s" % [bots.size(), main.seed_value, ", " + host.left_text() if host != null else ""]
+	return "test bot+ | bot- | worlds | world <name> | new [seed] | new test | stop" + (" | hour" if playtest else "")
 
 
 ## Plays the world of `seed_value` (or the saved one in the folder `folder`, a name
@@ -114,9 +114,9 @@ func _renew(seed_value: int, folder: String) -> String:
 	stop_bots()
 	if not main.renew(seed_value, folder):
 		_respawn = 0
-		return "Мир здесь не сменить"
-	var name := "тестовый мир" if seed_value == WorldStore.TEST_SEED else "мир %d" % seed_value
-	return "Сервер переходит в %s: игра войдёт снова сама" % name
+		return "The world cannot be changed here"
+	var name := "test world" if seed_value == WorldStore.TEST_SEED else "world %d" % seed_value
+	return "The server is moving to %s: the game will come in again by itself" % name
 
 
 ## The worlds saved where the server keeps them (WorldStore.root), the latest first.
@@ -138,11 +138,11 @@ static func find_world(name: String) -> Dictionary:
 func worlds_text() -> String:
 	var all := saved_worlds()
 	if all.is_empty():
-		return "Сохранённых миров нет; test new — новый мир"
-	var out: Array[String] = ["Миры (test world <имя>):"]
+		return "No saved worlds; test new — a new world"
+	var out: Array[String] = ["Worlds (test world <name>):"]
 	for w: Dictionary in all.slice(0, WORLDS_SHOWN):
-		var now := " ← сейчас" if int(w.seed) == main.seed_value else ""
-		out.append("  %s — день %d%s" % [str(w.dir).get_file(), int(w.day), now])
+		var now := " ← now" if int(w.seed) == main.seed_value else ""
+		out.append("  %s — day %d%s" % [str(w.dir).get_file(), int(w.day), now])
 	return "\n".join(out)
 
 
@@ -173,7 +173,7 @@ func add_bot() -> int:
 	# carries it.
 	if not OS.has_feature("template"):
 		game += ["--path", ProjectSettings.globalize_path("res://")]
-	game += ["--", "--join", "ws://localhost:%d" % main.config.port, "--name", "Бот%d" % n, "--bot"]
+	game += ["--", "--join", "ws://localhost:%d" % main.config.port, "--name", "Bot%d" % n, "--bot"]
 	if main.config.password != "":
 		game += ["--password", main.config.password]
 	var pid := -1

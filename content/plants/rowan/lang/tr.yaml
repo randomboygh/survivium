@@ -2,4 +2,10 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/rowan/bundle.yaml
-"Рябина": "Üvez"
+"[plants.rowan.bundle]": "Üvez"
+
+# content/plants/rowan/data/items.yaml
+"[plants.items.rowan]": "Üvez"
+
+# content/plants/rowan/data/trees.yaml
+"[plants.trees.rowan]": "Üvez"

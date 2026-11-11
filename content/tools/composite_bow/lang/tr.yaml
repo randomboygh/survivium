@@ -2,10 +2,12 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/composite_bow/bundle.yaml
-"Составной лук": "Bileşik yay"
+"[tools.composite_bow.bundle]": "Bileşik yay"
 
 # content/tools/composite_bow/data/items.yaml
-"Деревянный лук, усиленный костью и обмотанный кожей. Бьёт дальше и сильнее.": "Kemikle güçlendirilmiş, deriye sarılmış ahşap bir yay. Daha uzağa ve daha sert atar."
+"[tools.items.composite_bow]": "Bileşik yay"
+"[tools.items.composite_bow.about]": "Kemikle güçlendirilmiş, deriye sarılmış ahşap bir yay. Daha uzağa ve daha sert atar."
 
 # content/tools/composite_bow/data/recipes.yaml
-"Стрелы с костяным наконечником": "Kemik uçlu oklar"
+"[tools.recipes.composite_bow]": "Bileşik yay"
+"[tools.recipes.arrow_from_bone]": "Kemik uçlu oklar"

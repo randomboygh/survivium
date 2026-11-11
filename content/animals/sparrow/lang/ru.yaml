@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/sparrow/bundle.yaml
+"[animals.sparrow.bundle]": "Воробей"
+
+# content/animals/sparrow/data/creatures.yaml
+"[animals.creatures.sparrow]": "Воробей"
+
+# content/animals/sparrow/data/sounds.yaml
+"[animals.sounds.sparrow]": "Чириканье"
+"[animals.sounds.bird]": "Птицы"

@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sword/bundle.yaml
-"Меч": "Espada"
+"[tools.sword.bundle]": "Espada"
 
 # content/tools/sword/data/items.yaml
-"Деревянный меч": "Espada de madera"
-"Каменный меч": "Espada de piedra"
-"Медный меч": "Espada de cobre"
-"Бронзовый меч": "Espada de bronce"
-"Железный меч": "Espada de hierro"
-"Стальной меч": "Espada de acero"
+"[tools.items.wooden_sword]": "Espada de madera"
+"[tools.items.stone_sword]": "Espada de piedra"
+"[tools.items.copper_sword]": "Espada de cobre"
+"[tools.items.bronze_sword]": "Espada de bronce"
+"[tools.items.iron_sword]": "Espada de hierro"
+"[tools.items.steel_sword]": "Espada de acero"
+
+# content/tools/sword/data/recipes.yaml
+"[tools.recipes.wooden_sword]": "Espada de madera"
+"[tools.recipes.stone_sword]": "Espada de piedra"
+"[tools.recipes.copper_sword]": "Espada de cobre"
+"[tools.recipes.bronze_sword]": "Espada de bronce"
+"[tools.recipes.iron_sword]": "Espada de hierro"
+"[tools.recipes.steel_sword]": "Espada de acero"
 
 # content/tools/sword/data/sounds.yaml
-"Взмах": "Tajo"
+"[tools.sounds.swish]": "Tajo"

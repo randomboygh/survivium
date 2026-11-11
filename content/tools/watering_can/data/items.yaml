@@ -3,15 +3,15 @@
 # мокрая, и на ней растёт посеянное (src/shared/game/actions_farm.gd). durability — сколько
 # клеток полить одной водой; опустев, лейка снова пустая (empties_to).
 - id: watering_can
-  title: Лейка
-  description: Пустая. Возьми в руку и коснись пресной воды, чтобы наполнить.
+  title: "[tools.items.watering_can]"
+  description: "[tools.items.watering_can.about]"
   weight: 0.8
   stack: 1
   icon: watering_can
   fills_to: watering_can_full
 - id: watering_can_full
-  title: Лейка с водой
-  description: Поливает грядки. Воды хватает на десять клеток.
+  title: "[tools.items.watering_can_full]"
+  description: "[tools.items.watering_can_full.about]"
   weight: 2.8
   stack: 1
   icon: watering_can_full

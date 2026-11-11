@@ -259,7 +259,7 @@ func toggle_auto() -> void:
 	if auto:
 		auto = false
 	elif marks() == 0:
-		game.character.nag("farm_none", "Нет разметки: нарисуйте её на земле")
+		game.character.nag("farm_none", "[no_marking_draw_it_on]")
 	else:
 		auto = true
 		_check_clock = CHECK_TIME
@@ -282,7 +282,7 @@ func update(delta: float) -> void:
 		_check_clock = CHECK_TIME
 		if marks() == 0:
 			auto = false
-			game.hud.toast("Вся разметка сделана")
+			game.hud.toast("[all_marked_work_is_done]")
 			changed.emit()
 			return
 	game.controls.farm_step()
@@ -336,10 +336,10 @@ func end_stroke(s: Dictionary) -> void:
 	game.cursor.show_cells([], true)
 	if not erasing:
 		if Plans.farm_columns(shape == "square", s.first, s.last).is_empty():
-			game.character.nag("plan_big", "Слишком большая разметка")
+			game.character.nag("plan_big", "[the_marking_is_too_big]")
 			return
 		if work == "sow" and not sows(chosen()):
-			game.character.nag("no_seed", "Нечего сажать: в сумке нет семян")
+			game.character.nag("no_seed", "[nothing_to_plant_no_seeds_n2]")
 			return
 	game.net.request(Protocol.FARM, [work, s.first, s.last, shape == "square", erasing])
 

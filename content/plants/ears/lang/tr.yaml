@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/ears/bundle.yaml
-"Колоски": "Başaklar"
+"[plants.ears.bundle]": "Başaklar"
 
 # content/plants/ears/data/items.yaml
-"Зерно": "Tohum"
-"Мука": "Un"
-"Лепёшка": "Yassı ekmek"
+"[plants.items.grain]": "Tohum"
+"[plants.items.flour]": "Un"
+"[plants.items.flatbread]": "Yassı ekmek"
 
 # content/plants/ears/data/plants.yaml
-"Пшеница": "Buğday"
+"[plants.plants.ears]": "Başaklar"
+"[plants.plants.wheat]": "Buğday"
+
+# content/plants/ears/data/recipes.yaml
+"[plants.recipes.flour]": "Un"
+"[plants.recipes.flatbread]": "Yassı ekmek"

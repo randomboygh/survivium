@@ -70,14 +70,14 @@ func _ready() -> void:
 	# away before the finger lifts.
 	_whom.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	_whom.custom_minimum_size = Vector2(0, 26)
-	_whom.tooltip_text = "Кому сказать: тем, кто рядом, или своей команде"
+	_whom.tooltip_text = "[who_hears_it_those_nearby]"
 	_whom.pressed.connect(func() -> void:
 		_to_team = not _to_team
 		_show_whom()
 		_field.grab_focus())
 	h.add_child(_whom)
 	_field = LineEdit.new()
-	_field.placeholder_text = "Сказать рядом…"
+	_field.placeholder_text = "[say_to_those_nearby]"
 	_field.max_length = MAX
 	_field.custom_minimum_size = Vector2(WIDTH - 40, 26)
 	_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -86,7 +86,7 @@ func _ready() -> void:
 	h.add_child(_field)
 	var send := Button.new()
 	send.text = "›"
-	send.tooltip_text = "Сказать"
+	send.tooltip_text = "[say]"
 	send.focus_mode = Control.FOCUS_NONE
 	send.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 	send.custom_minimum_size = Vector2(26, 26)
@@ -137,7 +137,7 @@ func submit() -> void:
 	if game.join_url == "":
 		# Single player: no one hears but the player, and there are no commands.
 		if text.begins_with("/"):
-			hear(0, "", "Команды через «/» — только на сервере")
+			hear(0, "", "[commands_with_work_only_on]")
 		else:
 			hear(-1, game.player_name, text.left(MAX))
 		return
@@ -154,9 +154,9 @@ func _show_whom() -> void:
 	var team: bool = game.team.has_team()
 	_to_team = _to_team and team
 	_whom.visible = team
-	_whom.text = "Команде" if _to_team else "Рядом"
+	_whom.text = "[to_team]" if _to_team else "[nearby]"
 	_whom.add_theme_color_override("font_color", UiStyle.TEAM if _to_team else UiStyle.INK)
-	_field.placeholder_text = "Сказать команде…" if _to_team else "Сказать рядом…"
+	_field.placeholder_text = "[say_to_the_team]" if _to_team else "[say_to_those_nearby]"
 
 
 ## A line heard: said by player `id` named `who` (0 the server, "" for its answer; -1
@@ -166,9 +166,10 @@ func hear(id: int, who: String, text: String, team := false) -> void:
 	# The server's own lines are phrases of the game; the players' are as they wrote them.
 	if id == 0:
 		text = Lang.t(text)
+		who = Lang.t(who)
 	var line := text if who == "" else "%s: %s" % [who, text]
 	if team:
-		line = tr("[команда] ") + line
+		line = tr("[team_n2]") + line
 	var color := UiStyle.MUTED if id == 0 else (UiStyle.TEAM if team else (UiStyle.ACCENT if own else UiStyle.INK))
 	lines.append({"text": line, "color": color, "at": _now()})
 	_heard += 1

@@ -31,6 +31,7 @@ const RealWeather := preload("res://src/server/real_weather.gd")
 const PlaytestHost := preload("res://src/server/playtest_host.gd")
 const TestCommands := preload("res://src/server/test_commands.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const Session := preload("res://src/shared/game/session.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
@@ -123,7 +124,7 @@ func start() -> bool:
 		config.take_args(OS.get_cmdline_user_args())
 	say("Survivium, build %s, protocol %d" % [Protocol.build_version(), Protocol.VERSION])
 	if not _open_world():
-		failed = "Мир не открыть: " + (str(log_lines.back()).get_slice("] ", 1) if not log_lines.is_empty() else "")
+		failed = Lang.line("[the_world_could_not_be_opened]", [str(log_lines.back()).get_slice("] ", 1) if not log_lines.is_empty() else ""])
 		return false
 	_make_server()
 	_open_saves()
@@ -133,7 +134,7 @@ func start() -> bool:
 	var err := server.listen()
 	if err != OK:
 		say("cannot listen on port %d (%s)" % [config.port, error_string(err)])
-		failed = "Порт %d занят" % config.port
+		failed = Lang.line("[port_is_taken]", [config.port])
 		server = null
 		return false
 	say("listening on port %d, at most %d players%s" % [config.port, config.max_players,
@@ -186,7 +187,7 @@ func renew(new_seed: int, folder := "") -> bool:
 	say("another world (%s): everyone leaves and comes in again" % (folder if folder != "" else str(new_seed)))
 	_renew_seed = new_seed
 	_renew_folder = folder
-	server.stop("Сервер переходит в другой мир", Protocol.CLOSE_RENEW)
+	server.stop("[the_server_moves_to_another_world]", Protocol.CLOSE_RENEW)
 	return true
 
 
@@ -324,7 +325,7 @@ func _process(delta: float) -> void:
 		for line in console.lines():
 			var out := server.command(line)
 			if out != "":
-				print(out)
+				print(Lang.t(out))
 	server.poll()
 	server.flush()
 	_note_load(delta)
@@ -377,7 +378,7 @@ func _quit() -> void:
 func command(line: String) -> String:
 	var out := server.command(line)
 	if out != "":
-		print(out)
+		print(Lang.t(out))
 	return out
 
 

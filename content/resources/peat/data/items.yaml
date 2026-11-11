@@ -1,6 +1,6 @@
 # Торф в сумке: ставится ячейкой торфа; сухим торфом, как веткой, разжигают костёр (fuel).
 - id: peat
-  title: Торф
+  title: "[resources.items.peat]"
   weight: 1.0
   stack: 20
   place: peat

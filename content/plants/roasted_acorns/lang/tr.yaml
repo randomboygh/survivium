@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/roasted_acorns/bundle.yaml
-"Жареные жёлуди": "Kavrulmuş palamut"
+"[plants.roasted_acorns.bundle]": "Kavrulmuş palamut"
 
 # content/plants/roasted_acorns/data/items.yaml
-"Жёлуди, прокалённые в горшке на костре. Сытные, но горьковатые.": "Kamp ateşinde bir çömlekte kavrulmuş palamutlar. Doyurucu ama biraz acı."
+"[plants.items.roasted_acorns]": "Kavrulmuş palamut"
+"[plants.items.roasted_acorns.about]": "Kamp ateşinde bir çömlekte kavrulmuş palamutlar. Doyurucu ama biraz acı."
+
+# content/plants/roasted_acorns/data/recipes.yaml
+"[plants.recipes.roasted_acorns]": "Kavrulmuş palamut"

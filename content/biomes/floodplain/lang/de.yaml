@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/biomes/floodplain/bundle.yaml
-"Пойма": "Flussaue"
+"[biomes.floodplain.bundle]": "Flussaue"
+
+# content/biomes/floodplain/data/biomes.yaml
+"[biomes.biomes.floodplain]": "Flussaue"

@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/peas/bundle.yaml
-"Горох": "Ervilhas"
+"[plants.peas.bundle]": "Ervilhas"
 
 # content/plants/peas/data/items.yaml
-"Сухие горошины. Их едят или сеют на грядку весной.": "Ervilhas secas. Comem-se ou semeiam-se num canteiro na primavera."
+"[plants.items.peas]": "Ervilhas"
+"[plants.items.peas.about]": "Ervilhas secas. Comem-se ou semeiam-se num canteiro na primavera."
+
+# content/plants/peas/data/plants.yaml
+"[plants.plants.peas]": "Ervilhas"

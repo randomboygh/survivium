@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/window/bundle.yaml
-"Окно": "Window"
+"[tools.window.bundle]": "Window"
 
 # content/tools/window/data/items.yaml
-"Рама со стеклом для проёма в стене.": "A frame with glass for an opening in a wall."
-"Окно 1×2": "Window 1×2"
-"Высокое окно со стеклом, на клетку в ширину и две в высоту.": "A tall glass window, one cell wide and two high."
-"Окно 2×1": "Window 2×1"
-"Широкое окно со стеклом, на две клетки в ширину и одну в высоту.": "A wide glass window, two cells wide and one high."
-"Окно 2×2": "Window 2×2"
-"Большое окно со стеклом, на две клетки в ширину и две в высоту.": "A big glass window, two cells wide and two high."
-"Окно 3×2": "Window 3×2"
-"Окно во всю стену, на три клетки в ширину и две в высоту.": "A window the whole wall wide, three cells wide and two high."
+"[tools.items.window]": "Window"
+"[tools.items.window.about]": "A frame with glass for an opening in a wall."
+"[tools.items.window_1x2]": "Window 1×2"
+"[tools.items.window_1x2.about]": "A tall glass window, one cell wide and two high."
+"[tools.items.window_2x1]": "Window 2×1"
+"[tools.items.window_2x1.about]": "A wide glass window, two cells wide and one high."
+"[tools.items.window_2x2]": "Window 2×2"
+"[tools.items.window_2x2.about]": "A big glass window, two cells wide and two high."
+"[tools.items.window_3x2]": "Window 3×2"
+"[tools.items.window_3x2.about]": "A window the whole wall wide, three cells wide and two high."
+
+# content/tools/window/data/recipes.yaml
+"[tools.recipes.window]": "Window"
+"[tools.recipes.window_1x2]": "Window 1×2"
+"[tools.recipes.window_2x1]": "Window 2×1"
+"[tools.recipes.window_2x2]": "Window 2×2"
+"[tools.recipes.window_3x2]": "Window 3×2"

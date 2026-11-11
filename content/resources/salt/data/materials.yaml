@@ -2,7 +2,7 @@
 # лопатой и даёт соль. Поля — как у материалов основы (content/core/data/materials.yaml); звуки по
 # имени, из мода «Звуки». Без бандла на её месте песок (роль beach), а без него — земля.
 - id: salt
-  title: Соль
+  title: "[resources.materials.salt]"
   role: salt
   corners: soft
   slope: true

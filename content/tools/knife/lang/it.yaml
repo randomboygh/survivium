@@ -2,12 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/knife/bundle.yaml
-"Нож": "Coltello"
+"[tools.knife.bundle]": "Coltello"
 
 # content/tools/knife/data/items.yaml
-"Кремнёвый нож": "Coltello di selce"
-"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "Una scheggia affilata di selce con manico. Macella le carcasse e colpisce gli animali."
-"Медный нож": "Coltello di rame"
-"Бронзовый нож": "Coltello di bronzo"
-"Железный нож": "Coltello di ferro"
-"Стальной нож": "Coltello d'acciaio"
+"[tools.items.flint_knife]": "Coltello di selce"
+"[tools.items.flint_knife.about]": "Una scheggia affilata di selce con manico. Macella le carcasse e colpisce gli animali."
+"[tools.items.copper_knife]": "Coltello di rame"
+"[tools.items.bronze_knife]": "Coltello di bronzo"
+"[tools.items.iron_knife]": "Coltello di ferro"
+"[tools.items.steel_knife]": "Coltello d'acciaio"
+
+# content/tools/knife/data/recipes.yaml
+"[tools.recipes.flint_knife]": "Coltello di selce"
+"[tools.recipes.copper_knife]": "Coltello di rame"
+"[tools.recipes.bronze_knife]": "Coltello di bronzo"
+"[tools.recipes.iron_knife]": "Coltello di ferro"
+"[tools.recipes.steel_knife]": "Coltello d'acciaio"

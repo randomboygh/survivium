@@ -3,15 +3,15 @@
 # на ткацком станке «Инструментов» ткут ткань «Материалов». Отдельный бандл, чтобы заяц не зависел от
 # станка.
 - id: rabbit_fluff
-  title: Заячий пух
-  description: Мягкий пух ручного зайца. Его срезают ножом и прядут в пряжу.
+  title: "[animals.items.rabbit_fluff]"
+  description: "[animals.items.rabbit_fluff.about]"
   weight: 0.05
   stack: 50
   model: rabbit_fluff
   icon: rabbit_fluff
 - id: wool_yarn
-  title: Пушистая пряжа
-  description: Тёплая пряжа из заячьего пуха. На ткацком станке из неё ткут ткань.
+  title: "[animals.items.wool_yarn]"
+  description: "[animals.items.wool_yarn.about]"
   weight: 0.05
   stack: 50
   model: wool_yarn

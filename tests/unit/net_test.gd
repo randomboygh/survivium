@@ -455,10 +455,10 @@ func _test_requests() -> void:
 		and events.any(func(e: Array) -> bool: return e[0] == Protocol.TELEPORT and e[1] == [back]),
 		"and comes back by request at its respawn point, the client told to put the body there")
 	events.clear()
-	a.nag("test", "Горячо!")
-	a.nag("test", "Горячо!")
+	a.nag("test", "Hot!")
+	a.nag("test", "Hot!")
 	host.flush(net)
-	_check(events.filter(func(e: Array) -> bool: return e[0] == Protocol.SAY and e[1] == ["Горячо!"]).size() == 1,
+	_check(events.filter(func(e: Array) -> bool: return e[0] == Protocol.SAY and e[1] == ["Hot!"]).size() == 1,
 		"what the rules say reaches the client once")
 	# Straight to the host, past the connection's count: the same bytes twice.
 	a.inventory.add("resources:fiber", 3)

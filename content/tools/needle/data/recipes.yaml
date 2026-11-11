@@ -1,6 +1,6 @@
 # Рецепт бандла «Игла»: костяную иглу вырезают из кости («Животные», бандл «Добыча») ножом.
 - id: bone_needle
-  title: Костяная игла
+  title: "[tools.recipes.bone_needle]"
   makes: bone_needle
   needs: {animals:bone: 1}
   tools: [knife]

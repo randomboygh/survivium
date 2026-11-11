@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/canvas_backpack/bundle.yaml
-"Холщовый рюкзак": "Mochila de lona"
+"[tools.canvas_backpack.bundle]": "Mochila de lona"
 
 # content/tools/canvas_backpack/data/items.yaml
-"Рюкзак из ткани с кожаными лямками и клапаном. Надетый за спину, даёт ещё 24 ячейки.": "Uma mochila de pano com alças de couro e aba. Nas costas, dá mais 24 espaços."
+"[tools.items.canvas_backpack]": "Mochila de lona"
+"[tools.items.canvas_backpack.about]": "Uma mochila de pano com alças de couro e aba. Nas costas, dá mais 24 espaços."
+
+# content/tools/canvas_backpack/data/recipes.yaml
+"[tools.recipes.canvas_backpack]": "Mochila de lona"

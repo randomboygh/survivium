@@ -1,7 +1,7 @@
 # Рецепт бандла «Олово»: руду плавят с углём в горне «Инструментов»; лежит здесь, чтобы горн не
 # зависел от олова.
 - id: tin_bar
-  title: Слиток олова
+  title: "[materials.recipes.tin_bar]"
   makes: tin_bar
   needs: {tin_ore: 2, charcoal: 1}
   at: tools:forge

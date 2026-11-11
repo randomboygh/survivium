@@ -33,7 +33,7 @@ func _init() -> void:
 
 func _ready() -> void:
 	var group := _group()
-	_fill(group, ["Вес", [[null, "0", false, ""]]])
+	_fill(group, ["[weight]", [[null, "0", false, ""]]])
 	add_child(group)
 	_line_height = group.get_combined_minimum_size().y
 	custom_minimum_size.y = LINES * _line_height + (LINES - 1) * GAP
@@ -131,61 +131,61 @@ const NEW := -(1 << 30)
 static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, burn_left := 1.0, fresh := -1.0, ammo := -1, q := -1) -> Array:
 	var it := Items.get_item(id)
 	var k := Quality.lasts(q) if q >= 0 else 1.0
-	var groups := [["Вес", [[ItemIcons.picture("weight"), Lang.f("%.1f кг", [(weight if weight >= 0.0 else Items.weight(id) * count)]), false, "Вес"]]]]
+	var groups := [["[weight]", [[ItemIcons.picture("weight"), Lang.f("[kg]", [(weight if weight >= 0.0 else Items.weight(id) * count)]), false, "[weight]"]]]]
 	if q >= 0:
-		groups.append(["Качество", [[UiStyle.icon("star"), "%d" % q, q < Quality.GRADES[0][0],
-			Lang.f("Качество: %s (%d из %d). Влияет на прочность и скорость инструмента, тепло одежды, сытость еды", [Quality.grade_name(q), q, Quality.MAX])]]])
+		groups.append(["[quality]", [[UiStyle.icon("star"), "%d" % q, q < Quality.GRADES[0][0],
+			Lang.f("[quality_of_affects_a_tools]", [Quality.grade_name(q), q, Quality.MAX])]]])
 	if Items.food(id) > 0.0:
-		var food := [[ItemIcons.picture("food"), "+%d" % roundi(Items.food(id) * k), false, "Сытость"]]
+		var food := [[ItemIcons.picture("food"), "+%d" % roundi(Items.food(id) * k), false, "[satiety]"]]
 		var keeps := Items.spoils(id)
 		if keeps > 0.0:
-			var days := Lang.f("%s сут.", [str(snappedf(keeps, 0.1))])
+			var days := Lang.f("[d]", [str(snappedf(keeps, 0.1))])
 			food.append([UiStyle.icon("clock"), "%d%%" % roundi(fresh * 100.0) if fresh >= 0.0 else days, fresh >= 0.0 and fresh < 0.25,
-				Lang.f("Свежесть: испортится за %s, в холоде и под крышей дольше", [days])])
+				Lang.f("[freshness_spoils_in_longer_in]", [days])])
 		if Items.heal(id) > 0.0:
-			food.append([ItemIcons.picture("heart"), "+%d" % roundi(Items.heal(id) * k), false, "Здоровье"])
-		groups.append(["Еда", food])
+			food.append([ItemIcons.picture("heart"), "+%d" % roundi(Items.heal(id) * k), false, "[health_n2]"])
+		groups.append(["[food]", food])
 	if Items.drink(id) > 0.0:
-		groups.append(["Питьё", [[ItemIcons.picture("water"), "+%d" % roundi(Items.drink(id) * k), false, "Вода"]]])
+		groups.append(["[drinking]", [[ItemIcons.picture("water"), "+%d" % roundi(Items.drink(id) * k), false, "[water]"]]])
 	if it.get("warmth", 0.0) > 0.0:
-		groups.append(["Одежда", [[ItemIcons.picture("thermo"), "+%d°" % roundi(it.warmth * k), false,
-			"Теплее на столько градусов, надетая; мокрая греет вполовину"]]])
+		groups.append(["[clothing]", [[ItemIcons.picture("thermo"), "+%d°" % roundi(it.warmth * k), false,
+			"[warmer_by_this_many_degrees]"]]])
 	if Items.bag_slots(id) > 0:
-		groups.append(["Сумка", [[UiStyle.icon("bag"), "+%d" % Items.bag_slots(id), false, "Ячеек, надетая за спину"]]])
+		groups.append(["[bag]", [[UiStyle.icon("bag"), "+%d" % Items.bag_slots(id), false, "[slots_worn_on_the_back]"]]])
 	if it.get("tool", "none") != "none":
-		groups.append(["Инструмент", [[UiStyle.icon("power"), str(it.power), false, power_hint(it)],
-			[UiStyle.icon("hammer"), Lang.f("%.1f с", [(it.swing / (Quality.faster(q) if q >= 0 else 1.0))]), false, "Удар, секунд (навык ускоряет)"],
-			[UiStyle.icon("target"), str(it.reach), false, "Дальность, клеток"]]])
+		groups.append(["[tool]", [[UiStyle.icon("power"), str(it.power), false, power_hint(it)],
+			[UiStyle.icon("hammer"), Lang.f("[s_n2]", [(it.swing / (Quality.faster(q) if q >= 0 else 1.0))]), false, "[stroke_seconds_the_skill_speeds]"],
+			[UiStyle.icon("target"), str(it.reach), false, "[reach_cells]"]]])
 	var shoots: String = it.get("ammo", "")
 	if shoots != "" and it.get("tool", "") == "rod":
-		var tip := Lang.f("Наживка: «%s», по одной на заброс; без неё клюёт редко", [Lang.t(Items.title(shoots))])
-		var left := "нет" if ammo == 0 else (str(ammo) if ammo > 0 else "")
-		groups.append(["Наживка", [[ItemIcons.of_item(shoots), left, ammo == 0, tip]]])
+		var tip := Lang.f("[bait_one_per_cast_without]", [Lang.t(Items.title(shoots))])
+		var left := "[no_n2]" if ammo == 0 else (str(ammo) if ammo > 0 else "")
+		groups.append(["[bait]", [[ItemIcons.of_item(shoots), left, ammo == 0, tip]]])
 	elif shoots != "":
-		var tip := Lang.f("Стреляет: «%s», по одному на выстрел", [Lang.t(Items.title(shoots))])
+		var tip := Lang.f("[shoots_one_per_shot]", [Lang.t(Items.title(shoots))])
 		if ammo == 0:
-			tip += Lang.t("; в сумке нет — стрелять нечем")
-		var left := "нет" if ammo == 0 else (str(ammo) if ammo > 0 else "")
-		groups.append(["Заряды", [[ItemIcons.of_item(shoots), left, ammo == 0, tip]]])
+			tip += Lang.t("[none_in_the_bag_nothing]")
+		var left := "[no_n2]" if ammo == 0 else (str(ammo) if ammo > 0 else "")
+		groups.append(["[ammo]", [[ItemIcons.of_item(shoots), left, ammo == 0, tip]]])
 	if it.get("light", 0.0) > 0.0:
-		var light := [[UiStyle.icon("sun"), str(snappedf(it.light, 0.1)), false, "Свет, клеток"]]
+		var light := [[UiStyle.icon("sun"), str(snappedf(it.light, 0.1)), false, "[light_cells]"]]
 		var burns: float = it.get("burns", 0.0)
 		if burns > 0.0:
 			var text := _minutes(burns)
 			if burn_left < 1.0:
 				text = "%s/%s" % [_minutes(burns * burn_left), text]
-			light.append([UiStyle.icon("light"), text, burn_left < 0.25, "Горит одна, мин:с"])
-		groups.append(["Свет", light])
+			light.append([UiStyle.icon("light"), text, burn_left < 0.25, "[one_burns_for_min_s]"])
+		groups.append(["[light]", light])
 	var d: int = Quality.durability(it.get("durability", 0), q) if q >= 0 else it.get("durability", 0)
 	if d > 0:
 		if worn == NEW:
-			groups.append(["Ресурс", [[UiStyle.icon("shield"), str(d), false, "Ресурс: ударов до поломки"]]])
+			groups.append(["[durability]", [[UiStyle.icon("shield"), str(d), false, "[durability_strokes_until_it_breaks]"]]])
 		else:
 			var left := maxi(0, d - worn)
-			var tip := "Ресурс: ударов до поломки"
+			var tip := "[durability_strokes_until_it_breaks]"
 			if worn < 0:
-				tip += Lang.f("; запас ударов умелой руки: %d", [-worn])
-			groups.append(["Ресурс", [[UiStyle.icon("shield"), "%d/%d" % [left, d], float(left) / d < 0.25,
+				tip += Lang.f("[strokes_held_back_by_a]", [-worn])
+			groups.append(["[durability]", [[UiStyle.icon("shield"), "%d/%d" % [left, d], float(left) / d < 0.25,
 				tip]]])
 	return groups
 
@@ -200,7 +200,7 @@ static func power_hint(it: Dictionary) -> String:
 		"axe":
 			if not Trees.SPECIES.is_empty():
 				var s: Dictionary = Trees.SPECIES[Trees.first(Trees.BROAD)]
-				return Lang.f("Сила удара: столько прочности снимает удар. %s (прочность %d): %d ударов", [s.title, s.hits, Tools.hits_to(s.hits, p)])
+				return Lang.f("[strike_power_this_much_durability]", [s.title, s.hits, Tools.hits_to(s.hits, p)])
 		"pickaxe", "shovel":
 			var m: int = Mat.STONE if it.tool == "pickaxe" else Mat.DIRT
 			var t := Tools.toughness(m)
@@ -208,7 +208,7 @@ static func power_hint(it: Dictionary) -> String:
 			for i in Mat.COUNT:
 				if Tools.can_dig(it, i) and Tools.toughness(i) > hardest:
 					hardest = Tools.toughness(i)
-			return Lang.f("Сила: ячейка прочнее силы копается дольше. %s (прочность %d): удар %.1f с; самое твёрдое по силам — прочность %d", [
+			return Lang.f("[power_a_cell_harder_than]", [
 				Mat.NAMES[m], roundi(t), Tools.swing_time(it, m), roundi(hardest)])
 		"sword", "knife", "spear", "sling", "bow":
 			var big := {}
@@ -217,9 +217,9 @@ static func power_hint(it: Dictionary) -> String:
 				if a.health > 0 and (big.is_empty() or a.health > big.health):
 					big = a
 			if not big.is_empty():
-				return Lang.f("Сила удара: столько здоровья снимает удар по зверю. %s (здоровье %d): %d ударов; по игроку — столько же на единицу урона сервера", [
+				return Lang.f("[strike_power_this_much_health]", [
 					big.title, big.health, Tools.hits_to(big.health, p)])
-	return "Сила удара"
+	return "[strike_power]"
 
 
 ## Whether weapon `id` shoots something (arrows, sling stones) that bag `inv` has none

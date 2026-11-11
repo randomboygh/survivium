@@ -1,5 +1,5 @@
 # Звуки грунта: шаг по песку (sounds/step_sand_N.wav, tools/make_sounds.gd); материалы называют его в step.
 - id: step_sand
-  title: Шаг по песку
+  title: "[resources.sounds.step_sand]"
   variants: 4
   volume: 0.5

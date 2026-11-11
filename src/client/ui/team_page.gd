@@ -18,7 +18,7 @@ const Lang := preload("res://src/shared/content/lang.gd")
 const WIDTH := 200
 
 ## The server's rule of fighting players, in words (Fights.MODES).
-const PVP_TITLES := {"off": "выключен", "land": "по правам территорий", "all": "везде"}
+const PVP_TITLES := {"off": "[off_pvp]", "land": "[by_territory_rights]", "all": "[everywhere]"}
 
 var game
 var _box: VBoxContainer
@@ -55,41 +55,41 @@ func refresh() -> void:
 	var team = game.team
 	var me := int(game.welcome.get("id", -1))
 	for e: Array in team.invites:
-		_box.add_child(UiStyle.label(Lang.f("%s зовёт вас в команду", [e[1]])))
+		_box.add_child(UiStyle.label(Lang.f("[invites_you_to_their_team]", [e[1]])))
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 4)
 		_box.add_child(row)
-		_button(row, "Принять", team.accept.bind(e[0]), "", WIDTH / 2 - 2).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		_button(row, "Отказаться", team.decline.bind(e[0]), "", WIDTH / 2 - 2).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_button(row, "[accept]", team.accept.bind(e[0]), "", WIDTH / 2 - 2).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_button(row, "[decline]", team.decline.bind(e[0]), "", WIDTH / 2 - 2).size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if team.has_team():
 		for m: Array in team.view.members:
 			var tags := []
 			if m[0] == me:
-				tags.append("вы")
+				tags.append("[you]")
 			if m[0] == team.view.lead:
-				tags.append("старший")
+				tags.append("[leader]")
 			var kick := Callable()
 			if team.leads() and m[0] != me:
 				kick = team.kick.bind(m[0])
-				tags.append("исключить")
+				tags.append("[remove]")
 			var b := _button(_box, str(m[1]), kick, ", ".join(tags))
 			b.add_theme_color_override("font_color", UiStyle.TEAM)
 			b.add_theme_color_override("font_disabled_color", UiStyle.TEAM)
-		_button(_box, "Выйти из команды", team.leave)
+		_button(_box, "[leave_the_team]", team.leave)
 	elif team.invites.is_empty():
-		_box.add_child(UiStyle.label("Вы не в команде", UiStyle.MUTED))
+		_box.add_child(UiStyle.label("[you_are_not_in_a]", UiStyle.MUTED))
 	for e: Array in team.sent_waiting():
 		var who: String = game.others.people[e[0]].label.text if game.others != null and game.others.people.has(e[0]) \
-			else Lang.f("игрок %d", [e[0]])
-		_box.add_child(UiStyle.label(Lang.f("Вы позвали: %s, ждём ответа", [who]), UiStyle.MUTED))
-	var hint := UiStyle.label("Чтобы позвать в команду, нажмите на игрока рядом", UiStyle.MUTED)
+			else Lang.f("[player_n3]", [e[0]])
+		_box.add_child(UiStyle.label(Lang.f("[you_invited_waiting_for_an]", [who]), UiStyle.MUTED))
+	var hint := UiStyle.label("[to_invite_someone_to_your]", UiStyle.MUTED)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.custom_minimum_size = Vector2(WIDTH, 0)
 	_box.add_child(hint)
 	_box.add_child(UiStyle.label("PvP: %s" % PVP_TITLES.get(team.pvp, team.pvp), UiStyle.MUTED))
 	if team.protected > 0 and team.pvp != "off":
-		_box.add_child(UiStyle.label(Lang.f("Защита новичка: ещё %d мин", [team.protected]), UiStyle.MUTED))
-		_button(_box, "Снять защиту", team.give_up_protection)
+		_box.add_child(UiStyle.label(Lang.f("[newcomer_protection_min_more]", [team.protected]), UiStyle.MUTED))
+		_button(_box, "[drop_the_protection]", team.give_up_protection)
 	if on_layout.is_valid():
 		on_layout.call_deferred()
 

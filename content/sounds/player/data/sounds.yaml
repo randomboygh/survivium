@@ -2,68 +2,68 @@
 # hit), гребок, прыжок, приземление (и в снег), всплеск, копание, удар по камню, блок поставлен, подбор,
 # сделано, еда, огонь зажжён. Файлы sounds/<id>_N.wav (tools/make_sounds.gd).
 - id: step_grass
-  title: Шаг по траве
+  title: "[sounds.sounds.step_grass]"
   variants: 4
   volume: 0.4
 - id: step_dirt
-  title: Шаг по земле
+  title: "[sounds.sounds.step_dirt]"
   variants: 4
   volume: 0.4
 - id: step_stone
-  title: Шаг по камню
+  title: "[sounds.sounds.step_stone]"
   variants: 4
   volume: 0.5
 - id: step_snow
-  title: Шаг по снегу
+  title: "[sounds.sounds.step_snow]"
   variants: 4
   volume: 0.4
 - id: step_water
-  title: Шаг по воде
+  title: "[sounds.sounds.step_water]"
   variants: 3
   volume: 0.5
 - id: swim
-  title: Гребок
+  title: "[sounds.sounds.swim]"
   variants: 3
   volume: 0.45
 - id: jump
-  title: Прыжок
+  title: "[sounds.sounds.jump]"
   variants: 2
   volume: 0.5
 - id: land
-  title: Приземление
+  title: "[sounds.sounds.land]"
   variants: 2
   volume: 0.6
 - id: land_snow
-  title: Приземление в снег
+  title: "[sounds.sounds.land_snow]"
   variants: 2
   volume: 0.5
 - id: splash
-  title: Всплеск
+  title: "[sounds.sounds.splash]"
   variants: 2
   volume: 0.8
 - id: dig
-  title: Копание
+  title: "[sounds.sounds.dig]"
   variants: 3
   volume: 0.8
 - id: hit_stone
-  title: Удар по камню
+  title: "[sounds.sounds.hit_stone]"
   variants: 3
   volume: 0.8
 - id: place
-  title: Блок поставлен
+  title: "[sounds.sounds.place]"
   variants: 3
   volume: 0.6
 - id: pickup
-  title: Подбор
+  title: "[sounds.sounds.pickup]"
   variants: 2
   volume: 0.5
 - id: craft
-  title: Сделано
+  title: "[sounds.sounds.craft]"
   volume: 0.6
 - id: eat
-  title: Еда
+  title: "[sounds.sounds.eat]"
   variants: 2
   volume: 0.9
 - id: ignite
-  title: Огонь зажжён
+  title: "[sounds.sounds.ignite]"
   volume: 0.8

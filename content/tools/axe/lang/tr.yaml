@@ -2,14 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/axe/bundle.yaml
-"Топор": "Balta"
+"[tools.axe.bundle]": "Balta"
 
 # content/tools/axe/data/items.yaml
-"Каменный топор": "Taş balta"
-"Медный топор": "Bakır balta"
-"Бронзовый топор": "Bronz balta"
-"Железный топор": "Demir balta"
-"Стальной топор": "Çelik balta"
+"[tools.items.stone_axe]": "Taş balta"
+"[tools.items.copper_axe]": "Bakır balta"
+"[tools.items.bronze_axe]": "Bronz balta"
+"[tools.items.iron_axe]": "Demir balta"
+"[tools.items.steel_axe]": "Çelik balta"
 
 # content/tools/axe/data/recipes.yaml
-"Доски": "Tahtalar"
+"[tools.recipes.stone_axe]": "Taş balta"
+"[tools.recipes.planks]": "Tahtalar"
+"[tools.recipes.copper_axe]": "Bakır balta"
+"[tools.recipes.bronze_axe]": "Bronz balta"
+"[tools.recipes.iron_axe]": "Demir balta"
+"[tools.recipes.steel_axe]": "Çelik balta"

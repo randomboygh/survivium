@@ -405,8 +405,8 @@ func _update_hands() -> void:
 	for i in _slots.size():
 		var item: String = slots[i][0] if slots[i] != null else ""
 		_slots[i].selected = item != "" and c.held() == item
-		_slots[i].tag = "" if item == "" else ("Л" if c.hands[0] == item else ("П" if c.hands[1] == item else
-			("Н" if game.character.inventory.worn_on(i) != "" else "")))
+		_slots[i].tag = "" if item == "" else ("[l]" if c.hands[0] == item else ("[r]" if c.hands[1] == item else
+			("[w]" if game.character.inventory.worn_on(i) != "" else "")))
 	_action.text = c.action_name()
 	# Pressed down while the fishing line is in the water, or while the build mode builds.
 	_action.latch(_action_latched())

@@ -2,8 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/animals/sparrow/bundle.yaml
-"Воробей": "Spatz"
+"[animals.sparrow.bundle]": "Spatz"
+
+# content/animals/sparrow/data/creatures.yaml
+"[animals.creatures.sparrow]": "Spatz"
 
 # content/animals/sparrow/data/sounds.yaml
-"Чириканье": "Zwitschern"
-"Птицы": "Vögel"
+"[animals.sounds.sparrow]": "Zwitschern"
+"[animals.sounds.bird]": "Vögel"

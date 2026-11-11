@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/gold/bundle.yaml
-"Золото": "Złoto"
+"[materials.gold.bundle]": "Złoto"
 
 # content/materials/gold/data/items.yaml
-"Золотая руда": "Ruda złota"
-"Кварц с жёлтыми прожилками золота. Её берёт бронзовая кирка.": "Kwarc z żółtymi żyłkami złota. Wydobywa go brązowy kilof."
-"Золотой слиток": "Sztabka złota"
-"Тяжёлый мягкий жёлтый металл. Из слитков складывают золотые блоки.": "Ciężki miękki żółty metal. Ze sztabek składa się złote bloki."
-"Золотой блок": "Złoty blok"
-"Блестящий жёлтый блок для построек.": "Błyszczący żółty blok do budowy."
+"[materials.items.gold_ore]": "Ruda złota"
+"[materials.items.gold_ore.about]": "Kwarc z żółtymi żyłkami złota. Wydobywa go brązowy kilof."
+"[materials.items.gold_bar]": "Sztabka złota"
+"[materials.items.gold_bar.about]": "Ciężki miękki żółty metal. Ze sztabek składa się złote bloki."
+"[materials.items.gold_block]": "Złoty blok"
+"[materials.items.gold_block.about]": "Błyszczący żółty blok do budowy."
+
+# content/materials/gold/data/materials.yaml
+"[materials.materials.gold_ore]": "Ruda złota"
+"[materials.materials.gold_block]": "Złoty blok"
+
+# content/materials/gold/data/recipes.yaml
+"[materials.recipes.gold_bar]": "Sztabka złota"
+"[materials.recipes.gold_block]": "Złoty blok"

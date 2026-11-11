@@ -2,9 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hatch/bundle.yaml
-"Люк": "Trappe"
+"[tools.hatch.bundle]": "Trappe"
 
 # content/tools/hatch/data/items.yaml
-"Крышка из досок для дыры в полу или потолке. Касание открывает и закрывает.": "Un couvercle de planches pour un trou dans le sol ou le plafond. Un toucher l'ouvre et la ferme."
-"Люк 2×2": "Trappe 2×2"
-"Широкая крышка из досок для дыры в полу на две клетки в ширину и две в глубину.": "Un large couvercle de planches pour un trou dans le sol, de deux cases de large et deux de profondeur."
+"[tools.items.hatch]": "Trappe"
+"[tools.items.hatch.about]": "Un couvercle de planches pour un trou dans le sol ou le plafond. Un toucher l'ouvre et la ferme."
+"[tools.items.hatch_2x2]": "Trappe 2×2"
+"[tools.items.hatch_2x2.about]": "Un large couvercle de planches pour un trou dans le sol, de deux cases de large et deux de profondeur."
+
+# content/tools/hatch/data/recipes.yaml
+"[tools.recipes.hatch]": "Trappe"
+"[tools.recipes.hatch_2x2]": "Trappe 2×2"

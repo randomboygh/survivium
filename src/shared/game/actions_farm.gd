@@ -50,7 +50,7 @@ func farm_at(who, cell: Vector3i) -> Variant:
 	var m: int = world.get_cell(cell.x, cell.y, cell.z)
 	if Mat.is_bed(m):
 		if too_far(who, cell, t.reach):
-			who.nag("far", "Слишком далеко")
+			who.nag("far", "[too_far]")
 			return {}
 		if Tools.can_water(t):
 			return water(who, farm_cells(who, cell, t, func(c: Vector3i) -> bool: return can_water(c)))
@@ -61,30 +61,30 @@ func farm_at(who, cell: Vector3i) -> Variant:
 				if Tools.can_reap(t, c):
 					return reap(who, farm_cells(who, cell, t, func(at: Vector3i) -> bool: return can_reap(at, t)))
 				if t.tool == "scythe":
-					who.nag("reap", Lang.line("%s косой не срезать: соберите руками или серпом", [c.title]))
+					who.nag("reap", Lang.line("[cant_be_cut_with_a]", [c.title]))
 					return {}
 			elif t.tool in ["hand", "sickle", "scythe", "hoe"]:
-				who.nag("ripe", Lang.line("Ещё не созрело: %s, %d%%", [c.title, roundi(growth(cell) * 100.0)]))
+				who.nag("ripe", Lang.line("[not_ripe_yet]", [c.title, roundi(growth(cell) * 100.0)]))
 				return {}
 		if Tools.can_till(t):
-			who.nag("tilled", "Здесь уже грядка")
+			who.nag("tilled", "[there_is_a_bed_here]")
 			return {}
 		if t.tool == "hand":
 			# Hands do not scrape a bed away by a slip of a tap: a shovel digs it.
-			who.nag("bed", "Грядку убирают лопатой")
+			who.nag("bed", "[a_bed_is_removed_with]")
 			return {}
 		return null
 	if Tools.can_till(t):
 		if too_far(who, cell, t.reach):
-			who.nag("far", "Слишком далеко")
+			who.nag("far", "[too_far]")
 			return {}
 		var cells := farm_cells(who, cell, t, func(c: Vector3i) -> bool: return can_till(c))
 		if cells.is_empty():
-			who.nag("till", "Вскопать грядку можно на траве или земле под открытым верхом")
+			who.nag("till", "[a_bed_can_be_tilled]")
 			return {}
 		return till(who, cells)
 	if Tools.can_water(t):
-		who.nag("water", "Поливают грядки")
+		who.nag("water", "[water_the_beds]")
 		return {}
 	return null
 
@@ -182,7 +182,7 @@ func _wear(who, tool: Variant) -> void:
 		who.use_tool()
 	elif tool is String and tool != "" and rules.tool_wear \
 			and who.inventory.wear_tool(tool, Items.get_item(tool).get("durability", 0)):
-		who.say(Lang.line("Сломалось: %s", [Items.title(tool)]))
+		who.say(Lang.line("[broke]", [Items.title(tool)]))
 
 
 # --- Sowing -------------------------------------------------------------------------------
@@ -232,16 +232,16 @@ func plant_at(who, id: String, cell: Vector3i) -> bool:
 		if spot != null:
 			cell = spot
 	if who.inventory.count(item.id) == 0:
-		who.nag("no_seed", Lang.line("В сумке нет: %s", [Items.title(id)]))
+		who.nag("no_seed", Lang.line("[not_in_the_bag]", [Items.title(id)]))
 		return false
 	if clock.season == WINTER:
-		who.nag("winter", "Зимой не сеют: дождитесь весны")
+		who.nag("winter", "[no_sowing_in_winter_wait]")
 		return false
 	if too_far(who, cell, Tools.PLACE_REACH) or not can_sow(item, cell):
 		if sapling:
-			who.nag("plant", "Сюда не посадить: дереву нужна открытая земля подальше от других деревьев")
+			who.nag("plant", "[cant_plant_here_a_tree]")
 		else:
-			who.nag("plant", "Сеют на пустую грядку: вскопайте её тяпкой")
+			who.nag("plant", "[sow_on_an_empty_bed]")
 		return false
 	if not _may(who, cell, "build") or not who.act("gather", "farm"):
 		return false
@@ -478,7 +478,7 @@ func water(who, cells: Array[Vector3i], with := "") -> Dictionary:
 			var empty: String = item.get("empties_to", "")
 			if empty != "":
 				who.give(empty, 1)
-			who.say("Лейка опустела: наберите воды")
+			who.say("[the_watering_can_is_empty]")
 			break
 	return _work(skilled(who, "farm", WATER_SWING), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL, Mat.WATER)
 

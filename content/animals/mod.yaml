@@ -2,6 +2,6 @@
 # своими данными, картинкой и голосами). Как устроен мод и как добавить зверя, см. README.md
 # рядом и README.md воробья.
 id: animals
-title: Животные
+title: "[animals.mod]"
 version: "0.2"
 api: 1

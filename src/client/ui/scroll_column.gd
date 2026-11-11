@@ -34,13 +34,13 @@ var swiped := false
 func _init(side: int) -> void:
 	add_theme_constant_override("separation", 2)
 	custom_minimum_size.x = side
-	_up = TabRow.icon_button(UiStyle.icon("prev_up"), "Выше", func() -> void: scroll(-1))
+	_up = TabRow.icon_button(UiStyle.icon("prev_up"), "[higher]", func() -> void: scroll(-1))
 	_up.custom_minimum_size = Vector2(side, ARROW)
 	add_child(_up)
 	box = VBoxContainer.new()
 	box.add_theme_constant_override("separation", 2)
 	add_child(box)
-	_down = TabRow.icon_button(UiStyle.icon("next_down"), "Ниже", func() -> void: scroll(1))
+	_down = TabRow.icon_button(UiStyle.icon("next_down"), "[lower]", func() -> void: scroll(1))
 	_down.custom_minimum_size = Vector2(side, ARROW)
 	add_child(_down)
 	_show()

@@ -74,7 +74,7 @@ jobs:
       - name: Docs
         run: python3 tools/doc_index.py --check
       - name: English
-        run: python3 tools/lang_check.py --strict en
+        run: python3 tools/lang_check.py --strict en,ru
 
   # A minute: every script compiles (tools/parse_check.gd), the mods' data with every
   # bundle by itself (tools/validate.gd) and the content reports in docs/generated are

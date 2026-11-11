@@ -2,11 +2,18 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/shovel/bundle.yaml
-"Лопата": "Pelle"
+"[tools.shovel.bundle]": "Pelle"
 
 # content/tools/shovel/data/items.yaml
-"Деревянная лопата": "Pelle en bois"
-"Медная лопата": "Pelle de cuivre"
-"Бронзовая лопата": "Pelle de bronze"
-"Железная лопата": "Pelle de fer"
-"Стальная лопата": "Pelle d'acier"
+"[tools.items.wooden_shovel]": "Pelle en bois"
+"[tools.items.copper_shovel]": "Pelle de cuivre"
+"[tools.items.bronze_shovel]": "Pelle de bronze"
+"[tools.items.iron_shovel]": "Pelle de fer"
+"[tools.items.steel_shovel]": "Pelle d'acier"
+
+# content/tools/shovel/data/recipes.yaml
+"[tools.recipes.wooden_shovel]": "Pelle en bois"
+"[tools.recipes.copper_shovel]": "Pelle de cuivre"
+"[tools.recipes.bronze_shovel]": "Pelle de bronze"
+"[tools.recipes.iron_shovel]": "Pelle de fer"
+"[tools.recipes.steel_shovel]": "Pelle d'acier"

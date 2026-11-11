@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/fence/bundle.yaml
+"[tools.fence.bundle]": "Забор"
+
+# content/tools/fence/data/items.yaml
+"[tools.items.fence]": "Забор"
+"[tools.items.fence.about]": "Звено изгороди из жердей. Строится в режиме строительства линией, как стена, и само соединяется с соседними."
+"[tools.items.wicket]": "Калитка"
+"[tools.items.wicket.about]": "Створка из жердей в линию забора, на одну клетку. Касание открывает и закрывает."
+"[tools.items.gate]": "Ворота"
+"[tools.items.gate.about]": "Две створки из жердей в линию забора, на две клетки в ширину. Касание открывает обе."
+
+# content/tools/fence/data/recipes.yaml
+"[tools.recipes.fence]": "Забор"
+"[tools.recipes.wicket]": "Калитка"
+"[tools.recipes.gate]": "Ворота"
