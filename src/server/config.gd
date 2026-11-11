@@ -22,7 +22,7 @@ const PLAYERS := 8
 const PORT := Protocol.PORT
 
 ## The server's name, for the players.
-var title := "Survivium"
+var title := Protocol.game_name()
 var port := PORT
 var max_players := PLAYERS
 ## The word a player must give to come in; "" asks none.

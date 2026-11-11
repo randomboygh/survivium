@@ -33,7 +33,8 @@ extends "res://src/client/ui/menu_pages.gd"
 ## shows. Reopened over a running world (the pause menu, the death screen) the menu has
 ## no landscape and «Продолжить» goes straight back in. The game's interface is hidden
 ## while the menu is open; the menu takes the scale and the safe rect the interface was
-## fitted to. `game` is the Main node.
+## fitted to. In the developer mode (the easter egg: Settings.testing_unlocked) the build's
+## version is written small under the name. `game` is the Main node.
 
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
@@ -58,6 +59,21 @@ void fragment() {
 	COLOR.rgb = mix(COLOR.rgb, vec3(1.0, 0.96, 0.84), 0.7 * band * lit);
 }
 """
+
+
+## The build's version under the name, shown in the developer mode (see _ready).
+var _version: Label
+
+
+## "v0.3.511 · ce642af · 2026-11-11" (tools/build_info.py), "dev" in the editor.
+static func version_text() -> String:
+	var info := {"version": "dev", "commit": "", "date": ""}
+	info.merge(Protocol.build_info(), true)
+	var parts := ["v" + str(info.version)]
+	for key: String in ["commit", "date"]:
+		if str(info[key]) != "":
+			parts.append(str(info[key]))
+	return " · ".join(parts)
 
 
 func _init(g) -> void:
@@ -85,7 +101,7 @@ func _ready() -> void:
 	_column = VBoxContainer.new()
 	_column.add_theme_constant_override("separation", 6)
 	_screen.add_child(_column)
-	var title := UiStyle.label("SURVIVIUM", UiStyle.ACCENT)
+	var title := UiStyle.label(Protocol.game_name().to_upper(), UiStyle.ACCENT)
 	title.add_theme_font_size_override("font_size", TITLE_SIZE)
 	title.add_theme_color_override("font_outline_color", UiStyle.EDGE)
 	title.add_theme_constant_override("outline_size", 8)
@@ -97,6 +113,14 @@ func _ready() -> void:
 	# Fixed at the top of the screen, not in the column: the pages differ in height.
 	_screen.add_child(title)
 	_title = title
+	# The build's version under the name, once the easter egg has opened the playtest
+	# switches (Settings.testing_unlocked): which build a screenshot or a report is of.
+	_version = UiStyle.label(version_text(), UiStyle.MUTED)
+	_version.add_theme_color_override("font_outline_color", UiStyle.EDGE)
+	_version.add_theme_constant_override("outline_size", 4)
+	_version.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_version.visible = false
+	title.add_child(_version)
 	_sparrow = Control.new()
 	_sparrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_sparrow.draw.connect(_draw_sparrow)
@@ -152,6 +176,9 @@ func _process(delta: float) -> void:
 		return
 	_update_loading(delta)
 	_title.visible = _column.visible
+	_version.visible = game.settings.testing_unlocked
+	if _version.visible:
+		_version.position = Vector2(floorf((_title.size.x - _version.size.x) * 0.5), _title.size.y - 2.0)
 	_fx.visible = _column.visible
 	if _column.visible:
 		_move_sparrow(delta)

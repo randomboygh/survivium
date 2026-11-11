@@ -749,7 +749,7 @@
 "[day_n4]": "gün %d"
 "[the_browser_draws_without_the]": "Tarayıcı ekran kartı olmadan çiziyor (%s), bu yüzden oyun yavaş. Tarayıcı ayarlarında «Grafik hızlandırmayı kullan» seçeneğini açın (Edge: edge://settings/system, Chrome: chrome://settings/system) ve tarayıcıyı yeniden başlatın."
 "[the_browser_runs_the_code_uncompiled]": "Tarayıcı oyunun kodunu derlemeden çalıştırıyor (betiklerin yüklenmesi %d sn sürdü), bu yüzden oyun yavaş. Edge'de «Web'de güvenliğinizi artırın» açıkken böyle olur: edge://settings/privacy içinde kapatın ya da bu siteyi istisnalara ekleyin ve sayfayı yenileyin."
-"[a_server_is_run_on]": "Sunucu bir bilgisayarda çalışır: Windows ya da Linux için Survivium. Telefonlar ve tarayıcılar ona katılır."
+"[a_server_is_run_on]": "Sunucu bir bilgisayarda çalışır: Windows ya da Linux için %s. Telefonlar ve tarayıcılar ona katılır."
 
 # src/client/ui/minimap.gd
 "[map_m]": "Harita (M)"

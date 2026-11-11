@@ -733,6 +733,9 @@ const SHOTS := {
 		"egg_ms": 400},
 	"ui-main-menu-egg-fall": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 13.0,
 		"egg": true, "egg_ms": 2200},
+	# The developer mode the egg opens: the build's version under the name.
+	"ui-main-menu-dev": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 13.0,
+		"dev": true},
 	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
 	# The list of saved worlds, over a few saves made up for it.
 	"ui-main-menu-changes": {"time": 0.42, "season": 1, "touch": true, "main_menu": "changes"},

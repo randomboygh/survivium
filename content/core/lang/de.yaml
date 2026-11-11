@@ -749,7 +749,7 @@
 "[day_n4]": "Tag %d"
 "[the_browser_draws_without_the]": "Der Browser zeichnet ohne Grafikkarte (%s), deshalb läuft das Spiel langsam. Aktiviere in den Browsereinstellungen «Grafikbeschleunigung verwenden» (Edge: edge://settings/system, Chrome: chrome://settings/system) und starte den Browser neu."
 "[the_browser_runs_the_code_uncompiled]": "Der Browser führt den Code des Spiels ohne Kompilierung aus (die Skripte luden %d s), daher läuft das Spiel langsam. Das passiert in Edge mit „Sicherheit im Web verbessern“: Schalte es unter edge://settings/privacy aus oder füge diese Seite zu den Ausnahmen hinzu und lade die Seite neu."
-"[a_server_is_run_on]": "Ein Server läuft auf einem Computer: Survivium für Windows oder Linux. Handys und Browser treten ihm bei."
+"[a_server_is_run_on]": "Ein Server läuft auf einem Computer: %s für Windows oder Linux. Handys und Browser treten ihm bei."
 
 # src/client/ui/minimap.gd
 "[map_m]": "Karte (M)"

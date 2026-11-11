@@ -361,6 +361,13 @@ static func encode(msg: Array) -> PackedByteArray:
 	return var_to_bytes(msg)
 
 
+## The game's name as players see it: `application/config/name` in project.godot, the
+## one place it is written (docs/RENAMING.md). It also names the window, the web page
+## and the PC builds; the saves' folder stays put (`config/custom_user_dir_name`).
+static func game_name() -> String:
+	return str(ProjectSettings.get_setting("application/config/name", "Survivium"))
+
+
 ## The version of this build ("0.2.253": the stage and the last PR merged, "0.2.253+pr7"
 ## a pull request's build, "dev" a run from the editor or a test): a client and a
 ## server of different builds do not play, since their content may differ (decision

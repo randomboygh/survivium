@@ -1,5 +1,5 @@
 """Draws assets/splash.png, the logo the browser shows while the game downloads and the
-engine shows as it starts: "SURVIVIUM" in the interface's pixel font, amber with a dark
+engine shows as it starts: the game's name (project.godot) in the interface's pixel font, amber with a dark
 outline as on the main menu (MainMenu, TITLE_SIZE 32, outline 8), and the sparrow of the
 animals mod sitting on the S. Needs Pillow; run from the project folder:
 
@@ -14,7 +14,6 @@ from PIL import Image, ImageDraw, ImageFont
 FONT = "assets/fonts/PressStart2P.ttf"
 SPARROW = "content/animals/sparrow/sprites/creatures/sparrow.png"
 OUT = "assets/splash.png"
-TEXT = "SURVIVIUM"
 SIZE = 32
 # Half of the menu's outline_size 8: Godot draws it around the glyph both ways.
 OUTLINE = 4
@@ -32,6 +31,18 @@ PAD = 4
 # shows its boot splash as large as fits the screen, the logo then about half of it.
 ROOM = 2
 
+
+
+def game_name() -> str:
+    """The game's name, `config/name` in project.godot: the one place it is written."""
+    with open("project.godot", encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("config/name="):
+                return line.split("=", 1)[1].strip().strip('"')
+    return "Survivium"
+
+
+TEXT = game_name().upper()
 
 def main() -> None:
     font = ImageFont.truetype(FONT, SIZE)

@@ -749,7 +749,7 @@
 "[day_n4]": "dzień %d"
 "[the_browser_draws_without_the]": "Przeglądarka rysuje bez karty graficznej (%s), dlatego gra działa wolno. Włącz «Użyj akceleracji graficznej» w ustawieniach przeglądarki (Edge: edge://settings/system, Chrome: chrome://settings/system) i uruchom ją ponownie."
 "[the_browser_runs_the_code_uncompiled]": "Przeglądarka wykonuje kod gry bez kompilacji (skrypty ładowały się %d s), dlatego gra działa wolno. Tak bywa w Edge z włączonym „Zwiększ bezpieczeństwo w sieci Web”: wyłącz to w edge://settings/privacy albo dodaj tę stronę do wyjątków i odśwież stronę."
-"[a_server_is_run_on]": "Serwer uruchamia się na komputerze: Survivium dla Windows lub Linux. Telefony i przeglądarki do niego dołączają."
+"[a_server_is_run_on]": "Serwer uruchamia się na komputerze: %s dla Windows lub Linux. Telefony i przeglądarki do niego dołączają."
 
 # src/client/ui/minimap.gd
 "[map_m]": "Mapa (M)"

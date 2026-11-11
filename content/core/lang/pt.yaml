@@ -749,7 +749,7 @@
 "[day_n4]": "dia %d"
 "[the_browser_draws_without_the]": "O navegador desenha sem a placa de vídeo (%s), por isso o jogo fica lento. Ative «Usar aceleração gráfica» nas configurações do navegador (Edge: edge://settings/system, Chrome: chrome://settings/system) e reinicie o navegador."
 "[the_browser_runs_the_code_uncompiled]": "O navegador executa o código do jogo sem compilá-lo (os scripts levaram %d s para carregar), por isso o jogo está lento. Isso acontece no Edge com «Aumentar sua segurança na Web»: desative em edge://settings/privacy ou adicione este site às exceções e recarregue a página."
-"[a_server_is_run_on]": "Um servidor roda num computador: Survivium para Windows ou Linux. Celulares e navegadores entram nele."
+"[a_server_is_run_on]": "Um servidor roda num computador: %s para Windows ou Linux. Celulares e navegadores entram nele."
 
 # src/client/ui/minimap.gd
 "[map_m]": "Mapa (M)"
