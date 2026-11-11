@@ -2,18 +2,23 @@ extends RefCounted
 ## The player's team as the server tells it (Protocol.TEAM, INVITES; the rules are
 ## src/shared/game/teams.gd): the team ({} for none: "id", "name", "lead", "members"
 ## [[id, name]…]), the invitations waiting ([[id, name]…]) and those the player sent
-## waiting for an answer (`sent`: [[id, until (Time seconds)]…]). Asks the server to
+## waiting for an answer (`sent`: [[id, until (Time seconds)]…]), and where the other
+## members are, however far (`mates`: [[id, name, column]…], Protocol.MATES; the map
+## and the minimap draw them). Asks the server to
 ## invite, accept, decline, leave, put out and rename through `game.net`.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 
 ## The team or the invitations changed.
 signal changed
+## A teammate moved to another column, came or went.
+signal mates_changed
 
 var game
 var view := {}
 var invites: Array = []
 var sent: Array = []
+var mates: Array = []
 ## Fighting, as the server tells it (Protocol.FIGHT; the rules are src/shared/game/
 ## fights.gd): the server's mode ("off", "land", "all"), whole minutes of the player's
 ## protection as a newcomer left, whole seconds of their fight left.
@@ -35,6 +40,14 @@ func take_invites(list: Array, out: Array = []) -> void:
 		if e is Array and e.size() == 2 and e[0] is int and (e[1] is float or e[1] is int):
 			sent.append([e[0], now + float(e[1])])
 	changed.emit()
+
+
+func take_mates(list: Array) -> void:
+	var good := list.filter(func(e: Variant) -> bool:
+		return e is Array and e.size() == 3 and e[0] is int and e[1] is String and e[2] is Vector2i)
+	if good != mates:
+		mates = good
+		mates_changed.emit()
 
 
 ## The invitations sent still waiting: [[id, seconds left]…].

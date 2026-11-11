@@ -4,7 +4,7 @@ extends RefCounted
 ## on cells, the clock and the animals, fed by the server's events (Protocol.YOU, VITALS,
 ## KNOWLEDGE, SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; PROPS, PROP, PROP_GONE,
 ## PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST; PLANS, PLAN_CELLS (`game.plans`); CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
-## players, `game.others`); TEAM, INVITES (`game.team`); CLAIMS, SQUARES, LAND (`game.land`); FIGHT (`game.team`); HEARD (the chat, `game.hud.chat`, and the line over the
+## players, `game.others`); TEAM, INVITES, MATES (`game.team`); CLAIMS, SQUARES, LAND (`game.land`); FIGHT (`game.team`); HEARD (the chat, `game.hud.chat`, and the line over the
 ## speaker's head); over a socket the world too:
 ## CHUNK, FORGET, CELLS, DROPS with the list, TAKEN, into `game.world_maker` (RemoteGen),
 ## the world and `game.actions`' signals), and the client's own event each frame: where
@@ -222,6 +222,9 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.TEAM:
 			if args is Array and args.size() == 1 and args[0] is Dictionary:
 				game.team.take_team(args[0])
+		Protocol.MATES:
+			if args is Array and args.size() == 1 and args[0] is Array:
+				game.team.take_mates(args[0])
 		Protocol.INVITES:
 			if args is Array and args.size() in [1, 2] and args[0] is Array:
 				game.team.take_invites(args[0], args[1] if args.size() == 2 and args[1] is Array else [])
