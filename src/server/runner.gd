@@ -57,7 +57,7 @@ func _process(delta: float) -> void:
 			session.step_storms(delta)
 			_took("storms", t)
 	var t0 := Time.get_ticks_usec()
-	session.make_chunks(near_us, far_us, Session.PAUSE_ZONE if paused else Session.ZONE)
+	session.make_chunks(near_us, far_us, session.reach() + (Session.PAUSE_ZONE - Session.ZONE if paused else 0))
 	session.forget_far()
 	spent_us += Time.get_ticks_usec() - t0
 	took_us["world"] = Time.get_ticks_usec() - t0
