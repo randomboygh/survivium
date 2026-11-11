@@ -803,6 +803,20 @@ func _test_graves() -> void:
 			full.set_cell(x, 2, z, Mat.STONE)
 	camp.world = full
 	_check(camp.put_grave(at, g).is_empty(), "no cross where there is no room")
+	camp.world = w
+	var poor := Survivor.new()
+	poor.world = w
+	poor.placed = camp
+	poor.clock = Clock.new()
+	poor.body = Body.new()
+	poor.at = Vector3(10.5, 1.0, 10.5) * WorldData.CELL
+	poor.vitals.satiety = 0.0
+	poor.vitals.health = 0.0
+	poor.update(0.1)
+	var crosses := camp.things.filter(func(t: Dictionary) -> bool: return Placed.is_grave(t))
+	_check(poor.is_dead() and w.drops.get(WorldData.chunk_key(10, 10), []).is_empty() and crosses.size() == 2
+		and crosses.any(func(t: Dictionary) -> bool: return absi(t.cell.x - 10) <= 1 and absi(t.cell.z - 10) <= 1),
+		"a death with an empty bag leaves no sack but a cross at once")
 
 
 ## Coming back after death: at the last bed the character set down, lying in it, before

@@ -633,8 +633,9 @@ func grave_of(d: Dictionary) -> Dictionary:
 		"days": snappedf(float(lived.get("days", 0.0)), 0.001), "life": counts}
 
 
-## Health is gone: the bag's things stay in a sack where the character fell, and the
-## character lies dead until revive().
+## Health is gone: the bag's things stay in a sack where the character fell (an empty
+## bag leaves a cross there at once, Placed.put_grave), and the character lies dead until
+## revive().
 func die() -> void:
 	var at := position
 	# The vessel ridden stays where it floats.
@@ -646,11 +647,15 @@ func die() -> void:
 	var summary := life.duplicate()
 	summary.days = lived
 	var sack: Variant = null
+	var grave := grave_of({"life": summary, "cause": vitals.hurt_by, "day": clock.day})
 	if not stacks.is_empty():
 		var ends: float = clock.now() + SACK_DAYS
-		sack = lay(Items.SACK, stacks, ends, grave_of({"life": summary, "cause": vitals.hurt_by, "day": clock.day}))
+		sack = lay(Items.SACK, stacks, ends, grave)
 		sacks.append(sack)
 		sack_ends.append(ends)
+	elif placed != null:
+		# Nothing to leave in a sack: the cross stands at once, beside the body.
+		placed.put_grave(at, grave, [self])
 	deaths += 1
 	fell_at = at
 	death = {
