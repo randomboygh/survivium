@@ -341,7 +341,7 @@ func step(delta: float, jump: bool) -> void:
 func place_sprite() -> void:
 	if _build != null and _build.step():
 		if perf != null:
-			perf.mark("фигура")
+			perf.mark("figure")
 		if _sheets.size() >= SHEETS_KEPT:
 			_sheets.erase(_sheets.keys()[0])
 		_sheets[_build_key] = _build.target

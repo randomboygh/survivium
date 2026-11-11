@@ -26,7 +26,7 @@ func _init(m: Node) -> void:
 func _ready() -> void:
 	_start = Time.get_unix_time_from_system()
 	_end = _start + main.config.minutes * 60.0 if main.config.minutes > 0 else 0.0
-	main.say("тестовый сервер: %s, ботов %d; «/test» — для всех" % [left_text(), main.config.bots])
+	main.say("playtest server: %s, bots %d; «/test» for everyone" % [left_text(), main.config.bots])
 
 
 func _process(delta: float) -> void:
@@ -36,7 +36,7 @@ func _process(delta: float) -> void:
 	_clock = 0.0
 	var left := _end - Time.get_unix_time_from_system()
 	if left <= 0.0:
-		main.say("время тестового сервера вышло")
+		main.say("the playtest server's time is up")
 		main.server.stop()
 	elif left <= WARN * 60.0 and not _warned:
 		_warned = true
@@ -52,7 +52,7 @@ func extend() -> String:
 		return "Дольше нельзя: %s" % left_text()
 	_end = minf(_end + HOUR * 60.0, most)
 	_warned = false
-	main.say("тестовый сервер продлён: " + left_text())
+	main.say("playtest server extended: " + left_text())
 	return "Продлено: " + left_text()
 
 

@@ -30,12 +30,12 @@ var _text := ""
 func start(port: int, path := "") -> bool:
 	program = find(path)
 	if program == "":
-		failed = "cloudflared не найден: скачайте его с github.com/cloudflare/cloudflared/releases и положите рядом с игрой"
+		failed = "cloudflared not found: download it from github.com/cloudflare/cloudflared/releases and put it beside the game"
 		return false
 	var args := PackedStringArray(["tunnel", "--no-autoupdate", "--url", "http://localhost:%d" % port])
 	_pipes = OS.execute_with_pipe(program, args, false)
 	if _pipes.is_empty():
-		failed = "cloudflared не запустился: " + program
+		failed = "cloudflared did not start: " + program
 		return false
 	pid = int(_pipes.pid)
 	return true
@@ -59,7 +59,7 @@ func poll() -> bool:
 		if found != "":
 			url = found
 	if url == "" and pid > 0 and not OS.is_process_running(pid):
-		failed = "cloudflared остановился, не дав адреса"
+		failed = "cloudflared stopped without giving an address"
 		_pipes = {}
 	return url != before
 

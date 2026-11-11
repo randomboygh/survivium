@@ -87,7 +87,7 @@ func apply(data: Dictionary) -> bool:
 	clock.set_real_weather(int(now.weather_code), float(now.get("wind_speed_10m", 0.0)),
 		float(now.get("wind_direction_10m", 0.0)))
 	status = "%s, %s" % [place if place != "" else "рядом", clock.WEATHERS[clock.weather].name.to_lower()]
-	_say("погода с улицы: %s (код %d)" % [status, int(now.weather_code)])
+	_say("real weather: %s (code %d)" % [status, int(now.weather_code)])
 	return true
 
 
@@ -95,7 +95,7 @@ func apply(data: Dictionary) -> bool:
 ## next try.
 func _failed() -> void:
 	if status != "нет связи":
-		_say("погода с улицы: нет связи, повторю через %d с" % int(RETRY))
+		_say("real weather: no connection, again in %d s" % int(RETRY))
 	status = "нет связи"
 
 

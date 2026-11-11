@@ -628,13 +628,13 @@ func _run() -> void:
 		"a tap on the state or the clock does not reach the world")
 	# The statistics with their longest lines, two freezes told, do not wrap and stay low.
 	hud.perf.reset()
-	hud.perf.mark("тень огня")
-	hud.perf.mark("сетка")
-	hud.perf.mark("видео", "+512 КБ")
+	hud.perf.mark("fire shadow")
+	hud.perf.mark("mesh")
+	hud.perf.mark("video", "+512 КБ")
 	hud.perf.add_frame(1.234)
-	_check(hud.perf.last_freeze[2] == ["видео", "сетка", "тень огня"] and hud.perf.freeze_marks.get("сетка") == 1,
+	_check(hud.perf.last_freeze[2] == ["video", "mesh", "fire shadow"] and hud.perf.freeze_marks.get("mesh") == 1,
 		"a freeze tells what was marked in the frame before it: %s" % [hud.perf.last_freeze])
-	_check(hud.perf.freeze_log.size() == 1 and hud.perf.freeze_log[0][3] == ["видео +512 КБ", "сетка", "тень огня"],
+	_check(hud.perf.freeze_log.size() == 1 and hud.perf.freeze_log[0][3] == ["video +512 KB", "mesh", "fire shadow"],
 		"the freezes' log keeps the marks with what they say: %s" % [hud.perf.freeze_log])
 	_check(hud.perf.freeze_log[0][2][0][0] == hud.perf.REST and hud.perf.freeze_log[0].size() == 5,
 		"time outside the game's code and the drawing is the browser's, with the draw calls: %s" % [hud.perf.freeze_log])
@@ -649,9 +649,9 @@ func _run() -> void:
 		"a long frame of the page is told beside its freeze: %s, left %s" % [hud.perf.freeze_log[0][3], hud.perf._long_frames])
 	hud.perf._long_frames.clear()
 	# A collection the page tells of frames later is told beside the last freeze, once.
-	hud.perf._mark_last_freeze("мусор 93 → 61 МБ")
-	hud.perf._mark_last_freeze("мусор")
-	_check(hud.perf.freeze_log[0][3].back() == "мусор 93 → 61 МБ" and hud.perf.freeze_log[0][3].count("мусор") == 0,
+	hud.perf._mark_last_freeze("garbage 93 → 61 MB")
+	hud.perf._mark_last_freeze("garbage")
+	_check(hud.perf.freeze_log[0][3].back() == "garbage 93 → 61 MB" and hud.perf.freeze_log[0][3].count("garbage") == 0,
 		"a late told collection is marked on the last freeze once: %s" % [hud.perf.freeze_log[0][3]])
 	# The log's window: the ordinary frame first, a tab for each band of length.
 	hud.perf.freeze_log.append([10.0, 250.0, [], [], 1])
@@ -678,9 +678,9 @@ func _run() -> void:
 		and log_page._list.get_child(log_page._list.get_child_count() - 1).text == report, "the playtest report tells the moment: %s" % report)
 	log_page.close()
 	hud.perf.freeze_log.resize(1)
-	hud.perf.last_freeze = [1234.0, [["отрисовка", 1200.0], ["животные", 20.0], ["небо", 9.0]], ["тень огня", "сетка"]]
-	hud.perf.worst_freeze = [2345.0, [["отрисовка", 2300.0], ["камера", 40.0], ["небо", 5.0]]]
-	hud.perf.freeze_marks = {"тень огня": 123, "фигура": 45, "запись": 12, "ничего": 8}
+	hud.perf.last_freeze = [1234.0, [["drawing", 1200.0], ["animals", 20.0], ["sky", 9.0]], ["fire shadow", "mesh"]]
+	hud.perf.worst_freeze = [2345.0, [["drawing", 2300.0], ["camera", 40.0], ["sky", 5.0]]]
+	hud.perf.freeze_marks = {"fire shadow": 123, "figure": 45, "save": 12, "nothing": 8}
 	hud.toggle_stats()
 	await process_frame
 	await process_frame

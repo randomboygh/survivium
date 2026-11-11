@@ -33,11 +33,11 @@ const REFRESH := 0.5
 ## garbage collection, the compositor waiting for the GPU and the screen) and after
 ## the drawing in the callback (the sound, the engine's end of its frame); elsewhere
 ## it is all REST.
-const ENGINE := "движок"
-const DRAW := "отрисовка"
-const INPUT := "ввод"
-const REST := "браузер"
-const AFTER := "конец кадра"
+const ENGINE := "engine"
+const DRAW := "drawing"
+const INPUT := "input"
+const REST := "browser"
+const AFTER := "frame end"
 ## Parts of a freeze written to the log and shown in the panel, the biggest first.
 const FREEZE_PARTS := 3
 const PANEL_FREEZE_PARTS := 2
@@ -47,7 +47,7 @@ const FREEZE_LOG_EVERY := 1000
 ## Longest line of the panel, in letters of the pixel font: an upright phone's width.
 const LINE := 45
 ## What a freeze with no mark before it is counted as.
-const NO_MARK := "ничего"
+const NO_MARK := "nothing"
 ## Freezes the log keeps.
 const LOG_SIZE := 100
 ## A change of video memory (textures and meshes sent to the GPU) or of the objects
@@ -58,7 +58,7 @@ const OBJECTS_JUMP := 40
 const SEND_MS := 4.0
 ## The mark of a full garbage collection of the page, and how late after a freeze (ms)
 ## the page may tell of the one that made it (see _mark_last_freeze).
-const GARBAGE := "мусор"
+const GARBAGE := "garbage"
 const GC_LATE := 3000.0
 ## How far an ordinary frame pulls the average of ordinary frames (see usual).
 const USUAL_PULL := 0.02
@@ -208,20 +208,20 @@ func _engine_marks(ms := 0.0) -> void:
 	var video := Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED)
 	var objects := Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
 	if _video > 0.0 and absf(video - _video) >= VIDEO_JUMP:
-		mark("видео", Lang.f("%+d КБ", [roundi((video - _video) / 1024.0)]))
+		mark("video", Lang.f("%+d KB", [roundi((video - _video) / 1024.0)]))
 	if _objects > 0.0 and absf(objects - _objects) >= OBJECTS_JUMP:
-		mark("объекты", "%+d" % roundi(objects - _objects))
+		mark("objects", "%+d" % roundi(objects - _objects))
 	_video = video
 	_objects = objects
 	var gl := _gl.take()
 	if not gl.is_empty():
 		if gl.programs > 0.0 or gl.build_ms >= 1.0:
 			var what: String = "" if gl.late.is_empty() else ": " + "; ".join(gl.late)
-			mark("шейдеры", Lang.f("%d за %d мс%s", [roundi(gl.programs), roundi(gl.build_ms), what]))
+			mark("shaders", Lang.f("%d in %d ms%s", [roundi(gl.programs), roundi(gl.build_ms), what]))
 		if gl.send_ms >= SEND_MS:
-			mark("загрузка", Lang.f("%d КБ за %d мс", [roundi(gl.sent), roundi(gl.send_ms)]))
+			mark("upload", Lang.f("%d KB in %d ms", [roundi(gl.sent), roundi(gl.send_ms)]))
 		if gl.collections > 0:
-			var heap := "" if gl.heap_after <= 0.0 else Lang.f("%d → %d МБ", [roundi(gl.heap_peak), roundi(gl.heap_after)])
+			var heap := "" if gl.heap_after <= 0.0 else Lang.f("%d → %d MB", [roundi(gl.heap_peak), roundi(gl.heap_after)])
 			mark(GARBAGE, heap)
 			collections += gl.collections
 			if ms <= FREEZE_MS:
@@ -268,7 +268,7 @@ func _attach_long_frames() -> void:
 				best_overlap = overlap
 				best = i
 		if best >= 0:
-			freeze_log[best][3].append(Lang.f("страница %d мс: %s", [roundi(f[1]), f[2]]))
+			freeze_log[best][3].append(Lang.f("page %d ms: %s", [roundi(f[1]), f[2]]))
 		elif freeze_log.is_empty() or end > freeze_log.back()[0] * 1000.0:
 			if Time.get_ticks_msec() - end < 2000.0:
 				left.append(f)
@@ -387,15 +387,15 @@ func _record_freeze(ms: float) -> void:
 		print("freeze %s" % freeze_text(last_freeze))
 
 
-## A freeze as "84 мс: отрисовка 52, чанки 30 · сетка", with its `parts` biggest
+## A freeze as "84 ms: drawing 52, chunks 30 · mesh", with its `parts` biggest
 ## parts and what was marked before it.
 static func freeze_text(f: Array, parts_shown := FREEZE_PARTS) -> String:
 	var parts := []
 	for p: Array in f[1].slice(0, parts_shown):
 		parts.append("%s %d" % [p[0], roundi(p[1])])
-	var text := Lang.f("%d мс: %s", [roundi(f[0]), ", ".join(parts)])
+	var text := Lang.f("%d ms: %s", [roundi(f[0]), ", ".join(parts)])
 	if f.size() > 2:
-		# As many marks as fit the panel's line after "Фриз ".
+		# As many marks as fit the panel's line after "Freeze ".
 		for i in f[2].size():
 			var item: String = (" · " if i == 0 else ", ") + f[2][i]
 			if text.length() + item.length() > LINE - 5:
@@ -405,11 +405,11 @@ static func freeze_text(f: Array, parts_shown := FREEZE_PARTS) -> String:
 
 
 ## What came before the freezes, the most frequent first, as many as fit a line:
-## "Фризы после: сетка 30, запись 12, ничего 8".
+## "Freezes after: mesh 30, save 12, nothing 8".
 func marks_text() -> String:
 	var marks: Array = freeze_marks.keys()
 	marks.sort_custom(func(a: String, b: String) -> bool: return freeze_marks[a] > freeze_marks[b])
-	var text := "Фризы после:"
+	var text := "Freezes after:"
 	for i in marks.size():
 		var item := "%s %s %d" % ["" if i == 0 else ",", marks[i], freeze_marks[marks[i]]]
 		if text.length() + item.length() > LINE:
@@ -463,10 +463,10 @@ func summary(full := false, colored := false) -> String:
 	# Few short lines, so the panel is low and fits across a phone held upright
 	# (WIDTH): 45 letters of the pixel font at most.
 	var lines := [
-		Lang.f("FPS %s · ср. %s · 1%% %s · кадр %s мс", [c.call(str(now), fps_color(now)),
+		Lang.f("FPS %s · avg %s · 1%% %s · frame %s ms", [c.call(str(now), fps_color(now)),
 			c.call(str(roundi(avg)), fps_color(avg)), c.call(str(low), fps_color(low)),
 			c.call("%.1f" % last, frame_color(last))]),
-		Lang.f("Макс %s мс · фризы %s / %s · <30 FPS %s", [c.call("%.0f" % worst, frame_color(worst)),
+		Lang.f("Max %s ms · freezes %s / %s · <30 FPS %s", [c.call("%.0f" % worst, frame_color(worst)),
 			c.call(str(_freezes), UiStyle.GOOD if _freezes == 0 else UiStyle.ACCENT),
 			c.call(str(_big_freezes), UiStyle.GOOD if _big_freezes == 0 else UiStyle.DANGER),
 			c.call(str(_drops), UiStyle.GOOD if _drops == 0 else UiStyle.DANGER)]),
@@ -475,23 +475,23 @@ func summary(full := false, colored := false) -> String:
 	if not last_freeze.is_empty():
 		# With marks the panel shows the biggest part alone, so the line fits.
 		var marked: bool = last_freeze.size() > 2 and not last_freeze[2].is_empty()
-		lines.append(Lang.f("Фриз %s", [freeze_text(last_freeze, 1 if full and marked else parts)]))
-		lines.append(marks_text() if full else Lang.f("Худший %s", [freeze_text(worst_freeze, parts)]))
+		lines.append(Lang.f("Freeze %s", [freeze_text(last_freeze, 1 if full and marked else parts)]))
+		lines.append(marks_text() if full else Lang.f("Worst %s", [freeze_text(worst_freeze, parts)]))
 	if full:
 		var p := Performance
-		lines.append(Lang.f("Вызовы %d · объекты %d · треуг. %dк", [
+		lines.append(Lang.f("Calls %d · objects %d · tris %dk", [
 			p.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
 			p.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
 			roundi(p.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME) / 1000.0)]))
 		var video := p.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0
-		var world := Lang.f("Мир за %.1f с · чанков %d", [world_ms / 1000.0, chunks])
+		var world := Lang.f("World in %.1f s · chunks %d", [world_ms / 1000.0, chunks])
 		# The memory is counted in debug builds alone (not in the browser's).
 		var memory := p.get_monitor(Performance.MEMORY_STATIC) / 1048576.0
 		if memory > 0.0:
 			lines.append(world)
-			lines.append(Lang.f("Видео %d МБ · память %d МБ", [roundi(video), roundi(memory)]))
+			lines.append(Lang.f("Video %d MB · memory %d MB", [roundi(video), roundi(memory)]))
 		else:
-			lines.append(world + Lang.f(" · видео %d МБ", [roundi(video)]))
+			lines.append(world + Lang.f(" · video %d MB", [roundi(video)]))
 	return "\n".join(lines)
 
 

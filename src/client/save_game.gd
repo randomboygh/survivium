@@ -163,7 +163,7 @@ func update(delta: float) -> void:
 		_write_world()
 		wrote = "мир"
 		_writing = false
-	game.hud.perf.mark("запись", wrote)
+	game.hud.perf.mark("save", wrote)
 
 
 ## Saves everything now.

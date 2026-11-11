@@ -922,31 +922,31 @@ func report_text() -> String:
 	var minutes := int(clock.time_of_day * 24.0 * 60.0)
 	var lines := [
 		"Survivium %s · %s · %s" % [info.version, info.commit, info.date],
-		Lang.f("Мир: %s, настройки %s", ["тестовый" if s.in_test_world() else Lang.f("зерно %d", [game.world_seed]),
+		Lang.f("World: %s, settings %s", ["test" if s.in_test_world() else Lang.f("seed %d", [game.world_seed]),
 			JSON.stringify(game.world_options)]),
-		Lang.f("Игрок: x %d, y %d, уровень %d, срез %d", [cell.x, cell.z, cell.y, game.chunks.cut_level]),
-		Lang.f("Камера: поворот %d°, наклон %d", [posmod(game.view.turn_steps * 45, 360), game.view.tilt_steps]),
-		Lang.f("Время: день %d, %s, %02d:%02d, ход ×%s%s%s", [clock.day, clock.SEASONS[clock.season], minutes / 60, minutes % 60,
-			str(clock.time_speed * s.time_boost), ", как в жизни" if clock.real_time else "",
-			", сезон как в жизни" if clock.real_season else ""]),
-		Lang.f("Погода: %s%s, облака %.2f, дождь %.2f, снег %.2f, туман %.2f, ветер %.2f к %d°, снег лежит %.2f, лужи %.2f", [
-			clock.WEATHERS[clock.weather].name, "" if clock.weather_auto else " (выбрана)", clock.clouds, clock.rain,
+		Lang.f("Player: x %d, y %d, level %d, cut %d", [cell.x, cell.z, cell.y, game.chunks.cut_level]),
+		Lang.f("Camera: turn %d°, tilt %d", [posmod(game.view.turn_steps * 45, 360), game.view.tilt_steps]),
+		Lang.f("Time: day %d, %s, %02d:%02d, speed ×%s%s%s", [clock.day, clock.SEASONS[clock.season], minutes / 60, minutes % 60,
+			str(clock.time_speed * s.time_boost), ", real time" if clock.real_time else "",
+			", real season" if clock.real_season else ""]),
+		Lang.f("Weather: %s%s, clouds %.2f, rain %.2f, snow %.2f, fog %.2f, wind %.2f to %d°, snow cover %.2f, puddles %.2f", [
+			clock.WEATHERS[clock.weather].name, "" if clock.weather_auto else " (picked)", clock.clouds, clock.rain,
 			clock.snowing, clock.fog, clock.storm_wind, roundi(rad_to_deg(clock.wind_angle)), clock.snow, clock.puddles]),
-		Lang.f("Свет: день %.2f, луна %.2f%s", [sky.daylight, sky.moon, " (выбрана)" if clock.moon_pin >= 0.0 or sky.moon_override >= 0.0 else ""]),
-		Lang.f("Настройки: %s", [JSON.stringify(s.values)]),
-		Lang.f("Устройство: %s, экран %dx%d, окно %dx%d, %s", [OS.get_name(), DisplayServer.screen_get_size().x,
+		Lang.f("Light: day %.2f, moon %.2f%s", [sky.daylight, sky.moon, " (picked)" if clock.moon_pin >= 0.0 or sky.moon_override >= 0.0 else ""]),
+		Lang.f("Settings: %s", [JSON.stringify(s.values)]),
+		Lang.f("Device: %s, screen %dx%d, window %dx%d, %s", [OS.get_name(), DisplayServer.screen_get_size().x,
 			DisplayServer.screen_get_size().y, get_viewport().get_visible_rect().size.x,
 			get_viewport().get_visible_rect().size.y, RenderingServer.get_video_adapter_name()]),
-		Lang.f("Кадр: обычный %.1f мс, фризов в журнале %d", [game.hud.perf.usual[0], game.hud.perf.freeze_log.size()]),
+		Lang.f("Frame: usual %.1f ms, freezes in log %d", [game.hud.perf.usual[0], game.hud.perf.freeze_log.size()]),
 		StartTimes.line(),
-		Lang.f("Прошлые запуски: %s", [("; ".join(StartTimes.past().slice(0, 3)) if not StartTimes.past().is_empty() else "нет")]),
+		Lang.f("Earlier starts: %s", [("; ".join(StartTimes.past().slice(0, 3)) if not StartTimes.past().is_empty() else "none")]),
 	]
 	if OS.has_feature("web"):
 		# English only, like the other internal texts to come (decision 186).
 		lines.append("Browser draws with: %s%s" % [GlWatch.renderer(), " (software, no graphics card)" if GlWatch.software() else ""])
 	if game.net != null:
-		lines.append(Lang.f("Сервер: %s, запросов %d, байт туда %d, обратно %d, кодирование %.1f мс, ждут %d", [
-			Lang.f("по сети %s", [game.join_url]) if game.socket != null else "в игре (петля)",
+		lines.append(Lang.f("Server: %s, requests %d, bytes out %d, in %d, coding %.1f ms, waiting %d", [
+			Lang.f("over the net %s", [game.join_url]) if game.socket != null else "in the game (loop)",
 			game.net.requests, game.net.sent_bytes, game.net.received_bytes, game.net.coding_us / 1000.0, game.net.pending()]))
 	return "\n".join(lines)
 

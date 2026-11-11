@@ -471,10 +471,10 @@ func _run() -> void:
 		if shot.get("freezes", false):
 			# A few made-up freezes of every band for the log's window.
 			main.hud.perf.freeze_log = [
-				[62.0, 74.0, [["браузер", 40.0], ["отрисовка", 20.0]], ["сетка"], 310],
-				[95.0, 128.0, [["отрисовка", 90.0], ["игра", 25.0]], ["факел", "шейдер 2"], 420],
-				[140.0, 312.0, [["движок", 250.0], ["игра", 40.0]], ["запись", "мусор 93 → 61 МБ"], 380],
-				[171.0, 58.0, [["браузер", 45.0]], [], 300],
+				[62.0, 74.0, [["browser", 40.0], ["drawing", 20.0]], ["mesh"], 310],
+				[95.0, 128.0, [["drawing", 90.0], ["game", 25.0]], ["torch", "shader 2"], 420],
+				[140.0, 312.0, [["engine", 250.0], ["game", 40.0]], ["save", "garbage 93 → 61 MB"], 380],
+				[171.0, 58.0, [["browser", 45.0]], [], 300],
 			]
 			# `many` times as many, for two-figure counts on the tabs.
 			var one: Array = main.hud.perf.freeze_log.duplicate(true)

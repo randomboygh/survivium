@@ -209,7 +209,7 @@ func streams(id: String) -> Array:
 	var rec: Dictionary = records[id]
 	var out := []
 	if game != null and game.hud != null:
-		game.hud.perf.mark("звук")
+		game.hud.perf.mark("sound")
 	for path in Content.sound_files(rec):
 		var s: AudioStream = Content.sound(path)
 		if s == null:
@@ -429,7 +429,7 @@ func _process(delta: float) -> void:
 		for id in list:
 			_fade(list[id], k)
 	if game.hud != null and game.hud.perf != null:
-		game.hud.perf.note("звук", t)
+		game.hud.perf.note("sound", t)
 
 
 ## Takes loop `l` (see _loops) a step `k` of the way to its level.

@@ -931,14 +931,14 @@ func _process(delta: float) -> void:
 	if host != null:
 		# The server's loop ran before this frame: its steps go to the statistics as parts.
 		var took: Dictionary = host.runner.took_us
-		perf.add("небо", took.get("clock", 0))
-		perf.add("игрок", took.get("players", 0))
-		perf.add("животные", took.get("wildlife", 0))
-		perf.add("ветер и следы", took.get("storms", 0))
+		perf.add("sky", took.get("clock", 0))
+		perf.add("player", took.get("players", 0))
+		perf.add("animals", took.get("wildlife", 0))
+		perf.add("wind and tracks", took.get("storms", 0))
 		# The world made round the players: within the chunks' budgets (see _world_made).
-		perf.add("мир", took.get("world", 0))
+		perf.add("world", took.get("world", 0))
 	else:
-		t = perf.note("сеть", t)
+		t = perf.note("net", t)
 	chunks.paused = false
 	if not ready_to_play:
 		# Behind the loading screen the chunks are built a step at a time (run_jobs below),
@@ -979,10 +979,10 @@ func _process(delta: float) -> void:
 			print("world ready in %d ms" % (Time.get_ticks_msec() - start_ms))
 		else:
 			hud.set_loading(Lang.line("%s… %d%%", [loading_phase(), roundi(100.0 * loading_progress())]))
-		t = perf.note("чанки", t)
+		t = perf.note("chunks", t)
 	clock.advance(delta)
 	sky.update(delta)
-	t = perf.note("небо", t)
+	t = perf.note("sky", t)
 	if ready_to_play:
 		# What the server's tick changed comes first, then the body moves and tells
 		# the server where it is (the tick takes it next frame).
@@ -1020,24 +1020,24 @@ func _process(delta: float) -> void:
 			gathering.update(delta)
 		hands.update()
 		land.update()
-		t = perf.note("игрок", t)
+		t = perf.note("player", t)
 		_leave_footprints()
-		t = perf.note("ветер и следы", t)
+		t = perf.note("wind and tracks", t)
 		save.update(delta)
 		mod_reload.update()
-		t = perf.note("сохранение", t)
+		t = perf.note("save", t)
 	chunks.update_cut(delta)
 	# Behind the death screen the world is made ready where the character comes back.
 	chunks.set_focus(character.respawn_points()[0][1] if ready_to_play and character.is_dead() else Vector3.INF)
 	chunks.run_jobs(_world_made())
 	chunks.update_caps()
 	_budget_server()
-	t = perf.note("чанки", t)
+	t = perf.note("chunks", t)
 	if roof.flush():
-		perf.mark("крыши")
+		perf.mark("roofs")
 	if hud.minimap.flush():
-		perf.mark("карта")
-	t = perf.note("карты", t)
+		perf.mark("map")
+	t = perf.note("maps", t)
 	view.update(delta)
 	# While the world is built behind the loading screen's painted sky it is not drawn: in a slow
 	# browser drawing the chunks already built took most of each frame of the loading. Nor
@@ -1060,14 +1060,14 @@ func _process(delta: float) -> void:
 		# the first mix was built ahead and the rest came in the game (2026-11-08).
 		shaders.update()
 	freeze_log.update()
-	t = perf.note("камера", t)
+	t = perf.note("camera", t)
 	if ready_to_play:
 		hud.update_state()
 		death_screen.update()
 		controls.update_tip(delta)
 		_report_fps(delta)
 	view.poll_safe_rect(delta)
-	perf.note("интерфейс", t)
+	perf.note("hud", t)
 
 
 ## The game is saved when the window closes or loses focus (a phone app sent to the

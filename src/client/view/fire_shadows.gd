@@ -192,7 +192,7 @@ func _process(_delta: float) -> void:
 		_show_spots([])
 	_shade(shades)
 	mm.visible_instance_count = n
-	game.hud.perf.note("тени огня", t)
+	game.hud.perf.note("fire shadows", t)
 
 
 ## The ground under the player: where they stand, or in a jump where they last stood
@@ -275,7 +275,7 @@ func _show_lights(lights: Array) -> void:
 				_atlas.blit_rect(Image.create_from_data(MAP, MAP_ROWS_TALL, false, Image.FORMAT_R8, now[i]),
 					Rect2i(0, 0, MAP, MAP_ROWS_TALL), Vector2i(i * MAP, 0))
 		_atlas_texture.update(_atlas)
-		game.hud.perf.mark("тени")
+		game.hud.perf.mark("shadows")
 	_show_spots(lights)
 	var mat: ShaderMaterial = material_override
 	mat.set_shader_parameter("lights", at)

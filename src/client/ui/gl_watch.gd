@@ -166,21 +166,21 @@ const SCRIPT := """
 						first = Math.min(first, sc[r].startTime);
 						last = Math.max(last, sc[r].startTime + sc[r].duration);
 						var inv = String(sc[r].invoker || sc[r].invokerType || '');
-						if (inv.indexOf('requestAnimationFrame') >= 0 || inv.indexOf('FrameRequestCallback') >= 0) inv = 'кадр';
+						if (inv.indexOf('requestAnimationFrame') >= 0 || inv.indexOf('FrameRequestCallback') >= 0) inv = 'frame';
 						else {
 							var dot = inv.lastIndexOf('.');
 							inv = dot >= 0 ? inv.slice(dot + 1) : inv;
 							if (inv.indexOf('on') === 0) inv = inv.slice(2);
-							if (inv === 'message' || inv === 'ended') inv = 'звук';
+							if (inv === 'message' || inv === 'ended') inv = 'sound';
 						}
 						if (!(inv in by)) { by[inv] = 0; order.push(inv); }
 						by[inv] += sc[r].duration;
 					}
 					var parts = [];
 					var pre = first - e.startTime, post = e.startTime + e.duration - last;
-					if (pre >= 5) parts.push('до ' + Math.round(pre));
+					if (pre >= 5) parts.push('before ' + Math.round(pre));
 					for (r = 0; r < order.length; r++) if (by[order[r]] >= 5) parts.push(order[r] + ' ' + Math.round(by[order[r]]));
-					if (post >= 5) parts.push('после ' + Math.round(post));
+					if (post >= 5) parts.push('after ' + Math.round(post));
 					if (frames.length < 16) frames.push(Math.round(e.startTime) + ':' + Math.round(e.duration) + ':' + parts.join(','));
 				}
 			}).observe({type: 'long-animation-frame', buffered: false});

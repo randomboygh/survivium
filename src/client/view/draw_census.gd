@@ -57,7 +57,7 @@ func start() -> void:
 		sun.shadow_enabled = false
 		var no_sun := await _count()
 		sun.shadow_enabled = true
-		rows.append(["тень солнца и луны", all.x - no_sun.x, 0])
+		rows.append(["sun and moon shadow", all.x - no_sun.x, 0])
 	var lights := []
 	for l: OmniLight3D in game.world_root.find_children("*", "OmniLight3D", true, false):
 		if l.visible:
@@ -68,9 +68,9 @@ func start() -> void:
 		var dark := await _count()
 		for l in lights:
 			l.visible = true
-		rows.append([Lang.f("свет огней (%d)", [lights.size()]), all.x - dark.x, 0])
+		rows.append([Lang.f("fire lights (%d)", [lights.size()]), all.x - dark.x, 0])
 	rows.sort_custom(func(a: Array, b: Array) -> bool: return a[1] > b[1])
-	var lines := [Lang.f("Вызовы %d · объекты %d", [all.x, all.y])]
+	var lines := [Lang.f("Calls %d · objects %d", [all.x, all.y])]
 	for r in rows.slice(0, LINES):
 		if r[1] >= 1 or r[2] >= 10:
 			lines.append("%s: %d · %d" % [r[0], r[1], r[2]])
@@ -83,7 +83,7 @@ func start() -> void:
 ## The groups counted: [name, nodes] each.
 func _groups() -> Array:
 	var groups := []
-	var parts := ["земля", "вода", "трава", "кроны", "тени крон", "кусты", "сугробы"]
+	var parts := ["ground", "water", "grass", "crowns", "crown shadows", "bushes", "snowdrifts"]
 	var known := {}
 	for i in parts.size():
 		var nodes := []
@@ -91,13 +91,13 @@ func _groups() -> Array:
 			if i < chunk.size():
 				nodes.append(chunk[i])
 				known[chunk[i]] = true
-		groups.append(["чанки: " + parts[i], nodes])
+		groups.append(["chunks: " + parts[i], nodes])
 	var caps: Array = game.chunks.cap_nodes.values()
 	for n in caps:
 		known[n] = true
-	groups.append(["чанки: срезы", caps])
-	for pair in [["звери", game.creatures], ["эффекты", game.effects], ["игрок", game.player],
-			["нарисованные тени", game.fire_shadows], ["следы", game.tracks], ["курсор", game.cursor]]:
+	groups.append(["chunks: cuts", caps])
+	for pair in [["animals", game.creatures], ["effects", game.effects], ["player", game.player],
+			["drawn shadows", game.fire_shadows], ["tracks", game.tracks], ["cursor", game.cursor]]:
 		if pair[1] != null:
 			groups.append([pair[0], [pair[1]]])
 			known[pair[1]] = true
@@ -115,11 +115,11 @@ func _groups() -> Array:
 	for key in others:
 		groups.append([key, others[key]])
 	# The whole world and the whole interface, then the interface a piece at a time.
-	groups.append(["весь мир", [game.world_root]])
-	groups.append(["весь экран", [game.hud]])
+	groups.append(["whole world", [game.world_root]])
+	groups.append(["whole screen", [game.hud]])
 	for n in game.hud.get_children():
 		if n is CanvasItem and n != _panel:
-			groups.append(["экран: " + _hud_name(n), [n]])
+			groups.append(["screen: " + _hud_name(n), [n]])
 	return groups
 
 
