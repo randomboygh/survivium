@@ -3,7 +3,8 @@ extends Control
 ## on a circle in the middle of the screen, its icon and its words under it, its number
 ## for the keys 1–8. A tap or a key says `chosen` with its name and closes the wheel; a
 ## tap beside the buttons, Escape or the wheel's own key (C) close it. It covers the whole
-## screen over a light shade, so a tap on it does not reach the world. `game` is the Main node.
+## screen, so a tap on it does not reach the world, but shades only a disc under the
+## buttons and their words, the world round it seen as it is. `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
@@ -13,7 +14,9 @@ const Gestures := preload("res://src/shared/game/gestures.gd")
 ## circle shrinks on a narrow screen.
 const BUTTON := 44
 const RADIUS := 84
-const BACKDROP := Color(0.03, 0.03, 0.04, 0.35)
+const BACKDROP := Color(0.03, 0.03, 0.04, 0.5)
+## How far the shaded disc reaches past the buttons' centres: half a button and a line of words.
+const SHADE_PAST := BUTTON / 2 + 14
 
 signal chosen(name: String)
 signal closed
@@ -21,6 +24,9 @@ signal closed
 var game
 var _buttons: Array[Button] = []
 var _labels: Array[Label] = []
+## The shaded disc under the buttons: its centre and radius.
+var _mid := Vector2.ZERO
+var _shade := 0.0
 
 
 func _init(g) -> void:
@@ -98,6 +104,8 @@ func _fit() -> void:
 	size = screen
 	var mid := (screen * 0.5).floor()
 	var r := minf(RADIUS, minf(screen.x, screen.y) * 0.5 - BUTTON)
+	_mid = mid
+	_shade = r + SHADE_PAST
 	for i in _buttons.size():
 		var a := TAU * i / _buttons.size() - PI * 0.5
 		var at := (mid + Vector2(cos(a), sin(a)) * r - Vector2(BUTTON, BUTTON) * 0.5).floor()
@@ -110,4 +118,4 @@ func _fit() -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), BACKDROP)
+	draw_circle(_mid, _shade, BACKDROP, true, -1.0, false)
