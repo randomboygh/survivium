@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Survivium: keyboard test</title>
+<!--
+A page apart from the game (published beside it as keyboard.html) that opens a phone's
+keyboard the ways a web page can, and tells by the visible area's height whether the keyboard
+came up: the game's way (the engine's hidden input focused a frame after the touch, the canvas
+taking the page's focus as a touch starts), in the touch's own handler, and a frame later
+without the canvas's focus. Tried before and after the browser is left and opened again, it
+shows which way the phone's browser lets through (docs/systems/ui.md).
+-->
+<style>
+html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #1d1a16; color: #eadfc8;
+	font: 14px/1.3 sans-serif; touch-action: none; -webkit-user-select: none; user-select: none; }
+#top { position: fixed; left: 0; right: 0; top: 0; padding: 6px 8px; }
+#state { white-space: pre-wrap; font-family: monospace; font-size: 12px; color: #c9b98f; }
+#log { white-space: pre-wrap; font-family: monospace; font-size: 12px; height: 8.2em; overflow: hidden; }
+#real { width: 100%; box-sizing: border-box; font-size: 16px; padding: 6px; margin: 4px 0;
+	background: #2e2923; color: #eadfc8; border: 1px solid #6b5d48; }
+#canvas { display: block; outline: none; }
+.zone { display: flex; align-items: center; justify-content: center; text-align: center; margin: 4px 0;
+	height: 44px; border: 1px solid #6b5d48; background: #2e2923; border-radius: 4px; }
+.zone.on { background: #4a3f2c; }
+#vk { display: none; position: absolute; z-index: -1; background: transparent; padding: 0; margin: 0;
+	overflow: hidden; width: 0; height: 0; border: 0; outline: none; }
+</style>
+</head>
+<body>
+<div id="top">
+	<div id="state"></div>
+	<div id="log"></div>
+	<input id="real" placeholder="0. Обычное поле страницы">
+	<input id="vk" disabled>
+	<div id="canvas" tabindex="0">
+		<div class="zone" data-way="1">1. Как в игре сейчас</div>
+		<div class="zone" data-way="2">2. Сразу в касании</div>
+		<div class="zone" data-way="3">3. Кадр спустя, без фокуса холста</div>
+		<div class="zone" data-way="4">4. Мимо поля (прячет)</div>
+	</div>
+</div>
+<script>
+(function () {
+	'use strict';
+	var vk = document.getElementById('vk');
+	var canvas = document.getElementById('canvas');
+	var real = document.getElementById('real');
+	var stateBox = document.getElementById('state');
+	var logBox = document.getElementById('log');
+	var lines = [];
+	var tabs = 0;
+	// The tallest visible area seen, the height with no keyboard.
+	var tall = 0;
+
+	function seen() {
+		var v = window.visualViewport;
+		return v ? v.height : window.innerHeight;
+	}
+
+	function up() {
+		return seen() < tall * 0.85;
+	}
+
+	function name(e) {
+		if (!e) {
+			return 'none';
+		}
+		if (e === document.body) {
+			return 'body';
+		}
+		return e.id || e.tagName.toLowerCase();
+	}
+
+	function log(s) {
+		lines.push(s);
+		if (lines.length > 6) {
+			lines.shift();
+		}
+		logBox.textContent = lines.join('\n');
+	}
+
+	function show() {
+		var a = navigator.userActivation;
+		stateBox.textContent = 'вкладка ' + document.visibilityState + ' x' + tabs +
+			' | окно ' + (document.hasFocus() ? 'в фокусе' : 'без фокуса') +
+			' | касание ' + (a ? (a.isActive ? 'есть' : 'нет') + '/' + (a.hasBeenActive ? 'было' : 'не было') : '?') +
+			'\nфокус ' + name(document.activeElement) +
+			' | клавиатура ' + (up() ? 'ДА' : 'нет') +
+			' | ' + Math.round(seen()) + ' из ' + Math.round(tall);
+	}
+
+	// The engine's GodotDisplayVK.hide and show (Godot 4.5.1).
+	function hide() {
+		vk.blur();
+		vk.style.display = 'none';
+		vk.value = '';
+	}
+
+	function open() {
+		if (vk.style.display !== '') {
+			hide();
+		}
+		var r = canvas.getBoundingClientRect();
+		vk.style.left = r.left + 'px';
+		vk.style.top = r.top + 'px';
+		vk.style.width = r.width + 'px';
+		vk.style.height = r.height + 'px';
+		vk.disabled = false;
+		vk.value = '';
+		vk.style.display = 'block';
+		vk.focus();
+	}
+
+	function judge(way) {
+		setTimeout(function () {
+			log(way + ': фокус ' + name(document.activeElement) + ', клавиатура ' + (up() ? 'ДА' : 'НЕТ'));
+		}, 900);
+	}
+
+	function zone(t) {
+		while (t && t !== canvas) {
+			if (t.dataset && t.dataset.way) {
+				return t;
+			}
+			t = t.parentNode;
+		}
+		return null;
+	}
+
+	var way = '';
+	canvas.addEventListener('touchstart', function (e) {
+		var z = zone(e.target);
+		way = z ? z.dataset.way : '4';
+		if (z) {
+			z.classList.add('on');
+		}
+		// The engine gives the canvas the page's focus as a touch starts.
+		if (way === '1' || way === '4') {
+			canvas.focus();
+		}
+		if (way === '1') {
+			// LineEdit takes the press a frame later and asks for the keyboard.
+			requestAnimationFrame(function () {
+				open();
+			});
+		}
+		e.preventDefault();
+	}, false);
+	canvas.addEventListener('touchend', function (e) {
+		var all = canvas.querySelectorAll('.zone');
+		for (var i = 0; i < all.length; i += 1) {
+			all[i].classList.remove('on');
+		}
+		if (way === '1') {
+			// And again as the finger lifts, the field being edited.
+			requestAnimationFrame(function () {
+				open();
+			});
+		} else if (way === '2') {
+			open();
+		} else if (way === '3') {
+			requestAnimationFrame(function () {
+				open();
+			});
+		}
+		if (way) {
+			judge(way);
+		}
+		e.preventDefault();
+	}, false);
+	vk.addEventListener('blur', function () {
+		vk.style.display = 'none';
+		vk.disabled = true;
+	}, false);
+	real.addEventListener('focus', function () {
+		judge('0');
+	}, false);
+	document.addEventListener('visibilitychange', function () {
+		tabs += 1;
+		log('вкладка ' + document.visibilityState + ', фокус ' + name(document.activeElement));
+	});
+	window.addEventListener('focus', function () {
+		log('окно в фокусе');
+	});
+	window.addEventListener('blur', function () {
+		log('окно без фокуса');
+	});
+	var was = false;
+	function resized() {
+		tall = Math.max(tall, seen());
+		var now = up();
+		if (now !== was) {
+			was = now;
+			log('клавиатура ' + (now ? 'поднялась' : 'убрана') + ', фокус ' + name(document.activeElement));
+		}
+	}
+	if (window.visualViewport) {
+		window.visualViewport.addEventListener('resize', resized);
+	}
+	window.addEventListener('resize', resized);
+	tall = Math.max(window.innerHeight, seen());
+	setInterval(show, 250);
+	show();
+	log('Коснитесь 0–4, затем выйдите из браузера и вернитесь');
+})();
+</script>
+</body>
+</html>

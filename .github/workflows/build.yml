@@ -188,9 +188,9 @@ jobs:
           # The engine's files named by their content and kept on the device by a service
           # worker: a deploy no longer makes the phone download the 9 MB engine again.
           python3 tools/web_cache.py build/web
-          # The link preview, and the home screen icon drawn at its size rather than the
-          # export's smoothed one (tools/make_icon.py).
-          cp assets/web/og.png build/web/
+          # The link preview, the phone keyboard test page (assets/web/keyboard.html), and the
+          # home screen icon drawn at its size rather than the export's smoothed one (tools/make_icon.py).
+          cp assets/web/og.png assets/web/keyboard.html build/web/
           cp assets/web/apple-touch-icon.png build/web/index.apple-touch-icon.png
           ls -la build/web
 
