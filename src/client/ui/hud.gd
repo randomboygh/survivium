@@ -98,6 +98,7 @@ func _ready() -> void:
 	_top.add_theme_constant_override("separation", 6)
 	add_child(_top)
 	_stats_button = _icon_button(_top, "chart", "Статистика", toggle_stats)
+	_stats_button.visible = game.settings.values.stats_button
 	_test_button = _icon_button(_top, "flask", "Тестирование", toggle_test)
 	_test_button.visible = game.settings.testing_unlocked
 	_chat_button = _icon_button(_top, "chat", "Чат (Enter)", func() -> void: chat.toggle())
