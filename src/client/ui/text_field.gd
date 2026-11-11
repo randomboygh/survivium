@@ -10,8 +10,7 @@ extends Node
 ##   closes the keyboard, so the next tap opens it as the first time did (on Android a tab
 ##   switched and back left the keyboard up with no letter reaching the field). This node,
 ##   a child of the field, watches the page's count of those switches while the field has
-##   the keys;
-## - on a touch screen a touch off the field lets it go unless another field takes the keys.
+##   the keys.
 
 ## Counts the page's tab switches, once per page (strict, no `arguments`: CLAUDE.md).
 const TABS := """
@@ -46,7 +45,7 @@ static func fit(f: LineEdit) -> LineEdit:
 		if _tabs == null:
 			JavaScriptBridge.eval(TABS, true)
 			_tabs = JavaScriptBridge.get_interface("survivium_tabs")
-	if DisplayServer.is_touchscreen_available() or _tabs != null:
+	if _tabs != null:
 		var watch = (load("res://src/client/ui/text_field.gd") as GDScript).new()
 		watch._field = f
 		f.add_child(watch)
@@ -67,29 +66,12 @@ func _ready() -> void:
 	_watch(_field.has_focus())
 
 
-## Watches touches, and reads the count, only while the field has the keys.
+## Reads the count only while the field has the keys.
 func _watch(on: bool) -> void:
 	set_process(on and _tabs != null)
-	set_process_input(on)
 	if on and _tabs != null:
 		_seen = int(_tabs.gen)
 		_in = EVERY
-
-
-func _input(event: InputEvent) -> void:
-	var touch := event as InputEventScreenTouch
-	if touch == null or not touch.pressed:
-		return
-	var rect: Rect2 = _field.get_global_transform_with_canvas() * Rect2(Vector2.ZERO, _field.size)
-	if not rect.has_point(touch.position):
-		# After the touch has done what it does: a button acts first, another field takes
-		# the keys itself.
-		_let_go.call_deferred()
-
-
-func _let_go() -> void:
-	if is_instance_valid(_field) and _field.has_focus():
-		_field.release_focus()
 
 
 func _process(delta: float) -> void:
