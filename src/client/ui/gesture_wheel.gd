@@ -24,6 +24,10 @@ signal closed
 var game
 var _buttons: Array[Button] = []
 var _labels: Array[Label] = []
+## The buttons' icons, each pixel of them a whole number of the screen's (_size_pics).
+var _pics: Array[TextureRect] = []
+## Screen pixels an icon's pixel takes now (0 before the first fit).
+var _pic_px := 0
 ## The shaded disc under the buttons: its centre and radius.
 var _mid := Vector2.ZERO
 var _shade := 0.0
@@ -38,9 +42,12 @@ func _ready() -> void:
 	for i in Gestures.LIST.size():
 		var g: Dictionary = Gestures.LIST[i]
 		var b := Button.new()
-		b.icon = _twice(UiStyle.icon("g_" + g.name))
-		b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		b.expand_icon = false
+		var pic := TextureRect.new()
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP
+		pic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		b.add_child(pic)
+		_pics.append(pic)
 		b.tooltip_text = "%s (%d)" % [Lang.t(g.title), i + 1]
 		b.focus_mode = Control.FOCUS_NONE
 		b.custom_minimum_size = Vector2(BUTTON, BUTTON)
@@ -59,11 +66,26 @@ func _ready() -> void:
 	_fit()
 
 
-## Icon `tex` drawn twice as large, pixel for pixel, as the wheel's buttons show it.
-static func _twice(tex: Texture2D) -> Texture2D:
-	var img := tex.get_image()
-	img.resize(img.get_width() * 2, img.get_height() * 2, Image.INTERPOLATE_NEAREST)
-	return ImageTexture.create_from_image(img)
+## The icons about twice as large as the interface's pixels, but each of their pixels
+## a whole number of the screen's: on a phone the interface is scaled by a fraction
+## (Hud.fit), and an icon only doubled there would have pixels of two widths, its
+## slanted lines broken. Each is made that many times larger and drawn back at the
+## screen's own scale, in the middle of its button.
+func _size_pics() -> void:
+	var s := get_global_transform_with_canvas().get_scale().x
+	if s <= 0.0:
+		return
+	var px := maxi(1, roundi(2.0 * s))
+	for i in _pics.size():
+		var pic := _pics[i]
+		if px != _pic_px:
+			var img := UiStyle.icon("g_" + Gestures.LIST[i].name).get_image()
+			img.resize(img.get_width() * px, img.get_height() * px, Image.INTERPOLATE_NEAREST)
+			pic.texture = ImageTexture.create_from_image(img)
+		pic.scale = Vector2(1.0 / s, 1.0 / s)
+		pic.size = pic.texture.get_size()
+		pic.position = (Vector2(BUTTON, BUTTON) - pic.size / s) * 0.5
+	_pic_px = px
 
 
 ## Makes gesture `name` and closes the wheel.
@@ -113,6 +135,7 @@ func _fit() -> void:
 		var l := _labels[i]
 		l.reset_size()
 		l.position = (at + Vector2(BUTTON * 0.5 - l.size.x * 0.5, BUTTON + 1)).floor()
+	_size_pics()
 	move_to_front()
 	queue_redraw()
 
