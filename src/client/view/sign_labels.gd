@@ -6,11 +6,13 @@ extends Node3D
 ## (looked for a few times a second) and moved with the view each frame. A sign written
 ## anew or turned comes back as a thing placed anew (Placed.write), so the panel follows
 ## the records the copy of the things (RemotePlaced) tells of. `game` is the Main node.
-## While a sign's window is open, none shows.
+## While a sign's window is open, none shows. A cross (Placed.is_grave) shows who died
+## there the same way (DeathScreen.grave_text), in the language in use.
 
 const Placed := preload("res://src/shared/game/placed.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const DeathScreen := preload("res://src/client/ui/death_screen.gd")
 
 const CELL := WorldData.CELL
 ## How far over the sign's top the panel's bottom stands (world units).
@@ -52,13 +54,14 @@ func _exit_tree() -> void:
 
 
 func _on_added(e: Dictionary) -> void:
-	if not Placed.is_sign(e) or e.get("text", "") == "":
+	var grave := Placed.is_grave(e) and e.get("grave") is Dictionary
+	if not grave and (not Placed.is_sign(e) or e.get("text", "") == ""):
 		return
 	_on_removed(e)
 	var panel := PanelContainer.new()
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var label := UiStyle.label(e.text)
-	# The sign's words as written.
+	var label := UiStyle.label(DeathScreen.grave_text(e.grave) if grave else e.text)
+	# The sign's words as written; a cross's are put in the language already.
 	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(label)

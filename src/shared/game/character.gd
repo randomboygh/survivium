@@ -609,13 +609,28 @@ func throw_away(i: int, n: int) -> void:
 ## Lays a thing of `kind` (an item or a sack, see WorldData.drops; `data` how many, a
 ## sack's stacks, or {"n", "worn", "q"} for a worn tool or things of a quality, see
 ## Inventory.drop_data) at the feet; returns where.
-## A sack lies until `until` (game days, Clock.now; below 0: for ever).
-func lay(kind: String, data: Variant, until := -1.0) -> Vector3:
+## A sack lies until `until` (game days, Clock.now; below 0: for ever) and knows who died
+## there (`grave`, see grave_of).
+func lay(kind: String, data: Variant, until := -1.0, grave := {}) -> Vector3:
 	var p := position
 	var h: float = world.ground_height(p.x / CELL, p.z / CELL)
 	var at := Vector3(p.x, h * CELL if h >= 0.0 else p.y, p.z)
-	world.add_drop(kind, at, randf() * TAU, data, until)
+	world.add_drop(kind, at, randf() * TAU, data, until, grave)
 	return at
+
+
+## What the cross where the sack of death `d` (see `death`) lay says of the one who died,
+## once the sack is gone (Placed.put_grave): {"name" (their player's, "" none), "cause",
+## "day", "days" lived, "life": the counts of `life` above 0}.
+func grave_of(d: Dictionary) -> Dictionary:
+	var called: Variant = get("player_name")
+	var lived: Dictionary = d.get("life", {})
+	var counts := {}
+	for k: String in lived:
+		if k != "days" and float(lived[k]) > 0.0:
+			counts[k] = roundf(float(lived[k]))
+	return {"name": str(called) if called != null else "", "cause": d.get("cause", ""), "day": d.get("day", 0),
+		"days": snappedf(float(lived.get("days", 0.0)), 0.001), "life": counts}
 
 
 ## Health is gone: the bag's things stay in a sack where the character fell, and the
@@ -627,17 +642,17 @@ func die() -> void:
 	vessel = 0
 	seat = 0
 	var stacks := inventory.take_all()
+	var lived := maxf(0.0, _now() - born) if born >= 0.0 else 0.0
+	var summary := life.duplicate()
+	summary.days = lived
 	var sack: Variant = null
 	if not stacks.is_empty():
 		var ends: float = clock.now() + SACK_DAYS
-		sack = lay(Items.SACK, stacks, ends)
+		sack = lay(Items.SACK, stacks, ends, grave_of({"life": summary, "cause": vitals.hurt_by, "day": clock.day}))
 		sacks.append(sack)
 		sack_ends.append(ends)
-	var lived := maxf(0.0, _now() - born) if born >= 0.0 else 0.0
 	deaths += 1
 	fell_at = at
-	var summary := life.duplicate()
-	summary.days = lived
 	death = {
 		"life": summary,
 		"deaths": deaths,

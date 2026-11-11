@@ -222,7 +222,8 @@ func step_players(delta: float) -> void:
 ## floats is put ashore and the rivers carry the bodies and the things in them
 ## (WorldActions.step_boats, Currents);
 ## the fishing lines in the water (Fishing.step); the sacks of deaths are gone after
-## Character.SACK_DAYS (WorldActions.expire_sacks).
+## Character.SACK_DAYS (WorldActions.expire_sacks), a cross standing where each lay
+## (Placed.put_grave).
 func step_things(delta: float) -> void:
 	var d := minf(delta, CATCH_UP)
 	var rain: float = clock.WEATHERS[clock.weather].get("rain", 0.0)
@@ -238,7 +239,8 @@ func step_things(delta: float) -> void:
 	_sack_wait -= d
 	if _sack_wait <= 0.0:
 		_sack_wait = SACK_CHECK
-		actions.expire_sacks(clock.now(), players)
+		for gone: Array in actions.expire_sacks(clock.now(), players):
+			placed.put_grave(gone[0], gone[1], players)
 
 
 ## The animals: those on a player's screen move every step, the rest now and then
