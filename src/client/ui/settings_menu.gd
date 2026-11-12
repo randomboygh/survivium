@@ -704,7 +704,7 @@ static func _height(rows: Array, columns: int) -> int:
 
 
 ## The version of this build and its recent changes, newest first:
-## {"version", "commit", "date", "changes": [{"pr", "date", "text"}]}.
+## {"version", "commit", "date", "changes": [{"pr", "date", "text", "texts": {code: text}}]}.
 static func build_info() -> Dictionary:
 	var info := {"version": "dev", "commit": "", "date": "", "changes": []}
 	info.merge(Protocol.build_info(), true)
@@ -820,13 +820,24 @@ func _add_changes(changes: Array) -> void:
 	_more_changes()
 
 
+## The text of a change in the game's language, else English, else the one `text` holds (Russian
+## in the lines written first; PRs give "What's new (xx)" lines per language, tools/build_info.py).
+static func change_text(c: Dictionary) -> String:
+	var texts = c.get("texts", {})
+	if texts is Dictionary:
+		for code: String in [Lang.code, "en"]:
+			if texts.has(code):
+				return str(texts[code])
+	return str(c.get("text", ""))
+
+
 ## The next CHANGES_STEP changes at the end of the changes page.
 func _more_changes() -> void:
 	for c: Dictionary in _changes_left.slice(0, CHANGES_STEP):
 		if int(c.pr) != _changes_pr:
 			_changes_pr = int(c.pr)
 			_list.add_child(_paragraph("#%d · %s" % [_changes_pr, merged_at(c)], UiStyle.ACCENT))
-		_list.add_child(_change_line(str(c.get("kind", "new")), str(c.text), UiStyle.INK, content_width()))
+		_list.add_child(_change_line(str(c.get("kind", "new")), change_text(c), UiStyle.INK, content_width()))
 	_changes_left = _changes_left.slice(CHANGES_STEP)
 
 

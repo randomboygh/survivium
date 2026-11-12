@@ -102,13 +102,17 @@ waits for a frame: keep the events in the smoke test few. FPS in CI means nothin
 The client's version is `<stage>.<PR>`: the stage is `application/config/version` in `project.godot` (raised
 by hand when an MVP stage closes or the code is reshaped), the PR is the last one merged into `main`
 (`0.1.67` contains PR #67). CI writes it with `tools/build_info.py` into `build_info.json` (not in git;
-locally — `dev`) together with the last 500 lines `Что нового [вид]: …` from the descriptions of the merged
-PRs (up to 10 pages of 100 PRs; one JSON line per change); the main menu («What's new») and «Testing» show
-the version and open them, the page makes 40 changes at a time and loads the next ones on scrolling. So every
-PR description has at least one such line in Russian, for a player, not a programmer. The kinds: `новое`
-(the default), `улучшено`, `исправлено`, `оптимизировано`, `ядро` (code moved, tools, tests); a PR that does
-several things gives a line for each, for example `Что нового [исправлено]: Костёр больше не гаснет под
-крышей.`
+locally — `dev`) together with the last 500 changes from the descriptions of the merged PRs (up to 10 pages of 100 PRs; one
+JSON line per change); the main menu («What's new») and «Testing» show the version and open them, the page
+makes 40 changes at a time and loads the next ones on scrolling. Each change is written in the PR description
+in two languages: a Russian line `Что нового [вид]: …` and an English one `What's new [kind]: …` (for a
+player, not a programmer; the n-th line of each language is the same change), and optionally in another
+language of the game: `What's new (de) [fixed]: …`. The page shows the game's language, else English, else
+Russian (`SettingsMenu.change_text`, the field `texts` of a change; `text` is the Russian one). The kinds:
+`новое`/`new` (the default), `улучшено`/`improved`, `исправлено`/`fixed`, `оптимизировано`/`optimized`,
+`ядро`/`core` (code moved, tools, tests); a PR that does several things gives a line for each, for example
+`Что нового [исправлено]: Костёр больше не гаснет под крышей.` with `What's new [fixed]: A campfire no longer
+goes out under a roof.` Old PRs have only the Russian line.
 
 **In more detail.** `plan/architecture/testing-tools.md` (the idea; the section «What there is now» — the
 current).

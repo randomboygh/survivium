@@ -4,8 +4,11 @@ CI runs it before the web export. The version is <stage>.<PR>: the stage comes f
 application/config/version in project.godot (bumped by hand when an MVP stage closes),
 the PR is the last one merged into main, so "0.1.67" is the build with PR #67 in it.
 A pull request build is that number plus "+pr<N>". The changes are the last ENTRIES lines
-"Что нового [вид]: ..." from the descriptions of the merged PRs, newest first; a PR
-may have several, and a line without a kind is something new (see KINDS).
+"Что нового [вид]: ..." (Russian) and "What's new [kind]: ..." (English) from the descriptions of
+the merged PRs, newest first; a PR may have several, and a line without a kind is something new
+(see KINDS). The same change in another language is a line "What's new (de) [kind]: ..." and so on;
+the n-th line of each language is the n-th change, and the client shows the game's language, else
+English, else Russian ("text" is the Russian one, or the English one when there is none).
 
     python3 tools/build_info.py [out.json]   (GITHUB_TOKEN, GITHUB_REPOSITORY, HEAD_SHA from CI)
 """
@@ -18,9 +21,11 @@ import subprocess
 import sys
 import urllib.request
 
-ENTRIES = 500  # lines of «Что нового», the newest
+ENTRIES = 500  # changes, the newest
 PAGES = 10  # of 100 closed PRs at most, read until ENTRIES lines are found
-LINE = re.compile(r"^\s*(?:\*\*)?Что нового\s*(?:\[([^\]]*)\])?\s*:(?:\*\*)?\s*(.+?)\s*$", re.MULTILINE)
+# «Что нового» is Russian, "What's new" is English, "What's new (xx)" is the language xx.
+LINE = re.compile(r"^\s*(?:\*\*)?(?:Что нового|What['’]s new(?:\s*\(([a-z]{2})\))?)\s*(?:\[([^\]]*)\])?\s*:(?:\*\*)?\s*(.+?)\s*$",
+                  re.MULTILINE | re.IGNORECASE)
 # The kind written in a line -> the kind the client draws an icon for.
 KINDS = {
     "новое": "new",
@@ -28,6 +33,13 @@ KINDS = {
     "исправлено": "fix",
     "оптимизировано": "fast",
     "ядро": "inside",
+    # The English names of the kinds.
+    "new": "new",
+    "improved": "better",
+    "fixed": "fix",
+    "optimized": "fast",
+    "optimised": "fast",
+    "core": "inside",
     # Their first names, still read in older PRs.
     "быстрее": "fast",
     "внутри": "inside",
@@ -39,6 +51,26 @@ def kind(tag: str) -> str:
     if tag and tag not in KINDS:
         print("unknown kind [%s], shown as new" % tag)
     return KINDS.get(tag, "new")
+
+
+def lines_of(body: str) -> list:
+    """The changes of a PR description: [{"kind", "text", "texts": {language: text}}], the n-th
+    line of every language going to the n-th change."""
+    seen = {}  # language -> lines
+    for m in LINE.finditer(body or ""):
+        whole = m.group(0).strip().lower().lstrip("*")
+        lang = "ru" if whole.startswith("что") else (m.group(1) or "en").lower()
+        seen.setdefault(lang, []).append((m.group(2), m.group(3)))
+    out = []
+    for n in range(max((len(v) for v in seen.values()), default=0)):
+        texts, tag = {}, None
+        for lang in sorted(seen, key=lambda l: (l != "ru", l != "en", l)):
+            if n < len(seen[lang]):
+                texts[lang] = seen[lang][n][1]
+                tag = seen[lang][n][0] if tag is None else tag
+        out.append({"kind": kind(tag), "text": texts.get("ru") or texts.get("en") or next(iter(texts.values())),
+                    "texts": texts})
+    return out
 
 
 def stage() -> str:
@@ -58,7 +90,7 @@ def merged_prs(repo: str, token: str) -> list:
         with urllib.request.urlopen(req, timeout=30) as r:
             got = json.load(r)
         prs += [p for p in got if p.get("merged_at")]
-        if len(got) < 100 or sum(len(LINE.findall(p.get("body") or "")) for p in prs) >= ENTRIES:
+        if len(got) < 100 or sum(len(lines_of(p.get("body"))) for p in prs) >= ENTRIES:
             break
     prs.sort(key=lambda p: p["merged_at"], reverse=True)
     return prs
@@ -82,9 +114,8 @@ def main() -> None:
         if prs:
             info["version"] = "%s.%d" % (stage(), prs[0]["number"])
         for p in prs:
-            for tag, text in LINE.findall(p.get("body") or ""):
-                info["changes"].append({"pr": p["number"], "date": p["merged_at"][:10], "merged": p["merged_at"],
-                                        "kind": kind(tag), "text": text})
+            for c in lines_of(p.get("body")):
+                info["changes"].append({"pr": p["number"], "date": p["merged_at"][:10], "merged": p["merged_at"], **c})
         del info["changes"][ENTRIES:]
         ref = os.environ.get("GITHUB_REF", "")
         m = re.match(r"refs/pull/(\d+)/", ref)
