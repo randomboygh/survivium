@@ -7,6 +7,20 @@ const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const FireShadows := preload("res://src/client/view/fire_shadows.gd")
 const EdgeHaze := preload("res://src/client/world/edge_haze.gd")
+const AutoQuality := preload("res://src/client/view/auto_quality.gd")
+const SettingsScript := preload("res://src/client/settings.gd")
+
+
+## Settings that keep values alone, for AutoQuality.
+class FakeSettings:
+	var values := {}
+	var applied := 0
+
+	func apply() -> void:
+		applied += 1
+
+	func save() -> void:
+		pass
 
 
 func run() -> void:
@@ -21,6 +35,7 @@ func run() -> void:
 	_test_other_bundles()
 	_test_light_maps()
 	_test_edge_haze()
+	_test_auto_quality()
 
 
 func _test_pixel_view() -> void:
@@ -568,3 +583,52 @@ func _test_edge_haze() -> void:
 		if (colors[i].a == 1.0) != inside or v.y != 1.0:
 			ok = false
 	_check(ok, "opaque on the chunk, clear at the far edge of the strips, at the height asked")
+
+
+## The graphics quality the game picks itself: the steps run from «высокое» through
+## «среднее» to «низкое»; slow windows step down, a minute of fast ones tries a step up,
+## a try that slows the game is taken back and becomes the ceiling.
+func _test_auto_quality() -> void:
+	var high: Dictionary = SettingsScript.QUALITIES[2]
+	_check(AutoQuality.step_values(0, high) == high, "the first step is the high preset")
+	_check(AutoQuality.step_values(3, high) == SettingsScript.QUALITIES[1], "a step on the way is the medium preset")
+	_check(AutoQuality.step_values(AutoQuality.STEPS.size() - 1, high) == SettingsScript.QUALITIES[0],
+		"the last step is the low preset")
+	for st in AutoQuality.STEPS:
+		for k in st:
+			_check(high.has(k), "a step changes graphics settings alone: %s" % k)
+	var s := FakeSettings.new()
+	s.values = SettingsScript.DEFAULTS.duplicate()
+	s.values.merge(high, true)
+	var auto := AutoQuality.new({"settings": s, "hud": null})
+	_check(auto.step() == 0, "the defaults are the first step")
+	var slow := auto.down_fps() - 5.0
+	var fast := auto.up_fps() + 1.0
+	auto.window(slow)
+	_check(auto.step() == 0, "one slow window is not enough")
+	auto.window(slow)
+	_check(auto.step() == 1, "two slow windows step down: %d" % auto.step())
+	for i in AutoQuality.DOWN_WINDOWS * 3:
+		auto.window(slow)
+	_check(auto.step() == 4, "and on: %d" % auto.step())
+	var ok := (auto.down_fps() + auto.up_fps()) / 2.0
+	for i in AutoQuality.UP_WINDOWS * 2:
+		auto.window(ok)
+	_check(auto.step() == 4, "between the two it stays")
+	for i in AutoQuality.UP_WINDOWS - 1:
+		auto.window(fast)
+	_check(auto.step() == 4, "not up before a minute")
+	auto.window(fast)
+	_check(auto.step() == 3, "a minute fast tries a step up")
+	auto.window(slow)
+	_check(auto.step() == 4 and s.values.auto_ceiling == 4, "a slow window in the try takes it back: %d, ceiling %d" % [auto.step(), s.values.auto_ceiling])
+	for i in AutoQuality.UP_WINDOWS * 3:
+		auto.window(fast)
+	_check(auto.step() == 4, "and it does not go over the ceiling again")
+	s.values.pixel_scale = 0
+	_check(auto.step() == -1, "a mix of the player's own is no step")
+	for i in AutoQuality.DOWN_WINDOWS * 2:
+		auto.window(slow)
+	_check(s.values.pixel_scale == 0, "and is left alone")
+	auto.turn_on()
+	_check(auto.step() == 0 and s.values.auto_ceiling == 0 and s.values.auto_quality, "«Авто» picked starts from the top")

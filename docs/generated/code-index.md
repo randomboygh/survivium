@@ -138,6 +138,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 ## src/client/view
 
 - `src/client/view/ai_debug.gd`: The AI's debug (decision 184; «Отладка ИИ зверей» on «Тестирование», F4): over each animal near, what it has in mind as the server tells it (Protocol.MINDS, the client's copy RemoteWildlife.minds):…
+- `src/client/view/auto_quality.gd`: The graphics quality chosen by the game itself («Качество → Авто»): while the world is played it counts the frames on the clock and moves the graphics settings a step along STEPS, down when the game…
 - `src/client/view/boats.gd`: The rafts and boats on the water (Vessels on the server, told by Protocol.VESSELS, VESSEL, VESSEL_GONE): each its item's voxel model on the water, turned the way it last went, sliding to where the…
 - `src/client/view/camera_rig.gd`: The pixel-perfect view: the low-resolution SubViewport the 3D scene renders into, the colour grade over it, the upscale, the orthographic camera that follows the player, and the part of the screen…
 - `src/client/view/cave_layers.gd`: The view in layers (setting «Вид в пещере» → «слои»): under a roof, in a ravine or behind a hill, what stands in front of the player at and above their feet (the one quarter of a side view) is…
@@ -395,7 +396,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 | `src/client/input` | `src/client/ui`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/net` | `src/client/view`, `src/server`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/client/ui` | `src/client`, `src/client/audio`, `src/client/game`, `src/client/input`, `src/client/net`, `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
-| `src/client/view` | `src/client/ui`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
+| `src/client/view` | `src/client`, `src/client/ui`, `src/client/world`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
 | `src/client/world` | `src/client/view`, `src/shared/content`, `src/shared/game`, `src/shared/world` |
 | `src/server` | `src/shared/content`, `src/shared/game`, `src/shared/net`, `src/shared/world` |
 | `src/shared/content` | — |

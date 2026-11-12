@@ -607,7 +607,7 @@ func _section_rows(key: String) -> Array:
 			# From the lightest to draw to the heaviest; mixed (3) came after real (2).
 			var fire_order := [0, 1, 3, 2]
 			return [
-				["[quality]", ["[low]", "[medium_quality]", "[high]"],
+				["[quality]", ["[low]", "[medium_quality]", "[high]", "[auto_quality]"],
 					func() -> int: return s.quality(),
 					func(i: int) -> void: s.set_quality(i), "[custom_quality]"],
 				_section("cells", "[screen_n2]"),
