@@ -29,9 +29,16 @@ const TURN_RATE := 9.0
 ## radians a second, until it is let go and the view glides to the nearest step.
 const HOLD_TIME := 0.35
 const SPIN_RATE := PI / 2.0
-## Short of sleep (Vitals.SLEEPY), the view drifts round the player by itself, faster
-## the more tired, up to DRIFT_RATE radians a second (a whole turn in two minutes).
-const DRIFT_RATE := TAU / 120.0
+## Left alone for IDLE_TIME seconds (no key, tap or mouse, the player standing), the
+## view drifts round the player by itself, gathering speed over IDLE_EASE seconds up to
+## DRIFT_RATE radians a second (a whole turn in a minute and a half); any input stops it
+## and it glides to the nearest step.
+const IDLE_TIME := 60.0
+const IDLE_EASE := 4.0
+const DRIFT_RATE := TAU / 90.0
+## Short of sleep (Vitals.SLEEPY) the picture swims instead (grade.gdshader `sway`), more
+## the more tired; it comes and goes at SWAY_RATE a second.
+const SWAY_RATE := 0.25
 ## Seconds a shake lasts.
 const SHAKE_TIME := 0.3
 
@@ -66,8 +73,14 @@ var tilt := 0.0
 var _hold := 0
 var _held := 0.0
 var _spinning := false
-## The view drifting round the player by itself, the body short of sleep (see _drowse).
+## The view drifting round the player by itself, the game left alone (see _drowse).
 var _drifting := false
+## Seconds since the last input or step of the player (see wake), and where it stood.
+var idle := 0.0
+var _idle_at := Vector3.INF
+## How much the picture swims now, 0..1 (see drowsiness), and the value the shader has.
+var sway := 0.0
+var _sway_set := -1.0
 ## A shake of the picture (see shake): how far, in low-res pixels, and its seconds left.
 var _shake := 0.0
 var _shake_left := 0.0
@@ -222,17 +235,46 @@ func _spin_boxes() -> void:
 		game.chunks.refit_boxes()
 
 
-## How fast the view drifts round now, radians a second: 0 rested or asleep, up to
-## DRIFT_RATE with no energy left.
+## How fast the view drifts round now, radians a second: 0 until the game has been
+## left alone IDLE_TIME seconds, then up to DRIFT_RATE.
 func drift_rate() -> float:
+	if idle < IDLE_TIME:
+		return 0.0
+	return DRIFT_RATE * clampf((idle - IDLE_TIME) / IDLE_EASE, 0.05, 1.0)
+
+
+## A key, a tap or the mouse: the game is not left alone (main.gd's _input).
+func wake() -> void:
+	idle = 0.0
+
+
+## How much the picture should swim, 0..1: 0 rested or asleep, from 0.3 just short of
+## sleep up to 1 with no energy left.
+func drowsiness() -> float:
 	var v = game.character.vitals if game.character != null else null
 	if v == null or v.asleep or not v.fatigue or v.energy >= v.SLEEPY:
 		return 0.0
-	return DRIFT_RATE * lerpf(0.2, 1.0, 1.0 - v.energy / v.SLEEPY)
+	return lerpf(0.3, 1.0, 1.0 - v.energy / v.SLEEPY)
 
 
-## Starts or stops the drift of a tired body: the culling boxes then hold the views all
-## round, as for a smooth turn; once rested the view glides to the nearest step.
+## Counts the time left alone (the player moving counts as input: a held key or a
+## finger held on the stick sends nothing new) and eases the swim to the body's
+## drowsiness, telling the shader when it changed.
+func _tire(delta: float) -> void:
+	var at: Vector3 = game.player.position
+	if at.distance_squared_to(_idle_at) > 0.0001:
+		idle = 0.0
+		_idle_at = at
+	else:
+		idle += delta
+	sway = move_toward(sway, drowsiness(), delta * SWAY_RATE)
+	if grade_mat != null and (absf(sway - _sway_set) > 0.002 or (sway == 0.0 and _sway_set > 0.0)):
+		_sway_set = sway
+		grade_mat.set_shader_parameter("sway", sway)
+
+
+## Starts or stops the drift of a view left alone: the culling boxes then hold the views
+## all round, as for a smooth turn; on any input the view glides to the nearest step.
 func _drowse(_delta: float) -> void:
 	var drift := drift_rate() > 0.0
 	if drift == _drifting:
@@ -364,6 +406,7 @@ func update(delta: float) -> void:
 	if camera == null:
 		return
 	var player = game.player
+	_tire(delta)
 	_glide(delta)
 	var target: Vector2 = PixelView.screen_plane(player.position + Vector3(0.0, 0.5, 0.0))
 	cam_target = cam_target.lerp(target, minf(1.0, delta * 6.0))
@@ -379,7 +422,7 @@ func update(delta: float) -> void:
 	grade_mat.set_shader_parameter("view_origin", snapped * PixelView.PIXELS_PER_UNIT - Vector2(image_size) / 2.0)
 	container.position = (-Vector2.ONE * PixelView.MARGIN - frac) * view_scale
 	container.position = container.position.round()
-	if game.settings.values.crt != 0:
+	if game.settings.values.crt != 0 or sway > 0.0:
 		Crt.frame(grade_mat, game.get_viewport().get_visible_rect().size, container.position, view_scale,
 			Engine.get_process_frames())
 	player.place_sprite()
