@@ -51,6 +51,12 @@ const DEFAULTS := {
 	# The weather is the real one where the device is: the server inside the game asks
 	# for it (LocalHost.real_weather); a server far away has its own setting.
 	"real_weather": false,
+	# The graphics settings are moved by the game itself to keep the frames between 30 and
+	# 60 a second (AutoQuality); any of them changed by hand turns it off (set_value).
+	"auto_quality": true,
+	# The highest step of AutoQuality.STEPS the game may go up to (0 the best): a try up
+	# that slowed the game down sets it, picking «Авто» again clears it.
+	"auto_ceiling": 0,
 	"shadows": true,
 	# Shadows of fires and the torch: 0 none, 1 drawn on the ground (FireShadows), 2
 	# real ones from the nearest fire or the torch (see Effects.SHADOW_FIRE_REACH), the
@@ -302,6 +308,11 @@ func load() -> void:
 	# Before five steps the pixel had three, the normal one first, then 1.5 and 2.
 	if not cfg.has_section_key("game", "pixel_scale") and cfg.has_section_key("game", "pixel_size"):
 		values.pixel_scale = 2 if int(cfg.get_value("game", "pixel_size", 0)) == 0 else 4
+	# Before «Авто» the graphics were the player's: a preset turns into «Авто», a mix of
+	# their own stays theirs.
+	if not cfg.has_section_key("game", "auto_quality"):
+		values.auto_quality = false
+		values.auto_quality = quality() >= 0
 
 
 func save() -> void:
@@ -314,6 +325,9 @@ func save() -> void:
 ## Changes one setting, applies it and saves.
 func set_value(key: String, v: Variant) -> void:
 	values[key] = v
+	# A graphics setting by hand: the player chooses, not the game.
+	if QUALITIES[0].has(key):
+		values.auto_quality = false
 	apply()
 	save()
 
@@ -338,9 +352,11 @@ func set_language(lang_code: String) -> void:
 	Lang.use(lang_code)
 
 
-## The graphics quality preset the settings match (an index into QUALITIES), or -1
-## when they were set by hand to a mix of their own.
+## The graphics quality preset the settings match (an index into QUALITIES), the one
+## past them for «Авто», or -1 when they were set by hand to a mix of their own.
 func quality() -> int:
+	if values.auto_quality:
+		return QUALITIES.size()
 	for i in QUALITIES.size():
 		var q: Dictionary = QUALITIES[i]
 		if q.keys().all(func(k: String) -> bool: return values[k] == q[k]):
@@ -348,8 +364,13 @@ func quality() -> int:
 	return -1
 
 
-## Sets the graphics settings of quality preset `i` (see QUALITIES), applies and saves.
+## Sets the graphics settings of quality preset `i` (see QUALITIES), applies and saves;
+## `i` past the presets is «Авто» (AutoQuality.turn_on).
 func set_quality(i: int) -> void:
+	if i >= QUALITIES.size():
+		game.auto_quality.turn_on()
+		return
+	values.auto_quality = false
 	values.merge(QUALITIES[i], true)
 	apply()
 	save()

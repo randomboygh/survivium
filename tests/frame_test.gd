@@ -532,6 +532,8 @@ func _run() -> void:
 	main.settings.apply()
 	# Graphics quality: a preset is matched by its settings, a change by hand is «своё».
 	var graphics: Dictionary = main.settings.values.duplicate()
+	# Not «Авто» (AutoQuality), which the quality is when it is on.
+	main.settings.values.auto_quality = false
 	main.settings.values.merge(main.settings.QUALITIES[1], true)
 	var preset: int = main.settings.quality()
 	main.settings.values.sun_rays = true

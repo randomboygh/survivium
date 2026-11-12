@@ -963,10 +963,10 @@
 "[chat_and_gestures]": "Chat and gestures"
 "[online]": "online"
 "[always]": "always"
-"[second_hand_upright]": "Second hand in portrait"
 "[stats_button]": "Stats button"
 "[hidden]": "hidden"
 "[shown]": "shown"
+"[second_hand_upright]": "Second hand in portrait"
 "[key_hints]": "Key hints"
 "[rarely]": "rarely"
 "[sometimes]": "sometimes"
@@ -974,6 +974,7 @@
 "[low]": "low"
 "[medium_quality]": "medium"
 "[high]": "high"
+"[auto_quality]": "auto"
 "[custom_quality]": "custom"
 "[screen_n2]": "Screen"
 "[fps_limit]": "FPS limit"
@@ -1159,6 +1160,10 @@
 "[random_seed]": "Random seed"
 "[mods_n2]": "Mods"
 "[choose_the_mods_of_the]": "Choose the mods of the new world"
+
+# src/client/view/auto_quality.gd
+"[graphics_lowered_fps]": "Graphics lowered to keep the game smooth (%d FPS)"
+"[graphics_raised_fps]": "Graphics raised: there is room (%d FPS)"
 
 # src/client/view/sky.gd
 "[spring_has_come]": "Spring has come"

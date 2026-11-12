@@ -607,9 +607,11 @@ func _section_rows(key: String) -> Array:
 			# From the lightest to draw to the heaviest; mixed (3) came after real (2).
 			var fire_order := [0, 1, 3, 2]
 			return [
-				["[quality]", ["[low]", "[medium_quality]", "[high]"],
-					func() -> int: return s.quality(),
-					func(i: int) -> void: s.set_quality(i), "[custom_quality]"],
+				# «Авто» first, then the presets from the best (Settings.QUALITIES goes the other
+				# way, «авто» past them); «своё» when the settings are a mix of the player's own.
+				["[quality]", ["[auto_quality]", "[high]", "[medium_quality]", "[low]"],
+					func() -> int: return -1 if s.quality() < 0 else Settings.QUALITIES.size() - s.quality(),
+					func(i: int) -> void: s.set_quality(Settings.QUALITIES.size() - i), "[custom_quality]"],
 				_section("cells", "[screen_n2]"),
 				["[scale]", SIZES,
 					func() -> int: return s.values.pixel_scale,

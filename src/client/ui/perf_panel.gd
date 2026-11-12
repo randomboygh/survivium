@@ -70,6 +70,8 @@ const EDGE := 8.0
 var width := 0.0
 
 var world_ms := 0
+## The line of the graphics quality the game picks itself (AutoQuality.summary), "" off.
+var auto_quality := ""
 var chunks := 0
 
 var _frames := PackedFloat32Array()
@@ -492,6 +494,8 @@ func summary(full := false, colored := false) -> String:
 			lines.append(Lang.f("Video %d MB · memory %d MB", [roundi(video), roundi(memory)]))
 		else:
 			lines.append(world + Lang.f(" · video %d MB", [roundi(video)]))
+		if auto_quality != "":
+			lines.append(auto_quality)
 	return "\n".join(lines)
 
 
