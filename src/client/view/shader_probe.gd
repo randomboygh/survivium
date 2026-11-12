@@ -12,7 +12,9 @@ const FILE := "user://shader_probe.cfg"
 const FRAMES := 3
 ## [name, mesh ("box" or "multi"), material ("unshaded", "standard", a shader's path or
 ## "minimal" / "stencil" code), lights ("none", "sun", "omni" = sun and an omni light,
-## "shadow" = the sun's shadow, "shadow_omni" = both), what to cut from the shader's code ("" or "stencil")].
+## "shadow" = the sun's shadow, "shadow_omni" = both; "sun" = the sun alone), what to cut
+## from the shader's code (a list of: "stencil"; "light" = no light(), "plain_light" = a
+## plain one, "fragment" / "vertex" = that function's body left plain)].
 const STEPS := [
 	["engine unshaded", "box", "unshaded", "none", ""],
 	["engine standard", "box", "standard", "none", ""],
@@ -55,6 +57,20 @@ const STEPS := [
 	["sprite, sun shadow", "box", "res://shaders/sprite.gdshader", "shadow_omni", ""],
 	["minimal shader, sun shadow", "box", "minimal", "shadow", ""],
 	["engine standard, many, sun shadow", "multi", "standard", "shadow_omni", ""],
+	# The warm-up with every shadow off (2026-11-12): all things drew under the sun and a
+	# torch, then the world crashed under the sun alone. Cut the world shader apart there.
+	["world, many, sun alone, no stencil", "multi", "res://shaders/world.gdshader", "sun", "stencil"],
+	["world, sun alone, no stencil", "box", "res://shaders/world.gdshader", "sun", "stencil"],
+	["engine standard, many, sun alone", "multi", "standard", "sun", ""],
+	["minimal shader, sun alone", "box", "minimal", "sun", ""],
+	["world, sun alone, no light()", "multi", "res://shaders/world.gdshader", "sun", "stencil,light"],
+	["world, sun alone, plain light()", "multi", "res://shaders/world.gdshader", "sun", "stencil,plain_light"],
+	["world, sun alone, plain fragment()", "multi", "res://shaders/world.gdshader", "sun", "stencil,fragment"],
+	["world, sun alone, plain vertex()", "multi", "res://shaders/world.gdshader", "sun", "stencil,vertex"],
+	["leaves, sun alone, no stencil", "multi", "res://shaders/leaves.gdshader", "sun", "stencil"],
+	["grass, sun alone, no stencil", "multi", "res://shaders/grass.gdshader", "sun", "stencil"],
+	["sprite, sun alone", "box", "res://shaders/sprite.gdshader", "sun", ""],
+	["water, sun alone", "box", "res://shaders/water.gdshader", "sun", ""],
 ]
 const MINIMAL := "shader_type spatial;\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
 const STENCIL := "shader_type spatial;\nstencil_mode write, compare_always, 1;\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
@@ -161,7 +177,7 @@ func _next() -> void:
 	var s: Array = STEPS[_step]
 	_save(res, s[0])
 	print("shader probe: %s ..." % s[0])
-	_sun.visible = s[3] != "none"
+	_sun.visible = s[3] != "none"  # "sun", "omni", "shadow", "shadow_omni"
 	_sun.shadow_enabled = s[3].begins_with("shadow")
 	_omni.visible = s[3] == "omni" or s[3] == "shadow_omni"
 	_thing = _make(s[1], _material(s[2], s[4]))
@@ -190,6 +206,27 @@ static func _material(what: String, cut: String) -> Material:
 	var sm := ShaderMaterial.new()
 	sm.shader = shader
 	return sm
+
+
+## `code` with the body of `func` put as `body` (the whole function dropped when null).
+static func _body(code: String, func_name: String, body: Variant) -> String:
+	var head := "void %s() {" % func_name
+	var start := code.find(head)
+	if start < 0:
+		return code
+	var depth := 0
+	var i := start + head.length() - 1
+	while i < code.length():
+		var c := code[i]
+		if c == "{":
+			depth += 1
+		elif c == "}":
+			depth -= 1
+			if depth == 0:
+				break
+		i += 1
+	var replaced := "" if body == null else "%s\n\t%s\n}" % [head, body]
+	return code.substr(0, start) + replaced + code.substr(i + 1)
 
 
 static func _make(mesh: String, material: Material) -> GeometryInstance3D:
