@@ -33,6 +33,7 @@ const Sound := preload("res://src/client/audio/sound.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
+const LastLog := preload("res://src/client/ui/last_log.gd")
 const GlWatch := preload("res://src/client/ui/gl_watch.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
@@ -978,6 +979,10 @@ func report_text() -> String:
 	if OS.has_feature("web"):
 		# English only, like the other internal texts to come (decision 186).
 		lines.append("Browser draws with: %s%s" % [GlWatch.renderer(), " (software, no graphics card)" if GlWatch.software() else ""])
+	var last_log := LastLog.tail()
+	if last_log != "":
+		# English only, an internal text (decision 186).
+		lines.append("Last run's log, " + last_log)
 	if game.net != null:
 		lines.append(Lang.f("Server: %s, requests %d, bytes out %d, in %d, coding %.1f ms, waiting %d", [
 			Lang.f("over the net %s", [game.join_url]) if game.socket != null else "in the game (loop)",

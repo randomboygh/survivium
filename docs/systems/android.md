@@ -44,5 +44,9 @@ paths in the editor settings (`export/android/android_sdk_path`, `java_sdk_path`
 `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `_USER`, `_PASSWORD`:
 `godot --headless --path . --export-release "Android" build/android/survivium-android.apk`.
 
+**A crash** leaves no message on a phone: the engine's file log is on for Android
+(`debug/file_logging/enable_file_logging.android`), and «Data for the test» shows the end of the last run's log
+(`src/client/ui/last_log.gd`); the shader warm-up prints each mix it draws.
+
 **Tests.** No device in CI: the `android` job fails if the export or the signature check fails; how it plays
 is checked on a phone.

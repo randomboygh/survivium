@@ -24,6 +24,10 @@ boot_splash/bg_color=Color(0.172549, 0.290196, 0.352941, 1)
 boot_splash/image="res://assets/splash.png"
 boot_splash/use_filter=false
 
+[debug]
+
+file_logging/enable_file_logging.android=true
+
 [display]
 
 window/size/viewport_width=1280

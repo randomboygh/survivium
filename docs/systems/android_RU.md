@@ -44,5 +44,9 @@
 `GODOT_ANDROID_KEYSTORE_RELEASE_PATH`, `_USER`, `_PASSWORD`:
 `godot --headless --path . --export-release "Android" build/android/survivium-android.apk`.
 
+**Вылет** на телефоне не оставляет сообщения: файловый журнал движка включён для Android
+(`debug/file_logging/enable_file_logging.android`), и «Данные для теста» показывают конец журнала прошлого
+запуска (`src/client/ui/last_log.gd`); прогрев шейдеров печатает каждую смесь, которую рисует.
+
 **Тесты.** Устройства в CI нет: задача `android` падает, если не вышел экспорт или проверка подписи; как
 играется, проверяют на телефоне.

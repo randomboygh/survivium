@@ -89,6 +89,7 @@ func start() -> void:
 	_build()
 	_mix(ahead[0])
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	_say()
 
 
 ## Builds the hidden view in a world of its own, with a copy of one thing of each kind
@@ -296,7 +297,9 @@ func step() -> bool:
 	done[ahead.pop_front()] = true
 	if not ahead.is_empty():
 		_mix(ahead[0])
+		_say()
 		return false
+	print("warm-up: done")
 	for copy in copies:
 		copy.visible = false
 	viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
@@ -335,6 +338,12 @@ func update() -> void:
 	next_kind += 1
 	viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	game.hud.perf.mark("warm-up")
+
+
+## Prints the mix about to be drawn ahead: a phone app that crashes while the shaders are
+## built leaves it as the last line of its log (LastLog).
+func _say() -> void:
+	print("warm-up: mix %d of %d %s, %d kinds" % [ahead_total - ahead.size() + 1, ahead_total, str(ahead[0]), copies.size()])
 
 
 ## Lets the hidden view go.
