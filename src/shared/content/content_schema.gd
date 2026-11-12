@@ -415,7 +415,7 @@ const SCHEMAS := {
 		# How many cards side by side draw one frame (a sapling wider than a crop): the
 		# sprite's frames are each `across` columns of PLANT_W px, left to right.
 		"across": {"type": "int", "min": 1, "max": 4, "default": 1},
-		"grows": {"type": "enum", "values": ["meadow", "shade", "bank", "field"], "default": "meadow"},
+		"grows": {"type": "enum", "values": ["meadow", "shade", "woods", "bank", "field"], "default": "meadow"},
 		# A crop (kind crop, sown on a bed from an item with `crop`): the days it grows in
 		# the warm seasons on a wet bed until it is ripe (its last frame), and whether a
 		# scythe cuts it (grain, flax), not only hands and a sickle.
@@ -429,6 +429,9 @@ const SCHEMAS := {
 		"young": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"cover": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.3},
 		"clumps": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
+		# How wide its clumps are, in cells about (the scale of their noise): fields of it
+		# want wide ones.
+		"clump_size": {"type": "float", "min": 2.0, "max": 64.0, "default": 10.0},
 		# Only in these biomes (none: anywhere its `grows` says).
 		"biomes": {"type": "list", "of": "ref:biomes", "soft": true, "default": [], "rel": "lives_in"},
 	},

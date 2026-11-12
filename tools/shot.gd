@@ -212,6 +212,9 @@ func _run() -> void:
 			main.character.vessel = v.id
 		if shot.has("find"):
 			main.player.position = places.find(main.world, main.player.position, shot.find)
+		if shot.has("patch"):
+			main.player.position = places.find_patch(main.world, main.player.position, shot.patch)
+			main.chunks.build_around()
 		if shot.get("copper_moss", false):
 			var mossy := places.stone_moss_near(main.world, Vector3i((main.player.position / CELL).floor()))
 			if mossy != Vector3i.MIN:

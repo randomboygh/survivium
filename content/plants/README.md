@@ -4,7 +4,7 @@ A Russian copy: [README_RU.md](README_RU.md).
 
 Oak, spruce, birch, pine, willow, apple, rowan, maple, linden, poplar, larch, fir, cherry,
 bird cherry and the dead tree, bushes (shrub, raspberry, blueberry, currant, rosehip),
-herbs (grass, tall grass, flowers, herbs, ears, reeds, nettle, fern, cranberry, flax), moss and
+herbs (grass, tall grass, flowers, herbs, ears, reeds, nettle, fern, clover, cranberry, flax), moss and
 mushrooms, their seeds, berries and fruits, grain and what is made of all this: flour, flatbread, bandage, roasted
 mushrooms and acorns, linen thread and cloth. It used to be part of the base game (`content/core`), and the code knew every species by
 name; now it is a separate mod of data alone. Each tree, bush and plant is its own bundle,
@@ -40,9 +40,10 @@ content/plants/
   shrub/, raspberry/,   "Shrub", "Raspberry", "Blueberry", "Currant", "Rosehip", "Banana": a bush (data/bushes.yaml), its
   blueberry/, currant/, berries and a bush for planting; the bush model is shared — common/models/bush.png
   rosehip/, banana/
-  fern/, nettle/,       "Fern", "Nettle", "Cranberry": plants with their own picture (kind: custom,
-  cranberry/            sprites/plants/<name>.png — two frames of 8×24): the fern in the shade of crowns, the nettle in patches
-                        on meadows (both give fibre), the cranberry by the water (a berry)
+  fern/, nettle/,       "Fern", "Nettle", "Cranberry", "Clover": plants with their own picture (kind: custom,
+  cranberry/, clover/   sprites/plants/<name>.png — frames of 8×24, the fern's and the clover's 16×24, two cards wide): the
+                        fern in the woods (under the crowns and round them), the nettle in patches on meadows (both give
+                        fibre), the cranberry by the water (a berry), clover in wide fields on meadows (hares and deer graze it)
   grass/                "Grasses": grass, tall grass, flowers, herbs (four kinds of one grass) and grass seeds
   ears/                 "Ears": ears, grain, flour and flatbread (the flour and flatbread recipes are in the kiln), wheat — a crop
                         (kind: crop) from grain on a garden bed, a picture per frame for each growth stage
@@ -76,10 +77,13 @@ folder lacks, the game looks for in the mod's `common/`.
   `flowers`, `herbs`, `ears`, `reeds`, `moss`, `mushrooms`, `glow_mushrooms`; where each kind grows
   (meadows, fields, banks, the shade of crowns) is decided by the grass rules `src/shared/world/grass.gd`, and how it is drawn is
   up to the client. A kind with no entry does not grow in the world. The tenth kind is `custom`: a plant with its own picture
-  (`sprite`, a row of `frames` frames of 8×24 in the bundle's `sprites/plants/`), which says itself where it
-  grows (`grows`: `meadow` — open grass, `shade` — the shade of crowns, `bank` — by the water), what share
-  of such land it takes (`cover`) and whether it grows in patches (`clumps` — a noise threshold, no field — everywhere);
-  there can be any number of such plants, they grow side by side (fern, nettle, cranberry).
+  (`sprite`, a row of `frames` frames of 8×24 in the bundle's `sprites/plants/`, or wider with `across`: a frame of
+  `across` such columns drawn as that many cards side by side), which says itself where it
+  grows (`grows`: `meadow` — open grass, `shade` — the shade of crowns, `woods` — that shade and the open grass a few
+  cells round the crowns, `bank` — by the water), what share of such land it takes (`cover`), whether it grows in
+  patches (`clumps` — a noise threshold, no field — everywhere) and how wide they are (`clump_size`, in cells, 10 if
+  not given), and in which biomes (`biomes`, none — in any);
+  there can be any number of such plants, they grow side by side (fern, nettle, cranberry, clover).
 - A tree's trunk is drawn with the log of "Wood", and a species with a `bark` field with its own texture
   (`textures/<bark>.png`, 48×16 like a material's: end, bark, bottom); the cell stays the same (a log),
   so it is chopped and yields the same. Bark is not a material: materials together with barks can be no

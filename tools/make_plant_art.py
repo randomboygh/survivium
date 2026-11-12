@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Draws the pictures of the plants added as bundles (birch, pine, willow, apple, rowan,
-currant, rose hip, fern, nettle, cranberry, flax, monstera): the barks of the trees as textures like a
+currant, rose hip, fern, clover, nettle, cranberry, flax, monstera): the barks of the trees as textures like a
 material's (48x16: the end grain, the bark, the underside; recoloured from the log's
 texture of the wood bundle, with marks of their own), the ground plants' sprites (8x24 a
-frame, two frames each, in sprites/plants/ of the bundle), the icons (12x12) and the
+frame, two frames each, 16x24 for the ones two cards wide, in sprites/plants/ of the bundle), the icons (12x12) and the
 voxel models (a row of 16x16 slices) of their berries and fruit. Run from the repo:
     python3 tools/make_plant_art.py
 Everything is written again; a picture painted over by hand goes under another name.
@@ -60,19 +60,23 @@ def bark(name, dark, light, marks=None, seed=1, file=None):
     print(path)
 
 
-def sprite(name, frames, bundle=None, across=1):
+def sprite(name, frames, bundle=None, across=1, shades=None):
     """`frames`: list of 24 rows of 8 chars each (top row first; 8 * `across` for a plant
     drawn as `across` cards side by side), chars mapped by `PAL`; saved in the bundle of
-    that name (`bundle`, else `name`)."""
+    that name (`bundle`, else `name`). `shades`: the frames again in each of these
+    recolourings (char -> colour over `PAL`), after the frames as drawn."""
     w = 8 * across
-    img = Image.new("RGBA", (w * len(frames), 24), (0, 0, 0, 0))
-    for f, rows in enumerate(frames):
+    looks = [(rows, {}) for rows in frames]
+    for shade in shades or []:
+        looks += [(rows, shade) for rows in frames]
+    img = Image.new("RGBA", (w * len(looks), 24), (0, 0, 0, 0))
+    for f, (rows, shade) in enumerate(looks):
         assert len(rows) == 24, name
         for y, row in enumerate(rows):
             assert len(row) == w, (name, y)
             for x, ch in enumerate(row):
                 if ch != ".":
-                    img.putpixel((f * w + x, y), PAL[ch])
+                    img.putpixel((f * w + x, y), shade.get(ch, PAL[ch]))
     path = os.path.join(ROOT, bundle or name, "sprites", "plants", "%s.png" % name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     img.save(path)
@@ -112,22 +116,19 @@ PAL = {
     "Q": (244, 244, 232, 255),  # pea flower
     "m": (30, 88, 40, 255),  # monstera leaf
     "M": (64, 136, 58, 255),  # its lit side
+    "h": (40, 98, 70, 255),  # clover leaf
+    "H": (74, 146, 104, 255),  # its lit side
+    "x": (140, 196, 150, 255),  # its pale mark
+    "j": (34, 80, 56, 255),  # clover stalk
+    "b": (30, 72, 42, 255),  # fern stem, dark
+    "B": (40, 92, 50, 255),  # fern leaflet in shade
+    "z": (70, 134, 60, 255),  # its lit side
+    "Z": (150, 200, 90, 255),  # a lit tip
+    "y": (240, 236, 226, 255),  # white clover head
+    "Y": (212, 206, 196, 255),  # its shade
+    "i": (228, 140, 170, 255),  # red clover head
+    "I": (186, 84, 124, 255),  # its shade
 }
-
-FERN = [
-    [
-        "........", "........", "........", "........", "........", "........",
-        "........", "........", "........", "...G....", "..gGg...", ".g.G.g..",
-        "g..G..g.", "..gGg...", ".g.G.g..", "g..G..g.", "..gGg...", ".g.G.g..",
-        "...G..g.", "..gGg...", ".g.d.g..", "...d....", "...d....", "...s....",
-    ],
-    [
-        "........", "........", "........", "........", "........", "........",
-        "........", "....G...", "...gGg..", "..g.G.g.", ".g..G..g", "...gGg..",
-        "..g.G.g.", ".g..G..g", "...gGg..", "..g.G.g.", ".g..G...", "...gGg..",
-        "..g.G.g.", "....d...", "..g.d...", "....d...", "....d...", "....s...",
-    ],
-]
 
 NETTLE = [
     [
@@ -315,6 +316,99 @@ SPRUCE_SAPLING = [
         ".......ss.......",
         ".......ss.......",
         "......ssss......",
+    ),
+]
+
+# Wild plants two cards wide (plants `across: 2`), a frame a look: a fern of arching
+# fronds, darker than the grass round it (it grows in the woods), patches of bluish clover,
+# two of leaves alone and two with a white or a red head (fields of it on the meadows).
+FERN = [
+    low16(
+        "......Z.Z.......",
+        "......Bb........",
+        ".......b.z......",
+        "..bZ...Bb..Z.b..",
+        ".zBb....b...bzz.",
+        "....b..zbz.zb...",
+        "...zbzz.b.zbB...",
+        "....b.zzbzb.z...",
+        "...BBbzzbzbz....",
+        ".bz..b.zbzb..zb.",
+        "ZBb.BBbzbbzz.bBZ",
+        "...bz.bzbb.zb...",
+        "....bbBbbzbb....",
+        "...B..bbbb..B...",
+        ".......s........",
+    ),
+    low16(
+        ".......Z........",
+        ".......bz.......",
+        "......b.B.....Z.",
+        ".....zbz....z.b.",
+        "......b.....bbBz",
+        ".....zbz...zb...",
+        "..z.z.b.z.z.bz..",
+        ".zb..zbz..zb....",
+        ".B.bz.b.z..bzz..",
+        "..Bb.zbzz.b.z...",
+        "....bzb.zzbz....",
+        "....BbBb.zb.....",
+        "..zB.zbb.bB.z...",
+        "Zbbbzbbbb.zBbb.Z",
+        "..B.bbbbbbbb.Bbz",
+        "...B...s..B...B.",
+    ),
+]
+
+# The fern and the clover again in other greens, so a wood or a field is not of one hue:
+# warmer and yellower, cooler and bluer (the fern), yellower and darker (the clover).
+FERN_SHADES = [
+    {"b": (44, 72, 30, 255), "B": (58, 96, 36, 255), "z": (94, 132, 46, 255), "Z": (176, 204, 92, 255)},
+    {"b": (24, 62, 52, 255), "B": (34, 84, 66, 255), "z": (58, 122, 92, 255), "Z": (128, 184, 142, 255)},
+]
+CLOVER_SHADES = [
+    {"h": (56, 100, 44, 255), "H": (96, 142, 64, 255), "x": (150, 190, 112, 255), "j": (44, 82, 38, 255)},
+    {"h": (30, 80, 60, 255), "H": (56, 122, 88, 255), "x": (112, 170, 128, 255), "j": (26, 66, 48, 255)},
+]
+
+CLOVER = [
+    low16(
+        "....H...........",
+        "...HxH....H.....",
+        "..Hhjh...HxH....",
+        ".HxHj.H..hjh.H..",
+        ".hjhjHxHH.j.HxH.",
+        "..j.jhjHxHj.hjh.",
+        "..j.j.jhjhj..j..",
+    ),
+    low16(
+        ".............H..",
+        "......H.....HxH.",
+        ".....HxH....hjh.",
+        "...H.hjh...H.j..",
+        ".HHxH.j..HHxHj..",
+        "HxHjh.j.HxHjhj..",
+        "hjhj..j.hjhj.j..",
+    ),
+    low16(
+        "......yyy.......",
+        "......yyY.......",
+        "......YY........",
+        "..H....j.....H..",
+        ".HxH...j.H..HxH.",
+        ".hjh.H.jHxHHhjh.",
+        "..j.HxHjhjHxHj..",
+        "..j.hjhj.jhjhj..",
+    ),
+    low16(
+        ".........iiI....",
+        ".........iiI....",
+        "......H..II...H.",
+        ".....HxH..j..HxH",
+        "...H.hjh..j.Hhjh",
+        "..HxH.j..HjHxHj.",
+        "..hjh.j.HxHhjhj.",
+        "...j..j.hjh.j.j.",
     ),
 ]
 
@@ -522,7 +616,8 @@ def main():
     bark("rowan", (104, 96, 90), (164, 156, 146), seed=7)
     for args in NEW_BARKS:
         bark(*args[:3], **args[3])
-    sprite("fern", FERN)
+    sprite("fern", FERN, across=2, shades=FERN_SHADES)
+    sprite("clover", CLOVER, across=2, shades=CLOVER_SHADES)
     sprite("nettle", NETTLE)
     sprite("cranberry", CRANBERRY)
     sprite("flax", FLAX)

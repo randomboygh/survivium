@@ -1,15 +1,20 @@
-# A plant with its own picture (kind: custom): sprite — a row of 8×24 frames (frames) in the bundle's sprites/plants/;
-# grows — where it grows: meadow (open grass), shade (shade of the crowns), bank (by the water); cover — what share of such
-# ground it takes up (0–1); clumps — the noise threshold (−1..1) above which it grows: in patches, not everywhere
-# (no field — everywhere). gives, chance, pick, winter — as for the other plants.
+# A plant with its own picture (kind: custom): sprite — a row of frames of 8×24 (frames; `across` such columns
+# side by side make one frame wider than a card) in the bundle's sprites/plants/; grows — where it grows: meadow
+# (open grass), shade (shade of the crowns), woods (that shade and the open grass round the crowns), bank (by the
+# water); cover — what share of such ground it takes up (0–1); clumps — the noise threshold (−1..1) above which it
+# grows: in patches, not everywhere (no field — everywhere), clump_size — how wide the patches are, in cells;
+# biomes — only there. gives, chance, pick, winter — as for the other plants.
 - id: fern
   kind: custom
   title: "[plants.plants.fern]"
   sprite: fern
-  frames: 2
-  grows: shade
-  cover: 0.35
-  clumps: 0.1
+  frames: 6
+  across: 2
+  grows: woods
+  cover: 0.6
+  clumps: 0.0
+  clump_size: 8
   gives: {resources:fiber: 1}
   chance: 0.7
   winter: false
+  biomes: [biomes:forest, biomes:taiga, biomes:birch_grove, biomes:maple_wood, biomes:swamp, biomes:floodplain, biomes:peat_bog, biomes:jungle]

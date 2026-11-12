@@ -10,7 +10,7 @@ const Content := preload("res://src/shared/content/content.gd")
 ## kind does not grow. A plant of kind `custom` brings its own picture (`sprite`, a row
 ## of `frames` frames of PixelTextures.PLANT_W x PLANT_H px in the bundle's
 ## sprites/plants/) and says where it grows (`grows`: on open grass, in the shade of
-## crowns or on the banks), how much of that ground it covers and whether in clumps;
+## crowns, in the woods (that shade and the open ground round it) or on the banks), how much of that ground it covers and whether in clumps;
 ## any number of those grow side by side (CUSTOM, each with its frames after the last).
 ## A crop (kind `crop`, grows `field`) is drawn the same way, a frame a stage of its
 ## growth, the last one ripe; it grows only where it was sown on a bed (WorldData.fields).
@@ -39,6 +39,10 @@ static var BY_KIND := {}
 ## The custom plants in load order, each the record with `first`: the index of its
 ## first frame among all custom frames (see Grass.CUSTOM).
 static var CUSTOM: Array = []
+## By custom frame column (Grass.CUSTOM + column): how many cards side by side draw the
+## frame starting at that column (its plant's `across`), 0 for the other columns of a
+## wide frame.
+static var ACROSS := PackedByteArray()
 
 
 static func _static_init() -> void:
@@ -49,6 +53,7 @@ static func refresh() -> void:
 	BY_ID = {}
 	BY_KIND = {}
 	CUSTOM = []
+	ACROSS = PackedByteArray()
 	var frames := 0
 	for r in Content.records("plants"):
 		BY_ID[r.id] = r
@@ -58,6 +63,9 @@ static func refresh() -> void:
 			c.first = frames
 			frames += columns(r)
 			CUSTOM.append(c)
+			var across: int = r.get("across", 1)
+			for k in columns(r):
+				ACROSS.append(across if k % across == 0 else 0)
 	TUFT = of_kind(KINDS.TUFT)
 	TALL = of_kind(KINDS.TALL)
 	FLOWERS = of_kind(KINDS.FLOWERS)

@@ -1,0 +1,16 @@
+# Clover (kind: custom, fields as for the fern): low trefoils, some with a white or a red head, in wide fields on the open
+# meadows. Hares and deer come to graze on it (their `likes`).
+- id: clover
+  kind: custom
+  title: "[plants.plants.clover]"
+  sprite: clover
+  frames: 12
+  across: 2
+  grows: meadow
+  cover: 0.9
+  clumps: 0.3
+  clump_size: 18
+  gives: {resources:fiber: 1}
+  chance: 0.3
+  winter: false
+  biomes: [biomes:meadow, biomes:forest_steppe, biomes:floodplain, biomes:alpine_meadow, biomes:birch_grove, biomes:forest, biomes:maple_wood]
