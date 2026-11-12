@@ -32,7 +32,7 @@
 | `frames` | `frame_test` один на машине (меряет кадры) | ~1,5 мин | да |
 | `export` | версия и «Что нового» (`build_info.py`), web-экспорт, патчи `web_patch.py` и `web_cache.py`; артефакт `survivium-web` | ~1 мин | да (для деплоя) |
 | `pc` | экспорт Windows и Linux; артефакты `survivium-windows`, `survivium-linux` | ~1 мин | да (для публикации) |
-| `smoke (desktop / phone / upright)` | web-сборка в headless Chrome (`tests/browser_smoke.mjs`) | 1–3 мин | да, когда идёт |
+| `smoke (desktop / phone / upright)` | web-сборка в headless Chrome (`tests/browser_smoke.mjs`); телефоны рисуют самый лёгкий набор (`?quality=0`, `Settings.use_page_quality`), компьютер — обычную картинку | 1–4 мин | да, когда идёт |
 | `publish` | только `main`: ПК-сборки в пререлиз `pc-latest` | секунды | — |
 | `deploy` | только `main`: web-сборка на GitHub Pages | секунды | — |
 

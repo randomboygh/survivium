@@ -31,7 +31,7 @@ publishing, which waits for everything). The fast ones fail first.
 | `frames` | `frame_test` alone on a machine (it measures frames) | ~1.5 min | yes |
 | `export` | the version and «What's new» (`build_info.py`), web export, the patches `web_patch.py` and `web_cache.py`; the artifact `survivium-web` | ~1 min | yes (for the deploy) |
 | `pc` | the Windows and Linux export; the artifacts `survivium-windows`, `survivium-linux` | ~1 min | yes (for publishing) |
-| `smoke (desktop / phone / upright)` | the web build in headless Chrome (`tests/browser_smoke.mjs`) | 1–3 min | yes, when it runs |
+| `smoke (desktop / phone / upright)` | the web build in headless Chrome (`tests/browser_smoke.mjs`); the phones draw the lightest preset (`?quality=0`, `Settings.use_page_quality`), the desktop the default picture | 1–4 min | yes, when it runs |
 | `publish` | only `main`: the PC builds into the prerelease `pc-latest` | seconds | — |
 | `deploy` | only `main`: the web build to GitHub Pages | seconds | — |
 
