@@ -208,7 +208,7 @@ const KNOWLEDGE := "knowledge"
 ## PlayerLink.SKILLS_EVERY seconds, at once when a level rose).
 const SKILLS := "skills"
 ## The body's state, every tick it changes: [health, satiety, stamina, hunger, hurt_by, warmth,
-## wet, water, energy, asleep].
+## wet, water, energy, asleep, visions (whole seconds left)].
 const VITALS := "vitals"
 ## The workshop: {"queue", "paused"}.
 const SHOP := "shop"

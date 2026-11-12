@@ -461,6 +461,9 @@ const SHOTS := {
 		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "give": "tools:grass_cape"},
 	# Out of sleep, awake in the day: the picture swims (CameraRig.sway, grade.gdshader).
 	"sleepy": {"time": 0.42, "season": 1, "touch": true, "sleepy": true},
+	# A glowing mushroom eaten: the picture swims harder, the colours split and run.
+	"visions": {"time": 0.42, "season": 1, "touch": true, "visions": true},
+	"visions-later": {"time": 0.42, "season": 1, "touch": true, "visions": true, "frames": 50},
 	# Asleep at night by the spawn's campfire.
 	"asleep": {"time": 0.92, "season": 1, "touch": true, "asleep": true},
 	# A grass mat and a fur bedroll set down; the mat tapped: lying in it asleep, «zzZ» over the head.

@@ -17,6 +17,7 @@
   weight: 0.05
   stack: 30
   food: 2
+  visions: 90
   spoils: 2
   rots_to: core:rot
   model: glow_mushroom

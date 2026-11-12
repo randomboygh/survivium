@@ -21,6 +21,10 @@ uniform vec2 view_origin = vec2(0.0);
 // Short of sleep (CameraRig.drowsiness), 0..1: the picture swims in slow waves, a
 // faint second image drifts off it, and the edges darken as if the eyes were closing.
 uniform float sway = 0.0;
+// Visions after a glowing mushroom (CameraRig.visions), 0..1: the picture swims harder
+// and breathes, rings ripple out from the middle, the colours split apart and run round
+// the wheel in waves, and the edges glow the mushrooms' teal and violet.
+uniform float trip = 0.0;
 global uniform sampler2D cloud_noise : filter_linear, repeat_enable;
 global uniform vec2 cloud_offset;
 global uniform float cloud_cover;
@@ -57,7 +61,21 @@ vec2 sway_shift(vec2 sp) {
 	float t = TIME;
 	vec2 w = vec2(sin(sp.y * 9.0 + t * 1.3) + 0.6 * sin(sp.y * 23.0 - t * 2.1 + sp.x * 5.0),
 		sin(sp.x * 7.0 - t * 1.1) * 0.6 + 0.4 * sin(sp.x * 19.0 + t * 1.7));
-	return w * sway * 1.6;
+	vec2 shift = w * (sway * 1.6 + trip * 2.6);
+	if (trip > 0.0) {
+		// Rings running out from the middle push the picture in and out.
+		vec2 c = sp - 0.5;
+		float r = length(c);
+		shift += c / max(r, 0.001) * sin(r * 18.0 - t * 2.4) * trip * 1.2;
+	}
+	return shift;
+}
+
+// Turns colour `c` round the colour wheel by `a` radians, keeping its brightness.
+vec3 hue_turn(vec3 c, float a) {
+	vec3 k = vec3(0.57735);
+	float ca = cos(a);
+	return c * ca + cross(k, c) * sin(a) + k * dot(k, c) * (1.0 - ca);
 }
 
 float crt_hash(vec2 p) {
@@ -96,7 +114,7 @@ void fragment() {
 		vec2 out_px = min(sp, 1.0 - sp) * crt_screen.xy;
 		edge = clamp(min(out_px.x, out_px.y) / 2.0, 0.0, 1.0);
 		vec2 read = sp;
-		if (sway > 0.0) {
+		if (sway > 0.0 || trip > 0.0) {
 			read += sway_shift(sp) / picture;
 		}
 		if (crt_jitter > 0.0) {
@@ -123,8 +141,12 @@ void fragment() {
 			src = clamp(vec3(dot(src, w)) + smear - vec3(dot(smear, w)), 0.0, 1.0);
 		}
 	} else {
-		if (sway > 0.0) {
+		if (sway > 0.0 || trip > 0.0) {
 			uv += sway_shift(sp) * TEXTURE_PIXEL_SIZE;
+		}
+		if (trip > 0.0) {
+			// The picture breathes: it swells and shrinks slowly round the middle.
+			uv = 0.5 + (uv - 0.5) * (1.0 - trip * 0.025 * (0.5 + 0.5 * sin(TIME * 0.8)));
 		}
 		src = texture(TEXTURE, uv).rgb;
 	}
@@ -133,6 +155,15 @@ void fragment() {
 		vec2 off = vec2(sin(TIME * 0.7), cos(TIME * 0.53)) * (1.5 + 2.5 * sway) * TEXTURE_PIXEL_SIZE;
 		float ghost = sway * (0.22 + 0.13 * sin(TIME * 0.9));
 		src = mix(src, texture(TEXTURE, uv + off).rgb, ghost);
+	}
+	if (trip > 0.0) {
+		// Red and blue drift apart round the picture, and a second image, turned along
+		// the colour wheel, wanders the other way.
+		float a = TIME * 0.9;
+		vec2 split = vec2(cos(a), sin(a)) * trip * (1.0 + 1.0 * sin(TIME * 1.3)) * TEXTURE_PIXEL_SIZE;
+		src = vec3(texture(TEXTURE, uv + split).r, src.g, texture(TEXTURE, uv - split).b);
+		vec2 off = vec2(sin(TIME * 0.45 + 2.0), cos(TIME * 0.61)) * 5.0 * trip * TEXTURE_PIXEL_SIZE;
+		src = mix(src, hue_turn(texture(TEXTURE, uv - off).rgb, 2.1), trip * (0.18 + 0.07 * sin(TIME * 1.1)));
 	}
 	vec3 c = src * exposure;
 	float l = dot(c, vec3(0.299, 0.587, 0.114));
@@ -158,6 +189,18 @@ void fragment() {
 		float d = length((sp - 0.5) * shape) / length(shape * 0.5);
 		float lids = sway * (0.45 + 0.25 * sin(TIME * 0.6));
 		c *= 1.0 - lids * smoothstep(0.35, 1.05, d);
+	}
+	if (trip > 0.0) {
+		// The colours run round the wheel in waves from the middle and grow richer; the
+		// edges glow, teal to violet and back.
+		vec2 shape = vec2(crt_screen.x / crt_screen.y, 1.0);
+		float d = length((sp - 0.5) * shape) / length(shape * 0.5);
+		float turn = 0.25 * sin(TIME * 0.3) + 0.4 * sin(d * 7.0 - TIME * 1.5 + sp.x * 3.0);
+		c = hue_turn(c, turn * trip);
+		float cl = dot(c, vec3(0.299, 0.587, 0.114));
+		c = mix(vec3(cl), c, 1.0 + 0.45 * trip);
+		vec3 glow = mix(vec3(0.25, 0.95, 0.8), vec3(0.75, 0.35, 1.0), 0.5 + 0.5 * sin(TIME * 0.7));
+		c = mix(c, glow, trip * (0.28 + 0.1 * sin(TIME * 1.7)) * smoothstep(0.5, 1.1, d));
 	}
 	if (crt_on) {
 		c += crt_bloom(uv, TEXTURE_PIXEL_SIZE) * crt_glow * exposure * tint;

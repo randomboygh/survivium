@@ -510,9 +510,13 @@ func eat(i: int) -> bool:
 		return true
 	if Items.food(s[0]) <= 0.0:
 		return false
-	if not vitals.eat(Items.food(s[0]) * k):
+	# What brings visions is eaten full or not: it is not eaten for the satiety.
+	var visions := Items.visions(s[0])
+	if not vitals.eat(Items.food(s[0]) * k) and visions <= 0.0:
 		nag("full_belly", "[you_dont_want_any_more]")
 		return false
+	if visions > 0.0:
+		vitals.see_visions(visions)
 	# Good food also heals a little and quenches thirst (its `heal` and `drink`).
 	if Items.heal(s[0]) > 0.0:
 		vitals.heal(heal)
