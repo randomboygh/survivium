@@ -612,6 +612,15 @@ func _line_up(p: Vector3, d: Vector3) -> Vector3:
 	return p if _collides(slid) else slid
 
 
+## How deep the feet of a body at `at` (world units) are under the water, 0 out of it:
+## what `water_depth` is after a step there (the server's body over the loop is never
+## stepped, ActionsBoat._feel_flow asks this).
+func depth_at(at: Vector3) -> float:
+	var p := at / CELL
+	var surface := _water_surface(p)
+	return maxf(0.0, surface - p.y) if surface > -INF else 0.0
+
+
 ## Height of the water surface in the column under the middle of the body when the
 ## feet are in water there, -INF otherwise. The surface is where it is drawn: below
 ## the top of its cell under open air, at the top under a ceiling.

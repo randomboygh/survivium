@@ -68,7 +68,7 @@
   вёсла лодки (`oars` у предмета) машут в такт в `boats.gd` (`stroke`, `ROW_PERIOD`), на каждом гребке
   брызги у лопастей и плеск (`_dip`), за кормой идущего судна след (`Effects.wake`);
   течения, ответ 5А: `_feel_flow` в `step_boats` даёт телу в воде или на судне течение реки там
-  (`Character.flow`, `Body.flow`, `currents` — `Currents` сеанса; клиенту событием `flow`); `step_drift` раз в
+  (вода ищется там, где игрок, `Body.depth_at`: тело своего игрока хоста сервер не шагает; `Character.flow`, `Body.flow`, `currents` — `Currents` сеанса; клиенту событием `flow`); `step_drift` раз в
   `DRIFT_EVERY` несёт кучки на дне реки в `DRIFT_CHUNKS` чанков от игроков, пока впереди вода того же уровня,
   лёд держит)
   ← `world_actions.gd` (кнопка действия
