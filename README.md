@@ -1,55 +1,63 @@
 # Survivium
 
-Медитативная песочница выживания: бесконечный процедурный мир по уровням в 3D pixel-art с видом 3/4.
-Играется в браузере (и на телефоне), есть мультиплеер через свой сервер. Godot 4.5.1, чистый GDScript.
+A meditative survival sandbox: an endless procedural world of levels in 3D pixel art seen at 3/4.
+Plays in the browser (phones too), with multiplayer through your own server. Godot 4.5.1, pure GDScript.
 
-## Играть
+A Russian copy of this file: [README_RU.md](README_RU.md).
 
-- **Браузер:** https://randomboygh.github.io/survivium/ — собирается из `main` после каждого слияния
-  (браузер может минут десять показывать старую сборку). Версия и список изменений — «Что нового» в главном
-  меню.
-- **ПК (Windows, Linux):** релиз [pc-latest](https://github.com/randomboygh/survivium/releases/tag/pc-latest),
-  тоже обновляется с каждым слиянием.
-- **Мультиплеер:** «Мультиплеер» → «Присоединиться» (ссылка `?server=адрес` открывает этот экран с адресом).
+## Play
 
-## Что есть в игре
+- **Browser:** https://randomboygh.github.io/survivium/ — built from `main` after every merge (the browser
+  may show an old build for about ten minutes). The version and the list of changes are under «What's new»
+  in the main menu.
+- **PC (Windows, Linux):** the [pc-latest](https://github.com/randomboygh/survivium/releases/tag/pc-latest)
+  release, also updated with every merge.
+- **Multiplayer:** «Multiplayer» → «Join» (a link with `?server=address` opens this screen with the address
+  filled in).
 
-Мир без края: материки, горы, пещеры, реки, болота, пустыни и ещё два десятка биомов; 20 пород деревьев,
-кусты и травы по сезонам; 22 вида зверей, птиц и рыб, охота и рыбалка. Смена суток и сезонов, погода, свет
-от костра, факела, свечи и фонаря. Копать, рубить, косить, собирать, крафтить на станках; строить блоками и
-по чертежу стены, пол и комнаты, ставить двери, окна, лестницы, мебель и камин. Голод, жажда, сон, тепло и
-здоровье, одежда и носимые сумки, девять навыков, которые растут от работы. Команды, участки земли и PvP на
-сервере. Сохранения по мирам. Моды и бандлы — данные в YAML (`content/<мод>/`, у каждого мода свой README).
+## What is in the game
 
-Управление: WASD или стрелки — ходить, Пробел — прыжок, ЛКМ/ПКМ — действие левой/правой рукой, F —
-кнопка действия, 1–8 — ячейка панели, V — следующий инструмент, C — кисть, I/Tab — сумка, Q/E — срез
-уровней (R — сбросить), `[`/`]` — поворот камеры, `-`/`=` — наклон, Enter — чат на сервере, H — подсказки,
-F3 — статистика, Esc — меню; карта — касание миникарты. На телефоне — джойстик слева, кнопки действия и
-прыжка справа, касание мира — действие активной руки.
+A world without an edge: continents, mountains, caves, rivers, swamps, deserts and two dozen more biomes;
+20 species of trees, shrubs and grasses that follow the seasons; 22 kinds of beasts, birds and fish, hunting
+and fishing. Day and night, seasons, weather, light from a campfire, a torch, a candle and a lantern. Dig,
+chop, mow, gather, craft at stations; build walls, floors and rooms by blocks or by blueprint, place doors,
+windows, stairs, furniture and a fireplace. Hunger, thirst, sleep, warmth and health, clothes and worn bags,
+nine skills that grow with use. Teams, land plots and PvP on a server. Saves per world. Mods and bundles are
+data in YAML (`content/<mod>/`, each mod has its own README).
 
-## Свой сервер
+Controls: WASD or arrows — walk, Space — jump, LMB/RMB — action of the left/right hand, F — action button,
+1–8 — hotbar slot, V — next tool, C — brush, I/Tab — bag, Q/E — slice the levels (R — reset), `[`/`]` —
+rotate the camera, `-`/`=` — tilt, Enter — chat on a server, H — hints, F3 — stats, Esc — menu; the map is
+a tap on the minimap. On a phone: a joystick on the left, action and jump buttons on the right, a tap on the
+world acts with the active hand.
 
-На компьютере: «Мультиплеер» → «Создать сервер» или из терминала
+## Your own server
+
+On a computer: «Multiplayer» → «Create a server», or from a terminal
 `Survivium.console.exe --headless -- --server` (Linux: `./Survivium.x86_64 --headless -- --server`).
-Друзья в той же сети входят по адресу из окна сервера (`ws://192.168.…:7777`).
+Friends on the same network join by the address in the server window (`ws://192.168.…:7777`).
 
-Для друзей из интернета без настройки роутера: положите рядом с игрой
-[cloudflared](https://github.com/cloudflare/cloudflared/releases) (переименуйте в `cloudflared.exe` или
-`cloudflared`), включите «Доступ из интернета» (в терминале `--tunnel`) и отправьте другу ссылку из
-«Скопировать ссылку». Адрес новый при каждом запуске; компьютер не должен засыпать. Только знакомых
-впускает пароль или `whitelist on`. Галочка «Погода с улицы» (в терминале `--real-weather`) делает
-погоду в мире настоящей — той, что сейчас там, где компьютер сервера.
+For friends over the internet without setting up a router: put
+[cloudflared](https://github.com/cloudflare/cloudflared/releases) next to the game (rename it to
+`cloudflared.exe` or `cloudflared`), turn on «Access from the internet» (`--tunnel` in a terminal) and send
+a friend the link from «Copy the link». The address is new at every start; the computer must not sleep. A
+password or `whitelist on` lets in only people you know. The «Real weather outside» checkbox
+(`--real-weather` in a terminal) makes the world's weather real: the weather right now where the server's
+computer is.
 
-Без компьютера: на GitHub «Actions» → «Playtest server» → «Run workflow» (минуты, зерно мира, боты; по умолчанию тестовый мир и 3 бота, которые сами играют рядом), или в игре «Тестирование» → «Запустить тестовый сервер», затем «Подключиться к тестовому серверу».
-Через пару минут ссылка для телефона появится в шаге «Start the server»; мир не сохраняется.
+Without a computer: on GitHub «Actions» → «Playtest server» → «Run workflow» (minutes, world seed, bots; by
+default the test world and 3 bots that play beside you on their own), or in the game «Testing» → «Start the test server», then «Join the test server». In a couple of minutes the link for a phone appears in the step
+«Start the server»; the world is not saved.
 
-## Разработка
+## Development
 
-- Каждое изменение — PR в `main`. Когда CI зелёный, PR сливается сам, без ручного «мержим»; изменения
-  структуры и архитектуры сначала согласуются.
-- В описании каждого PR есть хотя бы одна строка для игрока по-русски: `Что нового [вид]: …`, где вид —
-  `новое`, `улучшено`, `исправлено`, `оптимизировано` или `ядро`. CI показывает их в «Тестирование».
-- Версия клиента `<этап>.<номер PR>`; CI (`.github/workflows/build.yml`) гоняет тесты, собирает web и ПК,
-  проверяет web в Chrome и из `main` публикует на GitHub Pages и в `pc-latest`.
-- Все проверки разом: `tests/run_all.sh`. Правила, проверки и подводные камни: [CLAUDE.md](CLAUDE.md);
-  документация кода: [docs/INDEX.md](docs/INDEX.md). План и геймдизайн — в папке `plan/` проекта Claude.
+- Every change is a PR into `main`. When CI is green the PR merges itself, with no manual «merge»; changes
+  of structure and architecture are agreed first.
+- Every PR description has at least one line for the player, in Russian: `Что нового [вид]: …`, where the
+  kind is `новое`, `улучшено`, `исправлено`, `оптимизировано` or `ядро`. CI shows them in «Testing».
+- The client's version is `<stage>.<PR number>`; CI (`.github/workflows/build.yml`) runs the tests, builds
+  the web and PC versions, checks the web build in Chrome and publishes from `main` to GitHub Pages and to
+  `pc-latest`.
+- All the checks at once: `tests/run_all.sh`. Rules, checks and pitfalls: [CLAUDE.md](CLAUDE.md); the code's
+  documentation: [docs/INDEX.md](docs/INDEX.md). The plan and game design live in the `plan/` folder of the
+  Claude project.

@@ -6,7 +6,8 @@ server that is the same executable (decision 153; single player runs it in the s
 Godot 4.5.1, GL Compatibility renderer, web export without threads, pure GDScript: scripts are loaded
 with `preload` consts and `extends "res://…"`, no `class_name`, no autoloads, no plugins.
 The game speaks ten languages (English by default); every text a player reads is a key in square
-brackets, `"[bag_is_full]"`, in the code and in the mods' data (`docs/systems/lang.md`, `docs/TRANSLATION.md`); the README and the docs in `docs/` are in Russian; code,
+brackets, `"[bag_is_full]"`, in the code and in the mods' data (`docs/systems/lang.md`, `docs/TRANSLATION.md`); the README and the docs in `docs/` are in English, each with a Russian copy `<name>_RU.md` (the English
+file is the main one: change it first, then the copy; a page with no `_RU` copy is still in Russian only); code,
 comments, commits and PRs are in English.
 
 ## Where things are

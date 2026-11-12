@@ -1,11 +1,12 @@
-# Зависимости
+# Dependencies
 
-Статус: ACTIVE, сверено с кодом 2026-11-09 (PR #457). Две карты: **что какой скрипт грузит** (`preload` / `extends`; таблица по
-папкам генерируется в [generated/code-index.md](generated/code-index.md), по файлу —
-`python3 tools/doc_index.py uses <путь>`) и **кто кому передан во время игры** (Main раздаёт объекты,
-правила шлют сигналы; это ниже, вручную).
+Status: ACTIVE, checked against the code on 2026-11-09 (PR #457). A Russian copy:
+[DEPENDENCIES_RU.md](DEPENDENCIES_RU.md). Two maps: **what each script loads** (`preload` / `extends`; the
+table by folder is generated in [generated/code-index.md](generated/code-index.md), by file —
+`python3 tools/doc_index.py uses <path>`) and **who is handed to whom during play** (Main hands out objects,
+the rules send signals; this is below, by hand).
 
-## Слои
+## Layers
 
 ```mermaid
 graph LR
@@ -37,43 +38,43 @@ graph LR
   net --> content
 ```
 
-Запрещено (тест `_test_layers`): `src/shared/` → `src/client/` или `src/server/`; `src/server/` →
-`src/client/`; `src/client/` → `src/server/` кроме `net/local_host.gd`; внутри shared обратные стрелки
-(`content/` не грузит `world/`, `game/`, `net/`; `world/` не грузит `game/`, `net/`; `net/` грузит только
-`content/`).
+Forbidden (the test `_test_layers`): `src/shared/` → `src/client/` or `src/server/`; `src/server/` →
+`src/client/`; `src/client/` → `src/server/` except `net/local_host.gd`; inside shared the backward arrows
+(`content/` loads none of `world/`, `game/`, `net/`; `world/` loads neither `game/` nor `net/`; `net/` loads
+only `content/`).
 
-## Узлы, от которых зависит больше всего
+## The nodes most depend on
 
-Больше 40 файлов грузят `src/shared/world/world_data.gd`, `src/shared/content/materials.gd`,
-`src/shared/content/items.gd`, `src/shared/content/lang.gd`, `src/client/ui/ui_style.gd`; больше 20 — `src/client/view/pixel_view.gd`,
-`src/shared/content/content.gd`, `src/shared/content/trees.gd`, `src/shared/world/world_gen.gd`
-(2026-11-09; точные списки даёт `uses`).
-Правка их интерфейса затрагивает генератор, меши, правила, UI и тесты: перед правкой
-`python3 tools/doc_index.py uses <путь>`.
+Over 40 files load `src/shared/world/world_data.gd`, `src/shared/content/materials.gd`,
+`src/shared/content/items.gd`, `src/shared/content/lang.gd`, `src/client/ui/ui_style.gd`; over 20 —
+`src/client/view/pixel_view.gd`, `src/shared/content/content.gd`, `src/shared/content/trees.gd`,
+`src/shared/world/world_gen.gd` (2026-11-09; `uses` gives the exact lists).
+Editing their interface touches the generator, meshes, rules, UI and tests: before editing run
+`python3 tools/doc_index.py uses <path>`.
 
-## Правила внутри shared
+## Rules inside shared
 
-| Скрипт | Грузит |
+| Script | Loads |
 |---|---|
-| `game/world_actions.gd` ← цепочка `actions_base` … `actions_boat` | `world_data`, `materials`, `items`, `tools`, `trees`, `bushes`, `plants`, `grass`, `biomes`, `ai_rules`, `growth`, `felling`, `inventory`, `placed`, `plans`, `clock`, `quality`, `vessels`, `body`, `lang` |
+| `game/world_actions.gd` ← the chain `actions_base` … `actions_boat` | `world_data`, `materials`, `items`, `tools`, `trees`, `bushes`, `plants`, `grass`, `biomes`, `ai_rules`, `growth`, `felling`, `inventory`, `placed`, `plans`, `clock`, `quality`, `vessels`, `body`, `lang` |
 | `game/wildlife.gd` | `world_data`, `body`, `ai_rules`, `materials`, `grass`, `biomes`, `items`, `tools`, `placed`, `lang` |
 | `game/placed.gd` | `world_data`, `materials`, `items`, `inventory`, `body`, `tools`, `starts`, `content`, `lang`, `net/protocol` |
 | `game/character.gd` | `inventory`, `vitals`, `warmth`, `skill_set`, `items`, `starts`, `world_data`, `ai_rules`, `quality`, `lang` |
 | `game/workshop.gd` | `crafting`, `craft_queue`, `knowledge`, `items`, `tools`, `ai_rules`, `inventory`, `quality`, `lang` |
 | `game/clock.gd` | `world_gen`, `biomes`, `world_data` |
-| `world/world_gen.gd` → `world/land_layout.gd` | `trees`, `bushes`, `growth`; база — `materials`, `biomes`, `world_data` |
+| `world/world_gen.gd` → `world/land_layout.gd` | `trees`, `bushes`, `growth`; base — `materials`, `biomes`, `world_data` |
 | `world/world_data.gd` → `world/world_cells.gd` | `materials`, `trees`, `items`, `content`, `growth` |
 
-## Кто кому передан во время игры
+## Who is handed to whom during play
 
-Main создаёт модули и раздаёт им соседей (см. [ARCHITECTURE.md](ARCHITECTURE.md), «Main и модули»).
-Общие правила получают объекты, а не грузят их скрипты; мир и правила над ним делает и связывает сеанс
-(`src/shared/game/session.gd`: `WorldActions.new(world, clock, rules)`, `Storms.new(world, clock, actions)`,
-`Plans`), мастерскую игрока — его линк на сервере (`src/server/player_link.gd`: `Workshop.new(who, placed,
-rules)`); `wildlife.world`, `.gen`, `.clock`; `clock.world`, `.gen`;
-`character.world`, `.placed`, `.clock` (в `Session.add_player`). Правила хозяина (`rules`,
-`src/shared/game/rules.gd`) — общий объект, который правило только читает; в одиночной игре его
-заполняет клиентский `settings.gd`, у сервера — конфиг.
+Main creates the modules and hands them their neighbours (see [ARCHITECTURE.md](ARCHITECTURE.md), «Main and
+the modules»). The shared rules receive objects and do not load their scripts; the world and the rules over
+it are made and linked by the session (`src/shared/game/session.gd`: `WorldActions.new(world, clock, rules)`,
+`Storms.new(world, clock, actions)`, `Plans`), the player's workshop — by its link on the server
+(`src/server/player_link.gd`: `Workshop.new(who, placed, rules)`); `wildlife.world`, `.gen`, `.clock`;
+`clock.world`, `.gen`; `character.world`, `.placed`, `.clock` (in `Session.add_player`). The host's rules
+(`rules`, `src/shared/game/rules.gd`) are a shared object that a rule only reads; in single player the
+client's `settings.gd` fills it, on a server — the config.
 
 ```mermaid
 graph LR
@@ -84,7 +85,7 @@ graph LR
   wildlife["Wildlife"] -- born / gone / stepped --> creatures["Creatures"]
   clock["Clock"] -- season_changed --> sky["Sky"]
   clock -- season_changed --> actions
-  inventory["Inventory"] -- changed --> hud["HUD, окно сумки"]
+  inventory["Inventory"] -- changed --> hud["HUD, the bag window"]
   workshop["Workshop"] -- changed / made --> hud
   skills["SkillSet"] -- leveled --> levelup["LevelUp"]
   plans["Plans"] -- changed --> planview["PlanView"]
@@ -93,14 +94,14 @@ graph LR
   save["SaveGame"] -. to_dict / from_dict .-> inventory & workshop & knowledge & clock & placed
 ```
 
-На сервере к этим сигналам подключён `src/server/player_link.gd` и шлёт события; на клиенте виды слушают
-копии (`src/client/net/remote_*.gd`, `game.character`, `game.plans`) с теми же сигналами
-([systems/network.md](systems/network.md)).
+On a server `src/server/player_link.gd` is connected to these signals and sends the events; on the client
+the views listen to the copies (`src/client/net/remote_*.gd`, `game.character`, `game.plans`) with the same
+signals ([systems/network.md](systems/network.md)).
 
-## Данные
+## Data
 
-Записи модов связаны ссылками (`ref:<вид>`): рецепт → предметы и станок, предмет → материал,
-куст, растение, дерево → предметы, биом → деревья и кусты, существо → растения и биомы. Жёсткая ссылка
-связывает бандлы, мягкая только задаёт порядок ([DATA_MODEL.md](DATA_MODEL.md)). Зависимости
-конкретного бандла: `Content.deps(b)`, со всеми, без кого он не может, — `Content.closure(b)`; полный
-реестр записей с бандлами и связями — [generated/content-index.md](generated/content-index.md).
+The mods' records are linked by references (`ref:<kind>`): a recipe → items and a station, an item → a
+material, a shrub, a plant, a tree → items, a biome → trees and shrubs, a creature → plants and biomes. A
+hard reference links bundles, a soft one only sets the order ([DATA_MODEL.md](DATA_MODEL.md)). The
+dependencies of a given bundle: `Content.deps(b)`, with all those it cannot do without — `Content.closure(b)`;
+the full registry of records with bundles and links — [generated/content-index.md](generated/content-index.md).
