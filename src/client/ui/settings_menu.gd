@@ -222,7 +222,7 @@ func open_gallery() -> Control:
 ## `back`, or closes the window when it is "".
 func open(which: String, back := "test") -> void:
 	page = which
-	if which in ["changes", "freezes", "report"]:
+	if which in ["changes", "freezes", "report", "crash"]:
 		_back_to = back
 	_fill()
 
@@ -269,7 +269,7 @@ func _fill() -> void:
 	_version.visible = which != "settings"
 	_changes.visible = which == "test"
 	_clear.visible = which == "freezes"
-	_copy.visible = which in ["freezes", "report"]
+	_copy.visible = which in ["freezes", "report", "crash"]
 	_copy.text = "[copy]"
 	UiStyle.succeed(_copy, false)
 	# The phone's sharing, where the browser has it.
@@ -288,6 +288,10 @@ func _fill() -> void:
 	elif which == "report":
 		_title.text = "[test_data]"
 		_add_report()
+	elif which == "crash":
+		_title.text = "[crash_log]"
+		_shown_text = LastLog.tail()
+		_list.add_child(_paragraph(_shown_text, UiStyle.INK))
 	else:
 		_title.text = "[settings]" if which == "settings" else "[testing]"
 		for k in _tab_buttons:
@@ -768,7 +772,7 @@ func _reset() -> void:
 
 
 func _go_back() -> void:
-	if page in ["changes", "freezes", "report"] and _back_to != "":
+	if page in ["changes", "freezes", "report", "crash"] and _back_to != "":
 		open(_back_to)
 	else:
 		close()
@@ -816,7 +820,7 @@ func fit(screen: Vector2) -> void:
 	# Every page takes the columns the settings need, so all are as wide.
 	var n := 2 if _page_height("settings", 1) > room \
 			and screen.x - 2 * 8 - 2 * UiStyle.PAD.x - BAR_ROOM >= 2 * ROW_WIDTH + COLUMN_GAP else 1
-	if n != _columns and page in ["changes", "freezes", "report"]:
+	if n != _columns and page in ["changes", "freezes", "report", "crash"]:
 		_columns = n
 		_fill()
 		return

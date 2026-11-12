@@ -880,6 +880,7 @@
 "[version]": "Version %s · %s · %s"
 "[freeze_log]": "Freeze log"
 "[test_data]": "Test data"
+"[crash_log]": "Crash log"
 "[time_and_weather]": "Time and weather"
 "[weather]": "Weather"
 "[by_itself]": "by itself"

@@ -880,6 +880,7 @@
 "[version]": "Версия %s · %s · %s"
 "[freeze_log]": "Журнал фризов"
 "[test_data]": "Данные для теста"
+"[crash_log]": "Журнал вылета"
 "[time_and_weather]": "Время и погода"
 "[weather]": "Погода"
 "[by_itself]": "сама"
