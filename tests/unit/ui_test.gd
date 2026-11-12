@@ -13,6 +13,9 @@ const FadingList := preload("res://src/client/ui/kit/fading_list.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
+const MapView := preload("res://src/client/ui/map_view.gd")
+const Minimap := preload("res://src/client/ui/minimap.gd")
+const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
 
 func run() -> void:
@@ -25,6 +28,7 @@ func run() -> void:
 	_test_fading_list()
 	_test_chat_lines()
 	_test_pc_scales()
+	_test_map_fit()
 
 
 func _test_two_tap() -> void:
@@ -265,3 +269,24 @@ func _test_pc_scales() -> void:
 			_check(s > last, "size %d is larger than the one before on %d px" % [size, side])
 			last = s
 	_check(Hud.pc_scale(300, 0) == 1.0, "never under a screen pixel per UI pixel")
+
+
+## The whole map fills a phone held upright, whatever size it was laid out at before,
+## and its hint, in the player's language, stays inside the panel.
+func _test_map_fit() -> void:
+	var map := MapView.new()
+	map.minimap = Minimap.new()
+	map._ready()
+	var phone := Vector2(400, 820)
+	for before: Vector2 in [Vector2(90, 400), Vector2(820, 400), phone]:
+		map.fit(before, true)
+		map.fit(phone, true)
+		_check(map.well.size.y > phone.y * 0.7, "the map fills the screen after %s: %s" % [before, map.well])
+		var text := Lang.t(map._hint.text)
+		var widest := UiStyle.font().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE).x
+		var wraps: bool = map._hint.autowrap_mode != TextServer.AUTOWRAP_OFF
+		var inside: bool = map._hint.position.x >= MapView.MARGIN and map._hint.position.x \
+				+ (map._hint.size.x if wraps else widest) <= phone.x - MapView.MARGIN
+		_check(inside and map._hint.position.y > map.well.end.y, "the hint stays inside, under the map")
+	map.minimap.free()
+	map.free()

@@ -193,20 +193,25 @@ func fit(screen: Vector2, touch: bool) -> void:
 	_hint.text = "[a_tap_places_a_marker]" if touch \
 			else "[a_click_places_a_marker]"
 	# The hint right of the scale bar, or on a line of its own under it on a narrow screen.
-	var natural := UiStyle.font().get_string_size(_hint.text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE).x
+	# Measured in the player's language from the font, never from the label's own size:
+	# a label keeps the height of its last wrapping until it is laid out again, and that
+	# height once squashed the map to a strip.
+	var text := Lang.t(_hint.text)
+	var font := UiStyle.font()
+	var natural := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE).x
 	var bottom := 0.0
 	if natural <= right - inner.position.x - SCALE_WIDTH - 48:
 		_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
+		_hint.position = Vector2(right - natural, inner.end.y - UiStyle.FONT_SIZE)
 		_hint.size = Vector2(natural, UiStyle.FONT_SIZE)
-		_hint.position = Vector2(right - natural, inner.end.y - _hint.size.y)
 		bottom = _hint.position.y - GAP - 1
 	else:
-		# A wrapped label knows its lines once it has its width.
+		var width := right - inner.position.x
+		var lines := _lines(text, width)
+		var height := lines * font.get_height(UiStyle.FONT_SIZE) + (lines - 1) * 4
 		_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		_hint.size = Vector2(right - inner.position.x, 0)
-		var lines := _hint.get_line_count()
-		_hint.size.y = lines * _hint.get_line_height() + (lines - 1) * 4
-		_hint.position = Vector2(inner.position.x, inner.end.y - _hint.size.y)
+		_hint.position = Vector2(inner.position.x, inner.end.y - height)
+		_hint.size = Vector2(width, height)
 		bottom = _hint.position.y - GAP - UiStyle.FONT_SIZE - 4 - GAP - 1
 	well = Rect2(inner.position.x + 1, top, right - inner.position.x - 2, bottom - top)
 	_scale_at = Vector2(well.position.x, well.end.y + GAP + 1)
@@ -215,6 +220,15 @@ func fit(screen: Vector2, touch: bool) -> void:
 	_top.size = well.size
 	_hide_popup()
 	redraw()
+
+
+## How many lines `text` takes wrapped by words to `width` UI pixels, as the hint shows it.
+static func _lines(text: String, width: float) -> int:
+	var para := TextParagraph.new()
+	para.break_flags = TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
+	para.add_string(text, UiStyle.font(), UiStyle.FONT_SIZE)
+	para.width = width
+	return maxi(1, para.get_line_count())
 
 
 ## Redraws the panel, the ground and what is drawn over it.
