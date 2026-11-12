@@ -32,6 +32,8 @@ var _password: LineEdit
 var _error: Label
 var _recent: VBoxContainer
 var _recent_scroll: ScrollContainer
+## How tall the recent servers stand when the screen has room: RECENT_ROWS at most.
+var _recent_tall := 0
 var _recent_rows: VBoxContainer
 ## The trash buttons: two taps each.
 var _bins := TwoTap.new()
@@ -79,6 +81,18 @@ func _ready() -> void:
 	_announce.call_deferred()
 
 
+## On a screen too short for the panel (a phone on its side) the recent servers give up
+## their rows, down to one, and scroll, so «Подключиться» and «Назад» stay on it.
+func layout(screen: Vector2) -> void:
+	if _recent_scroll == null:
+		return
+	_recent_scroll.custom_minimum_size.y = _recent_tall
+	panel.reset_size()
+	var over := panel.size.y + 2 * MARGIN - screen.y
+	if over > 0.0 and _recent.visible:
+		_recent_scroll.custom_minimum_size.y = maxf(_recent_tall - over, mini(_recent_tall, FORGET))
+
+
 func back() -> void:
 	cancelled.emit()
 
@@ -120,7 +134,8 @@ func _fill_recent(recent: Array[Dictionary]) -> void:
 	_recent.visible = not recent.is_empty()
 	# As tall as the rows, at most RECENT_ROWS, then scrolled.
 	var shown := mini(recent.size(), RECENT_ROWS)
-	_recent_scroll.custom_minimum_size = Vector2(WIDTH, maxi(shown * (FORGET + 4) - 4, 0))
+	_recent_tall = maxi(shown * (FORGET + 4) - 4, 0)
+	_recent_scroll.custom_minimum_size = Vector2(WIDTH, _recent_tall)
 	for r: Dictionary in recent:
 		var row := Kit.row(4)
 		var title: String = r.title if r.title != "" else "[server_name]"

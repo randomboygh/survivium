@@ -12,10 +12,18 @@ extends RefCounted
 ## first and the last value; "stop" — the arrows stop at the ends, not going round;
 ## "skip" — a value the arrows pass over; "open" — what an
 ## extra button after the arrows does (its icon "open_icon", tooltip "open_tip"); "name_width";
-## "wrap" — the name wraps (else it is cut with an ellipsis).
+## "wrap" — the name wraps (else it is cut with an ellipsis); "switch" — false keeps
+## the arrows on a row of «выкл | вкл».
+## A row whose values are only off and on (SWITCHES) is a switch (switch.gd) in place of
+## the arrows and the value: a tap turns it, left turns it off and right on.
+## The arrows of a row that stops at its ends ("stop", "direct") are off at that end.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Kit := preload("res://src/client/ui/kit/kit.gd")
+const Switch := preload("res://src/client/ui/kit/switch.gd")
+
+## The pairs of values that make a row a switch: [off, on].
+const SWITCHES := [["[off]", "[on]"], ["[hidden]", "[shown]"]]
 
 ## Row `index` was stepped by the player.
 signal stepped(index: int)
@@ -50,6 +58,27 @@ func add(parent: Node, name: String, values: Array, getter: Callable, setter: Ca
 	var label := _name(name, opts)
 	row.add_child(label)
 	var index := rows.size()
+	var on := switch_on(values) if opts.get("switch", true) else -1
+	if on >= 0:
+		# In the room of the arrows and the value, its track at the right end; "show"
+		# stands left of it (a mod's «3 из 5»), "open" after it.
+		var sw := Switch.new(opts.get("show", ""))
+		sw.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
+			sw.add_theme_color_override(c, UiStyle.MUTED)
+		var room := value_width + 2 * arrow + 2 * 2
+		if opts.has("open"):
+			room -= arrow + 2
+		sw.custom_minimum_size = Vector2(room, arrow)
+		sw.toggled.connect(_switched.bind(index))
+		row.add_child(sw)
+		if opts.has("open"):
+			row.add_child(Kit.icon_button(opts.get("open_icon", "menu"), opts.get("open_tip", "[whats_included]"), opts.open, arrow))
+		var r := {"name": label, "values": values, "get": getter, "set": setter, "label": null, "left": null,
+			"right": null, "row": row, "switch": sw, "on": on}
+		r.merge(opts)
+		rows.append(r)
+		return row
 	var left := _arrow(row, "prev", index, -1)
 	var value := UiStyle.label()
 	value.custom_minimum_size = Vector2(value_width, 0)
@@ -81,6 +110,25 @@ func name_label(name: String, opts := {}) -> Label:
 	return _name(name, opts)
 
 
+## Where «on» is in `values` when they are only off and on (SWITCHES), else -1.
+static func switch_on(values: Array) -> int:
+	if values.size() != 2:
+		return -1
+	for pair: Array in SWITCHES:
+		if values.has(pair[0]) and values.has(pair[1]):
+			return values.find(pair[1])
+	return -1
+
+
+## The text of row `i`'s value now (a switch's too).
+func text_of(i: int) -> String:
+	var r: Dictionary = rows[i]
+	if r.label != null:
+		return r.label.text
+	var v: int = r.get.call()
+	return r.values[clampi(v, 0, r.values.size() - 1)] if v >= 0 else r.get("other", "")
+
+
 ## Forgets the rows (the owner frees their boxes).
 func clear() -> void:
 	rows.clear()
@@ -92,6 +140,15 @@ func clear() -> void:
 func refresh() -> bool:
 	var changed := false
 	for r in rows:
+		if r.has("switch"):
+			var sw: Switch = r.switch
+			var lit: bool = r.get.call() == r.on
+			if sw.button_pressed != lit:
+				sw.show_value(lit)
+				changed = true
+			sw.disabled = not works(r)
+			r.row.modulate.a = 1.0 if not sw.disabled else 0.4
+			continue
 		if r.label == null:
 			continue
 		var text: String = r.get("show", "")
@@ -103,8 +160,11 @@ func refresh() -> bool:
 			r.label.text = text
 			changed = true
 		var on := works(r)
-		r.left.disabled = not on
-		r.right.disabled = not on
+		# A row that stops at its ends has the arrow towards an end off there.
+		var ends: bool = r.get("stop", false) or r.get("direct", false)
+		var at: int = r.get.call()
+		r.left.disabled = not on or (ends and at == 0)
+		r.right.disabled = not on or (ends and at == r.values.size() - 1)
 		r.row.modulate.a = 1.0 if on else 0.4
 	return changed
 
@@ -131,7 +191,11 @@ func step(i: int, dir: int) -> void:
 		return
 	var cur: int = r.get.call()
 	var next: int
-	if r.get("direct", false):
+	if r.has("switch"):
+		next = r.on if dir > 0 else 1 - r.on
+		if next == cur:
+			return
+	elif r.get("direct", false):
 		next = 0 if dir < 0 else n - 1
 	elif cur < 0:
 		next = 0 if dir > 0 else n - 1
@@ -192,6 +256,18 @@ func _arrow(row: Node, icon: String, index: int, dir: int) -> Button:
 	var b := Kit.icon_button(icon, "", _pressed.bind(index, dir), arrow)
 	row.add_child(b)
 	return b
+
+
+## Switch `index` was turned by a tap: its value follows.
+func _switched(on: bool, index: int) -> void:
+	set_focus(index)
+	var r: Dictionary = rows[index]
+	if not works(r):
+		refresh()
+		return
+	r.set.call(r.on if on else 1 - r.on)
+	refresh()
+	stepped.emit(index)
 
 
 func _pressed(index: int, dir: int) -> void:
