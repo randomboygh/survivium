@@ -4,8 +4,9 @@ extends PanelContainer
 ## them standing bars under their pictures, in this order: satiety under a loaf, water
 ## under a mug, the body's warmth under a thermometer (full at Vitals.COMFORT, blue below
 ## Vitals.COLD, red above Vitals.HOT) and its energy under a moon; red when hungry,
-## thirsty, sleepy. Last, a column of what hinders the body (DEBUFFS: wet, out of breath,
-## overloaded): the panel ends at the moon when nothing does and widens for them. Shown
+## thirsty, sleepy. A standing bar shows only while it is low (`critical`), or all of them
+## while the bag is open (pinned). Last, a column of what hinders the body (DEBUFFS: wet,
+## out of breath, overloaded). The panel is as wide as what it shows. Shown
 ## only while something changes noticeably or is low (plan/design/ui.md: "indicator
 ## appears only on significant change or in a critical state"), or while pinned.
 
@@ -16,11 +17,11 @@ const Vitals := preload("res://src/shared/game/vitals.gd")
 ## The panel's height inside its frame, and the horizontal bars: health, then stamina.
 const HEIGHT := 28
 const BAR_X := 12
-const HEALTH := Rect2(BAR_X, 3, 60, 7)
-const STAMINA := Rect2(BAR_X, 18, 50, 5)
+const HEALTH := Rect2(BAR_X, 1, 60, 12)
+const STAMINA := Rect2(BAR_X, 20, 50, 5)
 ## Where the pictures of the two rows stand.
-const HEALTH_Y := 2
-const STAMINA_Y := 16
+const HEALTH_Y := 3
+const STAMINA_Y := 18
 ## The standing bars: where the first starts, how far apart they are, how wide a bar is.
 const COLUMN_X := BAR_X + 60 + 5
 const COLUMN := 10
@@ -52,6 +53,8 @@ var _shown := {}
 var _linger := 0.0
 ## What hinders the body now (keys of DEBUFFS, in their order).
 var debuffs: Array = []
+## The standing bars shown now (their keys, in the order of COLUMNS).
+var columns: Array = []
 var _canvas: Control
 
 
@@ -78,22 +81,32 @@ func update(vitals, delta: float, overloaded := false) -> void:
 		if absf(v - _shown.get(k, -100.0)) >= 1.0:
 			_shown[k] = v
 			_canvas.queue_redraw()
-		if k == "warmth":
-			low = low or v < Vitals.COLD or v > Vitals.HOT
-		else:
-			low = low or v < LOW[k]
+		low = low or critical(k, v)
 	var wet: float = vitals.wet
 	if absf(wet - _values.get("wet", 0.0)) >= 0.05 or (wet > 0.0) != (_values.get("wet", 0.0) > 0.0):
 		_values["wet"] = wet
 		_canvas.queue_redraw()
 	var now := debuffs_of(vitals, overloaded)
-	if now != debuffs:
+	var shown_columns := []
+	for c in COLUMNS:
+		if pinned or critical(c[0], _values[c[0]]):
+			shown_columns.append(c[0])
+	if now != debuffs or shown_columns != columns:
 		debuffs = now
+		columns = shown_columns
 		_fit()
 		_canvas.queue_redraw()
 	low = low or not debuffs.is_empty()
 	_linger = maxf(0.0, _linger - delta)
 	visible = pinned or low or _linger > 0.0
+
+
+## Whether `value` of state `what` is low enough to show all the time: hungry, thirsty,
+## sleepy soon, too cold or hot.
+static func critical(what: String, value: float) -> bool:
+	if what == "warmth":
+		return value < Vitals.COLD or value > Vitals.HOT
+	return value < LOW[what]
 
 
 ## What hinders a body of `vitals` (keys of DEBUFFS, in their order): wet, out of breath
@@ -109,11 +122,11 @@ static func debuffs_of(vitals, overloaded: bool) -> Array:
 	return out
 
 
-## The panel as wide as its bars and, when something hinders the body, its column.
+## The panel as wide as its bars, the standing ones shown and, when something hinders
+## the body, its column.
 func _fit() -> void:
-	var w := COLUMN_X + (COLUMNS.size() - 1) * COLUMN + 9
-	if not debuffs.is_empty():
-		w += COLUMN
+	var n := columns.size() + (0 if debuffs.is_empty() else 1)
+	var w := BAR_X + int(HEALTH.size.x) if n == 0 else COLUMN_X + (n - 1) * COLUMN + 9
 	_canvas.custom_minimum_size = Vector2(w, HEIGHT)
 	_canvas.size = _canvas.custom_minimum_size
 	reset_size()
@@ -126,6 +139,8 @@ func _draw_state() -> void:
 	_row(STAMINA_Y, "bolt", STAMINA, stamina / Vitals.MAX, UiStyle.DANGER if stamina < Vitals.TIRED else UiStyle.GOOD)
 	var x := COLUMN_X
 	for c in COLUMNS:
+		if not c[0] in columns:
+			continue
 		var v: float = _values.get(c[0], Vitals.MAX if c[0] != "warmth" else Vitals.COMFORT)
 		var share := v / Vitals.MAX
 		var color: Color = c[2]

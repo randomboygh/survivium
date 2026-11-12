@@ -123,7 +123,15 @@ func _test_vitals() -> void:
 	panel.update(v, 0.1, true)
 	_check(canvas.custom_minimum_size.x > narrow and panel.visible, "the panel widens for the column and shows")
 	panel.update(Vitals.new(), 0.1, false)
-	_check(is_equal_approx(canvas.custom_minimum_size.x, narrow), "and shrinks back to the moon")
+	_check(is_equal_approx(canvas.custom_minimum_size.x, narrow) and panel.columns.is_empty(),
+		"and shrinks back to the health bar: nothing low shows no standing bar")
+	var thirsty := Vitals.new()
+	thirsty.water = 10.0
+	panel.update(thirsty, 0.1, false)
+	_check(panel.columns == ["water"], "a low one shows alone")
+	panel.pinned = true
+	panel.update(thirsty, 0.1, false)
+	_check(panel.columns.size() == 4, "all of them with the bag open")
 	panel.free()
 
 

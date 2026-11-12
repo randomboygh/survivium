@@ -189,8 +189,9 @@ and a new shared part is added to the kit and to the «Interface gallery».
   end from transparency, rising, and the oldest (by time or when the list overflows) goes up into
   transparency, and the list shifts after it (`Hud._scroll_toasts`). `vitals_panel.gd` (the state in the
   top left corner: a thick health bar with a thinner stamina bar under it, then standing bars for satiety,
-  water, warmth and sleep, and a column of what hinders the body — wet, out of breath, overloaded,
-  `VitalsPanel.debuffs_of`; the panel ends at the sleep bar when nothing does), `sleep_screen.gd`
+  water, warmth and sleep, each only while it is low (`VitalsPanel.critical`; all of them while the bag is
+  open), and a column of what hinders the body — wet, out of breath, overloaded, `VitalsPanel.debuffs_of`;
+  the panel is as wide as what it shows), `sleep_screen.gd`
   (darkening in sleep: a tap, a step or a jump wakes, `Protocol.SLEEP`; the moon «Go to sleep» — on the HUD's
   clock), `body_feedback.gd`, `sound_marks.gd` (marks of sounds' directions), `vibration.gd`.
 - Maps: `minimap.gd` (the map is painted a chunk at a time into regions of 32 chunks, kept in the save; marks
