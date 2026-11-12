@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/scythe/bundle.yaml
-"Коса": "Scythe"
+"[tools.scythe.bundle]": "Scythe"
 
 # content/tools/scythe/data/items.yaml
-"Каменная коса": "Stone scythe"
-"Деревянная коса": "Wooden scythe"
-"Медная коса": "Copper scythe"
-"Бронзовая коса": "Bronze scythe"
-"Железная коса": "Iron scythe"
-"Стальная коса": "Steel scythe"
+"[tools.items.stone_scythe]": "Stone scythe"
+"[tools.items.wooden_scythe]": "Wooden scythe"
+"[tools.items.copper_scythe]": "Copper scythe"
+"[tools.items.bronze_scythe]": "Bronze scythe"
+"[tools.items.iron_scythe]": "Iron scythe"
+"[tools.items.steel_scythe]": "Steel scythe"
+
+# content/tools/scythe/data/recipes.yaml
+"[tools.recipes.stone_scythe]": "Stone scythe"
+"[tools.recipes.wooden_scythe]": "Wooden scythe"
+"[tools.recipes.copper_scythe]": "Copper scythe"
+"[tools.recipes.bronze_scythe]": "Bronze scythe"
+"[tools.recipes.iron_scythe]": "Iron scythe"
+"[tools.recipes.steel_scythe]": "Steel scythe"
 
 # content/tools/scythe/data/sounds.yaml
-"Покос": "Mowing"
+"[tools.sounds.mow]": "Mowing"

@@ -319,7 +319,7 @@ func _rule(kind: String, args: Array) -> Variant:
 				if other == null or other.position.distance_to(who.position) > TEAM_REACH:
 					return false
 				if session.teams.team_of(other.id) != 0:
-					who.nag("team", Lang.line("%s уже в команде", [other.player_name]))
+					who.nag("team", Lang.line("[is_already_in_a_team]", [other.player_name]))
 					return false
 				return session.teams.invite(who.id, who.player_name, other.id, _now())
 		Protocol.TEAM_ACCEPT:
@@ -449,7 +449,7 @@ func _chat(text: String, team := false) -> bool:
 	while not _chat_times.is_empty() and now - _chat_times[0] > CHAT_WINDOW:
 		_chat_times.pop_front()
 	if _chat_times.size() >= CHAT_LINES:
-		who.nag("chat", "Не так часто: подождите немного")
+		who.nag("chat", "[not_so_often_wait_a]")
 		return false
 	_chat_times.append(now)
 	if team:

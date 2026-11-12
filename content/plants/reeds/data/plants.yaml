@@ -8,5 +8,5 @@
 # руками, а не срезают (так и пишет подсказка); winter: false — зимой его нет.
 - id: reeds
   kind: reeds
-  title: Тростник
+  title: "[plants.plants.reeds]"
   gives: {resources:fiber: 2}

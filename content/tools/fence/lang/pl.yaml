@@ -2,11 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fence/bundle.yaml
-"Забор": "Płot"
+"[tools.fence.bundle]": "Płot"
 
 # content/tools/fence/data/items.yaml
-"Звено изгороди из жердей. Строится в режиме строительства линией, как стена, и само соединяется с соседними.": "Przęsło płotu z żerdzi. Buduje się je w trybie budowy linią, jak ścianę, i samo łączy się z sąsiednimi."
-"Калитка": "Furtka"
-"Створка из жердей в линию забора, на одну клетку. Касание открывает и закрывает.": "Skrzydło z żerdzi w linii płotu, na jedno pole. Dotknięcie otwiera je i zamyka."
-"Ворота": "Brama"
-"Две створки из жердей в линию забора, на две клетки в ширину. Касание открывает обе.": "Dwa skrzydła z żerdzi w linii płotu, szerokie na dwa pola. Dotknięcie otwiera oba."
+"[tools.items.fence]": "Płot"
+"[tools.items.fence.about]": "Przęsło płotu z żerdzi. Buduje się je w trybie budowy linią, jak ścianę, i samo łączy się z sąsiednimi."
+"[tools.items.wicket]": "Furtka"
+"[tools.items.wicket.about]": "Skrzydło z żerdzi w linii płotu, na jedno pole. Dotknięcie otwiera je i zamyka."
+"[tools.items.gate]": "Brama"
+"[tools.items.gate.about]": "Dwa skrzydła z żerdzi w linii płotu, szerokie na dwa pola. Dotknięcie otwiera oba."
+
+# content/tools/fence/data/recipes.yaml
+"[tools.recipes.fence]": "Płot"
+"[tools.recipes.wicket]": "Furtka"
+"[tools.recipes.gate]": "Brama"

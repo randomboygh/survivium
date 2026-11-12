@@ -2,10 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/spruce/bundle.yaml
-"Ель": "Abete rosso"
+"[plants.spruce.bundle]": "Abete rosso"
 
 # content/plants/spruce/data/items.yaml
-"Шишка": "Pigna"
+"[plants.items.cone]": "Pigna"
 
 # content/plants/spruce/data/plants.yaml
-"Росток ели": "Germoglio di abete rosso"
+"[plants.plants.spruce_sapling]": "Germoglio di abete rosso"
+
+# content/plants/spruce/data/trees.yaml
+"[plants.trees.spruce]": "Abete rosso"

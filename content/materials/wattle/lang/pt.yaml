@@ -2,7 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/wattle/bundle.yaml
-"Плетень": "Pau a pique"
+"[materials.wattle.bundle]": "Pau a pique"
 
 # content/materials/wattle/data/items.yaml
-"Сплетённые ветки. Лёгкая стена, пока нет топора.": "Galhos trançados. Uma parede leve enquanto não há machado."
+"[materials.items.wattle]": "Pau a pique"
+"[materials.items.wattle.about]": "Galhos trançados. Uma parede leve enquanto não há machado."
+
+# content/materials/wattle/data/materials.yaml
+"[materials.materials.wattle]": "Pau a pique"
+
+# content/materials/wattle/data/recipes.yaml
+"[materials.recipes.wattle]": "Pau a pique"

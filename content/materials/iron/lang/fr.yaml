@@ -2,12 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/iron/bundle.yaml
-"Железо": "Fer"
+"[materials.iron.bundle]": "Fer"
 
 # content/materials/iron/data/items.yaml
-"Железная руда": "Minerai de fer"
-"Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка.": "Un minerai lourd brun rouille. Une pioche de bronze l'extrait."
-"Крица": "Loupe"
-"Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка.": "Une masse poreuse de fer et de scories du bas fourneau. La forge en tire deux lingots."
-"Железный слиток": "Lingot de fer"
-"Тёмный прочный металл. Из него наковальня и железные инструменты.": "Un métal sombre et solide. On en fait l'enclume et les outils de fer."
+"[materials.items.iron_ore]": "Minerai de fer"
+"[materials.items.iron_ore.about]": "Un minerai lourd brun rouille. Une pioche de bronze l'extrait."
+"[materials.items.iron_bloom]": "Loupe"
+"[materials.items.iron_bloom.about]": "Une masse poreuse de fer et de scories du bas fourneau. La forge en tire deux lingots."
+"[materials.items.iron_bar]": "Lingot de fer"
+"[materials.items.iron_bar.about]": "Un métal sombre et solide. On en fait l'enclume et les outils de fer."
+
+# content/materials/iron/data/materials.yaml
+"[materials.materials.iron_ore]": "Minerai de fer"
+
+# content/materials/iron/data/recipes.yaml
+"[materials.recipes.iron_bloom]": "Loupe"
+"[materials.recipes.iron_bar]": "Lingot de fer"

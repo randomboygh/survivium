@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/leather_sling/bundle.yaml
-"Кожаная праща": "Fronde en cuir"
+"[tools.leather_sling.bundle]": "Fronde en cuir"
 
 # content/tools/leather_sling/data/items.yaml
-"Ремни и чашка из кожи. Мечет камешки дальше и сильнее верёвочной.": "Des lanières et une poche de cuir. Lance les cailloux plus loin et plus fort que celle en corde."
+"[tools.items.leather_sling]": "Fronde en cuir"
+"[tools.items.leather_sling.about]": "Des lanières et une poche de cuir. Lance les cailloux plus loin et plus fort que celle en corde."
+
+# content/tools/leather_sling/data/recipes.yaml
+"[tools.recipes.leather_sling]": "Fronde en cuir"

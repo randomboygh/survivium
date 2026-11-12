@@ -117,7 +117,7 @@ static func crop(seed_q: int, roll: float) -> int:
 
 ## The grades of quality, by the least quality past each (the UI's word and the colour of
 ## the dot on a slot): poor, plain, normal, good, excellent.
-const GRADES := [[25, "плохое"], [45, "простое"], [60, "обычное"], [80, "хорошее"], [101, "отличное"]]
+const GRADES := [[25, "[poor]"], [45, "[plain]"], [60, "[ordinary]"], [80, "[good]"], [101, "[excellent]"]]
 
 
 static func grade(q: int) -> int:

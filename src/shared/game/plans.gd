@@ -200,7 +200,7 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 		form := 0) -> int:
 	var item: String = who.held()
 	if too_big(kind, a, b, height, thick):
-		who.nag("plan_big", "Слишком большой чертёж")
+		who.nag("plan_big", "[the_blueprint_is_too_big]")
 		return 0
 	if not within_reach(who, a) or not within_reach(who, b):
 		return 0
@@ -218,19 +218,19 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 	if block < 0 and is_fence(item):
 		# A fence is one segment high and thick, along a line or round a square.
 		if kind not in ["line", "square"]:
-			who.nag("plan_fence", "Забор рисуется линией или квадратом")
+			who.nag("plan_fence", "[a_fence_is_drawn_as]")
 			return 0
 		height = 1
 		thick = 1
 		form = 0
 	elif block < 0:
-		who.nag("plan_block", "Выберите блок для чертежа")
+		who.nag("plan_block", "[choose_a_block_for_the]")
 		return 0
 	var sorted := sort(actions, who, kind, a, shape(kind, a, b, height, Vector2(p.x, p.z), thick), block)
 	var added: Array = []
 	for c: Vector3i in sorted.fit:
 		if cells.size() + added.size() >= MAX_CELLS:
-			who.nag("plan_full", "Слишком много чертежей")
+			who.nag("plan_full", "[too_many_blueprints]")
 			break
 		added.append(c)
 	form &= 15
@@ -275,7 +275,7 @@ func _flatten(actions, who, a: Vector3i, b: Vector3i) -> int:
 				fill.append(down)
 	var room := MAX_CELLS - cells.size()
 	if cut.size() + fill.size() > room:
-		who.nag("plan_full", "Слишком много чертежей")
+		who.nag("plan_full", "[too_many_blueprints]")
 		cut = cut.slice(0, room)
 		fill = fill.slice(0, maxi(0, room - cut.size()))
 	for c: Vector3i in cut:
@@ -289,7 +289,7 @@ func _flatten(actions, who, a: Vector3i, b: Vector3i) -> int:
 	if not fill.is_empty():
 		changed.emit(fill, soil)
 	if cut.is_empty() and fill.is_empty():
-		who.nag("plan_flat", "Здесь уже ровно")
+		who.nag("plan_flat", "[its_already_level_here]")
 	return cut.size() + fill.size()
 
 
@@ -501,9 +501,9 @@ func build(actions, who) -> Dictionary:
 		done.placed = 1
 		return done
 	if missing != "":
-		who.nag("no_block", Lang.line("В сумке нет: %s", [Items.title(missing)]))
+		who.nag("no_block", Lang.line("[not_in_the_bag]", [Items.title(missing)]))
 	else:
-		who.nag("plan_wait", "Чертёж: сначала то, на чём стоять")
+		who.nag("plan_wait", "[blueprint_first_what_to_stand]")
 	return {"swing": actions.IDLE_SWING}
 
 
@@ -672,7 +672,7 @@ func mark(actions, who, work: String, a: Vector3i, b: Vector3i, square: bool, er
 		return 0
 	var cols := farm_columns(square, a, b)
 	if cols.is_empty():
-		who.nag("plan_big", "Слишком большая разметка")
+		who.nag("plan_big", "[the_marking_is_too_big]")
 		return 0
 	if erase_it:
 		var gone: Array = []
@@ -684,7 +684,7 @@ func mark(actions, who, work: String, a: Vector3i, b: Vector3i, square: bool, er
 		return erase(actions, who, gone)
 	var item: String = who.held() if work == "sow" else ""
 	if work == "sow" and not is_mark(item):
-		who.nag("no_seed", "Выберите, что сажать")
+		who.nag("no_seed", "[choose_what_to_plant]")
 		return 0
 	var value := mark_of(work, item)
 	if value == "":
@@ -694,7 +694,7 @@ func mark(actions, who, work: String, a: Vector3i, b: Vector3i, square: bool, er
 		if cells.get(c, "") == value:
 			continue
 		if not cells.has(c) and cells.size() + added.size() >= MAX_CELLS:
-			who.nag("plan_full", "Слишком много разметки")
+			who.nag("plan_full", "[too_much_marking]")
 			break
 		added.append(c)
 	for c: Vector3i in added:
@@ -703,7 +703,7 @@ func mark(actions, who, work: String, a: Vector3i, b: Vector3i, square: bool, er
 	if not added.is_empty():
 		changed.emit(added, value)
 	elif work == "reap":
-		who.nag("plan_none", "Здесь нечего собирать")
+		who.nag("plan_none", "[nothing_to_gather_here]")
 	return added.size()
 
 
@@ -730,7 +730,7 @@ func farm(actions, who) -> Dictionary:
 	if wait != "":
 		who.nag("farm_wait", wait)
 	elif marks.is_empty():
-		who.nag("farm_none", "Рядом нет разметки: нарисуйте её на земле")
+		who.nag("farm_none", "[no_marking_nearby_draw_it]")
 	return {"swing": actions.IDLE_SWING, "idle": true}
 
 
@@ -755,7 +755,7 @@ func _farm_cell(actions, who, c: Vector3i, v: String, mine: Dictionary) -> Varia
 				return null
 			var can := _best(who, func(t: Dictionary) -> bool: return Tools.can_water(t))
 			if can == "":
-				return "Нет лейки с водой: наберите воды"
+				return "[no_watering_can_with_water]"
 			var cs := _around(c, v, Tools.of(can), mine, func(x: Vector3i) -> bool: return actions.can_water(x))
 			return _done(actions, actions.water(who, cs, can), cs)
 		REAP:
@@ -763,7 +763,7 @@ func _farm_cell(actions, who, c: Vector3i, v: String, mine: Dictionary) -> Varia
 				_drop([c])
 				return null
 			if not actions.ripe_at(c):
-				return "Ещё не созрело"
+				return "[not_ripe_yet_n2]"
 			var crop: Dictionary = Plants.BY_ID.get(actions.crop_on(c), {})
 			var tool := _best(who, func(t: Dictionary) -> bool: return t.tool != "hand" and Tools.can_reap(t, crop))
 			var t := Tools.of(tool)
@@ -774,10 +774,10 @@ func _farm_cell(actions, who, c: Vector3i, v: String, mine: Dictionary) -> Varia
 		_drop([c])
 		return null
 	if who.inventory.count(v) == 0:
-		return Lang.line("В сумке нет: %s", [Items.title(v)])
+		return Lang.line("[not_in_the_bag]", [Items.title(v)])
 	if Plants.is_crop(Items.get_item(v).get("crop", "")):
 		if actions.clock.season == actions.WINTER:
-			return "Зимой не сеют: дождитесь весны"
+			return "[no_sowing_in_winter_wait]"
 		if not bed:
 			return _till(actions, who, c, v, mine)
 	if not actions._can_plant(who, v, c):
@@ -793,7 +793,7 @@ func _farm_cell(actions, who, c: Vector3i, v: String, mine: Dictionary) -> Varia
 func _till(actions, who, c: Vector3i, v: String, mine: Dictionary) -> Variant:
 	var hoe := _best(who, func(t: Dictionary) -> bool: return Tools.can_till(t))
 	if hoe == "":
-		return "Нет тяпки: вскопать грядку"
+		return "[no_hoe_to_till_a]"
 	var cs := _around(c, v, Tools.of(hoe), mine, func(x: Vector3i) -> bool: return actions.can_till(x))
 	var done: Dictionary = actions.till(who, cs, hoe)
 	if done.is_empty():

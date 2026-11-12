@@ -2,7 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/cut_stone/bundle.yaml
-"Тёсаный камень": "Тесаний камінь"
+"[materials.cut_stone.bundle]": "Тесаний камінь"
 
 # content/materials/cut_stone/data/items.yaml
-"Ровные каменные блоки для прочных стен и пола.": "Рівні кам'яні блоки для міцних стін і підлоги."
+"[materials.items.cut_stone]": "Тесаний камінь"
+"[materials.items.cut_stone.about]": "Рівні кам'яні блоки для міцних стін і підлоги."
+
+# content/materials/cut_stone/data/materials.yaml
+"[materials.materials.cut_stone]": "Тесаний камінь"
+
+# content/materials/cut_stone/data/recipes.yaml
+"[materials.recipes.cut_stone]": "Тесаний камінь"

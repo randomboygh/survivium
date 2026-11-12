@@ -1,7 +1,7 @@
 # Клён красный: тот же клён, но крона у него багряная и рыжая круглый год — по ней кленовник
 # видно издалека.
 - id: red_maple
-  title: Клён красный
+  title: "[plants.trees.red_maple]"
   shape: lobed
   leaf: scales
   leaves: broad

@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/tar_torch/bundle.yaml
-"Смоляной факел": "Teerfackel"
+"[tools.tar_torch.bundle]": "Teerfackel"
 
 # content/tools/tar_torch/data/items.yaml
-"Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше.": "Ein Ast, in geteertes Tuch gewickelt. Brennt dreimal länger als eine einfache Fackel und leuchtet weiter."
+"[tools.items.tar_torch]": "Teerfackel"
+"[tools.items.tar_torch.about]": "Ein Ast, in geteertes Tuch gewickelt. Brennt dreimal länger als eine einfache Fackel und leuchtet weiter."
+
+# content/tools/tar_torch/data/recipes.yaml
+"[tools.recipes.tar_torch]": "Teerfackel"

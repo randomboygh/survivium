@@ -64,14 +64,14 @@ func _ready() -> void:
 	var h := Kit.row(4)
 	_row.add_child(h)
 	_whom = Kit.button("", _switch_whom, 0, Kit.FIELD_H)
-	_whom.tooltip_text = "Кому сказать: тем, кто рядом, или своей команде"
+	_whom.tooltip_text = "[who_hears_it_those_nearby]"
 	h.add_child(_whom)
-	_field = Kit.field("Сказать рядом…", WIDTH - 40, MAX)
+	_field = Kit.field("[say_to_those_nearby]", WIDTH - 40, MAX)
 	_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_field.text_submitted.connect(func(_t: String) -> void: submit())
 	h.add_child(_field)
 	var send := Kit.button("›", submit, Kit.FIELD_H, Kit.FIELD_H)
-	send.tooltip_text = "Сказать"
+	send.tooltip_text = "[say]"
 	h.add_child(send)
 
 
@@ -127,7 +127,7 @@ func submit() -> void:
 	if game.join_url == "":
 		# Single player: no one hears but the player, and there are no commands.
 		if text.begins_with("/"):
-			hear(0, "", "Команды через «/» — только на сервере")
+			hear(0, "", "[commands_with_work_only_on]")
 		else:
 			hear(-1, game.player_name, text.left(MAX))
 		return
@@ -144,9 +144,9 @@ func _show_whom() -> void:
 	var team: bool = game.team.has_team()
 	_to_team = _to_team and team
 	_whom.visible = team
-	_whom.text = "Команде" if _to_team else "Рядом"
+	_whom.text = "[to_team]" if _to_team else "[nearby]"
 	_whom.add_theme_color_override("font_color", UiStyle.TEAM if _to_team else UiStyle.INK)
-	_field.placeholder_text = "Сказать команде…" if _to_team else "Сказать рядом…"
+	_field.placeholder_text = "[say_to_the_team]" if _to_team else "[say_to_those_nearby]"
 
 
 ## A line heard: said by player `id` named `who` (0 the server, "" for its answer; -1
@@ -156,9 +156,10 @@ func hear(id: int, who: String, text: String, team := false) -> void:
 	# The server's own lines are phrases of the game; the players' are as they wrote them.
 	if id == 0:
 		text = Lang.t(text)
+		who = Lang.t(who)
 	var line := text if who == "" else "%s: %s" % [who, text]
 	if team:
-		line = tr("[команда] ") + line
+		line = tr("[team_n2]") + line
 	var color := UiStyle.MUTED if id == 0 else (UiStyle.TEAM if team else (UiStyle.ACCENT if own else UiStyle.INK))
 	lines.append({"text": line, "color": color, "at": _now()})
 	_heard += 1

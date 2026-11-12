@@ -1,7 +1,7 @@
 # Сейба: великан джунглей — толстый высокий ствол с досковидными корнями и широкая крона шапками
 # высоко над подлеском (поля — как у дуба, content/plants/oak/data/trees.yaml). Листву не сбрасывает.
 - id: ceiba
-  title: Сейба
+  title: "[plants.trees.ceiba]"
   shape: lobed
   leaf: scales
   leaves: broad

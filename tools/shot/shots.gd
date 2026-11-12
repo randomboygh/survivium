@@ -759,7 +759,7 @@ const SHOTS := {
 	"ui-main-menu-big": {"time": 0.42, "season": 1, "touch": true, "main_menu": "resume", "ui_size": 4},
 	"ui-main-menu-host-big": {"time": 0.42, "season": 1, "main_menu": "host", "ui_size": 4},
 	"ui-main-menu-join-failed": {"time": 0.42, "season": 1, "touch": true, "main_menu": "join",
-		"error": "Сервер не отвечает"},
+		"error": "[the_server_does_not_respond]"},
 	# The grounds of the test world (TestGround), a run of their own: the player at
 	# `at` (cells). Named "ground-*", they switch the run to the test world.
 	"ground-spawn": {"time": 0.42, "season": 1, "at": [0, 0]},

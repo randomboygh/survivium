@@ -1,0 +1,27 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/game/bundle.yaml
+"[animals.game.bundle]": "Добыча"
+
+# content/animals/game/data/items.yaml
+"[animals.items.small_carcass]": "Тушка"
+"[animals.items.small_carcass.about]": "Мелкий зверь или птица. Разделывается руками."
+"[animals.items.carcass]": "Туша"
+"[animals.items.carcass.about]": "Крупный зверь. Разделать её можно только ножом."
+"[animals.items.raw_meat]": "Сырое мясо"
+"[animals.items.raw_meat.about]": "Есть можно, но жареное сытнее."
+"[animals.items.roasted_meat]": "Жареное мясо"
+"[animals.items.roasted_meat.about]": "Мясо, зажаренное на костре. Очень сытное."
+"[animals.items.hide]": "Шкура"
+"[animals.items.hide.about]": "Сырая шкура зверя."
+"[animals.items.bone]": "Кость"
+"[animals.items.fat]": "Жир"
+"[animals.items.jerky]": "Вяленое мясо"
+"[animals.items.jerky.about]": "Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно."
+
+# content/animals/game/data/recipes.yaml
+"[animals.recipes.raw_meat_from_small_carcass]": "Разделать тушку"
+"[animals.recipes.raw_meat_from_carcass]": "Разделать тушу"
+"[animals.recipes.roasted_meat]": "Жареное мясо"
+"[animals.recipes.jerky]": "Вяленое мясо"

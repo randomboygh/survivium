@@ -2,8 +2,8 @@
 # «Разделать тушу» мода «Животные» просит его в сумке) и бьёт зверя, как меч: удар по зверю перед
 # собой — его power. Поля — как у мечей (content/tools/sword/data/items.yaml).
 - id: flint_knife
-  title: Кремнёвый нож
-  description: Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.
+  title: "[tools.items.flint_knife]"
+  description: "[tools.items.flint_knife.about]"
   weight: 0.3
   stack: 1
   model: flint_knife
@@ -17,7 +17,7 @@
   durability: 360
   repair: {resources:flint: 1}
 - id: copper_knife
-  title: Медный нож
+  title: "[tools.items.copper_knife]"
   weight: 0.3
   stack: 1
   model: copper_knife
@@ -31,7 +31,7 @@
   durability: 750
   repair: {materials:copper_bar: 1}
 - id: bronze_knife
-  title: Бронзовый нож
+  title: "[tools.items.bronze_knife]"
   weight: 0.3
   stack: 1
   model: bronze_knife
@@ -45,7 +45,7 @@
   durability: 1200
   repair: {materials:bronze_bar: 1}
 - id: iron_knife
-  title: Железный нож
+  title: "[tools.items.iron_knife]"
   weight: 0.3
   stack: 1
   model: iron_knife
@@ -59,7 +59,7 @@
   durability: 2400
   repair: {materials:iron_bar: 1}
 - id: steel_knife
-  title: Стальной нож
+  title: "[tools.items.steel_knife]"
   weight: 0.3
   stack: 1
   model: steel_knife

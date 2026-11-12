@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fiber_clothes/bundle.yaml
-"Одежда из волокна": "Faserkleidung"
+"[tools.fiber_clothes.bundle]": "Faserkleidung"
 
 # content/tools/fiber_clothes/data/items.yaml
-"Плетёная шапка": "Geflochtener Hut"
-"Шапка из сухой травы. Немного греет голову.": "Ein Hut aus trockenem Gras. Wärmt den Kopf ein wenig."
-"Травяная накидка": "Grasumhang"
-"Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды.": "Ein Umhang aus fest geflochtener Faser an einer Schnur. Das wärmste Stück der Graskleidung."
-"Обмотки": "Beinwickel"
-"Полосы волокна, обмотанные вокруг ног и подвязанные верёвкой.": "Faserstreifen, um die Beine gewickelt und mit Schnur gebunden."
-"Лапти": "Bastschuhe"
-"Плетёная обувь из волокна на верёвочных завязках.": "Geflochtene Faserschuhe mit Schnurbändern."
+"[tools.items.fiber_hat]": "Geflochtener Hut"
+"[tools.items.fiber_hat.about]": "Ein Hut aus trockenem Gras. Wärmt den Kopf ein wenig."
+"[tools.items.grass_cape]": "Grasumhang"
+"[tools.items.grass_cape.about]": "Ein Umhang aus fest geflochtener Faser an einer Schnur. Das wärmste Stück der Graskleidung."
+"[tools.items.leg_wraps]": "Beinwickel"
+"[tools.items.leg_wraps.about]": "Faserstreifen, um die Beine gewickelt und mit Schnur gebunden."
+"[tools.items.bast_shoes]": "Bastschuhe"
+"[tools.items.bast_shoes.about]": "Geflochtene Faserschuhe mit Schnurbändern."
+
+# content/tools/fiber_clothes/data/recipes.yaml
+"[tools.recipes.fiber_hat]": "Geflochtener Hut"
+"[tools.recipes.grass_cape]": "Grasumhang"
+"[tools.recipes.leg_wraps]": "Beinwickel"
+"[tools.recipes.bast_shoes]": "Bastschuhe"

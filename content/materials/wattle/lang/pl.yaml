@@ -2,7 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/wattle/bundle.yaml
-"Плетень": "Plecionka"
+"[materials.wattle.bundle]": "Plecionka"
 
 # content/materials/wattle/data/items.yaml
-"Сплетённые ветки. Лёгкая стена, пока нет топора.": "Splecione gałęzie. Lekka ściana, póki nie masz siekiery."
+"[materials.items.wattle]": "Plecionka"
+"[materials.items.wattle.about]": "Splecione gałęzie. Lekka ściana, póki nie masz siekiery."
+
+# content/materials/wattle/data/materials.yaml
+"[materials.materials.wattle]": "Plecionka"
+
+# content/materials/wattle/data/recipes.yaml
+"[materials.recipes.wattle]": "Plecionka"

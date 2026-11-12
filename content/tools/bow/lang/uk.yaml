@@ -2,13 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/bow/bundle.yaml
-"Лук": "Лук"
+"[tools.bow.bundle]": "Лук"
 
 # content/tools/bow/data/items.yaml
-"Деревянный лук": "Дерев'яний лук"
-"Стреляет стрелами дальше всего.": "Стріляє стрілами далі за все."
-"Стрела": "Стріла"
-"Древко с кремнёвым наконечником. После выстрела её можно подобрать.": "Древко з кремінним наконечником. Після пострілу його можна підібрати."
+"[tools.items.wooden_bow]": "Дерев'яний лук"
+"[tools.items.wooden_bow.about]": "Стріляє стрілами далі за все."
+"[tools.items.arrow]": "Стріла"
+"[tools.items.arrow.about]": "Древко з кремінним наконечником. Після пострілу його можна підібрати."
 
 # content/tools/bow/data/recipes.yaml
-"Стрелы": "Стріли"
+"[tools.recipes.wooden_bow]": "Дерев'яний лук"
+"[tools.recipes.arrow]": "Стріли"

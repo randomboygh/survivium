@@ -1,24 +1,24 @@
 # Дверь сбивают из досок («Материалы») на верстаке.
 - id: door
-  title: Дверь
+  title: "[tools.recipes.door]"
   makes: door
   needs: {materials:planks: 4}
   at: workbench
   time: 5
 - id: door_2x2
-  title: Дверь 2×2
+  title: "[tools.recipes.door_2x2]"
   makes: door_2x2
   needs: {materials:planks: 8}
   at: workbench
   time: 8
 - id: door_2x3
-  title: Дверь 2×3
+  title: "[tools.recipes.door_2x3]"
   makes: door_2x3
   needs: {materials:planks: 12}
   at: workbench
   time: 10
 - id: door_3x3
-  title: Ворота 3×3
+  title: "[tools.recipes.door_3x3]"
   makes: door_3x3
   needs: {materials:planks: 18}
   at: workbench

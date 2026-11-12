@@ -2,12 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/iron/bundle.yaml
-"Железо": "Iron"
+"[materials.iron.bundle]": "Iron"
 
 # content/materials/iron/data/items.yaml
-"Железная руда": "Iron ore"
-"Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка.": "A heavy rusty-brown ore. A bronze pickaxe mines it."
-"Крица": "Bloom"
-"Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка.": "A porous lump of iron and slag from a bloomery. The forge turns it into two ingots."
-"Железный слиток": "Iron ingot"
-"Тёмный прочный металл. Из него наковальня и железные инструменты.": "A dark, strong metal. It makes the anvil and iron tools."
+"[materials.items.iron_ore]": "Iron ore"
+"[materials.items.iron_ore.about]": "A heavy rusty-brown ore. A bronze pickaxe mines it."
+"[materials.items.iron_bloom]": "Bloom"
+"[materials.items.iron_bloom.about]": "A porous lump of iron and slag from a bloomery. The forge turns it into two ingots."
+"[materials.items.iron_bar]": "Iron ingot"
+"[materials.items.iron_bar.about]": "A dark, strong metal. It makes the anvil and iron tools."
+
+# content/materials/iron/data/materials.yaml
+"[materials.materials.iron_ore]": "Iron ore"
+
+# content/materials/iron/data/recipes.yaml
+"[materials.recipes.iron_bloom]": "Bloom"
+"[materials.recipes.iron_bar]": "Iron ingot"

@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/bone_glue/bundle.yaml
+"[materials.bone_glue.bundle]": "Костный клей"
+
+# content/materials/bone_glue/data/items.yaml
+"[materials.items.bone_glue]": "Костный клей"
+"[materials.items.bone_glue.about]": "Вываренный из костей клей. Склеивает составной лук."
+
+# content/materials/bone_glue/data/recipes.yaml
+"[materials.recipes.bone_glue]": "Костный клей"

@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hide_clothes/bundle.yaml
-"Одежда из шкур": "Vestiti di pelle"
+"[tools.hide_clothes.bundle]": "Vestiti di pelle"
 
 # content/tools/hide_clothes/data/items.yaml
-"Меховая шапка": "Berretto di pelliccia"
-"Шапка из шкуры мехом внутрь. Держит тепло головы в мороз.": "Un berretto di pelle con il pelo all'interno. Tiene calda la testa nel gelo."
-"Шуба": "Pelliccia"
-"Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна.": "Un lungo indumento di pelli con il pelo all'interno. Con questo una notte d'inverno non fa paura."
-"Кожаные штаны": "Pantaloni di cuoio"
-"Штаны из выделанной кожи. Не продуваются ветром.": "Pantaloni di cuoio conciato. Il vento non li attraversa."
-"Унты": "Stivali di pelliccia"
-"Высокие сапоги из шкуры на кожаной подошве.": "Stivali alti di pelle con suola di cuoio."
+"[tools.items.fur_hat]": "Berretto di pelliccia"
+"[tools.items.fur_hat.about]": "Un berretto di pelle con il pelo all'interno. Tiene calda la testa nel gelo."
+"[tools.items.fur_coat]": "Pelliccia"
+"[tools.items.fur_coat.about]": "Un lungo indumento di pelli con il pelo all'interno. Con questo una notte d'inverno non fa paura."
+"[tools.items.leather_trousers]": "Pantaloni di cuoio"
+"[tools.items.leather_trousers.about]": "Pantaloni di cuoio conciato. Il vento non li attraversa."
+"[tools.items.fur_boots]": "Stivali di pelliccia"
+"[tools.items.fur_boots.about]": "Stivali alti di pelle con suola di cuoio."
+
+# content/tools/hide_clothes/data/recipes.yaml
+"[tools.recipes.fur_hat]": "Berretto di pelliccia"
+"[tools.recipes.fur_coat]": "Pelliccia"
+"[tools.recipes.leather_trousers]": "Pantaloni di cuoio"
+"[tools.recipes.fur_boots]": "Stivali di pelliccia"

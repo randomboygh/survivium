@@ -2,23 +2,23 @@
 # них вырастает на грядке), стебли и нить из них. Поля — как у предметов основы
 # (content/core/data/items.yaml).
 - id: flax_seeds
-  title: Семена льна
-  description: Гладкие блестящие семена. Посейте их на грядку весной.
+  title: "[plants.items.flax_seeds]"
+  description: "[plants.items.flax_seeds.about]"
   weight: 0.01
   stack: 50
   model: flax_seeds
   icon: flax_seeds
   crop: sown_flax
 - id: flax_stalks
-  title: Стебли льна
-  description: Срезанный дикий лён. Из него прядут льняную нить.
+  title: "[plants.items.flax_stalks]"
+  description: "[plants.items.flax_stalks.about]"
   weight: 0.05
   stack: 50
   model: flax_stalks
   icon: flax_stalks
 - id: linen_thread
-  title: Льняная нить
-  description: Тонкая прочная нить. На ткацком станке из неё ткут ткань.
+  title: "[plants.items.linen_thread]"
+  description: "[plants.items.linen_thread.about]"
   weight: 0.03
   stack: 50
   model: linen_thread

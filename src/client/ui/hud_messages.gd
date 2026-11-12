@@ -11,7 +11,7 @@ const MAX_TOASTS := 3
 ## How long a toast takes to come and to go, and how far it rises as it comes.
 const TOAST_FADE := 0.35
 const TOAST_RISE := 8.0
-const KEYS := "WASD — ходить, Пробел — прыжок\nЛКМ — левой рукой, ПКМ — правой (держи — мазком)\nF — активной рукой перед собой\nV — инструмент в руку, C — кисть\n1–8, колесо — ячейка панели в руку\nI — сумка и крафт, «В руку» — что угодно\nQ / E — срез ниже / выше, R — к игроку\n[ ] — повернуть камеру, - = — наклон, \\ — сброс\nF3 — статистика, Esc — меню\nH — скрыть подсказку"
+const KEYS := "[wasd_walk_space_jump_lmb]"
 
 
 func set_loading(text: String) -> void:

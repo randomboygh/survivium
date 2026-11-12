@@ -2,13 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/wood/bundle.yaml
-"Древесина": "Madera"
+"[plants.wood.bundle]": "Madera"
 
 # content/plants/wood/data/materials.yaml
-"Бревно": "Tronco"
-"Листва": "Hojas"
+"[plants.materials.log]": "Tronco"
+"[plants.materials.leaves]": "Hojas"
 
 # content/plants/wood/data/sounds.yaml
-"Удар по дереву": "Golpe en madera"
-"Шорох листьев": "Susurro de hojas"
-"Шаг по дереву": "Paso sobre madera"
+"[plants.sounds.chop]": "Golpe en madera"
+"[plants.sounds.rustle]": "Susurro de hojas"
+"[plants.sounds.step_wood]": "Paso sobre madera"

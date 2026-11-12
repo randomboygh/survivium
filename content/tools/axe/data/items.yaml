@@ -6,7 +6,7 @@
 # клетки 2×2 (workbench, kiln, chest), и её флаги: storage, fire, repairs, serves, place_tool;
 # model — её воксельная модель (models/<model>.png).
 - id: stone_axe
-  title: Каменный топор
+  title: "[tools.items.stone_axe]"
   weight: 1.5
   stack: 1
   model: axe
@@ -20,7 +20,7 @@
   durability: 360
   repair: {resources:flint: 1, materials:cord: 1}
 - id: copper_axe
-  title: Медный топор
+  title: "[tools.items.copper_axe]"
   weight: 1.8
   stack: 1
   model: copper_axe
@@ -34,7 +34,7 @@
   durability: 900
   repair: {materials:copper_bar: 1}
 - id: bronze_axe
-  title: Бронзовый топор
+  title: "[tools.items.bronze_axe]"
   weight: 1.9
   stack: 1
   model: bronze_axe
@@ -48,7 +48,7 @@
   durability: 1500
   repair: {materials:bronze_bar: 1}
 - id: iron_axe
-  title: Железный топор
+  title: "[tools.items.iron_axe]"
   weight: 2.1
   stack: 1
   model: iron_axe
@@ -62,7 +62,7 @@
   durability: 2400
   repair: {materials:iron_bar: 1}
 - id: steel_axe
-  title: Стальной топор
+  title: "[tools.items.steel_axe]"
   weight: 2.1
   stack: 1
   model: steel_axe

@@ -2,9 +2,9 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/music/data/sounds.yaml
-"Нота, щипок": "Nota, pulsada"
-"Нота, колокольчик": "Nota, campanilla"
-"Протяжный тон": "Tono largo"
+"[music.sounds.note_pluck]": "Nota, pulsada"
+"[music.sounds.note_bell]": "Nota, campanilla"
+"[music.sounds.pad]": "Tono largo"
 
 # content/music/mod.yaml
-"Музыка": "Música"
+"[music.mod]": "Música"

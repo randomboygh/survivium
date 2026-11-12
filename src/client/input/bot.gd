@@ -39,11 +39,11 @@ const DEAD_WAIT := 6.0
 ## The tasks and how often each is picked.
 const TASKS := {"walk": 5, "say": 2, "gesture": 2, "drop": 1, "sign": 1, "fire": 1, "chop": 2, "hunt": 3}
 ## What it says in the chat: a player's words, not the game's, so no translation keys.
-const LINES: Array[String] = ["Привет!", "Кто-нибудь тут есть?", "Смотри, что я нашёл", "Пойдём к реке",
-	"Тут волки, осторожно", "Хорошая погода", "Я поставил табличку", "Нужны ветки?", "Hello!",
-	"Давай построим дом", "Где костёр?", "Я бот, но стараюсь"]
-const SIGN_LINES: Array[String] = ["Здесь был бот", "Осторожно, звери", "Лагерь", "К реке →",
-	"Не рубить!", "Бот %s"]
+const LINES: Array[String] = ["[hi]", "[anyone_here]", "[look_what_i_found]", "[lets_go_to_the_river]",
+	"[wolves_here_careful]", "[nice_weather]", "[i_put_up_a_sign]", "[need_branches]", "Hello!",
+	"[lets_build_a_house]", "[wheres_the_campfire]", "[im_a_bot_but_im]"]
+const SIGN_LINES: Array[String] = ["[a_bot_was_here]", "[beware_of_animals]", "[camp]", "[to_the_river]",
+	"[do_not_cut]", "[bot]"]
 
 var game
 var task := ""
@@ -103,7 +103,7 @@ func move(delta: float) -> Vector2:
 		if _invited_for > INVITE_WAIT:
 			_invited_for = 0.0
 			game.team.accept(int(game.team.invites[0][0]))
-			game.net.request(Protocol.CHAT, ["Принимаю, я с вами!"])
+			game.net.request(Protocol.CHAT, ["[accepted_im_with_you]"])
 	if task == "":
 		_pause -= delta
 		if _pause <= 0.0:

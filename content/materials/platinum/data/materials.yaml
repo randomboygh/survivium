@@ -2,7 +2,7 @@
 # и лучше (hardness 4); платиновый блок — блок из слитков, его ставят как кирпич. Поля — как у материалов
 # основы (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
 - id: platinum_ore
-  title: Платиновая руда
+  title: "[materials.materials.platinum_ore]"
   role: ore
   veins: 0.12
   priority: 2
@@ -12,7 +12,7 @@
   step: step_stone
   hit: hit_stone
 - id: platinum_block
-  title: Платиновый блок
+  title: "[materials.materials.platinum_block]"
   item: platinum_block
   hardness: 3
   toughness: 6

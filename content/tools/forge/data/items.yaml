@@ -3,7 +3,7 @@
 # предметов основы (content/core/data/items.yaml); model — его воксельная модель
 # (models/<model>.png).
 - id: forge
-  title: Горн
+  title: "[tools.items.forge]"
   era: core:bronze
   weight: 24.0
   stack: 1

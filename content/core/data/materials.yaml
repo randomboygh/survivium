@@ -35,12 +35,12 @@
 # отчётов и поиска (игру они не меняют); provisional — какие её числа предварительные, по именам
 # полей. Запись с id чужой записи заменяет её только с replaces: true, иначе это ошибка.
 - id: air
-  title: Воздух
+  title: "[core.materials.air]"
   solid: false
   roof: false
   dig: none
 - id: grass
-  title: Трава
+  title: "[core.materials.grass]"
   corners: soft
   slope: true
   priority: 6
@@ -53,7 +53,7 @@
   step: step_grass
   hit: dig
 - id: dirt
-  title: Земля
+  title: "[core.materials.dirt]"
   corners: soft
   slope: true
   priority: 4
@@ -66,7 +66,7 @@
   step: step_dirt
   hit: dig
 - id: stone
-  title: Камень
+  title: "[core.materials.stone]"
   priority: 1
   ground: rock
   hotbar: 1
@@ -76,7 +76,7 @@
   step: step_stone
   hit: hit_stone
 - id: water
-  title: Вода
+  title: "[core.materials.water]"
   solid: false
   roof: false
   dig: none

@@ -2,4 +2,10 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/bloomery/bundle.yaml
-"Сыродутная печь": "Bas fourneau"
+"[tools.bloomery.bundle]": "Bas fourneau"
+
+# content/tools/bloomery/data/items.yaml
+"[tools.items.bloomery]": "Bas fourneau"
+
+# content/tools/bloomery/data/recipes.yaml
+"[tools.recipes.bloomery]": "Bas fourneau"

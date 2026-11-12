@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sword/bundle.yaml
-"Меч": "Spada"
+"[tools.sword.bundle]": "Spada"
 
 # content/tools/sword/data/items.yaml
-"Деревянный меч": "Spada di legno"
-"Каменный меч": "Spada di pietra"
-"Медный меч": "Spada di rame"
-"Бронзовый меч": "Spada di bronzo"
-"Железный меч": "Spada di ferro"
-"Стальной меч": "Spada d'acciaio"
+"[tools.items.wooden_sword]": "Spada di legno"
+"[tools.items.stone_sword]": "Spada di pietra"
+"[tools.items.copper_sword]": "Spada di rame"
+"[tools.items.bronze_sword]": "Spada di bronzo"
+"[tools.items.iron_sword]": "Spada di ferro"
+"[tools.items.steel_sword]": "Spada d'acciaio"
+
+# content/tools/sword/data/recipes.yaml
+"[tools.recipes.wooden_sword]": "Spada di legno"
+"[tools.recipes.stone_sword]": "Spada di pietra"
+"[tools.recipes.copper_sword]": "Spada di rame"
+"[tools.recipes.bronze_sword]": "Spada di bronzo"
+"[tools.recipes.iron_sword]": "Spada di ferro"
+"[tools.recipes.steel_sword]": "Spada d'acciaio"
 
 # content/tools/sword/data/sounds.yaml
-"Взмах": "Fendente"
+"[tools.sounds.swish]": "Fendente"

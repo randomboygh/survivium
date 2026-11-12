@@ -13,7 +13,7 @@
 # мирах с климатическими зонами; окно тепла говорит, в каком климате горы так зарастают. Трава,
 # редкие лиственницы, голубика и кусты.
 - id: alpine_meadow
-  title: Альпийский луг
+  title: "[biomes.biomes.alpine_meadow]"
   where: alpine
   zone: mountain
   warmth: [0.22, 0.8]

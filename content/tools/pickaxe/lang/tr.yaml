@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/pickaxe/bundle.yaml
-"Кирка": "Kazma"
+"[tools.pickaxe.bundle]": "Kazma"
 
 # content/tools/pickaxe/data/items.yaml
-"Каменная кирка": "Taş kazma"
-"Деревянная кирка": "Ahşap kazma"
-"Медная кирка": "Bakır kazma"
-"Бронзовая кирка": "Bronz kazma"
-"Железная кирка": "Demir kazma"
-"Стальная кирка": "Çelik kazma"
+"[tools.items.stone_pickaxe]": "Taş kazma"
+"[tools.items.wooden_pickaxe]": "Ahşap kazma"
+"[tools.items.copper_pickaxe]": "Bakır kazma"
+"[tools.items.bronze_pickaxe]": "Bronz kazma"
+"[tools.items.iron_pickaxe]": "Demir kazma"
+"[tools.items.steel_pickaxe]": "Çelik kazma"
+
+# content/tools/pickaxe/data/recipes.yaml
+"[tools.recipes.stone_pickaxe]": "Taş kazma"
+"[tools.recipes.wooden_pickaxe]": "Ahşap kazma"
+"[tools.recipes.copper_pickaxe]": "Bakır kazma"
+"[tools.recipes.bronze_pickaxe]": "Bronz kazma"
+"[tools.recipes.iron_pickaxe]": "Demir kazma"
+"[tools.recipes.steel_pickaxe]": "Çelik kazma"

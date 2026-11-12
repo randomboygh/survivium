@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fiber_clothes/bundle.yaml
-"Одежда из волокна": "Fiber clothes"
+"[tools.fiber_clothes.bundle]": "Fiber clothes"
 
 # content/tools/fiber_clothes/data/items.yaml
-"Плетёная шапка": "Woven hat"
-"Шапка из сухой травы. Немного греет голову.": "A hat of dry grass. Warms the head a little."
-"Травяная накидка": "Grass cape"
-"Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды.": "A cape of tightly woven fiber on a cord. The warmest of the grass clothes."
-"Обмотки": "Leg wraps"
-"Полосы волокна, обмотанные вокруг ног и подвязанные верёвкой.": "Strips of fiber wound round the legs and tied with cord."
-"Лапти": "Bast shoes"
-"Плетёная обувь из волокна на верёвочных завязках.": "Woven fiber shoes with cord ties."
+"[tools.items.fiber_hat]": "Woven hat"
+"[tools.items.fiber_hat.about]": "A hat of dry grass. Warms the head a little."
+"[tools.items.grass_cape]": "Grass cape"
+"[tools.items.grass_cape.about]": "A cape of tightly woven fiber on a cord. The warmest of the grass clothes."
+"[tools.items.leg_wraps]": "Leg wraps"
+"[tools.items.leg_wraps.about]": "Strips of fiber wound round the legs and tied with cord."
+"[tools.items.bast_shoes]": "Bast shoes"
+"[tools.items.bast_shoes.about]": "Woven fiber shoes with cord ties."
+
+# content/tools/fiber_clothes/data/recipes.yaml
+"[tools.recipes.fiber_hat]": "Woven hat"
+"[tools.recipes.grass_cape]": "Grass cape"
+"[tools.recipes.leg_wraps]": "Leg wraps"
+"[tools.recipes.bast_shoes]": "Bast shoes"

@@ -2,7 +2,8 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/cloth/bundle.yaml
-"Ткань": "Cloth"
+"[materials.cloth.bundle]": "Cloth"
 
 # content/materials/cloth/data/items.yaml
-"Полотно с ткацкого станка. Идёт на бинты и факелы, потом — на одежду.": "Fabric from the loom. Goes into bandages and torches, later into clothes."
+"[materials.items.cloth]": "Cloth"
+"[materials.items.cloth.about]": "Fabric from the loom. Goes into bandages and torches, later into clothes."

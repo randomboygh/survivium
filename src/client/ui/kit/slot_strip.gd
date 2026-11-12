@@ -32,7 +32,7 @@ var _swipe_x := 0.0
 var _swiped := false
 
 
-func _init(prev_tip := "Предыдущие", next_tip := "Следующие") -> void:
+func _init(prev_tip := "[previous]", next_tip := "[next]") -> void:
 	add_theme_constant_override("separation", GAP)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	prev = _arrow("prev", prev_tip, func() -> void: scroll(-1))

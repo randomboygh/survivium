@@ -3,28 +3,28 @@
 # кругу. Собраны tools/make_sounds.gd; код просит звук по имени (rain) — подойдёт запись с таким
 # именем из любого загруженного бандла, нет её — тишина.
 - id: wind
-  title: Ветер
+  title: "[sounds.sounds.wind]"
   loop: true
 - id: rain
-  title: Дождь
+  title: "[sounds.sounds.rain]"
   loop: true
 - id: hail
-  title: Град
+  title: "[sounds.sounds.hail]"
   loop: true
 - id: blizzard
-  title: Метель
+  title: "[sounds.sounds.blizzard]"
   loop: true
 - id: water
-  title: Вода
+  title: "[sounds.sounds.water]"
   loop: true
   volume: 0.8
 - id: fire
-  title: Костёр
+  title: "[sounds.sounds.fire]"
   loop: true
 - id: crickets
-  title: Сверчки
+  title: "[sounds.sounds.crickets]"
   loop: true
   volume: 0.4
 - id: thunder
-  title: Гром
+  title: "[sounds.sounds.thunder]"
   variants: 2

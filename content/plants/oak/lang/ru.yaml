@@ -1,0 +1,14 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/oak/bundle.yaml
+"[plants.oak.bundle]": "Дуб"
+
+# content/plants/oak/data/items.yaml
+"[plants.items.acorn]": "Жёлудь"
+
+# content/plants/oak/data/plants.yaml
+"[plants.plants.oak_sapling]": "Росток дуба"
+
+# content/plants/oak/data/trees.yaml
+"[plants.trees.oak]": "Дуб"

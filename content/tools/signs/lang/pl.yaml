@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/signs/bundle.yaml
-"Таблички": "Tabliczki"
+"[tools.signs.bundle]": "Tabliczki"
 
 # content/tools/signs/data/items.yaml
-"Табличка": "Tabliczka"
-"Дощечка на колышке. Три строки текста, видно всем, кто подойдёт.": "Deseczka na kołku. Trzy linijki tekstu, widoczne dla każdego, kto podejdzie."
-"Указатель": "Drogowskaz"
-"Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону.": "Strzałka na słupku. Dwie linijki tekstu; strzałkę można obrócić w dowolną stronę."
-"Доска на стену": "Tablica ścienna"
-"Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок.": "Duża tablica zawieszona na ścianie. Sześć linijek tekstu, na zasady, ogłoszenia i notatki."
+"[tools.items.sign]": "Tabliczka"
+"[tools.items.sign.about]": "Deseczka na kołku. Trzy linijki tekstu, widoczne dla każdego, kto podejdzie."
+"[tools.items.signpost]": "Drogowskaz"
+"[tools.items.signpost.about]": "Strzałka na słupku. Dwie linijki tekstu; strzałkę można obrócić w dowolną stronę."
+"[tools.items.notice_board]": "Tablica ścienna"
+"[tools.items.notice_board.about]": "Duża tablica zawieszona na ścianie. Sześć linijek tekstu, na zasady, ogłoszenia i notatki."
+
+# content/tools/signs/data/recipes.yaml
+"[tools.recipes.sign]": "Tabliczka"
+"[tools.recipes.signpost]": "Drogowskaz"
+"[tools.recipes.notice_board]": "Tablica ścienna"

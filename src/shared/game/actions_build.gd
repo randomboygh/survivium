@@ -28,7 +28,7 @@ func place_at(who, center: Vector3i, normal: Vector3i, top: int) -> Dictionary:
 		if not _may(who, cell, "build"):
 			continue
 		if not free and who.inventory.count(item) == 0:
-			who.nag("no_block", Lang.line("В сумке нет: %s", [Items.title(item)]))
+			who.nag("no_block", Lang.line("[not_in_the_bag]", [Items.title(item)]))
 			break
 		if not who.act("place", "build"):
 			break
@@ -43,7 +43,7 @@ func place_at(who, center: Vector3i, normal: Vector3i, top: int) -> Dictionary:
 		done.placed = placed
 		return done
 	if far:
-		who.nag("far", "Слишком далеко")
+		who.nag("far", "[too_far]")
 	return {}
 
 
@@ -73,8 +73,8 @@ func plant(who, id: String) -> bool:
 	var spot: Variant = plant_spot(who, id)
 	if spot == null:
 		var item := Items.get_item(id)
-		who.nag("plant", "Сажать можно на ровную траву рядом" if item.get("plant", "") != "" \
-			else "Сеять можно на голую землю рядом")
+		who.nag("plant", "[you_can_plant_on_level]" if item.get("plant", "") != "" \
+			else "[you_can_sow_on_bare]")
 		return false
 	return plant_at(who, id, spot)
 
@@ -96,10 +96,10 @@ func plant_spot(who, id: String) -> Variant:
 func plant_at(who, id: String, cell: Vector3i) -> bool:
 	var item := Items.get_item(id)
 	if item.is_empty() or who.inventory.count(item.id) == 0:
-		who.nag("no_seed", Lang.line("В сумке нет: %s", [Items.title(id)]))
+		who.nag("no_seed", Lang.line("[not_in_the_bag]", [Items.title(id)]))
 		return false
 	if not _can_plant(who, id, cell):
-		who.nag("plant", "Сюда не посадить")
+		who.nag("plant", "[cant_plant_here]")
 		return false
 	if not _may(who, cell, "build"):
 		return false

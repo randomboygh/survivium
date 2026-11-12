@@ -2,9 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/trap/bundle.yaml
-"Живоловка": "Piège à cage"
+"[tools.trap.bundle]": "Piège à cage"
 
 # content/tools/trap/data/items.yaml
-"Клетка из веток с дверцей на сторожке. Положи внутрь морковь или репу, и заяц сам придёт в неё.": "Une cage de branches à porte déclenchée. Mettez dedans une carotte ou un navet, et un lièvre y entrera tout seul."
-"Пойманный заяц": "Lièvre capturé"
-"Живой заяц из живоловки. Возьми его в руку и нажми действие, чтобы выпустить: он уже ручной и пойдёт за тобой.": "Un lièvre vivant pris au piège. Prenez-le en main et faites l'action pour le relâcher : il est déjà apprivoisé et vous suivra."
+"[tools.items.trap]": "Piège à cage"
+"[tools.items.trap.about]": "Une cage de branches à porte déclenchée. Mettez dedans une carotte ou un navet, et un lièvre y entrera tout seul."
+"[tools.items.live_rabbit]": "Lièvre capturé"
+"[tools.items.live_rabbit.about]": "Un lièvre vivant pris au piège. Prenez-le en main et faites l'action pour le relâcher : il est déjà apprivoisé et vous suivra."
+
+# content/tools/trap/data/recipes.yaml
+"[tools.recipes.trap]": "Piège à cage"

@@ -130,11 +130,11 @@ func _ready() -> void:
 	station_buttons = HBoxContainer.new()
 	station_buttons.add_theme_constant_override("separation", 4)
 	station_buttons.visible = false
-	_take_up = TabRow.icon_button(UiStyle.icon("take"), "Забрать в сумку", func() -> void:
+	_take_up = TabRow.icon_button(UiStyle.icon("take"), "[take_into_the_bag]", func() -> void:
 		game.net.request(Protocol.PROP_TAKE, [_station.cell]).then(_station_gone))
-	_fire = TabRow.icon_button(UiStyle.icon("put_out"), "Потушить", func() -> void:
+	_fire = TabRow.icon_button(UiStyle.icon("put_out"), "[put_out]", func() -> void:
 		game.net.request(Protocol.PROP_FIRE, [_station.cell, not _station.lit]).then(func(_v: Variant) -> void: refresh()))
-	_feed = TabRow.icon_button(UiStyle.icon("feed"), "Подкинуть топливо", func() -> void:
+	_feed = TabRow.icon_button(UiStyle.icon("feed"), "[add_fuel]", func() -> void:
 		game.net.request(Protocol.PROP_FIRE, [_station.cell, true]).then(func(_v: Variant) -> void: refresh()))
 	_fuel_bar = Control.new()
 	_fuel_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -143,7 +143,7 @@ func _ready() -> void:
 	_feed.add_child(_fuel_bar)
 	game.placed.lit_changed.connect(_on_fire)
 	game.placed.fuel_changed.connect(_on_fire)
-	_destroy = TabRow.icon_button(UiStyle.icon("trash"), "Уничтожить", func() -> void:
+	_destroy = TabRow.icon_button(UiStyle.icon("trash"), "[destroy]", func() -> void:
 		game.net.request(Protocol.PROP_DESTROY, [_station.cell]).then(_station_gone))
 	for b in [_take_up, _fire, _feed, _destroy]:
 		b.custom_minimum_size = Vector2(30, 30)
@@ -174,7 +174,7 @@ func _ready() -> void:
 	_grid.add_theme_constant_override("h_separation", 4)
 	_grid.add_theme_constant_override("v_separation", 4)
 	_scroll.add_child(_grid)
-	_empty = UiStyle.label("Рецептов пока нет. Собери волокно (копай траву), ветки и кремень (копай землю).", UiStyle.MUTED)
+	_empty = UiStyle.label("[no_recipes_yet_gather_fiber]", UiStyle.MUTED)
 	_empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_empty.custom_minimum_size.x = 160
 	cells.add_child(_empty)
@@ -201,7 +201,7 @@ func _ready() -> void:
 	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_title.custom_minimum_size.x = 100
 	top.add_child(_title)
-	_get = TabRow.icon_button(UiStyle.icon("gift"), "Получить бесплатно", _get_free)
+	_get = TabRow.icon_button(UiStyle.icon("gift"), "[get_for_free]", _get_free)
 	_get.custom_minimum_size = Vector2(30, 30)
 	_get.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	top.add_child(_get)
@@ -216,9 +216,9 @@ func _ready() -> void:
 	_make.add_theme_constant_override("separation", 4)
 	box.add_child(_make)
 	var make := TabRow.split([
-		[UiStyle.icon("hammer"), "Сделать одну", func() -> void: _start(1)],
-		["×5", "Сделать пять", func() -> void: _start(5)],
-		["MAX", "Сделать столько, сколько хватит материалов", func() -> void: _start(MOST)],
+		[UiStyle.icon("hammer"), "[make_one]", func() -> void: _start(1)],
+		["×5", "[make_five]", func() -> void: _start(5)],
+		["MAX", "[make_as_many_as_the]", func() -> void: _start(MOST)],
 	])
 	_make_one = make.get_child(0)
 	_make_five = make.get_child(1)
@@ -267,7 +267,7 @@ func _ready() -> void:
 	_job_label.custom_minimum_size.x = 24
 	line.add_child(_job_label)
 	_queue_count = UiStyle.label("", UiStyle.MUTED)
-	_queue_count.tooltip_text = "Работ в очереди"
+	_queue_count.tooltip_text = "[jobs_in_the_queue]"
 	_queue_count.mouse_filter = Control.MOUSE_FILTER_PASS
 	line.add_child(_queue_count)
 	_progress = ProgressBar.new()
@@ -279,12 +279,12 @@ func _ready() -> void:
 	_controls.add_theme_constant_override("separation", 4)
 	_controls.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(_controls)
-	_pause = TabRow.icon_button(UiStyle.icon("pause"), "Пауза", func() -> void:
+	_pause = TabRow.icon_button(UiStyle.icon("pause"), "[pause]", func() -> void:
 		game.net.request(Protocol.CRAFT_PAUSE, [not game.workshop.paused]).then(func(_v: Variant) -> void: refresh_now()))
 	_controls.add_child(_pause)
 	_controls.add_child(TabRow.split([
-		[UiStyle.icon("close"), "Отменить выбранную", func() -> void: game.net.request(Protocol.CRAFT_CANCEL, [_job])],
-		[UiStyle.icon("cancel_all"), "Отменить все", func() -> void: game.net.request(Protocol.CRAFT_CANCEL_ALL, [])],
+		[UiStyle.icon("close"), "[cancel_the_selected_one]", func() -> void: game.net.request(Protocol.CRAFT_CANCEL, [_job])],
+		[UiStyle.icon("cancel_all"), "[cancel_all]", func() -> void: game.net.request(Protocol.CRAFT_CANCEL_ALL, [])],
 	]))
 	game.workshop.changed.connect(refresh)
 
@@ -461,7 +461,7 @@ func _show_head() -> void:
 	# A fireplace put out is taken up whole; a campfire put out is only taken apart.
 	var hearth := Placed.is_hearth(_station)
 	_take_up.visible = not fire or hearth and not _station.lit
-	_take_up.tooltip_text = Lang.f("Забрать в сумку: %s", [Lang.t(Items.title(_station.item))])
+	_take_up.tooltip_text = Lang.f("[take_into_the_bag_n2]", [Lang.t(Items.title(_station.item))])
 	_fire.visible = fire
 	_destroy.visible = fire and not _station.lit and not hearth
 	var burns: bool = fire and Items.get_item(_station.item).fuel_max > 0.0
@@ -471,12 +471,12 @@ func _show_head() -> void:
 		var room: bool = Items.get_item(_station.item).fuel_max - float(_station.get("fuel", 0.0)) >= Placed.FUEL_ROOM
 		var has := Items.fuel_in(game.character.inventory) != ""
 		_feed.disabled = not _station.lit or not room or not has
-		_feed.tooltip_text = (Lang.f("Подкинуть топливо (горит ещё %d:%02d)", [left / 60, left % 60]) if _station.lit else "Огонь не горит") \
-			+ ("" if room or not _station.lit else ": полон") + ("" if has or not _station.lit else ": в сумке нет топлива")
+		_feed.tooltip_text = (Lang.f("[add_fuel_burns_for_more]", [left / 60, left % 60]) if _station.lit else "[the_fire_is_out]") \
+			+ ("" if room or not _station.lit else "[full]") + ("" if has or not _station.lit else "[no_fuel_in_the_bag]")
 		_fuel_bar.queue_redraw()
 	if fire:
 		_fire.icon = UiStyle.icon("put_out" if _station.lit else "light")
-		_fire.tooltip_text = "Потушить огонь" if _station.lit else "Разжечь (ветка или другое топливо)"
+		_fire.tooltip_text = "[put_out_the_fire]" if _station.lit else "[light_it_a_branch_or]"
 
 
 ## The fire's charge along the bottom of the feed button.
@@ -520,7 +520,7 @@ func _show_stations(known: Array, near: Dictionary) -> void:
 			continue
 		var id: String = ids[i]
 		_set_chip(chip, ItemIcons.picture("hand") if id == "" else ItemIcons.of_item(id))
-		chip.tooltip_text = "Руками" if id == "" else "%s%s" % [Lang.t(Items.title(id)), "" if near.has(id) else ": далеко"]
+		chip.tooltip_text = "[by_hand]" if id == "" else "%s%s" % [Lang.t(Items.title(id)), "" if near.has(id) else "[too_far_n2]"]
 		chip.modulate = Color.WHITE if id == "" or near.has(id) else Color(1, 1, 1, 0.35)
 
 
@@ -545,32 +545,32 @@ func _show_details(near: Dictionary) -> void:
 	var keeps := []
 	for id in r.keeps:
 		var have: int = inv.count(id)
-		keeps.append([ItemIcons.of_item(id), "%d/%d" % [have, r.keeps[id]], have < r.keeps[id], Lang.f("%s: не расходуется", [Lang.t(Items.title(id))])])
+		keeps.append([ItemIcons.of_item(id), "%d/%d" % [have, r.keeps[id]], have < r.keeps[id], Lang.f("[not_used_up]", [Lang.t(Items.title(id))])])
 	var at := []
 	if r.at != "":
-		at.append([ItemIcons.of_item(r.at), "" if near.has(r.at) else "нет", not near.has(r.at), Lang.t(Items.title(r.at))])
+		at.append([ItemIcons.of_item(r.at), "" if near.has(r.at) else "[no_n2]", not near.has(r.at), Lang.t(Items.title(r.at))])
 	else:
-		at.append([ItemIcons.picture("hand"), "", false, "Руками, без станка"])
+		at.append([ItemIcons.picture("hand"), "", false, "[by_hand_without_a_station]"])
 	var tools := []
 	for kind: String in r.tools:
 		var has := Tools.holds(inv, kind)
 		var name := Items.tool_title(kind)
-		tools.append([ItemIcons.of_tool(kind), "" if has else "нет", not has,
-			name.left(1).to_upper() + name.substr(1) + (Lang.f(": износ %d за изделие", [r.wear]) if r.wear > 0 else "")])
+		tools.append([ItemIcons.of_tool(kind), "" if has else "[no_n2]", not has,
+			name.left(1).to_upper() + name.substr(1) + (Lang.f("[wear_per_item]", [r.wear]) if r.wear > 0 else "")])
 	# The time of the recipe at the character's skill of its work.
 	var secs: float = game.workshop.time_of(r)
-	var time := [[UiStyle.icon("clock"), Lang.f("%d с", [roundi(secs)]), false, tr("Время изготовления") +
-		(Lang.f(" (без навыка %d с)", [roundi(r.time)]) if roundi(secs) < roundi(r.time) else "")]]
+	var time := [[UiStyle.icon("clock"), Lang.f("[s]", [roundi(secs)]), false, tr("[crafting_time]") +
+		(Lang.f("[without_the_skill_s]", [roundi(r.time)]) if roundi(secs) < roundi(r.time) else "")]]
 	var also := []
 	for e: Dictionary in r.also:
 		var share := roundi(e.chance * 100.0)
 		also.append([ItemIcons.of_item(e.item), "+%d" % e.count if share >= 100 else "%d%%" % share, false,
-			Lang.f("Побочно: %s ×%d%s", [Lang.t(Items.title(e.item)), e.count, "" if share >= 100 else Lang.f(", шанс %d%%", [share])])])
+			Lang.f("[byproduct]", [Lang.t(Items.title(e.item)), e.count, "" if share >= 100 else Lang.f("[chance]", [share])])])
 	var made := []
 	for g: Array in FactChips.item_groups(r.makes, r.count):
 		made.append_array(g[1])
-	_facts.show_groups([["Материалы", needs], ["Не тратится", keeps], ["На чём", at],
-		["Чем", tools], ["Время", time], ["Изделие", made], ["Побочно", also]])
+	_facts.show_groups([["[materials]", needs], ["[not_used_up_n2]", keeps], ["[where]", at],
+		["[with]", tools], ["[time]", time], ["[product]", made], ["[byproduct_n2]", also]])
 	var can := Crafting.can_make(r, inv, near)
 	var times := _times(r, inv) if can else 0
 	_make_one.disabled = not can
@@ -607,7 +607,7 @@ func _show_queue() -> void:
 	for c in [_controls, _job_row, _job_info]:
 		c.visible = not jobs.is_empty()
 	_pause.icon = UiStyle.icon("play" if shop.paused else "pause")
-	_pause.tooltip_text = "Продолжить" if shop.paused else "Пауза"
+	_pause.tooltip_text = "[continue]" if shop.paused else "[pause]"
 	TabRow.light(_pause, shop.paused)
 	if jobs.is_empty():
 		_job = 0
@@ -635,14 +635,14 @@ func _show_queue() -> void:
 	var name := r.get("title", jobs[_job].recipe) as String
 	var text := ""
 	if _job > 0:
-		text = Lang.f("%d-я", [(_job + 1)])
+		text = Lang.f("[phrase_n4]", [(_job + 1)])
 	elif shop.paused:
-		text = "пауза"
+		text = "[paused]"
 	elif shop.waiting():
-		text = "ждёт"
-		name += Lang.f(", ждёт: %s", [_where(r)])
+		text = "[waiting]"
+		name += Lang.f("[waiting_n2]", [_where(r)])
 	else:
-		text = Lang.f("%d с", [ceili(jobs[0].left * game.workshop.time_of(r) / maxf(0.001, float(r.get("time", 1.0))))])
+		text = Lang.f("[s]", [ceili(jobs[0].left * game.workshop.time_of(r) / maxf(0.001, float(r.get("time", 1.0))))])
 	_job_label.text = text
 	_job_label.tooltip_text = name
 	for i in n:

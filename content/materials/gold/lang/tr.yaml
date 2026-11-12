@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/gold/bundle.yaml
-"Золото": "Altın"
+"[materials.gold.bundle]": "Altın"
 
 # content/materials/gold/data/items.yaml
-"Золотая руда": "Altın cevheri"
-"Кварц с жёлтыми прожилками золота. Её берёт бронзовая кирка.": "Sarı altın damarlı kuvars. Bronz kazma kazar."
-"Золотой слиток": "Altın külçe"
-"Тяжёлый мягкий жёлтый металл. Из слитков складывают золотые блоки.": "Ağır, yumuşak sarı bir metal. Külçelerden altın bloklar yapılır."
-"Золотой блок": "Altın blok"
-"Блестящий жёлтый блок для построек.": "Yapılar için parlak sarı bir blok."
+"[materials.items.gold_ore]": "Altın cevheri"
+"[materials.items.gold_ore.about]": "Sarı altın damarlı kuvars. Bronz kazma kazar."
+"[materials.items.gold_bar]": "Altın külçe"
+"[materials.items.gold_bar.about]": "Ağır, yumuşak sarı bir metal. Külçelerden altın bloklar yapılır."
+"[materials.items.gold_block]": "Altın blok"
+"[materials.items.gold_block.about]": "Yapılar için parlak sarı bir blok."
+
+# content/materials/gold/data/materials.yaml
+"[materials.materials.gold_ore]": "Altın cevheri"
+"[materials.materials.gold_block]": "Altın blok"
+
+# content/materials/gold/data/recipes.yaml
+"[materials.recipes.gold_bar]": "Altın külçe"
+"[materials.recipes.gold_block]": "Altın blok"

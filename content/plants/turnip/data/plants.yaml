@@ -4,7 +4,7 @@
 # находят, срезая высокую траву (патч `finds` — предмет и вероятность одного за растение).
 - id: turnip
   kind: crop
-  title: Репа
+  title: "[plants.plants.turnip]"
   sprite: turnip
   frames: 4
   grows: field

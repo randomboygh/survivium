@@ -97,13 +97,13 @@ static func can_make(r: Dictionary, inv, stations: Dictionary) -> bool:
 ## Why recipe `r` cannot be started now (a line, for the window); "" when it can.
 static func why_not(r: Dictionary, inv, stations: Dictionary) -> String:
 	if r.at != "" and not stations.has(r.at):
-		return Lang.line("Нужен станок: %s", [Items.title(r.at)])
+		return Lang.line("[needs_a_station]", [Items.title(r.at)])
 	var kind := lacks_tool(r, inv)
 	if kind != "":
-		return Lang.line("Нужен инструмент: %s", [Items.tool_title(kind)])
+		return Lang.line("[needs_a_tool]", [Items.tool_title(kind)])
 	var short := missing(r, inv)
 	if not short.is_empty():
-		return Lang.line("Не хватает: %s", [amounts_text(short)])
+		return Lang.line("[missing]", [amounts_text(short)])
 	return ""
 
 

@@ -2,13 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/door/bundle.yaml
-"Дверь": "Drzwi"
+"[tools.door.bundle]": "Drzwi"
 
 # content/tools/door/data/items.yaml
-"Створка из досок для проёма в стене. Касание открывает и закрывает.": "Skrzydło z desek do otworu w ścianie. Dotknięcie otwiera je i zamyka."
-"Дверь 2×2": "Drzwi 2×2"
-"Двустворчатая дверь из досок, на две клетки в ширину и две в высоту.": "Podwójne drzwi z desek, dwa pola szerokie i dwa wysokie."
-"Дверь 2×3": "Drzwi 2×3"
-"Высокая двустворчатая дверь, на две клетки в ширину и три в высоту.": "Wysokie podwójne drzwi, dwa pola szerokie i trzy wysokie."
-"Ворота 3×3": "Wrota 3×3"
-"Большие двустворчатые ворота из досок для проёма в стене, на три клетки в ширину и три в высоту.": "Duże podwójne wrota z desek do otworu w ścianie, trzy pola szerokie i trzy wysokie."
+"[tools.items.door]": "Drzwi"
+"[tools.items.door.about]": "Skrzydło z desek do otworu w ścianie. Dotknięcie otwiera je i zamyka."
+"[tools.items.door_2x2]": "Drzwi 2×2"
+"[tools.items.door_2x2.about]": "Podwójne drzwi z desek, dwa pola szerokie i dwa wysokie."
+"[tools.items.door_2x3]": "Drzwi 2×3"
+"[tools.items.door_2x3.about]": "Wysokie podwójne drzwi, dwa pola szerokie i trzy wysokie."
+"[tools.items.door_3x3]": "Wrota 3×3"
+"[tools.items.door_3x3.about]": "Duże podwójne wrota z desek do otworu w ścianie, trzy pola szerokie i trzy wysokie."
+
+# content/tools/door/data/recipes.yaml
+"[tools.recipes.door]": "Drzwi"
+"[tools.recipes.door_2x2]": "Drzwi 2×2"
+"[tools.recipes.door_2x3]": "Drzwi 2×3"
+"[tools.recipes.door_3x3]": "Wrota 3×3"

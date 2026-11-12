@@ -2,9 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hatch/bundle.yaml
-"Люк": "Falltür"
+"[tools.hatch.bundle]": "Falltür"
 
 # content/tools/hatch/data/items.yaml
-"Крышка из досок для дыры в полу или потолке. Касание открывает и закрывает.": "Ein Bretterdeckel für ein Loch im Boden oder in der Decke. Ein Tippen öffnet und schließt ihn."
-"Люк 2×2": "Falltür 2×2"
-"Широкая крышка из досок для дыры в полу на две клетки в ширину и две в глубину.": "Ein breiter Bretterdeckel für ein Loch im Boden, zwei Felder breit und zwei tief."
+"[tools.items.hatch]": "Falltür"
+"[tools.items.hatch.about]": "Ein Bretterdeckel für ein Loch im Boden oder in der Decke. Ein Tippen öffnet und schließt ihn."
+"[tools.items.hatch_2x2]": "Falltür 2×2"
+"[tools.items.hatch_2x2.about]": "Ein breiter Bretterdeckel für ein Loch im Boden, zwei Felder breit und zwei tief."
+
+# content/tools/hatch/data/recipes.yaml
+"[tools.recipes.hatch]": "Falltür"
+"[tools.recipes.hatch_2x2]": "Falltür 2×2"

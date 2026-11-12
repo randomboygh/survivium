@@ -30,8 +30,8 @@
 
 ### Тупик (1)
 
-- Гниль `core:rot`
+- [core.items.rot] `core:rot`
 
 ### Двойники (1)
 
-- Черника `plants:blueberry`, Смородина `plants:currant`
+- [plants.items.blueberry] `plants:blueberry`, [plants.items.currant] `plants:currant`

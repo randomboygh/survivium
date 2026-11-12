@@ -44,7 +44,7 @@ const LOG_TALL := 5
 const REFRESH := 0.5
 ## Where players may fight players (Config.pvp), and their words.
 const PVP_MODES := ["off", "land", "all"]
-const PVP_TITLES := ["выключен", "по территориям", "везде"]
+const PVP_TITLES := ["[off_pvp]", "[by_territories]", "[everywhere]"]
 ## Players a server may be set to take.
 const PLAYER_COUNTS := [2, 4, 8, 16, 32]
 ## «Настройки»: the rows' names and values narrower, more of them in a row's width.
@@ -67,7 +67,7 @@ const TERRITORY_LEVELS := [2, 4, 8, 16]
 const ABANDON_HOURS := [24.0, 48.0, 72.0, 120.0, 168.0]
 const DECAY_HOURS := [6.0, 12.0, 24.0, 48.0]
 const DECAY_MODES := ["rights", "radius", "both"]
-const DECAY_TITLES := ["права", "радиус", "права и радиус"]
+const DECAY_TITLES := ["[rights]", "[radius]", "[rights_and_radius]"]
 const DAY_LENGTH := Clock.DAY_LENGTH
 
 signal cancelled
@@ -127,11 +127,11 @@ func _ready() -> void:
 	_room.add_child(_box)
 	_scroll = Kit.scroll(_room, false)
 	if running():
-		_box.add_child(Kit.title("Сервер работает"))
+		_box.add_child(Kit.title("[server_running]"))
 		box.add_child(_scroll)
 		_build_running()
 	else:
-		box.add_child(Kit.title("Создать сервер"))
+		box.add_child(Kit.title("[create_a_server]"))
 		_build_setup()
 	show_fitted()
 	# Rows shown or added later (an error, the players) fit the window again.
@@ -168,7 +168,7 @@ func _build_setup() -> void:
 		if _worlds[i].seed == game.world_seed and _worlds[i].settings == game.world_options:
 			_world = i
 	# The tabs joined as one, a button tall, over the rows (TabRow.tabs).
-	_tabs = TabRow.tabs([["Создание", "", show_tab.bind(0)], ["Настройки", "", show_tab.bind(1)]], ROW_H)
+	_tabs = TabRow.tabs([["[create]", "", show_tab.bind(0)], ["[settings]", "", show_tab.bind(1)]], ROW_H)
 	_tabs.custom_minimum_size.x = WIDTH
 	for b: Button in _tabs.get_children():
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -183,59 +183,55 @@ func _build_setup() -> void:
 	_error = Kit.note(game.host_error, WIDTH, UiStyle.DANGER)
 	_error.visible = game.host_error != ""
 	box.add_child(_error)
-	box.add_child(_button("Запустить сервер", _start, true, false))
-	box.add_child(_button("Назад", back, false, false))
+	box.add_child(_button("[start_the_server]", _start, true, false))
+	box.add_child(_button("[back]", back, false, false))
 	show_tab(0)
 
 
 ## «Создание»: the world, the name, the password and the access from the internet.
 func _build_making(page: VBoxContainer, rows: ChoiceRows) -> void:
-	rows.add(page, "Мир", _worlds.map(_world_title), func() -> int: return _world,
+	rows.add(page, "[world_n3]", _worlds.map(_world_title), func() -> int: return _world,
 		func(i: int) -> void: _world = i)
-	_title = _field(page, rows, "Название", str(_set.title))
+	_title = _field(page, rows, "[title]", str(_set.title))
 	_title.max_length = 32
-	_password = _field(page, rows, "Пароль", str(_set.password))
-	_password.placeholder_text = "без пароля"
-	_tunnel = Kit.check("Доступ из интернета", bool(_set.tunnel), WIDTH, ROW_H)
+	_password = _field(page, rows, "[password]", str(_set.password))
+	_password.placeholder_text = "[no_password]"
+	_tunnel = Kit.check("[access_from_the_internet]", bool(_set.tunnel), WIDTH, ROW_H)
 	page.add_child(_tunnel)
-	page.add_child(Kit.note("Игроки из домашней сети входят по адресу этого компьютера; "
-		+ "из интернета — через туннель Cloudflare: нужна программа cloudflared рядом с игрой, "
-		+ "аккаунт и роутер не нужны, адрес новый при каждом запуске.", WIDTH))
-	page.add_child(Kit.note("Порт, число игроков, длина суток, погода, бои и земля — на вкладке «Настройки».", WIDTH))
+	page.add_child(Kit.note("[players_from_the_home_network]", WIDTH))
+	page.add_child(Kit.note("[port_player_count_day_length]", WIDTH))
 	rows.refresh()
 
 
 ## «Настройки»: everything else the server takes (Config, its rules: Rules), each row
 ## with its value from the server's settings file, «По умолчанию» back to the defaults.
 func _build_settings(page: VBoxContainer, rows: ChoiceRows) -> void:
-	page.add_child(Kit.caption("Сервер"))
-	_port = _field(page, rows, "Порт", str(_set.port))
+	page.add_child(Kit.caption("[server_name]"))
+	_port = _field(page, rows, "[port]", str(_set.port))
 	_port.max_length = 5
 	_port.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
-	_pick(page, rows, "Игроков", "max_players", PLAYER_COUNTS, _count)
-	_pick(page, rows, "Сохранять", "autosave", SAVE_SECONDS, _seconds)
-	page.add_child(Kit.caption("Мир"))
-	_pick(page, rows, "Длина суток", "day_minutes", DAY_MINUTES, _minutes)
-	_check(page, "Погода с улицы", "real_weather", "Погода в мире — настоящая, там, где этот компьютер")
-	_check(page, "Звери нападают", "animal_attacks", "Хищники защищают своё место и охотятся на людей стаей")
-	_check(page, "Износ инструментов", "tool_wear", "Инструменты изнашиваются от работы и крафта")
-	page.add_child(Kit.caption("Бои"))
+	_pick(page, rows, "[players_max]", "max_players", PLAYER_COUNTS, _count)
+	_pick(page, rows, "[save_every]", "autosave", SAVE_SECONDS, _seconds)
+	page.add_child(Kit.caption("[world_n3]"))
+	_pick(page, rows, "[day_length]", "day_minutes", DAY_MINUTES, _minutes)
+	_check(page, "[real_weather_outside]", "real_weather", "[the_weather_in_the_world]")
+	_check(page, "[animals_attack]", "animal_attacks", "[predators_guard_their_ground_and]")
+	_check(page, "[tool_wear]", "tool_wear", "[tools_wear_out_from_work]")
+	page.add_child(Kit.caption("[fights]"))
 	_pick(page, rows, "PvP", "pvp", PVP_MODES, func(m: String) -> String: return PVP_TITLES[PVP_MODES.find(m)])
-	_pick(page, rows, "Урон в бою", "pvp_damage", PVP_DAMAGE, _count)
-	_pick(page, rows, "Щит новичка", "newcomer_minutes", NEWCOMER_MINUTES, _minutes)
-	_pick(page, rows, "Бой держит", "fight_tag", FIGHT_SECONDS, _seconds)
-	page.add_child(Kit.caption("Земля"))
-	_pick(page, rows, "Земли сначала", "territory_start", TERRITORY_START, _count)
-	_pick(page, rows, "За уровень", "territory_per_level", TERRITORY_PER_LEVEL, _count)
-	_pick(page, rows, "Дальность", "territory_radius", TERRITORY_RADIUS, _count)
-	_pick(page, rows, "Уровней", "territory_levels", TERRITORY_LEVELS, _count)
-	_pick(page, rows, "Брошена через", "territory_abandon_hours", ABANDON_HOURS, _hours)
-	_pick(page, rows, "Шаг упадка", "territory_decay_hours", DECAY_HOURS, _hours)
-	_pick(page, rows, "Упадок", "territory_decay", DECAY_MODES, func(m: String) -> String: return DECAY_TITLES[DECAY_MODES.find(m)])
-	page.add_child(Kit.note("«Земли сначала» — клеток у нового игрока, «За уровень» — сколько клеток прибавляет "
-		+ "каждый уровень навыков, «Дальность» — как далеко от столба, «Уровней» — сколько уровней вверх и вниз. "
-		+ "Земля без хозяев «брошена» и с каждым шагом упадка теряет права или радиус.", WIDTH))
-	var defaults := Kit.button("По умолчанию", Callable(), WIDTH, ROW_H + 4)
+	_pick(page, rows, "[fight_damage]", "pvp_damage", PVP_DAMAGE, _count)
+	_pick(page, rows, "[newcomer_shield]", "newcomer_minutes", NEWCOMER_MINUTES, _minutes)
+	_pick(page, rows, "[fight_lasts]", "fight_tag", FIGHT_SECONDS, _seconds)
+	page.add_child(Kit.caption("[land]"))
+	_pick(page, rows, "[starting_land]", "territory_start", TERRITORY_START, _count)
+	_pick(page, rows, "[per_level]", "territory_per_level", TERRITORY_PER_LEVEL, _count)
+	_pick(page, rows, "[reach]", "territory_radius", TERRITORY_RADIUS, _count)
+	_pick(page, rows, "[levels]", "territory_levels", TERRITORY_LEVELS, _count)
+	_pick(page, rows, "[abandoned_after]", "territory_abandon_hours", ABANDON_HOURS, _hours)
+	_pick(page, rows, "[decay_step]", "territory_decay_hours", DECAY_HOURS, _hours)
+	_pick(page, rows, "[decay]", "territory_decay", DECAY_MODES, func(m: String) -> String: return DECAY_TITLES[DECAY_MODES.find(m)])
+	page.add_child(Kit.note("[starting_land_is_a_new]", WIDTH))
+	var defaults := Kit.button("[defaults]", Callable(), WIDTH, ROW_H + 4)
 	_asks.guard(defaults, _defaults)
 	page.add_child(defaults)
 	rows.refresh()
@@ -320,19 +316,19 @@ static func _count(n: Variant) -> String:
 
 static func _seconds(n: Variant) -> String:
 	var s := int(n)
-	return Lang.f("%d мин", [s / 60]) if s >= 60 and s % 60 == 0 else Lang.f("%d с", [s])
+	return Lang.f("[min]", [s / 60]) if s >= 60 and s % 60 == 0 else Lang.f("[s]", [s])
 
 
 static func _minutes(n: Variant) -> String:
 	var m := int(n)
 	if m == 0:
-		return "нет"
-	return Lang.f("%d ч", [m / 60]) if m >= 120 and m % 60 == 0 else Lang.f("%d мин", [m])
+		return "[no_n2]"
+	return Lang.f("[h]", [m / 60]) if m >= 120 and m % 60 == 0 else Lang.f("[min]", [m])
 
 
 static func _hours(n: Variant) -> String:
 	var h := roundi(float(n))
-	return Lang.f("%d ч", [h])
+	return Lang.f("[h]", [h])
 
 
 ## A row with `caption` on its left, on `page`.
@@ -366,10 +362,10 @@ func _button(text: String, action: Callable, accent := false, in_rows := true) -
 ## The words for world `w` of the list.
 func _world_title(w: Dictionary) -> String:
 	if w.get("new", false):
-		return Lang.f("%d · новый", [w.seed])
+		return Lang.f("[new]", [w.seed])
 	if w.seed == WorldStore.TEST_SEED:
-		return Lang.f("тестовый · день %d", [w.day])
-	return Lang.f("%d · день %d", [w.seed, w.day])
+		return Lang.f("[test_day]", [w.day])
+	return Lang.f("[day_n3]", [w.seed, w.day])
 
 
 ## The settings as Config takes them, and the host's name; "" in "why" when they do.
@@ -378,7 +374,7 @@ func settings() -> Dictionary:
 	var out := {"title": _title.text.strip_edges(), "port": port, "max_players": int(_set.max_players),
 		"password": _password.text, "tunnel": _tunnel.button_pressed, "real_weather": bool(_set.real_weather),
 		"autosave": float(_set.autosave), "day_minutes": float(_set.day_minutes), "rules": _set.rules.duplicate(),
-		"player": ServerList.player_name() if ServerList.player_name() != "" else "Хозяин"}
+		"player": ServerList.player_name() if ServerList.player_name() != "" else "[host]"}
 	if _worlds.is_empty():
 		out.world = ""
 		out.seed_value = int(game.settings.values.world_seed)
@@ -389,9 +385,9 @@ func settings() -> Dictionary:
 		out.settings = _worlds[_world].settings
 	out.why = ""
 	if port < 1024 or port > 65535:
-		out.why = "Порт — число от 1024 до 65535 (вкладка «Настройки»)"
+		out.why = "[the_port_is_a_number_n2]"
 	elif out.title == "":
-		out.why = "Введите название"
+		out.why = "[enter_a_title]"
 	return out
 
 
@@ -416,23 +412,23 @@ func _build_running() -> void:
 	var node: Node = game.hosted
 	_state = UiStyle.label("", UiStyle.INK)
 	_box.add_child(_state)
-	_box.add_child(Kit.caption("Адрес для друзей в домашней сети:"))
+	_box.add_child(Kit.caption("[address_for_friends_on_the]"))
 	var addresses := addresses_of(node.config.port)
 	for a: String in addresses:
 		_box.add_child(UiStyle.label(a, UiStyle.ACCENT))
 	if addresses.is_empty():
-		_box.add_child(Kit.caption("сети нет: только этот компьютер"))
+		_box.add_child(Kit.caption("[no_network_this_computer_only]"))
 	else:
-		var copy := _button("Скопировать адрес", func() -> void:
+		var copy := _button("[copy_the_address]", func() -> void:
 			DisplayServer.clipboard_set(addresses[0]))
 		copy.tooltip_text = addresses[0]
 	if node.tunnel != null:
-		_box.add_child(Kit.caption("Из интернета:"))
+		_box.add_child(Kit.caption("[from_the_internet]"))
 		_tunnel_label = Kit.note("", WIDTH, UiStyle.ACCENT)
 		_box.add_child(_tunnel_label)
-		_tunnel_copy = _button("Скопировать ссылку", func() -> void:
+		_tunnel_copy = _button("[copy_the_link]", func() -> void:
 			DisplayServer.clipboard_set(node.tunnel.link()))
-	_box.add_child(Kit.caption("Игроки"))
+	_box.add_child(Kit.caption("[players]"))
 	_people = Kit.column(4)
 	_box.add_child(_people)
 	var well := PanelContainer.new()
@@ -448,7 +444,7 @@ func _build_running() -> void:
 	_log.custom_minimum_size = Vector2(WIDTH - 2 * UiStyle.WELL_PAD - UiStyle.SCROLL_BAR - 2, 0)
 	_log_scroll.add_child(_log)
 	# The host's commands, as in the terminal; what they answer goes into the log.
-	var command := Kit.field("команда: help — список", WIDTH, 0, ROW_H)
+	var command := Kit.field("[command_help_the_list]", WIDTH, 0, ROW_H)
 	command.text_submitted.connect(func(line: String) -> void:
 		if line.strip_edges() == "":
 			return
@@ -458,11 +454,11 @@ func _build_running() -> void:
 		command.clear()
 		_clock = 0.0)
 	_box.add_child(command)
-	_button("Играть", play.emit, true)
-	_stop = _button("Остановить сервер", Callable())
+	_button("[play]", play.emit, true)
+	_stop = _button("[stop_the_server]", Callable())
 	_asks.paint = _paint_stop
 	_asks.guard(_stop, _stop_server)
-	_button("Назад", back)
+	_button("[back]", back)
 	_refresh()
 
 
@@ -479,13 +475,13 @@ static func addresses_of(port: int) -> Array[String]:
 ## «Остановить сервер» waiting for its second tap: red, asking.
 func _paint_stop(b: Button, on: bool) -> void:
 	UiStyle.arm(b, on)
-	b.text = "Точно остановить?" if on else "Остановить сервер"
+	b.text = "[stop_it_for_sure]" if on else "[stop_the_server]"
 
 
 ## Stops the server (on the second tap).
 func _stop_server() -> void:
 	_stop.disabled = true
-	_stop.text = "Останавливается…"
+	_stop.text = "[stopping]"
 	game.stop_server()
 
 
@@ -504,11 +500,11 @@ func _refresh() -> void:
 	if node == null or node.server == null:
 		return
 	var net = node.server
-	_state.text = Lang.f("порт %d · игроков %d из %d%s", [node.config.port, net.online(), node.config.max_players,
-		" · пароль" if node.config.password != "" else ""])
+	_state.text = Lang.f("[port_players_of]", [node.config.port, net.online(), node.config.max_players,
+		"[password_n2]" if node.config.password != "" else ""])
 	if _tunnel_label != null:
 		var t = node.tunnel
-		var said: String = t.url if t.url != "" else ("ещё запускается…" if t.failed == "" else t.failed)
+		var said: String = t.url if t.url != "" else ("[still_starting]" if t.failed == "" else t.failed)
 		if said != _tunnel_label.text:
 			_tunnel_label.text = said
 			_tunnel_label.add_theme_color_override("font_color", UiStyle.ACCENT if t.url != "" else (UiStyle.MUTED if t.failed == "" else UiStyle.DANGER))
@@ -524,16 +520,16 @@ func _refresh() -> void:
 			c.queue_free()
 			_people.remove_child(c)
 		if people.is_empty():
-			_people.add_child(Kit.caption("пока никого"))
+			_people.add_child(Kit.caption("[nobody_yet]"))
 		for p: Array in people:
 			var row := Kit.row(4)
-			var l := UiStyle.label("%s%s" % [p[0], "" if p[2] else " (нет связи)"])
+			var l := UiStyle.label("%s%s" % [p[0], "" if p[2] else "[no_connection]"])
 			l.custom_minimum_size = Vector2(WIDTH - 100, ROW_H)
 			l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			l.clip_text = true
 			row.add_child(l)
 			var id: int = p[1]
-			row.add_child(Kit.button("Выгнать", func() -> void: node.command("kick %d" % id), 96, ROW_H))
+			row.add_child(Kit.button("[kick]", func() -> void: node.command("kick %d" % id), 96, ROW_H))
 			_people.add_child(row)
 		fit.call_deferred()
 	var lines: Array = node.log_lines.slice(-LOG_SHOWN)

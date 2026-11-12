@@ -2,7 +2,7 @@
 # и лучше (hardness 4); золотой блок — блок из слитков, его ставят как кирпич. Поля — как у материалов
 # основы (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
 - id: gold_ore
-  title: Золотая руда
+  title: "[materials.materials.gold_ore]"
   role: ore
   veins: 0.2
   priority: 2
@@ -12,7 +12,7 @@
   step: step_stone
   hit: hit_stone
 - id: gold_block
-  title: Золотой блок
+  title: "[materials.materials.gold_block]"
   item: gold_block
   hardness: 3
   toughness: 6

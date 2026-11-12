@@ -15,7 +15,7 @@
 # taper — на сколько пикселей ствол тоньше с каждой ячейкой вверх; crook — на сколько
 # пикселей ствол может изгибаться в сторону; roots — [мин, макс] корней у комля.
 - id: spruce
-  title: Ель
+  title: "[plants.trees.spruce]"
   leaves: needles
   trunk: [1, 1]
   girth: [14, 18]

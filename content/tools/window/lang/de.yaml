@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/window/bundle.yaml
-"Окно": "Fenster"
+"[tools.window.bundle]": "Fenster"
 
 # content/tools/window/data/items.yaml
-"Рама со стеклом для проёма в стене.": "Ein Rahmen mit Glas für eine Öffnung in der Wand."
-"Окно 1×2": "Fenster 1×2"
-"Высокое окно со стеклом, на клетку в ширину и две в высоту.": "Ein hohes Glasfenster, ein Feld breit und zwei hoch."
-"Окно 2×1": "Fenster 2×1"
-"Широкое окно со стеклом, на две клетки в ширину и одну в высоту.": "Ein breites Glasfenster, zwei Felder breit und eins hoch."
-"Окно 2×2": "Fenster 2×2"
-"Большое окно со стеклом, на две клетки в ширину и две в высоту.": "Ein großes Glasfenster, zwei Felder breit und zwei hoch."
-"Окно 3×2": "Fenster 3×2"
-"Окно во всю стену, на три клетки в ширину и две в высоту.": "Ein Fenster über die ganze Wand, drei Felder breit und zwei hoch."
+"[tools.items.window]": "Fenster"
+"[tools.items.window.about]": "Ein Rahmen mit Glas für eine Öffnung in der Wand."
+"[tools.items.window_1x2]": "Fenster 1×2"
+"[tools.items.window_1x2.about]": "Ein hohes Glasfenster, ein Feld breit und zwei hoch."
+"[tools.items.window_2x1]": "Fenster 2×1"
+"[tools.items.window_2x1.about]": "Ein breites Glasfenster, zwei Felder breit und eins hoch."
+"[tools.items.window_2x2]": "Fenster 2×2"
+"[tools.items.window_2x2.about]": "Ein großes Glasfenster, zwei Felder breit und zwei hoch."
+"[tools.items.window_3x2]": "Fenster 3×2"
+"[tools.items.window_3x2.about]": "Ein Fenster über die ganze Wand, drei Felder breit und zwei hoch."
+
+# content/tools/window/data/recipes.yaml
+"[tools.recipes.window]": "Fenster"
+"[tools.recipes.window_1x2]": "Fenster 1×2"
+"[tools.recipes.window_2x1]": "Fenster 2×1"
+"[tools.recipes.window_2x2]": "Fenster 2×2"
+"[tools.recipes.window_3x2]": "Fenster 3×2"

@@ -2,16 +2,18 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/resources/soil/bundle.yaml
-"Грунт": "Grunt"
+"[resources.soil.bundle]": "Grunt"
 
 # content/resources/soil/data/items.yaml
-"Земля": "Ziemia"
-"Песок": "Piasek"
-"Глина": "Glina"
+"[resources.items.dirt]": "Ziemia"
+"[resources.items.sand]": "Piasek"
+"[resources.items.clay]": "Glina"
 
 # content/resources/soil/data/materials.yaml
-"Грядка": "Grządka"
-"Мокрая грядка": "Mokra grządka"
+"[resources.materials.sand]": "Piasek"
+"[resources.materials.clay]": "Glina"
+"[resources.materials.bed]": "Grządka"
+"[resources.materials.bed_wet]": "Mokra grządka"
 
 # content/resources/soil/data/sounds.yaml
-"Шаг по песку": "Krok po piasku"
+"[resources.sounds.step_sand]": "Krok po piasku"

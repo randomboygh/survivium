@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sickle/bundle.yaml
-"Серп": "Sierp"
+"[tools.sickle.bundle]": "Sierp"
 
 # content/tools/sickle/data/items.yaml
-"Каменный серп": "Kamienny sierp"
-"Жнёт спелый урожай с грядок, по три клетки за взмах.": "Zbiera dojrzałe plony z grządek, trzy pola na uderzenie."
-"Медный серп": "Miedziany sierp"
-"Жнёт спелый урожай с грядок, по четыре клетки за взмах.": "Zbiera dojrzałe plony z grządek, cztery pola na uderzenie."
-"Железный серп": "Żelazny sierp"
-"Жнёт спелый урожай с грядок, по пять клеток за взмах.": "Zbiera dojrzałe plony z grządek, pięć pól na uderzenie."
+"[tools.items.stone_sickle]": "Kamienny sierp"
+"[tools.items.stone_sickle.about]": "Zbiera dojrzałe plony z grządek, trzy pola na uderzenie."
+"[tools.items.copper_sickle]": "Miedziany sierp"
+"[tools.items.copper_sickle.about]": "Zbiera dojrzałe plony z grządek, cztery pola na uderzenie."
+"[tools.items.iron_sickle]": "Żelazny sierp"
+"[tools.items.iron_sickle.about]": "Zbiera dojrzałe plony z grządek, pięć pól na uderzenie."
+
+# content/tools/sickle/data/recipes.yaml
+"[tools.recipes.stone_sickle]": "Kamienny sierp"
+"[tools.recipes.copper_sickle]": "Miedziany sierp"
+"[tools.recipes.iron_sickle]": "Żelazny sierp"

@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/raspberry/bundle.yaml
-"Малина": "Framboise"
+"[plants.raspberry.bundle]": "Framboise"
+
+# content/plants/raspberry/data/bushes.yaml
+"[plants.bushes.raspberry]": "Framboise"
 
 # content/plants/raspberry/data/items.yaml
-"Куст малины": "Framboisier"
+"[plants.items.raspberry]": "Framboise"
+"[plants.items.raspberry_bush]": "Framboisier"

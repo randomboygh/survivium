@@ -3,7 +3,7 @@
 # (content/core/data/materials.yaml); бревно как предмет — запись «Ресурсов» (resources:log), этот бандл
 # дописывает ей, что она ставит (items.yaml). Звуки — по имени, из мода «Звуки».
 - id: log
-  title: Бревно
+  title: "[plants.materials.log]"
   role: trunk
   roof: false
   hotbar: 7
@@ -13,7 +13,7 @@
   step: step_wood
   hit: chop
 - id: leaves
-  title: Листва
+  title: "[plants.materials.leaves]"
   role: crown
   roof: false
   dig: hand

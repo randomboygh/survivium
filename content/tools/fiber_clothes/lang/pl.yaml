@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fiber_clothes/bundle.yaml
-"Одежда из волокна": "Ubrania z włókna"
+"[tools.fiber_clothes.bundle]": "Ubrania z włókna"
 
 # content/tools/fiber_clothes/data/items.yaml
-"Плетёная шапка": "Pleciony kapelusz"
-"Шапка из сухой травы. Немного греет голову.": "Kapelusz z suchej trawy. Trochę grzeje głowę."
-"Травяная накидка": "Peleryna z trawy"
-"Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды.": "Peleryna z gęsto plecionego włókna na sznurku. Najcieplejsza z ubrań z trawy."
-"Обмотки": "Owijacze"
-"Полосы волокна, обмотанные вокруг ног и подвязанные верёвкой.": "Pasy włókna owinięte wokół nóg i związane sznurkiem."
-"Лапти": "Łapcie"
-"Плетёная обувь из волокна на верёвочных завязках.": "Plecione buty z włókna wiązane sznurkiem."
+"[tools.items.fiber_hat]": "Pleciony kapelusz"
+"[tools.items.fiber_hat.about]": "Kapelusz z suchej trawy. Trochę grzeje głowę."
+"[tools.items.grass_cape]": "Peleryna z trawy"
+"[tools.items.grass_cape.about]": "Peleryna z gęsto plecionego włókna na sznurku. Najcieplejsza z ubrań z trawy."
+"[tools.items.leg_wraps]": "Owijacze"
+"[tools.items.leg_wraps.about]": "Pasy włókna owinięte wokół nóg i związane sznurkiem."
+"[tools.items.bast_shoes]": "Łapcie"
+"[tools.items.bast_shoes.about]": "Plecione buty z włókna wiązane sznurkiem."
+
+# content/tools/fiber_clothes/data/recipes.yaml
+"[tools.recipes.fiber_hat]": "Pleciony kapelusz"
+"[tools.recipes.grass_cape]": "Peleryna z trawy"
+"[tools.recipes.leg_wraps]": "Owijacze"
+"[tools.recipes.bast_shoes]": "Łapcie"

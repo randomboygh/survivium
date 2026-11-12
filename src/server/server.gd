@@ -16,6 +16,7 @@ extends RefCounted
 ## (ServerStore, С4) a character that leaves the world is saved and a player who comes
 ## back with their key, after a restart too, gets it again; stop saves everything.
 
+const Lang := preload("res://src/shared/content/lang.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const PlayerLink := preload("res://src/server/player_link.gd")
 const ServerStore := preload("res://src/server/server_store.gd")
@@ -280,13 +281,13 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 			if rest == "":
 				return "say <words for everyone>"
 			for key in accounts:
-				accounts[key].link.hear(0, "Сервер", rest)
+				accounts[key].link.hear(0, "[server_name]", rest)
 			return "said: " + rest
 		"kick":
 			var a := _find(rest)
 			if a == null:
 				return "no such player: " + rest
-			kick(a, "хозяин отключил вас")
+			kick(a, "[the_host_disconnected_you]")
 			return "kicked: " + a.name
 		"stop":
 			stop()
@@ -310,7 +311,7 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 			access.hosts[a.key] = a.name
 			_save_access()
 			flag(a, "role", "made a host (op)", 1)
-			a.link.hear(0, "", "Вы хозяин сервера: команды в чате через «/», /help — список")
+			a.link.hear(0, "", "[you_are_a_server_host]")
 			return "host: " + a.name
 		"deop":
 			var low := rest.to_lower()
@@ -336,9 +337,9 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 			return reload_mods()
 		"test":
 			if not config.playtest and role < ROLE_HOST:
-				return "«test» — только для хозяина сервера или на тестовом сервере"
+				return "[test_is_only_for_the]"
 			if not test_command.is_valid():
-				return "«test» здесь не работает"
+				return "[test_does_not_work_here]"
 			return test_command.call(rest, role)
 		"help", "?":
 			return "\n".join(["who: who is in the world; say <words>: tell everyone; kick <who>: put out; stop: stop the server",
@@ -361,7 +362,7 @@ func reload_mods() -> String:
 	if session != null:
 		session.reread()
 	for key in accounts:
-		accounts[key].link.hear(0, "", "Сервер перечитал данные модов")
+		accounts[key].link.hear(0, "", "[the_server_reloaded_the_mod]")
 	var out: Array[String] = ["mod data read again" if problems.is_empty() else "mod data read again, problems: %d" % problems.size()]
 	for p in problems.slice(0, 10):
 		out.append("  " + p)
@@ -414,7 +415,7 @@ func _on_chat(text: String, key: String) -> void:
 	if text.begins_with("/"):
 		if not is_host(key) and not (config.playtest and text.get_slice(" ", 0) == "/test"):
 			flag(a, "command", "command without the right: " + text.left(40), 1)
-			a.link.hear(0, "", "Команды через «/» — только для хозяина сервера")
+			a.link.hear(0, "", "[commands_with_are_for_the]")
 			return
 		_say("%s (%d): %s" % [a.name, a.id, text])
 		for line in command(text, role_of(key)).split("\n"):
@@ -470,7 +471,7 @@ static func _item(what: String) -> String:
 	if Items.has(id):
 		return id
 	for i: String in Items.IDS:
-		if i.get_slice(":", 1) == what or Items.title(i).to_lower() == what.to_lower().replace("_", " "):
+		if i.get_slice(":", 1) == what or Lang.t(Items.title(i)).to_lower() == what.to_lower().replace("_", " "):
 			return i
 	return ""
 
@@ -510,7 +511,7 @@ func _ban(rest: String) -> String:
 		access.banned_names.append(name.to_lower())
 	if a != null:
 		access.banned_keys[a.key] = a.name
-		kick(a, "хозяин заблокировал вас")
+		kick(a, "[the_host_banned_you]")
 	_save_access()
 	_say("%s banned" % name)
 	return "banned: " + name
@@ -584,7 +585,7 @@ func kick(a: Account, why: String, code := CLOSE_KICKED) -> void:
 
 
 ## Closes every connection, telling the players `why`; the characters leave the world.
-func stop(why := "сервер остановлен", code := CLOSE_STOP) -> void:
+func stop(why := "[server_stopped]", code := CLOSE_STOP) -> void:
 	if store != null and not stopping:
 		if store.save(self):
 			_say("world saved")
@@ -624,7 +625,7 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 	if msg.size() == 2 and msg[0] == Protocol.BYE:
 		peer.account.linger = linger_of(peer.account)
 		if open:
-			peer.close_after(1000, "пока")
+			peer.close_after(1000, "[bye]")
 		return
 	# What the animals have in mind only a host may see (Protocol.AI_DEBUG), anyone on a
 	# playtest server; the playtest switches (Protocol.CHEATS) the same: a role taken away
@@ -663,7 +664,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 	if a != null:
 		if a.peer != null:
 			# The same player from another device or tab: the old connection goes.
-			a.peer.close_after(CLOSE_ELSEWHERE, "вы вошли с другого устройства")
+			a.peer.close_after(CLOSE_ELSEWHERE, "[you_logged_in_from_another]")
 			a.peer.account = null
 		a.name = name
 		a.link.who.player_name = name
@@ -804,9 +805,9 @@ func _within_rate(peer: Peer, now: float) -> bool:
 	if peer.refused > FLOOD_KICK * MSG_RATE and peer.close_code == 0:
 		flag(peer.account, "flood", "too many messages: put out", 2)
 		if peer.account != null:
-			kick(peer.account, "слишком много сообщений", CLOSE_FLOOD)
+			kick(peer.account, "[too_many_messages]", CLOSE_FLOOD)
 		else:
-			peer.close_after(CLOSE_FLOOD, "слишком много сообщений")
+			peer.close_after(CLOSE_FLOOD, "[too_many_messages]")
 	elif int(peer.refused) % int(MSG_RATE) == 1:
 		flag(peer.account, "flood", "messages more often than %d a second are not read" % int(MSG_RATE), 1)
 	return false

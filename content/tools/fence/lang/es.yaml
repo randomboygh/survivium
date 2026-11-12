@@ -2,11 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fence/bundle.yaml
-"Забор": "Valla"
+"[tools.fence.bundle]": "Valla"
 
 # content/tools/fence/data/items.yaml
-"Звено изгороди из жердей. Строится в режиме строительства линией, как стена, и само соединяется с соседними.": "Un tramo de valla de varas. Se construye en modo construcción como línea, igual que una pared, y se une sola con las vecinas."
-"Калитка": "Portillo"
-"Створка из жердей в линию забора, на одну клетку. Касание открывает и закрывает.": "Una hoja de varas en la línea de la valla, de una celda. Un toque la abre y la cierra."
-"Ворота": "Portón"
-"Две створки из жердей в линию забора, на две клетки в ширину. Касание открывает обе.": "Dos hojas de varas en la línea de la valla, de dos celdas de ancho. Un toque abre ambas."
+"[tools.items.fence]": "Valla"
+"[tools.items.fence.about]": "Un tramo de valla de varas. Se construye en modo construcción como línea, igual que una pared, y se une sola con las vecinas."
+"[tools.items.wicket]": "Portillo"
+"[tools.items.wicket.about]": "Una hoja de varas en la línea de la valla, de una celda. Un toque la abre y la cierra."
+"[tools.items.gate]": "Portón"
+"[tools.items.gate.about]": "Dos hojas de varas en la línea de la valla, de dos celdas de ancho. Un toque abre ambas."
+
+# content/tools/fence/data/recipes.yaml
+"[tools.recipes.fence]": "Valla"
+"[tools.recipes.wicket]": "Portillo"
+"[tools.recipes.gate]": "Portón"

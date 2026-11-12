@@ -2,9 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/carrot/bundle.yaml
-"Морковь": "Cenoura"
+"[plants.carrot.bundle]": "Cenoura"
 
 # content/plants/carrot/data/items.yaml
-"Семена моркови": "Sementes de cenoura"
-"Мелкие ребристые семена. Посейте их на грядку весной.": "Sementes pequenas e estriadas. Semeie-as num canteiro na primavera."
-"Сладкий оранжевый корнеплод.": "Uma raiz laranja e doce."
+"[plants.items.carrot_seeds]": "Sementes de cenoura"
+"[plants.items.carrot_seeds.about]": "Sementes pequenas e estriadas. Semeie-as num canteiro na primavera."
+"[plants.items.carrot]": "Cenoura"
+"[plants.items.carrot.about]": "Uma raiz laranja e doce."
+
+# content/plants/carrot/data/plants.yaml
+"[plants.plants.carrot]": "Cenoura"

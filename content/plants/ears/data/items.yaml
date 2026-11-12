@@ -4,20 +4,20 @@
 # сажает предмет; sow — материал основы, на который сеют семена; crop — посев, который из них
 # вырастает на грядке (зерно — пшеница).
 - id: grain
-  title: Зерно
+  title: "[plants.items.grain]"
   weight: 0.02
   stack: 50
   model: grain
   icon: grain
   crop: wheat
 - id: flour
-  title: Мука
+  title: "[plants.items.flour]"
   weight: 0.1
   stack: 30
   model: flour
   icon: flour
 - id: flatbread
-  title: Лепёшка
+  title: "[plants.items.flatbread]"
   weight: 0.2
   stack: 10
   food: 25

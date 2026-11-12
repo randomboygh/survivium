@@ -8,13 +8,13 @@
 # руками, а не срезают (так и пишет подсказка); winter: false — зимой его нет.
 - id: mushrooms
   kind: mushrooms
-  title: Грибы
+  title: "[plants.plants.mushrooms]"
   gives: {mushroom: 2}
   pick: true
   winter: false
 - id: glow_mushrooms
   kind: glow_mushrooms
-  title: Светящиеся грибы
+  title: "[plants.plants.glow_mushrooms]"
   gives: {glow_mushroom: 2}
   pick: true
   winter: false

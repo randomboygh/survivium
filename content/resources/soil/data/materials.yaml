@@ -3,7 +3,7 @@
 # (content/core/data/materials.yaml); звуки по имени, из мода «Звуки». Кремень — бандл
 # «Камень»: без него песок даёт только песок.
 - id: sand
-  title: Песок
+  title: "[resources.materials.sand]"
   role: beach
   corners: round
   slope: true
@@ -19,7 +19,7 @@
   step: step_sand
   hit: dig
 - id: clay
-  title: Глина
+  title: "[resources.materials.clay]"
   role: bank
   corners: soft
   slope: true
@@ -34,7 +34,7 @@
 # (role bed_wet), и только на мокрой растёт посеянное (src/shared/game/actions_farm.gd). Выкопанная
 # лопатой даёт землю, посеянное на ней пропадает.
 - id: bed
-  title: Грядка
+  title: "[resources.materials.bed]"
   role: bed
   priority: 5
   item: dirt
@@ -42,7 +42,7 @@
   step: step_dirt
   hit: dig
 - id: bed_wet
-  title: Мокрая грядка
+  title: "[resources.materials.bed_wet]"
   role: bed_wet
   priority: 5
   item: dirt

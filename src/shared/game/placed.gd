@@ -998,7 +998,7 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 			or inv.slots[slot][0] != item.id:
 		return false
 	if item.place_tool != "none" and not Tools.holds(inv, item.place_tool):
-		who.nag("put", Lang.line("Чтобы поставить, нужен инструмент: %s", [Items.tool_title(item.place_tool)]))
+		who.nag("put", Lang.line("[to_place_it_you_need]", [Items.tool_title(item.place_tool)]))
 		return false
 	var turn := turn_facing(who.facing_step())
 	var shape := _shape_of(item.id, turn)
@@ -1006,7 +1006,7 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 	var rest := rest_of(item.id)
 	var spot: Variant = _spot_in_front(who, top, n, shape.offsets, rest, shape.high)
 	if spot == null:
-		who.nag("put", "Перед собой нет стены" if rest == ON_WALL else Lang.line("Нужно ровное место %d×%d перед собой", [n, n]) if rest != ANYWHERE else "Перед собой нет места для ступеней")
+		who.nag("put", "[there_is_no_wall_in]" if rest == ON_WALL else Lang.line("[needs_a_level_space_in]", [n, n]) if rest != ANYWHERE else "[no_room_for_stairs_in]")
 		return false
 	if rest == ON_WALL:
 		turn = wall_turn(spot, turn)
@@ -1039,14 +1039,14 @@ func put_at(who, id: String, aim: Vector3i, top: int) -> bool:
 		if slot < 0 and inv.slots[i] != null and inv.slots[i][0] == item.id:
 			slot = i
 	if slot < 0:
-		who.nag("put", Lang.line("В сумке нет: %s", [Items.title(id)]))
+		who.nag("put", Lang.line("[not_in_the_bag]", [Items.title(id)]))
 		return false
 	if item.place_tool != "none" and not Tools.holds(inv, item.place_tool):
-		who.nag("put", Lang.line("Чтобы поставить, нужен инструмент: %s", [Items.tool_title(item.place_tool)]))
+		who.nag("put", Lang.line("[to_place_it_you_need]", [Items.tool_title(item.place_tool)]))
 		return false
 	var p: Vector3 = who.position / CELL
 	if Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z).length() > Tools.PLACE_REACH or absf(aim.y - p.y) > Tools.PLACE_REACH:
-		who.nag("put", "Слишком далеко")
+		who.nag("put", "[too_far]")
 		return false
 	var turn := turn_facing(Tools.step_of(Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z)))
 	var rest := rest_of(item.id)
@@ -1067,7 +1067,7 @@ func put_at(who, id: String, aim: Vector3i, top: int) -> bool:
 	var spot: Variant = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, n, shape.offsets, rest, shape.high, cut_from)
 	_swap_fences = false
 	if spot == null:
-		who.nag("put", Lang.line("Здесь нет места: %s", [Items.title(id)]))
+		who.nag("put", Lang.line("[no_room_here]", [Items.title(id)]))
 		return false
 	if item.get("door", false) and item.get("fence", false):
 		# A wicket or a gate set into a fence: the segments where it goes back into the bag.
@@ -1077,7 +1077,7 @@ func put_at(who, id: String, aim: Vector3i, top: int) -> bool:
 				if territory != null and not territory.may(who, f.cell, "build"):
 					return false
 				if who.give(f.item, 1) < 1:
-					who.nag("full", "Сумка полна")
+					who.nag("full", "[the_bag_is_full]")
 					return false
 				_remove(f)
 	if rest == ON_WALL:
@@ -1144,22 +1144,22 @@ func take_up(who, e: Dictionary) -> bool:
 		return take_light(who, e)
 	if is_grave(e):
 		_remove(e)
-		who.say("Крест убран")
+		who.say("[cross_removed]")
 		return true
 	if is_fire(e) and not is_hearth(e):
-		who.nag("take", Lang.line("%s не унести: его можно потушить и разобрать", [Items.title(e.item)]))
+		who.nag("take", Lang.line("[cant_be_carried_put_it]", [Items.title(e.item)]))
 		return false
 	if is_fire(e) and e.lit:
-		who.nag("take", Lang.line("%s горит: сначала потушите", [Items.title(e.item)]))
+		who.nag("take", Lang.line("[is_burning_put_it_out]", [Items.title(e.item)]))
 		return false
 	var inv = who.inventory
 	var full: bool = e.items != null and not e.items.is_empty()
 	# A sign keeps its words in the bag (Inventory.text_of): set down again, it says them.
 	if (inv.add(e.item, 1, 0, e.items.to_dict()) if full else who.give(e.item, 1, 0, Inventory.NORMAL, e.get("text", ""))) < 1:
-		who.nag("full", "Сумка полна")
+		who.nag("full", "[the_bag_is_full]")
 		return false
 	if full:
-		who.say(Lang.line("+1 %s с вещами", [Items.title(e.item)]))
+		who.say(Lang.line("[1_with_things]", [Items.title(e.item)]))
 	_remove(e)
 	return true
 
@@ -1180,7 +1180,7 @@ func light(who, e: Dictionary) -> bool:
 		return e.lit
 	var fuel := fuel_for(who.inventory)
 	if fuel == "" or who.inventory.remove(fuel, 1) < 1:
-		who.nag("light", "Чтобы разжечь, нужна ветка или другое топливо")
+		who.nag("light", "[to_light_it_you_need]")
 		return false
 	_add_fuel(e, fuel)
 	e.wet = 0.0
@@ -1202,11 +1202,11 @@ func feed(who, e: Dictionary) -> bool:
 	if most <= 0.0:
 		return false
 	if most - e.fuel < FUEL_ROOM:
-		who.nag("fuel", "Костёр и так горит в полную силу")
+		who.nag("fuel", "[the_campfire_is_already_burning]")
 		return false
 	var fuel := fuel_for(who.inventory)
 	if fuel == "" or who.inventory.remove(fuel, 1) < 1:
-		who.nag("fuel", "Подложить нечего: нужна ветка, бревно или другое топливо")
+		who.nag("fuel", "[nothing_to_add_needs_a]")
 		return false
 	_add_fuel(e, fuel)
 	world.note_edit(e.cell.x, e.cell.z)
@@ -1513,7 +1513,7 @@ func put_light_from_bag(who, id: String, top: int) -> bool:
 	if spot != null and territory != null and not territory.may(who, spot, "build"):
 		return false
 	if spot == null:
-		who.nag("put", "Некуда поставить: нужна свободная клетка на земле перед собой")
+		who.nag("put", "[nowhere_to_place_it_needs]")
 		return false
 	if not who.act("place"):
 		return false
@@ -1533,7 +1533,7 @@ func put_light_from_bag(who, id: String, top: int) -> bool:
 ## after the ones already lit, see Character.burning). True if it was taken.
 func take_light(who, e: Dictionary) -> bool:
 	if who.give(e.item, 1) < 1:
-		who.nag("full", "Сумка полна")
+		who.nag("full", "[the_bag_is_full]")
 		return false
 	if "burning" in who and float(e.burnt) > 0.0:
 		var lit: Array = who.burning.get(e.item, [])

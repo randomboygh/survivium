@@ -371,7 +371,7 @@ func _update_grade(golden: float, night: float, moonlight: float) -> void:
 ## rule of the season (bushes, twigs, grass) is the session's (Session._init).
 func on_season(season: int) -> void:
 	print("season: %s" % Clock.SEASONS[season])
-	game.hud.toast(["Наступила весна", "Наступило лето", "Наступила осень", "Наступила зима"][season])
+	game.hud.toast(["[spring_has_come]", "[summer_has_come]", "[autumn_has_come]", "[winter_has_come]"][season])
 
 
 ## Name of the HUD icon for the sky now: the weather, or the moon by its phase at

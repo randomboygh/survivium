@@ -1,16 +1,16 @@
 # Предметы бандла «Морковь»: семена (их иногда находят, срезая травы; crop — посев) и морковь.
 # Поля — как у предметов основы (content/core/data/items.yaml).
 - id: carrot_seeds
-  title: Семена моркови
-  description: Мелкие ребристые семена. Посейте их на грядку весной.
+  title: "[plants.items.carrot_seeds]"
+  description: "[plants.items.carrot_seeds.about]"
   weight: 0.01
   stack: 50
   model: carrot_seeds
   icon: carrot_seeds
   crop: carrot
 - id: carrot
-  title: Морковь
-  description: Сладкий оранжевый корнеплод.
+  title: "[plants.items.carrot]"
+  description: "[plants.items.carrot.about]"
   weight: 0.1
   stack: 30
   food: 6

@@ -6,7 +6,7 @@
 # (sprites/held/<sprite>.png): самая яркая точка кадра — где горит огонь. scares — горящая вещь в руке
 # или поставленная держит зверей, которые боятся огня, на столько мировых единиц.
 - id: torch
-  title: Факел
+  title: "[tools.items.torch]"
   era: core:primitive
   weight: 0.3
   stack: 5

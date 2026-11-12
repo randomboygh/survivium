@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/music/data/sounds.yaml
+"[music.sounds.note_pluck]": "Нота, щипок"
+"[music.sounds.note_bell]": "Нота, колокольчик"
+"[music.sounds.pad]": "Протяжный тон"
+
+# content/music/mod.yaml
+"[music.mod]": "Музыка"

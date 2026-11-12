@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hoe/bundle.yaml
-"Тяпка": "Motyka"
+"[tools.hoe.bundle]": "Motyka"
 
 # content/tools/hoe/data/items.yaml
-"Каменная тяпка": "Kamienna motyka"
-"Вскапывает траву и землю в грядку, на которую сеют.": "Przekopuje trawę i ziemię na grządkę do siewu."
-"Медная тяпка": "Miedziana motyka"
-"Вскапывает две клетки за взмах.": "Przekopuje dwa pola na uderzenie."
-"Железная тяпка": "Żelazna motyka"
-"Вскапывает три клетки за взмах.": "Przekopuje trzy pola na uderzenie."
+"[tools.items.stone_hoe]": "Kamienna motyka"
+"[tools.items.stone_hoe.about]": "Przekopuje trawę i ziemię na grządkę do siewu."
+"[tools.items.copper_hoe]": "Miedziana motyka"
+"[tools.items.copper_hoe.about]": "Przekopuje dwa pola na uderzenie."
+"[tools.items.iron_hoe]": "Żelazna motyka"
+"[tools.items.iron_hoe.about]": "Przekopuje trzy pola na uderzenie."
+
+# content/tools/hoe/data/recipes.yaml
+"[tools.recipes.stone_hoe]": "Kamienna motyka"
+"[tools.recipes.copper_hoe]": "Miedziana motyka"
+"[tools.recipes.iron_hoe]": "Żelazna motyka"

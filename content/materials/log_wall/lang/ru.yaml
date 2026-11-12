@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/log_wall/bundle.yaml
+"[materials.log_wall.bundle]": "Сруб"
+
+# content/materials/log_wall/data/items.yaml
+"[materials.items.log_wall]": "Сруб"
+"[materials.items.log_wall.about]": "Отёсанные брёвна для стен и пола. Ставится блоком."
+
+# content/materials/log_wall/data/materials.yaml
+"[materials.materials.log_wall]": "Сруб"
+
+# content/materials/log_wall/data/recipes.yaml
+"[materials.recipes.log_wall]": "Сруб"

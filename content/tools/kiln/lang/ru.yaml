@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/kiln/bundle.yaml
+"[tools.kiln.bundle]": "Печь для обжига"
+
+# content/tools/kiln/data/items.yaml
+"[tools.items.kiln]": "Печь для обжига"
+
+# content/tools/kiln/data/recipes.yaml
+"[tools.recipes.kiln]": "Печь для обжига"
+"[tools.recipes.brick]": "Кирпич"
+"[tools.recipes.charcoal]": "Уголь"

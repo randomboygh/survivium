@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/willow/bundle.yaml
-"Ива": "Salice"
+"[plants.willow.bundle]": "Salice"
+
+# content/plants/willow/data/trees.yaml
+"[plants.trees.willow]": "Salice"

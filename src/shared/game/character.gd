@@ -99,11 +99,11 @@ func _burn_light(delta: float) -> void:
 		var was: float = lit[k]
 		lit[k] = was + delta
 		if was < lasts - BURN_WARN and lit[k] >= lasts - BURN_WARN and inventory.count(id) == 1 + k:
-			say(Lang.line("%s догорает", [Items.title(id)]))
+			say(Lang.line("[is_burning_out]", [Items.title(id)]))
 		if lit[k] >= lasts:
 			lit.remove_at(k)
 			if inventory.remove(id, 1) > 0:
-				say(Lang.line("Догорело: %s", [Items.title(id)]))
+				say(Lang.line("[burned_out]", [Items.title(id)]))
 			told = true
 		elif floori(lit[k] / BURN_TELL) != floori(was / BURN_TELL):
 			told = true
@@ -303,10 +303,10 @@ func update(delta: float) -> void:
 	if vitals.asleep:
 		if vitals.health < was - 0.5 or body.swimming:
 			vitals.sleep(false)
-			say("Вы проснулись")
+			say("[you_woke_up]")
 		elif vitals.energy >= vitals.MAX and clock.daylight() > 0.5:
 			vitals.sleep(false)
-			say("Вы выспались")
+			say("[you_slept_well]")
 	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
 	body.swim_scale = skills.boost("swim")
 	body.vessel = vessel_pace()
@@ -357,7 +357,7 @@ func _fall(p: Vector3, delta: float, leapt := false) -> void:
 	var hurt: float = vitals.fall(levels, water == 1)
 	if hurt > 0.0:
 		note("falls")
-		say(Lang.line("Падение с высоты: −%d здоровья", [roundi(hurt)]))
+		say(Lang.line("[fall_from_a_height_health]", [roundi(hurt)]))
 
 
 ## The sacks whose SACK_DAYS have passed are no longer marked on the maps (the world
@@ -435,7 +435,7 @@ func _touch_fire(p: Vector3) -> void:
 	if away.length() < 0.01:
 		away = Vector2(0.0, 1.0)
 	body.knock(away, BURN_KNOCK, BURN_HOP)
-	nag("fire", "Горячо!")
+	nag("fire", "[hot]")
 
 
 ## Whether the character may jump now: not when overloaded or out of breath.
@@ -451,7 +451,7 @@ func act(action: String, role := "") -> bool:
 		if COUNTED.has(action):
 			note(COUNTED[action])
 		return true
-	nag("tired", "Нет сил, нужно отдышаться")
+	nag("tired", "[no_strength_you_need_to]")
 	return false
 
 
@@ -463,9 +463,9 @@ func give(id: String, n: int, worn := 0, q := Inventory.NORMAL, text := "") -> i
 	if got > 0:
 		say(Lang.line("+%d %s", [got, Items.title(id)]))
 		if inventory.overloaded():
-			nag("heavy", Lang.line("Перегруз: %.1f из %d кг", [inventory.weight(), inventory.weight_limit]))
+			nag("heavy", Lang.line("[overload_of_kg]", [inventory.weight(), inventory.weight_limit]))
 	if got < n:
-		nag("full", "Сумка полна")
+		nag("full", "[the_bag_is_full]")
 	return got
 
 
@@ -481,37 +481,37 @@ func eat(i: int) -> bool:
 	var heal := Items.heal(s[0]) * k
 	if Items.heal(s[0]) > 0.0 and Items.food(s[0]) <= 0.0 and Items.heal_time(s[0]) > 0.0:
 		if vitals.mending > 0.0:
-			nag("mending", "Припарка ещё лечит")
+			nag("mending", "[the_poultice_is_still_healing]")
 			return false
 		if not vitals.mend(heal, Items.heal_time(s[0])):
-			nag("not_hurt", "Здоровье и так полное")
+			nag("not_hurt", "[health_is_already_full]")
 			return false
 		inventory.take_slot(i, 1)
 		note("healed")
-		say(Lang.line("+%d здоровья за %d с", [roundi(heal), roundi(Items.heal_time(s[0]))]))
+		say(Lang.line("[health_over_s]", [roundi(heal), roundi(Items.heal_time(s[0]))]))
 		return true
 	if Items.heal(s[0]) > 0.0 and Items.food(s[0]) <= 0.0:
 		if not vitals.heal(heal):
-			nag("not_hurt", "Здоровье и так полное")
+			nag("not_hurt", "[health_is_already_full]")
 			return false
 		inventory.take_slot(i, 1)
 		note("healed")
-		say(Lang.line("+%d здоровья", [roundi(heal)]))
+		say(Lang.line("[health]", [roundi(heal)]))
 		return true
 	if Items.drink(s[0]) > 0.0 and Items.food(s[0]) <= 0.0:
 		if not vitals.drink(Items.drink(s[0]) * k):
-			nag("not_thirsty", "Пить не хочется")
+			nag("not_thirsty", "[not_thirsty]")
 			return false
 		var empty := Items.get_item(s[0]).get("empties_to", "") as String
 		inventory.take_slot(i, 1)
 		if empty != "" and give(empty, 1) == 0:
-			nag("full", "Сумка полна")
+			nag("full", "[the_bag_is_full]")
 		note("drunk")
 		return true
 	if Items.food(s[0]) <= 0.0:
 		return false
 	if not vitals.eat(Items.food(s[0]) * k):
-		nag("full_belly", "Больше не хочется")
+		nag("full_belly", "[you_dont_want_any_more]")
 		return false
 	# Good food also heals a little and quenches thirst (its `heal` and `drink`).
 	if Items.heal(s[0]) > 0.0:
@@ -529,11 +529,11 @@ func eat(i: int) -> bool:
 ## goes by fast (Session.sleep_speed).
 func sleep(on: bool, to_bed := true) -> bool:
 	if on and body.swimming:
-		nag("sleep", "В воде не уснуть")
+		nag("sleep", "[you_cant_fall_asleep_in]")
 		return false
 	var why := vitals.sleep(on)
 	if why == "rested":
-		nag("sleep", "Спать не хочется")
+		nag("sleep", "[not_sleepy]")
 		return false
 	if on and to_bed and placed != null and placed.bed_under(position).is_empty():
 		var bed: Dictionary = placed.nearest_bed(position, BED_REACH)
@@ -557,7 +557,7 @@ func sleep_rate(p: Vector3) -> float:
 ## taken up only in the build mode). False if it did not lie down.
 func lie_in(e: Dictionary) -> bool:
 	if not vitals.asleep and not vitals.sleepy():
-		nag("sleep", "Спать пока не хочется")
+		nag("sleep", "[not_sleepy_yet]")
 		return false
 	if not sleep(true, false):
 		return false
@@ -569,7 +569,7 @@ func lie_in(e: Dictionary) -> bool:
 func wear(i: int) -> bool:
 	var why := inventory.wear(i)
 	if why == "inside":
-		nag("wear", "Сумку не надеть из её же ячеек: переложи её выше")
+		nag("wear", "[a_bag_cant_be_worn]")
 	return why == ""
 
 
@@ -578,7 +578,7 @@ func wear(i: int) -> bool:
 func take_off(on: String) -> bool:
 	var why := inventory.take_off(on)
 	if why == "full":
-		nag("take_off", "Нет свободной ячейки в сумке")
+		nag("take_off", "[no_free_slot_in_the]")
 	return why == ""
 
 
@@ -597,7 +597,7 @@ func _now() -> float:
 ## things in it (it is put down instead).
 func throw_away(i: int, n: int) -> void:
 	if inventory.contents(i) != null:
-		nag("throw", "Сундук с вещами не бросить: поставь его")
+		nag("throw", "[a_chest_with_things_cant]")
 		return
 	var taken = inventory.take_slot(i, n)
 	if taken == null:
@@ -689,7 +689,7 @@ func is_dead() -> bool:
 ## world units]: their bed, the fires of theirs and of their team (respawns), then the
 ## spawn's campfire.
 func respawn_points() -> Array:
-	return respawns + [["У костра старта", home]]
+	return respawns + [["[at_the_starting_campfire]", home]]
 
 
 ## Finds the places the character may come back at (respawns) among the things of `camp`
@@ -707,14 +707,14 @@ func find_respawns(camp, teams) -> bool:
 	for i in range(things.size() - 1, -1, -1):
 		var e: Dictionary = things[i]
 		if bed.is_empty() and e.get("by") == id and camp.is_bed(e):
-			bed = ["У своей кровати", camp.lying_spot(e)]
+			bed = ["[at_your_bed]", camp.lying_spot(e)]
 		if not e.has("by") or seen.has(e.by) or not camp.is_fire(e):
 			continue
 		var by: int = e.by
 		if by != id and (teams == null or not teams.together(by, id)):
 			continue
 		seen[by] = true
-		var title := "У своего костра" if by == id else Lang.line("У костра «%s»", [str(teams.names.get(by, "?"))])
+		var title := "[at_your_campfire]" if by == id else Lang.line("[at_s_campfire]", [str(teams.names.get(by, "?"))])
 		var at: Vector3 = camp.stand_by(e)
 		if by == id:
 			out.push_front([title, at])
@@ -780,24 +780,24 @@ func _came_back(_at: Vector3) -> void:
 static func cause_text(cause: String) -> Array:
 	if cause.begins_with("player:"):
 		var by := cause.substr(7)
-		return ["Вас убили", Lang.line("игрок «%s»", [by]) if by != "" else "другой игрок"]
+		return ["[you_were_killed]", Lang.line("[player]", [by]) if by != "" else "[another_player]"]
 	if cause.begins_with("animal:"):
 		var spec: Dictionary = AiRules.SPECIES.get(cause.substr(7), {})
-		return ["Вас загрыз зверь", str(spec.get("title", "")).to_lower()]
+		return ["[an_animal_mauled_you]", str(spec.get("title", ""))]
 	match cause:
 		"hunger":
-			return ["Вы умерли", "от голода"]
+			return ["[you_died]", "[of_hunger]"]
 		"water":
-			return ["Вы утонули", "в воде кончились силы"]
+			return ["[you_drowned]", "[you_ran_out_of_strength]"]
 		"fire":
-			return ["Вы сгорели", "в огне костра"]
+			return ["[you_burned]", "[in_the_campfires_flames]"]
 		"cold":
-			return ["Вы замёрзли", "ночь без огня и тёплой одежды"]
+			return ["[you_froze]", "[a_night_without_fire_or]"]
 		"thirst":
-			return ["Вы умерли", "от жажды"]
+			return ["[you_died]", "[of_thirst]"]
 		"fall":
-			return ["Вы разбились", "упали с большой высоты"]
-	return ["Вы погибли", ""]
+			return ["[you_crashed]", "[fell_from_a_great_height]"]
+	return ["[you_perished]", ""]
 
 
 ## The death and this life's statistics, kept in the player's save (see SaveGame.track).

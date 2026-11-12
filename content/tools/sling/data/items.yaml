@@ -3,8 +3,8 @@
 # оружие); удар по зверю — power. Кнопка действия стреляет туда, куда смотрит персонаж, касание земли — туда,
 # где коснулись; выстрел попадает в первого зверя на пути, а выпущенное ложится там, где упало.
 - id: cord_sling
-  title: Праща
-  description: Ремень из верёвки: мечет камешки дальше, чем рука.
+  title: "[tools.items.cord_sling]"
+  description: "[tools.items.cord_sling.about]"
   weight: 0.2
   stack: 1
   model: cord_sling
@@ -20,8 +20,8 @@
   durability: 450
   repair: {materials:cord: 1}
 - id: sling_stone
-  title: Камешки
-  description: Круглые камешки для пращи.
+  title: "[tools.items.sling_stone]"
+  description: "[tools.items.sling_stone.about]"
   weight: 0.1
   stack: 40
   model: sling_stone

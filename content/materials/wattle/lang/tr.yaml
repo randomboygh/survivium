@@ -2,7 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/wattle/bundle.yaml
-"Плетень": "Örgü duvar"
+"[materials.wattle.bundle]": "Örgü duvar"
 
 # content/materials/wattle/data/items.yaml
-"Сплетённые ветки. Лёгкая стена, пока нет топора.": "Örülmüş dallar. Balta olana dek hafif bir duvar."
+"[materials.items.wattle]": "Örgü duvar"
+"[materials.items.wattle.about]": "Örülmüş dallar. Balta olana dek hafif bir duvar."
+
+# content/materials/wattle/data/materials.yaml
+"[materials.materials.wattle]": "Örgü duvar"
+
+# content/materials/wattle/data/recipes.yaml
+"[materials.recipes.wattle]": "Örgü duvar"

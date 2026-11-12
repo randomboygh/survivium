@@ -2,13 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/animals/wool/bundle.yaml
-"Пух": "Flaum"
+"[animals.wool.bundle]": "Flaum"
 
 # content/animals/wool/data/items.yaml
-"Заячий пух": "Hasenflaum"
-"Мягкий пух ручного зайца. Его срезают ножом и прядут в пряжу.": "Weicher Flaum eines zahmen Hasen. Er wird mit dem Messer geschnitten und zu Garn gesponnen."
-"Пушистая пряжа": "Flauschiges Garn"
-"Тёплая пряжа из заячьего пуха. На ткацком станке из неё ткут ткань.": "Warmes Garn aus Hasenflaum. Am Webstuhl wird daraus Stoff gewebt."
+"[animals.items.rabbit_fluff]": "Hasenflaum"
+"[animals.items.rabbit_fluff.about]": "Weicher Flaum eines zahmen Hasen. Er wird mit dem Messer geschnitten und zu Garn gesponnen."
+"[animals.items.wool_yarn]": "Flauschiges Garn"
+"[animals.items.wool_yarn.about]": "Warmes Garn aus Hasenflaum. Am Webstuhl wird daraus Stoff gewebt."
 
 # content/animals/wool/data/recipes.yaml
-"Ткань из пряжи": "Stoff aus Garn"
+"[animals.recipes.wool_yarn]": "Flauschiges Garn"
+"[animals.recipes.cloth_from_wool_yarn]": "Stoff aus Garn"

@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/bronze/bundle.yaml
-"Бронза": "Brąz"
+"[materials.bronze.bundle]": "Brąz"
 
 # content/materials/bronze/data/items.yaml
-"Сырой тигель": "Surowy tygiel"
-"Толстостенная чаша из глины с песком. Её ещё нужно обжечь в печи.": "Grubościenna misa z gliny z piaskiem. Trzeba ją jeszcze wypalić w piecu."
-"Тигель": "Tygiel"
-"Обожжённая чаша для плавки. В ней сплавляют медь с оловом; сама она не тратится.": "Wypalona misa do wytopu. Stapia się w niej miedź z cyną; sama się nie zużywa."
-"Бронзовый слиток": "Sztabka brązu"
-"Медь с оловом: твёрже меди. Из бронзы — инструменты, которые берут железную руду.": "Miedź z cyną: twardsza od miedzi. Z brązu robi się narzędzia, które wydobywają rudę żelaza."
+"[materials.items.raw_crucible]": "Surowy tygiel"
+"[materials.items.raw_crucible.about]": "Grubościenna misa z gliny z piaskiem. Trzeba ją jeszcze wypalić w piecu."
+"[materials.items.crucible]": "Tygiel"
+"[materials.items.crucible.about]": "Wypalona misa do wytopu. Stapia się w niej miedź z cyną; sama się nie zużywa."
+"[materials.items.bronze_bar]": "Sztabka brązu"
+"[materials.items.bronze_bar.about]": "Miedź z cyną: twardsza od miedzi. Z brązu robi się narzędzia, które wydobywają rudę żelaza."
+
+# content/materials/bronze/data/recipes.yaml
+"[materials.recipes.raw_crucible]": "Surowy tygiel"
+"[materials.recipes.crucible]": "Tygiel"
+"[materials.recipes.bronze_bar]": "Sztabka brązu"

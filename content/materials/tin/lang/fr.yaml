@@ -2,10 +2,16 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/tin/bundle.yaml
-"Олово": "Étain"
+"[materials.tin.bundle]": "Étain"
 
 # content/materials/tin/data/items.yaml
-"Оловянная руда": "Minerai d'étain"
-"Тёмная тяжёлая руда со светлыми крупинками. Её берёт медная кирка.": "Un minerai sombre et lourd aux grains clairs. Une pioche de cuivre l'extrait."
-"Слиток олова": "Lingot d'étain"
-"Мягкий серебристый металл. С медью даёт бронзу.": "Un métal argenté et mou. Avec du cuivre il donne du bronze."
+"[materials.items.tin_ore]": "Minerai d'étain"
+"[materials.items.tin_ore.about]": "Un minerai sombre et lourd aux grains clairs. Une pioche de cuivre l'extrait."
+"[materials.items.tin_bar]": "Lingot d'étain"
+"[materials.items.tin_bar.about]": "Un métal argenté et mou. Avec du cuivre il donne du bronze."
+
+# content/materials/tin/data/materials.yaml
+"[materials.materials.tin_ore]": "Minerai d'étain"
+
+# content/materials/tin/data/recipes.yaml
+"[materials.recipes.tin_bar]": "Lingot d'étain"

@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/bronze/bundle.yaml
-"Бронза": "Бронза"
+"[materials.bronze.bundle]": "Бронза"
 
 # content/materials/bronze/data/items.yaml
-"Сырой тигель": "Сирий тигель"
-"Толстостенная чаша из глины с песком. Её ещё нужно обжечь в печи.": "Товстостінна чаша з глини з піском. Її ще треба випалити в печі."
-"Тигель": "Тигель"
-"Обожжённая чаша для плавки. В ней сплавляют медь с оловом; сама она не тратится.": "Випалена чаша для плавлення. У ній сплавляють мідь з оловом; сама вона не витрачається."
-"Бронзовый слиток": "Бронзовий зливок"
-"Медь с оловом: твёрже меди. Из бронзы — инструменты, которые берут железную руду.": "Мідь з оловом: твердіша за мідь. З бронзи — інструменти, що беруть залізну руду."
+"[materials.items.raw_crucible]": "Сирий тигель"
+"[materials.items.raw_crucible.about]": "Товстостінна чаша з глини з піском. Її ще треба випалити в печі."
+"[materials.items.crucible]": "Тигель"
+"[materials.items.crucible.about]": "Випалена чаша для плавлення. У ній сплавляють мідь з оловом; сама вона не витрачається."
+"[materials.items.bronze_bar]": "Бронзовий зливок"
+"[materials.items.bronze_bar.about]": "Мідь з оловом: твердіша за мідь. З бронзи — інструменти, що беруть залізну руду."
+
+# content/materials/bronze/data/recipes.yaml
+"[materials.recipes.raw_crucible]": "Сирий тигель"
+"[materials.recipes.crucible]": "Тигель"
+"[materials.recipes.bronze_bar]": "Бронзовий зливок"

@@ -69,12 +69,12 @@ func _on_learned(ids: PackedStringArray) -> void:
 ## "Новый рецепт: X", or for more "Новые рецепты: X, Y и ещё N".
 static func learned_line(ids: PackedStringArray) -> String:
 	if ids.size() == 1:
-		return Lang.line("Новый рецепт: %s", [Crafting.get_recipe(ids[0]).title])
+		return Lang.line("[new_recipe]", [Crafting.get_recipe(ids[0]).title])
 	var a: String = Crafting.get_recipe(ids[0]).title
 	var b: String = Crafting.get_recipe(ids[1]).title
 	if ids.size() == 2:
-		return Lang.line("Новые рецепты: %s, %s", [a, b])
-	return Lang.line("Новые рецепты: %s, %s и ещё %d", [a, b, ids.size() - 2])
+		return Lang.line("[new_recipes]", [a, b])
+	return Lang.line("[new_recipes_and_more]", [a, b, ids.size() - 2])
 
 
 func _on_queue_changed() -> void:
@@ -117,7 +117,7 @@ func start(r: Dictionary, times := 1) -> int:
 		n += 1
 	if n == 0:
 		var why := why_not(r)
-		who.nag("craft", why if why != "" else "Очередь полна")
+		who.nag("craft", why if why != "" else "[the_queue_is_full]")
 	return n
 
 
@@ -159,7 +159,7 @@ func update(delta: float) -> void:
 		who.note("crafted", r.count)
 		if sk != null:
 			sk.gain_recipe(role_of(r), r.id, r.time)
-		who.say(Lang.line("Готово: %s", [r.title]))
+		who.say(Lang.line("[done]", [r.title]))
 		made.emit(r)
 
 
@@ -261,7 +261,7 @@ func use_tool() -> void:
 	if sk != null and sk.spares(Tools.role_of(id)):
 		return
 	if who.inventory.wear_tool(id, Items.get_item(id).durability):
-		who.say(Lang.line("Сломалось: %s", [Items.title(id)]))
+		who.say(Lang.line("[broke]", [Items.title(id)]))
 
 
 ## Recipe `r` made wears a tool of each class it needs by its `wear` swings, when wear is
@@ -278,7 +278,7 @@ func _wear_tools(r: Dictionary) -> void:
 			if sk != null and sk.spares(role_of(r)):
 				continue
 			if who.inventory.wear_tool(id, Items.get_item(id).durability):
-				who.say(Lang.line("Сломалось: %s", [Items.title(id)]))
+				who.say(Lang.line("[broke]", [Items.title(id)]))
 				break
 
 
@@ -293,20 +293,20 @@ func why_not_repair(i: int) -> String:
 	var inv = who.inventory
 	var s = inv.slots[i]
 	if s == null or inv.worn(i) == 0:
-		return "Чинить нечего"
+		return "[nothing_to_repair]"
 	var benches := Array(Items.IDS).filter(func(id: String) -> bool: return Items.get_item(id).repairs)
 	if benches.is_empty():
-		return "Чинить негде: нет станка для починки"
+		return "[nowhere_to_repair_no_repair]"
 	var near := stations()
 	if not benches.any(func(id: String) -> bool: return near.has(id)):
-		return Lang.line("Чинят у станка: %s", [Items.title(benches[0])])
+		return Lang.line("[repaired_at_a_station]", [Items.title(benches[0])])
 	var item := Items.get_item(s[0])
 	var short := {}
 	for id in item.repair:
 		if inv.count(id) < item.repair[id]:
 			short[id] = item.repair[id] - inv.count(id)
 	if not short.is_empty():
-		return Lang.line("Не хватает: %s", [Crafting.amounts_text(short)])
+		return Lang.line("[missing]", [Crafting.amounts_text(short)])
 	return ""
 
 
@@ -321,5 +321,5 @@ func repair(i: int) -> bool:
 	for id in item.repair:
 		inv.remove(id, item.repair[id])
 	inv.mend(i)
-	who.say(Lang.line("Починено: %s", [item.title]))
+	who.say(Lang.line("[repaired]", [item.title]))
 	return true

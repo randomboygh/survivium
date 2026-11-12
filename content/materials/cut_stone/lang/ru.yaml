@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/cut_stone/bundle.yaml
+"[materials.cut_stone.bundle]": "Тёсаный камень"
+
+# content/materials/cut_stone/data/items.yaml
+"[materials.items.cut_stone]": "Тёсаный камень"
+"[materials.items.cut_stone.about]": "Ровные каменные блоки для прочных стен и пола."
+
+# content/materials/cut_stone/data/materials.yaml
+"[materials.materials.cut_stone]": "Тёсаный камень"
+
+# content/materials/cut_stone/data/recipes.yaml
+"[materials.recipes.cut_stone]": "Тёсаный камень"

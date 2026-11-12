@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hoe/bundle.yaml
-"Тяпка": "Enxada"
+"[tools.hoe.bundle]": "Enxada"
 
 # content/tools/hoe/data/items.yaml
-"Каменная тяпка": "Enxada de pedra"
-"Вскапывает траву и землю в грядку, на которую сеют.": "Lavra capim e terra num canteiro para semear."
-"Медная тяпка": "Enxada de cobre"
-"Вскапывает две клетки за взмах.": "Lavra duas células por golpe."
-"Железная тяпка": "Enxada de ferro"
-"Вскапывает три клетки за взмах.": "Lavra três células por golpe."
+"[tools.items.stone_hoe]": "Enxada de pedra"
+"[tools.items.stone_hoe.about]": "Lavra capim e terra num canteiro para semear."
+"[tools.items.copper_hoe]": "Enxada de cobre"
+"[tools.items.copper_hoe.about]": "Lavra duas células por golpe."
+"[tools.items.iron_hoe]": "Enxada de ferro"
+"[tools.items.iron_hoe.about]": "Lavra três células por golpe."
+
+# content/tools/hoe/data/recipes.yaml
+"[tools.recipes.stone_hoe]": "Enxada de pedra"
+"[tools.recipes.copper_hoe]": "Enxada de cobre"
+"[tools.recipes.iron_hoe]": "Enxada de ferro"

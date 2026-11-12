@@ -4,7 +4,7 @@
 # (нет поля — везде). gives, chance, pick, winter — как у остальных растений.
 - id: cranberry
   kind: custom
-  title: Клюква
+  title: "[plants.plants.cranberry]"
   sprite: cranberry
   frames: 2
   grows: bank

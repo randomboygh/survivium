@@ -36,13 +36,13 @@ func _init(g) -> void:
 
 
 func _ready() -> void:
-	build("Загрузить мир", 8)
+	build("[load_a_world]", 8)
 	_rows = Kit.column(4)
 	# A finger dragged over the world buttons scrolls them too.
 	_scroll = Kit.scroll(_rows, false)
 	box.add_child(_scroll)
 	# Across the panel, as wide as the rows over it.
-	box.add_child(Kit.button("Назад", back, 0, ROW_H))
+	box.add_child(Kit.button("[back]", back, 0, ROW_H))
 	_fill()
 	show_fitted()
 
@@ -59,7 +59,7 @@ func _fill() -> void:
 	_bins.disarm()
 	var worlds := WorldStore.list_worlds()
 	if worlds.is_empty():
-		var none := Kit.caption("Сохранённых миров пока нет")
+		var none := Kit.caption("[no_saved_worlds_yet]")
 		none.custom_minimum_size = Vector2(ROW_WIDTH + DELETE_WIDTH + 4, ROW_H)
 		none.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_rows.add_child(none)
@@ -69,26 +69,26 @@ func _fill() -> void:
 		_rows.add_child(row)
 		var seed_value: int = w.seed
 		var options: Dictionary = w.settings
-		var pick := Kit.button(Lang.f("зерно %d\n%s · день %d", [w.seed, _kind(w.settings), w.day]),
+		var pick := Kit.button(Lang.f("[seed_day]", [w.seed, _kind(w.settings), w.day]),
 			func() -> void: chosen.emit(seed_value, options), ROW_WIDTH, ROW_H)
 		if w.seed == WorldStore.TEST_SEED:
-			pick.text = Lang.f("Тестовый мир\nплощадки · день %d", [w.day])
-		pick.tooltip_text = Lang.f("Сохранён %s, в игре %d мин", [w.saved.replace("T", " "), int(w.played / 60.0)])
+			pick.text = Lang.f("[test_world_grounds_day]", [w.day])
+		pick.tooltip_text = Lang.f("[saved_played_min]", [w.saved.replace("T", " "), int(w.played / 60.0)])
 		if not w.mods.is_empty():
-			pick.tooltip_text += Lang.f("\nМоды: %s", [Mods.summary(Mods.expand(w.mods))])
+			pick.tooltip_text += Lang.f("[mods]", [Mods.summary(Mods.expand(w.mods))])
 		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		# Every row as wide as the widest, its delete button at the same place.
 		pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if current:
 			UiStyle.accent(pick)
 		row.add_child(pick)
-		var del := Kit.icon_button("trash", "Удалить мир (нажать дважды)", Callable(), DELETE_WIDTH)
+		var del := Kit.icon_button("trash", "[delete_the_world_tap_twice]", Callable(), DELETE_WIDTH)
 		if w.seed == WorldStore.TEST_SEED:
-			del.tooltip_text = "Вернуть тестовый мир к началу (нажать дважды)"
+			del.tooltip_text = "[reset_the_test_world_tap]"
 			_bins.guard(del, _reset)
 		elif current:
 			# The world being played stays.
-			del.tooltip_text = "Мир сейчас в игре"
+			del.tooltip_text = "[this_world_is_being_played]"
 			del.disabled = true
 		else:
 			_bins.guard(del, _delete.bind(w.dir))
@@ -120,4 +120,4 @@ static func _kind(settings: Dictionary) -> String:
 	for k: Array in WorldSetup.KINDS:
 		if k[1] == now:
 			return Lang.t(k[0]).to_lower()
-	return Lang.t("свой")
+	return Lang.t("[custom_world]")

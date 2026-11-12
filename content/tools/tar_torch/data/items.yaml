@@ -2,8 +2,8 @@
 # Свой бандл, чтобы простой факел не зависел от ткани и смолы «Материалов»; лист в руках —
 # копия листа факела (sprites/held/tar_torch.png).
 - id: tar_torch
-  title: Смоляной факел
-  description: Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше.
+  title: "[tools.items.tar_torch]"
+  description: "[tools.items.tar_torch.about]"
   weight: 0.4
   stack: 5
   model: tar_torch

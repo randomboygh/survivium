@@ -6,7 +6,7 @@
 # клетки 2×2 (workbench, kiln, chest), и её флаги: storage, fire, repairs, serves, place_tool;
 # model — её воксельная модель (models/<model>.png).
 - id: stone_scythe
-  title: Каменная коса
+  title: "[tools.items.stone_scythe]"
   weight: 1.5
   stack: 1
   model: scythe
@@ -23,7 +23,7 @@
   durability: 450
   repair: {resources:flint: 1, materials:cord: 1}
 - id: wooden_scythe
-  title: Деревянная коса
+  title: "[tools.items.wooden_scythe]"
   weight: 1.0
   stack: 1
   model: wooden_scythe
@@ -40,7 +40,7 @@
   durability: 120
   repair: {materials:planks: 1}
 - id: copper_scythe
-  title: Медная коса
+  title: "[tools.items.copper_scythe]"
   weight: 1.8
   stack: 1
   model: copper_scythe
@@ -57,7 +57,7 @@
   durability: 900
   repair: {materials:copper_bar: 1}
 - id: bronze_scythe
-  title: Бронзовая коса
+  title: "[tools.items.bronze_scythe]"
   weight: 1.9
   stack: 1
   model: bronze_scythe
@@ -74,7 +74,7 @@
   durability: 1500
   repair: {materials:bronze_bar: 1}
 - id: iron_scythe
-  title: Железная коса
+  title: "[tools.items.iron_scythe]"
   weight: 2.1
   stack: 1
   model: iron_scythe
@@ -91,7 +91,7 @@
   durability: 2400
   repair: {materials:iron_bar: 1}
 - id: steel_scythe
-  title: Стальная коса
+  title: "[tools.items.steel_scythe]"
   weight: 2.1
   stack: 1
   model: steel_scythe

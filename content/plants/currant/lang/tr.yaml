@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/currant/bundle.yaml
-"Смородина": "Frenk üzümü"
+"[plants.currant.bundle]": "Frenk üzümü"
+
+# content/plants/currant/data/bushes.yaml
+"[plants.bushes.currant]": "Frenk üzümü"
 
 # content/plants/currant/data/items.yaml
-"Куст смородины": "Frenk üzümü çalısı"
+"[plants.items.currant]": "Frenk üzümü"
+"[plants.items.currant_bush]": "Frenk üzümü çalısı"

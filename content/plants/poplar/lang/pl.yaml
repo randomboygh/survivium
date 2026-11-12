@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/poplar/bundle.yaml
-"Тополь": "Topola"
+"[plants.poplar.bundle]": "Topola"
+
+# content/plants/poplar/data/trees.yaml
+"[plants.trees.poplar]": "Topola"

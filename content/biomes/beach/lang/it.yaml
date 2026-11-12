@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/biomes/beach/bundle.yaml
-"Берег": "Riva"
+"[biomes.beach.bundle]": "Riva"
+
+# content/biomes/beach/data/biomes.yaml
+"[biomes.biomes.beach]": "Riva"

@@ -1,16 +1,16 @@
 # Звуки интерфейса: кнопка, вкладка, окно открыто и закрыто. Файлы sounds/<id>.wav (tools/make_sounds.gd).
 - id: click
-  title: Кнопка
+  title: "[sounds.sounds.click]"
   volume: 0.6
 - id: tab
-  title: Вкладка
+  title: "[sounds.sounds.tab]"
   volume: 0.6
 - id: open
-  title: Окно открыто
+  title: "[sounds.sounds.open]"
   volume: 0.6
 - id: close
-  title: Окно закрыто
+  title: "[sounds.sounds.close]"
   volume: 0.6
 - id: level_up
-  title: Новый уровень навыка
+  title: "[sounds.sounds.level_up]"
   volume: 0.7

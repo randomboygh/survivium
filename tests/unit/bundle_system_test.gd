@@ -17,7 +17,7 @@ const MOD := "res://content/_ex"
 ## The test's mod: bundle -> data file -> its text.
 const DATA := {
 	"flax": {
-		"items": "- {id: flax, title: Лён, weight: 0.1, stack: 50}\n"
+		"items": "- {id: flax, title: Flax, weight: 0.1, stack: 50}\n"
 			+ "- {id: flax_seed, title: Льняное семя, weight: 0.05, stack: 50, plant: flax_bush}\n",
 		"bushes": "- id: flax_bush\n  title: Лён-долгунец\n  tint: \"#6f8f3a\"\n  berries: \"#c8b860\"\n  cards: 6\n  rise: 0.3\n"
 			+ "  spread: [0.2, 0.3, 0.2]\n  fruit: flax\n  fruit_count: [2, 3]\n  item: flax_seed\n",
@@ -27,15 +27,15 @@ const DATA := {
 	},
 	"loom": {
 		"eras": "- {id: weaving, title: Ткачество, order: 10, depth: 6}\n",
-		"items": "- {id: knife, title: Нож, weight: 0.3, stack: 1, tool: knife, durability: 40, era: core:primitive}\n"
+		"items": "- {id: knife, title: Knife, weight: 0.3, stack: 1, tool: knife, durability: 40, era: core:primitive}\n"
 			+ "- {id: shuttle, title: Челнок, weight: 0.2, stack: 1}\n"
-			+ "- {id: loom, title: Ткацкий станок, weight: 12, stack: 1, prop: loom, serves: [tools:workbench], era: weaving}\n"
-			+ "- {id: cloth, title: Ткань, weight: 0.5, stack: 20}\n"
+			+ "- {id: loom, title: Loom, weight: 12, stack: 1, prop: loom, serves: [tools:workbench], era: weaving}\n"
+			+ "- {id: cloth, title: Cloth, weight: 0.5, stack: 20}\n"
 			+ "- {id: bandage, title: Повязка, weight: 0.1, stack: 10, heal: 10}\n",
-		"recipes": "- {id: knife, title: Нож, makes: knife, needs: {resources:flint: 1, resources:branch: 1}}\n"
+		"recipes": "- {id: knife, title: Knife, makes: knife, needs: {resources:flint: 1, resources:branch: 1}}\n"
 			+ "- {id: shuttle, title: Челнок, makes: shuttle, needs: {resources:branch: 1}, tools: [knife], wear: 1}\n"
-			+ "- {id: loom, title: Ткацкий станок, makes: loom, needs: {resources:branch: 4, materials:cord: 2}, at: tools:workbench}\n"
-			+ "- {id: cloth, title: Ткань, makes: cloth, needs: {resources:fiber: 4}, at: loom, tools: [knife], keeps: {shuttle: 1}, "
+			+ "- {id: loom, title: Loom, makes: loom, needs: {resources:branch: 4, materials:cord: 2}, at: tools:workbench}\n"
+			+ "- {id: cloth, title: Cloth, makes: cloth, needs: {resources:fiber: 4}, at: loom, tools: [knife], keeps: {shuttle: 1}, "
 			+ "wear: 1, also: [{item: resources:fiber, count: 1, chance: 0.25}], time: 4}\n"
 			+ "- {id: cloth_by_hand, title: Ткань руками, makes: cloth, needs: {resources:fiber: 6}, tools: [knife], time: 10}\n"
 			+ "- {id: bandage, title: Повязка, makes: bandage, count: 2, needs: {cloth: 1}}\n",
@@ -48,7 +48,7 @@ func run() -> void:
 	var before := Content.BUNDLES.duplicate()
 	_write_file(MOD + "/mod.yaml", "id: _ex\ntitle: Пример\nversion: \"1\"\napi: 1\n")
 	for b: String in DATA:
-		_write_file("%s/%s/bundle.yaml" % [MOD, b], "title: %s\n" % ("Лён" if b == "flax" else "Ткацкий станок"))
+		_write_file("%s/%s/bundle.yaml" % [MOD, b], "title: %s\n" % ("Flax" if b == "flax" else "Loom"))
 		for kind: String in DATA[b]:
 			_write_file("%s/%s/data/%s.yaml" % [MOD, b, kind], DATA[b][kind])
 	Content.refresh()
@@ -72,7 +72,7 @@ func _test_load(before: Array) -> void:
 	Mods.activate(before + ["_ex/flax", "_ex/loom"])
 	var said := Content.problems + Items.check() + Crafting.check() + Starts.check() + Eras.check() + Bushes.check()
 	_check(said.is_empty(), "the mod written by the READMEs loads with no problem: %s" % [said])
-	_check(Items.tool_title("knife") == "нож" and Items.is_station("_ex:loom") and Bushes.index("_ex:flax_bush") >= 0
+	_check(Lang.t(Items.tool_title("knife")) == "knife" and Items.is_station("_ex:loom") and Bushes.index("_ex:flax_bush") >= 0
 		and Biomes.of(Biomes.index("biomes:meadow")).bushes.has("_ex:flax_bush") and Eras.title(Eras.rank("_ex:weaving")) == "10. Ткачество",
 		"a knife is a class of tool by its item's title, the loom a station, the flax a bush of the meadow, weaving an era")
 	_check(Starts.START.bag.get("resources:fiber") == 2 and Tools.HAND.reach == 10 and Tools.HAND.power == 1,
@@ -143,7 +143,7 @@ func _test_play(before: Array) -> void:
 		seeds += Crafting.outputs(scutch, n).get("_ex:flax_seed", 0)
 	_check(who.inventory.count("resources:fiber") == 4 and who.inventory.count("_ex:flax_seed") == seeds
 		and shop.knowledge.knows(Crafting.get_recipe("_ex:cloth")) and shop.knowledge.knows(Crafting.get_recipe("_ex:cloth_by_hand"))
-		and " | ".join(who.said).contains("Новые рецепты: "),
+		and " | ".join(who.said).contains("New recipes: "),
 		"into four fibres and the seeds that fall out, and fibre in the bag teaches both recipes of cloth: %s" % [who.said])
 	who.inventory.add("resources:flint", 2)
 	who.inventory.add("resources:branch", 8)
@@ -154,7 +154,7 @@ func _test_play(before: Array) -> void:
 	_check(who.inventory.count("_ex:knife") == 1 and shop.start(shuttle) == 1, "a knife is made by hand, and a shuttle with it")
 	shop.update(0.01)
 	var loom := Crafting.get_recipe("_ex:loom")
-	_check(who.inventory.count("_ex:shuttle") == 1 and Lang.t(shop.why_not(loom)) == "Нужен станок: Верстак", "a loom wants a workbench")
+	_check(who.inventory.count("_ex:shuttle") == 1 and Lang.t(shop.why_not(loom)) == "Needs a station: Workbench", "a loom wants a workbench")
 	var bench := placed.put("tools:workbench", Vector3i(12, 2, 12))
 	_check(shop.start(loom) == 1, "and is made at one")
 	shop.update(0.01)

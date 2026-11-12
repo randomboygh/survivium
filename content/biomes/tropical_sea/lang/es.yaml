@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/biomes/tropical_sea/bundle.yaml
-"Тропическое море": "Mar tropical"
+"[biomes.tropical_sea.bundle]": "Mar tropical"
+
+# content/biomes/tropical_sea/data/biomes.yaml
+"[biomes.biomes.tropical_sea]": "Mar tropical"

@@ -1,0 +1,14 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/trap/bundle.yaml
+"[tools.trap.bundle]": "Живоловка"
+
+# content/tools/trap/data/items.yaml
+"[tools.items.trap]": "Живоловка"
+"[tools.items.trap.about]": "Клетка из веток с дверцей на сторожке. Положи внутрь морковь или репу, и заяц сам придёт в неё."
+"[tools.items.live_rabbit]": "Пойманный заяц"
+"[tools.items.live_rabbit.about]": "Живой заяц из живоловки. Возьми его в руку и нажми действие, чтобы выпустить: он уже ручной и пойдёт за тобой."
+
+# content/tools/trap/data/recipes.yaml
+"[tools.recipes.trap]": "Живоловка"

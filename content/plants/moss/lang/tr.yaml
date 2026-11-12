@@ -2,9 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/moss/bundle.yaml
-"Мох": "Yosun"
+"[plants.moss.bundle]": "Yosun"
 
 # content/plants/moss/data/items.yaml
-"Бинт": "Sargı"
-"Припарка": "Lapa"
-"Тёплый мох в бинте. Лечит не сразу, а понемногу, но вдвое больше бинта, даже голодному и замёрзшему.": "Sargı içinde ılık yosun. Hemen değil azar azar iyileştirir, ama bir sargının iki katı, aç ve donmuş olsan bile."
+"[plants.items.moss]": "Yosun"
+"[plants.items.bandage]": "Sargı"
+"[plants.items.poultice]": "Lapa"
+"[plants.items.poultice.about]": "Sargı içinde ılık yosun. Hemen değil azar azar iyileştirir, ama bir sargının iki katı, aç ve donmuş olsan bile."
+
+# content/plants/moss/data/plants.yaml
+"[plants.plants.moss]": "Yosun"
+
+# content/plants/moss/data/recipes.yaml
+"[plants.recipes.bandage]": "Sargı"
+"[plants.recipes.poultice]": "Lapa"

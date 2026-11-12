@@ -2,7 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/planks/bundle.yaml
-"Доски": "Tablas"
+"[materials.planks.bundle]": "Tablas"
+
+# content/materials/planks/data/items.yaml
+"[materials.items.planks]": "Tablas"
+
+# content/materials/planks/data/materials.yaml
+"[materials.materials.planks]": "Tablas"
 
 # content/materials/planks/data/sounds.yaml
-"Стук по доскам": "Golpe en tablas"
+"[materials.sounds.knock]": "Golpe en tablas"

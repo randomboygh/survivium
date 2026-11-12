@@ -2,9 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/moss/bundle.yaml
-"Мох": "Musgo"
+"[plants.moss.bundle]": "Musgo"
 
 # content/plants/moss/data/items.yaml
-"Бинт": "Atadura"
-"Припарка": "Cataplasma"
-"Тёплый мох в бинте. Лечит не сразу, а понемногу, но вдвое больше бинта, даже голодному и замёрзшему.": "Musgo morno numa atadura. Cura aos poucos, não de uma vez, mas o dobro de uma atadura, mesmo com fome e frio."
+"[plants.items.moss]": "Musgo"
+"[plants.items.bandage]": "Atadura"
+"[plants.items.poultice]": "Cataplasma"
+"[plants.items.poultice.about]": "Musgo morno numa atadura. Cura aos poucos, não de uma vez, mas o dobro de uma atadura, mesmo com fome e frio."
+
+# content/plants/moss/data/plants.yaml
+"[plants.plants.moss]": "Musgo"
+
+# content/plants/moss/data/recipes.yaml
+"[plants.recipes.bandage]": "Atadura"
+"[plants.recipes.poultice]": "Cataplasma"

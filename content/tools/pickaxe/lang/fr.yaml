@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/pickaxe/bundle.yaml
-"Кирка": "Pioche"
+"[tools.pickaxe.bundle]": "Pioche"
 
 # content/tools/pickaxe/data/items.yaml
-"Каменная кирка": "Pioche de pierre"
-"Деревянная кирка": "Pioche en bois"
-"Медная кирка": "Pioche de cuivre"
-"Бронзовая кирка": "Pioche de bronze"
-"Железная кирка": "Pioche de fer"
-"Стальная кирка": "Pioche d'acier"
+"[tools.items.stone_pickaxe]": "Pioche de pierre"
+"[tools.items.wooden_pickaxe]": "Pioche en bois"
+"[tools.items.copper_pickaxe]": "Pioche de cuivre"
+"[tools.items.bronze_pickaxe]": "Pioche de bronze"
+"[tools.items.iron_pickaxe]": "Pioche de fer"
+"[tools.items.steel_pickaxe]": "Pioche d'acier"
+
+# content/tools/pickaxe/data/recipes.yaml
+"[tools.recipes.stone_pickaxe]": "Pioche de pierre"
+"[tools.recipes.wooden_pickaxe]": "Pioche en bois"
+"[tools.recipes.copper_pickaxe]": "Pioche de cuivre"
+"[tools.recipes.bronze_pickaxe]": "Pioche de bronze"
+"[tools.recipes.iron_pickaxe]": "Pioche de fer"
+"[tools.recipes.steel_pickaxe]": "Pioche d'acier"

@@ -3,22 +3,22 @@
 # записана в его creatures.yaml (carcass). Шкура с жиром идёт на кожу («Материалы»), кость — на иглу, клей,
 # наконечники стрел и составной лук («Инструменты», «Материалы»), жир — ещё на свечу; мясо жарят или вялят.
 - id: small_carcass
-  title: Тушка
-  description: Мелкий зверь или птица. Разделывается руками.
+  title: "[animals.items.small_carcass]"
+  description: "[animals.items.small_carcass.about]"
   weight: 1.5
   stack: 5
   model: small_carcass
   icon: small_carcass
 - id: carcass
-  title: Туша
-  description: Крупный зверь. Разделать её можно только ножом.
+  title: "[animals.items.carcass]"
+  description: "[animals.items.carcass.about]"
   weight: 12.0
   stack: 1
   model: carcass
   icon: carcass
 - id: raw_meat
-  title: Сырое мясо
-  description: Есть можно, но жареное сытнее.
+  title: "[animals.items.raw_meat]"
+  description: "[animals.items.raw_meat.about]"
   weight: 0.3
   stack: 20
   food: 6
@@ -28,8 +28,8 @@
   icon: raw_meat
   anim: eat
 - id: roasted_meat
-  title: Жареное мясо
-  description: Мясо, зажаренное на костре. Очень сытное.
+  title: "[animals.items.roasted_meat]"
+  description: "[animals.items.roasted_meat.about]"
   weight: 0.25
   stack: 20
   food: 30
@@ -41,27 +41,27 @@
   icon: roasted_meat
   anim: eat
 - id: hide
-  title: Шкура
-  description: Сырая шкура зверя.
+  title: "[animals.items.hide]"
+  description: "[animals.items.hide.about]"
   weight: 0.8
   stack: 10
   model: hide
   icon: hide
 - id: bone
-  title: Кость
+  title: "[animals.items.bone]"
   weight: 0.2
   stack: 30
   model: bone
   icon: bone
 - id: fat
-  title: Жир
+  title: "[animals.items.fat]"
   weight: 0.2
   stack: 20
   model: fat
   icon: fat
 - id: jerky
-  title: Вяленое мясо
-  description: Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно.
+  title: "[animals.items.jerky]"
+  description: "[animals.items.jerky.about]"
   weight: 0.12
   stack: 20
   food: 18

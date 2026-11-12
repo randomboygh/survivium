@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/wicker_bag/bundle.yaml
+"[tools.wicker_bag.bundle]": "Плетёная котомка"
+
+# content/tools/wicker_bag/data/items.yaml
+"[tools.items.wicker_bag]": "Плетёная котомка"
+"[tools.items.wicker_bag.about]": "Котомка из волокна на верёвочных лямках. Надетая за спину, даёт ещё 8 ячеек."
+
+# content/tools/wicker_bag/data/recipes.yaml
+"[tools.recipes.wicker_bag]": "Плетёная котомка"

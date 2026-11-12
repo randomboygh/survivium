@@ -2,10 +2,16 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/potters_wheel/bundle.yaml
-"Гончарный круг": "Tornio da vasaio"
+"[tools.potters_wheel.bundle]": "Tornio da vasaio"
 
 # content/tools/potters_wheel/data/items.yaml
-"Сырой горшок": "Pentola cruda"
-"Вылепленный из глины горшок. Его ещё нужно обжечь в печи.": "Una pentola modellata nell'argilla. Va ancora cotta nella fornace."
-"Глиняный горшок": "Pentola di terracotta"
-"Обожжённый горшок. В нём выгоняют смолу и жарят жёлуди; сам он не тратится.": "Una pentola cotta. Ci si ricava il catrame e si tostano le ghiande; non si consuma."
+"[tools.items.potters_wheel]": "Tornio da vasaio"
+"[tools.items.raw_pot]": "Pentola cruda"
+"[tools.items.raw_pot.about]": "Una pentola modellata nell'argilla. Va ancora cotta nella fornace."
+"[tools.items.pot]": "Pentola di terracotta"
+"[tools.items.pot.about]": "Una pentola cotta. Ci si ricava il catrame e si tostano le ghiande; non si consuma."
+
+# content/tools/potters_wheel/data/recipes.yaml
+"[tools.recipes.potters_wheel]": "Tornio da vasaio"
+"[tools.recipes.raw_pot]": "Pentola cruda"
+"[tools.recipes.pot]": "Pentola di terracotta"

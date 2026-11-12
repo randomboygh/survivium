@@ -1,6 +1,6 @@
 # Сруб как ячейка: рубится топором и возвращает себя. Поля — как у материалов основы.
 - id: log_wall
-  title: Сруб
+  title: "[materials.materials.log_wall]"
   hotbar: 8
   item: log_wall
   dig: axe

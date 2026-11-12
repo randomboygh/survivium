@@ -2,9 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sling/bundle.yaml
-"Праща": "Fionda"
+"[tools.sling.bundle]": "Fionda"
 
 # content/tools/sling/data/items.yaml
-"Ремень из верёвки: мечет камешки дальше, чем рука.": "Una cinghia di corda: lancia sassolini più lontano della mano."
-"Камешки": "Sassolini"
-"Круглые камешки для пращи.": "Sassolini rotondi per la fionda."
+"[tools.items.cord_sling]": "Fionda"
+"[tools.items.cord_sling.about]": "Una cinghia di corda: lancia sassolini più lontano della mano."
+"[tools.items.sling_stone]": "Sassolini"
+"[tools.items.sling_stone.about]": "Sassolini rotondi per la fionda."
+
+# content/tools/sling/data/recipes.yaml
+"[tools.recipes.cord_sling]": "Fionda"
+"[tools.recipes.sling_stone]": "Sassolini"

@@ -3,7 +3,7 @@
 # (content/core/data/items.yaml). fuel — этим разжигают и кормят костёр, fuel_time — сколько секунд
 # горит костёр на одной штуке (ветка 5 минут, бревно 20).
 - id: branch
-  title: Ветка
+  title: "[resources.items.branch]"
   weight: 0.3
   stack: 20
   model: branch
@@ -11,7 +11,7 @@
   fuel: true
   fuel_time: 300
 - id: log
-  title: Бревно
+  title: "[resources.items.log]"
   weight: 5.0
   stack: 4
   model: log

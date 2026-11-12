@@ -2,9 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fishing_rod/bundle.yaml
-"Удочка": "Wędka"
+"[tools.fishing_rod.bundle]": "Wędka"
 
 # content/tools/fishing_rod/data/items.yaml
-"Гибкое удилище с леской и кремнёвым крючком. Закидывают в воду и ждут поклёвки.": "Giętki pręt z żyłką i krzemiennym haczykiem. Zarzuca się go do wody i czeka na branie."
-"Наживка": "Przynęta"
-"Черви, накопанные в земле. Их надевают на крючок, и рыба клюёт куда чаще.": "Robaki wykopane z ziemi. Zakłada się je na haczyk, a ryby biorą o wiele częściej."
+"[tools.items.fishing_rod]": "Wędka"
+"[tools.items.fishing_rod.about]": "Giętki pręt z żyłką i krzemiennym haczykiem. Zarzuca się go do wody i czeka na branie."
+"[tools.items.bait]": "Przynęta"
+"[tools.items.bait.about]": "Robaki wykopane z ziemi. Zakłada się je na haczyk, a ryby biorą o wiele częściej."
+
+# content/tools/fishing_rod/data/recipes.yaml
+"[tools.recipes.fishing_rod]": "Wędka"
+"[tools.recipes.bait]": "Przynęta"

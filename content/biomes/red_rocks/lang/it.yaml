@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/biomes/red_rocks/bundle.yaml
-"Красные скалы": "Rocce rosse"
+"[biomes.red_rocks.bundle]": "Rocce rosse"
+
+# content/biomes/red_rocks/data/biomes.yaml
+"[biomes.biomes.red_rocks]": "Rocce rosse"

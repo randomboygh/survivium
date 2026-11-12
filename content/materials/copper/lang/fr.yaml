@@ -2,8 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/copper/bundle.yaml
-"Медь": "Cuivre"
+"[materials.copper.bundle]": "Cuivre"
 
 # content/materials/copper/data/items.yaml
-"Медная руда": "Minerai de cuivre"
-"Медный слиток": "Lingot de cuivre"
+"[materials.items.copper_ore]": "Minerai de cuivre"
+"[materials.items.copper_bar]": "Lingot de cuivre"
+
+# content/materials/copper/data/materials.yaml
+"[materials.materials.copper_ore]": "Minerai de cuivre"

@@ -1,12 +1,12 @@
 # Рецепты мода «Растения»: что делают из зерна, мха и грибов. Поля рецепта — docs/DATA_MODEL.md;
 # волокно — «Ресурсов», печь — «Инструментов», костёр — основы.
 - id: bandage
-  title: Бинт
+  title: "[plants.recipes.bandage]"
   makes: bandage
   needs: {moss: 2, resources:fiber: 2}
   time: 3
 - id: poultice
-  title: Припарка
+  title: "[plants.recipes.poultice]"
   makes: poultice
   needs: {moss: 3, bandage: 1}
   at: core:campfire

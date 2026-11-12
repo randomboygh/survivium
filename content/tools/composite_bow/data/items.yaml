@@ -2,8 +2,8 @@
 # кожей; стреляет теми же стрелами. Отдельным бандлом, чтобы «Лук» не зависел от зверей и кожи. Поля —
 # как в бандле «Лук» (content/tools/bow/data/items.yaml).
 - id: composite_bow
-  title: Составной лук
-  description: Деревянный лук, усиленный костью и обмотанный кожей. Бьёт дальше и сильнее.
+  title: "[tools.items.composite_bow]"
+  description: "[tools.items.composite_bow.about]"
   weight: 0.9
   stack: 1
   model: composite_bow

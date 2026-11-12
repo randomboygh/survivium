@@ -2,9 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hatch/bundle.yaml
-"Люк": "Kapak"
+"[tools.hatch.bundle]": "Kapak"
 
 # content/tools/hatch/data/items.yaml
-"Крышка из досок для дыры в полу или потолке. Касание открывает и закрывает.": "Zemindeki ya da tavandaki bir delik için tahta bir kapak. Bir dokunuş açar ve kapar."
-"Люк 2×2": "Kapak 2×2"
-"Широкая крышка из досок для дыры в полу на две клетки в ширину и две в глубину.": "Zemindeki bir delik için iki hücre genişliğinde ve iki derinliğinde geniş tahta bir kapak."
+"[tools.items.hatch]": "Kapak"
+"[tools.items.hatch.about]": "Zemindeki ya da tavandaki bir delik için tahta bir kapak. Bir dokunuş açar ve kapar."
+"[tools.items.hatch_2x2]": "Kapak 2×2"
+"[tools.items.hatch_2x2.about]": "Zemindeki bir delik için iki hücre genişliğinde ve iki derinliğinde geniş tahta bir kapak."
+
+# content/tools/hatch/data/recipes.yaml
+"[tools.recipes.hatch]": "Kapak"
+"[tools.recipes.hatch_2x2]": "Kapak 2×2"

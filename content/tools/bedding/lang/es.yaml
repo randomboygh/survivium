@@ -2,10 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/bedding/bundle.yaml
-"Постель": "Lecho"
+"[tools.bedding.bundle]": "Lecho"
 
 # content/tools/bedding/data/items.yaml
-"Травяная подстилка": "Lecho de hierba"
-"Охапка сухой травы, связанная верёвкой. Спать на ней лучше, чем на голой земле.": "Un haz de hierba seca atado con cuerda. Dormir en él es mejor que en el suelo pelado."
-"Меховой спальник": "Saco de dormir de piel"
-"Шкуры, сшитые мешком. В нём высыпаются вдвое быстрее.": "Pieles cosidas en forma de saco. En él se descansa el doble de rápido."
+"[tools.items.grass_mat]": "Lecho de hierba"
+"[tools.items.grass_mat.about]": "Un haz de hierba seca atado con cuerda. Dormir en él es mejor que en el suelo pelado."
+"[tools.items.fur_bedroll]": "Saco de dormir de piel"
+"[tools.items.fur_bedroll.about]": "Pieles cosidas en forma de saco. En él se descansa el doble de rápido."
+
+# content/tools/bedding/data/recipes.yaml
+"[tools.recipes.grass_mat]": "Lecho de hierba"
+"[tools.recipes.fur_bedroll]": "Saco de dormir de piel"

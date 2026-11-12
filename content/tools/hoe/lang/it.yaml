@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hoe/bundle.yaml
-"Тяпка": "Zappa"
+"[tools.hoe.bundle]": "Zappa"
 
 # content/tools/hoe/data/items.yaml
-"Каменная тяпка": "Zappa di pietra"
-"Вскапывает траву и землю в грядку, на которую сеют.": "Zappa erba e terra in un'aiuola dove seminare."
-"Медная тяпка": "Zappa di rame"
-"Вскапывает две клетки за взмах.": "Zappa due celle per colpo."
-"Железная тяпка": "Zappa di ferro"
-"Вскапывает три клетки за взмах.": "Zappa tre celle per colpo."
+"[tools.items.stone_hoe]": "Zappa di pietra"
+"[tools.items.stone_hoe.about]": "Zappa erba e terra in un'aiuola dove seminare."
+"[tools.items.copper_hoe]": "Zappa di rame"
+"[tools.items.copper_hoe.about]": "Zappa due celle per colpo."
+"[tools.items.iron_hoe]": "Zappa di ferro"
+"[tools.items.iron_hoe.about]": "Zappa tre celle per colpo."
+
+# content/tools/hoe/data/recipes.yaml
+"[tools.recipes.stone_hoe]": "Zappa di pietra"
+"[tools.recipes.copper_hoe]": "Zappa di rame"
+"[tools.recipes.iron_hoe]": "Zappa di ferro"

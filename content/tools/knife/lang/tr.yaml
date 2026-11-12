@@ -2,12 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/knife/bundle.yaml
-"Нож": "Bıçak"
+"[tools.knife.bundle]": "Bıçak"
 
 # content/tools/knife/data/items.yaml
-"Кремнёвый нож": "Çakmaktaşı bıçak"
-"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "Saplı keskin bir çakmaktaşı yongası. Leş parçalar ve hayvanlara vurur."
-"Медный нож": "Bakır bıçak"
-"Бронзовый нож": "Bronz bıçak"
-"Железный нож": "Demir bıçak"
-"Стальной нож": "Çelik bıçak"
+"[tools.items.flint_knife]": "Çakmaktaşı bıçak"
+"[tools.items.flint_knife.about]": "Saplı keskin bir çakmaktaşı yongası. Leş parçalar ve hayvanlara vurur."
+"[tools.items.copper_knife]": "Bakır bıçak"
+"[tools.items.bronze_knife]": "Bronz bıçak"
+"[tools.items.iron_knife]": "Demir bıçak"
+"[tools.items.steel_knife]": "Çelik bıçak"
+
+# content/tools/knife/data/recipes.yaml
+"[tools.recipes.flint_knife]": "Çakmaktaşı bıçak"
+"[tools.recipes.copper_knife]": "Bakır bıçak"
+"[tools.recipes.bronze_knife]": "Bronz bıçak"
+"[tools.recipes.iron_knife]": "Demir bıçak"
+"[tools.recipes.steel_knife]": "Çelik bıçak"

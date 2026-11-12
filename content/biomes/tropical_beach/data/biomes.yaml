@@ -13,7 +13,7 @@
 # Тропический берег: берег (where: beach) там, где тепло — с климатом 1 он берёт место обычного
 # «Берега». Песок и пальмы прямо на нём (trees_on: sand). Пальма — бандл «Растений», ссылка мягкая.
 - id: tropical_beach
-  title: Тропический берег
+  title: "[biomes.biomes.tropical_beach]"
   where: beach
   zone: tropic
   warmth: [0.72, 1.0]

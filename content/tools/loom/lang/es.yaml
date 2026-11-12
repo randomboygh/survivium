@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/loom/bundle.yaml
-"Ткацкий станок": "Telar"
+"[tools.loom.bundle]": "Telar"
+
+# content/tools/loom/data/items.yaml
+"[tools.items.loom]": "Telar"
 
 # content/tools/loom/data/recipes.yaml
-"Грубая ткань": "Tela basta"
+"[tools.recipes.loom]": "Telar"
+"[tools.recipes.cloth_from_cord]": "Tela basta"

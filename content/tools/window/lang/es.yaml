@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/window/bundle.yaml
-"Окно": "Ventana"
+"[tools.window.bundle]": "Ventana"
 
 # content/tools/window/data/items.yaml
-"Рама со стеклом для проёма в стене.": "Un marco con vidrio para un hueco en la pared."
-"Окно 1×2": "Ventana 1×2"
-"Высокое окно со стеклом, на клетку в ширину и две в высоту.": "Una ventana alta con vidrio, de una celda de ancho y dos de alto."
-"Окно 2×1": "Ventana 2×1"
-"Широкое окно со стеклом, на две клетки в ширину и одну в высоту.": "Una ventana ancha con vidrio, de dos celdas de ancho y una de alto."
-"Окно 2×2": "Ventana 2×2"
-"Большое окно со стеклом, на две клетки в ширину и две в высоту.": "Una ventana grande con vidrio, de dos celdas de ancho y dos de alto."
-"Окно 3×2": "Ventana 3×2"
-"Окно во всю стену, на три клетки в ширину и две в высоту.": "Una ventana de pared a pared, de tres celdas de ancho y dos de alto."
+"[tools.items.window]": "Ventana"
+"[tools.items.window.about]": "Un marco con vidrio para un hueco en la pared."
+"[tools.items.window_1x2]": "Ventana 1×2"
+"[tools.items.window_1x2.about]": "Una ventana alta con vidrio, de una celda de ancho y dos de alto."
+"[tools.items.window_2x1]": "Ventana 2×1"
+"[tools.items.window_2x1.about]": "Una ventana ancha con vidrio, de dos celdas de ancho y una de alto."
+"[tools.items.window_2x2]": "Ventana 2×2"
+"[tools.items.window_2x2.about]": "Una ventana grande con vidrio, de dos celdas de ancho y dos de alto."
+"[tools.items.window_3x2]": "Ventana 3×2"
+"[tools.items.window_3x2.about]": "Una ventana de pared a pared, de tres celdas de ancho y dos de alto."
+
+# content/tools/window/data/recipes.yaml
+"[tools.recipes.window]": "Ventana"
+"[tools.recipes.window_1x2]": "Ventana 1×2"
+"[tools.recipes.window_2x1]": "Ventana 2×1"
+"[tools.recipes.window_2x2]": "Ventana 2×2"
+"[tools.recipes.window_3x2]": "Ventana 3×2"

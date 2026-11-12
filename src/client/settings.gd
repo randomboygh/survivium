@@ -406,7 +406,7 @@ func _ai_debug_told(v: Variant, on: bool) -> void:
 	if on and v != true:
 		ai_debug = false
 		if game.hud != null:
-			game.hud.toast("Отладка ИИ — только в своём мире или хозяину сервера")
+			game.hud.toast("[ai_debug_only_in_your]")
 
 
 ## Reads the data of the world's mods again and puts it into the game (ModReload).
@@ -628,7 +628,7 @@ func _check_fullscreen() -> void:
 		return
 	var state = JavaScriptBridge.eval("window.svFullscreen ? window.svFullscreen.state : ''", true)
 	if state in ["none", "refused"]:
-		game.hud.toast("Браузер не дал игре весь экран: откройте её в Chrome")
+		game.hud.toast("[the_browser_didnt_give_the]")
 
 
 # --- Playtest switches --------------------------------------------------------------
@@ -728,7 +728,7 @@ func set_cheats(on: bool) -> void:
 		game.net.request(Protocol.CHEATS, [{"speed": 1.0, "air": false, "skill": 1.0, "heavy": true,
 			"hunger": true, "thirst": true, "fatigue": true, "cold": true, "free_build": false, "tool_wear": true,
 			"instant_craft": false, "free_items": false, "animal_attacks": true, "boost": 1.0}])
-		_note("Читы выключены")
+		_note("[cheats_off]")
 
 
 ## Over a socket with «Читы на тестовом сервере» on: sends this page's switches and
@@ -744,7 +744,7 @@ func send_cheats(once := {}) -> bool:
 	d.merge(once, true)
 	game.net.request(Protocol.CHEATS, [d]).then(func(taken: Variant) -> void:
 		if taken != true:
-			_note("Сервер не принимает читы: это не тестовый сервер, и вы не его хозяин"))
+			_note("[the_server_takes_no_cheats]"))
 	return true
 
 
@@ -790,7 +790,7 @@ func go_to_death() -> void:
 	if c.is_dead():
 		return
 	if not c.fell_at.is_finite():
-		c.say("В этом мире вы ещё не умирали")
+		c.say("[you_havent_died_in_this]")
 		return
 	c.teleport(c.fell_at)
 
@@ -808,15 +808,15 @@ func set_shadow_map(i: int) -> void:
 ## own square (Territory.clear_painted; the test page's «Очистка территории»).
 func clear_land() -> void:
 	if game.host == null:
-		game.character.say("Очистить территорию можно только в своём мире")
+		game.character.say("[territory_can_be_cleared_only]")
 		return
 	var n: int = game.session.territory.clear_painted()
-	game.hud.toast(Lang.line("Разметка убрана: %d участков", [n]) if n > 0 else "Разметки нет")
+	game.hud.toast(Lang.line("[marking_removed_plots]", [n]) if n > 0 else "[no_marking]")
 
 
 func give_tools() -> void:
 	if game.host == null:
-		game.character.say("Выдать инструменты можно только в своём мире")
+		game.character.say("[tools_can_be_given_only]")
 		return
 	var who = game.host.player
 	var inv = who.inventory
@@ -837,18 +837,18 @@ func give_tools() -> void:
 ## there starts the test world with bots for two hours.
 func start_test_server() -> void:
 	Playtest.open_page()
-	_note("Нажмите «Run workflow», через 2–3 минуты подключайтесь")
+	_note("[press_run_workflow_then_join]")
 
 
 ## Joins the playtest server running now (Playtest.find) under the name last used.
 func join_test_server() -> void:
-	_note("Ищу тестовый сервер…")
+	_note("[looking_for_the_test_server]")
 	Playtest.find(game, func(url: String, why: String) -> void:
 		if url == "":
 			_note(why)
 			return
 		var name: String = ServerList.player_name()
-		game.join_server(url, name if name != "" else "Игрок", ""))
+		game.join_server(url, name if name != "" else "[player_n2]", ""))
 
 
 ## A world of this device can be made a server here (LocalHost.host): on a computer,
@@ -866,7 +866,7 @@ func host_with_bot() -> void:
 	game.save.flush()
 	game.host_server({"world": game.save.store.dir, "seed_value": int(game.world_seed),
 		"settings": game.world_options, "bots": 1,
-		"player": ServerList.player_name() if ServerList.player_name() != "" else "Хозяин"})
+		"player": ServerList.player_name() if ServerList.player_name() != "" else "[host]"})
 
 
 ## The worlds of this device a server made here may go over to (TestCommands
@@ -881,7 +881,7 @@ func test_server(what: String) -> void:
 	if game.join_url == "" or game.net == null:
 		return
 	game.net.request(Protocol.CHAT, ["/test " + what])
-	_note("Отправлено тестовому серверу, ответ — в чате")
+	_note("[sent_to_the_test_server]")
 
 
 func _note(text: String) -> void:

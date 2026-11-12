@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hide_clothes/bundle.yaml
-"Одежда из шкур": "Hide clothes"
+"[tools.hide_clothes.bundle]": "Hide clothes"
 
 # content/tools/hide_clothes/data/items.yaml
-"Меховая шапка": "Fur hat"
-"Шапка из шкуры мехом внутрь. Держит тепло головы в мороз.": "A hat of hide, fur inside. Keeps the head warm in the frost."
-"Шуба": "Fur coat"
-"Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна.": "A long hide garment, fur inside. A winter night is no danger in it."
-"Кожаные штаны": "Leather trousers"
-"Штаны из выделанной кожи. Не продуваются ветром.": "Trousers of tanned leather. The wind doesn't blow through them."
-"Унты": "Fur boots"
-"Высокие сапоги из шкуры на кожаной подошве.": "High boots of hide on a leather sole."
+"[tools.items.fur_hat]": "Fur hat"
+"[tools.items.fur_hat.about]": "A hat of hide, fur inside. Keeps the head warm in the frost."
+"[tools.items.fur_coat]": "Fur coat"
+"[tools.items.fur_coat.about]": "A long hide garment, fur inside. A winter night is no danger in it."
+"[tools.items.leather_trousers]": "Leather trousers"
+"[tools.items.leather_trousers.about]": "Trousers of tanned leather. The wind doesn't blow through them."
+"[tools.items.fur_boots]": "Fur boots"
+"[tools.items.fur_boots.about]": "High boots of hide on a leather sole."
+
+# content/tools/hide_clothes/data/recipes.yaml
+"[tools.recipes.fur_hat]": "Fur hat"
+"[tools.recipes.fur_coat]": "Fur coat"
+"[tools.recipes.leather_trousers]": "Leather trousers"
+"[tools.recipes.fur_boots]": "Fur boots"

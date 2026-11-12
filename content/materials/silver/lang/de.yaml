@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/silver/bundle.yaml
-"Серебро": "Silber"
+"[materials.silver.bundle]": "Silber"
 
 # content/materials/silver/data/items.yaml
-"Серебряная руда": "Silbererz"
-"Серая порода с белыми блёстками самородного серебра. Её берёт бронзовая кирка.": "Ein graues Gestein mit weißen Flittern von gediegenem Silber. Eine Bronzespitzhacke baut es ab."
-"Серебряный слиток": "Silberbarren"
-"Мягкий белый металл. Из слитков складывают серебряные блоки.": "Ein weiches weißes Metall. Barren werden zu Silberblöcken."
-"Серебряный блок": "Silberblock"
-"Гладкий светлый металлический блок для построек.": "Ein glatter heller Metallblock zum Bauen."
+"[materials.items.silver_ore]": "Silbererz"
+"[materials.items.silver_ore.about]": "Ein graues Gestein mit weißen Flittern von gediegenem Silber. Eine Bronzespitzhacke baut es ab."
+"[materials.items.silver_bar]": "Silberbarren"
+"[materials.items.silver_bar.about]": "Ein weiches weißes Metall. Barren werden zu Silberblöcken."
+"[materials.items.silver_block]": "Silberblock"
+"[materials.items.silver_block.about]": "Ein glatter heller Metallblock zum Bauen."
+
+# content/materials/silver/data/materials.yaml
+"[materials.materials.silver_ore]": "Silbererz"
+"[materials.materials.silver_block]": "Silberblock"
+
+# content/materials/silver/data/recipes.yaml
+"[materials.recipes.silver_bar]": "Silberbarren"
+"[materials.recipes.silver_block]": "Silberblock"

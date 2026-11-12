@@ -17,7 +17,7 @@ const DRINK_REACH := 2
 ## a full one. Only fresh water (fresh_water): the sea is salty.
 func drink(who, water: Vector3) -> Dictionary:
 	if not fresh_water(water):
-		who.nag("salty", "Морская вода солёная: пить её нельзя")
+		who.nag("salty", "[sea_water_is_salty_you]")
 		return {"swing": IDLE_SWING}
 	var full := _fills(who)
 	if full != "":
@@ -29,7 +29,7 @@ func drink(who, water: Vector3) -> Dictionary:
 			return {"swing": IDLE_SWING}
 		return _work(DRINK_SWING, "", water, Mat.WATER)
 	if not who.vitals.drink(DRINK):
-		who.nag("not_thirsty", "Пить не хочется")
+		who.nag("not_thirsty", "[not_thirsty]")
 		return {"swing": IDLE_SWING}
 	who.note("drunk")
 	return _work(DRINK_SWING, "", water, Mat.WATER)
@@ -81,11 +81,11 @@ func fish(who, aim := Vector3.INF) -> Dictionary:
 	if aim.is_finite() and Vector2(aim.x - at.x, aim.z - at.z).length() > 0.05:
 		dir = Vector2(aim.x - at.x, aim.z - at.z).normalized()
 	if world.water_frozen:
-		who.nag("fish", "Вода замёрзла: рыба подо льдом не клюёт")
+		who.nag("fish", "[the_water_is_frozen_fish]")
 		return {"swing": IDLE_SWING}
 	var water := water_ahead(at, dir, maxi(2, rod.get("range", 0)))
 	if water == Vector3.INF:
-		who.nag("fish", "Удочку закидывают в воду: подойдите к ней")
+		who.nag("fish", "[a_rod_is_cast_into]")
 		return {"swing": IDLE_SWING}
 	if not who.act("swing"):
 		return {}
@@ -96,9 +96,9 @@ func fish(who, aim := Vector3.INF) -> Dictionary:
 	var item := Items.get_item(who.held())
 	fishing.cast(who, water, item.get("ammo", ""))
 	if fishing.fish_near(water) == null:
-		who.nag("no_fish", "Рядом с поплавком не видно рыбы")
+		who.nag("no_fish", "[no_fish_to_be_seen]")
 	elif item.get("ammo", "") != "" and fishing.lines[who].bait == "":
-		who.nag("bait", Lang.line("Без наживки клюёт редко: нужна «%s»", [Items.title(item.ammo)]))
+		who.nag("bait", Lang.line("[without_bait_bites_are_rare]", [Items.title(item.ammo)]))
 	var done := _work(CAST_SWING, "", water)
 	done.line = water
 	return done
@@ -138,11 +138,11 @@ func _pull(who) -> Dictionary:
 		var to: Vector3 = who.position + Vector3(0.0, 0.6, 0.0)
 		done.shot = [r.caught, r.from, to, r.from.distance_to(to) / CATCH_SPEED]
 	elif r.full:
-		who.nag("full", "Сумка полна: рыба ушла")
+		who.nag("full", "[the_bag_is_full_the]")
 	elif not r.bit:
-		who.nag("bite", "Не клюнуло")
+		who.nag("bite", "[no_bite]")
 	else:
-		who.nag("bite", "Сорвалась")
+		who.nag("bite", "[it_got_away]")
 	return done
 
 

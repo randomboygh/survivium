@@ -2,13 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/animals/wool/bundle.yaml
-"Пух": "Tüy"
+"[animals.wool.bundle]": "Tüy"
 
 # content/animals/wool/data/items.yaml
-"Заячий пух": "Tavşan tüyü"
-"Мягкий пух ручного зайца. Его срезают ножом и прядут в пряжу.": "Evcil tavşanın yumuşak tüyü. Bıçakla kesilir ve ipliğe eğrilir."
-"Пушистая пряжа": "Kabarık iplik"
-"Тёплая пряжа из заячьего пуха. На ткацком станке из неё ткут ткань.": "Tavşan tüyünden sıcak iplik. Dokuma tezgâhında ondan kumaş dokunur."
+"[animals.items.rabbit_fluff]": "Tavşan tüyü"
+"[animals.items.rabbit_fluff.about]": "Evcil tavşanın yumuşak tüyü. Bıçakla kesilir ve ipliğe eğrilir."
+"[animals.items.wool_yarn]": "Kabarık iplik"
+"[animals.items.wool_yarn.about]": "Tavşan tüyünden sıcak iplik. Dokuma tezgâhında ondan kumaş dokunur."
 
 # content/animals/wool/data/recipes.yaml
-"Ткань из пряжи": "İplikten kumaş"
+"[animals.recipes.wool_yarn]": "Kabarık iplik"
+"[animals.recipes.cloth_from_wool_yarn]": "İplikten kumaş"

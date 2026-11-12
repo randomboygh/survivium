@@ -1,0 +1,20 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/axe/bundle.yaml
+"[tools.axe.bundle]": "Топор"
+
+# content/tools/axe/data/items.yaml
+"[tools.items.stone_axe]": "Каменный топор"
+"[tools.items.copper_axe]": "Медный топор"
+"[tools.items.bronze_axe]": "Бронзовый топор"
+"[tools.items.iron_axe]": "Железный топор"
+"[tools.items.steel_axe]": "Стальной топор"
+
+# content/tools/axe/data/recipes.yaml
+"[tools.recipes.stone_axe]": "Каменный топор"
+"[tools.recipes.planks]": "Доски"
+"[tools.recipes.copper_axe]": "Медный топор"
+"[tools.recipes.bronze_axe]": "Бронзовый топор"
+"[tools.recipes.iron_axe]": "Железный топор"
+"[tools.recipes.steel_axe]": "Стальной топор"

@@ -2,9 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hatch/bundle.yaml
-"Люк": "Botola"
+"[tools.hatch.bundle]": "Botola"
 
 # content/tools/hatch/data/items.yaml
-"Крышка из досок для дыры в полу или потолке. Касание открывает и закрывает.": "Un coperchio di assi per un buco nel pavimento o nel soffitto. Un tocco lo apre e lo chiude."
-"Люк 2×2": "Botola 2×2"
-"Широкая крышка из досок для дыры в полу на две клетки в ширину и две в глубину.": "Un largo coperchio di assi per un buco nel pavimento, largo due celle e profondo due."
+"[tools.items.hatch]": "Botola"
+"[tools.items.hatch.about]": "Un coperchio di assi per un buco nel pavimento o nel soffitto. Un tocco lo apre e lo chiude."
+"[tools.items.hatch_2x2]": "Botola 2×2"
+"[tools.items.hatch_2x2.about]": "Un largo coperchio di assi per un buco nel pavimento, largo due celle e profondo due."
+
+# content/tools/hatch/data/recipes.yaml
+"[tools.recipes.hatch]": "Botola"
+"[tools.recipes.hatch_2x2]": "Botola 2×2"

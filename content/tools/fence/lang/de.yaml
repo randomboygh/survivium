@@ -2,11 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fence/bundle.yaml
-"Забор": "Zaun"
+"[tools.fence.bundle]": "Zaun"
 
 # content/tools/fence/data/items.yaml
-"Звено изгороди из жердей. Строится в режиме строительства линией, как стена, и само соединяется с соседними.": "Ein Stück Stangenzaun. Wird im Baumodus als Linie gebaut, wie eine Wand, und verbindet sich von selbst mit den Nachbarn."
-"Калитка": "Pforte"
-"Створка из жердей в линию забора, на одну клетку. Касание открывает и закрывает.": "Ein Flügel aus Stangen in der Zaunlinie, ein Feld breit. Ein Tippen öffnet und schließt ihn."
-"Ворота": "Gatter"
-"Две створки из жердей в линию забора, на две клетки в ширину. Касание открывает обе.": "Zwei Flügel aus Stangen in der Zaunlinie, zwei Felder breit. Ein Tippen öffnet beide."
+"[tools.items.fence]": "Zaun"
+"[tools.items.fence.about]": "Ein Stück Stangenzaun. Wird im Baumodus als Linie gebaut, wie eine Wand, und verbindet sich von selbst mit den Nachbarn."
+"[tools.items.wicket]": "Pforte"
+"[tools.items.wicket.about]": "Ein Flügel aus Stangen in der Zaunlinie, ein Feld breit. Ein Tippen öffnet und schließt ihn."
+"[tools.items.gate]": "Gatter"
+"[tools.items.gate.about]": "Zwei Flügel aus Stangen in der Zaunlinie, zwei Felder breit. Ein Tippen öffnet beide."
+
+# content/tools/fence/data/recipes.yaml
+"[tools.recipes.fence]": "Zaun"
+"[tools.recipes.wicket]": "Pforte"
+"[tools.recipes.gate]": "Gatter"

@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/pickaxe/bundle.yaml
-"Кирка": "Piccone"
+"[tools.pickaxe.bundle]": "Piccone"
 
 # content/tools/pickaxe/data/items.yaml
-"Каменная кирка": "Piccone di pietra"
-"Деревянная кирка": "Piccone di legno"
-"Медная кирка": "Piccone di rame"
-"Бронзовая кирка": "Piccone di bronzo"
-"Железная кирка": "Piccone di ferro"
-"Стальная кирка": "Piccone d'acciaio"
+"[tools.items.stone_pickaxe]": "Piccone di pietra"
+"[tools.items.wooden_pickaxe]": "Piccone di legno"
+"[tools.items.copper_pickaxe]": "Piccone di rame"
+"[tools.items.bronze_pickaxe]": "Piccone di bronzo"
+"[tools.items.iron_pickaxe]": "Piccone di ferro"
+"[tools.items.steel_pickaxe]": "Piccone d'acciaio"
+
+# content/tools/pickaxe/data/recipes.yaml
+"[tools.recipes.stone_pickaxe]": "Piccone di pietra"
+"[tools.recipes.wooden_pickaxe]": "Piccone di legno"
+"[tools.recipes.copper_pickaxe]": "Piccone di rame"
+"[tools.recipes.bronze_pickaxe]": "Piccone di bronzo"
+"[tools.recipes.iron_pickaxe]": "Piccone di ferro"
+"[tools.recipes.steel_pickaxe]": "Piccone d'acciaio"

@@ -2,11 +2,18 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/shovel/bundle.yaml
-"Лопата": "Kürek"
+"[tools.shovel.bundle]": "Kürek"
 
 # content/tools/shovel/data/items.yaml
-"Деревянная лопата": "Ahşap kürek"
-"Медная лопата": "Bakır kürek"
-"Бронзовая лопата": "Bronz kürek"
-"Железная лопата": "Demir kürek"
-"Стальная лопата": "Çelik kürek"
+"[tools.items.wooden_shovel]": "Ahşap kürek"
+"[tools.items.copper_shovel]": "Bakır kürek"
+"[tools.items.bronze_shovel]": "Bronz kürek"
+"[tools.items.iron_shovel]": "Demir kürek"
+"[tools.items.steel_shovel]": "Çelik kürek"
+
+# content/tools/shovel/data/recipes.yaml
+"[tools.recipes.wooden_shovel]": "Ahşap kürek"
+"[tools.recipes.copper_shovel]": "Bakır kürek"
+"[tools.recipes.bronze_shovel]": "Bronz kürek"
+"[tools.recipes.iron_shovel]": "Demir kürek"
+"[tools.recipes.steel_shovel]": "Çelik kürek"

@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/bronze/bundle.yaml
-"Бронза": "Bronze"
+"[materials.bronze.bundle]": "Bronze"
 
 # content/materials/bronze/data/items.yaml
-"Сырой тигель": "Cadinho cru"
-"Толстостенная чаша из глины с песком. Её ещё нужно обжечь в печи.": "Uma tigela de paredes grossas de argila com areia. Ainda precisa ser cozida no forno."
-"Тигель": "Cadinho"
-"Обожжённая чаша для плавки. В ней сплавляют медь с оловом; сама она не тратится.": "Uma tigela cozida para fundir. Nela se ligam cobre e estanho; não se gasta."
-"Бронзовый слиток": "Lingote de bronze"
-"Медь с оловом: твёрже меди. Из бронзы — инструменты, которые берут железную руду.": "Cobre com estanho: mais duro que o cobre. Do bronze saem ferramentas que extraem minério de ferro."
+"[materials.items.raw_crucible]": "Cadinho cru"
+"[materials.items.raw_crucible.about]": "Uma tigela de paredes grossas de argila com areia. Ainda precisa ser cozida no forno."
+"[materials.items.crucible]": "Cadinho"
+"[materials.items.crucible.about]": "Uma tigela cozida para fundir. Nela se ligam cobre e estanho; não se gasta."
+"[materials.items.bronze_bar]": "Lingote de bronze"
+"[materials.items.bronze_bar.about]": "Cobre com estanho: mais duro que o cobre. Do bronze saem ferramentas que extraem minério de ferro."
+
+# content/materials/bronze/data/recipes.yaml
+"[materials.recipes.raw_crucible]": "Cadinho cru"
+"[materials.recipes.crucible]": "Cadinho"
+"[materials.recipes.bronze_bar]": "Lingote de bronze"

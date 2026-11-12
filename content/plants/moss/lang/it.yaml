@@ -2,9 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/moss/bundle.yaml
-"Мох": "Muschio"
+"[plants.moss.bundle]": "Muschio"
 
 # content/plants/moss/data/items.yaml
-"Бинт": "Benda"
-"Припарка": "Impiastro"
-"Тёплый мох в бинте. Лечит не сразу, а понемногу, но вдвое больше бинта, даже голодному и замёрзшему.": "Muschio tiepido in una benda. Cura poco a poco, non subito, ma il doppio di una benda, anche affamati e congelati."
+"[plants.items.moss]": "Muschio"
+"[plants.items.bandage]": "Benda"
+"[plants.items.poultice]": "Impiastro"
+"[plants.items.poultice.about]": "Muschio tiepido in una benda. Cura poco a poco, non subito, ma il doppio di una benda, anche affamati e congelati."
+
+# content/plants/moss/data/plants.yaml
+"[plants.plants.moss]": "Muschio"
+
+# content/plants/moss/data/recipes.yaml
+"[plants.recipes.bandage]": "Benda"
+"[plants.recipes.poultice]": "Impiastro"

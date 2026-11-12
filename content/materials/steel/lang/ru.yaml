@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/steel/bundle.yaml
+"[materials.steel.bundle]": "Сталь"
+
+# content/materials/steel/data/items.yaml
+"[materials.items.steel_bar]": "Стальной слиток"
+"[materials.items.steel_bar.about]": "Железо, напитанное углём: твёрже и упруже. Из стали — лучшие инструменты."
+
+# content/materials/steel/data/recipes.yaml
+"[materials.recipes.steel_bar]": "Стальной слиток"

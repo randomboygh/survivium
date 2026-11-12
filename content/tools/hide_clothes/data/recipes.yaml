@@ -1,7 +1,7 @@
 # Рецепты бандла «Одежда из шкур»: шкуры, кожу («Животные», бандл «Добыча»; «Материалы», бандл
 # «Кожа») и верёвку шьют иглой (класс needle, бандл «Игла») на верстаке.
 - id: fur_hat
-  title: Меховая шапка
+  title: "[tools.recipes.fur_hat]"
   makes: fur_hat
   needs: {animals:hide: 1, materials:cord: 1}
   at: tools:workbench
@@ -9,7 +9,7 @@
   wear: 1
   time: 6
 - id: fur_coat
-  title: Шуба
+  title: "[tools.recipes.fur_coat]"
   makes: fur_coat
   needs: {animals:hide: 3, materials:leather: 1, materials:cord: 2}
   at: tools:workbench
@@ -17,7 +17,7 @@
   wear: 3
   time: 16
 - id: leather_trousers
-  title: Кожаные штаны
+  title: "[tools.recipes.leather_trousers]"
   makes: leather_trousers
   needs: {materials:leather: 2, materials:cord: 1}
   at: tools:workbench
@@ -25,7 +25,7 @@
   wear: 2
   time: 10
 - id: fur_boots
-  title: Унты
+  title: "[tools.recipes.fur_boots]"
   makes: fur_boots
   needs: {animals:hide: 1, materials:leather: 1, materials:cord: 1}
   at: tools:workbench

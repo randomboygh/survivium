@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/ceiba/bundle.yaml
-"Сейба": "Seyba"
+"[plants.ceiba.bundle]": "Seyba"
+
+# content/plants/ceiba/data/trees.yaml
+"[plants.trees.ceiba]": "Seyba"

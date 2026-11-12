@@ -1,7 +1,7 @@
 # Рецепт бандла «Стекло»: песок («Ресурсы») с углём плавят в горне («Инструменты», бандл «Горн»);
 # рецепт лежит здесь, чтобы горн не зависел от стекла.
 - id: glass
-  title: Стекло
+  title: "[materials.recipes.glass]"
   makes: glass
   needs: {resources:sand: 2, charcoal: 1}
   at: tools:forge

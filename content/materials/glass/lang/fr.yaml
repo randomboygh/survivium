@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/glass/bundle.yaml
-"Стекло": "Verre"
+"[materials.glass.bundle]": "Verre"
 
 # content/materials/glass/data/items.yaml
-"Мутноватое зелёное стекло из песка. Идёт на фонарь.": "Verre vert trouble fait de sable. Sert à une lanterne."
+"[materials.items.glass]": "Verre"
+"[materials.items.glass.about]": "Verre vert trouble fait de sable. Sert à une lanterne."
+
+# content/materials/glass/data/recipes.yaml
+"[materials.recipes.glass]": "Verre"
