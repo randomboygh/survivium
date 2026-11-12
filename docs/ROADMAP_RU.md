@@ -16,7 +16,7 @@
   выживание — PR #307–#314 ([systems/character.md](systems/character_RU.md)); строительство (решение 163,
   PR #335–#339, #371, #372) и навыки (решение 164, PR #340–#342) — задачи 7 и 6 этапа 1.
 - Система бандлов по ТЗ `bundles.md` (решение 152) построена: правила и состояние восьми этапов —
-  [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md), план этапов с файлами и рисками —
+  [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM_RU.md), план этапов с файлами и рисками —
   `plan/architecture/bundle-system.md`.
 
 ## Технический аудит кода (этап 4, 2026-11-01)

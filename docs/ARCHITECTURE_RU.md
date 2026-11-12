@@ -151,7 +151,7 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 2. Правило — в `src/shared/game/`; его вид и ввод — в `src/client/`; связь — сигналами правила.
 3. Новые числа контента — поле схемы в `src/shared/content/content_schema.gd` и YAML мода, не константа.
 4. Новый станок или класс инструмента — только данные: `items.prop` и `items.tool` — открытые классы,
-   что делает вещь, говорят её флаги (решение 152, [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md));
+   что делает вещь, говорят её флаги (решение 152, [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM_RU.md));
    работа в мире есть только у девяти классов `Tools.WORLD_KINDS`. Закрытые роли (`plants.kind`,
    `materials.role`, `biomes.where`, `biomes.zone`) новым значением требуют кода.
 5. Работа размером с чанк — задание по частям в бюджете `chunk_streamer.gd`.

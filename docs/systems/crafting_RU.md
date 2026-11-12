@@ -98,7 +98,7 @@
 `keeps` (нужно в сумке, пока идёт работа, не тратится), `at` (станок), `tools` (классы инструментов, по
 одному в сумке), `wear` (сколько ударов снимает изделие с инструмента каждого класса), `process` (`craft`,
 `refine`, `smelt`, `cook` — для отчётов), `time`; поля и примеры — раздел 6
-[BUNDLE_SYSTEM.md](../specifications/BUNDLE_SYSTEM.md). Станок ищется по роли (`Items.with_prop`),
+[BUNDLE_SYSTEM.md](../specifications/BUNDLE_SYSTEM_RU.md). Станок ищется по роли (`Items.with_prop`),
 топливо костра — по `fuel` (`Items.fuel_in`, сколько горит — `Items.fuel_time`); модели — `models/<model>.png`. Износ и починка включены по
 умолчанию (`Rules.tool_wear`, переключатель «Износ инструментов» на «Тестировании» выключает; прочности
 инструментов и бережность навыка — `docs/balance/GAME_BALANCE_DESIGN.md`).
