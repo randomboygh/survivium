@@ -51,5 +51,9 @@ and the main menu then offers «Crash log» with that log to copy; in the develo
 «Debug» with what needs no world: the last run's log, the freeze log, the interface gallery, wiping the data, and «Shader check» (`src/client/view/shader_probe.gd`: each 3D
 shader drawn alone, with and without lights; a step the app crashed on is marked so at the next run); the shader warm-up prints each mix it draws.
 
+**The Adreno 840** (the user's phone, 2026-11-12) crashed the app building the big shaders that write the stencil
+(world, leaves, grass; «Shader check» found it): in the Android app they do not write it (`PixelView.stencil_writes`,
+`without_stencil`, applied in `main.gd` `_material`), so there the player's silhouette shows behind grass and crowns too.
+
 **Tests.** No device in CI: the `android` job fails if the export or the signature check fails; how it plays
 is checked on a phone.

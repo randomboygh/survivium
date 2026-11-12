@@ -156,7 +156,8 @@ voxel models of things.
 - Silhouettes behind geometry are `render_mode depth_test_inverted`; the player's silhouette is seen only
   where the stencil marks solid (1: the world, sprites) or nothing (0), not low (2: grass, shrubs, low
   things) and not crowns (3: they are cleared around the player); a trunk is cleared above the player, except
-  the butt (the faces' vertex alpha says which cell of the trunk it is).
+  the butt (the faces' vertex alpha says which cell of the trunk it is). In the Android app the world, leaves and grass
+  write no stencil (`PixelView.stencil_writes`: an Adreno driver crashed on them, [android.md](android.md)).
 - Light with shadows is drawn by a separate pass and added in sRGB, not in linear light: on top of other
   light it is brighter. Fires and the torch scale the energy (`Effects.SHADOW_ENERGY`) and give shadows only
   at night; what casts a shadow from which light is decided by the layers (`PixelView.LAYER_*`,

@@ -1279,7 +1279,7 @@ static func low_variant(shader: Shader) -> Shader:
 
 func _material(shader: Shader) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
-	m.shader = shader
+	m.shader = shader if PixelView.stencil_writes else PixelView.without_stencil(shader)
 	return m
 
 
