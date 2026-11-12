@@ -424,6 +424,8 @@ const SHOTS := {
 	# width as the 16 of the bag alone («gather»), a longer tab.
 	"gather-backpack": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true,
 		"wear": "tools:canvas_backpack"},
+	# «Бесплатные предметы» turned on: one of every thing of the game in a bag made wider for them.
+	"bag-all": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "give_all": true},
 	# Food going off: freshness strips under the cells, «Свежесть» of the stack chosen.
 	"bag-food": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true, "food": true},
 	# Quality: a dot of its grade on each cell, «Качество» of the axe chosen, its swings and swing by it.
@@ -461,6 +463,9 @@ const SHOTS := {
 		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "give": "tools:grass_cape"},
 	# Out of sleep, awake in the day: the picture swims (CameraRig.sway, grade.gdshader).
 	"sleepy": {"time": 0.42, "season": 1, "touch": true, "sleepy": true},
+	# A glowing mushroom eaten: the picture swims harder, the colours split and run.
+	"visions": {"time": 0.42, "season": 1, "touch": true, "visions": true},
+	"visions-later": {"time": 0.42, "season": 1, "touch": true, "visions": true, "frames": 50},
 	# Asleep at night by the spawn's campfire.
 	"asleep": {"time": 0.92, "season": 1, "touch": true, "asleep": true},
 	# A grass mat and a fur bedroll set down; the mat tapped: lying in it asleep, «zzZ» over the head.

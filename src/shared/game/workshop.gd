@@ -105,6 +105,28 @@ func give_free(r: Dictionary) -> int:
 	return who.give(r.makes, r.count)
 
 
+## One of every thing of the game into the bag, made wider for them (by 8 slots, a row),
+## while the rules allow it (playtest «Бесплатные предметы»); returns how many went in.
+func give_all() -> int:
+	if not rules.free_items:
+		return 0
+	var inv = who.inventory
+	var free: int = inv.slots.slice(0, inv.base).count(null)
+	var more: int = maxi(0, Items.IDS.size() - free)
+	inv.grow(inv.grown + int(ceil(more / float(Inventory.HOTBAR))) * Inventory.HOTBAR)
+	var got := 0
+	for id: String in Items.IDS:
+		got += inv.add(id, 1)
+	who.say(Lang.line("[got_every_thing_d]", [got]))
+	return got
+
+
+## The bag back to its own slots after give_all (the playtest switch turned off): what the
+## slots taken away held goes into free ones, the rest is gone; returns how many stacks were.
+func take_back_all() -> int:
+	return who.inventory.grow(0)
+
+
 ## Why recipe `r` cannot be started now; "" when it can.
 func why_not(r: Dictionary) -> String:
 	return Crafting.why_not(r, who.inventory, stations())

@@ -1452,6 +1452,7 @@
 "[new_recipe]": "New recipe: %s"
 "[new_recipes]": "New recipes: %s, %s"
 "[new_recipes_and_more]": "New recipes: %s, %s and %d more"
+"[got_every_thing_d]": "Every thing of the game: +%d"
 "[the_queue_is_full]": "The queue is full"
 "[done]": "Done: %s"
 "[nothing_to_repair]": "Nothing to repair"

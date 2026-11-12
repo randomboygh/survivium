@@ -1452,6 +1452,7 @@
 "[new_recipe]": "Новый рецепт: %s"
 "[new_recipes]": "Новые рецепты: %s, %s"
 "[new_recipes_and_more]": "Новые рецепты: %s, %s и ещё %d"
+"[got_every_thing_d]": "Все вещи игры: +%d"
 "[the_queue_is_full]": "Очередь полна"
 "[done]": "Готово: %s"
 "[nothing_to_repair]": "Чинить нечего"

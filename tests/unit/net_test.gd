@@ -315,6 +315,17 @@ func _test_requests() -> void:
 	_check(events.size() == 1 and events[0][0] == Protocol.VITALS and events[0][1][2] == a.vitals.stamina,
 		"the body's state goes out when it changes, by itself")
 	events.clear()
+	a.vitals.see_visions(30.4)
+	host.flush(net)
+	_check(events.size() == 1 and events[0][0] == Protocol.VITALS and events[0][1][10] == 31,
+		"visions go out in whole seconds left")
+	events.clear()
+	a.vitals.visions -= 0.2
+	host.flush(net)
+	_check(events.is_empty(), "less than a second of visions gone sends nothing")
+	a.vitals.visions = 0.0
+	host.flush(net)
+	events.clear()
 	var cell := Vector3i(10, 2, 10)
 	placed.put("tools:chest", cell)
 	var chest = placed.at(cell).items

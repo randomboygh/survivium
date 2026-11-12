@@ -39,6 +39,11 @@ const DRIFT_RATE := TAU / 90.0
 ## Short of sleep (Vitals.SLEEPY) the picture swims instead (grade.gdshader `sway`), more
 ## the more tired; it comes and goes at SWAY_RATE a second.
 const SWAY_RATE := 0.25
+## After a glowing mushroom (Vitals.visions) the picture swims harder still, and colours
+## run and split (grade.gdshader `trip`): it comes on at TRIP_RATE a second and fades
+## over the last TRIP_FADE seconds of the visions.
+const TRIP_RATE := 0.4
+const TRIP_FADE := 20.0
 ## Seconds a shake lasts.
 const SHAKE_TIME := 0.3
 
@@ -81,6 +86,9 @@ var _idle_at := Vector3.INF
 ## How much the picture swims now, 0..1 (see drowsiness), and the value the shader has.
 var sway := 0.0
 var _sway_set := -1.0
+## How strong the visions are now, 0..1 (see visions), and the value the shader has.
+var trip := 0.0
+var _trip_set := -1.0
 ## A shake of the picture (see shake): how far, in low-res pixels, and its seconds left.
 var _shake := 0.0
 var _shake_left := 0.0
@@ -257,6 +265,15 @@ func drowsiness() -> float:
 	return lerpf(0.3, 1.0, 1.0 - v.energy / v.SLEEPY)
 
 
+## How strong the visions should be, 0..1: full while they last, fading over the last
+## TRIP_FADE seconds; 0 asleep.
+func visions() -> float:
+	var v = game.character.vitals if game.character != null else null
+	if v == null or v.asleep or v.visions <= 0.0:
+		return 0.0
+	return clampf(v.visions / TRIP_FADE, 0.0, 1.0)
+
+
 ## Counts the time left alone (the player moving counts as input: a held key or a
 ## finger held on the stick sends nothing new) and eases the swim to the body's
 ## drowsiness, telling the shader when it changed.
@@ -271,6 +288,10 @@ func _tire(delta: float) -> void:
 	if grade_mat != null and (absf(sway - _sway_set) > 0.002 or (sway == 0.0 and _sway_set > 0.0)):
 		_sway_set = sway
 		grade_mat.set_shader_parameter("sway", sway)
+	trip = move_toward(trip, visions(), delta * TRIP_RATE)
+	if grade_mat != null and (absf(trip - _trip_set) > 0.002 or (trip == 0.0 and _trip_set > 0.0)):
+		_trip_set = trip
+		grade_mat.set_shader_parameter("trip", trip)
 
 
 ## Starts or stops the drift of a view left alone: the culling boxes then hold the views
@@ -422,7 +443,7 @@ func update(delta: float) -> void:
 	grade_mat.set_shader_parameter("view_origin", snapped * PixelView.PIXELS_PER_UNIT - Vector2(image_size) / 2.0)
 	container.position = (-Vector2.ONE * PixelView.MARGIN - frac) * view_scale
 	container.position = container.position.round()
-	if game.settings.values.crt != 0 or sway > 0.0:
+	if game.settings.values.crt != 0 or sway > 0.0 or trip > 0.0:
 		Crt.frame(grade_mat, game.get_viewport().get_visible_rect().size, container.position, view_scale,
 			Engine.get_process_frames())
 	player.place_sprite()

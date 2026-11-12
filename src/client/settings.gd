@@ -244,7 +244,8 @@ var no_overload := false
 ## Playtest switch: crafting takes no time (Workshop: a job a frame). Not saved.
 var instant_craft := false
 ## Playtest switch: the craft tab shows every recipe, and «получить» gives the chosen
-## one's thing for nothing (Rules.free_items, Workshop.give_free). Not saved.
+## one's thing for nothing (Rules.free_items, Workshop.give_free); turned on, the bag
+## gets one of every thing (Workshop.give_all). Not saved.
 var free_items := false
 ## Playtest switch: the animals that bite go for the people (Rules.animal_attacks,
 ## Wildlife._fights). Not saved.
@@ -802,9 +803,13 @@ func set_animal_attacks(on: bool) -> void:
 	apply()
 
 
+## Turned on, the server also gives one of every thing into a bag made wider for them;
+## turned off, the bag goes back to its own slots (Protocol.GIVE_ALL).
 func set_free_items(on: bool) -> void:
 	free_items = on
 	apply()
+	if game.net != null:
+		game.net.request(Protocol.GIVE_ALL, [on])
 
 
 func set_no_overload(on: bool) -> void:

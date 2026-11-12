@@ -1,6 +1,6 @@
 # Items: what lies in the bag and on the ground. weight — the weight of one piece in kg; stack —
 # how many pieces fit into one bag slot; food — the satiety from one piece (0 —
-# inedible); heal — how much health one piece restores (a bandage); heal_time — over how many seconds (a poultice heals gradually, 0 — at once); place — the cell material the item puts into the world (no field — it is not
+# inedible); heal — how much health one piece restores (a bandage); heal_time — over how many seconds (a poultice heals gradually, 0 — at once); visions — seconds of visions one eaten piece gives (a glowing mushroom: the picture swims and shifts colour, as when short of sleep but stronger; pieces add up to VISIONS_MAX); place — the cell material the item puts into the world (no field — it is not
 # placed); model — the voxel model of the item on the ground (no field — a bundle);
 # icon — the picture in the bag (no field — the tile of the material from place). Tools: tool —
 # axe (chops trees, bushes and wooden cells), pickaxe (stone and ore), shovel (soft

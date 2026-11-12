@@ -47,6 +47,9 @@ const BURN := 2.0
 ## With 100 health a fall of 6 levels is safe and one of 19 kills.
 const FALL_SAFE := 6.0
 const FALL_PER_LEVEL := 8.0
+## Visions (an item with `visions`, a glowing mushroom) last at most this many seconds,
+## however many are eaten.
+const VISIONS_MAX := 300.0
 ## Below this much stamina the body is tired and walks slower.
 const TIRED := 10.0
 const TIRED_PACE := 0.7
@@ -92,6 +95,9 @@ var stamina := MAX
 ## how much of it a second: it heals whatever the hunger or the cold (see mend).
 var mending := 0.0
 var mend_rate := 0.0
+## Seconds of visions still to come (see see_visions): the client's picture swims and
+## shifts colour while there are any.
+var visions := 0.0
 ## Asleep: energy comes back at `sleep_rate` (Character sets it: a roof, bedding).
 var asleep := false
 var sleep_rate := 1.0
@@ -136,6 +142,8 @@ func step(delta: float, days: float, swimming: bool, load_factor := 0.0) -> void
 		_hurt(DRY_PER_DAY * days, "thirst")
 	elif satiety > WELL_FED and water >= THIRSTY and warmth >= COLD:
 		health = minf(MAX, health + HEAL_PER_DAY * days * (2.0 if asleep else 1.0))
+	if visions > 0.0:
+		visions = maxf(0.0, visions - delta)
 	if mending > 0.0:
 		var got := minf(mending, mend_rate * delta)
 		mending -= got
@@ -273,6 +281,11 @@ func mend(amount: float, seconds: float) -> bool:
 	return true
 
 
+## Adds `seconds` of visions (something eaten that brings them), up to VISIONS_MAX.
+func see_visions(seconds: float) -> void:
+	visions = clampf(visions + seconds, 0.0, VISIONS_MAX)
+
+
 ## A fall of `levels` levels hurts past FALL_SAFE, half as much into shallow water
 ## (`soft`); returns the health it took (none with `falls` off).
 func fall(levels: float, soft := false) -> float:
@@ -316,12 +329,13 @@ func revive(share: float) -> void:
 	warmth = maxf(warmth, COMFORT)
 	wet = 0.0
 	mending = 0.0
+	visions = 0.0
 	hurt_by = ""
 
 
 func to_dict() -> Dictionary:
 	return {"health": health, "satiety": satiety, "water": water, "energy": energy, "stamina": stamina, "warmth": warmth, "wet": wet,
-		"mending": mending, "mend_rate": mend_rate}
+		"mending": mending, "mend_rate": mend_rate, "visions": visions}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -334,3 +348,4 @@ func from_dict(d: Dictionary) -> void:
 	wet = clampf(float(d.get("wet", 0.0)), 0.0, 1.0)
 	mending = clampf(float(d.get("mending", 0.0)), 0.0, MAX)
 	mend_rate = maxf(0.0, float(d.get("mend_rate", 0.0)))
+	visions = clampf(float(d.get("visions", 0.0)), 0.0, VISIONS_MAX)

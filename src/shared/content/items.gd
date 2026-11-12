@@ -252,6 +252,11 @@ static func heal_time(id: String) -> float:
 	return get_item(id).get("heal_time", 0.0)
 
 
+## Seconds of visions one of item `id` gives when eaten (a glowing mushroom), 0 for none.
+static func visions(id: String) -> float:
+	return get_item(id).get("visions", 0.0)
+
+
 ## The kind of item `id` (a key of CATEGORIES): something worn, a tool, a light, a thing set down in the world,
 ## food, something planted or sown, a block, else a material. The one place that
 ## decides it, so a `category` field of the data can take over here when items need
