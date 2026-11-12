@@ -88,6 +88,9 @@ const DEFAULTS := {
 	# The statistics button in the top row (Hud.show_stats_button); hidden by default
 	# (decision 186). F3 opens the panel on a computer either way.
 	"stats_button": false,
+	# The right hand's slot on the hotbar of a phone held upright (Hud.show_second_hand);
+	# hidden by default, its room goes to one more slot of the bag.
+	"second_hand": false,
 	# The corner of the screen (see Hud._place_top): the minimap small, as it comes or
 	# large (Minimap.SIDES), the level buttons beside it and the camera cross under it.
 	"minimap_size": 1,
@@ -528,6 +531,7 @@ func apply() -> void:
 		hud.show_keys(values.show_help)
 		hud.show_social(values.solo_social)
 		hud.show_stats_button(values.stats_button)
+		hud.show_second_hand(values.second_hand)
 
 
 ## Puts every setting back as it comes, all but the world the setup screen makes.
