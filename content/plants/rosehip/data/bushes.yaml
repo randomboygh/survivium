@@ -1,4 +1,4 @@
-# Куст: поля — как у малины (content/plants/raspberry/data/bushes.yaml). Где он растёт, говорят биомы.
+# A bush: fields as for the raspberry (content/plants/raspberry/data/bushes.yaml). Where it grows is up to the biomes.
 - id: rosehip
   title: "[plants.bushes.rosehip]"
   tint: "#3e6a2c"

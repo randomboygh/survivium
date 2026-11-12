@@ -1,4 +1,4 @@
-# Предмет бандла «Кожаная сумка»: вторая сумка за спину. Поля — как у котомки
+# Item of the "Leather bag" bundle: a second back bag. Fields are as for the woven pouch
 # (content/tools/wicker_bag/data/items.yaml).
 - id: leather_bag
   title: "[tools.items.leather_bag]"

@@ -1,5 +1,5 @@
-# Кожа: шкуру с жиром выделывают на сушилке «Инструментов». Идёт на кожаную пращу и составной лук,
-# потом — на одежду. Поля — как у предметов основы (content/core/data/items.yaml).
+# Leather: hide with fat is dressed on the "Tools" drying rack. It goes into a leather sling and a composite bow,
+# later — into clothes. Fields as for the core's items (content/core/data/items.yaml).
 - id: leather
   title: "[materials.items.leather]"
   description: "[materials.items.leather.about]"

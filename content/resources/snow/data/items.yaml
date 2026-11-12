@@ -1,10 +1,10 @@
-# Снег в сумке: ставится ячейкой снега.
+# Snow in the bag: placed as a snow cell.
 - id: snow
   title: "[resources.items.snow]"
   weight: 0.5
   stack: 20
   place: snow
-# Лёд в сумке: ставится ячейкой льда.
+# Ice in the bag: placed as an ice cell.
 - id: ice
   title: "[resources.items.ice]"
   weight: 1.0

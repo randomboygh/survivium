@@ -1,6 +1,6 @@
-# Снег, лежащий круглый год: грунт ледяной пустоши (role: snow, биомы с top: snow). Копается
-# лопатой и даёт снег. Поля — как у материалов основы (content/core/data/materials.yaml); звуки
-# по имени, из мода «Звуки». Без бандла на его месте камень.
+# Snow that lies all year round: the ground of the icy wasteland (role: snow, biomes with top: snow). Dug
+# with a shovel and gives snow. Fields are as for the core materials (content/core/data/materials.yaml); sounds
+# by name, from the "Sounds" mod. Without the bundle, stone takes its place.
 - id: snow
   title: "[resources.materials.snow]"
   role: snow
@@ -13,8 +13,8 @@
   dig: shovel
   step: step_snow
   hit: dig
-# Лёд: голубой лёд ледников (role: ice) — в их отвесных стенах (биом glacier). Колется киркой и даёт
-# лёд. Без него на его месте камень.
+# Ice: blue glacier ice (role: ice) - in the sheer walls of glaciers (biome glacier). Broken with a pickaxe and gives
+# ice. Without it, stone takes its place.
 - id: ice
   title: "[resources.materials.ice]"
   role: ice

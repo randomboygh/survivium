@@ -1,4 +1,4 @@
-# Плетень плетут руками из веток («Ресурсы», бандл «Дерево»).
+# Wattle is woven by hand from twigs ("Resources", the "Wood" bundle).
 - id: wattle
   title: "[materials.recipes.wattle]"
   makes: wattle

@@ -1,4 +1,4 @@
-# Плетень как ячейка: разбирается руками и возвращает себя. Поля — как у материалов основы.
+# Wattle as a cell: taken apart by hand and returns itself. Fields as for the core's materials.
 - id: wattle
   title: "[materials.materials.wattle]"
   hotbar: 9

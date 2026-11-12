@@ -1,4 +1,4 @@
-# Рецепт бандла «Кожаная сумка»: кожу и верёвку («Материалы») шьют иглой (класс needle, бандл «Игла»).
+# Recipe of the "Leather bag" bundle: leather and rope ("Materials") are sewn with a needle (class needle, the "Needle" bundle).
 - id: leather_bag
   title: "[tools.recipes.leather_bag]"
   makes: leather_bag

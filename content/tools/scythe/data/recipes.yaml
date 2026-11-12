@@ -1,6 +1,6 @@
-# Рецепты бандла «Коса»: at — станок, на котором делают (ссылка на предмет: бандл верстака
-# нужен тому, чьи рецепты делают на нём), tools — классы инструментов в сумке; ветка, бревно,
-# кремень, камень и глина — «Ресурсы», верёвка, доски и кирпич — «Материалы». Все поля рецепта —
+# Recipes of the "Scythe" bundle: at - the station where it is made (a reference to an item: the workbench bundle
+# is needed by whoever has recipes made at it), tools - the tool classes in the bag; branch, log,
+# flint, stone and clay are "Resources", rope, planks and brick are "Materials". All the recipe fields are in
 # docs/DATA_MODEL.md.
 - id: stone_scythe
   title: "[tools.recipes.stone_scythe]"

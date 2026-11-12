@@ -1,108 +1,118 @@
-# Тесты, инструменты, CI, версии
+# Tests, tools, CI, versions
 
-Статус: ACTIVE. Команды проверок перед каждым пушем — в `CLAUDE.md`. Как проверять по уровням и что
-запускать для какой системы — [../testing/TESTING_GUIDE.md](../testing/TESTING_GUIDE.md); покрытие и
-нестабильные проверки — [../testing/TEST_COVERAGE.md](../testing/TEST_COVERAGE.md); задания CI —
-[../testing/CI_PIPELINE.md](../testing/CI_PIPELINE.md).
+Status: ACTIVE. The commands of checks before every push — in `CLAUDE.md`. How to check by levels and what to
+run for which system — [../testing/TESTING_GUIDE.md](../testing/TESTING_GUIDE.md); coverage and flaky checks —
+[../testing/TEST_COVERAGE.md](../testing/TEST_COVERAGE.md); the CI jobs —
+[../testing/CI_PIPELINE.md](../testing/CI_PIPELINE.md). A Russian copy: [testing_RU.md](testing_RU.md).
 
-## Тесты (`tests/`)
+## Tests (`tests/`)
 
-| Файл | Что проверяет | Предел |
+| File | What it checks | Limit |
 |---|---|---|
-| `run_tests.gd` + `unit/<тема>_test.gd` | юнит-тесты по темам из `FILES` (generation, mesher, body, shapes, view, actions, clock, wildlife, store, content, graph, bundle_system, character, session, net, territory, plans, skills, properties; файл `*_test.gd`, которого нет в `FILES`, — провал); каждый файл наследует `unit/test_case.gd` (`_check` и помощники) и печатает свои проверки и секунды; `-- тема …` запускает только их; `properties` — генеративные: сумка под случайными действиями и граф рецептов на случайных наборах от закреплённых семян | 300 с |
-| `save_test.gd` | играет, сохраняет, запускает заново: копки, место, часы, вещи, карта, маркеры, части модулей, старые сохранения | 300 с |
-| `progress_test.gd` | новый мир с пустой сумкой (на 24 места, как с рюкзаком): путь до каждого рецепта через вызовы самой игры; при провале говорит, чего не достать; `-- --part hunting` — только рецепты, которым нужно добытое со зверя (туша, шкуры, мех, кости, жир), `-- --part other` — остальные (в `run_all.sh` — `progress_hunting` и `progress_other`, в CI — на двух машинах); ожидания идут и по часам, и не меньше 30 кадров | 1200 с на половину |
-| `frame_test.gd` | играет сценарии без экрана и падает, если работа размером с чанк попала в один кадр; idle и idle у костра судятся медианой кадра против доли чанка, мерянного прямо перед замером, и печатают части кадра игры; тайминги шумят на занятой машине — перезапустите отдельно | 600 с |
-| `server_test.gd` | сцена headless-сервера в том же процессе на порту 7791 и боты через `socket.gd`: вход и отказы (версия, пароль, полный сервер, без hello), события входа, чанки, запрос через сокет, обрыв связи и возврат по ключу; сама игра входит на сервер (`join_url`): мир из присланных чанков, правки ячеек, фигуры других игроков с именами, проверка движения сервером (прыжок через полмира ставится назад, шаг — нет); прощание, команды who / say / kick / stop; свой сервер из меню (`LocalHost.host`: сразу слушает, второй на том же порту — «занят», `stopped`) и команды хозяина give / tp / ban / unban / whitelist; перезапуск сервера над сохранённым миром — недописанное убрано, клетка и вещи те же, Аня возвращается по ключу к своему персонажу | 300 с |
-| `browser_smoke.mjs` | web-сборка в headless Chrome как ПК, как телефон (DPR 3, касания) и как телефон стоя по ссылке `?server=` (экран «Присоединиться», неудачный вход); по машине на каждый; падает на SCRIPT ERROR, SHADER ERROR, Parse Error и `Invalid call/access/get/set`, печатает время загрузки и снимок | в CI |
-| `run_all.sh` | `parse`, `validate`, `report` (свежесть отчётов о контенте), `run_tests`, `save_test`, `progress_hunting`, `progress_other`, `server_test` параллельно, каждая со своим `user://` (`XDG_DATA_HOME`), затем `frame_test` один; `GODOT=путь`; имена аргументами — только они (`progress_test` — весь путь одним прогоном); `LOGS=папка` — журналы туда; в Actions — таблица в сводку запуска и `::error` | — |
+| `run_tests.gd` + `unit/<topic>_test.gd` | unit tests by the topics of `FILES` (generation, mesher, body, shapes, view, actions, clock, wildlife, store, content, graph, bundle_system, character, session, net, territory, plans, skills, properties; a `*_test.gd` file that is not in `FILES` is a failure); each file inherits `unit/test_case.gd` (`_check` and helpers) and prints its checks and seconds; `-- topic …` runs only them; `properties` are generative: the bag under random actions and the graph of recipes on random sets from pinned seeds | 300 s |
+| `save_test.gd` | plays, saves, starts again: digging, the place, the clock, things, the map, markers, the modules' parts, old saves | 300 s |
+| `progress_test.gd` | a new world with an empty bag (of 24 places, as with a backpack): the path to every recipe through the game's own calls; on a failure says what cannot be got; `-- --part hunting` — only the recipes that need something got from a beast (a carcass, hides, fur, bones, fat), `-- --part other` — the rest (in `run_all.sh` — `progress_hunting` and `progress_other`, in CI — on two machines); waits go both by the clock and for no fewer than 30 frames | 1200 s per half |
+| `frame_test.gd` | plays scenarios without a screen and fails if work the size of a chunk got into one frame; idle and idle by the campfire are judged by the frame's median against a share of a chunk measured right before the measuring, and print the parts of the game's frame; the timings are noisy on a busy machine — rerun alone | 600 s |
+| `server_test.gd` | the scene of a headless server in the same process on port 7791 and bots through `socket.gd`: login and refusals (version, password, a full server, no hello), the login events, chunks, a request through the socket, a cut link and a return by key; the game itself enters a server (`join_url`): a world from the sent chunks, edits of cells, other players' figures with names, the server's check of movement (a jump across half the world is put back, a step — not); the goodbye, the commands who / say / kick / stop; one's own server from the menu (`LocalHost.host`: listens at once, a second on the same port — «busy», `stopped`) and the host's commands give / tp / ban / unban / whitelist; a restart of the server over a saved world — the unfinished is removed, the cell and things are the same, Anya returns by key to her character | 300 s |
+| `browser_smoke.mjs` | the web build in headless Chrome as PC, as a phone (DPR 3, touches) and as an upright phone by the link `?server=` (the «Join» screen, an unsuccessful login); a machine for each; fails on SCRIPT ERROR, SHADER ERROR, Parse Error and `Invalid call/access/get/set`, prints the loading time and a snapshot | in CI |
+| `run_all.sh` | `parse`, `validate`, `report` (freshness of the content reports), `run_tests`, `save_test`, `progress_hunting`, `progress_other`, `server_test` in parallel, each with its own `user://` (`XDG_DATA_HOME`), then `frame_test` alone; `GODOT=path`; names as arguments — only them (`progress_test` — the whole path in one run); `LOGS=folder` — logs there; in Actions — a table into the run's summary and `::error` | — |
 
-Строки `ERROR: content: _test…` в выводе `run_tests` — нарочно сломанные данные проверок загрузчика;
-предупреждения об утечках RID при выходе из `save_test` и `progress_test` — давние и безвредные.
+The lines `ERROR: content: _test…` in the output of `run_tests` are deliberately broken data of the loader's
+checks; the warnings about RID leaks at the exit of `save_test` and `progress_test` are old and harmless.
 
-## Подводные камни тестов
+## Pitfalls of tests
 
-- Тесты поведения во времени ждут по `Time.get_ticks_msec`, а не по кадрам: в CI кадры очень быстрые.
-  Флаг кадра, посчитанный до обновления состояния, в этом кадре уже устарел.
-- Headless-запуск оборачивайте в `timeout`: ошибка в скрипте с `await` оставляет Godot висеть.
-- `--check-only --script res://x.gd` только разбирает скрипт.
-- `tools/shot.gd` и `tools/profile.gd` пишут `user://settings.cfg`; сценовые тесты читают свой
-  `user://test_settings.cfg` (`Settings.path`, удаляется в начале теста), `server_test` — `user://test_server.cfg`
-  (`Config.file`), так что инструменты больше не меняют то, во что играют тесты.
-- Ошибка выполнения скрипта обрывает только свою функцию, и тест идёт дальше без проверок после неё:
-  `run_tests.gd` считает каждую такую ошибку провалом (свой `Logger`), `run_all.sh` валит проверку, в журнале
-  которой есть `SCRIPT ERROR`.
+- Tests of behaviour in time wait by `Time.get_ticks_msec`, not by frames: in CI the frames are very fast. A
+  frame's flag counted before the state's update is stale in that frame.
+- Wrap a headless run in `timeout`: an error in a script with `await` leaves Godot hanging.
+- `--check-only --script res://x.gd` only parses the script.
+- `tools/shot.gd` and `tools/profile.gd` write `user://settings.cfg`; the scene tests read their own
+  `user://test_settings.cfg` (`Settings.path`, deleted at the start of a test), `server_test` —
+  `user://test_server.cfg` (`Config.file`), so the tools no longer change what the tests play.
+- A runtime error of a script cuts off only its own function, and the test goes on without the checks after
+  it: `run_tests.gd` counts each such error as a failure (its own `Logger`), `run_all.sh` fails a check
+  whose log has `SCRIPT ERROR`.
 
-## Инструменты (`tools/`)
+## Tools (`tools/`)
 
-- `lint.py` — секунды, без Godot: нет `class_name`, автозагрузок, плагинов; пробелы в конце строк,
-  CRLF, конец файла, маркеры конфликтов; пути `load("res://…")` и ресурсов сцен существуют; Python
-  компилируется, shell — `bash -n`, `browser_smoke.mjs` — `node --check`, JSON и workflow разбираются.
-  `parse_check.gd` — компилирует каждый скрипт (и те, что не грузит ни один тест), не создавая объектов.
-  `hooks/pre-commit` — `lint.py` и `doc_index.py --check` перед коммитом, включается
-  `git config core.hooksPath tools/hooks`.
+- `lint.py` — seconds, no Godot: no `class_name`, autoloads, plugins; trailing spaces, CRLF, the end of a
+  file, conflict markers; the paths `load("res://…")` and of scenes' resources exist; Python compiles, shell
+  — `bash -n`, `browser_smoke.mjs` — `node --check`, JSON and workflow are parsed. `parse_check.gd` —
+  compiles every script (also those that no test loads) without creating objects. `hooks/pre-commit` —
+  `lint.py` and `doc_index.py --check` before a commit, turned on by `git config core.hooksPath tools/hooks`.
 
-- `validate.gd` — проверка данных всех модов (и в CI): схемы, ссылки, каждый бандл отдельно, файлы
-  звуков, картинки, текстуры, модели, достижимость рецептов, место в атласе; имена против правил печатает
-  предупреждениями, не падая.
-- `shot.gd` (+ `shot/shots.gd` — таблица снимков, `shot/places.gd` — места и сцены) — скриншоты без GPU:
-  `xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 --resolution 1280x720
-  --script res://tools/shot.gd -- <папка> [--phone] [имена]` (медленно, в фоне; снимки делят один мир,
-  снимок с правкой ячеек возвращает их; `ground-*` — в тестовом мире; `place` с именем биома ставит
-  игрока в его середину, а не на ближний край, `places.inland`).
-- `map.gd` — карта местности вокруг спавна сверху; `profile.gd` — время каждого модуля кадра headless и
-  вызовы отрисовки под xvfb (`-- spikes` — разовые действия); `bench_gen.gd`, `bench_mesh.gd`,
-  `bench_edit.gd`, `bench_turn.gd` — замеры; `bench_content.gd [бандлов]` — чтение и загрузка данных модов,
-  реестры и граф, сейчас и с придуманным модом в придачу.
-- Ассеты: `make_sprites.gd`, `make_models.gd`, `make_icons.gd`, `make_textures.gd` (рисовалки в
-  `art/*.gd`), `make_sounds.gd` (кирпичики в `sound/synth.gd`) — делают только названные
-  (`-- <имя> …`), всё разом только с `-- --all`: перезаписывается и нарисованное руками; `sheet.gd` (лист игрока в PNG);
-  Python с Pillow: `make_icon.py` (иконка и `assets/web/`; теги `og:` превью ссылки — в `html/head_include`
-  пресета `export_presets.cfg`), `make_splash.py` (заставка); оба пишут имя игры из `project.godot`;
-  `rename.py "Имя"` — переименовать игру ([RENAMING.md](../RENAMING.md)),
-  `make_creatures.py` с `creature_kit.py` (листы зверей), `make_sparrow.py` (воробей), `make_birds.py` (ворона, сова, утка), `make_frog.py`, `make_fish.py`, `make_rabbit.py`, `make_squirrel.py`, `make_fox.py`, `make_deer.py`, `make_boar.py`, `make_bear.py`, `make_wolf.py`, `make_cat.py`, `make_hedgehog.py`, `make_plant_art.py` (кора,
-  растения, плоды новых растений). Нарисованное можно поправить руками.
-- `build_info.py` — версия и «Что нового» для сборки (CI); `web_patch.py` — патч web-сборки для звука
-  и клавиатуры телефона
-  (CI, после экспорта); `web_cache.py` — после него: файлы движка получают имя по содержимому
-  (`engine-<хэш>.*`), а сама страница (свой `fetch`) хранит wasm в Cache Storage браузера, так что
-  после деплоя телефон не качает 9 МБ движка заново (новый движок — новое имя, старый кэш удаляется;
-  service worker из #304 убран: из-за него страница ждала 10 с, `engine.sw.js` теперь только удаляет себя); `doc_index.py` — индекс скриптов для `docs/` и проверка путей в документах (`uses` видит и сцены `.tscn`, и скрипты, что их грузят);
-  `content_report.gd` — отчёты о контенте из загруженных данных: реестр сущностей
-  `docs/generated/content-index.md`, граф `content-graph.md`, реестр рецептов `content-recipes.md`, что
-  нашли проверки `content-checks.md` (`-- --check` — только проверить свежесть, так его запускает CI).
-  `balance_report.gd` — таблицы баланса `docs/balance/GAME_BALANCE_TABLES.md` из тех же данных и формул правил
-  (инструменты, дерево × топор × навык, ячейки, звери, PvP, навыки, выносливость, цена и срок, еда; `-- --check` —
-  свежесть); запускать после правки инструментов, деревьев, материалов, существ, навыков.
+- `validate.gd` — the check of all mods' data (in CI too): schemas, references, each bundle separately, the
+  sounds' files, pictures, textures, models, the reachability of recipes, the place in the atlas; names
+  against the rules it prints as warnings, without failing.
+- `shot.gd` (+ `shot/shots.gd` — the table of shots, `shot/places.gd` — places and scenes) — screenshots
+  without a GPU: `xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3
+  --resolution 1280x720 --script res://tools/shot.gd -- <folder> [--phone] [names]` (slow, in the background;
+  the shots share one world, a shot with an edit of cells returns them; `ground-*` — in the test world;
+  `place` with a biome's name puts the player in its middle, not on the near edge, `places.inland`).
+- `map.gd` — the map of the terrain round the spawn from above; `profile.gd` — the time of each module of
+  the frame headless and the draw calls under xvfb (`-- spikes` — one-off actions); `bench_gen.gd`,
+  `bench_mesh.gd`, `bench_edit.gd`, `bench_turn.gd` — measurements; `bench_content.gd [bundles]` — reading and
+  loading the mods' data, the registries and the graph, now and with an invented mod added.
+- Assets: `make_sprites.gd`, `make_models.gd`, `make_icons.gd`, `make_textures.gd` (the drawing tools in
+  `art/*.gd`), `make_sounds.gd` (the bricks in `sound/synth.gd`) — make only the named ones (`-- <name> …`),
+  everything at once only with `-- --all`: what was drawn by hand is overwritten too; `sheet.gd` (the player's
+  sheet to PNG); Python with Pillow: `make_icon.py` (the icon and `assets/web/`; the `og:` tags of the link
+  preview are in `html/head_include` of the preset `export_presets.cfg`), `make_splash.py` (the splash); both
+  write the game's name from `project.godot`; `rename.py "Name"` — rename the game
+  ([RENAMING.md](../RENAMING.md)), `make_creatures.py` with `creature_kit.py` (the beasts' sheets),
+  `make_sparrow.py` (the sparrow), `make_birds.py` (crow, owl, duck), `make_frog.py`, `make_fish.py`,
+  `make_rabbit.py`, `make_squirrel.py`, `make_fox.py`, `make_deer.py`, `make_boar.py`, `make_bear.py`,
+  `make_wolf.py`, `make_cat.py`, `make_hedgehog.py`, `make_plant_art.py` (bark, plants, fruit of the new
+  plants). What is drawn can be corrected by hand.
+- `build_info.py` — the version and «What's new» for the build (CI); `web_patch.py` — the patch of the web
+  build for sound and the phone's keyboard (CI, after export); `web_cache.py` — after it: the engine's files
+  get a name by content (`engine-<hash>.*`), and the page itself (its own `fetch`) keeps the wasm in the
+  browser's Cache Storage, so after a deploy a phone does not download 9 MB of engine again (a new engine — a
+  new name, the old cache is deleted; the service worker of #304 is removed: because of it the page waited
+  10 s, `engine.sw.js` now only deletes itself); `doc_index.py` — the index of scripts for `docs/` and the
+  check of paths in documents (`uses` sees both the `.tscn` scenes and the scripts that load them);
+  `content_report.gd` — reports on content from the loaded data: the registry of entities
+  `docs/generated/content-index.md`, the graph `content-graph.md`, the registry of recipes
+  `content-recipes.md`, what the checks found `content-checks.md` (`-- --check` — only check freshness, CI
+  runs it so). `balance_report.gd` — the balance tables `docs/balance/GAME_BALANCE_TABLES.md` from the same
+  data and the rules' formulas (tools, tree × axe × skill, cells, beasts, PvP, skills, stamina, price and
+  term, food; `-- --check` — freshness); run it after editing tools, trees, materials, creatures, skills.
 
 ## CI (`.github/workflows/build.yml`)
 
-Задания идут параллельно, каждое на своей машине: `lint` (без Godot), `checks` (parse, validate,
-report), `tests` (run_tests, save_test, server_test), `progress (hunting)` и `progress (other)`,
-`frames` (frame_test один), `export` (версия, web-экспорт, патч), `pc` (версия, экспорт Windows —
-`Survivium.exe` с консольной обёрткой `Survivium.console.exe` — и Linux — `Survivium.x86_64`; архивы
-`survivium-windows.zip` и `survivium-linux.tar.gz` как артефакты), затем `smoke` (Chrome как ПК и как
-телефон). В PR проверка в браузере идёт, только если PR трогает то, что браузер может показать иначе
-(шаблон `web` в задании `changes`), или у PR метка `smoke`; в `main` — всегда, и сборки публикуются,
-только когда прошли все задания: web на Pages (`deploy`), ПК — в скользящий пререлиз `pc-latest`
-(`publish`, те же имена файлов каждый раз; описание с версией). Новый пуш в PR отменяет его старый
-прогон, прогоны `main` не отменяются. Права токена — по заданиям, actions закреплены на SHA, Godot
-сверяется с `.github/actions/godot/SHA512-SUMS`; журналы проверок — артефакты `logs-<задание>`.
-Шаблоны экспорта (web, Windows, Linux) кладёт `.github/actions/godot` (тестовым заданиям — без них);
-пресеты — в `export_presets.cfg` (Windows без rcedit: `application/modify_resources=false`). Кадр
-программного WebGL занимает секунду и больше, каждое событие ввода ждёт кадра: событий в smoke-тесте
-держите мало. FPS в CI ничего не значит. Подробно — [../testing/CI_PIPELINE.md](../testing/CI_PIPELINE.md).
+The jobs go in parallel, each on its own machine: `lint` (no Godot), `checks` (parse, validate, report),
+`tests` (run_tests, save_test, server_test), `progress (hunting)` and `progress (other)`, `frames`
+(frame_test alone), `export` (the version, web export, the patch), `pc` (the version, the export of Windows —
+`Survivium.exe` with the console wrapper `Survivium.console.exe` — and Linux — `Survivium.x86_64`; the
+archives `survivium-windows.zip` and `survivium-linux.tar.gz` as artifacts), then `smoke` (Chrome as PC and as
+a phone). On a PR the check in a browser goes only if the PR touches what a browser may show differently (the
+template `web` in the job `changes`), or the PR has the label `smoke`; on `main` — always, and the builds are
+published only when all jobs have passed: the web to Pages (`deploy`), the PC into the rolling prerelease
+`pc-latest` (`publish`, the same file names each time; a description with the version). A new push to a PR
+cancels its old run, the runs of `main` are not cancelled. The token's rights are by jobs, the actions are
+pinned to a SHA, Godot is checked against `.github/actions/godot/SHA512-SUMS`; the checks' logs are the
+artifacts `logs-<job>`. The export templates (web, Windows, Linux) are put by `.github/actions/godot` (to the
+test jobs — without them); the presets — in `export_presets.cfg` (Windows without rcedit:
+`application/modify_resources=false`). A frame of software WebGL takes a second and more, every input event
+waits for a frame: keep the events in the smoke test few. FPS in CI means nothing. In detail —
+[../testing/CI_PIPELINE.md](../testing/CI_PIPELINE.md).
 
-## Версия и «Что нового»
+## The version and «What's new»
 
-Версия клиента — `<стадия>.<PR>`: стадия — `application/config/version` в `project.godot` (поднимается
-руками, когда закрывается этап MVP или перестраивается код), PR — последний слитый в `main` (`0.1.67`
-содержит PR #67). CI пишет её `tools/build_info.py` в `build_info.json` (не в git; локально — `dev`) вместе
-с последними 500 строками `Что нового [вид]: …` из описаний слитых PR (до 10 страниц по 100 PR; одна
-строка JSON на изменение); главное меню («Что нового») и «Тестирование» показывают версию и открывают их,
-страница делает по 40 изменений и догружает следующие при прокрутке. Поэтому в описании каждого PR есть хотя бы одна такая строка по-русски, для игрока, а не
-программиста. Виды: `новое` (по умолчанию), `улучшено`, `исправлено`, `оптимизировано`, `ядро` (перенос
-кода, инструменты, тесты); PR, делающий несколько вещей, даёт строку на каждую, например
-`Что нового [исправлено]: Костёр больше не гаснет под крышей.`
+The client's version is `<stage>.<PR>`: the stage is `application/config/version` in `project.godot` (raised
+by hand when an MVP stage closes or the code is reshaped), the PR is the last one merged into `main`
+(`0.1.67` contains PR #67). CI writes it with `tools/build_info.py` into `build_info.json` (not in git;
+locally — `dev`) together with the last 500 changes from the descriptions of the merged PRs (up to 10 pages of 100 PRs; one
+JSON line per change); the main menu («What's new») and «Testing» show the version and open them, the page
+makes 40 changes at a time and loads the next ones on scrolling. Each change is written in the PR description
+in two languages: a Russian line `Что нового [вид]: …` and an English one `What's new [kind]: …` (for a
+player, not a programmer; the n-th line of each language is the same change), and optionally in another
+language of the game: `What's new (de) [fixed]: …`. The page shows the game's language, else English, else
+Russian (`SettingsMenu.change_text`, the field `texts` of a change; `text` is the Russian one). The kinds:
+`новое`/`new` (the default), `улучшено`/`improved`, `исправлено`/`fixed`, `оптимизировано`/`optimized`,
+`ядро`/`core` (code moved, tools, tests); a PR that does several things gives a line for each, for example
+`Что нового [исправлено]: Костёр больше не гаснет под крышей.` with `What's new [fixed]: A campfire no longer
+goes out under a roof.` Old PRs have only the Russian line.
 
-**Подробнее.** `plan/architecture/testing-tools.md` (замысел; раздел «Сейчас есть» — текущее).
+**In more detail.** `plan/architecture/testing-tools.md` (the idea; the section «What there is now» — the
+current).

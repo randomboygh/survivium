@@ -1,9 +1,9 @@
-# Предметы бандла «Плот и лодка» мода «Инструменты и крафт»: на чём ходят по воде. Плот или лодку в
-# руке спускают на воду кнопкой действия, лицом к воде, и садятся в них; у берега той же кнопкой
-# выходят, и плот или лодка снова в сумке (src/shared/game/actions_boat.gd). `vessel` — во сколько
-# раз быстрее ходьбы на нём плывут (навык плавания ускоряет и их), `oars` — что нужно в сумке, чтобы
-# грести: без вёсел лодка едва движется. `windage` — как сильно ветер сносит судно (плот высокий и
-# плоский — 1, лодка меньше).
+# Items of the "Raft and boat" bundle of the "Tools and crafting" mod: what people travel on water in. A raft or boat in
+# the hand is launched onto the water with the action button, facing the water, and you board it; at the shore the same button
+# gets you out, and the raft or boat is back in the bag (src/shared/game/actions_boat.gd). `vessel` - how many
+# times faster than walking you sail in it (the swimming skill speeds these up too), `oars` - what is needed in the bag to
+# row: without oars the boat barely moves. `windage` - how strongly the wind pushes the vessel (the raft is tall and
+# flat - 1, the boat less).
 - id: raft
   title: "[tools.items.raft]"
   description: "[tools.items.raft.about]"

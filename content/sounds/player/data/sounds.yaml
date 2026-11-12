@@ -1,6 +1,6 @@
-# Звуки игрока: шаги по траве, земле, камню, снегу и воде (материалы основы называют их в step и
-# hit), гребок, прыжок, приземление (и в снег), всплеск, копание, удар по камню, блок поставлен, подбор,
-# сделано, еда, огонь зажжён. Файлы sounds/<id>_N.wav (tools/make_sounds.gd).
+# Player sounds: steps on grass, earth, stone, snow and water (core materials name them in step and
+# hit), a stroke, a jump, a landing (also in snow), a splash, digging, a hit on stone, a block placed, picking up,
+# done, eating, fire lit. Files sounds/<id>_N.wav (tools/make_sounds.gd).
 - id: step_grass
   title: "[sounds.sounds.step_grass]"
   variants: 4

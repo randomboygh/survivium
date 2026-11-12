@@ -1,4 +1,4 @@
-# Стук по доскам (sounds/knock_N.wav, tools/make_sounds.gd): материал называет его в hit.
+# A knock on planks (sounds/knock_N.wav, tools/make_sounds.gd): the material names it in hit.
 - id: knock
   title: "[materials.sounds.knock]"
   variants: 2

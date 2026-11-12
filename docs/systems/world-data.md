@@ -1,45 +1,48 @@
-# Данные мира: ячейки, формы, трава
+# World data: cells, shapes, grass
 
-Статус: ACTIVE.
+Status: ACTIVE. A Russian copy: [world-data_RU.md](world-data_RU.md).
 
-**Назначение.** Хранить ячейки мира по чанкам и всё, что стоит и лежит на них; вычислять формы
-природной земли (склоны, скошенные углы) и отвечать, что встречает тело.
+**Purpose.** To keep the world's cells by chunks and everything that stands and lies on them; to compute the
+shapes of natural ground (slopes, bevelled corners) and to answer what meets a body.
 
-**Файлы**
-- `src/shared/world/world_cells.gd` — ячейки в `Chunk` по ключу (`chunk_at`, `chunk_key`; для
-  отрицательных координат `>>` и `&`); отсутствующий чанк читается как воздух (ниже 0 — камень) и не
-  пускает тела. На ячейках: деревья, кусты, `blockers` (твёрдые части вещей), `drops` (лежащее), `grows`
-  (что растёт), грядки `fields` (чанк → клетка грядки → [посев, дней роста, мокрая до] и у дикого ростка четвёртое — вид дерева; `field_at` /
-  `set_field`; `set_cell` снимает запись, сохраняются в `pack_chunk` «fields»), тропы; `track_edits` / `note_edit`, `pack_chunk` / `unpack_chunk` для сохранения.
-- `src/shared/world/world_data.gd` (наследует) — формы: `update_shapes` (склоны и углы по столбцу),
-  поверхности склонов (`surface_patch`, `ground_height`), что встречает тело (`blocks_body`,
-  `blocks_part`, `ground_part`). `ground_height` спрашивают каждый шаг зверя и тела: он читает ячейки и
-  формы столбца прямо из чанка (правила `corner_fills`, `corner_cuts`, `slope_mask` те же) и смотрит
-  соседние столбцы только в треугольнике угла.
-- `src/shared/world/grass.gd` — что растёт на верху ячейки земли (ярусы травы, цветы, колосья, мох,
-  растения модов `Plants`), облака-шум для теней.
-- `src/shared/world/voxel_raycast.gd` — луч по сетке ячеек (Amanatides & Woo), для выбора клетки.
+**Files**
+- `src/shared/world/world_cells.gd` — the cells in a `Chunk` by key (`chunk_at`, `chunk_key`; `>>` and `&`
+  for negative coordinates); a missing chunk is read as air (below 0 — stone) and lets no bodies in. On the
+  cells: trees, shrubs, `blockers` (the solid parts of things), `drops` (what lies), `grows` (what grows), the
+  beds `fields` (chunk → the bed's cell → [the crop, days of growth, wet until] and for a wild sprout a fourth
+  — the kind of tree; `field_at` / `set_field`; `set_cell` removes the entry, they are saved in `pack_chunk`
+  «fields»), trails; `track_edits` / `note_edit`, `pack_chunk` / `unpack_chunk` for saving.
+- `src/shared/world/world_data.gd` (inherits) — shapes: `update_shapes` (slopes and corners by column), the
+  surfaces of slopes (`surface_patch`, `ground_height`), what meets a body (`blocks_body`, `blocks_part`,
+  `ground_part`). `ground_height` is asked at every step of a beast and a body: it reads the cells and shapes
+  of the column straight from the chunk (the rules `corner_fills`, `corner_cuts`, `slope_mask` are the same)
+  and looks at the neighbouring columns only in the corner's triangle.
+- `src/shared/world/grass.gd` — what grows on top of a ground cell (tiers of grass, flowers, ears, moss, the
+  mods' plants `Plants`), cloud noise for shadows.
+- `src/shared/world/voxel_raycast.gd` — a ray through the grid of cells (Amanatides & Woo), for choosing a
+  cell.
 
-**Интерфейс.** `get_cell` / `set_cell` / `set_material`, `is_natural`, `in_bounds`, `add_tree`,
-`remove_tree`, `add_bush`, `add_drop` / `heap_drop` / `take_drop`, `tread` / `trail`, `column_masks`,
-`padded`, `biome_at` (биом столбца из `Chunk.biome`, `NO_BIOME` без него); `is_solid`, `blocks_body`, `ground_height`, `surface_height`, `corner_cuts`;
-`Grass.kinds`, `plants_on`, `has_tall`; `VoxelRaycast.cast`. Константы: `CELL` (0,5 единицы мира,
-8 px), `CHUNK` (16), `SNOW_LINE` (18).
+**Interface.** `get_cell` / `set_cell` / `set_material`, `is_natural`, `in_bounds`, `add_tree`, `remove_tree`,
+`add_bush`, `add_drop` / `heap_drop` / `take_drop`, `tread` / `trail`, `column_masks`, `padded`, `biome_at`
+(the column's biome from `Chunk.biome`, `NO_BIOME` without it); `is_solid`, `blocks_body`, `ground_height`,
+`surface_height`, `corner_cuts`; `Grass.kinds`, `plants_on`, `has_tall`; `VoxelRaycast.cast`. Constants:
+`CELL` (0.5 of a world unit, 8 px), `CHUNK` (16), `SNOW_LINE` (18).
 
-**Кто использует.** Всё, что касается мира: генератор пишет, меши читают, правила (`world_actions`,
-`body`, `wildlife`, `placed`) читают и меняют. `world_data.gd` — 37 зависимых файлов.
+**Who uses it.** Everything that touches the world: the generator writes, the meshes read, the rules
+(`world_actions`, `body`, `wildlife`, `placed`) read and change. `world_data.gd` has 37 dependent files.
 
-**Ограничения и подводные камни**
-- Никогда не используйте -1 как «нет» для координат мира: отрицательные координаты настоящие.
-- Чанк — 16×16 ячеек на всю высоту (48 уровней); сериализация чанка — `pack_chunk` / `unpack_chunk`,
-  формат меняется только с переводом старых сохранений.
-- Формы пересчитываются по столбцам и только для природной земли (`set_natural`). Поставленный блок —
-  куб, либо форма режима строительства (`forms`, `form_chunks`: `FORM_RAMP` скос снизу, `FORM_UPPER`
-  скос сверху, `FORM_STAIRS` ступени в два полуровня; биты 2..3 — сторона подъёма N, E, S, W):
-  `set_form` / `form_at`, любой `set_cell` возвращает куб; сохраняются в `pack_chunk` («forms»),
-  по сети — в `CELLS` (`материал | форма << 8`). Тело и `ground_height` идут по ним через `form_top`.
+**Limits and pitfalls**
+- Never use -1 as «none» for world coordinates: negative coordinates are real.
+- A chunk is 16×16 cells for the whole height (48 levels); a chunk's serialization is `pack_chunk` /
+  `unpack_chunk`, the format changes only with a conversion of old saves.
+- The shapes are recomputed by columns and only for natural ground (`set_natural`). A placed block is a cube,
+  or a shape of build mode (`forms`, `form_chunks`: `FORM_RAMP` a bevel from below, `FORM_UPPER` a bevel from
+  above, `FORM_STAIRS` steps in two half-levels; bits 2..3 — the side of the rise N, E, S, W): `set_form` /
+  `form_at`, any `set_cell` returns a cube; they are saved in `pack_chunk` («forms»), over the network — in
+  `CELLS` (`material | shape << 8`). The body and `ground_height` go by them through `form_top`.
 
-**Тесты.** `tests/unit/shapes_test.gd` (`corners`, `shapes`), `tests/unit/body_test.gd` (`raycast`,
-`slopes`, `steps`, `ground`), `tests/unit/generation_test.gd`.
+**Tests.** `tests/unit/shapes_test.gd` (`corners`, `shapes`), `tests/unit/body_test.gd` (`raycast`, `slopes`,
+`steps`, `ground`), `tests/unit/generation_test.gd`.
 
-**Подробнее.** `plan/architecture/simulation.md` (раздел «Хранение мира»), `plan/design/landscape.md`.
+**In more detail.** `plan/architecture/simulation.md` (the section «Storing the world»),
+`plan/design/landscape.md`.

@@ -1,4 +1,4 @@
-# Кто живёт в бору: патчи записям «Животных» (biomes+ дописывает биом к их списку).
+# Who lives in the pine wood: patches to the records of "Animals" (biomes+ appends the biome to their list).
 - id: animals:squirrel
   patch: true
   biomes+: [biomes:pine_wood]

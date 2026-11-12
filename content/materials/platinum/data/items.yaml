@@ -1,4 +1,4 @@
-# Платиновая руда, слиток (плавят в горне «Инструментов») и блок из слитков. Поля — как у предметов основы
+# Platinum ore, an ingot (smelted in the "Tools" forge) and a block of ingots. Fields as for the core's items
 # (content/core/data/items.yaml).
 - id: platinum_ore
   title: "[materials.items.platinum_ore]"

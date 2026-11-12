@@ -1,6 +1,6 @@
-# Рецепты бандла «Добыча»: разделка и жарка. Тушку разделывают руками, тушу — ножом (tools: класс
-# инструмента в сумке, wear — сколько он теряет); мясо жарят на костре основы или вялят на сушилке
-# «Инструментов». Поля — docs/DATA_MODEL.md.
+# Recipes of the "Game animals" bundle: butchering and frying. A small carcass is butchered by hand, a large one with a knife (tools: the class
+# of the tool in the bag, wear — how much it loses); meat is fried on the core's campfire or dried on the drying rack
+# of "Tools". Fields — docs/DATA_MODEL.md.
 - id: raw_meat_from_small_carcass
   title: "[animals.recipes.raw_meat_from_small_carcass]"
   makes: raw_meat

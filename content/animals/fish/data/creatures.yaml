@@ -1,7 +1,7 @@
-# Рыба бандла «Рыба»: живёт в открытой воде (swims) чуть под поверхностью, стайкой, только в своих биомах (biomes:
-# под озером, рекой или бочагом лежит биом суши вокруг, в море — sea или tropical_sea). Зимой плавает подо льдом.
-# catch — во что рыба превращается в сумке, когда её вытащили удочкой: к поплавку подплывает настоящая рыба
-# из воды рядом, и пойманная уходит из водоёма. Поля те же, что у всех существ (content/core/data/creatures.yaml).
+# The fish of the "Fish" bundle: lives in open water (swims) a little under the surface, in a school, only in its own biomes (biomes:
+# under a lake, river or pool lies the land biome around it, in the sea — sea or tropical_sea). In winter it swims under the ice.
+# catch — what the fish turns into in the bag when it is pulled out with a rod: a real fish swims up to the float
+# from the water nearby, and the caught one leaves the water body. The fields are the same as for all creatures (content/core/data/creatures.yaml).
 - id: roach
   title: "[animals.creatures.roach]"
   mass: 0.3

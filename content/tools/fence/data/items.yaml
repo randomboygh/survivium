@@ -1,11 +1,11 @@
-# Предметы бандла «Забор» мода «Инструменты и крафт» (этап 1, пункт 5 стройки): изгородь из жердей
-# посередине клетки, калитка и ворота в её линии. Звено забора (`fence`) само соединяется жердями с
-# соседними звеньями, калитками и воротами на своём уровне (Placed.joins); твёрдо выше прыжка
-# (Placed.FENCE_TOP), так что через забор не перепрыгнуть ни человеку, ни зверю, и ручные кролики
-# остаются в загоне. Забор строят в режиме строительства линией или квадратом, как стену: призрак
-# чертежа, кнопка действия ставит звено за звеном из сумки. Калитка и ворота — двери с `fence`:
-# створка из жердей посередине клетки, касание открывает (право участка «Открывать двери»).
-# Поля — как у предметов основы (content/core/data/items.yaml).
+# Items of the "Fence" bundle of the "Tools and crafting" mod (stage 1, item 5 of building): a fence of poles
+# in the middle of the cell, a wicket and a gate in its line. A fence link (`fence`) joins itself with poles to
+# neighboring links, wickets and gates on its level (Placed.joins); solid above a jump
+# (Placed.FENCE_TOP), so neither a person nor an animal can jump over a fence, and tame rabbits
+# stay in the pen. A fence is built in build mode as a line or a square, like a wall: the ghost
+# of the blueprint, the action button places link after link from the bag. The wicket and gate are doors with `fence`:
+# a leaf of poles in the middle of the cell, a touch opens it (the plot right "Open doors").
+# Fields are as for the core items (content/core/data/items.yaml).
 - id: fence
   title: "[tools.items.fence]"
   description: "[tools.items.fence.about]"

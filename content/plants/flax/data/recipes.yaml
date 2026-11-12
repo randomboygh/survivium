@@ -1,5 +1,5 @@
-# Рецепты бандла «Лён»: нить прядут руками, ткань ткут на ткацком станке «Инструментов»
-# (бандл «Ткацкий станок»); ткань — «Материалов». Поля рецепта — docs/DATA_MODEL.md.
+# Recipes of the "Flax" bundle: thread is spun by hand, cloth is woven on the "Tools" loom
+# (the "Loom" bundle); cloth — "Materials". Recipe fields — docs/DATA_MODEL.md.
 - id: linen_thread
   title: "[plants.recipes.linen_thread]"
   makes: linen_thread

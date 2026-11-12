@@ -1,85 +1,87 @@
-# Мод «Материалы»
+# The "Materials" mod
 
-Что добывают из жил и делают из ресурсов: медная, оловянная, железная, серебряная, золотая и платиновая руда, их слитки, бронза, сталь, уголь, верёвка, доски,
-кирпич, ткань, смола, стекло, кожа и костный клей, блоки стен (сруб, плетень, тёсаный камень), бандл на каждое.
-Раньше они лежали в основе и в «Инструментах», а песок, глина и осыпь — здесь; с 2026-10-25 то, что
-мир даёт как есть, — мод «Ресурсы» (`content/resources`), а здесь то, что из него получают.
-Выключите бандл на экране «Новый мир» («Моды» → «Материалы»), и мир останется без него: без «Меди»
-в камне нет жил и не из чего лить слитки, без «Угля» нечем плавить, без «Верёвки» нечем связать инструменты «Инструментов» (они выключатся с подписью
-«нужен»).
+A Russian copy: [README_RU.md](README_RU.md).
 
-## Что в папке
+What is mined from veins and made from resources: copper, tin, iron, silver, gold and platinum ore, their ingots, bronze, steel, charcoal, cord, planks,
+brick, cloth, tar, glass, leather and bone glue, wall blocks (log wall, wattle, cut stone), one bundle for each.
+They used to lie in the base game and in "Tools", and sand, clay and scree are here; since 2026-10-25 what the
+world gives as it is belongs to the "Resources" mod (`content/resources`), and here is what is made from it.
+Switch a bundle off on the "New world" screen ("Mods" → "Materials") and the world goes without it: without "Copper"
+there are no veins in the stone and nothing to cast ingots from, without "Charcoal" there is nothing to smelt with, without "Cord" there is nothing to bind the tools of "Tools" with (they switch off with the caption
+"needed").
+
+## What is in the folder
 
 ```
 content/materials/
-  mod.yaml                 id: materials, название, версия, api
-  README.md                этот файл
-  copper/                  «Медь»: руда как ячейка (role: ore) с текстурой и как предмет с картинкой; слиток
-                           (предмет и модель); рецепт слитка (руда и уголь в горне) — в «Инструментах», у горна
-  charcoal/                «Уголь»: древесный уголь, предмет с моделью, им плавят и разжигают костёр (fuel);
-                           рецепт (бревно в печи) — в «Инструментах», у печи
-  cord/                    «Верёвка»: предмет и рецепт (из волокна «Ресурсов», руками)
-  planks/                  «Доски»: предмет и ячейка с текстурой; рецепт (из бревна на верстаке) — в «Инструментах»
-  brick/                   «Кирпич»: предмет и ячейка с текстурой; рецепт (из глины в печи) — в «Инструментах»
-  log_wall/                «Сруб»: блок стен и пола, предмет и ячейка с текстурой; рецепт: бревно топором, без станка
-  wattle/                  «Плетень»: ранний блок стен из веток руками, разбирается руками
-  cut_stone/               «Тёсаный камень»: блок стен и пола, два камня киркой на верстаке «Инструментов»
-  cloth/                   «Ткань»: предмет; рецепты на ткацком станке — грубая из верёвки в «Инструментах», у станка,
-                           льняная из нити — в «Растениях», у льна; из неё делают смоляной факел
-  tar/                     «Смола»: предмет (fuel) и рецепт: брёвна в печи для обжига, в глиняном горшке, побочно уголь
-  glass/                   «Стекло»: предмет и рецепт: песок с углём в горне
-  tin/                     «Олово»: руда как ячейка (role: ore, veins: 0.5 — вдвое реже медной, hardness 3 — нужна
-                           медная кирка) с текстурой и как предмет; слиток и его рецепт (руда с углём в горне)
-  bronze/                  «Бронза»: тигель (сырой на гончарном круге, обжиг в печи) и бронзовый слиток: медь,
-                           олово и уголь в горне, тигель в сумке; бронзовые инструменты — в бандлах их видов
-  iron/                    «Железо»: руда как ячейка (role: ore, veins: 0.6, hardness 4 — нужна бронзовая кирка),
-                           крица (руда с углём в сыродутной печи) и слиток (крица с углём в горне)
-  leather/                 «Кожа»: предмет и рецепт: шкура с жиром «Животных» на сушилке «Инструментов»
-  bone_glue/               «Костный клей»: предмет и рецепт: кости «Животных» на костре, в глиняном горшке
-  steel/                   «Сталь»: стальной слиток из железа с углём в тигле, в сыродутной печи
-  silver/, gold/,          «Серебро», «Золото», «Платина»: редкие руды как ячейки (role: ore; veins 0.3, 0.2, 0.12;
-  platinum/                все три берёт бронзовая кирка), слитки (все плавят в
-                           горне, платину дольше и с двойным углём) и блоки из трёх слитков на наковальне
+  mod.yaml                 id: materials, name, version, api
+  README.md                this file
+  copper/                  "Copper": ore as a cell (role: ore) with a texture and as an item with a picture; ingot
+                           (item and model); the ingot recipe (ore and charcoal in the forge) is in "Tools", at the forge
+  charcoal/                "Charcoal": wood charcoal, an item with a model, used to smelt and to light a campfire (fuel);
+                           the recipe (a log in the kiln) is in "Tools", at the kiln
+  cord/                    "Cord": an item and a recipe (from the fibre of "Resources", by hand)
+  planks/                  "Planks": an item and a cell with a texture; the recipe (from a log at the workbench) is in "Tools"
+  brick/                   "Brick": an item and a cell with a texture; the recipe (from clay in the kiln) is in "Tools"
+  log_wall/                "Log wall": a wall and floor block, an item and a cell with a texture; the recipe: a log with an axe, no station
+  wattle/                  "Wattle": an early wall block made of branches by hand, taken apart by hand
+  cut_stone/               "Cut stone": a wall and floor block, two stones with a pickaxe at the workbench of "Tools"
+  cloth/                   "Cloth": an item; recipes at the loom: coarse from cord is in "Tools", at the loom,
+                           linen from thread is in "Plants", at the flax; the tar torch is made from it
+  tar/                     "Tar": an item (fuel) and a recipe: logs in the burning kiln, in a clay pot, charcoal as a by-product
+  glass/                   "Glass": an item and a recipe: sand with charcoal in the forge
+  tin/                     "Tin": ore as a cell (role: ore, veins: 0.5 — half as common as copper, hardness 3 — needs a
+                           copper pickaxe) with a texture and as an item; an ingot and its recipe (ore with charcoal in the forge)
+  bronze/                  "Bronze": a crucible (raw on the potter's wheel, fired in the kiln) and a bronze ingot: copper,
+                           tin and charcoal in the forge, the crucible in the bag; bronze tools are in the bundles of their kinds
+  iron/                    "Iron": ore as a cell (role: ore, veins: 0.6, hardness 4 — needs a bronze pickaxe),
+                           a bloom (ore with charcoal in the bloomery) and an ingot (bloom with charcoal in the forge)
+  leather/                 "Leather": an item and a recipe: a hide with fat from "Animals" on the drying rack of "Tools"
+  bone_glue/               "Bone glue": an item and a recipe: bones from "Animals" on a campfire, in a clay pot
+  steel/                   "Steel": a steel ingot from iron with charcoal in a crucible, in the bloomery
+  silver/, gold/,          "Silver", "Gold", "Platinum": rare ores as cells (role: ore; veins 0.3, 0.2, 0.12;
+  platinum/                all three are taken by a bronze pickaxe), ingots (all smelted in
+                           the forge, platinum for longer and with double charcoal) and blocks of three ingots at the anvil
 ```
 
-Руд может быть сколько угодно: генератор раздаёт жилы между всеми материалами с `role: ore` по их
-долям `veins` (блоками 8×8×8 клеток, по зерну мира). Рецепты смолы, стекла, олова, бронзы, железа, стали и драгоценных металлов лежат у них самих, а не у станков: так печь, горн и
-сыродутная печь не зависят от бандлов,
-которые можно выключить (смоле нужен ещё горшок гончарного круга).
+There can be any number of ores: the generator hands out veins among all materials with `role: ore` by their
+`veins` shares (in blocks of 8×8×8 cells, by the world seed). The recipes of tar, glass, tin, bronze, iron, steel and the precious metals lie with them, not with the stations: this way the kiln, forge and
+bloomery do not depend on bundles
+that can be switched off (tar also needs the pot of the potter's wheel).
 
-Каждый бандл — папка с `bundle.yaml` (`title`) и своими `data/<вид>.yaml`, `icons/`, `models/`,
+Each bundle is a folder with `bundle.yaml` (`title`) and its own `data/<kind>.yaml`, `icons/`, `models/`,
 `textures/`.
 
-## Текстуры — PNG
+## Textures are PNG
 
-Текстура материала — картинка из трёх квадратов 16×16 в ряд: верх ячейки, её бока и низ. Пиксель —
-тексель на грани; ячейка мира занимает 8×8 текселей, так что картинка покрывает 2×2 ячейки и
-повторяется дальше. Текстуру можно нарисовать в любом редакторе. Средний цвет верха становится
-цветом материала на миникарте, на карте и в частицах при копании.
+A material's texture is a picture of three 16×16 squares in a row: the top of the cell, its sides and its bottom. A pixel is a
+texel on a face; a world cell takes 8×8 texels, so the picture covers 2×2 cells and
+repeats further. A texture can be drawn in any editor. The average colour of the top becomes the
+material's colour on the minimap, on the map and in the particles when digging.
 
-Текстуры прототипа нарисованы кодом (`tools/art/texture_art.gd`) и записаны в моды командой
-`godot --headless --path . --script res://tools/make_textures.gd -- [материал ...]` (без имён —
-все; нарисованная руками текстура перезаписывается, так что называйте, что делать заново).
+The prototype's textures are drawn by code (`tools/art/texture_art.gd`) and written into the mods by the command
+`godot --headless --path . --script res://tools/make_textures.gd -- [material ...]` (with no names —
+all of them; a hand-drawn texture is overwritten, so name what to redo).
 
-## Как он устроен
+## How it works
 
-- Генератор просит материал **по роли**, а не по имени: `ore` — жилы в камне (здесь), `beach` —
-  пляжи, русла рек и пустыни, `bank` — берега, болота и глина тундры, `scree` — склоны высоких гор
-  (песок, глина и осыпь — в «Ресурсах»). Нет мода с такой ролью — на пляже лежит грунт, на осыпи и
-  в жилах камень. Две записи одной роли — действует последняя загруженная, так что мод с «Гранитной
-  крошкой» `role: scree` заменит осыпь без правки кода. Роли деревьев (`trunk`, `crown`) — у
-  материалов мода «Растения».
-- Как материал рисуется, тоже в данных: `priority` (0..15) — кто из соседей по склону заходит на
-  кого (больше — сверху), `ground` (`soil`, `sand`, `rock`) — оттенки грунта и шум поверхности,
-  `drains: true` — лужи после дождя на нём не стоят (песок). Шейдер мира получает таблицу этих
-  полей для всех материалов при загрузке мира.
-- `item` — что даёт ячейка (предмет своего бандла или другого мода, ссылка мягкая), `dig` — чем копается (`hand`,
-  `shovel`, `axe`, `pickaxe`), `hardness` — сколько ударов киркой, `bonus` и `bonus_chance` — что
-  иногда выпадает сверх. `hotbar` — место на панели стройки, если материал ставят. `step` и `hit` —
-  имена звуков: стук по доскам (`knock`) лежит в бандле досок, шаг и удар по камню — в бандле «Игрок» мода «Звуки» (нет записи с таким именем в загруженных модах — тишина).
-- Номера материалов в ячейках мира идут по порядку загрузки модов, и мир помнит свой набор модов и
-  список материалов (`materials` в `world.json`); при открытии старого мира номера переводятся.
-- Новый материал: папка-бандл с `bundle.yaml`, запись в `data/materials.yaml` (с `role`, если его
-  кладёт генератор), предмет в `data/items.yaml` с `place`, если его ставят, и `textures/<id>.png`.
-  Проверка: `godot --headless --path . --script res://tools/validate.gd` (поля, ссылки, текстура на
-  месте, бандл грузится отдельно только с тем, без чего не может).
+- The generator asks for a material **by role**, not by name: `ore` — veins in stone (here), `beach` —
+  beaches, riverbeds and deserts, `bank` — banks, swamps and tundra clay, `scree` — the slopes of high mountains
+  (sand, clay and scree are in "Resources"). No mod with such a role — soil lies on the beach, and stone on the scree and
+  in the veins. Two entries of one role — the last one loaded applies, so a mod with "Granite
+  chips" `role: scree` will replace the scree without a code change. The tree roles (`trunk`, `crown`) belong to the
+  materials of the "Plants" mod.
+- How a material is drawn is data too: `priority` (0..15) — which of the neighbours on a slope reaches onto
+  which (more — on top), `ground` (`soil`, `sand`, `rock`) — the shades of the ground and the surface noise,
+  `drains: true` — puddles after rain do not stand on it (sand). The world shader receives a table of these
+  fields for all materials when the world loads.
+- `item` — what the cell yields (an item of its own bundle or of another mod, the reference is soft), `dig` — what it is dug with (`hand`,
+  `shovel`, `axe`, `pickaxe`), `hardness` — how many pickaxe strikes, `bonus` and `bonus_chance` — what
+  sometimes drops on top. `hotbar` — a place on the build bar, if the material is placed. `step` and `hit` —
+  the names of sounds: the knock on planks (`knock`) lies in the planks bundle, the step and the hit on stone are in the "Player" bundle of the "Sounds" mod (no entry with such a name in the loaded mods — silence).
+- Material numbers in the world's cells follow the load order of the mods, and the world remembers its set of mods and
+  its list of materials (`materials` in `world.json`); when an old world is opened the numbers are converted.
+- A new material: a bundle folder with `bundle.yaml`, an entry in `data/materials.yaml` (with `role`, if the generator
+  places it), an item in `data/items.yaml` with `place`, if it is placed, and `textures/<id>.png`.
+  Check: `godot --headless --path . --script res://tools/validate.gd` (fields, references, the texture is
+  in place, the bundle loads alone with only what it cannot do without).

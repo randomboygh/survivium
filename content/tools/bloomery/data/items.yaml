@@ -1,5 +1,5 @@
-# Сыродутная печь: высокая глиняная печь, в которой из руды с углём выходит крица (prop: bloomery;
-# у неё делают то, что в recipes.yaml указывает на неё в `at`). Складывают на верстаке.
+# Bloomery: a tall clay furnace in which a bloom comes out of ore with coal (prop: bloomery;
+# what recipes.yaml points at it in `at` is made at it). Assembled at the workbench.
 - id: bloomery
   title: "[tools.items.bloomery]"
   era: core:iron

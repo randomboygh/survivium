@@ -1,4 +1,4 @@
-# Тёсаный камень: камень, обтёсанный киркой на верстаке в ровный блок. Ставится блоком.
+# Cut stone: stone dressed with a pickaxe at a workbench into an even block. Placed as a block.
 - id: cut_stone
   title: "[materials.items.cut_stone]"
   description: "[materials.items.cut_stone.about]"

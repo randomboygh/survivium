@@ -1,5 +1,5 @@
-# Железо: руду с углём жгут в сыродутной печи — выходит крица, её перековывают в горне в слиток.
-# Из слитков — наковальня (бандл «Наковальня») и железные инструменты (бандлы их видов).
+# Iron: ore with coal is burned in a bloomery — a bloom comes out, it is forged into an ingot in a forge.
+# Ingots go into the anvil (the "Anvil" bundle) and iron tools (the bundles of their kinds).
 - id: iron_ore
   title: "[materials.items.iron_ore]"
   description: "[materials.items.iron_ore.about]"

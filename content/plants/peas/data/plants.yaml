@@ -1,6 +1,6 @@
-# Горох — посев (kind crop, grows field): вьётся на мокрой грядке весной, летом и осенью
-# grow_days дней, кадр на стадию (sprites/plants/peas.png: росток, плети, цветы, стручки);
-# его собирают руками или серпом. Горошины иногда находят, срезая цветы (патч `finds`).
+# Peas — a crop (kind crop, grows field): twines on a wet bed in spring, summer and autumn
+# grow_days days, one frame per stage (sprites/plants/peas.png: sprout, vines, flowers, pods);
+# it is picked by hand or with a sickle. Peas are sometimes found when cutting flowers (the `finds` patch).
 - id: peas
   kind: crop
   title: "[plants.plants.peas]"

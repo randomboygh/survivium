@@ -1,4 +1,4 @@
-# Волокно: его дают трава основы (срезанная или выкопанная) и высокие травы «Растений».
+# Fiber: given by core grass (cut or dug up) and the tall grasses of "Plants".
 - id: fiber
   title: "[resources.items.fiber]"
   weight: 0.05

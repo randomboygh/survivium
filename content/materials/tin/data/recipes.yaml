@@ -1,5 +1,5 @@
-# Рецепт бандла «Олово»: руду плавят с углём в горне «Инструментов»; лежит здесь, чтобы горн не
-# зависел от олова.
+# Recipe of the "Tin" bundle: ore is smelted with coal in the "Tools" forge; it lies here so that the forge does not
+# depend on tin.
 - id: tin_bar
   title: "[materials.recipes.tin_bar]"
   makes: tin_bar

@@ -1,5 +1,5 @@
-# Рецепты бандла «Гончарный круг»: круг — на верстаке; на круге сырой горшок из глины
-# («Ресурсы»), обжигают его в печи для обжига. Поля рецепта — docs/DATA_MODEL.md.
+# Recipes of the "Potter's wheel" bundle: the wheel - at the workbench; on the wheel a raw pot from clay
+# ("Resources"), fired in the kiln. Recipe fields are in docs/DATA_MODEL.md.
 - id: potters_wheel
   title: "[tools.recipes.potters_wheel]"
   makes: potters_wheel

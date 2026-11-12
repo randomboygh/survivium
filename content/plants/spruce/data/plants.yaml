@@ -1,7 +1,7 @@
-# Росток ели (kind sapling, как росток дуба «Дуба»): шишку сажают на открытую землю через клетку
-# от других деревьев; растёт весной, летом и осенью grow_days дней: росток и побег (кадры
-# sprites/plants/spruce_sapling.png), с доли `young` — маленькая ёлочка (её можно срубить на
-# ветки), а выросший становится елью, если над ним есть место.
+# A spruce sapling (kind sapling, like the oak sapling of "Oak"): a cone is planted on open ground, one cell
+# away from other trees; it grows in spring, summer and autumn grow_days days: a sprout and a shoot (frames
+# sprites/plants/spruce_sapling.png), from the `young` share — a small spruce (it can be chopped down for
+# twigs), and the grown one becomes a spruce if there is room above it.
 - id: spruce_sapling
   kind: sapling
   title: "[plants.plants.spruce_sapling]"

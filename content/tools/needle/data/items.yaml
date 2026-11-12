@@ -1,5 +1,5 @@
-# Предметы бандла «Игла» мода «Инструменты и крафт»: класс needle. Игла в мире ничего не делает, а в
-# сумке шьёт кожу (рецепты просят `tools: [needle]` и стирают её на `wear`). Поля — как у ножей
+# Items of the "Needle" bundle of the "Tools and crafting" mod: class needle. The needle does nothing in the world, but in the
+# bag it sews leather (recipes ask for `tools: [needle]` and wear it down by `wear`). Fields are as for knives
 # (content/tools/knife/data/items.yaml).
 - id: bone_needle
   title: "[tools.items.bone_needle]"

@@ -1,67 +1,68 @@
-# Мод «Основа»
+# Mod "Core"
 
-То, без чего движок не работает: пять ячеек (воздух, трава, земля, камень, вода), человек, костёр, старт
-нового мира с умениями рук и эпохи прогресса. Основа включена всегда; остальные моды лежат рядом в том же
-формате и ссылаются на её записи (`core:stone`, `core:campfire`). Движок по id называет только записи
-основы, всё остальное ищет по ролям и классам.
+A Russian copy: [README_RU.md](README_RU.md).
 
-## Что в папке
+What the engine does not work without: five cells (air, grass, earth, stone, water), the human, the campfire, the start
+of a new world with the skills of the hands, and the eras of progress. Core is always on; the other mods lie beside it in the same
+format and refer to its records (`core:stone`, `core:campfire`). The engine names by id only core's records,
+everything else it looks up by roles and classes.
+
+## What is in the folder
 
 ```
 content/core/
-  mod.yaml               id: core, название, версия, api
-  README.md              этот файл
-  data/materials.yaml    пять ячеек движка; порядок задаёт номера ячеек, воздух первым
-  data/items.yaml        костёр (prop: campfire, fire: true), гниль, крест на месте пропавшего мешка смерти
-                         (grave: true); здесь же в шапке описаны все поля предметов
-  data/creatures.yaml    человек (игрок)
-  data/starts.yaml       старт нового мира: умения рук, сумка, лагерь у точки появления
-  data/eras.yaml         эпохи прогресса 0–3
-  data/skills.yaml       девять навыков персонажа (решение 164)
-  sprites/               персонаж (player.yaml: раскладка листов, работы рук), свёрток в руке
-  icons/, textures/      иконки костра, гнили и креста, текстуры ячеек основы
-  models/                модель креста (grave.png, tools/make_models.gd -- grave)
+  mod.yaml               id: core, name, version, api
+  README.md              this file
+  data/materials.yaml    the engine's five cells; the order sets the cell numbers, air first
+  data/items.yaml        the campfire (prop: campfire, fire: true), rot, the cross in place of a vanished death bag
+                         (grave: true); the header here also describes all the item fields
+  data/creatures.yaml    the human (the player)
+  data/starts.yaml       the start of a new world: the skills of the hands, the bag, the camp at the spawn point
+  data/eras.yaml         the eras of progress 0–3
+  data/skills.yaml       the character's nine skills (decision 164)
+  sprites/               the character (player.yaml: layout of the sheets, the hands' work), the bundle in the hand
+  icons/, textures/      icons of the campfire, rot and cross, textures of core's cells
+  models/                the cross's model (grave.png, tools/make_models.gd -- grave)
 ```
 
-У основы нет папок-бандлов: она одна запись в наборе мира (`core`).
+Core has no bundle folders: it is a single entry in the world's set (`core`).
 
-## Старт и руки
+## The start and the hands
 
-Каждый новый мир начинается по записи `core:default` (`data/starts.yaml`), и проверка контента (граф)
-начинает с неё же, так что игра и проверка начинают одинаково:
+Each new world begins by the record `core:default` (`data/starts.yaml`), and the content check (the graph)
+starts from the same one, so the game and the check begin alike:
 
-- `bag` — что лежит в сумке (`{resources:branch: 3}`), `camp` — что стоит у точки появления
-  (`[{item: campfire, at: [-4, 4]}]`, на столько клеток на восток и юг; вещь занимает 2×2 клетки);
-- `hand_power`, `hand_area`, `hand_swing`, `hand_reach`, `hand_mows`, `hand_slow` — что умеют пустые руки:
-  сила (какую твёрдость берут), сколько ячеек за взмах, секунд на взмах, на сколько ячеек достают, какую
-  траву срезают и во сколько раз медленнее копают мягкий грунт. Руки — инструмент без предмета
-  (`Tools.HAND`), остальные инструменты — предметы с `tool`.
+- `bag` is what lies in the bag (`{resources:branch: 3}`), `camp` is what stands at the spawn point
+  (`[{item: campfire, at: [-4, 4]}]`, that many cells east and south; the thing takes 2×2 cells);
+- `hand_power`, `hand_area`, `hand_swing`, `hand_reach`, `hand_mows`, `hand_slow` are what empty hands can do:
+  the power (what hardness they take), how many cells per swing, seconds per swing, how many cells they reach, which
+  grass they cut and how many times slower they dig soft ground. The hands are a tool with no item
+  (`Tools.HAND`), the other tools are items with `tool`.
 
-Бандл меняет старт патчем, не трогая основу: `- {id: core:default, patch: true, camp+: [{item: мод:вещь,
-at: [x, z]}]}` (так сундук «Инструментов» встаёт в лагерь), `bag+: {мод:вещь: 2}`, `hand_reach: 10`.
+A bundle changes the start by a patch, without touching core: `- {id: core:default, patch: true, camp+: [{item: mod:item,
+at: [x, z]}]}` (this is how the chest of "Tools" gets into the camp), `bag+: {mod:item: 2}`, `hand_reach: 10`.
 
-## Как добавить эпоху
+## How to add an era
 
-Эпоха — ступень прогресса, метка, которую проверяет граф контента: в игре она ничего не запрещает
-(технологий нет, решение 2В). Запись в `data/eras.yaml` любого мода:
+An era is a step of progress, a label that the content graph checks: in the game it forbids nothing
+(there are no technologies, decision 2В). An entry in the `data/eras.yaml` of any mod:
 
 ```yaml
 - id: iron
-  title: "[core.eras.iron]"           # ключ; текст — в lang/<код>.yaml рядом с data/
+  title: "[core.eras.iron]"           # a key; the text is in lang/<code>.yaml beside data/
   description: "[core.eras.iron.about]"
-  order: 4        # место ступени: 0, 1, 2… без повторов
-  depth: 12       # сколько шагов изготовления от старта ждать у вещей эпохи (0 — не проверять)
+  order: 4        # the step's place: 0, 1, 2… without repeats
+  depth: 12       # how many crafting steps from the start to expect for the era's things (0 — do not check)
   provisional: [depth]
 ```
 
-Потом — `era: core:iron` у предметов, которые открывают ступень: станок, первый инструмент из нового
-материала, новый материал. Эпоху остальных вещей граф выведет сам: рецепт — по самому позднему из того, что
-он требует, добыча — по инструменту, вещь — по самому раннему пути к ней, но не раньше записанной. Ошибка,
-если вещь записана в эпоху раньше, чем к ней можно прийти; предупреждение, если цепочка длиннее `depth`.
-Карта эпох — `docs/generated/content-graph.md`.
+Then `era: core:iron` on the items that open the step: a station, the first tool of a new material, a new
+material. The graph derives the era of the other things itself: a recipe by the latest of what it requires, a yield by the
+tool, a thing by the earliest path to it, but not earlier than the recorded one. It is an error if a thing is recorded in an
+earlier era than it can be reached; a warning if the chain is longer than `depth`. The map of eras is `docs/generated/content-graph.md`.
 
-## Проверка
+## The check
 
-`godot --headless --path . --script res://tools/validate.gd` (поля, ссылки, каждый бандл в одиночку, граф),
-`godot --headless --path . --script res://tools/content_report.gd` (отчёты в `docs/generated/`). Что ещё
-добавляется одними данными: `docs/specifications/BUNDLE_SYSTEM.md`, раздел 15.
+`godot --headless --path . --script res://tools/validate.gd` (fields, links, each bundle alone, the graph),
+`godot --headless --path . --script res://tools/content_report.gd` (reports in `docs/generated/`). What else
+is added by data alone: `docs/specifications/BUNDLE_SYSTEM.md`, section 15.

@@ -1,4 +1,4 @@
-# Банан и куст банана для посадки (поля — как у предметов основы, content/core/data/items.yaml).
+# The banana and a banana bush for planting (fields as for the core's items, content/core/data/items.yaml).
 - id: banana
   title: "[plants.items.banana]"
   weight: 0.15

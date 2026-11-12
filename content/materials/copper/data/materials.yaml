@@ -1,5 +1,5 @@
-# Медная руда: жилы в камне (role: ore), бьётся киркой. Поля — как у материалов основы
-# (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
+# Copper ore: veins in stone (role: ore), broken with a pickaxe. Fields as for the core's materials
+# (content/core/data/materials.yaml); sounds by name, from the "Sounds" mod.
 - id: copper_ore
   title: "[materials.materials.copper_ore]"
   role: ore

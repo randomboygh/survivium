@@ -1,5 +1,5 @@
-# Рецепты бандла «Забор»: жерди из веток «Ресурсов», связанные верёвкой «Материалов», руками, без
-# станка: загон и калитка нужны рано. Поля — docs/DATA_MODEL.md.
+# Recipes of the "Fence" bundle: poles from "Resources" branches, tied with "Materials" rope, by hand, without
+# a station: a pen and a wicket are needed early. Fields are in docs/DATA_MODEL.md.
 - id: fence
   title: "[tools.recipes.fence]"
   makes: fence

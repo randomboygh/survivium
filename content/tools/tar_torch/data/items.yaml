@@ -1,6 +1,6 @@
-# Бандл «Смоляной факел» (поля — как у факела, бандл «Факел»): ветка, обмотанная тканью в смоле, — горит втрое дольше и светит дальше.
-# Свой бандл, чтобы простой факел не зависел от ткани и смолы «Материалов»; лист в руках —
-# копия листа факела (sprites/held/tar_torch.png).
+# The "Tar torch" bundle (fields are as for the torch, the "Torch" bundle): a branch wrapped in tar-soaked cloth - burns three times longer and gives light farther.
+# Its own bundle, so that the plain torch does not depend on "Materials" cloth and tar; the sheet in the hands is
+# a copy of the torch sheet (sprites/held/tar_torch.png).
 - id: tar_torch
   title: "[tools.items.tar_torch]"
   description: "[tools.items.tar_torch.about]"

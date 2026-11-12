@@ -1,5 +1,5 @@
-# Сейба: великан джунглей — толстый высокий ствол с досковидными корнями и широкая крона шапками
-# высоко над подлеском (поля — как у дуба, content/plants/oak/data/trees.yaml). Листву не сбрасывает.
+# Ceiba: a jungle giant — a thick tall trunk with buttress roots and a wide crown in caps
+# high above the understory (fields as for the oak, content/plants/oak/data/trees.yaml). Does not shed its leaves.
 - id: ceiba
   title: "[plants.trees.ceiba]"
   shape: lobed

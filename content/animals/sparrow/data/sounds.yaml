@@ -1,4 +1,4 @@
-# Чириканье воробьёв: sounds/sparrow_1.wav ... этого бандла (tools/make_sounds.gd).
+# The chirping of sparrows: sounds/sparrow_1.wav ... of this bundle (tools/make_sounds.gd).
 - id: sparrow
   title: "[animals.sounds.sparrow]"
   variants: 3

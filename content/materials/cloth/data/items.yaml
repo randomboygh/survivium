@@ -1,5 +1,5 @@
-# Ткань: её ткут на ткацком станке «Инструментов» из верёвки (грубая) или из льняной нити
-# «Растений» (вдвое больше за ту же работу). Идёт на бинты и смоляные факелы, потом — на одежду.
+# Cloth: it is woven on the "Tools" loom from cord (coarse) or from flax thread
+# of "Plants" (twice as much for the same work). It goes into bandages and tar torches, later — into clothes.
 - id: cloth
   title: "[materials.items.cloth]"
   description: "[materials.items.cloth.about]"

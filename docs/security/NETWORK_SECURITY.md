@@ -1,73 +1,79 @@
-# Защита сетевого протокола
+# Defence of the network protocol
 
-Статус: ACTIVE (этап 7, 2026-11-06). Как сервер принимает байты клиента. Протокол целиком —
-[../systems/network.md](../systems/network.md); модель угроз — [THREAT_MODEL.md](THREAT_MODEL.md).
+Status: ACTIVE (stage 7, 2026-11-06). How the server accepts the client's bytes. The whole protocol —
+[../systems/network.md](../systems/network.md); the threat model — [THREAT_MODEL.md](THREAT_MODEL.md). A
+Russian copy: [NETWORK_SECURITY_RU.md](NETWORK_SECURITY_RU.md).
 
-## Транспорт (`src/server/server.gd`)
+## Transport (`src/server/server.gd`)
 
-| Что | Значение | Что будет сверх |
+| What | Value | What happens beyond it |
 |---|---|---|
-| Входящий кадр | `INBOUND` 256 КБ (исходящий `BUFFER` 4 МБ под чанки) | кадр не принимается |
-| Соединений без приветствия | `PENDING_MAX` 16, с одного адреса `PENDING_PER_ADDRESS` 4 | новое соединение сразу закрывается, запись в журнал |
-| Время на приветствие | `HELLO_WAIT` 10 с | закрытие с кодом 4000 |
-| Сообщений в секунду | `MSG_RATE` 300, рывком до `MSG_BURST` 600 | лишние не читаются; при `FLOOD_KICK` 3 с перебора — отключение, код 4003 |
-| Неверный пароль | `PASSWORD_TRIES` 8 за `PASSWORD_WINDOW` 60 с с адреса | новым игрокам с адреса — отказ `wait`; игрок с известным ключом входит |
-| Новых игроков | `NEW_PLAYERS` 10 за `NEW_WINDOW` 60 с | отказ `wait` (файлы игроков не копятся без меры) |
+| An incoming frame | `INBOUND` 256 KB (the outgoing `BUFFER` 4 MB for chunks) | the frame is not accepted |
+| Connections with no greeting | `PENDING_MAX` 16, from one address `PENDING_PER_ADDRESS` 4 | a new connection is closed at once, an entry in the log |
+| Time for the greeting | `HELLO_WAIT` 10 s | closing with code 4000 |
+| Messages per second | `MSG_RATE` 300, in a burst up to `MSG_BURST` 600 | the extra ones are not read; at `FLOOD_KICK` 3 s of excess — disconnection, code 4003 |
+| A wrong password | `PASSWORD_TRIES` 8 per `PASSWORD_WINDOW` 60 s from an address | new players from the address — a refusal `wait`; a player with a known key gets in |
+| New players | `NEW_PLAYERS` 10 per `NEW_WINDOW` 60 s | a refusal `wait` (players' files do not pile up without limit) |
 
-`bytes_to_var` разбирает кадр без объектов (`allow_objects` выключен): из сети не создаётся ни один
-объект движка. Сообщение не массив, вид не строка — запись `malformed` в журнал, сообщение пропускается.
-Сравнения вида сообщения идут после проверки типа, так что мусор не роняет функцию сервера.
-За туннелем Cloudflare все соединения приходят с этой же машины: ограничения по адресу для них общие,
-поэтому игрок с ключом не страдает от чужого перебора пароля.
+`bytes_to_var` parses a frame without objects (`allow_objects` is off): no engine object is created from the
+network. A message that is not an array, a kind that is not a string — an entry `malformed` in the log, the
+message is skipped. The comparisons of a message's kind go after the check of the type, so garbage does not
+crash a server function. Behind a Cloudflare tunnel all connections come from this same machine: the limits
+by address are shared for them, so a player with a key does not suffer from another's password guessing.
 
-## Приветствие (`Server._refusal`)
+## The greeting (`Server._refusal`)
 
-- Версия протокола и сборки совпадают (`WHY_VERSION`), ключ — строка не длиннее 64 знаков.
-- Имя чистится `Protocol.clean_text` (управляющие знаки, переводы строки, знаки направления и невидимые
-  знаки), не пустое (`WHY_NAME`), не из `RESERVED_NAMES` и не занято другим ключом в мире (`WHY_TAKEN`).
-- Пароль сравнивается по хешу за постоянное время (`_same`).
-- Бан по ключу и по имени (`WHY_BANNED`); белый список — имя, привязанное к ключу, с которым оно
-  пришло первым (`access.listed_keys`, `WHY_LIST`).
-- Ключ — 16 случайных байт от `Crypto`; в файле игрока на диске — только первые 32 знака его SHA-256.
+- The versions of the protocol and the build match (`WHY_VERSION`), the key is a string of no more than 64
+  characters.
+- The name is cleaned by `Protocol.clean_text` (control characters, line breaks, direction marks and
+  invisible characters), not empty (`WHY_NAME`), not from `RESERVED_NAMES` and not taken by another key in
+  the world (`WHY_TAKEN`).
+- The password is compared by hash in constant time (`_same`).
+- A ban by key and by name (`WHY_BANNED`); the whitelist — a name bound to the key it came with first
+  (`access.listed_keys`, `WHY_LIST`).
+- The key is 16 random bytes from `Crypto`; in the player's file on disk — only the first 32 characters of
+  its SHA-256.
 
-## Запросы (`src/server/requests.gd`)
+## Requests (`src/server/requests.gd`)
 
-Каждый запрос — `[вид, номер, аргументы]`. Номер растёт: повтор того же отвечается прежним ответом и не
-делается снова, меньший отказывается (`null`). Аргументы проверяются по типам (`_fit`). Все запросы игроков
-делаются по одному целиком, между ними нет тика: двое, взявшие одну стопку, её не удвоят.
+Each request is `[kind, number, arguments]`. The number grows: a repeat of the same one is answered with the
+former answer and is not done again, a smaller one is refused (`null`). The arguments are checked by types
+(`_fit`). All the players' requests are done one whole at a time, with no tick between them: two who took
+one stack will not double it.
 
-| Запрос | Что проверяет сервер |
+| Request | What the server checks |
 |---|---|
-| `dig`, `place`, `front`, `gather`, `plant`, `plant_at`, `prop_put`, `light_put` | досягаемость инструмента или руки, права земли, силы; **темп** — `paced`, не больше `WORK_AHEAD` 2 с работы вперёд |
-| `eat`, `throw`, `wear`, `repair` | номер ячейки в границах сумки |
-| `bag_put`, `bag_move`, `bag_all`, `sort`, `bag_destroy` | ячейки в границах (и в `Inventory`), сундук в досягаемости руки и по праву «сундуки», открытая сумка не кладётся сама в себя |
-| `prop_take`, `prop_open`, `prop_destroy`, `lie_in` | вещь в досягаемости руки, права земли |
-| `gesture` | имя — строка из `Gestures.LIST` или ""; ничего не меняет в мире |
-| `sign_write`, `sign_turn` | табличка в досягаемости руки, право «строить»; текст — строка не длиннее `Requests.SIGN_MAX` 600, строки чистятся `Protocol.clean_text` и режутся по табличке (`Placed.sign_text`); **темп** — как работа рук (`PACED`) |
-| `prop_fire` | в досягаемости; потушить — только по праву «строить» на чужой земле |
-| `plan` | вид фигуры, размер по углам до построения (`Plans.too_big`), углы в `PLAN_REACH` 64 клетках от игрока |
-| `craft`, `craft_cancel`, `craft_pause` | рецепт известен, станок рядом, материалы есть; списание и выдача — целиком; отмена возвращает взятое, как было |
-| `craft_free` | только при правиле `free_items` (по умолчанию выкл., на сервере — из его настроек); id рецепта — строка из реестра |
-| `chat`, `team_chat` | `clean_text`, до `CHAT_MAX` 160 знаков, `CHAT_LINES` 5 за `CHAT_WINDOW` 8 с |
-| `team_*`, `land_*`, `fight_brave` | правила `Teams`, `Territory`, `Fights` по номеру игрока сервера |
-| `revive` | только мёртвый, только у своих точек или там, где упал |
+| `dig`, `place`, `front`, `gather`, `plant`, `plant_at`, `prop_put`, `light_put` | the reach of the tool or hand, land rights, strengths; **pace** — `paced`, no more than `WORK_AHEAD` 2 s of work ahead |
+| `eat`, `throw`, `wear`, `repair` | the cell's number within the bag's bounds |
+| `bag_put`, `bag_move`, `bag_all`, `sort`, `bag_destroy` | cells within bounds (and in `Inventory`), the chest within the hand's reach and by the right «chests», an open bag is not put into itself |
+| `prop_take`, `prop_open`, `prop_destroy`, `lie_in` | the thing within the hand's reach, land rights |
+| `gesture` | the name is a string from `Gestures.LIST` or ""; changes nothing in the world |
+| `sign_write`, `sign_turn` | the sign within the hand's reach, the right «build»; the text is a string of no more than `Requests.SIGN_MAX` 600, the lines are cleaned by `Protocol.clean_text` and cut to the sign (`Placed.sign_text`); **pace** — like the hands' work (`PACED`) |
+| `prop_fire` | within reach; to put out — only by the right «build» on another's land |
+| `plan` | the kind of figure, the size by the corners before building (`Plans.too_big`), the corners within `PLAN_REACH` 64 cells of the player |
+| `craft`, `craft_cancel`, `craft_pause` | the recipe is known, the station is near, the materials are there; the debit and the issue — whole; a cancel returns what was taken, as it was |
+| `craft_free` | only with the rule `free_items` (off by default, on a server — from its settings); the recipe's id is a string from the registry |
+| `chat`, `team_chat` | `clean_text`, up to `CHAT_MAX` 160 characters, `CHAT_LINES` 5 per `CHAT_WINDOW` 8 s |
+| `team_*`, `land_*`, `fight_brave` | the rules of `Teams`, `Territory`, `Fights` by the server's player number |
+| `revive` | only the dead, only at their own points or where they fell |
 
-## Тело (`src/server/player.gd`, `input`)
+## The body (`src/server/player.gd`, `input`)
 
-По сокету (`check_moves`):
+By the socket (`check_moves`):
 
-- место — `_take_claim`: тело сервера идёт к присланному месту за время с прошлого `input` (не больше
-  `CLAIM_GAP_MAX` 0,5 с и не больше, чем прошло: частые сообщения не дают лишнего пути); место берётся, если
-  тело дошло ближе `MOVE_TOLERANCE` 2,5 клетки и место не внутри стены; тело сервера подтягивается к
-  принятому месту не быстрее `CATCH_UP` 2 клеток в секунду; `STRIKES` 10 отказов подряд — `teleport`;
-- ноги — клетка принятого места, взгляд — один из 8 шагов, прыжки в воздухе тестовой страницы не
-  берутся, размер экрана до `VIEW_MAX`, нечисловые значения (NaN, бесконечность) — сообщение пропускается;
-- руки — `in_hands`: только то, что есть в сумке; одна вещь — в одной руке.
+- the place — `_take_claim`: the server's body walks to the sent place in the time since the last `input` (no
+  more than `CLAIM_GAP_MAX` 0.5 s and no more than has passed: frequent messages give no extra path); the
+  place is taken if the body has got closer than `MOVE_TOLERANCE` 2.5 cells and the place is not inside a
+  wall; the server's body is pulled to the accepted place no faster than `CATCH_UP` 2 cells a second;
+  `STRIKES` 10 refusals in a row — `teleport`;
+- the feet — the cell of the accepted place, the gaze — one of 8 steps, jumps in the air of the test page are
+  not taken, the screen's size up to `VIEW_MAX`, non-numeric values (NaN, infinity) — the message is skipped;
+- the hands — `in_hands`: only what is in the bag; one thing — in one hand.
 
-По петле (одиночная игра) всё берётся как есть: игрок и есть сервер.
+By the loop (single player) everything is taken as it is: the player is the server.
 
-## Что видит клиент
+## What the client sees
 
-Ошибки движка и внутренние причины клиенту не уходят: отказ — `null`, `false` или `{}`, отказ
-приветствия — один из `WHY_*`, отключение — короткая фраза и код. Журнал безопасности — только на
-сервере ([ANTI_CHEAT.md](ANTI_CHEAT.md)).
+The engine's errors and the internal reasons do not go to the client: a refusal is `null`, `false` or `{}`, a
+refusal of the greeting — one of `WHY_*`, a disconnection — a short phrase and a code. The security log is
+only on the server ([ANTI_CHEAT.md](ANTI_CHEAT.md)).

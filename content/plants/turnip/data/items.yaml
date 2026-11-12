@@ -1,5 +1,5 @@
-# Предметы бандла «Репа»: семена (их иногда находят, срезая высокую траву; crop — посев, который
-# из них вырастает на грядке) и сама репа. Поля — как у предметов основы (content/core/data/items.yaml).
+# Items of the "Turnip" bundle: seeds (sometimes found when cutting tall grass; crop — the sowing, which
+# grows from them on a bed) and the turnip itself. Fields as for the core's items (content/core/data/items.yaml).
 - id: turnip_seeds
   title: "[plants.items.turnip_seeds]"
   description: "[plants.items.turnip_seeds.about]"

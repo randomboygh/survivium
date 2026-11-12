@@ -2,6 +2,6 @@ id: materials
 title: "[materials.mod]"
 version: "0.2"
 api: 1
-# Что делают из ресурсов и что добывают из жил, бандл на каждое: медь (руда в камне), верёвка
-# из волокна, доски и кирпич (их делают на станках «Инструментов», рецепты там). Что бандлу
-# нужно, выводится из его ссылок.
+# What is made of resources and what is mined from veins, a bundle for each: copper (ore in stone), cord
+# from fiber, planks and brick (they are made at the "Tools" stations, the recipes are there). What a bundle
+# needs is derived from its references.

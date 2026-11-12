@@ -1,4 +1,4 @@
-# Кокос: плод пальмы (поля — как у предметов основы, content/core/data/items.yaml); его едят.
+# The coconut: the fruit of the palm (fields as for the core's items, content/core/data/items.yaml); it is eaten.
 - id: coconut
   title: "[plants.items.coconut]"
   weight: 0.6

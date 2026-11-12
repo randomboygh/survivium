@@ -1,4 +1,4 @@
-# Костёр складывают из веток и волокна руками; сам костёр — вещь основы.
+# A campfire is laid from branches and fiber by hand; the campfire itself is a core thing.
 - id: campfire
   title: "[resources.recipes.campfire]"
   makes: core:campfire

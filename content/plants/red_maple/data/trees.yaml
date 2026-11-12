@@ -1,5 +1,5 @@
-# Клён красный: тот же клён, но крона у него багряная и рыжая круглый год — по ней кленовник
-# видно издалека.
+# Red maple: the same maple, but its crown is crimson and russet all year round — it makes
+# a maple wood visible from afar.
 - id: red_maple
   title: "[plants.trees.red_maple]"
   shape: lobed

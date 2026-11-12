@@ -1,7 +1,7 @@
-# Предметы бандла «Добыча»: что остаётся от убитого зверя и что из этого выходит. Тушку мелкого зверя
-# разделывают руками, тушу крупного — ножом (класс knife, бандл «Нож» «Инструментов»); у зверя туша
-# записана в его creatures.yaml (carcass). Шкура с жиром идёт на кожу («Материалы»), кость — на иглу, клей,
-# наконечники стрел и составной лук («Инструменты», «Материалы»), жир — ещё на свечу; мясо жарят или вялят.
+# Items of the "Game animals" bundle: what is left of a killed beast and what comes of it. The carcass of a small beast
+# is butchered by hand, the carcass of a large one with a knife (class knife, the "Knife" bundle of "Tools"); a beast's carcass
+# is written in its creatures.yaml (carcass). Hide with fat goes into leather ("Materials"), bone — into a needle, glue,
+# arrowheads and the composite bow ("Tools", "Materials"), fat — also into a candle; meat is fried or dried.
 - id: small_carcass
   title: "[animals.items.small_carcass]"
   description: "[animals.items.small_carcass.about]"

@@ -1,8 +1,8 @@
-# Предметы бандла «Таблички» мода «Инструменты и крафт» (решение 183): на табличке пишут текст
-# (`sign_lines` строк по `sign_width` знаков), его видно крупно над ней в 3 клетках, касание открывает
-# окно с текстом. Писать и поворачивать может тот, кто может строить на этой земле. Табличка и
-# указатель стоят на земле и поворачиваются касанием в окне; доска вешается на стену (`wall`): спиной
-# к твёрдой клетке рядом. Поля — как у предметов основы (content/core/data/items.yaml).
+# Items of the "Signs" bundle of the "Tools and crafting" mod (decision 183): text is written on a sign
+# (`sign_lines` lines of `sign_width` characters), it is seen large above it within 3 cells, a touch opens
+# a window with the text. Whoever may build on that land can write and turn it. The sign and
+# the signpost stand on the ground and are turned by a touch in the window; the board hangs on a wall (`wall`): with its back
+# to a solid cell nearby. Fields are as for the core items (content/core/data/items.yaml).
 - id: sign
   title: "[tools.items.sign]"
   description: "[tools.items.sign.about]"

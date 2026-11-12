@@ -1,6 +1,6 @@
-# Предметы бандла «Бурдюк» мода «Инструменты и крафт»: сосуд для воды. Пустой бурдюк, взятый в руку,
-# наполняют у пресной воды (озеро, река, болото; не море) — `fills_to`; полный выпивают из сумки или
-# руки — `drink` воды (src/shared/game/vitals.gd), и он снова пустой — `empties_to`.
+# Items of the "Waterskin" bundle of the "Tools and crafting" mod: a vessel for water. An empty waterskin taken in the hand is
+# filled at fresh water (lake, river, swamp; not the sea) - `fills_to`; a full one is drunk from the bag or
+# the hand - `drink` of water (src/shared/game/vitals.gd), and it is empty again - `empties_to`.
 - id: waterskin
   title: "[tools.items.waterskin]"
   description: "[tools.items.waterskin.about]"

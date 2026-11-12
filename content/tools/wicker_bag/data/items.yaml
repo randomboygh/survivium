@@ -1,6 +1,6 @@
-# Предмет бандла «Плетёная котомка» мода «Инструменты и крафт»: первая сумка за спину. wear_on — слот
-# тела, куда вещь надевают (head, body, legs, feet, back), bag_slots — сколько ячеек сумка за спиной
-# добавляет к 16 ячейкам сумки, которая есть всегда (src/shared/game/inventory.gd, gear).
+# Item of the "Woven pouch" bundle of the "Tools and crafting" mod: the first back bag. wear_on - the body
+# slot where a thing is worn (head, body, legs, feet, back), bag_slots - how many slots the back bag
+# adds to the 16 slots of the bag that is always there (src/shared/game/inventory.gd, gear).
 - id: wicker_bag
   title: "[tools.items.wicker_bag]"
   description: "[tools.items.wicker_bag.about]"

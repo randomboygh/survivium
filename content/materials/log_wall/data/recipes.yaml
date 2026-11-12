@@ -1,4 +1,4 @@
-# Бревно отёсывают топором прямо в руках, без верстака: из одного бревна два блока сруба.
+# A log is hewn with an axe right in the hands, without a workbench: one log makes two log-wall blocks.
 - id: log_wall
   title: "[materials.recipes.log_wall]"
   makes: log_wall

@@ -1,101 +1,109 @@
-# Чанки на экране
+# Chunks on screen
 
-Статус: ACTIVE.
+Status: ACTIVE. A Russian copy: [chunks_RU.md](chunks_RU.md).
 
-**Назначение.** Строить меши чанков, которые сеанс сервера сгенерировал вокруг игрока
-([session.md](session.md)), в бюджете кадра, держать срез уровней и крышки над срезом, освобождать
-дальние меши.
+**Purpose.** To build the meshes of the chunks that the server's session generated around the player
+([session.md](session.md)) within the frame's budget, to hold the slice of levels and the caps above the
+slice, to free the far meshes.
 
-**Файлы**
-- `src/client/world/chunk_streamer.gd` — очередь и бюджеты: сначала ближние к спавну (до игры), затем
-  в `reach()` по экрану (не меньше `LOAD_RANGE` = `Session.ZONE`, 5 чанков; окно шире телефонного — дальше, `Session.reach_for` от половины экрана, до `Session.ZONE_MOST` 10; крышки над срезом — на столько же): первым — чанк, ближайший к экрану, каким его видно от
-  игрока и от точки, куда он придёт через `LOOK_AHEAD` (1,5 с) пути (`lead`, `_track_motion`, не дальше
-  `LEAD_MOST`; `_screen_score` — на сколько экранов чанк за краем экрана, размер экрана — камера,
-  `_screen_half`), так что видимое впереди строится раньше, а невидимое сбоку и сзади — последним; каждый — когда
-  сеанс его сделал (`WorldGen.needed` пуст; иначе чанк возвращается в очередь, попадает в `waiting`, и
-  `next_chunk` берёт в том же кадре другой, пока генератор что-нибудь не сделает (`made`): по сети
-  кольцо на `LOAD_RANGE` не приходит никогда, и ожидание его держало ближние чанки по бокам узкого экрана);
-  **сначала земля**: новый на экране чанк (`job_ground`) показывает землю и воду, как только построен их меш
-  (`_apply_ground`), а траву, кусты и кроны строит после (`job_part` −2) и показывает в конце
-  (`_apply_plants`); такой чанк до конца лежит в `bare` (если его стройку прервали — снова в очереди);
-  **отставание**: пока на экране есть чанк без земли (`lagging`, `_check_lag`), стройка такого чанка и
-  генерация рядом с игроком берут до `LAG_BUDGET_US` (16 мс) кадра вместо 9 мс — FPS на бегу проседает,
-  пустоты меньше;
-  **дымка на краю** (настройка «Дымка на краю», ключ `edge_mist`, по умолчанию вкл, `set_haze`): `edge_haze.gd` накрывает
-  чанки на экране без земли дымкой цвета фона неба (днём светлее), которая на `EdgeHaze.FADE` заходит на
-  построенные соседние чанки и тает; один меш квадов на высоте игрока (шейдер курсора), перестраивается,
-  только когда меняется набор пустых чанков или уровень; правки строятся первыми (новая правка в чанке, который уже перестраивается для
-  правки, не начинает его заново: стройка доходит до конца, чанк встаёт в очередь ещё раз — иначе при
-  частом копании на телефоне рельеф не обновлялся);
-правка не ждёт чанк, который строится стримом (или ради `kept`): он откладывается (`stashed`) и
-  продолжается с того же места, когда правки построены; пока правки ждут, кадр отдаёт им весь бюджет правок
-  (`job_budget`), а генерация дальних чанков — один шаг (`gen_budgets`) — иначе на новом месте срубленное
-  дерево стояло секунды, пока доделывался дальний чанк и делался мир;
-  **частичная перестройка**: каждый чанк в `KEEP_CHUNKS` (`LOAD_RANGE`) от игрока хранит законченные задания
-  меша и растений (`kept`, около 0,25 МБ на чанк, до ~40 МБ всего; дальние забываются, когда игрок уходит;
-  чанки в `REFILL_CHUNKS` (1), у которых их нет — построенные, пока игрок был далеко, — перестраиваются
-  заново в простое, `keep_queue`, в бюджете стрима и уступая правкам); правка в таком чанке строит только столбцы вокруг изменённых клеток
-  (`dirty_rects`; на сколько вокруг — `ChunkMesher.reach`: 3 у земли, 1 для клеток в воздухе, кроны и
-  ствола выше земли) и вклеивает их в сохранённое (`ChunkMesher.patch`, затем шагом позже
-  `Foliage.patch` — растения строят ещё и стволы деревьев, чья крона может дотянуться до участка,
-  `Foliage.part_columns`), тени деревьев чанка считаются заново; `remesh_chunk` строит чанк целиком.
-  Результат совпадает с полной перестройкой буфер в буфер (`mesher_test` `_test_patch`);
-  дальше `reach() + UNLOAD_EXTRA` (3) меши освобождаются (ячейки дальше `Session.drop()` забывает сеанс). Генерация
-  сеанса идёт до кадра клиента в бюджетах, которые даёт `gen_budgets()` (загрузка и пауза —
-  `load_budget`, иначе `EDIT_BUDGET_US` рядом с игроком и `STREAM_BUDGET_US` дальше), и
-  `run_jobs(spent)` вычитает потраченное из своего бюджета (общая цена кадра та же) и считает его в
-  `budget_us`; `build_chunk` / `build_around` зовут `session.make_chunk` целиком (`_whole`: карты
-  красятся сразу; `build_around` сначала шлёт серверу тело — `mirror.send_input`, чтобы сеанс делал и
-  забывал вокруг нового места); сигнал `WorldGen.made` → `_on_generated` (карта крыши и миникарта);
-  `take_work()` отдаёт свои «meshes» вместе с видами работы сеанса; срез уровней (`update_cut`,
-  `_hiding_level`; под крышей, в овраге и за холмом вместо среза включаются слои, как они выглядят, решают шейдеры, см. rendering.md), крышки (`update_caps`, уровень — `cap_level`), `solid` (`solid_map.gd`, карта твёрдых клеток для среза породы в слоях), `refit_boxes` под поворот камеры, `on_cell_changed` /
-  `remesh_chunk`.
-- `src/client/world/chunk_mesher.gd` — меш чанка по столбцу: ячейки, скошенные углы, крышки
-  (`build_cap`; над клеткой, в которую склон сверху уходит «глубоким» углом, крышки нет: иначе она видна над
-  склоном чёрным треугольником; крышки лежат на `CAP_SINK` ниже верха клеток, иначе их край проступает сквозь
-  соседний склон чёрной диагональной щелью); вызывает части, которые наследуют `mesh_faces.gd` (таблицы граней, упакованные слова,
-  примитивы рисования): `slope_mesher.gd` (склоны, `patch`), `water_mesher.gd` (поверхность, берег,
-  водопады), `trunk_mesher.gd` (кора стволов), `form_mesher.gd` (построенные блоки не кубом —
-  `WorldData.forms`: скос снизу, скос сверху, ступени; форма описана поднимающейся на север и
-  повёрнута; грань на стороне клетки не рисуется у закрывающего соседа; куб рядом с формой рисует
-  грань к ней, если та сторона формы не целая, `covers_side`; клетки у форм — кандидаты, `_take_forms`).
-- `src/client/world/foliage.gd` — трава, растения и кроны чанка как MultiMesh, тоже по столбцу.
-- `src/client/world/edge_haze.gd` — дымка над недостроенными чанками (см. выше).
-- `src/client/world/mesh_buffers.gd` — растущие буферы вершин; `drifts.gd` — сугробы; `tracks.gd` —
-  следы; `roof_map.gd` — карта крыши для шейдеров (оборачивается через `RoofMap.WRAP`) и рядом с ней карта
-  биомов столбцов (`biome_map`) с множителями цвета материалов по биомам (`biome_tints`, из `tints` биомов).
+**Files**
+- `src/client/world/chunk_streamer.gd` — the queue and the budgets: first those near the spawn (before the
+  game), then within `reach()` by the screen (no less than `LOAD_RANGE` = `Session.ZONE`, 5 chunks; a window
+  wider than a phone's — farther, `Session.reach_for` from half the screen, up to `Session.ZONE_MOST` 10; the
+  caps above the slice — by as much): first the chunk nearest to the screen, as it is seen from the player
+  and from the point where they will come in `LOOK_AHEAD` (1.5 s) of the path (`lead`, `_track_motion`, no
+  further than `LEAD_MOST`; `_screen_score` — by how many screens the chunk is beyond the screen's edge, the
+  screen's size — the camera, `_screen_half`), so what is seen ahead is built earlier, and what is not seen
+  at the side and behind — last; each — when the session has made it (`WorldGen.needed` is empty; otherwise
+  the chunk goes back into the queue, falls into `waiting`, and `next_chunk` takes another in the same frame
+  until the generator has made something (`made`): over the network the ring at `LOAD_RANGE` never comes, and
+  waiting for it held the near chunks at the sides of a narrow screen); **ground first**: a new chunk on
+  screen (`job_ground`) shows the ground and water as soon as their mesh is built (`_apply_ground`), and
+  builds the grass, shrubs and crowns after (`job_part` −2) and shows them at the end (`_apply_plants`); such
+  a chunk lies in `bare` to the end (if its building was interrupted — in the queue again); **lag**: while
+  there is a chunk without ground on screen (`lagging`, `_check_lag`), the building of such a chunk and the
+  generation near the player take up to `LAG_BUDGET_US` (16 ms) of the frame instead of 9 ms — the FPS on a
+  run sags, there are fewer voids; **the haze at the edge** (the setting «Haze at the edge», key `edge_mist`,
+  on by default, `set_haze`): `edge_haze.gd` covers the chunks on screen without ground with a haze of the
+  sky's background colour (lighter by day), which for `EdgeHaze.FADE` goes onto the built neighbouring chunks
+  and melts; one mesh of quads at the player's height (the cursor's shader), rebuilt only when the set of
+  empty chunks or the level changes; edits are built first (a new edit in a chunk that is already being
+  rebuilt for an edit does not start it anew: the building goes to the end, the chunk stands in the queue once
+  more — otherwise with frequent digging on a phone the relief was not updated); an edit does not wait for a
+  chunk that is being built by the stream (or for the sake of `kept`): it is put aside (`stashed`) and
+  continues from the same place when the edits are built; while edits wait, the frame gives them the whole
+  budget of edits (`job_budget`), and the generation of far chunks — one step (`gen_budgets`) — otherwise at a
+  new place a felled tree stood for seconds while a far chunk was being finished and the world made; **a
+  partial rebuild**: each chunk within `KEEP_CHUNKS` (`LOAD_RANGE`) of the player keeps the finished jobs of
+  the mesh and plants (`kept`, about 0.25 MB per chunk, up to ~40 MB in all; the far ones are forgotten when
+  the player leaves; the chunks within `REFILL_CHUNKS` (1) that have none — built while the player was far —
+  are rebuilt in idle, `keep_queue`, within the stream's budget and yielding to edits); an edit in such a
+  chunk builds only the columns around the changed cells (`dirty_rects`; by how much around —
+  `ChunkMesher.reach`: 3 at the ground, 1 for cells in the air, of a crown and a trunk above the ground) and
+  glues them into the saved (`ChunkMesher.patch`, then a step later `Foliage.patch` — the plants also build
+  the trunks of trees whose crown can reach the plot, `Foliage.part_columns`), the shadows of the chunk's
+  trees are counted anew; `remesh_chunk` builds the chunk whole. The result equals a full rebuild buffer to
+  buffer (`mesher_test` `_test_patch`); farther than `reach() + UNLOAD_EXTRA` (3) the meshes are freed (the
+  cells farther than `Session.drop()` are forgotten by the session). The session's generation goes before the
+  client's frame within the budgets given by `gen_budgets()` (loading and pause — `load_budget`, otherwise
+  `EDIT_BUDGET_US` near the player and `STREAM_BUDGET_US` farther), and `run_jobs(spent)` subtracts what was
+  spent from its budget (the frame's total price is the same) and counts it in `budget_us`; `build_chunk` /
+  `build_around` call `session.make_chunk` whole (`_whole`: the maps are painted at once; `build_around`
+  first sends the server the body — `mirror.send_input`, so that the session makes and forgets around the new
+  place); the signal `WorldGen.made` → `_on_generated` (the roof map and the minimap); `take_work()` gives its
+  «meshes» together with the kinds of the session's work; the slice of levels (`update_cut`, `_hiding_level`;
+  under a roof, in a ravine and behind a hill the layers are turned on instead of the slice, how they look is
+  decided by the shaders, see rendering.md), the caps (`update_caps`, the level — `cap_level`), `solid`
+  (`solid_map.gd`, the map of solid cells for the slice of rock in layers), `refit_boxes` for the camera's
+  turn, `on_cell_changed` / `remesh_chunk`.
+- `src/client/world/chunk_mesher.gd` — the chunk's mesh by column: cells, bevelled corners, caps
+  (`build_cap`; above a cell into which a slope from above goes by a «deep» corner there is no cap: otherwise
+  it is seen above the slope as a black triangle; the caps lie `CAP_SINK` below the cells' top, otherwise their
+  edge shows through the neighbouring slope as a black diagonal gap); it calls the parts that inherit
+  `mesh_faces.gd` (the tables of faces, packed words, drawing primitives): `slope_mesher.gd` (slopes,
+  `patch`), `water_mesher.gd` (the surface, the shore, waterfalls), `trunk_mesher.gd` (the bark of trunks),
+  `form_mesher.gd` (built blocks that are not a cube — `WorldData.forms`: a bevel from below, a bevel from
+  above, steps; a shape is described as rising to the north and turned; a face on a cell's side is not drawn
+  at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not
+  whole, `covers_side`; the cells at the shapes are candidates, `_take_forms`).
+- `src/client/world/foliage.gd` — the chunk's grass, plants and crowns as a MultiMesh, also by column.
+- `src/client/world/edge_haze.gd` — the haze above unbuilt chunks (see above).
+- `src/client/world/mesh_buffers.gd` — growing vertex buffers; `drifts.gd` — snowdrifts; `tracks.gd` —
+  tracks; `roof_map.gd` — the roof map for shaders (wrapped through `RoofMap.WRAP`) and beside it the map of
+  the columns' biomes (`biome_map`) with the multipliers of the materials' colour by biomes (`biome_tints`,
+  from the biomes' `tints`).
 
-**Интерфейс.** `ChunkStreamer.prepare(gen)`, `build_near(n)`, `run_jobs(spent)`, `gen_budgets()`,
-`take_work()`, `set_focus(at)`,
-`update_cut(delta)`, `update_caps()`, `refit_boxes()`, `on_cell_changed(cell)`, `remesh_chunk(key)`;
-`ChunkMesher.start` / `start_rect` / `step` / `finish` / `patch` / `reach`, `Foliage.start` / `start_part` /
-`part_columns` / `step` / `finish` / `patch`.
+**Interface.** `ChunkStreamer.prepare(gen)`, `build_near(n)`, `run_jobs(spent)`, `gen_budgets()`,
+`take_work()`, `set_focus(at)`, `update_cut(delta)`, `update_caps()`, `refit_boxes()`, `on_cell_changed(cell)`,
+`remesh_chunk(key)`; `ChunkMesher.start` / `start_rect` / `step` / `finish` / `patch` / `reach`,
+`Foliage.start` / `start_part` / `part_columns` / `step` / `finish` / `patch`.
 
-**Зависит от.** `Session` (зоны, бюджеты, `make_chunk`, `forget_far`), `WorldGen` (`needed`, `made`),
-`WorldData` (ячейки, формы), `PixelView` (сдвиг и коробки отсечения), `PixelTextures` (атлас, кора), реестры материалов, деревьев, кустов, растений.
+**Depends on.** `Session` (zones, budgets, `make_chunk`, `forget_far`), `WorldGen` (`needed`, `made`),
+`WorldData` (cells, shapes), `PixelView` (the shear and the culling boxes), `PixelTextures` (the atlas, bark),
+the registries of materials, trees, shrubs, plants.
 
-**Правило производительности.** Ничего размером с карту или чанк не выполняется за кадр: меши и
-растения строятся по столбцу, генерация — по ряду или дереву (в сеансе, до кадра), всё в бюджетах кадра
-стримера (генерация сеанса, правки, потом дальние чанки, потом крышки). Телефонный браузер примерно в 10 раз медленнее компьютера в
-GDScript. `tests/frame_test.gd` проверяет это по сценариям; его тайминги шумят на занятой машине,
-перед тем как винить код, запустите его отдельно.
+**The rule of performance.** Nothing the size of a map or a chunk is done in a frame: meshes and plants are
+built by column, generation — by a row or a tree (in the session, before the frame), all within the budgets
+of the streamer's frame (the session's generation, edits, then far chunks, then caps). A phone browser is
+about 10 times slower than a computer in GDScript. `tests/frame_test.gd` checks this by scenarios; its
+timings are noisy on a busy machine, before blaming the code run it alone.
 
-**Подводные камни**
-- Фронтальные грани в Godot — по часовой стрелке; меш против часовой вывернут наизнанку.
-- Края геометрии на решётке центров пикселей нужно перекрывать (`ChunkMesher.EPS`), стены ниже 1 px
-  на экране растрируются мерцающим пунктиром; headless этого не покажет — рендер с ±eps и сравнение
-  снимков.
-- Данные экземпляров MultiMesh на GLES3 / web — half float: новые данные экземпляра в COLOR, не в
-  упакованном int. Вершинный COLOR 8-битный и обрезается выше 1. Упакованные float-слова держите ниже
-  2^23 (иначе `int(x + 0.5)` округляет к чётному): никаких битов флагов выше 256.
-- Номер материала в меше — 6 бит: материалов и кор вместе не больше 63 (`PixelTextures.MOST_MATERIALS`,
-  сейчас 36; см. [content.md](content.md)).
-- Рендерер Compatibility освещает объект не больше чем `max_lights_per_object` (32) огнями: меш
-  чанка — один объект, за пределом соседние чанки освещены разными огнями.
+**Pitfalls**
+- Front faces in Godot wind clockwise; a counter-clockwise mesh is inside out.
+- The edges of geometry on the grid of pixel centres need overlapping (`ChunkMesher.EPS`), walls under 1 px
+  on screen rasterize as a flickering dotted line; headless will not show it — render with ±eps and compare
+  the shots.
+- MultiMesh instance data on GLES3 / web is half float: new instance data goes into COLOR, not into a packed
+  int. The vertex COLOR is 8-bit and is clipped above 1. Keep packed float words below 2^23 (otherwise
+  `int(x + 0.5)` rounds to even): no flag bits above 256.
+- A material's number in the mesh is 6 bits: materials and barks together no more than 63
+  (`PixelTextures.MOST_MATERIALS`, now 36; see [content.md](content.md)).
+- The Compatibility renderer lights an object by no more than `max_lights_per_object` (32) fires: a chunk's
+  mesh is one object, beyond the limit neighbouring chunks are lit by different fires.
 
-**Тесты.** `tests/unit/mesher_test.gd` (`mesher`, `cap`, `patch`: деревья в лесу, тайге и джунглях
-срублены по одному, вскопанная клетка — склейка равна полной перестройке), `tests/unit/view_test.gd`
-(`edge_haze`: квады дымки и их края), `tests/frame_test.gd` (предел шага — с `LAG_BUDGET_US`),
-`tools/bench_mesh.gd`, `tools/bench_edit.gd`, `tools/bench_turn.gd`, `tools/profile.gd`.
+**Tests.** `tests/unit/mesher_test.gd` (`mesher`, `cap`, `patch`: trees in a forest, taiga and jungle felled
+one by one, a dug cell — the glue equals a full rebuild), `tests/unit/view_test.gd` (`edge_haze`: the haze's
+quads and their edges), `tests/frame_test.gd` (the step's limit — with `LAG_BUDGET_US`), `tools/bench_mesh.gd`,
+`tools/bench_edit.gd`, `tools/bench_turn.gd`, `tools/profile.gd`.
 
-**Подробнее.** `plan/architecture/performance.md`, `plan/architecture/rendering.md`.
+**In more detail.** `plan/architecture/performance.md`, `plan/architecture/rendering.md`.

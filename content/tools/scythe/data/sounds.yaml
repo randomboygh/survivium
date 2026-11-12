@@ -1,4 +1,4 @@
-# Покос (sounds/mow_N.wav, tools/make_sounds.gd); код просит его по имени mow.
+# Mowing (sounds/mow_N.wav, tools/make_sounds.gd); the code asks for it by the name mow.
 - id: mow
   title: "[tools.sounds.mow]"
   variants: 3

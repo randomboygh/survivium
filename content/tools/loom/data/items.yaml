@@ -1,6 +1,6 @@
-# Ткацкий станок: на нём ткут ткань (prop: loom; у него делают то, что в recipes.yaml указывает на
-# него в `at`): грубую из верёвки — здесь, льняную из нити — в бандле «Лён» «Растений». Поля — как у
-# предметов основы (content/core/data/items.yaml); model — воксельная модель (models/<model>.png).
+# Loom: cloth is woven on it (prop: loom; what recipes.yaml points at it in `at` is made at
+# it): coarse cloth from rope - here, linen from thread - in the "Flax" bundle of "Plants". Fields are as for
+# the core items (content/core/data/items.yaml); model - the voxel model (models/<model>.png).
 - id: loom
   title: "[tools.items.loom]"
   era: core:bone_leather

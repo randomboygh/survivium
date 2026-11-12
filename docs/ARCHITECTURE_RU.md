@@ -39,7 +39,7 @@ graph TD
 - `src/server/` грузит только `src/shared/`; клиент грузит `src/server/` только из
   `src/client/net/local_host.gd` — сервера внутри игры для одиночной (решение 153). Что клиент просит
   у правил, идёт запросами протокола через `game.net`; персонаж и мастерская игрока живут на сервере,
-  клиент держит их копии по событиям сервера ([systems/network.md](systems/network.md)).
+  клиент держит их копии по событиям сервера ([systems/network.md](systems/network_RU.md)).
 - Папки `src/client/` ссылаются друг на друга свободно (без циклов `preload`): общий стиль UI
   (`ui/ui_style.gd`) нужен вводу и картинке, проекция (`view/pixel_view.gd`) — мешам.
 - Скрипты подключаются константой `preload("res://…")` с полным путём, без `class_name`; базовый
@@ -58,11 +58,11 @@ graph TD
 | Вход | Что запускает |
 |---|---|
 | `scenes/main.tscn` (главная сцена в `project.godot`) | `src/client/main.gd` — игра |
-| `godot --headless --path . -- --server [--port N] [--seed N \| --world <папка>]` (из сборки ПК — `Survivium.console.exe --headless -- --server`) | `scenes/server.tscn` со `src/server/server_main.gd` — сервер без окна ([systems/network.md](systems/network.md)) |
+| `godot --headless --path . -- --server [--port N] [--seed N \| --world <папка>]` (из сборки ПК — `Survivium.console.exe --headless -- --server`) | `scenes/server.tscn` со `src/server/server_main.gd` — сервер без окна ([systems/network.md](systems/network_RU.md)) |
 | `godot --headless --path . --script res://tests/<имя>.gd` | тесты, каждый `extends SceneTree` |
 | `godot … --script res://tools/<имя>.gd` | инструменты: валидатор, скриншоты, карта, бенчмарки, генераторы ассетов |
 | `python3 tools/<имя>.py` | версия сборки, патч web-сборки, рисовалки на Pillow, индекс документов |
-| `.github/workflows/build.yml` | CI: линт, проверки, тесты, тест фризов, web- и ПК-экспорт, проверка в Chrome, публикация на Pages и в `pc-latest` ([testing/CI_PIPELINE.md](testing/CI_PIPELINE.md)) |
+| `.github/workflows/build.yml` | CI: линт, проверки, тесты, тест фризов, web- и ПК-экспорт, проверка в Chrome, публикация на Pages и в `pc-latest` ([testing/CI_PIPELINE.md](testing/CI_PIPELINE_RU.md)) |
 
 Тесты и инструменты запускают ту же сцену: создают `main.tscn`, ставят `main.skip_setup = true`
 (без меню «Новый мир») и при необходимости `save_root` (свои сохранения).
@@ -77,10 +77,10 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 делает тик (каждый кадр узла сервера: в игре — кадр клиента, у сервера без окна — до 60 раз в секунду,
 `FPS` в `src/server/server_main.gd`), и заказывает мир (генерация вокруг игроков в
 бюджете, забывание дальних чанков); его крутит узел сервера `src/server/runner.gd` под корнем дерева,
-раньше Main в каждом кадре ([systems/session.md](systems/session.md)). Сеанс крутится на сервере внутри
+раньше Main в каждом кадре ([systems/session.md](systems/session_RU.md)). Сеанс крутится на сервере внутри
 игры; виды клиента читают
 копии (`game.character`, `game.workshop`, `game.placed`, `game.clock`, `game.wildlife`), которые
-`src/client/net/mirror.gd` кормит событиями протокола ([systems/network.md](systems/network.md)).
+`src/client/net/mirror.gd` кормит событиями протокола ([systems/network.md](systems/network_RU.md)).
 
 Порядок сборки (`_ready`, затем `start_world`): ввод и настройки → звук → сохранение (выбор мира) →
 `Mods.activate` (набор бандлов мира) → камера, стример чанков, небо, часы, настоящая погода → вещи на
@@ -134,15 +134,15 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 и пересобираются `Mods.activate` / `refresh`. Подробно: [DATA_MODEL.md](DATA_MODEL_RU.md).
 
 Текст игры: каждый текст для игрока — ключ `[…]` (решение 186); переводы лежат `lang/<код>.yaml` в моде и бандле, сервер
-шлёт ключ или `Lang.line`, клиент переводит у себя (решение 183, [systems/lang.md](systems/lang.md)). При
+шлёт ключ или `Lang.line`, клиент переводит у себя (решение 183, [systems/lang.md](systems/lang_RU.md)). При
 запуске из папки проекта `content_watch.gd` замечает изменённые файлы модов, а модуль `mod_reload.gd`
-перечитывает реестры, картинки и звуки (решение 184, [systems/content.md](systems/content.md)).
+перечитывает реестры, картинки и звуки (решение 184, [systems/content.md](systems/content_RU.md)).
 
 ## Сохранение
 
 Каждая общая система сама отдаёт и принимает своё состояние (`to_dict` / `from_dict`, `to_list`);
 клиентский `save_game.gd` решает, когда писать, и регистрирует части игрока `save.track(имя, объект)`;
-файлы пишет и старые сохранения переводит общий `world_store.gd` (`materials_of`, `CONTENT`). Подробно: [systems/saving.md](systems/saving.md).
+файлы пишет и старые сохранения переводит общий `world_store.gd` (`materials_of`, `CONTENT`). Подробно: [systems/saving.md](systems/saving_RU.md).
 
 ## Как расширять
 
@@ -151,11 +151,11 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 2. Правило — в `src/shared/game/`; его вид и ввод — в `src/client/`; связь — сигналами правила.
 3. Новые числа контента — поле схемы в `src/shared/content/content_schema.gd` и YAML мода, не константа.
 4. Новый станок или класс инструмента — только данные: `items.prop` и `items.tool` — открытые классы,
-   что делает вещь, говорят её флаги (решение 152, [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md));
+   что делает вещь, говорят её флаги (решение 152, [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM_RU.md));
    работа в мире есть только у девяти классов `Tools.WORLD_KINDS`. Закрытые роли (`plants.kind`,
    `materials.role`, `biomes.where`, `biomes.zone`) новым значением требуют кода.
 5. Работа размером с чанк — задание по частям в бюджете `chunk_streamer.gd`.
 6. Текст для игрока — ключ `[…]`; новый ключ или запись — его английский и русский в `lang/en.yaml` и `ru.yaml` рядом (`tools/lang_check.py --write en`, `--write ru`).
 7. После правки — проверки из `CLAUDE.md`; правила, станки, рецепты, инструменты — ещё `progress_test`.
 
-Решения, на которых это держится, с причинами: [DECISIONS.md](DECISIONS.md).
+Решения, на которых это держится, с причинами: [DECISIONS.md](DECISIONS_RU.md).

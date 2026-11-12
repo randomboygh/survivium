@@ -1,211 +1,225 @@
-# Картинка: проекция, камера, свет, шейдеры
+# The picture: projection, camera, light, shaders
 
-Статус: ACTIVE.
+Status: ACTIVE. A Russian copy: [rendering_RU.md](rendering_RU.md).
 
-**Назначение.** Низкое разрешение без сглаживания (тексель = пиксель, масштаб целым числом), точная
-косоугольная проекция 3/4, свет и цветокор по часам мира, огни и тени, частицы, спрайты, воксельные
-модели вещей.
+**Purpose.** Low resolution without smoothing (a texel = a pixel, the scale a whole number), an exact oblique
+3/4 projection, light and colour correction by the world's clock, fires and shadows, particles, sprites,
+voxel models of things.
 
-**Файлы**
-- `src/client/view/pixel_view.gd` — низкоразрешающая картинка и вид 3/4: `shear(pos)`, `view_ray`,
-  `set_view(turn, tilt)`, `world_dir` / `screen_dir`, `light_range`, безопасная область, слои
-  (`LAYER_*`).
-- `src/client/view/camera_rig.gd` — SubViewport и камера: поворот шагами по 45° (удержание крутит
-  плавно, отпускание доводит до шага), наклон шагами `TILT_STEP`: `STEEPER` (3) вверх и `LOWER` (4) вниз,
-  стена клетки 2..16 px при верхе 8 px (решение 150). Стрелки и клавиши `[` `]` крутят мир в сторону
-  стрелки. Без сна (`Vitals.SLEEPY`) вид сам медленно кружит вокруг игрока (`drift_rate`, до `DRIFT_RATE`
-  — оборот за 2 минуты), выспавшись, доходит до ближайшего шага.
-- `src/client/view/crt.gd` — настройка «Кинескоп» (Графика): выкл, мягкий, старый, кассета (`LOOKS`).
-  Старый экран считается в проходе цветокора (`grade.gdshader`, параметры `crt_*`) по пикселям экрана (сдвиги — по длинной стороне экрана, изгиб — по диагонали, полоски маски шире на плотном экране, так что в портрете и в альбомной ориентации он одинаковый),
-  своего прохода нет: полосы развёртки с черезстрочностью, свечение ярких пикселей (8 выборок
-  картинки мира с линейной фильтрацией, `crt_view`), разнесённые каналы, кривизна кинескопа,
-  виньетка, мерцание, апертурная решётка; у «старого» ещё катящаяся светлая полоса, у «кассеты» дрожь
-  строк, размытый по строке цвет, полоса помех внизу и шум. Интерфейс поверх остаётся чётким.
-  Положение картинки на экране для кривизны `CameraRig.update` отдаёт каждый кадр (`Crt.frame`).
-- `src/client/view/sky.gd` — свет, цветокор, туман по земле, лужи, погода на экране для `game.clock`;
-  `light_side` (одна из восьми сторон, с запасом).
-- `src/client/view/effects.gd` — частицы, костры, факел (предмет с `light` в руке, иначе слабое свечение).
-  Свет факела/фонаря в руке стоит на высоте его пламени (`Player.torch_height`, не выше
-  `HAND_TOP` 0.75 единицы), чтобы в доме высотой в две клетки он горел под крышей, а не в ней, и сбоку
-  у руки, которая его держит (`Player.torch_side`, `torch_offset`; по нему же нарисованные тени).
-  Дождь сносит ветром (`Effects.rain_lean`: в бурю капли летят вбок дальше, чем падают), и штрихи капель
-  наклонены вдоль падения (`lean` в `particle.gdshader`). Под снегом трава на стыке с вырванной клеткой
-  расползается в неё отдельными текселями (`GRASS_FRAY` в `world.gdshader`), без белых квадратов.
-- `src/client/view/fire_shadows.gd` — нарисованные на земле тени от огня; `sun_rays.gd` — лучи среди
-  деревьев, блики, пыль. Свет каждого дерева считается один раз на положение солнца (заново, когда
-  солнце повернулось на `TURN`) и по нескольку деревьев за кадр в пределах `WORK_US`; при шаге игрока
-  на `MOVE` готовый свет только раскладывается заново. Раньше всё считалось целиком за кадр и в лесу
-  давало фризы «движка» по 100–200 мс на телефоне. Время идёт в журнал частью «лучи».
-- `src/client/view/pixel_textures.gd` — атлас материалов из текстур модов, кора как виртуальные
-  материалы после настоящих, трава, кусты, шум облаков; `tint` — средний цвет для карт и частиц.
-- `src/client/view/voxel_model.gd`, `voxel_props.gd` — воксельные модели вещей из
-  `content/<мод>/models/<model>.png` (`VoxelModel.from_image`), в коде только ком блока, мешок и связка.
-- `src/client/view/player.gd`, `figure.gd`, `hands.gd`, `sprite_sheet.gd` — спрайт игрока (см.
+**Files**
+- `src/client/view/pixel_view.gd` — the low-resolution picture and the 3/4 view: `shear(pos)`, `view_ray`,
+  `set_view(turn, tilt)`, `world_dir` / `screen_dir`, `light_range`, the safe area, layers (`LAYER_*`).
+- `src/client/view/camera_rig.gd` — SubViewport and the camera: a turn by steps of 45° (holding turns it
+  smoothly, releasing brings it to a step), a tilt by steps `TILT_STEP`: `STEEPER` (3) up and `LOWER` (4)
+  down, a cell's wall 2..16 px at a top of 8 px (decision 150). The arrows and the keys `[` `]` turn the world
+  towards the arrow. Without sleep (`Vitals.SLEEPY`) the view itself slowly circles round the player
+  (`drift_rate`, up to `DRIFT_RATE` — a turn in 2 minutes), once rested it goes to the nearest step.
+- `src/client/view/crt.gd` — the setting «CRT» (Graphics): off, soft, old, cassette (`LOOKS`). The old screen
+  is counted in the colour-correction pass (`grade.gdshader`, the parameters `crt_*`) by the screen's pixels
+  (the shifts — by the screen's long side, the bend — by the diagonal, the mask's stripes are wider on a dense
+  screen, so in portrait and in landscape it is the same), it has no pass of its own: scan lines with
+  interlacing, the glow of bright pixels (8 samples of the world's picture with linear filtering,
+  `crt_view`), split channels, the tube's curvature, a vignette, flicker, an aperture grille; the «old» one
+  also has a rolling light band, the «cassette» — a jitter of lines, colour blurred along a line, a band of
+  interference at the bottom and noise. The interface on top stays sharp. The picture's position on the
+  screen for the curvature is given by `CameraRig.update` every frame (`Crt.frame`).
+- `src/client/view/sky.gd` — light, colour correction, ground fog, puddles, weather on screen for
+  `game.clock`; `light_side` (one of eight sides, with a margin).
+- `src/client/view/effects.gd` — particles, campfires, the torch (an item with `light` in the hand, otherwise
+  a weak glow). The light of a torch/lantern in the hand stands at the height of its flame
+  (`Player.torch_height`, no higher than `HAND_TOP` 0.75 units), so that in a house two cells high it burns
+  under the roof, not in it, and at the side of the hand that holds it (`Player.torch_side`, `torch_offset`;
+  the drawn shadows go by it too). Rain is carried by the wind (`Effects.rain_lean`: in a storm the drops fly
+  sideways farther than they fall), and the strokes of drops are tilted along the fall (`lean` in
+  `particle.gdshader`). Under snow the grass at the joint with a torn-out cell spreads into it by separate
+  texels (`GRASS_FRAY` in `world.gdshader`), with no white squares.
+- `src/client/view/fire_shadows.gd` — the shadows from fire drawn on the ground; `sun_rays.gd` — rays among
+  trees, glints, dust. The light of each tree is counted once per position of the sun (anew when the sun has
+  turned by `TURN`) and several trees per frame within `WORK_US`; at a player's step by `MOVE` the ready light
+  is only laid out anew. Before, everything was counted whole in a frame and in a forest gave «engine» freezes
+  of 100–200 ms on a phone. The time goes into the log as the part «rays».
+- `src/client/view/pixel_textures.gd` — the atlas of materials from the mods' textures, bark as virtual
+  materials after the real ones, grass, shrubs, cloud noise; `tint` — the mean colour for maps and particles.
+- `src/client/view/voxel_model.gd`, `voxel_props.gd` — the voxel models of things from
+  `content/<mod>/models/<model>.png` (`VoxelModel.from_image`), in the code only a lump of a block, a sack and
+  a bundle.
+- `src/client/view/player.gd`, `figure.gd`, `hands.gd`, `sprite_sheet.gd` — the player's sprite (see
   [character.md](character.md)).
-- `src/client/view/shader_warmup.gd` — прогрев шейдеров; `draw_census.gd` — счёт вызовов отрисовки.
-- `src/client/view/cave_layers.gd` — вид в пещере слоями для выбора клеток
-  (то же, что прячут шейдеры), `src/client/world/solid_map.gd` — карта твёрдых клеток вокруг игрока для
-  среза породы, которым слои заполняют убранное; `plan_view.gd` — призрак чертежа ([interaction.md](interaction.md)); `land_view.gd` — границы
-  участков ([territory.md](territory.md)).
-- `shaders/` — `common.gdshaderinc` (сдвиг, свет, крыша, срез, слои, общие функции), `world`, `water`, `grass`,
-  `leaves`, `leaf_shadow` (диски тени крон лежат плашмя, диск куста стоит, повёрнутый к свету, как тень
-  спрайта, чтобы его тень на закате начиналась у куста; куст сбрасывает листву и тень целиком, по столбцу
-  мира, а его задние пучки не отодвигаются назад, как у кроны, иначе куст висит над своей тенью), `sprite`, `sprite_water`, `sprite_xray`, `particle`, `track`, `fire_shadow`,
-  `sun_rays`, `grade` (цветокор), `map_ground` (карта), `cursor` (и призрак чертежа), `land` (границы
-  участков).
-- `project.godot`, раздел `[shader_globals]`: глобальные параметры, которые меняет код (`cut_height`,
-  `snow_amount`, `wind`, `view_up`, `view_slope`, `rest_view`, `view_squash`, `light_side`, `wrap_size` и др.).
+- `src/client/view/shader_warmup.gd` — the shader warm-up; `draw_census.gd` — the count of draw calls.
+- `src/client/view/cave_layers.gd` — the cave view by layers for choosing cells (the same as the shaders
+  hide), `src/client/world/solid_map.gd` — the map of solid cells around the player for the slice of rock
+  with which the layers fill what is removed; `plan_view.gd` — the blueprint's ghost
+  ([interaction.md](interaction.md)); `land_view.gd` — the borders of plots ([territory.md](territory.md)).
+- `shaders/` — `common.gdshaderinc` (the shear, light, the roof, the slice, layers, shared functions),
+  `world`, `water`, `grass`, `leaves`, `leaf_shadow` (the discs of crowns' shadow lie flat, a shrub's disc
+  stands, turned to the light, like a sprite's shadow, so that its shadow at sunset begins at the shrub; a
+  shrub drops its leaves and the shadow whole, by the world's column, and its back tufts are not moved back
+  as in a crown, otherwise the shrub hangs over its shadow), `sprite`, `sprite_water`, `sprite_xray`,
+  `particle`, `track`, `fire_shadow`, `sun_rays`, `grade` (colour correction), `map_ground` (the map),
+  `cursor` (and the blueprint's ghost), `land` (the plots' borders).
+- `project.godot`, the section `[shader_globals]`: the global parameters the code changes (`cut_height`,
+  `snow_amount`, `wind`, `view_up`, `view_slope`, `rest_view`, `view_squash`, `light_side`, `wrap_size` and
+  others).
 
-**Правила**
-- Новый 3D-шейдер подключает `shaders/common.gdshaderinc` и сдвигает VERTEX как остальные (в виде по
-  умолчанию `z -= y`, камера смотрит строго вниз); огни ставятся в `PixelView.shear(pos)`, выбор
-  клетки — через `PixelView.view_ray`.
-- При повороте и наклоне сдвиг идёт вверх по картинке (глобальные `view_up`, `view_slope`,
-  `view_squash`); вертикальные квадраты смотрят в камеру через `face_view` (спрайты и растения ещё
-  через `stand_tall`); открытые края ячеек — светлая кромка к солнцу или луне и контур от него
-  (`light_side`); тексели на экране считаются через `screen_plane`.
-- Карты текстур поверх мира (крыша, жар, биомы) оборачиваются каждые `RoofMap.WRAP` ячеек (`wrap_size`).
-- Цвет грунта и воды по биому (белый песок, бирюзовая вода тропиков, жёлтая трава саванны) — `biome_tint(mat, xz)`
-  в `common.gdshaderinc`: биом столбца из `biome_map`, множитель из `biome_tints` (тексель материал × биом, в
-  линейном цвете, делённый на 4); на границе биомов столбец берётся со случайным сдвигом тексела, так что
-  цвета переходят дизерингом. Его зовут `world` (плитки), `grass` (травинки) и `water`.
-- Скос (флаг 4) кладёт плитку по текселям экрана (`rest_plane`), а узоры грунта (пятна, крапинки,
-  проплешины, оттенок биома, снег) — по `gp` в `world.gdshader`: точка мира, сдвинутая вверх по картинке на
-  высоту над линией уровня под ней. Так на скосе к камере узоры не вытягиваются в полосы и остаются
-  пиксель в тексель; на каждой линии уровня они перескакивают, и шов прячет тень дизерингом к подножию
-  каждого уровня — по ней же видно, сколько уровней в скосе. Снимки: `steep-beach`, `steep-tropical`.
-  «Экран» здесь — вид шага, у которого камера стоит или к которому ближе всего (глобальный `rest_view`,
-  ставит `PixelView.set_view`; `rest_plane` в `common.gdshaderinc`), а не показанный: пока камера
-  поворачивается или наклоняется между шагами, плитка, узоры и тень у подножия уровней держатся на склоне,
-  а не ползут по нему (раньше ползли); на середине между шагами узор один раз перескакивает на вид
-  следующего шага.
-- Глубина темнеет от поверхности моря (глобальные `sea_top` и `depth_steps.x`, «Затемнение за
-  уровень» на странице «Пещеры», 12 %): каждый уровень ниже моря получает на столько меньше света
-  солнца и неба, до полной черноты (`sea_bright` в `common.gdshaderinc`), в пещерах и в глубине моря;
-  цвет тёмный, а свет факелов и костров поднимается обратно (`lamp_gain` из `sea_undo` в `light()`), так что внизу
-  видно только освещённое ими. Compatibility считает ALBEDO цветом sRGB и переводит его в линейный
-  (многочлен Godot `srgb_to_linear`), поэтому простое деление на `sea_bright` не возвращает яркость:
-  `sea_undo` считает множитель через тот же многочлен. Засечки ниже ног больше нет. Факел в руке, костры и поставленные
-  огни горят тем ярче, чем темнее вокруг (`Sky.lamp_gain`): свет вокруг — `sky_light`, умноженный на
-  `Sky._sea_bright` в линейном виде (степень 2.2, как темнеет цвет); днём факела нет, а костры и огни на
-  `Effects.DAY_LAMP`, к сумеркам (`DUSK_LIGHT` → `FULL_LIGHT`) полная сила, к полной темноте (безлунная ночь,
-  глубина пещеры) до `DARK_GAIN` раз ярче; под крышей не меньше, чем в сумерки, так что с глубиной свет
-  только растёт. «Под крышей» у игрока — любая крыша над головой, как бы высоко ни был свод
-  (`ChunkStreamer.indoor`), у костров и огней — `WorldCells.roof_level` над их клеткой. Факел и
-  поставленный огонь тускнеют по мере сгорания (`Sky.charge_gain`, к концу `BURNT_GAIN`), костёр —
-  по оставшемуся топливу (`Effects` `fire.base`).
-- Срез уровней (`cut_height`, ставит `ChunkStreamer.update_cut` сразу, без задержки) бывает только
-  выбранный кнопками уровня (`manual_level`): уровни выше него тают призраком, по шагу на уровень, и
-  темнее (`cut_dither`, `depth_fade`), вокруг игрока чистое окно с краем, тающим дизерингом
-  (`WINDOW_IN`..`WINDOW_OUT`). Шейдеры прячут только через общие функции `common.gdshaderinc`:
-  `above_cut` / `cut_hides` и `gone_above` (мелочь: трава, частицы, лучи — тем же призраком, что и
-  земля: срез ничего не убирает с поверхности).
-- Вид в пещере один — слои (`src/client/view/cave_layers.gd`; решение 168: «срез уровней», «разрез
-  по камере» и «сфера» убраны вместе с настройкой «Вид в пещере» `cave_mode`, сохранённые старые значения
-  не читаются, у всех слои). Там, где автоматический срез резал
-  бы вид (под крышей; где земля закрывает тело игрока от камеры: в яме, в овраге поперёк
-  взгляда, за отвесной стеной; но не в ущелье вдоль взгляда, где стены по бокам ничего не
-  закрывают), ничего не режется: `ChunkStreamer.update_cut`
-  включает глобальный `layer_view` (вкл и клетка ног игрока), и `cut_hides` / `gone_above`
-  прячут дизерингом (`layer_alpha`, `bayer4` по текселям плоскости экрана) только четверть вида
-  сбоку: то, что перед игроком и не ниже линии (`layer_line` уровней над ногами: 0 ноги, +1 пояс,
-  +2 голова), — по вертикальным срезам в клетку поперёк взгляда камеры и по уровням от линии
-  вверх, берётся меньшее; позади игрока (и потолок над ним) и ниже линии видно всё. Первые слои рисуются с плотностью `layer_density`,
-  следующие тают за «растяжение» слоёв (`layer_fade`: x, y — срезы впереди, z, w — уровни
-  сверху; тестовые настройки «Пещеры», по умолчанию линия +2, впереди первые 2 и растяжение 2,
-  сверху первые −2 и растяжение 4, плотность 100 %, затемнение 12 % за уровень). Грань мира считается клеткой, которую закрывает (точка
-  чуть внутрь по нормали). Где слои убрали тексель грани, а за ней по лучу взгляда идут только
-  твёрдые клетки, убранные на этом же текселе, до твёрдой клетки, которую слои оставляют (у неё
-  там нет грани), — вместо дыры в фон рисуется срез породы тёмным цветом
-  (`layer_fills` по `solid_map` — битовой карте 64×64 столбцов × 32 уровня вокруг игрока,
-  `src/client/world/solid_map.gd`, её ведёт `ChunkStreamer.update_cut`, пока слои включены; изменённые
-  клетки уходят в текстуру одним `flush` за кадр; цвет — один тёмный, `SECTION` в `world.gdshader`,
-  чуть светлее фона, без цвета материала; у краёв, где срез кончается, — материал срезанной клетки,
-  тающий дизерингом за `SECTION_RIM` текселей, `section_rim`: край клетки считается краем среза, если
-  соседняя клетка открыта, оставлена слоями или луч взгляда от неё выходит в пустоту, `layer_fills`). Если луч раньше выходит в пустоту,
-  грань убирается и видно, что за ней. Фон под любым срезом — тёмный цвет среза породы (`sky.gd`).
-  «Первые слои» бывают и меньше нуля (`CaveLayers.FIRSTS`
-  от −4): тогда таять слои начинают раньше первого. Выбор
-  клеток проходит сквозь клетки, нарисованные меньше чем на `Controls.PICK_SHARE`
-  (`CaveLayers.share`, `VoxelRaycast.cast(..., skip)`).
+**Rules**
+- A new 3D shader includes `shaders/common.gdshaderinc` and shears VERTEX like the others (in the default view
+  `z -= y`, the camera looks straight down); fires are placed at `PixelView.shear(pos)`, the choice of a cell
+  — through `PixelView.view_ray`.
+- With a turn and a tilt the shear goes up the picture (the globals `view_up`, `view_slope`, `view_squash`);
+  vertical squares look into the camera through `face_view` (sprites and plants also through `stand_tall`);
+  the open edges of cells are a light rim towards the sun or moon and an outline away from it (`light_side`);
+  the texels on screen are counted through `screen_plane`.
+- The texture maps over the world (the roof, heat, biomes) wrap every `RoofMap.WRAP` cells (`wrap_size`).
+- The colour of soil and water by biome (white sand, the turquoise water of the tropics, the yellow grass of a
+  savanna) is `biome_tint(mat, xz)` in `common.gdshaderinc`: the column's biome from `biome_map`, the
+  multiplier from `biome_tints` (a texel material × biome, in linear colour, divided by 4); at a border of
+  biomes the column is taken with a random shift of a texel, so the colours pass by dithering. It is called by
+  `world` (tiles), `grass` (blades) and `water`.
+- A bevel (flag 4) lays the tile by the screen's texels (`rest_plane`), and the patterns of soil (patches,
+  specks, bald spots, the biome's tint, snow) — by `gp` in `world.gdshader`: a world point shifted up the
+  picture by the height above the level line under it. So on a bevel towards the camera the patterns are not
+  stretched into stripes and stay a pixel to a texel; on every level line they jump, and the seam is hidden
+  by a shadow by dithering towards the foot of each level — by it one also sees how many levels there are in a
+  bevel. The shots: `steep-beach`, `steep-tropical`. «The screen» here is the view of the step at which the
+  camera stands or to which it is nearest (the global `rest_view`, set by `PixelView.set_view`; `rest_plane`
+  in `common.gdshaderinc`), not the shown one: while the camera turns or tilts between steps, the tile, the
+  patterns and the shadow at the foot of the levels hold on the slope and do not crawl over it (before, they
+  crawled); in the middle between steps the pattern jumps once to the view of the next step.
+- Depth darkens from the sea's surface (the globals `sea_top` and `depth_steps.x`, «Darkening per level» on
+  the page «Caves», 12 %): each level below the sea gets that much less of the sun's and sky's light, down to
+  full black (`sea_bright` in `common.gdshaderinc`), in caves and in the sea's depth; the colour is dark, and
+  the light of torches and campfires rises back (`lamp_gain` from `sea_undo` in `light()`), so below one sees
+  only what they light. Compatibility counts ALBEDO as an sRGB colour and converts it into linear (Godot's
+  polynomial `srgb_to_linear`), so a simple division by `sea_bright` does not return the brightness:
+  `sea_undo` counts the multiplier through the same polynomial. There is no tick below the feet any more. A
+  torch in the hand, campfires and placed fires burn the brighter the darker it is around (`Sky.lamp_gain`):
+  the light around is `sky_light` multiplied by `Sky._sea_bright` in linear form (the power 2.2, as the colour
+  darkens); by day there is no torch, and campfires and fires at `Effects.DAY_LAMP`, towards dusk
+  (`DUSK_LIGHT` → `FULL_LIGHT`) full strength, towards full darkness (a moonless night, the depth of a cave)
+  up to `DARK_GAIN` times brighter; under a roof no less than at dusk, so with depth the light only grows.
+  «Under a roof» for the player is any roof overhead, however high the vault (`ChunkStreamer.indoor`), for
+  campfires and fires — `WorldCells.roof_level` above their cell. A torch and a placed fire dim as they burn
+  down (`Sky.charge_gain`, to the end `BURNT_GAIN`), a campfire — by the remaining fuel (`Effects`
+  `fire.base`).
+- The slice of levels (`cut_height`, set by `ChunkStreamer.update_cut` at once, without delay) is only the one
+  chosen by the level buttons (`manual_level`): the levels above it melt as a ghost, a step per level, and
+  darker (`cut_dither`, `depth_fade`), around the player a clean window with an edge melting by dithering
+  (`WINDOW_IN`..`WINDOW_OUT`). The shaders hide only through the shared functions of `common.gdshaderinc`:
+  `above_cut` / `cut_hides` and `gone_above` (small things: grass, particles, rays — by the same ghost as the
+  ground: the slice removes nothing from the surface).
+- The cave view is one — layers (`src/client/view/cave_layers.gd`; decision 168: the «slice of levels», the
+  «cut by the camera» and the «sphere» were removed together with the setting «Cave view» `cave_mode`, saved
+  old values are not read, everyone has layers). Where an automatic slice would cut the view (under a roof;
+  where the ground hides the player's body from the camera: in a pit, in a ravine across the gaze, behind a
+  sheer wall; but not in a gorge along the gaze, where walls at the sides hide nothing), nothing is cut:
+  `ChunkStreamer.update_cut` turns on the global `layer_view` (on and the cell of the player's feet), and
+  `cut_hides` / `gone_above` hide by dithering (`layer_alpha`, `bayer4` by the texels of the screen's plane)
+  only a quarter of the view at the side: what is before the player and not below the line (`layer_line` of
+  levels above the feet: 0 feet, +1 belt, +2 head) — by vertical slices of a cell across the camera's gaze
+  and by levels from the line upward, the lesser is taken; behind the player (and the ceiling above them) and
+  below the line everything is seen. The first layers are drawn with the density `layer_density`, the next
+  melt by the «stretch» of layers (`layer_fade`: x, y — the slices ahead, z, w — the levels from above; the
+  test settings «Caves», by default the line +2, ahead the first 2 and the stretch 2, from above the first −2
+  and the stretch 4, density 100 %, darkening 12 % per level). A face of the world is counted as the cell it
+  covers (a point a little inward along the normal). Where the layers removed a face's texel, and behind it
+  along the gaze's ray go only solid cells removed at the same texel, up to a solid cell that the layers leave
+  (it has no face there) — instead of a hole into the background a slice of rock is drawn in a dark colour
+  (`layer_fills` by `solid_map` — a bit map of 64×64 columns × 32 levels around the player,
+  `src/client/world/solid_map.gd`, led by `ChunkStreamer.update_cut` while layers are on; the changed cells go
+  into the texture with one `flush` per frame; the colour is one dark one, `SECTION` in `world.gdshader`, a
+  little lighter than the background, with no colour of the material; at the edges where the slice ends — the
+  material of the cut cell, melting by dithering for `SECTION_RIM` texels, `section_rim`: a cell's edge is
+  counted the edge of the slice if the neighbouring cell is open, left by the layers or the gaze's ray from it
+  goes out into the void, `layer_fills`). If the ray goes out into the void earlier, the face is removed and
+  one sees what is behind it. The background under any slice is the dark colour of the slice of rock
+  (`sky.gd`). The «first layers» can be less than zero too (`CaveLayers.FIRSTS` from −4): then the layers
+  begin to melt earlier than the first. The choice of cells passes through the cells drawn at less than
+  `Controls.PICK_SHARE` (`CaveLayers.share`, `VoxelRaycast.cast(..., skip)`).
 
-**Подводные камни**
-- Телефонные GPU переворачивают пиксели, чьи центры лежат точно на краях текселей или линиях
-  геометрии: `floor(world_pos * TEXELS)` на не осевых гранях требует сдвига на долю текселя; headless
-  этого не видит — рендер с ±eps и сравнение снимков.
-- Узлам в масштабе 1/16 (воксельные модели) нужен `extra_cull_margin` × 16, иначе сдвиг их отсекает.
-- Силуэты за геометрией — `render_mode depth_test_inverted`; силуэт игрока виден только там, где
-  трафарет отмечает твёрдое (1: мир, спрайты) или ничего (0), не низкое (2: трава, кусты, низкие вещи) и
-  не кроны (3: они расчищаются вокруг игрока); ствол расчищается над игроком, кроме комля (вершинная
-  альфа граней говорит, какая это ячейка ствола).
-- Свет с тенями рисуется отдельным проходом и складывается в sRGB, а не в линейном свете: поверх
-  другого света он ярче. Огни и факел масштабируют энергию (`Effects.SHADOW_ENERGY`) и дают тени только
-  ночью; что от какого света отбрасывает тень, решают слои (`PixelView.LAYER_*`,
-  `shadow_caster_mask`). Тень точечного света dual-paraboloid в Compatibility не работает; кубическая
-  тень с проходом стоит ~+400 вызовов отрисовки, поэтому по умолчанию («смешанные») настоящую тень даёт
-  ближний огонь и только от игрока, остальные рисуются на земле (`fire_shadows.gd`). Нарисованные тени
-  считают по карте клеток вокруг каждого огня (`FireShadows._maps`): блоки и поставленные вещи
-  (`WorldData.blockers`) задерживают свет на всю высоту вещи (дверь в две-три клетки), окна (`Placed.lets_light`,
-  предмет с `window`) пропускают; открытая дверь не твёрдая и свет пропускает, а карты переделываются при открытии
-  и закрытии (`Placed.opened`). Так считаются и костры, и факел в руке, и поставленные огни (фонари, свечи,
-  `Effects.lamps`, те, что сейчас светят): у них настоящей тени нет никогда, и без карты их свет шёл сквозь стены.
-  Тени огня от стволов запоминаются по чанку и сбрасываются, когда ствол срублен: срубленное дерево остаётся в
-  `WorldData.trees` (пень), поэтому ключ включает и бревенчатые столбцы деревьев (`_fire_trunks`, `_standing`).
-  Окно не отбрасывает тени ни от солнца и луны, ни от огней с настоящей тенью (`Props`, `cast_shadow` выключен). `toon_light` должен
-  возвращать 0, где ATTENUATION равна 0, иначе кольца освещают целые чанки. Свет, падающий почти вдоль
-  грани (косинус ниже `LIGHT_GRAZE` 0.05: фонарь в яме чуть выше её края), считается тем дальше, чем
-  он положе, и гаснет кольцами с дизерингом; раньше такая грань освещалась ровным диском с резким краем
-  (шот `ground-lantern-pit`). `shadow_enabled`,
-  `omni_range` и `shadow_caster_mask` у огней и факела пишутся только при смене (`Sky._update_torch`,
-  `Effects.pick_shadow_fires`): каждая запись заново связывает свет и помечает его кубическую тень к
-  перерисовке; `light_energy` можно писать каждый кадр.
-- Не больше `rendering/limits/opengl/max_lights_per_object` (32) точечных огней на объект; меш чанка —
-  один объект.
-- Огонь или факел с настоящей тенью освещает сам только землю, стены мира и траву (слой
-  `PixelView.LAYER_GROUND`: меши чанков, крышки вида слоями, пучки травы); всё остальное освещает его двойник без тени — дочерний свет `Twin`
-  (`PixelView.real_shadow`, `twin_follow`; яркость двойника — как у огня без тени). Свет с тенью рисует
-  своё отдельным проходом, и на каждый вид вещей рендерер собирал под ним шейдеры заново: на телефоне
-  ~50 программ по 150–600 мс останавливали игру в сумерках (2026-11-08). Теперь их несколько, только для
-  земли, стен и травы (в программном GL 21,7 → 5,6 с); на листву и деревья тень огня не падает.
-  Вещи на земле (поставленные, лампы, то, что лежит, лодки) и звери стоят на слое `PixelView.LAYER_THINGS`:
-  с настройкой «Тень на вещах» (по умолчанию вкл, `PixelView.shadow_on_things`) свет с тенью освещает и их,
-  и тень игрока падает на них; их шейдеры прохода тени прогрев собирает при загрузке (`ShaderWarmup`:
-  грани `world_mat`/`low_mat` и фигура игрока на этом слое).
-- Первая отрисовка материала под новым сочетанием огней компилирует шейдеры: на телефоне 100 мс и
-  больше, в программном GL 10 с. `shader_warmup.gd` рисует по одному каждого вида под сочетаниями огней
-  (без огня, огонь без тени, и огонь с тенью — по настройке теней от огня, с теми слоями, что отбрасывают
-  тень; всё под солнцем с тенью по настройке; солнце в игре не гаснет — ночью его яркость 0, но шейдеры
-  те же). Всё это — за загрузочным экраном (`step`, сочетание за кадр); за меню мир не рисуется, так что
-  ничего не остаётся на первые кадры игры. В игре (`update`, `main.shaders`) — только то, что попросили
-  настройки (тень солнца, тени от огня), по одному виду раз в `PACE`. Новый вид огня или материал,
-  который появляется позже, добавляется туда (HUD в это время скрыт меню, поэтому элементы интерфейса — на
-  холсте мира). Без меню (`skip_setup`) мир рисуется во время загрузки, и прогрев короче.
-  `update` не идёт, пока идёт `step`: до 2026-11-08 при открытом меню он шёл рядом, переводил скрытый вид
-  в «нарисовать один раз», и в браузере собиралось только первое сочетание; остальные (без огня, тень
-  огня) собирались в игре — первый поворот камеры днём стоил 140–440 мс на телефоне. Без меню (тесты,
-  инструменты, xvfb) этого не видно: проверка — веб-сборка в headless Chrome с обёрткой `linkProgram`.
-  `MESA_SHADER_DUMP_PATH=dir` (с `MESA_SHADER_CACHE_DISABLE=true`) под xvfb пишет каждый собранный шейдер;
-  движок на ПК хранит собранные программы в `user://shader_cache` — для замера берите чистый `XDG_DATA_HOME`.
-- Неосвещаемое (unshaded: частицы, курсор, леска, следы, лучи, подписи) без своей тени `PixelView.unlit`
-  переносит на слой `LAYER_UNLIT`, как только оно входит в дерево (`SceneTree.node_added`), а огням и факелам
-  (OmniLight3D) ставит `light_cull_mask = LIT_BY_FIRES` без этого слоя и без дисков тени под кронами: свет его
-  не меняет, но движок собирал его шейдеры заново под каждое сочетание огней (на 2026-11-06 −10 программ из
-  ~150, четверть того, что прогрев строил сам). Новый неосвещаемый вид с тенью остаётся на слое 1.
-- `instance uniform` в web-сборке читается как 0.
-- `world.gdshader` читает `material_bits[]` и `corner_shapes[]` по материалу (`Mat.shader_bits`, ставит
-  `main.gd`: приоритет, `DRAINS`, вид пятен, `TRUNK`, с бита 8 — `fray`, на сколько текселей стык с
-  материалом рвётся в обе стороны клочьями, как у соли); размер — константа шейдера (63 = `PixelTextures.MOST_MATERIALS`), поднимать вместе с атласом.
-- В UV2.x меша — номер материала (6 бит, 63 — цвет вершины), а не плитки: плитку боков задаёт бит 1
-  флага, низа — грань, смотрящая вниз (`MeshFaces.pack`); соседи в UV2.y — тоже материалы. Атлас —
-  16×12 плиток (`ATLAS_COLUMNS`, `ATLAS_ROWS` в `common.gdshaderinc`, `PixelTextures.TILES`, `ROWS`).
-- Статические переменные переживают перезапуск сцены, а другой мир может грузить другие бандлы с другой
-  нумерацией материалов: `main._ready` после `Mods.activate` зовёт `PixelTextures.forget()` и
-  `MeshFaces.forget()`, а атлас строится до `RoofMap.prepare` и карты (тона биомов и цвета карты берутся
-  из средних цветов атласа; со старыми выходил фиолетовый песок).
+**Pitfalls**
+- Phone GPUs flip pixels whose centres lie exactly on the edges of texels or lines of geometry:
+  `floor(world_pos * TEXELS)` on non-axial faces needs a shift by a part of a texel; headless does not see it
+  — render with ±eps and compare the shots.
+- Nodes scaled 1/16 (voxel models) need `extra_cull_margin` × 16, otherwise the shear culls them.
+- Silhouettes behind geometry are `render_mode depth_test_inverted`; the player's silhouette is seen only
+  where the stencil marks solid (1: the world, sprites) or nothing (0), not low (2: grass, shrubs, low
+  things) and not crowns (3: they are cleared around the player); a trunk is cleared above the player, except
+  the butt (the faces' vertex alpha says which cell of the trunk it is).
+- Light with shadows is drawn by a separate pass and added in sRGB, not in linear light: on top of other
+  light it is brighter. Fires and the torch scale the energy (`Effects.SHADOW_ENERGY`) and give shadows only
+  at night; what casts a shadow from which light is decided by the layers (`PixelView.LAYER_*`,
+  `shadow_caster_mask`). The shadow of a point light dual-paraboloid does not work in Compatibility; a cube
+  shadow with a pass costs ~+400 draw calls, so by default («mixed») a real shadow is given by the nearest
+  fire and only from the player, the others are drawn on the ground (`fire_shadows.gd`). The drawn shadows
+  are counted by the map of cells around each fire (`FireShadows._maps`): blocks and placed things
+  (`WorldData.blockers`) hold the light for the thing's whole height (a door of two or three cells), windows
+  (`Placed.lets_light`, an item with `window`) let it through; an open door is not solid and lets light
+  through, and the maps are redone when it opens and closes (`Placed.opened`). So the campfires, the torch in
+  the hand and the placed fires (lanterns, candles, `Effects.lamps`, those that shine now) are counted: they
+  never have a real shadow, and without a map their light went through walls. The fire's shadows from trunks
+  are remembered by chunk and dropped when a trunk is felled: a felled tree stays in `WorldData.trees` (a
+  stump), so the key includes the log columns of trees too (`_fire_trunks`, `_standing`). A window casts no
+  shadow either from the sun and moon or from fires with a real shadow (`Props`, `cast_shadow` off).
+  `toon_light` must return 0 where ATTENUATION is 0, otherwise rings light whole chunks. Light falling almost
+  along a face (the cosine below `LIGHT_GRAZE` 0.05: a lantern in a pit a little above its edge) is counted
+  the farther the flatter it is, and fades in rings with dithering; before, such a face was lit by an even
+  disc with a sharp edge (the shot `ground-lantern-pit`). `shadow_enabled`, `omni_range` and
+  `shadow_caster_mask` of fires and the torch are written only on a change (`Sky._update_torch`,
+  `Effects.pick_shadow_fires`): each write re-links the light and marks its cube shadow for redrawing;
+  `light_energy` may be written every frame.
+- No more than `rendering/limits/opengl/max_lights_per_object` (32) point fires per object; a chunk's mesh is
+  one object.
+- A fire or torch with a real shadow itself lights only the ground, the world's walls and grass (the layer
+  `PixelView.LAYER_GROUND`: the chunks' meshes, the caps of the layer view, tufts of grass); everything else
+  is lit by its twin without a shadow — a child light `Twin` (`PixelView.real_shadow`, `twin_follow`; the
+  twin's brightness is as of a fire without a shadow). Light with a shadow draws its own by a separate pass,
+  and for each kind of thing the renderer assembled the shaders under it anew: on a phone ~50 programs of
+  150–600 ms stopped the game at dusk (2026-11-08). Now there are a few, only for ground, walls and grass (in
+  software GL 21.7 → 5.6 s); the fire's shadow does not fall on foliage and trees. Things on the ground
+  (placed, lamps, what lies, boats) and beasts stand on the layer `PixelView.LAYER_THINGS`: with the setting
+  «Shadow on things» (on by default, `PixelView.shadow_on_things`) light with a shadow lights them too, and
+  the player's shadow falls on them; their shaders of the shadow pass are assembled by the warm-up at loading
+  (`ShaderWarmup`: the faces `world_mat`/`low_mat` and the player's figure on this layer).
+- The first drawing of a material under a new combination of fires compiles shaders: on a phone 100 ms and
+  more, in software GL 10 s. `shader_warmup.gd` draws one of each kind under the combinations of fires
+  (without fire, fire without a shadow, and fire with a shadow — by the setting of fire shadows, with the
+  layers that cast a shadow; everything under the sun with a shadow by the setting; the sun in the game does
+  not go out — at night its brightness is 0, but the shaders are the same). All this is behind the loading
+  screen (`step`, a combination per frame); behind the menu the world is not drawn, so nothing is left for the
+  first frames of the game. In the game (`update`, `main.shaders`) only what the settings asked for (the sun's
+  shadow, fire shadows), one kind at a time once per `PACE`. A new kind of fire or a material that appears
+  later is added there (the HUD is hidden by the menu at that time, so the interface's elements are on the
+  world's canvas). Without the menu (`skip_setup`) the world is drawn during loading, and the warm-up is
+  shorter. `update` does not go while `step` goes: until 2026-11-08 with the menu open it went alongside,
+  turned the hidden kind into «draw once», and in the browser only the first combination was assembled; the
+  rest (without fire, fire's shadow) were assembled in the game — the first camera turn by day cost 140–440 ms
+  on a phone. Without the menu (tests, tools, xvfb) this is not seen: the check is the web build in headless
+  Chrome with a wrapper of `linkProgram`. `MESA_SHADER_DUMP_PATH=dir` (with `MESA_SHADER_CACHE_DISABLE=true`)
+  under xvfb writes each assembled shader; the engine on PC stores the assembled programs in
+  `user://shader_cache` — for a measurement take a clean `XDG_DATA_HOME`.
+- The unlit (unshaded: particles, the cursor, the fishing line, tracks, rays, captions) without a shadow of
+  its own is moved by `PixelView.unlit` to the layer `LAYER_UNLIT` as soon as it enters the tree
+  (`SceneTree.node_added`), and for fires and torches (OmniLight3D) it sets `light_cull_mask = LIT_BY_FIRES`
+  without this layer and without the shadow discs under crowns: the light does not change it, but the engine
+  assembled its shaders anew under each combination of fires (on 2026-11-06 −10 programs of ~150, a quarter
+  of what the warm-up built itself). A new unlit kind with a shadow stays on layer 1.
+- `instance uniform` in the web build reads as 0.
+- `world.gdshader` reads `material_bits[]` and `corner_shapes[]` by material (`Mat.shader_bits`, set by
+  `main.gd`: priority, `DRAINS`, the kind of patches, `TRUNK`, from bit 8 — `fray`, by how many texels the
+  joint with a material tears into tatters in both directions, like salt); the size is a constant of the
+  shader (63 = `PixelTextures.MOST_MATERIALS`), raise it together with the atlas.
+- In the mesh's UV2.x is the number of the material (6 bits, 63 — the vertex's colour), not of the tile: the
+  sides' tile is set by bit 1 of the flag, the underside's — by a face looking down (`MeshFaces.pack`); the
+  neighbours in UV2.y are materials too. The atlas is 16×12 tiles (`ATLAS_COLUMNS`, `ATLAS_ROWS` in
+  `common.gdshaderinc`, `PixelTextures.TILES`, `ROWS`).
+- Static variables survive a scene's restart, and another world may load other bundles with other numbering
+  of materials: `main._ready` after `Mods.activate` calls `PixelTextures.forget()` and `MeshFaces.forget()`,
+  and the atlas is built before `RoofMap.prepare` and the maps (the biomes' tones and the map's colours are
+  taken from the atlas's mean colours; with the old ones the sand came out violet).
 
-**Тесты.** `tests/unit/view_test.gd` (`pixel_view`, `sprite_sheet`, `tracks`, `hidden`, `camera_spin`),
-скриншоты `tools/shot.gd` (таблица `tools/shot/shots.gd`, места `tools/shot/places.gd`),
-`tools/profile.gd` (вызовы отрисовки под xvfb), `tests/browser_smoke.mjs`.
+**Tests.** `tests/unit/view_test.gd` (`pixel_view`, `sprite_sheet`, `tracks`, `hidden`, `camera_spin`),
+the screenshots `tools/shot.gd` (the table `tools/shot/shots.gd`, the places `tools/shot/places.gd`),
+`tools/profile.gd` (draw calls under xvfb), `tests/browser_smoke.mjs`.
 
-**Подробнее.** `plan/architecture/rendering.md` (главный документ рендера), `plan/design/visual.md`,
-скриншоты по темам в `survivium-builds/`.
+**In more detail.** `plan/architecture/rendering.md` (the main document of rendering), `plan/design/visual.md`,
+the screenshots by topic in `survivium-builds/`.

@@ -1,7 +1,7 @@
-# Порода дерева: как оно выглядит (поля — как у дуба, content/plants/oak/data/trees.yaml). bark — своя
-# текстура коры в textures/ бандла (48×16, как у материала: торец, кора, низ); без поля ствол
-# рисуется бревном «Древесины». Где порода растёт, говорят биомы (content/biomes), не дерево.
-# seed — шишка бандла «Ель» (мягкая ссылка: без «Ели» сосна шишек не даёт).
+# Tree species: how it looks (fields as for the oak, content/plants/oak/data/trees.yaml). bark is its own
+# bark texture in the bundle's textures/ (48×16, as for a material: end, bark, bottom); without the field the trunk
+# is drawn as a log of "Timber". Where the species grows is up to the biomes (content/biomes), not the tree.
+# seed — a cone from the "Spruce" bundle (a soft reference: without "Spruce" the pine gives no cones).
 - id: pine
   title: "[plants.trees.pine]"
   shape: umbrella

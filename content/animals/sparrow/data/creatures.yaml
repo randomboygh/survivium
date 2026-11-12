@@ -1,8 +1,8 @@
-# Поля те же, что у видов основы (content/core/data/creatures.yaml). Поведение выводится
-# из них: лёгкого воробья едят кошки и волки, и он от них улетает; человека он боится;
-# днём кормится стаей на полях колосков, перелетает и садится на землю и на деревья,
-# ночью спит на деревьях. Ссылка likes мягкая: без «Растений» воробей живёт, просто ничего не
-# ищет, а без деревьев (roost: trees) спит на земле.
+# The fields are the same as for the core's species (content/core/data/creatures.yaml). The behavior is derived
+# from them: a light sparrow is eaten by cats and wolves, and it flies away from them; it fears the human;
+# by day it feeds in a flock in the ear fields, flits and lands on the ground and on trees,
+# at night it sleeps in trees. The likes reference is soft: without "Plants" the sparrow lives, it just looks for nothing,
+# and without trees (roost: trees) it sleeps on the ground.
 - id: sparrow
   title: "[animals.creatures.sparrow]"
   mass: 0.03

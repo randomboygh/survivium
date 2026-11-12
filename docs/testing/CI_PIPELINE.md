@@ -1,85 +1,86 @@
-# CI: как устроен пайплайн
+# CI: how the pipeline is built
 
-Статус: ACTIVE. Файл: `.github/workflows/build.yml`, установка Godot — `.github/actions/godot/`.
-Как запускать то же локально — [TESTING_GUIDE.md](TESTING_GUIDE.md).
+Status: ACTIVE. The file: `.github/workflows/build.yml`, the Godot setup — `.github/actions/godot/`. How to
+run the same locally — [TESTING_GUIDE.md](TESTING_GUIDE.md). A Russian copy:
+[CI_PIPELINE_RU.md](CI_PIPELINE_RU.md).
 
-## Когда запускается
+## When it runs
 
-| Событие | Что идёт |
+| Event | What goes |
 |---|---|
-| PR (открыт, новый пуш, переоткрыт, поставлена метка) | всё, кроме проверки в браузере, если PR не трогает то, что браузер показывает иначе (задание `changes`); метка `smoke` включает её |
-| пуш в `main` (слияние PR) | всё; при успехе всех заданий — публикация |
-| вручную: Actions → Test and build → Run workflow | всё, как в `main`, без публикации (она только для `main`) |
-| вручную: Actions → Playtest server → Run workflow | не проверка: `.github/workflows/playtest.yml` запускает сервер игры из `main` за туннелем Cloudflare на заданные минуты (до 300) с ботами (`--join … --bot`, `src/client/input/bot.gd`; по умолчанию тестовый мир, 3 бота, 120 минут, бесплатные предметы), ссылка для телефона — в шаге «Start the server» и статусом `playtest-link`, игра находит её сама («Тестирование» → «Подключиться к тестовому серверу»); мир не сохраняется |
+| A PR (opened, a new push, reopened, a label set) | everything except the check in a browser, if the PR does not touch what the browser shows differently (the job `changes`); the label `smoke` turns it on |
+| A push to `main` (a PR's merge) | everything; if all jobs succeed — publishing |
+| By hand: Actions → Test and build → Run workflow | everything, as in `main`, with no publishing (it is only for `main`) |
+| By hand: Actions → Playtest server → Run workflow | not a check: `.github/workflows/playtest.yml` runs the game's server from `main` behind a Cloudflare tunnel for the given minutes (up to 300) with bots (`--join … --bot`, `src/client/input/bot.gd`; by default the test world, 3 bots, 120 minutes, free items), the link for a phone is in the step «Start the server» and in the status `playtest-link`, the game finds it itself («Testing» → «Join the test server»); the world is not saved |
 
-Новый пуш в тот же PR отменяет его прошлый запуск. В `main` запуски не отменяются: каждое слияние
-проверяется до конца, и поломка не прячется за следующим слиянием (раньше прогон слитого PR мог
-оказаться «cancelled»).
+A new push to the same PR cancels its previous run. On `main` runs are not cancelled: every merge is checked
+to the end, and a breakage does not hide behind the next merge (before, the run of a merged PR could turn out
+«cancelled»).
 
-## Задания
+## Jobs
 
-Все задания идут параллельно, каждое на своей машине (кроме `smoke`, которая ждёт web-сборку, и
-публикации, которая ждёт всё). Быстрые падают первыми.
+All jobs go in parallel, each on its own machine (except `smoke`, which waits for the web build, and
+publishing, which waits for everything). The fast ones fail first.
 
-| Задание | Что делает | Время | Блокирует |
+| Job | What it does | Time | Blocks |
 |---|---|---|---|
-| `lint` | `tools/lint.py` (правила скриптов и текстов, Python, shell, JS, JSON, workflow) , `tools/doc_index.py --check` (пути в документах, свежесть индекса кода) и `tools/lang_check.py --strict en,ru` (каждый ключ есть по-английски и по-русски, русского текста в коде нет); без Godot | ~10 с | да |
-| `checks` | `parse` (каждый скрипт компилируется, `tools/parse_check.gd`), `validate` (данные модов и каждый бандл отдельно), `report` (свежесть `docs/generated/content-*.md`) | ~1 мин | да |
-| `tests` | `run_tests` (юнит-тесты), `save_test`, `server_test` бок о бок | ~3 мин | да |
-| `progress (hunting)`, `progress (other)` | две половины `progress_test`: рецепты, которым нужно добытое со зверя, и остальные — на двух машинах | см. отчёт | да |
-| `frames` | `frame_test` один на машине (меряет кадры) | ~1,5 мин | да |
-| `export` | версия и «Что нового» (`build_info.py`), web-экспорт, патчи `web_patch.py` и `web_cache.py`; артефакт `survivium-web` | ~1 мин | да (для деплоя) |
-| `pc` | экспорт Windows и Linux; артефакты `survivium-windows`, `survivium-linux` | ~1 мин | да (для публикации) |
-| `smoke (desktop / phone / upright)` | web-сборка в headless Chrome (`tests/browser_smoke.mjs`) | 1–3 мин | да, когда идёт |
-| `publish` | только `main`: ПК-сборки в пререлиз `pc-latest` | секунды | — |
-| `deploy` | только `main`: web-сборка на GitHub Pages | секунды | — |
+| `lint` | `tools/lint.py` (rules of scripts and texts, Python, shell, JS, JSON, workflow), `tools/doc_index.py --check` (paths in documents, freshness of the code index) and `tools/lang_check.py --strict en,ru` (every key exists in English and Russian, there is no Russian text in the code); without Godot | ~10 s | yes |
+| `checks` | `parse` (every script compiles, `tools/parse_check.gd`), `validate` (the mods' data and each bundle separately), `report` (freshness of `docs/generated/content-*.md`) | ~1 min | yes |
+| `tests` | `run_tests` (unit tests), `save_test`, `server_test` side by side | ~3 min | yes |
+| `progress (hunting)`, `progress (other)` | two halves of `progress_test`: recipes that need something got from a beast, and the rest — on two machines | see the report | yes |
+| `frames` | `frame_test` alone on a machine (it measures frames) | ~1.5 min | yes |
+| `export` | the version and «What's new» (`build_info.py`), web export, the patches `web_patch.py` and `web_cache.py`; the artifact `survivium-web` | ~1 min | yes (for the deploy) |
+| `pc` | the Windows and Linux export; the artifacts `survivium-windows`, `survivium-linux` | ~1 min | yes (for publishing) |
+| `smoke (desktop / phone / upright)` | the web build in headless Chrome (`tests/browser_smoke.mjs`) | 1–3 min | yes, when it runs |
+| `publish` | only `main`: the PC builds into the prerelease `pc-latest` | seconds | — |
+| `deploy` | only `main`: the web build to GitHub Pages | seconds | — |
 
-«Блокирует» здесь значит: `publish` и `deploy` ждут его успеха, а по правилу проекта PR сливается только
-при зелёном CI. Чтобы GitHub сам не давал слить красный PR, в настройках репозитория (Settings →
-Branches → правило для `main` → Require status checks) отметьте задания `lint`, `checks`, `tests`,
-`progress (hunting)`, `progress (other)`, `frames`, `export`, `pc`. `smoke (…)` туда не ставится: на PR
-без изменений клиента оно пропускается.
+«Blocks» here means: `publish` and `deploy` wait for its success, and by the project's rule a PR is merged
+only on green CI. So that GitHub itself does not let a red PR be merged, in the repository's settings
+(Settings → Branches → the rule for `main` → Require status checks) mark the jobs `lint`, `checks`, `tests`,
+`progress (hunting)`, `progress (other)`, `frames`, `export`, `pc`. `smoke (…)` is not put there: on a PR with
+no client changes it is skipped.
 
-## Результаты и логи
+## Results and logs
 
-- В журнале задания каждая проверка — свёрнутая группа «имя: N с, exit код».
-- Сводка запуска (страница запуска, вкладка Summary) — таблица каждой проверки: секунды, итог, строка
-  счёта («3227 checks, 0 failed»), под ней первые строки `FAIL:` упавших.
-- Упавшая проверка ставит аннотацию `::error` с первой строкой провала — видна прямо в PR.
-- Логи каждой проверки — артефакт `logs-<задание>` (хранится 90 дней по умолчанию GitHub), даже если
-  задание упало.
-- Письмо о провале GitHub шлёт автору запуска сам (настройки уведомлений аккаунта).
+- In a job's log each check is a collapsed group «name: N s, exit code».
+- The run's summary (the run's page, the Summary tab) is a table of every check: seconds, the result, the
+  score line («3227 checks, 0 failed»), under it the first `FAIL:` lines of the failed ones.
+- A failed check sets an annotation `::error` with the first line of the failure — seen right in the PR.
+- The logs of each check are the artifact `logs-<job>` (kept 90 days by GitHub's default), even if the job
+  failed.
+- GitHub itself sends the email about a failure to the run's author (the account's notification settings).
 
-## Безопасность
+## Security
 
-- Права токена по умолчанию — только чтение (`contents: read`); `changes`, `export`, `pc` читают ещё
-  PR (`pull-requests: read`), `publish` пишет релиз (`contents: write`), `deploy` — Pages
-  (`pages: write`, `id-token: write`). Код PR не получает прав записи.
-- Секретов нет, кроме встроенного `GITHUB_TOKEN`; он не печатается.
-- Сторонние действия — только `actions/*` GitHub, закреплены на коммит (SHA) с версией в комментарии.
-  Обновлять — заменой SHA на коммит нового тега (`git ls-remote https://github.com/actions/<имя>`).
-- Godot и шаблоны экспорта скачиваются с релиза движка и сверяются с SHA-512 из
-  `.github/actions/godot/SHA512-SUMS`; для новой версии Godot туда добавляются две строки из
-  `SHA512-SUMS.txt` её релиза, иначе задание падает с понятной ошибкой. Кэш ключуется версией и
-  этими суммами.
-- `playwright-core` для smoke-теста закреплён версией (`1.48.2`), без lock-файла.
-- Каждый тест пишет в свой `user://` (`XDG_DATA_HOME`), сохранения разработчика не трогаются;
-  внешних сервисов тесты не зовут (сервер-тест слушает localhost:7791).
-- Проверка кода и публикация разделены: публикуют только `publish` и `deploy`, только в `main`, только
-  после успеха всех проверок.
+- The token's default rights are read only (`contents: read`); `changes`, `export`, `pc` also read the PR
+  (`pull-requests: read`), `publish` writes a release (`contents: write`), `deploy` — Pages (`pages: write`,
+  `id-token: write`). A PR's code gets no write rights.
+- There are no secrets except the built-in `GITHUB_TOKEN`; it is not printed.
+- Third-party actions are only GitHub's `actions/*`, pinned to a commit (SHA) with the version in a comment.
+  Update by replacing the SHA with the commit of the new tag (`git ls-remote https://github.com/actions/<name>`).
+- Godot and the export templates are downloaded from the engine's release and checked against the SHA-512
+  from `.github/actions/godot/SHA512-SUMS`; for a new Godot version two lines from the `SHA512-SUMS.txt` of
+  its release are added there, otherwise the job fails with a clear error. The cache is keyed by the version
+  and these sums.
+- `playwright-core` for the smoke test is pinned by version (`1.48.2`), with no lock file.
+- Every test writes to its own `user://` (`XDG_DATA_HOME`), the developer's saves are not touched; the tests
+  call no external services (the server test listens on localhost:7791).
+- Checking the code and publishing are separated: only `publish` and `deploy` publish, only into `main`, only
+  after all checks succeed.
 
-## Время
+## Time
 
-Замеры до и после — [../audit/TESTING_CI_REPORT.md](../audit/TESTING_CI_REPORT.md). Самое долгое — путь до
-каждого рецепта (`progress_test`); он поделен на две половины, идущие на двух машинах.
-Каждое задание ограничено `timeout-minutes`, каждая проверка — своим пределом в `tests/run_all.sh`.
+Measurements before and after — [../audit/TESTING_CI_REPORT.md](../audit/TESTING_CI_REPORT.md). The longest
+is the path to every recipe (`progress_test`); it is divided into two halves that go on two machines. Each job
+is limited by `timeout-minutes`, each check — by its own limit in `tests/run_all.sh`.
 
-## Что делать, когда CI красный
+## What to do when CI is red
 
-1. Открыть сводку запуска: какая проверка и первые `FAIL:`.
-2. Повторить ту же проверку локально: `GODOT=~/godot/godot tests/run_all.sh <имя>`.
-3. `frame_test` и `progress_test` чувствительны к машине: в сообщении провала есть числа (мерка чанка
-   рядом с замером, части кадра, места и кадры ожидания). Перезапуск задания допустим, только если числа
-   показывают сбой машины, а не кода; иначе — чинить код. Каждый такой случай — строка в
-   [TEST_COVERAGE.md](TEST_COVERAGE.md), раздел «Нестабильные проверки».
-4. После слияния следите за прогоном `main` до конца (правило проекта) и чините красный сразу.
+1. Open the run's summary: which check and the first `FAIL:` lines.
+2. Repeat the same check locally: `GODOT=~/godot/godot tests/run_all.sh <name>`.
+3. `frame_test` and `progress_test` are sensitive to the machine: the failure message has numbers (the chunk's
+   measure beside the measuring, the frame's parts, the places and frames of waiting). A job's rerun is
+   allowed only if the numbers show a failure of the machine, not of the code; otherwise — fix the code. Every
+   such case is a row in [TEST_COVERAGE.md](TEST_COVERAGE.md), the section «Flaky checks».
+4. After a merge follow the run of `main` to the end (the project's rule) and fix red at once.

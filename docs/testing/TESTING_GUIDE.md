@@ -1,99 +1,103 @@
-# Как проверять изменения
+# How to check changes
 
-Статус: ACTIVE. Что покрыто чем — [TEST_COVERAGE.md](TEST_COVERAGE.md); как устроен CI —
-[CI_PIPELINE.md](CI_PIPELINE.md); подробности тестов и инструментов — [../systems/testing.md](../systems/testing.md).
+Status: ACTIVE. What is covered by what — [TEST_COVERAGE.md](TEST_COVERAGE.md); how CI is built —
+[CI_PIPELINE.md](CI_PIPELINE.md); the details of tests and tools — [../systems/testing.md](../systems/testing.md).
+A Russian copy: [TESTING_GUIDE_RU.md](TESTING_GUIDE_RU.md).
 
-## Подготовка
+## Preparation
 
-Godot 4.5.1 (`godot` на PATH или `GODOT=путь`). После клонирования и после новых ассетов:
+Godot 4.5.1 (`godot` on PATH or `GODOT=path`). After cloning and after new assets:
 
 ```
 godot --headless --path . --import
 ```
 
-Без импорта HUD-скрипты падают с null-ошибками, похожими на баги кода.
+Without the import the HUD scripts fail with null errors that look like code bugs.
 
-## Уровни проверок
+## Levels of checks
 
-| Уровень | Команда | Время | Когда |
+| Level | Command | Time | When |
 |---|---|---|---|
-| 1. Секунды, без Godot | `python3 tools/lint.py && python3 tools/doc_index.py --check` | ~1 с | после любой правки; можно хуком перед коммитом: `git config core.hooksPath tools/hooks` |
-| 2. Компиляция и данные | `GODOT=… tests/run_all.sh parse validate report` | ~15 с | любая правка кода или данных |
-| 3. Юнит-тесты | `godot --headless --path . --script res://tests/run_tests.gd [-- тема …]` | 1–2 мин (тема — секунды) | правка правил, генератора, мешей, данных |
-| 4. Сценарии | `tests/run_all.sh save_test server_test frame_test progress_hunting progress_other` | 2–20 мин | см. таблицу ниже |
-| 5. Всё | `GODOT=… tests/run_all.sh` | ~20–30 мин на 4 ядрах | перед большим PR; CI делает это на каждый пуш |
-| 6. Браузер | только в CI (`smoke`) | 3 мин | клиент, шейдеры, экспорт |
+| 1. Seconds, no Godot | `python3 tools/lint.py && python3 tools/doc_index.py --check` | ~1 s | after any edit; can be a hook before a commit: `git config core.hooksPath tools/hooks` |
+| 2. Compilation and data | `GODOT=… tests/run_all.sh parse validate report` | ~15 s | any edit of code or data |
+| 3. Unit tests | `godot --headless --path . --script res://tests/run_tests.gd [-- topic …]` | 1–2 min (a topic — seconds) | an edit of rules, the generator, meshes, data |
+| 4. Scenarios | `tests/run_all.sh save_test server_test frame_test progress_hunting progress_other` | 2–20 min | see the table below |
+| 5. Everything | `GODOT=… tests/run_all.sh` | ~20–30 min on 4 cores | before a big PR; CI does it on every push |
+| 6. Browser | only in CI (`smoke`) | 3 min | the client, shaders, export |
 
-Тема юнит-тестов — имя файла `tests/unit/<тема>_test.gd` без `_test.gd`: `-- graph properties`
-запускает два файла. Каждый файл печатает свои проверки и секунды.
+A unit-test topic is the file's name `tests/unit/<topic>_test.gd` without `_test.gd`: `-- graph properties`
+runs two files. Each file prints its checks and seconds.
 
-## Что запускать при изменении системы
+## What to run when a system changes
 
-| Что менялось | Обязательно | Плюс |
+| What changed | Required | Plus |
 |---|---|---|
-| только интерфейс (`src/client/ui/`, HUD) | 1, 2, `run_tests` | скриншоты (`tools/shot.gd`) |
-| данные мода, рецепты, станки, инструменты, материалы | 1, 2 (`validate`, `report` — после правки запустить `tools/content_report.gd` без `--check`), `run_tests -- content graph bundle_system properties` | `progress_hunting progress_other` |
-| руки, сбор, крафт, `world_actions.gd`, `workshop.gd`, `placed.gd` | 1, 2, `run_tests` | `progress_*`, `save_test` |
-| стройка: чертёж, двери, окна, лестницы, мебель (`plans.gd`, флаги вещей в `placed.gd`) | 1, 2, `run_tests -- actions plans` | `save_test`, скриншоты `build-*` |
-| шейдеры, свет, вид в пещере (`shaders/`, `src/client/view/`) | 1, 2, `run_tests -- view` | `frame_test`; скриншоты под xvfb или `smoke` в CI: headless шейдеры не компилирует |
-| генератор, мир, чанки, меши, стример | 1, 2, `run_tests -- generation mesher shapes store` | `frame_test` (один, без других процессов), `save_test` |
-| сохранения (`save_game.gd`, `world_store.gd`) | 1, 2, `run_tests -- store` | `save_test` |
-| сеть, сервер, протокол, права, анти-чит | 1, 2, `run_tests -- net session security` | `server_test` ([../security/SECURITY_TESTING.md](../security/SECURITY_TESTING.md)) |
-| звери, погода, часы, территории, навыки | 1, 2, `run_tests -- wildlife clock territory skills` | `progress_*` для охоты |
-| что идёт каждый кадр (свет, огни, тени, звери на экране) | 1, 2, `run_tests` | `frame_test` |
-| CI, `tests/run_all.sh`, `tools/*.py` | 1 | прогон в CI |
+| only the interface (`src/client/ui/`, HUD) | 1, 2, `run_tests` | screenshots (`tools/shot.gd`) |
+| a mod's data, recipes, stations, tools, materials | 1, 2 (`validate`, `report` — after an edit run `tools/content_report.gd` without `--check`), `run_tests -- content graph bundle_system properties` | `progress_hunting progress_other` |
+| hands, gathering, crafting, `world_actions.gd`, `workshop.gd`, `placed.gd` | 1, 2, `run_tests` | `progress_*`, `save_test` |
+| building: blueprint, doors, windows, stairs, furniture (`plans.gd`, the things' flags in `placed.gd`) | 1, 2, `run_tests -- actions plans` | `save_test`, screenshots `build-*` |
+| shaders, light, the cave view (`shaders/`, `src/client/view/`) | 1, 2, `run_tests -- view` | `frame_test`; screenshots under xvfb or `smoke` in CI: headless does not compile shaders |
+| the generator, the world, chunks, meshes, the streamer | 1, 2, `run_tests -- generation mesher shapes store` | `frame_test` (alone, with no other processes), `save_test` |
+| saves (`save_game.gd`, `world_store.gd`) | 1, 2, `run_tests -- store` | `save_test` |
+| network, server, protocol, rights, anti-cheat | 1, 2, `run_tests -- net session security` | `server_test` ([../security/SECURITY_TESTING.md](../security/SECURITY_TESTING.md)) |
+| beasts, weather, clock, territories, skills | 1, 2, `run_tests -- wildlife clock territory skills` | `progress_*` for hunting |
+| what goes every frame (light, fires, shadows, beasts on screen) | 1, 2, `run_tests` | `frame_test` |
+| CI, `tests/run_all.sh`, `tools/*.py` | 1 | a run in CI |
 
-CI всё равно гоняет всё; таблица — чтобы локально не ждать лишнего.
+CI runs everything all the same; the table is so as not to wait for the extra locally.
 
-## Как читать результат
+## How to read the result
 
-- `run_all.sh` печатает журнал каждой проверки под строкой `=== имя: N s, exit код` и в конце
-  `All passed` или `Failed: …`. `exit 124` — проверка не уложилась в свой предел (`limit` в скрипте).
-- Строка `SCRIPT ERROR` в журнале — провал, даже при коде 0: ошибка выполнения обрывает функцию теста.
-- `ERROR: content: _test…` в `run_tests` и утечки RID при выходе — нарочно сломанные данные и давний
-  безвредный шум движка.
-- `LOGS=папка` сохраняет журнал каждой проверки.
+- `run_all.sh` prints each check's log under the line `=== name: N s, exit code` and at the end `All passed`
+  or `Failed: …`. `exit 124` — the check did not fit its limit (`limit` in the script).
+- A `SCRIPT ERROR` line in a log is a failure, even with code 0: a runtime error cuts off a test's function.
+- `ERROR: content: _test…` in `run_tests` and RID leaks at exit — deliberately broken data and an old
+  harmless noise of the engine.
+- `LOGS=folder` saves each check's log.
 
-## Как добавить тест
+## How to add a test
 
-- **Правило игры** — функция `_test_<что>()` в `tests/unit/<тема>_test.gd` (наследует
-  `tests/unit/test_case.gd`: `_check(условие, "что должно быть")`, временный мод `_write_file`/`_remove`,
-  мир `_land(seed)`), вызов в её `run()`. Новый файл — имя темы в `FILES` в `tests/run_tests.gd`
-  (иначе `run_tests` падает). Тест не зависит от порядка: возвращает активный набор бандлов и
-  удаляет свои временные моды (`content/_<имя>/`).
-- **Генеративный тест** — `tests/unit/properties_test.gd`: случайные случаи от закреплённых семян,
-  проверка того, что всегда верно; при провале печатаются семя и шаг.
-- **Регрессия бага** — тест, который падает на старом коде, в файле темы; в описании — что ломалось.
-- **Сценарий в игре** (`save_test`, `progress_test`, `frame_test`, `server_test`) — ждите по
-  `Time.get_ticks_msec()` *и* по числу кадров: на занятой машине кадр бывает секундами.
-- **Новая проверка данных** — в `check()` реестра (`src/shared/content/<вид>.gd`) или в
-  `src/shared/content/content_graph.gd` (тогда — описание в `CHECK_TEXT` `tools/content_report.gd`);
-  `tools/validate.gd` собирает их все.
+- **A rule of the game** — a function `_test_<what>()` in `tests/unit/<topic>_test.gd` (it inherits
+  `tests/unit/test_case.gd`: `_check(condition, "what must be")`, a temporary mod `_write_file`/`_remove`,
+  a world `_land(seed)`), a call in its `run()`. A new file — the topic's name in `FILES` in
+  `tests/run_tests.gd` (otherwise `run_tests` fails). A test does not depend on order: it returns the active
+  set of bundles and deletes its temporary mods (`content/_<name>/`).
+- **A generative test** — `tests/unit/properties_test.gd`: random cases from pinned seeds, a check of what is
+  always true; on a failure the seed and the step are printed.
+- **A regression of a bug** — a test that fails on the old code, in the topic's file; in the description —
+  what broke.
+- **A scenario in the game** (`save_test`, `progress_test`, `frame_test`, `server_test`) — wait by
+  `Time.get_ticks_msec()` *and* by the number of frames: on a busy machine a frame can take seconds.
+- **A new check of data** — in the registry's `check()` (`src/shared/content/<kind>.gd`) or in
+  `src/shared/content/content_graph.gd` (then — a description in `CHECK_TEXT` of `tools/content_report.gd`);
+  `tools/validate.gd` collects them all.
 
-## Как проверить игровые данные
+## How to check the game's data
 
 ```
-godot --headless --path . --script res://tools/validate.gd          # всё и каждый бандл отдельно
-godot --headless --path . --script res://tools/content_report.gd    # перегенерировать отчёты
+godot --headless --path . --script res://tools/validate.gd          # everything and each bundle separately
+godot --headless --path . --script res://tools/content_report.gd    # regenerate the reports
 ```
 
-`validate` проверяет схемы (типы, пределы, обязательные поля, количества — целые от 1), уникальность и
-ссылки id (жёсткие и мягкие), что станок рецепта — станок, что класс инструмента есть у предмета,
-картинки, звуки, модели, текстуры, атлас, эпохи, и граф контента полного набора: всё достижимо от старта,
-нет блокирующих циклов, нет предмета без источника, рецепта, который не сделать, эпохи раньше пути.
-Каждый бандл грузится отдельно с тем, без чего не может. Сообщение называет вид, id записи и поле:
-`recipes: tools:axe.at: \`tools:rock\` is no station`. Предупреждения (тупики, двойники, станки одного
-рецепта, длинные цепочки, прибыльные круги) печатаются и не валят. Найденное с объяснением и тем, как
-исправить, — `docs/generated/content-checks.md`.
+`validate` checks the schemas (types, limits, required fields, amounts — whole from 1), the uniqueness and
+the references of ids (hard and soft), that a recipe's station is a station, that an item has the tool class,
+pictures, sounds, models, textures, the atlas, eras, and the content graph of the full set: everything is
+reachable from the start, there are no blocking cycles, no item without a source, no recipe that cannot be
+made, no era earlier than its path. Each bundle is loaded separately with what it cannot do without. A
+message names the kind, the record's id and the field: `recipes: tools:axe.at: \`tools:rock\` is no station`.
+Warnings (dead ends, twins, stations of one recipe, long chains, profitable circles) are printed and do not
+fail. What was found, with an explanation and how to fix it — `docs/generated/content-checks.md`.
 
-## Диагностика
+## Diagnostics
 
-- `frame_test` упал на idle — в строке печатается мерка чанка, взятая прямо перед замером, медиана
-  кадра и части игры (`игрок`, `небо`, `животные` …): видно, какая часть выросла. Предел — доля чанка,
-  но не меньше `IDLE_FLOOR` / `NIGHT_FLOOR` мс (на быстрых машинах GitHub доля чанка меньше кадра простоя). На общей машине
-  перезапустите его одного, прежде чем винить код.
-- `progress_test` упал — первое `FAIL:` и есть причина; за ним идут `made: …` всех недоделанных
-  рецептов. Сообщение о лагере рисует карту вокруг (`#` — вещь, `T` — дерево), об охоте — где упал зверь
-  и где ближайшая туша у клиента и у хозяина.
-- Висит — ошибка в скрипте с `await`: всё в `run_all.sh` под `timeout`.
-- Подводные камни движка и тестов — `CLAUDE.md`, раздел Gotchas, и [../systems/testing.md](../systems/testing.md).
+- `frame_test` failed on idle — the line prints the chunk's measure taken right before the measuring, the
+  frame's median and the parts of the game (`player`, `sky`, `animals` …): one sees which part grew. The
+  limit is the share of a chunk, but not less than `IDLE_FLOOR` / `NIGHT_FLOOR` ms (on GitHub's fast
+  machines the share of a chunk is less than an idle frame). On a shared machine rerun it alone before
+  blaming the code.
+- `progress_test` failed — the first `FAIL:` is the cause; after it come `made: …` of all the unfinished
+  recipes. A message about the camp draws a map around (`#` — a thing, `T` — a tree), about hunting — where
+  the beast fell and where the nearest carcass is at the client and at the host.
+- It hangs — an error in a script with `await`: everything in `run_all.sh` is under `timeout`.
+- The pitfalls of the engine and tests — `CLAUDE.md`, the Gotchas section, and
+  [../systems/testing.md](../systems/testing.md).

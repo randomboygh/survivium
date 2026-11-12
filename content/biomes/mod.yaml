@@ -2,6 +2,6 @@ id: biomes
 title: "[biomes.mod]"
 version: "0.2"
 api: 1
-# Биом на бандл: где он лежит (по климату — окно тепла и влаги, или рельеф, который решает сам
-# генератор: море, берег, скалы, плато, болото), какой у него грунт и что в нём растёт с какими
-# шансами. Без бандла его земля — голая трава, без мода ландшафт тот же, но пустой и серый на карте.
+# A biome per bundle: where it lies (by climate — a window of warmth and moisture, or a terrain the
+# generator itself decides: sea, shore, cliffs, plateau, swamp), what ground it has and what grows in it with what
+# chances. Without the bundle its land is bare grass, without the mod the landscape is the same but empty and grey on the map.

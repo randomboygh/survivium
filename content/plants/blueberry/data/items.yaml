@@ -1,7 +1,7 @@
-# Предметы мода «Растения»: семена деревьев, ягоды, кусты для посадки, семена трав и зерно,
-# что растения дают (мох, грибы) и что из этого делают (мука, лепёшка, бинт). Поля —
-# как у предметов основы (content/core/data/items.yaml). plant — куст этого мода, который
-# сажает предмет; sow — материал основы, на который сеют семена; crop — что из них вырастает.
+# Items of the "Plants" mod: tree seeds, berries, bushes for planting, grass seeds and grain,
+# what plants give (moss, mushrooms) and what is made of them (flour, flatbread, bandage). Fields
+# as for the core's items (content/core/data/items.yaml). plant — the bush of this mod that
+# the item plants; sow — the core material the seeds are sown on; crop — what they grow into.
 - id: blueberry
   title: "[plants.items.blueberry]"
   weight: 0.1

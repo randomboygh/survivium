@@ -1,4 +1,4 @@
-# Рецепт бандла «Сушилка»: рама из веток, связанная верёвкой, на верстаке. Поля — docs/DATA_MODEL.md.
+# Recipe of the "Drying rack" bundle: a branch frame tied with rope, at the workbench. Fields are in docs/DATA_MODEL.md.
 - id: drying_rack
   title: "[tools.recipes.drying_rack]"
   makes: drying_rack

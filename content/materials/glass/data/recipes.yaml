@@ -1,5 +1,5 @@
-# Рецепт бандла «Стекло»: песок («Ресурсы») с углём плавят в горне («Инструменты», бандл «Горн»);
-# рецепт лежит здесь, чтобы горн не зависел от стекла.
+# Recipe of the "Glass" bundle: sand ("Resources") is smelted with coal in a forge ("Tools", the "Forge" bundle);
+# the recipe lies here so that the forge does not depend on glass.
 - id: glass
   title: "[materials.recipes.glass]"
   makes: glass

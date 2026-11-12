@@ -1,6 +1,6 @@
-# Дикий лён (kind: custom, поля — как у крапивы; biomes — только в этих биомах): тонкие стебли с голубыми
-# цветами, льняными полянами на лугах, в пойме и лесостепи; его срезают руками, мечом или косой и получают
-# стебли льна, из которых прядут нить, а иногда и семена (`finds`: предмет и вероятность одного за растение).
+# Wild flax (kind: custom, fields as for the nettle; biomes — only in these biomes): thin stalks with blue
+# flowers, in flax glades in meadows, floodplains and forest steppe; it is cut by hand, with a sword or a scythe, giving
+# flax stalks, from which thread is spun, and sometimes seeds (`finds`: the item and the chance of one per plant).
 - id: flax
   kind: custom
   title: "[plants.plants.flax]"
@@ -13,9 +13,9 @@
   finds: {flax_seeds: 0.3}
   winter: false
   biomes: [biomes:meadow, biomes:floodplain, biomes:forest_steppe]
-# Посевной лён — посев (kind crop, grows field): растёт из семян на мокрой грядке весной, летом и
-# осенью grow_days дней, кадр на стадию (sprites/plants/sown_flax.png: росток, стебли, голубые
-# цветы, спелые золотые коробочки); mown — спелый косят и косой.
+# Sown flax — a crop (kind crop, grows field): grows from seeds on a wet bed in spring, summer and
+# autumn grow_days days, one frame per stage (sprites/plants/sown_flax.png: sprout, stalks, blue
+# flowers, ripe golden pods); mown — the ripe crop is also mown with a scythe.
 - id: sown_flax
   kind: crop
   title: "[plants.plants.sown_flax]"

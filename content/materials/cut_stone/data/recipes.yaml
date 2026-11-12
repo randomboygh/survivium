@@ -1,4 +1,4 @@
-# Камень («Ресурсы») обтёсывают киркой на верстаке («Инструменты»).
+# Stone ("Resources") is dressed with a pickaxe at a workbench ("Tools").
 - id: cut_stone
   title: "[materials.recipes.cut_stone]"
   makes: cut_stone

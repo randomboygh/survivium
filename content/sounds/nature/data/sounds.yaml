@@ -1,7 +1,7 @@
-# Звуки природы и погоды: ветер, дождь, град, метель, вода, огонь, сверчки, гром, сова. Файлы
-# sounds/<id>.wav, или <id>_1.wav ... — столько, сколько variants; volume — громкость, loop — по
-# кругу. Собраны tools/make_sounds.gd; код просит звук по имени (rain) — подойдёт запись с таким
-# именем из любого загруженного бандла, нет её — тишина.
+# Sounds of nature and weather: wind, rain, hail, blizzard, water, fire, crickets, thunder, owl. Files
+# sounds/<id>.wav, or <id>_1.wav ... - as many as variants; volume - loudness, loop - on
+# repeat. Built by tools/make_sounds.gd; the code asks for a sound by name (rain) - a recording with that
+# name from any loaded bundle will do, if there is none - silence.
 - id: wind
   title: "[sounds.sounds.wind]"
   loop: true

@@ -1,5 +1,5 @@
-# Наковальня: на ней куют железные и стальные инструменты (prop: anvil; их рецепты — у каждого
-# инструмента). Делают на верстаке из железных слитков и бревна-подставки.
+# Anvil: iron and steel tools are forged on it (prop: anvil; their recipes are with each
+# tool). Made at the workbench from iron ingots and a log for a stand.
 - id: anvil
   title: "[tools.items.anvil]"
   era: core:iron

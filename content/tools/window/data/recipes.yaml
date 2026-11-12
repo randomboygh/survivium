@@ -1,11 +1,11 @@
-# Окно собирают из доски и стекла («Материалы») на верстаке.
+# The window is assembled from a plank and glass ("Materials") at the workbench.
 - id: window
   title: "[tools.recipes.window]"
   makes: window
   needs: {materials:planks: 1, materials:glass: 2}
   at: workbench
   time: 4
-# Окна больше: по два стекла на клетку, досок на раму — по числу клеток вдоль края.
+# Bigger windows: two panes of glass per cell, planks for the frame - by the number of cells along the edge.
 - id: window_1x2
   title: "[tools.recipes.window_1x2]"
   makes: window_1x2

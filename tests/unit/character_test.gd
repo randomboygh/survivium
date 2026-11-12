@@ -492,6 +492,18 @@ func _test_changes() -> void:
 		Time.get_unix_time_from_datetime_string("2026-10-23T18:32:05") + bias * 60, true).left(16)
 	_check(shown == want and shown.length() == 16, "a change shows the date and time it was merged")
 	_check(menu.merged_at({"date": "2026-10-22"}) == "2026-10-22", "an older build shows the date alone")
+	# A change is shown in the game's language, else in English, else as written first.
+	var both := {"text": "Первое", "texts": {"ru": "Первое", "en": "First", "de": "Erstes"}}
+	var code := Lang.code
+	Lang.code = "de"
+	var in_de: String = menu.change_text(both)
+	Lang.code = "fr"
+	var in_fr: String = menu.change_text(both)
+	Lang.code = "ru"
+	var in_ru: String = menu.change_text(both)
+	Lang.code = code
+	_check(in_de == "Erstes" and in_fr == "First" and in_ru == "Первое", "a change shows in the game's language, else English")
+	_check(menu.change_text({"text": "Старое"}) == "Старое", "an old change with one text shows it")
 	# The page makes its changes a step at a time as it is scrolled, not all 500 at once.
 	var page: Control = menu.new(null)
 	page._ready()

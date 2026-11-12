@@ -1,5 +1,5 @@
-# Предметы бандла «Лён»: семена (падают, когда срезают дикий лён; crop — посевной лён, который из
-# них вырастает на грядке), стебли и нить из них. Поля — как у предметов основы
+# Items of the "Flax" bundle: seeds (they drop when wild flax is cut; crop — the sown flax that grows from
+# them on a bed), stalks and the thread made of them. Fields as for the core's items
 # (content/core/data/items.yaml).
 - id: flax_seeds
   title: "[plants.items.flax_seeds]"

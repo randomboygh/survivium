@@ -1,10 +1,10 @@
-# Рецепт бандла «Удочка»: удилище из веток, леска из верёвки и крючок из кремня, руками.
+# Recipe of the "Fishing rod" bundle: a rod from branches, a line from rope and a hook from flint, by hand.
 - id: fishing_rod
   title: "[tools.recipes.fishing_rod]"
   makes: fishing_rod
   needs: {resources:branch: 2, materials:cord: 2, resources:flint: 1}
   time: 4
-# Наживка: черви из земли, руками (как камешки для пращи).
+# Bait: worms from the soil, by hand (like pebbles for the sling).
 - id: bait
   title: "[tools.recipes.bait]"
   makes: bait

@@ -2,7 +2,7 @@
 
 Английская версия: [DATA_MODEL.md](DATA_MODEL.md) (она основная, эта — копия).
 
-Статус: ACTIVE, сверено с кодом 2026-11-09 (PR #457). Код загрузчика: [systems/content.md](systems/content.md).
+Статус: ACTIVE, сверено с кодом 2026-11-09 (PR #457). Код загрузчика: [systems/content.md](systems/content_RU.md).
 
 ## Что уже есть и чего ещё нет
 
@@ -15,7 +15,7 @@
 **Не реализовано:** скрипты модов, загрузка модов не из `content/` (из файла или с сервера), выдача модов
 клиентам сервером, редактор, данные для погоды и генератора. Система бандлов по ТЗ `bundles.md`
 (решение 152: типы связей, граф и проверка тупиков, рецепты шире, открытые станки и инструменты, старт и
-эпохи данными) построена; её правила — [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md),
+эпохи данными) построена; её правила — [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM_RU.md),
 здесь — сводка того, что в коде. Слово «бандл» значит включаемую часть мода;
 то, что ТЗ называет бандлом, — запись (сущность).
 
@@ -61,7 +61,7 @@ content/<мод>/common/             ассеты, общие для бандл�
   контента (`src/shared/content/content_graph.gd`). Он идёт от старта по правилам рук и требует, чтобы
   каждый предмет и рецепт были достижимы, а каждое растение где-то росло; предмет, который даёт квест или
   торговля, помечается `source: special`. Он же выводит эпоху каждой вещи (вид `eras`, раздел 9
-  [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md)): `era` пишется у предмета, который
+  [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM_RU.md)): `era` пишется у предмета, который
   открывает ступень, вещь с записанной эпохой раньше той, в которой её можно получить, — ошибка, вещь
   глубже `depth` своей эпохи — предупреждение. Граф, цепочки, карта эпох и что нашли проверки —
   [generated/content-graph.md](generated/content-graph.md), [generated/content-checks.md](generated/content-checks.md).
@@ -73,7 +73,7 @@ content/<мод>/common/             ассеты, общие для бандл�
 - Откуда запись: `Content.origin(вид, id)` — бандл, где она определена, кто её заменил и кто поправил;
   реестр всех записей с категориями, связями и итогом проверки —
   [generated/content-index.md](generated/content-index.md) (`tools/content_report.gd`).
-- Имена против правил (раздел 3 [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md):
+- Имена против правил (раздел 3 [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM_RU.md):
   рецепт называется по предмету или `<предмет>_from_<вход>`, инструмент `<материал>_<вещь>`, руда
   `<металл>_ore`, метка — строчное слово) — предупреждения `Content.warnings`: валидатор их печатает, но не
   падает.
@@ -128,11 +128,11 @@ content/<мод>/common/             ассеты, общие для бандл�
 | Спрайт растения | `sprites/plants/<sprite>.png` | кадры 8×24 | `Foliage`, `Plants` |
 | Предмет в руке | `sprites/held/<sprite>.png` | кадр ношения + по кадру работы | `Figure` |
 | Звук | `sounds/<имя>.wav` или `<имя>_N.wav` | wav | `Sound` |
-| Перевод | `lang/<код>.yaml` (и `content/<мод>/lang/`) | словарь «[ключ]: текст»; `title`/`description` записи — ключи `[<мод>.<вид>.<id>]`, `….about` | `Lang` ([systems/lang.md](systems/lang.md)) |
+| Перевод | `lang/<код>.yaml` (и `content/<мод>/lang/`) | словарь «[ключ]: текст»; `title`/`description` записи — ключи `[<мод>.<вид>.<id>]`, `….about` | `Lang` ([systems/lang.md](systems/lang_RU.md)) |
 | Игрок | `content/core/sprites/player/*.png`, `player.yaml`, `hands.png` | слои | `Figure` |
 | Одежда на фигуре | `sprites/worn/<look>.png` | слой листа игрока | `Figure.dressed` |
 
-Картинки интерфейса — `assets/ui/`. Рисуют ассеты `tools/make_*` (см. [systems/testing.md](systems/testing.md)).
+Картинки интерфейса — `assets/ui/`. Рисуют ассеты `tools/make_*` (см. [systems/testing.md](systems/testing_RU.md)).
 
 ## Числа во время игры
 
@@ -151,6 +151,6 @@ content/<мод>/common/             ассеты, общие для бандл�
 (часы), `placed` (вещи на клетках), `territory` (участки), `plans` (чертежи); мир сервера — ещё `teams`,
 `fights` и `next_player`. `players/<имя>.json`: `position` и части модулей (`inventory`,
 `vitals`, `character`, `knowledge`, `crafting`, `skills`, `hands`, `markers`). Чанки — `chunks/<cx>_<cz>.bin`,
-карта — `map/<rx>_<rz>.bin`. Переводы старых версий: [systems/saving.md](systems/saving.md).
+карта — `map/<rx>_<rz>.bin`. Переводы старых версий: [systems/saving.md](systems/saving_RU.md).
 
 **Подробнее.** `plan/architecture/modding.md` (устройство модов; история шагов — `plan/history/modding.md`), README модов.

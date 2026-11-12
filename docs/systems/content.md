@@ -1,171 +1,184 @@
-# Моды, бандлы и реестры (код)
+# Mods, bundles and registries (code)
 
-Статус: ACTIVE. Модель данных (виды, id, роли, сохранения): [../DATA_MODEL.md](../DATA_MODEL.md).
-Здесь — код загрузчика и реестров.
+Status: ACTIVE. The data model (kinds, ids, roles, saves): [../DATA_MODEL.md](../DATA_MODEL.md). Here is the
+code of the loader and the registries. A Russian copy: [content_RU.md](content_RU.md).
 
-**Назначение.** Найти моды и бандлы под `content/`, выбрать набор мира с зависимостями, прочитать YAML,
-проверить записи по схемам, наложить патчи и заполнить реестры, через которые остальной код видит
-контент.
+**Purpose.** To find mods and bundles under `content/`, to choose a world's set with dependencies, to read
+YAML, to check records against schemas, to apply patches and to fill the registries through which the rest of
+the code sees content.
 
-**Файлы**
-- `src/shared/content/content.gd` — данные модов; один скрипт, разделённый по темам цепочкой наследования
-  (решение 168, как 145): каждая часть расширяет предыдущую и зовёт только своё и предыдущих, снаружи
-  знают только `content.gd` (`Content.records`, `Content.SCHEMAS` — всё через него).
-  - `content_schema.gd` — `SCHEMAS` всех видов, общие поля `COMMON`, словарь связей `RELATIONS` и действий
-    `ACTIONS`, `MOD_SCHEMA`, `BUNDLE_SCHEMA`; `schema`, `refs` / `target` / `named` (поля-ссылки вида и что
-    запись по ним называет), `qualify`.
-  - `content_fields.gd` — чтение YAML-файла (из кэша сборки `PARSED` или разбором), проверка полей записи
-    по схеме и перевод в типы движка (`_check_fields`, `_convert`), `problems`.
-  - `content_mods.gd` — моды и бандлы на диске, прочитанные один раз (`universe`, `_scan`), `resolve`
-    (порядок и выпавшие бандлы), `closure`, `deps`, `BUNDLES`, `loaded`, `dropped`.
-  - `content.gd` — загрузка набора (`load_all`), замены (`replaces`) и патчи, проверка ссылок (и внутри
-    `entries`), предупреждения об именах, `records` / `find` / `canon` / `origin`, `asset`, `sound_files`.
-- `src/shared/content/yaml.gd` — свой разбор той части YAML, что нужна данным (ключи с `:` внутри,
+**Files**
+- `src/shared/content/content.gd` — the mods' data; one script divided by topic into a chain of inheritance
+  (decision 168, like 145): each part extends the previous one and calls only its own and the earlier ones,
+  from outside only `content.gd` is known (`Content.records`, `Content.SCHEMAS` — everything through it).
+  - `content_schema.gd` — `SCHEMAS` of all kinds, the common fields `COMMON`, the dictionary of links
+    `RELATIONS` and actions `ACTIONS`, `MOD_SCHEMA`, `BUNDLE_SCHEMA`; `schema`, `refs` / `target` / `named`
+    (a kind's reference fields and what a record names by them), `qualify`.
+  - `content_fields.gd` — reading a YAML file (from the build's cache `PARSED` or by parsing), checking a
+    record's fields against the schema and conversion into the engine's types (`_check_fields`, `_convert`),
+    `problems`.
+  - `content_mods.gd` — the mods and bundles on disk, read once (`universe`, `_scan`), `resolve` (the order
+    and the dropped bundles), `closure`, `deps`, `BUNDLES`, `loaded`, `dropped`.
+  - `content.gd` — loading a set (`load_all`), replacements (`replaces`) and patches, checking references (and
+    inside `entries`), warnings about names, `records` / `find` / `canon` / `origin`, `asset`, `sound_files`.
+- `src/shared/content/yaml.gd` — our own parsing of the part of YAML the data needs (keys with `:` inside,
   `{core:fiber: 1}`).
-- Где лежат моды (решение 186): `Content.ROOT` — папка `content/` рядом с программой в собранной игре на ПК
-  (Windows, Linux), если в ней есть `core/mod.yaml` (`Content.find_root`, `Content.beside()`), иначе встроенная копия
-  `res://content` (`BUILT_IN`; редактор, браузер, телефон, сборка без папки). CI кладёт все моды открытыми файлами
-  (YAML, PNG, WAV, без `.import`) в `content/` рядом с exe в архивах ПК (`.github/workflows/build.yml`, job `pc`);
-  свои моды — отдельными папками там же, обновление заменяет только встроенные. Оттуда картинки и звуки
-  читаются из файлов (`Content.picture`, `Content.sound`, `Content.exists`; рисунки игрока — `Figure.SPRITES`),
-  разобранный YAML берётся из `content_cache.bin`, пока текст файла не менялся, а горячая перезагрузка работает
-  и в собранной игре. Проверка — `content_test.gd` `_test_content_beside` (копия модов в `user://`).
-- Горячая перезагрузка (решение 184): `src/shared/content/content_watch.gd` (`ContentWatch`) смотрит файлы
-  `content/` (YAML, PNG, WAV) по `BUDGET` файлов и папок за шаг и в конце прохода говорит, изменился ли, появился
-  или пропал файл (первый проход только запоминает время); работает, где файлы лежат сами по себе — игра запущена
-  движком редактора из папки проекта или собранная игра на ПК с модами рядом (`can_watch`), не встроенная копия и не браузер. `src/client/mod_reload.gd`
-  (`ModReload`, модуль Main `mod_reload`) шагает слежку каждый кадр (кроме headless: тесты и инструменты
-  перечитывают сами) и перечитывает: `Mods.rescan(true)`, переводы (`Lang.reread`), модели (`VoxelProps.forget`),
-  иконки (`ItemIcons.forget`), правила сеанса (`Session.reread`: следы вещей, `Wildlife.reread`), звуки
-  (`Sound.read_records`), картинки зверей (`Creatures.relook`), вещи на земле и на клетках (`Props.remodel`),
-  сумку и крафт. Кнопка «Перечитать данные модов» в «Отладке» делает то же сразу; сервер — командой `reload`
-  (`Server.reload_mods`). После неё `Content.live`: картинки и звуки читаются из файлов (`Content.picture`,
-  `Content.sound`), а не из импорта, сделанного при запуске. Материалы клеток, если их список изменился,
-  остаются прежними (`Mods.cells_kept`): новые — в новом мире; биомы и рельеф — для новых чанков.
-- `src/shared/content/mods.gd` — набор бандлов игры: `activate`, `rescan` (`live` — горячая перезагрузка), `expand` (старые списки),
-  `RENAMED`; набор сохранённого мира `of_world` (моды, выделенные из базы, `SPLITS`; дополняющие бандлы,
-  `additive`, `OLD_ADDITIVE`); `why` (почему бандл выпал, вся цепочка); названия для экрана «Моды».
-- `src/shared/content/content_graph.gd` — граф контента (`ContentGraph`): пути, которыми вещи появляются
-  (мир, старт, действие с инструментом по правилам `Tools`, рецепт, станок, посадка), достижимость со старта
-  с глубиной (`reached`) и эпохой (`era`: тем же проходом `_settle`, не раньше записанной у предмета),
-  `basis(key, by_era)` — из чего вещь выходит; ошибки (нет источника, не достать, рецепт не сделать, не
-  растёт, нет корма, замкнутый круг, эпоха раньше пути) и предупреждения (тупик, станок одного рецепта,
-  двойники, прибыльный круг, материал не встречается, длинная цепочка для эпохи). Строят только валидатор,
-  отчёты и тесты, игра — нет.
-- `tools/content_report.gd` — отчёты из загруженных данных: реестр сущностей
-  `docs/generated/content-index.md` (с эпохой предметов и рецептов), граф `content-graph.md` (с картой эпох
-  и ветками прогресса), реестр рецептов `content-recipes.md`, проверки `content-checks.md`; `-- --check` для
-  CI.
-- Реестры (заполняют static var при загрузке класса и в `refresh`): `materials.gd` (`Mat`), `items.gd`,
-  `crafting.gd`, `trees.gd`, `bushes.gd`, `plants.gd`, `biomes.gd`, `ai_rules.gd`, `starts.gd` (старт нового
-  мира: `Starts.START` — умения рук, сумка, лагерь; `check`), `eras.gd` (эпохи по порядку: `Eras.ERAS`, `rank`, `title`, `check` — две
-  эпохи одного порядка), `skills.gd` (навыки: `Skills.ALL` по порядку, `of_role`, `need`, `level_at`,
-  `progress`); `tools.gd` — правила инструментов над `Items` и `Mat` (без своего вида
-  данных; руки `HAND` собирает из полей `hand_*` старта в `refresh`): что чем добывается (`can_dig`, `can_chop`, `can_dig_out`, `can_knock`, `can_gather`, `mows`),
-  работа в мире девяти классов `WORLD_KINDS` (с удочкой `rod`, тяпкой `hoe`, серпом `sickle`, лейкой `can`) (любой другой класс там — руки), `holds(inv, класс)`,
-  `held_of(inv, класс)`.
+- Where the mods lie (decision 186): `Content.ROOT` — the folder `content/` beside the program in the built
+  game on PC (Windows, Linux), if it has `core/mod.yaml` (`Content.find_root`, `Content.beside()`), otherwise
+  the built-in copy `res://content` (`BUILT_IN`; the editor, the browser, a phone, a build without the
+  folder). CI puts all the mods as open files (YAML, PNG, WAV, without `.import`) into `content/` beside the
+  exe in the PC archives (`.github/workflows/build.yml`, the job `pc`); one's own mods — separate folders in
+  the same place, an update replaces only the built-in ones. From there pictures and sounds are read from
+  files (`Content.picture`, `Content.sound`, `Content.exists`; the player's drawings — `Figure.SPRITES`), the
+  parsed YAML is taken from `content_cache.bin` while the file's text has not changed, and hot reload works in
+  the built game too. The check is `content_test.gd` `_test_content_beside` (a copy of the mods in `user://`).
+- Hot reload (decision 184): `src/shared/content/content_watch.gd` (`ContentWatch`) watches the files of
+  `content/` (YAML, PNG, WAV) by `BUDGET` files and folders per step and at the end of a pass says whether a
+  file changed, appeared or vanished (the first pass only remembers the time); it works where the files lie
+  by themselves — the game run by the editor's engine from the project folder or the built game on PC with
+  the mods beside it (`can_watch`), not the built-in copy and not the browser. `src/client/mod_reload.gd`
+  (`ModReload`, Main's module `mod_reload`) steps the watch every frame (except headless: tests and tools
+  reread by themselves) and rereads: `Mods.rescan(true)`, translations (`Lang.reread`), models
+  (`VoxelProps.forget`), icons (`ItemIcons.forget`), the session's rules (`Session.reread`: the things'
+  tracks, `Wildlife.reread`), sounds (`Sound.read_records`), the beasts' pictures (`Creatures.relook`), things
+  on the ground and on cells (`Props.remodel`), the bag and crafting. The button «Reread the mods' data» in
+  «Debug» does the same at once; the server — by the command `reload` (`Server.reload_mods`). After it
+  `Content.live`: pictures and sounds are read from files (`Content.picture`, `Content.sound`), not from the
+  import made at start. The cells' materials, if their list changed, stay as they were (`Mods.cells_kept`):
+  new ones — in a new world; biomes and relief — for new chunks.
+- `src/shared/content/mods.gd` — the game's set of bundles: `activate`, `rescan` (`live` — hot reload),
+  `expand` (old lists), `RENAMED`; the set of a saved world `of_world` (the mods split off the base,
+  `SPLITS`; supplementing bundles, `additive`, `OLD_ADDITIVE`); `why` (why a bundle dropped, the whole chain);
+  the names for the «Mods» screen.
+- `src/shared/content/content_graph.gd` — the content graph (`ContentGraph`): the paths by which things appear
+  (the world, the start, an action with a tool by the rules of `Tools`, a recipe, a station, planting),
+  reachability from the start with depth (`reached`) and era (`era`: by the same pass `_settle`, no earlier
+  than the one written at the item), `basis(key, by_era)` — what a thing comes out of; errors (no source,
+  cannot be got, a recipe cannot be made, does not grow, no fodder, a closed circle, an era earlier than the
+  path) and warnings (a dead end, a station of one recipe, twins, a profitable circle, a material is not
+  met, a long chain for the era). Only the validator, reports and tests build it, the game does not.
+- `tools/content_report.gd` — reports from the loaded data: the registry of entities
+  `docs/generated/content-index.md` (with the era of items and recipes), the graph `content-graph.md` (with
+  the map of eras and the branches of progress), the registry of recipes `content-recipes.md`, the checks
+  `content-checks.md`; `-- --check` for CI.
+- The registries (fill static vars at class loading and in `refresh`): `materials.gd` (`Mat`), `items.gd`,
+  `crafting.gd`, `trees.gd`, `bushes.gd`, `plants.gd`, `biomes.gd`, `ai_rules.gd`, `starts.gd` (the start of a
+  new world: `Starts.START` — the hands' abilities, the bag, the camp; `check`), `eras.gd` (the eras in order:
+  `Eras.ERAS`, `rank`, `title`, `check` — two eras of one order), `skills.gd` (skills: `Skills.ALL` in order,
+  `of_role`, `need`, `level_at`, `progress`); `tools.gd` — the tools' rules over `Items` and `Mat` (with no kind
+  of data of its own; the hands `HAND` it collects from the fields `hand_*` of the start in `refresh`): what is
+  got with what (`can_dig`, `can_chop`, `can_dig_out`, `can_knock`, `can_gather`, `mows`), work in the world
+  of the nine classes `WORLD_KINDS` (with the rod `rod`, the hoe `hoe`, the sickle `sickle`, the can `can`)
+  (any other class there — the hands), `holds(inv, class)`, `held_of(inv, class)`.
 
-**Интерфейс**
-- `Content.records(kind)`, `Content.find(kind, id)` (по указателю `_at`, без перебора), `Content.record_count()`,
-  `Content.schema(kind)` (поля вида и общие),
-  `Content.refs(kind)` (поля-ссылки, и поля записей внутри `entries` как `camp.item`), `Content.named(r, key)`,
-  `Content.canon(kind, id)` (старый id из `was` — в нынешний), `Content.origin(kind, id)` (кто определил,
-  заменил, поправил),
-  `Content.asset(rec, "sprites/x.png")` (бандл, затем `common/` мода), `Content.problems`,
-  `Content.warnings` (имена против правил), `Content.loaded`, `Content.dropped[b]` (почему выпал),
-  `Content.read_ms` / `load_ms` (сколько длились последнее чтение `content/` и последняя загрузка набора: строка
-  «Загрузка» в «Данных для теста»).
-- `Content.all_bundles()`, `available()`, `bundles_of(mod)` (из скана `content/`, не с диска: новую папку видит
-  `refresh`), `mod_of(b)`, `deps(b)`, `closure(b)`, `resolve(set)` (порядок Кана: из готовых первым идёт
-  стоящий раньше в скане). `Content.generation` растёт с каждой загрузкой; `Mods.activate` пересобирает
-  реестры, если они собраны с другой загрузки (после прямого `Content.refresh`).
-- `Mods.activate(bundles)` — сделать набор мира текущим и пересобрать реестры; `Mods.rescan()` —
-  перечитать `content/` (кнопка на «Тестировании»); `Mods.expand(list)` — старые id модов в бандлы;
-  `Mods.of_world(meta)` — бандлы мира по его `world.json`, с вошедшими с тех пор дополняющими (решение 4А);
-  `Mods.additive(b)` — в бандле только предметы, рецепты, эпохи, старт и звуки; `Mods.why(b, dropped)` —
-  чего бандлу не хватает и чего не хватает тому, до выключенного.
-- Реестры: `Mat.GRASS` и др. (только ядро), `Mat.of_role`, `Mat.index`, `Mat.remap`; `Items.get_item`,
-  `with_prop`, `with_tool`, `tool_title` (ключ класса инструмента `[tool.<класс>]`),
-  `is_station`, `most_storage`, `of_category`, `fuel_in`, `canon`; `Crafting.get_recipe`, `canon`, `outputs` (что
-  даёт работа с номером n: изделие и побочное по шансу), `possible` (у каждого класса инструментов рецепта
-  есть предмет в мире; иначе рецепт не узнают и не показывают); `Trees.first`, `Trees.any`; `Bushes.first`; `Plants.of_kind`; `Biomes.pick`, `tree`, `bush`;
-  `AiRules.SPECIES`, `is_food`, `is_threat`; `Starts.START` (`hand_*`, `bag`, `camp`); `Tools.HAND`.
-- `ContentGraph.new()` — граф набора, загруженного сейчас: `reached` (ключ «вид/id» → глубина), `how` (путь
-  этой глубины), `sources`, `uses`, `basis(key)` (из чего вещь получается), `able(way)` / `by_hand(way)` (чем
-  сделать действие пути), `errors`, `warnings`, `findings` (проверка, текст, записи), `cycles()`.
+**Interface**
+- `Content.records(kind)`, `Content.find(kind, id)` (by a pointer `_at`, with no search),
+  `Content.record_count()`, `Content.schema(kind)` (a kind's fields and the common ones), `Content.refs(kind)`
+  (the reference fields, and the fields of records inside `entries` like `camp.item`), `Content.named(r,
+  key)`, `Content.canon(kind, id)` (an old id from `was` — into the present one), `Content.origin(kind, id)`
+  (who defined, replaced, patched), `Content.asset(rec, "sprites/x.png")` (the bundle, then the mod's
+  `common/`), `Content.problems`, `Content.warnings` (names against the rules), `Content.loaded`,
+  `Content.dropped[b]` (why it dropped), `Content.read_ms` / `load_ms` (how long the last reading of
+  `content/` and the last loading of a set took: the line «Loading» in «Data for the test»).
+- `Content.all_bundles()`, `available()`, `bundles_of(mod)` (from the scan of `content/`, not from disk: a new
+  folder is seen by `refresh`), `mod_of(b)`, `deps(b)`, `closure(b)`, `resolve(set)` (Kahn's order: of the
+  ready ones the one standing earlier in the scan goes first). `Content.generation` grows with each loading;
+  `Mods.activate` rebuilds the registries if they were built from another loading (after a direct
+  `Content.refresh`).
+- `Mods.activate(bundles)` — make a world's set the current one and rebuild the registries; `Mods.rescan()` —
+  reread `content/` (a button on «Testing»); `Mods.expand(list)` — old mod ids into bundles;
+  `Mods.of_world(meta)` — a world's bundles by its `world.json`, with the supplementing ones that have
+  entered since (decision 4А); `Mods.additive(b)` — a bundle has only items, recipes, eras, the start and
+  sounds; `Mods.why(b, dropped)` — what a bundle lacks and what the one before it, switched off, lacks.
+- The registries: `Mat.GRASS` and others (only the core), `Mat.of_role`, `Mat.index`, `Mat.remap`;
+  `Items.get_item`, `with_prop`, `with_tool`, `tool_title` (the key of a tool class `[tool.<class>]`),
+  `is_station`, `most_storage`, `of_category`, `fuel_in`, `canon`; `Crafting.get_recipe`, `canon`, `outputs`
+  (what the work number n gives: the product and the by-product by chance), `possible` (each class of the
+  recipe's tools has an item in the world; otherwise the recipe is not learned and not shown); `Trees.first`,
+  `Trees.any`; `Bushes.first`; `Plants.of_kind`; `Biomes.pick`, `tree`, `bush`; `AiRules.SPECIES`, `is_food`,
+  `is_threat`; `Starts.START` (`hand_*`, `bag`, `camp`); `Tools.HAND`.
+- `ContentGraph.new()` — the graph of the set loaded now: `reached` (the key «kind/id» → depth), `how` (the
+  path of this depth), `sources`, `uses`, `basis(key)` (what a thing is got from), `able(way)` / `by_hand(way)`
+  (what does the path's action), `errors`, `warnings`, `findings` (the check, the text, the records),
+  `cycles()`.
 
-**Кто использует.** Почти всё: `materials.gd` и `items.gd` грузят больше 40 файлов, `content.gd` — около 20
-(2026-11-05; точный список — `python3 tools/doc_index.py uses <путь>`).
-Правка схемы или реестра затрагивает генератор, меши, правила и UI.
+**Who uses it.** Almost everything: `materials.gd` and `items.gd` are loaded by over 40 files, `content.gd` —
+about 20 (2026-11-05; the exact list — `python3 tools/doc_index.py uses <path>`). An edit of a schema or a
+registry touches the generator, meshes, rules and UI.
 
-**Данные.** `content/<мод>/mod.yaml`, `content/<мод>/<бандл>/bundle.yaml`, `data/<вид>.yaml`. Смысл
-полей — комментарий в начале каждого YAML и схема в `content.gd`.
+**Data.** `content/<mod>/mod.yaml`, `content/<mod>/<bundle>/bundle.yaml`, `data/<kind>.yaml`. The meaning of
+the fields is a comment at the start of each YAML and the schema in `content.gd`.
 
-**Как добавить**
-- Поле: строка в `SCHEMAS[вид]` (тип, `default`, `min`/`max`, `soft` для мягкой ссылки; у ссылки — тип
-  связи `rel` из `RELATIONS` и, если связь даёт действие, `via` из `ACTIONS`, иначе тест не пройдёт), чтение
-  в реестре, комментарий в YAML, проверка в `tests/unit/content_test.gd`.
-- Вид данных: схема в `SCHEMAS`, новый реестр со `refresh()`, вызов его в `Mods._refresh_registries`,
-  проверка в `tools/validate.gd`; каждое поле-ссылка — строка в `ContentGraph.LINKS` (что эта связь значит
-  для графа), иначе не пройдёт `graph_test`.
-- Предмет, который даёт квест или торговля, а не мир и не рецепт: `source: special`, иначе граф скажет
-  «нет источника».
-- Бандл с готовыми ролями — только данные и ассеты, код не нужен (пример: `content/animals/sparrow/`).
-- Бандл только с предметами, рецептами, эпохами, стартом и звуками сам войдёт в старые миры с его модом
-  (`Mods.of_world`); новый бандл, который станет дополняющим, в `OLD_ADDITIVE` не дописывается: этот список —
-  то, что знали миры, сохранённые до списка `known`.
+**How to add**
+- A field: a row in `SCHEMAS[kind]` (type, `default`, `min`/`max`, `soft` for a soft reference; for a
+  reference — the kind of link `rel` from `RELATIONS` and, if the link gives an action, `via` from `ACTIONS`,
+  otherwise the test will not pass), reading in the registry, a comment in YAML, a check in
+  `tests/unit/content_test.gd`.
+- A kind of data: a schema in `SCHEMAS`, a new registry with `refresh()`, its call in
+  `Mods._refresh_registries`, a check in `tools/validate.gd`; every reference field is a row in
+  `ContentGraph.LINKS` (what this link means for the graph), otherwise `graph_test` will not pass.
+- An item that a quest or trade gives, not the world or a recipe: `source: special`, otherwise the graph will
+  say «no source».
+- A bundle with ready roles is only data and assets, no code is needed (an example: `content/animals/sparrow/`).
+- A bundle with only items, recipes, eras, the start and sounds will enter old worlds with its mod by itself
+  (`Mods.of_world`); a new bundle that becomes supplementing is not appended to `OLD_ADDITIVE`: this list is
+  what the worlds saved before the list `known` knew.
 
-**Сколько стоит.** Данные модов читаются при старте игры, до меню: разбор YAML (`read_ms`) и загрузка набора
-(`load_ms`: зависимости, схемы, патчи, ссылки), реестры — пара миллисекунд. `tools/bench_content.gd [бандлов]`
-мерит это на нынешних данных и с придуманным модом в придачу. На ПК без экрана 2026-10-30: 219 записей —
-чтение 41 мс, загрузка 14 мс, граф 20 мс; 1019 записей — 122, 64 и 275 мс (граф строят только валидатор и
-отчёты). Браузер телефона медленнее раз в десять; что выходит на телефоне, видно в «Данных для теста».
-Поиск записи по id идёт по указателю: перебором загрузка тысячи записей шла 105 мс.
-Разобранный YAML собирается заранее: CI перед каждым экспортом запускает `tools/content_cache.gd`, он кладёт
-в `res://content_cache.bin` (`Content.PARSED`, не в git, в экспорт по `include_filter`) значения всех файлов
-по md5 их текста; `Content._read` берёт файл оттуда, если его текст не менялся, иначе разбирает как раньше
-(в редакторе и тестах файла нет). Файлы `data/` бандла узнаются одним списком папки. В браузере контейнера
-2026-11-01 на 419 записях чтение стало 64 мс вместо 774 (`cached_files` / `parsed_files` — в «Загрузке»).
+**What it costs.** The mods' data is read at the game's start, before the menu: parsing YAML (`read_ms`) and
+loading the set (`load_ms`: dependencies, schemas, patches, references), the registries — a couple of
+milliseconds. `tools/bench_content.gd [bundles]` measures this on the present data and with an invented mod
+added. On a PC without a screen on 2026-10-30: 219 records — reading 41 ms, loading 14 ms, the graph 20 ms;
+1019 records — 122, 64 and 275 ms (the graph is built only by the validator and reports). A phone's browser is
+about ten times slower; what comes out on a phone is seen in «Data for the test». The search of a record by id
+goes by a pointer: by search the loading of a thousand records took 105 ms. The parsed YAML is collected
+beforehand: before every export CI runs `tools/content_cache.gd`, it puts into `res://content_cache.bin`
+(`Content.PARSED`, not in git, into the export by `include_filter`) the values of all the files by the md5 of
+their text; `Content._read` takes a file from there if its text has not changed, otherwise parses it as
+before (in the editor and tests the file is absent). The bundle's `data/` files are learned by one listing of
+the folder. In the container's browser on 2026-11-01 on 419 records the reading became 64 ms instead of 774
+(`cached_files` / `parsed_files` — in «Loading»).
 
-**Подводные камни**
-- Запись с id чужой записи без `replaces: true` — ошибка: молча заменить чужое нельзя. Замена — целая
-  запись: поля, которых она не пишет, получают значения по умолчанию, а не берутся у заменённой.
-- Статическая функция с именем метода `Script` (`reload`, `get_class`, `is_tool`) затеняется:
-  `Mat.reload()` перекомпилирует скрипт. Поэтому `Mods.rescan`, а не `reload`.
-- `const X := Mat.GRASS` — ошибка разбора: номера материалов известны только после загрузки.
-- Номера материалов идут в порядке загрузки: набор бандлов мира менять нельзя, старый мир переводится
-  `Mat.remap` по списку `materials` из `world.json`.
-- Ссылка без пространства имён значит мод файла, где она написана: в патче чужой записи — мод патча
-  (`Content._qualified` дописывает его до слияния), не мод записи.
-- Возврат с типом своего же скрипта (`-> VoxelModel`) без `class_name` — ошибка разбора, на которой
-  инструменты `make_*` молча висят; сначала `--check-only`.
-- Атлас материалов вмещает 63 материала и разные коры вместе (`PixelTextures.MOST_MATERIALS`: номер
-  материала — 6 бит в меше, плитка боков — бит флага, низа — по нормали, см. `MeshFaces.pack`;
-  `uniform int material_bits[63]` в `world.gdshader`); занято 36 (28 материалов и 8 кор, 2026-11-05).
-  Больше — валит `validate.gd`.
+**Pitfalls**
+- A record with the id of another's record without `replaces: true` is an error: another's cannot be silently
+  replaced. A replacement is a whole record: the fields it does not write get default values, not taken from
+  the replaced one.
+- A static function named like a method of `Script` (`reload`, `get_class`, `is_tool`) is shadowed:
+  `Mat.reload()` recompiles the script. Hence `Mods.rescan`, not `reload`.
+- `const X := Mat.GRASS` is a parse error: the materials' numbers are known only after loading.
+- The materials' numbers go in the order of loading: a world's set of bundles cannot be changed, an old world
+  is converted by `Mat.remap` by the list `materials` from `world.json`.
+- A reference without a namespace means the mod of the file where it is written: in a patch of another's
+  record — the patch's mod (`Content._qualified` appends it before merging), not the record's mod.
+- A return typed with one's own script (`-> VoxelModel`) without `class_name` is a parse error on which the
+  `make_*` tools silently hang; `--check-only` first.
+- The material atlas holds 63 materials and the different barks together (`PixelTextures.MOST_MATERIALS`: a
+  material's number is 6 bits in the mesh, the sides' tile is a flag bit, the underside's by the normal, see
+  `MeshFaces.pack`; `uniform int material_bits[63]` in `world.gdshader`); 36 are used (28 materials and 8
+  barks, 2026-11-05). More — fails `validate.gd`.
 
-**Тесты.** `tests/unit/content_test.gd` (`yaml`, `content`, `schemas` — тип связи у каждой ссылки, `mods` —
-и цепочка причины выпавшего бандла, `old_worlds` — дополняющие бандлы и миры меток `content` 1–9,
-`parsed_cache` — разобранный YAML из `content_cache.bin`, `records` — общие поля, замены, предупреждения,
-`renames` — `was` и происхождение записей, `starts` — старт, его патч и поля `entries`, `items`,
-`tools`, `crafting` — и рецепт без инструмента в мире, `recipe_mistakes` — ошибки рецептов по id и полю,
-`layers` — и слои внутри `src/shared/`), `tests/unit/properties_test.gd` (граф рецептов на случайных наборах
-бандлов), `tests/unit/graph_test.gd` (граф: полный
-набор без ошибок, глубина добытого инструментом, тупики раздела 18 ТЗ на бандлах тестового мода, круги,
-двойники, прибыльный круг, станок вместо станка, что рецепт держит в сумке, классы его инструментов и
-побочное; эпохи полного набора и тестового мода: выведенная эпоха, эпоха раньше пути, длинная цепочка, две
-эпохи одного порядка), `tests/unit/bundle_system_test.gd` (приёмка системы бандлов: мод-пример, написанный
-по README, — лён с двумя источниками, нож нового класса, ткацкий станок вместо верстака, рецепт с побочным и
-нерасходуемым, альтернатива руками, эпоха — проходит загрузку, граф и игру; каждый бандл в одиночку),
-`tools/content_report.gd -- --check` (отчёты свежие),
-`tools/validate.gd` (каждый бандл отдельно, граф полного набора, звуки, картинки в руках, иконки, текстуры,
-модели, листы существ; строгий режим: мягкая ссылка в пустоту — тоже ошибка; предупреждения об именах и
-графа печатает, не падая), `tests/progress_test.gd` (все рецепты достижимы игрой).
+**Tests.** `tests/unit/content_test.gd` (`yaml`, `content`, `schemas` — the kind of link at every reference,
+`mods` — and the chain of the cause of a dropped bundle, `old_worlds` — supplementing bundles and worlds of
+the marks `content` 1–9, `parsed_cache` — parsed YAML from `content_cache.bin`, `records` — the common fields,
+replacements, warnings, `renames` — `was` and the records' origin, `starts` — the start, its patch and the
+fields of `entries`, `items`, `tools`, `crafting` — and a recipe without a tool in the world,
+`recipe_mistakes` — the recipes' errors by id and field, `layers` — and the layers inside `src/shared/`),
+`tests/unit/properties_test.gd` (the graph of recipes on random sets of bundles), `tests/unit/graph_test.gd`
+(the graph: the full set with no errors, the depth of what is got with a tool, the spec's dead ends of
+section 18 on the test mod's bundles, circles, twins, a profitable circle, a station instead of a station,
+what a recipe holds in the bag, the classes of its tools and the by-product; the eras of the full set and of
+the test mod: the derived era, an era earlier than the path, a long chain, two eras of one order),
+`tests/unit/bundle_system_test.gd` (the acceptance of the bundle system: an example mod written by the README
+— flax with two sources, a knife of a new class, a loom instead of a workbench, a recipe with a by-product
+and a non-consumed one, an alternative by hands, an era — passes loading, the graph and the game; each bundle
+alone), `tools/content_report.gd -- --check` (the reports are fresh), `tools/validate.gd` (each bundle
+separately, the graph of the full set, sounds, pictures in hands, icons, textures, models, the creatures'
+sheets; strict mode: a soft reference into the void is an error too; the warnings about names and the graph it
+prints without failing), `tests/progress_test.gd` (all recipes are reachable by the game).
 
-**Известные проблемы.** Роли — закрытые списки (`plants.kind`, `materials.role`, `biomes.where`, `biomes.zone`,
-`skills.role`), новая
-роль требует кода; классы инструментов и вещей на 2×2 (`items.tool`, `items.prop`) открыты с этапа 5а.
-Голоса зверей синтезирует таблица в `tools/make_sounds.gd`, бандл приносит только готовые `.wav`.
+**Known problems.** The roles are closed lists (`plants.kind`, `materials.role`, `biomes.where`,
+`biomes.zone`, `skills.role`), a new role needs code; the classes of tools and of 2×2 things (`items.tool`,
+`items.prop`) have been open since stage 5а. The beasts' voices are synthesised by a table in
+`tools/make_sounds.gd`, a bundle brings only ready `.wav`.
 
-**Подробнее.** `plan/architecture/modding.md`; решения 140, 142, 143, 146 в `plan/README.md`; README
-каждого мода.
+**In more detail.** `plan/architecture/modding.md`; decisions 140, 142, 143, 146 in `plan/README.md`; each
+mod's README.

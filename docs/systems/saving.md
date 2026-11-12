@@ -1,54 +1,55 @@
-# Сохранение
+# Saving
 
-Статус: ACTIVE.
+Status: ACTIVE. A Russian copy: [saving_RU.md](saving_RU.md).
 
-**Назначение.** Сохранить мир на устройстве: только то, что изменил игрок (остальное генератор делает
-заново по зерну), игрока, часы, вещи на клетках, разведанную карту; открыть сохранённый мир и
-перевести сохранения старых версий.
+**Purpose.** To save the world on the device: only what the player changed (the generator makes the rest
+again from the seed), the player, the clock, things on cells, the explored map; to open a saved world and to
+convert the saves of old versions.
 
-**Файлы**
-- `src/shared/world/world_store.gd` — файлы мира под `user://saves` (в браузере — IndexedDB): папка на
-  мир (`world_dir(seed, options)`), `world.json` (зерно, настройки, моды, уровни, часы, вещи, участки
-  `territory`, чертежи `plans`; поля — [../DATA_MODEL.md](../DATA_MODEL.md), «Сохранения»),
-  `players/<имя>.json` (место и части модулей), `chunks/<cx>_<cz>.bin` (изменённый чанк:
-  `WorldGen.pack`, `store_var`, zstd), `map/<rx>_<rz>.bin` (регион карты), `current.json` (с какого
-  мира начинать). Файл пишется рядом и переносится поверх: прерванная запись оставляет старый целым.
+**Files**
+- `src/shared/world/world_store.gd` — the world's files under `user://saves` (in a browser — IndexedDB): a
+  folder per world (`world_dir(seed, options)`), `world.json` (the seed, settings, mods, levels, the clock,
+  things, plots `territory`, blueprints `plans`; the fields — [../DATA_MODEL.md](../DATA_MODEL.md), «Saves»),
+  `players/<name>.json` (the place and the modules' parts), `chunks/<cx>_<cz>.bin` (a changed chunk:
+  `WorldGen.pack`, `store_var`, zstd), `map/<rx>_<rz>.bin` (a region of the map), `current.json` (which world
+  to start from). A file is written beside and moved over: an interrupted write leaves the old one whole.
   `FORMAT` 1; `list_worlds`, `erase`.
-- `src/client/save_game.gd` — когда писать: раз в `INTERVAL` (30 с) по нескольку чанков за кадр, и сразу
-  при меню, потере фокуса, выходе; что писать, отдают общие системы (`to_dict` / `to_list`: часы, вещи,
-  персонаж, сумка, навыки, участки, чертежи); модули регистрируют части игрока `save.track(имя, объект)`. Выбор мира
-  (`choose_world`, `switch_world`), восстановление (`restore_player`, `restore_clock`). Выключен в тестах
-  и инструментах (`enabled`).
-- `src/server/server_store.gd` — то же для сервера без окна: пишет мир каждые 10 с и на `stop`, с командами,
-  боями и игроками по их ключам ([network.md](network.md)).
-- `src/shared/content/mods.gd` — `of_world(meta)`: бандлы сохранённого мира по его `world.json` (общий код:
-  тем же откроет миры сервер).
+- `src/client/save_game.gd` — when to write: once per `INTERVAL` (30 s) a few chunks per frame, and at once
+  on the menu, loss of focus, exit; what to write is given by the shared systems (`to_dict` / `to_list`: the
+  clock, things, the character, the bag, skills, plots, blueprints); the modules register the player's parts
+  by `save.track(name, object)`. Choosing a world (`choose_world`, `switch_world`), restoring
+  (`restore_player`, `restore_clock`). Off in tests and tools (`enabled`).
+- `src/server/server_store.gd` — the same for a server without a window: writes the world every 10 s and on
+  `stop`, with the commands, fights and players by their keys ([network.md](network.md)).
+- `src/shared/content/mods.gd` — `of_world(meta)`: the bundles of a saved world by its `world.json` (shared
+  code: the server opens worlds by the same).
 
-**Переводы старых сохранений** (метка `content` в `world.json`, сейчас 9):
-- до 2…8 — моды, выделенные из базы (растения, инструменты, звуки, музыка, материалы, ресурсы, биомы,
-  `Mods.SPLITS`), добавляются в набор мира; до 6 — список модов раскрывается в бандлы (`Mods.expand`,
-  `Mods.RENAMED`);
-- дополняющий бандл (только предметы, рецепты, эпохи, старт и звуки: `Mods.additive`) входит в мир с его
-  модом, если мир его не знал и в мире есть то, что ему нужно (решение 4А, `Mods.of_world`). Что мир знал,
-  пишет `known` в `world.json` (все бандлы на момент сохранения), так что бандл, выключенный игроком,
-  выключенным и остаётся; мир, сохранённый до `known`, знал бандлы `Mods.OLD_ADDITIVE`, а факел — с метки 9.
-  Бандл с ячейками, деревьями, кустами, растениями, биомами или зверями в старый мир не входит: он меняет
-  землю и номера материалов;
-- до 5 — номера материалов ячеек по старому списку `OLD_MATERIALS`, иначе по `materials` из
-  `world.json` (`Mat.remap`); старые id предметов и рецептов — `Items.canon`, `Crafting.canon`,
-  `Mat.RENAMED`; эти функции смотрят и поле `was` записей (`Content.canon`).
+**Conversions of old saves** (the mark `content` in `world.json`, now 9):
+- before 2…8 — the mods split off the base (plants, tools, sounds, music, materials, resources, biomes,
+  `Mods.SPLITS`) are added to the world's set; before 6 — the list of mods is expanded into bundles
+  (`Mods.expand`, `Mods.RENAMED`);
+- a supplementing bundle (only items, recipes, eras, the start and sounds: `Mods.additive`) enters a world
+  with its mod, if the world did not know it and the world has what it needs (decision 4А, `Mods.of_world`).
+  What the world knew is written by `known` in `world.json` (all the bundles at the moment of saving), so a
+  bundle the player switched off stays off; a world saved before `known` knew the bundles
+  `Mods.OLD_ADDITIVE`, and the torch — from the mark 9. A bundle with cells, trees, shrubs, plants, biomes or
+  beasts does not enter an old world: it changes the ground and the material numbers;
+- before 5 — the cells' material numbers by the old list `OLD_MATERIALS`, otherwise by `materials` from
+  `world.json` (`Mat.remap`); the old ids of items and recipes — `Items.canon`, `Crafting.canon`,
+  `Mat.RENAMED`; these functions look at the records' field `was` too (`Content.canon`).
 
-**Ограничения.** Набор бандлов мира меняется только приходом дополняющих бандлов; бандл с ячейками или
-зверями старый мир не увидит. Переименованная запись перечисляет старые id в своём поле `was` (код не
-нужен); переименование бандла требует записи в `Mods.RENAMED`. Сохранённый чанк возвращается сразу в
-стадии SHAPED. Набор бандлов мира решает общий код (`Mods.of_world`); номера материалов и старые id
-переводит общий `world_store.gd` (`materials_of`, `OLD_MATERIALS`, `CONTENT`), им же переведёт сервер.
+**Limits.** A world's set of bundles changes only by the arrival of supplementing bundles; a bundle with
+cells or beasts an old world will not see. A renamed record lists the old ids in its field `was` (no code
+needed); renaming a bundle needs an entry in `Mods.RENAMED`. A saved chunk returns at once at the stage
+SHAPED. A world's set of bundles is decided by shared code (`Mods.of_world`); the material numbers and old
+ids are converted by the shared `world_store.gd` (`materials_of`, `OLD_MATERIALS`, `CONTENT`), the server will
+convert them by it too.
 
-**Тесты.** `tests/unit/store_test.gd` (`save`), `tests/save_test.gd` (играет, сохраняет, запускает заново;
-мир помнит известные бандлы; старое сохранение без факела и без меча получает факел, а меч нет),
-`tests/unit/content_test.gd` (`old_worlds`: дополняющий бандл входит, бандл со зверями и бандл без того, что
-ему нужно, — нет, миры меток `content` 1–9 открываются со всеми бандлами), `tests/unit/character_test.gd`
-(старые id в сумке).
+**Tests.** `tests/unit/store_test.gd` (`save`), `tests/save_test.gd` (plays, saves, starts again; the world
+remembers the known bundles; an old save without a torch and without a sword gets the torch, and the sword
+not), `tests/unit/content_test.gd` (`old_worlds`: a supplementing bundle enters, a bundle with beasts and a
+bundle without what it needs — do not, worlds of the marks `content` 1–9 open with all bundles),
+`tests/unit/character_test.gd` (old ids in the bag).
 
-**Подробнее.** `plan/architecture/simulation.md` («Хранение мира»), решения о сохранении в журнале
-`plan/README.md`.
+**In more detail.** `plan/architecture/simulation.md` («Storing the world»), the decisions about saving in the
+journal `plan/README.md`.

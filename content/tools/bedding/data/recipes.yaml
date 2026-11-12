@@ -1,5 +1,5 @@
-# Рецепты бандла «Постель»: подстилку вяжут руками из волокна («Ресурсы») и верёвки («Материалы»),
-# спальник шьют иглой (класс needle, бандл «Игла») из шкур («Животные», бандл «Добыча»).
+# Recipes of the "Bedding" bundle: the mat is tied by hand from fiber ("Resources") and rope ("Materials"),
+# the sleeping bag is sewn with a needle (class needle, the "Needle" bundle) from hides ("Animals", the "Game animals" bundle).
 - id: grass_mat
   title: "[tools.recipes.grass_mat]"
   makes: grass_mat

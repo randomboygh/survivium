@@ -1,5 +1,5 @@
-# Стекло: его плавят из песка с углём в горне (рецепт в бандле «Горн» «Инструментов»); идёт на
-# фонарь, потом — на бутылки и окна.
+# Glass: it is smelted from sand with coal in a forge (the recipe is in the "Forge" bundle of "Tools"); it goes into
+# a lantern, later — into bottles and windows.
 - id: glass
   title: "[materials.items.glass]"
   description: "[materials.items.glass.about]"

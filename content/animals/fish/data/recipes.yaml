@@ -1,4 +1,4 @@
-# Рецепты бандла «Рыба»: любую рыбу жарят на костре.
+# Recipes of the "Fish" bundle: any fish is fried on a campfire.
 - id: roasted_fish_from_roach
   title: "[animals.recipes.roasted_fish_from_roach]"
   makes: roasted_fish

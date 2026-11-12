@@ -1,6 +1,6 @@
-# Торф: мягкий бурый грунт торфяных болот (role: peat; биомы кладут его через top или clay_as: peat).
-# Копается лопатой и даёт торф. Поля — как у материалов основы (content/core/data/materials.yaml);
-# звуки по имени, из мода «Звуки». Без бандла на его месте земля.
+# Peat: soft brown soil of peat bogs (role: peat; biomes lay it through top or clay_as: peat).
+# Dug with a shovel and gives peat. Fields are as for the core materials (content/core/data/materials.yaml);
+# sounds by name, from the "Sounds" mod. Without the bundle, earth takes its place.
 - id: peat
   title: "[resources.materials.peat]"
   role: peat

@@ -1,44 +1,44 @@
-# Предметы: то, что лежит в сумке и на земле. weight — вес одной штуки в кг; stack —
-# сколько штук помещается в одну ячейку сумки; food — сытость от одной штуки (0 —
-# несъедобно); heal — сколько здоровья возвращает одна штука (бинт); heal_time — за сколько секунд (припарка лечит понемногу, 0 — сразу); place — материал ячейки, который предмет ставит в мир (нет поля — не
-# ставится); model — воксельная модель предмета на земле (нет поля — свёрток);
-# icon — картинка в сумке (нет поля — плитка материала из place). Инструменты: tool —
-# axe (рубит деревья, кусты и деревянные ячейки), pickaxe (камень и руда), shovel (мягкий
-# грунт быстро, выкапывает кусты), sword (сбивает ягоды с кустов, срезает высокую траву по клетке),
-# scythe (косит траву, колоски и цветы дугой перед собой); любое другое слово (knife, hammer) —
-# новый класс: в мире он работает как руки, а рецепты и станки могут его требовать; mows — какую траву срезает: tall
-# (только высокую траву, колоски и цветы), all (и саму траву до земли, как руки), нет поля — никакую; power — сила: твёрдость
-# материала, которую он берёт, и урон дереву за удар; area — сколько ячеек за один
-# взмах; swing — секунд на взмах; reach — на сколько ячеек от персонажа достаёт (без
-# инструмента руки достают на 8, блоки ставятся на 10). plant — куст, который сажает предмет;
-# sow — материал, в который посеянный предмет превращает голую землю (семена трав — в траву);
-# crop — растение (plants.yaml), которое потом растёт на ней (зерно — колоски).
-# durability — сколько взмахов инструмент выдерживает, пока включён износ (0 — не изнашивается);
-# repair — что уходит на починку у станка, где чинят. prop — класс вещи, которая ставится в мир
-# из сумки на клетки 2×2 (chest, workbench, kiln, forge, campfire; мод может завести свой): у такой
-# вещи, если она ничего не хранит, делают то, что в recipes.yaml указывает на неё в `at`. Что ещё
-# она делает — флаги: storage — сколько мест хранит (сундук), fire — горит (костёр: тушится,
-# разжигается топливом, обжигает; fuel_max — сколько секунд горения в нём помещается, fuel_start —
-# сколько у только что поставленного, 0 — горит вечно; под открытым небом его тушит дождь),
-# repairs — у неё чинят инструменты (верстак), serves — станки,
-# которые она заменяет (их рецепты делают и у неё), place_tool — класс инструмента, который должен
-# быть в сумке, чтобы её поставить.
-# В руках: sprite — лист кадров инструмента в руке, sprites/held/<sprite>.png этого мода
-# (раскладка в sprites/player.yaml); нет поля — в руке его иконка, уменьшенная, и игра
-# поворачивает её вместе с рукой. anim — работа персонажа (works в sprites/player.yaml),
-# которой с ним работают: chop (рубить сверху), dig (копать вниз перед собой), slash (бить
-# сбоку), reach (тянуться: ставить, собирать; так и без поля), mow (косить двумя руками),
-# aim (держать перед собой двумя руками), eat (подносить ко рту); hands — сколько рук он
-# занимает (mow и aim — две). light — вещь в руке светит в темноте (факел): на сколько мировых
-# единиц достаёт её свет; durability у неё — сколько секунд она горит в руке, в воде гаснет;
-# огонь горит в самой яркой точке её листа в руке. Без такой вещи вокруг игрока лишь слабый отсвет.
-# source: special — предмет получают так, как граф контента не видит (задание, обмен): тогда он не
-# ошибка «нет источника» (каждый другой предмет даёт мир, рецепт или старт). era — эпоха прогресса
-# (eras.yaml), которую предмет открывает: станок, первый инструмент из нового материала, новый
-# материал; у остальных её выводит граф контента, не раньше записанной. В игре эпоха ничего не запрещает.
-# Любая запись может иметь ещё общие поля: description — текст для игрока; tags — метки для
-# отчётов и поиска (игру они не меняют); provisional — какие её числа предварительные, по именам
-# полей. Запись с id чужой записи заменяет её только с replaces: true, иначе это ошибка.
+# Items: what lies in the bag and on the ground. weight — the weight of one piece in kg; stack —
+# how many pieces fit into one bag slot; food — the satiety from one piece (0 —
+# inedible); heal — how much health one piece restores (a bandage); heal_time — over how many seconds (a poultice heals gradually, 0 — at once); place — the cell material the item puts into the world (no field — it is not
+# placed); model — the voxel model of the item on the ground (no field — a bundle);
+# icon — the picture in the bag (no field — the tile of the material from place). Tools: tool —
+# axe (chops trees, bushes and wooden cells), pickaxe (stone and ore), shovel (soft
+# ground quickly, digs up bushes), sword (knocks berries off bushes, cuts tall grass cell by cell),
+# scythe (mows grass, spikelets and flowers in an arc in front); any other word (knife, hammer) —
+# a new class: in the world it works like hands, while recipes and stations may require it; mows — which grass it cuts: tall
+# (only tall grass, spikelets and flowers), all (and the grass itself down to the ground, like hands), no field — none; power — strength: the hardness
+# of material it can take, and the damage to a tree per hit; area — how many cells per
+# swing; swing — seconds per swing; reach — how many cells from the character it reaches (without a
+# tool the hands reach 8, blocks are placed at 10). plant — the bush the item plants;
+# sow — the material the sown item turns bare ground into (grass seeds — into grass);
+# crop — the plant (plants.yaml) that then grows on it (grain — spikelets).
+# durability — how many swings the tool lasts while wear is on (0 — does not wear out);
+# repair — what is spent on repair at a station where things are repaired. prop — the class of a thing placed in the world
+# from the bag onto 2×2 cells (chest, workbench, kiln, forge, campfire; a mod may add its own): such
+# a thing, if it stores nothing, does what recipes.yaml points to it in `at`. What else
+# it does is by flags: storage — how many slots it holds (a chest), fire — burns (a campfire: it is put out,
+# lit with fuel, burns; fuel_max — how many seconds of burning fit in it, fuel_start —
+# how many a just-placed one has, 0 — burns forever; under the open sky rain puts it out),
+# repairs — tools are repaired at it (a workbench), serves — stations
+# it replaces (their recipes are made at it too), place_tool — the class of tool that must
+# be in the bag to place it.
+# In hand: sprite — the sheet of frames of the tool in hand, sprites/held/<sprite>.png of this mod
+# (layout in sprites/player.yaml); no field — in hand is its icon, shrunk, and the game
+# turns it along with the hand. anim — the character's work (works in sprites/player.yaml)
+# it is used for: chop (chop from above), dig (dig down in front), slash (strike
+# from the side), reach (stretch out: place, gather; also the default), mow (mow with both hands),
+# aim (hold in front with both hands), eat (bring to the mouth); hands — how many hands it
+# takes (mow and aim — two). light — the item in hand shines in the dark (a torch): by how many world
+# units its light reaches; its durability is how many seconds it burns in hand, in water it goes out;
+# the fire burns at the brightest point of its sheet in hand. Without such an item there is only a faint glow around the player.
+# source: special — the item is obtained in a way the content graph does not see (a quest, a trade): then it is not
+# a "no source" error (every other item comes from the world, a recipe or the start). era — the era of progress
+# (eras.yaml) the item opens: a station, the first tool of a new material, a new
+# material; for the others the content graph derives it, not earlier than the one written. In the game an era forbids nothing.
+# Any record may also have common fields: description — text for the player; tags — labels for
+# reports and search (they do not change the game); provisional — which of its numbers are provisional, by the names
+# of the fields. A record with the id of another record replaces it only with replaces: true, otherwise it is an error.
 - id: campfire
   title: "[core.items.campfire]"
   era: primitive
@@ -51,19 +51,19 @@
   scares: 5.0
   fuel_max: 2400
   fuel_start: 600
-# Гниль — во что превращается испорченная еда (поле rots_to у еды, spoils — сколько игровых
-# суток она хранится; в холоде дольше). Пока ни на что не идёт, позже — удобрение. source:
-# special — граф видит её и без еды, которая гниёт (в мире без бандлов еды).
+# Rot — what spoiled food turns into (the rots_to field of food, spoils — how many game
+# days it keeps; longer in the cold). It is used for nothing yet, later — fertiliser. source:
+# special — the graph sees it even without the food that rots (in a world without food bundles).
 - id: rot
   title: "[core.items.rot]"
   weight: 0.2
   stack: 50
   icon: rot
   source: special
-# Крест — его ставит сам мир там, где лежал мешок умершего, когда его дни прошли
-# (Placed.put_grave): над ним, как над табличкой, видно, кто здесь погиб, отчего, сколько
-# прожил и что успел. grave — такой крест; в сумку не попадает: убранный в режиме
-# строительства, он просто исчезает.
+# Cross — the world itself places it where a dead player's bag lay, when its days have passed
+# (Placed.put_grave): above it, as above a sign, one sees who died here, of what, how long
+# they lived and what they managed. grave — such a cross; it does not go into the bag: removed in
+# build mode, it simply vanishes.
 - id: grave
   title: "[core.items.grave]"
   description: "[core.items.grave.about]"

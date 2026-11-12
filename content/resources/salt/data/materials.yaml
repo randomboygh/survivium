@@ -1,6 +1,6 @@
-# Соль: белая корка солончаков (role: salt; биомы кладут её через top или clay_as: salt). Копается
-# лопатой и даёт соль. Поля — как у материалов основы (content/core/data/materials.yaml); звуки по
-# имени, из мода «Звуки». Без бандла на её месте песок (роль beach), а без него — земля.
+# Salt: the white crust of salt flats (role: salt; biomes lay it through top or clay_as: salt). Dug
+# with a shovel and gives salt. Fields are as for the core materials (content/core/data/materials.yaml); sounds
+# by name, from the "Sounds" mod. Without the bundle, sand takes its place (role beach), and without that - earth.
 - id: salt
   title: "[resources.materials.salt]"
   role: salt

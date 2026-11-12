@@ -1,4 +1,4 @@
-# Торф в сумке: ставится ячейкой торфа; сухим торфом, как веткой, разжигают костёр (fuel).
+# Peat in the bag: placed as a peat cell; dry peat, like a branch, lights a campfire (fuel).
 - id: peat
   title: "[resources.items.peat]"
   weight: 1.0

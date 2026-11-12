@@ -1,4 +1,4 @@
-# Люк сбивают из досок «Материалов» на верстаке. Поля — docs/DATA_MODEL.md.
+# The hatch is knocked together from "Materials" planks at the workbench. Fields are in docs/DATA_MODEL.md.
 - id: hatch
   title: "[tools.recipes.hatch]"
   makes: hatch

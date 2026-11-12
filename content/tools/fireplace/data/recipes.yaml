@@ -1,4 +1,4 @@
-# Камин кладут из кирпича («Материалы») и камня на глине, на верстаке.
+# The fireplace is laid from brick ("Materials") and stone on clay, at the workbench.
 - id: fireplace
   title: "[tools.recipes.fireplace]"
   makes: fireplace

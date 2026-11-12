@@ -1,4 +1,4 @@
-# Рецепты бандла «Межевой столб»: бревно и ветка — «Ресурсы», верёвка — «Материалы».
+# Recipes of the "Boundary post" bundle: log and branch are "Resources", rope is "Materials".
 - id: boundary_post
   title: "[tools.recipes.boundary_post]"
   makes: boundary_post

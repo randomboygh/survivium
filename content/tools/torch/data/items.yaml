@@ -1,10 +1,10 @@
-# Предметы бандла «Факел» мода «Инструменты и крафт». light — вещь в руке светит: на
-# сколько мировых единиц достаёт её свет; без неё в темноте вокруг
-# игрока лишь слабый отсвет. Светящая вещь расходуется, как еда или топливо: в стопке лежат целые,
-# взятая в руку зажигается и горит burns секунд, догорев, пропадает из стопки, и загорается
-# следующая; убранная из руки ждёт, сколько ей осталось. sprite — лист в руках
-# (sprites/held/<sprite>.png): самая яркая точка кадра — где горит огонь. scares — горящая вещь в руке
-# или поставленная держит зверей, которые боятся огня, на столько мировых единиц.
+# Items of the "Torch" bundle of the "Tools and crafting" mod. light - a thing in the hand gives light: how
+# many world units its light reaches; without it, in the dark around
+# the player there is only a faint glow. A light-giving thing is used up like food or fuel: whole ones lie in the stack,
+# the one taken in the hand is lit and burns for burns seconds, once burnt out it vanishes from the stack, and the
+# next one lights; one put away from the hand waits with what it has left. sprite - the sheet in the hands
+# (sprites/held/<sprite>.png): the brightest point of the frame is where the fire burns. scares - a burning thing in the hand
+# or placed keeps animals that fear fire away by that many world units.
 - id: torch
   title: "[tools.items.torch]"
   era: core:primitive

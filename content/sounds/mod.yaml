@@ -2,6 +2,6 @@ id: sounds
 title: "[sounds.mod]"
 version: "0.2"
 api: 1
-# Звуки, у которых хозяин — сама игра: природа и погода, игрок (шаги, работа), интерфейс; бандл на
-# каждое, выключаются по одному. Звуки вещей лежат у вещей (удар по стволу — у древесины, взмах —
-# у меча, голоса — у зверей), ноты музыки — в моде «Музыка».
+# Sounds whose owner is the game itself: nature and weather, the player (steps, work), the interface; a bundle for
+# each, switched off one by one. Sounds of things live with the things (a hit on a trunk - with wood, a swing -
+# with the sword, voices - with the animals), the music notes are in the "Music" mod.

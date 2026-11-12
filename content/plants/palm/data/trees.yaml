@@ -1,7 +1,7 @@
-# Пальма: дерево тропического берега и джунглей — высокий тонкий изогнутый ствол без веток и на
-# его макушке пучок длинных перистых листьев, плоский круглый ярус, как у сосны (поля — как у дуба,
-# content/plants/oak/data/trees.yaml; у формы palm crown — [длина листа в точках кроны, меньше и
-# больше всего листьев]). Листву не сбрасывает; срубленная роняет кокосы, осенью их собирают руками.
+# Palm: a tree of the tropical shore and jungle — a tall thin curved trunk with no branches and on
+# its top a tuft of long feathery leaves, a flat round tier, as on a pine (fields as for the oak,
+# content/plants/oak/data/trees.yaml; for the palm shape crown — [leaf length in crown points, the fewest and
+# the most leaves]). Does not shed its leaves; when felled it drops coconuts, which are picked by hand in autumn.
 - id: palm
   title: "[plants.trees.palm]"
   shape: palm

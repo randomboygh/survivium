@@ -1,6 +1,6 @@
-# Растение со своей картинкой (kind: custom), поля — как у папоротника (content/plants/fern/data/plants.yaml);
-# biomes — только в этих биомах (нет поля — везде, где позволяет grows).
-# Монстера: широкие резные листья подлеска джунглей и мангров, густо в тени крон; даёт волокно.
+# A plant with its own picture (kind: custom), fields as for the fern (content/plants/fern/data/plants.yaml);
+# biomes — only in these biomes (no field — everywhere that grows allows).
+# Monstera: wide cut leaves of the jungle and mangrove understory, thick in the shade of the crowns; gives fiber.
 - id: monstera
   kind: custom
   title: "[plants.plants.monstera]"

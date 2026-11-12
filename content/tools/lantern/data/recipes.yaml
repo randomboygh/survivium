@@ -1,4 +1,4 @@
-# Рецепт бандла «Фонарь»: стекло, медный слиток и смола («Материалы») на верстаке.
+# Recipe of the "Lantern" bundle: glass, copper ingot and tar ("Materials") at the workbench.
 - id: lantern
   title: "[tools.recipes.lantern]"
   makes: lantern

@@ -1,7 +1,7 @@
-# Предметы бандла «Пух»: пух ручного зайца (бандл «Заяц»: его приручают с руки, поля tame_food и
-# tame_feeds, ручного стригут ножом раз в wool_days суток, поле wool). Из пуха прядут пряжу, из пряжи
-# на ткацком станке «Инструментов» ткут ткань «Материалов». Отдельный бандл, чтобы заяц не зависел от
-# станка.
+# Items of the "Fluff" bundle: the fluff of a tame hare (the "Hare" bundle: it is tamed from the hand, fields tame_food and
+# tame_feeds, a tame one is sheared with a knife once every wool_days days, field wool). Yarn is spun from fluff, from yarn
+# cloth of "Materials" is woven on the "Tools" loom. A separate bundle, so that the hare does not depend on the
+# loom.
 - id: rabbit_fluff
   title: "[animals.items.rabbit_fluff]"
   description: "[animals.items.rabbit_fluff.about]"

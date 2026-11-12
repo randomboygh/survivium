@@ -2,4 +2,4 @@ id: music
 title: "[music.mod]"
 version: "0.2"
 api: 1
-# Ноты, из которых music.gd складывает музыку. Без мода игра молчит музыкой, звуки остаются.
+# The notes from which music.gd composes the music. Without the mod the game is silent of music, the sounds remain.

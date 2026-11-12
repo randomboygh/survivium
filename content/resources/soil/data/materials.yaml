@@ -1,7 +1,7 @@
-# Песок и глина как ячейки ландшафта. role — где генератор их кладёт: beach — пляжи, русла
-# рек, пустыни; bank — берега, болота, глина тундры. Поля — как у материалов основы
-# (content/core/data/materials.yaml); звуки по имени, из мода «Звуки». Кремень — бандл
-# «Камень»: без него песок даёт только песок.
+# Sand and clay as landscape cells. role - where the generator lays them: beach - beaches, river
+# beds, deserts; bank - shores, swamps, tundra clay. Fields are as for the core materials
+# (content/core/data/materials.yaml); sounds by name, from the "Sounds" mod. Flint is the "Stone"
+# bundle: without it sand gives only sand.
 - id: sand
   title: "[resources.materials.sand]"
   role: beach
@@ -30,9 +30,9 @@
   toughness: 2
   step: step_dirt
   hit: dig
-# Грядка — земля, вскопанная тяпкой (role bed); политая или под дождём она сутки мокрая и темнее
-# (role bed_wet), и только на мокрой растёт посеянное (src/shared/game/actions_farm.gd). Выкопанная
-# лопатой даёт землю, посеянное на ней пропадает.
+# A bed is earth tilled with a hoe (role bed); watered or in the rain it is wet for a day and darker
+# (role bed_wet), and only on wet earth does what is sown grow (src/shared/game/actions_farm.gd). When dug
+# with a shovel it gives earth, and what was sown on it is lost.
 - id: bed
   title: "[resources.materials.bed]"
   role: bed

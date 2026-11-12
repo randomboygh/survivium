@@ -1,5 +1,5 @@
-# Рецепты бандла «Золото»: руду плавят с углём в горне «Инструментов», блок складывают из слитков на
-# наковальне; лежат здесь, чтобы станки не зависели от этого металла.
+# Recipes of the "Gold" bundle: ore is smelted with coal in the "Tools" forge, a block is assembled from ingots on the
+# anvil; they lie here so that the stations do not depend on this metal.
 - id: gold_bar
   title: "[materials.recipes.gold_bar]"
   makes: gold_bar

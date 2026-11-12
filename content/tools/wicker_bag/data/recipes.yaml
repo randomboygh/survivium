@@ -1,4 +1,4 @@
-# Рецепт бандла «Плетёная котомка»: плетут руками из волокна («Ресурсы») и верёвки («Материалы»).
+# Recipe of the "Woven pouch" bundle: woven by hand from fiber ("Resources") and rope ("Materials").
 - id: wicker_bag
   title: "[tools.recipes.wicker_bag]"
   makes: wicker_bag

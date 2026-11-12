@@ -1,5 +1,5 @@
-# Банан: подлесок джунглей — высокий куст с крупными листьями и гроздьями жёлтых плодов (поля —
-# как у малины, content/plants/raspberry/data/bushes.yaml).
+# Banana: a jungle understory plant — a tall bush with large leaves and clusters of yellow fruit (fields
+# as for the raspberry, content/plants/raspberry/data/bushes.yaml).
 - id: banana
   title: "[plants.bushes.banana]"
   tint: "#4e8a2c"

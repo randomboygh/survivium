@@ -1,6 +1,6 @@
-# Рецепты бандла «Плот и лодка»: плот вяжут руками из брёвен «Ресурсов» и верёвки «Материалов»;
-# лодку и вёсла делают на верстаке (бандл «Верстак») из досок, лодку ещё смолят смолой «Материалов».
-# Все поля рецепта — docs/DATA_MODEL.md.
+# Recipes of the "Raft and boat" bundle: the raft is tied by hand from "Resources" logs and "Materials" rope;
+# the boat and oars are made at the workbench (the "Workbench" bundle) from planks, and the boat is also tarred with "Materials" tar.
+# All the recipe fields are in docs/DATA_MODEL.md.
 - id: raft
   title: "[tools.recipes.raft]"
   makes: raft

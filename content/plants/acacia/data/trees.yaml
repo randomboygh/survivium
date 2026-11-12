@@ -1,5 +1,5 @@
-# Акация: дерево саванны — плоская широкая крона зонтиком высоко на тонком кривом стволе, мелкая
-# сизо-зелёная листва (поля — как у дуба, content/plants/oak/data/trees.yaml). Листву не сбрасывает.
+# Acacia: a savanna tree — a flat, wide umbrella crown high on a thin crooked trunk, small
+# blue-green leaves (fields as for the oak, content/plants/oak/data/trees.yaml). Does not shed its leaves.
 - id: acacia
   title: "[plants.trees.acacia]"
   shape: umbrella

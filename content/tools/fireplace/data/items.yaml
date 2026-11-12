@@ -1,9 +1,9 @@
-# Камин: огонь в кирпичном очаге на две клетки в ширину и одну в высоту, глубиной в клетку;
-# ставится лицом к игроку, спиной к стене. Горит как костёр (fire): греет вокруг, горит на
-# топливе (fuel_max — сколько секунд в нём помещается), разжигается и подкладывается тем же
-# топливом, у него готовят то же, что у костра (serves). Ставится холодным (fuel_start 0), огонь
-# внутри не обжигает, потушенный забирается в сумку целиком (у огня есть своя модель). Под крышей
-# дождь его не тушит. Поля — как у предметов основы (content/core/data/items.yaml).
+# Fireplace: a fire in a brick hearth two cells wide and one high, one cell deep;
+# placed facing the player, back to a wall. Burns like a campfire (fire): warms around it, burns on
+# fuel (fuel_max - how many seconds fit in it), is lit and fed with the same fuel,
+# and cooks the same things as a campfire (serves). Placed cold (fuel_start 0), the fire
+# inside does not burn, and once put out it is picked up into the bag whole (the fire has its own model). Under a roof
+# rain does not put it out. Fields are as for the core items (content/core/data/items.yaml).
 - id: fireplace
   title: "[tools.items.fireplace]"
   description: "[tools.items.fireplace.about]"

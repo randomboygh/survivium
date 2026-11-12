@@ -1,4 +1,4 @@
-# Плетень: ветки, сплетённые руками, — первая стена, пока нет топора. Ставится блоком.
+# Wattle: twigs woven by hand — the first wall, while there is no axe. Placed as a block.
 - id: wattle
   title: "[materials.items.wattle]"
   description: "[materials.items.wattle.about]"

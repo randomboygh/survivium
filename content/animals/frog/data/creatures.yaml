@@ -1,9 +1,9 @@
-# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
-# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
-# sprites/creatures/<sprite>.png этого бандла (рисует tools/make_frog.py):
-# три вида, кадры: сидит, прыжок, присел, моргает, раздулось горло; голоса (calls, alarm) — его sounds.yaml.
-# Плавает (swims) и вылезает на берег (ashore), по земле прыгает (hops); выходит только после
-# дождя, пока стоят лужи (after_rain), и тем больше, чем их больше. Еда для окуня, вороны и совы.
+# The fields are the same as for all creatures (content/core/data/creatures.yaml): who is food or a threat to whom
+# is derived from mass and diet by general rules, not written down. The species' picture —
+# sprites/creatures/<sprite>.png of this bundle (drawn by tools/make_frog.py):
+# three species, frames: sitting, hop, crouching, blinking, throat swollen; voices (calls, alarm) — its sounds.yaml.
+# Swims (swims) and climbs ashore (ashore), hops on the ground (hops); comes out only after
+# rain, while puddles stand (after_rain), and the more of them there are, the more of it. Food for the perch, the crow and the owl.
 - id: frog
   title: "[animals.creatures.frog]"
   mass: 0.05

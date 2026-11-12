@@ -1,4 +1,4 @@
-# Смоляной факел: ветка, ткань и смола («Материалы»), руками.
+# Tar torch: branch, cloth and tar ("Materials"), by hand.
 - id: tar_torch
   title: "[tools.recipes.tar_torch]"
   makes: tar_torch

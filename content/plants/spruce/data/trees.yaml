@@ -1,19 +1,19 @@
-# Породы деревьев: как дерево выглядит. Где оно растёт, говорят биомы (content/biomes: доли пород
-# в trees каждого биома), не дерево.
-# leaves — broad (листья) или needles (хвоя). trunk — [мин, макс] ячеек ствола под
-# серединой кроны (листва) или видных под нижним ярусом (хвоя). crown — радиусы
-# кроны по x, вверх, по z в точках решётки крон (листва) или [радиус нижнего яруса,
-# мин ярусов, макс ярусов] (хвоя). tints — цвета листвы, по одному на дерево.
-# bare — доля деревьев, сбрасывающих всю листву зимой. log — предмет, который ложится от срубленного
-# ствола (по одному на две ячейки), twig — что ломают руками с кроны, сбивает ветер и роняет
-# срубленная крона, seed — что ещё остаётся от срубленного дерева (желудь, шишка); нет поля —
-# не даёт (ссылки мягкие: без «Ресурсов» дерево падает молча). hits — прочность: сколько силы топора надо
-# набрать ударами, чтобы срубить дерево (каменный топор бьёт на 2, стальной на 6: мягкие породы 12, дуб 24,
-# сейба 32; docs/balance/GAME_BALANCE_DESIGN.md). twigs — сколько веток можно наломать руками
-# со стоящего дерева за год, seeds — сколько семян (seed) собрать с него руками осенью.
-# girth — [мин, макс] толщины ствола у земли в пикселях (в ячейке 8), у каждого дерева своя;
-# taper — на сколько пикселей ствол тоньше с каждой ячейкой вверх; crook — на сколько
-# пикселей ствол может изгибаться в сторону; roots — [мин, макс] корней у комля.
+# Tree species: how a tree looks. Where it grows is up to the biomes (content/biomes: the shares of species
+# in each biome's trees), not the tree.
+# leaves — broad (leaves) or needles (needles). trunk — [min, max] cells of trunk under
+# the middle of the crown (broadleaf) or visible under the lowest tier (conifer). crown — the radii
+# of the crown along x, upward, along z in crown-lattice points (broadleaf) or [radius of the lowest tier,
+# min tiers, max tiers] (conifer). tints — foliage colors, one per tree.
+# bare — the share of trees that shed all their leaves in winter. log — the item that falls from the felled
+# trunk (one per two cells), twig — what is broken off the crown by hand, knocked down by wind and dropped by a
+# felled crown, seed — what else is left from a felled tree (acorn, cone); no field —
+# it gives none (references are soft: without "Resources" the tree falls silently). hits — durability: how much axe strength must be
+# gathered by strikes to fell the tree (a stone axe strikes for 2, a steel one for 6: soft species 12, oak 24,
+# ceiba 32; docs/balance/GAME_BALANCE_DESIGN.md). twigs — how many twigs can be broken off by hand
+# from a standing tree in a year, seeds — how many seeds (seed) can be collected from it by hand in autumn.
+# girth — [min, max] trunk thickness at the ground in pixels (a cell is 8), each tree has its own;
+# taper — by how many pixels the trunk gets thinner with each cell upward; crook — by how many
+# pixels the trunk can bend sideways; roots — [min, max] roots at the base.
 - id: spruce
   title: "[plants.trees.spruce]"
   leaves: needles

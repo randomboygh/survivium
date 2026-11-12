@@ -1,6 +1,6 @@
-# Оловянная руда: жилы в камне (role: ore) реже медных (veins — доля жил против других руд), твёрже
-# медной: её берёт медная кирка и лучше (hardness 3). Поля — как у материалов основы
-# (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
+# Tin ore: veins in stone (role: ore) rarer than copper ones (veins — the share of veins against other ores), harder
+# than copper: a copper pickaxe and better takes it (hardness 3). Fields as for the core's materials
+# (content/core/data/materials.yaml); sounds by name, from the "Sounds" mod.
 - id: tin_ore
   title: "[materials.materials.tin_ore]"
   role: ore

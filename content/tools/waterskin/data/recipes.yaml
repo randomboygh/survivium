@@ -1,4 +1,4 @@
-# Рецепт бандла «Бурдюк»: кожу («Материалы», бандл «Кожа») и верёвку шьют иглой (класс needle, бандл «Игла»).
+# Recipe of the "Waterskin" bundle: leather ("Materials", the "Leather" bundle) and rope are sewn with a needle (class needle, the "Needle" bundle).
 - id: waterskin
   title: "[tools.recipes.waterskin]"
   makes: waterskin

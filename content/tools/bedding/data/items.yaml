@@ -1,7 +1,7 @@
-# Предметы бандла «Постель» мода «Инструменты и крафт»: то, на чём спят. Ставится на землю, как
-# станок (prop — свой класс у каждой постели: по нему ищется модель models/<model>.png); касание ложит в неё спать (Protocol.LIE_IN), и
-# бодрость возвращается в `bedding` раз быстрее (src/shared/game/character.gd, sleep_rate); под
-# крышей — ещё в полтора раза.
+# Items of the "Bedding" bundle of the "Tools and crafting" mod: what people sleep on. Placed on the ground, like a
+# station (prop - each bed has its own class: it is used to find the model models/<model>.png); a touch lays you in it to sleep (Protocol.LIE_IN), and
+# vigor returns `bedding` times faster (src/shared/game/character.gd, sleep_rate); under a
+# roof - another one and a half times.
 - id: grass_mat
   title: "[tools.items.grass_mat]"
   description: "[tools.items.grass_mat.about]"

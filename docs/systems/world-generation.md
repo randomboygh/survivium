@@ -1,87 +1,98 @@
-# Генерация мира
+# World generation
 
-Статус: ACTIVE.
+Status: ACTIVE. A Russian copy: [world-generation_RU.md](world-generation_RU.md).
 
-**Назначение.** Из зерна и настроек сделать мир без края: раскладку любого окна столбцов (высота, вода,
-верх, биом, флаги) и ячейки чанка в три стадии. Результат не зависит от порядка, в котором делаются
-чанки (это проверяет тест), поэтому далёкие нетронутые чанки забываются и делаются заново такими же.
+**Purpose.** From a seed and settings to make a world without an edge: the layout of any window of columns
+(height, water, top, biome, flags) and a chunk's cells in three stages. The result does not depend on the
+order in which chunks are made (a test checks it), so far untouched chunks are forgotten and made again the
+same.
 
-**Файлы**
-- `src/shared/world/currents.gd` — течения рек (решение 178, ответ 5А): `at(x, z)` — клетки в секунду вдоль
-  реки (поперёк склона `side` раскладки) к морю или озеру (куда падает расстояние до них в `LOOK` клетках выше и
-  ниже по реке), в середине `SPEED`, у берега доля `AT_BANK`; на озере, в море, вне рек и в мире без раскладки
-  рек (тестовый) — ноль; столбец раскладывается однажды (`lay_out` трёх столбцов поперёк) и хранится. Где река
-  подходит к морю и отворачивает, она может течь от этого места в обе стороны или сходиться к нему.
-- `src/shared/world/land_layout.gd` — раскладка из шумов: медленные шумы на решётке через `LATTICE`
-  ячеек, расстояния до берега и реки; материки, горы с осыпью и снегом выше `WorldData.SNOW_LINE`, реки
-  ступенями (пороги, водопады), дельты, озёра (не ближе `LAKE_SHORE` к морю: между озером и морем
-  остаётся низкий берег, озеро не врезается в мелководье глубже него), климат (тепло, влага), пещеры (`_tunnels`, число по
-  настройке `caves`); при настройке `relief` 1 (новые миры; 0 — старые) хребты, ущелья и останцы там,
-  где прохладно и влажно, столовые горы с полосатыми стенами и каньоны там, где жарко и сухо
-  (`_ranges_and_mesas`); при настройке `climate` 1 (новые миры; 0 — старые) тепло идёт по
-  климатическим зонам: медленный шум зоны (`n_zone`, в `ZONE_SLOWER` раз медленнее прежнего шума
-  тепла), который прежний шум лишь шевелит на `ZONE_SPREAD` (`_zoned`), так что биомы одной зоны лежат
-  пятнами рядом, а холодные далеко от жарких; с высотой холодает вдвое слабее. `DEFAULT_SETTINGS` —
-  настройки экрана «Новый мир». Земля у воды выше моря поднимается до её уровня (`_banks`), а дальше
-  опускается на уровень за столбец, до `BANK_SLOPE` столбцов: берег реки над порогом, идущей мимо
-  земли, разложенной ниже, — склон, а не стена в один столбец.
-- `src/shared/world/world_gen.gd` (наследует раскладку) — пишет ячейки: `TERRAIN` (камень, руда, грунт,
-  верх, вода, пещеры) → `PLANTED` (деревья по биому; нужен TERRAIN на 3×3 вокруг) → `SHAPED` (склоны,
-  углы, кусты; нужен PLANTED вокруг); задания `start` / `step` по ряду или дереву; `find_spawn`,
-  `pack` / сохранённый чанк приходит сразу SHAPED, `forget`.
-- `src/shared/content/biomes.gd` — биом столбца по климату (`pick(t, m)`: самое узкое окно сначала) или
-  по рельефу (`where`: sea, beach, rock, plateau, swamp), его верх, доли деревьев и кустов, шансы;
-  `Biomes.NONE` — голая трава.
-- `src/shared/content/trees.gd`, `bushes.gd` — реестры пород деревьев и видов кустов (данные модов).
-- `src/shared/world/growth.gd` — как дерево и куст растут в ячейки мира: форма ствола и кроны
-  (`trunk_box`, `height`, `fit`), `place` / `grow` / `fill`, `bush_fits` / `place_bush`; генератор сажает куст только там, где вокруг нет перепада вниз
-  (`bush_level`), иначе на одиночном бугре или у края обрыва он висит над воздухом. Клиент ставит куст на землю
-  под его серединой (`Foliage.bush_foot`): если рядом выкопали и под ним стал склон, куст опускается на склон. Рубка — правило
-  игры: `src/shared/game/felling.gd` (`fell`), см. [interaction.md](interaction.md).
-- `src/shared/world/test_ground.gd` — тестовый мир (открывается со страницы «Тестирование»): площадки
-  рельефа, биомов, растений (сад — загоны деревьев по 15 клеток, восточнее поля колосьев), «Лагерь»,
-  «Звёздная пещера» (`TestGround.STAR_*`), двухэтажный кирпичный «Дом» (`HOUSE_*`: стены и полы — клетки
-  из `extras`, дверь, окна, лестница, мебель и фонари — `plan_things`, ставятся `Placed.put_plan` только в
-  новом тестовом мире), «Спуск» и «Спуск под 45°» (`DESCENT*`: ступени 5×1 до дна мира, вход 10×10×10)
-  и «Пляж» (`BEACH*`: пологий песок в море глубиной до дна); подменяет `WorldGen` при `TestGround.SEED`.
+**Files**
+- `src/shared/world/currents.gd` — the rivers' currents (decision 178, answer 5А): `at(x, z)` — cells per
+  second along the river (across the slope the layout's `side`) to the sea or a lake (where the distance to
+  them in `LOOK` cells up and down the river falls), in the middle `SPEED`, at the bank the share `AT_BANK`;
+  on a lake, in the sea, outside rivers and in a world with no layout of rivers (the test one) — zero; a
+  column is laid out once (`lay_out` of three columns across) and stored. Where a river comes to the sea and
+  turns away, it may flow from that place both ways or converge to it.
+- `src/shared/world/land_layout.gd` — the layout from noises: slow noises on a lattice through `LATTICE`
+  cells, the distances to the shore and a river; continents, mountains with scree and snow above
+  `WorldData.SNOW_LINE`, rivers by steps (rapids, waterfalls), deltas, lakes (no nearer than `LAKE_SHORE` to
+  the sea: a low shore stays between a lake and the sea, a lake does not cut into the shallows deeper than
+  it), the climate (warmth, moisture), caves (`_tunnels`, the number by the setting `caves`); with the
+  setting `relief` 1 (new worlds; 0 — old ones) ridges, gorges and outliers where it is cool and damp, mesas
+  with striped walls and canyons where it is hot and dry (`_ranges_and_mesas`); with the setting `climate` 1
+  (new worlds; 0 — old ones) warmth goes by climate zones: the slow noise of a zone (`n_zone`, `ZONE_SLOWER`
+  times slower than the former warmth noise), which the former noise only stirs by `ZONE_SPREAD` (`_zoned`),
+  so the biomes of one zone lie in patches side by side, and the cold ones far from the hot; with height it
+  gets cold half as strongly. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the
+  water above the sea rises to its level (`_banks`), and farther goes down a level per column, up to
+  `BANK_SLOPE` columns: the bank of a river above a rapid, going past land laid out lower, is a slope, not a
+  wall of one column.
+- `src/shared/world/world_gen.gd` (inherits the layout) — writes the cells: `TERRAIN` (stone, ore, soil, top,
+  water, caves) → `PLANTED` (trees by biome; needs TERRAIN on 3×3 around) → `SHAPED` (slopes, corners,
+  shrubs; needs PLANTED around); the jobs `start` / `step` by a row or a tree; `find_spawn`, `pack` / a saved
+  chunk comes at once SHAPED, `forget`.
+- `src/shared/content/biomes.gd` — a column's biome by climate (`pick(t, m)`: the narrowest window first) or
+  by relief (`where`: sea, beach, rock, plateau, swamp), its top, the shares of trees and shrubs, chances;
+  `Biomes.NONE` — bare grass.
+- `src/shared/content/trees.gd`, `bushes.gd` — the registries of species of trees and kinds of shrubs (the
+  mods' data).
+- `src/shared/world/growth.gd` — how a tree and a shrub grow into the world's cells: the shape of the trunk
+  and crown (`trunk_box`, `height`, `fit`), `place` / `grow` / `fill`, `bush_fits` / `place_bush`; the
+  generator plants a shrub only where there is no drop down around (`bush_level`), otherwise on a lone mound
+  or at the edge of a cliff it hangs over air. The client puts a shrub on the ground under its middle
+  (`Foliage.bush_foot`): if beside it was dug and under it became a slope, the shrub goes down onto the slope.
+  Felling is a rule of the game: `src/shared/game/felling.gd` (`fell`), see [interaction.md](interaction.md).
+- `src/shared/world/test_ground.gd` — the test world (opened from the «Testing» page): sites of relief,
+  biomes, plants (a garden — pens of trees of 15 cells, east of it fields of ears), «Camp», «Star cave»
+  (`TestGround.STAR_*`), a two-storey brick «House» (`HOUSE_*`: walls and floors — cells from `extras`, the
+  door, windows, the ladder, furniture and lanterns — `plan_things`, put by `Placed.put_plan` only in a new
+  test world), «Descent» and «Descent at 45°» (`DESCENT*`: steps 5×1 to the world's bottom, an entrance
+  10×10×10) and «Beach» (`BEACH*`: gentle sand into a sea as deep as the bottom); it replaces `WorldGen` at
+  `TestGround.SEED`.
 
-**Интерфейс.** `WorldGen.new(seed, 48, options)`, `lay_out(x0, z0, w, h, step)`,
-`find_place(what, near)`, `column_color(lay, j)` (карты), `start(key, stage)` / `step(job, n)`,
-`stage_of(key)`, `missing(key, reach, stage)`, `needed(key)` (что ещё нужно, чтобы чанк можно было
-строить: террейн в 2, деревья в 1, сам SHAPED), сигнал `made(key, stage)` (задание закончено),
-`forget(key)`, `generate_area(from, to)` (тесты, инструменты), `WorldGen.find_spawn(world, around)`.
+**Interface.** `WorldGen.new(seed, 48, options)`, `lay_out(x0, z0, w, h, step)`, `find_place(what, near)`,
+`column_color(lay, j)` (maps), `start(key, stage)` / `step(job, n)`, `stage_of(key)`, `missing(key, reach,
+stage)`, `needed(key)` (what else is needed for a chunk to be built: the terrain within 2, trees within 1,
+SHAPED itself), the signal `made(key, stage)` (a job finished), `forget(key)`, `generate_area(from, to)`
+(tests, tools), `WorldGen.find_spawn(world, around)`.
 
-**Кто использует.** `session.gd` (заказывает стадии вокруг игроков в бюджете, забывает дальние —
-[session.md](session.md)), `chunk_streamer.gd` (`needed`, `made`), карты (`minimap.gd`, `map_view.gd`,
-`world_setup.gd`), звери (`gen.lay_out`: биом столбца для вида с `biomes`), `clock.gd` (погода по
-месту), `tools/map.gd`, бенчмарки.
+**Who uses it.** `session.gd` (orders the stages around the players within a budget, forgets the far ones —
+[session.md](session.md)), `chunk_streamer.gd` (`needed`, `made`), the maps (`minimap.gd`, `map_view.gd`,
+`world_setup.gd`), beasts (`gen.lay_out`: the column's biome for a kind with `biomes`), `clock.gd` (weather by
+place), `tools/map.gd`, benches.
 
-**Данные.** Биомы — вид `biomes` (`content/biomes/<биом>/data/biomes.yaml`); породы и кусты — `trees`,
-`bushes` (моды «Растения»); материалы по ролям (`beach`, `bank`, `scree`, `snow`, `peat`, `salt`, `ice`, `ore`, `trunk`, `crown`; нет
-роли — кладётся грунт или камень). Грунт биома — `top`, а где шум почвы выше `clay_above` — `clay_as`
-(глина, торф…): имена грунтов переводит в материалы `gen.grounds` (`Biomes.top`, `Biomes.clay_as`). Шумы и рельеф — код (`land_layout.gd`), в данные не вынесены.
+**Data.** Biomes are the kind `biomes` (`content/biomes/<biome>/data/biomes.yaml`); species and shrubs —
+`trees`, `bushes` (the «Plants» mods); materials by roles (`beach`, `bank`, `scree`, `snow`, `peat`, `salt`,
+`ice`, `ore`, `trunk`, `crown`; no role — soil or stone is put). A biome's soil is `top`, and where the soil
+noise is above `clay_above` — `clay_as` (clay, peat…): the soils' names are turned into materials by
+`gen.grounds` (`Biomes.top`, `Biomes.clay_as`). The noises and relief are code (`land_layout.gd`), not moved
+into data.
 
-**Ограничения.** Миры старых зёрен после смены биомов раскладываются иначе (принято, решение 146);
-настройки `relief` и `climate` хранятся в мире, чтобы старые миры не менялись. Зона биома (`zone` в
-записи) — только метка для карты и отчётов: какая зона где лежит, решает окно тепла записи. Влага столбца не бывает ниже 0.2
-(`m` в `_layout_row`: шум даёт 0.4–1.0, близость воды снимает до 0.2), так что окна суше 0.2 пусты; доли биомов
-на карте мира — скриптом по `gen.lay_out` с шагом (как `tools/map.gd`). С `climate` 1 горная зона — рельефные биомы:
-скалы гор в окне тепла биома `glacier` — ледник (снег на склонах, лёд в стенах), открытые склоны до
-`ALPINE_BELOW` уровней под линией скал без леса в окне `alpine` — альпийский луг; сухое русло в краю под
-снегом (ледяная пустошь) — снег, не песок. Запись рельефа (`beach`, `swamp`…) со своим окном тепла или
-влаги — его вариант (`Biomes.VARIANTS`, `Biomes.relief`): с `climate` 1 берег и болото в этом окне берут его
-(тропический берег, мангровые заросли), открытое море — вариант моря (тропическое море; озёра и реки остаются
-морем). Чанк хранит биом каждого столбца (`Chunk.biome`, `WorldData.biome_at`): `_fill_row` пишет его из
-раскладки, он сохраняется и уходит клиенту с чанком; у чанка, сохранённого раньше, его раскладывают заново
-по ряду за шаг (`_biome_row`). По нему клиент красит грунт и воду (`tints` биома), а растения со списком
-`biomes` растут только там. Правила спрашивают биом через `WorldGen.biome_of(x, z)`: из чанка, а без
-него — раскладкой одного столбца (то же самое, проверяет generation_test). Деревья растут на траве и на грунтах из `trees_on` биома
-(`Biomes.tree_grounds`: пальмы на песке; крона пальмы — один плоский круглый ярус точек на макушке,
-`Growth._palm`, клиент рисует его как ярус ели, `Foliage._fronds`). Чанк делается только по стадиям и
-кусками: никакой генерации целого чанка в кадре (`tests/frame_test.gd`).
+**Limits.** Worlds of old seeds after a change of biomes are laid out differently (accepted, decision 146);
+the settings `relief` and `climate` are stored in the world so that old worlds do not change. A biome's zone
+(`zone` in the record) is only a label for the map and reports: which zone lies where is decided by the
+record's warmth window. A column's moisture is never below 0.2 (`m` in `_layout_row`: the noise gives
+0.4–1.0, nearness of water takes it down to 0.2), so windows drier than 0.2 are empty; the shares of biomes
+on the world's map — by a script over `gen.lay_out` with a step (like `tools/map.gd`). With `climate` 1 the
+mountain zone is relief biomes: the rocks of mountains in the warmth window of the biome `glacier` — a glacier
+(snow on slopes, ice in walls), open slopes up to `ALPINE_BELOW` levels under the line of rocks without a
+forest in the window `alpine` — an alpine meadow; a dry channel in a land under snow (an icy waste) — snow,
+not sand. A relief record (`beach`, `swamp`…) with its own warmth or moisture window is its variant
+(`Biomes.VARIANTS`, `Biomes.relief`): with `climate` 1 a shore and a swamp in this window take it (a tropical
+shore, mangroves), an open sea — the sea's variant (a tropical sea; lakes and rivers stay the sea). A chunk
+stores the biome of each column (`Chunk.biome`, `WorldData.biome_at`): `_fill_row` writes it from the layout,
+it is saved and goes to the client with the chunk; a chunk saved earlier has it laid out again by a row per
+step (`_biome_row`). By it the client paints the soil and water (the biome's `tints`), and plants with a list
+`biomes` grow only there. The rules ask for the biome through `WorldGen.biome_of(x, z)`: from the chunk, and
+without it — by the layout of one column (the same, generation_test checks it). Trees grow on grass and on
+the soils from the biome's `trees_on` (`Biomes.tree_grounds`: palms on sand; a palm's crown is one flat round
+tier of points on the top, `Growth._palm`, the client draws it as a tier of a spruce, `Foliage._fronds`). A
+chunk is made only by stages and in pieces: no generation of a whole chunk in a frame
+(`tests/frame_test.gd`).
 
-**Тесты.** `tests/unit/generation_test.gd` (`generation`: независимость от порядка; `mountains`, `caves`,
-`relief`, `trees`, `bushes`, `custom_plants`), `tools/bench_gen.gd`, `tools/map.gd` (карта сверху).
+**Tests.** `tests/unit/generation_test.gd` (`generation`: independence from order; `mountains`, `caves`,
+`relief`, `trees`, `bushes`, `custom_plants`), `tools/bench_gen.gd`, `tools/map.gd` (the map from above).
 
-**Подробнее.** `plan/design/landscape.md`, `plan/design/world.md`, `plan/design/trees.md`,
-`plan/architecture/performance.md`; решения о рельефе в журнале `plan/README.md`.
+**In more detail.** `plan/design/landscape.md`, `plan/design/world.md`, `plan/design/trees.md`,
+`plan/architecture/performance.md`; the decisions about relief in the journal `plan/README.md`.

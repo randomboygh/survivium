@@ -1,140 +1,162 @@
-# Звери
+# Beasts
 
-Статус: ACTIVE.
+Status: ACTIVE. A Russian copy: [wildlife_RU.md](wildlife_RU.md).
 
-**Назначение.** Животные мира. Вид задаёт только свойства; кто кому еда и угроза, выводят общие правила.
-Звери появляются вокруг людей, бродят, пасутся, отдыхают вне своих часов, убегают от угроз, охотятся
-голодными; стаи идут за вожаком, летуны ночуют в кронах, лазающие ходоки забираются на деревья, пловцы
-держатся открытой воды, вид с `biomes` появляется только на своей земле.
+**Purpose.** The world's animals. A kind sets only properties; who is food and a threat to whom is derived by
+shared rules. Beasts appear around people, roam, graze, rest outside their hours, flee from threats, hunt when
+hungry; packs follow a leader, flyers roost in crowns, climbing walkers climb trees, swimmers keep to open
+water, a kind with `biomes` appears only on its own land.
 
-**Файлы**
-- `src/shared/game/wildlife.gd` — правила: `start(seed)`, `update(delta)`, `count(kind)`, `wanted(kind)`;
-  `people` — все игроки. Звери принадлежат земле: каждый чанк, сделанный до конца (`_made`: стадия
-  `SHAPED`), в квадрате `SPAWN_REACH` 80 клеток вокруг игрока получает своих (`_settle_new` раз в
-  `SETTLE_EVERY` 1 с → `_populate_chunk`): вида — его `count` на квадрат `ROAM` (`ROAM_CHUNKS` чанков),
-  умноженный на долю биомов вида в чанке (2×2 точки раскладки), дробная часть разыгрывается, стаями; не
-  ближе `START_AWAY` 8 единиц к людям. Пока земля чанка хранится, его звери живут; с забытой землёй
-  (`Session.DROP`) уходят и те, кого никто не видит (`_leave`), а чанк, сделанный снова, получает их снова.
-  Съеденных раз в `RESPAWN_EVERY` 15 с восполняет `_refill`: вида меньше, чем дают доли чанков вокруг
-  игрока, больше чем на `REFILL_SLACK` — новые приходят дальше `NEAR` на сделанной земле; больше — лишние
-  невидимые уходят (`_thin`, так же редеют лягушки после дождя);
-  зверь без зрителя (`near` выключен: не на экране ни одного игрока — прямоугольник, который клиент
-  прислал с вводом, повёрнутый с камерой, не больше `NEAR` 28 единиц в каждую сторону, без экрана круг
-  `NEAR`; `look_from` зовёт сеанс перед шагом) ходит шагами раз в 0,1 с; толчки тел по массе
-  (`_jostle`: зверей рядом на земле сортирует с запада на восток и сверяет каждого только с теми, кто в
-  досягаемости восточнее; радиус тела хранится в `Animal.radius`; `_shove` берёт пол из последнего
-  взгляда зверя, как `_move`; `pushes` для игрока). У зверя номер `id` (по нему его знает копия
-  клиента). Сигналы `born`, `gone`, `stepped`; `moved` — звери, шагнувшие в последнем `update` (по ним
-  сервер собирает снимок, `PlayerLink._snap`). Решая (`_decide`), зверь перебирает только виды, которые
-  ему угроза, еда или свои (`_cares`), по спискам зверей по видам (`_kin`: ведут `_add` и `_remove`,
-  пересобираются, когда число зверей не то, для которого собраны).
-- Охота: `in_front(at, dir)` — зверь, на которого падает удар (ближайший на земле в `STRIKE_REACH` впереди,
-  вплотную — с любой стороны, с `health` больше 0), `hurt(a, power, from)` — удар: зверь теряет `power` (удар оружия с прибавкой навыка Охоты, `SkillSet.blow`)
-  здоровья и `HURT_FLEE` секунд бежит от места удара (даже тот, кто людей не боится), без здоровья убран
-  (`gone`). Удар наносит `WorldActions.strike` (кнопка действия: меч и нож бьют зверя впереди первым делом,
-  остальное в руке — первым делом только зверя вплотную, `STRIKE_CLOSE`, а дальнего — когда больше нечего делать), он же кладёт тушу вида (`carcass`) на землю.
-  `WorldActions.shoot` стреляет оружием с `range` (копьё, праща, лук): по одному `ammo` из сумки (копьё
-  бросают само), туда, куда смотрит игрок (касанием земли — туда, где коснулись), в первого зверя на пути
-  в `range` клеток и угле `AIM_CONE`, если раньше не встала твёрдая клетка; выпущенное сразу ложится на
-  землю там, где упало, а клиент рисует его полёт из ответа (`shot`, `Props.fly_shot`). Другие игроки видят
-  только раненого зверя и упавшую стрелу.
-- Рыбалка: `src/shared/game/fishing.gd` (`Fishing`, шаг сеанса в `step_things`) — лески в воде.
-  `WorldActions.fish`: удочка (класс `rod`, `Tools.can_fish`) без лески закидывает поплавок кнопкой действия
-  (касанием воды — туда, где коснулись) в открытую воду в `range` клеток (`water_ahead`, дальше от берега
-  на `CAST_OUT` клеток, `_cast_out`), с одной наживкой из сумки на крючке (`ammo` удочки); с леской в воде —
-  вытаскивает её (`_pull`). Рыба — настоящий пловец с полем `catch` (вид `creatures`, бандл «Рыба» и
-  окунь): раз в `LURE_EVERY` с шансом `LURE_BAIT` (с наживкой) или `LURE_BARE` (без) ближайшая в `LURE_REACH`
-  от поплавка плывёт к нему (`Animal.bait`, состояние `bait`: ничего другого не боится), у поплавка клюёт
-  `BITE` секунд (`Character.bite`); вытащенная во время поклёва уходит из мира (`Wildlife.take`) и идёт в сумку
-  предметом `catch`, а клиент рисует её полёт к рыбаку (`shot`); не вытащенная съедает наживку и бежит от
-  поплавка. Леску сматывает сама, если рыбак отошёл (`WANDER`), убрал удочку, уснул, умер или вода
-  замёрзла; на замёрзшую воду не закинуть. Клиенту сервер говорит о его леске событием `LINE`, другим — в
-  `PEOPLE`; кнопка действия остаётся нажатой («Смотать», при поклёве «Подсечь»), фигура держит удочку
-  вытянутой (кадр удара `slash`), `src/client/view/fishing_line.gd` рисует леску от кончика удочки
-  (`SpriteSheet.tips`) и поплавок, ныряющий при поклёве (`shaders/fishing_line.gdshader`).
-- Огонь (`_find_fires` раз в `FIRE_EVERY` 0,5 с, `_fire_near`): горящие костры и камины, поставленные
-  светильники и свет в руках людей держат зверей с `fire_wariness` от 0,5 на `scares` своего предмета (мировые
-  единицы; убегающий держится в `FIRE_WARY` раза дальше): зверь в этом круге бежит от огня, как от угрозы, и не
-  выбирает место для прогулки внутри него. Голодная (`BOLD_HUNGER`) стая мясоедов зимой подходит к свету в руке,
-  но не к костру. Рыбе (`fire_wariness: 0`) огонь безразличен. `Wildlife.placed` даёт сеанс.
-- Ручные (`ActionsTame`, решение 178): у `Animal` хозяин `owner` (`Player.id`, −1 — дикий), место `stay`
-  (INF — идёт за хозяином), `fed`, `fed_at`, `shorn_at`. Вид с `tame_food` не бежит от человека с этой едой
-  в руке. Ручной не боится людей, бежит только от зверей-угроз и огня, иначе `_keep_by_owner`: держится в
-  `TAME_FOLLOW` от хозяина (`owner_of`) или бродит в `TAME_ROAM` от места; без хозяина в игре остаётся. Его не
-  уводят `_leave`, `_thin`, не считает `_count_near`; на забытой земле он ждёт. `tamed_list` / `add_tamed` —
-  сохранение (поле «tame» мира, только числа для JSON; до `start` ждут в `_kept_tame`), `breed` — детёныш,
-  `release` — ручной из живоловки, выпущенный из руки.
-  Клиентам ручной не отличается от дикого (подписи кнопки — только в одиночной игре).
-- Нападения (`_fights`, `_fight_step`, решение 178 п. 3; правила общие, виды отличаются свойствами): на людей
-  идёт только вид с `bite` (здоровья за укус) — кабан, медведь, волк. Кто людей не боится (`human_wariness` < 0,5)
-  держит место: к подошедшему ближе `CLOSE` своего зрения встаёт и рычит (`warn`, `WARN` с, крик `alarm`, кадр
-  атаки, игроку «… угрожает: отойдите»), если тот не ушёл — бросается (`charge`); ударенный им отбивается
-  (`_fights_back`, пока здоровья больше половины), иначе бежит. Мясоед охотится на человека (`hunting`), когда
-  бодрствует и очень голоден (`BOLD_HUNGER`), а его стая в зрении сильнее человека (`_strong_enough`: массы
-  стаи, зимой ×`WINTER_BOLD`, как добыча — `AiRules.PREY_RATIO`, против массы человека ×`PERSON_WITS`, меньше по
-  ранам, ×`ARMED` с оружием в руке): три волка зимой идут на раненого, на здорового нет, летом проходят мимо.
-  Вплотную (`BITE_REACH` за обоими телами) зверь прыгает (`bite`, `BITE_TIME`, кадры атаки) и кусает, если человек
-  ещё рядом: `Vitals.wound(bite, "animal:<вид>")` (на экране смерти «Вас загрыз зверь»), толчок `Body.knock`,
-  «… нападает!», сигнал `bit`; следующий укус через `BITE_EVERY`. Защищающийся отстаёт после `DEFEND_BITES`
-  укусов или `DEFEND_RAGE` с, охотник — когда добыча мертва, недоступна или ярость (`HUNT_RAGE`, заново с каждым
-  укусом) прошла; после этого `CALM` с не трогает людей. Огонь (`_fire_near`) обрывает нападение; в воде, в лодке
-  (`riding`) и выше ступени человек недоступен; забор и закрытые калитка, ворота, дверь (вещь выше
-  полутора клеток, `_fenced`) для зверя стена: загон держит ручных кроликов; ручные не нападают. Правило `Rules.animal_attacks` (переключатель
-  «Нападения зверей» на «Тестировании») выключает всё.
-- Подо льдом: рыба (плавает, не летает и не выходит на берег, `under_ice_swimmer`) в замёрзшей воде глубиной
-  от двух клеток плавает под льдом (`under_ice`), появляется там же; утка и лягушка — нет.
-- Отладка ИИ (решение 184): у `Animal` причина `cause` — от чего бежит (`person`, `fire`, `hurt`, `alarm` или вид
-  зверя), на кого охотится (вид), `graze`, `lead`, `owner`; её ставит `_decide`. `mind(a)` — что у зверя на уме
-  (состояние, причина, а в драке с человеком `hunt_person` или `defend`, голод, здоровье, цель, от чего бежит или к
-  чему идёт, вожак, хозяин, ярость, покой, стоит, ранен, зрение, на каком расстоянии боится людей и рычит, думает
-  ли каждый шаг), `minds_near(at, reach)` — всех рядом. Сервер шлёт их событием `MINDS` раз в
-  `PlayerLink.MINDS_EVERY` 0,25 с в `MINDS_REACH` 30 единиц, пока игрок просил (`AI_DEBUG`: в одиночной игре
-  всегда, на сервере только хозяину — `Requests.may_debug`). `src/client/view/ai_debug.gd` (`AiDebug`, переключатель
-  «Отладка ИИ зверей» в «Отладке», F4) рисует над зверями подпись (что делает и почему, голод, здоровье) и линии:
-  к цели (серая), от чего бежит или на кого идёт (красная, оранжевая на охоте, зелёная к поплавку), к вожаку
-  (синяя); касание зверя выбирает его (`pick`, руки при этом ничего не делают): подробная карточка и круги на
-  земле — зрение (белый), «боится людей ближе» (жёлтый), «рычит ближе» (красный). Шейдер линий не прогревается
-  заранее (отладка). `reread()` — виды перечитаны (горячая перезагрузка): кэши `_seen`, `_caring` заново, звери
-  выпавших видов уходят.
-- `src/shared/content/ai_rules.gd` — общие правила по свойствам: `reaches`, `is_food`, `is_threat`,
+**Files**
+- `src/shared/game/wildlife.gd` — the rules: `start(seed)`, `update(delta)`, `count(kind)`, `wanted(kind)`;
+  `people` — all the players. Beasts belong to the ground: each chunk made to the end (`_made`: the stage
+  `SHAPED`) in the square `SPAWN_REACH` of 80 cells around a player gets its own (`_settle_new` once per
+  `SETTLE_EVERY` 1 s → `_populate_chunk`): of a kind — its `count` per square `ROAM` (`ROAM_CHUNKS` chunks),
+  multiplied by the share of the kind's biomes in the chunk (2×2 points of the layout), the fractional part is
+  rolled, in packs; no nearer than `START_AWAY` 8 units to people. While a chunk's ground is kept, its beasts
+  live; with forgotten ground (`Session.DROP`) those that nobody sees leave too (`_leave`), and a chunk made
+  again gets them again. The eaten, once per `RESPAWN_EVERY` 15 s, are refilled by `_refill`: if a kind is
+  fewer than the shares of the chunks around a player give, by more than `REFILL_SLACK` — new ones come
+  farther than `NEAR` on made ground; if more — the extra invisible ones leave (`_thin`, frogs thin out like
+  that after rain); a beast with no viewer (`near` off: not on the screen of any player — the rectangle that
+  the client sent with its input, turned with the camera, no more than `NEAR` 28 units in each direction,
+  without a screen the circle `NEAR`; `look_from` is called by the session before a step) walks by steps once
+  per 0.1 s; the pushes of bodies by mass (`_jostle`: the beasts near on the ground are sorted from west to
+  east and each is checked only with those within reach to the east; the body's radius is stored in
+  `Animal.radius`; `_shove` takes the floor from the beast's last look, like `_move`; `pushes` for the
+  player). A beast has a number `id` (by it the client's copy knows it). The signals `born`, `gone`,
+  `stepped`; `moved` — the beasts that stepped in the last `update` (by them the server collects a snapshot,
+  `PlayerLink._snap`). Deciding (`_decide`), a beast goes through only the kinds that are a threat, food or
+  its own to it (`_cares`), by the lists of beasts by kinds (`_kin`: led by `_add` and `_remove`, rebuilt
+  when the number of beasts is not the one they were collected for).
+- Hunting: `in_front(at, dir)` — the beast on which a blow falls (the nearest on the ground within
+  `STRIKE_REACH` ahead, point-blank — from any side, with `health` above 0), `hurt(a, power, from)` — a blow:
+  the beast loses `power` (a weapon's blow with the addition of the Hunting skill, `SkillSet.blow`) of health
+  and flees `HURT_FLEE` seconds from the place of the blow (even one that does not fear people), without
+  health it is removed (`gone`). The blow is dealt by `WorldActions.strike` (the action button: a sword and a
+  knife hit the beast ahead first, anything else in the hand — first only a beast point-blank,
+  `STRIKE_CLOSE`, and a far one — when there is nothing else to do), it also puts the kind's carcass
+  (`carcass`) on the ground. `WorldActions.shoot` shoots a weapon with `range` (a spear, a sling, a bow): one
+  `ammo` from the bag at a time (a spear is thrown itself), where the player looks (by a tap on the ground —
+  where it was tapped), at the first beast on the way within `range` cells and the angle `AIM_CONE` if a solid
+  cell has not stood earlier; what was shot lies at once on the ground where it fell, and the client draws its
+  flight from the answer (`shot`, `Props.fly_shot`). Other players see only the wounded beast and the fallen
+  arrow.
+- Fishing: `src/shared/game/fishing.gd` (`Fishing`, the session's step in `step_things`) — lines in the water.
+  `WorldActions.fish`: a rod (the class `rod`, `Tools.can_fish`) without a line casts a float with the action
+  button (by a tap on water — where it was tapped) into open water within `range` cells (`water_ahead`,
+  farther from the shore by `CAST_OUT` cells, `_cast_out`), with one bait from the bag on the hook (the rod's
+  `ammo`); with a line in the water — pulls it out (`_pull`). A fish is a real swimmer with the field `catch`
+  (the kind `creatures`, the bundle «Fish» and the perch): once per `LURE_EVERY` with the chance `LURE_BAIT`
+  (with bait) or `LURE_BARE` (without) the nearest within `LURE_REACH` of the float swims to it (`Animal.bait`,
+  the state `bait`: fears nothing else), at the float it bites for `BITE` seconds (`Character.bite`); one
+  pulled out during the bite leaves the world (`Wildlife.take`) and goes into the bag as the item `catch`, and
+  the client draws its flight to the angler (`shot`); one not pulled out eats the bait and flees from the
+  float. The line is reeled in by itself if the angler moved away (`WANDER`), put the rod away, fell asleep,
+  died or the water froze; one cannot cast onto frozen water. The server tells the client about its line by
+  the event `LINE`, the others — in `PEOPLE`; the action button stays pressed («Reel in», at a bite «Hook»),
+  the figure holds the rod stretched out (the blow frame `slash`), `src/client/view/fishing_line.gd` draws the
+  line from the rod's tip (`SpriteSheet.tips`) and the float, diving at a bite
+  (`shaders/fishing_line.gdshader`).
+- Fire (`_find_fires` once per `FIRE_EVERY` 0.5 s, `_fire_near`): burning campfires and fireplaces, placed
+  lights and light in people's hands keep beasts with `fire_wariness` from 0.5 away for the `scares` of their
+  item (world units; a fleeing one keeps `FIRE_WARY` times farther): a beast in this circle flees from the
+  fire as from a threat and does not choose a place for a walk inside it. A hungry (`BOLD_HUNGER`) pack of
+  meat-eaters in winter comes up to a light in the hand, but not to a campfire. To fish (`fire_wariness: 0`)
+  fire is indifferent. `Wildlife.placed` is given by the session.
+- Tame ones (`ActionsTame`, decision 178): an `Animal` has an owner `owner` (`Player.id`, −1 — wild), a place
+  `stay` (INF — follows the owner), `fed`, `fed_at`, `shorn_at`. A kind with `tame_food` does not flee from a
+  person with this food in the hand. A tame one does not fear people, flees only from threat beasts and fire,
+  otherwise `_keep_by_owner`: keeps within `TAME_FOLLOW` of the owner (`owner_of`) or roams within `TAME_ROAM`
+  of a place; without an owner it stays in the game. It is not led away by `_leave`, `_thin`, not counted by
+  `_count_near`; on forgotten ground it waits. `tamed_list` / `add_tamed` — saving (the world's field «tame»,
+  only numbers for JSON; before `start` they wait in `_kept_tame`), `breed` — a young one, `release` — a tame
+  one from a live trap, released from the hand. To clients a tame one is no different from a wild one (the
+  button's captions — only in single player).
+- Attacks (`_fights`, `_fight_step`, decision 178 item 3; the rules are shared, the kinds differ by
+  properties): only a kind with `bite` (health per bite) goes at people — a boar, a bear, a wolf. One that
+  does not fear people (`human_wariness` < 0.5) holds its place: to one who came nearer than `CLOSE` of its
+  sight it stands and growls (`warn`, `WARN` s, the cry `alarm`, the attack frame, to the player «… threatens:
+  step back»), if they did not leave — it charges (`charge`); one hit by it fights back (`_fights_back`, while
+  health is above half), otherwise it flees. A meat-eater hunts a person (`hunting`) when awake and very hungry
+  (`BOLD_HUNGER`), and its pack in sight is stronger than the person (`_strong_enough`: the pack's masses, in
+  winter ×`WINTER_BOLD`, as prey — `AiRules.PREY_RATIO`, against the person's mass ×`PERSON_WITS`, less by
+  wounds, ×`ARMED` with a weapon in the hand): three wolves in winter go at a wounded person, not at a
+  healthy one, in summer they pass by. Point-blank (`BITE_REACH` beyond both bodies) the beast jumps (`bite`,
+  `BITE_TIME`, the attack frames) and bites if the person is still near: `Vitals.wound(bite,
+  "animal:<kind>")` (on the death screen «A beast mauled you»), a push `Body.knock`, «… attacks!», the signal
+  `bit`; the next bite in `BITE_EVERY`. A defender falls behind after `DEFEND_BITES` bites or `DEFEND_RAGE`
+  s, a hunter — when the prey is dead, unreachable or the rage (`HUNT_RAGE`, anew with each bite) has passed;
+  after that `CALM` s it does not touch people. Fire (`_fire_near`) breaks off an attack; in water, in a boat
+  (`riding`) and above a step a person is unreachable; a fence and a closed wicket, gate, door (a thing taller
+  than a cell and a half, `_fenced`) are a wall for a beast: a pen keeps tame rabbits; tame ones do not
+  attack. The rule `Rules.animal_attacks` (the switch «Beast attacks» on «Testing») turns it all off.
+- Under ice: a fish (swims, does not fly and does not come ashore, `under_ice_swimmer`) in frozen water two or
+  more cells deep swims under the ice (`under_ice`), appears there too; a duck and a frog — no.
+- AI debugging (decision 184): an `Animal` has a cause `cause` — what it flees from (`person`, `fire`, `hurt`,
+  `alarm` or a beast's kind), whom it hunts (a kind), `graze`, `lead`, `owner`; it is set by `_decide`.
+  `mind(a)` — what is on a beast's mind (the state, the cause, and in a fight with a person `hunt_person` or
+  `defend`, hunger, health, the goal, what it flees from or goes to, the leader, the owner, rage, calm, stands,
+  wounded, sight, at what distance it fears people and growls, whether it thinks every step), `minds_near(at,
+  reach)` — all near. The server sends them by the event `MINDS` once per `PlayerLink.MINDS_EVERY` 0.25 s
+  within `MINDS_REACH` 30 units while the player asked (`AI_DEBUG`: in single player always, on a server only
+  to the host — `Requests.may_debug`). `src/client/view/ai_debug.gd` (`AiDebug`, the switch «Beasts' AI
+  debugging» in «Debug», F4) draws over the beasts a caption (what it does and why, hunger, health) and lines:
+  to the goal (grey), from what it flees or whom it goes at (red, orange on a hunt, green to a float), to the
+  leader (blue); a tap on a beast selects it (`pick`, the hands do nothing meanwhile): a detailed card and
+  circles on the ground — sight (white), «fears people nearer than» (yellow), «growls nearer than» (red). The
+  line shader is not warmed up beforehand (debugging). `reread()` — the kinds were reread (hot reload): the
+  caches `_seen`, `_caring` anew, beasts of dropped kinds leave.
+- `src/shared/content/ai_rules.gd` — the shared rules by properties: `reaches`, `is_food`, `is_threat`,
   `is_active`; `AiRules.SPECIES`.
-- `src/client/net/remote_wildlife.gd` — копия зверей на клиенте из событий сервера `animal`, `snap`,
-  `animal_gone`, `step` ([network.md](network.md)): свой `Animal` с полями, что читают виды, те же
-  сигналы. По сокету (`smooth`) снимки идут ~10 раз в секунду и неровно: зверь скользит от места, где
-  нарисован, к новому за время между двумя снимками (`glide`, его зовёт `Creatures` каждый кадр; дальше
-  `GLIDE_MOST` — сразу); в своём мире снимок каждый кадр берётся как есть.
-- `src/client/game/creatures.gd` — рисует зверей копии: кадр 0 в покое, кадры шага по шагам, кадры
-  крыльев в воздухе; картинку ставит заново, когда сервер сдвинул зверя (`Animal.fresh`).
-- `src/client/audio/voices.gd` — голоса (`calls`) и крик испуга (`alarm`); `src/client/world/tracks.gd` —
-  следы.
+- `src/client/net/remote_wildlife.gd` — the beasts' copy on the client from the server's events `animal`,
+  `snap`, `animal_gone`, `step` ([network.md](network.md)): its own `Animal` with the fields the views read,
+  the same signals. Over a socket (`smooth`) the snapshots come ~10 times a second and unevenly: a beast
+  glides from the place where it is drawn to the new one in the time between two snapshots (`glide`, called by
+  `Creatures` every frame; farther than `GLIDE_MOST` — at once); in one's own world a snapshot every frame is
+  taken as is.
+- `src/client/game/creatures.gd` — draws the copy's beasts: frame 0 at rest, the steps' frames by steps, the
+  wings' frames in the air; it sets the picture anew when the server moved the beast (`Animal.fresh`).
+- `src/client/audio/voices.gd` — the voices (`calls`) and the cry of fright (`alarm`);
+  `src/client/world/tracks.gd` — tracks.
 
-**Кто использует.** Сеанс мира (`session.gd`: создаёт, `start_wildlife` после готовности мира, шаг
-`step_wildlife` каждый кадр из Main), `player_link.gd` (события для клиента); копию —
-`creatures.gd`, `voices.gd`, следы, `fire_shadows.gd` (тени зверей у огня); тесты и `tools/shot.gd`
-пишут в `main.session.wildlife`.
+**Who uses it.** The world session (`session.gd`: creates, `start_wildlife` after the world is ready, the step
+`step_wildlife` every frame from Main), `player_link.gd` (events for the client); the copy — `creatures.gd`,
+`voices.gd`, tracks, `fire_shadows.gd` (the beasts' shadows by a fire); tests and `tools/shot.gd` write into
+`main.session.wildlife`.
 
-**Данные.** Вид `creatures` (`health`, `carcass`, `bite`, `mass`, `diet`, `speed`, `sight`, `human_wariness`, `fire_wariness`, `active`, `count`,
-`sprite`, `frames`, `walk`, `hop`, `attack`, `views`, `flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`,
-`likes`, `biomes`, `calls`, `alarm`, приручение: `tame_food`, `tame_feeds`, `wool`, `wool_days`, `breed_days`, `herd`, `trapped` — живой предмет из живоловки) в бандлах `content/animals/<зверь>/`; картинка —
-`sprites/creatures/<sprite>.png` бандла: ряд на сторону (`views`: 1 — сбоку; 3 — сбоку, спереди, сзади),
-в ряду `frames`
-кадров — стоит, `walk` кадров шага или взмахов, последние `hop` у летающего — прыжки по земле
-(присел, в воздухе; летающий без `hop` — бабочка, `Wildlife.sits_still` — по земле не ходит и не толкается:
-либо летит, либо сидит на месте со сложенными крыльями и изредка, каждая в своё время, хлопает ими (`SIT_GAP`, `SIT_FLUTTER`, `SIT_FLAP_RATE`)), за ними `attack` — нападение (рывок к укусу, первый — пока зверь предупреждает), остальные — покоя (рисует `tools/make_creatures.py` с `tools/creature_kit.py`,
-воробья — `tools/make_sparrow.py`, ворону, сову и утку — `tools/make_birds.py`, лягушку — `tools/make_frog.py`, рыб — `tools/make_fish.py`, зайца — `tools/make_rabbit.py`, белку — `tools/make_squirrel.py`, лису — `tools/make_fox.py`, оленя — `tools/make_deer.py`, кабана — `tools/make_boar.py`, медведя — `tools/make_bear.py`, волка — `tools/make_wolf.py`, дикую кошку — `tools/make_cat.py`, ежа — `tools/make_hedgehog.py`). `creatures.gd` выбирает сторону по движению на экране
-(`TURN_BIAS`), шаг — по пройденному
-пути (прыжки летающего — `HOP_STEP`), кадры покоя — изредка (`IDLE_GAP`, `IDLE_HOLD`, последний — `IDLE_LONG`).
-Тень от солнца спрайт отбрасывает своим кадром, повернувшись к свету (`sprite.gdshader`); у летящего (кадры взмахов
-летающего) тень — кадр того же взмаха из ряда «спереди», положенный плашмя на середине высоты, крыльями поперёк
-пути (`flat_shadow`, `shadow_uv`): птица сверху, а не профиль, вытянутый солнцем. Проверка — снимок `animal-shadows`.
-Пример зверя одними данными и картинкой: `content/animals/sparrow/README.md`.
+**Data.** The kind `creatures` (`health`, `carcass`, `bite`, `mass`, `diet`, `speed`, `sight`,
+`human_wariness`, `fire_wariness`, `active`, `count`, `sprite`, `frames`, `walk`, `hop`, `attack`, `views`,
+`flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`, `likes`, `biomes`,
+`calls`, `alarm`, taming: `tame_food`, `tame_feeds`, `wool`, `wool_days`, `breed_days`, `herd`, `trapped` — a
+live item from a live trap) in the bundles `content/animals/<beast>/`; the picture is the bundle's
+`sprites/creatures/<sprite>.png`: a row per side (`views`: 1 — from the side; 3 — side, front, back), in a
+row `frames` frames — standing, `walk` frames of a step or wing strokes, the last `hop` of a flyer — hops on
+the ground (crouched, in the air; a flyer without `hop` is a butterfly, `Wildlife.sits_still` — does not walk
+on the ground and is not pushed: it either flies or sits in place with folded wings and now and then, each at
+its own time, flaps them (`SIT_GAP`, `SIT_FLUTTER`, `SIT_FLAP_RATE`)), after them `attack` — an attack (a
+dash to a bite, the first — while the beast warns), the others — of rest (drawn by `tools/make_creatures.py`
+with `tools/creature_kit.py`, the sparrow — `tools/make_sparrow.py`, the crow, owl and duck —
+`tools/make_birds.py`, the frog — `tools/make_frog.py`, fish — `tools/make_fish.py`, the hare —
+`tools/make_rabbit.py`, the squirrel — `tools/make_squirrel.py`, the fox — `tools/make_fox.py`, the deer —
+`tools/make_deer.py`, the boar — `tools/make_boar.py`, the bear — `tools/make_bear.py`, the wolf —
+`tools/make_wolf.py`, the wild cat — `tools/make_cat.py`, the hedgehog — `tools/make_hedgehog.py`).
+`creatures.gd` chooses the side by the movement on screen (`TURN_BIAS`), a step — by the path walked (a
+flyer's hops — `HOP_STEP`), the frames of rest — now and then (`IDLE_GAP`, `IDLE_HOLD`, the last —
+`IDLE_LONG`). The sun's shadow is cast by the sprite with its own frame, turned to the light
+(`sprite.gdshader`); for a flying one (the frames of a flyer's strokes) the shadow is the frame of the same
+stroke from the row «from the front», laid flat at mid-height, with the wings across the path (`flat_shadow`,
+`shadow_uv`): the bird from above, not a profile stretched by the sun. The check is the shot `animal-shadows`.
+An example of a beast by data and a picture alone: `content/animals/sparrow/README.md`.
 
-**Ограничения.** Ходок не достаёт пловца и наоборот, летун достаёт обоих. Биом столбца берётся из
-`gen.lay_out`. Ныряния нет; сторона зверя у клиента выводится из его движения, сервер её не знает. Голоса бандл приносит готовыми `.wav`
-(синтез — таблица в `tools/make_sounds.gd`).
+**Limits.** A walker does not reach a swimmer and the other way round, a flyer reaches both. The column's
+biome is taken from `gen.lay_out`. There is no diving; the beast's side on the client is derived from its
+movement, the server does not know it. The voices are brought by a bundle as ready `.wav` (the synthesis — a
+table in `tools/make_sounds.gd`).
 
-**Тесты.** `tests/unit/wildlife_test.gd` (`ai_relations`, `wildlife`, `climbers`, `biomes`, `swimmers`, `fishing`,
-`birds`, `shore`, `jostle`, `hunting`, `fire`, `taming`, `attacks`; стая ждёт тактов мышления, а не порядка случайных чисел).
+**Tests.** `tests/unit/wildlife_test.gd` (`ai_relations`, `wildlife`, `climbers`, `biomes`, `swimmers`,
+`fishing`, `birds`, `shore`, `jostle`, `hunting`, `fire`, `taming`, `attacks`; a pack waits for the ticks of
+thinking, not for the order of random numbers).
 
-**Подробнее.** `plan/design/creatures-ai.md`; `plan/architecture/ai.md` — замысел движка поведения
-(формулы помечены как черновик, в коде проще).
+**In more detail.** `plan/design/creatures-ai.md`; `plan/architecture/ai.md` — the idea of the behaviour
+engine (the formulas are marked as a draft, in the code it is simpler).

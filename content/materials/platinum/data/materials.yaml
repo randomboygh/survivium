@@ -1,6 +1,6 @@
-# Платиновая руда: редкие жилы в камне (role: ore, veins — доля жил против других руд), её берёт бронзовая кирка
-# и лучше (hardness 4); платиновый блок — блок из слитков, его ставят как кирпич. Поля — как у материалов
-# основы (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
+# Platinum ore: rare veins in stone (role: ore, veins — the share of veins against other ores), a bronze pickaxe
+# and better takes it (hardness 4); a platinum block — a block of ingots, placed like brick. Fields as for the
+# core's materials (content/core/data/materials.yaml); sounds by name, from the "Sounds" mod.
 - id: platinum_ore
   title: "[materials.materials.platinum_ore]"
   role: ore

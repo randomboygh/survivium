@@ -1,7 +1,7 @@
-# Фонарь: стекло в медной оправе, внутри горит смола. Светит дальше факела и горит много дольше
-# (burns — секунд в руке, расходуется, как факел), вплавь его держат над водой, как факел. Без листа
-# в руках (sprite) его держат, как иконку; огонь — в самой яркой её точке. Поля — как у предметов
-# основы (content/core/data/items.yaml).
+# Lantern: glass in a copper frame, with tar burning inside. Gives light farther than a torch and burns much longer
+# (burns - seconds in the hand, it is used up like a torch), you can hold it over water while swimming, like a torch. Without a sheet
+# in the hands (sprite) it is held like an icon; the fire is at the brightest point of the icon. Fields are as for
+# the core items (content/core/data/items.yaml).
 - id: lantern
   title: "[tools.items.lantern]"
   description: "[tools.items.lantern.about]"

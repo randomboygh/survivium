@@ -1,4 +1,4 @@
-# Рецепт бандла «Холщовый рюкзак»: ткань, кожу и верёвку («Материалы») шьют иглой (бандл «Игла»).
+# Recipe of the "Canvas backpack" bundle: cloth, leather and rope ("Materials") are sewn with a needle (the "Needle" bundle).
 - id: canvas_backpack
   title: "[tools.recipes.canvas_backpack]"
   makes: canvas_backpack

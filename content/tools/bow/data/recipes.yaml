@@ -1,4 +1,4 @@
-# Рецепты бандла «Лук»: лук и стрелы делают на верстаке.
+# Recipes of the "Bow" bundle: the bow and arrows are made at the workbench.
 - id: wooden_bow
   title: "[tools.recipes.wooden_bow]"
   makes: wooden_bow

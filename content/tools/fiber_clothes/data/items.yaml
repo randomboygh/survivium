@@ -1,6 +1,6 @@
-# Предметы бандла «Одежда из волокна» мода «Инструменты и крафт»: первая одежда, которую плетут
-# руками. wear_on — слот тела (head, body, legs, feet), warmth — на сколько градусов теплее в ней
-# (src/shared/game/warmth.gd; мокрая греет вполовину). Тёплая одежда из шкур придёт позже.
+# Items of the "Fiber clothes" bundle of the "Tools and crafting" mod: the first clothes, woven
+# by hand. wear_on - the body slot (head, body, legs, feet), warmth - how many degrees warmer you are in it
+# (src/shared/game/warmth.gd; wet clothes warm by half). Warm clothes from hides will come later.
 - id: fiber_hat
   title: "[tools.items.fiber_hat]"
   description: "[tools.items.fiber_hat.about]"

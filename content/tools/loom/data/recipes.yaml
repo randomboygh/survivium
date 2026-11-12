@@ -1,5 +1,5 @@
-# Рецепты бандла «Ткацкий станок»: сам станок — на верстаке из досок, веток и верёвки; на нём
-# грубая ткань из верёвки («Материалы»). Поля рецепта — docs/DATA_MODEL.md.
+# Recipes of the "Loom" bundle: the loom itself - at the workbench from planks, branches and rope; on it
+# coarse cloth from rope ("Materials"). Recipe fields are in docs/DATA_MODEL.md.
 - id: loom
   title: "[tools.recipes.loom]"
   makes: loom

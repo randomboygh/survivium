@@ -1,5 +1,5 @@
-# Сундук стоит у точки появления каждого нового мира, где включён этот бандл: патч старта основы
-# (content/core/data/starts.yaml). Без бандла сундука лагерь остаётся одним костром.
+# A chest stands at the spawn point of every new world where this bundle is enabled: a patch of the core start
+# (content/core/data/starts.yaml). Without the chest bundle the camp stays a lone campfire.
 - id: core:default
   patch: true
   camp+:

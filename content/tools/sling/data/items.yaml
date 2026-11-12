@@ -1,7 +1,7 @@
-# Предметы бандла «Праща» мода «Инструменты и крафт»: оружие, которое бросают или из которого стреляют.
-# range — как далеко (в клетках), ammo — чем стреляют (по одному из сумки на выстрел; без него бросают само
-# оружие); удар по зверю — power. Кнопка действия стреляет туда, куда смотрит персонаж, касание земли — туда,
-# где коснулись; выстрел попадает в первого зверя на пути, а выпущенное ложится там, где упало.
+# Items of the "Sling" bundle of the "Tools and crafting" mod: a weapon that is thrown or shot.
+# range - how far (in cells), ammo - what it shoots (one from the bag per shot; without it the weapon
+# itself is thrown); the hit on an animal is power. The action button shoots where the character is looking, a touch on the ground - where
+# it was touched; the shot hits the first animal in its path, and what was fired lies where it fell.
 - id: cord_sling
   title: "[tools.items.cord_sling]"
   description: "[tools.items.cord_sling.about]"

@@ -1,5 +1,5 @@
-# Рецепт бандла «Факел»: ветка, обмотанная волокном (бандлы «Дерево» и «Волокно» «Ресурсов»),
-# руками, без станка.
+# Recipe of the "Torch" bundle: a branch wrapped in fiber (the "Wood" and "Fiber" bundles of "Resources"),
+# by hand, without a station.
 - id: torch
   title: "[tools.recipes.torch]"
   makes: torch

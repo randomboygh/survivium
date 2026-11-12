@@ -48,7 +48,7 @@ docs/                    эта документация (audit/ — отчёт�
 | `src/shared/world/world_data.gd` | мир, его ячейки и формы (больше 50 зависимых) |
 | `src/shared/world/world_gen.gd` | генератор по стадиям и заданиям |
 | `src/client/world/chunk_streamer.gd` | что и когда строится в кадре: бюджеты, срез уровней |
-| `src/shared/game/world_actions.gd` | всё, что руки делают с миром (части по темам — `actions_*.gd`, см. [systems/interaction.md](systems/interaction.md)) |
+| `src/shared/game/world_actions.gd` | всё, что руки делают с миром (части по темам — `actions_*.gd`, см. [systems/interaction.md](systems/interaction_RU.md)) |
 | `src/shared/game/session.gd` | сеанс мира: правила над миром, игроки, тик (то, что крутит сервер) |
 | `src/shared/net/protocol.gd` | протокол: виды запросов клиента к правилам и сообщения в байты |
 | `src/client/save_game.gd` | когда и что сохраняется (переводы старых сохранений — `world_store.gd`) |
@@ -60,15 +60,15 @@ docs/                    эта документация (audit/ — отчёт�
 | Что | Куда |
 |---|---|
 | Правило игры (что решает сервер) | `src/shared/game/` (данные мира — `src/shared/world/`, загрузка данных — `src/shared/content/`) |
-| Новый запрос клиента к правилу | вид и аргументы в `src/shared/net/protocol.gd`, ветка в `src/server/requests.gd`, вызов `game.net.request` на клиенте ([systems/network.md](systems/network.md)) |
+| Новый запрос клиента к правилу | вид и аргументы в `src/shared/net/protocol.gd`, ветка в `src/server/requests.gd`, вызов `game.net.request` на клиенте ([systems/network.md](systems/network_RU.md)) |
 | Как это показать, спросить, озвучить | папка слоя в `src/client/` |
 | Новая система | новый модуль-скрипт; Main создаёт его и передаёт себя как `game`; строка в [SYSTEMS.md](SYSTEMS_RU.md) |
 | Числа и записи контента | YAML мода и схема в `content_schema.gd`, не константы кода ([DATA_MODEL.md](DATA_MODEL_RU.md)) |
 | Новое существо, растение, инструмент, биом | папка-бандл в своём моде (`content/animals/<имя>/` …), см. README мода |
-| 3D-шейдер | `shaders/`, с `#include "res://shaders/common.gdshaderinc"` ([systems/rendering.md](systems/rendering.md)) |
-| Тест правила | `tests/unit/<тема>_test.gd` и имя темы в `FILES` в `tests/run_tests.gd`; генеративный — `tests/unit/properties_test.gd` ([testing/TESTING_GUIDE.md](testing/TESTING_GUIDE.md)) |
+| 3D-шейдер | `shaders/`, с `#include "res://shaders/common.gdshaderinc"` ([systems/rendering.md](systems/rendering_RU.md)) |
+| Тест правила | `tests/unit/<тема>_test.gd` и имя темы в `FILES` в `tests/run_tests.gd`; генеративный — `tests/unit/properties_test.gd` ([testing/TESTING_GUIDE.md](testing/TESTING_GUIDE_RU.md)) |
 | Инструмент разработки | `tools/` (рисовалки — `tools/art/`, звук — `tools/sound/`) |
-| Окно или элемент интерфейса | из частей кита `src/client/ui/kit/` ([systems/ui.md](systems/ui.md), «UI-кит»); новая общая часть — в кит и в «Витрину интерфейса» |
+| Окно или элемент интерфейса | из частей кита `src/client/ui/kit/` ([systems/ui.md](systems/ui_RU.md), «UI-кит»); новая общая часть — в кит и в «Витрину интерфейса» |
 | Картинка интерфейса | `assets/ui/` |
 | Документ о коде | `docs/` (система — `docs/systems/`) |
 | Геймдизайн, решение, задача | библиотека: `plan/design/`, журнал в `plan/README.md`, `plan/backlog.md` |
