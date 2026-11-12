@@ -33,7 +33,7 @@ func _init(g) -> void:
 	_box = VBoxContainer.new()
 	_box.add_theme_constant_override("separation", 6)
 	_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	add_child(UiStyle.inset(_box))
+	add_child(UiStyle.inset(_box, self))
 	DragScroll.attach(self)
 
 

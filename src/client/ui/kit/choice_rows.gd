@@ -54,6 +54,9 @@ func width() -> float:
 ## Adds a row to `parent` (see the options above) and returns its box.
 func add(parent: Node, name: String, values: Array, getter: Callable, setter: Callable, opts := {}) -> HBoxContainer:
 	var row := Kit.row(2)
+	# The row takes the room it is given and its name the rest: its arrows or switch end
+	# where the window's other parts do (no room on the right while nothing scrolls).
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	parent.add_child(row)
 	var label := _name(name, opts)
 	row.add_child(label)
@@ -243,6 +246,7 @@ func key(event: InputEvent) -> bool:
 func _name(name: String, opts: Dictionary) -> Label:
 	var label := UiStyle.label(name)
 	label.custom_minimum_size = Vector2(opts.get("name_width", name_width), 0)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	if opts.get("wrap", false):
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

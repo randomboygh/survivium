@@ -48,7 +48,6 @@ var game
 var section := "buttons"
 var _tab_buttons := {}
 var _scroll: ScrollContainer
-var _room: MarginContainer
 var _list: VBoxContainer
 var _said: Label
 ## The settings' rows of the «Строки» tab: the index chosen of each, by name, and the rows.
@@ -80,7 +79,6 @@ func _ready() -> void:
 		_tab_buttons[SECTIONS[i][0]] = tabs.get_child(i)
 	_list = Kit.column(4)
 	_scroll = Kit.scroll(_list)
-	_room = _list.get_parent()
 	box.add_child(_scroll)
 	_said = UiStyle.label("[tap_anything]", UiStyle.MUTED)
 	_said.clip_text = true
@@ -338,12 +336,22 @@ func _lists_page() -> void:
 	var inner := Kit.scroll(rows)
 	inner.custom_minimum_size = Vector2(0, 140)
 	_list.add_child(inner)
-	UiStyle.bar_room(rows.get_parent(), true, inner)
 	for i in 20:
 		var label := Lang.f("[line_n3]", [i + 1])
 		var b := Kit.button(label, say.bind(label))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		rows.add_child(b)
+	# The kit's rule (UiStyle.inset): room on the right only while a list scrolls.
+	_caption("[a_short_list_that_does]")
+	var few := Kit.column(4)
+	var short := Kit.scroll(few)
+	short.custom_minimum_size = Vector2(0, 80)
+	_list.add_child(short)
+	for i in 2:
+		var label := Lang.f("[line_n3]", [i + 1])
+		var b := Kit.button(label, say.bind(label))
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		few.add_child(b)
 	_caption("[button_column_with_arrows]")
 	var column := ScrollColumn.new(28)
 	var buttons := []
@@ -553,7 +561,6 @@ func layout(screen: Vector2) -> void:
 	var width := minf(screen.x - 2 * MARGIN - UiStyle.PAD.x - UiStyle.PAD.z, MOST_WIDTH)
 	width = maxf(width, ROW_WIDTH + 2 * UiStyle.BAR_GAP + UiStyle.SCROLL_BAR)
 	_scroll.custom_minimum_size = Vector2(width, 0)
-	UiStyle.bar_room(_room, true, _scroll)
 	panel.reset_size()
 	var rest := panel.get_combined_minimum_size().y
 	_scroll.custom_minimum_size.y = clampf(screen.y - 2 * MARGIN - rest, 80.0, MOST_HEIGHT)

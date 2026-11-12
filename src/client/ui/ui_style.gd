@@ -1586,22 +1586,31 @@ const SCROLL_BAR := 3
 const BAR_GAP := 6
 
 
-## `content` in a box with BAR_GAP of room on its left and right, to put in a
-## ScrollContainer (its bar takes its own room right of that).
-static func inset(content: Control) -> MarginContainer:
+## `content` in a box with BAR_GAP of room on its left, to put in a ScrollContainer:
+## BAR_GAP of room on its right too, before the scroll's bar (which takes its own room
+## right of that), only while the bar shows; with no bar the rows reach the right side
+## as far as the window's other parts (the user's ask 2026-11-12: no room on the right
+## of a window that does not scroll). `scroll`, given, is the ScrollContainer it goes
+## into: the room follows its bar (Kit.scroll gives it).
+static func inset(content: Control, scroll: ScrollContainer = null) -> MarginContainer:
 	var m := MarginContainer.new()
 	m.add_theme_constant_override("margin_left", BAR_GAP)
-	m.add_theme_constant_override("margin_right", BAR_GAP)
+	m.add_theme_constant_override("margin_right", 0)
 	m.add_theme_constant_override("margin_top", 0)
 	m.add_theme_constant_override("margin_bottom", 0)
 	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	m.add_child(content)
+	if scroll != null:
+		var bar := scroll.get_v_scroll_bar()
+		bar.visibility_changed.connect(func() -> void: bar_room(m, bar.visible))
+		bar_room(m, bar.visible)
 	return m
 
 
 ## Room on the right of `room` (a MarginContainer between a ScrollContainer and what it
 ## holds) for the scroll's bar and BAR_GAP before it while `on` (the list is taller than
-## its window), none otherwise: the bar never covers the rows.
+## its window), none otherwise: the bar never covers the rows, and with no bar there is
+## no room on the right. Without `scroll` only BAR_GAP (an inset's room, UiStyle.inset).
 static func bar_room(room: MarginContainer, on: bool, scroll: ScrollContainer = null) -> void:
 	var bar := 0.0
 	if on and scroll != null:

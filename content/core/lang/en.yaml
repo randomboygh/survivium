@@ -1100,6 +1100,7 @@
 "[ws_address_port]": "ws://address:port"
 "[enter]": "Enter"
 "[a_list_scrolled_by_finger]": "A list scrolled by finger and bar"
+"[a_short_list_that_does]": "A short list does not scroll: no room on the right"
 "[button_column_with_arrows]": "Button column with arrows"
 "[lines_that_come_and_go]": "Lines that come and go (notifications, chat)"
 "[add_a_line]": "Add a line"

@@ -170,8 +170,10 @@ static func gap(height := 8.0) -> Control:
 
 
 ## A list that scrolls `content` up and down, by its bar and by a finger or the mouse
-## dragged over it (DragScroll); `inset`: the rows keep BAR_GAP from its sides as the
-## settings' do (UiStyle.inset). Without it the rows stand flush with the window's
+## dragged over it (DragScroll); `inset`: the rows keep BAR_GAP from its left side as
+## the settings' do, and from the bar only while it shows (UiStyle.inset). The kit's
+## rule for every window: room on the right only while the list scrolls; a window
+## that does not scroll has none there. Without `inset` the rows stand flush with the window's
 ## other parts, and only while the list scrolls the bar and BAR_GAP before it get
 ## room of their own on the right (UiStyle.bar_room), so the bar never covers a row's
 ## end (a world's trash button); `content` that is a MarginContainer is that room itself.
@@ -181,7 +183,7 @@ static func scroll(content: Control, inset := true) -> ScrollContainer:
 	s.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if inset:
-		s.add_child(UiStyle.inset(content))
+		s.add_child(UiStyle.inset(content, s))
 	else:
 		var room: MarginContainer = content if content is MarginContainer else MarginContainer.new()
 		if room != content:

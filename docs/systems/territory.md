@@ -120,7 +120,7 @@ single player's player is number 0).
   «Take the post» — a button in the window's head by the cross (`head_buttons`, as at a chest; `prop_take` of
   the centre, one must stand near). For a member of the owner's team — the same rows with no pressing; on
   another's — the land's name and what may be done there. The rows of the tabs «Land» and «Team» keep off the
-  edges, as in the settings (`UiStyle.inset`, `BAR_GAP`).
+  edges, as in the settings (`UiStyle.inset`, `BAR_GAP`; on the right only while they scroll).
 
 **How it is built (Т4: respawn at the team's campfires, leaving the game)**
 - A campfire placed from the bag remembers who placed it: `by` of the `Placed` record (the player's number, 0
