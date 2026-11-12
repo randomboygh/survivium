@@ -128,7 +128,10 @@ var _camera_text := ""
 var _level_ink := Color(0, 0, 0, 0)
 var _bar: PanelContainer
 var _hand_left
+## The right hand's slot: hidden on a phone held upright unless `second_hand` (one_hand).
 var _hand_right
+## The setting «Вторая рука»: the right hand shows on a phone held upright too.
+var second_hand := false
 var _slots := []
 var _bar_row: HBoxContainer
 ## The hotbar's slots between their arrows (kit's SlotStrip): which are shown.
