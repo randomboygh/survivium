@@ -132,7 +132,7 @@ content/<мод>/common/             ассеты, общие для бандл�
 | Игрок | `content/core/sprites/player/*.png`, `player.yaml`, `hands.png` | слои | `Figure` |
 | Одежда на фигуре | `sprites/worn/<look>.png` | слой листа игрока | `Figure.dressed` |
 
-Картинки интерфейса — `assets/ui/`. Рисуют ассеты `tools/make_*` (см. [systems/testing.md](systems/testing.md)).
+Картинки интерфейса — `assets/ui/`. Рисуют ассеты `tools/make_*` (см. [systems/testing.md](systems/testing_RU.md)).
 
 ## Числа во время игры
 

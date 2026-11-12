@@ -1,44 +1,48 @@
-# Анти-чит: обнаружение и меры
+# Anti-cheat: detection and measures
 
-Статус: ACTIVE (этап 7, 2026-11-06). Главный принцип — сервер не принимает готовый результат: он сам
-считает добычу, крафт, урон, силы и место тела. Обнаружение здесь — не доказательство чита, а сигнал
-хозяину; автоматических постоянных банов нет.
+Status: ACTIVE (stage 7, 2026-11-06). The main principle — the server does not accept a ready result: it
+counts the yield, crafting, damage, strengths and the body's place itself. Detection here is not a proof of
+cheating but a signal to the host; there are no automatic permanent bans. A Russian copy:
+[ANTI_CHEAT_RU.md](ANTI_CHEAT_RU.md).
 
-## Что замечается
+## What is noticed
 
-| Вид записи | Откуда | Что значит |
+| Kind of entry | From where | What it means |
 |---|---|---|
-| `pace` | `Requests` | запрос работы рук пришёл, когда работы вперёд больше `WORK_AHEAD` |
-| `malformed` | `Requests`, `Server._take` | запрос не по форме или не сообщение |
-| `flood` | `Server._within_rate` | сообщения чаще `MSG_RATE` |
-| `connections` | `Server.poll` | слишком много соединений без приветствия |
-| `login` | `Server._hello` | отказ по паролю, бану, списку, частоте |
-| `command` | `Server._on_chat` | команда «/» без роли |
-| `role`, `give`, `kick` | `Server.command`, `kick` | выдача и снятие роли, выдача вещей, отключение |
+| `pace` | `Requests` | a request of the hands' work came when the work ahead is more than `WORK_AHEAD` |
+| `malformed` | `Requests`, `Server._take` | a request not of the right form or not a message |
+| `flood` | `Server._within_rate` | messages more often than `MSG_RATE` |
+| `connections` | `Server.poll` | too many connections without a greeting |
+| `login` | `Server._hello` | a refusal by password, ban, list, frequency |
+| `command` | `Server._on_chat` | a «/» command without a role |
+| `role`, `give`, `kick` | `Server.command`, `kick` | giving and taking away a role, giving things, disconnection |
 
-Отказанные шаги тела только считаются (`Player.refused_moves`) и в журнал не пишутся: честная
-задержка сети тоже даёт отказы; мера для них — возврат тела (ниже).
+The refused steps of the body are only counted (`Player.refused_moves`) and are not written to the log: an
+honest network delay gives refusals too; the measure for them is the body's return (below).
 
-## Уровни реакции
+## Levels of reaction
 
-1. **Запись** (`Server.flag`, уровень 0–2) — всегда.
-2. **Повторная проверка** — каждый запрос проверяется правилом заново по состоянию сервера.
-3. **Отказ запроса** — `null`, `false` или `{}`; ничего не меняется.
-4. **Временное ограничение** — темп работы, пропуск сообщений сверх частоты, ожидание при переборе пароля.
-5. **Возврат тела** — после `STRIKES` отказов подряд сервер ставит тело туда, куда дошло его тело.
-6. **Отключение** — только при флуде (`FLOOD_KICK` секунд перебора), код 4003.
-7. **Бан** — только хозяином (`ban`), по его решению.
+1. **An entry** (`Server.flag`, level 0–2) — always.
+2. **A repeated check** — every request is checked by the rule anew by the server's state.
+3. **A refusal of the request** — `null`, `false` or `{}`; nothing changes.
+4. **A temporary limit** — the pace of work, skipping messages beyond the frequency, a wait on password
+   guessing.
+5. **The body's return** — after `STRIKES` refusals in a row the server puts the body where its own body got
+   to.
+6. **Disconnection** — only on a flood (`FLOOD_KICK` seconds of excess), code 4003.
+7. **A ban** — only by the host (`ban`), by their decision.
 
-## Журнал безопасности
+## The security log
 
-`Server.security_log` — последние `SECURITY_KEPT` 500 записей: время, номер и имя игрока, вид, подробность,
-уровень. В терминал и окно сервера попадает строка «безопасность: …», не чаще одной на вид и игрока в
-`SECURITY_EVERY` 10 с (остальные считаются в «и ещё N»). Фильтр — команда `security <вид или имя>`.
-Ключи и пароли не пишутся никогда.
+`Server.security_log` — the latest `SECURITY_KEPT` 500 entries: the time, the player's number and name, the
+kind, the detail, the level. The terminal and the server window get a line «security: …», no more often than
+one per kind and player in `SECURITY_EVERY` 10 s (the rest are counted in «and N more»). The filter is the
+command `security <kind or name>`. Keys and passwords are never written.
 
-## Допуски для честных игроков
+## Tolerances for honest players
 
-Сеть теряет и сбивает сообщения, кадры у всех разные, тела на клиенте и на сервере немного расходятся
-(лёд, углы, толчки зверей). Поэтому: допуск места 2,5 клетки, подтягивание тела сервера 2 клетки в
-секунду, 10 отказов до возврата, 2 секунды работы «вперёд», частота сообщений вдвое выше, чем шлёт игра
-на 144 кадрах. Ужесточать эти числа — только по замерам с телефона.
+The network loses and shuffles messages, the frames are different for everyone, the bodies on the client and
+on the server diverge a little (ice, corners, beasts' pushes). So: the place's tolerance is 2.5 cells, the
+pull of the server's body 2 cells a second, 10 refusals before the return, 2 seconds of work «ahead», the
+message frequency twice what the game sends at 144 frames. Tighten these numbers only by measurements from a
+phone.

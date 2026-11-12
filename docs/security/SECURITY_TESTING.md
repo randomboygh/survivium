@@ -1,44 +1,44 @@
-# Тесты безопасности
+# Security tests
 
-Статус: ACTIVE (этап 7, 2026-11-06). Все проверки — только локально: сервер поднимается в процессе
-теста на своём порту (`server_test` — 7791, 7792), боты подключаются к `127.0.0.1`. Реальные серверы и
-сохранения игроков не трогаются.
+Status: ACTIVE (stage 7, 2026-11-06). All the checks are local only: the server is brought up in the test's
+process on its own port (`server_test` — 7791, 7792), the bots connect to `127.0.0.1`. Real servers and
+players' saves are not touched. A Russian copy: [SECURITY_TESTING_RU.md](SECURITY_TESTING_RU.md).
 
-## Где
+## Where
 
-| Тест | Как запустить | Что проверяет |
+| Test | How to run | What it checks |
 |---|---|---|
-| `tests/unit/security_test.gd` | `godot --headless --path . --script res://tests/run_tests.gd -- security` | правила без сокета: руки только из сумки, ноги и взгляд от тела, частые «прыжки» места не уводят тело, место внутри земли не берётся, темп работы, огромный и далёкий чертёж, сортировка и «всё в сундук» с ячейки «с конца», ячейки вне сумки, отмена крафта возвращает изношенное и хранится в сохранении, `clean_text`, имена сервера и занятые, белый список по ключу, перебор пароля и вход по ключу, роли команд |
-| `tests/server_test.gd` `_security` | `timeout 900 godot --headless --path . --script res://tests/server_test.gd` | по сокету: занятое имя и имя «сервер», флуд сообщениями — отключение 4003 и запись в журнал, хозяин по `op` не может `stop`, строка чата без перевода строки и скрытых знаков |
-| `tests/server_test.gd` (давние) | там же | отказы приветствия (версия, пароль, полный сервер, слово до `hello`), повтор номера запроса, два игрока берут одну стопку, обрыв связи посреди передачи, сундук вне досягаемости, прыжок тела далеко возвращается, ход тела в темпе берётся, бан по ключу и имени, белый список, команды только хозяину |
-| `tests/unit/net_test.gd` | `run_tests -- net` | неподходящий запрос и `input`, повтор и устаревший номер |
+| `tests/unit/security_test.gd` | `godot --headless --path . --script res://tests/run_tests.gd -- security` | the rules without a socket: the hands only from the bag, the feet and gaze from the body, frequent «jumps» of the place do not carry the body away, a place inside the ground is not taken, the pace of work, a huge and far blueprint, sorting and «all into the chest» from a cell «from the end», cells outside the bag, a craft's cancel returns the worn and is stored in the save, `clean_text`, the server's names and taken ones, the whitelist by key, password guessing and entering by key, the commands' roles |
+| `tests/server_test.gd` `_security` | `timeout 900 godot --headless --path . --script res://tests/server_test.gd` | by the socket: a taken name and the name «server», a flood of messages — disconnection 4003 and an entry in the log, a host by `op` cannot `stop`, a chat line without a line break and hidden characters |
+| `tests/server_test.gd` (older) | the same | refusals of the greeting (version, password, a full server, a word before `hello`), a repeat of a request's number, two players take one stack, a cut link in the middle of a transfer, a chest out of reach, a body's jump far away is returned, a body's move at pace is taken, a ban by key and name, the whitelist, commands only for the host |
+| `tests/unit/net_test.gd` | `run_tests -- net` | an unsuitable request and `input`, a repeated and an outdated number |
 
-Перед повторным локальным запуском `server_test` удалить `user://test_saves/server`, `user://server.cfg` и
-`user://test_server.cfg` (папка `~/.local/share/godot/app_userdata/Survivium/`): иначе сервер теста читает
-порт и мир прошлого запуска и приветствие не отвечается.
+Before a repeated local run of `server_test` delete `user://test_saves/server`, `user://server.cfg` and
+`user://test_server.cfg` (the folder `~/.local/share/godot/app_userdata/Survivium/`): otherwise the test's
+server reads the port and the world of the last run and the greeting is not answered.
 
-## Сценарии из ТЗ и где они
+## The spec's scenarios and where they are
 
-| Сценарий | Проверка |
+| Scenario | The check |
 |---|---|
-| несуществующий предмет | `craft` с неизвестным рецептом → `null` (`net_test`), инструмент не из сумки → руки (`security_test`) |
-| изменить количество | ячейки «с конца» и вне сумки (`_test_bags`) |
-| крафт без материалов | `Crafting.take` — материалы проверяются (`actions_test`, `net_test`) |
-| добыча без инструмента | `_test_body`: инструмент в «руке» без сумки — руки |
-| станок без доступа | `Workshop.why_not` — станок рядом (`actions_test`) |
-| повтор операции | повтор номера (`net_test`, `server_test` `_trades`) |
-| параллельные операции | два игрока одну стопку (`_trades`) |
-| подмена отправителя чата | имя занято / имя сервера (`_test_door`, `_security`) |
-| команда обычным игроком | `_chat`, `_test_commands` |
-| некорректные аргументы команд | `give` без предмета, `tp` не числами (`_commands`) |
-| превышение частоты | `_security` (флуд), `_test_requests` (темп) |
-| большие сообщения | `INBOUND`; длинный ключ и строка (`_test_door`, `_test_text`) |
-| некорректные данные | слово до `hello`, `input` другой формы (`server_test`, `net_test`) |
-| отключение во время операции | `_trades`: обрыв посреди передачи |
-| переподключение | возврат по ключу с той же сумкой (`server_test`) |
+| a nonexistent item | `craft` with an unknown recipe → `null` (`net_test`), a tool not from the bag → the hands (`security_test`) |
+| change the quantity | cells «from the end» and outside the bag (`_test_bags`) |
+| crafting without materials | `Crafting.take` — the materials are checked (`actions_test`, `net_test`) |
+| gathering without a tool | `_test_body`: a tool in the «hand» without the bag — the hands |
+| a station without access | `Workshop.why_not` — the station is near (`actions_test`) |
+| a repeat of an operation | a repeat of the number (`net_test`, `server_test` `_trades`) |
+| parallel operations | two players one stack (`_trades`) |
+| a forged chat sender | the name is taken / the server's name (`_test_door`, `_security`) |
+| a command by an ordinary player | `_chat`, `_test_commands` |
+| incorrect arguments of commands | `give` without an item, `tp` with non-numbers (`_commands`) |
+| exceeding the frequency | `_security` (a flood), `_test_requests` (pace) |
+| big messages | `INBOUND`; a long key and line (`_test_door`, `_test_text`) |
+| incorrect data | a word before `hello`, an `input` of another form (`server_test`, `net_test`) |
+| a disconnection during an operation | `_trades`: a cut in the middle of a transfer |
+| reconnection | a return by key with the same bag (`server_test`) |
 
-## Как добавить проверку
+## How to add a check
 
-Правило без сети — функция в `security_test.gd` (игрок «по сокету» — `_socket_player`). Сценарий через
-сокет — в `_security` у `server_test.gd`, боты `_bot(имя, ключ, пароль, порт)`. Каждая найденная
-уязвимость — своя регрессионная проверка.
+A rule without the network is a function in `security_test.gd` (a player «by socket» — `_socket_player`). A
+scenario through a socket goes in `_security` of `server_test.gd`, the bots `_bot(name, key, password,
+port)`. Every found vulnerability gets its own regression check.

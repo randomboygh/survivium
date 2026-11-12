@@ -62,7 +62,7 @@ graph TD
 | `godot --headless --path . --script res://tests/<имя>.gd` | тесты, каждый `extends SceneTree` |
 | `godot … --script res://tools/<имя>.gd` | инструменты: валидатор, скриншоты, карта, бенчмарки, генераторы ассетов |
 | `python3 tools/<имя>.py` | версия сборки, патч web-сборки, рисовалки на Pillow, индекс документов |
-| `.github/workflows/build.yml` | CI: линт, проверки, тесты, тест фризов, web- и ПК-экспорт, проверка в Chrome, публикация на Pages и в `pc-latest` ([testing/CI_PIPELINE.md](testing/CI_PIPELINE.md)) |
+| `.github/workflows/build.yml` | CI: линт, проверки, тесты, тест фризов, web- и ПК-экспорт, проверка в Chrome, публикация на Pages и в `pc-latest` ([testing/CI_PIPELINE.md](testing/CI_PIPELINE_RU.md)) |
 
 Тесты и инструменты запускают ту же сцену: создают `main.tscn`, ставят `main.skip_setup = true`
 (без меню «Новый мир») и при необходимости `save_root` (свои сохранения).
@@ -158,4 +158,4 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 6. Текст для игрока — ключ `[…]`; новый ключ или запись — его английский и русский в `lang/en.yaml` и `ru.yaml` рядом (`tools/lang_check.py --write en`, `--write ru`).
 7. После правки — проверки из `CLAUDE.md`; правила, станки, рецепты, инструменты — ещё `progress_test`.
 
-Решения, на которых это держится, с причинами: [DECISIONS.md](DECISIONS.md).
+Решения, на которых это держится, с причинами: [DECISIONS.md](DECISIONS_RU.md).

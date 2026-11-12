@@ -1,74 +1,75 @@
-# Покрытие тестами
+# Test coverage
 
-Статус: ACTIVE. Что проверяется чем, цели по важности систем, что проверяется только руками и какие
-проверки нестабильны. Как запускать — [TESTING_GUIDE.md](TESTING_GUIDE.md).
+Status: ACTIVE. What is checked by what, the goals by the systems' importance, what is checked only by hand
+and which checks are flaky. How to run — [TESTING_GUIDE.md](TESTING_GUIDE.md). A Russian copy:
+[TEST_COVERAGE_RU.md](TEST_COVERAGE_RU.md).
 
-Процент строк не меряется: у GDScript нет инструмента покрытия в Godot 4.5 без плагинов, а плагины в
-проекте запрещены. Покрытие оценивается по сценариям: какие правила и пути игры проверены вызовами
-самой игры.
+The percentage of lines is not measured: GDScript has no coverage tool in Godot 4.5 without plugins, and
+plugins are forbidden in the project. Coverage is judged by scenarios: which rules and paths of the game are
+checked by calls of the game itself.
 
-## Слои проверок
+## Layers of checks
 
-| Слой | Что | Где |
+| Layer | What | Where |
 |---|---|---|
-| Статические | правила скриптов (нет `class_name`, автозагрузок, плагинов), тексты (пробелы в конце строк, CRLF, конфликты слияния), пути `load("res://…")` и ресурсов сцен, Python/shell/JS/JSON/workflow разбираются | `tools/lint.py` |
-| Компиляция | каждый из ~200 скриптов GDScript компилируется, и те, что не грузит ни один тест | `tools/parse_check.gd` |
-| Документы | пути в `docs/` существуют, индекс кода свежий | `tools/doc_index.py --check` |
-| Данные | схемы, ссылки, каждый бандл отдельно, ассеты, граф контента, эпохи | `tools/validate.gd`, `tools/content_report.gd --check` |
-| Модульные | правила, генератор, меши, данные, сеть — по темам | `tests/run_tests.gd` + `tests/unit/*_test.gd` |
-| Генеративные | сумка под случайными действиями; граф рецептов на случайных наборах | `tests/unit/properties_test.gd` |
-| Интеграционные | сохранение и загрузка игры, сервер и клиенты по сети | `tests/save_test.gd`, `tests/server_test.gd` |
-| Системные | путь от пустой сумки до каждого рецепта вызовами игры; кадры в сценариях игры | `tests/progress_test.gd`, `tests/frame_test.gd` |
-| End-to-end | web-сборка в Chrome как ПК, телефон, телефон стоя | `tests/browser_smoke.mjs` (CI) |
+| Static | the scripts' rules (no `class_name`, autoloads, plugins), texts (trailing spaces, CRLF, merge conflicts), the paths `load("res://…")` and of scenes' resources, Python/shell/JS/JSON/workflow are parsed | `tools/lint.py` |
+| Compilation | each of ~200 GDScript scripts compiles, also those that no test loads | `tools/parse_check.gd` |
+| Documents | the paths in `docs/` exist, the code index is fresh | `tools/doc_index.py --check` |
+| Data | schemas, references, each bundle separately, assets, the content graph, eras | `tools/validate.gd`, `tools/content_report.gd --check` |
+| Modular | rules, the generator, meshes, data, the network — by topic | `tests/run_tests.gd` + `tests/unit/*_test.gd` |
+| Generative | the bag under random actions; the graph of recipes on random sets | `tests/unit/properties_test.gd` |
+| Integration | saving and loading the game, the server and clients over the network | `tests/save_test.gd`, `tests/server_test.gd` |
+| System | the path from an empty bag to every recipe by the game's calls; frames in the game's scenarios | `tests/progress_test.gd`, `tests/frame_test.gd` |
+| End-to-end | the web build in Chrome as PC, phone, upright phone | `tests/browser_smoke.mjs` (CI) |
 
-## Системы, тесты и цели
+## Systems, tests and goals
 
-Важность: **К** — критично (ломает игру или сохранения, проверяется каждым PR), **В** — важно, **О** —
-обычное. Цель — что должно быть покрыто автоматически.
+Importance: **К** — critical (breaks the game or saves, checked by every PR), **В** — important, **О** —
+ordinary. The goal is what must be covered automatically.
 
-| Система | Важность | Тесты | Цель и состояние |
+| System | Importance | Tests | Goal and state |
 |---|---|---|---|
-| Моды, бандлы, схемы, id | К | `content_test` (13), `bundle_system_test` (4), `graph_test` (3), `properties_test` (граф), `validate`, `report` | каждая проверка данных — с тестом на сломанных данных; есть |
-| Граф контента, рецепты, станки, эпохи | К | `graph_test` (тупики ТЗ на тестовых бандлах), `properties_test` (случайные цепочки против простой неподвижной точки), `progress_test` | достижимость и циклы — да; есть |
-| Крафт и станки в игре | К | `actions_test` (вещи на клетках, станки), `content_test` (рецепты), `progress_test` (каждый рецепт вызовами игры) | каждый рецепт сделан в CI; есть |
-| Сумка, износ, порча | К | `character_test` (12), `properties_test` (случайные добавления, изъятия, перекладки, сортировки, сохранения) | счёт вещей и стопки — инварианты; есть |
-| Сохранение и загрузка | К | `store_test`, `save_test` (44 проверки: копки, вещи, часы, карта, старые сохранения) | новое поле сохранения — проверка в `save_test`; есть |
-| Генерация мира | К | `generation_test` (10), `shapes_test` | детерминизм по семени, совпадение мира по частям и сразу; есть |
-| Протокол и сервер | К | `net_test`, `session_test`, `server_test` (113 проверок), слои в `content_test` | вход, отказы, обрыв, проверка движения, хозяин; есть |
-| Руки и мир | В | `actions_test` (11), `plans_test`, `farming_test`, `progress_test` | каждое действие рук — проверка; есть |
-| Персонаж, силы, навыки, тело | В | `character_test`, `body_test` (7), `skills_test` (5) | есть |
-| Баланс: инструменты × прочность × навыки, звери, PvP, выносливость, кривая опыта, еда | В | `balance_test` (9; пределы с причинами, `docs/balance/GAME_BALANCE_DESIGN.md`), таблицы `tools/balance_report.gd` | есть |
-| Звери, рыбалка | В | `wildlife_test` (12), `progress_test` (охота на каждого зверя с тушей, рыба каждого вида) | есть |
-| Территории, PvP | В | `territory_test` (10), `server_test` | есть |
-| Чанки на экране, бюджеты кадра | В | `mesher_test`, `frame_test` | ничего размером с чанк в одном кадре; есть |
-| Время, погода | О | `clock_test` | есть |
-| Картинка, шейдеры | О | `view_test`, `parse_check` (шейдеры не компилируются без GPU), скриншоты руками | вручную: см. ниже |
-| Интерфейс | О | `frame_test` (часть HUD), `browser_smoke`, `parse_check` | вручную: см. ниже |
-| Звук | О | `view_test` (sound), `validate` (файлы звуков) | слух — вручную |
+| Mods, bundles, schemas, ids | К | `content_test` (13), `bundle_system_test` (4), `graph_test` (3), `properties_test` (graph), `validate`, `report` | every check of data comes with a test on broken data; there |
+| The content graph, recipes, stations, eras | К | `graph_test` (the spec's dead ends on test bundles), `properties_test` (random chains against a simple fixed point), `progress_test` | reachability and cycles — yes; there |
+| Crafting and stations in the game | К | `actions_test` (things on cells, stations), `content_test` (recipes), `progress_test` (every recipe by the game's calls) | every recipe is made in CI; there |
+| The bag, wear, spoiling | К | `character_test` (12), `properties_test` (random additions, takings, moves, sorts, saves) | the count of things and stacks — invariants; there |
+| Saving and loading | К | `store_test`, `save_test` (44 checks: digging, things, the clock, the map, old saves) | a new field of a save — a check in `save_test`; there |
+| World generation | К | `generation_test` (10), `shapes_test` | determinism by seed, the world by parts equals the world at once; there |
+| Protocol and server | К | `net_test`, `session_test`, `server_test` (113 checks), the layers in `content_test` | login, refusals, a cut, the check of movement, the host; there |
+| Hands and the world | В | `actions_test` (11), `plans_test`, `farming_test`, `progress_test` | every action of the hands — a check; there |
+| The character, strengths, skills, body | В | `character_test`, `body_test` (7), `skills_test` (5) | there |
+| Balance: tools × durability × skills, beasts, PvP, stamina, the experience curve, food | В | `balance_test` (9; limits with reasons, `docs/balance/GAME_BALANCE_DESIGN.md`), the tables of `tools/balance_report.gd` | there |
+| Beasts, fishing | В | `wildlife_test` (12), `progress_test` (hunting each beast with a carcass, each kind of fish) | there |
+| Territories, PvP | В | `territory_test` (10), `server_test` | there |
+| Chunks on screen, frame budgets | В | `mesher_test`, `frame_test` | nothing the size of a chunk in one frame; there |
+| Time, weather | О | `clock_test` | there |
+| The picture, shaders | О | `view_test`, `parse_check` (shaders do not compile without a GPU), screenshots by hand | by hand: see below |
+| The interface | О | `frame_test` (a part of the HUD), `browser_smoke`, `parse_check` | by hand: see below |
+| Sound | О | `view_test` (sound), `validate` (the sounds' files) | the ear — by hand |
 
-Числа в скобках — функции `_test_*` в файле (`grep -c "^func _test" tests/unit/<тема>_test.gd`).
+The numbers in brackets are the `_test_*` functions in the file (`grep -c "^func _test" tests/unit/<topic>_test.gd`).
 
-## Что проверяется только руками и почему
+## What is checked only by hand and why
 
-| Что | Почему не автоматически | Как проверять |
+| What | Why not automatically | How to check |
 |---|---|---|
-| Как выглядит картинка (шейдеры, свет, срез пещер) | в CI нет GPU, программный рендер не показывает мерцание телефонных GPU | скриншоты `tools/shot.gd` под xvfb, проверка на телефоне пользователя |
-| FPS и фризы на телефоне | CI в 10× быстрее телефона в GDScript, рисует программно | панель статистики F3 и «Журнал фризов» на телефоне |
-| Звук на слух | нет слуха | демо в библиотеке `sound/` |
-| Касания на настоящем телефоне | эмуляция в smoke-тесте — только DPR и touch-события | пользователь |
+| How the picture looks (shaders, light, the cave slice) | CI has no GPU, the software render does not show the flicker of phone GPUs | screenshots `tools/shot.gd` under xvfb, a check on the user's phone |
+| FPS and freezes on a phone | CI is 10× faster than a phone in GDScript, draws in software | the stats panel F3 and the «Freeze log» on the phone |
+| Sound by ear | no ears | the demo in the library `sound/` |
+| Touches on a real phone | the emulation in the smoke test is only DPR and touch events | the user |
 
-Список «Проверить на телефоне» — в библиотеке, `plan/backlog.md`.
+The list «Check on a phone» is in the library, `plan/backlog.md`.
 
-## Нестабильные проверки
+## Flaky checks
 
-Каждая — с причиной и тем, что сделано. Перезапуск задания CI без исправления — только для строк
-этой таблицы и только когда сообщение показывает сбой машины.
+Each — with the reason and what was done. A rerun of a CI job without a fix is only for the rows of this
+table and only when the message shows a failure of the machine.
 
-| Проверка | Что было | Причина | Что сделано |
+| Check | What was | Reason | What was done |
 |---|---|---|---|
-| `frame_test`: idle и idle у костра | 14 провалов из 70 прогонов за 2 дня (0,97 мс при пределе 0,81) | предел — доля стоимости чанка, мерянной в начале теста; машины GitHub бывают двух видов (чанк 14–17 и 21–25 мс), а скорость машины плывёт за минуты теста; среднее 120 кадров сдвигает одна заминка | мерка чанка берётся прямо перед замером, сравнивается медиана кадра; в сообщении — части кадра игры. Части показали: это не шум — код игры в кадре простоя (~1 мс в CI: игрок 0,40, животные 0,20, небо 0,12 …) дорос до 1/20 чанка; #347 удешевил его на 10–15 % (поиск земли, решения зверей, снимок зверей): на быстрой машине (чанк 14,6 мс) 0,61 при пределе 0,73, на медленной 0,95 при 1,20 — запас около 1/6; дальше дешевле сделает только реже шагать зверям вне экрана (решение пользователя). 2026-11-04: простой почти не зависит от вида машины (быстрая 0,92 при пределе 0,81, медленная 0,97 при 1,22), а предел зависел; теперь он не ниже `IDLE_FLOOR` 1,25 / `NIGHT_FLOOR` 1,55 мс (#370). 2026-11-09: ночной кадр вырос с новыми вещами (стаи охотятся ночью, страх огня, лодки: в CI 1,26–1,76 мс, ночью звери 0,4–0,5 против 0,2 днём, игрок 0,6 против 0,4) и валил main (1,59 и 1,76 при 1,55); `NIGHT_FLOOR` поднят до 2,0 мс. Удешевить ночь можно реже шагающими зверями и более редкими медленными частями персонажа (тепло, порча, сиденье), это решение пользователя |
-| `frame_test`: «crafting materials:cord keeps the rest of a frame» | 2 провала | один кадр сверх предела при 41 кадре сценария (допуск — 1 на 250) | оставлено: перезапуск по числам; если повторится — кадр крафта верёвки смотреть в коде. 2026-11-10: повторялось (main после #464 и #467: 2 и 3 кадра сверх 9,5 мс из 19–22). Разбор кадров: начало крафта (сервер ~3 мс три кадра) и кадр, когда верёвка приходит в сумку и учит дюжину рецептов: вкладки видов в крафте делались все заново и все перекрашивались (~1,1 мс здесь, ~10 мс на телефоне). Теперь вкладки, что были, остаются и перекрашиваются только сменившие свет (`IconTabs.set_tabs`, `ScrollColumn.set_items`): 0,25 мс. А сценарии крафта (и у верстака) допускают по кадру сверх предела на каждую сделанную вещь (`_scenario(..., events)`): каждая приходит в сумку и учит рецепты одним кадром |
-| `progress_test`: «Сундук cannot be set down at the camp» | 1 провал | ожидание отдыха — 4 с по часам; на занятой машине кадр длится секунды, и 4 с — пара кадров | ждёт и 4 с, и 30 кадров |
-| `progress_test`: «Медведь fell, but its Туша is not on the ground» | 1 провал | то же: туша приходит клиенту через кадры, ждали 3 с по часам | ждёт и 3 с, и 30 кадров; сообщение называет, где упал зверь и где ближайшая туша у клиента и у хозяина |
-| `progress_test`: предел 1200 с | 1 провал (exit 124) | обычный прогон 945 с — у самого предела | разделён на две половины на двух машинах (см. отчёт) |
-| `progress_test --part other`: предел 1200 с | 1 провал (`main` после #348): 24 заброса на окуня без поклёвки, 16 мин | рыба этого вида в досягаемости поплавка, но, по-видимому, в другой воде рядом: её подманивают снова и снова, а доплыть она не может; на каждый заброс ждали 40 с | после заброса без поклёвки рыба этого вида у поплавка убирается и ставится новая в воде поплавка |
+| `frame_test`: idle and idle by the campfire | 14 failures out of 70 runs in 2 days (0.97 ms at the limit 0.81) | the limit is a share of the cost of a chunk measured at the start of the test; GitHub's machines are of two kinds (a chunk 14–17 and 21–25 ms), and a machine's speed drifts within the minutes of the test; the mean of 120 frames is shifted by one hiccup | the chunk's measure is taken right before the measuring, the frame's median is compared; the message has the parts of the game's frame. The parts showed: it is not noise — the game's code in an idle frame (~1 ms in CI: the player 0.40, animals 0.20, sky 0.12 …) had grown to 1/20 of a chunk; #347 made it 10–15 % cheaper (the search of ground, the beasts' decisions, the beasts' snapshot): on a fast machine (a chunk 14.6 ms) 0.61 at the limit 0.73, on a slow one 0.95 at 1.20 — a reserve of about 1/6; further only beasts off screen stepping less often would make it cheaper (the user's decision). 2026-11-04: idle hardly depends on the kind of machine (fast 0.92 at the limit 0.81, slow 0.97 at 1.22), and the limit did; now it is no lower than `IDLE_FLOOR` 1.25 / `NIGHT_FLOOR` 1.55 ms (#370). 2026-11-09: the night frame grew with the new things (packs hunt at night, fear of fire, boats: in CI 1.26–1.76 ms, at night the beasts 0.4–0.5 against 0.2 by day, the player 0.6 against 0.4) and failed main (1.59 and 1.76 at 1.55); `NIGHT_FLOOR` was raised to 2.0 ms. The night can be made cheaper by beasts stepping less often and by rarer slow parts of the character (warmth, spoiling, the seat), this is the user's decision |
+| `frame_test`: «crafting materials:cord keeps the rest of a frame» | 2 failures | one frame over the limit at 41 frames of the scenario (the allowance is 1 per 250) | left: a rerun by the numbers; if it repeats — look at the frame of crafting a rope in the code. 2026-11-10: it repeated (main after #464 and #467: 2 and 3 frames over 9.5 ms out of 19–22). An analysis of the frames: the start of crafting (the server ~3 ms for three frames) and the frame when the rope comes into the bag and teaches a dozen recipes: the tabs of kinds in crafting were all made anew and all repainted (~1.1 ms here, ~10 ms on a phone). Now the tabs that were stay and only those that changed light are repainted (`IconTabs.set_tabs`, `ScrollColumn.set_items`): 0.25 ms. And the crafting scenarios (and at a workbench) allow one frame over the limit for every made thing (`_scenario(..., events)`): each comes into the bag and teaches recipes in one frame |
+| `progress_test`: «Сундук cannot be set down at the camp» | 1 failure | the wait for rest is 4 s by the clock; on a busy machine a frame lasts seconds, and 4 s is a couple of frames | waits for both 4 s and 30 frames |
+| `progress_test`: «Медведь fell, but its Туша is not on the ground» | 1 failure | the same: the carcass comes to the client through frames, they waited 3 s by the clock | waits for both 3 s and 30 frames; the message names where the beast fell and where the nearest carcass is at the client and at the host |
+| `progress_test`: the limit of 1200 s | 1 failure (exit 124) | the usual run is 945 s — right at the limit | divided into two halves on two machines (see the report) |
+| `progress_test --part other`: the limit of 1200 s | 1 failure (`main` after #348): 24 casts for a perch without a bite, 16 min | a fish of this kind is within the float's reach but, it seems, in other water nearby: it is lured again and again and cannot swim up; for each cast they waited 40 s | after a cast without a bite a fish of this kind at the float is removed and a new one is put in the float's water |

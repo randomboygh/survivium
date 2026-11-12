@@ -1,70 +1,77 @@
-# Модель угроз
+# The threat model
 
-Статус: ACTIVE (этап 7, 2026-11-06). Что защищает сервер, от кого и где проходят границы доверия.
-Находки и исправления — [../audit/SECURITY_AUDIT.md](../audit/SECURITY_AUDIT.md),
-[../audit/SECURITY_REMEDIATION_REPORT.md](../audit/SECURITY_REMEDIATION_REPORT.md).
+Status: ACTIVE (stage 7, 2026-11-06). What the server protects, from whom, and where the trust boundaries
+run. The findings and fixes — [../audit/SECURITY_AUDIT.md](../audit/SECURITY_AUDIT.md),
+[../audit/SECURITY_REMEDIATION_REPORT.md](../audit/SECURITY_REMEDIATION_REPORT.md). A Russian copy:
+[THREAT_MODEL_RU.md](THREAT_MODEL_RU.md).
 
-## Что защищаем
+## What we protect
 
-| Актив | Где живёт | Почему важно |
+| Asset | Where it lives | Why it matters |
 |---|---|---|
-| Сумка, надетое, сундуки, вещи на земле | сервер: `Character.inventory`, `Placed`, `WorldData.drops` | дюп и кража ломают экономику и чужой труд |
-| Мир: клетки, кусты, деревья, чертёж | сеанс сервера (`WorldData`, `Plans`) | порча чужих построек, зависание сервера |
-| Тело: место, здоровье, силы | `src/server/player.gd`, `Vitals` | телепорт, скорость, неуязвимость |
-| Крафт, навыки, знания | `Workshop`, `CraftQueue`, `SkillSet` | вещи из ничего, прокачка без игры |
-| Земля, команды, PvP | `Territory`, `Teams`, `Fights` | обход прав на чужой земле |
-| Права хозяина | `Server.access` (`access.json` в папке мира) | повышение привилегий, баны, выдача вещей |
-| Ключ игрока | у клиента `user://servers.cfg`, на сервере только хеш в имени файла | ключ — единственное «удостоверение» |
-| Доступность сервера | процесс сервера | один игрок не должен его повесить или забить |
+| The bag, what is worn, chests, things on the ground | the server: `Character.inventory`, `Placed`, `WorldData.drops` | a dupe and theft break the economy and others' work |
+| The world: cells, shrubs, trees, the blueprint | the server's session (`WorldData`, `Plans`) | spoiling others' buildings, hanging the server |
+| The body: place, health, strengths | `src/server/player.gd`, `Vitals` | teleport, speed, invulnerability |
+| Crafting, skills, knowledge | `Workshop`, `CraftQueue`, `SkillSet` | things from nothing, levelling without playing |
+| Land, teams, PvP | `Territory`, `Teams`, `Fights` | bypassing the rights on others' land |
+| The host's rights | `Server.access` (`access.json` in the world's folder) | privilege escalation, bans, giving out things |
+| The player's key | on the client `user://servers.cfg`, on the server only a hash in the file's name | the key is the only «identity» |
+| The server's availability | the server process | one player must not hang or clog it |
 
-## Кто нападает
+## Who attacks
 
-- **Игрок с изменённым клиентом**: шлёт любые байты по протоколу, любые аргументы и любую частоту;
-  знает протокол (код открыт).
-- **Чужой без ключа**: подключается к порту или туннелю, перебирает пароль, флудит соединениями.
-- **Самозванец**: берёт имя друга или «Сервер», чтобы обмануть в чате или подставить под команду хозяина.
-- **Хозяин по `op`**: доверенный, но не владелец сервера.
+- **A player with a modified client**: sends any bytes by the protocol, any arguments and any frequency;
+  knows the protocol (the code is open).
+- **A stranger without a key**: connects to the port or the tunnel, guesses the password, floods with
+  connections.
+- **An impostor**: takes a friend's name or «Server» to deceive in the chat or to be passed off for the
+  host's command.
+- **A host by `op`**: trusted, but not the server's owner.
 
-Вне модели: тот, кто сидит за машиной сервера (у него файлы мира и терминал), и одиночная игра (сервер в
-том же процессе, игрок и есть хозяин — по петле тело и руки берутся как есть).
+Outside the model: whoever sits at the server's machine (they have the world's files and the terminal), and
+single player (the server is in the same process, the player is the host — by the loop the body and hands
+are taken as they are).
 
-## Границы доверия
+## Trust boundaries
 
 ```
-клиент (браузер, ПК) ──WebSocket──▶ Server.poll ──▶ PlayerLink.handle_msg ──▶ Requests / Player.take_input ──▶ правила src/shared/game/
-     не доверяем                    размер, частота,   тип сообщения           типы аргументов, досягаемость,     решают сами по состоянию
-                                    приветствие         (input / запрос)        темп, права земли                   сервера
+client (browser, PC) ──WebSocket──▶ Server.poll ──▶ PlayerLink.handle_msg ──▶ Requests / Player.take_input ──▶ the rules of src/shared/game/
+     not trusted                    size, frequency,   the message's type        types of args, reach,             decide themselves by the
+                                    the greeting        (input / request)         pace, land rights                 server's state
 ```
 
-1. **Сокет → сервер.** До приветствия читается только `hello`; размер входящего кадра, число ожидающих
-   соединений и частота сообщений ограничены (`Server.INBOUND`, `PENDING_MAX`, `MSG_RATE`).
-2. **Приветствие → учётная запись.** Личность — случайный ключ сервера (16 байт), не имя. Имя только
-   подпись: чистится, уникально в мире, имена сервера заняты. Белый список привязывает имя к ключу.
-3. **Запрос → правило.** Аргументы проверяются по типам (`Requests._fit`), ячейки сумки — по границам,
-   вещи и сундуки — по досягаемости руки, клетки — по правам земли. Результат считает правило, клиент
-   присылает только намерение.
-4. **`input` → тело.** Клиент двигает своё тело (решение 153, 3А), сервер прогоняет своё тело
-   (`body.gd`) за прошедшее время и берёт место клиента, только если тело туда почти дошло. Ноги, взгляд,
-   руки — производные сервера, не слова клиента.
-5. **Чат → команды.** Роль определяет сервер по ключу соединения (`Server.role_of`), не клиент.
+1. **Socket → server.** Before the greeting only `hello` is read; the size of an incoming frame, the number
+   of waiting connections and the frequency of messages are limited (`Server.INBOUND`, `PENDING_MAX`,
+   `MSG_RATE`).
+2. **Greeting → account.** The identity is the server's random key (16 bytes), not the name. The name is
+   only a signature: cleaned, unique in the world, the server's names are taken. The whitelist binds a name
+   to a key.
+3. **Request → rule.** The arguments are checked by types (`Requests._fit`), the bag's cells by bounds,
+   things and chests by the hand's reach, cells by land rights. The result is counted by the rule, the
+   client sends only an intention.
+4. **`input` → body.** The client moves its own body (decision 153, 3А), the server runs its own body
+   (`body.gd`) for the elapsed time and takes the client's place only if the body has almost got there. The
+   feet, the gaze, the hands are derived by the server, not the client's words.
+5. **Chat → commands.** The role is determined by the server by the connection's key (`Server.role_of`), not
+   by the client.
 
-## Точки входа
+## Entry points
 
-Все сообщения клиента — `src/shared/net/protocol.gd`: `hello`, `input`, `bye` и запросы (копать, ставить,
-действие, собрать, подобрать, посадить, съесть, выбросить, вещи на клетках, двери, чертёж, крафт и
-очередь, починка, сумка и сундуки, одежда, сон, ожить, чат, команды, земля, PvP). Каждый проходит через
-`Requests._rule`; таблица проверок — [NETWORK_SECURITY.md](NETWORK_SECURITY.md).
+All the client's messages are in `src/shared/net/protocol.gd`: `hello`, `input`, `bye` and the requests (dig,
+place, act, gather, pick up, plant, eat, throw out, things on cells, doors, blueprint, crafting and the
+queue, repair, the bag and chests, clothes, sleep, revive, chat, commands, land, PvP). Each goes through
+`Requests._rule`; the table of checks — [NETWORK_SECURITY.md](NETWORK_SECURITY.md).
 
-## Сценарии атак (обобщённо)
+## Attack scenarios (in general)
 
-| Класс | Пример | Где закрыто |
+| Class | Example | Where it is closed |
 |---|---|---|
-| Подделка результата | «в руке кирка», «стою там», «ноги вот здесь» | `Player.in_hands`, `_take_claim`, ноги от тела |
-| Скорость и телепорт | частые маленькие прыжки, полёт тестовыми прыжками | время вместо числа сообщений, `CATCH_UP`, прыжки в воздухе только по петле |
-| Мгновенная работа | сотня запросов копки разом | `Requests.paced`, `WORK_AHEAD` |
-| Дюп и порча вещей | ячейки «с конца», повтор запроса, два игрока разом, обрыв связи | границы в `Inventory`, номер запроса, один запрос целиком, снимок сохранения |
-| Отмена с выгодой | отмена крафта вернула новые вещи вместо изношенных | `CraftQueue` хранит взятое |
-| Отказ в обслуживании | огромный чертёж, флуд сообщений и соединений | `Plans.too_big`, лимиты сервера |
-| Обход доступа | имя из белого списка, подбор пароля | `listed_keys`, `PASSWORD_TRIES` |
-| Самозванство | имя «Сервер», имя друга, перевод строки в имени | `RESERVED_NAMES`, уникальность, `Protocol.clean_text` |
-| Повышение прав | хозяин по `op` останавливает сервер или раздаёт `op` | `Server.COMMANDS` с ролями |
+| Faking a result | «a pickaxe in the hand», «I stand there», «the feet are here» | `Player.in_hands`, `_take_claim`, feet from the body |
+| Speed and teleport | frequent small jumps, flight by test jumps | time instead of the number of messages, `CATCH_UP`, jumps in the air only by the loop |
+| Instant work | a hundred dig requests at once | `Requests.paced`, `WORK_AHEAD` |
+| A dupe and spoiling things | cells «from the end», a repeated request, two players at once, a cut link | bounds in `Inventory`, the request's number, one request whole, the save's snapshot |
+| A cancel with profit | cancelling a craft returned new things instead of worn ones | `CraftQueue` stores what was taken |
+| Denial of service | a huge blueprint, a flood of messages and connections | `Plans.too_big`, the server's limits |
+| Bypassing access | a name from the whitelist, guessing the password | `listed_keys`, `PASSWORD_TRIES` |
+| Impersonation | the name «Server», a friend's name, a line break in a name | `RESERVED_NAMES`, uniqueness, `Protocol.clean_text` |
+| Privilege escalation | a host by `op` stops the server or hands out `op` | `Server.COMMANDS` with roles |
