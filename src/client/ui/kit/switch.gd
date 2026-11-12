@@ -1,17 +1,20 @@
 extends Button
 ## A switch of the UI kit (kit.gd `check`, and the rows «name ‹ value ›» whose values are
-## only «выкл | вкл», ChoiceRows): a pill-shaped track with a round knob that slides
-## right over an amber track when on, left over a dark one, pale, when off.
+## only «выкл | вкл», ChoiceRows), after Material 3: off, a dark pill in a pale outline
+## with a small pale knob on the left; on, an amber pill with a big dark knob on the right
+## (the user's pick of five, 2026-11-12). Its round ends are drawn smooth, not stepped.
 ## Its `text`, when it has one, stands left of the track; it stands at the
 ## right end of the switch, or where `track_at` (0 the left, 0.5 the middle) puts it.
 ## `toggled` tells the change; `show_value` shows a value at once without telling.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
-## The room the switch draws in, in UI pixels: the line runs across it.
-const TRACK := Vector2(40, 22)
-## The room between the knob and the track's edge.
-const KNOB_GAP := 3
+## The track's size, in UI pixels.
+const TRACK := Vector2(44, 24)
+## The knob's radius off and on, and how far its centre stays from the track's ends.
+const KNOB_OFF := 5.0
+const KNOB_ON := 9.0
+const KNOB_INSET := 12.0
 ## The room between the text and the track.
 const GAP := 8
 ## How long the knob slides, in seconds.
@@ -75,30 +78,25 @@ func _ready() -> void:
 
 func _draw() -> void:
 	var r := track_rect()
-	var lit := button_pressed
-	# The track: a pill with round ends in a dark edge, amber inside while on.
-	_pill(r, UiStyle.EDGE)
-	_pill(r.grow(-2), UiStyle.WELL_SHADE)
-	if _at > 0.0:
-		_pill(Rect2(r.position + Vector2(2, 2), Vector2(r.size.y - 4 + (r.size.x - r.size.y) * _at, r.size.y - 4)),
-			UiStyle.ACCENT if lit else UiStyle.ACCENT_DARK)
-	# The knob: a round one in a dark edge, cream on and pale off, a lighter top.
-	var side := r.size.y - 2 * KNOB_GAP
-	var at := r.position + Vector2(KNOB_GAP + roundf((r.size.x - r.size.y) * _at), KNOB_GAP)
-	var fill := UiStyle.INK if lit else UiStyle.MUTED
+	var mid := r.position + r.size * 0.5
+	# The track: off, a pale outline round a dark fill; on, filled amber (Material 3).
+	if _at < 0.5:
+		_pill(r, UiStyle.MUTED)
+		_pill(r.grow(-2), UiStyle.WELL_SHADE)
+	else:
+		_pill(r, UiStyle.ACCENT_DARK)
+		_pill(r.grow(-1), UiStyle.ACCENT)
+	# The knob: small and pale off, big and dark on, so the state shows without colour.
+	var color := UiStyle.MUTED.lerp(UiStyle.DARK_INK, _at)
 	if is_hovered() and not disabled:
-		fill = fill.lightened(0.15)
-	var knob := Rect2(at, Vector2(side, side))
-	_pill(knob, UiStyle.EDGE)
-	_pill(knob.grow(-1), fill.darkened(0.2))
-	_pill(Rect2(knob.position + Vector2(1, 1), Vector2(side - 2, side - 3)), fill)
+		color = color.lightened(0.15)
+	var x := lerpf(r.position.x + KNOB_INSET, r.end.x - KNOB_INSET, _at)
+	draw_circle(Vector2(x, mid.y), lerpf(KNOB_OFF, KNOB_ON, _at), color, true, -1.0, true)
 
 
-## Fills `r` as a pill: its ends rounded to half its height, cut in whole pixels.
+## Fills `r` as a pill, its ends half circles, drawn smooth at any scale of the UI.
 func _pill(r: Rect2, color: Color) -> void:
-	var h := int(r.size.y)
 	var rad := r.size.y * 0.5
-	for i in h:
-		var dy := i + 0.5 - rad
-		var dx := roundf(rad - sqrt(maxf(0.0, rad * rad - dy * dy)))
-		draw_rect(Rect2(r.position.x + dx, r.position.y + i, r.size.x - 2 * dx, 1), color)
+	draw_rect(Rect2(r.position + Vector2(rad, 0), Vector2(r.size.x - 2 * rad, r.size.y)), color)
+	draw_circle(r.position + Vector2(rad, rad), rad, color, true, -1.0, true)
+	draw_circle(r.position + Vector2(r.size.x - rad, rad), rad, color, true, -1.0, true)
