@@ -123,6 +123,44 @@ static func row(gap := 4) -> HBoxContainer:
 	return r
 
 
+## The height of a section strip (`section`).
+const SECTION_H := 14
+
+
+## A strip between groups: a pale line across with a picture in its middle (an icon's
+## name of UiStyle.ICONS, or a texture) and `text` beside it if given, `tip` on hover.
+## It parts the bag from a chest in the inventory and the sections of the settings.
+static func section(icon: Variant, tip := "", text := "") -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	row.custom_minimum_size.y = SECTION_H
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.tooltip_text = tip
+	row.add_child(_section_bar())
+	var pic := TextureRect.new()
+	pic.texture = UiStyle.icon(icon) if icon is String else icon
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	pic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	pic.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.add_child(pic)
+	if text != "":
+		var l := UiStyle.label(text, UiStyle.MUTED)
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(l)
+	row.add_child(_section_bar())
+	return row
+
+
+static func _section_bar() -> ColorRect:
+	var bar := ColorRect.new()
+	bar.color = UiStyle.HIGHLIGHT
+	bar.custom_minimum_size = Vector2(0, 2)
+	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return bar
+
+
 ## Empty room `height` tall in a column.
 static func gap(height := 8.0) -> Control:
 	var c := Control.new()

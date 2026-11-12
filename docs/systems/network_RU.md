@@ -183,6 +183,7 @@ HUD показывает их отдельно (`Hud.server_note`). Команд
   (`WorldStore.remove_beside`). `read_player(key)`, `restore(link, record)` (разделы, `workshop.settle`, `teleport`). Ctrl+C в Linux
   завершает процесс сразу (движок не сообщает скрипту): теряется время с последнего сохранения, само
   сохранение цело; правильно — `stop`.
+- `ServerMain.apply_settings(values)` — настройки, изменённые при работающем сервере из игры («Настройки» его окна): игроки, автосохранение, длина суток, погода с улицы, правила; сразу и в `server.cfg`.
 - `src/server/config.gd` — настройки сервера: `user://server.cfg` (секции `server`: title, port 7777,
   players 8, password, bind, autosave 10, save; `world`: folder, seed, настройки WorldGen, mods; `rules`: ключи
   `Rules.to_dict` поверх значений по умолчанию, `Rules.of(config.rules)`, например `territory_decay`), поверх — аргументы

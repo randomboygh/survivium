@@ -440,6 +440,8 @@ const SHOTS := {
 		"chill": [22.0, 0.7]},
 	"bag-clothes": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,
 		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "give": "tools:grass_cape"},
+	# Out of sleep, awake in the day: the picture swims (CameraRig.sway, grade.gdshader).
+	"sleepy": {"time": 0.42, "season": 1, "touch": true, "sleepy": true},
 	# Asleep at night by the spawn's campfire.
 	"asleep": {"time": 0.92, "season": 1, "touch": true, "asleep": true},
 	# A grass mat and a fur bedroll set down; the mat tapped: lying in it asleep, «zzZ» over the head.
@@ -756,7 +758,8 @@ const SHOTS := {
 	"ui-main-menu-host": {"time": 0.42, "season": 1, "main_menu": "host"},
 	"ui-main-menu-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 1},
 	"ui-main-menu-host-running": {"time": 0.42, "season": 1, "main_menu": "host-running"},
-	"ui-main-menu-host-access": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 1,
+	"ui-main-menu-host-running-settings": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 1},
+	"ui-main-menu-host-access": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 2,
 		"host_commands": ["whitelist on", "whitelist add Лиса", "whitelist add Grisha", "ban Вредина"]},
 	# The largest interface on a landscape screen: the first page and «Создать сервер»
 	# still fit (the column and the window scroll when they cannot).
