@@ -519,6 +519,11 @@ func _run() -> void:
 			main.host.player.inventory.add("resources:stone", 40)
 			await process_frame
 			await process_frame
+		if shot.get("sleepy", false):
+			main.host.player.vitals.energy = 0.0
+			main.view.sway = 1.0
+			for i in 4:
+				await process_frame
 		if shot.get("asleep", false):
 			# Asleep by the campfire: the dimmed screen, the moon on the clock.
 			main.host.player.vitals.energy = 40.0

@@ -421,31 +421,42 @@ class _FakeGame:
 	var character := _FakeCharacter.new()
 
 
-## Short of sleep the view drifts round the player by itself; rested, it settles on a step.
+## Left alone a minute the view drifts round the player by itself; any input stops it
+## and it settles on a step. Short of sleep it does not turn: the picture swims instead.
 func _test_camera_drift() -> void:
 	var game := _FakeGame.new()
 	var rig = CameraRig.new(game)
 	rig.look_at_player()
-	game.character.vitals.energy = Vitals.MAX
-	for i in 30:
-		rig._glide(1.0 / 30.0)
-	_check(rig.turn == 0.0, "rested, the view stays as it was set")
 	game.character.vitals.energy = 0.0
 	for i in 90:
+		rig._tire(1.0 / 30.0)
 		rig._glide(1.0 / 30.0)
-	_check(rig.turn > 0.1 and rig.turn < CameraRig.DRIFT_RATE * 3.1, "short of sleep it drifts round, slowly: %.3f" % rig.turn)
+	_check(rig.turn == 0.0, "short of sleep the view stays as it was set")
+	_check(rig.sway > 0.0 and rig.drowsiness() == 1.0, "and the picture swims: %.3f" % rig.sway)
+	game.character.vitals.energy = Vitals.MAX
+	for i in 300:
+		rig._tire(1.0 / 30.0)
+	_check(rig.sway == 0.0, "rested, the picture is still again")
+	rig.idle = CameraRig.IDLE_TIME - 1.0
+	for i in 30:
+		rig._tire(1.0 / 30.0)
+		rig._glide(1.0 / 30.0)
+	_check(rig.turn == 0.0, "a second short of a minute alone, the view still stays")
+	for i in 150:
+		rig._tire(1.0 / 30.0)
+		rig._glide(1.0 / 30.0)
+	_check(rig.turn > 0.05 and rig.turn < CameraRig.DRIFT_RATE * 5.1, "left alone a minute it drifts round, slowly: %.3f" % rig.turn)
 	var all_round := ceili(TAU / CameraRig.BOX_STEP)
 	_check(PixelView.box_views.size() >= all_round, "drifting, the culling boxes hold the views all round")
-	rig.tilt_by(1)
-	rig.hold_turn(1)
-	rig.release_turn(1)
-	rig.look_at_player()
-	_check(PixelView.box_views.size() >= all_round, "and a tilt, a turn or a jump of the body mid-drift keeps them so")
-	rig.tilt_by(-1)
-	game.character.vitals.energy = Vitals.MAX
+	game.player.position.x += 1.0
+	rig._tire(1.0 / 30.0)
+	_check(rig.idle == 0.0, "the player walking is not being left alone")
+	rig.idle = CameraRig.IDLE_TIME + 10.0
+	rig._glide(1.0 / 30.0)
+	rig.wake()
 	for i in 120:
 		rig._glide(1.0 / 30.0)
-	_check(rig.turn == posmod(rig.turn_steps, CameraRig.TURNS) * CameraRig.TURN_STEP, "rested again, it settles on a step: %.3f" % rig.turn)
+	_check(rig.turn == posmod(rig.turn_steps, CameraRig.TURNS) * CameraRig.TURN_STEP, "on any input it settles on a step: %.3f" % rig.turn)
 
 
 ## A turn button held turns the camera on smoothly; let go, it settles on the nearest step.
