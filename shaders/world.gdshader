@@ -19,7 +19,8 @@
 //          lying on the corner's side of it if bit 64, with the edge code in bits
 //          128..256
 //   UV2.y = top materials of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
-//          material transitions on top faces
+//          material transitions on top faces; on a wall the materials of the cells
+//          beside it on its plane, above, below, W and E (see ChunkMesher._side_tiles)
 //   COLOR.r = shade (dark caps of the cut); COLOR.a = half the relief shade of a
 //          snowdrift (tile 63; 8-bit vertex alpha cannot hold a shade above 1); below
 //          1 on a stone top whose moss was picked, 16ths naming which tops beside,
@@ -71,6 +72,9 @@ const int GROUND_SHIFT = 5;
 const int TRUNK = 128;
 // Texels a boundary with a material that frays goes ragged over (3 bits, see Mat.FRAY_SHIFT).
 const int FRAY_SHIFT = 8;
+// Texels a material reaches into another on the sides of cells (3 bits, see
+// Mat.SIDE_FRAY_SHIFT): its texels go over the boundary in lumps, then specks.
+const int SIDE_FRAY_SHIFT = 11;
 // Cells of a trunk over its foot it takes to clear in full round the player.
 const float TRUNK_RISE = 3.0;
 const int GROUND_SOIL = 1;
@@ -364,6 +368,34 @@ void fragment() {
 		// on walls.
 		vec2 across = abs(world_normal.y) > 0.5 ? tp.xz
 			: vec2(abs(world_normal.x) > 0.5 ? tp.z : tp.x, -tp.y);
+		if (!top && (flag & ~3) == 0 && world_normal.y > -0.5) {
+			// A wall: the cells beside it on its plane (above, below, along) whose
+			// material differs reach over the boundary, each by its `side_fray`, in lumps
+			// of two near it and single specks farther in, so stone meets soil and ore
+			// sits in the rock in ragged patches instead of along the cells. A material
+			// that does not fray (a built block) keeps its boundaries straight both ways.
+			// UV2.y holds those materials (ChunkMesher._side_tiles); NO_TILES rounds to
+			// 2^24, whose lanes read 0 (air, never beside): skipped.
+			int n = int(round(packed.y));
+			if ((material_bits[tile / 3] >> SIDE_FRAY_SHIFT & 7) > 0) {
+				vec2 st = floor(across * TEXELS);
+				for (int e = 0; e < 4; e++) {
+					int nc = (n >> (6 * e)) & 63;
+					if (nc == NO_MATERIAL || nc == 0 || nc == tile / 3) {
+						continue;
+					}
+					int reach = (material_bits[nc] >> SIDE_FRAY_SHIFT) & 7;
+					if (dist[e] >= reach) {
+						continue;
+					}
+					float lump = hash12(floor(st * 0.5) + vec2(float(e) * 7.0, 307.0)) * 0.55
+						+ hash12(st + vec2(131.0, float(e) * 5.0)) * 0.45;
+					if (lump < (1.0 - float(dist[e]) / float(reach)) * 0.7) {
+						pick = nc * 3 + 1;
+					}
+				}
+			}
+		}
 		ivec2 tm = ivec2(mod(floor(across * TEXELS), TEXELS));
 		if (top) {
 			tm = tile_mirror(tm, floor(world_pos.xz));

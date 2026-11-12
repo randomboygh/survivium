@@ -88,8 +88,9 @@ func _test_content() -> void:
 		and Mat.vein_at(0.87, -1) == Mat.index("materials:platinum_ore") and Mat.vein_at(0.95, -1) == Mat.index("materials:silver_ore")
 		and Mat.vein_at(0.5, 7) != 7,
 		"the engine finds materials by their roles, the first ore as ORE, every ore by its share of the veins")
-	_check(Mat.shader_bits[Mat.GRASS] == 6 and Mat.shader_bits[Mat.BEACH] == 3 | Mat.DRAINS | (2 << Mat.GROUND_SHIFT)
-		and Mat.shader_bits[Mat.STONE] == 1 | (3 << Mat.GROUND_SHIFT), "the shader's word per material comes from the data")
+	_check(Mat.shader_bits[Mat.GRASS] == 6 and Mat.shader_bits[Mat.BEACH] == 3 | Mat.DRAINS | (2 << Mat.GROUND_SHIFT) | (2 << Mat.SIDE_FRAY_SHIFT)
+		and Mat.shader_bits[Mat.STONE] == 1 | (3 << Mat.GROUND_SHIFT) | (3 << Mat.SIDE_FRAY_SHIFT)
+		and Mat.shader_bits[Mat.index("materials:brick")] >> Mat.SIDE_FRAY_SHIFT == 0, "the shader's word per material comes from the data")
 	_check(Mat.texture_path(Mat.BEACH) == "res://content/resources/soil/textures/sand.png" and ResourceLoader.exists(Mat.texture_path(Mat.LOG)),
 		"a material's texture is a PNG of its mod")
 	var old: PackedStringArray = ["core:air", "core:stone", "materials:sand", "nobody:glass"]

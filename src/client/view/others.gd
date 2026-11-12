@@ -11,8 +11,10 @@ extends Node3D
 ## on the screen each frame, whole pixels. A light one holds (a torch, a candle, a
 ## lantern: an item with `light`) burns in their hand, its flames there and, for the
 ## OTHER_LIGHTS of them nearest the player, its light round them as the player's own
-## torch lights (Sky), without shadows. `game` is the Main node (its `hands` gives the
-## looks of the things held).
+## torch lights (Sky), without shadows. Walking on the ground they leave boot prints
+## (Tracks, as the player's own) and, in deep snow, the trail that eases walking
+## (WorldData.tread), so everyone sees and walks everyone's tracks. `game` is the Main
+## node (its `hands` gives the looks of the things held, `tracks`, `world`, `clock`).
 
 const PlayerScript := preload("res://src/client/view/player.gd")
 const Figure := preload("res://src/client/view/figure.gd")
@@ -48,6 +50,11 @@ const TAIL := 5.0
 const OTHER_LIGHTS := 3
 ## Seconds between changes of their lights' flicker.
 const FLICKER_TIME := 0.09
+## A boot print every this many world units walked (as the player's own, Main).
+const STRIDE := 0.55
+## A move longer than this between frames is a jump of the server's (a teleport, a
+## respawn), not a walk: it leaves no prints.
+const LEAP := 2.0
 static var _balloon_box: StyleBoxFlat
 
 var game
@@ -59,7 +66,9 @@ var perf
 ## "work_n": the last work count shown, "hands": the hands shown, "left|right|active",
 ## "gear": what is worn shown, "light": the brightest light in their hands ("" none),
 ## "two": a light in each hand, "flames": the flames of the lights in their hands,
-## made the first time they hold one, "flicker": their light's flicker now}
+## made the first time they hold one, "flicker": their light's flicker now,
+## "print_at": where their last boot print is, "left": the foot that made it,
+## "col": the column their feet were last in (for the snow's trail)}
 var people := {}
 var _flicker_clock := 0.0
 var _rng := RandomNumberGenerator.new()
@@ -181,7 +190,8 @@ func _make(at: Vector3) -> Dictionary:
 	_layer_made().add_child(line)
 	return {"figure": f, "label": label, "line": line, "said": said, "tail": tail, "until": 0.0, "head": at,
 		"snaps": [], "work_n": -1, "hands": "", "gear": "", "light": "", "two": false,
-		"flames": [], "flicker": 1.0}
+		"flames": [], "flicker": 1.0, "print_at": at, "left": false,
+		"col": Vector2i(floori(at.x / CELL), floori(at.z / CELL))}
 
 
 func _layer_made() -> Control:
@@ -293,11 +303,35 @@ func _process(delta: float) -> void:
 			f.facing = SpriteSheet.direction_of(Vector2(e[3]))
 		f._animate(dir.limit_length(1.0), dir.length(), delta)
 		f.place_sprite()
+		_leave_prints(one, at, f.body.on_ground and not f.body.swimming and f.riding == "")
 		one.head = at + Vector3(0.0, Body.HEIGHT * CELL + NAME_OVER, 0.0)
 	_light_hands(delta)
 	_place_labels()
 	if perf != null:
 		perf.add("others", Time.get_ticks_usec() - t)
+
+
+## Boot prints of `one` now at `at` every STRIDE on the ground (`walking`), left and
+## right in turn, and its trail in deep snow: walking off a column (Body._leave_trail).
+func _leave_prints(one: Dictionary, at: Vector3, walking: bool) -> void:
+	var moved := Vector2(at.x - one.print_at.x, at.z - one.print_at.z)
+	if not walking or moved.length() > LEAP:
+		one.print_at = at
+		one.col = Vector2i(floori(at.x / CELL), floori(at.z / CELL))
+		return
+	if moved.length() >= STRIDE:
+		one.left = not one.left
+		if game.tracks != null:
+			game.tracks.leave(at, moved, one.left, true, 1.0)
+		one.print_at = at
+	var col := Vector2i(floori(at.x / CELL), floori(at.z / CELL))
+	if col == one.col:
+		return
+	var world = game.world
+	var clock = game.clock
+	if world != null and clock != null and maxf(clock.snow, world.peak_snow(at.y / CELL)) > Body.SNOW_DEEP.x:
+		world.tread(one.col.x, one.col.y, clock.now())
+	one.col = col
 
 
 ## What `one` holds in its hands (`hands`, two item ids): the brightest light among them
