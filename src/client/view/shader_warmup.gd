@@ -57,6 +57,11 @@ var ahead: Array = []
 var ahead_total := 0
 ## The frame start() ran in: the first mix is drawn at its end, so step() then waits.
 var start_frame := -1
+## Ahead a kind a frame, each named in the log first, where a phone's graphics driver
+## crashed while the shaders were built (Android, 2026-11-12: the log tells which thing
+## it was drawing); the kind shown now.
+var one_by_one := OS.has_feature("android")
+var ahead_kind := 0
 ## Later: the mix being built a kind at a time, the next kind, when the last was drawn.
 var mix_later: Array = []
 var next_kind := 0
@@ -90,6 +95,10 @@ func start() -> void:
 	_mix(ahead[0])
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	_say()
+	if one_by_one:
+		for copy in copies:
+			copy.visible = false
+		_show_kind(0)
 
 
 ## Builds the hidden view in a world of its own, with a copy of one thing of each kind
@@ -294,10 +303,17 @@ func step() -> bool:
 	# the first mix was never drawn).
 	if Engine.get_process_frames() == start_frame:
 		return false
+	if one_by_one:
+		copies[ahead_kind].visible = false
+		if ahead_kind + 1 < copies.size():
+			_show_kind(ahead_kind + 1)
+			return false
 	done[ahead.pop_front()] = true
 	if not ahead.is_empty():
 		_mix(ahead[0])
 		_say()
+		if one_by_one:
+			_show_kind(0)
 		return false
 	print("warm-up: done")
 	for copy in copies:
@@ -344,6 +360,44 @@ func update() -> void:
 ## built leaves it as the last line of its log (LastLog).
 func _say() -> void:
 	print("warm-up: mix %d of %d %s, %d kinds" % [ahead_total - ahead.size() + 1, ahead_total, str(ahead[0]), copies.size()])
+
+
+## Shows kind `i` alone (one_by_one) and names it in the log before it is drawn.
+func _show_kind(i: int) -> void:
+	ahead_kind = i
+	copies[i].visible = true
+	print("warm-up: kind %d: %s" % [i, _describe(copies[i])])
+
+
+## A copy's node, mesh and the shaders of its materials, for the log.
+static func _describe(copy: GeometryInstance3D) -> String:
+	var mats := []
+	var mesh: Mesh = null
+	if copy is MeshInstance3D:
+		mesh = copy.mesh
+		for i in mesh.get_surface_count() if mesh != null else 0:
+			mats.append(copy.get_active_material(i))
+	elif copy is MultiMeshInstance3D:
+		mesh = copy.multimesh.mesh
+		mats.append(copy.material_override)
+	elif copy is CPUParticles3D:
+		mesh = copy.mesh
+		mats.append(copy.mesh.surface_get_material(0) if mesh != null and mesh.get_surface_count() > 0 else null)
+	if copy.material_override != null and not copy is MultiMeshInstance3D:
+		mats = [copy.material_override]
+	var names := []
+	for m in mats:
+		if m is ShaderMaterial and m.shader != null:
+			var code: String = m.shader.code
+			var mode := code.substr(code.find("render_mode"), 60).get_slice(";", 0) if code.contains("render_mode") else ""
+			names.append(m.shader.resource_path.get_file() if m.shader.resource_path != "" \
+					else "shader %d chars %s" % [code.length(), mode])
+		elif m != null:
+			names.append(m.get_class())
+		else:
+			names.append("none")
+	return "%s %s layers %d shadow %d [%s]" % [copy.get_class(), mesh.get_class() if mesh != null else "-",
+		copy.layers, copy.cast_shadow, ", ".join(names)]
 
 
 ## Lets the hidden view go.
