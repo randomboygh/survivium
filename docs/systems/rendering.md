@@ -12,8 +12,11 @@ voxel models of things.
 - `src/client/view/camera_rig.gd` — SubViewport and the camera: a turn by steps of 45° (holding turns it
   smoothly, releasing brings it to a step), a tilt by steps `TILT_STEP`: `STEEPER` (3) up and `LOWER` (4)
   down, a cell's wall 2..16 px at a top of 8 px (decision 150). The arrows and the keys `[` `]` turn the world
-  towards the arrow. Without sleep (`Vitals.SLEEPY`) the view itself slowly circles round the player
-  (`drift_rate`, up to `DRIFT_RATE` — a turn in 2 minutes), once rested it goes to the nearest step.
+  towards the arrow. Left alone for `IDLE_TIME` (a minute: no key, tap or mouse, the player standing;
+  `wake` from `main.gd`'s `_input`) the view itself slowly circles round the player (`drift_rate`, up to
+  `DRIFT_RATE`, a turn in 1.5 minutes); any input brings it to the nearest step. Without sleep
+  (`Vitals.SLEEPY`) the picture swims instead (`drowsiness` → `sway` of `grade.gdshader`: waves, a faint
+  second image, darkening edges).
 - `src/client/view/crt.gd` — the setting «CRT» (Graphics): off, soft, old, cassette (`LOOKS`). The old screen
   is counted in the colour-correction pass (`grade.gdshader`, the parameters `crt_*`) by the screen's pixels
   (the shifts — by the screen's long side, the bend — by the diagonal, the mask's stripes are wider on a dense
