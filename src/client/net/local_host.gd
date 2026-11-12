@@ -77,6 +77,11 @@ static func server_settings(saved := true) -> Dictionary:
 	var c = load(SERVER_CONFIG).new()
 	if saved:
 		c.read()
+	return settings_of(c)
+
+
+## The same of the settings `c` (Config) of a server that runs.
+static func settings_of(c) -> Dictionary:
 	return {"title": c.title, "port": c.port, "max_players": c.max_players, "password": c.password,
 		"autosave": c.autosave, "tunnel": c.tunnel, "real_weather": c.real_weather,
 		"day_minutes": c.day_minutes, "rules": Rules.of(c.rules).to_dict()}
