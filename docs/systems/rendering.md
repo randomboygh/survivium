@@ -125,8 +125,8 @@ voxel models of things.
 - The cave view is one — layers (`src/client/view/cave_layers.gd`; decision 168: the «slice of levels», the
   «cut by the camera» and the «sphere» were removed together with the setting «Cave view» `cave_mode`, saved
   old values are not read, everyone has layers). Where an automatic slice would cut the view (under a roof;
-  where the ground hides the player's body from the camera: in a pit, in a ravine across the gaze, behind a
-  sheer wall; but not in a gorge along the gaze, where walls at the sides hide nothing), nothing is cut:
+  where the ground hides the player's body from the camera: in a pit, in a ravine across the gaze or slantwise
+  to it (the far wall is looked for behind the player straight and at both diagonals), behind a sheer wall; but not in a gorge along the gaze, where walls at the sides hide nothing), nothing is cut:
   `ChunkStreamer.update_cut` turns on the global `layer_view` (on and the cell of the player's feet), and
   `cut_hides` / `gone_above` hide by dithering (`layer_alpha`, `bayer4` by the texels of the screen's plane)
   only a quarter of the view at the side: what is before the player and not below the line (`layer_line` of
