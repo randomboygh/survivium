@@ -7,7 +7,8 @@ name: Test and build
 # and Linux exports, then the browser smoke test as a desktop, as a phone and as a phone
 # held upright. On a pull request the smoke test runs only when the PR touches what the
 # browser shows differently or carries the label `smoke`, and the way to every recipe only
-# when the PR touches what it plays (see `changes`; the label `full` runs everything); on main and on a
+# when the PR touches the content or crafting (see `changes`; the label `full` runs
+# everything); on main and on a
 # run by hand (Actions → Test and build → Run workflow) everything runs, and on main the
 # builds are published only when every job passed: the web one to Pages, the PC ones to the
 # rolling release `pc-latest`. Each test job keeps its logs as an artifact `logs-<job>` and
@@ -58,12 +59,12 @@ jobs:
           # the export, the smoke test and CI itself. Rules, data and tests are covered by the
           # headless tests.
           web='^(src/client/|src/shared/world/world_store\.gd|shaders/|scenes/|assets/|content/[^/]+/(sprites|models|icons|textures)/|project\.godot|export_presets\.cfg|icon\.png|tests/browser_smoke\.mjs|tools/web_patch\.py|tools/web_cache\.py|\.github/)'
-          # The way to every recipe plays the game's rules and data, so it runs unless every
-          # file of the PR is one it cannot reach: the interface, drawing and sound of the
-          # client (frame_test still plays them every run), pictures, models and sounds of
-          # the mods, translations, documents, tools and the other tests. A file of any other
-          # place runs it, a new folder too.
-          safe='^(src/client/(ui|view|audio)/|shaders/|assets/|docs/|tools/|content/[^/]+/([^/]+/)?(sprites|models|icons|textures|sounds|lang)/|tests/(unit/|frame_test\.gd|save_test\.gd|server_test\.gd|browser_smoke\.mjs)|[^/]+\.md$|.*/README(_RU)?\.md$)'
+          # The way to every recipe: only when the PR touches the content or crafting — the
+          # mods' data and bundle lists, the content registries, the hands' actions, stations,
+          # the craft queue, the bag, felling, fishing, craft quality — the test itself or CI.
+          # A rule elsewhere that cuts the way is caught by main's run after the merge
+          # (main runs everything and is never cancelled, so the first red run names the merge).
+          recipes='^(content/[^/]+/([^/]+/)?(data/|(bundle|mod)\.yaml$)|src/shared/content/|src/shared/game/(actions_[a-z_]+|world_actions|workshop|placed|craft_queue|inventory|felling|fishing|quality)\.gd$|tests/progress_test\.gd$|tests/run_all\.sh$|\.github/)'
           if [ -z "$PR" ] || [ "$FULL" = true ]; then
             smoke=true
             progress=true
@@ -71,7 +72,7 @@ jobs:
             files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --jq '.[].filename')
             echo "$files"
             if [ "$SMOKE" = true ] || grep -Eq "$web" <<<"$files"; then smoke=true; else smoke=false; fi
-            if grep -Evq "$safe" <<<"$files"; then progress=true; else progress=false; fi
+            if grep -Eq "$recipes" <<<"$files"; then progress=true; else progress=false; fi
           fi
           echo "smoke test: $smoke, the way to every recipe: $progress"
           echo "smoke=$smoke" >> "$GITHUB_OUTPUT"
