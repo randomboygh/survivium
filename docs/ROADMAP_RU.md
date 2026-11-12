@@ -13,7 +13,7 @@
 - `plan/backlog.md` — единственный список задач по областям (GitHub Issues не ведутся).
 - Сервер построен (решение 153, `plan/architecture/server.md`: этапы С1–С7, PR #249–#263), на нём
   территория и команды (Т1–Т6, PR #317–#329, [systems/territory.md](systems/territory_RU.md)); огонь, еда и
-  выживание — PR #307–#314 ([systems/character.md](systems/character.md)); строительство (решение 163,
+  выживание — PR #307–#314 ([systems/character.md](systems/character_RU.md)); строительство (решение 163,
   PR #335–#339, #371, #372) и навыки (решение 164, PR #340–#342) — задачи 7 и 6 этапа 1.
 - Система бандлов по ТЗ `bundles.md` (решение 152) построена: правила и состояние восьми этапов —
   [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md), план этапов с файлами и рисками —

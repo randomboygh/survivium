@@ -1,209 +1,234 @@
-# Персонаж: сумка, силы, навыки, тело, смерть, спрайт
+# The character: bag, strengths, skills, body, death, sprite
 
-Статус: ACTIVE.
+Status: ACTIVE. A Russian copy: [character_RU.md](character_RU.md).
 
-**Назначение.** Тот, кто играет: сумка и вес, надетое, здоровье, сытость, вода, бодрость и сон, тепло,
-выносливость, навыки, цена действий, еда,
-статистика жизни, смерть с мешком и возрождение; тело на клетках (ходьба по склонам, прыжки, вода, лёд,
-снег, ветер); спрайт игрока из слоёв PNG.
+**Purpose.** The one who plays: the bag and weight, what is worn, health, satiety, water, vigour and sleep,
+warmth, stamina, skills, the price of actions, food, life statistics, death with a sack and respawn; the body
+on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite from PNG layers.
 
-**Файлы**
-- `src/shared/game/character.gd` — правила персонажа (`in_hands`, `act`, `give`, `eat`, `wear`, `take_off`, `throw_away`,
-  `die`, `revive`, `respawn_points` (с `find_respawns`: последняя своя кровать — возрождение лёжа в ней, `Placed.lying_spot`, — затем свои и командные костры, `docs/systems/territory.md`), `to_dict` / `from_dict`); сигнал `state_changed`.
-  Мешок смерти лежит `SACK_DAYS` (2) игровых суток: пятое поле его записи в `WorldData.drops` — день
-  (`Clock.now`), когда он пропадёт; `WorldActions.expire_sacks` (шаг сеанса раз в `Session.SACK_CHECK` с)
-  убирает его с вещами из загруженных чанков (в забытом чанке — когда тот загрузится), а `sack_ends`
-  персонажа (рядом с `sacks`, в сохранении; у старых мешков — навсегда) снимают метку с карт и без чанка
-  (`_forget_old_sacks`, `forget_sack`). Мешок, забранный не целиком, свой день сохраняет. Экран смерти пишет,
-  сколько он пролежит (`death.sack_days`).
-  Крест на месте мешка: шестое поле записи мешка — кто умер (`grave_of`: имя игрока, причина, день, сколько
-  прожил, счётчики `life` больше 0). Когда мешок пропадает, `expire_sacks` возвращает, где он лежал и кто умер,
-  а сеанс ставит там крест (`Placed.put_grave`: первый предмет с `grave`, у основы `core:grave`; в клетке
-  мешка или ближайшей свободной в `Placed.GRAVE_REACH` (3) клетках, уровнем выше или ниже; нет места — нет
-  креста). Запись креста (`grave`, чистит `Placed.grave_record`) идёт в сохранение и копиям как у табличек;
-  над крестом в `Placed.SIGN_READ` клетках `sign_labels.gd` пишет `DeathScreen.grave_text`: «Здесь покоится
-  «имя»», день и сколько прожил, причина, пройдено и два самых больших счётчика жизни — на языке игрока.
-  Крест не пишется; убранный в режиме строительства (`take_up`), он исчезает, в сумку ничего не идёт.
-  Смерть с пустой сумкой мешка не оставляет: крест встаёт сразу (`die`), рядом с телом.
-  Урон от падения (`_fall` в `update`): высота считается от уровня, где ноги последний раз стояли
-  (`Body.standing` — у мира по месту, которое прислал клиент, а не по его слову; прыжок не добавляет),
-  больше `Vitals.FALL_SAFE` (4) уровней — `FALL_PER_LEVEL` за каждый сверх (`Vitals.fall`, `hurt_by`
-  "fall", «Вы разбились»); вода под местом приземления в 2 клетки и глубже гасит падение, в одну — вдвое
-  (`Body.water_under`). Скачок вниз быстрее любого падения (телепорт), «прыжки в воздухе» теста и
-  `forget_fall` (возрождение, `Player.teleport`) начинают счёт заново; на приставной лестнице
-  (`Body.on_ladder`) падения нет, счёт идёт от неё.
-- `src/shared/game/inventory.gd` — сумка: `SLOTS` 16 (`base`), первые `HOTBAR` 8 — панель внизу; стопки, вес
-  (40 кг без замедления), сортировка, перенос в сундук, износ (`wear_tool`, `mend`); сигнал `changed`.
-  Качество (решение 181): у стопки число 1–100 (`quality(s)`, `quality_at(i)`; `NORMAL` 50 — что было до качества
-  и у старых сохранений), пятое поле ячейки `[id, n, износ, вещи или null, качество]` только когда оно не 50
-  (`stack` строит ячейку, `held(s)` — вещи сундука); стопки одной вещи сливаются со средним по числу (`blend`,
-  в `add`, `put_into`, `sort`), `remove` пишет качество взятого в `took`, `drop_data` кладёт его на землю
-  (`{"n", "worn", "q"}`, кучи сливаются так же — `WorldData.heap_drop`), `tool_quality(id)` — качество инструмента
-  в работе (стопка, что изнашивается первой), `gear_quality()` — надетого.
-  Порча еды (`spoil(days, rate)`): у еды с `spoils` (игровые сутки) в третьем поле ячейки — насколько
-  она испортилась (из `ROTTEN`), стопки сливаются при любом возрасте со средним; время копится и
-  ложится шагами `SPOIL_STEP`, `changed` — раз в `TELL_AGE`; испорченная становится `rots_to`
-  (`core:rot`, «Гниль»). Зимой и под крышей медленнее (`spoil_rate`: `WINTER_RATE`, `ROOF_RATE`);
-  сумку портит шаг персонажа, сундуки — `Placed.spoil` в шаге сеанса. `freshness(i)` — полоска на
-  ячейке и «Свежесть» в описании; `worn(i)` у еды 0 (её не чинят).
-  Надетое (`gear`: слот тела → предмет, `WEAR_SLOTS` голова, тело, ноги, обувь, спина) остаётся в своей
-  ячейке, как инструмент в руке (`worn_slot(on)` — первая стопка этой вещи без вещей внутри, `worn_on(i)` —
-  чем надета ячейка; в окне и хотбаре метка «Н»): `wear(i)` надевает, прежнее в этом слоте снимается;
-  `take_off(slot)` снимает, вещь лежит где лежала. Вещь, ушедшая из сумки (`take_slot`, `put_into`,
-  `move_slot`, в том числе обмен из сундука), снимается сама (`_leave`/`_left`); `move_all` надетое не
-  трогает, `sort` двигает его вместе с остальным (кроме сумки за спиной), оно остаётся надетым; `remove` (рецепты) не берёт сумку со спины. Сумка за спиной (`wear_on: back`, `bag_slots`)
-  добавляет ячейки после `base` и сама лежит в первых `base` (в свои ячейки не кладётся); снятая, уносит их
-  вещи в себе (как забранный сундук, `contents`) и возвращает, когда её надевают снова; вес при этом не меняется: `stack_weight` считает и вещи сумок, лежащих в сумке, на любую глубину. Сохраняется
-  в `to_dict` (`gear`); старое сохранение, где надетое лежало отдельно, кладёт его в свободную ячейку
-  (`from_dict`), а без свободной оно носится отдельно (`apart()`: весит само, снимается в свободную ячейку).
-  При смерти надетое остаётся на персонаже (`take_all` берёт остальное).
-  Сумку или сундук, лежащие в ячейке (не сумку за спиной), `open(k)` открывает отдельной сумкой (`room_of`: `bag_slots` или `storage`,
-  сундук с вещами не берёт), `close(k, bag)` кладёт её вещи обратно в `contents` ячейки.
-- `src/shared/game/vitals.gd` — здоровье, сытость, вода, бодрость, выносливость (0..`MAX`), цена действий (`spend`, `can`).
-  Бодрость `energy` убывает на `TIRE_PER_DAY` в игровые сутки бодрствования; ниже `SLEEPY` — как голод
-  (выносливость до `HUNGRY_CAP`, отдых медленнее), на нуле тело идёт медленно (`speed_factor`), не ранит.
-  `sleep(on)` (уснуть можно ниже `SLEEP_BELOW`); во сне (`asleep`) бодрость растёт на `SLEEP_GAIN` ×
-  `sleep_rate`, выносливость и лечение вдвое быстрее. `Character.sleep` (запрос `sleep`, не в воде; не на постели — тело ложится на ближайшую в `BED_REACH` клетках, `Placed.nearest_bed`),
-  `Character.sleep_rate` (крыша `ROOF_SLEEP`, × `bedding` постели, на которой лежат: `Placed.bed_under`).
-  Постель (`prop: bed`, предмет с `bedding`) ставят на землю, как станок; касание её — запрос `lie_in`
-  (`Character.lie_in`: уснуть и лечь на неё, `Placed.lying_spot`, клиенту — `TELEPORT`; кто не хочет спать, `Vitals.sleepy`, забирает её в сумку, `Placed.take_up`); в сумке она не
-  действует. На экране спящий лежит набок с закрытыми глазами (кадр `sleep` листа, `Figure._lay_down`),
-  над ним по очереди поднимаются, растут и тают маленькие буквы «z» (`player.gd` `snore`, `_snore`); просыпается сам
-  выспавшись днём, от раны или в воде. Пока спят все, ночь идёт в `Session.SLEEP_SPEED` раз быстрее.
-  `fatigue` выкл — тестовый переключатель «Усталость»: энергия не убывает, работа и плавание не тратят
-  силы (`spend`, `can`), утонуть нельзя.
-  Припарка (`heal` с `heal_time`, «Растения» бандл `plants/moss`: мох и бинт у костра): `Vitals.mend`
-  возвращает её здоровье понемногу за `heal_time` секунд (`mending`, `mend_rate`, в сохранении) — и
-  голодному, и замёрзшему; вторая не кладётся, пока лечит первая. Бинт (`heal` без `heal_time`) лечит сразу.
-  Вода `water` убывает на `THIRST_PER_DAY` в игровые сутки (в жару в `THIRST_HOT` раз быстрее); ниже
-  `THIRSTY` — как голод (нет лечения, отдых вдвое медленнее, выносливость до `HUNGRY_CAP`), на нуле
-  ранит (`hurt_by` "thirst", «Вы умерли от жажды»). `drink(amount)`; `thirst` выкл — тестовый
-  переключатель «Жажда». Пьют у пресной воды пустой рукой (`WorldActions.drink`: кнопка действия лицом
-  к воде в `DRINK_REACH` или касание воды; `fresh_water` — озеро, река, болото, не море), пустой сосуд в
-  руке (`fills_to`) там же наполняется; полный (`drink`, `empties_to`) пьют как еду (`Character.eat`).
-  Тепло тела `warmth` (0..`MAX`, удобно `COMFORT` 50) и промокание `wet` (0..1): `warm(days, feel, …)`
-  тянет тепло к тому, что следует из ощущаемой температуры (между `COMFY_LOW` и `COMFY_HIGH` — удобно),
-  ниже `COLD` нет лечения, отдых вдвое медленнее, выносливость до `HUNGRY_CAP`; ниже `FREEZING`
-  мороз ранит (`hurt_by` "cold"); выше `HOT` выносливость до `HOT_CAP`. Дождь и снег мочат, вода — сразу
-  насквозь, сохнет на воздухе, под крышей быстрее, у огня быстрее всего. `cold` выкл — тестовый
-  переключатель «Холод и жара».
-- `src/shared/game/warmth.gd` — сколько градусов там, где стоит тело: `air` (середина окна `warmth` биома
-  между `COLDEST` и `WARMEST`, сезон `SEASON`, ночь `NIGHT`, дождь/снег/ветер без крыши), `fire_heat`
-  (горящий костёр в `FIRE_REACH`, слабее на исходе топлива), `clothes` (сумма `warmth` надетого), `feel`
-  (огонь, одежда — мокрая вполовину, мокрое тело −`WET_CHILL`, крыша +`ROOF`, в воде холоднее воздуха).
-  Считает шаг персонажа (`_warm`); полоска с термометром и капля в `vitals_panel.gd`.
-- `src/shared/game/body.gd` — тело на сетке: `step(at, delta, jump)`, склоны и ступени, вода и плавание,
-  приставная лестница (`_climb`: тело в клетке звена `WorldData.ladders`, или над верхним звеном меньше
-  `CLIMB_OVER`, не падает; джойстик к лестнице — вверх, от неё — вниз со скоростью `CLIMB_SPEED`, вбок —
-  вдоль, над верхним звеном к лестнице — сойти на край шагом; внизу на земле «от неё» уводит шагом,
-  прыжок отпускает на `LET_GO`; сервер задаёт `climb` по высоте, которую прислал клиент, `Player._take_claim`),
-  лёд, глубокий снег и ветер (`weather_pace`, `air_drift`), толчки (`knock`), тропы; на плоту или в лодке
-  (`vessel` — доля шага ходьбы, `Character.vessel_pace`: без `oars` в сумке `OARLESS` её) тело держится на
-  поверхности воды (`DECK` под ней), ходит только по воде, где помещается корпус `HULL` (`floats`, `_sail`),
-  быстрее с навыком плавания, перегруз сумки гребца замедляет вдвое слабее, чем шаг (`LOAD_AFLOAT`); ход с
-  инерцией (`_row`): судно смотрит по `heading` (его ставит посадка, `ActionsBoat._set_off`, на клиенте
-  `main._set_off`), поворачивает к стику не быстрее `SAIL_TURN`, разгоняется за `SAIL_SPEED_UP` с, без
-  гребли катится и теряет `SAIL_DRAG` хода в секунду, киль гасит снос вбок (`SAIL_KEEL`); ветер сносит судно
-  по его `windage` (`SAIL_WIND`, лёгкий — `SAIL_BREEZE` того); корпус, ударившийся о берег быстрее `SAIL_BUMP`,
-  отскакивает (`SAIL_BOUNCE`), `bump` — с какой скоростью (стук в `steps.gd`); `afloat` — держит ли; `flow` — течение реки (`Currents`,
-  `Character.flow`) несёт судно и тело в воде по доле `SWIM_DEPTH`, на которую оно в ней. Где стоит тело,
-  держит владелец: на клиенте узел игрока передаёт своё место в `body.step` каждый кадр.
-- `src/server/player.gd` (наследует общий) — персонаж игрока на сервере, тот, над кем идут правила:
-  тело и руки такие, какими клиент прислал их событием `input`; через сокет присланное место
-  проверяется телом сервера (3А, [network.md](network.md)).
-- `src/client/game/character.gd` (наследует общий) — копия персонажа на клиенте: сумка, силы, смерть
-  из событий сервера (`take`, `take_vitals`), место игрока, руки (из `controls`), строки под часами,
-  экран смерти, `go_to_column` («Тестирование»); правил не крутит.
-- `src/client/view/player.gd` — игрок на экране: двигает тело, рисует спрайт по состоянию тела;
-  `player.work` начинает замах (`work_n` считает их, `work_at` — куда повёрнут: сервер говорит о них
-  другим игрокам).
-- `src/client/view/others.gd` — другие игроки на экране (С3.3): фигура `player.gd` на каждого из
-  снимков сервера `people` (рисуется на `DELAY` 0,1 с позади них, между двумя ближними), руки через
-  `game.hands.look`, замахи по счёту, имя над головой обычным шрифтом интерфейса (Label в слое HUD,
-  ставится каждый кадр в точку экрана над головой, `View.screen_of`, без сглаживания) и над ним балун
-  с его строкой чата (6 с): светлый, с тёмными буквами и хвостиком к имени, чтобы не путать с
-  уведомлениями и табличками; `person_gone` убирает. Не шагает телом, силуэт за стенами — только свой.
-  Свет в руке другого (предмет с `light` в его руках из снимка) горит пламенем на месте пламени спрайта
-  (`Effects.torch_flame`), а у `OTHER_LIGHTS` (3) ближайших к игроку ещё и светит как свой факел (`Sky.lamp_gain`,
-  `Effects.torch_off`, два факела дальше, у плывущего короче), без теней и всегда как новый (сколько осталось
-  гореть, сервер не говорит); `server_test` проверяет, снимок `team-torches`.
-- Жесты (решение 183): `src/shared/game/gestures.gd` — список `LIST` (помахать, да, нет, указать, сюда,
-  поклон, хлопать, сесть: слова круга, анимация `player.yaml`, секунды; «сесть» — до движения), `make`
-  (запрос `gesture`, имя проверяется по списку, "" — перестать), `now_of` (жест кончается по времени, при
-  движении, в воде, в лодке, во сне). Персонаж хранит `gesture`, `gesture_until`; сервер шлёт жест в
-  записи `people` (поле 17). Фигура (`player.gd`, `set_gesture`) играет его анимацию стоя, над головой —
-  значок `UiStyle.icon("g_<имя>")` первые `Gestures.ICON_TIME` 2,5 с (у других — над именем); движение или
-  работа его прерывают. Кадры жестов — столбцы 46–57 листа (`tools/art/player_art.gd`, `MOVES`, с `lean` —
-  наклон тела; `tools/make_sprites.gd` рисует слои, метки кистей и надетое заново). Круг жестов —
-  `src/client/ui/gesture_wheel.gd` (кнопка рядом с чатом в верхнем ряду, клавиша C, цифры 1–8 в круге).
-- `src/client/view/figure.gd` — лист кадров игрока из `content/core/sprites/` по `player.yaml` (слои,
-  метки кистей `hands.png`, лист на каждый инструмент в руке или иконка предмета), строится по части ряда
-  за кадр; `hands.gd` — что в руках видно на спрайте; `sprite_sheet.gd` — лист кадров по данным.
-- `src/client/ui/person_panel.gd` — персонаж в окне инвентаря (слоты надетого и рук, ячейки, полосы
-  навыков); `src/client/ui/level_up.gd` — эффект нового уровня навыка; `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — экран смерти,
-  полоски сил, отклик экрана на урон, вибрация телефона.
+**Files**
+- `src/shared/game/character.gd` — the character's rules (`in_hands`, `act`, `give`, `eat`, `wear`,
+  `take_off`, `throw_away`, `die`, `revive`, `respawn_points` (with `find_respawns`: the last own bed —
+  respawning lying in it, `Placed.lying_spot`, — then own and the team's campfires, `docs/systems/territory.md`),
+  `to_dict` / `from_dict`); the signal `state_changed`. The death sack lies `SACK_DAYS` (2) game days: the
+  fifth field of its record in `WorldData.drops` is the day (`Clock.now`) when it will vanish;
+  `WorldActions.expire_sacks` (the session's step once per `Session.SACK_CHECK` s) removes it with its things
+  from the loaded chunks (in a forgotten chunk — when it loads), and the character's `sack_ends` (beside
+  `sacks`, in the save; for old sacks — for ever) remove the mark from maps even with no chunk
+  (`_forget_old_sacks`, `forget_sack`). A sack taken not whole keeps its day. The death screen writes how long
+  it will lie (`death.sack_days`). A cross at the sack's place: the sixth field of the sack's record is who
+  died (`grave_of`: the player's name, the cause, the day, how long they lived, the `life` counters above 0).
+  When the sack vanishes, `expire_sacks` returns where it lay and who died, and the session puts a cross there
+  (`Placed.put_grave`: the first item with `grave`, at the base `core:grave`; in the sack's cell or the nearest
+  free one within `Placed.GRAVE_REACH` (3) cells, a level above or below; no place — no cross). The cross's
+  record (`grave`, cleaned by `Placed.grave_record`) goes into the save and to the copies as for signs; above
+  the cross within `Placed.SIGN_READ` cells `sign_labels.gd` writes `DeathScreen.grave_text`: «Here lies
+  «name»», the day and how long they lived, the cause, the distance walked and the two biggest life counters
+  — in the player's language. A cross is not written on; one removed in build mode (`take_up`) vanishes,
+  nothing goes into the bag. A death with an empty bag leaves no sack: the cross stands at once (`die`), beside
+  the body. Fall damage (`_fall` in `update`): the height is counted from the level where the feet last stood
+  (`Body.standing` — by the world, at the place the client sent, not by its word; a jump adds nothing), more
+  than `Vitals.FALL_SAFE` (4) levels — `FALL_PER_LEVEL` for each beyond (`Vitals.fall`, `hurt_by` "fall", «You
+  crashed»); water under the landing place of 2 cells and deeper puts the fall out, of one — halves it
+  (`Body.water_under`). A jump down faster than any fall (a teleport), the test's «jumps in the air» and
+  `forget_fall` (respawn, `Player.teleport`) begin the count anew; on a leaning ladder (`Body.on_ladder`) there
+  is no fall, the count goes from it.
+- `src/shared/game/inventory.gd` — the bag: `SLOTS` 16 (`base`), the first `HOTBAR` 8 — the bar below;
+  stacks, weight (40 kg with no slowing), sorting, moving into a chest, wear (`wear_tool`, `mend`); the signal
+  `changed`. Quality (decision 181): a stack has a number 1–100 (`quality(s)`, `quality_at(i)`; `NORMAL` 50 —
+  what was before quality and at old saves), the cell's fifth field `[id, n, wear, things or null, quality]`
+  only when it is not 50 (`stack` builds the cell, `held(s)` — the chest's things); stacks of one thing merge
+  with the mean by number (`blend`, in `add`, `put_into`, `sort`), `remove` writes the quality of what was
+  taken into `took`, `drop_data` puts it on the ground (`{"n", "worn", "q"}`, heaps merge the same way —
+  `WorldData.heap_drop`), `tool_quality(id)` — the quality of the tool at work (the stack that wears first),
+  `gear_quality()` — of what is worn. Food spoiling (`spoil(days, rate)`): food with `spoils` (game days) has
+  in the cell's third field how much it has spoiled (out of `ROTTEN`), stacks merge at any age with the mean;
+  time accumulates and lies by steps `SPOIL_STEP`, `changed` — once per `TELL_AGE`; spoiled food becomes
+  `rots_to` (`core:rot`, «Rot»). In winter and under a roof slower (`spoil_rate`: `WINTER_RATE`, `ROOF_RATE`);
+  the bag is spoiled by the character's step, chests — by `Placed.spoil` in the session's step.
+  `freshness(i)` — the strip on a cell and «Freshness» in the description; `worn(i)` of food is 0 (it is not
+  repaired). What is worn (`gear`: a body slot → an item, `WEAR_SLOTS` head, body, legs, feet, back) stays in
+  its own cell, like a tool in the hand (`worn_slot(on)` — the first stack of this thing without things
+  inside, `worn_on(i)` — what a cell is worn as; in the window and the hotbar the mark «W»): `wear(i)` puts it
+  on, the former in this slot is taken off; `take_off(slot)` takes it off, the thing lies where it lay. A
+  thing that left the bag (`take_slot`, `put_into`, `move_slot`, including an exchange from a chest) is taken
+  off by itself (`_leave`/`_left`); `move_all` does not touch what is worn, `sort` moves it with the rest
+  (except the bag on the back), it stays worn; `remove` (recipes) does not take the bag off the back. A bag on
+  the back (`wear_on: back`, `bag_slots`) adds cells after `base` and itself lies in the first `base` (it does
+  not put itself into its own cells); taken off, it carries its things away in itself (like a taken chest,
+  `contents`) and returns them when it is put on again; the weight does not change: `stack_weight` counts the
+  things of bags lying in the bag too, to any depth. Saved in `to_dict` (`gear`); an old save where what was
+  worn lay separately puts it into a free cell (`from_dict`), and without a free one it is carried separately
+  (`apart()`: weighs itself, is taken off into a free cell). At death what is worn stays on the character
+  (`take_all` takes the rest). A bag or a chest lying in a cell (not a bag on the back) is opened by `open(k)`
+  as a separate bag (`room_of`: `bag_slots` or `storage`, a chest with things is not taken), `close(k, bag)`
+  puts its things back into the cell's `contents`.
+- `src/shared/game/vitals.gd` — health, satiety, water, vigour, stamina (0..`MAX`), the price of actions
+  (`spend`, `can`). Vigour `energy` falls by `TIRE_PER_DAY` per game day of being awake; below `SLEEPY` — like
+  hunger (stamina up to `HUNGRY_CAP`, rest slower), at zero the body goes slowly (`speed_factor`), does not
+  wound. `sleep(on)` (one can fall asleep below `SLEEP_BELOW`); asleep (`asleep`) vigour grows by
+  `SLEEP_GAIN` × `sleep_rate`, stamina and healing twice as fast. `Character.sleep` (the request `sleep`, not
+  in water; not on a bed — the body lies down on the nearest within `BED_REACH` cells, `Placed.nearest_bed`),
+  `Character.sleep_rate` (a roof `ROOF_SLEEP`, × the `bedding` of the bed one lies on: `Placed.bed_under`).
+  A bed (`prop: bed`, an item with `bedding`) is placed on the ground, like a station; a tap on it is the
+  request `lie_in` (`Character.lie_in`: fall asleep and lie on it, `Placed.lying_spot`, to the client —
+  `TELEPORT`; one who does not want to sleep, `Vitals.sleepy`, takes it into the bag, `Placed.take_up`); in
+  the bag it does not work. On screen the sleeper lies on their side with closed eyes (the sheet's frame
+  `sleep`, `Figure._lay_down`), above them small letters «z» rise, grow and melt in turn (`player.gd` `snore`,
+  `_snore`); one wakes up by oneself when rested by day, from a wound or in water. While all sleep, the night
+  goes `Session.SLEEP_SPEED` times faster. `fatigue` off — the test switch «Fatigue»: energy does not fall,
+  work and swimming spend no strength (`spend`, `can`), one cannot drown. A poultice (`heal` with `heal_time`,
+  the «Plants» bundle `plants/moss`: moss and a bandage by a campfire): `Vitals.mend` returns its health
+  little by little over `heal_time` seconds (`mending`, `mend_rate`, in the save) — to the hungry and the
+  frozen too; a second is not laid while the first is healing. A bandage (`heal` without `heal_time`) heals at
+  once. Water `water` falls by `THIRST_PER_DAY` per game day (in heat `THIRST_HOT` times faster); below
+  `THIRSTY` — like hunger (no healing, rest twice as slow, stamina up to `HUNGRY_CAP`), at zero it wounds
+  (`hurt_by` "thirst", «You died of thirst»). `drink(amount)`; `thirst` off — the test switch «Thirst». One
+  drinks at fresh water with an empty hand (`WorldActions.drink`: the action button facing water within
+  `DRINK_REACH` or a tap on water; `fresh_water` — a lake, a river, a swamp, not the sea), an empty vessel in
+  the hand (`fills_to`) is filled there too; a full one (`drink`, `empties_to`) is drunk as food
+  (`Character.eat`). Body warmth `warmth` (0..`MAX`, comfortable `COMFORT` 50) and getting wet `wet` (0..1):
+  `warm(days, feel, …)` pulls the warmth to what follows from the felt temperature (between `COMFY_LOW` and
+  `COMFY_HIGH` — comfortable), below `COLD` there is no healing, rest is twice as slow, stamina up to
+  `HUNGRY_CAP`; below `FREEZING` frost wounds (`hurt_by` "cold"); above `HOT` stamina up to `HOT_CAP`. Rain and
+  snow wet, water — through at once, it dries in air, under a roof faster, by a fire fastest. `cold` off — the
+  test switch «Cold and heat».
+- `src/shared/game/warmth.gd` — how many degrees where the body stands: `air` (the middle of the biome's
+  `warmth` window between `COLDEST` and `WARMEST`, the season `SEASON`, night `NIGHT`, rain/snow/wind without a
+  roof), `fire_heat` (a burning campfire within `FIRE_REACH`, weaker as the fuel runs out), `clothes` (the sum
+  of the `warmth` of what is worn), `feel` (fire, clothes — wet by half, a wet body −`WET_CHILL`, a roof
+  +`ROOF`, in water colder than air). Counted by the character's step (`_warm`); the strip with a thermometer
+  and a drop in `vitals_panel.gd`.
+- `src/shared/game/body.gd` — the body on the grid: `step(at, delta, jump)`, slopes and steps, water and
+  swimming, a leaning ladder (`_climb`: the body in the cell of a link of `WorldData.ladders`, or above the top
+  link by less than `CLIMB_OVER`, does not fall; the joystick towards the ladder — up, away from it — down at
+  the speed `CLIMB_SPEED`, sideways — along, above the top link towards the ladder — to step off at the edge;
+  below on the ground «away from it» leads away by a step, a jump lets go at `LET_GO`; the server sets
+  `climb` by the height the client sent, `Player._take_claim`), ice, deep snow and wind (`weather_pace`,
+  `air_drift`), pushes (`knock`), trails; on a raft or in a boat (`vessel` — the share of a walking step,
+  `Character.vessel_pace`: without `oars` in the bag `OARLESS` of it) the body keeps on the water's surface
+  (`DECK` under it), goes only on water where the hull `HULL` fits (`floats`, `_sail`), faster with the
+  swimming skill, an overload of the rower's bag slows half as strongly as a step (`LOAD_AFLOAT`); movement
+  with inertia (`_row`): the vessel looks along `heading` (set by boarding, `ActionsBoat._set_off`, on the
+  client `main._set_off`), turns to the stick no faster than `SAIL_TURN`, speeds up in `SAIL_SPEED_UP` s,
+  without rowing it rolls and loses `SAIL_DRAG` of its speed per second, the keel damps sideways drift
+  (`SAIL_KEEL`); wind drifts the vessel by its `windage` (`SAIL_WIND`, a light one — `SAIL_BREEZE` of that); a
+  hull that hit the shore faster than `SAIL_BUMP` bounces (`SAIL_BOUNCE`), `bump` — at what speed (the knock
+  in `steps.gd`); `afloat` — whether it holds; `flow` — a river's current (`Currents`, `Character.flow`)
+  carries the vessel and the body in water by the share `SWIM_DEPTH` of itself that is in it. Where the body
+  stands is held by the owner: on the client the player's node passes its place into `body.step` every frame.
+- `src/server/player.gd` (inherits the shared one) — a player's character on the server, the one over whom
+  the rules go: the body and hands are as the client sent them by the event `input`; over a socket the sent
+  place is checked by the server's body (3А, [network.md](network.md)).
+- `src/client/game/character.gd` (inherits the shared one) — the character's copy on the client: the bag,
+  strengths, death from the server's events (`take`, `take_vitals`), the player's place, the hands (from
+  `controls`), the lines under the clock, the death screen, `go_to_column` («Testing»); it runs no rules.
+- `src/client/view/player.gd` — the player on screen: moves the body, draws the sprite by the body's state;
+  `player.work` begins a stroke (`work_n` counts them, `work_at` — where it is turned: the server tells the
+  other players about them).
+- `src/client/view/others.gd` — other players on screen (С3.3): a figure `player.gd` for each of the server's
+  snapshots `people` (drawn `DELAY` 0.1 s behind them, between the two nearest), the hands through
+  `game.hands.look`, strokes by count, the name above the head in the interface's ordinary font (a Label in
+  the HUD layer, set every frame at the screen's point above the head, `View.screen_of`, without smoothing)
+  and above it a balloon with its chat line (6 s): light, with dark letters and a tail towards the name, so as
+  not to confuse it with notices and signs; `person_gone` removes it. It does not step with a body, the
+  silhouette behind walls — only one's own. The light in another's hand (an item with `light` in their hands
+  from the snapshot) burns as a flame in the place of the sprite's flame (`Effects.torch_flame`), and the
+  `OTHER_LIGHTS` (3) nearest to the player also shine like one's own torch (`Sky.lamp_gain`,
+  `Effects.torch_off`, two torches farther, for a swimming one shorter), with no shadows and always as new
+  (how much is left to burn the server does not say); `server_test` checks, the shot `team-torches`.
+- Gestures (decision 183): `src/shared/game/gestures.gd` — the list `LIST` (wave, yes, no, point, here, bow,
+  clap, sit: the wheel's words, the animation of `player.yaml`, seconds; «sit» — until movement), `make` (the
+  request `gesture`, the name is checked against the list, "" — stop), `now_of` (a gesture ends by time, on
+  movement, in water, in a boat, in sleep). The character stores `gesture`, `gesture_until`; the server sends
+  the gesture in the `people` record (field 17). The figure (`player.gd`, `set_gesture`) plays its animation
+  standing, above the head — the icon `UiStyle.icon("g_<name>")` for the first `Gestures.ICON_TIME` 2.5 s
+  (for others — above the name); movement or work interrupt it. The gestures' frames are columns 46–57 of the
+  sheet (`tools/art/player_art.gd`, `MOVES`, with `lean` — the body's tilt; `tools/make_sprites.gd` draws the
+  layers, the marks of the hands and what is worn anew). The wheel of gestures —
+  `src/client/ui/gesture_wheel.gd` (a button beside the chat in the top row, the key C, digits 1–8 in the
+  wheel).
+- `src/client/view/figure.gd` — the sheet of the player's frames from `content/core/sprites/` by `player.yaml`
+  (layers, the marks of the hands `hands.png`, a sheet for each tool in the hand or the item's icon), built by
+  a part of a row per frame; `hands.gd` — what in the hands is seen on the sprite; `sprite_sheet.gd` — the
+  sheet of frames by data.
+- `src/client/ui/person_panel.gd` — the character in the inventory window (the slots of what is worn and of
+  the hands, cells, the skills' strips); `src/client/ui/level_up.gd` — the effect of a skill's new level;
+  `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — the death screen,
+  the strengths' strips, the screen's response to damage, the phone's vibration.
 
-**Навыки** (решение 164). Девять навыков — данные мода (`content/core/data/skills.yaml`, вид `skills`,
-реестр `src/shared/content/skills.gd`): Сбор, Рубка, Копание, Ремесло, Стройка, Готовка, Охота, Рыбалка,
-Плавание; движок спрашивает навык по роли работы (`Skills.of_role`). Что выучил персонаж — `SkillSet`
-(`src/shared/game/skill_set.gd`, `Character.skills`): очки по id навыка, 10 уровней, первый за `first`
-(120) очков, каждый следующий в `growth` (1,45) раза дороже (десятый — около трёх часов чистой работы). Очки — секунды полезной работы: правило отдаёт
-взмах, который что-то сделал (`WorldActions.skilled`: копание, рубка, покос и сбор, стройка, удар по зверю),
-рецепт по его времени (`Workshop`, `gain_recipe`: тот же рецепт подряд даёт всё меньше, `REPEAT_FADE`),
-плавание по времени в пути (`Character.update`), целую вещь по `each` (добытый зверь, пойманная рыба).
-Выкопать блок, поставленный игроком, и поставить снова там, где такой выкопан, опыта не дают
-(`WorldActions._built`, `_undone`, не в сохранении). Навык делает лучше руку, а не инструмент (модель баланса
-`docs/balance/GAME_BALANCE_DESIGN.md`): время взмаха и рецепта × `pace` (до 1 / (1 + `speed`) на последнем: при `speed` 1, по
-умолчанию, вдвое быстрее), скорость в воде × `boost` (плавание на последнем — вдвое) (`Body.swim_scale`); цена взмаха по силам ×
-(1 − `effort` × доля уровней) (`Character.act(action, role)` → `Vitals.spend`); взмах с шансом `care` × доля не изнашивает
-инструмент (`Workshop.use_tool`, роль инструмента — `Tools.ROLE_OF`); удар по зверю × (1 + `might` × доля), округлённый
-(`SkillSet.blow`; `might` только у Охоты, число ударов по дереву и ячейке навык не меняет). Тестовая «Скорость игрока»
-(`Settings.player_speed`) ускоряет и шаг (`Body.speed_scale`, в воде тоже), и работу: `Character.haste` делит
-время взмаха (`Requests._do` укорачивает ответ правила, свои взмахи клиента — `Controls._hasted`) и рецепта
-(`Workshop.time_of`, `_pace`). Ещё одна штука с
-шансом до `yield` (`SkillSet.extra`): сбор (ягоды, семена и ветки с деревьев, покос), рубка (бревно у пня), рыбалка (вторая рыба),
-готовка и разделка туши (`Workshop.yield_role`: рецепт готовки или с тушей зверя, `AiRules.CARCASSES`).
-Навык решает и качество (решение 181, `src/shared/game/quality.gd`): добытое (сбор, рубка, копание, охота,
-рыбалка, жатва) лучше на `quality` навыка на последнем уровне (`SkillSet.quality_most`, по умолчанию 30), сделанное
-не лучше потолка `Quality.skill_cap` (50 без навыка, у Ремесла и Готовки до 100). Запас ударов умелой руки
-(отрицательный износ) у вещей старых сохранений остаётся, новые его не получают. Сумма уровней
-даёт запас клеток территории (`Territory.skilled`, `docs/systems/territory.md`). Хранится частью `skills`
-сохранения игрока; клиенту сервер шлёт `Protocol.SKILLS` не чаще `PlayerLink.SKILLS_EVERY` и сразу при
-новом уровне, копия на клиенте (`SkillSet.take`) говорит `leveled`. Окно персонажа (`person_panel.gd`)
-рисует полосу на навык: деление на уровень (только навык: сила инструмента — в чипах предмета, не на шкале), тонкой линией путь до
-следующего; подсказка — уровень, что он даёт сейчас (быстрее, дешевле по силам, лишняя штука, удар, прочность вещей, бережность),
-инструмент в руке, который навык ведёт, описание. Время в окне крафта — с навыком (`Workshop.time_of`).
-Новый уровень (`src/client/ui/level_up.gd`, выбор 7А с уведомлением в углу): края экрана коротко светятся
-золотом (`BodyFeedback.glow`), вокруг игрока поднимаются золотые звёздочки (`Effects.level_sparks`),
-звучит `level_up` (`sounds/ui`), в списке уведомлений слева вверху — «★ Рубка: новый уровень» с уровнем и
-ускорением (`Hud.notice`). Первые очки, пришедшие с сервера при входе, уровня не поднимают. Тестовая настройка «Рост навыков»
-(×1, ×2, ×20, ×200, `Settings.skill_rate`) умножает все очки (`SkillSet.rate`).
+**Skills** (decision 164). Nine skills are a mod's data (`content/core/data/skills.yaml`, the kind `skills`,
+the registry `src/shared/content/skills.gd`): Gathering, Chopping, Digging, Crafting, Building, Cooking,
+Hunting, Fishing, Swimming; the engine asks for a skill by the work's role (`Skills.of_role`). What the
+character has learned is `SkillSet` (`src/shared/game/skill_set.gd`, `Character.skills`): points by the
+skill's id, 10 levels, the first for `first` (120) points, each next `growth` (1.45) times dearer (the tenth —
+about three hours of pure work). The points are seconds of useful work: a rule gives a stroke that did
+something (`WorldActions.skilled`: digging, chopping, mowing and gathering, building, a blow at a beast), a
+recipe by its time (`Workshop`, `gain_recipe`: the same recipe in a row gives less and less, `REPEAT_FADE`),
+swimming by the time on the way (`Character.update`), a whole thing by `each` (a hunted beast, a caught fish).
+Digging out a block placed by a player and placing it again where such a one was dug out give no experience
+(`WorldActions._built`, `_undone`, not in the save). A skill makes the hand better, not the tool (the balance
+model `docs/balance/GAME_BALANCE_DESIGN.md`): the time of a stroke and of a recipe × `pace` (down to 1 / (1 +
+`speed`) at the last: with `speed` 1, by default, twice as fast), the speed in water × `boost` (swimming at
+the last — twice) (`Body.swim_scale`); the price of a stroke in strength × (1 − `effort` × the share of
+levels) (`Character.act(action, role)` → `Vitals.spend`); a stroke with the chance `care` × the share does not
+wear the tool (`Workshop.use_tool`, the tool's role — `Tools.ROLE_OF`); a blow at a beast × (1 + `might` × the
+share), rounded (`SkillSet.blow`; `might` only for Hunting, the number of blows at a tree and a cell a skill
+does not change). The test «Player speed» (`Settings.player_speed`) speeds up both the step (`Body.speed_scale`,
+in water too) and work: `Character.haste` divides the time of a stroke (`Requests._do` shortens the rule's
+answer, the client's own strokes — `Controls._hasted`) and of a recipe (`Workshop.time_of`, `_pace`). One more
+thing with a chance up to `yield` (`SkillSet.extra`): gathering (berries, seeds and twigs from trees, mowing),
+chopping (a log at the stump), fishing (a second fish), cooking and butchering a carcass (`Workshop.yield_role`:
+a recipe of cooking or with a beast's carcass, `AiRules.CARCASSES`). A skill decides quality too (decision
+181, `src/shared/game/quality.gd`): what is got (gathering, chopping, digging, hunting, fishing, reaping) is
+better by the skill's `quality` at the last level (`SkillSet.quality_most`, 30 by default), what is made is no
+better than the ceiling `Quality.skill_cap` (50 without a skill, for Crafting and Cooking up to 100). A reserve
+of blows of a skilled hand (negative wear) stays at the things of old saves, new ones do not get it. The sum
+of levels gives the reserve of territory cells (`Territory.skilled`, `docs/systems/territory.md`). It is stored
+as the part `skills` of the player's save; the server sends the client `Protocol.SKILLS` no more often than
+`PlayerLink.SKILLS_EVERY` and at once on a new level, the copy on the client (`SkillSet.take`) says `leveled`.
+The character window (`person_panel.gd`) draws a strip per skill: a division per level (only the skill: a
+tool's strength is in the item's chips, not on the scale), a thin line shows the way to the next; the hint —
+the level, what it gives now (faster, cheaper in strength, an extra piece, a blow, the durability of things,
+care), the tool in the hand that the skill leads, the description. The time in the crafting window is with the
+skill (`Workshop.time_of`). A new level (`src/client/ui/level_up.gd`, choice 7А with a notice in the corner):
+the screen's edges briefly glow gold (`BodyFeedback.glow`), golden stars rise round the player
+(`Effects.level_sparks`), `level_up` sounds (`sounds/ui`), in the list of notices at the top left — «★
+Chopping: a new level» with the level and the speedup (`Hud.notice`). The first points that come from the
+server at login do not raise a level. The test setting «Skill growth» (×1, ×2, ×20, ×200, `Settings.skill_rate`)
+multiplies all points (`SkillSet.rate`).
 
-**Свет в руке.** Факел, свеча, фонарь (предмет с `light`) — расходуемое, как еда: в сумке стопка целых,
-взятый в руку горит `burns` секунд (`Character.burning`: сколько сгорело у каждого зажжённого, в
-сохранении `character`), догорев, снимается из стопки, и зажигается следующий; убранный ждёт, сколько
-ему осталось. Износа (`durability`) у света нет, сумка сбрасывает его у старых сохранений. Копия
-персонажа на клиенте узнаёт о горении раз в `BURN_TELL` секунд и при догорании; рука на панели
-показывает остаток полоской (`HotbarSlot.fill`), сумка — временем.
+**Light in the hand.** A torch, a candle, a lantern (an item with `light`) are consumables, like food: in the
+bag a stack of whole ones, one taken into the hand burns `burns` seconds (`Character.burning`: how much each lit
+one has burnt, in the save `character`), burnt down it is removed from the stack, and the next is lit; one put
+away waits as much as it has left. Light has no wear (`durability`), the bag drops it at old saves. The
+character's copy on the client learns about burning once per `BURN_TELL` seconds and at burning down; the hand
+on the panel shows the remainder by a strip (`HotbarSlot.fill`), the bag — by time.
 
-Выносливость (`Vitals`): работа ценой от `WORK_COST` делает тело занятым на `BUSY` секунд, отдых в это время — `WORK_REST` от
-`REST`: силы тратятся на работу, не на время (стальной топор утомляет за 15 с подряд, каменный — за 88, руки в земле — никогда).
+Stamina (`Vitals`): work priced from `WORK_COST` makes the body busy for `BUSY` seconds, rest at that time is
+`WORK_REST` of `REST`: strength is spent on work, not on time (a steel axe tires in 15 s in a row, a stone one
+in 88, hands in the ground — never).
 
-**Данные.** Предметы (`food`, `spoils`, `rots_to`, `drink`, `empties_to`, `fills_to`, `bedding`, `warmth`, `heal`, `heal_time`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`; у еды `heal` и `drink` — сверх сытости: жареное немного лечит и поит, `Character.eat`); существо
-`core:human`; одежда на фигуре — `Figure.dressed(gear)`: голые слои `player.yaml` `naked` (тело,
-набедренная повязка, волосы), между ними картинки надетого `sprites/worn/<look>.png` бандла вещи (поле
-`look`): ноги, обувь, тело под волосами, голова поверх; рисует их `tools/make_sprites.gd` (`WORN`: форма
-`PlayerArt.SHAPES` и три цвета). Надетое других игроков приходит 14-м полем `PEOPLE`. Слои и работы фигуры — `content/core/sprites/player.yaml`, листы инструментов в руке —
-`sprites/held/` бандла инструмента. Сохраняются части `inventory`, `vitals`, `character` (с серверного
-персонажа, `game.host.player`), `hands` (с клиента).
+**Data.** Items (`food`, `spoils`, `rots_to`, `drink`, `empties_to`, `fills_to`, `bedding`, `warmth`, `heal`,
+`heal_time`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`; for food `heal` and `drink` are on
+top of satiety: roast heals and quenches a little, `Character.eat`); the creature `core:human`; clothes on the
+figure — `Figure.dressed(gear)`: the bare layers of `player.yaml` `naked` (body, loincloth, hair), between
+them the pictures of what is worn `sprites/worn/<look>.png` of the thing's bundle (the field `look`): legs,
+feet, the body under the hair, the head on top; they are drawn by `tools/make_sprites.gd` (`WORN`: the shape
+`PlayerArt.SHAPES` and three colours). What other players wear comes as the 14th field of `PEOPLE`. The
+figure's layers and works — `content/core/sprites/player.yaml`, the tools' sheets in the hand —
+`sprites/held/` of the tool's bundle. The parts `inventory`, `vitals`, `character` (from the server's
+character, `game.host.player`), `hands` (from the client) are saved.
 
-**Подводные камни.** Сигналы сумки и очереди подключайте методом, не лямбдой с `self` (цикл ссылок,
-RefCounted не освободится — см. комментарий в `src/shared/game/character.gd`). `var i := expr`, где
-`expr` — Variant (поле нетипизированного объекта), — ошибка разбора: тип указывается явно;
-`typed_array = expr if c else []` — ошибка времени выполнения, которая молча обрывает функцию.
+**Pitfalls.** Connect the bag's and queue's signals by a method, not by a lambda with `self` (a cycle of
+references, the RefCounted is not freed — see the comment in `src/shared/game/character.gd`). `var i := expr`
+where `expr` is a Variant (a field of an untyped object) is a parse error: type it explicitly; `typed_array =
+expr if c else []` is a runtime error that silently cuts off the function.
 
-**Тесты.** `tests/unit/skills_test.gd` (уровни, опыт за работу, крафт, земля), `tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (сумки за спиной), `torch`, `spoil`, `vitals`, `warmth`, `thirst`, `sleep`, `changes`, `death`, `fall`, `sack_ends`, `graves`, `bed_respawn`, `poultice`), `actions_test.gd` (`drinking`),
-`tests/unit/body_test.gd` (`walking_rules`, `water`, `bog`, `slopes`, `steps`, `ground`),
-`tests/save_test.gd`, `tools/sheet.gd` (лист кадров в PNG).
+**Tests.** `tests/unit/skills_test.gd` (levels, experience for work, crafting, land),
+`tests/unit/character_test.gd` (`inventory`, `wear`, `gear` (bags on the back), `torch`, `spoil`, `vitals`,
+`warmth`, `thirst`, `sleep`, `changes`, `death`, `fall`, `sack_ends`, `graves`, `bed_respawn`, `poultice`),
+`actions_test.gd` (`drinking`), `tests/unit/body_test.gd` (`walking_rules`, `water`, `bog`, `slopes`, `steps`,
+`ground`), `tests/save_test.gd`, `tools/sheet.gd` (the sheet of frames to PNG).
 
-**Подробнее.** `plan/design/character.md`, `plan/design/ui.md` (сумка, смерть).
+**In more detail.** `plan/design/character.md`, `plan/design/ui.md` (the bag, death).

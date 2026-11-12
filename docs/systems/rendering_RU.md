@@ -43,7 +43,7 @@
 - `src/client/view/voxel_model.gd`, `voxel_props.gd` — воксельные модели вещей из
   `content/<мод>/models/<model>.png` (`VoxelModel.from_image`), в коде только ком блока, мешок и связка.
 - `src/client/view/player.gd`, `figure.gd`, `hands.gd`, `sprite_sheet.gd` — спрайт игрока (см.
-  [character.md](character.md)).
+  [character.md](character_RU.md)).
 - `src/client/view/shader_warmup.gd` — прогрев шейдеров; `draw_census.gd` — счёт вызовов отрисовки.
 - `src/client/view/cave_layers.gd` — вид в пещере слоями для выбора клеток
   (то же, что прячут шейдеры), `src/client/world/solid_map.gd` — карта твёрдых клеток вокруг игрока для
