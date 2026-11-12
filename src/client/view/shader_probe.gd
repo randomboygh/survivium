@@ -15,7 +15,7 @@ const FRAMES := 3
 ## "shadow" = the sun's shadow, "shadow_omni" = both; "sun" = the sun alone), what to cut
 ## from the shader's code (a list of: "stencil"; "light" = no light(), "plain_light" = a
 ## plain one, "fragment" / "vertex" = that function's body left plain,
-## "varyings" = none declared)].
+## "varyings" = none declared, "arrays" = the world's int arrays of 1)].
 const STEPS := [
 	["engine unshaded", "box", "unshaded", "none", ""],
 	["engine standard", "box", "standard", "none", ""],
@@ -97,6 +97,18 @@ const STEPS := [
 	["float uniforms, sun shadow", "box", "floats", "shadow", ""],
 	["world coords + varyings, sun shadow", "box", "coords_varyings", "shadow", ""],
 	["world coords + varyings, sun alone", "box", "coords_varyings", "sun", ""],
+	# Round 5: the sprite came through its shadow once its varyings were gone, the world
+	# under the sun alone did not: left were its two int arrays of 63. Two arrays, one long
+	# one, the world with arrays of 1, the sprite's own varyings in a bare shader.
+	["two int arrays, sun alone", "box", "two_int_arrays", "sun", ""],
+	["int[126], sun alone", "box", "int_array_126", "sun", ""],
+	["world, sun alone, all plain, no varyings, arrays of 1", "box", "res://shaders/world.gdshader", "sun", "stencil,light,fragment,vertex,varyings,arrays"],
+	["world, sun alone, arrays of 1", "box", "res://shaders/world.gdshader", "sun", "stencil,arrays"],
+	["world, many, sun alone, arrays of 1", "multi", "res://shaders/world.gdshader", "sun", "stencil,arrays"],
+	["world, sun shadow, arrays of 1", "box", "res://shaders/world.gdshader", "shadow", "stencil,arrays"],
+	["world, sun shadow, all plain, no varyings", "box", "res://shaders/world.gdshader", "shadow", "stencil,light,fragment,vertex,varyings"],
+	["sprite's varyings unused, sun shadow", "box", "sprite_varyings", "shadow", ""],
+	["sprite's varyings used, sun shadow", "box", "sprite_varyings_used", "shadow", ""],
 ]
 const MINIMAL := "shader_type spatial;\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
 const INCLUDE := "shader_type spatial;\n#include \"res://shaders/common.gdshaderinc\"\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
@@ -107,6 +119,10 @@ const CODES := {
 	"varyings": "shader_type spatial;\nvarying vec3 pos;\nvarying flat vec2 packed;\nvarying float clouds;\nvoid vertex() { pos = VERTEX; packed = UV; clouds = 0.5; }\nvoid fragment() { ALBEDO = vec3(clouds) + pos * 0.01 + vec3(packed, 0.0) * 0.01; }\n",
 	"texture": "shader_type spatial;\nuniform sampler2D tex : source_color, filter_nearest;\nvoid fragment() { ALBEDO = texture(tex, UV).rgb; }\n",
 	"floats": "shader_type spatial;\nuniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);\nuniform float splash = 0.0;\nuniform vec3 tint = vec3(1.0);\nvoid fragment() { ALBEDO = tint * (0.5 + splash) + frame_uv.xyz * 0.01; }\n",
+	"two_int_arrays": "shader_type spatial;\nuniform int shapes[63];\nuniform int bits[63];\nvoid fragment() { ALBEDO = vec3(float((bits[1] & 3) + shapes[2]) * 0.2 + 0.3); }\n",
+	"int_array_126": "shader_type spatial;\nuniform int bits[126];\nvoid fragment() { ALBEDO = vec3(float((bits[1] & 3) + bits[70]) * 0.2 + 0.3); }\n",
+	"sprite_varyings": "shader_type spatial;\nrender_mode world_vertex_coords, cull_disabled;\nvarying float shade;\nvarying vec3 world_pos;\nvarying float clouds;\nvarying vec3 lamp_gain;\nvarying vec2 light_xz;\nvarying vec3 drawn;\n void fragment() { ALBEDO = vec3(0.5); }\n",
+	"sprite_varyings_used": "shader_type spatial;\nrender_mode world_vertex_coords, cull_disabled;\nvarying float shade;\nvarying vec3 world_pos;\nvarying float clouds;\nvarying vec3 lamp_gain;\nvarying vec2 light_xz;\nvarying vec3 drawn;\n void vertex() { shade = 1.0; world_pos = VERTEX; clouds = 0.5; lamp_gain = vec3(1.0); light_xz = VERTEX.xz; drawn = VERTEX; }\nvoid fragment() { ALBEDO = vec3(shade * clouds) + world_pos * 0.01 + lamp_gain * 0.1 + vec3(light_xz, 0.0) * 0.01 + drawn * 0.01; }\n",
 	"coords_varyings": "shader_type spatial;\nrender_mode world_vertex_coords, cull_disabled;\nvarying vec3 pos;\nvarying vec3 lamp_gain;\nvarying vec2 light_xz;\nvarying float clouds;\nvoid vertex() { pos = VERTEX; lamp_gain = vec3(1.0); light_xz = VERTEX.xz; clouds = 0.5; }\nvoid fragment() { ALBEDO = vec3(clouds) + pos * 0.01 + lamp_gain * 0.1 + vec3(light_xz, 0.0) * 0.01; }\n",
 }
 const STENCIL := "shader_type spatial;\nstencil_mode write, compare_always, 1;\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
