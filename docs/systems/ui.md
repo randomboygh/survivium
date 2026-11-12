@@ -102,7 +102,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
 - The game: `hud.gd` (the main screen; parts by topic, decision 168: `hud_parts.gd` — nodes and state, small
   details ← `hud_messages.gd` — the loading line, messages, the hint ← `hud_layout.gd` — the layout over the
   screen, the item panel, hands ← `hud_menus.gd` — the bag, statistics, the pause menu, land and team,
-  settings ← `hud.gd` — assembly, frame, input), `button_tips.gd` (hints of buttons with a mouse: the
+  settings ← `hud.gd` — assembly, frame, input; the interface's scale, `Hud.fit`: on a phone or a tablet a fraction of the screen's shorter side / 400 times «Interface size», on a computer a step of `Hud.PC_SCALES` (×1, ×1.5, ×2, ×2.5, ×3, ×4…) nearest to the shorter side / 480, moved by the size: a 1080 px screen gets ×2, its five sizes ×1 to ×3), `button_tips.gd` (hints of buttons with a mouse: the
   `tooltip_text` of the control under the cursor after 0.45 s beside the cursor, in the same panel and scale as
   the hint over the ground, above all windows and the main menu; Godot's own hints are switched off by
   `gui/timers/tooltip_delay_sec` in `project.godot`; on a touch screen and for a button whose label says the

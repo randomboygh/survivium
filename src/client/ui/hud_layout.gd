@@ -11,10 +11,16 @@ const Quality := preload("res://src/shared/game/quality.gd")
 ## UI height the scale aims for on the shorter side of the screen: on a phone exactly,
 ## so its windows fit any phone as they do the reference one (1200 px wide at ×3).
 const TARGET_SIDE := 400.0
+## The same on a computer's screen, held only one way: its interface is smaller, so a
+## 1080 px tall screen gets ×2 (960×540 UI pixels), as much of the world shows around it.
+const TARGET_SIDE_PC := 480.0
 ## The interface size setting, «очень мелкий» to «крупный»: on a phone the share of the
-## scale picked from the screen, on a computer whole steps around it (UI_STEPS).
+## scale picked from the screen, on a computer steps along PC_SCALES around the one
+## picked (UI_STEPS): halves among the small ones, so every size differs from the next
+## on a common screen too (×1, ×1.5, ×2, ×2.5, ×3 on 1080 px).
 const UI_SIZES := [0.67, 0.83, 1.0, 1.33, 1.67]
 const UI_STEPS := [-2, -1, 0, 1, 2]
+const PC_SCALES := [1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0]
 ## The size of the joystick and the touch buttons, the same five steps.
 const CONTROL_SIZES := [0.7, 0.85, 1.0, 1.2, 1.4]
 ## The width of the level buttons beside the minimap: one button's; the arrows'
@@ -25,8 +31,8 @@ const LEVEL_MIDDLE := 34
 
 
 ## Fits the UI into `rect` (screen pixels) and places everything for the screen's
-## shape and the input in use. On a computer the scale is a whole number picked from
-## the shorter side; on a phone or a tablet (`turning`) it is a fraction of the whole
+## shape and the input in use. On a computer the scale is a step of PC_SCALES picked
+## from the shorter side (pc_scale); on a phone or a tablet (`turning`) it is a fraction of the whole
 ## `screen`'s shorter side (the whole screen, `rect` by default), so browser toolbars
 ## coming and going do not change it.
 func fit(rect: Rect2, turning := false, screen := Vector2.ZERO) -> void:
@@ -36,13 +42,25 @@ func fit(rect: Rect2, turning := false, screen := Vector2.ZERO) -> void:
 		_screen_scale = side / TARGET_SIDE
 		s = maxf(1.0, _screen_scale * UI_SIZES[ui_size])
 	else:
-		_screen_scale = maxi(1, roundi(minf(rect.size.x, rect.size.y) / TARGET_SIDE))
-		s = maxi(1, _screen_scale + UI_STEPS[ui_size])
+		s = pc_scale(minf(rect.size.x, rect.size.y), ui_size)
+		_screen_scale = pc_scale(minf(rect.size.x, rect.size.y), 2)
 	scale = Vector2(s, s)
 	position = rect.position
 	size = (rect.size / s).floor()
 	portrait = size.x < size.y
 	_place()
+
+
+## The interface's scale on a computer whose screen (or window) is `side` pixels on its
+## shorter side, at interface size `size`: the step of PC_SCALES nearest to
+## side / TARGET_SIDE_PC (the lower one of two as near), moved by UI_STEPS[size].
+static func pc_scale(side: float, size: int) -> float:
+	var want := side / TARGET_SIDE_PC
+	var at := 0
+	for i in PC_SCALES.size():
+		if absf(PC_SCALES[i] - want) < absf(PC_SCALES[at] - want) - 0.001:
+			at = i
+	return PC_SCALES[clampi(at + UI_STEPS[clampi(size, 0, UI_STEPS.size() - 1)], 0, PC_SCALES.size() - 1)]
 
 
 ## Sizes the minimap (an index into Minimap.SIDES) and shows or hides the level buttons
