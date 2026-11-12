@@ -16,7 +16,7 @@
   walk: 4
   views: 3
   flock: [3, 5]
-  likes: [plants:tuft, plants:tall_grass]
+  likes: [plants:tuft, plants:tall_grass, plants:clover]
   biomes: [biomes:meadow, biomes:forest, biomes:taiga]
   calls: deer
   alarm: deer

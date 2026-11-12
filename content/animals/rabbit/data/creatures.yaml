@@ -19,7 +19,7 @@
   frames: 7
   walk: 4
   views: 3
-  likes: [plants:tuft, plants:flowers]
+  likes: [plants:tuft, plants:flowers, plants:clover]
   biomes: [biomes:meadow, biomes:forest]
   alarm: rabbit
   health: 4

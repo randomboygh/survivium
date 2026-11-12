@@ -120,6 +120,31 @@ func find_plant(w, cx: int, cz: int, id: String) -> Vector3:
 	return Vector3(cx + 0.5, w.surface_y(cx, cz), cz + 0.5) * CELL
 
 
+## A spot two cells south of the patch round `p` where plant `id` grows most thickly in
+## the open (counted on a coarse grid of the loaded ground), so a field of it fills the view; `p`
+## when it grows nowhere near.
+func find_patch(w, p: Vector3, id: String) -> Vector3:
+	var cx := floori(p.x / CELL)
+	var cz := floori(p.z / CELL)
+	var best := p
+	var best_n := 0
+	for z in range(cz - 120, cz + 121, 6):
+		for x in range(cx - 120, cx + 121, 6):
+			var n := 0
+			for dz in range(-8, 3, 2):
+				for dx in range(-10, 11, 2):
+					var y: int = w.surface_y(x + dx, z + dz)
+					# Only where no crown hides it from the camera.
+					if y > w.sea_level and w.leaf_col(x + dx, z + dz) == 0 and Grass.plants_on(w, x + dx, y - 1, z + dz).has(id):
+						n += 1
+			var y0: int = w.surface_y(x, z + 2)
+			if n > best_n and y0 > w.sea_level and w.leaf_col(x, z + 2) == 0:
+				best_n = n
+				best = (Vector3(x, y0, z + 2) + Vector3(0.5, 0.0, 0.5)) * CELL
+	print("patch of %s: %d cells" % [id, best_n])
+	return best
+
+
 ## The nearest stone top with moss all round it (see Grass.stone_moss) and open
 ## ground to the south of it to stand on, or Vector3i.MIN.
 func stone_moss_near(w, at: Vector3i) -> Vector3i:

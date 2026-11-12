@@ -324,6 +324,9 @@ const SHOTS := {
 	"glow-day": {"time": 0.42, "season": 1, "find": "plants:glow_mushrooms"},
 	"glow-night": {"time": 0.95, "season": 1, "moon": 0.0, "find": "plants:glow_mushrooms"},
 	"glow-moon": {"time": 0.95, "season": 1, "moon": 1.0, "find": "plants:glow_mushrooms"},
+	# Ferns in the shade of a forest's edge, a field of clover on a meadow.
+	"ferns": {"time": 0.42, "season": 1, "patch": "plants:fern"},
+	"clover": {"time": 0.42, "season": 1, "patch": "plants:clover"},
 	# Moss on stone, a few tops of it picked: the moss left has a ragged edge.
 	# Grass pulled up for fibre in a winter meadow: the snow's edge round the patch.
 	"winter-fiber": {"time": 0.42, "season": 3, "find": "meadow", "pick_fiber": true},

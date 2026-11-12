@@ -56,6 +56,11 @@ const GROW_PLANT := 16
 const FLOWER_CLUMP := 0.42
 const FLOWER_HEART := 0.15
 const FLOWERS_APART := 0.004
+## How far from a crown the plants of the woods (`grows: woods`) still come out onto open
+## grass, in cells.
+const WOODS_EDGE := 3
+const WOODS_PROBES: Array[Vector2i] = [Vector2i(WOODS_EDGE, 0), Vector2i(-WOODS_EDGE, 0), Vector2i(0, WOODS_EDGE),
+	Vector2i(0, -WOODS_EDGE), Vector2i(2, 2), Vector2i(-2, 2), Vector2i(2, -2), Vector2i(-2, -2)]
 ## Lowland for ears: this many levels above the sea at most.
 const FERTILE_LEVELS := 10
 
@@ -224,10 +229,12 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 
 
 ## The mods' own plants on the cell (see Plants.CUSTOM): each where it `grows` (open
-## grass, the shade of a crown, a bank), on the share of that ground its `cover` says,
-## and only in clumps where its own noise is above `clumps` when that is set, and only
-## in its `biomes` when it names some. `tier` and `by_water` are the cell's, as kinds
-## found them.
+## grass, the shade of a crown, the woods: that shade and the open grass within
+## WOODS_EDGE cells of a crown, a bank), on the share of that ground its `cover` says,
+## and only in clumps `clump_size` cells wide where its own noise is above `clumps` when
+## that is set, and only in its `biomes` when it names some. A frame `across` cards wide
+## is one kind, its first column (Foliage draws the rest beside it). `tier` and
+## `by_water` are the cell's, as kinds found them.
 static func _custom(w, x: int, z: int, m: int, tier: int, by_water: bool, out: Array[int], rng: RandomNumberGenerator) -> void:
 	var shaded: bool = w.leaf_col(x, z) != 0
 	for c in Plants.CUSTOM:
@@ -237,6 +244,10 @@ static func _custom(w, x: int, z: int, m: int, tier: int, by_water: bool, out: A
 					continue
 			"shade":
 				if m != Mat.GRASS or not shaded:
+					continue
+			"woods":
+				# The near-crown test (a few columns) waits for the cheaper ones below.
+				if m != Mat.GRASS:
 					continue
 			"bank":
 				if not by_water:
@@ -251,12 +262,23 @@ static func _custom(w, x: int, z: int, m: int, tier: int, by_water: bool, out: A
 		if c.clumps > -1.0:
 			var noise: FastNoiseLite = custom_noises.get(c.id)
 			if noise == null:
-				noise = _field_noise(hash(c.id), 0.1)
+				noise = _field_noise(hash(c.id), 1.0 / c.get("clump_size", 10.0))
 				custom_noises[c.id] = noise
 			if noise.get_noise_2d(x, z) < c.clumps:
 				continue
+		if c.grows == "woods" and not shaded and not _near_crown(w, x, z):
+			continue
 		if rng.randf() < c.cover:
-			out.append(CUSTOM + c.first + rng.randi_range(0, c.frames - 1))
+			out.append(CUSTOM + c.first + rng.randi_range(0, c.frames - 1) * c.get("across", 1))
+
+
+## Whether a crown stands over a column about WOODS_EDGE cells from column x, z (eight
+## columns round it, crowns being wider than the gaps between them): the edge of a wood.
+static func _near_crown(w, x: int, z: int) -> bool:
+	for d: Vector2i in WOODS_PROBES:
+		if w.leaf_col(x + d.x, z + d.y) != 0:
+			return true
+	return false
 
 
 ## The plants of a column whose growth the world sets (`grow`, one of GROW_*), added to
@@ -287,6 +309,7 @@ static func _one_plant(i: int, out: Array[int], rng: RandomNumberGenerator) -> v
 	var r: Dictionary = Plants.BY_ID.values()[i]
 	var first := -1
 	var frames := 2
+	var step := 1
 	var count := rng.randi_range(1, 2)
 	match r.kind:
 		"tuft":
@@ -319,11 +342,12 @@ static func _one_plant(i: int, out: Array[int], rng: RandomNumberGenerator) -> v
 				if c.id == r.id:
 					first = CUSTOM + c.first
 					frames = c.frames
+					step = c.get("across", 1)
 					count = 1
 	if first < 0:
 		return
 	for k in count:
-		out.append(first + rng.randi_range(0, frames - 1))
+		out.append(first + rng.randi_range(0, frames - 1) * step)
 
 
 ## What grows in the shade of a crown on grass column x, z, added to `out`: moss in

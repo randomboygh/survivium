@@ -18,7 +18,9 @@ shapes of natural ground (slopes, bevelled corners) and to answer what meets a b
   of the column straight from the chunk (the rules `corner_fills`, `corner_cuts`, `slope_mask` are the same)
   and looks at the neighbouring columns only in the corner's triangle.
 - `src/shared/world/grass.gd` — what grows on top of a ground cell (tiers of grass, flowers, ears, moss, the
-  mods' plants `Plants`), cloud noise for shadows.
+  mods' plants `Plants`: on open grass, in the shade of crowns, in the woods — that shade and the grass
+  `WOODS_EDGE` cells round it, `_near_crown` —, on banks; a frame `across` cards wide is one kind, its first
+  column, which `foliage._column` draws as that many cards by `Plants.ACROSS`), cloud noise for shadows.
 - `src/shared/world/voxel_raycast.gd` — a ray through the grid of cells (Amanatides & Woo), for choosing a
   cell.
 

@@ -194,12 +194,14 @@ static func start_part(w, x0: int, z0: int, size: int, cols: PackedInt32Array) -
 
 
 ## The columns of the chunk of `size` at x0, z0 whose plants may change when the cells
-## of `rect` change: those in it, and the trunks of the trees whose crowns may reach it
+## of `rect` change: those in it and WOODS_EDGE round it, and the trunks of the trees whose crowns may reach it
 ## (a crown is drawn whole from its trunk's column, see _spruce, _broad); for start_part.
 static func part_columns(w, x0: int, z0: int, size: int, rect: Rect2i) -> PackedInt32Array:
 	var cols := {}
-	for z in range(rect.position.y, rect.end.y):
-		for x in range(rect.position.x, rect.end.x):
+	# The plants of the woods follow the crowns WOODS_EDGE cells round them (Grass._near_crown).
+	var near := rect.grow(Grass.WOODS_EDGE).intersection(Rect2i(x0, z0, size, size))
+	for z in range(near.position.y, near.end.y):
+		for x in range(near.position.x, near.end.x):
 			cols[(z - z0) * size + x - x0] = true
 	for t: Array in _trunks_near(w, rect.position.x, rect.position.y, rect.end.x, rect.end.y):
 		var at: Vector2i = t[0]
@@ -326,6 +328,16 @@ static func _column(job: Job, x: int, z: int) -> void:
 			if cuts & (1 << q) and WorldData.in_corner(q, fx, fx, fz, fz):
 				continue
 			var h: float = 1.0 if mask == WorldData.FULL else w.surface_height(x, y, z, fx, fz)
+			if kind >= Grass.CUSTOM and Plants.ACROSS[kind - Grass.CUSTOM] > 1:
+				# A frame wider than a card: that many cards on one root (see _crop).
+				var across: int = Plants.ACROSS[kind - Grass.CUSTOM]
+				var light := rng.randf_range(0.88, 1.1)
+				var phase := rng.randf()
+				for k in across:
+					put(grass, Vector3(x + fx, y + h, z + fz) * CELL)
+					grass.append_array([float(kind + k), light, phase, (k - (across - 1) * 0.5) * PLANT_W])
+				job.ng += across
+				continue
 			put(grass, Vector3(x + fx, y + h, z + fz) * CELL)
 			grass.append_array([float(kind), rng.randf_range(0.88, 1.1), rng.randf(), 0.0])
 			job.ng += 1

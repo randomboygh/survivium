@@ -537,15 +537,23 @@ func _test_custom_plants() -> void:
 		frames += Plants.columns(c)
 	_check(Plants.CUSTOM.size() >= 3 and ordered and Plants.custom_frames() == frames and Grass.plant_of(Grass.CUSTOM + frames) == "",
 		"custom plants take the kinds after the engine's, a kind per column of a frame")
+	var wide_ok := Plants.ACROSS.size() == frames
+	for c in Plants.CUSTOM:
+		var across: int = c.get("across", 1)
+		for k in Plants.columns(c):
+			wide_ok = wide_ok and Plants.ACROSS[c.first + k] == (across if k % across == 0 else 0)
+	_check(wide_ok, "a frame wider than a card starts at a column that says how many cards draw it")
 	var by_where := {}
 	for c in Plants.CUSTOM:
 		if not by_where.has(c.grows):
 			by_where[c.grows] = c.id
-	_check(by_where.has("shade") and by_where.has("meadow") and by_where.has("bank"), "the test plants grow in the shade, the open and on the banks")
+	_check(by_where.has("woods") and by_where.has("meadow") and by_where.has("bank"), "the test plants grow in the woods, the open and on the banks")
 	var strips := _woods()
 	var w: WorldData = strips.world
 	var seen := {}
 	var wrong := {}
+	var whole := true
+	var rng_k := RandomNumberGenerator.new()
 	for key: Vector2i in strips.keys:
 		for dz in 16:
 			for dx in 16:
@@ -553,18 +561,29 @@ func _test_custom_plants() -> void:
 				var z := key.y * 16 + dz
 				var y := w.surface_y(x, z) - 1
 				var shaded := w.leaf_col(x, z) != 0
+				if w.get_cell(x, y, z) == Mat.GRASS:
+					# A wide frame (`across`) comes as the kind of its first column.
+					rng_k.seed = hash(Vector3i(x, y, z))
+					for kind in Grass.kinds(w, x, y, z, Mat.GRASS, true, rng_k):
+						if kind >= Grass.CUSTOM and Plants.ACROSS[kind - Grass.CUSTOM] == 0:
+							whole = false
 				for id in Grass.plants_on(w, x, y, z):
 					var c: Dictionary = Plants.BY_ID.get(id, {})
 					if c.get("kind", "") != Plants.KINDS.CUSTOM:
 						continue
 					seen[id] = true
-					if (c.grows == "shade" and not shaded) or (c.grows == "meadow" and shaded):
+					if (c.grows == "shade" and not shaded) or (c.grows == "meadow" and shaded) \
+							or (c.grows == "woods" and not shaded and not Grass._near_crown(w, x, z)):
 						wrong[id] = true
-	_check(seen.has(by_where.shade) and seen.has(by_where.meadow) and wrong.is_empty(),
-		"the fern grows under the crowns and the nettle in the open, not the other way: %s, wrong %s" % [seen.keys(), wrong.keys()])
+	_check(seen.has(by_where.woods) and seen.has(by_where.meadow) and wrong.is_empty(),
+		"the fern grows in the woods and the nettle in the open, not the other way: %s, wrong %s" % [seen.keys(), wrong.keys()])
+	_check(whole, "a wild plant two cards wide grows as whole frames")
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 3
-	var got := Plants.harvest([by_where.meadow, by_where.meadow, by_where.meadow], rng)
+	var cut: Array = []
+	cut.resize(12)
+	cut.fill(by_where.meadow)
+	var got := Plants.harvest(cut, rng)
 	_check(not got.is_empty(), "a custom plant gives what its record says")
 
 
