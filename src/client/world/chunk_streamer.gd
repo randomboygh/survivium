@@ -88,6 +88,8 @@ const FORGETS_PER_FRAME := 4
 const VIEW_REACH := 4
 ## Cells behind the player searched for earth rising over the head (see _rises_behind).
 const RISE_REACH := 6
+## One step along a diagonal.
+const SQRT1_2 := 0.70710678
 ## Levels above the feet searched for earth that hides the player from the camera.
 const HIDE_REACH := 16
 const COMPASS: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, -1), Vector2i(1, 0), Vector2i(1, 1),
@@ -1190,18 +1192,23 @@ func _sheer_below(c: Vector2, y: int) -> bool:
 
 
 ## Whether earth rises over the head of a player standing on `level` in column (x, z)
-## within RISE_REACH cells behind them, away from the camera: the far side of a dip.
-## Where none does, what hides the player is a hill they stand behind.
+## within RISE_REACH cells behind them, away from the camera, straight or at either
+## diagonal: the far side of a dip. A ravine running slantwise to the view has its far
+## wall straight behind further off than its width, but close at a diagonal (the
+## player pressed to the near wall of one, 2026-11-12). Where none does, what hides
+## the player is a hill they stand behind.
 func _rises_behind(x: int, level: int, z: int) -> bool:
 	var up := PixelView.up
+	var side := Vector2(-up.y, up.x)
 	var body := Vector2(x + 0.5, z + 0.5)
 	var y := level + 2
 	if y >= world.size_y:
 		return false
-	for r in range(1, RISE_REACH + 1):
-		var c := body + up * r
-		if Mat.is_roof(world.get_cell(floori(c.x), y, floori(c.y))):
-			return true
+	for way: Vector2 in [up, (up + side) * SQRT1_2, (up - side) * SQRT1_2]:
+		for r in range(1, RISE_REACH + 1):
+			var c := body + way * r
+			if Mat.is_roof(world.get_cell(floori(c.x), y, floori(c.y))):
+				return true
 	return false
 
 
