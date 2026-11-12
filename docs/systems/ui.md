@@ -124,7 +124,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   `docs/balance/GAME_BALANCE_DESIGN.md`); a touch of a hand is like a touch of a hand on the panel
   (`Hud.tap_hand`: the active hand, then the next tool), a touch of a clothes or bag slot takes off what is
   worn or puts on a fitting one from the bag, `InventoryWindow._tap_person`; in landscape it stands to the left
-  of the bag and crafting, in portrait above the bag and hides on the crafting tab). The window's tabs —
+  of the bag, in portrait above it, and shows only on the «Inventory» tab). The window's tabs —
   «Inventory» and «Crafting», «Land» (only on marked land, `land_page.gd`) and «Team» (only on a server,
   `team_page.gd`), see `docs/systems/territory.md`. All rows of tabs (window, settings, «Testing») are one
   joined group one window button tall (`TabRow.tabs`, the chosen one amber, `light`); new tabs are made the
@@ -188,7 +188,11 @@ and a new shared part is added to the kit and to the «Interface gallery».
   `Hud.update_state`). In the bag, blocks and everything that is placed have a wide button «Build» (a hammer):
   it enters the mode. Notifications (`Hud.toast`) — a list of three under the state: a new one floats to the
   end from transparency, rising, and the oldest (by time or when the list overflows) goes up into
-  transparency, and the list shifts after it (`Hud._scroll_toasts`). `vitals_panel.gd`, `sleep_screen.gd`
+  transparency, and the list shifts after it (`Hud._scroll_toasts`). `vitals_panel.gd` (the state in the
+  top left corner: a thick health bar with a thinner stamina bar under it, then standing bars for satiety,
+  water, warmth and sleep, each only while it is low (`VitalsPanel.critical`; all of them while the bag is
+  open), and a column of what hinders the body — wet, out of breath, overloaded, `VitalsPanel.debuffs_of`;
+  the panel is as wide as what it shows), `sleep_screen.gd`
   (darkening in sleep: a tap, a step or a jump wakes, `Protocol.SLEEP`; the moon «Go to sleep» — on the HUD's
   clock), `body_feedback.gd`, `sound_marks.gd` (marks of sounds' directions), `vibration.gd`.
 - Maps: `minimap.gd` (the map is painted a chunk at a time into regions of 32 chunks, kept in the save; marks
