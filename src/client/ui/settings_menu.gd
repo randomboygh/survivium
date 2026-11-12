@@ -571,6 +571,10 @@ func _section_rows(key: String) -> Array:
 					func() -> int: return int(s.values.stats_button),
 					func(i: int) -> void: s.set_value("stats_button", i == 1)],
 			])
+			if game.controls.touch:
+				rows.append(["[second_hand_upright]", ["[hidden]", "[shown]"],
+					func() -> int: return int(s.values.second_hand),
+					func(i: int) -> void: s.set_value("second_hand", i == 1)])
 			if not game.controls.touch:
 				rows.append(["[key_hints]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.show_help),
