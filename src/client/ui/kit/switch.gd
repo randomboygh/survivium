@@ -81,12 +81,15 @@ func _draw() -> void:
 	var r := track_rect()
 	# The track: a pill in whole pixels in a dark edge, amber inside while on.
 	_pill(r, UiStyle.EDGE)
-	_pill(r.grow(-EDGE_W), UiStyle.WELL_SHADE.lerp(UiStyle.ACCENT_DARK, _at))
+	var side := r.size.y - 2 * KNOB_GAP
+	# Inside the edge the track's ends follow the knob's steps, so the room between them
+	# is as wide all round.
+	_pill(r.grow(-EDGE_W), UiStyle.WELL_SHADE.lerp(UiStyle.ACCENT_DARK, _at),
+		_round_around(int(r.size.y) - 2 * EDGE_W, int(side)))
 	# The knob: a round one in a thick dark edge, amber on and pale off, a gleam on top.
 	var fill := UiStyle.ACCENT if button_pressed else UiStyle.MUTED
 	if is_hovered() and not disabled:
 		fill = fill.lightened(0.15)
-	var side := r.size.y - 2 * KNOB_GAP
 	var knob := Rect2(Vector2(roundf(lerpf(r.position.x + KNOB_GAP, r.end.x - KNOB_GAP - side, _at)),
 		r.position.y + KNOB_GAP), Vector2(side, side))
 	_pill(knob, UiStyle.EDGE)
@@ -98,11 +101,16 @@ func _draw() -> void:
 static var _rounds := {}
 
 
+## The rows' insets of a pixel circle around another, by both diameters (see _round_around).
+static var _arounds := {}
+
+
 ## Fills `r` as a pill in whole pixels: its ends half circles drawn as pixel art draws
-## them (_round), the same steps on every side.
-func _pill(r: Rect2, color: Color) -> void:
+## them (_round, or the rows' insets `inset`), the same steps on every side.
+func _pill(r: Rect2, color: Color, inset := PackedInt32Array()) -> void:
 	var h := int(r.size.y)
-	var inset := _round(h)
+	if inset.is_empty():
+		inset = _round(h)
 	for i in h:
 		var dx: int = inset[i]
 		draw_rect(Rect2(r.position.x + dx, r.position.y + i, r.size.x - 2 * dx, 1), color)
@@ -117,23 +125,88 @@ func _pill(r: Rect2, color: Color) -> void:
 static func _round(h: int) -> PackedInt32Array:
 	if _rounds.has(h):
 		return _rounds[h]
+	var best := Vector3(INF, INF, INF)
 	var half := PackedInt32Array()
 	half.resize(h >> 1)
-	if h >= 4:
-		var best := Vector3(INF, INF, INF)
-		for k in 11:
-			var t := k * 0.05
-			var cand := _round_half(h, h * 0.5 - t)
-			var score := _steps_score(cand)
-			if score < best:
-				best = score
-				half = cand
+	for cand in _round_halves(h):
+		var score := _steps_score(cand)
+		if score < best:
+			best = score
+			half = cand
+	_rounds[h] = _whole(half, h)
+	return _rounds[h]
+
+
+## A pixel circle `h` across drawn round one `inner` across in its middle (its _round),
+## the room between them the same all round: of the circles _round could take whose steps
+## never grow towards the diagonal, the smallest that holds the inner one moved out by
+## the room along its column where the curve is flatter than the diagonal and along its
+## row where steeper. A circle of its own (_round) can bulge from the inner one's steps,
+## a room of one pixel and of two beside each other.
+static func _round_around(h: int, inner: int) -> PackedInt32Array:
+	var key := Vector2i(h, inner)
+	if _arounds.has(key):
+		return _arounds[key]
+	var best := _round(h)
+	var least := INF
+	for cand in _round_halves(h):
+		var whole := _whole(cand, h)
+		if _steps_score(cand).x > 0.0 or not _holds(whole, h, _round(inner), inner):
+			continue
+		var area := 0
+		for v in whole:
+			area += h - 2 * v
+		if area < least:
+			least = area
+			best = whole
+	_arounds[key] = best
+	return best
+
+
+## Whether the pixel circle `outer` (its rows' insets, `h` across) holds the circle
+## `inner` (`hi` across) in its middle with the room between them moved out of it (see
+## _round_around).
+static func _holds(outer: PackedInt32Array, h: int, inner: PackedInt32Array, hi: int) -> bool:
+	var g := (h - hi) >> 1
+	var mid := (h - 1) * 0.5
+	for y in hi:
+		for x in range(inner[y], hi - inner[y]):
+			var px := x + g
+			var py := y + g
+			var dx := px - mid
+			var dy := py - mid
+			var oy := py - g if dy < 0.0 else py + g
+			var ox := px - g if dx < 0.0 else px + g
+			if absf(dy) >= absf(dx) and not (oy >= 0 and oy < h and px >= outer[oy] and px < h - outer[oy]):
+				return false
+			if absf(dx) >= absf(dy) and not (ox >= outer[py] and ox < h - outer[py]):
+				return false
+	return true
+
+
+## The top halves of the circles `h` across whose pixels have their centres within a
+## radius a little under h / 2 (_round_half), each once.
+static func _round_halves(h: int) -> Array[PackedInt32Array]:
+	var out: Array[PackedInt32Array] = []
+	if h < 4:
+		var flat := PackedInt32Array()
+		flat.resize(h >> 1)
+		out.append(flat)
+		return out
+	for k in 11:
+		var cand := _round_half(h, h * 0.5 - k * 0.05)
+		if not out.has(cand):
+			out.append(cand)
+	return out
+
+
+## All the rows of a circle `h` across from its top half.
+static func _whole(half: PackedInt32Array, h: int) -> PackedInt32Array:
 	var all := half.duplicate()
 	if h % 2 == 1:
 		all.append(0)
 	for i in range(half.size() - 1, -1, -1):
 		all.append(half[i])
-	_rounds[h] = all
 	return all
 
 
