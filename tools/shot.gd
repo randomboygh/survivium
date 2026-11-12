@@ -250,6 +250,8 @@ func _run() -> void:
 		if shot.get("work", false):
 			_work()
 		main.hud.perf.visible = shot.get("stats", false)
+		# The animals' minds over them (F4, AiDebug).
+		main.settings.set_ai_debug(shot.get("ai", false))
 		main.hud.show_keys(shot_name == "ui")
 		if shot.get("lab", false):
 			places.lab(main.world, Vector3i((main.player.position / CELL).floor()))

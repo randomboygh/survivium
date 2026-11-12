@@ -1333,6 +1333,8 @@ static var _font: FontFile
 static var _icons := {}
 static var _weight: Texture2D
 static var _centred := {}
+## Pictures with a dark edge (see outlined), by the picture's instance id.
+static var _outlined := {}
 ## Images that textures were made from, by the texture's instance id (see remember).
 static var _images := {}
 
@@ -1363,6 +1365,41 @@ static func icon(name: String) -> ImageTexture:
 		_icons[name] = ImageTexture.create_from_image(even)
 		remember(_icons[name], even)
 	return _icons[name]
+
+
+## Picture `texture` with a dark edge a pixel wide round its drawn pixels (sides and
+## corners), like the outline of the letters on the see-through buttons (Kit.see_through:
+## the level and camera buttons), so it reads over any ground. Made once per picture.
+static func outlined(texture: Texture2D) -> Texture2D:
+	if texture == null:
+		return null
+	var key := texture.get_instance_id()
+	if not _outlined.has(key):
+		var img: Image = _images.get(key)
+		if img == null:
+			img = texture.get_image()
+		img = img.duplicate()
+		img.convert(Image.FORMAT_RGBA8)
+		var w := img.get_width()
+		var h := img.get_height()
+		var out := Image.create_empty(w + 2, h + 2, false, Image.FORMAT_RGBA8)
+		out.fill(Color(0, 0, 0, 0))
+		for y in h:
+			for x in w:
+				if img.get_pixel(x, y).a <= 0.0:
+					continue
+				for dy in range(-1, 2):
+					for dx in range(-1, 2):
+						out.set_pixel(x + 1 + dx, y + 1 + dy, EDGE)
+		for y in h:
+			for x in w:
+				var c := img.get_pixel(x, y)
+				if c.a > 0.0:
+					out.set_pixel(x + 1, y + 1, c)
+		var made := ImageTexture.create_from_image(out)
+		remember(made, out)
+		_outlined[key] = made
+	return _outlined[key]
 
 
 ## Picture `texture` (an icon or an item's picture) for a button: cut to its drawn

@@ -16,7 +16,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   `framed_button` (the HUD buttons, the strip's arrows), the switch `check`; the input field `field` (the caret
   and tab switching in the browser — `TextField.fit`); column, row, inset; a scrolled list `scroll` (also by
   finger, `DragScroll`, with insets as in the settings); the look of the screen's big buttons `octagon_look`,
-  semi-transparent ones `see_through`, a colour sample `swatch`. Sizes: `BUTTON_H` 30, `FIELD_H` 26, `SQUARE`
+  semi-transparent ones `see_through` (icon edged dark by `UiStyle.outlined`, like the letters), a colour sample `swatch`. Sizes: `BUTTON_H` 30, `FIELD_H` 26, `SQUARE`
   32.
 - `window.gd` — a window over the screen's shadow: `build(title)` gives the panel and the column `box`,
   `show_fitted()` lays out at every change of the screen; the panel is centred, and taller than the screen (the
