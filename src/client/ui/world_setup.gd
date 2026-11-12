@@ -14,9 +14,9 @@ const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 
-const NAME_WIDTH := 112
-## The names of the mods are longer than the settings' and have the room the map leaves.
-const MOD_NAME_WIDTH := 168
+## The names of the rows, as wide on every page (the mods' are the longest), so the
+## panel keeps its size from page to page.
+const NAME_WIDTH := 168
 const VALUE_WIDTH := 84
 const ARROW := 32
 ## The map: pixels each way and cells per pixel.
@@ -59,6 +59,9 @@ var _gen: WorldGen
 var _map_row := 0
 var _start_button: Button
 var _shown := false
+## The height of the world's rows, the first page's: every page is given it (the
+## longer ones scroll), so the panel does not change size from page to page.
+var _rows_height := 0.0
 
 
 func _init(g) -> void:
@@ -152,7 +155,7 @@ func _mod_rows(s) -> void:
 			var m := mod
 			var mine: Array = Mods.bundles(mod)
 			var lit: int = mine.filter(func(b: String) -> bool: return b in on).size()
-			var opts := {"name_width": MOD_NAME_WIDTH, "direct": true,
+			var opts := {"direct": true,
 				"show": Lang.f("[of_n2]", [lit, mine.size()]) if lit > 0 and lit < mine.size() else ""}
 			if mine.size() > 1:
 				opts.open = _show_page.bind("mod:" + mod)
@@ -169,7 +172,7 @@ func _mod_rows(s) -> void:
 		var b := bundle
 		_add_row(Lang.t(Mods.title(bundle)), ["[off]", "[on]"],
 			func() -> int: return 1 if b in on else 0,
-			func(i: int) -> void: s.set_world_mod(b, i == 1), {"name_width": MOD_NAME_WIDTH, "direct": true})
+			func(i: int) -> void: s.set_world_mod(b, i == 1), {"direct": true})
 		_why_line(Mods.why(bundle, state.dropped))
 
 
@@ -309,17 +312,24 @@ func _on_stepped(i: int) -> void:
 		fit()
 
 
-## Side by side on a wide screen, the map over the rows on a tall one; centred. When the
-## panel is taller than the screen the rows scroll, so the buttons stay in sight (every
-## mod adds a row).
+## Side by side on a wide screen, the map over the rows on a tall one; centred. Every
+## page has the same room, as wide as a row with a scroll bar beside it and as tall as
+## the world's rows: a longer page (the mods) scrolls in it, and the panel never jumps.
+## When the panel is taller than the screen the rows scroll in less, so the buttons stay
+## in sight.
 func layout(screen: Vector2) -> void:
 	_box.vertical = screen.x < screen.y
-	_list.reset_size()
-	_scroll.custom_minimum_size = Vector2(_list.size.x, _list.size.y)
+	if _rows_height <= 0.0 or _page == "world":
+		_list.reset_size()
+		_rows_height = _list.get_combined_minimum_size().y
+	# A shown bar takes its width twice: the rows' room beside it (UiStyle.bar_room) and
+	# the scroll's own; given both always, the panel is as wide with it as without.
+	var bar := UiStyle.BAR_GAP + 2 * _scroll.get_v_scroll_bar().get_combined_minimum_size().x
+	_scroll.custom_minimum_size = Vector2(_choices.width() + bar, _rows_height)
 	panel.reset_size()
-	var over := panel.size.y - screen.y
+	var over := panel.size.y + 2 * MARGIN - screen.y
 	if over > 0.0:
-		_scroll.custom_minimum_size.y = maxf(_list.size.y - over, ARROW * 2)
+		_scroll.custom_minimum_size.y = maxf(_rows_height - over, ARROW * 2)
 
 
 func _start() -> void:

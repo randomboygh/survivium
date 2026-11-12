@@ -339,6 +339,7 @@ func _section_rows(key: String) -> Array:
 	match key:
 		"world":
 			return [
+				_section("clock", "[time_and_weather]"),
 				["[season]", clock.SEASONS,
 					func() -> int: return clock.season,
 					func(i: int) -> void: s.set_season(i), "", game_season],
@@ -368,7 +369,7 @@ func _section_rows(key: String) -> Array:
 					func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),
 					func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i]), "", game_time],
 			] + ([
-				null,
+				_section("flag", "[test_world_n2]"),
 				{"action": "[back_to_your_world]" if s.in_test_world() else "[go_to_the_test_world]",
 					"do": func() -> void: s.switch_test_world()},
 			] if game.join_url == "" else [])
@@ -376,6 +377,7 @@ func _section_rows(key: String) -> Array:
 			return _server_rows()
 		"player":
 			return [
+				_section("person", "[movement]"),
 				["[player_speed]", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),
 					func() -> int: return Settings.PLAYER_SPEEDS.find(s.player_speed),
 					func(i: int) -> void: s.set_player_speed(Settings.PLAYER_SPEEDS[i])],
@@ -385,6 +387,10 @@ func _section_rows(key: String) -> Array:
 				["[jumps]", ["[from_the_ground]", "[and_in_the_air]"],
 					func() -> int: return int(s.air_jumps),
 					func(i: int) -> void: s.set_air_jumps(i == 1)],
+				["[respawn_n2]", ["[at_the_campfire]", "[and_where_you_fell]"],
+					func() -> int: return int(s.revive_at_death),
+					func(i: int) -> void: s.revive_at_death = i == 1],
+				_section("hammer", "[work_and_things]"),
 				["[building]", ["[from_the_bag]", "[free]"],
 					func() -> int: return int(s.free_build),
 					func(i: int) -> void: s.set_free_build(i == 1)],
@@ -400,9 +406,7 @@ func _section_rows(key: String) -> Array:
 				["[free_items]", ["[off]", "[on]"],
 					func() -> int: return int(s.free_items),
 					func(i: int) -> void: s.set_free_items(i == 1)],
-				["[animal_attacks]", ["[off]", "[on]"],
-					func() -> int: return int(s.animal_attacks),
-					func(i: int) -> void: s.set_animal_attacks(i == 1)],
+				_section("shield", "[survival]"),
 				["[hunger]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_hunger),
 					func(i: int) -> void: s.set_no_hunger(i == 1)],
@@ -415,10 +419,13 @@ func _section_rows(key: String) -> Array:
 				["[cold_and_heat]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_cold),
 					func(i: int) -> void: s.set_no_cold(i == 1)],
-				["[respawn_n2]", ["[at_the_campfire]", "[and_where_you_fell]"],
-					func() -> int: return int(s.revive_at_death),
-					func(i: int) -> void: s.revive_at_death = i == 1],
-				null,
+				["[fall_damage]", ["[on]", "[off]"],
+					func() -> int: return int(s.no_fall_damage),
+					func(i: int) -> void: s.set_no_fall_damage(i == 1)],
+				["[animal_attacks]", ["[off]", "[on]"],
+					func() -> int: return int(s.animal_attacks),
+					func(i: int) -> void: s.set_animal_attacks(i == 1)],
+				_section("go", "[actions]"),
 				{"action": "[give_tools]", "do": func() -> void: s.give_tools()},
 				{"action": "[to_the_place_of_the]", "do": func() -> void: s.go_to_death()},
 				{"action": "[clear_territory]", "do": func() -> void: s.clear_land(), "confirm": true},
@@ -430,10 +437,11 @@ func _section_rows(key: String) -> Array:
 			var percents := func(v: float) -> String: return "%d%%" % roundi(v * 100.0)
 			var rows := [
 				# For the whole world: how much darker each level under the sea gets.
+				_section("moon", "[depth]"),
 				["[darkening_per_level]", CaveLayers.DEPTH_STEPS.map(percents),
 					func() -> int: return s.values.cut_depth,
 					func(i: int) -> void: s.set_value("cut_depth", i)],
-				null,
+				_section("cells", "[layers]"),
 			]
 			# The view in layers (CaveLayers).
 			var settings := [["[line_height]", "layer_line", lines],
@@ -464,6 +472,7 @@ func _section_rows(key: String) -> Array:
 			return marks
 		"debug":
 			return [
+				_section("chart", "[on_screen]"),
 				["[shadow_map]", Settings.SHADOW_MAPS.map(func(v: int) -> String: return str(v)),
 					func() -> int: return s.shadow_map,
 					func(i: int) -> void: s.set_shadow_map(i)],
@@ -484,7 +493,7 @@ func _section_rows(key: String) -> Array:
 				["[level_overview]", ["±%d" % game.chunks.VIEW_REACH, "[all_n2]"],
 					func() -> int: return int(s.free_view),
 					func(i: int) -> void: s.free_view = i == 1],
-				null,
+				_section("hammer", "[tools]"),
 				{"action": "[break_down_draw_calls]", "do": func() -> void:
 					close()
 					if get_tree().paused:
@@ -494,7 +503,7 @@ func _section_rows(key: String) -> Array:
 				{"action": "[test_data]", "do": func() -> void: open("report")},
 				{"action": "[ui_gallery]", "do": func() -> void: open_gallery()},
 				{"action": "[reload_mod_data]", "do": func() -> void: s.reload_mods()},
-				null,
+				_section("trash", "[danger]"),
 				{"action": "[clear_all_data]", "do": func() -> void: s.wipe_all(), "confirm": true},
 			]
 		"game":
@@ -647,7 +656,7 @@ func _server_rows() -> Array:
 	var joined: bool = game.join_url != ""
 	var playtest: bool = joined and game.welcome.get("playtest") == true
 	var host: bool = joined and (game.hosted != null or game.welcome.get("host") == true)
-	var rows := [{"note": "[test_server_github]"}]
+	var rows := [_section("server", "[test_server_github]")]
 	if playtest:
 		rows += [
 			{"action": "[keep_the_server_an_hour]", "do": func() -> void: s.test_server("hour")},
@@ -658,7 +667,7 @@ func _server_rows() -> Array:
 			{"action": "[start_the_test_server]", "do": func() -> void: s.start_test_server()},
 			{"action": "[join_the_test_server]", "do": func() -> void: s.join_test_server()},
 		]
-	rows += [null, {"note": "[this_server]" if joined else "[your_own_server]"}]
+	rows.append(_section("power", "[this_server]" if joined else "[your_own_server]"))
 	if not joined:
 		if s.can_host():
 			rows += [{"note": "[bots_only_come_to_a]"},
@@ -687,7 +696,7 @@ func _server_rows() -> Array:
 		rows.append({"action": "[stop_the_server]", "do": func() -> void: game.stop_server(), "confirm": true})
 	elif not playtest:
 		rows.append({"action": "[stop_the_server]", "do": func() -> void: s.test_server("stop"), "confirm": true})
-	rows += [null,
+	rows += [_section("star", "[cheats]"),
 		["[cheats_on_the_server]", ["[off]", "[on]"],
 			func() -> int: return int(s.cheats),
 			func(i: int) -> void: s.set_cheats(i == 1)],

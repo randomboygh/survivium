@@ -32,7 +32,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   crashed»); water under the landing place of 2 cells and deeper puts the fall out, of one — halves it
   (`Body.water_under`). A jump down faster than any fall (a teleport), the test's «jumps in the air» and
   `forget_fall` (respawn, `Player.teleport`) begin the count anew; on a leaning ladder (`Body.on_ladder`) there
-  is no fall, the count goes from it.
+  is no fall, the count goes from it. The test switch «Fall damage» (`Vitals.falls` off) makes every fall harmless.
 - `src/shared/game/inventory.gd` — the bag: `SLOTS` 16 (`base`), the first `HOTBAR` 8 — the bar below;
   stacks, weight (40 kg with no slowing), sorting, moving into a chest, wear (`wear_tool`, `mend`); the signal
   `changed`. Quality (decision 181): a stack has a number 1–100 (`quality(s)`, `quality_at(i)`; `NORMAL` 50 —

@@ -107,6 +107,8 @@ var fatigue := true
 ## Whether the body feels the cold and the heat; a playtest switch turns it off (warmth
 ## stays at COMFORT, wetness still comes and goes).
 var cold := true
+## Whether a fall hurts (fall); a playtest switch turns it off.
+var falls := true
 ## Why health went down last ("hunger", "thirst", "water", "fire", "cold", "fall", "player:<name>"), for the
 ## message on death.
 var hurt_by := ""
@@ -272,8 +274,10 @@ func mend(amount: float, seconds: float) -> bool:
 
 
 ## A fall of `levels` levels hurts past FALL_SAFE, half as much into shallow water
-## (`soft`); returns the health it took.
+## (`soft`); returns the health it took (none with `falls` off).
 func fall(levels: float, soft := false) -> float:
+	if not falls:
+		return 0.0
 	var hurt := maxf(0.0, levels - FALL_SAFE) * FALL_PER_LEVEL * (0.5 if soft else 1.0)
 	_hurt(hurt, "fall")
 	return hurt
