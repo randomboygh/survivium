@@ -249,6 +249,9 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.CRAFT_FREE:
 			if _fit(args, [TYPE_STRING]) and Crafting.BY_ID.has(args[0]):
 				return workshop.give_free(Crafting.get_recipe(args[0]))
+		Protocol.GIVE_ALL:
+			if _fit(args, [TYPE_BOOL]):
+				return workshop.give_all() if args[0] else workshop.take_back_all()
 		Protocol.CRAFT_CANCEL:
 			if _fit(args, [TYPE_INT]):
 				workshop.cancel(args[0])

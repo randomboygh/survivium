@@ -805,6 +805,11 @@ func _run() -> void:
 				if main.placed.is_fire(e):
 					main.hud.open_prop(e)
 					break
+		if shot.get("give_all", false):
+			# The playtest's free items turned on: one of every thing, the bag wider for them.
+			main.settings.set_free_items(true)
+			for i in 10:
+				await process_frame
 		if shot.get("craft", false):
 			_craft(shot.get("forge", false), shot.get("weave", false), shot.get("smith", false), shot.get("dry", false))
 			if shot.has("recipe"):
@@ -1177,7 +1182,7 @@ func _run() -> void:
 		if main.hud.gesture_wheel != null:
 			main.hud.gesture_wheel.close()
 		main.player.set_gesture("")
-		if shot.get("free", false):
+		if shot.get("free", false) or shot.get("give_all", false):
 			main.settings.set_free_items(false)
 		if shot.get("craft", false):
 			while not main.host.workshop.queue.jobs.is_empty():
