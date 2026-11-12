@@ -12,6 +12,7 @@ const SlotStrip := preload("res://src/client/ui/kit/slot_strip.gd")
 const FadingList := preload("res://src/client/ui/kit/fading_list.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
+const Hud := preload("res://src/client/ui/hud.gd")
 
 
 func run() -> void:
@@ -23,6 +24,7 @@ func run() -> void:
 	_test_gallery()
 	_test_fading_list()
 	_test_chat_lines()
+	_test_pc_scales()
 
 
 func _test_two_tap() -> void:
@@ -248,3 +250,18 @@ func _test_chat_lines() -> void:
 	_check(not shown.is_empty() and (shown.back().get_child(0) as Label).text == "Боря: строка %d" % (ChatBox.SHOWN + 1)
 		and (shown.front().get_child(0) as Label).text == "Боря: строка 2", "the newest at the bottom, the older ones gone")
 	chat.free()
+
+
+## The interface's scale on a computer (Hud.pc_scale): smaller than on a phone, ×2 on a
+## 1080 px screen, and each of the five sizes differs from the next there and on larger ones.
+func _test_pc_scales() -> void:
+	_check(Hud.pc_scale(1080, 2) == 2.0, "a 1080 px screen gets x2 at the normal size")
+	_check(Hud.pc_scale(1440, 2) == 3.0, "a 1440 px screen gets x3")
+	_check(Hud.pc_scale(768, 2) == 1.5, "a 768 px laptop gets x1.5")
+	for side in [950, 1080, 1440, 2160]:
+		var last := 0.0
+		for size in 5:
+			var s := Hud.pc_scale(side, size)
+			_check(s > last, "size %d is larger than the one before on %d px" % [size, side])
+			last = s
+	_check(Hud.pc_scale(300, 0) == 1.0, "never under a screen pixel per UI pixel")
