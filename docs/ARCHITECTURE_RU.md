@@ -136,7 +136,7 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 Текст игры: каждый текст для игрока — ключ `[…]` (решение 186); переводы лежат `lang/<код>.yaml` в моде и бандле, сервер
 шлёт ключ или `Lang.line`, клиент переводит у себя (решение 183, [systems/lang.md](systems/lang_RU.md)). При
 запуске из папки проекта `content_watch.gd` замечает изменённые файлы модов, а модуль `mod_reload.gd`
-перечитывает реестры, картинки и звуки (решение 184, [systems/content.md](systems/content.md)).
+перечитывает реестры, картинки и звуки (решение 184, [systems/content.md](systems/content_RU.md)).
 
 ## Сохранение
 

@@ -2,7 +2,7 @@
 
 Английская версия: [DATA_MODEL.md](DATA_MODEL.md) (она основная, эта — копия).
 
-Статус: ACTIVE, сверено с кодом 2026-11-09 (PR #457). Код загрузчика: [systems/content.md](systems/content.md).
+Статус: ACTIVE, сверено с кодом 2026-11-09 (PR #457). Код загрузчика: [systems/content.md](systems/content_RU.md).
 
 ## Что уже есть и чего ещё нет
 
