@@ -48,7 +48,7 @@ docs/                    эта документация (audit/ — отчёт�
 | `src/shared/world/world_data.gd` | мир, его ячейки и формы (больше 50 зависимых) |
 | `src/shared/world/world_gen.gd` | генератор по стадиям и заданиям |
 | `src/client/world/chunk_streamer.gd` | что и когда строится в кадре: бюджеты, срез уровней |
-| `src/shared/game/world_actions.gd` | всё, что руки делают с миром (части по темам — `actions_*.gd`, см. [systems/interaction.md](systems/interaction.md)) |
+| `src/shared/game/world_actions.gd` | всё, что руки делают с миром (части по темам — `actions_*.gd`, см. [systems/interaction.md](systems/interaction_RU.md)) |
 | `src/shared/game/session.gd` | сеанс мира: правила над миром, игроки, тик (то, что крутит сервер) |
 | `src/shared/net/protocol.gd` | протокол: виды запросов клиента к правилам и сообщения в байты |
 | `src/client/save_game.gd` | когда и что сохраняется (переводы старых сохранений — `world_store.gd`) |

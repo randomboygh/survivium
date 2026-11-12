@@ -47,7 +47,7 @@
 - `src/client/view/shader_warmup.gd` — прогрев шейдеров; `draw_census.gd` — счёт вызовов отрисовки.
 - `src/client/view/cave_layers.gd` — вид в пещере слоями для выбора клеток
   (то же, что прячут шейдеры), `src/client/world/solid_map.gd` — карта твёрдых клеток вокруг игрока для
-  среза породы, которым слои заполняют убранное; `plan_view.gd` — призрак чертежа ([interaction.md](interaction.md)); `land_view.gd` — границы
+  среза породы, которым слои заполняют убранное; `plan_view.gd` — призрак чертежа ([interaction.md](interaction_RU.md)); `land_view.gd` — границы
   участков ([territory.md](territory_RU.md)).
 - `shaders/` — `common.gdshaderinc` (сдвиг, свет, крыша, срез, слои, общие функции), `world`, `water`, `grass`,
   `leaves`, `leaf_shadow` (диски тени крон лежат плашмя, диск куста стоит, повёрнутый к свету, как тень
