@@ -268,8 +268,9 @@ func _place_top() -> void:
 	var room := minf(_top.position.x, minimap.position.x - level) - 6 - MARGIN
 	if room != _toast_room:
 		_toast_room = room
-		for h: Control in _toasts.get_children():
-			_fit_toast(h.get_child(0))
+		for list: Control in [_toasts, _server_notes]:
+			for h: Control in list.get_children():
+				_fit_toast(h.get_child(0))
 
 
 ## Keeps the clock's right edge on the hotbar's as its text and icons change width.

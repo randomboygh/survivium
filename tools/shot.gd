@@ -9,6 +9,7 @@ extends SceneTree
 ## searched in cells (half a world unit); the player stands in world units.
 
 const Items := preload("res://src/shared/content/items.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Shots := preload("res://tools/shot/shots.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
@@ -439,6 +440,15 @@ func _run() -> void:
 			main.hud.toast("[summer_has_come]")
 			await process_frame
 			await process_frame
+		if shot.get("chat_lines", false):
+			# The chat's lines come up as notifications do, and the host is told of the
+			# server's comings and goings in a list of its own under the toasts.
+			for l: Array in [[2, "Боря", "Привет! Пойдём к реке?"], [3, "Вова", "Я за вами, только дрова соберу"],
+					[2, "Боря", "Жду у моста"]]:
+				main.hud.chat.hear(l[0], l[1], l[2])
+			main.hud.server_note(Lang.line("[s_joined_the_server_for]", ["Гена"]))
+			main.hud.server_note(Lang.line("[s_lost_the_connection_the]", ["Вова", 30]))
+			await create_timer(1.0).timeout
 		main.settings.set_value("ui_size", shot.get("ui_size", 2))
 		main.settings.set_value("control_size", shot.get("control_size", 2))
 		for k in ["minimap_size", "level_buttons", "camera_buttons", "layer_front_from",

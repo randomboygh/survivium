@@ -281,6 +281,10 @@ const PERSON_GONE := "person_gone"
 ## A line of chat heard: [id of who said it (0 the server), their name, the text, said
 ## to the team].
 const HEARD := "heard"
+## What the server tells its hosts (Server._note): a player joined, came back, lost the
+## connection, left, was disconnected or not let in: [line (Lang.line)]. Only to a
+## player the server holds a host (op, or the owner who made it in the game).
+const NOTED := "noted"
 ## The player's team (Teams.view): [{"id", "name", "lead", "members": [[id, name]…]}],
 ## {} for none; on joining and when it changes.
 const TEAM := "team"

@@ -9,6 +9,8 @@ const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
 const KitWindow := preload("res://src/client/ui/kit/window.gd")
 const SlotStrip := preload("res://src/client/ui/kit/slot_strip.gd")
+const FadingList := preload("res://src/client/ui/kit/fading_list.gd")
+const ChatBox := preload("res://src/client/ui/chat_box.gd")
 
 
 func run() -> void:
@@ -17,6 +19,8 @@ func run() -> void:
 	_test_window()
 	_test_strip()
 	_test_gallery()
+	_test_fading_list()
+	_test_chat_lines()
 
 
 func _test_two_tap() -> void:
@@ -142,3 +146,39 @@ func _test_gallery() -> void:
 	gallery.close()
 	_check(closed[0], "«Закрыть» tells it closed")
 	host.free()
+
+
+## A list of lines that come and go (FadingList), built out of the tree as the tests
+## are: there nothing moves, a line is there at once and one dropped is gone.
+func _test_fading_list() -> void:
+	var list := FadingList.new()
+	var first := list.add(Label.new())
+	var second := list.add(Label.new())
+	var top := list.add(Label.new(), first)
+	_check(list.get_child(0) == top and list.get_child(1) == first and list.get_child(2) == second,
+		"a line put before another comes in above it")
+	_check(first.get_child(0) is Label and first.modulate.a == 1.0 and first.custom_minimum_size.y == (first.get_child(0) as Control).get_combined_minimum_size().y + list.gap
+		and first.size_flags_horizontal == Control.SIZE_SHRINK_BEGIN, "a line is in a holder as tall as it and the room under it")
+	list.drop(first)
+	_check(list.shown() == [top, second] and list.get_child_count() == 2, "a line dropped is gone")
+	list.clear()
+	_check(list.get_child_count() == 0, "clear takes every line at once")
+	list.free()
+
+
+## The chat's lines in its list: the last SHOWN heard show, the newest at the bottom.
+func _test_chat_lines() -> void:
+	var chat = ChatBox.new({"welcome": {"id": 1}, "join_url": "ws://x"})
+	chat._ready()
+	chat.place(Vector2(8, 300), 400)
+	var watching := Lang.watching
+	Lang.watching = false
+	for i in ChatBox.SHOWN + 2:
+		chat.hear(2, "Боря", "строка %d" % i)
+	Lang.watching = watching
+	var shown: Array = chat._list.shown()
+	_check(shown.size() == ChatBox.SHOWN and chat._shown.size() == ChatBox.SHOWN,
+		"the chat shows its last %d lines: %d" % [ChatBox.SHOWN, shown.size()])
+	_check(not shown.is_empty() and (shown.back().get_child(0) as Label).text == "Боря: строка %d" % (ChatBox.SHOWN + 1)
+		and (shown.front().get_child(0) as Label).text == "Боря: строка 2", "the newest at the bottom, the older ones gone")
+	chat.free()

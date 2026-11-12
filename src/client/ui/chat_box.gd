@@ -1,7 +1,8 @@
 extends VBoxContainer
 ## The chat on a server (plan/architecture/server.md, С6; plan/design/ui.md «Сообщения»):
 ## the last lines heard (Protocol.HEARD: the players within the chat's reach, the
-## server's answers) in the bottom left corner, each fading after FADE seconds, and the
+## server's answers) in the bottom left corner, each coming up and going after FADE
+## seconds as the notifications do (the UI kit's FadingList), and the
 ## field to say a line, opened by Enter or the chat button and closed by sending,
 ## Escape or the button again. While it is open all the recent lines show, the newest
 ## at the bottom. One in a team chooses whom a line goes to by the button before the
@@ -15,29 +16,31 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Kit := preload("res://src/client/ui/kit/kit.gd")
+const FadingList := preload("res://src/client/ui/kit/fading_list.gd")
 
-## Lines kept, lines shown while closed, seconds a line shows, and its fading at the end.
+## Lines kept, lines shown while closed and while open, seconds a line shows.
 const KEPT := 30
 const SHOWN := 5
 const OPEN_SHOWN := 10
 const FADE := 12.0
-const FADE_OUT := 2.0
 const WIDTH := 220
 ## Letters a line may have (Requests.CHAT_MAX on the server cuts it there too).
 const MAX := 160
 
 var game
-## The lines heard: {"text", "color", "at" (seconds)}, the newest last.
+## The lines heard: {"text", "color", "at" (seconds), "n" (its number)}, the newest last.
 var lines: Array[Dictionary] = []
-var _list: VBoxContainer
+var _list: FadingList
+## The holders of the lines shown (FadingList.add), by the line's number.
+var _shown := {}
+## Where the box's bottom stays (place): the list grows up from it.
+var _bottom := 0.0
 var _row: PanelContainer
 var _field: LineEdit
 ## Whom a line goes to: those near, or the team (shown only to one in a team).
 var _to_team := false
 var _whom: Button
-## What the labels show (open, how many, of how many heard): they are made again when it changes.
-var _shown_key := ""
-## Lines heard in all: the shown lines change with it even once KEPT are kept.
+## Lines heard in all: the next line's number.
 var _heard := 0
 ## When a line was last sent (seconds): the lines heard before it fade from then on.
 var _sent := -INF
@@ -49,13 +52,13 @@ func _init(g) -> void:
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# Runs only while lines fade (hear and open start it, _refresh stops it).
+	# Runs only while lines show with the field closed (hear and close start it, _refresh
+	# stops it).
 	set_process(false)
-	add_theme_constant_override("separation", 4)
-	_list = VBoxContainer.new()
-	_list.add_theme_constant_override("separation", 2)
-	_list.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_theme_constant_override("separation", 2)
+	_list = FadingList.new(2)
 	add_child(_list)
+	minimum_size_changed.connect(_keep_bottom)
 	_row = PanelContainer.new()
 	_row.add_theme_stylebox_override("panel", UiStyle.panel(Vector4(4, 3, 4, 3)))
 	_row.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -161,7 +164,7 @@ func hear(id: int, who: String, text: String, team := false) -> void:
 	if team:
 		line = tr("[team_n2]") + line
 	var color := UiStyle.MUTED if id == 0 else (UiStyle.TEAM if team else (UiStyle.ACCENT if own else UiStyle.INK))
-	lines.append({"text": line, "color": color, "at": _now()})
+	lines.append({"text": line, "color": color, "at": _now(), "n": _heard})
 	_heard += 1
 	while lines.size() > KEPT:
 		lines.pop_front()
@@ -172,17 +175,26 @@ func hear(id: int, who: String, text: String, team := false) -> void:
 ## Puts the box's bottom left corner at `corner` (HUD units), `room` wide at most.
 func place(corner: Vector2, room: float) -> void:
 	custom_minimum_size.x = minf(WIDTH, room)
-	for l: Label in _list.get_children():
-		l.custom_minimum_size.x = custom_minimum_size.x
+	for h: Control in _list.get_children():
+		(h.get_child(0) as Control).custom_minimum_size.x = custom_minimum_size.x
+	position.x = floorf(corner.x)
+	_bottom = floorf(corner.y)
+	_keep_bottom()
+
+
+## The box as tall as what it shows, its bottom where it was put (place): the lines
+## coming and going move its top.
+func _keep_bottom() -> void:
 	reset_size()
-	position = Vector2(corner.x, corner.y - size.y).floor()
+	position.y = floorf(_bottom - size.y)
 
 
 func _process(_delta: float) -> void:
 	_refresh()
 
 
-## Shows the lines that are still fresh (all recent ones while open), fading the old.
+## Shows the lines that are still fresh (all recent ones while open): a line new to the
+## list comes up into it, one no longer fresh (or pushed out by newer ones) goes.
 func _refresh() -> void:
 	var now := _now()
 	var open := _row.visible
@@ -192,29 +204,34 @@ func _refresh() -> void:
 		if shown.size() >= (OPEN_SHOWN if open else SHOWN) or (not open and now - _since(l) > FADE):
 			break
 		shown.push_front(l)
-	var key := "%s|%d|%d" % [open, shown.size(), _heard]
-	if key != _shown_key:
-		_shown_key = key
-		for c in _list.get_children():
-			_list.remove_child(c)
-			c.queue_free()
-		for l: Dictionary in shown:
-			var label := UiStyle.label(l.text, l.color)
-			# Players' words as written (the server's are put into the language as heard).
-			label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-			label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			label.custom_minimum_size.x = custom_minimum_size.x
-			label.add_theme_constant_override("outline_size", 4)
-			label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
-			_list.add_child(label)
-		var bottom := position.y + size.y
-		reset_size()
-		position.y = floorf(bottom - size.y)
+	var keep := {}
+	for l: Dictionary in shown:
+		keep[l.n] = true
+	for n: int in _shown.keys():
+		if not keep.has(n):
+			_list.drop(_shown[n])
+			_shown.erase(n)
+	# From the newest up: a line older than those shown comes in above them, before the
+	# newer one.
+	var newer: Control = null
+	for i in range(shown.size() - 1, -1, -1):
+		var l: Dictionary = shown[i]
+		if not _shown.has(l.n):
+			_shown[l.n] = _list.add(_label(l), newer)
+		newer = _shown[l.n]
 	set_process(not shown.is_empty() and not open)
-	var labels := _list.get_children()
-	for i in labels.size():
-		var age: float = now - _since(shown[i])
-		labels[i].modulate.a = 1.0 if open else clampf((FADE - age) / FADE_OUT, 0.0, 1.0)
+
+
+## The label of line `l`, as wide as the box, wrapped, outlined over the world.
+func _label(l: Dictionary) -> Label:
+	var label := UiStyle.label(l.text, l.color)
+	# Players' words as written (the server's are put into the language as heard).
+	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size.x = custom_minimum_size.x
+	label.add_theme_constant_override("outline_size", 4)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	return label
 
 
 func _input(event: InputEvent) -> void:

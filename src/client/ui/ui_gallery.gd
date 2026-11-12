@@ -3,7 +3,7 @@ extends "res://src/client/ui/kit/window.gd"
 ## each working when tapped (the user's ask 2026-11-11), so a change to a shared piece
 ## (the UI kit in src/client/ui/kit/, UiStyle, TabRow, HotbarSlot, FactChips, IconTabs,
 ## ScrollColumn) is seen at once in all its looks, on a phone too. It is made of the kit
-## itself: a KitWindow, Kit's buttons and fields, TwoTap, ChoiceRows, SlotStrip. Opened from «Тестирование» →
+## itself: a KitWindow, Kit's buttons and fields, TwoTap, ChoiceRows, SlotStrip, FadingList. Opened from «Тестирование» →
 ## «Отладка» (SettingsMenu), over a shade of the screen; «Закрыть» or Escape closes it.
 ## The line under the tabs' page tells what the last tap did. Nothing here changes the
 ## game: the rows' values, the weight and the slots' choice live in the window only.
@@ -12,6 +12,7 @@ extends "res://src/client/ui/kit/window.gd"
 const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
 const SlotStrip := preload("res://src/client/ui/kit/slot_strip.gd")
+const FadingList := preload("res://src/client/ui/kit/fading_list.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
@@ -343,6 +344,24 @@ func _lists_page() -> void:
 	column.set_items(buttons)
 	var row := _flow()
 	row.add_child(column)
+	_caption("[lines_that_come_and_go]")
+	var fading := FadingList.new()
+	var area := Control.new()
+	area.custom_minimum_size = Vector2(0, 3 * 30)
+	area.add_child(fading)
+	var told := [0]
+	_list.add_child(Kit.button("[add_a_line]", func() -> void:
+		told[0] += 1
+		var p := PanelContainer.new()
+		p.add_theme_stylebox_override("panel", UiStyle.panel(UiStyle.TIGHT))
+		p.add_child(UiStyle.label(Lang.f("[line_n3]", [told[0]])))
+		var holder := fading.add(p)
+		holder.create_tween().tween_callback(fading.drop.bind(holder)).set_delay(3.0)
+		var shown := fading.shown()
+		while shown.size() > 3:
+			fading.drop(shown.pop_front())
+		say("[add_a_line]")))
+	_list.add_child(area)
 
 
 func _look_page() -> void:

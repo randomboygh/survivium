@@ -29,7 +29,10 @@ does the players' requests one at a time, whole — two who took one stack at on
 request `chat` [line] → the server sends `heard` [number, name, line] to all within `Server.CHAT_RANGE` 30
 units of the speaker, and to the speaker too; a line with «/» is a command, only for the server's hosts
 (`access.hosts`: those given `op`, and the player who made the server in the game — `Main._on_welcome` →
-`make_host`), the reply to it comes in the chat to him alone. Teams (Т1, [territory.md](territory.md)): the
+`make_host`), the reply to it comes in the chat to him alone. The hosts online are told the server's comings and
+goings by the event `noted` [line] (`Server._note`, a `Lang.line`: joined for the first time, back, lost the
+connection, left, the character left the world, disconnected or banned by a host, too many messages, not let
+in with the reason `Server.WHY_NOTES`), never about themselves; the HUD shows them apart (`Hud.server_note`). Teams (Т1, [territory.md](territory.md)): the
 requests `team_*`, the events `team`, `invites`, a line to the team (`team_chat`) — to all its members in the
 world; in `heard` the fourth field is «said to the team», in `people` the last is «in my team». Land (Т2, Т3):
 the requests `land_paint`, `land_rights`, `land_color`, the events `claims`, `squares`, `land`. PvP (Т5): the
