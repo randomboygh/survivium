@@ -328,9 +328,14 @@ func _run() -> void:
 			_input_at(borya, on)
 			var there := on
 			await _until(func() -> bool: return main.others.people[2].figure.position.distance_to(there) < 0.5 * WorldData.CELL, 5.0)
+		var row := floori(aside.z / WorldData.CELL)
+		var from := floori(aside.x / WorldData.CELL)
+		var to := floori(on.x / WorldData.CELL)
 		var walked_cols := func() -> bool:
-			return main.world.trodden.keys().any(func(c: Vector2i) -> bool: return c.y == floori(aside.z / WorldData.CELL)
-				and c.x >= floori(aside.x / WorldData.CELL) and c.x < floori(on.x / WorldData.CELL))
+			for c: Vector2i in main.world.trodden:
+				if c.y == row and c.x >= from and c.x < to:
+					return true
+			return false
 		_check(main.others.people[2].print_at.distance_to(print_was) >= OthersScript.STRIDE,
 			"another player walking leaves boot prints (%s -> %s)" % [print_was, main.others.people[2].print_at])
 		_check(await _until(walked_cols, 5.0), "and his trail in the snow (%s)" % [main.world.trodden.keys()])
