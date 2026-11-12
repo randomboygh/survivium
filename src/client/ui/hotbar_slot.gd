@@ -167,10 +167,10 @@ func _draw() -> void:
 		_text(font, Lang.t(tag), Vector2(4, 3 + font.get_ascent(fs)), UiStyle.ACCENT)
 	if key != "":
 		# The slot's number is a quiet mark: dim and without the outline.
-		var kw := font.get_string_size(key, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var kw := UiStyle.text_width(key, fs, font)
 		draw_string(font, Vector2(size.x - 3 - kw, 3 + font.get_ascent(fs)).round(), key, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, KEY_COLOR)
 	if number != "":
-		var w := font.get_string_size(number, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var w := UiStyle.text_width(number, fs, font)
 		_text(font, number, Vector2(size.x - 3 - w, size.y - 3 - font.get_descent(fs)), UiStyle.INK)
 
 

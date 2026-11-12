@@ -58,6 +58,9 @@ var editing := -2
 var _fingers := {}
 var _pinch := 0.0
 var _mouse_drag := false
+## Two fingers were on the map since the last time none was: the finger left after a
+## pinch does not drag the map (lifting two fingers one after the other moved it).
+var _pinched := false
 var _last_touch := -100000
 var _last_player := Vector2i(1 << 30, 0)
 ## Where a press began and whether it moved past TAP_SLOP (then it is no tap).
@@ -196,9 +199,7 @@ func fit(screen: Vector2, touch: bool) -> void:
 	# Measured in the player's language from the font, never from the label's own size:
 	# a label keeps the height of its last wrapping until it is laid out again, and that
 	# height once squashed the map to a strip.
-	var text := Lang.t(_hint.text)
-	var font := UiStyle.font()
-	var natural := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE).x
+	var natural := UiStyle.text_width(_hint.text)
 	var bottom := 0.0
 	if natural <= right - inner.position.x - SCALE_WIDTH - 48:
 		_hint.autowrap_mode = TextServer.AUTOWRAP_OFF
@@ -206,9 +207,10 @@ func fit(screen: Vector2, touch: bool) -> void:
 		_hint.size = Vector2(natural, UiStyle.FONT_SIZE)
 		bottom = _hint.position.y - GAP - 1
 	else:
-		var width := right - inner.position.x
-		var lines := _lines(text, width)
-		var height := lines * font.get_height(UiStyle.FONT_SIZE) + (lines - 1) * 4
+		# Under the buttons' column too: they end high above it.
+		var width := inner.size.x
+		var lines := UiStyle.text_lines(_hint.text, width)
+		var height := lines * UiStyle.font().get_height(UiStyle.FONT_SIZE) + (lines - 1) * 4
 		_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_hint.position = Vector2(inner.position.x, inner.end.y - height)
 		_hint.size = Vector2(width, height)
@@ -222,15 +224,6 @@ func fit(screen: Vector2, touch: bool) -> void:
 	redraw()
 
 
-## How many lines `text` takes wrapped by words to `width` UI pixels, as the hint shows it.
-static func _lines(text: String, width: float) -> int:
-	var para := TextParagraph.new()
-	para.break_flags = TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
-	para.add_string(text, UiStyle.font(), UiStyle.FONT_SIZE)
-	para.width = width
-	return maxi(1, para.get_line_count())
-
-
 ## Redraws the panel, the ground and what is drawn over it.
 func redraw() -> void:
 	queue_redraw()
@@ -241,6 +234,7 @@ func redraw() -> void:
 func open() -> void:
 	centre = Vector2(minimap.player_cell)
 	_fingers.clear()
+	_pinched = false
 	_hide_popup()
 	visible = true
 	move_to_front()
@@ -251,6 +245,7 @@ func open() -> void:
 func close() -> void:
 	visible = false
 	_fingers.clear()
+	_pinched = false
 	_mouse_drag = false
 	_hide_popup()
 
@@ -324,6 +319,10 @@ func _gui_input(event: InputEvent) -> void:
 			if _fingers.is_empty() and not _moved:
 				tap(event.position)
 		_pinch = _spread()
+		if _fingers.size() >= 2:
+			_pinched = true
+		elif _fingers.is_empty():
+			_pinched = false
 	elif event is InputEventScreenDrag:
 		_last_touch = Time.get_ticks_msec()
 		if not _fingers.has(event.index):
@@ -332,15 +331,18 @@ func _gui_input(event: InputEvent) -> void:
 			_fingers[event.index] = event.position
 			_moved = true
 			_pinch = _spread()
+			_pinched = _pinched or _fingers.size() >= 2
 			accept_event()
 			return
 		var middle := _middle()
+		var was: Vector2 = _fingers[event.index]
 		_fingers[event.index] = event.position
 		if not _moved and event.position.distance_to(_press_at) > TAP_SLOP:
 			_moved = true
 			_hide_popup()
-		if _fingers.size() == 1 and _moved:
-			_pan(event.relative)
+		if _fingers.size() == 1 and _moved and not _pinched:
+			# By the finger's own last place, not the event's `relative`.
+			_pan(event.position - was)
 		elif _fingers.size() == 2:
 			# The map follows the middle of the two fingers and zooms about it, so
 			# what lies under them stays there.
@@ -384,6 +386,8 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch and not event.pressed and _fingers.has(event.index):
 		_fingers.erase(event.index)
 		_pinch = _spread()
+		if _fingers.is_empty():
+			_pinched = false
 
 
 ## The middle of the fingers on the map (the first two), or of the one.
