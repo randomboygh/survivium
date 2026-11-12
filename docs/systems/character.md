@@ -54,7 +54,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   thing that left the bag (`take_slot`, `put_into`, `move_slot`, including an exchange from a chest) is taken
   off by itself (`_leave`/`_left`); `move_all` does not touch what is worn, `sort` moves it with the rest
   (except the bag on the back), it stays worn; `remove` (recipes) does not take the bag off the back. A bag on
-  the back (`wear_on: back`, `bag_slots`) adds cells after `base` and itself lies in the first `base` (it does
+  the back (`wear_on: back`, `bag_slots`) adds cells after `base` (`grow(n)` makes `base` `n` wider for the
+  playtest's free items, `grown`, saved; narrowed, what the cells taken away held goes into free ones) and itself lies in the first `base` (it does
   not put itself into its own cells); taken off, it carries its things away in itself (like a taken chest,
   `contents`) and returns them when it is put on again; the weight does not change: `stack_weight` counts the
   things of bags lying in the bag too, to any depth. Saved in `to_dict` (`gear`); an old save where what was

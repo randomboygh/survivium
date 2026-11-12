@@ -12,7 +12,10 @@ doors and windows.
   the wear of the recipe's tools by `wear`), `waits_for(r)` (what the work waits for: a station, a tool, a
   thing in the bag), `use_tool`, `repair`, `give_free(r)` (the test «Free items», `Rules.free_items`: the
   recipe's product into the bag without materials, the request `craft_free`; the crafting tab then shows all
-  recipes and the button «Get» in the recipe's top right corner); the signals `changed`, `made`.
+  recipes and the button «Get» in the recipe's top right corner), `give_all()` (the switch turned on: one of
+  every thing of the game into the bag, made wider for them by rows of 8 through `Inventory.grow`, the request
+  `give_all [true]`) and `take_back_all()` (turned off: the bag back to its own slots, `give_all [false]`); the
+  signals `changed`, `made`.
 - `src/shared/game/knowledge.gd` — a recipe is known when all its materials have been in the bag (`look_at`,
   `knows`); the signal `learned`. A recipe that needs a tool of a class that no item in the world has (a world
   without part of the bundles) is not learned and not shown (`Crafting.possible`).

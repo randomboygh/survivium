@@ -8,6 +8,7 @@ func run() -> void:
 	_test_inventory()
 	_test_wear()
 	_test_gear()
+	_test_grow()
 	_test_torch()
 	_test_spoil()
 	_test_vitals()
@@ -197,6 +198,38 @@ func _test_gear() -> void:
 	_check(w.inventory.gear.back == "tools:canvas_backpack" and w.inventory.gear.body == "tools:grass_cape"
 		and lost.size() == 2 and w.inventory.count("resources:stone") == 0 and w.inventory.count("tools:grass_cape") == 1,
 		"what is worn stays on through a death")
+
+
+## The playtest's «Бесплатные предметы»: a bag made wider for one of every thing, kept in a
+## save, and back to its own slots.
+func _test_grow() -> void:
+	var inv := Inventory.new()
+	inv.add("tools:wicker_bag", 1)
+	inv.wear(0)
+	inv.slots[Inventory.SLOTS + 2] = ["resources:fiber", 5]
+	inv.grow(24)
+	_check(inv.base == Inventory.SLOTS + 24 and inv.slots.size() == Inventory.SLOTS + 32
+		and inv.slots[Inventory.SLOTS + 26] == ["resources:fiber", 5] and inv.worn_slot("back") == 0,
+		"a bag made wider keeps the slots of the bag on the back after its own")
+	inv.slots[Inventory.SLOTS + 20] = ["resources:stone", 2]
+	var copy := Inventory.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(inv.to_dict())))
+	_check(copy.grown == 24 and copy.slots.size() == inv.slots.size() and copy.slots[Inventory.SLOTS + 20] == ["resources:stone", 2],
+		"and it stays so through a save")
+	copy.from_dict({"slots": [], "grown": 1e12})
+	_check(copy.grown == Inventory.MOST_GROWN, "a save's width is bounded")
+	_check(inv.grow(0) == 0 and inv.base == Inventory.SLOTS and inv.slots.size() == Inventory.SLOTS + 8
+		and inv.count("resources:stone") == 2 and inv.slots[Inventory.SLOTS + 2] == ["resources:fiber", 5],
+		"narrowed back, what it held goes into free slots")
+	var w := Survivor.new()
+	var shop := Workshop.new(w, null, Rules.new())
+	_check(shop.give_all() == 0 and w.inventory.grown == 0, "every thing is not given while the rules do not allow it")
+	shop.rules.free_items = true
+	var n: int = shop.give_all()
+	_check(n == Items.IDS.size() and w.inventory.base % 8 == 0 and w.inventory.slots.slice(0, w.inventory.base).count(null) < 8,
+		"with them on, one of every thing goes in, the bag wider by rows of 8: %d of %d in %d slots" % [n, Items.IDS.size(), w.inventory.base])
+	shop.take_back_all()
+	_check(w.inventory.base == Inventory.SLOTS and w.inventory.slots.size() == Inventory.SLOTS, "and the bag goes back to its own")
 
 
 func _test_torch() -> void:

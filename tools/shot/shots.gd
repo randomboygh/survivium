@@ -424,6 +424,8 @@ const SHOTS := {
 	# width as the 16 of the bag alone («gather»), a longer tab.
 	"gather-backpack": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true,
 		"wear": "tools:canvas_backpack"},
+	# «Бесплатные предметы» turned on: one of every thing of the game in a bag made wider for them.
+	"bag-all": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "give_all": true},
 	# Food going off: freshness strips under the cells, «Свежесть» of the stack chosen.
 	"bag-food": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true, "food": true},
 	# Quality: a dot of its grade on each cell, «Качество» of the axe chosen, its swings and swing by it.
