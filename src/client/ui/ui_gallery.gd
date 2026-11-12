@@ -341,7 +341,7 @@ func _lists_page() -> void:
 		var b := Kit.button(label, say.bind(label))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		rows.add_child(b)
-	# The kit's rule (UiStyle.inset): room on the right only while a list scrolls.
+	# The kit's rule (UiStyle.inset): with no scroll as much room on the right as on the left.
 	_caption("[a_short_list_that_does]")
 	var few := Kit.column(4)
 	var short := Kit.scroll(few)

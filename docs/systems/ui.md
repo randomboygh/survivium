@@ -15,7 +15,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   `accent_button`), a square one with an icon `icon_button`, one in the panel frame for the game screen
   `framed_button` (the HUD buttons, the strip's arrows), the switch `check` (`switch.gd`: in pixels: a pill track in a dark edge and a round knob in a thick one, off — dark track and pale knob on the left, on — dim amber track and amber knob on the right; the round ends are pixel circles drawn by pixel art's rules — even steps that never grow towards the diagonal, the same on every side (`_round`); inside its edge the track's ends follow the knob's steps (`_round_around`), so the room between them is one pixel all round — the text to its left); the input field `field` (the caret
   and tab switching in the browser — `TextField.fit`); column, row, inset; a scrolled list `scroll` (also by
-  finger, `DragScroll`, with insets as in the settings: room on the right only while it scrolls); the look of the screen's big buttons `octagon_look`,
+  finger, `DragScroll`, with insets as in the settings: on the right as on the left, more only for a shown bar); the look of the screen's big buttons `octagon_look`,
   semi-transparent ones `see_through` (icon edged dark by `UiStyle.outlined`, like the letters), a colour sample `swatch`; the section strip `section` (a pale line with an icon and a name between groups: the chests in the inventory, the sections of the settings and of the server window). Sizes: `BUTTON_H` 30, `FIELD_H` 26, `SQUARE`
   32.
 - `window.gd` — a window over the screen's shadow: `build(title)` gives the panel and the column `box`,
@@ -140,11 +140,10 @@ and a new shared part is added to the kit and to the «Interface gallery».
   «Inventory» and «Crafting», «Land» (only on marked land, `land_page.gd`) and «Team» (only on a server,
   `team_page.gd`), see `docs/systems/territory.md`. All rows of tabs (window, settings, «Testing») are one
   joined group one window button tall (`TabRow.tabs`, the chosen one amber, `light`); new tabs are made the
-  same way. The scrolled rows of a window keep off the left edge and the bar by `UiStyle.BAR_GAP` (`UiStyle.inset`:
-  settings, «Testing», «Land», «Team»). The kit's rule: room on the right only while the list scrolls
-  (the bar shows); a window with no scroll has no room on the right, its rows reach as far as its buttons
-  (`UiStyle.inset(content, scroll)` follows the bar, `Kit.scroll` gives it; without an inset `UiStyle.bar_room`;
-  shown in the gallery's «Lists»); new pages are made the same way, tabs have no headings. The bag's cells
+  same way. The scrolled rows of a window keep off the edges and the bar by `UiStyle.BAR_GAP` (`UiStyle.inset`:
+  settings, «Testing», «Land», «Team»). The kit's rule: with no scroll the room on the right is the same as
+  on the left and the rows reach it (`ChoiceRows` rows fill their width, the settings' grid fills the list);
+  only a shown bar adds its own room (shown in the gallery's «Lists»); new pages are made the same way, tabs have no headings. The bag's cells
   show 4 whole rows (`InventoryWindow.ROWS`), fewer if the window does not fit, the rest scrolls — by a thin
   bar (`UiStyle.SCROLL_BAR`) and by a drag of a finger or mouse over the cells themselves (`drag_scroll.gd`;
   the cells are then chosen on release, `HotbarSlot.on_release`, and the drag chooses nothing); the crafting
