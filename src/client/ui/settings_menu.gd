@@ -84,6 +84,13 @@ const TAB_HEIGHT := 32
 const SIZES := ["[very_small]", "[small_ui]", "[normal_ui]", "[larger_n2]", "[large_ui]"]
 ## The minimap sizes (Minimap.SIDES).
 const MAP_SIZES := ["[small_map]", "[normal_map]", "[large_map]"]
+## The rows that are a scale from less to more (volume, sizes, speeds, quality): they
+## stop at their ends instead of going round (the user's ask 2026-11-12); the rows of
+## kinds (language, weather, the hour) go round.
+const SCALES := ["[volume]", "[nature]", "[interface]", "[how_often]", "[interface_size]", "[controls_size]",
+	"[minimap]", "[scale]", "[quality]", "[fire_shadows]", "[day_length]", "[flow_of_time]", "[player_speed]",
+	"[skill_growth]", "[darkening_per_level]", "[line_height]", "[ahead_first_layers]", "[ahead_stretch]",
+	"[above_first_layers]", "[above_stretch]", "[density_of_the_first]", "[shadow_map]"]
 
 signal closed
 
@@ -1005,8 +1012,10 @@ func _paragraph(text: String, color: Color) -> Label:
 
 ## A row "name ‹ value ›"; `other` is shown when `getter` gives -1 (none of `values`);
 ## while `works` (if given) says false the row is faded and its arrows do nothing.
+## A row of SCALES stops at its ends, the arrow towards the end it is at off.
 func _add_row(name: String, values: Array, getter: Callable, setter: Callable, other := "", works := Callable()) -> void:
-	_choices.add(_grid(), name, values, getter, setter, {"other": other, "works": works, "wrap": true})
+	_choices.add(_grid(), name, values, getter, setter, {"other": other, "works": works, "wrap": true,
+		"stop": name in SCALES})
 
 
 ## A button as wide as a row that does `action` once (a way into the test world); with

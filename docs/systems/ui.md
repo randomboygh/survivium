@@ -13,7 +13,7 @@ not drawn anew; all the game's windows are already moved to the kit. A new windo
 and a new shared part is added to the kit and to the «Interface gallery».
 - `kit.gd` — static parts: a window title, a caption, an explanation; a window button (plain, amber
   `accent_button`), a square one with an icon `icon_button`, one in the panel frame for the game screen
-  `framed_button` (the HUD buttons, the strip's arrows), the switch `check` (`switch.gd`: a small square knob on a thin line, amber and on the right when on, pale and on the left when off, the text to its left); the input field `field` (the caret
+  `framed_button` (the HUD buttons, the strip's arrows), the switch `check` (`switch.gd`: a round knob in a pill-shaped track: on the right over amber when on, pale on the left over dark when off, the text to its left); the input field `field` (the caret
   and tab switching in the browser — `TextField.fit`); column, row, inset; a scrolled list `scroll` (also by
   finger, `DragScroll`, with insets as in the settings); the look of the screen's big buttons `octagon_look`,
   semi-transparent ones `see_through`, a colour sample `swatch`; the section strip `section` (a pale line with an icon and a name between groups: the chests in the inventory, the sections of the settings and of the server window). Sizes: `BUTTON_H` 30, `FIELD_H` 26, `SQUARE`
@@ -30,7 +30,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   focus by keys: up and down pick a row, left and right turn the values. A row whose values are only «off | on»
   (or «hidden | shown», `SWITCHES`) is a switch in place of the arrows and the value (left turns it off, right
   on; `"switch": false` keeps the arrows): every on/off setting is a switch. A row that stops at its ends
-  (`stop`, `direct`) has the arrow towards the end it is at disabled. Settings, «Testing», «New world» and
+  (`stop`, `direct`) has the arrow towards the end it is at disabled; the settings' scales (volume, sizes, speeds, quality, the caves' layers, `SettingsMenu.SCALES`) and the land's amounts in «New world» stop so, the rows of kinds (language, weather, the hour) go round. Settings, «Testing», «New world» and
   its mods, «Create a server».
 - `slot_strip.gd` — a strip of big cells between arrows: the hotbar (hands on the left, outside the strip), the
   build and farm palettes; the owner puts cells in `cells` and says how many things and cells there are

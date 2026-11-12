@@ -60,7 +60,7 @@ func add(parent: Node, name: String, values: Array, getter: Callable, setter: Ca
 	var index := rows.size()
 	var on := switch_on(values) if opts.get("switch", true) else -1
 	if on >= 0:
-		# In the room of the arrows and the value, its line at the right end; "show"
+		# In the room of the arrows and the value, its track at the right end; "show"
 		# stands left of it (a mod's «3 из 5»), "open" after it.
 		var sw := Switch.new(opts.get("show", ""))
 		sw.alignment = HORIZONTAL_ALIGNMENT_CENTER

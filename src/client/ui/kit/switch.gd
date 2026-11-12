@@ -1,24 +1,23 @@
 extends Button
 ## A switch of the UI kit (kit.gd `check`, and the rows «name ‹ value ›» whose values are
-## only «выкл | вкл», ChoiceRows): a thin dark line with a small square knob that slides
-## right and lights amber (the line amber behind it) when on, left and pale when off.
-## Its `text`, when it has one, stands left of the line and the knob; they stand at the
+## only «выкл | вкл», ChoiceRows): a pill-shaped track with a round knob that slides
+## right over an amber track when on, left over a dark one, pale, when off.
+## Its `text`, when it has one, stands left of the track; it stands at the
 ## right end of the switch, or where `track_at` (0 the left, 0.5 the middle) puts it.
 ## `toggled` tells the change; `show_value` shows a value at once without telling.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
 ## The room the switch draws in, in UI pixels: the line runs across it.
-const TRACK := Vector2(34, 14)
-## The line's thickness and the knob's side.
-const BAR := 4
-const KNOB := 14
-## The room between the text and the line.
+const TRACK := Vector2(40, 22)
+## The room between the knob and the track's edge.
+const KNOB_GAP := 3
+## The room between the text and the track.
 const GAP := 8
 ## How long the knob slides, in seconds.
 const SLIDE := 0.08
 
-## Where the line stands along the free room: 1 the right end, 0.5 the middle.
+## Where the track stands along the free room: 1 the right end, 0.5 the middle.
 var track_at := 1.0
 ## The knob's place, 0 (off) to 1 (on), sliding towards the value.
 var _at := 0.0
@@ -51,7 +50,7 @@ func show_value(on: bool) -> void:
 	queue_redraw()
 
 
-## The rect the line and the knob take in the switch.
+## The track's rect in the switch.
 func track_rect() -> Rect2:
 	var room := size.x - TRACK.x
 	var x := room if text != "" else floorf(room * track_at)
@@ -76,24 +75,30 @@ func _ready() -> void:
 
 func _draw() -> void:
 	var r := track_rect()
-	var y := r.position.y + floorf(r.size.y * 0.5)
-	# The line: thin, a dark edge round it, lit amber up to the knob while on.
-	var line := Rect2(r.position.x + 2, y - BAR * 0.5 - 1, r.size.x - 4, BAR + 2)
-	draw_rect(line, UiStyle.EDGE)
-	var inner := line.grow(-1)
-	draw_rect(inner, UiStyle.WELL_SHADE)
-	var travel := r.size.x - KNOB
-	var x := r.position.x + roundf(travel * _at)
-	if _at > 0.0:
-		draw_rect(Rect2(inner.position, Vector2(x + KNOB * 0.5 - inner.position.x, inner.size.y)), UiStyle.ACCENT_DARK)
-	# The knob: a small square with its corners cut, a pixel of light on top.
 	var lit := button_pressed
-	var fill := UiStyle.ACCENT if lit else UiStyle.MUTED
+	# The track: a pill with round ends in a dark edge, amber inside while on.
+	_pill(r, UiStyle.EDGE)
+	_pill(r.grow(-2), UiStyle.WELL_SHADE)
+	if _at > 0.0:
+		_pill(Rect2(r.position + Vector2(2, 2), Vector2(r.size.y - 4 + (r.size.x - r.size.y) * _at, r.size.y - 4)),
+			UiStyle.ACCENT if lit else UiStyle.ACCENT_DARK)
+	# The knob: a round one in a dark edge, cream on and pale off, a lighter top.
+	var side := r.size.y - 2 * KNOB_GAP
+	var at := r.position + Vector2(KNOB_GAP + roundf((r.size.x - r.size.y) * _at), KNOB_GAP)
+	var fill := UiStyle.INK if lit else UiStyle.MUTED
 	if is_hovered() and not disabled:
 		fill = fill.lightened(0.15)
-	var k := Rect2(x, y - KNOB * 0.5, KNOB, KNOB)
-	draw_rect(Rect2(k.position + Vector2(1, 0), Vector2(KNOB - 2, KNOB)), UiStyle.EDGE)
-	draw_rect(Rect2(k.position + Vector2(0, 1), Vector2(KNOB, KNOB - 2)), UiStyle.EDGE)
-	draw_rect(k.grow(-2), fill)
-	draw_rect(Rect2(k.position + Vector2(2, 2), Vector2(KNOB - 4, 1)), fill.lightened(0.35))
-	draw_rect(Rect2(k.position + Vector2(2, KNOB - 3), Vector2(KNOB - 4, 1)), fill.darkened(0.3))
+	var knob := Rect2(at, Vector2(side, side))
+	_pill(knob, UiStyle.EDGE)
+	_pill(knob.grow(-1), fill.darkened(0.2))
+	_pill(Rect2(knob.position + Vector2(1, 1), Vector2(side - 2, side - 3)), fill)
+
+
+## Fills `r` as a pill: its ends rounded to half its height, cut in whole pixels.
+func _pill(r: Rect2, color: Color) -> void:
+	var h := int(r.size.y)
+	var rad := r.size.y * 0.5
+	for i in h:
+		var dy := i + 0.5 - rad
+		var dx := roundf(rad - sqrt(maxf(0.0, rad * rad - dy * dy)))
+		draw_rect(Rect2(r.position.x + dx, r.position.y + i, r.size.x - 2 * dx, 1), color)
