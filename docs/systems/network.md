@@ -99,7 +99,7 @@
   единицы, следующий `flush` полный, как при входе; пока полный `flush` впереди, `born` не копится
   (звери приходят с первым игроком, и каждый назывался бы дважды). `send_world` (ставит `Server`:
   через сокет) — линк ведёт копию мира клиента: `_sent` — чанки у клиента; в каждом `flush`
-  (`_world_events`) — `cells` по правкам (`actions.cell_changed`, `placed.cell_changed`) в чанках
+  (`_world_events`) — `cells` по правкам (`actions.cell_changed`, `actions.cells_set` — все клетки срубленного дерева, `placed.cell_changed`) в чанках
   клиента, чанки, чей вид изменился (`looks_changed`: ягоды, скошенная трава — чанк шлётся заново
   целиком, запись несёт `turf`, кусты, деревья), затем недостающие чанки зоны вокруг тела по его экрану
   (`Session.reach_for(who.view_half)`, не меньше `Session.ZONE`), ближайшие первыми, по `CHUNKS_PER_FLUSH` 2 за `flush` и только готовые (`SHAPED`: ячейки
@@ -184,7 +184,7 @@
   (`--autosave <секунды>`, `--no-save` — мир не сохранять; С7: `tunnel`, `cloudflared` — `--tunnel`,
   `--no-tunnel`, `--cloudflared <файл>`; `real_weather` — `--real-weather`, `--no-real-weather`: погода с
   улицы там, где сервер, `src/server/real_weather.gd`, [time-weather.md](time-weather.md)); `day_minutes` — `--day-minutes N`: длина суток в минутах, 40 как в игре по умолчанию (`Config.day_speed` →
-  `Clock.time_speed` при открытии мира; «Создать сервер» берёт «Длину суток» хозяина; «Ход времени» читов — множитель к ней)
+  `Clock.time_speed` при открытии мира; «Создать сервер» берёт её со вкладки «Настройки», а пока сервер ни разу не создавался — «Длину суток» хозяина; «Ход времени» читов — множитель к ней)
   командной строки (`take_args`; `--config` читается первым); `world_path()` — папка сохранения:
   имя под `WorldStore.root`, путь или папка сида и настроек (`WorldStore.world_dir`). Окно «Создать
   сервер» (С5) пишет тот же файл.
@@ -214,7 +214,7 @@
   бюджете кадра), `forget_far` пусто (забывает сервер: `forget` → `forget` + `ChunkStreamer.unload_chunk`),
   `take_work` («restore»), `gen_us`, `stages_left`; чанк, присланный заново, восстанавливается на месте
   и сигнал `changed` перестраивает его меш (`remesh_chunk`). Ячейки `cells` ставит `Mirror` прямо в
-  копию мира и даёт `actions.cell_changed`; `taken` → `actions.taken`; `drops` со списком → `world.drops`.
+  копию мира и даёт `actions.cell_changed` по разу на столбец, с нижней его клетки (как сервер у себя после рубки); `taken` → `actions.taken`; `drops` со списком → `world.drops`.
   Материалы сервера в другом порядке — `material_map` (`Mat.remap`), как у сохранения.
 - `src/client/net/socket.gd` — сокет клиента к серверу по сети: `WebSocketPeer` как транспорт
   `Connection` (`net`; ответы приходят позже, через `Reply.then`), `open(ws://…)`, `hello(name, key,

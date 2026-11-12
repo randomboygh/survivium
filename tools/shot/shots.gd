@@ -631,6 +631,9 @@ const SHOTS := {
 	"team-chat": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "chat"},
 	"team-invite": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "invite"},
 	"team-panel": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "panel", "team_panel": true},
+	# Teammates on the map: Боря near, Гена far to the north-east beyond the minimap's edge.
+	"team-map": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "map", "map": true, "map_zoom": 4},
+	"team-minimap": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "map"},
 	"land": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": false},
 	# The boundary post close, its shadow on the grass in the afternoon sun.
 	# The action button's label by what is in front: water to drink with bare hands.
@@ -749,6 +752,7 @@ const SHOTS := {
 	"ui-main-menu-join": {"time": 0.42, "season": 1, "touch": true, "main_menu": "join"},
 	# «Создать сервер» on a computer, before and while it runs.
 	"ui-main-menu-host": {"time": 0.42, "season": 1, "main_menu": "host"},
+	"ui-main-menu-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 1},
 	"ui-main-menu-host-running": {"time": 0.42, "season": 1, "main_menu": "host-running"},
 	# The largest interface on a landscape screen: the first page and «Создать сервер»
 	# still fit (the column and the window scroll when they cannot).

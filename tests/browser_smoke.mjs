@@ -1,7 +1,8 @@
 // Opens the exported web build in headless Chrome (software WebGL): as a desktop browser,
 // as a phone in landscape whose toolbar hides the bottom of the page, and as a phone
-// held upright opening a link to a server. Plays a little in the first two, joins in the
-// third, prints the browser console and a screenshot of each as base64, and fails on
+// held upright opening a link to a server, then as an iPhone tapping a field there. Plays
+// a little in the first two, joins in the third, prints the browser console and a
+// screenshot of each as base64, and fails on
 // script or shader errors or touch controls outside the visible screen. Software WebGL
 // draws a frame in a second or more and every input event waits for one, so the test sends
 // as few events as it can.
@@ -317,6 +318,45 @@ if (runs('upright')) {
   }
   await screenshot('upright', page);
   await context.close();
+
+  // An iPhone opens the keyboard only for an input focused inside the touch's own handler:
+  // a tap on a field focuses the keyboard's input as the finger lifts (tools/web_patch.py).
+  const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: dpr,
+    isMobile: true, hasTouch: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
+  const ios = await phone.newPage();
+  await ios.addInitScript(() => {
+    window.smokeTouchFocus = 0;
+    const focus = HTMLElement.prototype.focus;
+    HTMLElement.prototype.focus = function (options) {
+      if (this.tagName === 'INPUT' && window.event && window.event.type === 'touchend') window.smokeTouchFocus += 1;
+      return focus.call(this, options);
+    };
+  });
+  const iosLog = [];
+  ios.on('console', (m) => {
+    iosLog.push(m.text());
+    if (/SCRIPT ERROR|Invalid call|Invalid access|Invalid get|Invalid set/.test(m.text())) errors.push(`iphone: ${m.text()}`);
+  });
+  ios.on('pageerror', (e) => errors.push(`iphone: ${e.message}`));
+  await ios.goto(`${URL}?server=127.0.0.1:9`);
+  const iosDeadline = Date.now() + 120000;
+  let iosShown = '';
+  while (!iosShown && Date.now() < iosDeadline) {
+    await ios.waitForTimeout(500);
+    iosShown = iosLog.find((t) => t.startsWith('join screen shown')) || '';
+  }
+  if (!iosShown) {
+    errors.push('iphone: «Присоединиться» did not show within 120 s');
+  } else {
+    const r = (rectOf(iosShown, 'name').match(/-?[\d.]+/g) || []).map(Number);
+    await ios.touchscreen.tap((r[0] + r[2] / 2) / dpr, (r[1] + r[3] / 2) / dpr);
+    await ios.waitForTimeout(500);
+    const k = await ios.evaluate(() => ({ inTouch: window.smokeTouchFocus,
+      act: document.activeElement ? document.activeElement.tagName : '' }));
+    if (k.inTouch < 1 || k.act !== 'INPUT') errors.push(`iphone: a tap on the name did not focus the keyboard's input in the touch: ${JSON.stringify(k)}`);
+  }
+  await phone.close();
 }
 
 await browser.close();

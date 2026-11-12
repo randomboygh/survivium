@@ -34,7 +34,7 @@ extends "res://src/client/ui/menu_pages.gd"
 ## no landscape and «Продолжить» goes straight back in. The game's interface is hidden
 ## while the menu is open; the menu takes the scale and the safe rect the interface was
 ## fitted to. In the developer mode (the easter egg: Settings.testing_unlocked) the build's
-## version is written small under the name. `game` is the Main node.
+## number is written small under the name, by its right edge. `game` is the Main node.
 
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
@@ -65,15 +65,9 @@ void fragment() {
 var _version: Label
 
 
-## "v0.3.511 · ce642af · 2026-11-11" (tools/build_info.py), "dev" in the editor.
+## The build's number, "0.3.513" (tools/build_info.py), "dev" in the editor.
 static func version_text() -> String:
-	var info := {"version": "dev", "commit": "", "date": ""}
-	info.merge(Protocol.build_info(), true)
-	var parts := ["v" + str(info.version)]
-	for key: String in ["commit", "date"]:
-		if str(info[key]) != "":
-			parts.append(str(info[key]))
-	return " · ".join(parts)
+	return str(Protocol.build_info().get("version", "dev"))
 
 
 func _init(g) -> void:
@@ -178,7 +172,7 @@ func _process(delta: float) -> void:
 	_title.visible = _column.visible
 	_version.visible = game.settings.testing_unlocked
 	if _version.visible:
-		_version.position = Vector2(floorf((_title.size.x - _version.size.x) * 0.5), _title.size.y - 2.0)
+		_version.position = Vector2(_title.size.x - _version.size.x, _title.size.y)
 	_fx.visible = _column.visible
 	if _column.visible:
 		_move_sparrow(delta)

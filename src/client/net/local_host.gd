@@ -18,8 +18,10 @@ const PlayerLink := preload("res://src/server/player_link.gd")
 const Runner := preload("res://src/server/runner.gd")
 const RealWeather := preload("res://src/server/real_weather.gd")
 const Connection := preload("res://src/client/net/connection.gd")
-## The server made from the menu: compiled only when one is made.
+const Rules := preload("res://src/shared/game/rules.gd")
+## The server made from the menu: compiled only when one is made; its settings.
 const SERVER_MAIN := "res://src/server/server_main.gd"
+const SERVER_CONFIG := "res://src/server/config.gd"
 
 var session
 var link: PlayerLink
@@ -56,12 +58,28 @@ static func host(values: Dictionary, tree_root: Node) -> Node:
 	node.hosted = true
 	node.config.read()
 	for k: String in values:
-		node.config.set(k, values[k])
+		if k == "rules":
+			# The window's rules over the file's: the others it keeps (Rules.to_dict keys).
+			node.config.rules.merge(values.rules, true)
+		else:
+			node.config.set(k, values[k])
 	node.config.console = false
 	if node.start():
 		node.config.write()
 		tree_root.add_child.call_deferred(node)
 	return node
+
+
+## The settings of the server the menu makes, as its window «Создать сервер» shows
+## them: those of the server's settings file (Config), or the defaults when `saved` is
+## off; `rules` with every rule (Rules.to_dict), the file's over their defaults.
+static func server_settings(saved := true) -> Dictionary:
+	var c = load(SERVER_CONFIG).new()
+	if saved:
+		c.read()
+	return {"title": c.title, "port": c.port, "max_players": c.max_players, "password": c.password,
+		"autosave": c.autosave, "tunnel": c.tunnel, "real_weather": c.real_weather,
+		"day_minutes": c.day_minutes, "rules": Rules.of(c.rules).to_dict()}
 
 
 ## Stops the server's loop and frees it at the end of the frame (Main calls this while

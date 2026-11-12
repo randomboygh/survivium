@@ -26,6 +26,7 @@ func run() -> void:
 	_test_server_list()
 	_test_remote_workshop()
 	_test_cells()
+	_test_felled_tree()
 	_test_playtest()
 	_test_glide()
 
@@ -77,6 +78,49 @@ func _test_cells() -> void:
 		"a bed watered on the server keeps its crop on the client: %s" % [w.field_at(bed)])
 	Mirror.take_cell(w, bed, Mat.AIR)
 	_check(w.field_at(bed) == null, "a bed dug out loses it")
+
+
+## A tree felled on the server goes from the client's copy too: every cell of its trunk
+## and crown comes in CELLS, not only each column's lowest (which the server's own chunks
+## are drawn again from).
+func _test_felled_tree() -> void:
+	var w := WorldData.new(40, Vector2i(32, 32))
+	for z in 32:
+		for x in 32:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1
+	Growth.place(w, 15, 1, 15, Trees.first(Trees.BROAD), rng)
+	var s := Session.new(w, null, Clock.new(), Rules.of({}), Placed.new())
+	var host := LocalHost.new(s)
+	var net := host.join()
+	var a = host.player
+	host.link.send_world = true
+	for z in 32:
+		for x in 32:
+			host.link._sent[WorldData.chunk_key(x, z)] = true
+	host.flush(net)
+	var cells: Array = []
+	net.event.connect(func(kind: String, args: Variant) -> void:
+		if kind == Protocol.CELLS:
+			cells.append_array(args))
+	var trunk := Vector3i(15, 1, 15)
+	var solid := 0
+	for z in 32:
+		for x in 32:
+			for y in range(1, 40):
+				if w.get_cell(x, y, z) != Mat.AIR:
+					solid += 1
+	a.position = Vector3(12.5, 1.0, 15.5) * WorldData.CELL
+	_check(s.actions.fell(a, trunk), "the tree is felled on the server")
+	host.flush(net)
+	var gone := cells.filter(func(c: Array) -> bool: return c[1] & 255 == Mat.AIR)
+	var cols := {}
+	for c: Array in gone:
+		cols[Vector2i(c[0].x, c[0].z)] = true
+	_check(gone.size() >= solid / 2 and gone.size() > cols.size() and gone.any(func(c: Array) -> bool: return c[0] == trunk + Vector3i.UP * 2),
+		"every cell of its trunk and crown goes to the client, not only each column's lowest: %d cells in %d columns of %d" \
+			% [gone.size(), cols.size(), solid])
 
 
 ## The client's copy of the workshop counts the first job down between the server's

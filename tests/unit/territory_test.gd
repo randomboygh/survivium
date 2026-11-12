@@ -98,9 +98,19 @@ func _test_team_requests() -> void:
 	var people: Array = to_a.filter(func(e: Array) -> bool: return e[0] == Protocol.PEOPLE)
 	_check(not people.is_empty() and people.back()[1].any(func(p: Array) -> bool: return p[0] == 2 and p[14] == true),
 		"and sees the other marked as one of theirs")
+	var mates: Array = to_a.filter(func(e: Array) -> bool: return e[0] == Protocol.MATES)
+	_check(not mates.is_empty() and mates.back()[1][0] == [[2, "Боря", Vector2i(floori(5.0 / WorldData.CELL), floori(4.0 / WorldData.CELL))]],
+		"and where the other is, for the map: %s" % [mates])
+	b.who.teleport(Vector3(900.0, 1.0, -700.0))
+	mates = _decoded(a.flush()).filter(func(e: Array) -> bool: return e[0] == Protocol.MATES)
+	_check(mates.size() == 1 and mates[0][1][0][0][2] == Vector2i(floori(900.0 / WorldData.CELL), floori(-700.0 / WorldData.CELL)),
+		"however far they go: %s" % [mates])
+	_check(_decoded(a.flush()).all(func(e: Array) -> bool: return e[0] != Protocol.MATES), "and only when they move")
 	_check(_ask(a, 4, Protocol.TEAM_CHAT, ["привет"]) == true and said == ["привет"], "a member says a line to the team")
 	_check(_ask(b, 2, Protocol.TEAM_KICK, [1]) == false and _ask(a, 5, Protocol.TEAM_KICK, [2]) == true
 		and s.teams.team_of(2) == 0, "the lead puts the other out")
+	mates = _decoded(a.flush()).filter(func(e: Array) -> bool: return e[0] == Protocol.MATES)
+	_check(mates.size() == 1 and mates[0][1] == [[]], "and sees no one of theirs on the map: %s" % [mates])
 	for l in links:
 		l.leave()
 

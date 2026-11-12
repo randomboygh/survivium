@@ -3,7 +3,7 @@ extends RefCounted
 ## and workshop in the session, their requests (Requests), and the events that go back
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
 ## SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE, FLOW; HEARD, the chat; TEAM and INVITES, the
-## team; CLAIMS, SQUARES and LAND, the territory), of the things placed (PROPS, PROP,
+## team, MATES, where its members are; CLAIMS, SQUARES and LAND, the territory), of the things placed (PROPS, PROP,
 ## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST), of the blueprint (PLANS, PLAN_CELLS), of the rafts and boats
 ## (VESSELS, VESSEL, VESSEL_GONE), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
@@ -54,6 +54,11 @@ var people_every := 0.0
 var _people_sent := -1.0
 ## The last PEOPLE entry sent of each other player, by id.
 var _people := {}
+## Seconds between the teammates' columns on the map (MATES); 0 every flush. The list
+## last sent, null when it is to be sent whatever it holds (joining).
+var mates_every := 0.0
+var _mates_sent := -1.0
+var _mates: Variant = null
 ## The client gets its copy of the world from here (a socket); false over the loop.
 var send_world := false
 ## The chunks the client holds (sent and not forgotten), and those to send again.
@@ -134,6 +139,7 @@ func _init(s) -> void:
 	wild.stepped.connect(_on_stepped)
 	var actions = session.actions
 	actions.cell_changed.connect(_on_cell)
+	actions.cells_set.connect(_on_cells)
 	placed.cell_changed.connect(_on_cell)
 	actions.drops_changed.connect(_on_drops)
 	actions.looks_changed.connect(_on_looks)
@@ -158,6 +164,7 @@ func leave() -> void:
 	placed.cell_changed.disconnect(_on_cell)
 	var actions = session.actions
 	actions.cell_changed.disconnect(_on_cell)
+	actions.cells_set.disconnect(_on_cells)
 	actions.drops_changed.disconnect(_on_drops)
 	actions.looks_changed.disconnect(_on_looks)
 	actions.taken.disconnect(_on_taken)
@@ -201,6 +208,8 @@ func rejoin() -> void:
 	_snap_sent = -1.0
 	_people_sent = -1.0
 	_people.clear()
+	_mates_sent = -1.0
+	_mates = null
 	_sent.clear()
 	_again.clear()
 	_cells.clear()
@@ -318,6 +327,12 @@ func flush() -> Array[PackedByteArray]:
 	if people_every <= 0.0 or _people_sent < 0.0 or now - _people_sent >= people_every:
 		_people_sent = now
 		_people_events(out)
+	if mates_every <= 0.0 or _mates_sent < 0.0 or now - _mates_sent >= mates_every:
+		_mates_sent = now
+		var mates := mates_now()
+		if mates != _mates:
+			_mates = mates
+			out.append(_event(Protocol.MATES, [mates]))
 	if requests.ai_debug and (_minds_sent < 0.0 or now - _minds_sent >= MINDS_EVERY):
 		_minds_sent = now
 		out.append(_event(Protocol.MINDS, session.wildlife.minds_near(who.position, MINDS_REACH)))
@@ -402,6 +417,21 @@ func _people_events(out: Array[PackedByteArray]) -> void:
 			out.append(_event(Protocol.PERSON_GONE, [id]))
 	if not changed.is_empty():
 		out.append(_event(Protocol.PEOPLE, changed))
+
+
+## The player's teammates alive in the world, wherever they are, by id: [[id, name,
+## column], …] ([] in no team), for the map (Protocol.MATES).
+func mates_now() -> Array:
+	var out := []
+	if session.teams.team_of(who.id) == 0:
+		return out
+	for p in session.players:
+		if p == who or p.get("player_name") == null or p.is_dead() or not session.teams.together(who.id, p.id):
+			continue
+		var pp: Vector3 = p.position
+		out.append([p.id, p.player_name, Vector2i(floori(pp.x / WorldData.CELL), floori(pp.z / WorldData.CELL))])
+	out.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	return out
 
 
 ## The teams of players `ids` changed: this player's own when among them (the PEOPLE
@@ -520,6 +550,12 @@ func _on_drops(key: Vector2i) -> void:
 func _on_cell(cell: Vector3i) -> void:
 	if send_world:
 		_cells[cell] = true
+
+
+func _on_cells(cells: Array[Vector3i]) -> void:
+	if send_world:
+		for cell in cells:
+			_cells[cell] = true
 
 
 func _on_looks(key: Vector2i) -> void:

@@ -185,6 +185,9 @@ func _ready() -> void:
 	add_child(map_view)
 	minimap.open_map.connect(map_view.open)
 	minimap.land = game.land
+	minimap.team = game.team
+	game.team.mates_changed.connect(minimap.redraw)
+	game.team.mates_changed.connect(map_view.redraw)
 	game.land.changed.connect(map_view.redraw)
 	minimap.painted.connect(map_view.redraw)
 	if game.markers != null:

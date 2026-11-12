@@ -25,6 +25,10 @@ const REACH_SLACK := 1.5
 ## Cell `cell` changed (dug, filled, cut down to another material, a tree fell through it,
 ## a bush on it went): what is drawn around it is built again.
 signal cell_changed(cell: Vector3i)
+## Cells changed together whose redraw goes by fewer cell_changed (a felled tree: its trunk
+## and crown, drawn again column by column from each column's lowest cell): the server
+## still sends each of them to the clients' copies of the world (PlayerLink).
+signal cells_set(cells: Array[Vector3i])
 var world
 ## The clock: `season` (0 spring .. 3 winter) and `day`.
 var clock
