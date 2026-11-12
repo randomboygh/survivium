@@ -445,6 +445,8 @@ const SHOTS := {
 	"vitals-plain": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "thirst": 15.0},
 	"bag-clothes": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,
 		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "give": "tools:grass_cape"},
+	# Out of sleep, awake in the day: the picture swims (CameraRig.sway, grade.gdshader).
+	"sleepy": {"time": 0.42, "season": 1, "touch": true, "sleepy": true},
 	# Asleep at night by the spawn's campfire.
 	"asleep": {"time": 0.92, "season": 1, "touch": true, "asleep": true},
 	# A grass mat and a fur bedroll set down; the mat tapped: lying in it asleep, «zzZ» over the head.
