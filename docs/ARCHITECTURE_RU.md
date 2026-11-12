@@ -77,7 +77,7 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 делает тик (каждый кадр узла сервера: в игре — кадр клиента, у сервера без окна — до 60 раз в секунду,
 `FPS` в `src/server/server_main.gd`), и заказывает мир (генерация вокруг игроков в
 бюджете, забывание дальних чанков); его крутит узел сервера `src/server/runner.gd` под корнем дерева,
-раньше Main в каждом кадре ([systems/session.md](systems/session.md)). Сеанс крутится на сервере внутри
+раньше Main в каждом кадре ([systems/session.md](systems/session_RU.md)). Сеанс крутится на сервере внутри
 игры; виды клиента читают
 копии (`game.character`, `game.workshop`, `game.placed`, `game.clock`, `game.wildlife`), которые
 `src/client/net/mirror.gd` кормит событиями протокола ([systems/network.md](systems/network.md)).
@@ -134,7 +134,7 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 и пересобираются `Mods.activate` / `refresh`. Подробно: [DATA_MODEL.md](DATA_MODEL_RU.md).
 
 Текст игры: каждый текст для игрока — ключ `[…]` (решение 186); переводы лежат `lang/<код>.yaml` в моде и бандле, сервер
-шлёт ключ или `Lang.line`, клиент переводит у себя (решение 183, [systems/lang.md](systems/lang.md)). При
+шлёт ключ или `Lang.line`, клиент переводит у себя (решение 183, [systems/lang.md](systems/lang_RU.md)). При
 запуске из папки проекта `content_watch.gd` замечает изменённые файлы модов, а модуль `mod_reload.gd`
 перечитывает реестры, картинки и звуки (решение 184, [systems/content.md](systems/content.md)).
 
@@ -142,7 +142,7 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 
 Каждая общая система сама отдаёт и принимает своё состояние (`to_dict` / `from_dict`, `to_list`);
 клиентский `save_game.gd` решает, когда писать, и регистрирует части игрока `save.track(имя, объект)`;
-файлы пишет и старые сохранения переводит общий `world_store.gd` (`materials_of`, `CONTENT`). Подробно: [systems/saving.md](systems/saving.md).
+файлы пишет и старые сохранения переводит общий `world_store.gd` (`materials_of`, `CONTENT`). Подробно: [systems/saving.md](systems/saving_RU.md).
 
 ## Как расширять
 

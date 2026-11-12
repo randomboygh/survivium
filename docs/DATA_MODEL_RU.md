@@ -128,7 +128,7 @@ content/<мод>/common/             ассеты, общие для бандл�
 | Спрайт растения | `sprites/plants/<sprite>.png` | кадры 8×24 | `Foliage`, `Plants` |
 | Предмет в руке | `sprites/held/<sprite>.png` | кадр ношения + по кадру работы | `Figure` |
 | Звук | `sounds/<имя>.wav` или `<имя>_N.wav` | wav | `Sound` |
-| Перевод | `lang/<код>.yaml` (и `content/<мод>/lang/`) | словарь «[ключ]: текст»; `title`/`description` записи — ключи `[<мод>.<вид>.<id>]`, `….about` | `Lang` ([systems/lang.md](systems/lang.md)) |
+| Перевод | `lang/<код>.yaml` (и `content/<мод>/lang/`) | словарь «[ключ]: текст»; `title`/`description` записи — ключи `[<мод>.<вид>.<id>]`, `….about` | `Lang` ([systems/lang.md](systems/lang_RU.md)) |
 | Игрок | `content/core/sprites/player/*.png`, `player.yaml`, `hands.png` | слои | `Figure` |
 | Одежда на фигуре | `sprites/worn/<look>.png` | слой листа игрока | `Figure.dressed` |
 
@@ -151,6 +151,6 @@ content/<мод>/common/             ассеты, общие для бандл�
 (часы), `placed` (вещи на клетках), `territory` (участки), `plans` (чертежи); мир сервера — ещё `teams`,
 `fights` и `next_player`. `players/<имя>.json`: `position` и части модулей (`inventory`,
 `vitals`, `character`, `knowledge`, `crafting`, `skills`, `hands`, `markers`). Чанки — `chunks/<cx>_<cz>.bin`,
-карта — `map/<rx>_<rz>.bin`. Переводы старых версий: [systems/saving.md](systems/saving.md).
+карта — `map/<rx>_<rz>.bin`. Переводы старых версий: [systems/saving.md](systems/saving_RU.md).
 
 **Подробнее.** `plan/architecture/modding.md` (устройство модов; история шагов — `plan/history/modding.md`), README модов.

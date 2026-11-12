@@ -1,53 +1,57 @@
-# Звук и музыка
+# Sound and music
 
-Статус: ACTIVE.
+Status: ACTIVE. A Russian copy: [audio_RU.md](audio_RU.md).
 
-**Назначение.** Шины и громкости из настроек, ухо у игрока (поворачивается с камерой), разовые звуки из
-места или из интерфейса, петли (ветер, дождь) и звуки из мест (огонь, река), голоса зверей, шаги, тихая
-музыка из нот.
+**Purpose.** Buses and volumes from the settings, the player's ear (it turns with the camera), one-off sounds
+from a place or from the interface, loops (wind, rain) and sounds from places (fire, a river), the beasts'
+voices, steps, quiet music from notes.
 
-**Файлы**
-- `src/client/audio/sound.gd` — `play(id, pos)` (`pos` = INF — ниоткуда), `play_later`, `loop` (везде),
-  `spot` (из места), `work`, `resolve(id)`; мир вокруг игрока осматривается раз в
-  `Sound.TICK` (0,25 с), не каждый кадр; несколько голосов на мир (`VOICES`), повтор в пределах `MIN_GAP`
-  не удваивается.
-- `src/client/audio/nature.gd` — погода, вода, костёр, птицы днём, сова ночью, сверчки; под крышей глуше.
-- `src/client/audio/steps.gd` — шаги по тому, на чём стоят ноги, плеск, гребки, прыжок.
-- `src/client/audio/voices.gd` — голоса зверей (`calls`) и испуг (`alarm`).
-- `src/client/audio/music.gd` — музыка как ноты по расписанию (рассвет, новые места, вечер у костра, меню).
-- `default_bus_layout.tres` — шины; `tools/make_sounds.gd` + `tools/sound/synth.gd` — синтез всех `.wav`;
-  `tools/web_patch.py` — патч web-сборки для звука.
+**Files**
+- `src/client/audio/sound.gd` — `play(id, pos)` (`pos` = INF — from nowhere), `play_later`, `loop`
+  (everywhere), `spot` (from a place), `work`, `resolve(id)`; the world around the player is looked over once
+  per `Sound.TICK` (0.25 s), not every frame; several voices per world (`VOICES`), a repeat within `MIN_GAP`
+  is not doubled.
+- `src/client/audio/nature.gd` — weather, water, a campfire, birds by day, an owl at night, crickets; duller
+  under a roof.
+- `src/client/audio/steps.gd` — steps by what the feet stand on, a splash, strokes, a jump.
+- `src/client/audio/voices.gd` — the beasts' voices (`calls`) and fright (`alarm`).
+- `src/client/audio/music.gd` — music as notes by a schedule (dawn, new places, an evening by the campfire,
+  the menu).
+- `default_bus_layout.tres` — the buses; `tools/make_sounds.gd` + `tools/sound/synth.gd` — the synthesis of
+  all `.wav`; `tools/web_patch.py` — the patch of the web build for sound.
 
-**Данные.** Вид `sounds` (`variants`, `volume`, `loop`), файлы в `sounds/` бандла: `<имя>.wav` или
-`<имя>_N.wav` на вариант. Код просит звук по голому имени (`play("chop")`): `Sound.resolve` берёт запись
-последнего загруженного мода с этим именем, нет — тишина. Звук живёт у хозяина (`chop` — у древесины,
-`swish` — у меча, `bird` — у воробья); собственные звуки игры — мод `content/sounds/` (бандлы nature,
-player, ui), ноты — `content/music/`; `step` и `hit` материала, `calls` и `alarm` существа говорят, кто
-звучит. Ссылка на звук бандлы не связывает.
+**Data.** The kind `sounds` (`variants`, `volume`, `loop`), the files in the bundle's `sounds/`: `<name>.wav`
+or `<name>_N.wav` per variant. The code asks for a sound by a bare name (`play("chop")`): `Sound.resolve` takes
+the record of the last loaded mod with this name, none — silence. A sound lives at its owner (`chop` — at
+wood, `swish` — at a sword, `bird` — at a sparrow); the game's own sounds are the mod `content/sounds/`
+(bundles nature, player, ui), the notes — `content/music/`; a material's `step` and `hit`, a creature's
+`calls` and `alarm` say who sounds. A reference to a sound does not link bundles.
 
-**Правила**
-- Ничего не звучит до первого касания или клавиши (`Sound.unlocked`, правило автозапуска браузера);
-  файлы грузятся по нескольку за кадр после этого.
-- Web-экспорт играет сэмплы (без AudioStreamGenerator), поэтому музыка — ноты; каждый играющий сэмпл
-  даёт мусор странице, петель держите мало.
+**Rules**
+- Nothing sounds before the first tap or key (`Sound.unlocked`, the browser's autoplay rule); the files load
+  a few per frame after that.
+- The web export plays samples (no AudioStreamGenerator), so music is notes; every playing sample gives
+  garbage to the page, keep the loops few.
 
-**Подводные камни**
-- Голоса интерфейса (`UI_VOICES`) создаются сразу в `Sound._init`, голоса мира — в `build` вместе с миром:
-  на ПК звук включён с запуска, и щелчок кнопки главного меню до мира брал голос из пустого списка —
-  release-сборка от этого падала (в отладке это лишь SCRIPT ERROR). Ошибка скрипта, безобидная в редакторе,
-  в release-экспорте может уронить игру: проверяйте ПК-сборку со звуком (на Linux без звуковой карты
-  драйвер Dummy, и `Sound.mute` всё глушит — нужен PulseAudio с `module-null-sink`).
-- Шины — только в `default_bus_layout.tres`: web копирует их при старте, шина из `AudioServer.add_bus`
-  позже в браузере немая.
-- Web-плеер движка зацикливает звук, запуская его заново по окончании, с опозданием;
-  `tools/web_patch.py` делает узел-источник зацикленным и не даёт движку копировать весь сэмпл при
-  каждом запуске. При обновлении движка патч проверить заново.
-- Каждая запись `volume_db` или `pitch_scale` звучащего плеера в браузере передаёт странице имя голоса
-  и массивы громкостей — мусор для сборщика; поэтому `_fade` пишет громкость петли, только когда она
-  меняется больше чем на `VOLUME_STEP_DB`. `tools/web_patch.py` к тому же пишет время движка без BigInt
-  и находит имена голосов и функций браузера среди прочитанных раньше, не делая новых строк.
+**Pitfalls**
+- The interface's voices (`UI_VOICES`) are created at once in `Sound._init`, the world's voices — in `build`
+  with the world: on PC sound is on from the start, and a click of a main-menu button before the world took a
+  voice from an empty list — a release build crashed from it (in debug it is only a SCRIPT ERROR). A script
+  error that is harmless in the editor can crash the game in a release export: check the PC build with sound
+  (on Linux with no sound card the driver is Dummy, and `Sound.mute` silences everything — PulseAudio with
+  `module-null-sink` is needed).
+- The buses are only in `default_bus_layout.tres`: the web build copies them at start, a bus from
+  `AudioServer.add_bus` later is mute in a browser.
+- The engine's web player loops a sound by starting it again at its end, late; `tools/web_patch.py` makes the
+  source node looped and stops the engine copying the whole sample at every start. On an engine upgrade
+  re-check the patch.
+- Every write of `volume_db` or `pitch_scale` of a sounding player in a browser passes the page the voice's
+  name and arrays of volumes — garbage for the collector; so `_fade` writes a loop's volume only when it
+  changes by more than `VOLUME_STEP_DB`. `tools/web_patch.py` also writes the engine's time without BigInt
+  and finds the names of voices and of the browser's functions among those read earlier, making no new
+  strings.
 
-**Тесты.** `tests/unit/view_test.gd` (`sound`), `tools/validate.gd` (у каждого звука есть файлы на все
-варианты).
+**Tests.** `tests/unit/view_test.gd` (`sound`), `tools/validate.gd` (every sound has files for all variants).
 
-**Подробнее.** README модов `content/sounds/` и `content/music/`, решения 89 и 143 в `plan/README.md`.
+**In more detail.** The READMEs of the mods `content/sounds/` and `content/music/`, decisions 89 and 143 in
+`plan/README.md`.
