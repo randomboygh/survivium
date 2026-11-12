@@ -101,7 +101,8 @@ water, a kind with `biomes` appears only on its own land.
   reach)` — all near. The server sends them by the event `MINDS` once per `PlayerLink.MINDS_EVERY` 0.25 s
   within `MINDS_REACH` 30 units while the player asked (`AI_DEBUG`: in single player always, on a server only
   to the host — `Requests.may_debug`). `src/client/view/ai_debug.gd` (`AiDebug`, the switch «Beasts' AI
-  debugging» in «Debug», F4) draws over the beasts a caption (what it does and why, hunger, health) and lines:
+  debugging» in «Debug», F4) draws over the beasts a caption (what it does and why, hunger, health; the
+  interface's letters, outlined, the size of the names over the people, on a layer under the HUD) and lines:
   to the goal (grey), from what it flees or whom it goes at (red, orange on a hunt, green to a float), to the
   leader (blue); a tap on a beast selects it (`pick`, the hands do nothing meanwhile): a detailed card and
   circles on the ground — sight (white), «fears people nearer than» (yellow), «growls nearer than» (red). The

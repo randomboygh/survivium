@@ -314,6 +314,8 @@ const SHOTS := {
 	# One of every species that walks or flies in rows on a meadow, walking; every
 	# swimmer in the water of a lake.
 	"animals": {"time": 0.42, "season": 1, "find": "meadow", "zoo": "land"},
+	# The animals' minds over them (F4): the same letters as the names over the people.
+	"ai-debug": {"time": 0.42, "season": 1, "find": "meadow", "zoo": "land", "ai": true},
 	# A trap with a carrot and a hare coming to it, another with a hare caught, a caught
 	# hare in the hand.
 	"trap": {"time": 0.42, "season": 1, "find": "meadow", "trap": true,

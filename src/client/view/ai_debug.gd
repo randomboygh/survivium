@@ -7,17 +7,18 @@ extends Node3D
 ## its card shows the rest (rage, calm, its hurt, whether it thinks every tick), and
 ## circles round it on the ground: its sight (white), how near a person frightens it
 ## (yellow) and how near one makes it growl (red). The lines go through PixelView.shear,
-## so they lie where the shaders draw the world. A debug drawing: not warmed up ahead
-## (ShaderWarmup), its first frame may build a shader. `game` is the Main node.
+## so they lie where the shaders draw the world. The text is the interface's own letters,
+## outlined, the size of the names over the people (Others): on a layer under the rest of
+## the interface, its bottom middle put over the animal on the screen each frame, whole
+## pixels. A debug drawing: not warmed up ahead (ShaderWarmup), its first frame may build
+## a shader. `game` is the Main node.
 
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 
-## The letters' size in world pixels, and how far over the animal's feet the text's
-## lowest line hangs (world units).
-const TEXT_SIZE := 8
+## How far over the animal's feet the text's lowest line hangs (world units).
 const TEXT_OVER := 0.9
 ## World units from a tap's ray within which an animal is chosen.
 const PICK_REACH := 0.7
@@ -39,8 +40,11 @@ enum { ID, STATE, CAUSE, HUNGER, HEALTH, MOST, TARGET, TOWARD, LEAD_ID, OWNER, R
 var game
 ## The animal chosen by a tap (its id), -1 for none.
 var chosen := -1
-## The labels by animal id.
+## The labels by animal id, and where each hangs (world).
 var _labels := {}
+var _heads := {}
+## The layer the labels are on: the whole interface, under its other parts.
+var _layer: Control
 var _mesh := ImmediateMesh.new()
 var _lines: MeshInstance3D
 
@@ -67,15 +71,17 @@ func _process(_delta: float) -> void:
 	var on: bool = game.settings.ai_debug and w != null and not w.minds.is_empty()
 	if not on:
 		if not _labels.is_empty():
-			for label: Label3D in _labels.values():
+			for label: Label in _labels.values():
 				label.queue_free()
 			_labels.clear()
+			_heads.clear()
 		return
 	var minds: Dictionary = w.minds
 	for id: int in _labels.keys():
 		if not minds.has(id) or w.by_id(id) == null:
 			_labels[id].queue_free()
 			_labels.erase(id)
+			_heads.erase(id)
 	_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
 	var drew := false
 	for id: int in minds:
@@ -83,13 +89,14 @@ func _process(_delta: float) -> void:
 		if a == null:
 			continue
 		var m: Array = minds[id]
-		var label: Label3D = _labels.get(id)
+		var label: Label = _labels.get(id)
 		if label == null:
 			label = _label()
 			_labels[id] = label
 		label.text = card(m, AiRules.SPECIES.get(a.kind, {}), id == chosen)
-		label.position = PixelView.shear(a.pos + Vector3(0.0, a.lift + TEXT_OVER, 0.0))
+		_heads[id] = a.pos + Vector3(0.0, a.lift + TEXT_OVER, 0.0)
 		drew = _draw(a, m, w) or drew
+	_place_labels()
 	if not drew:
 		# A surface needs a vertex.
 		_mesh.surface_add_vertex(Vector3.ZERO)
@@ -139,23 +146,47 @@ func _circle(at: Vector3, r: float, c: Color) -> void:
 		_line(at + Vector3(cos(t0), 0.0, sin(t0)) * r, at + Vector3(cos(t1), 0.0, sin(t1)) * r, c)
 
 
-func _label() -> Label3D:
-	var label := Label3D.new()
+func _label() -> Label:
+	var label := UiStyle.label()
 	# Put together from phrases already translated (card).
 	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-	label.font = UiStyle.font()
-	label.font_size = TEXT_SIZE
-	label.outline_size = 4
-	label.modulate = UiStyle.INK
-	label.pixel_size = 1.0 / PixelView.PIXELS_PER_UNIT
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.no_depth_test = true
-	label.shaded = false
-	label.render_priority = 2
-	label.top_level = true
+	label.add_theme_color_override("font_outline_color", UiStyle.EDGE)
+	label.add_theme_constant_override("outline_size", 4)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	add_child(label)
+	_layer_made().add_child(label)
 	return label
+
+
+func _layer_made() -> Control:
+	if _layer == null:
+		_layer = Control.new()
+		_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		if game != null and game.hud != null:
+			game.hud.add_child(_layer)
+			game.hud.move_child(_layer, 0)
+		else:
+			add_child(_layer)
+	return _layer
+
+
+func _exit_tree() -> void:
+	if _layer != null:
+		_layer.queue_free()
+		_layer = null
+
+
+## Puts the labels over their animals on the screen, whole pixels.
+func _place_labels() -> void:
+	if _layer == null or game.view == null:
+		return
+	var t := _layer.get_global_transform()
+	for id: int in _labels:
+		var label: Label = _labels[id]
+		label.reset_size()
+		var at: Vector2 = (game.view.screen_of(_heads[id]) - t.origin) / t.get_scale()
+		label.position = (at - Vector2(label.size.x * 0.5, label.size.y)).floor()
 
 
 ## Chooses the animal nearest the tap's ray (`origin`, `dir`, world units) within
