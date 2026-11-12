@@ -3,7 +3,7 @@ extends Button
 ## only «выкл | вкл», ChoiceRows), in pixels (the user's pick of five, 2026-11-12): a pill
 ## in a dark edge with a round knob in a thick edge; off, a dark track and a pale knob on
 ## the left; on, a dim amber track and an amber knob on the right. The round ends are
-## pixel circles, stepped the same on every side.
+## smooth circles (stepped pixel circles showed as stairs at a phone's scale).
 ## Its `text`, when it has one, stands left of the track; it stands at the
 ## right end of the switch, or where `track_at` (0 the left, 0.5 the middle) puts it.
 ## `toggled` tells the change; `show_value` shows a value at once without telling.
@@ -79,7 +79,7 @@ func _ready() -> void:
 
 func _draw() -> void:
 	var r := track_rect()
-	# The track: a pill in whole pixels in a dark edge, amber inside while on.
+	# The track: a pill in a dark edge, amber inside while on.
 	_pill(r, UiStyle.EDGE)
 	_pill(r.grow(-EDGE_W), UiStyle.WELL_SHADE.lerp(UiStyle.ACCENT_DARK, _at))
 	# The knob: a round one in a thick dark edge, amber on and pale off, a gleam on top.
@@ -94,12 +94,37 @@ func _draw() -> void:
 	_pill(Rect2(knob.position + Vector2(side * 0.5 - 4, KNOB_EDGE + 1), Vector2(8, 3)), fill.lightened(0.3))
 
 
-## Fills `r` as a pill in whole pixels: its ends half circles stepped as a pixel circle
-## is (midpoint rounding, the same steps on every side).
+## Fills `r` as a pill: smooth round ends whose edge fades over one pixel of the screen,
+## so they stay round however large the interface is drawn (stepped whole-pixel ends
+## showed as stairs on a phone, where one UI pixel is three or four of the screen's).
 func _pill(r: Rect2, color: Color) -> void:
-	var h := int(r.size.y)
-	var rad := h * 0.5
-	for i in h:
-		var dy := absf(i + 0.5 - rad)
-		var dx := floorf(rad - sqrt(maxf(0.0, rad * rad - dy * dy)) + 0.5)
-		draw_rect(Rect2(r.position.x + dx, r.position.y + i, r.size.x - 2 * dx, 1), color)
+	var rad := r.size.y * 0.5
+	if rad <= 0.0:
+		return
+	# One pixel of the screen in this control's units.
+	var px := 1.0 / maxf(0.01, get_global_transform_with_canvas().get_scale().y)
+	var y := r.position.y + rad
+	var ends := PackedVector2Array([Vector2(r.position.x + rad, y), Vector2(maxf(r.position.x + rad, r.end.x - rad), y)])
+	var steps := clampi(ceili(rad / px * 0.6), 6, 48)
+	var inner := PackedVector2Array()
+	var outer := PackedVector2Array()
+	for side in 2:
+		for k in steps + 1:
+			var a := PI * (0.5 + float(k) / steps) + PI * side
+			var dir := Vector2(cos(a), sin(a))
+			inner.append(ends[side] + dir * maxf(0.0, rad - px * 0.5))
+			outer.append(ends[side] + dir * (rad + px * 0.5))
+	draw_colored_polygon(inner, color)
+	var points := inner + outer
+	var n := inner.size()
+	var clear := Color(color, 0.0)
+	var colors := PackedColorArray()
+	colors.resize(2 * n)
+	for k in n:
+		colors[k] = color
+		colors[n + k] = clear
+	var indices := PackedInt32Array()
+	for k in n:
+		var m := (k + 1) % n
+		indices.append_array([k, m, n + k, m, n + m, n + k])
+	RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), indices, points, colors)
