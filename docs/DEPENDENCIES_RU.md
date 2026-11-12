@@ -97,7 +97,7 @@ graph LR
 
 На сервере к этим сигналам подключён `src/server/player_link.gd` и шлёт события; на клиенте виды слушают
 копии (`src/client/net/remote_*.gd`, `game.character`, `game.plans`) с теми же сигналами
-([systems/network.md](systems/network.md)).
+([systems/network.md](systems/network_RU.md)).
 
 ## Данные
 

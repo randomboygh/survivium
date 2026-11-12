@@ -3,7 +3,7 @@
 Английская версия: [NETWORK_SECURITY.md](NETWORK_SECURITY.md) (она основная, эта — копия).
 
 Статус: ACTIVE (этап 7, 2026-11-06). Как сервер принимает байты клиента. Протокол целиком —
-[../systems/network.md](../systems/network.md); модель угроз — [THREAT_MODEL.md](THREAT_MODEL_RU.md).
+[../systems/network.md](../systems/network_RU.md); модель угроз — [THREAT_MODEL.md](THREAT_MODEL_RU.md).
 
 ## Транспорт (`src/server/server.gd`)
 

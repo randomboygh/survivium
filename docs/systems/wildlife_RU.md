@@ -101,7 +101,7 @@
 - `src/shared/content/ai_rules.gd` — общие правила по свойствам: `reaches`, `is_food`, `is_threat`,
   `is_active`; `AiRules.SPECIES`.
 - `src/client/net/remote_wildlife.gd` — копия зверей на клиенте из событий сервера `animal`, `snap`,
-  `animal_gone`, `step` ([network.md](network.md)): свой `Animal` с полями, что читают виды, те же
+  `animal_gone`, `step` ([network.md](network_RU.md)): свой `Animal` с полями, что читают виды, те же
   сигналы. По сокету (`smooth`) снимки идут ~10 раз в секунду и неровно: зверь скользит от места, где
   нарисован, к новому за время между двумя снимками (`glide`, его зовёт `Creatures` каждый кадр; дальше
   `GLIDE_MOST` — сразу); в своём мире снимок каждый кадр берётся как есть.

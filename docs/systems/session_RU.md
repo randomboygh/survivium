@@ -44,14 +44,14 @@
   `make_chunks` в бюджетах `near_us` / `far_us`, которые ставит клиент, и `forget_far`. В одиночной
   игре пауза дерева (меню) останавливает шаги, но не генерацию, и та идёт дальше (`PAUSE_ZONE` 7);
   сервер ставит `pausable = false`. Что взял каждый шаг — `took_us`, генерация — `spent_us`
-  (`take_spent()` отдаёт раз). Делает и останавливает его `local_host.gd` ([network.md](network.md)).
+  (`take_spent()` отдаёт раз). Делает и останавливает его `local_host.gd` ([network.md](network_RU.md)).
 - `src/client/main.gd` — создаёт правила в `_ready`, сеанс в `start_world` (когда есть мир, со своими
   часами и вещами на клетках) и хост с узлом сервера под `get_tree().root`; в `_process` шагов сеанса
   нет: берёт `host.runner.took_us` в панель F3 (`perf.add`), `host.flush(net)` первым делом игрового
   кадра (события тика), после `chunks.run_jobs(host.runner.take_spent())` ставит бюджеты узлу
   (`_budget_server`: `chunks.gen_budgets()`), в `_exit_tree` останавливает хост (`host.stop()`), если
   узел не `keep`; `actions`, `storms` Main — ссылки на сеансовые, `clock`, `placed`, `wildlife` — копии
-  клиента ([network.md](network.md)).
+  клиента ([network.md](network_RU.md)).
 
 **Кто использует.** Main, `src/server/runner.gd`, `chunk_streamer.gd` (через `game.world_maker`: сеанс
 по петле, копия генератора `remote_gen.gd` через сокет — `make_chunk`, `forget_far` при сборке целиком,
@@ -60,7 +60,7 @@
 персонажи (`src/server/player.gd`), которых приводит `PlayerLink`; клиент читает `game.actions`,
 `game.storms`, `game.rules`, как раньше, персонажа, мастерскую, вещи на клетках, часы и зверей — по их
 копиям, а просит у правил через `game.net` — запросами протокола к серверу внутри игры
-([network.md](network.md)). Сохранение и страница «Тестирование» пишут в `session.clock` и
+([network.md](network_RU.md)). Сохранение и страница «Тестирование» пишут в `session.clock` и
 `session.placed` (до С4, С5).
 
 **Ограничения.** Тело игрока двигает клиент (`player.gd`), не сеанс: по решению 153 сервер проверит

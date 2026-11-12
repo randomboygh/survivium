@@ -39,7 +39,7 @@ graph TD
 - `src/server/` грузит только `src/shared/`; клиент грузит `src/server/` только из
   `src/client/net/local_host.gd` — сервера внутри игры для одиночной (решение 153). Что клиент просит
   у правил, идёт запросами протокола через `game.net`; персонаж и мастерская игрока живут на сервере,
-  клиент держит их копии по событиям сервера ([systems/network.md](systems/network.md)).
+  клиент держит их копии по событиям сервера ([systems/network.md](systems/network_RU.md)).
 - Папки `src/client/` ссылаются друг на друга свободно (без циклов `preload`): общий стиль UI
   (`ui/ui_style.gd`) нужен вводу и картинке, проекция (`view/pixel_view.gd`) — мешам.
 - Скрипты подключаются константой `preload("res://…")` с полным путём, без `class_name`; базовый
@@ -58,7 +58,7 @@ graph TD
 | Вход | Что запускает |
 |---|---|
 | `scenes/main.tscn` (главная сцена в `project.godot`) | `src/client/main.gd` — игра |
-| `godot --headless --path . -- --server [--port N] [--seed N \| --world <папка>]` (из сборки ПК — `Survivium.console.exe --headless -- --server`) | `scenes/server.tscn` со `src/server/server_main.gd` — сервер без окна ([systems/network.md](systems/network.md)) |
+| `godot --headless --path . -- --server [--port N] [--seed N \| --world <папка>]` (из сборки ПК — `Survivium.console.exe --headless -- --server`) | `scenes/server.tscn` со `src/server/server_main.gd` — сервер без окна ([systems/network.md](systems/network_RU.md)) |
 | `godot --headless --path . --script res://tests/<имя>.gd` | тесты, каждый `extends SceneTree` |
 | `godot … --script res://tools/<имя>.gd` | инструменты: валидатор, скриншоты, карта, бенчмарки, генераторы ассетов |
 | `python3 tools/<имя>.py` | версия сборки, патч web-сборки, рисовалки на Pillow, индекс документов |
@@ -80,7 +80,7 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 раньше Main в каждом кадре ([systems/session.md](systems/session_RU.md)). Сеанс крутится на сервере внутри
 игры; виды клиента читают
 копии (`game.character`, `game.workshop`, `game.placed`, `game.clock`, `game.wildlife`), которые
-`src/client/net/mirror.gd` кормит событиями протокола ([systems/network.md](systems/network.md)).
+`src/client/net/mirror.gd` кормит событиями протокола ([systems/network.md](systems/network_RU.md)).
 
 Порядок сборки (`_ready`, затем `start_world`): ввод и настройки → звук → сохранение (выбор мира) →
 `Mods.activate` (набор бандлов мира) → камера, стример чанков, небо, часы, настоящая погода → вещи на

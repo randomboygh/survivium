@@ -60,7 +60,7 @@ docs/                    эта документация (audit/ — отчёт�
 | Что | Куда |
 |---|---|
 | Правило игры (что решает сервер) | `src/shared/game/` (данные мира — `src/shared/world/`, загрузка данных — `src/shared/content/`) |
-| Новый запрос клиента к правилу | вид и аргументы в `src/shared/net/protocol.gd`, ветка в `src/server/requests.gd`, вызов `game.net.request` на клиенте ([systems/network.md](systems/network.md)) |
+| Новый запрос клиента к правилу | вид и аргументы в `src/shared/net/protocol.gd`, ветка в `src/server/requests.gd`, вызов `game.net.request` на клиенте ([systems/network.md](systems/network_RU.md)) |
 | Как это показать, спросить, озвучить | папка слоя в `src/client/` |
 | Новая система | новый модуль-скрипт; Main создаёт его и передаёт себя как `game`; строка в [SYSTEMS.md](SYSTEMS_RU.md) |
 | Числа и записи контента | YAML мода и схема в `content_schema.gd`, не константы кода ([DATA_MODEL.md](DATA_MODEL_RU.md)) |

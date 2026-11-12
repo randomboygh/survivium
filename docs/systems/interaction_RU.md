@@ -136,7 +136,7 @@
   `BUILD`, `farm_step` — `FARM_WORK`. Семена и кусты тоже сажают только в режиме земледелия.
   Правила рук он зовёт не напрямую, а запросами `game.net` (`Protocol.DIG`, `PLACE`, `PLAN`, `FRONT`,
   `PLANT_AT`, `EAT`), и по ответу играет работу тела (`_did`); так же `gathering.gd` (`GATHER`,
-  `PICKUP`) и `props.gd` (`PROP_PUT`) — [network.md](network.md).
+  `PICKUP`) и `props.gd` (`PROP_PUT`) — [network.md](network_RU.md).
 - `src/client/input/build_mode.gd` — режим строительства (`game.build`): вход из сумки («Строить») или
   с ячейки панели с блоком или вещью, выход (руки возвращают, что держали), палитра (`palette`;
   фильтры «Всё» / «Материалы» / «Интерьер» есть в коде, но пока не показаны), форма, вид блока (`form`: блок, скос снизу, скос сверху,

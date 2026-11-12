@@ -1,399 +1,425 @@
-# Протокол и сервер
+# Protocol and server
 
-Статус: ACTIVE (этапы С2.1–С6 сервера, решение 153; план `plan/architecture/server.md`).
+Status: ACTIVE (server stages С2.1–С6, decision 153; the plan `plan/architecture/server.md`). A Russian copy:
+[network_RU.md](network_RU.md).
 
-**Назначение.** То, что клиент просит у правил, идёт сообщениями: запрос `[вид, номер, аргументы]`,
-ответ `[номер, значение]`; то, что одна сторона сообщает другой без ответа, — событие `[вид, аргументы]`:
-клиент каждый кадр говорит, где его тело и что в руках (`input`), сервер — что стало с персонажем
-(`you`, `vitals`, `knowledge`, `skills`, `shop`, `say`, `made`, `drops`, `teleport`, `knock`, `push`, `line`, `flow` — течение
-реки под телом), с вещами на
-клетках (`props`, `prop`, `prop_gone`, `prop_lit`, `prop_fuel`, `chest`), с часами (`clock`) и со зверями (`animal`,
-`animal_gone`, `snap`, `step`). Байты `var_to_bytes` без объектов. Персонаж и мастерская игрока живут на
-сервере (`src/server/player.gd`), вещи, часы и звери — в сеансе сервера; на клиенте — их копии
-(`game.character`, `game.workshop`, `game.placed`, `game.clock`, `game.wildlife`), которые кормит
-`Mirror` и которые отдают видам те же сигналы, что и правила. В одиночной игре те же байты идут
-через петлю в своём процессе (сервер внутри игры), по сети — через WebSocket к серверу из терминала
-(`--server`, С3.1: вход по имени и ключу, консоль хозяина; С3.2: мир приходит с сервера готовыми
-чанками — `chunk`, `forget`, `cells`, `drops` со списком, `taken`, — клиент его не генерирует (решение
-153, 1А), вход по `--join ws://…`; С3.2; из меню — экран «Присоединиться», С5.1); другие игроки на экране (`people`,
-`person_gone` → `src/client/view/others.gd`) и проверка движения сервером (3А; С3.3); клиент играет через протокол
-всегда, чтобы ничего не работало только через петлю и цена протокола мерилась на телефоне (счётчики
-`Connection`). С6: вещи передаются только там, где игрок стоит (сундук, вещь на клетке, вещь на земле —
-в `WorldActions.HAND_REACH` 5 единиц с запасом `REACH_SLACK` 1,5; куст — в досягаемости инструмента + 2
-клетки, ствол дерева — в ней же + `TREE_SPREAD` 6 клеток кроны; `WorldActions.within_hand`, `Requests._near`), запрос с номером не выше последнего не делается
-второй раз, а запросы игроков сервер делает по одному целиком — двое, взявшие одну стопку разом, не
-удвоят её (`tests/server_test.gd` `_trades`: одновременно, повтор номера, обрыв связи). Чат рядом:
-запрос `chat` [строка] → сервер шлёт `heard` [номер, имя, строка] всем в `Server.CHAT_RANGE` 30 единиц
-от говорящего, ему самому тоже; строка с «/» — команда, только для хозяев сервера (`access.hosts`:
-кому дал `op`, и игрок, создавший сервер в игре — `Main._on_welcome` → `make_host`), ответ ей приходит
-в чат одному ему. Команды (Т1, [territory.md](territory.md)): запросы `team_*`, события `team`, `invites`,
-строка команде (`team_chat`) — всем её членам в мире; в `heard` четвёртое поле — «сказано команде», в `people`
-последнее — «в моей команде». Земля (Т2, Т3): запросы `land_paint`, `land_rights`, `land_color`, события `claims`, `squares`, `land`. PvP (Т5): запрос `fight_brave`, событие `fight`. Отладка ИИ (решение 184): запрос `ai_debug` [вкл] — только при
-`Requests.may_debug` (одиночная игра — `LocalHost.join`; на сервере хозяин, `Server` ставит перед каждым сообщением
-по `is_host`, снятый хозяин теряет и включённую отладку), событие `minds` (`Wildlife.mind`) раз в 0,25 с. Не чаще `Requests.CHAT_LINES` 5 строк за `CHAT_WINDOW` 8 с, длина до `CHAT_MAX` 160.
+**Purpose.** What the client asks of the rules goes in messages: a request `[kind, number, args]`, a reply
+`[number, value]`; what one side tells the other with no reply is an event `[kind, args]`: every frame the
+client says where its body is and what is in its hands (`input`), the server says what became of the character
+(`you`, `vitals`, `knowledge`, `skills`, `shop`, `say`, `made`, `drops`, `teleport`, `knock`, `push`, `line`,
+`flow` — the river's current under the body), of the things on cells (`props`, `prop`, `prop_gone`, `prop_lit`,
+`prop_fuel`, `chest`), of the clock (`clock`) and of the animals (`animal`, `animal_gone`, `snap`, `step`). The
+bytes are `var_to_bytes` with no objects. The player's character and workshop live on the server
+(`src/server/player.gd`), the things, the clock and the animals — in the server's session; on the client are
+their copies (`game.character`, `game.workshop`, `game.placed`, `game.clock`, `game.wildlife`), which `Mirror`
+feeds and which give the views the same signals as the rules. In single player the same bytes go through a
+loop in one's own process (the server inside the game), over the network — through a WebSocket to a server
+from the terminal (`--server`, С3.1: login by name and key, the host's console; С3.2: the world comes from the
+server as ready chunks — `chunk`, `forget`, `cells`, `drops` with a list, `taken` — the client does not
+generate it (decision 153, 1А), joining by `--join ws://…`; С3.2; from the menu — the «Join» screen, С5.1);
+other players on screen (`people`, `person_gone` → `src/client/view/others.gd`) and the server's check of
+movement (3А; С3.3); the client always plays through the protocol so that nothing works only through the loop
+and the price of the protocol is measured on a phone (the `Connection` counters). С6: things are handed over
+only where the player stands (a chest, a thing on a cell, a thing on the ground — within
+`WorldActions.HAND_REACH` 5 units with the slack `REACH_SLACK` 1.5; a bush — within the tool's reach + 2
+cells, a tree trunk — in it + `TREE_SPREAD` 6 cells of the crown; `WorldActions.within_hand`,
+`Requests._near`), a request with a number not higher than the last is not done a second time, and the server
+does the players' requests one at a time, whole — two who took one stack at once will not double it
+(`tests/server_test.gd` `_trades`: simultaneous, a repeated number, a dropped link). Chat is beside: the
+request `chat` [line] → the server sends `heard` [number, name, line] to all within `Server.CHAT_RANGE` 30
+units of the speaker, and to the speaker too; a line with «/» is a command, only for the server's hosts
+(`access.hosts`: those given `op`, and the player who made the server in the game — `Main._on_welcome` →
+`make_host`), the reply to it comes in the chat to him alone. Teams (Т1, [territory.md](territory.md)): the
+requests `team_*`, the events `team`, `invites`, a line to the team (`team_chat`) — to all its members in the
+world; in `heard` the fourth field is «said to the team», in `people` the last is «in my team». Land (Т2, Т3):
+the requests `land_paint`, `land_rights`, `land_color`, the events `claims`, `squares`, `land`. PvP (Т5): the
+request `fight_brave`, the event `fight`. AI debugging (decision 184): the request `ai_debug` [on] — only with
+`Requests.may_debug` (single player — `LocalHost.join`; on a server the host, `Server` sets it before every
+message by `is_host`, a host who is removed loses even a switched-on debug), the event `minds`
+(`Wildlife.mind`) once per 0.25 s. No more often than `Requests.CHAT_LINES` 5 lines per `CHAT_WINDOW` 8 s,
+length up to `CHAT_MAX` 160.
 
-**Файлы**
-- `src/shared/net/protocol.gd` — версия протокола, виды запросов с их аргументами (копать, ставить,
-  действие перед собой, собрать, подобрать, посадить, съесть, выбросить, поставить/забрать/потушить/
-  уничтожить вещь, крафт и его очередь, починить, переложить/пересыпать/отсортировать/уничтожить в
-  сумке и сундуках, ожить), `request`, `reply`, `encode`, `decode`. Грузит только `content/`. Через
-  сокет каждое сообщение — один бинарный кадр; первый запрос на нём — `hello` ([версия протокола,
-  версия сборки `build_version()` — из `build_info.json`, «dev» без него; имя, ключ с прошлого раза или
-  "", пароль]), ответ — приглашение `{"ok": true, "id", "key", "name", "seed", "settings", "mods",
-  "materials", "spawn", "at"}` или отказ `{"ok": false, "why": version | password | full | name | banned | list | taken | wait}`
-  (`taken` — имя занято другим в мире или это имя сервера, `wait` — много неверных паролей или новых игроков подряд), после
-  которого сервер закрывает связь. Событие `bye` — клиент уходит сам, `kick` [почему] — сервер
-  выставил. Сборки разных версий не играют вместе (решение 153, 5А: моды встроены, хеш контента не
-  нужен). Мир через сокет: `chunk` [ключ, размер, байты] — запись чанка `WorldGen.pack` в `var_to_bytes`
-  и zstd (та же, что в сохранении), `forget` [ключ], `cells` [[ячейка, материал]…], `drops` [ключ,
-  список] (по петле — только [ключ]: мир один), `taken` [id, откуда]. Другие игроки: `people`
-  [[номер, имя, место, шаг взгляда, руки, рука в работе, идёт, плывёт, на земле, работа: вид, длина,
-  счёт, куда, что надето, в команде ли, поплавок лески, плот или лодка под ним]…] — те, кто изменился с прошлого раза, в зоне `Session.ZONE` чанков, через сокет 20 раз в
-  секунду; `person_gone` [номер] — ушёл из зоны или из мира. `input` клиента несёт и «на земле» и
-  работу рук (вид, длина, счёт — на один больше с каждым взмахом, куда повёрнута).
-- `src/server/requests.gd` — запросы одного игрока на стороне сервера: `handle(msg)` → ответ; номер
-  запроса растёт на один, повтор того же номера отвечается как в первый раз и не делается снова, номер
-  ниже последнего отказывается (`null`); аргументы проверяются по типам (`_fit`), не подошедший запрос
-  отвечается `null`; по сокету (`paced`) работа рук идёт в темпе: запрос из `PACED` (копать, ставить,
-  действие, собрать, посадить, поставить вещь или свет) прибавляет секунды своего взмаха, а пришедший,
-  когда их впереди больше `WORK_AHEAD` 2 с, отказывается (`{}` или `false`); что выглядит не так —
-  сигнал `flagged` в журнал сервера; потушить костёр на чужой земле — по праву «строить»; сундуки называются клеткой вещи (`Placed.at`), сумка игрока — `null`, сумка или сундук, лежащие в сумке, — номером ячейки (число: `_bag` открывает их `Inventory.open`, после запроса `_do` кладёт вещи обратно `Inventory.close`; саму открытую вещь запрос не двигает, `move_all` её пропускает). Грузит только
-  `src/shared/`.
-- `src/server/player.gd` (наследует `src/shared/game/character.gd`) — персонаж игрока на сервере, `who`
-  для правил: тело и руки такие, какими клиент их прислал в `input` (`take_input`: место, клетка ног,
-  шаг взгляда, руки, рука в работе, кисть, идёт, плывёт, прыгнул, прыжки в воздухе, упёрся, экран —
-  направление его ширины по земле и полуразмеры в единицах мира, `Character.view_right` /
-  `view_half`, на земле, работа рук); `_where`
-  отдаёт принятое место. Через сокет присланное место проверяется (`check_moves`, решение 153, 3А):
-  тело сервера `ServerBody` (то же `body.gd`, с миром и часами сеанса) идёт от своего места (`_sim`) к
-  присланному за время с прошлого `input` — не больше `CLAIM_GAP_MAX` 0,5 с и не больше, чем прошло, так
-  что частые сообщения не дают лишнего пути — по правилам мира: стены, склоны, вода, темп от груза и
-  погоды; место дальше `MOVE_TOLERANCE` 2,5 клеток от того, куда тело дошло, или внутри стены
-  (`Body.blocked`) не берётся, игрок остаётся там, куда дошло тело, и после `STRIKES` 10 таких подряд
-  клиента ставят туда (`moved` → `teleport`); к принятому месту тело сервера подтягивается не быстрее
-  `CATCH_UP` 2 клеток в секунду (лёд, углы). Там же: ноги — клетка принятого места, взгляд — шаг из 8,
-  прыжки в воздухе тестовой страницы не берутся, экран до `VIEW_MAX`, `input` с NaN пропускается, руки —
-  `in_hands`: только то, что есть в сумке ([../security/NETWORK_SECURITY.md](../security/NETWORK_SECURITY.md)).
-  По петле всё берётся как есть. Толчок костра двигает тело
-  сервера и уходит сигналом. Что он говорит,
-  кладёт на землю, куда его ставят и как толкают — сигналы `said`, `laid`, `moved`, `knocked`,
-  `tool_used` (мастерскую он не держит: она держит его).
-- `src/server/player_link.gd` — один игрок на сервере: делает `Player`, `Workshop`, `Requests`, входит в
-  сеанс (`add_player`, `leave` — и отключается от сигналов сеанса); `handle(bytes)` — запрос → байты
-  ответа, событие `input` → тело; сигналы правил ставят флажки, `flush()` отдаёт события разом: `you`
-  (сумка, силы, состояние `to_dict` — с ним и плот или лодка, в которой сидит, `riding`, дом, откуда отброшено), `vitals` только когда изменились, `line`
-  (поплавок лески игрока и поклёв, `Character.line` / `bite`, когда изменились),
-  `knowledge` когда узнан рецепт, `skills` (очки навыков, не чаще раза в секунду, сразу при новом уровне), `shop` (очередь, пауза), `clock` (снимок часов `Clock.snapshot`) при
-  входе и затем раз в `CLOCK_EVERY` 0,25 с, при входе `props` (все вещи `Placed.to_list`), `vessels` (плоты и лодки `Vessels.record`; потом `vessel` при спуске и движении, `vessel_gone`, когда подняли) и `animal` на
-  каждого зверя, затем накопленные `say`, `made`, `drops` (чанк), `teleport`, `knock`, `prop` (вещь
-  поставлена, запись как в `to_list`), `prop_gone` (клетка), `prop_lit` (клетка, горит), `prop_fuel` (клетка, секунды топлива), `chest`
-  (клетка, `Inventory.to_dict` — сигнал `changed` сундука подключён с клеткой в `bind`, не с записью),
-  `animal` (номер, вид, оттенок, место), `animal_gone`, `step` (след лапы); в конце `snap` — звери,
-  что шагнули с прошлого `flush` и стоят не там, где были названы (`_snapped` по номеру; смотрит только
-  `Wildlife.moved` и родившихся с прошлого снимка, после полного `flush` — всех), и `push`
-  (чем звери толкнули тело, `Session.push_on` берётся один раз), и `people` / `person_gone` — другие
-  игроки в зоне, чья запись изменилась (`_people` по номеру; мёртвый — ушёл), через сокет раз в
-  `people_every` 0,05 с. Хост зовёт `flush` после каждого
-  запроса (события приходят до ответа) и после каждого тика. `snap_every` — секунд между снимками
-  зверей (0 — каждый `flush`, петля; сервер по сети ставит `Server.SNAP_EVERY` 0,1); `rejoin()` — игрок вернулся на новой связи: номера запросов снова с
-  единицы, следующий `flush` полный, как при входе; пока полный `flush` впереди, `born` не копится
-  (звери приходят с первым игроком, и каждый назывался бы дважды). `send_world` (ставит `Server`:
-  через сокет) — линк ведёт копию мира клиента: `_sent` — чанки у клиента; в каждом `flush`
-  (`_world_events`) — `cells` по правкам (`actions.cell_changed`, `actions.cells_set` — все клетки срубленного дерева, `placed.cell_changed`) в чанках
-  клиента, чанки, чей вид изменился (`looks_changed`: ягоды, скошенная трава — чанк шлётся заново
-  целиком, запись несёт `turf`, кусты, деревья), затем недостающие чанки зоны вокруг тела по его экрану
-  (`Session.reach_for(who.view_half)`, не меньше `Session.ZONE`), ближайшие первыми, по `CHUNKS_PER_FLUSH` 2 за `flush` и только готовые (`SHAPED`: ячейки
-  готового чанка больше не меняет генерация — деревья соседей уже вросли), и `forget` для чанков
-  дальше этой зоны + 4; `drops` — по `actions.drops_changed` и `who.laid`, через сокет со списком
-  `world.drops[ключ]`; `taken` — только через сокет (по петле клиент слушает правило сам).
-- `src/server/server.gd` — сервер по сети: `listen()` на порту конфига (`TCPServer`), `poll()` каждый
-  кадр принимает связи (`WebSocketPeer.accept_stream`, исходящий буфер `BUFFER` 4 МБ под чанки С3.2,
-  входящий `INBOUND` 256 КБ; без приветствия не больше `PENDING_MAX` 16 связей, с адреса
-  `PENDING_PER_ADDRESS` 4; сообщений не чаще `MSG_RATE` 300 в секунду, лишние не читаются, флуд
-  `FLOOD_KICK` 3 с — отключение кодом 4003), до
-  приглашения читает только `hello` (иначе или через `HELLO_WAIT` 10 с — закрывает с кодом 4000),
-  проверяет версию, имя (до `NAME_MAX` 24 знаков, `Protocol.clean_text`; не из `RESERVED_NAMES` и не
-  занятое другим ключом в мире), пароль (за постоянное время; после `PASSWORD_TRIES` 8 неверных за минуту
-  с адреса новые игроки оттуда ждут, игрок с известным ключом входит), не больше `NEW_PLAYERS` 10 новых в
-  минуту и место (`_refusal`), заводит `Account`
-  (номер, имя, ключ — 16 случайных байт hex, `PlayerLink` с сумкой старта, тело на точке старта
-  `teleport` → событие `teleport`, дом) или находит его по ключу (та же связь с другого устройства —
-  старую закрывает кодом 4002); ответ на `hello` идёт **до** событий входа (клиент узнаёт, кто он,
-  раньше, чем наполняются копии), на любой другой запрос события идут до ответа, как по петле;
-  `input` и запросы — линку; `flush()` после тика — события каждому. Связь оборвалась — персонаж ждёт
-  `LINGER` 30 с (и после `bye`; на своей земле или земле своей команды — нисколько: `linger_of`,
-  `Territory.at_home`, шаг Т4), потом `leave()` из сеанса, сохранив весь мир с ним вместе
-  (`store.save(server)`: вещь между сундуком и сумкой не двоится); ключ, которого нет среди персонажей в мире, ищется в сохранении
-  (`store.read_player`) — игрок возвращается к своему персонажу с тем же номером и после перезапуска;
-  `next_id` — из сохранения.
-  Звери приходят с первым игроком (`session.start_wildlife`: расселяются вокруг людей, без людей не
-  приходят, `Wildlife._spawn`). Команды хозяина `command(line)` → слова для печати: `who`, `say <слова>`
-  (в чат каждому от «Сервер»), `kick <имя или номер>` (событие `kick`, код 4001, персонаж уходит сразу), `stop`
-  (сначала `store.save`, затем `stopping`: порт закрыт, всем код 1001, `done()` когда связи закрылись),
-  `help`; С5.3 (можно с `/`): `give <кто> <предмет> [сколько]` (предмет по id, концу id или названию,
-  `Character.give`), `tp <кто> <x> <y> <z>` (клетки) или `tp <кто> <к кому>` (`teleport` → `teleport`
-  клиенту), `ban <кто или имя>` (ключ и имя, игрок выгнан), `unban <имя>`, `bans`, `whitelist
-  on|off|add <имя>|remove <имя>` (включение вносит в список тех, кто на сервере); С6: `op <кто>`,
-  `deop <имя>`, `hosts` — кто может давать команды в чате; `security [вид или имя]` — журнал
-  безопасности (`flag`, `security_log`, [../security/ANTI_CHEAT.md](../security/ANTI_CHEAT.md)); `reload` —
-  перечитать данные модов с диска (`reload_mods`, горячая перезагрузка, решение 184: `Mods.rescan(true)` и
-  `Session.reread`, игрокам строка «Сервер перечитал данные модов»). Права —
-  одна таблица `COMMANDS` с ролями (`role_of` по ключу: хозяин по `op`, владелец — создавший сервер в игре,
-  терминал): `op`, `deop`, `stop` — владельцу и терминалу ([../security/COMMAND_PERMISSIONS.md](../security/COMMAND_PERMISSIONS.md)).
-  Кто может войти — `access` (`banned_keys` ключ → имя, `banned_names`, `listed_only`, `listed`,
-  `listed_keys` имя → ключ, с которым имя из списка пришло первым, `hosts` и `owners` ключ → имя; имена в нижнем регистре),
-  хранится в сохранении мира `access.json` (`ServerStore.read_access`/`write_access`, читается при старте
-  `load_access`); отказ `hello` — `banned` или `list` (слова на клиенте: «Хозяин сервера заблокировал вас»,
-  «Сервер пускает только своих…»). В окне «Создать сервер» те же команды — поле под журналом. Журнал — строки
-  `lines`, сцена печатает их со временем.
-- `src/server/server_main.gd` — корень `scenes/server.tscn`, сервер из терминала: `godot --headless
-  --path . -- --server [--port N] [--world <папка>] [--seed N] [--players N] [--password <слово>]
-  [--config <файл>] [--tunnel] [--real-weather]` (из сборки для ПК — `Survivium.console.exe --headless -- --server` в Windows,
-  обёртка показывает журнал в терминале, или `./Survivium.x86_64 --headless -- --server` в Linux;
-  сборки — релиз `pc-latest`, [testing.md](testing.md)); `main.gd` по `--server` первым делом уходит в
-  эту сцену по пути строкой (`change_scene_to_file`, отложенно: в `_ready` дерево занято), не построив
-  ничего клиентского.
-  Открывает мир как игра: сохранение под `user://saves` (бандлы `Mods.of_world`, материалы `Mat.remap`,
-  часы `sky`, вещи `placed`) или новый мир по сиду и настройкам (бандлы конфига или все,
-  `Mods.resolve`); делает землю на `SPAWN_REACH` 2 чанка вокруг догадки о старте (`Session.make_chunk`),
-  находит старт (`WorldGen.find_spawn`), в новом мире ставит лагерь (`Placed.start_camp`, вещи
-  тестового мира), вешает узел сервера `runner.gd` (`pausable = false`, `playing`), слушает. В кадре:
-  узел сервера сделал тик → строки консоли → `server.poll()` → `server.flush()`; после `stop` ждёт
-  закрытия связей до `STOP_WAIT` 1 с и выходит (`quit_on_stop = false` в тесте). `Engine.max_fps`
-  `FPS` 60; `run/flush_stdout_on_print` в `project.godot`, чтобы журнал через конвейер шёл сразу.
-  Сохранение — `ServerStore` (если не `--no-save`): при старте убирает недописанное прерванным
-  сохранением, в кадре `saves.update`.
-  С `config.tunnel` после `listen` — `open_tunnel()` (`Tunnel`), в кадре `tunnel.poll()`: адрес и ссылка в
-  журнал («из интернета», «ссылка для друзей») или «туннель: <почему нет>»; `close_tunnel()` в `_quit` и `_exit_tree`.
-- `src/server/server_store.gd` — сохранение сервера (С4) в папке мира, как у игры (`WorldStore`: мир из
-  одиночной игры открывается сервером и наоборот; `players/local.json` игры сервер не читает). Каждые
-  `every` секунд (`Config.autosave`, 10 с), на `stop` и в `save()`: сначала изменённые чанки
-  (`WorldData.unsaved`, каждый на своё место), затем снимок в одном кадре — `world.json` (сид, настройки,
-  бандлы, материалы, часы, вещи с содержимым сундуков, `next_player`) и запись каждого игрока в мире
-  `players/<sha256 ключа, 32 знака>.json` (номер, имя, место тела, сумка, силы, персонаж, знания,
-  очередь — разделы как у `save_game.gd`), всё сперва рядом (`WorldStore.write_json_beside`, `.tmp`),
-  потом переносом на место (`move_over`), `world.json` последним; между частями тика нет, так что вещь
-  из сундука в сумке или в сундуке, не в обоих. Не вышло записать — `.tmp` убираются, старые файлы
-  целы; оборванное сохранение оставляет `.tmp`, их убирает `clean()` при старте
-  (`WorldStore.remove_beside`). `read_player(key)`, `restore(link, record)` (разделы, `workshop.settle`, `teleport`). Ctrl+C в Linux
-  завершает процесс сразу (движок не сообщает скрипту): теряется время с последнего сохранения, само
-  сохранение цело; правильно — `stop`.
-- `src/server/config.gd` — настройки сервера: `user://server.cfg` (секции `server`: title, port 7777,
-  players 8, password, bind, autosave 10, save; `world`: folder, seed, настройки WorldGen, mods; `rules`: ключи
-  `Rules.to_dict` поверх значений по умолчанию, `Rules.of(config.rules)`, например `territory_decay`), поверх — аргументы
-  (`--autosave <секунды>`, `--no-save` — мир не сохранять; С7: `tunnel`, `cloudflared` — `--tunnel`,
-  `--no-tunnel`, `--cloudflared <файл>`; `real_weather` — `--real-weather`, `--no-real-weather`: погода с
-  улицы там, где сервер, `src/server/real_weather.gd`, [time-weather.md](time-weather.md)); `day_minutes` — `--day-minutes N`: длина суток в минутах, 40 как в игре по умолчанию (`Config.day_speed` →
-  `Clock.time_speed` при открытии мира; «Создать сервер» берёт её со вкладки «Настройки», а пока сервер ни разу не создавался — «Длину суток» хозяина; «Ход времени» читов — множитель к ней)
-  командной строки (`take_args`; `--config` читается первым); `world_path()` — папка сохранения:
-  имя под `WorldStore.root`, путь или папка сида и настроек (`WorldStore.world_dir`). Окно «Создать
-  сервер» (С5) пишет тот же файл.
-- `src/server/tunnel.gd` — доступ из интернета (С7, решение 153 6Б): `start(port, path)` запускает
-  `cloudflared tunnel --no-autoupdate --url http://localhost:<port>` (`OS.execute_with_pipe`, не блокируя;
-  `find`: данный путь, рядом с исполняемым файлом, потом `which`/`where`), `poll()` читает его вывод
-  (адрес он пишет в stderr) и ищет `https://<слова>.trycloudflare.com` (`url_in` → `wss://…`); `link()` —
-  страница игры `PAGE` с `?server=`; `failed` — почему нет (не найден, не запустился, остановился без
-  адреса); `stop()` — `OS.kill`. Быстрый туннель без аккаунта: адрес новый при каждом запуске; как
-  включить — README, «Свой сервер».
-- `src/server/console.gd` — терминал: поток читает stdin (`OS.read_buffer_from_stdin`: чтение
-  блокирует; пустой буфер — конец ввода, а не пустая строка — у `read_string_from_stdin` они
-  неразличимы), `lines()` отдаёт строки, после `stop` или конца ввода поток завершается и `stop()`
-  его присоединяет; сервер, остановленный иначе, выходит с потоком в чтении (движок пишет об этом
-  при выходе, безвредно). Не запускается без stdin (`OS.get_stdin_type()`) и в тестах (`config.console`).
-- `src/client/net/connection.gd` — сторона клиента: `request(kind, args)` → `Reply` (`done`, `value`,
-  `then(cb)` зовёт сразу, если ответ уже есть), `receive(bytes)`, счётчики `sent_bytes`,
-  `received_bytes`, `coding_us`, `pending()`. Транспорт — `Callable`, что возвращает байты ответа
-  сразу (петля) или `null` (сокет: ответы придут через `receive`).
-- `src/client/net/remote_gen.gd` (наследует `world_gen.gd`) — копия генератора через сокет: раскладка
-  земли по сиду и настройкам сервера как у него (биомы, карта, где живут звери), но ничего не
-  генерирует: `saved` — он сам, запись чанка из `chunk` (`take_chunk`, `packs`) восстанавливается
-  работой генератора, как сохранённый чанк (`start` только `TERRAIN` и только для присланных; чанк
-  сразу `SHAPED`), `needed` — чанк и соседи на 1 присланы (мешер читает их ячейки по краям; зона
-  видимости через сокет — `ZONE` − 1); то, что по петле делает сеанс (`Main.world_maker`):
-  `make_chunk` (сразу, экран загрузки), `make_chunks(near_us, far_us)` (ближайшие к `home` первыми в
-  бюджете кадра), `forget_far` пусто (забывает сервер: `forget` → `forget` + `ChunkStreamer.unload_chunk`),
-  `take_work` («restore»), `gen_us`, `stages_left`; чанк, присланный заново, восстанавливается на месте
-  и сигнал `changed` перестраивает его меш (`remesh_chunk`). Ячейки `cells` ставит `Mirror` прямо в
-  копию мира и даёт `actions.cell_changed` по разу на столбец, с нижней его клетки (как сервер у себя после рубки); `taken` → `actions.taken`; `drops` со списком → `world.drops`.
-  Материалы сервера в другом порядке — `material_map` (`Mat.remap`), как у сохранения.
-- `src/client/net/socket.gd` — сокет клиента к серверу по сети: `WebSocketPeer` как транспорт
-  `Connection` (`net`; ответы приходят позже, через `Reply.then`), `open(ws://…)`, `hello(name, key,
-  password)` — первый запрос (что послано до открытия, ждёт в очереди), `poll()` каждый кадр
-  (`opened`, входящие в `net.receive`, `closed(code, reason)` и `ended` / `close_code` /
-  `close_reason`: −1 и "" — связь потеряна или сервера нет), `leave()` — `bye` и закрытие. По нему
-  играет сама игра (`Main.join_url`) и входят боты `server_test`.
-- `src/client/net/local_host.gd` — сервер внутри игры: единственное место, где клиент грузит
-  `src/server/`; `LocalHost.new(session, get_tree().root)` ставит узел сервера `src/server/runner.gd`
-  под корень дерева и под ним `real_weather` (`src/server/real_weather.gd` на часах сеанса, включает
-  `Settings.apply` по настройке «Погода»; без корня — тесты — узлов нет, сеанс шагает тест), `stop()` снимает его с дерева и
-  освобождает (Main зовёт в `_exit_tree`); `join()` делает `PlayerLink` в сеансе и
-  даёт `Connection`; `deliver(bytes)` проводит сообщение через линк и возвращает события и ответ;
-  `flush(net)` после тика; `player` и `workshop` — серверные объекты, к которым до С4/С5 напрямую ходят
-  сохранение и страница «Тестирование». Узел сервера — [session.md](session.md).
-- `src/client/net/mirror.gd` — копии на клиенте: слушает `Connection.event` и раздаёт события
-  `game.character` (`take`, `take_vitals`, `say`, `teleport`), `game.workshop` (`take`,
-  `take_knowledge`, `made`), `game.props.show_drops`, `game.player.body.knock` / `nudge` (`push`),
-  `game.placed` (`take_all`, `take_prop`, `take_gone`, `take_lit`, `take_chest`), `game.clock`
-  (`from_snapshot`), `game.wildlife` (`take_born`, `take_gone`, `take_snap`, `take_step`),
-  `game.others` (`take_people`, `take_gone`);
-  `send_input()` шлёт тело, руки, экран, «на земле» и работу рук (полуразмер низкого вьюпорта в единицах мира плюс
-  `SEEN_MARGIN` 4, вдоль `PixelView.right`) каждый кадр и перед каждым запросом
-  (`Connection.sending`), только если что-то изменилось (руки копируются: массив из `controls.hands`
-  делит с ним данные и не отличался бы).
-- `src/client/net/remote_placed.gd` (наследует `placed.gd`) — копия вещей на клетках: те же записи
-  `things`, `chest_items`, сигналы `added` / `removed` / `lit_changed`; занимает клетки вещей
-  (`world.blockers`, в петле — те же, что сервер) и ничего в мире не меняет (`_forget`, не `_remove`:
-  без `note_edit`); сундук копии — `Inventory`, которую `chest` наполняет `from_dict` (окно сумки
-  слушает её `changed`). `remote_clock.gd` (наследует `clock.gd`) — копия часов: `from_snapshot` раз в
-  0,25 с, между снимками `advance(delta)` сам ведёт время суток (солнце идёт каждый кадр), `step` пуст;
-  сезон, погода и её силы — только из снимков. `remote_wildlife.gd` — копия зверей: свой `Animal`
-  (номер, вид, место, `lift`, `facing`, `flying`, `perched`, `moving`, `hop`, `left`, `near`, `state`,
-  `tint`, `frame`, `fresh`, `aloft()`), те же сигналы `born` / `gone` / `stepped`; `fresh` ставит `snap`,
-  `creatures.gd` снимает, когда поставил картинку.
-- `src/client/game/creatures.gd`, `props.gd`, `fire_shadows.gd`, `voices.gd`, `sky.gd`, HUD, звуки —
-  читают копии как читали правила; `props.place()` (вещи сохранения, лагерь старта) и страница
-  «Тестирование» (`settings.gd`: сезон, погода, час, скорость времени) пишут в серверные
-  `game.session.placed` / `session.clock` — до С4 и С5.
-- `src/client/game/character.gd` — копия персонажа игрока: не крутит правил (`update` только ставит
-  игрока после `go_to_column`), сумку, силы, смерть и дом берёт из `you`/`vitals`, смерть прячет
-  игрока (`_fell`) и сбрасывает сохранение; остаётся `who` для того, что клиент читает у правил сам
-  (превью курсора, `useful`, `front_choice`). `src/client/net/remote_workshop.gd` — копия мастерской:
-  очередь и пауза из `shop`, знания из `knowledge`, сама ничего не узнаёт и не делает.
-- Свой сервер из меню на ПК (С5.2): `LocalHost.host(values, root)` делает тот же узел, что сервер из
-  терминала (`server_main.gd` с `hosted`: настройки даны, не читаются; `start()` сразу — мир открыт, бандлы
-  включены, порт слушается; узел под корнем дерева переживает перезапуски сцены, `PROCESS_MODE_ALWAYS`, без
-  ограничения кадров и терминала, `log_lines` для окна, сигнал `stopped`; `failed` — почему не запустился,
-  «Порт N занят»), настройки пишет в `user://server.cfg`. `Main.host_server` кладёт настройки в
-  `Main.host_ask` и перезапускает сцену; новая сцена в `_ready` до всего делает сервер (`Main.hosted`) и
-  входит в него как клиент по `ws://127.0.0.1:порт` с его бандлами (`pending_mods`), меню открывает окно
-  сервера; `stop_server` — `stop` (сохраняет мир), по `stopped` узел освобождается и сцена — свой мир.
-  Пока сервер работает, закрытие сокета им не считается неудачей входа (`Main.server_stopping`).
-- `src/client/main.gd` через сокет (`join_url` из статического `Main.join` — его ставит экран
-  «Присоединиться» (`join_server`, перезапуск сцены) или `--join <url>` с `--name`, `--password` при первом
-  запуске; тест ставит `join_url` сам; `leave_server` очищает `join`, и следующий запуск — свой мир; на web
-  `?server=` только открывает «Присоединиться» с адресом, `Main.offered`; с `--bot` игра играет сама —
-  `src/client/input/bot.gd`, ниже): `_connect` в `_ready` — сокет,
-  `hello` с ключом этого сервера (`src/client/net/server_list.gd`: `user://servers.cfg` — ключи по адресу,
-  недавние серверы с названием из приглашения (`title`), имя игрока; `normalize` — адрес, набранный руками:
-  без схемы — `ws://` для чисел и `localhost`, иначе `wss://`, `ws://` без порта — `Protocol.PORT`;
-  `problem` — `ws://` со страницы по https браузер не пустит), `mirror.watch(net)` сразу (события до постройки мира копит `Mirror._pending`,
-  `replay` после); `start_world` → `_join_world`: ждёт приглашение (`JOIN_WAIT` 15 с; отказ — слова на
-  экране загрузки: «Сервер не отвечает», «Версия игры другая — обновите страницу», «Неверный пароль»,
-  «Сервер полон»), при других бандлах — `pending_mods` и перезапуск сцены (решение 153, 5А), затем
-  `RemoteGen` по сиду и настройкам сервера, карта и материалы как обычно, `actions` — свой
-  `WorldActions` над копией мира только для чтения (превью курсора, что даёт куст; сигналы ему даёт
-  `Mirror`), тело на `welcome.at`; `host`, `session`, `storms` — null (страница «Тестирование»
-  и сохранение их не трогают), `world_maker` — генератор-копия; в кадре `socket.poll()` первым делом,
-  `_world_made()` — восстановление присланных чанков в бюджете стримера вместо `runner.take_spent()`;
-  `_exit_tree` — `socket.leave()`. Строка «Сервер» показывает адрес.
-- `src/client/main.gd` — копии `clock`, `placed`, `wildlife` в `_ready`; серверные часы и вещи
-  (`Clock.new()`, `Placed.new()`) в `start_world` только для сеанса (в них пишут сохранение и погода с улицы
-  сервера внутри игры), `host` (с узлом сервера), `net`, `mirror` там же, первый `host.flush(net)` в конце
-  `start_world` (копии полны до меню); сохранение следит за серверными объектами
-  (`save.track(host.player…)`, `session.clock.to_dict()`, `session.placed.to_list()`); в кадре: узел
-  сервера сделал тик до Main → `clock.advance` → небо … `host.flush(net)` (события тика) →
-  `player.step` → `character.update` → `mirror.send_input()` (тик следующего кадра возьмёт его);
-  строка «Сервер» в «Данных для теста» (`settings_menu.gd`) показывает счётчики соединения.
+**Files**
+- `src/shared/net/protocol.gd` — the protocol version, the kinds of requests with their args (dig, place,
+  the action in front, gather, pick up, plant, eat, drop, place/take/put out/destroy a thing, crafting and its
+  queue, repair, move/pour/sort/destroy in the bag and chests, revive), `request`, `reply`, `encode`, `decode`.
+  Loads only `content/`. Through a socket each message is one binary frame; the first request on it is
+  `hello` ([protocol version, the build's version `build_version()` — from `build_info.json`, «dev» without
+  it; a name, the key from last time or "", a password]), the reply is a welcome `{"ok": true, "id", "key",
+  "name", "seed", "settings", "mods", "materials", "spawn", "at"}` or a refusal `{"ok": false, "why": version |
+  password | full | name | banned | list | taken | wait}` (`taken` — the name is taken by another in the world
+  or it is the server's name, `wait` — many wrong passwords or new players in a row), after which the server
+  closes the link. The event `bye` — the client leaves on its own, `kick` [why] — the server put it out. Builds
+  of different versions do not play together (decision 153, 5А: mods are built in, a content hash is not
+  needed). The world through a socket: `chunk` [key, size, bytes] — a chunk's record `WorldGen.pack` in
+  `var_to_bytes` and zstd (the same as in the save), `forget` [key], `cells` [[cell, material]…], `drops`
+  [key, list] (through the loop — only [key]: the world is one), `taken` [id, from where]. Other players:
+  `people` [[number, name, place, gaze step, hands, the hand at work, walking, swimming, on the ground, work:
+  kind, length, count, where to, what is worn, in the team, the line's float, the raft or boat under them]…] —
+  those who changed since last time, in the zone of `Session.ZONE` chunks, through a socket 20 times a second;
+  `person_gone` [number] — left the zone or the world. The client's `input` carries both «on the ground» and
+  the hands' work (kind, length, count — one more with each swing, where turned).
+- `src/server/requests.gd` — one player's requests on the server's side: `handle(msg)` → a reply; a request's
+  number grows by one, a repeat of the same number is answered as the first time and is not done again, a
+  number below the last is refused (`null`); the args are checked by types (`_fit`), a request that does not
+  fit is answered `null`; through a socket (`paced`) the hands' work goes at its pace: a request from `PACED`
+  (dig, place, act, gather, plant, place a thing or light) adds the seconds of its swing, and one that comes
+  when more than `WORK_AHEAD` 2 s of them lie ahead is refused (`{}` or `false`); what looks wrong — the
+  signal `flagged` into the server's log; putting out a fire on someone else's land — by the right «build»;
+  chests are named by the thing's cell (`Placed.at`), the player's bag — `null`, a bag or chest lying in the
+  bag — by the cell's number (a number: `_bag` opens them with `Inventory.open`, after the request `_do`
+  puts the things back with `Inventory.close`; the open thing itself is not moved by the request, `move_all`
+  skips it). Loads only `src/shared/`.
+- `src/server/player.gd` (extends `src/shared/game/character.gd`) — the player's character on the server,
+  `who` for the rules: the body and hands are as the client sent them in `input` (`take_input`: the place, the
+  feet's cell, the gaze step, hands, the hand at work, the brush, walking, swimming, jumped, jumps in the air,
+  pressed against something, the screen — the direction of its width along the ground and the half-sizes in
+  world units, `Character.view_right` / `view_half`, on the ground, the hands' work); `_where` gives the
+  accepted place. Through a socket the sent place is checked (`check_moves`, decision 153, 3А): the server's
+  body `ServerBody` (the same `body.gd`, with the session's world and clock) goes from its place (`_sim`) to
+  the sent one in the time since the last `input` — no more than `CLAIM_GAP_MAX` 0.5 s and no more than has
+  passed, so frequent messages give no extra path — by the world's rules: walls, slopes, water, the pace from
+  load and weather; a place farther than `MOVE_TOLERANCE` 2.5 cells from where the body got to, or inside a wall
+  (`Body.blocked`), is not taken, the player stays where the body got to, and after `STRIKES` 10 such in a row
+  the client is put there (`moved` → `teleport`); to the accepted place the server's body is pulled no faster
+  than `CATCH_UP` 2 cells per second (ice, corners). Also there: the feet are the accepted place's cell, the
+  gaze is a step of 8, the test page's jumps in the air are not taken, the screen up to `VIEW_MAX`, an `input`
+  with NaN is skipped, the hands — `in_hands`: only what is in the bag
+  ([../security/NETWORK_SECURITY.md](../security/NETWORK_SECURITY.md)). Through the loop everything is taken as
+  it is. A fire's push moves the server's body and goes out as a signal. What it says, lays on the ground,
+  where it is put and how it is pushed — the signals `said`, `laid`, `moved`, `knocked`, `tool_used` (it does
+  not hold the workshop: the workshop holds it).
+- `src/server/player_link.gd` — one player on the server: makes `Player`, `Workshop`, `Requests`, enters the
+  session (`add_player`, `leave` — and disconnects from the session's signals); `handle(bytes)` — a request →
+  the reply's bytes, the event `input` → the body; the rules' signals set flags, `flush()` gives the events at
+  once: `you` (the bag, strength, the state `to_dict` — with it the raft or boat one sits in, `riding`, the
+  home, where one was thrown from), `vitals` only when changed, `line` (the player's line float and a bite,
+  `Character.line` / `bite`, when changed), `knowledge` when a recipe is learned, `skills` (the skill points,
+  no more than once a second, at once on a new level), `shop` (the queue, pause), `clock` (the clock's snapshot
+  `Clock.snapshot`) on entry and then once per `CLOCK_EVERY` 0.25 s, on entry `props` (all things
+  `Placed.to_list`), `vessels` (rafts and boats `Vessels.record`; then `vessel` on launching and moving,
+  `vessel_gone` when taken up) and `animal` for each animal, then the accumulated `say`, `made`, `drops` (a
+  chunk), `teleport`, `knock`, `prop` (a thing placed, the record as in `to_list`), `prop_gone` (a cell),
+  `prop_lit` (a cell, lit), `prop_fuel` (a cell, seconds of fuel), `chest` (a cell, `Inventory.to_dict` — the
+  chest's signal `changed` is connected with the cell in `bind`, not with the record), `animal` (number, kind,
+  tint, place), `animal_gone`, `step` (a paw's track); at the end `snap` — the animals that stepped since the
+  last `flush` and stand not where they were named (`_snapped` by number; looks only at `Wildlife.moved` and
+  those born since the last snapshot, after a full `flush` — at all), and `push` (what the animals pushed the
+  body with, `Session.push_on` is taken once), and `people` / `person_gone` — other players in the zone whose
+  record changed (`_people` by number; a dead one — left), through a socket once per `people_every` 0.05 s. The
+  host calls `flush` after every request (the events come before the reply) and after every tick. `snap_every`
+  — seconds between snapshots of the animals (0 — every `flush`, the loop; the server over the network sets
+  `Server.SNAP_EVERY` 0.1); `rejoin()` — the player came back on a new link: the request numbers are from one
+  again, the next `flush` is full, as on entry; while a full `flush` lies ahead, `born` is not piled up (the
+  animals come with the first player, and each would be named twice). `send_world` (set by `Server`: through a
+  socket) — the link keeps the copy of the client's world: `_sent` — the chunks the client has; in every
+  `flush` (`_world_events`) — `cells` by edits (`actions.cell_changed`, `actions.cells_set` — all cells of a
+  felled tree, `placed.cell_changed`) in the client's chunks, the chunks whose look changed (`looks_changed`:
+  berries, mown grass — the chunk is sent anew whole, the record carries `turf`, bushes, trees), then the
+  missing chunks of the zone around the body by its screen (`Session.reach_for(who.view_half)`, not less than
+  `Session.ZONE`), the nearest first, `CHUNKS_PER_FLUSH` 2 per `flush` and only ready ones (`SHAPED`: the
+  cells of a ready chunk are no longer changed by generation — the neighbours' trees have already grown into
+  it), and `forget` for chunks farther than this zone + 4; `drops` — by `actions.drops_changed` and `who.laid`,
+  through a socket with the list `world.drops[key]`; `taken` — only through a socket (through the loop the
+  client listens to the rule itself).
+- `src/server/server.gd` — the server over the network: `listen()` on the config's port (`TCPServer`), `poll()`
+  accepts links every frame (`WebSocketPeer.accept_stream`, the outgoing buffer `BUFFER` 4 MB for С3.2's
+  chunks, the incoming `INBOUND` 256 KB; with no greeting no more than `PENDING_MAX` 16 links, from one address
+  `PENDING_PER_ADDRESS` 4; messages no more often than `MSG_RATE` 300 a second, the extra are not read, a flood
+  `FLOOD_KICK` 3 s — disconnection with code 4003), before the welcome it reads only `hello` (anything else, or
+  after `HELLO_WAIT` 10 s — closes with code 4000), checks the version, the name (up to `NAME_MAX` 24 characters,
+  `Protocol.clean_text`; not from `RESERVED_NAMES` and not taken by another key in the world), the password
+  (in constant time; after `PASSWORD_TRIES` 8 wrong in a minute from an address, new players from there wait, a
+  player with a known key gets in), no more than `NEW_PLAYERS` 10 new per minute and the room (`_refusal`),
+  makes an `Account` (number, name, key — 16 random bytes in hex, a `PlayerLink` with the start bag, the body at
+  the start point `teleport` → the event `teleport`, home) or finds it by the key (the same link from another
+  device — the old one is closed with code 4002); the reply to `hello` goes **before** the entry events (the
+  client learns who it is before the copies fill), to any other request the events go before the reply, as
+  through the loop; `input` and requests — to the link; `flush()` after the tick — events to everyone. If the
+  link breaks, the character waits `LINGER` 30 s (also after `bye`; on one's own land or one's team's — not at
+  all: `linger_of`, `Territory.at_home`, the step Т4), then `leave()` from the session, saving the whole world
+  with it (`store.save(server)`: a thing between a chest and a bag is not doubled); a key that is not among
+  the characters in the world is looked up in the save (`store.read_player`) — the player returns to their
+  character with the same number even after a restart; `next_id` — from the save. The animals come with the
+  first player (`session.start_wildlife`: they settle around people, without people they do not come,
+  `Wildlife._spawn`). The host's commands `command(line)` → words to print: `who`, `say <words>` (into the chat
+  to everyone from «Server»), `kick <name or number>` (the event `kick`, code 4001, the character leaves at
+  once), `stop` (first `store.save`, then `stopping`: the port closed, code 1001 to all, `done()` when the links
+  are closed), `help`; С5.3 (can be with `/`): `give <who> <item> [how many]` (the item by id, the end of the
+  id or the title, `Character.give`), `tp <who> <x> <y> <z>` (cells) or `tp <who> <to whom>` (`teleport` →
+  `teleport` to the client), `ban <who or name>` (the key and name, the player is put out), `unban <name>`,
+  `bans`, `whitelist on|off|add <name>|remove <name>` (switching on puts those on the server into the list);
+  С6: `op <who>`, `deop <name>`, `hosts` — who may give commands in the chat; `security [kind or name]` — the
+  security log (`flag`, `security_log`, [../security/ANTI_CHEAT.md](../security/ANTI_CHEAT.md)); `reload` —
+  reread the mods' data from disk (`reload_mods`, hot reload, decision 184: `Mods.rescan(true)` and
+  `Session.reread`, to the players the line «The server reread the mods' data»). The rights are one table
+  `COMMANDS` with roles (`role_of` by the key: a host by `op`, the owner — who made the server in the game, the
+  terminal): `op`, `deop`, `stop` — to the owner and the terminal
+  ([../security/COMMAND_PERMISSIONS.md](../security/COMMAND_PERMISSIONS.md)). Who may enter — `access`
+  (`banned_keys` key → name, `banned_names`, `listed_only`, `listed`, `listed_keys` name → the key with which
+  the listed name came first, `hosts` and `owners` key → name; names in lower case), kept in the world's save
+  `access.json` (`ServerStore.read_access`/`write_access`, read at start by `load_access`); the refusal of
+  `hello` — `banned` or `list` (the words on the client: «The server's host has blocked you», «The server lets
+  in only its own…»). In the «Create a server» window the same commands are a field under the log. The log is
+  the lines `lines`, the scene prints them with the time.
+- `src/server/server_main.gd` — the root of `scenes/server.tscn`, a server from the terminal: `godot --headless
+  --path . -- --server [--port N] [--world <folder>] [--seed N] [--players N] [--password <word>]
+  [--config <file>] [--tunnel] [--real-weather]` (from a PC build — `Survivium.console.exe --headless --
+  --server` on Windows, a wrapper shows the log in the terminal, or `./Survivium.x86_64 --headless -- --server`
+  on Linux; the builds are the release `pc-latest`, [testing.md](testing.md)); `main.gd` on `--server` first
+  thing goes to this scene by a string path (`change_scene_to_file`, deferred: in `_ready` the tree is busy),
+  having built nothing of the client. It opens the world like the game: a save under `user://saves` (bundles
+  `Mods.of_world`, materials `Mat.remap`, the clock `sky`, things `placed`) or a new world by seed and
+  settings (the config's bundles or all, `Mods.resolve`); makes the ground within `SPAWN_REACH` 2 chunks around
+  the guess of the start (`Session.make_chunk`), finds the start (`WorldGen.find_spawn`), in a new world puts
+  a camp (`Placed.start_camp`, the test world's things), hangs the server node `runner.gd` (`pausable = false`,
+  `playing`), listens. In the frame: the server node did the tick → the console's lines → `server.poll()` →
+  `server.flush()`; after `stop` it waits for the links to close up to `STOP_WAIT` 1 s and exits
+  (`quit_on_stop = false` in a test). `Engine.max_fps` `FPS` 60; `run/flush_stdout_on_print` in
+  `project.godot`, so that the log through a pipe goes at once. Saving — `ServerStore` (unless `--no-save`): at
+  start it removes what an interrupted save left unwritten, in the frame `saves.update`. With `config.tunnel`
+  after `listen` — `open_tunnel()` (`Tunnel`), in the frame `tunnel.poll()`: the address and link into the log
+  («from the internet», «link for friends») or «tunnel: <why not>»; `close_tunnel()` in `_quit` and
+  `_exit_tree`.
+- `src/server/server_store.gd` — the server's saving (С4) in the world's folder, like the game's (`WorldStore`:
+  a single-player world is opened by the server and vice versa; the game's `players/local.json` the server does
+  not read). Every `every` seconds (`Config.autosave`, 10 s), on `stop` and in `save()`: first the changed
+  chunks (`WorldData.unsaved`, each to its own place), then a snapshot in one frame — `world.json` (the seed,
+  settings, bundles, materials, the clock, things with the chests' contents, `next_player`) and the record of
+  each player in the world `players/<sha256 of the key, 32 characters>.json` (number, name, the body's place,
+  bag, strength, character, knowledge, the queue — the sections as in `save_game.gd`), everything first
+  beside (`WorldStore.write_json_beside`, `.tmp`), then by moving into place (`move_over`), `world.json` last;
+  there is no gap between the parts of a tick, so a thing from a chest is in a bag or in a chest, not in both.
+  If writing fails — the `.tmp` are removed, the old files are whole; an interrupted save leaves `.tmp`, which
+  `clean()` removes at start (`WorldStore.remove_beside`). `read_player(key)`, `restore(link, record)` (the
+  sections, `workshop.settle`, `teleport`). Ctrl+C on Linux ends the process at once (the engine does not tell
+  the script): the time since the last save is lost, the save itself is whole; the right way is `stop`.
+- `src/server/config.gd` — the server's settings: `user://server.cfg` (the sections `server`: title, port 7777,
+  players 8, password, bind, autosave 10, save; `world`: folder, seed, WorldGen settings, mods; `rules`: the
+  keys of `Rules.to_dict` over the defaults, `Rules.of(config.rules)`, for example `territory_decay`), over it —
+  the arguments (`--autosave <seconds>`, `--no-save` — do not save the world; С7: `tunnel`, `cloudflared` —
+  `--tunnel`, `--no-tunnel`, `--cloudflared <file>`; `real_weather` — `--real-weather`, `--no-real-weather`:
+  the weather from outside where the server is, `src/server/real_weather.gd`,
+  [time-weather.md](time-weather.md)); `day_minutes` — `--day-minutes N`: the length of a day in minutes, 40 as
+  in the game by default (`Config.day_speed` → `Clock.time_speed` when the world opens; «Create a server» takes
+  it from the «Settings» tab, and while a server has never been created — the host's «Length of a day»; the
+  cheats' «Time speed» is a multiplier on it) of the command line (`take_args`; `--config` is read first);
+  `world_path()` — the save's folder: a name under `WorldStore.root`, a path or the folder of a seed and
+  settings (`WorldStore.world_dir`). The «Create a server» window (С5) writes the same file.
+- `src/server/tunnel.gd` — access from the internet (С7, decision 153 6Б): `start(port, path)` runs
+  `cloudflared tunnel --no-autoupdate --url http://localhost:<port>` (`OS.execute_with_pipe`, not blocking;
+  `find`: the given path, beside the executable, then `which`/`where`), `poll()` reads its output (it writes
+  the address to stderr) and looks for `https://<words>.trycloudflare.com` (`url_in` → `wss://…`); `link()` —
+  the game page `PAGE` with `?server=`; `failed` — why not (not found, did not start, stopped with no address);
+  `stop()` — `OS.kill`. A quick tunnel with no account: the address is new on every start; how to switch it
+  on — the README, «Your own server».
+- `src/server/console.gd` — the terminal: a thread reads stdin (`OS.read_buffer_from_stdin`: reading blocks;
+  an empty buffer is the end of input, and not an empty line — in `read_string_from_stdin` they cannot be told
+  apart), `lines()` gives the lines, after `stop` or the end of input the thread ends and `stop()` joins it; a
+  server stopped otherwise exits with the thread in reading (the engine writes about it at exit, harmless). It
+  does not start with no stdin (`OS.get_stdin_type()`) and in tests (`config.console`).
+- `src/client/net/connection.gd` — the client's side: `request(kind, args)` → `Reply` (`done`, `value`,
+  `then(cb)` calls at once if the reply is already there), `receive(bytes)`, the counters `sent_bytes`,
+  `received_bytes`, `coding_us`, `pending()`. The transport is a `Callable` that returns the reply's bytes at
+  once (the loop) or `null` (a socket: the replies come through `receive`).
+- `src/client/net/remote_gen.gd` (extends `world_gen.gd`) — the copy of the generator through a socket: the
+  layout of the ground by the seed and the server's settings as its own (biomes, the map, where the animals
+  live), but it generates nothing: `saved` — itself, a chunk's record from `chunk` (`take_chunk`, `packs`) is
+  restored by the generator's work like a saved chunk (`start` only `TERRAIN` and only for those sent; the
+  chunk is `SHAPED` at once), `needed` — the chunk and its neighbours by 1 are sent (the mesher reads their
+  cells at the edges; the visibility zone through a socket — `ZONE` − 1); what the session does through the
+  loop (`Main.world_maker`): `make_chunk` (at once, the loading screen), `make_chunks(near_us, far_us)` (the
+  nearest to `home` first within the frame's budget), `forget_far` is empty (the server forgets: `forget` →
+  `forget` + `ChunkStreamer.unload_chunk`), `take_work` («restore»), `gen_us`, `stages_left`; a chunk sent
+  anew is restored in place and the signal `changed` rebuilds its mesh (`remesh_chunk`). The cells `cells`
+  are set by `Mirror` straight into the world's copy, giving `actions.cell_changed` once per column, from its
+  lowest cell (as the server does at its side after a felling); `taken` → `actions.taken`; `drops` with a list
+  → `world.drops`. The server's materials in another order — `material_map` (`Mat.remap`), as with a save.
+- `src/client/net/socket.gd` — the client's socket to a server over the network: `WebSocketPeer` as the
+  `Connection`'s transport (`net`; the replies come later, through `Reply.then`), `open(ws://…)`, `hello(name,
+  key, password)` — the first request (what is sent before opening waits in a queue), `poll()` every frame
+  (`opened`, incoming into `net.receive`, `closed(code, reason)` and `ended` / `close_code` / `close_reason`:
+  −1 and "" — the link is lost or there is no server), `leave()` — `bye` and closing. The game itself plays
+  through it (`Main.join_url`) and the `server_test` bots enter by it.
+- `src/client/net/local_host.gd` — the server inside the game: the only place where the client loads
+  `src/server/`; `LocalHost.new(session, get_tree().root)` puts the server node `src/server/runner.gd` under the
+  tree's root and under it `real_weather` (`src/server/real_weather.gd` on the session's clock, switched on by
+  `Settings.apply` by the setting «Weather»; without a root — tests — there are no nodes, the test steps the
+  session), `stop()` takes it off the tree and frees it (Main calls it in `_exit_tree`); `join()` makes a
+  `PlayerLink` in the session and gives a `Connection`; `deliver(bytes)` passes a message through the link and
+  returns the events and the reply; `flush(net)` after the tick; `player` and `workshop` — the server objects
+  which, before С4/С5, saving and the «Testing» page go to directly. The server node — [session.md](session.md).
+- `src/client/net/mirror.gd` — the copies on the client: listens to `Connection.event` and hands out the events
+  to `game.character` (`take`, `take_vitals`, `say`, `teleport`), `game.workshop` (`take`, `take_knowledge`,
+  `made`), `game.props.show_drops`, `game.player.body.knock` / `nudge` (`push`), `game.placed` (`take_all`,
+  `take_prop`, `take_gone`, `take_lit`, `take_chest`), `game.clock` (`from_snapshot`), `game.wildlife`
+  (`take_born`, `take_gone`, `take_snap`, `take_step`), `game.others` (`take_people`, `take_gone`);
+  `send_input()` sends the body, hands, screen, «on the ground» and the hands' work (the half-size of the low
+  viewport in world units plus `SEEN_MARGIN` 4, along `PixelView.right`) every frame and before every request
+  (`Connection.sending`), only if something changed (the hands are copied: the array from `controls.hands`
+  shares data with it and would not differ).
+- `src/client/net/remote_placed.gd` (extends `placed.gd`) — the copy of the things on cells: the same records
+  `things`, `chest_items`, the signals `added` / `removed` / `lit_changed`; takes the cells of things
+  (`world.blockers`, in the loop — the same as the server's) and changes nothing in the world (`_forget`, not
+  `_remove`: with no `note_edit`); the copy's chest is an `Inventory` that `chest` fills by `from_dict` (the bag
+  window listens to its `changed`). `remote_clock.gd` (extends `clock.gd`) — the clock's copy: `from_snapshot`
+  once per 0.25 s, between snapshots `advance(delta)` runs the time of day itself (the sun moves every frame),
+  `step` is empty; the season, the weather and its strengths — only from snapshots. `remote_wildlife.gd` — the
+  animals' copy: its own `Animal` (number, kind, place, `lift`, `facing`, `flying`, `perched`, `moving`, `hop`,
+  `left`, `near`, `state`, `tint`, `frame`, `fresh`, `aloft()`), the same signals `born` / `gone` / `stepped`;
+  `fresh` is set by `snap`, `creatures.gd` takes it off when it has set the picture.
+- `src/client/game/creatures.gd`, `props.gd`, `fire_shadows.gd`, `voices.gd`, `sky.gd`, the HUD, the sounds —
+  read the copies as they read the rules; `props.place()` (the save's things, the start camp) and the
+  «Testing» page (`settings.gd`: season, weather, hour, time speed) write into the server's
+  `game.session.placed` / `session.clock` — before С4 and С5.
+- `src/client/game/character.gd` — the copy of the player's character: it does not run the rules (`update`
+  only sets the player after `go_to_column`), takes the bag, strength, death and home from `you`/`vitals`,
+  death hides the player (`_fell`) and resets the save; it remains `who` for what the client reads from the
+  rules itself (the cursor preview, `useful`, `front_choice`). `src/client/net/remote_workshop.gd` — the
+  workshop's copy: the queue and pause from `shop`, knowledge from `knowledge`, it learns and does nothing
+  itself.
+- One's own server from the PC menu (С5.2): `LocalHost.host(values, root)` makes the same node as a server from
+  the terminal (`server_main.gd` with `hosted`: the settings are given, not read; `start()` at once — the
+  world is open, the bundles on, the port listened to; the node under the tree's root survives scene restarts,
+  `PROCESS_MODE_ALWAYS`, with no frame limit and no terminal, `log_lines` for the window, the signal
+  `stopped`; `failed` — why it did not start, «Port N is busy»), writes the settings to `user://server.cfg`.
+  `Main.host_server` puts the settings in `Main.host_ask` and restarts the scene; the new scene in `_ready`
+  before everything makes the server (`Main.hosted`) and enters it as a client by `ws://127.0.0.1:port` with
+  its bundles (`pending_mods`), the menu opens the server's window; `stop_server` — `stop` (saves the world),
+  on `stopped` the node is freed and the scene is one's own world. While the server runs, the closing of the
+  socket by it is not counted as a failed login (`Main.server_stopping`).
+- `src/client/main.gd` through a socket (`join_url` from the static `Main.join` — set by the «Join» screen
+  (`join_server`, a scene restart) or `--join <url>` with `--name`, `--password` at the first start; a test
+  sets `join_url` itself; `leave_server` clears `join`, and the next start is one's own world; on the web
+  `?server=` only opens «Join» with the address, `Main.offered`; with `--bot` the game plays itself —
+  `src/client/input/bot.gd`, below): `_connect` in `_ready` — the socket, `hello` with the key of this server
+  (`src/client/net/server_list.gd`: `user://servers.cfg` — keys by address, recent servers with the title from
+  the welcome (`title`), the player's name; `normalize` — an address typed by hand: with no scheme — `ws://` for
+  numbers and `localhost`, otherwise `wss://`, `ws://` with no port — `Protocol.PORT`; `problem` — `ws://`
+  from a page over https the browser will not allow), `mirror.watch(net)` at once (events before the world is
+  built are piled up by `Mirror._pending`, `replay` after); `start_world` → `_join_world`: waits for the
+  welcome (`JOIN_WAIT` 15 s; a refusal — words on the loading screen: «The server does not answer», «The
+  game's version is different — refresh the page», «Wrong password», «The server is full»), with other
+  bundles — `pending_mods` and a scene restart (decision 153, 5А), then `RemoteGen` by the seed and the
+  server's settings, the map and materials as usual, `actions` — its own `WorldActions` over the world's
+  read-only copy (the cursor preview, what a bush gives; the signals are given it by `Mirror`), the body at
+  `welcome.at`; `host`, `session`, `storms` — null (the «Testing» page and saving do not touch them),
+  `world_maker` — the generator-copy; in the frame `socket.poll()` first thing, `_world_made()` — the
+  restoring of sent chunks within the streamer's budget instead of `runner.take_spent()`; `_exit_tree` —
+  `socket.leave()`. The «Server» line shows the address.
+- `src/client/main.gd` — the copies `clock`, `placed`, `wildlife` in `_ready`; the server's clock and things
+  (`Clock.new()`, `Placed.new()`) in `start_world` only for the session (saving and the weather from outside
+  of the server inside the game write to them), `host` (with the server node), `net`, `mirror` there too, the
+  first `host.flush(net)` at the end of `start_world` (the copies are full before the menu); saving follows
+  the server's objects (`save.track(host.player…)`, `session.clock.to_dict()`, `session.placed.to_list()`);
+  in the frame: the server node did the tick before Main → `clock.advance` → the sky … `host.flush(net)` (the
+  tick's events) → `player.step` → `character.update` → `mirror.send_input()` (the next frame's tick will take
+  it); the «Server» line in «Test data» (`settings_menu.gd`) shows the connection's counters.
 
-**Кто зовёт.** `controls.gd` (копать, ставить, действие, посадить, съесть), `gathering.gd` (собрать,
-подобрать), `props.gd` (поставить вещь), `inventory_window.gd` (съесть, посадить, выбросить, починить, надеть и снять (`WEAR`, `TAKE_OFF`),
-сундуки, сортировка, корзина, забрать сундук), `craft_panel.gd` (крафт, очередь, станок),
-`death_screen.gd` (ожить). Ответ на петле приходит сразу: функции, что возвращали `bool`
-(`controls.dig_at`, `gathering.gather`, `props.put_from_bag`), берут его из `Reply.value`; через сокет
-они вернут `false` до ответа, а дела по ответу (`_did`, звук еды, тост корзины) идут через `then`.
+**Who calls.** `controls.gd` (dig, place, act, plant, eat), `gathering.gd` (gather, pick up), `props.gd` (place
+a thing), `inventory_window.gd` (eat, plant, drop, repair, put on and take off (`WEAR`, `TAKE_OFF`), chests,
+sorting, the trash can, take a chest), `craft_panel.gd` (crafting, queue, station), `death_screen.gd` (revive).
+On the loop the reply comes at once: the functions that returned `bool` (`controls.dig_at`,
+`gathering.gather`, `props.put_from_bag`) take it from `Reply.value`; through a socket they return `false`
+before the reply, and what is done by the reply (`_did`, the sound of eating, the trash can's toast) goes
+through `then`.
 
-**Что остаётся прямым.** По петле мир один объект (решение 153, 2А): сделанные чанки (`WorldGen.needed`,
-стадии), правки ячеек (`actions.cell_changed` → чанки, `placed.cell_changed` серверных вещей), вещи на
-земле (`world.drops`, событие `drops` только называет чанк) и ветер (`game.storms`) клиент читает у
-сеанса; через сокет то же приходит сообщениями `chunk`, `cells`, `drops` со списком (ветра у копии
-пока нет). Сохранение и страница «Тестирование» (`give`, `heavy`,
-`hunger`, `start_bag`, `find_home`, сезон, погода, час) ходят в `game.host.player` / `host.workshop` /
-`session.clock` / `session.placed` напрямую: это работает, только когда сервер в том же процессе
-(одиночная игра и свой сервер из меню); у клиента, вошедшего на чужой сервер, этих объектов нет. Движение тела — клиент (решение 153, 3А);
-через сокет сервер проверяет его своим телом (`src/server/player.gd`, `check_moves`), по петле
-верит. Тесты и инструменты пишут в серверные объекты (`main.host.player`,
-`main.session.clock`, `main.session.placed`, `main.session.wildlife`), читают копии через интерфейс.
+**What stays direct.** Through the loop the world is one object (decision 153, 2А): the chunks made
+(`WorldGen.needed`, the stages), the cells' edits (`actions.cell_changed` → chunks, `placed.cell_changed` of
+the server's things), the things on the ground (`world.drops`, the event `drops` only names the chunk) and the
+wind (`game.storms`) the client reads from the session; through a socket the same comes in the messages
+`chunk`, `cells`, `drops` with a list (the copy has no wind yet). Saving and the «Testing» page (`give`,
+`heavy`, `hunger`, `start_bag`, `find_home`, season, weather, hour) go to `game.host.player` /
+`host.workshop` / `session.clock` / `session.placed` directly: this works only when the server is in the same
+process (single player and one's own server from the menu); a client that has joined someone else's server has
+no such objects. The body's movement is the client's (decision 153, 3А); through a socket the server checks it
+with its own body (`src/server/player.gd`, `check_moves`), through the loop it trusts. Tests and tools write to
+the server's objects (`main.host.player`, `main.session.clock`, `main.session.placed`,
+`main.session.wildlife`), and read the copies through the interface.
 
-**Подводные камни.** Переменная под `Reply` не типизируется (`var r = game.net.request(…)`: тип
-вложенного класса не выводится). Запрос, отданный хосту мимо `Connection` (как в тесте), сдвигает
-счётчик: следующие запросы соединения с меньшим номером отказываются. `bytes_to_var` на мусоре пишет
-ошибку движка: `decode` отдаёт `[]`, но проверку размера и версию заголовка добавит С3. Циклы ссылок
-между RefCounted (игрок ↔ мастерская, тело ↔ игрок, хост ↔ соединение) не освобождаются — `run_tests`
-пишет «ObjectDB instances leaked»: связь назад — сигналом или аргументом (`flush(net)`), не полем.
-Копия на клиенте отстаёт от сервера на `flush`: тест, что пишет в `host.player`, ждёт кадр, прежде чем
-читать `game.character`. Сигнал `Inventory.changed` сундука подключается с клеткой (`bind(e.cell)`), не
-с записью: запись держит сумку, сумка держала бы `Callable` с записью — цикл; `is_connected` и
-`disconnect` сверяют тот же `bind`. Кто «смотрит» на зверя (`near`, каждый кадр против шага в 0,1 с),
-решает сеанс (`Wildlife.look_from`): звери на экране игрока, каким клиент его прислал в `input`
-(прямоугольник, повёрнутый с камерой, не больше `NEAR` 28 единиц в каждую сторону; пока экран не
-прислан — круг `NEAR`). Через сокет: номера запросов — на связь, на новой связи (страница
-перезагружена) они снова с единицы (`PlayerLink.rejoin`), так что повтор после обрыва не
-отсеивается — только в пределах связи. Сцена сервера, добавленная под корень в `_initialize` теста,
-готовится (`_ready`) только со следующим кадром: ждать `server.server != null`. Соединения
-`WebSocketPeer` в одном процессе (сервер и боты) открываются за два-три кадра; `get_close_code()` —
-−1, когда сервера нет или связь оборвана без кадра закрытия. Один процесс слушает один порт:
-`server_test` берёт 7791, игра — 7777.
+**Pitfalls.** A variable under `Reply` is not typed (`var r = game.net.request(…)`: the type of a nested class
+is not inferred). A request given to the host past `Connection` (as in a test) shifts the counter: the next
+requests of the connection with a lower number are refused. `bytes_to_var` on garbage writes an engine error:
+`decode` gives `[]`, but the size check and the header's version will be added by С3. Reference cycles between
+RefCounted (player ↔ workshop, body ↔ player, host ↔ connection) are not freed — `run_tests` writes «ObjectDB
+instances leaked»: the link back is a signal or an argument (`flush(net)`), not a field. The copy on the client
+lags behind the server by a `flush`: a test that writes to `host.player` waits a frame before reading
+`game.character`. The chest's signal `Inventory.changed` is connected with the cell (`bind(e.cell)`), not with
+the record: the record holds the bag, the bag would hold a `Callable` with the record — a cycle; `is_connected`
+and `disconnect` check the same `bind`. Who «looks» at an animal (`near`, every frame against a step of 0.1 s)
+is decided by the session (`Wildlife.look_from`): the animals on the player's screen as the client sent it in
+`input` (a rectangle turned with the camera, no more than `NEAR` 28 units to each side; until the screen is
+sent — a circle `NEAR`). Through a socket: the request numbers are per link, on a new link (the page was
+reloaded) they are from one again (`PlayerLink.rejoin`), so a repeat after a break is not weeded out — only
+within a link. The server's scene added under the root in a test's `_initialize` is made ready (`_ready`) only
+with the next frame: wait for `server.server != null`. `WebSocketPeer` connections in one process (the server
+and bots) open in two or three frames; `get_close_code()` is −1 when there is no server or the link broke
+with no closing frame. One process listens on one port: `server_test` takes 7791, the game 7777.
 
-**Сервер для проверки.** `.github/workflows/playtest.yml` запускает сервер на GitHub за туннелем
-(по умолчанию тестовый мир, 3 бота, 2 часа, `[rules] free_items`) с `--playtest --minutes N --bots N
---bot-logs <папка>` (`Config.playtest`). Его срок — `src/server/playtest_host.gd` (`PlaytestHost`,
-дочерний узел сцены сервера): останавливает сервер, когда минуты вышли (за 5 мин говорит всем), `/test
-hour` продлевает (не дольше 300 мин от начала). **Команды «/test» есть у любого сервера**
-(`src/server/test_commands.gd`, `TestCommands`, дочерний узел сцены, `Server.test_command`): на сервере
-для проверки — от любого игрока, на любом другом — от хозяина (`Server.COMMANDS` «test» — `ROLE_PLAYER`,
-роль проверяет `Server.command` и сам `TestCommands`; `stop` вне сервера для проверки — только владельцу).
-`bot+`/`bot-` — боты (не больше 5): процессы этой же игры с `--headless -- --join ws://localhost:<порт>
---bot` (и `--password` сервера; из папки проекта ещё `--path`), на Linux под `nice` с журналом
-`bot<N>.log`, только на компьютере; `Config.bots` запускаются со стартом любого сервера; при остановке
-их убивают. `worlds` — сохранённые миры (`WorldStore.list_worlds`, по имени папки), `world <папка>` —
-перейти в один из них (только имя под `WorldStore.root`, не путь), `new [зерно]` — новый мир, `new test` —
-тестовый. Переход — `server_main.renew(seed, folder)`: `Server.stop` сохраняет мир (если сервер
-сохраняет), всех отключает с кодом `Protocol.CLOSE_RENEW` (4010), новый мир открывается на том же порту
-(туннель и ссылка те же), со своим сохранением (`_open_saves`), а кто хозяин, кто заблокирован и список
-своих переходят с сервера (`access`); `renewed` — и `TestCommands` запускает ботов снова. Игра, получив
-4010, сама входит снова (`Main.rejoin_until`: до 60 с, каждые 2 с, «Сервер переходит в другой мир…»);
-сервер, сделанный в этой игре, — с бандлами его нового мира (`Main._ready` берёт `hosted.mods`).
-В приветствии сервер говорит `playtest` и `host` (хозяин ли вошедший). В игре «Тестирование» → вкладка
-«Сервер» делится на два раздела (`SettingsMenu._server_rows`): «Тестовый сервер (GitHub)» — запустить и
-подключиться, а на нём самом — продлить на час и остановить; «Этот сервер» (на сервере) — добавить и
-убрать бота, тестовый или новый мир на сервере, у сервера, сделанного здесь, — переход в миры этого
-устройства, у чужого — их список в чат, остановить сервер, «Читы на сервере»; у игрока без роли на
-обычном сервере — только строка, что этим управляет хозяин. В одиночной игре на компьютере — «Сделать мир
-сервером и позвать бота» (`Settings.host_with_bot`: мир сохраняется и запускается сервером, как в
-«Создать сервер», с `bots` = 1), в браузере — строка, что свой сервер и боты есть в версии для ПК
-(`Settings.test_server` шлёт «/test …», ответ — в чате). Переключатель «Читы на сервере» шлёт настройки страницы
-(`Protocol.CHEATS`, `Settings.send_cheats` при каждом `apply` и разово сезон, погоду, луну, час) — на
-сервере для проверки и от хозяина любого сервера `src/server/cheats.gd` принимает их как своя игра: скорость и темп работы, прыжки в воздухе (`Player.cheat_air`),
-рост навыков, перегруз, голод, жажда, усталость, холод — свои; стройка, износ, изготовление, бесплатные
-предметы, нападения зверей, часы — всего мира (`Requests.may_cheat` = `Config.playtest` или хозяин; на
-сервере для проверки и отладка ИИ у всех). Ссылка — статус
-`playtest-link` коммита запуска. Боты — игры с `--join … --bot` (`src/client/input/bot.gd`, `Main.bot`):
-вместо клавиш `Bot.move` даёт направление ходьбы и раз в несколько секунд берёт задачу (`TASKS`):
-ходит у точки появления, пишет в чат, жест, выбрасывает вещь, ставит табличку с надписью и костёр, рубит
-дерево рядом, охотится на зверя с `health` рядом (звери отвечают по своим правилам); вещи берёт
-`CRAFT_FREE` по рецепту, мёртвый оживает сам; входит без ключа (каждый раз новым игроком: боты одной машины
- иначе делят ключ и выбивают друг друга) и идёт с `Engine.max_fps = Bot.FPS`, чтобы не отнимать процессор у
-сервера. Сервер раз в `LOAD_EVERY` при игроках пишет в журнал кадры в секунду и самый долгий кадр.
-«Тестирование» → «Запустить тестовый сервер» открывает страницу
-workflow, «Подключиться к тестовому серверу» находит адрес через открытый API GitHub
-(`src/client/net/playtest.gd`: идущий запуск → статус его коммита) и входит под именем из `ServerList`.
+**A server for checking.** `.github/workflows/playtest.yml` runs a server on GitHub behind a tunnel (by default
+the test world, 3 bots, 2 hours, `[rules] free_items`) with `--playtest --minutes N --bots N --bot-logs
+<folder>` (`Config.playtest`). Its term is `src/server/playtest_host.gd` (`PlaytestHost`, a child node of the
+server's scene): stops the server when the minutes run out (5 min before, tells everyone), `/test hour`
+extends it (no more than 300 min from the start). **The «/test» commands exist on any server**
+(`src/server/test_commands.gd`, `TestCommands`, a child node of the scene, `Server.test_command`): on a server
+for checking — from any player, on any other — from the host (`Server.COMMANDS` «test» — `ROLE_PLAYER`, the
+role is checked by `Server.command` and `TestCommands` itself; `stop` outside a server for checking — only for
+the owner). `bot+`/`bot-` — bots (no more than 5): processes of this same game with `--headless -- --join
+ws://localhost:<port> --bot` (and the server's `--password`; from the project's folder `--path` too), on Linux
+under `nice` with the log `bot<N>.log`, only on a computer; `Config.bots` start with the start of any server;
+when it stops they are killed. `worlds` — the saved worlds (`WorldStore.list_worlds`, by the folder's name),
+`world <folder>` — go over to one of them (only a name under `WorldStore.root`, not a path), `new [seed]` — a
+new world, `new test` — the test one. The move is `server_main.renew(seed, folder)`: `Server.stop` saves the
+world (if the server saves), disconnects everyone with the code `Protocol.CLOSE_RENEW` (4010), the new world
+opens on the same port (the tunnel and link are the same), with its own saving (`_open_saves`), and who is a
+host, who is blocked and the list of its own pass over from the server (`access`); `renewed` — and
+`TestCommands` starts the bots again. The game, on getting 4010, enters again itself (`Main.rejoin_until`: up
+to 60 s, every 2 s, «The server is moving to another world…»); a server made in this game — with the bundles of
+its new world (`Main._ready` takes `hosted.mods`). In the welcome the server says `playtest` and `host` (is the
+one who entered a host). In the game «Testing» → the tab «Server» is divided into two sections
+(`SettingsMenu._server_rows`): «Test server (GitHub)» — start and connect, and on it itself — extend by an
+hour and stop; «This server» (on a server) — add and remove a bot, the test or a new world on the server, for a
+server made here — a move into this device's worlds, for someone else's — their list into the chat, stop the
+server, «Cheats on the server»; for a player with no role on an ordinary server — only a line that the host
+manages this. In single player on a computer — «Make the world a server and call a bot»
+(`Settings.host_with_bot`: the world is saved and started as a server, as in «Create a server», with `bots` =
+1), in the browser — a line that one's own server and bots are in the PC version (`Settings.test_server` sends
+«/test …», the reply is in the chat). The switch «Cheats on the server» sends the page's settings
+(`Protocol.CHEATS`, `Settings.send_cheats` on every `apply` and once the season, weather, moon, hour) — on a
+server for checking and from the host of any server `src/server/cheats.gd` takes them like its own game: speed
+and pace of work, jumps in the air (`Player.cheat_air`), skills' growth, overload, hunger, thirst, tiredness,
+cold — one's own; building, wear, making, free items, animals' attacks, the clock — the whole world's
+(`Requests.may_cheat` = `Config.playtest` or a host; on a server for checking AI debugging is for everyone
+too). The link is the status `playtest-link` of the launch's commit. The bots are games with `--join … --bot`
+(`src/client/input/bot.gd`, `Main.bot`): instead of keys `Bot.move` gives the walking direction and once in a
+few seconds takes a task (`TASKS`): walks near the spawn point, writes in the chat, a gesture, drops a thing,
+puts a sign with an inscription and a campfire, chops a tree nearby, hunts an animal with `health` nearby (the
+animals answer by their own rules); takes things `CRAFT_FREE` by recipe, a dead one revives itself; enters with
+no key (each time as a new player: the bots of one machine would otherwise share a key and knock each other
+out) and goes with `Engine.max_fps = Bot.FPS`, so as not to take the processor from the server. Once per
+`LOAD_EVERY` when there are players the server writes frames per second and the longest frame into the log.
+«Testing» → «Start the test server» opens the workflow's page, «Join the test server» finds the address
+through GitHub's open API (`src/client/net/playtest.gd`: a running launch → the status of its commit) and
+enters under the name from `ServerList`.
 
-**Тесты.** `tests/server_test.gd` (сцена сервера в процессе теста, боты через `socket.gd`: вход и
-приглашение с миром, события входа — `you`, `clock`, `props`, `teleport`, каждый зверь один раз;
-отказы — версия, пароль, полный сервер, слово до `hello`; тело из `input`, копка и пауза очереди
-через сокет с событиями до ответа, снимки зверей и часов идут, чанки вокруг тела приходят записями
-мира; обрыв связи — персонаж ждёт, возврат по ключу тем же с той же сумкой, номера запросов заново;
-затем сама игра (`scenes/main.tscn` с `join_url`) входит на сервер: мир из присланных чанков, тело
-там, где поставил сервер, копии вещей, зверей и часов полны, копка другого игрока и своя меняют
-ячейки копии, выкопанное ложится на землю списком; `bye` и короткое ожидание; `who`, `say`,
-`kick` с кодом 4001, `stop` — порт закрыт, никто не входит; свой сервер из меню `LocalHost.host` и команды
-хозяина give / tp / ban / unban / whitelist с отказами по ключу и имени; туннель С7 с подставным
-cloudflared — скриптом, что печатает адрес: адрес, ссылка в журнале, процесс убит на `stop`; `url_in`, `--tunnel`). `tests/unit/net_test.gd` (сообщения туда и обратно; через петлю: вход с `clock` и `props`,
-`input`, копать, крафт и тик с событиями `you`/`shop`/`made` до ответа, `vitals` только при перемене,
-сундук по клетке и его `chest`, вещь по клетке в копию и из неё, костёр потушен, зверь родился /
-бежит / толкнул / ушёл в копии (`snap` только когда сдвинулся), выброс и `drops`, смерть и `revive` с
-`teleport`, `say` один раз; снимок часов другой формы отказан; не подошедший запрос; повтор и
-устаревший номер; выход — и ничего о мире больше); `_test_layers` в `content_test.gd` (`net/` грузит только
-`content/`, `src/server/` не грузит `src/client/`, клиент грузит `src/server/` только из
-`local_host.gd`); `save_test` (смерть через сервер, мёртвый мир, узел сервера под корнем и уходит со
-сценой), `progress_test`, `frame_test` играют через петлю.
+**Tests.** `tests/server_test.gd` (the server's scene in the test's process, bots through `socket.gd`: the entry
+and the welcome with the world, the entry events — `you`, `clock`, `props`, `teleport`, each animal once;
+refusals — version, password, a full server, a word before `hello`; the body from `input`, digging and the
+queue's pause through a socket with events before the reply, the animals' and clock's snapshots go, the chunks
+around the body come as the world's records; a broken link — the character waits, a return by the key as the
+same one with the same bag, the request numbers anew; then the game itself (`scenes/main.tscn` with
+`join_url`) enters the server: the world from the sent chunks, the body where the server put it, the copies of
+things, animals and the clock are full, another player's digging and one's own change the copy's cells, what
+was dug lies on the ground as a list; `bye` and a short wait; `who`, `say`, `kick` with code 4001, `stop` — the
+port is closed, nobody enters; one's own server from the menu `LocalHost.host` and the host's commands give /
+tp / ban / unban / whitelist with refusals by key and name; the С7 tunnel with a fake cloudflared — a script
+that prints an address: the address, the link in the log, the process killed on `stop`; `url_in`,
+`--tunnel`). `tests/unit/net_test.gd` (messages there and back; through the loop: entry with `clock` and
+`props`, `input`, digging, crafting and a tick with the events `you`/`shop`/`made` before the reply, `vitals`
+only on a change, a chest by a cell and its `chest`, a thing by a cell into the copy and out of it, a campfire
+put out, an animal born / running / pushed / left in the copy (`snap` only when it moved), a drop and `drops`,
+death and `revive` with `teleport`, `say` once; a clock snapshot of another shape is refused; a request that
+does not fit; a repeat and a stale number; leaving — and nothing more about the world); `_test_layers` in
+`content_test.gd` (`net/` loads only `content/`, `src/server/` does not load `src/client/`, the client loads
+`src/server/` only from `local_host.gd`); `save_test` (death through the server, a dead world, the server node
+under the root and goes away with the scene), `progress_test`, `frame_test` play through the loop.

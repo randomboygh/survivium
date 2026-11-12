@@ -22,7 +22,7 @@
   (`choose_world`, `switch_world`), восстановление (`restore_player`, `restore_clock`). Выключен в тестах
   и инструментах (`enabled`).
 - `src/server/server_store.gd` — то же для сервера без окна: пишет мир каждые 10 с и на `stop`, с командами,
-  боями и игроками по их ключам ([network.md](network.md)).
+  боями и игроками по их ключам ([network.md](network_RU.md)).
 - `src/shared/content/mods.gd` — `of_world(meta)`: бандлы сохранённого мира по его `world.json` (общий код:
   тем же откроет миры сервер).
 
