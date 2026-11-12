@@ -142,18 +142,54 @@ func start() -> bool:
 	if config.tunnel:
 		open_tunnel()
 	if config.real_weather:
-		real_weather = RealWeather.new()
-		real_weather.clock = session.clock
-		real_weather.report = say
-		real_weather.enabled = true
-		add_child(real_weather)
-		say("real weather: finding where the server is…")
+		_start_weather()
 	if config.playtest and not hosted:
 		playtest_host = PlaytestHost.new(self)
 		add_child(playtest_host)
 	test_commands = TestCommands.new(self)
 	add_child(test_commands)
 	return true
+
+
+## The weather of the real world where the server is, pinned on the world's clock.
+func _start_weather() -> void:
+	real_weather = RealWeather.new()
+	real_weather.clock = session.clock
+	real_weather.report = say
+	real_weather.enabled = true
+	add_child(real_weather)
+	say("real weather: finding where the server is…")
+
+
+## The settings that change while the server runs (the window «Создать сервер» →
+## «Настройки» of a server made in the game): of `values` (LocalHost.server_settings'
+## keys) how many players it takes, how often it saves, how long a day lasts, the real
+## weather and the rules (over Config.rules); the port, the name, the password and the
+## tunnel hold until it starts again. They take effect at once and go into its settings
+## file.
+func apply_settings(values: Dictionary) -> void:
+	if values.has("max_players"):
+		config.max_players = maxi(1, int(values.max_players))
+	if values.has("autosave"):
+		config.autosave = maxf(1.0, float(values.autosave))
+	if values.has("day_minutes"):
+		config.day_minutes = config._day(float(values.day_minutes))
+	if values.has("real_weather"):
+		config.real_weather = bool(values.real_weather)
+	if values.get("rules") is Dictionary:
+		config.rules.merge(values.rules, true)
+	if session != null:
+		session.rules.from_dict(config.rules)
+		session.clock.time_speed = config.day_speed()
+	if saves != null:
+		saves.every = config.autosave
+	if config.real_weather and real_weather == null and session != null:
+		_start_weather()
+	elif real_weather != null:
+		real_weather.enabled = config.real_weather
+	config.write()
+	say("settings changed: %d players, autosave %ds, day %d min, real weather %s, pvp %s" % [config.max_players,
+		roundi(config.autosave), roundi(config.day_minutes), "on" if config.real_weather else "off", config.pvp])
 
 
 ## The save of the world opened (ServerStore), and who may come in from it.
