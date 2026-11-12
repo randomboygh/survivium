@@ -20,6 +20,7 @@ const PersonPanel := preload("res://src/client/ui/person_panel.gd")
 const BodyFeedback := preload("res://src/client/ui/body_feedback.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
+const FadingList := preload("res://src/client/ui/kit/fading_list.gd")
 const SignWindow := preload("res://src/client/ui/sign_window.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const GestureWheel := preload("res://src/client/ui/gesture_wheel.gd")
@@ -36,6 +37,8 @@ const BAG_DIVISION := 6
 const FREE_DIVISION := Color("#3a2c20")
 ## The warm gold a notice's panel is tinted (see notice).
 const NOTICE_TINT := Color(1.0, 0.86, 0.55)
+## The cool tint of the server's notices to its host (see server_note).
+const SERVER_TINT := Color(0.72, 0.86, 1.0)
 var game
 ## A refresh of the hotbar is asked for this frame (see _counts_later).
 var _counts_due := false
@@ -62,7 +65,9 @@ var _wind_step := -1
 var _clock: Label
 ## The season and the time, under the right end of the hotbar.
 var _clock_panel: PanelContainer
-var _toasts: VBoxContainer
+var _toasts: FadingList
+## The server's notices to its host, under the toasts (see server_note).
+var _server_notes: FadingList
 ## How wide a toast may be, in UI px: up to the buttons and the minimap on the right
 ## (see _place_top); a longer one wraps.
 var _toast_room := 200.0
@@ -150,6 +155,13 @@ var _marks_dirty := true
 var _sacks_seen: Array[Vector3] = []
 ## The vessels last marked on the map: [item, where]… (see _update_marks).
 var _vessels_seen: Array = []
+
+
+## Keeps the room under the state that list `list` (the toasts, the server's notices)
+## shows in as tall as the list.
+func _fit_area(list: Control) -> void:
+	list.reset_size()
+	(list.get_parent() as Control).custom_minimum_size = list.get_combined_minimum_size()
 
 
 func _panel(parent: Node) -> PanelContainer:

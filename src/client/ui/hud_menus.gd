@@ -190,10 +190,7 @@ func _build_menu() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	_menu.add_child(box)
-	var title := UiStyle.label("[pause]", UiStyle.ACCENT)
-	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(title)
+	box.add_child(Kit.title("[pause]"))
 	_menu_buttons["resume"] = _add_menu_button(box, "[continue]", toggle_menu)
 	_menu_buttons["settings"] = _add_menu_button(box, "[settings]", open_settings.bind("settings"))
 	_menu_buttons["test"] = _add_menu_button(box, "[testing]", open_settings.bind("test"))

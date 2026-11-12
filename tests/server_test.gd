@@ -23,6 +23,7 @@ const Tunnel := preload("res://src/server/tunnel.gd")
 const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const Config := preload("res://src/server/config.gd")
 const Server := preload("res://src/server/server.gd")
+const OthersScript := preload("res://src/client/view/others.gd")
 
 const ROOT := "user://test_saves/server"
 const PORT := 7791
@@ -315,6 +316,32 @@ func _run() -> void:
 			and not main.others.people.has(3), "with his name over his head; the game itself is not among the others (%s)" % [main.others.people.keys()])
 		_check(back.of(Protocol.PEOPLE).any(func(e: Array) -> bool: return e[1].any(func(p: Array) -> bool: return p[0] == 3 and p[1] == "Клиент")),
 			"the game's player is told to the others")
+		# Walking on, he leaves boot prints on the game's screen and, in deep snow, his
+		# trail in the game's copy of the world, which eases the game's own walking there.
+		var snow_was: float = server.session.clock.snow
+		server.session.clock.snow = 1.0
+		await _until(func() -> bool: return main.clock.snow > 0.9, 5.0)
+		var print_was: Vector3 = main.others.people[2].print_at
+		var on: Vector3 = aside
+		for i in 3:
+			on += Vector3(1.5 * WorldData.CELL, 0.0, 0.0)
+			_input_at(borya, on)
+			var there := on
+			await _until(func() -> bool: return main.others.people[2].figure.position.distance_to(there) < 0.5 * WorldData.CELL, 5.0)
+		var row := floori(aside.z / WorldData.CELL)
+		var from := floori(aside.x / WorldData.CELL)
+		var to := floori(on.x / WorldData.CELL)
+		var walked_cols := func() -> bool:
+			for c: Vector2i in main.world.trodden:
+				if c.y == row and c.x >= from and c.x < to:
+					return true
+			return false
+		_check(main.others.people[2].print_at.distance_to(print_was) >= OthersScript.STRIDE,
+			"another player walking leaves boot prints (%s -> %s)" % [print_was, main.others.people[2].print_at])
+		_check(await _until(walked_cols, 5.0), "and his trail in the snow (%s)" % [main.world.trodden.keys()])
+		server.session.clock.snow = snow_was
+		_input_at(borya, aside)
+		await _until(func() -> bool: return main.others.people[2].figure.position.distance_to(aside) < 0.5 * WorldData.CELL, 5.0)
 		# A torch in his hand burns there and lights round him on the game's screen too.
 		server.session.players[1].inventory.add("tools:torch", 1)
 		_input_at(borya, aside, ["tools:torch", ""])
@@ -648,6 +675,20 @@ func _chat(node: Node, a: Bot, b: Bot) -> void:
 	_check(await _until(func() -> bool: return who.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and str(e[1][2]).begins_with("Players online"))),
 		"a host's command in the chat is done and answered there")
 	_check(not a.of(Protocol.HEARD).any(func(e: Array) -> bool: return str(e[1][2]).begins_with("Players online")), "to them alone")
+	# The hosts are told who comes, who is not let in and who is put out (NOTED); the
+	# players are not. (The server's lines read in English here.)
+	var noted := func(bot: Bot, what: String) -> bool: return bot.of(Protocol.NOTED).any(func(e: Array) -> bool:
+		return e[1].size() == 1 and Lang.t(str(e[1][0])) == what)
+	var guest := _bot("Гость", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return guest.reply.done and noted.call(b, "Гость joined the server for the first time")),
+		"a host is told that a player came in for the first time")
+	var reserved := _bot("Server", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return reserved.reply.done and noted.call(b, "Not let in: Server (the name is taken)")),
+		"and that one was not let in, and why")
+	node.command("kick Гость")
+	_check(await _until(func() -> bool: return noted.call(b, "The host disconnected Гость")), "and that the host put one out")
+	_check(not a.of(Protocol.NOTED).any(func(_e: Array) -> bool: return true) and not guest.of(Protocol.NOTED).any(func(_e: Array) -> bool: return true),
+		"a player who is not a host is told none of it")
 	node.command("deop Чужой")
 	_check(not server.is_host(b.reply.value.key), "deop takes it back")
 	_check(not (await _said(b, "")) and not (await _said(b, "   ")), "an empty line is not said")

@@ -18,7 +18,11 @@ same.
   cells, the distances to the shore and a river; continents, mountains with scree and snow above
   `WorldData.SNOW_LINE`, rivers by steps (rapids, waterfalls), deltas, lakes (no nearer than `LAKE_SHORE` to
   the sea: a low shore stays between a lake and the sea, a lake does not cut into the shallows deeper than
-  it), the climate (warmth, moisture), caves (`_tunnels`, the number by the setting `caves`); with the
+  it), the climate (warmth, moisture), caves (`_tunnels`, the number by the setting `caves`; with the setting
+`cave_shape` 1 (new worlds; 0 — old ones, hollows of 3D noise with pits and slits for mouths) halls of two
+tiers, lenses with a domed ceiling and a floor rising gently to the rim, joined by galleries three to five
+cells wide, every hollow three cells tall or more, and a cave mouth a funnel from the surface down to a hall's
+floor: `WorldGen._halls`); with the
   setting `relief` 1 (new worlds; 0 — old ones) ridges, gorges and outliers where it is cool and damp, mesas
   with striped walls and canyons where it is hot and dry (`_ranges_and_mesas`); with the setting `climate` 1
   (new worlds; 0 — old ones) warmth goes by climate zones: the slow noise of a zone (`n_zone`, `ZONE_SLOWER`
@@ -92,7 +96,8 @@ chunk is made only by stages and in pieces: no generation of a whole chunk in a 
 (`tests/frame_test.gd`).
 
 **Tests.** `tests/unit/generation_test.gd` (`generation`: independence from order; `mountains`, `caves`,
-`relief`, `trees`, `bushes`, `custom_plants`), `tools/bench_gen.gd`, `tools/map.gd` (the map from above).
+`cave_shape`, `relief`, `trees`, `bushes`, `custom_plants`), `tools/bench_gen.gd`, `tools/map.gd` (the map from
+above), `tools/cave_map.gd` (the caves of a patch: from above and in slices from the side).
 
 **In more detail.** `plan/design/landscape.md`, `plan/design/world.md`, `plan/design/trees.md`,
 `plan/architecture/performance.md`; the decisions about relief in the journal `plan/README.md`.

@@ -9,6 +9,9 @@ const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
 const KitWindow := preload("res://src/client/ui/kit/window.gd")
 const SlotStrip := preload("res://src/client/ui/kit/slot_strip.gd")
+const FadingList := preload("res://src/client/ui/kit/fading_list.gd")
+const ChatBox := preload("res://src/client/ui/chat_box.gd")
+const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
 
 
 func run() -> void:
@@ -16,7 +19,10 @@ func run() -> void:
 	_test_choice_rows()
 	_test_window()
 	_test_strip()
+	_test_vitals()
 	_test_gallery()
+	_test_fading_list()
+	_test_chat_lines()
 
 
 func _test_two_tap() -> void:
@@ -66,6 +72,44 @@ func _test_choice_rows() -> void:
 	ev.physical_keycode = KEY_LEFT
 	_check(rows.key(ev) and v.d == 0 and stepped[0] == 3, "left steps the row in focus and tells it")
 	box.free()
+	_test_switch_rows()
+
+
+## A row of only off and on is a switch; a row that stops at its ends has the arrow
+## towards the end it is at off.
+func _test_switch_rows() -> void:
+	var rows := ChoiceRows.new()
+	var box := VBoxContainer.new()
+	var v := {"on": 1, "flip": 0, "vol": 0, "dead": 1}
+	rows.add(box, "On", ["[off]", "[on]"], func() -> int: return v.on, func(i: int) -> void: v.on = i)
+	rows.add(box, "Flip", ["[on]", "[off]"], func() -> int: return v.flip, func(i: int) -> void: v.flip = i)
+	rows.add(box, "Vol", ["[off]", "50%", "100%"], func() -> int: return v.vol, func(i: int) -> void: v.vol = i, {"stop": true})
+	rows.add(box, "Dead", ["[off]", "[on]"], func() -> int: return v.dead, func(i: int) -> void: v.dead = i,
+		{"works": func() -> bool: return false})
+	rows.refresh()
+	_check(rows.rows[0].has("switch") and rows.rows[0].left == null and rows.rows[0].switch.button_pressed,
+		"a row of off and on is a switch, lit when on")
+	_check(rows.rows[1].switch.button_pressed and rows.rows[1].on == 0, "on first in the values is lit too")
+	_check(not rows.rows[2].has("switch"), "a row of more values keeps its arrows")
+	var told := [-1]
+	rows.stepped.connect(func(i: int) -> void: told[0] = i)
+	rows.rows[0].switch.button_pressed = false
+	_check(v.on == 0 and told[0] == 0 and rows.text_of(0) == "[off]", "a tap on the switch turns the value and tells it")
+	rows.step(1, 1)
+	_check(v.flip == 0, "right on a switch that is on leaves it on")
+	rows.step(1, -1)
+	_check(v.flip == 1 and not rows.rows[1].switch.button_pressed, "left turns it off")
+	rows.rows[3].switch.button_pressed = false
+	_check(v.dead == 1 and rows.rows[3].switch.button_pressed and rows.rows[3].switch.disabled,
+		"a switch that cannot change stays and is off for taps")
+	_check(rows.rows[2].left.disabled and not rows.rows[2].right.disabled, "at the first value the left arrow of a stopping row is off")
+	rows.step(2, 1)
+	rows.step(2, 1)
+	_check(v.vol == 2 and rows.rows[2].right.disabled and not rows.rows[2].left.disabled, "at the last the right one")
+	var sw := Kit.check("A", true)
+	_check(sw.button_pressed and sw.text == "A", "the kit's switch carries its name and value")
+	sw.free()
+	box.free()
 
 
 func _test_window() -> void:
@@ -107,6 +151,32 @@ func _test_strip() -> void:
 	strip.free()
 
 
+## The state panel: what hinders the body, and the panel widening for its column.
+func _test_vitals() -> void:
+	var v := Vitals.new()
+	_check(VitalsPanel.debuffs_of(v, false).is_empty(), "a rested dry body has nothing hindering it")
+	v.wet = 0.5
+	v.stamina = 2.0
+	_check(VitalsPanel.debuffs_of(v, true) == ["wet", "tired", "heavy"], "wet, out of breath, overloaded, in order")
+	var panel := VitalsPanel.new()
+	panel._ready()
+	var canvas: Control = panel._canvas
+	var narrow := canvas.custom_minimum_size.x
+	panel.update(v, 0.1, true)
+	_check(canvas.custom_minimum_size.x > narrow and panel.visible, "the panel widens for the column and shows")
+	panel.update(Vitals.new(), 0.1, false)
+	_check(is_equal_approx(canvas.custom_minimum_size.x, narrow) and panel.columns.is_empty(),
+		"and shrinks back to the health bar: nothing low shows no standing bar")
+	var thirsty := Vitals.new()
+	thirsty.water = 10.0
+	panel.update(thirsty, 0.1, false)
+	_check(panel.columns == ["water"], "a low one shows alone")
+	panel.pinned = true
+	panel.update(thirsty, 0.1, false)
+	_check(panel.columns.size() == 4, "all of them with the bag open")
+	panel.free()
+
+
 func _test_gallery() -> void:
 	# The tests run before the tree's first frame: the window is built out of it, its
 	# _ready called by hand.
@@ -142,3 +212,39 @@ func _test_gallery() -> void:
 	gallery.close()
 	_check(closed[0], "«Закрыть» tells it closed")
 	host.free()
+
+
+## A list of lines that come and go (FadingList), built out of the tree as the tests
+## are: there nothing moves, a line is there at once and one dropped is gone.
+func _test_fading_list() -> void:
+	var list := FadingList.new()
+	var first := list.add(Label.new())
+	var second := list.add(Label.new())
+	var top := list.add(Label.new(), first)
+	_check(list.get_child(0) == top and list.get_child(1) == first and list.get_child(2) == second,
+		"a line put before another comes in above it")
+	_check(first.get_child(0) is Label and first.modulate.a == 1.0 and first.custom_minimum_size.y == (first.get_child(0) as Control).get_combined_minimum_size().y + list.gap
+		and first.size_flags_horizontal == Control.SIZE_SHRINK_BEGIN, "a line is in a holder as tall as it and the room under it")
+	list.drop(first)
+	_check(list.shown() == [top, second] and list.get_child_count() == 2, "a line dropped is gone")
+	list.clear()
+	_check(list.get_child_count() == 0, "clear takes every line at once")
+	list.free()
+
+
+## The chat's lines in its list: the last SHOWN heard show, the newest at the bottom.
+func _test_chat_lines() -> void:
+	var chat = ChatBox.new({"welcome": {"id": 1}, "join_url": "ws://x"})
+	chat._ready()
+	chat.place(Vector2(8, 300), 400)
+	var watching := Lang.watching
+	Lang.watching = false
+	for i in ChatBox.SHOWN + 2:
+		chat.hear(2, "Боря", "строка %d" % i)
+	Lang.watching = watching
+	var shown: Array = chat._list.shown()
+	_check(shown.size() == ChatBox.SHOWN and chat._shown.size() == ChatBox.SHOWN,
+		"the chat shows its last %d lines: %d" % [ChatBox.SHOWN, shown.size()])
+	_check(not shown.is_empty() and (shown.back().get_child(0) as Label).text == "Боря: строка %d" % (ChatBox.SHOWN + 1)
+		and (shown.front().get_child(0) as Label).text == "Боря: строка 2", "the newest at the bottom, the older ones gone")
+	chat.free()

@@ -173,6 +173,9 @@ var patches := 0
 ## plant parts, keep, budget], [] for none. Before 2026-11-08 the edit waited for it:
 ## a far chunk at the stream budget kept a felled tree standing for seconds on a phone.
 var stashed := []
+## The chunks set aside so far, by key (the last one): a fast machine sets one aside and
+## takes it up again within a frame, where `stashed` alone would not show it (frame_test).
+var last_stashed := Vector2i(0x7fffffff, 0)
 var job_key := Vector2i.ZERO
 var job_edit := false
 var job_budget := 0
@@ -611,6 +614,7 @@ func _drop_job() -> void:
 ## Sets the chunk being streamed aside for the edits (see stashed).
 func _stash_job() -> void:
 	stashed = [job_key, job_mesh, job_plants, job_part, job_meshes, job_plant_parts, job_keep, job_budget, job_ground]
+	last_stashed = job_key
 	has_target = false
 	_drop_job()
 

@@ -101,8 +101,8 @@ func _ready() -> void:
 		centre = Vector2(minimap.player_cell)
 		_hide_popup()
 		redraw())
-	_title = UiStyle.label("[map_n2]", UiStyle.ACCENT)
-	_title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
+	_title = Kit.title("[map_n2]")
+	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	add_child(_title)
 	_where = UiStyle.label("", UiStyle.INK)
 	add_child(_where)

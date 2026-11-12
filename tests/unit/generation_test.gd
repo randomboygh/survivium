@@ -6,6 +6,7 @@ func run() -> void:
 	_test_generation()
 	_test_mountains()
 	_test_caves()
+	_test_cave_shape()
 	_test_relief()
 	_test_trees()
 	_test_bushes()
@@ -274,6 +275,63 @@ func _test_caves() -> void:
 	_check(counts[0][1] < counts[1][1] and counts[1][1] < counts[2][1], "more cave mouths with the setting")
 	_check(counts[0][2] < counts[1][2] and counts[1][2] < counts[2][2], "more hollows under the ground with the setting")
 	_check(WorldGen.new(20261018).settings.caves == 1, "a world made before the setting keeps its caves")
+
+
+## Cave shape 1 (new worlds): halls and galleries no lower than three cells, so there
+## are no slits to squeeze through; a mouth is a funnel open to the sky down to a floor
+## many levels under the ground; no water leaks into them; the same in any order.
+func _test_cave_shape() -> void:
+	_check(WorldGen.new(20261018).settings.cave_shape == 0, "a world made before the cave shape keeps its caves")
+	var gen := WorldGen.new(20261018, 48, {"caves": 1, "cave_shape": 1, "relief": 1, "climate": 1})
+	var near := Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
+	var at := gen.find_place("mountain", near)
+	var key := WorldData.chunk_key(at.x, at.y)
+	gen.generate_area(key - Vector2i(2, 2), key + Vector2i(2, 2))
+	var w := gen.world
+	var keys := []
+	for dz in range(-2, 2):
+		for dx in range(-2, 2):
+			keys.append(key + Vector2i(dx, dz))
+	var lay := gen.lay_out(key.x * WorldData.CHUNK - 32, key.y * WorldData.CHUNK - 32, 64, 64)
+	var low := 0
+	var hollow := 0
+	var deep_mouths := 0
+	for lz in 64:
+		for lx in 64:
+			var x: int = lay.x0 + lx
+			var z: int = lay.z0 + lz
+			var top: int = lay.heights[lz * 64 + lx]
+			var run := 0
+			for y in range(1, top + 2):
+				var air := w.get_cell(x, y, z) == Mat.AIR
+				if air:
+					run += 1
+					hollow += 1
+					continue
+				if run > 0 and run < 3:
+					low += 1
+				run = 0
+			var open := 0
+			while open < top and w.get_cell(x, top - open, z) == Mat.AIR:
+				open += 1
+			if open >= 6:
+				deep_mouths += 1
+	_check(hollow > 2000, "cave shape 1 hollows the ground (%d cells)" % hollow)
+	_check(low == 0, "no cave is lower than three cells (%d)" % low)
+	_check(deep_mouths > 0, "a mouth opens to the sky many levels down")
+	_check(_leaks(w, keys) == 0, "no water leaks into the halls")
+	# The same chunk made alone in a fresh generator is the same.
+	var again := WorldGen.new(20261018, 48, {"caves": 1, "cave_shape": 1, "relief": 1, "climate": 1})
+	again.generate_area(key, key + Vector2i(1, 1))
+	var same := true
+	for y in 48:
+		for lz in 16:
+			for lx in 16:
+				var x := key.x * 16 + lx
+				var z := key.y * 16 + lz
+				if gen.world.get_cell(x, y, z) != again.world.get_cell(x, y, z):
+					same = false
+	_check(same, "cave shape 1 cuts the same in any order")
 
 
 ## Relief 1: ranges with gorges, tors, mesas with banded walls and canyons, the same

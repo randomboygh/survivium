@@ -137,6 +137,10 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   `OTHER_LIGHTS` (3) nearest to the player also shine like one's own torch (`Sky.lamp_gain`,
   `Effects.torch_off`, two torches farther, for a swimming one shorter), with no shadows and always as new
   (how much is left to burn the server does not say); `server_test` checks, the shot `team-torches`.
+  Walking on the ground (not swimming, not in a boat) they leave boot prints every `STRIDE` (0.55, as one's
+  own in `main.gd`) through `tracks.gd`, and in deep snow tread the client's copy of the world
+  (`WorldData.tread`), so their trail eases one's own walking as on the server; a move over `LEAP` (2 units:
+  a teleport, a respawn) leaves none; `server_test` checks.
 - Gestures (decision 183): `src/shared/game/gestures.gd` — the list `LIST` (wave, yes, no, point, here, bow,
   clap, sit: the wheel's words, the animation of `player.yaml`, seconds; «sit» — until movement), `make` (the
   request `gesture`, the name is checked against the list, "" — stop), `now_of` (a gesture ends by time, on

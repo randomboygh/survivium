@@ -1,6 +1,7 @@
 extends "res://src/client/ui/hud_parts.gd"
 ## The game screen's interface, part two (hud.gd): the loading line, the short
-## messages under the state (toast, notice) that come, rise and fade, and the hint by the
+## messages under the state (toast, notice) and the server's notices to its host
+## (server_note) that come, rise and fade (the UI kit's FadingList), and the hint by the
 ## mouse pointer.
 
 ## The room round the buttons and panels on the screen, in UI pixels, where a tap
@@ -8,9 +9,12 @@ extends "res://src/client/ui/hud_parts.gd"
 const SAFE_ZONE := 8
 const TOAST_TIME := 4.0
 const MAX_TOASTS := 3
-## How long a toast takes to come and to go, and how far it rises as it comes.
-const TOAST_FADE := 0.35
-const TOAST_RISE := 8.0
+## How long a toast takes to come and to go (the UI kit's FadingList).
+const TOAST_FADE := FadingList.TIME
+## Seconds a server's notice to its host shows, how many show, the room after its mark.
+const SERVER_NOTE_TIME := 6.0
+const MAX_SERVER_NOTES := 3
+const SERVER_MARK_GAP := 4
 const KEYS := "[wasd_walk_space_jump_lmb]"
 
 
@@ -30,32 +34,19 @@ func toast(text: String) -> void:
 	_toast(text)
 
 
-func _toast(text: String) -> void:
-	# Each in a holder of its size, inside which it rises into place.
-	var holder := Control.new()
-	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	_toasts.add_child(holder)
-	var p := _panel(holder)
+func _toast(text: String) -> Control:
+	var p := PanelContainer.new()
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(UiStyle.label(text))
-	p.minimum_size_changed.connect(func() -> void:
-		p.reset_size()
-		holder.custom_minimum_size = p.get_combined_minimum_size())
+	var holder := _toasts.add(p)
 	_fit_toast(p)
-	p.reset_size()
-	holder.custom_minimum_size = p.get_combined_minimum_size()
-	holder.modulate.a = 0.0
-	p.position.y = TOAST_RISE
-	var come := holder.create_tween().set_parallel()
-	come.tween_property(holder, "modulate:a", 1.0, TOAST_FADE)
-	come.tween_property(p, "position:y", 0.0, TOAST_FADE).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	holder.set_meta("tween", come)
 	var life := holder.create_tween()
 	life.tween_interval(TOAST_FADE + TOAST_TIME)
-	life.tween_callback(_toast_leave.bind(holder))
-	var shown := _toasts.get_children().filter(func(h: Node) -> bool: return not h.has_meta("leaving"))
+	life.tween_callback(_toasts.drop.bind(holder))
+	var shown := _toasts.shown()
 	while shown.size() > MAX_TOASTS:
-		_toast_leave(shown.pop_front())
+		_toasts.drop(shown.pop_front())
+	return holder
 
 
 ## A notice in the list of toasts (see toast) that stands out: a gold star by `title`
@@ -63,49 +54,56 @@ func _toast(text: String) -> void:
 func notice(title: String, sub: String) -> void:
 	Lang.seen(title)
 	Lang.seen(sub)
-	_toast("★ " + Lang.t(title) + "\n" + Lang.t(sub))
-	var holder: Control = _toasts.get_child(_toasts.get_child_count() - 1)
-	if holder.get_child_count() > 0:
-		var p: Control = holder.get_child(0)
-		p.self_modulate = NOTICE_TINT
-		var label := p.get_child(0) as Label
-		if label != null:
-			label.add_theme_color_override("font_color", UiStyle.ACCENT)
+	var holder := _toast("★ " + Lang.t(title) + "\n" + Lang.t(sub))
+	var p: Control = holder.get_child(0)
+	p.self_modulate = NOTICE_TINT
+	var label := p.get_child(0) as Label
+	if label != null:
+		label.add_theme_color_override("font_color", UiStyle.ACCENT)
 
 
-## Toast `holder` (see toast) fades away, the list sliding up by it as it goes.
-func _toast_leave(holder: Control) -> void:
-	if holder.has_meta("leaving"):
-		return
-	holder.set_meta("leaving", true)
-	var come: Tween = holder.get_meta("tween")
-	if come.is_valid():
-		come.kill()
-	var go := holder.create_tween()
-	go.tween_method(func(a: float) -> void:
-		holder.modulate.a = a
-		_scroll_toasts(), holder.modulate.a, 0.0, TOAST_FADE).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	go.tween_callback(func() -> void:
-		_toasts.remove_child(holder)
-		holder.queue_free()
-		_scroll_toasts())
-
-
-## Moves the list of toasts up by the share of each toast leaving that has faded: the
-## whole of it as it is gone, when the list closes up under it.
-func _scroll_toasts() -> void:
-	var off := 0.0
-	var sep := _toasts.get_theme_constant("separation")
-	for h: Control in _toasts.get_children():
-		if h.has_meta("leaving"):
-			off += (h.size.y + sep) * (1.0 - h.modulate.a)
-	_toasts.position.y = -roundf(off)
+## A notice of the server to its host (Protocol.NOTED: a player came or went, was not let
+## in), `line` a phrase put together (Lang.line): in a list of its own under the toasts,
+## cool-tinted with the server's mark, coming and going as they do, the last
+## MAX_SERVER_NOTES kept for SERVER_NOTE_TIME each.
+func server_note(line: String) -> void:
+	var p := PanelContainer.new()
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.self_modulate = SERVER_TINT
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", SERVER_MARK_GAP)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(row)
+	var mark := TextureRect.new()
+	mark.texture = UiStyle.icon("server")
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(mark)
+	# The names in it are the players' own: the line is put into the language here.
+	var label := UiStyle.label(Lang.t(line), UiStyle.COLD)
+	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(label)
+	print("server note: %s" % label.text)
+	var holder := _server_notes.add(p)
+	_fit_toast(p)
+	var life := holder.create_tween()
+	life.tween_interval(FadingList.TIME + SERVER_NOTE_TIME)
+	life.tween_callback(_server_notes.drop.bind(holder))
+	var shown := _server_notes.shown()
+	while shown.size() > MAX_SERVER_NOTES:
+		_server_notes.drop(shown.pop_front())
 
 
 ## Wraps toast `p`'s text when it is wider than the room left of the buttons.
 func _fit_toast(p: PanelContainer) -> void:
-	var l: Label = p.get_child(0)
+	var l: Label = p.get_child(0) as Label
 	var frame := p.get_theme_stylebox("panel").get_minimum_size().x
+	if l == null:
+		# A server's notice: its mark before the line.
+		var row: Control = p.get_child(0)
+		l = row.get_child(1)
+		frame += (row.get_child(0) as Control).get_combined_minimum_size().x + SERVER_MARK_GAP
 	var room := floorf(_toast_room - frame)
 	var font := l.get_theme_font("font")
 	var wide := 0.0

@@ -60,6 +60,11 @@ const NEW_PLAYERS := 10
 const NEW_WINDOW := 60.0
 ## Names only the server goes by (lower case): a player may not take them.
 const RESERVED_NAMES := ["сервер", "server", "admin", "админ", "система", "system"]
+## Why one was not let in (Protocol.WHY_*), as the hosts are told it (_note).
+const WHY_NOTES := {Protocol.WHY_VERSION: "[another_version_of_the_game]", Protocol.WHY_PASSWORD: "[wrong_password]",
+	Protocol.WHY_FULL: "[server_is_full]", Protocol.WHY_NAME: "[a_name_is_required]",
+	Protocol.WHY_BANNED: "[on_the_ban_list]", Protocol.WHY_LIST: "[not_on_the_list_of]",
+	Protocol.WHY_TAKEN: "[the_name_is_taken]"}
 ## What may give a command (command): a host (`op`), an owner (the player who made the
 ## server in the game) and the terminal or the host's window, each able to do all the
 ## one before can; and the commands each needs (COMMANDS, the one place they are named).
@@ -225,7 +230,7 @@ func poll() -> void:
 	for key in accounts.keys():
 		var a: Account = accounts[key]
 		if a.peer == null and now - a.left_at >= a.linger:
-			_forget(a)
+			_forget(a, "[the_character_of_s_left]")
 
 
 ## Sends each player the events of the tick.
@@ -287,7 +292,7 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 			var a := _find(rest)
 			if a == null:
 				return "no such player: " + rest
-			kick(a, "[the_host_disconnected_you]")
+			kick(a, "[the_host_disconnected_you]", CLOSE_KICKED, "[the_host_disconnected_s]")
 			return "kicked: " + a.name
 		"stop":
 			stop()
@@ -511,7 +516,7 @@ func _ban(rest: String) -> String:
 		access.banned_names.append(name.to_lower())
 	if a != null:
 		access.banned_keys[a.key] = a.name
-		kick(a, "[the_host_banned_you]")
+		kick(a, "[the_host_banned_you]", CLOSE_KICKED, "[the_host_banned_s]")
 	_save_access()
 	_say("%s banned" % name)
 	return "banned: " + name
@@ -573,9 +578,11 @@ func _whitelist(rest: String) -> String:
 		", ".join(access.listed) if not access.listed.is_empty() else "nobody"]
 
 
-## Puts `a` out with `why` (words for the player) and takes the character out of the world.
-func kick(a: Account, why: String, code := CLOSE_KICKED) -> void:
+## Puts `a` out with `why` (words for the player) and takes the character out of the world;
+## the hosts are told `note` (a template with the name in it, see note).
+func kick(a: Account, why: String, code := CLOSE_KICKED, note := "[the_host_disconnected_s]") -> void:
 	flag(a, "kick", why, 2)
+	_note(a.id, note, [a.name])
 	if a.peer != null:
 		a.peer.ws.put_packet(Protocol.encode(Protocol.event(Protocol.KICK, [why])))
 		a.peer.close_after(code, why)
@@ -596,7 +603,7 @@ func stop(why := "[server_stopped]", code := CLOSE_STOP) -> void:
 		if peer.ws.get_ready_state() in [WebSocketPeer.STATE_OPEN, WebSocketPeer.STATE_CONNECTING]:
 			peer.ws.close(code, why)
 	for key in accounts.keys():
-		_forget(accounts[key])
+		_forget(accounts[key], "")
 	if listening:
 		tcp.stop()
 		listening = false
@@ -653,6 +660,8 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 	if why != "":
 		var who_said := Protocol.clean_text(str(args[2]), NAME_MAX) if args.size() > 2 else "?"
 		_say("%s: refused (%s) from %s" % [who_said, why, peer.address])
+		if why != Protocol.WHY_WAIT:
+			_note(0, "[not_let_in_s_s]", [who_said, WHY_NOTES.get(why, "[the_server_did_not_let]")])
 		if why in [Protocol.WHY_PASSWORD, Protocol.WHY_WAIT, Protocol.WHY_BANNED, Protocol.WHY_LIST]:
 			flag(null, "login", "%s: refused (%s) from %s" % [who_said, why, peer.address], 1)
 		peer.ws.put_packet(Protocol.encode(Protocol.reply(seq, {"ok": false, "why": why})))
@@ -670,6 +679,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		a.link.who.player_name = name
 		a.link.rejoin()
 		_say("%s (%d): back online from %s" % [a.name, a.id, peer.address])
+		_note(a.id, "[s_is_back_on_the]", [a.name])
 	else:
 		# One who was here before (the character left the world, or the server was
 		# restarted) comes back to it by the key.
@@ -709,6 +719,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 			session.start_wildlife(int(world_info.seed))
 		_say("%s (%d): %s from %s (%d of %d)" % [a.name, a.id, "joins" if record.is_empty() else "returns",
 			peer.address, online() + 1, config.max_players])
+		_note(a.id, "[s_joined_the_server_for]" if record.is_empty() else "[s_is_back_on_the]", [a.name])
 	a.peer = peer
 	a.left_at = -1.0
 	a.linger = LINGER
@@ -805,7 +816,7 @@ func _within_rate(peer: Peer, now: float) -> bool:
 	if peer.refused > FLOOD_KICK * MSG_RATE and peer.close_code == 0:
 		flag(peer.account, "flood", "too many messages: put out", 2)
 		if peer.account != null:
-			kick(peer.account, "[too_many_messages]", CLOSE_FLOOD)
+			kick(peer.account, "[too_many_messages]", CLOSE_FLOOD, "[s_was_disconnected_too_many]")
 		else:
 			peer.close_after(CLOSE_FLOOD, "[too_many_messages]")
 	elif int(peer.refused) % int(MSG_RATE) == 1:
@@ -858,8 +869,10 @@ func _dropped(peer: Peer) -> void:
 	a.linger = minf(a.linger, linger_of(a))
 	if a.linger > 0.0:
 		_say("%s (%d): connection lost, the character waits %d s" % [a.name, a.id, int(a.linger)])
+		_note(a.id, "[s_lost_the_connection_the]", [a.name, int(a.linger)])
 	else:
 		_say("%s (%d): left on their own land" % [a.name, a.id])
+		_note(a.id, "[s_left_the_server]", [a.name])
 
 
 ## Seconds the character of `a` stays in the world once they leave: none in their own
@@ -868,8 +881,9 @@ func linger_of(a: Account) -> float:
 	return 0.0 if session.territory.at_home(a.link.who) else LINGER
 
 
-## The character of `a` leaves the world, saved first (on stop the snapshot has it).
-func _forget(a: Account) -> void:
+## The character of `a` leaves the world, saved first (on stop the snapshot has it); the
+## hosts are told `note` (none: "").
+func _forget(a: Account, note := "") -> void:
 	if not accounts.has(a.key):
 		return
 	if store != null and not stopping:
@@ -882,6 +896,8 @@ func _forget(a: Account) -> void:
 		a.peer = null
 	a.link.leave()
 	_say("%s (%d): the character left the world" % [a.name, a.id])
+	if note != "" and not stopping:
+		_note(a.id, note, [a.name])
 
 
 func _find(what: String) -> Account:
@@ -894,6 +910,17 @@ func _find(what: String) -> Account:
 
 func _say(text: String) -> void:
 	lines.append(text)
+
+
+## Tells the hosts online (Protocol.NOTED; the owner who made the server in the game is
+## one) what happened to player `id` (0: one not let in), but not that player:
+## `template` (a phrase of the game) with `values`, put in each one's language.
+func _note(id: int, template: String, values: Array) -> void:
+	var line := Lang.line(template, values)
+	for k in accounts:
+		var b: Account = accounts[k]
+		if b.peer != null and b.id != id and is_host(k):
+			b.link.note(line)
 
 
 static func _now() -> float:

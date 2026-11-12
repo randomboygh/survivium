@@ -339,6 +339,16 @@ const ICONS := {
 		".ww......",
 		".w.......",
 	],
+	# The server: two boxes of a rack, a light on each (its notices to the host).
+	"server": [
+		"bbbbbbbb",
+		"b.....eb",
+		"bbbbbbbb",
+		"........",
+		"bbbbbbbb",
+		"b.....eb",
+		"bbbbbbbb",
+	],
 	"person": [
 		"..www......",
 		"..www......",

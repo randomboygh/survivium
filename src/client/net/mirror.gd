@@ -5,7 +5,7 @@ extends RefCounted
 ## KNOWLEDGE, SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; PROPS, PROP, PROP_GONE,
 ## PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST; PLANS, PLAN_CELLS (`game.plans`); CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
 ## players, `game.others`); TEAM, INVITES, MATES (`game.team`); CLAIMS, SQUARES, LAND (`game.land`); FIGHT (`game.team`); HEARD (the chat, `game.hud.chat`, and the line over the
-## speaker's head); over a socket the world too:
+## speaker's head); NOTED (the server's notices to its host, `game.hud.server_note`); over a socket the world too:
 ## CHUNK, FORGET, CELLS, DROPS with the list, TAKEN, into `game.world_maker` (RemoteGen),
 ## the world and `game.actions`' signals), and the client's own event each frame: where
 ## its body is and what the hands do (INPUT), which the rules on the server act from.
@@ -219,6 +219,9 @@ func _on_event(kind: String, args: Variant) -> void:
 				game.hud.chat.hear(args[0], str(args[1]), str(args[2]), bool(args[3]))
 				if not args[3]:
 					game.others.speak(args[0], str(args[2]))
+		Protocol.NOTED:
+			if args is Array and args.size() == 1 and args[0] is String:
+				game.hud.server_note(args[0])
 		Protocol.TEAM:
 			if args is Array and args.size() == 1 and args[0] is Dictionary:
 				game.team.take_team(args[0])
