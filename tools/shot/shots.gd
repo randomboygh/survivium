@@ -314,6 +314,8 @@ const SHOTS := {
 	# One of every species that walks or flies in rows on a meadow, walking; every
 	# swimmer in the water of a lake.
 	"animals": {"time": 0.42, "season": 1, "find": "meadow", "zoo": "land"},
+	# The animals' minds over them (F4): the same letters as the names over the people.
+	"ai-debug": {"time": 0.42, "season": 1, "find": "meadow", "zoo": "land", "ai": true},
 	# A trap with a carrot and a hare coming to it, another with a hare caught, a caught
 	# hare in the hand.
 	"trap": {"time": 0.42, "season": 1, "find": "meadow", "trap": true,
@@ -448,6 +450,11 @@ const SHOTS := {
 	# The state in the corner: thirsty, chilled, wet and out of breath (the drop and the
 	# red bolt in the last column).
 	"vitals": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "thirst": 15.0, "chill": [22.0, 0.7], "tired": true},
+	# A phone held upright: the left hand only and one more cell of the bag (Hud.one_hand);
+	# with «Вторая рука в портрете» on, both hands and four cells.
+	"hands-one": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
+	"hands-two": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true,
+		"settings": {"second_hand": true}},
 	# The same with nothing hindering the body: the panel ends at the moon.
 	"vitals-plain": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "thirst": 15.0},
 	"bag-clothes": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,

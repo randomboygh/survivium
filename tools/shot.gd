@@ -256,6 +256,8 @@ func _run() -> void:
 		if shot.get("work", false):
 			_work()
 		main.hud.perf.visible = shot.get("stats", false)
+		# The animals' minds over them (F4, AiDebug).
+		main.settings.set_ai_debug(shot.get("ai", false))
 		main.hud.show_keys(shot_name == "ui")
 		if shot.get("lab", false):
 			places.lab(main.world, Vector3i((main.player.position / CELL).floor()))
@@ -457,7 +459,7 @@ func _run() -> void:
 		main.settings.set_value("ui_size", shot.get("ui_size", 2))
 		main.settings.set_value("control_size", shot.get("control_size", 2))
 		for k in ["minimap_size", "level_buttons", "camera_buttons", "layer_front_from",
-				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "cut_depth", "solo_social", "crt"]:
+				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "cut_depth", "solo_social", "crt", "second_hand"]:
 			main.settings.set_value(k, shot.get("settings", {}).get(k, main.settings.DEFAULTS[k]))
 		await process_frame
 		await process_frame

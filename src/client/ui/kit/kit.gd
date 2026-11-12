@@ -208,8 +208,10 @@ static func octagon_look(b: Button, fill: Color, shade: Color, ink: Color) -> vo
 
 
 ## A helper button framed like the others but see-through inside, so it hides little of
-## the world (the level and camera buttons).
+## the world (the level and camera buttons); its icon and its letters edged dark
+## (UiStyle.outlined, outline_size) to read over any ground.
 static func see_through(b: Button) -> void:
+	b.icon = UiStyle.outlined(b.icon)
 	for state in ["normal", "hover", "disabled", "focus"]:
 		b.add_theme_stylebox_override(state, UiStyle.frame())
 	for state in ["pressed", "hover_pressed"]:

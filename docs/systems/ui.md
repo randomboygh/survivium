@@ -16,7 +16,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   `framed_button` (the HUD buttons, the strip's arrows), the switch `check` (`switch.gd`: a round knob in a pill-shaped track: on the right over amber when on, pale on the left over dark when off, the text to its left); the input field `field` (the caret
   and tab switching in the browser — `TextField.fit`); column, row, inset; a scrolled list `scroll` (also by
   finger, `DragScroll`, with insets as in the settings); the look of the screen's big buttons `octagon_look`,
-  semi-transparent ones `see_through`, a colour sample `swatch`; the section strip `section` (a pale line with an icon and a name between groups: the chests in the inventory, the sections of the settings and of the server window). Sizes: `BUTTON_H` 30, `FIELD_H` 26, `SQUARE`
+  semi-transparent ones `see_through` (icon edged dark by `UiStyle.outlined`, like the letters), a colour sample `swatch`; the section strip `section` (a pale line with an icon and a name between groups: the chests in the inventory, the sections of the settings and of the server window). Sizes: `BUTTON_H` 30, `FIELD_H` 26, `SQUARE`
   32.
 - `window.gd` — a window over the screen's shadow: `build(title)` gives the panel and the column `box`,
   `show_fitted()` lays out at every change of the screen; the panel is centred, and taller than the screen (the
@@ -37,7 +37,9 @@ and a new shared part is added to the kit and to the «Interface gallery».
   fades it up and the list closes up after it (`TIME` 0.35 s, `RISE` 8 px; the gap between lines is inside the
   holders); `shown()` — the holders not going. Out of the tree nothing moves (the tests). The toasts, the chat's
   lines and the server's notices to its host are such lists.
-- `slot_strip.gd` — a strip of big cells between arrows: the hotbar (hands on the left, outside the strip), the
+- `slot_strip.gd` — a strip of big cells between arrows: the hotbar (hands on the left, outside the strip; on a
+  touch screen held upright only the left hand, and one more cell, unless «Interface» → «Second hand in portrait»
+  shows it: `Hud.one_hand`), the
   build and farm palettes; the owner puts cells in `cells` and says how many things and cells there are
   (`set_counts`), the strip holds the first shown (`first`), arrows and a finger drag over a cell, and sends
   `scrolled`. `fitting` — how many cells fit.
