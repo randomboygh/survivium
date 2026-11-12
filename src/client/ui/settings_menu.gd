@@ -295,6 +295,8 @@ func _fill() -> void:
 				_add_marker(r.marker)
 			elif r is Dictionary and r.has("place"):
 				_add_place(r.color, r.place, r.cell, r.tip)
+			elif r is Dictionary and r.has("section"):
+				_list.add_child(Kit.section(r.section, r.title, r.title))
 			elif r is Dictionary and r.has("note"):
 				_grid().add_child(_note(r.note))
 			elif r is Dictionary:
@@ -325,6 +327,10 @@ func _section_rows(key: String) -> Array:
 	var game_time := func() -> bool: return not s.values.real_time
 	var game_season := func() -> bool: return not s.values.real_season
 	var game_weather := func() -> bool: return not s.values.real_weather
+	# On a server its clock and weather are the server's (HostScreen «Настройки»): the
+	# rows that set them here are faded; in a game of this device they all work.
+	var solo := func() -> bool: return game.join_url == ""
+	var solo_time := func() -> bool: return solo.call() and game_time.call()
 	match key:
 		"world":
 			return [
@@ -488,31 +494,34 @@ func _section_rows(key: String) -> Array:
 			]
 		"game":
 			return [
+				_section("chat", "[language]"),
 				["[language]", Lang.LANGS.map(func(l: Array) -> String: return l[1]),
 					func() -> int: return maxi(0, Lang.LANGS.map(func(l: Array) -> String: return l[0]).find(Lang.code)),
 					func(i: int) -> void:
 						s.set_language(Lang.LANGS[i][0])
 						_fill.call_deferred()],
+				_section("clock", "[time_and_weather]"),
 				["[day_length]", Settings.TIME_SPEEDS.map(func(v: float) -> String: return Lang.f("[min]", [roundi(clock.DAY_LENGTH / v / 60.0)])),
 					func() -> int: return s.values.time_speed,
-					func(i: int) -> void: s.set_value("time_speed", i), "", game_time],
+					func(i: int) -> void: s.set_value("time_speed", i), "", solo_time],
 				["[time_of_day]", ["[in_game_time]", "[as_in_real_life]"],
 					func() -> int: return int(s.values.real_time),
-					func(i: int) -> void: s.set_value("real_time", i == 1)],
+					func(i: int) -> void: s.set_value("real_time", i == 1), "", solo],
 				["[season]", ["[in_game_season]", "[as_in_real_life]"],
 					func() -> int: return int(s.values.real_season),
-					func(i: int) -> void: s.set_value("real_season", i == 1)],
-				# A server far away has its own (Config.real_weather): faded there.
+					func(i: int) -> void: s.set_value("real_season", i == 1), "", solo],
 				["[weather]", ["[in_game_weather]", "[as_in_real_life]"],
 					func() -> int: return int(s.values.real_weather),
-					func(i: int) -> void: s.set_value("real_weather", i == 1), "",
-					func() -> bool: return game.join_url == ""],
+					func(i: int) -> void: s.set_value("real_weather", i == 1), "", solo],
+			] + ([{"note": "[set_by_the_server]"}] if game.join_url != "" else []) + [
+				_section("bag", "[picking_up]"),
 				["[auto_pickup]", ["[everything]", "[whats_there]", "[food_n2]", "[nothing]"],
 					func() -> int: return s.values.pickup,
 					func(i: int) -> void: s.set_value("pickup", i)],
 				["[over_the_load]", ["[dont_take]", "[take]"],
 					func() -> int: return int(s.values.pickup_heavy),
 					func(i: int) -> void: s.set_value("pickup_heavy", i == 1)],
+				_section("person", "[feel]"),
 				["[screen_shake]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.shake),
 					func(i: int) -> void: s.set_value("shake", i == 1)],
@@ -524,6 +533,7 @@ func _section_rows(key: String) -> Array:
 			]
 		"interface":
 			var rows := [
+				_section("cells", "[sizes]"),
 				["[interface_size]", SIZES,
 					func() -> int: return s.values.ui_size,
 					func(i: int) -> void: s.set_value("ui_size", i)],
@@ -536,6 +546,13 @@ func _section_rows(key: String) -> Array:
 				["[minimap]", MAP_SIZES,
 					func() -> int: return s.values.minimap_size,
 					func(i: int) -> void: s.set_value("minimap_size", i)],
+			])
+			if s.can_fullscreen():
+				rows.append(["[full_screen]", ["[off]", "[on]"],
+					func() -> int: return int(s.fullscreen()),
+					func(i: int) -> void: s.set_fullscreen(i == 1)])
+			rows.append_array([
+				_section("menu", "[buttons_n2]"),
 				["[level_and_cut]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.level_buttons),
 					func(i: int) -> void: s.set_value("level_buttons", i == 1)],
@@ -549,10 +566,6 @@ func _section_rows(key: String) -> Array:
 					func() -> int: return int(s.values.stats_button),
 					func(i: int) -> void: s.set_value("stats_button", i == 1)],
 			])
-			if s.can_fullscreen():
-				rows.append(["[full_screen]", ["[off]", "[on]"],
-					func() -> int: return int(s.fullscreen()),
-					func(i: int) -> void: s.set_fullscreen(i == 1)])
 			if not game.controls.touch:
 				rows.append(["[key_hints]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.show_help),
@@ -579,10 +592,14 @@ func _section_rows(key: String) -> Array:
 				["[quality]", ["[low]", "[medium_quality]", "[high]"],
 					func() -> int: return s.quality(),
 					func(i: int) -> void: s.set_quality(i), "[custom_quality]"],
-				null,
+				_section("cells", "[screen_n2]"),
 				["[scale]", SIZES,
 					func() -> int: return s.values.pixel_scale,
 					func(i: int) -> void: s.set_value("pixel_scale", i)],
+				["[fps_limit]", Settings.FPS_LIMITS.map(func(v: int) -> String: return "[no_n2]" if v == 0 else str(v)),
+					func() -> int: return s.values.fps_limit,
+					func(i: int) -> void: s.set_value("fps_limit", i)],
+				_section("sun", "[light_and_shadows]"),
 				["[shadows]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.shadows),
 					func(i: int) -> void: s.set_value("shadows", i == 1)],
@@ -592,12 +609,13 @@ func _section_rows(key: String) -> Array:
 				["[shadow_on_things]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.shadow_on_things),
 					func(i: int) -> void: s.set_value("shadow_on_things", i == 1)],
-				["[effects]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.effects),
-					func(i: int) -> void: s.set_value("effects", i == 1)],
 				["[sun_rays]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.sun_rays),
 					func(i: int) -> void: s.set_value("sun_rays", i == 1)],
+				_section("fog", "[effects]"),
+				["[effects]", ["[off]", "[on]"],
+					func() -> int: return int(s.values.effects),
+					func(i: int) -> void: s.set_value("effects", i == 1)],
 				["[fog]", ["[simple]", "[on_the_ground]"],
 					func() -> int: return int(s.values.fog),
 					func(i: int) -> void: s.set_value("fog", i == 1)],
@@ -607,9 +625,6 @@ func _section_rows(key: String) -> Array:
 				["[crt]", ["[off]", "[crt_soft]", "[crt_old]", "[crt_tape]"],
 					func() -> int: return s.values.crt,
 					func(i: int) -> void: s.set_value("crt", i)],
-				["[fps_limit]", Settings.FPS_LIMITS.map(func(v: int) -> String: return "[no_n2]" if v == 0 else str(v)),
-					func() -> int: return s.values.fps_limit,
-					func(i: int) -> void: s.set_value("fps_limit", i)],
 			]
 	return []
 
@@ -688,7 +703,7 @@ static func _height(rows: Array, columns: int) -> int:
 	var children := 0
 	var n := 0
 	for r in rows + [null]:
-		if r != null:
+		if r != null and not _is_section(r):
 			n += 1
 			continue
 		if n > 0:
@@ -700,7 +715,19 @@ static func _height(rows: Array, columns: int) -> int:
 		if r == null:
 			h += GAP
 			children += 1
+		elif _is_section(r):
+			h += Kit.SECTION_H
+			children += 1
 	return h + maxi(0, children - 1) * 4
+
+
+static func _is_section(r: Variant) -> bool:
+	return r is Dictionary and r.has("section")
+
+
+## A section strip of a page (Kit.section): its icon and name.
+static func _section(icon: String, title: String) -> Dictionary:
+	return {"section": icon, "title": title}
 
 
 ## The version of this build and its recent changes, newest first:

@@ -1107,30 +1107,10 @@ func _make_chest_grids() -> void:
 ## when UiStyle draws one by its `prop` (a cupboard, a barrel), else a chest's (a sack's for
 ## a bag in the bag).
 func _chest_line(e: Dictionary) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.tooltip_text = Lang.t(Items.title(e.item))
-	for k in 3:
-		if k == 1:
-			var icon := TextureRect.new()
-			var kind: String = Items.get_item(e.item).get("prop", "none")
-			if not UiStyle.ICONS.has(kind):
-				kind = "chest" if Items.bag_slots(e.item) <= 0 else "sack"
-			icon.texture = UiStyle.icon(kind)
-			icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			icon.mouse_filter = Control.MOUSE_FILTER_PASS
-			row.add_child(icon)
-			continue
-		var bar := ColorRect.new()
-		bar.color = UiStyle.HIGHLIGHT
-		bar.custom_minimum_size = Vector2(0, 2)
-		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(bar)
-	return row
+	var kind: String = Items.get_item(e.item).get("prop", "none")
+	if not UiStyle.ICONS.has(kind):
+		kind = "chest" if Items.bag_slots(e.item) <= 0 else "sack"
+	return Kit.section(kind, Lang.t(Items.title(e.item)))
 
 
 ## The slots of every chest shown.
