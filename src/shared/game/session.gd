@@ -461,12 +461,16 @@ func make_chunk(key: Vector2i) -> void:
 
 
 ## Forgets up to `n` chunks beyond DROP of every zone (WorldGen.forget); chunks the
-## players changed stay.
+## players changed stay, and so does the chunk of the job going on: forgotten under it
+## (a teleport far away), its end found its layout gone (a script error in WorldGen.step
+## at the SHAPED stage, progress_test 2026-11-12).
 func forget_far(n := DROPS_PER_CALL) -> void:
 	_look(_zone_reach if _zone_reach > 0 else reach())
 	var far := drop()
 	while not _drop_queue.is_empty() and n > 0:
 		var key: Vector2i = _drop_queue.pop_back()
+		if _gen_job != null and _gen_job.key == key:
+			continue
 		if _distance(key) > far and gen.forget(key):
 			_all_made = false
 			n -= 1
