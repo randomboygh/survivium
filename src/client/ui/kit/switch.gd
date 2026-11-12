@@ -1,21 +1,24 @@
 extends Button
 ## A switch of the UI kit (kit.gd `check`, and the rows «name ‹ value ›» whose values are
-## only «выкл | вкл», ChoiceRows): a sunken groove with a knob that slides right and
-## lights amber when on, left and plain when off, drawn in the window buttons' frames.
-## Its `text`, when it has one, stands left of the groove; the groove stands at the
+## only «выкл | вкл», ChoiceRows): a thin dark line with a small square knob that slides
+## right and lights amber (the line amber behind it) when on, left and pale when off.
+## Its `text`, when it has one, stands left of the line and the knob; they stand at the
 ## right end of the switch, or where `track_at` (0 the left, 0.5 the middle) puts it.
 ## `toggled` tells the change; `set_pressed_no_signal` shows a value without telling.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
-## The groove's size, in UI pixels.
-const TRACK := Vector2(52, 24)
-## The room between the text and the groove.
+## The room the switch draws in, in UI pixels: the line runs across it.
+const TRACK := Vector2(34, 14)
+## The line's thickness and the knob's side.
+const BAR := 4
+const KNOB := 14
+## The room between the text and the line.
 const GAP := 8
 ## How long the knob slides, in seconds.
 const SLIDE := 0.08
 
-## Where the groove stands along the free room: 1 the right end, 0.5 the middle.
+## Where the line stands along the free room: 1 the right end, 0.5 the middle.
 var track_at := 1.0
 ## The knob's place, 0 (off) to 1 (on), sliding towards the value.
 var _at := 0.0
@@ -48,7 +51,7 @@ func show_value(on: bool) -> void:
 	queue_redraw()
 
 
-## The groove's rect in the switch.
+## The rect the line and the knob take in the switch.
 func track_rect() -> Rect2:
 	var room := size.x - TRACK.x
 	var x := room if text != "" else floorf(room * track_at)
@@ -73,31 +76,24 @@ func _ready() -> void:
 
 func _draw() -> void:
 	var r := track_rect()
-	var ci := get_canvas_item()
-	# The groove: a sunken well, lit dim amber on its lit side while on.
-	_box("slot").draw(ci, r)
-	var inner := r.grow(-4)
+	var y := r.position.y + floorf(r.size.y * 0.5)
+	# The line: thin, a dark edge round it, lit amber up to the knob while on.
+	var line := Rect2(r.position.x + 2, y - BAR * 0.5 - 1, r.size.x - 4, BAR + 2)
+	draw_rect(line, UiStyle.EDGE)
+	var inner := line.grow(-1)
+	draw_rect(inner, UiStyle.WELL_SHADE)
+	var travel := r.size.x - KNOB
+	var x := r.position.x + roundf(travel * _at)
 	if _at > 0.0:
-		draw_rect(Rect2(inner.position, Vector2(floorf(inner.size.x * _at), inner.size.y)), Color(UiStyle.ACCENT_DARK, 0.45))
-	# The knob: a button of the windows, amber when on.
-	var knob := Vector2(floorf(TRACK.x * 0.5) + 2, TRACK.y)
-	var at := r.position + Vector2(roundf((TRACK.x - knob.x) * _at), 0)
-	var state := "normal"
+		draw_rect(Rect2(inner.position, Vector2(x + KNOB * 0.5 - inner.position.x, inner.size.y)), UiStyle.ACCENT_DARK)
+	# The knob: a small square with its corners cut, a pixel of light on top.
+	var lit := button_pressed
+	var fill := UiStyle.ACCENT if lit else UiStyle.MUTED
 	if is_hovered() and not disabled:
-		state = "hover"
-	_box(state + ("+on" if button_pressed else "")).draw(ci, Rect2(at, knob))
-	# Two notches in its middle to take it by.
-	var mid := at + (knob * 0.5).floor()
-	var ink := UiStyle.ACCENT_DARK if button_pressed else UiStyle.BUTTON_SHADE
-	for dx in [-3, 1]:
-		draw_rect(Rect2(mid + Vector2(dx, -5), Vector2(2, 8)), ink)
-
-
-## The frames the switches draw, made once: "slot", or a knob's state, "+on" when lit.
-static var _boxes := {}
-
-
-static func _box(key: String) -> StyleBox:
-	if not _boxes.has(key):
-		_boxes[key] = UiStyle.slot() if key == "slot" else UiStyle.button(key.trim_suffix("+on"), key.ends_with("+on"))
-	return _boxes[key]
+		fill = fill.lightened(0.15)
+	var k := Rect2(x, y - KNOB * 0.5, KNOB, KNOB)
+	draw_rect(Rect2(k.position + Vector2(1, 0), Vector2(KNOB - 2, KNOB)), UiStyle.EDGE)
+	draw_rect(Rect2(k.position + Vector2(0, 1), Vector2(KNOB, KNOB - 2)), UiStyle.EDGE)
+	draw_rect(k.grow(-2), fill)
+	draw_rect(Rect2(k.position + Vector2(2, 2), Vector2(KNOB - 4, 1)), fill.lightened(0.35))
+	draw_rect(Rect2(k.position + Vector2(2, KNOB - 3), Vector2(KNOB - 4, 1)), fill.darkened(0.3))

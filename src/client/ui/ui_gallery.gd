@@ -223,7 +223,7 @@ func _rows_page() -> void:
 	_choices.refresh()
 	_choices.set_focus(0)
 	_caption("[a_switch_with_its_name]")
-	var sw := Kit.check("[access_from_the_internet]", true, ROW_WIDTH, ARROW)
+	var sw := Kit.check("[access_from_the_internet]", false, ROW_WIDTH, ARROW)
 	sw.toggled.connect(func(on: bool) -> void: say("[on]" if on else "[off]"))
 	_list.add_child(sw)
 	_caption("[action_row_and_a_two]")

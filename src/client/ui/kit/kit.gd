@@ -86,7 +86,7 @@ static func framed_button(icon: Variant, tip: String, action := Callable(), size
 	return b
 
 
-## A switch (switch.gd: a knob in a groove, amber when on) with `text` left of it, on
+## A switch (switch.gd: a small knob on a thin line, amber when on) with `text` left of it, on
 ## when `on` («Доступ из интернета»). Every setting that is only on or off is one: the
 ## rows «name ‹ value ›» make one of a row whose values are «выкл | вкл» (ChoiceRows).
 static func check(text: String, on := false, width := 0.0, height := BUTTON_H) -> Switch:

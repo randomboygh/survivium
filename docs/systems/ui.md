@@ -13,7 +13,7 @@ not drawn anew; all the game's windows are already moved to the kit. A new windo
 and a new shared part is added to the kit and to the «Interface gallery».
 - `kit.gd` — static parts: a window title, a caption, an explanation; a window button (plain, amber
   `accent_button`), a square one with an icon `icon_button`, one in the panel frame for the game screen
-  `framed_button` (the HUD buttons, the strip's arrows), the switch `check` (`switch.gd`: a knob in a groove, amber and on the right when on, the text to its left); the input field `field` (the caret
+  `framed_button` (the HUD buttons, the strip's arrows), the switch `check` (`switch.gd`: a small square knob on a thin line, amber and on the right when on, pale and on the left when off, the text to its left); the input field `field` (the caret
   and tab switching in the browser — `TextField.fit`); column, row, inset; a scrolled list `scroll` (also by
   finger, `DragScroll`, with insets as in the settings); the look of the screen's big buttons `octagon_look`,
   semi-transparent ones `see_through`, a colour sample `swatch`. Sizes: `BUTTON_H` 30, `FIELD_H` 26, `SQUARE`
