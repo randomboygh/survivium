@@ -1048,6 +1048,8 @@ func _run() -> void:
 						"password": "", "world": "", "seed_value": main.world_seed, "settings": main.world_options}, root)
 					for i in 3:
 						await process_frame
+					for line: String in shot.get("host_commands", []):
+						main.hosted.command(line)
 				main.menu._fill_page("multi")
 				main.menu.open_host()
 				if shot.has("host_tab"):
