@@ -6,6 +6,7 @@
   role: ore
   veins: 0.3
   priority: 2
+  side_fray: 5
   item: silver_ore
   hardness: 4
   toughness: 8

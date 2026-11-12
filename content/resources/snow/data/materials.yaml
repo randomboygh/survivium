@@ -7,6 +7,7 @@
   corners: round
   slope: true
   priority: 3
+  side_fray: 2
   ground: soil
   layers: 3
   item: snow
@@ -20,6 +21,7 @@
   role: ice
   corners: sharp
   priority: 4
+  side_fray: 3
   ground: rock
   drains: true
   item: ice

@@ -141,6 +141,8 @@ func _run() -> void:
 			main.player.position = places.hut(main.world, main.player.position)
 		if shot.get("walls", false):
 			main.player.position = places.walls(main.world, main.player.position)
+		if shot.get("strata", false):
+			main.player.position = places.strata(main.world, main.player.position)
 		if shot.has("openings"):
 			main.player.position = places.openings(main.world, main.player.position, shot.openings == "storage")
 		if shot.get("fences", false):
