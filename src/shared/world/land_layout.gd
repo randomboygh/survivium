@@ -48,7 +48,7 @@ const CANYON := 4
 ## 0, what worlds made before those settings have; «Новый мир» makes caves 0, relief and
 ## climate 1.
 const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 1, "relief": 0,
-	"climate": 0}
+	"climate": 0, "cave_shape": 0}
 const SIZE_SCALE := [0.4, 1.0, 2.2]
 const WATER_SHARE := [0.25, 0.4, 0.58]
 ## Where the mountain noise starts and ends raising mountains.
@@ -81,6 +81,12 @@ const MARSH := 8
 const WOODS := 16
 ## The column's walls are banded (a mesa, see _fill_row).
 const STRATA := 32
+## The column is in a gallery cut into a mountain's side (see _tunnels).
+const GALLERY := 64
+## Cave shape 2: the hall noise's level by the caves setting above which a hall lies,
+## and how near the zero line of the gallery noise a gallery runs.
+const HALL_FROM := [0.42, 0.3, 0.18]
+const GALLERY_WIDTH := 0.05
 ## A cave mouth opens sideways where its ground drops by WALL cells or more within
 ## three columns: a gallery ADIT cells high is cut in at the foot of the wall. On
 ## level ground it is a pit instead, up to PIT_DEPTH cells deep in its middle.
@@ -198,6 +204,13 @@ var n_dunes: FastNoiseLite
 var n_roll: FastNoiseLite
 var n_peak: FastNoiseLite
 var n_caves: FastNoiseLite
+## Cave shape 1: rounder, flatter 3D caves. Cave shape 2: halls (n_hall, n_hall2), their
+## middle level (n_mid) and the galleries along the zero lines of n_gallery.
+var n_caves_a: FastNoiseLite
+var n_hall: FastNoiseLite
+var n_hall2: FastNoiseLite
+var n_mid: FastNoiseLite
+var n_gallery: FastNoiseLite
 ## Relief 1 only (see _ranges_and_mesas): the crests of the ranges (along the zero
 ## lines of n_range), the lines of gorges and canyons, crags, tors and buttes.
 var n_range: FastNoiseLite
@@ -242,6 +255,11 @@ func _noises() -> void:
 	n_roll = _noise(23, 0.003, 2)
 	n_peak = _noise(24, 0.0016, 1)
 	n_caves = _noise(14, 0.03, 2)
+	n_caves_a = _noise(29, 0.024, 1)
+	n_hall = _noise(30, 0.014, 2)
+	n_hall2 = _noise(31, 0.017, 2)
+	n_mid = _noise(32, 0.008, 1)
+	n_gallery = _noise(33, 0.009, 1)
 	n_ores = _noise(15, 0.075, 1)
 	n_land = _noise(20, 0.00028 / size, 4)
 	n_river = _noise(21, 0.0018, 2)
@@ -1044,12 +1062,14 @@ func _tunnels(lay: Dictionary) -> void:
 						continue
 					var across := absf(v.cross(dir) - sin(along * 0.22 + bend) * 2.0)
 					var room := along > TUNNEL_LEN - 7
-					if across > (3.2 if room else 1.4):
+					var wide: bool = settings.cave_shape == 2
+					if across > ((5.0 if wide else 3.2) if room else (2.4 if wide else 1.4)):
 						continue
 					var j := lz * w + lx
 					if heights[j] < floor_y:
 						continue
 					adit[j] = floor_y if adit[j] == 0 else mini(adit[j], floor_y)
+					flags[j] |= GALLERY
 					if room:
 						flags[j] |= ENTRANCE
 

@@ -387,6 +387,7 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 	var z := key.y * CHUNK + row
 	# Does any column of the row want caves? Then sample the 3D noises along it.
 	var caves := PackedByteArray()
+	var caves_a := PackedByteArray()
 	var ores := PackedByteArray()
 	var want := false
 	for lx in CHUNK:
@@ -397,7 +398,11 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		n_caves.offset = Vector3(x_first, 0.0, z)
 		n_ores.offset = Vector3(x_first, 0.0, z)
 		# A slice of 3D noise: x along the row, y up (every other level), z this row.
-		caves = _slice(n_caves, CHUNK, sy)
+		if settings.cave_shape == 1:
+			n_caves_a.offset = Vector3(x_first, 0.0, z)
+			caves_a = (n_caves_a.get_image_3d(CHUNK, int(sy * 1.5) + 2, 1, false, false)[0] as Image).get_data()
+		else:
+			caves = _slice(n_caves, CHUNK, sy)
 		ores = _slice(n_ores, CHUNK, sy)
 	for lx in CHUNK:
 		var j := (row + MARGIN) * WINDOW + lx + MARGIN
@@ -442,7 +447,31 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		# Caves stay three cells under dry land away from any water, so they never
 		# leak, and are bigger under a cave mouth. The mouth itself is a gallery cut
 		# into the foot of a wall or a pit from the surface (see _entrances).
-		if height > sea + 2 and wt < 0 and _dry_around(water, j):
+		if settings.cave_shape == 2:
+			if height > sea + 2 and wt < 0 and _dry_around(water, j):
+				air_bits |= _halls(cells, col, x_first + lx, z, height, lay, j)
+		elif settings.cave_shape == 1 and height > sea + 2 and wt < 0 and _dry_around(water, j):
+			if want:
+				var run := 0
+				var t := cave_t + 12 if flags[j] & ENTRANCE == 0 else mouth_cave_t
+				for yc in range(1, height - 2):
+					var hollow := yc < height - 3 and caves_a[int(yc * 1.5 + 0.5) * CHUNK + lx] > t
+					if hollow:
+						run += 1
+						continue
+					# Air runs under three cells tall stay rock: no crawling slits.
+					if run >= 3:
+						for k in range(yc - run, yc):
+							cells[k * layer + col] = Mat.AIR
+							air_bits |= 1 << k
+					run = 0
+			_mouth(cells, col, adit[j], pit[j], height)
+			for yc in range(height - pit[j] + 1 if pit[j] > 0 else 0, height + 1 if pit[j] > 0 else 0):
+				air_bits |= 1 << yc
+			if adit[j] > 0:
+				for yc in range(adit[j], mini(adit[j] + ADIT, height + 1)):
+					air_bits |= 1 << yc
+		elif height > sea + 2 and wt < 0 and _dry_around(water, j):
 			if want:
 				var t2 := 2 * (mouth_cave_t if flags[j] & ENTRANCE else cave_t)
 				i = layer + col
@@ -464,6 +493,75 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 				air_bits |= 1 << yc
 		air_cols[col] = air_bits
 		wild_cols[col] = all
+
+
+## Cave shape 1: a mouth one cell taller than before, a pit as before.
+func _mouth(cells: PackedByteArray, col: int, adit_y: int, pit_d: int, height: int) -> void:
+	var layer := WorldData.LAYER
+	if adit_y > 0:
+		for yc in range(adit_y, mini(adit_y + ADIT, height + 1)):
+			cells[yc * layer + col] = Mat.AIR
+	elif pit_d > 0:
+		for yc in range(height - pit_d + 1, height + 1):
+			cells[yc * layer + col] = Mat.AIR
+
+
+## Cave shape 2: the halls under column x, z (cells of the column `col`), their bits of
+## air. Each hall is a lens round a middle level that wanders slowly: a domed ceiling,
+## a floor that rises gently to the rim; two tiers of them, galleries three to five
+## cells wide along the zero lines of n_gallery join them, and a cave mouth is a
+## funnel from the surface down to the floor below it.
+func _halls(cells: PackedByteArray, col: int, x: int, z: int, height: int, lay: Dictionary, j: int) -> int:
+	var layer := WorldData.LAYER
+	var cap := height - 4
+	var bits := 0
+	var mid := sea - 4.0 + n_mid.get_noise_2d(x, z) * 6.0
+	var entrance: bool = lay.flags[j] & ENTRANCE != 0 and lay.flags[j] & GALLERY == 0
+	var t: float = HALL_FROM[settings.caves] - (0.25 if entrance else 0.0)
+	var spans := []
+	var floor_y := -1
+	for tier in 2:
+		var v := (n_hall if tier == 0 else n_hall2).get_noise_2d(x, z)
+		var m := mid - tier * 11.0
+		var half := 0.0
+		var tt := t + tier * 0.12
+		if v > tt:
+			half = 1.8 + 4.5 * sqrt(clampf((v - tt) / 0.3, 0.0, 1.0))
+		var g := absf(n_gallery.get_noise_2d(x + tier * 977, z))
+		var gw := GALLERY_WIDTH + 0.02 * n_mid.get_noise_2d(z, x)
+		if g < gw:
+			half = maxf(half, 1.6 + 0.6 * (1.0 - g / gw))
+		if half <= 0.0:
+			continue
+		var lo := roundi(m - half * 0.4)
+		var hi := roundi(m + half)
+		hi = mini(hi, cap)
+		lo = maxi(lo, 1)
+		if hi - lo < 2:
+			continue
+		spans.append([lo, hi])
+		if floor_y < 0:
+			floor_y = lo
+	for sp: Array in spans:
+		for yc in range(sp[0], sp[1] + 1):
+			cells[yc * layer + col] = Mat.AIR
+			bits |= 1 << yc
+	# A mouth: the ground falls from the rim of the mouth noise's patch to the floor of
+	# the hall under its middle.
+	if entrance:
+		var r := clampf((lay.grids[10][j] - _byte(MOUTH_FROM[settings.caves])) / 40.0, 0.0, 1.0)
+		var bottom := floor_y if floor_y > 0 else roundi(mid)
+		var to := height - roundi(r * (height - bottom))
+		for yc in range(maxi(to, 1), height + 1):
+			cells[yc * layer + col] = Mat.AIR
+			bits |= 1 << yc
+	# A gallery into a mountain's side (see _tunnels), five cells tall.
+	var adit_y: int = lay.adit[j]
+	if adit_y > 0 and lay.flags[j] & GALLERY:
+		for yc in range(adit_y, mini(adit_y + ADIT + 1, height + 1)):
+			cells[yc * layer + col] = Mat.AIR
+			bits |= 1 << yc
+	return bits
 
 
 # --- Trees -----------------------------------------------------------------------

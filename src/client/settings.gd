@@ -151,6 +151,9 @@ const DEFAULTS := {
 	# New worlds have climate zones (WorldGen climate 1); worlds made before keep one
 	# warmth noise (0). Not on «Новый мир».
 	"world_climate": 1,
+	# New worlds have roomy smooth caves (WorldGen cave_shape 2); worlds made before keep
+	# the old ones (0). Not on «Новый мир».
+	"world_cave_shape": 2,
 	## The bundles (or whole mods) a new world is made without, comma-separated ids
 	## (everything found is on).
 	"world_mods_off": "",
@@ -348,10 +351,10 @@ func set_quality(i: int) -> void:
 
 
 ## The world settings for WorldGen: size, water, mountains, rivers, biomes, caves, relief,
-## climate.
+## climate, cave_shape.
 func world_options() -> Dictionary:
 	var out := {}
-	for k in ["size", "water", "mountains", "rivers", "biomes", "caves", "relief", "climate"]:
+	for k in ["size", "water", "mountains", "rivers", "biomes", "caves", "relief", "climate", "cave_shape"]:
 		out[k] = values["world_" + k]
 	return out
 
