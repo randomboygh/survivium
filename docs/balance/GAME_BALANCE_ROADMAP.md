@@ -1,43 +1,44 @@
-# План изменений баланса
+# The balance change plan
 
-Статус: ACTIVE. Что из [GAME_BALANCE_AUDIT.md](GAME_BALANCE_AUDIT.md) сделано этой задачей (2026-11-07) и что
-остаётся, по приоритетам; системы, которых касается, и риски. Сделанное подробно — [GAME_BALANCE_REPORT.md](GAME_BALANCE_REPORT.md).
+Status: ACTIVE. What of [GAME_BALANCE_AUDIT.md](GAME_BALANCE_AUDIT.md) this task did (2026-11-07) and what
+remains, by priority; the systems it touches and the risks. What was done, in detail —
+[GAME_BALANCE_REPORT.md](GAME_BALANCE_REPORT.md). A Russian copy: [GAME_BALANCE_ROADMAP_RU.md](GAME_BALANCE_ROADMAP_RU.md).
 
-## Critical — сделано
+## Critical — done
 
-| Что | Системы | Риск | Состояние |
+| What | Systems | Risk | State |
 |---|---|---|---|
-| Разделить силу инструмента и действие навыка: удар — инструмент, темп/силы/лишняя штука/износ — навык (`SkillSet.blow`, `effort`, `care`; `Tools.ROLE_OF`) | руки и мир, персонаж, крафт | число ударов по дереву выросло: progress_test дольше | сделано |
-| Прочность деревьев ×4 (12–32) и `toughness` ячеек; `Tools.swing_time` по прочности | данные деревьев и материалов, руки и мир | ощущение «дерево стало долгим» у каменного топора (6–16 ударов) | сделано |
-| Развести ступени кирок, лопат, топоров, мечей по `swing` | данные инструментов | — | сделано |
+| Separate a tool's strength from a skill's action: the blow is the tool's, pace/strength/extra piece/wear are the skill's (`SkillSet.blow`, `effort`, `care`; `Tools.ROLE_OF`) | hands and world, character, crafting | the number of blows on a tree grew: progress_test is longer | done |
+| Trees' durability ×4 (12–32) and the cells' `toughness`; `Tools.swing_time` by durability | trees' and materials' data, hands and world | the feeling «a tree became long» with a stone axe (6–16 blows) | done |
+| Separate the steps of pickaxes, shovels, axes, swords by `swing` | the tools' data | — | done |
 
-## High — сделано
+## High — done
 
-| Что | Системы | Риск | Состояние |
+| What | Systems | Risk | State |
 |---|---|---|---|
-| Выносливость: отдых во время работы 0,6 (`Vitals.WORK_REST`, `BUSY`), цена взмаха × навык | персонаж | сильный инструмент утомляет за 11–15 с подряд; progress_test сбрасывает силы сам (`_rest`) | сделано |
-| Износ включён по умолчанию, прочности ×3, бережность навыка | правила, крафт, настройки | старые игроки увидят износ впервые; переключатель остался | сделано (выбор пользователя 1А) |
-| Кривая опыта 120 / 1,45 (десятый уровень ≈ 3 ч работы) | навыки | очки старых сохранений делают больше уровней: это подарок, не потеря | сделано (выбор 2А) |
-| Шкала навыка без делений «от инструмента», подсказка с эффектами, чип «Сила» с примером | интерфейс | — | сделано |
-| Крупные звери ×2 здоровья, Охота +50 % к удару на максимуме | звери, руки и мир | охота каменным мечом на медведя — 25 ударов (копьё/лук — 13/10) | сделано |
-| `pvp_damage` 5 → 4 | правила сервера | конфиг сервера с явным значением не меняется | сделано |
-| Таблицы из данных (`tools/balance_report.gd`) и тест пределов (`balance_test.gd`) | инструменты, тесты | — | сделано |
+| Stamina: rest during work 0.6 (`Vitals.WORK_REST`, `BUSY`), a swing's price × skill | character | a strong tool tires in 11–15 s in a row; progress_test resets strength itself (`_rest`) | done |
+| Wear on by default, durabilities ×3, the skill's care | rules, crafting, settings | old players will see wear for the first time; the switch stayed | done (the user's choice 1А) |
+| The experience curve 120 / 1.45 (the tenth level ≈ 3 h of work) | skills | old saves' points make more levels: a gift, not a loss | done (choice 2А) |
+| A skill's scale without «from the tool» divisions, a hint with the effects, the «Strength» chip with an example | interface | — | done |
+| Big animals ×2 health, Hunting +50 % to the blow at the maximum | animals, hands and world | hunting a bear with a stone sword — 25 blows (a spear/bow — 13/10) | done |
+| `pvp_damage` 5 → 4 | the server's rules | a server config with an explicit value does not change | done |
+| Tables from data (`tools/balance_report.gd`) and the limits test (`balance_test.gd`) | tools, tests | — | done |
 
-## Medium — осталось
+## Medium — remaining
 
-| Что | Зачем | Системы | Риск |
+| What | Why | Systems | Risk |
 |---|---|---|---|
-| Прочность и `toughness` ячеек для построек (сруб 4, доски 3, кирпич 3, тёсаный камень 4) обсудить с ветшанием построек (бэклог) | снос стен должен стоить труда, но не быть наказанием | строительство, территория | решение дизайна |
-| Копание: дать Копанию `yield` на `bonus` ячейки (кремень из земли, волокно из травы) | навыку Копания достаётся только темп и силы | руки и мир | мелкое; можно данными, если `bonus_chance` множить на навык |
-| Сон, холод, жажда: пороги не трогались; проверить на телефоне с 40-минутными сутками после включённого износа | рутина ли выживание | персонаж | только плейтест |
-| Рыбалка: `each` 20 и `yield` 0,5 без времени заброса в очках | Рыбалка растёт только с улова | рыбалка | мелкое |
-| Ремесло: очки — время рецепта с затуханием; десятый уровень ≈ 2000 рецептов | может оказаться самым долгим навыком | крафт | плейтест: при жалобах поднять `first`/понизить `growth` только у Ремесла в YAML |
+| Durability and `toughness` of cells for buildings (log wall 4, planks 3, brick 3, hewn stone 4) discuss with the decay of buildings (the backlog) | knocking down walls must cost effort, but not be a punishment | building, territory | a design decision |
+| Digging: give Digging a `yield` on a cell's `bonus` (flint from earth, fibre from grass) | the Digging skill gets only pace and strength | hands and world | small; can be done by data if `bonus_chance` is multiplied by the skill |
+| Sleep, cold, thirst: the thresholds were not touched; check on a phone with 40-minute days after wear was switched on | whether survival is a routine | character | playtest only |
+| Fishing: `each` 20 and `yield` 0.5 with no casting time in points | Fishing grows only with the catch | fishing | small |
+| Crafting: the points are a recipe's time with fading; the tenth level ≈ 2000 recipes | may turn out the longest skill | crafting | playtest: on complaints raise `first`/lower `growth` only for Crafting in the YAML |
 
-## Low — осталось
+## Low — remaining
 
-| Что | Зачем | Системы |
+| What | Why | Systems |
 |---|---|---|
-| Балансовый отчёт в CI (`balance_report.gd -- --check` рядом с `content_report`) | таблицы не устареют незаметно | CI |
-| Чип «Удар, с» показывать с навыком (сейчас — без) | честнее к игроку | интерфейс |
-| Броня, щиты, урон зверей игроку | их нет в игре; появятся — модель расширяется полем `armor` у `wear_on` и `attack` у существа | дизайн |
-| Эпоха 7 (поздние материалы): `power` 7–8 потребует `toughness` новых руд 10–12 и деревьев без изменений | ряд открыт вверх | данные |
+| The balance report in CI (`balance_report.gd -- --check` beside `content_report`) | the tables will not go stale unnoticed | CI |
+| Show the «Blow, s» chip with the skill (now — without) | fairer to the player | interface |
+| Armour, shields, an animal's damage to a player | they are not in the game; when they appear the model extends with the field `armor` of `wear_on` and `attack` of a creature | design |
+| Era 7 (late materials): `power` 7–8 will need the new ores' `toughness` 10–12 and trees unchanged | the row is open upward | data |

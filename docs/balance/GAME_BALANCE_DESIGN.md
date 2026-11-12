@@ -1,138 +1,149 @@
-# Модель баланса
+# The balance model
 
-Статус: ACTIVE. Единая математическая модель характеристик игры (задача `game_balance.md`, 2026-11-07): что
-значит каждая величина, где она лежит, как считается и как показывается. Таблицы по этим формулам из живых
-данных — [GAME_BALANCE_TABLES.md](GAME_BALANCE_TABLES.md) (`tools/balance_report.gd`), пределы, в которых они
-должны держаться, — `tests/unit/balance_test.gd`; что было до неё — [GAME_BALANCE_AUDIT.md](GAME_BALANCE_AUDIT.md),
-что ещё предстоит — [GAME_BALANCE_ROADMAP.md](GAME_BALANCE_ROADMAP.md). Числа ниже — данные модов на день
-написания; истина — в YAML и в таблицах.
+Status: ACTIVE. One mathematical model of the game's characteristics (the task `game_balance.md`, 2026-11-07):
+what each quantity means, where it lies, how it is computed and how it is shown. The tables by these formulas
+from live data — [GAME_BALANCE_TABLES.md](GAME_BALANCE_TABLES.md) (`tools/balance_report.gd`), the limits they
+must stay within — `tests/unit/balance_test.gd`; what was before it — [GAME_BALANCE_AUDIT.md](GAME_BALANCE_AUDIT.md),
+what is still to come — [GAME_BALANCE_ROADMAP.md](GAME_BALANCE_ROADMAP.md). The numbers below are the mods'
+data on the day of writing; the truth is in the YAML and the tables. A Russian copy:
+[GAME_BALANCE_DESIGN_RU.md](GAME_BALANCE_DESIGN_RU.md).
 
-## 1. Принцип
+## 1. The principle
 
-**Инструмент решает, сколько работы делает удар. Навык решает, как рука бьёт.** Две оси, которые перемножаются
-и не заменяют друг друга:
+**The tool decides how much work a blow does. The skill decides how the hand strikes.** Two axes that multiply
+and do not replace each other:
 
-| Ось | Что меняет | Где лежит | Чего не меняет |
+| Axis | What it changes | Where it lies | What it does not change |
 |---|---|---|---|
-| Инструмент (`items`: `power`, `swing`, `area`, `reach`, `durability`) | сколько прочности снимает удар, сколько ячеек берёт, как далеко достаёт, сколько ударов живёт | YAML бандла инструмента | темп руки: не делает взмах быстрее, чем своя `swing` |
-| Навык (`skills`: `speed`, `effort`, `yield`, `care`, `quality`, `might`) | темп взмаха и рецепта, сколько сил стоит взмах, шанс лишней штуки, шанс не изнашивать, прочность сделанного; в охоте — прибавка к удару | `content/core/data/skills.yaml` | число ударов по дереву и ячейке (`might` у рубки и копания 0) |
-| Объект (`trees.hits`, `materials.hardness` и `toughness`, `creatures.health`) | сколько работы его надо, какой силы инструмент его вообще берёт | YAML бандла | — |
+| Tool (`items`: `power`, `swing`, `area`, `reach`, `durability`) | how much durability a blow takes, how many cells it takes, how far it reaches, how many blows it lives | the tool bundle's YAML | the hand's pace: does not make a swing faster than its own `swing` |
+| Skill (`skills`: `speed`, `effort`, `yield`, `care`, `quality`, `might`) | the pace of a swing and a recipe, how much strength a swing costs, the chance of an extra piece, the chance not to wear, the durability of what is made; in hunting — an addition to the blow | `content/core/data/skills.yaml` | the number of blows on a tree and a cell (`might` of chopping and digging is 0) |
+| Object (`trees.hits`, `materials.hardness` and `toughness`, `creatures.health`) | how much work it needs, what strength of tool takes it at all | the bundle's YAML | — |
 
-Поэтому стальной топор быстрее каменного на любом уровне (ударов в три раза меньше), а десятый уровень Рубки
-быстрее нулевого с любым топором (вдвое по времени, на 40 % дешевле по силам): ни одна ось не обесценивает другую.
-Формулы — одни и те же на сервере (правила `src/shared/game/`), в окне персонажа и в подсказках (`FactChips.power_hint`,
-`PersonPanel._show_skills` зовут те же функции `Tools.hits_to`, `Tools.swing_time`, `SkillSet`), и в отчёте таблиц.
-Критические расчёты — на сервере: `who` правила — `src/server/player.gd`, его сумка и навыки; клиент получает копию
-навыков (`Protocol.SKILLS`) и считает по ней только то, что показывает.
+So a steel axe is faster than a stone one at any level (three times fewer blows), and the tenth level of
+Chopping is faster than the zeroth with any axe (twice in time, 40 % cheaper in strength): neither axis devalues
+the other. The formulas are the same on the server (the rules of `src/shared/game/`), in the character window
+and in the hints (`FactChips.power_hint`, `PersonPanel._show_skills` call the same functions `Tools.hits_to`,
+`Tools.swing_time`, `SkillSet`), and in the tables' report. The critical computations are on the server: the
+rule's `who` is `src/server/player.gd`, its bag and skills; the client gets a copy of the skills
+(`Protocol.SKILLS`) and computes by it only what it shows.
 
-## 2. Величины
+## 2. The quantities
 
-| Величина | Смысл | Единица | Пределы | Где считается | Как показывается |
+| Quantity | Meaning | Unit | Limits | Where computed | How shown |
 |---|---|---|---|---|---|
-| `power` (сила) | сколько прочности снимает один удар | очки прочности | руки 1; инструменты 1–8 | данные | чип «Сила» с подсказкой: сколько ударов по дубу / камню / самому крупному зверю (`FactChips.power_hint`) |
-| `swing` (удар) | секунд на взмах без навыка | с | 0,14–0,9 | данные | чип «Удар, с» |
-| `hits` дерева | прочность: сколько силы надо набрать ударами | очки | 12–32 (мягкие 12, дуб 24, сейба 32) | `Trees` | «осталось ударов N» — `Tools.hits_to(hits − набрано, удар)` |
-| `hardness` ячейки | какой силы кирке или топору она вообще поддаётся (ворота) | очки | 1–4 | `Tools.can_dig` | «Нужна кирка покрепче» |
-| `toughness` ячейки | прочность: во сколько раз дольше удар слабее её | очки (0 — как `hardness`) | камень 3, медь 4, олово 5, железо 8 | `Tools.swing_time` | время взмаха |
-| `health` зверя | ударов силы 1 | очки | мелочь 3–5, крупные 22–50 | `Wildlife.hurt` | — (зверь бежит и падает) |
-| уровень навыка | 0..`levels` (10) | — | очки `first`·(`growth`^n − 1)/(`growth` − 1) | `Skills.level_at` | шкала из 10 делений, тонкая линия до следующего, подсказка с эффектами |
-| доля навыка `share` | уровень / `levels` | 0..1 | — | `SkillSet.share_of` | в подсказке в процентах |
-| выносливость | 0..100, цена взмаха из `Vitals.COSTS` | очки | — | `Vitals.spend` | полоска |
+| `power` (strength) | how much durability one blow takes | durability points | hands 1; tools 1–8 | data | the chip «Strength» with a hint: how many blows on an oak / a stone / the biggest animal (`FactChips.power_hint`) |
+| `swing` (blow) | seconds per swing with no skill | s | 0.14–0.9 | data | the chip «Blow, s» |
+| a tree's `hits` | durability: how much strength must be collected by blows | points | 12–32 (soft 12, oak 24, ceiba 32) | `Trees` | «N blows left» — `Tools.hits_to(hits − collected, blow)` |
+| a cell's `hardness` | what strength a pickaxe or axe must have to take it at all (a gate) | points | 1–4 | `Tools.can_dig` | «A sturdier pickaxe is needed» |
+| a cell's `toughness` | durability: how many times longer a weaker blow takes | points (0 — as `hardness`) | stone 3, copper 4, tin 5, iron 8 | `Tools.swing_time` | the swing time |
+| an animal's `health` | blows of strength 1 | points | small 3–5, big 22–50 | `Wildlife.hurt` | — (the animal runs and falls) |
+| a skill's level | 0..`levels` (10) | — | points `first`·(`growth`^n − 1)/(`growth` − 1) | `Skills.level_at` | a scale of 10 divisions, a thin line to the next, a hint with the effects |
+| a skill's share `share` | level / `levels` | 0..1 | — | `SkillSet.share_of` | in the hint in percent |
+| stamina | 0..100, the swing's price from `Vitals.COSTS` | points | — | `Vitals.spend` | a bar |
 
-Промежуточные значения не округляются: удар с `might` округляется один раз (`SkillSet.blow`), число ударов — один раз
-вверх (`Tools.hits_to`), время — не округляется вовсе.
+Intermediate values are not rounded: a blow with `might` is rounded once (`SkillSet.blow`), the number of blows
+is rounded up once (`Tools.hits_to`), the time is not rounded at all.
 
-## 3. Формулы
+## 3. The formulas
 
-**Удар** (`SkillSet.blow`): `blow = max(1, round(power × (1 + might × share)))`. `might` у всех навыков 0, кроме Охоты
-(0,5): меч силы 6 на десятом уровне бьёт на 9, каменный (2) — на 3. По игроку удар — только `power` (`Fights.strike`):
-PvP не награждает за охоту на зверей.
+**A blow** (`SkillSet.blow`): `blow = max(1, round(power × (1 + might × share)))`. `might` is 0 for all skills
+except Hunting (0.5): a sword of strength 6 at the tenth level hits for 9, a stone one (2) for 3. On a player
+the blow is only `power` (`Fights.strike`): PvP does not reward hunting animals.
 
-**Рубка** (`WorldActions.chop`): удары копятся в `chops[столб]`; дерево падает, когда сумма ≥ `hits`. Ударов =
-`⌈hits / blow⌉`; время = ударов × `swing` × `pace`; силы = ударов × `COSTS.chop` × `effort`. Навык Рубки с шансом
-`yield × share` (0,5 на последнем) кладёт у пня ещё одно бревно.
+**Chopping** (`WorldActions.chop`): blows are collected in `chops[column]`; the tree falls when the sum ≥
+`hits`. Blows = `⌈hits / blow⌉`; time = blows × `swing` × `pace`; strength = blows × `COSTS.chop` × `effort`.
+The Chopping skill with the chance `yield × share` (0.5 at the last) lays one more log at the stump.
 
-**Копание ячейки** (`Tools.swing_time`): `время = swing × max(1, toughness / power) × pace` (руки в мягком грунте ещё
-× `hand_slow`); ворота `can_dig`: `power ≥ hardness` у кирки и топора. Инструмент сильнее ячейки не бьёт быстрее своего
-`swing` — ступени кирок различаются своим `swing` (0,55 → 0,32) и тем, что на твёрдой руде слабая кирка медлит
-(бронза на железной руде 0,8 с, сталь 0,43).
+**Digging a cell** (`Tools.swing_time`): `time = swing × max(1, toughness / power) × pace` (hands in soft ground
+still × `hand_slow`); the `can_dig` gate: `power ≥ hardness` for a pickaxe and an axe. A tool stronger than the
+cell does not hit faster than its own `swing` — the steps of pickaxes differ by their `swing` (0.55 → 0.32) and
+by the fact that on hard ore a weak pickaxe lingers (bronze on iron ore 0.8 s, steel 0.43).
 
-**Темп** (`SkillSet.pace`): `pace = 1 / (1 + speed × share)`; `speed` 1 — вдвое быстрее на последнем уровне. Делит время
-взмаха (`WorldActions.skilled`), рецепта (`Workshop.time_of`), у плавания множит скорость в воде.
+**Pace** (`SkillSet.pace`): `pace = 1 / (1 + speed × share)`; `speed` 1 — twice as fast at the last level. It
+divides the swing's time (`WorldActions.skilled`), the recipe's (`Workshop.time_of`), and in swimming multiplies
+the speed in water.
 
-**Силы** (`Vitals.spend`): `цена = COSTS[действие] × (1 − effort × share)`; работа ценой ≥ `WORK_COST` (1) делает тело
-занятым на `BUSY` (1 с), и отдых в это время идёт на `WORK_REST` (0,6) от обычных `REST` (12/с). Работа, что тратит в
-секунду меньше 7,2, не утомляет вовсе (руки, каменная кирка); каменный топор без навыка — 88 с подряд, стальной — 15 с,
-но за эти 15 с он валит девять дубов против полутора. Что считать: цену одного дерева или ячейки, не секунды до нуля:
-дуб каменным топором — 60 сил без навыка, 36 на десятом уровне, стальным — 20.
+**Strength** (`Vitals.spend`): `price = COSTS[action] × (1 − effort × share)`; work with a price ≥ `WORK_COST`
+(1) makes the body busy for `BUSY` (1 s), and rest in that time goes at `WORK_REST` (0.6) of the usual `REST`
+(12/s). Work that spends less than 7.2 per second does not tire at all (hands, a stone pickaxe); a stone axe
+with no skill — 88 s in a row, a steel one — 15 s, but in those 15 s it fells nine oaks against one and a
+half. What to count: the price of one tree or cell, not the seconds to zero: an oak with a stone axe — 60
+strength with no skill, 36 at the tenth level, with a steel one — 20.
 
-**Износ** (`Workshop.use_tool`): взмах снимает 1 из `durability`, если навык не пожалел инструмент (шанс `care × share`,
-0,5 на последнем); рецепт снимает `wear` ударов с инструмента своего класса, и Ремесло щадит так же. Качество вещи
-(решение 181, `Quality`) меняет её прочность: `durability × (1 + (q − 50)/100)` — 100 даёт +50%, 10 — −40%; и темп
-взмаха: `× (1 + (q − 50)/250)`. Добытое: `35 + 5·сила (до 30) + (качество инструмента − 50)/5 + quality·share ± 5`;
-сделанное: среднее материалов, не выше `50 + quality·share` (Ремесло, Готовка — 50) и `quality_cap` станка и рецепта. Износ включён по
-умолчанию (`Rules.tool_wear`; «Тестирование» выключает); прочности: каменный топор 360 ударов ≈ 30 дубов, стальной
-3600 ≈ 900; чинится по `repair`.
+**Wear** (`Workshop.use_tool`): a swing takes 1 from `durability` if the skill did not spare the tool (the
+chance `care × share`, 0.5 at the last); a recipe takes `wear` blows from a tool of its class, and Crafting
+spares it likewise. A thing's quality (decision 181, `Quality`) changes its durability: `durability × (1 + (q −
+50)/100)` — 100 gives +50%, 10 — −40%; and the swing's pace: `× (1 + (q − 50)/250)`. What is gathered: `35 +
+5·strength (up to 30) + (the tool's quality − 50)/5 + quality·share ± 5`; what is made: the average of the
+materials, not above `50 + quality·share` (Crafting, Cooking — 50) and the `quality_cap` of the station and the
+recipe. Wear is on by default (`Rules.tool_wear`; «Testing» switches it off); the durabilities: a stone axe 360
+blows ≈ 30 oaks, a steel one 3600 ≈ 900; repaired by `repair`.
 
-**Опыт** (`SkillSet.gain`): очки — секунды работы *без навыка* (взмах, который что-то сделал; рецепт — его время, тот
-же подряд в 0,85 раза меньше каждый раз, не ниже 0,2; целая вещь — `each`: зверь 30, рыба 20), так что прокачка не
-замедляется, когда рука ускоряется. Уровень n стоит `first × (growth^n − 1) / (growth − 1)`: `first` 120, `growth`
-1,45 → первый за 2 мин работы, пятый за 24 мин, десятый за ~3 ч (дуб каменным топором — 7 очков, 1-й уровень —
-17 дубов, 10-й — ~1500). Выкопать свой блок и поставить его назад опыта не даёт.
+**Experience** (`SkillSet.gain`): points are seconds of work *with no skill* (a swing that did something; a
+recipe — its time, the same one in a row 0.85 times less each time, not below 0.2; a whole thing — `each`: an
+animal 30, a fish 20), so levelling does not slow down when the hand speeds up. Level n costs `first ×
+(growth^n − 1) / (growth − 1)`: `first` 120, `growth` 1.45 → the first for 2 min of work, the fifth for 24
+min, the tenth for ~3 h (an oak with a stone axe — 7 points, the 1st level — 17 oaks, the 10th — ~1500). Digging
+one's own block and putting it back gives no experience.
 
-**Еда** (`Vitals`): сытость −60 в игровые сутки (40 мин при обычном ходе часов), вода −70, лечение +50 при сытости > 50;
-жареное мясо 30, лепёшка 25, ягоды 2–4. Не менялось: таблица в TABLES, «Еда против голода».
+**Food** (`Vitals`): satiety −60 per game day (40 min at the normal clock rate), water −70, healing +50 at
+satiety > 50; roast meat 30, flatbread 25, berries 2–4. Not changed: the table in TABLES, «Food against
+hunger».
 
-## 4. Прогрессия по эпохам
+## 4. Progression by eras
 
-| Эпоха | Инструменты (сила) | Что открывает в добыче | Что ждать от удара |
+| Era | Tools (strength) | What it opens in gathering | What to expect of a blow |
 |---|---|---|---|
-| 0 руки | 1 | трава, ветки, ягоды, мягкий грунт (0,9 с/ячейка) | мелкого зверя 3–5 ударами |
-| 1 камень/дерево | топор 2, кирка 2, меч 2, копьё 4, лук 5 | камень, медная руда (3–4 прочности), деревья 6–16 ударов | волк 11 ударов мечом, 5 копьём, 5 луком |
-| 3 медь | 3 | олово (твёрдость 3) | дуб 8 ударов |
-| 4 бронза | 4 | железо, золото, серебро, платина (твёрдость 4) | дуб 6 ударов, волк 6 |
-| 5 железо | 5 | то же быстрее (0,36 с удар, 0,58 на железной руде) | дуб 5 |
-| 6 сталь | 6 | то же быстрее (0,32; 0,43) | дуб 4, волк 4, медведь 9 |
+| 0 hands | 1 | grass, twigs, berries, soft ground (0.9 s/cell) | a small animal in 3–5 blows |
+| 1 stone/wood | axe 2, pickaxe 2, sword 2, spear 4, bow 5 | stone, copper ore (durability 3–4), trees 6–16 blows | a wolf 11 blows with a sword, 5 with a spear, 5 with a bow |
+| 3 copper | 3 | tin (hardness 3) | an oak 8 blows |
+| 4 bronze | 4 | iron, gold, silver, platinum (hardness 4) | an oak 6 blows, a wolf 6 |
+| 5 iron | 5 | the same faster (0.36 s a blow, 0.58 on iron ore) | an oak 5 |
+| 6 steel | 6 | the same faster (0.32; 0.43) | an oak 4, a wolf 4, a bear 9 |
 
-Каждая ступень — ощутимо быстрее предыдущей на всём, что та брала, и новые породы ячеек; прежние инструменты не
-обесцениваются полностью: каменный топор на десятом уровне (3,6 с дуб) быстрее стального без навыка только на мягких
-породах, стальной без навыка (1,4 с) быстрее каменного на любом уровне.
+Each step is noticeably faster than the previous on everything it took, and brings new kinds of cells; the old
+tools are not wholly devalued: a stone axe at the tenth level (3.6 s an oak) is faster than a steel one with no
+skill only on soft kinds, a steel one with no skill (1.4 s) is faster than a stone one at any level.
 
-## 5. Специализация
+## 5. Specialisation
 
-Предметы одной ступени не одинаковы: меч — дальность 8, косит высокую траву и сбивает ягоды; нож — лёгкий, короткий,
-быстрый (0,3 с), разделывает туши; копьё — сильнее всех в руке (4/6/8), медленное (0,7 с), бросается и подбирается;
-праща и лук — дальность 20–36 и расход зарядов; деревянная кирка — дешевле и слабее каменной. Проверка «Двойники» графа
-контента не даёт двум предметам совпасть во всём.
+Items of one step are not alike: a sword — reach 8, mows tall grass and knocks berries down; a knife — light,
+short, fast (0.3 s), dresses carcasses; a spear — the strongest in the hand (4/6/8), slow (0.7 s), is thrown
+and picked up; a sling and a bow — reach 20–36 and the use of charges; a wooden pickaxe — cheaper and weaker
+than a stone one. The «Twins» check of the content graph does not let two items coincide in everything.
 
-## 6. Отображение
+## 6. Display
 
-- Шкала навыка в окне персонажа показывает **только уровень** (деление — уровень из 10) и путь до следующего; зелёных
-  делений «от инструмента» больше нет: сила инструмента — не уровень навыка.
-- Подсказка шкалы — что уровень делает сейчас: «Работа быстрее на N%», «Сил на взмах меньше на N%», «Ещё одна штука:
-  шанс N%», «Удар сильнее на N%», «Качество добытого +N» или «Качество сделанного до N», «Инструмент не изнашивается: шанс N%», и какой инструмент в
-  руке этот навык ведёт (`Tools.ROLE_OF`, одна карта для правил и окна).
-- Чип «Сила» инструмента объясняет число примером из данных: дуб (прочность 24) — N ударов; камень (прочность 3) —
-  удар 0,8 с; медведь (здоровье 50) — N ударов.
-- Сообщение «осталось ударов» считается тем же `Tools.hits_to`, что и падение дерева.
+- A skill's scale in the character window shows **only the level** (a division is a level of 10) and the way to
+  the next; the green «from the tool» divisions are gone: a tool's strength is not a skill's level.
+- The scale's hint — what the level does now: «Work faster by N%», «Less strength per swing by N%», «One more
+  piece: chance N%», «A stronger blow by N%», «Quality of what is gathered +N» or «Quality of what is made up to
+  N», «The tool does not wear: chance N%», and which tool in the hand this skill leads (`Tools.ROLE_OF`, one
+  map for the rules and the window).
+- The tool's «Strength» chip explains the number by an example from data: an oak (durability 24) — N blows; a
+  stone (durability 3) — a blow of 0.8 s; a bear (health 50) — N blows.
+- The message «blows left» is computed by the same `Tools.hits_to` as the tree's fall.
 
-## 7. Автоматические проверки
+## 7. Automatic checks
 
-`tests/unit/balance_test.gd` (в `run_tests`): ступени класса не слабее, не медленнее и не хрупче предыдущей и не
-совпадают; слабейший топор валит любое дерево за ≤ 20 ударов, лучший — самое твёрдое за ≥ 5 и ни одно за один; дуб:
-последний уровень режет время на ≥ 40 % с любым топором, лучший топор без навыка быстрее слабейшего на десятом,
-лучший на десятом — не меньше полсекунды и трёх ударов; каждая ячейка копается первым подходящим инструментом не дольше
-4 его взмахов, каждая ступень кирок быстрее на самой твёрдой; крупный зверь (масса ≥ 20) — ≥ 3 удара лучшим оружием;
-первый уровень любого навыка ≤ 5 мин работы, последний 1–6 ч, `speed` ≤ 1,5, `might` ≤ 1, навык без охоты не
-меняет удар; стальной топор утомляет, но не быстрее 8 с, дуб на десятом уровне стоит ≤ 65 % сил нулевого; лучшее
-оружие убивает игрока за ≥ 4 удара, кулаки за ≥ 20; еда одной штукой не кормит на сутки, лучшее жареное > 2× сырого;
-правила делают то, что говорят таблицы (рубка, время удара кирки, удар навыка). Каждый предел с причиной — в файле.
-Отчёт `tools/balance_report.gd -- --check` падает, если таблицы устарели.
+`tests/unit/balance_test.gd` (in `run_tests`): a class's steps are no weaker, no slower and no more fragile than
+the previous and do not coincide; the weakest axe fells any tree in ≤ 20 blows, the best — the hardest in ≥ 5
+and none in one; an oak: the last level cuts the time by ≥ 40 % with any axe, the best axe with no skill is
+faster than the weakest at the tenth, the best at the tenth — not less than half a second and three blows; each
+cell is dug by the first fitting tool in no more than 4 of its swings, each step of pickaxes is faster on the
+hardest; a big animal (mass ≥ 20) — ≥ 3 blows with the best weapon; the first level of any skill ≤ 5 min of
+work, the last 1–6 h, `speed` ≤ 1.5, `might` ≤ 1, a skill other than hunting does not change the blow; a steel
+axe tires, but not faster than 8 s, an oak at the tenth level costs ≤ 65 % of the strength of the zeroth; the
+best weapon kills a player in ≥ 4 blows, fists in ≥ 20; food as a single piece does not feed for a day, the
+best roast > 2× the raw; the rules do what the tables say (chopping, a pickaxe's blow time, a skill's blow).
+Each limit with its reason is in the file. The report `tools/balance_report.gd -- --check` fails if the tables
+are stale.
 
-## 8. Чего модель не трогает (и почему)
+## 8. What the model does not touch (and why)
 
-Урон зверей игроку (поле `bite` вида: кабан 10, медведь 18, волк 7 за укус; правила нападения — ИИ существ,
-`docs/systems/wildlife.md`), брони и щитов нет (нет в игре), спавн и
-редкость ресурсов (генератор, бандлы), рецепты и их цены (логика цепочек важнее выравнивания; таблица «Цена
-инструмента против срока» показывает, что бронза даёт 1500 ударов за 2 слитка, сталь 3600 за 2: каждая ступень
-окупается). Открытые вопросы — в [GAME_BALANCE_ROADMAP.md](GAME_BALANCE_ROADMAP.md).
+An animal's damage to a player (the kind's field `bite`: a boar 10, a bear 18, a wolf 7 per bite; the rules of
+attack are the creatures' AI, `docs/systems/wildlife.md`), there are no armours and shields (not in the game),
+the spawn and rarity of resources (the generator, bundles), recipes and their prices (the logic of chains is
+more important than levelling; the table «A tool's price against its term» shows that bronze gives 1500 blows
+for 2 ingots, steel 3600 for 2: each step pays off). Open questions — in
+[GAME_BALANCE_ROADMAP.md](GAME_BALANCE_ROADMAP.md).

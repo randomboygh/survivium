@@ -66,9 +66,9 @@
 
 | Документ | Назначение | Статус | Кому и когда |
 |---|---|---|---|
-| [balance/GAME_BALANCE_DESIGN.md](balance/GAME_BALANCE_DESIGN.md) | модель баланса: инструмент — удар, навык — рука; величины, формулы, прогрессия, отображение, автоматические пределы | ACTIVE | менять силу, прочность, навыки, выносливость, здоровье зверей |
+| [balance/GAME_BALANCE_DESIGN.md](balance/GAME_BALANCE_DESIGN_RU.md) | модель баланса: инструмент — удар, навык — рука; величины, формулы, прогрессия, отображение, автоматические пределы | ACTIVE | менять силу, прочность, навыки, выносливость, здоровье зверей |
 | [balance/GAME_BALANCE_TABLES.md](balance/GAME_BALANCE_TABLES.md) | таблицы по живым данным: инструменты, дерево × топор × навык, ячейка × кирка, зверь × оружие, PvP, навыки, выносливость, цена и срок, еда | генерируется (`tools/balance_report.gd`) | проверить число перед правкой данных |
-| [balance/GAME_BALANCE_ROADMAP.md](balance/GAME_BALANCE_ROADMAP.md) | что сделано и что осталось по приоритетам, системы и риски | ACTIVE | планировать баланс |
+| [balance/GAME_BALANCE_ROADMAP.md](balance/GAME_BALANCE_ROADMAP_RU.md) | что сделано и что осталось по приоритетам, системы и риски | ACTIVE | планировать баланс |
 | [balance/GAME_BALANCE_AUDIT.md](balance/GAME_BALANCE_AUDIT.md), [balance/GAME_BALANCE_REPORT.md](balance/GAME_BALANCE_REPORT.md) | аудит до проработки 2026-11-07 и отчёт о ней: что найдено, что изменено, тесты, что осталось | ARCHIVED | причины нынешних чисел |
 
 **Тестирование и CI/CD**
