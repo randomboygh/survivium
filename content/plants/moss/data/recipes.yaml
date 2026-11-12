@@ -1,5 +1,5 @@
-# Рецепты мода «Растения»: что делают из зерна, мха и грибов. Поля рецепта — docs/DATA_MODEL.md;
-# волокно — «Ресурсов», печь — «Инструментов», костёр — основы.
+# Recipes of the "Plants" mod: what is made of grain, moss and mushrooms. Recipe fields — docs/DATA_MODEL.md;
+# fiber — "Resources", the oven — "Tools", the campfire — the core.
 - id: bandage
   title: "[plants.recipes.bandage]"
   makes: bandage

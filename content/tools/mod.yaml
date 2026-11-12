@@ -2,7 +2,7 @@ id: tools
 title: "[tools.mod]"
 version: "0.2"
 api: 1
-# Бандл на вещь: топор, кирка, лопата, меч, коса, верстак, печь для обжига, сундук, каждый со
-# своими записями, картинками и моделями; рецепт досок у топора, кирпича — у печи. Что бандлу
-# нужно, выводится из ссылок его рецептов: верстак (at) — бандл верстака, ветка, бревно, кремень,
-# камень и глина — «Ресурсы», верёвка, доски и кирпич — «Материалы».
+# A bundle per thing: axe, pickaxe, shovel, sword, scythe, workbench, kiln, chest, each with
+# its own records, pictures and models; the plank recipe is with the axe, the brick one - with the kiln. What a bundle
+# needs is derived from the references in its recipes: the workbench (at) - the workbench bundle, branch, log, flint,
+# stone and clay - "Resources", rope, planks and brick - "Materials".

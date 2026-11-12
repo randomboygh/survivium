@@ -1,9 +1,9 @@
-# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
-# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
-# sprites/creatures/<sprite>.png этого бандла (рисует tools/make_fish.py):
-# три вида, кадры: стоит, хвост ×4, плавники; голоса (calls, alarm) — его sounds.yaml.
-# Рыба (swims): живёт в открытой воде рек и озёр чуть под поверхностью, стайкой; с берега её не достать,
-# из воздуха — достают птицы. catch — во что он превращается в сумке, когда его вытащили удочкой (предмет бандла «Рыба»).
+# The fields are the same as for all creatures (content/core/data/creatures.yaml): who is food or a threat to whom
+# is derived from mass and diet by general rules, not written down. The species' picture —
+# sprites/creatures/<sprite>.png of this bundle (drawn by tools/make_fish.py):
+# three species, frames: standing, tail ×4, fins; voices (calls, alarm) — its sounds.yaml.
+# A fish (swims): lives in the open water of rivers and lakes a little under the surface, in a school; it cannot be reached from the shore,
+# from the air — birds reach it. catch — what it turns into in the bag when it is pulled out with a rod (an item of the "Fish" bundle).
 - id: perch
   title: "[animals.creatures.perch]"
   mass: 0.6

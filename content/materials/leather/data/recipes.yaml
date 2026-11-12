@@ -1,5 +1,5 @@
-# Рецепт бандла «Кожа»: шкура, натёртая жиром («Животные», бандл «Добыча»), сохнет на сушилке
-# («Инструменты»); рецепт лежит здесь, чтобы сушилка не зависела от кожи.
+# Recipe of the "Leather" bundle: hide rubbed with fat ("Animals", the "Game animals" bundle) dries on the drying rack
+# ("Tools"); the recipe lies here so that the drying rack does not depend on leather.
 - id: leather
   title: "[materials.recipes.leather]"
   makes: leather

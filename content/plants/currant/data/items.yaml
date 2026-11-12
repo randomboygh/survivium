@@ -1,4 +1,4 @@
-# Предметы бандла: поля — как у предметов основы (content/core/data/items.yaml).
+# The bundle's items: fields as for the core's items (content/core/data/items.yaml).
 - id: currant
   title: "[plants.items.currant]"
   weight: 0.1

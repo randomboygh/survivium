@@ -1,5 +1,5 @@
-# Рецепты бандла «Составной лук»: сам лук из деревянного с костью («Животные», бандл «Добыча»), костным
-# клеем и кожей («Материалы») и стрелы с костяным наконечником — на верстаке.
+# Recipes of the "Composite bow" bundle: the bow itself from a wooden one with bone ("Animals", the "Game animals" bundle), bone
+# glue and leather ("Materials"), and bone-tipped arrows - at the workbench.
 - id: composite_bow
   title: "[tools.recipes.composite_bow]"
   makes: composite_bow

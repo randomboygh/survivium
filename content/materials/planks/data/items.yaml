@@ -1,4 +1,4 @@
-# Доски: их делают из бревна на верстаке (рецепт в «Инструментах») и ставят блоками.
+# Planks: they are made from a log at a workbench (the recipe is in "Tools") and placed as blocks.
 - id: planks
   title: "[materials.items.planks]"
   weight: 1.0

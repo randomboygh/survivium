@@ -1,4 +1,4 @@
-# Земля, песок и глина в сумке; землю ставят ячейкой грунта основы, песок и глину — своими.
+# Earth, sand and clay in the bag; earth is placed as the core soil cell, sand and clay as their own.
 - id: dirt
   title: "[resources.items.dirt]"
   weight: 1.5

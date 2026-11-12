@@ -1,17 +1,17 @@
-# Биом: where — где лежит: climate (по окну тепла warmth и влаги moisture, 0..1; из подходящих берётся
-# самый узкий, при равенстве — загруженный раньше) или рельеф, который решает генератор: sea, beach,
-# rock, plateau, swamp (одна запись на рельеф). top — грунт сверху: grass, dirt, stone, sand (материал
-# роли beach), clay (роли bank), snow, peat, salt (материалы этих ролей); stone_below / clay_above — порог шума почвы (-1..1), ниже/выше
-# которого проступают камень/глина (вместо глины — грунт поля clay_as); dunes — на сколько ячеек поднимают землю барханы (шум дюн).
-# trees — доли пород на решётке деревьев (остаток — пусто), tree_chance — шанс дерева на узле решётки,
-# groves — шанс в рощах (где высок шум леса); bushes — доли кустов, bush_sparsity — одна попытка
-# куста на столько ячеек (0 — нет). spawn — здесь можно начать игру; sandstorms — вместо дождя
-# песчаные бури. zone — климатическая зона (polar, north, temperate, steppe, hot, tropic, mountain), метка
-# для карты и отчётов. color — цвет на карте. tints — цвета грунта и воды биома вместо их собственных (по
-# именам поля top и water: {sand: "#e6dcbe", water: "#4cc6bc"}). Ссылки на породы и кусты мягкие: без их бандла доля пуста.
-# Берёзовая роща: тёплое и не самое влажное окно внутри луга (уже его, так что берёт верх), светлые
-# берёзы с рябиной и редким дубом, кусты — шиповник и смородина. Породы и кусты — бандлы «Растений»,
-# ссылки мягкие.
+# Biome: where — where it lies: climate (by a window of warmth and moisture, 0..1; of the matching ones the
+# narrowest is taken, on a tie the one loaded earlier) or a terrain the generator decides: sea, beach,
+# rock, plateau, swamp (one record per terrain). top — the ground on top: grass, dirt, stone, sand (the material
+# of role beach), clay (role bank), snow, peat, salt (the materials of those roles); stone_below / clay_above — the soil noise threshold (-1..1), below/above
+# which stone/clay shows through (instead of clay, the ground of field clay_as); dunes — by how many cells dunes raise the ground (dune noise).
+# trees — shares of species on the tree grid (the rest is empty), tree_chance — the chance of a tree at a grid node,
+# groves — the chance in groves (where forest noise is high); bushes — shares of bushes, bush_sparsity — one attempt
+# of a bush per that many cells (0 — none). spawn — the game can start here; sandstorms — instead of rain
+# sandstorms. zone — the climate zone (polar, north, temperate, steppe, hot, tropic, mountain), a label
+# for the map and reports. color — the colour on the map. tints — the biome's ground and water colours instead of their own (by
+# the names of the top field and water: {sand: "#e6dcbe", water: "#4cc6bc"}). References to species and bushes are soft: without their bundle the share is empty.
+# Birch grove: a warm and not the wettest window inside the meadow (narrower than it, so it wins), light
+# birches with rowan and a rare oak, bushes of dog rose and currant. Species and bushes are bundles of "Plants",
+# references are soft.
 - id: birch_grove
   title: "[biomes.biomes.birch_grove]"
   zone: temperate

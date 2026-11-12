@@ -1,4 +1,4 @@
-# Дверь сбивают из досок («Материалы») на верстаке.
+# The door is knocked together from "Materials" planks at the workbench.
 - id: door
   title: "[tools.recipes.door]"
   makes: door

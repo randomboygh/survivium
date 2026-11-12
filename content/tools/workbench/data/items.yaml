@@ -1,10 +1,10 @@
-# Предметы бандла «Верстак» мода «Инструменты и крафт». Поля — как у предметов основы
-# (content/core/data/items.yaml): tool — класс инструмента (axe, pickaxe, shovel, sword, scythe
-# работают в мире; новое слово — класс для рецептов, в мире он как руки), power, swing, reach,
-# durability, repair — чем чинят («Ресурсы»: кремень, «Материалы»: верёвка, доски); sprite и anim —
-# лист в руках (sprites/held/<sprite>.png) и работа персонажа; prop — класс вещи, которую ставят на
-# клетки 2×2 (workbench, kiln, chest), и её флаги: storage, fire, repairs, serves, place_tool;
-# model — её воксельная модель (models/<model>.png).
+# Items of the "Workbench" bundle of the "Tools and crafting" mod. Fields are as for the core items
+# (content/core/data/items.yaml): tool - the tool class (axe, pickaxe, shovel, sword, scythe
+# work in the world; a new word is a class for recipes, in the world it acts like hands), power, swing, reach,
+# durability, repair - what mends it ("Resources": flint, "Materials": rope, planks); sprite and anim -
+# the sheet in the hands (sprites/held/<sprite>.png) and the character's work; prop - the class of a thing placed on
+# 2x2 cells (workbench, kiln, chest), and its flags: storage, fire, repairs, serves, place_tool;
+# model - its voxel model (models/<model>.png).
 - id: workbench
   title: "[tools.items.workbench]"
   era: core:primitive

@@ -1,4 +1,4 @@
-# Доски как ячейка: рубятся топором. Поля — как у материалов основы.
+# Planks as a cell: chopped with an axe. Fields as for the core's materials.
 - id: planks
   title: "[materials.materials.planks]"
   hotbar: 3

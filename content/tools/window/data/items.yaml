@@ -1,5 +1,5 @@
-# Окно: рама из досок со стеклом на одну клетку (решение 163, 2А). Ставится в проём стены лицом к
-# игроку, твёрдое; касание забирает его (prop: window, window). Поля — как у предметов основы.
+# Window: a plank frame with glass, one cell big (decision 163, 2A). Placed in a wall opening facing
+# the player, solid; a touch picks it up (prop: window, window). Fields are as for the core items.
 - id: window
   title: "[tools.items.window]"
   description: "[tools.items.window.about]"
@@ -9,8 +9,8 @@
   model: window
   prop: window
   window: true
-# Окна шире и выше одной клетки (размер — ширина × высота в клетках): рама из досок по краям, в
-# каждой клетке своя рама с крестом; ставятся в проём такого же размера (клетки — по срезу модели).
+# Windows wider and taller than one cell (the size is width x height in cells): a plank frame at the edges, in
+# each cell its own frame with a cross; placed in an opening of the same size (cells - by the model's slice).
 - id: window_1x2
   title: "[tools.items.window_1x2]"
   description: "[tools.items.window_1x2.about]"

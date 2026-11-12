@@ -1,5 +1,5 @@
-# Рецепт бандла «Костный клей»: кости («Животные», бандл «Добыча») с веткой на дрова варят на костре
-# основы в глиняном горшке гончарного круга (горшок остаётся в сумке).
+# Recipe of the "Bone glue" bundle: bones ("Animals", the "Game animals" bundle) with a twig for firewood are boiled on the core's
+# campfire in a clay pot of the potter's wheel (the pot stays in the bag).
 - id: bone_glue
   title: "[materials.recipes.bone_glue]"
   makes: bone_glue

@@ -1,4 +1,4 @@
-# Предмет бандла «Холщовый рюкзак»: самая большая сумка за спину. Поля — как у котомки
+# Item of the "Canvas backpack" bundle: the biggest back bag. Fields are as for the woven pouch
 # (content/tools/wicker_bag/data/items.yaml).
 - id: canvas_backpack
   title: "[tools.items.canvas_backpack]"

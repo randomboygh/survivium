@@ -1,5 +1,5 @@
-# Рецепт бандла «Приставная лестница»: жерди и перекладины из веток «Ресурсов», связанные верёвкой
-# «Материалов», руками, без станка. Поля — docs/DATA_MODEL.md.
+# Recipe of the "Ladder" bundle: poles and rungs from "Resources" branches, tied with "Materials"
+# rope, by hand, without a station. Fields are in docs/DATA_MODEL.md.
 - id: ladder
   title: "[tools.recipes.ladder]"
   makes: ladder

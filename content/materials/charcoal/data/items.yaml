@@ -1,5 +1,5 @@
-# Древесный уголь: его пережигают из бревна в печи (рецепт в бандле «Печь для обжига»
-# «Инструментов»); им плавят медь в горне и разжигают костёр (fuel).
+# Charcoal: it is burned from a log in a kiln (the recipe is in the "Kiln" bundle
+# of "Tools"); it smelts copper in a forge and lights a campfire (fuel).
 - id: charcoal
   title: "[materials.items.charcoal]"
   weight: 0.5

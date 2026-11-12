@@ -1,23 +1,23 @@
-# Виды существ. Кто кому еда или угроза, выводится из свойств (src/shared/content/ai_rules.gd):
-# хищник берёт добычу до 0.8 своей массы, мясоед в 1.25 раза тяжелее опасен и без охоты.
-# mass — кг; diet — plants и/или meat; speed — ячеек в секунду; sight — дальность
-# зрения в ячейках; human_wariness — 0..1, с 0.5 человек считается угрозой; fire_wariness —
-# 0..1 (1 по умолчанию), с 0.5 зверь держится от огня и света (scares предмета) подальше;
-# active — day, night или any; count — сколько живёт вокруг игроков; sprite — имя
-# картинки: sprites/creatures/<sprite>.png мода (или старые рисунки в коде клиента),
-# frames — кадров в ней в ряд (у летающих 0 сидит, остальные взмахи крыльев).
-# Необязательные: flies — летает (перелетает с места на место, садится на землю и на
-# деревья), flight — как далеко перелетает за раз, в ячейках (28); swims — плавает в открытой воде,
-# ashore — плавающий выходит и на берег у своей воды; hops — по земле прыгает; after_rain —
-# выходит только после дождя, пока стоят лужи; tints — цвета, на которые умножается картинка
-# (у каждого зверя свой); flock — [от, до] сколько держится вместе (стая, стадо); roost — где спит и
-# отдыхает: ground или trees; likes — растения (data/plants.yaml бандлов «Растений»), к которым
-# тянется; calls — голос, который слышно время от времени, alarm — крик испуга или угрозы
-# (sounds.yaml). human — игроки. Звери и птицы живут в моде content/animals, бандл на вид;
-# в основе остаётся только человек.
-# Любая запись может иметь ещё общие поля: description — текст для игрока; tags — метки для
-# отчётов и поиска (игру они не меняют); provisional — какие её числа предварительные, по именам
-# полей. Запись с id чужой записи заменяет её только с replaces: true, иначе это ошибка.
+# Species of creatures. Who is food or a threat to whom is derived from properties (src/shared/content/ai_rules.gd):
+# a predator takes prey up to 0.8 of its own mass, a meat eater 1.25 times heavier is dangerous even without hunting.
+# mass — kg; diet — plants and/or meat; speed — cells per second; sight — the range
+# of sight in cells; human_wariness — 0..1, from 0.5 a human counts as a threat; fire_wariness —
+# 0..1 (1 by default), from 0.5 the animal keeps away from fire and light (an item's scares);
+# active — day, night or any; count — how many live around players; sprite — the name
+# of the picture: sprites/creatures/<sprite>.png of the mod (or the old drawings in the client code),
+# frames — frames in a row in it (for fliers 0 is sitting, the rest are wing beats).
+# Optional: flies — flies (moves from place to place, lands on the ground and on
+# trees), flight — how far it flies at a time, in cells (28); swims — swims in open water,
+# ashore — a swimmer also comes ashore by its water; hops — hops on the ground; after_rain —
+# comes out only after rain, while puddles stand; tints — the colours the picture is multiplied by
+# (each animal has its own); flock — [from, to] how many stay together (pack, herd); roost — where it sleeps and
+# rests: ground or trees; likes — plants (data/plants.yaml of the bundles of "Plants") it is
+# drawn to; calls — a voice heard from time to time, alarm — a cry of fear or threat
+# (sounds.yaml). human — players. Animals and birds live in the mod content/animals, a bundle per species;
+# only the human remains in the core.
+# Any record may also have common fields: description — text for the player; tags — labels for
+# reports and search (they do not change the game); provisional — which of its numbers are provisional, by the names
+# of the fields. A record with the id of another record replaces it only with replaces: true, otherwise it is an error.
 - id: human
   title: "[core.creatures.human]"
   mass: 70

@@ -1,7 +1,7 @@
-# Растение со своей картинкой (kind: custom): sprite — ряд из frames кадров 8×24 в sprites/plants/ бандла;
-# grows — где растёт: meadow (открытая трава), shade (тень крон), bank (у воды); cover — какую долю такой
-# земли занимает (0–1); clumps — порог шума (−1..1), выше которого растёт: пятнами, а не везде
-# (нет поля — везде). gives, chance, pick, winter — как у остальных растений.
+# A plant with its own picture (kind: custom): sprite — a row of 8×24 frames (frames) in the bundle's sprites/plants/;
+# grows — where it grows: meadow (open grass), shade (shade of the crowns), bank (by the water); cover — what share of such
+# ground it takes up (0–1); clumps — the noise threshold (−1..1) above which it grows: in patches, not everywhere
+# (no field — everywhere). gives, chance, pick, winter — as for the other plants.
 - id: nettle
   kind: custom
   title: "[plants.plants.nettle]"

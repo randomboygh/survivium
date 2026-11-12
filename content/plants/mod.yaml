@@ -2,7 +2,7 @@ id: plants
 title: "[plants.mod]"
 version: "0.2"
 api: 1
-# Деревья, кусты и травы с тем, что они дают, бандл на каждое: папка со своими записями,
-# картинками и моделями (common/ — общие модели). Что бандлу нужно, выводится из его ссылок:
-# трава, волокно и бревно-предмет — основы, печь для лепёшки — «Инструментов и крафта»; ствол
-# и крона — бандл «Древесина», которого деревья требуют в bundle.yaml (роли не связывают).
+# Trees, bushes and grasses with what they give, a bundle for each: a folder with its own entries,
+# pictures and models (common/ — shared models). What a bundle needs is derived from its references:
+# grass, fiber and the log item — the core, the oven for the flatbread — "Tools and crafting"; the trunk
+# and the crown — the "Timber" bundle, which the trees require in bundle.yaml (roles do not link).

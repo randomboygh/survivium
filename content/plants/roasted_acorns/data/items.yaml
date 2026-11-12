@@ -1,5 +1,5 @@
-# Жареные жёлуди: свой бандл, чтобы дуб не зависел от гончарного круга «Инструментов».
-# Их калят на костре в глиняном горшке, сырые есть нельзя.
+# Roasted acorns: a bundle of their own, so that the oak does not depend on the "Tools" potter's wheel.
+# They are fired on a campfire in a clay pot; raw ones cannot be eaten.
 - id: roasted_acorns
   title: "[plants.items.roasted_acorns]"
   description: "[plants.items.roasted_acorns.about]"

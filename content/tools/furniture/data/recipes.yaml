@@ -1,5 +1,5 @@
-# Мебель делают из досок («Материалы») на верстаке; обручи бочки — из верёвки, тюфяк кровати и
-# половик — из ткани (половик ткут на станке).
+# Furniture is made from planks ("Materials") at the workbench; barrel hoops - from rope, the bed mattress and
+# the rug - from cloth (the rug is woven on a loom).
 - id: table
   title: "[tools.recipes.table]"
   makes: table

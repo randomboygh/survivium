@@ -1,17 +1,17 @@
-# Навыки (решение 164): растут от полезной работы своего вида (role) и ускоряют её. Очки — секунды
-# работы: взмах, который что-то сделал, столько, сколько он длится; вещь из рецепта — его время (тот же
-# рецепт подряд даёт всё меньше); где у работы нет своего времени, целая вещь даёт each (добытый зверь,
-# пойманная рыба). levels — уровней; first — очков на первый, каждый следующий в growth раз дороже;
-# speed — насколько быстрее работа на последнем уровне (доля прибавки темпа: 1 — вдвое быстрее, у плавания —
-# вдвое быстрее плывёт; по умолчанию 1); yield — шанс на последнем уровне получить ещё одну штуку того, что даёт
-# работа; quality — сколько очков качества (из 100) навык на последнем уровне прибавляет добытому или потолку
-# сделанного (по умолчанию 30, у ремесла 50; качество — решение 181); effort — на
-# какую долю дешевле по силам взмах на последнем уровне (по умолчанию 0,4); care — шанс на последнем уровне,
-# что взмах не изнашивает инструмент (по умолчанию 0,5); might — на какую долю сильнее удар инструмента на
-# последнем уровне (только охота: 0,5; у прочих 0 — силу удара решает инструмент). Без first и growth: 120 очков
-# на первый уровень, каждый следующий в 1,45 раза дороже (десятый — около трёх часов чистой работы).
-# Формулы и таблицы: docs/balance/GAME_BALANCE_DESIGN.md. Порядок полос в окне персонажа — order. Мод добавляет навык записью с новой
-# ролью, только когда движок знает эту работу.
+# Skills (decision 164): they grow from useful work of their kind (role) and speed it up. Points are seconds
+# of work: a swing that did something, as long as it lasts; an item from a recipe, its time (the same
+# recipe repeatedly gives less and less); where the work has no time of its own, a whole item gives each (a hunted animal,
+# a caught fish). levels — the number of levels; first — points for the first, each next one growth times dearer;
+# speed — how much faster the work is at the last level (a share of the pace gain: 1 — twice as fast, for swimming —
+# twice as fast swimming; 1 by default); yield — the chance at the last level to get one more piece of what the
+# work gives; quality — how many quality points (out of 100) the skill at the last level adds to what is gathered or to the cap
+# of what is made (30 by default, 50 for crafting; quality is decision 181); effort — by
+# what share a swing is cheaper in stamina at the last level (0.4 by default); care — the chance at the last level
+# that a swing does not wear the tool (0.5 by default); might — by what share a tool's blow is stronger at the
+# last level (hunting only: 0.5; for the others 0 — the tool decides the strength of a blow). Without first and growth: 120 points
+# for the first level, each next one 1.45 times dearer (the tenth is about three hours of pure work).
+# Formulas and tables: docs/balance/GAME_BALANCE_DESIGN.md. The order of the bars in the character window is order. A mod adds a skill with a record of a new
+# role, only when the engine knows that work.
 - id: gathering
   title: "[core.skills.gathering]"
   description: "[core.skills.gathering.about]"

@@ -1,6 +1,6 @@
-# Рецепт бандла «Смола»: смолу выгоняют из брёвен в печи для обжига, в глиняном горшке (он нужен
-# в сумке и не тратится); остаётся и уголь. Печь и горшок — «Инструментов» (бандлы «Печь для
-# обжига» и «Гончарный круг»): рецепт лежит здесь, чтобы печь не зависела от круга.
+# Recipe of the "Tar" bundle: tar is driven out of logs in a kiln, in a clay pot (it must be
+# in the bag and is not used up); charcoal is left as well. The kiln and the pot — of "Tools" (the "Kiln" and
+# "Potter's wheel" bundles): the recipe lies here so that the kiln does not depend on the wheel.
 - id: tar
   title: "[materials.recipes.tar]"
   makes: tar

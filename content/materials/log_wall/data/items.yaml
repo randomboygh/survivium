@@ -1,5 +1,5 @@
-# Сруб: бревно, отёсанное топором и уложенное венцом; его ставят блоками стен и пола (решение
-# о строительстве 2026-11-03: стены и пол — целые ячейки).
+# Log wall: a log hewn with an axe and laid in a course; it is placed as blocks of walls and floor (the decision
+# on building of 2026-11-03: walls and floor are whole cells).
 - id: log_wall
   title: "[materials.items.log_wall]"
   description: "[materials.items.log_wall.about]"

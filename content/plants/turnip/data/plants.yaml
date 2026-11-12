@@ -1,7 +1,7 @@
-# Репа — посев (kind crop, grows field, как пшеница «Колосков»): растёт на мокрой грядке
-# весной, летом и осенью grow_days дней, кадр на стадию (sprites/plants/turnip.png: росток,
-# листья, ботва, спелая с корнеплодом); её собирают руками или серпом. Семена репы иногда
-# находят, срезая высокую траву (патч `finds` — предмет и вероятность одного за растение).
+# Turnip — a crop (kind crop, grows field, like the wheat of "Ears"): grows on a wet bed
+# in spring, summer and autumn grow_days days, one frame per stage (sprites/plants/turnip.png: sprout,
+# leaves, tops, ripe with a root); it is picked by hand or with a sickle. Turnip seeds are sometimes
+# found when cutting tall grass (the `finds` patch — the item and the chance of one per plant).
 - id: turnip
   kind: crop
   title: "[plants.plants.turnip]"

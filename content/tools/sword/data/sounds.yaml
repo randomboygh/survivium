@@ -1,4 +1,4 @@
-# Взмах меча в воздухе (sounds/swish_N.wav, tools/make_sounds.gd); код просит его по имени swish.
+# The sword's swing in the air (sounds/swish_N.wav, tools/make_sounds.gd); the code asks for it by the name swish.
 - id: swish
   title: "[tools.sounds.swish]"
   variants: 3

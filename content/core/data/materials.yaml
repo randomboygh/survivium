@@ -1,39 +1,39 @@
-# Материалы ячеек основы: только те пять, без которых движок не работает (воздух, трава,
-# земля, камень, вода). Остальные — в модах: песок, глина и осыпь в «Ресурсах», руда, доски и
-# кирпич в «Материалах», бревно и листва в «Растениях». Порядок задаёт номера
-# ячеек в мире, поэтому воздух идёт первым (пустая ячейка = 0); номера модов — по порядку
-# загрузки, а сохранение помнит свой список и переводит номера (world.json, materials).
-# Поля: solid — твёрдая (через неё не пройти, по ней ходят); roof — считается крышей при
-# срезе уровней; slope — рыхлый грунт, ложится склоном там, где ступенька вниз; hotbar —
-# место на панели блоков (0 — не ставится); corners — срезанные углы природного грунта: sharp —
-# прямой срез под 45°, soft — чуть скруглённый, round — по четверти круга; item — предмет,
-# который даёт выкопанная ячейка (нет поля — ничего); dig — чем копают: hand — чем угодно,
-# shovel — мягкое (руками медленно, лопатой быстро, киркой тоже), pickaxe — только киркой,
-# axe — только топором, none — не копается; hardness — твёрдость: кирке или топору нужна
-# сила не меньше; toughness — прочность: удар инструмента, у которого силы меньше, длится в
-# toughness / power раз дольше (без поля — равна твёрдости; docs/balance/GAME_BALANCE_DESIGN.md); bonus — предмет, который выкопанная ячейка иногда даёт сверх item (оба —
-# предметы мода «Ресурсы»; без него ячейка не даёт ничего),
-# bonus_chance — как часто (0–1). mow — во что превращается ячейка, когда с неё срезают
-# верхний слой руками, мечом или косой (трава — в землю), mow_gives — что срезанный слой
-# даёт всегда; растения на нём (plants.yaml) дают своё сверх этого.
-# role — роль, по которой материал просит движок, а не по имени: beach (пляжи, пустыни,
-# русла), bank (берега рек, болота, глина тундры), scree (осыпь горных склонов), ore (руда в
-# камне), trunk (ствол дерева), crown (крона); роли нет в модах мира — ложится земля или
-# камень, а деревья без trunk и crown не растут. Из двух записей одной роли берётся
-# последняя загруженная.
-# priority — кто на кого наползает рваным краем на стыке двух материалов (0 — никогда,
-# больше — поверх меньшего); ground — какие пятна рисуются на открытой земле: soil (сырые
-# и сухие пятна, камешки), sand (барханы), rock (мох и лишайник), none; drains — вода
-# уходит в землю, луж после дождя не бывает (песок); fray — на сколько текселей (0–7) стык с другим материалом
-# рвётся в обе стороны клочьями (соль); layers — сколько ячеек того же
-# материала генератор кладёт под ним, когда он верх столбца, вместо земли (песок). texture — картинка материала,
-# textures/<texture>.png этого мода (нет поля — по id): три плитки 16×16 в ряд — верх,
-# бока, низ; её рисует tools/make_textures.gd, перерисовать можно руками.
-# step — звук шага по ячейке, hit — звук удара по ней инструментом, по имени звука (без
-# мода): записи в бандле «Игрок» мода «Звуки», без него основа молчит.
-# Любая запись может иметь ещё общие поля: description — текст для игрока; tags — метки для
-# отчётов и поиска (игру они не меняют); provisional — какие её числа предварительные, по именам
-# полей. Запись с id чужой записи заменяет её только с replaces: true, иначе это ошибка.
+# Materials of the core cells: only the five without which the engine does not work (air, grass,
+# earth, stone, water). The rest are in mods: sand, clay and scree in "Resources", ore, boards and
+# brick in "Materials", log and foliage in "Plants". The order sets the numbers
+# of cells in the world, so air comes first (an empty cell = 0); the mods' numbers follow the order
+# of loading, and a save remembers its own list and translates the numbers (world.json, materials).
+# Fields: solid — solid (cannot be walked through, can be walked on); roof — counts as a roof when
+# cutting levels; slope — loose ground, lies as a slope where there is a step down; hotbar —
+# the place on the block bar (0 — not placed); corners — cut corners of natural ground: sharp —
+# a straight cut at 45°, soft — slightly rounded, round — quarter circles; item — the item
+# a dug-out cell gives (no field — nothing); dig — what digs it: hand — anything,
+# shovel — soft (slowly by hand, quickly with a shovel, with a pickaxe too), pickaxe — only a pickaxe,
+# axe — only an axe, none — cannot be dug; hardness — a pickaxe or axe needs
+# at least that power; toughness — sturdiness: a blow of a tool with less power lasts
+# toughness / power times longer (no field — equal to hardness; docs/balance/GAME_BALANCE_DESIGN.md); bonus — an item a dug-out cell sometimes gives on top of item (both are
+# items of the mod "Resources"; without it the cell gives nothing),
+# bonus_chance — how often (0–1). mow — what the cell turns into when its
+# top layer is cut by hands, a sword or a scythe (grass — into earth), mow_gives — what the cut layer
+# always gives; the plants on it (plants.yaml) give their own on top of that.
+# role — the role by which the engine asks for a material, not by name: beach (beaches, deserts,
+# riverbeds), bank (river banks, swamps, tundra clay), scree (scree of mountain slopes), ore (ore in
+# stone), trunk (a tree trunk), crown (the crown); if no mod of the world has the role, earth or
+# stone is laid, and trees without trunk and crown do not grow. Of two records of one role the
+# last loaded is taken.
+# priority — who creeps onto whom with a ragged edge at the seam of two materials (0 — never,
+# larger goes over smaller); ground — which patches are drawn on open ground: soil (damp
+# and dry patches, pebbles), sand (dunes), rock (moss and lichen), none; drains — water
+# drains into the ground, no puddles after rain (sand); fray — by how many texels (0–7) the seam with another material
+# tears in both directions in tufts (salt); layers — how many cells of the same
+# material the generator lays under it when it is the top of a column, instead of earth (sand). texture — the picture of the material,
+# textures/<texture>.png of this mod (no field — by id): three 16×16 tiles in a row — top,
+# sides, bottom; tools/make_textures.gd draws it, it can be redrawn by hand.
+# step — the sound of a step on the cell, hit — the sound of a tool hitting it, by sound name (without
+# the mod): records in the bundle "Player" of the mod "Sounds", without it the core is silent.
+# Any record may also have common fields: description — text for the player; tags — labels for
+# reports and search (they do not change the game); provisional — which of its numbers are provisional, by the names
+# of the fields. A record with the id of another record replaces it only with replaces: true, otherwise it is an error.
 - id: air
   title: "[core.materials.air]"
   solid: false

@@ -1,4 +1,4 @@
-# Рецепт бандла «Сталь»: железо с углём в тигле (бандл «Бронза») в сыродутной печи «Инструментов».
+# Recipe of the "Steel" bundle: iron with coal in a crucible (the "Bronze" bundle) in the "Tools" bloomery.
 - id: steel_bar
   title: "[materials.recipes.steel_bar]"
   makes: steel_bar

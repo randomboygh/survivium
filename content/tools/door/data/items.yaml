@@ -1,7 +1,7 @@
-# Дверь: створка из досок на клетку шириной и две высотой (решение 163, 3А). Ставится в проём
-# стены лицом к игроку (prop: door, door: касание открывает и закрывает, на чужой земле — по праву
-# «Открывать двери» участка). Закрытая твёрдая; открытая поворачивается на петле внутрь, у стены.
-# Поля — как у предметов основы (content/core/data/items.yaml).
+# Door: a plank leaf one cell wide and two high (decision 163, 3A). Placed in a wall opening
+# facing the player (prop: door, door: a touch opens and closes it, on someone else's land - by the plot right
+# "Open doors"). Solid when closed; when open it swings inward on its hinge, against the wall.
+# Fields are as for the core items (content/core/data/items.yaml).
 - id: door
   title: "[tools.items.door]"
   description: "[tools.items.door.about]"
@@ -11,8 +11,8 @@
   model: door
   prop: door
   door: true
-# Двустворчатые двери на две клетки в ширину (размер — ширина × высота в клетках): касание
-# открывает обе створки, каждая поворачивается внутрь на своей петле, к западному и восточному краю.
+# Double doors two cells wide (the size is width x height in cells): a touch
+# opens both leaves, each swinging inward on its own hinge, at the west and east edge.
 - id: door_2x2
   title: "[tools.items.door_2x2]"
   description: "[tools.items.door_2x2.about]"
@@ -31,8 +31,8 @@
   model: door_2x3
   prop: door_2x3
   door: true
-# Ворота 3×3 в проём стены (сарай, загон под крышей): две створки по полторы клетки, каждая на своей
-# петле у западного и восточного края.
+# A 3x3 gate in a wall opening (a shed, a covered pen): two leaves of one and a half cells, each on its own
+# hinge at the west and east edge.
 - id: door_3x3
   title: "[tools.items.door_3x3]"
   description: "[tools.items.door_3x3.about]"

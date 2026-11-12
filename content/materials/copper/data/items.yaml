@@ -1,5 +1,5 @@
-# Медная руда и медный слиток: руду бьют киркой в жилах, слиток выплавляют из руды с углём в горне
-# (рецепт в бандле «Горн» «Инструментов»); из слитков на верстаке делают медные инструменты.
+# Copper ore and a copper ingot: ore is struck with a pickaxe in veins, an ingot is smelted from ore with coal in a forge
+# (the recipe is in the "Forge" bundle of "Tools"); copper tools are made from ingots at a workbench.
 - id: copper_ore
   title: "[materials.items.copper_ore]"
   era: core:bronze

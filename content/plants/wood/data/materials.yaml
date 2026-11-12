@@ -1,7 +1,7 @@
-# Материалы ячеек мода «Растения»: из чего сделаны деревья. Движок просит их по роли: trunk —
-# ствол, crown — крона; без них деревья не растут. Поля — как у материалов основы
-# (content/core/data/materials.yaml); бревно как предмет — запись «Ресурсов» (resources:log), этот бандл
-# дописывает ей, что она ставит (items.yaml). Звуки — по имени, из мода «Звуки».
+# Cell materials of the "Plants" mod: what trees are made of. The engine asks for them by role: trunk —
+# the trunk, crown — the crown; without them trees do not grow. Fields as for the core's materials
+# (content/core/data/materials.yaml); the log as an item is an entry of "Resources" (resources:log), this bundle
+# adds to it what it places (items.yaml). Sounds — by name, from the "Sounds" mod.
 - id: log
   title: "[plants.materials.log]"
   role: trunk

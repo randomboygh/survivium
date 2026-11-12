@@ -1,6 +1,6 @@
-# Осыпь: каменная крошка на склонах высоких гор (role: scree), ложится скатами, копается
-# лопатой и даёт камень, иногда кремень. Поля — как у материалов основы
-# (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
+# Scree: stone rubble on the slopes of high mountains (role: scree), lies in slopes, dug
+# with a shovel and gives stone, sometimes flint. Fields are as for the core materials
+# (content/core/data/materials.yaml); sounds by name, from the "Sounds" mod.
 - id: scree
   title: "[resources.materials.scree]"
   role: scree

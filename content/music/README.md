@@ -1,22 +1,24 @@
-# Мод «Музыка»
+# Mod "Music"
 
-Три ноты до первой октавы: щипок (`note_pluck`), колокольчик (`note_bell`) и протяжный тон (`pad`).
-Музыки как записи в игре нет: `src/client/audio/music.gd` складывает её на ходу из этих нот,
-играя их на других высотах (рассвет, новое место, вечер у костра, главное меню — у каждого свой
-лад и темп). Выключите мод на экране «Новый мир», и игра останется со звуками, но без музыки.
+A Russian copy: [README_RU.md](README_RU.md).
 
-## Что в папке
+Three notes of the first octave: a pluck (`note_pluck`), a bell (`note_bell`) and a long tone (`pad`).
+Music as a record does not exist in the game: `src/client/audio/music.gd` assembles it on the fly from these notes,
+playing them at other pitches (dawn, a new place, an evening by the campfire, the main menu: each has its own
+mode and tempo). Turn the mod off on the "New world" screen, and the game keeps its sounds but has no music.
+
+## What is in the folder
 
 ```
 content/music/
-  mod.yaml            id: music, название, версия, api
-  data/sounds.yaml    записи нот (id, название, loop у протяжного тона)
-  sounds/<id>.wav     сами ноты, собранные tools/make_sounds.gd из тонов
-  README.md           этот файл
+  mod.yaml            id: music, name, version, api
+  data/sounds.yaml    records of the notes (id, title, loop for the long tone)
+  sounds/<id>.wav     the notes themselves, built by tools/make_sounds.gd from tones
+  README.md           this file
 ```
 
-Свои инструменты — файлы с теми же именами в другом моде, загруженном позже: код просит ноту по
-имени (`note_pluck`), и берётся последняя. Раньше ноты лежали в моде «Звуки» вместе со всеми
-звуками игры; теперь каждый звук живёт у своего хозяина (удар по стволу — у древесины «Растений», взмах — у меча,
-голоса — у зверей), «Звуки» — природа, игрок и интерфейс тремя бандлами, а «Звуки» старых миров значат
-и их, и «Музыку» (`Mods.RENAMED`).
+Your own instruments are files with the same names in another mod loaded later: the code asks for a note by
+name (`note_pluck`), and the last one is taken. Before, the notes lay in the "Sounds" mod together with all
+the sounds of the game; now each sound lives with its owner (a hit on a trunk with the wood of "Plants", a swing with the sword,
+voices with the animals), "Sounds" is nature, the player and the interface as three bundles, and "Sounds" in old worlds means
+both them and "Music" (`Mods.RENAMED`).

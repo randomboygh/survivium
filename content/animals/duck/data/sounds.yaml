@@ -1,4 +1,4 @@
-# Голоса: sounds/<id>_N.wav этого бандла (tools/make_sounds.gd); calls и alarm вида в creatures.yaml.
+# Voices: sounds/<id>_N.wav of this bundle (tools/make_sounds.gd); calls and alarm of the species in creatures.yaml.
 - id: duck
   title: "[animals.sounds.duck]"
   variants: 3

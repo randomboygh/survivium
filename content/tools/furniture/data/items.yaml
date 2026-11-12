@@ -1,9 +1,9 @@
-# Предметы бандла «Мебель» мода «Инструменты и крафт» (решение 163, 7А): ставятся лицом к игроку,
-# как станки (prop — класс модели, models/<model>.png; клетки — по срезу модели, кратно 8 px), но
-# станком не считаются (furniture). Касание забирает то, что ничего не хранит. Табурет: стоящий на нём
-# или рядом без движения восстанавливает выносливость в `seat` раз быстрее. Кровать — постель
-# (bedding). Шкаф и бочка хранят (storage), в бочке еда портится в `keeps` раза медленнее.
-# Поля — как у предметов основы (content/core/data/items.yaml).
+# Items of the "Furniture" bundle of the "Tools and crafting" mod (decision 163, 7A): placed facing the player,
+# like stations (prop - the model class, models/<model>.png; cells - by the model's slice, a multiple of 8 px), but
+# not counted as a station (furniture). A touch picks up what stores nothing. Stool: whoever stands on it
+# or beside it without moving restores stamina `seat` times faster. The bed is bedding
+# (bedding). The wardrobe and barrel store things (storage), and food spoils `keeps` times slower in the barrel.
+# Fields are as for the core items (content/core/data/items.yaml).
 - id: table
   title: "[tools.items.table]"
   description: "[tools.items.table.about]"

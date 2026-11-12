@@ -1,6 +1,6 @@
-# Предметы бандла «Нож» мода «Инструменты и крафт»: класс knife. Нож разделывает туши (рецепт
-# «Разделать тушу» мода «Животные» просит его в сумке) и бьёт зверя, как меч: удар по зверю перед
-# собой — его power. Поля — как у мечей (content/tools/sword/data/items.yaml).
+# Items of the "Knife" bundle of the "Tools and crafting" mod: class knife. The knife butchers carcasses (the recipe
+# "Butcher a carcass" of the "Animals" mod asks for it in the bag) and strikes an animal like a sword: a hit on an animal in
+# front of you is its power. Fields are as for swords (content/tools/sword/data/items.yaml).
 - id: flint_knife
   title: "[tools.items.flint_knife]"
   description: "[tools.items.flint_knife.about]"

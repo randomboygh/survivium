@@ -1,6 +1,6 @@
-# Предметы бандла «Серп» мода «Инструменты и крафт»: серпом жнут спелый урожай с грядок
-# (любой, и тот, что косой не срезать), area клеток за взмах; заодно он срезает высокую траву
-# (mows: tall). Поля — как у предметов основы (content/core/data/items.yaml).
+# Items of the "Sickle" bundle of the "Tools and crafting" mod: the sickle reaps ripe crops from the beds
+# (any, even one that a scythe cannot cut), area cells per swing; it also cuts tall grass
+# (mows: tall). Fields are as for the core items (content/core/data/items.yaml).
 - id: stone_sickle
   title: "[tools.items.stone_sickle]"
   description: "[tools.items.stone_sickle.about]"

@@ -1,5 +1,5 @@
-# Рецепты бандла «Большой сундук»: на верстаке из досок и верёвки. at — станок (бандл верстака),
-# needs — что тратится; все поля рецепта — docs/DATA_MODEL.md.
+# Recipes of the "Big chest" bundle: at the workbench from planks and rope. at - the station (the workbench bundle),
+# needs - what is spent; all the recipe fields are in docs/DATA_MODEL.md.
 - id: big_chest
   title: "[tools.recipes.big_chest]"
   makes: big_chest

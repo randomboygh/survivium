@@ -1,8 +1,8 @@
-# Предмет бандла «Люк» мода «Инструменты и крафт»: крышка из досок на клетку, вставленная в пол или
-# потолок (`hatch` вместе с `door`). Закрытый люк твёрд, как пол, по нему ходят; касание откидывает
-# крышку вверх на петле у северного края, и в дыру спускаются — по приставной лестнице под ним. В
-# режиме строительства касание пола из построенных блоков вынимает блок и ставит туда люк (блок
-# падает, как выкопанный). Поля — как у предметов основы (content/core/data/items.yaml).
+# Item of the "Hatch" bundle of the "Tools and crafting" mod: a plank cover one cell big, set into a floor or
+# ceiling (`hatch` together with `door`). A closed hatch is solid like a floor, you walk on it; a touch flips
+# the cover up on a hinge at the north edge, and you climb down the hole - by a ladder under it. In
+# build mode a touch on a floor of built blocks removes the block and puts a hatch there (the block
+# drops as if dug). Fields are as for the core items (content/core/data/items.yaml).
 - id: hatch
   title: "[tools.items.hatch]"
   description: "[tools.items.hatch.about]"
@@ -13,7 +13,7 @@
   prop: hatch
   door: true
   hatch: true
-# Широкий люк на 2×2 клетки: крышка из досок откидывается вверх целиком.
+# A wide hatch of 2x2 cells: the plank cover flips up whole.
 - id: hatch_2x2
   title: "[tools.items.hatch_2x2]"
   description: "[tools.items.hatch_2x2.about]"

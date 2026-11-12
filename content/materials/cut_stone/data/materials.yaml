@@ -1,5 +1,5 @@
-# Тёсаный камень как ячейка: бьётся киркой, твёрдый, как кирпич, возвращает себя. Поля — как у
-# материалов основы.
+# Cut stone as a cell: broken with a pickaxe, hard as brick, returns itself. Fields as for
+# the core's materials.
 - id: cut_stone
   title: "[materials.materials.cut_stone]"
   hotbar: 10

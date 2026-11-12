@@ -1,52 +1,54 @@
-# Мод «Ресурсы»
+# Mod "Resources"
 
-То, что мир даёт как есть: бревно и ветка, камень и кремень, земля, песок и глина, волокно. Раньше
-эти предметы лежали в основе (`content/core`), и код сам решал, что падает с дерева и чем разжигают
-костёр; теперь это отдельный мод из данных, бандл на каждое, а кто что даёт, говорят сами деревья,
-кусты и ячейки. Что из ресурсов делают — доски, кирпич, верёвка — лежит в «Материалах».
+A Russian copy: [README_RU.md](README_RU.md).
 
-## Что в папке
+What the world gives as it is: log and branch, stone and flint, earth, sand and clay, fiber. Before,
+these items lay in core (`content/core`), and the code itself decided what falls from a tree and what lights a
+campfire; now it is a separate mod of data, a bundle for each, and who gives what is told by the trees,
+bushes and cells themselves. What is made of resources (planks, brick, cord) lies in "Materials".
+
+## What is in the folder
 
 ```
 content/resources/
-  mod.yaml              id: resources, название, версия, api
-  README.md             этот файл
-  wood/                 «Дерево»: бревно и ветка (fuel: true — ими разжигают и кормят костёр) и рецепт костра
-  stone/                «Камень»: камень (ставится ячейкой камня основы), кремень и осыпь (role: scree) с текстурой
-  soil/                 «Грунт»: земля (ставится ячейкой грунта основы), песок (role: beach) и глина (role: bank)
-                        с текстурами, грядка — земля, вскопанная тяпкой (role: bed), и мокрая грядка (role: bed_wet)
-  fiber/                «Волокно»
-  snow/                 «Снег»: снег, лежащий круглый год (role: snow), грунт ледяной пустоши и ледников, и лёд
-                        (role: ice) стен ледников, с текстурами; снег копается лопатой, лёд колется киркой
-  peat/                 «Торф»: бурый грунт торфяных болот (role: peat) с текстурой; копается лопатой, торфом
-                        разжигают костёр (fuel)
-  salt/                 «Соль»: белая корка солончаков (role: salt) с текстурой; копается лопатой и даёт соль
+  mod.yaml              id: resources, name, version, api
+  README.md             this file
+  wood/                 "Wood": log and branch (fuel: true — they light and feed a campfire) and the campfire recipe
+  stone/                "Stone": stone (placed as core's stone cell), flint and scree (role: scree) with a texture
+  soil/                 "Soil": earth (placed as core's soil cell), sand (role: beach) and clay (role: bank)
+                        with textures, a bed — earth dug with a hoe (role: bed), and a wet bed (role: bed_wet)
+  fiber/                "Fiber"
+  snow/                 "Snow": snow lying all year round (role: snow), the ground of the ice waste and glaciers, and ice
+                        (role: ice) of the glacier walls, with textures; snow is dug with a shovel, ice is split with a pickaxe
+  peat/                 "Peat": the brown ground of peat bogs (role: peat) with a texture; dug with a shovel, peat
+                        lights a campfire (fuel)
+  salt/                 "Salt": the white crust of salt flats (role: salt) with a texture; dug with a shovel and gives salt
 ```
 
-Каждый бандл — папка с `bundle.yaml` (`title`) и своими `data/<вид>.yaml`, `icons/`, `models/`,
-`textures/`; его можно выключить отдельно на экране «Новый мир» («Моды» → «Ресурсы»).
+Each bundle is a folder with `bundle.yaml` (`title`) and its own `data/<kind>.yaml`, `icons/`, `models/`,
+`textures/`; it can be turned off separately on the "New world" screen ("Mods" → "Resources").
 
-## Как он устроен
+## How it works
 
-- Кто даёт ресурс, записано у источника, а не в коде: порода дерева называет, что ложится от
-  срубленного ствола (`log`), что ломают с кроны руками, сбивает ветер и роняет срубленная крона
-  (`twig`) и что ещё остаётся (`seed`); куст — свои ветки (`twig`), ягоды (`fruit`) и себя для
-  посадки (`item`); ячейка — что даёт выкопанная (`item`), что иногда сверх (`bonus`) и что даёт
-  срезанный слой (`mow_gives`). Поэтому бревно падает с любого дерева, которое его называет, жёлудь
-  — только с дуба, а ветка — и с дерева, и с куста. Все эти ссылки мягкие: без бандла «Дерево»
-  дерево падает молча, без «Грунта» выкопанная земля ничего не даёт.
-- Костёр разжигают и кормят любым предметом с `fuel: true`; `fuel_time` — сколько секунд он горит на одной
-  штуке (ветка 300, бревно 1200, торф 600; без поля 120). Мод может дать другое топливо.
-  Сам костёр — вещь основы, а его рецепт (ветки и волокно) лежит в бандле «Дерево».
-- Ячейки камня и грунта — основа (`core:stone`, `core:dirt`): предметы камень и земля ставят их,
-  а осыпь, песок и глина — ячейки этого мода с ролями для генератора (без них на пляже грунт, на
-  осыпи камень). Текстуры — `textures/<id>.png` (48×16: верх, бока, низ; см. README «Материалов»).
-- Новый ресурс: папка `content/resources/<имя>/` с `bundle.yaml`, `data/items.yaml` и, если это ячейка,
-  `data/materials.yaml` и текстура; затем назвать его в `log`/`twig`/`seed` дерева, `twig`/`fruit` куста
-  или `item`/`bonus` ячейки того мода, который его даёт. Без источника проверка скажет «нет источника»;
-  вещь, которую даёт квест или торговля, пишет `source: special`.
-- Ещё один источник старого ресурса — одно поле у нового объекта в его моде, со ссылкой на тот же id:
-  куст с `twig: resources:branch`, ячейка с `bonus: resources:flint`. Код не нужен, и ресурс не
-  переезжает: оба источника ведут к одной вещи, а граф показывает их все
-  (`docs/generated/content-graph.md`, «откуда и куда»).
-- Проверка: `godot --headless --path . --script res://tools/validate.gd`.
+- Who gives a resource is written at the source, not in the code: a tree species names what lies from the
+  felled trunk (`log`), what is broken from the crown by hand, knocked down by wind and dropped by the felled crown
+  (`twig`) and what else remains (`seed`); a bush has its own branches (`twig`), berries (`fruit`) and itself for
+  planting (`item`); a cell has what a dug one gives (`item`), what it sometimes gives on top (`bonus`) and what a
+  cut layer gives (`mow_gives`). That is why a log falls from any tree that names it, an acorn
+  only from an oak, and a branch from both a tree and a bush. All these links are soft: without the "Wood" bundle
+  a tree falls silently, without "Soil" dug earth gives nothing.
+- A campfire is lit and fed by any item with `fuel: true`; `fuel_time` is how many seconds it burns on one
+  piece (branch 300, log 1200, peat 600; without the field 120). A mod can add other fuel.
+  The campfire itself is a thing of core, and its recipe (branches and fiber) lies in the "Wood" bundle.
+- The cells of stone and soil are core's (`core:stone`, `core:dirt`): the items stone and earth place them,
+  while scree, sand and clay are cells of this mod with roles for the generator (without them, soil on the beach and stone on
+  the scree). The textures are `textures/<id>.png` (48×16: top, sides, bottom; see the README of "Materials").
+- A new resource: a folder `content/resources/<name>/` with `bundle.yaml`, `data/items.yaml` and, if it is a cell,
+  `data/materials.yaml` and a texture; then name it in the `log`/`twig`/`seed` of a tree, the `twig`/`fruit` of a bush
+  or the `item`/`bonus` of a cell of the mod that gives it. Without a source the check will say "no source";
+  a thing given by a quest or trade writes `source: special`.
+- Another source of an old resource is one field on a new object in its mod, with a link to the same id:
+  a bush with `twig: resources:branch`, a cell with `bonus: resources:flint`. No code is needed, and the resource
+  does not move: both sources lead to one thing, and the graph shows them all
+  (`docs/generated/content-graph.md`, "from where and to where").
+- The check: `godot --headless --path . --script res://tools/validate.gd`.

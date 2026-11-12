@@ -1,6 +1,6 @@
-# Горн: станок, в котором плавят руду (prop: forge; у него делают то, что в recipes.yaml
-# указывает на него в `at`). Складывают из кирпича, камня и глины на верстаке. Поля — как у
-# предметов основы (content/core/data/items.yaml); model — его воксельная модель
+# Forge: a station where ore is smelted (prop: forge; what recipes.yaml
+# points at it in `at` is made at it). Assembled from brick, stone and clay at the workbench. Fields are as for
+# the core items (content/core/data/items.yaml); model - its voxel model
 # (models/<model>.png).
 - id: forge
   title: "[tools.items.forge]"

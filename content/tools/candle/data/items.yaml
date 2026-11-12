@@ -1,6 +1,6 @@
-# Сальная свеча: фитиль из волокна в жиру. Светит слабее факела, зато горит дольше и делается руками
-# (burns — секунд в руке, расходуется, как факел), вплавь её держат над водой, как факел. Держат её, как иконку; огонь — в самой яркой
-# её точке. Поля — как у предметов основы (content/core/data/items.yaml).
+# Tallow candle: a fiber wick in fat. Gives less light than a torch, but burns longer and is made by hand
+# (burns - seconds in the hand, it is used up like a torch), you can hold it over water while swimming, like a torch. It is held like an icon; the fire is at the brightest
+# point of the icon. Fields are as for the core items (content/core/data/items.yaml).
 - id: tallow_candle
   title: "[tools.items.tallow_candle]"
   description: "[tools.items.tallow_candle.about]"

@@ -1,8 +1,8 @@
-# Предметы бандла «Живоловка» мода «Инструменты и крафт»: клетка из веток, в которую кладут приманку.
-# Ставят её как сундук; зверь, который ест с руки то, что в ней лежит (поле tame_food существа),
-# приходит на запах издалека (`trap` — на сколько клеток), съедает приманку и остаётся в клетке
-# пойманным: живым предметом, которого существо называет в поле `trapped`. Его забирают из клетки
-# в сумку и выпускают кнопкой действия — выпущенный уже ручной и ходит за хозяином
+# Items of the "Live trap" bundle of the "Tools and crafting" mod: a cage of branches in which bait is put.
+# It is placed like a chest; an animal that eats from the hand what lies in it (the creature's tame_food field),
+# comes to the smell from afar (`trap` - how many cells), eats the bait and stays in the cage
+# caught: a live item, which the creature names in its `trapped` field. It is taken from the cage
+# into the bag and released with the action button - the released one is already tame and follows its owner
 # (src/shared/game/actions_tame.gd).
 - id: trap
   title: "[tools.items.trap]"

@@ -1,4 +1,4 @@
-# Звуки интерфейса: кнопка, вкладка, окно открыто и закрыто. Файлы sounds/<id>.wav (tools/make_sounds.gd).
+# Interface sounds: button, tab, window opened and closed. Files sounds/<id>.wav (tools/make_sounds.gd).
 - id: click
   title: "[sounds.sounds.click]"
   volume: 0.6

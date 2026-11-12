@@ -8,7 +8,7 @@
   taper: 0.25
   crook: 1
   roots: [2, 3]
-  # branches — насколько густо ветки яруса у хвойного (1 — как у ели, меньше — реже).
+  # branches — how densely the branches of a tier grow on a conifer (1 — as for the spruce, less — sparser).
   branches: 0.6
   crown: [2.6, 4, 5]
   tints: ["#7aa04a", "#84a852", "#729846"]

@@ -1,5 +1,5 @@
-# Предметы бандла «Рыба»: что ловят удочкой («Удочка» «Инструментов»). Пойманная рыба — настоящая рыба из воды
-# (creatures.yaml, поле catch; окунь — бандла «Окунь»). Сырую рыбу есть можно, жаренная на костре сытнее.
+# Items of the "Fish" bundle: what is caught with a rod (the "Fishing rod" of "Tools"). A caught fish is a real fish from the water
+# (creatures.yaml, the catch field; the perch — of the "Perch" bundle). Raw fish can be eaten, fish fried on a campfire is more filling.
 - id: roach
   title: "[animals.items.roach]"
   description: "[animals.items.roach.about]"

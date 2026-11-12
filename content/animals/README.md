@@ -1,100 +1,102 @@
-# Мод «Животные»
+# The "Animals" mod
 
-Заяц, белка, дикая кошка, олень, волк, воробей, лиса, кабан, медведь, ёж, ворона, сова, утка,
-бабочка, окунь и лягушка, рыбы для удочки (бандл «Рыба»: плотва, щука, лосось, треска, рыба-попугай) и
-добыча с туш (бандл «Добыча»: мясо, шкуры, кости и рецепты разделки). Каждый зверь — свой бандл: папка со всем, что ему нужно (запись вида,
-картинка, голоса), которую можно выключить на экране «Новый мир» отдельно от остальных («Моды» →
-«Животные»). Поведение не описано ни строчкой: кошка (4 кг, мясо) охотится на зайца, белку и
-воробья и боится волка, волк (40 кг) ночью ищет добычу, олень и заяц пасутся и убегают от людей,
-ворона (летает, всеядна) ловит воробьёв и лягушек, а воробьи от неё разлетаются, окунь в воде
-недосягаем для кошки, но не для совы — всё это правила `src/shared/game/wildlife.gd` и
-`src/shared/content/ai_rules.gd` по массе, рациону, зрению, скорости, `human_wariness` и
-среде (`flies`, `swims`) каждого вида. От горящего костра и факела в руке звери держатся подальше
-(`fire_wariness`, у рыб 0).
+A Russian copy: [README_RU.md](README_RU.md).
 
-## Что в папке
+Rabbit, squirrel, wildcat, deer, wolf, sparrow, fox, boar, bear, hedgehog, crow, owl, duck,
+butterfly, perch and frog, fish for the fishing rod (the "Fish" bundle: roach, pike, salmon, cod, parrotfish) and
+the spoils of carcasses (the "Game" bundle: meat, hides, bones and butchering recipes). Each beast is its own bundle: a folder with everything it needs (the kind's entry,
+the picture, the voices), which can be switched off on the "New world" screen separately from the others ("Mods" →
+"Animals"). The behaviour is not described by a single line: the cat (4 kg, meat) hunts the rabbit, squirrel and
+sparrow and fears the wolf, the wolf (40 kg) looks for prey at night, the deer and rabbit graze and run from people,
+the crow (flies, omnivorous) catches sparrows and frogs, and the sparrows scatter from it, the perch in the water is
+out of the cat's reach, but not the owl's — all this is rules of `src/shared/game/wildlife.gd` and
+`src/shared/content/ai_rules.gd` by the mass, diet, sight, speed, `human_wariness` and
+environment (`flies`, `swims`) of each kind. From a burning campfire and a torch in the hand the beasts keep away
+(`fire_wariness`, 0 for fish).
+
+## What is in the folder
 
 ```
 content/animals/
-  mod.yaml                        id: animals, название, версия, api
-  README.md                       этот файл
-  rabbit/                         бандл «Заяц»; так же squirrel, cat, deer, wolf
+  mod.yaml                        id: animals, name, version, api
+  README.md                       this file
+  rabbit/                         the "Rabbit" bundle; likewise squirrel, cat, deer, wolf
     bundle.yaml                   title: "[animals.rabbit.bundle]"
-    lang/en.yaml, ru.yaml ...     тексты ключей бандла на каждом языке
-    data/creatures.yaml           вид animals:rabbit и его свойства
-    data/sounds.yaml              его голоса: записи звуков
-    sprites/creatures/rabbit.png  картинка: три ряда (сбоку, спереди, сзади) по 7 кадров
-    sounds/rabbit_1.wav ...       файлы голосов
-  sparrow/                        бандл «Воробей» с README о том, как сделать существо (бывший мод «Птицы»)
-  fox/, boar/, bear/, hedgehog/   так же; все звери нарисованы tools/make_creatures.py
-  crow/, owl/, duck/, butterfly/  летающие (flies); воробей, ворона, сова и утка — кадры: сидит, четыре взмаха, два покоя, прыжок (утка вперевалку); утка ещё и плавает
-  perch/, frog/                   плавающие (swims): живут в открытой воде; кадры — взмахи хвостом или лапами
-  game/                           бандл «Добыча»: тушка, туша, сырое, жареное и вяленое мясо, шкура, кость, жир, разделка, жарка и вяление
-  wool/                           бандл «Пух»: заячий пух ручного зайца, пряжа из него и ткань на ткацком станке
-                                  (отдельно, чтобы заяц не зависел от станка «Инструментов»)
-  fish/                           бандл «Рыба»: плотва, щука, лосось, треска, рыба-попугай, сом — плавают в воде своих биомов
-                                  и ловятся удочкой «Инструментов» (поле catch: какой предмет рыба в сумке), жареная рыба
-                                  (на костре); окунь бандла perch тоже ловится (его предмет — здесь)
+    lang/en.yaml, ru.yaml ...     the texts of the bundle's keys in each language
+    data/creatures.yaml           the kind animals:rabbit and its properties
+    data/sounds.yaml              its voices: sound entries
+    sprites/creatures/rabbit.png  the picture: three rows (side, front, back) of 7 frames
+    sounds/rabbit_1.wav ...       the voice files
+  sparrow/                        the "Sparrow" bundle with a README on how to make a creature (the former "Birds" mod)
+  fox/, boar/, bear/, hedgehog/   likewise; all the beasts are drawn by tools/make_creatures.py
+  crow/, owl/, duck/, butterfly/  flyers (flies); the sparrow, crow, owl and duck have frames: sitting, four flaps, two rests, a hop (the duck waddles); the duck also swims
+  perch/, frog/                   swimmers (swims): live in open water; the frames are tail or paw strokes
+  game/                           the "Game" bundle: small carcass, carcass, raw, roast and dried meat, hide, bone, fat, butchering, roasting and drying
+  wool/                           the "Down" bundle: the tame rabbit's rabbit down, yarn from it and cloth at the loom
+                                  (separate, so that the rabbit does not depend on the loom of "Tools")
+  fish/                           the "Fish" bundle: roach, pike, salmon, cod, parrotfish, catfish — swim in the water of their biomes
+                                  and are caught with the fishing rod of "Tools" (the catch field: which item the fish is in the bag), roast fish
+                                  (at a campfire); the perch of the perch bundle is caught too (its item is here)
 ```
 
-## Как он устроен
+## How it works
 
-- Приручение: зайца кормят с руки морковью или репой (`tame_food`; от того, кто держит еду, он не
-  убегает), после `tame_feeds` кормлений он ручной и ходит за хозяином; кнопкой действия с пустой рукой
-  его оставляют на месте или зовут снова, ножом раз в `wool_days` суток стригут пух (`wool`). Двое
-  ручных, оставленных рядом и покормленных за сутки, раз в `breed_days` суток приносят зайчонка, пока их
-  меньше `herd`. Ручные сохраняются с миром.
+- Taming: a rabbit is fed from the hand with a carrot or a turnip (`tame_food`; it does not run
+  from the one holding food), after `tame_feeds` feedings it is tame and follows its owner; with the action button and an empty hand
+  it is left in place or called again, with a knife once every `wool_days` days its down is sheared (`wool`). Two
+  tame ones, left side by side and fed within a day, bring a young rabbit once every `breed_days` days, while there are
+  fewer than `herd` of them. Tame ones are saved with the world.
 
-- Охота: `health: 26` — сколько ударов силы 1 зверь выдерживает (меч, нож и другие инструменты бьют своей
-  `power`, навык Охоты прибавляет к ней до половины, руки — силой 1; мелочь 3–5, крупный зверь 22–50, чтобы
-  оружие от каменного до стального различалось: `docs/balance/GAME_BALANCE_DESIGN.md`); без `health` зверя не
-  ударить (бабочка, воробей). Раненый зверь бежит от места
-  удара, убитый оставляет на земле то, что названо в `carcass`: `small_carcass` (тушка, разделывается руками)
-  или `carcass` (туша, нужен нож в сумке). Ссылка мягкая: без бандла «Добыча» зверь падает и ничего не
-  оставляет.
+- Hunting: `health: 26` — how many strikes of power 1 a beast withstands (a sword, a knife and other tools strike with their
+  `power`, the Hunting skill adds up to half to it, hands strike with power 1; small game 3–5, big beasts 22–50, so that
+  weapons from stone to steel differ: `docs/balance/GAME_BALANCE_DESIGN.md`); without `health` a beast cannot be
+  struck (the butterfly, the sparrow). A wounded beast runs from the place
+  of the strike, a killed one leaves on the ground what is named in `carcass`: `small_carcass` (a small carcass, butchered by hand)
+  or `carcass` (a carcass, a knife is needed in the bag). The reference is soft: without the "Game" bundle the beast falls and leaves
+  nothing.
 
-- Пространство имён — мода: `rabbit` в любом бандле «Животных» это `animals:rabbit`. Ссылка на
-  запись другого мода пишется полностью (`plants:ears`).
-- Чего бандл не требует, игра не требует: у зверей нет ссылок на чужие записи, поэтому каждый грузится
-  с одной основой. Зависимости вообще читаются из ссылок: жёсткая ссылка (рецепт, предмет материала)
-  на бандл, которого нет в наборе, выключает бандл с причиной; мягкая (`likes`, `seed`, `fruit`) просто
-  отбрасывается — воробей без «Растений» живёт, но ничего не ищет. Схема полей в
-  `src/shared/content/content.gd` говорит, какие ссылки мягкие (`soft`).
-- Картинки — пиксельные PNG с прозрачным фоном, кадры одного размера: ряд на каждую сторону
-  (`views`: 1 — только сбоку, 3 — сбоку, спереди и сзади; сбоку зверь смотрит вправо, влево игра
-  отражает сама, а сторону выбирает по тому, куда зверь идёт на экране), в ряду `frames` кадров:
-  первый — стоит, следующие `walk` — шаг (у ходячего и плавающего идут по пройденному пути, два
-  шага за круг), у летающего — взмахи крыльев в воздухе; оставшиеся — кадры покоя (хвост, голова к
-  траве, клюёт), игра показывает их изредка, пока зверь стоит; у летающего с `hop` последние `hop`
-  кадров — прыжки по земле (присел, в воздухе); с одним кадром зверь не анимирован.
-  Их можно перерисовать в любом редакторе; размер любой. Воробей нарисован `tools/make_sparrow.py`, ворона, сова и утка — `tools/make_birds.py`,
-  лягушка — `tools/make_frog.py`, рыбы — `tools/make_fish.py`
-  (тёмный контур вокруг всего зверя; утка прыгает вперевалку), заяц — `tools/make_rabbit.py`, белка — `tools/make_squirrel.py`, лиса — `tools/make_fox.py`, олень — `tools/make_deer.py`, кабан — `tools/make_boar.py`, медведь — `tools/make_bear.py`, волк — `tools/make_wolf.py`, дикая кошка — `tools/make_cat.py`, ёж — `tools/make_hedgehog.py`, остальные звери —
-  `tools/make_creatures.py`: картинка записана там текстом, пиксель — буква, а тени, свет и контур
-  в тёмном оттенке своего цвета кладёт `tools/creature_kit.py`.
-  Чего в папке бандла нет, игра ищет в `common/` мода.
-- Среда: `flies: true` — летает (садится на землю и, с `roost: trees`, на кроны), `swims: true` —
-  живёт в открытой воде чуть под поверхностью (окунь); с `ashore: true` выходит и на берег у своей
-  воды (утка, лягушка). Летающий и плавающий (утка) от угрозы отплывает, взлетает, только если она
-  близко, и перелетает невысоко и недалеко: `flight` — как далеко за раз, в ячейках (по умолчанию 28).
-  `hops: true` — по земле прыжками с передышками (лягушка: в прыжке второй кадр, на взлёте и
-  приземлении третий). `after_rain: true` — выходит только после дождя, пока стоят лужи, и тем
-  больше, чем их больше (зимой нет). `tints: ["#ffffff", "#f6d64a"]` — каждый зверь вида рисуется
-  своим из этих цветов (картинка умножается на него; рисуйте такую светлой). Звери разгоняются и
-  тормозят плавно, стоят немного там, куда пришли, и расталкивают друг друга и игрока по массе:
-  медведь отодвигает игрока, игрок — зайца. Ходячий с `roost: trees` лазает (белка):
-  от угрозы бежит на ближайшее дерево и спит в кроне, где его не достать, спускается, когда
-  безопасно. Ходячий не достаёт плавающего и наоборот, летающий достаёт всех — так из масс и
-  рационов выходит, кто кого ловит.
-- Где живёт: `biomes: [biomes:taiga, biomes:forest]` — зверь приходит только на землю этих биомов
-  (мягкие ссылки на мод «Биомы»: без него или без бандла биома — везде). `flock: [3, 5]` — стадом
-  за вожаком (олени, кабаны, волки парами), `likes: [plants:tuft]` — ищет места, где это растёт.
-- Голоса (`calls`, `alarm`) — записи `data/sounds.yaml` бандла и файлы `sounds/<имя>_N.wav` рядом
-  (сделаны `tools/make_sounds.gd`, можно и записать свои); код просит звук по имени без приставки.
-  Уханье «owl» лежит у совы: ночной лес зовёт его по имени, и без бандла совы он молчит.
-- Новый зверь: папка `content/animals/<имя>/` с `bundle.yaml` (`title`), `data/creatures.yaml` и
-  картинкой `sprites/creatures/<sprite>.png`. Чтобы он ходил стадом или спал на деревьях, хватит полей
-  `flock` и `roost` (см. README воробья).
-- Проверка: `godot --headless --path . --script res://tools/validate.gd` проверяет поля, ссылки на
-  звуки и что у каждого вида есть картинка; валидатор также грузит каждый бандл отдельно, только с
-  тем, без чего он не может.
+- The namespace is the mod's: `rabbit` in any bundle of "Animals" is `animals:rabbit`. A reference to an
+  entry of another mod is written in full (`plants:ears`).
+- What a bundle does not require, the game does not require: beasts have no references to others' entries, so each loads
+  with one base. Dependencies are generally read from references: a hard reference (a recipe, an item of a material)
+  to a bundle that is not in the set switches the bundle off with a reason; a soft one (`likes`, `seed`, `fruit`) is simply
+  dropped — a sparrow without "Plants" lives, but looks for nothing. The field schema in
+  `src/shared/content/content.gd` says which references are soft (`soft`).
+- The pictures are pixel PNGs with a transparent background, frames of one size: a row for each side
+  (`views`: 1 — side only, 3 — side, front and back; from the side the beast looks right, the game mirrors it to the left
+  by itself, and picks the side by where the beast goes on the screen), in a row `frames` frames:
+  the first is standing, the next `walk` are a step (for a walker and a swimmer they go by the distance covered, two
+  steps per cycle), for a flyer — wing flaps in the air; the remaining ones are rest frames (tail, head to
+  the grass, pecking), the game shows them now and then while the beast stands; for a flyer with `hop` the last `hop`
+  frames are hops on the ground (crouched, in the air); with one frame the beast is not animated.
+  They can be redrawn in any editor; any size. The sparrow is drawn by `tools/make_sparrow.py`, the crow, owl and duck by `tools/make_birds.py`,
+  the frog by `tools/make_frog.py`, the fish by `tools/make_fish.py`
+  (a dark outline around the whole beast; the duck waddles), the rabbit by `tools/make_rabbit.py`, the squirrel by `tools/make_squirrel.py`, the fox by `tools/make_fox.py`, the deer by `tools/make_deer.py`, the boar by `tools/make_boar.py`, the bear by `tools/make_bear.py`, the wolf by `tools/make_wolf.py`, the wildcat by `tools/make_cat.py`, the hedgehog by `tools/make_hedgehog.py`, the other beasts by
+  `tools/make_creatures.py`: the picture is written there as text, a pixel is a letter, and the shadows, light and outline
+  in a dark shade of its colour are laid by `tools/creature_kit.py`.
+  What the bundle's folder lacks, the game looks for in the mod's `common/`.
+- Environment: `flies: true` — flies (lands on the ground and, with `roost: trees`, on crowns), `swims: true` —
+  lives in open water a little below the surface (the perch); with `ashore: true` it also comes out on the shore by its
+  water (the duck, the frog). A flyer and a swimmer (the duck) swims away from a threat, takes off only if it is
+  close, and flies low and not far: `flight` — how far at a time, in cells (28 by default).
+  `hops: true` — moves over the ground in hops with rests (the frog: in a hop the second frame, at take-off and
+  landing the third). `after_rain: true` — comes out only after rain, while puddles stand, and the
+  more of them, the more it does (none in winter). `tints: ["#ffffff", "#f6d64a"]` — each beast of the kind is drawn
+  in one of these colours (the picture is multiplied by it; draw such a one light). Beasts speed up and
+  slow down smoothly, stand a while where they arrived, and push each other and the player apart by mass:
+  the bear pushes the player aside, the player pushes the rabbit. A walker with `roost: trees` climbs (the squirrel):
+  from a threat it runs to the nearest tree and sleeps in the crown, where it cannot be reached, and comes down when it is
+  safe. A walker cannot reach a swimmer and vice versa, a flyer reaches all — this is how from masses and
+  diets comes who catches whom.
+- Where it lives: `biomes: [biomes:taiga, biomes:forest]` — the beast comes only onto the land of these biomes
+  (soft references to the "Biomes" mod: without it or without the biome's bundle — everywhere). `flock: [3, 5]` — in a herd
+  behind a leader (deer, boars, wolves in pairs), `likes: [plants:tuft]` — looks for places where this grows.
+- Voices (`calls`, `alarm`) are entries of the bundle's `data/sounds.yaml` and files `sounds/<name>_N.wav` beside it
+  (made by `tools/make_sounds.gd`, your own can be recorded too); the code asks for a sound by name without a prefix.
+  The hoot "owl" lies with the owl: the night forest calls it by name, and without the owl's bundle it is silent.
+- A new beast: a folder `content/animals/<name>/` with `bundle.yaml` (`title`), `data/creatures.yaml` and
+  a picture `sprites/creatures/<sprite>.png`. For it to walk in a herd or sleep in trees, the fields
+  `flock` and `roost` are enough (see the sparrow's README).
+- Check: `godot --headless --path . --script res://tools/validate.gd` checks the fields, the references to
+  sounds and that each kind has a picture; the validator also loads each bundle alone, with only
+  what it cannot do without.

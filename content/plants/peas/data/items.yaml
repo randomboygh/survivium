@@ -1,5 +1,5 @@
-# Предметы бандла «Горох»: горошины — и еда, и семена (crop — посев, как зерно «Колосков»);
-# их иногда находят, срезая цветы (дикий горошек). Поля — как у предметов основы.
+# Items of the "Peas" bundle: peas are both food and seeds (crop — the sowing, like the grain of "Ears");
+# they are sometimes found when cutting flowers (wild vetch). Fields as for the core's items.
 - id: peas
   title: "[plants.items.peas]"
   description: "[plants.items.peas.about]"

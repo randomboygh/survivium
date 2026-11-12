@@ -1,5 +1,5 @@
-# Базовая игра: воздух, камень, вода, грунт и трава, костёр и человек. Остальные моды лежат рядом
-# в том же формате (plan/architecture/modding.md); что они требуют, выводится из их ссылок.
+# The base game: air, stone, water, ground and grass, a campfire and a human. The other mods lie alongside
+# in the same format (plan/architecture/modding.md); what they require is derived from their references.
 id: core
 title: "[core.mod]"
 version: "0.1"

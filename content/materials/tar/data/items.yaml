@@ -1,6 +1,6 @@
-# Смола (дёготь): её выгоняют из брёвен в печи для обжига в глиняном горшке (рецепт в бандле
-# «Печь для обжига» «Инструментов»); на ней горят смоляной факел и фонарь, она разжигает костёр
-# (fuel), потом станет клеем для лука.
+# Tar (pitch): it is driven out of logs in a kiln in a clay pot (the recipe is in the
+# "Kiln" bundle of "Tools"); a tar torch and a lantern burn on it, it lights a campfire
+# (fuel), and later it will become glue for the bow.
 - id: tar
   title: "[materials.items.tar]"
   description: "[materials.items.tar.about]"

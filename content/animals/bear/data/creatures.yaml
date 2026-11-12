@@ -1,9 +1,9 @@
-# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
-# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
-# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; biomes — где он живёт
-# (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml.
-# Самый тяжёлый зверь: всеядный, охотится на всё до 200 кг, людей не боится; любит грибные места.
-# Не боится людей: подошедшего близко предупреждает рыком и нападает (bite), раненый отбивается.
+# The fields are the same as for all creatures (content/core/data/creatures.yaml): who is food or a threat to whom
+# is derived from mass and diet by general rules, not written down. The species' picture —
+# sprites/creatures/<sprite>.png of this bundle, three frames: standing and two steps; biomes — where it lives
+# (soft references to "Biomes"; without them — everywhere); voices (calls, alarm) — its sounds.yaml.
+# The heaviest beast: omnivorous, hunts everything up to 200 kg, does not fear people; likes mushroom places.
+# Does not fear people: warns one who comes close with a growl and attacks (bite), fights back when wounded.
 - id: bear
   title: "[animals.creatures.bear]"
   mass: 250

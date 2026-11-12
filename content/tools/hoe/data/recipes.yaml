@@ -1,5 +1,5 @@
-# Рецепты бандла «Тяпка»: каменную вяжут руками, медную делают на верстаке, железную — на
-# наковальне. Кремень и ветка — «Ресурсы», верёвка, доски и слитки — «Материалы».
+# Recipes of the "Hoe" bundle: the stone one is tied by hand, the copper one is made at the workbench, the iron one - at
+# the anvil. Flint and branch are "Resources", rope, planks and ingots are "Materials".
 - id: stone_hoe
   title: "[tools.recipes.stone_hoe]"
   makes: stone_hoe

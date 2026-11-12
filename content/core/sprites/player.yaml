@@ -1,30 +1,30 @@
-# Лист кадров персонажа. Картинки лежат рядом в player/ и held/; их нарисовал
-# tools/make_sprites.gd, и их можно перерисовать в любом редакторе, сохранив размеры
-# кадров и метки кистей.
-# frame — размер кадра в пикселях: ноги стоят на нижнем ряду, крайние пиксели кадра
-# пустые (там рисуется обводка). directions — строки листа сверху вниз. layers — слои
-# player/<имя>.png снизу вверх; то, что в руках, ложится поверх них, а за телом — под
-# них. fists — предплечья и кисти рук перед телом, поверх того, что в них. hands —
-# player/<имя>.png, где в каждом кадре один пиксель отмечает кисть руки: красный —
-# правая, синий — левая, тёмный — рука за телом; нет пикселя — рука держит ту же вещь,
-# что и другая. Лист нарисован для правой руки в работе, для левой берётся зеркало
-# противоположной стороны.
-# animations — столбцы листа и кадров в секунду. works — работы, которые предмет называет
-# в своём `anim`: столбцы (замах, подъём, удар, доводка) и сколько рук они занимают;
-# работа проигрывается за время одного взмаха.
-# Зелёный канал метки — куда в этом кадре повёрнуто то, что в руке: 0 — как несут,
-# иначе (n + 1) / 8, где n — восьмые доли оборота по часовой стрелке от «вверх».
-# held — кадр листа инструмента в руке (held/<sprite>.png): размер и точка хвата. Строки
-# листа — стороны, как здесь (инструмент в правой руке), столбцы — «несут», затем кадры
-# его работы. icon — у вещи без листа (блоки, еда, семена) в руке её иконка, уменьшенная
-# до стольких пикселей и повёрнутая по метке.
+# The character's frame sheet. The pictures lie alongside in player/ and held/; they were drawn by
+# tools/make_sprites.gd, and can be redrawn in any editor, keeping the sizes
+# of the frames and the hand marks.
+# frame — the frame size in pixels: the feet stand on the bottom row, the outermost pixels of the frame
+# are empty (the outline is drawn there). directions — the rows of the sheet from top to bottom. layers — the layers
+# player/<name>.png from bottom to top; what is in the hands goes over them, and behind the body, under
+# them. fists — forearms and hands in front of the body, over what is in them. hands —
+# player/<name>.png, where in each frame one pixel marks the hand: red —
+# right, blue — left, dark — a hand behind the body; no pixel — the hand holds the same item
+# as the other. The sheet is drawn for the right hand at work, for the left the mirror
+# of the opposite side is taken.
+# animations — the columns of the sheet and frames per second. works — the works an item names
+# in its `anim`: the columns (windup, lift, strike, follow-through) and how many hands they take;
+# the work plays over the time of one swing.
+# The green channel of the mark is where what is in the hand is turned in this frame: 0 — as carried,
+# otherwise (n + 1) / 8, where n is eighths of a turn clockwise from "up".
+# held — a frame of the tool-in-hand sheet (held/<sprite>.png): the size and the grip point. The rows
+# of the sheet are the sides, as here (the tool in the right hand), the columns are "carried", then the frames
+# of its work. icon — for an item without a sheet (blocks, food, seeds) its icon in hand, shrunk
+# to this many pixels and turned by the mark.
 frame: [32, 32]
 directions: [s, se, e, ne, n, sw, w, nw]
 layers: [body, loincloth, shirt, trousers, boots, hair]
-# naked — слои раздетого персонажа (снизу вверх); надетое ложится между ними по
-# своему месту (Figure.dressed): ноги, ступни, тело — под волосами, голова — поверх.
-# Одежда рисуется формой из player/shapes/<look>.png (три серых тона) в цветах вещи
-# (`look_colors` в её данных).
+# naked — the layers of the undressed character (bottom to top); what is worn goes between them by
+# its place (Figure.dressed): legs, feet, body — under the hair, head — over it.
+# Clothes are drawn by a shape from player/shapes/<look>.png (three grey tones) in the item's colours
+# (`look_colors` in its data).
 naked: [body, loincloth, hair]
 fists: fists
 hands: hands
@@ -63,20 +63,20 @@ animations:
   eat:
     frames: [36, 37, 38, 39]
     fps: 1.0
-  # Сон: кадр не рисуется, его собирает Figure из первого кадра стоя лицом на юг —
-  # повёрнутым набок, с закрытыми глазами (sleep_eyes — цвет глаз в body.png, lid — век).
+  # Sleep: the frame is not drawn, Figure builds it from the first frame standing facing south —
+  # turned on its side, with closed eyes (sleep_eyes — the eye colour in body.png, lid — the eyelid).
   sleep:
     frames: [40]
     fps: 1.0
-  # Сидя на плоту или в лодке (ноги вперёд, тело ниже) и гребля: руки тянут вёсла от себя к себе.
+  # Sitting on a raft or in a boat (legs forward, body lower) and rowing: the hands pull the oars away from and toward oneself.
   sit:
     frames: [41]
     fps: 1.0
   row:
     frames: [42, 43, 44, 45]
     fps: 4.0
-  # Жесты (решение 183, src/shared/game/gestures.gd): помахать, кивнуть «да», покачаться «нет»,
-  # указать, позвать «сюда», поклон, хлопать; «сесть» — кадр sit. Играют по кругу, пока жест идёт.
+  # Gestures (decision 183, src/shared/game/gestures.gd): wave, nod "yes", shake "no",
+  # point, beckon "come here", bow, clap; "sit" is the sit frame. They loop while the gesture goes on.
   wave:
     frames: [46, 47]
     fps: 4.0

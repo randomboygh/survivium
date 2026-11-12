@@ -1,76 +1,78 @@
-# Бандл «Воробей»
+# The "Sparrow" bundle
 
-Добавляет в мир воробьёв. Это пример того, как новое существо попадает в игру через бандл мода:
-данные и одна картинка, без кода. Раньше это был отдельный мод «Птицы»; с делением модов на бандлы
-воробей — папка в моде «Животные» (`content/animals/sparrow/`), как и каждый зверь. Всё поведение воробья выводится из его свойств общими
-для всех существ правилами (`src/shared/game/wildlife.gd`, `src/shared/content/ai_rules.gd`).
+A Russian copy: [README_RU.md](README_RU.md).
 
-## Что в папке
+Adds sparrows to the world. It is an example of how a new creature gets into the game through a mod bundle:
+data and one picture, no code. It used to be a separate "Birds" mod; with the division of mods into bundles
+the sparrow is a folder in the "Animals" mod (`content/animals/sparrow/`), like every beast. All of the sparrow's behaviour is derived from its properties by rules
+common to all creatures (`src/shared/game/wildlife.gd`, `src/shared/content/ai_rules.gd`).
+
+## What is in the folder
 
 ```
 content/animals/sparrow/
-  bundle.yaml                     название бандла
-  data/creatures.yaml             вид «Воробей» и его свойства
-  data/sounds.yaml                чириканье: запись звука
-  sprites/creatures/sparrow.png   картинка: 3 ряда-стороны по 9 кадров 14×11
-  sounds/sparrow_1.wav ...        файлы чириканья
-  README.md                       этот файл
+  bundle.yaml                     the bundle's name
+  data/creatures.yaml             the "Sparrow" kind and its properties
+  data/sounds.yaml                chirping: the sound entry
+  sprites/creatures/sparrow.png   the picture: 3 rows-of-sides of 9 frames of 14×11
+  sounds/sparrow_1.wav ...        the chirping files
+  README.md                       this file
 ```
 
-## Как он сделан, по шагам
+## How it is made, step by step
 
-1. **Папка бандла.** `content/animals/sparrow/` в моде «Животные» (`content/animals/mod.yaml`:
-   `id: animals`, название, версия, `api: 1`; основа игры лежит в том же формате в `content/core`).
-   В `bundle.yaml` одно поле `title`. Свой мод делается так же: папка с `mod.yaml` рядом с
-   остальными и в ней папка на каждую вещь.
-2. **Зависимости.** Игра сама находит все папки с `mod.yaml` в `content/` и бандлы в них, а что
-   кому нужно, читает из ссылок: `likes: [plants:ears]` ставит воробья после «Растений». Эта ссылка
-   мягкая (так помечено поле в схеме): без «Растений» воробей живёт, просто ничего не ищет, а без
-   деревьев (`roost: trees` — роль, не ссылка) спит на земле. Жёсткая ссылка (рецепт на предмет
-   выключенного бандла) выключила бы бандл вместе с тем, чего ему не хватает. Запись другого мода
-   можно заменить по id или поменять отдельные поля записью с `patch: true` (`diet+: [plants]`
-   добавляет к списку). На экране «Новый мир» бандл можно выключить для нового мира; мир помнит,
-   с чем создан.
-3. **Вид существа.** `data/creatures.yaml` — список записей, как в основе. Id пишется без
-   пространства имён (`sparrow`), игра сама делает из него `animals:sparrow`. Поля:
-   - `mass: 0.03`, `diet: [plants]` — лёгкий и травоядный: кошка (4 кг) и волк видят в нём
-     добычу, и он сам видит в них угрозу и улетает. Никто не писал «кошка ловит воробья».
-   - `speed`, `sight`, `human_wariness: 0.8` — быстрый, зоркий, боится людей.
-   - `active: day` — днём кормится, ночью отдыхает.
-   - `count: 18` — сколько воробьёв держится вокруг игроков (3 стаи примерно).
-   - `flies: true` — летает: прыгает и клюёт на земле, иногда перелетает в другое место,
-     от угрозы взлетает, садится на землю или на дерево; в воздухе и на дереве его не
-     достать тем, кто ходит.
-   - `flock: [4, 8]` — держится стаей от 4 до 8: все следуют за первым (вожаком), садятся
-     рядом с ним, а испуг одного поднимает всю стаю.
-   - `roost: trees` — спит и иногда садится на деревья, в крону.
-   - `likes: [plants:ears]` — тянется к полям колосков: выбирая, куда лететь, ищет место,
-     где они растут. Ссылка на растение мода «Растения» (бандл колосьев, `content/plants/ears/data/plants.yaml`).
-   - `sprite: sparrow`, `frames: 9`, `walk: 4`, `hop: 2`, `views: 3` — картинка, сколько в ряду
-     кадров, сколько из них взмахи крыльев, сколько последних — прыжки по земле и сколько рядов-сторон.
-   - `calls: sparrow`, `alarm: sparrow` — чириканье: запись `data/sounds.yaml` бандла и файлы
-     `sounds/sparrow_1.wav` ... (код просит звук по имени без приставки).
-4. **Картинка.** `sprites/creatures/sparrow.png`: кадры 14×11 (сам воробей около 11×8), ряд на
-   сторону — сбоку (птица смотрит вправо), спереди (летит или идёт к камере), и сзади;
-   влево игра отражает сама, так что сторон четыре. Кадр 0 — сидит, кадры 1–4 — взмах широких крыльев (вверх,
-   раскрыты, вниз, на подъёме), их игра чередует в полёте, кадры 5 и 6 — клюёт (хвост вверх,
-   голова к земле), их игра показывает изредка, пока воробей сидит, кадры 7 и 8 — прыжок по
-   земле (присел, в воздухе), с ними он скачет, когда ходит. Нарисована
-   `tools/make_sparrow.py` по образцу воробья 16×16, которого прислал автор: тёмный контур
-   вокруг всей птицы, каштановая спина, персиковая грудка, жёлтая полоска на крыле. Её можно
-   перерисовать в любом редакторе, сохранив размер 126×33.
-5. **Проверка.** `godot --headless --path . --script res://tools/validate.gd` проверяет
-   поля по схеме (тип, диапазон, ссылки вроде `plants:ears`), что картинка есть и делится на
-   кадры, и что бандл грузится один, с одной основой. Тест `tests/unit/wildlife_test.gd` (`_test_birds`) проверяет, что воробьи приходят стаями,
-   взлетают от человека всей стаей, садятся подальше, не достаются кошке в воздухе и ночуют
-   в кронах.
+1. **The bundle folder.** `content/animals/sparrow/` in the "Animals" mod (`content/animals/mod.yaml`:
+   `id: animals`, name, version, `api: 1`; the base game lies in the same format in `content/core`).
+   `bundle.yaml` has one field, `title`. Your own mod is made the same way: a folder with `mod.yaml` beside the
+   others and in it a folder for each thing.
+2. **Dependencies.** The game finds all folders with `mod.yaml` in `content/` and the bundles in them by itself, and reads what
+   needs what from the references: `likes: [plants:ears]` puts the sparrow after "Plants". This reference is
+   soft (the field is marked so in the schema): without "Plants" the sparrow lives, it just looks for nothing, and without
+   trees (`roost: trees` is a role, not a reference) it sleeps on the ground. A hard reference (a recipe for an item
+   of a switched-off bundle) would switch the bundle off together with what it lacks. An entry of another mod
+   can be replaced by id or have separate fields changed by an entry with `patch: true` (`diet+: [plants]`
+   adds to the list). On the "New world" screen a bundle can be switched off for a new world; the world remembers
+   what it was created with.
+3. **The creature's kind.** `data/creatures.yaml` is a list of entries, as in the base game. The id is written without
+   a namespace (`sparrow`), and the game makes `animals:sparrow` of it by itself. The fields:
+   - `mass: 0.03`, `diet: [plants]` — light and herbivorous: a cat (4 kg) and a wolf see prey in it, and it
+     sees a threat in them and flies away. Nobody wrote "the cat catches the sparrow".
+   - `speed`, `sight`, `human_wariness: 0.8` — fast, sharp-eyed, afraid of people.
+   - `active: day` — feeds by day, rests at night.
+   - `count: 18` — how many sparrows stay around the players (about 3 flocks).
+   - `flies: true` — flies: it hops and pecks on the ground, sometimes flies to another place,
+     takes off from a threat, lands on the ground or on a tree; in the air and in a tree those who walk
+     cannot reach it.
+   - `flock: [4, 8]` — keeps in a flock of 4 to 8: all follow the first (the leader), land
+     beside it, and the fright of one raises the whole flock.
+   - `roost: trees` — sleeps and sometimes lands on trees, in the crown.
+   - `likes: [plants:ears]` — is drawn to fields of ears: choosing where to fly, it looks for a place
+     where they grow. A reference to a plant of the "Plants" mod (the ears bundle, `content/plants/ears/data/plants.yaml`).
+   - `sprite: sparrow`, `frames: 9`, `walk: 4`, `hop: 2`, `views: 3` — the picture, how many frames
+     in a row, how many of them are wing flaps, how many of the last ones are hops on the ground, and how many rows-of-sides.
+   - `calls: sparrow`, `alarm: sparrow` — chirping: the entry of the bundle's `data/sounds.yaml` and the files
+     `sounds/sparrow_1.wav` ... (the code asks for a sound by name without the prefix).
+4. **The picture.** `sprites/creatures/sparrow.png`: frames of 14×11 (the sparrow itself is about 11×8), a row per
+   side — from the side (the bird looks right), from the front (flying or walking toward the camera), and from behind;
+   the game mirrors it to the left by itself, so there are four sides. Frame 0 sits, frames 1–4 are a flap of broad wings (up,
+   spread, down, rising), which the game alternates in flight, frames 5 and 6 peck (tail up,
+   head to the ground), which the game shows now and then while the sparrow sits, frames 7 and 8 are a hop on the
+   ground (crouched, in the air), with which it hops when it walks. It is drawn by
+   `tools/make_sparrow.py` after the 16×16 sparrow the author sent: a dark outline
+   around the whole bird, a chestnut back, a peach breast, a yellow stripe on the wing. It can be
+   redrawn in any editor, keeping the size 126×33.
+5. **Check.** `godot --headless --path . --script res://tools/validate.gd` checks
+   the fields against the schema (type, range, references such as `plants:ears`), that the picture exists and divides into
+   frames, and that the bundle loads alone, with one base. The test `tests/unit/wildlife_test.gd` (`_test_birds`) checks that sparrows come in flocks,
+   take off from a person all together, land farther away, cannot be caught by a cat in the air and spend the night
+   in the crowns.
 
-## Что пришлось добавить в движок один раз
+## What had to be added to the engine once
 
-Новые свойства существ появились в схеме (`SCHEMAS.creatures` в `content.gd`) и в общих
-правилах, поэтому ими может пользоваться любой вид любого мода: `flies`, `flock`, `roost`,
-`likes`, `frames`. Например, `flock: [3, 6]` у оленей даст стада, а `likes` у зайцев —
-любимые луга. Следующие птицы (ворона, сова, утка) и бабочка сделаны одними данными и
-картинкой; для рыбы и лягушки так же один раз добавлено `swims` (живёт в открытой воде), для
-белки — лазание по деревьям (`roost: trees` у ходячего), для всех — `biomes` (где зверь живёт), а
-кадры ходьбы у ходячих зверей игра листает сама по шагам.
+New creature properties appeared in the schema (`SCHEMAS.creatures` in `content.gd`) and in the common
+rules, so any kind of any mod can use them: `flies`, `flock`, `roost`,
+`likes`, `frames`. For example, `flock: [3, 6]` on deer gives herds, and `likes` on hares gives
+favourite meadows. The next birds (crow, owl, duck) and the butterfly are made with data alone and a
+picture; for the fish and the frog `swims` (lives in open water) was likewise added once, for the
+squirrel — climbing trees (`roost: trees` on a walker), for all — `biomes` (where the beast lives), and the
+walking frames of walking beasts the game flips by itself by steps.

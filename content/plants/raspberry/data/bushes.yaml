@@ -1,12 +1,12 @@
-# Виды кустов: куст стоит в одной ячейке воздуха на траве, клиент рисует его
-# пучками листвы. Где он растёт, говорят биомы (content/biomes: доли кустов в bushes каждого
-# биома), не куст. tint — цвет листвы; berries — цвет спелых ягод (нет поля — без
-# ягод); berry_cards — доля пучков с ягодами; cards — пучков на куст; rise — высота
-# их середины над землёй в единицах мира; spread — разброс по x, вверх и по z;
-# small — мелкие пучки (низкий мелколистный куст); fruit — предмет-ягоды, которые
-# собирают летом и осенью, fruit_count — сколько их с куста (от и до); twigs — сколько
-# веток (twig — какой предмет; нет поля — куст веток не даёт) можно наломать с куста за год; item — предмет, который даёт куст, выкопанный
-# лопатой (его можно посадить снова).
+# Bush species: a bush stands in one cell of air on grass, the client draws it
+# as tufts of foliage. Where it grows is up to the biomes (content/biomes: the shares of bushes in each
+# biome's bushes), not the bush. tint — the foliage color; berries — the color of ripe berries (no field — no
+# berries); berry_cards — the share of tufts with berries; cards — tufts per bush; rise — the height
+# of their middle above the ground in world units; spread — the spread along x, upward and along z;
+# small — small tufts (a low, small-leaved bush); fruit — the berry item that is
+# picked in summer and autumn, fruit_count — how many per bush (from and to); twigs — how many
+# twigs (twig — which item; no field — the bush gives no twigs) can be broken off a bush in a year; item — the item a bush gives when dug up
+# with a shovel (it can be planted again).
 - id: raspberry
   title: "[plants.bushes.raspberry]"
   tint: "#3b5c26"

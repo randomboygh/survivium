@@ -1,127 +1,129 @@
-# Мод «Инструменты и крафт»
+# Mod "Tools and crafting"
 
-Сумки за спину (плетёная котомка +8 ячеек, кожаная сумка +16, холщовый рюкзак +24: `wear_on: back`,
-`bag_slots`). Одежда из волокна руками (плетёная шапка, травяная накидка, обмотки, лапти: `wear_on`
-head/body/legs/feet и `warmth` — на сколько градусов в ней теплее) и тёплая одежда из шкур и кожи, её шьют
-иглой на верстаке (меховая шапка, шуба, кожаные штаны, унты). Бурдюк из кожи: пустой (`fills_to`)
-наполняют у пресной воды, полный (`drink`, `empties_to`) пьют. Постель (травяная подстилка, меховой
-спальник: ставятся на землю, как станки, `prop: bed`; касание — лечь в неё и уснуть, и тогда
-`bedding` — во сне высыпаются во столько раз быстрее). Земледелие: тяпка (каменная, медная, железная;
-`tool: hoe`, `area` клеток за взмах) вскапывает траву и землю в грядку, лейка (пустая наполняется у пресной
-воды, полная — `tool: can`, `durability` поливов, `empties_to`) поливает грядку, серп (`tool: sickle`) жнёт
-спелый урожай с нескольких грядок за взмах. Каменные, деревянные, медные, бронзовые, железные и стальные топор, кирка, лопата, меч и коса, факел и смоляной
-факел, фонарь, станки (верстак, печь для обжига, горн, ткацкий станок, гончарный круг, сыродутная печь, наковальня, сундук), глиняный горшок и их рецепты, бандл на вещь: выключите на экране «Новый мир» меч — и в мире не будет мечей,
-выключите весь мод — мир останется с голыми руками: копать мягкий грунт, ломать ветки и вить
-верёвку можно, рубить деревья и класть вещи в сундук — нет. Раньше всё это лежало в основе
-(`content/core`), а модели вещей на земле и станков рисовал код клиента.
+A Russian copy: [README_RU.md](README_RU.md).
 
-## Что в папке
+Bags for the back (a wicker satchel +8 cells, a leather bag +16, a canvas backpack +24: `wear_on: back`,
+`bag_slots`). Clothes of fiber made by hand (a wicker hat, a grass cape, leg wraps, bast shoes: `wear_on`
+head/body/legs/feet and `warmth`, how many degrees warmer one is in it) and warm clothes of hides and leather, sewn
+with a needle at the workbench (a fur hat, a fur coat, leather trousers, mukluks). A waterskin of leather: an empty one (`fills_to`)
+is filled at fresh water, a full one (`drink`, `empties_to`) is drunk from. Bedding (a grass mat, a fur
+sleeping bag: placed on the ground like stations, `prop: bed`; a touch lies down in it and sleeps, and then
+`bedding` — in sleep one rests that many times faster). Farming: a hoe (stone, copper, iron;
+`tool: hoe`, `area` cells per swing) digs grass and earth into a bed, a watering can (an empty one is filled at fresh
+water, a full one is `tool: can`, `durability` waterings, `empties_to`) waters a bed, a sickle (`tool: sickle`) reaps
+ripe crops from several beds per swing. Stone, wooden, copper, bronze, iron and steel axe, pickaxe, shovel, sword and scythe, torch and tar
+torch, lantern, stations (workbench, kiln, forge, loom, potter's wheel, bloomery, anvil, chest), a clay pot and their recipes, a bundle per item: turn off the sword on the "New world" screen and there will be no swords in the world,
+turn off the whole mod and the world is left with bare hands: one can dig soft ground, break branches and twist
+a rope, but not chop trees or put things into a chest. Before, all this lay in core
+(`content/core`), and the models of things on the ground and of stations were drawn by the client's code.
+
+## What is in the folder
 
 ```
 content/tools/
-  mod.yaml                      id: tools, название, версия, api
+  mod.yaml                      id: tools, name, version, api
   axe/ pickaxe/ shovel/ sword/ knife/ spear/ sling/ leather_sling/ bow/ composite_bow/ needle/ scythe/ fishing_rod/ torch/ tar_torch/ lantern/
   candle/ workbench/ kiln/ forge/ loom/ potters_wheel/ drying_rack/ bloomery/ anvil/ chest/ big_chest/
   wicker_bag/ leather_bag/ canvas_backpack/
-  hoe/ sickle/ watering_can/    земледелие: тяпка, серп, лейка
-  boats/                        плот (руками из брёвен и верёвки) и лодка с вёслами (на верстаке): `vessel`, `oars`
-  trap/                         живоловка (руками из веток и верёвки): приманка в ней зовёт зверя (`trap`), пойманный — живой предмет (`alive`)
-  stairs/ door/ window/ furniture/ fireplace/   строительство: лестница, двери 1×2, 2×2, 2×3, окна 1×1, 1×2, 2×1, 2×2, 3×2,
-                                мебель (стол, табурет, кровать, шкаф, широкий шкаф, бочка, половик), камин
-                                бандл на вещь:
-    bundle.yaml                 название
-    data/items.yaml             предмет(ы): инструмент (tool, power, swing, reach, durability, repair) или станок (prop)
-    data/recipes.yaml           его рецепты; у топора ещё доски «Материалов», у печи — кирпич и уголь, у горна — медный слиток,
-                                у гончарного круга — сырой горшок и его обжиг в печи, смоляной факел — свой бандл (простой факел
-                                не зависит от ткани и смолы)
-    data/sounds.yaml            у меча взмах (swish), у косы покос (mow)
-    data/starts.yaml            у сундука: патч старта основы (camp+) — сундук у точки появления нового мира
-    sprites/held/<sprite>.png   как инструмент лежит в руках персонажа (лист кадров, см. README основы)
-    models/<model>.png          воксельная модель вещи на земле или станка
-    icons/<icon>.png            картинка в мешке
-  README.md                     этот файл
+  hoe/ sickle/ watering_can/    farming: hoe, sickle, watering can
+  boats/                        a raft (by hand from logs and rope) and a boat with oars (at the workbench): `vessel`, `oars`
+  trap/                         a live trap (by hand from branches and rope): the bait in it calls an animal (`trap`), the caught one is a live item (`alive`)
+  stairs/ door/ window/ furniture/ fireplace/   building: a staircase, doors 1×2, 2×2, 2×3, windows 1×1, 1×2, 2×1, 2×2, 3×2,
+                                furniture (a table, a stool, a bed, a cupboard, a wide cupboard, a barrel, a rug), a fireplace
+                                a bundle per item:
+    bundle.yaml                 title
+    data/items.yaml             the item(s): a tool (tool, power, swing, reach, durability, repair) or a station (prop)
+    data/recipes.yaml           its recipes; the axe also has the planks of "Materials", the kiln has brick and charcoal, the forge a copper ingot,
+                                the potter's wheel a raw pot and its firing in the kiln, the tar torch its own bundle (the plain torch
+                                does not depend on cloth and tar)
+    data/sounds.yaml            the sword has a swing (swish), the scythe has mowing (mow)
+    data/starts.yaml            the chest has: a patch of core's start (camp+) — a chest at the spawn point of a new world
+    sprites/held/<sprite>.png   how the tool lies in the character's hands (a sheet of frames, see the README of core)
+    models/<model>.png          the voxel model of the item on the ground or of the station
+    icons/<icon>.png            the picture in the bag
+  README.md                     this file
 ```
 
-## Модели вещей — PNG-срезы
+## Models of things: PNG slices
 
-Модель — картинка из квадратных срезов в ряд, по одному на уровень снизу вверх; ширина среза равна
-высоте картинки (16 для вещи на земле, 16 для станка на 2×2 ячейки; каждая ячейка 8 вокселей).
-Пиксель среза — воксель в этом месте (x вправо, z вниз), цвет пикселя — цвет вокселя, прозрачный —
-пусто, полупрозрачный (альфа 128) — листва, которую подкрашивает сезон. У вещи на земле середина
-среза — её центр, у станка угол среза — северо-западный угол его ячеек, перед — к югу. Модель
-можно нарисовать в любом редакторе; размер любой, лишь бы срезы были квадратными.
+A model is a picture of square slices in a row, one per level from bottom to top; a slice's width equals the
+picture's height (16 for a thing on the ground, 16 for a station of 2×2 cells; each cell is 8 voxels).
+A slice's pixel is a voxel in that place (x to the right, z down), the pixel's color is the voxel's color, transparent is
+empty, semi-transparent (alpha 128) is foliage tinted by the season. For a thing on the ground the middle of the
+slice is its center, for a station the slice's corner is the north-west corner of its cells, the front faces south. A model
+can be drawn in any editor; any size will do as long as the slices are square.
 
-Модели прототипа нарисованы кодом (`tools/art/voxel_art.gd`) и записаны в моды командой
-`godot --headless --path . --script res://tools/make_models.gd -- [модель ...]` (без имён —
-все; нарисованная руками модель перезаписывается, так что называйте, что делать заново).
+The prototype's models are drawn by code (`tools/art/voxel_art.gd`) and written into the mods by the command
+`godot --headless --path . --script res://tools/make_models.gd -- [model ...]` (without names —
+all of them; a hand-drawn model is overwritten, so name what to redo).
 
-## Как он устроен
+## How it works
 
-- Движок знает работу в мире шести классов `tool` (axe, pickaxe, shovel, sword, scythe, rod — удочка: что чем
-  копают, рубят и удят — `src/shared/content/tools.gd`); любой другой класс (hammer) — для рецептов и станков, в мире
-  он как руки. Нож (knife) в мире тоже как руки, но, как и меч, сначала бьёт зверя перед собой (`Tools.hunts`; другие руки — только зверя вплотную),
-  а в сумке разделывает туши (рецепт «Разделать тушу» мода «Животные» просит класс knife). Игла (needle) в мире
-  ничего не делает, в сумке шьёт кожу (кожаная праща). Удар по зверю
-  снимает с него `power` инструмента (руки — 1). Копьё (spear), праща (sling) и лук (bow) с `range` (в клетках)
-  стреляют: кнопка действия — туда, куда смотрит персонаж, касание земли — туда, где коснулись; `ammo` — чем
-  (по одному из сумки за выстрел; без него бросают само оружие). Выпущенное ложится там, где упало. Класс вещи `prop` — тоже открытое слово (workbench, kiln, forge, chest), а что вещь делает,
-  говорят флаги: `storage: 16` — хранит вещи (сундук), `repairs: true` — у неё чинят (верстак), `fire: true` —
-  горит (костёр; `fuel_max` — сколько секунд топлива в нём помещается, `fuel_start` — сколько у нового,
-  без них горит вечно), `serves` — заменяет названные станки, `place_tool` — ставится с инструментом этого класса
-  в сумке. Новый станок другого мода — одни данные; с `serves: [tools:workbench]` у него делают всё, что
-  у верстака.
-- Рецепт, кроме того, что он тратит (`needs`), может требовать вещь в сумке, не тратя её (`keeps: {mould: 1}`),
-  классы инструментов (`tools: [axe]`, как у досок: по одному каждого в сумке) с износом за изделие
-  (`wear: 1`), давать побочное с шансом (`also: [{item: chips, count: 1, chance: 0.5}]`) и называть свою
-  работу (`process`: `craft`, `refine` — доски, `smelt` — кирпич, уголь, слиток, `cook`). Все рецепты с
-  этими полями — `docs/generated/content-recipes.md`.
-- Сундук у точки появления ставит старт нового мира (`content/core/data/starts.yaml`, запись
-  `core:default`): бандл сундука дописывает его в лагерь патчем `camp+`. Выключите сундук — новый мир
-  начнётся с одним костром.
-- Чего бандлу нужно, выводится из ссылок его рецептов: `at: workbench` — бандл верстака (без него
-  кирку не сделать, и её бандл выключается с подписью «нужен Верстак»), ветка, бревно, кремень,
-  камень и глина — «Ресурсы» (`resources:`), верёвка, доски и кирпич — «Материалы» (`materials:`).
-  Рецепты досок, кирпича, угля и слитка лежат у топора, печи и горна, потому что ими и на них их
-  делают; лепёшку «Растений» пекут в печи, так что бандл колосков требует бандл печи.
-- Цепочки как в Terraria: сырьё → материал → вещь. Бревно → доски → деревянные кирка, лопата, меч,
-  коса; кремень и ветка с верёвкой → каменные; глина → кирпич → горн; бревно → уголь (печь); медная
-  руда (кирка) и уголь → медный слиток (горн) → медные топор, кирка, лопата, меч и коса из слитков
-  и досок на верстаке (сила 3, взмах быстрее, прочность 300, чинятся слитком); оловянная руда (медная
-  кирка) → слиток олова, медь + олово в тигле → бронза → бронзовые инструменты (сила 4 — для железной
-  руды, прочность 500–550); железная руда (бронзовая кирка) → крица (сыродутная печь) → железный слиток
-  (горн) → наковальня (верстак) → железные инструменты на наковальне (сила 5, прочность 800); железо с
-  углём в тигле (сыродутная печь) → сталь → стальные инструменты на наковальне (сила 6, прочность 1200);
-  рецепты олова, бронзы, железа и стали — в «Материалах», у самих слитков.
-- Факел (`torch/`) вяжут руками из ветки и двух волокон. В любой руке он светит в темноте (поле
-  `light` — на сколько мировых единиц), отгоняет зверей, которые боятся огня (`scares` — на сколько
-  мировых единиц; так же у костра, камина, свечи и фонаря), и расходуется, как еда или топливо: в стопке (до 5) лежат целые,
-  взятый в руку горит 6 минут (`burns` — секунды; `durability` у светящей вещи нельзя, она не
-  изнашивается и не чинится), догорев, пропадает из стопки, и загорается следующий; убранный из руки
-  ждёт, сколько ему осталось (полоска на руке, время в сумке; за 20 с до конца последнего — «догорает»);
-  вплавь его держат над водой; кнопкой «Поставить» в сумке его ставят на клетку перед собой — там он
-  догорает своё время (свеча и фонарь так же), касанием его забирают обратно с тем, что осталось; два факела, по одному в каждой руке, светят дальше и горят оба; огонь горит в самой яркой точке его листа в руке. Без факела вокруг
-  игрока ночью лишь слабый отсвет.
-- Новый инструмент: своя папка с `bundle.yaml`, запись в `data/items.yaml` с `tool`, `sprite` и
-  `anim` (работа персонажа из `content/core/sprites/player.yaml`), лист `sprites/held/<sprite>.png`,
-  модель `models/<model>.png`, картинка `icons/<icon>.png` и рецепт. Класс инструмента — любое слово:
-  `tool: knife` — нож для рецептов (`tools: [knife]`), в мире он как руки; ножи разных модов годятся
-  одному рецепту. В мире без единого ножа рецепт с ножом не показывается.
-- Новый станок: предмет с классом `prop` (`prop: loom`), флагами (что он хранит, горит ли, чинят ли
-  у него, какие станки заменяет, с каким инструментом ставится), моделью 2×2 клетки и рецептом, а
-  рецепты, которые делают у него, называют его в `at`:
+- The engine knows the work in the world of six `tool` classes (axe, pickaxe, shovel, sword, scythe, rod — a fishing rod: what is
+  dug, chopped and fished with what is in `src/shared/content/tools.gd`); any other class (hammer) is for recipes and stations, in the world
+  it is like hands. A knife (knife) in the world is also like hands, but, like a sword, it first strikes the animal in front of one (`Tools.hunts`; other hands only an animal at point-blank range),
+  and in the bag it butchers carcasses (the "Butcher a carcass" recipe of the "Animals" mod asks for the class knife). A needle (needle) in the world
+  does nothing, in the bag it sews leather (a leather sling). A strike at an animal
+  takes the tool's `power` off it (hands — 1). A spear (spear), a sling (sling) and a bow (bow) with `range` (in cells)
+  shoot: the action button — where the character looks, a touch on the ground — where it was touched; `ammo` is with what
+  (one from the bag per shot; without it the weapon itself is thrown). What is shot lies where it fell. The item class `prop` is also an open word (workbench, kiln, forge, chest), and what the item does
+  is told by flags: `storage: 16` — stores things (a chest), `repairs: true` — things are repaired at it (the workbench), `fire: true` —
+  burns (the campfire; `fuel_max` is how many seconds of fuel fit in it, `fuel_start` how many a new one has,
+  without them it burns forever), `serves` — replaces the named stations, `place_tool` — is placed with a tool of this class
+  in the bag. A new station of another mod is data alone; with `serves: [tools:workbench]` everything that
+  is done at the workbench is done at it.
+- A recipe, besides what it spends (`needs`), can require an item in the bag without spending it (`keeps: {mould: 1}`),
+  tool classes (`tools: [axe]`, as with planks: one of each in the bag) with wear per product
+  (`wear: 1`), give a by-product with a chance (`also: [{item: chips, count: 1, chance: 0.5}]`) and name its
+  work (`process`: `craft`, `refine` — planks, `smelt` — brick, charcoal, ingot, `cook`). All the recipes with
+  these fields are in `docs/generated/content-recipes.md`.
+- The chest at the spawn point is placed by the start of a new world (`content/core/data/starts.yaml`, the record
+  `core:default`): the chest bundle appends it to the camp by the patch `camp+`. Turn off the chest and a new world
+  will begin with one campfire.
+- What a bundle needs is derived from the links of its recipes: `at: workbench` is the workbench bundle (without it
+  a pickaxe cannot be made, and its bundle is turned off with the note "needs “Workbench”"), branch, log, flint,
+  stone and clay are "Resources" (`resources:`), rope, planks and brick are "Materials" (`materials:`).
+  The recipes of planks, brick, charcoal and ingot lie with the axe, kiln and forge, because they are made with them and at them;
+  the flatbread of "Plants" is baked in the kiln, so the spikelet bundle requires the kiln bundle.
+- Chains as in Terraria: raw material → material → item. Log → planks → wooden pickaxe, shovel, sword,
+  scythe; flint and branch with rope → stone ones; clay → brick → forge; log → charcoal (kiln); copper
+  ore (pickaxe) and charcoal → copper ingot (forge) → copper axe, pickaxe, shovel, sword and scythe from ingots
+  and planks at the workbench (power 3, a faster swing, durability 300, repaired with an ingot); tin ore (copper
+  pickaxe) → tin ingot, copper + tin in a crucible → bronze → bronze tools (power 4 — for iron
+  ore, durability 500–550); iron ore (bronze pickaxe) → bloom (bloomery) → iron ingot
+  (forge) → anvil (workbench) → iron tools at the anvil (power 5, durability 800); iron with
+  charcoal in a crucible (bloomery) → steel → steel tools at the anvil (power 6, durability 1200);
+  the recipes of tin, bronze, iron and steel are in "Materials", with the ingots themselves.
+- A torch (`torch/`) is tied by hand from a branch and two fibers. In either hand it shines in the dark (the field
+  `light` — by how many world units), keeps away animals that fear fire (`scares` — by how many
+  world units; the same with the campfire, fireplace, candle and lantern), and is used up like food or fuel: in a stack (up to 5) they lie whole,
+  one taken in hand burns for 6 minutes (`burns` — seconds; `durability` is not allowed on a shining item, it does not
+  wear out and is not repaired), when burnt out it vanishes from the stack and the next one lights; one put away from the hand
+  waits with what it has left (a bar on the hand, time in the bag; 20 s before the end of the last — "burning out");
+  swimming, one holds it above the water; with the "Place" button in the bag it is put on the cell in front, where it
+  burns its time out (a candle and a lantern likewise), a touch takes it back with what is left; two torches, one in each hand, shine farther and both burn; the fire burns at the brightest point of its sheet in the hand. Without a torch there is only a faint
+  glow around the player at night.
+- A new tool: its own folder with `bundle.yaml`, an entry in `data/items.yaml` with `tool`, `sprite` and
+  `anim` (the character's work from `content/core/sprites/player.yaml`), a sheet `sprites/held/<sprite>.png`,
+  a model `models/<model>.png`, a picture `icons/<icon>.png` and a recipe. The tool class is any word:
+  `tool: knife` is a knife for recipes (`tools: [knife]`), in the world it is like hands; knives of different mods fit
+  one recipe. In a world with no knife at all a recipe with a knife is not shown.
+- A new station: an item with the class `prop` (`prop: loom`), flags (what it stores, whether it burns, whether things are repaired
+  at it, which stations it replaces, with which tool it is placed), a model of 2×2 cells and a recipe, and
+  the recipes made at it name it in `at`:
 
   ```yaml
   - id: loom
-    title: "[tools.items.loom]"   # ключ; «Ткацкий станок» — в lang/ru.yaml, «Loom» — в lang/en.yaml
+    title: "[tools.items.loom]"   # a key; "Loom" is in lang/en.yaml, the Russian one in lang/ru.yaml
     weight: 12
     stack: 1
     model: loom
     icon: loom
     prop: loom
-    serves: [tools:workbench]   # необязательно: у него делают и всё, что у верстака
+    serves: [tools:workbench]   # optional: everything that is done at the workbench is done at it too
   ```
-- Новый рецепт или второй путь к той же вещи — ещё одна запись `data/recipes.yaml` (так делают
-  альтернативы, а не исключения в коде):
+- A new recipe or a second way to the same item is one more entry of `data/recipes.yaml` (this is how
+  alternatives are made, rather than exceptions in the code):
 
   ```yaml
   - id: cloth
@@ -130,17 +132,17 @@ content/tools/
     count: 1
     needs: {resources:fiber: 4}
     at: loom
-    tools: [knife]                  # класс инструмента в сумке, по одному каждого
-    keeps: {mould: 1}               # в сумке, не тратится
-    wear: 1                         # износ инструментов за изделие
-    also: [{item: resources:fiber, count: 1, chance: 0.25}]   # побочное
+    tools: [knife]                  # a tool class in the bag, one of each
+    keeps: {mould: 1}               # in the bag, not spent
+    wear: 1                         # the tools' wear per product
+    also: [{item: resources:fiber, count: 1, chance: 0.25}]   # a by-product
     process: craft
     time: 4
   ```
 
-  Эпоха рецепта и вещи выводится сама (README основы, «Как добавить эпоху»).
-- Проверка: `godot --headless --path . --script res://tools/validate.gd` (поля, ссылки, листы и модели
-  на месте, каждый бандл в одиночку, граф: всё достижимо со старта, нет тупиков и кругов),
-  `tests/progress_test.gd` (все рецепты достижимы в новом мире), отчёты
-  `godot --headless --path . --script res://tools/content_report.gd` (рецепт появится в
+  The era of the recipe and the item is derived by itself (the README of core, "How to add an era").
+- The check: `godot --headless --path . --script res://tools/validate.gd` (fields, links, sheets and models
+  in place, each bundle alone, the graph: everything reachable from the start, no dead ends and cycles),
+  `tests/progress_test.gd` (all recipes reachable in a new world), the reports
+  `godot --headless --path . --script res://tools/content_report.gd` (the recipe will appear in
   `docs/generated/content-recipes.md`).

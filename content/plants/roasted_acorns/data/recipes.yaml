@@ -1,5 +1,5 @@
-# Рецепт бандла «Жареные жёлуди»: жёлуди «Дуба» калят на костре основы в глиняном горшке «Инструментов» (бандл
-# «Гончарный круг»; горшок нужен в сумке и не тратится). Поля рецепта — docs/DATA_MODEL.md.
+# Recipe of the "Roasted acorns" bundle: the acorns of "Oak" are fired on the core's campfire in a clay pot of "Tools" (the
+# "Potter's wheel" bundle; the pot must be in the bag and is not used up). Recipe fields — docs/DATA_MODEL.md.
 - id: roasted_acorns
   title: "[plants.recipes.roasted_acorns]"
   makes: roasted_acorns

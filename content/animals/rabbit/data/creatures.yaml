@@ -1,11 +1,11 @@
-# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
-# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
-# sprites/creatures/<sprite>.png этого бандла, три кадра (стоит и два шага); biomes — где он живёт
-# (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml. Приручение:
-# tame_food — чем кормят с руки (от держащего её не убегает), tame_feeds — сколько раз, wool — что
-# ручной даёт ножом раз в wool_days суток, breed_days — раз во сколько суток пара ручных, оставленных
-# вместе и кормленных за сутки, приносит зайчонка, пока их там меньше herd; trapped — каким живым
-# предметом он сидит в живоловке, куда пришёл на приманку из tame_food (бандл «Живоловка»).
+# The fields are the same as for all creatures (content/core/data/creatures.yaml): who is food or a threat to whom
+# is derived from mass and diet by general rules, not written down. The species' picture —
+# sprites/creatures/<sprite>.png of this bundle, three frames (standing and two steps); biomes — where it lives
+# (soft references to "Biomes"; without them — everywhere); voices (calls, alarm) — its sounds.yaml. Taming:
+# tame_food — what it is fed by hand with (it does not run from one holding it), tame_feeds — how many times, wool — what
+# a tame one gives with a knife once every wool_days days, breed_days — once every how many days a pair of tame ones left
+# together and fed within a day brings a leveret, while there are fewer than herd of them there; trapped — which live
+# item it is as it sits in a live trap, where it came for bait from tame_food (the "Live trap" bundle).
 - id: rabbit
   title: "[animals.creatures.rabbit]"
   mass: 2

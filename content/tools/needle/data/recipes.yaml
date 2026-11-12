@@ -1,4 +1,4 @@
-# Рецепт бандла «Игла»: костяную иглу вырезают из кости («Животные», бандл «Добыча») ножом.
+# Recipe of the "Needle" bundle: a bone needle is carved from bone ("Animals", the "Game animals" bundle) with a knife.
 - id: bone_needle
   title: "[tools.recipes.bone_needle]"
   makes: bone_needle

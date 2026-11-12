@@ -1,5 +1,5 @@
-# Рецепты бандла «Одежда из шкур»: шкуры, кожу («Животные», бандл «Добыча»; «Материалы», бандл
-# «Кожа») и верёвку шьют иглой (класс needle, бандл «Игла») на верстаке.
+# Recipes of the "Hide clothes" bundle: hides, leather ("Animals", the "Game animals" bundle; "Materials", the
+# "Leather" bundle) and rope are sewn with a needle (class needle, the "Needle" bundle) at the workbench.
 - id: fur_hat
   title: "[tools.recipes.fur_hat]"
   makes: fur_hat

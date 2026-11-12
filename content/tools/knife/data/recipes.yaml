@@ -1,5 +1,5 @@
-# Рецепты бандла «Нож»: кремнёвый делают руками, медный и бронзовый — на верстаке, железный и
-# стальной — на наковальне. Поля рецепта — docs/DATA_MODEL.md.
+# Recipes of the "Knife" bundle: the flint one is made by hand, the copper and bronze ones at the workbench, the iron and
+# steel ones at the anvil. Recipe fields are in docs/DATA_MODEL.md.
 - id: flint_knife
   title: "[tools.recipes.flint_knife]"
   makes: flint_knife

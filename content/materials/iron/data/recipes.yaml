@@ -1,5 +1,5 @@
-# Рецепты бандла «Железо»: крица — в сыродутной печи, слиток — в горне (оба станка в
-# «Инструментах»); лежат здесь, чтобы станки не зависели от железа.
+# Recipes of the "Iron" bundle: the bloom — in the bloomery, the ingot — in the forge (both stations in
+# "Tools"); they lie here so that the stations do not depend on iron.
 - id: iron_bloom
   title: "[materials.recipes.iron_bloom]"
   makes: iron_bloom

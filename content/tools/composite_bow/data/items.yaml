@@ -1,6 +1,6 @@
-# Составной лук: деревянный лук бандла «Лук», усиленный костью, склеенный костным клеем и обмотанный
-# кожей; стреляет теми же стрелами. Отдельным бандлом, чтобы «Лук» не зависел от зверей и кожи. Поля —
-# как в бандле «Лук» (content/tools/bow/data/items.yaml).
+# Composite bow: the wooden bow of the "Bow" bundle, reinforced with bone, glued with bone glue and wrapped in
+# leather; it shoots the same arrows. A separate bundle, so that "Bow" does not depend on animals and leather. Fields are
+# as in the "Bow" bundle (content/tools/bow/data/items.yaml).
 - id: composite_bow
   title: "[tools.items.composite_bow]"
   description: "[tools.items.composite_bow.about]"

@@ -1,4 +1,4 @@
-# Рецепт бандла «Кожаная праща»: кожу («Материалы») с верёвкой шьют иглой (класс needle, бандл «Игла»).
+# Recipe of the "Leather sling" bundle: leather ("Materials") with rope are sewn with a needle (class needle, the "Needle" bundle).
 - id: leather_sling
   title: "[tools.recipes.leather_sling]"
   makes: leather_sling

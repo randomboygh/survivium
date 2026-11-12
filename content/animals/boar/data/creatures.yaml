@@ -1,9 +1,9 @@
-# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
-# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
-# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; biomes — где он живёт
-# (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml.
-# Стадо кабанов: вожак и за ним остальные (flock); людей почти не боится.
-# Не боится людей: подошедшего вплотную предупреждает и бьёт клыками (bite), раненый отбивается.
+# The fields are the same as for all creatures (content/core/data/creatures.yaml): who is food or a threat to whom
+# is derived from mass and diet by general rules, not written down. The species' picture —
+# sprites/creatures/<sprite>.png of this bundle, three frames: standing and two steps; biomes — where it lives
+# (soft references to "Biomes"; without them — everywhere); voices (calls, alarm) — its sounds.yaml.
+# A herd of boars: a leader and the others behind it (flock); hardly fears people.
+# Does not fear people: warns one who comes right up and strikes with its tusks (bite), fights back when wounded.
 - id: boar
   title: "[animals.creatures.boar]"
   mass: 90

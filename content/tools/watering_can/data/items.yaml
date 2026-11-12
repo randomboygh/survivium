@@ -1,7 +1,7 @@
-# Предметы бандла «Лейка» мода «Инструменты и крафт». Пустую лейку, взятую в руку, наполняют у
-# пресной воды (fills_to), как бурдюк; полной (tool: can) поливают грядки: политая грядка сутки
-# мокрая, и на ней растёт посеянное (src/shared/game/actions_farm.gd). durability — сколько
-# клеток полить одной водой; опустев, лейка снова пустая (empties_to).
+# Items of the "Watering can" bundle of the "Tools and crafting" mod. An empty can taken in the hand is filled at
+# fresh water (fills_to), like the waterskin; with a full one (tool: can) beds are watered: a watered bed stays
+# wet for a day, and what is sown on it grows (src/shared/game/actions_farm.gd). durability - how many
+# cells one fill of water waters; once emptied, the can is empty again (empties_to).
 - id: watering_can
   title: "[tools.items.watering_can]"
   description: "[tools.items.watering_can.about]"

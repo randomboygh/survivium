@@ -1,5 +1,5 @@
-# Голоса: sounds/<id>_N.wav этого бандла (tools/make_sounds.gd); calls и alarm вида в creatures.yaml.
-# Уханье: его же зовёт ночной лес (src/client/audio/nature.gd), без бандла он молчит.
+# Voices: sounds/<id>_N.wav of this bundle (tools/make_sounds.gd); calls and alarm of the species in creatures.yaml.
+# The hoot: it is called by the night forest (src/client/audio/nature.gd), without the bundle it is silent.
 - id: owl
   title: "[animals.sounds.owl]"
   variants: 2

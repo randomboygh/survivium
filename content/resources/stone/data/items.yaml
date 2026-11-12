@@ -1,4 +1,4 @@
-# Камень (его ставят ячейкой камня основы) и кремень. Поля — как у предметов основы.
+# Stone (placed as the core stone cell) and flint. Fields are as for the core items.
 - id: stone
   title: "[resources.items.stone]"
   weight: 2.0

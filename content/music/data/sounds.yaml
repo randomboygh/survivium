@@ -1,5 +1,5 @@
-# Ноты до первой октавы, музыка (src/client/audio/music.gd) играет их на других высотах:
-# щипок и колокольчик — мелодия, протяжный тон — аккорды. Файлы sounds/<id>.wav (tools/make_sounds.gd).
+# Notes of the first octave; the music (src/client/audio/music.gd) plays them at other pitches:
+# a pluck and a bell - the melody, a sustained tone - chords. Files sounds/<id>.wav (tools/make_sounds.gd).
 - id: note_pluck
   title: "[music.sounds.note_pluck]"
 - id: note_bell

@@ -1,10 +1,10 @@
-# Поля те же, что у всех существ (content/core/data/creatures.yaml): кто кому еда или угроза,
-# выводится из массы и рациона общими правилами, а не записано. Картинка вида —
-# sprites/creatures/<sprite>.png этого бандла, три кадра: стоит и два шага; голоса (calls, alarm) — его sounds.yaml.
-# Насекомое: летает невысоко и недалеко (flight), ищет цветы; добыча для птиц и лягушек.
-# Кадров прыжка (hop) нет, поэтому по земле не ходит: сев, сидит на месте и медленно
-# хлопает крыльями (первый взмах), пока не взлетит.
-# Крылья светлые, каждая бабочка своего цвета из tints.
+# The fields are the same as for all creatures (content/core/data/creatures.yaml): who is food or a threat to whom
+# is derived from mass and diet by general rules, not written down. The species' picture —
+# sprites/creatures/<sprite>.png of this bundle, three frames: standing and two steps; voices (calls, alarm) — its sounds.yaml.
+# An insect: flies low and not far (flight), looks for flowers; prey for birds and frogs.
+# It has no hop frames, so it does not walk on the ground: once landed, it sits in place and slowly
+# flaps its wings (the first flap) until it takes off.
+# The wings are light, each butterfly has its own color from tints.
 - id: butterfly
   title: "[animals.creatures.butterfly]"
   mass: 0.01

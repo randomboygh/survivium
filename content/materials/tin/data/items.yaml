@@ -1,4 +1,4 @@
-# Оловянная руда и слиток олова: слиток плавят в горне, из олова с медью — бронзу (бандл «Бронза»).
+# Tin ore and a tin ingot: the ingot is smelted in a forge, from tin with copper — bronze (the "Bronze" bundle).
 - id: tin_ore
   title: "[materials.items.tin_ore]"
   description: "[materials.items.tin_ore.about]"

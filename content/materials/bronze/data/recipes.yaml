@@ -1,5 +1,5 @@
-# Рецепты бандла «Бронза»: тигель — на гончарном круге и в печи для обжига, сплав — в горне
-# («Инструменты»); медь, олово и уголь — бандлы «Медь», «Олово» и «Уголь».
+# Recipes of the "Bronze" bundle: the crucible — on the potter's wheel and in the kiln, the alloy — in the forge
+# ("Tools"); copper, tin and coal — the "Copper", "Tin" and "Charcoal" bundles.
 - id: raw_crucible
   title: "[materials.recipes.raw_crucible]"
   makes: raw_crucible

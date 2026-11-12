@@ -1,4 +1,4 @@
-# Звуки древесины: удар по стволу, шорох листвы, шаг по бревну (sounds/<id>_N.wav, tools/make_sounds.gd).
+# Sounds of timber: a strike on a trunk, the rustle of leaves, a step on a log (sounds/<id>_N.wav, tools/make_sounds.gd).
 - id: chop
   title: "[plants.sounds.chop]"
   variants: 3

@@ -1,4 +1,4 @@
-# Сруб как ячейка: рубится топором и возвращает себя. Поля — как у материалов основы.
+# Log wall as a cell: chopped with an axe and returns itself. Fields as for the core's materials.
 - id: log_wall
   title: "[materials.materials.log_wall]"
   hotbar: 8

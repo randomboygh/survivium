@@ -1,4 +1,4 @@
-# Рецепты бандла «Одежда из волокна»: плетут руками из волокна («Ресурсы») и верёвки («Материалы»).
+# Recipes of the "Fiber clothes" bundle: woven by hand from fiber ("Resources") and rope ("Materials").
 - id: fiber_hat
   title: "[tools.recipes.fiber_hat]"
   makes: fiber_hat

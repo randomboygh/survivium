@@ -1,6 +1,6 @@
-# Бронза: медь с оловом, сплавленные в горне в тигле. Тигель лепят на гончарном круге из глины с
-# песком и обжигают в печи; в сумке он нужен при плавке и не тратится. Бронзовые инструменты —
-# в бандлах своих видов (топор, кирка…) «Инструментов».
+# Bronze: copper with tin, alloyed in a forge in a crucible. The crucible is shaped on a potter's wheel from clay with
+# sand and fired in a kiln; it is needed in the bag when smelting and is not used up. Bronze tools are
+# in the bundles of their own kinds (axe, pickaxe...) of "Tools".
 - id: raw_crucible
   title: "[materials.items.raw_crucible]"
   description: "[materials.items.raw_crucible.about]"

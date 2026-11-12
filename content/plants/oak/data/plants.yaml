@@ -1,10 +1,10 @@
-# Росток дуба (kind sapling): жёлудь сажают на открытую землю — траву, землю или грядку — через
-# клетку от других деревьев (стволы стоят на нечётных клетках); кадр шириной в две клетки
-# (across: 2). Весной, летом и осенью он растёт
-# grow_days дней, мокрый или сухой, зимой ждёт: сначала росток и побег (кадры sprites/plants/
-# oak_sapling.png), с доли `young` срока — маленькое деревце (ствол и одна шапка листвы;
-# его можно срубить на ветки), а выросший становится дубом, если над ним есть место. Копать или
-# косить землю под ростком — потерять его. gives — обязательное поле растения: росток не собирают.
+# An oak sapling (kind sapling): an acorn is planted on open ground — grass, earth or a bed — one
+# cell away from other trees (trunks stand on odd cells); a frame two cells wide
+# (across: 2). In spring, summer and autumn it grows
+# grow_days days, wet or dry, and waits in winter: first a sprout and a shoot (frames sprites/plants/
+# oak_sapling.png), from the `young` share of the time — a small tree (a trunk and one cap of leaves;
+# it can be chopped down for twigs), and the grown one becomes an oak if there is room above it. Digging or
+# mowing the ground under a sapling — losing it. gives is a required plant field: a sapling is not picked.
 - id: oak_sapling
   kind: sapling
   title: "[plants.plants.oak_sapling]"

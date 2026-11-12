@@ -1,4 +1,4 @@
-# Бревно — предмет «Ресурсов»; этот бандл дописывает ей, что она ставит: ячейку ствола (бревно как материал).
+# The log is an item of "Resources"; this bundle adds to it what it places: a trunk cell (the log as a material).
 - id: resources:log
   patch: true
   place: plants:log

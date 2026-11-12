@@ -1,5 +1,5 @@
-# Предметы бандла «Морковь»: семена (их иногда находят, срезая травы; crop — посев) и морковь.
-# Поля — как у предметов основы (content/core/data/items.yaml).
+# Items of the "Carrot" bundle: seeds (sometimes found when cutting grasses; crop — the sowing) and the carrot.
+# Fields as for the core's items (content/core/data/items.yaml).
 - id: carrot_seeds
   title: "[plants.items.carrot_seeds]"
   description: "[plants.items.carrot_seeds.about]"

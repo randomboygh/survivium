@@ -1,5 +1,5 @@
-# Рецепт бандла «Сыродутная печь»: сама печь на верстаке из глины и камня «Ресурсов» и кирпича
-# «Материалов».
+# Recipe of the "Bloomery" bundle: the furnace itself at the workbench from "Resources" clay and stone and "Materials"
+# brick.
 - id: bloomery
   title: "[tools.recipes.bloomery]"
   makes: bloomery

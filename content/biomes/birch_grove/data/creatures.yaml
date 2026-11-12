@@ -1,5 +1,5 @@
-# Кто живёт в берёзовой роще: патчи записям «Животных» (biomes+ дописывает биом к их списку);
-# без бандла зверя патч пропускается, так что роща ничего не требует.
+# Who lives in the birch grove: patches to the records of "Animals" (biomes+ appends the biome to their list);
+# without the animal's bundle the patch is skipped, so the grove requires nothing.
 - id: animals:hedgehog
   patch: true
   biomes+: [biomes:birch_grove]

@@ -1,6 +1,6 @@
-# Предметы бандла «Межевой столб» мода «Инструменты и крафт»: столб с лоскутом ставят на клетки 2×2,
-# и он становится центром территории своего хозяина и его команды (claims: true; закраска участков
-# вокруг — в режиме «Территория»). Поля — как у предметов основы (content/core/data/items.yaml).
+# Items of the "Boundary post" bundle of the "Tools and crafting" mod: a post with a rag is placed on 2x2 cells,
+# and it becomes the center of its owner's and their team's territory (claims: true; painting the plots
+# around it is in the "Territory" mode). Fields are as for the core items (content/core/data/items.yaml).
 - id: boundary_post
   title: "[tools.items.boundary_post]"
   era: core:primitive

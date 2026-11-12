@@ -1,4 +1,4 @@
-# Кирпич как ячейка: твёрдый, бьётся киркой. Поля — как у материалов основы.
+# Brick as a cell: hard, broken with a pickaxe. Fields as for the core's materials.
 - id: brick
   title: "[materials.materials.brick]"
   hotbar: 4

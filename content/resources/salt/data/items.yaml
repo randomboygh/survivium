@@ -1,4 +1,4 @@
-# Соль в сумке: ставится ячейкой соли. Пригодится, чтобы солить еду.
+# Salt in the bag: placed as a salt cell. Useful for salting food.
 - id: salt
   title: "[resources.items.salt]"
   weight: 0.5

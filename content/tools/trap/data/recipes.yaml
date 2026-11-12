@@ -1,5 +1,5 @@
-# Рецепты бандла «Живоловка»: клетку вяжут руками из веток «Ресурсов» и верёвки «Материалов».
-# Все поля рецепта — docs/DATA_MODEL.md.
+# Recipes of the "Live trap" bundle: the cage is tied by hand from "Resources" branches and "Materials" rope.
+# All the recipe fields are in docs/DATA_MODEL.md.
 - id: trap
   title: "[tools.recipes.trap]"
   makes: trap

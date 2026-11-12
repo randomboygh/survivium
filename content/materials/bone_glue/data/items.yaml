@@ -1,5 +1,5 @@
-# Костный клей: кости вываривают в горшке на костре. Склеивает составной лук. Поля — как у предметов
-# основы (content/core/data/items.yaml).
+# Bone glue: bones are boiled in a pot on a campfire. It glues the composite bow together. Fields as for the core's items
+# (content/core/data/items.yaml).
 - id: bone_glue
   title: "[materials.items.bone_glue]"
   description: "[materials.items.bone_glue.about]"

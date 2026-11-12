@@ -1,8 +1,8 @@
-# Удочка бандла «Удочка» мода «Инструменты и крафт»: класс rod. Кнопка действия закидывает поплавок в открытую
-# воду перед персонажем (касание воды — туда, где коснулись) не дальше range клеток и остаётся нажатой: к
-# поплавку подплывает настоящая рыба из воды рядом (поле catch существа), поплавок ныряет, и второе нажатие
-# вытаскивает её в сумку (до поклёвки — сматывает леску). ammo — наживка: по одной на крючок из сумки, с ней
-# клюёт часто, без неё редко; клюнувшая рыба её съедает. Замёрзшая вода не ловится.
+# Fishing rod of the "Fishing rod" bundle of the "Tools and crafting" mod: class rod. The action button casts the float into open
+# water in front of the character (a touch on water - to where it was touched) no farther than range cells and stays pressed: a
+# real fish from the nearby water (the creature's catch field) swims up to the float, the float dips, and the second press
+# pulls it into the bag (before a bite - it reels in the line). ammo - bait: one per hook from the bag, with it
+# fish bite often, without it rarely; a fish that bites eats it. Frozen water cannot be fished.
 - id: fishing_rod
   title: "[tools.items.fishing_rod]"
   description: "[tools.items.fishing_rod.about]"

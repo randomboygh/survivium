@@ -1,4 +1,4 @@
-# Рецепт бандла «Лейка»: доски и верёвку («Материалы») собирают на верстаке.
+# Recipe of the "Watering can" bundle: planks and rope ("Materials") are assembled at the workbench.
 - id: watering_can
   title: "[tools.recipes.watering_can]"
   makes: watering_can

@@ -1,6 +1,6 @@
-# Предметы бандла «Тяпка» мода «Инструменты и крафт»: тяпкой вскапывают траву или голую землю
-# в грядку (src/shared/game/actions_farm.gd), area — сколько клеток за взмах. Поля — как у
-# предметов основы (content/core/data/items.yaml); repair — чем чинят.
+# Items of the "Hoe" bundle of the "Tools and crafting" mod: a hoe turns grass or bare soil
+# into a bed (src/shared/game/actions_farm.gd), area - how many cells per swing. Fields are as for the
+# core items (content/core/data/items.yaml); repair - what mends it.
 - id: stone_hoe
   title: "[tools.items.stone_hoe]"
   description: "[tools.items.stone_hoe.about]"

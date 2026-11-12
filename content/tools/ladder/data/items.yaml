@@ -1,9 +1,9 @@
-# Предмет бандла «Приставная лестница» мода «Инструменты и крафт»: звено на одну клетку высоты,
-# две жерди с перекладинами у задней стороны клетки (`ladder`). Ставится вплотную к стене или краю
-# лицом к игроку, на землю или на звено под ним, так что лестница любой высоты — звено над звеном
-# (в режиме строительства касание лестницы надставляет её сверху). Не твёрдая: на ней не падают,
-# джойстик к лестнице — вверх, от неё — вниз, вбок или прыжок — соскочить (Body.climb). Поля — как у
-# предметов основы (content/core/data/items.yaml).
+# Item of the "Ladder" bundle of the "Tools and crafting" mod: a link one cell high,
+# two poles with rungs at the back of the cell (`ladder`). Placed right up against a wall or edge,
+# facing the player, on the ground or on the link below it, so a ladder of any height is link on link
+# (in build mode a touch on a ladder extends it from the top). Not solid: you do not fall on it,
+# the joystick toward the ladder is up, away from it is down, sideways or a jump is to hop off (Body.climb). Fields are as for
+# the core items (content/core/data/items.yaml).
 - id: ladder
   title: "[tools.items.ladder]"
   description: "[tools.items.ladder.about]"

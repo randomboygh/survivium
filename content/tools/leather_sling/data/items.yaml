@@ -1,5 +1,5 @@
-# Кожаная праща: та же праща (класс sling, камешки бандла «Праща»), но из кожи — дальше и сильнее.
-# Отдельным бандлом, чтобы «Праща» не зависела от кожи и зверей. Поля — как в бандле «Праща»
+# Leather sling: the same sling (class sling, pebbles of the "Sling" bundle), but made of leather - farther and stronger.
+# A separate bundle, so that "Sling" does not depend on leather and animals. Fields are as in the "Sling" bundle
 # (content/tools/sling/data/items.yaml).
 - id: leather_sling
   title: "[tools.items.leather_sling]"

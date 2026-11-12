@@ -1,5 +1,5 @@
-# Рецепты бандла «Пух»: пряжу прядут руками, ткань ткут на ткацком станке «Инструментов»; без станка
-# или «Материалов» бандл не грузится. Поля рецепта — docs/DATA_MODEL.md.
+# Recipes of the "Fluff" bundle: yarn is spun by hand, cloth is woven on the "Tools" loom; without the loom
+# or "Materials" the bundle does not load. Recipe fields — docs/DATA_MODEL.md.
 - id: wool_yarn
   title: "[animals.recipes.wool_yarn]"
   makes: wool_yarn

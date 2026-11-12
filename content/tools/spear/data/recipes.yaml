@@ -1,4 +1,4 @@
-# Рецепты бандла «Копьё»: кремнёвое — руками, бронзовое — на верстаке, железное — на наковальне.
+# Recipes of the "Spear" bundle: flint - by hand, bronze - at the workbench, iron - at the anvil.
 - id: flint_spear
   title: "[tools.recipes.flint_spear]"
   makes: flint_spear

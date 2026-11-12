@@ -1,6 +1,6 @@
-# Мангр: дерево тропических болот — невысокий кривой ствол на корнях-ходулях, которые дугой уходят
-# в ил, и густая округлая крона (поля — как у дуба, content/plants/oak/data/trees.yaml; stilts — на
-# сколько пикселей над землёй поднимаются корни). Листву не сбрасывает.
+# Mangrove: a tropical swamp tree — a short crooked trunk on stilt roots that arch
+# into the silt, and a dense rounded crown (fields as for the oak, content/plants/oak/data/trees.yaml; stilts — by
+# how many pixels the roots rise above the ground). Does not shed its leaves.
 - id: mangrove
   title: "[plants.trees.mangrove]"
   shape: round

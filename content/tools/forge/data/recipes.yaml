@@ -1,6 +1,6 @@
-# Рецепты бандла «Горн»: сам горн на верстаке из кирпича «Материалов», камня и глины «Ресурсов»;
-# медный слиток в горне из руды «Материалов» и угля (бандл «Уголь»): так руда → слиток →
-# медные инструменты (их рецепты у каждого инструмента).
+# Recipes of the "Forge" bundle: the forge itself at the workbench from "Materials" brick, "Resources" stone and clay;
+# a copper ingot in the forge from "Materials" ore and coal (the "Coal" bundle): so ore -> ingot ->
+# copper tools (their recipes are with each tool).
 - id: forge
   title: "[tools.recipes.forge]"
   makes: forge

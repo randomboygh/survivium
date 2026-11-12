@@ -1,7 +1,7 @@
-# Предметы бандла «Одежда из шкур» мода «Инструменты и крафт»: тёплая одежда, которую шьют иглой на
-# верстаке из шкур, кожи («Животные», «Материалы») и верёвки. wear_on — слот тела, warmth — на сколько
-# градусов теплее в ней (src/shared/game/warmth.gd; мокрая греет вполовину). Греет вдвое-втрое лучше
-# одежды из волокна (бандл «Одежда из волокна»).
+# Items of the "Hide clothes" bundle of the "Tools and crafting" mod: warm clothes sewn with a needle at
+# the workbench from hides, leather ("Animals", "Materials") and rope. wear_on - the body slot, warmth - how many
+# degrees warmer you are in it (src/shared/game/warmth.gd; wet clothes warm by half). Warms two to three times better than
+# fiber clothes (the "Fiber clothes" bundle).
 - id: fur_hat
   title: "[tools.items.fur_hat]"
   description: "[tools.items.fur_hat.about]"

@@ -1,5 +1,5 @@
-# Рецепты бандла «Таблички»: доски «Материалов» и ветки «Ресурсов»; табличку и указатель делают руками,
-# доску на стену — на верстаке. Поля — docs/DATA_MODEL.md.
+# Recipes of the "Signs" bundle: "Materials" planks and "Resources" branches; the sign and signpost are made by hand,
+# the wall board - at the workbench. Fields are in docs/DATA_MODEL.md.
 - id: sign
   title: "[tools.recipes.sign]"
   makes: sign

@@ -1,5 +1,5 @@
-# Рецепты бандла «Серп»: каменный вяжут руками, медный делают на верстаке, железный — на
-# наковальне. Кремень и ветка — «Ресурсы», верёвка, доски и слитки — «Материалы».
+# Recipes of the "Sickle" bundle: the stone one is tied by hand, the copper one is made at the workbench, the iron one - at
+# the anvil. Flint and branch are "Resources", rope, planks and ingots are "Materials".
 - id: stone_sickle
   title: "[tools.recipes.stone_sickle]"
   makes: stone_sickle

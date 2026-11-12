@@ -1,4 +1,4 @@
-# Рецепт бандла «Наковальня»: железо «Материалов» на бревне «Ресурсов», на верстаке.
+# Recipe of the "Anvil" bundle: "Materials" iron on a "Resources" log, at the workbench.
 - id: anvil
   title: "[tools.recipes.anvil]"
   makes: anvil
