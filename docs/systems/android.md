@@ -3,8 +3,9 @@
 Status: ACTIVE. A Russian copy: [android_RU.md](android_RU.md).
 
 **Purpose.** The game as an Android app (APK, arm64): the same client as in the phone's browser, with single
-player (the server inside the game, `local_host.gd`) and joining a server; it does not host a server (the menu
-offers «Create a server» only on a computer, `menu_pages.gd` `host_here`). CI builds it on every run and puts
+player (the server inside the game, `local_host.gd`), joining a server and «Create a server» (`menu_pages.gd`
+`host_here`): players on the same Wi-Fi join by the phone's address; no tunnel (cloudflared runs only on a computer,
+`host_screen.gd` hides «Access from the internet»), and the server stops while the app is in the background. CI builds it on every run and puts
 the build of `main` on the release `android-latest`; it is installed by hand.
 
 **Files**

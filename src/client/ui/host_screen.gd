@@ -1,5 +1,5 @@
 extends "res://src/client/ui/kit/window.gd"
-## «Создать сервер» (plan/architecture/server.md, «Меню и экраны»; on a computer): the
+## «Создать сервер» (plan/architecture/server.md, «Меню и экраны»; a computer, the Android app): the
 ## window of the server made in the game (Main.hosted, LocalHost.host). Before it runs:
 ## two tabs joined as one (TabRow.tabs). «Создание»: the world (one of the saved ones,
 ## ‹ › go through them, the one played last first; the test world always among them, a
@@ -210,9 +210,12 @@ func _build_making(page: VBoxContainer, rows: ChoiceRows) -> void:
 	_title.max_length = 32
 	_password = _field(page, rows, "[password]", str(_set.password))
 	_password.placeholder_text = "[no_password]"
-	_tunnel = Kit.check("[access_from_the_internet]", bool(_set.tunnel), WIDTH, ROW_H)
+	# A phone runs no cloudflared (Tunnel needs OS.execute_with_pipe): the home network only.
+	var phone := not OS.has_feature("pc")
+	_tunnel = Kit.check("[access_from_the_internet]", bool(_set.tunnel) and not phone, WIDTH, ROW_H)
+	_tunnel.visible = not phone
 	page.add_child(_tunnel)
-	page.add_child(Kit.note("[players_from_the_home_network]", WIDTH))
+	page.add_child(Kit.note("[players_from_the_home_network_phone]" if phone else "[players_from_the_home_network]", WIDTH))
 	page.add_child(Kit.note("[port_player_count_day_length]", WIDTH))
 	rows.refresh()
 

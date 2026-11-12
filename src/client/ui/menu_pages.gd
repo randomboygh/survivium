@@ -31,8 +31,9 @@ var is_open := false
 ## The panel's buttons and the page they are of: "top", "single" or "multi".
 var _box: VBoxContainer
 var _page := "top"
-## A server can be made here: a computer, not a phone or the browser (a shot sets it).
-var host_here := OS.has_feature("pc")
+## A server can be made here: a computer or the Android app, not the browser, which takes
+## no connections (a shot sets it).
+var host_here := OS.has_feature("pc") or OS.has_feature("android")
 ## Frames until the page shown says where its buttons are (the browser test taps them).
 var _announce := 0
 ## Under the buttons of «Мультиплеер»: why «Создать сервер» is not here.
