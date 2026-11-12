@@ -258,6 +258,78 @@ jobs:
           name: survivium-linux
           path: build/*-linux.tar.gz
 
+  # The Android APK (arm64), signed by the release key kept in the repository's secrets
+  # ANDROID_KEYSTORE (the keystore in base64, alias `survivium`) and
+  # ANDROID_KEYSTORE_PASSWORD; without them by a key made for this run, which a phone
+  # will not install over the last APK (docs/systems/android.md).
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # tools/build_info.py reads the merged pull requests for «Что нового».
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      key: ${{ steps.apk.outputs.key }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/godot
+
+      - name: Version and recent changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: python3 tools/build_info.py build_info.json
+
+      - name: The mods' YAML parsed for the game's start (tools/content_cache.gd)
+        run: ~/godot/godot --headless --path . --script res://tools/content_cache.gd
+
+      - name: Export the APK
+        id: apk
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          # The runner's Android SDK and Java 17 for the export's apksigner.
+          settings=~/.config/godot/editor_settings-4.5.tres
+          sed -i '/^export\/android\/\(android_sdk_path\|java_sdk_path\) = /d' "$settings"
+          printf 'export/android/android_sdk_path = "%s"\nexport/android/java_sdk_path = "%s"\n' \
+            "$ANDROID_HOME" "$JAVA_HOME_17_X64" >> "$settings"
+          mkdir -p build/key
+          if [ -n "$KEYSTORE" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            echo "$KEYSTORE" | base64 -d > build/key/release.keystore
+            pass="$KEYSTORE_PASSWORD"
+            echo "key=release" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::no ANDROID_KEYSTORE secret: the APK is signed by a key made for this run"
+            pass=$(openssl rand -hex 16)
+            keytool -genkeypair -keystore build/key/release.keystore -alias survivium -keyalg RSA \
+              -keysize 2048 -validity 10000 -storepass "$pass" -keypass "$pass" -dname "CN=Survivium"
+            echo "key=temporary" >> "$GITHUB_OUTPUT"
+          fi
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$PWD/build/key/release.keystore"
+          export GODOT_ANDROID_KEYSTORE_RELEASE_USER=survivium
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="$pass"
+          # A phone installs an APK over another only with a greater version code: the run's
+          # number grows with every run of this workflow.
+          version=$(python3 -c 'import json; print(json.load(open("build_info.json"))["version"])')
+          sed -i "s/^version\/code=.*/version\/code=$GITHUB_RUN_NUMBER/; s/^version\/name=.*/version\/name=\"$version\"/" export_presets.cfg
+          name=$(sed -n 's/^config\/name="\(.*\)"$/\1/p' project.godot)
+          file=$(echo "$name" | tr 'A-Z ' 'a-z-')
+          mkdir -p build/android
+          ~/godot/godot --headless --path . --export-release "Android" "build/android/$file-android.apk"
+          rm -rf build/key
+          test -s "build/android/$file-android.apk"
+          ls -la build/android
+          signer=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
+          "$signer" verify --print-certs "build/android/$file-android.apk" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the APK (download from the run page)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: survivium-android
+          path: build/android/*.apk
+
   smoke:
     needs: [changes, export]
     if: needs.changes.outputs.smoke == 'true'
@@ -315,6 +387,42 @@ jobs:
             gh release create pc-latest --prerelease --title "Сборки для ПК ($version)" --notes "$notes"
           fi
           gh release upload pc-latest build/*-windows.zip build/*-linux.tar.gz --clobber
+
+  # The APK of main goes to the release `android-latest`, the same file every time.
+  publish-android:
+    if: github.ref == 'refs/heads/main'
+    needs: [lint, checks, tests, progress, frames, android, smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: survivium-android
+          path: build
+      - name: Put the APK on the release android-latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.sha }}
+          KEY: ${{ needs.android.outputs.key }}
+        run: |
+          python3 tools/build_info.py build_info.json
+          version=$(python3 -c 'import json; print(json.load(open("build_info.json"))["version"])')
+          name=$(sed -n 's/^config\/name="\(.*\)"$/\1/p' project.godot)
+          notes="Сборка игры для Android из main, версия $version (обновляется с каждым слиянием). Скачайте APK на телефон и откройте его; телефон попросит разрешить установку из этого источника. Новая сборка ставится поверх прежней, сохранения остаются."
+          if [ "$KEY" != release ]; then
+            notes="$notes Эта сборка подписана временным ключом: следующую придётся ставить, удалив эту (вместе с сохранениями)."
+          fi
+          if gh release view android-latest >/dev/null 2>&1; then
+            gh release edit android-latest --prerelease --title "$name для Android ($version)" --notes "$notes"
+          else
+            gh release create android-latest --prerelease --title "$name для Android ($version)" --notes "$notes"
+          fi
+          gh release upload android-latest build/*-android.apk --clobber
 
   deploy:
     if: github.ref == 'refs/heads/main'

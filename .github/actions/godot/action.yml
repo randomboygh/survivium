@@ -1,5 +1,5 @@
 name: Godot
-description: Puts Godot and its web, Windows and Linux export templates in place (cached, checked against the release's SHA-512 sums) and imports the project.
+description: Puts Godot and its web, Windows, Linux and Android export templates in place (cached, checked against the release's SHA-512 sums) and imports the project.
 inputs:
   templates:
     description: Whether the export templates are wanted (the test jobs do without them).
@@ -12,7 +12,7 @@ runs:
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ~/godot
-        key: godot-${{ env.GODOT_VERSION }}-web-pc-${{ hashFiles('.github/actions/godot/SHA512-SUMS') }}
+        key: godot-${{ env.GODOT_VERSION }}-web-pc-android-${{ hashFiles('.github/actions/godot/SHA512-SUMS') }}
 
     # The files are checked against the sums of the release (SHA512-SUMS.txt on its page),
     # kept in SHA512-SUMS next to this file: a new Godot version needs its two lines there.
@@ -31,7 +31,7 @@ runs:
         curl -fsSL --retry 3 -o "$templates" "$base/$templates"
         grep -E " ($engine|$templates)\$" "$sums" | sha512sum -c -
         unzip -q "$engine" && mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot && rm "$engine"
-        unzip -q "$templates" 'templates/web_*' 'templates/windows_*' 'templates/linux_*' 'templates/version.txt' && rm "$templates"
+        unzip -q "$templates" 'templates/web_*' 'templates/windows_*' 'templates/linux_*' 'templates/android_release.apk' 'templates/version.txt' && rm "$templates"
 
     - name: Install export templates
       if: inputs.templates == 'true'

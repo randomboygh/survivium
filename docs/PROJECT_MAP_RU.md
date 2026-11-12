@@ -28,7 +28,7 @@ src/client/              картинка, ввод и звук этого ус�
     kit/                 UI-кит: готовые части окон (окно, кнопки, поля, строки «‹ ›», два касания, лента ячеек)
 shaders/                 3D-шейдеры (общий common.gdshaderinc), цветокор, карта, интерфейс
 content/<мод>/           моды: mod.yaml, README, папки-бандлы с bundle.yaml, data/, sprites/, icons/, models/, textures/, sounds/, lang/ (переводы); common/ общие ассеты
-assets/                  шрифт, заставка, значки интерфейса (ui/), иконки web-страницы (web/, без импорта)
+assets/                  шрифт, заставка, значки интерфейса (ui/), иконки web-страницы (web/, без импорта), значки приложений (app/: Android, Windows)
 tests/                   headless-тесты (run_tests + unit/, save, progress, frame, server), проверка в браузере, run_all.sh (все проверки)
 tools/                   линт (lint.py), компиляция всех скриптов (parse_check.gd), хук pre-commit (hooks/), валидатор, скриншоты (shot + shot/), карта, бенчмарки, профиль, генераторы картинок, звуков, иконки; art/, sound/
 .github/                 CI (workflows/build.yml), сервер для проверки (workflows/playtest.yml), установка Godot (actions/godot), шаблон PR

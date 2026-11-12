@@ -88,12 +88,13 @@ archives `survivium-windows.zip` and `survivium-linux.tar.gz` as artifacts), the
 a phone). On a PR the check in a browser goes only if the PR touches what a browser may show differently (the
 template `web` in the job `changes`), or the PR has the label `smoke`; on `main` — always, and the builds are
 published only when all jobs have passed: the web to Pages (`deploy`), the PC into the rolling prerelease
-`pc-latest` (`publish`, the same file names each time; a description with the version). A new push to a PR
+`pc-latest` (`publish`, the same file names each time; a description with the version), the Android APK (`android`,
+[android.md](android.md)) into `android-latest` (`publish-android`). A new push to a PR
 cancels its old run, the runs of `main` are not cancelled. The token's rights are by jobs, the actions are
 pinned to a SHA, Godot is checked against `.github/actions/godot/SHA512-SUMS`; the checks' logs are the
-artifacts `logs-<job>`. The export templates (web, Windows, Linux) are put by `.github/actions/godot` (to the
-test jobs — without them); the presets — in `export_presets.cfg` (Windows without rcedit:
-`application/modify_resources=false`). A frame of software WebGL takes a second and more, every input event
+artifacts `logs-<job>`. The export templates (web, Windows, Linux, Android) are put by `.github/actions/godot` (to the
+test jobs — without them); the presets — in `export_presets.cfg` (the Windows program's icon is put in by Godot itself, no rcedit:
+`application/modify_resources=true`). A frame of software WebGL takes a second and more, every input event
 waits for a frame: keep the events in the smoke test few. FPS in CI means nothing. In detail —
 [../testing/CI_PIPELINE.md](../testing/CI_PIPELINE.md).
 

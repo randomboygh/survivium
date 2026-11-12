@@ -12,6 +12,8 @@ A Russian copy of this file: [README_RU.md](README_RU.md).
   in the main menu.
 - **PC (Windows, Linux):** the [pc-latest](https://github.com/randomboygh/survivium/releases/tag/pc-latest)
   release, also updated with every merge.
+- **Android:** the APK in the [android-latest](https://github.com/randomboygh/survivium/releases/tag/android-latest)
+  release, also updated with every merge; open it on the phone and allow installing from that source.
 - **Multiplayer:** «Multiplayer» → «Join» (a link with `?server=address` opens this screen with the address
   filled in).
 

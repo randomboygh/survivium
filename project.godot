@@ -17,6 +17,7 @@ config/version="0.3"
 config/description="A meditative survival sandbox: a 3D pixel-art world made of levels"
 run/main_scene="res://scenes/main.tscn"
 run/flush_stdout_on_print=true
+config/quit_on_go_back=false
 config/features=PackedStringArray("4.5", "GL Compatibility")
 config/icon="res://icon.png"
 boot_splash/bg_color=Color(0.172549, 0.290196, 0.352941, 1)
@@ -28,6 +29,7 @@ boot_splash/use_filter=false
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/dpi/allow_hidpi=true
+window/handheld/orientation=6
 
 [gui]
 
@@ -39,6 +41,7 @@ renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 anti_aliasing/quality/msaa_3d=0
 limits/opengl/max_lights_per_object=32
+textures/vram_compression/import_etc2_astc=true
 
 [shader_globals]
 

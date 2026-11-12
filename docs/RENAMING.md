@@ -51,5 +51,7 @@ checks. The 32×32 icon is a picture without letters, the name does not touch it
 - **Internal names** `window.survivium_*` (the page and the game, `text_field.gd`, `sign_window.gd`,
   `gl_watch.gd`, `tools/web_patch.py`, `tests/browser_smoke.mjs`), the names of CI artifacts
   (`survivium-web` …) — the player does not see them.
-- **Android** (not built yet): the package identifier is chosen once and then does not change — otherwise it
-  is another app, with no update and no saves; take it with no game name or with one that will not change.
+- **The Android package id** `io.github.randomboygh.survivium` (`package/unique_name` of the preset `Android`,
+  [systems/android.md](systems/android.md)) is chosen once and then does not change — otherwise it is another
+  app, with no update and no saves. Like the address it keeps the old name; players do not see it. The
+  release `android-latest` is a tag too.

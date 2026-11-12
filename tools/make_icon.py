@@ -8,6 +8,11 @@ writes icon.png (the project's icon: the browser tab's icon, which the engine al
 when it starts, and the apps'), assets/web/apple-touch-icon.png (a phone's home screen)
 and assets/web/og.png (the picture a messenger shows under a link; the page's og: tags
 are in export_presets.cfg, html/head_include). CI copies assets/web/ next to index.html.
+The apps' icons go to assets/app/: icon.ico (the Windows program's, application/icon of
+the Windows preset), android_192.png (an Android launcher's plain icon) and
+android_front.png, android_back.png (the two layers of its adaptive icon, which the phone
+cuts round or square), android_mono.png (its one-colour layer for themed icons), named by
+the Android preset's launcher_icons/*.
 
     python3 tools/make_icon.py --variants <dir>
 
@@ -27,6 +32,11 @@ FONT = "assets/fonts/PressStart2P.ttf"
 # Files the web export does not make itself, put next to index.html by CI.
 WEB = "assets/web"
 TOUCH = 180
+APP = "assets/app"
+# An Android launcher icon, and the layers of an adaptive one: the phone shows the middle
+# 66 % of them, so the badge, round, keeps inside a circle of 288 px.
+LAUNCHER = 192
+LAYER = 432
 CARD_W, CARD_H = 1200, 630
 CARD_PX = 4
 TAGLINE = ["Неспешное выживание", "в пиксельном мире"]
@@ -389,6 +399,49 @@ def touch_icon(icon: Image.Image) -> Image.Image:
 	return img
 
 
+def on_night(icon: Image.Image, size: int, scale: int, back: bool = True) -> Image.Image:
+	"""The badge `scale` times as large in the middle of a square of `size`, on the night's
+	darkest blue or on nothing."""
+	img = Image.new("RGBA", (size, size), NIGHT[3] + (255,) if back else (0, 0, 0, 0))
+	big = icon.resize((N * scale, N * scale), Image.NEAREST)
+	img.alpha_composite(big, ((size - big.width) // 2, (size - big.height) // 2))
+	return img
+
+
+def app_icons(icon: Image.Image) -> None:
+	"""The Windows program's icon at the sizes Windows asks for (whole multiples of the
+	badge, so its pixels stay square; 16 and 48 are the badge halved and tripled from
+	32), and Android's."""
+	os.makedirs(APP, exist_ok=True)
+	sizes = [16, 24, 32, 48, 64, 128, 256]
+	frames = [icon.resize((s, s), Image.NEAREST) for s in sizes]
+	frames[-1].save(os.path.join(APP, "icon.ico"), sizes=[(s, s) for s in sizes], append_images=frames[:-1])
+	on_night(icon, LAUNCHER, 5).save(os.path.join(APP, "android_192.png"))
+	on_night(icon, LAYER, 8, back=False).save(os.path.join(APP, "android_front.png"))
+	Image.new("RGBA", (LAYER, LAYER), NIGHT[3] + (255,)).save(os.path.join(APP, "android_back.png"))
+	on_night(monochrome(icon), LAYER, 8, back=False).save(os.path.join(APP, "android_mono.png"))
+
+
+def monochrome(icon: Image.Image) -> Image.Image:
+	"""The badge in one colour for a phone's themed icons: its rim, the fire, the moon and
+	the stars (the light warm pixels), the rest left out."""
+	out = Image.new("RGBA", icon.size, (0, 0, 0, 0))
+	px = icon.load()
+
+	def clear(x, y) -> bool:
+		return not (0 <= x < icon.width and 0 <= y < icon.height) or px[x, y][3] == 0
+
+	for y in range(icon.height):
+		for x in range(icon.width):
+			r, g, b, a = px[x, y]
+			if a == 0:
+				continue
+			rim = any(clear(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+			if rim or (r * 0.3 + g * 0.59 + b * 0.11 > 120 and r >= g):
+				out.putpixel((x, y), (255, 255, 255, 255))
+	return out
+
+
 def card(icon: Image.Image) -> Image.Image:
 	"""The picture a messenger shows under a link: a night sky in bands as the loading
 	page's, stars, spruces along the bottom, the badge and the name with a line under it.
@@ -440,6 +493,7 @@ def main() -> None:
 	icon.save("icon.png")
 	touch_icon(icon).save(os.path.join(WEB, "apple-touch-icon.png"))
 	card(icon).convert("RGB").save(os.path.join(WEB, "og.png"))
+	app_icons(icon)
 
 
 if __name__ == "__main__":

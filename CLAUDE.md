@@ -1,7 +1,7 @@
 # Survivium: notes for contributors
 
 A meditative survival sandbox: a procedural world of levels in 3D pixel art seen at 3/4, played in
-the browser and on PC (Windows, Linux; Android later), with multiplayer through an authoritative
+the browser, on PC (Windows, Linux) and on Android, with multiplayer through an authoritative
 server that is the same executable (decision 153; single player runs it in the same process).
 Godot 4.5.1, GL Compatibility renderer, web export without threads, pure GDScript: scripts are loaded
 with `preload` consts and `extends "res://…"`, no `class_name`, no autoloads, no plugins.

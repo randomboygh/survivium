@@ -87,11 +87,12 @@ report), `tests` (run_tests, save_test, server_test), `progress (hunting)` и `p
 телефон). В PR проверка в браузере идёт, только если PR трогает то, что браузер может показать иначе
 (шаблон `web` в задании `changes`), или у PR метка `smoke`; в `main` — всегда, и сборки публикуются,
 только когда прошли все задания: web на Pages (`deploy`), ПК — в скользящий пререлиз `pc-latest`
-(`publish`, те же имена файлов каждый раз; описание с версией). Новый пуш в PR отменяет его старый
+(`publish`, те же имена файлов каждый раз; описание с версией), Android APK (`android`,
+[android.md](android_RU.md)) — в `android-latest` (`publish-android`). Новый пуш в PR отменяет его старый
 прогон, прогоны `main` не отменяются. Права токена — по заданиям, actions закреплены на SHA, Godot
 сверяется с `.github/actions/godot/SHA512-SUMS`; журналы проверок — артефакты `logs-<задание>`.
-Шаблоны экспорта (web, Windows, Linux) кладёт `.github/actions/godot` (тестовым заданиям — без них);
-пресеты — в `export_presets.cfg` (Windows без rcedit: `application/modify_resources=false`). Кадр
+Шаблоны экспорта (web, Windows, Linux, Android) кладёт `.github/actions/godot` (тестовым заданиям — без них);
+пресеты — в `export_presets.cfg` (значок программы Windows ставит сам Godot, без rcedit: `application/modify_resources=true`). Кадр
 программного WebGL занимает секунду и больше, каждое событие ввода ждёт кадра: событий в smoke-тесте
 держите мало. FPS в CI ничего не значит. Подробно — [../testing/CI_PIPELINE.md](../testing/CI_PIPELINE_RU.md).
 

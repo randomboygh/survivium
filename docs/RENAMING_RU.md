@@ -50,6 +50,7 @@ python3 tools/doc_index.py
 - **Внутренние имена** `window.survivium_*` (страница и игра, `text_field.gd`, `sign_window.gd`,
   `gl_watch.gd`, `tools/web_patch.py`, `tests/browser_smoke.mjs`), имена артефактов CI
   (`survivium-web` …) — игрок их не видит.
-- **Android** (ещё не собирается): идентификатор пакета выбирается один раз и потом не меняется —
-  иначе это другое приложение, без обновления и без сохранений; брать его без имени игры или с тем,
-  что уже не изменится.
+- **Идентификатор пакета Android** `io.github.randomboygh.survivium` (`package/unique_name` пресета
+  `Android`, [systems/android.md](systems/android_RU.md)) выбирается один раз и потом не меняется — иначе
+  это другое приложение, без обновления и без сохранений. Как и адрес, он хранит старое имя; игроки его не
+  видят. Релиз `android-latest` — тоже тег.
