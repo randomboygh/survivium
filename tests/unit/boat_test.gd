@@ -394,6 +394,15 @@ func _test_currents() -> void:
 	ch.body.water_depth = 0.0
 	actions.step_boats(0.1, [ch])
 	_check(ch.flow == Vector2.ZERO, "ashore, no current")
+	# The server's own player (over the loop) moves on the client: its body here is never
+	# stepped, yet in the river it is carried all the same.
+	ch.at = Vector3(8.5, 1.0, 8.5) * WorldData.CELL
+	actions.step_boats(0.1, [ch])
+	_check(ch.flow == Vector2(-3.0, 0.0) and ch.body.flow == ch.flow,
+		"a swimmer whose body was not stepped feels the river: %s" % ch.flow)
+	ch.at = Vector3(1.5, 3.0, 8.5) * WorldData.CELL
+	actions.step_boats(0.1, [ch])
+	_check(ch.flow == Vector2.ZERO, "out of it again, no current")
 	# The things lying in the river's water drift; on the bank, and against it, they stay.
 	ch.at = Vector3(8.5, 3.0, 8.5) * WorldData.CELL
 	actions.currents = Stream.new(Vector2(2.0, 0.0))
