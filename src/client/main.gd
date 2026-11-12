@@ -1083,6 +1083,8 @@ func _input(event: InputEvent) -> void:
 	if sound == null:
 		return
 	sound.input(event)
+	if view != null:
+		view.wake()
 	controls.input(event)
 
 
