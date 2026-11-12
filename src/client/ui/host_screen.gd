@@ -16,8 +16,10 @@ extends "res://src/client/ui/kit/window.gd"
 ## addresses for friends in the home network (one is copied by «Скопировать адрес»), the
 ## address from the internet once the tunnel gives it («Скопировать ссылку»: the game's
 ## page that opens «Присоединиться» with it), the
-## players with «Выгнать», the server's last lines and a field for the host's commands
-## (Server.command: give, tp, ban, whitelist…); «Играть» says `play` (into its world),
+## players with «Выгнать» and «В бан» (two taps), the server's last lines and a field for
+## the host's commands (Server.command: give, tp, ban, whitelist…) on the tab «Сервер»;
+## on the tab «Доступ» «Только по списку», the list with «Убрать» and «Добавить», the
+## blocked with «Разбанить» and «Заблокировать» (the same commands); «Играть» says `play` (into its world),
 ## «Остановить сервер» asks again and stops it (Main.stop_server), «Назад» leaves it
 ## running. It covers the whole screen over a shade of the world behind (a window of the
 ## UI kit, its choices ChoiceRows, «Остановить сервер» a TwoTap). `game` is the Main node.
@@ -45,6 +47,10 @@ const REFRESH := 0.5
 ## Where players may fight players (Config.pvp), and their words.
 const PVP_MODES := ["off", "land", "all"]
 const PVP_TITLES := ["выключен", "по территориям", "везде"]
+## The width of the button beside a name (players, «Доступ»).
+const NAME_BUTTON := 124
+## The width of «Выгнать» and «В бан» on a player's row.
+const PLAYER_BUTTON := 72
 ## Players a server may be set to take.
 const PLAYER_COUNTS := [2, 4, 8, 16, 32]
 ## «Настройки»: the rows' names and values narrower, more of them in a row's width.
@@ -112,6 +118,15 @@ var _asks := TwoTap.new()
 var _clock := 0.0
 var _shown_people = null
 var _log_scroll: ScrollContainer
+## Where `_button` puts its buttons: the page being made, else the rows.
+var _into: VBoxContainer = null
+## «Доступ»: the switch «Только по списку», the names on the list and those blocked, as
+## shown ([listed_only, listed, blocked]); «Забанить» on a player's row asks first.
+var _listed_only: CheckButton
+var _listed: VBoxContainer
+var _banned: VBoxContainer
+var _shown_access = null
+var _bans := TwoTap.new(3.0)
 
 
 func _init(g) -> void:
@@ -127,8 +142,7 @@ func _ready() -> void:
 	_room.add_child(_box)
 	_scroll = Kit.scroll(_room, false)
 	if running():
-		_box.add_child(Kit.title("Сервер работает"))
-		box.add_child(_scroll)
+		box.add_child(Kit.title("Сервер работает"))
 		_build_running()
 	else:
 		box.add_child(Kit.title("Создать сервер"))
@@ -167,16 +181,7 @@ func _build_setup() -> void:
 	for i in _worlds.size():
 		if _worlds[i].seed == game.world_seed and _worlds[i].settings == game.world_options:
 			_world = i
-	# The tabs joined as one, a button tall, over the rows (TabRow.tabs).
-	_tabs = TabRow.tabs([["Создание", "", show_tab.bind(0)], ["Настройки", "", show_tab.bind(1)]], ROW_H)
-	_tabs.custom_minimum_size.x = WIDTH
-	for b: Button in _tabs.get_children():
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	box.add_child(_tabs)
-	box.add_child(_scroll)
-	for i in 2:
-		_pages.append(Kit.column(6))
-		_box.add_child(_pages[i])
+	_make_tabs(["Создание", "Настройки"])
 	_rows = [_choices, ChoiceRows.new(SET_NAME, SET_VALUE, ARROW)]
 	_build_making(_pages[0], _rows[0])
 	_build_settings(_pages[1], _rows[1])
@@ -302,7 +307,25 @@ func _defaults() -> void:
 	_rows[1].refresh()
 
 
-## Shows tab `i` (0 «Создание», 1 «Настройки»), its tab lit, its rows from the top.
+## The tabs `names` joined as one, a button tall, over the rows (TabRow.tabs), and a
+## page of rows for each.
+func _make_tabs(names: Array) -> void:
+	var parts := []
+	for i in names.size():
+		parts.append([names[i], "", show_tab.bind(i)])
+	_tabs = TabRow.tabs(parts, ROW_H)
+	_tabs.custom_minimum_size.x = WIDTH
+	for b: Button in _tabs.get_children():
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(_tabs)
+	box.add_child(_scroll)
+	for i in names.size():
+		_pages.append(Kit.column(6))
+		_box.add_child(_pages[i])
+
+
+## Shows tab `i` (before it runs: 0 «Создание», 1 «Настройки»; while it runs: 0 «Сервер»,
+## 1 «Доступ»), its tab lit, its rows from the top.
 func show_tab(i: int) -> void:
 	_tab = i
 	for j in _pages.size():
@@ -359,7 +382,7 @@ func _field(page: VBoxContainer, rows: ChoiceRows, caption: String, text: String
 func _button(text: String, action: Callable, accent := false, in_rows := true) -> Button:
 	var b: Button = (Kit.accent_button if accent else Kit.button).call(text, action, WIDTH, ROW_H + 4)
 	if in_rows:
-		_box.add_child(b)
+		(_into if _into != null else _box).add_child(b)
 	return b
 
 
@@ -414,30 +437,34 @@ func _start() -> void:
 
 func _build_running() -> void:
 	var node: Node = game.hosted
+	_make_tabs(["Сервер", "Доступ"])
+	_rows = [_choices, ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW)]
+	var p := _pages[0]
+	_into = p
 	_state = UiStyle.label("", UiStyle.INK)
-	_box.add_child(_state)
-	_box.add_child(Kit.caption("Адрес для друзей в домашней сети:"))
+	p.add_child(_state)
+	p.add_child(Kit.caption("Адрес для друзей в домашней сети:"))
 	var addresses := addresses_of(node.config.port)
 	for a: String in addresses:
-		_box.add_child(UiStyle.label(a, UiStyle.ACCENT))
+		p.add_child(UiStyle.label(a, UiStyle.ACCENT))
 	if addresses.is_empty():
-		_box.add_child(Kit.caption("сети нет: только этот компьютер"))
+		p.add_child(Kit.caption("сети нет: только этот компьютер"))
 	else:
 		var copy := _button("Скопировать адрес", func() -> void:
 			DisplayServer.clipboard_set(addresses[0]))
 		copy.tooltip_text = addresses[0]
 	if node.tunnel != null:
-		_box.add_child(Kit.caption("Из интернета:"))
+		p.add_child(Kit.caption("Из интернета:"))
 		_tunnel_label = Kit.note("", WIDTH, UiStyle.ACCENT)
-		_box.add_child(_tunnel_label)
+		p.add_child(_tunnel_label)
 		_tunnel_copy = _button("Скопировать ссылку", func() -> void:
 			DisplayServer.clipboard_set(node.tunnel.link()))
-	_box.add_child(Kit.caption("Игроки"))
+	p.add_child(Kit.caption("Игроки"))
 	_people = Kit.column(4)
-	_box.add_child(_people)
+	p.add_child(_people)
 	var well := PanelContainer.new()
 	well.add_theme_stylebox_override("panel", UiStyle.well())
-	_box.add_child(well)
+	p.add_child(well)
 	_log_scroll = ScrollContainer.new()
 	_log_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_log_scroll.custom_minimum_size = Vector2(WIDTH - 2 * UiStyle.WELL_PAD,
@@ -457,13 +484,82 @@ func _build_running() -> void:
 			node.say(out)
 		command.clear()
 		_clock = 0.0)
-	_box.add_child(command)
-	_button("Играть", play.emit, true)
-	_stop = _button("Остановить сервер", Callable())
+	p.add_child(command)
+	_build_access(_pages[1])
+	box.add_child(_button("Играть", play.emit, true, false))
+	_stop = _button("Остановить сервер", Callable(), false, false)
+	box.add_child(_stop)
 	_asks.paint = _paint_stop
 	_asks.guard(_stop, _stop_server)
-	_button("Назад", back)
+	box.add_child(_button("Назад", back, false, false))
+	show_tab(0)
 	_refresh()
+
+
+## «Доступ»: «Только по списку», the names on the list with «Убрать» and a field to add
+## one, the names blocked with «Разбанить» and a field to block one: the server's
+## commands whitelist, ban and unban (Server.access, kept in the world's save).
+func _build_access(p: VBoxContainer) -> void:
+	_listed_only = Kit.check("Только по списку", false, WIDTH, ROW_H)
+	_listed_only.toggled.connect(func(on: bool) -> void: _run("whitelist " + ("on" if on else "off")))
+	p.add_child(_listed_only)
+	p.add_child(Kit.note("Пока включено, входят только игроки из списка. При включении в список попадают все, "
+		+ "кто сейчас на сервере. Имя из списка закрепляется за устройством, с которого с ним вошли первый раз.", WIDTH))
+	p.add_child(Kit.caption("В списке"))
+	_listed = Kit.column(4)
+	p.add_child(_listed)
+	p.add_child(_name_field("имя игрока", "Добавить", func(n: String) -> void: _run("whitelist add " + n)))
+	p.add_child(Kit.caption("Заблокированы"))
+	_banned = Kit.column(4)
+	p.add_child(_banned)
+	p.add_child(_name_field("имя игрока", "Заблокировать", func(n: String) -> void: _run("ban " + n)))
+
+
+## A field for a player's name with a button that gives the name to `action`.
+func _name_field(hint: String, text: String, action: Callable) -> HBoxContainer:
+	var row := Kit.row(4)
+	var f := Kit.field(hint, WIDTH - NAME_BUTTON - 4, 32, ROW_H)
+	var give := func() -> void:
+		var n := f.text.strip_edges()
+		if n != "":
+			action.call(n)
+			f.clear()
+		f.release_focus()
+	f.text_submitted.connect(func(_t: String) -> void: give.call())
+	row.add_child(f)
+	row.add_child(Kit.button(text, give, NAME_BUTTON, ROW_H))
+	return row
+
+
+## Runs the host's command `line` as the field under the log does: it and its answer
+## go into the log, and the window shows what it changed at once.
+func _run(line: String) -> void:
+	var node: Node = game.hosted
+	if node == null:
+		return
+	node.say("> " + line)
+	for out in node.command(line).split("\n", false):
+		node.say(out)
+	_clock = 0.0
+	_refresh()
+
+
+## Names under a caption, each with a button doing `action` with it; "никого" for none.
+func _fill_names(column: VBoxContainer, names: Array, text: String, action: Callable) -> void:
+	for c in column.get_children():
+		column.remove_child(c)
+		c.queue_free()
+	if names.is_empty():
+		column.add_child(Kit.caption("никого"))
+	for n: String in names:
+		var row := Kit.row(4)
+		var l := UiStyle.label(n)
+		l.custom_minimum_size = Vector2(WIDTH - NAME_BUTTON - 4, ROW_H)
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		l.clip_text = true
+		row.add_child(l)
+		row.add_child(Kit.button(text, func() -> void: action.call(n), NAME_BUTTON, ROW_H))
+		column.add_child(row)
 
 
 ## The addresses of this computer in its networks, as a friend there types them.
@@ -528,13 +624,27 @@ func _refresh() -> void:
 		for p: Array in people:
 			var row := Kit.row(4)
 			var l := UiStyle.label("%s%s" % [p[0], "" if p[2] else " (нет связи)"])
-			l.custom_minimum_size = Vector2(WIDTH - 100, ROW_H)
+			l.custom_minimum_size = Vector2(WIDTH - 2 * PLAYER_BUTTON - 8, ROW_H)
 			l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			l.clip_text = true
 			row.add_child(l)
 			var id: int = p[1]
-			row.add_child(Kit.button("Выгнать", func() -> void: node.command("kick %d" % id), 96, ROW_H))
+			row.add_child(Kit.button("Выгнать", _run.bind("kick %d" % id), PLAYER_BUTTON, ROW_H))
+			row.add_child(_bans.guard(Kit.button("В бан", Callable(), PLAYER_BUTTON, ROW_H), _run.bind("ban %d" % id)))
 			_people.add_child(row)
+		fit.call_deferred()
+	var acc: Dictionary = net.access
+	var blocked: Array = acc.banned_names.duplicate()
+	for key in acc.banned_keys:
+		var n := str(acc.banned_keys[key]).to_lower()
+		if not n in blocked:
+			blocked.append(n)
+	var shown := [acc.listed_only, acc.listed.duplicate(), blocked]
+	if shown != _shown_access:
+		_shown_access = shown
+		_listed_only.set_pressed_no_signal(acc.listed_only)
+		_fill_names(_listed, acc.listed, "Убрать", func(n: String) -> void: _run("whitelist remove " + n))
+		_fill_names(_banned, blocked, "Разбанить", func(n: String) -> void: _run("unban " + n))
 		fit.call_deferred()
 	var lines: Array = node.log_lines.slice(-LOG_SHOWN)
 	var text := "\n".join(lines.map(func(t: String) -> String: return t.get_slice("] ", 1)))
