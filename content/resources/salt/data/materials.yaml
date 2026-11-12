@@ -7,6 +7,7 @@
   corners: soft
   slope: true
   priority: 3
+  side_fray: 3
   ground: sand
   drains: true
   fray: 6

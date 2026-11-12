@@ -6,6 +6,7 @@
   role: ore
   veins: 0.12
   priority: 2
+  side_fray: 5
   item: platinum_ore
   hardness: 4
   toughness: 8

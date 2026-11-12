@@ -142,6 +142,8 @@ func _run() -> void:
 			main.player.position = places.hut(main.world, main.player.position)
 		if shot.get("walls", false):
 			main.player.position = places.walls(main.world, main.player.position)
+		if shot.get("strata", false):
+			main.player.position = places.strata(main.world, main.player.position)
 		if shot.has("openings"):
 			main.player.position = places.openings(main.world, main.player.position, shot.openings == "storage")
 		if shot.get("fences", false):
@@ -586,6 +588,12 @@ func _run() -> void:
 			v.wet = shot.chill[1]
 			main.hud.vitals.pinned = true
 			for i in 4:
+				await process_frame
+		if shot.has("tired"):
+			# Out of breath: the stamina bar red, the bolt in the last column.
+			main.host.player.vitals.stamina = 3.0
+			main.hud.vitals.pinned = true
+			for i in 2:
 				await process_frame
 		if shot.has("hold"):
 			# Things in the hands: [left, right].

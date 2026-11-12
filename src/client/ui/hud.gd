@@ -412,7 +412,7 @@ func update_state() -> void:
 		_update_hands()
 	# The state stays in sight while the bag is open, by the food it may be eaten from.
 	vitals.pinned = bag.visible
-	vitals.update(game.character.vitals, get_process_delta_time())
+	vitals.update(game.character.vitals, get_process_delta_time(), game.character.inventory.overloaded())
 	sleep.update(get_process_delta_time())
 	# The moon is bright when the body would sleep.
 	_sleep_button.modulate = Color.WHITE if game.character.vitals.energy < game.character.vitals.SLEEP_BELOW else Color(1, 1, 1, 0.4)

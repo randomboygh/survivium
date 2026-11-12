@@ -184,6 +184,10 @@ const SHOTS := {
 	# Walls and floors of every building material in a row (stone, planks, brick, log
 	# wall, wattle, cut stone).
 	"build-materials": {"time": 0.4, "season": 1, "walls": true},
+	# A cliff of turf, soil, stone with ore veins, sand, clay and a block of brick
+	# (Places.strata): how materials meet on the sides of cells.
+	"strata": {"time": 0.42, "season": 1, "strata": true},
+	"strata-turn": {"time": 0.42, "season": 1, "strata": true, "turn": 1},
 	# The blueprint: a room of planks half built (its lowest level up, the rest a ghost)
 	# with a floor's ghost inside, and a wall's ghost of brick beside it.
 	"build-plan": {"time": 0.4, "season": 1, "plan": true},
@@ -438,6 +442,11 @@ const SHOTS := {
 	# the drop; and the bag open with them worn, one more cape chosen in the bag (its warmth).
 	"cold": {"time": 0.8, "season": 3, "clearing": true, "wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"],
 		"chill": [22.0, 0.7]},
+	# The state in the corner: thirsty, chilled, wet and out of breath (the drop and the
+	# red bolt in the last column).
+	"vitals": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "thirst": 15.0, "chill": [22.0, 0.7], "tired": true},
+	# The same with nothing hindering the body: the panel ends at the moon.
+	"vitals-plain": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "thirst": 15.0},
 	"bag-clothes": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,
 		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "give": "tools:grass_cape"},
 	# Out of sleep, awake in the day: the picture swims (CameraRig.sway, grade.gdshader).

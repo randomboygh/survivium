@@ -36,6 +36,9 @@ const SCHEMAS := {
 		"drains": {"type": "bool", "default": false},
 		# Texels the boundary of the material with another goes ragged over, both ways.
 		"fray": {"type": "int", "min": 0, "max": 7, "default": 0},
+		# Texels the material reaches into another on the sides of cells, in lumps and
+		# specks (ore in the rock); 0 keeps its sides' boundaries straight (built blocks).
+		"side_fray": {"type": "int", "min": 0, "max": 7, "default": 0},
 		"layers": {"type": "int", "min": 0, "max": 8, "default": 0},
 		"texture": {"type": "string", "default": ""},
 		"item": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "dig"},
