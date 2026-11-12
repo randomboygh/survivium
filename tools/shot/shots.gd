@@ -755,7 +755,8 @@ const SHOTS := {
 	"ui-main-menu-host": {"time": 0.42, "season": 1, "main_menu": "host"},
 	"ui-main-menu-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 1},
 	"ui-main-menu-host-running": {"time": 0.42, "season": 1, "main_menu": "host-running"},
-	"ui-main-menu-host-access": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 1,
+	"ui-main-menu-host-running-settings": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 1},
+	"ui-main-menu-host-access": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 2,
 		"host_commands": ["whitelist on", "whitelist add Лиса", "whitelist add Grisha", "ban Вредина"]},
 	# The largest interface on a landscape screen: the first page and «Создать сервер»
 	# still fit (the column and the window scroll when they cannot).

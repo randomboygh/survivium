@@ -18,6 +18,9 @@ extends "res://src/client/ui/kit/window.gd"
 ## page that opens «Присоединиться» with it), the
 ## players with «Выгнать» and «В бан» (two taps), the server's last lines and a field for
 ## the host's commands (Server.command: give, tp, ban, whitelist…) on the tab «Сервер»;
+## on the tab «Настройки» the same rows as before it runs, each change made at once
+## (ServerMain.apply_settings; the port faded, it holds until the server starts again);
+## the sections of «Настройки» parted by strips with an icon (Kit.section);
 ## on the tab «Доступ» «Только по списку», the list with «Убрать» and «Добавить», the
 ## blocked with «Разбанить» and «Заблокировать» (the same commands); «Играть» says `play` (into its world),
 ## «Остановить сервер» asks again and stops it (Main.stop_server), «Назад» leaves it
@@ -42,7 +45,7 @@ const VALUE_WIDTH := WIDTH - NAME_WIDTH - 2 * ARROW - 3 * 2
 ## Lines of the server's log kept in its well (scrolled to the newest), the well's
 ## height in lines, and seconds between two looks at the server.
 const LOG_SHOWN := 20
-const LOG_TALL := 5
+const LOG_TALL := 12
 const REFRESH := 0.5
 ## Where players may fight players (Config.pvp), and their words.
 const PVP_MODES := ["off", "land", "all"]
@@ -74,6 +77,10 @@ const DECAY_HOURS := [6.0, 12.0, 24.0, 48.0]
 const DECAY_MODES := ["rights", "radius", "both"]
 const DECAY_TITLES := ["[rights]", "[radius]", "[rights_and_radius]"]
 const DAY_LENGTH := Clock.DAY_LENGTH
+## The rules (Rules.to_dict keys) the tab «Настройки» sets.
+const WINDOW_RULES := ["animal_attacks", "tool_wear", "pvp", "pvp_damage", "newcomer_minutes", "fight_tag",
+	"territory_start", "territory_per_level", "territory_radius", "territory_levels",
+	"territory_abandon_hours", "territory_decay_hours", "territory_decay"]
 
 signal cancelled
 signal play
@@ -126,6 +133,8 @@ var _listed: VBoxContainer
 var _banned: VBoxContainer
 var _shown_access = null
 var _bans := TwoTap.new(3.0)
+## «По умолчанию» of «Настройки» asks first (apart from «Остановить сервер»).
+var _resets := TwoTap.new(4.0)
 
 
 func _init(g) -> void:
@@ -210,23 +219,23 @@ func _build_making(page: VBoxContainer, rows: ChoiceRows) -> void:
 ## «Настройки»: everything else the server takes (Config, its rules: Rules), each row
 ## with its value from the server's settings file, «По умолчанию» back to the defaults.
 func _build_settings(page: VBoxContainer, rows: ChoiceRows) -> void:
-	page.add_child(Kit.caption("[server_name]"))
+	page.add_child(_strip("power", "[server_name]"))
 	_port = _field(page, rows, "[port]", str(_set.port))
 	_port.max_length = 5
 	_port.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
 	_pick(page, rows, "[players_max]", "max_players", PLAYER_COUNTS, _count)
 	_pick(page, rows, "[save_every]", "autosave", SAVE_SECONDS, _seconds)
-	page.add_child(Kit.caption("[world_n3]"))
+	page.add_child(_strip("sun_cloud", "[world_n3]"))
 	_pick(page, rows, "[day_length]", "day_minutes", DAY_MINUTES, _minutes)
 	_check(page, "[real_weather_outside]", "real_weather", "[the_weather_in_the_world]")
 	_check(page, "[animals_attack]", "animal_attacks", "[predators_guard_their_ground_and]")
 	_check(page, "[tool_wear]", "tool_wear", "[tools_wear_out_from_work]")
-	page.add_child(Kit.caption("[fights]"))
+	page.add_child(_strip("shield", "[fights]"))
 	_pick(page, rows, "PvP", "pvp", PVP_MODES, func(m: String) -> String: return PVP_TITLES[PVP_MODES.find(m)])
 	_pick(page, rows, "[fight_damage]", "pvp_damage", PVP_DAMAGE, _count)
 	_pick(page, rows, "[newcomer_shield]", "newcomer_minutes", NEWCOMER_MINUTES, _minutes)
 	_pick(page, rows, "[fight_lasts]", "fight_tag", FIGHT_SECONDS, _seconds)
-	page.add_child(Kit.caption("[land]"))
+	page.add_child(_strip("flag", "[land]"))
 	_pick(page, rows, "[starting_land]", "territory_start", TERRITORY_START, _count)
 	_pick(page, rows, "[per_level]", "territory_per_level", TERRITORY_PER_LEVEL, _count)
 	_pick(page, rows, "[reach]", "territory_radius", TERRITORY_RADIUS, _count)
@@ -236,9 +245,26 @@ func _build_settings(page: VBoxContainer, rows: ChoiceRows) -> void:
 	_pick(page, rows, "[decay]", "territory_decay", DECAY_MODES, func(m: String) -> String: return DECAY_TITLES[DECAY_MODES.find(m)])
 	page.add_child(Kit.note("[starting_land_is_a_new]", WIDTH))
 	var defaults := Kit.button("[defaults]", Callable(), WIDTH, ROW_H + 4)
-	_asks.guard(defaults, _defaults)
+	_resets.guard(defaults, _defaults)
 	page.add_child(defaults)
 	rows.refresh()
+
+
+## A section strip of «Настройки» (Kit.section), as wide as the rows.
+func _strip(icon: String, title: String) -> HBoxContainer:
+	var strip := Kit.section(icon, title, title)
+	strip.custom_minimum_size.x = WIDTH
+	return strip
+
+
+## The rules «Настройки» shows, of `_set.rules`: the playtest's switches (free building,
+## instant crafting) are left as the server has them.
+func _rules_shown() -> Dictionary:
+	var out := {}
+	for k in WINDOW_RULES:
+		if _set.rules.has(k):
+			out[k] = _set.rules[k]
+	return out
 
 
 ## The setting `key` of `_set` (or its rules), as the server's settings file has it.
@@ -251,6 +277,15 @@ func _put(key: String, v: Variant) -> void:
 		_set.rules[key] = v
 	else:
 		_set[key] = v
+	_live()
+
+
+## While the server runs, what «Настройки» changed takes effect at once (ServerMain.apply_settings).
+func _live() -> void:
+	if running() and game.hosted.has_method("apply_settings"):
+		var values := _set.duplicate()
+		values.rules = _rules_shown()
+		game.hosted.apply_settings(values)
 
 
 ## A row «name ‹ value ›» choosing setting `key` among `options` (the file's value among
@@ -296,7 +331,9 @@ func _defaults() -> void:
 	for k in ["max_players", "autosave", "day_minutes", "real_weather"]:
 		_set[k] = d[k]
 	_set.rules = d.rules
-	_port.text = str(d.port)
+	if not running():
+		_port.text = str(d.port)
+	_live()
 	for k: String in _checks:
 		_checks[k].set_pressed_no_signal(bool(_value(k)))
 	_rows[1].refresh()
@@ -320,7 +357,7 @@ func _make_tabs(names: Array) -> void:
 
 
 ## Shows tab `i` (before it runs: 0 «Создание», 1 «Настройки»; while it runs: 0 «Сервер»,
-## 1 «Доступ»), its tab lit, its rows from the top.
+## 1 «Настройки», 2 «Доступ»), its tab lit, its rows from the top.
 func show_tab(i: int) -> void:
 	_tab = i
 	for j in _pages.size():
@@ -395,7 +432,7 @@ func settings() -> Dictionary:
 	var port := int(_port.text) if _port.text.is_valid_int() else 0
 	var out := {"title": _title.text.strip_edges(), "port": port, "max_players": int(_set.max_players),
 		"password": _password.text, "tunnel": _tunnel.button_pressed, "real_weather": bool(_set.real_weather),
-		"autosave": float(_set.autosave), "day_minutes": float(_set.day_minutes), "rules": _set.rules.duplicate(),
+		"autosave": float(_set.autosave), "day_minutes": float(_set.day_minutes), "rules": _rules_shown(),
 		"player": ServerList.player_name() if ServerList.player_name() != "" else "[host]"}
 	if _worlds.is_empty():
 		out.world = ""
@@ -432,8 +469,9 @@ func _start() -> void:
 
 func _build_running() -> void:
 	var node: Node = game.hosted
-	_make_tabs(["[server_name]", "[access]"])
-	_rows = [_choices, ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW)]
+	_make_tabs(["[server_name]", "[settings]", "[access]"])
+	_rows = [_choices, ChoiceRows.new(SET_NAME, SET_VALUE, ARROW), ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW)]
+	_set = game.LocalHost.settings_of(node.config)
 	var p := _pages[0]
 	_into = p
 	_state = UiStyle.label("", UiStyle.INK)
@@ -480,7 +518,11 @@ func _build_running() -> void:
 		command.clear()
 		_clock = 0.0)
 	p.add_child(command)
-	_build_access(_pages[1])
+	_build_settings(_pages[1], _rows[1])
+	# The port holds until the server starts again.
+	_port.editable = false
+	_port.tooltip_text = "[port_after_restart]"
+	_build_access(_pages[2])
 	box.add_child(_button("[play]", play.emit, true, false))
 	_stop = _button("[stop_the_server]", Callable(), false, false)
 	box.add_child(_stop)
