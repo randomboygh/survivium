@@ -28,7 +28,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   nothing goes into the bag. A death with an empty bag leaves no sack: the cross stands at once (`die`), beside
   the body. Fall damage (`_fall` in `update`): the height is counted from the level where the feet last stood
   (`Body.standing` — by the world, at the place the client sent, not by its word; a jump adds nothing), more
-  than `Vitals.FALL_SAFE` (4) levels — `FALL_PER_LEVEL` for each beyond (`Vitals.fall`, `hurt_by` "fall", «You
+  than `Vitals.FALL_SAFE` (6) levels — `FALL_PER_LEVEL` (8 health) for each beyond (`Vitals.fall`, `hurt_by` "fall", «You
   crashed»); water under the landing place of 2 cells and deeper puts the fall out, of one — halves it
   (`Body.water_under`). A jump down faster than any fall (a teleport), the test's «jumps in the air» and
   `forget_fall` (respawn, `Player.teleport`) begin the count anew; on a leaning ladder (`Body.on_ladder`) there

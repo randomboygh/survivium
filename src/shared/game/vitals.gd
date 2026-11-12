@@ -44,8 +44,9 @@ const DROWN := 8.0
 const BURN := 2.0
 ## A fall from more than FALL_SAFE levels hurts FALL_PER_LEVEL health for each level past
 ## them (Character._fall); water shallower than a level under the landing halves it.
-const FALL_SAFE := 4.0
-const FALL_PER_LEVEL := 15.0
+## With 100 health a fall of 6 levels is safe and one of 19 kills.
+const FALL_SAFE := 6.0
+const FALL_PER_LEVEL := 8.0
 ## Below this much stamina the body is tired and walks slower.
 const TIRED := 10.0
 const TIRED_PACE := 0.7
