@@ -17,6 +17,11 @@ const RADIUS := 84
 const BACKDROP := Color(0.03, 0.03, 0.04, 0.5)
 ## How far the shaded disc reaches past the buttons' centres: half a button and a line of words.
 const SHADE_PAST := BUTTON / 2 + 14
+## Interface pixels over which the disc's edge thins out, dithered.
+const SHADE_EDGE := 6
+## The 4×4 ordered dither: a pixel of the edge is shaded while its number is under the
+## shade's strength there (0..16).
+const BAYER := [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
 
 signal chosen(name: String)
 signal closed
@@ -31,6 +36,8 @@ var _pic_px := 0
 ## The shaded disc under the buttons: its centre and radius.
 var _mid := Vector2.ZERO
 var _shade := 0.0
+## The shaded disc as a picture, its edge dithered (made again when its size changes).
+var _disc: ImageTexture
 
 
 func _init(g) -> void:
@@ -39,6 +46,7 @@ func _init(g) -> void:
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	for i in Gestures.LIST.size():
 		var g: Dictionary = Gestures.LIST[i]
 		var b := Button.new()
@@ -50,6 +58,10 @@ func _ready() -> void:
 		_pics.append(pic)
 		b.tooltip_text = "%s (%d)" % [Lang.t(g.title), i + 1]
 		b.focus_mode = Control.FOCUS_NONE
+		# No button behind the icon: the icon and its words on the shade; the words
+		# light up under the pointer.
+		for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]:
+			b.add_theme_stylebox_override(st, StyleBoxEmpty.new())
 		b.custom_minimum_size = Vector2(BUTTON, BUTTON)
 		b.size = Vector2(BUTTON, BUTTON)
 		var name: String = g.name
@@ -62,6 +74,8 @@ func _ready() -> void:
 		l.add_theme_constant_override("outline_size", 4)
 		add_child(l)
 		_labels.append(l)
+		b.mouse_entered.connect(l.add_theme_color_override.bind("font_color", UiStyle.ACCENT))
+		b.mouse_exited.connect(l.add_theme_color_override.bind("font_color", UiStyle.INK))
 	get_parent().resized.connect(_fit)
 	_fit()
 
@@ -130,6 +144,8 @@ func _fit() -> void:
 	var r := minf(RADIUS, minf(screen.x, screen.y) * 0.5 - BUTTON)
 	_mid = mid
 	_shade = r + SHADE_PAST
+	if _disc == null or _disc.get_width() != 2 * int(_shade):
+		_disc = _make_disc(int(_shade))
 	for i in _buttons.size():
 		var a := TAU * i / _buttons.size() - PI * 0.5
 		var at := (mid + Vector2(cos(a), sin(a)) * r - Vector2(BUTTON, BUTTON) * 0.5).floor()
@@ -143,4 +159,18 @@ func _fit() -> void:
 
 
 func _draw() -> void:
-	draw_circle(_mid, _shade, BACKDROP, true, -1.0, false)
+	draw_texture(_disc, _mid - Vector2(_disc.get_size()) * 0.5)
+
+
+## The disc `radius` interface pixels round: BACKDROP inside, its last SHADE_EDGE pixels
+## dithered away (BAYER), pixel by pixel as the rest of the interface.
+static func _make_disc(radius: int) -> ImageTexture:
+	var img := Image.create_empty(2 * radius, 2 * radius, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	for y in 2 * radius:
+		for x in 2 * radius:
+			var d := Vector2(x + 0.5 - radius, y + 0.5 - radius).length()
+			var t := (radius - d) / SHADE_EDGE
+			if t >= 1.0 or t > 0.0 and BAYER[(y % 4) * 4 + x % 4] < int(t * 16.0):
+				img.set_pixel(x, y, BACKDROP)
+	return ImageTexture.create_from_image(img)
