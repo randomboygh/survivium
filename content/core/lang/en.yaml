@@ -1065,6 +1065,7 @@
 "[size]": "Size"
 "[clear_n2]": "clear"
 "[rain_n2]": "rain"
+"[a_switch_with_its_name]": "Switch with its name: everything that is only on or off"
 "[action_row_and_a_two]": "Action row and a two-tap action"
 "[section_strip]": "Section strip: a line with an icon between groups"
 "[note]": "Note"

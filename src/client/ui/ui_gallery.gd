@@ -214,12 +214,19 @@ func _buttons_page() -> void:
 func _rows_page() -> void:
 	_caption("[setting_row_arrows_step_through]")
 	_choice_row("[size]", ["[small_ui]", "[normal_ui]", "[large_ui]"], 1)
+	# Only off and on: a switch in place of the arrows.
 	_choice_row("[sound]", ["[off]", "[on]"], 1)
 	_choice_row("[time_of_day]", ["[night]", "[morning]", "[day_n5]", "[evening]"], 2)
+	# One that stops at its ends: the arrow towards the end it is at is off.
+	_choice_row("[volume]", ["[off]", "25%", "50%", "75%", "100%"], 4, {"stop": true})
 	# One that cannot change now: faded, its arrows off.
 	_choice_row("[weather]", ["[by_itself]", "[clear_n2]", "[rain_n2]"], 0, {"works": func() -> bool: return false})
 	_choices.refresh()
 	_choices.set_focus(0)
+	_caption("[a_switch_with_its_name]")
+	var sw := Kit.check("[access_from_the_internet]", false, ROW_WIDTH, ARROW)
+	sw.toggled.connect(func(on: bool) -> void: say("[on]" if on else "[off]"))
+	_list.add_child(sw)
 	_caption("[action_row_and_a_two]")
 	_list.add_child(Kit.button("[go_to_the_test_world]", say.bind("[go_to_the_test_world]"), ROW_WIDTH, ARROW))
 	_list.add_child(_asks.guard(Kit.button("[clear_all_data]", Callable(), ROW_WIDTH, ARROW),
@@ -456,8 +463,7 @@ func _choice_row(title: String, values: Array, at: int, opts := {}) -> void:
 
 ## A row was stepped: tells the value shown.
 func _stepped(index: int) -> void:
-	var r: Dictionary = _choices.rows[index]
-	say(r.label.text)
+	say(_choices.text_of(index))
 
 
 ## A cell with the picture of thing `id` ("" for none) in `parent`; a tap chooses it and

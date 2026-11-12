@@ -72,6 +72,44 @@ func _test_choice_rows() -> void:
 	ev.physical_keycode = KEY_LEFT
 	_check(rows.key(ev) and v.d == 0 and stepped[0] == 3, "left steps the row in focus and tells it")
 	box.free()
+	_test_switch_rows()
+
+
+## A row of only off and on is a switch; a row that stops at its ends has the arrow
+## towards the end it is at off.
+func _test_switch_rows() -> void:
+	var rows := ChoiceRows.new()
+	var box := VBoxContainer.new()
+	var v := {"on": 1, "flip": 0, "vol": 0, "dead": 1}
+	rows.add(box, "On", ["[off]", "[on]"], func() -> int: return v.on, func(i: int) -> void: v.on = i)
+	rows.add(box, "Flip", ["[on]", "[off]"], func() -> int: return v.flip, func(i: int) -> void: v.flip = i)
+	rows.add(box, "Vol", ["[off]", "50%", "100%"], func() -> int: return v.vol, func(i: int) -> void: v.vol = i, {"stop": true})
+	rows.add(box, "Dead", ["[off]", "[on]"], func() -> int: return v.dead, func(i: int) -> void: v.dead = i,
+		{"works": func() -> bool: return false})
+	rows.refresh()
+	_check(rows.rows[0].has("switch") and rows.rows[0].left == null and rows.rows[0].switch.button_pressed,
+		"a row of off and on is a switch, lit when on")
+	_check(rows.rows[1].switch.button_pressed and rows.rows[1].on == 0, "on first in the values is lit too")
+	_check(not rows.rows[2].has("switch"), "a row of more values keeps its arrows")
+	var told := [-1]
+	rows.stepped.connect(func(i: int) -> void: told[0] = i)
+	rows.rows[0].switch.button_pressed = false
+	_check(v.on == 0 and told[0] == 0 and rows.text_of(0) == "[off]", "a tap on the switch turns the value and tells it")
+	rows.step(1, 1)
+	_check(v.flip == 0, "right on a switch that is on leaves it on")
+	rows.step(1, -1)
+	_check(v.flip == 1 and not rows.rows[1].switch.button_pressed, "left turns it off")
+	rows.rows[3].switch.button_pressed = false
+	_check(v.dead == 1 and rows.rows[3].switch.button_pressed and rows.rows[3].switch.disabled,
+		"a switch that cannot change stays and is off for taps")
+	_check(rows.rows[2].left.disabled and not rows.rows[2].right.disabled, "at the first value the left arrow of a stopping row is off")
+	rows.step(2, 1)
+	rows.step(2, 1)
+	_check(v.vol == 2 and rows.rows[2].right.disabled and not rows.rows[2].left.disabled, "at the last the right one")
+	var sw := Kit.check("A", true)
+	_check(sw.button_pressed and sw.text == "A", "the kit's switch carries its name and value")
+	sw.free()
+	box.free()
 
 
 func _test_window() -> void:

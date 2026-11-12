@@ -28,6 +28,7 @@ extends "res://src/client/ui/kit/window.gd"
 ## UI kit, its choices ChoiceRows, «Остановить сервер» a TwoTap). `game` is the Main node.
 
 const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
+const Switch := preload("res://src/client/ui/kit/switch.gd")
 const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
@@ -109,7 +110,7 @@ var _checks := {}
 var _title: LineEdit
 var _port: LineEdit
 var _password: LineEdit
-var _tunnel: CheckButton
+var _tunnel: Switch
 ## The tunnel's state and its link's button while the server runs.
 var _tunnel_label: Label
 var _tunnel_copy: Button
@@ -128,7 +129,7 @@ var _log_scroll: ScrollContainer
 var _into: VBoxContainer = null
 ## «Доступ»: the switch «Только по списку», the names on the list and those blocked, as
 ## shown ([listed_only, listed, blocked]); «В бан» on a player's row asks first.
-var _listed_only: CheckButton
+var _listed_only: Switch
 var _listed: VBoxContainer
 var _banned: VBoxContainer
 var _shown_access = null
@@ -335,7 +336,7 @@ func _defaults() -> void:
 		_port.text = str(d.port)
 	_live()
 	for k: String in _checks:
-		_checks[k].set_pressed_no_signal(bool(_value(k)))
+		_checks[k].show_value(bool(_value(k)))
 	_rows[1].refresh()
 
 
@@ -679,7 +680,7 @@ func _refresh() -> void:
 	var shown := [acc.listed_only, acc.listed.duplicate(), blocked]
 	if shown != _shown_access:
 		_shown_access = shown
-		_listed_only.set_pressed_no_signal(acc.listed_only)
+		_listed_only.show_value(acc.listed_only)
 		_fill_names(_listed, acc.listed, "[take_off_list]", func(n: String) -> void: _run("whitelist remove " + n))
 		_fill_names(_banned, blocked, "[unban]", func(n: String) -> void: _run("unban " + n))
 		fit.call_deferred()

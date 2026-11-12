@@ -2,7 +2,7 @@ extends RefCounted
 ## The UI kit (decision of 2026-11-11, option Б): the ready pieces every window of the
 ## game is built from, so a new window is put together, not drawn anew. All static.
 ## Pieces: a window's title, a caption, a note; a window's button (plain, accent), a
-## square button with an icon, a framed one of the game's screen, a switch; a text
+## square button with an icon, a framed one of the game's screen, a switch (switch.gd); a text
 ## field; a column and a row; a list that scrolls (by finger too) with the settings'
 ## insets; the big touch buttons' looks and a colour swatch. With them: KitWindow
 ## (window.gd, a window over a shade of the screen), TwoTap (two_tap.gd, a button that
@@ -14,6 +14,7 @@ extends RefCounted
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const TextField := preload("res://src/client/ui/text_field.gd")
+const Switch := preload("res://src/client/ui/kit/switch.gd")
 
 ## The height of a window's buttons and tabs, in UI pixels.
 const BUTTON_H := 30
@@ -86,12 +87,11 @@ static func framed_button(icon: Variant, tip: String, action := Callable(), size
 	return b
 
 
-## A switch with `text` beside it, on when `on` («Доступ из интернета»).
-static func check(text: String, on := false, width := 0.0, height := BUTTON_H) -> CheckButton:
-	var c := CheckButton.new()
-	c.text = text
-	c.focus_mode = Control.FOCUS_NONE
-	c.button_pressed = on
+## A switch (switch.gd: a round knob in a pill-shaped track, amber when on) with `text` left of it, on
+## when `on` («Доступ из интернета»). Every setting that is only on or off is one: the
+## rows «name ‹ value ›» make one of a row whose values are «выкл | вкл» (ChoiceRows).
+static func check(text: String, on := false, width := 0.0, height := BUTTON_H) -> Switch:
+	var c := Switch.new(text, on)
 	c.custom_minimum_size = Vector2(width, height)
 	return c
 
@@ -171,13 +171,27 @@ static func gap(height := 8.0) -> Control:
 
 ## A list that scrolls `content` up and down, by its bar and by a finger or the mouse
 ## dragged over it (DragScroll); `inset`: the rows keep BAR_GAP from its sides as the
-## settings' do (UiStyle.inset; the room for the bar then follows UiStyle.bar_room).
+## settings' do (UiStyle.inset). Without it the rows stand flush with the window's
+## other parts, and only while the list scrolls the bar and BAR_GAP before it get
+## room of their own on the right (UiStyle.bar_room), so the bar never covers a row's
+## end (a world's trash button); `content` that is a MarginContainer is that room itself.
 static func scroll(content: Control, inset := true) -> ScrollContainer:
 	var s := ScrollContainer.new()
 	s.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	s.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	s.add_child(UiStyle.inset(content) if inset else content)
+	if inset:
+		s.add_child(UiStyle.inset(content))
+	else:
+		var room: MarginContainer = content if content is MarginContainer else MarginContainer.new()
+		if room != content:
+			for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
+				room.add_theme_constant_override(side, 0)
+			room.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			room.add_child(content)
+		s.add_child(room)
+		var bar := s.get_v_scroll_bar()
+		bar.visibility_changed.connect(func() -> void: UiStyle.bar_room(room, bar.visible, s))
 	DragScroll.attach(s)
 	return s
 
