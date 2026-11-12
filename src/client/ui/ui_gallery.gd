@@ -223,6 +223,10 @@ func _rows_page() -> void:
 	_list.add_child(Kit.button("[go_to_the_test_world]", say.bind("[go_to_the_test_world]"), ROW_WIDTH, ARROW))
 	_list.add_child(_asks.guard(Kit.button("[clear_all_data]", Callable(), ROW_WIDTH, ARROW),
 		say.bind("[clear_all_data]")))
+	_caption("[section_strip]")
+	var strip := Kit.section("clock", "[time_and_weather]", "[time_and_weather]")
+	strip.custom_minimum_size.x = ROW_WIDTH
+	_list.add_child(strip)
 	_caption("[note]")
 	var note := Kit.note("[no_markers_put_them_on]", ROW_WIDTH)
 	note.custom_minimum_size.y = ARROW

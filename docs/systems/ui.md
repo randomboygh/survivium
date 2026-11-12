@@ -16,7 +16,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   `framed_button` (the HUD buttons, the strip's arrows), the switch `check`; the input field `field` (the caret
   and tab switching in the browser — `TextField.fit`); column, row, inset; a scrolled list `scroll` (also by
   finger, `DragScroll`, with insets as in the settings); the look of the screen's big buttons `octagon_look`,
-  semi-transparent ones `see_through`, a colour sample `swatch`. Sizes: `BUTTON_H` 30, `FIELD_H` 26, `SQUARE`
+  semi-transparent ones `see_through`, a colour sample `swatch`; the section strip `section` (a pale line with an icon and a name between groups: the chests in the inventory, the sections of the settings and of the server window). Sizes: `BUTTON_H` 30, `FIELD_H` 26, `SQUARE`
   32.
 - `window.gd` — a window over the screen's shadow: `build(title)` gives the panel and the column `box`,
   `show_fitted()` lays out at every change of the screen; the panel is centred, and taller than the screen (the
@@ -78,10 +78,11 @@ and a new shared part is added to the kit and to the «Interface gallery».
   abandoned, the step and kind of decay), «Defaults» (two touches); the values from `user://server.cfg`
   (`LocalHost.server_settings`), a file value not in the list is put into the list; «Start the server» under
   both tabs → `Main.host_server`; while it runs — the port and players, the home network's addresses, the tabs
-  «Server» and «Access»; «Server»: «Copy the address», «From the internet:» (the tunnel's address, «still
-  starting…» or why not) and «Copy the link», players with «Kick» and «Ban» (two touches), the log and the
-  command field; «Access»: «Whitelist only», the list with «Remove» and the field «Add», the banned with
-  «Unban» and the field «Ban» (the same commands `whitelist`, `ban`, `unban`, `Server.access`); under both
+  «Server», «Settings» and «Access»; «Server»: «Copy the address», «From the internet:» (the tunnel's address, «still
+  starting…» or why not) and «Copy the link», players with «Kick» and «Ban» (two touches), the log (12 lines) and the
+  command field; «Settings»: the same rows as before it starts, each change made at once
+  (`ServerMain.apply_settings`, the port faded until a restart), the sections parted by `Kit.section`; «Access»: «Whitelist only», the list with «Remove» and the field «Add», the banned with
+  «Unban» and the field «Ban» (the same commands `whitelist`, `ban`, `unban`, `Server.access`); under all
   «Play», «Stop the server» (two touches), «Back»; the same window is the «Server» item in the pause menu;
   taller than the screen — it scrolls, the bar does not cover the rows, `UiStyle.bar_room`), `world_setup.gd`
   («New world»: seed, kind of world, generator settings with a map, the page «Mods»: under a dropped bundle the
@@ -123,7 +124,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   `docs/balance/GAME_BALANCE_DESIGN.md`); a touch of a hand is like a touch of a hand on the panel
   (`Hud.tap_hand`: the active hand, then the next tool), a touch of a clothes or bag slot takes off what is
   worn or puts on a fitting one from the bag, `InventoryWindow._tap_person`; in landscape it stands to the left
-  of the bag and crafting, in portrait above the bag and hides on the crafting tab). The window's tabs —
+  of the bag, in portrait above it, and shows only on the «Inventory» tab). The window's tabs —
   «Inventory» and «Crafting», «Land» (only on marked land, `land_page.gd`) and «Team» (only on a server,
   `team_page.gd`), see `docs/systems/territory.md`. All rows of tabs (window, settings, «Testing») are one
   joined group one window button tall (`TabRow.tabs`, the chosen one amber, `light`); new tabs are made the
@@ -187,7 +188,11 @@ and a new shared part is added to the kit and to the «Interface gallery».
   `Hud.update_state`). In the bag, blocks and everything that is placed have a wide button «Build» (a hammer):
   it enters the mode. Notifications (`Hud.toast`) — a list of three under the state: a new one floats to the
   end from transparency, rising, and the oldest (by time or when the list overflows) goes up into
-  transparency, and the list shifts after it (`Hud._scroll_toasts`). `vitals_panel.gd`, `sleep_screen.gd`
+  transparency, and the list shifts after it (`Hud._scroll_toasts`). `vitals_panel.gd` (the state in the
+  top left corner: a thick health bar with a thinner stamina bar under it, then standing bars for satiety,
+  water, warmth and sleep, each only while it is low (`VitalsPanel.critical`; all of them while the bag is
+  open), and a column of what hinders the body — wet, out of breath, overloaded, `VitalsPanel.debuffs_of`;
+  the panel is as wide as what it shows), `sleep_screen.gd`
   (darkening in sleep: a tap, a step or a jump wakes, `Protocol.SLEEP`; the moon «Go to sleep» — on the HUD's
   clock), `body_feedback.gd`, `sound_marks.gd` (marks of sounds' directions), `vibration.gd`.
 - Maps: `minimap.gd` (the map is painted a chunk at a time into regions of 32 chunks, kept in the save; marks
@@ -198,7 +203,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   forgotten too — `_input`), `src/client/game/markers.gd` (the player's markers; teleport from the «Testing»
   page).
 - Settings: `src/client/settings.gd` (the saved settings and the switches of «Testing»: each module reads its
-  values there), `settings_menu.gd` (pages of rows «name ‹ value ›»; the version and «What's new» from
+  values there), `settings_menu.gd` (pages of rows «name ‹ value ›», sections parted by strips `{"section": icon, "title"}` → `Kit.section`; on a server the rows of day length, time of day, season and weather are faded with a note, the server's host sets them in its window; the version and «What's new» from
   `build_info.json`: also opened from the main menu, «Back» goes there; the changes are built by
   `CHANGES_STEP` while scrolling).
 - Debugging: `perf_panel.gd` (F3; the graph button in the top row only with the setting «Interface» →

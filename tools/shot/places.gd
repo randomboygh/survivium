@@ -517,6 +517,41 @@ func hut(w, at: Vector3) -> Vector3:
 	return (Vector3(best) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
+## A cliff of the landscape's materials in layers north of the player on flat ground
+## near `at`, twelve cells wide and five high, its face to the camera: turf over soil,
+## then stone with veins of every ore, a lens of sand, one of clay and a block of brick
+## in it, to look at how the materials meet on the sides of cells.
+func strata(w, at: Vector3) -> Vector3:
+	var spot := Vector3i((flat_near(w, at) / CELL).floor())
+	var stone: int = Mat.STONE
+	var rows := [Mat.GRASS, Mat.DIRT, stone, stone, stone]
+	var veins := {}
+	var ores := ["materials:copper_ore", "materials:iron_ore", "materials:tin_ore", "materials:gold_ore", "materials:silver_ore"]
+	var spots := [[Vector2i(-5, 2), Vector2i(-4, 2), Vector2i(-4, 3)], [Vector2i(-1, 3), Vector2i(0, 3), Vector2i(0, 4)],
+		[Vector2i(3, 2)], [Vector2i(5, 4), Vector2i(6, 4)], [Vector2i(1, 2)]]
+	for k in ores.size():
+		var m: int = Mat.index(ores[k])
+		if m > 0:
+			for o: Vector2i in spots[k]:
+				veins[o] = m
+	var lenses := [["resources:sand", [Vector2i(-6, 1), Vector2i(-5, 1), Vector2i(-6, 2)]],
+		["resources:clay", [Vector2i(2, 1), Vector2i(3, 1), Vector2i(4, 1)]], ["materials:brick", [Vector2i(-2, 4), Vector2i(-2, 3)]]]
+	for l: Array in lenses:
+		var m: int = Mat.index(l[0])
+		if m > 0:
+			for o: Vector2i in l[1]:
+				veins[o] = m
+	for dx in range(-6, 7):
+		for row in rows.size():
+			var m: int = veins.get(Vector2i(dx, row), rows[row])
+			for dz in range(-6, -3):
+				var c := spot + Vector3i(dx, 4 - row, dz)
+				wall_cells.append([c, w.get_cell(c.x, c.y, c.z), w.is_natural(c.x, c.y, c.z)])
+				w.set_cell(c.x, c.y, c.z, m)
+				main.actions.cell_changed.emit(c)
+	return (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
 ## Short walls of every building material in a row on flat grass near `at`, each three
 ## cells long and three high on a floor of its own laid flush with the ground, the
 ## player in front of them (the building stage, materials as cells), and stairs.

@@ -5,6 +5,7 @@
   role: ore
   veins: 0.6
   priority: 2
+  side_fray: 5
   item: iron_ore
   hardness: 4
   toughness: 8

@@ -184,6 +184,10 @@ const SHOTS := {
 	# Walls and floors of every building material in a row (stone, planks, brick, log
 	# wall, wattle, cut stone).
 	"build-materials": {"time": 0.4, "season": 1, "walls": true},
+	# A cliff of turf, soil, stone with ore veins, sand, clay and a block of brick
+	# (Places.strata): how materials meet on the sides of cells.
+	"strata": {"time": 0.42, "season": 1, "strata": true},
+	"strata-turn": {"time": 0.42, "season": 1, "strata": true, "turn": 1},
 	# The blueprint: a room of planks half built (its lowest level up, the rest a ghost)
 	# with a floor's ghost inside, and a wall's ghost of brick beside it.
 	"build-plan": {"time": 0.4, "season": 1, "plan": true},
@@ -438,8 +442,15 @@ const SHOTS := {
 	# the drop; and the bag open with them worn, one more cape chosen in the bag (its warmth).
 	"cold": {"time": 0.8, "season": 3, "clearing": true, "wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"],
 		"chill": [22.0, 0.7]},
+	# The state in the corner: thirsty, chilled, wet and out of breath (the drop and the
+	# red bolt in the last column).
+	"vitals": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "thirst": 15.0, "chill": [22.0, 0.7], "tired": true},
+	# The same with nothing hindering the body: the panel ends at the moon.
+	"vitals-plain": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "thirst": 15.0},
 	"bag-clothes": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,
 		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "give": "tools:grass_cape"},
+	# Out of sleep, awake in the day: the picture swims (CameraRig.sway, grade.gdshader).
+	"sleepy": {"time": 0.42, "season": 1, "touch": true, "sleepy": true},
 	# Asleep at night by the spawn's campfire.
 	"asleep": {"time": 0.92, "season": 1, "touch": true, "asleep": true},
 	# A grass mat and a fur bedroll set down; the mat tapped: lying in it asleep, «zzZ» over the head.
@@ -755,7 +766,8 @@ const SHOTS := {
 	"ui-main-menu-host": {"time": 0.42, "season": 1, "main_menu": "host"},
 	"ui-main-menu-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 1},
 	"ui-main-menu-host-running": {"time": 0.42, "season": 1, "main_menu": "host-running"},
-	"ui-main-menu-host-access": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 1,
+	"ui-main-menu-host-running-settings": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 1},
+	"ui-main-menu-host-access": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 2,
 		"host_commands": ["whitelist on", "whitelist add Лиса", "whitelist add Grisha", "ban Вредина"]},
 	# The largest interface on a landscape screen: the first page and «Создать сервер»
 	# still fit (the column and the window scroll when they cannot).

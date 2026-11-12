@@ -8,6 +8,7 @@
   corners: round
   slope: true
   priority: 3
+  side_fray: 2
   ground: sand
   drains: true
   layers: 3
@@ -24,6 +25,7 @@
   corners: soft
   slope: true
   priority: 2
+  side_fray: 2
   hotbar: 6
   item: clay
   dig: shovel
@@ -37,6 +39,7 @@
   title: "[resources.materials.bed]"
   role: bed
   priority: 5
+  side_fray: 2
   item: dirt
   dig: shovel
   step: step_dirt
@@ -45,6 +48,7 @@
   title: "[resources.materials.bed_wet]"
   role: bed_wet
   priority: 5
+  side_fray: 2
   item: dirt
   dig: shovel
   step: step_dirt

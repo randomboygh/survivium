@@ -1,7 +1,7 @@
 extends PanelContainer
 ## The inventory window (plan/design/ui.md, section 5): the character (PersonPanel: what
-## is worn and held, the skills) beside the bag or the craft tab on a wide screen, over
-## the bag on a tall one (hidden on the craft tab there); the tabs «Инвентарь»,
+## is worn and held, the skills) beside the bag on a wide screen, over it on a tall one,
+## and only on the bag's tab (the others take its room); the tabs «Инвентарь»,
 ## «Крафт», «Земля» (LandPage, only on land claimed) and «Команда» (TeamPage, only on
 ## a server) are joined as one, a button tall (TabRow.tabs). A tap on a slot of the figure
 ## works as a tap on a hand of the hotbar (the next tool) or takes off and puts on what
@@ -533,8 +533,8 @@ func show_tab(tab: String) -> void:
 		tab = "bag"
 	_tab = tab
 	_bag_page.visible = tab == "bag"
-	# On a tall screen the craft and land tabs need the height the character takes.
-	person.visible = tab == "bag" or not _stacked
+	# The character only by the bag: the other tabs need the room it takes.
+	person.visible = tab == "bag"
 	# Off the bag tab the label stays, empty, to keep the cross on the right.
 	if tab != "bag":
 		_chest_buttons.visible = false
@@ -634,7 +634,7 @@ func fit(screen: Vector2) -> void:
 		s.custom_minimum_size = Vector2(slot, slot)
 	person.set_slot(slot)
 	_main.vertical = _stacked
-	person.visible = _bag_page.visible or not _stacked
+	person.visible = _bag_page.visible
 	_bag_page.custom_minimum_size.x = _width(slot)
 	land_page.custom_minimum_size.x = _width(slot)
 	team_page.custom_minimum_size.x = _width(slot)
@@ -644,7 +644,9 @@ func fit(screen: Vector2) -> void:
 	craft.slot = slot
 	# On a wide screen the craft tab's recipe and queue go right of the cells, so the
 	# window is not too tall for it; the window is that much wider on the craft tab.
-	var side := screen.x > screen.y and room >= _width(slot) + 6 + CRAFT_SIDE
+	# The character is not shown there, so the craft tab has the whole width.
+	var whole := screen.x - 2 * EDGE - 2 * FRAME
+	var side := screen.x > screen.y and whole >= _width(slot) + 6 + CRAFT_SIDE
 	craft.custom_minimum_size.x = _width(slot) + (6 + CRAFT_SIDE if side else 0)
 	craft.set_side(side, CRAFT_SIDE if side else _width(slot))
 	# The rest of the craft tab (tabs, the station's line, the panels at the bottom or
@@ -1107,30 +1109,10 @@ func _make_chest_grids() -> void:
 ## when UiStyle draws one by its `prop` (a cupboard, a barrel), else a chest's (a sack's for
 ## a bag in the bag).
 func _chest_line(e: Dictionary) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.tooltip_text = Lang.t(Items.title(e.item))
-	for k in 3:
-		if k == 1:
-			var icon := TextureRect.new()
-			var kind: String = Items.get_item(e.item).get("prop", "none")
-			if not UiStyle.ICONS.has(kind):
-				kind = "chest" if Items.bag_slots(e.item) <= 0 else "sack"
-			icon.texture = UiStyle.icon(kind)
-			icon.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
-			icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			icon.mouse_filter = Control.MOUSE_FILTER_PASS
-			row.add_child(icon)
-			continue
-		var bar := ColorRect.new()
-		bar.color = UiStyle.HIGHLIGHT
-		bar.custom_minimum_size = Vector2(0, 2)
-		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(bar)
-	return row
+	var kind: String = Items.get_item(e.item).get("prop", "none")
+	if not UiStyle.ICONS.has(kind):
+		kind = "chest" if Items.bag_slots(e.item) <= 0 else "sack"
+	return Kit.section(kind, Lang.t(Items.title(e.item)))
 
 
 ## The slots of every chest shown.
