@@ -93,11 +93,20 @@ func _place() -> void:
 	_jump.size = _jump.custom_minimum_size
 	_jump.position = Vector2(_action.position.x - 6 - _jump.size.x * k, bottom - _jump.size.y * k)
 
+	# A phone held upright shows one hand, the hand in use, unless «Вторая рука» says
+	# otherwise; the slot it frees goes to the bag's first row.
+	var one_hand := one_hand()
+	_hand_right.visible = not one_hand
+	if one_hand:
+		game.controls.active = 0
 	# All the slots when they fit across the screen beside the hands and the separator,
-	# else as many as fit between the two arrows, four at most in portrait.
-	var fixed := 2 * SLOT + 12 + 3 * GAP + 8
+	# else as many as fit between the two arrows, four at most in portrait (five with
+	# one hand).
+	var hands := 1 if one_hand else 2
+	var fixed := hands * SLOT + 12 + (hands + 1) * GAP + 8
 	var room := w - 2 * MARGIN - fixed
-	_strip.set_counts(_slots.size(), SlotStrip.fitting(room, _slots.size(), 4 if portrait else _slots.size()))
+	var most := (6 - hands) if portrait else _slots.size()
+	_strip.set_counts(_slots.size(), SlotStrip.fitting(room, _slots.size(), most))
 	_show_page()
 	# The build or the farming mode's bar in the hotbar's place: as wide as the room for it.
 	var bar: Control = _shown_bar()
@@ -162,6 +171,21 @@ func _place() -> void:
 	bag.fit(size)
 	map_view.fit(size, touch)
 	refresh_counts()
+
+
+## Whether the hotbar shows the left hand only: a touch screen held upright with the
+## setting «Вторая рука» off (Settings `second_hand`).
+func one_hand() -> bool:
+	return touch and portrait and not second_hand
+
+
+## Shows or hides the second hand on a phone held upright («Интерфейс» → «Вторая рука»).
+func show_second_hand(on: bool) -> void:
+	if second_hand == on:
+		return
+	second_hand = on
+	if size != Vector2.ZERO:
+		_place()
 
 
 func _show_page() -> void:
