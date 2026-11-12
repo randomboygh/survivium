@@ -25,7 +25,9 @@
 # larger goes over smaller); ground — which patches are drawn on open ground: soil (damp
 # and dry patches, pebbles), sand (dunes), rock (moss and lichen), none; drains — water
 # drains into the ground, no puddles after rain (sand); fray — by how many texels (0–7) the seam with another material
-# tears in both directions in tufts (salt); layers — how many cells of the same
+# tears in both directions in tufts (salt); side_fray — by how many texels (0–7) the material reaches
+# into another on the sides of cells, in lumps and specks (ore in stone; 0 keeps the sides straight, as
+# built blocks do); layers — how many cells of the same
 # material the generator lays under it when it is the top of a column, instead of earth (sand). texture — the picture of the material,
 # textures/<texture>.png of this mod (no field — by id): three 16×16 tiles in a row — top,
 # sides, bottom; tools/make_textures.gd draws it, it can be redrawn by hand.
@@ -57,6 +59,7 @@
   corners: soft
   slope: true
   priority: 4
+  side_fray: 2
   ground: soil
   hotbar: 2
   item: resources:dirt
@@ -68,6 +71,7 @@
 - id: stone
   title: "[core.materials.stone]"
   priority: 1
+  side_fray: 3
   ground: rock
   hotbar: 1
   item: resources:stone

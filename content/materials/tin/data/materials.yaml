@@ -6,6 +6,7 @@
   role: ore
   veins: 0.5
   priority: 2
+  side_fray: 5
   item: tin_ore
   hardness: 3
   toughness: 5
