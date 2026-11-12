@@ -3,7 +3,7 @@
 # sprites/creatures/<sprite>.png этого бандла, три кадра (стоит и два шага); biomes — где он живёт
 # (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml.
 - id: cat
-  title: Дикая кошка
+  title: "[animals.creatures.cat]"
   mass: 4
   diet: [meat]
   speed: 5.5

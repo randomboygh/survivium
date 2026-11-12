@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/boats/bundle.yaml
-"Плот и лодка": "Tratwa i łódź"
+"[tools.boats.bundle]": "Tratwa i łódź"
 
 # content/tools/boats/data/items.yaml
-"Плот": "Tratwa"
-"Брёвна, связанные верёвкой. Возьми в руку и нажми действие у воды, чтобы спустить его и сесть.": "Kłody związane sznurkiem. Weź ją do ręki i naciśnij akcję przy wodzie, by ją zwodować i wejść."
-"Лодка": "Łódź"
-"Лёгкая лодка из досок, просмолённая. Быстрее плота, но грести ею можно только с вёслами в сумке.": "Lekka smołowana łódź z desek. Szybsza od tratwy, ale wiosłuje się nią tylko z wiosłami w torbie."
-"Вёсла": "Wiosła"
-"Пара вёсел. Пока они в сумке, лодка идёт быстро.": "Para wioseł. Dopóki są w torbie, łódź płynie szybko."
+"[tools.items.raft]": "Tratwa"
+"[tools.items.raft.about]": "Kłody związane sznurkiem. Weź ją do ręki i naciśnij akcję przy wodzie, by ją zwodować i wejść."
+"[tools.items.boat]": "Łódź"
+"[tools.items.boat.about]": "Lekka smołowana łódź z desek. Szybsza od tratwy, ale wiosłuje się nią tylko z wiosłami w torbie."
+"[tools.items.oars]": "Wiosła"
+"[tools.items.oars.about]": "Para wioseł. Dopóki są w torbie, łódź płynie szybko."
+
+# content/tools/boats/data/recipes.yaml
+"[tools.recipes.raft]": "Tratwa"
+"[tools.recipes.boat]": "Łódź"
+"[tools.recipes.oars]": "Wiosła"

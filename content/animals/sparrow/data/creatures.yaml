@@ -4,7 +4,7 @@
 # ночью спит на деревьях. Ссылка likes мягкая: без «Растений» воробей живёт, просто ничего не
 # ищет, а без деревьев (roost: trees) спит на земле.
 - id: sparrow
-  title: Воробей
+  title: "[animals.creatures.sparrow]"
   mass: 0.03
   diet: [plants]
   speed: 7.0

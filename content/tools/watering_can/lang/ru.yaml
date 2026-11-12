@@ -1,0 +1,14 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/watering_can/bundle.yaml
+"[tools.watering_can.bundle]": "Лейка"
+
+# content/tools/watering_can/data/items.yaml
+"[tools.items.watering_can]": "Лейка"
+"[tools.items.watering_can.about]": "Пустая. Возьми в руку и коснись пресной воды, чтобы наполнить."
+"[tools.items.watering_can_full]": "Лейка с водой"
+"[tools.items.watering_can_full.about]": "Поливает грядки. Воды хватает на десять клеток."
+
+# content/tools/watering_can/data/recipes.yaml
+"[tools.recipes.watering_can]": "Лейка"

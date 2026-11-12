@@ -1,12 +1,12 @@
 # Люк сбивают из досок «Материалов» на верстаке. Поля — docs/DATA_MODEL.md.
 - id: hatch
-  title: Люк
+  title: "[tools.recipes.hatch]"
   makes: hatch
   needs: {materials:planks: 3}
   at: workbench
   time: 4
 - id: hatch_2x2
-  title: Люк 2×2
+  title: "[tools.recipes.hatch_2x2]"
   makes: hatch_2x2
   needs: {materials:planks: 10}
   at: workbench

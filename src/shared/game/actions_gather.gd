@@ -81,7 +81,7 @@ func trunk_cell(who, col: Vector2i) -> Vector3i:
 func chop(who, cell: Vector3i) -> Dictionary:
 	var t: Dictionary = who.tool()
 	if not Tools.can_chop(t):
-		who.nag("tool", "Дерево рубят топором")
+		who.nag("tool", "[trees_are_chopped_with_an]")
 		return {}
 	if not _is_trunk(cell) or not _may(who, cell, "harvest") or not who.act("chop", "chop"):
 		return {}
@@ -188,7 +188,7 @@ func gather(who, target: Dictionary) -> bool:
 	elif Tools.can_dig_out(t):
 		done = _dig_out(who, target.bush)
 	else:
-		who.nag("bush", "Куст: руки собирают, топор рубит, лопата выкапывает")
+		who.nag("bush", "[bush_hands_gather_an_axe]")
 		return false
 	if done:
 		who.use_tool()
@@ -248,7 +248,7 @@ func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 						continue
 					most = -1 if past_limit else _light_enough(who.inventory, id)
 					if most == 0:
-						who.nag("heavy", "Сумка тяжёлая: вещи больше не поднимаются сами")
+						who.nag("heavy", "[the_bag_is_heavy_things]")
 						continue
 				world.take_drop(key, i)
 				var rest := _take(who, d, most, false)
@@ -372,11 +372,11 @@ func _take(who, d: Array, most := -1, tap := true) -> Array:
 			if got < s[1]:
 				rest.append([s[0], s[1] - got] + s.slice(2))
 		if rest.is_empty():
-			who.say("Вещи из мешка забраны")
+			who.say("[things_taken_from_the_sack]")
 		elif moved:
-			who.say("Забрано не всё: сумка полна")
+			who.say("[not_everything_was_taken_the]")
 		elif tap:
-			who.nag("sack_full", "Забрано не всё: сумка полна")
+			who.nag("sack_full", "[not_everything_was_taken_the]")
 		if rest.is_empty():
 			_forget_sack(who, d[1])
 		return [] if rest.is_empty() else [d[0], d[1], d[2], rest] + d.slice(4)
@@ -411,10 +411,10 @@ func _from_bush(who, cell: Vector3i) -> bool:
 		looks_changed.emit(WorldData.chunk_key(cell.x, cell.z))
 		return true
 	if b.twig == "":
-		who.nag("bush", Lang.line("%s: взять с него нечего", [b.title]))
+		who.nag("bush", Lang.line("[nothing_to_take_from_it]", [b.title]))
 		return false
 	if twigs_left(cell, b) <= 0:
-		who.nag("bush", "На кусте больше ничего нет до весны")
+		who.nag("bush", "[nothing_more_on_the_bush]")
 		return false
 	if not who.act("gather", "gather"):
 		return false
@@ -429,7 +429,7 @@ func _from_bush(who, cell: Vector3i) -> bool:
 func _knock_berries(who, cell: Vector3i) -> bool:
 	var b: Dictionary = Bushes.TYPES[world.bushes[cell]]
 	if not ripe(cell, b):
-		who.nag("bush", "Ягод на кусте нет" if b.fruit != "" else Lang.line("%s без ягод", [b.title]))
+		who.nag("bush", "[no_berries_on_the_bush]" if b.fruit != "" else Lang.line("[without_berries]", [b.title]))
 		return false
 	if not who.act("cut", "gather"):
 		return false
@@ -500,10 +500,10 @@ func _from_tree(who, col: Vector2i) -> bool:
 	var s: Dictionary = Trees.SPECIES[world.trees[col]]
 	var seeds := _tree_seeds_left(col, s) > 0
 	if not seeds and s.twig == "":
-		who.nag("tree", Lang.line("%s: взять с него нечего", [s.title]))
+		who.nag("tree", Lang.line("[nothing_to_take_from_it]", [s.title]))
 		return false
 	if not seeds and _tree_twigs_left(col, s) <= 0:
-		who.nag("tree", Lang.line("%s: больше ничего до весны", [s.title]))
+		who.nag("tree", Lang.line("[nothing_more_until_spring]", [s.title]))
 		return false
 	if not who.act("gather", "gather"):
 		return false

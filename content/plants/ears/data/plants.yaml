@@ -8,7 +8,7 @@
 # руками, а не срезают (так и пишет подсказка); winter: false — зимой его нет.
 - id: ears
   kind: ears
-  title: Колоски
+  title: "[plants.plants.ears]"
   gives: {grain: 2}
 # Пшеница — посев (kind crop, grows field): растёт только там, где зерно посеяли на грядку, и
 # только на мокрой, весной, летом и осенью; grow_days — сколько дней роста до спелости (картинки
@@ -16,7 +16,7 @@
 # погибает. mown — спелую можно скосить косой, не только собрать руками или серпом.
 - id: wheat
   kind: crop
-  title: Пшеница
+  title: "[plants.plants.wheat]"
   sprite: wheat
   frames: 4
   grows: field

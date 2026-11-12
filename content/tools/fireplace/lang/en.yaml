@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fireplace/bundle.yaml
-"Камин": "Fireplace"
+"[tools.fireplace.bundle]": "Fireplace"
 
 # content/tools/fireplace/data/items.yaml
-"Кирпичный очаг для дома. Греет как костёр, горит на топливе, на нём можно готовить.": "A brick hearth for the house. Warms like a campfire, burns fuel, and you can cook on it."
+"[tools.items.fireplace]": "Fireplace"
+"[tools.items.fireplace.about]": "A brick hearth for the house. Warms like a campfire, burns fuel, and you can cook on it."
+
+# content/tools/fireplace/data/recipes.yaml
+"[tools.recipes.fireplace]": "Fireplace"

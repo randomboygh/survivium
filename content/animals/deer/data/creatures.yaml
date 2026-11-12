@@ -3,7 +3,7 @@
 # sprites/creatures/<sprite>.png этого бандла, три кадра (стоит и два шага); biomes — где он живёт
 # (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml.
 - id: deer
-  title: Олень
+  title: "[animals.creatures.deer]"
   mass: 60
   diet: [plants]
   speed: 6.5

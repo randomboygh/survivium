@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/pickaxe/bundle.yaml
-"Кирка": "Pickaxe"
+"[tools.pickaxe.bundle]": "Pickaxe"
 
 # content/tools/pickaxe/data/items.yaml
-"Каменная кирка": "Stone pickaxe"
-"Деревянная кирка": "Wooden pickaxe"
-"Медная кирка": "Copper pickaxe"
-"Бронзовая кирка": "Bronze pickaxe"
-"Железная кирка": "Iron pickaxe"
-"Стальная кирка": "Steel pickaxe"
+"[tools.items.stone_pickaxe]": "Stone pickaxe"
+"[tools.items.wooden_pickaxe]": "Wooden pickaxe"
+"[tools.items.copper_pickaxe]": "Copper pickaxe"
+"[tools.items.bronze_pickaxe]": "Bronze pickaxe"
+"[tools.items.iron_pickaxe]": "Iron pickaxe"
+"[tools.items.steel_pickaxe]": "Steel pickaxe"
+
+# content/tools/pickaxe/data/recipes.yaml
+"[tools.recipes.stone_pickaxe]": "Stone pickaxe"
+"[tools.recipes.wooden_pickaxe]": "Wooden pickaxe"
+"[tools.recipes.copper_pickaxe]": "Copper pickaxe"
+"[tools.recipes.bronze_pickaxe]": "Bronze pickaxe"
+"[tools.recipes.iron_pickaxe]": "Iron pickaxe"
+"[tools.recipes.steel_pickaxe]": "Steel pickaxe"

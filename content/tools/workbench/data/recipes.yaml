@@ -3,7 +3,7 @@
 # кремень, камень и глина — «Ресурсы», верёвка, доски и кирпич — «Материалы». Все поля рецепта —
 # docs/DATA_MODEL.md.
 - id: workbench
-  title: Верстак
+  title: "[tools.recipes.workbench]"
   makes: workbench
   needs: {resources:branch: 8, materials:cord: 2}
   time: 6

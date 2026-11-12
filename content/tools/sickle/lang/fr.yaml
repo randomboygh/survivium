@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sickle/bundle.yaml
-"Серп": "Faucille"
+"[tools.sickle.bundle]": "Faucille"
 
 # content/tools/sickle/data/items.yaml
-"Каменный серп": "Faucille de pierre"
-"Жнёт спелый урожай с грядок, по три клетки за взмах.": "Moissonne la récolte mûre des plates-bandes, trois cases par coup."
-"Медный серп": "Faucille de cuivre"
-"Жнёт спелый урожай с грядок, по четыре клетки за взмах.": "Moissonne la récolte mûre des plates-bandes, quatre cases par coup."
-"Железный серп": "Faucille de fer"
-"Жнёт спелый урожай с грядок, по пять клеток за взмах.": "Moissonne la récolte mûre des plates-bandes, cinq cases par coup."
+"[tools.items.stone_sickle]": "Faucille de pierre"
+"[tools.items.stone_sickle.about]": "Moissonne la récolte mûre des plates-bandes, trois cases par coup."
+"[tools.items.copper_sickle]": "Faucille de cuivre"
+"[tools.items.copper_sickle.about]": "Moissonne la récolte mûre des plates-bandes, quatre cases par coup."
+"[tools.items.iron_sickle]": "Faucille de fer"
+"[tools.items.iron_sickle.about]": "Moissonne la récolte mûre des plates-bandes, cinq cases par coup."
+
+# content/tools/sickle/data/recipes.yaml
+"[tools.recipes.stone_sickle]": "Faucille de pierre"
+"[tools.recipes.copper_sickle]": "Faucille de cuivre"
+"[tools.recipes.iron_sickle]": "Faucille de fer"

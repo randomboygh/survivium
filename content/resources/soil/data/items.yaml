@@ -1,16 +1,16 @@
 # Земля, песок и глина в сумке; землю ставят ячейкой грунта основы, песок и глину — своими.
 - id: dirt
-  title: Земля
+  title: "[resources.items.dirt]"
   weight: 1.5
   stack: 20
   place: core:dirt
 - id: sand
-  title: Песок
+  title: "[resources.items.sand]"
   weight: 1.5
   stack: 20
   place: sand
 - id: clay
-  title: Глина
+  title: "[resources.items.clay]"
   weight: 1.5
   stack: 20
   place: clay

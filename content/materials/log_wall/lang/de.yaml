@@ -2,7 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/log_wall/bundle.yaml
-"Сруб": "Blockwand"
+"[materials.log_wall.bundle]": "Blockwand"
 
 # content/materials/log_wall/data/items.yaml
-"Отёсанные брёвна для стен и пола. Ставится блоком.": "Behauene Stämme für Wände und Böden. Wird als Block gesetzt."
+"[materials.items.log_wall]": "Blockwand"
+"[materials.items.log_wall.about]": "Behauene Stämme für Wände und Böden. Wird als Block gesetzt."
+
+# content/materials/log_wall/data/materials.yaml
+"[materials.materials.log_wall]": "Blockwand"
+
+# content/materials/log_wall/data/recipes.yaml
+"[materials.recipes.log_wall]": "Blockwand"

@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/tar/bundle.yaml
-"Смола": "Смола"
+"[materials.tar.bundle]": "Смола"
 
 # content/materials/tar/data/items.yaml
-"Густая чёрная смола из брёвен. Горит долго и ярко, склеивает.": "Густа чорна смола з колод. Горить довго й яскраво, склеює."
+"[materials.items.tar]": "Смола"
+"[materials.items.tar.about]": "Густа чорна смола з колод. Горить довго й яскраво, склеює."
+
+# content/materials/tar/data/recipes.yaml
+"[materials.recipes.tar]": "Смола"

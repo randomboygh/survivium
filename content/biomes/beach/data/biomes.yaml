@@ -10,6 +10,6 @@
 # для карты и отчётов. color — цвет на карте. tints — цвета грунта и воды биома вместо их собственных (по
 # именам поля top и water: {sand: "#e6dcbe", water: "#4cc6bc"}). Ссылки на породы и кусты мягкие: без их бандла доля пуста.
 - id: beach
-  title: Берег
+  title: "[biomes.biomes.beach]"
   where: beach
   color: "#d6c280"

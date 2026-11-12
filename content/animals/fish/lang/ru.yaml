@@ -1,0 +1,40 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/animals/fish/bundle.yaml
+"[animals.fish.bundle]": "Рыба"
+
+# content/animals/fish/data/creatures.yaml
+"[animals.creatures.roach]": "Плотва"
+"[animals.creatures.pike]": "Щука"
+"[animals.creatures.salmon]": "Лосось"
+"[animals.creatures.cod]": "Треска"
+"[animals.creatures.parrotfish]": "Рыба-попугай"
+"[animals.creatures.catfish]": "Сом"
+
+# content/animals/fish/data/items.yaml
+"[animals.items.roach]": "Плотва"
+"[animals.items.roach.about]": "Мелкая речная рыба. Её жарят на костре."
+"[animals.items.pike]": "Щука"
+"[animals.items.pike.about]": "Хищница тихих заводей. Её жарят на костре."
+"[animals.items.salmon]": "Лосось"
+"[animals.items.salmon.about]": "Рыба холодных северных рек. Её жарят на костре."
+"[animals.items.cod]": "Треска"
+"[animals.items.cod.about]": "Морская рыба холодного берега. Её жарят на костре."
+"[animals.items.parrotfish]": "Рыба-попугай"
+"[animals.items.parrotfish.about]": "Пёстрая рыба тёплого моря. Её жарят на костре."
+"[animals.items.catfish]": "Сом"
+"[animals.items.catfish.about]": "Большая рыба тёплых болот и рек. Её жарят на костре."
+"[animals.items.perch]": "Окунь"
+"[animals.items.perch.about]": "Полосатая рыба рек и озёр. Его жарят на костре."
+"[animals.items.roasted_fish]": "Жареная рыба"
+"[animals.items.roasted_fish.about]": "Рыба, зажаренная на костре. Сытная."
+
+# content/animals/fish/data/recipes.yaml
+"[animals.recipes.roasted_fish_from_roach]": "Жареная рыба"
+"[animals.recipes.roasted_fish_from_pike]": "Жареная рыба"
+"[animals.recipes.roasted_fish_from_salmon]": "Жареная рыба"
+"[animals.recipes.roasted_fish_from_cod]": "Жареная рыба"
+"[animals.recipes.roasted_fish_from_parrotfish]": "Жареная рыба"
+"[animals.recipes.roasted_fish_from_catfish]": "Жареная рыба"
+"[animals.recipes.roasted_fish_from_perch]": "Жареная рыба"

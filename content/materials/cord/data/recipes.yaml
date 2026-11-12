@@ -1,6 +1,6 @@
 # Верёвку вьют из волокна руками (бандл «Волокно» «Ресурсов»).
 - id: cord
-  title: Верёвка
+  title: "[materials.recipes.cord]"
   makes: cord
   needs: {resources:fiber: 3}
   process: refine

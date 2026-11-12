@@ -2,8 +2,8 @@
 # (любой, и тот, что косой не срезать), area клеток за взмах; заодно он срезает высокую траву
 # (mows: tall). Поля — как у предметов основы (content/core/data/items.yaml).
 - id: stone_sickle
-  title: Каменный серп
-  description: Жнёт спелый урожай с грядок, по три клетки за взмах.
+  title: "[tools.items.stone_sickle]"
+  description: "[tools.items.stone_sickle.about]"
   weight: 0.5
   stack: 1
   icon: sickle
@@ -17,8 +17,8 @@
   durability: 360
   repair: {resources:flint: 1, materials:cord: 1}
 - id: copper_sickle
-  title: Медный серп
-  description: Жнёт спелый урожай с грядок, по четыре клетки за взмах.
+  title: "[tools.items.copper_sickle]"
+  description: "[tools.items.copper_sickle.about]"
   weight: 0.6
   stack: 1
   icon: copper_sickle
@@ -32,8 +32,8 @@
   durability: 900
   repair: {materials:copper_bar: 1}
 - id: iron_sickle
-  title: Железный серп
-  description: Жнёт спелый урожай с грядок, по пять клеток за взмах.
+  title: "[tools.items.iron_sickle]"
+  description: "[tools.items.iron_sickle.about]"
   weight: 0.7
   stack: 1
   icon: iron_sickle

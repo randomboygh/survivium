@@ -12,6 +12,7 @@ extends "res://src/client/ui/kit/window.gd"
 
 const ServerList := preload("res://src/client/net/server_list.gd")
 const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const WIDTH := 240
 const FIELD_H := 30
@@ -48,15 +49,15 @@ func _init(g, url := "", error := "") -> void:
 
 
 func _ready() -> void:
-	build("Присоединиться")
+	build("[join]")
 	var recent := ServerList.recent()
-	_url = _field(box, "Адрес сервера", "wss://… или ws://адрес:порт")
+	_url = _field(box, "[server_address]", "[wss_or_ws_address_port]")
 	_url.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_URL
 	_url.text = _start_url if _start_url != "" else (recent[0].url if not recent.is_empty() else "")
-	_name = _field(box, "Имя", "как вас увидят другие")
+	_name = _field(box, "[name]", "[how_others_will_see_you]")
 	_name.max_length = ServerList.NAME_MAX
 	_name.text = ServerList.player_name()
-	_password = _field(box, "Пароль", "если сервер просит")
+	_password = _field(box, "[password]", "[if_the_server_asks]")
 	_password.secret = true
 	_password.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_PASSWORD
 	_error = Kit.note("", WIDTH, UiStyle.DANGER)
@@ -64,15 +65,15 @@ func _ready() -> void:
 	_say(_start_error)
 	_recent = Kit.column(4)
 	box.add_child(_recent)
-	_recent.add_child(Kit.caption("Недавние"))
+	_recent.add_child(Kit.caption("[recent]"))
 	_recent_rows = Kit.column(4)
 	# A finger dragged over the server buttons scrolls them too.
 	_recent_scroll = Kit.scroll(_recent_rows, false)
 	_recent.add_child(_recent_scroll)
 	_fill_recent(recent)
-	_go = Kit.accent_button("Подключиться", submit, WIDTH, ROW_H)
+	_go = Kit.accent_button("[connect]", submit, WIDTH, ROW_H)
 	box.add_child(_go)
-	_back = Kit.button("Назад", back, WIDTH, ROW_H)
+	_back = Kit.button("[back]", back, WIDTH, ROW_H)
 	box.add_child(_back)
 	show_fitted()
 	_announce.call_deferred()
@@ -122,16 +123,16 @@ func _fill_recent(recent: Array[Dictionary]) -> void:
 	_recent_scroll.custom_minimum_size = Vector2(WIDTH, maxi(shown * (FORGET + 4) - 4, 0))
 	for r: Dictionary in recent:
 		var row := Kit.row(4)
-		var title: String = r.title if r.title != "" else "Сервер"
+		var title: String = r.title if r.title != "" else "[server_name]"
 		var url: String = r.url
-		var b := Kit.button("%s\n%s" % [title, _short(r.url)], func() -> void:
+		var b := Kit.button(Lang.line("%s\n%s", [title, _short(r.url)]), func() -> void:
 			_url.text = url
 			_say(""), WIDTH - FORGET - 4, FORGET)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.clip_text = true
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(b)
-		row.add_child(_bins.guard(Kit.icon_button("trash", "Убрать сервер из списка (нажать дважды)", Callable(), FORGET),
+		row.add_child(_bins.guard(Kit.icon_button("trash", "[remove_the_server_from_the]", Callable(), FORGET),
 			_forget.bind(url)))
 		_recent_rows.add_child(row)
 
@@ -157,7 +158,7 @@ func submit() -> void:
 	var why := ServerList.problem(url, _secure_page())
 	var name := _name.text.strip_edges()
 	if why == "" and name == "":
-		why = "Введите имя"
+		why = "[enter_a_name]"
 	if why != "":
 		_say(why)
 		return

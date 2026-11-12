@@ -2,10 +2,16 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/tin/bundle.yaml
-"Олово": "Cyna"
+"[materials.tin.bundle]": "Cyna"
 
 # content/materials/tin/data/items.yaml
-"Оловянная руда": "Ruda cyny"
-"Тёмная тяжёлая руда со светлыми крупинками. Её берёт медная кирка.": "Ciemna ciężka ruda z jasnymi ziarenkami. Wydobywa ją miedziany kilof."
-"Слиток олова": "Sztabka cyny"
-"Мягкий серебристый металл. С медью даёт бронзу.": "Miękki srebrzysty metal. Z miedzią daje brąz."
+"[materials.items.tin_ore]": "Ruda cyny"
+"[materials.items.tin_ore.about]": "Ciemna ciężka ruda z jasnymi ziarenkami. Wydobywa ją miedziany kilof."
+"[materials.items.tin_bar]": "Sztabka cyny"
+"[materials.items.tin_bar.about]": "Miękki srebrzysty metal. Z miedzią daje brąz."
+
+# content/materials/tin/data/materials.yaml
+"[materials.materials.tin_ore]": "Ruda cyny"
+
+# content/materials/tin/data/recipes.yaml
+"[materials.recipes.tin_bar]": "Sztabka cyny"

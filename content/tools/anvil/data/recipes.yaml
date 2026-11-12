@@ -1,6 +1,6 @@
 # Рецепт бандла «Наковальня»: железо «Материалов» на бревне «Ресурсов», на верстаке.
 - id: anvil
-  title: Наковальня
+  title: "[tools.recipes.anvil]"
   makes: anvil
   needs: {materials:iron_bar: 5, resources:log: 1}
   at: workbench

@@ -336,7 +336,7 @@ func _test_placed() -> void:
 	_check(who.inventory.count("tools:stone_axe") == 0 and shop.waiting(), "away from the workbench the work waits")
 	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
 	shop.update(axe.time + 1.0)
-	_check(who.inventory.count("tools:stone_axe") == 1 and who.said.has("Готово: %s" % axe.title), "near it the axe is made")
+	_check(who.inventory.count("tools:stone_axe") == 1 and who.said.any(func(x: String) -> bool: return Lang.t(x) == "Done: Stone axe"), "near it the axe is made")
 	for id in ["resources:flint", "materials:cord"]:
 		who.inventory.add(id, 1)
 	who.inventory.add("resources:branch", 2)
@@ -538,13 +538,13 @@ func _test_station_flags() -> void:
 	var mod := "res://content/_k"
 	DirAccess.make_dir_recursive_absolute(mod + "/data")
 	_write_file(mod + "/mod.yaml", "id: _k\ntitle: K\nversion: \"1\"\napi: 1\n")
-	_write_file(mod + "/data/items.yaml", "- {id: knife, title: Нож, weight: 0.3, stack: 1, tool: knife}\n"
-		+ "- {id: stone_knife, title: Каменный нож, weight: 0.3, stack: 1, tool: knife}\n"
-		+ "- {id: rack, title: Стойка, weight: 4, stack: 1, prop: rack, serves: [tools:workbench], place_tool: knife}\n"
-		+ "- {id: crate, title: Ящик, weight: 4, stack: 1, prop: crate, storage: 4}\n"
-		+ "- {id: odd, title: Странное, weight: 1, stack: 1, fire: true, tool: Big}\n"
-		+ "- {id: shelf, title: Полка, weight: 1, stack: 1, prop: shelf, serves: [crate], place_tool: saw}\n")
-	_write_file(mod + "/data/recipes.yaml", "- {id: crate, title: Ящик, makes: crate, needs: {resources:branch: 2}, at: crate}\n")
+	_write_file(mod + "/data/items.yaml", "- {id: knife, title: Knife, weight: 0.3, stack: 1, tool: knife}\n"
+		+ "- {id: stone_knife, title: Stone knife, weight: 0.3, stack: 1, tool: knife}\n"
+		+ "- {id: rack, title: Rack, weight: 4, stack: 1, prop: rack, serves: [tools:workbench], place_tool: knife}\n"
+		+ "- {id: crate, title: Crate, weight: 4, stack: 1, prop: crate, storage: 4}\n"
+		+ "- {id: odd, title: Odd, weight: 1, stack: 1, fire: true, tool: Big}\n"
+		+ "- {id: shelf, title: Shelf, weight: 1, stack: 1, prop: shelf, serves: [crate], place_tool: saw}\n")
+	_write_file(mod + "/data/recipes.yaml", "- {id: crate, title: Crate, makes: crate, needs: {resources:branch: 2}, at: crate}\n")
 	Content.refresh()
 	Mods.activate(Mods.all() + ["_k"])
 	var said := "\n".join(Content.problems + Items.check() + Crafting.check())
@@ -552,7 +552,7 @@ func _test_station_flags() -> void:
 		and "`_k:shelf`.serves: `_k:crate` is no other station" in said and "`_k:shelf`.place_tool: no item is a `saw`" in said
 		and "_k:crate.at: `_k:crate` is no station" in said,
 		"a class is a lowercase word, flags are a thing's set down, a thing serves stations and is set down with a tool some item is; what stores is no station: %s" % said)
-	_check(Tools.of("_k:knife") == Tools.HAND and Items.tool_title("knife") == "нож" and Items.tool_title("axe") == "топор"
+	_check(Tools.of("_k:knife") == Tools.HAND and Lang.t(Items.tool_title("knife")) == "knife" and Lang.t(Items.tool_title("axe")) == "axe"
 		and Items.is_station("_k:rack") and not Items.is_station("_k:crate") and Items.most_storage() == 48,
 		"a knife works in the world as bare hands; a class is named by the last word its items share")
 	var w := WorldData.new(40, Vector2i(48, 48))
@@ -566,7 +566,7 @@ func _test_station_flags() -> void:
 	who.position = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
 	who.inventory.add("_k:rack", 1)
 	_check(not placed.put_from_bag(who, "_k:rack", -1, 40) and placed.things.is_empty()
-		and who.said.back() == "Чтобы поставить, нужен инструмент: нож", "a rack is set down only with a knife in the bag")
+		and who.said.back() == "To place it you need a tool: knife", "a rack is set down only with a knife in the bag")
 	who.inventory.add("_k:stone_knife", 1)
 	_check(placed.put_from_bag(who, "_k:rack", -1, 40) and placed.things.size() == 1, "with a knife it is")
 	var rack: Dictionary = placed.things[0]
@@ -590,7 +590,7 @@ func _test_station_flags() -> void:
 			slot = i
 	var by_rack := Lang.t(shop.why_not_repair(slot))
 	who.position = Vector3(40.5, 2.0, 40.5) * WorldData.CELL
-	_check(by_rack.begins_with("Не хватает") and Lang.t(shop.why_not_repair(slot)) == "Чинят у станка: Верстак",
+	_check(by_rack.begins_with("Missing") and Lang.t(shop.why_not_repair(slot)) == "Repaired at a station: Workbench",
 		"tools are mended at a station that repairs (the workbench), or one that stands in for it: %s" % by_rack)
 	Mods.activate(before)
 	for f in ["data/items.yaml", "data/recipes.yaml", "mod.yaml"]:
@@ -612,12 +612,12 @@ func _test_recipe_fields() -> void:
 	var mod := "res://content/_r"
 	DirAccess.make_dir_recursive_absolute(mod + "/data")
 	_write_file(mod + "/mod.yaml", "id: _r\ntitle: R\nversion: \"1\"\napi: 1\n")
-	_write_file(mod + "/data/items.yaml", "- {id: knife, title: Нож, weight: 0.3, stack: 1, tool: knife, durability: 3}\n"
-		+ "- {id: mould, title: Форма, weight: 1, stack: 1}\n- {id: chips, title: Щепа, weight: 0.1, stack: 50, fuel: true}\n"
-		+ "- {id: cup, title: Чашка, weight: 0.2, stack: 10}\n")
-	_write_file(mod + "/data/recipes.yaml", "- {id: cup, title: Чашка, makes: cup, needs: {resources:branch: 1}, keeps: {mould: 1}, "
+	_write_file(mod + "/data/items.yaml", "- {id: knife, title: Knife, weight: 0.3, stack: 1, tool: knife, durability: 3}\n"
+		+ "- {id: mould, title: Mould, weight: 1, stack: 1}\n- {id: chips, title: Chips, weight: 0.1, stack: 50, fuel: true}\n"
+		+ "- {id: cup, title: Cup, weight: 0.2, stack: 10}\n")
+	_write_file(mod + "/data/recipes.yaml", "- {id: cup, title: Cup, makes: cup, needs: {resources:branch: 1}, keeps: {mould: 1}, "
 		+ "tools: [knife], wear: 1, also: [{item: chips, count: 2}, {item: resources:fiber, chance: 0.5}], time: 1}\n"
-		+ "- {id: chips, title: Щепа, makes: chips, needs: {resources:branch: 1}, tools: [Saw], wear: 2}\n")
+		+ "- {id: chips, title: Chips, makes: chips, needs: {resources:branch: 1}, tools: [Saw], wear: 2}\n")
 	Content.refresh()
 	Mods.activate(Mods.all() + ["_r"])
 	var said := "\n".join(Content.problems + Crafting.check())
@@ -629,15 +629,15 @@ func _test_recipe_fields() -> void:
 	placed.world = WorldData.new(4, Vector2i(16, 16))
 	var shop := Workshop.new(who, placed, Rules.of({"tool_wear": true, "instant_craft": true}))
 	who.inventory.add("resources:branch", 5)
-	_check(Lang.t(shop.why_not(cup)) == "Нужен инструмент: нож", "a cup needs a knife in the bag: %s" % Lang.t(shop.why_not(cup)))
+	_check(Lang.t(shop.why_not(cup)) == "Needs a tool: knife", "a cup needs a knife in the bag: %s" % Lang.t(shop.why_not(cup)))
 	who.inventory.add("_r:knife", 1)
-	_check(Lang.t(shop.why_not(cup)) == "Не хватает: 1 Форма", "and a mould: %s" % Lang.t(shop.why_not(cup)))
+	_check(Lang.t(shop.why_not(cup)) == "Missing: 1 Mould", "and a mould: %s" % Lang.t(shop.why_not(cup)))
 	who.inventory.add("_r:mould", 1)
 	_check(shop.why_not(cup) == "" and shop.start(cup, 3) == 3 and who.inventory.count("resources:branch") == 2
 		and who.inventory.count("_r:mould") == 1, "three cups are queued: a branch each is used up, the mould is kept")
 	who.inventory.remove("_r:mould", 1)
 	shop.update(0.01)
-	_check(who.inventory.count("_r:cup") == 0 and shop.waiting() and shop.waits_for(cup) == "Форма",
+	_check(who.inventory.count("_r:cup") == 0 and shop.waiting() and shop.waits_for(cup) == "Mould",
 		"without the mould in the bag the work waits for it")
 	who.inventory.add("_r:mould", 1)
 	shop.update(0.01)
@@ -650,7 +650,7 @@ func _test_recipe_fields() -> void:
 	shop.update(0.01)
 	shop.update(0.01)
 	_check(who.inventory.count("_r:cup") == 3 and who.inventory.count("_r:chips") == 6 and who.inventory.count("_r:knife") == 0
-		and who.said.has("Сломалось: Нож"), "a knife that lasts three swings breaks with the third cup")
+		and who.said.has("Broke: Knife"), "a knife that lasts three swings breaks with the third cup")
 	var fiber := 0
 	for n in 3:
 		fiber += Crafting.outputs(cup, n).get("resources:fiber", 0)

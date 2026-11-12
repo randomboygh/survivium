@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/drying_rack/bundle.yaml
-"Сушилка": "Secadero"
+"[tools.drying_rack.bundle]": "Secadero"
 
 # content/tools/drying_rack/data/items.yaml
-"Рама из веток. На ней выделывают шкуры и вялят мясо.": "Un bastidor de ramas. En él se curten pieles y se seca carne."
+"[tools.items.drying_rack]": "Secadero"
+"[tools.items.drying_rack.about]": "Un bastidor de ramas. En él se curten pieles y se seca carne."
+
+# content/tools/drying_rack/data/recipes.yaml
+"[tools.recipes.drying_rack]": "Secadero"

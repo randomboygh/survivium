@@ -2,9 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/turnip/bundle.yaml
-"Репа": "Nabo"
+"[plants.turnip.bundle]": "Nabo"
 
 # content/plants/turnip/data/items.yaml
-"Семена репы": "Semillas de nabo"
-"Мелкие тёмные семена. Посейте их на грядку весной.": "Semillas pequeñas y oscuras. Siémbralas en un bancal en primavera."
-"Круглый сладковатый корнеплод. Лежит долго.": "Una raíz redonda y dulzona. Se conserva mucho tiempo."
+"[plants.items.turnip_seeds]": "Semillas de nabo"
+"[plants.items.turnip_seeds.about]": "Semillas pequeñas y oscuras. Siémbralas en un bancal en primavera."
+"[plants.items.turnip]": "Nabo"
+"[plants.items.turnip.about]": "Una raíz redonda y dulzona. Se conserva mucho tiempo."
+
+# content/plants/turnip/data/plants.yaml
+"[plants.plants.turnip]": "Nabo"

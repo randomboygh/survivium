@@ -1,31 +1,31 @@
 # Окно собирают из доски и стекла («Материалы») на верстаке.
 - id: window
-  title: Окно
+  title: "[tools.recipes.window]"
   makes: window
   needs: {materials:planks: 1, materials:glass: 2}
   at: workbench
   time: 4
 # Окна больше: по два стекла на клетку, досок на раму — по числу клеток вдоль края.
 - id: window_1x2
-  title: Окно 1×2
+  title: "[tools.recipes.window_1x2]"
   makes: window_1x2
   needs: {materials:planks: 2, materials:glass: 4}
   at: workbench
   time: 5
 - id: window_2x1
-  title: Окно 2×1
+  title: "[tools.recipes.window_2x1]"
   makes: window_2x1
   needs: {materials:planks: 2, materials:glass: 4}
   at: workbench
   time: 5
 - id: window_2x2
-  title: Окно 2×2
+  title: "[tools.recipes.window_2x2]"
   makes: window_2x2
   needs: {materials:planks: 3, materials:glass: 8}
   at: workbench
   time: 7
 - id: window_3x2
-  title: Окно 3×2
+  title: "[tools.recipes.window_3x2]"
   makes: window_3x2
   needs: {materials:planks: 4, materials:glass: 12}
   at: workbench

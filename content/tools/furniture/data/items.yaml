@@ -5,8 +5,8 @@
 # (bedding). Шкаф и бочка хранят (storage), в бочке еда портится в `keeps` раза медленнее.
 # Поля — как у предметов основы (content/core/data/items.yaml).
 - id: table
-  title: Стол
-  description: Дощатый стол на четырёх ножках, на две клетки.
+  title: "[tools.items.table]"
+  description: "[tools.items.table.about]"
   weight: 8.0
   stack: 1
   icon: table
@@ -14,8 +14,8 @@
   prop: table
   furniture: true
 - id: stool
-  title: Табурет
-  description: Посиди рядом — силы возвращаются вдвое быстрее.
+  title: "[tools.items.stool]"
+  description: "[tools.items.stool.about]"
   weight: 2.0
   stack: 4
   icon: stool
@@ -24,8 +24,8 @@
   furniture: true
   seat: 2.0
 - id: wooden_bed
-  title: Кровать
-  description: Деревянная кровать с холщовым тюфяком. Сон на ней восстанавливает лучше любой подстилки.
+  title: "[tools.items.wooden_bed]"
+  description: "[tools.items.wooden_bed.about]"
   weight: 12.0
   stack: 1
   icon: wooden_bed
@@ -34,8 +34,8 @@
   furniture: true
   bedding: 2.5
 - id: cupboard
-  title: Шкаф
-  description: Высокий шкаф из досок, хранит больше сундука.
+  title: "[tools.items.cupboard]"
+  description: "[tools.items.cupboard.about]"
   weight: 14.0
   stack: 1
   icon: cupboard
@@ -44,8 +44,8 @@
   furniture: true
   storage: 24
 - id: wide_cupboard
-  title: Широкий шкаф
-  description: Шкаф на две клетки в ширину и две в высоту, с четырьмя дверцами. Хранит больше большого сундука.
+  title: "[tools.items.wide_cupboard]"
+  description: "[tools.items.wide_cupboard.about]"
   weight: 24.0
   stack: 1
   icon: wide_cupboard
@@ -54,8 +54,8 @@
   furniture: true
   storage: 48
 - id: barrel
-  title: Бочка
-  description: Бочка в обручах. Еда в ней портится вдвое медленнее.
+  title: "[tools.items.barrel]"
+  description: "[tools.items.barrel.about]"
   weight: 6.0
   stack: 1
   icon: barrel
@@ -65,8 +65,8 @@
   storage: 8
   keeps: 0.5
 - id: rug
-  title: Половик
-  description: Тканый половик для пола, на две клетки.
+  title: "[tools.items.rug]"
+  description: "[tools.items.rug.about]"
   weight: 1.5
   stack: 4
   icon: rug

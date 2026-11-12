@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/sling/bundle.yaml
+"[tools.sling.bundle]": "Праща"
+
+# content/tools/sling/data/items.yaml
+"[tools.items.cord_sling]": "Праща"
+"[tools.items.cord_sling.about]": "Ремень из верёвки: мечет камешки дальше, чем рука."
+"[tools.items.sling_stone]": "Камешки"
+"[tools.items.sling_stone.about]": "Круглые камешки для пращи."
+
+# content/tools/sling/data/recipes.yaml
+"[tools.recipes.cord_sling]": "Праща"
+"[tools.recipes.sling_stone]": "Камешки"

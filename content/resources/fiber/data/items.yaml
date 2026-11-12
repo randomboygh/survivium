@@ -1,6 +1,6 @@
 # Волокно: его дают трава основы (срезанная или выкопанная) и высокие травы «Растений».
 - id: fiber
-  title: Волокно
+  title: "[resources.items.fiber]"
   weight: 0.05
   stack: 50
   model: fiber

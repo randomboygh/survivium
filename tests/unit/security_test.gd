@@ -142,7 +142,7 @@ func _test_requests() -> void:
 	_check(req._rule(Protocol.SIGN_WRITE, [sign.cell, "Привет\u202e\n" + "y".repeat(40)]) == true
 		and p[0].placed.at(sign.cell).text == "Привет\n" + "y".repeat(20), "what is written is made safe and cut to the sign")
 	var far_sign: Dictionary = p[0].placed.put("tools:sign", Vector3i(28, 2, 28))
-	_check(req._rule(Protocol.SIGN_WRITE, [far_sign.cell, "далеко"]) == false and req._rule(Protocol.SIGN_TURN, [far_sign.cell]) == false,
+	_check(req._rule(Protocol.SIGN_WRITE, [far_sign.cell, "too far"]) == false and req._rule(Protocol.SIGN_TURN, [far_sign.cell]) == false,
 		"a sign out of reach is neither written nor turned")
 	_check(req.PACED.has(Protocol.SIGN_WRITE) and req.PACED.has(Protocol.SIGN_TURN), "writing and turning take the hands' time")
 	_check(req._rule(Protocol.GESTURE, ["dance_forever"]) == false and a.gesture == "" and req._rule(Protocol.GESTURE, [3]) == null,
@@ -229,7 +229,7 @@ func _test_door() -> void:
 	var hello := func(name: String, key := "", password := "тайна", from := "10.0.0.9") -> String:
 		return net._refusal([Protocol.VERSION, Protocol.build_version(), name, key, password], from)
 	_check(hello.call("Аня") == "" and hello.call("  ") == Protocol.WHY_NAME, "a name is needed")
-	_check(hello.call("Сервер") == Protocol.WHY_TAKEN and hello.call("ADMIN") == Protocol.WHY_TAKEN, "the server's own names are not taken")
+	_check(hello.call("Server") == Protocol.WHY_TAKEN and hello.call("ADMIN") == Protocol.WHY_TAKEN, "the server's own names are not taken")
 	var a := Server.Account.new()
 	a.id = 1
 	a.name = "Аня"
@@ -265,7 +265,7 @@ func _test_commands() -> void:
 	net.test_command = func(rest: String, _role: int) -> String:
 		asked.append(rest)
 		return "ок"
-	_check(net.command("test bot+", Server.ROLE_PLAYER).contains("хозяина") and asked.is_empty(),
+	_check(Lang.t(net.command("test bot+", Server.ROLE_PLAYER)).contains("host") and asked.is_empty(),
 		"a player gives «test» on no server but a playtest one")
 	_check(net.command("test bot+", Server.ROLE_HOST) == "ок" and asked == ["bot+"], "a host gives it on any")
 	cfg.playtest = true
@@ -295,7 +295,7 @@ func _test_cheats() -> void:
 		and a.haste == 1.0 and a.vitals.hunger and not s.rules.free_items, "a server that is not a playtest one takes none")
 	req.may_cheat = true
 	req.handle(["cheats", 2, [{"speed": 1000.0, "air": true, "skill": -5, "hunger": false, "free_items": true,
-		"boost": "много", "season": 9, "weather": -7, "moon": 0.5, "hour": NAN, "nothing": 1}]])
+		"boost": "many", "season": 9, "weather": -7, "moon": 0.5, "hour": NAN, "nothing": 1}]])
 	_check(a.haste == 8.0 and a.body.speed_scale == 8.0 and a.cheat_air and a.skills.rate == 0.0,
 		"on a playtest one the player's own switches are taken, clamped: %s %s" % [a.haste, a.skills.rate])
 	_check(not a.vitals.hunger and s.rules.free_items and s.clock.season == 3 and s.clock.weather_auto

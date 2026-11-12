@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-"""The phrases of the game and what each language lacks (decision 183, src/shared/content/lang.gd).
+"""The phrases of the game and what each language lacks (decisions 183, 186, src/shared/content/lang.gd).
 
-The game is written in Russian: every Russian string literal in src/ (but logs: print,
-push_error, the server's console) and every title and description in content/ is a
-phrase a language translates. The code's go to content/core/lang/<code>.yaml, a mod's
-manifest's to content/<mod>/lang/, a bundle's data and manifest's to <bundle>/lang/.
+Every text a player reads is a key in square brackets, `"[bag_is_full]"`: each such
+string literal in src/ (but logs: print, push_error...) and each `title` / `description`
+in content/. The code's go to content/core/lang/<code>.yaml, a mod's manifest's to
+content/<mod>/lang/, a bundle's data and manifest's to <bundle>/lang/. A key there is
+`[<mod>.<kind>.<id>]` (`[tools.items.stone_axe]`, its description `….about`), a mod's
+`[<mod>.mod]`, a bundle's `[<mod>.<bundle>.bundle]`.
 
-    python3 tools/lang_check.py                 what every language lacks, exit 1 on a broken file
-                                                or a phrase glued to values (glued)
-    python3 tools/lang_check.py --write en      adds the phrases en lacks, empty, to its files,
-                                                and drops those no longer used
-    python3 tools/lang_check.py --missing en    the phrases en lacks, as JSON {key: file}
-    python3 tools/lang_check.py --strict en     exit 1 when en lacks a phrase too
+    python3 tools/lang_check.py                 what every language lacks, exit 1 on a broken file,
+                                                a key glued to values (glued), Russian text in the code
+                                                or a title / description that is no key
+    python3 tools/lang_check.py --write ru      adds the keys ru lacks, empty, to its files, and drops
+                                                those no longer used
+    python3 tools/lang_check.py --missing ru    the keys ru lacks, as JSON {key: file}
+    python3 tools/lang_check.py --strict en,ru  exit 1 when one of these lacks a key too
 
-A translation must keep the template's `%s`, `%d`... in the same order.
+A translation must keep the English's `%s`, `%d`... in the same order.
 """
 import json
 import os
@@ -23,13 +26,15 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONTENT = os.path.join(ROOT, "content")
 LANGS = ["en", "ru", "es", "pt", "fr", "de", "it", "pl", "tr", "uk"]
-SOURCE = "ru"
+SOURCE = "en"
 RUSSIAN = re.compile(r"[А-Яа-яЁё]")
+KEY = re.compile(r"^\[[a-z0-9_.]+\]$")
 LITERAL = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
 FORMAT = re.compile(r"%[-+ 0#]*\d*(?:\.\d+)?[sdifxXc%]")
-# Files whose phrases only the server's console shows.
-CONSOLE = {"src/server/server_main.gd", "src/server/real_weather.gd", "src/server/tunnel.gd",
-           "src/shared/content/content_graph.gd"}
+# The languages' own names (Lang.LANGS), and the names no player may take (Server.RESERVED_NAMES):
+# the Russian text the code may hold.
+OWN_NAMES = {"src/shared/content/lang.gd"}
+RESERVED = {"сервер", "админ", "система"}
 LOG_CALLS = ("print(", "printerr(", "push_error(", "push_warning(", "assert(", "print_debug(")
 # Files where a phrase may be glued to values with `%` or `+` (see glued): the server's
 # replies to commands (its console, an op's chat, «/test» from a host or on a playtest server), the draw census of the stats panel,
@@ -94,8 +99,6 @@ def code_texts():
                 continue
             path = os.path.join(base, f)
             rel = os.path.relpath(path, ROOT)
-            if rel in CONSOLE:
-                continue
             with open(path, encoding="utf-8") as fh:
                 raw_lines = fh.read().split("\n")
             kept = []
@@ -113,11 +116,25 @@ def code_phrases():
             for m in RUN.finditer(text):
                 parts = [m.group(1)] + re.findall(r'"((?:[^"\\\n]|\\.)*)"', m.group(2) or "")
                 s = "".join(unescape(x) for x in parts)
-                if RUSSIAN.search(s):
+                if KEY.match(s):
                     out.setdefault(s, "%s:%d" % (rel, text.count("\n", 0, m.start()) + 1))
     return out
 
 
+def russian_in_code():
+    """["file:line: text"] of Russian text in the code: a player's text is a key."""
+    out = []
+    for rel, text in code_texts():
+        if rel in OWN_NAMES:
+            continue
+        for m in RUN.finditer(text):
+            if RUSSIAN.search(m.group(0)) and m.group(1) not in RESERVED:
+                n = text.count("\n", 0, m.start()) + 1
+                out.append("%s:%d: %s" % (rel, n, text.split("\n")[n - 1].strip()))
+    return out
+
+
+TOOL_FIELD = re.compile(r"(?:^|[{,\s])tool:\s*([a-z_]+)")
 YAML_FIELD = re.compile(r"^\s*(?:-\s+)?(title|description):\s*(.+?)\s*$")
 
 
@@ -135,14 +152,14 @@ def yaml_scalar(v):
 def glued():
     """["file:line: text"] of phrases put together with values by `%` or `+` instead of
     Lang.line / Lang.f: the table has the template, not the text made of it, so it
-    stays Russian on the screen."""
+    shows as the key on the screen."""
     out = []
     for rel, text in code_texts():
         if rel in GLUE_OK:
             continue
         for m in RUN.finditer(text):
             parts = [m.group(1)] + re.findall(r'"((?:[^"\\\n]|\\.)*)"', m.group(2) or "")
-            if not RUSSIAN.search("".join(parts)):
+            if not KEY.match("".join(parts)):
                 continue
             after = text[m.end():].lstrip(" \t")
             before = text[:m.start()].rstrip(" \t\n\\")
@@ -152,9 +169,14 @@ def glued():
     return out
 
 
+NOT_KEYS = []
+
+
 def content_phrases():
-    """{lang dir (relative to content/): {phrase: file}} of the content's titles and descriptions."""
+    """{lang dir (relative to content/): {phrase: file}} of the content's titles and descriptions;
+    the ones that are no key go to NOT_KEYS."""
     out = {}
+    del NOT_KEYS[:]
     for base, dirs, files in os.walk(CONTENT):
         dirs.sort()
         rel_base = os.path.relpath(base, CONTENT)
@@ -172,12 +194,21 @@ def content_phrases():
                 continue
             with open(path, encoding="utf-8") as fh:
                 for n, raw in enumerate(fh, 1):
+                    # A tool class is named by the key [tool.<class>] (Items.tool_title), core's or the mod's own.
+                    t = TOOL_FIELD.search(raw) if f == "items.yaml" else None
+                    if t and t.group(1) != "none":
+                        key = "[tool.%s]" % t.group(1)
+                        if not any(key in o for o in out.values()):
+                            out.setdefault("core", {})[key] = "%s:%d" % (os.path.relpath(path, ROOT), n)
                     m = YAML_FIELD.match(raw)
                     if not m:
                         continue
                     s = yaml_scalar(m.group(2))
-                    if RUSSIAN.search(s):
-                        out.setdefault(owner, {}).setdefault(s, "%s:%d" % (os.path.relpath(path, ROOT), n))
+                    where = "%s:%d" % (os.path.relpath(path, ROOT), n)
+                    if KEY.match(s):
+                        out.setdefault(owner, {}).setdefault(s, where)
+                    elif s:
+                        NOT_KEYS.append("%s: %s" % (where, s))
     return out
 
 
@@ -255,15 +286,25 @@ def main(argv):
             path = lang_path(owner, code)
             write_lang(path, phrases, read_lang(path))
         return 0
-    strict = argv[argv.index("--strict") + 1] if "--strict" in argv else None
+    strict = argv[argv.index("--strict") + 1].split(",") if "--strict" in argv else []
     bad = 0
     for g in glued():
         print("glued, not a line: " + g)
         bad += 1
+    for g in russian_in_code():
+        print("text in the code, not a key: " + g)
+        bad += 1
+    for g in NOT_KEYS:
+        print("a title or description that is no key: " + g)
+        bad += 1
     total = sum(len(p) for p in want.values())
+    english = {}
+    for owner in want:
+        try:
+            english.update(read_lang(lang_path(owner, SOURCE)))
+        except ValueError:
+            pass
     for code in LANGS:
-        if code == SOURCE:
-            continue
         lacks = 0
         files = 0
         for owner, phrases in want.items():
@@ -276,14 +317,14 @@ def main(argv):
                 continue
             files += os.path.exists(path)
             for k, v in have.items():
-                if v and formats(k) != formats(v):
-                    print("%s: %s keeps not the template's %s: %s" % (os.path.relpath(path, ROOT), quote(k),
-                                                                       " ".join(formats(k)), quote(v)))
+                if v and code != SOURCE and k in english and formats(english[k]) != formats(v):
+                    print("%s: %s keeps not the English %s: %s" % (os.path.relpath(path, ROOT), quote(k),
+                                                                     " ".join(formats(english[k])), quote(v)))
                     bad += 1
             lacks += sum(1 for k in phrases if not have.get(k))
         if files:
             print("%s: %d of %d phrases" % (code, total - lacks, total))
-            if code == strict and lacks:
+            if code in strict and lacks:
                 bad += 1
     print("lang: %d phrases, %d problems" % (total, bad))
     return 1 if bad else 0

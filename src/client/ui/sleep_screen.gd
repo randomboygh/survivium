@@ -36,7 +36,7 @@ func _ready() -> void:
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_theme_stylebox_override("panel", UiStyle.panel(UiStyle.TIGHT))
 	box.add_child(panel)
-	_line = UiStyle.label("Сон… Коснитесь экрана, чтобы проснуться")
+	_line = UiStyle.label("[sleeping_touch_the_screen_to]")
 	_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(_line)
 	visible = false

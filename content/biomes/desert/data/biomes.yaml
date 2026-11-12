@@ -10,7 +10,7 @@
 # для карты и отчётов. color — цвет на карте. tints — цвета грунта и воды биома вместо их собственных (по
 # именам поля top и water: {sand: "#e6dcbe", water: "#4cc6bc"}). Ссылки на породы и кусты мягкие: без их бандла доля пуста.
 - id: desert
-  title: Пустыня
+  title: "[biomes.biomes.desert]"
   zone: hot
   warmth: [0.66, 1.0]
   moisture: [0.0, 0.56]

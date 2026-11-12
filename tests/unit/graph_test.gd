@@ -17,15 +17,15 @@ const Eras := preload("res://src/shared/content/eras.gd")
 const DEAD := {
 	"axe": {
 		"materials": "- {id: trunk, title: Ствол, role: trunk, dig: axe, item: wood}\n- {id: crown, title: Крона, role: crown, dig: hand}\n",
-		"items": "- {id: wood, title: Дерево, weight: 1, stack: 10}\n- {id: axe, title: Топор, weight: 1, stack: 1, tool: axe, power: 1}\n",
+		"items": "- {id: wood, title: Wood, weight: 1, stack: 10}\n- {id: axe, title: Axe, weight: 1, stack: 1, tool: axe, power: 1}\n",
 		"trees": "- id: big\n  title: Большое\n  leaves: broad\n  trunk: [4, 6]\n  crown: [2.0, 2.0, 2.0]\n  tints: [\"#336633\"]\n  log: wood\n",
-		"biomes": "- id: woods\n  title: Лес\n  color: \"#336633\"\n  trees: {big: 1.0}\n  tree_chance: 0.5\n",
-		"recipes": "- {id: axe, title: Топор, makes: axe, needs: {wood: 2}}\n",
+		"biomes": "- id: woods\n  title: Forest\n  color: \"#336633\"\n  trees: {big: 1.0}\n  tree_chance: 0.5\n",
+		"recipes": "- {id: axe, title: Axe, makes: axe, needs: {wood: 2}}\n",
 	},
 	"bench": {
-		"items": "- {id: rod, title: Прут, weight: 0.5, stack: 20}\n- {id: bench, title: Верстак, weight: 5, stack: 1, prop: workbench}\n"
-			+ "- {id: pick, title: Кирка, weight: 1, stack: 1, tool: pickaxe, power: 1}\n",
-		"recipes": "- {id: bench, title: Верстак, makes: bench, needs: {rod: 2}, tools: [pickaxe]}\n- {id: pick, title: Кирка, makes: pick, needs: {rod: 1}, at: bench}\n",
+		"items": "- {id: rod, title: Прут, weight: 0.5, stack: 20}\n- {id: bench, title: Workbench, weight: 5, stack: 1, prop: workbench}\n"
+			+ "- {id: pick, title: Pickaxe, weight: 1, stack: 1, tool: pickaxe, power: 1}\n",
+		"recipes": "- {id: bench, title: Workbench, makes: bench, needs: {rod: 2}, tools: [pickaxe]}\n- {id: pick, title: Pickaxe, makes: pick, needs: {rod: 1}, at: bench}\n",
 		"starts": "- {id: core:default, patch: true, bag+: {_dead:rod: 10}}\n",
 	},
 	"kiln": {
@@ -34,9 +34,9 @@ const DEAD := {
 		"starts": "- {id: core:default, patch: true, bag+: {_dead:clod: 10}}\n",
 	},
 	"anvil": {
-		"items": "- {id: chip, title: Щепа, weight: 0.1, stack: 20}\n- {id: anvil, title: Наковальня, weight: 9, stack: 1, prop: forge}\n"
+		"items": "- {id: chip, title: Щепа, weight: 0.1, stack: 20}\n- {id: anvil, title: Anvil, weight: 9, stack: 1, prop: forge}\n"
 			+ "- {id: blade, title: Клинок, weight: 1, stack: 1, tool: sword, power: 1}\n",
-		"recipes": "- {id: anvil, title: Наковальня, makes: anvil, needs: {chip: 3}, tools: [sword]}\n- {id: blade, title: Клинок, makes: blade, needs: {chip: 1}, at: anvil}\n",
+		"recipes": "- {id: anvil, title: Anvil, makes: anvil, needs: {chip: 3}, tools: [sword]}\n- {id: blade, title: Клинок, makes: blade, needs: {chip: 1}, at: anvil}\n",
 		"starts": "- {id: core:default, patch: true, bag+: {_dead:chip: 10}}\n",
 	},
 	"ammo": {
@@ -46,7 +46,7 @@ const DEAD := {
 	},
 	"crop": {
 		"items": "- {id: wheat_seed, title: Семя, weight: 0.1, stack: 50, sow: core:grass, crop: wheat}\n- {id: husk, title: Шелуха, weight: 0.1, stack: 50, fuel: true}\n",
-		"plants": "- {id: wheat, title: Пшеница, kind: ears, gives: {husk: 1}}\n- {id: wild, title: Дикий колос, kind: ears, gives: {husk: 1}}\n",
+		"plants": "- {id: wheat, title: Wheat, kind: ears, gives: {husk: 1}}\n- {id: wild, title: Дикий колос, kind: ears, gives: {husk: 1}}\n",
 		"creatures": "- id: goat\n  title: Коза\n  mass: 30\n  diet: [plants]\n  speed: 2\n  sight: 8\n  human_wariness: 0.5\n  active: day\n  likes: [wheat]\n",
 	},
 	"loop": {
@@ -60,20 +60,20 @@ const DEAD := {
 	# Not a dead end: the bench needs pegs made only at a bench, but a rack set down (with a
 	# knife in the bag) stands in for it.
 	"serve": {
-		"items": "- {id: rod, title: Прут, weight: 0.5, stack: 20}\n- {id: knife, title: Нож, weight: 0.3, stack: 1, tool: knife}\n"
-			+ "- {id: bench, title: Верстак, weight: 5, stack: 1, prop: workbench}\n- {id: peg, title: Колышек, weight: 0.1, stack: 20, fuel: true}\n"
+		"items": "- {id: rod, title: Прут, weight: 0.5, stack: 20}\n- {id: knife, title: Knife, weight: 0.3, stack: 1, tool: knife}\n"
+			+ "- {id: bench, title: Workbench, weight: 5, stack: 1, prop: workbench}\n- {id: peg, title: Колышек, weight: 0.1, stack: 20, fuel: true}\n"
 			+ "- {id: rack, title: Стойка, weight: 4, stack: 1, prop: rack, serves: [bench], place_tool: knife}\n",
-		"recipes": "- {id: knife, title: Нож, makes: knife, needs: {rod: 1}}\n- {id: rack, title: Стойка, makes: rack, needs: {rod: 2}}\n"
-			+ "- {id: peg, title: Колышек, makes: peg, needs: {rod: 1}, at: bench}\n- {id: bench, title: Верстак, makes: bench, needs: {peg: 2}}\n",
+		"recipes": "- {id: knife, title: Knife, makes: knife, needs: {rod: 1}}\n- {id: rack, title: Стойка, makes: rack, needs: {rod: 2}}\n"
+			+ "- {id: peg, title: Колышек, makes: peg, needs: {rod: 1}, at: bench}\n- {id: bench, title: Workbench, makes: bench, needs: {peg: 2}}\n",
 		"starts": "- {id: core:default, patch: true, bag+: {_dead:rod: 10}}\n",
 	},
 	# Not a dead end: a cup is made with a mould kept in the bag and a knife, and gives chips
 	# besides, of which rods are made again: a loop that gives back more than it takes.
 	"keep": {
-		"items": "- {id: rod, title: Прут, weight: 0.5, stack: 20}\n- {id: knife, title: Нож, weight: 0.3, stack: 1, tool: knife}\n"
+		"items": "- {id: rod, title: Прут, weight: 0.5, stack: 20}\n- {id: knife, title: Knife, weight: 0.3, stack: 1, tool: knife}\n"
 			+ "- {id: mould, title: Форма, weight: 1, stack: 1}\n- {id: cup, title: Чашка, weight: 0.2, stack: 10}\n"
 			+ "- {id: chips, title: Щепа, weight: 0.1, stack: 50}\n",
-		"recipes": "- {id: knife, title: Нож, makes: knife, needs: {rod: 1}}\n- {id: mould, title: Форма, makes: mould, needs: {rod: 2}, tools: [knife]}\n"
+		"recipes": "- {id: knife, title: Knife, makes: knife, needs: {rod: 1}}\n- {id: mould, title: Форма, makes: mould, needs: {rod: 2}, tools: [knife]}\n"
 			+ "- {id: cup, title: Чашка, makes: cup, needs: {rod: 1}, keeps: {mould: 1}, tools: [knife], also: [{item: chips, count: 4, chance: 0.5}]}\n"
 			+ "- {id: rod_from_chips, title: Прут, makes: rod, needs: {chips: 1}}\n",
 		"starts": "- {id: core:default, patch: true, bag+: {_dead:rod: 10}}\n",
@@ -89,8 +89,8 @@ const DEAD := {
 	# Eras after core's: a pot written into the stone era made in an oven of the iron era, a
 	# rack of the stone era two steps deep where the era expects one; iron and tin of one order.
 	"era": {
-		"eras": "- {id: stone, title: Камень, order: 10, depth: 1}\n- {id: iron, title: Железо, order: 11}\n"
-			+ "- {id: tin, title: Олово, order: 11}\n",
+		"eras": "- {id: stone, title: Stone, order: 10, depth: 1}\n- {id: iron, title: Iron, order: 11}\n"
+			+ "- {id: tin, title: Tin, order: 11}\n",
 		"items": "- {id: rod, title: Прут, weight: 0.5, stack: 20}\n- {id: oven, title: Печь, weight: 5, stack: 1, prop: kiln, era: iron}\n"
 			+ "- {id: pot, title: Горшок, weight: 1, stack: 5, era: stone}\n- {id: peg, title: Колышек, weight: 0.1, stack: 20, era: stone}\n"
 			+ "- {id: rack, title: Решётка, weight: 1, stack: 5}\n",
@@ -226,7 +226,7 @@ func _test_dead_ends() -> void:
 		and "items: `_dead:rack` of era `_dead:stone` comes at depth 2, deeper than its era's 1" in said
 		and not "`_dead:peg` of era" in said,
 		"an era comes from the latest of what a recipe takes and the one written, a chain deeper than its era expects is a warning: %s" % said)
-	_check(Array(Eras.check()) == ["eras: `_dead:iron` and `_dead:tin` have the same order 11"] and Eras.title(iron) == "11. Железо",
+	_check(Array(Eras.check()) == ["eras: `_dead:iron` and `_dead:tin` have the same order 11"] and Eras.title(iron) == "11. Iron",
 		"two eras of one order are a problem: %s" % [Eras.check()])
 	Mods.activate(before)
 	_remove(mod)

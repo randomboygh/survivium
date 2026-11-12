@@ -37,8 +37,8 @@ static var _first_of := {}
 ## The kinds of items the bag and the craft tab sort and filter by, in their order,
 ## with their names; an item's kind follows from what it does (see category).
 ## In the order the bag sorts by kind and the craft tab lists recipes: stations first, then tools.
-const CATEGORIES := {"stations": "Станки", "tools": "Инструменты", "light": "Свет", "gear": "Одежда и сумки", "materials": "Материалы",
-	"blocks": "Блоки", "food": "Еда", "heal": "Лечение", "plants": "Посадки"}
+const CATEGORIES := {"stations": "[stations]", "tools": "[tools]", "light": "[light]", "gear": "[clothes_and_bags]", "materials": "[materials]",
+	"blocks": "[blocks]", "food": "[food]", "heal": "[healing]", "plants": "[planting]"}
 
 
 static func _static_init() -> void:
@@ -65,13 +65,10 @@ static func refresh() -> void:
 			if m >= 0 and placed_by[m] == "":
 				placed_by[m] = id
 	TOOL_TITLES = {}
-	var titles := {}
 	for id in IDS:
 		var kind: String = BY_ID[id].tool
 		if kind != "none":
-			titles[kind] = titles.get(kind, []) + [BY_ID[id].title]
-	for kind: String in titles:
-		TOOL_TITLES[kind] = _shared_ending(titles[kind])
+			TOOL_TITLES[kind] = "[tool.%s]" % kind
 
 
 ## The record of item `id`; a bare name is taken as a core item (the campfire). Empty if
@@ -118,25 +115,11 @@ static func with_tool(kind: String) -> String:
 	return _first("tool", kind)
 
 
-## The name of tool class `kind` for a hint ("Нужен инструмент: топор"): the last words the
-## titles of all its items share («Каменный топор», «Медный топор»: «топор»), else the
-## first one's title, from a small letter; the class itself when no item is one.
+## The name of tool class `kind` for a hint («Needs a tool: axe»): the phrase
+## `[tool.<kind>]` of the lang files (a mod with a class of its own brings it); the class
+## itself when no item is one.
 static func tool_title(kind: String) -> String:
 	return TOOL_TITLES.get(kind, kind)
-
-
-## The last words `titles` all end with, else the first title, from a small letter.
-static func _shared_ending(titles: Array) -> String:
-	var words: PackedStringArray = titles[0].split(" ")
-	var n := words.size()
-	for t: String in titles:
-		var other := t.split(" ")
-		var same := 0
-		while same < mini(n, other.size()) and words[words.size() - 1 - same].to_lower() == other[other.size() - 1 - same].to_lower():
-			same += 1
-		n = same
-	var text: String = " ".join(words.slice(words.size() - n)) if n > 0 else titles[0]
-	return text.left(1).to_lower() + text.substr(1)
 
 
 ## Whether item `id` is a station: set down in the world (a `prop`), storing nothing,

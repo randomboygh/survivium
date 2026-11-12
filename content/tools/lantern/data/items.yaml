@@ -3,8 +3,8 @@
 # в руках (sprite) его держат, как иконку; огонь — в самой яркой её точке. Поля — как у предметов
 # основы (content/core/data/items.yaml).
 - id: lantern
-  title: Фонарь
-  description: Стекло в медной оправе, внутри горит смола. Светит дальше факела и горит намного дольше.
+  title: "[tools.items.lantern]"
+  description: "[tools.items.lantern.about]"
   weight: 1.2
   stack: 1
   model: lantern

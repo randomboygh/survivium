@@ -2,8 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/steel/bundle.yaml
-"Сталь": "Stahl"
+"[materials.steel.bundle]": "Stahl"
 
 # content/materials/steel/data/items.yaml
-"Стальной слиток": "Stahlbarren"
-"Железо, напитанное углём: твёрже и упруже. Из стали — лучшие инструменты.": "Mit Kohlenstoff getränktes Eisen: härter und federnder. Stahl gibt die besten Werkzeuge."
+"[materials.items.steel_bar]": "Stahlbarren"
+"[materials.items.steel_bar.about]": "Mit Kohlenstoff getränktes Eisen: härter und federnder. Stahl gibt die besten Werkzeuge."
+
+# content/materials/steel/data/recipes.yaml
+"[materials.recipes.steel_bar]": "Stahlbarren"

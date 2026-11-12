@@ -2,12 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/iron/bundle.yaml
-"Железо": "Ferro"
+"[materials.iron.bundle]": "Ferro"
 
 # content/materials/iron/data/items.yaml
-"Железная руда": "Minério de ferro"
-"Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка.": "Um minério pesado marrom-ferrugem. Uma picareta de bronze o extrai."
-"Крица": "Lupa"
-"Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка.": "Um torrão poroso de ferro e escória do forno de lupa. A forja o transforma em dois lingotes."
-"Железный слиток": "Lingote de ferro"
-"Тёмный прочный металл. Из него наковальня и железные инструменты.": "Um metal escuro e forte. Dele se fazem a bigorna e as ferramentas de ferro."
+"[materials.items.iron_ore]": "Minério de ferro"
+"[materials.items.iron_ore.about]": "Um minério pesado marrom-ferrugem. Uma picareta de bronze o extrai."
+"[materials.items.iron_bloom]": "Lupa"
+"[materials.items.iron_bloom.about]": "Um torrão poroso de ferro e escória do forno de lupa. A forja o transforma em dois lingotes."
+"[materials.items.iron_bar]": "Lingote de ferro"
+"[materials.items.iron_bar.about]": "Um metal escuro e forte. Dele se fazem a bigorna e as ferramentas de ferro."
+
+# content/materials/iron/data/materials.yaml
+"[materials.materials.iron_ore]": "Minério de ferro"
+
+# content/materials/iron/data/recipes.yaml
+"[materials.recipes.iron_bloom]": "Lupa"
+"[materials.recipes.iron_bar]": "Lingote de ferro"

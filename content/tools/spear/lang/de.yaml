@@ -2,10 +2,15 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/spear/bundle.yaml
-"Копьё": "Speer"
+"[tools.spear.bundle]": "Speer"
 
 # content/tools/spear/data/items.yaml
-"Кремнёвое копьё": "Feuersteinspeer"
-"Длинное копьё с кремнёвым наконечником. Его метают в зверя и подбирают снова.": "Ein langer Speer mit Feuersteinspitze. Man wirft ihn auf ein Tier und hebt ihn wieder auf."
-"Бронзовое копьё": "Bronzespeer"
-"Железное копьё": "Eisenspeer"
+"[tools.items.flint_spear]": "Feuersteinspeer"
+"[tools.items.flint_spear.about]": "Ein langer Speer mit Feuersteinspitze. Man wirft ihn auf ein Tier und hebt ihn wieder auf."
+"[tools.items.bronze_spear]": "Bronzespeer"
+"[tools.items.iron_spear]": "Eisenspeer"
+
+# content/tools/spear/data/recipes.yaml
+"[tools.recipes.flint_spear]": "Feuersteinspeer"
+"[tools.recipes.bronze_spear]": "Bronzespeer"
+"[tools.recipes.iron_spear]": "Eisenspeer"

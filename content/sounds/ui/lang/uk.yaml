@@ -2,11 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/sounds/ui/bundle.yaml
-"Интерфейс": "Інтерфейс"
+"[sounds.ui.bundle]": "Інтерфейс"
 
 # content/sounds/ui/data/sounds.yaml
-"Кнопка": "Кнопка"
-"Вкладка": "Вкладка"
-"Окно открыто": "Вікно відкрито"
-"Окно закрыто": "Вікно закрито"
-"Новый уровень навыка": "Новий рівень навички"
+"[sounds.sounds.click]": "Кнопка"
+"[sounds.sounds.tab]": "Вкладка"
+"[sounds.sounds.open]": "Вікно відкрито"
+"[sounds.sounds.close]": "Вікно закрито"
+"[sounds.sounds.level_up]": "Новий рівень навички"

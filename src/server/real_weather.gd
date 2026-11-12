@@ -86,7 +86,7 @@ func apply(data: Dictionary) -> bool:
 		return false
 	clock.set_real_weather(int(now.weather_code), float(now.get("wind_speed_10m", 0.0)),
 		float(now.get("wind_direction_10m", 0.0)))
-	status = "%s, %s" % [place if place != "" else "рядом", clock.WEATHERS[clock.weather].name.to_lower()]
+	status = "%s, %s" % [place if place != "" else "nearby", clock.WEATHERS[clock.weather].name.to_lower()]
 	_say("real weather: %s (code %d)" % [status, int(now.weather_code)])
 	return true
 
@@ -94,9 +94,9 @@ func apply(data: Dictionary) -> bool:
 ## No answer: the last real weather stays (or the clock's own goes on) until the
 ## next try.
 func _failed() -> void:
-	if status != "нет связи":
+	if status != "no connection":
 		_say("real weather: no connection, again in %d s" % int(RETRY))
-	status = "нет связи"
+	status = "no connection"
 
 
 func _say(line: String) -> void:

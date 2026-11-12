@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sword/bundle.yaml
-"Меч": "Sword"
+"[tools.sword.bundle]": "Sword"
 
 # content/tools/sword/data/items.yaml
-"Деревянный меч": "Wooden sword"
-"Каменный меч": "Stone sword"
-"Медный меч": "Copper sword"
-"Бронзовый меч": "Bronze sword"
-"Железный меч": "Iron sword"
-"Стальной меч": "Steel sword"
+"[tools.items.wooden_sword]": "Wooden sword"
+"[tools.items.stone_sword]": "Stone sword"
+"[tools.items.copper_sword]": "Copper sword"
+"[tools.items.bronze_sword]": "Bronze sword"
+"[tools.items.iron_sword]": "Iron sword"
+"[tools.items.steel_sword]": "Steel sword"
+
+# content/tools/sword/data/recipes.yaml
+"[tools.recipes.wooden_sword]": "Wooden sword"
+"[tools.recipes.stone_sword]": "Stone sword"
+"[tools.recipes.copper_sword]": "Copper sword"
+"[tools.recipes.bronze_sword]": "Bronze sword"
+"[tools.recipes.iron_sword]": "Iron sword"
+"[tools.recipes.steel_sword]": "Steel sword"
 
 # content/tools/sword/data/sounds.yaml
-"Взмах": "Swing"
+"[tools.sounds.swish]": "Swing"

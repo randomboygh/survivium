@@ -2,7 +2,10 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/animals/hedgehog/bundle.yaml
-"Ёж": "Kirpi"
+"[animals.hedgehog.bundle]": "Kirpi"
+
+# content/animals/hedgehog/data/creatures.yaml
+"[animals.creatures.hedgehog]": "Kirpi"
 
 # content/animals/hedgehog/data/sounds.yaml
-"Фырканье ежа": "Kirpi homurtusu"
+"[animals.sounds.hedgehog]": "Kirpi homurtusu"

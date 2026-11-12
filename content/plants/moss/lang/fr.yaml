@@ -2,9 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/moss/bundle.yaml
-"Мох": "Mousse"
+"[plants.moss.bundle]": "Mousse"
 
 # content/plants/moss/data/items.yaml
-"Бинт": "Bandage"
-"Припарка": "Cataplasme"
-"Тёплый мох в бинте. Лечит не сразу, а понемногу, но вдвое больше бинта, даже голодному и замёрзшему.": "De la mousse tiède dans un bandage. Soigne peu à peu, pas d'un coup, mais deux fois plus qu'un bandage, même affamé et gelé."
+"[plants.items.moss]": "Mousse"
+"[plants.items.bandage]": "Bandage"
+"[plants.items.poultice]": "Cataplasme"
+"[plants.items.poultice.about]": "De la mousse tiède dans un bandage. Soigne peu à peu, pas d'un coup, mais deux fois plus qu'un bandage, même affamé et gelé."
+
+# content/plants/moss/data/plants.yaml
+"[plants.plants.moss]": "Mousse"
+
+# content/plants/moss/data/recipes.yaml
+"[plants.recipes.bandage]": "Bandage"
+"[plants.recipes.poultice]": "Cataplasme"

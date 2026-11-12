@@ -2,13 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/door/bundle.yaml
-"Дверь": "Kapı"
+"[tools.door.bundle]": "Kapı"
 
 # content/tools/door/data/items.yaml
-"Створка из досок для проёма в стене. Касание открывает и закрывает.": "Duvardaki bir açıklık için tahta bir kanat. Bir dokunuş açar ve kapar."
-"Дверь 2×2": "Kapı 2×2"
-"Двустворчатая дверь из досок, на две клетки в ширину и две в высоту.": "İki hücre genişliğinde ve iki yüksekliğinde çift kanatlı tahta kapı."
-"Дверь 2×3": "Kapı 2×3"
-"Высокая двустворчатая дверь, на две клетки в ширину и три в высоту.": "İki hücre genişliğinde ve üç yüksekliğinde yüksek çift kapı."
-"Ворота 3×3": "Büyük kapı 3×3"
-"Большие двустворчатые ворота из досок для проёма в стене, на три клетки в ширину и три в высоту.": "Duvardaki bir açıklık için üç hücre genişliğinde ve üç yüksekliğinde büyük çift kanatlı tahta kapı."
+"[tools.items.door]": "Kapı"
+"[tools.items.door.about]": "Duvardaki bir açıklık için tahta bir kanat. Bir dokunuş açar ve kapar."
+"[tools.items.door_2x2]": "Kapı 2×2"
+"[tools.items.door_2x2.about]": "İki hücre genişliğinde ve iki yüksekliğinde çift kanatlı tahta kapı."
+"[tools.items.door_2x3]": "Kapı 2×3"
+"[tools.items.door_2x3.about]": "İki hücre genişliğinde ve üç yüksekliğinde yüksek çift kapı."
+"[tools.items.door_3x3]": "Büyük kapı 3×3"
+"[tools.items.door_3x3.about]": "Duvardaki bir açıklık için üç hücre genişliğinde ve üç yüksekliğinde büyük çift kanatlı tahta kapı."
+
+# content/tools/door/data/recipes.yaml
+"[tools.recipes.door]": "Kapı"
+"[tools.recipes.door_2x2]": "Kapı 2×2"
+"[tools.recipes.door_2x3]": "Kapı 2×3"
+"[tools.recipes.door_3x3]": "Büyük kapı 3×3"

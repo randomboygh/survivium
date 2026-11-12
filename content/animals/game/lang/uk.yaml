@@ -2,24 +2,26 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/animals/game/bundle.yaml
-"Добыча": "Здобич"
+"[animals.game.bundle]": "Здобич"
 
 # content/animals/game/data/items.yaml
-"Тушка": "Тушка"
-"Мелкий зверь или птица. Разделывается руками.": "Дрібний звір або птах. Розбирається руками."
-"Туша": "Туша"
-"Крупный зверь. Разделать её можно только ножом.": "Великий звір. Розібрати її можна лише ножем."
-"Сырое мясо": "Сире м'ясо"
-"Есть можно, но жареное сытнее.": "Їсти можна, але смажене ситніше."
-"Жареное мясо": "Смажене м'ясо"
-"Мясо, зажаренное на костре. Очень сытное.": "М'ясо, засмажене на багатті. Дуже ситне."
-"Шкура": "Шкура"
-"Сырая шкура зверя.": "Сира шкура звіра."
-"Кость": "Кістка"
-"Жир": "Жир"
-"Вяленое мясо": "В'ялене м'ясо"
-"Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно.": "М'ясо, провялене на сушарці. Легке й ситне, вогню не треба."
+"[animals.items.small_carcass]": "Тушка"
+"[animals.items.small_carcass.about]": "Дрібний звір або птах. Розбирається руками."
+"[animals.items.carcass]": "Туша"
+"[animals.items.carcass.about]": "Великий звір. Розібрати її можна лише ножем."
+"[animals.items.raw_meat]": "Сире м'ясо"
+"[animals.items.raw_meat.about]": "Їсти можна, але смажене ситніше."
+"[animals.items.roasted_meat]": "Смажене м'ясо"
+"[animals.items.roasted_meat.about]": "М'ясо, засмажене на багатті. Дуже ситне."
+"[animals.items.hide]": "Шкура"
+"[animals.items.hide.about]": "Сира шкура звіра."
+"[animals.items.bone]": "Кістка"
+"[animals.items.fat]": "Жир"
+"[animals.items.jerky]": "В'ялене м'ясо"
+"[animals.items.jerky.about]": "М'ясо, провялене на сушарці. Легке й ситне, вогню не треба."
 
 # content/animals/game/data/recipes.yaml
-"Разделать тушку": "Розібрати тушку"
-"Разделать тушу": "Розібрати тушу"
+"[animals.recipes.raw_meat_from_small_carcass]": "Розібрати тушку"
+"[animals.recipes.raw_meat_from_carcass]": "Розібрати тушу"
+"[animals.recipes.roasted_meat]": "Смажене м'ясо"
+"[animals.recipes.jerky]": "В'ялене м'ясо"

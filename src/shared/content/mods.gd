@@ -225,9 +225,9 @@ static func summary(bundles: Array) -> String:
 		var on := mine.filter(func(b: String) -> bool: return b in bundles).size()
 		if on == 0:
 			continue
-		parts.append(mod_title(mod) if on == mine.size() else Lang.line("%s (%d из %d)", [mod_title(mod), on, mine.size()]))
+		parts.append(mod_title(mod) if on == mine.size() else Lang.line("[of]", [mod_title(mod), on, mine.size()]))
 	if parts.is_empty():
-		return "только основа"
+		return "[core_only]"
 	# Each part a phrase of its own, so a list of lines (Lang.line) is a line too.
 	var out: String = parts[0]
 	for i in range(1, parts.size()):

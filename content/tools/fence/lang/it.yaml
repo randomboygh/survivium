@@ -2,11 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fence/bundle.yaml
-"Забор": "Recinzione"
+"[tools.fence.bundle]": "Recinzione"
 
 # content/tools/fence/data/items.yaml
-"Звено изгороди из жердей. Строится в режиме строительства линией, как стена, и само соединяется с соседними.": "Un tratto di recinzione di pali. Si costruisce in modalità costruzione come una linea, come un muro, e si unisce da solo ai vicini."
-"Калитка": "Cancelletto"
-"Створка из жердей в линию забора, на одну клетку. Касание открывает и закрывает.": "Un'anta di pali nella linea della recinzione, di una cella. Un tocco la apre e la chiude."
-"Ворота": "Cancello"
-"Две створки из жердей в линию забора, на две клетки в ширину. Касание открывает обе.": "Due ante di pali nella linea della recinzione, larghe due celle. Un tocco le apre entrambe."
+"[tools.items.fence]": "Recinzione"
+"[tools.items.fence.about]": "Un tratto di recinzione di pali. Si costruisce in modalità costruzione come una linea, come un muro, e si unisce da solo ai vicini."
+"[tools.items.wicket]": "Cancelletto"
+"[tools.items.wicket.about]": "Un'anta di pali nella linea della recinzione, di una cella. Un tocco la apre e la chiude."
+"[tools.items.gate]": "Cancello"
+"[tools.items.gate.about]": "Due ante di pali nella linea della recinzione, larghe due celle. Un tocco le apre entrambe."
+
+# content/tools/fence/data/recipes.yaml
+"[tools.recipes.fence]": "Recinzione"
+"[tools.recipes.wicket]": "Cancelletto"
+"[tools.recipes.gate]": "Cancello"

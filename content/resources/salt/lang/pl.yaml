@@ -2,4 +2,10 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/resources/salt/bundle.yaml
-"Соль": "Sól"
+"[resources.salt.bundle]": "Sól"
+
+# content/resources/salt/data/items.yaml
+"[resources.items.salt]": "Sól"
+
+# content/resources/salt/data/materials.yaml
+"[resources.materials.salt]": "Sól"

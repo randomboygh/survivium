@@ -1,0 +1,17 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/mushrooms/bundle.yaml
+"[plants.mushrooms.bundle]": "Грибы"
+
+# content/plants/mushrooms/data/items.yaml
+"[plants.items.mushroom]": "Гриб"
+"[plants.items.glow_mushroom]": "Светящийся гриб"
+"[plants.items.fried_mushrooms]": "Жареные грибы"
+
+# content/plants/mushrooms/data/plants.yaml
+"[plants.plants.mushrooms]": "Грибы"
+"[plants.plants.glow_mushrooms]": "Светящиеся грибы"
+
+# content/plants/mushrooms/data/recipes.yaml
+"[plants.recipes.fried_mushrooms]": "Жареные грибы"

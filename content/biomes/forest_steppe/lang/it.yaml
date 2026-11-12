@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/biomes/forest_steppe/bundle.yaml
-"Лесостепь": "Steppa boscosa"
+"[biomes.forest_steppe.bundle]": "Steppa boscosa"
+
+# content/biomes/forest_steppe/data/biomes.yaml
+"[biomes.biomes.forest_steppe]": "Steppa boscosa"

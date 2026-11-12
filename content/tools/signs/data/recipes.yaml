@@ -1,17 +1,17 @@
 # Рецепты бандла «Таблички»: доски «Материалов» и ветки «Ресурсов»; табличку и указатель делают руками,
 # доску на стену — на верстаке. Поля — docs/DATA_MODEL.md.
 - id: sign
-  title: Табличка
+  title: "[tools.recipes.sign]"
   makes: sign
   needs: {materials:planks: 1, resources:branch: 1}
   time: 3
 - id: signpost
-  title: Указатель
+  title: "[tools.recipes.signpost]"
   makes: signpost
   needs: {materials:planks: 1, resources:branch: 2}
   time: 4
 - id: notice_board
-  title: Доска на стену
+  title: "[tools.recipes.notice_board]"
   makes: notice_board
   needs: {materials:planks: 3}
   at: workbench

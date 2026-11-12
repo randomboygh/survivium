@@ -1,6 +1,6 @@
 # Бревно отёсывают топором прямо в руках, без верстака: из одного бревна два блока сруба.
 - id: log_wall
-  title: Сруб
+  title: "[materials.recipes.log_wall]"
   makes: log_wall
   count: 2
   needs: {resources:log: 1}

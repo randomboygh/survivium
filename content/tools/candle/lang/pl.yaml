@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/candle/bundle.yaml
-"Сальная свеча": "Łojowa świeca"
+"[tools.candle.bundle]": "Łojowa świeca"
 
 # content/tools/candle/data/items.yaml
-"Фитиль в жиру. Светит слабее факела, но горит дольше.": "Knot w tłuszczu. Świeci słabiej niż pochodnia, ale pali się dłużej."
+"[tools.items.tallow_candle]": "Łojowa świeca"
+"[tools.items.tallow_candle.about]": "Knot w tłuszczu. Świeci słabiej niż pochodnia, ale pali się dłużej."
+
+# content/tools/candle/data/recipes.yaml
+"[tools.recipes.tallow_candle]": "Łojowa świeca"

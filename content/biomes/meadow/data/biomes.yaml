@@ -10,7 +10,7 @@
 # для карты и отчётов. color — цвет на карте. tints — цвета грунта и воды биома вместо их собственных (по
 # именам поля top и water: {sand: "#e6dcbe", water: "#4cc6bc"}). Ссылки на породы и кусты мягкие: без их бандла доля пуста.
 - id: meadow
-  title: Луг
+  title: "[biomes.biomes.meadow]"
   zone: temperate
   trees: {plants:oak: 0.5, plants:spruce: 0.15, plants:apple: 0.08, plants:cherry: 0.07, plants:linden: 0.08, plants:bird_cherry: 0.05, plants:poplar: 0.07}
   tree_chance: 0.004

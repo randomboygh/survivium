@@ -1,6 +1,6 @@
 # Кокос: плод пальмы (поля — как у предметов основы, content/core/data/items.yaml); его едят.
 - id: coconut
-  title: Кокос
+  title: "[plants.items.coconut]"
   weight: 0.6
   stack: 20
   food: 6

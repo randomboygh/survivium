@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/tar_torch/bundle.yaml
-"Смоляной факел": "Smolna pochodnia"
+"[tools.tar_torch.bundle]": "Smolna pochodnia"
 
 # content/tools/tar_torch/data/items.yaml
-"Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше.": "Gałąź owinięta smołowaną tkaniną. Pali się trzy razy dłużej niż zwykła pochodnia i świeci dalej."
+"[tools.items.tar_torch]": "Smolna pochodnia"
+"[tools.items.tar_torch.about]": "Gałąź owinięta smołowaną tkaniną. Pali się trzy razy dłużej niż zwykła pochodnia i świeci dalej."
+
+# content/tools/tar_torch/data/recipes.yaml
+"[tools.recipes.tar_torch]": "Smolna pochodnia"

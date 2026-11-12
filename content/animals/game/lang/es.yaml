@@ -2,24 +2,26 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/animals/game/bundle.yaml
-"Добыча": "Caza"
+"[animals.game.bundle]": "Caza"
 
 # content/animals/game/data/items.yaml
-"Тушка": "Presa pequeña"
-"Мелкий зверь или птица. Разделывается руками.": "Un animal pequeño o un ave. Se despieza a mano."
-"Туша": "Res"
-"Крупный зверь. Разделать её можно только ножом.": "Un animal grande. Solo se despieza con cuchillo."
-"Сырое мясо": "Carne cruda"
-"Есть можно, но жареное сытнее.": "Se puede comer, pero asada sacia más."
-"Жареное мясо": "Carne asada"
-"Мясо, зажаренное на костре. Очень сытное.": "Carne asada en una hoguera. Sacia mucho."
-"Шкура": "Piel"
-"Сырая шкура зверя.": "Piel cruda de un animal."
-"Кость": "Hueso"
-"Жир": "Grasa"
-"Вяленое мясо": "Cecina"
-"Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно.": "Carne secada en un secadero. Ligera y nutritiva, sin necesidad de fuego."
+"[animals.items.small_carcass]": "Presa pequeña"
+"[animals.items.small_carcass.about]": "Un animal pequeño o un ave. Se despieza a mano."
+"[animals.items.carcass]": "Res"
+"[animals.items.carcass.about]": "Un animal grande. Solo se despieza con cuchillo."
+"[animals.items.raw_meat]": "Carne cruda"
+"[animals.items.raw_meat.about]": "Se puede comer, pero asada sacia más."
+"[animals.items.roasted_meat]": "Carne asada"
+"[animals.items.roasted_meat.about]": "Carne asada en una hoguera. Sacia mucho."
+"[animals.items.hide]": "Piel"
+"[animals.items.hide.about]": "Piel cruda de un animal."
+"[animals.items.bone]": "Hueso"
+"[animals.items.fat]": "Grasa"
+"[animals.items.jerky]": "Cecina"
+"[animals.items.jerky.about]": "Carne secada en un secadero. Ligera y nutritiva, sin necesidad de fuego."
 
 # content/animals/game/data/recipes.yaml
-"Разделать тушку": "Despiezar una presa pequeña"
-"Разделать тушу": "Despiezar una res"
+"[animals.recipes.raw_meat_from_small_carcass]": "Despiezar una presa pequeña"
+"[animals.recipes.raw_meat_from_carcass]": "Despiezar una res"
+"[animals.recipes.roasted_meat]": "Carne asada"
+"[animals.recipes.jerky]": "Cecina"

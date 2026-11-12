@@ -2,7 +2,7 @@
 # инструмента в сумке, wear — сколько он теряет); мясо жарят на костре основы или вялят на сушилке
 # «Инструментов». Поля — docs/DATA_MODEL.md.
 - id: raw_meat_from_small_carcass
-  title: Разделать тушку
+  title: "[animals.recipes.raw_meat_from_small_carcass]"
   makes: raw_meat
   needs: {small_carcass: 1}
   also:
@@ -10,7 +10,7 @@
     - {item: hide, chance: 0.3}
   time: 3
 - id: raw_meat_from_carcass
-  title: Разделать тушу
+  title: "[animals.recipes.raw_meat_from_carcass]"
   makes: raw_meat
   count: 5
   needs: {carcass: 1}
@@ -22,14 +22,14 @@
   wear: 2
   time: 10
 - id: roasted_meat
-  title: Жареное мясо
+  title: "[animals.recipes.roasted_meat]"
   makes: roasted_meat
   needs: {raw_meat: 1, resources:branch: 1}
   at: core:campfire
   process: cook
   time: 4
 - id: jerky
-  title: Вяленое мясо
+  title: "[animals.recipes.jerky]"
   makes: jerky
   needs: {raw_meat: 1}
   at: tools:drying_rack

@@ -6,8 +6,8 @@ extends RefCounted
 
 ## The colours a marker can have: name and colour.
 const COLORS := [
-	["красный", Color("#e0483a")], ["оранжевый", Color("#ee8a2e")], ["жёлтый", Color("#f2d24a")],
-	["зелёный", Color("#6cc24a")], ["голубой", Color("#55b4ec")], ["фиолетовый", Color("#b07ae0")],
+	["[red]", Color("#e0483a")], ["[orange]", Color("#ee8a2e")], ["[yellow]", Color("#f2d24a")],
+	["[green]", Color("#6cc24a")], ["[light_blue]", Color("#55b4ec")], ["[purple]", Color("#b07ae0")],
 ]
 ## How many markers a player keeps at most.
 const MAX := 64

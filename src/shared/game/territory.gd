@@ -34,9 +34,9 @@ const SQUARE := 2
 ## of `rights`, in this order, with its words. Doors and touching animals are kept for
 ## when there are doors and tame animals; hitting players is Т5's (PvP).
 const ACTIONS := ["walk", "build", "doors", "chests", "harvest", "animals", "hit_animals", "hit_players"]
-const TITLES := {"walk": "Ходить", "build": "Строить и ломать", "doors": "Открывать двери",
-	"chests": "Брать из сундуков", "harvest": "Собирать урожай", "animals": "Трогать зверей",
-	"hit_animals": "Бить зверей", "hit_players": "Бить игроков"}
+const TITLES := {"walk": "[walk]", "build": "[build_and_break]", "doors": "[open_doors]",
+	"chests": "[take_from_chests]", "harvest": "[harvest]", "animals": "[touch_animals]",
+	"hit_animals": "[hit_animals]", "hit_players": "[hit_players]"}
 ## By default the owner's team may do everything, the others only walk (decision 101).
 const TEAM_DEFAULT := 255
 const OTHERS_DEFAULT := 1
@@ -158,7 +158,7 @@ func may(who, c: Vector3i, action: String) -> bool:
 	var claim := claim_at(c)
 	if allowed(claim, _id(who), action):
 		return true
-	who.nag("claim", Lang.line("Территория «%s»: здесь нельзя — %s", [title_of(claim), TITLES[action].to_lower()]))
+	who.nag("claim", Lang.line("[territory_not_allowed_here]", [title_of(claim), TITLES[action]]))
 	return false
 
 
@@ -177,7 +177,7 @@ func step_walk(players: Array) -> void:
 		var back: Variant = _walked.get(id)
 		if back != null and allowed(claim_at(_cell(back)), id, "walk"):
 			p.teleport(back)
-			p.nag("claim", Lang.line("Территория «%s»: сюда нельзя", [title_of(claim)]))
+			p.nag("claim", Lang.line("[territory_no_entry]", [title_of(claim)]))
 
 
 ## The name of claim `claim`: its team's, or the one's who set it.
@@ -214,13 +214,13 @@ func used(id: int) -> int:
 func can_claim(who, c: Vector3i) -> bool:
 	var there := claim_at(c)
 	if not there.is_empty() and not with(there, who.id):
-		who.nag("claim", "Здесь чужая территория")
+		who.nag("claim", "[this_is_someone_elses_territory]")
 		return false
 	if squares.has(square_of(c)):
 		# Its own square is painted already: the claim takes no more.
 		return true
 	if used(who.id) >= budget(who.id):
-		who.nag("claim", Lang.line("Участков не осталось: %d из %d", [used(who.id), budget(who.id)]))
+		who.nag("claim", Lang.line("[no_plots_left_of]", [used(who.id), budget(who.id)]))
 		return false
 	return true
 
@@ -281,7 +281,7 @@ func paint(who, sq: Vector2i, on: bool) -> bool:
 		if to == 0:
 			return false
 		if used(who.id) >= budget(who.id):
-			who.nag("claim", Lang.line("Участков не осталось: %d из %d", [used(who.id), budget(who.id)]))
+			who.nag("claim", Lang.line("[no_plots_left_of]", [used(who.id), budget(who.id)]))
 			return false
 		_assign([sq], to)
 		return true
@@ -310,7 +310,7 @@ func step(days: float, players: Array, seconds := 0.0) -> void:
 				if int(claim.get("weak", 0)) > 0:
 					claim.weak = 0
 					claim.stage = 0
-					p.nag("claim", "Территория снова под охраной")
+					p.nag("claim", "[the_territory_is_protected_again]")
 					claims_changed.emit()
 				else:
 					claim.stage = 0

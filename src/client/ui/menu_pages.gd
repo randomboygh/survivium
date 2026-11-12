@@ -76,21 +76,21 @@ func _fill_page(page: String) -> void:
 			# Opened over a running world (the pause menu, the death screen): back into it.
 			var resume: bool = _entered and settled
 			if resume:
-				_add_button(_box, "resume", "Продолжить", close)
+				_add_button(_box, "resume", "[continue]", close)
 			if game.hosted != null:
 				# Its bundles are the server's while it runs.
-				_add_button(_box, "single", "Одиночная игра", Callable(), "сервер")
+				_add_button(_box, "single", "[single_player]", Callable(), "[server]")
 			else:
-				_add_button(_box, "single", "Одиночная игра", _fill_page.bind("single"))
-			_add_button(_box, "multi", "Мультиплеер", _fill_page.bind("multi"))
-			_add_button(_box, "editor", "Редактор", Callable(), "скоро")
-			_add_button(_box, "changes", "Что нового", _open_changes)
-			_add_button(_box, "settings", "Настройки", _open_settings)
+				_add_button(_box, "single", "[single_player]", _fill_page.bind("single"))
+			_add_button(_box, "multi", "[multiplayer]", _fill_page.bind("multi"))
+			_add_button(_box, "editor", "[editor]", Callable(), "[soon]")
+			_add_button(_box, "changes", "[whats_new]", _open_changes)
+			_add_button(_box, "settings", "[settings]", _open_settings)
 			if OS.has_feature("web"):
-				_add_button(_box, "quit", "Выход", Callable(), "вкладка")
-				_buttons.quit.tooltip_text = "В браузере игра закрывается вместе с вкладкой"
+				_add_button(_box, "quit", "[quit]", Callable(), "[tab]")
+				_buttons.quit.tooltip_text = "[in_a_browser_the_game]"
 			else:
-				_add_button(_box, "quit", "Выход", func() -> void:
+				_add_button(_box, "quit", "[quit]", func() -> void:
 					game.save.flush()
 					get_tree().quit())
 			lit = "multi" if joined or game.hosted != null else "single"
@@ -101,36 +101,36 @@ func _fill_page(page: String) -> void:
 			elif StartTimes.slow_code():
 				_slow_code()
 		"single":
-			_caption("Одиночная игра")
-			_add_button(_box, "play", "Продолжить", _play_single)
+			_caption("[single_player]")
+			_add_button(_box, "play", "[continue]", _play_single)
 			_describe_world(_buttons.play)
-			_add_button(_box, "new", "Новый мир", _new_world)
-			_add_button(_box, "worlds", "Загрузить мир", _open_worlds)
-			_add_button(_box, "back", "Назад", _fill_page.bind("top"))
+			_add_button(_box, "new", "[new_world]", _new_world)
+			_add_button(_box, "worlds", "[load_a_world]", _open_worlds)
+			_add_button(_box, "back", "[back]", _fill_page.bind("top"))
 			lit = "play"
 		"multi":
-			_caption("Мультиплеер")
+			_caption("[multiplayer]")
 			var hosting: bool = game.hosted != null
 			if on_server:
-				_add_button(_box, "server", "Вернуться на сервер", play.bind("multi"))
+				_add_button(_box, "server", "[back_to_the_server]", play.bind("multi"))
 				if not hosting:
 					# Out of one's land the character stays a while (Server.linger_of).
 					var home: bool = game.land.own(game.land.here())
-					_add_button(_box, "leave", "Отключиться", func() -> void:
+					_add_button(_box, "leave", "[disconnect]", func() -> void:
 						game.leave_server()
-						game.restart.call_deferred(false), "уйдёт сразу" if home else "постоит 30 с")
+						game.restart.call_deferred(false), "[leaves_at_once]" if home else "[stays_for_30_s]")
 			if hosting:
-				_add_button(_box, "join", "Присоединиться", Callable(), "сервер")
+				_add_button(_box, "join", "[join]", Callable(), "[server]")
 			else:
-				_add_button(_box, "join", "Присоединиться", open_join.bind(""))
+				_add_button(_box, "join", "[join]", open_join.bind(""))
 			if host_here:
-				_add_button(_box, "host", "Сервер работает" if hosting else "Создать сервер", open_host)
+				_add_button(_box, "host", "[server_running]" if hosting else "[create_a_server]", open_host)
 			else:
 				# Not here, but it says where it is.
-				_add_button(_box, "host", "Создать сервер", _host_elsewhere, "на ПК")
+				_add_button(_box, "host", "[create_a_server]", _host_elsewhere, "[on_pc]")
 				_buttons.host.add_theme_color_override("font_color", Color(UiStyle.MUTED, 0.6))
 				_buttons.host.add_theme_color_override("font_hover_color", Color(UiStyle.MUTED, 0.8))
-			_add_button(_box, "back", "Назад", _fill_page.bind("top"))
+			_add_button(_box, "back", "[back]", _fill_page.bind("top"))
 			lit = "server" if on_server else ("host" if hosting else "join")
 	UiStyle.accent(_buttons[lit])
 	_buttons[lit].add_theme_color_override("font_focus_color", UiStyle.DARK_INK)
@@ -148,8 +148,8 @@ func _describe_world(b: Button) -> void:
 	if game.join_url != "":
 		return
 	var test: bool = game.world_seed == WorldStore.TEST_SEED
-	var kind: String = "площадки" if test else load(WORLD_LIST)._kind(game.world_options)
-	b.text = Lang.f("%s\n%s · %s", [b.text, "тестовый мир" if test else Lang.f("зерно %d", [game.world_seed]), kind])
+	var kind: String = "[grounds]" if test else load(WORLD_LIST)._kind(game.world_options)
+	b.text = Lang.f("%s\n%s · %s", [b.text, "[test_world]" if test else Lang.f("[seed]", [game.world_seed]), kind])
 	b.custom_minimum_size.y = PLAY_H
 	b.add_theme_constant_override("line_spacing", 4)
 	var day := -1
@@ -160,7 +160,7 @@ func _describe_world(b: Button) -> void:
 		day = int(sky.day)
 	if day < 0:
 		return
-	var l := UiStyle.label(Lang.f("день %d", [day]), UiStyle.DARK_INK)
+	var l := UiStyle.label(Lang.f("[day_n4]", [day]), UiStyle.DARK_INK)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	l.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	l.offset_left = -80
@@ -180,9 +180,7 @@ func _caption(text: String) -> void:
 ## The browser draws without the graphics card: why the game is slow, and how to turn
 ## the card on, under the buttons.
 func _slow_drawing() -> void:
-	_note = UiStyle.label(Lang.f("Браузер рисует без видеокарты (%s), поэтому игра идёт медленно. "
-		+ "Включите в настройках браузера «Использовать графическое ускорение» (в Edge — edge://settings/system, "
-		+ "в Chrome — chrome://settings/system) и перезапустите браузер.", [GlWatch.renderer()]), UiStyle.ACCENT)
+	_note = UiStyle.label(Lang.f("[the_browser_draws_without_the]", [GlWatch.renderer()]), UiStyle.ACCENT)
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_note.custom_minimum_size = Vector2(WIDTH, 0)
 	_box.add_child(_note)
@@ -191,9 +189,7 @@ func _slow_drawing() -> void:
 ## The browser runs the game's code uncompiled (StartTimes.slow_code): how to fix it,
 ## under the buttons.
 func _slow_code() -> void:
-	_note = UiStyle.label(Lang.f("Браузер выполняет код игры без компиляции (скрипты собирались %d с), поэтому игра идёт "
-		+ "медленно. Так бывает в Edge с режимом «Повышение безопасности в Интернете»: выключите его в "
-		+ "edge://settings/privacy или добавьте этот сайт в исключения и перезагрузите страницу.",
+	_note = UiStyle.label(Lang.f("[the_browser_runs_the_code_uncompiled]",
 		[roundi(StartTimes.scripts_ms() / 1000.0)]), UiStyle.ACCENT)
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_note.custom_minimum_size = Vector2(WIDTH, 0)
@@ -204,8 +200,7 @@ func _slow_code() -> void:
 func _host_elsewhere() -> void:
 	if _note != null:
 		return
-	_note = UiStyle.label(Lang.f("Сервер запускают на компьютере: %s для Windows или Linux. "
-		+ "С телефона и из браузера к нему присоединяются.", [Protocol.game_name()]), UiStyle.MUTED)
+	_note = UiStyle.label(Lang.f("[a_server_is_run_on]", [Protocol.game_name()]), UiStyle.MUTED)
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_note.custom_minimum_size = Vector2(WIDTH, 0)
 	_box.add_child(_note)
@@ -242,7 +237,7 @@ func open() -> void:
 	_want_play = false
 	_show_loading(false)
 	var test: bool = game.world_seed == WorldStore.TEST_SEED
-	_map_seed.text = "тестовый мир" if test else Lang.f("зерно %d", [game.world_seed])
+	_map_seed.text = "[test_world]" if test else Lang.f("[seed]", [game.world_seed])
 	if game.join_url != "":
 		_map_seed.text = load(JOIN_SCREEN)._short(game.join_url)
 	game.hud.visible = false

@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sword/bundle.yaml
-"Меч": "Kılıç"
+"[tools.sword.bundle]": "Kılıç"
 
 # content/tools/sword/data/items.yaml
-"Деревянный меч": "Ahşap kılıç"
-"Каменный меч": "Taş kılıç"
-"Медный меч": "Bakır kılıç"
-"Бронзовый меч": "Bronz kılıç"
-"Железный меч": "Demir kılıç"
-"Стальной меч": "Çelik kılıç"
+"[tools.items.wooden_sword]": "Ahşap kılıç"
+"[tools.items.stone_sword]": "Taş kılıç"
+"[tools.items.copper_sword]": "Bakır kılıç"
+"[tools.items.bronze_sword]": "Bronz kılıç"
+"[tools.items.iron_sword]": "Demir kılıç"
+"[tools.items.steel_sword]": "Çelik kılıç"
+
+# content/tools/sword/data/recipes.yaml
+"[tools.recipes.wooden_sword]": "Ahşap kılıç"
+"[tools.recipes.stone_sword]": "Taş kılıç"
+"[tools.recipes.copper_sword]": "Bakır kılıç"
+"[tools.recipes.bronze_sword]": "Bronz kılıç"
+"[tools.recipes.iron_sword]": "Demir kılıç"
+"[tools.recipes.steel_sword]": "Çelik kılıç"
 
 # content/tools/sword/data/sounds.yaml
-"Взмах": "Savuruş"
+"[tools.sounds.swish]": "Savuruş"

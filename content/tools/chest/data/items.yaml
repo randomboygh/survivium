@@ -6,7 +6,7 @@
 # клетки 2×2 (workbench, kiln, chest), и её флаги: storage, fire, repairs, serves, place_tool;
 # model — её воксельная модель (models/<model>.png).
 - id: chest
-  title: Сундук
+  title: "[tools.items.chest]"
   weight: 6.0
   stack: 1
   icon: chest

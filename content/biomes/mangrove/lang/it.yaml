@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/biomes/mangrove/bundle.yaml
-"Мангровые заросли": "Mangrovie"
+"[biomes.mangrove.bundle]": "Mangrovie"
+
+# content/biomes/mangrove/data/biomes.yaml
+"[biomes.biomes.mangrove]": "Mangrovie"

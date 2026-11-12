@@ -7,7 +7,7 @@
 # косить землю под ростком — потерять его. gives — обязательное поле растения: росток не собирают.
 - id: oak_sapling
   kind: sapling
-  title: Росток дуба
+  title: "[plants.plants.oak_sapling]"
   sprite: oak_sapling
   across: 2
   frames: 2

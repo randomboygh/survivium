@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/silver/bundle.yaml
-"Серебро": "Argent"
+"[materials.silver.bundle]": "Argent"
 
 # content/materials/silver/data/items.yaml
-"Серебряная руда": "Minerai d'argent"
-"Серая порода с белыми блёстками самородного серебра. Её берёт бронзовая кирка.": "Une roche grise aux paillettes blanches d'argent natif. Une pioche de bronze l'extrait."
-"Серебряный слиток": "Lingot d'argent"
-"Мягкий белый металл. Из слитков складывают серебряные блоки.": "Un métal blanc et mou. Les lingots s'assemblent en blocs d'argent."
-"Серебряный блок": "Bloc d'argent"
-"Гладкий светлый металлический блок для построек.": "Un bloc de métal lisse et clair pour construire."
+"[materials.items.silver_ore]": "Minerai d'argent"
+"[materials.items.silver_ore.about]": "Une roche grise aux paillettes blanches d'argent natif. Une pioche de bronze l'extrait."
+"[materials.items.silver_bar]": "Lingot d'argent"
+"[materials.items.silver_bar.about]": "Un métal blanc et mou. Les lingots s'assemblent en blocs d'argent."
+"[materials.items.silver_block]": "Bloc d'argent"
+"[materials.items.silver_block.about]": "Un bloc de métal lisse et clair pour construire."
+
+# content/materials/silver/data/materials.yaml
+"[materials.materials.silver_ore]": "Minerai d'argent"
+"[materials.materials.silver_block]": "Bloc d'argent"
+
+# content/materials/silver/data/recipes.yaml
+"[materials.recipes.silver_bar]": "Lingot d'argent"
+"[materials.recipes.silver_block]": "Bloc d'argent"

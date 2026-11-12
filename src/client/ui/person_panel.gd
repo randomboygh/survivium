@@ -33,8 +33,8 @@ const PLACES := {
 }
 const ROWS := 3
 const TITLES := {
-	"head": "Голова", "body": "Тело", "legs": "Ноги", "feet": "Обувь", "back": "Сумка за спиной",
-	"hand0": "Левая рука", "hand1": "Правая рука",
+	"head": "[head]", "body": "[body]", "legs": "[legs]", "feet": "[feet]", "back": "[bag_on_the_back]",
+	"hand0": "[left_hand]", "hand1": "[right_hand]",
 }
 ## Room between the columns of slots and between the rows.
 const GAP_X := 4
@@ -176,7 +176,7 @@ func refresh() -> void:
 			var id: String = game.controls.hands[h]
 			c.texture = ItemIcons.of_item(id) if id != "" else ItemIcons.picture("hand")
 			c.inactive = FactChips.unarmed(inv, id)
-			c.tag = "Л" if h == 0 else "П"
+			c.tag = "[l]" if h == 0 else "[r]"
 			c.key = "•" if game.controls.active == h else ""
 			continue
 		var worn: String = inv.gear.get(k, "")
@@ -205,8 +205,8 @@ func refresh() -> void:
 	for s in inv.slots:
 		if s != null:
 			taken += 1
-	back.tooltip_text = Lang.f("Сумка: %d ячеек%s; занято %d из %d, %.1f из %d кг", [inv.base,
-		(Lang.f(", %s: ещё %d", [Lang.t(Items.title(inv.gear.back)), Items.bag_slots(inv.gear.back)])) if inv.gear.has("back") else "",
+	back.tooltip_text = Lang.f("[bag_slots_of_taken_of]", [inv.base,
+		(Lang.f("[more]", [Lang.t(Items.title(inv.gear.back)), Items.bag_slots(inv.gear.back)])) if inv.gear.has("back") else "",
 		taken, inv.slots.size(), inv.weight(), inv.weight_limit])
 	_show_skills(inv)
 
@@ -232,31 +232,31 @@ func _show_skills(inv) -> void:
 	for i in mini(_bars.size(), Skills.ALL.size()):
 		var sk: Dictionary = Skills.ALL[i]
 		var level: int = skills.level(sk.id)
-		var text := Lang.f("%s: уровень %d из %d", [sk.title, level, sk.levels])
+		var text := Lang.f("[level_of_n2]", [sk.title, level, sk.levels])
 		if level < sk.levels:
-			text += Lang.f(", до следующего %d%%", [floori(skills.progress(sk.id) * 100.0)])
+			text += Lang.f("[to_the_next]", [floori(skills.progress(sk.id) * 100.0)])
 		var faster := roundi((skills.boost(sk.role) - 1.0) * 100.0)
 		if faster > 0:
-			text += Lang.f("\n%s на %d%%", ["Плывёт быстрее" if sk.role == "swim" else "Работа быстрее", faster])
+			text += Lang.f("[by]", ["[swims_faster_n2]" if sk.role == "swim" else "[works_faster_n2]", faster])
 		var cheaper := roundi((1.0 - skills.effort(sk.role)) * 100.0)
 		if cheaper > 0:
-			text += Lang.f("\nСил на взмах меньше на %d%%", [cheaper])
+			text += Lang.f("[less_strength_per_swing]", [cheaper])
 		var more := roundi(skills.extra_chance(sk.role) * 100.0)
 		if more > 0:
-			text += Lang.f("\nЕщё одна штука: шанс %d%%", [more])
+			text += Lang.f("[one_more_piece_chance]", [more])
 		var harder := roundi(sk.might * level * 100.0 / sk.levels)
 		if harder > 0:
-			text += Lang.f("\nУдар сильнее на %d%%", [harder])
+			text += Lang.f("[strikes_harder]", [harder])
 		var better := roundi(skills.quality_most(sk.role) * skills.share_of(sk.role))
 		if sk.role in Quality.GETS and better > 0:
-			text += Lang.f("\nКачество добытого +%d", [better])
+			text += Lang.f("[quality_of_what_you_get]", [better])
 		elif sk.role in Quality.MAKES:
-			text += Lang.f("\nКачество сделанного до %d", [Quality.skill_cap(skills.share_of(sk.role), skills.quality_most(sk.role))])
+			text += Lang.f("[quality_of_what_you_make]", [Quality.skill_cap(skills.share_of(sk.role), skills.quality_most(sk.role))])
 		var spared := roundi(skills.care_chance(sk.role) * 100.0)
 		if spared > 0:
-			text += Lang.f("\nИнструмент не изнашивается: шанс %d%%", [spared])
+			text += Lang.f("[the_tool_does_not_wear]", [spared])
 		if _tool.has(sk.role):
-			text += Lang.f("\nВ руке: «%s»", [Lang.t(Items.title(_tool[sk.role]))])
+			text += Lang.f("[in_hand]", [Lang.t(Items.title(_tool[sk.role]))])
 		if sk.get("description", "") != "":
 			text += "\n" + sk.description
 		_bars[i].tooltip_text = text

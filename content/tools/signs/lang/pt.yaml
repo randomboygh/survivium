@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/signs/bundle.yaml
-"Таблички": "Placas"
+"[tools.signs.bundle]": "Placas"
 
 # content/tools/signs/data/items.yaml
-"Табличка": "Placa"
-"Дощечка на колышке. Три строки текста, видно всем, кто подойдёт.": "Uma tabuinha numa estaca. Três linhas de texto, visíveis para todos que se aproximam."
-"Указатель": "Poste indicador"
-"Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону.": "Uma seta num poste. Duas linhas de texto; a seta pode ser virada para qualquer lado."
-"Доска на стену": "Quadro de parede"
-"Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок.": "Um quadro grande pendurado na parede. Seis linhas de texto, para regras, avisos e notas."
+"[tools.items.sign]": "Placa"
+"[tools.items.sign.about]": "Uma tabuinha numa estaca. Três linhas de texto, visíveis para todos que se aproximam."
+"[tools.items.signpost]": "Poste indicador"
+"[tools.items.signpost.about]": "Uma seta num poste. Duas linhas de texto; a seta pode ser virada para qualquer lado."
+"[tools.items.notice_board]": "Quadro de parede"
+"[tools.items.notice_board.about]": "Um quadro grande pendurado na parede. Seis linhas de texto, para regras, avisos e notas."
+
+# content/tools/signs/data/recipes.yaml
+"[tools.recipes.sign]": "Placa"
+"[tools.recipes.signpost]": "Poste indicador"
+"[tools.recipes.notice_board]": "Quadro de parede"

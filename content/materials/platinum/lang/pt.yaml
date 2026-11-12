@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/platinum/bundle.yaml
-"Платина": "Platina"
+"[materials.platinum.bundle]": "Platina"
 
 # content/materials/platinum/data/items.yaml
-"Платиновая руда": "Minério de platina"
-"Тёмная тяжёлая порода с серыми зёрнами платины. Её берёт бронзовая кирка.": "Uma rocha escura e pesada com grãos cinzentos de platina. Uma picareta de bronze a extrai."
-"Платиновый слиток": "Lingote de platina"
-"Тугоплавкий тяжёлый металл: в горне его плавят долго и с двойным углём. Из слитков складывают платиновые блоки.": "Um metal pesado difícil de fundir: a forja o funde devagar, com carvão em dobro. Os lingotes viram blocos de platina."
-"Платиновый блок": "Bloco de platina"
-"Тяжёлый серо-белый блок для построек.": "Um bloco pesado branco-acinzentado para construções."
+"[materials.items.platinum_ore]": "Minério de platina"
+"[materials.items.platinum_ore.about]": "Uma rocha escura e pesada com grãos cinzentos de platina. Uma picareta de bronze a extrai."
+"[materials.items.platinum_bar]": "Lingote de platina"
+"[materials.items.platinum_bar.about]": "Um metal pesado difícil de fundir: a forja o funde devagar, com carvão em dobro. Os lingotes viram blocos de platina."
+"[materials.items.platinum_block]": "Bloco de platina"
+"[materials.items.platinum_block.about]": "Um bloco pesado branco-acinzentado para construções."
+
+# content/materials/platinum/data/materials.yaml
+"[materials.materials.platinum_ore]": "Minério de platina"
+"[materials.materials.platinum_block]": "Bloco de platina"
+
+# content/materials/platinum/data/recipes.yaml
+"[materials.recipes.platinum_bar]": "Lingote de platina"
+"[materials.recipes.platinum_block]": "Bloco de platina"

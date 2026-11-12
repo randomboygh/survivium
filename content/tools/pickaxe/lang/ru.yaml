@@ -1,0 +1,21 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/pickaxe/bundle.yaml
+"[tools.pickaxe.bundle]": "Кирка"
+
+# content/tools/pickaxe/data/items.yaml
+"[tools.items.stone_pickaxe]": "Каменная кирка"
+"[tools.items.wooden_pickaxe]": "Деревянная кирка"
+"[tools.items.copper_pickaxe]": "Медная кирка"
+"[tools.items.bronze_pickaxe]": "Бронзовая кирка"
+"[tools.items.iron_pickaxe]": "Железная кирка"
+"[tools.items.steel_pickaxe]": "Стальная кирка"
+
+# content/tools/pickaxe/data/recipes.yaml
+"[tools.recipes.stone_pickaxe]": "Каменная кирка"
+"[tools.recipes.wooden_pickaxe]": "Деревянная кирка"
+"[tools.recipes.copper_pickaxe]": "Медная кирка"
+"[tools.recipes.bronze_pickaxe]": "Бронзовая кирка"
+"[tools.recipes.iron_pickaxe]": "Железная кирка"
+"[tools.recipes.steel_pickaxe]": "Стальная кирка"

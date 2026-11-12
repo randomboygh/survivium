@@ -7,44 +7,44 @@
 # по инструменту, вещь — по самому раннему источнику, но не раньше записанной. Эпохи 4–6 (бронза, железо,
 # сталь) пришли вместе со своим контентом, 7 придёт так же.
 - id: foraging
-  title: Выживание без инструментов
-  description: Сбор руками, ветки, волокно, камни, ягоды и грибы; простые вещи из них руками.
+  title: "[core.eras.foraging]"
+  description: "[core.eras.foraging.about]"
   order: 0
   depth: 2
   provisional: [depth]
 - id: primitive
-  title: Примитивные инструменты
-  description: Верёвка, костёр, верстак, каменные и деревянные инструменты, брёвна и доски, сундук.
+  title: "[core.eras.primitive]"
+  description: "[core.eras.primitive.about]"
   order: 1
   depth: 6
   provisional: [depth]
 - id: bone_leather
-  title: Дерево, кости и кожа
-  description: Разделка зверей, сушилка, кожа из шкуры с жиром, костяные игла и клей, свеча, луки и праща, ткань.
+  title: "[core.eras.bone_leather]"
+  description: "[core.eras.bone_leather.about]"
   order: 2
   depth: 8
   provisional: [depth]
 - id: bronze
-  title: Керамика и ранняя металлургия
-  description: Печь для обжига, кирпич, уголь, горн, медь и медные инструменты.
+  title: "[core.eras.bronze]"
+  description: "[core.eras.bronze.about]"
   order: 3
   depth: 10
   provisional: [depth]
 - id: alloy
-  title: Бронза
-  description: Олово, тигель, бронзовый сплав и бронзовые инструменты, которые берут железную руду.
+  title: "[core.eras.alloy]"
+  description: "[core.eras.alloy.about]"
   order: 4
   depth: 13
   provisional: [depth]
 - id: iron
-  title: Железо
-  description: Железная руда, сыродутная печь и крица, железные слитки, наковальня и железные инструменты.
+  title: "[core.eras.iron]"
+  description: "[core.eras.iron.about]"
   order: 5
   depth: 14
   provisional: [depth]
 - id: steel
-  title: Сталь
-  description: Сталь из железа с углём в тигле и стальные инструменты.
+  title: "[core.eras.steel]"
+  description: "[core.eras.steel.about]"
   order: 6
   depth: 15
   provisional: [depth]

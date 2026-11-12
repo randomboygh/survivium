@@ -2,9 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/trap/bundle.yaml
-"Живоловка": "Trampa viva"
+"[tools.trap.bundle]": "Trampa viva"
 
 # content/tools/trap/data/items.yaml
-"Клетка из веток с дверцей на сторожке. Положи внутрь морковь или репу, и заяц сам придёт в неё.": "Una jaula de ramas con puerta de disparo. Pon dentro una zanahoria o un nabo y una liebre entrará sola."
-"Пойманный заяц": "Liebre atrapada"
-"Живой заяц из живоловки. Возьми его в руку и нажми действие, чтобы выпустить: он уже ручной и пойдёт за тобой.": "Una liebre viva de una trampa. Tómala en la mano y pulsa la acción para soltarla: ya es mansa y te seguirá."
+"[tools.items.trap]": "Trampa viva"
+"[tools.items.trap.about]": "Una jaula de ramas con puerta de disparo. Pon dentro una zanahoria o un nabo y una liebre entrará sola."
+"[tools.items.live_rabbit]": "Liebre atrapada"
+"[tools.items.live_rabbit.about]": "Una liebre viva de una trampa. Tómala en la mano y pulsa la acción para soltarla: ya es mansa y te seguirá."
+
+# content/tools/trap/data/recipes.yaml
+"[tools.recipes.trap]": "Trampa viva"

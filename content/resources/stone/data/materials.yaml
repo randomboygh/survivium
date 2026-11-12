@@ -2,7 +2,7 @@
 # лопатой и даёт камень, иногда кремень. Поля — как у материалов основы
 # (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
 - id: scree
-  title: Осыпь
+  title: "[resources.materials.scree]"
   role: scree
   corners: sharp
   slope: true

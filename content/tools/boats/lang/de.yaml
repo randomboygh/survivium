@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/boats/bundle.yaml
-"Плот и лодка": "Floß und Boot"
+"[tools.boats.bundle]": "Floß und Boot"
 
 # content/tools/boats/data/items.yaml
-"Плот": "Floß"
-"Брёвна, связанные верёвкой. Возьми в руку и нажми действие у воды, чтобы спустить его и сесть.": "Mit Schnur gebundene Stämme. Nimm es in die Hand und drück am Wasser die Aktion, um es zu Wasser zu lassen und aufzusteigen."
-"Лодка": "Boot"
-"Лёгкая лодка из досок, просмолённая. Быстрее плота, но грести ею можно только с вёслами в сумке.": "Ein leichtes geteertes Boot aus Brettern. Schneller als ein Floß, aber man rudert es nur mit Rudern in der Tasche."
-"Вёсла": "Ruder"
-"Пара вёсел. Пока они в сумке, лодка идёт быстро.": "Ein Paar Ruder. Solange sie in der Tasche sind, fährt das Boot schnell."
+"[tools.items.raft]": "Floß"
+"[tools.items.raft.about]": "Mit Schnur gebundene Stämme. Nimm es in die Hand und drück am Wasser die Aktion, um es zu Wasser zu lassen und aufzusteigen."
+"[tools.items.boat]": "Boot"
+"[tools.items.boat.about]": "Ein leichtes geteertes Boot aus Brettern. Schneller als ein Floß, aber man rudert es nur mit Rudern in der Tasche."
+"[tools.items.oars]": "Ruder"
+"[tools.items.oars.about]": "Ein Paar Ruder. Solange sie in der Tasche sind, fährt das Boot schnell."
+
+# content/tools/boats/data/recipes.yaml
+"[tools.recipes.raft]": "Floß"
+"[tools.recipes.boat]": "Boot"
+"[tools.recipes.oars]": "Ruder"

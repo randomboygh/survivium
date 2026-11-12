@@ -1,0 +1,24 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/sounds/player/bundle.yaml
+"[sounds.player.bundle]": "Игрок"
+
+# content/sounds/player/data/sounds.yaml
+"[sounds.sounds.step_grass]": "Шаг по траве"
+"[sounds.sounds.step_dirt]": "Шаг по земле"
+"[sounds.sounds.step_stone]": "Шаг по камню"
+"[sounds.sounds.step_snow]": "Шаг по снегу"
+"[sounds.sounds.step_water]": "Шаг по воде"
+"[sounds.sounds.swim]": "Гребок"
+"[sounds.sounds.jump]": "Прыжок"
+"[sounds.sounds.land]": "Приземление"
+"[sounds.sounds.land_snow]": "Приземление в снег"
+"[sounds.sounds.splash]": "Всплеск"
+"[sounds.sounds.dig]": "Копание"
+"[sounds.sounds.hit_stone]": "Удар по камню"
+"[sounds.sounds.place]": "Блок поставлен"
+"[sounds.sounds.pickup]": "Подбор"
+"[sounds.sounds.craft]": "Сделано"
+"[sounds.sounds.eat]": "Еда"
+"[sounds.sounds.ignite]": "Огонь зажжён"

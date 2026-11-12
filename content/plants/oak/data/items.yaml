@@ -3,7 +3,7 @@
 # как у предметов основы (content/core/data/items.yaml). plant — куст этого мода, который
 # сажает предмет; sow — материал основы, на который сеют семена; crop — что из них вырастает.
 - id: acorn
-  title: Жёлудь
+  title: "[plants.items.acorn]"
   weight: 0.02
   stack: 50
   model: acorn

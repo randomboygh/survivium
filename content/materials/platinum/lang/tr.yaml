@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/platinum/bundle.yaml
-"Платина": "Platin"
+"[materials.platinum.bundle]": "Platin"
 
 # content/materials/platinum/data/items.yaml
-"Платиновая руда": "Platin cevheri"
-"Тёмная тяжёлая порода с серыми зёрнами платины. Её берёт бронзовая кирка.": "Gri platin taneli koyu, ağır bir kaya. Bronz kazma kazar."
-"Платиновый слиток": "Platin külçe"
-"Тугоплавкий тяжёлый металл: в горне его плавят долго и с двойным углём. Из слитков складывают платиновые блоки.": "Zor eriyen ağır bir metal: ocak onu uzun süre, çift kömürle eritir. Külçelerden platin bloklar yapılır."
-"Платиновый блок": "Platin blok"
-"Тяжёлый серо-белый блок для построек.": "Yapılar için ağır, gri beyaz bir blok."
+"[materials.items.platinum_ore]": "Platin cevheri"
+"[materials.items.platinum_ore.about]": "Gri platin taneli koyu, ağır bir kaya. Bronz kazma kazar."
+"[materials.items.platinum_bar]": "Platin külçe"
+"[materials.items.platinum_bar.about]": "Zor eriyen ağır bir metal: ocak onu uzun süre, çift kömürle eritir. Külçelerden platin bloklar yapılır."
+"[materials.items.platinum_block]": "Platin blok"
+"[materials.items.platinum_block.about]": "Yapılar için ağır, gri beyaz bir blok."
+
+# content/materials/platinum/data/materials.yaml
+"[materials.materials.platinum_ore]": "Platin cevheri"
+"[materials.materials.platinum_block]": "Platin blok"
+
+# content/materials/platinum/data/recipes.yaml
+"[materials.recipes.platinum_bar]": "Platin külçe"
+"[materials.recipes.platinum_block]": "Platin blok"

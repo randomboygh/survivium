@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/bronze/bundle.yaml
-"Бронза": "Bronz"
+"[materials.bronze.bundle]": "Bronz"
 
 # content/materials/bronze/data/items.yaml
-"Сырой тигель": "Ham pota"
-"Толстостенная чаша из глины с песком. Её ещё нужно обжечь в печи.": "Kil ve kumdan kalın duvarlı bir kâse. Daha fırında pişirilmesi gerek."
-"Тигель": "Pota"
-"Обожжённая чаша для плавки. В ней сплавляют медь с оловом; сама она не тратится.": "Eritmek için pişmiş bir kâse. İçinde bakır ve kalay alaşım yapılır; kendisi harcanmaz."
-"Бронзовый слиток": "Bronz külçe"
-"Медь с оловом: твёрже меди. Из бронзы — инструменты, которые берут железную руду.": "Kalaylı bakır: bakırdan sert. Bronzdan demir cevheri kazabilen aletler yapılır."
+"[materials.items.raw_crucible]": "Ham pota"
+"[materials.items.raw_crucible.about]": "Kil ve kumdan kalın duvarlı bir kâse. Daha fırında pişirilmesi gerek."
+"[materials.items.crucible]": "Pota"
+"[materials.items.crucible.about]": "Eritmek için pişmiş bir kâse. İçinde bakır ve kalay alaşım yapılır; kendisi harcanmaz."
+"[materials.items.bronze_bar]": "Bronz külçe"
+"[materials.items.bronze_bar.about]": "Kalaylı bakır: bakırdan sert. Bronzdan demir cevheri kazabilen aletler yapılır."
+
+# content/materials/bronze/data/recipes.yaml
+"[materials.recipes.raw_crucible]": "Ham pota"
+"[materials.recipes.crucible]": "Pota"
+"[materials.recipes.bronze_bar]": "Bronz külçe"

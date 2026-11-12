@@ -1,7 +1,7 @@
 # Акация: дерево саванны — плоская широкая крона зонтиком высоко на тонком кривом стволе, мелкая
 # сизо-зелёная листва (поля — как у дуба, content/plants/oak/data/trees.yaml). Листву не сбрасывает.
 - id: acacia
-  title: Акация
+  title: "[plants.trees.acacia]"
   shape: umbrella
   leaf: soft
   leaves: broad

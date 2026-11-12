@@ -2,15 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/flax/bundle.yaml
-"Лён": "Keten"
+"[plants.flax.bundle]": "Keten"
 
 # content/plants/flax/data/items.yaml
-"Семена льна": "Keten tohumu"
-"Гладкие блестящие семена. Посейте их на грядку весной.": "Pürüzsüz, parlak tohumlar. İlkbaharda bir tarha ek."
-"Стебли льна": "Keten sapları"
-"Срезанный дикий лён. Из него прядут льняную нить.": "Kesilmiş yabani keten. Ondan keten ipliği eğrilir."
-"Льняная нить": "Keten ipliği"
-"Тонкая прочная нить. На ткацком станке из неё ткут ткань.": "İnce, sağlam bir iplik. Dokuma tezgâhında ondan kumaş dokunur."
+"[plants.items.flax_seeds]": "Keten tohumu"
+"[plants.items.flax_seeds.about]": "Pürüzsüz, parlak tohumlar. İlkbaharda bir tarha ek."
+"[plants.items.flax_stalks]": "Keten sapları"
+"[plants.items.flax_stalks.about]": "Kesilmiş yabani keten. Ondan keten ipliği eğrilir."
+"[plants.items.linen_thread]": "Keten ipliği"
+"[plants.items.linen_thread.about]": "İnce, sağlam bir iplik. Dokuma tezgâhında ondan kumaş dokunur."
+
+# content/plants/flax/data/plants.yaml
+"[plants.plants.flax]": "Keten"
+"[plants.plants.sown_flax]": "Keten"
 
 # content/plants/flax/data/recipes.yaml
-"Льняная ткань": "Keten kumaş"
+"[plants.recipes.linen_thread]": "Keten ipliği"
+"[plants.recipes.cloth]": "Keten kumaş"

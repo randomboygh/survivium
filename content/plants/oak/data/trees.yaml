@@ -22,7 +22,7 @@
 # taper — на сколько пикселей ствол тоньше с каждой ячейкой вверх; crook — на сколько
 # пикселей ствол может изгибаться в сторону; roots — [мин, макс] корней у комля.
 - id: oak
-  title: Дуб
+  title: "[plants.trees.oak]"
   shape: lobed
   leaf: curly
   leaves: broad

@@ -1,0 +1,21 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hide_clothes/bundle.yaml
+"[tools.hide_clothes.bundle]": "Одежда из шкур"
+
+# content/tools/hide_clothes/data/items.yaml
+"[tools.items.fur_hat]": "Меховая шапка"
+"[tools.items.fur_hat.about]": "Шапка из шкуры мехом внутрь. Держит тепло головы в мороз."
+"[tools.items.fur_coat]": "Шуба"
+"[tools.items.fur_coat.about]": "Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна."
+"[tools.items.leather_trousers]": "Кожаные штаны"
+"[tools.items.leather_trousers.about]": "Штаны из выделанной кожи. Не продуваются ветром."
+"[tools.items.fur_boots]": "Унты"
+"[tools.items.fur_boots.about]": "Высокие сапоги из шкуры на кожаной подошве."
+
+# content/tools/hide_clothes/data/recipes.yaml
+"[tools.recipes.fur_hat]": "Меховая шапка"
+"[tools.recipes.fur_coat]": "Шуба"
+"[tools.recipes.leather_trousers]": "Кожаные штаны"
+"[tools.recipes.fur_boots]": "Унты"

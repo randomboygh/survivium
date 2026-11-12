@@ -1,7 +1,7 @@
 # Сыродутная печь: высокая глиняная печь, в которой из руды с углём выходит крица (prop: bloomery;
 # у неё делают то, что в recipes.yaml указывает на неё в `at`). Складывают на верстаке.
 - id: bloomery
-  title: Сыродутная печь
+  title: "[tools.items.bloomery]"
   era: core:iron
   weight: 30.0
   stack: 1

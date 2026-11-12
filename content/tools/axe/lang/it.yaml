@@ -2,14 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/axe/bundle.yaml
-"Топор": "Ascia"
+"[tools.axe.bundle]": "Ascia"
 
 # content/tools/axe/data/items.yaml
-"Каменный топор": "Ascia di pietra"
-"Медный топор": "Ascia di rame"
-"Бронзовый топор": "Ascia di bronzo"
-"Железный топор": "Ascia di ferro"
-"Стальной топор": "Ascia d'acciaio"
+"[tools.items.stone_axe]": "Ascia di pietra"
+"[tools.items.copper_axe]": "Ascia di rame"
+"[tools.items.bronze_axe]": "Ascia di bronzo"
+"[tools.items.iron_axe]": "Ascia di ferro"
+"[tools.items.steel_axe]": "Ascia d'acciaio"
 
 # content/tools/axe/data/recipes.yaml
-"Доски": "Assi"
+"[tools.recipes.stone_axe]": "Ascia di pietra"
+"[tools.recipes.planks]": "Assi"
+"[tools.recipes.copper_axe]": "Ascia di rame"
+"[tools.recipes.bronze_axe]": "Ascia di bronzo"
+"[tools.recipes.iron_axe]": "Ascia di ferro"
+"[tools.recipes.steel_axe]": "Ascia d'acciaio"

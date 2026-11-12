@@ -2,12 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/iron/bundle.yaml
-"Железо": "Eisen"
+"[materials.iron.bundle]": "Eisen"
 
 # content/materials/iron/data/items.yaml
-"Железная руда": "Eisenerz"
-"Ржаво-бурая тяжёлая руда. Её берёт бронзовая кирка.": "Ein schweres rostbraunes Erz. Eine Bronzespitzhacke baut es ab."
-"Крица": "Luppe"
-"Пористый ком железа со шлаком из сыродутной печи. В горне из него выходят два слитка.": "Ein poröser Klumpen aus Eisen und Schlacke aus dem Rennofen. Die Esse macht daraus zwei Barren."
-"Железный слиток": "Eisenbarren"
-"Тёмный прочный металл. Из него наковальня и железные инструменты.": "Ein dunkles, festes Metall. Daraus Amboss und Eisenwerkzeuge."
+"[materials.items.iron_ore]": "Eisenerz"
+"[materials.items.iron_ore.about]": "Ein schweres rostbraunes Erz. Eine Bronzespitzhacke baut es ab."
+"[materials.items.iron_bloom]": "Luppe"
+"[materials.items.iron_bloom.about]": "Ein poröser Klumpen aus Eisen und Schlacke aus dem Rennofen. Die Esse macht daraus zwei Barren."
+"[materials.items.iron_bar]": "Eisenbarren"
+"[materials.items.iron_bar.about]": "Ein dunkles, festes Metall. Daraus Amboss und Eisenwerkzeuge."
+
+# content/materials/iron/data/materials.yaml
+"[materials.materials.iron_ore]": "Eisenerz"
+
+# content/materials/iron/data/recipes.yaml
+"[materials.recipes.iron_bloom]": "Luppe"
+"[materials.recipes.iron_bar]": "Eisenbarren"

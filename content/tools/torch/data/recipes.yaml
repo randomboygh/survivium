@@ -1,7 +1,7 @@
 # Рецепт бандла «Факел»: ветка, обмотанная волокном (бандлы «Дерево» и «Волокно» «Ресурсов»),
 # руками, без станка.
 - id: torch
-  title: Факел
+  title: "[tools.recipes.torch]"
   makes: torch
   needs: {resources:branch: 1, resources:fiber: 2}
   time: 2

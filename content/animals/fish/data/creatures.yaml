@@ -3,7 +3,7 @@
 # catch — во что рыба превращается в сумке, когда её вытащили удочкой: к поплавку подплывает настоящая рыба
 # из воды рядом, и пойманная уходит из водоёма. Поля те же, что у всех существ (content/core/data/creatures.yaml).
 - id: roach
-  title: Плотва
+  title: "[animals.creatures.roach]"
   mass: 0.3
   diet: [plants]
   speed: 2.5
@@ -21,7 +21,7 @@
   catch: roach
   biomes: [biomes:alpine_meadow, biomes:beach, biomes:birch_grove, biomes:desert, biomes:floodplain, biomes:forest, biomes:forest_steppe, biomes:jungle, biomes:maple_wood, biomes:meadow, biomes:peat_bog, biomes:pine_wood, biomes:plateau, biomes:red_rocks, biomes:rock, biomes:salt_flat, biomes:savanna, biomes:steppe, biomes:swamp, biomes:taiga]
 - id: pike
-  title: Щука
+  title: "[animals.creatures.pike]"
   mass: 1.2
   diet: [plants]
   speed: 3.5
@@ -38,7 +38,7 @@
   catch: pike
   biomes: [biomes:alpine_meadow, biomes:birch_grove, biomes:floodplain, biomes:forest, biomes:forest_steppe, biomes:glacier, biomes:maple_wood, biomes:meadow, biomes:peat_bog, biomes:pine_wood, biomes:plateau, biomes:rock, biomes:steppe, biomes:stony_tundra, biomes:swamp, biomes:taiga, biomes:tundra]
 - id: salmon
-  title: Лосось
+  title: "[animals.creatures.salmon]"
   mass: 1.0
   diet: [plants]
   speed: 3.5
@@ -56,7 +56,7 @@
   catch: salmon
   biomes: [biomes:alpine_meadow, biomes:glacier, biomes:ice_waste, biomes:peat_bog, biomes:pine_wood, biomes:plateau, biomes:rock, biomes:stony_tundra, biomes:taiga, biomes:tundra]
 - id: cod
-  title: Треска
+  title: "[animals.creatures.cod]"
   mass: 0.9
   diet: [plants]
   speed: 3.0
@@ -74,7 +74,7 @@
   catch: cod
   biomes: [biomes:sea, biomes:ice_waste, biomes:tropical_sea]
 - id: parrotfish
-  title: Рыба-попугай
+  title: "[animals.creatures.parrotfish]"
   mass: 0.7
   diet: [plants]
   speed: 2.5
@@ -92,7 +92,7 @@
   catch: parrotfish
   biomes: [biomes:mangrove, biomes:tropical_sea]
 - id: catfish
-  title: Сом
+  title: "[animals.creatures.catfish]"
   mass: 1.6
   diet: [plants]
   speed: 1.5

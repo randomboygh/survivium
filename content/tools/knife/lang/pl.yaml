@@ -2,12 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/knife/bundle.yaml
-"Нож": "Nóż"
+"[tools.knife.bundle]": "Nóż"
 
 # content/tools/knife/data/items.yaml
-"Кремнёвый нож": "Krzemienny nóż"
-"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "Ostry odłamek krzemienia z rękojeścią. Rozbiera tusze i bije zwierzęta."
-"Медный нож": "Miedziany nóż"
-"Бронзовый нож": "Brązowy nóż"
-"Железный нож": "Żelazny nóż"
-"Стальной нож": "Stalowy nóż"
+"[tools.items.flint_knife]": "Krzemienny nóż"
+"[tools.items.flint_knife.about]": "Ostry odłamek krzemienia z rękojeścią. Rozbiera tusze i bije zwierzęta."
+"[tools.items.copper_knife]": "Miedziany nóż"
+"[tools.items.bronze_knife]": "Brązowy nóż"
+"[tools.items.iron_knife]": "Żelazny nóż"
+"[tools.items.steel_knife]": "Stalowy nóż"
+
+# content/tools/knife/data/recipes.yaml
+"[tools.recipes.flint_knife]": "Krzemienny nóż"
+"[tools.recipes.copper_knife]": "Miedziany nóż"
+"[tools.recipes.bronze_knife]": "Brązowy nóż"
+"[tools.recipes.iron_knife]": "Żelazny nóż"
+"[tools.recipes.steel_knife]": "Stalowy nóż"

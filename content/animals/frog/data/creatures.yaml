@@ -5,7 +5,7 @@
 # Плавает (swims) и вылезает на берег (ashore), по земле прыгает (hops); выходит только после
 # дождя, пока стоят лужи (after_rain), и тем больше, чем их больше. Еда для окуня, вороны и совы.
 - id: frog
-  title: Лягушка
+  title: "[animals.creatures.frog]"
   mass: 0.05
   diet: [meat]
   speed: 2.0

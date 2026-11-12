@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/lantern/bundle.yaml
-"Фонарь": "Lantern"
+"[tools.lantern.bundle]": "Lantern"
 
 # content/tools/lantern/data/items.yaml
-"Стекло в медной оправе, внутри горит смола. Светит дальше факела и горит намного дольше.": "Glass in a copper frame with tar burning inside. Shines farther than a torch and burns much longer."
+"[tools.items.lantern]": "Lantern"
+"[tools.items.lantern.about]": "Glass in a copper frame with tar burning inside. Shines farther than a torch and burns much longer."
+
+# content/tools/lantern/data/recipes.yaml
+"[tools.recipes.lantern]": "Lantern"

@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/tar_torch/bundle.yaml
-"Смоляной факел": "Antorcha de brea"
+"[tools.tar_torch.bundle]": "Antorcha de brea"
 
 # content/tools/tar_torch/data/items.yaml
-"Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше.": "Una rama envuelta en tela embreada. Arde tres veces más que una antorcha simple y alumbra más lejos."
+"[tools.items.tar_torch]": "Antorcha de brea"
+"[tools.items.tar_torch.about]": "Una rama envuelta en tela embreada. Arde tres veces más que una antorcha simple y alumbra más lejos."
+
+# content/tools/tar_torch/data/recipes.yaml
+"[tools.recipes.tar_torch]": "Antorcha de brea"

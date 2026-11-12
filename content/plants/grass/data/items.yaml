@@ -3,7 +3,7 @@
 # как у предметов основы (content/core/data/items.yaml). plant — куст этого мода, который
 # сажает предмет; sow — материал основы, на который сеют семена; crop — что из них вырастает.
 - id: grass_seeds
-  title: Семена трав
+  title: "[plants.items.grass_seeds]"
   weight: 0.01
   stack: 50
   model: seeds

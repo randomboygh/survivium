@@ -131,8 +131,8 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 (`Mat.GRASS`, `Placed.CAMPFIRE`). Реестры заполняют свои статические переменные при загрузке класса
 и пересобираются `Mods.activate` / `refresh`. Подробно: [DATA_MODEL.md](DATA_MODEL.md).
 
-Текст игры: язык исходников русский, фраза — ключ; переводы лежат `lang/<код>.yaml` в моде и бандле, сервер
-шлёт фразу или `Lang.line`, клиент переводит у себя (решение 183, [systems/lang.md](systems/lang.md)). При
+Текст игры: каждый текст для игрока — ключ `[…]` (решение 186); переводы лежат `lang/<код>.yaml` в моде и бандле, сервер
+шлёт ключ или `Lang.line`, клиент переводит у себя (решение 183, [systems/lang.md](systems/lang.md)). При
 запуске из папки проекта `content_watch.gd` замечает изменённые файлы модов, а модуль `mod_reload.gd`
 перечитывает реестры, картинки и звуки (решение 184, [systems/content.md](systems/content.md)).
 
@@ -153,7 +153,7 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
    работа в мире есть только у девяти классов `Tools.WORLD_KINDS`. Закрытые роли (`plants.kind`,
    `materials.role`, `biomes.where`, `biomes.zone`) новым значением требуют кода.
 5. Работа размером с чанк — задание по частям в бюджете `chunk_streamer.gd`.
-6. Новая фраза интерфейса или запись — её английский в `lang/en.yaml` рядом (`tools/lang_check.py --write en`).
+6. Текст для игрока — ключ `[…]`; новый ключ или запись — его английский и русский в `lang/en.yaml` и `ru.yaml` рядом (`tools/lang_check.py --write en`, `--write ru`).
 7. После правки — проверки из `CLAUDE.md`; правила, станки, рецепты, инструменты — ещё `progress_test`.
 
 Решения, на которых это держится, с причинами: [DECISIONS.md](DECISIONS.md).

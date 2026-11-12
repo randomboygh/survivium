@@ -2,7 +2,8 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/stairs/bundle.yaml
-"Лестница": "Schody"
+"[tools.stairs.bundle]": "Schody"
 
 # content/tools/stairs/data/items.yaml
-"Старая лестница из досок. Теперь ступени строят из любого блока в режиме строительства.": "Stare schody z desek. Teraz stopnie buduje się z dowolnego bloku w trybie budowy."
+"[tools.items.stairs]": "Schody"
+"[tools.items.stairs.about]": "Stare schody z desek. Teraz stopnie buduje się z dowolnego bloku w trybie budowy."

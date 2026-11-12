@@ -2,4 +2,10 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/big_chest/bundle.yaml
-"Большой сундук": "Büyük sandık"
+"[tools.big_chest.bundle]": "Büyük sandık"
+
+# content/tools/big_chest/data/items.yaml
+"[tools.items.big_chest]": "Büyük sandık"
+
+# content/tools/big_chest/data/recipes.yaml
+"[tools.recipes.big_chest]": "Büyük sandık"

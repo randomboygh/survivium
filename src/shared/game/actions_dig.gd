@@ -34,7 +34,7 @@ func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 		return {}
 	var t: Dictionary = who.tool()
 	if too_far(who, cell, t.reach):
-		who.nag("far", "Слишком далеко")
+		who.nag("far", "[too_far]")
 		return {}
 	var tree: Variant = tree_of(cell)
 	if tree != null:
@@ -45,7 +45,7 @@ func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 				return _work(skilled(who, "gather", t.swing), "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, Mat.LEAVES)
 			return {}
 		if m == Mat.LOG:
-			who.nag("tool", "Дерево рубят топором")
+			who.nag("tool", "[trees_are_chopped_with_an]")
 			return {}
 	if Tools.mows(t) and can_mow(cell, t):
 		return mow_swing(who, mow_targets(who, [cell], t))
@@ -106,7 +106,7 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 		who.use_tool()
 	elif wear is String and wear != "" and rules.tool_wear \
 			and who.inventory.wear_tool(wear, Items.get_item(wear).get("durability", 0)):
-		who.say(Lang.line("Сломалось: %s", [Items.title(wear)]))
+		who.say(Lang.line("[broke]", [Items.title(wear)]))
 	return done
 
 

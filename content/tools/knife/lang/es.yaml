@@ -2,12 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/knife/bundle.yaml
-"Нож": "Cuchillo"
+"[tools.knife.bundle]": "Cuchillo"
 
 # content/tools/knife/data/items.yaml
-"Кремнёвый нож": "Cuchillo de sílex"
-"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "Una lasca afilada de sílex con mango. Despieza reses y golpea animales."
-"Медный нож": "Cuchillo de cobre"
-"Бронзовый нож": "Cuchillo de bronce"
-"Железный нож": "Cuchillo de hierro"
-"Стальной нож": "Cuchillo de acero"
+"[tools.items.flint_knife]": "Cuchillo de sílex"
+"[tools.items.flint_knife.about]": "Una lasca afilada de sílex con mango. Despieza reses y golpea animales."
+"[tools.items.copper_knife]": "Cuchillo de cobre"
+"[tools.items.bronze_knife]": "Cuchillo de bronce"
+"[tools.items.iron_knife]": "Cuchillo de hierro"
+"[tools.items.steel_knife]": "Cuchillo de acero"
+
+# content/tools/knife/data/recipes.yaml
+"[tools.recipes.flint_knife]": "Cuchillo de sílex"
+"[tools.recipes.copper_knife]": "Cuchillo de cobre"
+"[tools.recipes.bronze_knife]": "Cuchillo de bronce"
+"[tools.recipes.iron_knife]": "Cuchillo de hierro"
+"[tools.recipes.steel_knife]": "Cuchillo de acero"

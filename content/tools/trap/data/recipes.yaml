@@ -1,7 +1,7 @@
 # Рецепты бандла «Живоловка»: клетку вяжут руками из веток «Ресурсов» и верёвки «Материалов».
 # Все поля рецепта — docs/DATA_MODEL.md.
 - id: trap
-  title: Живоловка
+  title: "[tools.recipes.trap]"
   makes: trap
   needs: {resources:branch: 6, materials:cord: 2}
   time: 6

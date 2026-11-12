@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/tar_torch/bundle.yaml
+"[tools.tar_torch.bundle]": "Смоляной факел"
+
+# content/tools/tar_torch/data/items.yaml
+"[tools.items.tar_torch]": "Смоляной факел"
+"[tools.items.tar_torch.about]": "Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше."
+
+# content/tools/tar_torch/data/recipes.yaml
+"[tools.recipes.tar_torch]": "Смоляной факел"

@@ -1,8 +1,8 @@
 # Сруб: бревно, отёсанное топором и уложенное венцом; его ставят блоками стен и пола (решение
 # о строительстве 2026-11-03: стены и пол — целые ячейки).
 - id: log_wall
-  title: Сруб
-  description: Отёсанные брёвна для стен и пола. Ставится блоком.
+  title: "[materials.items.log_wall]"
+  description: "[materials.items.log_wall.about]"
   weight: 2.5
   stack: 20
   place: log_wall

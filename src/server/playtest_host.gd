@@ -5,6 +5,7 @@ extends Node
 ## (at most MOST_MINUTES from its start). The bots, the other worlds and «/test» itself,
 ## which any player may send there, are TestCommands'.
 
+const Lang := preload("res://src/shared/content/lang.gd")
 ## Minutes a server lives at most (the workflow's job ends at 320).
 const MOST_MINUTES := 300
 const HOUR := 60
@@ -40,27 +41,27 @@ func _process(delta: float) -> void:
 		main.server.stop()
 	elif left <= WARN * 60.0 and not _warned:
 		_warned = true
-		_tell_all("Тестовый сервер остановится через %d мин" % ceili(left / 60.0))
+		_tell_all(Lang.line("[the_test_server_stops_in]", [ceili(left / 60.0)]))
 
 
 ## «/test hour»: an hour more; the answer.
 func extend() -> String:
 	if _end <= 0.0:
-		return "Сервер без срока"
+		return "The server has no time limit"
 	var most := _start + MOST_MINUTES * 60.0
 	if _end >= most - 60.0:
-		return "Дольше нельзя: %s" % left_text()
+		return "No longer: %s" % left_text()
 	_end = minf(_end + HOUR * 60.0, most)
 	_warned = false
 	main.say("playtest server extended: " + left_text())
-	return "Продлено: " + left_text()
+	return "Extended: " + left_text()
 
 
 ## How long the server has left, in words.
 func left_text() -> String:
 	if _end <= 0.0:
-		return "без срока"
-	return "осталось %d мин" % maxi(0, ceili((_end - Time.get_unix_time_from_system()) / 60.0))
+		return "no time limit"
+	return "%d min left" % maxi(0, ceili((_end - Time.get_unix_time_from_system()) / 60.0))
 
 
 func _tell_all(text: String) -> void:

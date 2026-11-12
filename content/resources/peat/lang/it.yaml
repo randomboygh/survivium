@@ -2,4 +2,10 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/resources/peat/bundle.yaml
-"Торф": "Torba"
+"[resources.peat.bundle]": "Torba"
+
+# content/resources/peat/data/items.yaml
+"[resources.items.peat]": "Torba"
+
+# content/resources/peat/data/materials.yaml
+"[resources.materials.peat]": "Torba"

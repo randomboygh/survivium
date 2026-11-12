@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/tar_torch/bundle.yaml
-"Смоляной факел": "Tocha de alcatrão"
+"[tools.tar_torch.bundle]": "Tocha de alcatrão"
 
 # content/tools/tar_torch/data/items.yaml
-"Ветка, обмотанная тканью в смоле. Горит втрое дольше простого факела и светит дальше.": "Um galho envolto em pano alcatroado. Queima três vezes mais que uma tocha simples e ilumina mais longe."
+"[tools.items.tar_torch]": "Tocha de alcatrão"
+"[tools.items.tar_torch.about]": "Um galho envolto em pano alcatroado. Queima três vezes mais que uma tocha simples e ilumina mais longe."
+
+# content/tools/tar_torch/data/recipes.yaml
+"[tools.recipes.tar_torch]": "Tocha de alcatrão"

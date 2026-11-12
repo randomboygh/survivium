@@ -102,17 +102,17 @@ func tap_post(e: Dictionary) -> void:
 	var land = game.land
 	if not land.tap_post(e):
 		var claim: Dictionary = land.copy.claim_at(e.cell)
-		toast(Lang.line("Межевой столб «%s»", [claim.get("name", "")]) if not claim.is_empty() \
-			else "Межевой столб без земли: её забросили. Заберите столб и поставьте снова")
+		toast(Lang.line("[boundary_post]", [claim.get("name", "")]) if not claim.is_empty() \
+			else "[a_boundary_post_with_no]")
 		return
 
 
 ## Painting the land turned on or off (a tap on the post or its square, a post set down).
 func _on_painting_toggled(on: bool) -> void:
 	if on:
-		toast("Разметка: нажмите на землю рядом со своей, чтобы закрасить участок, на свой — чтобы стереть; на столб или его участок — чтобы закончить")
+		toast("[marking_tap_the_ground_next]")
 	else:
-		toast("Разметка закончена")
+		toast("[marking_finished]")
 
 
 ## While painting, how many squares are held and may be held, over the minimap.
@@ -126,13 +126,13 @@ func _show_land() -> void:
 ## The player walked into a claim (or out of all): whose land it is.
 func _on_land_entered(claim: Dictionary, own: bool) -> void:
 	if claim.is_empty():
-		toast("Ничейная земля")
+		toast("[no_ones_land]")
 	elif own:
-		toast("Своя территория")
+		toast("[your_own_territory]")
 	else:
 		var may: Array = game.land.may_here(claim)
-		var rights: String = Lang.f("можно %s", [", ".join(may.map(Lang.t))]) if not may.is_empty() else Lang.t("ничего нельзя")
-		toast(Lang.line("Территория «%s» заброшена: %s" if int(claim.get("weak", 0)) > 0 else "Территория «%s»: %s",
+		var rights: String = Lang.f("[allowed]", [", ".join(may.map(Lang.t))]) if not may.is_empty() else Lang.t("[nothing_allowed]")
+		toast(Lang.line("[territory_abandoned]" if int(claim.get("weak", 0)) > 0 else "[territory]",
 			[claim.get("name", ""), rights]))
 
 
@@ -190,15 +190,15 @@ func _build_menu() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	_menu.add_child(box)
-	var title := UiStyle.label("Пауза", UiStyle.ACCENT)
+	var title := UiStyle.label("[pause]", UiStyle.ACCENT)
 	title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(title)
-	_menu_buttons["resume"] = _add_menu_button(box, "Продолжить", toggle_menu)
-	_menu_buttons["settings"] = _add_menu_button(box, "Настройки", open_settings.bind("settings"))
-	_menu_buttons["test"] = _add_menu_button(box, "Тестирование", open_settings.bind("test"))
-	_menu_buttons["server"] = _add_menu_button(box, "Сервер", _to_server)
-	_menu_buttons["main"] = _add_menu_button(box, "Главное меню", _to_main_menu)
+	_menu_buttons["resume"] = _add_menu_button(box, "[continue]", toggle_menu)
+	_menu_buttons["settings"] = _add_menu_button(box, "[settings]", open_settings.bind("settings"))
+	_menu_buttons["test"] = _add_menu_button(box, "[testing]", open_settings.bind("test"))
+	_menu_buttons["server"] = _add_menu_button(box, "[server_name]", _to_server)
+	_menu_buttons["main"] = _add_menu_button(box, "[main_menu]", _to_main_menu)
 
 
 ## The settings and the playtest page, made the first time they are opened.
@@ -256,7 +256,7 @@ func debug_rects() -> Dictionary:
 		var c: Control = items[k]
 		out[k] = c.get_global_rect() if c.is_visible_in_tree() else Rect2()
 	# The "next" arrow of the season row while the playtest page is open.
-	out["season"] = _settings.debug_rects().get("Сезон", Rect2()) if _settings != null and _settings.visible else Rect2()
+	out["season"] = _settings.debug_rects().get("[season]", Rect2()) if _settings != null and _settings.visible else Rect2()
 	return out
 
 

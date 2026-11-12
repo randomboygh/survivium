@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/bronze/bundle.yaml
-"Бронза": "Bronze"
+"[materials.bronze.bundle]": "Bronze"
 
 # content/materials/bronze/data/items.yaml
-"Сырой тигель": "Roher Tiegel"
-"Толстостенная чаша из глины с песком. Её ещё нужно обжечь в печи.": "Eine dickwandige Schale aus Lehm und Sand. Sie muss noch im Ofen gebrannt werden."
-"Тигель": "Tiegel"
-"Обожжённая чаша для плавки. В ней сплавляют медь с оловом; сама она не тратится.": "Eine gebrannte Schmelzschale. Darin legiert man Kupfer mit Zinn; sie wird nicht verbraucht."
-"Бронзовый слиток": "Bronzebarren"
-"Медь с оловом: твёрже меди. Из бронзы — инструменты, которые берут железную руду.": "Kupfer mit Zinn: härter als Kupfer. Bronze gibt Werkzeuge, die Eisenerz abbauen."
+"[materials.items.raw_crucible]": "Roher Tiegel"
+"[materials.items.raw_crucible.about]": "Eine dickwandige Schale aus Lehm und Sand. Sie muss noch im Ofen gebrannt werden."
+"[materials.items.crucible]": "Tiegel"
+"[materials.items.crucible.about]": "Eine gebrannte Schmelzschale. Darin legiert man Kupfer mit Zinn; sie wird nicht verbraucht."
+"[materials.items.bronze_bar]": "Bronzebarren"
+"[materials.items.bronze_bar.about]": "Kupfer mit Zinn: härter als Kupfer. Bronze gibt Werkzeuge, die Eisenerz abbauen."
+
+# content/materials/bronze/data/recipes.yaml
+"[materials.recipes.raw_crucible]": "Roher Tiegel"
+"[materials.recipes.crucible]": "Tiegel"
+"[materials.recipes.bronze_bar]": "Bronzebarren"

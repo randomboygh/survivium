@@ -10,7 +10,7 @@
 # для карты и отчётов. color — цвет на карте. tints — цвета грунта и воды биома вместо их собственных (по
 # именам поля top и water: {sand: "#e6dcbe", water: "#4cc6bc"}). Ссылки на породы и кусты мягкие: без их бандла доля пуста.
 - id: forest
-  title: Лес
+  title: "[biomes.biomes.forest]"
   zone: temperate
   moisture: [0.7, 1.0]
   trees: {plants:oak: 0.5, plants:linden: 0.14, plants:maple: 0.14, plants:spruce: 0.1, plants:rowan: 0.04, plants:bird_cherry: 0.04, plants:deadwood: 0.04}

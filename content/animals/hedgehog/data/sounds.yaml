@@ -1,5 +1,5 @@
 # Голоса: sounds/<id>_N.wav этого бандла (tools/make_sounds.gd); calls и alarm вида в creatures.yaml.
 - id: hedgehog
-  title: Фырканье ежа
+  title: "[animals.sounds.hedgehog]"
   variants: 2
   volume: 0.4

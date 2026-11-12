@@ -2,8 +2,8 @@
 # «Печь для обжига» «Инструментов»); на ней горят смоляной факел и фонарь, она разжигает костёр
 # (fuel), потом станет клеем для лука.
 - id: tar
-  title: Смола
-  description: Густая чёрная смола из брёвен. Горит долго и ярко, склеивает.
+  title: "[materials.items.tar]"
+  description: "[materials.items.tar.about]"
   weight: 0.3
   stack: 20
   model: tar

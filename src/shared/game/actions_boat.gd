@@ -232,7 +232,7 @@ func _launch(who, item: String, at: Vector3, dir: Vector2) -> bool:
 	var it := Items.get_item(item)
 	var oars: String = it.get("oars", "")
 	if oars != "" and who.inventory.count(oars) == 0:
-		who.say(Lang.line("%s на воде, но без вёсел она едва движется", [it.title]))
+		who.say(Lang.line("[is_on_the_water_but]", [it.title]))
 	return true
 
 
@@ -285,7 +285,7 @@ func leave_boat(who, at: Vector3) -> void:
 			p.seat = 0
 			_set_off(p, v)
 			_told(p)
-			p.say("Теперь гребёте вы")
+			p.say("[now_you_are_rowing]")
 			break
 
 

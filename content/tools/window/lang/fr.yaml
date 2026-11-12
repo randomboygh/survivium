@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/window/bundle.yaml
-"Окно": "Fenêtre"
+"[tools.window.bundle]": "Fenêtre"
 
 # content/tools/window/data/items.yaml
-"Рама со стеклом для проёма в стене.": "Un cadre vitré pour une ouverture dans le mur."
-"Окно 1×2": "Fenêtre 1×2"
-"Высокое окно со стеклом, на клетку в ширину и две в высоту.": "Une haute fenêtre vitrée, d'une case de large et deux de haut."
-"Окно 2×1": "Fenêtre 2×1"
-"Широкое окно со стеклом, на две клетки в ширину и одну в высоту.": "Une large fenêtre vitrée, de deux cases de large et une de haut."
-"Окно 2×2": "Fenêtre 2×2"
-"Большое окно со стеклом, на две клетки в ширину и две в высоту.": "Une grande fenêtre vitrée, de deux cases de large et deux de haut."
-"Окно 3×2": "Fenêtre 3×2"
-"Окно во всю стену, на три клетки в ширину и две в высоту.": "Une fenêtre d'un mur à l'autre, de trois cases de large et deux de haut."
+"[tools.items.window]": "Fenêtre"
+"[tools.items.window.about]": "Un cadre vitré pour une ouverture dans le mur."
+"[tools.items.window_1x2]": "Fenêtre 1×2"
+"[tools.items.window_1x2.about]": "Une haute fenêtre vitrée, d'une case de large et deux de haut."
+"[tools.items.window_2x1]": "Fenêtre 2×1"
+"[tools.items.window_2x1.about]": "Une large fenêtre vitrée, de deux cases de large et une de haut."
+"[tools.items.window_2x2]": "Fenêtre 2×2"
+"[tools.items.window_2x2.about]": "Une grande fenêtre vitrée, de deux cases de large et deux de haut."
+"[tools.items.window_3x2]": "Fenêtre 3×2"
+"[tools.items.window_3x2.about]": "Une fenêtre d'un mur à l'autre, de trois cases de large et deux de haut."
+
+# content/tools/window/data/recipes.yaml
+"[tools.recipes.window]": "Fenêtre"
+"[tools.recipes.window_1x2]": "Fenêtre 1×2"
+"[tools.recipes.window_2x1]": "Fenêtre 2×1"
+"[tools.recipes.window_2x2]": "Fenêtre 2×2"
+"[tools.recipes.window_3x2]": "Fenêtre 3×2"

@@ -390,7 +390,7 @@ func move_all(to, from := 0, keep := -1) -> int:
 
 
 ## Ways to sort a bag (see sort), with their names for the window.
-const SORTS := {"kind": "по виду", "weight": "по весу"}
+const SORTS := {"kind": "[by_kind]", "weight": "[by_weight]"}
 
 
 ## Puts the stacks of slots `from` on in order `by` (a key of SORTS): by kind (see

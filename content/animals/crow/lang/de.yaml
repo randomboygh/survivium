@@ -2,7 +2,10 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/animals/crow/bundle.yaml
-"Ворона": "Krähe"
+"[animals.crow.bundle]": "Krähe"
+
+# content/animals/crow/data/creatures.yaml
+"[animals.creatures.crow]": "Krähe"
 
 # content/animals/crow/data/sounds.yaml
-"Карканье": "Krächzen"
+"[animals.sounds.crow]": "Krächzen"

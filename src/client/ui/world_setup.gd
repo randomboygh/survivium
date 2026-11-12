@@ -26,15 +26,15 @@ const MAP := 128
 const MAP_STEP := 32
 ## Time the map may take a frame, in microseconds.
 const MAP_BUDGET_US := 4000
-const LEVELS := ["мало", "средне", "много"]
+const LEVELS := ["[few]", "[medium_amount]", "[many]"]
 ## Kinds of world and the settings each picks: size, water, mountains, rivers, biomes
 ## (caves are set apart from the kind).
 const KINDS := [
-	["Обычный", [1, 1, 1, 1, 1]],
-	["Материк", [2, 1, 1, 1, 1]],
-	["Острова", [0, 2, 1, 0, 1]],
-	["Горы", [1, 1, 2, 1, 1]],
-	["Равнины", [2, 0, 0, 2, 2]],
+	["[standard]", [1, 1, 1, 1, 1]],
+	["[continent]", [2, 1, 1, 1, 1]],
+	["[islands]", [0, 2, 1, 0, 1]],
+	["[mountains]", [1, 1, 2, 1, 1]],
+	["[plains]", [2, 0, 0, 2, 2]],
 ]
 const OPTIONS := ["size", "water", "mountains", "rivers", "biomes"]
 
@@ -66,7 +66,7 @@ func _init(g) -> void:
 
 
 func _ready() -> void:
-	var outer := build("Новый мир", 8)
+	var outer := build("[new_world]", 8)
 	_box = BoxContainer.new()
 	_box.add_theme_constant_override("separation", 10)
 	outer.add_child(_box)
@@ -82,7 +82,7 @@ func _ready() -> void:
 	_map.texture = _texture
 	_map.custom_minimum_size = Vector2(MAP, MAP)
 	_map.stretch_mode = TextureRect.STRETCH_KEEP
-	_map.tooltip_text = Lang.f("Земля вокруг места старта, %d клеток в ширину", [(MAP * MAP_STEP)])
+	_map.tooltip_text = Lang.f("[the_land_around_the_start]", [(MAP * MAP_STEP)])
 	frame.add_child(_map)
 	var marker := Control.new()
 	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -100,8 +100,8 @@ func _ready() -> void:
 	_choices.set_focus(1)
 	var buttons := Kit.row(6)
 	outer.add_child(buttons)
-	buttons.add_child(Kit.button("Назад", back, 96, 36))
-	_start_button = Kit.accent_button("Создать мир", _start, 0, 36)
+	buttons.add_child(Kit.button("[back]", back, 96, 36))
+	_start_button = Kit.accent_button("[create_a_world]", _start, 0, 36)
 	_start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	buttons.add_child(_start_button)
 	show_fitted()
@@ -121,18 +121,18 @@ func _build_rows() -> void:
 		return
 	_seed_row()
 	# "Свой" is what the rows below make, not a choice of its own.
-	_add_row("Вид мира", KINDS.map(func(k: Array) -> String: return k[0]) + ["Свой"],
+	_add_row("[world_type]", KINDS.map(func(k: Array) -> String: return k[0]) + ["[custom]"],
 		_kind, func(i: int) -> void:
 			if i < KINDS.size():
 				for j in OPTIONS.size():
 					s.values["world_" + OPTIONS[j]] = KINDS[i][1][j]
 				s.save(), {"skip": KINDS.size()})
-	_add_row("Материки", ["малые", "средние", "огромные"], _getter("size"), _setter("size"))
-	_add_row("Вода", LEVELS, _getter("water"), _setter("water"))
-	_add_row("Горы", LEVELS, _getter("mountains"), _setter("mountains"))
-	_add_row("Реки и озёра", LEVELS, _getter("rivers"), _setter("rivers"))
-	_add_row("Биомы", ["мелкие", "обычные", "крупные"], _getter("biomes"), _setter("biomes"))
-	_add_row("Пещеры", LEVELS, _getter("caves"), _setter("caves"))
+	_add_row("[continents]", ["[small_continents]", "[medium_continents]", "[huge]"], _getter("size"), _setter("size"))
+	_add_row("[water]", LEVELS, _getter("water"), _setter("water"))
+	_add_row("[mountains]", LEVELS, _getter("mountains"), _setter("mountains"))
+	_add_row("[rivers_and_lakes]", LEVELS, _getter("rivers"), _setter("rivers"))
+	_add_row("[biomes]", ["[small_biomes]", "[normal_biomes]", "[large_biomes]"], _getter("biomes"), _setter("biomes"))
+	_add_row("[caves]", LEVELS, _getter("caves"), _setter("caves"))
 	_mods_row()
 	_choices.refresh()
 
@@ -153,10 +153,10 @@ func _mod_rows(s) -> void:
 			var mine: Array = Mods.bundles(mod)
 			var lit: int = mine.filter(func(b: String) -> bool: return b in on).size()
 			var opts := {"name_width": MOD_NAME_WIDTH, "direct": true,
-				"show": Lang.f("%d из %d", [lit, mine.size()]) if lit > 0 and lit < mine.size() else ""}
+				"show": Lang.f("[of_n2]", [lit, mine.size()]) if lit > 0 and lit < mine.size() else ""}
 			if mine.size() > 1:
 				opts.open = _show_page.bind("mod:" + mod)
-			_add_row(Mods.mod_title(mod), ["выкл", "вкл"],
+			_add_row(Mods.mod_title(mod), ["[off]", "[on]"],
 				func() -> int: return 1 if lit == mine.size() else 0,
 				func(i: int) -> void: s.set_world_mod(m, i == 1), opts)
 		return
@@ -167,7 +167,7 @@ func _mod_rows(s) -> void:
 	bundles.sort_custom(func(a: String, b: String) -> bool: return Mods.title(a).naturalnocasecmp_to(Mods.title(b)) < 0)
 	for bundle: String in bundles:
 		var b := bundle
-		_add_row(Lang.t(Mods.title(bundle)), ["выкл", "вкл"],
+		_add_row(Lang.t(Mods.title(bundle)), ["[off]", "[on]"],
 			func() -> int: return 1 if b in on else 0,
 			func(i: int) -> void: s.set_world_mod(b, i == 1), {"name_width": MOD_NAME_WIDTH, "direct": true})
 		_why_line(Mods.why(bundle, state.dropped))
@@ -180,7 +180,7 @@ func _why_line(chain: Array) -> void:
 		return
 	var parts: PackedStringArray = []
 	for need: String in chain:
-		parts.append(Lang.f("нужен «%s»" if parts.is_empty() else "а ему «%s»", [Mods.title(need)]))
+		parts.append(Lang.f("[needs]" if parts.is_empty() else "[and_it_needs]", [Mods.title(need)]))
 	var label := UiStyle.label(", ".join(parts), UiStyle.MUTED)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	# Indented, and further from the next row than from its own.
@@ -242,7 +242,7 @@ func _kind() -> int:
 func _seed_row() -> void:
 	var row := Kit.row(2)
 	_list.add_child(row)
-	var label := _choices.name_label("Зерно")
+	var label := _choices.name_label("[seed_n2]")
 	row.add_child(label)
 	_seed = Kit.field("", VALUE_WIDTH + ARROW + 2, 10, ARROW)
 	_seed.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
@@ -261,7 +261,7 @@ func _seed_row() -> void:
 			_restart_map())
 	_seed.text_submitted.connect(func(_t: String) -> void: _seed.release_focus())
 	row.add_child(_seed)
-	row.add_child(Kit.icon_button("dice", "Случайное зерно", func() -> void:
+	row.add_child(Kit.icon_button("dice", "[random_seed]", func() -> void:
 		var v := randi_range(1, 999999999)
 		_seed.text = str(v)
 		game.settings.values.world_seed = v
@@ -275,7 +275,7 @@ func _seed_row() -> void:
 func _mods_row() -> void:
 	var row := Kit.row(2)
 	_list.add_child(row)
-	var label := _choices.name_label("Моды")
+	var label := _choices.name_label("[mods_n2]")
 	row.add_child(label)
 	var value := UiStyle.label()
 	value.custom_minimum_size = Vector2(VALUE_WIDTH + ARROW + 2, 0)
@@ -283,10 +283,10 @@ func _mods_row() -> void:
 	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	var all: int = Mods.all().filter(func(b: String) -> bool: return Mods.mod_of(b) != "core").size()
 	var on: int = game.settings.world_mods().filter(func(b: String) -> bool: return Mods.mod_of(b) != "core").size()
-	value.text = Lang.f("%d из %d", [on, all]) if on < all else "все"
+	value.text = Lang.f("[of_n2]", [on, all]) if on < all else "[all_n2]"
 	row.add_child(value)
 	var index := _choices.add_custom(label, _show_page.bind("mods"))
-	row.add_child(Kit.icon_button("next", "Выбрать моды нового мира", func() -> void:
+	row.add_child(Kit.icon_button("next", "[choose_the_mods_of_the]", func() -> void:
 		_choices.set_focus(index)
 		_show_page("mods"), ARROW))
 

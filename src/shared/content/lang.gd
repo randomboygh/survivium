@@ -1,11 +1,11 @@
 extends RefCounted
-## The languages of the game (decision 183, picks 4А–6А). The text of the game is written
-## in Russian: the code's phrases and the content's titles and descriptions are the keys,
-## and a language is a table of those phrases put into it, `lang/<code>.yaml`: the
-## interface's in `content/core/lang/`, each bundle's own beside its `data/`
+## The languages of the game (decisions 183, 186). Every text a player reads is a key in
+## square brackets, `"[bag_is_full]"` in the code and `title: "[tools.items.stone_axe]"` in
+## a mod's data, and a language is a table of those keys put into it, `lang/<code>.yaml`:
+## the interface's in `content/core/lang/`, each bundle's own beside its `data/`
 ## (`content/animals/wolf/lang/en.yaml`), so a mod brings its words with it. A file is a
-## flat mapping `"Русская фраза": "Phrase"`; what a language lacks is taken from English,
-## and what English lacks shows as written.
+## flat mapping `"[key]": "Phrase"`; what a language lacks is taken from English, and what
+## English lacks shows as the key itself. Text that is no key shows as written.
 ##
 ## The client sets the language (`use`): Godot's TranslationServer then puts every
 ## Control's and Label3D's text through the table by itself, and the code puts the
@@ -21,7 +21,7 @@ const Content := preload("res://src/shared/content/content.gd")
 ## is the language of a new player whose device speaks none of them.
 const LANGS := [
 	["en", "English"],
-	["ru", "Русский"],
+	["ru", "[phrase]"],
 	["es", "Español"],
 	["pt", "Português"],
 	["fr", "Français"],
@@ -29,10 +29,10 @@ const LANGS := [
 	["it", "Italiano"],
 	["pl", "Polski"],
 	["tr", "Türkçe"],
-	["uk", "Українська"],
+	["uk", "[phrase_n2]"],
 ]
-## The language the keys are written in.
-const SOURCE := "ru"
+## The language every other one falls back to.
+const SOURCE := "en"
 ## What begins a `line`: the rest is JSON of [template, values...] (JSON, not var_to_str:
 ## a server's text must not make objects on the client).
 const LINE := "\u001e"
@@ -44,12 +44,18 @@ static var _table: Translation = null
 ## The phrases read, by language: a new scene (the menu, a world) uses them again.
 static var _read := {}
 ## While on (the scene tests), every text the screen is given to show (`seen`) is put
-## into English, and the ones that stay Russian are kept in `missed`: a phrase glued from
-## pieces, built with `%` instead of `line`, or missing from the language files.
+## into Russian, and the ones that keep a key or stay English are kept in `missed`: a
+## phrase glued from pieces, built with `%` instead of `line`, written as text instead
+## of a key, or missing from the language files.
 static var watching := false
 static var missed: Array[String] = []
+static var _russian: Table = null
+static var _key_in: RegEx = null
+static var _latin: RegEx = null
+static var _cyrillic: RegEx = null
+## English, for code that puts a phrase into words with no language set (the server,
+## the tests): read when first needed.
 static var _english: Table = null
-static var _russian: RegEx = null
 
 
 ## The table of one language: the phrases it has (`words`), the rest from English
@@ -102,10 +108,9 @@ static func use(lang_code: String) -> void:
 	code = lang_code
 	_table = Table.new()
 	_table.locale = lang_code
+	_table.words = _phrases_once(lang_code)
 	if lang_code != SOURCE:
-		_table.words = _phrases_once(lang_code)
-		if lang_code != "en":
-			_table.fallback = _phrases_once("en")
+		_table.fallback = _phrases_once(SOURCE)
 	TranslationServer.add_translation(_table)
 	TranslationServer.set_locale(lang_code)
 
@@ -134,6 +139,7 @@ static func title(lang_code: String) -> String:
 ## Reads the phrases again in the language in use (a hot reload of the mods, ModReload).
 static func reread() -> void:
 	_read = {}
+	_english = null
 	if code != "":
 		use(code)
 
@@ -203,23 +209,49 @@ static func f(template: String, values: Array) -> String:
 ## `s` (a phrase or a line) in the language in use; for code with no `tr()` (a static
 ## func) and for text drawn by hand.
 static func t(s: String) -> String:
-	if _table != null and s != "":
-		return (_table as Table).text_of(s) if code != SOURCE or s.begins_with(LINE) else s
-	if s.begins_with(LINE):
-		return Table.new().text_of(s)
-	return s
+	if s == "":
+		return s
+	if _table != null:
+		return (_table as Table).text_of(s)
+	return english().text_of(s)
+
+
+## The English table, for putting phrases into words with no language set.
+static func english() -> Table:
+	if _english == null:
+		_english = Table.new()
+		_english.words = _phrases_once(SOURCE)
+	return _english
+
+
+## Whether `s` is a key: a word of small Latin letters, digits, `_` and `.` in square
+## brackets, `[bag_is_full]`.
+static func is_key(s: String) -> bool:
+	if s.length() < 3 or not s.begins_with("[") or not s.ends_with("]"):
+		return false
+	for i in range(1, s.length() - 1):
+		var c := s.unicode_at(i)
+		if not ((c >= 97 and c <= 122) or (c >= 48 and c <= 57) or c == 95 or c == 46):
+			return false
+	return true
 
 
 ## Text `s` (a phrase or a line, as given to a Label) goes on the screen: while
-## `watching`, kept in `missed` when English would still show it in Russian.
+## `watching`, kept in `missed` when Russian would still show a key in it, or English (a
+## word of three Latin letters and no Cyrillic one).
 static func seen(s: String) -> void:
 	if not watching or s == "":
 		return
-	if _english == null:
-		_english = Table.new()
-		_english.words = phrases("en")
-		_russian = RegEx.create_from_string("[\\x{0400}-\\x{04FF}]")
-	if _russian.search(_english.text_of(s)) != null and not s in missed:
+	if _russian == null:
+		_russian = Table.new()
+		_russian.words = phrases("ru")
+		_russian.fallback = phrases(SOURCE)
+		_key_in = RegEx.create_from_string("\\[[a-z0-9_.]+\\]")
+		_latin = RegEx.create_from_string("[A-Za-z]{3}")
+		_cyrillic = RegEx.create_from_string("[\\x{0400}-\\x{04FF}]")
+	var shown := _russian.text_of(s)
+	var english := _latin.search(shown) != null and _cyrillic.search(shown) == null
+	if (_key_in.search(shown) != null or english) and not s in missed:
 		missed.append(s)
 
 

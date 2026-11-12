@@ -1,7 +1,7 @@
 # Рецепт бандла «Приставная лестница»: жерди и перекладины из веток «Ресурсов», связанные верёвкой
 # «Материалов», руками, без станка. Поля — docs/DATA_MODEL.md.
 - id: ladder
-  title: Приставная лестница
+  title: "[tools.recipes.ladder]"
   makes: ladder
   count: 2
   needs: {resources:branch: 4, materials:cord: 1}

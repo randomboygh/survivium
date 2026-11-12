@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/biomes/ice_waste/bundle.yaml
-"Ледяная пустошь": "Désert de glace"
+"[biomes.ice_waste.bundle]": "Désert de glace"
+
+# content/biomes/ice_waste/data/biomes.yaml
+"[biomes.biomes.ice_waste]": "Désert de glace"

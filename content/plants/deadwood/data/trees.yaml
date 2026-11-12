@@ -1,5 +1,5 @@
 - id: deadwood
-  title: Сухое дерево
+  title: "[plants.trees.deadwood]"
   shape: lobed
   leaf: pointed
   leaves: broad

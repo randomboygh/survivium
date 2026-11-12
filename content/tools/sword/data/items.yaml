@@ -6,7 +6,7 @@
 # клетки 2×2 (workbench, kiln, chest), и её флаги: storage, fire, repairs, serves, place_tool;
 # model — её воксельная модель (models/<model>.png).
 - id: wooden_sword
-  title: Деревянный меч
+  title: "[tools.items.wooden_sword]"
   weight: 1.0
   stack: 1
   model: sword
@@ -21,7 +21,7 @@
   durability: 240
   repair: {materials:planks: 1}
 - id: stone_sword
-  title: Каменный меч
+  title: "[tools.items.stone_sword]"
   weight: 1.4
   stack: 1
   model: stone_sword
@@ -36,7 +36,7 @@
   durability: 360
   repair: {resources:flint: 1, materials:cord: 1}
 - id: copper_sword
-  title: Медный меч
+  title: "[tools.items.copper_sword]"
   weight: 1.6
   stack: 1
   model: copper_sword
@@ -51,7 +51,7 @@
   durability: 900
   repair: {materials:copper_bar: 1}
 - id: bronze_sword
-  title: Бронзовый меч
+  title: "[tools.items.bronze_sword]"
   weight: 1.7
   stack: 1
   model: bronze_sword
@@ -66,7 +66,7 @@
   durability: 1500
   repair: {materials:bronze_bar: 1}
 - id: iron_sword
-  title: Железный меч
+  title: "[tools.items.iron_sword]"
   weight: 1.9
   stack: 1
   model: iron_sword
@@ -81,7 +81,7 @@
   durability: 2400
   repair: {materials:iron_bar: 1}
 - id: steel_sword
-  title: Стальной меч
+  title: "[tools.items.steel_sword]"
   weight: 1.9
   stack: 1
   model: steel_sword

@@ -1,5 +1,5 @@
 # Голоса: sounds/<id>_N.wav этого бандла (tools/make_sounds.gd); calls и alarm вида в creatures.yaml.
 - id: duck
-  title: Кряканье
+  title: "[animals.sounds.duck]"
   variants: 3
   volume: 0.6

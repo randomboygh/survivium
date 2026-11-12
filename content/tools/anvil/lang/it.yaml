@@ -2,4 +2,10 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/anvil/bundle.yaml
-"Наковальня": "Incudine"
+"[tools.anvil.bundle]": "Incudine"
+
+# content/tools/anvil/data/items.yaml
+"[tools.items.anvil]": "Incudine"
+
+# content/tools/anvil/data/recipes.yaml
+"[tools.recipes.anvil]": "Incudine"

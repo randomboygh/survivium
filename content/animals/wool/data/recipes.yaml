@@ -1,13 +1,13 @@
 # Рецепты бандла «Пух»: пряжу прядут руками, ткань ткут на ткацком станке «Инструментов»; без станка
 # или «Материалов» бандл не грузится. Поля рецепта — docs/DATA_MODEL.md.
 - id: wool_yarn
-  title: Пушистая пряжа
+  title: "[animals.recipes.wool_yarn]"
   makes: wool_yarn
   needs: {rabbit_fluff: 3}
   process: refine
   time: 3
 - id: cloth_from_wool_yarn
-  title: Ткань из пряжи
+  title: "[animals.recipes.cloth_from_wool_yarn]"
   makes: materials:cloth
   count: 2
   needs: {wool_yarn: 4}

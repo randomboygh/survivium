@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/ears/bundle.yaml
+"[plants.ears.bundle]": "Колоски"
+
+# content/plants/ears/data/items.yaml
+"[plants.items.grain]": "Зерно"
+"[plants.items.flour]": "Мука"
+"[plants.items.flatbread]": "Лепёшка"
+
+# content/plants/ears/data/plants.yaml
+"[plants.plants.ears]": "Колоски"
+"[plants.plants.wheat]": "Пшеница"
+
+# content/plants/ears/data/recipes.yaml
+"[plants.recipes.flour]": "Мука"
+"[plants.recipes.flatbread]": "Лепёшка"

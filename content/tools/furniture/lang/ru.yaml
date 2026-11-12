@@ -1,0 +1,30 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/furniture/bundle.yaml
+"[tools.furniture.bundle]": "Мебель"
+
+# content/tools/furniture/data/items.yaml
+"[tools.items.table]": "Стол"
+"[tools.items.table.about]": "Дощатый стол на четырёх ножках, на две клетки."
+"[tools.items.stool]": "Табурет"
+"[tools.items.stool.about]": "Посиди рядом — силы возвращаются вдвое быстрее."
+"[tools.items.wooden_bed]": "Кровать"
+"[tools.items.wooden_bed.about]": "Деревянная кровать с холщовым тюфяком. Сон на ней восстанавливает лучше любой подстилки."
+"[tools.items.cupboard]": "Шкаф"
+"[tools.items.cupboard.about]": "Высокий шкаф из досок, хранит больше сундука."
+"[tools.items.wide_cupboard]": "Широкий шкаф"
+"[tools.items.wide_cupboard.about]": "Шкаф на две клетки в ширину и две в высоту, с четырьмя дверцами. Хранит больше большого сундука."
+"[tools.items.barrel]": "Бочка"
+"[tools.items.barrel.about]": "Бочка в обручах. Еда в ней портится вдвое медленнее."
+"[tools.items.rug]": "Половик"
+"[tools.items.rug.about]": "Тканый половик для пола, на две клетки."
+
+# content/tools/furniture/data/recipes.yaml
+"[tools.recipes.table]": "Стол"
+"[tools.recipes.stool]": "Табурет"
+"[tools.recipes.wooden_bed]": "Кровать"
+"[tools.recipes.cupboard]": "Шкаф"
+"[tools.recipes.wide_cupboard]": "Широкий шкаф"
+"[tools.recipes.barrel]": "Бочка"
+"[tools.recipes.rug]": "Половик"

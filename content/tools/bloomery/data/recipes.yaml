@@ -1,7 +1,7 @@
 # Рецепт бандла «Сыродутная печь»: сама печь на верстаке из глины и камня «Ресурсов» и кирпича
 # «Материалов».
 - id: bloomery
-  title: Сыродутная печь
+  title: "[tools.recipes.bloomery]"
   makes: bloomery
   needs: {resources:clay: 8, resources:stone: 10, materials:brick: 6}
   at: workbench

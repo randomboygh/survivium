@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/gold/bundle.yaml
-"Золото": "Or"
+"[materials.gold.bundle]": "Or"
 
 # content/materials/gold/data/items.yaml
-"Золотая руда": "Minerai d'or"
-"Кварц с жёлтыми прожилками золота. Её берёт бронзовая кирка.": "Du quartz veiné d'or jaune. Une pioche de bronze l'extrait."
-"Золотой слиток": "Lingot d'or"
-"Тяжёлый мягкий жёлтый металл. Из слитков складывают золотые блоки.": "Un métal jaune lourd et mou. Les lingots s'assemblent en blocs d'or."
-"Золотой блок": "Bloc d'or"
-"Блестящий жёлтый блок для построек.": "Un bloc jaune brillant pour construire."
+"[materials.items.gold_ore]": "Minerai d'or"
+"[materials.items.gold_ore.about]": "Du quartz veiné d'or jaune. Une pioche de bronze l'extrait."
+"[materials.items.gold_bar]": "Lingot d'or"
+"[materials.items.gold_bar.about]": "Un métal jaune lourd et mou. Les lingots s'assemblent en blocs d'or."
+"[materials.items.gold_block]": "Bloc d'or"
+"[materials.items.gold_block.about]": "Un bloc jaune brillant pour construire."
+
+# content/materials/gold/data/materials.yaml
+"[materials.materials.gold_ore]": "Minerai d'or"
+"[materials.materials.gold_block]": "Bloc d'or"
+
+# content/materials/gold/data/recipes.yaml
+"[materials.recipes.gold_bar]": "Lingot d'or"
+"[materials.recipes.gold_block]": "Bloc d'or"

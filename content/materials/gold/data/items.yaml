@@ -1,21 +1,21 @@
 # Золотая руда, слиток (плавят в горне «Инструментов») и блок из слитков. Поля — как у предметов основы
 # (content/core/data/items.yaml).
 - id: gold_ore
-  title: Золотая руда
-  description: Кварц с жёлтыми прожилками золота. Её берёт бронзовая кирка.
+  title: "[materials.items.gold_ore]"
+  description: "[materials.items.gold_ore.about]"
   weight: 3.0
   stack: 20
   icon: gold_ore
 - id: gold_bar
-  title: Золотой слиток
-  description: Тяжёлый мягкий жёлтый металл. Из слитков складывают золотые блоки.
+  title: "[materials.items.gold_bar]"
+  description: "[materials.items.gold_bar.about]"
   weight: 3.0
   stack: 20
   model: gold_bar
   icon: gold_bar
 - id: gold_block
-  title: Золотой блок
-  description: Блестящий жёлтый блок для построек.
+  title: "[materials.items.gold_block]"
+  description: "[materials.items.gold_block.about]"
   weight: 4.0
   stack: 20
   place: gold_block

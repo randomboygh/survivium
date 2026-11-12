@@ -1,13 +1,13 @@
 # Оловянная руда и слиток олова: слиток плавят в горне, из олова с медью — бронзу (бандл «Бронза»).
 - id: tin_ore
-  title: Оловянная руда
-  description: Тёмная тяжёлая руда со светлыми крупинками. Её берёт медная кирка.
+  title: "[materials.items.tin_ore]"
+  description: "[materials.items.tin_ore.about]"
   weight: 2.8
   stack: 20
   icon: tin_ore
 - id: tin_bar
-  title: Слиток олова
-  description: Мягкий серебристый металл. С медью даёт бронзу.
+  title: "[materials.items.tin_bar]"
+  description: "[materials.items.tin_bar.about]"
   weight: 2.0
   stack: 20
   model: tin_bar

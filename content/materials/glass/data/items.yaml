@@ -1,8 +1,8 @@
 # Стекло: его плавят из песка с углём в горне (рецепт в бандле «Горн» «Инструментов»); идёт на
 # фонарь, потом — на бутылки и окна.
 - id: glass
-  title: Стекло
-  description: Мутноватое зелёное стекло из песка. Идёт на фонарь.
+  title: "[materials.items.glass]"
+  description: "[materials.items.glass.about]"
   weight: 0.4
   stack: 20
   model: glass

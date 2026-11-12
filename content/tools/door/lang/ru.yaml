@@ -1,0 +1,21 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/door/bundle.yaml
+"[tools.door.bundle]": "Дверь"
+
+# content/tools/door/data/items.yaml
+"[tools.items.door]": "Дверь"
+"[tools.items.door.about]": "Створка из досок для проёма в стене. Касание открывает и закрывает."
+"[tools.items.door_2x2]": "Дверь 2×2"
+"[tools.items.door_2x2.about]": "Двустворчатая дверь из досок, на две клетки в ширину и две в высоту."
+"[tools.items.door_2x3]": "Дверь 2×3"
+"[tools.items.door_2x3.about]": "Высокая двустворчатая дверь, на две клетки в ширину и три в высоту."
+"[tools.items.door_3x3]": "Ворота 3×3"
+"[tools.items.door_3x3.about]": "Большие двустворчатые ворота из досок для проёма в стене, на три клетки в ширину и три в высоту."
+
+# content/tools/door/data/recipes.yaml
+"[tools.recipes.door]": "Дверь"
+"[tools.recipes.door_2x2]": "Дверь 2×2"
+"[tools.recipes.door_2x3]": "Дверь 2×3"
+"[tools.recipes.door_3x3]": "Ворота 3×3"

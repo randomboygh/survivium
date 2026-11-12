@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/wattle/bundle.yaml
+"[materials.wattle.bundle]": "Плетень"
+
+# content/materials/wattle/data/items.yaml
+"[materials.items.wattle]": "Плетень"
+"[materials.items.wattle.about]": "Сплетённые ветки. Лёгкая стена, пока нет топора."
+
+# content/materials/wattle/data/materials.yaml
+"[materials.materials.wattle]": "Плетень"
+
+# content/materials/wattle/data/recipes.yaml
+"[materials.recipes.wattle]": "Плетень"

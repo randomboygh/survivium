@@ -2,12 +2,16 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/mushrooms/bundle.yaml
-"Грибы": "Cogumelos"
+"[plants.mushrooms.bundle]": "Cogumelos"
 
 # content/plants/mushrooms/data/items.yaml
-"Гриб": "Cogumelo"
-"Светящийся гриб": "Cogumelo luminoso"
-"Жареные грибы": "Cogumelos assados"
+"[plants.items.mushroom]": "Cogumelo"
+"[plants.items.glow_mushroom]": "Cogumelo luminoso"
+"[plants.items.fried_mushrooms]": "Cogumelos assados"
 
 # content/plants/mushrooms/data/plants.yaml
-"Светящиеся грибы": "Cogumelos luminosos"
+"[plants.plants.mushrooms]": "Cogumelos"
+"[plants.plants.glow_mushrooms]": "Cogumelos luminosos"
+
+# content/plants/mushrooms/data/recipes.yaml
+"[plants.recipes.fried_mushrooms]": "Cogumelos assados"

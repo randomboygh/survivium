@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sword/bundle.yaml
-"Меч": "Miecz"
+"[tools.sword.bundle]": "Miecz"
 
 # content/tools/sword/data/items.yaml
-"Деревянный меч": "Drewniany miecz"
-"Каменный меч": "Kamienny miecz"
-"Медный меч": "Miedziany miecz"
-"Бронзовый меч": "Brązowy miecz"
-"Железный меч": "Żelazny miecz"
-"Стальной меч": "Stalowy miecz"
+"[tools.items.wooden_sword]": "Drewniany miecz"
+"[tools.items.stone_sword]": "Kamienny miecz"
+"[tools.items.copper_sword]": "Miedziany miecz"
+"[tools.items.bronze_sword]": "Brązowy miecz"
+"[tools.items.iron_sword]": "Żelazny miecz"
+"[tools.items.steel_sword]": "Stalowy miecz"
+
+# content/tools/sword/data/recipes.yaml
+"[tools.recipes.wooden_sword]": "Drewniany miecz"
+"[tools.recipes.stone_sword]": "Kamienny miecz"
+"[tools.recipes.copper_sword]": "Miedziany miecz"
+"[tools.recipes.bronze_sword]": "Brązowy miecz"
+"[tools.recipes.iron_sword]": "Żelazny miecz"
+"[tools.recipes.steel_sword]": "Stalowy miecz"
 
 # content/tools/sword/data/sounds.yaml
-"Взмах": "Cięcie"
+"[tools.sounds.swish]": "Cięcie"

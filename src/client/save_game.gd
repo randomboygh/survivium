@@ -151,17 +151,17 @@ func update(delta: float) -> void:
 	if not _writing:
 		return
 	# The browser keeps the files in its own store, written after the frame.
-	var wrote := "чанк"
+	var wrote := "[chunk]"
 	var n := 0
 	while not _queue.is_empty() and n < CHUNKS_PER_FRAME:
 		_write_chunk(_queue.pop_back())
 		n += 1
 	if n == 0 and not _maps.is_empty():
 		_write_map(_maps.pop_back())
-		wrote = "карта"
+		wrote = "[map]"
 	if _queue.is_empty() and _maps.is_empty():
 		_write_world()
-		wrote = "мир"
+		wrote = "[world_n2]"
 		_writing = false
 	game.hud.perf.mark("save", wrote)
 

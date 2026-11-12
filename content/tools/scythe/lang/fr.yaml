@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/scythe/bundle.yaml
-"Коса": "Faux"
+"[tools.scythe.bundle]": "Faux"
 
 # content/tools/scythe/data/items.yaml
-"Каменная коса": "Faux de pierre"
-"Деревянная коса": "Faux en bois"
-"Медная коса": "Faux de cuivre"
-"Бронзовая коса": "Faux de bronze"
-"Железная коса": "Faux de fer"
-"Стальная коса": "Faux d'acier"
+"[tools.items.stone_scythe]": "Faux de pierre"
+"[tools.items.wooden_scythe]": "Faux en bois"
+"[tools.items.copper_scythe]": "Faux de cuivre"
+"[tools.items.bronze_scythe]": "Faux de bronze"
+"[tools.items.iron_scythe]": "Faux de fer"
+"[tools.items.steel_scythe]": "Faux d'acier"
+
+# content/tools/scythe/data/recipes.yaml
+"[tools.recipes.stone_scythe]": "Faux de pierre"
+"[tools.recipes.wooden_scythe]": "Faux en bois"
+"[tools.recipes.copper_scythe]": "Faux de cuivre"
+"[tools.recipes.bronze_scythe]": "Faux de bronze"
+"[tools.recipes.iron_scythe]": "Faux de fer"
+"[tools.recipes.steel_scythe]": "Faux d'acier"
 
 # content/tools/scythe/data/sounds.yaml
-"Покос": "Fauchage"
+"[tools.sounds.mow]": "Fauchage"

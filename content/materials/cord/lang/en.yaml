@@ -2,4 +2,10 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/cord/bundle.yaml
-"Верёвка": "Cord"
+"[materials.cord.bundle]": "Cord"
+
+# content/materials/cord/data/items.yaml
+"[materials.items.cord]": "Cord"
+
+# content/materials/cord/data/recipes.yaml
+"[materials.recipes.cord]": "Cord"

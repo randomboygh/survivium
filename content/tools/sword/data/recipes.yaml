@@ -3,37 +3,37 @@
 # кремень, камень и глина — «Ресурсы», верёвка, доски и кирпич — «Материалы». Все поля рецепта —
 # docs/DATA_MODEL.md.
 - id: wooden_sword
-  title: Деревянный меч
+  title: "[tools.recipes.wooden_sword]"
   makes: wooden_sword
   needs: {materials:planks: 2, materials:cord: 1}
   at: workbench
   time: 5
 - id: stone_sword
-  title: Каменный меч
+  title: "[tools.recipes.stone_sword]"
   makes: stone_sword
   needs: {resources:flint: 2, resources:branch: 1, materials:cord: 1}
   at: workbench
   time: 5
 - id: copper_sword
-  title: Медный меч
+  title: "[tools.recipes.copper_sword]"
   makes: copper_sword
   needs: {materials:copper_bar: 2, materials:planks: 1}
   at: workbench
   time: 6
 - id: bronze_sword
-  title: Бронзовый меч
+  title: "[tools.recipes.bronze_sword]"
   makes: bronze_sword
   needs: {materials:bronze_bar: 2, materials:planks: 1}
   at: workbench
   time: 6
 - id: iron_sword
-  title: Железный меч
+  title: "[tools.recipes.iron_sword]"
   makes: iron_sword
   needs: {materials:iron_bar: 2, materials:planks: 1}
   at: anvil
   time: 6
 - id: steel_sword
-  title: Стальной меч
+  title: "[tools.recipes.steel_sword]"
   makes: steel_sword
   needs: {materials:steel_bar: 2, materials:planks: 1}
   at: anvil

@@ -1,9 +1,9 @@
 # Чириканье воробьёв: sounds/sparrow_1.wav ... этого бандла (tools/make_sounds.gd).
 - id: sparrow
-  title: Чириканье
+  title: "[animals.sounds.sparrow]"
   variants: 3
   volume: 0.5
 - id: bird
-  title: Птицы
+  title: "[animals.sounds.bird]"
   variants: 5
   volume: 0.5

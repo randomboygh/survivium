@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/scythe/bundle.yaml
-"Коса": "Kosa"
+"[tools.scythe.bundle]": "Kosa"
 
 # content/tools/scythe/data/items.yaml
-"Каменная коса": "Kamienna kosa"
-"Деревянная коса": "Drewniana kosa"
-"Медная коса": "Miedziana kosa"
-"Бронзовая коса": "Brązowa kosa"
-"Железная коса": "Żelazna kosa"
-"Стальная коса": "Stalowa kosa"
+"[tools.items.stone_scythe]": "Kamienna kosa"
+"[tools.items.wooden_scythe]": "Drewniana kosa"
+"[tools.items.copper_scythe]": "Miedziana kosa"
+"[tools.items.bronze_scythe]": "Brązowa kosa"
+"[tools.items.iron_scythe]": "Żelazna kosa"
+"[tools.items.steel_scythe]": "Stalowa kosa"
+
+# content/tools/scythe/data/recipes.yaml
+"[tools.recipes.stone_scythe]": "Kamienna kosa"
+"[tools.recipes.wooden_scythe]": "Drewniana kosa"
+"[tools.recipes.copper_scythe]": "Miedziana kosa"
+"[tools.recipes.bronze_scythe]": "Brązowa kosa"
+"[tools.recipes.iron_scythe]": "Żelazna kosa"
+"[tools.recipes.steel_scythe]": "Stalowa kosa"
 
 # content/tools/scythe/data/sounds.yaml
-"Покос": "Koszenie"
+"[tools.sounds.mow]": "Koszenie"

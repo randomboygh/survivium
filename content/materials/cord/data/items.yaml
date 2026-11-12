@@ -1,5 +1,5 @@
 - id: cord
-  title: Верёвка
+  title: "[materials.items.cord]"
   era: core:primitive
   weight: 0.1
   stack: 20
