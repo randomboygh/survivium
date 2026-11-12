@@ -679,6 +679,9 @@ func _test_fall() -> void:
 	_check(drop.call(Vector3(2.5, 9.0, 2.5), Vector3(12.5, 1.0, 2.5)) == 0.0, "deep water takes the whole fall")
 	var soft: float = drop.call(Vector3(2.5, 9.0, 2.5), Vector3(12.5, 1.0, 12.5))
 	_check(absf(soft - hurt * 0.5) < 0.5, "shallow water takes half of it (%.0f)" % soft)
+	ch.vitals.falls = false
+	_check(drop.call(Vector3(2.5, 9.0, 2.5), Vector3(4.5, 1.0, 4.5)) == 0.0, "with the test switch off a fall hurts not")
+	ch.vitals.falls = true
 	ch.vitals.health = Vitals.MAX
 	ch.forget_fall()
 	ch.at = Vector3(2.5, 9.0, 2.5) * WorldData.CELL

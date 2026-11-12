@@ -3,7 +3,7 @@ extends RefCounted
 ## turned on «Читы на тестовом сервере» sends them (Protocol.CHEATS, Requests.may_cheat,
 ## src/client/settings.gd `send_cheats`), and the server takes them as the game in one's
 ## own world does (Settings.apply). Their own: the pace of walking and work, jumps in the
-## air, the rate of skills, overload, hunger, thirst, fatigue, cold. The world's, for
+## air, the rate of skills, overload, hunger, thirst, fatigue, cold, fall damage. The world's, for
 ## everyone on it: free building, tool wear, instant crafting, free items, animal
 ## attacks, and on the clock the season, the weather, the moon, the hour and the pace
 ## of time. Every value is checked for its type and clamped; a key not known is left.
@@ -13,7 +13,7 @@ const MOST_SPEED := 8.0
 const MOST_SKILL := 200.0
 const MOST_BOOST := 100.0
 ## Switches of the character (vitals and the bag) and of the world's rules.
-const VITALS := ["hunger", "thirst", "fatigue", "cold"]
+const VITALS := ["hunger", "thirst", "fatigue", "cold", "falls"]
 const RULES := ["free_build", "tool_wear", "instant_craft", "free_items", "animal_attacks"]
 
 
