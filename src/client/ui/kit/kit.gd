@@ -6,8 +6,9 @@ extends RefCounted
 ## field; a column and a row; a list that scrolls (by finger too) with the settings'
 ## insets; the big touch buttons' looks and a colour swatch. With them: KitWindow
 ## (window.gd, a window over a shade of the screen), TwoTap (two_tap.gd, a button that
-## asks first), ChoiceRows (choice_rows.gd, rows «name ‹ value ›») and SlotStrip
-## (slot_strip.gd, cells between arrows: the hotbar, the build and farming palettes). «Тестирование» → «Отладка» → «Витрина интерфейса» shows them all;
+## asks first), ChoiceRows (choice_rows.gd, rows «name ‹ value ›»), SlotStrip
+## (slot_strip.gd, cells between arrows: the hotbar, the build and farming palettes) and
+## FadingList (fading_list.gd, lines that come and go: the toasts, the chat, the server's notices). «Тестирование» → «Отладка» → «Витрина интерфейса» shows them all;
 ## a new piece goes there too (docs/systems/ui.md).
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")

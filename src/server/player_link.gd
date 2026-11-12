@@ -2,7 +2,7 @@ extends RefCounted
 ## One player on the server (plan/architecture/server.md): their character (Player)
 ## and workshop in the session, their requests (Requests), and the events that go back
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
-## SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE, FLOW; HEARD, the chat; TEAM and INVITES, the
+## SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE, FLOW; HEARD, the chat; NOTED, the server's notices to a host; TEAM and INVITES, the
 ## team, MATES, where its members are; CLAIMS, SQUARES and LAND, the territory), of the things placed (PROPS, PROP,
 ## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST), of the blueprint (PLANS, PLAN_CELLS), of the rafts and boats
 ## (VESSELS, VESSEL, VESSEL_GONE), of the clock (CLOCK) and of the animals (ANIMAL,
@@ -238,6 +238,12 @@ func handle_msg(msg: Array) -> Variant:
 ## server).
 func hear(id: int, name: String, text: String, team := false) -> void:
 	_push(Protocol.HEARD, [id, name, text, team])
+
+
+## A line the server tells its host (Server._note: a player came or went, was let in or
+## not): a phrase of the game put together (Lang.line).
+func note(line: String) -> void:
+	_push(Protocol.NOTED, [line])
 
 
 ## The events for the client since the last flush: the state noted as changed first,

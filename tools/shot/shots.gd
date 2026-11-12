@@ -641,6 +641,7 @@ const SHOTS := {
 	"team-person": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "person"},
 	"team-torches": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "team": "torches"},
 	"team-chat": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "chat"},
+	"chat-lines": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "chat", "toast": true, "chat_lines": true},
 	"team-invite": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "invite"},
 	"team-panel": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "panel", "team_panel": true},
 	# Teammates on the map: Боря near, Гена far to the north-east beyond the minimap's edge.

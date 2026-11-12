@@ -675,6 +675,20 @@ func _chat(node: Node, a: Bot, b: Bot) -> void:
 	_check(await _until(func() -> bool: return who.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and str(e[1][2]).begins_with("Players online"))),
 		"a host's command in the chat is done and answered there")
 	_check(not a.of(Protocol.HEARD).any(func(e: Array) -> bool: return str(e[1][2]).begins_with("Players online")), "to them alone")
+	# The hosts are told who comes, who is not let in and who is put out (NOTED); the
+	# players are not. (The server's lines read in English here.)
+	var noted := func(bot: Bot, what: String) -> bool: return bot.of(Protocol.NOTED).any(func(e: Array) -> bool:
+		return e[1].size() == 1 and Lang.t(str(e[1][0])) == what)
+	var guest := _bot("Гость", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return guest.reply.done and noted.call(b, "Гость joined the server for the first time")),
+		"a host is told that a player came in for the first time")
+	var reserved := _bot("Server", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return reserved.reply.done and noted.call(b, "Not let in: Server (the name is taken)")),
+		"and that one was not let in, and why")
+	node.command("kick Гость")
+	_check(await _until(func() -> bool: return noted.call(b, "The host disconnected Гость")), "and that the host put one out")
+	_check(not a.of(Protocol.NOTED).any(func(_e: Array) -> bool: return true) and not guest.of(Protocol.NOTED).any(func(_e: Array) -> bool: return true),
+		"a player who is not a host is told none of it")
 	node.command("deop Чужой")
 	_check(not server.is_host(b.reply.value.key), "deop takes it back")
 	_check(not (await _said(b, "")) and not (await _said(b, "   ")), "an empty line is not said")

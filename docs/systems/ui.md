@@ -32,6 +32,11 @@ and a new shared part is added to the kit and to the «Interface gallery».
   on; `"switch": false` keeps the arrows): every on/off setting is a switch. A row that stops at its ends
   (`stop`, `direct`) has the arrow towards the end it is at disabled; the settings' scales (volume, sizes, speeds, quality, the caves' layers, `SettingsMenu.SCALES`) and the land's amounts in «New world» stop so, the rows of kinds (language, weather, the hour) go round. Settings, «Testing», «New world» and
   its mods, «Create a server».
+- `fading_list.gd` — `FadingList`, a list of lines that come and go as notifications do: `add(line, before)`
+  brings a line in its holder out of transparency, rising, while the list opens room for it; `drop(holder)`
+  fades it up and the list closes up after it (`TIME` 0.35 s, `RISE` 8 px; the gap between lines is inside the
+  holders); `shown()` — the holders not going. Out of the tree nothing moves (the tests). The toasts, the chat's
+  lines and the server's notices to its host are such lists.
 - `slot_strip.gd` — a strip of big cells between arrows: the hotbar (hands on the left, outside the strip), the
   build and farm palettes; the owner puts cells in `cells` and says how many things and cells there are
   (`set_counts`), the strip holds the first shown (`first`), arrows and a finger drag over a cell, and sends
@@ -101,8 +106,10 @@ and a new shared part is added to the kit and to the «Interface gallery».
   `gui/timers/tooltip_delay_sec` in `project.godot`; on a touch screen and for a button whose label says the
   same, nothing; the hint over the ground on PC — only with «Debug hints»; the mouse wheel over a window or
   button does not scroll the item panel, `Hud.wheel_taken`), `chat_box.gd` (chat on a server, С6: the last
-  lines in the bottom left corner above the joystick or the panel, fade after 12 s, and after one's own line is
-  sent the last ones are visible again for 12 s; in single player one's own line goes into the chat at once,
+  lines in the bottom left corner above the joystick or the panel, in a `FadingList` growing up from its
+  bottom: a new line comes up from transparency, and after 12 s (or pushed out by newer ones: 5 shown, 10 while
+  the field is open) a line goes up into transparency like a notification; after one's own line is sent the
+  last ones come back for 12 s; in single player one's own line goes into the chat at once,
   with no server; the field is opened by Enter or the chat button at the top — seen only on a server; while the
   field has the cursor, keys do not move the character, `Controls._typing`; another player's line is seen over
   their head too for 6 s, `src/client/view/others.gd`), `gesture_wheel.gd` (the gesture circle, decision 183: a
@@ -191,7 +198,10 @@ and a new shared part is added to the kit and to the «Interface gallery».
   `Hud.update_state`). In the bag, blocks and everything that is placed have a wide button «Build» (a hammer):
   it enters the mode. Notifications (`Hud.toast`) — a list of three under the state: a new one floats to the
   end from transparency, rising, and the oldest (by time or when the list overflows) goes up into
-  transparency, and the list shifts after it (`Hud._scroll_toasts`). `vitals_panel.gd` (the state in the
+  transparency, and the list closes up after it (`FadingList`). Under them, a list of its own for the server's
+  notices to its host (`Hud.server_note`, the event `noted`: who joined for the first time or came back, lost
+  the connection, left, was disconnected or banned by a host, was not let in and why): cool-tinted panels with
+  the server's mark, three at most, 6 s each. `vitals_panel.gd` (the state in the
   top left corner: a thick health bar with a thinner stamina bar under it, then standing bars for satiety,
   water, warmth and sleep, each only while it is low (`VitalsPanel.critical`; all of them while the bag is
   open), and a column of what hinders the body — wet, out of breath, overloaded, `VitalsPanel.debuffs_of`;

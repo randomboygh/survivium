@@ -81,18 +81,18 @@ func _ready() -> void:
 	perf.visible = false
 	add_child(perf)
 	perf.resized.connect(_place_top)
-	# The toasts in a list of their own over the room it keeps under the state: the list
-	# slides up as the oldest fades away (see _scroll_toasts).
-	var toast_area := Control.new()
-	toast_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_left.add_child(toast_area)
-	_toasts = VBoxContainer.new()
-	_toasts.add_theme_constant_override("separation", 4)
-	_toasts.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	toast_area.add_child(_toasts)
-	_toasts.minimum_size_changed.connect(func() -> void:
-		_toasts.reset_size()
-		toast_area.custom_minimum_size = _toasts.get_combined_minimum_size())
+	# The toasts in a list of their own over the room it keeps under the state (the list
+	# closes up as the oldest fades away), and the server's notices to its host under them.
+	for list: FadingList in [FadingList.new(), FadingList.new()]:
+		var area := Control.new()
+		area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_left.add_child(area)
+		area.add_child(list)
+		list.minimum_size_changed.connect(_fit_area.bind(list))
+		if _toasts == null:
+			_toasts = list
+		else:
+			_server_notes = list
 
 	_top = HBoxContainer.new()
 	_top.add_theme_constant_override("separation", 6)
