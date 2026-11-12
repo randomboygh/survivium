@@ -1,13 +1,17 @@
 extends "res://src/client/ui/kit/window.gd"
 ## «Создать сервер» (plan/architecture/server.md, «Меню и экраны»; on a computer): the
 ## window of the server made in the game (Main.hosted, LocalHost.host). Before it runs:
-## the world (one of the saved ones, ‹ › go through them, the one played last first; the
-## test world always among them, a new one when none of the player's own is saved),
-## the server's name, its port, a password, how many players it takes, where players
-## may fight players («PvP»: выключен, по правам территорий, везде) and «Доступ из
-## интернета» (a Cloudflare quick tunnel, Tunnel; needs cloudflared), «Погода с улицы»
-## (the real weather where the computer is, RealWeather); «Запустить
-## сервер» starts the game again with the server made and joined (Main.host_server),
+## two tabs joined as one (TabRow.tabs). «Создание»: the world (one of the saved ones,
+## ‹ › go through them, the one played last first; the test world always among them, a
+## new one when none of the player's own is saved), the server's name, a password and
+## «Доступ из интернета» (a Cloudflare quick tunnel, Tunnel; needs cloudflared).
+## «Настройки»: everything else a server takes (Config and its rules, Rules): the port,
+## how many players, how often the world is saved, how long a day lasts, «Погода с
+## улицы» (RealWeather), animal attacks, tool wear, where players may fight players
+## («PvP»: выключен, по правам территорий, везде) and the fights' numbers, the land's
+## numbers and its decay, «По умолчанию» (two taps); all from the server's settings file
+## (LocalHost.server_settings), which the server writes back. «Запустить
+## сервер» (under either tab) starts the game again with the server made and joined (Main.host_server),
 ## «Назад» (or Escape) says `cancelled`. While it runs: the port and the players, the
 ## addresses for friends in the home network (one is copied by «Скопировать адрес»), the
 ## address from the internet once the tunnel gives it («Скопировать ссылку»: the game's
@@ -24,6 +28,8 @@ const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const TabRow := preload("res://src/client/ui/tab_row.gd")
+const Clock := preload("res://src/shared/game/clock.gd")
 
 const WIDTH := 300
 const NAME_WIDTH := 80
@@ -41,6 +47,28 @@ const PVP_MODES := ["off", "land", "all"]
 const PVP_TITLES := ["выключен", "по территориям", "везде"]
 ## Players a server may be set to take.
 const PLAYER_COUNTS := [2, 4, 8, 16, 32]
+## «Настройки»: the rows' names and values narrower, more of them in a row's width.
+const SET_NAME := 110
+const SET_VALUE := WIDTH - SET_NAME - 2 * ARROW - 3 * 2
+## The choices of the tab «Настройки» (a value of the settings file that is none of them
+## is shown among them): seconds between saves, minutes of a day, health a blow takes for
+## each point of the weapon's power, minutes a newcomer is protected, seconds a fight
+## holds, the land (Rules: territory_*), hours before abandoned land decays and between
+## its stages, how it decays.
+const SAVE_SECONDS := [10.0, 30.0, 60.0, 300.0]
+const DAY_MINUTES := [4.0, 8.0, 20.0, 40.0, 80.0, 120.0, 240.0, 1440.0]
+const PVP_DAMAGE := [1, 2, 4, 6, 8]
+const NEWCOMER_MINUTES := [0, 30, 60, 120, 240, 480]
+const FIGHT_SECONDS := [15.0, 30.0, 45.0, 60.0, 90.0, 120.0]
+const TERRITORY_START := [16, 32, 64, 128, 256]
+const TERRITORY_PER_LEVEL := [0, 4, 8, 16]
+const TERRITORY_RADIUS := [8, 12, 16, 24, 32, 48]
+const TERRITORY_LEVELS := [2, 4, 8, 16]
+const ABANDON_HOURS := [24.0, 48.0, 72.0, 120.0, 168.0]
+const DECAY_HOURS := [6.0, 12.0, 24.0, 48.0]
+const DECAY_MODES := ["rights", "radius", "both"]
+const DECAY_TITLES := ["права", "радиус", "права и радиус"]
+const DAY_LENGTH := Clock.DAY_LENGTH
 
 signal cancelled
 signal play
@@ -55,20 +83,24 @@ var _box: VBoxContainer
 ## The saved worlds to choose from ({dir, seed, settings, day, …}), the one chosen.
 var _worlds: Array = []
 var _world := 0
-## The world, players and PvP rows.
+## The rows of the tab shown (up and down, left and right go through them).
 var _choices := ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW)
+## The tabs, their pages and their rows; the tab shown.
+var _tabs: HBoxContainer
+var _pages: Array[VBoxContainer] = []
+var _rows: Array = []
+var _tab := 0
+## The settings as the window has them (LocalHost.server_settings: Config's, `rules`
+## Rules.to_dict), the switches of «Настройки» by their keys.
+var _set := {}
+var _checks := {}
 var _title: LineEdit
 var _port: LineEdit
 var _password: LineEdit
-## Where players may fight players (Config.pvp): a place in PVP_MODES.
-var _pvp := 1
 var _tunnel: CheckButton
-## The world's weather is the real one where the computer is (Config.real_weather).
-var _weather: CheckButton
 ## The tunnel's state and its link's button while the server runs.
 var _tunnel_label: Label
 var _tunnel_copy: Button
-var _players := 8
 var _error: Label
 ## While the server runs: its state, its players and its log, looked at every REFRESH.
 var _state: Label
@@ -89,16 +121,17 @@ func _init(g) -> void:
 func _ready() -> void:
 	build()
 	_box = Kit.column(6)
-	_box.add_child(Kit.title("Сервер работает" if running() else "Создать сервер"))
 	# The rows scroll when they are taller than the screen (layout), the bar's room
-	# beside them only then.
+	# beside them only then; the setup's tabs over them and its buttons under them.
 	_room = MarginContainer.new()
 	_room.add_child(_box)
 	_scroll = Kit.scroll(_room, false)
-	box.add_child(_scroll)
 	if running():
+		_box.add_child(Kit.title("Сервер работает"))
+		box.add_child(_scroll)
 		_build_running()
 	else:
+		box.add_child(Kit.title("Создать сервер"))
 		_build_setup()
 	show_fitted()
 	# Rows shown or added later (an error, the players) fit the window again.
@@ -119,6 +152,10 @@ func running() -> bool:
 func _build_setup() -> void:
 	var cfg := ConfigFile.new()
 	cfg.load("user://server.cfg")
+	_set = game.LocalHost.server_settings()
+	if not cfg.has_section_key("server", "day_minutes"):
+		# Never hosted yet: the day as long as in the host's own game («Длина суток»).
+		_set.day_minutes = roundf(DAY_LENGTH / game.settings.time_speed() / 60.0)
 	_worlds = WorldStore.list_worlds()
 	if not _worlds.any(func(w: Dictionary) -> bool: return w.seed != WorldStore.TEST_SEED):
 		# No world of its own saved yet: the one the first screen sets up, new.
@@ -130,62 +167,199 @@ func _build_setup() -> void:
 	for i in _worlds.size():
 		if _worlds[i].seed == game.world_seed and _worlds[i].settings == game.world_options:
 			_world = i
-	_choices.add(_box, "Мир", _worlds.map(_world_title), func() -> int: return _world,
-		func(i: int) -> void: _world = i)
-	_title = _field("Название", str(cfg.get_value("server", "title", Protocol.game_name())))
-	_title.max_length = 32
-	_port = _field("Порт", str(cfg.get_value("server", "port", Protocol.PORT)))
-	_port.max_length = 5
-	_port.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
-	_password = _field("Пароль", str(cfg.get_value("server", "password", "")))
-	_password.placeholder_text = "без пароля"
-	_players = int(cfg.get_value("server", "players", 8))
-	if not _players in PLAYER_COUNTS:
-		_players = 8
-	_choices.add(_box, "Игроков", PLAYER_COUNTS.map(func(n: int) -> String: return str(n)),
-		func() -> int: return PLAYER_COUNTS.find(_players),
-		func(i: int) -> void: _players = PLAYER_COUNTS[i], {"stop": true})
-	_pvp = maxi(PVP_MODES.find(str(cfg.get_value("rules", "pvp", "land"))), 0)
-	_choices.add(_box, "PvP", PVP_TITLES, func() -> int: return _pvp, func(i: int) -> void: _pvp = i)
-	_tunnel = Kit.check("Доступ из интернета", bool(cfg.get_value("server", "tunnel", false)), WIDTH, ROW_H)
-	_box.add_child(_tunnel)
-	_weather = Kit.check("Погода с улицы", bool(cfg.get_value("server", "real_weather", false)), WIDTH, ROW_H)
-	_weather.tooltip_text = "Погода в мире — настоящая, там, где этот компьютер"
-	_box.add_child(_weather)
-	_box.add_child(Kit.note("Игроки из домашней сети входят по адресу этого компьютера; "
-		+ "из интернета — через туннель Cloudflare: нужна программа cloudflared рядом с игрой, "
-		+ "аккаунт и роутер не нужны, адрес новый при каждом запуске.", WIDTH))
+	# The tabs joined as one, a button tall, over the rows (TabRow.tabs).
+	_tabs = TabRow.tabs([["Создание", "", show_tab.bind(0)], ["Настройки", "", show_tab.bind(1)]], ROW_H)
+	_tabs.custom_minimum_size.x = WIDTH
+	for b: Button in _tabs.get_children():
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(_tabs)
+	box.add_child(_scroll)
+	for i in 2:
+		_pages.append(Kit.column(6))
+		_box.add_child(_pages[i])
+	_rows = [_choices, ChoiceRows.new(SET_NAME, SET_VALUE, ARROW)]
+	_build_making(_pages[0], _rows[0])
+	_build_settings(_pages[1], _rows[1])
 	_error = Kit.note(game.host_error, WIDTH, UiStyle.DANGER)
 	_error.visible = game.host_error != ""
-	_box.add_child(_error)
-	_button("Запустить сервер", _start, true)
-	_button("Назад", back)
-	_choices.refresh()
+	box.add_child(_error)
+	box.add_child(_button("Запустить сервер", _start, true, false))
+	box.add_child(_button("Назад", back, false, false))
+	show_tab(0)
 
 
-## A row with `caption` on its left.
-func _row(caption: String) -> HBoxContainer:
+## «Создание»: the world, the name, the password and the access from the internet.
+func _build_making(page: VBoxContainer, rows: ChoiceRows) -> void:
+	rows.add(page, "Мир", _worlds.map(_world_title), func() -> int: return _world,
+		func(i: int) -> void: _world = i)
+	_title = _field(page, rows, "Название", str(_set.title))
+	_title.max_length = 32
+	_password = _field(page, rows, "Пароль", str(_set.password))
+	_password.placeholder_text = "без пароля"
+	_tunnel = Kit.check("Доступ из интернета", bool(_set.tunnel), WIDTH, ROW_H)
+	page.add_child(_tunnel)
+	page.add_child(Kit.note("Игроки из домашней сети входят по адресу этого компьютера; "
+		+ "из интернета — через туннель Cloudflare: нужна программа cloudflared рядом с игрой, "
+		+ "аккаунт и роутер не нужны, адрес новый при каждом запуске.", WIDTH))
+	page.add_child(Kit.note("Порт, число игроков, длина суток, погода, бои и земля — на вкладке «Настройки».", WIDTH))
+	rows.refresh()
+
+
+## «Настройки»: everything else the server takes (Config, its rules: Rules), each row
+## with its value from the server's settings file, «По умолчанию» back to the defaults.
+func _build_settings(page: VBoxContainer, rows: ChoiceRows) -> void:
+	page.add_child(Kit.caption("Сервер"))
+	_port = _field(page, rows, "Порт", str(_set.port))
+	_port.max_length = 5
+	_port.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER
+	_pick(page, rows, "Игроков", "max_players", PLAYER_COUNTS, _count)
+	_pick(page, rows, "Сохранять", "autosave", SAVE_SECONDS, _seconds)
+	page.add_child(Kit.caption("Мир"))
+	_pick(page, rows, "Длина суток", "day_minutes", DAY_MINUTES, _minutes)
+	_check(page, "Погода с улицы", "real_weather", "Погода в мире — настоящая, там, где этот компьютер")
+	_check(page, "Звери нападают", "animal_attacks", "Хищники защищают своё место и охотятся на людей стаей")
+	_check(page, "Износ инструментов", "tool_wear", "Инструменты изнашиваются от работы и крафта")
+	page.add_child(Kit.caption("Бои"))
+	_pick(page, rows, "PvP", "pvp", PVP_MODES, func(m: String) -> String: return PVP_TITLES[PVP_MODES.find(m)])
+	_pick(page, rows, "Урон в бою", "pvp_damage", PVP_DAMAGE, _count)
+	_pick(page, rows, "Щит новичка", "newcomer_minutes", NEWCOMER_MINUTES, _minutes)
+	_pick(page, rows, "Бой держит", "fight_tag", FIGHT_SECONDS, _seconds)
+	page.add_child(Kit.caption("Земля"))
+	_pick(page, rows, "Земли сначала", "territory_start", TERRITORY_START, _count)
+	_pick(page, rows, "За уровень", "territory_per_level", TERRITORY_PER_LEVEL, _count)
+	_pick(page, rows, "Дальность", "territory_radius", TERRITORY_RADIUS, _count)
+	_pick(page, rows, "Уровней", "territory_levels", TERRITORY_LEVELS, _count)
+	_pick(page, rows, "Брошена через", "territory_abandon_hours", ABANDON_HOURS, _hours)
+	_pick(page, rows, "Шаг упадка", "territory_decay_hours", DECAY_HOURS, _hours)
+	_pick(page, rows, "Упадок", "territory_decay", DECAY_MODES, func(m: String) -> String: return DECAY_TITLES[DECAY_MODES.find(m)])
+	page.add_child(Kit.note("«Земли сначала» — клеток у нового игрока, «За уровень» — сколько клеток прибавляет "
+		+ "каждый уровень навыков, «Дальность» — как далеко от столба, «Уровней» — сколько уровней вверх и вниз. "
+		+ "Земля без хозяев «брошена» и с каждым шагом упадка теряет права или радиус.", WIDTH))
+	var defaults := Kit.button("По умолчанию", Callable(), WIDTH, ROW_H + 4)
+	_asks.guard(defaults, _defaults)
+	page.add_child(defaults)
+	rows.refresh()
+
+
+## The setting `key` of `_set` (or its rules), as the server's settings file has it.
+func _value(key: String) -> Variant:
+	return _set.rules[key] if _set.rules.has(key) else _set[key]
+
+
+func _put(key: String, v: Variant) -> void:
+	if _set.rules.has(key):
+		_set.rules[key] = v
+	else:
+		_set[key] = v
+
+
+## A row «name ‹ value ›» choosing setting `key` among `options` (the file's value among
+## them, in its place, when it is none of them), each shown by `word`.
+func _pick(page: VBoxContainer, rows: ChoiceRows, caption: String, key: String, options: Array, word: Callable) -> void:
+	var list := options.duplicate()
+	var now: Variant = _value(key)
+	if not _has(list, now):
+		list.append(now)
+		if not now is String:
+			list.sort()
+	rows.add(page, caption, list.map(word), func() -> int: return _find(list, _value(key)),
+		func(i: int) -> void: _put(key, list[i]), {"stop": true})
+
+
+## Where `v` is in `list`, numbers compared as numbers (the file gives 40.0 for 40).
+static func _find(list: Array, v: Variant) -> int:
+	for i in list.size():
+		if typeof(v) == typeof(list[i]) and v == list[i]:
+			return i
+		if (v is int or v is float) and (list[i] is int or list[i] is float) and is_equal_approx(float(v), float(list[i])):
+			return i
+	return -1
+
+
+static func _has(list: Array, v: Variant) -> bool:
+	return _find(list, v) >= 0
+
+
+## A switch for setting `key`.
+func _check(page: VBoxContainer, caption: String, key: String, tip: String) -> void:
+	var c := Kit.check(caption, bool(_value(key)), WIDTH, ROW_H)
+	c.tooltip_text = tip
+	c.toggled.connect(func(on: bool) -> void: _put(key, on))
+	page.add_child(c)
+	_checks[key] = c
+
+
+## «По умолчанию» (second tap): the settings of the tab back to the server's defaults;
+## the world, the name, the password and the tunnel stay.
+func _defaults() -> void:
+	var d: Dictionary = game.LocalHost.server_settings(false)
+	for k in ["max_players", "autosave", "day_minutes", "real_weather"]:
+		_set[k] = d[k]
+	_set.rules = d.rules
+	_port.text = str(d.port)
+	for k: String in _checks:
+		_checks[k].set_pressed_no_signal(bool(_value(k)))
+	_rows[1].refresh()
+
+
+## Shows tab `i` (0 «Создание», 1 «Настройки»), its tab lit, its rows from the top.
+func show_tab(i: int) -> void:
+	_tab = i
+	for j in _pages.size():
+		_pages[j].visible = j == i
+		TabRow.light(_tabs.get_child(j), j == i)
+	_choices = _rows[i]
+	_choices.scroll = _scroll
+	_scroll.scroll_vertical = 0
+	fit.call_deferred()
+
+
+static func _count(n: Variant) -> String:
+	return str(int(n))
+
+
+static func _seconds(n: Variant) -> String:
+	var s := int(n)
+	return Lang.f("%d мин", [s / 60]) if s >= 60 and s % 60 == 0 else Lang.f("%d с", [s])
+
+
+static func _minutes(n: Variant) -> String:
+	var m := int(n)
+	if m == 0:
+		return "нет"
+	return Lang.f("%d ч", [m / 60]) if m >= 120 and m % 60 == 0 else Lang.f("%d мин", [m])
+
+
+static func _hours(n: Variant) -> String:
+	var h := roundi(float(n))
+	return Lang.f("%d ч", [h])
+
+
+## A row with `caption` on its left, on `page`.
+func _row(page: VBoxContainer, rows: ChoiceRows, caption: String) -> HBoxContainer:
 	var row := Kit.row(4)
-	var l := _choices.name_label(caption)
+	var l := rows.name_label(caption)
 	l.custom_minimum_size.y = ROW_H
 	row.add_child(l)
-	_box.add_child(row)
-	_choices.add_custom(l)
+	page.add_child(row)
+	rows.add_custom(l)
 	return row
 
 
-func _field(caption: String, text: String) -> LineEdit:
-	var row := _row(caption)
-	var f := Kit.field("", WIDTH - NAME_WIDTH - 4, 0, ROW_H)
+func _field(page: VBoxContainer, rows: ChoiceRows, caption: String, text: String) -> LineEdit:
+	var row := _row(page, rows, caption)
+	var f := Kit.field("", WIDTH - rows.name_width - 4, 0, ROW_H)
 	f.text = text
 	f.text_submitted.connect(func(_t: String) -> void: f.release_focus())
 	row.add_child(f)
 	return f
 
 
-func _button(text: String, action: Callable, accent := false) -> Button:
+## A button of the window: in its rows (`in_rows`) or for the caller to place.
+func _button(text: String, action: Callable, accent := false, in_rows := true) -> Button:
 	var b: Button = (Kit.accent_button if accent else Kit.button).call(text, action, WIDTH, ROW_H + 4)
-	_box.add_child(b)
+	if in_rows:
+		_box.add_child(b)
 	return b
 
 
@@ -201,8 +375,10 @@ func _world_title(w: Dictionary) -> String:
 ## The settings as Config takes them, and the host's name; "" in "why" when they do.
 func settings() -> Dictionary:
 	var port := int(_port.text) if _port.text.is_valid_int() else 0
-	var out := {"title": _title.text.strip_edges(), "port": port, "max_players": _players,
-		"password": _password.text, "tunnel": _tunnel.button_pressed, "real_weather": _weather.button_pressed, "pvp": PVP_MODES[_pvp], "player": ServerList.player_name() if ServerList.player_name() != "" else "Хозяин"}
+	var out := {"title": _title.text.strip_edges(), "port": port, "max_players": int(_set.max_players),
+		"password": _password.text, "tunnel": _tunnel.button_pressed, "real_weather": bool(_set.real_weather),
+		"autosave": float(_set.autosave), "day_minutes": float(_set.day_minutes), "rules": _set.rules.duplicate(),
+		"player": ServerList.player_name() if ServerList.player_name() != "" else "Хозяин"}
 	if _worlds.is_empty():
 		out.world = ""
 		out.seed_value = int(game.settings.values.world_seed)
@@ -213,7 +389,7 @@ func settings() -> Dictionary:
 		out.settings = _worlds[_world].settings
 	out.why = ""
 	if port < 1024 or port > 65535:
-		out.why = "Порт — число от 1024 до 65535"
+		out.why = "Порт — число от 1024 до 65535 (вкладка «Настройки»)"
 	elif out.title == "":
 		out.why = "Введите название"
 	return out
@@ -222,6 +398,9 @@ func settings() -> Dictionary:
 func _start() -> void:
 	var s := settings()
 	if s.why != "":
+		if not s.port in range(1024, 65536):
+			show_tab(1)
+			_port.grab_focus()
 		_error.text = s.why
 		_error.visible = true
 		fit.call_deferred()

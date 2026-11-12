@@ -752,6 +752,7 @@ const SHOTS := {
 	"ui-main-menu-join": {"time": 0.42, "season": 1, "touch": true, "main_menu": "join"},
 	# «Создать сервер» on a computer, before and while it runs.
 	"ui-main-menu-host": {"time": 0.42, "season": 1, "main_menu": "host"},
+	"ui-main-menu-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 1},
 	"ui-main-menu-host-running": {"time": 0.42, "season": 1, "main_menu": "host-running"},
 	# The largest interface on a landscape screen: the first page and «Создать сервер»
 	# still fit (the column and the window scroll when they cannot).

@@ -1050,6 +1050,8 @@ func _run() -> void:
 						await process_frame
 				main.menu._fill_page("multi")
 				main.menu.open_host()
+				if shot.has("host_tab"):
+					main.menu._setup.show_tab(shot.host_tab)
 				for i in 3:
 					await process_frame
 			if shot.main_menu == "join":
