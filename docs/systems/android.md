@@ -47,7 +47,8 @@ paths in the editor settings (`export/android/android_sdk_path`, `java_sdk_path`
 **A crash** leaves no message on a phone: the engine's file log is on for Android
 (`debug/file_logging/enable_file_logging.android`), and «Data for the test» shows the end of the last run's log
 (`src/client/ui/last_log.gd`); a run that ended with no close or pause (the file `user://running` left) is a crash,
-and the main menu then offers «Crash log» with that log to copy; the shader warm-up prints each mix it draws.
+and the main menu then offers «Crash log» with that log to copy; in the developer mode the settings have the tab
+«Debug» with what needs no world: the last run's log, the freeze log, the interface gallery, wiping the data; the shader warm-up prints each mix it draws.
 
 **Tests.** No device in CI: the `android` job fails if the export or the signature check fails; how it plays
 is checked on a phone.

@@ -73,6 +73,9 @@ const PAGES := {
 	"test": [["world", "[world_n3]"], ["server", "[server_name]"], ["player", "[player_n2]"], ["caves", "[caves]"], ["marks", "[markers]"], ["debug", "[debug]"]],
 	"freezes": [["all", "all"], ["critical", "from 200"], ["big", "100–200"], ["small", "50–100"]],
 }
+## The settings' tab of the developer mode (Settings.testing_unlocked): what is seen with
+## no world too (the last run's log, the freezes, the interface's gallery, wiping the data).
+const DEV_TAB := ["dev", "[debug]"]
 ## Sections with nothing to set yet: their tabs are dimmed, «скоро».
 const SOON := []
 ## Sections as long as there is something in them: no taller page for them, they scroll.
@@ -235,14 +238,15 @@ func show_section(key: String) -> void:
 
 ## The tabs of page `which` (see PAGES), made when the page changes.
 func _make_tabs(which: String) -> void:
-	if _tabs_page == which:
+	var tabs := _tabs_of(which)
+	if _tabs_page == which + str(tabs.size()):
 		return
-	_tabs_page = which
+	_tabs_page = which + str(tabs.size())
 	for b in _tabs.get_children():
 		_tabs.remove_child(b)
 		b.queue_free()
 	_tab_buttons.clear()
-	for sec in PAGES.get(which, []):
+	for sec in tabs:
 		var key: String = sec[0]
 		var b := TabRow.small_button(sec[1], show_section.bind(key))
 		b.custom_minimum_size.y = TAB_HEIGHT
@@ -289,8 +293,10 @@ func _fill() -> void:
 		_title.text = "[test_data]"
 		_add_report()
 	elif which == "crash":
-		_title.text = "[crash_log]"
+		_title.text = "[crash_log]" if LastLog.crashed else "[last_run_log]"
 		_shown_text = LastLog.tail()
+		if _shown_text == "":
+			_shown_text = Lang.t("[no_log_yet]")
 		_list.add_child(_paragraph(_shown_text, UiStyle.INK))
 	else:
 		_title.text = "[settings]" if which == "settings" else "[testing]"
@@ -475,6 +481,15 @@ func _section_rows(key: String) -> Array:
 			if game.markers == null or game.markers.list.is_empty():
 				marks.append({"note": "[no_markers_put_them_on]"})
 			return marks
+		"dev":
+			var dev := []
+			if not OS.has_feature("web"):
+				dev.append({"action": "[last_run_log]", "do": func() -> void: open("crash", "settings")})
+			dev.append({"action": "[freeze_log]", "do": func() -> void: open("freezes", "settings")})
+			dev.append({"action": "[ui_gallery]", "do": func() -> void: open_gallery()})
+			dev.append(_section("trash", "[danger]"))
+			dev.append({"action": "[clear_all_data]", "do": func() -> void: s.wipe_all(), "confirm": true})
+			return dev
 		"debug":
 			return [
 				_section("chart", "[on_screen]"),
@@ -853,10 +868,18 @@ func _set_columns(n: int) -> void:
 	_list.custom_minimum_size.y = _page_height(page, n)
 
 
+## The tabs of page `which`: PAGES', and on the settings the developer mode's.
+func _tabs_of(which: String) -> Array:
+	var tabs: Array = PAGES.get(which, [])
+	if which == "settings" and game.settings.testing_unlocked:
+		tabs = tabs + [DEV_TAB]
+	return tabs
+
+
 ## How tall the longest section of page `which` (see PAGES) stands in `n` columns.
 func _page_height(which: String, n: int) -> int:
 	var tallest := 0
-	for sec in PAGES.get(which, []):
+	for sec in _tabs_of(which):
 		if not sec[0] in LISTS:
 			tallest = maxi(tallest, _height(_section_rows(sec[0]), n))
 	return tallest
