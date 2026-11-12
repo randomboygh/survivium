@@ -12,7 +12,7 @@ const FILE := "user://shader_probe.cfg"
 const FRAMES := 3
 ## [name, mesh ("box" or "multi"), material ("unshaded", "standard", a shader's path or
 ## "minimal" / "stencil" code), lights ("none", "sun", "omni" = sun and an omni light,
-## "shadow" = the sun's shadow), what to cut from the shader's code ("" or "stencil")].
+## "shadow" = the sun's shadow, "shadow_omni" = both), what to cut from the shader's code ("" or "stencil")].
 const STEPS := [
 	["engine unshaded", "box", "unshaded", "none", ""],
 	["engine standard", "box", "standard", "none", ""],
@@ -44,6 +44,17 @@ const STEPS := [
 	["sun_rays", "box", "res://shaders/sun_rays.gdshader", "omni", ""],
 	["fishing_line", "box", "res://shaders/fishing_line.gdshader", "omni", ""],
 	["cursor", "box", "res://shaders/cursor.gdshader", "omni", ""],
+	# As the game draws them on Android since 2026-11-12 (no stencil), under the sun's
+	# shadow, which builds each shader's depth pass too: the warm-up still crashed there.
+	["world, many, no stencil", "multi", "res://shaders/world.gdshader", "omni", "stencil"],
+	["world, sun shadow, no stencil", "box", "res://shaders/world.gdshader", "shadow", "stencil"],
+	["world, sun shadow + omni, no stencil", "box", "res://shaders/world.gdshader", "shadow_omni", "stencil"],
+	["world, many, sun shadow, no stencil", "multi", "res://shaders/world.gdshader", "shadow_omni", "stencil"],
+	["leaves, sun shadow, no stencil", "box", "res://shaders/leaves.gdshader", "shadow_omni", "stencil"],
+	["grass, sun shadow, no stencil", "box", "res://shaders/grass.gdshader", "shadow_omni", "stencil"],
+	["sprite, sun shadow", "box", "res://shaders/sprite.gdshader", "shadow_omni", ""],
+	["minimal shader, sun shadow", "box", "minimal", "shadow", ""],
+	["engine standard, many, sun shadow", "multi", "standard", "shadow_omni", ""],
 ]
 const MINIMAL := "shader_type spatial;\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
 const STENCIL := "shader_type spatial;\nstencil_mode write, compare_always, 1;\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
@@ -151,8 +162,8 @@ func _next() -> void:
 	_save(res, s[0])
 	print("shader probe: %s ..." % s[0])
 	_sun.visible = s[3] != "none"
-	_sun.shadow_enabled = s[3] == "shadow"
-	_omni.visible = s[3] == "omni"
+	_sun.shadow_enabled = s[3].begins_with("shadow")
+	_omni.visible = s[3] == "omni" or s[3] == "shadow_omni"
 	_thing = _make(s[1], _material(s[2], s[4]))
 	_view.add_child(_thing)
 	_frames = 0
