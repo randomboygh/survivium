@@ -144,9 +144,7 @@ func _ready() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	add_child(box)
-	_title = UiStyle.label("", UiStyle.ACCENT)
-	_title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
-	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title = Kit.title("")
 	box.add_child(_title)
 	_version = UiStyle.label("", UiStyle.MUTED)
 	_version.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

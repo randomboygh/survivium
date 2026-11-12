@@ -19,8 +19,6 @@ const NAME_WIDTH := 112
 const MOD_NAME_WIDTH := 168
 const VALUE_WIDTH := 84
 const ARROW := 32
-## Room for the scroll bar beside the rows.
-const BAR_ROOM := UiStyle.SCROLL_BAR + 4
 ## The map: pixels each way and cells per pixel.
 const MAP := 128
 const MAP_STEP := 32
@@ -315,7 +313,7 @@ func _on_stepped(i: int) -> void:
 func layout(screen: Vector2) -> void:
 	_box.vertical = screen.x < screen.y
 	_list.reset_size()
-	_scroll.custom_minimum_size = Vector2(_list.size.x + BAR_ROOM, _list.size.y)
+	_scroll.custom_minimum_size = Vector2(_list.size.x, _list.size.y)
 	panel.reset_size()
 	var over := panel.size.y - screen.y
 	if over > 0.0:
