@@ -194,6 +194,7 @@ length up to `CHAT_MAX` 160.
   `clean()` removes at start (`WorldStore.remove_beside`). `read_player(key)`, `restore(link, record)` (the
   sections, `workshop.settle`, `teleport`). Ctrl+C on Linux ends the process at once (the engine does not tell
   the script): the time since the last save is lost, the save itself is whole; the right way is `stop`.
+- `ServerMain.apply_settings(values)` — the settings changed while a server made in the game runs (its window's «Settings»): players, autosave, day length, real weather, the rules; at once and into `server.cfg`.
 - `src/server/config.gd` — the server's settings: `user://server.cfg` (the sections `server`: title, port 7777,
   players 8, password, bind, autosave 10, save; `world`: folder, seed, WorldGen settings, mods; `rules`: the
   keys of `Rules.to_dict` over the defaults, `Rules.of(config.rules)`, for example `territory_decay`), over it —
