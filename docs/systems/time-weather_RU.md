@@ -32,7 +32,7 @@
   `step_around(delta, места)` — игроки по очереди, `last_at`; зовёт сеанс мира),
   правила — `WorldActions.blow_branch` / `blow_berries`.
 - `src/client/view/sky.gd` — как это выглядит: свет, цветокор, облака, оттенки шейдеров
-  (см. [rendering.md](rendering.md)); `src/client/audio/nature.gd` — как звучит.
+  (см. [rendering.md](rendering_RU.md)); `src/client/audio/nature.gd` — как звучит.
 
 **Данные.** Погода и календарь — константы `clock.gd` (в данные модов пока не вынесены, это в планах
 MVP); песчаные бури — флаг биома `sandstorms`.

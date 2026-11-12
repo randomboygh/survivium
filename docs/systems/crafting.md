@@ -1,128 +1,188 @@
-# Крафт, станки и вещи на клетках
+# Crafting, stations and things on cells
 
-Статус: ACTIVE.
+Status: ACTIVE. A Russian copy: [crafting_RU.md](crafting_RU.md).
 
-**Назначение.** Какие рецепты персонаж знает, очередь работы у станка, износ и починка инструментов;
-вещи, которые стоят на клетках и не являются ячейками: сундуки, верстаки, печи, горны, костры, лестницы, двери и окна.
+**Purpose.** Which recipes a character knows, the queue of work at a station, the wear and repair of tools;
+the things that stand on cells and are not cells: chests, workbenches, furnaces, forges, campfires, ladders,
+doors and windows.
 
-**Файлы**
-- `src/shared/game/workshop.gd` — крафт одного персонажа (`game.workshop`): `stations()`, `recipes()`,
-  `why_not(r)`, `start(r, times)`, `cancel`, `update(delta)` (готовое и побочное — в сумку, износ
-  инструментов рецепта на `wear`), `waits_for(r)` (чего ждёт работа: станка, инструмента, вещи в сумке),
-  `use_tool`, `repair`, `give_free(r)` (тестовая «Бесплатные предметы», `Rules.free_items`: изделие
-  рецепта в сумку без материалов, запрос `craft_free`; вкладка крафта тогда показывает все рецепты
-  и кнопку «Получить» в правом верхнем углу рецепта); сигналы `changed`, `made`.
-- `src/shared/game/knowledge.gd` — рецепт известен, когда в сумке побывали все его материалы
-  (`look_at`, `knows`); сигнал `learned`. Рецепт, которому нужен инструмент класса, которого в мире нет ни у
-  одного предмета (мир без части бандлов), не узнают и не показывают (`Crafting.possible`).
-- `src/shared/game/quality.gd` — качество вещей (решение 181): число 1–100 у стопки (`Inventory.quality`),
-  50 — как до качества. Добытое руками (`by_hand_of`: сбор, рубка, копание, охота, шерсть, рыбалка) — от силы и
-  качества инструмента в руке и навыка работы (`gathered`, разброс ±5), место не важно; сделанное — среднее
-  качество материалов `needs` (`of_materials` по `took` работы очереди), не лучше потолка навыка
-  (`skill_cap`: 50 без навыка, `quality` навыка сверху), лучшего станка рядом, что делает рецепт
-  (`Workshop.quality_cap`, поле предмета `quality_cap`: костёр 70, камин 90), и рецепта (`quality_cap`: деревянные
-  кирка и коса — 30). Что даёт: прочность (`durability`, `Inventory.wear_tool`) и тепло одежды, сытость, лечение
-  и вода еды — `lasts` (×1,5 при 100, ×0,6 при 10), темп взмаха — `faster` (`tool_record`: `Player.tool`,
-  `Controls.tool_record`). Посев хранит качество семени пятым полем грядки, урожай — около него (±8, `crop`),
-  навык Земледелия немного сверху (`ActionsFarm.crop_quality`): лучшие семена дают лучший урожай. В сумке —
-  еле заметное внутреннее свечение фона ячейки под иконкой по ступени: от граней к центру, плавно гаснет и тем заметнее, чем лучше вещь (`grade`: плохое — красноватый, простое — серый, обычное — тёплый, хорошее — зеленоватый, отличное — золотистый; `HotbarSlot.grade`, `GRADE_TINTS`)
-  и чип «Качество» в описании (`FactChips.item_groups`, где и прочность, сытость, тепло — с качеством).
-- `src/shared/game/craft_queue.gd` — очередь: идёт, пока станок рядом; пауза и отмена с возвратом; у
-  каждой работы свой номер (`serial`, сохраняется), по нему решаются побочные продукты.
-- `src/shared/content/crafting.gd` — реестр рецептов: `get_recipe`, `missing` (что тратит и что держит в
-  сумке), `lacks_tool`, `why_not` («Нужен инструмент: …» по `Items.tool_title`), `take` (только `needs`),
-  `outputs(r, n)` и `comes` (побочное по шансу от номера работы, без случайных чисел), `canon` (старые id),
-  `check` (станок каждого рецепта — станок, износ только с инструментом). Можно ли сделать каждый рецепт со
-  старта, решает граф контента `content_graph.gd` ([content.md](content.md)).
-- `src/shared/game/placed.gd` — вещи на клетках по классу предмета `prop` и его флагам (ниже):
-  `put_from_bag`, `take_up`, `put_out`, `light`, `feed`, `destroy`, `stations_near`,
-  `burns`; костёр горит на топливе: `fuel` записи — секунды горения (не больше `fuel_max` предмета,
-  новый ставится с `fuel_start`, 0 — горит вечно), `feed` и `light` кладут одно топливо из сумки
-  (`fuel_for`: самое короткое — ветка раньше бревна; секунды — `fuel_time` топлива),
-  `step(delta, rain)` в шаге сеанса жжёт его и тушит прогоревший, а под открытым небом
-  (`WorldData.roof_level`) — после `RAIN_OUT` секунд ливня или грозы (`RAIN_HEAVY`, счёт `wet`);
-  потушенный хранит остаток.
-  Копии узнают остаток сигналом `fuel_changed` (запрос `prop_fire` с `true` разжигает или подкладывает,
-  событие `prop_fuel` раз в `FUEL_TELL` секунд горения). Касание костра открывает его как станок; сколько
-  осталось, видно по самому огню: `Effects.fire_strength` по `fuel_share` (по корню доли: только что
-  разожжённый уже живой) — полный горит широко, высоко и очень ярко, с искрами и дальним светом, догорающий —
-  низкие тусклые язычки и короткий свет (`Props` по `fuel_changed`);
-  вкладка «Крафт» у костра — кнопка «Подкинуть топливо» рядом с «Потушить»/«Разжечь», с полоской запаса
-  внизу (`CraftPanel._draw_fuel`; недоступна у потухшего, полного или без топлива в сумке, в подсказке —
-  сколько ещё гореть); твёрдые через `WorldData.blockers`; новый мир начинает с лагеря старта у спавна
-  (`start_camp` по `Starts.START.camp`: костёр, сундук — патч бандла сундука; занятое место —
-  дерево, склон, вода — заменяет ближайшее ровное свободное в `CAMP_REACH` клеток, `camp_spot`:
-  сначала на уровне спавна, потом в `CAMP_RISE` уровней, потом на любом). Кнопка «Выдать
-  инструменты» («Тестирование») выдаёт `Items.best_kit`: лучший инструмент каждого класса, свет
-  и самую большую сумку на спину, сразу надетую. Сигналы
-  `added`, `removed`, `lit_changed`, `fuel_changed`, `cell_changed`.
-  Свет (предмет с `light` без `prop`: факел, свеча, фонарь) ставится на одну клетку перед собой
-  (`lights`, `put_light_from_bag`, `light_spot`, `take_light`; кнопка «Поставить» в сумке, запрос
-  `light_put`): не твёрдый, догорает свои `burns` секунд на месте (`step`, шаг сеанса), а взятый обратно
-  касанием уносит сгоревшее в `Character.burning`; гаснет и пропадает, если клетку заняли или землю под
-  ним выкопали. Записи света — в тех же `to_list` и сигналах `added`/`removed`, с пометкой `light`.
-- Таблички (решение 183, бандл `tools/signs`: табличка, указатель, доска на стену) — вещи с `sign_lines`:
-  текст в записи (`text`, строки через `\n`; `Placed.sign_text` чистит каждую как `Protocol.clean_text` и режет
-  до `sign_lines` строк по `sign_width` знаков), `write` и `turn_sign` (поворот на четверть; доску на стене
-  не поворачивают) — по праву «строить», запросы `sign_write`, `sign_turn`; изменённая табличка ставится
-  заново (`_renew`: `removed`, `added`), так что копии и сохранение получают её как обычную вещь. Доска (`wall`)
-  ставится только у стены (`ON_WALL`: твёрдая клетка рядом на том же уровне) спиной к ней (`wall_turn`).
-  Снятая табличка уносит надпись: `Placed.take_up` кладёт её в ячейку сумки шестым полем (`Inventory.text_of`,
-  `[id, n, worn, null, q, text]`), такая стопка складывается только с той же надписью, не смешивается при
-  сортировке, сохраняется, ложится на землю (`drop_data` с `text`) и в сундук; `_set_down` ставит табличку с
-  этой надписью. В окне сумки у названия «· с надписью».
-  Касание таблички открывает окно `src/client/ui/sign_window.gd` (поля строк, «Сохранить», «Повернуть»,
-  «Закрыть»; без права строить — только текст), текст над табличкой рисует `src/client/view/sign_labels.gd`
-  рамкой и буквами уведомлений (панель на слое интерфейса над верхом таблички на экране), пока игрок в
-  `Placed.SIGN_READ` (3) клетках; пока открыто окно, надписей нет.
-  Поля строк — общие поля ввода (`TextField.fit`: каретка, переключение вкладки; [ui.md](ui.md)).
-  Тестовая настройка «Журнал клавиш» («Отладка», по умолчанию
-  выкл) выводит под кнопками окна журнал страницы о клавишах (`KEYS_LOG`: у кого фокус, клавиши, ввод).
-- `src/client/game/props.gd`, `src/client/view/voxel_props.gd` — модели вещей и огонь на экране;
-  поставленный свет — модель стоймя (`VoxelProps.standing`: лежащий факел ставится на длинную сторону) и
-  огонёк со светом (`Effects.add_lamp`; настоящий свет только у `LAMP_LIGHTS` 6 ближайших к виду,
-  огоньки дальше `LAMP_FLAME_REACH` не горят).
-- `src/client/ui/craft_panel.gd`, `inventory_window.gd` — вкладка «Крафт» (что тратит и что держит в сумке,
-  станок, инструменты с износом, время, побочное) и окно сумки. Что они просят у правил (начать,
-  отменить, пауза, починить, станок забрать/потушить/уничтожить, сумка и сундуки), идёт запросами
-  `game.net`; сундук в запросе назван клеткой вещи (`Placed.at`) — [network.md](network.md). Читают они
-  копию мастерской `src/client/net/remote_workshop.gd` (очередь и пауза из события `shop`, знания из
-  `knowledge`; между событиями копия сама отсчитывает время первой работы, чтобы шла полоса, но работу
-  не завершает) и копию вещей `remote_placed.gd` (сундуки из события `chest`); сама мастерская игрока
-  крутится на сервере (`PlayerLink`), вещи — в его сеансе.
+**Files**
+- `src/shared/game/workshop.gd` — one character's crafting (`game.workshop`): `stations()`, `recipes()`,
+  `why_not(r)`, `start(r, times)`, `cancel`, `update(delta)` (the finished and the by-product — into the bag,
+  the wear of the recipe's tools by `wear`), `waits_for(r)` (what the work waits for: a station, a tool, a
+  thing in the bag), `use_tool`, `repair`, `give_free(r)` (the test «Free items», `Rules.free_items`: the
+  recipe's product into the bag without materials, the request `craft_free`; the crafting tab then shows all
+  recipes and the button «Get» in the recipe's top right corner); the signals `changed`, `made`.
+- `src/shared/game/knowledge.gd` — a recipe is known when all its materials have been in the bag (`look_at`,
+  `knows`); the signal `learned`. A recipe that needs a tool of a class that no item in the world has (a world
+  without part of the bundles) is not learned and not shown (`Crafting.possible`).
+- `src/shared/game/quality.gd` — the quality of things (decision 181): a number 1–100 at a stack
+  (`Inventory.quality`), 50 — as before quality. What is got by hands (`by_hand_of`: gathering, chopping,
+  digging, hunting, wool, fishing) — from the strength and quality of the tool in the hand and the work's
+  skill (`gathered`, a spread of ±5), the place does not matter; what is made — the mean quality of the
+  materials `needs` (`of_materials` by the `took` of the queue's work), no better than the skill's ceiling
+  (`skill_cap`: 50 without a skill, the skill's `quality` on top), of the best station near that does the
+  recipe (`Workshop.quality_cap`, the item's field `quality_cap`: a campfire 70, a fireplace 90), and of the
+  recipe (`quality_cap`: a wooden pickaxe and scythe — 30). What it gives: durability (`durability`,
+  `Inventory.wear_tool`) and the warmth of clothes, the satiety, healing and water of food — `lasts` (×1.5 at
+  100, ×0.6 at 10), the tempo of a stroke — `faster` (`tool_record`: `Player.tool`, `Controls.tool_record`). A
+  crop stores the seed's quality as the fifth field of the bed, the harvest — near it (±8, `crop`), the
+  Farming skill a little on top (`ActionsFarm.crop_quality`): better seeds give a better harvest. In the bag —
+  a barely noticeable inner glow of the cell's background under the icon by grade: from the edges to the
+  centre, smoothly fading, and the more noticeable the better the thing (`grade`: bad — reddish, plain —
+  grey, ordinary — warm, good — greenish, excellent — golden; `HotbarSlot.grade`, `GRADE_TINTS`) and the chip
+  «Quality» in the description (`FactChips.item_groups`, where durability, satiety and warmth are too — with
+  quality).
+- `src/shared/game/craft_queue.gd` — the queue: goes while the station is near; pause and cancel with a
+  return; each work has its number (`serial`, saved), by it the by-products are decided.
+- `src/shared/content/crafting.gd` — the registry of recipes: `get_recipe`, `missing` (what it spends and what
+  it holds in the bag), `lacks_tool`, `why_not` («A tool is needed: …» by `Items.tool_title`), `take` (only
+  `needs`), `outputs(r, n)` and `comes` (a by-product by chance from the work's number, with no random
+  numbers), `canon` (old ids), `check` (each recipe's station is a station, wear only with a tool). Whether
+  every recipe can be made from the start is decided by the content graph `content_graph.gd`
+  ([content.md](content.md)).
+- `src/shared/game/placed.gd` — things on cells by the item's class `prop` and its flags (below):
+  `put_from_bag`, `take_up`, `put_out`, `light`, `feed`, `destroy`, `stations_near`, `burns`; a campfire burns
+  on fuel: a record's `fuel` is the seconds of burning (no more than the item's `fuel_max`, a new one is
+  placed with `fuel_start`, 0 — burns for ever), `feed` and `light` put one fuel from the bag (`fuel_for`: the
+  shortest — a twig before a log; the seconds — the fuel's `fuel_time`), `step(delta, rain)` in the session's
+  step burns it and puts out a burnt-down one, and under the open sky (`WorldData.roof_level`) — after
+  `RAIN_OUT` seconds of a downpour or storm (`RAIN_HEAVY`, the count `wet`); an extinguished one keeps the
+  remainder. The copies learn the remainder by the signal `fuel_changed` (the request `prop_fire` with `true`
+  lights or adds, the event `prop_fuel` once per `FUEL_TELL` seconds of burning). A tap on a campfire opens it
+  as a station; how much is left is seen by the fire itself: `Effects.fire_strength` by `fuel_share` (by the
+  root of the share: one just lit is already lively) — a full one burns wide, high and very bright, with
+  sparks and far light, one burning down — low dim tongues and short light (`Props` by `fuel_changed`); the
+  «Crafting» tab at a campfire — the button «Add fuel» beside «Put out»/«Light», with a strip of the reserve
+  below (`CraftPanel._draw_fuel`; unavailable at a burnt-out one, a full one or with no fuel in the bag, in
+  the hint — how much longer to burn); solid through `WorldData.blockers`; a new world starts with the start
+  camp at the spawn (`start_camp` by `Starts.START.camp`: a campfire, a chest — the patch of the chest's
+  bundle; an occupied place — a tree, a slope, water — is replaced by the nearest level free one within
+  `CAMP_REACH` cells, `camp_spot`: first at the spawn's level, then within `CAMP_RISE` levels, then at any).
+  The button «Give tools» («Testing») gives `Items.best_kit`: the best tool of each class, light and the
+  biggest bag for the back, put on at once. The signals `added`, `removed`, `lit_changed`, `fuel_changed`,
+  `cell_changed`. Light (an item with `light` without `prop`: a torch, a candle, a lantern) is placed on one
+  cell before oneself (`lights`, `put_light_from_bag`, `light_spot`, `take_light`; the button «Place» in the
+  bag, the request `light_put`): not solid, burns down its `burns` seconds in place (`step`, the session's
+  step), and one taken back by a tap carries the burnt part away into `Character.burning`; it goes out and
+  vanishes if the cell was occupied or the ground under it was dug. The lights' records are in the same
+  `to_list` and the signals `added`/`removed`, marked `light`.
+- Signs (decision 183, the bundle `tools/signs`: a sign, a pointer, a board for a wall) — things with
+  `sign_lines`: the text in the record (`text`, lines through `\n`; `Placed.sign_text` cleans each like
+  `Protocol.clean_text` and cuts to `sign_lines` lines by `sign_width` characters), `write` and `turn_sign` (a
+  quarter turn; a board on a wall is not turned) — by the right «build», the requests `sign_write`,
+  `sign_turn`; a changed sign is placed anew (`_renew`: `removed`, `added`), so the copies and the save get it
+  as an ordinary thing. A board (`wall`) is placed only at a wall (`ON_WALL`: a solid cell next to it at the
+  same level) with its back to it (`wall_turn`). A taken sign carries the inscription away: `Placed.take_up`
+  puts it into a bag cell as the sixth field (`Inventory.text_of`, `[id, n, worn, null, q, text]`), such a
+  stack combines only with the same inscription, is not mixed in sorting, is saved, lies on the ground
+  (`drop_data` with `text`) and in a chest; `_set_down` places the sign with this inscription. In the bag
+  window the name has «· with an inscription». A tap on a sign opens the window `src/client/ui/sign_window.gd`
+  (the line fields, «Save», «Turn», «Close»; without the right to build — only the text), the text above a
+  sign is drawn by `src/client/view/sign_labels.gd` with a frame and the letters of notices (a panel on the
+  interface layer above the sign's top on the screen) while the player is within `Placed.SIGN_READ` (3) cells;
+  while the window is open there are no inscriptions. The line fields are shared input fields (`TextField.fit`:
+  the caret, switching the tab; [ui.md](ui.md)). The test setting «Key log» («Debug», off by default) outputs
+  under the window's buttons the page's log of keys (`KEYS_LOG`: who has the focus, keys, input).
+- `src/client/game/props.gd`, `src/client/view/voxel_props.gd` — the models of things and fire on screen; a
+  placed light is a model standing (`VoxelProps.standing`: a lying torch is put on its long side) and a little
+  flame with light (`Effects.add_lamp`; real light only at the `LAMP_LIGHTS` 6 nearest to the view, the flames
+  farther than `LAMP_FLAME_REACH` do not burn).
+- `src/client/ui/craft_panel.gd`, `inventory_window.gd` — the «Crafting» tab (what it spends and what it holds
+  in the bag, the station, tools with wear, time, by-product) and the bag window. What they ask of the rules
+  (start, cancel, pause, repair, take/put out/destroy a station, the bag and chests) goes by requests
+  `game.net`; a chest in a request is named by the thing's cell (`Placed.at`) — [network.md](network.md).
+  They read the copy of the workshop `src/client/net/remote_workshop.gd` (the queue and pause from the event
+  `shop`, the knowledge from `knowledge`; between events the copy counts the first work's time itself so that
+  the strip goes, but does not finish the work) and the copy of things `remote_placed.gd` (chests from the
+  event `chest`); the player's workshop itself runs on the server (`PlayerLink`), the things — in its session.
 
-**Данные.** Рецепты — вид `recipes` в бандлах инструментов, материалов и растений: `makes`, `count`,
-`also` (побочные продукты: `item`, `count`, `chance`), `needs` (тратится, когда работа встаёт в очередь),
-`keeps` (нужно в сумке, пока идёт работа, не тратится), `at` (станок), `tools` (классы инструментов, по
-одному в сумке), `wear` (сколько ударов снимает изделие с инструмента каждого класса), `process` (`craft`,
-`refine`, `smelt`, `cook` — для отчётов), `time`; поля и примеры — раздел 6
-[BUNDLE_SYSTEM.md](../specifications/BUNDLE_SYSTEM.md). Станок ищется по роли (`Items.with_prop`),
-топливо костра — по `fuel` (`Items.fuel_in`, сколько горит — `Items.fuel_time`); модели — `models/<model>.png`. Износ и починка включены по
-умолчанию (`Rules.tool_wear`, переключатель «Износ инструментов» на «Тестировании» выключает; прочности
-инструментов и бережность навыка — `docs/balance/GAME_BALANCE_DESIGN.md`).
+**Data.** The recipes are the kind `recipes` in the bundles of tools, materials and plants: `makes`, `count`,
+`also` (by-products: `item`, `count`, `chance`), `needs` (spent when the work gets into the queue), `keeps`
+(needed in the bag while the work goes, not spent), `at` (the station), `tools` (classes of tools, one each in
+the bag), `wear` (how many blows the product takes off the tool of each class), `process` (`craft`, `refine`,
+`smelt`, `cook` — for reports), `time`; the fields and examples — section 6 of
+[BUNDLE_SYSTEM.md](../specifications/BUNDLE_SYSTEM.md). A station is looked up by role (`Items.with_prop`), the
+campfire's fuel — by `fuel` (`Items.fuel_in`, how long it burns — `Items.fuel_time`); the models —
+`models/<model>.png`. Wear and repair are on by default (`Rules.tool_wear`, the switch «Tool wear» on
+«Testing» turns it off; the tools' durabilities and the skill's care — `docs/balance/GAME_BALANCE_DESIGN.md`).
 
-**Станки флагами.** `prop` — открытый класс вещи (модель, твёрдые части), а что она делает — флаги
-предмета: `storage` (хранит вещи, сундук: 16 мест, большой сундук: 40; такая вещь не станок), `fire` (горит: тушится,
-разжигается топливом, обжигает того, кто коснулся поленьев (`Placed.FLAMES_HALF` — те же полклетки от середины, что `FIRE_BOXES`, плюс ширина тела) или упёрся в них шагом (`Body.bumped`): `Vitals.BURN`, отброс `Character.BURN_KNOCK`; на камнях вокруг можно греться; твёрды только поленья в середине, клетка на клетку, `Placed.FIRE_BOXES`, кольцо камней проходимо; огонь со своей моделью — очаг, `Placed.is_hearth`: камин 2×1 бандла `tools/fireplace` твёрд по модели, не обжигает, ставится холодным (`fuel_start` 0), потушенный забирается в сумку, пламя рисует `Effects.add_campfire(…, hearth)` в середине его клеток, у него готовят то же, что у костра (`serves`)), `repairs` (у неё чинят инструменты: верстак), `serves` (заменяет названные
-станки: их рецепты и починка), `place_tool` (ставится, только если в сумке инструмент этого класса).
-`Placed` и `Workshop` спрашивают флаги; новый станок — одни данные: предмет, модель, иконка, рецепты.
+**Stations by flags.** `prop` is an open class of a thing (the model, the solid parts), and what it does is
+said by the item's flags: `storage` (keeps things, a chest: 16 places, a big chest: 40; such a thing is not a
+station), `fire` (burns: is put out, lit with fuel, burns whoever touched the logs (`Placed.FLAMES_HALF` — the
+same half-cell from the middle as `FIRE_BOXES`, plus the body's width) or bumped into them by a step
+(`Body.bumped`): `Vitals.BURN`, the knock `Character.BURN_KNOCK`; one can warm up on the stones around; only
+the logs in the middle are solid, cell by cell, `Placed.FIRE_BOXES`, the ring of stones is passable; a fire
+with a model of its own is a hearth, `Placed.is_hearth`: the 2×1 fireplace of the bundle `tools/fireplace` is
+solid by its model, does not burn, is placed cold (`fuel_start` 0), an extinguished one is taken into the bag,
+the flame is drawn by `Effects.add_campfire(…, hearth)` in the middle of its cells, one cooks at it what one
+cooks at a campfire (`serves`)), `repairs` (tools are repaired at it: a workbench), `serves` (replaces the
+named stations: their recipes and repair), `place_tool` (placed only if the bag has a tool of this class).
+`Placed` and `Workshop` ask the flags; a new station is only data: an item, a model, an icon, recipes.
 
-**Размер и поворот.** Вещь занимает квадрат клеток по срезу своей модели (`Placed.sizes`: срез 16 вокселей — 2×2, 8 — одна клетка) и ставится лицом к игроку (`turn`: 0 — лицом на юг, 1 — на запад, 2 — на север, 3 — на восток; хранится в сохранении и уходит копиям); твёрдые и занятые только клетки, где есть её воксели (`Placed.cells_of`), модель и коробки поворачиваются вместе (`Placed.turned`, `Props._model`). Лестница — предмет с `steps`: её твёрдые части — коробки по четвертям клетки (`WorldData.blockers` хранит для клетки массив), тело шагает по ступеням в полклетки без прыжка; ставится и над пустотой, касание забирает её, станком она не считается. Дверь — предмет с `door`: створка закрыта вдоль северного края своей клетки, касание (`Protocol.PROP_OPEN`, `Placed.swing`, право участка «Открывать двери») поворачивает её на петле в северо-западном углу к западному краю (`Placed.open_voxels`, так она нарисована); открытая дверь не твёрдая нигде (`opened_boxes` пусты: откинутая створка заняла бы четверть проёма, в который тело едва проходит, и встала бы в того, кто открывает), в её проёме ничего не ставится (`Placed._in_open_door`), на теле в проёме она не закрывается; копии узнают из `PROP_OPENED`, состояние `open` в сохранении. Дверь шириной в две клетки (2×2, 2×3) — двустворчатая: западная створка открывается к западному краю, восточная на петле в северо-восточном углу к восточному. Окно — предмет с `window`: рама со стеклом, твёрдое, касание забирает (`Placed.is_part`), свет солнца, луны и огней проходит сквозь него (`Placed.lets_light`), а сквозь закрытую дверь — нет; окна 1×1, 1×2, 2×1, 2×2, 3×2 (ширина × высота). Окна 1×1, 1×2, 2×1, 2×2, 3×2; двери 1×2, 2×2, 2×3 и ворота 3×3 (две створки по полторы клетки). **Забор** (этап 1, пункт 5; бандл `tools/fence`) — предмет с `fence`: столбик посередине клетки, жерди к каждой соседней клетке своего уровня, где стоит забор, калитка или ворота (`Placed.joins`, `join` — биты сторон `Placed.SIDES`; одинокое звено — жерди поперёк своего лица; соседи пересобираются, когда звено ставят или забирают, сигнал `joined`, `Props` рисует столбик и повёрнутую северную жердь модели к каждой стороне); твёрд до `Placed.FENCE_TOP` (2 клетки — выше прыжка), так что тело не проходит и не перепрыгивает, а звери не заходят (`Wildlife._fenced`: вещь выше полутора клеток — стена для зверя, сундук по-прежнему проходим); касанием забирается в режиме строительства (`is_part`), строится там же чертежом линией или квадратом (`Plans.is_fence`). Калитка (1) и ворота (2) — двери с `fence`: створка из жердей посередине клетки, той же высоты твёрдости, открытая откидывается наружу на юг на петле у своего края (`Placed.swung_voxels`); касание калиткой по звену забора в режиме строительства ставит её на его место, звенья уходят в сумку (`Placed._swappable`). **Люк** (`tools/hatch`, 1×1 и 2×2) — дверь с `hatch`: крышка у верха своей клетки, закрытый твёрд как пол; ставится в пол или потолок из построенных блоков (касание блока вынимает его, `rest_of` → `IN_FLOOR`: рядом твёрдая клетка), открытый поднимает крышку на петле у северного края в клетку над собой. **Приставная лестница** (`tools/ladder`) — предмет с `ladder`: звено на клетку у задней стороны своей клетки, не твёрдое — его клетка в `WorldData.ladders` (клетка → поворот); ставится на землю или на звено под собой (`ON_LADDER`), касание лестницы лестницей в режиме строительства надставляет её сверху тем же поворотом; лазание — `Body._climb` ([character.md](character.md)). Вещь выше клетки (дверь) ставится, только если над ней воздух. Вещь, что занимает лишь ряд своего квадрата (дверь или окно шире клетки, камин), ставится в клетки прямо перед игроком (`_spot_in_front` целится в середину её клеток), и касаются её там же: `Placed.center` — середина занятых клеток (`Placed.middles` по повороту), а не квадрата.
+**Size and turn.** A thing occupies a square of cells by the slice of its model (`Placed.sizes`: a slice of
+16 voxels — 2×2, 8 — one cell) and is placed facing the player (`turn`: 0 — facing south, 1 — west, 2 —
+north, 3 — east; stored in the save and goes to the copies); solid and occupied are only the cells where its
+voxels are (`Placed.cells_of`), the model and boxes turn together (`Placed.turned`, `Props._model`). A ladder
+is an item with `steps`: its solid parts are boxes by quarters of a cell (`WorldData.blockers` stores an array
+for a cell), the body steps up the half-cell steps with no jump; it is placed over a void too, a tap takes it
+back, it is not counted a station. A door is an item with `door`: the leaf is closed along the north edge of
+its cell, a tap (`Protocol.PROP_OPEN`, `Placed.swing`, the plot's right «Open doors») turns it on a hinge in
+the north-west corner to the west edge (`Placed.open_voxels`, as it is drawn); an open door is solid nowhere
+(`opened_boxes` are empty: a thrown-back leaf would occupy a quarter of the opening that a body barely passes
+and would stand into the one who opens), nothing is placed in its opening (`Placed._in_open_door`), with a
+body in the opening it does not close; the copies learn from `PROP_OPENED`, the state `open` in the save. A
+door two cells wide (2×2, 2×3) is double-leaf: the west leaf opens to the west edge, the east one on a hinge
+in the north-east corner to the east. A window is an item with `window`: a frame with glass, solid, a tap
+takes it (`Placed.is_part`), the light of the sun, moon and fires passes through it (`Placed.lets_light`), and
+through a closed door — not; windows 1×1, 1×2, 2×1, 2×2, 3×2 (width × height); doors 1×2, 2×2, 2×3 and gates
+3×3 (two leaves of a cell and a half each). **A fence** (stage 1, item 5; the bundle `tools/fence`) is an item
+with `fence`: a post in the middle of the cell, rails to each neighbouring cell of its level where there is a
+fence, a wicket or a gate (`Placed.joins`, `join` — the bits of the sides `Placed.SIDES`; a lone link — rails
+across its face; the neighbours are rebuilt when a link is placed or taken, the signal `joined`, `Props`
+draws the post and the model's north rail turned to each side); solid up to `Placed.FENCE_TOP` (2 cells —
+above a jump), so a body neither passes nor jumps over, and beasts do not come in (`Wildlife._fenced`: a
+thing higher than a cell and a half is a wall for a beast, a chest is still passable); a tap takes it in build
+mode (`is_part`), it is built there by a blueprint, a line or a square (`Plans.is_fence`). A wicket (1) and a
+gate (2) are doors with `fence`: a leaf of rails in the middle of the cell, of the same height of solidity,
+an open one swings out to the south on a hinge at its edge (`Placed.swung_voxels`); a tap with a wicket on a
+fence link in build mode puts it in its place, the links go into the bag (`Placed._swappable`). **A hatch**
+(`tools/hatch`, 1×1 and 2×2) is a door with `hatch`: the lid at the top of its cell, a closed one is solid as
+a floor; it is placed into a floor or a ceiling of built blocks (a tap on a block takes it out, `rest_of` →
+`IN_FLOOR`: a solid cell next to it), an open one raises the lid on a hinge at the north edge into the cell
+above it. **A leaning ladder** (`tools/ladder`) is an item with `ladder`: a link per cell at the back side of
+its cell, not solid — its cell is in `WorldData.ladders` (cell → turn); it is placed on the ground or on the
+link under it (`ON_LADDER`), a tap on a ladder with a ladder in build mode extends it from above with the same
+turn; climbing — `Body._climb` ([character.md](character.md)). A thing higher than a cell (a door) is placed
+only if there is air above it. A thing that occupies only a row of its square (a door or a window wider than
+a cell, a fireplace) is placed into the cells right before the player (`_spot_in_front` aims at the middle of
+its cells), and is tapped there too: `Placed.center` — the middle of the occupied cells (`Placed.middles` by
+the turn), not of the square.
 
-**Мебель** (решение 163, 7А; бандл `tools/furniture`) — вещи с `furniture`: ставятся лицом к игроку, станком не считаются (`Items.is_station`). Стол и половик — на 2×2 клетки, табурет, шкаф и бочка — на одну (шкаф в две высоты), широкий шкаф — на две клетки в ширину и две в высоту (48 мест), кровать — постель на 2×2 (`bedding` 2.5). В инвентаре разделитель над ячейками того, что хранит, рисует схему по его `prop`, если `UiStyle.ICONS` её знает (шкаф, широкий шкаф, бочка), иначе сундук. Касание забирает то, что ничего не хранит (`Placed.is_part`). `seat`: стоящий без движения на вещи или рядом (`Placed.SEAT_REACH`) получает выносливость в `seat` раз быстрее (`Placed.seat_near` → `Vitals.rest_rate`, его ставит `Character.update`). Шкаф и бочка хранят (`storage`); `keeps` — во сколько медленнее портится еда внутри (`Placed.spoil`).
+**Furniture** (decision 163, 7А; the bundle `tools/furniture`) — things with `furniture`: placed facing the
+player, not counted stations (`Items.is_station`). A table and a rug — on 2×2 cells, a stool, a cupboard and
+a barrel — on one (the cupboard two high), a wide cupboard — on two cells in width and two in height (48
+places), a bed — bedding on 2×2 (`bedding` 2.5). In the inventory the divider above the cells of what it
+keeps draws a scheme by its `prop` if `UiStyle.ICONS` knows it (a cupboard, a wide cupboard, a barrel),
+otherwise a chest. A tap takes what keeps nothing (`Placed.is_part`). `seat`: one standing still on the thing
+or near it (`Placed.SEAT_REACH`) gets stamina `seat` times faster (`Placed.seat_near` → `Vitals.rest_rate`,
+set by `Character.update`). A cupboard and a barrel keep (`storage`); `keeps` — how many times slower food
+spoils inside (`Placed.spoil`).
 
-**Ограничения.** Твёрдые части вещи `Placed.read_footprints` читает из её воксельной модели (PNG бандла)
-при загрузке модов, без клиента; вещь без модели твёрдая как ящик (`CRATE_BOX`).
+**Limits.** The solid parts of a thing `Placed.read_footprints` reads from its voxel model (the bundle's PNG)
+at loading the mods, without the client; a thing without a model is solid as a crate (`CRATE_BOX`).
 
-**Тесты.** `tests/unit/content_test.gd` (`crafting`: очередь и номера работ), `tests/unit/actions_test.gd`
-(`placed`, `stairs_placed`, `furniture` — мебель, сиденье и хранение, `openings` — окна, двери 2×2 и 2×3, и `tests/unit/fences_test.gd` — забор, калитка и ворота, люк, лестница;
-камин, `station_flags` — станок другого класса, который заменяет верстак и ставится с ножом, ящик на 4
-места, починка по флагу; `recipe_fields` — форма в сумке не тратится и держит работу, нож изнашивается за
-изделие и ломается, побочное по шансу от номера работы),
-`tests/unit/character_test.gd` (`wear`), `tests/unit/quality_test.gd` (стопки, кучи, сделанное, прочность,
-урожай, старые сохранения), `tests/progress_test.gd` (с пустой сумкой: собирает, ставит
-станки и делает каждый рецепт), `tests/unit/graph_test.gd` и `tools/validate.gd` (граф: каждый рецепт
-достижим со старта с инструментами добычи, без замкнутых кругов). Что из чего и на каком станке —
-`docs/generated/content-graph.md`, все рецепты по процессам — `content-recipes.md`.
+**Tests.** `tests/unit/content_test.gd` (`crafting`: the queue and the works' numbers),
+`tests/unit/actions_test.gd` (`placed`, `stairs_placed`, `furniture` — furniture, a seat and keeping,
+`openings` — windows, doors 2×2 and 2×3, and `tests/unit/fences_test.gd` — a fence, a wicket and gates, a
+hatch, a ladder; a fireplace, `station_flags` — a station of another class that replaces a workbench and is
+placed with a knife, a crate of 4 places, repair by a flag; `recipe_fields` — a mould in the bag is not spent
+and holds the work, a knife wears per product and breaks, a by-product by chance from the work's number),
+`tests/unit/character_test.gd` (`wear`), `tests/unit/quality_test.gd` (stacks, heaps, what is made,
+durability, the harvest, old saves), `tests/progress_test.gd` (with an empty bag: gathers, places stations and
+makes every recipe), `tests/unit/graph_test.gd` and `tools/validate.gd` (the graph: every recipe is reachable
+from the start with the gathering tools, with no closed circles). What comes of what and at which station —
+`docs/generated/content-graph.md`, all recipes by processes — `content-recipes.md`.
 
-**Подробнее.** `plan/design/crafting.md`, `plan/design/first-hours.md`, README мода `content/tools/`.
+**In more detail.** `plan/design/crafting.md`, `plan/design/first-hours.md`, the mod's README
+`content/tools/`.

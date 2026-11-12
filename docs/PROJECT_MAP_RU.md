@@ -65,7 +65,7 @@ docs/                    эта документация (audit/ — отчёт�
 | Новая система | новый модуль-скрипт; Main создаёт его и передаёт себя как `game`; строка в [SYSTEMS.md](SYSTEMS_RU.md) |
 | Числа и записи контента | YAML мода и схема в `content_schema.gd`, не константы кода ([DATA_MODEL.md](DATA_MODEL_RU.md)) |
 | Новое существо, растение, инструмент, биом | папка-бандл в своём моде (`content/animals/<имя>/` …), см. README мода |
-| 3D-шейдер | `shaders/`, с `#include "res://shaders/common.gdshaderinc"` ([systems/rendering.md](systems/rendering.md)) |
+| 3D-шейдер | `shaders/`, с `#include "res://shaders/common.gdshaderinc"` ([systems/rendering.md](systems/rendering_RU.md)) |
 | Тест правила | `tests/unit/<тема>_test.gd` и имя темы в `FILES` в `tests/run_tests.gd`; генеративный — `tests/unit/properties_test.gd` ([testing/TESTING_GUIDE.md](testing/TESTING_GUIDE_RU.md)) |
 | Инструмент разработки | `tools/` (рисовалки — `tools/art/`, звук — `tools/sound/`) |
 | Окно или элемент интерфейса | из частей кита `src/client/ui/kit/` ([systems/ui.md](systems/ui.md), «UI-кит»); новая общая часть — в кит и в «Витрину интерфейса» |
