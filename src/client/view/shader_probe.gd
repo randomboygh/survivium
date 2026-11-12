@@ -11,7 +11,7 @@ const FILE := "user://shader_probe.cfg"
 ## Frames a step is shown: the first draw compiles its shaders.
 const FRAMES := 3
 ## [name, mesh ("box" or "multi"), material ("unshaded", "standard", a shader's path or
-## "minimal" / "stencil" code), lights ("none", "sun", "omni" = sun and an omni light,
+## "minimal" / "stencil" / "include" / "world_coords" code), lights ("none", "sun", "omni" = sun and an omni light,
 ## "shadow" = the sun's shadow, "shadow_omni" = both; "sun" = the sun alone), what to cut
 ## from the shader's code (a list of: "stencil"; "light" = no light(), "plain_light" = a
 ## plain one, "fragment" / "vertex" = that function's body left plain)].
@@ -71,8 +71,22 @@ const STEPS := [
 	["grass, sun alone, no stencil", "multi", "res://shaders/grass.gdshader", "sun", "stencil"],
 	["sprite, sun alone", "box", "res://shaders/sprite.gdshader", "sun", ""],
 	["water, sun alone", "box", "res://shaders/water.gdshader", "sun", ""],
+	# Round 3 (2026-11-13): the world under the sun alone crashed with any one function
+	# made plain, and every shader of ours under the sun's shadow, the bare ones not:
+	# two functions plain, all three, and the bare shader with our include or world coords.
+	["world, sun alone, all plain", "box", "res://shaders/world.gdshader", "sun", "stencil,light,fragment,vertex"],
+	["world, sun alone, plain fragment, no light()", "box", "res://shaders/world.gdshader", "sun", "stencil,light,fragment"],
+	["world, sun alone, plain vertex, no light()", "box", "res://shaders/world.gdshader", "sun", "stencil,light,vertex"],
+	["world, sun alone, plain vertex and fragment", "box", "res://shaders/world.gdshader", "sun", "stencil,fragment,vertex"],
+	["include, sun alone", "box", "include", "sun", ""],
+	["include, sun shadow", "box", "include", "shadow", ""],
+	["world coords, sun shadow", "box", "world_coords", "shadow", ""],
+	["world, sun shadow, all plain", "box", "res://shaders/world.gdshader", "shadow", "stencil,light,fragment,vertex"],
+	["sprite, sun shadow, all plain", "box", "res://shaders/sprite.gdshader", "shadow", "stencil,light,fragment,vertex"],
 ]
 const MINIMAL := "shader_type spatial;\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
+const INCLUDE := "shader_type spatial;\n#include \"res://shaders/common.gdshaderinc\"\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
+const WORLD_COORDS := "shader_type spatial;\nrender_mode world_vertex_coords, cull_back;\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
 const STENCIL := "shader_type spatial;\nstencil_mode write, compare_always, 1;\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
 
 ## Called after each step, and when every step was tried.
@@ -196,6 +210,10 @@ static func _material(what: String, cut: String) -> Material:
 		shader.code = MINIMAL
 	elif what == "stencil":
 		shader.code = STENCIL
+	elif what == "include":
+		shader.code = INCLUDE
+	elif what == "world_coords":
+		shader.code = WORLD_COORDS
 	else:
 		var code: String = (load(what) as Shader).code
 		if cut == "stencil":
