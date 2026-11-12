@@ -68,7 +68,7 @@ docs/                    эта документация (audit/ — отчёт�
 | 3D-шейдер | `shaders/`, с `#include "res://shaders/common.gdshaderinc"` ([systems/rendering.md](systems/rendering_RU.md)) |
 | Тест правила | `tests/unit/<тема>_test.gd` и имя темы в `FILES` в `tests/run_tests.gd`; генеративный — `tests/unit/properties_test.gd` ([testing/TESTING_GUIDE.md](testing/TESTING_GUIDE_RU.md)) |
 | Инструмент разработки | `tools/` (рисовалки — `tools/art/`, звук — `tools/sound/`) |
-| Окно или элемент интерфейса | из частей кита `src/client/ui/kit/` ([systems/ui.md](systems/ui.md), «UI-кит»); новая общая часть — в кит и в «Витрину интерфейса» |
+| Окно или элемент интерфейса | из частей кита `src/client/ui/kit/` ([systems/ui.md](systems/ui_RU.md), «UI-кит»); новая общая часть — в кит и в «Витрину интерфейса» |
 | Картинка интерфейса | `assets/ui/` |
 | Документ о коде | `docs/` (система — `docs/systems/`) |
 | Геймдизайн, решение, задача | библиотека: `plan/design/`, журнал в `plan/README.md`, `plan/backlog.md` |

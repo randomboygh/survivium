@@ -1,237 +1,316 @@
-# Интерфейс и настройки
+# Interface and settings
 
-Статус: ACTIVE.
+Status: ACTIVE. A Russian copy: [ui_RU.md](ui_RU.md).
 
-**Назначение.** Пиксельный интерфейс по макетам: главное меню над нарисованным пейзажем и экран загрузки, «Новый мир» и «Загрузить мир»,
-HUD (часы, срез уровней, панель, кнопки), окно сумки с крафтом и сундуками, карты, экран смерти,
-настройки и страница «Тестирование», панель производительности и журнал фризов. Раскладка
-подстраивается под пропорции экрана и переключается между сенсором и мышью по последнему вводу.
+**Purpose.** A pixel interface after the mock-ups: the main menu over a drawn landscape and the loading screen,
+«New world» and «Load world», the HUD (clock, the slice of levels, the panel, buttons), the bag window with
+crafting and chests, maps, the death screen, settings and the «Testing» page, the performance panel and the
+freeze log. The layout adapts to the screen's proportions and switches between touch and mouse by the last
+input.
 
-**UI-кит** (`src/client/ui/kit/`, решение 2026-11-11, вариант Б). Окна собираются из готовых частей, а не рисуются
-заново; все окна игры уже переведены на кит. Новое окно — тоже из кита, а новая общая часть добавляется в кит и в
-«Витрину интерфейса».
-- `kit.gd` — статические части: заголовок окна, подпись, пояснение; кнопка окна (обычная, янтарная `accent_button`),
-  квадратная со значком `icon_button`, в рамке панели для экрана игры `framed_button` (кнопки HUD, стрелки ленты),
-  переключатель `check`; поле ввода `field` (каретка и переключение вкладки в браузере — `TextField.fit`); столбец, ряд,
-  отступ; список с прокруткой `scroll` (и пальцем, `DragScroll`, с отступами как в настройках); вид больших кнопок
-  экрана `octagon_look`, полупрозрачные `see_through`, образец цвета `swatch`. Размеры: `BUTTON_H` 30, `FIELD_H` 26, `SQUARE` 32.
-- `window.gd` — окно поверх тени экрана: `build(заголовок)` даёт панель и столбец `box`, `show_fitted()` раскладывает
-  при каждом изменении экрана; панель по центру, а выше экрана (поднята клавиатура) — у верха. Окно задаёт
-  `layout(screen)` (высоты списков) и `back()` (то же делает Escape). Так сделаны «Новый мир», «Загрузить мир»,
-  «Присоединиться», «Создать сервер», табличка и витрина.
-- `two_tap.gd` — кнопки в два касания: первое красит красным, второе делает; с `wait` краснота гаснет сама; `paint` —
-  свой вид ожидания (палитры строительства и земледелия светят как вкладки, «Остановить сервер» меняет надпись).
-- `choice_rows.gd` — строки «имя ‹ значение ›»: значения, чтение и запись, по кругу или до краёв (`stop`), сразу к краям
-  (`direct`), пропуск значения, «нет» (`other`), неактивные (`works`), кнопка «открыть»; фокус клавишами: вверх и вниз
-  выбирают строку, влево и вправо листают. Настройки, «Тестирование», «Новый мир» и его моды, «Создать сервер».
-- `slot_strip.gd` — лента больших ячеек между стрелками: хотбар (руки слева, вне ленты), палитры строительства и
-  земледелия; владелец кладёт ячейки в `cells` и говорит, сколько вещей и ячеек (`set_counts`), лента держит первую
-  показанную (`first`), стрелки и протяжку пальцем по ячейке и шлёт `scrolled`. `fitting` — сколько ячеек влезет.
-- Колесо жестов — круглое меню своего вида, его кнопки остаются своими.
+**The UI kit** (`src/client/ui/kit/`, decision 2026-11-11, option Б). Windows are assembled from ready parts,
+not drawn anew; all the game's windows are already moved to the kit. A new window is made from the kit too,
+and a new shared part is added to the kit and to the «Interface gallery».
+- `kit.gd` — static parts: a window title, a caption, an explanation; a window button (plain, amber
+  `accent_button`), a square one with an icon `icon_button`, one in the panel frame for the game screen
+  `framed_button` (the HUD buttons, the strip's arrows), the switch `check`; the input field `field` (the caret
+  and tab switching in the browser — `TextField.fit`); column, row, inset; a scrolled list `scroll` (also by
+  finger, `DragScroll`, with insets as in the settings); the look of the screen's big buttons `octagon_look`,
+  semi-transparent ones `see_through`, a colour sample `swatch`. Sizes: `BUTTON_H` 30, `FIELD_H` 26, `SQUARE`
+  32.
+- `window.gd` — a window over the screen's shadow: `build(title)` gives the panel and the column `box`,
+  `show_fitted()` lays out at every change of the screen; the panel is centred, and taller than the screen (the
+  keyboard is up) — at the top. A window sets `layout(screen)` (the heights of lists) and `back()` (what Escape
+  does too). «New world», «Load world», «Join», «Create a server», the sign and the gallery are made so.
+- `two_tap.gd` — two-touch buttons: the first paints red, the second does; with `wait` the redness fades by
+  itself; `paint` — its own look of waiting (the build and farm palettes light like tabs, «Stop the server»
+  changes its label).
+- `choice_rows.gd` — rows «name ‹ value ›»: values, reading and writing, in a circle or to the edges (`stop`),
+  straight to the edges (`direct`), skipping a value, «none» (`other`), inactive (`works`), an «open» button;
+  focus by keys: up and down pick a row, left and right turn the values. Settings, «Testing», «New world» and
+  its mods, «Create a server».
+- `slot_strip.gd` — a strip of big cells between arrows: the hotbar (hands on the left, outside the strip), the
+  build and farm palettes; the owner puts cells in `cells` and says how many things and cells there are
+  (`set_counts`), the strip holds the first shown (`first`), arrows and a finger drag over a cell, and sends
+  `scrolled`. `fitting` — how many cells fit.
+- The gesture wheel is a round menu of its own kind, its buttons stay its own.
 
-**Файлы** (`src/client/ui/`, кроме отмеченных)
-- Экраны: `main_menu.gd` (части по темам, решение 168: `menu_backdrop.gd` — пейзаж, небо, воробей и взрыв перьев ← `menu_loading.gd` — экран загрузки ← `menu_pages.gd` — страницы, кнопки, экраны поверх меню, раскладка ← `main_menu.gd` — сборка, кадр, клавиши; первый экран над пейзажем в цветах времени суток по часам устройства — солнце
-  днём, луна и звёзды ночью; мир за меню не строится: `Main.begin_world` запускает загрузку, только когда
-  игрок выбрал мир — «Играть/Продолжить», мир из «Миров» или «Новый мир»; другой мир — перезапуск сцены,
-  которая сразу открывает экран загрузки. Экран загрузки вместо меню: карта вокруг старта с зерном, под ней
-  совет (высота по самому длинному, текст по центру), внизу полоса в две строки — что делается, секунды и
-  проценты — и крестик отмены: `Main.cancel_loading` перезапускает сцену без мира, меню открывается на
-  странице, откуда пришли (`MainMenu.back_to`). Полоса идёт ровно: части загрузки (шаги `start_world`,
-  ближние чанки, прогрев шейдеров, первые кадры) занимают долю, которую заняли по времени в прошлый раз
-  (`StartTimes.part_shares`, `user://load_parts.cfg`). Пока идёт прогрев шейдеров, мир не рисуется,
-  а экран загрузки не уходит, пока прогрев не кончится и не пройдут спокойные первые кадры (`MainMenu._settle`).
-  Логотип стоит на своей высоте экрана (`TITLE_AT`), меню под ним; страница, которая не помещается (ландшафт, крупный интерфейс), встаёт рядом с логотипом, если хватает ширины, или логотип поднимается к верху, а кнопки прокручиваются в панели (`MenuPages._fit`); стая птиц летит с одной скоростью на любом экране (`FLOCK_SPEED`); «Играть/Продолжить» в две строки — зерно,
-  вид мира и день, как в «Загрузить мир». Пасхалка: 10 касаний подряд по воробью на логотипе — взрыв перьев, вспышка, кнопки «Тестирование» (значок колбы и строка меню паузы, `Settings.testing_unlocked`, статическая: держится при переходе в другой мир, на сервер и при создании сервера; до этого их нет, и не сохраняется: после перезапуска игры их снова нет),
-  дрожь логотипа и разлёт перьев, которые потом, качаясь и поворачиваясь, опускаются вниз среди пуха (`MainMenu._explode`);
-  каждое касание — лёгкая вибрация, взрыв — сильная (по настройке «Вибрация»); через 12 с воробей прилетает обратно. В этом режиме разработчика под логотипом мелко написан номер билда, по правому краю (`MainMenu.version_text`, из `build_info.json`; «dev» без него; снимок `ui-main-menu-dev`). Страницы в одной панели:
-  «Продолжить» (только поверх идущего мира — из паузы или с экрана смерти: закрывает меню, подсвечена первой),
-  «Одиночная игра», «Мультиплеер», «Редактор», «Что нового» (список изменений сборки, `MainMenu._open_changes`), «Настройки», «Выход» → «Одиночная игра» (Играть/Продолжить,
-  Новый мир, Загрузить мир, Назад) и «Мультиплеер» (Присоединиться, Создать сервер — только ПК, на телефоне касание
-  объясняет; на сервере первыми «Вернуться на сервер», «Отключиться»; пока работает свой сервер, «Одиночная
-  игра», «Присоединиться» и «Отключиться» закрыты: другие бандлы загрузились бы под сервером); `main.restart()` перезагружает
-  сцену; мир сервера, к которому присоединились, грузится сразу), `join_screen.gd` («Присоединиться»: адрес, имя, пароль, недавние серверы из
-  `src/client/net/server_list.gd`; поля друг под другом — помещается на телефоне стоя, при клавиатуре
-  панель уходит наверх; ссылка `?server=` открывает его с адресом, неудачный вход — снова с причиной),
-  `host_screen.gd` («Создать сервер» на ПК, две вкладки `TabRow.tabs`: «Создание» — мир из сохранённых, название,
-  пароль, «Доступ из интернета» (С7, туннель cloudflared); «Настройки» — всё остальное, что берёт сервер (`Config` и его
-  `rules`): порт, игроков, как часто сохранять, длина суток, «Погода с улицы» (`Config.real_weather`), «Звери нападают»,
-  «Износ инструментов», PvP, урон в бою, щит новичка, сколько держит бой, земля (земли сначала, за уровень, дальность,
-  уровней, когда брошена, шаг и вид упадка), «По умолчанию» (два касания); значения из `user://server.cfg`
-  (`LocalHost.server_settings`), значение файла не из списка встаёт в список; «Запустить сервер» под обеими вкладками → `Main.host_server`; пока работает — порт и игроки, адреса домашней сети,
-  вкладки «Сервер» и «Доступ»; «Сервер»: «Скопировать адрес», «Из интернета:» (адрес туннеля, «ещё запускается…» или почему нет) и «Скопировать ссылку», игроки с «Выгнать» и «В бан» (два касания), журнал и поле команд; «Доступ»: «Только по списку», список с «Убрать» и полем «Добавить», заблокированные с «Разбанить» и полем «Заблокировать» (те же команды `whitelist`, `ban`, `unban`, `Server.access`); под обеими «Играть», «Остановить сервер» (два касания), «Назад»;
-  то же окно — пункт «Сервер» в меню паузы; выше экрана — прокручивается, полоса не закрывает строки, `UiStyle.bar_room`), `world_setup.gd` («Новый мир»: зерно, вид мира, настройки генератора с картой, страница
-  «Моды»: под выпавшим бандлом — вся цепочка причины, `Mods.why`), `world_list.gd` («Загрузить мир»; у мира квадратная кнопка-корзина: первое касание красит её красным, второе удаляет, у тестового мира — сбрасывает; у недавних серверов на экране «Присоединиться» такая же, `ServerList.forget`), `death_screen.gd`.
-- Игра: `hud.gd` (главный экран; части по темам, решение 168: `hud_parts.gd` — узлы и состояние, мелкие детали ← `hud_messages.gd` — строка загрузки, сообщения, подсказка ← `hud_layout.gd` — раскладка по экрану, панель предметов, руки ← `hud_menus.gd` — сумка, статистика, меню паузы, земля и команда, настройки ← `hud.gd` — сборка, кадр, ввод), `button_tips.gd` (подсказки кнопок с мышью: `tooltip_text` контрола под курсором через 0,45 с рядом с курсором, той же панелью и в том же масштабе, что подсказка над землёй, поверх всех окон и главного меню; свои подсказки Godot выключены `gui/timers/tooltip_delay_sec` в `project.godot`; на сенсорном экране и у кнопки, чья надпись говорит то же, ничего; подсказка над землёй на ПК — только с «Отладочными подсказками»; колесо мыши над окном или кнопкой не листает панель предметов, `Hud.wheel_taken`), `chat_box.gd` (чат на сервере, С6: последние строки в левом нижнем
-  углу над джойстиком или панелью, гаснут через 12 с, а после отправки своей строки последние снова видны 12 с;
-  в одиночной игре своя строка ставится в чат сразу, без сервера; поле открывают Enter или кнопка чата вверху —
-  она видна только на сервере; пока в поле курсор, клавиши не водят персонажа, `Controls._typing`;
-  строку другого игрока видно и над его головой 6 с, `src/client/view/others.gd`), `gesture_wheel.gd` (круг жестов, решение 183: кнопка с ладонью в верхнем ряду рядом с чатом, клавиша C; в одиночной игре чат и жесты скрыты, пока настройка «Интерфейс» → «Чат и жесты» не «всегда», `Hud.show_social`; восемь круглых кнопок со значком и словом, цифры 1–8, касание мимо или Escape закрывает; затемнён только круг под значками (край растворяется дизерингом на 6 пикселей), мир вокруг виден как есть; у значков нет кнопок под ними, слово под значком светится под курсором; значки на кнопках круга — по целому числу пикселей экрана на пиксель значка при любом (и дробном) масштабе интерфейса; значки жестов — заливка с тёмным контуром в один пиксель со всех сторон; [character.md](character.md)), `sign_window.gd` (окно таблички по касанию, решение 183: поля строк, «Сохранить», «Повернуть», «Закрыть»; пока в поле курсор, клавиши не водят персонажа; подробно — [crafting.md](crafting.md)), `inventory_window.gd` и `craft_panel.gd` (окно инвентаря: персонаж, сумка, сундук, станок,
-  крафт), `person_panel.gd` (персонаж в окне: слоты на своих местах тела — тело, ноги, обувь посередине,
-  головной убор слева вверху, как сумка за спиной справа, руки под ними — плотно, без линий тела;
-  внизу слота сумки — полоска загрузки по весу, как у факела (`HotbarSlot.fill`, `fill_color`: зелёная,
-  янтарная у предела, красная при перегрузе), «+24» в верхнем углу; рядом девять навыков в два столбца
-  отдельной подпанелью: название внутри шкалы из 10 делений (по уровню, только навык: сила инструмента — в чипах
-  предмета, `FactChips.power_hint` объясняет её примером), без заголовка; тонкая линия — путь до следующего
-  уровня; подсказка — что уровень даёт и какой инструмент в руке навык ведёт (`Tools.ROLE_OF`; подробно —
-  [character.md](character.md), «Навыки», модель — `docs/balance/GAME_BALANCE_DESIGN.md`);
-  касание руки — как касание руки на панели (`Hud.tap_hand`: активная рука, затем следующий инструмент), касание
-  слота одежды или сумки снимает надетое или надевает подходящее из сумки, `InventoryWindow._tap_person`;
-  в горизонтали стоит слева от сумки и крафта, в вертикали над сумкой и прячется на вкладке крафта). Вкладки окна —
-  «Инвентарь» и «Крафт», «Земля» (только на размеченной земле, `land_page.gd`) и «Команда» (только на сервере,
-  `team_page.gd`), см. `docs/systems/territory.md`. Все ряды вкладок (окно, настройки, «Тестирование») — одна сдвоенная группа
-  высотой в кнопку окна (`TabRow.tabs`, выбранная янтарная, `light`); новые вкладки делаются так же. Прокручиваемые
-  строки окна отступают от краёв и полосы на `UiStyle.BAR_GAP` (`UiStyle.inset`: настройки, «Тестирование», «Земля»,
-  «Команда»); новые страницы делаются так же, заголовков у вкладок нет. Ячейки сумки видны на 4 целых ряда (`InventoryWindow.ROWS`), меньше, если окно не
-  влезает, остальное прокручивается — тонкой полосой (`UiStyle.SCROLL_BAR`) и протяжкой пальцем или мышью по самим ячейкам (`drag_scroll.gd`; ячейки тогда выбираются
-  при отпускании, `HotbarSlot.on_release`, а протяжка ничего не выбирает); так же прокручиваются рецепты
-  крафта. Сундуки в досягаемости, а за ними сумки и сундуки, лежащие в сумке (`_packed`, открытые `Inventory.open`, иконка — мешок или сундук), — в том же списке под сумкой, каждый своей сеткой после бледной полоски (цвет заголовков экрана смерти) со схематичным
-  сундуком `UiStyle.icon("chest")` (`_chest_line`, отступы `CHEST_GAP`); у сумки или сундука в ячейке — янтарная полоска, насколько он
-  заполнен (`Inventory.fullness`); надетое помечено «Н»; кнопки сундука (забрать, переложить) работают с тем, где выбрана вещь,
-  иначе с ближним. Под ними панель выбранной вещи,
-  одной высоты с выбранной вещью и без: картинка и название (количество — только если больше одной), справа
-  вверху замок первого ряда (включён: сортировка и «всё в сундук» не трогают хотбар; выключен — сортируется и
-  переносится всё, что влезет),
-  сортировка (вручную и «по виду | по весу» вместе), группы с подписями в ряд (`FactChips.item_groups`:
-  вес, еда, сумка, инструмент, заряды оружия, свет, ресурс), затем одна линия кнопок: слева широкая жёлтая
-  кнопка со значком действия (`InventoryWindow.USES`: взять, съесть, поставить, посадить, надеть, перевязать,
-  снять), у света — сдвоенная «взять | поставить» (2/3 жёлтая и 1/3 обычная), справа, если рядом сундук, «в сундук» (у вещи в
-  сундуке — «забрать из сундука»; выбор остаётся на вещи там, куда она ушла), «всё в сундук» и, если в сундуке
-  что-то есть, «забрать всё», гаечный ключ «Починить» у изношенного инструмента (у станка для починки, за материалы),
-  «выбросить | выбросить все» и корзина. Оружие, которому нечем стрелять (`ammo` нет в
-  сумке, `FactChips.unarmed`), бледное в ячейках сумки, хотбара и рук (`HotbarSlot.inactive`), в панели —
-  в группе «Заряды» красное «нет». Рецепт в крафте — так же: группы «Материалы», «Не тратится», «На чём»,
-  «Чем» (инструменты), «Время», «Изделие», «Побочно» в ряд; имя рецепта занимает строку без своей
-  картинки и без подарка «получить» (бесплатные вещи теста), иначе окно крафта шире сумки; затем одна линия: слева жёлтая «сделать» шириной с кнопку действия сумки (`TabRow.WIDE`); если можно сделать больше одной — к ней «MAX», от пяти — и «×5» (тогда «сделать» 2/3 ширины, они по 1/3), справа
-  станки в ряд (руки, ближние, затем дальние бледно — сколько влезет). Сортировка по виду и вкладки идут в
-  порядке `Items.CATEGORIES`: станки, инструменты, свет, снаряжение, материалы, блоки, еда, лечение, растения;
-  так же отсортированы рецепты крафта. Кнопка действия на экране игры называет то, что она сделает сейчас
-  (`Controls.action_name`, раз в `LABEL_TIME` по `WorldActions.front_kind` — тому же выбору, что делает
-  `act_in_front`, без изменений мира): «Попить» у воды с пустой рукой, «Набрать воды» с пустым сосудом, «Собрать»
-  у ягод с факелом в руке, «Копать», когда вокруг всё собрано, «Рубить», «Косить» (траву руками — «Собрать»),
-  «Бить»; для предмета-постройки, еды и лечения — «Ставить», «Сажать», «Поставить», «Съесть», «Перевязать»;
-  если впереди ничего нет — по инструменту в руке («Удить», «Метнуть», «Стрелять»…), иначе «Собрать», и показывает его картинку (руку без предмета); ярлык над
-  хотбаром — в той же рамке, что часы, и той же высоты (`Hud.SLEEP_SIZE`): шкала сумки, деление на ячейку,
-  все деления одной ширины при любой сумке (`Hud.BAG_DIVISION` 6 px, свободные чуть светлее ямки:
-  с рюкзаком их больше и ярлык длиннее, `_fit_bag_meter`), занятые закрашены с лёгким переходом к тёплому к концу (`Hud.bar_shade`), поверх —
-  только вес «35 / 40 кг» (`UiStyle.draw_weight`, красный при перегрузе). Слоты одежды и сумки на персонаже
-  выбираются первым тапом (панель говорит, что там), следующий меняет надетое на следующую вещь для этого
-  места из сумки, после последней снимает (`_next_wear`). Часы: сезон, температура воздуха (`Hud.air`,
-  `Warmth.air` без костров и одежды; строка обновляется 4 раза в секунду, `CLOCK_EVERY`), день, время и
-  кнопка сна «zz», лежащая поверх правого края часов встык с рамкой (`_align_clock`). Ручная сортировка
-  не снимает выбор ячейки и выключается при закрытии окна.
-  Режим строительства (`build_bar.gd`, [interaction.md](interaction.md)): хотбар заменяет палитра
-  всех блоков и вещей сумки в один ряд, сделанная как хотбар без рук (те же ячейки, стрелки, прокрутка
-  пальцем и ширина: до 10 ячеек, в портрете до 6; фильтров пока нет; так же у режима земледелия), над ней панель одним рядом, кнопки размером с
-  обычные: фигура по кругу (линия → плоскость → квадрат → куб) | «выровнять землю»; вид блока по кругу
-  (блок → скос снизу → скос сверху → ступени) | «повернуть»; высота фигуры (1–6, у каждой своя: пол 1, стены 3, куб 5) | толщина стен (1–4, у пола нет);
-  рисовать/стирать (стирание — красная) | «очистить чертежи» (второе касание за 3 с: кнопка краснеет,
-  уведомление); выход (B) отдельно. На узком экране вид блока уходит отдельным рядом над панелью.
-  Руки не показаны, выбранная ячейка — рука в работе; ярлык сумки скрыт (палитра считает блоки);
-  кнопка действия «Строить» («Выровнять» при выравнивании; всегда 88×88, слова переносятся внутри)
-  нажимается один раз и держится нажатой («Стоп»), пока строит (отжимается в тот же кадр, как стройка встала: `Hud.update_state`). В сумке
-  у блоков и всего, что ставится, широкая кнопка — «Строить» (молоток): входит в режим.
-  Уведомления (`Hud.toast`) — список из трёх под состоянием: новое выплывает в конец из прозрачности,
-  поднимаясь, а самое старое (по времени или когда список переполнен) уходит вверх в прозрачность, и
-  список сдвигается за ним (`Hud._scroll_toasts`).
-  `vitals_panel.gd`, `sleep_screen.gd` (затемнение во сне: тап, шаг или прыжок будят, `Protocol.SLEEP`;
-  луна «Лечь спать» — на часах HUD), `body_feedback.gd`, `sound_marks.gd` (метки направления звуков),
-  `vibration.gd`.
-- Карты: `minimap.gd` (карта красится по чанку в регионы по 32 чанка, хранится в сохранении; метки
-  поставленного, мешков и плотов с лодками на воде, кроме того, в котором сидишь, — `set_marks`, из `hud.gd`; сокомандники —
-  `draw_mates` по `Team.mates`, см. [territory.md](territory.md);
-  `shaders/map_ground.gdshader`), `map_view.gd` (на весь экран; щипок двигает карту за серединой пальцев и масштабирует вокруг неё,
-  колесо — вокруг курсора; палец, отпущенный над другой кнопкой, тоже забывается — `_input`), `src/client/game/markers.gd` (маркеры
-  игрока; телепорт со страницы «Тестирование»).
-- Настройки: `src/client/settings.gd` (сохранённые настройки и переключатели «Тестирования»: каждый
-  модуль читает свои значения там), `settings_menu.gd` (страницы строк «название ‹ значение ›»; версия и
-  «Что нового» из `build_info.json`: открывается и из главного меню, «Назад» туда же; изменения
-  строятся по `CHANGES_STEP` при прокрутке).
-- Отладка: `perf_panel.gd` (F3; кнопка-график в верхнем ряду только при настройке «Интерфейс» → «Кнопка статистики», по умолчанию скрыта, решение 186, `Hud.show_stats_button`; панель открывают и F3, и «Тестирование» → «Отладка» → «Статистика»), `freeze_log.gd` и `gl_watch.gd` (`GlWatch.software()` — браузер рисует без видеокарты: свежий контекст WebGL2 с `failIfMajorPerformanceCaveat` отказан или рендерер программный — SwiftShader, WARP, llvmpipe; тогда под кнопками первой страницы меню — как включить графическое ускорение, решение 186, а в «Данных для теста» — строка `Browser draws with`; `StartTimes.slow_code()` — браузер компьютера выполняет код без компиляции (скрипты собирались дольше 10 с: так делает Edge с «Повышением безопасности в Интернете», 27 с вместо 1.3 и мир за 387 с, 2026-11-11), тогда под кнопками — как выключить этот режим; отметка «меню» в «Загрузке» ставится, только пока мир не запрошен, иначе меню, открытое из игры после перезапуска сцены, считалось шагом загрузки; журнал фризов: части игры, движок —
-  всё вне замеренных частей, поэтому каждый узел с заметной работой в `_process` меряет себя `perf.note`:
-  «лучи», «звук», «тени огня», «животные»; генерация мира сервером — часть «мир», `Runner.took_us`,
-  отрисовка, страница браузера и сборка мусора, собранные шейдеры, данные в GPU), `src/client/view/draw_census.gd`;
-  «Данные для теста» (`SettingsMenu.report_text`): сборка, мир, место, время, погода, настройки, устройство,
-  «Загрузка» (`start_times.gd`: в браузере страница, скачивание wasm и pck — из сети или кэша, начало движка;
-  затем графика до строки движка «OpenGL API», которую ловит страница — `svStart` в `head_include`
-  `export_presets.cfg`, компиляция скриптов до static var `main.gd`, данные модов внутри неё — их читает
-  static init `materials.gd`, `Content.read_ms`, `load_ms`, сцена, модули `_ready`, меню, мир от выбора
-  в меню — место, чанки, сетки и первые кадры (прогрев шейдеров и спокойные кадры); всё до меню от открытия страницы), «Прошлые запуски» (последние в
-  `user://starts.txt`);
-  «Сервер» — запросы к правилам через протокол и их байты, время кодирования (`Connection`, [network.md](network.md)).
-  «Витрина интерфейса» (`ui_gallery.gd`, «Тестирование» → «Отладка», грузится только при открытии; окно настроек
-  на это время прячется, чтобы его строки не прокручивались под пальцем): все виды элементов окон на вкладках
-  «Кнопки», «Строки», «Ячейки», «Поля», «Списки», «Вид» — кнопки окна (обычная, янтарная, недоступная, в два
-  касания, зелёная), маленькие и со значком, сдвоенные, вкладки, блок в углу, цвета земли, восьмиугольные кнопки
-  экрана; строки настроек, действия, пояснения, места; ячейки с числом, рукой, клавишей, полоской, качеством,
-  бледная, чипы выбранной вещи, шкала веса, столбец видов вещей; поля ввода; списки с прокруткой; цвета текста,
-  крупный шрифт, рамки и все значки `UiStyle.ICONS`. Всё нажимается, строка под страницей говорит, что нажато;
-  игру витрина не меняет. Новый общий элемент добавляется и сюда. Снимки `ui-gallery-<вкладка>` в `tools/shot/shots.gd`.
-- Общее: `ui_style.gd` (панели, рамки, кнопки, шрифт; `accent(b)` — янтарная кнопка «нажать», `arm` / `succeed` — красная и зелёная, `well()` — общая утопленная рамка текста), `item_icons.gd` (картинки предметов
-  `icons/<icon>.png` 12×12 и значки `assets/ui/`; путь картинки предмета ищется на диске один раз, `ItemIcons._paths`), `hotbar_slot.gd`, `icon_tabs.gd`, `tab_row.gd`,
-  `fact_chips.gd`, `scroll_column.gd` (столбик кнопок: больше шести или чем влезает по высоте рядом с ячейками, `fit_height` — стрелки сверху и снизу и протяжка
-  пальцем, как у хотбара; на нём вкладки видов `icon_tabs.gd`), `drag_scroll.gd` (протяжка по списку
-  ScrollContainer прокручивает его, в том числе начатая на кнопке: как только палец сдвинулся, нажатие кнопок списка
-  отпускается, и отпускание пальца ничего не нажимает; касание ползунка, полосы или поля ввода остаётся им;
-  `DragScroll.attach`: сумка, крафт, «Загрузить мир», «Новый мир», настройки, «Земля», «Команда»). Список рецептов крафта выше четырёх рядов (`CraftPanel.ROWS`) или места
-  окна прокручивается.
+**Files** (`src/client/ui/`, except where noted)
+- Screens: `main_menu.gd` (parts by topic, decision 168: `menu_backdrop.gd` — the landscape, sky, sparrow and
+  the burst of feathers ← `menu_loading.gd` — the loading screen ← `menu_pages.gd` — pages, buttons, screens
+  over the menu, layout ← `main_menu.gd` — assembly, frame, keys; the first screen over a landscape in the
+  colours of the time of day by the device's clock — a sun by day, a moon and stars by night; the world behind
+  the menu is not built: `Main.begin_world` starts loading only when the player has chosen a world —
+  «Play/Continue», a world from «Worlds» or «New world»; another world — a restart of the scene, which at once
+  opens the loading screen. The loading screen in place of the menu: a map around the start with the seed,
+  under it a tip (the height by the longest, the text centred), below a bar in two lines — what is being done,
+  seconds and percent — and a cross to cancel: `Main.cancel_loading` restarts the scene with no world, the menu
+  opens on the page it came from (`MainMenu.back_to`). The bar goes evenly: the parts of loading (the steps of
+  `start_world`, the near chunks, the shader warm-up, the first frames) take the share they took by time last
+  time (`StartTimes.part_shares`, `user://load_parts.cfg`). While shaders warm up, the world is not drawn, and
+  the loading screen does not leave until the warm-up ends and the calm first frames pass
+  (`MainMenu._settle`). The logo stands at its own height of the screen (`TITLE_AT`), the menu under it; a page
+  that does not fit (landscape, a large interface) stands beside the logo if the width allows, or the logo
+  rises to the top and the buttons scroll in the panel (`MenuPages._fit`); a flock of birds flies at one speed
+  on any screen (`FLOCK_SPEED`); «Play/Continue» in two lines — the seed, the kind of world and the day, as in
+  «Load world». An Easter egg: 10 touches in a row on the sparrow on the logo — a burst of feathers, a flash,
+  the «Testing» buttons (a flask icon and a pause-menu line, `Settings.testing_unlocked`, static: it holds on
+  a move to another world, to a server and on creating a server; before that they are not there, and it is not
+  saved: after the game restarts they are gone again), the logo's shudder and a scatter of feathers that then,
+  swaying and turning, sink down among the fluff (`MainMenu._explode`); each touch is a light vibration, the
+  burst a strong one (by the setting «Vibration»); after 12 s the sparrow flies back. In this developer mode
+  the build number is written small under the logo, at the right edge (`MainMenu.version_text`, from
+  `build_info.json`; «dev» without it; the shot `ui-main-menu-dev`). The pages in one panel: «Continue» (only
+  over a running world — from the pause or the death screen: closes the menu, lit first), «Single player»,
+  «Multiplayer», «Editor», «What's new» (the list of the build's changes, `MainMenu._open_changes`),
+  «Settings», «Exit» → «Single player» (Play/Continue, New world, Load world, Back) and «Multiplayer» (Join,
+  Create a server — PC only, on a phone a touch explains; on a server first «Back to the server»,
+  «Disconnect»; while one's own server runs, «Single player», «Join» and «Disconnect» are closed: other
+  bundles would load under the server); `main.restart()` reloads the scene; the world of a server one has
+  joined loads at once), `join_screen.gd` («Join»: address, name, password, recent servers from
+  `src/client/net/server_list.gd`; fields one under another — fits a phone held upright, with the keyboard up
+  the panel goes to the top; the link `?server=` opens it with the address, a failed login — again with the
+  reason), `host_screen.gd` («Create a server» on PC, two tabs `TabRow.tabs`: «Creation» — a world from the
+  saved ones, a name, a password, «Access from the internet» (С7, the cloudflared tunnel); «Settings» —
+  everything else the server takes (`Config` and its `rules`): the port, players, how often to save, the length
+  of a day, «Real weather outside» (`Config.real_weather`), «Animals attack», «Tool wear», PvP, damage in
+  combat, the newcomer's shield, how long combat lasts, land (lands first, per level, reach, levels, when
+  abandoned, the step and kind of decay), «Defaults» (two touches); the values from `user://server.cfg`
+  (`LocalHost.server_settings`), a file value not in the list is put into the list; «Start the server» under
+  both tabs → `Main.host_server`; while it runs — the port and players, the home network's addresses, the tabs
+  «Server» and «Access»; «Server»: «Copy the address», «From the internet:» (the tunnel's address, «still
+  starting…» or why not) and «Copy the link», players with «Kick» and «Ban» (two touches), the log and the
+  command field; «Access»: «Whitelist only», the list with «Remove» and the field «Add», the banned with
+  «Unban» and the field «Ban» (the same commands `whitelist`, `ban`, `unban`, `Server.access`); under both
+  «Play», «Stop the server» (two touches), «Back»; the same window is the «Server» item in the pause menu;
+  taller than the screen — it scrolls, the bar does not cover the rows, `UiStyle.bar_room`), `world_setup.gd`
+  («New world»: seed, kind of world, generator settings with a map, the page «Mods»: under a dropped bundle the
+  whole chain of the reason, `Mods.why`), `world_list.gd` («Load world»; a world has a square trash button:
+  the first touch paints it red, the second deletes, for the test world — resets; recent servers on the «Join»
+  screen have the same, `ServerList.forget`), `death_screen.gd`.
+- The game: `hud.gd` (the main screen; parts by topic, decision 168: `hud_parts.gd` — nodes and state, small
+  details ← `hud_messages.gd` — the loading line, messages, the hint ← `hud_layout.gd` — the layout over the
+  screen, the item panel, hands ← `hud_menus.gd` — the bag, statistics, the pause menu, land and team,
+  settings ← `hud.gd` — assembly, frame, input), `button_tips.gd` (hints of buttons with a mouse: the
+  `tooltip_text` of the control under the cursor after 0.45 s beside the cursor, in the same panel and scale as
+  the hint over the ground, above all windows and the main menu; Godot's own hints are switched off by
+  `gui/timers/tooltip_delay_sec` in `project.godot`; on a touch screen and for a button whose label says the
+  same, nothing; the hint over the ground on PC — only with «Debug hints»; the mouse wheel over a window or
+  button does not scroll the item panel, `Hud.wheel_taken`), `chat_box.gd` (chat on a server, С6: the last
+  lines in the bottom left corner above the joystick or the panel, fade after 12 s, and after one's own line is
+  sent the last ones are visible again for 12 s; in single player one's own line goes into the chat at once,
+  with no server; the field is opened by Enter or the chat button at the top — seen only on a server; while the
+  field has the cursor, keys do not move the character, `Controls._typing`; another player's line is seen over
+  their head too for 6 s, `src/client/view/others.gd`), `gesture_wheel.gd` (the gesture circle, decision 183: a
+  button with a palm in the top row next to the chat, the key C; in single player chat and gestures are hidden
+  until the setting «Interface» → «Chat and gestures» is «always», `Hud.show_social`; eight round buttons with
+  an icon and a word, the digits 1–8, a touch outside or Escape closes; only the circle under the icons is
+  darkened (the edge dissolves by dithering over 6 pixels), the world around is seen as it is; the icons have
+  no buttons under them, the word under an icon lights under the cursor; the icons on the circle's buttons are
+  at a whole number of screen pixels per icon pixel at any (even fractional) interface scale; the gesture
+  icons are a fill with a dark one-pixel outline on all sides; [character.md](character.md)), `sign_window.gd`
+  (the sign's window on a touch, decision 183: line fields, «Save», «Turn», «Close»; while a field has the
+  cursor, keys do not move the character; in detail — [crafting.md](crafting.md)), `inventory_window.gd` and
+  `craft_panel.gd` (the inventory window: character, bag, chest, station, crafting), `person_panel.gd` (the
+  character in the window: slots in their places on the body — body, legs, shoes in the middle, a headdress at
+  the top left, a bag on the back at the right, hands under them — tight, with no body lines; at the bottom of
+  the bag's slot a loading bar by weight, like the torch's (`HotbarSlot.fill`, `fill_color`: green, amber at
+  the limit, red when overloaded), «+24» in the top corner; beside it the nine skills in two columns in a
+  separate subpanel: the name inside a scale of 10 divisions (by level, the skill only: a tool's strength is
+  in the item's chips, `FactChips.power_hint` explains it by an example), with no heading; a thin line is the
+  way to the next level; the hint — what the level gives and which tool in the hand the skill leads
+  (`Tools.ROLE_OF`; in detail — [character.md](character.md), «Skills», the model —
+  `docs/balance/GAME_BALANCE_DESIGN.md`); a touch of a hand is like a touch of a hand on the panel
+  (`Hud.tap_hand`: the active hand, then the next tool), a touch of a clothes or bag slot takes off what is
+  worn or puts on a fitting one from the bag, `InventoryWindow._tap_person`; in landscape it stands to the left
+  of the bag and crafting, in portrait above the bag and hides on the crafting tab). The window's tabs —
+  «Inventory» and «Crafting», «Land» (only on marked land, `land_page.gd`) and «Team» (only on a server,
+  `team_page.gd`), see `docs/systems/territory.md`. All rows of tabs (window, settings, «Testing») are one
+  joined group one window button tall (`TabRow.tabs`, the chosen one amber, `light`); new tabs are made the
+  same way. The scrolled rows of a window keep off the edges and the bar by `UiStyle.BAR_GAP` (`UiStyle.inset`:
+  settings, «Testing», «Land», «Team»); new pages are made the same way, tabs have no headings. The bag's cells
+  show 4 whole rows (`InventoryWindow.ROWS`), fewer if the window does not fit, the rest scrolls — by a thin
+  bar (`UiStyle.SCROLL_BAR`) and by a drag of a finger or mouse over the cells themselves (`drag_scroll.gd`;
+  the cells are then chosen on release, `HotbarSlot.on_release`, and the drag chooses nothing); the crafting
+  recipes scroll the same way. Chests in reach, and after them bags and chests lying in the bag (`_packed`,
+  open ones `Inventory.open`, the icon — a sack or a chest) — in the same list under the bag, each with its own
+  grid after a pale strip (the colour of the death screen's headings) with a schematic chest
+  `UiStyle.icon("chest")` (`_chest_line`, insets `CHEST_GAP`); a bag or chest in a cell has an amber strip of
+  how full it is (`Inventory.fullness`); what is worn is marked «W»; the chest's buttons (take, move) work with
+  the one where a thing is chosen, otherwise with the nearest. Under them the panel of the chosen thing, of one
+  height with a thing chosen and without: a picture and the name (the amount only if more than one), at the
+  top right the lock of the first row (on: sorting and «all into the chest» do not touch the hotbar; off —
+  everything that fits is sorted and moved), sorting (by hand and «by kind | by weight» together), groups with
+  captions in a row (`FactChips.item_groups`: weight, food, bag, tool, weapon charges, light, resource), then
+  one line of buttons: on the left a wide yellow button with an action icon (`InventoryWindow.USES`: take, eat,
+  place, plant, put on, bandage, take off), for a light — a joined «take | place» (2/3 yellow and 1/3 plain), on
+  the right, if a chest is near, «into the chest» (for a thing in the chest — «take from the chest»; the choice
+  stays on the thing where it went), «all into the chest» and, if the chest holds something, «take all», a
+  wrench «Repair» for a worn tool (at a repair station, for materials), «drop | drop all» and a trash can. A
+  weapon with nothing to shoot (`ammo` not in the bag, `FactChips.unarmed`) is pale in the cells of the bag,
+  hotbar and hands (`HotbarSlot.inactive`), in the panel — in the group «Charges» a red «none». A recipe in
+  crafting is the same: the groups «Materials», «Not consumed», «At», «With» (tools), «Time», «Product»,
+  «Byproduct» in a row; the recipe's name takes a line with no picture of its own and no «get» gift (the test's
+  free things), otherwise the crafting window is wider than the bag; then one line: on the left a yellow «make»
+  as wide as the bag's action button (`TabRow.WIDE`); if more than one can be made — «MAX» beside it, from five
+  — and «×5» (then «make» is 2/3 of the width, they 1/3 each), on the right the stations in a row (hands, near
+  ones, then far ones pale — as many as fit). The sorting by kind and the tabs go in the order of
+  `Items.CATEGORIES`: stations, tools, light, gear, materials, blocks, food, healing, plants; the crafting
+  recipes are sorted the same way. The action button on the game screen names what it will do now
+  (`Controls.action_name`, once per `LABEL_TIME` by `WorldActions.front_kind` — the same choice that
+  `act_in_front` makes, with no change of the world): «Drink» at water with an empty hand, «Fill with water»
+  with an empty vessel, «Gather» at berries with a torch in the hand, «Dig» when everything around is
+  gathered, «Chop», «Mow» (grass with hands — «Gather»), «Hit»; for a building item, food and healing — «Place»,
+  «Plant», «Put», «Eat», «Bandage»; if there is nothing in front — by the tool in the hand («Fish», «Throw»,
+  «Shoot»…), otherwise «Gather», and shows its picture (a hand with no item); the label over the hotbar is in
+  the same frame as the clock and of the same height (`Hud.SLEEP_SIZE`): the bag's gauge, a division per cell,
+  all divisions of one width with any bag (`Hud.BAG_DIVISION` 6 px, free ones slightly lighter than the pit:
+  with a backpack there are more and the label is longer, `_fit_bag_meter`), the occupied ones filled with a
+  light shift to warm towards the end (`Hud.bar_shade`), on top — only the weight «35 / 40 kg»
+  (`UiStyle.draw_weight`, red when overloaded). The clothes and bag slots on the character are chosen by the
+  first tap (the panel says what is there), the next changes what is worn for the next thing for that place
+  from the bag, after the last takes it off (`_next_wear`). The clock: the season, the air temperature
+  (`Hud.air`, `Warmth.air` without fires and clothes; the line is updated 4 times a second, `CLOCK_EVERY`), the
+  day, the time and the sleep button «zz» lying over the right edge of the clock flush with the frame
+  (`_align_clock`). Manual sorting does not drop the cell's choice and is switched off when the window closes.
+  Build mode (`build_bar.gd`, [interaction.md](interaction.md)): the hotbar is replaced by a palette of all
+  the bag's blocks and things in one row, made as a hotbar without hands (the same cells, arrows, finger
+  scrolling and width: up to 10 cells, in portrait up to 6; no filters yet; the same for farm mode), above it a
+  panel in one row, buttons the size of ordinary ones: the figure in a circle (line → plane → square → cube) |
+  «level the ground»; the kind of block in a circle (block → slope from below → slope from above → steps) |
+  «turn»; the figure's height (1–6, its own for each: floor 1, walls 3, cube 5) | the walls' thickness (1–4,
+  a floor has none); draw/erase (erasing is red) | «clear blueprints» (a second touch within 3 s: the button
+  turns red, a notification); exit (B) separately. On a narrow screen the kind of block goes in a separate row
+  above the panel. Hands are not shown, the chosen cell is the hand at work; the bag's label is hidden (the
+  palette counts blocks); the action button «Build» («Level» when levelling; always 88×88, words wrap inside)
+  is pressed once and held pressed («Stop») while it builds (released in the same frame building stops:
+  `Hud.update_state`). In the bag, blocks and everything that is placed have a wide button «Build» (a hammer):
+  it enters the mode. Notifications (`Hud.toast`) — a list of three under the state: a new one floats to the
+  end from transparency, rising, and the oldest (by time or when the list overflows) goes up into
+  transparency, and the list shifts after it (`Hud._scroll_toasts`). `vitals_panel.gd`, `sleep_screen.gd`
+  (darkening in sleep: a tap, a step or a jump wakes, `Protocol.SLEEP`; the moon «Go to sleep» — on the HUD's
+  clock), `body_feedback.gd`, `sound_marks.gd` (marks of sounds' directions), `vibration.gd`.
+- Maps: `minimap.gd` (the map is painted a chunk at a time into regions of 32 chunks, kept in the save; marks
+  of what was placed, of sacks and of rafts and boats on water, except the one one sits in — `set_marks`, from
+  `hud.gd`; teammates — `draw_mates` by `Team.mates`, see [territory.md](territory.md);
+  `shaders/map_ground.gdshader`), `map_view.gd` (full screen; a pinch moves the map after the middle of the
+  fingers and scales around it, the wheel — around the cursor; a finger released over another button is
+  forgotten too — `_input`), `src/client/game/markers.gd` (the player's markers; teleport from the «Testing»
+  page).
+- Settings: `src/client/settings.gd` (the saved settings and the switches of «Testing»: each module reads its
+  values there), `settings_menu.gd` (pages of rows «name ‹ value ›»; the version and «What's new» from
+  `build_info.json`: also opened from the main menu, «Back» goes there; the changes are built by
+  `CHANGES_STEP` while scrolling).
+- Debugging: `perf_panel.gd` (F3; the graph button in the top row only with the setting «Interface» →
+  «Statistics button», hidden by default, decision 186, `Hud.show_stats_button`; the panel is opened by F3 and
+  by «Testing» → «Debug» → «Statistics»), `freeze_log.gd` and `gl_watch.gd` (`GlWatch.software()` — the
+  browser draws without a video card: a fresh WebGL2 context with `failIfMajorPerformanceCaveat` is refused or
+  the renderer is software — SwiftShader, WARP, llvmpipe; then under the buttons of the menu's first page — how
+  to switch on graphics acceleration, decision 186, and in «Test data» — the line `Browser draws with`;
+  `StartTimes.slow_code()` — the computer's browser runs code without compiling (scripts were built for more
+  than 10 s: Edge with «Enhanced Security on the Web» does so, 27 s instead of 1.3 and a world in 387 s,
+  2026-11-11), then under the buttons — how to switch this mode off; the «menu» mark in «Loading» is set only
+  while a world is not requested, otherwise a menu opened from the game after the scene restarted counted as a
+  step of loading; the freeze log: the game's parts, the engine — everything outside the measured parts, so
+  every node with noticeable work in `_process` measures itself with `perf.note`: «rays», «sound», «fire
+  shadows», «animals»; world generation by the server is the part «world», `Runner.took_us`, drawing, the
+  browser's page and garbage collection, compiled shaders, data in the GPU), `src/client/view/draw_census.gd`;
+  «Test data» (`SettingsMenu.report_text`): the build, world, place, time, weather, settings, device,
+  «Loading» (`start_times.gd`: in the browser the page, the download of wasm and pck — from the network or
+  cache, the start of the engine; then graphics up to the engine's line «OpenGL API», which the page catches —
+  `svStart` in the `head_include` of `export_presets.cfg`, compiling the scripts up to the static var of
+  `main.gd`, the mods' data inside it — read by the static init of `materials.gd`, `Content.read_ms`,
+  `load_ms`, the scene, the modules' `_ready`, the menu, the world from the choice in the menu — place, chunks,
+  meshes and the first frames (the shader warm-up and calm frames); everything before the menu from opening
+  the page), «Past runs» (the last ones in `user://starts.txt`); «Server» — requests to the rules through the
+  protocol and their bytes, the encoding time (`Connection`, [network.md](network.md)).
+  The «Interface gallery» (`ui_gallery.gd`, «Testing» → «Debug», loaded only on opening; the settings window
+  hides for that time so that its rows do not scroll under a finger): all kinds of window elements on the tabs
+  «Buttons», «Rows», «Cells», «Fields», «Lists», «Look» — window buttons (plain, amber, unavailable, two-touch,
+  green), small ones and with an icon, joined ones, tabs, a block in the corner, ground colours, the screen's
+  octagonal buttons; settings rows, actions, explanations, places; cells with a number, a hand, a key, a bar,
+  quality, pale, the chosen thing's chips, the weight gauge, the column of kinds of things; input fields;
+  scrolled lists; text colours, the large font, frames and all `UiStyle.ICONS` icons. Everything is pressable,
+  the line under the page says what was pressed; the gallery does not change the game. A new shared element is
+  added here too. The shots `ui-gallery-<tab>` in `tools/shot/shots.gd`.
+- Shared: `ui_style.gd` (panels, frames, buttons, the font; `accent(b)` — the amber «press» button, `arm` /
+  `succeed` — red and green, `well()` — the shared sunken frame of text), `item_icons.gd` (item pictures
+  `icons/<icon>.png` 12×12 and the icons of `assets/ui/`; the path of an item's picture is looked up on disk
+  once, `ItemIcons._paths`), `hotbar_slot.gd`, `icon_tabs.gd`, `tab_row.gd`, `fact_chips.gd`,
+  `scroll_column.gd` (a column of buttons: more than six or than fit in height beside the cells, `fit_height` —
+  arrows at the top and bottom and a finger drag, like the hotbar's; the tabs of kinds `icon_tabs.gd` are on
+  it), `drag_scroll.gd` (a drag over a ScrollContainer's list scrolls it, including one started on a button: as
+  soon as the finger moves, the press of the list's buttons is released, and the finger's release presses
+  nothing; a touch of a slider, a bar or an input field stays theirs; `DragScroll.attach`: the bag, crafting,
+  «Load world», «New world», settings, «Land», «Team»). The crafting recipe list taller than four rows
+  (`CraftPanel.ROWS`) or than the window's room scrolls.
 
-**Данные.** Тексты интерфейса по-русски в коде UI; картинки предметов — у их бандлов; советы загрузки —
-`MainMenu.TIPS`; цвета неба по часам — `MainMenu.SKIES`.
+**Data.** The interface's texts are keys `[…]` in the UI code, translated by `lang/<code>.yaml`
+([lang.md](lang.md)); item pictures are with their bundles; the loading tips — `MainMenu.TIPS`; the sky's
+colours by the clock — `MainMenu.SKIES`.
 
-**Подводные камни**
-- После получения новых ассетов (шрифты, текстуры) снова запустите `--import`, иначе скрипты HUD падают
-  с ошибками null, похожими на ошибки кода.
-- Хотбар и окно сумки слушают `Character.state_changed` (и сундуки — свои `changed`) и обновляются в конце кадра
-  один раз, сколько бы событий сервера ни пришло (`Hud._counts_later`, `InventoryWindow._refresh_later`); прямой
-  вызов `refresh()` / `refresh_counts()` обновляет сразу. Вкладка крафта так же копит изменения (`CraftPanel.refresh`).
-- JS-фрагмент из GDScript должен быть строгим и не трогать `arguments` в обёртке с именованными
-  параметрами: это создаёт объект на каждый вызов (`gl_watch.gd`).
-- Касание в браузере приходит и как движение мыши (см. [interaction.md](interaction.md)).
-- Пока прогреваются шейдеры, HUD скрыт экраном загрузки; элементы интерфейса для прогрева — на холсте мира.
-- Пока мир не выбран, `Main.world` пуст и `_process` только следит за безопасной областью экрана: модули
-  интерфейса не должны ждать мира на меню.
-- Поле ввода на телефоне в браузере открывает клавиатуру только с `html/experimental_virtual_keyboard=true`
-  в `export_presets.cfg` (скрытый `<input>` поверх холста).
-- Каждое поле ввода интерфейса (табличка, чат, вход на сервер, сервер и его команды, зерно мира) проходит
-  `src/client/ui/text_field.gd` (`TextField.fit`): при фокусе каретка встаёт после текста и ничего не
-  выделено; каретка рисуется, пока поле редактируется (`caret_force_displayed`: в браузере фокус страницы
-  у скрытого поля клавиатуры, а без фокуса окна `LineEdit` каретку прячет); в браузере, когда вкладку
-  прячут или показывают снова, поле отпускает клавиши и клавиатура закрывается, чтобы следующее касание
-  открыло её заново (на Android после переключения вкладки буквы не доходили в поле). Пока клавиатура поднята
-  (видимая область ниже самой высокой при этой ширине, `window.survivium_tabs.up`), касание не отдаёт холсту
-  фокус страницы (`tools/web_patch.py`): клавиатура не закрывается под пальцем на кнопке или на другом поле,
-  не мигает при касании поля, в котором пишут, и окно не сдвигается под пальцем. Касание, начатое мимо
-  поля, в котором пишут (на кнопке — после её действия, на мире, на пустом месте окна), отпускает поле,
-  когда палец поднят, и клавиатура закрывается; начатое на поле не отпускает никогда, где бы ни оказался
-  палец, когда клавиатура сдвинула окно. Чат открывается с полем в правке, и клавиатура встаёт сразу. Когда телефон сам убрал клавиатуру, касание отдаёт фокус холсту, как в движке: оставленный у
-  скрытого поля фокус не открывал клавиатуру при следующем касании (2026-11-10). Поля клавиатуры помечены
-  `autocomplete="off"`, чтобы браузер не предлагал на них пароли, и текст 16 px, чтобы iPhone не увеличивал
-  страницу. iPhone открывает клавиатуру только для поля, получившего фокус в самом обработчике касания, а
-  движок даёт фокус кадром позже: на iPhone палец, поднятый с поля, которое попросило клавиатуру, даёт
-  скрытому полю фокус ещё раз (`tools/web_patch.py`; на Android ничего не меняется). Кнопка чата на iPhone
-  открывает поле без клавиатуры: её открывает касание поля.
-  Enter клавиатуры телефона («→», «Готово») движок не слышал: клавиши он слушает только на холсте, а
-  однострочное поле клавиатуры от Enter не меняется. `tools/web_patch.py` (`VK_ENTER`) передаёт Enter этого
-  поля холсту нажатием и отпусканием сразу (и `beforeinput` с переводом строки — от клавиатур без кода
-  клавиши), так что чат отправляется, а поле входа переходит к следующему (2026-11-11). Новое поле ввода — тоже через `TextField.fit`.
-- Кнопки окон с полями ввода (табличка, чат, «Присоединиться», «Запустить сервер», «Создать мир») срабатывают
-  при отпускании, как все кнопки: клавиатура под пальцем не закрывается, и кнопка не уезжает.
-- Под окном таблички мир не трогается: касание не идёт в мир (`Hud.covers`), протяжка кончается, кнопка
-  действия, державшаяся, когда окно открылось, ничего не делает (`controls.gd`).
-- Холст в браузере закреплён (`#canvas{position:fixed}` в `head_include`), а после смены видимой области
-  (`visualViewport` resize: клавиатура, панели браузера) страница через 0,1 и 0,7 с шлёт `resize` и, если
-  клавиатуры нет, прокручивается в начало: иначе после клавиатуры игра оставалась сдвинутой под панели
-  браузера. Журнал клавиш (тестовая настройка) показывает и размеры: `in` окно, `sy` прокрутка, `vv` видимая
-  область и её верх, `cv` холст; `page` — окно в фокусе (`F`), касание пользователя сейчас (`A`) и было (`a`).
-- `assets/web/keyboard.html` выкладывается рядом с игрой (`/keyboard.html`): страница без игры открывает
-  клавиатуру телефона разными способами (как движок: фокус скрытого поля кадром позже, холст берёт фокус при
-  касании; прямо в обработчике касания; кадром позже без фокуса холста) и по высоте видимой области пишет,
-  поднялась ли клавиатура. Ею проверяют, что пропускает браузер телефона до и после выхода из него.
+**Pitfalls**
+- After getting new assets (fonts, textures) run `--import` again, otherwise the HUD scripts fall with null
+  errors that look like code bugs.
+- The hotbar and the bag window listen to `Character.state_changed` (and chests to their own `changed`) and
+  refresh at the end of the frame once, however many server events come (`Hud._counts_later`,
+  `InventoryWindow._refresh_later`); a direct call of `refresh()` / `refresh_counts()` refreshes at once. The
+  crafting tab piles up changes the same way (`CraftPanel.refresh`).
+- A JS snippet run from GDScript must be strict and must not touch `arguments` in a wrapper with named
+  parameters: that makes an object per call (`gl_watch.gd`).
+- A touch in the browser arrives also as mouse motion (see [interaction.md](interaction.md)).
+- While shaders warm up, the HUD is hidden by the loading screen; the interface elements for the warm-up are
+  on the world's canvas.
+- While a world is not chosen, `Main.world` is empty and `_process` only watches the screen's safe area: the
+  interface modules must not wait for a world on the menu.
+- An input field on a phone in the browser opens the keyboard only with `html/experimental_virtual_keyboard=true`
+  in `export_presets.cfg` (a hidden `<input>` over the canvas).
+- Every input field of the interface (the sign, chat, joining a server, the server and its commands, the
+  world's seed) passes through `src/client/ui/text_field.gd` (`TextField.fit`): on focus the caret stands after
+  the text and nothing is selected; the caret is drawn while the field is edited (`caret_force_displayed`: in
+  the browser the page's focus is on the keyboard's hidden field, and without the window's focus `LineEdit`
+  hides the caret); in the browser, when the tab is hidden or shown again, the field releases the keys and the
+  keyboard closes, so that the next touch opens it anew (on Android after a tab switch letters did not reach
+  the field). While the keyboard is up (the visible area is lower than the tallest at this width,
+  `window.survivium_tabs.up`), a touch does not give the canvas the page's focus (`tools/web_patch.py`): the
+  keyboard does not close under a finger on a button or another field, does not blink on a touch of the field
+  being written in, and the window does not shift under a finger. A touch begun beside the field being
+  written in (on a button — after its action, on the world, on an empty place of the window) releases the field
+  when the finger is lifted, and the keyboard closes; one begun on the field never releases it, wherever the
+  finger ends up, when the keyboard has shifted the window. The chat opens with the field in editing, and the
+  keyboard rises at once. When the phone itself has put the keyboard away, a touch gives the canvas the focus,
+  as in the engine: a focus left at the hidden field did not open the keyboard on the next touch (2026-11-10).
+  The keyboard's fields are marked `autocomplete="off"` so that the browser does not offer passwords on them,
+  and the text is 16 px so that the iPhone does not zoom the page. The iPhone opens the keyboard only for a
+  field that got focus in the touch handler itself, while the engine gives focus a frame later: on the iPhone a
+  finger lifted from a field that asked for the keyboard gives the hidden field focus once more
+  (`tools/web_patch.py`; nothing changes on Android). The chat button on the iPhone opens the field with no
+  keyboard: it is opened by a touch of the field.
+  The Enter of a phone's keyboard («→», «Done») was not heard by the engine: it listens to keys only on the
+  canvas, and the keyboard's single-line field does not change on Enter. `tools/web_patch.py` (`VK_ENTER`)
+  passes this field's Enter to the canvas as a press and an immediate release (and a `beforeinput` with a line
+  break — from keyboards with no key code), so the chat is sent and the login field goes to the next
+  (2026-11-11). A new input field goes through `TextField.fit` too.
+- The buttons of windows with input fields (the sign, chat, «Join», «Start the server», «Create a world») act
+  on release, like all buttons: the keyboard under a finger does not close, and the button does not run away.
+- Under the sign's window the world is not touched: a touch does not go to the world (`Hud.covers`), a drag
+  ends, an action button held when the window opened does nothing (`controls.gd`).
+- The canvas in the browser is fixed (`#canvas{position:fixed}` in `head_include`), and after the visible area
+  changes (`visualViewport` resize: the keyboard, the browser's bars) the page sends `resize` after 0.1 and
+  0.7 s and, if there is no keyboard, scrolls to the top: otherwise after the keyboard the game stayed shifted
+  under the browser's bars. The key log (a test setting) shows the sizes too: `in` the window, `sy` the scroll,
+  `vv` the visible area and its top, `cv` the canvas; `page` — the window in focus (`F`), the user's touch now
+  (`A`) and was (`a`).
+- `assets/web/keyboard.html` is laid out beside the game (`/keyboard.html`): a page without the game opens the
+  phone's keyboard in different ways (as the engine does: focus of the hidden field a frame later, the canvas
+  takes focus on a touch; right in the touch handler; a frame later without the canvas's focus) and by the
+  height of the visible area writes whether the keyboard rose. It is used to check what the phone's browser lets
+  through before and after leaving it.
 
-**Тесты.** Юнит-тестов интерфейса нет; `tests/browser_smoke.mjs` открывает сборку в Chrome как ПК, как
-телефон (DPR 3, касания) и как телефон стоя по ссылке `?server=` (экран «Присоединиться» на экране, имя
-набрано, вход в несуществующий сервер возвращает экран с причиной) и падает на SCRIPT ERROR, SHADER ERROR,
-Parse Error и ошибки `Invalid call/access/get/set`; скриншоты `tools/shot.gd`
-(`--phone` — раскладка телефона).
+**Tests.** There are no unit tests of the interface; `tests/browser_smoke.mjs` opens the build in Chrome as a PC,
+as a phone (DPR 3, touches) and as a phone held upright by the link `?server=` (the «Join» screen is on
+screen, the name typed, a login to a nonexistent server returns the screen with the reason) and fails on SCRIPT
+ERROR, SHADER ERROR, Parse Error and the errors `Invalid call/access/get/set`; the screenshots of
+`tools/shot.gd` (`--phone` — the phone's layout).
 
-**Подробнее.** `plan/design/ui.md` (макеты и решения по интерфейсу), скриншоты `survivium-builds/ui/`.
+**More.** `plan/design/ui.md` (mock-ups and decisions on the interface), screenshots `survivium-builds/ui/`.

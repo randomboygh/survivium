@@ -21,7 +21,7 @@
 | Звери и рыбалка | `src/shared/game/wildlife.gd`, `fishing.gd`, `src/shared/content/ai_rules.gd`, `src/client/game/creatures.gd`, `src/client/view/fishing_line.gd`, `src/client/view/ai_debug.gd` (отладка ИИ) | [systems/wildlife.md](systems/wildlife_RU.md) | `wildlife_test.gd` |
 | Время, сезоны, погода | `src/shared/game/clock.gd`, `storms.gd`, `src/server/real_weather.gd`, `src/client/view/sky.gd` | [systems/time-weather.md](systems/time-weather_RU.md) | `clock_test.gd` |
 | Сохранение | `src/shared/world/world_store.gd`, `src/client/save_game.gd` | [systems/saving.md](systems/saving_RU.md) | `store_test.gd`, `save_test.gd` |
-| Интерфейс и настройки | `src/client/ui/*` (кит — `src/client/ui/kit/`), `src/client/settings.gd`, `src/client/game/markers.gd` | [systems/ui.md](systems/ui.md) | `browser_smoke.mjs`, `ui_test.gd` (кит и витрина интерфейса), `frame_test.gd` (хотбар, палитры) |
+| Интерфейс и настройки | `src/client/ui/*` (кит — `src/client/ui/kit/`), `src/client/settings.gd`, `src/client/game/markers.gd` | [systems/ui.md](systems/ui_RU.md) | `browser_smoke.mjs`, `ui_test.gd` (кит и витрина интерфейса), `frame_test.gd` (хотбар, палитры) |
 | Звук и музыка | `src/client/audio/*`, `content/sounds/`, `content/music/` | [systems/audio.md](systems/audio_RU.md) | `view_test.gd` (sound) |
 | Языки | `src/shared/content/lang.gd`, `lang/<код>.yaml` модов, `tools/lang_check.py` | [systems/lang.md](systems/lang_RU.md) | `lang_test.gd`, `tools/lang_check.py --strict en,ru` |
 | Тесты, инструменты, CI, версии | `tests/*`, `tools/*`, `.github/*` | [systems/testing.md](systems/testing_RU.md), [testing/](testing/TESTING_GUIDE_RU.md) | `tools/lint.py`, `tools/parse_check.gd` |
