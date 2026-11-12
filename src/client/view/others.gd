@@ -126,7 +126,7 @@ func speak(id: int, text: String) -> void:
 	var said: Label = one.said
 	said.text = text
 	# As wide as the words, wrapped at SAY_WIDTH.
-	var wide: float = UiStyle.font().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE).x
+	var wide: float = UiStyle.text_width(text)
 	said.custom_minimum_size.x = minf(ceilf(wide), SAY_WIDTH)
 	one.line.visible = true
 	one.until = Time.get_ticks_msec() / 1000.0 + SAY_TIME

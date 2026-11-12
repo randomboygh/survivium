@@ -25,6 +25,8 @@ TEXT = {".gd", ".py", ".sh", ".mjs", ".yml", ".yaml", ".md", ".json", ".cfg", ".
 # spaces and the last newline are not ours to keep; Markdown keeps "  " line breaks.
 TRAILING_EXEMPT = {".md", ".import", ".svg", ".html", ".txt"}
 LOAD = re.compile(r'\b(?:ResourceLoader\.)?load\("(res://[^"%{}]+)"')
+## A text measured by the font itself, which sees a key in brackets, not the words shown.
+MEASURE = re.compile(r"\.get_(?:multiline_)?string_size\(")
 RESOURCE = re.compile(r'path="(res://[^"]+)"')
 
 
@@ -55,6 +57,9 @@ def main() -> int:
             if line.startswith(("<<<<<<< ", ">>>>>>> ")) or (line == "=======" and path.suffix != ".md"):
                 bad(path, n, "merge conflict marker")
             if path.suffix == ".gd":
+                if MEASURE.search(line) and path.as_posix().startswith(str(ROOT / "src")) \
+                        and path.name != "ui_style.gd":
+                    bad(path, n, "measures a text by hand: UiStyle.text_width / text_lines measure its words, not its key")
                 if re.match(r"\s*class_name\s", line):
                     bad(path, n, "class_name: scripts are found by preload paths, not global names")
                 for m in LOAD.finditer(line):

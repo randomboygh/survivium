@@ -434,7 +434,7 @@ func _fit(plain: String) -> void:
 	var font_size := _text.get_theme_font_size("normal_font_size")
 	var widest := 0.0
 	for line in plain.split("\n"):
-		widest = maxf(widest, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
+		widest = maxf(widest, UiStyle.text_width(line, font_size, font))
 	var frame := get_theme_stylebox("panel").get_minimum_size().x if has_theme_stylebox("panel") else 0.0
 	# On the screen, where the HUD may be drawn scaled.
 	var on_screen := get_global_transform_with_canvas()

@@ -288,5 +288,50 @@ func _test_map_fit() -> void:
 		var inside: bool = map._hint.position.x >= MapView.MARGIN and map._hint.position.x \
 				+ (map._hint.size.x if wraps else widest) <= phone.x - MapView.MARGIN
 		_check(inside and map._hint.position.y > map.well.end.y, "the hint stays inside, under the map")
+	# A pinch, then the fingers lifted one after the other: the one left a moment
+	# longer does not drag the map.
+	var a := Vector2(150, 400)
+	var b := Vector2(250, 400)
+	_touch(map, 0, a, true)
+	_touch(map, 1, b, true)
+	_drag(map, 0, a + Vector2(-40, 0))
+	_drag(map, 1, b + Vector2(40, 0))
+	_touch(map, 1, b + Vector2(40, 0), false)
+	var held := map.centre
+	_drag(map, 0, a + Vector2(-40, 60))
+	_touch(map, 0, a + Vector2(-40, 60), false)
+	_check(map.centre == held, "the finger left after a pinch does not move the map")
+	# One finger alone drags it by as far as it moved.
+	_touch(map, 0, a, true)
+	_drag(map, 0, a + Vector2(20, 0))
+	_drag(map, 0, a + Vector2(40, 0))
+	_touch(map, 0, a + Vector2(40, 0), false)
+	_check(map.centre.x < held.x and is_equal_approx(map.centre.y, held.y), "one finger drags the map")
 	map.minimap.free()
 	map.free()
+	# A key is measured as its words in the player's language.
+	_check(UiStyle.text_width("[a_tap_places_a_marker]") == UiStyle.text_width(Lang.t("[a_tap_places_a_marker]")),
+		"a key measures as its words")
+
+
+## Where each test finger is, so a drag carries its `relative` as the engine's do.
+var _at := {}
+
+
+func _touch(c: Control, index: int, at: Vector2, down: bool) -> void:
+	_at[index] = at
+	var e := InputEventScreenTouch.new()
+	e.index = index
+	e.position = at
+	e.pressed = down
+	c._input(e)
+	c._gui_input(e)
+
+
+func _drag(c: Control, index: int, at: Vector2) -> void:
+	var e := InputEventScreenDrag.new()
+	e.index = index
+	e.position = at
+	e.relative = at - (_at.get(index, at) as Vector2)
+	_at[index] = at
+	c._gui_input(e)

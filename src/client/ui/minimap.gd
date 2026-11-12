@@ -502,7 +502,7 @@ func draw_mates(canvas: CanvasItem, rect: Rect2, centre: Vector2, zoom: float, n
 			continue
 		var font := UiStyle.font()
 		var text: String = m[1]
-		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE).x
+		var w := UiStyle.text_width(text)
 		var at := Vector2(floorf(box.get_center().x - w * 0.5), box.end.y + UiStyle.FONT_SIZE)
 		if at.y > rect.end.y - 2:
 			at.y = box.position.y - 3
