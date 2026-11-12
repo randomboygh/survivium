@@ -310,6 +310,7 @@ func _run() -> void:
 			and Time.get_ticks_msec() - stream_from < 10000:
 		await process_frame
 	var streaming: bool = streamer.job_mesh != null and streamer.job_key == far_key
+	streamer.last_stashed = Vector2i(0x7fffffff, 0)
 	c._cooldown = 0.0
 	c.dig_at(first_dug, Vector3i.UP)
 	var held: bool = w.drops.get(dug_key, []).size() > lying and main.props._drops_shown.get(dug_key, 0) == lying
@@ -323,10 +324,12 @@ func _run() -> void:
 	var waited_from := Time.get_ticks_msec()
 	while main.props._rebuilding_near(dug_key) and Time.get_ticks_msec() - waited_from < 10000:
 		await process_frame
-		set_aside = set_aside or not streamer.stashed.is_empty() and streamer.stashed[0] == far_key
+		# Set aside and maybe taken up again within the frame on a fast machine.
+		set_aside = set_aside or streamer.last_stashed == far_key
 	# Not finished (it may show its ground already, ChunkStreamer.bare).
 	_check(streaming and set_aside and (not streamer.chunk_nodes.has(far_key) or streamer.bare.has(far_key)),
-		"an edit sets a chunk being streamed aside instead of waiting for it")
+		"an edit sets a chunk being streamed aside instead of waiting for it (streaming %s, set aside %s, built %s, bare %s)"
+			% [streaming, set_aside, streamer.chunk_nodes.has(far_key), streamer.bare.has(far_key)])
 	await process_frame
 	_check(held and main.props._drops_shown.get(dug_key, 0) == w.drops.get(dug_key, []).size(),
 		"what is dug is drawn on the ground when the chunk is drawn dug, not before")
