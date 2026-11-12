@@ -18,6 +18,9 @@ uniform vec2 haze_offset = vec2(0.0);
 // The world pixel at the top left of the image, so the banks stay on the ground as
 // the view moves.
 uniform vec2 view_origin = vec2(0.0);
+// Short of sleep (CameraRig.drowsiness), 0..1: the picture swims in slow waves, a
+// faint second image drifts off it, and the edges darken as if the eyes were closing.
+uniform float sway = 0.0;
 global uniform sampler2D cloud_noise : filter_linear, repeat_enable;
 global uniform vec2 cloud_offset;
 global uniform float cloud_cover;
@@ -47,6 +50,15 @@ uniform float crt_jitter = 0.0;
 uniform float crt_bleed = 0.0;
 uniform float crt_band = 0.0;
 uniform float crt_noise = 0.0;
+
+// How far, in picture pixels, the waves of a sleepy eye move the pixel at screen point
+// `sp` (0..1): slow sines across and along, crossing, so nothing moves in step.
+vec2 sway_shift(vec2 sp) {
+	float t = TIME;
+	vec2 w = vec2(sin(sp.y * 9.0 + t * 1.3) + 0.6 * sin(sp.y * 23.0 - t * 2.1 + sp.x * 5.0),
+		sin(sp.x * 7.0 - t * 1.1) * 0.6 + 0.4 * sin(sp.x * 19.0 + t * 1.7));
+	return w * sway * 1.6;
+}
 
 float crt_hash(vec2 p) {
 	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
@@ -84,6 +96,9 @@ void fragment() {
 		vec2 out_px = min(sp, 1.0 - sp) * crt_screen.xy;
 		edge = clamp(min(out_px.x, out_px.y) / 2.0, 0.0, 1.0);
 		vec2 read = sp;
+		if (sway > 0.0) {
+			read += sway_shift(sp) / picture;
+		}
 		if (crt_jitter > 0.0) {
 			// Rows of two screen pixels wander sideways, a little each frame and in a slow wave.
 			float line = floor(sp.y * crt_screen.y / 2.0);
@@ -108,7 +123,16 @@ void fragment() {
 			src = clamp(vec3(dot(src, w)) + smear - vec3(dot(smear, w)), 0.0, 1.0);
 		}
 	} else {
+		if (sway > 0.0) {
+			uv += sway_shift(sp) * TEXTURE_PIXEL_SIZE;
+		}
 		src = texture(TEXTURE, uv).rgb;
+	}
+	if (sway > 0.0) {
+		// The second image, a few pixels off and wandering, comes and goes.
+		vec2 off = vec2(sin(TIME * 0.7), cos(TIME * 0.53)) * (1.5 + 2.5 * sway) * TEXTURE_PIXEL_SIZE;
+		float ghost = sway * (0.22 + 0.13 * sin(TIME * 0.9));
+		src = mix(src, texture(TEXTURE, uv + off).rgb, ghost);
 	}
 	vec3 c = src * exposure;
 	float l = dot(c, vec3(0.299, 0.587, 0.114));
@@ -127,6 +151,13 @@ void fragment() {
 		float bank = clamp((n - 0.35) * 3.0 + dither * 0.25, 0.0, 1.0);
 		float k = haze_amount * mix(1.0, floor(bank * 4.0 + 0.5) / 4.0, haze_patchy);
 		c = mix(c, haze_color, k);
+	}
+	if (sway > 0.0) {
+		// The eyelids: the edges darken and lift again, slowly, more the more tired.
+		vec2 shape = vec2(crt_screen.x / crt_screen.y, 1.0);
+		float d = length((sp - 0.5) * shape) / length(shape * 0.5);
+		float lids = sway * (0.45 + 0.25 * sin(TIME * 0.6));
+		c *= 1.0 - lids * smoothstep(0.35, 1.05, d);
 	}
 	if (crt_on) {
 		c += crt_bloom(uv, TEXTURE_PIXEL_SIZE) * crt_glow * exposure * tint;
