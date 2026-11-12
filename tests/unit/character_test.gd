@@ -672,10 +672,10 @@ func _test_fall() -> void:
 			ch.update(0.05)
 		ch.update(0.05)
 		return Vitals.MAX - ch.vitals.health
-	_check(drop.call(Vector3(2.5, 5.0, 2.5), Vector3(4.5, 1.0, 4.5)) == 0.0, "a fall of 4 levels does not hurt")
+	_check(drop.call(Vector3(2.5, 7.0, 2.5), Vector3(4.5, 1.0, 4.5)) == 0.0, "a fall of 6 levels does not hurt")
 	var hurt: float = drop.call(Vector3(2.5, 9.0, 2.5), Vector3(4.5, 1.0, 4.5))
 	_check(absf(hurt - (8.0 - Vitals.FALL_SAFE) * Vitals.FALL_PER_LEVEL) < 0.5 and ch.vitals.hurt_by == "fall",
-		"a fall of 8 levels hurts for the 4 past the safe 4 (%.0f)" % hurt)
+		"a fall of 8 levels hurts for the 2 past the safe 6 (%.0f)" % hurt)
 	_check(drop.call(Vector3(2.5, 9.0, 2.5), Vector3(12.5, 1.0, 2.5)) == 0.0, "deep water takes the whole fall")
 	var soft: float = drop.call(Vector3(2.5, 9.0, 2.5), Vector3(12.5, 1.0, 12.5))
 	_check(absf(soft - hurt * 0.5) < 0.5, "shallow water takes half of it (%.0f)" % soft)
