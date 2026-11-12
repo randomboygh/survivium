@@ -2,7 +2,7 @@
 # и лучше (hardness 4); серебряный блок — блок из слитков, его ставят как кирпич. Поля — как у материалов
 # основы (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
 - id: silver_ore
-  title: Серебряная руда
+  title: "[materials.materials.silver_ore]"
   role: ore
   veins: 0.3
   priority: 2
@@ -12,7 +12,7 @@
   step: step_stone
   hit: hit_stone
 - id: silver_block
-  title: Серебряный блок
+  title: "[materials.materials.silver_block]"
   item: silver_block
   hardness: 3
   toughness: 6

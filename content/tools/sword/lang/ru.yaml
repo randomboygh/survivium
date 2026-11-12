@@ -1,0 +1,24 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/sword/bundle.yaml
+"[tools.sword.bundle]": "Меч"
+
+# content/tools/sword/data/items.yaml
+"[tools.items.wooden_sword]": "Деревянный меч"
+"[tools.items.stone_sword]": "Каменный меч"
+"[tools.items.copper_sword]": "Медный меч"
+"[tools.items.bronze_sword]": "Бронзовый меч"
+"[tools.items.iron_sword]": "Железный меч"
+"[tools.items.steel_sword]": "Стальной меч"
+
+# content/tools/sword/data/recipes.yaml
+"[tools.recipes.wooden_sword]": "Деревянный меч"
+"[tools.recipes.stone_sword]": "Каменный меч"
+"[tools.recipes.copper_sword]": "Медный меч"
+"[tools.recipes.bronze_sword]": "Бронзовый меч"
+"[tools.recipes.iron_sword]": "Железный меч"
+"[tools.recipes.steel_sword]": "Стальной меч"
+
+# content/tools/sword/data/sounds.yaml
+"[tools.sounds.swish]": "Взмах"

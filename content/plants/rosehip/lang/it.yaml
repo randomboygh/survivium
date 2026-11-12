@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/rosehip/bundle.yaml
-"Шиповник": "Rosa canina"
+"[plants.rosehip.bundle]": "Rosa canina"
+
+# content/plants/rosehip/data/bushes.yaml
+"[plants.bushes.rosehip]": "Rosa canina"
 
 # content/plants/rosehip/data/items.yaml
-"Куст шиповника": "Cespuglio di rosa canina"
+"[plants.items.rosehip]": "Rosa canina"
+"[plants.items.rosehip_bush]": "Cespuglio di rosa canina"

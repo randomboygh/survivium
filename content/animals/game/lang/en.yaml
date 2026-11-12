@@ -2,24 +2,26 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/animals/game/bundle.yaml
-"Добыча": "Game"
+"[animals.game.bundle]": "Game animals"
 
 # content/animals/game/data/items.yaml
-"Тушка": "Small carcass"
-"Мелкий зверь или птица. Разделывается руками.": "A small animal or bird. Butchered by hand."
-"Туша": "Carcass"
-"Крупный зверь. Разделать её можно только ножом.": "A big animal. It can be butchered only with a knife."
-"Сырое мясо": "Raw meat"
-"Есть можно, но жареное сытнее.": "Edible, but roasted is more filling."
-"Жареное мясо": "Roast meat"
-"Мясо, зажаренное на костре. Очень сытное.": "Meat roasted on a campfire. Very filling."
-"Шкура": "Hide"
-"Сырая шкура зверя.": "An animal's raw hide."
-"Кость": "Bone"
-"Жир": "Fat"
-"Вяленое мясо": "Jerky"
-"Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно.": "Meat dried on a drying rack. Light and filling, no fire needed."
+"[animals.items.small_carcass]": "Small carcass"
+"[animals.items.small_carcass.about]": "A small animal or bird. Butchered by hand."
+"[animals.items.carcass]": "Carcass"
+"[animals.items.carcass.about]": "A big animal. It can be butchered only with a knife."
+"[animals.items.raw_meat]": "Raw meat"
+"[animals.items.raw_meat.about]": "Edible, but roasted is more filling."
+"[animals.items.roasted_meat]": "Roast meat"
+"[animals.items.roasted_meat.about]": "Meat roasted on a campfire. Very filling."
+"[animals.items.hide]": "Hide"
+"[animals.items.hide.about]": "An animal's raw hide."
+"[animals.items.bone]": "Bone"
+"[animals.items.fat]": "Fat"
+"[animals.items.jerky]": "Jerky"
+"[animals.items.jerky.about]": "Meat dried on a drying rack. Light and filling, no fire needed."
 
 # content/animals/game/data/recipes.yaml
-"Разделать тушку": "Butcher a small carcass"
-"Разделать тушу": "Butcher a carcass"
+"[animals.recipes.raw_meat_from_small_carcass]": "Butcher a small carcass"
+"[animals.recipes.raw_meat_from_carcass]": "Butcher a carcass"
+"[animals.recipes.roasted_meat]": "Roast meat"
+"[animals.recipes.jerky]": "Jerky"

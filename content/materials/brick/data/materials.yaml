@@ -1,6 +1,6 @@
 # Кирпич как ячейка: твёрдый, бьётся киркой. Поля — как у материалов основы.
 - id: brick
-  title: Кирпич
+  title: "[materials.materials.brick]"
   hotbar: 4
   item: brick
   hardness: 2

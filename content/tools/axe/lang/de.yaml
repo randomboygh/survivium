@@ -2,14 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/axe/bundle.yaml
-"Топор": "Axt"
+"[tools.axe.bundle]": "Axt"
 
 # content/tools/axe/data/items.yaml
-"Каменный топор": "Steinaxt"
-"Медный топор": "Kupferaxt"
-"Бронзовый топор": "Bronzeaxt"
-"Железный топор": "Eisenaxt"
-"Стальной топор": "Stahlaxt"
+"[tools.items.stone_axe]": "Steinaxt"
+"[tools.items.copper_axe]": "Kupferaxt"
+"[tools.items.bronze_axe]": "Bronzeaxt"
+"[tools.items.iron_axe]": "Eisenaxt"
+"[tools.items.steel_axe]": "Stahlaxt"
 
 # content/tools/axe/data/recipes.yaml
-"Доски": "Bretter"
+"[tools.recipes.stone_axe]": "Steinaxt"
+"[tools.recipes.planks]": "Bretter"
+"[tools.recipes.copper_axe]": "Kupferaxt"
+"[tools.recipes.bronze_axe]": "Bronzeaxt"
+"[tools.recipes.iron_axe]": "Eisenaxt"
+"[tools.recipes.steel_axe]": "Stahlaxt"

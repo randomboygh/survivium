@@ -13,52 +13,52 @@
 # Формулы и таблицы: docs/balance/GAME_BALANCE_DESIGN.md. Порядок полос в окне персонажа — order. Мод добавляет навык записью с новой
 # ролью, только когда движок знает эту работу.
 - id: gathering
-  title: Сбор
-  description: Ягоды, травы, волокно, плоды и покос. Быстрее собирает, иногда берёт на одну больше.
+  title: "[core.skills.gathering]"
+  description: "[core.skills.gathering.about]"
   role: gather
   order: 0
   yield: 0.6
 - id: chopping
-  title: Рубка
-  description: Деревья и кусты топором. Быстрее рубит, тратит меньше сил, иногда снимает лишнее бревно.
+  title: "[core.skills.chopping]"
+  description: "[core.skills.chopping.about]"
   role: chop
   order: 1
   yield: 0.5
 - id: digging
-  title: Копание
-  description: Земля, песок, камень и руда. Быстрее копает. Выкопать поставленное своими руками опыта не даёт.
+  title: "[core.skills.digging]"
+  description: "[core.skills.digging.about]"
   role: dig
   order: 2
 - id: crafting
-  title: Ремесло
-  description: Вещи на руках, у верстака, печи и горна. Быстрее делает, инструменты и одежда выходят прочнее.
+  title: "[core.skills.crafting]"
+  description: "[core.skills.crafting.about]"
   role: craft
   order: 3
   quality: 50
   effort: 0.0
 - id: building
-  title: Стройка
-  description: Стены, пол, чертёж и мебель. Быстрее строит.
+  title: "[core.skills.building]"
+  description: "[core.skills.building.about]"
   role: build
   order: 4
 - id: cooking
-  title: Готовка
-  description: Жарка, похлёбка, хлеб и всё, что готовят на огне. Быстрее готовит, иногда выходит порция больше.
+  title: "[core.skills.cooking]"
+  description: "[core.skills.cooking.about]"
   role: cook
   order: 5
   yield: 0.6
   effort: 0.0
 - id: hunting
-  title: Охота
-  description: Звери оружием и руками. Быстрее и сильнее бьёт, при разделке туши иногда выходит больше мяса.
+  title: "[core.skills.hunting]"
+  description: "[core.skills.hunting.about]"
   role: hunt
   order: 6
   each: 30
   yield: 0.6
   might: 0.5
 - id: fishing
-  title: Рыбалка
-  description: Рыба на удочку. Иногда вытаскивает две.
+  title: "[core.skills.fishing]"
+  description: "[core.skills.fishing.about]"
   role: fish
   order: 7
   each: 20
@@ -66,16 +66,16 @@
   speed: 0.0
   effort: 0.0
 - id: swimming
-  title: Плавание
-  description: Растёт, пока плывёшь. Быстрее плывёт (потом и на плотах, лодках).
+  title: "[core.skills.swimming]"
+  description: "[core.skills.swimming.about]"
   role: swim
   order: 8
   speed: 1.0
   effort: 0.0
   care: 0.0
 - id: farming
-  title: Земледелие
-  description: Грядки тяпкой, посев, полив и урожай. Быстрее работает на грядках, иногда собирает на одну больше.
+  title: "[core.skills.farming]"
+  description: "[core.skills.farming.about]"
   role: farm
   order: 9
   yield: 0.6

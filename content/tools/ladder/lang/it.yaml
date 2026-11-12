@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/ladder/bundle.yaml
-"Приставная лестница": "Scala a pioli"
+"[tools.ladder.bundle]": "Scala a pioli"
 
 # content/tools/ladder/data/items.yaml
-"Звено лестницы на клетку высоты. Ставится к стене, звено над звеном; по ней лезут вверх и вниз.": "Un tratto di scala alto una cella. Si appoggia al muro, tratto su tratto; ci si sale e ci si scende."
+"[tools.items.ladder]": "Scala a pioli"
+"[tools.items.ladder.about]": "Un tratto di scala alto una cella. Si appoggia al muro, tratto su tratto; ci si sale e ci si scende."
+
+# content/tools/ladder/data/recipes.yaml
+"[tools.recipes.ladder]": "Scala a pioli"

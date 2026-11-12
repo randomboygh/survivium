@@ -1,18 +1,18 @@
 # Рецепты бандла «Серп»: каменный вяжут руками, медный делают на верстаке, железный — на
 # наковальне. Кремень и ветка — «Ресурсы», верёвка, доски и слитки — «Материалы».
 - id: stone_sickle
-  title: Каменный серп
+  title: "[tools.recipes.stone_sickle]"
   makes: stone_sickle
   needs: {resources:flint: 2, resources:branch: 1, materials:cord: 1}
   time: 4
 - id: copper_sickle
-  title: Медный серп
+  title: "[tools.recipes.copper_sickle]"
   makes: copper_sickle
   needs: {materials:copper_bar: 1, resources:branch: 1}
   at: workbench
   time: 5
 - id: iron_sickle
-  title: Железный серп
+  title: "[tools.recipes.iron_sickle]"
   makes: iron_sickle
   needs: {materials:iron_bar: 1, resources:branch: 1}
   at: anvil

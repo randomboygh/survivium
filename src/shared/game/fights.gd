@@ -88,13 +88,13 @@ func why_not(who, other) -> Dictionary:
 		return {"why": "", "quiet": true, "no": true}
 	var m := mode()
 	if m == "off":
-		return {"why": "На этом сервере PvP выключен", "no": true}
+		return {"why": "[pvp_is_off_on_this]", "no": true}
 	if protection_left(b) > 0.0:
-		return {"why": Lang.line("Игрок под защитой новичка ещё %d мин", [ceili(protection_left(b) / 60.0)]), "no": true}
+		return {"why": Lang.line("[the_player_has_newcomer_protection]", [ceili(protection_left(b) / 60.0)]), "no": true}
 	if m == "land" and territory != null:
 		var claim: Dictionary = territory.claim_at(_cell(other.position))
 		if not territory.allowed(claim, a, "hit_players"):
-			return {"why": Lang.line("Территория «%s»: здесь нельзя — бить игроков", [territory.title_of(claim)]), "no": true}
+			return {"why": Lang.line("[territory_not_allowed_here_hitting]", [territory.title_of(claim)]), "no": true}
 	return {}
 
 
@@ -136,18 +136,18 @@ func strike(who, other, power: int, from: Vector3) -> bool:
 	var a := _id(who)
 	var b := _id(other)
 	if give_up(a):
-		who.nag("pvp_brave", "Вы напали: защита новичка снята")
+		who.nag("pvp_brave", "[you_attacked_newcomer_protection_is]")
 	var damage := float(maxi(1, power)) * float(rules.pvp_damage if rules != null else 4)
 	var name := str(who.get("player_name")) if who.get("player_name") != null else ""
 	other.vitals.wound(damage, "player:" + name)
 	var away := Vector2(other.position.x - from.x, other.position.z - from.z)
 	if away.length() > 0.01:
 		other.body.knock(away, KNOCK, HOP)
-	other.nag("pvp_hit", Lang.line("Вас ударил игрок %s", [name]) if name != "" else "Вас ударили")
+	other.nag("pvp_hit", Lang.line("[you_were_hit_by_player]", [name]) if name != "" else "[you_were_hit]")
 	for id in [a, b]:
 		if tag_left(id) <= 0.0:
 			var p = who if id == a else other
-			p.nag("pvp_tag", Lang.line("Бой: %d с нельзя уйти на землю, где не дерутся", [ceili(_tag_time())]))
+			p.nag("pvp_tag", Lang.line("[fight_for_s_you_cant]", [ceili(_tag_time())]))
 		tags[id] = _tag_time()
 	hit.emit(who, other, damage)
 	return true
@@ -180,7 +180,7 @@ func step(delta: float, players: Array) -> void:
 		var back: Variant = _out.get(id)
 		if back != null and not closed(territory.claim_at(_cell(back))):
 			p.teleport(back)
-			p.nag("pvp_flee", Lang.line("Бой ещё %d с: на землю «%s» сейчас нельзя", [ceili(tags[id]), territory.title_of(claim)]))
+			p.nag("pvp_flee", Lang.line("[fight_for_s_more_you]", [ceili(tags[id]), territory.title_of(claim)]))
 
 
 ## Whether claim `claim` is closed to fights: its owner lets the others not hit players.

@@ -103,7 +103,7 @@ func accept(id: int, name: String, from: int, now: float) -> bool:
 	if t == 0:
 		t = next_team
 		next_team += 1
-		teams[t] = {"name": "Команда %s" % str(names.get(from, "")), "lead": from, "members": [from]}
+		teams[t] = {"name": "Team %s" % str(names.get(from, "")), "lead": from, "members": [from]}
 		of[from] = t
 	told = members(t)
 	teams[t].members.append(id)

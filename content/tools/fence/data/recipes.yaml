@@ -1,18 +1,18 @@
 # Рецепты бандла «Забор»: жерди из веток «Ресурсов», связанные верёвкой «Материалов», руками, без
 # станка: загон и калитка нужны рано. Поля — docs/DATA_MODEL.md.
 - id: fence
-  title: Забор
+  title: "[tools.recipes.fence]"
   makes: fence
   count: 2
   needs: {resources:branch: 3, materials:cord: 1}
   time: 3
 - id: wicket
-  title: Калитка
+  title: "[tools.recipes.wicket]"
   makes: wicket
   needs: {resources:branch: 4, materials:cord: 1}
   time: 4
 - id: gate
-  title: Ворота
+  title: "[tools.recipes.gate]"
   makes: gate
   needs: {resources:branch: 8, materials:cord: 2}
   time: 6

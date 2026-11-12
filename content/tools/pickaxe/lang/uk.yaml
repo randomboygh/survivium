@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/pickaxe/bundle.yaml
-"Кирка": "Кайло"
+"[tools.pickaxe.bundle]": "Кайло"
 
 # content/tools/pickaxe/data/items.yaml
-"Каменная кирка": "Кам'яне кайло"
-"Деревянная кирка": "Дерев'яне кайло"
-"Медная кирка": "Мідне кайло"
-"Бронзовая кирка": "Бронзове кайло"
-"Железная кирка": "Залізне кайло"
-"Стальная кирка": "Сталеве кайло"
+"[tools.items.stone_pickaxe]": "Кам'яне кайло"
+"[tools.items.wooden_pickaxe]": "Дерев'яне кайло"
+"[tools.items.copper_pickaxe]": "Мідне кайло"
+"[tools.items.bronze_pickaxe]": "Бронзове кайло"
+"[tools.items.iron_pickaxe]": "Залізне кайло"
+"[tools.items.steel_pickaxe]": "Сталеве кайло"
+
+# content/tools/pickaxe/data/recipes.yaml
+"[tools.recipes.stone_pickaxe]": "Кам'яне кайло"
+"[tools.recipes.wooden_pickaxe]": "Дерев'яне кайло"
+"[tools.recipes.copper_pickaxe]": "Мідне кайло"
+"[tools.recipes.bronze_pickaxe]": "Бронзове кайло"
+"[tools.recipes.iron_pickaxe]": "Залізне кайло"
+"[tools.recipes.steel_pickaxe]": "Сталеве кайло"

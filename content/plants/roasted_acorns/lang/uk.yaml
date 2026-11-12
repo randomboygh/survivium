@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/roasted_acorns/bundle.yaml
-"Жареные жёлуди": "Смажені жолуді"
+"[plants.roasted_acorns.bundle]": "Смажені жолуді"
 
 # content/plants/roasted_acorns/data/items.yaml
-"Жёлуди, прокалённые в горшке на костре. Сытные, но горьковатые.": "Жолуді, прожарені в горщику на багатті. Ситні, але гіркуваті."
+"[plants.items.roasted_acorns]": "Смажені жолуді"
+"[plants.items.roasted_acorns.about]": "Жолуді, прожарені в горщику на багатті. Ситні, але гіркуваті."
+
+# content/plants/roasted_acorns/data/recipes.yaml
+"[plants.recipes.roasted_acorns]": "Смажені жолуді"

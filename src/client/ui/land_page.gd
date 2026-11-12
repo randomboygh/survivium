@@ -46,7 +46,7 @@ func _init(g) -> void:
 	head_buttons = HBoxContainer.new()
 	head_buttons.add_theme_constant_override("separation", 4)
 	head_buttons.visible = false
-	var take := TabRow.icon_button(UiStyle.icon("take"), "Забрать столб в сумку", func() -> void: _take_post(_post))
+	var take := TabRow.icon_button(UiStyle.icon("take"), "[take_the_post_into_the]", func() -> void: _take_post(_post))
 	take.custom_minimum_size = Vector2(30, 30)
 	head_buttons.add_child(take)
 
@@ -78,25 +78,25 @@ func refresh() -> void:
 		_box.remove_child(c)
 		c.queue_free()
 	if claim.is_empty():
-		_note("Вы не на размеченной земле")
+		_note("[you_are_not_on_marked]")
 		_laid()
 		return
 	var mine: bool = claim.by == land.me()
 	var color: Color = land.color(claim)
 	if not land.own(claim):
-		_box.add_child(UiStyle.label(Lang.f("Земля «%s»", [claim.name]), color))
+		_box.add_child(UiStyle.label(Lang.f("[land_n2]", [claim.name]), color))
 		var may: Array = land.may_here(claim)
 		if int(claim.get("weak", 0)) > 0:
-			_note("Земля заброшена: хозяева давно не заходили, охрана ослабла")
-		_note(Lang.f("Здесь можно: %s", [", ".join(may.map(Lang.t))]) if not may.is_empty() else "Здесь ничего нельзя")
+			_note("[the_land_is_abandoned_the]")
+		_note(Lang.f("[allowed_here]", [", ".join(may.map(Lang.t))]) if not may.is_empty() else "[nothing_is_allowed_here]")
 		_laid()
 		return
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 4)
 	_box.add_child(head)
 	_cell(head, "", 0, true)
-	_cell(head, "Команда", CELL_WIDTH)
-	_cell(head, "Остальные", CELL_WIDTH)
+	_cell(head, "[team_n3]", CELL_WIDTH)
+	_cell(head, "[others]", CELL_WIDTH)
 	var r: Array = land.copy.rights_of(claim.by)
 	for i in Territory.ACTIONS.size():
 		var row := HBoxContainer.new()
@@ -109,17 +109,17 @@ func refresh() -> void:
 		row.add_child(what)
 		for who in 2:
 			var on: bool = int(r[who]) & (1 << i) != 0
-			var b := TabRow.small_button("можно" if on else "нельзя", _flip.bind(who, i))
+			var b := TabRow.small_button("[allowed_n2]" if on else "[not_allowed]", _flip.bind(who, i))
 			b.custom_minimum_size = Vector2(CELL_WIDTH, 30)
 			if on:
 				UiStyle.tint(b, color)
 			b.disabled = not mine
 			row.add_child(b)
 	if mine:
-		_note("Права и цвет — на всей вашей земле. Двери и ручные звери появятся позже.")
+		_note("[rights_and_colour_apply_to]")
 		_colors(land.my_color())
 	else:
-		_note("Права задаёт тот, кто поставил столб.")
+		_note("[rights_are_set_by_whoever]")
 	_laid()
 
 
@@ -133,13 +133,13 @@ func _colors(picked: int) -> void:
 	var gap := Control.new()
 	gap.custom_minimum_size.y = 6
 	_box.add_child(gap)
-	_box.add_child(UiStyle.label("Цвет земли", UiStyle.MUTED))
+	_box.add_child(UiStyle.label("[land_colour]", UiStyle.MUTED))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	_box.add_child(row)
 	for i in UiStyle.LAND_COLORS.size():
 		var b := Kit.button("", Callable(), 30, 30)
-		b.tooltip_text = "Цвет вашей земли"
+		b.tooltip_text = "[your_lands_colour]"
 		UiStyle.tint(b, UiStyle.LAND_COLORS[i])
 		if i == picked:
 			b.icon = UiStyle.icon("check")
@@ -158,7 +158,7 @@ func _flip(who: int, bit: int) -> void:
 func _take_post(cell: Vector3i) -> void:
 	game.net.request(Protocol.PROP_TAKE, [cell]).then(func(v: Variant) -> void:
 		if not (v is bool and v):
-			game.hud.toast("Подойдите к столбу, чтобы забрать его"))
+			game.hud.toast("[come_up_to_the_post]"))
 
 
 func _note(text: String) -> void:

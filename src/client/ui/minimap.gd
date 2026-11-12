@@ -131,7 +131,7 @@ static func round_rect(canvas: CanvasItem, rect: Rect2, color: Color, radius: in
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	tooltip_text = "Карта (M)"
+	tooltip_text = "[map_m]"
 	_ground = ground_layer(func(l: Control) -> void:
 		draw_ground(l, Rect2(Vector2.ZERO, l.size), Vector2(player_cell), 1.0), CORNER)
 	add_child(_ground)

@@ -2,9 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fishing_rod/bundle.yaml
-"Удочка": "Canna da pesca"
+"[tools.fishing_rod.bundle]": "Canna da pesca"
 
 # content/tools/fishing_rod/data/items.yaml
-"Гибкое удилище с леской и кремнёвым крючком. Закидывают в воду и ждут поклёвки.": "Una canna flessibile con lenza e amo di selce. Si lancia in acqua e si aspetta che abbocchino."
-"Наживка": "Esca"
-"Черви, накопанные в земле. Их надевают на крючок, и рыба клюёт куда чаще.": "Vermi scavati dalla terra. Si mettono sull'amo, e i pesci abboccano molto di più."
+"[tools.items.fishing_rod]": "Canna da pesca"
+"[tools.items.fishing_rod.about]": "Una canna flessibile con lenza e amo di selce. Si lancia in acqua e si aspetta che abbocchino."
+"[tools.items.bait]": "Esca"
+"[tools.items.bait.about]": "Vermi scavati dalla terra. Si mettono sull'amo, e i pesci abboccano molto di più."
+
+# content/tools/fishing_rod/data/recipes.yaml
+"[tools.recipes.fishing_rod]": "Canna da pesca"
+"[tools.recipes.bait]": "Esca"

@@ -1,7 +1,7 @@
 # Тёсаный камень: камень, обтёсанный киркой на верстаке в ровный блок. Ставится блоком.
 - id: cut_stone
-  title: Тёсаный камень
-  description: Ровные каменные блоки для прочных стен и пола.
+  title: "[materials.items.cut_stone]"
+  description: "[materials.items.cut_stone.about]"
   weight: 2.0
   stack: 20
   place: cut_stone

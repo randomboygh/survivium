@@ -7,7 +7,7 @@
 # вместе и кормленных за сутки, приносит зайчонка, пока их там меньше herd; trapped — каким живым
 # предметом он сидит в живоловке, куда пришёл на приманку из tame_food (бандл «Живоловка»).
 - id: rabbit
-  title: Заяц
+  title: "[animals.creatures.rabbit]"
   mass: 2
   diet: [plants]
   speed: 5.5

@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/charcoal/bundle.yaml
-"Уголь": "Holzkohle"
+"[materials.charcoal.bundle]": "Holzkohle"
+
+# content/materials/charcoal/data/items.yaml
+"[materials.items.charcoal]": "Holzkohle"

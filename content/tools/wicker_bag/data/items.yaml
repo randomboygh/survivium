@@ -2,8 +2,8 @@
 # тела, куда вещь надевают (head, body, legs, feet, back), bag_slots — сколько ячеек сумка за спиной
 # добавляет к 16 ячейкам сумки, которая есть всегда (src/shared/game/inventory.gd, gear).
 - id: wicker_bag
-  title: Плетёная котомка
-  description: Котомка из волокна на верёвочных лямках. Надетая за спину, даёт ещё 8 ячеек.
+  title: "[tools.items.wicker_bag]"
+  description: "[tools.items.wicker_bag.about]"
   weight: 0.6
   stack: 1
   model: wicker_bag

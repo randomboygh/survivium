@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/gold/bundle.yaml
-"Золото": "Gold"
+"[materials.gold.bundle]": "Gold"
 
 # content/materials/gold/data/items.yaml
-"Золотая руда": "Golderz"
-"Кварц с жёлтыми прожилками золота. Её берёт бронзовая кирка.": "Quarz mit gelben Goldadern. Eine Bronzespitzhacke baut es ab."
-"Золотой слиток": "Goldbarren"
-"Тяжёлый мягкий жёлтый металл. Из слитков складывают золотые блоки.": "Ein schweres, weiches gelbes Metall. Barren werden zu Goldblöcken."
-"Золотой блок": "Goldblock"
-"Блестящий жёлтый блок для построек.": "Ein glänzender gelber Block zum Bauen."
+"[materials.items.gold_ore]": "Golderz"
+"[materials.items.gold_ore.about]": "Quarz mit gelben Goldadern. Eine Bronzespitzhacke baut es ab."
+"[materials.items.gold_bar]": "Goldbarren"
+"[materials.items.gold_bar.about]": "Ein schweres, weiches gelbes Metall. Barren werden zu Goldblöcken."
+"[materials.items.gold_block]": "Goldblock"
+"[materials.items.gold_block.about]": "Ein glänzender gelber Block zum Bauen."
+
+# content/materials/gold/data/materials.yaml
+"[materials.materials.gold_ore]": "Golderz"
+"[materials.materials.gold_block]": "Goldblock"
+
+# content/materials/gold/data/recipes.yaml
+"[materials.recipes.gold_bar]": "Goldbarren"
+"[materials.recipes.gold_block]": "Goldblock"

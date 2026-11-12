@@ -3,8 +3,8 @@
 # оружие); удар по зверю — power. Кнопка действия стреляет туда, куда смотрит персонаж, касание земли — туда,
 # где коснулись; выстрел попадает в первого зверя на пути, а выпущенное ложится там, где упало.
 - id: flint_spear
-  title: Кремнёвое копьё
-  description: Длинное копьё с кремнёвым наконечником. Его метают в зверя и подбирают снова.
+  title: "[tools.items.flint_spear]"
+  description: "[tools.items.flint_spear.about]"
   weight: 1.5
   stack: 1
   model: flint_spear
@@ -19,7 +19,7 @@
   durability: 120
   repair: {resources:flint: 1}
 - id: bronze_spear
-  title: Бронзовое копьё
+  title: "[tools.items.bronze_spear]"
   weight: 1.5
   stack: 1
   model: bronze_spear
@@ -34,7 +34,7 @@
   durability: 360
   repair: {materials:bronze_bar: 1}
 - id: iron_spear
-  title: Железное копьё
+  title: "[tools.items.iron_spear]"
   weight: 1.5
   stack: 1
   model: iron_spear

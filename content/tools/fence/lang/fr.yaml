@@ -2,11 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fence/bundle.yaml
-"Забор": "Clôture"
+"[tools.fence.bundle]": "Clôture"
 
 # content/tools/fence/data/items.yaml
-"Звено изгороди из жердей. Строится в режиме строительства линией, как стена, и само соединяется с соседними.": "Une section de clôture en perches. Se construit en mode construction comme une ligne, comme un mur, et se raccorde seule à ses voisines."
-"Калитка": "Portillon"
-"Створка из жердей в линию забора, на одну клетку. Касание открывает и закрывает.": "Un battant de perches dans la ligne de la clôture, d'une case. Un toucher l'ouvre et le ferme."
-"Ворота": "Barrière"
-"Две створки из жердей в линию забора, на две клетки в ширину. Касание открывает обе.": "Deux battants de perches dans la ligne de la clôture, de deux cases de large. Un toucher ouvre les deux."
+"[tools.items.fence]": "Clôture"
+"[tools.items.fence.about]": "Une section de clôture en perches. Se construit en mode construction comme une ligne, comme un mur, et se raccorde seule à ses voisines."
+"[tools.items.wicket]": "Portillon"
+"[tools.items.wicket.about]": "Un battant de perches dans la ligne de la clôture, d'une case. Un toucher l'ouvre et le ferme."
+"[tools.items.gate]": "Barrière"
+"[tools.items.gate.about]": "Deux battants de perches dans la ligne de la clôture, de deux cases de large. Un toucher ouvre les deux."
+
+# content/tools/fence/data/recipes.yaml
+"[tools.recipes.fence]": "Clôture"
+"[tools.recipes.wicket]": "Portillon"
+"[tools.recipes.gate]": "Barrière"

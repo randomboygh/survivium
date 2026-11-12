@@ -4,7 +4,7 @@
 # срезая травы (патч `finds`).
 - id: carrot
   kind: crop
-  title: Морковь
+  title: "[plants.plants.carrot]"
   sprite: carrot
   frames: 4
   grows: field

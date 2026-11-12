@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sickle/bundle.yaml
-"Серп": "Hoz"
+"[tools.sickle.bundle]": "Hoz"
 
 # content/tools/sickle/data/items.yaml
-"Каменный серп": "Hoz de piedra"
-"Жнёт спелый урожай с грядок, по три клетки за взмах.": "Siega la cosecha madura de los bancales, tres celdas por golpe."
-"Медный серп": "Hoz de cobre"
-"Жнёт спелый урожай с грядок, по четыре клетки за взмах.": "Siega la cosecha madura de los bancales, cuatro celdas por golpe."
-"Железный серп": "Hoz de hierro"
-"Жнёт спелый урожай с грядок, по пять клеток за взмах.": "Siega la cosecha madura de los bancales, cinco celdas por golpe."
+"[tools.items.stone_sickle]": "Hoz de piedra"
+"[tools.items.stone_sickle.about]": "Siega la cosecha madura de los bancales, tres celdas por golpe."
+"[tools.items.copper_sickle]": "Hoz de cobre"
+"[tools.items.copper_sickle.about]": "Siega la cosecha madura de los bancales, cuatro celdas por golpe."
+"[tools.items.iron_sickle]": "Hoz de hierro"
+"[tools.items.iron_sickle.about]": "Siega la cosecha madura de los bancales, cinco celdas por golpe."
+
+# content/tools/sickle/data/recipes.yaml
+"[tools.recipes.stone_sickle]": "Hoz de piedra"
+"[tools.recipes.copper_sickle]": "Hoz de cobre"
+"[tools.recipes.iron_sickle]": "Hoz de hierro"

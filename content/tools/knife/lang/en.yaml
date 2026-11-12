@@ -2,12 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/knife/bundle.yaml
-"Нож": "Knife"
+"[tools.knife.bundle]": "Knife"
 
 # content/tools/knife/data/items.yaml
-"Кремнёвый нож": "Flint knife"
-"Острый осколок кремня на рукояти. Разделывает туши и бьёт зверя.": "A sharp flint shard on a handle. Butchers carcasses and hits animals."
-"Медный нож": "Copper knife"
-"Бронзовый нож": "Bronze knife"
-"Железный нож": "Iron knife"
-"Стальной нож": "Steel knife"
+"[tools.items.flint_knife]": "Flint knife"
+"[tools.items.flint_knife.about]": "A sharp flint shard on a handle. Butchers carcasses and hits animals."
+"[tools.items.copper_knife]": "Copper knife"
+"[tools.items.bronze_knife]": "Bronze knife"
+"[tools.items.iron_knife]": "Iron knife"
+"[tools.items.steel_knife]": "Steel knife"
+
+# content/tools/knife/data/recipes.yaml
+"[tools.recipes.flint_knife]": "Flint knife"
+"[tools.recipes.copper_knife]": "Copper knife"
+"[tools.recipes.bronze_knife]": "Bronze knife"
+"[tools.recipes.iron_knife]": "Iron knife"
+"[tools.recipes.steel_knife]": "Steel knife"

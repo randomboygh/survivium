@@ -2,9 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/carrot/bundle.yaml
-"Морковь": "Carrot"
+"[plants.carrot.bundle]": "Carrot"
 
 # content/plants/carrot/data/items.yaml
-"Семена моркови": "Carrot seeds"
-"Мелкие ребристые семена. Посейте их на грядку весной.": "Small ribbed seeds. Sow them on a bed in spring."
-"Сладкий оранжевый корнеплод.": "A sweet orange root."
+"[plants.items.carrot_seeds]": "Carrot seeds"
+"[plants.items.carrot_seeds.about]": "Small ribbed seeds. Sow them on a bed in spring."
+"[plants.items.carrot]": "Carrot"
+"[plants.items.carrot.about]": "A sweet orange root."
+
+# content/plants/carrot/data/plants.yaml
+"[plants.plants.carrot]": "Carrot"

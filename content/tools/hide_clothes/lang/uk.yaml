@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hide_clothes/bundle.yaml
-"Одежда из шкур": "Одяг зі шкур"
+"[tools.hide_clothes.bundle]": "Одяг зі шкур"
 
 # content/tools/hide_clothes/data/items.yaml
-"Меховая шапка": "Хутряна шапка"
-"Шапка из шкуры мехом внутрь. Держит тепло головы в мороз.": "Шапка зі шкури хутром усередину. Тримає голову в теплі на морозі."
-"Шуба": "Кожух"
-"Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна.": "Довгий одяг зі шкур хутром усередину. У ньому зимова ніч не страшна."
-"Кожаные штаны": "Шкіряні штани"
-"Штаны из выделанной кожи. Не продуваются ветром.": "Штани з вичиненої шкіри. Вітер їх не продуває."
-"Унты": "Хутряні чоботи"
-"Высокие сапоги из шкуры на кожаной подошве.": "Високі чоботи зі шкури на шкіряній підошві."
+"[tools.items.fur_hat]": "Хутряна шапка"
+"[tools.items.fur_hat.about]": "Шапка зі шкури хутром усередину. Тримає голову в теплі на морозі."
+"[tools.items.fur_coat]": "Кожух"
+"[tools.items.fur_coat.about]": "Довгий одяг зі шкур хутром усередину. У ньому зимова ніч не страшна."
+"[tools.items.leather_trousers]": "Шкіряні штани"
+"[tools.items.leather_trousers.about]": "Штани з вичиненої шкіри. Вітер їх не продуває."
+"[tools.items.fur_boots]": "Хутряні чоботи"
+"[tools.items.fur_boots.about]": "Високі чоботи зі шкури на шкіряній підошві."
+
+# content/tools/hide_clothes/data/recipes.yaml
+"[tools.recipes.fur_hat]": "Хутряна шапка"
+"[tools.recipes.fur_coat]": "Кожух"
+"[tools.recipes.leather_trousers]": "Шкіряні штани"
+"[tools.recipes.fur_boots]": "Хутряні чоботи"

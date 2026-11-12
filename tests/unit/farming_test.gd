@@ -68,7 +68,7 @@ func _test_till_sow_water() -> void:
 		"grain is sown on a bed, and wheat grows there")
 	_check(not actions.plant_at(who, GRAIN, bed), "nothing more is sown where wheat grows")
 	setup[1].season = Clock.WINTER
-	_check(not actions.plant_at(who, GRAIN, Vector3i(12, 1, 8)) and who.said[-1].contains("Зимой"), "nobody sows in winter")
+	_check(not actions.plant_at(who, GRAIN, Vector3i(12, 1, 8)) and who.said[-1].contains("winter"), "nobody sows in winter")
 	setup[1].season = 1
 	# Watering.
 	who.item = "tools:watering_can"
@@ -151,7 +151,7 @@ func _test_reap() -> void:
 		actions.plant_at(who, GRAIN, c)
 		actions.wet(c, clock.now() + 100.0)
 	who.item = ""
-	_check(actions.dig_at(who, row[0], Vector3i.UP).is_empty() and who.said[-1].contains("не созрело")
+	_check(actions.dig_at(who, row[0], Vector3i.UP).is_empty() and who.said[-1].contains("Not ripe")
 		and actions.crop_on(row[0]) == WHEAT, "hands do not pull green wheat, and say how far it is")
 	actions.grow_fields(Plants.BY_ID[WHEAT].grow_days, 0.0)
 	_check(actions.front_kind(who) == "reap", "the action button reaps a ripe crop in front")
@@ -353,7 +353,7 @@ func _test_marks() -> void:
 		"a line of marks to till lies on the ground along the way the stroke went farthest")
 	_check(plans.near(who).is_empty() and plans.near(who, true).size() == 5, "the marks are no ghost to build")
 	var done := plans.farm(actions, who)
-	_check(done.get("idle", false) and plans.cells.size() == 5 and who.said[-1].contains("тяпк"),
+	_check(done.get("idle", false) and plans.cells.size() == 5 and who.said[-1].contains("hoe"),
 		"with no hoe in the bag nothing is tilled, and it is said")
 	who.inventory.add("tools:stone_hoe", 1)
 	_work_marks(plans, actions, who, 10)
@@ -381,7 +381,7 @@ func _test_marks() -> void:
 		"the can of the bag waters the marked beds")
 	# Reaping: green wheat waits, ripe is reaped.
 	_check(plans.mark(actions, who, "reap", Vector3i(8, 1, 12), Vector3i(9, 1, 13), true) == 4, "marks to reap")
-	_check(plans.farm(actions, who).get("idle", false) and plans.cells.size() == 4 and who.said[-1].contains("не созрело"),
+	_check(plans.farm(actions, who).get("idle", false) and plans.cells.size() == 4 and who.said[-1].contains("Not ripe"),
 		"green wheat is not reaped: the marks wait")
 	actions.grow_fields(Plants.BY_ID[WHEAT].grow_days, 0.0)
 	_work_marks(plans, actions, who, 10)
@@ -392,7 +392,7 @@ func _test_marks() -> void:
 	plans.mark(actions, who, "sow", Vector3i(8, 1, 9), Vector3i(8, 1, 9), false)
 	who.item = GRAIN
 	plans.mark(actions, who, "sow", Vector3i(8, 1, 9), Vector3i(8, 1, 9), false)
-	_check(plans.farm(actions, who).get("idle", false) and plans.cells.size() == 1 and who.said[-1].contains("Зимой"),
+	_check(plans.farm(actions, who).get("idle", false) and plans.cells.size() == 1 and who.said[-1].contains("winter"),
 		"nothing is sown in winter: the mark waits")
 	clock.season = 1
 	# Taking off: a stroke, or all near; the blueprint's ghost stays.

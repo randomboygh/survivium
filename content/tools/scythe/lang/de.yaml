@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/scythe/bundle.yaml
-"Коса": "Sense"
+"[tools.scythe.bundle]": "Sense"
 
 # content/tools/scythe/data/items.yaml
-"Каменная коса": "Steinsense"
-"Деревянная коса": "Holzsense"
-"Медная коса": "Kupfersense"
-"Бронзовая коса": "Bronzesense"
-"Железная коса": "Eisensense"
-"Стальная коса": "Stahlsense"
+"[tools.items.stone_scythe]": "Steinsense"
+"[tools.items.wooden_scythe]": "Holzsense"
+"[tools.items.copper_scythe]": "Kupfersense"
+"[tools.items.bronze_scythe]": "Bronzesense"
+"[tools.items.iron_scythe]": "Eisensense"
+"[tools.items.steel_scythe]": "Stahlsense"
+
+# content/tools/scythe/data/recipes.yaml
+"[tools.recipes.stone_scythe]": "Steinsense"
+"[tools.recipes.wooden_scythe]": "Holzsense"
+"[tools.recipes.copper_scythe]": "Kupfersense"
+"[tools.recipes.bronze_scythe]": "Bronzesense"
+"[tools.recipes.iron_scythe]": "Eisensense"
+"[tools.recipes.steel_scythe]": "Stahlsense"
 
 # content/tools/scythe/data/sounds.yaml
-"Покос": "Mähen"
+"[tools.sounds.mow]": "Mähen"

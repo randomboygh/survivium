@@ -4,7 +4,7 @@
 # (нет поля — везде). gives, chance, pick, winter — как у остальных растений.
 - id: nettle
   kind: custom
-  title: Крапива
+  title: "[plants.plants.nettle]"
   sprite: nettle
   frames: 2
   grows: meadow

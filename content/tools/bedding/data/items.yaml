@@ -3,8 +3,8 @@
 # бодрость возвращается в `bedding` раз быстрее (src/shared/game/character.gd, sleep_rate); под
 # крышей — ещё в полтора раза.
 - id: grass_mat
-  title: Травяная подстилка
-  description: Охапка сухой травы, связанная верёвкой. Спать на ней лучше, чем на голой земле.
+  title: "[tools.items.grass_mat]"
+  description: "[tools.items.grass_mat.about]"
   weight: 0.8
   stack: 1
   icon: grass_mat
@@ -12,8 +12,8 @@
   prop: bed
   bedding: 1.5
 - id: fur_bedroll
-  title: Меховой спальник
-  description: Шкуры, сшитые мешком. В нём высыпаются вдвое быстрее.
+  title: "[tools.items.fur_bedroll]"
+  description: "[tools.items.fur_bedroll.about]"
   era: core:bone_leather
   weight: 2.0
   stack: 1

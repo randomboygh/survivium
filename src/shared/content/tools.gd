@@ -34,10 +34,10 @@ const BRUSHES := [
 	{"title": "2×2", "size": 2},
 	{"title": "3×3", "size": 3},
 	{"title": "1×2", "size": 1, "tall": true},
-	{"title": "линия", "size": 1, "line": true},
-	{"title": "стена", "size": 1, "plan": "wall"},
-	{"title": "пол", "size": 1, "plan": "floor"},
-	{"title": "комната", "size": 1, "plan": "room"},
+	{"title": "[line]", "size": 1, "line": true},
+	{"title": "[wall]", "size": 1, "plan": "wall"},
+	{"title": "[floor]", "size": 1, "plan": "floor"},
+	{"title": "[room]", "size": 1, "plan": "room"},
 ]
 
 ## Bare hands, a tool record like an item's: grass, leaves, soft ground (`slow` times slower
@@ -52,7 +52,7 @@ static func _static_init() -> void:
 
 static func refresh() -> void:
 	var s: Dictionary = Starts.START
-	HAND = {"id": "", "title": "Руки", "tool": "hand", "power": s.hand_power, "area": s.hand_area, "swing": s.hand_swing,
+	HAND = {"id": "", "title": "[hands]", "tool": "hand", "power": s.hand_power, "area": s.hand_area, "swing": s.hand_swing,
 		"reach": s.hand_reach, "mows": s.hand_mows, "slow": s.hand_slow}
 
 
@@ -218,11 +218,11 @@ static func why_not(t: Dictionary, m: int) -> String:
 	var rec: Dictionary = Mat.RECORDS[m]
 	match rec.dig:
 		"pickaxe":
-			return "Нужна кирка покрепче" if t.tool == "pickaxe" else Lang.line("%s: нужна кирка", [rec.title])
+			return "[needs_a_sturdier_pickaxe]" if t.tool == "pickaxe" else Lang.line("[needs_a_pickaxe]", [rec.title])
 		"axe":
-			return Lang.line("%s: нужен топор", [rec.title])
+			return Lang.line("[needs_an_axe]", [rec.title])
 		"shovel":
-			return Lang.line("%s: копают руками, лопатой или киркой", [rec.title])
+			return Lang.line("[dug_by_hand_with_a]", [rec.title])
 	return ""
 
 

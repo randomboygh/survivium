@@ -4,8 +4,8 @@
 # указатель стоят на земле и поворачиваются касанием в окне; доска вешается на стену (`wall`): спиной
 # к твёрдой клетке рядом. Поля — как у предметов основы (content/core/data/items.yaml).
 - id: sign
-  title: Табличка
-  description: Дощечка на колышке. Три строки текста, видно всем, кто подойдёт.
+  title: "[tools.items.sign]"
+  description: "[tools.items.sign.about]"
   weight: 1.0
   stack: 10
   icon: sign
@@ -15,8 +15,8 @@
   sign_lines: 3
   sign_width: 20
 - id: signpost
-  title: Указатель
-  description: Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону.
+  title: "[tools.items.signpost]"
+  description: "[tools.items.signpost.about]"
   weight: 1.5
   stack: 10
   icon: signpost
@@ -26,8 +26,8 @@
   sign_lines: 2
   sign_width: 16
 - id: notice_board
-  title: Доска на стену
-  description: Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок.
+  title: "[tools.items.notice_board]"
+  description: "[tools.items.notice_board.about]"
   weight: 3.0
   stack: 5
   icon: notice_board

@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/boats/bundle.yaml
+"[tools.boats.bundle]": "Плот и лодка"
+
+# content/tools/boats/data/items.yaml
+"[tools.items.raft]": "Плот"
+"[tools.items.raft.about]": "Брёвна, связанные верёвкой. Возьми в руку и нажми действие у воды, чтобы спустить его и сесть."
+"[tools.items.boat]": "Лодка"
+"[tools.items.boat.about]": "Лёгкая лодка из досок, просмолённая. Быстрее плота, но грести ею можно только с вёслами в сумке."
+"[tools.items.oars]": "Вёсла"
+"[tools.items.oars.about]": "Пара вёсел. Пока они в сумке, лодка идёт быстро."
+
+# content/tools/boats/data/recipes.yaml
+"[tools.recipes.raft]": "Плот"
+"[tools.recipes.boat]": "Лодка"
+"[tools.recipes.oars]": "Вёсла"

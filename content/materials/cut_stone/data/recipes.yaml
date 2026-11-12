@@ -1,6 +1,6 @@
 # Камень («Ресурсы») обтёсывают киркой на верстаке («Инструменты»).
 - id: cut_stone
-  title: Тёсаный камень
+  title: "[materials.recipes.cut_stone]"
   makes: cut_stone
   needs: {resources:stone: 2}
   at: tools:workbench

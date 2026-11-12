@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/hoe/bundle.yaml
+"[tools.hoe.bundle]": "Тяпка"
+
+# content/tools/hoe/data/items.yaml
+"[tools.items.stone_hoe]": "Каменная тяпка"
+"[tools.items.stone_hoe.about]": "Вскапывает траву и землю в грядку, на которую сеют."
+"[tools.items.copper_hoe]": "Медная тяпка"
+"[tools.items.copper_hoe.about]": "Вскапывает две клетки за взмах."
+"[tools.items.iron_hoe]": "Железная тяпка"
+"[tools.items.iron_hoe.about]": "Вскапывает три клетки за взмах."
+
+# content/tools/hoe/data/recipes.yaml
+"[tools.recipes.stone_hoe]": "Каменная тяпка"
+"[tools.recipes.copper_hoe]": "Медная тяпка"
+"[tools.recipes.iron_hoe]": "Железная тяпка"

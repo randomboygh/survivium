@@ -1,0 +1,17 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/tin/bundle.yaml
+"[materials.tin.bundle]": "Олово"
+
+# content/materials/tin/data/items.yaml
+"[materials.items.tin_ore]": "Оловянная руда"
+"[materials.items.tin_ore.about]": "Тёмная тяжёлая руда со светлыми крупинками. Её берёт медная кирка."
+"[materials.items.tin_bar]": "Слиток олова"
+"[materials.items.tin_bar.about]": "Мягкий серебристый металл. С медью даёт бронзу."
+
+# content/materials/tin/data/materials.yaml
+"[materials.materials.tin_ore]": "Оловянная руда"
+
+# content/materials/tin/data/recipes.yaml
+"[materials.recipes.tin_bar]": "Слиток олова"

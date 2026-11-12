@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/boats/bundle.yaml
-"Плот и лодка": "Jangada e barco"
+"[tools.boats.bundle]": "Jangada e barco"
 
 # content/tools/boats/data/items.yaml
-"Плот": "Jangada"
-"Брёвна, связанные верёвкой. Возьми в руку и нажми действие у воды, чтобы спустить его и сесть.": "Troncos amarrados com corda. Pegue-a na mão e use a ação junto à água para lançá-la e subir."
-"Лодка": "Barco"
-"Лёгкая лодка из досок, просмолённая. Быстрее плота, но грести ею можно только с вёслами в сумке.": "Um barco leve de tábuas alcatroado. Mais rápido que a jangada, mas só se rema com remos na bolsa."
-"Вёсла": "Remos"
-"Пара вёсел. Пока они в сумке, лодка идёт быстро.": "Um par de remos. Enquanto estiverem na bolsa, o barco anda rápido."
+"[tools.items.raft]": "Jangada"
+"[tools.items.raft.about]": "Troncos amarrados com corda. Pegue-a na mão e use a ação junto à água para lançá-la e subir."
+"[tools.items.boat]": "Barco"
+"[tools.items.boat.about]": "Um barco leve de tábuas alcatroado. Mais rápido que a jangada, mas só se rema com remos na bolsa."
+"[tools.items.oars]": "Remos"
+"[tools.items.oars.about]": "Um par de remos. Enquanto estiverem na bolsa, o barco anda rápido."
+
+# content/tools/boats/data/recipes.yaml
+"[tools.recipes.raft]": "Jangada"
+"[tools.recipes.boat]": "Barco"
+"[tools.recipes.oars]": "Remos"

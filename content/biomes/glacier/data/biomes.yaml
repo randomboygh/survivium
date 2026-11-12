@@ -13,7 +13,7 @@
 # зонами. Склоны под снегом, отвесные стены — голубой лёд (материалы бандла «Ресурсы: Снег», без
 # него камень).
 - id: glacier
-  title: Ледник
+  title: "[biomes.biomes.glacier]"
   where: glacier
   zone: mountain
   warmth: [0.0, 0.3]

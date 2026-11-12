@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/scythe/bundle.yaml
-"Коса": "Guadaña"
+"[tools.scythe.bundle]": "Guadaña"
 
 # content/tools/scythe/data/items.yaml
-"Каменная коса": "Guadaña de piedra"
-"Деревянная коса": "Guadaña de madera"
-"Медная коса": "Guadaña de cobre"
-"Бронзовая коса": "Guadaña de bronce"
-"Железная коса": "Guadaña de hierro"
-"Стальная коса": "Guadaña de acero"
+"[tools.items.stone_scythe]": "Guadaña de piedra"
+"[tools.items.wooden_scythe]": "Guadaña de madera"
+"[tools.items.copper_scythe]": "Guadaña de cobre"
+"[tools.items.bronze_scythe]": "Guadaña de bronce"
+"[tools.items.iron_scythe]": "Guadaña de hierro"
+"[tools.items.steel_scythe]": "Guadaña de acero"
+
+# content/tools/scythe/data/recipes.yaml
+"[tools.recipes.stone_scythe]": "Guadaña de piedra"
+"[tools.recipes.wooden_scythe]": "Guadaña de madera"
+"[tools.recipes.copper_scythe]": "Guadaña de cobre"
+"[tools.recipes.bronze_scythe]": "Guadaña de bronce"
+"[tools.recipes.iron_scythe]": "Guadaña de hierro"
+"[tools.recipes.steel_scythe]": "Guadaña de acero"
 
 # content/tools/scythe/data/sounds.yaml
-"Покос": "Siega"
+"[tools.sounds.mow]": "Siega"

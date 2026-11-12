@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hoe/bundle.yaml
-"Тяпка": "Çapa"
+"[tools.hoe.bundle]": "Çapa"
 
 # content/tools/hoe/data/items.yaml
-"Каменная тяпка": "Taş çapa"
-"Вскапывает траву и землю в грядку, на которую сеют.": "Otu ve toprağı ekim için tarha çevirir."
-"Медная тяпка": "Bakır çapa"
-"Вскапывает две клетки за взмах.": "Vuruş başına iki hücre beller."
-"Железная тяпка": "Demir çapa"
-"Вскапывает три клетки за взмах.": "Vuruş başına üç hücre beller."
+"[tools.items.stone_hoe]": "Taş çapa"
+"[tools.items.stone_hoe.about]": "Otu ve toprağı ekim için tarha çevirir."
+"[tools.items.copper_hoe]": "Bakır çapa"
+"[tools.items.copper_hoe.about]": "Vuruş başına iki hücre beller."
+"[tools.items.iron_hoe]": "Demir çapa"
+"[tools.items.iron_hoe.about]": "Vuruş başına üç hücre beller."
+
+# content/tools/hoe/data/recipes.yaml
+"[tools.recipes.stone_hoe]": "Taş çapa"
+"[tools.recipes.copper_hoe]": "Bakır çapa"
+"[tools.recipes.iron_hoe]": "Demir çapa"

@@ -112,7 +112,7 @@ content/tools/
 
   ```yaml
   - id: loom
-    title: Ткацкий станок
+    title: "[tools.items.loom]"   # ключ; «Ткацкий станок» — в lang/ru.yaml, «Loom» — в lang/en.yaml
     weight: 12
     stack: 1
     model: loom
@@ -125,7 +125,7 @@ content/tools/
 
   ```yaml
   - id: cloth
-    title: Ткань
+    title: "[tools.recipes.cloth]"
     makes: cloth
     count: 1
     needs: {resources:fiber: 4}

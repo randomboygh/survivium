@@ -2,13 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/bow/bundle.yaml
-"Лук": "Yay"
+"[tools.bow.bundle]": "Yay"
 
 # content/tools/bow/data/items.yaml
-"Деревянный лук": "Ahşap yay"
-"Стреляет стрелами дальше всего.": "Okları her şeyden uzağa atar."
-"Стрела": "Ok"
-"Древко с кремнёвым наконечником. После выстрела её можно подобрать.": "Çakmaktaşı uçlu bir sap. Atıştan sonra geri alınabilir."
+"[tools.items.wooden_bow]": "Ahşap yay"
+"[tools.items.wooden_bow.about]": "Okları her şeyden uzağa atar."
+"[tools.items.arrow]": "Ok"
+"[tools.items.arrow.about]": "Çakmaktaşı uçlu bir sap. Atıştan sonra geri alınabilir."
 
 # content/tools/bow/data/recipes.yaml
-"Стрелы": "Oklar"
+"[tools.recipes.wooden_bow]": "Ahşap yay"
+"[tools.recipes.arrow]": "Oklar"

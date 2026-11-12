@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/signs/bundle.yaml
-"Таблички": "Panneaux"
+"[tools.signs.bundle]": "Panneaux"
 
 # content/tools/signs/data/items.yaml
-"Табличка": "Panneau"
-"Дощечка на колышке. Три строки текста, видно всем, кто подойдёт.": "Une planchette sur un piquet. Trois lignes de texte, visibles par tous ceux qui s'approchent."
-"Указатель": "Poteau indicateur"
-"Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону.": "Une flèche sur un poteau. Deux lignes de texte ; la flèche peut être tournée dans n'importe quel sens."
-"Доска на стену": "Tableau mural"
-"Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок.": "Un grand tableau accroché au mur. Six lignes de texte, pour les règles, les annonces et les notes."
+"[tools.items.sign]": "Panneau"
+"[tools.items.sign.about]": "Une planchette sur un piquet. Trois lignes de texte, visibles par tous ceux qui s'approchent."
+"[tools.items.signpost]": "Poteau indicateur"
+"[tools.items.signpost.about]": "Une flèche sur un poteau. Deux lignes de texte ; la flèche peut être tournée dans n'importe quel sens."
+"[tools.items.notice_board]": "Tableau mural"
+"[tools.items.notice_board.about]": "Un grand tableau accroché au mur. Six lignes de texte, pour les règles, les annonces et les notes."
+
+# content/tools/signs/data/recipes.yaml
+"[tools.recipes.sign]": "Panneau"
+"[tools.recipes.signpost]": "Poteau indicateur"
+"[tools.recipes.notice_board]": "Tableau mural"

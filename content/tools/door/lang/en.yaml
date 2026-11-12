@@ -2,13 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/door/bundle.yaml
-"Дверь": "Door"
+"[tools.door.bundle]": "Door"
 
 # content/tools/door/data/items.yaml
-"Створка из досок для проёма в стене. Касание открывает и закрывает.": "A plank door for an opening in a wall. A tap opens and closes it."
-"Дверь 2×2": "Door 2×2"
-"Двустворчатая дверь из досок, на две клетки в ширину и две в высоту.": "A double plank door, two cells wide and two high."
-"Дверь 2×3": "Door 2×3"
-"Высокая двустворчатая дверь, на две клетки в ширину и три в высоту.": "A tall double door, two cells wide and three high."
-"Ворота 3×3": "Gate 3×3"
-"Большие двустворчатые ворота из досок для проёма в стене, на три клетки в ширину и три в высоту.": "Big double plank gates for an opening in a wall, three cells wide and three high."
+"[tools.items.door]": "Door"
+"[tools.items.door.about]": "A plank door for an opening in a wall. A tap opens and closes it."
+"[tools.items.door_2x2]": "Door 2×2"
+"[tools.items.door_2x2.about]": "A double plank door, two cells wide and two high."
+"[tools.items.door_2x3]": "Door 2×3"
+"[tools.items.door_2x3.about]": "A tall double door, two cells wide and three high."
+"[tools.items.door_3x3]": "Gate 3×3"
+"[tools.items.door_3x3.about]": "Big double plank gates for an opening in a wall, three cells wide and three high."
+
+# content/tools/door/data/recipes.yaml
+"[tools.recipes.door]": "Door"
+"[tools.recipes.door_2x2]": "Door 2×2"
+"[tools.recipes.door_2x3]": "Door 2×3"
+"[tools.recipes.door_3x3]": "Gate 3×3"

@@ -5,8 +5,8 @@
 # грести: без вёсел лодка едва движется. `windage` — как сильно ветер сносит судно (плот высокий и
 # плоский — 1, лодка меньше).
 - id: raft
-  title: Плот
-  description: Брёвна, связанные верёвкой. Возьми в руку и нажми действие у воды, чтобы спустить его и сесть.
+  title: "[tools.items.raft]"
+  description: "[tools.items.raft.about]"
   era: core:primitive
   weight: 12.0
   stack: 1
@@ -15,8 +15,8 @@
   vessel: 0.4
   windage: 1.0
 - id: boat
-  title: Лодка
-  description: Лёгкая лодка из досок, просмолённая. Быстрее плота, но грести ею можно только с вёслами в сумке.
+  title: "[tools.items.boat]"
+  description: "[tools.items.boat.about]"
   era: core:bronze
   weight: 10.0
   stack: 1
@@ -26,8 +26,8 @@
   windage: 0.4
   oars: oars
 - id: oars
-  title: Вёсла
-  description: Пара вёсел. Пока они в сумке, лодка идёт быстро.
+  title: "[tools.items.oars]"
+  description: "[tools.items.oars.about]"
   era: core:primitive
   weight: 1.5
   stack: 1

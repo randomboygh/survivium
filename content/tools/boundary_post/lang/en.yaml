@@ -2,4 +2,10 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/boundary_post/bundle.yaml
-"Межевой столб": "Boundary post"
+"[tools.boundary_post.bundle]": "Boundary post"
+
+# content/tools/boundary_post/data/items.yaml
+"[tools.items.boundary_post]": "Boundary post"
+
+# content/tools/boundary_post/data/recipes.yaml
+"[tools.recipes.boundary_post]": "Boundary post"

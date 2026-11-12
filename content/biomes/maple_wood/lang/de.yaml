@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/biomes/maple_wood/bundle.yaml
-"Кленовник": "Ahornwald"
+"[biomes.maple_wood.bundle]": "Ahornwald"
+
+# content/biomes/maple_wood/data/biomes.yaml
+"[biomes.biomes.maple_wood]": "Ahornwald"

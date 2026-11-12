@@ -1,0 +1,21 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/silver/bundle.yaml
+"[materials.silver.bundle]": "Серебро"
+
+# content/materials/silver/data/items.yaml
+"[materials.items.silver_ore]": "Серебряная руда"
+"[materials.items.silver_ore.about]": "Серая порода с белыми блёстками самородного серебра. Её берёт бронзовая кирка."
+"[materials.items.silver_bar]": "Серебряный слиток"
+"[materials.items.silver_bar.about]": "Мягкий белый металл. Из слитков складывают серебряные блоки."
+"[materials.items.silver_block]": "Серебряный блок"
+"[materials.items.silver_block.about]": "Гладкий светлый металлический блок для построек."
+
+# content/materials/silver/data/materials.yaml
+"[materials.materials.silver_ore]": "Серебряная руда"
+"[materials.materials.silver_block]": "Серебряный блок"
+
+# content/materials/silver/data/recipes.yaml
+"[materials.recipes.silver_bar]": "Серебряный слиток"
+"[materials.recipes.silver_block]": "Серебряный блок"

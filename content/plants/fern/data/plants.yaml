@@ -4,7 +4,7 @@
 # (нет поля — везде). gives, chance, pick, winter — как у остальных растений.
 - id: fern
   kind: custom
-  title: Папоротник
+  title: "[plants.plants.fern]"
   sprite: fern
   frames: 2
   grows: shade

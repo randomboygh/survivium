@@ -2,22 +2,22 @@
 # песком и обжигают в печи; в сумке он нужен при плавке и не тратится. Бронзовые инструменты —
 # в бандлах своих видов (топор, кирка…) «Инструментов».
 - id: raw_crucible
-  title: Сырой тигель
-  description: Толстостенная чаша из глины с песком. Её ещё нужно обжечь в печи.
+  title: "[materials.items.raw_crucible]"
+  description: "[materials.items.raw_crucible.about]"
   weight: 1.5
   stack: 5
   model: raw_crucible
   icon: raw_crucible
 - id: crucible
-  title: Тигель
-  description: Обожжённая чаша для плавки. В ней сплавляют медь с оловом; сама она не тратится.
+  title: "[materials.items.crucible]"
+  description: "[materials.items.crucible.about]"
   weight: 1.4
   stack: 5
   model: crucible
   icon: crucible
 - id: bronze_bar
-  title: Бронзовый слиток
-  description: Медь с оловом: твёрже меди. Из бронзы — инструменты, которые берут железную руду.
+  title: "[materials.items.bronze_bar]"
+  description: "[materials.items.bronze_bar.about]"
   era: core:alloy
   weight: 2.0
   stack: 20

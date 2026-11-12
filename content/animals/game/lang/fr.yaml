@@ -2,24 +2,26 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/animals/game/bundle.yaml
-"Добыча": "Gibier"
+"[animals.game.bundle]": "Gibier"
 
 # content/animals/game/data/items.yaml
-"Тушка": "Petite carcasse"
-"Мелкий зверь или птица. Разделывается руками.": "Un petit animal ou un oiseau. Se dépèce à la main."
-"Туша": "Carcasse"
-"Крупный зверь. Разделать её можно только ножом.": "Un gros animal. Ne se dépèce qu'avec un couteau."
-"Сырое мясо": "Viande crue"
-"Есть можно, но жареное сытнее.": "Comestible, mais grillée elle nourrit plus."
-"Жареное мясо": "Viande grillée"
-"Мясо, зажаренное на костре. Очень сытное.": "Viande grillée sur un feu de camp. Très nourrissante."
-"Шкура": "Peau"
-"Сырая шкура зверя.": "La peau crue d'un animal."
-"Кость": "Os"
-"Жир": "Graisse"
-"Вяленое мясо": "Viande séchée"
-"Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно.": "Viande séchée sur un séchoir. Légère et nourrissante, sans feu."
+"[animals.items.small_carcass]": "Petite carcasse"
+"[animals.items.small_carcass.about]": "Un petit animal ou un oiseau. Se dépèce à la main."
+"[animals.items.carcass]": "Carcasse"
+"[animals.items.carcass.about]": "Un gros animal. Ne se dépèce qu'avec un couteau."
+"[animals.items.raw_meat]": "Viande crue"
+"[animals.items.raw_meat.about]": "Comestible, mais grillée elle nourrit plus."
+"[animals.items.roasted_meat]": "Viande grillée"
+"[animals.items.roasted_meat.about]": "Viande grillée sur un feu de camp. Très nourrissante."
+"[animals.items.hide]": "Peau"
+"[animals.items.hide.about]": "La peau crue d'un animal."
+"[animals.items.bone]": "Os"
+"[animals.items.fat]": "Graisse"
+"[animals.items.jerky]": "Viande séchée"
+"[animals.items.jerky.about]": "Viande séchée sur un séchoir. Légère et nourrissante, sans feu."
 
 # content/animals/game/data/recipes.yaml
-"Разделать тушку": "Dépecer une petite carcasse"
-"Разделать тушу": "Dépecer une carcasse"
+"[animals.recipes.raw_meat_from_small_carcass]": "Dépecer une petite carcasse"
+"[animals.recipes.raw_meat_from_carcass]": "Dépecer une carcasse"
+"[animals.recipes.roasted_meat]": "Viande grillée"
+"[animals.recipes.jerky]": "Viande séchée"

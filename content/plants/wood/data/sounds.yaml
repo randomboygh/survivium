@@ -1,13 +1,13 @@
 # Звуки древесины: удар по стволу, шорох листвы, шаг по бревну (sounds/<id>_N.wav, tools/make_sounds.gd).
 - id: chop
-  title: Удар по дереву
+  title: "[plants.sounds.chop]"
   variants: 3
   volume: 0.8
 - id: rustle
-  title: Шорох листьев
+  title: "[plants.sounds.rustle]"
   variants: 3
   volume: 0.6
 - id: step_wood
-  title: Шаг по дереву
+  title: "[plants.sounds.step_wood]"
   variants: 4
   volume: 0.45

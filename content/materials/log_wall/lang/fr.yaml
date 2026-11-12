@@ -2,7 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/log_wall/bundle.yaml
-"Сруб": "Mur de rondins"
+"[materials.log_wall.bundle]": "Mur de rondins"
 
 # content/materials/log_wall/data/items.yaml
-"Отёсанные брёвна для стен и пола. Ставится блоком.": "Rondins équarris pour murs et sols. Se pose comme un bloc."
+"[materials.items.log_wall]": "Mur de rondins"
+"[materials.items.log_wall.about]": "Rondins équarris pour murs et sols. Se pose comme un bloc."
+
+# content/materials/log_wall/data/materials.yaml
+"[materials.materials.log_wall]": "Mur de rondins"
+
+# content/materials/log_wall/data/recipes.yaml
+"[materials.recipes.log_wall]": "Mur de rondins"

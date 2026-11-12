@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/pickaxe/bundle.yaml
-"Кирка": "Spitzhacke"
+"[tools.pickaxe.bundle]": "Spitzhacke"
 
 # content/tools/pickaxe/data/items.yaml
-"Каменная кирка": "Steinspitzhacke"
-"Деревянная кирка": "Holzspitzhacke"
-"Медная кирка": "Kupferspitzhacke"
-"Бронзовая кирка": "Bronzespitzhacke"
-"Железная кирка": "Eisenspitzhacke"
-"Стальная кирка": "Stahlspitzhacke"
+"[tools.items.stone_pickaxe]": "Steinspitzhacke"
+"[tools.items.wooden_pickaxe]": "Holzspitzhacke"
+"[tools.items.copper_pickaxe]": "Kupferspitzhacke"
+"[tools.items.bronze_pickaxe]": "Bronzespitzhacke"
+"[tools.items.iron_pickaxe]": "Eisenspitzhacke"
+"[tools.items.steel_pickaxe]": "Stahlspitzhacke"
+
+# content/tools/pickaxe/data/recipes.yaml
+"[tools.recipes.stone_pickaxe]": "Steinspitzhacke"
+"[tools.recipes.wooden_pickaxe]": "Holzspitzhacke"
+"[tools.recipes.copper_pickaxe]": "Kupferspitzhacke"
+"[tools.recipes.bronze_pickaxe]": "Bronzespitzhacke"
+"[tools.recipes.iron_pickaxe]": "Eisenspitzhacke"
+"[tools.recipes.steel_pickaxe]": "Stahlspitzhacke"

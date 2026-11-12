@@ -32,10 +32,10 @@ const COLUMNS_PORTRAIT := 6
 const BUTTON := 30
 ## How long the clear button waits for its second tap, s.
 const CONFIRM_WAIT := 3.0
-const SHAPES := {"line": ["build_line", "Линия: стена"], "plane": ["build_plane", "Плоскость: пол"],
-	"square": ["build_square", "Квадрат: стены вокруг"], "cube": ["build_cube", "Куб: пол, стены и потолок"]}
-const FORMS := [["form_cube", "Блок: целый"], ["form_ramp", "Скос снизу"], ["form_upper", "Скос сверху"],
-	["form_stairs", "Ступени"]]
+const SHAPES := {"line": ["build_line", "[line_wall]"], "plane": ["build_plane", "[plane_floor]"],
+	"square": ["build_square", "[square_walls_around]"], "cube": ["build_cube", "[cube_floor_walls_and_ceiling]"]}
+const FORMS := [["form_cube", "[block_whole]"], ["form_ramp", "[slope_below]"], ["form_upper", "[slope_above]"],
+	["form_stairs", "[steps]"]]
 
 var game
 var mode
@@ -101,7 +101,7 @@ func _init(g, m = null) -> void:
 func _make_panel(panel: HBoxContainer) -> void:
 	var shapes := TabRow.split([
 		[UiStyle.icon("build_line"), "", func() -> void: game.build.next_kind()],
-		[UiStyle.icon("build_flatten"), "Выровнять землю: срезать выше, засыпать ямы землёй из сумки",
+		[UiStyle.icon("build_flatten"), "[level_the_ground_cut_what]",
 			func() -> void: game.build.set_kind("flatten")],
 	])
 	_shape = shapes.get_child(0)
@@ -109,26 +109,26 @@ func _make_panel(panel: HBoxContainer) -> void:
 	panel.add_child(shapes)
 	_forms = TabRow.split([
 		[UiStyle.icon("form_cube"), "", func() -> void: game.build.next_form()],
-		[UiStyle.icon("turn_right"), "Повернуть скос или ступени (Y)", func() -> void: game.build.turn()],
+		[UiStyle.icon("turn_right"), "[turn_the_slope_or_stairs]", func() -> void: game.build.turn()],
 	])
 	_form = _forms.get_child(0)
 	_turn = _forms.get_child(1)
 	panel.add_child(_forms)
-	_height = _cycle("build_height", "Высота", func() -> void: game.build.next_height())
-	_thick = _cycle("build_thick", "Толщина стен", func() -> void: game.build.next_thick())
+	_height = _cycle("build_height", "[height]", func() -> void: game.build.next_height())
+	_thick = _cycle("build_thick", "[wall_thickness]", func() -> void: game.build.next_thick())
 	var sizes := TabRow.split([])
 	sizes.add_child(_height)
 	sizes.add_child(_thick)
 	panel.add_child(sizes)
 	var marks := TabRow.split([
 		[UiStyle.icon("build_draw"), "", func() -> void: game.build.set_erasing(not game.build.erasing)],
-		[UiStyle.icon("trash"), "Убрать все чертежи рядом (нажать дважды)", _tap_clear],
+		[UiStyle.icon("trash"), "[remove_all_blueprints_nearby_press]", _tap_clear],
 	])
 	_mode = marks.get_child(0)
 	_clear = marks.get_child(1)
 	panel.add_child(marks)
 	_add_go(panel)
-	var leave := TabRow.icon_button(UiStyle.icon("close"), "Выйти из режима строительства (B)", func() -> void: game.build.leave())
+	var leave := TabRow.icon_button(UiStyle.icon("close"), "[leave_build_mode_b]", func() -> void: game.build.leave())
 	panel.add_child(leave)
 	for b: Button in [_shape, _flatten, _form, _turn, _mode, _clear, leave]:
 		b.custom_minimum_size = Vector2(BUTTON, BUTTON)
@@ -143,7 +143,7 @@ func _add_go(panel: HBoxContainer) -> void:
 
 ## The tip of the action button.
 func _go_tip() -> String:
-	return "Построить весь чертёж рядом (F)"
+	return "[build_the_whole_blueprint_nearby]"
 
 
 ## Shows the action button anew: a PC only, a picture alone (the tip names it), lit with
@@ -152,7 +152,7 @@ func _show_go() -> void:
 	_go.visible = not game.hud.touch
 	var working: bool = mode.auto
 	_go.icon = UiStyle.centred(UiStyle.icon("halt" if working else "go"))
-	_go.tooltip_text = "Остановить (F)" if working else _go_tip()
+	_go.tooltip_text = "[stop_f]" if working else _go_tip()
 	TabRow.light(_go, working)
 
 
@@ -212,7 +212,7 @@ func _tap_clear() -> void:
 
 ## What the clear button asks on its first tap.
 func _clear_ask() -> String:
-	return "Нажмите ещё раз, чтобы убрать все чертежи рядом"
+	return "[press_again_to_remove_all]"
 
 
 ## Lights the clear button red while it waits for its second tap.
@@ -274,19 +274,19 @@ func _show_panel() -> void:
 	var b = game.build
 	var shape: Array = SHAPES.get(b.shape, SHAPES["line"])
 	_shape.icon = UiStyle.centred(UiStyle.icon(shape[0]))
-	_shape.tooltip_text = Lang.f("%s (нажать — следующая фигура)", [shape[1]])
+	_shape.tooltip_text = Lang.f("[press_for_the_next_shape]", [shape[1]])
 	TabRow.light(_shape, b.kind != "flatten")
 	TabRow.light(_flatten, b.kind == "flatten")
 	_form.icon = UiStyle.centred(UiStyle.icon(FORMS[b.form][0]))
-	_form.tooltip_text = Lang.f("%s (нажать — следующая форма)", [FORMS[b.form][1]])
+	_form.tooltip_text = Lang.f("[press_for_the_next_form]", [FORMS[b.form][1]])
 	_turn.disabled = b.form == 0
 	# A plane is as many levels as its height and has no walls to thicken.
 	_number(_height, b.height, b.kind == "flatten")
 	_number(_thick, b.thick, b.kind in ["plane", "flatten"])
-	_height.tooltip_text = Lang.f("Высота: пол %s, стены %s, куб %s (с полом и потолком)", [
+	_height.tooltip_text = Lang.f("[height_floor_walls_cube_with]", [
 		b.heights.plane, b.heights.line, b.heights.cube])
 	_mode.icon = UiStyle.centred(UiStyle.icon("build_erase" if b.erasing else "build_draw"))
-	_mode.tooltip_text = "Стирать чертёж (нажать — рисовать)" if b.erasing else "Рисовать чертёж (нажать — стирать)"
+	_mode.tooltip_text = "[erasing_the_blueprint_press_to]" if b.erasing else "[drawing_the_blueprint_press_to]"
 	TabRow.light(_mode, b.erasing, b.erasing)
 	_light_clear(_clear, _asks.armed == _clear)
 	_show_go()
@@ -326,7 +326,7 @@ func _show_palette() -> void:
 
 ## The tip of the empty palette.
 func _nothing() -> String:
-	return "Нечего строить: нет блоков" if mode.filter != "interior" else "Нечего строить: нет вещей"
+	return "[nothing_to_build_no_blocks]" if mode.filter != "interior" else "[nothing_to_build_no_items]"
 
 
 ## Slot `k` shown was tapped: its item into the hand.

@@ -64,7 +64,7 @@ func _test_build() -> void:
 	_check(actions.front_kind(who) == "build", "the action button builds with a block in hand by the ghost")
 	var swing := actions.act_in_front(who, 40)
 	_check(swing.is_empty() or not swing.has("placed"), "with no planks in the bag nothing is built")
-	_check(who.said.any(func(s: String) -> bool: return s.contains("В сумке нет")), "and the player is told so")
+	_check(who.said.any(func(s: String) -> bool: return s.contains("Not in the bag")), "and the player is told so")
 	who.inventory.add(PLANKS, 20)
 	var built: Array[Vector3i] = []
 	for i in 14:
@@ -185,7 +185,7 @@ func _test_flatten() -> void:
 	plans.build(actions, who)
 	_check(w.get_cell(12, 2, 10) == Mat.AIR and plans.cells.size() == 1, "then the rest of it")
 	plans.build(actions, who)
-	_check(w.get_cell(13, 1, 10) == Mat.AIR and who.said.any(func(t: String) -> bool: return t.contains("В сумке нет")),
+	_check(w.get_cell(13, 1, 10) == Mat.AIR and who.said.any(func(t: String) -> bool: return t.contains("Not in the bag")),
 		"with no soil in the bag the hole waits")
 	who.inventory.add(soil, 1)
 	plans.build(actions, who)

@@ -3,8 +3,8 @@
 # градусов теплее в ней (src/shared/game/warmth.gd; мокрая греет вполовину). Греет вдвое-втрое лучше
 # одежды из волокна (бандл «Одежда из волокна»).
 - id: fur_hat
-  title: Меховая шапка
-  description: Шапка из шкуры мехом внутрь. Держит тепло головы в мороз.
+  title: "[tools.items.fur_hat]"
+  description: "[tools.items.fur_hat.about]"
   era: core:bone_leather
   weight: 0.4
   stack: 1
@@ -13,8 +13,8 @@
   look: fur_hat
   warmth: 5
 - id: fur_coat
-  title: Шуба
-  description: Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна.
+  title: "[tools.items.fur_coat]"
+  description: "[tools.items.fur_coat.about]"
   era: core:bone_leather
   weight: 2.0
   stack: 1
@@ -23,8 +23,8 @@
   look: fur_coat
   warmth: 12
 - id: leather_trousers
-  title: Кожаные штаны
-  description: Штаны из выделанной кожи. Не продуваются ветром.
+  title: "[tools.items.leather_trousers]"
+  description: "[tools.items.leather_trousers.about]"
   era: core:bone_leather
   weight: 0.8
   stack: 1
@@ -33,8 +33,8 @@
   look: leather_trousers
   warmth: 5
 - id: fur_boots
-  title: Унты
-  description: Высокие сапоги из шкуры на кожаной подошве.
+  title: "[tools.items.fur_boots]"
+  description: "[tools.items.fur_boots.about]"
   era: core:bone_leather
   weight: 0.6
   stack: 1

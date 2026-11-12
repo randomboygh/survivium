@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sword/bundle.yaml
-"Меч": "Schwert"
+"[tools.sword.bundle]": "Schwert"
 
 # content/tools/sword/data/items.yaml
-"Деревянный меч": "Holzschwert"
-"Каменный меч": "Steinschwert"
-"Медный меч": "Kupferschwert"
-"Бронзовый меч": "Bronzeschwert"
-"Железный меч": "Eisenschwert"
-"Стальной меч": "Stahlschwert"
+"[tools.items.wooden_sword]": "Holzschwert"
+"[tools.items.stone_sword]": "Steinschwert"
+"[tools.items.copper_sword]": "Kupferschwert"
+"[tools.items.bronze_sword]": "Bronzeschwert"
+"[tools.items.iron_sword]": "Eisenschwert"
+"[tools.items.steel_sword]": "Stahlschwert"
+
+# content/tools/sword/data/recipes.yaml
+"[tools.recipes.wooden_sword]": "Holzschwert"
+"[tools.recipes.stone_sword]": "Steinschwert"
+"[tools.recipes.copper_sword]": "Kupferschwert"
+"[tools.recipes.bronze_sword]": "Bronzeschwert"
+"[tools.recipes.iron_sword]": "Eisenschwert"
+"[tools.recipes.steel_sword]": "Stahlschwert"
 
 # content/tools/sword/data/sounds.yaml
-"Взмах": "Hieb"
+"[tools.sounds.swish]": "Hieb"

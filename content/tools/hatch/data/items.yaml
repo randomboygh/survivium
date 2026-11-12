@@ -4,8 +4,8 @@
 # режиме строительства касание пола из построенных блоков вынимает блок и ставит туда люк (блок
 # падает, как выкопанный). Поля — как у предметов основы (content/core/data/items.yaml).
 - id: hatch
-  title: Люк
-  description: Крышка из досок для дыры в полу или потолке. Касание открывает и закрывает.
+  title: "[tools.items.hatch]"
+  description: "[tools.items.hatch.about]"
   weight: 3.0
   stack: 4
   icon: hatch
@@ -15,8 +15,8 @@
   hatch: true
 # Широкий люк на 2×2 клетки: крышка из досок откидывается вверх целиком.
 - id: hatch_2x2
-  title: Люк 2×2
-  description: Широкая крышка из досок для дыры в полу на две клетки в ширину и две в глубину.
+  title: "[tools.items.hatch_2x2]"
+  description: "[tools.items.hatch_2x2.about]"
   weight: 10.0
   stack: 2
   icon: hatch_2x2

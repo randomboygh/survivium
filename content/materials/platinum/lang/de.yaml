@@ -2,12 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/platinum/bundle.yaml
-"Платина": "Platin"
+"[materials.platinum.bundle]": "Platin"
 
 # content/materials/platinum/data/items.yaml
-"Платиновая руда": "Platinerz"
-"Тёмная тяжёлая порода с серыми зёрнами платины. Её берёт бронзовая кирка.": "Ein dunkles schweres Gestein mit grauen Platinkörnern. Eine Bronzespitzhacke baut es ab."
-"Платиновый слиток": "Platinbarren"
-"Тугоплавкий тяжёлый металл: в горне его плавят долго и с двойным углём. Из слитков складывают платиновые блоки.": "Ein schweres, schwer schmelzbares Metall: die Esse schmilzt es lange, mit doppelter Holzkohle. Barren werden zu Platinblöcken."
-"Платиновый блок": "Platinblock"
-"Тяжёлый серо-белый блок для построек.": "Ein schwerer grauweißer Block zum Bauen."
+"[materials.items.platinum_ore]": "Platinerz"
+"[materials.items.platinum_ore.about]": "Ein dunkles schweres Gestein mit grauen Platinkörnern. Eine Bronzespitzhacke baut es ab."
+"[materials.items.platinum_bar]": "Platinbarren"
+"[materials.items.platinum_bar.about]": "Ein schweres, schwer schmelzbares Metall: die Esse schmilzt es lange, mit doppelter Holzkohle. Barren werden zu Platinblöcken."
+"[materials.items.platinum_block]": "Platinblock"
+"[materials.items.platinum_block.about]": "Ein schwerer grauweißer Block zum Bauen."
+
+# content/materials/platinum/data/materials.yaml
+"[materials.materials.platinum_ore]": "Platinerz"
+"[materials.materials.platinum_block]": "Platinblock"
+
+# content/materials/platinum/data/recipes.yaml
+"[materials.recipes.platinum_bar]": "Platinbarren"
+"[materials.recipes.platinum_block]": "Platinblock"

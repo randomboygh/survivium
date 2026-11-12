@@ -2,9 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sling/bundle.yaml
-"Праща": "Honda"
+"[tools.sling.bundle]": "Honda"
 
 # content/tools/sling/data/items.yaml
-"Ремень из верёвки: мечет камешки дальше, чем рука.": "Una correa de cuerda: lanza piedrecitas más lejos que la mano."
-"Камешки": "Piedrecitas"
-"Круглые камешки для пращи.": "Piedrecitas redondas para la honda."
+"[tools.items.cord_sling]": "Honda"
+"[tools.items.cord_sling.about]": "Una correa de cuerda: lanza piedrecitas más lejos que la mano."
+"[tools.items.sling_stone]": "Piedrecitas"
+"[tools.items.sling_stone.about]": "Piedrecitas redondas para la honda."
+
+# content/tools/sling/data/recipes.yaml
+"[tools.recipes.cord_sling]": "Honda"
+"[tools.recipes.sling_stone]": "Piedrecitas"

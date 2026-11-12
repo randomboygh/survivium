@@ -2,24 +2,26 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/animals/game/bundle.yaml
-"Добыча": "Selvaggina"
+"[animals.game.bundle]": "Selvaggina"
 
 # content/animals/game/data/items.yaml
-"Тушка": "Carcassa piccola"
-"Мелкий зверь или птица. Разделывается руками.": "Un piccolo animale o un uccello. Si macella a mano."
-"Туша": "Carcassa"
-"Крупный зверь. Разделать её можно только ножом.": "Un grosso animale. Si macella solo con un coltello."
-"Сырое мясо": "Carne cruda"
-"Есть можно, но жареное сытнее.": "Si può mangiare, ma arrosto sazia di più."
-"Жареное мясо": "Carne arrosto"
-"Мясо, зажаренное на костре. Очень сытное.": "Carne arrostita sul fuoco. Sazia molto."
-"Шкура": "Pelle"
-"Сырая шкура зверя.": "La pelle grezza di un animale."
-"Кость": "Osso"
-"Жир": "Grasso"
-"Вяленое мясо": "Carne secca"
-"Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно.": "Carne essiccata sull'essiccatoio. Leggera e saziante, senza bisogno di fuoco."
+"[animals.items.small_carcass]": "Carcassa piccola"
+"[animals.items.small_carcass.about]": "Un piccolo animale o un uccello. Si macella a mano."
+"[animals.items.carcass]": "Carcassa"
+"[animals.items.carcass.about]": "Un grosso animale. Si macella solo con un coltello."
+"[animals.items.raw_meat]": "Carne cruda"
+"[animals.items.raw_meat.about]": "Si può mangiare, ma arrosto sazia di più."
+"[animals.items.roasted_meat]": "Carne arrosto"
+"[animals.items.roasted_meat.about]": "Carne arrostita sul fuoco. Sazia molto."
+"[animals.items.hide]": "Pelle"
+"[animals.items.hide.about]": "La pelle grezza di un animale."
+"[animals.items.bone]": "Osso"
+"[animals.items.fat]": "Grasso"
+"[animals.items.jerky]": "Carne secca"
+"[animals.items.jerky.about]": "Carne essiccata sull'essiccatoio. Leggera e saziante, senza bisogno di fuoco."
 
 # content/animals/game/data/recipes.yaml
-"Разделать тушку": "Macellare una carcassa piccola"
-"Разделать тушу": "Macellare una carcassa"
+"[animals.recipes.raw_meat_from_small_carcass]": "Macellare una carcassa piccola"
+"[animals.recipes.raw_meat_from_carcass]": "Macellare una carcassa"
+"[animals.recipes.roasted_meat]": "Carne arrosto"
+"[animals.recipes.jerky]": "Carne secca"

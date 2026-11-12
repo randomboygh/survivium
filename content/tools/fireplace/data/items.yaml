@@ -5,8 +5,8 @@
 # внутри не обжигает, потушенный забирается в сумку целиком (у огня есть своя модель). Под крышей
 # дождь его не тушит. Поля — как у предметов основы (content/core/data/items.yaml).
 - id: fireplace
-  title: Камин
-  description: Кирпичный очаг для дома. Греет как костёр, горит на топливе, на нём можно готовить.
+  title: "[tools.items.fireplace]"
+  description: "[tools.items.fireplace.about]"
   weight: 30.0
   stack: 1
   icon: fireplace

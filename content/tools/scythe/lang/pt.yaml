@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/scythe/bundle.yaml
-"Коса": "Gadanha"
+"[tools.scythe.bundle]": "Gadanha"
 
 # content/tools/scythe/data/items.yaml
-"Каменная коса": "Gadanha de pedra"
-"Деревянная коса": "Gadanha de madeira"
-"Медная коса": "Gadanha de cobre"
-"Бронзовая коса": "Gadanha de bronze"
-"Железная коса": "Gadanha de ferro"
-"Стальная коса": "Gadanha de aço"
+"[tools.items.stone_scythe]": "Gadanha de pedra"
+"[tools.items.wooden_scythe]": "Gadanha de madeira"
+"[tools.items.copper_scythe]": "Gadanha de cobre"
+"[tools.items.bronze_scythe]": "Gadanha de bronze"
+"[tools.items.iron_scythe]": "Gadanha de ferro"
+"[tools.items.steel_scythe]": "Gadanha de aço"
+
+# content/tools/scythe/data/recipes.yaml
+"[tools.recipes.stone_scythe]": "Gadanha de pedra"
+"[tools.recipes.wooden_scythe]": "Gadanha de madeira"
+"[tools.recipes.copper_scythe]": "Gadanha de cobre"
+"[tools.recipes.bronze_scythe]": "Gadanha de bronze"
+"[tools.recipes.iron_scythe]": "Gadanha de ferro"
+"[tools.recipes.steel_scythe]": "Gadanha de aço"
 
 # content/tools/scythe/data/sounds.yaml
-"Покос": "Ceifa"
+"[tools.sounds.mow]": "Ceifa"

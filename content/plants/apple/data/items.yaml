@@ -1,6 +1,6 @@
 # Предметы бандла: поля — как у предметов основы (content/core/data/items.yaml).
 - id: apple
-  title: Яблоко
+  title: "[plants.items.apple]"
   weight: 0.15
   stack: 30
   food: 6

@@ -2,8 +2,12 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/kiln/bundle.yaml
-"Печь для обжига": "Pişirme fırını"
+"[tools.kiln.bundle]": "Pişirme fırını"
+
+# content/tools/kiln/data/items.yaml
+"[tools.items.kiln]": "Pişirme fırını"
 
 # content/tools/kiln/data/recipes.yaml
-"Кирпич": "Tuğla"
-"Уголь": "Odun kömürü"
+"[tools.recipes.kiln]": "Pişirme fırını"
+"[tools.recipes.brick]": "Tuğla"
+"[tools.recipes.charcoal]": "Odun kömürü"

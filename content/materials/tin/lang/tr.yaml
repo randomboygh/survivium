@@ -2,10 +2,16 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/tin/bundle.yaml
-"Олово": "Kalay"
+"[materials.tin.bundle]": "Kalay"
 
 # content/materials/tin/data/items.yaml
-"Оловянная руда": "Kalay cevheri"
-"Тёмная тяжёлая руда со светлыми крупинками. Её берёт медная кирка.": "Açık taneli koyu, ağır bir cevher. Bakır kazma kazar."
-"Слиток олова": "Kalay külçe"
-"Мягкий серебристый металл. С медью даёт бронзу.": "Yumuşak gümüşi bir metal. Bakırla bronz verir."
+"[materials.items.tin_ore]": "Kalay cevheri"
+"[materials.items.tin_ore.about]": "Açık taneli koyu, ağır bir cevher. Bakır kazma kazar."
+"[materials.items.tin_bar]": "Kalay külçe"
+"[materials.items.tin_bar.about]": "Yumuşak gümüşi bir metal. Bakırla bronz verir."
+
+# content/materials/tin/data/materials.yaml
+"[materials.materials.tin_ore]": "Kalay cevheri"
+
+# content/materials/tin/data/recipes.yaml
+"[materials.recipes.tin_bar]": "Kalay külçe"

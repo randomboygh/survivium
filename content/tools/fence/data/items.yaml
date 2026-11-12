@@ -7,8 +7,8 @@
 # створка из жердей посередине клетки, касание открывает (право участка «Открывать двери»).
 # Поля — как у предметов основы (content/core/data/items.yaml).
 - id: fence
-  title: Забор
-  description: Звено изгороди из жердей. Строится в режиме строительства линией, как стена, и само соединяется с соседними.
+  title: "[tools.items.fence]"
+  description: "[tools.items.fence.about]"
   era: core:primitive
   weight: 1.5
   stack: 20
@@ -17,8 +17,8 @@
   prop: fence
   fence: true
 - id: wicket
-  title: Калитка
-  description: Створка из жердей в линию забора, на одну клетку. Касание открывает и закрывает.
+  title: "[tools.items.wicket]"
+  description: "[tools.items.wicket.about]"
   era: core:primitive
   weight: 2.0
   stack: 4
@@ -28,8 +28,8 @@
   door: true
   fence: true
 - id: gate
-  title: Ворота
-  description: Две створки из жердей в линию забора, на две клетки в ширину. Касание открывает обе.
+  title: "[tools.items.gate]"
+  description: "[tools.items.gate.about]"
   era: core:primitive
   weight: 4.0
   stack: 2

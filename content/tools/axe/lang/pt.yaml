@@ -2,14 +2,19 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/axe/bundle.yaml
-"Топор": "Machado"
+"[tools.axe.bundle]": "Machado"
 
 # content/tools/axe/data/items.yaml
-"Каменный топор": "Machado de pedra"
-"Медный топор": "Machado de cobre"
-"Бронзовый топор": "Machado de bronze"
-"Железный топор": "Machado de ferro"
-"Стальной топор": "Machado de aço"
+"[tools.items.stone_axe]": "Machado de pedra"
+"[tools.items.copper_axe]": "Machado de cobre"
+"[tools.items.bronze_axe]": "Machado de bronze"
+"[tools.items.iron_axe]": "Machado de ferro"
+"[tools.items.steel_axe]": "Machado de aço"
 
 # content/tools/axe/data/recipes.yaml
-"Доски": "Tábuas"
+"[tools.recipes.stone_axe]": "Machado de pedra"
+"[tools.recipes.planks]": "Tábuas"
+"[tools.recipes.copper_axe]": "Machado de cobre"
+"[tools.recipes.bronze_axe]": "Machado de bronze"
+"[tools.recipes.iron_axe]": "Machado de ferro"
+"[tools.recipes.steel_axe]": "Machado de aço"

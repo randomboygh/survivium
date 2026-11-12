@@ -21,10 +21,10 @@ static func find(host: Node, done: Callable) -> void:
 	_fetch(host, API + "actions/workflows/playtest.yml/runs?status=in_progress&per_page=1", func(runs: Variant) -> void:
 		var list: Array = runs.get("workflow_runs", []) if runs is Dictionary else []
 		if runs == null:
-			done.call("", "Нет связи с GitHub")
+			done.call("", "[no_connection_to_github]")
 			return
 		if list.is_empty():
-			done.call("", "Тестовый сервер не запущен")
+			done.call("", "[the_test_server_is_not]")
 			return
 		_fetch(host, API + "commits/%s/statuses" % str(list[0].get("head_sha", "")), func(statuses: Variant) -> void:
 			var url := ""
@@ -33,7 +33,7 @@ static func find(host: Node, done: Callable) -> void:
 					if s is Dictionary and s.get("context") == CONTEXT:
 						url = address_of(str(s.get("target_url", "")))
 						break
-			done.call(url, "" if url != "" else "Сервер ещё запускается — попробуйте через минуту")))
+			done.call(url, "" if url != "" else "[the_server_is_still_starting]")))
 
 
 ## The server's address in a link of the web build (`?server=…`), "" when it has none.

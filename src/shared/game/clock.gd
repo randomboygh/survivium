@@ -16,7 +16,7 @@ const DAY_LENGTH := 240.0
 const REAL_DAY := 86400.0
 ## Days in a season (the user's pick, 2026-11-07: two weeks; a crop ripens within one).
 const DAYS_PER_SEASON := 14.0
-const SEASONS := ["Весна", "Лето", "Осень", "Зима"]
+const SEASONS := ["[spring]", "[summer]", "[autumn]", "[winter]"]
 const SPRING := 0
 const AUTUMN := 2
 const WINTER := 3
@@ -39,20 +39,20 @@ const SOLSTICE_YEAR := 0.375
 ## everything in heavy rain and storms, wind adds to the gusts and lightning strikes now
 ## and then.
 const WEATHERS := [
-	{"id": "clear", "name": "Ясно", "icon": "sun", "clouds": 0.28, "chance": [4, 6, 3, 3]},
-	{"id": "cloudy", "name": "Пасмурно", "icon": "cloud", "clouds": 0.75, "wind": 0.3, "chance": [3, 2, 3, 3]},
-	{"id": "fog", "name": "Туман", "icon": "fog", "clouds": 0.5, "fog": 0.7, "fog_depth": 1.2, "chance": [2, 0.5, 3, 1]},
-	{"id": "dense_fog", "name": "Густой туман", "icon": "fog", "clouds": 0.6, "fog": 0.95, "fog_depth": 3.2, "chance": [0.5, 0.1, 1, 0.3]},
-	{"id": "rain", "name": "Дождь", "icon": "rain", "clouds": 0.8, "rain": 0.5, "wind": 0.8, "chance": [3, 2, 3, 0]},
-	{"id": "downpour", "name": "Ливень", "icon": "rain", "clouds": 0.95, "rain": 1.0, "wind": 1.2, "haze": 0.3, "chance": [1, 1, 1.5, 0]},
-	{"id": "storm", "name": "Гроза", "icon": "storm", "clouds": 0.95, "rain": 0.9, "wind": 1.8, "haze": 0.2, "lightning": 1.0, "chance": [1, 1.5, 0.5, 0]},
-	{"id": "hail", "name": "Град", "icon": "hail", "clouds": 0.85, "rain": 0.3, "hail": 1.0, "wind": 1.0, "chance": [0.5, 0.5, 0.3, 0]},
-	{"id": "snow", "name": "Снегопад", "icon": "snow", "clouds": 0.8, "snow": 0.6, "wind": 0.4, "chance": [0, 0, 0, 4]},
-	{"id": "blizzard", "name": "Метель", "icon": "snow", "clouds": 0.95, "snow": 1.0, "wind": 2.5, "haze": 0.55, "chance": [0, 0, 0, 1.5]},
-	{"id": "sandstorm", "name": "Песчаная буря", "icon": "sand", "clouds": 0.4, "sand": 1.0, "wind": 2.5, "haze": 0.5, "chance": [0, 0, 0, 0]},
+	{"id": "clear", "name": "[clear]", "icon": "sun", "clouds": 0.28, "chance": [4, 6, 3, 3]},
+	{"id": "cloudy", "name": "[overcast]", "icon": "cloud", "clouds": 0.75, "wind": 0.3, "chance": [3, 2, 3, 3]},
+	{"id": "fog", "name": "[fog]", "icon": "fog", "clouds": 0.5, "fog": 0.7, "fog_depth": 1.2, "chance": [2, 0.5, 3, 1]},
+	{"id": "dense_fog", "name": "[thick_fog]", "icon": "fog", "clouds": 0.6, "fog": 0.95, "fog_depth": 3.2, "chance": [0.5, 0.1, 1, 0.3]},
+	{"id": "rain", "name": "[rain]", "icon": "rain", "clouds": 0.8, "rain": 0.5, "wind": 0.8, "chance": [3, 2, 3, 0]},
+	{"id": "downpour", "name": "[downpour]", "icon": "rain", "clouds": 0.95, "rain": 1.0, "wind": 1.2, "haze": 0.3, "chance": [1, 1, 1.5, 0]},
+	{"id": "storm", "name": "[thunderstorm]", "icon": "storm", "clouds": 0.95, "rain": 0.9, "wind": 1.8, "haze": 0.2, "lightning": 1.0, "chance": [1, 1.5, 0.5, 0]},
+	{"id": "hail", "name": "[hail]", "icon": "hail", "clouds": 0.85, "rain": 0.3, "hail": 1.0, "wind": 1.0, "chance": [0.5, 0.5, 0.3, 0]},
+	{"id": "snow", "name": "[snowfall]", "icon": "snow", "clouds": 0.8, "snow": 0.6, "wind": 0.4, "chance": [0, 0, 0, 4]},
+	{"id": "blizzard", "name": "[blizzard]", "icon": "snow", "clouds": 0.95, "snow": 1.0, "wind": 2.5, "haze": 0.55, "chance": [0, 0, 0, 1.5]},
+	{"id": "sandstorm", "name": "[sandstorm]", "icon": "sand", "clouds": 0.4, "sand": 1.0, "wind": 2.5, "haze": 0.5, "chance": [0, 0, 0, 0]},
 	# Added later, so last: a weather's index is what saves and the server keep.
-	{"id": "partly_cloudy", "name": "Облачно", "icon": "sun_cloud", "clouds": 0.5, "wind": 0.15, "chance": [3, 3, 3, 2]},
-	{"id": "drizzle", "name": "Морось", "icon": "drizzle", "clouds": 0.85, "rain": 0.15, "fog": 0.3, "fog_depth": 0.8, "wind": 0.3, "chance": [2, 1, 2.5, 0]},
+	{"id": "partly_cloudy", "name": "[partly_cloudy]", "icon": "sun_cloud", "clouds": 0.5, "wind": 0.15, "chance": [3, 3, 3, 2]},
+	{"id": "drizzle", "name": "[drizzle]", "icon": "drizzle", "clouds": 0.85, "rain": 0.15, "fog": 0.3, "fog_depth": 0.8, "wind": 0.3, "chance": [2, 1, 2.5, 0]},
 ]
 const CLEAR := 0
 const RAIN := 4

@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/fiber_clothes/bundle.yaml
-"Одежда из волокна": "Lif giysiler"
+"[tools.fiber_clothes.bundle]": "Lif giysiler"
 
 # content/tools/fiber_clothes/data/items.yaml
-"Плетёная шапка": "Örgü şapka"
-"Шапка из сухой травы. Немного греет голову.": "Kuru ottan bir şapka. Başı biraz ısıtır."
-"Травяная накидка": "Ot pelerin"
-"Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды.": "Sıkı örülmüş liften, ipe bağlı bir pelerin. Ot giysilerin en sıcağı."
-"Обмотки": "Bacak sargıları"
-"Полосы волокна, обмотанные вокруг ног и подвязанные верёвкой.": "Bacaklara sarılıp iple bağlanmış lif şeritleri."
-"Лапти": "Örgü çarık"
-"Плетёная обувь из волокна на верёвочных завязках.": "İp bağcıklı, liften örülmüş ayakkabı."
+"[tools.items.fiber_hat]": "Örgü şapka"
+"[tools.items.fiber_hat.about]": "Kuru ottan bir şapka. Başı biraz ısıtır."
+"[tools.items.grass_cape]": "Ot pelerin"
+"[tools.items.grass_cape.about]": "Sıkı örülmüş liften, ipe bağlı bir pelerin. Ot giysilerin en sıcağı."
+"[tools.items.leg_wraps]": "Bacak sargıları"
+"[tools.items.leg_wraps.about]": "Bacaklara sarılıp iple bağlanmış lif şeritleri."
+"[tools.items.bast_shoes]": "Örgü çarık"
+"[tools.items.bast_shoes.about]": "İp bağcıklı, liften örülmüş ayakkabı."
+
+# content/tools/fiber_clothes/data/recipes.yaml
+"[tools.recipes.fiber_hat]": "Örgü şapka"
+"[tools.recipes.grass_cape]": "Ot pelerin"
+"[tools.recipes.leg_wraps]": "Bacak sargıları"
+"[tools.recipes.bast_shoes]": "Örgü çarık"

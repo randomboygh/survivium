@@ -93,15 +93,15 @@ func _ready() -> void:
 	_buttons = VBoxContainer.new()
 	_buttons.add_theme_constant_override("separation", GAP)
 	add_child(_buttons)
-	_button("close", "Закрыть (M)", close)
-	_plus = _button("plus", "Крупнее", func() -> void: zoom_by(1))
-	_minus = _button("minus", "Мельче", func() -> void: zoom_by(-1))
+	_button("close", "[close_m]", close)
+	_plus = _button("plus", "[larger]", func() -> void: zoom_by(1))
+	_minus = _button("minus", "[smaller]", func() -> void: zoom_by(-1))
 	zoom_by(0)
-	_button("target", "К игроку", func() -> void:
+	_button("target", "[to_the_player]", func() -> void:
 		centre = Vector2(minimap.player_cell)
 		_hide_popup()
 		redraw())
-	_title = UiStyle.label("Карта", UiStyle.ACCENT)
+	_title = UiStyle.label("[map_n2]", UiStyle.ACCENT)
 	_title.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	add_child(_title)
 	_where = UiStyle.label("", UiStyle.INK)
@@ -143,7 +143,7 @@ func _build_popup() -> void:
 		b.pressed.connect(_pick_color.bind(i))
 		row.add_child(b)
 		_swatches.append(b)
-	_remove = Kit.icon_button("trash", "Убрать маркер", _remove_marker, BUTTON - 4)
+	_remove = Kit.icon_button("trash", "[remove_the_marker]", _remove_marker, BUTTON - 4)
 	row.add_child(_remove)
 
 
@@ -190,8 +190,8 @@ func fit(screen: Vector2, touch: bool) -> void:
 	_where.position = Vector2(info_x, info_y)
 	_clock.position = Vector2(info_x, info_y + UiStyle.FONT_SIZE + 4)
 	var top := maxf(inner.position.y + _title.size.y, _clock.position.y + UiStyle.FONT_SIZE) + GAP + 1
-	_hint.text = "Касание ставит маркер, щипок меняет масштаб" if touch \
-			else "Щелчок ставит маркер, колесо меняет масштаб"
+	_hint.text = "[a_tap_places_a_marker]" if touch \
+			else "[a_click_places_a_marker]"
 	# The hint right of the scale bar, or on a line of its own under it on a narrow screen.
 	var natural := UiStyle.font().get_string_size(_hint.text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE).x
 	var bottom := 0.0
@@ -273,7 +273,7 @@ func _update_info() -> void:
 	var where := "X %d · Y %d" % [c.x, c.y]
 	var clock := ""
 	if game != null and game.player != null:
-		where += Lang.f(" · ур. %d", [game.player.level()])
+		where += Lang.f("[lv_n2]", [game.player.level()])
 		clock = game.hud.clock_text()
 	if where != _where.text or clock != _clock.text:
 		_where.text = where
@@ -415,7 +415,7 @@ func _show_popup(i: int) -> void:
 	editing = i
 	var cell := _new_cell if i < 0 else (markers.list[i].cell as Vector2i)
 	var away := Vector2(cell).distance_to(Vector2(minimap.player_cell))
-	_popup_info.text = Lang.f("X %d · Y %d · %d кл. от вас", [cell.x, cell.y, roundi(away)])
+	_popup_info.text = Lang.f("[x_y_cells_from_you]", [cell.x, cell.y, roundi(away)])
 	for j in _swatches.size():
 		var lit: bool = i >= 0 and markers.list[i].color == j
 		for state in ["normal", "hover", "pressed", "hover_pressed"]:
@@ -496,7 +496,7 @@ func _draw_scale(at: Vector2) -> void:
 	draw_rect(Rect2(at.x, y, w + 2, 4), UiStyle.EDGE)
 	draw_rect(Rect2(at.x + 1, y + 1, w, 2), UiStyle.INK)
 	draw_rect(Rect2(at.x + 1, y + 1, floorf(w * 0.5), 2), UiStyle.MUTED)
-	draw_string(UiStyle.font(), Vector2(at.x + w + 8, at.y + UiStyle.FONT_SIZE), Lang.f("%d кл.", [cells]),
+	draw_string(UiStyle.font(), Vector2(at.x + w + 8, at.y + UiStyle.FONT_SIZE), Lang.f("[cells]", [cells]),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE, UiStyle.MUTED)
 
 
@@ -527,5 +527,5 @@ func _draw_top(l: Control) -> void:
 	var mid := plate.position.x + 7
 	for i in 4:
 		l.draw_rect(Rect2(mid - i - 1, plate.position.y + 3 + i, 2 * i + 2, 1), UiStyle.ACCENT)
-	l.draw_string(UiStyle.font(), Vector2(plate.position.x + 3, plate.end.y - 3), Lang.t("С"),
+	l.draw_string(UiStyle.font(), Vector2(plate.position.x + 3, plate.end.y - 3), Lang.t("[n]"),
 		HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE, UiStyle.INK)

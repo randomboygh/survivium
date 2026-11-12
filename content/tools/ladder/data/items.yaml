@@ -5,8 +5,8 @@
 # джойстик к лестнице — вверх, от неё — вниз, вбок или прыжок — соскочить (Body.climb). Поля — как у
 # предметов основы (content/core/data/items.yaml).
 - id: ladder
-  title: Приставная лестница
-  description: Звено лестницы на клетку высоты. Ставится к стене, звено над звеном; по ней лезут вверх и вниз.
+  title: "[tools.items.ladder]"
+  description: "[tools.items.ladder.about]"
   era: core:primitive
   weight: 1.5
   stack: 10

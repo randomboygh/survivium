@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/workbench/bundle.yaml
+"[tools.workbench.bundle]": "Верстак"
+
+# content/tools/workbench/data/items.yaml
+"[tools.items.workbench]": "Верстак"
+
+# content/tools/workbench/data/recipes.yaml
+"[tools.recipes.workbench]": "Верстак"

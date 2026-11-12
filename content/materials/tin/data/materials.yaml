@@ -2,7 +2,7 @@
 # медной: её берёт медная кирка и лучше (hardness 3). Поля — как у материалов основы
 # (content/core/data/materials.yaml); звуки по имени, из мода «Звуки».
 - id: tin_ore
-  title: Оловянная руда
+  title: "[materials.materials.tin_ore]"
   role: ore
   veins: 0.5
   priority: 2

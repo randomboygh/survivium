@@ -4,7 +4,7 @@
 # (мягкие ссылки на «Биомы»; без них — везде); голоса (calls, alarm) — его sounds.yaml.
 # Ночной, медленный, ест насекомых (meat, но мелкий), людей не боится.
 - id: hedgehog
-  title: Ёж
+  title: "[animals.creatures.hedgehog]"
   mass: 1
   diet: [meat]
   speed: 1.5

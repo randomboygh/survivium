@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/blueberry/bundle.yaml
+"[plants.blueberry.bundle]": "Черника"
+
+# content/plants/blueberry/data/bushes.yaml
+"[plants.bushes.blueberry]": "Черника"
+
+# content/plants/blueberry/data/items.yaml
+"[plants.items.blueberry]": "Черника"
+"[plants.items.blueberry_bush]": "Кустик черники"

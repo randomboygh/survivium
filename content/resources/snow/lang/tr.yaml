@@ -2,7 +2,12 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/resources/snow/bundle.yaml
-"Снег": "Kar"
+"[resources.snow.bundle]": "Kar"
 
 # content/resources/snow/data/items.yaml
-"Лёд": "Buz"
+"[resources.items.snow]": "Kar"
+"[resources.items.ice]": "Buz"
+
+# content/resources/snow/data/materials.yaml
+"[resources.materials.snow]": "Kar"
+"[resources.materials.ice]": "Buz"

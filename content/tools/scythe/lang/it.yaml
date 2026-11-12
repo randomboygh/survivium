@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/scythe/bundle.yaml
-"Коса": "Falce fienaia"
+"[tools.scythe.bundle]": "Falce fienaia"
 
 # content/tools/scythe/data/items.yaml
-"Каменная коса": "Falce fienaia di pietra"
-"Деревянная коса": "Falce fienaia di legno"
-"Медная коса": "Falce fienaia di rame"
-"Бронзовая коса": "Falce fienaia di bronzo"
-"Железная коса": "Falce fienaia di ferro"
-"Стальная коса": "Falce fienaia d'acciaio"
+"[tools.items.stone_scythe]": "Falce fienaia di pietra"
+"[tools.items.wooden_scythe]": "Falce fienaia di legno"
+"[tools.items.copper_scythe]": "Falce fienaia di rame"
+"[tools.items.bronze_scythe]": "Falce fienaia di bronzo"
+"[tools.items.iron_scythe]": "Falce fienaia di ferro"
+"[tools.items.steel_scythe]": "Falce fienaia d'acciaio"
+
+# content/tools/scythe/data/recipes.yaml
+"[tools.recipes.stone_scythe]": "Falce fienaia di pietra"
+"[tools.recipes.wooden_scythe]": "Falce fienaia di legno"
+"[tools.recipes.copper_scythe]": "Falce fienaia di rame"
+"[tools.recipes.bronze_scythe]": "Falce fienaia di bronzo"
+"[tools.recipes.iron_scythe]": "Falce fienaia di ferro"
+"[tools.recipes.steel_scythe]": "Falce fienaia d'acciaio"
 
 # content/tools/scythe/data/sounds.yaml
-"Покос": "Falciatura"
+"[tools.sounds.mow]": "Falciatura"

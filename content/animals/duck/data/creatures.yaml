@@ -5,7 +5,7 @@
 # И летает, и плавает (flies, swims), выходит на берег (ashore): плавает и бродит у воды, от угрозы
 # отплывает, а взлетает, только если она близко, и перелетает невысоко и недалеко (flight).
 - id: duck
-  title: Утка
+  title: "[animals.creatures.duck]"
   mass: 1.2
   diet: [plants]
   speed: 6.0

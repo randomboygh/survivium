@@ -2,8 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/needle/bundle.yaml
-"Игла": "Голка"
+"[tools.needle.bundle]": "Голка"
 
 # content/tools/needle/data/items.yaml
-"Костяная игла": "Кістяна голка"
-"Шьёт кожу. Лежит в сумке, пока шьёшь.": "Шиє шкіру. Лишається в сумці, поки шиєте."
+"[tools.items.bone_needle]": "Кістяна голка"
+"[tools.items.bone_needle.about]": "Шиє шкіру. Лишається в сумці, поки шиєте."
+
+# content/tools/needle/data/recipes.yaml
+"[tools.recipes.bone_needle]": "Кістяна голка"

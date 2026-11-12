@@ -1,7 +1,7 @@
 # Плетень: ветки, сплетённые руками, — первая стена, пока нет топора. Ставится блоком.
 - id: wattle
-  title: Плетень
-  description: Сплетённые ветки. Лёгкая стена, пока нет топора.
+  title: "[materials.items.wattle]"
+  description: "[materials.items.wattle.about]"
   weight: 0.8
   stack: 20
   place: wattle

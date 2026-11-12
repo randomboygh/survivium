@@ -3,20 +3,20 @@
 # кремень, камень и глина — «Ресурсы», верёвка, доски и кирпич — «Материалы». Все поля рецепта —
 # docs/DATA_MODEL.md.
 - id: kiln
-  title: Печь для обжига
+  title: "[tools.recipes.kiln]"
   makes: kiln
   needs: {resources:stone: 8, resources:clay: 4}
   at: workbench
   time: 10
 - id: brick
-  title: Кирпич
+  title: "[tools.recipes.brick]"
   makes: materials:brick
   needs: {resources:clay: 1}
   at: kiln
   process: smelt
   time: 4
 - id: charcoal
-  title: Уголь
+  title: "[tools.recipes.charcoal]"
   makes: materials:charcoal
   count: 2
   needs: {resources:log: 1}

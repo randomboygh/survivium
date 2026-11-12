@@ -2,10 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/bedding/bundle.yaml
-"Постель": "Підстилка"
+"[tools.bedding.bundle]": "Підстилка"
 
 # content/tools/bedding/data/items.yaml
-"Травяная подстилка": "Трав'яна підстилка"
-"Охапка сухой травы, связанная верёвкой. Спать на ней лучше, чем на голой земле.": "Оберемок сухої трави, перев'язаний мотузкою. Спати на ньому краще, ніж на голій землі."
-"Меховой спальник": "Хутряний спальник"
-"Шкуры, сшитые мешком. В нём высыпаются вдвое быстрее.": "Шкури, зшиті мішком. У ньому відпочивають удвічі швидше."
+"[tools.items.grass_mat]": "Трав'яна підстилка"
+"[tools.items.grass_mat.about]": "Оберемок сухої трави, перев'язаний мотузкою. Спати на ньому краще, ніж на голій землі."
+"[tools.items.fur_bedroll]": "Хутряний спальник"
+"[tools.items.fur_bedroll.about]": "Шкури, зшиті мішком. У ньому відпочивають удвічі швидше."
+
+# content/tools/bedding/data/recipes.yaml
+"[tools.recipes.grass_mat]": "Трав'яна підстилка"
+"[tools.recipes.fur_bedroll]": "Хутряний спальник"

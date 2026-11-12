@@ -5,8 +5,8 @@
 # блока строят в режиме строительства, а лестница остаётся в старых мирах.
 # Поля — как у предметов основы (content/core/data/items.yaml).
 - id: stairs
-  title: Лестница
-  description: Старая лестница из досок. Теперь ступени строят из любого блока в режиме строительства.
+  title: "[tools.items.stairs]"
+  description: "[tools.items.stairs.about]"
   weight: 2.0
   stack: 10
   icon: stairs

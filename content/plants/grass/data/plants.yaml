@@ -8,21 +8,21 @@
 # руками, а не срезают (так и пишет подсказка); winter: false — зимой его нет.
 - id: tuft
   kind: tuft
-  title: Трава
+  title: "[plants.plants.tuft]"
   gives: {grass_seeds: 1}
   chance: 0.08
 - id: tall_grass
   kind: tall_grass
-  title: Высокая трава
+  title: "[plants.plants.tall_grass]"
   gives: {resources:fiber: 1}
   chance: 0.5
 - id: flowers
   kind: flowers
-  title: Цветы
+  title: "[plants.plants.flowers]"
   gives: {grass_seeds: 1}
   chance: 0.6
 - id: herbs
   kind: herbs
-  title: Травы
+  title: "[plants.plants.herbs]"
   gives: {resources:fiber: 1}
   chance: 0.5

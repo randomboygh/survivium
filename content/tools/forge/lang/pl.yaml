@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/forge/bundle.yaml
-"Горн": "Kuźnia"
+"[tools.forge.bundle]": "Kuźnia"
+
+# content/tools/forge/data/items.yaml
+"[tools.items.forge]": "Kuźnia"
 
 # content/tools/forge/data/recipes.yaml
-"Медный слиток": "Sztabka miedzi"
+"[tools.recipes.forge]": "Kuźnia"
+"[tools.recipes.copper_bar]": "Sztabka miedzi"

@@ -282,7 +282,7 @@ func place_in_front(who, top: int) -> Dictionary:
 			var done := place_at(who, cell, Vector3i(s.x, 0, s.y if s.x == 0 else 0), top)
 			done.swing = FRONT_PLACE_SWING
 			return done
-	who.nag("front", "Рядом некуда ставить")
+	who.nag("front", "[nowhere_nearby_to_place_it]")
 	return {"swing": IDLE_SWING}
 
 

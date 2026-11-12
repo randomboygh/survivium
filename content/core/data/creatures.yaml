@@ -19,7 +19,7 @@
 # отчётов и поиска (игру они не меняют); provisional — какие её числа предварительные, по именам
 # полей. Запись с id чужой записи заменяет её только с replaces: true, иначе это ошибка.
 - id: human
-  title: Человек
+  title: "[core.creatures.human]"
   mass: 70
   diet: [plants, meat]
   speed: 4.0

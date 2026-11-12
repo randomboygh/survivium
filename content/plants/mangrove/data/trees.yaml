@@ -2,7 +2,7 @@
 # в ил, и густая округлая крона (поля — как у дуба, content/plants/oak/data/trees.yaml; stilts — на
 # сколько пикселей над землёй поднимаются корни). Листву не сбрасывает.
 - id: mangrove
-  title: Мангр
+  title: "[plants.trees.mangrove]"
   shape: round
   leaf: soft
   leaves: broad

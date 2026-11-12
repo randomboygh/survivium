@@ -5,8 +5,8 @@
 # в сумку и выпускают кнопкой действия — выпущенный уже ручной и ходит за хозяином
 # (src/shared/game/actions_tame.gd).
 - id: trap
-  title: Живоловка
-  description: Клетка из веток с дверцей на сторожке. Положи внутрь морковь или репу, и заяц сам придёт в неё.
+  title: "[tools.items.trap]"
+  description: "[tools.items.trap.about]"
   era: core:primitive
   weight: 3.0
   stack: 1
@@ -16,8 +16,8 @@
   storage: 2
   trap: 8.0
 - id: live_rabbit
-  title: Пойманный заяц
-  description: Живой заяц из живоловки. Возьми его в руку и нажми действие, чтобы выпустить: он уже ручной и пойдёт за тобой.
+  title: "[tools.items.live_rabbit]"
+  description: "[tools.items.live_rabbit.about]"
   era: core:primitive
   weight: 2.0
   stack: 1

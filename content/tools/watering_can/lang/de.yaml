@@ -2,9 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/watering_can/bundle.yaml
-"Лейка": "Gießkanne"
+"[tools.watering_can.bundle]": "Gießkanne"
 
 # content/tools/watering_can/data/items.yaml
-"Пустая. Возьми в руку и коснись пресной воды, чтобы наполнить.": "Leer. Nimm sie in die Hand und berühre Süßwasser, um sie zu füllen."
-"Лейка с водой": "Gießkanne mit Wasser"
-"Поливает грядки. Воды хватает на десять клеток.": "Gießt die Beete. Das Wasser reicht für zehn Felder."
+"[tools.items.watering_can]": "Gießkanne"
+"[tools.items.watering_can.about]": "Leer. Nimm sie in die Hand und berühre Süßwasser, um sie zu füllen."
+"[tools.items.watering_can_full]": "Gießkanne mit Wasser"
+"[tools.items.watering_can_full.about]": "Gießt die Beete. Das Wasser reicht für zehn Felder."
+
+# content/tools/watering_can/data/recipes.yaml
+"[tools.recipes.watering_can]": "Gießkanne"

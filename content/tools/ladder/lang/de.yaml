@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/ladder/bundle.yaml
-"Приставная лестница": "Leiter"
+"[tools.ladder.bundle]": "Leiter"
 
 # content/tools/ladder/data/items.yaml
-"Звено лестницы на клетку высоты. Ставится к стене, звено над звеном; по ней лезут вверх и вниз.": "Ein Leiterstück, ein Feld hoch. Wird an die Wand gelehnt, Stück über Stück; daran klettert man hinauf und hinunter."
+"[tools.items.ladder]": "Leiter"
+"[tools.items.ladder.about]": "Ein Leiterstück, ein Feld hoch. Wird an die Wand gelehnt, Stück über Stück; daran klettert man hinauf und hinunter."
+
+# content/tools/ladder/data/recipes.yaml
+"[tools.recipes.ladder]": "Leiter"

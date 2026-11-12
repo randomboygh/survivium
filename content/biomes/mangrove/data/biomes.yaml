@@ -14,7 +14,7 @@
 # «Болота». Мангры на корнях-ходулях стоят прямо в иле у бочагов (trees_on: clay), кое-где пальмы.
 # Мангр и пальма — бандлы «Растений», ссылки мягкие.
 - id: mangrove
-  title: Мангровые заросли
+  title: "[biomes.biomes.mangrove]"
   where: swamp
   zone: tropic
   warmth: [0.7, 1.0]

@@ -11,8 +11,8 @@
 # Общие поля любой записи: description — текст для игрока, tags — метки для отчётов, provisional —
 # какие числа записи предварительные, was — id, которые у неё были раньше.
 - id: default
-  title: Обычный старт
-  description: Пустые руки, пустая сумка и костёр у точки появления.
+  title: "[core.starts.default]"
+  description: "[core.starts.default.about]"
   hand_power: 1
   hand_area: 1
   hand_swing: 0.45

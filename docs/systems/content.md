@@ -85,7 +85,7 @@
   `Mods.additive(b)` — в бандле только предметы, рецепты, эпохи, старт и звуки; `Mods.why(b, dropped)` —
   чего бандлу не хватает и чего не хватает тому, до выключенного.
 - Реестры: `Mat.GRASS` и др. (только ядро), `Mat.of_role`, `Mat.index`, `Mat.remap`; `Items.get_item`,
-  `with_prop`, `with_tool`, `tool_title` (название класса инструмента из названий его предметов),
+  `with_prop`, `with_tool`, `tool_title` (ключ класса инструмента `[tool.<класс>]`),
   `is_station`, `most_storage`, `of_category`, `fuel_in`, `canon`; `Crafting.get_recipe`, `canon`, `outputs` (что
   даёт работа с номером n: изделие и побочное по шансу), `possible` (у каждого класса инструментов рецепта
   есть предмет в мире; иначе рецепт не узнают и не показывают); `Trees.first`, `Trees.any`; `Bushes.first`; `Plants.of_kind`; `Biomes.pick`, `tree`, `bush`;

@@ -50,7 +50,7 @@ const ARROW := 32
 const CONFIRM_WAIT := 4.0
 ## The kinds of change in «Что нового» and their names (tools/build_info.py KINDS).
 const CHANGE_KINDS := {
-	"new": "новое", "better": "улучшено", "fix": "исправлено", "fast": "оптимизировано", "inside": "ядро",
+	"new": "[new_n2]", "better": "[improved]", "fix": "[fixed]", "fast": "[optimized]", "inside": "[core]",
 }
 ## How many changes the changes page makes at once: the first ones when it opens, the
 ## next when it is scrolled near their end (the build holds 500, tools/build_info.py).
@@ -62,15 +62,15 @@ const COLUMN_GAP := 16
 ## a gap on each side of the rows, so the bar never touches the arrows.
 const BAR_GAP := UiStyle.BAR_GAP
 const BAR_ROOM := UiStyle.SCROLL_BAR + 2 * BAR_GAP
-const HOURS := ["ночь", "утро", "день", "вечер"]
+const HOURS := ["[night]", "[morning]", "[day_n5]", "[evening]"]
 const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
 ## Moonlight picks of the playtest page: name and light (see Settings.set_moon).
-const MOONS := [["новолуние", 0.0], ["серп", 0.4], ["полнолуние", 1.0]]
+const MOONS := [["[new_moon]", 0.0], ["[crescent]", 0.4], ["[full_moon]", 1.0]]
 ## The sections of the pages with tabs: key and tab name.
 const PAGES := {
-	"settings": [["game", "Игра"], ["interface", "Интерфейс"], ["graphics", "Графика"], ["music", "Музыка"], ["sound", "Звук"]],
-	"test": [["world", "Мир"], ["server", "Сервер"], ["player", "Игрок"], ["caves", "Пещеры"], ["marks", "Маркеры"], ["debug", "Отладка"]],
-	"freezes": [["all", "Все"], ["critical", "от 200"], ["big", "100–200"], ["small", "50–100"]],
+	"settings": [["game", "[game]"], ["interface", "[interface]"], ["graphics", "[graphics]"], ["music", "[music]"], ["sound", "[sound]"]],
+	"test": [["world", "[world_n3]"], ["server", "[server_name]"], ["player", "[player_n2]"], ["caves", "[caves]"], ["marks", "[markers]"], ["debug", "[debug]"]],
+	"freezes": [["all", "all"], ["critical", "from 200"], ["big", "100–200"], ["small", "50–100"]],
 }
 ## Sections with nothing to set yet: their tabs are dimmed, «скоро».
 const SOON := []
@@ -81,9 +81,9 @@ const LISTS := ["marks", "all", "critical", "big", "small"]
 const GAP := 8
 const TAB_HEIGHT := 32
 ## The steps of the interface and the touch controls size.
-const SIZES := ["очень мелкий", "мелкий", "обычный", "крупнее", "крупный"]
+const SIZES := ["[very_small]", "[small_ui]", "[normal_ui]", "[larger_n2]", "[large_ui]"]
 ## The minimap sizes (Minimap.SIDES).
-const MAP_SIZES := ["маленькая", "обычная", "большая"]
+const MAP_SIZES := ["[small_map]", "[normal_map]", "[large_map]"]
 
 signal closed
 
@@ -173,17 +173,17 @@ func _ready() -> void:
 	_legend.add_child(_legend_grid)
 	for k in CHANGE_KINDS:
 		_legend_grid.add_child(_change_line(k, CHANGE_KINDS[k], UiStyle.MUTED, 0))
-	_defaults = Kit.button("По умолчанию", Callable(), 0, 32)
+	_defaults = Kit.button("[defaults]", Callable(), 0, 32)
 	_asks.guard(_defaults, _reset)
 	box.add_child(_defaults)
 	var buttons := Kit.row(6)
 	box.add_child(buttons)
-	_changes = _bottom(buttons, "Что нового", open.bind("changes", "test"))
-	_copy = _bottom(buttons, "Скопировать", _copy_shown)
-	_share = _bottom(buttons, "Поделиться", _share_shown)
-	_clear = _bottom(buttons, "Очистить журнал", Callable())
+	_changes = _bottom(buttons, "[whats_new]", open.bind("changes", "test"))
+	_copy = _bottom(buttons, "[copy]", _copy_shown)
+	_share = _bottom(buttons, "[share]", _share_shown)
+	_clear = _bottom(buttons, "[clear_the_log]", Callable())
 	_asks.guard(_clear, _clear_freezes)
-	_back = _bottom(buttons, "Назад", _go_back)
+	_back = _bottom(buttons, "[back]", _go_back)
 	_choices.scroll = _scroll
 	_choices.stepped.connect(_stepped)
 
@@ -241,7 +241,7 @@ func _make_tabs(which: String) -> void:
 		var b := TabRow.small_button(sec[1], show_section.bind(key))
 		b.custom_minimum_size.y = TAB_HEIGHT
 		b.disabled = key in SOON
-		b.tooltip_text = "Скоро" if b.disabled else ""
+		b.tooltip_text = "[soon_n2]" if b.disabled else ""
 		if which == "freezes":
 			# Their counts grow: the tabs share the window's width and never widen it.
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -259,12 +259,12 @@ func _fill() -> void:
 	_asks.disarm()
 	var which := page
 	var info := build_info()
-	_version.text = Lang.f("Версия %s · %s · %s", [info.version, info.commit, info.date])
+	_version.text = Lang.f("[version]", [info.version, info.commit, info.date])
 	_version.visible = which != "settings"
 	_changes.visible = which == "test"
 	_clear.visible = which == "freezes"
 	_copy.visible = which in ["freezes", "report"]
-	_copy.text = "Скопировать"
+	_copy.text = "[copy]"
 	UiStyle.succeed(_copy, false)
 	# The phone's sharing, where the browser has it.
 	_share.visible = which == "report" and OS.has_feature("web") \
@@ -274,16 +274,16 @@ func _fill() -> void:
 	_legend.visible = which == "changes" and not info.changes.is_empty()
 	_make_tabs(which)
 	if which == "changes":
-		_title.text = "Что нового"
+		_title.text = "[whats_new]"
 		_add_changes(info.changes)
 	elif which == "freezes":
-		_title.text = "Журнал фризов"
+		_title.text = "[freeze_log]"
 		_add_freezes(sections[which])
 	elif which == "report":
-		_title.text = "Данные для теста"
+		_title.text = "[test_data]"
 		_add_report()
 	else:
-		_title.text = "Настройки" if which == "settings" else "Тестирование"
+		_title.text = "[settings]" if which == "settings" else "[testing]"
 		for k in _tab_buttons:
 			TabRow.light(_tab_buttons[k], k == sections[which])
 		for r in _section_rows(sections[which]):
@@ -328,20 +328,20 @@ func _section_rows(key: String) -> Array:
 	match key:
 		"world":
 			return [
-				["Сезон", clock.SEASONS,
+				["[season]", clock.SEASONS,
 					func() -> int: return clock.season,
 					func(i: int) -> void: s.set_season(i), "", game_season],
-				["Погода", ["сама"] + clock.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
+				["[weather]", ["[by_itself]"] + clock.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
 					func() -> int: return 0 if clock.weather_auto else clock.weather + 1,
 					func(i: int) -> void: s.set_weather(i - 1), "", game_weather],
-				["Луна", ["по фазе"] + MOONS.map(func(m: Array) -> String: return m[0]),
+				["[moon]", ["[by_phase]"] + MOONS.map(func(m: Array) -> String: return m[0]),
 					func() -> int:
 						for i in MOONS.size():
 							if is_equal_approx(clock.moon_pin, MOONS[i][1]):
 								return i + 1
 						return 0,
 					func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1])],
-				["Время суток", HOURS,
+				["[time_of_day]", HOURS,
 					func() -> int:
 						var h: float = clock.time_of_day * 24.0
 						var best := 0
@@ -350,88 +350,88 @@ func _section_rows(key: String) -> Array:
 								best = i
 						return best,
 					func(i: int) -> void: s.set_hour(HOUR_OF[i]), "", game_time],
-				["Час", range(24).map(func(h: int) -> String: return "%02d:00" % h),
+				["[hour]", range(24).map(func(h: int) -> String: return "%02d:00" % h),
 					func() -> int: return int(clock.time_of_day * 24.0) % 24,
 					func(i: int) -> void: s.set_hour(i), "", game_time],
-				["Ход времени", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "стоит" if v == 0.0 else ("обычный" if v == 1.0 else "×%d" % int(v))),
+				["[flow_of_time]", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "[stopped]" if v == 0.0 else ("[normal_ui]" if v == 1.0 else "×%d" % int(v))),
 					func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),
 					func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i]), "", game_time],
 			] + ([
 				null,
-				{"action": "Вернуться в свой мир" if s.in_test_world() else "Перейти в тестовый мир",
+				{"action": "[back_to_your_world]" if s.in_test_world() else "[go_to_the_test_world]",
 					"do": func() -> void: s.switch_test_world()},
 			] if game.join_url == "" else [])
 		"server":
 			return _server_rows()
 		"player":
 			return [
-				["Скорость игрока", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),
+				["[player_speed]", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),
 					func() -> int: return Settings.PLAYER_SPEEDS.find(s.player_speed),
 					func(i: int) -> void: s.set_player_speed(Settings.PLAYER_SPEEDS[i])],
-				["Рост навыков", Settings.SKILL_RATES.map(func(v: float) -> String: return "×%d" % int(v)),
+				["[skill_growth]", Settings.SKILL_RATES.map(func(v: float) -> String: return "×%d" % int(v)),
 					func() -> int: return Settings.SKILL_RATES.find(s.skill_rate),
 					func(i: int) -> void: s.set_skill_rate(Settings.SKILL_RATES[i])],
-				["Прыжки", ["с земли", "и в воздухе"],
+				["[jumps]", ["[from_the_ground]", "[and_in_the_air]"],
 					func() -> int: return int(s.air_jumps),
 					func(i: int) -> void: s.set_air_jumps(i == 1)],
-				["Стройка", ["из сумки", "бесплатно"],
+				["[building]", ["[from_the_bag]", "[free]"],
 					func() -> int: return int(s.free_build),
 					func(i: int) -> void: s.set_free_build(i == 1)],
-				["Износ инструментов", ["выкл", "вкл"],
+				["[tool_wear]", ["[off]", "[on]"],
 					func() -> int: return int(s.tool_wear),
 					func(i: int) -> void: s.set_tool_wear(i == 1)],
-				["Перегруз", ["вкл", "выкл"],
+				["[overload]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_overload),
 					func(i: int) -> void: s.set_no_overload(i == 1)],
-				["Изготовление", ["по времени", "сразу"],
+				["[crafting]", ["[takes_time]", "[instant]"],
 					func() -> int: return int(s.instant_craft),
 					func(i: int) -> void: s.set_instant_craft(i == 1)],
-				["Бесплатные предметы", ["выкл", "вкл"],
+				["[free_items]", ["[off]", "[on]"],
 					func() -> int: return int(s.free_items),
 					func(i: int) -> void: s.set_free_items(i == 1)],
-				["Нападения зверей", ["выкл", "вкл"],
+				["[animal_attacks]", ["[off]", "[on]"],
 					func() -> int: return int(s.animal_attacks),
 					func(i: int) -> void: s.set_animal_attacks(i == 1)],
-				["Голод", ["вкл", "выкл"],
+				["[hunger]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_hunger),
 					func(i: int) -> void: s.set_no_hunger(i == 1)],
-				["Жажда", ["вкл", "выкл"],
+				["[thirst]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_thirst),
 					func(i: int) -> void: s.set_no_thirst(i == 1)],
-				["Усталость", ["вкл", "выкл"],
+				["[fatigue]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_fatigue),
 					func(i: int) -> void: s.set_no_fatigue(i == 1)],
-				["Холод и жара", ["вкл", "выкл"],
+				["[cold_and_heat]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_cold),
 					func(i: int) -> void: s.set_no_cold(i == 1)],
-				["Возрождение", ["у костра", "и где упали"],
+				["[respawn_n2]", ["[at_the_campfire]", "[and_where_you_fell]"],
 					func() -> int: return int(s.revive_at_death),
 					func(i: int) -> void: s.revive_at_death = i == 1],
 				null,
-				{"action": "Выдать инструменты", "do": func() -> void: s.give_tools()},
-				{"action": "К месту последней смерти", "do": func() -> void: s.go_to_death()},
-				{"action": "Очистка территории", "do": func() -> void: s.clear_land(), "confirm": true},
+				{"action": "[give_tools]", "do": func() -> void: s.give_tools()},
+				{"action": "[to_the_place_of_the]", "do": func() -> void: s.go_to_death()},
+				{"action": "[clear_territory]", "do": func() -> void: s.clear_land(), "confirm": true},
 			]
 		"caves":
 			var counts: Array = CaveLayers.FIRSTS.map(func(v: int) -> String: return str(v))
 			var stretches: Array = CaveLayers.STRETCHES.map(func(v: int) -> String: return str(v))
-			var lines: Array = CaveLayers.LINES.map(func(v: int) -> String: return "%+d" % v if v != 0 else "0 (ноги)")
+			var lines: Array = CaveLayers.LINES.map(func(v: int) -> String: return "%+d" % v if v != 0 else "[0_feet]")
 			var percents := func(v: float) -> String: return "%d%%" % roundi(v * 100.0)
 			var rows := [
 				# For the whole world: how much darker each level under the sea gets.
-				["Затемнение за уровень", CaveLayers.DEPTH_STEPS.map(percents),
+				["[darkening_per_level]", CaveLayers.DEPTH_STEPS.map(percents),
 					func() -> int: return s.values.cut_depth,
 					func(i: int) -> void: s.set_value("cut_depth", i)],
 				null,
 			]
 			# The view in layers (CaveLayers).
-			var settings := [["Высота линии", "layer_line", lines],
-				["Впереди: первые слои", "layer_front_from", counts],
-				["Впереди: растяжение", "layer_front_stretch", stretches],
-				["Сверху: первые слои", "layer_above_from", counts],
-				["Сверху: растяжение", "layer_above_stretch", stretches],
-				["Плотность первых", "layer_density", CaveLayers.DENSITIES.map(percents)]]
-			var note := "Прозрачным становится только то, что перед игроком и не ниже линии: 0 — по ногам, +1 — по пояс, +2 — по голову. Срезы впереди — вертикальные слои по клетке, уровни сверху считаются от линии, берётся более прозрачное. Первые слои рисуются с плотностью первых, следующие за ними тают за «растяжение» слоёв."
+			var settings := [["[line_height]", "layer_line", lines],
+				["[ahead_first_layers]", "layer_front_from", counts],
+				["[ahead_stretch]", "layer_front_stretch", stretches],
+				["[above_first_layers]", "layer_above_from", counts],
+				["[above_stretch]", "layer_above_stretch", stretches],
+				["[density_of_the_first]", "layer_density", CaveLayers.DENSITIES.map(percents)]]
+			var note := "[only_what_is_in_front]"
 			for r: Array in settings:
 				var setting: String = r[1]
 				rows.append([r[0], r[2],
@@ -444,170 +444,170 @@ func _section_rows(key: String) -> Array:
 			for p: Array in game.character.respawn_points():
 				var at: Vector3 = p[1] / game.character.CELL
 				marks.append({"place": p[0], "cell": Vector2i(floori(at.x), floori(at.z)),
-					"color": UiStyle.INK, "tip": "Телепорт к точке возрождения"})
+					"color": UiStyle.INK, "tip": "[teleport_to_a_respawn_point]"})
 			if game.markers != null:
 				for i in game.markers.list.size():
 					marks.append({"marker": i})
 			if game.markers == null or game.markers.list.is_empty():
-				marks.append({"note": "Маркеров нет: поставьте их на карте (M)."})
+				marks.append({"note": "[no_markers_put_them_on]"})
 			return marks
 		"debug":
 			return [
-				["Карта теней", Settings.SHADOW_MAPS.map(func(v: int) -> String: return str(v)),
+				["[shadow_map]", Settings.SHADOW_MAPS.map(func(v: int) -> String: return str(v)),
 					func() -> int: return s.shadow_map,
 					func(i: int) -> void: s.set_shadow_map(i)],
-				["Статистика", ["выкл", "вкл"],
+				["[statistics]", ["[off]", "[on]"],
 					func() -> int: return int(game.hud.perf.visible),
 					func(i: int) -> void:
 						if game.hud.perf.visible != (i == 1):
 							game.hud.toggle_stats()],
-				["Отладочные подсказки", ["выкл", "вкл"],
+				["[debug_hints]", ["[off]", "[on]"],
 					func() -> int: return int(s.debug_tips),
 					func(i: int) -> void: s.debug_tips = i == 1],
-				["Отладка ИИ зверей", ["выкл", "вкл"],
+				["[animal_ai_debug]", ["[off]", "[on]"],
 					func() -> int: return int(s.ai_debug),
 					func(i: int) -> void: s.set_ai_debug(i == 1)],
-				["Журнал клавиш", ["выкл", "вкл"],
+				["[key_log]", ["[off]", "[on]"],
 					func() -> int: return int(s.keys_log),
 					func(i: int) -> void: s.keys_log = i == 1],
-				["Обзор уровней", ["±%d" % game.chunks.VIEW_REACH, "все"],
+				["[level_overview]", ["±%d" % game.chunks.VIEW_REACH, "[all_n2]"],
 					func() -> int: return int(s.free_view),
 					func(i: int) -> void: s.free_view = i == 1],
 				null,
-				{"action": "Разобрать вызовы отрисовки", "do": func() -> void:
+				{"action": "[break_down_draw_calls]", "do": func() -> void:
 					close()
 					if get_tree().paused:
 						game.hud.toggle_menu()
 					game.draw_census.start()},
-				{"action": "Журнал фризов", "do": func() -> void: open("freezes")},
-				{"action": "Данные для теста", "do": func() -> void: open("report")},
-				{"action": "Витрина интерфейса", "do": func() -> void: open_gallery()},
-				{"action": "Перечитать данные модов", "do": func() -> void: s.reload_mods()},
+				{"action": "[freeze_log]", "do": func() -> void: open("freezes")},
+				{"action": "[test_data]", "do": func() -> void: open("report")},
+				{"action": "[ui_gallery]", "do": func() -> void: open_gallery()},
+				{"action": "[reload_mod_data]", "do": func() -> void: s.reload_mods()},
 				null,
-				{"action": "Очистить все данные", "do": func() -> void: s.wipe_all(), "confirm": true},
+				{"action": "[clear_all_data]", "do": func() -> void: s.wipe_all(), "confirm": true},
 			]
 		"game":
 			return [
-				["Язык", Lang.LANGS.map(func(l: Array) -> String: return l[1]),
+				["[language]", Lang.LANGS.map(func(l: Array) -> String: return l[1]),
 					func() -> int: return maxi(0, Lang.LANGS.map(func(l: Array) -> String: return l[0]).find(Lang.code)),
 					func(i: int) -> void:
 						s.set_language(Lang.LANGS[i][0])
 						_fill.call_deferred()],
-				["Длина суток", Settings.TIME_SPEEDS.map(func(v: float) -> String: return Lang.f("%d мин", [roundi(clock.DAY_LENGTH / v / 60.0)])),
+				["[day_length]", Settings.TIME_SPEEDS.map(func(v: float) -> String: return Lang.f("[min]", [roundi(clock.DAY_LENGTH / v / 60.0)])),
 					func() -> int: return s.values.time_speed,
 					func(i: int) -> void: s.set_value("time_speed", i), "", game_time],
-				["Время суток", ["игровое", "как в жизни"],
+				["[time_of_day]", ["[in_game_time]", "[as_in_real_life]"],
 					func() -> int: return int(s.values.real_time),
 					func(i: int) -> void: s.set_value("real_time", i == 1)],
-				["Сезон", ["игровой", "как в жизни"],
+				["[season]", ["[in_game_season]", "[as_in_real_life]"],
 					func() -> int: return int(s.values.real_season),
 					func(i: int) -> void: s.set_value("real_season", i == 1)],
 				# A server far away has its own (Config.real_weather): faded there.
-				["Погода", ["игровая", "как в жизни"],
+				["[weather]", ["[in_game_weather]", "[as_in_real_life]"],
 					func() -> int: return int(s.values.real_weather),
 					func(i: int) -> void: s.set_value("real_weather", i == 1), "",
 					func() -> bool: return game.join_url == ""],
-				["Автоподбор", ["всё", "что есть", "еду", "ничего"],
+				["[auto_pickup]", ["[everything]", "[whats_there]", "[food_n2]", "[nothing]"],
 					func() -> int: return s.values.pickup,
 					func(i: int) -> void: s.set_value("pickup", i)],
-				["Сверх груза", ["не брать", "брать"],
+				["[over_the_load]", ["[dont_take]", "[take]"],
 					func() -> int: return int(s.values.pickup_heavy),
 					func(i: int) -> void: s.set_value("pickup_heavy", i == 1)],
-				["Тряска экрана", ["выкл", "вкл"],
+				["[screen_shake]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.shake),
 					func(i: int) -> void: s.set_value("shake", i == 1)],
 				# Faded and «нет» where the browser or device cannot buzz (a computer,
 				# Safari, some phones' own browsers).
-				["Вибрация", ["выкл", "вкл"],
+				["[vibration]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.vibrate) if Vibration.supported() else -1,
-					func(i: int) -> void: s.set_value("vibrate", i == 1), "нет", Vibration.supported],
+					func(i: int) -> void: s.set_value("vibrate", i == 1), "[no_n2]", Vibration.supported],
 			]
 		"interface":
 			var rows := [
-				["Размер интерфейса", SIZES,
+				["[interface_size]", SIZES,
 					func() -> int: return s.values.ui_size,
 					func(i: int) -> void: s.set_value("ui_size", i)],
 			]
 			if game.controls.touch:
-				rows.append(["Размер управления", SIZES,
+				rows.append(["[controls_size]", SIZES,
 					func() -> int: return s.values.control_size,
 					func(i: int) -> void: s.set_value("control_size", i)])
 			rows.append_array([
-				["Миникарта", MAP_SIZES,
+				["[minimap]", MAP_SIZES,
 					func() -> int: return s.values.minimap_size,
 					func(i: int) -> void: s.set_value("minimap_size", i)],
-				["Уровень и срез", ["выкл", "вкл"],
+				["[level_and_cut]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.level_buttons),
 					func(i: int) -> void: s.set_value("level_buttons", i == 1)],
-				["Кнопки камеры", ["выкл", "вкл"],
+				["[camera_buttons]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.camera_buttons),
 					func(i: int) -> void: s.set_value("camera_buttons", i == 1)],
-				["Чат и жесты", ["в сети", "всегда"],
+				["[chat_and_gestures]", ["[online]", "[always]"],
 					func() -> int: return int(s.values.solo_social),
 					func(i: int) -> void: s.set_value("solo_social", i == 1)],
-				["Кнопка статистики", ["скрыта", "видна"],
+				["[stats_button]", ["[hidden]", "[shown]"],
 					func() -> int: return int(s.values.stats_button),
 					func(i: int) -> void: s.set_value("stats_button", i == 1)],
 			])
 			if s.can_fullscreen():
-				rows.append(["Полный экран", ["выкл", "вкл"],
+				rows.append(["[full_screen]", ["[off]", "[on]"],
 					func() -> int: return int(s.fullscreen()),
 					func(i: int) -> void: s.set_fullscreen(i == 1)])
 			if not game.controls.touch:
-				rows.append(["Подсказка клавиш", ["выкл", "вкл"],
+				rows.append(["[key_hints]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.show_help),
 					func(i: int) -> void: s.set_value("show_help", i == 1)])
 			return rows
 		"music":
 			return [
-				_volume_row("Громкость", "music_volume"),
-				["Как часто", ["редко", "иногда", "часто"],
+				_volume_row("[volume]", "music_volume"),
+				["[how_often]", ["[rarely]", "[sometimes]", "[often]"],
 					func() -> int: return s.values.music_often,
 					func(i: int) -> void: s.set_value("music_often", i)],
 			]
 		"sound":
 			return [
-				_volume_row("Громкость", "sound_volume"),
+				_volume_row("[volume]", "sound_volume"),
 				null,
-				_volume_row("Природа", "nature_volume"),
-				_volume_row("Интерфейс", "ui_volume"),
+				_volume_row("[nature]", "nature_volume"),
+				_volume_row("[interface]", "ui_volume"),
 			]
 		"graphics":
 			# From the lightest to draw to the heaviest; mixed (3) came after real (2).
 			var fire_order := [0, 1, 3, 2]
 			return [
-				["Качество", ["низкое", "среднее", "высокое"],
+				["[quality]", ["[low]", "[medium_quality]", "[high]"],
 					func() -> int: return s.quality(),
-					func(i: int) -> void: s.set_quality(i), "своё"],
+					func(i: int) -> void: s.set_quality(i), "[custom_quality]"],
 				null,
-				["Масштаб", SIZES,
+				["[scale]", SIZES,
 					func() -> int: return s.values.pixel_scale,
 					func(i: int) -> void: s.set_value("pixel_scale", i)],
-				["Тени", ["выкл", "вкл"],
+				["[shadows]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.shadows),
 					func(i: int) -> void: s.set_value("shadows", i == 1)],
-				["Тени от огня", ["выкл", "нарисованные", "смешанные", "настоящие"],
+				["[fire_shadows]", ["[off]", "[drawn]", "[mixed]", "[real]"],
 					func() -> int: return fire_order.find(s.values.fire_shadows),
 					func(i: int) -> void: s.set_value("fire_shadows", fire_order[i])],
-				["Тень на вещах", ["выкл", "вкл"],
+				["[shadow_on_things]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.shadow_on_things),
 					func(i: int) -> void: s.set_value("shadow_on_things", i == 1)],
-				["Эффекты", ["выкл", "вкл"],
+				["[effects]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.effects),
 					func(i: int) -> void: s.set_value("effects", i == 1)],
-				["Солнечные лучи", ["выкл", "вкл"],
+				["[sun_rays]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.sun_rays),
 					func(i: int) -> void: s.set_value("sun_rays", i == 1)],
-				["Туман", ["простой", "по земле"],
+				["[fog]", ["[simple]", "[on_the_ground]"],
 					func() -> int: return int(s.values.fog),
 					func(i: int) -> void: s.set_value("fog", i == 1)],
-				["Дымка на краю", ["выкл", "вкл"],
+				["[haze_at_the_edge]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.edge_mist),
 					func(i: int) -> void: s.set_value("edge_mist", i == 1)],
-				["Кинескоп", ["выкл", "мягкий", "старый", "кассета"],
+				["[crt]", ["[off]", "[crt_soft]", "[crt_old]", "[crt_tape]"],
 					func() -> int: return s.values.crt,
 					func(i: int) -> void: s.set_value("crt", i)],
-				["Предел FPS", Settings.FPS_LIMITS.map(func(v: int) -> String: return "нет" if v == 0 else str(v)),
+				["[fps_limit]", Settings.FPS_LIMITS.map(func(v: int) -> String: return "[no_n2]" if v == 0 else str(v)),
 					func() -> int: return s.values.fps_limit,
 					func(i: int) -> void: s.set_value("fps_limit", i)],
 			]
@@ -623,48 +623,48 @@ func _server_rows() -> Array:
 	var joined: bool = game.join_url != ""
 	var playtest: bool = joined and game.welcome.get("playtest") == true
 	var host: bool = joined and (game.hosted != null or game.welcome.get("host") == true)
-	var rows := [{"note": "Тестовый сервер (GitHub)"}]
+	var rows := [{"note": "[test_server_github]"}]
 	if playtest:
 		rows += [
-			{"action": "Продлить сервер на час", "do": func() -> void: s.test_server("hour")},
-			{"action": "Остановить тестовый сервер", "do": func() -> void: s.test_server("stop"), "confirm": true},
+			{"action": "[keep_the_server_an_hour]", "do": func() -> void: s.test_server("hour")},
+			{"action": "[stop_the_test_server]", "do": func() -> void: s.test_server("stop"), "confirm": true},
 		]
 	else:
 		rows += [
-			{"action": "Запустить тестовый сервер", "do": func() -> void: s.start_test_server()},
-			{"action": "Подключиться к тестовому серверу", "do": func() -> void: s.join_test_server()},
+			{"action": "[start_the_test_server]", "do": func() -> void: s.start_test_server()},
+			{"action": "[join_the_test_server]", "do": func() -> void: s.join_test_server()},
 		]
-	rows += [null, {"note": "Этот сервер" if joined else "Свой сервер"}]
+	rows += [null, {"note": "[this_server]" if joined else "[your_own_server]"}]
 	if not joined:
 		if s.can_host():
-			rows += [{"note": "Боты приходят только на сервер: мир станет сервером на этом компьютере, вы войдёте в него хозяином"},
-				{"action": "Сделать мир сервером и позвать бота", "do": func() -> void: s.host_with_bot()}]
+			rows += [{"note": "[bots_only_come_to_a]"},
+				{"action": "[make_the_world_a_server]", "do": func() -> void: s.host_with_bot()}]
 		else:
-			rows.append({"note": "Свой сервер и боты — в версии для компьютера; здесь — на тестовом сервере"})
+			rows.append({"note": "[your_own_server_and_bots]"})
 		return rows
 	if not playtest and not host:
-		rows.append({"note": "Ботами и миром этого сервера управляет его хозяин"})
+		rows.append({"note": "[the_bots_and_the_world]"})
 		return rows
 	rows += [
-		{"action": "Добавить бота", "do": func() -> void: s.test_server("bot+")},
-		{"action": "Убрать бота", "do": func() -> void: s.test_server("bot-")},
+		{"action": "[add_a_bot]", "do": func() -> void: s.test_server("bot+")},
+		{"action": "[remove_a_bot]", "do": func() -> void: s.test_server("bot-")},
 		null,
-		{"action": "Тестовый мир на сервере", "do": func() -> void: s.test_server("new test"), "confirm": true},
-		{"action": "Новый мир на сервере", "do": func() -> void: s.test_server("new"), "confirm": true},
+		{"action": "[test_world_on_the_server]", "do": func() -> void: s.test_server("new test"), "confirm": true},
+		{"action": "[new_world_on_the_server]", "do": func() -> void: s.test_server("new"), "confirm": true},
 	]
 	if game.hosted != null:
 		# The server is made here: its worlds are this device's.
 		for w: Dictionary in s.server_worlds():
-			rows.append({"action": Lang.f("Мир %d · день %d", [w.seed, w.day]) if w.seed != WorldStore.TEST_SEED else "Тестовый мир",
+			rows.append({"action": Lang.f("[world_day]", [w.seed, w.day]) if w.seed != WorldStore.TEST_SEED else "[test_world_n2]",
 				"do": func() -> void: s.test_server("world " + str(w.dir).get_file()), "confirm": true})
 	else:
-		rows.append({"action": "Миры сервера — список в чат", "do": func() -> void: s.test_server("worlds")})
+		rows.append({"action": "[the_servers_worlds_list_in]", "do": func() -> void: s.test_server("worlds")})
 	if game.hosted != null:
-		rows.append({"action": "Остановить сервер", "do": func() -> void: game.stop_server(), "confirm": true})
+		rows.append({"action": "[stop_the_server]", "do": func() -> void: game.stop_server(), "confirm": true})
 	elif not playtest:
-		rows.append({"action": "Остановить сервер", "do": func() -> void: s.test_server("stop"), "confirm": true})
+		rows.append({"action": "[stop_the_server]", "do": func() -> void: s.test_server("stop"), "confirm": true})
 	rows += [null,
-		["Читы на сервере", ["выкл", "вкл"],
+		["[cheats_on_the_server]", ["[off]", "[on]"],
 			func() -> int: return int(s.cheats),
 			func(i: int) -> void: s.set_cheats(i == 1)],
 	]
@@ -673,7 +673,7 @@ func _server_rows() -> Array:
 
 func _volume_row(name: String, key: String) -> Array:
 	var s = game.settings
-	var steps := ["выкл"]
+	var steps := ["[off]"]
 	for i in range(1, Sound.STEPS + 1):
 		steps.append("%d%%" % (100 * i / Sound.STEPS))
 	return [name, steps,
@@ -813,7 +813,7 @@ func _page_height(which: String, n: int) -> int:
 ## One wrapped paragraph a change, as wide as the rows of the other pages.
 func _add_changes(changes: Array) -> void:
 	if changes.is_empty():
-		_list.add_child(_paragraph("Список изменений появится в сборке с сайта.", UiStyle.MUTED))
+		_list.add_child(_paragraph("[the_list_of_changes_appears]", UiStyle.MUTED))
 		return
 	_changes_left = changes.duplicate()
 	_changes_pr = -1
@@ -854,7 +854,7 @@ func _add_freezes(key: String) -> void:
 		shown.append(l[1])
 	_shown_text = "\n".join(shown)
 	if lines.is_empty():
-		_list.add_child(_paragraph("Фризов нет" if key == "all" else "Таких фризов нет", UiStyle.MUTED))
+		_list.add_child(_paragraph("[no_freezes]" if key == "all" else "[no_such_freezes]", UiStyle.MUTED))
 	for l: Array in lines:
 		_list.add_child(_paragraph(l[1], UiStyle.DANGER if l[0] >= 200.0 else (UiStyle.ACCENT if l[0] >= 100.0 else UiStyle.INK)))
 
@@ -874,7 +874,7 @@ func _add_report() -> void:
 ## «Скопировать»: the text of the page shown into the clipboard.
 func _copy_shown() -> void:
 	DisplayServer.clipboard_set(_shown_text)
-	_copy.text = "Скопировано"
+	_copy.text = "[copied]"
 	UiStyle.succeed(_copy, true)
 
 
@@ -989,7 +989,7 @@ func _add_action(text: String, action: Callable, confirm := false) -> Button:
 ## button that takes the player there and back into the game.
 func _add_marker(i: int) -> void:
 	var m: Dictionary = game.markers.list[i]
-	_add_place(Markers.color_of(m), (Markers.COLORS[m.color][0] as String).capitalize(), m.cell, "Телепорт к маркеру")
+	_add_place(Markers.color_of(m), (Markers.COLORS[m.color][0] as String).capitalize(), m.cell, "[teleport_to_a_marker]")
 
 
 ## A place as a row: a swatch of `color`, `name` and the column `cell`, and a button
@@ -1005,7 +1005,7 @@ func _add_place(color: Color, name: String, cell: Vector2i, tip: String) -> void
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.clip_text = true
 	row.add_child(label)
-	var b := Kit.button("Перейти", Callable(), 0, ARROW)
+	var b := Kit.button("[go]", Callable(), 0, ARROW)
 	b.tooltip_text = tip
 	b.pressed.connect(func() -> void:
 		game.character.go_to_column(cell)

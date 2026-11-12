@@ -18,8 +18,8 @@ func run() -> void:
 
 
 func _test_levels() -> void:
-	_check(Skills.ALL.size() == 10 and Skills.ALL[0].role == "gather" and Skills.of_role("swim").title == "Плавание"
-		and Skills.of_role("farm").title == "Земледелие",
+	_check(Skills.ALL.size() == 10 and Skills.ALL[0].role == "gather" and Lang.t(Skills.of_role("swim").title) == "Swim"
+		and Lang.t(Skills.of_role("farm").title) == "Farm",
 		"ten skills in their order, each found by its work")
 	var dig := Skills.of_role("dig")
 	_check(Skills.level_at(dig, 0.0) == 0 and Skills.level_at(dig, dig.first) == 1

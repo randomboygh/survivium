@@ -2,9 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/waterskin/bundle.yaml
-"Бурдюк": "Bukłak"
+"[tools.waterskin.bundle]": "Bukłak"
 
 # content/tools/waterskin/data/items.yaml
-"Кожаный мешок для воды. Возьми в руку и коснись пресной воды, чтобы наполнить.": "Skórzany worek na wodę. Weź go do ręki i dotknij słodkiej wody, by go napełnić."
-"Бурдюк с водой": "Bukłak z wodą"
-"Полный бурдюк. Утоляет жажду вдали от воды.": "Pełny bukłak. Gasi pragnienie z dala od wody."
+"[tools.items.waterskin]": "Bukłak"
+"[tools.items.waterskin.about]": "Skórzany worek na wodę. Weź go do ręki i dotknij słodkiej wody, by go napełnić."
+"[tools.items.waterskin_full]": "Bukłak z wodą"
+"[tools.items.waterskin_full.about]": "Pełny bukłak. Gasi pragnienie z dala od wody."
+
+# content/tools/waterskin/data/recipes.yaml
+"[tools.recipes.waterskin]": "Bukłak"

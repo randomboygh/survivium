@@ -19,7 +19,8 @@ content/animals/
   mod.yaml                        id: animals, название, версия, api
   README.md                       этот файл
   rabbit/                         бандл «Заяц»; так же squirrel, cat, deer, wolf
-    bundle.yaml                   title: Заяц
+    bundle.yaml                   title: "[animals.rabbit.bundle]"
+    lang/en.yaml, ru.yaml ...     тексты ключей бандла на каждом языке
     data/creatures.yaml           вид animals:rabbit и его свойства
     data/sounds.yaml              его голоса: записи звуков
     sprites/creatures/rabbit.png  картинка: три ряда (сбоку, спереди, сзади) по 7 кадров

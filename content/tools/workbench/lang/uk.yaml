@@ -2,4 +2,10 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/workbench/bundle.yaml
-"Верстак": "Верстак"
+"[tools.workbench.bundle]": "Верстак"
+
+# content/tools/workbench/data/items.yaml
+"[tools.items.workbench]": "Верстак"
+
+# content/tools/workbench/data/recipes.yaml
+"[tools.recipes.workbench]": "Верстак"

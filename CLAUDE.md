@@ -5,8 +5,8 @@ the browser and on PC (Windows, Linux; Android later), with multiplayer through 
 server that is the same executable (decision 153; single player runs it in the same process).
 Godot 4.5.1, GL Compatibility renderer, web export without threads, pure GDScript: scripts are loaded
 with `preload` consts and `extends "res://…"`, no `class_name`, no autoloads, no plugins.
-The game speaks ten languages (English by default) and its source phrases are Russian, each its own
-translation key (`docs/systems/lang.md`); the README and the docs in `docs/` are in Russian; code,
+The game speaks ten languages (English by default); every text a player reads is a key in square
+brackets, `"[bag_is_full]"`, in the code and in the mods' data (`docs/systems/lang.md`, `docs/TRANSLATION.md`); the README and the docs in `docs/` are in Russian; code,
 comments, commits and PRs are in English.
 
 ## Where things are
@@ -116,7 +116,7 @@ docs); a PR that does several things has a line for each.
 ```
 python3 tools/lint.py
 python3 tools/doc_index.py --check
-python3 tools/lang_check.py --strict en
+python3 tools/lang_check.py --strict en,ru
 godot --headless --path . --import
 godot --headless --path . --script res://tools/parse_check.gd
 godot --headless --path . --script res://tools/validate.gd
@@ -168,9 +168,11 @@ Each in one line; the system's context doc has the detail.
 - `var i := expr` with a Variant `expr` is a parse error: type it. `typed_array = expr if c else []`
   is a runtime error that silently aborts the function. A self-typed return (`-> VoxelModel`) without
   `class_name` is a parse error that hangs the `make_*` tools: `--check-only` first.
-- Text is in Russian and the phrase is its own key: a new phrase or record needs its English in
-  `lang/en.yaml` beside it (`python3 tools/lang_check.py --write en`); the server sends `Lang.line(template,
-  values)`, the client formats with `Lang.f`, never `template % values` or glued pieces (`docs/systems/lang.md`).
+- A player's text is a key (`"[bag_is_full]"`, a record's title `[<mod>.<kind>.<id>]`), never a phrase: a new
+  key needs its English and Russian in `lang/en.yaml` and `ru.yaml` beside it (`python3 tools/lang_check.py
+  --write en`, `--write ru`); internal texts (logs, console, F3) are plain English. The server sends
+  `Lang.line(template, values)`, the client formats with `Lang.f` and takes the words by `Lang.t`, never
+  `template % values` or glued pieces (`docs/systems/lang.md`).
 - Never use -1 as "none" for world coordinates: negative ones are real.
 - Tests of time-based behaviour wait by `Time.get_ticks_msec`, not frames. A per-frame flag computed
   before a state-changing update is stale in that frame.

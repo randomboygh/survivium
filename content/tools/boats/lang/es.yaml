@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/boats/bundle.yaml
-"Плот и лодка": "Balsa y barca"
+"[tools.boats.bundle]": "Balsa y barca"
 
 # content/tools/boats/data/items.yaml
-"Плот": "Balsa"
-"Брёвна, связанные верёвкой. Возьми в руку и нажми действие у воды, чтобы спустить его и сесть.": "Troncos atados con cuerda. Tómala en la mano y pulsa la acción junto al agua para botarla y subir."
-"Лодка": "Barca"
-"Лёгкая лодка из досок, просмолённая. Быстрее плота, но грести ею можно только с вёслами в сумке.": "Una barca ligera de tablas embreada. Más rápida que la balsa, pero solo se rema con remos en la bolsa."
-"Вёсла": "Remos"
-"Пара вёсел. Пока они в сумке, лодка идёт быстро.": "Un par de remos. Mientras estén en la bolsa, la barca va rápido."
+"[tools.items.raft]": "Balsa"
+"[tools.items.raft.about]": "Troncos atados con cuerda. Tómala en la mano y pulsa la acción junto al agua para botarla y subir."
+"[tools.items.boat]": "Barca"
+"[tools.items.boat.about]": "Una barca ligera de tablas embreada. Más rápida que la balsa, pero solo se rema con remos en la bolsa."
+"[tools.items.oars]": "Remos"
+"[tools.items.oars.about]": "Un par de remos. Mientras estén en la bolsa, la barca va rápido."
+
+# content/tools/boats/data/recipes.yaml
+"[tools.recipes.raft]": "Balsa"
+"[tools.recipes.boat]": "Barca"
+"[tools.recipes.oars]": "Remos"

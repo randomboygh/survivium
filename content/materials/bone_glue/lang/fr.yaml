@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/bone_glue/bundle.yaml
-"Костный клей": "Colle d'os"
+"[materials.bone_glue.bundle]": "Colle d'os"
 
 # content/materials/bone_glue/data/items.yaml
-"Вываренный из костей клей. Склеивает составной лук.": "Colle bouillie à partir d'os. Tient un arc composite ensemble."
+"[materials.items.bone_glue]": "Colle d'os"
+"[materials.items.bone_glue.about]": "Colle bouillie à partir d'os. Tient un arc composite ensemble."
+
+# content/materials/bone_glue/data/recipes.yaml
+"[materials.recipes.bone_glue]": "Colle d'os"

@@ -2,18 +2,18 @@
 # лодку и вёсла делают на верстаке (бандл «Верстак») из досок, лодку ещё смолят смолой «Материалов».
 # Все поля рецепта — docs/DATA_MODEL.md.
 - id: raft
-  title: Плот
+  title: "[tools.recipes.raft]"
   makes: raft
   needs: {resources:log: 6, materials:cord: 4}
   time: 10
 - id: boat
-  title: Лодка
+  title: "[tools.recipes.boat]"
   makes: boat
   needs: {materials:planks: 12, materials:tar: 2}
   at: workbench
   time: 20
 - id: oars
-  title: Вёсла
+  title: "[tools.recipes.oars]"
   makes: oars
   needs: {materials:planks: 3}
   at: workbench

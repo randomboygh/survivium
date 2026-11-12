@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/window/bundle.yaml
-"Окно": "Pencere"
+"[tools.window.bundle]": "Pencere"
 
 # content/tools/window/data/items.yaml
-"Рама со стеклом для проёма в стене.": "Duvardaki bir açıklık için camlı bir çerçeve."
-"Окно 1×2": "Pencere 1×2"
-"Высокое окно со стеклом, на клетку в ширину и две в высоту.": "Bir hücre genişliğinde ve iki yüksekliğinde yüksek camlı pencere."
-"Окно 2×1": "Pencere 2×1"
-"Широкое окно со стеклом, на две клетки в ширину и одну в высоту.": "İki hücre genişliğinde ve bir yüksekliğinde geniş camlı pencere."
-"Окно 2×2": "Pencere 2×2"
-"Большое окно со стеклом, на две клетки в ширину и две в высоту.": "İki hücre genişliğinde ve iki yüksekliğinde büyük camlı pencere."
-"Окно 3×2": "Pencere 3×2"
-"Окно во всю стену, на три клетки в ширину и две в высоту.": "Duvar boyu bir pencere, üç hücre genişliğinde ve iki yüksekliğinde."
+"[tools.items.window]": "Pencere"
+"[tools.items.window.about]": "Duvardaki bir açıklık için camlı bir çerçeve."
+"[tools.items.window_1x2]": "Pencere 1×2"
+"[tools.items.window_1x2.about]": "Bir hücre genişliğinde ve iki yüksekliğinde yüksek camlı pencere."
+"[tools.items.window_2x1]": "Pencere 2×1"
+"[tools.items.window_2x1.about]": "İki hücre genişliğinde ve bir yüksekliğinde geniş camlı pencere."
+"[tools.items.window_2x2]": "Pencere 2×2"
+"[tools.items.window_2x2.about]": "İki hücre genişliğinde ve iki yüksekliğinde büyük camlı pencere."
+"[tools.items.window_3x2]": "Pencere 3×2"
+"[tools.items.window_3x2.about]": "Duvar boyu bir pencere, üç hücre genişliğinde ve iki yüksekliğinde."
+
+# content/tools/window/data/recipes.yaml
+"[tools.recipes.window]": "Pencere"
+"[tools.recipes.window_1x2]": "Pencere 1×2"
+"[tools.recipes.window_2x1]": "Pencere 2×1"
+"[tools.recipes.window_2x2]": "Pencere 2×2"
+"[tools.recipes.window_3x2]": "Pencere 3×2"

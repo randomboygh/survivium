@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/nettle/bundle.yaml
+"[plants.nettle.bundle]": "Крапива"
+
+# content/plants/nettle/data/plants.yaml
+"[plants.plants.nettle]": "Крапива"

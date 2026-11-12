@@ -2,7 +2,7 @@
 # волокно — «Ресурсов», печь — «Инструментов», костёр — основы.
 
 - id: fried_mushrooms
-  title: Жареные грибы
+  title: "[plants.recipes.fried_mushrooms]"
   makes: fried_mushrooms
   needs: {mushroom: 4}
   at: core:campfire

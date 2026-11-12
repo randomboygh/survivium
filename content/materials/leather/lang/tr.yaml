@@ -2,7 +2,11 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/materials/leather/bundle.yaml
-"Кожа": "Deri"
+"[materials.leather.bundle]": "Deri"
 
 # content/materials/leather/data/items.yaml
-"Выделанная шкура. Из неё шьют иглой.": "Tabaklanmış post. İğneyle dikilir."
+"[materials.items.leather]": "Deri"
+"[materials.items.leather.about]": "Tabaklanmış post. İğneyle dikilir."
+
+# content/materials/leather/data/recipes.yaml
+"[materials.recipes.leather]": "Deri"

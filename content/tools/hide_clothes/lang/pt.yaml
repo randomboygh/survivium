@@ -2,14 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hide_clothes/bundle.yaml
-"Одежда из шкур": "Roupa de pele"
+"[tools.hide_clothes.bundle]": "Roupa de pele"
 
 # content/tools/hide_clothes/data/items.yaml
-"Меховая шапка": "Gorro de pele"
-"Шапка из шкуры мехом внутрь. Держит тепло головы в мороз.": "Um gorro de pele com o pelo para dentro. Mantém a cabeça quente na geada."
-"Шуба": "Casaco de pele"
-"Длинная одежда из шкур мехом внутрь. С ней зимняя ночь не страшна.": "Uma veste longa de peles com o pelo para dentro. Com ela uma noite de inverno não assusta."
-"Кожаные штаны": "Calças de couro"
-"Штаны из выделанной кожи. Не продуваются ветром.": "Calças de couro curtido. O vento não as atravessa."
-"Унты": "Botas de pele"
-"Высокие сапоги из шкуры на кожаной подошве.": "Botas altas de pele com sola de couro."
+"[tools.items.fur_hat]": "Gorro de pele"
+"[tools.items.fur_hat.about]": "Um gorro de pele com o pelo para dentro. Mantém a cabeça quente na geada."
+"[tools.items.fur_coat]": "Casaco de pele"
+"[tools.items.fur_coat.about]": "Uma veste longa de peles com o pelo para dentro. Com ela uma noite de inverno não assusta."
+"[tools.items.leather_trousers]": "Calças de couro"
+"[tools.items.leather_trousers.about]": "Calças de couro curtido. O vento não as atravessa."
+"[tools.items.fur_boots]": "Botas de pele"
+"[tools.items.fur_boots.about]": "Botas altas de pele com sola de couro."
+
+# content/tools/hide_clothes/data/recipes.yaml
+"[tools.recipes.fur_hat]": "Gorro de pele"
+"[tools.recipes.fur_coat]": "Casaco de pele"
+"[tools.recipes.leather_trousers]": "Calças de couro"
+"[tools.recipes.fur_boots]": "Botas de pele"

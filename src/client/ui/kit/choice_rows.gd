@@ -60,7 +60,7 @@ func add(parent: Node, name: String, values: Array, getter: Callable, setter: Ca
 	row.add_child(value)
 	var right := _arrow(row, "next", index, 1)
 	if opts.has("open"):
-		row.add_child(Kit.icon_button(opts.get("open_icon", "menu"), opts.get("open_tip", "Что входит"), opts.open, arrow))
+		row.add_child(Kit.icon_button(opts.get("open_icon", "menu"), opts.get("open_tip", "[whats_included]"), opts.open, arrow))
 	var r := {"name": label, "values": values, "get": getter, "set": setter, "label": value, "left": left,
 		"right": right, "row": row}
 	r.merge(opts)

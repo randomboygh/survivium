@@ -10,7 +10,7 @@
 # для карты и отчётов. color — цвет на карте. tints — цвета грунта и воды биома вместо их собственных (по
 # именам поля top и water: {sand: "#e6dcbe", water: "#4cc6bc"}). Ссылки на породы и кусты мягкие: без их бандла доля пуста.
 - id: swamp
-  title: Болото
+  title: "[biomes.biomes.swamp]"
   where: swamp
   trees: {plants:oak: 0.35, plants:willow: 0.4, plants:deadwood: 0.15, plants:bird_cherry: 0.1}
   tree_chance: 0.03

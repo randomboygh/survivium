@@ -33,47 +33,47 @@ const SETTLE_MAX := 5.0
 ## The parts of the loading in order (Main.loading_part, then the first frames) and the
 ## captions of the last two.
 const PARTS := ["setup", "build", "warm", "settle"]
-const WARM_CAPTION := "Прогрев шейдеров"
-const SETTLE_CAPTION := "Первые кадры мира"
+const WARM_CAPTION := "[warming_up_shaders]"
+const SETTLE_CAPTION := "[first_frames_of_the_world]"
 ## Tips on the loading screen, each shown once a load in a shuffled order (see _next_tip).
 const TIPS := [
-	"Волокно дают высокая трава, травы и тростник; из трёх волокон скручивают верёвку.",
-	"Кремень попадается, когда копаешь землю, песок и осыпь.",
-	"Костёр складывают из пяти веток и пяти волокон, на нём жарят грибы, мясо и рыбу.",
-	"Рецепт становится известен, когда в сумке побывали все его материалы.",
-	"Верстак из восьми веток и двух верёвок: у него делают каменные инструменты.",
-	"Печь для обжига складывают из камня и глины, в ней обжигают кирпичи и пекут лепёшки.",
-	"Колоски дают зерно, а из зерна мелют муку.",
-	"Из мха и волокна делают бинты.",
-	"Карта помнит всё, что вы видели, и на ней можно ставить метки.",
-	"Кнопки уровня у миникарты срезают вид: так видно, что в пещере и под кронами.",
-	"Против ветра идти тяжелее, а в прыжке он сносит в сторону.",
-	"Факел из ветки и двух волокон светит в темноте, но со временем догорает.",
-	"Доски делают у верстака из бревна, если в сумке есть топор.",
-	"Медную руду бьют киркой в жилах камня, а слитки плавят в горне из руды и угля.",
-	"Уголь выжигают из брёвен в печи для обжига.",
-	"Сундук из шести досок хранит вещи, которые не помещаются в сумку.",
-	"Прыжки, плавание и работа тратят силы, а в покое они возвращаются.",
-	"Голодному не восстановить силы полностью: ешьте ягоды, грибы, мясо и лепёшки.",
-	"С тяжёлой сумкой идёшь медленнее: лишнее можно оставить в сундуке.",
-	"Без сил в воде начинаешь тонуть: далеко не заплывайте.",
-	"Горящий костёр обжигает и отбрасывает, если подойти вплотную.",
-	"После смерти вещи остаются в мешке на месте гибели, он отмечен на карте.",
-	"Возвращаешься к жизни у своего костра: поставьте его рядом с домом.",
-	"Жёлуди, шишки и семена можно посадить, и из них вырастут деревья и травы.",
-	"Траву срезают руками, мечом или косой, и с неё падает волокно.",
-	"Камеру можно повернуть кнопками у миникарты и наклонить, чтобы заглянуть за деревья.",
-	"В настройках время суток, сезон и погоду можно сделать как в жизни.",
-	"Удочку делают из двух веток, двух верёвок и кремня, а пойманную рыбу жарят на костре.",
-	"Тушку зверька разделывают руками, а большую тушу — только ножом: с неё падают шкура, кости и жир.",
-	"На сушилке из шкуры и жира выделывают кожу, там же вялят мясо.",
-	"Лук и стрелы делают у верстака, а наконечник стрелы — из кремня или кости.",
-	"Бронзу плавят в горне из меди и олова, и в сумке должен быть тигель.",
-	"Железную руду плавят в крицу в сыродутной печи, а из крицы в горне получаются слитки.",
-	"Железные и стальные инструменты куют на наковальне.",
-	"Из стеблей льна прядут нить, а на ткацком станке ткут из неё ткань.",
-	"Смолу выгоняют из брёвен в печи для обжига, и для этого нужен глиняный горшок.",
-	"Серебро, золото и платину плавят в горне, а на наковальне из слитков собирают блоки.",
+	"[fiber_comes_from_tall_grass]",
+	"[flint_turns_up_when_you]",
+	"[a_campfire_is_made_of]",
+	"[a_recipe_becomes_known_once]",
+	"[a_workbench_of_eight_branches]",
+	"[a_kiln_is_built_of]",
+	"[ears_give_grain_and_grain]",
+	"[bandages_are_made_of_moss]",
+	"[the_map_remembers_everything_you]",
+	"[the_level_buttons_by_the]",
+	"[walking_against_the_wind_is]",
+	"[a_torch_of_a_branch]",
+	"[planks_are_made_from_a]",
+	"[copper_ore_is_mined_with]",
+	"[charcoal_is_burned_from_logs]",
+	"[a_chest_of_six_planks]",
+	"[jumping_swimming_and_work_use]",
+	"[a_hungry_body_cant_fully]",
+	"[with_a_heavy_bag_you]",
+	"[without_strength_you_start_to]",
+	"[a_burning_campfire_scorches_and]",
+	"[after_death_your_things_stay]",
+	"[you_come_back_to_life]",
+	"[acorns_cones_and_seeds_can]",
+	"[grass_is_cut_by_hand]",
+	"[the_camera_can_be_turned]",
+	"[in_the_settings_the_time]",
+	"[a_fishing_rod_is_made]",
+	"[a_small_animals_carcass_is]",
+	"[leather_is_made_from_hide]",
+	"[bows_and_arrows_are_made]",
+	"[bronze_is_smelted_in_a]",
+	"[iron_ore_is_smelted_into]",
+	"[iron_and_steel_tools_are]",
+	"[thread_is_spun_from_flax]",
+	"[tar_is_drawn_from_logs]",
+	"[silver_gold_and_platinum_are]",
 ]
 ## The seed written over the map.
 var _map_seed: Label
@@ -177,7 +177,7 @@ func _build_loading() -> void:
 	row.add_theme_constant_override("separation", 6)
 	box.add_child(row)
 	_build_strip(row)
-	_cancel = Kit.icon_button(UiStyle.centred(UiStyle.icon("close")), "Отменить загрузку (Esc)", cancel_loading, BUTTON_H)
+	_cancel = Kit.icon_button(UiStyle.centred(UiStyle.icon("close")), "[cancel_loading_esc]", cancel_loading, BUTTON_H)
 	row.add_child(_cancel)
 	_loading.visible = false
 
@@ -289,7 +289,7 @@ func _update_strip(delta: float) -> void:
 	var part := _part()
 	if part != "" and not _part_at.has(part):
 		_part_at[part] = Time.get_ticks_msec()
-	var phase := "Мир готов"
+	var phase := "[the_world_is_ready]"
 	match part:
 		"warm":
 			phase = WARM_CAPTION
@@ -310,7 +310,7 @@ func _update_strip(delta: float) -> void:
 			_progress = 1.0
 	var seconds := (Time.get_ticks_msec() - _load_at) / 1000.0 if _load_at >= 0 else 0.0
 	var top := _phase_shown
-	var left := Lang.f("%d с", [floori(seconds)])
+	var left := Lang.f("[s]", [floori(seconds)])
 	var right := "%d%%" % floori(100.0 * _progress)
 	var fill := Vector2(floorf((_strip.size.x - 2) * _progress), _strip.size.y - 2)
 	if top == _strip_top and left == _strip_left and right == _strip_right and fill == _strip_fill.size:

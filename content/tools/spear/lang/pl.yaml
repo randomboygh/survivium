@@ -2,10 +2,15 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/spear/bundle.yaml
-"Копьё": "Włócznia"
+"[tools.spear.bundle]": "Włócznia"
 
 # content/tools/spear/data/items.yaml
-"Кремнёвое копьё": "Krzemienna włócznia"
-"Длинное копьё с кремнёвым наконечником. Его метают в зверя и подбирают снова.": "Długa włócznia z krzemiennym grotem. Rzuca się ją w zwierzę i podnosi znowu."
-"Бронзовое копьё": "Brązowa włócznia"
-"Железное копьё": "Żelazna włócznia"
+"[tools.items.flint_spear]": "Krzemienna włócznia"
+"[tools.items.flint_spear.about]": "Długa włócznia z krzemiennym grotem. Rzuca się ją w zwierzę i podnosi znowu."
+"[tools.items.bronze_spear]": "Brązowa włócznia"
+"[tools.items.iron_spear]": "Żelazna włócznia"
+
+# content/tools/spear/data/recipes.yaml
+"[tools.recipes.flint_spear]": "Krzemienna włócznia"
+"[tools.recipes.bronze_spear]": "Brązowa włócznia"
+"[tools.recipes.iron_spear]": "Żelazna włócznia"

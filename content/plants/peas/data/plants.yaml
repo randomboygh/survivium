@@ -3,7 +3,7 @@
 # его собирают руками или серпом. Горошины иногда находят, срезая цветы (патч `finds`).
 - id: peas
   kind: crop
-  title: Горох
+  title: "[plants.plants.peas]"
   sprite: peas
   frames: 4
   grows: field

@@ -2,13 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/animals/wool/bundle.yaml
-"Пух": "Пух"
+"[animals.wool.bundle]": "Пух"
 
 # content/animals/wool/data/items.yaml
-"Заячий пух": "Заячий пух"
-"Мягкий пух ручного зайца. Его срезают ножом и прядут в пряжу.": "М'який пух ручного зайця. Його зрізають ножем і прядуть у пряжу."
-"Пушистая пряжа": "Пухнаста пряжа"
-"Тёплая пряжа из заячьего пуха. На ткацком станке из неё ткут ткань.": "Тепла пряжа із заячого пуху. На ткацькому верстаті з неї тчуть тканину."
+"[animals.items.rabbit_fluff]": "Заячий пух"
+"[animals.items.rabbit_fluff.about]": "М'який пух ручного зайця. Його зрізають ножем і прядуть у пряжу."
+"[animals.items.wool_yarn]": "Пухнаста пряжа"
+"[animals.items.wool_yarn.about]": "Тепла пряжа із заячого пуху. На ткацькому верстаті з неї тчуть тканину."
 
 # content/animals/wool/data/recipes.yaml
-"Ткань из пряжи": "Тканина з пряжі"
+"[animals.recipes.wool_yarn]": "Пухнаста пряжа"
+"[animals.recipes.cloth_from_wool_yarn]": "Тканина з пряжі"

@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/signs/bundle.yaml
-"Таблички": "Tabelalar"
+"[tools.signs.bundle]": "Tabelalar"
 
 # content/tools/signs/data/items.yaml
-"Табличка": "Tabela"
-"Дощечка на колышке. Три строки текста, видно всем, кто подойдёт.": "Kazığa çakılı bir tahtacık. Üç satır yazı, yaklaşan herkes görür."
-"Указатель": "Yön tabelası"
-"Стрелка на столбе. Две строки текста, стрелку можно повернуть в любую сторону.": "Direkte bir ok. İki satır yazı; ok her yöne çevrilebilir."
-"Доска на стену": "Duvar panosu"
-"Большая доска, вешается на стену. Шесть строк текста — для правил, объявлений и записок.": "Duvara asılan büyük bir pano. Altı satır yazı: kurallar, duyurular ve notlar için."
+"[tools.items.sign]": "Tabela"
+"[tools.items.sign.about]": "Kazığa çakılı bir tahtacık. Üç satır yazı, yaklaşan herkes görür."
+"[tools.items.signpost]": "Yön tabelası"
+"[tools.items.signpost.about]": "Direkte bir ok. İki satır yazı; ok her yöne çevrilebilir."
+"[tools.items.notice_board]": "Duvar panosu"
+"[tools.items.notice_board.about]": "Duvara asılan büyük bir pano. Altı satır yazı: kurallar, duyurular ve notlar için."
+
+# content/tools/signs/data/recipes.yaml
+"[tools.recipes.sign]": "Tabela"
+"[tools.recipes.signpost]": "Yön tabelası"
+"[tools.recipes.notice_board]": "Duvar panosu"

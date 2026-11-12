@@ -3,7 +3,7 @@
 # content/plants/oak/data/trees.yaml; у формы palm crown — [длина листа в точках кроны, меньше и
 # больше всего листьев]). Листву не сбрасывает; срубленная роняет кокосы, осенью их собирают руками.
 - id: palm
-  title: Пальма
+  title: "[plants.trees.palm]"
   shape: palm
   leaf: pointed
   leaves: broad

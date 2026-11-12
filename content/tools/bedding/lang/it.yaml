@@ -2,10 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/bedding/bundle.yaml
-"Постель": "Giaciglio"
+"[tools.bedding.bundle]": "Giaciglio"
 
 # content/tools/bedding/data/items.yaml
-"Травяная подстилка": "Giaciglio d'erba"
-"Охапка сухой травы, связанная верёвкой. Спать на ней лучше, чем на голой земле.": "Un fascio d'erba secca legato con una corda. Dormirci è meglio che sulla nuda terra."
-"Меховой спальник": "Sacco a pelo di pelliccia"
-"Шкуры, сшитые мешком. В нём высыпаются вдвое быстрее.": "Pelli cucite a forma di sacco. Ci si riposa due volte più in fretta."
+"[tools.items.grass_mat]": "Giaciglio d'erba"
+"[tools.items.grass_mat.about]": "Un fascio d'erba secca legato con una corda. Dormirci è meglio che sulla nuda terra."
+"[tools.items.fur_bedroll]": "Sacco a pelo di pelliccia"
+"[tools.items.fur_bedroll.about]": "Pelli cucite a forma di sacco. Ci si riposa due volte più in fretta."
+
+# content/tools/bedding/data/recipes.yaml
+"[tools.recipes.grass_mat]": "Giaciglio d'erba"
+"[tools.recipes.fur_bedroll]": "Sacco a pelo di pelliccia"

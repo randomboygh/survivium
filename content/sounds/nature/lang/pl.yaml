@@ -2,14 +2,14 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/sounds/nature/bundle.yaml
-"Природа": "Przyroda"
+"[sounds.nature.bundle]": "Przyroda"
 
 # content/sounds/nature/data/sounds.yaml
-"Ветер": "Wiatr"
-"Дождь": "Deszcz"
-"Град": "Grad"
-"Метель": "Zamieć"
-"Вода": "Woda"
-"Костёр": "Ognisko"
-"Сверчки": "Świerszcze"
-"Гром": "Grzmot"
+"[sounds.sounds.wind]": "Wiatr"
+"[sounds.sounds.rain]": "Deszcz"
+"[sounds.sounds.hail]": "Grad"
+"[sounds.sounds.blizzard]": "Zamieć"
+"[sounds.sounds.water]": "Woda"
+"[sounds.sounds.fire]": "Ognisko"
+"[sounds.sounds.crickets]": "Świerszcze"
+"[sounds.sounds.thunder]": "Grzmot"

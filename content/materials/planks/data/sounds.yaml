@@ -1,5 +1,5 @@
 # Стук по доскам (sounds/knock_N.wav, tools/make_sounds.gd): материал называет его в hit.
 - id: knock
-  title: Стук по доскам
+  title: "[materials.sounds.knock]"
   variants: 2
   volume: 0.7

@@ -2,15 +2,23 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/sword/bundle.yaml
-"Меч": "Épée"
+"[tools.sword.bundle]": "Épée"
 
 # content/tools/sword/data/items.yaml
-"Деревянный меч": "Épée en bois"
-"Каменный меч": "Épée de pierre"
-"Медный меч": "Épée de cuivre"
-"Бронзовый меч": "Épée de bronze"
-"Железный меч": "Épée de fer"
-"Стальной меч": "Épée d'acier"
+"[tools.items.wooden_sword]": "Épée en bois"
+"[tools.items.stone_sword]": "Épée de pierre"
+"[tools.items.copper_sword]": "Épée de cuivre"
+"[tools.items.bronze_sword]": "Épée de bronze"
+"[tools.items.iron_sword]": "Épée de fer"
+"[tools.items.steel_sword]": "Épée d'acier"
+
+# content/tools/sword/data/recipes.yaml
+"[tools.recipes.wooden_sword]": "Épée en bois"
+"[tools.recipes.stone_sword]": "Épée de pierre"
+"[tools.recipes.copper_sword]": "Épée de cuivre"
+"[tools.recipes.bronze_sword]": "Épée de bronze"
+"[tools.recipes.iron_sword]": "Épée de fer"
+"[tools.recipes.steel_sword]": "Épée d'acier"
 
 # content/tools/sword/data/sounds.yaml
-"Взмах": "Taille"
+"[tools.sounds.swish]": "Taille"

@@ -1,6 +1,6 @@
 # Предметы бандла: поля — как у предметов основы (content/core/data/items.yaml).
 - id: rowan
-  title: Рябина
+  title: "[plants.items.rowan]"
   weight: 0.05
   stack: 50
   food: 2

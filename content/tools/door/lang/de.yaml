@@ -2,13 +2,20 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/door/bundle.yaml
-"Дверь": "Tür"
+"[tools.door.bundle]": "Tür"
 
 # content/tools/door/data/items.yaml
-"Створка из досок для проёма в стене. Касание открывает и закрывает.": "Ein Brettertürblatt für eine Öffnung in der Wand. Ein Tippen öffnet und schließt es."
-"Дверь 2×2": "Tür 2×2"
-"Двустворчатая дверь из досок, на две клетки в ширину и две в высоту.": "Eine Doppeltür aus Brettern, zwei Felder breit und zwei hoch."
-"Дверь 2×3": "Tür 2×3"
-"Высокая двустворчатая дверь, на две клетки в ширину и три в высоту.": "Eine hohe Doppeltür, zwei Felder breit und drei hoch."
-"Ворота 3×3": "Tor 3×3"
-"Большие двустворчатые ворота из досок для проёма в стене, на три клетки в ширину и три в высоту.": "Ein großes doppeltes Brettertor für eine Öffnung in der Wand, drei Felder breit und drei hoch."
+"[tools.items.door]": "Tür"
+"[tools.items.door.about]": "Ein Brettertürblatt für eine Öffnung in der Wand. Ein Tippen öffnet und schließt es."
+"[tools.items.door_2x2]": "Tür 2×2"
+"[tools.items.door_2x2.about]": "Eine Doppeltür aus Brettern, zwei Felder breit und zwei hoch."
+"[tools.items.door_2x3]": "Tür 2×3"
+"[tools.items.door_2x3.about]": "Eine hohe Doppeltür, zwei Felder breit und drei hoch."
+"[tools.items.door_3x3]": "Tor 3×3"
+"[tools.items.door_3x3.about]": "Ein großes doppeltes Brettertor für eine Öffnung in der Wand, drei Felder breit und drei hoch."
+
+# content/tools/door/data/recipes.yaml
+"[tools.recipes.door]": "Tür"
+"[tools.recipes.door_2x2]": "Tür 2×2"
+"[tools.recipes.door_2x3]": "Tür 2×3"
+"[tools.recipes.door_3x3]": "Tor 3×3"

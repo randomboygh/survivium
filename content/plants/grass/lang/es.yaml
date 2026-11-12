@@ -2,12 +2,13 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/grass/bundle.yaml
-"Травы": "Hierbas"
+"[plants.grass.bundle]": "Hierbas"
 
 # content/plants/grass/data/items.yaml
-"Семена трав": "Semillas de hierbas"
+"[plants.items.grass_seeds]": "Semillas de hierbas"
 
 # content/plants/grass/data/plants.yaml
-"Трава": "Hierba"
-"Высокая трава": "Hierba alta"
-"Цветы": "Flores"
+"[plants.plants.tuft]": "Hierba"
+"[plants.plants.tall_grass]": "Hierba alta"
+"[plants.plants.flowers]": "Flores"
+"[plants.plants.herbs]": "Hierbas"

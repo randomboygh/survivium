@@ -2,12 +2,17 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/hoe/bundle.yaml
-"Тяпка": "Houe"
+"[tools.hoe.bundle]": "Houe"
 
 # content/tools/hoe/data/items.yaml
-"Каменная тяпка": "Houe de pierre"
-"Вскапывает траву и землю в грядку, на которую сеют.": "Bêche l'herbe et la terre en une plate-bande pour semer."
-"Медная тяпка": "Houe de cuivre"
-"Вскапывает две клетки за взмах.": "Bêche deux cases par coup."
-"Железная тяпка": "Houe de fer"
-"Вскапывает три клетки за взмах.": "Bêche trois cases par coup."
+"[tools.items.stone_hoe]": "Houe de pierre"
+"[tools.items.stone_hoe.about]": "Bêche l'herbe et la terre en une plate-bande pour semer."
+"[tools.items.copper_hoe]": "Houe de cuivre"
+"[tools.items.copper_hoe.about]": "Bêche deux cases par coup."
+"[tools.items.iron_hoe]": "Houe de fer"
+"[tools.items.iron_hoe.about]": "Bêche trois cases par coup."
+
+# content/tools/hoe/data/recipes.yaml
+"[tools.recipes.stone_hoe]": "Houe de pierre"
+"[tools.recipes.copper_hoe]": "Houe de cuivre"
+"[tools.recipes.iron_hoe]": "Houe de fer"

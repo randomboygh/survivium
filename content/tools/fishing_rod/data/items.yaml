@@ -4,8 +4,8 @@
 # вытаскивает её в сумку (до поклёвки — сматывает леску). ammo — наживка: по одной на крючок из сумки, с ней
 # клюёт часто, без неё редко; клюнувшая рыба её съедает. Замёрзшая вода не ловится.
 - id: fishing_rod
-  title: Удочка
-  description: Гибкое удилище с леской и кремнёвым крючком. Закидывают в воду и ждут поклёвки.
+  title: "[tools.items.fishing_rod]"
+  description: "[tools.items.fishing_rod.about]"
   weight: 0.6
   stack: 1
   model: fishing_rod
@@ -20,8 +20,8 @@
   durability: 240
   repair: {materials:cord: 1}
 - id: bait
-  title: Наживка
-  description: Черви, накопанные в земле. Их надевают на крючок, и рыба клюёт куда чаще.
+  title: "[tools.items.bait]"
+  description: "[tools.items.bait.about]"
   weight: 0.05
   stack: 40
   icon: bait

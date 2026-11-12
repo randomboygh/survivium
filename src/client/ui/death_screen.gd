@@ -34,18 +34,18 @@ const STATS_WIDTH := 200
 ## The statistics shown, in order, as [name in Character.life, caption, the forms of
 ## the noun counted (one, two, five)]; "days" and "walked" always, the rest when there
 ## are any.
-const STATS := [["days", "прожито", []], ["walked", "пройдено", []],
-	["dug", "выкопано", ["блок", "блока", "блоков"]], ["built", "построено", ["блок", "блока", "блоков"]],
-	["trees", "срублено", ["дерево", "дерева", "деревьев"]], ["got", "добыто", ["вещь", "вещи", "вещей"]],
-	["crafted", "сделано", ["вещь", "вещи", "вещей"]], ["eaten", "поели", ["раз", "раза", "раз"]],
-	["jumps", "прыгнули", ["раз", "раза", "раз"]]]
+const STATS := [["days", "[lived]", []], ["walked", "[walked]", []],
+	["dug", "[dug]", ["[block_1]", "[block_2]", "[block_5]"]], ["built", "[built]", ["[block_1]", "[block_2]", "[block_5]"]],
+	["trees", "[chopped]", ["[tree_1]", "[tree_2]", "[tree_5]"]], ["got", "[mined]", ["[item_1]", "[item_2]", "[item_5]"]],
+	["crafted", "[crafted]", ["[item_1]", "[item_2]", "[item_5]"]], ["eaten", "[ate]", ["[time_1]", "[time_2]", "[time_5]"]],
+	["jumps", "[jumped]", ["[time_1]", "[time_2]", "[time_5]"]]]
 const SHADE := Color(0.10, 0.02, 0.02, 0.4)
 ## The causes of death (Vitals.hurt_by) as a cross names them (grave_text).
-const GRAVE_CAUSES := {"hunger": "голод", "thirst": "жажда", "cold": "холод", "fire": "огонь",
-	"water": "вода", "fall": "падение с высоты"}
+const GRAVE_CAUSES := {"hunger": "[hunger_n2]", "thirst": "[thirst_n2]", "cold": "[cold]", "fire": "[fire]",
+	"water": "[water_n2]", "fall": "[a_fall_from_a_height]"}
 ## Directions from the respawn point to the sack, clockwise from north (-z).
-const DIRECTIONS := ["к северу", "к северо-востоку", "к востоку", "к юго-востоку", "к югу",
-	"к юго-западу", "к западу", "к северо-западу"]
+const DIRECTIONS := ["[to_the_north]", "[to_the_north_east]", "[to_the_east]", "[to_the_south_east]", "[to_the_south]",
+	"[to_the_south_west]", "[to_the_west]", "[to_the_north_west]"]
 
 var game
 var _panel: PanelContainer
@@ -89,7 +89,7 @@ func _ready() -> void:
 	_cause.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_when = _text(box, UiStyle.MUTED)
 	_when.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_heading(box, "Потеряно")
+	_heading(box, "[lost]")
 	_lost = GridContainer.new()
 	_lost.columns = COLUMNS
 	_lost.add_theme_constant_override("h_separation", 2)
@@ -110,8 +110,8 @@ func _ready() -> void:
 	_sack.custom_minimum_size = Vector2(WIDTH - 16, 0)
 	_sack_row.add_child(_sack)
 	_note = _text(box, UiStyle.MUTED)
-	_heading(box, "Остаётся с вами")
-	_text(box, UiStyle.INK).text = "Изученные рецепты"
+	_heading(box, "[stays_with_you]")
+	_text(box, UiStyle.INK).text = "[learned_recipes]"
 	_gap(box)
 	_respawn = VBoxContainer.new()
 	_respawn.add_theme_constant_override("separation", 6)
@@ -119,8 +119,8 @@ func _ready() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	box.add_child(row)
-	_menu_button = _button(row, "Главное меню", _to_menu)
-	_new_button = _button(row, "Новый мир", _new_world)
+	_menu_button = _button(row, "[main_menu]", _to_menu)
+	_new_button = _button(row, "[new_world]", _new_world)
 	for b: Button in [_menu_button, _new_button]:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -130,7 +130,7 @@ func _ready() -> void:
 	var stats_box := VBoxContainer.new()
 	stats_box.add_theme_constant_override("separation", 6)
 	_stats_panel.add_child(stats_box)
-	_heading(stats_box, "Эта жизнь")
+	_heading(stats_box, "[this_life]")
 	_stats = GridContainer.new()
 	_stats.columns = 2
 	_stats.add_theme_constant_override("h_separation", 8)
@@ -205,9 +205,9 @@ func update() -> void:
 ## walked, then the two largest counts of that life on a line.
 static func grave_text(g: Dictionary) -> String:
 	var called := str(g.get("name", ""))
-	var lines: Array[String] = [Lang.f("Здесь покоится «%s»", [called]) if called != "" else Lang.t("Здесь покоится путник")]
-	lines.append(Lang.f("день %d · прожито %s", [int(g.get("day", 0)), _days(float(g.get("days", 0.0)))]))
-	lines.append(Lang.f("Причина: %s", [_grave_cause(str(g.get("cause", "")))]))
+	var lines: Array[String] = [Lang.f("[here_lies]", [called]) if called != "" else Lang.t("[here_lies_a_traveller]")]
+	lines.append(Lang.f("[day_lived]", [int(g.get("day", 0)), _days(float(g.get("days", 0.0)))]))
+	lines.append(Lang.f("[cause]", [_grave_cause(str(g.get("cause", "")))]))
 	var life: Dictionary = g.get("life", {})
 	var counts: Array = []
 	for st: Array in STATS:
@@ -229,17 +229,17 @@ static func grave_text(g: Dictionary) -> String:
 static func _grave_cause(cause: String) -> String:
 	if cause.begins_with("player:"):
 		var by := cause.substr(7)
-		return Lang.f("игрок «%s»", [by]) if by != "" else Lang.t("другой игрок")
+		return Lang.f("[player]", [by]) if by != "" else Lang.t("[another_player]")
 	if cause.begins_with("animal:"):
 		var spec: Dictionary = AiRules.SPECIES.get(cause.substr(7), {})
-		return Lang.t(str(spec.get("title", "зверь"))).to_lower()
-	return Lang.t(GRAVE_CAUSES.get(cause, "неизвестна"))
+		return Lang.t(str(spec.get("title", "[beast]"))).to_lower()
+	return Lang.t(GRAVE_CAUSES.get(cause, "[unknown]"))
 
 
 ## «2 суток», «1 сутки», «5 суток» for `days` game days.
 static func _days_text(days: float) -> String:
 	var n := maxi(1, roundi(days))
-	return "%d %s" % [n, _plural(n, ["сутки", "суток", "суток"])]
+	return "%d %s" % [n, _plural(n, ["[day_1]", "[day_2]", "[day_5]"])]
 
 
 ## Puts the death of the character on the screen.
@@ -251,7 +251,7 @@ func _fill() -> void:
 	_cause.text = cause[1]
 	_cause.visible = cause[1] != ""
 	var t := float(death.get("time", 0.0)) * 24.0
-	_when.text = Lang.f("день %d · %02d:%02d", [int(death.get("day", 0)), int(t), int(fmod(t * 60.0, 60.0))])
+	_when.text = Lang.f("[day_n2]", [int(death.get("day", 0)), int(t), int(fmod(t * 60.0, 60.0))])
 	# Out of the grid at once: the panel is measured below, before the frame ends.
 	for c in _lost.get_children():
 		c.queue_free()
@@ -267,22 +267,22 @@ func _fill() -> void:
 	var points: Array = character.respawn_points()
 	_sack_row.visible = not lost.is_empty()
 	if lost.is_empty():
-		_note.text = "Ничего: сумка была пуста"
+		_note.text = "[nothing_the_bag_was_empty]"
 	else:
-		_sack.text = Lang.f("Мешок с вещами %s", [_where(death.get("sack"), points[0])])
+		_sack.text = Lang.f("[sack_of_belongings]", [_where(death.get("sack"), points[0])])
 		var days := float(death.get("sack_days", CharacterScript.SACK_DAYS))
-		_note.text = Lang.f("Он светится и ждёт там, где вы упали, %s, потом пропадёт", [_days_text(days)])
+		_note.text = Lang.f("[it_glows_and_waits_where]", [_days_text(days)])
 	for c in _respawn.get_children():
 		c.queue_free()
 		_respawn.remove_child(c)
 	var choices := points.duplicate()
 	if game.settings.revive_at_death:
 		var fell: Array = death.get("at", [])
-		choices.append(["На месте смерти", Vector3(fell[0], fell[1], fell[2]) if fell.size() == 3 else points[0][1]])
+		choices.append(["[where_you_died]", Vector3(fell[0], fell[1], fell[2]) if fell.size() == 3 else points[0][1]])
 	for p: Array in choices:
 		var at: Vector3 = p[1]
 		var title := Lang.t(p[0])
-		var b := _button(_respawn, Lang.f("Возродиться %s", [title.left(1).to_lower() + title.substr(1)]), func() -> void: _revive(at))
+		var b := _button(_respawn, Lang.f("[respawn]", [title.left(1).to_lower() + title.substr(1)]), func() -> void: _revive(at))
 		UiStyle.accent(b)
 		b.add_theme_color_override("font_focus_color", UiStyle.DARK_INK)
 	var has_menu: bool = game.menu != null
@@ -317,11 +317,11 @@ func _fill_stats(death: Dictionary) -> void:
 	var best := float(death.get("best", 0.0))
 	var days := float(lived.get("days", 0.0))
 	if n <= 1:
-		_record.text = "Первая смерть в этом мире"
+		_record.text = "[first_death_in_this_world]"
 	elif days > best:
-		_record.text = Lang.f("Смерть №%d в этом мире\nНовый рекорд жизни!", [n])
+		_record.text = Lang.f("[death_in_this_world_a]", [n])
 	else:
-		_record.text = Lang.f("Смерть №%d в этом мире\nРекорд жизни: %s", [n, _days(best)])
+		_record.text = Lang.f("[death_in_this_world_life]", [n, _days(best)])
 	_record.add_theme_color_override("font_color", UiStyle.ACCENT if n > 1 and days > best else UiStyle.MUTED)
 
 
@@ -332,8 +332,8 @@ static func _value(name: String, v: float, forms: Array) -> String:
 		"days":
 			return _days(v)
 		"walked":
-			var km := Lang.f("%.1f км", [v / 1000.0])
-			return (km.replace(".", ",") if Lang.code in COMMA else km) if v >= 1000.0 else Lang.f("%d м", [roundi(v)])
+			var km := Lang.f("[km]", [v / 1000.0])
+			return (km.replace(".", ",") if Lang.code in COMMA else km) if v >= 1000.0 else Lang.f("[m]", [roundi(v)])
 	var n := roundi(v)
 	return "%d %s" % [n, _plural(n, forms)]
 
@@ -355,32 +355,32 @@ static func _plural(n: int, forms: Array) -> String:
 static func _days(d: float) -> String:
 	var minutes := roundi(d * 24.0 * 60.0)
 	if minutes >= 24 * 60:
-		return Lang.f("%d дн %d ч", [minutes / (24 * 60), (minutes / 60) % 24])
+		return Lang.f("[d_h]", [minutes / (24 * 60), (minutes / 60) % 24])
 	if minutes >= 60:
-		return Lang.f("%d ч %d мин", [minutes / 60, minutes % 60])
-	return Lang.f("%d мин", [minutes])
+		return Lang.f("[h_min]", [minutes / 60, minutes % 60])
+	return Lang.f("[min]", [minutes])
 
 
 ## "в 40 м к северо-востоку от точки «У своего костра»", from respawn point `point` ([title,
 ## position]) to the sack at `sack` ([x, y, z] or null).
 static func _where(sack: Variant, point: Array) -> String:
 	if not (sack is Array) or sack.size() != 3:
-		return "там, где вы упали"
+		return "[where_you_fell]"
 	var from: Vector3 = point[1]
 	var d := Vector2(float(sack[0]) - from.x, float(sack[2]) - from.z)
 	# The point by its own name, so a language need not decline it.
 	var title: String = point[0]
 	if d.length() < 3.0:
-		return Lang.f("у самой точки «%s»", [title])
+		return Lang.f("[right_by]", [title])
 	var sector := posmod(roundi(atan2(d.x, -d.y) / (TAU / 8.0)), 8)
-	return Lang.f("в %d м %s от точки «%s»", [roundi(d.length()), DIRECTIONS[sector], title])
+	return Lang.f("[m_of]", [roundi(d.length()), DIRECTIONS[sector], title])
 
 
 func _revive(at: Vector3) -> void:
 	game.net.request(Protocol.REVIVE, [at])
 	visible = false
 	game.hud.visible = true
-	game.hud.toast("Вы снова живы")
+	game.hud.toast("[you_are_alive_again]")
 
 
 func _to_menu() -> void:

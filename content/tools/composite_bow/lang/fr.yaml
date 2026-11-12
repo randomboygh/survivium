@@ -2,10 +2,12 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/tools/composite_bow/bundle.yaml
-"Составной лук": "Arc composite"
+"[tools.composite_bow.bundle]": "Arc composite"
 
 # content/tools/composite_bow/data/items.yaml
-"Деревянный лук, усиленный костью и обмотанный кожей. Бьёт дальше и сильнее.": "Un arc en bois renforcé d'os et enveloppé de cuir. Tire plus loin et plus fort."
+"[tools.items.composite_bow]": "Arc composite"
+"[tools.items.composite_bow.about]": "Un arc en bois renforcé d'os et enveloppé de cuir. Tire plus loin et plus fort."
 
 # content/tools/composite_bow/data/recipes.yaml
-"Стрелы с костяным наконечником": "Flèches à pointe d'os"
+"[tools.recipes.composite_bow]": "Arc composite"
+"[tools.recipes.arrow_from_bone]": "Flèches à pointe d'os"

@@ -22,8 +22,8 @@ const Items := preload("res://src/shared/content/items.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 
 ## The tabs: key and name.
-const SECTIONS := [["buttons", "Кнопки"], ["rows", "Строки"], ["slots", "Ячейки"],
-	["fields", "Поля"], ["lists", "Списки"], ["look", "Вид"]]
+const SECTIONS := [["buttons", "[buttons]"], ["rows", "[rows]"], ["slots", "[slots]"],
+	["fields", "[fields]"], ["lists", "[lists]"], ["look", "[look]"]]
 ## The widest and tallest the panel's page grows on a big screen.
 const MOST_WIDTH := 480
 const MOST_HEIGHT := 560
@@ -68,7 +68,7 @@ func _init(g) -> void:
 
 
 func _ready() -> void:
-	build("Витрина интерфейса")
+	build("[ui_gallery]")
 	var parts := []
 	for s: Array in SECTIONS:
 		parts.append([s[1], "", show_section.bind(s[0])])
@@ -81,11 +81,11 @@ func _ready() -> void:
 	_scroll = Kit.scroll(_list)
 	_room = _list.get_parent()
 	box.add_child(_scroll)
-	_said = UiStyle.label("Нажмите на что-нибудь", UiStyle.MUTED)
+	_said = UiStyle.label("[tap_anything]", UiStyle.MUTED)
 	_said.clip_text = true
 	_said.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(_said)
-	box.add_child(Kit.button("Закрыть", close))
+	box.add_child(Kit.button("[close]", close))
 	_choices.stepped.connect(_stepped)
 	get_parent().resized.connect(fit)
 	show_section(section)
@@ -132,73 +132,73 @@ func back() -> void:
 
 ## Tells under the page what the last tap did: `what` (a phrase) was pressed.
 func say(what: String) -> void:
-	_said.text = Lang.f("Нажато: %s", [what])
+	_said.text = Lang.line("[pressed]", [what])
 
 
 # --- The pages --------------------------------------------------------------------
 
 
 func _buttons_page() -> void:
-	_caption("Кнопки окна: обычная, главная, недоступная")
+	_caption("[window_buttons_plain_main_disabled]")
 	var row := _flow()
-	row.add_child(Kit.button("Обычная", say.bind("Обычная")))
-	var main := Kit.accent_button("Главная", say.bind("Главная"))
+	row.add_child(Kit.button("[plain_n2]", say.bind("[plain_n2]")))
+	var main := Kit.accent_button("[main]", say.bind("[main]"))
 	row.add_child(main)
-	var off := Kit.button("Недоступна", say.bind("Недоступна"))
+	var off := Kit.button("[disabled]", say.bind("[disabled]"))
 	off.disabled = true
 	row.add_child(off)
-	_caption("Опасное — в два касания (первое красит красным), удачное горит зелёным")
+	_caption("[risky_ones_take_two_taps]")
 	row = _flow()
-	var bin := Kit.button("Удалить")
+	var bin := Kit.button("[delete]")
 	_asks.guard(bin, func() -> void:
-		say("Удалить")
+		say("[delete]")
 		_green(bin))
 	row.add_child(bin)
-	var copy := Kit.button("Скопировать")
+	var copy := Kit.button("[copy]")
 	copy.pressed.connect(func() -> void:
-		say("Скопировать")
+		say("[copy]")
 		_green(copy))
 	row.add_child(copy)
-	_caption("Маленькие кнопки и кнопки со значком")
+	_caption("[small_buttons_and_icon_buttons]")
 	row = _flow()
-	row.add_child(TabRow.small_button("Выбор", say.bind("Выбор")))
+	row.add_child(TabRow.small_button("[choice]", say.bind("[choice]")))
 	for icon: String in ["sort_kind", "chest", "lock", "trash", "all"]:
 		row.add_child(TabRow.icon_button(UiStyle.icon(icon), icon, say.bind(icon)))
 	row.add_child(Kit.icon_button("dice", "dice", say.bind("dice")))
-	_caption("Сдвоенные кнопки")
+	_caption("[joined_buttons]")
 	row = _flow()
-	row.add_child(TabRow.split([[UiStyle.icon("prev"), "Назад", say.bind("Назад")],
-		["Середина", "", say.bind("Середина")], [UiStyle.icon("next"), "Вперёд", say.bind("Вперёд")]]))
-	var two := TabRow.split([["взять", "", say.bind("взять")], ["поставить", "", say.bind("поставить")]])
+	row.add_child(TabRow.split([[UiStyle.icon("prev"), "[back]", say.bind("[back]")],
+		["[middle]", "", say.bind("[middle]")], [UiStyle.icon("next"), "[forward]", say.bind("[forward]")]]))
+	var two := TabRow.split([["[take_n2]", "", say.bind("[take_n2]")], ["[place_n2]", "", say.bind("[place_n2]")]])
 	UiStyle.accent(two.get_child(0))
 	row.add_child(two)
-	_caption("Вкладки: одной группой, выбранная горит")
+	_caption("[tabs_one_group_the_chosen]")
 	row = _flow()
-	var tabs := TabRow.tabs([["Один", "", _nothing], ["Два", "", _nothing], ["Три", "", _nothing]], BUTTON_H)
+	var tabs := TabRow.tabs([["[one]", "", _nothing], ["[two]", "", _nothing], ["[three]", "", _nothing]], BUTTON_H)
 	for b: Button in tabs.get_children():
 		b.pressed.connect(_pick_tab.bind(tabs, b))
 	TabRow.light(tabs.get_child(0), true)
 	row.add_child(tabs)
-	_caption("Блок в углу окна: ряд и широкая кнопка")
+	_caption("[corner_block_a_row_and]")
 	row = _flow()
 	var top := TabRow.split([["MAX", "", say.bind("MAX")], ["×5", "", say.bind("×5")]])
-	var block := TabRow.block(top, ["сделать", "", say.bind("сделать")], TabRow.WIDE)
+	var block := TabRow.block(top, ["[make]", "", say.bind("[make]")], TabRow.WIDE)
 	UiStyle.accent(block.get_child(1))
 	row.add_child(block)
-	_caption("Кнопки цвета земли")
+	_caption("[land_colour_buttons]")
 	row = _flow()
 	for i in UiStyle.LAND_COLORS.size():
 		var land := Kit.button(str(i + 1), say.bind(str(i + 1)))
 		land.custom_minimum_size.x = BUTTON_H
 		UiStyle.tint(land, UiStyle.LAND_COLORS[i])
 		row.add_child(land)
-	_caption("Кнопки экрана игры: действие, прыжок, прозрачная")
+	_caption("[game_screen_buttons_action_jump]")
 	row = _flow()
-	var act := Kit.button("Собрать", say.bind("Собрать"))
+	var act := Kit.button("[gather]", say.bind("[gather]"))
 	Kit.octagon_look(act, UiStyle.ACCENT, UiStyle.ACCENT_DARK, UiStyle.DARK_INK)
 	act.custom_minimum_size = Vector2(64, 48)
 	row.add_child(act)
-	var jump := Kit.button("", say.bind("Прыжок"))
+	var jump := Kit.button("", say.bind("[jump]"))
 	jump.icon = UiStyle.icon("up")
 	jump.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	Kit.octagon_look(jump, UiStyle.BUTTON, UiStyle.BUTTON_SHADE, UiStyle.INK)
@@ -211,40 +211,40 @@ func _buttons_page() -> void:
 
 
 func _rows_page() -> void:
-	_caption("Строка настройки: стрелки листают значения")
-	_choice_row("Размер", ["мелкий", "обычный", "крупный"], 1)
-	_choice_row("Звук", ["выкл", "вкл"], 1)
-	_choice_row("Время суток", ["ночь", "утро", "день", "вечер"], 2)
+	_caption("[setting_row_arrows_step_through]")
+	_choice_row("[size]", ["[small_ui]", "[normal_ui]", "[large_ui]"], 1)
+	_choice_row("[sound]", ["[off]", "[on]"], 1)
+	_choice_row("[time_of_day]", ["[night]", "[morning]", "[day_n5]", "[evening]"], 2)
 	# One that cannot change now: faded, its arrows off.
-	_choice_row("Погода", ["сама", "ясно", "дождь"], 0, {"works": func() -> bool: return false})
+	_choice_row("[weather]", ["[by_itself]", "[clear_n2]", "[rain_n2]"], 0, {"works": func() -> bool: return false})
 	_choices.refresh()
 	_choices.set_focus(0)
-	_caption("Строка-действие и действие в два касания")
-	_list.add_child(Kit.button("Перейти в тестовый мир", say.bind("Перейти в тестовый мир"), ROW_WIDTH, ARROW))
-	_list.add_child(_asks.guard(Kit.button("Очистить все данные", Callable(), ROW_WIDTH, ARROW),
-		say.bind("Очистить все данные")))
-	_caption("Пояснение")
-	var note := Kit.note("Маркеров нет: поставьте их на карте (M).", ROW_WIDTH)
+	_caption("[action_row_and_a_two]")
+	_list.add_child(Kit.button("[go_to_the_test_world]", say.bind("[go_to_the_test_world]"), ROW_WIDTH, ARROW))
+	_list.add_child(_asks.guard(Kit.button("[clear_all_data]", Callable(), ROW_WIDTH, ARROW),
+		say.bind("[clear_all_data]")))
+	_caption("[note]")
+	var note := Kit.note("[no_markers_put_them_on]", ROW_WIDTH)
 	note.custom_minimum_size.y = ARROW
 	note.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_list.add_child(note)
-	_caption("Место: цвет, имя, кнопка")
+	_caption("[place_colour_name_button]")
 	for i in 2:
 		var place := Kit.row(6)
 		place.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
 		_list.add_child(place)
 		place.add_child(Kit.swatch(UiStyle.LAND_COLORS[i]))
-		var where := UiStyle.label(Lang.f("Маркер %d · X %d, Y %d", [i + 1, 12 * (i + 1), -40 + 7 * i]))
+		var where := UiStyle.label(Lang.f("[marker_x_y]", [i + 1, 12 * (i + 1), -40 + 7 * i]))
 		where.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		where.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		where.clip_text = true
 		place.add_child(where)
-		place.add_child(Kit.button("Перейти", say.bind("Перейти"), 0, ARROW))
+		place.add_child(Kit.button("[go]", say.bind("[go]"), 0, ARROW))
 
 
 func _slots_page() -> void:
 	var things := _sample_items()
-	_caption("Ячейки: пустая, с вещью, с числом, рука, клавиша")
+	_caption("[slots_empty_with_a_thing]")
 	var row := _flow()
 	_slot(row, "")
 	for i in mini(4, things.size()):
@@ -253,34 +253,34 @@ func _slots_page() -> void:
 			1:
 				s.number = "12"
 			2:
-				s.tag = "Л"
+				s.tag = "[l]"
 			3:
 				s.key = "3"
-	_caption("Лента ячеек со стрелками, как хотбар и палитры строительства и земледелия")
+	_caption("[a_strip_of_cells_between]")
 	_add_strip(things)
-	_caption("Полоска: свет горит, еда свежая, сумка полна")
+	_caption("[strip_light_burning_food_fresh]")
 	row = _flow()
 	var strips := [[0.8, Color(0, 0, 0, 0)], [0.15, Color(0, 0, 0, 0)], [0.6, UiStyle.GOOD], [1.0, UiStyle.DANGER]]
 	for i in strips.size():
 		var s := _slot(row, things[i % things.size()] if not things.is_empty() else "")
 		s.fill = strips[i][0]
 		s.fill_color = strips[i][1]
-	_caption("Качество: плохое, простое, обычное, хорошее, отличное")
+	_caption("[quality_poor_plain_normal_good]")
 	row = _flow()
 	for g in HotbarSlot.GRADE_TINTS.size():
 		var s := _slot(row, things[0] if not things.is_empty() else "")
 		s.grade = g
-	_caption("Бледная: вещью нельзя пользоваться (нечем стрелять)")
+	_caption("[faded_the_thing_cant_be]")
 	row = _flow()
 	var pale := _slot(row, things[things.size() - 1] if not things.is_empty() else "")
 	pale.inactive = true
-	_caption("Что за вещь: чипы выбранной ячейки")
+	_caption("[what_it_is_chips_of]")
 	_chips = FactChips.new()
 	_chips.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list.add_child(_chips)
 	if not things.is_empty():
 		_chips.show_groups(FactChips.item_groups(things[0], 1))
-	_caption("Вес сумки: красный при перегрузе")
+	_caption("[bag_weight_red_when_overloaded]")
 	row = _flow()
 	_meter = Control.new()
 	_meter.custom_minimum_size = Vector2(UiStyle.weight_width(LIMIT), 16)
@@ -288,7 +288,7 @@ func _slots_page() -> void:
 	_meter.draw.connect(_draw_meter)
 	row.add_child(_meter)
 	row.add_child(TabRow.split([["-5", "", _add_weight.bind(-5.0)], ["+5", "", _add_weight.bind(5.0)]]))
-	_caption("Виды вещей столбцом со стрелками")
+	_caption("[item_kinds_in_a_column]")
 	row = _flow()
 	var kinds := IconTabs.new()
 	var have := {}
@@ -301,38 +301,38 @@ func _slots_page() -> void:
 
 
 func _fields_page() -> void:
-	_caption("Поле ввода: что набрано, видно внизу")
-	var who := _field("Имя", 24)
-	who.text_changed.connect(func(t: String) -> void: _said.text = Lang.f("Введено: %s", [t]))
-	_caption("Поле с подписью, как в «Присоединиться»")
-	_list.add_child(Kit.caption("Адрес сервера"))
-	_field("wss://… или ws://адрес:порт", 0)
-	_caption("Пароль")
-	var secret := _field("Пароль", 32)
+	_caption("[text_field_what_you_type]")
+	var who := _field("[name]", 24)
+	who.text_changed.connect(func(t: String) -> void: _said.text = Lang.line("[typed]", [t]))
+	_caption("[a_field_with_a_caption]")
+	_list.add_child(Kit.caption("[server_address]"))
+	_field("[wss_or_ws_address_port]", 0)
+	_caption("[password]")
+	var secret := _field("[password]", 32)
 	secret.secret = true
-	_caption("Не длиннее восьми букв")
-	_field("До 8 букв", 8)
-	_caption("Поле и кнопка в ряд")
+	_caption("[at_most_eight_letters]")
+	_field("[up_to_8_letters]", 8)
+	_caption("[field_and_button_in_a]")
 	var row := Kit.row(6)
 	_list.add_child(row)
-	var line := Kit.field("ws://адрес:порт")
+	var line := Kit.field("[ws_address_port]")
 	row.add_child(line)
-	row.add_child(Kit.button("Войти", func() -> void: say(line.text if line.text != "" else "Войти")))
+	row.add_child(Kit.button("[enter]", func() -> void: say(line.text if line.text != "" else "[enter]")))
 
 
 func _lists_page() -> void:
-	_caption("Список прокручивается пальцем и полосой")
+	_caption("[a_list_scrolled_by_finger]")
 	var rows := Kit.column(4)
 	var inner := Kit.scroll(rows)
 	inner.custom_minimum_size = Vector2(0, 140)
 	_list.add_child(inner)
 	UiStyle.bar_room(rows.get_parent(), true, inner)
 	for i in 20:
-		var label := Lang.f("Строка %d", [i + 1])
+		var label := Lang.f("[line_n3]", [i + 1])
 		var b := Kit.button(label, say.bind(label))
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		rows.add_child(b)
-	_caption("Столбец кнопок со стрелками")
+	_caption("[button_column_with_arrows]")
 	var column := ScrollColumn.new(28)
 	var buttons := []
 	var names: Array = UiStyle.ICONS.keys().slice(0, 12)
@@ -346,29 +346,29 @@ func _lists_page() -> void:
 
 
 func _look_page() -> void:
-	_caption("Цвета текста")
+	_caption("[text_colours]")
 	var row := _flow()
-	for c: Array in [["Основной", UiStyle.INK], ["Приглушённый", UiStyle.MUTED], ["Акцент", UiStyle.ACCENT],
-			["Опасность", UiStyle.DANGER], ["Удачно", UiStyle.GOOD], ["Холод", UiStyle.COLD], ["Команда", UiStyle.TEAM]]:
+	for c: Array in [["[main_n2]", UiStyle.INK], ["[muted]", UiStyle.MUTED], ["[accent]", UiStyle.ACCENT],
+			["[danger]", UiStyle.DANGER], ["[success]", UiStyle.GOOD], ["[cold_n2]", UiStyle.COLD], ["[team_n3]", UiStyle.TEAM]]:
 		row.add_child(UiStyle.label(c[0], c[1]))
-	_caption("Крупный шрифт заголовков")
-	var big := UiStyle.label("Заголовок", UiStyle.ACCENT)
+	_caption("[big_heading_font]")
+	var big := UiStyle.label("[heading]", UiStyle.ACCENT)
 	big.add_theme_font_size_override("font_size", UiStyle.FONT_SIZE_BIG)
 	_list.add_child(big)
-	_caption("Панель, ямка с текстом, поле")
+	_caption("[panel_text_well_field]")
 	row = _flow()
-	for b: Array in [["Панель", UiStyle.panel(UiStyle.TIGHT)], ["Ямка", UiStyle.well()], ["Поле", UiStyle.field()],
-			["Ячейка", UiStyle.slot(true)]]:
+	for b: Array in [["[panel]", UiStyle.panel(UiStyle.TIGHT)], ["[well]", UiStyle.well()], ["[field]", UiStyle.field()],
+			["[slot]", UiStyle.slot(true)]]:
 		var p := PanelContainer.new()
 		p.add_theme_stylebox_override("panel", b[1])
 		var l := UiStyle.label(b[0])
-		if b[0] == "Ячейка":
+		if b[0] == "[slot]":
 			p.custom_minimum_size = Vector2(40, 40)
 			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		p.add_child(l)
 		row.add_child(p)
-	_caption("Значки (касание называет значок)")
+	_caption("[icons_a_tap_names_the]")
 	row = _flow()
 	row.add_theme_constant_override("h_separation", 2)
 	row.add_theme_constant_override("v_separation", 2)
@@ -451,7 +451,7 @@ func _add_strip(things: Array) -> void:
 		c.on_release = true
 		c.pressed.connect(func() -> void:
 			var at: int = strip.first + i
-			say(Items.title(things[at]) if at < things.size() else "пусто"))
+			say(Items.title(things[at]) if at < things.size() else "[empty_n2]"))
 		strip.cells.add_child(c)
 		cells.append(c)
 	var show := func() -> void:
@@ -461,7 +461,7 @@ func _add_strip(things: Array) -> void:
 			cells[i].texture = ItemIcons.of_item(id) if id != "" else null
 			cells[i].key = str(at + 1)
 	strip.scrolled.connect(show)
-	strip.scrolled.connect(func() -> void: say(Lang.f("с %d", [strip.first + 1])))
+	strip.scrolled.connect(func() -> void: say(Lang.f("[from]", [strip.first + 1])))
 	strip.set_counts(things.size(), 3)
 	show.call()
 
@@ -481,7 +481,7 @@ func _choose(s: HotbarSlot, id: String) -> void:
 	_chosen = s
 	s.selected = true
 	if id == "":
-		say("пусто")
+		say("[empty_n2]")
 		return
 	say(Items.title(id))
 	if _chips != null:
@@ -511,7 +511,7 @@ func _draw_meter() -> void:
 
 func _add_weight(kg: float) -> void:
 	_weight = clampf(_weight + kg, 0.0, LIMIT * 2.0)
-	say(Lang.f("%d / %d кг", [roundi(_weight), LIMIT]))
+	say(Lang.f("[kg_n3]", [roundi(_weight), LIMIT]))
 	if _meter != null:
 		_meter.queue_redraw()
 

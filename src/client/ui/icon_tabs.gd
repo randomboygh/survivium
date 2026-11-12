@@ -115,6 +115,6 @@ static func kinds(have: Dictionary) -> Array:
 	for k in Items.CATEGORIES:
 		var first := Items.of_category(k)
 		icons[k] = ItemIcons.of_item(first) if first != "" else UiStyle.icon("all")
-	var names := {"": "Все"}
+	var names := {"": "[all]"}
 	names.merge(Items.CATEGORIES)
 	return [keys, icons, names]

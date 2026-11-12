@@ -2,4 +2,7 @@
 # tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
 
 # content/plants/deadwood/bundle.yaml
-"Сухое дерево": "Suche drzewo"
+"[plants.deadwood.bundle]": "Suche drzewo"
+
+# content/plants/deadwood/data/trees.yaml
+"[plants.trees.deadwood]": "Suche drzewo"

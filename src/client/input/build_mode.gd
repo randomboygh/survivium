@@ -261,9 +261,9 @@ func toggle_auto() -> void:
 	if auto:
 		auto = false
 	elif game.plans.cells.is_empty() or game.plans.cells.size() == game.farm.marks():
-		game.character.nag("plan_none", "Нет чертежа: нарисуйте его на земле")
+		game.character.nag("plan_none", "[no_blueprint_draw_one_on]")
 	elif not _has_blocks():
-		game.character.nag("no_block", "В сумке нет блоков для чертежа")
+		game.character.nag("no_block", "[no_blocks_in_the_bag]")
 	else:
 		auto = true
 		_check_clock = CHECK_TIME
@@ -279,12 +279,12 @@ func update(delta: float) -> void:
 		_check_clock = CHECK_TIME
 		if game.plans.cells.size() == game.farm.marks():
 			auto = false
-			game.hud.toast("Чертёж построен")
+			game.hud.toast("[blueprint_built]")
 			changed.emit()
 			return
 		if not _has_blocks():
 			auto = false
-			game.character.nag("no_block", "В сумке нет блоков для чертежа")
+			game.character.nag("no_block", "[no_blocks_in_the_bag]")
 			changed.emit()
 			return
 	game.controls.build_step()
@@ -414,13 +414,13 @@ func end_stroke(s: Dictionary) -> void:
 	if not erasing and s.plan != "flatten":
 		var cells := stroke_cells(s)
 		if cells.is_empty():
-			game.character.nag("plan_big", "Слишком большой чертёж")
+			game.character.nag("plan_big", "[the_blueprint_is_too_big]")
 			return
 		var sorted := _sorted(s, cells)
 		if not sorted.blocked.is_empty():
-			game.hud.toast("Внутри блоков чертёж не рисуется")
+			game.hud.toast("[a_blueprint_cant_be_drawn]")
 		elif not sorted.hanging.is_empty():
-			game.hud.toast("Неровная поверхность: под красными клетками пусто")
+			game.hud.toast("[uneven_ground_nothing_under_the]")
 	game.net.request(Protocol.PLAN, [s.plan, s.first, s.last, height, thick, erasing, form_of(s.first, s.last)])
 
 

@@ -1,0 +1,14 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/turnip/bundle.yaml
+"[plants.turnip.bundle]": "Репа"
+
+# content/plants/turnip/data/items.yaml
+"[plants.items.turnip_seeds]": "Семена репы"
+"[plants.items.turnip_seeds.about]": "Мелкие тёмные семена. Посейте их на грядку весной."
+"[plants.items.turnip]": "Репа"
+"[plants.items.turnip.about]": "Круглый сладковатый корнеплод. Лежит долго."
+
+# content/plants/turnip/data/plants.yaml
+"[plants.plants.turnip]": "Репа"
