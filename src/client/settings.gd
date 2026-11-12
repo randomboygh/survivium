@@ -248,6 +248,8 @@ var no_fatigue := false
 var no_thirst := false
 ## Playtest switch: the body feels no cold or heat (Vitals.cold off). Not saved.
 var no_cold := false
+## Playtest switch: falls do not hurt (Vitals.falls off). Not saved.
+var no_fall_damage := false
 ## Playtest switch: on a playtest server the switches of this page go to the server
 ## (send_cheats, src/server/cheats.gd), as they work in one's own world. Not saved.
 var cheats := false
@@ -498,6 +500,7 @@ func apply() -> void:
 			who.inventory.heavy = not no_overload
 			who.vitals.hunger = not no_hunger
 			who.vitals.cold = not no_cold
+			who.vitals.falls = not no_fall_damage
 			who.vitals.thirst = not no_thirst
 			who.vitals.fatigue = not no_fatigue
 			who.skills.rate = skill_rate
@@ -729,7 +732,7 @@ func set_cheats(on: bool) -> void:
 		send_cheats()
 	else:
 		game.net.request(Protocol.CHEATS, [{"speed": 1.0, "air": false, "skill": 1.0, "heavy": true,
-			"hunger": true, "thirst": true, "fatigue": true, "cold": true, "free_build": false, "tool_wear": true,
+			"hunger": true, "thirst": true, "fatigue": true, "cold": true, "falls": true, "free_build": false, "tool_wear": true,
 			"instant_craft": false, "free_items": false, "animal_attacks": true, "boost": 1.0}])
 		_note("[cheats_off]")
 
@@ -742,6 +745,7 @@ func send_cheats(once := {}) -> bool:
 		return false
 	var d := {"speed": player_speed, "air": air_jumps, "skill": skill_rate, "heavy": not no_overload,
 		"hunger": not no_hunger, "thirst": not no_thirst, "fatigue": not no_fatigue, "cold": not no_cold,
+		"falls": not no_fall_damage,
 		"free_build": free_build, "tool_wear": tool_wear, "instant_craft": instant_craft,
 		"free_items": free_items, "animal_attacks": animal_attacks, "boost": time_boost}
 	d.merge(once, true)
@@ -783,6 +787,11 @@ func set_no_thirst(on: bool) -> void:
 
 func set_no_cold(on: bool) -> void:
 	no_cold = on
+	apply()
+
+
+func set_no_fall_damage(on: bool) -> void:
+	no_fall_damage = on
 	apply()
 
 
