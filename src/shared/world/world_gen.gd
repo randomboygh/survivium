@@ -549,7 +549,7 @@ func _halls(cells: PackedByteArray, col: int, x: int, z: int, height: int, lay: 
 	# A mouth: the ground falls from the rim of the mouth noise's patch to the floor of
 	# the hall under its middle.
 	if entrance:
-		var r := clampf((lay.grids[10][j] - _byte(MOUTH_FROM[settings.caves])) / 40.0, 0.0, 1.0)
+		var r := clampf((lay.grids[10][j] - _byte(MOUTH_FROM[settings.caves]) - FUNNEL_RIM) / FUNNEL_SPREAD, 0.0, 1.0)
 		var bottom := floor_y if floor_y > 0 else roundi(mid)
 		var to := height - roundi(r * (height - bottom))
 		for yc in range(maxi(to, 1), height + 1):

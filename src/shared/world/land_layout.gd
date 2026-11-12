@@ -87,6 +87,10 @@ const GALLERY := 64
 ## and how near the zero line of the gallery noise a gallery runs.
 const HALL_FROM := [0.42, 0.3, 0.18]
 const GALLERY_WIDTH := 0.05
+## Cave shape 2: a mouth's funnel starts FUNNEL_RIM bytes of the mouths noise inside
+## its patch and reaches the hall's floor FUNNEL_SPREAD bytes further in.
+const FUNNEL_RIM := 8.0
+const FUNNEL_SPREAD := 50.0
 ## A cave mouth opens sideways where its ground drops by WALL cells or more within
 ## three columns: a gallery ADIT cells high is cut in at the foot of the wall. On
 ## level ground it is a pit instead, up to PIT_DEPTH cells deep in its middle.
