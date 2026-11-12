@@ -4,7 +4,7 @@ extends Button
 ## right and lights amber (the line amber behind it) when on, left and pale when off.
 ## Its `text`, when it has one, stands left of the line and the knob; they stand at the
 ## right end of the switch, or where `track_at` (0 the left, 0.5 the middle) puts it.
-## `toggled` tells the change; `set_pressed_no_signal` shows a value without telling.
+## `toggled` tells the change; `show_value` shows a value at once without telling.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
