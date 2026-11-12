@@ -34,12 +34,14 @@ const ROLES := {
 }
 ## Bits of `shader_bits`, one word per material for world.gdshader: the priority at a
 ## boundary (low 4 bits), DRAINS (no puddles), and the kind of patches on open ground
-## (`ground`: none, soil, sand, rock) in bits 5 and 6, and from bit 8 the texels its
-## boundaries go ragged over (`fray`, 0..7).
+## (`ground`: none, soil, sand, rock) in bits 5 and 6, from bit 8 the texels its
+## boundaries go ragged over (`fray`, 0..7), from bit 11 the texels it reaches into
+## another material on the sides of cells (`side_fray`, 0..7).
 const PRIORITY_MASK := 15
 const DRAINS := 16
 const GROUND_SHIFT := 5
 const FRAY_SHIFT := 8
+const SIDE_FRAY_SHIFT := 11
 ## The bit main.gd adds for the log and the barks: they clear round the player.
 const TRUNK := 128
 const GROUNDS := ["none", "soil", "sand", "rock"]
@@ -110,7 +112,7 @@ static func refresh() -> void:
 		flags.append((SOLID if r.solid else 0) | (ROOF if r.roof else 0) | (SLOPE if r.slope else 0))
 		corner_shape.append(["sharp", "soft", "round"].find(r.corners))
 		layers.append(r.layers)
-		shader_bits.append(r.priority | (DRAINS if r.drains else 0) | (GROUNDS.find(r.ground) << GROUND_SHIFT) | (r.fray << FRAY_SHIFT))
+		shader_bits.append(r.priority | (DRAINS if r.drains else 0) | (GROUNDS.find(r.ground) << GROUND_SHIFT) | (r.fray << FRAY_SHIFT) | (r.side_fray << SIDE_FRAY_SHIFT))
 		if r.hotbar > 0:
 			hotbar.append([r.hotbar, i])
 	hotbar.sort()

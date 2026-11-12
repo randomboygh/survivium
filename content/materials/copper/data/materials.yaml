@@ -4,6 +4,7 @@
   title: "[materials.materials.copper_ore]"
   role: ore
   priority: 2
+  side_fray: 5
   item: copper_ore
   hardness: 2
   toughness: 4

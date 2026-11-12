@@ -184,6 +184,10 @@ const SHOTS := {
 	# Walls and floors of every building material in a row (stone, planks, brick, log
 	# wall, wattle, cut stone).
 	"build-materials": {"time": 0.4, "season": 1, "walls": true},
+	# A cliff of turf, soil, stone with ore veins, sand, clay and a block of brick
+	# (Places.strata): how materials meet on the sides of cells.
+	"strata": {"time": 0.42, "season": 1, "strata": true},
+	"strata-turn": {"time": 0.42, "season": 1, "strata": true, "turn": 1},
 	# The blueprint: a room of planks half built (its lowest level up, the rest a ghost)
 	# with a floor's ghost inside, and a wall's ghost of brick beside it.
 	"build-plan": {"time": 0.4, "season": 1, "plan": true},
