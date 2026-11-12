@@ -19,14 +19,14 @@ const NAME_WIDTH := 112
 const MOD_NAME_WIDTH := 168
 const VALUE_WIDTH := 84
 const ARROW := 32
-## Room for the scroll bar beside the rows.
-const BAR_ROOM := UiStyle.SCROLL_BAR + 4
 ## The map: pixels each way and cells per pixel.
 const MAP := 128
 const MAP_STEP := 32
 ## Time the map may take a frame, in microseconds.
 const MAP_BUDGET_US := 4000
 const LEVELS := ["[few]", "[medium_amount]", "[many]"]
+## The land's amounts are scales: they stop at their ends, the arrow there off.
+const STOP := {"stop": true}
 ## Kinds of world and the settings each picks: size, water, mountains, rivers, biomes
 ## (caves are set apart from the kind).
 const KINDS := [
@@ -127,12 +127,12 @@ func _build_rows() -> void:
 				for j in OPTIONS.size():
 					s.values["world_" + OPTIONS[j]] = KINDS[i][1][j]
 				s.save(), {"skip": KINDS.size()})
-	_add_row("[continents]", ["[small_continents]", "[medium_continents]", "[huge]"], _getter("size"), _setter("size"))
-	_add_row("[water]", LEVELS, _getter("water"), _setter("water"))
-	_add_row("[mountains]", LEVELS, _getter("mountains"), _setter("mountains"))
-	_add_row("[rivers_and_lakes]", LEVELS, _getter("rivers"), _setter("rivers"))
-	_add_row("[biomes]", ["[small_biomes]", "[normal_biomes]", "[large_biomes]"], _getter("biomes"), _setter("biomes"))
-	_add_row("[caves]", LEVELS, _getter("caves"), _setter("caves"))
+	_add_row("[continents]", ["[small_continents]", "[medium_continents]", "[huge]"], _getter("size"), _setter("size"), STOP)
+	_add_row("[water]", LEVELS, _getter("water"), _setter("water"), STOP)
+	_add_row("[mountains]", LEVELS, _getter("mountains"), _setter("mountains"), STOP)
+	_add_row("[rivers_and_lakes]", LEVELS, _getter("rivers"), _setter("rivers"), STOP)
+	_add_row("[biomes]", ["[small_biomes]", "[normal_biomes]", "[large_biomes]"], _getter("biomes"), _setter("biomes"), STOP)
+	_add_row("[caves]", LEVELS, _getter("caves"), _setter("caves"), STOP)
 	_mods_row()
 	_choices.refresh()
 
@@ -315,7 +315,7 @@ func _on_stepped(i: int) -> void:
 func layout(screen: Vector2) -> void:
 	_box.vertical = screen.x < screen.y
 	_list.reset_size()
-	_scroll.custom_minimum_size = Vector2(_list.size.x + BAR_ROOM, _list.size.y)
+	_scroll.custom_minimum_size = Vector2(_list.size.x, _list.size.y)
 	panel.reset_size()
 	var over := panel.size.y - screen.y
 	if over > 0.0:
