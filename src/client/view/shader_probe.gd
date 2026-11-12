@@ -11,10 +11,11 @@ const FILE := "user://shader_probe.cfg"
 ## Frames a step is shown: the first draw compiles its shaders.
 const FRAMES := 3
 ## [name, mesh ("box" or "multi"), material ("unshaded", "standard", a shader's path or
-## "minimal" / "stencil" / "include" / "world_coords" code), lights ("none", "sun", "omni" = sun and an omni light,
+## "minimal" / "stencil" / "include" / "world_coords" code or a key of CODES), lights ("none", "sun", "omni" = sun and an omni light,
 ## "shadow" = the sun's shadow, "shadow_omni" = both; "sun" = the sun alone), what to cut
 ## from the shader's code (a list of: "stencil"; "light" = no light(), "plain_light" = a
-## plain one, "fragment" / "vertex" = that function's body left plain)].
+## plain one, "fragment" / "vertex" = that function's body left plain,
+## "varyings" = none declared)].
 const STEPS := [
 	["engine unshaded", "box", "unshaded", "none", ""],
 	["engine standard", "box", "standard", "none", ""],
@@ -83,10 +84,31 @@ const STEPS := [
 	["world coords, sun shadow", "box", "world_coords", "shadow", ""],
 	["world, sun shadow, all plain", "box", "res://shaders/world.gdshader", "shadow", "stencil,light,fragment,vertex"],
 	["sprite, sun shadow, all plain", "box", "res://shaders/sprite.gdshader", "shadow", "stencil,light,fragment,vertex"],
+	# Round 4: even the world with every function plain crashed under the sun alone, and
+	# the sprite under the sun's shadow; the include alone did not. What is left are
+	# the declarations: varyings, material uniforms (the world's int arrays).
+	["world, sun alone, all plain, no varyings", "box", "res://shaders/world.gdshader", "sun", "stencil,light,fragment,vertex,varyings"],
+	["sprite, sun shadow, all plain, no varyings", "box", "res://shaders/sprite.gdshader", "shadow", "stencil,light,fragment,vertex,varyings"],
+	["int array, sun alone", "box", "int_array", "sun", ""],
+	["int array, sun shadow", "box", "int_array", "shadow", ""],
+	["varyings, sun alone", "box", "varyings", "sun", ""],
+	["varyings, sun shadow", "box", "varyings", "shadow", ""],
+	["texture, sun shadow", "box", "texture", "shadow", ""],
+	["float uniforms, sun shadow", "box", "floats", "shadow", ""],
+	["world coords + varyings, sun shadow", "box", "coords_varyings", "shadow", ""],
+	["world coords + varyings, sun alone", "box", "coords_varyings", "sun", ""],
 ]
 const MINIMAL := "shader_type spatial;\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
 const INCLUDE := "shader_type spatial;\n#include \"res://shaders/common.gdshaderinc\"\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
 const WORLD_COORDS := "shader_type spatial;\nrender_mode world_vertex_coords, cull_back;\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
+## Bare shaders with one kind of declaration each (round 4).
+const CODES := {
+	"int_array": "shader_type spatial;\nuniform int bits[63];\nvoid fragment() { ALBEDO = vec3(float(bits[1] & 3) * 0.2 + 0.3); }\n",
+	"varyings": "shader_type spatial;\nvarying vec3 pos;\nvarying flat vec2 packed;\nvarying float clouds;\nvoid vertex() { pos = VERTEX; packed = UV; clouds = 0.5; }\nvoid fragment() { ALBEDO = vec3(clouds) + pos * 0.01 + vec3(packed, 0.0) * 0.01; }\n",
+	"texture": "shader_type spatial;\nuniform sampler2D tex : source_color, filter_nearest;\nvoid fragment() { ALBEDO = texture(tex, UV).rgb; }\n",
+	"floats": "shader_type spatial;\nuniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);\nuniform float splash = 0.0;\nuniform vec3 tint = vec3(1.0);\nvoid fragment() { ALBEDO = tint * (0.5 + splash) + frame_uv.xyz * 0.01; }\n",
+	"coords_varyings": "shader_type spatial;\nrender_mode world_vertex_coords, cull_disabled;\nvarying vec3 pos;\nvarying vec3 lamp_gain;\nvarying vec2 light_xz;\nvarying float clouds;\nvoid vertex() { pos = VERTEX; lamp_gain = vec3(1.0); light_xz = VERTEX.xz; clouds = 0.5; }\nvoid fragment() { ALBEDO = vec3(clouds) + pos * 0.01 + lamp_gain * 0.1 + vec3(light_xz, 0.0) * 0.01; }\n",
+}
 const STENCIL := "shader_type spatial;\nstencil_mode write, compare_always, 1;\nvoid fragment() { ALBEDO = vec3(0.5); }\n"
 
 ## Called after each step, and when every step was tried.
@@ -214,6 +236,8 @@ static func _material(what: String, cut: String) -> Material:
 		shader.code = INCLUDE
 	elif what == "world_coords":
 		shader.code = WORLD_COORDS
+	elif CODES.has(what):
+		shader.code = CODES[what]
 	else:
 		var code: String = (load(what) as Shader).code
 		if cut == "stencil":
