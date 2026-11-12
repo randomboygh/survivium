@@ -628,6 +628,7 @@ const SHOTS := {
 	# Teams (decision 50): a member's name in the team's colour, a tapped player's card,
 	# an invitation, the pause's window «Команда».
 	"team-person": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "person"},
+	"team-torches": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "team": "torches"},
 	"team-chat": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "chat"},
 	"team-invite": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "invite"},
 	"team-panel": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "panel", "team_panel": true},

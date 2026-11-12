@@ -102,9 +102,9 @@ func _bot(name: String, key := "", password := PASSWORD, port := PORT) -> Bot:
 	return b
 
 
-func _input_at(b: Bot, at: Vector3) -> void:
+func _input_at(b: Bot, at: Vector3, hands := ["", ""]) -> void:
 	var cell := Vector3i((at / WorldData.CELL).floor())
-	var input: Array = [at, cell, Vector2i(0, 1), ["", ""], 0, 0, false, false, false, false,
+	var input: Array = [at, cell, Vector2i(0, 1), hands, 0, 0, false, false, false, false,
 		Vector3.INF, Vector2(1.0, 0.0), Vector2(12.0, 8.0), true, "", 0.0, 0, Vector3.INF]
 	assert(input.size() == Protocol.INPUT_SIZE, "the bots' INPUT follows Protocol.INPUT")
 	b.socket.net.send(Protocol.INPUT, input)
@@ -315,6 +315,18 @@ func _run() -> void:
 			and not main.others.people.has(3), "with his name over his head; the game itself is not among the others (%s)" % [main.others.people.keys()])
 		_check(back.of(Protocol.PEOPLE).any(func(e: Array) -> bool: return e[1].any(func(p: Array) -> bool: return p[0] == 3 and p[1] == "Клиент")),
 			"the game's player is told to the others")
+		# A torch in his hand burns there and lights round him on the game's screen too.
+		server.session.players[1].inventory.add("tools:torch", 1)
+		_input_at(borya, aside, ["tools:torch", ""])
+		var lit := func() -> bool: return main.others.people.has(2) and main.others.people[2].light == "tools:torch" and main.others.people[2].figure.torch.visible
+		_check(await _until(lit),
+			"a torch in another player's hand lights round him (%s)" % [main.others.people.get(2, {}).get("light", null)])
+		_check(main.others.people[2].flames.size() == 2 and main.others.people[2].figure.torch.omni_range > 0.0,
+			"with its flames in his hand")
+		_input_at(borya, aside)
+		var out := func() -> bool: return main.others.people[2].light == "" and not main.others.people[2].figure.torch.visible and not main.others.people[2].flames.any(func(f: CPUParticles3D) -> bool: return f.emitting)
+		_check(await _until(out),
+			"put away, its light and flames go")
 		# A leap across the land is refused: the server's body walks instead, and the
 		# client is put where it is.
 		var leaps: int = borya.of(Protocol.TELEPORT).size()

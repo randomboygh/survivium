@@ -254,11 +254,12 @@ func _ready() -> void:
 	add_child(bolt_light)
 
 	for i in 2:
-		torch_flames.append(_torch_flame())
+		torch_flames.append(torch_flame())
 
 
-## The flame of a torch in one of the player's hands.
-func _torch_flame() -> CPUParticles3D:
+## The flame of a torch in a hand (the player's, see hold_flames, or another player's,
+## see Others) or of a light set down.
+func torch_flame() -> CPUParticles3D:
 	var torch_flame := _emitter(10, 0.35, Vector2(PX, PX), 1.0)
 	torch_flame.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 	torch_flame.emission_sphere_radius = 0.03
@@ -393,7 +394,7 @@ static func _brightness(p: CPUParticles3D, b: float) -> void:
 ## for remove_lamp. `placed` is its record in Placed.lights: the less of it is left to
 ## burn, the dimmer (Sky.charge_gain).
 func add_lamp(at: Vector3, reach: float, placed := {}) -> Dictionary:
-	var flame := _torch_flame()
+	var flame := torch_flame()
 	flame.position = at
 	flame.emitting = true
 	var light := OmniLight3D.new()
@@ -443,7 +444,7 @@ func _light_lamps(view: Vector2, sky) -> void:
 			var left := 1.0
 			if not e.is_empty() and Items.burns(e.item) > 0.0:
 				left = 1.0 - float(e.burnt) / Items.burns(e.item)
-			light.light_energy = LAMP_ENERGY * sky.lamp_gain(rec.at.y, _roofed(rec.at), DAY_LAMP) \
+			light.light_energy = LAMP_ENERGY * sky.lamp_gain(rec.at.y, roofed(rec.at), DAY_LAMP) \
 					* sky.charge_gain(left) * rng.randf_range(0.85, 1.05)
 
 
@@ -579,12 +580,13 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 ## (`base`), brighter the darker round it (Sky.lamp_gain), less with a shadow
 ## (shadow_energy).
 func fire_energy(f: Dictionary, sky) -> float:
-	return f.base * sky.lamp_gain(f.at.y + 0.6, _roofed(f.at), DAY_LAMP) \
+	return f.base * sky.lamp_gain(f.at.y + 0.6, roofed(f.at), DAY_LAMP) \
 			* (shadow_energy if f.light.shadow_enabled else 1.0)
 
 
-## True when a roof stands over world point `at` (WorldCells.roof_level).
-func _roofed(at: Vector3) -> bool:
+## True when a roof stands over world point `at` (WorldCells.roof_level); Others asks it
+## too, for the lights in other players' hands.
+func roofed(at: Vector3) -> bool:
 	return world != null and world.roof_level(floori(at.x / CELL), floori(at.z / CELL)) > floori(at.y / CELL)
 
 
