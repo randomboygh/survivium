@@ -8,8 +8,8 @@ run the same locally — [TESTING_GUIDE.md](TESTING_GUIDE.md). A Russian copy:
 
 | Event | What goes |
 |---|---|
-| A PR (opened, a new push, reopened, a label set) | everything except the check in a browser, if the PR does not touch what the browser shows differently (the job `changes`); the label `smoke` turns it on |
-| A push to `main` (a PR's merge) | everything; if all jobs succeed — publishing |
+| A PR (opened, a new push, reopened, a label set) | everything except, by the job `changes`: the check in a browser, if the PR does not touch what the browser shows differently (the label `smoke` turns it on); the way to every recipe (`progress`), if every file of the PR is one it cannot reach — the client's `ui/`, `view/`, `audio/`, shaders, `assets/`, the mods' sprites, models, icons, textures, sounds and `lang/`, `docs/`, `tools/`, the other tests, `.md` files (the jobs `progress (…)` then pass at once with their steps skipped). The label `full` turns everything on |
+| A push to `main` (a PR's merge) | everything, always: `main` is the safety net for what a PR skipped and for two PRs green apart that break together (#513 + #514); if all jobs succeed — publishing |
 | By hand: Actions → Test and build → Run workflow | everything, as in `main`, with no publishing (it is only for `main`) |
 | By hand: Actions → Playtest server → Run workflow | not a check: `.github/workflows/playtest.yml` runs the game's server from `main` behind a Cloudflare tunnel for the given minutes (up to 300) with bots (`--join … --bot`, `src/client/input/bot.gd`; by default the test world, 3 bots, 120 minutes, free items), the link for a phone is in the step «Start the server» and in the status `playtest-link`, the game finds it itself («Testing» → «Join the test server»); the world is not saved |
 
