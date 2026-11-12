@@ -17,6 +17,15 @@ voxel models of things.
   `DRIFT_RATE`, a turn in 1.5 minutes); any input brings it to the nearest step. Without sleep
   (`Vitals.SLEEPY`) the picture swims instead (`drowsiness` → `sway` of `grade.gdshader`: waves, a faint
   second image, darkening edges).
+- `src/client/view/auto_quality.gd` — «Quality → Auto» (Graphics, on by default; a preset saved before it
+  becomes Auto, a mix of one's own stays): Main calls `update` every frame of the game, it counts the frames on
+  the clock in windows of 5 s (not the loading, the shader warm-up, the menu, the death screen, frames over
+  250 ms, nor a game the tests and tools run: Main not the current scene) and moves the graphics settings
+  along `STEPS` (high → fires' real shadows → sun rays → shadows on things (= medium) → ground fog → pixel
+  1.25 → 1.5 → sun shadows → effects (= low)): two windows below 28 FPS (80 % of the cap if lower) a step
+  down, a minute at 50 FPS (90 % of the screen rate or the FPS limit if lower) a try up; a slow window in the
+  next 20 s takes the try back and sets `auto_ceiling`. Each step is told by a toast and in the F3 panel's
+  full view. Any graphics setting by hand (`Settings.set_value`, a preset) turns it off.
 - `src/client/view/crt.gd` — the setting «CRT» (Graphics): off, soft, old, cassette (`LOOKS`). The old screen
   is counted in the colour-correction pass (`grade.gdshader`, the parameters `crt_*`) by the screen's pixels
   (the shifts — by the screen's long side, the bend — by the diagonal, the mask's stripes are wider on a dense
@@ -223,7 +232,7 @@ voxel models of things.
   and the atlas is built before `RoofMap.prepare` and the maps (the biomes' tones and the map's colours are
   taken from the atlas's mean colours; with the old ones the sand came out violet).
 
-**Tests.** `tests/unit/view_test.gd` (`pixel_view`, `sprite_sheet`, `tracks`, `hidden`, `camera_spin`),
+**Tests.** `tests/unit/view_test.gd` (`pixel_view`, `sprite_sheet`, `tracks`, `hidden`, `camera_spin`, `auto_quality`),
 the screenshots `tools/shot.gd` (the table `tools/shot/shots.gd`, the places `tools/shot/places.gd`),
 `tools/profile.gd` (draw calls under xvfb), `tests/browser_smoke.mjs`.
 

@@ -62,6 +62,7 @@ const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 const HandsScript := preload("res://src/client/view/hands.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
+const AutoQuality := preload("res://src/client/view/auto_quality.gd")
 const ModReload := preload("res://src/client/mod_reload.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
@@ -206,6 +207,8 @@ var wildlife: RemoteWildlife
 var hands: HandsScript
 var cursor: CursorScript
 var settings: SettingsScript
+## The graphics quality the game picks itself («Качество → Авто»).
+var auto_quality: AutoQuality
 ## The hot reload of the mods' data (the files watched on a computer, «Перечитать данные модов»).
 var mod_reload: ModReload
 ## The buses, the ear, one-off sounds and the loops of nature.
@@ -329,6 +332,7 @@ func _ready() -> void:
 	build = BuildMode.new(self)
 	farm = FarmMode.new(self)
 	settings = SettingsScript.new(self)
+	auto_quality = AutoQuality.new(self)
 	mod_reload = ModReload.new(self)
 	settings.load()
 	settings.use_language()
@@ -1066,6 +1070,7 @@ func _process(delta: float) -> void:
 		hud.update_state()
 		death_screen.update()
 		controls.update_tip(delta)
+		auto_quality.update()
 		_report_fps(delta)
 	view.poll_safe_rect(delta)
 	perf.note("hud", t)

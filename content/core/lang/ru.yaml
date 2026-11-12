@@ -963,10 +963,10 @@
 "[chat_and_gestures]": "Чат и жесты"
 "[online]": "в сети"
 "[always]": "всегда"
-"[second_hand_upright]": "Вторая рука в портрете"
 "[stats_button]": "Кнопка статистики"
 "[hidden]": "скрыта"
 "[shown]": "видна"
+"[second_hand_upright]": "Вторая рука в портрете"
 "[key_hints]": "Подсказка клавиш"
 "[rarely]": "редко"
 "[sometimes]": "иногда"
@@ -974,6 +974,7 @@
 "[low]": "низкое"
 "[medium_quality]": "среднее"
 "[high]": "высокое"
+"[auto_quality]": "авто"
 "[custom_quality]": "своё"
 "[screen_n2]": "Экран"
 "[fps_limit]": "Предел FPS"
@@ -1159,6 +1160,10 @@
 "[random_seed]": "Случайное зерно"
 "[mods_n2]": "Моды"
 "[choose_the_mods_of_the]": "Выбрать моды нового мира"
+
+# src/client/view/auto_quality.gd
+"[graphics_lowered_fps]": "Графика попроще, чтобы игра шла плавно (%d FPS)"
+"[graphics_raised_fps]": "Графика получше: запас есть (%d FPS)"
 
 # src/client/view/sky.gd
 "[spring_has_come]": "Наступила весна"
