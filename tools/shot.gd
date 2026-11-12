@@ -539,6 +539,11 @@ func _run() -> void:
 			main.view.sway = 1.0
 			for i in 4:
 				await process_frame
+		if shot.get("visions", false):
+			main.host.player.vitals.see_visions(200.0)
+			main.view.trip = 1.0
+			for i in int(shot.get("frames", 4)):
+				await process_frame
 		if shot.get("asleep", false):
 			# Asleep by the campfire: the dimmed screen, the moon on the clock.
 			main.host.player.vitals.energy = 40.0

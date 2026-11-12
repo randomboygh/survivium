@@ -23,6 +23,7 @@ func run() -> void:
 	_test_graves()
 	_test_bed_respawn()
 	_test_poultice()
+	_test_visions()
 
 
 func _test_inventory() -> void:
@@ -916,3 +917,28 @@ func _test_poultice() -> void:
 	_check(is_equal_approx(copy.mending, ch.vitals.mending), "what a poultice has left is kept in the save")
 	ch.vitals.step(t, 0.0, false)
 	_check(absf(ch.vitals.health - (20.0 + heal)) < 0.5 and ch.vitals.mending == 0.0, "and then it is done")
+
+
+## A glowing mushroom brings visions, even to one who is full; they add up to a cap, pass
+## with time, are kept in the save and go to the client with the body's state.
+func _test_visions() -> void:
+	var t := Items.visions("plants:glow_mushroom")
+	_check(t > 0.0 and Items.visions("plants:mushroom") == 0.0, "a glowing mushroom brings visions, a plain one does not")
+	var ch := Survivor.new()
+	ch.clock = Clock.new()
+	ch.body = Body.new()
+	ch.vitals.satiety = Vitals.MAX
+	ch.give("plants:glow_mushroom", 10)
+	var slot := ch.inventory.slots.find(ch.inventory.slots.filter(func(s: Variant) -> bool: return s != null)[0])
+	_check(ch.eat(slot) and is_equal_approx(ch.vitals.visions, t), "eaten full, and the visions come")
+	for i in 9:
+		ch.eat(slot)
+	_check(ch.vitals.visions == Vitals.VISIONS_MAX, "however many are eaten, they last at most VISIONS_MAX")
+	var copy := Vitals.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(ch.vitals.to_dict())))
+	_check(is_equal_approx(copy.visions, ch.vitals.visions), "the visions left are kept in the save")
+	ch.vitals.step(Vitals.VISIONS_MAX + 1.0, 0.0, false)
+	_check(ch.vitals.visions == 0.0, "and pass with time")
+	ch.vitals.see_visions(30.0)
+	ch.vitals.revive(1.0)
+	_check(ch.vitals.visions == 0.0, "death ends them")
