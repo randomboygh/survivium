@@ -74,7 +74,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
   boat's oars (`oars` of the item) swing in time in `boats.gd` (`stroke`, `ROW_PERIOD`), at each stroke
   splashes at the blades and a plash (`_dip`), behind the stern of a moving vessel a wake (`Effects.wake`);
   currents, answer 5А: `_feel_flow` in `step_boats` gives a body in water or on a vessel the river's current
-  there (`Character.flow`, `Body.flow`, `currents` — the session's `Currents`; to the client by the event
+  there (the water looked up where the player is, `Body.depth_at`: the host's own body is never stepped on the server; `Character.flow`, `Body.flow`, `currents` — the session's `Currents`; to the client by the event
   `flow`); `step_drift` once per `DRIFT_EVERY` carries piles on a river's bed within `DRIFT_CHUNKS` chunks of
   the players while the water ahead is of the same level, ice holds)
   ← `world_actions.gd` (the action button `act_in_front` / `front_kind` / `front_choice`, `on_season`; a touch

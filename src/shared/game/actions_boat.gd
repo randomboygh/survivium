@@ -369,12 +369,15 @@ func _shore_near(at: Vector3) -> Vector3:
 
 
 ## Sets the current `who` feels (Character.flow and their body's): the river's where
-## their body is in the water or afloat, none elsewhere.
+## their body is in the water or afloat, none elsewhere. The water is looked up where
+## they are, not only taken from the body's last step: the server's own player (over
+## the loop) moves on the client and its body here is never stepped.
 func _feel_flow(who) -> void:
 	var f := Vector2.ZERO
 	var body = who.get("body")
 	if currents != null and body != null and not who.is_dead() and not world.water_frozen \
-			and (vessel_id(who) != 0 or body.afloat or body.water_depth > 0.0):
+			and (vessel_id(who) != 0 or body.afloat or body.water_depth > 0.0 \
+				or (body.world != null and body.depth_at(who.position) > 0.0)):
 		f = currents.at_point(who.position, CELL)
 	who.flow = f
 	if body != null:
