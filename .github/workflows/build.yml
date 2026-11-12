@@ -6,7 +6,9 @@ name: Test and build
 # two machines), `frames` (alone, it measures frame times), the web export and the Windows
 # and Linux exports, then the browser smoke test as a desktop, as a phone and as a phone
 # held upright. On a pull request the smoke test runs only when the PR touches what the
-# browser shows differently (see `changes`) or carries the label `smoke`; on main and on a
+# browser shows differently or carries the label `smoke`, and the way to every recipe only
+# when the PR touches the content or crafting (see `changes`; the label `full` runs
+# everything); on main and on a
 # run by hand (Actions → Test and build → Run workflow) everything runs, and on main the
 # builds are published only when every job passed: the web one to Pages, the PC ones to the
 # rolling release `pc-latest`. Each test job keeps its logs as an artifact `logs-<job>` and
@@ -33,7 +35,10 @@ env:
   GODOT_VERSION: 4.5.1
 
 jobs:
-  # Whether the browser smoke test is needed.
+  # What a pull request needs beyond the checks every run makes: the browser smoke test and
+  # the way to every recipe. On main and on a run by hand everything runs (main is the
+  # safety net: two PRs green apart can break it together); the label `full` turns
+  # everything on for a PR, the label `smoke` the smoke test.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -41,25 +46,37 @@ jobs:
       pull-requests: read
     outputs:
       smoke: ${{ steps.check.outputs.smoke }}
+      progress: ${{ steps.check.outputs.progress }}
     steps:
       - id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
-          LABELED: ${{ contains(github.event.pull_request.labels.*.name, 'smoke') }}
+          FULL: ${{ contains(github.event.pull_request.labels.*.name, 'full') }}
+          SMOKE: ${{ contains(github.event.pull_request.labels.*.name, 'smoke') }}
         run: |
-          # The client, its shaders, scenes and pictures, the web save store, the export, the
-          # smoke test and CI itself. Rules, data and tests are covered by the headless tests.
+          # The smoke test: the client, its shaders, scenes and pictures, the web save store,
+          # the export, the smoke test and CI itself. Rules, data and tests are covered by the
+          # headless tests.
           web='^(src/client/|src/shared/world/world_store\.gd|shaders/|scenes/|assets/|content/[^/]+/(sprites|models|icons|textures)/|project\.godot|export_presets\.cfg|icon\.png|tests/browser_smoke\.mjs|tools/web_patch\.py|tools/web_cache\.py|\.github/)'
-          if [ -z "$PR" ] || [ "$LABELED" = true ]; then
+          # The way to every recipe: only when the PR touches the content or crafting — the
+          # mods' data and bundle lists, the content registries, the hands' actions, stations,
+          # the craft queue, the bag, felling, fishing, craft quality — the test itself or CI.
+          # A rule elsewhere that cuts the way is caught by main's run after the merge
+          # (main runs everything and is never cancelled, so the first red run names the merge).
+          recipes='^(content/[^/]+/([^/]+/)?(data/|(bundle|mod)\.yaml$)|src/shared/content/|src/shared/game/(actions_[a-z_]+|world_actions|workshop|placed|craft_queue|inventory|felling|fishing|quality)\.gd$|tests/progress_test\.gd$|tests/run_all\.sh$|\.github/)'
+          if [ -z "$PR" ] || [ "$FULL" = true ]; then
             smoke=true
+            progress=true
           else
             files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --jq '.[].filename')
             echo "$files"
-            if grep -Eq "$web" <<<"$files"; then smoke=true; else smoke=false; fi
+            if [ "$SMOKE" = true ] || grep -Eq "$web" <<<"$files"; then smoke=true; else smoke=false; fi
+            if grep -Eq "$recipes" <<<"$files"; then progress=true; else progress=false; fi
           fi
-          echo "smoke test: $smoke"
+          echo "smoke test: $smoke, the way to every recipe: $progress"
           echo "smoke=$smoke" >> "$GITHUB_OUTPUT"
+          echo "progress=$progress" >> "$GITHUB_OUTPUT"
 
   # Seconds, no Godot: the project's rules for scripts, text files, the Python, shell and
   # browser test scripts, the workflows (tools/lint.py); the docs name only files that
@@ -116,8 +133,11 @@ jobs:
           if-no-files-found: ignore
 
   # The way from bare hands to every recipe (tests/progress_test.gd), its two halves on
-  # two machines: the recipes that need what a beast gives, and the rest.
+  # two machines: the recipes that need what a beast gives, and the rest. On a pull request
+  # that cannot reach it (see `changes`) the job passes at once with its steps skipped, so
+  # the required checks `progress (hunting)` and `progress (other)` still report.
   progress:
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -126,14 +146,20 @@ jobs:
         part: [hunting, other]
     name: progress (${{ matrix.part }})
     steps:
+      - name: Not needed for this pull request
+        if: needs.changes.outputs.progress != 'true'
+        run: echo "The PR changes nothing the way to every recipe plays; main runs it after the merge (label full runs it here)."
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        if: needs.changes.outputs.progress == 'true'
       - uses: ./.github/actions/godot
+        if: needs.changes.outputs.progress == 'true'
         with:
           templates: false
       - name: The way to every recipe
+        if: needs.changes.outputs.progress == 'true'
         run: GODOT=~/godot/godot LOGS=logs tests/run_all.sh progress_${{ matrix.part }}
       - name: Keep the logs
-        if: always()
+        if: always() && needs.changes.outputs.progress == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: logs-progress-${{ matrix.part }}

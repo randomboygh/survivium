@@ -8,8 +8,8 @@ run the same locally — [TESTING_GUIDE.md](TESTING_GUIDE.md). A Russian copy:
 
 | Event | What goes |
 |---|---|
-| A PR (opened, a new push, reopened, a label set) | everything except the check in a browser, if the PR does not touch what the browser shows differently (the job `changes`); the label `smoke` turns it on |
-| A push to `main` (a PR's merge) | everything; if all jobs succeed — publishing |
+| A PR (opened, a new push, reopened, a label set) | everything except, by the job `changes`: the check in a browser, if the PR does not touch what the browser shows differently (the label `smoke` turns it on); the way to every recipe (`progress`), if the PR touches neither the content nor crafting: the mods' `data/`, `bundle.yaml`, `mod.yaml`, `src/shared/content/`, the hands' `actions_*.gd`, `world_actions`, `workshop`, `placed`, `craft_queue`, `inventory`, `felling`, `fishing`, `quality`, the test itself, `run_all.sh`, `.github/` (the jobs `progress (…)` then pass at once with their steps skipped; a rule elsewhere that cuts the way shows in `main`'s run, and the first red run names the merge). The label `full` turns everything on |
+| A push to `main` (a PR's merge) | everything, always: `main` is the safety net for what a PR skipped and for two PRs green apart that break together (#513 + #514); if all jobs succeed — publishing |
 | By hand: Actions → Test and build → Run workflow | everything, as in `main`, with no publishing (it is only for `main`) |
 | By hand: Actions → Playtest server → Run workflow | not a check: `.github/workflows/playtest.yml` runs the game's server from `main` behind a Cloudflare tunnel for the given minutes (up to 300) with bots (`--join … --bot`, `src/client/input/bot.gd`; by default the test world, 3 bots, 120 minutes, free items), the link for a phone is in the step «Start the server» and in the status `playtest-link`, the game finds it itself («Testing» → «Join the test server»); the world is not saved |
 
@@ -32,7 +32,7 @@ publishing, which waits for everything). The fast ones fail first.
 | `export` | the version and «What's new» (`build_info.py`), web export, the patches `web_patch.py` and `web_cache.py`; the artifact `survivium-web` | ~1 min | yes (for the deploy) |
 | `pc` | the Windows and Linux export; the artifacts `survivium-windows`, `survivium-linux` | ~1 min | yes (for publishing) |
 | `android` | the Android APK (arm64), signed by the key from the secrets ([../systems/android.md](../systems/android.md)); the artifact `survivium-android` | ~2 min | yes (for publishing) |
-| `smoke (desktop / phone / upright)` | the web build in headless Chrome (`tests/browser_smoke.mjs`) | 1–3 min | yes, when it runs |
+| `smoke (desktop / phone / upright)` | the web build in headless Chrome (`tests/browser_smoke.mjs`); the phones draw the lightest preset (`?quality=0`, `Settings.use_page_quality`), the desktop the default picture | 1–4 min | yes, when it runs |
 | `publish` | only `main`: the PC builds into the prerelease `pc-latest` | seconds | — |
 | `publish-android` | only `main`: the APK into the prerelease `android-latest` | seconds | — |
 | `deploy` | only `main`: the web build to GitHub Pages | seconds | — |

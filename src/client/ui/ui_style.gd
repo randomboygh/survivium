@@ -1539,7 +1539,25 @@ static func weight_width(limit: int) -> int:
 
 
 static func _text_width(t: String) -> float:
-	return ceilf(font().get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x)
+	return ceilf(text_width(t))
+
+
+## How wide `text` is drawn in `f` (the game's font by default) at `font_size`, in the
+## player's language: a key in brackets or a Lang.line is measured as the words a label
+## shows for it, never as the key itself. Every measure of a text goes through here or
+## text_lines (tools/lint.py), as the key is shorter or longer than its words.
+static func text_width(text: String, font_size := FONT_SIZE, f: Font = null) -> float:
+	return (f if f != null else font()).get_string_size(Lang.t(text), HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+
+
+## How many lines `text`, in the player's language, takes wrapped by words to `width`
+## pixels, as a label with AUTOWRAP_WORD_SMART wraps it.
+static func text_lines(text: String, width: float, font_size := FONT_SIZE, f: Font = null) -> int:
+	var para := TextParagraph.new()
+	para.break_flags = TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE
+	para.add_string(Lang.t(text), f if f != null else font(), font_size)
+	para.width = width
+	return maxi(1, para.get_line_count())
 
 
 ## The weight's picture (assets/ui/weight.png), as the bag's sorting by weight shows it.

@@ -376,6 +376,23 @@ func set_quality(i: int) -> void:
 	save()
 
 
+## On the web, `?quality=0`, `1` or `2` in the page's address picks that preset (QUALITIES)
+## as the settings would: a link for a weak device, and the browser smoke test's phone,
+## which tests the layout and the touch, not the picture (software GL draws its frames in
+## seconds). Called after load(), before the first apply().
+func use_page_quality() -> void:
+	if not OS.has_feature("web"):
+		return
+	var v: Variant = JavaScriptBridge.eval("new URLSearchParams(location.search).get('quality') || ''", true)
+	if not (v is String and (v as String).is_valid_int()):
+		return
+	var i := int(v)
+	if i < 0 or i >= QUALITIES.size():
+		return
+	values.auto_quality = false
+	values.merge(QUALITIES[i], true)
+
+
 ## The world settings for WorldGen: size, water, mountains, rivers, biomes, caves, relief,
 ## climate, cave_shape.
 func world_options() -> Dictionary:

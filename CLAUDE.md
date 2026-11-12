@@ -143,8 +143,10 @@ new assets, or HUD scripts fail with null errors that look like code bugs. Wrap 
 res://x.gd` only parses one script. `git config core.hooksPath tools/hooks` runs the first two before
 each commit.
 
-Which tests a change needs (CI runs all of them anyway): UI only — lint, parse, `run_tests`,
-screenshots; content data, recipes, stations, tools, materials, what the hands do — add
+Which tests a change needs (CI runs all of them on main; on a PR it runs the way to every recipe
+only when the PR touches the content or crafting (`changes` in `build.yml`), and the browser test
+only when what the browser shows changed; the label `full` runs everything): UI only
+— lint, parse, `run_tests`, screenshots; content data, recipes, stations, tools, materials, what the hands do — add
 `validate`, `report` (regenerate without `--check`), `progress_hunting progress_other`; world,
 generator, chunks, meshes, anything every frame — `run_tests -- generation mesher shapes store` and
 `frame_test`; saves — `save_test`; network, server, protocol — `run_tests -- net session` and

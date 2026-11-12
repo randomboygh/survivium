@@ -13,6 +13,9 @@ const FadingList := preload("res://src/client/ui/kit/fading_list.gd")
 const ChatBox := preload("res://src/client/ui/chat_box.gd")
 const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
+const MapView := preload("res://src/client/ui/map_view.gd")
+const Minimap := preload("res://src/client/ui/minimap.gd")
+const UiStyle := preload("res://src/client/ui/ui_style.gd")
 
 
 func run() -> void:
@@ -25,6 +28,7 @@ func run() -> void:
 	_test_fading_list()
 	_test_chat_lines()
 	_test_pc_scales()
+	_test_map_fit()
 
 
 func _test_two_tap() -> void:
@@ -265,3 +269,69 @@ func _test_pc_scales() -> void:
 			_check(s > last, "size %d is larger than the one before on %d px" % [size, side])
 			last = s
 	_check(Hud.pc_scale(300, 0) == 1.0, "never under a screen pixel per UI pixel")
+
+
+## The whole map fills a phone held upright, whatever size it was laid out at before,
+## and its hint, in the player's language, stays inside the panel.
+func _test_map_fit() -> void:
+	var map := MapView.new()
+	map.minimap = Minimap.new()
+	map._ready()
+	var phone := Vector2(400, 820)
+	for before: Vector2 in [Vector2(90, 400), Vector2(820, 400), phone]:
+		map.fit(before, true)
+		map.fit(phone, true)
+		_check(map.well.size.y > phone.y * 0.7, "the map fills the screen after %s: %s" % [before, map.well])
+		var text := Lang.t(map._hint.text)
+		var widest := UiStyle.font().get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, UiStyle.FONT_SIZE).x
+		var wraps: bool = map._hint.autowrap_mode != TextServer.AUTOWRAP_OFF
+		var inside: bool = map._hint.position.x >= MapView.MARGIN and map._hint.position.x \
+				+ (map._hint.size.x if wraps else widest) <= phone.x - MapView.MARGIN
+		_check(inside and map._hint.position.y > map.well.end.y, "the hint stays inside, under the map")
+	# A pinch, then the fingers lifted one after the other: the one left a moment
+	# longer does not drag the map.
+	var a := Vector2(150, 400)
+	var b := Vector2(250, 400)
+	_touch(map, 0, a, true)
+	_touch(map, 1, b, true)
+	_drag(map, 0, a + Vector2(-40, 0))
+	_drag(map, 1, b + Vector2(40, 0))
+	_touch(map, 1, b + Vector2(40, 0), false)
+	var held := map.centre
+	_drag(map, 0, a + Vector2(-40, 60))
+	_touch(map, 0, a + Vector2(-40, 60), false)
+	_check(map.centre == held, "the finger left after a pinch does not move the map")
+	# One finger alone drags it by as far as it moved.
+	_touch(map, 0, a, true)
+	_drag(map, 0, a + Vector2(20, 0))
+	_drag(map, 0, a + Vector2(40, 0))
+	_touch(map, 0, a + Vector2(40, 0), false)
+	_check(map.centre.x < held.x and is_equal_approx(map.centre.y, held.y), "one finger drags the map")
+	map.minimap.free()
+	map.free()
+	# A key is measured as its words in the player's language.
+	_check(UiStyle.text_width("[a_tap_places_a_marker]") == UiStyle.text_width(Lang.t("[a_tap_places_a_marker]")),
+		"a key measures as its words")
+
+
+## Where each test finger is, so a drag carries its `relative` as the engine's do.
+var _at := {}
+
+
+func _touch(c: Control, index: int, at: Vector2, down: bool) -> void:
+	_at[index] = at
+	var e := InputEventScreenTouch.new()
+	e.index = index
+	e.position = at
+	e.pressed = down
+	c._input(e)
+	c._gui_input(e)
+
+
+func _drag(c: Control, index: int, at: Vector2) -> void:
+	var e := InputEventScreenDrag.new()
+	e.index = index
+	e.position = at
+	e.relative = at - (_at.get(index, at) as Vector2)
+	_at[index] = at
+	c._gui_input(e)

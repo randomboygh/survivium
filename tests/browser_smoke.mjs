@@ -11,6 +11,10 @@
 import { chromium } from 'playwright-core';
 
 const URL = 'http://localhost:8060/index.html';
+// The phones draw the lightest preset (Settings.use_page_quality): they test the layout
+// and the touch, and their frames, three times the desktop's pixels, take seconds each;
+// the desktop draws the default picture, so every shader is still drawn.
+const LIGHT = `${URL}?quality=0`;
 // Phone toolbar the page is laid out under, in CSS pixels.
 const TOOLBAR = 60;
 const asked = process.argv.slice(2);
@@ -32,7 +36,7 @@ const rectOf = (line, key) => {
 // the phone taps «Одиночная игра», "Новый мир" and then "Создать мир" on the setup
 // screen (the same world, so the menu goes straight in), the desktop presses Enter on
 // «Одиночная игра» and on "Играть".
-async function open(name, options, init, tapDpr) {
+async function open(name, options, init, tapDpr, url = URL) {
   const context = await browser.newContext(options);
   if (init) await context.addInitScript(init);
   const page = await context.newPage();
@@ -47,7 +51,7 @@ async function open(name, options, init, tapDpr) {
     console.log(`[${name} pageerror] ${e.message}`);
     errors.push(`${name}: ${e.message}`);
   });
-  await page.goto(URL);
+  await page.goto(url);
   // The main menu and the setup screen print where their buttons are.
   const waitFor = async (prefix, what) => {
     const deadline = Date.now() + 120000;
@@ -158,6 +162,7 @@ if (runs('phone')) {
     `Object.defineProperty(window, 'innerHeight', { configurable: true,
       get: () => document.documentElement.clientHeight + ${TOOLBAR} });`,
     dpr,
+    LIGHT,
   );
   const d0 = await debug(page, log);
   console.log(`phone layout: ${d0.line}`);
@@ -247,7 +252,7 @@ if (runs('upright')) {
     if (/SCRIPT ERROR|SHADER ERROR|Parse Error|Invalid call|Invalid access|Invalid get|Invalid set/.test(text)) errors.push(`upright: ${text}`);
   });
   page.on('pageerror', (e) => errors.push(`upright: ${e.message}`));
-  await page.goto(`${URL}?server=127.0.0.1:9`);
+  await page.goto(`${LIGHT}&server=127.0.0.1:9`);
   const waitFor = async (prefix, what, from = 0) => {
     const deadline = Date.now() + 120000;
     const line = () => log.slice(from).find((t) => t.startsWith(prefix));

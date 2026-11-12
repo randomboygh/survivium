@@ -337,6 +337,7 @@ func _ready() -> void:
 	auto_quality = AutoQuality.new(self)
 	mod_reload = ModReload.new(self)
 	settings.load()
+	settings.use_page_quality()
 	settings.use_language()
 	sound = SoundScript.new(self)
 	add_child(sound)
