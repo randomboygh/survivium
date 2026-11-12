@@ -523,6 +523,14 @@ func _hosted() -> void:
 	var cfg := ConfigFile.new()
 	_check(cfg.load(Config.file) == OK and cfg.get_value("server", "title") == "Дача"
 		and cfg.get_value("server", "port") == PORT + 1 and cfg.get_value("server", "real_weather") == true, "its settings are written for the server from the terminal")
+	# «Настройки» of the running server's window: they take effect at once and are written.
+	node.apply_settings({"max_players": 16, "day_minutes": 80.0, "real_weather": false,
+		"rules": {"pvp": "all", "territory_radius": 32}})
+	_check(node.config.max_players == 16 and node.session.rules.pvp == "all" and node.session.rules.territory_radius == 32
+		and is_equal_approx(node.session.clock.time_speed, node.config.day_speed()) and not node.real_weather.enabled,
+		"settings changed while it runs take effect at once")
+	_check(cfg.load(Config.file) == OK and cfg.get_value("server", "players") == 16 and cfg.get_value("rules", "pvp") == "all",
+		"and go into its settings file")
 	if fake != "":
 		_check(await _until(func() -> bool: return node.tunnel != null and node.tunnel.url != "")
 			and node.tunnel.url == "wss://quiet-river-test.trycloudflare.com"
