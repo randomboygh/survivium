@@ -9,6 +9,7 @@ const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
 const KitWindow := preload("res://src/client/ui/kit/window.gd")
 const SlotStrip := preload("res://src/client/ui/kit/slot_strip.gd")
+const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
 
 
 func run() -> void:
@@ -16,6 +17,7 @@ func run() -> void:
 	_test_choice_rows()
 	_test_window()
 	_test_strip()
+	_test_vitals()
 	_test_gallery()
 
 
@@ -105,6 +107,24 @@ func _test_strip() -> void:
 	_check(SlotStrip.fitting(8 * 44.0, 8, 8) == 8 and SlotStrip.fitting(200.0, 8, 4) == 3,
 		"as many cells as fit: all of them, or between the arrows")
 	strip.free()
+
+
+## The state panel: what hinders the body, and the panel widening for its column.
+func _test_vitals() -> void:
+	var v := Vitals.new()
+	_check(VitalsPanel.debuffs_of(v, false).is_empty(), "a rested dry body has nothing hindering it")
+	v.wet = 0.5
+	v.stamina = 2.0
+	_check(VitalsPanel.debuffs_of(v, true) == ["wet", "tired", "heavy"], "wet, out of breath, overloaded, in order")
+	var panel := VitalsPanel.new()
+	panel._ready()
+	var canvas: Control = panel._canvas
+	var narrow := canvas.custom_minimum_size.x
+	panel.update(v, 0.1, true)
+	_check(canvas.custom_minimum_size.x > narrow and panel.visible, "the panel widens for the column and shows")
+	panel.update(Vitals.new(), 0.1, false)
+	_check(is_equal_approx(canvas.custom_minimum_size.x, narrow), "and shrinks back to the moon")
+	panel.free()
 
 
 func _test_gallery() -> void:

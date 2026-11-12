@@ -572,6 +572,12 @@ func _run() -> void:
 			main.hud.vitals.pinned = true
 			for i in 4:
 				await process_frame
+		if shot.has("tired"):
+			# Out of breath: the stamina bar red, the bolt in the last column.
+			main.host.player.vitals.stamina = 3.0
+			main.hud.vitals.pinned = true
+			for i in 2:
+				await process_frame
 		if shot.has("hold"):
 			# Things in the hands: [left, right].
 			for h in 2:

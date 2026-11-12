@@ -438,6 +438,11 @@ const SHOTS := {
 	# the drop; and the bag open with them worn, one more cape chosen in the bag (its warmth).
 	"cold": {"time": 0.8, "season": 3, "clearing": true, "wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"],
 		"chill": [22.0, 0.7]},
+	# The state in the corner: thirsty, chilled, wet and out of breath (the drop and the
+	# red bolt in the last column).
+	"vitals": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "thirst": 15.0, "chill": [22.0, 0.7], "tired": true},
+	# The same with nothing hindering the body: the panel ends at the moon.
+	"vitals-plain": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "thirst": 15.0},
 	"bag-clothes": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,
 		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "give": "tools:grass_cape"},
 	# Asleep at night by the spawn's campfire.
