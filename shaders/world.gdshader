@@ -282,12 +282,14 @@ void fragment() {
 	// below it (`band`). A slope turned to the camera covers 2-3 times the screen rows
 	// of its footprint: laid by x and z its patterns stretched into streaks; laid this
 	// way they keep a pixel a texel like a flat top, and jump back at each level line,
-	// where the shade at the foot of the level (below) hides the seam.
+	// where the shade at the foot of the level (below) hides the seam. "Up the picture"
+	// is that of the view the camera rests at nearest (rest_view): by the view shown the
+	// patterns crawled over the slope while the camera turned.
 	bool slanted = (flag & ~1) == 4 && tile != NONE;
 	float band = world_pos.y - floor(world_pos.y / CELL + 0.002) * CELL;
 	vec3 gp = world_pos;
 	if (slanted) {
-		gp.xz += view_up * (view_slope / view_squash * band);
+		gp.xz += rest_view.xy * (rest_view.z * band);
 	}
 	vec3 tp = gp + vec3(1.0 / (32.0 * TEXELS));
 	vec2 wt = floor(tp.xz * TEXELS);
@@ -368,8 +370,9 @@ void fragment() {
 		}
 		if ((flag & ~1) == 4) {
 			// A slope covers more or fewer screen rows than a flat top: take texels
-			// where they show on screen, one texel per pixel.
-			tm = ivec2(mod(floor(screen_plane(world_pos) * TEXELS), TEXELS));
+			// where they show on screen, one texel per pixel, in the view the camera
+			// rests at (rest_plane), so they hold still on the slope while it turns.
+			tm = ivec2(mod(floor(rest_plane(world_pos) * TEXELS), TEXELS));
 		}
 		// A cap of the cut shows the inside of the cells it cuts: soil, not turf.
 		if (top && pick == GRASS * 3 && (cap || bare_ground(gp.xz) > 0.5)) {
@@ -515,7 +518,7 @@ void fragment() {
 		// The height of a slope shows as levels: each one shades darker toward its foot
 		// in an ordered dither, so a tall slope reads as steps, not one smooth smear.
 		float foot = 1.0 - band / CELL;
-		col *= bayer4(light_texel(light_xz)) < foot * 0.9 - 0.15 ? 0.88 : 1.0;
+		col *= bayer4(floor(rest_plane(world_pos) * TEXELS)) < foot * 0.9 - 0.15 ? 0.88 : 1.0;
 	}
 	if (tile == NONE) {
 		// A snowdrift's relief is a soft shade baked into its vertex alpha, halved.

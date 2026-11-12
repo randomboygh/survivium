@@ -302,6 +302,12 @@ func _test_hidden() -> void:
 	var across := cs._hiding_level(16, 1, 16)
 	PixelView.set_view(0.0, 0.0)
 	_check(along == -1 and across == 3, "the cut finds what hides the player in a turned view")
+	# Slopes lay their tiles by the step the camera is nearest to, which holds still
+	# while it turns or tilts between steps (rest_view in common.gdshaderinc).
+	var rest := PixelView.rest_of(0.3, 0.1)
+	var turned := PixelView.rest_of(0.5, -0.2)
+	_check(rest.is_equal_approx(Vector3(0.0, -1.0, 1.0)), "a slight turn keeps the slopes' rest view")
+	_check(turned.is_equal_approx(Vector3(-sqrt(0.5), -sqrt(0.5), 1.25)), "past halfway the slopes take the next step's view")
 
 
 ## The sounds load (loops looping), nothing sounds before the browser lets it, the

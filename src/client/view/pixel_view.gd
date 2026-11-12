@@ -53,6 +53,11 @@ static var shadow_on_things := true
 ## at 45 degrees.
 const VIEW_DIR := Vector3(0.0, -0.70710678, -0.70710678)
 
+## The camera rests turned by whole TURN_STEPs and tilted by whole TILT_STEPs
+## (CameraRig turns and tilts between them).
+const TURN_STEP := PI / 4.0
+const TILT_STEP := 0.25
+
 ## The view the shaders draw (see set_view): which way of the world is up on the image
 ## (x, z), how much the tops are stretched along it and how long a wall of one unit is,
 ## both 1 in the default view (looking north, 45 degrees down).
@@ -98,7 +103,9 @@ static func camera_size(image_height: int) -> float:
 ## The camera still looks straight down; the shaders move each point up the image by
 ## its height (`slope`), so walls get shorter as a steeper camera would draw them,
 ## while the tops keep their 8 px a cell (`squash` 1) and the pixel grid holds. Sets
-## the shader globals too.
+## the shader globals too, and `rest_view`, the step the camera is nearest to, by which
+## the shaders lay what goes by texels of the picture on the world (rest_plane in
+## common.gdshaderinc), so a slope's pattern does not crawl while the view turns.
 static func set_view(turn: float, tilt: float) -> void:
 	var v := view_of(turn, tilt)
 	up = v[0]
@@ -108,6 +115,7 @@ static func set_view(turn: float, tilt: float) -> void:
 	RenderingServer.global_shader_parameter_set("view_up", up)
 	RenderingServer.global_shader_parameter_set("view_squash", squash)
 	RenderingServer.global_shader_parameter_set("view_slope", slope)
+	RenderingServer.global_shader_parameter_set("rest_view", rest_of(turn, tilt))
 	light_reach = reach_of(slope)
 	RenderingServer.global_shader_parameter_set("light_reach", light_reach)
 
@@ -120,6 +128,13 @@ static func reach_of(s: float) -> float:
 ## The range to give a light that lights `r` world units round it in the world.
 static func light_range(r: float) -> float:
 	return r * light_reach
+
+
+## The view of the step the camera turned `turn` and tilted `tilt` rests at or is
+## nearest to, as the shaders' `rest_view`: up in x and y, slope in z.
+static func rest_of(turn: float, tilt: float) -> Vector3:
+	var v := view_of(roundf(turn / TURN_STEP) * TURN_STEP, roundf(tilt / TILT_STEP) * TILT_STEP)
+	return Vector3(v[0].x, v[0].y, v[2])
 
 
 ## [up, squash, slope] of a view (see set_view).

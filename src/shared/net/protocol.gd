@@ -284,6 +284,10 @@ const HEARD := "heard"
 ## The player's team (Teams.view): [{"id", "name", "lead", "members": [[id, name]…]}],
 ## {} for none; on joining and when it changes.
 const TEAM := "team"
+## Where the player's teammates are, for the map: [[[id, name, column (Vector2i x, z)]…]],
+## all of them alive in the world however far, sorted by id ([] in no team); on joining
+## and when one moves to another column (twice a second at most over a socket).
+const MATES := "mates"
 ## The invitations to a team waiting for the player, and those the player sent that wait
 ## for an answer: [[[id, name]…], [[id, seconds left]…]]; when they change.
 const INVITES := "invites"

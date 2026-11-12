@@ -113,7 +113,7 @@ var ladders := {}
 ## Things lying on the ground (the logs, branches and seeds of a felled tree, what was
 ## thrown away, a sack left by a death), by chunk (Vector2i): [kind, position in world
 ## units, angle about y, data] each. `kind` is an item id (a bare name is a core item,
-## see Items) or Items.SACK; `data` is how many items for an item ({"n", "worn", "q"} for a
+## see Items) or Items.SACK; `data` is how many items for an item ({"n", "worn", "q", "text"} for a
 ## worn tool or things of a quality other than the normal, see Inventory.drop_data), the stacks ([[id, count]...]) for a sack. A sack of a death
 ## has a fifth: the game day (Clock.now) it is gone (WorldActions.expire_sacks), and a
 ## sixth: who died there (Character.grave_of), for the cross set where it was
@@ -614,7 +614,7 @@ func heap_drop(kind: String, pos: Vector3, n: int, angle := 0.0, q := Items.NORM
 	var key := Vector2i(floori(pos.x / CELL) >> SHIFT, floori(pos.z / CELL) >> SHIFT)
 	for d: Array in drops.get(key, []):
 		if d[0] == kind and d.size() == 4 and d[1].distance_to(pos) <= HEAP \
-				and (d[3] is int or d[3] is Dictionary and int(d[3].get("worn", 0)) == 0):
+				and (d[3] is int or d[3] is Dictionary and int(d[3].get("worn", 0)) == 0 and not d[3].has("text")):
 			var had: int = d[3] if d[3] is int else int(d[3].get("n", 1))
 			var was: int = Items.NORMAL_QUALITY if d[3] is int else int(d[3].get("q", Items.NORMAL_QUALITY))
 			d[3] = heap_data(had + n, roundi(float(was * had + q * n) / float(had + n)))
