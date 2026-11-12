@@ -1,54 +1,61 @@
-# Обзор проекта
+# Project overview
 
-Статус: ACTIVE, сверено с кодом 2026-11-09 (клиент 0.2.457).
+Status: ACTIVE, checked against the code on 2026-11-09 (client 0.2.457). A Russian copy:
+[PROJECT_OVERVIEW_RU.md](PROJECT_OVERVIEW_RU.md).
 
-## Игра
+## The game
 
-Survivium — медитативная песочница выживания: большой процедурный мир по уровням в 3D pixel-art с
-видом 3/4, один персонаж, добыча, крафт, стройка, живой мир со зверями и сезонами, команды, территории
-и PvP на сервере. Работает в браузере и на ПК (Windows, Linux), позже на Android; многопользовательская
-игра через свой авторитетный сервер (тот же исполняемый файл, решение 153). Замысел: `plan/design/overview.md` и `plan/design/mvp-design.md`
-в библиотеке; что сделано по областям — `README.md` в корне.
+Survivium is a meditative survival sandbox: a big procedural world of levels in 3D pixel art seen at 3/4,
+one character, gathering, crafting, building, a living world with beasts and seasons, teams, territories
+and PvP on a server. It runs in the browser and on PC (Windows, Linux), later on Android; multiplayer goes
+through its own authoritative server (the same executable, decision 153). The idea: `plan/design/overview.md`
+and `plan/design/mvp-design.md` in the library; what is done by area — `README.md` in the root.
 
-## Состояние
+## State
 
-- Этап 0 (технический прототип) закрыт, идёт этап 1 (MVP), см. `plan/mvp.md`. Браузерная сборка:
-  https://randomboygh.github.io/survivium/ (собирается из `main`), сборки ПК — релиз `pc-latest`.
-- Сделано: мир без края из шума (48 уровней, горы, пещеры, реки, болота, 28 биомов как данные), время,
-  сезоны и 11 видов погоды, персонаж с сумкой, носимыми сумками и одеждой, силами (сытость, вода,
-  бодрость и сон, тепло тела и промокание) и смертью, работа руками (копать, строить, рубить, косить,
-  собирать, сажать, удить), крафт у станков с очередью, костёр и камин на топливе, порча еды, свет как
-  расходник, который ярче в темноте, звери и рыба (нападают по общим правилам, боятся огня, заяц приручается), десять навыков (опыт за полезную работу, скорость,
-  лишняя добыча, прочность сделанного), качество вещей 1–100 от материалов, инструмента и навыка, строительство (материалы стен, чертёж стены, пола и комнаты со
-  стройкой по клеткам, двери, окна, мебель, забор, калитка и ворота, люки, приставная лестница; отдельный режим строительства с палитрой, формами, склонами
-  и ступенями как формой клетки и выравниванием земли), земледелие (режим земледелия, грядки, полив,
-  посевы растут по сезонам и от влаги, ростки из жёлудя и шишки; растения сами зарастают и расселяются), плот и
-  лодка с вёслами, течения рек, таблички, жесты, десять языков (английский по умолчанию), свет через окна и двери, звери нарисованы
-  заново (три вида, ходьба, кадры покоя и атаки), вид в пещере слоями, звук и музыка из нот,
-  сохранение по мирам, моды и бандлы с горячей перезагрузкой на ПК, отладка ИИ зверей (F4); сервер (сеанс мира с тиком,
-  WebSocket, сохранение, команды хозяина, чат, туннель из интернета; одиночная игра — через сервер в том
-  же процессе), команды, участки земли с правами, PvP по режимам сервера, упадок заброшенной земли.
-- В данных сейчас: 30 материалов ячеек, 217 предметов, 162 рецепта, 20 пород деревьев, 6 кустов,
-  21 растение на траве и грядке, 23 существа (с человеком), 28 биомов, 7 эпох, 10 навыков; 9 модов, 167 бандлов
-  (полный список — [generated/content-index.md](generated/content-index.md)).
-- Нет: ветшания построек, редактора, NPC, Android-сборки (этап 2); эксперимент в крафте отменён (решение 181).
-  Что из этого в плане — `plan/mvp.md` и `plan/backlog.md` в библиотеке.
+- Stage 0 (the technical prototype) is closed, stage 1 (the MVP) is in progress, see `plan/mvp.md`. The
+  browser build: https://randomboygh.github.io/survivium/ (built from `main`), the PC builds — the
+  `pc-latest` release.
+- Done: a world without an edge from noise (48 levels, mountains, caves, rivers, swamps, 28 biomes as data),
+  time, seasons and 11 kinds of weather, a character with a bag, worn bags and clothes, strengths (satiety,
+  water, vigour and sleep, body warmth and getting wet) and death, work by hands (dig, build, chop, mow,
+  gather, plant, fish), crafting at stations with a queue, a campfire and a fireplace on fuel, food spoiling,
+  light as a consumable that is brighter in the dark, beasts and fish (they attack by shared rules, fear
+  fire, the hare can be tamed), ten skills (experience for useful work, speed, extra yield, durability of
+  what is made), the quality of things 1–100 from materials, tool and skill, building (wall materials, a
+  blueprint of a wall, a floor and a room built cell by cell, doors, windows, furniture, a fence, a wicket
+  and a gate, hatches, a leaning ladder; a separate build mode with a palette, shapes, slopes and steps as a
+  cell's shape and levelling of the ground), farming (farm mode, beds, watering, crops grow by seasons and
+  moisture, sprouts from an acorn and a cone; plants overgrow and spread on their own), a raft and a boat
+  with oars, river currents, signs, gestures, ten languages (English by default), light through windows and
+  doors, the beasts redrawn (three kinds, walking, frames of rest and attack), the cave view by layers,
+  sound and music from notes, saving by worlds, mods and bundles with hot reload on PC, debugging of the
+  beasts' AI (F4); the server (a world session with a tick, WebSocket, saving, the host's commands, chat, a
+  tunnel from the internet; single player goes through a server in the same process), teams, land plots with
+  rights, PvP by the server's modes, the decay of abandoned land.
+- In the data now: 30 cell materials, 217 items, 162 recipes, 20 species of trees, 6 shrubs, 21 plants on
+  grass and in a bed, 23 creatures (with the human), 28 biomes, 7 eras, 10 skills; 9 mods, 167 bundles (the
+  full list is [generated/content-index.md](generated/content-index.md)).
+- Not there: the decay of buildings, an editor, NPCs, an Android build (stage 2); the experiment in crafting
+  was cancelled (decision 181). What of this is planned — `plan/mvp.md` and `plan/backlog.md` in the library.
 
-## Технологии и ограничения
+## Technology and limits
 
-- Godot 4.5.1, рендерер GL Compatibility (WebGL 2), web-экспорт без потоков, чистый GDScript:
-  скрипты подключаются константами `preload`, `class_name` не используется, автозагрузок и плагинов нет.
-- Телефонный браузер примерно в 10 раз медленнее компьютера, поэтому ничего размером с карту или чанк
-  не делается за один кадр (задания по столбцам и рядам в бюджете кадра, `tests/frame_test.gd`).
-- CI рендерит программно: его FPS ничего не значит, цифры даёт только телефон пользователя (F3).
-- Всё, что описывает контент, — данные модов (`content/<мод>/…/data/*.yaml`), а не константы кода;
-  код просит контент по роли, а не по id (кроме id ядра `core:`).
-- Правила игры (`src/shared/`) отделены от картинки и ввода (`src/client/`), чтобы их запустил сервер.
-- Язык: игра на десяти языках, исходные фразы интерфейса — русские (они же ключи перевода); README и
-  документы в `docs/` и `plan/` по-русски; код, комментарии, коммиты и PR
-  по-английски.
+- Godot 4.5.1, the GL Compatibility renderer (WebGL 2), web export without threads, pure GDScript: scripts
+  are connected by `preload` constants, `class_name` is not used, there are no autoloads or plugins.
+- A phone browser is about 10 times slower than a computer, so nothing the size of a map or a chunk is done
+  in one frame (jobs by columns and rows within a frame budget, `tests/frame_test.gd`).
+- CI renders in software: its FPS means nothing, the numbers come only from the user's phone (F3).
+- Everything that describes content is the mods' data (`content/<mod>/…/data/*.yaml`), not code constants;
+  the code asks for content by role, not by id (except the ids of the core, `core:`).
+- The rules of the game (`src/shared/`) are separate from the picture and input (`src/client/`), so that a
+  server can run them.
+- Language: the game speaks ten languages, English by default; every text a player reads is a key in
+  square brackets that each language translates ([TRANSLATION.md](TRANSLATION.md)); the README and the
+  documents in `docs/` are in English with Russian copies `_RU.md`, the documents in `plan/` are in Russian;
+  code, comments, commits and PRs are in English.
 
-## Куда дальше
+## Where next
 
-[ARCHITECTURE.md](ARCHITECTURE.md) — как устроен код, [SYSTEMS.md](SYSTEMS.md) — где каждая система,
-[DATA_MODEL.md](DATA_MODEL.md) — данные и моды.
+[ARCHITECTURE.md](ARCHITECTURE.md) — how the code is built, [SYSTEMS.md](SYSTEMS.md) — where each system
+is, [DATA_MODEL.md](DATA_MODEL.md) — data and mods.

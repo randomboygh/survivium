@@ -1,20 +1,21 @@
-# Архитектура
+# Architecture
 
-Статус: ACTIVE, сверено с кодом `main` 2026-11-09 (PR #457). Здесь только то, что есть; замыслы
-(редактор, скрипты модов, Android) — в библиотеке, `plan/architecture/`.
+Status: ACTIVE, checked against the code of `main` on 2026-11-09 (PR #457). Only what exists is here; the
+ideas (the editor, mods' scripts, Android) are in the library, `plan/architecture/`. A Russian copy:
+[ARCHITECTURE_RU.md](ARCHITECTURE_RU.md).
 
-## Слои
+## Layers
 
 ```mermaid
 graph TD
-  client["src/client/ — картинка, ввод, звук, UI, сохранение на устройстве"]
-  server["src/server/ — сторона сервера: персонаж игрока, его запросы и события"]
-  net["src/shared/net/ — протокол: виды запросов, сообщения в байты"]
-  game["src/shared/game/ — правила игры"]
-  world["src/shared/world/ — мир, генератор, файлы мира"]
-  content["src/shared/content/ — загрузчик модов и реестры"]
-  data["content/ — данные и ассеты модов"]
-  client -. только net/local_host.gd .-> server
+  client["src/client/ — picture, input, sound, UI, saving on the device"]
+  server["src/server/ — the server side: the player's character, its requests and events"]
+  net["src/shared/net/ — the protocol: kinds of requests, messages to bytes"]
+  game["src/shared/game/ — the rules of play"]
+  world["src/shared/world/ — the world, the generator, the world's files"]
+  content["src/shared/content/ — the mod loader and registries"]
+  data["content/ — the mods' data and assets"]
+  client -. only net/local_host.gd .-> server
   client --> net
   client --> game
   client --> world
@@ -26,134 +27,145 @@ graph TD
   game -. protocol.gd .-> net
   game --> content
   world --> content
-  content -. читает .-> data
+  content -. reads .-> data
 ```
 
-- `src/shared/` — то, что крутит сервер. Он не загружает ничего из `src/client/` и `src/server/`: это
-  проверяет `_test_layers` в `tests/unit/content_test.gd`, нарушение валит CI.
-- Внутри `src/shared/`: `content/` не грузит других папок `src/`, `world/` грузит только `content/`,
-  `net/` — только `content/`, `game/` — `content/`, `world/` и `net/protocol.gd` (табличка чистит текст
-  `Protocol.clean_text`, PR #452). Это проверяет тот же `_test_layers` (запрета для `game/` в нём нет).
-- `src/server/` грузит только `src/shared/`; клиент грузит `src/server/` только из
-  `src/client/net/local_host.gd` — сервера внутри игры для одиночной (решение 153). Что клиент просит
-  у правил, идёт запросами протокола через `game.net`; персонаж и мастерская игрока живут на сервере,
-  клиент держит их копии по событиям сервера ([systems/network.md](systems/network.md)).
-- Папки `src/client/` ссылаются друг на друга свободно (без циклов `preload`): общий стиль UI
-  (`ui/ui_style.gd`) нужен вводу и картинке, проекция (`view/pixel_view.gd`) — мешам.
-- Скрипты подключаются константой `preload("res://…")` с полным путём, без `class_name`; базовый
-  скрипт расширяется `extends "res://…"`. При переносе файла меняются только пути.
-- Всё, что `main.gd` грузит через `preload`, компилируется при каждом старте до меню (это большая часть
-  запуска, `start_times.gd`). Поэтому экраны, которые открывают не сразу, грузятся по пути при первом
-  открытии: `load(CONST_PATH)` вместо `preload` (2026-11-01: настройки `hud.settings_menu()` и
-  `main_menu.settings_menu()`, выбор и создание мира, «Присоединиться», «Создать сервер», сервер
-  `local_host.gd`, план тестового мира: о нём спрашивают по `WorldStore.TEST_SEED`). Новый такой экран
-  делается так же.
+- `src/shared/` is what the server runs. It loads nothing from `src/client/` and `src/server/`: `_test_layers`
+  in `tests/unit/content_test.gd` checks it, a violation fails CI.
+- Inside `src/shared/`: `content/` loads no other folder of `src/`, `world/` loads only `content/`, `net/`
+  only `content/`, `game/` — `content/`, `world/` and `net/protocol.gd` (a sign's text is cleaned by
+  `Protocol.clean_text`, PR #452). The same `_test_layers` checks this (it has no ban for `game/`).
+- `src/server/` loads only `src/shared/`; the client loads `src/server/` only from
+  `src/client/net/local_host.gd` — the server inside the game for single player (decision 153). What the
+  client asks of the rules goes as protocol requests through `game.net`; the player's character and
+  workshop live on the server, the client holds their copies by the server's events
+  ([systems/network.md](systems/network.md)).
+- The folders of `src/client/` refer to each other freely (with no `preload` cycles): the shared UI style
+  (`ui/ui_style.gd`) is needed by input and the picture, the projection (`view/pixel_view.gd`) — by the
+  meshes.
+- Scripts are connected by a `preload("res://…")` constant with the full path, with no `class_name`; a base
+  script is extended by `extends "res://…"`. When a file is moved only the paths change.
+- Everything `main.gd` loads through `preload` is compiled at every start before the menu (this is most of
+  the start, `start_times.gd`). So screens that are not opened at once load by path on first opening:
+  `load(CONST_PATH)` instead of `preload` (2026-11-01: the settings `hud.settings_menu()` and
+  `main_menu.settings_menu()`, choosing and creating a world, «Join», «Create a server», the server
+  `local_host.gd`, the test world's plan: it is asked for by `WorldStore.TEST_SEED`). A new such screen is
+  made the same way.
 
-Граф по папкам из кода: [DEPENDENCIES.md](DEPENDENCIES.md).
+The graph by folders from the code: [DEPENDENCIES.md](DEPENDENCIES.md).
 
-## Точки входа
+## Entry points
 
-| Вход | Что запускает |
+| Entry | What it starts |
 |---|---|
-| `scenes/main.tscn` (главная сцена в `project.godot`) | `src/client/main.gd` — игра |
-| `godot --headless --path . -- --server [--port N] [--seed N \| --world <папка>]` (из сборки ПК — `Survivium.console.exe --headless -- --server`) | `scenes/server.tscn` со `src/server/server_main.gd` — сервер без окна ([systems/network.md](systems/network.md)) |
-| `godot --headless --path . --script res://tests/<имя>.gd` | тесты, каждый `extends SceneTree` |
-| `godot … --script res://tools/<имя>.gd` | инструменты: валидатор, скриншоты, карта, бенчмарки, генераторы ассетов |
-| `python3 tools/<имя>.py` | версия сборки, патч web-сборки, рисовалки на Pillow, индекс документов |
-| `.github/workflows/build.yml` | CI: линт, проверки, тесты, тест фризов, web- и ПК-экспорт, проверка в Chrome, публикация на Pages и в `pc-latest` ([testing/CI_PIPELINE.md](testing/CI_PIPELINE.md)) |
+| `scenes/main.tscn` (the main scene in `project.godot`) | `src/client/main.gd` — the game |
+| `godot --headless --path . -- --server [--port N] [--seed N \| --world <folder>]` (from a PC build — `Survivium.console.exe --headless -- --server`) | `scenes/server.tscn` with `src/server/server_main.gd` — a server without a window ([systems/network.md](systems/network.md)) |
+| `godot --headless --path . --script res://tests/<name>.gd` | the tests, each `extends SceneTree` |
+| `godot … --script res://tools/<name>.gd` | tools: the validator, screenshots, the map, benches, asset makers |
+| `python3 tools/<name>.py` | the build's version, the patch of the web build, Pillow drawing tools, the document index |
+| `.github/workflows/build.yml` | CI: lint, checks, tests, the freeze test, web and PC export, the check in Chrome, publishing to Pages and to `pc-latest` ([testing/CI_PIPELINE.md](testing/CI_PIPELINE.md)) |
 
-Тесты и инструменты запускают ту же сцену: создают `main.tscn`, ставят `main.skip_setup = true`
-(без меню «Новый мир») и при необходимости `save_root` (свои сохранения).
+The tests and tools start the same scene: they create `main.tscn`, set `main.skip_setup = true` (no «New
+world» menu) and, when needed, `save_root` (their own saves).
 
-## Main и модули
+## Main and the modules
 
-`main.gd` только собирает сцену и ведёт кадр; работа живёт в модулях. Клиентский модуль получает узел
-Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и через него видит соседей
-(`game.world`, `game.clock`, `game.settings`). Общие (shared) модули Main не знают: им передают только
-нужное (`Workshop.new(character, placed, rules)`). Правила над миром держит сеанс
-(`src/shared/game/session.gd`): он делает `WorldActions`, `Storms` и `Wildlife`, принимает персонажей и
-делает тик (каждый кадр узла сервера: в игре — кадр клиента, у сервера без окна — до 60 раз в секунду,
-`FPS` в `src/server/server_main.gd`), и заказывает мир (генерация вокруг игроков в
-бюджете, забывание дальних чанков); его крутит узел сервера `src/server/runner.gd` под корнем дерева,
-раньше Main в каждом кадре ([systems/session.md](systems/session.md)). Сеанс крутится на сервере внутри
-игры; виды клиента читают
-копии (`game.character`, `game.workshop`, `game.placed`, `game.clock`, `game.wildlife`), которые
-`src/client/net/mirror.gd` кормит событиями протокола ([systems/network.md](systems/network.md)).
+`main.gd` only builds the scene and runs the frame; the work lives in modules. A client module gets the Main
+node as `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) and through it sees its neighbours
+(`game.world`, `game.clock`, `game.settings`). Main does not know the shared modules: they are handed only
+what they need (`Workshop.new(character, placed, rules)`). The rules over the world are held by the session
+(`src/shared/game/session.gd`): it makes `WorldActions`, `Storms` and `Wildlife`, takes in characters and
+makes the tick (every frame of the server node: in the game it is the client's frame, on a server without a
+window up to 60 times a second, `FPS` in `src/server/server_main.gd`), and orders the world (generation
+around the players within a budget, forgetting far chunks); it is run by the server node
+`src/server/runner.gd` under the tree's root, before Main in every frame
+([systems/session.md](systems/session.md)). The session runs on the server inside the game; the client's
+views read the copies (`game.character`, `game.workshop`, `game.placed`, `game.clock`, `game.wildlife`) that
+`src/client/net/mirror.gd` feeds with the protocol's events ([systems/network.md](systems/network.md)).
 
-Порядок сборки (`_ready`, затем `start_world`): ввод и настройки → звук → сохранение (выбор мира) →
-`Mods.activate` (набор бандлов мира) → камера, стример чанков, небо, часы, настоящая погода → вещи на
-клетках, персонаж, сбор, руки, мастерская, маркеры → интерфейс и меню → генератор (`WorldGen` или
-`TestGround`) с картой материалов сохранения → мир и сеанс (звери, действия рук, бури; персонаж входит в
-него с мастерской), хост с узлом сервера под корнем дерева → сцена, игрок.
+The order of building (`_ready`, then `start_world`): input and settings → sound → saving (choosing a world)
+→ `Mods.activate` (the world's set of bundles) → camera, the chunk streamer, sky, clock, real weather →
+things on cells, character, gathering, hands, workshop, markers → interface and menus → the generator
+(`WorldGen` or `TestGround`) with the save's map of materials → the world and the session (beasts, the
+hands' actions, storms; the character enters it with the workshop), the host with the server node under the
+tree's root → the scene, the player.
 
-Кадр: узел сервера (до Main): шаги сеанса — часы, персонажи и мастерские, звери, бури — и генерация
-чанков в бюджете клиента; `_process` Main: пока мир не готов, достраиваются ближние чанки (затем спавн,
-вещи, звери, прогрев шейдеров) → копия часов и небо → события тика (`host.flush`), тело игрока, ввод,
-сбор, руки, `input` серверу → следы, автосохранение → срез уровней, меши чанков (за вычетом времени
-генерации), крышки, бюджеты узлу на следующий кадр → карта крыши и миникарта → камера, прогрев, журнал
-фризов → HUD и экран смерти. Время каждого шага отмечается `perf.note` / `perf.add` (панель F3). Пауза
-меню останавливает Main и шаги сеанса, но не узел: мир достраивается дальше (`_build_while_paused`).
+The frame: the server node (before Main): the session's steps — the clock, characters and workshops, beasts,
+storms — and generation of chunks within the client's budget; Main's `_process`: while the world is not
+ready, the near chunks are finished (then the spawn, things, beasts, shader warm-up) → the clock's copy and
+the sky → the tick's events (`host.flush`), the player's body, input, gathering, hands, `input` to the
+server → tracks, autosave → the slice of levels, chunk meshes (minus the generation time), roofs, budgets to
+the node for the next frame → the roof map and the minimap → camera, warm-up, the freeze log → HUD and the
+death screen. The time of each step is noted by `perf.note` / `perf.add` (the F3 panel). The menu's pause
+stops Main and the session's steps but not the node: the world keeps being finished
+(`_build_while_paused`).
 
-## Как правила говорят с картинкой
+## How the rules talk to the picture
 
-- Правило получает того, кто действует, как `who` (на клиенте — `src/client/game/character.gd`: тело,
-  руки, сумка, сообщения игроку) и спрашивает у него только нужное.
-- Что изменилось, правило сообщает сигналами, клиент подключает к ним свои виды:
-  `WorldActions.cell_changed` / `looks_changed` / `drops_changed` / `taken` → чанки и вещи на земле;
-  `Placed.added` / `removed` / `lit_changed` / `fuel_changed` / `cell_changed` → `props.gd`, огни, чанки;
-  `Wildlife.born` / `gone` / `stepped` → `creatures.gd`, следы, голоса; `Inventory.changed`,
+- A rule gets the one acting as `who` (on the client — `src/client/game/character.gd`: body, hands, bag,
+  messages to the player) and asks it only for what it needs.
+- What changed, the rule tells by signals, and the client connects its views to them:
+  `WorldActions.cell_changed` / `looks_changed` / `drops_changed` / `taken` → chunks and things on the
+  ground; `Placed.added` / `removed` / `lit_changed` / `fuel_changed` / `cell_changed` → `props.gd`, fires,
+  chunks; `Wildlife.born` / `gone` / `stepped` → `creatures.gd`, tracks, voices; `Inventory.changed`,
   `Workshop.changed` / `made`, `Knowledge.learned`, `SkillSet.leveled`, `Clock.season_changed`,
-  `Character.state_changed`
-  → интерфейс и звук. На сервере к ним подключён `player_link.gd`, который шлёт события клиенту; копии
-  на клиенте (`src/client/net/remote_*.gd`) отдают видам те же сигналы.
-- Правила, которые хозяин задаёт всем (свободная стройка, износ, мгновенный крафт), правила читают из
-  общего объекта `rules.gd`; в одиночной игре его заполняет `settings.gd`, у сервера — раздел `[rules]`
-  его конфига (`src/server/config.gd`).
-- Сигнал подключается методом, а не лямбдой с `self`: лямбда держит объект, и RefCounted не
-  освобождается (см. `src/shared/game/character.gd`).
+  `Character.state_changed` → the interface and sound. On the server `player_link.gd` is connected to them
+  and sends events to the client; the copies on the client (`src/client/net/remote_*.gd`) give the views the
+  same signals.
+- The rules the host sets for everyone (free building, wear, instant crafting) are read by the rules from
+  the shared object `rules.gd`; in single player `settings.gd` fills it, on a server — the `[rules]` section
+  of its config (`src/server/config.gd`).
+- A signal is connected by a method, not by a lambda with `self`: a lambda holds the object, and a
+  RefCounted is not freed (see `src/shared/game/character.gd`).
 
-## Работа по кадрам
+## Work by frames
 
-Ничего размером с карту или чанк не делается в одном кадре:
-- генератор делает чанк в три стадии (`TERRAIN` → `PLANTED` → `SHAPED`), каждая заданием по ряду или
-  дереву (`WorldGen.start` / `step`);
-- меши чанков и растения строятся по столбцу ячеек (`ChunkMesher`, `Foliage`);
-- генерацию крутит сеанс (`Session.make_chunks`) до кадра, меши — `chunk_streamer.gd` в бюджетах кадра
-  за вычетом генерации (правки, затем дальние чанки, затем крышки);
-- автосохранение пишет по чанку за кадр, миникарта красит по чанку, прогрев шейдеров — по шагу.
+Nothing the size of a map or a chunk is done in one frame:
+- the generator makes a chunk in three stages (`TERRAIN` → `PLANTED` → `SHAPED`), each as a job by a row or
+  a tree (`WorldGen.start` / `step`);
+- chunk meshes and plants are built by a column of cells (`ChunkMesher`, `Foliage`);
+- generation is run by the session (`Session.make_chunks`) before the frame, meshes — by
+  `chunk_streamer.gd` within the frame's budgets minus generation (edits, then far chunks, then roofs);
+- autosave writes a chunk a frame, the minimap paints a chunk, the shader warm-up goes by a step.
 
-Нарушение ловит `tests/frame_test.gd`. Подробности бюджетов: `plan/architecture/performance.md`.
+A violation is caught by `tests/frame_test.gd`. Details of the budgets: `plan/architecture/performance.md`.
 
-## Данные и контент
+## Data and content
 
-Код просит контент по роли (`Items.with_prop("workbench")`, `Plants.of_kind("ears")`,
-`Mat.of_role("ore", …)`, `Biomes.tree(b, roll)`), а не по id; по id названы только записи ядра
-(`Mat.GRASS`, `Placed.CAMPFIRE`). Реестры заполняют свои статические переменные при загрузке класса
-и пересобираются `Mods.activate` / `refresh`. Подробно: [DATA_MODEL.md](DATA_MODEL.md).
+The code asks for content by role (`Items.with_prop("workbench")`, `Plants.of_kind("ears")`,
+`Mat.of_role("ore", …)`, `Biomes.tree(b, roll)`), not by id; only the core's records are named by id
+(`Mat.GRASS`, `Placed.CAMPFIRE`). The registries fill their static variables when the class loads and are
+rebuilt by `Mods.activate` / `refresh`. In detail: [DATA_MODEL.md](DATA_MODEL.md).
 
-Текст игры: каждый текст для игрока — ключ `[…]` (решение 186); переводы лежат `lang/<код>.yaml` в моде и бандле, сервер
-шлёт ключ или `Lang.line`, клиент переводит у себя (решение 183, [systems/lang.md](systems/lang.md)). При
-запуске из папки проекта `content_watch.gd` замечает изменённые файлы модов, а модуль `mod_reload.gd`
-перечитывает реестры, картинки и звуки (решение 184, [systems/content.md](systems/content.md)).
+The game's text: every text for a player is a key `[…]` (decision 186); the translations lie in
+`lang/<code>.yaml` in a mod and a bundle, the server sends a key or `Lang.line`, the client translates it
+itself (decision 183, [systems/lang.md](systems/lang.md)). When run from the project folder,
+`content_watch.gd` notices the changed files of mods, and the module `mod_reload.gd` rereads the registries,
+pictures and sounds (decision 184, [systems/content.md](systems/content.md)).
 
-## Сохранение
+## Saving
 
-Каждая общая система сама отдаёт и принимает своё состояние (`to_dict` / `from_dict`, `to_list`);
-клиентский `save_game.gd` решает, когда писать, и регистрирует части игрока `save.track(имя, объект)`;
-файлы пишет и старые сохранения переводит общий `world_store.gd` (`materials_of`, `CONTENT`). Подробно: [systems/saving.md](systems/saving.md).
+Each shared system gives and takes its own state itself (`to_dict` / `from_dict`, `to_list`); the client's
+`save_game.gd` decides when to write and registers the player's parts by `save.track(name, object)`; the
+files are written and old saves converted by the shared `world_store.gd` (`materials_of`, `CONTENT`). In
+detail: [systems/saving.md](systems/saving.md).
 
-## Как расширять
+## How to extend
 
-1. Новая система — новый модуль в папке своего слоя; Main создаёт его и, если нужно, вызывает в кадре.
-   Правило, которое идёт во времени (для всех игроков), — шаг сеанса (`session.gd`), не `_process`.
-2. Правило — в `src/shared/game/`; его вид и ввод — в `src/client/`; связь — сигналами правила.
-3. Новые числа контента — поле схемы в `src/shared/content/content_schema.gd` и YAML мода, не константа.
-4. Новый станок или класс инструмента — только данные: `items.prop` и `items.tool` — открытые классы,
-   что делает вещь, говорят её флаги (решение 152, [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md));
-   работа в мире есть только у девяти классов `Tools.WORLD_KINDS`. Закрытые роли (`plants.kind`,
-   `materials.role`, `biomes.where`, `biomes.zone`) новым значением требуют кода.
-5. Работа размером с чанк — задание по частям в бюджете `chunk_streamer.gd`.
-6. Текст для игрока — ключ `[…]`; новый ключ или запись — его английский и русский в `lang/en.yaml` и `ru.yaml` рядом (`tools/lang_check.py --write en`, `--write ru`).
-7. После правки — проверки из `CLAUDE.md`; правила, станки, рецепты, инструменты — ещё `progress_test`.
+1. A new system is a new module in the folder of its layer; Main creates it and, if needed, calls it in the
+   frame. A rule that goes on in time (for all players) is a step of the session (`session.gd`), not
+   `_process`.
+2. A rule goes into `src/shared/game/`; its view and input — into `src/client/`; the link is the rule's
+   signals.
+3. New numbers of content are a schema field in `src/shared/content/content_schema.gd` and the mod's YAML,
+   not a constant.
+4. A new station or class of tool is only data: `items.prop` and `items.tool` are open classes, what a thing
+   does is said by its flags (decision 152, [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md));
+   work in the world exists only for the nine classes of `Tools.WORLD_KINDS`. The closed roles
+   (`plants.kind`, `materials.role`, `biomes.where`, `biomes.zone`) need code for a new value.
+5. Work the size of a chunk is a job by parts within the budget of `chunk_streamer.gd`.
+6. A text for a player is a key `[…]`; a new key or record needs its English and Russian in `lang/en.yaml`
+   and `ru.yaml` beside it (`tools/lang_check.py --write en`, `--write ru`).
+7. After an edit — the checks from `CLAUDE.md`; rules, stations, recipes, tools — `progress_test` too.
 
-Решения, на которых это держится, с причинами: [DECISIONS.md](DECISIONS.md).
+The decisions this rests on, with reasons: [DECISIONS.md](DECISIONS.md).

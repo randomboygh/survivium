@@ -1,154 +1,167 @@
-# Модель данных
+# The data model
 
-Статус: ACTIVE, сверено с кодом 2026-11-09 (PR #457). Код загрузчика: [systems/content.md](systems/content.md).
+Status: ACTIVE, checked against the code on 2026-11-09 (PR #457). The loader's code:
+[systems/content.md](systems/content.md). A Russian copy: [DATA_MODEL_RU.md](DATA_MODEL_RU.md).
 
-## Что уже есть и чего ещё нет
+## What there already is and what there is not yet
 
-**Реализовано (PR #19, #161, #163–#178; система бандлов по решению 152 — PR #238–#248):** контент — данные модов в YAML с проверкой по схемам; мод —
-папка под `content/`, делится на **бандлы** (включаемые и выключаемые части: каждый зверь, растение,
-инструмент, станок, биом); зависимости бандлов выводятся из ссылок записей (жёсткие и мягкие); мир
-помнит свой набор бандлов; экран «Новый мир» → «Моды» включает и выключает моды и бандлы; патчи
-чужих записей; переводы старых сохранений.
+**Implemented (PR #19, #161, #163–#178; the bundle system by decision 152 — PR #238–#248):** content is the
+mods' data in YAML checked against schemas; a mod is a folder under `content/`, divided into **bundles**
+(parts that can be switched on and off: each beast, plant, tool, station, biome); the bundles'
+dependencies are derived from the records' references (hard and soft); a world remembers its set of
+bundles; the «New world» → «Mods» screen switches mods and bundles on and off; patches of other
+records; conversions of old saves.
 
-**Не реализовано:** скрипты модов, загрузка модов не из `content/` (из файла или с сервера), выдача модов
-клиентам сервером, редактор, данные для погоды и генератора. Система бандлов по ТЗ `bundles.md`
-(решение 152: типы связей, граф и проверка тупиков, рецепты шире, открытые станки и инструменты, старт и
-эпохи данными) построена; её правила — [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md),
-здесь — сводка того, что в коде. Слово «бандл» значит включаемую часть мода;
-то, что ТЗ называет бандлом, — запись (сущность).
+**Not implemented:** mods' scripts, loading mods from outside `content/` (from a file or from a server),
+giving mods to clients by a server, the editor, data for the weather and the generator. The bundle system
+by the spec `bundles.md` (decision 152: kinds of links, the graph and the check of dead ends, wider
+recipes, open stations and tools, the start and eras as data) is built; its rules are in
+[specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md), here is a summary of what is in the
+code. The word «bundle» means a part of a mod that can be switched; what the spec calls a bundle is a
+record (an entity).
 
-## Моды и бандлы на диске
+## Mods and bundles on disk
 
 ```
-content/<мод>/mod.yaml            id, title, version, api (1), requires, wants
-content/<мод>/README.md           как устроен мод (по-русски)
-content/<мод>/<бандл>/bundle.yaml title, requires, wants
-content/<мод>/<бандл>/data/<вид>.yaml   записи
-content/<мод>/<бандл>/{sprites,icons,models,textures,sounds}/   ассеты бандла
-content/<мод>/common/             ассеты, общие для бандлов мода (Content.asset ищет в бандле, затем здесь)
+content/<mod>/mod.yaml            id, title, version, api (1), requires, wants
+content/<mod>/README.md           how the mod is built (in Russian)
+content/<mod>/<bundle>/bundle.yaml title, requires, wants
+content/<mod>/<bundle>/data/<kind>.yaml   records
+content/<mod>/<bundle>/{sprites,icons,models,textures,sounds}/   the bundle's assets
+content/<mod>/common/             assets shared by the mod's bundles (Content.asset looks in the bundle, then here)
 ```
 
-Мод без папок-бандлов — один бандл с именем мода (`core`, `music`). Id бандла — `мод/бандл`
-(`animals/wolf`). Моды сейчас (9 модов, 156 бандлов; поимённо — [generated/content-index.md](generated/content-index.md)):
-`core` (воздух, камень, вода, грунт, трава — `Mat.KNOWN`; костёр, гниль, человек, спрайты игрока, старт
-нового мира, эпохи, навыки), `resources` (7 бандлов: дерево, камень, почва, волокно, торф, соль, снег; ячейки
-осыпи, песка, глины, торфа, соли, снега и льда), `materials` (20: медь, олово, бронза, железо, сталь,
-серебро, золото, платина, уголь, верёвка, доски, кирпич, сруб, плетень, тёсаный камень, ткань, кожа,
-смола, стекло, костный клей; ячейки досок, кирпича, стен и руд), `tools` (40: инструменты, оружие, свет,
-станки, сундуки, одежда и сумки, постель, межевой столб, лестница, дверь, окно, мебель, камин),
-`plants` (38: породы, кусты, травы, лён, мох, грибы, жареные жёлуди; ячейки бревна и листвы; `common/` —
-общие кора и модели), `animals` (18), `biomes` (28), `sounds` (nature, player, ui), `music` (ноты).
+A mod with no bundle folders is one bundle named like the mod (`core`, `music`). A bundle's id is
+`mod/bundle` (`animals/wolf`). The mods now (9 mods, 156 bundles; by name —
+[generated/content-index.md](generated/content-index.md)): `core` (air, stone, water, soil, grass —
+`Mat.KNOWN`; the campfire, rot, the human, the player's sprites, the start of a new world, eras, skills),
+`resources` (7 bundles: wood, stone, soil, fibre, peat, salt, snow; cells of scree, sand, clay, peat, salt,
+snow and ice), `materials` (20: copper, tin, bronze, iron, steel, silver, gold, platinum, coal, rope,
+planks, brick, log wall, wattle, hewn stone, cloth, leather, resin, glass, bone glue; cells of planks,
+brick, walls and ores), `tools` (40: tools, weapons, light, stations, chests, clothes and bags, a bed, a
+boundary post, a ladder, a door, a window, furniture, a fireplace), `plants` (38: species of trees, shrubs,
+grasses, flax, moss, mushrooms, roasted acorns; cells of log and leaves; `common/` — shared bark and
+models), `animals` (18), `biomes` (28), `sounds` (nature, player, ui), `music` (notes).
 
-## Записи и id
+## Records and ids
 
-- Запись — словарь с `id` и `title`; id — `мод:имя` (строчные латинские буквы, цифры, `_`). Запись в
-  любом бандле мода получает пространство имён мода: `wolf` в `animals/wolf` — `animals:wolf`; ссылка без
-  пространства имён значит мод файла, где она написана (в патче чужой записи — мод патча). Загрузчик
-  добавляет записи поля `mod` и `bundle`.
-- Запись с id, который уже есть у другого бандла, заменяет ту только с `replaces: true` (и грузится после
-  неё); без этого — ошибка. `patch: true` меняет только данные поля; ключ с `+` на конце (`diet+: [plants]`,
-  `needs+: {materials:cord: 1}`) добавляет к списку или количествам, в том числе к значению по умолчанию
-  незаписанного поля. Патч записи выключенного бандла пропускается.
-- Смысл полей описан комментарием в начале каждого YAML и схемой `SCHEMAS` в
-  `src/shared/content/content_schema.gd` (часть `content.gd`; типы `bool`, `int`, `float`, `string`, `word` — строчное слово, открытый
-  класс: `tool` предмета, `prop` станка, мод может завести свой, `color`, `vec3`, `enum`, `list`,
-  `ref:<вид>`, `sound`, `amounts`, `shares`, `colors` — цвета по именам ключей `keys`, `entries` — список словарей со своими полями `fields`, каждый
-  проверяется как запись: `camp: [{item: campfire, at: [-4, 4]}]`; `default`, `min` / `max`, `soft`). У каждого поля-ссылки
-  записан тип связи `rel` (`Content.RELATIONS`: `drops`, `produces`, `consumes`, `requires_station`…) и,
-  где связь даёт действие, `via` (`Content.ACTIONS`: `dig`, `fell`, `gather`…): из них строится граф
-  контента (`src/shared/content/content_graph.gd`). Он идёт от старта по правилам рук и требует, чтобы
-  каждый предмет и рецепт были достижимы, а каждое растение где-то росло; предмет, который даёт квест или
-  торговля, помечается `source: special`. Он же выводит эпоху каждой вещи (вид `eras`, раздел 9
-  [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md)): `era` пишется у предмета, который
-  открывает ступень, вещь с записанной эпохой раньше той, в которой её можно получить, — ошибка, вещь
-  глубже `depth` своей эпохи — предупреждение. Граф, цепочки, карта эпох и что нашли проверки —
-  [generated/content-graph.md](generated/content-graph.md), [generated/content-checks.md](generated/content-checks.md).
-- Общие поля любой записи (`Content.COMMON`): `description` — текст для игрока, `tags` — метки для
-  отчётов и поиска, `provisional` — какие числа записи предварительные (имена её полей), `was` — id, которые
-  у неё были раньше: сохранение со старым id находит её (`Content.canon(вид, id)`, им пользуются
-  `Items.canon`, `Crafting.canon`, `Mat.remap`). Старый id, который ещё носит живая запись, или названный
-  двумя записями — ошибка.
-- Откуда запись: `Content.origin(вид, id)` — бандл, где она определена, кто её заменил и кто поправил;
-  реестр всех записей с категориями, связями и итогом проверки —
+- A record is a dictionary with `id` and `title`; the id is `mod:name` (lower-case Latin letters, digits,
+  `_`). A record in any bundle of a mod gets the mod's namespace: `wolf` in `animals/wolf` is
+  `animals:wolf`; a reference with no namespace means the mod of the file where it is written (in a patch
+  of another's record — the patch's mod). The loader adds the fields `mod` and `bundle` to records.
+- A record with an id that another bundle already has replaces that one only with `replaces: true` (and
+  loads after it); without it — an error. `patch: true` changes only the data of the fields; a key with `+`
+  at the end (`diet+: [plants]`, `needs+: {materials:cord: 1}`) adds to a list or to amounts, including to
+  the default value of an unwritten field. A patch of a record of a switched-off bundle is skipped.
+- The meaning of the fields is described by a comment at the start of each YAML and by the schema `SCHEMAS`
+  in `src/shared/content/content_schema.gd` (a part of `content.gd`; the types `bool`, `int`, `float`,
+  `string`, `word` — a lower-case word, an open class: an item's `tool`, a station's `prop`, a mod may
+  start its own, `color`, `vec3`, `enum`, `list`, `ref:<kind>`, `sound`, `amounts`, `shares`, `colors` —
+  colours by the names of the keys `keys`, `entries` — a list of dictionaries with their own fields
+  `fields`, each checked as a record: `camp: [{item: campfire, at: [-4, 4]}]`; `default`, `min` / `max`,
+  `soft`). Every field that is a reference has a kind of link `rel` written (`Content.RELATIONS`: `drops`,
+  `produces`, `consumes`, `requires_station`…) and, where the link gives an action, `via`
+  (`Content.ACTIONS`: `dig`, `fell`, `gather`…): the content graph is built from them
+  (`src/shared/content/content_graph.gd`). It goes from the start by the hands' rules and demands that
+  every item and recipe be reachable and every plant grow somewhere; an item that a quest or trade gives is
+  marked `source: special`. It also derives the era of every thing (the kind `eras`, section 9 of
+  [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md)): `era` is written at the item that
+  opens a step; a thing with a written era earlier than the one in which it can be got is an error, a thing
+  deeper than the `depth` of its era is a warning. The graph, the chains, the map of eras and what the
+  checks found — [generated/content-graph.md](generated/content-graph.md),
+  [generated/content-checks.md](generated/content-checks.md).
+- The common fields of any record (`Content.COMMON`): `description` — the text for a player, `tags` — marks
+  for reports and search, `provisional` — which numbers of the record are provisional (the names of its
+  fields), `was` — the ids it had before: a save with an old id finds it (`Content.canon(kind, id)`, used by
+  `Items.canon`, `Crafting.canon`, `Mat.remap`). An old id that a live record still bears, or named by two
+  records, is an error.
+- Where a record is from: `Content.origin(kind, id)` — the bundle where it is defined, who replaced it and
+  who patched it; the registry of all records with categories, links and the result of the checks —
   [generated/content-index.md](generated/content-index.md) (`tools/content_report.gd`).
-- Имена против правил (раздел 3 [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md):
-  рецепт называется по предмету или `<предмет>_from_<вход>`, инструмент `<материал>_<вещь>`, руда
-  `<металл>_ore`, метка — строчное слово) — предупреждения `Content.warnings`: валидатор их печатает, но не
-  падает.
+- Names against the rules (section 3 of [specifications/BUNDLE_SYSTEM.md](specifications/BUNDLE_SYSTEM.md):
+  a recipe is named after the item or `<item>_from_<input>`, a tool `<material>_<thing>`, an ore
+  `<metal>_ore`, a tag is a lower-case word) — warnings `Content.warnings`: the validator prints them but
+  does not fail.
 
-| Вид | Реестр | Что описывает | Сейчас |
+| Kind | Registry | What it describes | Now |
 |---|---|---|---|
-| `materials` | `materials.gd` (`Mat`) | ячейки: твёрдость (`hardness`, ворота по силе) и прочность (`toughness`, время удара), крыша, склоны, роль, грунт для шейдера, что даёт и чем копается, звуки шага и удара | 30 |
-| `items` | `items.gd` | предметы: вес, стопка, еда, что ставит, класс инструмента (`tool`), дальность и снаряд оружия (`range`, `ammo`), класс вещи на клетках (`prop`; квадрат по срезу модели, 16 вокселей — 2×2, 8 — одна клетка; ставится лицом к игроку) и её флаги (`storage`, `fire`, `repairs`, `serves`, `place_tool`, `claims`, `steps` — ступени лестницы, `door` — дверь, `window` — окно, `fence` — забор, с `door` — калитка или ворота, `hatch` — люк с `door`, `ladder` — приставная лестница, `sign_lines`/`sign_width` — табличка: строк и знаков в строке, `wall` — вешается на стену, `furniture` — мебель, не станок; `seat` — отдых рядом быстрее, `keeps` — доля скорости порчи в хранилище), топливо, свет, что надевают и куда (`wear_on`: head, body, legs, feet, back) и как это видно на фигуре (`look`) и сколько ячеек даёт сумка за спиной (`bag_slots`), плот или лодка (`vessel` — доля шага ходьбы на воде, `oars` — что нужно в сумке, чтобы грести, `windage` — как сносит ветер), живоловка (`trap` — на сколько клеток приманка в ней зовёт зверей) и пойманный в неё зверь (`alive`), как далеко огонь отгоняет зверей (`scares`), спрайт и анимация в руке, особый источник (`source: special`), эпоха, которую предмет открывает (`era`) | 217 |
-| `recipes` | `crafting.gd` | что делается (`makes`, `count`) и что выходит побочно с шансом (`also`), что тратится (`needs`) и что нужно в сумке, не тратясь (`keeps`), где (`at`), какими классами инструментов (`tools`) и с каким износом за изделие (`wear`), какая это работа (`process`: изготовление, переработка, плавка и обжиг, готовка), сколько времени | 162 |
-| `creatures` | `ai_rules.gd`, `wildlife.gd` | масса, рацион, скорость, зрение, часы активности, летает / плавает, стая, ночлег, любимые растения, биомы, голоса, здоровье (`health`) и туша (`carcass`) для охоты, укус (`bite`) для нападений на людей, улов (`catch`) для рыбалки | 23 |
-| `trees` | `trees.gd` | форма ствола и кроны, листва, цветение, кора, что даёт рубка | 20 |
-| `bushes` | `bushes.gd` | вид куста, ягоды, ветки, предмет для посадки | 6 |
-| `plants` | `plants.gd` | растения на траве: вид (`kind`), что дают при покосе, где растут, своя картинка | 21 |
-| `biomes` | `biomes.gd` | окно климата или рельеф, зона, верх, доли пород и кустов, шансы, песчаные бури, цвет карты, оттенки материалов (`tints`) | 28 |
-| `starts` | `starts.gd` | старт нового мира: умения рук (`hand_power`, `hand_area`, `hand_swing`, `hand_reach`, `hand_mows`, `hand_slow`: `Tools.HAND`), сумка (`bag`) и лагерь у точки появления (`camp`: вещи с `prop` и сдвиг в клетках); движок берёт `core:default`, бандлы дописывают патчем (сундук) | 1 |
-| `eras` | `eras.gd` | эпохи прогресса (в `core`): порядок (`order`), до какой глубины ждать вещи эпохи (`depth`); метка, которую проверяет граф, в игре ничего не запрещает | 7 |
-| `skills` | `skills.gd` | навыки (решение 164): какая работа их растит и ускоряет (`role`: gather, chop, dig, craft, build, cook, hunt, fish, swim; движок спрашивает по роли), порядок в окне, уровни (`levels`), очки на первый (`first`) и рост цены (`growth`), ускорение на последнем уровне (`speed`), очки за целую вещь (`each`: зверь, рыба), шанс лишней штуки (`yield`), сколько качества прибавляет на последнем уровне добытому или потолку сделанного (`quality`, очки из 100, решение 181), дешевле по силам (`effort`), бережность к инструменту (`care`), прибавка к удару (`might`: охота); формулы — `docs/balance/GAME_BALANCE_DESIGN.md` | 10 |
-| `sounds` | `content.gd`, `sound.gd` | звук по имени: варианты, громкость, петля | 56 |
+| `materials` | `materials.gd` (`Mat`) | cells: hardness (`hardness`, a gate by strength) and toughness (`toughness`, the time of a blow), roof, slopes, role, soil for the shader, what it gives and what digs it, the sounds of a step and a blow | 30 |
+| `items` | `items.gd` | items: weight, stack, food, what it places, the tool class (`tool`), a weapon's range and projectile (`range`, `ammo`), the class of a thing on cells (`prop`; the square by the model's slice, 16 voxels — 2×2, 8 — one cell; placed facing the player) and its flags (`storage`, `fire`, `repairs`, `serves`, `place_tool`, `claims`, `steps` — the steps of a ladder, `door` — a door, `window` — a window, `fence` — a fence, with `door` a wicket or a gate, `hatch` — a hatch with `door`, `ladder` — a leaning ladder, `sign_lines`/`sign_width` — a sign: lines and signs in a line, `wall` — hung on a wall, `furniture` — furniture, not a station; `seat` — rest nearby is quicker, `keeps` — the share of the spoiling speed in storage), fuel, light, what is worn and where (`wear_on`: head, body, legs, feet, back) and how it looks on the figure (`look`) and how many cells a bag on the back gives (`bag_slots`), a raft or a boat (`vessel` — the share of a walking step on water, `oars` — what must be in the bag to row, `windage` — how the wind drifts it), a live trap (`trap` — to how many cells the bait in it calls beasts) and a beast caught in it (`alive`), how far fire scares beasts (`scares`), the sprite and animation in the hand, a special source (`source: special`), the era the item opens (`era`) | 217 |
+| `recipes` | `crafting.gd` | what is made (`makes`, `count`) and what comes out on the side with a chance (`also`), what is spent (`needs`) and what must be in the bag without being spent (`keeps`), where (`at`), by which classes of tools (`tools`) and with what wear per product (`wear`), what kind of work it is (`process`: making, processing, smelting and firing, cooking), how much time | 162 |
+| `creatures` | `ai_rules.gd`, `wildlife.gd` | mass, diet, speed, sight, hours of activity, flies / swims, a pack, a lair, favourite plants, biomes, voices, health (`health`) and a carcass (`carcass`) for hunting, a bite (`bite`) for attacks on people, a catch (`catch`) for fishing | 23 |
+| `trees` | `trees.gd` | the shape of the trunk and crown, leaves, blossoming, bark, what felling gives | 20 |
+| `bushes` | `bushes.gd` | the kind of shrub, berries, twigs, the item for planting | 6 |
+| `plants` | `plants.gd` | plants on grass: the kind (`kind`), what they give when mown, where they grow, their own picture | 21 |
+| `biomes` | `biomes.gd` | a climate window or relief, zone, top, the shares of trees and shrubs, chances, sand storms, the map's colour, shades of materials (`tints`) | 28 |
+| `starts` | `starts.gd` | the start of a new world: the hands' abilities (`hand_power`, `hand_area`, `hand_swing`, `hand_reach`, `hand_mows`, `hand_slow`: `Tools.HAND`), the bag (`bag`) and a camp at the spawn point (`camp`: things with `prop` and a shift in cells); the engine takes `core:default`, bundles add to it by a patch (a chest) | 1 |
+| `eras` | `eras.gd` | the eras of progress (in `core`): the order (`order`), to what depth to wait for the era's things (`depth`); a label that the graph checks, it forbids nothing in the game | 7 |
+| `skills` | `skills.gd` | skills (decision 164): which work grows and speeds them (`role`: gather, chop, dig, craft, build, cook, hunt, fish, swim; the engine asks by role), the order in the window, the levels (`levels`), the points for the first (`first`) and the growth of the price (`growth`), the speedup at the last level (`speed`), points for a whole thing (`each`: a beast, a fish), the chance of an extra piece (`yield`), how much quality is added at the last level to what is gathered or to the ceiling of what is made (`quality`, points out of 100, decision 181), cheaper in strength (`effort`), care for the tool (`care`), an addition to the blow (`might`: hunting); the formulas — `docs/balance/GAME_BALANCE_DESIGN.md` | 10 |
+| `sounds` | `content.gd`, `sound.gd` | a sound by name: variants, volume, loop | 56 |
 
-## Зависимости бандлов
+## Bundle dependencies
 
-- Ссылка на запись другого бандла (`needs: {materials:clay: 2}`) грузит его раньше. Жёсткая ссылка (по
-  умолчанию) без цели в наборе — бандл выпадает, причина в `Content.dropped[b]` (экран показывает
-  «нужен X»). Мягкая (`soft: true`: семя и бревно дерева, плод куста, любимые растения и биомы зверя,
-  что даёт растение, починка предмета, бонус и покос материала, эпоха предмета) только задаёт порядок: без цели ссылка
-  убирается, игра обходится без неё (валидатор в строгом режиме всё равно сообщает).
-- `requires` (жёстко) и `wants` (только порядок) в `mod.yaml` или `bundle.yaml` добавляют то, чего не
-  видно по ссылкам. `Content.resolve` упорядочивает набор (ядро первым); роли бандлы не связывают;
-  ссылки на звуки тоже.
+- A reference to a record of another bundle (`needs: {materials:clay: 2}`) loads it earlier. A hard
+  reference (the default) with no target in the set — the bundle drops out, the reason is in
+  `Content.dropped[b]` (the screen shows «needs X»). A soft one (`soft: true`: the seed and log of a tree,
+  the fruit of a shrub, a beast's favourite plants and biomes, what a plant gives, an item's repair, a
+  material's bonus and mowing, an item's era) only sets the order: with no target the reference is removed,
+  the game does without it (the validator in strict mode reports it all the same).
+- `requires` (hard) and `wants` (only the order) in `mod.yaml` or `bundle.yaml` add what is not seen from
+  the references. `Content.resolve` orders the set (the core first); roles do not link bundles; references
+  to sounds do not either.
 
-## Роли вместо id
+## Roles instead of ids
 
-Движок просит контент по роли, а не по id: дерево и куст — по долям биома столбца (`Biomes.tree`,
-`Biomes.bush`), какое-нибудь дерево — `Trees.first(leaves)` (то, что биомы растят больше всего),
-растение — по `kind` (`Plants.of_kind`, пусто — такой вид не растёт; `custom` — растение со своей
-картинкой), станок — по `prop` (`Items.with_prop`), инструмент — по `tool`, материал ячейки — по `role`
-(`Mat.BEACH`, `BANK`, `SCREE`, `ORE`, `LOG`, `LEAVES`; -1 — нет такого, генератор кладёт грунт или
-камень), топливо — по `fuel` (`Items.fuel_in`), что даёт дерево или куст — по `log`, `twig`, `seed`,
-`fruit`. По id код называет только записи ядра (`Mat.GRASS`, `Placed.CAMPFIRE`). `items.tool` и
-`items.prop` — открытые классы (тип `word`: мод заводит свой; работу в мире движок знает у шести классов
-`Tools.WORLD_KINDS`, что делает вещь на 2×2 — по её флагам); закрыты схемой `plants.kind` (11 видов, с посевом `crop`),
-`materials.role` (10), `biomes.where` (climate и 7 рельефов), `biomes.zone` (7 зон), `skills.role` (9 работ).
+The engine asks for content by role, not by id: a tree and a shrub — by the shares of the column's biome
+(`Biomes.tree`, `Biomes.bush`), some tree — `Trees.first(leaves)` (what the biomes grow most), a plant — by
+`kind` (`Plants.of_kind`, empty — such a kind does not grow; `custom` — a plant with its own picture), a
+station — by `prop` (`Items.with_prop`), a tool — by `tool`, a cell's material — by `role` (`Mat.BEACH`,
+`BANK`, `SCREE`, `ORE`, `LOG`, `LEAVES`; -1 — there is none, the generator puts soil or stone), fuel — by
+`fuel` (`Items.fuel_in`), what a tree or a shrub gives — by `log`, `twig`, `seed`, `fruit`. By id the code
+names only the core's records (`Mat.GRASS`, `Placed.CAMPFIRE`). `items.tool` and `items.prop` are open
+classes (the type `word`: a mod starts its own; the engine knows work in the world for six classes of
+`Tools.WORLD_KINDS`, what a 2×2 thing does — by its flags); closed by the schema are `plants.kind` (11 kinds,
+with the crop `crop`), `materials.role` (10), `biomes.where` (climate and 7 reliefs), `biomes.zone` (7 zones),
+`skills.role` (9 works).
 
-## Ассеты по соглашению
+## Assets by convention
 
-| Ассет | Путь в бандле | Формат | Кто читает |
+| Asset | Path in a bundle | Format | Who reads it |
 |---|---|---|---|
-| Текстура материала | `textures/<id>.png` (кора — `textures/<bark>.png`) | 48×16: верх, бока, низ | `PixelTextures`, `Mat.texture_path` |
-| Модель вещи | `models/<model>.png` | ряд квадратных срезов по уровню, альфа 128 — лист | `VoxelModel.from_image` |
-| Иконка предмета | `icons/<icon>.png` | 12×12 | `ItemIcons` |
-| Спрайт существа | `sprites/creatures/<sprite>.png` | ряд на сторону (`views`: 1 или 3), в ряду `frames` кадров (`walk` из них — шаг, последние `hop` — прыжки летающего по земле, за ними `attack` — нападение) | `creatures.gd` |
-| Спрайт растения | `sprites/plants/<sprite>.png` | кадры 8×24 | `Foliage`, `Plants` |
-| Предмет в руке | `sprites/held/<sprite>.png` | кадр ношения + по кадру работы | `Figure` |
-| Звук | `sounds/<имя>.wav` или `<имя>_N.wav` | wav | `Sound` |
-| Перевод | `lang/<код>.yaml` (и `content/<мод>/lang/`) | словарь «[ключ]: текст»; `title`/`description` записи — ключи `[<мод>.<вид>.<id>]`, `….about` | `Lang` ([systems/lang.md](systems/lang.md)) |
-| Игрок | `content/core/sprites/player/*.png`, `player.yaml`, `hands.png` | слои | `Figure` |
-| Одежда на фигуре | `sprites/worn/<look>.png` | слой листа игрока | `Figure.dressed` |
+| A material's texture | `textures/<id>.png` (bark — `textures/<bark>.png`) | 48×16: top, sides, bottom | `PixelTextures`, `Mat.texture_path` |
+| A thing's model | `models/<model>.png` | a row of square slices by level, alpha 128 — a sheet | `VoxelModel.from_image` |
+| An item's icon | `icons/<icon>.png` | 12×12 | `ItemIcons` |
+| A creature's sprite | `sprites/creatures/<sprite>.png` | a row per side (`views`: 1 or 3), `frames` frames in a row (`walk` of them — a step, the last `hop` — hops of a flyer on the ground, after them `attack` — an attack) | `creatures.gd` |
+| A plant's sprite | `sprites/plants/<sprite>.png` | frames 8×24 | `Foliage`, `Plants` |
+| An item in the hand | `sprites/held/<sprite>.png` | a carrying frame + a frame of work each | `Figure` |
+| A sound | `sounds/<name>.wav` or `<name>_N.wav` | wav | `Sound` |
+| A translation | `lang/<code>.yaml` (and `content/<mod>/lang/`) | a dictionary «[key]: text»; a record's `title`/`description` are keys `[<mod>.<kind>.<id>]`, `….about` | `Lang` ([systems/lang.md](systems/lang.md)) |
+| The player | `content/core/sprites/player/*.png`, `player.yaml`, `hands.png` | layers | `Figure` |
+| Clothes on the figure | `sprites/worn/<look>.png` | a layer of the player's sheet | `Figure.dressed` |
 
-Картинки интерфейса — `assets/ui/`. Рисуют ассеты `tools/make_*` (см. [systems/testing.md](systems/testing.md)).
+The interface's pictures are `assets/ui/`. The assets are drawn by `tools/make_*` (see
+[systems/testing.md](systems/testing.md)).
 
-## Числа во время игры
+## Numbers during play
 
-- Материал ячейки — номер в порядке загрузки (`core:air` = 0). Поэтому набор бандлов мира менять нельзя
-  (входят в старый мир только дополняющие бандлы, без ячеек); мир хранит список `materials` и переводится
-  `Mat.remap`.
-- Атлас: материалы и разные коры вместе не больше 63 (`PixelTextures.MOST_MATERIALS`, 6 бит материала в
-  меше, `material_bits[63]` в шейдере). Сейчас занято 36: 28 материалов и 8 разных кор.
-- Реестры пересобираются `Mods.activate(набор мира)` при старте мира.
+- A cell's material is a number in the order of loading (`core:air` = 0). So a world's set of bundles
+  cannot be changed (only supplementing bundles, with no cells, enter an old world); the world stores the
+  list `materials` and is converted by `Mat.remap`.
+- The atlas: materials and different barks together are no more than 63 (`PixelTextures.MOST_MATERIALS`, 6
+  bits of material in the mesh, `material_bits[63]` in the shader). 36 are used now: 28 materials and 8
+  different barks.
+- The registries are rebuilt by `Mods.activate(the world's set)` at the start of a world.
 
-## Сохранения
+## Saves
 
-`world.json`: `format` (1), `seed`, `settings` (генератор), `mods` (бандлы мира), `known` (все бандлы, что
-были при сохранении: дополняющий бандл, которого мир не знал, войдёт в него, `Mods.of_world`), `content`
-(метка версии контента, сейчас 9), `materials` (id в порядке номеров), `levels`, `created`, `saved`, `played`, `sky`
-(часы), `placed` (вещи на клетках), `territory` (участки), `plans` (чертежи); мир сервера — ещё `teams`,
-`fights` и `next_player`. `players/<имя>.json`: `position` и части модулей (`inventory`,
-`vitals`, `character`, `knowledge`, `crafting`, `skills`, `hands`, `markers`). Чанки — `chunks/<cx>_<cz>.bin`,
-карта — `map/<rx>_<rz>.bin`. Переводы старых версий: [systems/saving.md](systems/saving.md).
+`world.json`: `format` (1), `seed`, `settings` (the generator), `mods` (the world's bundles), `known` (all
+the bundles there were at saving: a supplementing bundle the world did not know enters it,
+`Mods.of_world`), `content` (the mark of the content's version, now 9), `materials` (ids in the order of
+numbers), `levels`, `created`, `saved`, `played`, `sky` (the clock), `placed` (things on cells),
+`territory` (plots), `plans` (blueprints); a server's world also has `teams`, `fights` and `next_player`.
+`players/<name>.json`: `position` and the parts of modules (`inventory`, `vitals`, `character`,
+`knowledge`, `crafting`, `skills`, `hands`, `markers`). Chunks are `chunks/<cx>_<cz>.bin`, the map is
+`map/<rx>_<rz>.bin`. Conversions of old versions: [systems/saving.md](systems/saving.md).
 
-**Подробнее.** `plan/architecture/modding.md` (устройство модов; история шагов — `plan/history/modding.md`), README модов.
+**In more detail.** `plan/architecture/modding.md` (how mods are built; the history of the steps —
+`plan/history/modding.md`), the mods' READMEs.
