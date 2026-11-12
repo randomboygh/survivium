@@ -151,9 +151,9 @@ const DEFAULTS := {
 	# New worlds have climate zones (WorldGen climate 1); worlds made before keep one
 	# warmth noise (0). Not on «Новый мир».
 	"world_climate": 1,
-	# New worlds have roomy smooth caves (WorldGen cave_shape 2); worlds made before keep
+	# New worlds have roomy smooth caves (WorldGen cave_shape 1); worlds made before keep
 	# the old ones (0). Not on «Новый мир».
-	"world_cave_shape": 2,
+	"world_cave_shape": 1,
 	## The bundles (or whole mods) a new world is made without, comma-separated ids
 	## (everything found is on).
 	"world_mods_off": "",

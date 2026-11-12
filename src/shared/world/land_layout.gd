@@ -44,9 +44,10 @@ const CANYON := 4
 ## relief: how mountains and plateaus are shaped, 0 domes and flat terraces, 1 ranges
 ## with gorges where it is cool and wet, mesas with canyons where it is hot and dry
 ## (see _ranges_and_mesas); climate: 0 warmth from one noise, so any climate can lie
-## next to any other, 1 in zones (see ZONE_SPREAD). Here caves is 1, relief and climate
-## 0, what worlds made before those settings have; «Новый мир» makes caves 0, relief and
-## climate 1.
+## next to any other, 1 in zones (see ZONE_SPREAD); cave_shape: 0 hollows of 3D noise
+## with mouths as pits and slits, 1 halls joined by galleries with funnels for mouths
+## (see WorldGen._halls). Here caves is 1, relief, climate and cave_shape 0, what worlds
+## made before those settings have; «Новый мир» makes caves 0, the others 1.
 const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 1, "relief": 0,
 	"climate": 0, "cave_shape": 0}
 const SIZE_SCALE := [0.4, 1.0, 2.2]
@@ -83,11 +84,17 @@ const WOODS := 16
 const STRATA := 32
 ## The column is in a gallery cut into a mountain's side (see _tunnels).
 const GALLERY := 64
-## Cave shape 2: the hall noise's level by the caves setting above which a hall lies,
+## Cave shape 1: the hall noise's level by the caves setting above which a hall lies,
 ## and how near the zero line of the gallery noise a gallery runs.
 const HALL_FROM := [0.42, 0.3, 0.18]
 const GALLERY_WIDTH := 0.05
-## Cave shape 2: a mouth's funnel starts FUNNEL_RIM bytes of the mouths noise inside
+## Cave shape 1: the halls' middle level under the sea, how far it wanders, how much
+## higher a hall's dome rises than its rim, and how much lower the second tier lies.
+const HALL_MID := 4.0
+const HALL_WANDER := 6.0
+const HALL_RISE := 4.5
+const TIER_GAP := 11.0
+## Cave shape 1: a mouth's funnel starts FUNNEL_RIM bytes of the mouths noise inside
 ## its patch and reaches the hall's floor FUNNEL_SPREAD bytes further in.
 const FUNNEL_RIM := 8.0
 const FUNNEL_SPREAD := 50.0
@@ -208,9 +215,8 @@ var n_dunes: FastNoiseLite
 var n_roll: FastNoiseLite
 var n_peak: FastNoiseLite
 var n_caves: FastNoiseLite
-## Cave shape 1: rounder, flatter 3D caves. Cave shape 2: halls (n_hall, n_hall2), their
-## middle level (n_mid) and the galleries along the zero lines of n_gallery.
-var n_caves_a: FastNoiseLite
+## Cave shape 1: the halls of two tiers (n_hall, n_hall2), their middle level (n_mid)
+## and the galleries along the zero lines of n_gallery (see WorldGen._halls).
 var n_hall: FastNoiseLite
 var n_hall2: FastNoiseLite
 var n_mid: FastNoiseLite
@@ -259,7 +265,6 @@ func _noises() -> void:
 	n_roll = _noise(23, 0.003, 2)
 	n_peak = _noise(24, 0.0016, 1)
 	n_caves = _noise(14, 0.03, 2)
-	n_caves_a = _noise(29, 0.024, 1)
 	n_hall = _noise(30, 0.014, 2)
 	n_hall2 = _noise(31, 0.017, 2)
 	n_mid = _noise(32, 0.008, 1)
@@ -1066,7 +1071,7 @@ func _tunnels(lay: Dictionary) -> void:
 						continue
 					var across := absf(v.cross(dir) - sin(along * 0.22 + bend) * 2.0)
 					var room := along > TUNNEL_LEN - 7
-					var wide: bool = settings.cave_shape == 2
+					var wide: bool = settings.cave_shape == 1
 					if across > ((5.0 if wide else 3.2) if room else (2.4 if wide else 1.4)):
 						continue
 					var j := lz * w + lx

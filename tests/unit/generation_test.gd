@@ -277,12 +277,12 @@ func _test_caves() -> void:
 	_check(WorldGen.new(20261018).settings.caves == 1, "a world made before the setting keeps its caves")
 
 
-## Cave shape 2 (new worlds): halls and galleries no lower than three cells, so there
+## Cave shape 1 (new worlds): halls and galleries no lower than three cells, so there
 ## are no slits to squeeze through; a mouth is a funnel open to the sky down to a floor
 ## many levels under the ground; no water leaks into them; the same in any order.
 func _test_cave_shape() -> void:
 	_check(WorldGen.new(20261018).settings.cave_shape == 0, "a world made before the cave shape keeps its caves")
-	var gen := WorldGen.new(20261018, 48, {"caves": 1, "cave_shape": 2, "relief": 1, "climate": 1})
+	var gen := WorldGen.new(20261018, 48, {"caves": 1, "cave_shape": 1, "relief": 1, "climate": 1})
 	var near := Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
 	var at := gen.find_place("mountain", near)
 	var key := WorldData.chunk_key(at.x, at.y)
@@ -316,12 +316,12 @@ func _test_cave_shape() -> void:
 				open += 1
 			if open >= 6:
 				deep_mouths += 1
-	_check(hollow > 2000, "cave shape 2 hollows the ground (%d cells)" % hollow)
+	_check(hollow > 2000, "cave shape 1 hollows the ground (%d cells)" % hollow)
 	_check(low == 0, "no cave is lower than three cells (%d)" % low)
 	_check(deep_mouths > 0, "a mouth opens to the sky many levels down")
 	_check(_leaks(w, keys) == 0, "no water leaks into the halls")
 	# The same chunk made alone in a fresh generator is the same.
-	var again := WorldGen.new(20261018, 48, {"caves": 1, "cave_shape": 2, "relief": 1, "climate": 1})
+	var again := WorldGen.new(20261018, 48, {"caves": 1, "cave_shape": 1, "relief": 1, "climate": 1})
 	again.generate_area(key, key + Vector2i(1, 1))
 	var same := true
 	for y in 48:
@@ -331,7 +331,7 @@ func _test_cave_shape() -> void:
 				var z := key.y * 16 + lz
 				if gen.world.get_cell(x, y, z) != again.world.get_cell(x, y, z):
 					same = false
-	_check(same, "cave shape 2 cuts the same in any order")
+	_check(same, "cave shape 1 cuts the same in any order")
 
 
 ## Relief 1: ranges with gorges, tors, mesas with banded walls and canyons, the same
