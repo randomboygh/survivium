@@ -1050,6 +1050,8 @@ func _run() -> void:
 						await process_frame
 				main.menu._fill_page("multi")
 				main.menu.open_host()
+				if shot.has("host_tab"):
+					main.menu._setup.show_tab(shot.host_tab)
 				for i in 3:
 					await process_frame
 			if shot.main_menu == "join":
@@ -1179,13 +1181,16 @@ func _run() -> void:
 ## tanned, the craft tab at the rack.
 ## A team for the shots of teams: the player (number 1) leads «Лесные» with Боря,
 ## who stands by them with Вова, not in it; `what` is "invite" (Гена's invitation),
-## "person" (Вова's card, tapped), "chat" (Боря says a line), "torches" (both hold a
-## torch) or "" (the figures alone).
+## "person" (Вова's card, tapped), "chat" (Боря says a line), "map" (Гена in the team
+## too, far away, both on the map), "torches" (both hold a torch) or "" (the figures alone).
 func _fake_team(main: Node, what: String) -> void:
 	main.welcome["id"] = 1
 	main.welcome["name"] = "Аня"
 	main.team.take_team({"id": 1, "name": "Лесные", "lead": 1, "members": [[1, "Аня"], [2, "Боря"]]})
 	var at: Vector3 = main.player.position
+	if what == "map":
+		var cell := Vector2i(floori(at.x / main.CELL), floori(at.z / main.CELL))
+		main.team.take_mates([[2, "Боря", cell + Vector2i(4, 11)], [4, "Гена", cell + Vector2i(70, -50)]])
 	var people := []
 	for p: Array in [[2, "Боря", Vector3(2.0, 0.0, 5.5), true], [3, "Вова", Vector3(-2.5, 0.0, 6.0), false]]:
 		# With torches they stand apart, each in a light of their own.

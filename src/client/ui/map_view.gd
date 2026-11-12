@@ -501,7 +501,7 @@ func _draw_scale(at: Vector2) -> void:
 
 
 ## Over the ground: the land claimed, the marks of things placed and the sacks as pictures, the markers
-## as flags, the player, the shade along the top and left of the sunken map and the
+## as flags, the teammates with their names, the player, the shade along the top and left of the sunken map and the
 ## north in its corner.
 func _draw_top(l: Control) -> void:
 	var rect := Rect2(Vector2.ZERO, l.size)
@@ -513,8 +513,9 @@ func _draw_top(l: Control) -> void:
 		var s := Minimap.to_screen(Vector2(_new_cell), rect, centre, zoom())
 		l.draw_rect(Rect2(s - Vector2(2, 2), Vector2(5, 5)), UiStyle.DARK_INK)
 		l.draw_rect(Rect2(s - Vector2(1, 1), Vector2(3, 3)), UiStyle.ACCENT)
-	var p := Minimap.to_screen(Vector2(minimap.player_cell), rect, centre, zoom())
 	var r := 1.0 + clampi(zoom_index - 2, 0, 4)
+	minimap.draw_mates(l, rect, centre, zoom(), true, r)
+	var p := Minimap.to_screen(Vector2(minimap.player_cell), rect, centre, zoom())
 	if rect.grow(-r - 1).has_point(p):
 		l.draw_rect(Rect2(p - Vector2(r + 1, r + 1), Vector2(2 * r + 3, 2 * r + 3)), UiStyle.DARK_INK)
 		l.draw_rect(Rect2(p - Vector2(r, r), Vector2(2 * r + 1, 2 * r + 1)), UiStyle.ACCENT)
