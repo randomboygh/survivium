@@ -135,8 +135,8 @@ func _draw_bar(bar: Control, sk: Dictionary) -> void:
 	# A name longer than the bar (some languages) is cut with a dot.
 	var shown := Lang.t(title)
 	var room := r.size.x - 6.0
-	if font.get_string_size(shown, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > room:
-		while shown.length() > 1 and font.get_string_size(shown + ".", HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > room:
+	if UiStyle.text_width(shown, fs, font) > room:
+		while shown.length() > 1 and UiStyle.text_width(shown + ".", fs, font) > room:
 			shown = shown.left(-1)
 		shown += "."
 	bar.draw_string(font, Vector2(4, y), shown, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UiStyle.INK)

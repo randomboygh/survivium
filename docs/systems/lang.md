@@ -47,8 +47,9 @@ is seen at once. A text that is not a key (a player's name, an inscription on a 
   and without — two keys.
 - A text for a Label (a toast, a notice, a loading line) is a key or `Lang.line`, not a ready `Lang.f`: a
   Label translates itself, and the tests' watchman checks exactly what was given to the screen. The code that
-  needs the words (to measure, to compare, to make lower-case) uses `Lang.t(key)`, not the key itself; an
-  ellipsis and percents — by a template `Lang.line("%s…", [key])`.
+  needs the words (to measure, to compare, to make lower-case) uses `Lang.t(key)`, not the key itself; a
+  text's width or wrapped lines are measured only by `UiStyle.text_width` / `text_lines`, which do that
+  (`tools/lint.py` fails a `get_string_size` elsewhere in `src/`); an ellipsis and percents — by a template `Lang.line("%s…", [key])`.
 - A word with forms is several keys: numerals `[block_1]`, `[block_2]`, `[block_5]` (one, two, five), words
   of different gender — different keys (`[small_ui]`, `[small_map]`).
 - Internal texts are written in English as plain text, not keys, and are not translated (decision 186, 3А):

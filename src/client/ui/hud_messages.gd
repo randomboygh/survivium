@@ -107,8 +107,8 @@ func _fit_toast(p: PanelContainer) -> void:
 	var room := floorf(_toast_room - frame)
 	var font := l.get_theme_font("font")
 	var wide := 0.0
-	for line: String in l.text.split("\n"):
-		wide = maxf(wide, font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, l.get_theme_font_size("font_size")).x)
+	for line: String in Lang.t(l.text).split("\n"):
+		wide = maxf(wide, UiStyle.text_width(line, l.get_theme_font_size("font_size"), font))
 	var wrap := wide + 1.0 > room
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART if wrap else TextServer.AUTOWRAP_OFF
 	l.custom_minimum_size.x = room if wrap else 0.0
