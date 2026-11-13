@@ -91,6 +91,8 @@ func go_to_column(cell: Vector2i) -> void:
 	game.player.body.velocity_y = 0.0
 	arriving = cell
 	game.view.look_at_player()
+	# On a server the body is put there by a cheat (Settings.send_cheats, Cheats «at»).
+	game.settings.send_cheats({"at": game.player.position})
 
 
 ## The copy runs no rule (the server does); it only puts the player down where
@@ -115,6 +117,7 @@ func _arrive() -> void:
 		game.player.position = (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
 	_last_at = Vector3.INF
 	game.view.look_at_player()
+	game.settings.send_cheats({"at": game.player.position})
 
 
 ## Puts the body at `at` (world units) at once, the view with it.

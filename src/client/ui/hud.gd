@@ -86,6 +86,9 @@ func _ready() -> void:
 	for list: FadingList in [FadingList.new(), FadingList.new()]:
 		var area := Control.new()
 		area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Drawn over the windows and their shade (the bag, the settings, the pause menu):
+		# a toast is seen whatever is open; taps go through it to the window.
+		area.z_index = TOASTS_Z
 		_left.add_child(area)
 		area.add_child(list)
 		list.minimum_size_changed.connect(_fit_area.bind(list))

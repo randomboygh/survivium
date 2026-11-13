@@ -69,6 +69,8 @@ var _clock_panel: PanelContainer
 var _toasts: FadingList
 ## The server's notices to its host, under the toasts (see server_note).
 var _server_notes: FadingList
+## The toasts' and the server's notices' z_index: over the windows of the HUD.
+const TOASTS_Z := 1
 ## How wide a toast may be, in UI px: up to the buttons and the minimap on the right
 ## (see _place_top); a longer one wraps.
 var _toast_room := 200.0
