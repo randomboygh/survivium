@@ -31,6 +31,8 @@ const BURST_BITS := 8
 const WAKE_BITS := 28
 ## Stars of a skill's new level (see level_sparks).
 const LEVEL_STARS := 14
+## Specks of dust a thing set down raises per cell it stands on (dust).
+const DUST_BITS := 6
 ## The pixels of a star sparkle (see _star).
 const STAR := [
 	"..x..",
@@ -723,6 +725,35 @@ func _burst_now(at: Vector3, m: int) -> void:
 	p.color_ramp = _ramp([c.lightened(0.15), c, c.darkened(0.25)])
 	p.position = at
 	p.restart()
+
+
+## Dust thrown out low round a thing just set down on ground of material `m` (Mat, -1
+## for none known): from the edges of its square `size` cells across, its north-west
+## corner at world point `corner`, settling at once (Props, a thing dropping in place).
+func dust(corner: Vector3, size: float, m: int) -> void:
+	if not enabled:
+		return
+	var p := _emitter(DUST_BITS * int(maxf(1.0, size * size)), 0.5, Vector2(PX, PX), 1.0)
+	var half := size * CELL * 0.5
+	p.position = corner + Vector3(half, 0.06, half)
+	p.one_shot = true
+	p.explosiveness = 0.95
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	p.emission_box_extents = Vector3(half, 0.02, half)
+	p.direction = Vector3.UP
+	p.spread = 85.0
+	p.initial_velocity_min = 0.5
+	p.initial_velocity_max = 1.3
+	p.gravity = Vector3(0.0, -4.0, 0.0)
+	p.damping_min = 1.5
+	p.damping_max = 2.5
+	p.scale_amount_min = 1.0
+	p.scale_amount_max = 2.0
+	var c: Color = PixelTextures.tint(m).lightened(0.2) if m >= 0 else Color(0.62, 0.56, 0.48)
+	p.color_ramp = _ramp([c.lightened(0.15), c, Color(c.r, c.g, c.b, 0.0)])
+	(p.mesh as QuadMesh).material.set_shader_parameter("sky_only", 0.0)
+	p.finished.connect(p.queue_free)
+	p.emitting = true
 
 
 ## A wake to trail behind a vessel (Boats): pale spray thrown up a little where it was,

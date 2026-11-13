@@ -148,6 +148,14 @@ func _test_requests() -> void:
 	_check(req._rule(Protocol.SIGN_WRITE, [far_sign.cell, "too far"]) == false and req._rule(Protocol.SIGN_TURN, [far_sign.cell]) == false,
 		"a sign out of reach is neither written nor turned")
 	_check(req.PACED.has(Protocol.SIGN_WRITE) and req.PACED.has(Protocol.SIGN_TURN), "writing and turning take the hands' time")
+	_check(req._rule(Protocol.PROP_MOVE, [sign.cell, sign.cell, 4]) == null and req._rule(Protocol.PROP_MOVE, [sign.cell, sign.cell, -1]) == null
+		and req._rule(Protocol.PROP_MOVE, [sign.cell, "x", 1]) == null and req._rule(Protocol.PROP_MOVE, [sign.cell, sign.cell]) == null,
+		"a thing is not moved with a turn out of bounds or a place that is no cell")
+	_check(req._rule(Protocol.PROP_MOVE, [far_sign.cell, Vector3i(9, 2, 9), 0]) == false and not p[0].placed.at(far_sign.cell).is_empty(),
+		"a thing out of reach is not moved near")
+	_check(req._rule(Protocol.PROP_MOVE, [sign.cell, Vector3i(40, 2, 40), 0]) == false and not p[0].placed.at(sign.cell).is_empty(),
+		"nor a thing near moved far")
+	_check(req.PACED.has(Protocol.PROP_MOVE), "moving takes the hands' time")
 	_check(req._rule(Protocol.GESTURE, ["dance_forever"]) == false and a.gesture == "" and req._rule(Protocol.GESTURE, [3]) == null,
 		"no gesture of a name that is none, or of no name")
 	var now := Time.get_ticks_msec() / 1000.0

@@ -162,7 +162,6 @@ func build(world_root: Node3D) -> void:
 	game.hud.move_child(marks, 1)
 	game.actions.taken.connect(_on_taken)
 	game.workshop.made.connect(_on_made)
-	game.placed.added.connect(_on_placed)
 	game.placed.lit_changed.connect(_on_lit)
 	game.placed.opened.connect(_on_opened)
 	for w: Control in [game.hud.bag, game.hud.map_view]:
@@ -366,11 +365,6 @@ func _on_taken(_id: String, from: Vector3, _by: Object = null) -> void:
 
 func _on_made(_recipe: Dictionary) -> void:
 	play("craft")
-
-
-func _on_placed(e: Dictionary) -> void:
-	if game.ready_to_play:
-		play("place", Placed.center(e))
 
 
 func _on_lit(e: Dictionary) -> void:

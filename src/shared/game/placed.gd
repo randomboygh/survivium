@@ -1176,6 +1176,73 @@ func take_up(who, e: Dictionary) -> bool:
 	return true
 
 
+## True for a thing moved and turned where it stands in the build mode (move): a station,
+## a chest, furniture, a sign, a fireplace; not what is set into a building (a door, a
+## window, a hatch, stairs, a fence, a ladder), a campfire, a cross or a boundary post.
+static func movable(e: Dictionary) -> bool:
+	if e.is_empty() or is_light(e) or is_grave(e) or is_fire(e) and not is_hearth(e):
+		return false
+	var item := Items.get_item(e.item)
+	for flag in ["door", "window", "steps", "fence", "ladder", "claims"]:
+		if item.get(flag, false):
+			return false
+	return true
+
+
+## The north-west cell where thing `e` would stand moved to `corner` turned `turn` (see
+## move): that cell, or the free one nearest to it at its level, one down or one up, its
+## own cells counted free; null when there is none.
+func move_spot(who, e: Dictionary, corner: Vector3i, turn: int) -> Variant:
+	if not movable(e):
+		return null
+	var shape := _shape_of(e.item, posmod(turn, 4))
+	var offsets: Array[Vector3i] = shape.offsets
+	var mid := Vector2.ZERO
+	for o: Vector3i in offsets:
+		mid += Vector2(o.x, o.z) + Vector2(0.5, 0.5)
+	mid /= maxi(offsets.size(), 1)
+	_unblock(e)
+	var spot: Variant = _spot_at(who, Vector2(corner.x, corner.z) + mid, corner.y, NO_CUT, size_of(e.item),
+		offsets, rest_of(e.item), shape.high)
+	_block(e)
+	return spot
+
+
+## `who` moves thing `e` to `corner` (see move_spot) turned `turn` (the same cell and a
+## quarter more: turned where it stands), within their reach of placing and where the land
+## lets them build at both ends; what it holds, burns or says goes with it, and every copy
+## hears of it as of a thing taken and placed (removed, added). True if it moved.
+func move(who, e: Dictionary, corner: Vector3i, turn: int) -> bool:
+	if not movable(e) or territory != null and not territory.may(who, e.cell, "build"):
+		return false
+	turn = posmod(turn, 4)
+	var spot: Variant = move_spot(who, e, corner, turn)
+	if spot == null:
+		who.nag("put", Lang.line("[no_room_here]", [Items.title(e.item)]))
+		return false
+	var p: Vector3 = who.position / CELL
+	var to := center({"item": e.item, "cell": spot, "turn": turn}) / CELL
+	if Vector2(to.x - p.x, to.z - p.z).length() > Tools.PLACE_REACH or absf(to.y - 0.5 - p.y) > Tools.PLACE_REACH:
+		who.nag("put", "[too_far]")
+		return false
+	if territory != null and not territory.may(who, spot, "build"):
+		return false
+	if rest_of(e.item) == ON_WALL:
+		turn = wall_turn(spot, turn)
+	if not who.act("place"):
+		return false
+	var items: Variant = e.items.to_dict() if e.items != null else null
+	_remove(e)
+	for o: Vector3i in _shape_of(e.item, turn).offsets:
+		var c: Vector3i = spot + o
+		if world.is_solid(c.x, c.y - 1, c.z):
+			_level_ground(c + Vector3i.DOWN)
+		_remove_bush(c)
+	put(e.item, spot, items, e.lit, e.get("fuel", -1.0), e.get("by"), turn, false, e.get("text", ""), e.get("grave", {}))
+	world.note_edit(spot.x, spot.z)
+	return true
+
+
 ## Puts out campfire `e`: it no longer burns, warms or lets anything be made at it.
 func put_out(e: Dictionary) -> void:
 	if not is_fire(e) or not e.lit:

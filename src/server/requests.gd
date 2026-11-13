@@ -43,7 +43,7 @@ const REVIVE_NEAR := 1.0
 ## The requests whose work takes the hands' time (see `paced`), and the seconds of it a
 ## player may be ahead of the clock (a quick finger along a stroke, a reply late).
 const PACED := [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.GATHER, Protocol.PLANT,
-	Protocol.PLANT_AT, Protocol.PROP_PUT, Protocol.PROP_PUT_AT, Protocol.LIGHT_PUT, Protocol.BUILD,
+	Protocol.PLANT_AT, Protocol.PROP_PUT, Protocol.PROP_PUT_AT, Protocol.PROP_MOVE, Protocol.LIGHT_PUT, Protocol.BUILD,
 	Protocol.FARM_WORK, Protocol.VESSEL_LAUNCH, Protocol.SIGN_WRITE, Protocol.SIGN_TURN]
 const WORK_AHEAD := 2.0
 ## The seconds a paced request that tells no swing costs (one set down, one sown).
@@ -193,6 +193,10 @@ func _rule(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and placed.take_up(who, e)
+		Protocol.PROP_MOVE:
+			if _fit(args, [TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT]) and args[2] >= 0 and args[2] < 4:
+				var e: Dictionary = _near(args[0])
+				return not e.is_empty() and placed.move(who, e, args[1], args[2])
 		Protocol.PROP_FIRE:
 			if _fit(args, [TYPE_VECTOR3I, TYPE_BOOL]):
 				var e: Dictionary = _near(args[0])
