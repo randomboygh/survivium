@@ -49,11 +49,6 @@ const LIT_BY_SHADOW := LAYER_GROUND
 const LAYER_THINGS := 64
 ## Whether a fire's or a torch's real shadow lights LAYER_THINGS (Settings: «Тень на вещах»).
 static var shadow_on_things := true
-## Whether the big shaders that mark the stencil (world, leaves, grass) write it. Android's
-## Adreno 840 driver crashed the app building them (2026-11-12, found by «Проверка
-## шейдеров», ShaderProbe), while the browser on the same phone draws them: in the Android
-## app they do not write it (without_stencil), and the player's x-ray behind them is not shown.
-static var stencil_writes := not OS.has_feature("android")
 ## Direction of view rays in the unsheared world in the default view: down and north
 ## at 45 degrees.
 const VIEW_DIR := Vector3(0.0, -0.70710678, -0.70710678)
@@ -377,11 +372,3 @@ static func _material_unshaded(m: Material) -> bool:
 		return _unshaded[shader]
 	return false
 
-
-## A copy of `shader` whose stencil writes are cut (see stencil_writes).
-static func without_stencil(shader: Shader) -> Shader:
-	if not shader.code.contains("stencil_mode write"):
-		return shader
-	var copy := Shader.new()
-	copy.code = shader.code.replace("stencil_mode write", "// stencil_mode write")
-	return copy

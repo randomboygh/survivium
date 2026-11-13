@@ -163,6 +163,11 @@ func _update_light(delta: float) -> void:
 	var night_energy := lerpf(0.85, 0.9, minf(moonlight, 1.0))
 	env.ambient_light_color = Color(0.55, 0.62, 0.78).lerp(Color(0.6, 0.5, 0.6), golden).lerp(night_ambient, night)
 	env.ambient_light_energy = lerpf(0.45, night_energy, night) + flash * 1.5
+	# For the Mobile renderer (Android) to light as Compatibility does (compat_sun in
+	# common.gdshaderinc): the ambient light in linear, and whether the sun has a shadow.
+	var ambient := env.ambient_light_color.srgb_to_linear() * env.ambient_light_energy
+	RenderingServer.global_shader_parameter_set("ambient_light", Vector3(ambient.r, ambient.g, ambient.b))
+	RenderingServer.global_shader_parameter_set("sun_shadowed", 1.0 if sun.shadow_enabled and sun.visible else 0.0)
 	env.background_color = Color(0.2, 0.32, 0.38).lerp(Color(0.04, 0.06, 0.12).lerp(Color(0.01, 0.012, 0.02), 1.0 - minf(moonlight, 1.0)), night)
 	sun_light = daylight * (1.0 - 0.35 * overcast)
 	sky_light = clampf(daylight + 0.45 * moonlight * night, 0.0, 1.0) * (1.0 - 0.35 * overcast)

@@ -57,10 +57,10 @@ var ahead: Array = []
 var ahead_total := 0
 ## The frame start() ran in: the first mix is drawn at its end, so step() then waits.
 var start_frame := -1
-## Ahead a kind a frame, each named in the log first, where a phone's graphics driver
-## crashed while the shaders were built (Android, 2026-11-12: the log tells which thing
-## it was drawing); the kind shown now.
-var one_by_one := OS.has_feature("android")
+## Ahead a kind a frame, each named in the log first, to find a thing a graphics driver
+## crashes on while its shaders are built (the Adreno 840's GL driver, 2026-11-12: the log
+## tells which thing it was drawing); off unless set for that. The kind shown now.
+var one_by_one := false
 var ahead_kind := 0
 ## Later: the mix being built a kind at a time, the next kind, when the last was drawn.
 var mix_later: Array = []

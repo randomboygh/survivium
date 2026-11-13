@@ -234,6 +234,14 @@ sun_view={
 "type": "vec3",
 "value": Vector3(0, 0, 1)
 }
+ambient_light={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
+sun_shadowed={
+"type": "float",
+"value": 0.0
+}
 light_side={
 "type": "vec2",
 "value": Vector2(0, 1)

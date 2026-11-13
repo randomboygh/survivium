@@ -7,13 +7,13 @@ render_mode world_vertex_coords, blend_mix, depth_draw_never, cull_disabled, sha
 
 #include "res://shaders/common.gdshaderinc"
 
-uniform sampler2D sprite_texture : source_color, filter_nearest;
+uniform sampler2D sprite_texture : filter_nearest SRGB_HINT;
 // The frame of a sprite sheet to show, as in sprite.gdshader.
 uniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);
 // Height of the water surface around the body, in world units.
 uniform float water_line = -1000.0;
-uniform vec3 shallow : source_color = vec3(0.36, 0.62, 0.6);
-uniform vec3 deep : source_color = vec3(0.13, 0.29, 0.42);
+uniform vec3 shallow SRGB = vec3(0.36, 0.62, 0.6);
+uniform vec3 deep SRGB = vec3(0.13, 0.29, 0.42);
 
 varying vec3 world_pos;
 varying float clouds;
@@ -57,11 +57,13 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);
+	COMPAT_COLORS
 }
 
 void light() {
 	// A sprite stands up in the drawn world, not in the world (stand_tall): its light
 	// rings go by the drawn way to the light, only the range undone (light_reach).
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz),
-		light_reach) * (LIGHT_IS_DIRECTIONAL ? vec3(1.0) : lamp_gain);
+	vec3 lit = toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz),
+		light_reach);
+	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? compat_sun(lit, ALBEDO) : lit * lamp_gain;
 }

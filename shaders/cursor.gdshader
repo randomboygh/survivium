@@ -5,7 +5,7 @@ render_mode world_vertex_coords, unshaded, depth_test_disabled, cull_disabled, s
 
 #include "res://shaders/common.gdshaderinc"
 
-uniform vec4 color : source_color = vec4(1.0);
+uniform vec4 color SRGB = vec4(1.0);
 
 varying vec3 world_pos;
 
@@ -21,4 +21,5 @@ void fragment() {
 	// The lines' own colour (the cursor's light and red ones), white where none is given.
 	ALBEDO = color.rgb * COLOR.rgb;
 	ALPHA = color.a * COLOR.a;
+	COMPAT_ALBEDO
 }

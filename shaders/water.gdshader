@@ -21,14 +21,14 @@ render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
 #include "res://shaders/common.gdshaderinc"
 
 uniform float ice_amount : hint_range(0.0, 1.0) = 0.0;
-uniform vec3 shallow : source_color = vec3(0.36, 0.62, 0.6);
-uniform vec3 deep : source_color = vec3(0.13, 0.29, 0.42);
-uniform vec3 foam_color : source_color = vec3(0.85, 0.93, 0.92);
+uniform vec3 shallow SRGB = vec3(0.36, 0.62, 0.6);
+uniform vec3 deep SRGB = vec3(0.13, 0.29, 0.42);
+uniform vec3 foam_color SRGB = vec3(0.85, 0.93, 0.92);
 // The murky water of a swamp, shallow and deep, and the murkier water of a bog.
-uniform vec3 swamp_shallow : source_color = vec3(0.37, 0.43, 0.25);
-uniform vec3 swamp_deep : source_color = vec3(0.2, 0.26, 0.16);
-uniform vec3 bog_color : source_color = vec3(0.33, 0.31, 0.19);
-uniform vec3 swamp_foam : source_color = vec3(0.62, 0.65, 0.5);
+uniform vec3 swamp_shallow SRGB = vec3(0.37, 0.43, 0.25);
+uniform vec3 swamp_deep SRGB = vec3(0.2, 0.26, 0.16);
+uniform vec3 bog_color SRGB = vec3(0.33, 0.31, 0.19);
+uniform vec3 swamp_foam SRGB = vec3(0.62, 0.65, 0.5);
 
 // Steps of the depth's shading, and the 4x4 ordered dither between them.
 const float DEPTH_STEPS = 6.0;
@@ -244,6 +244,7 @@ void fragment() {
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);
 	open_sky = roofed(world_pos.xz, world_pos.y) ? 0.0 : 1.0;
+	COMPAT_COLORS
 }
 
 void light() {
@@ -251,6 +252,7 @@ void light() {
 	// it falls on the bed and shows through the water. Water under a roof or in a
 	// cave stays in the dark of what covers it; clouds shade it anyway.
 	float shade = LIGHT_IS_DIRECTIONAL && open_sky > 0.5 ? 1.0 : ATTENUATION;
-	DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, shade, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz),
-		light_stretch(INV_VIEW_MATRIX, LIGHT)) * (LIGHT_IS_DIRECTIONAL ? vec3(1.0) : lamp_gain);
+	vec3 lit = toon_light(NORMAL, LIGHT, LIGHT_COLOR, shade, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz),
+		light_stretch(INV_VIEW_MATRIX, LIGHT));
+	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? compat_sun(lit, ALBEDO) : lit * lamp_gain;
 }

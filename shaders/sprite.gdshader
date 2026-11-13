@@ -10,7 +10,7 @@ stencil_mode write, compare_always, 1;
 
 #include "res://shaders/common.gdshaderinc"
 
-uniform sampler2D sprite_texture : source_color, filter_nearest;
+uniform sampler2D sprite_texture : filter_nearest SRGB_HINT;
 // The frame of a sprite sheet to show, as a UV offset and size; a negative width
 // mirrors the frame. The whole texture by default.
 uniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);
@@ -130,6 +130,7 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);
+	COMPAT_COLORS
 }
 
 void light() {
@@ -145,6 +146,7 @@ void light() {
 			stretch = distance(world_pos, s.xyz) / s.w / max(light_share(ATTENUATION), 1e-4);
 		}
 	}
-	DIFFUSE_LIGHT += toon_light(LIGHT_IS_DIRECTIONAL ? NORMAL : LIGHT, LIGHT, LIGHT_COLOR, ATTENUATION,
-		LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz), stretch) * (LIGHT_IS_DIRECTIONAL ? vec3(1.0) : lamp_gain);
+	vec3 lit = toon_light(LIGHT_IS_DIRECTIONAL ? NORMAL : LIGHT, LIGHT, LIGHT_COLOR, ATTENUATION,
+		LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz), stretch);
+	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? compat_sun(lit, ALBEDO) : lit * lamp_gain;
 }

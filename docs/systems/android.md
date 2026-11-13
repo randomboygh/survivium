@@ -52,12 +52,17 @@ and the main menu then offers «Crash log» with that log to copy; in the develo
 «Debug» with what needs no world: the last run's log, the freeze log, the interface gallery, wiping the data, and «Shader check» (`src/client/view/shader_probe.gd`: each 3D
 shader drawn alone, with and without lights; a step the app crashed on is marked so at the next run); the shader warm-up prints each mix it draws.
 
-**The Adreno 840** (the user's phone, 2026-11-12) crashed the app building the big shaders that write the stencil
-(world, leaves, grass; «Shader check» found it): in the Android app they do not write it (`PixelView.stencil_writes`,
-`without_stencil`, applied in `main.gd` `_material`), so there the player's silhouette shows behind grass and crowns too.
-The crashes stayed with the disk cache of shaders off too (2026-11-13): the Adreno 840's OpenGL ES driver crashes building
-the big shaders, whatever is in them. So the Android app draws with Vulkan (`renderer/rendering_method.mobile="mobile"`,
-the Mobile renderer; the web stays on Compatibility by `.web`); TRIAL: colours still differ from the other builds.
+**The renderer: Vulkan (Mobile).** The Adreno 840's OpenGL ES driver (the user's phone, 2026-11-12) crashed the app
+building any big shader of ours, at random from run to run («Shader check»: stencil, int arrays, varyings and the disk
+cache of shaders were each suspected and ruled out), while the browser on the same phone, whose Chrome rewrites shaders
+before the driver sees them, draws them. Under Vulkan every step passed and the world loads (2026-11-13), so the Android
+app uses the Mobile renderer (`project.godot`: `renderer/rendering_method.mobile="mobile"`, `.web="gl_compatibility"`
+keeps the web on Compatibility); a phone without Vulkan falls back to OpenGL by itself
+(`rendering_device/fallback_to_opengl3`). The two renderers take colours differently: `common.gdshaderinc` makes the Mobile
+one see them as Compatibility does (`SRGB`, `SRGB_HINT`, `COMPAT_ALBEDO`, `COMPAT_COLORS`, [rendering.md](rendering.md));
+the sun's light with a shadow, which Compatibility adds in sRGB in a pass of its own, goes through `compat_sun`
+(the globals `ambient_light`, `sun_shadowed` set by `sky.gd`); what blends (water, particles) and the torch's and fires'
+light with shadows still mix in linear light there. Shots side by side: `survivium-builds/android/vulkan-colours-*.png`.
 
 **Tests.** No device in CI: the `android` job fails if the export or the signature check fails; how it plays
 is checked on a phone.

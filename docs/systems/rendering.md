@@ -76,7 +76,10 @@ voxel models of things.
 **Rules**
 - A new 3D shader includes `shaders/common.gdshaderinc` and shears VERTEX like the others (in the default view
   `z -= y`, the camera looks straight down); fires are placed at `PixelView.shear(pos)`, the choice of a cell
-  — through `PixelView.view_ray`.
+  — through `PixelView.view_ray`. Its colour hints are `SRGB` (`uniform vec3 c SRGB = …`) or `SRGB_HINT` after other
+  hints (`: filter_nearest SRGB_HINT`), never `source_color`, and its fragment() ends with `COMPAT_ALBEDO` (or
+  `COMPAT_COLORS` if it sets EMISSION): on Android the Mobile renderer (Vulkan) draws, which takes colours as linear,
+  and these make it see them as Compatibility does ([android.md](android.md)).
 - With a turn and a tilt the shear goes up the picture (the globals `view_up`, `view_slope`, `view_squash`);
   vertical squares look into the camera through `face_view` (sprites and plants also through `stand_tall`);
   the open edges of cells are a light rim towards the sun or moon and an outline away from it (`light_side`);
@@ -156,8 +159,7 @@ voxel models of things.
 - Silhouettes behind geometry are `render_mode depth_test_inverted`; the player's silhouette is seen only
   where the stencil marks solid (1: the world, sprites) or nothing (0), not low (2: grass, shrubs, low
   things) and not crowns (3: they are cleared around the player); a trunk is cleared above the player, except
-  the butt (the faces' vertex alpha says which cell of the trunk it is). In the Android app the world, leaves and grass
-  write no stencil (`PixelView.stencil_writes`: an Adreno driver crashed on them, [android.md](android.md)).
+  the butt (the faces' vertex alpha says which cell of the trunk it is).
 - Light with shadows is drawn by a separate pass and added in sRGB, not in linear light: on top of other
   light it is brighter. Fires and the torch scale the energy (`Effects.SHADOW_ENERGY`) and give shadows only
   at night; what casts a shadow from which light is decided by the layers (`PixelView.LAYER_*`,

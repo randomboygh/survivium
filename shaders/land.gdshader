@@ -18,4 +18,5 @@ void fragment() {
 	}
 	ALBEDO = COLOR.rgb;
 	ALPHA = COLOR.a;
+	COMPAT_ALBEDO
 }
