@@ -884,6 +884,8 @@ func _run() -> void:
 				over_step += 1
 			if frames[i] - steps[i] > free_limit:
 				over_free += 1
+				print("%s: frame %d took %.1f ms past the budgets; the game's parts: %s" % [
+					r[0], i, frames[i] - steps[i], r[4].get(i, "?")])
 		print("%s: %d frames, average %.1f ms, worst %.1f ms; worst budgeted %.1f ms (%d over), worst outside %.1f ms (%d over)" % [
 			r[0], frames.size(), _mean(frames), worst, worst_in, over_step, worst_free, over_free])
 		var stalls: int = 1 + frames.size() / STALLS_PER_FRAMES + r[3]
@@ -903,6 +905,9 @@ func _run() -> void:
 ## `events` is how many frames of it may carry one-off work past the limits (a thing made).
 func _scenario(what: String, frames: int, act: Callable, events := 0) -> void:
 	var times := PackedFloat32Array()
+	# The game's parts of the frames that took long past the budgets, by frame, for the
+	# message of a frame over the limit (cheap: only those frames).
+	var long := {}
 	var steps := PackedFloat32Array()
 	clock = 0.0
 	for i in frames:
@@ -916,6 +921,8 @@ func _scenario(what: String, frames: int, act: Callable, events := 0) -> void:
 		# Less the test's own search of the screen for untranslated texts (Hud.swept_us).
 		times.append((Time.get_ticks_usec() - t - (main.hud.swept_us - swept)) / 1000.0)
 		steps.append((main.chunks.budget_us - b) / 1000.0)
+		if times[-1] - steps[-1] > 4.0:
+			long[times.size() - 1] = _parts_text(main.hud.perf._work, 1)
 		if what == IDLE or what == NIGHT:
 			# What the game's parts took in the frame (the statistics' parts, see
 			# PerfPanel.note), for the idle checks' message.
@@ -923,7 +930,7 @@ func _scenario(what: String, frames: int, act: Callable, events := 0) -> void:
 			var work: Dictionary = main.hud.perf._work
 			for part: String in work:
 				parts[part] = parts.get(part, 0) + work[part]
-	runs.append([what, times, steps, events])
+	runs.append([what, times, steps, events, long])
 
 
 func _on_taken(_id: String, _from: Vector3, _by: Object = null) -> void:
