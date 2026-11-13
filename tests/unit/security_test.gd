@@ -230,7 +230,7 @@ func _test_door() -> void:
 	cfg.max_players = 8
 	var net := Server.new(null, cfg, {})
 	var hello := func(name: String, key := "", password := "тайна", from := "10.0.0.9") -> String:
-		return net._refusal([Protocol.VERSION, Protocol.build_version(), name, key, password], from)
+		return net._refusal([Protocol.VERSION, Protocol.build_version(), name, key, password, ""], from)
 	_check(hello.call("Аня") == "" and hello.call("  ") == Protocol.WHY_NAME, "a name is needed")
 	_check(hello.call("Server") == Protocol.WHY_TAKEN and hello.call("ADMIN") == Protocol.WHY_TAKEN, "the server's own names are not taken")
 	var a := Server.Account.new()

@@ -32,6 +32,7 @@ const Markers := preload("res://src/client/game/markers.gd")
 const Sound := preload("res://src/client/audio/sound.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
 const Content := preload("res://src/shared/content/content.gd")
+const ModCache := preload("res://src/client/net/mod_cache.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
 const LastLog := preload("res://src/client/ui/last_log.gd")
 const ShaderProbe := preload("res://src/client/view/shader_probe.gd")
@@ -575,6 +576,13 @@ func _section_rows(key: String) -> Array:
 				["[vibration]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.vibrate) if Vibration.supported() else -1,
 					func(i: int) -> void: s.set_value("vibrate", i == 1), "[no_n2]", Vibration.supported],
+				# The mods' files taken from servers (decision 189, ModCache): how much is
+				# kept, and a button that empties it (but for the server played on now).
+				_section("server", "[server_data]"),
+				{"note": Lang.line("[mod_files_from_servers_s]", ["%.1f" % (ModCache.size() / 1048576.0)])},
+				{"action": "[clear_server_data]", "confirm": true, "do": func() -> void:
+					ModCache.clear(ModCache.in_use(Content.served))
+					_fill.call_deferred()},
 			]
 		"interface":
 			var rows := [

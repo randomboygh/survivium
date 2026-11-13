@@ -76,10 +76,22 @@ static func sheet(worn: Array, hands := {}) -> SpriteSheet:
 	return f.target
 
 
+## Forgets the pictures read and what was worked out of them: the mods' files are others
+## now (a server's, Main._use_mods), the next figure reads them anew.
+static func forget() -> void:
+	_data = {}
+	_layers = {}
+	_anchors = []
+	_held = {}
+	_icons = {}
+	_bright = {}
+	_far = {}
+
+
 ## The layout of the sheets (player.yaml).
 static func data() -> Dictionary:
 	if _data.is_empty():
-		_data = Yaml.new().parse(FileAccess.get_file_as_string(SPRITES + "/player.yaml"), "player.yaml")
+		_data = Yaml.new().parse(Content.text(SPRITES + "/player.yaml"), "player.yaml")
 	return _data
 
 

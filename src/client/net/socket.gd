@@ -10,6 +10,7 @@ extends RefCounted
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Connection := preload("res://src/client/net/connection.gd")
+const Content := preload("res://src/shared/content/content.gd")
 
 ## Bytes a frame may hold each way (the chunks of С3.2 are large).
 const BUFFER := 4 << 20
@@ -51,9 +52,11 @@ func open(address: String) -> Error:
 
 
 ## The first request: who the player is (Protocol.HELLO); the welcome or the refusal
-## comes as the reply.
-func hello(name: String, key := "", password := ""):
-	return net.request(Protocol.HELLO, [Protocol.VERSION, Protocol.build_version(), name, key, password])
+## comes as the reply. `mods` names the mods' files the game plays with (its own or a
+## server's, Content.playing, when not given).
+func hello(name: String, key := "", password := "", mods := ""):
+	return net.request(Protocol.HELLO, [Protocol.VERSION, Protocol.build_version(), name, key, password,
+		mods if mods != "" else Content.playing()])
 
 
 ## Takes what came in and sends what waited; call every frame.

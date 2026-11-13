@@ -36,8 +36,8 @@ static func available() -> Array:
 
 static func _folders(hidden: bool) -> Array:
 	var out := []
-	for name in DirAccess.get_directories_at(ROOT):
-		if (name.begins_with("_") and not hidden) or not FileAccess.file_exists("%s/%s/mod.yaml" % [ROOT, name]):
+	for name in dirs_at(ROOT):
+		if (name.begins_with("_") and not hidden) or not file_exists("%s/%s/mod.yaml" % [ROOT, name]):
 			continue
 		out.append(name)
 	out.sort()
@@ -58,8 +58,8 @@ static func bundles_of(mod: String) -> Array:
 ## bundles_of as the folders on disk say now, for the scan.
 static func _bundles_on_disk(mod: String) -> Array:
 	var out := []
-	for name in DirAccess.get_directories_at("%s/%s" % [ROOT, mod]):
-		if FileAccess.file_exists("%s/%s/%s/bundle.yaml" % [ROOT, mod, name]):
+	for name in dirs_at("%s/%s" % [ROOT, mod]):
+		if file_exists("%s/%s/%s/bundle.yaml" % [ROOT, mod, name]):
 			out.append("%s/%s" % [mod, name])
 	out.sort()
 	return out if not out.is_empty() else [mod]
@@ -140,7 +140,7 @@ static func _scan() -> void:
 		var mod_problems := problems
 		_mods[mod] = mod_info
 		var bundles := _bundles_on_disk(mod)
-		if bundles != [mod] and DirAccess.dir_exists_absolute("%s/%s/data" % [ROOT, mod]):
+		if bundles != [mod] and dir_exists("%s/%s/data" % [ROOT, mod]):
 			mod_problems.append("%s/data: a mod with bundles keeps its records in them" % mod)
 		for b in bundles:
 			problems = mod_problems.duplicate() if b == bundles[0] else []
@@ -151,7 +151,7 @@ static func _scan() -> void:
 			var u := {"mod": mod, "info": bi, "records": {}, "owns": {}, "hard": {}, "soft": {}, "patches": {}, "replaces": {},
 				"requires": _named(bi.get("requires", []), mod), "wants": _named(bi.get("wants", []), mod)}
 			# One listing of the bundle's data/ instead of asking for a file of every kind.
-			var present := DirAccess.get_files_at("%s/%s/data" % [ROOT, b])
+			var present := files_at("%s/%s/data" % [ROOT, b])
 			for kind in SCHEMAS:
 				if not ("%s.yaml" % kind) in present:
 					u.records[kind] = []
@@ -184,7 +184,7 @@ static func _named(names: Array, mod: String) -> Array:
 	for n in names:
 		if not n is String:
 			continue
-		out.append("%s/%s" % [mod, n] if not "/" in n and FileAccess.file_exists("%s/%s/%s/bundle.yaml" % [ROOT, mod, n]) else n)
+		out.append("%s/%s" % [mod, n] if not "/" in n and file_exists("%s/%s/%s/bundle.yaml" % [ROOT, mod, n]) else n)
 	return out
 
 
@@ -193,7 +193,7 @@ static func _named(names: Array, mod: String) -> Array:
 static func _read_records(bundle: String, mod: String, kind: String) -> Array:
 	var out := []
 	var path := "%s/%s/data/%s.yaml" % [ROOT, bundle, kind]
-	if not FileAccess.file_exists(path):
+	if not file_exists(path):
 		return out
 	var file := "%s/data/%s.yaml" % [bundle, kind]
 	var list: Variant = _read(path)

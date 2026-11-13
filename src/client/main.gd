@@ -65,6 +65,9 @@ const SettingsScript := preload("res://src/client/settings.gd")
 const AutoQuality := preload("res://src/client/view/auto_quality.gd")
 const ModReload := preload("res://src/client/mod_reload.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const Content := preload("res://src/shared/content/content.gd")
+const ModFiles := preload("res://src/shared/content/mod_files.gd")
+const ModFetch := preload("res://src/client/net/mod_fetch.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
@@ -190,6 +193,9 @@ var join_url := ""
 var player_name := "[player_n2]"
 var join_password := ""
 var welcome := {}
+## The server's mods' files being taken before the game is let in (_take_mods), null
+## when none are.
+var mod_fetch: ModFetch
 var join_error := ""
 ## What orders the world made around the player: the session over the loop, the
 ## generator copy over a socket (make_chunk, make_chunks, forget_far, take_work).
@@ -282,6 +288,17 @@ static var play_at_once := false
 ## The bundles a server far away plays with, when they are not the ones loaded: the
 ## scene is started again with them (decision 153, 5А).
 static var pending_mods: Array = []
+## The mods' files of the server joined when they are not the game's own (decision 189):
+## {"url", "digest", "table" (a path inside content/ → the file that holds it, ModFetch)},
+## kept over the restarts of the scene while the game is on that server (_use_mods);
+## and how many times in a row the server said its files are others (a server whose
+## files keep changing is given up).
+static var server_mods := {}
+static var mods_tries := 0
+const MODS_TRIES := 3
+## The set (its hash) the player was told is large to take (ModFetch.ASK_ABOVE): joining
+## again takes it.
+static var mods_allowed := ""
 ## The server to join, kept over a restart of the scene ({url, name, password}): set
 ## by the «Присоединиться» screen (join_server) or `--join`, emptied when the player goes
 ## back to a world of their own (leave_server).
@@ -357,7 +374,7 @@ func _ready() -> void:
 		pending_mods = []
 	else:
 		world_mods = settings.world_mods()
-	Mods.activate(world_mods)
+	_use_mods()
 	# What the last scene worked out of its materials goes with them: this world's bundles
 	# may number them otherwise.
 	PixelTextures.forget()
@@ -535,6 +552,23 @@ static func server_stopping() -> bool:
 	return hosted != null and hosted.server != null and hosted.server.stopping
 
 
+## Loads the bundles of the world (`world_mods`) from the mods' files it plays with: on a
+## server whose files were taken (`server_mods`), those; else the game's own. What was
+## read of the other files before (phrases, models, icons, the figure's pictures, the
+## sounds) is read anew.
+func _use_mods() -> void:
+	var was := Content.served_digest
+	if join_url != "" and hosted == null and server_mods.get("url", "") == join_url:
+		Content.serve(server_mods.table, server_mods.digest)
+	else:
+		server_mods = {}
+		Content.serve({})
+	Mods.activate(world_mods)
+	if Content.served_digest != was:
+		mod_reload.forget_files()
+		sound.read_records()
+
+
 ## Opens the socket to the server and says hello; the welcome comes while the scene
 ## is built (see start_world).
 func _connect() -> void:
@@ -544,14 +578,23 @@ func _connect() -> void:
 		join_error = "[invalid_server_address]"
 		return
 	net = socket.net
+	mod_reload.watch_server(net)
+	# The hello names the mods' files the game plays with, set by now (_use_mods); a
+	# server made here is told its own.
 	# A bot comes in new each time: bots started side by side share this device's keys.
 	var key: String = "" if bot != null else ServerList.key(join_url)
-	socket.hello(player_name, key, join_password).then(_on_welcome)
+	var mods := ""
+	if hosted != null and hosted.server != null:
+		hosted.server.content.ready()
+		mods = hosted.server.content.digest
+	socket.hello(player_name, key, join_password, mods).then(_on_welcome)
 
 
 func _on_welcome(v: Variant) -> void:
 	if not v is Dictionary or v.get("ok") != true:
 		var why: String = v.get("why", "") if v is Dictionary else ""
+		if why == Protocol.WHY_MODS and _take_mods(v):
+			return
 		join_error = {Protocol.WHY_VERSION: "[different_game_version_reload_the]",
 			Protocol.WHY_PASSWORD: "[wrong_password]", Protocol.WHY_FULL: "[server_is_full]",
 			Protocol.WHY_NAME: "[a_name_is_required]", Protocol.WHY_BANNED: "[the_server_host_has_banned]",
@@ -565,11 +608,58 @@ func _on_welcome(v: Variant) -> void:
 		return
 	welcome = v
 	rejoin_until = 0
+	mods_tries = 0
 	if bot == null:
 		ServerList.remember(join_url, str(v.get("key", "")), str(v.get("title", "")))
 	# The player who made the server here is its host: commands in the chat are theirs.
 	if hosted != null and hosted.server != null:
 		hosted.server.make_host(str(v.get("key", "")))
+
+
+## The server plays with other mods' files than this game (the refusal `v`,
+## Protocol.WHY_MODS): with its own files for the server's bundles when those are the
+## same, else with the server's, taken over this connection (ModFetch; _join_world shows
+## how it goes); then the scene starts again with them and says hello anew. False when
+## the refusal is not one to act on (join_error says why).
+func _take_mods(v: Dictionary) -> bool:
+	var list: Variant = v.get("mods")
+	var digest: Variant = v.get("content")
+	mods_tries += 1
+	if not list is Array or list.size() > 4096 or not ModFiles.valid_hash(digest) or hosted != null:
+		join_error = "[the_server_answered_in_an]"
+		return true
+	for b: Variant in list:
+		if not b is String or b.length() > 128:
+			join_error = "[the_server_answered_in_an]"
+			return true
+	if mods_tries > MODS_TRIES:
+		join_error = "[the_servers_mod_data_keeps]"
+		return true
+	print("the server plays with other mod files (%s, %d KB)" % [digest, int(v.get("size", 0)) >> 10])
+	pending_mods = Array(list)
+	server_mods = {}
+	Content.serve({})
+	if Content.own_digest(pending_mods) == digest:
+		# The same files, other bundles: this game's own will do.
+		restart.call_deferred()
+		return true
+	mod_fetch = ModFetch.new()
+	mod_fetch.no_ask = bot != null
+	mod_fetch.finished.connect(_on_mods_taken)
+	mod_fetch.begin(net, digest, pending_mods)
+	return true
+
+
+func _on_mods_taken(ok: bool) -> void:
+	if not is_inside_tree():
+		return
+	if not ok:
+		join_error = mod_fetch.error
+		pending_mods = []
+		return
+	print("the server's mod files: %d taken (%d KB), %d in all" % [mod_fetch.files, mod_fetch.got >> 10, mod_fetch.table.size()])
+	server_mods = {"url": join_url, "digest": mod_fetch.digest, "table": mod_fetch.table}
+	restart.call_deferred()
 
 
 func _on_socket_closed(code: int, reason: String) -> void:
@@ -585,6 +675,8 @@ func _on_socket_closed(code: int, reason: String) -> void:
 		return
 	if server_stopping():
 		return
+	if mod_fetch != null and mod_fetch.state in ["list", "ask", "files"]:
+		mod_fetch.stop()
 	if join_error == "" and welcome.is_empty():
 		# A browser says nothing of a server that is not there but a code without words.
 		join_error = "[the_server_does_not_respond]" if code < 0 or reason == "" else Lang.line("[the_server_closed_the_door]", [reason])
@@ -594,6 +686,26 @@ func _on_socket_closed(code: int, reason: String) -> void:
 			hud.set_loading(join_error)
 		if menu != null:
 			menu.join_failed(join_error)
+
+
+## The loading screen while the server's mods' files are taken: how much of them came.
+func _show_mods_taken() -> void:
+	if hud == null or mod_fetch == null:
+		return
+	var text := ""
+	if mod_fetch.state == "files":
+		text = Lang.line("[mod_data_s_of_s_mb]", [_mb(mod_fetch.got), _mb(mod_fetch.want)])
+	elif mod_fetch.state == "list":
+		text = "[mod_data]"
+	if text != "" and text != loading_stage:
+		# The menu's loading card names the stage; the plain line shows without a menu.
+		loading_stage = text
+		hud.set_loading(text)
+
+
+## `bytes` as megabytes with one digit after the point.
+static func _mb(bytes: int) -> String:
+	return "%.1f" % (bytes / 1048576.0)
 
 
 ## Generates the world chosen (see SaveGame.choose_world) and builds the scene around
@@ -680,7 +792,18 @@ func _join_world() -> void:
 		return
 	var since := Time.get_ticks_msec()
 	while welcome.is_empty() and join_error == "":
-		if Time.get_ticks_msec() - since > JOIN_WAIT * 1000.0:
+		if mod_fetch != null:
+			# The server's mods' files are being taken: the scene starts again with them.
+			mod_fetch.update()
+			_show_mods_taken()
+			if mod_fetch.state == "ask":
+				# A lot to take: the player is told how much and joins again to agree.
+				if mods_allowed == mod_fetch.digest:
+					mod_fetch.allow()
+				else:
+					mods_allowed = mod_fetch.digest
+					join_error = Lang.line("[the_server_asks_to_download]", [_mb(mod_fetch.want)])
+		elif Time.get_ticks_msec() - since > JOIN_WAIT * 1000.0:
 			join_error = "[the_server_does_not_respond]"
 			break
 		await get_tree().process_frame

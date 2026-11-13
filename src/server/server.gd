@@ -24,6 +24,8 @@ const Config := preload("res://src/server/config.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
+const Content := preload("res://src/shared/content/content.gd")
+const ContentHost := preload("res://src/server/content_host.gd")
 
 ## Seconds a character stays in the world after its connection is lost or a goodbye,
 ## out of their land (see linger_of).
@@ -32,6 +34,9 @@ const LINGER := 30.0
 const CHAT_RANGE := 30.0
 ## Seconds a connection has to say hello.
 const HELLO_WAIT := 10.0
+## Seconds one told its mods' files are not the server's (Protocol.WHY_MODS) has to take
+## the server's and say hello again.
+const FETCH_WAIT := 900.0
 ## Seconds between the animals' snapshots over a socket (PlayerLink.snap_every).
 const SNAP_EVERY := 0.1
 ## Seconds between the other players' snapshots to a player (PlayerLink.people_every).
@@ -111,6 +116,11 @@ class Peer extends RefCounted:
 	var tokens := MSG_BURST
 	var tokens_at := -1.0
 	var refused := 0.0
+	## Its HELLO was right but for the mods' files (Protocol.WHY_MODS): it may ask for them
+	## before it says hello again.
+	var fetching := false
+	## The mods' files it asked for (ContentHost.Feed), null until it asks.
+	var feed: ContentHost.Feed
 
 	## Closes the socket after what was sent went out.
 	func close_after(code: int, reason: String) -> void:
@@ -139,6 +149,8 @@ var config: Config
 var store
 ## What the welcome tells of the world: seed, settings, mods, materials, spawn.
 var world_info := {}
+## The mods' files the world plays with, for the games that lack them (decision 189).
+var content: ContentHost
 var tcp := TCPServer.new()
 var peers: Array[Peer] = []
 ## The accounts by key.
@@ -175,6 +187,7 @@ func _init(s, cfg: Config, info: Dictionary) -> void:
 	session = s
 	config = cfg
 	world_info = info
+	content = ContentHost.new(Content.ROOT, info.get("mods", []))
 
 
 ## Listens on the config's port; the error if the port is taken.
@@ -212,6 +225,12 @@ func poll() -> void:
 			var bytes := ws.get_packet()
 			if _within_rate(peer, now):
 				_take(peer, bytes)
+		if peer.feed != null and state == WebSocketPeer.STATE_OPEN and peer.close_code == 0:
+			for b in content.pieces(peer.feed, now, ws.get_current_outbound_buffered_amount()):
+				ws.put_packet(b)
+			if content.changed != "":
+				_say("mods: %s is not the file it was at the last reload: `reload` reads the mods' data again" % content.changed)
+				content.changed = ""
 		if peer.close_code != 0 and state == WebSocketPeer.STATE_OPEN:
 			peer.close_in -= 1
 			if peer.close_in <= 0:
@@ -220,7 +239,7 @@ func poll() -> void:
 			WebSocketPeer.STATE_OPEN:
 				# One that never said hello; a connection closing (kicked, refused,
 				# elsewhere) has no account either, and goes its own way.
-				if peer.account == null and peer.close_code == 0 and now - peer.since > HELLO_WAIT:
+				if peer.account == null and peer.close_code == 0 and now - peer.since > (FETCH_WAIT if peer.fetching else HELLO_WAIT):
 					ws.close(CLOSE_REFUSED, "hello first")
 			WebSocketPeer.STATE_CONNECTING:
 				if now - peer.since > HELLO_WAIT:
@@ -364,8 +383,7 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 ## their own files (a game on the same computer by itself, ModReload). The words to print.
 func reload_mods() -> String:
 	var problems := Mods.rescan(true)
-	if session != null:
-		session.reread()
+	mods_reread()
 	for key in accounts:
 		accounts[key].link.hear(0, "", "[the_server_reloaded_the_mod]")
 	var out: Array[String] = ["mod data read again" if problems.is_empty() else "mod data read again, problems: %d" % problems.size()]
@@ -374,6 +392,17 @@ func reload_mods() -> String:
 	if Mods.cells_kept:
 		out.append("the cells' materials changed: this world keeps the old ones, a new world takes the new")
 	return "\n".join(out)
+
+
+## The mods' data was read again (reload_mods; a server made in the game: by the game's
+## own hot reload, ModReload): the rules play with it, and when the files are not the ones
+## they were the players' games are told, to take what changed (Protocol.MODS).
+func mods_reread() -> void:
+	if session != null:
+		session.reread()
+	if content.read():
+		for key in accounts:
+			accounts[key].link.mods_changed(content.digest, content.size, content.bundles)
 
 
 ## Loads who may come in from the world's save (the server's scene, at start).
@@ -621,13 +650,15 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 	var open := peer.ws.get_ready_state() == WebSocketPeer.STATE_OPEN
 	if peer.account == null:
 		# One refused, kicked or gone elsewhere says nothing more.
-		if open and peer.close_code == 0:
+		if open and peer.close_code == 0 and not (peer.fetching and _mods_asked(peer, Protocol.decode(bytes))):
 			_hello(peer, bytes)
 		return
 	var link: PlayerLink = peer.account.link
 	var msg := Protocol.decode(bytes)
 	if msg.is_empty() or not msg[0] is String:
 		flag(peer.account, "malformed", "not a message (%d bytes)" % bytes.size(), 1)
+		return
+	if open and _mods_asked(peer, msg):
 		return
 	if msg.size() == 2 and msg[0] == Protocol.BYE:
 		peer.account.linger = linger_of(peer.account)
@@ -648,6 +679,23 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 		peer.ws.put_packet(reply)
 
 
+## Whether `msg` asks for the mods' files (Protocol.MOD_LIST, MOD_FILES), which is then
+## done for `peer`: the list goes at once, the files by pieces (poll). One that asks for
+## what is no list of hashes, or far more than the files there are, is not answered.
+func _mods_asked(peer: Peer, msg: Array) -> bool:
+	if msg.size() != 2 or not msg[0] is String or not msg[0] in [Protocol.MOD_LIST, Protocol.MOD_FILES]:
+		return false
+	if peer.feed == null:
+		peer.feed = ContentHost.Feed.new()
+	if msg[0] == Protocol.MOD_LIST:
+		var list := content.list_msg(peer.feed)
+		if not list.is_empty():
+			peer.ws.put_packet(list)
+	elif not msg[1] is Array or msg[1].size() != 1 or not content.ask(peer.feed, msg[1][0]):
+		flag(peer.account, "malformed", "mod files asked for the wrong way", 1)
+	return true
+
+
 ## The first message must be a HELLO request; the player is let in or refused.
 func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 	var msg := Protocol.decode(bytes)
@@ -666,6 +714,18 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 			flag(null, "login", "%s: refused (%s) from %s" % [who_said, why, peer.address], 1)
 		peer.ws.put_packet(Protocol.encode(Protocol.reply(seq, {"ok": false, "why": why})))
 		peer.close_after(CLOSE_REFUSED, why)
+		return
+	content.ready()
+	if args[5] != content.digest:
+		# Welcome but for the mods' files: the game takes the server's over this connection
+		# and says hello again (on this one, or on another after it started again).
+		if not peer.fetching:
+			_say("%s: plays with other mod files, is offered the server's (%d KB) from %s"
+				% [Protocol.clean_text(args[2], NAME_MAX), content.size >> 10, peer.address])
+		peer.fetching = true
+		peer.since = _now()
+		peer.ws.put_packet(Protocol.encode(Protocol.reply(seq, {"ok": false, "why": Protocol.WHY_MODS,
+			"mods": content.bundles, "content": content.digest, "size": content.size})))
 		return
 	var name := Protocol.clean_text(args[2], NAME_MAX)
 	var key: String = args[3]
@@ -738,8 +798,8 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 
 ## Why the HELLO with `args` from `address` is refused, "" when it is not.
 func _refusal(args: Array, address := "") -> String:
-	if args.size() != 5 or not args[0] is int or not args[1] is String or not args[2] is String \
-			or not args[3] is String or not args[4] is String or args[3].length() > 64:
+	if args.size() != 6 or not args[0] is int or not args[1] is String or not args[2] is String \
+			or not args[3] is String or not args[4] is String or args[3].length() > 64 or not args[5] is String:
 		return Protocol.WHY_VERSION
 	if args[0] != Protocol.VERSION or args[1] != Protocol.build_version():
 		return Protocol.WHY_VERSION

@@ -13,7 +13,7 @@ extends RefCounted
 ## it is HELLO, and nothing else is read until the server has welcomed the player.
 
 ## The protocol's version: a client and a server of different versions do not play.
-const VERSION := 1
+const VERSION := 2
 ## The port a server listens on when it is not told another (the address a player
 ## types without one goes there).
 const PORT := 7777
@@ -25,7 +25,8 @@ const BUILD_INFO := "res://build_info.json"
 
 ## The first request over a socket: [VERSION, the build's version (build_version), the
 ## player's name, the key the server gave the player before ("" the first time), the
-## server's password ("" when it asks none)]. The reply is the welcome: {"ok": true,
+## server's password ("" when it asks none), the hash that names the mods' files the game
+## plays with (Content.playing)]. The reply is the welcome: {"ok": true,
 ## "id", "key" (keep it for this server), "name" (as the server took it), "title" (the
 ## server's name), "seed",
 ## "settings", "mods" (the bundles of the world, in order), "materials" (the ids in the
@@ -45,6 +46,11 @@ const WHY_LIST := "list"
 const WHY_TAKEN := "taken"
 ## Too many tries in a short while (a wrong password, new players): come back later.
 const WHY_WAIT := "wait"
+## The game plays with other mods' files than the server (decision 189): the refusal also
+## has "mods" (the server's bundles, in order), "content" (the hash that names its files,
+## ModFiles.digest) and "size" (their bytes), and the server does not close: the game asks
+## for the files it lacks (MOD_LIST, MOD_FILES) and says hello again with them.
+const WHY_MODS := "mods"
 
 ## The requests, each with its args. The rules they reach are in src/shared/game/; what
 ## each gives back is what that rule returns (Requests._do).
@@ -323,6 +329,21 @@ const CELLS := "cells"
 ## Something was taken from the world by anyone, for the picture of it flying to the
 ## bag: [id, from] (WorldActions.taken).
 const TAKEN := "taken"
+## The mods' files (decision 189; events both ways, before the welcome too, after a
+## refusal WHY_MODS). The client asks for the list of the server's files: []; the server
+## answers with the same kind: [bytes before packing, the bytes] (ModFiles.pack).
+const MOD_LIST := "mod_list"
+## The client asks for files by their hashes: [[hash, …]] (ContentHost.ASK_MAX at most in
+## one message); they come as MOD_DATA.
+const MOD_FILES := "mod_files"
+## Pieces of the files asked for, in the order asked, a file's pieces in order: [[hash,
+## offset, the file's bytes, the piece's bytes before packing (0: not packed), the
+## piece], …]; a file the server cannot give comes as one piece with -1 for its bytes.
+const MOD_DATA := "mod_data"
+## The server read its mods' data again and its files changed (the host's `reload`):
+## [the hash that names them now, their bytes, the bundles]. The game asks for what
+## changed and reads its data again without leaving the world (ModReload).
+const MODS := "mods"
 ## The client leaves on purpose: [] (the server lets the character linger a while less).
 const BYE := "bye"
 ## The server puts the player out: [why] (words for the player); then it closes.
