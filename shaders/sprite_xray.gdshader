@@ -10,11 +10,11 @@ stencil_mode read, compare_greater, 2;
 
 #include "res://shaders/common.gdshaderinc"
 
-uniform sampler2D sprite_texture : source_color, filter_nearest;
+uniform sampler2D sprite_texture : filter_nearest SRGB_HINT;
 // The frame of a sprite sheet to show, as a UV offset and size; a negative width
 // mirrors the frame. The whole texture by default.
 uniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);
-uniform vec4 silhouette : source_color = vec4(0.55, 0.75, 1.0, 0.55);
+uniform vec4 silhouette SRGB = vec4(0.55, 0.75, 1.0, 0.55);
 uniform float water_line = -1000.0;
 
 varying vec3 world_pos;
@@ -34,4 +34,5 @@ void fragment() {
 	}
 	ALBEDO = silhouette.rgb;
 	ALPHA = silhouette.a;
+	COMPAT_ALBEDO
 }

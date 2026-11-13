@@ -12,6 +12,8 @@
   меню.
 - **ПК (Windows, Linux):** релиз [pc-latest](https://github.com/randomboygh/survivium/releases/tag/pc-latest),
   тоже обновляется с каждым слиянием.
+- **Android:** APK в релизе [android-latest](https://github.com/randomboygh/survivium/releases/tag/android-latest),
+  тоже обновляется с каждым слиянием; откройте его на телефоне и разрешите установку из этого источника.
 - **Мультиплеер:** «Мультиплеер» → «Присоединиться» (ссылка `?server=адрес` открывает этот экран с адресом).
 
 ## Что есть в игре

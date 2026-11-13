@@ -371,3 +371,4 @@ static func _material_unshaded(m: Material) -> bool:
 			_unshaded[shader] = modes != null and "unshaded" in modes.get_string(1)
 		return _unshaded[shader]
 	return false
+

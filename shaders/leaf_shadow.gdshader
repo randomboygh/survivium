@@ -62,4 +62,5 @@ void fragment() {
 		discard;
 	}
 	ALBEDO = vec3(0.0);
+	COMPAT_ALBEDO
 }

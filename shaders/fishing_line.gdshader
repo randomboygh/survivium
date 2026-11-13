@@ -18,4 +18,5 @@ void fragment() {
 		discard;
 	}
 	ALBEDO = COLOR.rgb;
+	COMPAT_ALBEDO
 }

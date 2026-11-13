@@ -10,7 +10,7 @@ render_mode world_vertex_coords, unshaded, cull_disabled, blend_add, depth_draw_
 
 uniform int mode = 0;
 uniform float amount = 0.0;
-uniform vec3 light_color : source_color = vec3(1.0, 0.95, 0.8);
+uniform vec3 light_color SRGB = vec3(1.0, 0.95, 0.8);
 // The way the light runs, down to the ground.
 uniform vec3 light_down = vec3(0.0, -1.0, 0.0);
 // World units a shaft is drawn nearer the camera than it is.
@@ -73,4 +73,6 @@ void fragment() {
 		discard;
 	}
 	ALBEDO = light_color * k * (mode == 1 ? vec3(1.0, 0.92, 0.7) : vec3(1.0));
+	// No COMPAT_ALBEDO: added to the picture in sRGB on Compatibility, in linear light on Mobile,
+	// where the colour as it is adds about as much over the ground's middle tones.
 }

@@ -27,7 +27,7 @@ src/client/              the picture, input and sound of this device; main.gd, s
     kit/                 the UI kit: ready parts of windows (window, buttons, fields, «‹ ›» rows, two taps, the strip of cells)
 shaders/                 3D shaders (the shared common.gdshaderinc), colour correction, the map, the interface
 content/<mod>/           mods: mod.yaml, README, bundle folders with bundle.yaml, data/, sprites/, icons/, models/, textures/, sounds/, lang/ (translations); common/ shared assets
-assets/                  the font, the splash, interface icons (ui/), the web page's icons (web/, not imported)
+assets/                  the font, the splash, interface icons (ui/), the web page's icons (web/, not imported), the apps' icons (app/: Android, Windows)
 tests/                   headless tests (run_tests + unit/, save, progress, frame, server), the check in a browser, run_all.sh (all the checks)
 tools/                   lint (lint.py), compiling all scripts (parse_check.gd), the pre-commit hook (hooks/), the validator, screenshots (shot + shot/), the map, benches, the profile, makers of pictures, sounds, icons; art/, sound/
 .github/                 CI (workflows/build.yml), the test server (workflows/playtest.yml), the Godot setup (actions/godot), the PR template

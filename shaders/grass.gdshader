@@ -17,7 +17,7 @@ stencil_mode write, compare_always, 2;
 
 #include "res://shaders/common.gdshaderinc"
 
-global uniform sampler2D terrain_atlas : source_color, filter_nearest;
+global uniform sampler2D terrain_atlas : filter_nearest SRGB_HINT;
 uniform sampler2D plant_texture : filter_nearest;
 // 0 by day, 1 at night (sky.gd): how much the glowing mushrooms shine.
 global uniform float night_glow;
@@ -224,6 +224,7 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(root);
+	COMPAT_COLORS
 }
 
 void light() {
@@ -247,5 +248,5 @@ void light() {
 	if (spot >= 0 && lit != vec3(0.0) && light_blocked(spot, root + vec3(0.0, 0.1, 0.0))) {
 		lit = vec3(0.0);
 	}
-	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? lit : lit * lamp_gain;
+	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? compat_sun(lit, ALBEDO) : lit * lamp_gain;
 }

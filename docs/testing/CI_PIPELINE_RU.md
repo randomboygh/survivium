@@ -32,14 +32,16 @@
 | `frames` | `frame_test` один на машине (меряет кадры) | ~1,5 мин | да |
 | `export` | версия и «Что нового» (`build_info.py`), web-экспорт, патчи `web_patch.py` и `web_cache.py`; артефакт `survivium-web` | ~1 мин | да (для деплоя) |
 | `pc` | экспорт Windows и Linux; артефакты `survivium-windows`, `survivium-linux` | ~1 мин | да (для публикации) |
+| `android` | Android APK (arm64), подписанный ключом из секретов ([../systems/android.md](../systems/android_RU.md)); артефакт `survivium-android` | ~2 мин | да (для публикации) |
 | `smoke (desktop / phone / upright)` | web-сборка в headless Chrome (`tests/browser_smoke.mjs`); телефоны рисуют самый лёгкий набор (`?quality=0`, `Settings.use_page_quality`), компьютер — обычную картинку | 1–4 мин | да, когда идёт |
 | `publish` | только `main`: ПК-сборки в пререлиз `pc-latest` | секунды | — |
+| `publish-android` | только `main`: APK в пререлиз `android-latest` | секунды | — |
 | `deploy` | только `main`: web-сборка на GitHub Pages | секунды | — |
 
 «Блокирует» здесь значит: `publish` и `deploy` ждут его успеха, а по правилу проекта PR сливается только
 при зелёном CI. Чтобы GitHub сам не давал слить красный PR, в настройках репозитория (Settings →
 Branches → правило для `main` → Require status checks) отметьте задания `lint`, `checks`, `tests`,
-`progress (hunting)`, `progress (other)`, `frames`, `export`, `pc`. `smoke (…)` туда не ставится: на PR
+`progress (hunting)`, `progress (other)`, `frames`, `export`, `pc`, `android`. `smoke (…)` туда не ставится: на PR
 без изменений клиента оно пропускается.
 
 ## Результаты и логи
@@ -55,9 +57,10 @@ Branches → правило для `main` → Require status checks) отмет�
 ## Безопасность
 
 - Права токена по умолчанию — только чтение (`contents: read`); `changes`, `export`, `pc` читают ещё
-  PR (`pull-requests: read`), `publish` пишет релиз (`contents: write`), `deploy` — Pages
+  PR (`pull-requests: read`), `publish`, `publish-android` пишут релиз (`contents: write`), `deploy` — Pages
   (`pages: write`, `id-token: write`). Код PR не получает прав записи.
-- Секретов нет, кроме встроенного `GITHUB_TOKEN`; он не печатается.
+- Секреты: встроенный `GITHUB_TOKEN` и ключ подписи Android `ANDROID_KEYSTORE`, `ANDROID_KEYSTORE_PASSWORD`
+  (их читает только задача `android`; файл ключа удаляется после экспорта); ни один не печатается.
 - Сторонние действия — только `actions/*` GitHub, закреплены на коммит (SHA) с версией в комментарии.
   Обновлять — заменой SHA на коммит нового тега (`git ls-remote https://github.com/actions/<имя>`).
 - Godot и шаблоны экспорта скачиваются с релиза движка и сверяются с SHA-512 из
@@ -67,7 +70,7 @@ Branches → правило для `main` → Require status checks) отмет�
 - `playwright-core` для smoke-теста закреплён версией (`1.48.2`), без lock-файла.
 - Каждый тест пишет в свой `user://` (`XDG_DATA_HOME`), сохранения разработчика не трогаются;
   внешних сервисов тесты не зовут (сервер-тест слушает localhost:7791).
-- Проверка кода и публикация разделены: публикуют только `publish` и `deploy`, только в `main`, только
+- Проверка кода и публикация разделены: публикуют только `publish`, `publish-android` и `deploy`, только в `main`, только
   после успеха всех проверок.
 
 ## Время

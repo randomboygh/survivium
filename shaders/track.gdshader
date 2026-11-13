@@ -47,4 +47,5 @@ void fragment() {
 		discard;
 	}
 	ALBEDO = tint.rgb;
+	COMPAT_ALBEDO
 }

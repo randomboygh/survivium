@@ -7,7 +7,7 @@ Status: ACTIVE, checked against the code on 2026-11-09 (client 0.2.457). A Russi
 
 Survivium is a meditative survival sandbox: a big procedural world of levels in 3D pixel art seen at 3/4,
 one character, gathering, crafting, building, a living world with beasts and seasons, teams, territories
-and PvP on a server. It runs in the browser and on PC (Windows, Linux), later on Android; multiplayer goes
+and PvP on a server. It runs in the browser and on PC (Windows, Linux) and Android; multiplayer goes
 through its own authoritative server (the same executable, decision 153). The idea: `plan/design/overview.md`
 and `plan/design/mvp-design.md` in the library; what is done by area — `README.md` in the root.
 
@@ -36,7 +36,7 @@ and `plan/design/mvp-design.md` in the library; what is done by area — `README
 - In the data now: 30 cell materials, 217 items, 162 recipes, 20 species of trees, 6 shrubs, 21 plants on
   grass and in a bed, 23 creatures (with the human), 28 biomes, 7 eras, 10 skills; 9 mods, 167 bundles (the
   full list is [generated/content-index.md](generated/content-index.md)).
-- Not there: the decay of buildings, an editor, NPCs, an Android build (stage 2); the experiment in crafting
+- Not there: the decay of buildings, an editor, NPCs; the experiment in crafting
   was cancelled (decision 181). What of this is planned — `plan/mvp.md` and `plan/backlog.md` in the library.
 
 ## Technology and limits

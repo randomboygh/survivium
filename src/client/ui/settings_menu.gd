@@ -33,6 +33,8 @@ const Sound := preload("res://src/client/audio/sound.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
+const LastLog := preload("res://src/client/ui/last_log.gd")
+const ShaderProbe := preload("res://src/client/view/shader_probe.gd")
 const GlWatch := preload("res://src/client/ui/gl_watch.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
@@ -72,6 +74,9 @@ const PAGES := {
 	"test": [["world", "[world_n3]"], ["server", "[server_name]"], ["player", "[player_n2]"], ["caves", "[caves]"], ["marks", "[markers]"], ["debug", "[debug]"]],
 	"freezes": [["all", "all"], ["critical", "from 200"], ["big", "100–200"], ["small", "50–100"]],
 }
+## The settings' tab of the developer mode (Settings.testing_unlocked): what is seen with
+## no world too (the last run's log, the freezes, the interface's gallery, wiping the data).
+const DEV_TAB := ["dev", "[debug]"]
 ## Sections with nothing to set yet: their tabs are dimmed, «скоро».
 const SOON := []
 ## Sections as long as there is something in them: no taller page for them, they scroll.
@@ -115,6 +120,8 @@ var _share: Button
 var _shown_text := ""
 ## Where «Назад» goes from the changes, freezes and report pages: a page, or "" to close.
 var _back_to := "test"
+## The shader probe running (ShaderProbe), null when none.
+var _probe: Node = null
 ## The changes of the changes page not made yet (see CHANGES_STEP), and the PR made last.
 var _changes_left := []
 var _changes_pr := -1
@@ -221,7 +228,7 @@ func open_gallery() -> Control:
 ## `back`, or closes the window when it is "".
 func open(which: String, back := "test") -> void:
 	page = which
-	if which in ["changes", "freezes", "report"]:
+	if which in ["changes", "freezes", "report", "crash", "probe"]:
 		_back_to = back
 	_fill()
 
@@ -234,14 +241,15 @@ func show_section(key: String) -> void:
 
 ## The tabs of page `which` (see PAGES), made when the page changes.
 func _make_tabs(which: String) -> void:
-	if _tabs_page == which:
+	var tabs := _tabs_of(which)
+	if _tabs_page == which + str(tabs.size()):
 		return
-	_tabs_page = which
+	_tabs_page = which + str(tabs.size())
 	for b in _tabs.get_children():
 		_tabs.remove_child(b)
 		b.queue_free()
 	_tab_buttons.clear()
-	for sec in PAGES.get(which, []):
+	for sec in tabs:
 		var key: String = sec[0]
 		var b := TabRow.small_button(sec[1], show_section.bind(key))
 		b.custom_minimum_size.y = TAB_HEIGHT
@@ -268,7 +276,7 @@ func _fill() -> void:
 	_version.visible = which != "settings"
 	_changes.visible = which == "test"
 	_clear.visible = which == "freezes"
-	_copy.visible = which in ["freezes", "report"]
+	_copy.visible = which in ["freezes", "report", "crash", "probe"]
 	_copy.text = "[copy]"
 	UiStyle.succeed(_copy, false)
 	# The phone's sharing, where the browser has it.
@@ -287,6 +295,16 @@ func _fill() -> void:
 	elif which == "report":
 		_title.text = "[test_data]"
 		_add_report()
+	elif which == "probe":
+		_title.text = "[shader_probe]"
+		_shown_text = ShaderProbe.report()
+		_list.add_child(_paragraph(_shown_text, UiStyle.INK))
+	elif which == "crash":
+		_title.text = "[crash_log]" if LastLog.crashed else "[last_run_log]"
+		_shown_text = LastLog.tail()
+		if _shown_text == "":
+			_shown_text = Lang.t("[no_log_yet]")
+		_list.add_child(_paragraph(_shown_text, UiStyle.INK))
 	else:
 		_title.text = "[settings]" if which == "settings" else "[testing]"
 		for k in _tab_buttons:
@@ -470,6 +488,19 @@ func _section_rows(key: String) -> Array:
 			if game.markers == null or game.markers.list.is_empty():
 				marks.append({"note": "[no_markers_put_them_on]"})
 			return marks
+		"dev":
+			var dev := []
+			if not OS.has_feature("web"):
+				dev.append({"action": "[last_run_log]", "do": func() -> void: open("crash", "settings")})
+			dev.append({"action": "[shader_probe]", "do": _run_probe})
+			dev.append({"action": "[freeze_log]", "do": func() -> void: open("freezes", "settings")})
+			dev.append({"action": "[ui_gallery]", "do": func() -> void: open_gallery()})
+			dev.append(_section("trash", "[danger]"))
+			dev.append({"action": "[shader_probe_again]", "do": func() -> void:
+				ShaderProbe.clear()
+				_run_probe(), "confirm": true})
+			dev.append({"action": "[clear_all_data]", "do": func() -> void: s.wipe_all(), "confirm": true})
+			return dev
 		"debug":
 			return [
 				_section("chart", "[on_screen]"),
@@ -767,7 +798,7 @@ func _reset() -> void:
 
 
 func _go_back() -> void:
-	if page in ["changes", "freezes", "report"] and _back_to != "":
+	if page in ["changes", "freezes", "report", "crash", "probe"] and _back_to != "":
 		open(_back_to)
 	else:
 		close()
@@ -815,7 +846,7 @@ func fit(screen: Vector2) -> void:
 	# Every page takes the columns the settings need, so all are as wide.
 	var n := 2 if _page_height("settings", 1) > room \
 			and screen.x - 2 * 8 - 2 * UiStyle.PAD.x - BAR_ROOM >= 2 * ROW_WIDTH + COLUMN_GAP else 1
-	if n != _columns and page in ["changes", "freezes", "report"]:
+	if n != _columns and page in ["changes", "freezes", "report", "crash", "probe"]:
 		_columns = n
 		_fill()
 		return
@@ -848,10 +879,18 @@ func _set_columns(n: int) -> void:
 	_list.custom_minimum_size.y = _page_height(page, n)
 
 
+## The tabs of page `which`: PAGES', and on the settings the developer mode's.
+func _tabs_of(which: String) -> Array:
+	var tabs: Array = PAGES.get(which, [])
+	if which == "settings" and game.settings.testing_unlocked:
+		tabs = tabs + [DEV_TAB]
+	return tabs
+
+
 ## How tall the longest section of page `which` (see PAGES) stands in `n` columns.
 func _page_height(which: String, n: int) -> int:
 	var tallest := 0
-	for sec in PAGES.get(which, []):
+	for sec in _tabs_of(which):
 		if not sec[0] in LISTS:
 			tallest = maxi(tallest, _height(_section_rows(sec[0]), n))
 	return tallest
@@ -929,6 +968,23 @@ func _add_report() -> void:
 	_list.add_child(_paragraph(_shown_text, UiStyle.INK))
 
 
+## «Проверка шейдеров»: draws the shaders one at a time (ShaderProbe), going on after
+## the step the last run crashed on; its page shows each step as it ends.
+func _run_probe() -> void:
+	if _probe == null:
+		_probe = ShaderProbe.new()
+		_probe.stepped.connect(_probe_stepped)
+		_probe.finished.connect(_probe_stepped)
+		_probe.tree_exited.connect(func() -> void: _probe = null)
+		game.add_child(_probe)
+	open("probe", "settings")
+
+
+func _probe_stepped() -> void:
+	if visible and page == "probe":
+		_fill()
+
+
 ## «Скопировать»: the text of the page shown into the clipboard.
 func _copy_shown() -> void:
 	DisplayServer.clipboard_set(_shown_text)
@@ -978,6 +1034,10 @@ func report_text() -> String:
 	if OS.has_feature("web"):
 		# English only, like the other internal texts to come (decision 186).
 		lines.append("Browser draws with: %s%s" % [GlWatch.renderer(), " (software, no graphics card)" if GlWatch.software() else ""])
+	var last_log := LastLog.tail()
+	if last_log != "":
+		# English only, an internal text (decision 186).
+		lines.append("Last run's log, " + last_log)
 	if game.net != null:
 		lines.append(Lang.f("Server: %s, requests %d, bytes out %d, in %d, coding %.1f ms, waiting %d", [
 			Lang.f("over the net %s", [game.join_url]) if game.socket != null else "in the game (loop)",

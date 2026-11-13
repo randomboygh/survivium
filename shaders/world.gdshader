@@ -36,7 +36,7 @@ stencil_mode write, compare_always, 1;
 
 #include "res://shaders/common.gdshaderinc"
 
-global uniform sampler2D terrain_atlas : source_color, filter_nearest;
+global uniform sampler2D terrain_atlas : filter_nearest SRGB_HINT;
 // Corner shape of each material (Mat.corner_shape): 0 a straight cut, 1 a little
 // rounded, 2 a quarter circle; the exponent p of the curve is 1, 1.5 or 2.
 uniform int corner_shapes[63];
@@ -611,6 +611,7 @@ void fragment() {
 		EMISSION = bayer4(st) < share ? col * SECTION_RIM_BRIGHT : SECTION;
 		clouds = 0.0;
 	}
+	COMPAT_COLORS
 }
 
 void light() {
@@ -625,5 +626,5 @@ void light() {
 			normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz), world_pos, world_normal)) {
 		lit = vec3(0.0);
 	}
-	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? lit : lit * lamp_gain;
+	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? compat_sun(lit, ALBEDO) : lit * lamp_gain;
 }

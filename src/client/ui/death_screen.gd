@@ -17,6 +17,7 @@ const SLAVIC := ["ru", "uk", "pl"]
 const COMMA := ["ru", "uk", "pl", "de", "fr", "es", "pt", "it", "tr"]
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Kit := preload("res://src/client/ui/kit/kit.gd")
+const Shade := preload("res://src/client/ui/kit/shade.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -417,8 +418,7 @@ func _fit() -> void:
 
 ## The darkened world, over the whole window past the safe rect.
 func _draw() -> void:
-	var s: float = scale.x
-	draw_rect(Rect2(-position / s, get_viewport_rect().size / s).grow(2), SHADE)
+	draw_rect(Shade.window_rect(self), SHADE)
 
 
 ## Enter comes back at the first respawn point, Escape opens the main menu; every other

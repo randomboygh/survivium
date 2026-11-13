@@ -75,7 +75,10 @@
 **Правила**
 - Новый 3D-шейдер подключает `shaders/common.gdshaderinc` и сдвигает VERTEX как остальные (в виде по
   умолчанию `z -= y`, камера смотрит строго вниз); огни ставятся в `PixelView.shear(pos)`, выбор
-  клетки — через `PixelView.view_ray`.
+  клетки — через `PixelView.view_ray`. Его подсказки цвета — `SRGB` (`uniform vec3 c SRGB = …`) или `SRGB_HINT` после
+  других (`: filter_nearest SRGB_HINT`), не `source_color`, а fragment() кончается `COMPAT_ALBEDO` (или `COMPAT_COLORS`,
+  если он ставит EMISSION): на Android рисует рендерер Mobile (Vulkan), он понимает цвета как линейные, а эти
+  макросы заставляют его видеть их как Compatibility ([android.md](android_RU.md)).
 - При повороте и наклоне сдвиг идёт вверх по картинке (глобальные `view_up`, `view_slope`,
   `view_squash`); вертикальные квадраты смотрят в камеру через `face_view` (спрайты и растения ещё
   через `stand_tall`); открытые края ячеек — светлая кромка к солнцу или луне и контур от него

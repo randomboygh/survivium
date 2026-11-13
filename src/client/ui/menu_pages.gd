@@ -7,6 +7,7 @@ extends "res://src/client/ui/menu_loading.gd"
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const GlWatch := preload("res://src/client/ui/gl_watch.gd")
+const LastLog := preload("res://src/client/ui/last_log.gd")
 ## The menu's own screens are compiled when first opened, not at the game's start
 ## (StartTimes: compiling every script was most of the start).
 const WORLD_SETUP := "res://src/client/ui/world_setup.gd"
@@ -30,8 +31,9 @@ var is_open := false
 ## The panel's buttons and the page they are of: "top", "single" or "multi".
 var _box: VBoxContainer
 var _page := "top"
-## A server can be made here: a computer, not a phone or the browser (a shot sets it).
-var host_here := OS.has_feature("pc")
+## A server can be made here: a computer or the Android app, not the browser, which takes
+## no connections (a shot sets it).
+var host_here := OS.has_feature("pc") or OS.has_feature("android")
 ## Frames until the page shown says where its buttons are (the browser test taps them).
 var _announce := 0
 ## Under the buttons of «Мультиплеер»: why «Создать сервер» is not here.
@@ -85,6 +87,8 @@ func _fill_page(page: String) -> void:
 			_add_button(_box, "multi", "[multiplayer]", _fill_page.bind("multi"))
 			_add_button(_box, "editor", "[editor]", Callable(), "[soon]")
 			_add_button(_box, "changes", "[whats_new]", _open_changes)
+			if LastLog.crashed:
+				_add_button(_box, "crash", "[crash_log]", _open_crash_log)
 			_add_button(_box, "settings", "[settings]", _open_settings)
 			if OS.has_feature("web"):
 				_add_button(_box, "quit", "[quit]", Callable(), "[tab]")
@@ -92,6 +96,8 @@ func _fill_page(page: String) -> void:
 			else:
 				_add_button(_box, "quit", "[quit]", func() -> void:
 					game.save.flush()
+					# Quit, not crashed: the next start offers no «Журнал вылета».
+					LastLog.running(false)
 					get_tree().quit())
 			lit = "multi" if joined or game.hosted != null else "single"
 			if resume:
@@ -428,6 +434,13 @@ func _open_settings() -> void:
 func _open_changes() -> void:
 	_column.visible = false
 	settings_menu().open("changes", "")
+	_settings.fit(_screen.size)
+
+
+## The end of the log of the last run, which crashed (LastLog): to copy and send.
+func _open_crash_log() -> void:
+	_column.visible = false
+	settings_menu().open("crash", "")
 	_settings.fit(_screen.size)
 
 

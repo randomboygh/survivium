@@ -1,7 +1,7 @@
 # Survivium: notes for contributors
 
 A meditative survival sandbox: a procedural world of levels in 3D pixel art seen at 3/4, played in
-the browser and on PC (Windows, Linux; Android later), with multiplayer through an authoritative
+the browser, on PC (Windows, Linux) and on Android, with multiplayer through an authoritative
 server that is the same executable (decision 153; single player runs it in the same process).
 Godot 4.5.1, GL Compatibility renderer, web export without threads, pure GDScript: scripts are loaded
 with `preload` consts and `extends "res://…"`, no `class_name`, no autoloads, no plugins.
@@ -84,7 +84,8 @@ tests/ tools/      headless tests and the browser smoke test; lint, validator, s
   (`tests/frame_test.gd` enforces it). The phone browser is about 10× slower than a desktop in
   GDScript; CI renders in software, so only the user's phone numbers count (stats panel, F3).
 - New 3D shaders include `shaders/common.gdshaderinc` and shear VERTEX like the others; lights go at
-  `PixelView.shear(pos)`, picking uses `PixelView.view_ray` (`docs/systems/rendering.md`).
+  `PixelView.shear(pos)`, picking uses `PixelView.view_ray`; colour hints are `SRGB`/`SRGB_HINT`, not
+  `source_color`, and fragment() ends with `COMPAT_ALBEDO` (Android draws with Vulkan; `docs/systems/rendering.md`).
 - Nothing sounds before the first tap or key (`Sound.unlocked`); sounds are asked for by bare name;
   keep the loops few (`docs/systems/audio.md`).
 - Never delete or move a file only because nothing names it: data, assets and unit tests are found by

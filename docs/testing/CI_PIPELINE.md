@@ -31,14 +31,16 @@ publishing, which waits for everything). The fast ones fail first.
 | `frames` | `frame_test` alone on a machine (it measures frames) | ~1.5 min | yes |
 | `export` | the version and «What's new» (`build_info.py`), web export, the patches `web_patch.py` and `web_cache.py`; the artifact `survivium-web` | ~1 min | yes (for the deploy) |
 | `pc` | the Windows and Linux export; the artifacts `survivium-windows`, `survivium-linux` | ~1 min | yes (for publishing) |
+| `android` | the Android APK (arm64), signed by the key from the secrets ([../systems/android.md](../systems/android.md)); the artifact `survivium-android` | ~2 min | yes (for publishing) |
 | `smoke (desktop / phone / upright)` | the web build in headless Chrome (`tests/browser_smoke.mjs`); the phones draw the lightest preset (`?quality=0`, `Settings.use_page_quality`), the desktop the default picture | 1–4 min | yes, when it runs |
 | `publish` | only `main`: the PC builds into the prerelease `pc-latest` | seconds | — |
+| `publish-android` | only `main`: the APK into the prerelease `android-latest` | seconds | — |
 | `deploy` | only `main`: the web build to GitHub Pages | seconds | — |
 
 «Blocks» here means: `publish` and `deploy` wait for its success, and by the project's rule a PR is merged
 only on green CI. So that GitHub itself does not let a red PR be merged, in the repository's settings
 (Settings → Branches → the rule for `main` → Require status checks) mark the jobs `lint`, `checks`, `tests`,
-`progress (hunting)`, `progress (other)`, `frames`, `export`, `pc`. `smoke (…)` is not put there: on a PR with
+`progress (hunting)`, `progress (other)`, `frames`, `export`, `pc`, `android`. `smoke (…)` is not put there: on a PR with
 no client changes it is skipped.
 
 ## Results and logs
@@ -54,9 +56,11 @@ no client changes it is skipped.
 ## Security
 
 - The token's default rights are read only (`contents: read`); `changes`, `export`, `pc` also read the PR
-  (`pull-requests: read`), `publish` writes a release (`contents: write`), `deploy` — Pages (`pages: write`,
+  (`pull-requests: read`), `publish`, `publish-android` write a release (`contents: write`), `deploy` — Pages (`pages: write`,
   `id-token: write`). A PR's code gets no write rights.
-- There are no secrets except the built-in `GITHUB_TOKEN`; it is not printed.
+- The secrets: the built-in `GITHUB_TOKEN` and the Android signing key `ANDROID_KEYSTORE`,
+  `ANDROID_KEYSTORE_PASSWORD` (only the `android` job reads them; the keystore file is deleted after the export);
+  none is printed.
 - Third-party actions are only GitHub's `actions/*`, pinned to a commit (SHA) with the version in a comment.
   Update by replacing the SHA with the commit of the new tag (`git ls-remote https://github.com/actions/<name>`).
 - Godot and the export templates are downloaded from the engine's release and checked against the SHA-512
@@ -66,7 +70,7 @@ no client changes it is skipped.
 - `playwright-core` for the smoke test is pinned by version (`1.48.2`), with no lock file.
 - Every test writes to its own `user://` (`XDG_DATA_HOME`), the developer's saves are not touched; the tests
   call no external services (the server test listens on localhost:7791).
-- Checking the code and publishing are separated: only `publish` and `deploy` publish, only into `main`, only
+- Checking the code and publishing are separated: only `publish`, `publish-android` and `deploy` publish, only into `main`, only
   after all checks succeed.
 
 ## Time

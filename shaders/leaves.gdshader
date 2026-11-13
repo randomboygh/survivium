@@ -276,6 +276,7 @@ void fragment() {
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(center);
+	COMPAT_COLORS
 }
 
 void light() {
@@ -293,7 +294,7 @@ void light() {
 		vec3 half_light = mix(vec3(0.8), vec3(0.74, 0.82, 0.96), hue_shift);
 		vec3 shade = mix(vec3(0.5), vec3(0.42, 0.48, 0.74), hue_shift);
 		vec3 band = step_n > 2.5 ? mix(vec3(1.4), vec3(1.46, 1.4, 0.98), hue_shift) : (step_n > 1.5 ? vec3(1.0) : (step_n > 0.5 ? half_light : shade));
-		DIFFUSE_LIGHT += LIGHT_COLOR * band / PI;
+		DIFFUSE_LIGHT += compat_sun(LIGHT_COLOR * band / PI, ALBEDO);
 	} else {
 		DIFFUSE_LIGHT += toon_light(NORMAL, LIGHT, LIGHT_COLOR, ATTENUATION, false, clouds, light_texel(light_xz),
 			light_stretch(INV_VIEW_MATRIX, LIGHT)) * lamp_gain;

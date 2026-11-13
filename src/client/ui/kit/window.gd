@@ -8,6 +8,7 @@ extends Control
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Kit := preload("res://src/client/ui/kit/kit.gd")
+const Shade := preload("res://src/client/ui/kit/shade.gd")
 
 ## The shade over what is behind.
 const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
@@ -23,6 +24,8 @@ var box: VBoxContainer
 ## returns the column to add them to.
 func build(heading := "", gap := 6) -> VBoxContainer:
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	# Over the whole window, the camera cutout too.
+	add_child(Shade.new(BACKDROP))
 	panel = PanelContainer.new()
 	add_child(panel)
 	box = Kit.column(gap)
@@ -49,7 +52,6 @@ func fit() -> void:
 	panel.position = Vector2(floorf((screen.x - s.x) * 0.5),
 		floorf((screen.y - s.y) * 0.5) if s.y + 2 * MARGIN <= screen.y else float(MARGIN))
 	move_to_front()
-	queue_redraw()
 
 
 ## Sizes the window's parts for a screen `screen` UI pixels large (a list's height); the
@@ -61,10 +63,6 @@ func layout(_screen: Vector2) -> void:
 ## What «Назад» and Escape do.
 func back() -> void:
 	pass
-
-
-func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), BACKDROP)
 
 
 func _unhandled_input(event: InputEvent) -> void:

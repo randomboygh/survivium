@@ -12,7 +12,7 @@ uniform float brightness = 1.0;
 uniform float sky_only = 0.0;
 // How lit the open sky is: weather is unshaded, so it dims with the night.
 uniform float light = 1.0;
-uniform sampler2D shape : filter_nearest, source_color, hint_default_white;
+uniform sampler2D shape : filter_nearest, hint_default_white SRGB_HINT;
 // World units a streak's top lies upwind of its foot per unit of height:
 // rain driven by the wind leans along its fall (see Effects.rain_lean).
 uniform vec2 lean = vec2(0.0);
@@ -40,4 +40,5 @@ void fragment() {
 	}
 	ALBEDO = COLOR.rgb * s.rgb * brightness * light;
 	ALPHA = COLOR.a;
+	COMPAT_ALBEDO
 }

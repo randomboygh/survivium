@@ -16,6 +16,7 @@ const Minimap := preload("res://src/client/ui/minimap.gd")
 const MapView := preload("res://src/client/ui/map_view.gd")
 const VitalsPanel := preload("res://src/client/ui/vitals_panel.gd")
 const SleepScreen := preload("res://src/client/ui/sleep_screen.gd")
+const Shade := preload("res://src/client/ui/kit/shade.gd")
 const PersonPanel := preload("res://src/client/ui/person_panel.gd")
 const BodyFeedback := preload("res://src/client/ui/body_feedback.gd")
 const InventoryWindow := preload("res://src/client/ui/inventory_window.gd")
@@ -147,7 +148,7 @@ var _loading_label: Label
 var _menu: PanelContainer
 var _settings: Control = null
 ## Dims the game behind the menu and keeps taps from reaching it.
-var _shade: ColorRect
+var _shade: Control
 var _menu_buttons := {}
 
 

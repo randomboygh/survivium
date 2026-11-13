@@ -377,11 +377,15 @@ func layout_ui(rect: Rect2) -> void:
 
 ## The part of the screen the player can see. Mobile browsers can lay the page out
 ## under their toolbars, so on the web this is the canvas clipped to the browser's
-## visual viewport; elsewhere it is the whole window.
+## visual viewport; in a phone's app the screen without its camera cutout; elsewhere
+## the whole window.
 func _safe_rect() -> Rect2:
 	var full: Rect2 = Rect2(Vector2.ZERO, game.get_viewport().get_visible_rect().size)
 	if not _web:
-		return full
+		if not OS.has_feature("mobile"):
+			return full
+		var cut := full.intersection(Rect2(DisplayServer.get_display_safe_area()))
+		return cut if cut.size.x > 100.0 and cut.size.y > 100.0 else full
 	var js: Variant = JavaScriptBridge.eval("""(function () {
 		var c = document.querySelector('canvas'), v = window.visualViewport;
 		if (!c || !v) return '';

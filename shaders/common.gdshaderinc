@@ -8,6 +8,51 @@
 // cutaway, snow and texel maths. Godot renders shadow maps with the same vertex
 // function, so casters and receivers are sheared alike.
 
+// Colours under either renderer (2026-11-13). GL Compatibility (web, PC) takes every colour
+// a shader gives (ALBEDO, EMISSION) as sRGB and makes it linear (Godot's srgb_to_linear,
+// this polynomial), and reads source_color textures and uniforms as they are; the Mobile
+// renderer (Vulkan, the Android app: the Adreno 840's GL driver crashed building our
+// shaders) takes them as linear and makes the source_color ones linear when read. So the
+// colours are written once, as Compatibility sees them: a source_color hint is SRGB (or
+// SRGB_HINT after other hints), and on Mobile it is dropped and fragment() ends with
+// COMPAT_ALBEDO (COMPAT_COLORS where it sets EMISSION) to make them linear the same way.
+// Left different: blend_mix mixes in linear light on Mobile (sun_rays, blend_add, skips
+// COMPAT_ALBEDO, which comes closer there).
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+#define SRGB : source_color
+#define SRGB_HINT , source_color
+#define COMPAT_ALBEDO
+#define COMPAT_COLORS
+#else
+#define SRGB
+#define SRGB_HINT
+#define COMPAT_ALBEDO ALBEDO = ALBEDO * (ALBEDO * (ALBEDO * 0.305306011 + 0.682171111) + 0.012522878);
+#define COMPAT_COLORS COMPAT_ALBEDO EMISSION = EMISSION * (EMISSION * (EMISSION * 0.305306011 + 0.682171111) + 0.012522878);
+#endif
+// The sun's (or the moon's) light with a shadow: Compatibility draws it in a pass of its
+// own and adds it to the picture in sRGB, brighter than the sum in linear light. On Mobile
+// a light() passes the sun's light through compat_sun, which gives what ends as bright
+// over the ambient light (Sky sets both globals: the ambient light in linear, and 1 while
+// the sun casts a shadow). Other light added in the base pass (torches) is left out.
+global uniform vec3 ambient_light;
+global uniform float sun_shadowed;
+
+vec3 compat_sun(vec3 lit, vec3 albedo) {
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+	return lit;
+#else
+	if (sun_shadowed < 0.5) {
+		return lit;
+	}
+	vec3 a = albedo * ambient_light;
+	vec3 s = albedo * lit;
+	vec3 sum = min(max(1.055 * pow(a, vec3(0.416666667)) - 0.055, vec3(0.0))
+		+ max(1.055 * pow(s, vec3(0.416666667)) - 0.055, vec3(0.0)), vec3(1.0));
+	vec3 t = sum * (sum * (sum * 0.305306011 + 0.682171111) + 0.012522878);
+	return mix(lit, max(t - a, vec3(0.0)) / max(albedo, vec3(1e-4)), step(vec3(1e-4), albedo));
+#endif
+}
+
 // The cut of the levels the player picked by hand to look at those below (the level
 // buttons); 1000 for none. Under a roof the view opens in layers instead (layer_view).
 global uniform float cut_height;
