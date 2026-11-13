@@ -10,9 +10,9 @@ name: Test and build
 # when the PR touches the content or crafting (see `changes`; the label `full` runs
 # everything); on main and on a
 # run by hand (Actions → Test and build → Run workflow) everything runs, and on main the
-# builds are published only when every job passed: the web one to Pages, the PC ones to the
-# rolling release `pc-latest`. Each test job keeps its logs as an artifact `logs-<job>` and
-# writes a table of its checks to the run's summary. docs/testing/CI_PIPELINE.md tells more.
+# builds are published only when every job passed: the web one to Pages, the APK and the PC ones
+# to a release v<stage>.<PR> with the changes as its notes (and the rolling `android-latest`,
+# `pc-latest`). Each test job keeps its logs as an artifact `logs-<job>` and writes a table of its checks to the run's summary. docs/testing/CI_PIPELINE.md tells more.
 
 on:
   push:
@@ -21,7 +21,7 @@ on:
     types: [opened, synchronize, reopened, labeled]
   workflow_dispatch:
 
-# Only reading by default; the two publishing jobs ask for what they write.
+# Only reading by default; the publishing jobs ask for what they write.
 permissions:
   contents: read
 
@@ -378,10 +378,14 @@ jobs:
           npm install --no-save --no-package-lock --silent playwright-core@1.48.2
           node tests/browser_smoke.mjs ${{ matrix.device }}
 
-  # The PC builds of main go to the release `pc-latest`, the same files every time.
-  publish:
+  # Every build of main that passed every job is a GitHub release: the tag v<stage>.<PR> (the version
+  # the game shows) on the merged commit, the notes the «What's new» lines of the PRs merged since the
+  # last release (tools/release_notes.py), the APK and the PC builds as its files. The newest one is
+  # "Latest", so releases/latest/download/<file> always gives the newest build. The rolling prereleases
+  # `android-latest` and `pc-latest` (older links point at them) get the same files.
+  release:
     if: github.ref == 'refs/heads/main'
-    needs: [lint, checks, tests, progress, frames, pc, smoke]
+    needs: [lint, checks, tests, progress, frames, export, pc, android, smoke]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -389,6 +393,10 @@ jobs:
       pull-requests: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # The history and the tags: the notes go from the last release's tag.
+          fetch-depth: 0
+          fetch-tags: true
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: survivium-windows
@@ -397,58 +405,67 @@ jobs:
         with:
           name: survivium-linux
           path: build
-      - name: Put the builds on the release pc-latest
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.sha }}
-        run: |
-          python3 tools/build_info.py build_info.json
-          version=$(python3 -c 'import json; print(json.load(open("build_info.json"))["version"])')
-          name=$(sed -n 's/^config\/name="\(.*\)"$/\1/p' project.godot)
-          notes="PC builds of the game from main, version $version (updated with every merge). Windows: unpack and run $name.exe; a server from the terminal is $name.console.exe --headless -- --server. Linux: ./$name.x86_64 (a server: --headless -- --server). The mods are plain files in the folder content beside the game: they can be edited, and your own mods go there as folders of their own; when updating, replace only the built-in folders."
-          if gh release view pc-latest >/dev/null 2>&1; then
-            gh release edit pc-latest --prerelease --title "PC builds ($version)" --notes "$notes"
-          else
-            gh release create pc-latest --prerelease --title "PC builds ($version)" --notes "$notes"
-          fi
-          gh release upload pc-latest build/*-windows.zip build/*-linux.tar.gz --clobber
-
-  # The APK of main goes to the release `android-latest`, the same file every time.
-  publish-android:
-    if: github.ref == 'refs/heads/main'
-    needs: [lint, checks, tests, progress, frames, android, smoke]
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: survivium-android
           path: build
-      - name: Put the APK on the release android-latest
+
+      - name: The release notes
+        id: notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 tools/release_notes.py build/notes.md | tee -a "$GITHUB_OUTPUT"
+          cat build/notes.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: The release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.sha }}
+          TAG: ${{ steps.notes.outputs.tag }}
+          VERSION: ${{ steps.notes.outputs.version }}
+          LATEST: ${{ steps.notes.outputs.latest }}
           KEY: ${{ needs.android.outputs.key }}
         run: |
-          python3 tools/build_info.py build_info.json
-          version=$(python3 -c 'import json; print(json.load(open("build_info.json"))["version"])')
           name=$(sed -n 's/^config\/name="\(.*\)"$/\1/p' project.godot)
-          notes="The Android build of the game from main, version $version (updated with every merge). Download the APK to the phone and open it; the phone will ask to allow installing from this source. A new build installs over the previous one, the saves stay."
           if [ "$KEY" != release ]; then
-            notes="$notes This build is signed with a temporary key: to install the next one this one has to be removed (with its saves)."
+            printf '\n> The APK is signed with a temporary key: to install the next one this one has to be removed (with its saves).\n' >> build/notes.md
           fi
-          if gh release view android-latest >/dev/null 2>&1; then
-            gh release edit android-latest --prerelease --title "$name for Android ($version)" --notes "$notes"
+          files="build/*-android.apk build/*-windows.zip build/*-linux.tar.gz"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # A rerun of the same build: the notes and the files again.
+            gh release edit "$TAG" --title "$name $VERSION" --notes-file build/notes.md --latest="$LATEST"
           else
-            gh release create android-latest --prerelease --title "$name for Android ($version)" --notes "$notes"
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "$name $VERSION" \
+              --notes-file build/notes.md --latest="$LATEST"
           fi
-          gh release upload android-latest build/*-android.apk --clobber
+          gh release upload "$TAG" $files --clobber
+
+      - name: The rolling prereleases android-latest and pc-latest
+        # Only the newest build: an older run finishing late leaves them alone.
+        if: steps.notes.outputs.latest == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.notes.outputs.tag }}
+          VERSION: ${{ steps.notes.outputs.version }}
+          REPO: ${{ github.repository }}
+        run: |
+          name=$(sed -n 's/^config\/name="\(.*\)"$/\1/p' project.godot)
+          for rolling in android-latest pc-latest; do
+            case $rolling in
+              android-latest) title="$name for Android ($VERSION)"; files="build/*-android.apk";;
+              pc-latest) title="$name for PC ($VERSION)"; files="build/*-windows.zip build/*-linux.tar.gz";;
+            esac
+            notes="The newest build of main, $VERSION, the same files as the release $TAG (https://github.com/$REPO/releases/tag/$TAG, where its changes are). This prerelease is kept for older links; the newest release is always https://github.com/$REPO/releases/latest."
+            # The tag follows the build, so the prerelease names the commit its files are of.
+            gh api -X PATCH "repos/$REPO/git/refs/tags/$rolling" -f sha="$GITHUB_SHA" -F force=true >/dev/null \
+              || gh api -X POST "repos/$REPO/git/refs" -f ref="refs/tags/$rolling" -f sha="$GITHUB_SHA" >/dev/null
+            if gh release view "$rolling" >/dev/null 2>&1; then
+              gh release edit "$rolling" --prerelease --latest=false --title "$title" --notes "$notes"
+            else
+              gh release create "$rolling" --prerelease --latest=false --title "$title" --notes "$notes"
+            fi
+            gh release upload "$rolling" $files --clobber
+          done
 
   deploy:
     if: github.ref == 'refs/heads/main'

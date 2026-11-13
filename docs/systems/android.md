@@ -6,7 +6,7 @@ Status: ACTIVE. A Russian copy: [android_RU.md](android_RU.md).
 player (the server inside the game, `local_host.gd`), joining a server and «Create a server» (`menu_pages.gd`
 `host_here`): players on the same Wi-Fi join by the phone's address; no tunnel (cloudflared runs only on a computer,
 `host_screen.gd` hides «Access from the internet»), and the server stops while the app is in the background. CI builds it on every run and puts
-the build of `main` on the release `android-latest`; it is installed by hand.
+the build of `main` into its GitHub release `v<stage>.<PR>` (and the rolling `android-latest`; `docs/testing/CI_PIPELINE.md`, Releases); it is installed by hand.
 
 **Files**
 - `export_presets.cfg`, the preset `Android`: arm64-v8a only, the prebuilt template (no Gradle), the package id

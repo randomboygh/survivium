@@ -14,8 +14,8 @@ and `plan/design/mvp-design.md` in the library; what is done by area — `README
 ## State
 
 - Stage 0 (the technical prototype) is closed, stage 1 (the MVP) is in progress, see `plan/mvp.md`. The
-  browser build: https://randomboygh.github.io/survivium/ (built from `main`), the PC builds — the
-  `pc-latest` release.
+  browser build: https://randomboygh.github.io/survivium/ (built from `main`), the Android and PC builds — the
+  GitHub releases `v<stage>.<PR>`, one per merge.
 - Done: a world without an edge from noise (48 levels, mountains, caves, rivers, swamps, 28 biomes as data),
   time, seasons and 11 kinds of weather, a character with a bag, worn bags and clothes, strengths (satiety,
   water, vigour and sleep, body warmth and getting wet) and death, work by hands (dig, build, chop, mow,
