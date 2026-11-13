@@ -230,14 +230,17 @@ static func shore(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz:
 ## the whole cell, which the ground hides where it rises out of it, its points telling
 ## the shader how far under the surface the ground lies there (foam where it comes up).
 ## Its murk is that of the water beside, blended across the cell (see murk_corners).
+## `foam`: its foam bits (see foam), for where it comes up to the side of land beside
+## instead of to its own slope; without them the land showed bare teeth between the foam
+## of the slopes down a shore.
 static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: int,
-		base: Vector3) -> void:
+		base: Vector3, foam := 0) -> void:
 	var murks := murk_corners(w, c, i, dz, base)
 	var steps := Vector2i(Slopes.PATCH_STEPS, Slopes.PATCH_STEPS)
 	var hs: PackedFloat32Array = Slopes.patch_grid(Slopes.patch(c, sh, i, dy, dz), 0.0, steps)[0]
 	var start: int = buf.verts.size()
 	var nu := steps.x + 1
-	var data := Vector2(0.0, 1.0)
+	var data := Vector2(float(foam), 1.0)
 	for b in steps.y + 1:
 		var z := float(b) / steps.y
 		for a in nu:

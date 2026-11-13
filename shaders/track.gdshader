@@ -53,6 +53,8 @@ void fragment() {
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
 	float ground = (1.0 - veiled.a) * 0.3;
 	float share = ground / max(ground + dot(veiled.rgb, vec3(0.3, 0.59, 0.11)), 0.001);
+	// In a fog, where the fog thins round the player too, a print is half as dark.
+	share *= 1.0 - 0.5 * smoothstep(0.0, 0.15, fog > 0.0 ? fog_at(world_pos) : 0.0);
 	ALBEDO = mix(vec3(1.0), tint.rgb, share);
 	COMPAT_ALBEDO
 }
