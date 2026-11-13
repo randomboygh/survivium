@@ -119,11 +119,11 @@ and a new shared part is added to the kit and to the «Interface gallery».
   last ones come back for 12 s; in single player one's own line goes into the chat at once,
   with no server; the field is opened by Enter or the chat button at the top — seen only on a server; while the
   field has the cursor, keys do not move the character, `Controls._typing`; another player's line is seen over
-  their head too for 6 s, `src/client/view/others.gd`), `gesture_wheel.gd` (the gesture circle, decision 183: a
+  their head too for 6 s in a pixel balloon, `UiStyle.balloon` with a stepped tail, `src/client/view/others.gd`), `gesture_wheel.gd` (the gesture circle, decision 183: a
   button with a palm in the top row next to the chat, the key C; in single player chat and gestures are hidden
   until the setting «Interface» → «Chat and gestures» is «always», `Hud.show_social`; eight round buttons with
   an icon and a word, the digits 1–8, a touch outside or Escape closes; only the circle under the icons is
-  darkened (the edge dissolves by dithering over 6 pixels), the world around is seen as it is; the icons have
+  darkened (the edge dissolves by dithering over 4 pixels of the world, as large as the game draws them and on its grid), the world around is seen as it is; the icons have
   no buttons under them, the word under an icon lights under the cursor; the icons on the circle's buttons are
   at a whole number of screen pixels per icon pixel at any (even fractional) interface scale; the gesture
   icons are a fill with a dark one-pixel outline on all sides; [character.md](character.md)), `sign_window.gd`

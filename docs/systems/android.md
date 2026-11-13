@@ -18,7 +18,9 @@ the build of `main` on the release `android-latest`; it is installed by hand.
   Android export requires it).
 - `src/client/main.gd` `_notification`: the back button (`NOTIFICATION_WM_GO_BACK_REQUEST`) is the Escape key.
 - `src/client/view/camera_rig.gd` `_safe_rect`: the HUD keeps off the camera cutout
-  (`DisplayServer.get_display_safe_area`).
+  (`DisplayServer.get_display_safe_area`) and above the keyboard (`DisplayServer.virtual_keyboard_get_height`,
+  read ten times a second by `poll_safe_rect`): the app's window keeps its size under the keyboard, so the
+  interface moves up as in the browser.
 - `assets/app/`: the icons drawn by `tools/make_icon.py` (Android's plain, adaptive and one-colour ones, the
   Windows program's `icon.ico`).
 - `.github/workflows/build.yml`, the jobs `android` (the export, the artifact `survivium-android`) and

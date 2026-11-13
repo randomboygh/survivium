@@ -17,8 +17,8 @@ const RADIUS := 84
 const BACKDROP := Color(0.03, 0.03, 0.04, 0.5)
 ## How far the shaded disc reaches past the buttons' centres: half a button and a line of words.
 const SHADE_PAST := BUTTON / 2 + 14
-## Interface pixels over which the disc's edge thins out, dithered.
-const SHADE_EDGE := 6
+## The world's pixels over which the disc's edge thins out, dithered.
+const SHADE_EDGE := 4
 ## The 4×4 ordered dither: a pixel of the edge is shaded while its number is under the
 ## shade's strength there (0..16).
 const BAYER := [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
@@ -36,8 +36,10 @@ var _pic_px := 0
 ## The shaded disc under the buttons: its centre and radius.
 var _mid := Vector2.ZERO
 var _shade := 0.0
-## The shaded disc as a picture, its edge dithered (made again when its size changes).
+## The shaded disc as a picture, a pixel of it one of the world's, its edge dithered (made
+## again when its size changes), and where it is drawn, in interface pixels.
 var _disc: ImageTexture
+var _disc_at := Rect2()
 
 
 func _init(g) -> void:
@@ -144,8 +146,7 @@ func _fit() -> void:
 	var r := minf(RADIUS, minf(screen.x, screen.y) * 0.5 - BUTTON)
 	_mid = mid
 	_shade = r + SHADE_PAST
-	if _disc == null or _disc.get_width() != 2 * int(_shade):
-		_disc = _make_disc(int(_shade))
+	_fit_disc()
 	for i in _buttons.size():
 		var a := TAU * i / _buttons.size() - PI * 0.5
 		var at := (mid + Vector2(cos(a), sin(a)) * r - Vector2(BUTTON, BUTTON) * 0.5).floor()
@@ -159,11 +160,34 @@ func _fit() -> void:
 
 
 func _draw() -> void:
-	draw_texture(_disc, _mid - Vector2(_disc.get_size()) * 0.5)
+	if _disc != null:
+		draw_texture_rect(_disc, _disc_at, false)
 
 
-## The disc `radius` interface pixels round: BACKDROP inside, its last SHADE_EDGE pixels
-## dithered away (BAYER), pixel by pixel as the rest of the interface.
+## The disc in the world's pixels, as large as the game draws them (CameraRig.view_scale
+## screen pixels each; the interface's are of another size), on the world picture's grid,
+## so its dithered edge is of the same pixels as the dithering of the ground under it.
+func _fit_disc() -> void:
+	var t := get_global_transform_with_canvas()
+	var s := t.get_scale().x
+	if s <= 0.0:
+		return
+	# Screen pixels a pixel of the world takes, and where the world's picture begins.
+	var px := s
+	var grid := Vector2.ZERO
+	if game != null and game.get("view") != null and game.view.view_scale > 0.0:
+		px = game.view.view_scale
+		grid = game.view.container.global_position
+	var radius := maxi(SHADE_EDGE + 1, ceili(_shade * s / px))
+	if _disc == null or _disc.get_width() != 2 * radius:
+		_disc = _make_disc(radius)
+	var corner := t * _mid - Vector2(radius, radius) * px
+	corner = grid + ((corner - grid) / px).round() * px
+	_disc_at = Rect2(t.affine_inverse() * corner, Vector2(2 * radius, 2 * radius) * px / s)
+
+
+## The disc `radius` pixels round: BACKDROP inside, its last SHADE_EDGE pixels dithered
+## away (BAYER), pixel by pixel.
 static func _make_disc(radius: int) -> ImageTexture:
 	var img := Image.create_empty(2 * radius, 2 * radius, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))

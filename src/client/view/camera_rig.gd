@@ -377,15 +377,21 @@ func layout_ui(rect: Rect2) -> void:
 
 ## The part of the screen the player can see. Mobile browsers can lay the page out
 ## under their toolbars, so on the web this is the canvas clipped to the browser's
-## visual viewport; in a phone's app the screen without its camera cutout; elsewhere
-## the whole window.
+## visual viewport (which the phone's keyboard shortens); in a phone's app the screen
+## without its camera cutout and above the keyboard, as the browser does it (the app's
+## window keeps its size under the keyboard); elsewhere the whole window.
 func _safe_rect() -> Rect2:
 	var full: Rect2 = Rect2(Vector2.ZERO, game.get_viewport().get_visible_rect().size)
 	if not _web:
 		if not OS.has_feature("mobile"):
 			return full
 		var cut := full.intersection(Rect2(DisplayServer.get_display_safe_area()))
-		return cut if cut.size.x > 100.0 and cut.size.y > 100.0 else full
+		if cut.size.x <= 100.0 or cut.size.y <= 100.0:
+			cut = full
+		var keys := float(DisplayServer.virtual_keyboard_get_height())
+		if keys > 0.0:
+			cut.size.y = minf(cut.size.y, full.size.y - keys - cut.position.y)
+		return cut if cut.size.y > 100.0 else full
 	var js: Variant = JavaScriptBridge.eval("""(function () {
 		var c = document.querySelector('canvas'), v = window.visualViewport;
 		if (!c || !v) return '';
@@ -406,12 +412,13 @@ func _safe_rect() -> Rect2:
 
 
 ## Browsers do not always report toolbars appearing or hiding, so the visible part
-## of the screen is re-checked twice a second.
+## of the screen is re-checked twice a second; in a phone's app, where nothing tells of
+## the keyboard coming up or going, ten times a second.
 func poll_safe_rect(delta: float) -> void:
-	if not _web:
+	if not _web and not OS.has_feature("mobile"):
 		return
 	safe_clock += delta
-	if safe_clock < 0.5:
+	if safe_clock < (0.5 if _web else 0.1):
 		return
 	safe_clock = 0.0
 	var r := _safe_rect()
