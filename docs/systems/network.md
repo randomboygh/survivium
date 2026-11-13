@@ -276,7 +276,7 @@ length up to `CHAT_MAX` 160.
   `allow`); a server quiet for `STALL` 20 s fails the taking. `src/client/net/mod_cache.gd` — the files kept on
   the device: `user://mod_cache/<hash>.<ext>`, the lists of the last `SETS_KEPT` 8 sets in `sets/`, `used.json`
   (when each was last used), `trim` past `LIMIT` 200 MB (the longest unused first, never a file of the set
-  played), `clear` («Settings» → «Game» → «Clear server data»).
+  played), `clear` («Settings» → «Other» → «Clear server data»).
 - `src/client/net/local_host.gd` — the server inside the game: the only place where the client loads
   `src/server/`; `LocalHost.new(session, get_tree().root)` puts the server node `src/server/runner.gd` under the
   tree's root and under it `real_weather` (`src/server/real_weather.gd` on the session's clock, switched on by

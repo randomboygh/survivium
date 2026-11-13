@@ -834,6 +834,8 @@
 "[graphics]": "Grafik"
 "[music]": "Musik"
 "[sound]": "Ton"
+"[sounds]": "Geräusche"
+"[other_tab]": "Sonstiges"
 "[caves]": "Höhlen"
 "[markers]": "Markierungen"
 "[debug]": "Debug"

@@ -15,13 +15,17 @@ extends RefCounted
 ## "wrap" — the name wraps (else it is cut with an ellipsis); "switch" — false keeps
 ## the arrows on a row of «выкл | вкл».
 ## A row whose values are only off and on (SWITCHES) is a switch (switch.gd) in place of
-## the arrows and the value: a tap turns it, left turns it off and right on.
+## the arrows and the value: a tap on it or on its name turns it, left turns it off and
+## right on.
 ## The arrows of a row that stops at its ends ("stop", "direct") are off at that end.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Kit := preload("res://src/client/ui/kit/kit.gd")
 const Switch := preload("res://src/client/ui/kit/switch.gd")
 
+## How far a finger may move between the press and the lift of a tap on a switch's
+## name, in UI pixels (DragScroll's deadzone: further, the list scrolls).
+const TAP_WOBBLE := 6.0
 ## The pairs of values that make a row a switch: [off, on].
 const SWITCHES := [["[off]", "[on]"], ["[hidden]", "[shown]"]]
 
@@ -75,6 +79,9 @@ func add(parent: Node, name: String, values: Array, getter: Callable, setter: Ca
 		sw.custom_minimum_size = Vector2(room, arrow)
 		sw.toggled.connect(_switched.bind(index))
 		row.add_child(sw)
+		# A tap on the name turns the switch too: the whole row is its button.
+		label.mouse_filter = Control.MOUSE_FILTER_PASS
+		label.gui_input.connect(_name_tapped.bind(label, sw))
 		if opts.has("open"):
 			row.add_child(Kit.icon_button(opts.get("open_icon", "menu"), opts.get("open_tip", "[whats_included]"), opts.open, arrow))
 		var r := {"name": label, "values": values, "get": getter, "set": setter, "label": null, "left": null,
@@ -272,6 +279,26 @@ func _switched(on: bool, index: int) -> void:
 	r.set.call(r.on if on else 1 - r.on)
 	refresh()
 	stepped.emit(index)
+
+
+## A tap on the name of a switch's row (`label`) turns switch `sw`, as a tap on the
+## switch does: the press and the lift on the name, no further apart than a finger's
+## wobble (a finger dragged over the list scrolls it, DragScroll, and turns nothing).
+func _name_tapped(event: InputEvent, label: Label, sw: Switch) -> void:
+	var press := event as InputEventMouseButton
+	if press == null or press.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if press.pressed:
+		label.set_meta("tap_at", press.global_position)
+		return
+	var from: Vector2 = label.get_meta("tap_at", Vector2.INF)
+	label.remove_meta("tap_at")
+	# On the screen (a list scrolled by the finger keeps the name under it), in UI pixels.
+	var scale := label.get_global_transform_with_canvas().get_scale().x if label.is_inside_tree() else 1.0
+	if sw.disabled or from == Vector2.INF or from.distance_to(press.global_position) > TAP_WOBBLE * scale \
+			or not Rect2(Vector2.ZERO, label.size).has_point(press.position):
+		return
+	sw.button_pressed = not sw.button_pressed
 
 
 func _pressed(index: int, dir: int) -> void:
