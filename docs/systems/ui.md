@@ -81,7 +81,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   «Disconnect»; while one's own server runs, «Single player», «Join» and «Disconnect» are closed: other
   bundles would load under the server); `main.restart()` reloads the scene; the world of a server one has
   joined loads at once), `join_screen.gd` («Join»: address, name, password, recent servers from
-  `src/client/net/server_list.gd`; fields one under another — fits a phone held upright, with the keyboard up
+  `src/client/net/server_list.gd`; the fields and the recent servers inset as the settings' rows, the buttons flush; fields one under another — fits a phone held upright, with the keyboard up
   the panel goes to the top; the link `?server=` opens it with the address, a failed login — again with the
   reason), `host_screen.gd` («Create a server» on PC, two tabs `TabRow.tabs`: «Creation» — a world from the
   saved ones, a name, a password, «Access from the internet» (С7, the cloudflared tunnel); «Settings» —
@@ -97,7 +97,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   (`ServerMain.apply_settings`, the port faded until a restart), the sections parted by `Kit.section`; «Access»: «Whitelist only», the list with «Remove» and the field «Add», the banned with
   «Unban» and the field «Ban» (the same commands `whitelist`, `ban`, `unban`, `Server.access`); under all
   «Play», «Stop the server» (two touches), «Back»; the same window is the «Server» item in the pause menu;
-  taller than the screen — it scrolls, the bar does not cover the rows, `UiStyle.bar_room`), `world_setup.gd`
+  taller than the screen — it scrolls, the bar does not cover the rows, `UiStyle.bar_room`; the rows inset as the settings', `UiStyle.inset_room`), `world_setup.gd`
   («New world»: seed, kind of world, generator settings with a map, the rows inset as the settings' (`UiStyle.inset`), the page «Mods» (a switch keeps its place in the list: the page is made anew at the same scroll): under a dropped bundle the
   whole chain of the reason, `Mods.why`), `world_list.gd` («Load world»; a world has a square trash button:
   the first touch paints it red, the second deletes, for the test world — resets; recent servers on the «Join»
