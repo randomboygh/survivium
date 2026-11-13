@@ -86,7 +86,8 @@ length up to `CHAT_MAX` 160.
   accepted place. Through a socket the sent place is checked (`check_moves`, decision 153, 3А): the server's
   body `ServerBody` (the same `body.gd`, with the session's world and clock) goes from its place (`_sim`) to
   the sent one in the time since the last `input` — no more than `CLAIM_GAP_MAX` 0.5 s and no more than has
-  passed, so frequent messages give no extra path — by the world's rules: walls, slopes, water, the pace from
+  passed, so frequent messages give no extra path, walked in steps of 0.05 s (`Body.STEP_MOST`: a phone back from
+  the background no longer drops the server's body through the floor into a cave) — by the world's rules: walls, slopes, water, the pace from
   load and weather; a place farther than `MOVE_TOLERANCE` 2.5 cells from where the body got to, or inside a wall
   (`Body.blocked`), is not taken, the player stays where the body got to, and after `STRIKES` 10 such in a row
   the client is put there (`moved` → `teleport`); to the accepted place the server's body is pulled no faster
@@ -447,8 +448,11 @@ too); once, `at` puts the body at a point (`Player.teleport`): the «Go» of the
 (`Character.go_to_column`, again when it lands) and «To the place of death». With the switch off (or refused by the
 server, which turns it off) the tabs «World», «Player» and «Markers» show their switches and «Go» faded with a line
 saying why (`Settings.may_cheat`, `SettingsMenu._cheats_note`); «Give tools» and «Clear territory» work only in a
-world of this device. A server made on a phone starts no bots (a bot is another process of the game): «Add a bot»
-is faded with a line saying so. The link is the status `playtest-link` of the launch's commit. The bots are games with `--join … --bot`
+world of this device. The link is the status `playtest-link` of the launch's commit. Where no process of the game can be started (a server made on a phone, `TestCommands.can_start_bots`), a bot is played by
+the server itself: `Server.add_bot` makes an account with no connection (`Account.bot`: it never lingers and goes, it
+is not saved, its events are dropped), `src/server/server_bot.gd` (`ServerBot`, stepped by `TestCommands._process`)
+walks its body by `Body.step` and makes its requests through its `Requests` (paced) with the tasks and lines of the
+game's bot, given what it works with; «/test bot-» takes it out (`Server.remove_bot`). Elsewhere the bots are games with `--join … --bot`
 (`src/client/input/bot.gd`, `Main.bot`): instead of keys `Bot.move` gives the walking direction and once in a
 few seconds takes a task (`TASKS`): walks near the spawn point, writes in the chat, a gesture, drops a thing,
 puts a sign with an inscription and a campfire, chops a tree nearby, hunts an animal with `health` nearby (the

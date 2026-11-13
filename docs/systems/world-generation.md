@@ -27,8 +27,11 @@ same.
   it), the climate (warmth, moisture), caves (`_tunnels`, the number by the setting `caves`; with the setting
 `cave_shape` 1 (new worlds; 0 — old ones, hollows of 3D noise with pits and slits for mouths) halls of two
 tiers, lenses with a domed ceiling and a floor rising gently to the rim, joined by galleries three to five
-cells wide, every hollow three cells tall or more, and a cave mouth a funnel from the surface down to a hall's
-floor: `WorldGen._halls`); with the
+cells wide, every hollow three cells tall or more: `WorldGen._halls`; the way in is a descent
+(`_cut_descents`, `DESCENT_*`): a trench three cells wide from dry ground that sinks three levels in four
+cells, turns into a tunnel `DESCENT_HEAD` cells tall and ends on a hall's floor, which is filled up to it, with
+rubble sloping a level a cell from its sides, so whoever comes down walks back up; a gallery into a
+mountain's side goes on down the same way); with the
   setting `relief` 1 (new worlds; 0 — old ones) ridges, gorges and outliers where it is cool and damp, mesas
   with striped walls and canyons where it is hot and dry (`_ranges_and_mesas`); with the setting `climate` 1
   (new worlds; 0 — old ones) warmth goes by climate zones: the slow noise of a zone (`n_zone`, `ZONE_SLOWER`
@@ -38,6 +41,16 @@ floor: `WorldGen._halls`); with the
   water above the sea rises to its level (`_banks`), and farther goes down a level per column, up to
   `BANK_SLOPE` columns: the bank of a river above a rapid, going past land laid out lower, is a slope, not a
   wall of one column.
+- A body walks out of whatever it falls into (it climbs one level, `tools/escape_map.gd` checks a patch):
+  ravines (`_ravine`) are `RAVINE_DEPTH` deep on a floor `RAVINE_FLOOR` wide and come up their sides in
+  terraces of one level, by the distance from the noise's zero line (`_across`: the noise over its slope); a
+  gorge (relief 1) goes down to its floor in such terraces too (`GORGE_*`); a swamp's pools and mires lie only
+  on ground at the sea's level; a hollow of a few columns two levels or more below all round, with no way out
+  within `PIT_REACH` columns, rises to a level under its lowest rim (`_fill_pits`, before the banks); a
+  hollow among mesas walled round by a higher tier, or the lowland ringed by mesas, rises to the lowest tier
+  round it (`_mesa_wall`: eight rays to `MESA_HOLLOW` cells over the tiers of every second column, kept in
+  `mesa_tiers`). What is left: now and then a slot of a mesa's tier a couple of cells long, joined to the
+  rest only across a corner.
 - `src/shared/world/world_gen.gd` (inherits the layout) — writes the cells: `TERRAIN` (stone, ore, soil, top,
   water, caves) → `PLANTED` (trees by biome; needs TERRAIN on 3×3 around) → `SHAPED` (slopes, corners,
   shrubs; needs PLANTED around); the jobs `start` / `step` by a row or a tree; `find_spawn`, `pack` / a saved
@@ -103,7 +116,9 @@ chunk is made only by stages and in pieces: no generation of a whole chunk in a 
 
 **Tests.** `tests/unit/generation_test.gd` (`generation`: independence from order; `mountains`, `caves`,
 `cave_shape`, `relief`, `trees`, `bushes`, `custom_plants`), `tools/bench_gen.gd`, `tools/map.gd` (the map from
-above), `tools/cave_map.gd` (the caves of a patch: from above and in slices from the side).
+above), `tools/cave_map.gd` (the caves of a patch: from above and in slices from the side),
+`tools/escape_map.gd` (the places of a patch a body falls into and cannot walk out of: a list of pits and a
+picture; `cave_shape` checks a patch with it).
 
 **In more detail.** `plan/design/landscape.md`, `plan/design/world.md`, `plan/design/trees.md`,
 `plan/architecture/performance.md`; the decisions about relief in the journal `plan/README.md`.

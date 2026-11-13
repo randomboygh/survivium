@@ -9,6 +9,8 @@ func run() -> void:
 	_test_bog()
 	_test_slopes()
 	_test_steps()
+	_test_long_step()
+	_test_wide_trunk()
 	_test_ground()
 
 
@@ -391,6 +393,58 @@ func _walk_to_thing(jump: bool, z: float) -> Vector3:
 	var p: Vector3 = player.position / WorldData.CELL
 	player.free()
 	return p
+
+
+## A long step (the server catching up with a game that was away) does not fall through
+## a floor of one cell over a cave.
+func _test_long_step() -> void:
+	var w := WorldData.new(24, Vector2i(8, 8))
+	for z in 8:
+		for x in 8:
+			for y in 2:
+				w.set_cell(x, y, z, Mat.STONE)
+			w.set_cell(x, 15, z, Mat.STONE)
+	var body := Body.new()
+	body.world = w
+	body.on_ground = true
+	var at := body.step(Vector3(4.5, 16.0, 4.5) * WorldData.CELL, 0.5, false)
+	_check(is_equal_approx(at.y / WorldData.CELL, 16.0) and body.on_ground,
+		"half a second in one step keeps the body on a floor of one cell over a cave")
+	body.velocity_y = -Body.MAX_FALL
+	body.on_ground = false
+	at = body.step(Vector3(4.5, 18.0, 4.5) * WorldData.CELL, 0.5, false)
+	_check(is_equal_approx(at.y / WorldData.CELL, 16.0), "a fast fall in a long step lands on that floor")
+
+
+## The thickest trunk stops a body in the cells round its own, those across its corners
+## too, but not two cells off.
+func _test_wide_trunk() -> void:
+	var species := -1
+	for i in Trees.SPECIES.size():
+		if species < 0 or Trees.SPECIES[i].girth[0] > Trees.SPECIES[species].girth[0]:
+			species = i
+	var col := Vector2i(-1, -1)
+	for i in 40:
+		var c := Vector2i(5 + 2 * (i % 5), 5 + 2 * (i / 5))
+		if Growth.trunk_box(species, c, 1).position.x <= -7:
+			col = c
+			break
+	if col.x < 0:
+		_check(false, "a tree species with a trunk three cells thick")
+		return
+	var w := WorldData.new(10, Vector2i(24, 24))
+	for z in 24:
+		for x in 24:
+			w.set_cell(x, 0, z, Mat.STONE)
+	for y in range(1, 6):
+		w.set_cell(col.x, y, col.y, Mat.LOG)
+	w.add_tree(col.x, col.y, species)
+	var body := Body.new()
+	body.world = w
+	var corner := Vector3(col.x - 0.5, 2.0, col.y - 0.5) * WorldData.CELL
+	_check(body.blocked(corner), "a body cannot stand inside a thick trunk across its corner")
+	_check(not body.blocked(Vector3(col.x - 1.5, 2.0, col.y - 1.5) * WorldData.CELL),
+		"a body stands two cells off a thick trunk")
 
 
 ## The test world: its grounds are where the plan says, made the same in any order.

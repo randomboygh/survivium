@@ -23,6 +23,7 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Body := preload("res://src/shared/game/body.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const SkyView := preload("res://src/client/view/sky.gd")
 
@@ -124,6 +125,7 @@ func speak(id: int, text: String) -> void:
 	if one.is_empty():
 		return
 	var said: Label = one.said
+	text = Lang.written(text)
 	said.text = text
 	# As wide as the words, wrapped at SAY_WIDTH.
 	var wide: float = UiStyle.text_width(text)

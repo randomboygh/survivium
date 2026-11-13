@@ -992,7 +992,7 @@ func _show_worn(inv) -> void:
 	var title: String = PersonPanel.TITLES[_worn]
 	if id != "":
 		# What it adds (slots, warmth) is in the facts under the name.
-		_info.text = "%s: %s" % [title, Lang.t(Items.title(id))]
+		_info.text = "%s: %s" % [Lang.t(title), Lang.t(Items.title(id))]
 		var h := int(_worn.right(1))
 		# A light in the second hand is the second one lit when the first holds one too.
 		var k := 1 if hand and h == 1 and game.controls.hands[0] == id and inv.count(id) > 1 else 0

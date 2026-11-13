@@ -771,14 +771,9 @@ func _server_rows() -> Array:
 	if not playtest and not host:
 		rows.append({"note": "[the_bots_and_the_world]"})
 		return rows
-	# A bot is another process of the game (TestCommands.add_bot): a server made on a
-	# phone starts none.
-	var bots: bool = game.hosted == null or s.can_host()
-	if not bots:
-		rows.append({"note": "[bots_need_a_computer]"})
 	rows += [
-		{"action": "[add_a_bot]", "do": func() -> void: s.test_server("bot+"), "works": bots},
-		{"action": "[remove_a_bot]", "do": func() -> void: s.test_server("bot-"), "works": bots},
+		{"action": "[add_a_bot]", "do": func() -> void: s.test_server("bot+")},
+		{"action": "[remove_a_bot]", "do": func() -> void: s.test_server("bot-")},
 		null,
 		{"action": "[test_world_on_the_server]", "do": func() -> void: s.test_server("new test"), "confirm": true},
 		{"action": "[new_world_on_the_server]", "do": func() -> void: s.test_server("new"), "confirm": true},

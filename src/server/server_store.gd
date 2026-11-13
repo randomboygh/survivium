@@ -91,7 +91,9 @@ func save(server) -> bool:
 			ok = false
 	var files := {}
 	for a in server.accounts.values():
-		files[player_file(a.key)] = record_of(a)
+		# The server's own bots (Server.add_bot) come new each time: not saved.
+		if not a.bot:
+			files[player_file(a.key)] = record_of(a)
 	files[WorldStore.WORLD] = _world_meta(server.next_id)
 	for name: String in files:
 		if not WorldStore.write_json_beside(store.dir + "/" + name, files[name]):

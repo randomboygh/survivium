@@ -224,6 +224,19 @@ static func english() -> Table:
 	return _english
 
 
+## A player's text as shown (a chat line, a sign's words): each line of it that is a
+## whole key is put into the language in use, the rest stays as written. The bots of a
+## playtest speak and write in keys, so each reader gets the words in their own language.
+static func written(text: String) -> String:
+	if not text.contains("["):
+		return text
+	var lines := text.split("\n")
+	for i in lines.size():
+		if is_key(lines[i]):
+			lines[i] = t(lines[i])
+	return "\n".join(lines)
+
+
 ## Whether `s` is a key: a word of small Latin letters, digits, `_` and `.` in square
 ## brackets, `[bag_is_full]`.
 static func is_key(s: String) -> bool:
@@ -253,6 +266,51 @@ static func seen(s: String) -> void:
 	var english := _latin.search(shown) != null and _cyrillic.search(shown) == null
 	if (_key_in.search(shown) != null or english) and not s in missed:
 		missed.append(s)
+
+
+## The texts under `node` that the screen shows with a key (or a `line`) still in them, in
+## the language in use, as "<node>: <text shown>": a key put as a value into a template
+## that is no key (`"PvP: %s" % key`), a key given to a node that does not translate, a
+## key no language file has. Hidden nodes are skipped. While `watching` (the scene
+## tests) each one goes into `missed` too.
+static func keys_shown(node: Node) -> Array[String]:
+	if _key_in == null:
+		_key_in = RegEx.create_from_string("\\[[a-z0-9_.]+\\]")
+	var out: Array[String] = []
+	var todo: Array[Node] = [node]
+	while not todo.is_empty():
+		var n: Node = todo.pop_back()
+		# Walked from the top, so a node hidden hides what it holds.
+		if (n is CanvasItem or n is Node3D or n is CanvasLayer or n is Window) and not n.visible:
+			continue
+		for text in _texts_of(n):
+			var shown := n.atr(text) if text.begins_with("[") or text.begins_with(LINE) else text
+			if shown.contains(LINE) or _key_in.search(shown) != null:
+				var what := "%s: %s" % [n.name, shown]
+				if not what in out:
+					out.append(what)
+				if watching and not what in missed:
+					missed.append(what)
+		todo.append_array(n.get_children())
+	return out
+
+
+## The texts node `n` shows (its words, its tabs' and items' titles, its tip).
+static func _texts_of(n: Node) -> Array[String]:
+	var out: Array[String] = []
+	if n is Label or n is Button or n is RichTextLabel or n is Label3D:
+		out.append(n.text)
+	if n is LineEdit or n is TextEdit:
+		out.append(n.placeholder_text)
+	if n is OptionButton:
+		for i in (n as OptionButton).item_count:
+			out.append((n as OptionButton).get_item_text(i))
+	if n is TabBar:
+		for i in (n as TabBar).tab_count:
+			out.append((n as TabBar).get_tab_title(i))
+	if n is Control:
+		out.append((n as Control).tooltip_text)
+	return out.filter(func(t: String) -> bool: return t != "")
 
 
 ## Takes the table out of the TranslationServer: called as the game ends (Main leaving
