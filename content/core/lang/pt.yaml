@@ -105,6 +105,7 @@
 "[tool.can]": "regador com água"
 
 # src/client/game/gathering.gd
+"[lmb_take_drag_double_turn]": "%s\nBE pegar, arrastar para mover, clique duplo para girar"
 "[lmb_take]": "%s\nBE pegar"
 "[lmb_read]": "%s\nBE ler"
 "[take_it_in_build_mode]": "%s\npega-se no modo construção"

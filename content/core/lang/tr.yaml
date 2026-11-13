@@ -105,6 +105,7 @@
 "[tool.can]": "dolu sulama kabı"
 
 # src/client/game/gathering.gd
+"[lmb_take_drag_double_turn]": "%s\nSol tık al, taşımak için sürükle, döndürmek için çift tık"
 "[lmb_take]": "%s\nSol tık al"
 "[lmb_read]": "%s\nSol tık oku"
 "[take_it_in_build_mode]": "%s\ninşa kipinde alınır"

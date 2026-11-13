@@ -105,8 +105,8 @@
 "[tool.can]": "watering can with water"
 
 # src/client/game/gathering.gd
-"[lmb_take]": "%s\nLMB take"
 "[lmb_take_drag_double_turn]": "%s\nLMB take, drag to move, double-click to turn"
+"[lmb_take]": "%s\nLMB take"
 "[lmb_read]": "%s\nLMB read"
 "[take_it_in_build_mode]": "%s\ntake it in build mode"
 "[lmb]": "%s\nLMB %s"

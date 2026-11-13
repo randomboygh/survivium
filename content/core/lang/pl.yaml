@@ -105,6 +105,7 @@
 "[tool.can]": "konewka z wodą"
 
 # src/client/game/gathering.gd
+"[lmb_take_drag_double_turn]": "%s\nLPM weź, przeciągnij, by przestawić, dwuklik, by obrócić"
 "[lmb_take]": "%s\nLPM weź"
 "[lmb_read]": "%s\nLPM czytaj"
 "[take_it_in_build_mode]": "%s\nweź w trybie budowy"

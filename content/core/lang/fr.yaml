@@ -105,6 +105,7 @@
 "[tool.can]": "arrosoir plein"
 
 # src/client/game/gathering.gd
+"[lmb_take_drag_double_turn]": "%s\nClic G prendre, glisser pour déplacer, double-clic pour tourner"
 "[lmb_take]": "%s\nClic G prendre"
 "[lmb_read]": "%s\nClic G lire"
 "[take_it_in_build_mode]": "%s\nà prendre en mode construction"

@@ -105,8 +105,8 @@
 "[tool.can]": "лейка с водой"
 
 # src/client/game/gathering.gd
-"[lmb_take]": "%s\nЛКМ забрать"
 "[lmb_take_drag_double_turn]": "%s\nЛКМ забрать, тянуть — переставить, двойной клик — повернуть"
+"[lmb_take]": "%s\nЛКМ забрать"
 "[lmb_read]": "%s\nЛКМ прочитать"
 "[take_it_in_build_mode]": "%s\nзабрать — в режиме строительства"
 "[lmb]": "%s\nЛКМ %s"
