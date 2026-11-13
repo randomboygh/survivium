@@ -2,7 +2,8 @@
 
 CI runs it before the web export. The version is <stage>.<PR>: the stage comes from
 application/config/version in project.godot (bumped by hand when an MVP stage closes),
-the PR is the last one merged into main, so "0.1.67" is the build with PR #67 in it.
+the PR is the one the commit merged into main (else the last one merged), so "0.1.67" is the build
+of PR #67; its GitHub release is tagged v0.1.67 (tools/release_notes.py).
 A pull request build is that number plus "+pr<N>". The changes are the last ENTRIES lines
 "Что нового [вид]: ..." (Russian) and "What's new [kind]: ..." (English) from the descriptions of
 the merged PRs, newest first; a PR may have several, and a line without a kind is something new
@@ -111,6 +112,13 @@ def main() -> None:
     repo, token = os.environ.get("GITHUB_REPOSITORY"), os.environ.get("GITHUB_TOKEN")
     if repo and token:
         prs = merged_prs(repo, token)
+        # A build of main is the PR its commit merged (a squash merge's subject ends with "(#N)"),
+        # not the last one merged by the time the job runs: the tag of its release and the APK agree.
+        own = re.search(r"\(#(\d+)\)\s*$", subprocess.run(
+            ["git", "log", "-1", "--format=%s"], capture_output=True, text=True).stdout)
+        mine = [p for p in prs if own and p["number"] == int(own.group(1))]
+        if mine and not os.environ.get("GITHUB_REF", "").startswith("refs/pull/"):
+            prs = [p for p in prs if p["merged_at"] <= mine[0]["merged_at"]]
         if prs:
             info["version"] = "%s.%d" % (stage(), prs[0]["number"])
         for p in prs:

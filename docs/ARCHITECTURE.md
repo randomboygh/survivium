@@ -63,7 +63,7 @@ The graph by folders from the code: [DEPENDENCIES.md](DEPENDENCIES.md).
 | `godot --headless --path . --script res://tests/<name>.gd` | the tests, each `extends SceneTree` |
 | `godot … --script res://tools/<name>.gd` | tools: the validator, screenshots, the map, benches, asset makers |
 | `python3 tools/<name>.py` | the build's version, the patch of the web build, Pillow drawing tools, the document index |
-| `.github/workflows/build.yml` | CI: lint, checks, tests, the freeze test, web and PC export, the check in Chrome, publishing to Pages and to `pc-latest` ([testing/CI_PIPELINE.md](testing/CI_PIPELINE.md)) |
+| `.github/workflows/build.yml` | CI: lint, checks, tests, the freeze test, web and PC export, the check in Chrome, publishing to Pages and to a GitHub release per merge ([testing/CI_PIPELINE.md](testing/CI_PIPELINE.md)) |
 
 The tests and tools start the same scene: they create `main.tscn`, set `main.skip_setup = true` (no «New
 world» menu) and, when needed, `save_root` (their own saves).
