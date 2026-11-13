@@ -40,7 +40,7 @@ const LINES: Array[String] = ["[hi]", "[anyone_here]", "[look_what_i_found]", "[
 	"[wolves_here_careful]", "[nice_weather]", "[i_put_up_a_sign]", "[need_branches]", "Hello!",
 	"[lets_build_a_house]", "[wheres_the_campfire]", "[im_a_bot_but_im]"]
 const SIGN_LINES: Array[String] = ["[a_bot_was_here]", "[beware_of_animals]", "[camp]", "[to_the_river]",
-	"[do_not_cut]", "[bot]"]
+	"[do_not_cut]"]
 
 ## Its account on the server (Server.Account): `link.who` is the character, `link.requests`
 ## what it asks.
