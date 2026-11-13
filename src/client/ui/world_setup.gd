@@ -14,6 +14,7 @@ const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+const Biomes := preload("res://src/shared/content/biomes.gd")
 const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 
 ## The names of the rows, as wide on every page (the mods' are the longest), so the
@@ -61,6 +62,10 @@ var _texture: ImageTexture
 ## The world the map is drawn from and the next row to draw.
 var _gen: WorldGen
 var _map_row := 0
+## The biomes of the bundles chosen (Biomes.tables), which the map is laid out with, and
+## the bundles they are of.
+var _biomes: Array = []
+var _biomes_of: Array = []
 var _start_button: Button
 ## Asks a second tap of «Создать мир» when it would make a saved world anew.
 var _replace := TwoTap.new()
@@ -318,6 +323,8 @@ func _on_stepped(i: int) -> void:
 	if _page == "world":
 		_restart_map()
 	else:
+		# A biome switched on or off shows on the map.
+		_restart_map()
 		# The page stays where it was scrolled to: the rows made anew are not laid out
 		# yet, and keeping the focused one in sight would take the list to its top.
 		var at := _scroll.scroll_vertical
@@ -399,17 +406,27 @@ func _process(_delta: float) -> void:
 		_shown = true
 		print("world setup shown: start %s" % _start_button.get_global_rect())
 	var t0 := Time.get_ticks_usec()
+	if _gen != null and _map_row >= MAP:
+		return
+	# The land of the bundles chosen: their biomes in place of those the world behind
+	# plays with, for this frame's rows only.
+	var own := Biomes.tables()
+	var bundles: Array = game.settings.world_mods()
+	if bundles != _biomes_of:
+		_biomes_of = bundles
+		Biomes.refresh(bundles)
+		_biomes = Biomes.tables()
+	Biomes.use(_biomes)
 	if _gen == null:
 		_gen = WorldGen.new(game.settings.values.world_seed, 48, game.settings.world_options())
 		_map_row = 0
-	if _map_row >= MAP:
-		return
 	var at: Vector3i = _gen.spawn_guess
 	while _map_row < MAP and Time.get_ticks_usec() - t0 < MAP_BUDGET_US:
 		var lay := _gen.lay_out(at.x - MAP / 2 * MAP_STEP, at.z + (_map_row - MAP / 2) * MAP_STEP, MAP, 1, MAP_STEP)
 		for i in MAP:
 			_image.set_pixel(i, _map_row, _gen.column_color(lay, i))
 		_map_row += 1
+	Biomes.use(own)
 	_texture.update(_image)
 
 

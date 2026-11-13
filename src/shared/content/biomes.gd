@@ -43,7 +43,9 @@ static func _static_init() -> void:
 	refresh()
 
 
-static func refresh() -> void:
+## Reads the biomes of the loaded bundles; with `only`, of those of its bundles alone (the
+## map of «New world» for the mods chosen there, see tables).
+static func refresh(only: Variant = null) -> void:
 	RECORDS = []
 	IDS = []
 	SEA = -1
@@ -56,6 +58,8 @@ static func refresh() -> void:
 	CLIMATE = []
 	VARIANTS = {}
 	for r in Content.records("biomes"):
+		if only is Array and not r.get("bundle", "") in only:
+			continue
 		var b: Dictionary = r.duplicate()
 		b.tree_shares = _shares(b.trees, Trees.SPECIES)
 		b.bush_shares = _shares(b.bushes, Bushes.TYPES)
@@ -89,6 +93,28 @@ static func refresh() -> void:
 	CLIMATE.sort_custom(_specific)
 	for w in VARIANTS:
 		VARIANTS[w].sort_custom(_specific)
+
+
+## The tables of the biomes as they are now, for `use`: the map of «New world» lays out
+## the land of the bundles chosen there (refresh with `only`) while the world behind it
+## plays with its own, swapping the tables round the layout of each frame.
+static func tables() -> Array:
+	return [RECORDS, IDS, SEA, BEACH, ROCK, PLATEAU, SWAMP, ALPINE, GLACIER, CLIMATE, VARIANTS]
+
+
+## Puts back tables `t` (see tables).
+static func use(t: Array) -> void:
+	RECORDS = t[0]
+	IDS = t[1]
+	SEA = t[2]
+	BEACH = t[3]
+	ROCK = t[4]
+	PLATEAU = t[5]
+	SWAMP = t[6]
+	ALPINE = t[7]
+	GLACIER = t[8]
+	CLIMATE = t[9]
+	VARIANTS = t[10]
 
 
 ## Whether biome `a` comes before `c`: the smaller window first, the first loaded on a tie.
