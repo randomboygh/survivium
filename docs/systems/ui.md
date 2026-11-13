@@ -145,7 +145,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   joined group one window button tall (`TabRow.tabs`, the chosen one amber, `light`); new tabs are made the
   same way. The scrolled rows of a window keep off the edges and the bar by `UiStyle.BAR_GAP` (`UiStyle.inset`:
   settings, «Testing», «Land», «Team»). The kit's rule: with no scroll the room on the right is the same as
-  on the left and the rows reach it (`ChoiceRows` rows fill their width, the settings' grid fills the list);
+  on the left and the rows reach it (everything in a list fills its width: `ChoiceRows` rows, the settings' grid, its action buttons, places and notes; no fixed-width piece left short of the right side);
   only a shown bar adds its own room (shown in the gallery's «Lists»); new pages are made the same way, tabs have no headings. The bag's cells
   show 4 whole rows (`InventoryWindow.ROWS`), fewer if the window does not fit, the rest scrolls — by a thin
   bar (`UiStyle.SCROLL_BAR`) and by a drag of a finger or mouse over the cells themselves (`drag_scroll.gd`;

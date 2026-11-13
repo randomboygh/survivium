@@ -1097,6 +1097,8 @@ func _add_row(name: String, values: Array, getter: Callable, setter: Callable, o
 ## `confirm` only when tapped twice. Returns the button.
 func _add_action(text: String, action: Callable, confirm := false) -> Button:
 	var b := Kit.button(text, Callable(), ROW_WIDTH, ARROW)
+	# As wide as the rows: the column's whole width (UiStyle.inset's room on each side).
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if confirm:
 		_asks.guard(b, action)
 	else:
@@ -1109,7 +1111,7 @@ func _add_action(text: String, action: Callable, confirm := false) -> Button:
 ## button that takes the player there and back into the game.
 func _add_marker(i: int) -> void:
 	var m: Dictionary = game.markers.list[i]
-	_add_place(Markers.color_of(m), (Markers.COLORS[m.color][0] as String).capitalize(), m.cell, "[teleport_to_a_marker]")
+	_add_place(Markers.color_of(m), Markers.COLORS[m.color][0], m.cell, "[teleport_to_a_marker]")
 
 
 ## A place as a row: a swatch of `color`, `name` and the column `cell`, and a button
@@ -1118,9 +1120,13 @@ func _add_place(color: Color, name: String, cell: Vector2i, tip: String) -> void
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	row.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_grid().add_child(row)
 	row.add_child(Kit.swatch(color))
-	var label := UiStyle.label("%s · X %d, Y %d" % [name, cell.x, cell.y])
+	# `name` is a key ("[red]", a respawn point's place): its words, first letter capital.
+	var title := Lang.t(name)
+	title = title.left(1).to_upper() + title.substr(1)
+	var label := UiStyle.label("%s · X %d, Y %d" % [title, cell.x, cell.y])
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.clip_text = true
@@ -1140,6 +1146,7 @@ func _note(text: String) -> Label:
 	var l := Kit.note(text, ROW_WIDTH)
 	l.custom_minimum_size.y = ARROW
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return l
 
 
