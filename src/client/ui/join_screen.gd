@@ -52,21 +52,25 @@ func _init(g, url := "", error := "") -> void:
 
 func _ready() -> void:
 	build("[join]")
+	# The fields and the recent servers keep the settings' insets (the kit's rule); the
+	# buttons under them stand flush with the frame's room, as in every window.
+	var content := Kit.column(6)
+	box.add_child(UiStyle.inset(content))
 	var recent := ServerList.recent()
-	_url = _field(box, "[server_address]", "[wss_or_ws_address_port]")
+	_url = _field(content, "[server_address]", "[wss_or_ws_address_port]")
 	_url.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_URL
 	_url.text = _start_url if _start_url != "" else (recent[0].url if not recent.is_empty() else "")
-	_name = _field(box, "[name]", "[how_others_will_see_you]")
+	_name = _field(content, "[name]", "[how_others_will_see_you]")
 	_name.max_length = ServerList.NAME_MAX
 	_name.text = ServerList.player_name()
-	_password = _field(box, "[password]", "[if_the_server_asks]")
+	_password = _field(content, "[password]", "[if_the_server_asks]")
 	_password.secret = true
 	_password.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_PASSWORD
 	_error = Kit.note("", WIDTH, UiStyle.DANGER)
-	box.add_child(_error)
+	content.add_child(_error)
 	_say(_start_error)
 	_recent = Kit.column(4)
-	box.add_child(_recent)
+	content.add_child(_recent)
 	_recent.add_child(Kit.caption("[recent]"))
 	_recent_rows = Kit.column(4)
 	# A finger dragged over the server buttons scrolls them too.
@@ -106,11 +110,11 @@ func _announce() -> void:
 
 
 ## A field under its name; Enter in it goes to the next one, in the last one joins.
-func _field(box: Control, caption: String, hint: String) -> LineEdit:
-	box.add_child(Kit.caption(caption))
+func _field(parent: Control, caption: String, hint: String) -> LineEdit:
+	parent.add_child(Kit.caption(caption))
 	var f := Kit.field(hint, WIDTH, 0, FIELD_H)
 	f.text_submitted.connect(func(_t: String) -> void: _next_after(f))
-	box.add_child(f)
+	parent.add_child(f)
 	return f
 
 
