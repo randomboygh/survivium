@@ -4,6 +4,8 @@ extends SceneTree
 ## xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 \
 ##     --resolution 1280x720 --script res://tools/shot.gd -- /tmp/shots [--phone] [name ...]
 ## `--phone` lays the window out as a phone's screen (fractional scales, CameraRig.turning).
+## `--keys` saves no pictures (it runs headless too): each shot's screen is searched for
+## a key left untranslated (Lang.keys_shown), each one printed as `KEYS <shot>: <node>: <text>`.
 ## Each shot sets the time of day, season, weather and an offset of the player from
 ## the spawn point, waits for the weather to settle and saves <name>.png. The spots are
 ## searched in cells (half a world unit); the player stands in world units.
@@ -34,6 +36,7 @@ var main: Node
 var out_dir := "user://shots"
 var names: Array = []
 var phone := false
+var keys_only := false
 ## The spots and scenes of the shots (see tools/shot/places.gd).
 var places := Places.new()
 
@@ -42,6 +45,8 @@ func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	phone = "--phone" in args
 	args.erase("--phone")
+	keys_only = "--keys" in args
+	args.erase("--keys")
 	# `--lang en`: the shots in that language (else Russian, as the game is written).
 	SettingsScript.language_override = "ru"
 	var at := args.find("--lang")
@@ -1142,13 +1147,17 @@ func _run() -> void:
 		# The trees' light is worked out a few trees a frame in the game: all of it first.
 		if main.sun_rays != null and main.sun_rays.finish():
 			await process_frame
-		var img := root.get_texture().get_image()
+		if keys_only:
+			for k in Lang.keys_shown(root):
+				print("KEYS %s: %s" % [shot_name, k])
+		else:
+			var img := root.get_texture().get_image()
+			img.save_png(out_dir.path_join(shot_name + ".png"))
 		main.hud.visible = true
 		print("player at ", main.player.position)
-		img.save_png(out_dir.path_join(shot_name + ".png"))
 		# Frames of the sun moving at the game's speed, 60 a second, to see how the
 		# shadows move: <name>-01.png and on.
-		for i in shot.get("sweep", 0):
+		for i in (0 if keys_only else shot.get("sweep", 0)):
 			main.session.clock.time_of_day += shot.get("sweep_step", 1.0) / (main.session.clock.DAY_LENGTH * 60.0)
 			await process_frame
 			await process_frame

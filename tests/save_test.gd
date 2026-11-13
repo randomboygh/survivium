@@ -134,6 +134,79 @@ func _sign_window(main: Node) -> void:
 	main.controls.set_touch(false)
 
 
+## The screen shown, searched for a key left untranslated (Lang.keys_shown): `what` is
+## the window and the tab.
+func _sweep(what: String) -> void:
+	await _frames(3)
+	var left := Lang.keys_shown(root)
+	_check(left.is_empty(), "%s: no key left untranslated: %s" % [what, left])
+
+
+## Every window of the game and every tab of it, in Russian: the bag's tabs, the map,
+## the gestures, the chat, the pause, the settings and the playtest page with all their
+## sections, and the main menu's pages and screens (the server's, «Присоединиться», a new
+## world, the worlds saved).
+func _every_window(main: Node) -> void:
+	var hud = main.hud
+	hud.toggle_bag()
+	for tab: String in ["bag", "craft", "team", "land"]:
+		hud.bag.show_tab(tab)
+		await _sweep("the bag's tab " + tab)
+	hud.toggle_bag()
+	hud.map_view.open()
+	await _sweep("the map")
+	hud.map_view.close()
+	hud.toggle_gestures()
+	await _sweep("the gestures")
+	hud.toggle_gestures()
+	hud.chat.open()
+	# A bot's line is a key: each reader's game puts it into its own language.
+	hud.chat.hear(7, "Bot1", "[wheres_the_campfire]")
+	await _sweep("the chat")
+	_check(hud.chat.lines[-1].text == "Bot1: Где костёр?", "a bot's line in the chat in Russian: %s" % hud.chat.lines[-1].text)
+	hud.chat.close()
+	hud.toggle_menu()
+	await _sweep("the pause")
+	main.settings.testing_unlocked = true
+	var menu: Control = hud.settings_menu()
+	for page: String in ["settings", "test"]:
+		hud.open_settings(page)
+		for sec: Array in menu._tabs_of(page):
+			menu.show_section(sec[0])
+			await _sweep("%s, %s" % [page, sec[0]])
+	# «Данные для теста» (the report) is internal text quoting the logs, keys and all.
+	for page: String in ["changes", "freezes"]:
+		menu.open(page)
+		await _sweep(page)
+	menu.close()
+	if hud._menu.visible:
+		hud.toggle_menu()
+	main._build_menu()
+	var mm = main.menu
+	for page: String in ["top", "single", "multi"]:
+		mm._fill_page(page)
+		await _sweep("the main menu's page " + page)
+	mm.open_host()
+	await _frames(2)
+	for i in mm._setup._pages.size():
+		mm._setup.show_tab(i)
+		await _sweep("the server's tab %d" % i)
+	mm.open_join("")
+	await _sweep("joining a server")
+	mm._new_world()
+	await _sweep("a new world")
+	mm._close_setup()
+	mm._open_worlds()
+	await _sweep("the worlds saved")
+	mm._close_setup()
+	mm._open_settings()
+	await _sweep("the menu's settings")
+	main.menu.get_parent().queue_free()
+	main.menu = null
+	main.settings.testing_unlocked = false
+	await _frames(2)
+
+
 func _run() -> void:
 	WorldStore.new(ROOT).erase()
 	var main: Node = await _start()
@@ -323,6 +396,7 @@ func _run() -> void:
 		"wiping all data leaves nothing but the logs")
 	WorldStore.erase_dir(wipe)
 	await _sign_window(main)
+	await _every_window(main)
 	main.queue_free()
 	await process_frame
 	WorldStore.new(ROOT).erase()

@@ -12,7 +12,7 @@ a Russian copy of this guide is [TRANSLATION_RU.md](TRANSLATION_RU.md).
 - Every text a player reads is a **key** in square brackets (decision 186): small Latin letters, digits,
   `_` and `.` — `"[bag_is_full]"`, `"[small_map]"`. The code and the mods' data hold only keys; each
   language, English too, maps a key to its own text. Text that is no key (a player's name, a sign's words)
-  shows as written.
+  shows as written; a line of it that is a whole key (a playtest bot's) shows translated.
 - A translation is a flat YAML mapping in a `lang/<code>.yaml` file beside what it translates:
 
   ```yaml

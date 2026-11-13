@@ -23,7 +23,6 @@
 # content/core/data/items.yaml
 "[core.items.campfire]": "Campfire"
 "[core.items.rot]": "Rot"
-"[core.items.test_mod]": "Test mod token"
 "[core.items.grave]": "Cross"
 "[core.items.grave.about]": "Stands where a dead player's sack used to lie. Come close to read who died here."
 
@@ -152,7 +151,6 @@
 "[beware_of_animals]": "Beware of animals"
 "[to_the_river]": "To the river →"
 "[do_not_cut]": "Do not cut!"
-"[bot]": "Bot %s"
 "[accepted_im_with_you]": "Accepted, I'm with you!"
 
 # src/client/input/build_mode.gd
@@ -974,8 +972,6 @@
 "[server_data]": "Server data"
 "[mod_files_from_servers_s]": "Mod files kept from servers: %s MB"
 "[clear_server_data]": "Clear server data"
-"[your_own_mods]": "Your own mods"
-"[put_your_mods_into_the]": "Put your mods into the folder %s, laid out as in the «content» folder of the PC version, and restart the game. A server made here gives them to its players. Files there now: %d"
 "[sizes]": "Sizes"
 "[full_screen]": "Full screen"
 "[buttons_n2]": "Buttons"
@@ -1014,6 +1010,8 @@
 "[crt_soft]": "soft"
 "[crt_old]": "old"
 "[crt_tape]": "tape"
+"[your_own_mods]": "Your own mods"
+"[put_your_mods_into_the]": "Put your mods into the folder %s, laid out as in the «content» folder of the PC version, and restart the game. A server made here gives them to its players. Files there now: %d"
 "[test_server_github]": "Test server (GitHub)"
 "[keep_the_server_an_hour]": "Keep the server an hour longer"
 "[stop_the_test_server]": "Stop the test server"
@@ -1025,16 +1023,16 @@
 "[make_the_world_a_server]": "Make the world a server and call a bot"
 "[your_own_server_and_bots]": "Your own server and bots are in the computer version; here, on the test server"
 "[the_bots_and_the_world]": "The bots and the world of this server are up to its host"
-"[test_mod]": "Test mod"
-"[the_test_mod_changes_a]": "The server gets files no build has: a new item, repainted animals, another jump sound. Those who join download them"
-"[with_the_test_mod]": "With the test mod"
-"[change_the_mod_and_reload]": "Change the mod and reload"
 "[add_a_bot]": "Add a bot"
 "[remove_a_bot]": "Remove a bot"
 "[test_world_on_the_server]": "Test world on the server"
 "[new_world_on_the_server]": "New world on the server"
 "[world_day]": "World %d · day %d"
 "[the_servers_worlds_list_in]": "The server's worlds: list in the chat"
+"[test_mod]": "Test mod"
+"[the_test_mod_changes_a]": "The server gets files no build has: a new item, repainted animals, another jump sound. Those who join download them"
+"[with_the_test_mod]": "With the test mod"
+"[change_the_mod_and_reload]": "Change the mod and reload"
 "[cheats]": "Cheats"
 "[cheats_on_the_server]": "Cheats on the server"
 "[the_list_of_changes_appears]": "The list of changes appears in a build from the website."
@@ -1064,6 +1062,7 @@
 "[player_n3]": "player %d"
 "[you_invited_waiting_for_an]": "You invited %s, waiting for an answer"
 "[to_invite_someone_to_your]": "To invite someone to your team, tap a player nearby"
+"[pvp_mode]": "PvP: %s"
 "[newcomer_protection_min_more]": "Newcomer protection: %d min more"
 "[drop_the_protection]": "Drop the protection"
 
@@ -1239,6 +1238,9 @@
 "[the_world_could_not_be_opened]": "The world could not be opened: %s"
 "[port_is_taken]": "Port %d is taken"
 "[the_server_moves_to_another_world]": "The server is moving to another world"
+
+# src/server/test_mod.gd
+"[core.items.test_mod]": "Test mod token"
 
 # src/shared/content/crafting.gd
 "[needs_a_station]": "Needs a station: %s"
