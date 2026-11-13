@@ -182,7 +182,7 @@ static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, bur
 			groups.append(["[durability]", [[UiStyle.icon("shield"), str(d), false, "[durability_strokes_until_it_breaks]"]]])
 		else:
 			var left := maxi(0, d - worn)
-			var tip := "[durability_strokes_until_it_breaks]"
+			var tip := Lang.t("[durability_strokes_until_it_breaks]")
 			if worn < 0:
 				tip += Lang.f("[strokes_held_back_by_a]", [-worn])
 			groups.append(["[durability]", [[UiStyle.icon("shield"), "%d/%d" % [left, d], float(left) / d < 0.25,
