@@ -116,13 +116,13 @@ PAL = {
     "Q": (244, 244, 232, 255),  # pea flower
     "m": (30, 88, 40, 255),  # monstera leaf
     "M": (64, 136, 58, 255),  # its lit side
-    "h": (40, 98, 70, 255),  # clover leaf
-    "H": (74, 146, 104, 255),  # its lit side
-    "x": (140, 196, 150, 255),  # its pale mark
-    "j": (34, 80, 56, 255),  # clover stalk
-    "b": (30, 72, 42, 255),  # fern stem, dark
-    "B": (40, 92, 50, 255),  # fern leaflet in shade
-    "z": (70, 134, 60, 255),  # its lit side
+    "h": (50, 102, 44, 255),  # clover leaf
+    "H": (88, 146, 62, 255),  # its lit side
+    "x": (150, 194, 112, 255),  # its pale mark
+    "j": (40, 82, 38, 255),  # clover stalk
+    "b": (34, 70, 34, 255),  # fern stem, dark
+    "B": (46, 92, 42, 255),  # fern leaflet in shade
+    "z": (78, 132, 54, 255),  # its lit side
     "Z": (150, 200, 90, 255),  # a lit tip
     "y": (240, 236, 226, 255),  # white clover head
     "Y": (212, 206, 196, 255),  # its shade
@@ -320,7 +320,7 @@ SPRUCE_SAPLING = [
 ]
 
 # Wild plants two cards wide (plants `across: 2`), a frame a look: a fern of arching
-# fronds, darker than the grass round it (it grows in the woods), patches of bluish clover,
+# fronds, darker than the grass round it (it grows in the woods), patches of clover,
 # two of leaves alone and two with a white or a red head (fields of it on the meadows).
 FERN = [
     low16(
@@ -361,14 +361,15 @@ FERN = [
 ]
 
 # The fern and the clover again in other greens, so a wood or a field is not of one hue:
-# warmer and yellower, cooler and bluer (the fern), yellower and darker (the clover).
+# warmer and yellower, a little deeper. All of them stay in the greens of the game's grass and
+# leaves (no blue-green: it stood out of the meadow and the wood).
 FERN_SHADES = [
     {"b": (44, 72, 30, 255), "B": (58, 96, 36, 255), "z": (94, 132, 46, 255), "Z": (176, 204, 92, 255)},
-    {"b": (24, 62, 52, 255), "B": (34, 84, 66, 255), "z": (58, 122, 92, 255), "Z": (128, 184, 142, 255)},
+    {"b": (28, 62, 32, 255), "B": (38, 84, 42, 255), "z": (64, 120, 56, 255), "Z": (138, 190, 96, 255)},
 ]
 CLOVER_SHADES = [
-    {"h": (56, 100, 44, 255), "H": (96, 142, 64, 255), "x": (150, 190, 112, 255), "j": (44, 82, 38, 255)},
-    {"h": (30, 80, 60, 255), "H": (56, 122, 88, 255), "x": (112, 170, 128, 255), "j": (26, 66, 48, 255)},
+    {"h": (64, 106, 40, 255), "H": (110, 152, 62, 255), "x": (172, 200, 112, 255), "j": (50, 86, 34, 255)},
+    {"h": (40, 90, 42, 255), "H": (72, 134, 60, 255), "x": (134, 184, 112, 255), "j": (32, 72, 36, 255)},
 ]
 
 CLOVER = [

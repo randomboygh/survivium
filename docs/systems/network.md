@@ -277,7 +277,7 @@ length up to `CHAT_MAX` 160.
   `allow`); a server quiet for `STALL` 20 s fails the taking. `src/client/net/mod_cache.gd` — the files kept on
   the device: `user://mod_cache/<hash>.<ext>`, the lists of the last `SETS_KEPT` 8 sets in `sets/`, `used.json`
   (when each was last used), `trim` past `LIMIT` 200 MB (the longest unused first, never a file of the set
-  played), `clear` («Settings» → «Game» → «Clear server data»).
+  played), `clear` («Settings» → «Other» → «Clear server data»).
 - `src/client/net/local_host.gd` — the server inside the game: the only place where the client loads
   `src/server/`; `LocalHost.new(session, get_tree().root)` puts the server node `src/server/runner.gd` under the
   tree's root and under it `real_weather` (`src/server/real_weather.gd` on the session's clock, switched on by
@@ -444,7 +444,12 @@ server for checking and from the host of any server `src/server/cheats.gd` takes
 and pace of work, jumps in the air (`Player.cheat_air`), skills' growth, overload, hunger, thirst, tiredness,
 cold — one's own; building, wear, making, free items, animals' attacks, the clock — the whole world's
 (`Requests.may_cheat` = `Config.playtest` or a host; on a server for checking AI debugging is for everyone
-too). The link is the status `playtest-link` of the launch's commit. The bots are games with `--join … --bot`
+too); once, `at` puts the body at a point (`Player.teleport`): the «Go» of the «Markers» tab
+(`Character.go_to_column`, again when it lands) and «To the place of death». With the switch off (or refused by the
+server, which turns it off) the tabs «World», «Player» and «Markers» show their switches and «Go» faded with a line
+saying why (`Settings.may_cheat`, `SettingsMenu._cheats_note`); «Give tools» and «Clear territory» work only in a
+world of this device. A server made on a phone starts no bots (a bot is another process of the game): «Add a bot»
+is faded with a line saying so. The link is the status `playtest-link` of the launch's commit. The bots are games with `--join … --bot`
 (`src/client/input/bot.gd`, `Main.bot`): instead of keys `Bot.move` gives the walking direction and once in a
 few seconds takes a task (`TASKS`): walks near the spawn point, writes in the chat, a gesture, drops a thing,
 puts a sign with an inscription and a campfire, chops a tree nearby, hunts an animal with `health` nearby (the

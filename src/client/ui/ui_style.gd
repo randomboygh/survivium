@@ -339,6 +339,27 @@ const ICONS := {
 		".ww......",
 		".w.......",
 	],
+	# Music: two notes under one beam (the settings' «Звук» tab).
+	"music": [
+		"...wwwwww",
+		"...w....w",
+		"...w....w",
+		"...w....w",
+		".www..www",
+		"wwww.wwww",
+		"www..www.",
+	],
+	# A speaker with sound coming out of it (the sounds' strip of the «Звук» tab).
+	"speaker": [
+		"....w....",
+		"...ww..w.",
+		"wwwww...w",
+		"wwwww.w.w",
+		"wwwww.w.w",
+		"wwwww...w",
+		"...ww..w.",
+		"....w....",
+	],
 	# The server: two boxes of a rack, a light on each (its notices to the host).
 	"server": [
 		"bbbbbbbb",
@@ -1590,13 +1611,14 @@ const BAR_GAP := 6
 ## ScrollContainer (its bar takes its own room right of that). With no bar the rows
 ## keep as much room on the right as on the left, with a bar BAR_GAP before it (the
 ## user's ask 2026-11-12: no more on the right than on the left of a window that does
-## not scroll; the rows fill the width they are given, ChoiceRows).
-static func inset(content: Control) -> MarginContainer:
+## not scroll; the rows fill the width they are given, ChoiceRows). `bottom`: room under
+## the last row, for a list that ends at the window's frame (its text would touch it).
+static func inset(content: Control, bottom := 0) -> MarginContainer:
 	var m := MarginContainer.new()
 	m.add_theme_constant_override("margin_left", BAR_GAP)
 	m.add_theme_constant_override("margin_right", BAR_GAP)
 	m.add_theme_constant_override("margin_top", 0)
-	m.add_theme_constant_override("margin_bottom", 0)
+	m.add_theme_constant_override("margin_bottom", bottom)
 	m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	m.add_child(content)
 	return m

@@ -72,7 +72,7 @@ const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
 const MOONS := [["[new_moon]", 0.0], ["[crescent]", 0.4], ["[full_moon]", 1.0]]
 ## The sections of the pages with tabs: key and tab name.
 const PAGES := {
-	"settings": [["game", "[game]"], ["interface", "[interface]"], ["graphics", "[graphics]"], ["music", "[music]"], ["sound", "[sound]"]],
+	"settings": [["game", "[game]"], ["interface", "[interface]"], ["graphics", "[graphics]"], ["sound", "[sound]"], ["other", "[other_tab]"]],
 	"test": [["world", "[world_n3]"], ["server", "[server_name]"], ["player", "[player_n2]"], ["caves", "[caves]"], ["marks", "[markers]"], ["debug", "[debug]"]],
 	"freezes": [["all", "all"], ["critical", "from 200"], ["big", "100–200"], ["small", "50–100"]],
 }
@@ -325,7 +325,9 @@ func _fill() -> void:
 			elif r is Dictionary and r.has("note"):
 				_grid().add_child(_note(r.note))
 			elif r is Dictionary:
-				_add_action(r.action, r.do, r.get("confirm", false))
+				var b := _add_action(r.action, r.do, r.get("confirm", false))
+				b.disabled = not r.get("works", true)
+				b.modulate.a = 0.4 if b.disabled else 1.0
 			else:
 				_add_row(r[0], r[1], r[2], r[3], r[4] if r.size() > 4 else "", r[5] if r.size() > 5 else Callable())
 	visible = true
@@ -356,23 +358,26 @@ func _section_rows(key: String) -> Array:
 	# rows that set them here are faded; in a game of this device they all work.
 	var solo := func() -> bool: return game.join_url == ""
 	var solo_time := func() -> bool: return solo.call() and game_time.call()
+	# The playtest switches work on a server only with «Читы на сервере» on (Settings.may_cheat).
+	var may := func() -> bool: return s.may_cheat()
+	var may_time := func() -> bool: return may.call() and game_time.call()
 	match key:
 		"world":
-			return [
+			return _cheats_note() + [
 				_section("clock", "[time_and_weather]"),
 				["[season]", clock.SEASONS,
 					func() -> int: return clock.season,
-					func(i: int) -> void: s.set_season(i), "", game_season],
+					func(i: int) -> void: s.set_season(i), "", func() -> bool: return may.call() and game_season.call()],
 				["[weather]", ["[by_itself]"] + clock.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
 					func() -> int: return 0 if clock.weather_auto else clock.weather + 1,
-					func(i: int) -> void: s.set_weather(i - 1), "", game_weather],
+					func(i: int) -> void: s.set_weather(i - 1), "", func() -> bool: return may.call() and game_weather.call()],
 				["[moon]", ["[by_phase]"] + MOONS.map(func(m: Array) -> String: return m[0]),
 					func() -> int:
 						for i in MOONS.size():
 							if is_equal_approx(clock.moon_pin, MOONS[i][1]):
 								return i + 1
 						return 0,
-					func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1])],
+					func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1]), "", may],
 				["[time_of_day]", HOURS,
 					func() -> int:
 						var h: float = clock.time_of_day * 24.0
@@ -381,13 +386,13 @@ func _section_rows(key: String) -> Array:
 							if h >= HOUR_OF[i] - 0.5:
 								best = i
 						return best,
-					func(i: int) -> void: s.set_hour(HOUR_OF[i]), "", game_time],
+					func(i: int) -> void: s.set_hour(HOUR_OF[i]), "", may_time],
 				["[hour]", range(24).map(func(h: int) -> String: return "%02d:00" % h),
 					func() -> int: return int(clock.time_of_day * 24.0) % 24,
-					func(i: int) -> void: s.set_hour(i), "", game_time],
+					func(i: int) -> void: s.set_hour(i), "", may_time],
 				["[flow_of_time]", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "[stopped]" if v == 0.0 else ("[normal_ui]" if v == 1.0 else "×%d" % int(v))),
 					func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),
-					func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i]), "", game_time],
+					func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i]), "", may_time],
 			] + ([
 				_section("flag", "[test_world_n2]"),
 				{"action": "[back_to_your_world]" if s.in_test_world() else "[go_to_the_test_world]",
@@ -396,59 +401,61 @@ func _section_rows(key: String) -> Array:
 		"server":
 			return _server_rows()
 		"player":
-			return [
+			return _cheats_note() + [
 				_section("person", "[movement]"),
 				["[player_speed]", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),
 					func() -> int: return Settings.PLAYER_SPEEDS.find(s.player_speed),
-					func(i: int) -> void: s.set_player_speed(Settings.PLAYER_SPEEDS[i])],
+					func(i: int) -> void: s.set_player_speed(Settings.PLAYER_SPEEDS[i]), "", may],
 				["[skill_growth]", Settings.SKILL_RATES.map(func(v: float) -> String: return "×%d" % int(v)),
 					func() -> int: return Settings.SKILL_RATES.find(s.skill_rate),
-					func(i: int) -> void: s.set_skill_rate(Settings.SKILL_RATES[i])],
+					func(i: int) -> void: s.set_skill_rate(Settings.SKILL_RATES[i]), "", may],
 				["[jumps]", ["[from_the_ground]", "[and_in_the_air]"],
 					func() -> int: return int(s.air_jumps),
-					func(i: int) -> void: s.set_air_jumps(i == 1)],
+					func(i: int) -> void: s.set_air_jumps(i == 1), "", may],
 				["[respawn_n2]", ["[at_the_campfire]", "[and_where_you_fell]"],
 					func() -> int: return int(s.revive_at_death),
 					func(i: int) -> void: s.revive_at_death = i == 1],
 				_section("hammer", "[work_and_things]"),
 				["[building]", ["[from_the_bag]", "[free]"],
 					func() -> int: return int(s.free_build),
-					func(i: int) -> void: s.set_free_build(i == 1)],
+					func(i: int) -> void: s.set_free_build(i == 1), "", may],
 				["[tool_wear]", ["[off]", "[on]"],
 					func() -> int: return int(s.tool_wear),
-					func(i: int) -> void: s.set_tool_wear(i == 1)],
+					func(i: int) -> void: s.set_tool_wear(i == 1), "", may],
 				["[overload]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_overload),
-					func(i: int) -> void: s.set_no_overload(i == 1)],
+					func(i: int) -> void: s.set_no_overload(i == 1), "", may],
 				["[crafting]", ["[takes_time]", "[instant]"],
 					func() -> int: return int(s.instant_craft),
-					func(i: int) -> void: s.set_instant_craft(i == 1)],
+					func(i: int) -> void: s.set_instant_craft(i == 1), "", may],
 				["[free_items]", ["[off]", "[on]"],
 					func() -> int: return int(s.free_items),
-					func(i: int) -> void: s.set_free_items(i == 1)],
+					func(i: int) -> void: s.set_free_items(i == 1), "", may],
 				_section("shield", "[survival]"),
 				["[hunger]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_hunger),
-					func(i: int) -> void: s.set_no_hunger(i == 1)],
+					func(i: int) -> void: s.set_no_hunger(i == 1), "", may],
 				["[thirst]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_thirst),
-					func(i: int) -> void: s.set_no_thirst(i == 1)],
+					func(i: int) -> void: s.set_no_thirst(i == 1), "", may],
 				["[fatigue]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_fatigue),
-					func(i: int) -> void: s.set_no_fatigue(i == 1)],
+					func(i: int) -> void: s.set_no_fatigue(i == 1), "", may],
 				["[cold_and_heat]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_cold),
-					func(i: int) -> void: s.set_no_cold(i == 1)],
+					func(i: int) -> void: s.set_no_cold(i == 1), "", may],
 				["[fall_damage]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_fall_damage),
-					func(i: int) -> void: s.set_no_fall_damage(i == 1)],
+					func(i: int) -> void: s.set_no_fall_damage(i == 1), "", may],
 				["[animal_attacks]", ["[off]", "[on]"],
 					func() -> int: return int(s.animal_attacks),
-					func(i: int) -> void: s.set_animal_attacks(i == 1)],
+					func(i: int) -> void: s.set_animal_attacks(i == 1), "", may],
 				_section("go", "[actions]"),
-				{"action": "[give_tools]", "do": func() -> void: s.give_tools()},
-				{"action": "[to_the_place_of_the]", "do": func() -> void: s.go_to_death()},
-				{"action": "[clear_territory]", "do": func() -> void: s.clear_land(), "confirm": true},
+				# Tools and the land's marks are given and cleared in a world of this device only.
+				{"action": "[give_tools]", "do": func() -> void: s.give_tools(), "works": game.host != null},
+				{"action": "[to_the_place_of_the]", "do": func() -> void: s.go_to_death(), "works": s.may_cheat()},
+				{"action": "[clear_territory]", "do": func() -> void: s.clear_land(), "confirm": true,
+					"works": game.host != null},
 			]
 		"caves":
 			var counts: Array = CaveLayers.FIRSTS.map(func(v: int) -> String: return str(v))
@@ -479,7 +486,7 @@ func _section_rows(key: String) -> Array:
 			rows.append({"note": note})
 			return rows
 		"marks":
-			var marks := []
+			var marks := _cheats_note()
 			for p: Array in game.character.respawn_points():
 				var at: Vector3 = p[1] / game.character.CELL
 				marks.append({"place": p[0], "cell": Vector2i(floori(at.x), floori(at.z)),
@@ -577,6 +584,9 @@ func _section_rows(key: String) -> Array:
 				["[vibration]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.vibrate) if Vibration.supported() else -1,
 					func(i: int) -> void: s.set_value("vibrate", i == 1), "[no_n2]", Vibration.supported],
+			]
+		"other":
+			return [
 				# The mods' files taken from servers (decision 189, ModCache): how much is
 				# kept, and a button that empties it (but for the server played on now).
 				_section("server", "[server_data]"),
@@ -629,17 +639,16 @@ func _section_rows(key: String) -> Array:
 					func() -> int: return int(s.values.show_help),
 					func(i: int) -> void: s.set_value("show_help", i == 1)])
 			return rows
-		"music":
+		"sound":
+			# The music and the sounds on one tab, each under its strip.
 			return [
+				_section("music", "[music]"),
 				_volume_row("[volume]", "music_volume"),
 				["[how_often]", ["[rarely]", "[sometimes]", "[often]"],
 					func() -> int: return s.values.music_often,
 					func(i: int) -> void: s.set_value("music_often", i)],
-			]
-		"sound":
-			return [
+				_section("speaker", "[sounds]"),
 				_volume_row("[volume]", "sound_volume"),
-				null,
 				_volume_row("[nature]", "nature_volume"),
 				_volume_row("[interface]", "ui_volume"),
 			]
@@ -702,6 +711,14 @@ func _own_mods_rows() -> Array:
 		{"note": Lang.line("[put_your_mods_into_the]", [ModFiles.extra_dir, ModFiles.extra().size()])}]
 
 
+## Over a server with «Читы на сервере» off: a line saying the playtest switches below
+## are off until they are turned on (Settings.may_cheat); else nothing.
+func _cheats_note() -> Array:
+	if game.settings.may_cheat():
+		return []
+	return [{"note": "[turn_on_cheats_on_the]"}]
+
+
 func _server_rows() -> Array:
 	var s = game.settings
 	var joined: bool = game.join_url != ""
@@ -729,9 +746,14 @@ func _server_rows() -> Array:
 	if not playtest and not host:
 		rows.append({"note": "[the_bots_and_the_world]"})
 		return rows
+	# A bot is another process of the game (TestCommands.add_bot): a server made on a
+	# phone starts none.
+	var bots: bool = game.hosted == null or s.can_host()
+	if not bots:
+		rows.append({"note": "[bots_need_a_computer]"})
 	rows += [
-		{"action": "[add_a_bot]", "do": func() -> void: s.test_server("bot+")},
-		{"action": "[remove_a_bot]", "do": func() -> void: s.test_server("bot-")},
+		{"action": "[add_a_bot]", "do": func() -> void: s.test_server("bot+"), "works": bots},
+		{"action": "[remove_a_bot]", "do": func() -> void: s.test_server("bot-"), "works": bots},
 		null,
 		{"action": "[test_world_on_the_server]", "do": func() -> void: s.test_server("new test"), "confirm": true},
 		{"action": "[new_world_on_the_server]", "do": func() -> void: s.test_server("new"), "confirm": true},
@@ -886,8 +908,16 @@ func fit(screen: Vector2) -> void:
 		room -= _legend.get_combined_minimum_size().y + 6
 	if not _tabs.visible:
 		room += TAB_HEIGHT + 6
-	_list.reset_size()
-	_scroll.custom_minimum_size = Vector2(content_width() + BAR_ROOM, minf(_list.size.y, room))
+	# The list's height asked, not its size reset: reset_size shrank it to its least width
+	# until the next layout of its box, which a page made anew in place («Очистить данные
+	# серверов») did not bring, so its rows moved sideways.
+	# A page with tabs keeps one height whatever its tab: its longest section's
+	# (_page_height), and a tab whose rows stand taller (wrapped names and notes, a long
+	# list of markers) scrolls in it; the window never grows or shrinks on a tab.
+	var tall := _list.get_combined_minimum_size().y
+	if PAGES.has(page) and page != "freezes":
+		tall = _list.custom_minimum_size.y
+	_scroll.custom_minimum_size = Vector2(content_width() + BAR_ROOM, minf(tall, room))
 	reset_size()
 	position = ((screen - size) * 0.5).floor()
 
@@ -1161,6 +1191,9 @@ func _add_place(color: Color, name: String, cell: Vector2i, tip: String) -> void
 	row.add_child(label)
 	var b := Kit.button("[go]", Callable(), 0, ARROW)
 	b.tooltip_text = tip
+	# On a server a place is gone to as a cheat (Settings.may_cheat, go_to_column).
+	b.disabled = not game.settings.may_cheat()
+	b.modulate.a = 0.4 if b.disabled else 1.0
 	b.pressed.connect(func() -> void:
 		game.character.go_to_column(cell)
 		close()
