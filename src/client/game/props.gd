@@ -17,6 +17,7 @@ const Placed := preload("res://src/shared/game/placed.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
 
 const CELL := WorldData.CELL
 ## World units the bounding box of a thing flying to the player grows by, so the shear
@@ -149,8 +150,14 @@ func remodel() -> void:
 ## cut, through the server; true if it was placed (over the loop the reply is in at once).
 func put_from_bag(id: String, slot := -1) -> bool:
 	game.land.expect_post(id)
-	var r = game.net.request(Protocol.PROP_PUT, [id, slot, game.chunks.cut_level])
+	var r = game.net.request(Protocol.PROP_PUT, [id, slot, game.chunks.cut_level, view_turn()])
 	return r.done and r.value is bool and r.value
+
+
+## The quarter turn a thing set down takes to face the camera (Placed.turn, see
+## Placed.faces_view): the view looks along PixelView.up, the thing looks back at it.
+static func view_turn() -> int:
+	return Placed.turn_facing(Tools.step_of(PixelView.up))
 
 
 ## The player sets light `id` down in front (see Placed.put_light_from_bag) below the

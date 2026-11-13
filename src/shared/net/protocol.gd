@@ -77,14 +77,16 @@ const PLANT_AT := "plant_at"
 const EAT := "eat"
 ## Throws out of a slot of the bag: [slot, n] (Character.throw_away).
 const THROW := "throw"
-## Sets a thing down from the bag in front, below the cut: [id, slot, top] (Placed.put_from_bag).
+## Sets a thing down from the bag in front, below the cut: [id, slot, top, (the camera's
+## turn 0..3: a station, a chest, furniture face it, Placed.faces_view)] (Placed.put_from_bag).
 const PROP_PUT := "prop_put"
 ## Sets a light (a torch, a candle) down from the bag in front, below the cut: [id, top]
 ## (Placed.put_light_from_bag).
 const LIGHT_PUT := "light_put"
 ## Takes a thing placed, or a light set down, back into the bag: [cell] (Placed.take_up).
 const PROP_TAKE := "prop_take"
-## The build mode sets a thing from the bag down at the cell tapped: [item id, cell]
+## The build mode sets a thing from the bag down at the cell tapped: [item id, cell, (the
+## camera's turn 0..3, as for PROP_PUT)]
 ## (Placed.put_at; a door or a window cuts its opening into a wall).
 const PROP_PUT_AT := "prop_put_at"
 ## The build mode moves a thing placed, or turns it where it stands: [its cell, the

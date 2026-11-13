@@ -156,6 +156,8 @@ func _test_requests() -> void:
 	_check(req._rule(Protocol.PROP_MOVE, [sign.cell, Vector3i(40, 2, 40), 0]) == false and not p[0].placed.at(sign.cell).is_empty(),
 		"nor a thing near moved far")
 	_check(req.PACED.has(Protocol.PROP_MOVE), "moving takes the hands' time")
+	_check(req._rule(Protocol.PROP_PUT, ["tools:chest", -1, 40, 4]) == null and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), -1]) == null
+		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), "2"]) == null, "a thing is not set down turned out of bounds")
 	_check(req._rule(Protocol.GESTURE, ["dance_forever"]) == false and a.gesture == "" and req._rule(Protocol.GESTURE, [3]) == null,
 		"no gesture of a name that is none, or of no name")
 	var now := Time.get_ticks_msec() / 1000.0
