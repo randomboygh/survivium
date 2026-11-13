@@ -40,5 +40,5 @@ remains, by priority; the systems it touches and the risks. What was done, in de
 |---|---|---|
 | The balance report in CI (`balance_report.gd -- --check` beside `content_report`) | the tables will not go stale unnoticed | CI |
 | Show the «Blow, s» chip with the skill (now — without) | fairer to the player | interface |
-| Armour, shields, an animal's damage to a player | they are not in the game; when they appear the model extends with the field `armor` of `wear_on` and `attack` of a creature | design |
+| Armour, shields | they are not in the game; when they appear the model extends with the field `armor` of `wear_on` | design |
 | Era 7 (late materials): `power` 7–8 will need the new ores' `toughness` 10–12 and trees unchanged | the row is open upward | data |

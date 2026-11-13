@@ -13,7 +13,7 @@ the content's records (docs/generated/content-index.md) is written by tools/cont
 which loads the data as the game does. The check also reads CLAUDE.md, README.md, docs/ and
 the mods' READMEs for paths of the repository (a file or a folder/ under src/, content/...
 and markdown links) and fails on one that does not exist; the audit reports under
-docs/audit/ name the paths of before on purpose and are left out. CI runs --check; run the
+docs/audit/ and docs/reports/ name the paths of before on purpose and are left out. CI runs --check; run the
 script without arguments after adding, moving or describing a file. Run from the repo root.
 """
 
@@ -128,7 +128,7 @@ def code_index(files: list) -> str:
 
 
 def docs(files: list) -> list:
-    return [f for f in files if f.endswith(".md") and not f.startswith(("docs/audit/", "docs/generated/"))
+    return [f for f in files if f.endswith(".md") and not f.startswith(("docs/audit/", "docs/reports/", "docs/generated/"))
             and (f in ("CLAUDE.md", "README.md") or f.startswith("docs/") or re.match(r"content/.*README\.md$", f))]
 
 

@@ -109,7 +109,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   ghost in the whole box of the figure, `erase_box`), `clear` (erases the ghost nearby), `build` (one cell: the
   lowest, then the nearest in reach, on any level — the view's slice does not stop one building a ceiling from
   inside a house; a block from the bag — first the one in the hand; a floor replaces soft earth and gives it
-  to the bag; with no blocks — waits), `to_list` / `from_list` (saved with the world, `"plans"`), `take` /
+  to the bag; with no blocks — waits), `to_list` / `from_list` (saved with the world, `"plans"`; JSON keeps a cell as `"(x, y, z)"` and a form as a
+  float, `cell_of` reads them back), `take` /
   `take_all` (the client's copy, `Protocol.PLANS`, `PLAN_CELLS`). It is held by the session (`session.plans`),
   the hands' rules ask it through `actions.plans`; `WorldActions` is passed to `draw` / `build` as a
   parameter, with no reference cycle. Requests: `PLAN` [kind, from, to, height, thickness, erase],

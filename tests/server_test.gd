@@ -754,9 +754,12 @@ func _game_takes_mods() -> void:
 	first.skip_setup = true
 	root.add_child(first)
 	current_scene = first
+	# The game starts again with the server's files and frees `first`: the check keeps its
+	# number, not the node, or every poll after the restart reads a freed capture.
+	var first_id := first.get_instance_id()
 	var in_world := func() -> bool:
 		var now := current_scene
-		return now != null and now != first and (now.ready_to_play or now.join_error != "")
+		return now != null and now.get_instance_id() != first_id and (now.ready_to_play or now.join_error != "")
 	_check(await _until(in_world, 240.0) and current_scene.join_error == "",
 		"the game takes the server's files and comes in with them: %s" % [current_scene.join_error if current_scene != null else "no scene"])
 	var main: Node = current_scene

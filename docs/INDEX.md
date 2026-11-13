@@ -47,7 +47,7 @@ edited by hand.
 | Document | Purpose | Status | For whom and when |
 |---|---|---|---|
 | [SYSTEMS.md](SYSTEMS.md) | the catalog of systems: main files, context, tests; what is not there yet | ACTIVE | any task: find your system |
-| [systems/](systems/) | the context of each system (18 files): purpose, files, interfaces, data, pitfalls, tests | ACTIVE | before editing a system — only its file |
+| [systems/](systems/) | the context of each system (19 files): purpose, files, interfaces, data, pitfalls, tests | ACTIVE | before editing a system — only its file |
 
 **The data model, bundles, recipes and production**
 
@@ -97,6 +97,7 @@ edited by hand.
 
 | Document | Purpose | Status | For whom and when |
 |---|---|---|---|
+| [reports/weekly-audits/INDEX.md](reports/weekly-audits/INDEX.md), [reports/weekly-audits/OPEN_ISSUES.md](reports/weekly-audits/OPEN_ISSUES.md) | the weekly audits (Fridays, since 2026-11-14): a dated report each, their chronology, and the register of the problems still open | ACTIVE (the register); the reports ARCHIVED | what is broken or risky now, before planning a week |
 | [audit/SECURITY_AUDIT.md](audit/SECURITY_AUDIT.md), [audit/SECURITY_REMEDIATION_REPORT.md](audit/SECURITY_REMEDIATION_REPORT.md) | stage 7 (2026-11-06): the security audit, 22 findings, fixes, tests, residual risks | ARCHIVED | the history of the server's defence, what is left |
 | [audit/DOCUMENTATION_AUDIT.md](audit/DOCUMENTATION_AUDIT.md), [audit/DOCUMENTATION_UPDATE_REPORT.md](audit/DOCUMENTATION_UPDATE_REPORT.md) | stage 6 (2026-11-05): the documentation audit, what was fixed, discrepancies and questions | ACTIVE until the open questions are settled | what is still unchecked |
 | [audit/TESTING_CI_AUDIT.md](audit/TESTING_CI_AUDIT.md), [planning/TESTING_CI_ROADMAP.md](planning/TESTING_CI_ROADMAP.md), [audit/TESTING_CI_REPORT.md](audit/TESTING_CI_REPORT.md) | stage 5 (2026-11-03): the audit of tests and CI, the plan (the «Next» section holds the open tasks), the result with measurements | ARCHIVED; the plan is DONE | the history and next steps of tests and CI |
@@ -109,7 +110,7 @@ edited by hand.
 
 | What | Where |
 |---|---|
-| The index and the decision journal (no. 1–167) | `plan/README.md` |
+| The index and the decision journal (no. 1–189) | `plan/README.md` |
 | The MVP stages and their state | `plan/mvp.md` |
 | The backlog (the only task list, GitHub Issues are not kept) | `plan/backlog.md` |
 | Game design by topic | `plan/design/*.md` |

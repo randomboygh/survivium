@@ -869,17 +869,51 @@ func forms_of(list: Array) -> Array:
 
 
 ## The ghost cells of a save (to_list); those of blocks no longer known are left out.
+## A world's file is JSON (WorldStore.write_json), which keeps a cell as the words
+## "(x, y, z)" and a form as a float: both are read back (cell_of).
 func from_list(list: Array) -> void:
 	cells.clear()
 	forms.clear()
 	for e in list:
-		if e is Array and e.size() in [2, 3] and e[0] is Vector3i and e[1] is String:
-			var item: String = Items.canon(e[1]) if e[1] != CUT and not e[1] in WORK_MARKS else e[1]
-			if item == CUT or is_mark(item) or Mat.index(Items.get_item(item).get("place", "")) >= 0:
-				cells[e[0]] = item
-				if e.size() == 3 and e[2] is int and e[2] & 3 != 0:
-					forms[e[0]] = e[2] & 15
+		if not (e is Array and e.size() in [2, 3] and e[1] is String):
+			continue
+		var c: Variant = cell_of(e[0])
+		if not c is Vector3i:
+			continue
+		var item: String = Items.canon(e[1]) if e[1] != CUT and not e[1] in WORK_MARKS else e[1]
+		if item == CUT or is_mark(item) or Mat.index(Items.get_item(item).get("place", "")) >= 0:
+			cells[c] = item
+			var form: int = int(e[2]) if e.size() == 3 and (e[2] is int or e[2] is float and is_finite(e[2])) else 0
+			if form & 3 != 0:
+				forms[c] = form & 15
 	changed.emit([], "")
+
+
+## Cell `v` as a save keeps it: a Vector3i, the words "(x, y, z)" JSON writes one as, or
+## [x, y, z]; null when it is none of them.
+static func cell_of(v: Variant) -> Variant:
+	if v is Vector3i:
+		return v
+	var parts: Array = []
+	if v is String:
+		var s: String = v
+		if not (s.begins_with("(") and s.ends_with(")")):
+			return null
+		for word in s.substr(1, s.length() - 2).split(","):
+			parts.append(word.strip_edges())
+	elif v is Array:
+		parts = v
+	if parts.size() != 3:
+		return null
+	var n: Array[int] = []
+	for p: Variant in parts:
+		if p is String and (p as String).is_valid_int() and (p as String).length() < 11:
+			n.append((p as String).to_int())
+		elif p is int or p is float and is_finite(p) and absf(p) < 1e9:
+			n.append(int(p))
+		else:
+			return null
+	return Vector3i(n[0], n[1], n[2])
 
 
 ## The client's copy: ghost cells came (`item`, of `of`: their forms in the same order,

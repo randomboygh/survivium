@@ -251,6 +251,13 @@ func note(line: String) -> void:
 	_push(Protocol.NOTED, [line])
 
 
+## With no connection (a player lingering, a bot): the events and the animals born are
+## let go instead of piling up; a rejoin sends it all again.
+func drop_events() -> void:
+	outbox.clear()
+	_born.clear()
+
+
 ## The events for the client since the last flush: the state noted as changed first,
 ## then what the rules told meanwhile (a teleport after a death undone, a line after
 ## the bag it speaks of).

@@ -265,6 +265,18 @@ func _test_door() -> void:
 	_check(net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна", 5], "10.0.0.9") == Protocol.WHY_VERSION
 		and net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна"], "10.0.0.9") == Protocol.WHY_VERSION,
 		"a hello that does not name its mod files by a word is of another version")
+	var bot := Server.Account.new()
+	bot.id = 2
+	bot.name = "Bot1"
+	bot.key = Server.BOT_KEY + "2"
+	bot.bot = true
+	net.accounts[bot.key] = bot
+	_check(hello.call("Вася", bot.key, "тайна", "10.0.0.11") == Protocol.WHY_VERSION
+		and hello.call("Вася", Server.BOT_KEY + "3", "тайна", "10.0.0.11") == Protocol.WHY_VERSION,
+		"no one comes in as a bot of the server by its key, made of its number")
+	_check(hello.call("[bag_is_full]", "", "тайна", "10.0.0.11") == Protocol.WHY_TAKEN
+		and hello.call("[RU] Вася", "", "тайна", "10.0.0.11") == "",
+		"a name that is a key of a phrase is not taken (it would be put into words), a tag in brackets is")
 
 
 ## Who may give which command (Server.COMMANDS).

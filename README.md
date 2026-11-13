@@ -24,7 +24,7 @@ A world without an edge: continents, mountains, caves, rivers, swamps, deserts a
 and fishing. Day and night, seasons, weather, light from a campfire, a torch, a candle and a lantern. Dig,
 chop, mow, gather, craft at stations; build walls, floors and rooms by blocks or by blueprint, place doors,
 windows, stairs, furniture and a fireplace. Hunger, thirst, sleep, warmth and health, clothes and worn bags,
-nine skills that grow with use. Teams, land plots and PvP on a server. Saves per world. Mods and bundles are
+ten skills that grow with use. Teams, land plots and PvP on a server. Saves per world. Mods and bundles are
 data in YAML (`content/<mod>/`, each mod has its own README).
 
 Controls: WASD or arrows — walk, Space — jump, LMB/RMB — action of the left/right hand, F — action button,
@@ -49,16 +49,16 @@ computer is.
 
 Without a computer: on GitHub «Actions» → «Playtest server» → «Run workflow» (minutes, world seed, bots; by
 default the test world and 3 bots that play beside you on their own), or in the game «Testing» → «Start the test server», then «Join the test server». In a couple of minutes the link for a phone appears in the step
-«Start the server»; the world is not saved.
+«Link for the phone: open this step»; the world is not saved.
 
 ## Development
 
 - Every change is a PR into `main`. When CI is green the PR merges itself, with no manual «merge»; changes
   of structure and architecture are agreed first.
-- Every PR description has at least one line for the player, in Russian: `Что нового [вид]: …`, where the
-  kind is `новое`, `улучшено`, `исправлено`, `оптимизировано` or `ядро`. CI shows them in «Testing».
+- Every PR description has at least one line for the player, in Russian, `Что нового [вид]: …`, and the same one in English,
+  `What's new [kind]: …`, where the kind is `новое`, `улучшено`, `исправлено`, `оптимизировано` or `ядро`. CI shows them in «Testing».
 - The client's version is `<stage>.<PR number>`; CI (`.github/workflows/build.yml`) runs the tests, builds
-  the web and PC versions, checks the web build in Chrome and publishes from `main` to GitHub Pages and to a GitHub
+  the web, PC and Android versions, checks the web build in Chrome and publishes from `main` to GitHub Pages and to a GitHub
   release `v<stage>.<PR>` with the changes since the last one (`tools/release_notes.py`).
 - All the checks at once: `tests/run_all.sh`. Rules, checks and pitfalls: [CLAUDE.md](CLAUDE.md); the code's
   documentation: [docs/INDEX.md](docs/INDEX.md). The plan and game design live in the `plan/` folder of the

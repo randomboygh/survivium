@@ -20,7 +20,8 @@ comments, commits and PRs are in English.
   deep and in which era, every recipe, and what the content checks found: `content-graph.md`,
   `content-recipes.md`, `content-checks.md` there. How to test a change and what CI runs:
   `docs/testing/`. `docs/audit/` and `docs/planning/` hold dated stage reports and plans: history,
-  not instructions.
+  not instructions; so do the weekly audits in `docs/reports/weekly-audits/`, whose `OPEN_ISSUES.md`
+  lists the problems still open.
 - Design, the decision log, the MVP stages and the backlog live outside the repo, in the Claude
   project's library, `plan/` (`plan/README.md` index and decisions, `plan/mvp.md`, `plan/backlog.md`,
   `plan/design/`, `plan/architecture/` for rendering, performance and modding in depth); screenshots

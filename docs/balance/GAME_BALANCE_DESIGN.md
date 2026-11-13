@@ -95,7 +95,7 @@ hunger».
 | Era | Tools (strength) | What it opens in gathering | What to expect of a blow |
 |---|---|---|---|
 | 0 hands | 1 | grass, twigs, berries, soft ground (0.9 s/cell) | a small animal in 3–5 blows |
-| 1 stone/wood | axe 2, pickaxe 2, sword 2, spear 4, bow 5 | stone, copper ore (durability 3–4), trees 6–16 blows | a wolf 11 blows with a sword, 5 with a spear, 5 with a bow |
+| 1 stone/wood | axe 2, pickaxe 2, sword 2, spear 4, bow 5 | stone, copper ore (durability 3–4), trees 6–16 blows | a wolf 11 blows with a sword, 6 with a spear, 5 with a bow |
 | 3 copper | 3 | tin (hardness 3) | an oak 8 blows |
 | 4 bronze | 4 | iron, gold, silver, platinum (hardness 4) | an oak 6 blows, a wolf 6 |
 | 5 iron | 5 | the same faster (0.36 s a blow, 0.58 on iron ore) | an oak 5 |
@@ -109,8 +109,7 @@ skill only on soft kinds, a steel one with no skill (1.4 s) is faster than a sto
 
 Items of one step are not alike: a sword — reach 8, mows tall grass and knocks berries down; a knife — light,
 short, fast (0.3 s), dresses carcasses; a spear — the strongest in the hand (4/6/8), slow (0.7 s), is thrown
-and picked up; a sling and a bow — reach 20–36 and the use of charges; a wooden pickaxe — cheaper and weaker
-than a stone one. The «Twins» check of the content graph does not let two items coincide in everything.
+and picked up; a sling and a bow — reach 20–36 and the use of charges; a wooden pickaxe — weaker than a stone one, and needs planks. The «Twins» check of the content graph does not let two items coincide in everything.
 
 ## 6. Display
 

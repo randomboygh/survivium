@@ -70,6 +70,9 @@ const NEW_PLAYERS := 10
 const NEW_WINDOW := 60.0
 ## Names only the server goes by (lower case): a player may not take them.
 const RESERVED_NAMES := ["сервер", "server", "admin", "админ", "система", "system"]
+## How the keys of the server's own bots begin (add_bot): made of their numbers, not
+## secrets, so a hello may not come with one.
+const BOT_KEY := "bot:"
 ## Why one was not let in (Protocol.WHY_*), as the hosts are told it (_note).
 const WHY_NOTES := {Protocol.WHY_VERSION: "[another_version_of_the_game]", Protocol.WHY_PASSWORD: "[wrong_password]",
 	Protocol.WHY_FULL: "[server_is_full]", Protocol.WHY_NAME: "[a_name_is_required]",
@@ -276,8 +279,8 @@ func flush() -> void:
 			for b in a.link.flush():
 				a.peer.ws.put_packet(b)
 		elif a.peer == null:
-			# Lingering without a connection: nothing piles up (rejoin sends it all).
-			a.link.outbox.clear()
+			# Lingering without a connection, or a bot: nothing piles up (rejoin sends it all).
+			a.link.drop_events()
 
 
 ## The players in the world: their accounts, by id.
@@ -750,7 +753,7 @@ func add_bot(name: String) -> Account:
 	var a := Account.new()
 	a.id = next_id
 	next_id += 1
-	a.key = "bot:%d" % a.id
+	a.key = BOT_KEY + str(a.id)
 	a.name = Protocol.clean_text(name, NAME_MAX)
 	a.bot = true
 	a.link = PlayerLink.new(session)
@@ -890,6 +893,10 @@ func _refusal(args: Array, address := "") -> String:
 		return Protocol.WHY_VERSION
 	if args[0] != Protocol.VERSION or args[1] != Protocol.build_version():
 		return Protocol.WHY_VERSION
+	# A bot's key is no one's (BOT_KEY): one who came with it would play the bot, its moves
+	# unchecked, and go by a key the server knows past the limits below.
+	if args[3].begins_with(BOT_KEY):
+		return Protocol.WHY_VERSION
 	var name := Protocol.clean_text(args[2], NAME_MAX)
 	if name == "":
 		return Protocol.WHY_NAME
@@ -912,7 +919,9 @@ func _refusal(args: Array, address := "") -> String:
 	if access.listed_only and (not access.listed.has(low)
 			or access.listed_keys.has(low) and access.listed_keys[low] != args[3]):
 		return Protocol.WHY_LIST
-	if low in RESERVED_NAMES:
+	# A name that is a key (`[bag_is_full]`) would be put into words where it is shown, as
+	# if the game said it.
+	if low in RESERVED_NAMES or Lang.is_key(name):
 		return Protocol.WHY_TAKEN
 	for key in accounts:
 		if key != args[3] and accounts[key].name.to_lower() == low:

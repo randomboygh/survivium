@@ -238,4 +238,10 @@ func _fail(why: String) -> void:
 	state = "failed"
 	_open.clear()
 	stop()
+	# The files taken so far stay for the next try, and those played now, but the cache
+	# keeps to its limit all the same: a server that fails each taking near its end would
+	# fill the device otherwise.
+	var kept := ModCache.in_use(table)
+	kept.merge(ModCache.in_use(Content.served))
+	ModCache.trim(ModCache.LIMIT, kept)
 	finished.emit(false)

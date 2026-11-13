@@ -102,9 +102,14 @@ func back() -> void:
 
 
 ## Laid out a frame after it is added: the browser test taps the fields and the
-## buttons from this line.
+## buttons from this line. A connection, not an await: a screen freed within that frame
+## drops it quietly instead of resuming a function of a freed instance.
 func _announce() -> void:
-	await get_tree().process_frame
+	if is_inside_tree():
+		get_tree().process_frame.connect(_print_rects, CONNECT_ONE_SHOT)
+
+
+func _print_rects() -> void:
 	print("join screen shown: url %s, name %s, go %s, back %s" % [_url.get_global_rect(), _name.get_global_rect(),
 		_go.get_global_rect(), _back.get_global_rect()])
 

@@ -129,6 +129,14 @@ func _test_forms() -> void:
 	var copy := Plans.new()
 	copy.from_list(plans.to_list())
 	_check(copy.forms == plans.forms, "and the form is saved with the ghost")
+	# A world's file is JSON (WorldStore.write_json): a cell comes back as "(x, y, z)", a form as a float.
+	var saved := Plans.new()
+	saved.from_list(JSON.parse_string(JSON.stringify(plans.to_list(), "\t")))
+	_check(saved.cells == plans.cells and saved.forms == plans.forms and not saved.cells.is_empty(),
+		"the ghost and its forms come back from the world's file: %s" % [saved.cells])
+	_check(Plans.cell_of("(-3, 2, 7)") == Vector3i(-3, 2, 7) and Plans.cell_of([4.0, -1.0, 0.0]) == Vector3i(4, -1, 0)
+		and Plans.cell_of("(1, 2)") == null and Plans.cell_of("(a, 2, 3)") == null and Plans.cell_of(5) == null,
+		"a cell is read from the words JSON keeps it as, not from others")
 	for i in 2:
 		actions.act_in_front(who, 2)
 	_check(plans.cells.is_empty() and plans.forms.is_empty() and w.form_at(12, 2, 9) == ramp and w.form_at(12, 2, 10) == ramp,
