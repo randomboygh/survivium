@@ -246,7 +246,7 @@
 "[connection_to_the_server_lost]": "Связь с сервером потеряна"
 "[server_n3]": "Сервер: %s"
 "[the_server_closed_the_connection]": "Сервер закрыл связь"
-"[mod_data_s_of_s_mb]": "Данные модов: %s из %s МБ"
+"[mod_data_s_of_s_mb]": "Моды: %s из %s МБ"
 "[mod_data]": "Данные модов"
 "[continents_and_rivers]": "Материки и реки"
 "[map_and_materials]": "Карта и материалы"

@@ -48,13 +48,18 @@ length up to `CHAT_MAX` 160.
   queue, repair, move/pour/sort/destroy in the bag and chests, revive), `request`, `reply`, `encode`, `decode`.
   Loads only `content/`. Through a socket each message is one binary frame; the first request on it is
   `hello` ([protocol version, the build's version `build_version()` — from `build_info.json`, «dev» without
-  it; a name, the key from last time or "", a password]), the reply is a welcome `{"ok": true, "id", "key",
+  it; a name, the key from last time or "", a password, the hash of the mods' files the game plays with —
+  `Content.playing()`]), the reply is a welcome `{"ok": true, "id", "key",
   "name", "seed", "settings", "mods", "materials", "spawn", "at"}` or a refusal `{"ok": false, "why": version |
   password | full | name | banned | list | taken | wait}` (`taken` — the name is taken by another in the world
   or it is the server's name, `wait` — many wrong passwords or new players in a row), after which the server
-  closes the link. The event `bye` — the client leaves on its own, `kick` [why] — the server put it out. Builds
-  of different versions do not play together (decision 153, 5А: mods are built in, a content hash is not
-  needed). The world through a socket: `chunk` [key, size, bytes] — a chunk's record `WorldGen.pack` in
+  closes the link; the refusal `mods` (decision 189: the game's mod files are not the server's) also carries
+  `mods` (the server's bundles), `content` (the hash of its files) and `size`, and does not close the link: the
+  game takes the files it lacks and says `hello` again (the events `mod_list` [] → [size, bytes], `mod_files`
+  [[hash…]] → `mod_data` [[hash, offset, the file's size, the piece's size before packing, the piece]…]; `mods`
+  [hash, size, bundles] — the server's files changed, to a game in the world). The event `bye` — the client
+  leaves on its own, `kick` [why] — the server put it out. Builds of different versions do not play together
+  (decision 153, 5А: the code must be the same; the data may differ since decision 189). The world through a socket: `chunk` [key, size, bytes] — a chunk's record `WorldGen.pack` in
   `var_to_bytes` and zstd (the same as in the save), `forget` [key], `cells` [[cell, material]…], `drops`
   [key, list] (through the loop — only [key]: the world is one), `taken` [id, from where]. Other players:
   `people` [[number, name, place, gaze step, hands, the hand at work, walking, swimming, on the ground, work:
@@ -155,7 +160,8 @@ length up to `CHAT_MAX` 160.
   С6: `op <who>`, `deop <name>`, `hosts` — who may give commands in the chat; `security [kind or name]` — the
   security log (`flag`, `security_log`, [../security/ANTI_CHEAT.md](../security/ANTI_CHEAT.md)); `reload` —
   reread the mods' data from disk (`reload_mods`, hot reload, decision 184: `Mods.rescan(true)` and
-  `Session.reread`, to the players the line «The server reread the mods' data»). The rights are one table
+  `Session.reread`, to the players the line «The server reread the mods' data»; `mods_reread` reads the list
+  of the files again and, when they changed, sends every player's game the event `mods`, decision 189). The rights are one table
   `COMMANDS` with roles (`role_of` by the key: a host by `op`, the owner — who made the server in the game, the
   terminal): `op`, `deop`, `stop` — to the owner and the terminal
   ([../security/COMMAND_PERMISSIONS.md](../security/COMMAND_PERMISSIONS.md)). Who may enter — `access`
@@ -165,6 +171,20 @@ length up to `CHAT_MAX` 160.
   `hello` — `banned` or `list` (the words on the client: «The server's host has blocked you», «The server lets
   in only its own…»). In the «Create a server» window the same commands are a field under the log. The log is
   the lines `lines`, the scene prints them with the time.
+- `src/server/content_host.gd` — what the server gives of its mods' files (decision 189, `Server.content`):
+  the list of the files its world plays with (`ModFiles.of_set`: every YAML under `content/`, the pictures and
+  sounds of the world's bundles and of their mods), the hash that names them (`digest`), the list packed for
+  the wire (`packed`), read at `listen()` and again by `read()` (the host's `reload`, `Server.mods_reread`). At
+  `hello` the server compares the game's hash with its own: another one — the refusal `mods`, the link stays
+  open without a character (`Peer.fetching`, up to `FETCH_WAIT` 900 s, `FETCH_IDLE` 30 s asking for nothing, `FETCHING_MAX` 32 such links) and takes only `mod_list`, `mod_files`
+  and another `hello` (`Server._mods_asked`; the same two events are taken from a player in the world after a
+  reload). Files go by pieces of `PIECE` 96 KB (several small files in one message, YAML packed with zstd), to
+  each link no faster than `RATE` 2 MB a second and not while it has `BUFFERED_MAX` 512 KB waiting
+  (`pieces`, called from `Server.poll`; `Feed` — one link's queue); a link gets the list `LISTS_MAX` 8 times at
+  most, `ASK_MAX` 256 hashes in a message, `QUEUE_MAX` in the queue, bytes `SENT_MAX` 3 times the set's size. A
+  file that is not what it was when the list was read is not sent (`changed`: the server's log tells the host
+  to `reload`); a file the server cannot read (a picture in a phone's build is there only as imported) comes
+  as a piece with the size -1.
 - `src/server/server_main.gd` — the root of `scenes/server.tscn`, a server from the terminal: `godot --headless
   --path . -- --server [--port N] [--world <folder>] [--seed N] [--players N] [--password <word>]
   [--config <file>] [--tunnel] [--real-weather]` (from a PC build — `Survivium.console.exe --headless --
@@ -245,6 +265,16 @@ length up to `CHAT_MAX` 160.
   (`opened`, incoming into `net.receive`, `closed(code, reason)` and `ended` / `close_code` / `close_reason`:
   −1 and "" — the link is lost or there is no server), `leave()` — `bye` and closing. The game itself plays
   through it (`Main.join_url`) and the `server_test` bots enter by it.
+- `src/client/net/mod_fetch.gd` — the game's side of the mods' files (decision 189): `begin(connection, hash,
+  bundles)` finds where each file of the server's set is on this device (`plan`: the game's own file when its
+  hash is the same, the built-in copy's, one kept from a server before), asks for the list (unless the set is
+  kept) and for the files that are nowhere, puts the pieces together, checks each file (its hash,
+  `ModFiles.may_be`) and keeps it (`ModCache`); `finished(ok)` with `table` (a path inside `content/` → the file
+  that holds it) for `Content.serve`. More than `ASK_ABOVE` 50 MB waits for the player's yes (`state` «ask»,
+  `allow`); a server quiet for `STALL` 20 s fails the taking. `src/client/net/mod_cache.gd` — the files kept on
+  the device: `user://mod_cache/<hash>.<ext>`, the lists of the last `SETS_KEPT` 8 sets in `sets/`, `used.json`
+  (when each was last used), `trim` past `LIMIT` 200 MB (the longest unused first, never a file of the set
+  played), `clear` («Settings» → «Game» → «Clear server data»).
 - `src/client/net/local_host.gd` — the server inside the game: the only place where the client loads
   `src/server/`; `LocalHost.new(session, get_tree().root)` puts the server node `src/server/runner.gd` under the
   tree's root and under it `real_weather` (`src/server/real_weather.gd` on the session's clock, switched on by
@@ -304,7 +334,14 @@ length up to `CHAT_MAX` 160.
   built are piled up by `Mirror._pending`, `replay` after); `start_world` → `_join_world`: waits for the
   welcome (`JOIN_WAIT` 15 s; a refusal — words on the loading screen: «The server does not answer», «The
   game's version is different — refresh the page», «Wrong password», «The server is full»), with other
-  bundles — `pending_mods` and a scene restart (decision 153, 5А), then `RemoteGen` by the seed and the
+  bundles — `pending_mods` and a scene restart (decision 153, 5А); with other mod files (the refusal `mods`,
+  decision 189) — `_take_mods`: the game's own files for the server's bundles if their hash is the server's,
+  else `ModFetch` over this link (the loading screen: «Mod data: 1.2 of 3.4 MB»; over 50 MB the player is told
+  the size and joins again to agree), then `server_mods` {url, digest, table} and a scene restart: `_use_mods`
+  serves the table (`Content.serve`) before `Mods.activate` while the game is on that server, and the game's
+  own files again afterwards; a server made in this game is told its own hash; `ModReload.watch_server` takes
+  the server's reloads in the world (`mods` → `ModFetch` → `Content.serve` → `reload()`); then `RemoteGen` by
+  the seed and the
   server's settings, the map and materials as usual, `actions` — its own `WorldActions` over the world's
   read-only copy (the cursor preview, what a bush gives; the signals are given it by `Mirror`), the body at
   `welcome.at`; `host`, `session`, `storms` — null (the «Testing» page and saving do not touch them),
@@ -406,7 +443,11 @@ out) and goes with `Engine.max_fps = Bot.FPS`, so as not to take the processor f
 through GitHub's open API (`src/client/net/playtest.gd`: a running launch → the status of its commit) and
 enters under the name from `ServerList`.
 
-**Tests.** `tests/server_test.gd` (the server's scene in the test's process, bots through `socket.gd`: the entry
+**Tests.** `tests/unit/mod_files_test.gd` (the mods' files: the list of a set and its hash, the server's side
+and the game's over a wire inside the test, the game playing with the files taken, the cache). `tests/server_test.gd`
+(`_mods`: the refusal `mods`, the list and files over a socket, `hello` again on the same link, a reload told to
+the players; `_reload_reaches`: a game in the world takes a reload; `_game_takes_mods`: the game joins a server
+with other files, takes them, restarts its scene and plays with them; and the server's scene in the test's process, bots through `socket.gd`: the entry
 and the welcome with the world, the entry events — `you`, `clock`, `props`, `teleport`, each animal once;
 refusals — version, password, a full server, a word before `hello`; the body from `input`, digging and the
 queue's pause through a socket with events before the reply, the animals' and clock's snapshots go, the chunks

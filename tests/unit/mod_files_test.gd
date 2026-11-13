@@ -286,6 +286,8 @@ func _test_fetch_and_serve() -> void:
 func _test_cache() -> void:
 	ModCache.dir = DIR + "/cache2"
 	_remove(ModCache.dir)
+	_check(not DirAccess.dir_exists_absolute(ModCache.dir) and ModCache.size() == 0 and ModCache.trim() == 0 and ModCache.clear() == 0
+		and not DirAccess.dir_exists_absolute(ModCache.dir), "nothing kept yet: nothing to count or clear, and no folder made for it")
 	var files := []
 	for i in 4:
 		var bytes := PackedByteArray()

@@ -38,13 +38,17 @@ static func store(hash: String, ext: String, bytes: PackedByteArray) -> bool:
 			or not ModFiles.may_be(bytes, ext):
 		return false
 	DirAccess.make_dir_recursive_absolute(dir)
-	var tmp := path(hash, ext) + ".tmp"
+	# A name of this process's own while it is written: games side by side on one device
+	# (bots) may take the same file at once.
+	var tmp := "%s.%d.tmp" % [path(hash, ext), OS.get_process_id()]
 	var f := FileAccess.open(tmp, FileAccess.WRITE)
 	if f == null:
 		return false
 	f.store_buffer(bytes)
 	f.close()
-	return DirAccess.rename_absolute(tmp, path(hash, ext)) == OK
+	if DirAccess.rename_absolute(tmp, path(hash, ext)) != OK:
+		DirAccess.remove_absolute(tmp)
+	return has(hash, ext, bytes.size())
 
 
 ## Keeps the list of the set `digest`: its bundles and its files as packed (ModFiles.pack).
@@ -56,7 +60,7 @@ static func keep_set(digest: String, bundles: Array, packed: Array) -> void:
 	if f != null:
 		f.store_var([bundles, packed[0], packed[1]])
 		f.close()
-	var names := Array(DirAccess.get_files_at(dir.path_join(SETS)))
+	var names := Array(_names(dir.path_join(SETS)))
 	if names.size() > SETS_KEPT:
 		names.sort_custom(func(a: String, b: String) -> bool:
 			return FileAccess.get_modified_time("%s/%s/%s" % [dir, SETS, a]) > FileAccess.get_modified_time("%s/%s/%s" % [dir, SETS, b]))
@@ -93,7 +97,7 @@ static func used(names: Array) -> void:
 ## Bytes of the files kept.
 static func size() -> int:
 	var n := 0
-	for name in DirAccess.get_files_at(dir):
+	for name in _names(dir):
 		if name != USED:
 			var f := FileAccess.open(dir.path_join(name), FileAccess.READ)
 			n += f.get_length() if f != null else 0
@@ -106,7 +110,7 @@ static func trim(limit := LIMIT, keep: Dictionary = {}) -> int:
 	var at := _used()
 	var files := []
 	var sum := 0
-	for name in DirAccess.get_files_at(dir):
+	for name in _names(dir):
 		if name == USED:
 			continue
 		var f := FileAccess.open(dir.path_join(name), FileAccess.READ)
@@ -131,10 +135,10 @@ static func trim(limit := LIMIT, keep: Dictionary = {}) -> int:
 ## freed.
 static func clear(keep: Dictionary = {}) -> int:
 	var was := size()
-	for name in DirAccess.get_files_at(dir):
+	for name in _names(dir):
 		if not keep.has(name):
 			DirAccess.remove_absolute(dir.path_join(name))
-	for name in DirAccess.get_files_at(dir.path_join(SETS)):
+	for name in _names(dir.path_join(SETS)):
 		DirAccess.remove_absolute("%s/%s/%s" % [dir, SETS, name])
 	return was - size()
 
@@ -148,6 +152,11 @@ static func in_use(table: Dictionary) -> Dictionary:
 		if at.begins_with(dir + "/"):
 			out[at.get_file()] = true
 	return out
+
+
+## The files of the folder `at`, none when it is not there yet (nothing was kept).
+static func _names(at: String) -> PackedStringArray:
+	return DirAccess.get_files_at(at) if DirAccess.dir_exists_absolute(at) else PackedStringArray()
 
 
 static func _used() -> Dictionary:

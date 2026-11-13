@@ -488,6 +488,7 @@ func _read_join() -> void:
 ## Starts the game again joined to the server of `url` as `name`.
 func join_server(url: String, name: String, password: String) -> void:
 	join = {"url": url, "name": name, "password": password}
+	mods_tries = 0
 	# After the tap that asked it is over (its sound played in this scene).
 	restart.call_deferred()
 

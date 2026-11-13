@@ -35,8 +35,12 @@ const CHAT_RANGE := 30.0
 ## Seconds a connection has to say hello.
 const HELLO_WAIT := 10.0
 ## Seconds one told its mods' files are not the server's (Protocol.WHY_MODS) has to take
-## the server's and say hello again.
+## the server's and say hello again, seconds it may ask for nothing meanwhile, and such
+## connections at most (they are not counted with those that have not said hello: a
+## tunnel's all come from one address).
 const FETCH_WAIT := 900.0
+const FETCH_IDLE := 30.0
+const FETCHING_MAX := 32
 ## Seconds between the animals' snapshots over a socket (PlayerLink.snap_every).
 const SNAP_EVERY := 0.1
 ## Seconds between the other players' snapshots to a player (PlayerLink.people_every).
@@ -119,6 +123,8 @@ class Peer extends RefCounted:
 	## Its HELLO was right but for the mods' files (Protocol.WHY_MODS): it may ask for them
 	## before it says hello again.
 	var fetching := false
+	## When it last asked for some, or was sent some.
+	var fetched_at := 0.0
 	## The mods' files it asked for (ContentHost.Feed), null until it asks.
 	var feed: ContentHost.Feed
 
@@ -192,6 +198,8 @@ func _init(s, cfg: Config, info: Dictionary) -> void:
 
 ## Listens on the config's port; the error if the port is taken.
 func listen() -> Error:
+	# The mods' files are listed now, not when the first player says hello.
+	content.ready()
 	var err := tcp.listen(config.port, config.bind)
 	listening = err == OK
 	return err
@@ -226,6 +234,8 @@ func poll() -> void:
 			if _within_rate(peer, now):
 				_take(peer, bytes)
 		if peer.feed != null and state == WebSocketPeer.STATE_OPEN and peer.close_code == 0:
+			if not peer.feed.queue.is_empty():
+				peer.fetched_at = now
 			for b in content.pieces(peer.feed, now, ws.get_current_outbound_buffered_amount()):
 				ws.put_packet(b)
 			if content.changed != "":
@@ -239,7 +249,8 @@ func poll() -> void:
 			WebSocketPeer.STATE_OPEN:
 				# One that never said hello; a connection closing (kicked, refused,
 				# elsewhere) has no account either, and goes its own way.
-				if peer.account == null and peer.close_code == 0 and now - peer.since > (FETCH_WAIT if peer.fetching else HELLO_WAIT):
+				if peer.account == null and peer.close_code == 0 and (now - peer.since > (FETCH_WAIT if peer.fetching else HELLO_WAIT)
+						or peer.fetching and now - peer.fetched_at > FETCH_IDLE):
 					ws.close(CLOSE_REFUSED, "hello first")
 			WebSocketPeer.STATE_CONNECTING:
 				if now - peer.since > HELLO_WAIT:
@@ -687,6 +698,7 @@ func _mods_asked(peer: Peer, msg: Array) -> bool:
 		return false
 	if peer.feed == null:
 		peer.feed = ContentHost.Feed.new()
+	peer.fetched_at = _now()
 	if msg[0] == Protocol.MOD_LIST:
 		var list := content.list_msg(peer.feed)
 		if not list.is_empty():
@@ -720,10 +732,15 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		# Welcome but for the mods' files: the game takes the server's over this connection
 		# and says hello again (on this one, or on another after it started again).
 		if not peer.fetching:
+			if _fetching() >= FETCHING_MAX:
+				peer.ws.put_packet(Protocol.encode(Protocol.reply(seq, {"ok": false, "why": Protocol.WHY_WAIT})))
+				peer.close_after(CLOSE_REFUSED, Protocol.WHY_WAIT)
+				return
 			_say("%s: plays with other mod files, is offered the server's (%d KB) from %s"
 				% [Protocol.clean_text(args[2], NAME_MAX), content.size >> 10, peer.address])
-		peer.fetching = true
-		peer.since = _now()
+			peer.fetching = true
+			peer.since = _now()
+		peer.fetched_at = _now()
 		peer.ws.put_packet(Protocol.encode(Protocol.reply(seq, {"ok": false, "why": Protocol.WHY_MODS,
 			"mods": content.bundles, "content": content.digest, "size": content.size})))
 		return
@@ -856,7 +873,16 @@ static func _same(a: String, b: String) -> bool:
 func _pending(address := "") -> int:
 	var n := 0
 	for p in peers:
-		if p.account == null and p.close_code == 0 and (address == "" or p.address == address):
+		if p.account == null and p.close_code == 0 and not p.fetching and (address == "" or p.address == address):
+			n += 1
+	return n
+
+
+## The connections taking the mods' files before a hello (Peer.fetching).
+func _fetching() -> int:
+	var n := 0
+	for p in peers:
+		if p.account == null and p.close_code == 0 and p.fetching:
 			n += 1
 	return n
 

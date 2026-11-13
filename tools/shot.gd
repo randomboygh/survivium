@@ -1040,7 +1040,9 @@ func _run() -> void:
 				main.menu.shown_progress = shot.get("progress", 0.62)
 				main.menu._show_loading(true)
 				main.menu._update_strip(0.0)
-				main.menu._phase_shown = shot.get("caption", main.menu.WARM_CAPTION)
+				# A caption with numbers is [template, value...] (Lang.line).
+				var caption: Variant = shot.get("caption", main.menu.WARM_CAPTION)
+				main.menu._phase_shown = Lang.line(caption[0], caption.slice(1)) if caption is Array else caption
 				main.menu._update_strip(0.0)
 				for i in 3:
 					await process_frame

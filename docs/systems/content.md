@@ -46,6 +46,23 @@ the code sees content.
   `Content.live`: pictures and sounds are read from files (`Content.picture`, `Content.sound`), not from the
   import made at start. The cells' materials, if their list changed, stay as they were (`Mods.cells_kept`):
   new ones — in a new world; biomes and relief — for new chunks.
+- A server's mods' files (decision 189): `src/shared/content/mod_files.gd` (`ModFiles`) — the list of the
+  files a set of bundles is made of, `{path inside content/: [hash, size]}` (`scan(root)` — every YAML, PNG and
+  WAV under a folder with the first 128 bits of the SHA-256 of its bytes; `of_set(all, bundles)` — every YAML,
+  so the game reads the same mods as the server and decides the same about each, and the pictures and sounds of
+  the set's bundles and of their mods), the one hash that names a set (`digest`), the list for the wire
+  (`pack`, `unpack` — with every path, size and count checked: `valid_path`, `FILE_MAX` 8 MB, `SET_MAX` 256 MB,
+  `FILES_MAX`), `may_be(bytes, ext)` (a picture is a PNG no larger than `PICTURE_MAX` 2048 by its header, a
+  sound a WAVE). The built-in copy of an exported game has pictures and sounds only as imported, so its list is
+  written at the build: `tools/content_cache.gd` puts it into `res://content_files.bin` (`ModFiles.LISTED`, not
+  in git, into the export by `include_filter`). `Content.playing()` — the hash of what the game plays with
+  now, `own_digest(bundles)` — of its own files for a set. `Content.serve(table, digest)` plays with a server's
+  files in place of the game's own: `table` is a path inside `content/` → the file that holds it (the game's own
+  file, the built-in copy's or one kept from a server, `src/client/net/mod_cache.gd`); every path of a mod's
+  file stays `ROOT/…` and is looked up when read (`Content.real`, used by `_read`, `picture`, `sound`, `exists`,
+  `text`, `file_exists`), and the folders are listed from the table (`dirs_at`, `files_at`, `dir_exists`), so
+  only what the server has is there; an empty table — the game's own files again. Who takes the files and
+  when: [network.md](network.md).
 - `src/shared/content/mods.gd` — the game's set of bundles: `activate`, `rescan` (`live` — hot reload),
   `expand` (old lists), `RENAMED`; the set of a saved world `of_world` (the mods split off the base,
   `SPLITS`; supplementing bundles, `additive`, `OLD_ADDITIVE`); `why` (why a bundle dropped, the whole chain);
@@ -139,6 +156,9 @@ the folder. In the container's browser on 2026-11-01 on 419 records the reading 
 (`cached_files` / `parsed_files` — in «Loading»).
 
 **Pitfalls**
+- A mod's file is read only through `Content` (`picture`, `sound`, `text`, `exists`, `file_exists`,
+  `files_at`, `dirs_at`): on a server with other files its path `Content.ROOT/…` names a file kept elsewhere
+  (`Content.real`), and `FileAccess` or `load` on the path itself would read the game's own file or nothing.
 - A record with the id of another's record without `replaces: true` is an error: another's cannot be silently
   replaced. A replacement is a whole record: the fields it does not write get default values, not taken from
   the replaced one.

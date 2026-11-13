@@ -758,6 +758,13 @@ const SHOTS := {
 	"ui-main-menu-sky": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 12.0},
 	"ui-main-menu-loading": {"time": 0.42, "season": 1, "touch": true, "main_menu": "loading", "menu_hour": 20.5},
 	"ui-main-menu-loading-pc": {"time": 0.42, "season": 1, "main_menu": "loading"},
+	# Joining a server with other mods' files: the loading screen says how much of them came
+	# (decision 189); and where they are cleared, the end of the settings' first section.
+	"ui-mods-loading": {"time": 0.42, "season": 1, "touch": true, "main_menu": "loading", "menu_hour": 20.5, "progress": 0.08,
+		"caption": ["[mod_data_s_of_s_mb]", "3.2", "7.5"]},
+	"ui-mods-loading-pc": {"time": 0.42, "season": 1, "main_menu": "loading", "progress": 0.08,
+		"caption": ["[mod_data_s_of_s_mb]", "3.2", "7.5"]},
+	"ui-settings-server-data": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "menu_end": true},
 	"ui-main-menu-sky-pc": {"time": 0.42, "season": 1, "main_menu": "sky", "menu_hour": 12.0},
 	"ui-main-menu-dawn": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 6.3},
 	"ui-main-menu-sunset": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 19.6},

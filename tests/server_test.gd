@@ -646,6 +646,16 @@ func _mods(node: Node) -> void:
 		"a game with other mod files is told the server's set: %s" % [guest.reply.value.get("why")])
 	await _wait(0.3)
 	_check(not s.ended and node.session.players.size() == players, "and stays connected, with no character in the world")
+	_check(net._fetching() == 1 and net._pending() == 0, "counted apart from the connections that said no hello")
+	var idle = Socket.new()
+	sockets.append(idle)
+	var idler := Bot.new(idle, "Соня")
+	idle.open("ws://127.0.0.1:%d" % (PORT + 1))
+	idler.reply = idle.hello("Соня", "", "", "0".repeat(ModFiles.HASH_LEN))
+	await _until(func() -> bool: return idler.reply.done)
+	# The connection made last is the last of the server's.
+	net.peers[-1].fetched_at -= net.FETCH_IDLE - 0.3
+	_check(await _until(func() -> bool: return idle.ended) and not s.ended, "one that asks for no file for long is put out")
 	s.net.send(Protocol.MOD_LIST, [])
 	_check(await _until(func() -> bool: return guest.of(Protocol.MOD_LIST).size() == 1), "the list of the server's files comes when asked")
 	var packed: Array = guest.of(Protocol.MOD_LIST)[0][1]

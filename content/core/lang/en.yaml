@@ -246,7 +246,7 @@
 "[connection_to_the_server_lost]": "Connection to the server lost"
 "[server_n3]": "Server: %s"
 "[the_server_closed_the_connection]": "The server closed the connection"
-"[mod_data_s_of_s_mb]": "Mod data: %s of %s MB"
+"[mod_data_s_of_s_mb]": "Mods: %s of %s MB"
 "[mod_data]": "Mod data"
 "[continents_and_rivers]": "Continents and rivers"
 "[map_and_materials]": "Map and materials"

@@ -52,7 +52,8 @@ static func listed() -> Dictionary:
 		var f := FileAccess.open(LISTED, FileAccess.READ) if FileAccess.file_exists(LISTED) else null
 		var got: Variant = f.get_var() if f != null else null
 		if got is Array and got.size() == 2:
-			_listed = unpack(got[0], got[1])
+			# The build's own list: its paths are not checked letter by letter.
+			_listed = unpack(got[0], got[1], true)
 	return _listed
 
 
@@ -144,8 +145,8 @@ static func pack(list: Dictionary) -> Array:
 ## The list out of what `pack` made (`size` and `bytes` as a server sent them): {} when it
 ## is not one, or holds a path that is no file of a mod, a file or a set too large
 ## (FILE_MAX, SET_MAX, FILES_MAX): what comes from a server is checked before any of it
-## is used.
-static func unpack(size: Variant, bytes: Variant) -> Dictionary:
+## is used (`trusted`: the game's own list, its paths taken as they are).
+static func unpack(size: Variant, bytes: Variant, trusted := false) -> Dictionary:
 	if not size is int or not bytes is PackedByteArray or size <= 0 or size > LIST_MAX or bytes.size() > LIST_MAX:
 		return {}
 	var raw: PackedByteArray = bytes.decompress(size, FileAccess.COMPRESSION_ZSTD)
@@ -164,7 +165,7 @@ static func unpack(size: Variant, bytes: Variant) -> Dictionary:
 	var out := {}
 	var sum := 0
 	for i in paths.size():
-		if not valid_path(paths[i]) or sizes[i] < 0 or sizes[i] > FILE_MAX:
+		if not (trusted or valid_path(paths[i])) or sizes[i] < 0 or sizes[i] > FILE_MAX:
 			return {}
 		sum += sizes[i]
 		out[paths[i]] = [hashes.slice(i * half, (i + 1) * half).hex_encode(), sizes[i]]
