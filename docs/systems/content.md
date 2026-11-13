@@ -106,7 +106,7 @@ the code sees content.
   (any other class there — the hands), `holds(inv, class)`, `held_of(inv, class)`.
 
 **Interface**
-- `Content.records(kind)`, `Content.find(kind, id)` (by a pointer `_at`, with no search),
+- `Content.records_of(kind, bundles)` — records of a set not loaded (the loaded ones of it as they are, the others read from their files with defaults, no patches; the registries untouched: the map of «New world» by `Biomes.refresh(only)`), `Content.records(kind)`, `Content.find(kind, id)` (by a pointer `_at`, with no search),
   `Content.record_count()`, `Content.schema(kind)` (a kind's fields and the common ones), `Content.refs(kind)`
   (the reference fields, and the fields of records inside `entries` like `camp.item`), `Content.named(r,
   key)`, `Content.canon(kind, id)` (an old id from `was` — into the present one), `Content.origin(kind, id)`

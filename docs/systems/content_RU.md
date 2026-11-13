@@ -101,7 +101,7 @@
   `held_of(inv, класс)`.
 
 **Интерфейс**
-- `Content.records(kind)`, `Content.find(kind, id)` (по указателю `_at`, без перебора), `Content.record_count()`,
+- `Content.records_of(kind, bundles)` — записи незагруженного набора (загруженные из него как есть, остальные из их файлов со значениями по умолчанию, без патчей; реестры не трогаются: карта «Нового мира» через `Biomes.refresh(only)`), `Content.records(kind)`, `Content.find(kind, id)` (по указателю `_at`, без перебора), `Content.record_count()`,
   `Content.schema(kind)` (поля вида и общие),
   `Content.refs(kind)` (поля-ссылки, и поля записей внутри `entries` как `camp.item`), `Content.named(r, key)`,
   `Content.canon(kind, id)` (старый id из `was` — в нынешний), `Content.origin(kind, id)` (кто определил,

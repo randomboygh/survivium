@@ -22,6 +22,7 @@ func run() -> void:
 	_test_layers()
 	_test_content_beside()
 	_test_hot_reload()
+	_test_records_of()
 
 
 func _test_yaml() -> void:
@@ -909,3 +910,19 @@ func _test_hot_reload() -> void:
 		"a picture is read from its file after a hot reload")
 	Content.live = false
 	Mods.rescan()
+
+
+## The biomes of a set not played (the map of «New world»): those of bundles not loaded
+## are read from their files, the loaded set and its registries stay as they were.
+func _test_records_of() -> void:
+	var before: Array = Mods.all()
+	var without: Array = before.filter(func(b: String) -> bool: return not b.begins_with("biomes/"))
+	Mods.activate(without)
+	var loaded_n: int = Content.records("biomes").size()
+	var gen := Content.generation
+	var all_of: Array = Content.records_of("biomes", before)
+	var desert: Array = all_of.filter(func(r: Dictionary) -> bool: return r.bundle == "biomes/desert")
+	_check(loaded_n == 0 and all_of.size() > 10 and desert.size() == 1 and desert[0].warmth is Array
+		and Content.generation == gen and Content.records("biomes").is_empty(),
+		"a set's biomes are read without loading it: %d of none loaded" % all_of.size())
+	Mods.activate(before)

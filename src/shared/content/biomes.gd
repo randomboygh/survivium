@@ -57,9 +57,7 @@ static func refresh(only: Variant = null) -> void:
 	GLACIER = -1
 	CLIMATE = []
 	VARIANTS = {}
-	for r in Content.records("biomes"):
-		if only is Array and not r.get("bundle", "") in only:
-			continue
+	for r in Content.records_of("biomes", only) if only is Array else Content.records("biomes"):
 		var b: Dictionary = r.duplicate()
 		b.tree_shares = _shares(b.trees, Trees.SPECIES)
 		b.bush_shares = _shares(b.bushes, Bushes.TYPES)

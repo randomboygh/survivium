@@ -411,15 +411,21 @@ func _process(_delta: float) -> void:
 	# The land of the bundles chosen: their biomes in place of those the world behind
 	# plays with, for this frame's rows only.
 	var own := Biomes.tables()
-	var bundles: Array = game.settings.world_mods()
-	if bundles != _biomes_of:
-		_biomes_of = bundles
-		Biomes.refresh(bundles)
-		_biomes = Biomes.tables()
+	if _gen == null:
+		var bundles: Array = game.settings.world_mods()
+		if bundles != _biomes_of:
+			_biomes_of = bundles
+			Biomes.refresh(bundles)
+			_biomes = Biomes.tables()
 	Biomes.use(_biomes)
 	if _gen == null:
-		_gen = WorldGen.new(game.settings.values.world_seed, 48, game.settings.world_options())
+		# Its spawn is looked for a little each frame (a seed far from good land took
+		# seconds on a phone), the map drawn round it once found.
+		_gen = WorldGen.new(game.settings.values.world_seed, 48, game.settings.world_options(), false)
 		_map_row = 0
+	if not _gen.seek_spawn(maxi(MAP_BUDGET_US - (Time.get_ticks_usec() - t0), 0)):
+		Biomes.use(own)
+		return
 	var at: Vector3i = _gen.spawn_guess
 	while _map_row < MAP and Time.get_ticks_usec() - t0 < MAP_BUDGET_US:
 		var lay := _gen.lay_out(at.x - MAP / 2 * MAP_STEP, at.z + (_map_row - MAP / 2) * MAP_STEP, MAP, 1, MAP_STEP)
