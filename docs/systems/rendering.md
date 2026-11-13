@@ -74,7 +74,9 @@ voxel models of things.
   `cursor` (and the blueprint's ghost), `land` (the plots' borders).
 - `project.godot`, the section `[shader_globals]`: the global parameters the code changes (`cut_height`,
   `snow_amount`, `wind`, `view_up`, `view_slope`, `rest_view`, `view_squash`, `light_side`, `wrap_size` and
-  others).
+  others). A global texture is set by `PixelTextures.set_global`, which keeps the one it replaces until the
+  next: Vulkan (Android) drew garbage after a new scene (rejoining a server, reloading mods) when the old one
+  was freed at once.
 
 **Rules**
 - A new 3D shader includes `shaders/common.gdshaderinc` and shears VERTEX like the others (in the default view

@@ -9,6 +9,7 @@ extends Control
 ## calls only what it or an earlier part defines, and callers know only main_menu.gd.
 
 const Vibration := preload("res://src/client/ui/vibration.gd")
+const Creatures := preload("res://src/client/game/creatures.gd")
 
 ## The two-line «Продолжить» of «Одиночная игра», as tall as a row of «Загрузить мир».
 const PLAY_H := 42
@@ -102,6 +103,13 @@ var _sparrow_frames := 1
 ## side is the first).
 var _sparrow_walk := 0
 var _sparrow_views := 1
+## The sparrow as the menu first found it: [picture, frames, walk frames, views]. The
+## menu is built again with every return from a world (main.gd restart), and the creatures
+## loaded then are that world's (Mods.activate): one played without the sparrow's bundle,
+## or on a server whose mods have none, left the name without its sparrow, and with it
+## the way into the playtest switches. Kept for the run of the game (the game starts with
+## every bundle on disk loaded, see Content.BUNDLES).
+static var _sparrow_kept: Array = []
 var _bird_x := 40.0
 var _bird_dir := 1.0
 var _bird_do := "sit"
@@ -219,6 +227,20 @@ func _pixel_disc(at: Vector2, r: float, color: Color) -> void:
 		var w := floorf(sqrt(maxf(r * r - (dy + 0.5) * (dy + 0.5), 0.0)) + 0.5)
 		if w > 0.0:
 			_backdrop.draw_rect(Rect2(at.x - w, at.y + dy, 2.0 * w, 1.0), color)
+
+
+## Takes the sparrow's picture from `spec` (a record of AiRules.SPECIES, empty when the
+## creatures loaded have none) or, without it, the one kept from before (_sparrow_kept).
+func _take_sparrow(spec: Dictionary = {}) -> void:
+	var picture: Texture2D = Creatures.picture(spec) if not spec.is_empty() else null
+	if picture != null:
+		_sparrow_kept = [picture, spec.frames, Creatures.walk_frames(spec), spec.views]
+	if _sparrow_kept.is_empty():
+		return
+	_sparrow_picture = _sparrow_kept[0]
+	_sparrow_frames = _sparrow_kept[1]
+	_sparrow_walk = _sparrow_kept[2]
+	_sparrow_views = _sparrow_kept[3]
 
 
 ## The sparrow sits a while, pecks now and then, and hops along the name, turning

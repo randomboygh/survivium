@@ -71,6 +71,9 @@
   участков).
 - `project.godot`, раздел `[shader_globals]`: глобальные параметры, которые меняет код (`cut_height`,
   `snow_amount`, `wind`, `view_up`, `view_slope`, `rest_view`, `view_squash`, `light_side`, `wrap_size` и др.).
+  Глобальную текстуру ставит `PixelTextures.set_global`, которая держит заменённую до следующей замены:
+  Vulkan (Android) рисовал мусор после новой сцены (перезаход на сервер, перезагрузка модов), когда старая
+  освобождалась сразу.
 
 **Правила**
 - Новый 3D-шейдер подключает `shaders/common.gdshaderinc` и сдвигает VERTEX как остальные (в виде по

@@ -16,6 +16,7 @@ const Hud := preload("res://src/client/ui/hud.gd")
 const MapView := preload("res://src/client/ui/map_view.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const MenuBackdrop := preload("res://src/client/ui/menu_backdrop.gd")
 
 
 func run() -> void:
@@ -28,6 +29,7 @@ func run() -> void:
 	_test_fading_list()
 	_test_chat_lines()
 	_test_pc_scales()
+	_test_menu_sparrow()
 	_test_map_fit()
 
 
@@ -356,3 +358,17 @@ func _drag(c: Control, index: int, at: Vector2) -> void:
 	e.relative = at - (_at.get(index, at) as Vector2)
 	_at[index] = at
 	c._gui_input(e)
+
+
+## The sparrow on the menu's name (the way into the playtest switches) stays after a world
+## played without the sparrow's bundle: the menu built again then finds no such creature.
+func _test_menu_sparrow() -> void:
+	var first = MenuBackdrop.new()
+	first._take_sparrow(AiRules.SPECIES.get("animals:sparrow", {}))
+	_check(first._sparrow_picture != null and first._sparrow_frames > 1, "the menu's sparrow has its picture")
+	var again = MenuBackdrop.new()
+	again._take_sparrow({})
+	_check(again._sparrow_picture == first._sparrow_picture and again._sparrow_frames == first._sparrow_frames
+		and again._sparrow_views == first._sparrow_views, "the menu's sparrow stays with no sparrow in the creatures loaded")
+	first.free()
+	again.free()

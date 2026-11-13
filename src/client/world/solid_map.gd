@@ -7,6 +7,8 @@ extends RefCounted
 ## Made again round the player a few rows a frame once they near its edge (the old one
 ## shows meanwhile); a changed cell is written at once (touch).
 
+const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
+
 const SIZE := 64
 const LEVELS := 32
 ## How far the player may go from the middle, in cells and levels, before it is made
@@ -27,7 +29,7 @@ var _row := -1
 
 func _init() -> void:
 	texture = ImageTexture.create_from_image(image)
-	RenderingServer.global_shader_parameter_set("solid_map", texture)
+	PixelTextures.set_global("solid_map", texture)
 	RenderingServer.global_shader_parameter_set("solid_origin", Vector3(origin))
 
 

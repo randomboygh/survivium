@@ -13,6 +13,7 @@ extends MultiMeshInstance3D
 ## draws everything around the fire six times more.
 
 const PixelView := preload("res://src/client/view/pixel_view.gd")
+const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
@@ -139,10 +140,10 @@ func _ready() -> void:
 	extra_cull_margin = 16384.0
 	_atlas = Image.create_empty(MAP * MAX_LIGHTS, MAP_ROWS_TALL, false, Image.FORMAT_R8)
 	_atlas_texture = ImageTexture.create_from_image(_atlas)
-	RenderingServer.global_shader_parameter_set("light_blocks", _atlas_texture)
+	PixelTextures.set_global("light_blocks", _atlas_texture)
 	_spots = Image.create_empty(MAX_LIGHTS, 2, false, Image.FORMAT_RGBAF)
 	_spots_texture = ImageTexture.create_from_image(_spots)
-	RenderingServer.global_shader_parameter_set("light_spots", _spots_texture)
+	PixelTextures.set_global("light_spots", _spots_texture)
 	if game != null and game.actions != null:
 		game.actions.cell_changed.connect(_on_cell_changed)
 		game.placed.cell_changed.connect(_on_cell_changed)
