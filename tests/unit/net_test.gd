@@ -342,6 +342,21 @@ func _test_requests() -> void:
 		and a.inventory.count("resources:stone") == 0, "a stack moves from the bag into a chest named by its cell")
 	_check(net.request(Protocol.BAG_MOVE, [cell, 0, null]).value == 2 and a.inventory.count("resources:stone") == 2,
 		"and back")
+	# Moved and turned in the build mode (Placed.move): what it holds goes with it.
+	chest.add("resources:stone", 1)
+	events.clear()
+	var moved_to := Vector3i(11, 2, 11)
+	_check(net.request(Protocol.PROP_MOVE, [cell, moved_to, 0]).value == true and placed.at(cell).is_empty()
+		and placed.at(moved_to).items.count("resources:stone") == 1, "a chest is moved, partly onto its own cells, with what it holds")
+	host.flush(net)
+	_check(events.has([Protocol.PROP_GONE, [cell]]) and copy.at(cell).is_empty() and copy.at(moved_to).items.count("resources:stone") == 1
+		and not w.blockers.has(cell) and w.blockers.has(moved_to + Vector3i(1, 0, 1)), "and the copy has it there, its cells with it")
+	_check(net.request(Protocol.PROP_MOVE, [moved_to, cell, 1]).value == true and placed.at(cell).turn == 1
+		and placed.at(cell).items.count("resources:stone") == 1, "moved back, turned a quarter")
+	_check(net.request(Protocol.PROP_MOVE, [cell, Vector3i(30, 2, 30), 1]).value == false and not placed.at(cell).is_empty(),
+		"not out of reach")
+	placed.at(cell).items.remove("resources:stone", 1)
+	events.clear()
 	_check(net.request(Protocol.BAG_MOVE, [null, 0, Vector3i(20, 2, 20)]).value == null, "a chest at an empty cell is nobody's")
 	# A bag lying in the bag is named by its slot: things go in and out of it there.
 	var inv = a.inventory
@@ -443,6 +458,9 @@ func _test_requests() -> void:
 	_check(events.has([Protocol.PROP_OPENED, [door_cell, true]]) and copy.at(door_cell).open
 		and copy.at(door_cell).turn == 1, "and the copy is told, turned as it stands")
 	_check(net.request(Protocol.PROP_OPEN, [fire_cell]).value == false, "a fire is no door")
+	_check(net.request(Protocol.PROP_MOVE, [fire_cell, fire_cell + Vector3i(0, 0, 3), 0]).value == false
+		and net.request(Protocol.PROP_MOVE, [door_cell, door_cell, 2]).value == false and placed.at(door_cell).turn == 1,
+		"a campfire and a door are not moved or turned")
 	events.clear()
 	# A wall of the blueprint drawn through the server: the ghost is told, and built.
 	a.hands = ["materials:planks", ""]

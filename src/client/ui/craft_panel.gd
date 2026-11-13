@@ -520,7 +520,7 @@ func _show_stations(known: Array, near: Dictionary) -> void:
 			continue
 		var id: String = ids[i]
 		_set_chip(chip, ItemIcons.picture("hand") if id == "" else ItemIcons.of_item(id))
-		chip.tooltip_text = "[by_hand]" if id == "" else "%s%s" % [Lang.t(Items.title(id)), "" if near.has(id) else "[too_far_n2]"]
+		chip.tooltip_text = "[by_hand]" if id == "" else "%s%s" % [Lang.t(Items.title(id)), "" if near.has(id) else Lang.t("[too_far_n2]")]
 		chip.modulate = Color.WHITE if id == "" or near.has(id) else Color(1, 1, 1, 0.35)
 
 

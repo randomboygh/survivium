@@ -87,6 +87,9 @@ const PROP_TAKE := "prop_take"
 ## The build mode sets a thing from the bag down at the cell tapped: [item id, cell]
 ## (Placed.put_at; a door or a window cuts its opening into a wall).
 const PROP_PUT_AT := "prop_put_at"
+## The build mode moves a thing placed, or turns it where it stands: [its cell, the
+## north-west cell it goes to, its turn 0..3] (Placed.move; what it holds goes with it).
+const PROP_MOVE := "prop_move"
 ## Puts out a campfire, or lights it again or feeds it one piece of fuel: [cell, on]
 ## (Placed.put_out, Placed.feed).
 const PROP_FIRE := "prop_fire"

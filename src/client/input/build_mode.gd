@@ -10,8 +10,11 @@ extends RefCounted
 ## the box of the shape (`erasing`); the action button pressed once (`auto`) builds the
 ## whole blueprint near the player cell by cell and lets go after the last one (or when
 ## the bag has no block left for it). A tap on a part of a house set down takes it back
-## into the bag: they are taken only here. Leaving gives the hands back what they held
-## before. `game` is the Main node.
+## into the bag: they are taken only here. A thing that moves (Placed.movable: a station,
+## a chest, furniture, a sign) is dragged to another place with a finger or the mouse
+## held on it, and turned a quarter by a double tap; a single tap takes it once the
+## double tap's time is over. Leaving gives the hands back what they held before.
+## `game` is the Main node.
 
 const Items := preload("res://src/shared/content/items.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
@@ -30,6 +33,12 @@ const DEFAULT_HEIGHTS := {"line": 3, "plane": 1, "square": 3, "cube": 5}
 ## How often the auto build looks whether the bag still holds a block for the
 ## blueprint, in seconds (the ghost may have thousands of cells).
 const CHECK_TIME := 0.25
+## A second tap on the same thing within this many ms turns it (a double tap); a single
+## tap takes it after them.
+const DOUBLE_TAP_MS := 320
+## How far a finger or the mouse goes on a thing before it is dragged, a share of the
+## screen's shorter side.
+const DRAG_SHARE := 0.025
 
 ## The mode's state changed (the bar shows it anew).
 signal changed
@@ -64,6 +73,11 @@ var auto := false
 var _saved_hands: Array[String] = ["", ""]
 var _saved_active := 0
 var _check_clock := 0.0
+## A tap on a thing that moves waiting to see whether a second one comes: {"cell", "ms"},
+## {} for none (see DOUBLE_TAP_MS).
+var _tap_wait := {}
+## The thing dragged now (see drag), {} for none.
+var _dragged := {}
 
 
 func _init(g) -> void:
@@ -148,6 +162,10 @@ func leave() -> void:
 	auto = false
 	var c = game.controls
 	c.cancel_stroke()
+	_take_waiting()
+	if not _dragged.is_empty():
+		game.props.settle(_dragged)
+		_dragged = {}
 	var inv = game.character.inventory
 	for h in 2:
 		var id: String = _saved_hands[h]
@@ -272,6 +290,8 @@ func toggle_auto() -> void:
 
 ## Runs the auto build for a frame; called while playing.
 func update(delta: float) -> void:
+	if not _tap_wait.is_empty() and Time.get_ticks_msec() - int(_tap_wait.ms) > DOUBLE_TAP_MS:
+		_take_waiting()
 	if not on or not auto:
 		return
 	_check_clock -= delta
@@ -332,8 +352,18 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		game.net.request(Protocol.PROP_PUT_AT, [chosen(), target.prop.cell])
 		return {}
 	if target.has("prop") and not Placed.is_light(target.prop) and Items.is_interior(target.prop.item):
-		game.net.request(Protocol.PROP_TAKE, [target.prop.cell])
-		return {}
+		var e: Dictionary = target.prop
+		if not Placed.movable(e):
+			game.net.request(Protocol.PROP_TAKE, [e.cell])
+			return {}
+		if not _tap_wait.is_empty() and _tap_wait.cell == e.cell:
+			# The second tap of a double tap: turned a quarter where it stands.
+			_tap_wait = {}
+			game.net.request(Protocol.PROP_MOVE, [e.cell, e.cell, (int(e.get("turn", 0)) + 1) % 4])
+			return {}
+		_take_waiting()
+		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "prop": e,
+			"from": pos, "moved": false, "to": null, "corner": null, "grab": _grab(e, pos)}
 	var hit: Dictionary = game.controls.pick(pos)
 	if hit.is_empty():
 		return {}
@@ -357,6 +387,81 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 			first = ghost
 	return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "plan": kind,
 		"first": first, "last": first, "normal": Vector3i.UP}
+
+
+## The cell of thing `e` under screen point `pos`, from its north-west cell (the thing
+## dragged keeps it under the finger).
+func _grab(e: Dictionary, pos: Vector2) -> Vector3i:
+	var n := Placed.size_of(e.item)
+	var on_it: Variant = game.controls.on_plane(pos, e.cell, Vector3i.UP)
+	if on_it == null:
+		return Vector3i.ZERO
+	var d: Vector3i = on_it - e.cell
+	return Vector3i(clampi(d.x, 0, n - 1), 0, clampi(d.z, 0, n - 1))
+
+
+## The tap on a thing waiting for a second one takes the thing now (see DOUBLE_TAP_MS).
+func _take_waiting() -> void:
+	if _tap_wait.is_empty():
+		return
+	var cell: Vector3i = _tap_wait.cell
+	_tap_wait = {}
+	if not game.placed.at(cell).is_empty():
+		game.net.request(Protocol.PROP_TAKE, [cell])
+
+
+## A finger or the mouse held on a thing that moves (stroke `s` of start_stroke): once
+## it has gone far enough the thing is held up over the free place nearest under it
+## (Placed.move_spot, as the server will look for it), its cells framed (red where it
+## does not fit). Called every frame while held (Controls.update).
+func drag(s: Dictionary) -> void:
+	var e: Dictionary = s.prop
+	if game.placed.at(e.cell) != e:
+		return
+	if not s.moved:
+		var screen: Vector2 = game.get_viewport().get_visible_rect().size
+		if s.pos.distance_to(s.from) < minf(screen.x, screen.y) * DRAG_SHARE:
+			return
+		s.moved = true
+		_dragged = e
+	var on_it: Variant = game.controls.on_plane(s.pos, e.cell, Vector3i.UP)
+	if on_it == null:
+		return
+	var corner: Vector3i = on_it - s.grab
+	if s.corner == corner:
+		return
+	s.corner = corner
+	var turn: int = e.get("turn", 0)
+	s.to = game.placed.move_spot(game.character, e, corner, turn)
+	var at: Vector3i = s.to if s.to != null else corner
+	game.props.hold_at(e, at)
+	var cells: Array = []
+	for o: Vector3i in game.placed.cells_of({"item": e.item, "cell": Vector3i.ZERO, "turn": turn}):
+		cells.append(at + o)
+	if s.to != null:
+		game.cursor.show_boxes(cells, [])
+	else:
+		game.cursor.show_boxes([], cells)
+
+
+## The finger or the mouse let go of a thing (stroke `s`): dragged, it is moved where it
+## was held up (Protocol.PROP_MOVE; it drops back when it cannot go there); only tapped,
+## it waits for a second tap (DOUBLE_TAP_MS).
+func release(s: Dictionary) -> void:
+	var e: Dictionary = s.prop
+	_dragged = {}
+	if not s.moved:
+		_tap_wait = {"cell": e.cell, "ms": Time.get_ticks_msec()}
+		return
+	game.cursor.show_boxes([], [])
+	if game.placed.at(e.cell) != e:
+		return
+	if s.to == null or s.to == e.cell:
+		game.props.settle(e)
+		return
+	game.net.request(Protocol.PROP_MOVE, [e.cell, s.to, int(e.get("turn", 0))]).then(func(moved: Variant) -> void:
+		if not (moved is bool and moved) and game.placed.at(e.cell) == e:
+			game.props.settle(e))
 
 
 ## The cell a stroke begins at on the cell `hit` (VoxelRaycast.cast): the cell over the

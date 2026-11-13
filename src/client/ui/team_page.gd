@@ -74,7 +74,7 @@ func refresh() -> void:
 			if team.leads() and m[0] != me:
 				kick = team.kick.bind(m[0])
 				tags.append("[remove]")
-			var b := _button(_box, str(m[1]), kick, ", ".join(tags))
+			var b := _button(_box, str(m[1]), kick, ", ".join(tags.map(Lang.t)))
 			b.add_theme_color_override("font_color", UiStyle.TEAM)
 			b.add_theme_color_override("font_disabled_color", UiStyle.TEAM)
 		_button(_box, "[leave_the_team]", team.leave)
@@ -88,7 +88,7 @@ func refresh() -> void:
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.custom_minimum_size = Vector2(WIDTH, 0)
 	_box.add_child(hint)
-	_box.add_child(UiStyle.label("PvP: %s" % PVP_TITLES.get(team.pvp, team.pvp), UiStyle.MUTED))
+	_box.add_child(UiStyle.label(Lang.line("[pvp_mode]", [PVP_TITLES.get(team.pvp, team.pvp)]), UiStyle.MUTED))
 	if team.protected > 0 and team.pvp != "off":
 		_box.add_child(UiStyle.label(Lang.f("[newcomer_protection_min_more]", [team.protected]), UiStyle.MUTED))
 		_button(_box, "[drop_the_protection]", team.give_up_protection)
