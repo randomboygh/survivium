@@ -86,7 +86,8 @@ length up to `CHAT_MAX` 160.
   accepted place. Through a socket the sent place is checked (`check_moves`, decision 153, 3А): the server's
   body `ServerBody` (the same `body.gd`, with the session's world and clock) goes from its place (`_sim`) to
   the sent one in the time since the last `input` — no more than `CLAIM_GAP_MAX` 0.5 s and no more than has
-  passed, so frequent messages give no extra path — by the world's rules: walls, slopes, water, the pace from
+  passed, so frequent messages give no extra path, walked in steps of 0.05 s (`Body.STEP_MOST`: a phone back from
+  the background no longer drops the server's body through the floor into a cave) — by the world's rules: walls, slopes, water, the pace from
   load and weather; a place farther than `MOVE_TOLERANCE` 2.5 cells from where the body got to, or inside a wall
   (`Body.blocked`), is not taken, the player stays where the body got to, and after `STRIKES` 10 such in a row
   the client is put there (`moved` → `teleport`); to the accepted place the server's body is pulled no faster
