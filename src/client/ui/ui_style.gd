@@ -1626,12 +1626,22 @@ static func inset(content: Control, bottom := 0) -> MarginContainer:
 
 ## Room on the right of `room` (a MarginContainer between a ScrollContainer and what it
 ## holds) for the scroll's bar and BAR_GAP before it while `on` (the list is taller than
-## its window), none otherwise: the bar never covers the rows.
+## its window), none otherwise: the bar never covers the rows. A room marked inset
+## (meta "inset", `inset_room`) keeps BAR_GAP on the right with no bar too, as on its left.
 static func bar_room(room: MarginContainer, on: bool, scroll: ScrollContainer = null) -> void:
 	var bar := 0.0
 	if on and scroll != null:
 		bar = scroll.get_v_scroll_bar().get_combined_minimum_size().x
-	room.add_theme_constant_override("margin_right", int(BAR_GAP + bar) if on else 0)
+	var off := BAR_GAP if room.get_meta("inset", false) else 0
+	room.add_theme_constant_override("margin_right", int(BAR_GAP + bar) if on else off)
+
+
+## Makes `room` (the box between a list's scroll and its rows, see bar_room) keep the
+## settings' insets: BAR_GAP on the left, and on the right before the bar or the frame.
+static func inset_room(room: MarginContainer) -> void:
+	room.set_meta("inset", true)
+	room.add_theme_constant_override("margin_left", BAR_GAP)
+	bar_room(room, false)
 
 
 ## Panel: two pixels of outline, two of highlight, then the fill; `pad` round what it holds.

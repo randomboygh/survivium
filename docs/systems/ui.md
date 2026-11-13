@@ -97,7 +97,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   (`ServerMain.apply_settings`, the port faded until a restart), the sections parted by `Kit.section`; «Access»: «Whitelist only», the list with «Remove» and the field «Add», the banned with
   «Unban» and the field «Ban» (the same commands `whitelist`, `ban`, `unban`, `Server.access`); under all
   «Play», «Stop the server» (two touches), «Back»; the same window is the «Server» item in the pause menu;
-  taller than the screen — it scrolls, the bar does not cover the rows, `UiStyle.bar_room`), `world_setup.gd`
+  taller than the screen — it scrolls, the bar does not cover the rows, `UiStyle.bar_room`; the rows inset as the settings', `UiStyle.inset_room`), `world_setup.gd`
   («New world»: seed, kind of world, generator settings with a map, the rows inset as the settings' (`UiStyle.inset`), the page «Mods» (a switch keeps its place in the list: the page is made anew at the same scroll): under a dropped bundle the
   whole chain of the reason, `Mods.why`), `world_list.gd` («Load world»; a world has a square trash button:
   the first touch paints it red, the second deletes, for the test world — resets; recent servers on the «Join»
