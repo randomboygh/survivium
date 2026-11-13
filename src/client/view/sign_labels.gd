@@ -10,6 +10,7 @@ extends Node3D
 ## there the same way (DeathScreen.grave_text), in the language in use.
 
 const Placed := preload("res://src/shared/game/placed.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const DeathScreen := preload("res://src/client/ui/death_screen.gd")
@@ -60,8 +61,9 @@ func _on_added(e: Dictionary) -> void:
 	_on_removed(e)
 	var panel := PanelContainer.new()
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var label := UiStyle.label(DeathScreen.grave_text(e.grave) if grave else e.text)
-	# The sign's words as written; a cross's are put in the language already.
+	var label := UiStyle.label(DeathScreen.grave_text(e.grave) if grave else Lang.written(e.text))
+	# The sign's words as written (a line that is a key, a bot's, in the language); a
+	# cross's are put in the language already.
 	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(label)

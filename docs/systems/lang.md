@@ -14,7 +14,9 @@ data; each language, English too, maps the key to its own text (decision 186, op
   `lang/` files, `line(template, values)` — a string with values for the server, `f(template, values)` — the
   same at once in the player's language (the client), `t(key)` — the text of a key or of a `line` string in
   code (without a language — English, `english()`), `is_key(s)` — whether it is a key, `drop()` — remove the
-  table before exit; `seen(text)` — the tests' watchman (`watching`, `missed`, see «Tests»).
+  table before exit; `written(text)` — a player's text (chat, sign) with each line that is a whole key put into the
+  language (the playtest bots speak and write in keys); `seen(text)` and `keys_shown(node)` — the tests' watchmen
+  (`watching`, `missed`, see «Tests»).
 - `src/client/settings.gd` — `language` (the device's language by default), `use_language`, `set_language`;
   «Reset» does not touch the language; `Settings.language_override` is set by tests (`"ru"`).
 - `src/client/ui/settings_menu.gd` — the «Language» row.
@@ -34,7 +36,8 @@ the core and the tool classes, `content/<mod>/lang/` — a mod's description,
 `content/<mod>/<bundle>/lang/` — the records and the bundle's description. The format is a flat dictionary
 `"[key]": "text"`. The files are read through `Content._read`, so they come from `content_cache.bin` too. No
 key in a language (or empty) — the English text (`Table.fallback`), no such either — the key itself, so a gap
-is seen at once. A text that is not a key (a player's name, an inscription on a sign) is shown as is.
+is seen at once. A text that is not a key (a player's name, an inscription on a sign) is shown as is; a line of a player's text that
+is a whole key (a bot's) is translated (`Lang.written`: the chat, the balloons, the signs).
 
 **Rules**
 - The server does not translate: a rule gives a key or `Lang.line(template, [values])` — the string
@@ -81,7 +84,15 @@ without a language, that is in English. The completeness of English and Russian 
 the tests' scenes (`progress_test`, `save_test`, `server_test`, `frame_test`) set `Lang.watching`, and every
 text given to toasts (`hud.toast`, `notice`), a line and the loading screen (`set_loading`, the strip's
 caption, tips) is translated into Russian (`Lang.seen`); if a key or an English text without Cyrillic remains
-in it, it goes into `Lang.missed`, and the test fails with a list of such lines.
+in it, it goes into `Lang.missed`, and the test fails with a list of such lines. The second watchman,
+`Lang.keys_shown(node)`, searches what is on the screen: every visible Label, Button, RichTextLabel, Label3D,
+the placeholders, tabs, items and tooltips, as the node shows them (`atr`), for a key or a `line` left in them
+(a key put as a value into a template that is no key, `"PvP: %s" % key`; a key glued to a name; a key given to
+a node that does not translate). In the scene tests the HUD runs it over the whole screen every 0.5 s
+(`Hud.SWEEP_EVERY`), and `save_test` opens every window and tab (the bag, the map, the gestures, the chat, the
+pause, the settings and the playtest page with all sections, the main menu's pages, the server's window,
+«Join», a new world) and checks each. `tools/shot.gd -- <dir> --keys` (headless too) searches each shot's
+screen instead of saving it and prints `KEYS <shot>: …`.
 
 **In more detail.** The translator's guide — [../TRANSLATION.md](../TRANSLATION.md) (a copy
 [../TRANSLATION_RU.md](../TRANSLATION_RU.md)); decisions 183 and 186 in `plan/README.md`; screenshots in a

@@ -150,6 +150,8 @@ func _ready() -> void:
 	_room = MarginContainer.new()
 	_room.add_child(_box)
 	_scroll = Kit.scroll(_room, false)
+	# The rows keep the settings' insets (the kit's rule), the bar's room beside them.
+	UiStyle.inset_room(_room)
 	if running():
 		box.add_child(Kit.title("[server_running]"))
 		_build_running()
@@ -664,7 +666,7 @@ func _refresh() -> void:
 			_people.add_child(Kit.caption("[nobody_yet]"))
 		for p: Array in people:
 			var row := Kit.row(4)
-			var l := UiStyle.label("%s%s" % [p[0], "" if p[2] else "[no_connection]"])
+			var l := UiStyle.label("%s%s" % [p[0], "" if p[2] else Lang.t("[no_connection]")])
 			l.custom_minimum_size = Vector2(WIDTH - 2 * PLAYER_BUTTON - 8, ROW_H)
 			l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			l.clip_text = true
