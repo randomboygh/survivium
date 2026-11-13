@@ -834,6 +834,8 @@
 "[graphics]": "Grafica"
 "[music]": "Musica"
 "[sound]": "Suono"
+"[sounds]": "Suoni"
+"[other_tab]": "Altro"
 "[caves]": "Grotte"
 "[markers]": "Segnaposti"
 "[debug]": "Debug"
