@@ -150,6 +150,8 @@ func _ready() -> void:
 	_room = MarginContainer.new()
 	_room.add_child(_box)
 	_scroll = Kit.scroll(_room, false)
+	# The rows keep the settings' insets (the kit's rule), the bar's room beside them.
+	UiStyle.inset_room(_room)
 	if running():
 		box.add_child(Kit.title("[server_running]"))
 		_build_running()
