@@ -403,13 +403,18 @@ var _clock_left := 0.0
 ## screen is searched for a key left untranslated, in milliseconds, and when last.
 const SWEEP_EVERY := 500
 var _swept_at := 0
+## What the sweeps took in all, in microseconds: the test's own work, which frame_test
+## takes out of the frames it judges (3-5 ms a sweep on CI, every half second).
+var swept_us := 0
 
 
 func update_state() -> void:
 	var winter: bool = game.clock.season == game.clock.WINTER
 	if Lang.watching and Time.get_ticks_msec() - _swept_at >= SWEEP_EVERY:
 		_swept_at = Time.get_ticks_msec()
+		var t := Time.get_ticks_usec()
 		Lang.keys_shown(get_tree().root)
+		swept_us += Time.get_ticks_usec() - t
 	# The clock's line (with the air's warmth) changes by the game's minute: a few times a second is enough.
 	_clock_left -= get_process_delta_time()
 	if _clock_left <= 0.0:

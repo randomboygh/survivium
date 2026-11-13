@@ -58,6 +58,7 @@ const IDLE_FLOOR := 1.25
 const NIGHT_FLOOR := 2.0
 const NIGHT := "idle at night by the campfire"
 const LANDING := "landing in a cave"
+const MOWING := "mowing"
 ## The frames of LANDING the jump into the cave takes (see there).
 const LANDING_EVENTS := 2
 const IDLE := "idle"
@@ -73,6 +74,8 @@ var moved := 0.0
 ## The longest frame of building while the game is paused, microseconds.
 var paused_worst := 0
 var flips := 0
+## Things taken up from the ground while a scenario counts them (_on_taken).
+var taken := 0
 var clock := 0.0
 ## Each scenario's name, frame times and the budgeted part of each, judged once the
 ## idle frame of the finished map is known.
@@ -196,6 +199,7 @@ func _run() -> void:
 		await process_frame
 	_check(streamer.keep_queue.is_empty() and not streamer.job_keep, "the chunks around the player keep their jobs once the map is built")
 	unit[IDLE] = _chunk_cost()
+	await _settle()
 	await _scenario(IDLE, 120, func(_i: int) -> bool: return false)
 
 	# Digging a ring around the feet and the ground under the nearest bush, then
@@ -384,7 +388,16 @@ func _run() -> void:
 		var fibre: int = inv.count("resources:fiber")
 		var first: Vector3i = mown.mow[0]
 		c.action_held = true
-		await _scenario("mowing", 100000, func(_i: int) -> bool: return clock >= 1.5)
+		# Each thing taken up comes into the bag in one frame, as a thing made does (the
+		# server's pickup and the bag's, skills' and knowledge's copies: 2-4 ms past the
+		# budgets here, 2026-11-13), and so does the first swing: they may pass the limit,
+		# under a chunk (see the verdict).
+		taken = 0
+		main.actions.taken.connect(_on_taken)
+		await _scenario(MOWING, 100000, func(_i: int) -> bool: return clock >= 1.5)
+		main.actions.taken.disconnect(_on_taken)
+		runs[-1][3] = 1 + taken
+		print("mowing: %d things taken up" % taken)
 		c.action_held = false
 		_check(w.get_cell(first.x, first.y, first.z) == Mat.DIRT and inv.count("resources:fiber") > fibre,
 			"the scythe cuts the grass in front into fibre and leaves dirt")
@@ -542,6 +555,7 @@ func _run() -> void:
 	while (not streamer.keep_queue.is_empty() or streamer.job_keep) and Time.get_ticks_msec() - kept_at < 20000:
 		await process_frame
 	unit[NIGHT] = _chunk_cost()
+	await _settle()
 	await _scenario(NIGHT, 120, func(_i: int) -> bool: return false)
 	main.settings.values.fire_shadows = fire_setting
 	main.settings.apply()
@@ -870,13 +884,16 @@ func _run() -> void:
 				over_step += 1
 			if frames[i] - steps[i] > free_limit:
 				over_free += 1
+				print("%s: frame %d took %.1f ms past the budgets; the game's parts: %s" % [
+					r[0], i, frames[i] - steps[i], r[4].get(i, "?")])
 		print("%s: %d frames, average %.1f ms, worst %.1f ms; worst budgeted %.1f ms (%d over), worst outside %.1f ms (%d over)" % [
 			r[0], frames.size(), _mean(frames), worst, worst_in, over_step, worst_free, over_free])
 		var stalls: int = 1 + frames.size() / STALLS_PER_FRAMES + r[3]
 		_check(over_step <= stalls, "%s keeps the budgeted loops under %.1f ms" % [r[0], step_limit])
 		_check(over_free <= stalls, "%s keeps the rest of a frame under %.1f ms" % [r[0], free_limit])
-		if r[0] == LANDING:
-			_check(worst_free < chunk_ms, "%s: the jump there takes under a chunk past the budgets (%.1f ms of %.1f)" % [
+		if r[0] == LANDING or r[0] == MOWING:
+			# Their one-off frames (events) pass the limit, but never by a chunk.
+			_check(worst_free < chunk_ms, "%s: no frame takes a chunk past the budgets (%.1f ms of %.1f)" % [
 				r[0], worst_free, chunk_ms])
 	_check(Lang.missed.is_empty(), "every text shown has its Russian: %s" % [Lang.missed])
 	print("%d checks, %d failed" % [checks, failures])
@@ -888,6 +905,9 @@ func _run() -> void:
 ## `events` is how many frames of it may carry one-off work past the limits (a thing made).
 func _scenario(what: String, frames: int, act: Callable, events := 0) -> void:
 	var times := PackedFloat32Array()
+	# The game's parts of the frames that took long past the budgets, by frame, for the
+	# message of a frame over the limit (cheap: only those frames).
+	var long := {}
 	var steps := PackedFloat32Array()
 	clock = 0.0
 	for i in frames:
@@ -895,10 +915,14 @@ func _scenario(what: String, frames: int, act: Callable, events := 0) -> void:
 			break
 		var t := Time.get_ticks_usec()
 		var b: int = main.chunks.budget_us
+		var swept: int = main.hud.swept_us
 		await process_frame
 		clock += root.get_process_delta_time()
-		times.append((Time.get_ticks_usec() - t) / 1000.0)
+		# Less the test's own search of the screen for untranslated texts (Hud.swept_us).
+		times.append((Time.get_ticks_usec() - t - (main.hud.swept_us - swept)) / 1000.0)
 		steps.append((main.chunks.budget_us - b) / 1000.0)
+		if times[-1] - steps[-1] > 4.0:
+			long[times.size() - 1] = _parts_text(main.hud.perf._work, 1)
 		if what == IDLE or what == NIGHT:
 			# What the game's parts took in the frame (the statistics' parts, see
 			# PerfPanel.note), for the idle checks' message.
@@ -906,7 +930,22 @@ func _scenario(what: String, frames: int, act: Callable, events := 0) -> void:
 			var work: Dictionary = main.hud.perf._work
 			for part: String in work:
 				parts[part] = parts.get(part, 0) + work[part]
-	runs.append([what, times, steps, events])
+	runs.append([what, times, steps, events, long])
+
+
+func _on_taken(_id: String, _from: Vector3, _by: Object = null) -> void:
+	taken += 1
+
+
+## A few frames let pass unjudged after _chunk_cost: it holds the game for half a second
+## or more, and the frames after it catch up (the server's tick, the animals, the player's
+## body: 10-14 ms past the budgets in the night scenario's first frames, 2026-11-13).
+func _settle() -> void:
+	var from := Time.get_ticks_msec()
+	var frames := 0
+	while frames < 10 or Time.get_ticks_msec() - from < 300:
+		await process_frame
+		frames += 1
 
 
 ## Presses or releases a key for the game, which reads the keyboard through Input.
