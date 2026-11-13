@@ -801,10 +801,36 @@ func _renew(node: Node) -> void:
 	var back := _bot("Host", "", "", PORT + 1)
 	_check(await _until(func() -> bool: return back.reply.done) and back.reply.value.get("seed") == 9
 		and back.reply.value.get("playtest") == false and back.reply.value.has("host"), "a player comes into the new world: %s" % [back.reply.value.get("seed")])
+	await _server_bot(node, back)
 	_check(node.command("test worlds").contains(folder), "the saved worlds are listed by their folders")
 	node.command("test world " + folder)
 	_check(await _until(func() -> bool: return node.seed_value == first and node.server.listening and node.had_save),
 		"and the server goes back to the first one, as it was saved")
+
+
+## A bot the server plays itself (ServerBot: where no process of the game can be
+## started, a phone): it comes into the world with no connection, the others see it, it
+## takes tasks and walks by the world's rules, and «test bot-» takes it away.
+func _server_bot(node: Node, seen_by: Bot) -> void:
+	var before: int = node.session.players.size()
+	var n: int = node.test_commands.add_bot(true)
+	var entry: Array = node.test_commands.bots.back()
+	var bot = entry[2]
+	_check(n == 1 and bot != null and node.session.players.size() == before + 1 and bot.account.bot
+		and node.server.online() == before, "a bot of the server comes in without a connection: %d" % n)
+	_check(await _until(func() -> bool: return seen_by.of(Protocol.PEOPLE).any(func(e: Array) -> bool:
+			return e[1].any(func(p: Array) -> bool: return p[1] == "Bot1"))), "a player sees it")
+	_check(await _until(func() -> bool: return bot.tasks > 0), "it takes tasks by itself")
+	var from: Vector3 = bot.account.link.who.position
+	bot.task = ""
+	bot._start("walk")
+	_check(await _until(func() -> bool: return bot.account.link.who.position.distance_to(from) > 0.5 * WorldData.CELL),
+		"and walks by the world's rules")
+	node.server.store.save(node.server)
+	_check(not FileAccess.file_exists(node.store.dir + "/" + ServerStore.player_file(bot.account.key)),
+		"it is not saved with the players")
+	_check(node.command("test bot-") == "Bot1 left" and node.session.players.size() == before
+		and not node.server.accounts.has(bot.account.key), "«test bot-» takes it out of the world")
 
 
 ## The host's commands (С5.3): give into a bag (by the item's id, its end or its

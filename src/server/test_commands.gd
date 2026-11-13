@@ -12,11 +12,13 @@ extends Node
 ## `mod on`, `mod off`, `mod next` play with the test mod (TestMod: files put over the
 ## server's own, so the games that join have files to take, decision 189), without it,
 ## and with its next step (a reload the games in the world take).
-## Bots need a computer: in the browser no process is started.
+## A bot is a process of the game where one can be started (a computer), else the
+## server plays it itself (ServerBot: a server made on a phone).
 
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const TestMod := preload("res://src/server/test_mod.gd")
+const ServerBot := preload("res://src/server/server_bot.gd")
 
 ## Bots at most.
 const MOST_BOTS := 5
@@ -28,7 +30,8 @@ const ROLE_OWNER := 2
 
 ## The server's scene (server_main.gd): its `server`, `config`, `say`, `renew`.
 var main: Node
-## The bots running, the newest last: [number, process id] each.
+## The bots running, the newest last: [number, process id, null] each, or [number, 0,
+## ServerBot] for one the server plays itself.
 var bots: Array = []
 ## Bots to start again once a new world is up.
 var _respawn := 0
@@ -54,8 +57,24 @@ func _exit_tree() -> void:
 ## Stops every bot.
 func stop_bots() -> void:
 	for b: Array in bots:
-		OS.kill(b[1])
+		_end(b)
 	bots.clear()
+
+
+## Stops bot `b` (an entry of `bots`).
+func _end(b: Array) -> void:
+	if b[2] != null:
+		if main.server != null:
+			main.server.remove_bot(b[2].account)
+	elif b[1] > 0:
+		OS.kill(b[1])
+
+
+## The bots the server plays itself take their steps.
+func _process(delta: float) -> void:
+	for b: Array in bots:
+		if b[2] != null:
+			b[2].step(delta)
 
 
 ## «/test `rest`» from one of `role`: the answer to the one who sent it.
@@ -70,15 +89,13 @@ func command(rest: String, role: int) -> String:
 		"bot+":
 			if bots.size() >= MOST_BOTS:
 				return "There are %d bots already, no more" % bots.size()
-			if not can_start_bots():
-				return "Only a server on a computer starts bots"
 			var n := add_bot()
 			return "Bot%d is coming to the server" % n if n > 0 else "The bot could not start"
 		"bot-":
 			if bots.is_empty():
 				return "There are no bots"
 			var b: Array = bots.pop_back()
-			OS.kill(b[1])
+			_end(b)
 			main.say("bot %d removed" % b[0])
 			return "Bot%d left" % b[0]
 		"hour":
@@ -196,19 +213,25 @@ func _on_renewed() -> void:
 	_respawn = 0
 
 
-## A bot is a process of this game: not in the browser, nor on a phone.
+## Whether a bot can be a process of this game: not in the browser, nor on a phone.
 static func can_start_bots() -> bool:
 	return OS.get_name() in ["Linux", "Windows", "macOS", "FreeBSD"]
 
 
 ## Starts a bot with the first number no bot running has; its number, 0 when it did not
-## start. On Linux it runs below the server's priority with its log in Config.bot_logs.
-func add_bot() -> int:
-	if not can_start_bots():
-		return 0
+## start. On Linux it runs below the server's priority with its log in Config.bot_logs;
+## where no process can be started, or `here` asks, the server plays it itself (ServerBot).
+func add_bot(here := false) -> int:
 	var n := 1
 	while bots.any(func(b: Array) -> bool: return b[0] == n):
 		n += 1
+	if here or not can_start_bots():
+		if main.server == null or main.server.session == null:
+			return 0
+		var a = main.server.add_bot("Bot%d" % n)
+		bots.append([n, 0, ServerBot.new(a, main.server.session)])
+		main.say("bot %d plays on the server itself" % n)
+		return n
 	var game := [OS.get_executable_path(), "--headless"]
 	# From the project's folder (the editor's binary) the game needs its path; an export
 	# carries it.
@@ -227,6 +250,6 @@ func add_bot() -> int:
 	if pid <= 0:
 		main.say("bot %d did not start" % n)
 		return 0
-	bots.append([n, pid])
+	bots.append([n, pid, null])
 	main.say("bot %d started (process %d)" % [n, pid])
 	return n
