@@ -17,6 +17,14 @@ const CHUNK := WorldData.CHUNK
 ## Columns around a chunk the terrain stage lays out too, so banks, caves and trees
 ## can look at their neighbours.
 const MARGIN := 3
+## A ravine (see _ravine): how deep it cuts and how far its floor reaches either way of
+## its middle line, in cells.
+const RAVINE_DEPTH := 6
+const RAVINE_FLOOR := 1.5
+## Levels a cell the ravine's terraced wall rises by (by the noise's distance, which
+## may run ahead of the cells where the line bends: under one, so a terrace is never
+## two levels high).
+const RAVINE_TERRACES := 0.7
 const WINDOW := CHUNK + 2 * MARGIN
 ## Cells between the samples of the slow noises (continents, rivers, lakes), which are
 ## sampled exactly and interpolated with their slopes in between.
@@ -94,10 +102,12 @@ const HALL_MID := 4.0
 const HALL_WANDER := 6.0
 const HALL_RISE := 4.5
 const TIER_GAP := 11.0
-## Cave shape 1: a mouth's funnel starts FUNNEL_RIM bytes of the mouths noise inside
-## its patch and reaches the hall's floor FUNNEL_SPREAD bytes further in.
-const FUNNEL_RIM := 8.0
-const FUNNEL_SPREAD := 50.0
+## Cave shape 1: how much lower a hall's floor lies than its middle level for each
+## cell its dome rises: small, so the floor never steps down two levels at once where
+## the dome rises fast at the rim.
+const HALL_DIP := 0.25
+## How far round a hollow _fill_pits looks for a way out of it, in columns (up to MARGIN).
+const PIT_REACH := 3
 ## A cave mouth opens sideways where its ground drops by WALL cells or more within
 ## three columns: a gallery ADIT cells high is cut in at the foot of the wall. On
 ## level ground it is a pit instead, up to PIT_DEPTH cells deep in its middle.
@@ -122,7 +132,8 @@ const MOUNT_WOODS := 7
 const ALPINE_BELOW := 6
 ## Relief 1 (see _ranges_and_mesas). Ranges: the rise of their feet and of their
 ## highest crests, the crags on the crests and the low ranges where plateaus were;
-## gorges GORGE_WIDTH hundredths of the gorge noise wide; tors where the crag noise
+## gorges with a floor GORGE_FLOOR cells either way of the gorge noise's zero line
+## (looked for within GORGE_REACH hundredths of it); tors where the crag noise
 ## is above TOR_FROM. Mesas: from MESA_FROM over the plateau noise, tops MESA_TIERS
 ## levels over the land at the coast; canyon walls a tier lower every CANYON_STEP
 ## hundredths of the gorge noise; buttes where the crag noise is above BUTTE_FROM.
@@ -132,10 +143,17 @@ const RANGE_FOOT := 4.0
 const RANGE_RISE := 26.0
 const CRAG_RISE := 3.0
 const LOW_RANGE_RISE := 14.0
-const GORGE_WIDTH := 3.5
+const GORGE_FLOOR := 2.0
+const GORGE_TERRACES := 0.7
+const GORGE_FADE := 60.0
+const GORGE_REACH := 40.0
 const TOR_FROM := 0.7
 const MESA_FROM := 0.18
 const MESA_TIERS := [5.0, 9.0, 12.0, 17.0, 21.0]
+## A hollow among mesas (see _mesas) is looked for where the plateau is under
+## MESA_HOLLOW_P from them: whether every way a higher tier stands within MESA_HOLLOW cells.
+const MESA_HOLLOW_P := 0.15
+const MESA_HOLLOW := 12
 const CANYON_STEP := 3.5
 const BUTTE_FROM := 0.56
 const DRY_WARM := 140.0
@@ -167,6 +185,23 @@ const DELTA_SLOPE := 0.001
 ## into a slope, ending in a chamber over bigger caves (see _tunnels).
 const TUNNEL_GRID := 48
 const TUNNEL_LEN := 26
+## Cave shape 1: the way into the caves is a descent (see _cut_descents), a gallery
+## DESCENT_WIDTH cells wide and DESCENT_HEAD tall that goes down DESCENT_SLOPE levels a
+## cell from the ground (or from the end of a gallery cut into a mountain's side; behind
+## its start it rises on until it comes out of the ground) to
+## the floor of the halls and runs on there DESCENT_FLAT cells; DESCENT_DEEP of them go
+## on down to the lower tier. In a hall it passes, rubble slopes from it to the floor
+## a level a cell, up to DESCENT_PILE cells to the side. Whoever goes in walks back up it, whatever they fell
+## into on the way. In a square of DESCENT_GRID cells there is one by DESCENT_CHANCE
+## (the caves setting).
+const DESCENT_GRID := 64
+const DESCENT_CHANCE := [0.3, 0.55, 0.8]
+const DESCENT_SLOPE := 0.75
+const DESCENT_WIDTH := 3.0
+const DESCENT_HEAD := 4
+const DESCENT_FLAT := 6.0
+const DESCENT_DEEP := 0.35
+const DESCENT_PILE := 14
 ## Columns over which the ground beside water above its land falls back to it (see
 ## _banks); no more than MARGIN, or windows would raise their edges differently.
 const BANK_SLOPE := 3
@@ -195,6 +230,12 @@ var coast_level := 0.0
 ## The caves cut into mountains' sides by grid square (see _tunnel), as they are
 ## worked out.
 var tunnels := {}
+## The column _layout_row lays out (the relief's gorges ask for it).
+var _col := Vector2i.ZERO
+## The descents into the caves by grid square (see _descent), as they are worked out.
+var descents := {}
+## The tiers of the mesas every second column (see _mesa_tier_at).
+var mesa_tiers := {}
 var n_hills: FastNoiseLite
 var n_ridges: FastNoiseLite
 var n_mount: FastNoiseLite
@@ -333,7 +374,9 @@ func _chance(x: int, z: int, salt: int) -> float:
 ## _layout_row into one entry per column (j = lz * w + lx): height, water (the top
 ## water cell, -1 for none), top, flags, biome, relief kind, what water it is and
 ## whether a river drops there (1 rapids, 2 a waterfall), and by _entrances and
-## _tunnels the floor of a cave mouth's gallery and the depth of its pit.
+## _tunnels the floor of a cave mouth's gallery and the depth of its pit, by _descents
+## the floor of a descent into the caves plus one (0 for none) and the top of the
+## rubble round it in the halls it passes plus one.
 func _window(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 	var count := w * h
 	var lay := {"x0": x0, "z0": z0, "w": w, "h": h, "step": step, "grids": []}
@@ -342,7 +385,7 @@ func _window(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 		a.resize(count)
 		lay[k] = a
 	lay.water.fill(-1)
-	for k: String in ["tops", "flags", "biome", "kind", "feature", "falls", "adit", "pit", "cut"]:
+	for k: String in ["tops", "flags", "biome", "kind", "feature", "falls", "adit", "pit", "cut", "descent", "pile"]:
 		var a := PackedByteArray()
 		a.resize(count)
 		lay[k] = a
@@ -594,10 +637,18 @@ func _ranges(land: float, kind: int, coast: float, h: float, m: float, c: float,
 		if area > 0.25 and land > sea + 5.0:
 			kind = MOUNTAIN
 		# A gorge: a narrow cut along the zero line of its noise, down near the foot of
-		# the range, with sheer walls.
-		if area > 0.35 and g < GORGE_WIDTH and land > sea + 8.0:
-			land = sea + 3.0 + area * 3.0 + maxf(0.0, g - GORGE_WIDTH * 0.45) * 2.0
-			cut = GORGE
+		# the range, the wall on the noise's low side sheer, the other rising in
+		# terraces of a level (GORGE_TERRACES) to the mountain's side; it grows
+		# shallow towards the range's foot (GORGE_FADE), so its ends are slopes too.
+		if area > 0.35 and g < GORGE_REACH and land > sea + 8.0:
+			var across := _across(n_gorge, _col.x, _col.y)
+			if across > -GORGE_FLOOR:
+				var bottom := sea + 3.0 + area * 3.0 + maxf(0.0, across - GORGE_FLOOR) * GORGE_TERRACES
+				var deep := minf(minf(land - bottom, (area - 0.35) * GORGE_FADE), land - sea - 8.0)
+				if deep > 0.0:
+					land -= deep
+					if across < GORGE_FLOOR:
+						cut = GORGE
 	# Where the plateaus were: low ranges of the same crests.
 	var low := smoothstep(0.3, 0.6, plat) * smoothstep(48.0, 120.0, coast)
 	if low > 0.0 and kind != MOUNTAIN:
@@ -619,13 +670,15 @@ func _mesas(land: float, kind: int, coast: float, h: float, m: float, c: float, 
 	# Mesas rise where the plateaus and where the mountains would; ragged at the edges.
 	var near_plateau := plat + c * 0.12 - MESA_FROM
 	var p := maxf(near_plateau, smoothstep(from - 0.1, from + 0.5, m) * 0.6 - 0.05)
+	var tier := _mesa_tier(p, h, g)
+	if coast > 48.0 and p > -MESA_HOLLOW_P:
+		# A hollow walled round by a higher tier (or the lowland in one ringed by
+		# mesas) is a pit with sheer walls: it rises to the lowest tier round it.
+		var wall := _mesa_wall(tier, from) if tier != -1 else tier
+		if wall > tier:
+			tier = wall
+			p = maxf(p, 0.001)
 	if p > 0.0 and coast > 48.0:
-		var tier := clampi(int((smoothstep(0.0, 0.57, p) + (h - 0.5) * 0.35) * MESA_TIERS.size()), 0,
-			MESA_TIERS.size() - 1)
-		# A canyon through the mesas: a floor of sand a few cells wide, walls in steps
-		# down from the tier the mesa stands at.
-		if g < CANYON_STEP * MESA_TIERS.size():
-			tier = mini(tier, int(g / CANYON_STEP) - 1)
 		if tier < 0:
 			land = sea + 2.0
 			cut = CANYON_FLOOR
@@ -639,6 +692,64 @@ func _mesas(land: float, kind: int, coast: float, h: float, m: float, c: float, 
 		kind = HIGHLAND
 		cut = MESA
 	return [land, kind, 0.0, 0.0, cut]
+
+
+## The tier of a mesa (see _mesas) where the plateau is `p` (none, -2, at 0 or less),
+## the hills `h` and the gorge noise `g` (in hundredths): -1 on a canyon's floor.
+func _mesa_tier(p: float, h: float, g: float) -> int:
+	if p <= 0.0:
+		return -2
+	var tier := clampi(int((smoothstep(0.0, 0.57, p) + (h - 0.5) * 0.35) * MESA_TIERS.size()), 0,
+		MESA_TIERS.size() - 1)
+	# A canyon through the mesas: a floor of sand a few cells wide, walls in steps
+	# down from the tier the mesa stands at.
+	if g < CANYON_STEP * MESA_TIERS.size():
+		tier = mini(tier, int(g / CANYON_STEP) - 1)
+	return maxi(tier, -1)
+
+
+## The lowest tier of the walls round the column being laid out (`_col`), whose tier is
+## `tier`, when a higher tier stands every way within MESA_HOLLOW cells of it, else
+## `tier`: eight rays go out from it, two cells a step, until they come to another tier
+## (a canyon's floor is a way out: it is narrow, and a ray may step over it).
+func _mesa_wall(tier: int, from: float) -> int:
+	var wall := MESA_TIERS.size()
+	var hx := _col.x >> 1
+	var hz := _col.y >> 1
+	for d: Vector2i in WorldData.AROUND:
+		var met := tier
+		var r := 1
+		while r <= MESA_HOLLOW >> 1 and met == tier:
+			var key := Vector2i(hx + d.x * r, hz + d.y * r)
+			met = mesa_tiers.get(key, -3)
+			if met == -3:
+				met = _mesa_tier_at(key.x, key.y, from)
+			r += 1
+		# A canyon's floor runs on a long way: a way out.
+		if met <= tier or met == -1:
+			return tier
+		wall = mini(wall, met)
+	return wall
+
+
+## The tier of a mesa (see _mesa_tier) at column 2·hx, 2·hz, from the noises
+## themselves, kept in `mesa_tiers`.
+func _mesa_tier_at(hx: int, hz: int, from: float) -> int:
+	var key := Vector2i(hx, hz)
+	var got: int = mesa_tiers.get(key, -3)
+	if got != -3:
+		return got
+	if mesa_tiers.size() > 200000:
+		mesa_tiers.clear()
+	var x := hx * 2
+	var z := hz * 2
+	var m := n_mount.get_noise_2d(x, z)
+	var plat := n_plateau.get_noise_2d(x, z)
+	var c := n_crag.get_noise_2d(x, z)
+	var p := maxf(plat + c * 0.12 - MESA_FROM, smoothstep(from - 0.1, from + 0.5, m) * 0.6 - 0.05)
+	got = _mesa_tier(p, n_hills.get_noise_2d(x, z) * 0.5 + 0.5, absf(n_gorge.get_noise_2d(x, z)) * 100.0)
+	mesa_tiers[key] = got
+	return got
 
 
 ## The warmth bytes of climate 1 for the `count` entries from `from` (a row of the
@@ -724,6 +835,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 	var z0: int = lay.z0 + lz * lay.step
 	for lx in w:
 		var j := lz * w + lx
+		_col = Vector2i(x0 + lx * lay.step, z0)
 		var r := _relief(coast[j], hills[j], ridges[j], mount[j], shape[j], cliff[j], plateau[j], roll[j], peak[j]) \
 			if old_relief else _relief(coast[j], hills[j], ridges[j], mount[j], shape[j], cliff[j], plateau[j], roll[j],
 				peak[j], ranges[j], gorges[j], crags[j], temp[j], moist[j])
@@ -839,12 +951,15 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		# Climate: warmth from the slow noise, colder up the hills; wetter near water.
 		var t := clampf(0.5 + (temp[j] / 255.0 - 0.5) * 1.6, 0.0, 1.0) - (height - sea) * cooling
 		var m := (moist[j] / 255.0) * 0.6 + 0.4 - mini(wet, 5) * 0.04
-		# Ravines: narrow winding cuts along a noise's zero line, four to six cells
-		# deep, through the dry hot lowland and the rolling hills only.
+		# Ravines: narrow winding cuts along a noise's zero line, RAVINE_DEPTH cells
+		# deep, through the dry hot lowland and the rolling hills only (see _ravine).
+		# They grow shallow towards where the land is no longer rough or dry or lies
+		# near water or the sea, a level a cell at most, so a ravine ends in a slope.
 		var g := absi(gully[j] - 128)
-		var rough := (t > 0.6 and m < 0.6) or roll[j] > rough_t
-		if kind == PLAIN and rough and not sheer and wt < 0 and height > sea + 1 and wet >= 2 and g < 5 and feature == DRY:
-			height -= 6 if g < 4 else 4
+		var rough := maxf(minf(t - 0.6, 0.6 - m) * 20.0, (roll[j] - rough_t) * 0.8)
+		var most := mini(floori(minf(rough, near - 32.0)), height - sea - 1)
+		if kind == PLAIN and most > 0 and wt < 0 and g < 64 and feature == DRY:
+			height -= mini(_ravine(x0 + lx * lay.step, z0), most)
 		# Bare rock: mountains above their rock line, which wavers a little, high
 		# plateaus and cliff coasts.
 		var cut: int = r[4]
@@ -898,12 +1013,16 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			b = _biome(Biomes.relief(Biomes.BEACH, t, m) if zoned else Biomes.BEACH)
 			top = beach if soil[j] < soil_t else bank
 		elif kind == PLAIN and height <= sea + 4 and swamp[j] > swamp_t and wet <= 4 and t > 0.3:
-			# A swamp: flat wet ground a level or two above the sea, with pools (with
-			# climate 1 a hot one may be a biome of its own: mangroves).
+			# A swamp: wet ground a level or two above the sea, with pools (with climate
+			# 1 a hot one may be a biome of its own: mangroves). Ground higher than that
+			# keeps its height, and pools lie only where it is that low, so the ground
+			# round a swamp and round a pool is never a wall (a body pulls itself out of
+			# water onto ground one level over it, see Body).
 			b = _biome(Biomes.relief(Biomes.SWAMP, t, m) if zoned else Biomes.SWAMP)
-			height = sea + 1 + int(soil[j] > _byte(0.4))
+			var low := height <= sea + 1
+			height = maxi(height, sea + 1 + int(soil[j] > _byte(0.4))) if low else height
 			var p := pools[j]
-			if p > pool_t or (p > pool_t - mire_reach and soil[j] > mire_t):
+			if low and (p > pool_t or (p > pool_t - mire_reach and soil[j] > mire_t)):
 				# Pools, and mires along part of their shores and in hollows of their
 				# own, all at one level, so the murky water of a pool runs into the
 				# murkier, shallow water of a mire with no step.
@@ -958,6 +1077,106 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		biome[j] = b
 		kinds[j] = kind
 		features[j] = feature
+
+
+## How deep a ravine cuts column x, z, 0 outside one. Its floor runs along the zero
+## line of the gully noise, RAVINE_FLOOR cells either way of it; the wall on the
+## noise's low side is sheer, the one on its high side goes up in terraces of a level
+## (RAVINE_TERRACES), so whoever falls in walks out (the slopes round them off). The distance
+## to the line in cells is the noise over the length of its slope.
+func _ravine(x: int, z: int) -> int:
+	var across := _across(n_gully, x, z)
+	if across <= -RAVINE_FLOOR:
+		return 0
+	return clampi(RAVINE_DEPTH - floori((across - RAVINE_FLOOR) * RAVINE_TERRACES), 0, RAVINE_DEPTH)
+
+
+## How far column x, z lies from the zero line of noise `n`, in cells, less than zero
+## on its low side: the noise over the length of its slope.
+static func _across(n: FastNoiseLite, x: int, z: int) -> float:
+	var v := n.get_noise_2d(x, z)
+	var slope := Vector2(n.get_noise_2d(x + 1, z) - n.get_noise_2d(x - 1, z),
+		n.get_noise_2d(x, z + 1) - n.get_noise_2d(x, z - 1)).length() * 0.5
+	return v / maxf(slope, 1e-6)
+
+
+## A hollow a body cannot climb out of: a column, or a few side by side, two levels or
+## more below the ground (or the top of the water) round them, with no way lower out
+## within PIT_REACH columns. Each such column rises to a level under the lowest way out
+## of the columns round it (the highest level a way to the edge of that square must
+## climb over), over any water it held. Each column is judged by the layout round it
+## before the banks are raised, so the columns of the chunk fill the same in every
+## window; the window's edge (MARGIN) is left as it is.
+func _fill_pits(lay: Dictionary) -> void:
+	var heights: PackedInt32Array = lay.heights
+	var water: PackedInt32Array = lay.water
+	var w: int = lay.w
+	var tops := PackedInt32Array()
+	tops.resize(heights.size())
+	for j in heights.size():
+		tops[j] = maxi(heights[j], water[j])
+	for lz in range(PIT_REACH, lay.h - PIT_REACH):
+		for lx in range(PIT_REACH, w - PIT_REACH):
+			var j := lz * w + lx
+			var t := tops[j]
+			if tops[j - 1] < t + 2 and tops[j + 1] < t + 2 and tops[j - w] < t + 2 and tops[j + w] < t + 2:
+				continue
+			var out := _way_out(tops, w, lx, lz)
+			if out - t >= 2:
+				heights[j] = out - 1
+
+
+## The lowest level over which column lx, lz of the window gets to the edge of the
+## square PIT_REACH columns round it: of all the ways there, the one whose highest
+## column is lowest (see _fill_pits).
+static func _way_out(tops: PackedInt32Array, w: int, lx: int, lz: int) -> int:
+	const SIDE := PIT_REACH * 2 + 1
+	const ALL := SIDE * SIDE
+	# First the ground a level over it at most: if that reaches the edge, so does
+	# the way out (most columns beside a drop are on its low side).
+	var t := tops[lz * w + lx]
+	var seen := PackedByteArray()
+	seen.resize(ALL)
+	seen[ALL / 2] = 1
+	var todo := PackedInt32Array([ALL / 2])
+	var head := 0
+	while head < todo.size():
+		var i0 := todo[head]
+		head += 1
+		var ix := i0 % SIDE
+		var iz := i0 / SIDE
+		if ix == 0 or iz == 0 or ix == SIDE - 1 or iz == SIDE - 1:
+			return t
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var i := (iz + d.y) * SIDE + ix + d.x
+			if not seen[i] and tops[(lz + iz + d.y - PIT_REACH) * w + lx + ix + d.x - PIT_REACH] <= t + 1:
+				seen[i] = 1
+				todo.append(i)
+	# Over the square's columns, cheapest first: what each costs to reach.
+	var cost := PackedInt32Array()
+	cost.resize(ALL)
+	cost.fill(1 << 20)
+	var done := PackedByteArray()
+	done.resize(ALL)
+	cost[ALL / 2] = tops[lz * w + lx]
+	for _k in ALL:
+		var best := -1
+		for i in ALL:
+			if not done[i] and (best < 0 or cost[i] < cost[best]):
+				best = i
+		var bx := best % SIDE
+		var bz := best / SIDE
+		if bx == 0 or bz == 0 or bx == SIDE - 1 or bz == SIDE - 1:
+			return cost[best]
+		done[best] = 1
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var i := (bz + d.y) * SIDE + bx + d.x
+			if done[i]:
+				continue
+			var c := maxi(cost[best], tops[(lz + bz + d.y - PIT_REACH) * w + lx + bx + d.x - PIT_REACH])
+			if c < cost[i]:
+				cost[i] = c
+	return cost[ALL / 2]
 
 
 ## Where each cave mouth of the window opens (columns three in from its edge, which
@@ -1113,6 +1332,118 @@ func _find_tunnel(gx: int, gz: int) -> Array:
 	return [x + 0.5, z + 0.5, up.normalized(), hh[4]]
 
 
+## Cave shape 1: the descents into the caves through the window (see DESCENT_GRID):
+## each column of one gets its floor plus one in `descent` (the lowest where two
+## cross), and those near its end the ENTRANCE flag, so the halls are big there. Each
+## square of the grid decides on its own, so every window cuts the same.
+func _cut_descents(lay: Dictionary) -> void:
+	var x0: int = lay.x0
+	var z0: int = lay.z0
+	var w: int = lay.w
+	var h: int = lay.h
+	var reach := int(size_y / DESCENT_SLOPE + DESCENT_FLAT) + TUNNEL_LEN + 4
+	var found := []
+	for gz in range(floori((z0 - reach) / float(DESCENT_GRID)), floori((z0 + h + reach) / float(DESCENT_GRID)) + 1):
+		for gx in range(floori((x0 - reach) / float(DESCENT_GRID)), floori((x0 + w + reach) / float(DESCENT_GRID)) + 1):
+			found.append(_descent(gx, gz))
+	# A gallery into a mountain's side goes on down from its chamber.
+	for gz in range(floori((z0 - reach) / float(TUNNEL_GRID)), floori((z0 + h + reach) / float(TUNNEL_GRID)) + 1):
+		for gx in range(floori((x0 - reach) / float(TUNNEL_GRID)), floori((x0 + w + reach) / float(TUNNEL_GRID)) + 1):
+			var t := _tunnel(gx, gz)
+			if not t.is_empty():
+				var end: Vector2 = Vector2(t[0], t[1]) + t[2] * (TUNNEL_LEN - 3.0)
+				found.append([end.x, end.y, t[2], t[3] - 1, _chance(gx, gz, 13) < DESCENT_DEEP, true])
+	var descent: PackedByteArray = lay.descent
+	var pile: PackedByteArray = lay.pile
+	var flags: PackedByteArray = lay.flags
+	var heights: PackedInt32Array = lay.heights
+	var longest := size_y / DESCENT_SLOPE + DESCENT_FLAT
+	var room := Rect2(x0, z0, w, h).grow(DESCENT_PILE + DESCENT_WIDTH + 3.0)
+	for d: Array in found:
+		if d.is_empty():
+			continue
+		var start := Vector2(d[0], d[1])
+		var dir: Vector2 = d[2]
+		var top: int = d[3]
+		var tunnel: bool = d.size() > 5
+		if not room.intersects(Rect2(start - dir * longest, Vector2.ZERO).expand(start + dir * longest).grow(1.0)):
+			continue
+		var bend := fposmod(start.x * 0.37 + start.y * 0.61, TAU)
+		for lz in h:
+			for lx in w:
+				var x := x0 + lx
+				var z := z0 + lz
+				var v := Vector2(x, z) + Vector2(0.5, 0.5) - start
+				var along := v.dot(dir)
+				if absf(along) > longest or along < -0.5 and tunnel:
+					continue
+				var across := absf(v.cross(dir) - sin(along * 0.15 + bend) * 2.0)
+				if across > DESCENT_WIDTH * 0.5 + DESCENT_PILE:
+					continue
+				var low := _descent_floor(x, z, d[4])
+				# Behind its start it goes on up until it comes out of the ground.
+				var y := top - floori(along * DESCENT_SLOPE)
+				if y < low - roundi(DESCENT_FLAT * DESCENT_SLOPE):
+					continue
+				y = maxi(y, low)
+				var j := lz * w + lx
+				# Beside it the rubble falls away a level a cell into a hall it passes, so
+				# whoever steps off walks back up.
+				var side := ceili(across - DESCENT_WIDTH * 0.5)
+				if side > 0:
+					if y - side > low:
+						pile[j] = maxi(pile[j], y - side + 1)
+					continue
+				if y >= heights[j]:
+					continue
+				descent[j] = y + 1 if descent[j] == 0 else mini(descent[j], y + 1)
+				if y <= low + 2:
+					flags[j] |= ENTRANCE
+
+
+## The lowest floor a descent at column x, z goes down to: under every floor of the
+## halls of the upper tier there, or of the lower one when `deep` (see WorldGen._halls).
+func _descent_floor(x: int, z: int, deep: bool) -> int:
+	var mid := sea - HALL_MID + n_mid.get_noise_2d(x, z) * HALL_WANDER - (TIER_GAP if deep else 0.0)
+	return maxi(1, floori(mid - 3.0))
+
+
+## The descent into the caves from grid square gx, gz, if it has one: [x, z, the way
+## down, the level it starts at, whether it goes on to the lower tier], else empty. It
+## starts on dry ground that lies within four levels for four cells round it.
+func _descent(gx: int, gz: int) -> Array:
+	var key := Vector2i(gx, gz)
+	if not descents.has(key):
+		descents[key] = _find_descent(gx, gz)
+	return descents[key]
+
+
+func _find_descent(gx: int, gz: int) -> Array:
+	if _chance(gx, gz, 11) >= DESCENT_CHANCE[settings.caves]:
+		return []
+	# Up to three spots in the square, the first that fits.
+	for k in 3:
+		var x := gx * DESCENT_GRID + 8 + _hash(gx, gz, 12 + k * 7) % (DESCENT_GRID - 16)
+		var z := gz * DESCENT_GRID + 8 + _hash(gx, gz, 14 + k * 7) % (DESCENT_GRID - 16)
+		var lay := lay_out(x - 4, z - 4, 3, 3, 4)
+		var hh: PackedInt32Array = lay.heights
+		var lo := hh[4]
+		var hi := hh[4]
+		var dry := true
+		for i in 9:
+			dry = dry and lay.water[i] < 0
+			lo = mini(lo, hh[i])
+			hi = maxi(hi, hh[i])
+		if not dry or hi - lo > 4 or hh[4] <= sea + 4 or hh[4] >= size_y - 10:
+			continue
+		var deep := _chance(gx, gz, 13) < DESCENT_DEEP
+		if hh[4] - _descent_floor(x, z, deep) < 6:
+			continue
+		var turn := _chance(gx, gz, 15 + k) * TAU
+		return [x + 0.5, z + 0.5, Vector2(cos(turn), sin(turn)), hh[4], deep]
+	return []
+
+
 ## The columns of a window laid out at once (tools, the spawn, the map).
 func lay_out(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 	var lay := _window(x0, z0, w, h, step)
@@ -1123,8 +1454,11 @@ func lay_out(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 		_layout_row(lay, lz)
 	if step == 1 and w > 2 and h > 2:
 		_entrances(lay)
+		_fill_pits(lay)
 		_banks(lay)
 		_tunnels(lay)
+		if settings.cave_shape == 1:
+			_cut_descents(lay)
 	return lay
 
 

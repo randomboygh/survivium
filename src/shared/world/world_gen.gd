@@ -239,7 +239,7 @@ func start(key: Vector2i, stage: int) -> Job:
 		TERRAIN:
 			job.lay = _window(key.x * CHUNK - MARGIN, key.y * CHUNK - MARGIN, WINDOW, WINDOW)
 			job.trees = _regrown(key)
-			job.rows = window_noises.size() + 1 + WINDOW + 1 + CHUNK + job.trees.size()
+			job.rows = window_noises.size() + 1 + WINDOW + 2 + CHUNK + job.trees.size()
 		PLANTED:
 			job.trees = _tree_candidates(key, layouts[key])
 			job.rows = job.trees.size()
@@ -303,8 +303,8 @@ func step(job: Job, n: int) -> bool:
 
 
 ## The steps of the terrain stage: sample the noises one by one, the slow ones on the
-## lattice, lay out the rows of the window, raise the banks, cut the caves into the
-## mountains' sides, write the rows of cells, then grow the neighbours' trees that
+## lattice, lay out the rows of the window, fill the pits, raise the banks, cut the
+## caves into the mountains' sides, lay the descents into the caves, write the rows of cells, then grow the neighbours' trees that
 ## reach in.
 func _terrain_step(job: Job, row: int) -> void:
 	var noises := window_noises.size()
@@ -320,11 +320,17 @@ func _terrain_step(job: Job, row: int) -> void:
 		_layout_row(job.lay, row)
 		if row == WINDOW - 1:
 			_entrances(job.lay)
+			_fill_pits(job.lay)
 			_banks(job.lay)
 		return
 	row -= WINDOW
 	if row == 0:
 		_tunnels(job.lay)
+		return
+	row -= 1
+	if row == 0:
+		if settings.cave_shape == 1:
+			_cut_descents(job.lay)
 		return
 	row -= 1
 	if row < CHUNK:
@@ -446,6 +452,10 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		if settings.cave_shape == 1:
 			if height > sea + 2 and wt < 0 and _dry_around(water, j):
 				air_bits |= _halls(cells, col, x_first + lx, z, height, lay, j)
+			# A descent is cut wherever it runs on dry land, low ground too, or it
+			# would end in a wall.
+			if wt < 0:
+				air_bits |= _descent_air(cells, col, height, lay.descent[j] - 1)
 		elif height > sea + 2 and wt < 0 and _dry_around(water, j):
 			if want:
 				var t2 := 2 * (mouth_cave_t if flags[j] & ENTRANCE else cave_t)
@@ -474,18 +484,25 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 ## their bits of air. Each hall is a lens round a middle level that wanders slowly
 ## (HALL_MID under the sea, give or take HALL_WANDER): a domed ceiling up to HALL_RISE
 ## over the rim's, a floor that rises gently to the rim; a second tier TIER_GAP lower;
-## galleries three to five cells wide along the zero lines of n_gallery join them, and a
-## cave mouth is a funnel from the surface down to the floor below it. Every hollow is
-## three cells tall or more, so nothing is a slit, and three cells of ground stay over it.
+## galleries three to five cells wide along the zero lines of n_gallery join them.
+## Every hollow is three cells tall or more, so nothing is a slit, and three cells of
+## ground stay over it and round it. The way in is a descent (see _cut_descents): its floor here is
+## ground and a hall it passes is filled up to it and to the rubble beside it.
 func _halls(cells: PackedByteArray, col: int, x: int, z: int, height: int, lay: Dictionary, j: int) -> int:
 	var layer := WorldData.LAYER
-	var cap := height - 4
+	# Three cells of ground over a hall, and beside it too where the ground beside is
+	# lower (a cliff's foot): a hall open to the side drops whoever walks in.
+	var heights: PackedInt32Array = lay.heights
+	var low := height
+	for dz in range(-1, 2):
+		var base := j + dz * WINDOW
+		low = mini(low, mini(heights[base - 1], mini(heights[base], heights[base + 1])))
+	var cap := low - 4
 	var bits := 0
 	var mid := sea - HALL_MID + n_mid.get_noise_2d(x, z) * HALL_WANDER
-	var entrance: bool = lay.flags[j] & ENTRANCE != 0 and lay.flags[j] & GALLERY == 0
+	var entrance: bool = lay.flags[j] & ENTRANCE != 0
 	var t: float = HALL_FROM[settings.caves] - (0.25 if entrance else 0.0)
-	var spans := []
-	var floor_y := -1
+	var way: int = lay.descent[j] - 1
 	for tier in 2:
 		var v := (n_hall if tier == 0 else n_hall2).get_noise_2d(x, z)
 		var m := mid - tier * TIER_GAP
@@ -499,26 +516,17 @@ func _halls(cells: PackedByteArray, col: int, x: int, z: int, height: int, lay: 
 			half = maxf(half, 1.6 + 0.6 * (1.0 - g / gw))
 		if half <= 0.0:
 			continue
-		var lo := roundi(m - half * 0.4)
+		var lo := roundi(m - half * HALL_DIP)
 		var hi := roundi(m + half)
 		hi = mini(hi, cap)
 		lo = maxi(lo, 1)
 		if hi - lo < 2:
 			continue
-		spans.append([lo, hi])
-		if floor_y < 0:
-			floor_y = lo
-	for sp: Array in spans:
-		for yc in range(sp[0], sp[1] + 1):
-			cells[yc * layer + col] = Mat.AIR
-			bits |= 1 << yc
-	# A mouth: the ground falls from the rim of the mouth noise's patch to the floor of
-	# the hall under its middle.
-	if entrance:
-		var r := clampf((lay.grids[10][j] - _byte(MOUTH_FROM[settings.caves]) - FUNNEL_RIM) / FUNNEL_SPREAD, 0.0, 1.0)
-		var bottom := floor_y if floor_y > 0 else roundi(mid)
-		var to := height - roundi(r * (height - bottom))
-		for yc in range(maxi(to + 1, 1), height + 1):
+		if way >= 0 and hi >= way and lo <= way:
+			lo = way + 1
+		elif lay.pile[j] > lo and hi >= lay.pile[j] - 1:
+			lo = lay.pile[j]
+		for yc in range(lo, hi + 1):
 			cells[yc * layer + col] = Mat.AIR
 			bits |= 1 << yc
 	# A gallery into a mountain's side (see _tunnels), five cells tall.
@@ -526,6 +534,20 @@ func _halls(cells: PackedByteArray, col: int, x: int, z: int, height: int, lay: 
 	if adit_y > 0 and lay.flags[j] & GALLERY:
 		for yc in range(adit_y, mini(adit_y + ADIT + 1, height + 1)):
 			cells[yc * layer + col] = Mat.AIR
+			bits |= 1 << yc
+	return bits
+
+
+## The air of a descent whose floor in this column is `way` (see _cut_descents): DESCENT_HEAD
+## cells over it, up to the sky where little ground would be left over them.
+func _descent_air(cells: PackedByteArray, col: int, height: int, way: int) -> int:
+	var bits := 0
+	if way >= 0 and way < height:
+		var roof := way + DESCENT_HEAD
+		if height - roof <= 2:
+			roof = height
+		for yc in range(way + 1, mini(roof, height) + 1):
+			cells[yc * WorldData.LAYER + col] = Mat.AIR
 			bits |= 1 << yc
 	return bits
 
@@ -565,7 +587,8 @@ func _tree_at(lay: Dictionary, lx: int, lz: int) -> int:
 	var water: PackedInt32Array = lay.water
 	var flags: PackedByteArray = lay.flags
 	var b: int = lay.biome[j]
-	if (tops[j] != Mat.GRASS and not tops[j] in Biomes.tree_grounds(b, grounds)) or water[j] >= 0 or flags[j] & (SHEER_TOP | ENTRANCE) or lay.heights[j] >= size_y - 8:
+	if (tops[j] != Mat.GRASS and not tops[j] in Biomes.tree_grounds(b, grounds)) or water[j] >= 0 or flags[j] & (SHEER_TOP | ENTRANCE) or lay.heights[j] >= size_y - 8 \
+			or lay.descent[j] > 0:
 		return -1
 	var chance := Biomes.tree_chance(b)
 	var grids: Array = lay.grids
