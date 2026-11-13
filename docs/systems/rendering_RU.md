@@ -80,7 +80,8 @@
   умолчанию `z -= y`, камера смотрит строго вниз); огни ставятся в `PixelView.shear(pos)`, выбор
   клетки — через `PixelView.view_ray`. Его подсказки цвета — `SRGB` (`uniform vec3 c SRGB = …`) или `SRGB_HINT` после
   других (`: filter_nearest SRGB_HINT`), не `source_color`, а fragment() кончается `COMPAT_ALBEDO` (или `COMPAT_COLORS`,
-  если он ставит EMISSION): на Android рисует рендерер Mobile (Vulkan), он понимает цвета как линейные, а эти
+  если он ставит EMISSION, `COMPAT_MUL`, если он `blend_mul`: Mobile делит отданный шейдером цвет пополам, и умножение
+  затемняло бы ещё вдвое): на Android рисует рендерер Mobile (Vulkan), он понимает цвета как линейные, а эти
   макросы заставляют его видеть их как Compatibility ([android.md](android_RU.md)).
 - При повороте и наклоне сдвиг идёт вверх по картинке (глобальные `view_up`, `view_slope`,
   `view_squash`); вертикальные квадраты смотрят в камеру через `face_view` (спрайты и растения ещё
