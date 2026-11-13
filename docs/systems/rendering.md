@@ -217,12 +217,13 @@ voxel models of things.
   assembled its shaders anew under each combination of fires (on 2026-11-06 −10 programs of ~150, a quarter
   of what the warm-up built itself). A new unlit kind with a shadow stays on layer 1.
 - `instance uniform` in the web build reads as 0.
-- `world.gdshader` reads `material_bits[]` and `corner_shapes[]` by material (`Mat.shader_bits`, set by
-  `main.gd`: priority, `DRAINS`, the kind of patches, `TRUNK`, from bit 8 — `fray`, by how many texels the
+- `world.gdshader` reads a material's word and corner shape from the texture `material_data`, a texel per
+  material (`material_word()`, `corner_shape()`; not `uniform int` arrays, which crashed the Adreno 840's driver; `Mat.shader_bits`, set by
+  `main.gd` `_material_data`: priority, `DRAINS`, the kind of patches, `TRUNK`, from bit 8 — `fray`, by how many texels the
   joint with a material tears into tatters in both directions, like salt; from bit 11 — `side_fray`, by how
   many texels the material reaches into another on the sides of cells, in lumps and then specks: ore in the
-  rock, stone under soil; 0 for built blocks, whose sides stay straight both ways); the size is a constant of the
-  shader (63 = `PixelTextures.MOST_MATERIALS`), raise it together with the atlas.
+  rock, stone under soil; 0 for built blocks, whose sides stay straight both ways); the texture is as wide as
+  `PixelTextures.MOST_MATERIALS` (63) + 1, set by the atlas.
 - In the mesh's UV2.x is the number of the material (6 bits, 63 — the vertex's colour), not of the tile: the
   sides' tile is set by bit 1 of the flag, the underside's — by a face looking down (`MeshFaces.pack`); the
   neighbours in UV2.y are materials too: on a top the tops beside, on a wall the cells beside it on its

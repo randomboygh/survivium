@@ -194,7 +194,7 @@ Each in one line; the system's context doc has the detail.
 - A new kind of light or a material shown only later goes into `shader_warmup.gd`, or its first draw
   compiles shaders mid-game (100 ms+ on a phone).
 - The material atlas holds 63 materials and barks together (`PixelTextures.MOST_MATERIALS`,
-  `material_bits[63]` in `world.gdshader`): the mesh packs the material in 6 bits, the sides' tile as
+  a texel each in `world.gdshader`'s `material_data`): the mesh packs the material in 6 bits, the sides' tile as
   flag bit 1, the underside's by a face looking down (`MeshFaces.pack`); 38 are used (30 materials and
   8 barks).
 - Material numbers follow the load order: a world's bundle set must not change; old saves go through

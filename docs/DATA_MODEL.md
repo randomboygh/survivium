@@ -148,7 +148,7 @@ The interface's pictures are `assets/ui/`. The assets are drawn by `tools/make_*
   cannot be changed (only supplementing bundles, with no cells, enter an old world); the world stores the
   list `materials` and is converted by `Mat.remap`.
 - The atlas: materials and different barks together are no more than 63 (`PixelTextures.MOST_MATERIALS`, 6
-  bits of material in the mesh, `material_bits[63]` in the shader). 36 are used now: 28 materials and 8
+  bits of material in the mesh, a texel per material in the shader's `material_data`). 36 are used now: 28 materials and 8
   different barks.
 - The registries are rebuilt by `Mods.activate(the world's set)` at the start of a world.
 
