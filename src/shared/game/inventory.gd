@@ -32,6 +32,8 @@ const TELL_AGE := 500
 const NORMAL := Items.NORMAL_QUALITY
 const MIN_QUALITY := 1
 const MAX_QUALITY := 100
+## The most slots a playtest may add to a bag (see grow).
+const MOST_GROWN := 2048
 ## The longest sign text a slot of a save keeps (Placed.sign_text cuts it to the sign's).
 const TEXT_MOST := 400
 
@@ -58,6 +60,9 @@ var nests := true
 var gear := {}
 ## The slots of the bag without anything on the back.
 var base := SLOTS
+## Slots a playtest added to `base` (see grow; «Бесплатные предметы» makes room for one
+## of every thing, Workshop.give_all); kept in the save.
+var grown := 0
 ## Whether weight past the limit weighs on the carrier (slower pace, no jumps, slower
 ## recovery); a playtest switch turns it off.
 var heavy := true
@@ -236,6 +241,37 @@ func _worn_now() -> Dictionary:
 ## A slot holding worn item `id`, with things `packed` in it (to_dict data) or none.
 static func _packed(id: String, packed: Variant, q := NORMAL) -> Array:
 	return stack(id, 1, 0, packed, q)
+
+
+## Makes the bag `n` slots wider than its own `base` (0: back to its own); the slots of a
+## bag on the back move along. Narrowed, what the slots taken away held moves into free
+## slots, and what finds none is gone; returns how many stacks were.
+func grow(n: int) -> int:
+	n = clampi(n, 0, MOST_GROWN)
+	if n == grown:
+		return 0
+	var was := _worn_now()
+	var keep := base - grown + n
+	var main := slots.slice(0, base)
+	var back := slots.slice(base)
+	var cut := main.slice(keep) if keep < main.size() else []
+	main.resize(keep)
+	var lost := 0
+	for s in cut:
+		if s == null:
+			continue
+		var free := main.find(null)
+		if free >= 0:
+			main[free] = s
+		else:
+			lost += 1
+	base = keep
+	grown = n
+	slots.clear()
+	slots.append_array(main + back)
+	_left(was)
+	changed.emit()
+	return lost
 
 
 ## Empties the slots past `base` and gives what they held (to_dict data), null when
@@ -789,11 +825,14 @@ static func _read(id: String, s: Array) -> Array:
 
 
 ## The bag as plain data for a save or the network: {"slots": [[id, count] or null...]},
-## and "gear" ({slot: id}) when something is worn.
+## "gear" ({slot: id}) when something is worn, and "grown" (see grow) when a playtest
+## made it wider.
 func to_dict() -> Dictionary:
 	var d := {"slots": slots.duplicate(true)}
 	if not gear.is_empty():
 		d.gear = gear.duplicate()
+	if grown > 0:
+		d.grown = grown
 	return d
 
 
@@ -806,6 +845,10 @@ func from_dict(d: Dictionary) -> void:
 			var id := Items.canon(str(worn[on]))
 			if str(on) in WEAR_SLOTS and Items.has(id) and Items.wear_on(id) == str(on):
 				gear[str(on)] = Items.get_item(id).id
+	var g: Variant = d.get("grown", 0)
+	var n: int = clampi(int(g), 0, MOST_GROWN) if (g is int or g is float) and is_finite(float(g)) else 0
+	base += n - grown
+	grown = n
 	slots.resize(base + Items.bag_slots(gear.get("back", "")))
 	slots.fill(null)
 	var saved: Array = d.get("slots", [])

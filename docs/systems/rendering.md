@@ -16,7 +16,10 @@ voxel models of things.
   `wake` from `main.gd`'s `_input`) the view itself slowly circles round the player (`drift_rate`, up to
   `DRIFT_RATE`, a turn in 1.5 minutes); any input brings it to the nearest step. Without sleep
   (`Vitals.SLEEPY`) the picture swims instead (`drowsiness` → `sway` of `grade.gdshader`: waves, a faint
-  second image, darkening edges).
+  second image, darkening edges). After a glowing mushroom (`Vitals.visions`) it swims harder still
+  (`visions` → `trip`: stronger waves and rings from the middle, the picture breathing, red and blue split
+  apart, a colour-turned second image, colours running round the wheel, teal and violet edges; fades over
+  the last `TRIP_FADE` seconds).
 - `src/client/view/auto_quality.gd` — «Quality → Auto» (Graphics, on by default; a preset saved before it
   becomes Auto, a mix of one's own stays): Main calls `update` every frame of the game, it counts the frames on
   the clock in windows of 5 s (not the loading, the shader warm-up, the menu, the death screen, frames over
@@ -125,8 +128,8 @@ voxel models of things.
 - The cave view is one — layers (`src/client/view/cave_layers.gd`; decision 168: the «slice of levels», the
   «cut by the camera» and the «sphere» were removed together with the setting «Cave view» `cave_mode`, saved
   old values are not read, everyone has layers). Where an automatic slice would cut the view (under a roof;
-  where the ground hides the player's body from the camera: in a pit, in a ravine across the gaze, behind a
-  sheer wall; but not in a gorge along the gaze, where walls at the sides hide nothing), nothing is cut:
+  where the ground hides the player's body from the camera: in a pit, in a ravine across the gaze or slantwise
+  to it (the far wall is looked for behind the player straight and at both diagonals), behind a sheer wall; but not in a gorge along the gaze, where walls at the sides hide nothing), nothing is cut:
   `ChunkStreamer.update_cut` turns on the global `layer_view` (on and the cell of the player's feet), and
   `cut_hides` / `gone_above` hide by dithering (`layer_alpha`, `bayer4` by the texels of the screen's plane)
   only a quarter of the view at the side: what is before the player and not below the line (`layer_line` of

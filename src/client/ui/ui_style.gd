@@ -1587,7 +1587,10 @@ const BAR_GAP := 6
 
 
 ## `content` in a box with BAR_GAP of room on its left and right, to put in a
-## ScrollContainer (its bar takes its own room right of that).
+## ScrollContainer (its bar takes its own room right of that). With no bar the rows
+## keep as much room on the right as on the left, with a bar BAR_GAP before it (the
+## user's ask 2026-11-12: no more on the right than on the left of a window that does
+## not scroll; the rows fill the width they are given, ChoiceRows).
 static func inset(content: Control) -> MarginContainer:
 	var m := MarginContainer.new()
 	m.add_theme_constant_override("margin_left", BAR_GAP)

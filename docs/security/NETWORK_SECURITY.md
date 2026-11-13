@@ -53,6 +53,7 @@ one stack will not double it.
 | `plan` | the kind of figure, the size by the corners before building (`Plans.too_big`), the corners within `PLAN_REACH` 64 cells of the player |
 | `craft`, `craft_cancel`, `craft_pause` | the recipe is known, the station is near, the materials are there; the debit and the issue — whole; a cancel returns what was taken, as it was |
 | `craft_free` | only with the rule `free_items` (off by default, on a server — from its settings); the recipe's id is a string from the registry |
+| `give_all` | a bool; `true` only with the rule `free_items`, the bag at most `Inventory.MOST_GROWN` slots wider; `false` only narrows one's own bag |
 | `chat`, `team_chat` | `clean_text`, up to `CHAT_MAX` 160 characters, `CHAT_LINES` 5 per `CHAT_WINDOW` 8 s |
 | `team_*`, `land_*`, `fight_brave` | the rules of `Teams`, `Territory`, `Fights` by the server's player number |
 | `revive` | only the dead, only at their own points or where they fell |

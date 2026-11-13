@@ -117,6 +117,9 @@ func _test_requests() -> void:
 	_check(req.handle(Protocol.request(Protocol.CRAFT_FREE, 107, free))[1] == 0 and a.inventory.count("tools:torch") == 0,
 		"a recipe's thing is not given for nothing while the rules do not allow it")
 	_check(req.handle(Protocol.request(Protocol.CRAFT_FREE, 108, [7]))[1] == null, "nor for a recipe id that is no text")
+	_check(req._rule(Protocol.GIVE_ALL, [true]) == 0 and a.inventory.grown == 0,
+		"every thing is not given for nothing while the rules do not allow it")
+	_check(req._rule(Protocol.GIVE_ALL, [1]) == null, "nor for an answer that is no bool")
 	p[0].rules.free_items = true
 	_check(req.handle(Protocol.request(Protocol.CRAFT_FREE, 109, free))[1] == 1 and a.inventory.count("tools:torch") == 1,
 		"with «Бесплатные предметы» on it is")

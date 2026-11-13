@@ -54,7 +54,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   thing that left the bag (`take_slot`, `put_into`, `move_slot`, including an exchange from a chest) is taken
   off by itself (`_leave`/`_left`); `move_all` does not touch what is worn, `sort` moves it with the rest
   (except the bag on the back), it stays worn; `remove` (recipes) does not take the bag off the back. A bag on
-  the back (`wear_on: back`, `bag_slots`) adds cells after `base` and itself lies in the first `base` (it does
+  the back (`wear_on: back`, `bag_slots`) adds cells after `base` (`grow(n)` makes `base` `n` wider for the
+  playtest's free items, `grown`, saved; narrowed, what the cells taken away held goes into free ones) and itself lies in the first `base` (it does
   not put itself into its own cells); taken off, it carries its things away in itself (like a taken chest,
   `contents`) and returns them when it is put on again; the weight does not change: `stack_weight` counts the
   things of bags lying in the bag too, to any depth. Saved in `to_dict` (`gear`); an old save where what was
@@ -81,7 +82,10 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   the «Plants» bundle `plants/moss`: moss and a bandage by a campfire): `Vitals.mend` returns its health
   little by little over `heal_time` seconds (`mending`, `mend_rate`, in the save) — to the hungry and the
   frozen too; a second is not laid while the first is healing. A bandage (`heal` without `heal_time`) heals at
-  once. Water `water` falls by `THIRST_PER_DAY` per game day (in heat `THIRST_HOT` times faster); below
+  once. Visions (`visions` of an item, the glowing mushroom of `plants/mushrooms`): `Vitals.see_visions` adds
+  its seconds (`visions`, up to `VISIONS_MAX`, in the save; eaten even when full), they run out in real
+  seconds and end with death; the client gets their whole seconds as the 11th field of `VITALS` and the
+  picture swims and shifts colour (`CameraRig.visions` → `trip` of `grade.gdshader`). Water `water` falls by `THIRST_PER_DAY` per game day (in heat `THIRST_HOT` times faster); below
   `THIRSTY` — like hunger (no healing, rest twice as slow, stamina up to `HUNGRY_CAP`), at zero it wounds
   (`hurt_by` "thirst", «You died of thirst»). `drink(amount)`; `thirst` off — the test switch «Thirst». One
   drinks at fresh water with an empty hand (`WorldActions.drink`: the action button facing water within

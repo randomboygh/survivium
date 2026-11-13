@@ -1150,7 +1150,7 @@ func _grid() -> GridContainer:
 		return last
 	var grid := GridContainer.new()
 	grid.columns = _columns
-	grid.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", COLUMN_GAP)
 	grid.add_theme_constant_override("v_separation", 4)
 	_list.add_child(grid)

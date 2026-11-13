@@ -117,6 +117,10 @@ const CRAFT := "craft"
 ## Gives what a recipe makes for nothing, while the rules allow it (playtest
 ## «Бесплатные предметы»): [recipe id] (Workshop.give_free).
 const CRAFT_FREE := "craft_free"
+## One of every thing into a bag made wider for them, while the rules allow it (playtest
+## «Бесплатные предметы» turned on), or the bag back to its own slots: [on]
+## (Workshop.give_all, take_back_all).
+const GIVE_ALL := "give_all"
 ## Cancels a job of the queue: [i] (Workshop.cancel).
 const CRAFT_CANCEL := "craft_cancel"
 ## Cancels every job (Workshop.cancel_all).
@@ -208,7 +212,7 @@ const KNOWLEDGE := "knowledge"
 ## PlayerLink.SKILLS_EVERY seconds, at once when a level rose).
 const SKILLS := "skills"
 ## The body's state, every tick it changes: [health, satiety, stamina, hunger, hurt_by, warmth,
-## wet, water, energy, asleep].
+## wet, water, energy, asleep, visions (whole seconds left)].
 const VITALS := "vitals"
 ## The workshop: {"queue", "paused"}.
 const SHOP := "shop"

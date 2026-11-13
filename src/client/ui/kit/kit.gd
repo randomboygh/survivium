@@ -171,7 +171,9 @@ static func gap(height := 8.0) -> Control:
 
 ## A list that scrolls `content` up and down, by its bar and by a finger or the mouse
 ## dragged over it (DragScroll); `inset`: the rows keep BAR_GAP from its sides as the
-## settings' do (UiStyle.inset). Without it the rows stand flush with the window's
+## settings' do (UiStyle.inset). The kit's rule for every window: with no scroll the
+## rows keep as much room on the right as on the left and reach it (rows fill their
+## width, ChoiceRows); only a shown bar adds its own room. Without `inset` the rows stand flush with the window's
 ## other parts, and only while the list scrolls the bar and BAR_GAP before it get
 ## room of their own on the right (UiStyle.bar_room), so the bar never covers a row's
 ## end (a world's trash button); `content` that is a MarginContainer is that room itself.
