@@ -1152,7 +1152,7 @@
 "[islands]": "Îles"
 "[mountains]": "Montagnes"
 "[plains]": "Plaines"
-"[the_land_around_the_start]": "La terre autour du départ, %d cases de large"
+"[the_land_round_the_middle]": "Les terres autour du centre du monde, %d cases de large ; le point est ton départ"
 "[create_a_world]": "Créer un monde"
 "[world_type]": "Type de monde"
 "[custom]": "Perso"

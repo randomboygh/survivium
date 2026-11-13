@@ -1152,7 +1152,7 @@
 "[islands]": "Inseln"
 "[mountains]": "Berge"
 "[plains]": "Ebenen"
-"[the_land_around_the_start]": "Das Land um den Start, %d Felder breit"
+"[the_land_round_the_middle]": "Das Land um die Mitte der Welt, %d Felder breit; der Punkt ist dein Start"
 "[create_a_world]": "Welt erstellen"
 "[world_type]": "Weltart"
 "[custom]": "Eigene"
