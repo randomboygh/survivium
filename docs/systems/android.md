@@ -55,9 +55,9 @@ shader drawn alone, with and without lights; a step the app crashed on is marked
 **The Adreno 840** (the user's phone, 2026-11-12) crashed the app building the big shaders that write the stencil
 (world, leaves, grass; «Shader check» found it): in the Android app they do not write it (`PixelView.stencil_writes`,
 `without_stencil`, applied in `main.gd` `_material`), so there the player's silhouette shows behind grass and crowns too.
-The crashes moved from step to step between runs (2026-11-13), as if they came from what was built before: the
-engine's disk cache of compiled shaders (`glProgramBinary`) is off on Android
-(`rendering/shader_compiler/shader_cache/enabled.android=false`), so every start builds the shaders anew, as the browser does.
+The crashes stayed with the disk cache of shaders off too (2026-11-13): the Adreno 840's OpenGL ES driver crashes building
+the big shaders, whatever is in them. So the Android app draws with Vulkan (`renderer/rendering_method.mobile="mobile"`,
+the Mobile renderer; the web stays on Compatibility by `.web`); TRIAL: colours still differ from the other builds.
 
 **Tests.** No device in CI: the `android` job fails if the export or the signature check fails; how it plays
 is checked on a phone.

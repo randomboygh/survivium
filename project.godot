@@ -42,11 +42,11 @@ timers/tooltip_delay_sec=100000.0
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
+renderer/rendering_method.mobile="mobile"
+renderer/rendering_method.web="gl_compatibility"
 anti_aliasing/quality/msaa_3d=0
 limits/opengl/max_lights_per_object=32
 textures/vram_compression/import_etc2_astc=true
-shader_compiler/shader_cache/enabled.android=false
 
 [shader_globals]
 
