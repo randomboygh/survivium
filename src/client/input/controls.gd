@@ -1039,7 +1039,7 @@ func _tip_text(pos: Vector2) -> String:
 		var m: int = game.world.get_cell(cell.x, cell.y, cell.z)
 		lines.append(Lang.f("[level_n2]", [Mat.NAMES[m], cell.y]))
 		for h in 2:
-			lines.append("%s %s" % ["[lmb_n2]" if h == 0 else "[rmb]", _hint(h, cell, m)])
+			lines.append("%s %s" % [Lang.t("[lmb_n2]" if h == 0 else "[rmb]"), _hint(h, cell, m)])
 	if game.settings.debug_tips:
 		if not target.is_empty():
 			lines.append(Lang.f("[target]", [", ".join(target.keys())]))

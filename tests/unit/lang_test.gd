@@ -9,6 +9,8 @@ func run() -> void:
 	_test_languages()
 	_test_keys()
 	_test_seen()
+	_test_keys_shown()
+	_test_written()
 
 
 ## A line keeps its template and values apart and is put together where it is shown;
@@ -80,3 +82,45 @@ func _test_seen() -> void:
 		"a key glued to its values, or text that is no key, is caught: %s" % [Lang.missed])
 	Lang.missed.clear()
 	Lang.watching = was
+
+
+## The scene tests' sweep of the screen (Lang.keys_shown): a key put as a value into a
+## template that is no key, or given to a label that does not translate, is caught; keys,
+## lines and players' words are not, nor a hidden label.
+func _test_keys_shown() -> void:
+	Lang.use("ru")
+	var box := VBoxContainer.new()
+	for text: String in ["[settings]", Lang.line("[pvp_mode]", ["[by_territory_rights]"]), "Аня: Привет", "Bot1"]:
+		var l := Label.new()
+		l.text = text
+		box.add_child(l)
+	_check(Lang.keys_shown(box).is_empty(), "keys, lines and players' words show translated or as written: %s"
+		% [Lang.keys_shown(box)])
+	var glued := Label.new()
+	glued.text = "PvP: [by_territory_rights]"
+	box.add_child(glued)
+	var raw := Label.new()
+	raw.text = "[hi]"
+	raw.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	box.add_child(raw)
+	var tip := Button.new()
+	tip.tooltip_text = "[you], [leader]"
+	box.add_child(tip)
+	var hidden := Label.new()
+	hidden.text = "[no_such_key_anywhere]"
+	hidden.visible = false
+	box.add_child(hidden)
+	var found := Lang.keys_shown(box)
+	_check(found.size() == 3, "a key glued into text, one not translated and one in a tip are caught: %s" % [found])
+	box.free()
+	Lang.drop()
+
+
+## A player's text (a bot's chat line or sign): a line that is a whole key is put into
+## the language, the rest stays as written.
+func _test_written() -> void:
+	Lang.use("ru")
+	_check(Lang.written("[hi]") == "Привет!", "a bot's line in the reader's language: %s" % Lang.written("[hi]"))
+	_check(Lang.written("[camp]\nАня [hi]\n[no_such_key_anywhere]") == "Лагерь\nАня [hi]\n[no_such_key_anywhere]",
+		"only whole lines that are keys are translated: %s" % Lang.written("[camp]\nАня [hi]"))
+	Lang.drop()
