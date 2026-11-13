@@ -62,6 +62,12 @@ const BUSH_ROWS := 5
 const BERRY_ALPHA := 0.65
 
 
+## The textures given to the shaders' global parameters, by name: [the one set now, the
+## one before]. A new scene sets new ones; Vulkan (Android) could still draw a frame with
+## the one before after it was freed, and drew garbage until the game restarted (white
+## and cyan quads, half a black screen). So the one before lives until the next is set.
+static var _globals := {}
+
 ## The atlas image, kept so scripts can read its tiles: reading a texture back is slow
 ## in the browser.
 static var atlas_image: Image
@@ -790,3 +796,12 @@ static func _mark_edges(img: Image, origin: Vector2i, cell: int) -> void:
 ## Grass.cloud_noise, which scripts read the same patches from).
 static func build_cloud_noise() -> ImageTexture:
 	return ImageTexture.create_from_image(Grass.cloud_noise())
+
+
+## Sets the shaders' global texture `param` to `texture`, keeping the one it replaces
+## alive until the next (see _globals).
+static func set_global(param: StringName, texture: Texture2D) -> void:
+	var held: Array = _globals.get(param, [null, null])
+	if held[0] != texture:
+		_globals[param] = [texture, held[0]]
+	RenderingServer.global_shader_parameter_set(param, texture)

@@ -375,7 +375,7 @@ func _heat_later() -> void:
 
 func _update_heat() -> void:
 	_heat_queued = false
-	RenderingServer.global_shader_parameter_set("heat_map", game.effects.heat_map(RoofMap.WRAP / 2))
+	PixelTextures.set_global("heat_map", game.effects.heat_map(RoofMap.WRAP / 2))
 
 
 ## Shows what lies on the ground in chunk `key` (see WorldData.drops) afresh, all of
