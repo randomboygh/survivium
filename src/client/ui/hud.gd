@@ -399,10 +399,17 @@ func _on_marks_changed(_e: Dictionary) -> void:
 ## Seconds between updates of the clock's line, and the time left to the next.
 const CLOCK_EVERY := 0.25
 var _clock_left := 0.0
+## While the scene tests watch the texts (Lang.watching): how often the whole game's
+## screen is searched for a key left untranslated, in milliseconds, and when last.
+const SWEEP_EVERY := 500
+var _swept_at := 0
 
 
 func update_state() -> void:
 	var winter: bool = game.clock.season == game.clock.WINTER
+	if Lang.watching and Time.get_ticks_msec() - _swept_at >= SWEEP_EVERY:
+		_swept_at = Time.get_ticks_msec()
+		Lang.keys_shown(get_tree().root)
 	# The clock's line (with the air's warmth) changes by the game's minute: a few times a second is enough.
 	_clock_left -= get_process_delta_time()
 	if _clock_left <= 0.0:

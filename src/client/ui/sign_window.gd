@@ -137,7 +137,7 @@ func _ready() -> void:
 			box.add_child(f)
 			_fields.append(f)
 	else:
-		var read := UiStyle.label(text if text != "" else "[nothing_is_written_here]", UiStyle.INK if text != "" else UiStyle.MUTED)
+		var read := UiStyle.label(Lang.written(text) if text != "" else "[nothing_is_written_here]", UiStyle.INK if text != "" else UiStyle.MUTED)
 		read.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		if text != "":
 			read.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED

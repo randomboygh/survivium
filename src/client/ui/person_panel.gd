@@ -258,6 +258,6 @@ func _show_skills(inv) -> void:
 		if _tool.has(sk.role):
 			text += Lang.f("[in_hand]", [Lang.t(Items.title(_tool[sk.role]))])
 		if sk.get("description", "") != "":
-			text += "\n" + sk.description
+			text += "\n" + Lang.t(sk.description)
 		_bars[i].tooltip_text = text
 		_bars[i].queue_redraw()

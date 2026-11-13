@@ -160,6 +160,8 @@ func hear(id: int, who: String, text: String, team := false) -> void:
 	if id == 0:
 		text = Lang.t(text)
 		who = Lang.t(who)
+	else:
+		text = Lang.written(text)
 	var line := text if who == "" else "%s: %s" % [who, text]
 	if team:
 		line = tr("[team_n2]") + line

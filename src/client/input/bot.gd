@@ -38,12 +38,13 @@ const INVITE_WAIT := 2.0
 const DEAD_WAIT := 6.0
 ## The tasks and how often each is picked.
 const TASKS := {"walk": 5, "say": 2, "gesture": 2, "drop": 1, "sign": 1, "fire": 1, "chop": 2, "hunt": 3}
-## What it says in the chat: a player's words, not the game's, so no translation keys.
+## What it says in the chat and writes on signs: keys, which each reader's game puts
+## into its own language (Lang.written), as a player's words are not.
 const LINES: Array[String] = ["[hi]", "[anyone_here]", "[look_what_i_found]", "[lets_go_to_the_river]",
-	"[wolves_here_careful]", "[nice_weather]", "[i_put_up_a_sign]", "[need_branches]", "Hello!",
+	"[wolves_here_careful]", "[nice_weather]", "[i_put_up_a_sign]", "[need_branches]",
 	"[lets_build_a_house]", "[wheres_the_campfire]", "[im_a_bot_but_im]"]
 const SIGN_LINES: Array[String] = ["[a_bot_was_here]", "[beware_of_animals]", "[camp]", "[to_the_river]",
-	"[do_not_cut]", "[bot]"]
+	"[do_not_cut]"]
 
 var game
 var task := ""
@@ -172,8 +173,6 @@ func _start(kind: String) -> void:
 		"sign":
 			_put(_sign, func(cell: Vector3i) -> void:
 				var text: String = SIGN_LINES[_rng.randi() % SIGN_LINES.size()]
-				if "%s" in text:
-					text = text % game.player_name
 				game.net.request(Protocol.SIGN_WRITE, [cell, text]))
 			_stop()
 		"fire":

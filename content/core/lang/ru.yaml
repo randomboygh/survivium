@@ -105,8 +105,8 @@
 "[tool.can]": "лейка с водой"
 
 # src/client/game/gathering.gd
-"[lmb_take]": "%s\nЛКМ забрать"
 "[lmb_take_drag_double_turn]": "%s\nЛКМ забрать, тянуть — переставить, двойной клик — повернуть"
+"[lmb_take]": "%s\nЛКМ забрать"
 "[lmb_read]": "%s\nЛКМ прочитать"
 "[take_it_in_build_mode]": "%s\nзабрать — в режиме строительства"
 "[lmb]": "%s\nЛКМ %s"
@@ -152,7 +152,6 @@
 "[beware_of_animals]": "Осторожно, звери"
 "[to_the_river]": "К реке →"
 "[do_not_cut]": "Не рубить!"
-"[bot]": "Бот %s"
 "[accepted_im_with_you]": "Принимаю, я с вами!"
 
 # src/client/input/build_mode.gd
@@ -853,9 +852,7 @@
 "[game]": "Игра"
 "[interface]": "Интерфейс"
 "[graphics]": "Графика"
-"[music]": "Музыка"
 "[sound]": "Звук"
-"[sounds]": "Звуки"
 "[other_tab]": "Другое"
 "[caves]": "Пещеры"
 "[markers]": "Маркеры"
@@ -989,9 +986,11 @@
 "[shown]": "видна"
 "[second_hand_upright]": "Вторая рука в портрете"
 "[key_hints]": "Подсказка клавиш"
+"[music]": "Музыка"
 "[rarely]": "редко"
 "[sometimes]": "иногда"
 "[often]": "часто"
+"[sounds]": "Звуки"
 "[auto_quality]": "авто"
 "[high]": "высокое"
 "[medium_quality]": "среднее"
@@ -1068,6 +1067,7 @@
 "[player_n3]": "игрок %d"
 "[you_invited_waiting_for_an]": "Вы позвали: %s, ждём ответа"
 "[to_invite_someone_to_your]": "Чтобы позвать в команду, нажмите на игрока рядом"
+"[pvp_mode]": "PvP: %s"
 "[newcomer_protection_min_more]": "Защита новичка: ещё %d мин"
 "[drop_the_protection]": "Снять защиту"
 
