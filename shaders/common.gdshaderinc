@@ -656,13 +656,18 @@ float fog_at(vec3 p) {
 	vec4 c11 = column(b + vec2(1.0, 1.0));
 	vec4 tops = floor(vec4(c00.b, c10.b, c01.b, c11.b) * 255.0 + 0.5) * CELL;
 	float lowest = min(min(tops.x, tops.y), min(tops.z, tops.w));
-	if (p.y < lowest - CELL * 1.2) {
+	// Far below the ground about it (a shaft, a cave) the fog does not reach. The bed of a
+	// river or a lake does, as under the fog on its water, and so do the slivers of a
+	// shore's steps a level or two down: left clear, they showed through the fog as dark
+	// spots and triangles where the water's surface leaves a gap at a shore.
+	vec4 wet = vec4(c00.a, c10.a, c01.a, c11.a);
+	if (p.y < lowest - CELL * 2.2 && max(max(wet.x, wet.y), max(wet.z, wet.w)) == 0.0) {
 		return 0.0;
 	}
 	tops = min(tops, vec4(lowest + CELL));
 	vec4 w = vec4((1.0 - f.x) * (1.0 - f.y), f.x * (1.0 - f.y), (1.0 - f.x) * f.y, f.x * f.y);
 	float ground = dot(tops, w);
-	float water = dot(vec4(c00.a, c10.a, c01.a, c11.a), w);
+	float water = dot(wet, w);
 	// Low places: below the ground about them, or near the sea's level. The ground about
 	// is blended between columns, or the fog would change from one cell to the next in
 	// squares.
