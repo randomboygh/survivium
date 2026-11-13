@@ -26,8 +26,16 @@ const Crafting := preload("res://src/shared/content/crafting.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const TestGround := preload("res://src/shared/world/test_ground.gd")
 const CELL := 0.5
 const CHUNK := 16
+## The chunk whose neighbours _chunk_cost builds: in the test world, over its steps,
+## pits and caves (see TestGround).
+const REFERENCE := Vector2i(-2, -2)
+## What the nine chunks round the spawn of the test's world cost against the reference
+## (1.34 to 1.57, 2026-11-13), when the limits were set by them: the limits stay as they
+## were tuned, and no longer move when the generator changes the spawn's ground.
+const REFERENCE_SCALE := 1.4
 ## Frames over a limit allowed in a scenario, one plus one per this many frames: a
 ## virtual machine stalls the process now and then (a cloud container: up to 50 ms,
 ## several times in a few thousand frames; a GitHub runner: hardly ever), a real
@@ -70,8 +78,8 @@ var runs: Array = []
 var unit := {}
 ## The game's parts of the idle scenarios' frames, microseconds in all, by scenario and part.
 var parts_us := {}
-## The chunk round the spawn, whose neighbours _chunk_cost builds.
-var spawn_chunk := Vector2i.ZERO
+## The patch of the test world _chunk_cost builds (made once, see REFERENCE).
+var reference: WorldData
 
 
 func _initialize() -> void:
@@ -110,9 +118,8 @@ func _run() -> void:
 		"the loading screen tells what is being built: %s" % [told.keys()])
 	var w = main.world
 	var home := Vector2i((Vector2(main.player.position.x, main.player.position.z) / (CHUNK * CELL)).floor())
-	spawn_chunk = home
 	# What a whole chunk costs on this machine (see _chunk_cost).
-	chunk_ms = _chunk_cost(home)
+	chunk_ms = _chunk_cost()
 	var t := 0
 	print("a chunk costs %.1f ms here" % chunk_ms)
 
@@ -185,7 +192,7 @@ func _run() -> void:
 	while (not streamer.keep_queue.is_empty() or streamer.job_keep) and Time.get_ticks_msec() - kept_from < 20000:
 		await process_frame
 	_check(streamer.keep_queue.is_empty() and not streamer.job_keep, "the chunks around the player keep their jobs once the map is built")
-	unit[IDLE] = _chunk_cost(home)
+	unit[IDLE] = _chunk_cost()
 	await _scenario(IDLE, 120, func(_i: int) -> bool: return false)
 
 	# Digging a ring around the feet and the ground under the nearest bush, then
@@ -526,7 +533,7 @@ func _run() -> void:
 	var kept_at := Time.get_ticks_msec()
 	while (not streamer.keep_queue.is_empty() or streamer.job_keep) and Time.get_ticks_msec() - kept_at < 20000:
 		await process_frame
-	unit[NIGHT] = _chunk_cost(spawn_chunk)
+	unit[NIGHT] = _chunk_cost()
 	await _scenario(NIGHT, 120, func(_i: int) -> bool: return false)
 	main.settings.values.fire_shadows = fire_setting
 	main.settings.apply()
@@ -900,22 +907,28 @@ func _key(code: Key, pressed: bool) -> void:
 	Input.parse_input_event(ev)
 
 
-## What a whole chunk costs on this machine now, the mean over the nine chunks round
-## `home` (a meadow chunk is a few milliseconds, a forest one several times that): the unit
-## the limits are set in. The median of three passes: one pass on a shared runner swings by
-## a tenth or more, and every limit moves with it.
-func _chunk_cost(home: Vector2i) -> float:
-	var w = main.world
+## What a whole chunk costs on this machine now: the unit the limits are set in. It is
+## the mean over the nine chunks round REFERENCE in the test world, made by hand, so a
+## change of the generator does not move the limits, times REFERENCE_SCALE. The median
+## of three passes: one pass on a shared runner swings by a tenth or more, and every
+## limit moves with it.
+func _chunk_cost() -> float:
+	if reference == null:
+		var ground = TestGround.new()
+		ground.generate_area(REFERENCE - Vector2i(2, 2), REFERENCE + Vector2i(2, 2))
+		reference = ground.world
 	var passes: Array[float] = []
 	for pass_i in 3:
 		var t := Time.get_ticks_usec()
 		for dz in range(-1, 2):
 			for dx in range(-1, 2):
-				ChunkMesher.build_chunk(w, (home.x + dx) * CHUNK, (home.y + dz) * CHUNK, CHUNK)
-				Foliage.build_chunk(w, (home.x + dx) * CHUNK, (home.y + dz) * CHUNK, CHUNK)
+				var x := (REFERENCE.x + dx) * CHUNK
+				var z := (REFERENCE.y + dz) * CHUNK
+				ChunkMesher.build_chunk(reference, x, z, CHUNK)
+				Foliage.build_chunk(reference, x, z, CHUNK)
 		passes.append((Time.get_ticks_usec() - t) / 9000.0)
 	passes.sort()
-	return passes[1]
+	return passes[1] * REFERENCE_SCALE
 
 
 ## The game's parts of a scenario's frames as "игрок 0.21, небо 0.10 …", ms a frame, the
