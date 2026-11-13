@@ -81,7 +81,7 @@ jobs:
           server=$!
           link=""
           for _ in $(seq 240); do
-            link=$(grep -o 'ссылка для друзей: .*' logs/server.log | head -1 | sed 's/^ссылка для друзей: //')
+            link=$(grep -o 'link for friends: .*' logs/server.log | head -1 | sed 's/^link for friends: //')
             [ -n "$link" ] && break
             kill -0 $server 2>/dev/null || break
             sleep 1
