@@ -118,6 +118,7 @@ static func _manifest(path: String, schema: Dictionary, mod: String, file: Strin
 ## Everything under content/ (see _universe), read on the first call.
 static func universe() -> Dictionary:
 	if _universe.is_empty():
+		lay_own()
 		_scan()
 	return _universe
 

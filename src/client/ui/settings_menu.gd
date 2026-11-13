@@ -33,6 +33,7 @@ const Sound := preload("res://src/client/audio/sound.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const ModCache := preload("res://src/client/net/mod_cache.gd")
+const ModFiles := preload("res://src/shared/content/mod_files.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
 const LastLog := preload("res://src/client/ui/last_log.gd")
 const ShaderProbe := preload("res://src/client/view/shader_probe.gd")
@@ -583,7 +584,7 @@ func _section_rows(key: String) -> Array:
 				{"action": "[clear_server_data]", "confirm": true, "do": func() -> void:
 					ModCache.clear(ModCache.in_use(Content.served))
 					_fill.call_deferred()},
-			]
+			] + _own_mods_rows()
 		"interface":
 			var rows := [
 				_section("cells", "[sizes]"),
@@ -692,6 +693,15 @@ func _section_rows(key: String) -> Array:
 ## The «Сервер» tab: the playtest server on GitHub (started, joined, given an hour more,
 ## stopped) apart from the server this game is on or makes of its world (bots, its
 ## world, the switches as cheats), each under its own heading.
+## Where one's own mods go on a phone (ModFiles.extra_dir: a folder of the app laid over
+## the game's mods) and how many files are there; nothing where there is no such folder.
+func _own_mods_rows() -> Array:
+	if ModFiles.extra_dir == "":
+		return []
+	return [_section("hammer", "[your_own_mods]"),
+		{"note": Lang.line("[put_your_mods_into_the]", [ModFiles.extra_dir, ModFiles.extra().size()])}]
+
+
 func _server_rows() -> Array:
 	var s = game.settings
 	var joined: bool = game.join_url != ""

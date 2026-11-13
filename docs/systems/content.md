@@ -32,6 +32,17 @@ the code sees content.
   files (`Content.picture`, `Content.sound`, `Content.exists`; the player's drawings — `Figure.SPRITES`), the
   parsed YAML is taken from `content_cache.bin` while the file's text has not changed, and hot reload works in
   the built game too. The check is `content_test.gd` `_test_content_beside` (a copy of the mods in `user://`).
+- One's own mods on a phone (decision 189, 4В): the game's mods are sealed inside the APK there, so one's own
+  go into a folder of the app, `ModFiles.extra_dir` (`find_extra`: on Android
+  `Android/data/<the app>/files/content` of the shared storage, no permission needed; made at the first start;
+  "" elsewhere), laid out like `content/`. Its files are laid over the built-in ones: new mods and bundles, or
+  other files for the built-in (`ModFiles.extra()`, `own(root)`, `where(root, rel)`, `own_table(root)`). While
+  the game plays with its own files the table `Content.served` is then that of its own (`Content.lay_own`,
+  `served_own`; `serving()` is true only for a server's), read again at every load (`Content.refresh`). A server
+  made there lists and gives these files (`ContentHost`), and the settings show the folder and how many files
+  it has («Your own mods», `SettingsMenu._own_mods_rows`). A file whose name no list may carry (`valid_path`:
+  plain letters, digits, `_ - + .`) or over `FILE_MAX` is left out of every scan (`ModFiles.skipped`; a server
+  says so in its log). The check is `mod_files_test.gd` `_test_own_mods`.
 - Hot reload (decision 184): `src/shared/content/content_watch.gd` (`ContentWatch`) watches the files of
   `content/` (YAML, PNG, WAV) by `BUDGET` files and folders per step and at the end of a pass says whether a
   file changed, appeared or vanished (the first pass only remembers the time); it works where the files lie

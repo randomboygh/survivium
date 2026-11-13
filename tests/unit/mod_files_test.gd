@@ -58,6 +58,7 @@ func run() -> void:
 	_test_fetch_and_serve()
 	_test_cache()
 	_test_test_mod()
+	_test_own_mods()
 
 
 func _test_lists() -> void:
@@ -66,6 +67,7 @@ func _test_lists() -> void:
 		"the scan of the mods finds their YAML, pictures and sounds (%d files)" % all.size())
 	_check(all.keys().all(func(rel: String) -> bool: return rel.get_extension() in ModFiles.KINDS and ModFiles.valid_path(rel)),
 		"and nothing else: no imports, no READMEs; every path is one a list may hold")
+	_check(ModFiles.skipped.is_empty(), "no file of the game's mods is left out of it: %s" % [ModFiles.skipped])
 	var bytes := FileAccess.get_file_as_bytes("res://content/" + WOLF)
 	_check(all[WOLF] == [ModFiles.hash_of(bytes), bytes.size()] and ModFiles.valid_hash(all[WOLF][0]),
 		"a file goes with the hash of its bytes and its size")
@@ -370,6 +372,61 @@ func _test_test_mod() -> void:
 	Content.live = false
 	Mods.rescan()
 	_check(not Items.has(TestMod.ITEM) and Lang.phrases("en").get("[core.items.test_mod]") == "Test mod token", "and so is the data")
+
+
+## One's own mods on a phone (ModFiles.extra_dir): a folder whose files are laid over the
+## game's sealed ones. The game plays with them, a server made there lists and gives
+## them, a server's files are played with in their place while on it, and a file no list
+## may carry is left out.
+func _test_own_mods() -> void:
+	var bundles: Array = Mods.all()
+	var stock := Content.playing(true)
+	var dir := DIR + "/extra"
+	_remove(dir)
+	DirAccess.make_dir_recursive_absolute(dir.path_join(WOLF.get_base_dir()))
+	DirAccess.make_dir_recursive_absolute(dir.path_join(NEW_PICTURE.get_base_dir()))
+	var text := FileAccess.get_file_as_string("res://content/" + WOLF)
+	var f := FileAccess.open(dir.path_join(WOLF), FileAccess.WRITE)
+	f.store_string(text.replace("mass: 40", "mass: 46"))
+	f.close()
+	var img := Image.create(4, 4, false, Image.FORMAT_RGBA8)
+	img.fill(MARK)
+	img.save_png(dir.path_join(NEW_PICTURE))
+	f = FileAccess.open(dir.path_join("core/my notes.yaml"), FileAccess.WRITE)
+	f.store_string("a: 1\n")
+	f.close()
+	ModFiles.extra_dir = dir
+	ModFiles.skipped.clear()
+	Mods.rescan()
+	_check(ModFiles.extra().size() == 2 and ModFiles.skipped == PackedStringArray(["core/my notes.yaml"]),
+		"the folder's files are found, one with a name no list may carry is left out: %s" % [ModFiles.skipped])
+	_check(not Content.serving() and AiRules.SPECIES["animals:wolf"].mass == 46.0 and Content.exists(Content.ROOT.path_join(NEW_PICTURE))
+		and Content.exists(Content.ROOT.path_join(GROWL)) and Content.playing() != stock,
+		"the game plays with them laid over its own: the wolf weighs %s" % AiRules.SPECIES["animals:wolf"].mass)
+	var host := ContentHost.new(Content.ROOT, bundles)
+	host.ready()
+	_check(host.digest == Content.playing() and host.list.has(NEW_PICTURE) and host.table()[WOLF] == dir.path_join(WOLF)
+		and host._bytes_of(host.list[WOLF][0]) == FileAccess.get_file_as_bytes(dir.path_join(WOLF)),
+		"a server made there names the set with them and gives them")
+	var plan := ModFetch.plan(host.list)
+	_check(plan.need.is_empty() and plan.table[WOLF] == dir.path_join(WOLF) and plan.table["core/mod.yaml"] == "res://content/core/mod.yaml",
+		"its own game has every file of that set")
+	# A server with the game's stock files: played with in place of one's own, then back.
+	var plain := {}
+	for rel: String in ModFiles.of_set(ModFiles.scan(Content.ROOT), bundles):
+		plain[rel] = Content.ROOT.path_join(rel)
+	Content.serve(plain, stock)
+	Mods.rescan()
+	_check(Content.serving() and Content.playing() == stock and AiRules.SPECIES["animals:wolf"].mass == 40.0
+		and not Content.exists(Content.ROOT.path_join(NEW_PICTURE)), "on a server the game plays with the server's files, not its own mods")
+	Content.serve({})
+	Mods.rescan()
+	_check(not Content.serving() and AiRules.SPECIES["animals:wolf"].mass == 46.0, "and with its own again after it")
+	ModFiles.extra_dir = ""
+	ModFiles.skipped.clear()
+	Mods.rescan()
+	_check(Content.served.is_empty() and Content.playing() == stock and AiRules.SPECIES["animals:wolf"].mass == 40.0,
+		"without the folder the game's mods are as built")
 
 
 func _remove(dir: String) -> void:

@@ -26,6 +26,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const ContentHost := preload("res://src/server/content_host.gd")
+const ModFiles := preload("res://src/shared/content/mod_files.gd")
 
 ## Seconds a character stays in the world after its connection is lost or a goodbye,
 ## out of their land (see linger_of).
@@ -200,6 +201,7 @@ func _init(s, cfg: Config, info: Dictionary) -> void:
 func listen() -> Error:
 	# The mods' files are listed now, not when the first player says hello.
 	content.ready()
+	_say_skipped()
 	var err := tcp.listen(config.port, config.bind)
 	listening = err == OK
 	return err
@@ -428,7 +430,16 @@ func mods_reread() -> void:
 	_mods_told(content.read())
 
 
+## Tells the host of the mods' files left out of what the players are given.
+func _say_skipped() -> void:
+	if not ModFiles.skipped.is_empty():
+		_say("mods: %d files are not given to the players (a name with other than plain letters, or over %d MB): %s" % [
+			ModFiles.skipped.size(), ModFiles.FILE_MAX >> 20, ", ".join(ModFiles.skipped.slice(0, 5))])
+		ModFiles.skipped.clear()
+
+
 func _mods_told(changed: bool) -> void:
+	_say_skipped()
 	if session != null:
 		session.reread()
 	if changed:

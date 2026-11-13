@@ -974,6 +974,8 @@
 "[server_data]": "Server data"
 "[mod_files_from_servers_s]": "Mod files kept from servers: %s MB"
 "[clear_server_data]": "Clear server data"
+"[your_own_mods]": "Your own mods"
+"[put_your_mods_into_the]": "Put your mods into the folder %s, laid out as in the «content» folder of the PC version, and restart the game. A server made here gives them to its players. Files there now: %d"
 "[sizes]": "Sizes"
 "[full_screen]": "Full screen"
 "[buttons_n2]": "Buttons"

@@ -5,6 +5,7 @@ extends "res://src/shared/content/content_schema.gd"
 ## into `problems`.
 
 const Yaml := preload("res://src/shared/content/yaml.gd")
+const ModFiles := preload("res://src/shared/content/mod_files.gd")
 ## The mods' YAML files parsed when the game was built (tools/content_cache.gd, run by CI
 ## before an export; not in git): md5 of a file's text → its value. A file whose text is
 ## not in it (edited since, or no cache at all, as in the editor) is parsed as before.
@@ -39,10 +40,14 @@ static func beside() -> bool:
 ## The files of a server's mods, played with in place of this game's own while the game is
 ## on that server (decision 189; Content.serve): a path inside content/ → the file that
 ## holds its bytes (this game's own file when it is the same, the built-in copy's, or one
-## kept from a server, ModCache). Empty while the game plays with its own. Every path of
-## a mod's file stays `ROOT/…` as before and is looked up here when it is read (`real`),
-## and the folders are listed from the table, so only what the server has is there.
+## kept from a server, ModCache). Empty while the game plays with its own, unless one's
+## own mods are laid over the game's (ModFiles.extra, a phone): then it is the table of
+## those (`served_own`, `lay_own`). Every path of a mod's file stays `ROOT/…` as before
+## and is looked up here when it is read (`real`), and the folders are listed from the
+## table, so only what the server has is there.
 static var served := {}
+## `served` is the game's own files, not a server's.
+static var served_own := true
 ## The hash that names the served set (ModFiles.digest), "" with the game's own files.
 static var served_digest := ""
 ## The folders of `served`: a path inside content/ ("" the root) → [its folders, its files].
@@ -51,7 +56,18 @@ static var _served_dirs := {}
 
 ## Whether the game plays with a server's files (`served`).
 static func serving() -> bool:
-	return not served.is_empty()
+	return not served.is_empty() and not served_own
+
+
+## While the game plays with its own files, reads them with one's own mods laid over
+## (ModFiles.own_table), as they are now.
+static func lay_own() -> void:
+	if serving():
+		return
+	var t := ModFiles.own_table(ROOT)
+	if t != served:
+		served = t
+		_list_served()
 
 
 ## The file that holds `path` (a path under ROOT): itself with the game's own mods, the

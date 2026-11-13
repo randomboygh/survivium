@@ -10,6 +10,7 @@ extends SceneTree
 
 const Items := preload("res://src/shared/content/items.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const ModFiles := preload("res://src/shared/content/mod_files.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Shots := preload("res://tools/shot/shots.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
@@ -497,6 +498,10 @@ func _run() -> void:
 			var one: Array = main.hud.perf.freeze_log.duplicate(true)
 			for i in shot.get("many", 1) - 1:
 				main.hud.perf.freeze_log.append_array(one.duplicate(true))
+		if shot.has("own_mods"):
+			# As on a phone: the settings name the folder of one's own mods (nothing is read from it).
+			ModFiles.extra_dir = shot.own_mods
+			ModFiles._extra = {}
 		if shot.get("playtest", false):
 			# As if on a server for checking: the «Тестирование» page shows such a server's rows.
 			main.join_url = "ws://shot"

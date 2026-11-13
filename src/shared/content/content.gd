@@ -44,7 +44,6 @@ extends "res://src/shared/content/content_mods.gd"
 ## `records(kind)` when their class loads, so the rest of the code keeps using
 ## `Mat.GRASS`, `Trees.SPECIES` or `AiRules.SPECIES` as before.
 
-const ModFiles := preload("res://src/shared/content/mod_files.gd")
 
 ## Names the last load found against the naming rules (see _check_names): reported by
 ## the validator, never failing it.
@@ -170,7 +169,7 @@ static func playing(fresh := false) -> String:
 
 ## The hash that would name the game's own files for the set `bundles`.
 static func own_digest(bundles: Array) -> String:
-	return ModFiles.digest(ModFiles.of_set(ModFiles.scan(ROOT), bundles))
+	return ModFiles.digest(ModFiles.of_set(ModFiles.own(ROOT), bundles))
 
 
 static var _playing := ""
@@ -182,10 +181,13 @@ static var _playing_of := -1
 ## everything under content/ is read anew by the next load (Mods.activate, Mods.rescan).
 ## Nothing changes when the table is the one in use.
 static func serve(table: Dictionary, digest := "") -> void:
-	if table.is_empty() and served.is_empty() or not table.is_empty() and digest == served_digest and table == served:
+	var mine := table.is_empty()
+	var t := ModFiles.own_table(ROOT) if mine else table
+	if t == served and mine == (not serving()) and (mine or digest == served_digest):
 		return
-	served = table.duplicate()
-	served_digest = digest if not table.is_empty() else ""
+	served = t.duplicate()
+	served_own = mine
+	served_digest = "" if mine else digest
 	_list_served()
 	_universe = {}
 	_loaded = false
@@ -206,6 +208,7 @@ static func sound_files(rec: Dictionary) -> PackedStringArray:
 ## Reads everything under content/ again and loads the set; the registries call their
 ## own `refresh` after this.
 static func refresh() -> void:
+	ModFiles.read_extra()
 	_universe = {}
 	_loaded = false
 	load_all()

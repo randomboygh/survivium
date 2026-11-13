@@ -15,6 +15,10 @@ extends RefCounted
 ## as the engine imported them, so the hashes of its built-in copy are written when the
 ## game is built (LISTED, tools/content_cache.gd, run by CI before an export); a game run
 ## from the project's folder or with `content/` beside it reads the files themselves.
+##
+## Where the game's mods are sealed inside it (a phone), one's own go into a folder of the
+## app (`extra_dir`): its files are laid over the built-in ones (`own`, `where`), new mods
+## and bundles or other files for the built-in ones, and a server made there gives them.
 
 ## The files a set is made of, by extension.
 const KINDS := ["yaml", "png", "wav"]
@@ -62,6 +66,63 @@ static func listed() -> Dictionary:
 
 static var _listed: Variant = null
 
+## The folder of one's own mods laid over the game's (a phone), "" where there is none
+## (a computer has `content/` beside the game; the tests set their own).
+static var extra_dir := find_extra()
+## Its files ({path inside content/: [hash, size]}), null until read.
+static var _extra: Variant = null
+## Files under a mods' folder left out of the last scans: a name no list may carry, or
+## more bytes than a file may have (`valid_path`, FILE_MAX).
+static var skipped: PackedStringArray = []
+
+
+## On a phone, `content` in the app's own folder of the shared storage
+## (Android/data/<the app>/files/content: no permission is asked for it).
+static func find_extra() -> String:
+	if OS.get_name() != "Android":
+		return ""
+	var docs := OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS, false)
+	return docs.get_base_dir().path_join("content") if docs != "" else ""
+
+
+## The files of `extra_dir`, read once (the folder is made, so that it can be found);
+## `read_extra` reads them again at the next call.
+static func extra() -> Dictionary:
+	if _extra == null:
+		_extra = {}
+		if extra_dir != "":
+			DirAccess.make_dir_recursive_absolute(extra_dir)
+			_walk(extra_dir, "", _extra)
+	return _extra
+
+
+static func read_extra() -> void:
+	_extra = null
+
+
+## The files of the mods of `root` with one's own laid over them (`extra`).
+static func own(root: String) -> Dictionary:
+	var all := scan(root)
+	if extra().is_empty():
+		return all
+	all = all.duplicate()
+	all.merge(extra(), true)
+	return all
+
+
+## Where the file `rel` (a path inside content/) of the mods of `root` is.
+static func where(root: String, rel: String) -> String:
+	return extra_dir.path_join(rel) if extra().has(rel) else root.path_join(rel)
+
+
+## Where each file of `own(root)` is, {} when nothing is laid over the mods of `root`.
+static func own_table(root: String) -> Dictionary:
+	var out := {}
+	if not extra().is_empty():
+		for rel: String in own(root):
+			out[rel] = where(root, rel)
+	return out
+
 
 static func _walk(root: String, inside: String, out: Dictionary) -> void:
 	var dir := root if inside == "" else root.path_join(inside)
@@ -69,10 +130,16 @@ static func _walk(root: String, inside: String, out: Dictionary) -> void:
 		if not name.get_extension() in KINDS:
 			continue
 		var path := dir.path_join(name)
+		var rel := name if inside == "" else inside.path_join(name)
 		var f := FileAccess.open(path, FileAccess.READ)
 		if f == null:
 			continue
-		out[name if inside == "" else inside.path_join(name)] = [FileAccess.get_sha256(path).left(HASH_LEN), f.get_length()]
+		# What no game would take in a server's list is not in it.
+		if not valid_path(rel) or f.get_length() > FILE_MAX:
+			if not rel in skipped and skipped.size() < 100:
+				skipped.append(rel)
+			continue
+		out[rel] = [FileAccess.get_sha256(path).left(HASH_LEN), f.get_length()]
 	for name in DirAccess.get_directories_at(dir):
 		if not name.begins_with("."):
 			_walk(root, name if inside == "" else inside.path_join(name), out)

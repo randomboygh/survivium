@@ -97,7 +97,7 @@ func stop() -> void:
 ## Where each file of `set_list` is on this device and which are missing: {"table" (path →
 ## file), "need" (hash → {"size", "names"})}.
 static func plan(set_list: Dictionary) -> Dictionary:
-	var own := ModFiles.scan(Content.ROOT)
+	var own := ModFiles.own(Content.ROOT)
 	var built: Dictionary = ModFiles.listed() if Content.ROOT != ModFiles.BUILT_IN else {}
 	var t := {}
 	var n := {}
@@ -106,7 +106,7 @@ static func plan(set_list: Dictionary) -> Dictionary:
 		var size: int = set_list[rel][1]
 		var ext := rel.get_extension()
 		if own.has(rel) and own[rel][0] == hash:
-			t[rel] = Content.ROOT.path_join(rel)
+			t[rel] = ModFiles.where(Content.ROOT, rel)
 		elif built.has(rel) and built[rel][0] == hash:
 			t[rel] = ModFiles.BUILT_IN.path_join(rel)
 		elif ModCache.has(hash, ext, size):

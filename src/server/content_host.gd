@@ -86,7 +86,7 @@ func read(set: Array = []) -> bool:
 		bundles = set.duplicate()
 	var was := digest
 	changed = ""
-	all = ModFiles.scan(root).duplicate()
+	all = ModFiles.own(root).duplicate()
 	for rel: String in over:
 		var f := FileAccess.open(over[rel], FileAccess.READ)
 		if f != null and ModFiles.valid_path(rel):
@@ -106,7 +106,7 @@ func read(set: Array = []) -> bool:
 func table() -> Dictionary:
 	var out := {}
 	for rel: String in all:
-		out[rel] = over.get(rel, root.path_join(rel))
+		out[rel] = over.get(rel, ModFiles.where(root, rel))
 	return out
 
 
@@ -188,7 +188,7 @@ func pieces(feed: Feed, now: float, buffered: int) -> Array[PackedByteArray]:
 func _bytes_of(hash: String) -> PackedByteArray:
 	if not by_hash.has(hash):
 		return PackedByteArray()
-	var path: String = over.get(by_hash[hash], root.path_join(by_hash[hash]))
+	var path: String = over.get(by_hash[hash], ModFiles.where(root, by_hash[hash]))
 	if not FileAccess.file_exists(path):
 		return PackedByteArray()
 	var bytes := FileAccess.get_file_as_bytes(path)
@@ -200,4 +200,4 @@ func _bytes_of(hash: String) -> PackedByteArray:
 
 func _is_empty(hash: String) -> bool:
 	return by_hash.has(hash) and int(list[by_hash[hash]][1]) == 0 \
-		and FileAccess.file_exists(over.get(by_hash[hash], root.path_join(by_hash[hash])))
+		and FileAccess.file_exists(over.get(by_hash[hash], ModFiles.where(root, by_hash[hash])))
