@@ -1,6 +1,7 @@
 // Footprints: small flat quads laid on the ground behind people and animals, which
 // darken whatever is under them (multiplied in), so they read as dents in snow, mud
-// or trampled grass alike, and fade away by dithering as they age.
+// or trampled grass alike, and fade away by dithering as they age; the fog and the levels
+// below fading out hide them as they hide the ground.
 // COLOR: tint multiplied into the ground (bluish on snow, brownish on soil).
 // INSTANCE_CUSTOM: x = the clock when the print was made, y = its life in seconds,
 // z = 1 for a boot (two texels wide, three long) or 0 for a paw (two by two),
@@ -46,6 +47,8 @@ void fragment() {
 	if (!on) {
 		discard;
 	}
-	ALBEDO = tint.rgb;
+	// Multiplied into the fog over the ground the print would darken the fog itself:
+	// it gives way as the ground does (veil).
+	ALBEDO = mix(tint.rgb, vec3(1.0), veil(world_pos, depth_fade(world_pos.y)).a);
 	COMPAT_ALBEDO
 }
