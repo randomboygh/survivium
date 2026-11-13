@@ -83,5 +83,5 @@ void fragment() {
 	float left = (night + all - own) / (night + all);
 	// What the warm light leaves is the cool light of the night.
 	ALBEDO = vec3(left, mix(left, 1.0, 0.06), mix(left, 1.0, 0.2));
-	COMPAT_ALBEDO
+	COMPAT_MUL
 }

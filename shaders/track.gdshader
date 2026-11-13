@@ -56,5 +56,5 @@ void fragment() {
 	// In a fog, where the fog thins round the player too, a print is half as dark.
 	share *= 1.0 - 0.5 * smoothstep(0.0, 0.15, fog > 0.0 ? fog_at(world_pos) : 0.0);
 	ALBEDO = mix(vec3(1.0), tint.rgb, share);
-	COMPAT_ALBEDO
+	COMPAT_MUL
 }

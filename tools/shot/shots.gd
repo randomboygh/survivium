@@ -304,6 +304,8 @@ const SHOTS := {
 	"delta": {"time": 0.42, "season": 1, "place": "delta"},
 	"mountain-cave": {"time": 0.42, "season": 1, "place": "mountain-cave"},
 	"tracks": {"time": 0.42, "season": 1, "walk": true},
+	# Footprints in a thick morning fog: the far ones hidden by it (blend_mul on Android).
+	"tracks-fog": {"time": 0.27, "season": 1, "walk": true, "morning_fog": 2},
 	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
 	"ears": {"time": 0.42, "season": 1, "find": "ears"},

@@ -83,7 +83,8 @@ voxel models of things.
   `z -= y`, the camera looks straight down); fires are placed at `PixelView.shear(pos)`, the choice of a cell
   — through `PixelView.view_ray`. Its colour hints are `SRGB` (`uniform vec3 c SRGB = …`) or `SRGB_HINT` after other
   hints (`: filter_nearest SRGB_HINT`), never `source_color`, and its fragment() ends with `COMPAT_ALBEDO` (or
-  `COMPAT_COLORS` if it sets EMISSION): on Android the Mobile renderer (Vulkan) draws, which takes colours as linear,
+  `COMPAT_COLORS` if it sets EMISSION, `COMPAT_MUL` if it is `blend_mul`: Mobile halves what a shader gives, so a
+  multiply would darken by half more): on Android the Mobile renderer (Vulkan) draws, which takes colours as linear,
   and these make it see them as Compatibility does ([android.md](android.md)).
 - With a turn and a tilt the shear goes up the picture (the globals `view_up`, `view_slope`, `view_squash`);
   vertical squares look into the camera through `face_view` (sprites and plants also through `stand_tall`);

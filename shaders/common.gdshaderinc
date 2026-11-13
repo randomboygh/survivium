@@ -17,17 +17,22 @@
 // SRGB_HINT after other hints), and on Mobile it is dropped and fragment() ends with
 // COMPAT_ALBEDO (COMPAT_COLORS where it sets EMISSION) to make them linear the same way.
 // Left different: blend_mix mixes in linear light on Mobile (sun_rays, blend_add, skips
-// COMPAT_ALBEDO, which comes closer there).
+// COMPAT_ALBEDO, which comes closer there). A blend_mul shader ends with COMPAT_MUL: Mobile
+// keeps the picture at half its brightness (a luminance multiplier, room for light over 1)
+// and halves what a shader gives with it, which a multiply then took as a factor, so every
+// footprint and fire shadow was at least half dark there, fog or none (2026-11-14).
 #if CURRENT_RENDERER == RENDERER_COMPATIBILITY
 #define SRGB : source_color
 #define SRGB_HINT , source_color
 #define COMPAT_ALBEDO
 #define COMPAT_COLORS
+#define COMPAT_MUL
 #else
 #define SRGB
 #define SRGB_HINT
 #define COMPAT_ALBEDO ALBEDO = ALBEDO * (ALBEDO * (ALBEDO * 0.305306011 + 0.682171111) + 0.012522878);
 #define COMPAT_COLORS COMPAT_ALBEDO EMISSION = EMISSION * (EMISSION * (EMISSION * 0.305306011 + 0.682171111) + 0.012522878);
+#define COMPAT_MUL COMPAT_ALBEDO ALBEDO *= 2.0;
 #endif
 // The sun's (or the moon's) light with a shadow: Compatibility draws it in a pass of its
 // own and adds it to the picture in sRGB, brighter than the sum in linear light. On Mobile
