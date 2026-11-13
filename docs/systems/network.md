@@ -184,7 +184,9 @@ length up to `CHAT_MAX` 160.
   most, `ASK_MAX` 256 hashes in a message, `QUEUE_MAX` in the queue, bytes `SENT_MAX` 3 times the set's size. A
   file that is not what it was when the list was read is not sent (`changed`: the server's log tells the host
   to `reload`); a file the server cannot read (a picture in a phone's build is there only as imported) comes
-  as a piece with the size -1.
+  as a piece with the size -1. Files may be put over the mods' own (`ContentHost.over`, of the process: path →
+  file; the test mod): the list names them, they are given like any other, and the server reads its own data
+  through `table()` (`Server.mods_over` → `Content.serve`, `Mods.rescan`, the players' games are told).
 - `src/server/server_main.gd` — the root of `scenes/server.tscn`, a server from the terminal: `godot --headless
   --path . -- --server [--port N] [--world <folder>] [--seed N] [--players N] [--password <word>]
   [--config <file>] [--tunnel] [--real-weather]` (from a PC build — `Survivium.console.exe --headless --
@@ -410,7 +412,7 @@ ws://localhost:<port> --bot` (and the server's `--password`; from the project's 
 under `nice` with the log `bot<N>.log`, only on a computer; `Config.bots` start with the start of any server;
 when it stops they are killed. `worlds` — the saved worlds (`WorldStore.list_worlds`, by the folder's name),
 `world <folder>` — go over to one of them (only a name under `WorldStore.root`, not a path), `new [seed]` — a
-new world, `new test` — the test one. The move is `server_main.renew(seed, folder)`: `Server.stop` saves the
+new world, `new test` — the test one; `mod on`, `mod off`, `mod next` — the test mod (below). The move is `server_main.renew(seed, folder)`: `Server.stop` saves the
 world (if the server saves), disconnects everyone with the code `Protocol.CLOSE_RENEW` (4010), the new world
 opens on the same port (the tunnel and link are the same), with its own saving (`_open_saves`), and who is a
 host, who is blocked and the list of its own pass over from the server (`access`); `renewed` — and
@@ -425,7 +427,17 @@ server, «Cheats on the server»; for a player with no role on an ordinary serve
 manages this. In single player on a computer — «Make the world a server and call a bot»
 (`Settings.host_with_bot`: the world is saved and started as a server, as in «Create a server», with `bots` =
 1), in the browser — a line that one's own server and bots are in the PC version (`Settings.test_server` sends
-«/test …», the reply is in the chat). The switch «Cheats on the server» sends the page's settings
+«/test …», the reply is in the chat). **The test mod** (`src/server/test_mod.gd`, `TestMod`, decision 189) is how
+the sending of mods' files is checked from a phone, where a server's mods are the build's own: «/test mod on»
+makes the server write a few files of its own (`user://test_mod`: a new item `core:test_mod` with its icon and
+name, five animals painted another colour and named with a number, the jump's two sounds; about 60 files, 190 KB)
+and play with them put over its mods' (`Server.mods_over`), so that no build has its files and every game that
+joins takes them; everyone in the world is given the item. «/test mod next» writes the next step (another colour,
+pitch and number: a reload the games in the world take), «/test mod off» takes the files away (and the item from
+the bags). Only a server that is its own process (not one made in a game: that one reads what the game reads); a
+build without raw pictures (a phone's) paints no animals. On the page it is the section «Test mod»: the switch
+«With the test mod» (`Settings.test_mod`: the mod's icon `ModFiles.TEST_MARK` is among the server's files the
+game plays with) and «Change the mod and reload». The switch «Cheats on the server» sends the page's settings
 (`Protocol.CHEATS`, `Settings.send_cheats` on every `apply` and once the season, weather, moon, hour) — on a
 server for checking and from the host of any server `src/server/cheats.gd` takes them like its own game: speed
 and pace of work, jumps in the air (`Player.cheat_air`), skills' growth, overload, hunger, thirst, tiredness,

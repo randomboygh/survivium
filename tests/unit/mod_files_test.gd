@@ -7,6 +7,7 @@ const ModFiles := preload("res://src/shared/content/mod_files.gd")
 const ModCache := preload("res://src/client/net/mod_cache.gd")
 const ModFetch := preload("res://src/client/net/mod_fetch.gd")
 const ContentHost := preload("res://src/server/content_host.gd")
+const TestMod := preload("res://src/server/test_mod.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 
 const DIR := "user://mod_files_test"
@@ -56,6 +57,7 @@ func run() -> void:
 	_test_wire()
 	_test_fetch_and_serve()
 	_test_cache()
+	_test_test_mod()
 
 
 func _test_lists() -> void:
@@ -325,6 +327,49 @@ func _copy(from: String, to: String) -> void:
 			DirAccess.copy_absolute(from.path_join(f), to.path_join(f))
 	for d in DirAccess.get_directories_at(from):
 		_copy(from.path_join(d), to.path_join(d))
+
+
+## The test mod of a server for checking (TestMod): files no build has, each one a mod's
+## file may be, other ones at each step; a server plays with them put over its own
+## (ContentHost.over) and gives them; without them it is back to its own.
+func _test_test_mod() -> void:
+	var bundles: Array = Mods.all()
+	var own := ModFiles.scan(Content.ROOT)
+	var one := TestMod.write(Content.ROOT, 1, DIR + "/test_mod_1")
+	var two := TestMod.write(Content.ROOT, 2, DIR + "/test_mod_2")
+	var wanted := [TestMod.MARK, "core/data/items.yaml", "core/lang/en.yaml", "core/lang/ru.yaml",
+		"animals/rabbit/sprites/creatures/rabbit.png", "animals/rabbit/lang/en.yaml", "animals/rabbit/lang/ru.yaml"] + TestMod.SOUNDS
+	_check(wanted.all(func(rel: String) -> bool: return one.has(rel)), "the test mod has a new item, painted animals, names, sounds (%d files)" % one.size())
+	var fit := 0
+	var other := 0
+	var stepped := 0
+	for rel: String in one:
+		var bytes := FileAccess.get_file_as_bytes(one[rel])
+		fit += 1 if ModFiles.valid_path(rel) and ModFiles.may_be(bytes, rel.get_extension()) else 0
+		other += 1 if not own.has(rel) or own[rel][0] != ModFiles.hash_of(bytes) else 0
+		stepped += 1 if two.has(rel) and FileAccess.get_file_as_bytes(two[rel]) != bytes else 0
+	_check(fit == one.size() and other == one.size(), "each a file a mod may have, none the game's own (%d, %d of %d)" % [fit, other, one.size()])
+	_check(two.size() == one.size() and stepped == one.size() - 1, "the next step has other files, all but the item's record (%d of %d)" % [stepped, one.size()])
+	var host := ContentHost.new(Content.ROOT, bundles)
+	host.read()
+	var plain := host.digest
+	ContentHost.over = one
+	_check(host.read() and host.digest != plain and host.list.has(TestMod.MARK) and host.table()[TestMod.MARK] == one[TestMod.MARK]
+		and host.table()[WOLF] == Content.ROOT.path_join(WOLF), "a server with the files put over its own names another set")
+	_check(host._bytes_of(host.list[TestMod.MARK][0]) == FileAccess.get_file_as_bytes(one[TestMod.MARK]), "and gives the files put over")
+	Content.serve(host.table())
+	var problems := Mods.rescan(true)
+	_check(problems.is_empty() and Items.has(TestMod.ITEM) and Items.title(TestMod.ITEM) == "[core.items.test_mod]"
+		and Lang.phrases("en").get("[core.items.test_mod]") == "Test mod token 1"
+		and str(Lang.phrases("en").get("[animals.creatures.rabbit]")).ends_with(" +1")
+		and Content.picture(Content.ROOT.path_join(TestMod.MARK)) != null,
+		"the data read with them has the new item, its name and picture: %s" % [problems])
+	ContentHost.over = {}
+	_check(host.read() and host.digest == plain, "without them the server's set is its own again")
+	Content.serve({})
+	Content.live = false
+	Mods.rescan()
+	_check(not Items.has(TestMod.ITEM) and Lang.phrases("en").get("[core.items.test_mod]") == "Test mod token", "and so is the data")
 
 
 func _remove(dir: String) -> void:

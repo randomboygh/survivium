@@ -6,7 +6,9 @@ extends RefCounted
 ## connection no faster than RATE (a Feed per connection: what it asked for and how far
 ## the sending went). A game whose files are the same asks for nothing; one that lacks
 ## some asks for those by hash. The list is read from disk at the first need and again by
-## `read` (the host's `reload`).
+## `read` (the host's `reload`). Files may be put over the mods' own (`over`: the test mod
+## of a server for checking, TestMod): the list names them, and `table` is what the
+## server's own data is then read through (Content.serve).
 
 const ModFiles := preload("res://src/shared/content/mod_files.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
@@ -44,9 +46,15 @@ class Feed extends RefCounted:
 	var sent := 0
 
 
+## Files put over the mods' own, or added to them: {path inside content/: the file}. Of
+## the process, like Content.served: a new world of the server keeps them.
+static var over := {}
+
 ## The mods' folder and the bundles of the world.
 var root := ""
 var bundles: Array = []
+## Every file of the folder with those put over: {path inside content/: [hash, size]}.
+var all := {}
 ## The files: {path inside content/: [hash, size]}, and the path of each hash.
 var list := {}
 var by_hash := {}
@@ -78,7 +86,12 @@ func read(set: Array = []) -> bool:
 		bundles = set.duplicate()
 	var was := digest
 	changed = ""
-	list = ModFiles.of_set(ModFiles.scan(root), bundles)
+	all = ModFiles.scan(root).duplicate()
+	for rel: String in over:
+		var f := FileAccess.open(over[rel], FileAccess.READ)
+		if f != null and ModFiles.valid_path(rel):
+			all[rel] = [FileAccess.get_sha256(over[rel]).left(ModFiles.HASH_LEN), f.get_length()]
+	list = ModFiles.of_set(all, bundles)
 	by_hash = {}
 	for rel: String in list:
 		by_hash[list[rel][0]] = rel
@@ -86,6 +99,15 @@ func read(set: Array = []) -> bool:
 	size = ModFiles.total(list)
 	packed = ModFiles.pack(list)
 	return digest != was
+
+
+## Where each file is, for the server's own data to be read with those put over
+## (Content.serve): {path inside content/: the file}.
+func table() -> Dictionary:
+	var out := {}
+	for rel: String in all:
+		out[rel] = over.get(rel, root.path_join(rel))
+	return out
 
 
 ## The message with the list for `feed`, empty when it had its share of them.
@@ -166,7 +188,7 @@ func pieces(feed: Feed, now: float, buffered: int) -> Array[PackedByteArray]:
 func _bytes_of(hash: String) -> PackedByteArray:
 	if not by_hash.has(hash):
 		return PackedByteArray()
-	var path := root.path_join(by_hash[hash])
+	var path: String = over.get(by_hash[hash], root.path_join(by_hash[hash]))
 	if not FileAccess.file_exists(path):
 		return PackedByteArray()
 	var bytes := FileAccess.get_file_as_bytes(path)
@@ -177,4 +199,5 @@ func _bytes_of(hash: String) -> PackedByteArray:
 
 
 func _is_empty(hash: String) -> bool:
-	return by_hash.has(hash) and int(list[by_hash[hash]][1]) == 0 and FileAccess.file_exists(root.path_join(by_hash[hash]))
+	return by_hash.has(hash) and int(list[by_hash[hash]][1]) == 0 \
+		and FileAccess.file_exists(over.get(by_hash[hash], root.path_join(by_hash[hash])))

@@ -497,6 +497,10 @@ func _run() -> void:
 			var one: Array = main.hud.perf.freeze_log.duplicate(true)
 			for i in shot.get("many", 1) - 1:
 				main.hud.perf.freeze_log.append_array(one.duplicate(true))
+		if shot.get("playtest", false):
+			# As if on a server for checking: the «Тестирование» page shows such a server's rows.
+			main.join_url = "ws://shot"
+			main.welcome = {"playtest": true}
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 			if shot.has("page"):

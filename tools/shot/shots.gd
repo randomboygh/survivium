@@ -691,6 +691,9 @@ const SHOTS := {
 		"menu_end": true},
 	"ui-test-debug": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug"},
 	"ui-test-server": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "server"},
+	# The same on a server for checking, its end: the test mod (decision 189). The last shot of a run: the game stays «joined».
+	"ui-test-server-mod": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "server",
+		"playtest": true, "menu_end": true},
 	# «Витрина интерфейса» (UiGallery), each of its tabs.
 	"ui-gallery-buttons": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "buttons"},
 	"ui-gallery-rows": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "rows"},

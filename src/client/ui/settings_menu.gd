@@ -737,6 +737,16 @@ func _server_rows() -> Array:
 		rows.append({"action": "[stop_the_server]", "do": func() -> void: game.stop_server(), "confirm": true})
 	elif not playtest:
 		rows.append({"action": "[stop_the_server]", "do": func() -> void: s.test_server("stop"), "confirm": true})
+	if game.hosted == null:
+		# A server that is its own process: files put over its mods' own, for the games that
+		# join to take (decision 189).
+		rows += [_section("hammer", "[test_mod]"),
+			{"note": "[the_test_mod_changes_a]"},
+			["[with_the_test_mod]", ["[off]", "[on]"],
+				func() -> int: return int(s.test_mod()),
+				func(i: int) -> void: s.set_test_mod(i == 1)],
+			{"action": "[change_the_mod_and_reload]", "do": func() -> void: s.test_server("mod next")},
+		]
 	rows += [_section("star", "[cheats]"),
 		["[cheats_on_the_server]", ["[off]", "[on]"],
 			func() -> int: return int(s.cheats),

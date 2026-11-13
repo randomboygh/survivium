@@ -393,8 +393,24 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 ## world was made with (Mods.cells_kept). The players are told; their own games read
 ## their own files (a game on the same computer by itself, ModReload). The words to print.
 func reload_mods() -> String:
-	var problems := Mods.rescan(true)
-	mods_reread()
+	return _reloaded(Mods.rescan(true), content.read())
+
+
+## Puts the files `over` ({path inside content/: a file}) over the mods' own, or with {}
+## takes them away, and reads the mods' data again with them: the test mod of a server
+## for checking (TestCommands). Only for a server that is its own process: one made in a
+## game reads what the game reads. The answer, as of reload_mods.
+func mods_over(over: Dictionary) -> String:
+	ContentHost.over = over.duplicate()
+	var changed := content.read()
+	Content.serve(content.table() if not over.is_empty() else {})
+	return _reloaded(Mods.rescan(true), changed)
+
+
+## The mods' data was read again with `problems`: the rules play with it, the players
+## are told, and their games too when the files `changed`; the answer for the console.
+func _reloaded(problems: Array, changed: bool) -> String:
+	_mods_told(changed)
 	for key in accounts:
 		accounts[key].link.hear(0, "", "[the_server_reloaded_the_mod]")
 	var out: Array[String] = ["mod data read again" if problems.is_empty() else "mod data read again, problems: %d" % problems.size()]
@@ -409,9 +425,13 @@ func reload_mods() -> String:
 ## own hot reload, ModReload): the rules play with it, and when the files are not the ones
 ## they were the players' games are told, to take what changed (Protocol.MODS).
 func mods_reread() -> void:
+	_mods_told(content.read())
+
+
+func _mods_told(changed: bool) -> void:
 	if session != null:
 		session.reread()
-	if content.read():
+	if changed:
 		for key in accounts:
 			accounts[key].link.mods_changed(content.digest, content.size, content.bundles)
 

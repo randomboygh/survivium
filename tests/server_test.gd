@@ -27,6 +27,8 @@ const OthersScript := preload("res://src/client/view/others.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const ModFiles := preload("res://src/shared/content/mod_files.gd")
+const Items := preload("res://src/shared/content/items.gd")
+const TestMod := preload("res://src/server/test_mod.gd")
 const ModCache := preload("res://src/client/net/mod_cache.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const MainScript := preload("res://src/client/main.gd")
@@ -620,6 +622,28 @@ func _reload_reaches(main: Node) -> void:
 	server.command("reload")
 	_check(await _until(func() -> bool: return main.mod_reload.served == 2 and main.mod_reload.fetch == null, 30.0)
 		and Content.playing() == was and AiRules.SPECIES["animals:wolf"].mass == 40.0, "and with the first ones again after the next reload")
+	# The test mod of a server for checking (TestMod): files of the server's own making put
+	# over its mods'; the game takes them like any reload.
+	var answer: String = server.command("test mod on")
+	_check(await _until(func() -> bool: return main.mod_reload.served == 3 and main.mod_reload.fetch == null, 30.0)
+		and net.content.digest != was and Content.playing() == net.content.digest and Items.has(TestMod.ITEM)
+		and str(Content.served.get(TestMod.MARK, "")).begins_with(ModCache.dir) and main.settings.test_mod(),
+		"«test mod on»: the server plays with files of its own making and the game takes them: %s" % answer)
+	var holders: int = net.players().filter(func(a) -> bool: return a.link.who.inventory.count(TestMod.ITEM) == 1).size()
+	_check(holders == net.players().size() and holders > 0 and Lang.phrases("en").get("[core.items.test_mod]") == "Test mod token 1",
+		"the mod's new item is given to everyone, and named")
+	var first: String = net.content.digest
+	server.command("test mod next")
+	_check(await _until(func() -> bool: return main.mod_reload.served == 4 and main.mod_reload.fetch == null, 30.0)
+		and not net.content.digest in [was, first] and Content.playing() == net.content.digest
+		and Lang.phrases("en").get("[core.items.test_mod]") == "Test mod token 2", "«test mod next»: other files, taken again")
+	# The server is in the game's process here, and its files are the game's again at once.
+	server.command("test mod off")
+	await _wait(0.5)
+	_check(main.mod_reload.fetch == null and net.content.digest == was and Content.playing() == was and not Items.has(TestMod.ITEM) and not main.settings.test_mod()
+		and net.players().all(func(a) -> bool: return a.link.who.inventory.count(TestMod.ITEM) == 0),
+		"«test mod off»: the server's own files again, the item gone")
+	_check(main.ready_to_play and not main.socket.ended, "all without leaving the world")
 	Content.serve({})
 	MainScript.server_mods = {}
 	Content.live = false

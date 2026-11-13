@@ -8,10 +8,15 @@ extends Node
 ## keeps them, `world <name>` plays one of them, `new [seed]` a new world, `new test` the
 ## test world (server_main.renew: the world is saved, everyone comes in again, the bots
 ## too); `stop` stops the server (on a playtest one anyone, elsewhere its owner), `hour`
-## gives a playtest server an hour more (PlaytestHost), and nothing says how it stands.
+## gives a playtest server an hour more (PlaytestHost), and nothing says how it stands;
+## `mod on`, `mod off`, `mod next` play with the test mod (TestMod: files put over the
+## server's own, so the games that join have files to take, decision 189), without it,
+## and with its next step (a reload the games in the world take).
 ## Bots need a computer: in the browser no process is started.
 
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+const Content := preload("res://src/shared/content/content.gd")
+const TestMod := preload("res://src/server/test_mod.gd")
 
 ## Bots at most.
 const MOST_BOTS := 5
@@ -27,6 +32,8 @@ var main: Node
 var bots: Array = []
 ## Bots to start again once a new world is up.
 var _respawn := 0
+## The step of the test mod the server plays with, 0 without it.
+var mod_step := 0
 
 
 func _init(m: Node) -> void:
@@ -87,6 +94,8 @@ func command(rest: String, role: int) -> String:
 			return "The server is stopping"
 		"worlds":
 			return worlds_text()
+		"mod":
+			return _mod(arg)
 		"world":
 			var w := find_world(arg)
 			if w.is_empty():
@@ -104,7 +113,39 @@ func command(rest: String, role: int) -> String:
 		"":
 			var host: Node = main.playtest_host
 			return "%d bots, world %d%s" % [bots.size(), main.seed_value, ", " + host.left_text() if host != null else ""]
-	return "test bot+ | bot- | worlds | world <name> | new [seed] | new test | stop" + (" | hour" if playtest else "")
+	return "test bot+ | bot- | worlds | world <name> | new [seed] | new test | mod on|off|next | stop" + (" | hour" if playtest else "")
+
+
+## «/test mod `what`»: the server plays with the test mod, without it, or with its next
+## step; everyone in the world is given the mod's item (and loses it with the mod).
+func _mod(what: String) -> String:
+	if main.hosted:
+		return "The test mod is only for a server run on its own, not one made in the game"
+	match what:
+		"on":
+			if mod_step > 0:
+				return "The test mod is on already (step %d)" % mod_step
+			mod_step = 1
+		"off":
+			if mod_step == 0:
+				return "The test mod is off already"
+			mod_step = 0
+		"next":
+			if mod_step == 0:
+				return "The test mod is off: test mod on"
+			mod_step += 1
+		_:
+			return "test mod on | off | next (now: %s)" % ("step %d" % mod_step if mod_step > 0 else "off")
+	var players: Array = main.server.players()
+	if mod_step == 0:
+		for a in players:
+			a.link.who.inventory.remove(TestMod.ITEM, 1 << 20)
+	var answer: String = main.server.mods_over(TestMod.write(Content.ROOT, mod_step) if mod_step > 0 else {})
+	if mod_step > 0:
+		for a in players:
+			a.link.who.give(TestMod.ITEM, 1)
+	main.say("test mod: %s" % ("step %d" % mod_step if mod_step > 0 else "off"))
+	return ("The test mod is on, step %d" % mod_step if mod_step > 0 else "The test mod is off") + "; " + answer
 
 
 ## Plays the world of `seed_value` (or the saved one in the folder `folder`, a name

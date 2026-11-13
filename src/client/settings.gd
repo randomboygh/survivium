@@ -13,6 +13,8 @@ const Items := preload("res://src/shared/content/items.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Content := preload("res://src/shared/content/content.gd")
+const ModFiles := preload("res://src/shared/content/mod_files.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Sound := preload("res://src/client/audio/sound.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
@@ -263,6 +265,10 @@ var no_fall_damage := false
 ## Playtest switch: on a playtest server the switches of this page go to the server
 ## (send_cheats, src/server/cheats.gd), as they work in one's own world. Not saved.
 var cheats := false
+## The test mod asked of the server and not come yet: 1 on, 0 off, -1 nothing asked; when.
+const TEST_MOD_WAIT := 10.0
+var _test_mod_asked := -1
+var _test_mod_asked_at := 0
 ## Playtest switch: the death screen also offers to come back where the character
 ## fell. Not saved.
 var revive_at_death := false
@@ -932,6 +938,24 @@ func host_with_bot() -> void:
 ## «world»), the latest first, the one it plays left out.
 func server_worlds() -> Array:
 	return WorldStore.list_worlds().filter(func(w: Dictionary) -> bool: return w.seed != game.world_seed).slice(0, 8)
+
+
+## Whether the server joined plays with its test mod («/test mod», TestMod): the mod's
+## own file is among the server's files the game plays with; what was just asked for is
+## shown until the server's reload comes (TEST_MOD_WAIT seconds at most).
+func test_mod() -> bool:
+	var real: bool = Content.served.has(ModFiles.TEST_MARK)
+	if _test_mod_asked >= 0 and (real == (_test_mod_asked == 1) or Time.get_ticks_msec() - _test_mod_asked_at > TEST_MOD_WAIT * 1000.0):
+		_test_mod_asked = -1
+	return _test_mod_asked == 1 if _test_mod_asked >= 0 else real
+
+
+func set_test_mod(on: bool) -> void:
+	if on == test_mod():
+		return
+	_test_mod_asked = int(on)
+	_test_mod_asked_at = Time.get_ticks_msec()
+	test_server("mod on" if on else "mod off")
 
 
 ## Asks the server joined for `what` («/test `what`», TestCommands.command): its answer

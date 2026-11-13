@@ -24,6 +24,9 @@ const BUILT_IN := "res://content"
 const LISTED := "res://content_files.bin"
 ## Letters of a hash (the first 128 bits of the SHA-256 of the bytes, as hex).
 const HASH_LEN := 32
+## The file only the test mod of a server for checking has (src/server/test_mod.gd): a
+## game that plays with a server's files (Content.served) knows the mod is on by it.
+const TEST_MARK := "core/icons/test_mod.png"
 ## What a client takes at most: bytes of one file, of a whole set, files of a set,
 ## letters of a path, bytes of a packed list before and after it is unpacked, and pixels
 ## along a side of a picture.
