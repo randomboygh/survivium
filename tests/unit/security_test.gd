@@ -252,6 +252,9 @@ func _test_door() -> void:
 		"after many wrong passwords a new player from that address waits")
 	_check(hello.call("Аня", "k1") == "", "one the server knows comes in all the same")
 	_check(hello.call("Вася", "x".repeat(1000)) == Protocol.WHY_VERSION, "a key of another shape is not one")
+	_check(net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна", 5], "10.0.0.9") == Protocol.WHY_VERSION
+		and net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна"], "10.0.0.9") == Protocol.WHY_VERSION,
+		"a hello that does not name its mod files by a word is of another version")
 
 
 ## Who may give which command (Server.COMMANDS).

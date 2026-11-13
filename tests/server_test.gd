@@ -24,6 +24,12 @@ const ChunkStreamer := preload("res://src/client/world/chunk_streamer.gd")
 const Config := preload("res://src/server/config.gd")
 const Server := preload("res://src/server/server.gd")
 const OthersScript := preload("res://src/client/view/others.gd")
+const Content := preload("res://src/shared/content/content.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
+const ModFiles := preload("res://src/shared/content/mod_files.gd")
+const ModCache := preload("res://src/client/net/mod_cache.gd")
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const MainScript := preload("res://src/client/main.gd")
 
 const ROOT := "user://test_saves/server"
 const PORT := 7791
@@ -70,6 +76,8 @@ func _initialize() -> void:
 	Lang.watching = true
 	DirAccess.remove_absolute(SettingsFile.path)
 	Config.file = "user://test_server.cfg"
+	ModCache.dir = "user://test_saves/mod_cache"
+	WorldStore.erase_dir(ModCache.dir)
 	_run()
 
 
@@ -391,6 +399,8 @@ func _run() -> void:
 		_check(server.session.players[1].position == walked and borya.of(Protocol.TELEPORT).size() == leaps,
 			"a walk at the body's pace is taken as told (%s vs %s)" % [server.session.players[1].position, walked])
 		_check(fixes.count(Protocol.TELEPORT) == 0, "the game's own body is not put back")
+	if main.ready_to_play:
+		await _reload_reaches(main)
 	# The game leaves as the menu's exit does: a goodbye, then the scene goes.
 	main.socket.leave()
 	_check(await _until(func() -> bool: return main.socket.ended and net.online() == 2), "the game's goodbye closes its connection")
@@ -436,6 +446,7 @@ func _run() -> void:
 	server.free()
 	await _restart(w, ground, dug_at, things, dir)
 	await _hosted()
+	await _game_takes_mods()
 	_check(Lang.missed.is_empty(), "every text shown has its English: %s" % [Lang.missed])
 	print("server_test: %d checks, %d failures" % [checks, failures])
 	quit(1 if failures > 0 else 0)
@@ -551,6 +562,7 @@ func _hosted() -> void:
 	await _chat(node, pair[0], pair[1])
 	await _trades(node, pair[0], pair[1])
 	await _security(node)
+	await _mods(node)
 	await _renew(node)
 	var said := [false]
 	node.stopped.connect(func() -> void: said[0] = true)
@@ -562,6 +574,176 @@ func _hosted() -> void:
 		_check(node.tunnel == null and not OS.is_process_running(cf_pid), "and the tunnel is closed with it")
 	root.remove_child(node)
 	node.free()
+
+
+## The mods copied to a folder of the test's with the wolf's mass changed to `mass`: a
+## server's files that are not the game's own.
+func _changed_mods(mass: int) -> String:
+	var dir := ProjectSettings.globalize_path("user://test_saves/mods_%d/content" % mass)
+	WorldStore.erase_dir(dir)
+	_copy_mods("res://content", dir)
+	var path := dir.path_join("animals/wolf/data/creatures.yaml")
+	var text := FileAccess.get_file_as_string(path)
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(text.replace("mass: 40", "mass: %d" % mass))
+	f.close()
+	return dir
+
+
+func _copy_mods(from: String, to: String) -> void:
+	DirAccess.make_dir_recursive_absolute(to)
+	for f in DirAccess.get_files_at(from):
+		if f.get_extension() in ModFiles.KINDS:
+			DirAccess.copy_absolute(from.path_join(f), to.path_join(f))
+	for d in DirAccess.get_directories_at(from):
+		_copy_mods(from.path_join(d), to.path_join(d))
+
+
+## The host's `reload` reaches a game in the world (decision 189): the server's files are
+## others now, the game is told, takes the one that changed over its connection and plays
+## with it without leaving; then the server's files are the game's own again.
+func _reload_reaches(main: Node) -> void:
+	var net = server.server
+	net.content.ready()
+	var was: String = net.content.digest
+	_check(not Content.serving() and Content.playing() == was, "the game and the server play with the same mod files")
+	net.content.root = _changed_mods(41)
+	_check(server.command("reload").contains("mod data read again"), "the host reloads the mods' data")
+	_check(net.content.digest != was, "the server's files are others now")
+	_check(await _until(func() -> bool: return main.mod_reload.served == 1 and main.mod_reload.fetch == null, 30.0),
+		"the game in the world takes what changed and reads its data again")
+	_check(Content.serving() and Content.playing() == net.content.digest and AiRules.SPECIES["animals:wolf"].mass == 41.0
+		and MainScript.server_mods.get("digest") == net.content.digest,
+		"it plays with the server's files: the wolf weighs %s" % AiRules.SPECIES["animals:wolf"].mass)
+	_check(main.ready_to_play and not main.socket.ended and main.join_error == "", "without leaving the world")
+	net.content.root = Content.ROOT
+	server.command("reload")
+	_check(await _until(func() -> bool: return main.mod_reload.served == 2 and main.mod_reload.fetch == null, 30.0)
+		and Content.playing() == was and AiRules.SPECIES["animals:wolf"].mass == 40.0, "and with the first ones again after the next reload")
+	Content.serve({})
+	MainScript.server_mods = {}
+	Content.live = false
+	Mods.rescan()
+
+
+## The mods' files over a socket (decision 189): a hello naming other files than the
+## server's is told the server's set and stays connected without a character; the list
+## and files asked for come; a hello naming the server's files is welcome on the same
+## connection; a reload that changes the files is told to the players, one that changes
+## nothing is not.
+func _mods(node: Node) -> void:
+	var net = node.server
+	net.content.ready()
+	var players: int = node.session.players.size()
+	var s = Socket.new()
+	sockets.append(s)
+	var guest := Bot.new(s, "Модник")
+	s.open("ws://127.0.0.1:%d" % (PORT + 1))
+	guest.reply = s.hello("Модник", "", "", "0".repeat(ModFiles.HASH_LEN))
+	_check(await _until(func() -> bool: return guest.reply.done) and guest.reply.value.get("ok") == false
+		and guest.reply.value.get("why") == Protocol.WHY_MODS and guest.reply.value.get("mods") == net.content.bundles
+		and guest.reply.value.get("content") == net.content.digest and guest.reply.value.get("size") == net.content.size,
+		"a game with other mod files is told the server's set: %s" % [guest.reply.value.get("why")])
+	await _wait(0.3)
+	_check(not s.ended and node.session.players.size() == players, "and stays connected, with no character in the world")
+	s.net.send(Protocol.MOD_LIST, [])
+	_check(await _until(func() -> bool: return guest.of(Protocol.MOD_LIST).size() == 1), "the list of the server's files comes when asked")
+	var packed: Array = guest.of(Protocol.MOD_LIST)[0][1]
+	var list := ModFiles.unpack(packed[0], packed[1])
+	_check(ModFiles.digest(list) == net.content.digest and list.has("animals/wolf/data/creatures.yaml"), "it is the set named (%d files)" % list.size())
+	var wanted := ["animals/wolf/data/creatures.yaml", "animals/wolf/sprites/creatures/wolf.png", "sounds/nature/sounds/fire.wav"].filter(
+		func(rel: String) -> bool: return list.has(rel))
+	s.net.send(Protocol.MOD_FILES, [wanted.map(func(rel: String) -> String: return list[rel][0])])
+	var got := {}
+	var whole := func() -> bool:
+		got.clear()
+		for e: Array in guest.of(Protocol.MOD_DATA):
+			for part: Array in e[1]:
+				var piece: PackedByteArray = part[4] if part[3] == 0 else part[4].decompress(part[3], FileAccess.COMPRESSION_ZSTD)
+				got[part[0]] = got.get(part[0], PackedByteArray()) + piece
+		return wanted.all(func(rel: String) -> bool: return got.get(list[rel][0], PackedByteArray()).size() == list[rel][1])
+	_check(wanted.size() >= 2 and await _until(whole), "the files asked for come in pieces")
+	var right := 0
+	for rel: String in wanted:
+		var bytes: PackedByteArray = got.get(list[rel][0], PackedByteArray())
+		right += 1 if ModFiles.hash_of(bytes) == list[rel][0] and bytes == FileAccess.get_file_as_bytes("res://content/" + rel) else 0
+	_check(right == wanted.size(), "each with the bytes its hash names (%d of %d)" % [right, wanted.size()])
+	var again = s.net.request(Protocol.HELLO, [Protocol.VERSION, Protocol.build_version(), "Модник", "", "", net.content.digest])
+	_check(await _until(func() -> bool: return again.done) and again.value.get("ok") == true and node.session.players.size() == players + 1,
+		"a hello naming the server's files is welcome on the same connection: %s" % [again.value])
+	var was: String = net.content.digest
+	node.command("reload")
+	await _wait(0.3)
+	_check(guest.of(Protocol.MODS).is_empty(), "a reload that changes no file tells the players' games nothing")
+	net.content.root = _changed_mods(42)
+	node.command("reload")
+	_check(await _until(func() -> bool: return guest.of(Protocol.MODS).size() == 1), "one that changes a file tells them")
+	var told: Array = guest.of(Protocol.MODS)[0][1]
+	_check(told.size() == 3 and told[0] == net.content.digest and told[0] != was and told[1] == net.content.size and told[2] == net.content.bundles,
+		"the hash of the files now, their size and the bundles")
+	s.net.send(Protocol.MOD_FILES, ["x"])
+	s.net.send(Protocol.MOD_FILES, [[5, "zz"]])
+	await _wait(0.2)
+	_check(not s.ended and net.security_log.any(func(e: Dictionary) -> bool: return e.what == "malformed" and e.detail.contains("mod files")),
+		"files asked for the wrong way are not sent, and noted")
+	net.content.root = Content.ROOT
+	node.command("reload")
+	Content.live = false
+	s.leave()
+	await _until(func() -> bool: return s.ended)
+
+
+## The game joins a server whose mods' files are not its own (decision 189): told so at
+## its hello, it takes the files it lacks over the connection, starts its scene again
+## with them and comes into the world playing with the server's data; back in a world of
+## its own it plays with its own.
+func _game_takes_mods() -> void:
+	# The settings the server made in the game wrote for the terminal's are not this one's.
+	DirAccess.remove_absolute(Config.file)
+	server = load("res://scenes/server.tscn").instantiate()
+	server.config.port = PORT
+	server.config.password = ""
+	server.config.console = false
+	server.config.seed_value = 7
+	server.config.world = ""
+	server.config.save = false
+	server.quit_on_stop = false
+	root.add_child(server)
+	await _until(func() -> bool: return server.server != null)
+	var net = server.server
+	net.content.root = _changed_mods(44)
+	net.content.read()
+	_check(net.content.digest != Content.playing(), "a server with files of its own")
+	MainScript.join = {"url": "ws://127.0.0.1:%d" % PORT, "name": "Модник", "password": ""}
+	MainScript.play_at_once = true
+	var first: Node = load("res://scenes/main.tscn").instantiate()
+	first.skip_setup = true
+	root.add_child(first)
+	current_scene = first
+	var in_world := func() -> bool:
+		var now := current_scene
+		return now != null and now != first and (now.ready_to_play or now.join_error != "")
+	_check(await _until(in_world, 240.0) and current_scene.join_error == "",
+		"the game takes the server's files and comes in with them: %s" % [current_scene.join_error if current_scene != null else "no scene"])
+	var main: Node = current_scene
+	_check(Content.serving() and Content.playing() == net.content.digest and AiRules.SPECIES["animals:wolf"].mass == 44.0,
+		"it plays with the server's data: the wolf weighs %s" % AiRules.SPECIES["animals:wolf"].mass)
+	_check(ModCache.size() > 0 and not ModCache.set_of(net.content.digest).is_empty() and net.online() == 1,
+		"the file taken and the set's list are kept on the device (%d bytes)" % ModCache.size())
+	main.socket.leave()
+	await _until(func() -> bool: return main.socket.ended)
+	MainScript.join = {}
+	MainScript.server_mods = {}
+	current_scene = null
+	root.remove_child(main)
+	main.free()
+	Content.serve({})
+	Mods.rescan()
+	_check(not Content.serving() and AiRules.SPECIES["animals:wolf"].mass == 40.0, "and with its own again afterwards")
+	server.command("stop")
+	await _until(func() -> bool: return net.done())
+	root.remove_child(server)
+	server.free()
 
 
 ## «/test» on a server that is not a playtest one (TestCommands): a host's only; it goes
