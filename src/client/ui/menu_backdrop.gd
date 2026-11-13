@@ -10,6 +10,7 @@ extends Control
 
 const Vibration := preload("res://src/client/ui/vibration.gd")
 const Creatures := preload("res://src/client/game/creatures.gd")
+const Content := preload("res://src/shared/content/content.gd")
 
 ## The two-line «Продолжить» of «Одиночная игра», as tall as a row of «Загрузить мир».
 const PLAY_H := 42
@@ -105,10 +106,11 @@ var _sparrow_walk := 0
 var _sparrow_views := 1
 ## The sparrow as the menu first found it: [picture, frames, walk frames, views]. The
 ## menu is built again with every return from a world (main.gd restart), and the creatures
-## loaded then are that world's (Mods.activate): one played without the sparrow's bundle,
-## or on a server whose mods have none, left the name without its sparrow, and with it
-## the way into the playtest switches. Kept for the run of the game (the game starts with
-## every bundle on disk loaded, see Content.BUNDLES).
+## loaded then are that world's (Mods.activate, already at the start: the last world is
+## chosen before the menu is built): one played without the sparrow's bundle, or on a
+## server whose mods have none, left the name without its sparrow, and with it the way
+## into the playtest switches. Kept for the run of the game; without it the record is
+## read from the bundles on disk (_sparrow_on_disk).
 static var _sparrow_kept: Array = []
 var _bird_x := 40.0
 var _bird_dir := 1.0
@@ -230,8 +232,11 @@ func _pixel_disc(at: Vector2, r: float, color: Color) -> void:
 
 
 ## Takes the sparrow's picture from `spec` (a record of AiRules.SPECIES, empty when the
-## creatures loaded have none) or, without it, the one kept from before (_sparrow_kept).
-func _take_sparrow(spec: Dictionary = {}) -> void:
+## creatures loaded have none), else the one kept from before (_sparrow_kept), else the
+## record `id` as written in a bundle on disk, loaded or not.
+func _take_sparrow(spec: Dictionary, id: String) -> void:
+	if spec.is_empty() and _sparrow_kept.is_empty():
+		spec = _sparrow_on_disk(id)
 	var picture: Texture2D = Creatures.picture(spec) if not spec.is_empty() else null
 	if picture != null:
 		_sparrow_kept = [picture, spec.frames, Creatures.walk_frames(spec), spec.views]
@@ -241,6 +246,24 @@ func _take_sparrow(spec: Dictionary = {}) -> void:
 	_sparrow_frames = _sparrow_kept[1]
 	_sparrow_walk = _sparrow_kept[2]
 	_sparrow_views = _sparrow_kept[3]
+
+
+## Creature `id` as written in the bundle that owns it (Content.universe: every bundle
+## on disk, not only the world's), with the fields the menu reads; empty when none has it.
+static func _sparrow_on_disk(id: String) -> Dictionary:
+	var all := Content.universe()
+	for b: String in all:
+		for r: Dictionary in all[b].records.get("creatures", []):
+			if r.id != id or r.get("patch") == true or not r.get("sprite") is String:
+				continue
+			var spec := r.duplicate()
+			spec.bundle = b
+			spec.mod = all[b].mod
+			spec.frames = int(r.get("frames", 1))
+			spec.walk = int(r.get("walk", -1))
+			spec.views = int(r.get("views", 1))
+			return spec
+	return {}
 
 
 ## The sparrow sits a while, pecks now and then, and hops along the name, turning

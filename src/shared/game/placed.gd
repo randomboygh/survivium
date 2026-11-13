@@ -997,9 +997,10 @@ func lying_spot(e: Dictionary) -> Vector3:
 
 ## `who` places item `id` from the bag (from bag slot `slot` when given, else the first
 ## that holds it) on free cells of level ground in front (its square, see sizes; stairs
-## also over air), turned to face `who`, at or below level `top`, with a tool of its `place_tool` class in the bag; a thing that stores brings back
+## also over air), turned to face `who` (to face the camera turned `view`, 0..3, when given
+## and faces_view), at or below level `top`, with a tool of its `place_tool` class in the bag; a thing that stores brings back
 ## what it held. True if it was placed.
-func put_from_bag(who, id: String, slot: int, top: int) -> bool:
+func put_from_bag(who, id: String, slot: int, top: int, view := -1) -> bool:
 	var item := Items.get_item(id)
 	var inv = who.inventory
 	if slot < 0:
@@ -1012,7 +1013,7 @@ func put_from_bag(who, id: String, slot: int, top: int) -> bool:
 	if item.place_tool != "none" and not Tools.holds(inv, item.place_tool):
 		who.nag("put", Lang.line("[to_place_it_you_need]", [Items.tool_title(item.place_tool)]))
 		return false
-	var turn := turn_facing(who.facing_step())
+	var turn := view if view >= 0 and faces_view(item.id) else turn_facing(who.facing_step())
 	var shape := _shape_of(item.id, turn)
 	var n := size_of(item.id)
 	var rest := rest_of(item.id)
@@ -1041,7 +1042,7 @@ func _shape_of(item: String, turn: int) -> Dictionary:
 ## cells nearest it at that level (or one up or down). A door or a window cuts its
 ## opening into a wall: the blocks put there (not natural ground) where it goes are taken
 ## out and fall as if dug. True if it was set down.
-func put_at(who, id: String, aim: Vector3i, top: int) -> bool:
+func put_at(who, id: String, aim: Vector3i, top: int, view := -1) -> bool:
 	var item := Items.get_item(id)
 	if item.get("prop", "none") == "none":
 		return false
@@ -1060,7 +1061,7 @@ func put_at(who, id: String, aim: Vector3i, top: int) -> bool:
 	if Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z).length() > Tools.PLACE_REACH or absf(aim.y - p.y) > Tools.PLACE_REACH:
 		who.nag("put", "[too_far]")
 		return false
-	var turn := turn_facing(Tools.step_of(Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z)))
+	var turn := view if view >= 0 and faces_view(item.id) else turn_facing(Tools.step_of(Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z)))
 	var rest := rest_of(item.id)
 	if rest == ON_LADDER:
 		# A ladder goes on with the one under it, turned as it is.
@@ -1187,6 +1188,18 @@ static func movable(e: Dictionary) -> bool:
 		if item.get(flag, false):
 			return false
 	return true
+
+
+## True for thing `id` set down facing the camera when the client names the view's turn
+## (put_from_bag, put_at; the user, 2026-11-13): a station, a chest, furniture, a sign;
+## not what is set into a building or against a wall by where the player stands (a door,
+## a window, a hatch, stairs, a fence, a ladder, a board on a wall).
+static func faces_view(id: String) -> bool:
+	var item := Items.get_item(id)
+	for flag in ["door", "window", "steps", "fence", "ladder", "wall"]:
+		if item.get(flag, false):
+			return false
+	return item.get("prop", "none") != "none"
 
 
 ## The north-west cell where thing `e` would stand moved to `corner` turned `turn` (see

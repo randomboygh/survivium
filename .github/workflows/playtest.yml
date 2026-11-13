@@ -5,9 +5,10 @@
 # spawn, talk, make gestures, throw things out, set signs and campfires, fell trees and
 # hunt; more are added and taken away in the game, PlaytestHost), so the server runs with
 # "Free items" (free_items).
-# The link to open on the phone (the web build with `?server=wss://…`) is shown on the
-# run's page as a notice, in the summary and as the commit status «playtest-link», about
-# two minutes after the start; the game's "Testing" → "Join the test
+# The link to open on the phone (the web build with `?server=wss://…`) is ready about two
+# minutes after the start: while the server runs it is in the log of the job's step «Link
+# for the phone: open this step» and the commit status «playtest-link» (GitHub shows the
+# notice and the summary on the run's page only when the job is over); the game's "Testing" → "Join the test
 # server" reads it there (src/client/net/playtest.gd). The world is not saved.
 name: Playtest server
 
@@ -98,11 +99,16 @@ jobs:
           echo "$server" > logs/server.pid
       # The link as a commit status of the run's commit too («playtest-link»): the API gives
       # it while the run goes on, the job logs only after.
-      - name: Publish the link
+      - name: "Link for the phone: open this step"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           link=$(cat link/link.txt)
+          echo
+          echo "Open on the phone:"
+          echo
+          echo "$link"
+          echo
           jq -n --arg url "$link" '{state: "success", context: "playtest-link", target_url: $url, description: "Link for the phone"}' \
             | curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
               "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -d @- >/dev/null

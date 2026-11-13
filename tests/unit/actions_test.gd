@@ -276,6 +276,11 @@ func _test_stairs_placed() -> void:
 	_check(placed.put_from_bag(who, "tools:chest", -1, 40) and placed.things[-1].turn == 1
 		and Placed.record(placed.things[-1]).turn == 1 and placed.cells_of(placed.things[-1]).size() == 4,
 		"a chest set down looking east is turned to face west, and keeps its turn in the save")
+	_check(placed.take_up(who, placed.things[-1]) and placed.put_from_bag(who, "tools:chest", -1, 40, 2) and placed.things[-1].turn == 2,
+		"set down with the camera turned to look south, it faces the camera, not the player")
+	_check(Placed.faces_view("tools:chest") and Placed.faces_view("tools:workbench") and not Placed.faces_view("tools:door")
+		and not Placed.faces_view("tools:stairs") and not Placed.faces_view("tools:window"),
+		"stations and chests face the camera, doors, windows and stairs the player")
 	# A door in a gap two cells tall, set down looking north: shut, its leaf along the
 	# north edge; a tap opens it to stand along the west edge, another shuts it.
 	for y in range(1, 4):

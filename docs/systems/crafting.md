@@ -126,8 +126,12 @@ named stations: their recipes and repair), `place_tool` (placed only if the bag 
 `Placed` and `Workshop` ask the flags; a new station is only data: an item, a model, an icon, recipes.
 
 **Size and turn.** A thing occupies a square of cells by the slice of its model (`Placed.sizes`: a slice of
-16 voxels — 2×2, 8 — one cell) and is placed facing the player (`turn`: 0 — facing south, 1 — west, 2 —
-north, 3 — east; stored in the save and goes to the copies); solid and occupied are only the cells where its
+16 voxels — 2×2, 8 — one cell) and is placed facing the camera (`turn`: 0 — facing south, 1 — west, 2 —
+north, 3 — east; stored in the save and goes to the copies): the client sends the view's turn
+(`Props.view_turn`, the last arg of `PROP_PUT` and `PROP_PUT_AT`) and a station, a chest, furniture and a
+sign take it (`Placed.faces_view`, the user's ask 2026-11-13), while a door, a window, a hatch, stairs, a
+fence, a ladder and a board on a wall still face the player, as the wall or the climb needs (a request
+without the turn — a bot — faces the player too); solid and occupied are only the cells where its
 voxels are (`Placed.cells_of`), the model and boxes turn together (`Placed.turned`, `Props._model`). A ladder
 is an item with `steps`: its solid parts are boxes by quarters of a cell (`WorldData.blockers` stores an array
 for a cell), the body steps up the half-cell steps with no jump; it is placed over a void too, a tap takes it
