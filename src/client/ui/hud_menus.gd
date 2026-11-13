@@ -180,10 +180,10 @@ func _to_main_menu() -> void:
 
 
 func _build_menu() -> void:
-	_shade = ColorRect.new()
-	_shade.color = Color(0, 0, 0, 0.4)
+	# Over the whole window, the camera cutout too; taps stop at it.
+	_shade = Shade.new(Color(0, 0, 0, 0.4))
+	_shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	_shade.visible = false
-	_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_shade)
 	_menu = _panel(self)
 	_menu.visible = false

@@ -11,6 +11,7 @@ extends Control
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Kit := preload("res://src/client/ui/kit/kit.gd")
+const Shade := preload("res://src/client/ui/kit/shade.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
 const Markers := preload("res://src/client/game/markers.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
@@ -490,10 +491,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## The game dimmed behind, the panel, and the map's sunken rectangle with its outline;
-## the scale bar under it.
+## The game dimmed behind (the whole window, the camera cutout too), the panel, and the
+## map's sunken rectangle with its outline; the scale bar under it.
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), SHADE)
+	draw_rect(Shade.window_rect(self), SHADE)
 	# The panel's fill is see-through; the corner of the game would show through it.
 	var frame := Rect2(Vector2(MARGIN, MARGIN), size - 2 * Vector2(MARGIN, MARGIN))
 	draw_rect(frame.grow(-2), Color(UiStyle.PANEL, 1.0))

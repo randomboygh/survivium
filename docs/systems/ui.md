@@ -22,6 +22,9 @@ and a new shared part is added to the kit and to the «Interface gallery».
   `show_fitted()` lays out at every change of the screen; the panel is centred, and taller than the screen (the
   keyboard is up) — at the top. A window sets `layout(screen)` (the heights of lists) and `back()` (what Escape
   does too). «New world», «Load world», «Join», «Create a server», the sign and the gallery are made so.
+- `shade.gd` — the shade behind a window, the pause menu and the sleep screen: as large as its parent but drawn
+  over the whole window (`window_rect`), so a phone's camera cutout and a browser's toolbars, outside the safe
+  rect the HUD is laid out in, are darkened too; the map and the death screen draw theirs with `window_rect`.
 - `two_tap.gd` — two-touch buttons: the first paints red, the second does; with `wait` the redness fades by
   itself; `paint` — its own look of waiting (the build and farm palettes light like tabs, «Stop the server»
   changes its label).

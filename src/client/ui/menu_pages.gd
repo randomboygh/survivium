@@ -96,6 +96,8 @@ func _fill_page(page: String) -> void:
 			else:
 				_add_button(_box, "quit", "[quit]", func() -> void:
 					game.save.flush()
+					# Quit, not crashed: the next start offers no «Журнал вылета».
+					LastLog.running(false)
 					get_tree().quit())
 			lit = "multi" if joined or game.hosted != null else "single"
 			if resume:

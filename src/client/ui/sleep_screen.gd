@@ -1,4 +1,4 @@
-extends ColorRect
+extends Control
 ## The screen while the character sleeps (Vitals.asleep): the game dimmed behind a line
 ## that says how to wake. A tap anywhere, a step of the stick or the keys, or the jump
 ## wakes them (Protocol.SLEEP); with every player asleep the night goes by fast
@@ -6,6 +6,7 @@ extends ColorRect
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Shade := preload("res://src/client/ui/kit/shade.gd")
 
 ## How dark the game is behind it.
 const SHADE := Color(0.02, 0.02, 0.06, 0.6)
@@ -22,9 +23,10 @@ func _init(g) -> void:
 
 
 func _ready() -> void:
-	color = SHADE
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Over the whole window, the camera cutout too.
+	add_child(Shade.new(SHADE))
 	# A panel a third of the way down, clear of the hotbar.
 	var box := CenterContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
