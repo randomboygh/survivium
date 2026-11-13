@@ -983,6 +983,11 @@ func _entrances(_lay: Dictionary) -> void:
 	pass
 
 
+## Nor are its hollows filled: its pits and shafts are made on purpose.
+func _fill_pits(_lay: Dictionary) -> void:
+	pass
+
+
 func _layout_row(lay: Dictionary, lz: int) -> void:
 	var w: int = lay.w
 	var step: int = lay.step
