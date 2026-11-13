@@ -360,15 +360,24 @@ func _drag(c: Control, index: int, at: Vector2) -> void:
 	c._gui_input(e)
 
 
-## The sparrow on the menu's name (the way into the playtest switches) stays after a world
-## played without the sparrow's bundle: the menu built again then finds no such creature.
+## The sparrow on the menu's name (the way into the playtest switches) stays when the world
+## chosen was played without the sparrow's bundle: the menu then finds no such creature
+## loaded, at the start too (the record is read from the bundle on disk), and after.
 func _test_menu_sparrow() -> void:
+	var id := "animals:sparrow"
+	MenuBackdrop._sparrow_kept = []
+	var cold = MenuBackdrop.new()
+	cold._take_sparrow({}, id)
+	_check(cold._sparrow_picture != null and cold._sparrow_frames > 1 and cold._sparrow_views == 3,
+		"the menu's sparrow comes from the bundle on disk with no sparrow loaded")
+	MenuBackdrop._sparrow_kept = []
 	var first = MenuBackdrop.new()
-	first._take_sparrow(AiRules.SPECIES.get("animals:sparrow", {}))
-	_check(first._sparrow_picture != null and first._sparrow_frames > 1, "the menu's sparrow has its picture")
+	first._take_sparrow(AiRules.SPECIES.get(id, {}), id)
+	_check(first._sparrow_picture != null and first._sparrow_frames == cold._sparrow_frames
+		and first._sparrow_walk == cold._sparrow_walk, "the menu's sparrow from the creatures loaded is the one on disk")
 	var again = MenuBackdrop.new()
-	again._take_sparrow({})
-	_check(again._sparrow_picture == first._sparrow_picture and again._sparrow_frames == first._sparrow_frames
-		and again._sparrow_views == first._sparrow_views, "the menu's sparrow stays with no sparrow in the creatures loaded")
-	first.free()
-	again.free()
+	again._take_sparrow({}, id)
+	_check(again._sparrow_picture == first._sparrow_picture and again._sparrow_views == first._sparrow_views,
+		"the menu's sparrow stays with no sparrow in the creatures loaded")
+	for m in [cold, first, again]:
+		m.free()
