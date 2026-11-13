@@ -217,7 +217,9 @@ void fragment() {
 		float cap = clamp((m.g - m.r) * 2.5, 0.0, 1.0);
 		EMISSION += m.rgb * cap * night_glow * (2.6 + 0.6 * sin(TIME * 1.1 + custom.z * 6.28)) * (1.0 - veiled.a);
 	} else if (kind == SPORE) {
-		EMISSION += m.rgb * night_glow * custom.y * 3.0 * (1.0 - life * 0.6);
+		// The fog hides a spore as it hides the mushroom it rose from (it showed through
+		// a morning fog as bright green specks over the empty grass).
+		EMISSION += m.rgb * night_glow * custom.y * 3.0 * (1.0 - life * 0.6) * (1.0 - veiled.a);
 	} else if (kind == HALO) {
 		EMISSION += GLOW_COLOR * custom.y * 0.6 * (1.0 - veiled.a);
 	}
