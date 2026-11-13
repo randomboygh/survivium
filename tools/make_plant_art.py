@@ -121,9 +121,9 @@ PAL = {
     "x": (131, 182, 121, 255),  # its pale mark
     "j": (45, 91, 54, 255),  # clover stalk
     "b": (41, 82, 42, 255),  # fern stem, dark
-    "B": (49, 98, 48, 255),  # fern leaflet in shade
-    "z": (74, 131, 57, 255),  # its lit side
-    "Z": (135, 185, 84, 255),  # a lit tip
+    "B": (46, 90, 44, 255),  # fern leaflet in shade
+    "z": (62, 112, 50, 255),  # its lit side
+    "Z": (96, 146, 64, 255),  # a lit tip
     "y": (240, 236, 226, 255),  # white clover head
     "Y": (212, 206, 196, 255),  # its shade
     "i": (228, 140, 170, 255),  # red clover head
@@ -320,7 +320,8 @@ SPRUCE_SAPLING = [
 ]
 
 # Wild plants two cards wide (plants `across: 2`), a frame a look: a fern of arching
-# fronds, darker than the grass round it (it grows in the woods), patches of clover,
+# fronds, dark stems with leaflets a little lighter than them and darker than the grass
+# round it, so the whole plant shows on the grass as one, patches of clover,
 # two of leaves alone and two with a white or a red head (fields of it on the meadows).
 FERN = [
     low16(
@@ -365,8 +366,8 @@ FERN = [
 # contrast between the dark and the lit parts, so they sit in the meadow and the wood
 # instead of standing out of them.
 FERN_SHADES = [
-    {"b": (54, 83, 34, 255), "B": (65, 102, 39, 255), "z": (94, 131, 47, 255), "Z": (159, 188, 84, 255)},
-    {"b": (34, 72, 48, 255), "B": (42, 90, 58, 255), "z": (62, 120, 74, 255), "Z": (119, 172, 110, 255)},
+    {"b": (54, 83, 34, 255), "B": (60, 92, 36, 255), "z": (80, 114, 44, 255), "Z": (118, 152, 62, 255)},
+    {"b": (34, 72, 48, 255), "B": (38, 80, 52, 255), "z": (54, 104, 66, 255), "Z": (86, 140, 96, 255)},
 ]
 CLOVER_SHADES = [
     {"h": (67, 109, 46, 255), "H": (101, 144, 63, 255), "x": (147, 182, 102, 255), "j": (56, 94, 41, 255)},
