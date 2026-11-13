@@ -1,6 +1,6 @@
 extends Node
 ## The playtest server's own part (Config.playtest: .github/workflows/playtest.yml,
-## docs/systems/network.md «Сервер для проверки»), a child of the server's scene: it
+## docs/systems/network.md "A server for checking"), a child of the server's scene: it
 ## stops the server when its minutes are over and gives it an hour more on «/test hour»
 ## (at most MOST_MINUTES from its start). The bots, the other worlds and «/test» itself,
 ## which any player may send there, are TestCommands'.

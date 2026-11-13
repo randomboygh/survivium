@@ -406,11 +406,11 @@ jobs:
           python3 tools/build_info.py build_info.json
           version=$(python3 -c 'import json; print(json.load(open("build_info.json"))["version"])')
           name=$(sed -n 's/^config\/name="\(.*\)"$/\1/p' project.godot)
-          notes="Сборки игры для ПК из main, версия $version (обновляются с каждым слиянием). Windows: распакуйте и запустите $name.exe; сервер из терминала — $name.console.exe --headless -- --server. Linux: ./$name.x86_64 (сервер: --headless -- --server). Моды лежат открытыми файлами в папке content рядом с игрой: их можно править, свои моды кладите туда же отдельными папками; при обновлении заменяйте только встроенные папки."
+          notes="PC builds of the game from main, version $version (updated with every merge). Windows: unpack and run $name.exe; a server from the terminal is $name.console.exe --headless -- --server. Linux: ./$name.x86_64 (a server: --headless -- --server). The mods are plain files in the folder content beside the game: they can be edited, and your own mods go there as folders of their own; when updating, replace only the built-in folders."
           if gh release view pc-latest >/dev/null 2>&1; then
-            gh release edit pc-latest --prerelease --title "Сборки для ПК ($version)" --notes "$notes"
+            gh release edit pc-latest --prerelease --title "PC builds ($version)" --notes "$notes"
           else
-            gh release create pc-latest --prerelease --title "Сборки для ПК ($version)" --notes "$notes"
+            gh release create pc-latest --prerelease --title "PC builds ($version)" --notes "$notes"
           fi
           gh release upload pc-latest build/*-windows.zip build/*-linux.tar.gz --clobber
 
@@ -439,14 +439,14 @@ jobs:
           python3 tools/build_info.py build_info.json
           version=$(python3 -c 'import json; print(json.load(open("build_info.json"))["version"])')
           name=$(sed -n 's/^config\/name="\(.*\)"$/\1/p' project.godot)
-          notes="Сборка игры для Android из main, версия $version (обновляется с каждым слиянием). Скачайте APK на телефон и откройте его; телефон попросит разрешить установку из этого источника. Новая сборка ставится поверх прежней, сохранения остаются."
+          notes="The Android build of the game from main, version $version (updated with every merge). Download the APK to the phone and open it; the phone will ask to allow installing from this source. A new build installs over the previous one, the saves stay."
           if [ "$KEY" != release ]; then
-            notes="$notes Эта сборка подписана временным ключом: следующую придётся ставить, удалив эту (вместе с сохранениями)."
+            notes="$notes This build is signed with a temporary key: to install the next one this one has to be removed (with its saves)."
           fi
           if gh release view android-latest >/dev/null 2>&1; then
-            gh release edit android-latest --prerelease --title "$name для Android ($version)" --notes "$notes"
+            gh release edit android-latest --prerelease --title "$name for Android ($version)" --notes "$notes"
           else
-            gh release create android-latest --prerelease --title "$name для Android ($version)" --notes "$notes"
+            gh release create android-latest --prerelease --title "$name for Android ($version)" --notes "$notes"
           fi
           gh release upload android-latest build/*-android.apk --clobber
 

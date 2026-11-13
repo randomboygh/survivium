@@ -4,11 +4,11 @@
 # minutes asked, with bots as extra players (src/client/input/bot.gd: they walk about the
 # spawn, talk, make gestures, throw things out, set signs and campfires, fell trees and
 # hunt; more are added and taken away in the game, PlaytestHost), so the server runs with
-# «Бесплатные предметы» (free_items).
+# "Free items" (free_items).
 # The link to open on the phone (the web build with `?server=wss://…`) is shown on the
 # run's page as a notice, in the summary and as the commit status «playtest-link», about
-# two minutes after the start; the game's «Тестирование» → «Подключиться к тестовому
-# серверу» reads it there (src/client/net/playtest.gd). The world is not saved.
+# two minutes after the start; the game's "Testing" → "Join the test
+# server" reads it there (src/client/net/playtest.gd). The world is not saved.
 name: Playtest server
 
 on:
@@ -88,11 +88,11 @@ jobs:
           done
           cat logs/server.log
           if [ -z "$link" ]; then echo "::error::the server gave no link"; exit 1; fi
-          echo "::notice title=Ссылка для телефона::$link"
+          echo "::notice title=Link for the phone::$link"
           {
-            echo "### Сервер для проверки, $minutes мин"
+            echo "### Playtest server, $minutes min"
             echo
-            echo "Открыть на телефоне: $link"
+            echo "Open on the phone: $link"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "$link" > link/link.txt
           echo "$server" > logs/server.pid
@@ -103,7 +103,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           link=$(cat link/link.txt)
-          jq -n --arg url "$link" '{state: "success", context: "playtest-link", target_url: $url, description: "Ссылка для телефона"}' \
+          jq -n --arg url "$link" '{state: "success", context: "playtest-link", target_url: $url, description: "Link for the phone"}' \
             | curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
               "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -d @- >/dev/null
       # The server ends itself when its minutes are over (PlaytestHost; «/test hour» in the
