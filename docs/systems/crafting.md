@@ -162,6 +162,18 @@ a cell, a fireplace) is placed into the cells right before the player (`_spot_in
 its cells), and is tapped there too: `Placed.center` — the middle of the occupied cells (`Placed.middles` by
 the turn), not of the square.
 
+**Moving and turning** (2026-11-13, items 23–24 of the user's list). `Placed.movable`: a station, a chest,
+furniture, a sign, a fireplace move (not a door, a window, a hatch, stairs, a fence, a ladder, a campfire, a
+cross, a boundary post); `Placed.move(who, e, corner, turn)` — the request `PROP_MOVE` [cell, corner, turn]
+(in `PACED`): the free place nearest to `corner` (`move_spot`: `_spot_at` with the thing's own cells free),
+within `Tools.PLACE_REACH`, land rights at both ends, the hands' stamina (`act("place")`); the thing is taken
+and placed anew with what it holds, burns and says, so the copies and the save get it as an ordinary thing
+(`removed`, `added`); the same cell with a quarter more turns it. The build mode drags and turns it
+([interaction.md](interaction.md)). On screen (`Props._arrive`) a thing set down while playing drops into
+place from `DROP_HEIGHT` with dust of the ground under it (`Effects.dust`) and the sound `place` on landing
+(lower for a 2×2 one); a thing gone and back on its cell within `RENEW_MS` was changed where it stands (a
+sign written, `_renew`) and does not drop, a turned one hops; what comes with the world or on joining is still.
+
 **Furniture** (decision 163, 7А; the bundle `tools/furniture`) — things with `furniture`: placed facing the
 player, not counted stations (`Items.is_station`). A table and a rug — on 2×2 cells, a stool, a cupboard and
 a barrel — on one (the cupboard two high), a wide cupboard — on two cells in width and two in height (48

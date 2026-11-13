@@ -34,6 +34,18 @@ const LOW_HEIGHT := 0.75
 const THIN_PROPS := ["post"]
 ## Seconds a thing taken from the ground takes to fly to the player.
 const FLY_TIME := 0.2
+## A thing set down drops into place from this many cells up, in DROP_TIME seconds,
+## and lands with dust and a thud (plan: item 23 of the 2026-11-13 list); one turned
+## where it stands hops HOP of that.
+const DROP_HEIGHT := 0.6
+const DROP_TIME := 0.24
+const HOP := 0.35
+## A thing gone and back on the same cell within this many ms was changed where it
+## stands (a sign written or turned, Placed._renew; a thing turned, Placed.move), not set
+## down: it does not drop.
+const RENEW_MS := 300
+## Cells a thing dragged in the build mode is held up over its ground (BuildMode).
+const LIFT := 0.3
 
 var game
 ## Meshes of the things on the ground by model, their vertices one triangle after
@@ -53,6 +65,8 @@ var _lamps := {}
 ## Meshes of the lights standing, by item.
 var _standing := {}
 var _heat_queued := false
+## The things just gone, by cell: [item, turn, when (ms)] (see RENEW_MS).
+var _gone := {}
 ## Things newly fallen in a chunk wait to be drawn while the ground they came from is
 ## still drawn whole (a felled tree's chunk not yet rebuilt): they show as the tree goes.
 ## The chunks waiting, with when they began to; how many things each chunk shows.
@@ -175,9 +189,10 @@ func _model(kind: String, turn := 0, open := false, join := -1):
 	return _models[key]
 
 
-func _on_added(e: Dictionary) -> void:
+func _on_added(e: Dictionary, still := false) -> void:
 	if Placed.is_light(e):
 		_add_lamp(e)
+		_arrive(e, null)
 		return
 	if Placed.is_fire(e):
 		_add_fire(e)
@@ -185,6 +200,7 @@ func _on_added(e: Dictionary) -> void:
 			game.effects.put_out(_fires[e.cell])
 		_heat_later()
 		if not Placed.is_hearth(e):
+			_arrive(e, null)
 			return
 	var node := MeshInstance3D.new()
 	var kind: String = Items.get_item(e.item).prop
@@ -203,6 +219,8 @@ func _on_added(e: Dictionary) -> void:
 	_fit(node)
 	game.world_root.add_child(node)
 	_nodes[e.cell] = node
+	if not still:
+		_arrive(e, node)
 
 
 ## Door `e` swung, or fence `e` joins its neighbours anew: drawn anew.
@@ -210,10 +228,16 @@ func _on_opened(e: Dictionary) -> void:
 	if _nodes.has(e.cell):
 		_nodes[e.cell].queue_free()
 		_nodes.erase(e.cell)
-	_on_added(e)
+	_on_added(e, true)
 
 
 func _on_removed(e: Dictionary) -> void:
+	var now := Time.get_ticks_msec()
+	if _gone.size() > 32:
+		for c: Vector3i in _gone.keys():
+			if now - int(_gone[c][2]) > RENEW_MS:
+				_gone.erase(c)
+	_gone[e.cell] = [e.item, e.get("turn", 0), now]
 	if _lamps.has(e.cell):
 		game.effects.remove_lamp(_lamps[e.cell])
 		_lamps.erase(e.cell)
@@ -224,6 +248,74 @@ func _on_removed(e: Dictionary) -> void:
 		game.effects.remove_campfire(_fires[e.cell])
 		_fires.erase(e.cell)
 		_heat_later()
+
+
+## Thing `e` came while playing (not with the world or a joining): set down, its model
+## `node` (null for a campfire or a light, drawn by Effects) drops into place and lands
+## with dust and a thud; changed where it stands (a sign written, a thing turned) it does
+## not drop, a turned one hops; what comes with the world comes still and silent.
+func _arrive(e: Dictionary, node: Node3D) -> void:
+	if not game.ready_to_play:
+		return
+	var was: Array = _gone.get(e.cell, [])
+	_gone.erase(e.cell)
+	if not was.is_empty() and was[0] == e.item and Time.get_ticks_msec() - int(was[2]) < RENEW_MS:
+		if was[1] != e.get("turn", 0):
+			game.sound.play("place", Placed.center(e))
+			if node != null:
+				_fall(node, Vector3(e.cell) * CELL, DROP_HEIGHT * HOP, DROP_TIME * 0.6)
+		return
+	if node == null:
+		_land(e)
+		return
+	_fall(node, Vector3(e.cell) * CELL, DROP_HEIGHT, DROP_TIME).tween_callback(_land.bind(e))
+
+
+## Drops `node` onto world point `to` from `height` cells over it in `time` seconds,
+## faster as it goes; while it is up it is culled loosely (its box is fitted to `to`).
+func _fall(node: Node3D, to: Vector3, height: float, time: float) -> Tween:
+	node.position = to + Vector3(0.0, height * CELL, 0.0)
+	node.extra_cull_margin = CULL_MARGIN
+	var tw := node.create_tween()
+	tw.tween_property(node, "position", to, time).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(func() -> void: node.extra_cull_margin = 0.0)
+	return tw
+
+
+## Thing `e` touched the ground: dust of the ground under it from its edges, and a thud,
+## lower for a bigger thing.
+func _land(e: Dictionary) -> void:
+	var c: Vector3i = e.cell
+	var n: float = 1.0 if Placed.is_light(e) else float(Placed.size_of(e.item))
+	var under: int = game.world.get_cell(c.x, c.y - 1, c.z) if game.world != null else -1
+	game.effects.dust(Vector3(c) * CELL, n * 0.75 if Placed.is_light(e) else n, under if under != Mat.AIR else -1)
+	game.sound.play("place", Placed.center(e), 1.0, 1.0 if n < 2.0 else 0.8)
+
+
+## Holds the model of thing `e` up over the north-west cell `corner` (its turn kept) while
+## the build mode drags it (BuildMode); false when it has no model of its own.
+func hold_at(e: Dictionary, corner: Vector3i) -> bool:
+	var node: Node3D = _nodes.get(e.cell)
+	if node == null or not is_instance_valid(node):
+		return false
+	node.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
+	node.extra_cull_margin = CULL_MARGIN
+	return true
+
+
+## The model of thing `e` dragged and not moved (BuildMode): it drops back where it stands.
+func settle(e: Dictionary) -> void:
+	var node: Node3D = _nodes.get(e.cell)
+	if node == null or not is_instance_valid(node):
+		return
+	var from := node.position
+	var to := Vector3(e.cell) * CELL
+	if from.is_equal_approx(to):
+		return
+	node.extra_cull_margin = CULL_MARGIN
+	var tw := node.create_tween()
+	tw.tween_property(node, "position", to, DROP_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(func() -> void: node.extra_cull_margin = 0.0)
 
 
 ## Light `e` set down: its model standing in the middle of its cell and its flame on top
