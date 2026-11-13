@@ -786,6 +786,13 @@ func set_cheats(on: bool) -> void:
 		_note("[cheats_off]")
 
 
+## Whether the playtest switches and the teleports of «Тестирование» work now: always
+## in a world of this device, on a server only with «Читы на сервере» on (a server that
+## does not take them turns the switch off again, send_cheats).
+func may_cheat() -> bool:
+	return game.join_url == "" or (cheats and game.socket != null and game.net != null)
+
+
 ## Over a socket with «Читы на тестовом сервере» on: sends this page's switches and
 ## `once` (the clock's: season, weather, moon, hour) to the server (Protocol.CHEATS);
 ## false when not (alone, or the switch off), so the caller does it here.
@@ -799,7 +806,8 @@ func send_cheats(once := {}) -> bool:
 		"free_items": free_items, "animal_attacks": animal_attacks, "boost": time_boost}
 	d.merge(once, true)
 	game.net.request(Protocol.CHEATS, [d]).then(func(taken: Variant) -> void:
-		if taken != true:
+		if taken != true and cheats:
+			cheats = false
 			_note("[the_server_takes_no_cheats]"))
 	return true
 
@@ -852,12 +860,13 @@ func set_no_fall_damage(on: bool) -> void:
 ## in this world yet.
 func go_to_death() -> void:
 	var c = game.character
-	if c.is_dead():
+	if c.is_dead() or not may_cheat():
 		return
 	if not c.fell_at.is_finite():
 		c.say("[you_havent_died_in_this]")
 		return
 	c.teleport(c.fell_at)
+	send_cheats({"at": c.fell_at})
 
 
 func set_shadow_map(i: int) -> void:

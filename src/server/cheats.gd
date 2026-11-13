@@ -6,12 +6,16 @@ extends RefCounted
 ## air, the rate of skills, overload, hunger, thirst, fatigue, cold, fall damage. The world's, for
 ## everyone on it: free building, tool wear, instant crafting, free items, animal
 ## attacks, and on the clock the season, the weather, the moon, the hour and the pace
-## of time. Every value is checked for its type and clamped; a key not known is left.
+## of time; once, a teleport of the body to a point («at»: a marker or a respawn point
+## of the page, the place one died at). Every value is checked for its type and
+## clamped; a key not known is left.
 
 ## Bounds of the numbers (the page offers at most 8, 200 and 100).
 const MOST_SPEED := 8.0
 const MOST_SKILL := 200.0
 const MOST_BOOST := 100.0
+## The farthest from the world's middle a teleport («at») goes, in world units on each axis.
+const MOST_FAR := 1.0e6
 ## Switches of the character (vitals and the bag) and of the world's rules.
 const VITALS := ["hunger", "thirst", "fatigue", "cold", "falls"]
 const RULES := ["free_build", "tool_wear", "instant_craft", "free_items", "animal_attacks"]
@@ -60,6 +64,9 @@ static func apply(session, who, d: Variant, day_speed := 1.0) -> bool:
 	var hour := _number(d, "hour", 0.0, 24.0)
 	if is_finite(hour):
 		clock.time_of_day = fposmod(hour / 24.0, 1.0)
+	var at: Variant = d.get("at")
+	if at is Vector3 and at.is_finite() and not who.is_dead():
+		who.teleport(at.clamp(-Vector3.ONE * MOST_FAR, Vector3.ONE * MOST_FAR))
 	return true
 
 
