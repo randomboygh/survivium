@@ -232,7 +232,7 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 		return
 	if mode().on:
 		_stroke = mode().start_stroke(button, pos)
-		if touch and not _stroke.is_empty():
+		if touch and _stroke.has("plan"):
 			mode().show_stroke(_stroke)
 		return
 	if game.land.has_own() and _on_post_square(pos, pick(pos)):
@@ -292,7 +292,16 @@ func update(delta: float) -> void:
 	# Under a sign's window the world is not worked: a stroke ends, the action button
 	# held when it opened does nothing.
 	var covered: bool = game.hud != null and game.hud.sign_window != null
-	if not _stroke.is_empty():
+	if _stroke.has("prop"):
+		# A thing of the build mode dragged (BuildMode.drag), or let go.
+		if _stroke.held and (covered or not Input.is_mouse_button_pressed(_stroke.button)):
+			_stroke.held = false
+		if _stroke.held:
+			game.build.drag(_stroke)
+		else:
+			game.build.release(_stroke)
+			_stroke = {}
+	elif not _stroke.is_empty():
 		if _stroke.held and (covered or not Input.is_mouse_button_pressed(_stroke.button)):
 			_stroke.held = false
 		if _cooldown <= 0.0 and (_stroke.held or _stroke.pending):
@@ -622,6 +631,10 @@ func pick(screen_pos: Vector2) -> Dictionary:
 
 ## The cell under a screen point in the layer of cells across `normal` that holds
 ## `ref`, or null when the view does not cross it.
+func on_plane(screen_pos: Vector2, ref: Vector3i, normal: Vector3i) -> Variant:
+	return _on_plane(screen_pos, ref, normal)
+
+
 func _on_plane(screen_pos: Vector2, ref: Vector3i, normal: Vector3i) -> Variant:
 	var ray := _ray(screen_pos)
 	var o: Vector3 = ray[0]
@@ -939,6 +952,9 @@ func _front_preview() -> Array[Vector3i]:
 ## Frames what a tap at `screen_pos` would work on: the cells to dig, cut or fill, red
 ## when nothing can be done there.
 func _show_preview(screen_pos: Vector2, dig: bool) -> void:
+	if _stroke.has("prop"):
+		# A thing dragged frames where it goes itself (BuildMode.drag).
+		return
 	if _stroke.has("plan"):
 		mode().show_stroke(_stroke)
 		return

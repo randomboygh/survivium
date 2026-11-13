@@ -161,7 +161,13 @@ lies around. The rules are shared (the server checks them), input and hints are 
   a thing (everything that is placed: `Items.is_interior`) is placed by a touch at once (`PROP_PUT_AT`,
   `Placed.put_at`: a door or window pressed on the side of a wall with no opening knocks the blocks out, they
   fall as if dug; blocks below the level of the player's feet are not knocked out, so a door on the floor
-  stands on the floor); a touch of a placed thing takes it back (only in this mode); the action button is
+  stands on the floor); a touch of a placed thing takes it back (only in this mode); a thing that moves
+  (`Placed.movable`: a station, a chest, furniture, a sign, a fireplace) is taken by a single tap only after
+  `DOUBLE_TAP_MS` (`_tap_wait`), a second tap on it within that time turns it a quarter where it stands, and a
+  finger or the mouse held on it and moved `DRAG_SHARE` of the screen drags it (a stroke with `prop`: `drag`
+  each frame — the model is held up `Props.LIFT` over the free place nearest under the finger, `Placed.move_spot`
+  as the server looks for it, its cells framed light or red; `release` — `PROP_MOVE`, `Placed.move`, or the
+  model drops back, `Props.settle`); the action button is
   pressed once (`auto`) and builds the whole blueprint nearby, releases after the last cell or when the blocks
   run out. The settings are kept with the player (`"build"`).
 - `src/client/input/farm_mode.gd` — farm mode (`game.farm`), made like build mode: entry from the bag

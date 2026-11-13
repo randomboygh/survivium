@@ -115,6 +115,8 @@ func describe(target: Dictionary) -> String:
 	if target.has("prop"):
 		var e: Dictionary = target.prop
 		var title := Lang.t(Items.title(e.item))
+		if game.build.on and Placed.movable(e):
+			return Lang.f("[lmb_take_drag_double_turn]", [title])
 		if game.build.on and Items.is_interior(e.item):
 			return Lang.f("[lmb_take]", [title])
 		if Placed.is_light(e):
