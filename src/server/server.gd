@@ -148,6 +148,9 @@ class Account extends RefCounted:
 	## When the connection was lost, and how long the character waits.
 	var left_at := -1.0
 	var linger := LINGER
+	## A bot played by the server itself (ServerBot, add_bot): no connection, never left
+	## to linger and go.
+	var bot := false
 
 
 var session
@@ -261,7 +264,7 @@ func poll() -> void:
 				_dropped(peer)
 	for key in accounts.keys():
 		var a: Account = accounts[key]
-		if a.peer == null and now - a.left_at >= a.linger:
+		if a.peer == null and not a.bot and now - a.left_at >= a.linger:
 			_forget(a, "[the_character_of_s_left]")
 
 
@@ -737,6 +740,42 @@ func _mods_asked(peer: Peer, msg: Array) -> bool:
 	elif not msg[1] is Array or msg[1].size() != 1 or not content.ask(peer.feed, msg[1][0]):
 		flag(peer.account, "malformed", "mod files asked for the wrong way", 1)
 	return true
+
+
+## A player played by the server itself, named `name` (ServerBot, TestCommands: where no
+## process of the game can be started, on a phone): an account with no connection that
+## comes in at the spawn with a new bag, its requests done as a player's (paced). Its
+## events are not kept (flush); remove_bot takes it out of the world.
+func add_bot(name: String) -> Account:
+	var a := Account.new()
+	a.id = next_id
+	next_id += 1
+	a.key = "bot:%d" % a.id
+	a.name = Protocol.clean_text(name, NAME_MAX)
+	a.bot = true
+	a.link = PlayerLink.new(session)
+	a.link.who.id = a.id
+	a.link.who.player_name = a.name
+	a.link.requests.paced = true
+	a.link.requests.chatted.connect(_on_chat.bind(a.key))
+	a.link.requests.team_chatted.connect(_on_team_chat.bind(a.key))
+	a.link.who.start_bag()
+	a.link.who.teleport(world_info.spawn)
+	a.link.who.find_home(session.placed)
+	session.teams.seen(a.id, a.name)
+	accounts[a.key] = a
+	if not wild:
+		wild = true
+		session.start_wildlife(int(world_info.seed))
+	_say("%s (%d): a bot of the server joins" % [a.name, a.id])
+	_note(a.id, "[s_joined_the_server_for]", [a.name])
+	return a
+
+
+## Takes bot `a` (add_bot) out of the world.
+func remove_bot(a: Account) -> void:
+	if a != null and a.bot:
+		_forget(a, "[s_left_the_server]")
 
 
 ## The first message must be a HELLO request; the player is let in or refused.
