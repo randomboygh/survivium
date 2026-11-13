@@ -1,6 +1,8 @@
 extends "res://tests/unit/test_case.gd"
 ## The generator: chunks the same in any order, mountains, rivers and caves, trees and bushes.
 
+const EscapeMap := preload("res://tools/escape_map.gd")
+
 
 func run() -> void:
 	_test_generation()
@@ -217,10 +219,13 @@ func _test_mountains() -> void:
 		"rivers have rapids, and deltas at the sea")
 	# A cave cut into a mountain's side: open to the air at its mouth, under a roof
 	# further in.
-	var mountain := gen.find_place("mountain", near)
+	# (In ranges, which are steep: few of the old mountains here are.)
+	gen = WorldGen.new(20261018, 48, {"relief": 1})
+	w = gen.world
+	var mountain := gen.find_place("mountain", Vector2i(gen.spawn_guess.x, gen.spawn_guess.z))
 	var cave := []
-	for gz in range(-6, 7):
-		for gx in range(-6, 7):
+	for gz in range(-16, 17):
+		for gx in range(-16, 17):
 			if cave.is_empty():
 				cave = gen._tunnel(floori(mountain.x / float(WorldGen.TUNNEL_GRID)) + gx,
 					floori(mountain.y / float(WorldGen.TUNNEL_GRID)) + gz)
@@ -247,12 +252,12 @@ func _test_mountains() -> void:
 func _test_caves() -> void:
 	var counts := []
 	for level in 3:
-		var gen := WorldGen.new(20261018, 48, {"caves": level})
+		var gen := WorldGen.new(20261018, 48, {"caves": level, "relief": 1})
 		var near := Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
 		var mountain := gen.find_place("mountain", near)
 		var tunnels := 0
-		for gz in range(-8, 9):
-			for gx in range(-8, 9):
+		for gz in range(-16, 17):
+			for gx in range(-16, 17):
 				if not gen._tunnel(floori(mountain.x / float(WorldGen.TUNNEL_GRID)) + gx,
 						floori(mountain.y / float(WorldGen.TUNNEL_GRID)) + gz).is_empty():
 					tunnels += 1
@@ -278,8 +283,8 @@ func _test_caves() -> void:
 
 
 ## Cave shape 1 (new worlds): halls and galleries no lower than three cells, so there
-## are no slits to squeeze through; a mouth is a funnel open to the sky down to a floor
-## many levels under the ground; no water leaks into them; the same in any order.
+## are no slits to squeeze through; the way in is a descent from the surface that one
+## walks back up; no water leaks into them; the same in any order.
 func _test_cave_shape() -> void:
 	_check(WorldGen.new(20261018).settings.cave_shape == 0, "a world made before the cave shape keeps its caves")
 	var gen := WorldGen.new(20261018, 48, {"caves": 1, "cave_shape": 1, "relief": 1, "climate": 1})
@@ -295,7 +300,6 @@ func _test_cave_shape() -> void:
 	var lay := gen.lay_out(key.x * WorldData.CHUNK - 32, key.y * WorldData.CHUNK - 32, 64, 64)
 	var low := 0
 	var hollow := 0
-	var deep_mouths := 0
 	for lz in 64:
 		for lx in 64:
 			var x: int = lay.x0 + lx
@@ -311,14 +315,12 @@ func _test_cave_shape() -> void:
 				if run > 0 and run < 3:
 					low += 1
 				run = 0
-			var open := 0
-			while open < top and w.get_cell(x, top - open, z) == Mat.AIR:
-				open += 1
-			if open >= 6:
-				deep_mouths += 1
 	_check(hollow > 2000, "cave shape 1 hollows the ground (%d cells)" % hollow)
 	_check(low == 0, "no cave is lower than three cells (%d)" % low)
-	_check(deep_mouths > 0, "a mouth opens to the sky many levels down")
+	# Whatever a body falls into round here, it walks out of: caves too.
+	var traps := EscapeMap.find(gen, at, 128)
+	_check(traps.trapped == 0 and traps.caves > 50,
+		"a body walks out of every hollow and cave it gets into (%d trapped, %d cave stands)" % [traps.trapped, traps.caves])
 	_check(_leaks(w, keys) == 0, "no water leaks into the halls")
 	# The same chunk made alone in a fresh generator is the same.
 	var again := WorldGen.new(20261018, 48, {"caves": 1, "cave_shape": 1, "relief": 1, "climate": 1})
