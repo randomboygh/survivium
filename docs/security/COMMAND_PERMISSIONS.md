@@ -33,7 +33,7 @@ command, with no restart. The client does not send a role: there is no role fiel
 | `help`, `?` | — | host | the list |
 | `op`, `deop` | who / a name | owner | give or take away the host's role |
 | `stop` | — | owner | save and stop the server |
-| `test` | `bot+`, `bot-`, `worlds`, `world <folder>`, `new [seed]`, `new test`, `stop`, `hour` | on a server with `--playtest` — any player; on another — the host (`stop` — the owner) | bots, another world of the server (the name of a folder under the saves, not a path), stopping, the term of a test server (`TestCommands`, `PlaytestHost`) |
+| `test` | `bot+`, `bot-`, `worlds`, `world <folder>`, `new [seed]`, `new test`, `mod on\|off\|next`, `stop`, `hour` | on a server with `--playtest` — any player; on another — the host (`stop` — the owner) | bots, another world of the server (the name of a folder under the saves, not a path), stopping, the term of a test server (`TestCommands`, `PlaytestHost`) |
 
 A command in the chat begins with «/»; from a player without a role — a refusal and an entry `command` in the
 log; an unknown one — «unknown command»; without the needed role — «only for the server's owner». Every

@@ -172,7 +172,7 @@ static func files(lang_code: String) -> PackedStringArray:
 			dirs.append(b)
 	for d in dirs:
 		var path := "%s/%s/lang/%s.yaml" % [Content.ROOT, d, lang_code]
-		if FileAccess.file_exists(path):
+		if Content.file_exists(path):
 			out.append(path)
 	return out
 

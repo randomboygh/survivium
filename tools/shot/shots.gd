@@ -691,6 +691,9 @@ const SHOTS := {
 		"menu_end": true},
 	"ui-test-debug": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug"},
 	"ui-test-server": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "server"},
+	# The same on a server for checking, its end: the test mod (decision 189). The last shot of a run: the game stays «joined».
+	"ui-test-server-mod": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "server",
+		"playtest": true, "menu_end": true},
 	# «Витрина интерфейса» (UiGallery), each of its tabs.
 	"ui-gallery-buttons": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "buttons"},
 	"ui-gallery-rows": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "rows"},
@@ -758,6 +761,16 @@ const SHOTS := {
 	"ui-main-menu-sky": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 12.0},
 	"ui-main-menu-loading": {"time": 0.42, "season": 1, "touch": true, "main_menu": "loading", "menu_hour": 20.5},
 	"ui-main-menu-loading-pc": {"time": 0.42, "season": 1, "main_menu": "loading"},
+	# Joining a server with other mods' files: the loading screen says how much of them came
+	# (decision 189); and where they are cleared, the end of the settings' first section.
+	"ui-mods-loading": {"time": 0.42, "season": 1, "touch": true, "main_menu": "loading", "menu_hour": 20.5, "progress": 0.08,
+		"caption": ["[mod_data_s_of_s_mb]", "3.2", "7.5"]},
+	"ui-mods-loading-pc": {"time": 0.42, "season": 1, "main_menu": "loading", "progress": 0.08,
+		"caption": ["[mod_data_s_of_s_mb]", "3.2", "7.5"]},
+	"ui-settings-server-data": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "menu_end": true},
+	# The same on a phone: where one's own mods go. The last shot of a run: the folder stays named.
+	"ui-settings-own-mods": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "menu_end": true,
+		"own_mods": "/storage/emulated/0/Android/data/io.github.randomboygh.survivium/files/content"},
 	"ui-main-menu-sky-pc": {"time": 0.42, "season": 1, "main_menu": "sky", "menu_hour": 12.0},
 	"ui-main-menu-dawn": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 6.3},
 	"ui-main-menu-sunset": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 19.6},

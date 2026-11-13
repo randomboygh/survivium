@@ -240,6 +240,11 @@ func hear(id: int, name: String, text: String, team := false) -> void:
 	_push(Protocol.HEARD, [id, name, text, team])
 
 
+## The server's mods' files changed (Server.mods_reread): the game takes what changed.
+func mods_changed(digest: String, size: int, bundles: Array) -> void:
+	_push(Protocol.MODS, [digest, size, bundles])
+
+
 ## A line the server tells its host (Server._note: a player came or went, was let in or
 ## not): a phrase of the game put together (Lang.line).
 func note(line: String) -> void:

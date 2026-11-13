@@ -5,6 +5,7 @@ extends "res://src/shared/content/content_schema.gd"
 ## into `problems`.
 
 const Yaml := preload("res://src/shared/content/yaml.gd")
+const ModFiles := preload("res://src/shared/content/mod_files.gd")
 ## The mods' YAML files parsed when the game was built (tools/content_cache.gd, run by CI
 ## before an export; not in git): md5 of a file's text → its value. A file whose text is
 ## not in it (edited since, or no cache at all, as in the editor) is parsed as before.
@@ -34,6 +35,113 @@ static func find_root(exe_dir: String, beside: bool) -> String:
 ## copy built in: their pictures and sounds are then read from the files themselves.
 static func beside() -> bool:
 	return not ROOT.begins_with("res://")
+
+
+## The files of a server's mods, played with in place of this game's own while the game is
+## on that server (decision 189; Content.serve): a path inside content/ → the file that
+## holds its bytes (this game's own file when it is the same, the built-in copy's, or one
+## kept from a server, ModCache). Empty while the game plays with its own, unless one's
+## own mods are laid over the game's (ModFiles.extra, a phone): then it is the table of
+## those (`served_own`, `lay_own`). Every path of a mod's file stays `ROOT/…` as before
+## and is looked up here when it is read (`real`), and the folders are listed from the
+## table, so only what the server has is there.
+static var served := {}
+## `served` is the game's own files, not a server's.
+static var served_own := true
+## The hash that names the served set (ModFiles.digest), "" with the game's own files.
+static var served_digest := ""
+## The folders of `served`: a path inside content/ ("" the root) → [its folders, its files].
+static var _served_dirs := {}
+
+
+## Whether the game plays with a server's files (`served`).
+static func serving() -> bool:
+	return not served.is_empty() and not served_own
+
+
+## While the game plays with its own files, reads them with one's own mods laid over
+## (ModFiles.own_table), as they are now.
+static func lay_own() -> void:
+	if serving():
+		return
+	var t := ModFiles.own_table(ROOT)
+	if t != served:
+		served = t
+		_list_served()
+
+
+## The file that holds `path` (a path under ROOT): itself with the game's own mods, the
+## one the served table names with a server's, "" when the server has no such file.
+static func real(path: String) -> String:
+	if served.is_empty() or not path.begins_with(ROOT + "/"):
+		return path
+	return served.get(path.substr(ROOT.length() + 1), "")
+
+
+## Whether `path` is a plain file of the mods (a YAML: pictures and sounds are asked of
+## Content.exists, which knows the imported ones).
+static func file_exists(path: String) -> bool:
+	var at := real(path)
+	return at != "" and FileAccess.file_exists(at)
+
+
+## The text of file `path` of the mods, "" when there is none.
+static func text(path: String) -> String:
+	var at := real(path)
+	return FileAccess.get_file_as_string(at) if at != "" and FileAccess.file_exists(at) else ""
+
+
+## The folders and the files in folder `dir` of the mods (ROOT or under it), by name.
+static func dirs_at(dir: String) -> PackedStringArray:
+	if served.is_empty():
+		return DirAccess.get_directories_at(dir)
+	return _served_dirs.get(_inside(dir), [PackedStringArray(), PackedStringArray()])[0]
+
+
+static func files_at(dir: String) -> PackedStringArray:
+	if served.is_empty():
+		return DirAccess.get_files_at(dir)
+	return _served_dirs.get(_inside(dir), [PackedStringArray(), PackedStringArray()])[1]
+
+
+static func dir_exists(dir: String) -> bool:
+	if served.is_empty():
+		return DirAccess.dir_exists_absolute(dir)
+	return _served_dirs.has(_inside(dir))
+
+
+## `dir` (ROOT or a folder under it) as a path inside content/.
+static func _inside(dir: String) -> String:
+	return "" if dir == ROOT else dir.trim_prefix(ROOT + "/")
+
+
+## Fills `_served_dirs` from the paths of `served`, each list sorted by name as a folder
+## on disk is listed.
+static func _list_served() -> void:
+	_served_dirs = {}
+	var folders := {}
+	var files := {}
+	for rel: String in served:
+		var dir := rel.get_base_dir()
+		if not files.has(dir):
+			files[dir] = []
+		files[dir].append(rel.get_file())
+		while true:
+			if not folders.has(dir):
+				folders[dir] = {}
+			if dir == "":
+				break
+			var up := dir.get_base_dir()
+			if not folders.has(up):
+				folders[up] = {}
+			folders[up][dir.get_file()] = true
+			dir = up
+	for dir: String in folders:
+		var d: Array = folders[dir].keys()
+		d.sort()
+		var f: Array = files.get(dir, [])
+		f.sort()
+		_served_dirs[dir] = [PackedStringArray(d), PackedStringArray(f)]
 ## The validator's mode: a soft reference to nothing is a problem too.
 static var strict := false
 
@@ -260,7 +368,8 @@ static func _broken(r: Dictionary, kind: String, key: String, of: String, ref: S
 
 
 static func _read(path: String) -> Variant:
-	var f := FileAccess.open(path, FileAccess.READ)
+	var at := real(path)
+	var f := FileAccess.open(at, FileAccess.READ) if at != "" else null
 	if f == null:
 		problems.append("%s: cannot read" % path.trim_prefix(ROOT + "/"))
 		return null

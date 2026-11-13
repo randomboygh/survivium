@@ -230,7 +230,7 @@ func _test_door() -> void:
 	cfg.max_players = 8
 	var net := Server.new(null, cfg, {})
 	var hello := func(name: String, key := "", password := "тайна", from := "10.0.0.9") -> String:
-		return net._refusal([Protocol.VERSION, Protocol.build_version(), name, key, password], from)
+		return net._refusal([Protocol.VERSION, Protocol.build_version(), name, key, password, ""], from)
 	_check(hello.call("Аня") == "" and hello.call("  ") == Protocol.WHY_NAME, "a name is needed")
 	_check(hello.call("Server") == Protocol.WHY_TAKEN and hello.call("ADMIN") == Protocol.WHY_TAKEN, "the server's own names are not taken")
 	var a := Server.Account.new()
@@ -252,6 +252,9 @@ func _test_door() -> void:
 		"after many wrong passwords a new player from that address waits")
 	_check(hello.call("Аня", "k1") == "", "one the server knows comes in all the same")
 	_check(hello.call("Вася", "x".repeat(1000)) == Protocol.WHY_VERSION, "a key of another shape is not one")
+	_check(net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна", 5], "10.0.0.9") == Protocol.WHY_VERSION
+		and net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна"], "10.0.0.9") == Protocol.WHY_VERSION,
+		"a hello that does not name its mod files by a word is of another version")
 
 
 ## Who may give which command (Server.COMMANDS).

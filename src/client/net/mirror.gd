@@ -74,6 +74,9 @@ var _pending: Array = []
 
 
 func _on_event(kind: String, args: Variant) -> void:
+	if kind in [Protocol.MOD_LIST, Protocol.MOD_DATA, Protocol.MODS]:
+		# The mods' files are taken by ModFetch and ModReload, not kept here for the copies.
+		return
 	if game.world == null:
 		_pending.append([kind, args])
 		return

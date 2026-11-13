@@ -73,6 +73,45 @@ By the socket (`check_moves`):
 
 By the loop (single player) everything is taken as it is: the player is the server.
 
+## The mods' files (`content_host.gd`, `mod_fetch.gd`, decision 189)
+
+A game whose files differ from the server's is refused with `WHY_MODS` and keeps its link, with no character,
+to take the files; both sides distrust what comes.
+
+The server, to a link that takes files:
+
+| What | Value | What happens beyond it |
+|---|---|---|
+| Time to take the files and greet again, and to ask for nothing | `FETCH_WAIT` 900 s, `FETCH_IDLE` 30 s | closing with code 4000 |
+| Links taking files at once | `FETCHING_MAX` 32 | a refusal `wait` |
+| Hashes in one `mod_files`, and waiting in all | `ASK_MAX` 256, `QUEUE_MAX` 4096 | the message is not taken (`malformed`) |
+| Lists sent to one link | `LISTS_MAX` 8 | no answer |
+| Bytes of files sent to one link | `SENT_MAX` 3 sets | the files come back as «cannot give» |
+| Speed | `RATE` 2 MB/s, `BURST` 512 KB, nothing added above `BUFFERED_MAX` 512 KB waiting | the rest waits |
+
+A file is found by its hash in the list read from disk, never by a path from the socket: nothing outside the
+world's set can be asked for. Only a greeting right in all but the files (the password, the ban, the
+whitelist) opens the files; such a link is counted apart from those without a greeting (all of a tunnel's
+come from one address), and the message rate (`MSG_RATE`) holds for it too. A file changed on disk after the list was read is not sent (its
+hash is checked again): the host is told to `reload`.
+
+The game, of a server (`ModFiles.unpack`, `may_be`, `ModCache.store`):
+
+- the list: packed no more than `LIST_MAX` 4 MB, `FILES_MAX` 20000 files, a file up to `FILE_MAX` 8 MB, the
+  set up to `SET_MAX` 256 MB; a path is plain letters, digits, `_`, `-`, `+`, `.` and `/`, no part beginning
+  or ending with a dot, at most `PATH_MAX` 160 characters, ending in `.yaml`, `.png` or `.wav` (`valid_path`); the list's hash
+  must be the one the refusal named;
+- a file: the bytes' hash is the list's, the size is the list's, a piece unpacks to no more than `PIECE_MAX`
+  1 MB; a picture has a PNG header and sides up to `PICTURE_MAX` 2048, a sound a RIFF/WAVE header, a YAML is
+  read by the game's own parser (`yaml.gd`: dictionaries, arrays, strings and numbers only); it is kept under its hash in `user://mod_cache`, never under the server's path;
+- more than `ASK_ABOVE` 50 MB is taken only after the player agrees; a server silent for `STALL` 20 s ends
+  the taking; after `MODS_TRIES` 3 refusals in a row the game stops trying;
+- what comes is data only: YAML, pictures, sounds, translations. No script, scene or resource is loaded from
+  a server (the kinds are a closed list), and the cache passes `LIMIT` 200 MB only until the next trim.
+
+A server's files are used only while the game is on that server: the menu and other worlds read the game's
+own (`Content.serve({})`).
+
 ## What the client sees
 
 The engine's errors and the internal reasons do not go to the client: a refusal is `null`, `false` or `{}`, a

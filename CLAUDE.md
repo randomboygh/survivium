@@ -179,6 +179,9 @@ Each in one line; the system's context doc has the detail.
   --write en`, `--write ru`); internal texts (logs, console, F3) are plain English. The server sends
   `Lang.line(template, values)`, the client formats with `Lang.f` and takes the words by `Lang.t`, never
   `template % values` or glued pieces (`docs/systems/lang.md`).
+- A mod's file is read only through `Content` (`real`, `text`, `file_exists`, `files_at`, `picture`, `sound`), never
+  by `FileAccess` at `Content.ROOT`: on a server with other mods the file is one taken from it (decision 189,
+  `Content.serve`). `hello` names the hash of the mods' files: a test's hello has six args.
 - Never use -1 as "none" for world coordinates: negative ones are real.
 - Tests of time-based behaviour wait by `Time.get_ticks_msec`, not frames. A per-frame flag computed
   before a state-changing update is stale in that frame.

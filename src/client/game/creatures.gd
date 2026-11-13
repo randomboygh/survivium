@@ -331,11 +331,12 @@ static func body_size(tex: Texture2D, frames: int, views := 1) -> Vector2:
 ## The picture of species `spec` (a record of AiRules.SPECIES); after a hot reload read
 ## from its file (Content.live).
 static func picture(spec: Dictionary) -> Texture2D:
-	if Content.live or Content.beside():
+	var at := Content.real(picture_path(spec))
+	if Content.live or not at.begins_with("res://"):
 		var img := Content.picture(picture_path(spec))
 		if img != null:
 			return ImageTexture.create_from_image(img)
-	return load(picture_path(spec))
+	return load(at) if at != "" else null
 
 
 static func picture_path(spec: Dictionary) -> String:

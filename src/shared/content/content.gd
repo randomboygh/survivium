@@ -44,6 +44,7 @@ extends "res://src/shared/content/content_mods.gd"
 ## `records(kind)` when their class loads, so the rest of the code keeps using
 ## `Mat.GRASS`, `Trees.SPECIES` or `AiRules.SPECIES` as before.
 
+
 ## Names the last load found against the naming rules (see _check_names): reported by
 ## the validator, never failing it.
 static var warnings: PackedStringArray = []
@@ -120,30 +121,77 @@ static func asset(rec: Dictionary, rel: String) -> String:
 
 ## Whether file `path` (an `asset`) is there: imported into the game, or a plain file.
 static func exists(path: String) -> bool:
-	return ResourceLoader.exists(path) or FileAccess.file_exists(path)
+	var at := real(path)
+	return at != "" and (ResourceLoader.exists(at) or FileAccess.file_exists(at))
 
 
 ## The image of picture `path` (an `asset`), null when there is none: read from the file
-## itself after a hot reload (`live`), else from its import.
+## itself after a hot reload (`live`) or when it is no file of the game's own (the mods
+## beside the game, a server's file kept on this device: `real`), else from its import.
 static func picture(path: String) -> Image:
-	if (live or not path.begins_with("res://")) and FileAccess.file_exists(path):
-		var img := Image.load_from_file(path)
+	var at := real(path)
+	if at == "":
+		return null
+	if (live or not at.begins_with("res://")) and FileAccess.file_exists(at):
+		var img := Image.load_from_file(at)
 		if img != null and not img.is_empty():
 			return img
-	if not ResourceLoader.exists(path):
+	if not ResourceLoader.exists(at):
 		return null
-	var tex: Texture2D = load(path)
+	var tex: Texture2D = load(at)
 	return tex.get_image() if tex != null else null
 
 
 ## The sound of file `path` (an `asset`, `.wav`), null when there is none: read from the
-## file itself after a hot reload (`live`), else from its import.
+## file itself as a picture is (see picture), else from its import.
 static func sound(path: String) -> AudioStream:
-	if (live or not path.begins_with("res://")) and path.ends_with(".wav") and FileAccess.file_exists(path):
-		var s := AudioStreamWAV.load_from_file(path)
+	var at := real(path)
+	if at == "":
+		return null
+	if (live or not at.begins_with("res://")) and at.ends_with(".wav") and FileAccess.file_exists(at):
+		var s := AudioStreamWAV.load_from_file(at)
 		if s != null:
 			return s
-	return load(path) if ResourceLoader.exists(path) else null
+	return load(at) if ResourceLoader.exists(at) else null
+
+
+## The hash that names the mods' files the game plays with (ModFiles.digest): a server's
+## while it plays with those (`serve`), else its own for the set loaded, worked out once
+## per load of the data (`fresh`: from the files as they are now).
+static func playing(fresh := false) -> String:
+	if serving():
+		return served_digest
+	if fresh or _playing_of != generation:
+		_playing = own_digest(BUNDLES)
+		_playing_of = generation
+	return _playing
+
+
+## The hash that would name the game's own files for the set `bundles`.
+static func own_digest(bundles: Array) -> String:
+	return ModFiles.digest(ModFiles.of_set(ModFiles.own(ROOT), bundles))
+
+
+static var _playing := ""
+static var _playing_of := -1
+
+
+## Plays with the files of a server's mods (`table`: a path inside content/ → the file
+## that holds it, named by `digest`), or with the game's own again (an empty table);
+## everything under content/ is read anew by the next load (Mods.activate, Mods.rescan).
+## Nothing changes when the table is the one in use.
+static func serve(table: Dictionary, digest := "") -> void:
+	var mine := table.is_empty()
+	var t := ModFiles.own_table(ROOT) if mine else table
+	if t == served and mine == (not serving()) and (mine or digest == served_digest):
+		return
+	served = t.duplicate()
+	served_own = mine
+	served_digest = "" if mine else digest
+	_list_served()
+	_universe = {}
+	_loaded = false
+	generation += 1
 
 
 ## The files of sound record `rec` (see the `sounds` kind): one, or one per variant.
@@ -160,6 +208,7 @@ static func sound_files(rec: Dictionary) -> PackedStringArray:
 ## Reads everything under content/ again and loads the set; the registries call their
 ## own `refresh` after this.
 static func refresh() -> void:
+	ModFiles.read_extra()
 	_universe = {}
 	_loaded = false
 	load_all()
