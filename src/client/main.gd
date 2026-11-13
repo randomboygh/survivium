@@ -1222,10 +1222,11 @@ func _build_materials() -> void:
 	for m in range(Mat.COUNT, mini(PixelTextures.material_count(), most)):
 		shapes[m] = Mat.corner_shape[Mat.LOG] if Mat.LOG >= 0 else 0
 		bits[m] = Mat.shader_bits[Mat.LOG] | Mat.TRUNK if Mat.LOG >= 0 else 0
-	var data := _material_data(shapes, bits)
-	world_mat.set_shader_parameter("material_data", data)
+	world_mat.set_shader_parameter("corner_shapes", shapes)
+	world_mat.set_shader_parameter("material_bits", bits)
 	low_mat = _material(low_variant(WorldShader))
-	low_mat.set_shader_parameter("material_data", data)
+	low_mat.set_shader_parameter("corner_shapes", shapes)
+	low_mat.set_shader_parameter("material_bits", bits)
 	water_mat = _material(WaterShader)
 	grass_mat = _material(GrassShader)
 	grass_mat.set_shader_parameter("plant_texture", PixelTextures.build_plants())
@@ -1265,15 +1266,6 @@ func _build_materials() -> void:
 	disc_mesh = Foliage.disc_mesh(Foliage.SHADOW_DISC)
 	bush_mesh = Foliage.quad_mesh(Foliage.BUSH_CLUMP / 16.0, true)
 	drift_mesh = Drifts.mound_mesh()
-
-
-## The materials' words and corner shapes as world.gdshader reads them: a texel per
-## material, the word's low and high byte in red and green, the shape in blue.
-static func _material_data(shapes: PackedInt32Array, bits: PackedInt32Array) -> ImageTexture:
-	var image := Image.create(bits.size() + 1, 1, false, Image.FORMAT_RGB8)
-	for m in bits.size():
-		image.set_pixel(m, 0, Color8(bits[m] & 255, (bits[m] >> 8) & 255, shapes[m]))
-	return ImageTexture.create_from_image(image)
 
 
 ## A copy of `shader` (world or leaves, which mark what they draw as solid or as a

@@ -143,7 +143,7 @@
   инструменты `make_*` молча висят; сначала `--check-only`.
 - Атлас материалов вмещает 63 материала и разные коры вместе (`PixelTextures.MOST_MATERIALS`: номер
   материала — 6 бит в меше, плитка боков — бит флага, низа — по нормали, см. `MeshFaces.pack`;
-  текстура `material_data` в 64 текселя у `world.gdshader`); занято 36 (28 материалов и 8 кор, 2026-11-05).
+  `uniform int material_bits[63]` в `world.gdshader`); занято 36 (28 материалов и 8 кор, 2026-11-05).
   Больше — валит `validate.gd`.
 
 **Тесты.** `tests/unit/content_test.gd` (`yaml`, `content`, `schemas` — тип связи у каждой ссылки, `mods` —

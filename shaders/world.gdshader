@@ -37,25 +37,15 @@ stencil_mode write, compare_always, 1;
 #include "res://shaders/common.gdshaderinc"
 
 global uniform sampler2D terrain_atlas : source_color, filter_nearest;
-// A texel per material (main.gd `_material_data`): red and green the low and high byte
-// of its word from its data (Mat.shader_bits): bits 0..3 the priority (which material
-// grows over which at a boundary, 0 never blends), bit 4 DRAINS (no puddles), bits 5..6
-// the kind of patches on open ground (GROUND_*), bit 7 TRUNK (a log or a bark: a tree's
-// trunk clears round the player), bits 8..10 and 11..13 the fray; blue its corner shape
-// (Mat.corner_shape): 0 a straight cut, 1 a little rounded, 2 a quarter circle; the
-// exponent p of the curve is 1, 1.5 or 2. A texture, not two `uniform int` arrays of
-// 63: the Adreno 840's driver (Android, 2026-11-13) crashed building the world's shader
-// with those arrays under the sun alone.
-uniform sampler2D material_data : filter_nearest;
-
-int material_word(int m) {
-	vec3 t = texelFetch(material_data, ivec2(m, 0), 0).rgb;
-	return int(round(t.r * 255.0)) | (int(round(t.g * 255.0)) << 8);
-}
-
-int corner_shape(int m) {
-	return int(round(texelFetch(material_data, ivec2(m, 0), 0).b * 255.0));
-}
+// Corner shape of each material (Mat.corner_shape): 0 a straight cut, 1 a little
+// rounded, 2 a quarter circle; the exponent p of the curve is 1, 1.5 or 2.
+uniform int corner_shapes[63];
+// A word per material from its data (Mat.shader_bits): bits 0..3 the priority (which
+// material grows over which at a boundary, 0 never blends), bit 4 DRAINS (no puddles),
+// bits 5..6 the kind of patches on open ground (GROUND_*), bit 7 TRUNK (a log or a
+// bark: a tree's trunk clears round the player). One entry for every material, filled
+// by main.gd: reading past the end draws garbage on some GPUs.
+uniform int material_bits[63];
 
 // The colour of the rock's section the layers fill in (see the end of fragment()).
 const vec3 SECTION = vec3(0.15, 0.14, 0.135);
@@ -171,7 +161,7 @@ vec3 tile_texel(int tile, ivec2 t) {
 // Patches on bare ground by the material's `ground` kind: damp and dry soil with
 // pebbles, dunes on sand, moss and lichen on rock. Multiplies the tile colour.
 vec3 ground_variety(int mat, vec2 xz, vec2 wt) {
-	int ground = (material_word(mat) >> GROUND_SHIFT) & 3;
+	int ground = (material_bits[mat] >> GROUND_SHIFT) & 3;
 	float p = ground_patch(xz, float(mat));
 	float q = ground_patch(xz, float(mat) + 7.0);
 	float speck = hash12(wt + 13.0);
@@ -269,7 +259,7 @@ void fragment() {
 	// TRUNK_RISE cells above it clear more and more from the bottom up. The vertex
 	// alpha of a trunk's faces says which cell of it they are, in eighths (see
 	// TrunkMesher.trunk_faces): 1 the foot, 2 the next, up to 5.
-	if (!IN_SHADOW_PASS && tile != NONE && COLOR.a < 0.9 && (material_word(tile / 3) & TRUNK) != 0) {
+	if (!IN_SHADOW_PASS && tile != NONE && COLOR.a < 0.9 && (material_bits[tile / 3] & TRUNK) != 0) {
 		float level = floor(COLOR.a * 8.0 + 0.5) - 1.0;
 		float rise = clamp((level - 1.0 + fract(world_pos.y / CELL)) / TRUNK_RISE, 0.0, 1.0);
 		vec2 lt = light_texel(light_xz);
@@ -318,7 +308,7 @@ void fragment() {
 			// north neighbour as the next material (clay's as a bed's, whose furrows
 			// spilled over clay in dashes). It is whole already: round() keeps it.
 			int n = int(round(packed.y));
-			int best = material_word(tile / 3) & PRIORITY_MASK;
+			int best = material_bits[tile / 3] & PRIORITY_MASK;
 			// On a slope the edges with the same neighbour add up, so it grows over the
 			// slope as a whole: round a corner between two edges along the diagonal,
 			// fill a slope between two edges or three, instead of running a band round
@@ -333,7 +323,7 @@ void fragment() {
 				// A boundary with a material that frays (salt) goes ragged both ways: the
 				// texels of the other side reach in up to `fray` texels, in lumps of two
 				// and single ones, thinner farther in, whoever lies over whom.
-				int fray = max((material_word(tile / 3) >> FRAY_SHIFT) & 7, (material_word(nc) >> FRAY_SHIFT) & 7);
+				int fray = max((material_bits[tile / 3] >> FRAY_SHIFT) & 7, (material_bits[nc] >> FRAY_SHIFT) & 7);
 				// (Air is never a neighbour's top.)
 				if (fray > 0 && nc != tile / 3 && nc != 0 && !cap && dist[e] < fray) {
 					float lump = hash12(floor(wt * 0.5) + vec2(float(e) * 7.0, 211.0)) * 0.6
@@ -347,7 +337,7 @@ void fragment() {
 					continue;
 				}
 				int nt = nc * 3;
-				int p = material_word(nt / 3) & PRIORITY_MASK;
+				int p = material_bits[nt / 3] & PRIORITY_MASK;
 				if (p <= best) {
 					continue;
 				}
@@ -387,14 +377,14 @@ void fragment() {
 			// UV2.y holds those materials (ChunkMesher._side_tiles); NO_TILES rounds to
 			// 2^24, whose lanes read 0 (air, never beside): skipped.
 			int n = int(round(packed.y));
-			if ((material_word(tile / 3) >> SIDE_FRAY_SHIFT & 7) > 0) {
+			if ((material_bits[tile / 3] >> SIDE_FRAY_SHIFT & 7) > 0) {
 				vec2 st = floor(across * TEXELS);
 				for (int e = 0; e < 4; e++) {
 					int nc = (n >> (6 * e)) & 63;
 					if (nc == NO_MATERIAL || nc == 0 || nc == tile / 3) {
 						continue;
 					}
-					int reach = (material_word(nc) >> SIDE_FRAY_SHIFT) & 7;
+					int reach = (material_bits[nc] >> SIDE_FRAY_SHIFT) & 7;
 					if (dist[e] >= reach) {
 						continue;
 					}
@@ -473,7 +463,7 @@ void fragment() {
 		// corner, or a rounder curve, see ChunkMesher.corner_curve), counted on the
 		// face, positive toward the middle of the cell.
 		int k = (flag >> 4) & 3;
-		int dd = corner_distance(t, k, corner_shape(tile / 3));
+		int dd = corner_distance(t, k, corner_shapes[tile / 3]);
 		dd = (flag & 64) != 0 ? -dd : dd;
 		int code = (flag >> 7) & 3;
 		if (top && (code == 1 || code == 2)) {
@@ -502,7 +492,7 @@ void fragment() {
 	bool roof = roofed(probe.xz, probe.y);
 	float peak = clamp((world_pos.y - snow_line) / (2.0 * CELL), 0.0, 1.0);
 	// No snow on the top of a trunk inside its crown (a dark cap, see TrunkMesher).
-	bool crowned = cap && (material_word(tile / 3) & TRUNK) != 0;
+	bool crowned = cap && (material_bits[tile / 3] & TRUNK) != 0;
 	float snow_here = roof || crowned ? 0.0 : max(snow_amount, peak) * (1.0 - warm);
 	vec3 texel = floor(tp * TEXELS - world_normal * 0.5);
 	if (slanted) {
@@ -572,7 +562,7 @@ void fragment() {
 	// and in the low cells, shrinking from their edges as they dry, a damp rim round
 	// them, and rings of drops on them while it rains.
 	if (puddles.x > 0.0 && top && !cap && !roof && flag != 4 && world_normal.y > 0.95 && tile != NONE
-			&& (material_word(tile / 3) & DRAINS) == 0 && snow <= 0.0 && warm < 0.5) {
+			&& (material_bits[tile / 3] & DRAINS) == 0 && snow <= 0.0 && warm < 0.5) {
 		vec2 at = world_pos.xz * 2.2;
 		float n = ground_patch(at, 17.0) + (h - 0.5) * 0.02;
 		float here = ground_top(world_pos.xz, vec2(0.0));

@@ -153,7 +153,7 @@ the folder. In the container's browser on 2026-11-01 on 419 records the reading 
   `make_*` tools silently hang; `--check-only` first.
 - The material atlas holds 63 materials and the different barks together (`PixelTextures.MOST_MATERIALS`: a
   material's number is 6 bits in the mesh, the sides' tile is a flag bit, the underside's by the normal, see
-  `MeshFaces.pack`; the texture `material_data` of 64 texels for `world.gdshader`); 36 are used (28 materials and 8
+  `MeshFaces.pack`; `uniform int material_bits[63]` in `world.gdshader`); 36 are used (28 materials and 8
   barks, 2026-11-05). More — fails `validate.gd`.
 
 **Tests.** `tests/unit/content_test.gd` (`yaml`, `content`, `schemas` — the kind of link at every reference,

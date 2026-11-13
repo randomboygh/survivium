@@ -71,7 +71,8 @@ static var tints: PackedColorArray = []
 ## material whose tiles it took in the atlas after the real ones, -1 for the log's own;
 ## the trunk mesher draws the trunk with it. Materials are 6 bits in the mesh (63 none,
 ## see MeshFaces.pack), so there is room for MOST_MATERIALS materials and barks together
-## (ROWS * TILES / 3 tiles; world.gdshader reads them from `material_data`, a texel each).
+## (ROWS * TILES / 3 tiles, the size of `material_bits` and `corner_shapes` in
+## world.gdshader).
 static var bark_material: PackedInt32Array = []
 const MOST_MATERIALS := 63
 
