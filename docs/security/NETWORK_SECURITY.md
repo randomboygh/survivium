@@ -47,6 +47,7 @@ one stack will not double it.
 | `eat`, `throw`, `wear`, `repair` | the cell's number within the bag's bounds |
 | `bag_put`, `bag_move`, `bag_all`, `sort`, `bag_destroy` | cells within bounds (and in `Inventory`), the chest within the hand's reach and by the right «chests», an open bag is not put into itself |
 | `prop_take`, `prop_open`, `prop_destroy`, `lie_in` | the thing within the hand's reach, land rights |
+| `prop_move` | two cells and a turn 0..3; the thing within the hand's reach and `Placed.movable`, its new place within `Tools.PLACE_REACH` and free, land rights at both ends; **pace** — `paced` |
 | `gesture` | the name is a string from `Gestures.LIST` or ""; changes nothing in the world |
 | `sign_write`, `sign_turn` | the sign within the hand's reach, the right «build»; the text is a string of no more than `Requests.SIGN_MAX` 600, the lines are cleaned by `Protocol.clean_text` and cut to the sign (`Placed.sign_text`); **pace** — like the hands' work (`PACED`) |
 | `prop_fire` | within reach; to put out — only by the right «build» on another's land |
