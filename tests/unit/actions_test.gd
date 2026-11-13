@@ -464,6 +464,33 @@ func _test_start_camp() -> void:
 	var a: Vector3i = placed.things[0].cell
 	var b: Vector3i = placed.things[1].cell
 	_check(absi(a.x - b.x) >= 2 or absi(a.z - b.z) >= 2, "the two do not share cells")
+	# A crown over every thing's own spot, and one south of it that the view looks
+	# through: the camp goes under the open sky, in sight.
+	w = WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	for e: Dictionary in Starts.START.camp:
+		var cx: int = home.x + e.at[0]
+		var cz: int = home.z + e.at[1]
+		for dz in range(-2, 4):
+			for dx in range(-2, 4):
+				w.set_cell(cx + dx, 9, cz + dz, Mat.LEAVES)
+				w.set_cell(cx + dx, 9, cz + dz + 7, Mat.LEAVES)
+	placed = Placed.new()
+	placed.world = w
+	placed.start_camp((Vector3(home) + Vector3(0.5, 0.0, 0.5)) * WorldData.CELL)
+	_check(placed.things.size() == Starts.START.camp.size(), "the camp is set down beside the crowns")
+	for e: Dictionary in placed.things:
+		var c: Vector3i = e.cell
+		var hidden := false
+		for dz in 2:
+			for dx in 2:
+				for dy in range(1, 20):
+					hidden = hidden or w.get_cell(c.x + dx, c.y + dy, c.z + dz) != Mat.AIR \
+						or w.get_cell(c.x + dx, c.y + dy, c.z + dz + dy) != Mat.AIR
+		_check(not hidden and c.y == 2, "%s stands in sight, under no crown: %s" % [e.item, c])
 
 
 ## What a thing set down does goes by its item's flags, its class an open word (a mod of

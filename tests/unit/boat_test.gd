@@ -341,11 +341,32 @@ func _test_currents() -> void:
 	var gen := WorldGen.new(12345)
 	var flows := Currents.new(gen)
 	var river: Vector2i = gen.find_place("river", Vector2i.ZERO)
+	# A river's ends are looked for a little each frame; till then it stands still.
+	var slow := Currents.new(gen)
+	slow.budget_us = 0
+	_check(slow.at(river.x, river.y) == Vector2.ZERO and slow.at(river.x, river.y) == Vector2.ZERO,
+		"while its ends are looked for the river stands still")
+	flows.budget_us = 1 << 30
 	var v := flows.at(river.x, river.y)
 	_check(v.length() >= Currents.SPEED * Currents.AT_BANK - 0.01 and v.length() <= Currents.SPEED + 0.01,
 		"a river runs: %s at %s" % [v, river])
 	_check(flows.at(river.x, river.y) == v and Currents.new().at(river.x, river.y) == Vector2.ZERO,
 		"the same each time asked; no layout, no current")
+	# Downstream all along: followed with its current, the river never turns back.
+	var walk := Vector2(river) + Vector2(0.5, 0.5)
+	var back := 0
+	var went := 0
+	var last := v
+	for i in 200:
+		walk += last.normalized() * 3.0
+		var here := flows.at(floori(walk.x), floori(walk.y))
+		if here == Vector2.ZERO:
+			break
+		went += 1
+		if here.dot(last) < 0.0:
+			back += 1
+		last = here
+	_check(back == 0 and went > 10, "a river runs one way along it: %d turns back in %d steps" % [back, went])
 	var far := gen.lay_out(river.x + 200, river.y + 200, 1, 1)
 	_check(far.feature[0] == WorldGen.RIVER or flows.at(river.x + 200, river.y + 200) == Vector2.ZERO, "off a river the water stands")
 	# The current carries a swimmer and a vessel; a raft rows up it slowly, a boat with oars well.

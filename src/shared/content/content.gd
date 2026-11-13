@@ -77,6 +77,32 @@ static func records(kind: String) -> Array:
 	return _kinds.get(kind, [])
 
 
+## Records of `kind` of the bundles `bundles` alone, whether loaded or not: the loaded
+## ones as they are, those of a bundle not loaded read from its files with defaults
+## filled in (no patches of theirs, no references checked). The registries are left as
+## they are: what is shown of a set not played (the map of «New world», Biomes.refresh).
+static func records_of(kind: String, bundles: Array) -> Array:
+	var out: Array = records(kind).filter(func(r: Dictionary) -> bool: return r.get("bundle", "") in bundles)
+	var kept := problems.duplicate()
+	for b in bundles:
+		if b in loaded or not universe().has(b):
+			continue
+		var u: Dictionary = _universe[b]
+		for r in u.records.get(kind, []):
+			if r.get("patch") == true:
+				continue
+			var rec: Dictionary = r.duplicate(true)
+			rec.erase("replaces")
+			rec.mod = u.mod
+			rec.bundle = b
+			if not rec.get("title") is String:
+				rec.title = rec.id
+			_check_fields(rec, schema(kind), rec.mod, "%s/data/%s.yaml" % [b, kind], rec.id)
+			out.append(rec)
+	problems = kept
+	return out
+
+
 ## How many records the set loaded has, of every kind.
 static func record_count() -> int:
 	var n := 0

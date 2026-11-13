@@ -17,7 +17,8 @@ convert the saves of old versions.
 - `src/client/save_game.gd` — when to write: once per `INTERVAL` (30 s) a few chunks per frame, and at once
   on the menu, loss of focus, exit; what to write is given by the shared systems (`to_dict` / `to_list`: the
   clock, things, the character, the bag, skills, plots, blueprints); the modules register the player's parts
-  by `save.track(name, object)`. Choosing a world (`choose_world`, `switch_world`), restoring
+  by `save.track(name, object)`. Choosing a world (`choose_world`, `switch_world`; `replace_world` — «New world»
+  over a saved one: its save deleted, even the one played, so it is made anew with the mods chosen), restoring
   (`restore_player`, `restore_clock`). Off in tests and tools (`enabled`).
 - `src/server/server_store.gd` — the same for a server without a window: writes the world every 10 s and on
   `stop`, with the commands, fights and players by their keys ([network.md](network.md)).

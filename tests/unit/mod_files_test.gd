@@ -9,6 +9,7 @@ const ModFetch := preload("res://src/client/net/mod_fetch.gd")
 const ContentHost := preload("res://src/server/content_host.gd")
 const TestMod := preload("res://src/server/test_mod.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const ModImport := preload("res://src/client/mod_import.gd")
 
 const DIR := "user://mod_files_test"
 const WOLF := "animals/wolf/data/creatures.yaml"
@@ -59,6 +60,7 @@ func run() -> void:
 	_test_cache()
 	_test_test_mod()
 	_test_own_mods()
+	_test_import()
 
 
 func _test_lists() -> void:
@@ -427,6 +429,44 @@ func _test_own_mods() -> void:
 	Mods.rescan()
 	_check(Content.served.is_empty() and Content.playing() == stock and AiRules.SPECIES["animals:wolf"].mass == 40.0,
 		"without the folder the game's mods are as built")
+
+
+## One's own mods brought in from a zip (ModImport): a whole «content» folder inside a
+## folder, one mod with its mod.yaml at the top (named after the zip), the files no mod
+## may have left out; and deleted.
+func _test_import() -> void:
+	var dir := DIR + "/import"
+	_remove(dir)
+	var zip_path := DIR + "/My-Pack 2.zip"
+	var zip := ZIPPacker.new()
+	zip.open(zip_path)
+	for entry: Array in [["Pack/content/mine/mod.yaml", "id: mine\n"], ["Pack/content/mine/stuff/data/items.yaml", "a: 1\n"],
+			["Pack/content/core/icons/x.png", "png"], ["Pack/readme.txt", "hello"], ["Pack/content/mine/../evil.yaml", "x"]]:
+		zip.start_file(entry[0])
+		zip.write_file((entry[1] as String).to_utf8_buffer())
+		zip.close_file()
+	zip.close()
+	var got := ModImport.unpack(zip_path, dir)
+	_check(got.files == 3 and got.skipped == 2 and FileAccess.file_exists(dir + "/mine/stuff/data/items.yaml")
+		and FileAccess.file_exists(dir + "/core/icons/x.png") and not FileAccess.file_exists(dir + "/readme.txt"),
+		"a zip of a content folder goes in as it is laid out there: %s" % got)
+	zip = ZIPPacker.new()
+	zip.open(zip_path)
+	for entry: Array in [["mod.yaml", "id: pack\n"], ["fish/data/creatures.yaml", "b: 2\n"]]:
+		zip.start_file(entry[0])
+		zip.write_file((entry[1] as String).to_utf8_buffer())
+		zip.close_file()
+	zip.close()
+	got = ModImport.unpack(zip_path, dir)
+	_check(got.files == 2 and FileAccess.file_exists(dir + "/my_pack_2/fish/data/creatures.yaml"),
+		"a zip of one mod goes in as a mod named after it: %s" % got)
+	var bad := FileAccess.open(DIR + "/bad.zip", FileAccess.WRITE)
+	bad.store_string("not a zip")
+	bad.close()
+	_check(ModImport.unpack(DIR + "/bad.zip", dir).error == "[this_is_not_a_zip]", "what is not a zip is told so")
+	ModImport.clear(dir)
+	_check(DirAccess.get_files_at(dir).is_empty() and DirAccess.get_directories_at(dir).is_empty(), "one's own mods are deleted")
+	_remove(dir)
 
 
 func _remove(dir: String) -> void:

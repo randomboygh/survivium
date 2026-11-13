@@ -34,6 +34,7 @@ const Vibration := preload("res://src/client/ui/vibration.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const ModCache := preload("res://src/client/net/mod_cache.gd")
 const ModFiles := preload("res://src/shared/content/mod_files.gd")
+const ModImport := preload("res://src/client/mod_import.gd")
 const StartTimes := preload("res://src/client/ui/start_times.gd")
 const LastLog := preload("res://src/client/ui/last_log.gd")
 const ShaderProbe := preload("res://src/client/view/shader_probe.gd")
@@ -702,13 +703,37 @@ func _section_rows(key: String) -> Array:
 ## The «Сервер» tab: the playtest server on GitHub (started, joined, given an hour more,
 ## stopped) apart from the server this game is on or makes of its world (bots, its
 ## world, the switches as cheats), each under its own heading.
-## Where one's own mods go on a phone (ModFiles.extra_dir: a folder of the app laid over
-## the game's mods) and how many files are there; nothing where there is no such folder.
+## One's own mods on a phone (ModFiles.extra_dir: a folder of the app laid over the
+## game's mods): how many files are there, a button that unpacks a zip of mods picked with
+## the system's file picker into it (ModImport) and one that deletes them; nothing where
+## there is no such folder.
 func _own_mods_rows() -> Array:
 	if ModFiles.extra_dir == "":
 		return []
-	return [_section("hammer", "[your_own_mods]"),
-		{"note": Lang.line("[put_your_mods_into_the]", [ModFiles.extra_dir, ModFiles.extra().size()])}]
+	var rows := [_section("hammer", "[your_own_mods]"),
+		{"note": Lang.line("[own_mod_files_d]", [ModFiles.extra().size()])}]
+	if ModImport.can_pick():
+		rows.append({"action": "[import_mods_from_a_zip]", "do": func() -> void: ModImport.pick(_imported)})
+	if not ModFiles.extra().is_empty():
+		rows.append({"action": "[delete_your_own_mods]", "confirm": true, "do": func() -> void:
+			ModImport.clear(ModFiles.extra_dir)
+			game.settings.reload_mods()
+			_fill.call_deferred()})
+	rows.append({"note": Lang.line("[a_zip_of_mods_laid]", [ModFiles.extra_dir])})
+	return rows
+
+
+## A zip of mods was unpacked (ModImport.unpack, `got`): the mods are read again and the
+## player told how it went.
+func _imported(got: Dictionary) -> void:
+	if got.error != "":
+		if game.hud != null:
+			game.hud.toast(got.error)
+		return
+	game.settings.reload_mods()
+	if game.hud != null:
+		game.hud.toast(Lang.line("[mod_files_imported_d_left]", [got.files, got.skipped]))
+	_fill.call_deferred()
 
 
 ## Over a server with «Читы на сервере» off: a line saying the playtest switches below

@@ -102,6 +102,22 @@ func switch_world(seed_value: int, options: Dictionary) -> void:
 		WorldStore.write_current(seed_value, options)
 
 
+## Makes `seed_value` and `options` the world to start next time, made anew: its save
+## is deleted (the world being played is not saved over it again), so it starts with the
+## bundles chosen on «Новый мир», not the ones it was saved with.
+func replace_world(seed_value: int, options: Dictionary) -> void:
+	var dir := WorldStore.world_dir(seed_value, options)
+	if store != null and store.dir == dir:
+		active = false
+		has_save = false
+	else:
+		flush()
+	WorldStore.new(dir).erase()
+	print("world %s made anew" % dir)
+	if enabled or game.join_url != "":
+		WorldStore.write_current(seed_value, options)
+
+
 ## Puts the saved player back into the scene just built.
 func restore_player() -> void:
 	var p: Variant = player_record.get("position")

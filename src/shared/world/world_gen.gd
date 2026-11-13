@@ -66,6 +66,13 @@ var planted := {}
 ## Where the player is first put: a meadow near the origin, refined by find_spawn once
 ## its chunk is made.
 var spawn_guess: Vector3i
+## The spawn is still being looked for (seek_spawn); where the search is (ring, row,
+## column), and whether land was met yet (the fallback).
+var seeking := false
+var _seek := Vector3i.ZERO
+var _seek_land := false
+## Rings of columns the spawn is looked for in.
+const SPAWN_RINGS := 160
 ## Where chunks the player changed are kept between runs: has_chunk(key) and
 ## read_chunk(key) -> Dictionary (see WorldStore); null makes every chunk anew.
 var saved
@@ -100,7 +107,10 @@ static func generate(seed_value: int, area := Vector2i(4, 4), sy := 48, options 
 	return gen.world
 
 
-func _init(seed_value: int, sy := 48, options := {}) -> void:
+## A generator of the world of `seed_value` (`sy` levels, WorldGen settings `options`);
+## with `spawn` false the spawn is not looked for here but by seek_spawn, a little at a
+## time (the map of «New world»), spawn_guess the fallback till then.
+func _init(seed_value: int, sy := 48, options := {}, spawn := true) -> void:
 	world_seed = seed_value
 	size_y = sy
 	settings = DEFAULT_SETTINGS.duplicate()
@@ -120,7 +130,10 @@ func _init(seed_value: int, sy := 48, options := {}) -> void:
 	ore = Mat.ORE if Mat.ORE >= 0 else Mat.STONE
 	_noises()
 	coast_level = _coast_level()
-	spawn_guess = _pick_spawn()
+	if spawn:
+		spawn_guess = _pick_spawn()
+	else:
+		_seek_start()
 
 
 ## Makes the chunks from..to (ends exclusive) SHAPED, with what they need around.
@@ -715,29 +728,71 @@ func _bushes(_key: Vector2i, lay: Dictionary) -> void:
 ## near water: where the player starts. Columns are tried on a spiral 16 cells apart; any dry land does when no
 ## meadow turns up.
 func _pick_spawn() -> Vector3i:
-	var fallback := Vector3i(0, size_y - 1, 0)
-	var found_land := false
+	_seek_start()
+	seek_spawn(-1)
+	return spawn_guess
+
+
+func _seek_start() -> void:
+	seeking = true
+	_seek = Vector3i.ZERO
+	_seek_land = false
+	spawn_guess = Vector3i(0, size_y - 1, 0)
+
+
+## Goes on looking for the spawn for `budget_us` microseconds (-1: till it is found):
+## columns 16 cells apart in rings round the middle of the world, out to SPAWN_RINGS, the
+## first of a biome a player may start in (any, when no climate biome is loaded), a few
+## levels above the sea, out of woods, rivers and rough land; else the first land met.
+## True once it is done (spawn_guess is then the spawn, `seeking` false).
+func seek_spawn(budget_us: int) -> bool:
+	if not seeking:
+		return true
+	var t0 := Time.get_ticks_usec()
 	var forest_t := _byte(0.3)
-	for r in range(0, 160):
-		for dz in range(-r, r + 1):
-			for dx in range(-r, r + 1):
-				if maxi(absi(dx), absi(dz)) != r:
-					continue
-				var x := dx * 16
-				var z := dz * 16
-				var lay := lay_out(x, z, 1, 1)
-				var h: int = lay.heights[0]
-				if lay.water[0] >= 0 or lay.flags[0] & SHEER_TOP:
-					continue
-				if not found_land:
-					found_land = true
-					fallback = Vector3i(x, h + 1, z)
-				var grids: Array = lay.grids
-				var forest: PackedByteArray = grids[8]
-				if Biomes.spawn_ok(lay.biome[0]) and h >= sea + 3 and h <= sea + 8 and forest[0] <= forest_t \
-						and lay.river[0] > 12.0 and _calm_around(x, z):
-					return Vector3i(x, h + 1, z)
-	return fallback
+	var any_biome := Biomes.CLIMATE.is_empty()
+	while _seek.x < SPAWN_RINGS:
+		var x := _seek.z * 16
+		var z := _seek.y * 16
+		_seek_next()
+		var lay := lay_out(x, z, 1, 1)
+		var h: int = lay.heights[0]
+		if lay.water[0] < 0 and not lay.flags[0] & SHEER_TOP:
+			if not _seek_land:
+				_seek_land = true
+				spawn_guess = Vector3i(x, h + 1, z)
+			var grids: Array = lay.grids
+			var forest: PackedByteArray = grids[8]
+			if (any_biome or Biomes.spawn_ok(lay.biome[0])) and h >= sea + 3 and h <= sea + 8 and forest[0] <= forest_t \
+					and lay.river[0] > 12.0 and _calm_around(x, z):
+				spawn_guess = Vector3i(x, h + 1, z)
+				seeking = false
+				return true
+		if budget_us >= 0 and Time.get_ticks_usec() - t0 >= budget_us:
+			return false
+	seeking = false
+	return true
+
+
+## The next column of the rings (see seek_spawn), _seek being (ring, row, column) in
+## columns from the middle: along the row on the ring's top and bottom, its two ends
+## on the rows between.
+func _seek_next() -> void:
+	var r := _seek.x
+	var dz := _seek.y
+	var dx := _seek.z
+	if absi(dz) != r and dx == -r:
+		dx = r
+	else:
+		dx += 1
+	if dx > r:
+		dz += 1
+		dx = -r
+		if dz > r:
+			r += 1
+			dz = -r
+			dx = -r
+	_seek = Vector3i(r, dz, dx)
 
 
 ## With relief 1, whether the land within SPAWN_CALM cells of column x, z has no

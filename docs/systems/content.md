@@ -40,7 +40,13 @@ the code sees content.
   the game plays with its own files the table `Content.served` is then that of its own (`Content.lay_own`,
   `served_own`; `serving()` is true only for a server's), read again at every load (`Content.refresh`). A server
   made there lists and gives these files (`ContentHost`), and the settings show the folder and how many files
-  it has («Your own mods», `SettingsMenu._own_mods_rows`). A file whose name no list may carry (`valid_path`:
+  it has («Your own mods», `SettingsMenu._own_mods_rows`). The folder is out of reach of the file managers of
+  new Androids, so mods are brought in from a zip picked with the system's file picker («Import mods from a
+  zip», `src/client/mod_import.gd`, `ModImport.pick` by `DisplayServer.file_dialog_show`, the content:// path
+  copied to `user://` and unpacked by `unpack`: a `content/` folder inside the zip, else one mod with its
+  mod.yaml at the top named after the zip, `placing`, `mod_name`; only names `valid_path` takes, under
+  `FILE_MAX`; then the mods are read again), and deleted («Delete your own mods», `ModImport.clear`;
+  `mod_files_test.gd` `_test_import`). A file whose name no list may carry (`valid_path`:
   plain letters, digits, `_ - + .`) or over `FILE_MAX` is left out of every scan (`ModFiles.skipped`; a server
   says so in its log). The check is `mod_files_test.gd` `_test_own_mods`.
 - Hot reload (decision 184): `src/shared/content/content_watch.gd` (`ContentWatch`) watches the files of
@@ -100,7 +106,7 @@ the code sees content.
   (any other class there — the hands), `holds(inv, class)`, `held_of(inv, class)`.
 
 **Interface**
-- `Content.records(kind)`, `Content.find(kind, id)` (by a pointer `_at`, with no search),
+- `Content.records_of(kind, bundles)` — records of a set not loaded (the loaded ones of it as they are, the others read from their files with defaults, no patches; the registries untouched: the map of «New world» by `Biomes.refresh(only)`), `Content.records(kind)`, `Content.find(kind, id)` (by a pointer `_at`, with no search),
   `Content.record_count()`, `Content.schema(kind)` (a kind's fields and the common ones), `Content.refs(kind)`
   (the reference fields, and the fields of records inside `entries` like `camp.item`), `Content.named(r,
   key)`, `Content.canon(kind, id)` (an old id from `was` — into the present one), `Content.origin(kind, id)`
