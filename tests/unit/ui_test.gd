@@ -112,6 +112,16 @@ func _test_switch_rows() -> void:
 	rows.step(2, 1)
 	rows.step(2, 1)
 	_check(v.vol == 2 and rows.rows[2].right.disabled and not rows.rows[2].left.disabled, "at the last the right one")
+	# A tap on a switch row's name turns it too; a finger that moved (scrolled) does not.
+	var name: Label = rows.rows[0].name
+	name.size = Vector2(100, 20)
+	_tap_name(name, Vector2(10, 10), Vector2(12, 10))
+	_check(v.on == 1 and rows.rows[0].switch.button_pressed, "a tap on the name of a switch's row turns it")
+	_tap_name(name, Vector2(10, 10), Vector2(10, 40))
+	_check(v.on == 1, "a finger dragged from the name turns nothing")
+	rows.rows[3].name.size = Vector2(100, 20)
+	_tap_name(rows.rows[3].name, Vector2(10, 10), Vector2(10, 10))
+	_check(v.dead == 1, "nor does a tap on the name of a switch that cannot change")
 	var sw := Kit.check("A", true)
 	_check(sw.button_pressed and sw.text == "A", "the kit's switch carries its name and value")
 	sw.free()
@@ -316,6 +326,17 @@ func _test_map_fit() -> void:
 
 ## Where each test finger is, so a drag carries its `relative` as the engine's do.
 var _at := {}
+
+
+## A left click on `label` pressed at `from` and let go at `to` (its own pixels).
+func _tap_name(label: Label, from: Vector2, to: Vector2) -> void:
+	for at: Vector2 in [from, to]:
+		var e := InputEventMouseButton.new()
+		e.button_index = MOUSE_BUTTON_LEFT
+		e.pressed = at == from and not label.has_meta("tap_at")
+		e.position = at
+		e.global_position = at
+		label.gui_input.emit(e)
 
 
 func _touch(c: Control, index: int, at: Vector2, down: bool) -> void:

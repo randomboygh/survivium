@@ -103,7 +103,8 @@ func _ready() -> void:
 		marker.draw_rect(Rect2(mid - Vector2(1, 1), Vector2(3, 3)), UiStyle.ACCENT))
 	_map.add_child(marker)
 	_list = Kit.column(4)
-	_scroll = Kit.scroll(_list, false)
+	# Inset as the settings' rows (the kit's rule): BAR_GAP from the frame's sides.
+	_scroll = Kit.scroll(_list)
 	_box.add_child(_scroll)
 	_choices.scroll = _scroll
 	_choices.stepped.connect(_on_stepped)
@@ -317,9 +318,24 @@ func _on_stepped(i: int) -> void:
 	if _page == "world":
 		_restart_map()
 	else:
+		# The page stays where it was scrolled to: the rows made anew are not laid out
+		# yet, and keeping the focused one in sight would take the list to its top.
+		var at := _scroll.scroll_vertical
 		_build_rows()
+		_choices.scroll = null
 		_choices.set_focus(i)
+		_choices.scroll = _scroll
 		fit()
+		_scroll.scroll_vertical = at
+		_keep_scroll(at)
+
+
+## Scrolls the list back to `at` once the rows made anew are laid out (a shorter list
+## for a frame would have pulled it up).
+func _keep_scroll(at: int) -> void:
+	await get_tree().process_frame
+	if is_instance_valid(_scroll):
+		_scroll.scroll_vertical = at
 
 
 ## Side by side on a wide screen, the map over the rows on a tall one; centred. Every
@@ -332,9 +348,9 @@ func layout(screen: Vector2) -> void:
 	if _rows_height <= 0.0 or _page == "world":
 		_list.reset_size()
 		_rows_height = _list.get_combined_minimum_size().y
-	# A shown bar takes its width twice: the rows' room beside it (UiStyle.bar_room) and
-	# the scroll's own; given both always, the panel is as wide with it as without.
-	var bar := UiStyle.BAR_GAP + 2 * _scroll.get_v_scroll_bar().get_combined_minimum_size().x
+	# The rows keep BAR_GAP from each side (UiStyle.inset), and the bar its own width
+	# beside them when shown: given always, the panel is as wide with it as without.
+	var bar := 2 * UiStyle.BAR_GAP + _scroll.get_v_scroll_bar().get_combined_minimum_size().x
 	_scroll.custom_minimum_size = Vector2(_choices.width() + bar, _rows_height)
 	# The note wraps as wide as the rows, never wider.
 	_saved_note.custom_minimum_size.x = _scroll.custom_minimum_size.x

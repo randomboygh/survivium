@@ -31,7 +31,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
 - `choice_rows.gd` — rows «name ‹ value ›»: values, reading and writing, in a circle or to the edges (`stop`),
   straight to the edges (`direct`), skipping a value, «none» (`other`), inactive (`works`), an «open» button;
   focus by keys: up and down pick a row, left and right turn the values. A row whose values are only «off | on»
-  (or «hidden | shown», `SWITCHES`) is a switch in place of the arrows and the value (left turns it off, right
+  (or «hidden | shown», `SWITCHES`) is a switch in place of the arrows and the value (a tap on it or on its name turns it, left turns it off, right
   on; `"switch": false` keeps the arrows): every on/off setting is a switch. A row that stops at its ends
   (`stop`, `direct`) has the arrow towards the end it is at disabled; the settings' scales (volume, sizes, speeds, quality, the caves' layers, `SettingsMenu.SCALES`) and the land's amounts in «New world» stop so, the rows of kinds (language, weather, the hour) go round. Settings, «Testing», «New world» and
   its mods, «Create a server».
@@ -98,8 +98,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   «Unban» and the field «Ban» (the same commands `whitelist`, `ban`, `unban`, `Server.access`); under all
   «Play», «Stop the server» (two touches), «Back»; the same window is the «Server» item in the pause menu;
   taller than the screen — it scrolls, the bar does not cover the rows, `UiStyle.bar_room`), `world_setup.gd`
-  («New world»: seed, kind of world, generator settings with a map, the page «Mods» and a page per mod, its
-  first row the mod as a whole switching all its bundles, `_whole_mod_row`: under a dropped bundle the
+  («New world»: seed, kind of world, generator settings with a map, the rows inset as the settings' (`UiStyle.inset`), the page «Mods» and a page per mod, its first row the mod as a whole switching all its bundles, `_whole_mod_row` (a switch keeps its place in the list: the page is made anew at the same scroll): under a dropped bundle the
   whole chain of the reason, `Mods.why`; when a world of the seed and settings is saved, a red note says
   «Create a world» makes it anew with the mods chosen now on a second tap, `_check_saved`,
   `SaveGame.replace_world` deletes the save), `world_list.gd` («Load world»; a world has a square trash button:
@@ -211,7 +210,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   transparency, and the list closes up after it (`FadingList`). Under them, a list of its own for the server's
   notices to its host (`Hud.server_note`, the event `noted`: who joined for the first time or came back, lost
   the connection, left, was disconnected or banned by a host, was not let in and why): cool-tinted panels with
-  the server's mark, three at most, 6 s each. `vitals_panel.gd` (the state in the
+  the server's mark, three at most, 6 s each. Both lists are drawn over the windows and their shade (`TOASTS_Z`), taps go through them. `vitals_panel.gd` (the state in the
   top left corner: a thick health bar with a thinner stamina bar under it, then standing bars for satiety,
   water, warmth and sleep, each only while it is low (`VitalsPanel.critical`; all of them while the bag is
   open), and a column of what hinders the body — wet, out of breath, overloaded, `VitalsPanel.debuffs_of`;
@@ -226,7 +225,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   forgotten too — `_input`), `src/client/game/markers.gd` (the player's markers; teleport from the «Testing»
   page).
 - Settings: `src/client/settings.gd` (the saved settings and the switches of «Testing»: each module reads its
-  values there), `settings_menu.gd` (pages of rows «name ‹ value ›», sections parted by strips `{"section": icon, "title"}` → `Kit.section`; on a server the rows of day length, time of day, season and weather are faded with a note, the server's host sets them in its window; the version and «What's new» from
+  values there), `settings_menu.gd` (pages of rows «name ‹ value ›», sections parted by strips `{"section": icon, "title"}` → `Kit.section`; the settings' tabs «Game», «Interface», «Graphics», «Sound» (the music's and the sounds' volumes, each under its strip) and «Other» (the mods' files kept from servers and «Clear server data», where one's own mods go); a tabbed page keeps one height on every tab, its longest section's, and a taller tab scrolls in it; on a server the rows of day length, time of day, season and weather are faded with a note, the server's host sets them in its window; the version and «What's new» from
   `build_info.json`: also opened from the main menu, «Back» goes there; the changes are built by
   `CHANGES_STEP` while scrolling).
 - Debugging: `perf_panel.gd` (F3; the graph button in the top row only with the setting «Interface» →

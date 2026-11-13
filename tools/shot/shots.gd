@@ -715,6 +715,10 @@ const SHOTS := {
 	# The interface a step smaller and the joystick and buttons the smallest.
 	"ui-small": {"time": 0.45, "season": 1, "touch": true, "ui_size": 1, "control_size": 0},
 	"ui-settings-big": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "ui_size": 4},
+	# The music and the sounds on one tab, each under its strip.
+	"ui-settings-sound": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "sound"},
+	# A toast is drawn over a window and its shade.
+	"ui-toast-over-window": {"time": 0.45, "season": 1, "touch": true, "toast": true, "menu": true, "page": "settings"},
 	# The interface section of the settings, and the corner of the HUD by its settings:
 	# the minimap small or large, the level and camera buttons hidden.
 	"ui-settings-interface": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "interface"},
@@ -762,14 +766,14 @@ const SHOTS := {
 	"ui-main-menu-loading": {"time": 0.42, "season": 1, "touch": true, "main_menu": "loading", "menu_hour": 20.5},
 	"ui-main-menu-loading-pc": {"time": 0.42, "season": 1, "main_menu": "loading"},
 	# Joining a server with other mods' files: the loading screen says how much of them came
-	# (decision 189); and where they are cleared, the end of the settings' first section.
+	# (decision 189); and where they are cleared, the settings' «Другое» tab.
 	"ui-mods-loading": {"time": 0.42, "season": 1, "touch": true, "main_menu": "loading", "menu_hour": 20.5, "progress": 0.08,
 		"caption": ["[mod_data_s_of_s_mb]", "3.2", "7.5"]},
 	"ui-mods-loading-pc": {"time": 0.42, "season": 1, "main_menu": "loading", "progress": 0.08,
 		"caption": ["[mod_data_s_of_s_mb]", "3.2", "7.5"]},
-	"ui-settings-server-data": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "menu_end": true},
+	"ui-settings-server-data": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "other"},
 	# The same on a phone: where one's own mods go. The last shot of a run: the folder stays named.
-	"ui-settings-own-mods": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "menu_end": true,
+	"ui-settings-own-mods": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "other",
 		"own_mods": "/storage/emulated/0/Android/data/io.github.randomboygh.survivium/files/content"},
 	"ui-main-menu-sky-pc": {"time": 0.42, "season": 1, "main_menu": "sky", "menu_hour": 12.0},
 	"ui-main-menu-dawn": {"time": 0.42, "season": 1, "touch": true, "main_menu": "sky", "menu_hour": 6.3},
