@@ -1327,9 +1327,9 @@ func _build_menu() -> void:
 
 func _build_materials() -> void:
 	atlas = PixelTextures.build_atlas()
-	RenderingServer.global_shader_parameter_set("terrain_atlas", atlas)
+	PixelTextures.set_global("terrain_atlas", atlas)
 	hud.set_block_icons(atlas, PixelTextures.TILE, PixelTextures.TILES)
-	RenderingServer.global_shader_parameter_set("cloud_noise", PixelTextures.build_cloud_noise())
+	PixelTextures.set_global("cloud_noise", PixelTextures.build_cloud_noise())
 	world_mat = _material(WorldShader)
 	var shapes := PackedInt32Array()
 	var bits := PackedInt32Array()

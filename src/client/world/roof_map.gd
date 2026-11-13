@@ -43,15 +43,15 @@ var biomes_dirty := false
 func prepare(_w = null) -> void:
 	image = Image.create_empty(WRAP, WRAP, false, Image.FORMAT_RGBA8)
 	texture = ImageTexture.create_from_image(image)
-	RenderingServer.global_shader_parameter_set("roof_map", texture)
-	RenderingServer.global_shader_parameter_set("roof_map_soft", texture)
+	PixelTextures.set_global("roof_map", texture)
+	PixelTextures.set_global("roof_map_soft", texture)
 	RenderingServer.global_shader_parameter_set("wrap_size", Vector2(WRAP, WRAP) * 0.5)
 	biome_image = Image.create_empty(WRAP, WRAP, false, Image.FORMAT_R8)
 	biome_image.fill(Color(1, 1, 1))
 	biome_texture = ImageTexture.create_from_image(biome_image)
-	RenderingServer.global_shader_parameter_set("biome_map", biome_texture)
+	PixelTextures.set_global("biome_map", biome_texture)
 	tints_texture = ImageTexture.create_from_image(tints())
-	RenderingServer.global_shader_parameter_set("biome_tints", tints_texture)
+	PixelTextures.set_global("biome_tints", tints_texture)
 
 
 ## The factors of the loaded biomes' tints (see Biomes.tints): what turns a material's
