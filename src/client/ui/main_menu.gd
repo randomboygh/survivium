@@ -37,7 +37,6 @@ extends "res://src/client/ui/menu_pages.gd"
 ## number is written small under the name, by its right edge. `game` is the Main node.
 
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
-const Creatures := preload("res://src/client/game/creatures.gd")
 const ShaderWarmup := preload("res://src/client/view/shader_warmup.gd")
 ## Seconds the painted landscape takes to fade once the world's first frames are calm.
 const FADE := 1.2
@@ -118,11 +117,7 @@ func _ready() -> void:
 	_sparrow = Control.new()
 	_sparrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_sparrow.draw.connect(_draw_sparrow)
-	if AiRules.SPECIES.has(SPARROW):
-		_sparrow_picture = Creatures.picture(AiRules.SPECIES[SPARROW])
-		_sparrow_frames = AiRules.SPECIES[SPARROW].frames
-		_sparrow_walk = Creatures.walk_frames(AiRules.SPECIES[SPARROW])
-		_sparrow_views = AiRules.SPECIES[SPARROW].views
+	_take_sparrow(AiRules.SPECIES.get(SPARROW, {}))
 	title.add_child(_sparrow)
 	_sparrow_hit = Control.new()
 	_sparrow_hit.mouse_filter = Control.MOUSE_FILTER_STOP
