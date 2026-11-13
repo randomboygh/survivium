@@ -10,10 +10,10 @@
 - **Браузер:** https://randomboygh.github.io/survivium/ — собирается из `main` после каждого слияния
   (браузер может минут десять показывать старую сборку). Версия и список изменений — «Что нового» в главном
   меню.
-- **ПК (Windows, Linux):** релиз [pc-latest](https://github.com/randomboygh/survivium/releases/tag/pc-latest),
-  тоже обновляется с каждым слиянием.
-- **Android:** APK в релизе [android-latest](https://github.com/randomboygh/survivium/releases/tag/android-latest),
-  тоже обновляется с каждым слиянием; откройте его на телефоне и разрешите установку из этого источника.
+- **Android, ПК (Windows, Linux):** [последний релиз](https://github.com/randomboygh/survivium/releases/latest): каждое слияние в `main` — релиз
+  `v<этап>.<PR>` с его изменениями и файлами `survivium-android.apk` (откройте его на телефоне и разрешите
+  установку из этого источника), `survivium-windows.zip`, `survivium-linux.tar.gz`. Новейший APK по
+  неизменной ссылке: https://github.com/randomboygh/survivium/releases/latest/download/survivium-android.apk. Все версии — [Releases](https://github.com/randomboygh/survivium/releases).
 - **Мультиплеер:** «Мультиплеер» → «Присоединиться» (ссылка `?server=адрес` открывает этот экран с адресом).
 
 ## Что есть в игре

@@ -33,15 +33,36 @@ publishing, which waits for everything). The fast ones fail first.
 | `pc` | the Windows and Linux export; the artifacts `survivium-windows`, `survivium-linux` | ~1 min | yes (for publishing) |
 | `android` | the Android APK (arm64), signed by the key from the secrets ([../systems/android.md](../systems/android.md)); the artifact `survivium-android` | ~2 min | yes (for publishing) |
 | `smoke (desktop / phone / upright)` | the web build in headless Chrome (`tests/browser_smoke.mjs`); the phones draw the lightest preset (`?quality=0`, `Settings.use_page_quality`), the desktop the default picture | 1–4 min | yes, when it runs |
-| `publish` | only `main`: the PC builds into the prerelease `pc-latest` | seconds | — |
-| `publish-android` | only `main`: the APK into the prerelease `android-latest` | seconds | — |
+| `release` | only `main`: the GitHub release `v<stage>.<PR>` with the notes of `tools/release_notes.py` (the «What's new» lines since the last release) and the APK and PC builds; the same files into the prereleases `android-latest`, `pc-latest` ([Releases](#releases)) | seconds | — |
 | `deploy` | only `main`: the web build to GitHub Pages | seconds | — |
 
-«Blocks» here means: `publish` and `deploy` wait for its success, and by the project's rule a PR is merged
+«Blocks» here means: `release` and `deploy` wait for its success, and by the project's rule a PR is merged
 only on green CI. So that GitHub itself does not let a red PR be merged, in the repository's settings
 (Settings → Branches → the rule for `main` → Require status checks) mark the jobs `lint`, `checks`, `tests`,
 `progress (hunting)`, `progress (other)`, `frames`, `export`, `pc`, `android`. `smoke (…)` is not put there: on a PR with
 no client changes it is skipped.
+
+## Releases
+
+Every build of `main` that passed every job is a release on GitHub (Releases), made by the job `release`:
+
+- **Version and tag.** The version is the one the game shows, `<stage>.<PR>` (`tools/build_info.py`): the stage
+  is `application/config/version` in `project.godot`, the PR the one the commit merged (its subject ends with
+  `(#N)`). It is valid semver: the stage is the minor number (raised by hand when an MVP stage closes), the PR
+  the patch (it only grows). The tag is `v<stage>.<PR>` on the merged commit, the title `Survivium <version>`.
+- **Notes.** `tools/release_notes.py` reads the PRs merged since the last release's tag (`git log`, so the
+  checkout has the whole history and the tags) and groups their «What's new» lines by kind: New, Improved,
+  Fixed, Optimized, Core; in English, then in Russian; a PR with no such line is listed by its title. Then the
+  downloads and the link comparing the two tags. With no release before, the notes start where the stage
+  began. A main run that failed makes no release: its changes go into the next one.
+- **Files.** `survivium-android.apk`, `survivium-windows.zip`, `survivium-linux.tar.gz` (the names do not
+  change, so `https://github.com/randomboygh/survivium/releases/latest/download/<file>` always gives the
+  newest build). The web build is Pages.
+- **Latest.** The newest version is marked "Latest"; a run finishing after a newer one (main's runs are never
+  cancelled) makes its release without the mark and leaves the rolling prereleases alone.
+- **Rolling prereleases.** `android-latest` and `pc-latest` keep older links working: the same files as the
+  newest release, their tags moved to its commit.
+- A rerun of a main run edits its release (notes and files) instead of failing.
 
 ## Results and logs
 
@@ -56,7 +77,7 @@ no client changes it is skipped.
 ## Security
 
 - The token's default rights are read only (`contents: read`); `changes`, `export`, `pc` also read the PR
-  (`pull-requests: read`), `publish`, `publish-android` write a release (`contents: write`), `deploy` — Pages (`pages: write`,
+  (`pull-requests: read`), `release` writes a release and its tag (`contents: write`), `deploy` — Pages (`pages: write`,
   `id-token: write`). A PR's code gets no write rights.
 - The secrets: the built-in `GITHUB_TOKEN` and the Android signing key `ANDROID_KEYSTORE`,
   `ANDROID_KEYSTORE_PASSWORD` (only the `android` job reads them; the keystore file is deleted after the export);
@@ -70,7 +91,7 @@ no client changes it is skipped.
 - `playwright-core` for the smoke test is pinned by version (`1.48.2`), with no lock file.
 - Every test writes to its own `user://` (`XDG_DATA_HOME`), the developer's saves are not touched; the tests
   call no external services (the server test listens on localhost:7791).
-- Checking the code and publishing are separated: only `publish`, `publish-android` and `deploy` publish, only into `main`, only
+- Checking the code and publishing are separated: only `release` and `deploy` publish, only into `main`, only
   after all checks succeed.
 
 ## Time

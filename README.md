@@ -10,10 +10,10 @@ A Russian copy of this file: [README_RU.md](README_RU.md).
 - **Browser:** https://randomboygh.github.io/survivium/ — built from `main` after every merge (the browser
   may show an old build for about ten minutes). The version and the list of changes are under «What's new»
   in the main menu.
-- **PC (Windows, Linux):** the [pc-latest](https://github.com/randomboygh/survivium/releases/tag/pc-latest)
-  release, also updated with every merge.
-- **Android:** the APK in the [android-latest](https://github.com/randomboygh/survivium/releases/tag/android-latest)
-  release, also updated with every merge; open it on the phone and allow installing from that source.
+- **Android, PC (Windows, Linux):** the [latest release](https://github.com/randomboygh/survivium/releases/latest): every merge into `main` is a
+  release `v<stage>.<PR>` with its changes and the files `survivium-android.apk` (open it on the phone and
+  allow installing from that source), `survivium-windows.zip`, `survivium-linux.tar.gz`. The newest APK by a
+  link that does not change: https://github.com/randomboygh/survivium/releases/latest/download/survivium-android.apk. All versions: [Releases](https://github.com/randomboygh/survivium/releases).
 - **Multiplayer:** «Multiplayer» → «Join» (a link with `?server=address` opens this screen with the address
   filled in).
 
@@ -58,8 +58,8 @@ default the test world and 3 bots that play beside you on their own), or in the 
 - Every PR description has at least one line for the player, in Russian: `Что нового [вид]: …`, where the
   kind is `новое`, `улучшено`, `исправлено`, `оптимизировано` or `ядро`. CI shows them in «Testing».
 - The client's version is `<stage>.<PR number>`; CI (`.github/workflows/build.yml`) runs the tests, builds
-  the web and PC versions, checks the web build in Chrome and publishes from `main` to GitHub Pages and to
-  `pc-latest`.
+  the web and PC versions, checks the web build in Chrome and publishes from `main` to GitHub Pages and to a GitHub
+  release `v<stage>.<PR>` with the changes since the last one (`tools/release_notes.py`).
 - All the checks at once: `tests/run_all.sh`. Rules, checks and pitfalls: [CLAUDE.md](CLAUDE.md); the code's
   documentation: [docs/INDEX.md](docs/INDEX.md). The plan and game design live in the `plan/` folder of the
   Claude project.

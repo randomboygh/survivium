@@ -34,15 +34,36 @@
 | `pc` | экспорт Windows и Linux; артефакты `survivium-windows`, `survivium-linux` | ~1 мин | да (для публикации) |
 | `android` | Android APK (arm64), подписанный ключом из секретов ([../systems/android.md](../systems/android_RU.md)); артефакт `survivium-android` | ~2 мин | да (для публикации) |
 | `smoke (desktop / phone / upright)` | web-сборка в headless Chrome (`tests/browser_smoke.mjs`); телефоны рисуют самый лёгкий набор (`?quality=0`, `Settings.use_page_quality`), компьютер — обычную картинку | 1–4 мин | да, когда идёт |
-| `publish` | только `main`: ПК-сборки в пререлиз `pc-latest` | секунды | — |
-| `publish-android` | только `main`: APK в пререлиз `android-latest` | секунды | — |
+| `release` | только `main`: релиз GitHub `v<этап>.<PR>` с заметками `tools/release_notes.py` (строки «Что нового» с прошлого релиза), APK и ПК-сборками; те же файлы — в пререлизы `android-latest`, `pc-latest` ([Релизы](#релизы)) | секунды | — |
 | `deploy` | только `main`: web-сборка на GitHub Pages | секунды | — |
 
-«Блокирует» здесь значит: `publish` и `deploy` ждут его успеха, а по правилу проекта PR сливается только
+«Блокирует» здесь значит: `release` и `deploy` ждут его успеха, а по правилу проекта PR сливается только
 при зелёном CI. Чтобы GitHub сам не давал слить красный PR, в настройках репозитория (Settings →
 Branches → правило для `main` → Require status checks) отметьте задания `lint`, `checks`, `tests`,
 `progress (hunting)`, `progress (other)`, `frames`, `export`, `pc`, `android`. `smoke (…)` туда не ставится: на PR
 без изменений клиента оно пропускается.
+
+## Релизы
+
+Каждая сборка `main`, прошедшая все задания, — релиз на GitHub (Releases), его делает задание `release`:
+
+- **Версия и тег.** Версия — та, что показывает игра, `<этап>.<PR>` (`tools/build_info.py`): этап —
+  `application/config/version` в `project.godot`, PR — тот, что слил коммит (его заголовок кончается на
+  `(#N)`). Это правильный semver: этап — минорная часть (поднимается вручную, когда закрыт этап MVP), PR —
+  патч (только растёт). Тег — `v<этап>.<PR>` на слитом коммите, название — `Survivium <версия>`.
+- **Заметки.** `tools/release_notes.py` берёт PR, слитые после тега прошлого релиза (`git log`, поэтому
+  checkout со всей историей и тегами), и группирует их строки «Что нового» по видам: новое, улучшено,
+  исправлено, оптимизировано, ядро; по-английски, потом по-русски; PR без таких строк — по заголовку. Дальше —
+  загрузки и ссылка сравнения двух тегов. Без прошлого релиза заметки идут от начала этапа. Упавший прогон
+  `main` релиза не делает: его изменения войдут в следующий.
+- **Файлы.** `survivium-android.apk`, `survivium-windows.zip`, `survivium-linux.tar.gz` (имена не меняются,
+  так что `https://github.com/randomboygh/survivium/releases/latest/download/<файл>` всегда даёт новейшую
+  сборку). Web-сборка — Pages.
+- **Latest.** Новейшая версия помечена «Latest»; прогон, кончившийся после более нового (прогоны `main` не
+  отменяются), делает релиз без пометки и не трогает скользящие пререлизы.
+- **Скользящие пререлизы.** `android-latest` и `pc-latest` — для старых ссылок: те же файлы, что у новейшего
+  релиза, их теги переносятся на его коммит.
+- Повторный прогон `main` правит свой релиз (заметки и файлы), а не падает.
 
 ## Результаты и логи
 
@@ -57,7 +78,7 @@ Branches → правило для `main` → Require status checks) отмет�
 ## Безопасность
 
 - Права токена по умолчанию — только чтение (`contents: read`); `changes`, `export`, `pc` читают ещё
-  PR (`pull-requests: read`), `publish`, `publish-android` пишут релиз (`contents: write`), `deploy` — Pages
+  PR (`pull-requests: read`), `release` пишет релиз и его тег (`contents: write`), `deploy` — Pages
   (`pages: write`, `id-token: write`). Код PR не получает прав записи.
 - Секреты: встроенный `GITHUB_TOKEN` и ключ подписи Android `ANDROID_KEYSTORE`, `ANDROID_KEYSTORE_PASSWORD`
   (их читает только задача `android`; файл ключа удаляется после экспорта); ни один не печатается.
@@ -70,7 +91,7 @@ Branches → правило для `main` → Require status checks) отмет�
 - `playwright-core` для smoke-теста закреплён версией (`1.48.2`), без lock-файла.
 - Каждый тест пишет в свой `user://` (`XDG_DATA_HOME`), сохранения разработчика не трогаются;
   внешних сервисов тесты не зовут (сервер-тест слушает localhost:7791).
-- Проверка кода и публикация разделены: публикуют только `publish`, `publish-android` и `deploy`, только в `main`, только
+- Проверка кода и публикация разделены: публикуют только `release` и `deploy`, только в `main`, только
   после успеха всех проверок.
 
 ## Время

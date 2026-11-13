@@ -87,9 +87,9 @@ The jobs go in parallel, each on its own machine: `lint` (no Godot), `checks` (p
 archives `survivium-windows.zip` and `survivium-linux.tar.gz` as artifacts), then `smoke` (Chrome as PC and as
 a phone). On a PR the check in a browser goes only if the PR touches what a browser may show differently (the
 template `web` in the job `changes`), or the PR has the label `smoke`; on `main` — always, and the builds are
-published only when all jobs have passed: the web to Pages (`deploy`), the PC into the rolling prerelease
-`pc-latest` (`publish`, the same file names each time; a description with the version), the Android APK (`android`,
-[android.md](android.md)) into `android-latest` (`publish-android`). A new push to a PR
+published only when all jobs have passed: the web to Pages (`deploy`), the APK (`android`,
+[android.md](android.md)) and the PC builds into the GitHub release `v<stage>.<PR>` with the changes since the last
+release (`release`, `tools/release_notes.py`; the same files into the rolling prereleases `android-latest`, `pc-latest`). A new push to a PR
 cancels its old run, the runs of `main` are not cancelled. The token's rights are by jobs, the actions are
 pinned to a SHA, Godot is checked against `.github/actions/godot/SHA512-SUMS`; the checks' logs are the
 artifacts `logs-<job>`. The export templates (web, Windows, Linux, Android) are put by `.github/actions/godot` (to the
