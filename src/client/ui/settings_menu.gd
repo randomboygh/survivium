@@ -72,7 +72,7 @@ const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
 const MOONS := [["[new_moon]", 0.0], ["[crescent]", 0.4], ["[full_moon]", 1.0]]
 ## The sections of the pages with tabs: key and tab name.
 const PAGES := {
-	"settings": [["game", "[game]"], ["interface", "[interface]"], ["graphics", "[graphics]"], ["music", "[music]"], ["sound", "[sound]"]],
+	"settings": [["game", "[game]"], ["interface", "[interface]"], ["graphics", "[graphics]"], ["sound", "[sound]"], ["other", "[other_tab]"]],
 	"test": [["world", "[world_n3]"], ["server", "[server_name]"], ["player", "[player_n2]"], ["caves", "[caves]"], ["marks", "[markers]"], ["debug", "[debug]"]],
 	"freezes": [["all", "all"], ["critical", "from 200"], ["big", "100–200"], ["small", "50–100"]],
 }
@@ -577,6 +577,9 @@ func _section_rows(key: String) -> Array:
 				["[vibration]", ["[off]", "[on]"],
 					func() -> int: return int(s.values.vibrate) if Vibration.supported() else -1,
 					func(i: int) -> void: s.set_value("vibrate", i == 1), "[no_n2]", Vibration.supported],
+			]
+		"other":
+			return [
 				# The mods' files taken from servers (decision 189, ModCache): how much is
 				# kept, and a button that empties it (but for the server played on now).
 				_section("server", "[server_data]"),
@@ -629,17 +632,16 @@ func _section_rows(key: String) -> Array:
 					func() -> int: return int(s.values.show_help),
 					func(i: int) -> void: s.set_value("show_help", i == 1)])
 			return rows
-		"music":
+		"sound":
+			# The music and the sounds on one tab, each under its strip.
 			return [
+				_section("music", "[music]"),
 				_volume_row("[volume]", "music_volume"),
 				["[how_often]", ["[rarely]", "[sometimes]", "[often]"],
 					func() -> int: return s.values.music_often,
 					func(i: int) -> void: s.set_value("music_often", i)],
-			]
-		"sound":
-			return [
+				_section("speaker", "[sounds]"),
 				_volume_row("[volume]", "sound_volume"),
-				null,
 				_volume_row("[nature]", "nature_volume"),
 				_volume_row("[interface]", "ui_volume"),
 			]
@@ -886,8 +888,16 @@ func fit(screen: Vector2) -> void:
 		room -= _legend.get_combined_minimum_size().y + 6
 	if not _tabs.visible:
 		room += TAB_HEIGHT + 6
-	_list.reset_size()
-	_scroll.custom_minimum_size = Vector2(content_width() + BAR_ROOM, minf(_list.size.y, room))
+	# The list's height asked, not its size reset: reset_size shrank it to its least width
+	# until the next layout of its box, which a page made anew in place («Очистить данные
+	# серверов») did not bring, so its rows moved sideways.
+	# A page with tabs keeps one height whatever its tab: its longest section's
+	# (_page_height), and a tab whose rows stand taller (wrapped names and notes, a long
+	# list of markers) scrolls in it; the window never grows or shrinks on a tab.
+	var tall := _list.get_combined_minimum_size().y
+	if PAGES.has(page) and page != "freezes":
+		tall = _list.custom_minimum_size.y
+	_scroll.custom_minimum_size = Vector2(content_width() + BAR_ROOM, minf(tall, room))
 	reset_size()
 	position = ((screen - size) * 0.5).floor()
 

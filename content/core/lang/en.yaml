@@ -855,6 +855,8 @@
 "[graphics]": "Graphics"
 "[music]": "Music"
 "[sound]": "Sound"
+"[sounds]": "Sounds"
+"[other_tab]": "Other"
 "[caves]": "Caves"
 "[markers]": "Markers"
 "[debug]": "Debug"
