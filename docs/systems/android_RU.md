@@ -18,7 +18,9 @@
   требует экспорт Android).
 - `src/client/main.gd` `_notification`: кнопка «Назад» (`NOTIFICATION_WM_GO_BACK_REQUEST`) — это клавиша Escape.
 - `src/client/view/camera_rig.gd` `_safe_rect`: интерфейс обходит вырез камеры
-  (`DisplayServer.get_display_safe_area`).
+  (`DisplayServer.get_display_safe_area`) и стоит над клавиатурой (`DisplayServer.virtual_keyboard_get_height`,
+  `poll_safe_rect` читает её десять раз в секунду): окно приложения под клавиатурой не меняет размер, поэтому
+  интерфейс поднимается, как в браузере.
 - `assets/app/`: значки, нарисованные `tools/make_icon.py` (обычный, адаптивный и одноцветный для Android,
   `icon.ico` программы для Windows).
 - `.github/workflows/build.yml`, задачи `android` (экспорт, артефакт `survivium-android`) и `publish-android`;

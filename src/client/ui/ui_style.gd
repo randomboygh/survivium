@@ -1644,6 +1644,10 @@ static func inset_room(room: MarginContainer) -> void:
 	bar_room(room, false)
 
 
+## How wide a balloon's tail is (odd: it ends in one pixel).
+const BALLOON_TAIL := 9
+
+
 ## Panel: two pixels of outline, two of highlight, then the fill; `pad` round what it holds.
 static func panel(pad := PAD) -> StyleBoxTexture:
 	return _nine_patch(12, 4, "panel", PANEL, EDGE, pad)
@@ -1653,6 +1657,29 @@ static func panel(pad := PAD) -> StyleBoxTexture:
 ## little of the world (the level buttons); `pressed` shades the inside more.
 static func frame(pressed := false) -> StyleBoxTexture:
 	return _nine_patch(12, 4, "panel", Color(EDGE, 0.4 if pressed else 0.1), EDGE, Vector4(4, 4, 4, 4))
+
+
+## A speech balloon: `fill` inside one pixel of `edge`, its corners cut in steps of whole
+## pixels, `pad` round the words.
+static func balloon(fill: Color, edge: Color, pad := Vector4(5, 2, 5, 3)) -> StyleBoxTexture:
+	return _nine_patch(12, 4, "balloon", fill, edge, pad)
+
+
+## The tail under a balloon (balloon), BALLOON_TAIL wide, pointing down in steps of whole
+## pixels; its top row lies over the balloon's bottom edge, so the two are one shape.
+static func balloon_tail(fill: Color, edge: Color) -> ImageTexture:
+	var key := "tail:%d:%d" % [fill.to_rgba32(), edge.to_rgba32()]
+	var tex: ImageTexture = _patches.get(key)
+	if tex == null:
+		var half := BALLOON_TAIL / 2
+		var img := Image.create_empty(BALLOON_TAIL, half + 1, false, Image.FORMAT_RGBA8)
+		img.fill(Color(0, 0, 0, 0))
+		for y in half + 1:
+			for x in range(y, BALLOON_TAIL - y):
+				img.set_pixel(x, y, edge if x == y or x == BALLOON_TAIL - 1 - y else fill)
+		tex = ImageTexture.create_from_image(img)
+		_patches[key] = tex
+	return tex
 
 
 ## A text field: a sunken well like a slot, with room around the text.
@@ -1823,6 +1850,14 @@ static func _pixel(kind: String, x: int, y: int, n: int, fill: Color, edge: Colo
 				return edge
 			if edge == EDGE and (x < 4 or y < 4):
 				return WELL_SHADE
+			return fill
+		"balloon":
+			var bx := mini(x, n - 1 - x)
+			var by := mini(y, n - 1 - y)
+			if bx + by < 2:
+				return Color(0, 0, 0, 0)
+			if bx == 0 or by == 0 or bx + by == 2:
+				return edge
 			return fill
 		"button":
 			if d < 2:

@@ -42,10 +42,10 @@ const PICK_REACH := 0.4
 const SAY_TIME := 6.0
 const SAY_WIDTH := 150
 ## The balloon is a light paper with dark words and a tail to the speaker, unlike the
-## dark panels of the notices and the signs.
+## dark panels of the notices and the signs, drawn in whole pixels as they are
+## (UiStyle.balloon).
 const BALLOON := Color("#f3e7cc")
 const BALLOON_INK := Color("#2a1d12")
-const TAIL := 5.0
 ## How many of the others' lights in hand light the world at once, the nearest the
 ## player's: each is one more omni light on the meshes round it (at most 32 in all).
 const OTHER_LIGHTS := 3
@@ -56,7 +56,7 @@ const STRIDE := 0.55
 ## A move longer than this between frames is a jump of the server's (a teleport, a
 ## respawn), not a walk: it leaves no prints.
 const LEAP := 2.0
-static var _balloon_box: StyleBoxFlat
+static var _balloon_box: StyleBoxTexture
 
 var game
 ## The performance statistics (PerfPanel), told how long the figures take a frame.
@@ -178,9 +178,9 @@ func _make(at: Vector3) -> Dictionary:
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line.add_theme_stylebox_override("panel", _balloon())
 	# The tail under the balloon, pointing at the name (placed in _place_labels).
-	var tail := Polygon2D.new()
-	tail.polygon = PackedVector2Array([Vector2(-TAIL, -2.0), Vector2(TAIL, -2.0), Vector2(0.0, TAIL)])
-	tail.color = BALLOON
+	var tail := Sprite2D.new()
+	tail.texture = UiStyle.balloon_tail(BALLOON, UiStyle.EDGE)
+	tail.centered = false
 	line.add_child(tail)
 	var said := UiStyle.label()
 	said.add_theme_color_override("font_color", BALLOON_INK)
@@ -209,18 +209,10 @@ func _layer_made() -> Control:
 	return _layer
 
 
-## The balloon's box, made once: light, rounded, a dark edge.
-static func _balloon() -> StyleBoxFlat:
+## The balloon's box, made once: light, its corners cut in pixel steps, a dark edge.
+static func _balloon() -> StyleBoxTexture:
 	if _balloon_box == null:
-		_balloon_box = StyleBoxFlat.new()
-		_balloon_box.bg_color = BALLOON
-		_balloon_box.border_color = UiStyle.EDGE
-		_balloon_box.set_border_width_all(1)
-		_balloon_box.set_corner_radius_all(6)
-		_balloon_box.content_margin_left = 6.0
-		_balloon_box.content_margin_right = 6.0
-		_balloon_box.content_margin_top = 2.0
-		_balloon_box.content_margin_bottom = 3.0
+		_balloon_box = UiStyle.balloon(BALLOON, UiStyle.EDGE)
 	return _balloon_box
 
 
@@ -240,8 +232,9 @@ func _place_labels() -> void:
 		if line.visible:
 			line.visible = now < one.until
 			line.reset_size()
-			line.position = (Vector2(at.x - line.size.x * 0.5, label.position.y - line.size.y - TAIL - 1.0)).floor()
-			one.tail.position = Vector2(floorf(line.size.x * 0.5), line.size.y)
+			var tail_h := float(UiStyle.BALLOON_TAIL / 2)
+			line.position = (Vector2(at.x - line.size.x * 0.5, label.position.y - line.size.y - tail_h - 1.0)).floor()
+			one.tail.position = Vector2(floorf(line.size.x * 0.5) - UiStyle.BALLOON_TAIL / 2, line.size.y - 1.0)
 
 
 func _process(delta: float) -> void:
