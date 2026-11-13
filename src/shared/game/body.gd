@@ -26,6 +26,11 @@ const GRAVITY := 44.0
 ## A jump rises about 1.45 cells: onto a block of one cell, not of two.
 const JUMP_SPEED := 11.3
 const MAX_FALL := 30.0
+## The longest step a body moves in at once, in seconds, and the most steps a call of
+## `step` is cut into: falling at MAX_FALL a step goes down less than the body is tall,
+## so it never passes through a floor.
+const STEP_MOST := 0.05
+const STEPS_MOST := 20
 ## Cells below the feet a falling body counts as on the ground already (see step).
 const LAND_EPS := 0.002
 ## How far under the feet `standing` looks for ground, in cells.
@@ -191,8 +196,29 @@ func speed_at(at: Vector3) -> float:
 
 
 ## Moves the body standing at `at` (world units) for `delta` seconds by move_input,
-## jumping when `jump` is held; returns where it is then.
+## jumping when `jump` is held; returns where it is then. A long `delta` (the server
+## catching up with a game that was away, Player._take_claim) is walked in steps of
+## STEP_MOST at most: in one long step a fall would pass through a floor (a body on the
+## ground over a cave dropped into it after a phone woke the game up).
 func step(at: Vector3, delta: float, jump: bool) -> Vector3:
+	if delta <= STEP_MOST:
+		return _step(at, delta, jump)
+	var n := mini(ceili(delta / STEP_MOST), STEPS_MOST)
+	var p := at
+	var leapt := false
+	var hit := Vector3.INF
+	for i in n:
+		p = _step(p, delta / n, jump and not leapt)
+		leapt = leapt or jumped
+		if bumped != Vector3.INF:
+			hit = bumped
+	jumped = leapt
+	_jump_was = jump
+	bumped = hit
+	return p
+
+
+func _step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	var p := at / CELL
 	afloat = vessel > 0.0 and floats(at)
 	if afloat:

@@ -24,6 +24,9 @@ const RAMPS := [FULL, SE | SW, NW | NE, FULL, NE | SE, SE, NE, FULL, NW | SW, SW
 	FULL, FULL, FULL, FULL, FULL]
 ## Way from a cell to its corners NW, NE, SE, SW (corner k is bit 1 << k of a mask).
 const CORNER_DIRS := [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(1, 1), Vector2i(-1, 1)]
+## The eight columns round one: beside it, then across its corners.
+const AROUND: Array[Vector2i] = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0),
+	Vector2i(-1, -1), Vector2i(1, -1), Vector2i(1, 1), Vector2i(-1, 1)]
 
 ## Level of a single-bit mask, by the bit's remainder modulo 67 (distinct for 2^0..2^63).
 static var _bit_levels := PackedByteArray()
@@ -728,11 +731,14 @@ func blocks_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: fl
 
 
 ## Whether the part ax..bx, az..bz (0..1) of air cell (x, y, z) holds the bark of a trunk
-## beside it thicker than its own cell (see Growth.trunk_box).
+## beside it thicker than its own cell (see Growth.trunk_box): one beside or across a
+## corner (a trunk three cells thick fills the cells round it, the corners too), its
+## bark an octagon with the corners cut by a quarter of its width, as it is drawn
+## (TrunkMesher._bark).
 func _bark_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: float) -> bool:
 	if get_cell(x, y, z) != Mat.AIR:
 		return false
-	for o in SIDES:
+	for o: Vector2i in AROUND:
 		var col := Vector2i(x + o.x, z + o.y)
 		var species: int = trees.get(col, -1)
 		if species < 0 or species >= Trees.SPECIES.size() or get_cell(col.x, y, col.y) != Mat.LOG:
@@ -740,10 +746,15 @@ func _bark_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: 
 		var k := 0
 		while k < 64 and get_cell(col.x, y - k - 1, col.y) == Mat.LOG:
 			k += 1
-		var box := Growth.trunk_box(species, col, k)
+		var box := Growth.trunk_box(species, col, k, Growth.young_at(self, col.x, y - k, col.y))
 		# The box in texels of this cell.
 		box.position += o * 8
-		if ax * 8.0 < box.end.x and bx * 8.0 > box.position.x and az * 8.0 < box.end.y and bz * 8.0 > box.position.y:
+		# The point of the part nearest the trunk's middle: in the octagon if any is.
+		var mid := Vector2(box.get_center())
+		var near := Vector2(clampf(mid.x, ax * 8.0, bx * 8.0), clampf(mid.y, az * 8.0, bz * 8.0))
+		var off := (near - mid).abs()
+		var half := Vector2(box.size) * 0.5
+		if off.x < half.x and off.y < half.y and (half.x - off.x) + (half.y - off.y) > mini(box.size.x, box.size.y) / 4:
 			return true
 	return false
 
