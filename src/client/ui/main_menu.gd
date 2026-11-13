@@ -117,7 +117,7 @@ func _ready() -> void:
 	_sparrow = Control.new()
 	_sparrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_sparrow.draw.connect(_draw_sparrow)
-	_take_sparrow(AiRules.SPECIES.get(SPARROW, {}))
+	_take_sparrow(AiRules.SPECIES.get(SPARROW, {}), SPARROW)
 	title.add_child(_sparrow)
 	_sparrow_hit = Control.new()
 	_sparrow_hit.mouse_filter = Control.MOUSE_FILTER_STOP
