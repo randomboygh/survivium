@@ -47,8 +47,12 @@ void fragment() {
 	if (!on) {
 		discard;
 	}
-	// Multiplied into the fog over the ground the print would darken the fog itself:
-	// it gives way as the ground does (veil).
-	ALBEDO = mix(tint.rgb, vec3(1.0), veil(world_pos, depth_fade(world_pos.y)).a);
+	// Multiplied into the fog over the ground the print would darken the fog itself. It
+	// darkens only the ground's share of the pixel: the ground (about 0.3 bright when lit)
+	// left by the veil, against the fog's own light added over it.
+	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
+	float ground = (1.0 - veiled.a) * 0.3;
+	float share = ground / max(ground + dot(veiled.rgb, vec3(0.3, 0.59, 0.11)), 0.001);
+	ALBEDO = mix(vec3(1.0), tint.rgb, share);
 	COMPAT_ALBEDO
 }
