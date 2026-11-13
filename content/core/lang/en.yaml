@@ -23,7 +23,6 @@
 # content/core/data/items.yaml
 "[core.items.campfire]": "Campfire"
 "[core.items.rot]": "Rot"
-"[core.items.test_mod]": "Test mod token"
 "[core.items.grave]": "Cross"
 "[core.items.grave.about]": "Stands where a dead player's sack used to lie. Come close to read who died here."
 
@@ -976,8 +975,6 @@
 "[server_data]": "Server data"
 "[mod_files_from_servers_s]": "Mod files kept from servers: %s MB"
 "[clear_server_data]": "Clear server data"
-"[your_own_mods]": "Your own mods"
-"[put_your_mods_into_the]": "Put your mods into the folder %s, laid out as in the «content» folder of the PC version, and restart the game. A server made here gives them to its players. Files there now: %d"
 "[sizes]": "Sizes"
 "[full_screen]": "Full screen"
 "[buttons_n2]": "Buttons"
@@ -1016,6 +1013,9 @@
 "[crt_soft]": "soft"
 "[crt_old]": "old"
 "[crt_tape]": "tape"
+"[your_own_mods]": "Your own mods"
+"[put_your_mods_into_the]": "Put your mods into the folder %s, laid out as in the «content» folder of the PC version, and restart the game. A server made here gives them to its players. Files there now: %d"
+"[turn_on_cheats_on_the]": "On a server these switches and teleports work only with cheats on: «Cheats on the server» on the «Server» tab"
 "[test_server_github]": "Test server (GitHub)"
 "[keep_the_server_an_hour]": "Keep the server an hour longer"
 "[stop_the_test_server]": "Stop the test server"
@@ -1027,16 +1027,17 @@
 "[make_the_world_a_server]": "Make the world a server and call a bot"
 "[your_own_server_and_bots]": "Your own server and bots are in the computer version; here, on the test server"
 "[the_bots_and_the_world]": "The bots and the world of this server are up to its host"
-"[test_mod]": "Test mod"
-"[the_test_mod_changes_a]": "The server gets files no build has: a new item, repainted animals, another jump sound. Those who join download them"
-"[with_the_test_mod]": "With the test mod"
-"[change_the_mod_and_reload]": "Change the mod and reload"
+"[bots_need_a_computer]": "A server made on a phone cannot call bots: a bot is another copy of the game, which only a computer starts"
 "[add_a_bot]": "Add a bot"
 "[remove_a_bot]": "Remove a bot"
 "[test_world_on_the_server]": "Test world on the server"
 "[new_world_on_the_server]": "New world on the server"
 "[world_day]": "World %d · day %d"
 "[the_servers_worlds_list_in]": "The server's worlds: list in the chat"
+"[test_mod]": "Test mod"
+"[the_test_mod_changes_a]": "The server gets files no build has: a new item, repainted animals, another jump sound. Those who join download them"
+"[with_the_test_mod]": "With the test mod"
+"[change_the_mod_and_reload]": "Change the mod and reload"
 "[cheats]": "Cheats"
 "[cheats_on_the_server]": "Cheats on the server"
 "[the_list_of_changes_appears]": "The list of changes appears in a build from the website."
@@ -1241,6 +1242,9 @@
 "[the_world_could_not_be_opened]": "The world could not be opened: %s"
 "[port_is_taken]": "Port %d is taken"
 "[the_server_moves_to_another_world]": "The server is moving to another world"
+
+# src/server/test_mod.gd
+"[core.items.test_mod]": "Test mod token"
 
 # src/shared/content/crafting.gd
 "[needs_a_station]": "Needs a station: %s"

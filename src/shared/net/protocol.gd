@@ -193,7 +193,7 @@ const AI_DEBUG := "ai_debug"
 ## The playtest page's switches, on a playtest server only (src/server/cheats.gd,
 ## Requests.may_cheat): [{speed, air, skill, heavy, hunger, thirst, fatigue, cold,
 ## free_build, tool_wear, instant_craft, free_items, animal_attacks, boost, and once:
-## season, weather, moon, hour}]; true when taken.
+## season, weather, moon, hour, at (a teleport: Vector3)}]; true when taken.
 const CHEATS := "cheats"
 
 ## The events: `[kind, args]`, with no reply. From the client, each frame: where its
