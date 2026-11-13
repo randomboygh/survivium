@@ -391,10 +391,6 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 - `tools/sound/synth.gd`: Sounds made from noise and tones, a buffer of samples (-1..1) at RATE at a time: noises, filters, envelopes, oscillators, the plucked string, mixing, a seamless loop, and saving as a WAV the game…
 
-## tools/tmp
-
-- `tools/tmp/restart_shot.gd`: (no description)
-
 ## tools
 
 - `tools/validate.gd`: Checks the content files of every mod and fails on any problem, for CI and for a quick check after editing data: schemas and references, each bundle by itself, the pictures, sounds and models, the…
