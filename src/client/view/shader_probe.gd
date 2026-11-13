@@ -162,7 +162,8 @@ static func _save(res: Dictionary, current: String) -> void:
 ## Every step and how it went, a line each, with the device: the text to send.
 static func report() -> String:
 	var res := results()
-	var lines := ["Shader probe: %s, %s" % [OS.get_name(), RenderingServer.get_video_adapter_name()]]
+	var lines := ["Shader probe: %s, %s, shader cache %s" % [OS.get_name(), RenderingServer.get_video_adapter_name(),
+		"on" if ProjectSettings.get_setting("rendering/shader_compiler/shader_cache/enabled", true) else "off"]]
 	for s: Array in STEPS:
 		lines.append("%s: %s" % [s[0], res.get(s[0], "not tried")])
 	return "\n".join(lines)
