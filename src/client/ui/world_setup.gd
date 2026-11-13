@@ -13,6 +13,8 @@ const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const WorldStore := preload("res://src/shared/world/world_store.gd")
+const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 
 ## The names of the rows, as wide on every page (the mods' are the longest), so the
 ## panel keeps its size from page to page.
@@ -38,7 +40,9 @@ const KINDS := [
 ]
 const OPTIONS := ["size", "water", "mountains", "rivers", "biomes"]
 
-signal done
+## `fresh`: a world of this seed and these settings was saved, and the player chose to
+## make it anew (with the mods chosen now) in its place.
+signal done(fresh: bool)
 signal cancelled
 
 var game
@@ -58,6 +62,10 @@ var _texture: ImageTexture
 var _gen: WorldGen
 var _map_row := 0
 var _start_button: Button
+## Asks a second tap of «Создать мир» when it would make a saved world anew.
+var _replace := TwoTap.new()
+## Says that a world of this seed and these settings is saved, and what «Создать мир» does to it.
+var _saved_note: Label
 var _shown := false
 ## The height of the world's rows, the first page's: every page is given it (the
 ## longer ones scroll), so the panel does not change size from page to page.
@@ -101,12 +109,16 @@ func _ready() -> void:
 	_choices.stepped.connect(_on_stepped)
 	_build_rows()
 	_choices.set_focus(1)
+	_saved_note = Kit.note("[a_world_with_this_seed]", 0.0, UiStyle.DANGER)
+	_saved_note.visible = false
+	outer.add_child(_saved_note)
 	var buttons := Kit.row(6)
 	outer.add_child(buttons)
 	buttons.add_child(Kit.button("[back]", back, 96, 36))
 	_start_button = Kit.accent_button("[create_a_world]", _start, 0, 36)
 	_start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	buttons.add_child(_start_button)
+	_check_saved()
 	show_fitted()
 
 
@@ -150,21 +162,12 @@ func _mod_rows(s) -> void:
 	var on: Array = state.order
 	if _page == "mods":
 		for mod: String in Mods.available():
-			if mod == "core":
-				continue
-			var m := mod
-			var mine: Array = Mods.bundles(mod)
-			var lit: int = mine.filter(func(b: String) -> bool: return b in on).size()
-			var opts := {"direct": true,
-				"show": Lang.f("[of_n2]", [lit, mine.size()]) if lit > 0 and lit < mine.size() else ""}
-			if mine.size() > 1:
-				opts.open = _show_page.bind("mod:" + mod)
-			_add_row(Mods.mod_title(mod), ["[off]", "[on]"],
-				func() -> int: return 1 if lit == mine.size() else 0,
-				func(i: int) -> void: s.set_world_mod(m, i == 1), opts)
+			if mod != "core":
+				_whole_mod_row(s, mod, on, Mods.bundles(mod).size() > 1)
 		return
 	var mod := _page.trim_prefix("mod:")
-	_header(Mods.mod_title(mod))
+	# First the mod as a whole, as on the mods page: it switches all its bundles.
+	_whole_mod_row(s, mod, on, false)
 	# The bundles by their names, so the player reads a list, not the folders' order.
 	var bundles: Array = Mods.bundles(mod).duplicate()
 	bundles.sort_custom(func(a: String, b: String) -> bool: return Mods.title(a).naturalnocasecmp_to(Mods.title(b)) < 0)
@@ -174,6 +177,21 @@ func _mod_rows(s) -> void:
 			func() -> int: return 1 if b in on else 0,
 			func(i: int) -> void: s.set_world_mod(b, i == 1), {"direct": true})
 		_why_line(Mods.why(bundle, state.dropped))
+
+
+## The row of mod `mod` as a whole: on when all its bundles are (of those switched on,
+## `on`), "2 из 6" when some are; its switch turns all of them on or off; with `open`, a
+## button opens its page of bundles.
+func _whole_mod_row(s, mod: String, on: Array, open: bool) -> void:
+	var mine: Array = Mods.bundles(mod)
+	var lit: int = mine.filter(func(b: String) -> bool: return b in on).size()
+	var opts := {"direct": true,
+		"show": Lang.f("[of_n2]", [lit, mine.size()]) if lit > 0 and lit < mine.size() else ""}
+	if open:
+		opts.open = _show_page.bind("mod:" + mod)
+	_add_row(Mods.mod_title(mod), ["[off]", "[on]"],
+		func() -> int: return 1 if lit == mine.size() else 0,
+		func(i: int) -> void: s.set_world_mod(mod, i == 1), opts)
 
 
 ## A line under the row of a bundle left out for want of another: what it needs, and what
@@ -193,14 +211,6 @@ func _why_line(chain: Array) -> void:
 	box.add_theme_constant_override("margin_bottom", 10)
 	box.add_child(label)
 	_list.add_child(box)
-
-
-## A line over the rows of a page: the name of what they belong to.
-func _header(text: String) -> void:
-	var label := UiStyle.label(text, UiStyle.ACCENT)
-	label.custom_minimum_size = Vector2(0, ARROW)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_list.add_child(label)
 
 
 ## Shows page `page` (see _page) and fits the panel to its rows.
@@ -326,6 +336,8 @@ func layout(screen: Vector2) -> void:
 	# the scroll's own; given both always, the panel is as wide with it as without.
 	var bar := UiStyle.BAR_GAP + 2 * _scroll.get_v_scroll_bar().get_combined_minimum_size().x
 	_scroll.custom_minimum_size = Vector2(_choices.width() + bar, _rows_height)
+	# The note wraps as wide as the rows, never wider.
+	_saved_note.custom_minimum_size.x = _scroll.custom_minimum_size.x
 	panel.reset_size()
 	var over := panel.size.y + 2 * MARGIN - screen.y
 	if over > 0.0:
@@ -335,8 +347,26 @@ func layout(screen: Vector2) -> void:
 func _start() -> void:
 	if _seed.text.is_empty():
 		_seed.text = str(game.settings.values.world_seed)
+	# Over a saved world only on the second tap: it is made anew, the save gone.
+	var fresh := _saved_note.visible
+	if fresh and not _replace.ask(_start_button):
+		return
 	game.settings.save()
-	done.emit()
+	done.emit(fresh)
+
+
+## Whether a world of the seed and settings chosen is saved: then the note says that
+## «Создать мир» makes it anew in its place (its mods as chosen now), on a second tap.
+## Else creating it would only open that save, mods and all.
+func _check_saved() -> void:
+	var dir := WorldStore.world_dir(int(game.settings.values.world_seed), game.settings.world_options())
+	var saved := FileAccess.file_exists(dir + "/" + WorldStore.WORLD)
+	_replace.disarm()
+	if saved == _saved_note.visible:
+		return
+	_saved_note.visible = saved
+	if is_inside_tree():
+		fit()
 
 
 # --- The map ----------------------------------------------------------------------
@@ -344,6 +374,7 @@ func _start() -> void:
 func _restart_map() -> void:
 	_gen = null
 	_map_row = 0
+	_check_saved()
 
 
 func _process(_delta: float) -> void:

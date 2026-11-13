@@ -23,7 +23,6 @@
 # content/core/data/items.yaml
 "[core.items.campfire]": "Campfire"
 "[core.items.rot]": "Rot"
-"[core.items.test_mod]": "Test mod token"
 "[core.items.grave]": "Cross"
 "[core.items.grave.about]": "Stands where a dead player's sack used to lie. Come close to read who died here."
 
@@ -258,6 +257,13 @@
 "[warming_up_shaders]": "Warming up shaders"
 "[first_frames_of_the_world]": "First frames of the world"
 "[building_the_surroundings]": "Building the surroundings"
+
+# src/client/mod_import.gd
+"[import_mods_from_a_zip]": "Import mods from a zip"
+"[the_file_could_not_be_read]": "The file could not be read"
+"[the_zip_is_too_large]": "The zip is too large"
+"[this_is_not_a_zip]": "This is not a zip archive"
+"[no_mod_files_in_the_zip]": "There are no mod files in the zip"
 
 # src/client/mod_reload.gd
 "[the_servers_mod_data_could]": "The server's new mod data could not be downloaded"
@@ -974,8 +980,6 @@
 "[server_data]": "Server data"
 "[mod_files_from_servers_s]": "Mod files kept from servers: %s MB"
 "[clear_server_data]": "Clear server data"
-"[your_own_mods]": "Your own mods"
-"[put_your_mods_into_the]": "Put your mods into the folder %s, laid out as in the «content» folder of the PC version, and restart the game. A server made here gives them to its players. Files there now: %d"
 "[sizes]": "Sizes"
 "[full_screen]": "Full screen"
 "[buttons_n2]": "Buttons"
@@ -1014,6 +1018,11 @@
 "[crt_soft]": "soft"
 "[crt_old]": "old"
 "[crt_tape]": "tape"
+"[your_own_mods]": "Your own mods"
+"[own_mod_files_d]": "Files of your own mods: %d"
+"[delete_your_own_mods]": "Delete your own mods"
+"[a_zip_of_mods_laid]": "A zip holds mods laid out as in the «content» folder of the PC version, or one mod with its mod.yaml at the top. They go into %s and show on «New world»; a server made here gives them to its players."
+"[mod_files_imported_d_left]": "Mod files imported: %d, left out: %d"
 "[test_server_github]": "Test server (GitHub)"
 "[keep_the_server_an_hour]": "Keep the server an hour longer"
 "[stop_the_test_server]": "Stop the test server"
@@ -1025,16 +1034,16 @@
 "[make_the_world_a_server]": "Make the world a server and call a bot"
 "[your_own_server_and_bots]": "Your own server and bots are in the computer version; here, on the test server"
 "[the_bots_and_the_world]": "The bots and the world of this server are up to its host"
-"[test_mod]": "Test mod"
-"[the_test_mod_changes_a]": "The server gets files no build has: a new item, repainted animals, another jump sound. Those who join download them"
-"[with_the_test_mod]": "With the test mod"
-"[change_the_mod_and_reload]": "Change the mod and reload"
 "[add_a_bot]": "Add a bot"
 "[remove_a_bot]": "Remove a bot"
 "[test_world_on_the_server]": "Test world on the server"
 "[new_world_on_the_server]": "New world on the server"
 "[world_day]": "World %d · day %d"
 "[the_servers_worlds_list_in]": "The server's worlds: list in the chat"
+"[test_mod]": "Test mod"
+"[the_test_mod_changes_a]": "The server gets files no build has: a new item, repainted animals, another jump sound. Those who join download them"
+"[with_the_test_mod]": "With the test mod"
+"[change_the_mod_and_reload]": "Change the mod and reload"
 "[cheats]": "Cheats"
 "[cheats_on_the_server]": "Cheats on the server"
 "[the_list_of_changes_appears]": "The list of changes appears in a build from the website."
@@ -1168,6 +1177,7 @@
 "[mountains]": "Mountains"
 "[plains]": "Plains"
 "[the_land_around_the_start]": "The land around the start, %d cells wide"
+"[a_world_with_this_seed]": "A world with this seed and these settings is saved. «Create a world» makes it anew with the mods chosen now and deletes the saved one: tap it twice. To go on with the saved one, open it from the list of worlds."
 "[create_a_world]": "Create a world"
 "[world_type]": "World type"
 "[custom]": "Custom"
@@ -1239,6 +1249,9 @@
 "[the_world_could_not_be_opened]": "The world could not be opened: %s"
 "[port_is_taken]": "Port %d is taken"
 "[the_server_moves_to_another_world]": "The server is moving to another world"
+
+# src/server/test_mod.gd
+"[core.items.test_mod]": "Test mod token"
 
 # src/shared/content/crafting.gd
 "[needs_a_station]": "Needs a station: %s"

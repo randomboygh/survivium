@@ -9,11 +9,17 @@ same.
 
 **Files**
 - `src/shared/world/currents.gd` — the rivers' currents (decision 178, answer 5А): `at(x, z)` — cells per
-  second along the river (across the slope the layout's `side`) to the sea or a lake (where the distance to
-  them in `LOOK` cells up and down the river falls), in the middle `SPEED`, at the bank the share `AT_BANK`;
-  on a lake, in the sea, outside rivers and in a world with no layout of rivers (the test one) — zero; a
-  column is laid out once (`lay_out` of three columns across) and stored. Where a river comes to the sea and
-  turns away, it may flow from that place both ways or converge to it.
+  second along the river (across the slope the layout's `side`), one way all along it, in the middle `SPEED`,
+  at the bank the share `AT_BANK`; on a lake, in the sea, outside rivers and in a world with no layout of
+  rivers (the test one) — zero; a column is laid out once (`lay_out` of three columns across) and stored.
+  Which way a river runs is found once for the whole river (`_follow`): its middle line (`side` = 0, `_probe`,
+  layouts of 2×2 columns) is followed both ways `STEP` cells a step, at most `TRACE` steps, through lakes and
+  dry gaps under `DRY_GAP` steps, to its ends (`_trace_step`): the sea, where it dries up, or unknown; it runs
+  towards the sea, then towards the unknown end, between ends of one kind down from the higher water, else by
+  where the ends are (`_way`); with both ends unknown, the old rule (where the distance to the sea or a lake
+  `LOOK` cells up and down the river falls). The way is kept by squares of `BLOCK` cells along the line, and a
+  trace that comes to a kept square takes its way, so a river never turns back. The search runs `BUDGET_US`
+  a frame, one river at a time; till it ends the river stands still (`budget_us` — more in tests and tools).
 - `src/shared/world/land_layout.gd` — the layout from noises: slow noises on a lattice through `LATTICE`
   cells, the distances to the shore and a river; continents, mountains with scree and snow above
   `WorldData.SNOW_LINE`, rivers by steps (rapids, waterfalls), deltas, lakes (no nearer than `LAKE_SHORE` to

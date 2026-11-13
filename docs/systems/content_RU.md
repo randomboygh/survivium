@@ -40,7 +40,13 @@
   файлами, таблица `Content.served` тогда — таблица своих (`Content.lay_own`, `served_own`; `serving()` истинно
   только для файлов сервера), читается заново при каждой загрузке (`Content.refresh`). Сервер, созданный там,
   называет и раздаёт эти файлы (`ContentHost`), а настройки показывают папку и число файлов в ней («Свои
-  моды», `SettingsMenu._own_mods_rows`). Файл с именем, которое список нести не может (`valid_path`: простые
+  моды», `SettingsMenu._own_mods_rows`). Файловые менеджеры новых Android до этой папки не достают, поэтому
+  моды приносятся из zip, выбранного системным выбором файла («Импортировать моды из zip»,
+  `src/client/mod_import.gd`, `ModImport.pick` через `DisplayServer.file_dialog_show`, путь content://
+  копируется в `user://` и распаковывается `unpack`: папка `content/` внутри архива, иначе один мод с mod.yaml
+  сверху, названный по архиву, `placing`, `mod_name`; только имена, которые берёт `valid_path`, не больше
+  `FILE_MAX`; затем моды перечитываются), и удаляются («Удалить свои моды», `ModImport.clear`;
+  `mod_files_test.gd` `_test_import`). Файл с именем, которое список нести не может (`valid_path`: простые
   буквы, цифры, `_ - + .`), или больше `FILE_MAX` пропускается при любом обходе (`ModFiles.skipped`; сервер
   пишет об этом в журнал). Проверка — `mod_files_test.gd` `_test_own_mods`.
 - Горячая перезагрузка (решение 184): `src/shared/content/content_watch.gd` (`ContentWatch`) смотрит файлы

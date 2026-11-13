@@ -98,8 +98,11 @@ and a new shared part is added to the kit and to the «Interface gallery».
   «Unban» and the field «Ban» (the same commands `whitelist`, `ban`, `unban`, `Server.access`); under all
   «Play», «Stop the server» (two touches), «Back»; the same window is the «Server» item in the pause menu;
   taller than the screen — it scrolls, the bar does not cover the rows, `UiStyle.bar_room`), `world_setup.gd`
-  («New world»: seed, kind of world, generator settings with a map, the page «Mods»: under a dropped bundle the
-  whole chain of the reason, `Mods.why`), `world_list.gd` («Load world»; a world has a square trash button:
+  («New world»: seed, kind of world, generator settings with a map, the page «Mods» and a page per mod, its
+  first row the mod as a whole switching all its bundles, `_whole_mod_row`: under a dropped bundle the
+  whole chain of the reason, `Mods.why`; when a world of the seed and settings is saved, a red note says
+  «Create a world» makes it anew with the mods chosen now on a second tap, `_check_saved`,
+  `SaveGame.replace_world` deletes the save), `world_list.gd` («Load world»; a world has a square trash button:
   the first touch paints it red, the second deletes, for the test world — resets; recent servers on the «Join»
   screen have the same, `ServerList.forget`), `death_screen.gd`.
 - The game: `hud.gd` (the main screen; parts by topic, decision 168: `hud_parts.gd` — nodes and state, small

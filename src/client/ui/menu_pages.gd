@@ -347,20 +347,24 @@ func new_world() -> void:
 func _new_world() -> void:
 	_show_screen(WORLD_SETUP, [game])
 	_setup.cancelled.connect(_close_setup)
-	_setup.done.connect(func() -> void:
+	_setup.done.connect(func(fresh: bool) -> void:
 		_close_setup()
-		_go_to(game.settings.values.world_seed, game.settings.world_options(), "single"))
+		_go_to(game.settings.values.world_seed, game.settings.world_options(), "single", fresh))
 
 
 ## Into the world of `seed_value` and `options`: the one this scene was started for at
 ## once, any other by a restart that loads it (from its save if it has one); cancelling
-## goes back to `from`.
-func _go_to(seed_value: int, options: Dictionary, from: String) -> void:
-	if seed_value == game.world_seed and options == game.world_options and game.join_url == "":
+## goes back to `from`. `fresh`: its save is deleted first and it is made anew, with the
+## mods chosen on «Новый мир» (SaveGame.replace_world), even the one being played.
+func _go_to(seed_value: int, options: Dictionary, from: String, fresh := false) -> void:
+	if not fresh and seed_value == game.world_seed and options == game.world_options and game.join_url == "":
 		play(from)
 	else:
 		back_to = from
-		game.save.switch_world(seed_value, options)
+		if fresh:
+			game.save.replace_world(seed_value, options)
+		else:
+			game.save.switch_world(seed_value, options)
 		game.leave_server()
 		game.restart.call_deferred()
 

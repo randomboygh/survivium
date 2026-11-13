@@ -61,7 +61,9 @@ doors and windows.
   the hint — how much longer to burn); solid through `WorldData.blockers`; a new world starts with the start
   camp at the spawn (`start_camp` by `Starts.START.camp`: a campfire, a chest — the patch of the chest's
   bundle; an occupied place — a tree, a slope, water — is replaced by the nearest level free one within
-  `CAMP_REACH` cells, `camp_spot`: first at the spawn's level, then within `CAMP_RISE` levels, then at any).
+  `CAMP_REACH` cells, `camp_spot`: first at the spawn's level, then within `CAMP_RISE` levels, then at any;
+  first only under the open sky, nothing `CAMP_SKY` levels over it or along the view's line south of it,
+  `_open_above`, so no crown hides it).
   The button «Give tools» («Testing») gives `Items.best_kit`: the best tool of each class, light and the
   biggest bag for the back, put on at once. The signals `added`, `removed`, `lit_changed`, `fuel_changed`,
   `cell_changed`. Light (an item with `light` without `prop`: a torch, a candle, a lantern) is placed on one

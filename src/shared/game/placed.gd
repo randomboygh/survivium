@@ -84,6 +84,8 @@ const FUEL_TELL := 10.0
 ## spot is taken, and how many levels above or below the spawn it may stand (see camp_spot).
 const CAMP_REACH := 12
 const CAMP_RISE := 3
+## How many levels over the camp's spot must be open (_open_above).
+const CAMP_SKY := 24
 ## How high a fence, a wicket or a gate is solid, in cells over its floor: over the
 ## jump of a body (Body.JUMP_SPEED, about 1.45 cells), so nothing jumps it.
 const FENCE_TOP := 2.0
@@ -667,8 +669,9 @@ static func record(e: Dictionary) -> Dictionary:
 ## Puts the camp of the start (Starts.START: the campfire, the chest when its bundle is
 ## loaded) next to world point `at` (the spawn), each thing its cells east and south of
 ## it, or at the nearest free level spot round there when that one is taken (a tree, a
-## slope, water, the other thing): every thing of the camp stands by the spawn. The chunks
-## there are made by then, so the ground under them is known.
+## slope, water, the other thing): every thing of the camp stands by the spawn, under the
+## open sky where there is such a spot (not under a crown or behind one, where the player
+## would not see it: _open_above). The chunks there are made by then, so the ground under them is known.
 func start_camp(at: Vector3) -> void:
 	var home := Vector3i((at / CELL).floor())
 	for e: Dictionary in Starts.START.camp:
@@ -682,6 +685,15 @@ func start_camp(at: Vector3) -> void:
 ## there is one, else within CAMP_RISE levels, else at any level; the ground under them
 ## levelled. y = -1 when there is none.
 func camp_spot(home: Vector3i, want: Vector2i) -> Vector3i:
+	for open in [true, false]:
+		var spot := _camp_spot(home, want, open)
+		if spot.y >= 0:
+			return spot
+	return Vector3i(0, -1, 0)
+
+
+## camp_spot's search, with `open`: only where nothing hangs over the spot (_open_above).
+func _camp_spot(home: Vector3i, want: Vector2i, open: bool) -> Vector3i:
 	for rise in [0, CAMP_RISE, -1]:
 		for r in CAMP_REACH + 1:
 			for dz in range(-r, r + 1):
@@ -694,7 +706,7 @@ func camp_spot(home: Vector3i, want: Vector2i) -> Vector3i:
 					if x <= home.x + 1 and x + 1 >= home.x - 1 and z <= home.z + 1 and z + 1 >= home.z - 1:
 						continue
 					var y := _free_at(x, z)
-					if y >= 0 and (rise < 0 or absi(y - home.y) <= rise):
+					if y >= 0 and (rise < 0 or absi(y - home.y) <= rise) and (not open or _open_above(x, y, z)):
 						_clear(Vector3i(x, y, z))
 						return Vector3i(x, y, z)
 	return Vector3i(0, -1, 0)
@@ -1425,6 +1437,25 @@ func _free_at(x: int, z: int) -> int:
 					or world.blockers.has(Vector3i(x + dx, y, z + dz)):
 				return -1
 	return y
+
+
+## Whether nothing hangs over the two by two cells at (x, y, z) or stands between them
+## and the camera: no leaves, trunk or rock CAMP_SKY levels up, with a cell round them,
+## straight over them (from two levels up) and along the line the view looks down by at
+## 3/4 (a level up is a cell south, PixelView.VIEW_DIR, the turn at the start). A thing
+## there is seen from the start.
+func _open_above(x: int, y: int, z: int) -> bool:
+	for dy in range(1, CAMP_SKY + 1):
+		var yy := y + dy
+		if yy >= world.size_y:
+			break
+		for dx in range(-1, 3):
+			for dz in range(-1, 3):
+				if world.get_cell(x + dx, yy, z + dz + dy) != Mat.AIR:
+					return false
+				if dy >= 2 and world.get_cell(x + dx, yy, z + dz) != Mat.AIR:
+					return false
+	return true
 
 
 ## Levels the ground under the two by two cells from `corner` and takes the bushes off them.
