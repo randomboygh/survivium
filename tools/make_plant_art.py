@@ -116,14 +116,14 @@ PAL = {
     "Q": (244, 244, 232, 255),  # pea flower
     "m": (30, 88, 40, 255),  # monstera leaf
     "M": (64, 136, 58, 255),  # its lit side
-    "h": (50, 102, 44, 255),  # clover leaf
-    "H": (88, 146, 62, 255),  # its lit side
-    "x": (150, 194, 112, 255),  # its pale mark
-    "j": (40, 82, 38, 255),  # clover stalk
-    "b": (34, 70, 34, 255),  # fern stem, dark
-    "B": (46, 92, 42, 255),  # fern leaflet in shade
-    "z": (78, 132, 54, 255),  # its lit side
-    "Z": (150, 200, 90, 255),  # a lit tip
+    "h": (51, 106, 62, 255),  # clover leaf
+    "H": (80, 143, 82, 255),  # its lit side
+    "x": (131, 182, 121, 255),  # its pale mark
+    "j": (45, 91, 54, 255),  # clover stalk
+    "b": (41, 82, 42, 255),  # fern stem, dark
+    "B": (49, 98, 48, 255),  # fern leaflet in shade
+    "z": (74, 131, 57, 255),  # its lit side
+    "Z": (135, 185, 84, 255),  # a lit tip
     "y": (240, 236, 226, 255),  # white clover head
     "Y": (212, 206, 196, 255),  # its shade
     "i": (228, 140, 170, 255),  # red clover head
@@ -361,15 +361,16 @@ FERN = [
 ]
 
 # The fern and the clover again in other greens, so a wood or a field is not of one hue:
-# warmer and yellower, a little deeper. All of them stay in the greens of the game's grass and
-# leaves (no blue-green: it stood out of the meadow and the wood).
+# warmer and yellower, a little cooler. Only a touch of blue in the greens, and soft
+# contrast between the dark and the lit parts, so they sit in the meadow and the wood
+# instead of standing out of them.
 FERN_SHADES = [
-    {"b": (44, 72, 30, 255), "B": (58, 96, 36, 255), "z": (94, 132, 46, 255), "Z": (176, 204, 92, 255)},
-    {"b": (28, 62, 32, 255), "B": (38, 84, 42, 255), "z": (64, 120, 56, 255), "Z": (138, 190, 96, 255)},
+    {"b": (54, 83, 34, 255), "B": (65, 102, 39, 255), "z": (94, 131, 47, 255), "Z": (159, 188, 84, 255)},
+    {"b": (34, 72, 48, 255), "B": (42, 90, 58, 255), "z": (62, 120, 74, 255), "Z": (119, 172, 110, 255)},
 ]
 CLOVER_SHADES = [
-    {"h": (64, 106, 40, 255), "H": (110, 152, 62, 255), "x": (172, 200, 112, 255), "j": (50, 86, 34, 255)},
-    {"h": (40, 90, 42, 255), "H": (72, 134, 60, 255), "x": (134, 184, 112, 255), "j": (32, 72, 36, 255)},
+    {"h": (67, 109, 46, 255), "H": (101, 144, 63, 255), "x": (147, 182, 102, 255), "j": (56, 94, 41, 255)},
+    {"h": (41, 91, 55, 255), "H": (64, 125, 74, 255), "x": (111, 165, 110, 255), "j": (36, 78, 48, 255)},
 ]
 
 CLOVER = [
