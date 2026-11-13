@@ -269,7 +269,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			Slopes.slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m, float(_around_tiles(c, cov, i, dy, dz, sh)), cuts)
 			# The water beside goes on up the slope of a shore to where it rises out of it.
 			if Water.shore(c, cov, i, dy, dz):
-				Water.shore_water(water, w, c, sh, i, dy, dz, base)
+				Water.shore_water(water, w, c, sh, i, dy, dz, base, Water.foam(c, sh, cov, i, dy, dz))
 			elif cuts:
 				Water.cut_water(w, water, c, i, dy, base, cuts)
 		elif sh[i] & 15 != 0 and sh[i] < 16:
