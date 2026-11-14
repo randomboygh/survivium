@@ -46,13 +46,13 @@ recommendations.
 
 ### WA-025 · Medium · Maintainability
 
-- **Description:** Scripts past 1500 lines are not split into parts, and some functions are very long.
-- **Cause:** Growth since 2026-11-07: `wildlife.gd` 1184 → 1942, `ui_style.gd` 1315 → 1880 lines.
+- **Description:** Some functions are very long.
+- **Cause:** Growth since 2026-11-07. The two scripts past 1500 lines are split (2026-11-14): `wildlife.gd` into a chain of five parts (#598), the icons' drawings of `ui_style.gd` into `ui_icons.gd`; `main.gd` gave its connection flow to `server_link.gd` (#586).
 - **Confirmation:** Counted: `wc -l`; longest functions `settings_menu._section_rows` 350 lines, `land_layout._layout_row` 303, `hud._ready` 276.
-- **Files and systems:** `src/shared/game/wildlife.gd`, `src/client/ui/ui_style.gd`, `src/client/ui/settings_menu.gd`, `src/shared/world/land_layout.gd`
-- **Consequences:** Hard to review and merge; `wildlife.gd` keeps growing.
-- **Recommended fix:** Plan: chains of parts as in decision 168; per-section functions.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due when next touched.
+- **Files and systems:** `src/client/ui/settings_menu.gd`, `src/shared/world/land_layout.gd`, `src/client/ui/hud.gd`
+- **Consequences:** Hard to review and merge.
+- **Recommended fix:** Per-section functions for `_section_rows` and `hud._ready` when those files are next touched (other threads work in them now); `_layout_row` is the generator's inner loop: split only with a bench before and after.
+- **Status:** Open: backlog (the files are split, the long functions wait); first found 2026-11-14 (new); due when next touched.
 
 ### WA-032 · Medium · Performance
 

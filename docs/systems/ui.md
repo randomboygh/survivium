@@ -266,7 +266,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   scrolled lists; text colours, the large font, frames and all `UiStyle.ICONS` icons. Everything is pressable,
   the line under the page says what was pressed; the gallery does not change the game. A new shared element is
   added here too. The shots `ui-gallery-<tab>` in `tools/shot/shots.gd`.
-- Shared: `ui_style.gd` (panels, frames, buttons, the font; `accent(b)` — the amber «press» button, `arm` /
+- Shared: `ui_style.gd` (it extends `ui_icons.gd`, the drawings of the icons, `ICONS`; panels, frames, buttons, the font; `accent(b)` — the amber «press» button, `arm` /
   `succeed` — red and green, `well()` — the shared sunken frame of text), `item_icons.gd` (item pictures
   `icons/<icon>.png` 12×12 and the icons of `assets/ui/`; the path of an item's picture is looked up on disk
   once, `ItemIcons._paths`), `hotbar_slot.gd`, `icon_tabs.gd`, `tab_row.gd`, `fact_chips.gd`,
