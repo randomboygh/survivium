@@ -857,8 +857,10 @@
 "[caves]": "Пещеры"
 "[markers]": "Маркеры"
 "[debug]": "Отладка"
-"[device_tab]": "Устройство"
-"[start_tab]": "Загрузка"
+"[mods_tab]": "Моды"
+"[device_tab]": "Система"
+"[start_tab]": "Запуск"
+"[settings_tab]": "Настройки"
 "[log_tab]": "Журнал"
 "[very_small]": "очень мелкий"
 "[small_ui]": "мелкий"
@@ -887,12 +889,13 @@
 "[above_stretch]": "Сверху: растяжение"
 "[density_of_the_first]": "Плотность первых"
 "[shadow_map]": "Карта теней"
+"[copy_tab]": "Скопировать вкладку"
+"[copy_all]": "Скопировать всё"
 "[copy]": "Скопировать"
 "[share]": "Поделиться"
 "[clear_the_log]": "Очистить журнал"
 "[soon_n2]": "Скоро"
 "[version]": "Версия %s · %s · %s"
-"[copy_all]": "Скопировать всё"
 "[freeze_log]": "Журнал фризов"
 "[test_data]": "Данные для теста"
 "[shader_probe]": "Проверка шейдеров"
@@ -1503,7 +1506,7 @@
 "[no_plots_left_of]": "Участков не осталось: %d из %d"
 "[the_territory_is_protected_again]": "Территория снова под охраной"
 
-# src/shared/game/wildlife.gd
+# src/shared/game/wildlife_fight.gd
 "[is_threatening_step_back]": "%s угрожает: отойдите"
 "[attacks]": "%s нападает!"
 

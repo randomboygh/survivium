@@ -857,8 +857,10 @@
 "[caves]": "Caves"
 "[markers]": "Markers"
 "[debug]": "Debug"
+"[mods_tab]": "Mods"
 "[device_tab]": "Device"
 "[start_tab]": "Loading"
+"[settings_tab]": "Settings"
 "[log_tab]": "Log"
 "[very_small]": "very small"
 "[small_ui]": "small"
@@ -887,12 +889,13 @@
 "[above_stretch]": "Above: stretch"
 "[density_of_the_first]": "Density of the first"
 "[shadow_map]": "Shadow map"
+"[copy_tab]": "Copy tab"
+"[copy_all]": "Copy all"
 "[copy]": "Copy"
 "[share]": "Share"
 "[clear_the_log]": "Clear the log"
 "[soon_n2]": "Soon"
 "[version]": "Version %s · %s · %s"
-"[copy_all]": "Copy all"
 "[freeze_log]": "Freeze log"
 "[test_data]": "Test data"
 "[shader_probe]": "Shader check"
@@ -1503,7 +1506,7 @@
 "[no_plots_left_of]": "No plots left: %d of %d"
 "[the_territory_is_protected_again]": "The territory is protected again"
 
-# src/shared/game/wildlife.gd
+# src/shared/game/wildlife_fight.gd
 "[is_threatening_step_back]": "%s is threatening: step back"
 "[attacks]": "%s attacks!"
 

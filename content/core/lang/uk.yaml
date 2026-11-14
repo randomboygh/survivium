@@ -857,8 +857,10 @@
 "[caves]": "Печери"
 "[markers]": "Маркери"
 "[debug]": "Налагодження"
-"[device_tab]": "Пристрій"
+"[mods_tab]": "Моди"
+"[device_tab]": "Система"
 "[start_tab]": "Запуск"
+"[settings_tab]": "Опції"
 "[log_tab]": "Журнал"
 "[very_small]": "дуже дрібний"
 "[small_ui]": "дрібний"
@@ -887,12 +889,13 @@
 "[above_stretch]": "Зверху: розтягнення"
 "[density_of_the_first]": "Щільність перших"
 "[shadow_map]": "Мапа тіней"
+"[copy_tab]": "Копіювати вкладку"
+"[copy_all]": "Копіювати все"
 "[copy]": "Скопіювати"
 "[share]": "Поділитися"
 "[clear_the_log]": "Очистити журнал"
 "[soon_n2]": "Скоро"
 "[version]": "Версія %s · %s · %s"
-"[copy_all]": "Копіювати все"
 "[freeze_log]": "Журнал фризів"
 "[test_data]": "Дані для тесту"
 "[shader_probe]": "Перевірка шейдерів"
@@ -1503,7 +1506,7 @@
 "[no_plots_left_of]": "Ділянок не лишилося: %d з %d"
 "[the_territory_is_protected_again]": "Територія знову під охороною"
 
-# src/shared/game/wildlife.gd
+# src/shared/game/wildlife_fight.gd
 "[is_threatening_step_back]": "%s погрожує: відійдіть"
 "[attacks]": "%s нападає!"
 

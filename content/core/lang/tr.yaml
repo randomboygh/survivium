@@ -857,8 +857,10 @@
 "[caves]": "Mağaralar"
 "[markers]": "İşaretler"
 "[debug]": "Hata ayıklama"
+"[mods_tab]": "Mod"
 "[device_tab]": "Cihaz"
 "[start_tab]": "Yükleme"
+"[settings_tab]": "Ayarlar"
 "[log_tab]": "Kayıt"
 "[very_small]": "çok küçük"
 "[small_ui]": "küçük"
@@ -887,12 +889,13 @@
 "[above_stretch]": "Üstte: esneme"
 "[density_of_the_first]": "İlklerin yoğunluğu"
 "[shadow_map]": "Gölge haritası"
+"[copy_tab]": "Sekmeyi kopyala"
+"[copy_all]": "Tümünü kopyala"
 "[copy]": "Kopyala"
 "[share]": "Paylaş"
 "[clear_the_log]": "Kaydı temizle"
 "[soon_n2]": "Yakında"
 "[version]": "Sürüm %s · %s · %s"
-"[copy_all]": "Tümünü kopyala"
 "[freeze_log]": "Takılma kaydı"
 "[test_data]": "Test verisi"
 "[shader_probe]": "Gölgelendirici denetimi"
@@ -1503,7 +1506,7 @@
 "[no_plots_left_of]": "Parsel kalmadı: %d / %d"
 "[the_territory_is_protected_again]": "Bölge yeniden korunuyor"
 
-# src/shared/game/wildlife.gd
+# src/shared/game/wildlife_fight.gd
 "[is_threatening_step_back]": "%s tehdit ediyor: geri çekil"
 "[attacks]": "%s saldırıyor!"
 

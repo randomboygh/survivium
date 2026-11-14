@@ -712,6 +712,7 @@ const SHOTS := {
 	# Its other tabs: the build, the device and the frame; the settings a line each.
 	"ui-report-device": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "report", "section": "device"},
 	"ui-report-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "report", "section": "values"},
+	"ui-report-mods": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "report", "section": "mods"},
 	# Two-figure counts on the tabs; «Скопировать» tapped (green), «Очистить журнал» once (red).
 	"ui-freezes-press": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "freezes", "freezes": true,
 		"many": 12, "press": ["_copy", "_clear"]},
