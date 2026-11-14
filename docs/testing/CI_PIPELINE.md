@@ -34,7 +34,7 @@ publishing, which waits for everything). The fast ones fail first.
 | `android` | the Android APK (arm64), signed by the key from the secrets ([../systems/android.md](../systems/android.md)); the artifact `survivium-android` | ~2 min | yes (for publishing) |
 | `smoke (desktop / phone / upright)` | the web build in headless Chrome (`tests/browser_smoke.mjs`); the phones draw the lightest preset (`?quality=0`, `Settings.use_page_quality`), the desktop the default picture | 1–4 min | yes, when it runs |
 | `release` | only `main`: the GitHub release `v<stage>.<PR>` with the notes of `tools/release_notes.py` (the «What's new» lines since the last release) and the APK and PC builds; the same files into the prereleases `android-latest`, `pc-latest` ([Releases](#releases)) | seconds | — |
-| `deploy` | only `main`: the web build to GitHub Pages | seconds | — |
+| `deploy` | only `main`: the web build to GitHub Pages, one deploy at a time (`concurrency: pages`) and only of `main`'s newest commit: an older run finishing late or rerun leaves Pages alone | seconds | — |
 
 «Blocks» here means: `release` and `deploy` wait for its success, and by the project's rule a PR is merged
 only on green CI. So that GitHub itself does not let a red PR be merged, in the repository's settings
@@ -80,15 +80,23 @@ Every build of `main` that passed every job is a release on GitHub (Releases), m
   (`pull-requests: read`), `release` writes a release and its tag (`contents: write`), `deploy` — Pages (`pages: write`,
   `id-token: write`). A PR's code gets no write rights.
 - The secrets: the built-in `GITHUB_TOKEN` and the Android signing key `ANDROID_KEYSTORE`,
-  `ANDROID_KEYSTORE_PASSWORD` (only the `android` job reads them; the keystore file is deleted after the export);
-  none is printed.
-- Third-party actions are only GitHub's `actions/*`, pinned to a commit (SHA) with the version in a comment.
-  Update by replacing the SHA with the commit of the new tag (`git ls-remote https://github.com/actions/<name>`).
+  `ANDROID_KEYSTORE_PASSWORD` (only the `android` job reads them, and only in a build of `main`: a PR's APK is
+  signed by a key made for its run; the keystore file is deleted after the export); none is printed. A PR runs
+  the workflow file of its own branch, so this keeps the key from a PR's run only while nobody but the owner can
+  push branches; a protected environment would hold it even then.
+- Third-party actions are only GitHub's `actions/*`, pinned to a commit (SHA) with the version in a comment,
+  each on a major that runs on Node 24. Update by replacing the SHA with the commit of the new tag
+  (`git ls-remote https://github.com/actions/<name> 'refs/tags/<tag>^{}'`).
+- The toolchain is pinned: the runner image `ubuntu-26.04` (not `ubuntu-latest`), the Android build tools
+  `35.0.0` that sign and verify the APK (installed if the image lacks them). The smoke test's Chrome is the
+  runner's; its version is printed in the log.
+- The playtest server's `cloudflared` is checked against `CLOUDFLARED_SHA256` in `playtest.yml`: a new
+  `CLOUDFLARED_VERSION` needs its sum there (`sha256sum` of the downloaded `cloudflared-linux-amd64`).
 - Godot and the export templates are downloaded from the engine's release and checked against the SHA-512
   from `.github/actions/godot/SHA512-SUMS`; for a new Godot version two lines from the `SHA512-SUMS.txt` of
   its release are added there, otherwise the job fails with a clear error. The cache is keyed by the version
   and these sums.
-- `playwright-core` for the smoke test is pinned by version (`1.48.2`), with no lock file.
+- `playwright-core` for the smoke test is pinned by version (`1.64.1`), with no lock file.
 - Every test writes to its own `user://` (`XDG_DATA_HOME`), the developer's saves are not touched; the tests
   call no external services (the server test listens on localhost:7791).
 - Checking the code and publishing are separated: only `release` and `deploy` publish, only into `main`, only
