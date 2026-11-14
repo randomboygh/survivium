@@ -81,6 +81,19 @@ static var _box_shears: Array[Transform3D] = []
 static var _shears_of: Array = []
 
 
+## Draws none of emitter `p`'s particles till it first emits. A CPUParticles3D made with
+## emitting off draws every one of its `amount` instances from a buffer nothing wrote
+## (Godot sets the instances drawn to none only when an emission ends): fresh memory
+## is zeros and nothing shows, but after a scene is made anew (a game of one's own,
+## then a server) the GPU hands out memory the last scene used, and rain, flames and
+## sparks stood about as big yellow wedges, blue lines and black squares (Android and
+## PC, 2026-11-15, found by hiding «effects» in «Что рисуется»). Call it after setting
+## `amount`, which allocates the buffer anew.
+static func blank_particles(p: CPUParticles3D) -> void:
+	if not p.emitting:
+		RenderingServer.multimesh_set_visible_instances(p.get_base(), 0)
+
+
 ## Upscale factor and low-res image size for a screen. Both sides are even, so the
 ## camera centre falls on a pixel corner; the image covers the whole screen and is
 ## cropped by less than 2 * scale screen pixels at the right and bottom. On a computer

@@ -188,6 +188,10 @@ voxel models of things.
   `Controls.PICK_SHARE` (`CaveLayers.share`, `VoxelRaycast.cast(..., skip)`).
 
 **Pitfalls**
+- A `CPUParticles3D` made with emitting off draws all its `amount` instances from a buffer nothing wrote
+  until it first emits: after a scene is made anew (single player, then a server) that memory holds the last
+  scene's data, drawn as big coloured wedges and lines. Every emitter goes through `PixelView.blank_particles`
+  after its `amount` is set (2026-11-15).
 - Phone GPUs flip pixels whose centres lie exactly on the edges of texels or lines of geometry:
   `floor(world_pos * TEXELS)` on non-axial faces needs a shift by a part of a texel; headless does not see it
   — render with ±eps and compare the shots.

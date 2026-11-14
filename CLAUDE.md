@@ -188,6 +188,8 @@ Each in one line; the system's context doc has the detail.
 - Tests of time-based behaviour wait by `Time.get_ticks_msec`, not frames. A per-frame flag computed
   before a state-changing update is stale in that frame.
 - Godot front faces wind clockwise; a hand-built mesh wound counter-clockwise is inside out.
+- A `CPUParticles3D` made not emitting draws garbage from an unwritten buffer till it emits (seen after a
+  scene switch): call `PixelView.blank_particles` after setting `amount` (`docs/systems/rendering.md`).
 - MultiMesh instance data is half float on GLES3/web: new per-instance data goes in COLOR. Vertex
   COLOR is 8-bit. Packed float words stay below 2^23, or are read with `round()`, never `+ 0.5`
   (UV2.y of the world mesh reaches 2^24: `+ 0.5` turned an odd material into the next). `instance uniform` reads 0 in the web build.

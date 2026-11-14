@@ -874,6 +874,7 @@ func _emitter(amount: int, lifetime: float, size: Vector2, brightness: float) ->
 	# Pixel specks throw no shadow worth a pass of the sun's or a fire's.
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(p)
+	PixelView.blank_particles(p)
 	return p
 
 
