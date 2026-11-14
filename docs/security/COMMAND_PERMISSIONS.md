@@ -33,7 +33,7 @@ command, with no restart. The client does not send a role: there is no role fiel
 | `help`, `?` | — | host | the list |
 | `op`, `deop` | who / a name | owner | give or take away the host's role |
 | `stop` | — | owner | save and stop the server |
-| `test` | `bot+`, `bot-`, `worlds`, `world <folder>`, `new [seed]`, `new test`, `mod on\|off\|next`, `stop`, `hour` | on a server with `--playtest` — any player; on another — the host (`stop` — the owner) | bots, another world of the server (the name of a folder under the saves, not a path), stopping, the term of a test server (`TestCommands`, `PlaytestHost`) |
+| `test` | `bot+`, `bot-`, `worlds`, `world <folder>`, `new [seed]`, `new test`, `mod on\|off\|next`, `stop`, `hour` | on a server with `--playtest` — any player; on another — the host (`stop`, `world`, `new`, `mod` — the owner: they change the server under everyone) | bots, another world of the server (the name of a folder under the saves, not a path), stopping, the term of a test server (`TestCommands`, `PlaytestHost`) |
 
 A command in the chat begins with «/»; from a player without a role — a refusal and an entry `command` in the
 log; an unknown one — «unknown command»; without the needed role — «only for the server's owner». Every
@@ -41,7 +41,8 @@ command from the chat is written to the server's log with the name and number. T
 commands. On a test server (`--playtest`, set only on the command line, `.github/workflows/playtest.yml`)
 «/test» and the request `cheats` (the settings of the «Testing» page, `src/server/cheats.gd`: each value is
 checked by type and clamped to bounds) are available to any player; on any other — only to the host, a player
-without a role gets a refusal to `test`, `cheats` — false (`Requests.may_cheat`).
+without a role gets a refusal to `test`, `cheats` — false (`Requests.may_cheat`). A host's `cheats` off a test
+server is written to the security log as `cheats` with the switches named (`Requests.log_cheats`).
 
 ## How to add a command
 

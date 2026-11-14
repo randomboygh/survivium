@@ -53,6 +53,8 @@ func update() -> void:
 		reload()
 	if fetch != null:
 		fetch.update()
+		if fetch != null and fetch.state == "ask":
+			_too_much()
 
 
 static func _in_front() -> bool:
@@ -88,10 +90,29 @@ func _on_event(kind: String, args: Variant, net) -> void:
 		fetch = null
 		return
 	fetch = ModFetch.new()
-	# The player is in this server's world already: what its reload brings is taken.
-	fetch.no_ask = true
+	# What its reload brings is taken, but more than ModFetch.ASK_ABOVE as on joining: the
+	# player is asked (the weekly audit's WA-014: else a server could push any size).
+	fetch.no_ask = game.bot != null
 	fetch.finished.connect(_on_taken)
 	fetch.begin(net, args[0], args[2])
+
+
+## The server's reload is more than ModFetch.ASK_ABOVE to take: the game leaves the server,
+## saying how much, as joining does (Main._join_world), and joining again takes it.
+func _too_much() -> void:
+	var f := fetch
+	fetch = null
+	f.stop()
+	game.get_script().mods_allowed = f.digest
+	var why := Lang.line("[the_server_asks_to_download]", ["%.1f" % (f.want / 1048576.0)])
+	print("mods: the server's reload asks for %d KB: left the server to ask the player" % (f.want >> 10))
+	game.join_error = why
+	if game.socket != null:
+		game.socket.leave()
+	if game.hud != null:
+		game.hud.set_loading(why)
+	if game.menu != null:
+		game.menu.join_failed(why)
 
 
 ## The files of the server's reload are here (or could not be taken): the game plays with

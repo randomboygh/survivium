@@ -98,6 +98,16 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.SHOP:
 			if args is Dictionary:
 				game.workshop.take(args)
+		Protocol.RULES:
+			# Over a socket the server's rules are the game's (in single player they are
+			# the same object already); only plain values are taken.
+			if args is Array and args.size() == 1 and args[0] is Dictionary and game.host == null:
+				var d := {}
+				for k: Variant in args[0]:
+					var v: Variant = args[0][k]
+					if k is String and (v is bool or v is int or v is float or v is String and v.length() < 32):
+						d[k] = v
+				game.rules.from_dict(d)
 		Protocol.SAY:
 			if args is Array and args.size() == 1:
 				who.say(str(args[0]))

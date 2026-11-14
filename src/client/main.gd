@@ -473,6 +473,8 @@ func _read_join() -> void:
 					given.name = args[i + 1]
 				"--password":
 					given.password = args[i + 1]
+		if given.url != "" and given.password == "":
+			given.password = OS.get_environment(Protocol.PASSWORD_ENV)
 		if given.url != "":
 			join = given
 		if OS.has_feature("web"):

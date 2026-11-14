@@ -10,6 +10,7 @@ const ContentHost := preload("res://src/server/content_host.gd")
 const TestMod := preload("res://src/server/test_mod.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const ModImport := preload("res://src/client/mod_import.gd")
+const ModReload := preload("res://src/client/mod_reload.gd")
 
 const DIR := "user://mod_files_test"
 const WOLF := "animals/wolf/data/creatures.yaml"
@@ -61,6 +62,7 @@ func run() -> void:
 	_test_test_mod()
 	_test_own_mods()
 	_test_import()
+	_test_big_reload()
 
 
 func _test_lists() -> void:
@@ -460,6 +462,20 @@ func _test_import() -> void:
 	got = ModImport.unpack(zip_path, dir)
 	_check(got.files == 2 and FileAccess.file_exists(dir + "/my_pack_2/fish/data/creatures.yaml"),
 		"a zip of one mod goes in as a mod named after it: %s" % got)
+	zip = ZIPPacker.new()
+	zip.open(zip_path)
+	var huge := PackedByteArray()
+	huge.resize(ModImport.ModFiles.FILE_MAX + 1)
+	for entry: Array in [["mod.yaml", "id: pack\n".to_utf8_buffer()], ["bomb/data/items.yaml", huge]]:
+		zip.start_file(entry[0])
+		zip.write_file(entry[1])
+		zip.close_file()
+	zip.close()
+	var sizes := ModImport.sizes_of(FileAccess.get_file_as_bytes(zip_path))
+	got = ModImport.unpack(zip_path, dir)
+	_check(sizes.get("bomb/data/items.yaml") == huge.size() and sizes.get("mod.yaml") == 9 and got.files == 1 and got.skipped == 1
+		and not FileAccess.file_exists(dir + "/my_pack_2/bomb/data/items.yaml"),
+		"a file too big is left out by the zip's own list, never unpacked: %s %s" % [got, sizes])
 	var bad := FileAccess.open(DIR + "/bad.zip", FileAccess.WRITE)
 	bad.store_string("not a zip")
 	bad.close()
@@ -477,3 +493,22 @@ func _remove(dir: String) -> void:
 	for d in DirAccess.get_directories_at(dir):
 		_remove(dir.path_join(d))
 	DirAccess.remove_absolute(dir)
+
+
+## A server's reload of more than ModFetch.ASK_ABOVE in the middle of play is not taken
+## unasked (the weekly audit's WA-014): the game leaves the server saying how much, and
+## joining again agrees to it.
+func _test_big_reload() -> void:
+	var main_script := GDScript.new()
+	main_script.source_code = "extends RefCounted\nstatic var mods_allowed := \"\"\nvar bot\nvar socket\nvar hud\nvar menu\nvar join_error := \"\"\n"
+	main_script.reload()
+	var game: RefCounted = main_script.new()
+	var reload := ModReload.new(game)
+	reload.fetch = ModFetch.new()
+	reload.fetch.digest = "d".repeat(ModFiles.HASH_LEN)
+	reload.fetch.want = ModFetch.ASK_ABOVE + 1
+	reload.fetch.state = "ask"
+	reload.update()
+	_check(reload.fetch == null and reload.served == 0 and game.join_error != "" and main_script.mods_allowed == "d".repeat(ModFiles.HASH_LEN),
+		"a big reload of a server in play is not taken: the player is asked by joining again: %s" % game.join_error)
+

@@ -911,11 +911,19 @@ func _chat(node: Node, a: Bot, b: Bot) -> void:
 		"a line to the team is heard by a member far away")
 	var bye = b.socket.net.request(Protocol.TEAM_LEAVE, [])
 	_check(await _until(func() -> bool: return bye.done) and bye.value == true and server.session.teams.teams.is_empty(), "the member leaves, and the team of one is gone")
+	_check(b.of(Protocol.RULES).any(func(e: Array) -> bool: return e[1][0] is Dictionary and e[1][0].has("free_items")),
+		"a player is told the server's rules of play after the welcome")
+	server.session.rules.free_items = true
+	_check(await _until(func() -> bool: return b.of(Protocol.RULES).any(func(e: Array) -> bool: return e[1][0].get("free_items") == true)),
+		"and told them again when they change")
+	server.session.rules.free_items = false
 	var cmd = b.socket.net.request(Protocol.CHAT, ["/who"])
 	_check(await _until(func() -> bool: return cmd.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and Lang.t(str(e[1][2])).contains("host"))),
 		"a command from a player who is not a host is refused in the chat")
 	_check(node.command("op Чужой").contains("Чужой") and server.is_host(b.reply.value.key)
-		and node.saves.read_access().get("hosts", {}).has(b.reply.value.key), "op makes a host, kept in the world's save")
+		and node.saves.read_access().get("hosts", {}).has(server.kept(b.reply.value.key))
+		and not FileAccess.get_file_as_string(node.saves.store.dir.path_join(node.saves.ACCESS)).contains(b.reply.value.key),
+		"op makes a host, kept in the world's save by the key's hash, never the key")
 	var who = b.socket.net.request(Protocol.CHAT, ["/who"])
 	_check(await _until(func() -> bool: return who.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and str(e[1][2]).begins_with("Players online"))),
 		"a host's command in the chat is done and answered there")
