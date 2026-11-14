@@ -134,12 +134,17 @@ const SHOTS := {
 	"fire-moon-before": {"time": 0.95, "season": 1, "moon": 1.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 0},
 	"dawn": {"time": 0.255, "season": 1, "moon": 1.0},
 	"sunrise": {"time": 0.28, "season": 1, "moon": 1.0},
-	# Sunlight among the trees (SunRays): a clear day, a low sun, and the breaking clouds after rain.
+	# Sunlight among the trees (SunRays): a clear day; none with a low sun or under the clouds after rain.
 	"rays-day": {"time": 0.45, "season": 1},
 	"rays-evening": {"time": 0.72, "season": 1},
 	"rays-after-rain": {"time": 0.4, "season": 1, "weather": "cloudy", "after_rain": 1.0},
 	# Shafts and flecks among the trees of a forest, in the morning, at noon and in the evening.
 	"rays-forest-morning": {"time": 0.32, "season": 1, "forest": true},
+	# The sun at about 23 degrees and at about 45: the rays half faded in, half out.
+	"rays-forest-rising": {"time": 0.285, "season": 1, "forest": true},
+	"rays-forest-high": {"time": 0.387, "season": 1, "forest": true},
+	# Clouds gathering over a forest in the morning: the rays half gone.
+	"rays-forest-clouds": {"time": 0.32, "season": 1, "forest": true, "clouds": 0.35},
 	"rays-forest-noon": {"time": 0.47, "season": 1, "forest": true},
 	"rays-forest-evening": {"time": 0.7, "season": 1, "forest": true},
 	"rays-trees": {"time": 0.33, "season": 1, "trees": true},
