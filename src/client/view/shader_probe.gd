@@ -40,7 +40,6 @@ const STEPS := [
 	["sprite_water", "box", "res://shaders/sprite_water.gdshader", "omni", ""],
 	["water", "box", "res://shaders/water.gdshader", "omni", ""],
 	["land", "box", "res://shaders/land.gdshader", "omni", ""],
-	["track", "multi", "res://shaders/track.gdshader", "omni", ""],
 	["particle", "box", "res://shaders/particle.gdshader", "omni", ""],
 	["fire_shadow", "box", "res://shaders/fire_shadow.gdshader", "omni", ""],
 	["leaf_shadow", "box", "res://shaders/leaf_shadow.gdshader", "omni", ""],

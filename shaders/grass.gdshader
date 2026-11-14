@@ -202,6 +202,11 @@ void fragment() {
 			discard;
 		}
 		col = m.rgb * grass_tint * custom.y;
+		if (kind == GRASS) {
+			// Grass trodden down where a print lies under it (tracks.gd), darkened like
+			// the ground before the fog falls on it.
+			col *= footprint(vec3(root.x + (UV.x - 0.5) * WIDTH, root.y, root.z));
+		}
 	}
 	col *= 1.0 - 0.3 * sky * wetness * (1.0 - 0.7 * warm_spot(root, custom.z));
 	vec4 veiled = veil(vec3(root.x, root.y + (1.0 - UV.y) * HEIGHT, root.z), depth_fade(root.y));
