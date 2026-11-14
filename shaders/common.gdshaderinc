@@ -667,19 +667,25 @@ float fog_at(vec3 p) {
 	vec4 c01 = column(b + vec2(0.0, 1.0));
 	vec4 c11 = column(b + vec2(1.0, 1.0));
 	vec4 tops = floor(vec4(c00.b, c10.b, c01.b, c11.b) * 255.0 + 0.5) * CELL;
-	float lowest = min(min(tops.x, tops.y), min(tops.z, tops.w));
+	vec4 w = vec4((1.0 - f.x) * (1.0 - f.y), f.x * (1.0 - f.y), (1.0 - f.x) * f.y, f.x * f.y);
+	// The lowest of the four columns, each counting less as `p` nears the line where it
+	// drops out of the four (its weight 0): a plain minimum jumps there, and the fog
+	// with it, in straight seams along the columns' centres.
+	vec4 lows = tops + (1.0 - smoothstep(0.0, 0.2, w)) * 64.0;
+	float lowest = min(min(lows.x, lows.y), min(lows.z, lows.w));
 	// Far below the ground about it (a shaft, a cave) the fog does not reach. The bed of a
 	// river or a lake does, as under the fog on its water, and so do the slivers of a
 	// shore's steps a level or two down: left clear, they showed through the fog as dark
-	// spots and triangles where the water's surface leaves a gap at a shore.
+	// spots and triangles where the water's surface leaves a gap at a shore. It thins out
+	// over a cell there, not in a straight cut across a wall.
 	vec4 wet = vec4(c00.a, c10.a, c01.a, c11.a);
-	if (p.y < lowest - CELL * 2.2 && max(max(wet.x, wet.y), max(wet.z, wet.w)) == 0.0) {
+	float water = dot(wet, w);
+	float reach = max(clamp((p.y - lowest) / CELL + 3.2, 0.0, 1.0), clamp(water * 5.0, 0.0, 1.0));
+	if (reach <= 0.0) {
 		return 0.0;
 	}
 	tops = min(tops, vec4(lowest + CELL));
-	vec4 w = vec4((1.0 - f.x) * (1.0 - f.y), f.x * (1.0 - f.y), (1.0 - f.x) * f.y, f.x * f.y);
 	float ground = dot(tops, w);
-	float water = dot(wet, w);
 	// Low places: below the ground about them, or near the sea's level. The ground about
 	// is blended between columns, or the fog would change from one cell to the next in
 	// squares.
@@ -702,7 +708,7 @@ float fog_at(vec3 p) {
 	// ring.
 	float near = smoothstep(1.0, 4.0, length(p.xz - player_pos.xz));
 	near = floor(near * 3.0 + bayer4(floor(screen_plane(p) * TEXELS))) / 3.0;
-	return m * mix(0.6, 1.0, near);
+	return m * mix(0.6, 1.0, near) * reach;
 }
 
 // What veils the colour at `p`: the levels below fading away (`fade`, from
