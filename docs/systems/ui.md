@@ -139,7 +139,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   character in the window: slots in their places on the body — body, legs, shoes in the middle, a headdress at
   the top left, a bag on the back at the right, hands under them — tight, with no body lines; at the bottom of
   the bag's slot a loading bar by weight, like the torch's (`HotbarSlot.fill`, `fill_color`: green, amber at
-  the limit, red when overloaded), «+24» in the top corner; beside it the nine skills in two columns in a
+  the limit, red when overloaded), «+24» in the top corner; beside it the ten skills in two columns in a
   separate subpanel: the name inside a scale of 10 divisions (by level, the skill only: a tool's strength is
   in the item's chips, `FactChips.power_hint` explains it by an example), with no heading; a thin line is the
   way to the next level; the hint — what the level gives and which tool in the hand the skill leads

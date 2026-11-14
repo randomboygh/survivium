@@ -24,15 +24,15 @@ by address are shared for them, so a player with a key does not suffer from anot
 ## The greeting (`Server._refusal`)
 
 - The versions of the protocol and the build match (`WHY_VERSION`), the key is a string of no more than 64
-  characters.
+  characters and not a key of the server's own bots (`BOT_KEY`: those are made of the bot's number).
 - The name is cleaned by `Protocol.clean_text` (control characters, line breaks, direction marks and
-  invisible characters), not empty (`WHY_NAME`), not from `RESERVED_NAMES` and not taken by another key in
-  the world (`WHY_TAKEN`).
+  invisible characters), not empty (`WHY_NAME`), not from `RESERVED_NAMES`, not a phrase key (`[bag_is_full]`,
+  which would be put into words where the name is shown) and not taken by another key in the world (`WHY_TAKEN`).
 - The password is compared by hash in constant time (`_same`).
 - A ban by key and by name (`WHY_BANNED`); the whitelist — a name bound to the key it came with first
   (`access.listed_keys`, `WHY_LIST`).
 - The key is 16 random bytes from `Crypto`; in the player's file on disk — only the first 32 characters of
-  its SHA-256.
+  its SHA-256 (but `access.json` keeps the keys of the hosts, owners, bans and the whitelist as they are).
 
 ## Requests (`src/server/requests.gd`)
 

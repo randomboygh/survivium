@@ -27,6 +27,7 @@ const Rules := preload("res://src/shared/game/rules.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
 const ContentGraph := preload("res://src/shared/content/content_graph.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
 const OUT := "res://docs/balance/GAME_BALANCE_TABLES.md"
 ## The classes of tools the tables go through, in this order, and what they are called.
@@ -41,7 +42,12 @@ var graph: ContentGraph
 func _init() -> void:
 	var check := "--check" in OS.get_cmdline_user_args()
 	graph = ContentGraph.new()
+	# Titles are keys (`[tools.items.stone_axe]`, docs/systems/lang.md); the tables are
+	# written in Russian, so the names are put into Russian words.
+	Lang.use("ru")
 	var text := _report()
+	# A scripted table left in the TranslationServer crashes the engine on the way out.
+	Lang.drop()
 	if check:
 		if FileAccess.get_file_as_string(OUT) != text:
 			printerr("stale: %s (run tools/balance_report.gd)" % OUT)
@@ -120,13 +126,13 @@ func _tools() -> Array:
 	out.append("| Класс | Предмет | Сила | Удар, с | Клеток | Дальность | Прочность, ударов | Эпоха | Вес |")
 	out.append("|---|---|---|---|---|---|---|---|---|")
 	var hand: Dictionary = Tools.HAND
-	out.append("| руки | %s | %d | %s | %d | %d | — | 0 | — |" % [hand.title, hand.power, _f(hand.swing, 2), hand.area, hand.reach])
+	out.append("| руки | %s | %d | %s | %d | %d | — | 0 | — |" % [Lang.t(hand.title), hand.power, _f(hand.swing, 2), hand.area, hand.reach])
 	for kind: String in CLASSES:
 		for it: Dictionary in _of_class(kind):
 			var extra := ""
 			if it.get("range", 0) > 0:
 				extra = " (бросок %d)" % it.range
-			out.append("| %s | %s | %d | %s | %d | %d%s | %s | %s | %s |" % [CLASSES[kind], it.title, it.power, _f(it.swing, 2),
+			out.append("| %s | %s | %d | %s | %d | %d%s | %s | %s | %s |" % [CLASSES[kind], Lang.t(it.title), it.power, _f(it.swing, 2),
 				it.area, it.reach, extra, str(it.durability) if it.durability > 0 else "—", _era(it.id), _f(it.weight, 1)])
 	out.append("")
 	return out
@@ -146,14 +152,14 @@ func _chopping() -> Array:
 	var head := "| Дерево | Прочность |"
 	var line := "|---|---|"
 	for a: Dictionary in axes:
-		head += " %s: ударов / с Н0 / с Н10 / силы Н0 / силы Н10 |" % a.title.replace(" топор", "")
+		head += " %s: ударов / с Н0 / с Н10 / силы Н0 / силы Н10 |" % Lang.t(a.title).replace(" топор", "")
 		line += "---|"
 	out.append(head)
 	out.append(line)
 	var species: Array = Trees.SPECIES.duplicate()
 	species.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.hits < b.hits or (a.hits == b.hits and a.id < b.id))
 	for sp: Dictionary in species:
-		var row := "| %s | %d |" % [sp.title, sp.hits]
+		var row := "| %s | %d |" % [Lang.t(sp.title), sp.hits]
 		for a: Dictionary in axes:
 			var hits := Tools.hits_to(sp.hits, a.power)
 			row += " %d / %s / %s / %s / %s |" % [hits, _f(hits * a.swing * s0.pace("chop")), _f(hits * a.swing * s10.pace("chop")),
@@ -162,7 +168,7 @@ func _chopping() -> Array:
 	out.append("")
 	# The matrix the task asks for (section 14): one tree, every axe, every level.
 	var oak: Dictionary = Trees.SPECIES[Trees.first(Trees.BROAD)]
-	out.append("### Контрольная таблица: %s (прочность %d), каждый топор на каждом уровне Рубки" % [oak.title, oak.hits])
+	out.append("### Контрольная таблица: %s (прочность %d), каждый топор на каждом уровне Рубки" % [Lang.t(oak.title), oak.hits])
 	out.append("")
 	out.append("Секунд на дерево (ударов). Условная проверка ТЗ — дерево прочности 8 с топорами 2/4/6 — дала бы 4/2/2 удара:")
 	out.append("прочность в 8 слишком мала против лучшего топора, поэтому у деревьев она от %d до %d." % [species[0].hits, species[-1].hits])
@@ -171,7 +177,7 @@ func _chopping() -> Array:
 	head = "| Уровень | Темп |"
 	line = "|---|---|"
 	for a: Dictionary in axes:
-		head += " %s (сила %d) |" % [a.title.replace(" топор", ""), a.power]
+		head += " %s (сила %d) |" % [Lang.t(a.title).replace(" топор", ""), a.power]
 		line += "---|"
 	out.append(head)
 	out.append(line)
@@ -202,7 +208,7 @@ func _digging() -> Array:
 		var head := "| Ячейка | Твёрдость | Прочность |"
 		var line := "|---|---|---|"
 		for t: Dictionary in tools:
-			head += " %s: с Н0 / с Н10 |" % t.title
+			head += " %s: с Н0 / с Н10 |" % Lang.t(t.title)
 			line += "---|"
 		out.append("### %s" % ("Киркой" if kind == "pickaxe" else "Лопатой и руками"))
 		out.append("")
@@ -212,7 +218,7 @@ func _digging() -> Array:
 			var rec: Dictionary = Mat.RECORDS[m]
 			if rec.dig != kind:
 				continue
-			var row := "| %s | %d | %s |" % [rec.title, rec.hardness, _f(Tools.toughness(m), 0)]
+			var row := "| %s | %d | %s |" % [Lang.t(rec.title), rec.hardness, _f(Tools.toughness(m), 0)]
 			for t: Dictionary in tools:
 				if Tools.can_dig(t, m):
 					row += " %s / %s |" % [_f(Tools.swing_time(t, m) * s0.pace("dig"), 2), _f(Tools.swing_time(t, m) * s10.pace("dig"), 2)]
@@ -240,7 +246,7 @@ func _hunting() -> Array:
 	var head := "| Зверь | Здоровье |"
 	var line := "|---|---|"
 	for w: Dictionary in weapons:
-		head += " %s: ударов Н0 (с) / ударов Н10 (с) |" % w.title
+		head += " %s: ударов Н0 (с) / ударов Н10 (с) |" % Lang.t(w.title)
 		line += "---|"
 	out.append(head)
 	out.append(line)
@@ -250,7 +256,7 @@ func _hunting() -> Array:
 		var a: Dictionary = AiRules.SPECIES[kind]
 		if a.health <= 0:
 			continue
-		var row := "| %s | %d |" % [a.title, a.health]
+		var row := "| %s | %d |" % [Lang.t(a.title), a.health]
 		for w: Dictionary in weapons:
 			var h0 := Tools.hits_to(a.health, s0.blow("hunt", w.power))
 			var h10 := Tools.hits_to(a.health, s10.blow("hunt", w.power))
@@ -276,7 +282,7 @@ func _pvp() -> Array:
 	for w: Dictionary in weapons:
 		var dmg := maxi(1, w.power) * rules.pvp_damage
 		var hits := ceili(Vitals.MAX / dmg)
-		out.append("| %s | %d | %d | %d | %s |" % [w.title, w.power, dmg, hits, _f(hits * w.swing)])
+		out.append("| %s | %d | %d | %d | %s |" % [Lang.t(w.title), w.power, dmg, hits, _f(hits * w.swing)])
 	out.append("")
 	return out
 
@@ -292,13 +298,13 @@ func _skills() -> Array:
 	out.append("| Навык | Работа | Уровней | first | growth | Очков до 1 / 5 / 10 | Часов работы до 5 / 10 | На последнем: темп | силы | лишняя | удар | качество | бережность |")
 	out.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 	for sk: Dictionary in Skills.ALL:
-		out.append("| %s | %s | %d | %d | %s | %d / %d / %d | %s / %s | ×%s | −%d%% | %d%% | +%d%% | +%d | %d%% |" % [sk.title, sk.role, sk.levels,
+		out.append("| %s | %s | %d | %d | %s | %d / %d / %d | %s / %s | ×%s | −%d%% | %d%% | +%d%% | +%d | %d%% |" % [Lang.t(sk.title), sk.role, sk.levels,
 			roundi(sk.first), _f(sk.growth, 2), roundi(Skills.need(sk, 1)), roundi(Skills.need(sk, 5)), roundi(Skills.need(sk, sk.levels)),
 			_f(Skills.need(sk, 5) / 3600.0, 2), _f(Skills.need(sk, sk.levels) / 3600.0, 2), _f(1.0 + sk.speed, 2), roundi(sk.effort * 100.0),
 			roundi(sk.yield * 100.0), roundi(sk.might * 100.0), roundi(sk.quality), roundi(sk.care * 100.0)])
 	out.append("")
 	var chop := Skills.of_role("chop")
-	out.append("### Кривая одного навыка (%s)" % chop.title)
+	out.append("### Кривая одного навыка (%s)" % Lang.t(chop.title))
 	out.append("")
 	out.append("| Уровень | Очков всего | Минут работы | Темп | Сил на взмах | Шанс лишней | Бережность |")
 	out.append("|---|---|---|---|---|---|---|")
@@ -335,7 +341,7 @@ func _stamina() -> Array:
 			var c10 := Vitals.cost_of(action, s10.effort(role))
 			var d0 := c0 / (swing * s0.pace(role)) - Vitals.REST * Vitals.WORK_REST
 			var d10 := c10 / (swing * s10.pace(role)) - Vitals.REST * Vitals.WORK_REST
-			out.append("| %s | %s | %s / %s | %s | %s / %s | %s / %s |" % [action, t.title, _f(c0), _f(c10), _f(swing, 2),
+			out.append("| %s | %s | %s / %s | %s | %s / %s | %s / %s |" % [action, Lang.t(t.title), _f(c0), _f(c10), _f(swing, 2),
 				_f(d0), _f(d10), _f(Vitals.MAX / d0, 0) if d0 > 0.0 else "∞", _f(Vitals.MAX / d10, 0) if d10 > 0.0 else "∞"])
 	out.append("")
 	return out
@@ -362,13 +368,13 @@ func _economy() -> Array:
 			var needs: Array = []
 			var n := 0
 			for id: String in r.needs:
-				needs.append("%s ×%d" % [Items.title(id), r.needs[id]])
+				needs.append("%s ×%d" % [_title(id), r.needs[id]])
 				n += int(r.needs[id])
 			var repair: Array = []
 			for id: String in it.repair:
-				repair.append("%s ×%d" % [Items.title(id), it.repair[id]])
+				repair.append("%s ×%d" % [_title(id), it.repair[id]])
 			var depth: Variant = graph.reached.get("items/" + it.id)
-			out.append("| %s | %s | %s | %s | %s | %d | %d | %s |" % [it.title, ", ".join(needs), Items.title(r.at) if r.at != "" else "руки",
+			out.append("| %s | %s | %s | %s | %s | %d | %d | %s |" % [Lang.t(it.title), ", ".join(needs), _title(r.at) if r.at != "" else "руки",
 				_f(r.time, 0), str(depth) if depth != null else "—", it.durability, it.durability / maxi(1, n), ", ".join(repair) if not repair.is_empty() else "—"])
 	out.append("")
 	return out
@@ -391,7 +397,12 @@ func _food() -> Array:
 	foods.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.food > b.food)
 	for it: Dictionary in foods:
 		var spoils: float = it.get("spoils", 0.0)
-		out.append("| %s | %d | %d | %d | %s | %s | %s | %d |" % [it.title, roundi(it.food), roundi(it.heal), roundi(it.get("drink", 0.0)),
+		out.append("| %s | %d | %d | %d | %s | %s | %s | %d |" % [Lang.t(it.title), roundi(it.food), roundi(it.heal), roundi(it.get("drink", 0.0)),
 			_f(it.weight, 2), _f(spoils, 1) if spoils > 0.0 else "не портится", _f(Vitals.HUNGER_PER_DAY / it.food, 1), roundi(it.food / maxf(0.01, it.weight))])
 	out.append("")
 	return out
+
+
+## The name of item `id` in the language of the tables.
+func _title(id: String) -> String:
+	return Lang.t(Items.title(id))

@@ -29,22 +29,22 @@ ordinary. The goal is what must be covered automatically.
 
 | System | Importance | Tests | Goal and state |
 |---|---|---|---|
-| Mods, bundles, schemas, ids | К | `content_test` (13), `bundle_system_test` (4), `graph_test` (3), `properties_test` (graph), `validate`, `report` | every check of data comes with a test on broken data; there |
+| Mods, bundles, schemas, ids | К | `content_test` (17), `bundle_system_test` (4), `graph_test` (3), `properties_test` (graph), `validate`, `report` | every check of data comes with a test on broken data; there |
 | The content graph, recipes, stations, eras | К | `graph_test` (the spec's dead ends on test bundles), `properties_test` (random chains against a simple fixed point), `progress_test` | reachability and cycles — yes; there |
 | Crafting and stations in the game | К | `actions_test` (things on cells, stations), `content_test` (recipes), `progress_test` (every recipe by the game's calls) | every recipe is made in CI; there |
-| The bag, wear, spoiling | К | `character_test` (12), `properties_test` (random additions, takings, moves, sorts, saves) | the count of things and stacks — invariants; there |
-| Saving and loading | К | `store_test`, `save_test` (44 checks: digging, things, the clock, the map, old saves) | a new field of a save — a check in `save_test`; there |
-| World generation | К | `generation_test` (10), `shapes_test` | determinism by seed, the world by parts equals the world at once; there |
-| Protocol and server | К | `net_test`, `session_test`, `server_test` (113 checks), the layers in `content_test` | login, refusals, a cut, the check of movement, the host; there |
-| Hands and the world | В | `actions_test` (11), `plans_test`, `farming_test`, `progress_test` | every action of the hands — a check; there |
-| The character, strengths, skills, body | В | `character_test`, `body_test` (7), `skills_test` (5) | there |
+| The bag, wear, spoiling | К | `character_test` (19), `properties_test` (random additions, takings, moves, sorts, saves) | the count of things and stacks — invariants; there |
+| Saving and loading | К | `store_test`, `save_test` (84 checks: digging, things, the clock, the map, old saves) | a new field of a save — a check in `save_test`; there |
+| World generation | К | `generation_test` (11), `shapes_test` | determinism by seed, the world by parts equals the world at once; there |
+| Protocol and server | К | `net_test`, `session_test`, `server_test` (182 checks), the layers in `content_test` | login, refusals, a cut, the check of movement, the host; there |
+| Hands and the world | В | `actions_test` (13), `plans_test`, `farming_test`, `progress_test` | every action of the hands — a check; there |
+| The character, strengths, skills, body | В | `character_test`, `body_test` (10), `skills_test` (5) | there |
 | Balance: tools × durability × skills, beasts, PvP, stamina, the experience curve, food | В | `balance_test` (9; limits with reasons, `docs/balance/GAME_BALANCE_DESIGN.md`), the tables of `tools/balance_report.gd` | there |
-| Beasts, fishing | В | `wildlife_test` (12), `progress_test` (hunting each beast with a carcass, each kind of fish) | there |
-| Territories, PvP | В | `territory_test` (10), `server_test` | there |
+| Beasts, fishing | В | `wildlife_test` (18), `progress_test` (hunting each beast with a carcass, each kind of fish) | there |
+| Territories, PvP | В | `territory_test` (11), `server_test` | there |
 | Chunks on screen, frame budgets | В | `mesher_test`, `frame_test` | nothing the size of a chunk in one frame; there |
 | Time, weather | О | `clock_test` | there |
 | The picture, shaders | О | `view_test`, `parse_check` (shaders do not compile without a GPU), screenshots by hand | by hand: see below |
-| The interface | О | `frame_test` (a part of the HUD), `browser_smoke`, `parse_check` | by hand: see below |
+| The interface | О | `ui_test` (12), `frame_test` (a part of the HUD), `browser_smoke`, `parse_check` | by hand: see below |
 | Sound | О | `view_test` (sound), `validate` (the sounds' files) | the ear — by hand |
 
 The numbers in brackets are the `_test_*` functions in the file (`grep -c "^func _test" tests/unit/<topic>_test.gd`).

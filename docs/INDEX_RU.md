@@ -44,7 +44,7 @@
 | Документ | Назначение | Статус | Кому и когда |
 |---|---|---|---|
 | [SYSTEMS.md](SYSTEMS_RU.md) | каталог систем: главные файлы, контекст, тесты; чего ещё нет | ACTIVE | любая задача: найти свою систему |
-| [systems/](systems/) | контекст каждой системы (18 файлов): назначение, файлы, интерфейсы, данные, подводные камни, тесты | ACTIVE | перед правкой системы — только её файл |
+| [systems/](systems/) | контекст каждой системы (19 файлов): назначение, файлы, интерфейсы, данные, подводные камни, тесты | ACTIVE | перед правкой системы — только её файл |
 
 **Модель данных, бандлы, рецепты и производство**
 
@@ -94,6 +94,7 @@
 
 | Документ | Назначение | Статус | Кому и когда |
 |---|---|---|---|
+| [reports/weekly-audits/INDEX.md](reports/weekly-audits/INDEX_RU.md), [reports/weekly-audits/OPEN_ISSUES.md](reports/weekly-audits/OPEN_ISSUES_RU.md) | еженедельные аудиты (по пятницам, с 2026-11-14): по отчёту с датой на каждый, их хронология и реестр ещё открытых проблем | ACTIVE (реестр); отчёты ARCHIVED | что сломано или рискованно сейчас, перед планом недели |
 | [audit/SECURITY_AUDIT.md](audit/SECURITY_AUDIT.md), [audit/SECURITY_REMEDIATION_REPORT.md](audit/SECURITY_REMEDIATION_REPORT.md) | этап 7 (2026-11-06): аудит безопасности, 22 находки, исправления, тесты, остаточные риски | ARCHIVED | история защиты сервера, что осталось |
 | [audit/DOCUMENTATION_AUDIT.md](audit/DOCUMENTATION_AUDIT.md), [audit/DOCUMENTATION_UPDATE_REPORT.md](audit/DOCUMENTATION_UPDATE_REPORT.md) | этап 6 (2026-11-05): аудит документации, что исправлено, расхождения и вопросы | ACTIVE до решения открытых вопросов | что осталось несверенным |
 | [audit/TESTING_CI_AUDIT.md](audit/TESTING_CI_AUDIT.md), [planning/TESTING_CI_ROADMAP.md](planning/TESTING_CI_ROADMAP.md), [audit/TESTING_CI_REPORT.md](audit/TESTING_CI_REPORT.md) | этап 5 (2026-11-03): аудит тестов и CI, план (раздел «Дальше» — открытые задачи), итог с замерами | ARCHIVED; план — DONE | история и дальнейшие шаги тестов и CI |
@@ -106,7 +107,7 @@
 
 | Что | Где |
 |---|---|
-| Оглавление и журнал решений (№ 1–167) | `plan/README.md` |
+| Оглавление и журнал решений (№ 1–189) | `plan/README.md` |
 | Этапы MVP и их состояние | `plan/mvp.md` |
 | Бэклог (единственный список задач, GitHub Issues не ведутся) | `plan/backlog.md` |
 | Геймдизайн по темам | `plan/design/*.md` |

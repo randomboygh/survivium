@@ -3,7 +3,7 @@
 Английская версия: [ARCHITECTURE.md](ARCHITECTURE.md) (она основная, эта — копия).
 
 Статус: ACTIVE, сверено с кодом `main` 2026-11-09 (PR #457). Здесь только то, что есть; замыслы
-(редактор, скрипты модов, Android) — в библиотеке, `plan/architecture/`.
+(редактор, скрипты модов) — в библиотеке, `plan/architecture/`.
 
 ## Слои
 
@@ -62,7 +62,7 @@ graph TD
 | `godot --headless --path . --script res://tests/<имя>.gd` | тесты, каждый `extends SceneTree` |
 | `godot … --script res://tools/<имя>.gd` | инструменты: валидатор, скриншоты, карта, бенчмарки, генераторы ассетов |
 | `python3 tools/<имя>.py` | версия сборки, патч web-сборки, рисовалки на Pillow, индекс документов |
-| `.github/workflows/build.yml` | CI: линт, проверки, тесты, тест фризов, web- и ПК-экспорт, проверка в Chrome, публикация на Pages и в релиз GitHub на каждое слияние ([testing/CI_PIPELINE.md](testing/CI_PIPELINE_RU.md)) |
+| `.github/workflows/build.yml` | CI: линт, проверки, тесты, тест фризов, web-, ПК- и Android-экспорт, проверка в Chrome, публикация на Pages и в релиз GitHub на каждое слияние (и в скользящие `android-latest`, `pc-latest`) ([testing/CI_PIPELINE.md](testing/CI_PIPELINE_RU.md)) |
 
 Тесты и инструменты запускают ту же сцену: создают `main.tscn`, ставят `main.skip_setup = true`
 (без меню «Новый мир») и при необходимости `save_root` (свои сохранения).

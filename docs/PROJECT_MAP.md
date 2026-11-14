@@ -7,7 +7,7 @@ A Russian copy: [PROJECT_MAP_RU.md](PROJECT_MAP_RU.md).
 
 ```
 project.godot            engine settings: the main scene, the stage version, global shader parameters
-export_presets.cfg       export presets: Web (html head_include with loading styles), Windows Desktop, Linux
+export_presets.cfg       export presets: Web (html head_include with loading styles), Windows Desktop, Linux, Android
 default_bus_layout.tres  audio buses (the web build copies them at start: new buses only here)
 scenes/main.tscn         the main scene: the Main node with src/client/main.gd; server.tscn — the scene of a server from the terminal (--server)
 src/shared/              the world and the rules of play; the server runs them; loads nothing from src/client/
@@ -15,13 +15,13 @@ src/shared/              the world and the rules of play; the server runs them; 
   world/                 cells and chunks, ground shapes, the layout and the generator, saves on disk, grass, the test world
   game/                  rules and the session: bag, strength, warmth, skills, character, body, the hands' actions, felling, blueprint, things on cells, crafting, clock, weather, storms, beasts, fishing, commands, territory, fights
   net/                   the client–server protocol: kinds of requests, messages to bytes; loads only content/
-src/server/              the server side: the node with the tick and generation under the tree's root (runner.gd), the player's character (player.gd), its link with events (player_link.gd), requests to the rules (requests.gd), the server over the network (server.gd: port, login, links, commands; server_main.gd — the root of the server scene, config.gd, console.gd, tunnel.gd — access from the internet through cloudflared, test_commands.gd — «/test»: bots and another world on any server; server_bot.gd — a bot the server plays itself (on a phone); playtest_host.gd — the term of a test server; cheats.gd — cheats); loads only src/shared/
+src/server/              the server side: the node with the tick and generation under the tree's root (runner.gd), the player's character (player.gd), its link with events (player_link.gd), requests to the rules (requests.gd), the server over the network (server.gd: port, login, links, commands; server_main.gd — the root of the server scene, config.gd, console.gd, tunnel.gd — access from the internet through cloudflared, test_commands.gd — «/test»: bots and another world on any server; server_bot.gd — a bot the server plays itself (on a phone); playtest_host.gd — the term of a test server; cheats.gd — cheats; content_host.gd — the mods' files a server gives; real_weather.gd — the real weather; test_mod.gd — the test mod of a server); loads only src/shared/
 src/client/              the picture, input and sound of this device; main.gd, settings.gd, save_game.gd, mod_reload.gd, mod_import.gd
-  world/                 chunks on screen: the streamer, meshes (cells, slopes, water, trunks), grass and crowns, snowdrifts, tracks, the roof map
+  world/                 chunks on screen: the streamer, meshes (cells, slopes, water, trunks), grass and crowns, snowdrifts, tracks, the roof map, the haze over the edge (edge_haze.gd)
   view/                  projection, camera, sky and light, fires and shadows, rays, textures, voxel models, the player and its sheet, other players, the cave view, blueprint, land marking, shader warm-up
   input/                 keys, mouse, touches, the cursor frame, joystick and buttons
   game/                  the client's parts of systems: the player's character, gathering, things and beasts on screen, map markers
-  net/                   the connection to the server (connection.gd), the socket to a server over the network (socket.gd), the server inside the game (local_host.gd — the only one that loads src/server/), copies of the world (remote_gen.gd: chunks from the server), of the workshop, things on cells, the clock and beasts (mirror.gd, remote_*.gd), recent servers (server_list.gd)
+  net/                   the connection to the server (connection.gd), the socket to a server over the network (socket.gd), the server inside the game (local_host.gd — the only one that loads src/server/), copies of the world (remote_gen.gd: chunks from the server), of the workshop, things on cells, the clock and beasts (mirror.gd, remote_*.gd), recent servers (server_list.gd), the mods' files taken from a server (mod_fetch.gd, mod_cache.gd), the playtest server (playtest.gd)
   audio/                 buses, the ear, nature, steps, voices, music
   ui/                    HUD, menus, the bag and crafting windows, settings, maps, death, the freeze log, style
     kit/                 the UI kit: ready parts of windows (window, buttons, fields, «‹ ›» rows, two taps, the strip of cells)
@@ -31,7 +31,7 @@ assets/                  the font, the splash, interface icons (ui/), the web pa
 tests/                   headless tests (run_tests + unit/, save, progress, frame, server), the check in a browser, run_all.sh (all the checks)
 tools/                   lint (lint.py), compiling all scripts (parse_check.gd), the pre-commit hook (hooks/), the validator, screenshots (shot + shot/), the map, benches, the profile, makers of pictures, sounds, icons; art/, sound/
 .github/                 CI (workflows/build.yml), the test server (workflows/playtest.yml), the Godot setup (actions/godot), the PR template
-docs/                    this documentation (audit/ — audit reports, planning/ — plans, balance/ — the balance model and tables, testing/ — how to check and CI,
+docs/                    this documentation (audit/ — audit reports, reports/weekly-audits/ — the weekly audits and open issues, planning/ — plans, balance/ — the balance model and tables, testing/ — how to check and CI,
                          security/ — the threat model, protocol defence, command rights, anti-cheat, security tests)
 ```
 

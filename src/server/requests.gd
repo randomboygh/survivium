@@ -74,8 +74,8 @@ var paced := false
 ## single game always (LocalHost), on a server only a host (Server.role_of, looked at
 ## with each message); and whether they asked to (PlayerLink sends Protocol.MINDS).
 var may_debug := false
-## Whether the player's playtest switches are taken (Protocol.CHEATS): on a playtest
-## server only (Config.playtest), never elsewhere.
+## Whether the player's playtest switches are taken (Protocol.CHEATS): anyone's on a
+## playtest server (Config.playtest), elsewhere a host's only (Server, with each message).
 var may_cheat := false
 ## The clock's own pace on this server (Config.day_speed): the playtest's «Ход времени»
 ## multiplies it.

@@ -99,7 +99,7 @@ The spec's examples in our ids: `resource.fiber.plant` — `resources:fiber`; `r
 
 | The spec's category | The record kind | Exists now (2026-11-05) | Not yet |
 |---|---|---|---|
-| A. World and environment | `materials` (cells), `trees`, `bushes`, `plants`, `biomes` | 28 cells: soils, stone, scree, peat, salt, snow, ice, the ores of six metals, walls; 20 species, 6 bushes, 14 plants, 28 biomes | — (the atlas holds 63 materials, 36 used) |
+| A. World and environment | `materials` (cells), `trees`, `bushes`, `plants`, `biomes` | 30 cells: soils, stone, scree, peat, salt, snow, ice, the ores of six metals, walls; 20 species, 6 bushes, 14 plants, 28 biomes | — (the atlas holds 63 materials, 38 used) |
 | B. Gathered resources | the `items` of the mod «Resources», the fruits and seeds of «Plants», the take from animals | twig, log, stone, flint, earth, sand, clay, fibre, peat, salt, snow, ice, ores; carcass, hide, bone | — |
 | C. Processed materials | the `items` of the mod «Materials» | planks, rope, brick, charcoal, ingots of copper, tin, bronze, iron, steel, silver, gold, platinum, cloth, leather, resin, glass, bone glue | — |
 | D. Tools | `items` with `tool` | axe, pickaxe, shovel, sword, scythe, knife, needle, rod, spear, sling, bow (wooden, stone, copper, bronze, iron, steel — by class) | — |
@@ -445,7 +445,7 @@ that one, down to the switched-off one).
 | an era | an `eras` record, `era` on the things that open it | no |
 | the start and the hands' abilities | a patch of the record `core:default`: `bag+`, `camp+`, `hand_*` | no |
 | a new action in the world (butchering, ploughing, shooting, putting on) | a rule + a schema field | yes, with the mechanics |
-| a new cell (ore, gravel) | a `materials` record with a texture; ore — `role: ore` and the share of veins `veins` | no (the atlas holds 63, 36 used) |
+| a new cell (ore, gravel) | a `materials` record with a texture; ore — `role: ore` and the share of veins `veins` | no (the atlas holds 63, 38 used) |
 
 That the lines «with no code» really are added by data alone is checked by the acceptance test
 `tests/unit/bundle_system_test.gd` (stage 8): the example mod «Flax» and «Loom», written by the READMEs — a new

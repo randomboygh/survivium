@@ -130,7 +130,7 @@ single player's player is number 0).
   campfire»), then the last campfire of each team member («At «Anya»'s campfire»»), no more than
   `RESPAWNS_MAX` (4); an extinguished one counts too. `respawn_points()` is these and at the end the start's
   campfire (`home`). A respawned one stands beside the campfire: `Placed.stand_by` — the first cell around
-  2×2 (`BESIDE`, east first) with air for two levels above solid ground.
+  the thing (`Placed.beside(size)`, east first) with air for two levels above solid ground.
 - The server looks for them only for a dead player: `PlayerLink.flush` before the event `you` (the field
   `respawns`), and to a dead one it sends it again when a campfire with `by` appeared or vanished and when the
   team changed. The client (`src/client/game/character.gd` `take`) takes the list, the death screen gives a

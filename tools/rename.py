@@ -8,8 +8,8 @@ The name lives in one place, `config/name` in project.godot: the main menu, the 
 default title and log, the «Данные для теста» report, the window and the web page's title
 read it, and CI names the PC builds by it. This script changes that line and the copies
 code cannot read: the link preview tags and the PC export paths in export_presets.cfg,
-and the name in the README and the docs (not in docs/audit/, docs/planning/: dated
-history). Then it draws the splash and the icon card again (tools/make_splash.py,
+and the name in the README and the docs (not in docs/audit/, docs/planning/, docs/reports/:
+dated history). Then it draws the splash and the icon card again (tools/make_splash.py,
 tools/make_icon.py, which take the name from project.godot).
 
 It leaves alone what must not change with the name (docs/RENAMING.md): the saves' folder
@@ -28,7 +28,7 @@ OLD_FROM = "project.godot"
 FILES = ["export_presets.cfg", "README.md", "CLAUDE.md"]
 DOCS = "docs"
 # Dated history keeps the name of its day; RENAMING.md names the saves' folder.
-SKIP = ("docs/audit/", "docs/planning/", "docs/generated/", "docs/RENAMING.md")
+SKIP = ("docs/audit/", "docs/planning/", "docs/reports/", "docs/generated/", "docs/RENAMING.md")
 
 
 def current_name() -> str:

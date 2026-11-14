@@ -15,7 +15,7 @@ run. The findings and fixes — [../audit/SECURITY_AUDIT.md](../audit/SECURITY_A
 | Crafting, skills, knowledge | `Workshop`, `CraftQueue`, `SkillSet` | things from nothing, levelling without playing |
 | Land, teams, PvP | `Territory`, `Teams`, `Fights` | bypassing the rights on others' land |
 | The host's rights | `Server.access` (`access.json` in the world's folder) | privilege escalation, bans, giving out things |
-| The player's key | on the client `user://servers.cfg`, on the server only a hash in the file's name | the key is the only «identity» |
+| The player's key | on the client `user://servers.cfg`; on the server a hash names the player's file, but `access.json` keeps the keys themselves (hosts, owners, bans, the whitelist), so that file is as secret as the keys | the key is the only «identity» |
 | The server's availability | the server process | one player must not hang or clog it |
 
 ## Who attacks
