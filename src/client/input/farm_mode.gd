@@ -223,11 +223,6 @@ func set_filter(f: String) -> void:
 		changed.emit()
 
 
-## The filter button: the next filter round.
-func next_filter() -> void:
-	set_filter(FILTERS[(FILTERS.find(filter) + 1) % FILTERS.size()])
-
-
 func set_erasing(e: bool) -> void:
 	erasing = e
 	changed.emit()

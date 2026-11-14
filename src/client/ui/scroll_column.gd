@@ -51,12 +51,6 @@ func items() -> Array:
 	return box.get_children()
 
 
-## Puts button `c` at the end of the column.
-func add_item(c: Control) -> void:
-	box.add_child(c)
-	_show()
-
-
 ## Makes the column buttons `list`, in that order: the buttons it held and `list` keeps
 ## stay, the others go (freed), the new ones come in, and the column is laid out once.
 func set_items(list: Array) -> void:
@@ -69,15 +63,6 @@ func set_items(list: Array) -> void:
 		if c.get_parent() != box:
 			box.add_child(c)
 		box.move_child(c, i)
-	_show()
-
-
-## Takes every button out (freed).
-func clear_items() -> void:
-	for c in box.get_children():
-		box.remove_child(c)
-		c.queue_free()
-	_first = 0
 	_show()
 
 
@@ -110,14 +95,6 @@ func _wanted() -> Array:
 
 func _count() -> int:
 	return _wanted().size()
-
-
-## Hides button `c` from the column for its owner's reasons (not the paging's).
-func set_shown(c: Control, on: bool) -> void:
-	if on:
-		c.remove_meta("hidden")
-	else:
-		c.set_meta("hidden", true)
 
 
 ## Shows as many buttons as fit `h` UI pixels of height (the arrows, when not all fit,

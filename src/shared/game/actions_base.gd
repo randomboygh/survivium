@@ -89,12 +89,6 @@ static func bushes_lose_ground(w, cell: Vector3i) -> void:
 			w.remove_bush(c)
 
 
-## Puts `block` in `cell` (a block placed, a ghost cell of the blueprint built).
-func put_block(cell: Vector3i, block: int) -> void:
-	world.set_cell(cell.x, cell.y, cell.z, block)
-	_changed(cell)
-
-
 ## Puts `block` into `cell` as a player builds it, of `form` (WorldData.forms: a slope or
 ## stairs; 0 a cube); true when it is new work for the skill of building: not where a
 ## block a player built was dug out (see _built).

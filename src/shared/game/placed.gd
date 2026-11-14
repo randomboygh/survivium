@@ -816,11 +816,6 @@ func swing(who, e: Dictionary) -> bool:
 	return true
 
 
-## True for stairs (an item with `steps`): taken up at a tap, as a light is.
-static func is_steps(e: Dictionary) -> bool:
-	return not is_light(e) and Items.get_item(e.item).get("steps", false)
-
-
 ## True for a thing the light of the sun, the moon and the fires shines through: a window
 ## (an item with `window`), glass in a frame. A shut door, like a wall, keeps it out.
 static func lets_light(e: Dictionary) -> bool:
