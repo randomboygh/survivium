@@ -68,6 +68,16 @@ func _test_pixel_view() -> void:
 			and covered.x - screen.x < 2 * scale and covered.y - screen.y < 2 * scale \
 			and absf(image.y - PixelView.TARGET_HEIGHT) <= PixelView.TARGET_HEIGHT * 0.25
 	_check(whole, "low-res image is scaled by a whole number and covers the screen")
+	# On a computer each pixel size is a scale of its own on a common window (it was not:
+	# a fraction of the height rounded two sizes to the same scale).
+	for height in [960, 1009, 1080, 1440]:
+		var scales := []
+		for k in [0.75, 0.875, 1.0, 1.25, 1.5]:
+			scales.append(PixelView.layout(Vector2(1920, height), PixelView.TARGET_HEIGHT / k)[0])
+		var apart := true
+		for i in range(1, scales.size()):
+			apart = apart and scales[i] > scales[i - 1]
+		_check(apart, "every pixel size differs on a %d px window: %s" % [height, scales])
 	_check(PixelView.layout(Vector2(1200, 2608), PixelView.TARGET_HEIGHT, true)[0]
 		== PixelView.layout(Vector2(2608, 1200), PixelView.TARGET_HEIGHT, true)[0],
 		"a phone shows the world as large held either way")

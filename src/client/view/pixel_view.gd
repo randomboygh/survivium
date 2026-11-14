@@ -81,15 +81,31 @@ static var box_views: Array = [[Vector2(0.0, -1.0), 1.0, 1.0]]
 ## the scale is a whole number picked from the height. `turning` (a phone or a tablet)
 ## scales by a fraction instead, so the short side shows as much of the world as on the
 ## reference phone (PHONE_SIDE) whatever the screen and held either way.
+## `target_height` is TARGET_HEIGHT divided by the pixel size setting (Settings.PIXEL_SIZES);
+## on a computer the setting moves the whole scale picked from the height by whole steps
+## (pc_step), as a fraction of the height it gave two sizes the same scale on most windows.
 static func layout(screen: Vector2, target_height := TARGET_HEIGHT, turning := false) -> Array:
 	var scale: float
 	if turning:
 		scale = maxf(1.0, minf(screen.x, screen.y) / (PHONE_SIDE * target_height / TARGET_HEIGHT))
 	else:
-		scale = maxi(1, roundi(screen.y / target_height))
+		scale = maxi(1, roundi(screen.y / TARGET_HEIGHT) + pc_step(TARGET_HEIGHT / target_height))
 	var w := maxi(2, ceili(screen.x / scale / 2.0) * 2)
 	var h := maxi(2, ceili(screen.y / scale / 2.0) * 2)
 	return [scale, Vector2i(w, h)]
+
+
+## The step a computer's scale moves by for a pixel size (Settings.PIXEL_SIZES): −2 and
+## −1 for the two smaller ones, 0 for the normal one (1), +1 and +2 for the two larger;
+## on a 1080 px window ×1 to ×5.
+static func pc_step(pixel_size: float) -> int:
+	if pixel_size < 0.8:
+		return -2
+	if pixel_size < 0.95:
+		return -1
+	if pixel_size < 1.1:
+		return 0
+	return 1 if pixel_size < 1.4 else 2
 
 
 ## Orthographic camera size (vertical extent in world units) for a low-res image height.
