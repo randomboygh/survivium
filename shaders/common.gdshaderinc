@@ -306,13 +306,14 @@ const float CLOUD_RIM = 0.035;
 // casts it, instead of a straight upright stripe, and its soft rim shows on walls too.
 // Sampled per world texel, so cloud edges are pixel steps like everything else; the
 // shadow is solid and thins out only over a narrow rim by an ordered dither in the
-// picture's texels (a wall's texels too, not only the ground's), so its edge reads soft.
+// clouds' own texels, which slant down a wall too, so its edge reads soft there as well
+// (the picture's texels cost a shear more for every fragment drawn).
 float cloud_light(vec3 p) {
-	vec2 q = floor((p.xz - cloud_slant * (p.y - sea_top)) * TEXELS) / TEXELS;
-	float n = texture(cloud_noise, (q + cloud_offset) / 96.0).r;
+	vec2 t = floor((p.xz - cloud_slant * (p.y - sea_top)) * TEXELS);
+	float n = texture(cloud_noise, (t / TEXELS + cloud_offset) / 96.0).r;
 	float edge = 1.0 - cloud_cover;
 	float k = clamp((n - edge) / (2.0 * CLOUD_RIM) + 0.5, 0.0, 1.0);
-	return mix(1.0, 0.6, step(bayer4(floor(screen_plane(p) * TEXELS)), k));
+	return mix(1.0, 0.6, step(bayer4(t), k));
 }
 
 // Large soft patches of the ground (0..1), the same everywhere a shader asks: bare

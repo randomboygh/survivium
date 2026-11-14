@@ -240,7 +240,23 @@ func open() -> void:
 	if hosted != null and hosted.server != null:
 		hosted.server.content.ready()
 		mods = hosted.server.content.digest
-	socket.hello(player_name, key, join_password, mods).then(_on_welcome)
+	socket.hello(sent_name(player_name, key, hosted != null), key, join_password, mods).then(_on_welcome)
+
+
+## The name the hello carries for `name`: a player's own as it is; one the game gave
+## (a key, `[host]` or `[player_n2]`, when none was set) in words, since the server lets no
+## key in as a name. The host's stays «Хозяин»; a player's gets a number of four figures
+## (from the server's `key`, the same each time) so two without a name are not one.
+static func sent_name(name: String, key: String, host: bool) -> String:
+	if not Lang.is_key(name):
+		return name
+	var words := Lang.t(name)
+	if Lang.is_key(words) or words.strip_edges() == "":
+		words = "Player"
+	if host:
+		return words
+	var n: int = (absi(key.hash()) if key != "" else randi()) % 9000 + 1000
+	return "%s %d" % [words, n]
 
 
 func _on_welcome(v: Variant) -> void:

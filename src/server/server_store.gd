@@ -19,7 +19,7 @@ const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 
-const PLAYERS := "players"
+const PLAYERS := WorldStore.PLAYERS
 ## The parts of a player's record, as the game's save names them (save_game.gd).
 const SECTIONS := ["inventory", "vitals", "character", "knowledge", "crafting", "skills"]
 
@@ -51,9 +51,35 @@ static func player_file(key: String) -> String:
 	return "%s/%s.json" % [PLAYERS, key.sha256_text().left(32)]
 
 
-## The number the next new player gets (the saved one, or 1).
+## The number the next new player gets: the saved one, but past every number the
+## world already knows (a player's file, a name in the teams, land set or days played),
+## since a single player's save of this world once dropped "next_player" and a newcomer
+## got an old player's number, land and team (WA-020).
 func next_player() -> int:
-	return maxi(1, int(meta.get("next_player", 1)))
+	var next := maxi(1, int(meta.get("next_player", 1)))
+	for id: int in known_players():
+		next = maxi(next, id + 1)
+	return next
+
+
+## The numbers of the players the world knows: its players' files, the teams' names, who
+## set the land claimed and whose days are counted.
+func known_players() -> Array:
+	var ids := {}
+	var dir := store.dir + "/" + PLAYERS
+	if DirAccess.dir_exists_absolute(dir):
+		for f: String in DirAccess.get_files_at(dir):
+			if f.ends_with(".json"):
+				var d := store.read_json(PLAYERS + "/" + f)
+				if d.get("id") is float:
+					ids[int(d.id)] = true
+	for id in session.teams.names:
+		ids[int(id)] = true
+	for claim: Dictionary in session.territory.claims.values():
+		ids[int(claim.get("by", 0))] = true
+	for id in session.territory.played:
+		ids[int(id)] = true
+	return ids.keys()
 
 
 ## The record of the player with `key`, {} for one who never came.
@@ -109,7 +135,7 @@ func save(server) -> bool:
 
 
 ## Who the host blocked and the list of who may come in (Server.access), "" none yet.
-const ACCESS := "access.json"
+const ACCESS := WorldStore.ACCESS
 
 
 func read_access() -> Dictionary:

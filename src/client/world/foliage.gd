@@ -149,6 +149,9 @@ class Job extends RefCounted:
 	var ng := 0
 	var nc := 0
 	var ns := 0
+	## Where glowing mushrooms stand (world units, at their root): Effects lights a
+	## small pool round the nearest at night.
+	var glows := PackedVector3Array()
 	var rng := RandomNumberGenerator.new()
 	var trunks: Array
 	## The trees around the chunk, to tell which crown points belong to a trunk, and
@@ -345,6 +348,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 				# Spores rise from the glowing mushrooms at night, in a glow of their
 				# own (grass.gdshader; the glow's card is HALO_SCALE times larger).
 				var p := Vector3(x + fx, y + h, z + fz) * CELL
+				job.glows.append(p)
 				grass.append_array([HALO_SCALE, 0.0, 0.0, p.x, 0.0, HALO_SCALE, 0.0, p.y, 0.0, 0.0, 1.0, p.z - 0.01])
 				grass.append_array([float(Grass.HALO), rng.randf_range(0.8, 1.1), rng.randf(), 0.0])
 				job.ng += 1
@@ -549,6 +553,13 @@ static func patch(old: Job, part: Job) -> Job:
 		else:
 			job.shadows = buf
 			job.ns = count
+	# The glowing mushrooms of the columns not rebuilt, then those of the part.
+	var sx := old.x1 - old.x0
+	for p in old.glows:
+		var j := (floori(p.z / CELL) - old.z0) * sx + floori(p.x / CELL) - old.x0
+		if not where.has(j):
+			job.glows.append(p)
+	job.glows.append_array(part.glows)
 	return job
 
 
@@ -980,6 +991,7 @@ static func finish_part(job: Job, i: int, out: Dictionary) -> void:
 		job.shadows.append_array([bush_kind(w.bushes.get(cell, 0)), 1.0, 0.0, 0.0])
 		job.ns += 1
 	out.grass = [job.ng, job.grass]
+	out.glows = job.glows
 	out.clumps = [job.nc, job.clumps]
 	out.shadows = [job.ns, job.shadows]
 
