@@ -998,7 +998,9 @@ func _dig_for(id: String, mats: Array[int]) -> bool:
 				for depth in DEPTH:
 					var y := top - depth
 					var m: int = w.get_cell(x, y, z)
-					if y < 1 or m == Mat.WATER or m == Mat.AIR or _digger(m) == "-":
+					# Water holds the ground under it and along its shore (WorldActions.water_holds).
+					if y < 1 or m == Mat.WATER or m == Mat.AIR or _digger(m) == "-" \
+							or main.session.actions.water_holds(Vector3i(x, y, z)):
 						break
 					if mats.has(m):
 						var cost := dist + depth * 6.0
@@ -1025,7 +1027,7 @@ func _dig_for(id: String, mats: Array[int]) -> bool:
 				y -= 1
 				continue
 			var tool := _digger(m)
-			if tool == "-" or m == Mat.WATER:
+			if tool == "-" or m == Mat.WATER or main.session.actions.water_holds(Vector3i(best.x, y, best.z)):
 				break
 			main.controls.put_in_hand(tool, -1, false)
 			_rest()
