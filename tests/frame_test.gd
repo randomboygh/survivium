@@ -714,7 +714,16 @@ func _run() -> void:
 		and report.contains("mod data ") and report.contains("(%d records: read " % Content.record_count())
 		and report.contains("scripts ") and report.contains(", world ") and report.contains("Earlier starts: ")
 		and report.contains("Server: in the game (loop), requests ") and main.net.requests > 0
-		and log_page._list.get_child(log_page._list.get_child_count() - 1).text == report, "the playtest report tells the moment: %s" % report)
+		and log_page._shown_text == report, "the playtest report tells the moment: %s" % report)
+	# Its tabs split it: Мир the world's lines, Загрузка the start's; «Скопировать всё» the whole.
+	log_page.show_section("place")
+	var place_lines := []
+	for line_label in log_page._list.get_children():
+		place_lines.append(line_label.text)
+	log_page.show_section("start")
+	_check(log_page._tab_buttons.size() == 5 and place_lines.size() == 6 and place_lines[0].begins_with("World: ")
+		and log_page._list.get_child(0).text.begins_with("Loading, s: ") and log_page._shown_text == report
+		and log_page._copy.text == "[copy_all]", "the playtest report's tabs split it: %s" % [place_lines])
 	log_page.close()
 	hud.perf.freeze_log.resize(1)
 	hud.perf.last_freeze = [1234.0, [["drawing", 1200.0], ["animals", 20.0], ["sky", 9.0]], ["fire shadow", "mesh"]]

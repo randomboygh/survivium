@@ -248,7 +248,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   every node with noticeable work in `_process` measures itself with `perf.note`: «rays», «sound», «fire
   shadows», «animals»; world generation by the server is the part «world», `Runner.took_us`, drawing, the
   browser's page and garbage collection, compiled shaders, data in the GPU), `src/client/view/draw_census.gd`;
-  «Test data» (`SettingsMenu.report_text`): the build, world, place, time, weather, settings, device,
+  «Test data» (`SettingsMenu.report_text`, tabs World · Device · Loading · Settings · Log by `report_lines`, «Copy all» takes the whole report whatever the tab): the build, world, place, time, weather, settings, device,
   «Loading» (`start_times.gd`: in the browser the page, the download of wasm and pck — from the network or
   cache, the start of the engine; then graphics up to the engine's line «OpenGL API», which the page catches —
   `svStart` in the `head_include` of `export_presets.cfg`, compiling the scripts up to the static var of
