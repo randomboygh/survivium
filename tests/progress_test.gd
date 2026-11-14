@@ -912,15 +912,42 @@ func _fell(seed := "") -> bool:
 				best_d = d
 		if best != Vector2i.MAX:
 			await _stand_by(_foot(best))
-			for hit in 80:
+			var missed := 0
+			for hit in 120:
 				if not w.trees.has(best) or w.log_col(best.x, best.y) == 0:
 					break
 				_rest()
 				swings += 1
-				main.controls.dig_at(main.actions.trunk_cell(main.host.player, best), Vector3i.UP)
+				var before: int = main.actions.chops.get(best, 0)
+				var trunk: Vector3i = main.actions.trunk_cell(main.host.player, best)
+				main.controls.dig_at(trunk, Vector3i.UP)
+				if not w.trees.has(best) or w.log_col(best.x, best.y) == 0 or main.actions.chops.get(best, 0) > before:
+					missed = 0
+					await process_frame
+					continue
+				# The blow did not reach the tree: refused (the body the server knows not
+				# beside it yet on a busy machine, or pushed off; the axe gone from the
+				# hand), or taken by an animal standing at the trunk (a tap there strikes
+				# it, WorldActions._tap_animal). Main went red on this, 2026-11-14.
+				missed += 1
+				if missed % 5 == 0:
+					var near := []
+					for an in main.session.wildlife.animals:
+						if Vector2(an.pos.x / CELL - best.x - 0.5, an.pos.z / CELL - best.y - 0.5).length() < 2.0:
+							near.append(an)
+					print("chopping %s missed %d times: body at %s, trunk %s, hand %s, animals at the trunk %s" % [
+							best, missed, main.host.player.position / CELL, trunk, main.host.player.held(),
+							near.map(func(an) -> String: return an.kind)])
+					# How animals come is not tested here: those at the trunk are let go.
+					for an in near:
+						main.session.wildlife._remove(an)
+					if _tool_of_kind("axe") == "":
+						return _fail("the axe broke chopping the tree at %s" % best)
+					main.controls.put_in_hand(_tool_of_kind("axe"), -1, false)
+					await _stand_by(_foot(best))
 				await process_frame
 			if w.trees.has(best) and w.log_col(best.x, best.y) != 0:
-				return _fail("a tree at %s does not fall to the axe" % best)
+				return _fail("a tree at %s does not fall to the axe (body at %s)" % [best, main.host.player.position / CELL])
 			if await _pick_up(Vector3(best.x + 0.5, feet.y, best.y + 0.5) * CELL, 14) == 0:
 				# A tree by the water drops its logs into it: the next one, then.
 				print("a felled %s at %s left nothing wanted" % [Trees.SPECIES[w.trees.get(best, 0)].id if w.trees.has(best) else "tree", best])

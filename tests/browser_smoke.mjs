@@ -88,10 +88,13 @@ async function open(name, options, init, tapDpr, url = URL) {
     await page.keyboard.press('Enter');
     if (await waitFor('menu page single', 'the page «Одиночная игра»')) await page.keyboard.press('Enter');
   }
-  // Wait until the world is built (main.gd prints "world ready").
-  const deadline = Date.now() + 180000;
+  // Wait until the world is built (main.gd prints "world ready"). Under software GL the
+  // loading goes a frame of seconds at a time: a phone is ready in about 130 s on a
+  // usual runner and a quarter slower on a slow one, which broke the old 180 s limit
+  // again and again (2026-11-14). The limit only catches a world that never comes.
+  const deadline = Date.now() + 300000;
   while (!log.some((t) => t.includes('world ready')) && Date.now() < deadline) await page.waitForTimeout(1000);
-  if (!log.some((t) => t.includes('world ready'))) errors.push(`${name}: world was not ready within 180 s`);
+  if (!log.some((t) => t.includes('world ready'))) errors.push(`${name}: world was not ready within 300 s`);
   // The menu goes in once the world's first frames have settled (main_menu.gd settled),
   // which under software GL takes minutes of frames seconds long: at least three minutes
   // from when the world was ready, which can come late in the wait above (a phone run
