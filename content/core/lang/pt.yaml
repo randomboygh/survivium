@@ -906,6 +906,7 @@
 "[freeze_log]": "Registro de travadas"
 "[test_data]": "Dados para testes"
 "[shader_probe]": "Teste de shaders"
+"[what_is_drawn]": "O que é desenhado"
 "[last_run_log]": "Registro da última execução"
 "[no_log_yet]": "Ainda não há registro de uma execução anterior."
 "[time_and_weather]": "Hora e clima"
@@ -1059,6 +1060,8 @@
 "[the_list_of_changes_appears]": "A lista de mudanças aparece numa versão do site."
 "[no_freezes]": "Sem travadas"
 "[no_such_freezes]": "Nenhuma travada assim"
+"[show_all]": "Mostrar tudo"
+"[what_is_drawn_note]": "Esconda uma parte, feche o menu e veja se a falha some. O que foi escondido fica assim até ser mostrado ou sair do mundo."
 "[copied]": "Copiado"
 "[teleport_to_a_marker]": "Teleportar a um marcador"
 "[go]": "Ir"
@@ -1188,7 +1191,6 @@
 "[create_a_world]": "Criar um mundo"
 "[the_land_round_the_middle]": "A terra em volta do centro do mundo, %d células de largura; o ponto é o teu início"
 "[a_world_with_this_seed]": "Já existe um mundo salvo com esta semente e estas configurações. «Criar um mundo» o faz de novo com os mods escolhidos agora e apaga o salvo: toque duas vezes. Para continuar o salvo, abra-o na lista de mundos."
-"[a_hosted_world_with_this]": "Já existe um mundo salvo com esta semente e estas configurações, e ele rodou aqui como servidor. «Criar um mundo» o faz de novo com os mods escolhidos agora e apaga o salvo com os personagens dos jogadores; os banimentos, os anfitriões e a lista de acesso ficam: toque duas vezes. Para continuar o salvo, abra-o na lista de mundos."
 "[world_type]": "Tipo de mundo"
 "[custom]": "Personalizado"
 "[continents]": "Continentes"
@@ -1206,6 +1208,7 @@
 "[random_seed]": "Semente aleatória"
 "[mods_n2]": "Mods"
 "[choose_the_mods_of_the]": "Escolher os mods do novo mundo"
+"[a_hosted_world_with_this]": "Já existe um mundo salvo com esta semente e estas configurações, e ele rodou aqui como servidor. «Criar um mundo» o faz de novo com os mods escolhidos agora e apaga o salvo com os personagens dos jogadores; os banimentos, os anfitriões e a lista de acesso ficam: toque duas vezes. Para continuar o salvo, abra-o na lista de mundos."
 
 # src/client/view/auto_quality.gd
 "[graphics_lowered_fps]": "Gráficos reduzidos para o jogo rodar liso (%d FPS)"
@@ -1312,6 +1315,7 @@
 
 # src/shared/game/actions_dig.gd
 "[trees_are_chopped_with_an]": "Árvores se cortam com machado"
+"[water_holds_this_ground]": "A água se apoia aqui: não se cava debaixo d'água nem na margem"
 "[broke]": "Quebrou: %s"
 
 # src/shared/game/actions_farm.gd
@@ -1555,4 +1559,3 @@
 "[descent]": "Descida"
 "[descent_at_45]": "Descida a 45°"
 "[beach]": "Praia"
-"[water_holds_this_ground]": "A água se apoia aqui: não se cava debaixo d'água nem na margem"

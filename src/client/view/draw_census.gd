@@ -36,7 +36,7 @@ func start() -> void:
 	await _frames(SETTLE_FRAMES)
 	var all := await _count()
 	var rows := []
-	for g: Array in _groups():
+	for g: Array in groups_of(game, _panel):
 		var nodes: Array = g[1]
 		var shown := []
 		for n in nodes:
@@ -80,8 +80,9 @@ func start() -> void:
 	set_meta("running", false)
 
 
-## The groups counted: [name, nodes] each.
-func _groups() -> Array:
+## The groups counted: [name, nodes] each (RenderToggles hides them one by one too);
+## `panel`, the census's own list over the screen, is left out.
+static func groups_of(game, panel: Control) -> Array:
 	var groups := []
 	var parts := ["ground", "water", "grass", "crowns", "crown shadows", "bushes", "snowdrifts"]
 	var known := {}
@@ -118,20 +119,20 @@ func _groups() -> Array:
 	groups.append(["whole world", [game.world_root]])
 	groups.append(["whole screen", [game.hud]])
 	for n in game.hud.get_children():
-		if n is CanvasItem and n != _panel:
-			groups.append(["screen: " + _hud_name(n), [n]])
+		if n is CanvasItem and n != panel:
+			groups.append(["screen: " + _hud_name(game, n), [n]])
 	return groups
 
 
 ## What the interface calls `n`: the name of its var that holds it, or its kind.
-func _hud_name(n: Node) -> String:
+static func _hud_name(game, n: Node) -> String:
 	for p in game.hud.get_property_list():
 		if p.usage & PROPERTY_USAGE_SCRIPT_VARIABLE and p.type == TYPE_OBJECT and game.hud.get(p.name) == n:
 			return String(p.name).trim_prefix("_")
 	return _kind(n)
 
 
-func _kind(n: Node) -> String:
+static func _kind(n: Node) -> String:
 	var s: Script = n.get_script()
 	if s != null and s.resource_path != "":
 		return s.resource_path.get_file().get_basename()

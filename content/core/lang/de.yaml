@@ -906,6 +906,7 @@
 "[freeze_log]": "Ruckler-Protokoll"
 "[test_data]": "Testdaten"
 "[shader_probe]": "Shader-Prüfung"
+"[what_is_drawn]": "Was gezeichnet wird"
 "[last_run_log]": "Protokoll des letzten Starts"
 "[no_log_yet]": "Noch kein Protokoll eines früheren Starts."
 "[time_and_weather]": "Zeit und Wetter"
@@ -1059,6 +1060,8 @@
 "[the_list_of_changes_appears]": "Die Liste der Änderungen erscheint in einer Version von der Website."
 "[no_freezes]": "Keine Ruckler"
 "[no_such_freezes]": "Keine solchen Ruckler"
+"[show_all]": "Alles zeigen"
+"[what_is_drawn_note]": "Blende einen Teil aus, schließe das Menü und schau, ob der Fehler weg ist. Ausgeblendetes bleibt es, bis du es zeigst oder die Welt verlässt."
 "[copied]": "Kopiert"
 "[teleport_to_a_marker]": "Zu einer Markierung teleportieren"
 "[go]": "Los"
@@ -1188,7 +1191,6 @@
 "[create_a_world]": "Welt erstellen"
 "[the_land_round_the_middle]": "Das Land um die Mitte der Welt, %d Felder breit; der Punkt ist dein Start"
 "[a_world_with_this_seed]": "Eine Welt mit diesem Seed und diesen Einstellungen ist bereits gespeichert. «Welt erstellen» erschafft sie neu mit den jetzt gewählten Mods und löscht die gespeicherte: zweimal tippen. Um die gespeicherte fortzusetzen, öffne sie aus der Liste der Welten."
-"[a_hosted_world_with_this]": "Eine Welt mit diesem Seed und diesen Einstellungen ist gespeichert und lief hier als Server. «Welt erstellen» erschafft sie neu mit den jetzt gewählten Mods und löscht die gespeicherte samt den Figuren der Spieler; Sperren, Hosts und die Zugangsliste bleiben: zweimal tippen. Um die gespeicherte fortzusetzen, öffne sie aus der Liste der Welten."
 "[world_type]": "Weltart"
 "[custom]": "Eigene"
 "[continents]": "Kontinente"
@@ -1206,6 +1208,7 @@
 "[random_seed]": "Zufälliger Seed"
 "[mods_n2]": "Mods"
 "[choose_the_mods_of_the]": "Mods der neuen Welt wählen"
+"[a_hosted_world_with_this]": "Eine Welt mit diesem Seed und diesen Einstellungen ist gespeichert und lief hier als Server. «Welt erstellen» erschafft sie neu mit den jetzt gewählten Mods und löscht die gespeicherte samt den Figuren der Spieler; Sperren, Hosts und die Zugangsliste bleiben: zweimal tippen. Um die gespeicherte fortzusetzen, öffne sie aus der Liste der Welten."
 
 # src/client/view/auto_quality.gd
 "[graphics_lowered_fps]": "Grafik gesenkt, damit das Spiel flüssig läuft (%d FPS)"
@@ -1312,6 +1315,7 @@
 
 # src/shared/game/actions_dig.gd
 "[trees_are_chopped_with_an]": "Bäume fällt man mit der Axt"
+"[water_holds_this_ground]": "Hier hält das Wasser: unter Wasser und am Ufer wird nicht gegraben"
 "[broke]": "Kaputt: %s"
 
 # src/shared/game/actions_farm.gd
@@ -1555,4 +1559,3 @@
 "[descent]": "Abstieg"
 "[descent_at_45]": "Abstieg im 45°-Winkel"
 "[beach]": "Strand"
-"[water_holds_this_ground]": "Hier hält das Wasser: unter Wasser und am Ufer wird nicht gegraben"

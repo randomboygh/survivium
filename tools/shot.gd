@@ -520,6 +520,12 @@ func _run() -> void:
 			# As if on a server for checking: the «Тестирование» page shows such a server's rows.
 			main.link.join_url = "ws://shot"
 			main.link.welcome = {"playtest": true}
+		# Parts of the picture hidden (RenderToggles, «Что рисуется»).
+		for part: String in shot.get("hide", []):
+			main.render_toggles.set_hidden(part, true)
+		if shot.has("hide"):
+			for i in 5:
+				await process_frame
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 			if shot.has("page"):

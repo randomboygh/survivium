@@ -85,7 +85,7 @@
   `content/<мод>/models/<model>.png` (`VoxelModel.from_image`), в коде только ком блока, мешок и связка.
 - `src/client/view/player.gd`, `figure.gd`, `hands.gd`, `sprite_sheet.gd` — спрайт игрока (см.
   [character.md](character_RU.md)).
-- `src/client/view/shader_warmup.gd` — прогрев шейдеров; `draw_census.gd` — счёт вызовов отрисовки.
+- `src/client/view/shader_warmup.gd` — прогрев шейдеров; `draw_census.gd` — счёт вызовов отрисовки; `render_toggles.gd` — «Тестирование» → «Отладка» → «Что рисуется»: прячет часть картинки (группу счёта, всё нарисованное одним шейдером, свет, тень солнца, туман, свечение), пока её не покажут снова или не выйдут из мира, чтобы найти, какая часть рисует сбой на устройстве (что приходит позже, новые чанки, прячется по приходе).
 - `src/client/view/cave_layers.gd` — вид в пещере слоями для выбора клеток
   (то же, что прячут шейдеры), `src/client/world/solid_map.gd` — карта твёрдых клеток вокруг игрока для
   среза породы, которым слои заполняют убранное; `plan_view.gd` — призрак чертежа ([interaction.md](interaction_RU.md)); `land_view.gd` — границы

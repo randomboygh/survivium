@@ -247,7 +247,7 @@ func open_gallery() -> Control:
 ## `back`, or closes the window when it is "".
 func open(which: String, back := "test") -> void:
 	page = which
-	if which in ["changes", "freezes", "report", "crash", "probe"]:
+	if which in ["changes", "freezes", "report", "crash", "probe", "parts"]:
 		_back_to = back
 	_fill()
 
@@ -328,6 +328,9 @@ func _fill() -> void:
 		_title.text = "[shader_probe]"
 		_shown_text = ShaderProbe.report()
 		_list.add_child(_paragraph(_shown_text, UiStyle.INK))
+	elif which == "parts":
+		_title.text = "[what_is_drawn]"
+		_add_parts()
 	elif which == "crash":
 		_title.text = "[crash_log]" if LastLog.crashed else "[last_run_log]"
 		_shown_text = LastLog.tail()
@@ -566,6 +569,7 @@ func _section_rows(key: String) -> Array:
 					if get_tree().paused:
 						game.hud.toggle_menu()
 					game.draw_census.start()},
+				{"action": "[what_is_drawn]", "do": func() -> void: open("parts")},
 				{"action": "[freeze_log]", "do": func() -> void: open("freezes")},
 				{"action": "[test_data]", "do": func() -> void: open("report")},
 				{"action": "[ui_gallery]", "do": func() -> void: open_gallery()},
@@ -894,7 +898,7 @@ func _reset() -> void:
 
 
 func _go_back() -> void:
-	if page in ["changes", "freezes", "report", "crash", "probe"] and _back_to != "":
+	if page in ["changes", "freezes", "report", "crash", "probe", "parts"] and _back_to != "":
 		open(_back_to)
 	else:
 		close()
@@ -944,7 +948,7 @@ func fit(screen: Vector2) -> void:
 	# Every page takes the columns the settings need, so all are as wide.
 	var n := 2 if _page_height("settings", 1) > room \
 			and screen.x - 2 * 8 - 2 * UiStyle.PAD.x - BAR_ROOM >= 2 * ROW_WIDTH + COLUMN_GAP else 1
-	if n != _columns and page in ["changes", "freezes", "report", "crash", "probe"]:
+	if n != _columns and page in ["changes", "freezes", "report", "crash", "probe", "parts"]:
 		_columns = n
 		_fill()
 		return
@@ -1067,6 +1071,21 @@ func _add_freezes(key: String) -> void:
 		_list.add_child(_paragraph("[no_freezes]" if key == "all" else "[no_such_freezes]", UiStyle.MUTED))
 	for l: Array in lines:
 		_list.add_child(_paragraph(l[1], UiStyle.DANGER if l[0] >= 200.0 else (UiStyle.ACCENT if l[0] >= 100.0 else UiStyle.INK)))
+
+
+## «Что рисуется» (RenderToggles): a row for each part of the picture, shown or hidden,
+## to find which of them draws a fault; «Показать всё» first.
+func _add_parts() -> void:
+	var toggles = game.render_toggles
+	_add_action("[show_all]", func() -> void:
+		toggles.show_all()
+		refresh())
+	_grid().add_child(_note("[what_is_drawn_note]"))
+	for g: Array in toggles.groups():
+		var name: String = g[0]
+		_add_row(name, ["[shown]", "[hidden]"],
+			func() -> int: return int(toggles.is_hidden(name)),
+			func(i: int) -> void: toggles.set_hidden(name, i == 1))
 
 
 func _clear_freezes() -> void:

@@ -906,6 +906,7 @@
 "[freeze_log]": "Takılma kaydı"
 "[test_data]": "Test verisi"
 "[shader_probe]": "Gölgelendirici denetimi"
+"[what_is_drawn]": "Ne çiziliyor"
 "[last_run_log]": "Son çalıştırmanın kaydı"
 "[no_log_yet]": "Henüz önceki bir çalıştırmanın kaydı yok."
 "[time_and_weather]": "Saat ve hava"
@@ -1059,6 +1060,8 @@
 "[the_list_of_changes_appears]": "Değişiklik listesi siteden alınan sürümde görünür."
 "[no_freezes]": "Takılma yok"
 "[no_such_freezes]": "Böyle takılma yok"
+"[show_all]": "Hepsini göster"
+"[what_is_drawn_note]": "Bir parçayı gizle, menüyü kapat ve hatanın gidip gitmediğine bak. Gizlenen, gösterilene ya da dünyadan çıkılana kadar gizli kalır."
 "[copied]": "Kopyalandı"
 "[teleport_to_a_marker]": "İşarete ışınlan"
 "[go]": "Git"
@@ -1188,7 +1191,6 @@
 "[create_a_world]": "Bir dünya oluştur"
 "[the_land_round_the_middle]": "Dünyanın ortasının çevresi, %d hücre genişliğinde; nokta başlangıç yerin"
 "[a_world_with_this_seed]": "Bu tohum ve bu ayarlarla bir dünya zaten kayıtlı. «Bir dünya oluştur» onu şimdi seçilen modlarla yeniden yapar ve kayıtlı olanı siler: iki kez dokun. Kayıtlı olana devam etmek için onu dünyalar listesinden aç."
-"[a_hosted_world_with_this]": "Bu tohum ve bu ayarlarla bir dünya kayıtlı ve burada sunucu olarak çalıştı. «Bir dünya oluştur» onu şimdi seçilen modlarla yeniden yapar ve kayıtlı olanı oyuncuların karakterleriyle birlikte siler; yasaklar, ev sahipleri ve giriş listesi kalır: iki kez dokun. Kayıtlı olana devam etmek için onu dünyalar listesinden aç."
 "[world_type]": "Dünya türü"
 "[custom]": "Özel"
 "[continents]": "Kıtalar"
@@ -1206,6 +1208,7 @@
 "[random_seed]": "Rastgele tohum"
 "[mods_n2]": "Modlar"
 "[choose_the_mods_of_the]": "Yeni dünyanın modlarını seç"
+"[a_hosted_world_with_this]": "Bu tohum ve bu ayarlarla bir dünya kayıtlı ve burada sunucu olarak çalıştı. «Bir dünya oluştur» onu şimdi seçilen modlarla yeniden yapar ve kayıtlı olanı oyuncuların karakterleriyle birlikte siler; yasaklar, ev sahipleri ve giriş listesi kalır: iki kez dokun. Kayıtlı olana devam etmek için onu dünyalar listesinden aç."
 
 # src/client/view/auto_quality.gd
 "[graphics_lowered_fps]": "Oyun akıcı kalsın diye grafik düşürüldü (%d FPS)"
@@ -1312,6 +1315,7 @@
 
 # src/shared/game/actions_dig.gd
 "[trees_are_chopped_with_an]": "Ağaçlar baltayla kesilir"
+"[water_holds_this_ground]": "Burada su duruyor: su altında ve kıyıda kazılmaz"
 "[broke]": "Kırıldı: %s"
 
 # src/shared/game/actions_farm.gd
@@ -1555,4 +1559,3 @@
 "[descent]": "İniş"
 "[descent_at_45]": "45° iniş"
 "[beach]": "Plaj"
-"[water_holds_this_ground]": "Burada su duruyor: su altında ve kıyıda kazılmaz"
