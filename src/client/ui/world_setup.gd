@@ -80,6 +80,9 @@ var _shown := false
 ## The height of the world's rows, the first page's: every page is given it (the
 ## longer ones scroll), so the panel does not change size from page to page.
 var _rows_height := 0.0
+## The words of the button that makes the world: «Создать мир», or what the screen that
+## opened this one does with it («Выбрать этот мир» for a server, HostScreen).
+var finish := "[create_a_world]"
 
 
 func _init(g) -> void:
@@ -123,7 +126,7 @@ func _ready() -> void:
 	var buttons := Kit.row(6)
 	outer.add_child(buttons)
 	buttons.add_child(Kit.button("[back]", back, 96, 36))
-	_start_button = Kit.accent_button("[create_a_world]", _start, 0, 36)
+	_start_button = Kit.accent_button(finish, _start, 0, 36)
 	_start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	buttons.add_child(_start_button)
 	_check_saved()
