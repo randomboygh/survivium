@@ -148,6 +148,34 @@ func _test_window() -> void:
 		else:
 			_check(absf(w.panel.position.y - (host.size.y - w.panel.size.y) * 0.5) <= 1.0, "a short one stands in the middle")
 		host.free()
+	# A window of a set width keeps it whatever it shows (a long note, a list's bar),
+	# and a text straight in its column keeps the rows' room from the frame.
+	var screen := Control.new()
+	screen.size = Vector2(400, 600)
+	var win := Control.new()
+	win.set_script(KitWindow)
+	screen.add_child(win)
+	var column: VBoxContainer = win.build("Окно", 6, 200.0)
+	var note := Kit.note("")
+	column.add_child(note)
+	var rows := Kit.column(4)
+	var row := Kit.button("ряд", Callable(), 150, 30)
+	rows.add_child(row)
+	var list := Kit.scroll(rows, false)
+	column.add_child(list)
+	win.fit()
+	var wide: float = win.panel.size.x
+	note.text = "Очень длинная надпись, которая не помещается в одну строку окна и переносится"
+	win.fit()
+	_check(win.panel.size.x == wide, "a long note wraps: the window keeps its width")
+	_check(note.get_theme_stylebox("normal").content_margin_left == UiStyle.BAR_GAP,
+		"a text in a window's column keeps the rows' room from the frame")
+	var room: MarginContainer = list.get_child(0)
+	var before := list.get_combined_minimum_size().x
+	UiStyle.bar_room(room, true, list)
+	_check(list.get_combined_minimum_size().x == before, "a list is as wide with its bar shown as without")
+	UiStyle.bar_room(room, false, list)
+	screen.free()
 
 
 func _test_strip() -> void:

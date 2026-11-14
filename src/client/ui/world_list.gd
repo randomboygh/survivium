@@ -62,6 +62,7 @@ func _fill() -> void:
 		var none := Kit.caption("[no_saved_worlds_yet]")
 		none.custom_minimum_size = Vector2(ROW_WIDTH + DELETE_WIDTH + 4, ROW_H)
 		none.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		Kit.text_room(none)
 		_rows.add_child(none)
 	for w: Dictionary in worlds:
 		var current: bool = w.seed == game.world_seed and w.settings == game.world_options and game.join_url == ""
@@ -94,7 +95,8 @@ func _fill() -> void:
 			_bins.guard(del, _delete.bind(w.dir))
 		row.add_child(del)
 	var shown := mini(maxi(worlds.size(), 1), VISIBLE_ROWS)
-	_scroll.custom_minimum_size = Vector2(ROW_WIDTH + DELETE_WIDTH + 4, shown * (ROW_H + 4) - 4)
+	# As wide as its rows and the bar's room (Kit.scroll), however many there are.
+	_scroll.custom_minimum_size.y = shown * (ROW_H + 4) - 4
 
 
 ## Deletes the world (on the trash's second tap).

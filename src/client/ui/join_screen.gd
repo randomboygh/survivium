@@ -14,6 +14,7 @@ const ServerList := preload("res://src/client/net/server_list.gd")
 const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 
+## How wide the fields are: the column is as wide with their insets, whatever is shown.
 const WIDTH := 240
 const FIELD_H := 30
 const ROW_H := 32
@@ -51,7 +52,7 @@ func _init(g, url := "", error := "") -> void:
 
 
 func _ready() -> void:
-	build("[join]")
+	build("[join]", 6, WIDTH + 2 * UiStyle.BAR_GAP)
 	# The fields and the recent servers keep the settings' insets (the kit's rule); the
 	# buttons under them stand flush with the frame's room, as in every window.
 	var content := Kit.column(6)
@@ -66,7 +67,7 @@ func _ready() -> void:
 	_password = _field(content, "[password]", "[if_the_server_asks]")
 	_password.secret = true
 	_password.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_PASSWORD
-	_error = Kit.note("", WIDTH, UiStyle.DANGER)
+	_error = Kit.note("", 0.0, UiStyle.DANGER)
 	content.add_child(_error)
 	_say(_start_error)
 	_recent = Kit.column(4)
@@ -77,9 +78,9 @@ func _ready() -> void:
 	_recent_scroll = Kit.scroll(_recent_rows, false)
 	_recent.add_child(_recent_scroll)
 	_fill_recent(recent)
-	_go = Kit.accent_button("[connect]", submit, WIDTH, ROW_H)
+	_go = Kit.accent_button("[connect]", submit, 0.0, ROW_H)
 	box.add_child(_go)
-	_back = Kit.button("[back]", back, WIDTH, ROW_H)
+	_back = Kit.button("[back]", back, 0.0, ROW_H)
 	box.add_child(_back)
 	show_fitted()
 	_announce.call_deferred()
@@ -117,7 +118,7 @@ func _print_rects() -> void:
 ## A field under its name; Enter in it goes to the next one, in the last one joins.
 func _field(parent: Control, caption: String, hint: String) -> LineEdit:
 	parent.add_child(Kit.caption(caption))
-	var f := Kit.field(hint, WIDTH, 0, FIELD_H)
+	var f := Kit.field(hint, 0.0, 0, FIELD_H)
 	f.text_submitted.connect(func(_t: String) -> void: _next_after(f))
 	parent.add_child(f)
 	return f
@@ -144,14 +145,14 @@ func _fill_recent(recent: Array[Dictionary]) -> void:
 	# As tall as the rows, at most RECENT_ROWS, then scrolled.
 	var shown := mini(recent.size(), RECENT_ROWS)
 	_recent_tall = maxi(shown * (FORGET + 4) - 4, 0)
-	_recent_scroll.custom_minimum_size = Vector2(WIDTH, _recent_tall)
+	_recent_scroll.custom_minimum_size.y = _recent_tall
 	for r: Dictionary in recent:
 		var row := Kit.row(4)
 		var title: String = r.title if r.title != "" else "[server_name]"
 		var url: String = r.url
 		var b := Kit.button(Lang.line("%s\n%s", [title, _short(r.url)]), func() -> void:
 			_url.text = url
-			_say(""), WIDTH - FORGET - 4, FORGET)
+			_say(""), 0.0, FORGET)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.clip_text = true
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL

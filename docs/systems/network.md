@@ -253,7 +253,8 @@ length up to `CHAT_MAX` 160.
   layout of the ground by the seed and the server's settings as its own (biomes, the map, where the animals
   live), but it generates nothing: `saved` — itself, a chunk's record from `chunk` (`take_chunk`, `packs`) is
   restored by the generator's work like a saved chunk (`start` only `TERRAIN` and only for those sent; the
-  chunk is `SHAPED` at once), `needed` — the chunk and its neighbours by 1 are sent (the mesher reads their
+  chunk is `SHAPED` at once; `cells` and `drops` that come for a chunk sent but not restored yet wait in
+  `held` (`hold_cell`, `hold_drops`) and go in after its record, which would lay the old ones over them), `needed` — the chunk and its neighbours by 1 are sent (the mesher reads their
   cells at the edges; the visibility zone through a socket — `ZONE` − 1); what the session does through the
   loop (`Main.world_maker`): `make_chunk` (at once, the loading screen), `make_chunks(near_us, far_us)` (the
   nearest to `home` first within the frame's budget), `forget_far` is empty (the server forgets: `forget` →

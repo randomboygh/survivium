@@ -18,6 +18,10 @@ signal changed(key: Vector2i)
 
 ## The records of the chunks sent, by key, until restored.
 var packs := {}
+## What the server changed (CELLS, DROPS) in a chunk sent but not restored yet, by key:
+## {"cells": [[cell, value], …], "drops": the list on the ground or null}. The restore
+## would lay the record over it, so it waits and goes in after (see `step`).
+var held := {}
 ## Where the player is, in chunks: the chunks nearest it are restored first.
 var home := Vector2i.ZERO
 ## The restore going on (make_chunks).
@@ -53,6 +57,8 @@ func take_chunk(key: Vector2i, size: int, bytes: PackedByteArray) -> bool:
 		push_error("chunk %s from the server does not fit this world" % key)
 		return false
 	packs[key] = v
+	# The new record holds what came before it.
+	held.erase(key)
 	if stages.get(key, 0) > 0:
 		_drop(key)
 		make_chunk(key)
@@ -68,6 +74,7 @@ func forget(key: Vector2i) -> bool:
 
 
 func _drop(key: Vector2i) -> void:
+	held.erase(key)
 	if _job != null and _job.key == key:
 		_job = null
 	world.remove_chunk(key)
@@ -90,6 +97,59 @@ func needed(key: Vector2i) -> Array:
 	if m != null:
 		return [m, SHAPED]
 	return []
+
+
+## Keeps cell `cell` the server set to `v` (CELLS) when its chunk is still to be restored;
+## false when the chunk is in (or never came) and the cell is the caller's to take.
+func hold_cell(cell: Vector3i, v: int) -> bool:
+	var key := WorldData.chunk_key(cell.x, cell.z)
+	if not _waiting(key):
+		return false
+	_held(key).cells.append([cell, v])
+	return true
+
+
+## Keeps the things on the ground of chunk `key` (DROPS) when it is still to be restored.
+func hold_drops(key: Vector2i, list: Array) -> bool:
+	if not _waiting(key):
+		return false
+	_held(key).drops = list
+	return true
+
+
+## Whether chunk `key` was sent and is not restored yet (its restore may have begun).
+func _waiting(key: Vector2i) -> bool:
+	return packs.has(key) and stages.get(key, 0) < SHAPED
+
+
+func _held(key: Vector2i) -> Dictionary:
+	if not held.has(key):
+		held[key] = {"cells": [], "drops": null}
+	return held[key]
+
+
+## A restore done puts in what the server changed while it waited.
+func step(job: Job, n: int) -> bool:
+	var done := super(job, n)
+	if done and held.has(job.key):
+		var h: Dictionary = held[job.key]
+		held.erase(job.key)
+		for c: Array in h.cells:
+			take_cell(world, c[0], c[1])
+		if h.drops != null:
+			world.drops[job.key] = h.drops
+	return done
+
+
+## Cell `cell` of the copy of the world `w` as the server sent it (`v`: material, form
+## << 8). A bed watered or dried keeps its crop: set_cell would forget it, and the
+## crop would vanish here until its chunk came again.
+static func take_cell(w, cell: Vector3i, v: int) -> void:
+	var bed: Variant = w.field_at(cell)
+	w.set_cell(cell.x, cell.y, cell.z, v & 255)
+	if bed != null and Mat.is_bed(v & 255):
+		w.set_field(cell, bed)
+	w.set_form(cell.x, cell.y, cell.z, v >> 8 & 15)
 
 
 # --- What the session does over the loop (Main.world_maker) -------------------------

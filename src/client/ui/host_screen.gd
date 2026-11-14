@@ -196,7 +196,7 @@ func _build_setup() -> void:
 	_rows = [_choices, ChoiceRows.new(SET_NAME, SET_VALUE, ARROW)]
 	_build_making(_pages[0], _rows[0])
 	_build_settings(_pages[1], _rows[1])
-	_error = Kit.note(game.host_error, WIDTH, UiStyle.DANGER)
+	_error = Kit.note(game.host_error, 0.0, UiStyle.DANGER)
 	_error.visible = game.host_error != ""
 	box.add_child(_error)
 	box.add_child(_button("[start_the_server]", _start, true, false))
@@ -217,8 +217,8 @@ func _build_making(page: VBoxContainer, rows: ChoiceRows) -> void:
 	_tunnel = Kit.check("[access_from_the_internet]", bool(_set.tunnel) and not phone, WIDTH, ROW_H)
 	_tunnel.visible = not phone
 	page.add_child(_tunnel)
-	page.add_child(Kit.note("[players_from_the_home_network_phone]" if phone else "[players_from_the_home_network]", WIDTH))
-	page.add_child(Kit.note("[port_player_count_day_length]", WIDTH))
+	page.add_child(Kit.note("[players_from_the_home_network_phone]" if phone else "[players_from_the_home_network]"))
+	page.add_child(Kit.note("[port_player_count_day_length]"))
 	rows.refresh()
 
 
@@ -249,7 +249,7 @@ func _build_settings(page: VBoxContainer, rows: ChoiceRows) -> void:
 	_pick(page, rows, "[abandoned_after]", "territory_abandon_hours", ABANDON_HOURS, _hours)
 	_pick(page, rows, "[decay_step]", "territory_decay_hours", DECAY_HOURS, _hours)
 	_pick(page, rows, "[decay]", "territory_decay", DECAY_MODES, func(m: String) -> String: return DECAY_TITLES[DECAY_MODES.find(m)])
-	page.add_child(Kit.note("[starting_land_is_a_new]", WIDTH))
+	page.add_child(Kit.note("[starting_land_is_a_new]"))
 	var defaults := Kit.button("[defaults]", Callable(), WIDTH, ROW_H + 4)
 	_resets.guard(defaults, _defaults)
 	page.add_child(defaults)
@@ -480,7 +480,7 @@ func _build_running() -> void:
 	_set = game.LocalHost.settings_of(node.config)
 	var p := _pages[0]
 	_into = p
-	_state = UiStyle.label("", UiStyle.INK)
+	_state = Kit.note("", 0.0, UiStyle.INK)
 	p.add_child(_state)
 	p.add_child(Kit.caption("[address_for_friends_on_the]"))
 	var addresses := addresses_of(node.config.port)
@@ -494,7 +494,7 @@ func _build_running() -> void:
 		copy.tooltip_text = addresses[0]
 	if node.tunnel != null:
 		p.add_child(Kit.caption("[from_the_internet]"))
-		_tunnel_label = Kit.note("", WIDTH, UiStyle.ACCENT)
+		_tunnel_label = Kit.note("", 0.0, UiStyle.ACCENT)
 		p.add_child(_tunnel_label)
 		_tunnel_copy = _button("[copy_the_link]", func() -> void:
 			DisplayServer.clipboard_set(node.tunnel.link()))
@@ -514,7 +514,7 @@ func _build_running() -> void:
 	_log.custom_minimum_size = Vector2(WIDTH - 2 * UiStyle.WELL_PAD - UiStyle.SCROLL_BAR - 2, 0)
 	_log_scroll.add_child(_log)
 	# The host's commands, as in the terminal; what they answer goes into the log.
-	var command := Kit.field("[command_help_the_list]", WIDTH, 0, ROW_H)
+	var command := Kit.field("[command_help_the_list]", 0.0, 0, ROW_H)
 	command.text_submitted.connect(func(line: String) -> void:
 		if line.strip_edges() == "":
 			return
@@ -546,7 +546,7 @@ func _build_access(p: VBoxContainer) -> void:
 	_listed_only = Kit.check("[list_only]", false, WIDTH, ROW_H)
 	_listed_only.toggled.connect(func(on: bool) -> void: _run("whitelist " + ("on" if on else "off")))
 	p.add_child(_listed_only)
-	p.add_child(Kit.note("[list_only_note]", WIDTH))
+	p.add_child(Kit.note("[list_only_note]"))
 	p.add_child(Kit.caption("[on_the_list]"))
 	_listed = Kit.column(4)
 	p.add_child(_listed)
@@ -561,6 +561,7 @@ func _build_access(p: VBoxContainer) -> void:
 func _name_field(hint: String, text: String, action: Callable) -> HBoxContainer:
 	var row := Kit.row(4)
 	var f := Kit.field(hint, WIDTH - NAME_BUTTON - 4, 32, ROW_H)
+	f.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var give := func() -> void:
 		var n := f.text.strip_edges()
 		if n != "":
@@ -598,6 +599,7 @@ func _fill_names(column: VBoxContainer, names: Array, text: String, action: Call
 		var l := UiStyle.label(n)
 		l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 		l.custom_minimum_size = Vector2(WIDTH - NAME_BUTTON - 4, ROW_H)
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		l.clip_text = true
 		row.add_child(l)
@@ -668,6 +670,7 @@ func _refresh() -> void:
 			var row := Kit.row(4)
 			var l := UiStyle.label("%s%s" % [p[0], "" if p[2] else Lang.t("[no_connection]")])
 			l.custom_minimum_size = Vector2(WIDTH - 2 * PLAYER_BUTTON - 8, ROW_H)
+			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 			l.clip_text = true
 			row.add_child(l)

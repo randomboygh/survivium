@@ -126,8 +126,7 @@ func _ready() -> void:
 	var rec := Items.get_item(item)
 	var text: String = game.placed.at(cell).get("text", "")
 	var lines := text.split("\n")
-	build(Lang.t(Items.title(item)))
-	box.get_child(0).custom_minimum_size.x = WIDTH
+	build(Lang.t(Items.title(item)), 6, WIDTH)
 	var writes := may_write()
 	if writes:
 		for i in int(rec.get("sign_lines", 0)):
@@ -139,11 +138,11 @@ func _ready() -> void:
 	else:
 		var read := UiStyle.label(Lang.written(text) if text != "" else "[nothing_is_written_here]", UiStyle.INK if text != "" else UiStyle.MUTED)
 		read.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		read.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		if text != "":
 			read.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-		read.custom_minimum_size = Vector2(WIDTH, 0)
 		box.add_child(read)
-	_note = Kit.note("" if writes else "[whoever_builds_on_this_land]", WIDTH)
+	_note = Kit.note("" if writes else "[whoever_builds_on_this_land]")
 	_note.visible = _note.text != ""
 	box.add_child(_note)
 	if writes:
@@ -159,7 +158,7 @@ func _ready() -> void:
 			_keys_label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 			_keys_label.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
 			# A fixed height, so the panel stays where it is as the lines change.
-			_keys_label.custom_minimum_size = Vector2(WIDTH, KEYS_LINES * 12)
+			_keys_label.custom_minimum_size = Vector2(0, KEYS_LINES * 12)
 			_keys_label.max_lines_visible = KEYS_LINES
 			box.add_child(_keys_label)
 	show_fitted()

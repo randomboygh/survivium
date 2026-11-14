@@ -23,7 +23,7 @@ All files with a description: [generated/code-index.md](generated/code-index.md)
 | Interface and settings | `src/client/ui/*` (the kit — `src/client/ui/kit/`), `src/client/settings.gd`, `src/client/game/markers.gd` | [systems/ui.md](systems/ui.md) | `browser_smoke.mjs`, `ui_test.gd` (the kit and the interface gallery), `frame_test.gd` (hotbar, palettes) |
 | Sound and music | `src/client/audio/*`, `content/sounds/`, `content/music/` | [systems/audio.md](systems/audio.md) | `view_test.gd` (sound) |
 | Languages | `src/shared/content/lang.gd`, the mods' `lang/<code>.yaml`, `tools/lang_check.py` | [systems/lang.md](systems/lang.md) | `lang_test.gd`, `tools/lang_check.py --strict en,ru` |
-| The Android build | `export_presets.cfg` (the preset `Android`), `assets/app/`, `.github/workflows/build.yml` (`android`, `publish-android`) | [systems/android.md](systems/android.md) | the `android` CI job (export and signature) |
+| The Android build | `export_presets.cfg` (the preset `Android`), `assets/app/`, `.github/workflows/build.yml` (`android`, `release`) | [systems/android.md](systems/android.md) | the `android` CI job (export and signature) |
 | Tests, tools, CI, versions | `tests/*`, `tools/*`, `.github/*` | [systems/testing.md](systems/testing.md), [testing/](testing/TESTING_GUIDE.md) | `tools/lint.py`, `tools/parse_check.gd` |
 
 Where each check is: `grep -n "func _test" tests/unit/*.gd`.

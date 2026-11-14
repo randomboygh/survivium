@@ -24,7 +24,7 @@
 | Интерфейс и настройки | `src/client/ui/*` (кит — `src/client/ui/kit/`), `src/client/settings.gd`, `src/client/game/markers.gd` | [systems/ui.md](systems/ui_RU.md) | `browser_smoke.mjs`, `ui_test.gd` (кит и витрина интерфейса), `frame_test.gd` (хотбар, палитры) |
 | Звук и музыка | `src/client/audio/*`, `content/sounds/`, `content/music/` | [systems/audio.md](systems/audio_RU.md) | `view_test.gd` (sound) |
 | Языки | `src/shared/content/lang.gd`, `lang/<код>.yaml` модов, `tools/lang_check.py` | [systems/lang.md](systems/lang_RU.md) | `lang_test.gd`, `tools/lang_check.py --strict en,ru` |
-| Android-сборка | `export_presets.cfg` (пресет `Android`), `assets/app/`, `.github/workflows/build.yml` (`android`, `publish-android`) | [systems/android.md](systems/android_RU.md) | задача CI `android` (экспорт и подпись) |
+| Android-сборка | `export_presets.cfg` (пресет `Android`), `assets/app/`, `.github/workflows/build.yml` (`android`, `release`) | [systems/android.md](systems/android_RU.md) | задача CI `android` (экспорт и подпись) |
 | Тесты, инструменты, CI, версии | `tests/*`, `tools/*`, `.github/*` | [systems/testing.md](systems/testing_RU.md), [testing/](testing/TESTING_GUIDE_RU.md) | `tools/lint.py`, `tools/parse_check.gd` |
 
 Где каждая проверка: `grep -n "func _test" tests/unit/*.gd`.

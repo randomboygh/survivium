@@ -39,13 +39,15 @@ concurrency:
 env:
   GODOT_VERSION: 4.5.1
   CLOUDFLARED_VERSION: 2026.10.7
+  # The SHA-256 of that version's cloudflared-linux-amd64: a new version needs its sum here.
+  CLOUDFLARED_SHA256: 1f99fb518b83dec2ba8d870a7cc991d82a77e6196295a3d2754ba17ab9f91872
 
 jobs:
   server:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 320
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/godot
         with:
           templates: false
@@ -60,6 +62,8 @@ jobs:
         run: |
           curl -fsSL --retry 3 -o ~/cloudflared \
             "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64"
+          echo "$CLOUDFLARED_SHA256  $HOME/cloudflared" | sha256sum -c - \
+            || { echo "::error::cloudflared $CLOUDFLARED_VERSION does not match CLOUDFLARED_SHA256"; exit 1; }
           chmod +x ~/cloudflared && ~/cloudflared --version
       # The server (and the bots it starts) run on in the background after this step, which ends once
       # the link is there: its log, the notice and the summary show the link during the play.
@@ -122,7 +126,7 @@ jobs:
           cat logs/server.log
       - name: Keep the logs
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: logs-playtest
           path: logs
