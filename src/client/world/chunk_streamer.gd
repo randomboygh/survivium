@@ -1008,16 +1008,11 @@ func refit_boxes() -> void:
 ## of a margin of a level's height all round, which kept nearly every chunk loaded drawn
 ## (636 draw calls against 301 at the spawn by day, 2026-10-21).
 static func _fit_box(n: GeometryInstance3D) -> void:
-	var box := AABB()
-	if n is MeshInstance3D:
-		if n.mesh == null:
-			return
-		box = n.mesh.get_aabb()
-	else:
-		var mm: MultiMesh = n.multimesh
-		if mm.instance_count == 0:
-			return
-		box = mm.get_aabb()
+	# The mesh's or the multimesh's own box (VisualInstance3D.get_aabb, which leaves
+	# custom_aabb out); none when it has nothing to draw.
+	var box := n.get_aabb()
+	if box.size == Vector3.ZERO:
+		return
 	n.custom_aabb = PixelView.sheared_box(box, SWAY)
 
 
