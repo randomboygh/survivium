@@ -78,7 +78,7 @@ mountain's side goes on down the same way); with the
 `column_color(lay, j)` (maps), `start(key, stage)` / `step(job, n)`, `stage_of(key)`, `missing(key, reach,
 stage)`, `needed(key)` (what else is needed for a chunk to be built: the terrain within 2, trees within 1,
 SHAPED itself), the signal `made(key, stage)` (a job finished), `forget(key)`, `generate_area(from, to)`
-(tests, tools), `WorldGen.find_spawn(world, around)`. The spawn guess (`spawn_guess`) is the first good column of rings 16 cells apart out to `SPAWN_RINGS` (a biome a player may start in, any when no climate biome is loaded, a few levels over the sea, out of woods, rivers and rough land), found in `_init` or, with `spawn` false, a little at a time by `seek_spawn(budget_us)` (the map of «New world»).
+(tests, tools), `WorldGen.find_spawn(world, around)`. The spawn guess (`spawn_guess`) is the first good column of rings 16 cells apart out to `SPAWN_RINGS` (a biome a player may start in, any when no climate biome is loaded, a few levels over the sea, out of woods, rivers and rough land), found in `_init` or, with `spawn` false, a little at a time by `seek_spawn(budget_us)` (the map of «New world»). The biomes decide only where the start is, never the relief: switching a biome bundle off moves the start to the nearest meadow left, the land stays.
 
 **Who uses it.** `session.gd` (orders the stages around the players within a budget, forgets the far ones —
 [session.md](session.md)), `chunk_streamer.gd` (`needed`, `made`), the maps (`minimap.gd`, `map_view.gd`,
