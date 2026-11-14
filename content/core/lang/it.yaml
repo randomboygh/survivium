@@ -1152,7 +1152,7 @@
 "[islands]": "Isole"
 "[mountains]": "Montagne"
 "[plains]": "Pianure"
-"[the_land_around_the_start]": "La terra attorno all'inizio, larga %d celle"
+"[the_land_round_the_middle]": "La terra intorno al centro del mondo, larga %d celle; il punto è la tua partenza"
 "[create_a_world]": "Crea un mondo"
 "[world_type]": "Tipo di mondo"
 "[custom]": "Personale"
