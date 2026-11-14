@@ -14,9 +14,9 @@ extends RefCounted
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
-const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
+const RemoteGen := preload("res://src/client/net/remote_gen.gd")
 
 const CELL := WorldData.CELL
 
@@ -108,7 +108,9 @@ func _on_event(kind: String, args: Variant) -> void:
 					game.workshop.made.emit(r)
 		Protocol.DROPS:
 			if args is Array and args.size() >= 1 and args[0] is Vector2i:
-				if args.size() == 2 and args[1] is Array and game.host == null:
+				# A chunk still to be restored takes them after its record (RemoteGen.held).
+				if args.size() == 2 and args[1] is Array and game.host == null \
+						and not game.world_maker.hold_drops(args[0], args[1]):
 					game.world.drops[args[0]] = args[1]
 				game.props.show_drops(args[0])
 		Protocol.CHUNK:
@@ -123,10 +125,14 @@ func _on_event(kind: String, args: Variant) -> void:
 			if args is Array and game.host == null:
 				# A felled tree comes as all its cells: each column is drawn again once,
 				# from its lowest changed cell, as the server's own world does (ActionsGather.fell).
+				# A chunk sent but still to be restored takes its cells after the record
+				# (RemoteGen.held), which would lay the old ones over them.
 				var cols := {}
 				for c in args:
 					if c is Array and c.size() == 2 and c[0] is Vector3i and c[1] is int:
 						var cell: Vector3i = c[0]
+						if game.world_maker.hold_cell(cell, c[1]):
+							continue
 						if game.world.has_chunk(WorldData.chunk_key(cell.x, cell.z)):
 							take_cell(game.world, cell, c[1])
 							var col := Vector2i(cell.x, cell.z)
@@ -252,8 +258,4 @@ func _on_event(kind: String, args: Variant) -> void:
 ## << 8). A bed watered or dried keeps its crop: set_cell would forget it, and the
 ## crop would vanish here until its chunk came again.
 static func take_cell(w, cell: Vector3i, v: int) -> void:
-	var bed: Variant = w.field_at(cell)
-	w.set_cell(cell.x, cell.y, cell.z, v & 255)
-	if bed != null and Mat.is_bed(v & 255):
-		w.set_field(cell, bed)
-	w.set_form(cell.x, cell.y, cell.z, v >> 8 & 15)
+	RemoteGen.take_cell(w, cell, v)

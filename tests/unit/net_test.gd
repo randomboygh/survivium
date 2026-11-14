@@ -16,6 +16,7 @@ const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 const RemoteWorkshop := preload("res://src/client/net/remote_workshop.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 const Mirror := preload("res://src/client/net/mirror.gd")
+const RemoteGen := preload("res://src/client/net/remote_gen.gd")
 const Playtest := preload("res://src/client/net/playtest.gd")
 const Bot := preload("res://src/client/input/bot.gd")
 
@@ -26,6 +27,7 @@ func run() -> void:
 	_test_server_list()
 	_test_remote_workshop()
 	_test_cells()
+	_test_held_cells()
 	_test_felled_tree()
 	_test_playtest()
 	_test_glide()
@@ -78,6 +80,30 @@ func _test_cells() -> void:
 		"a bed watered on the server keeps its crop on the client: %s" % [w.field_at(bed)])
 	Mirror.take_cell(w, bed, Mat.AIR)
 	_check(w.field_at(bed) == null, "a bed dug out loses it")
+
+
+## A cell changed and things dropped while the client still restores the chunk's record
+## (it waits in RemoteGen.packs) go in after the record, not under it.
+func _test_held_cells() -> void:
+	var server := WorldGen.new(7, 48)
+	var key := Vector2i(1, 1)
+	server.generate_area(key, key + Vector2i.ONE)
+	var raw := var_to_bytes(server.pack(key))
+	var client := RemoteGen.new(7, 48)
+	_check(client.take_chunk(key, raw.size(), raw.compress(FileAccess.COMPRESSION_ZSTD)), "the client takes the chunk")
+	var cell := Vector3i(key.x * WorldData.CHUNK + 3, 2, key.y * WorldData.CHUNK + 3)
+	var dug := Vector3i(cell.x, 1, cell.z)
+	_check(client.hold_cell(cell, Mat.AIR) and client.hold_cell(dug, Mat.STONE | 2 << 8),
+		"cells of a chunk still to be restored wait")
+	var drops := [{"item": "materials:stick", "count": 1}]
+	_check(client.hold_drops(key, drops), "things on its ground wait too")
+	_check(not client.hold_cell(Vector3i(0, 1, 0), Mat.AIR), "a chunk never sent holds nothing")
+	client.make_chunk(key)
+	_check(client.world.has_chunk(key) and client.world.get_cell(cell.x, cell.y, cell.z) == Mat.AIR
+		and client.world.get_cell(dug.x, dug.y, dug.z) == Mat.STONE and client.world.form_at(dug.x, dug.y, dug.z) == 2,
+		"the cells changed while it waited are in after the restore")
+	_check(client.world.drops.get(key) == drops and client.held.is_empty(), "and so are the things on its ground")
+	_check(not client.hold_cell(cell, Mat.STONE), "a chunk restored takes its cells at once")
 
 
 ## A tree felled on the server goes from the client's copy too: every cell of its trunk
