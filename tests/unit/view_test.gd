@@ -715,3 +715,10 @@ func _test_global_textures() -> void:
 	PixelTextures.set_global("heat_map", c)
 	var kept := PixelTextures._replaced.slice(held).map(func(r: Array) -> Texture2D: return r[0])
 	_check(kept.has(a) and kept.has(b), "a global texture replaced twice in a row is still held")
+	PixelTextures.forget()
+	_check(PixelTextures._replaced.any(func(r: Array) -> bool: return r[0] == a),
+		"a texture replaced lives on through the next scene")
+	for i in PixelTextures.HOLD_SCENES:
+		PixelTextures.forget()
+	_check(not PixelTextures._replaced.any(func(r: Array) -> bool: return r[0] == a),
+		"and goes %d scenes later" % (PixelTextures.HOLD_SCENES + 1))

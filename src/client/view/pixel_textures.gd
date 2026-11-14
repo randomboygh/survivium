@@ -67,11 +67,13 @@ const BERRY_ALPHA := 0.65
 ## after it was freed, and drew garbage until the game restarted (white and cyan quads,
 ## half a black screen, a green screen). So a replaced one lives on in _replaced.
 static var _globals := {}
-## The textures replaced, each [texture, Time.get_ticks_msec() it was replaced], kept
-## HOLD_MS: not just until the next is set, since a joining can set one a few times in
-## a row.
+## The textures replaced, each [texture, the scene it was replaced in], kept while that
+## scene and the next HOLD_SCENES run (#608 kept them 5 s and the garbage came back on
+## going from a world of one's own to a server: some draw can hold a texture longer).
 static var _replaced: Array = []
-const HOLD_MS := 5000
+## The scenes started (forget() is called once a scene).
+static var _scene := 0
+const HOLD_SCENES := 2
 
 ## The atlas image, kept so scripts can read its tiles: reading a texture back is slow
 ## in the browser.
@@ -91,6 +93,9 @@ const MOST_MATERIALS := 63
 ## Drops what was made of the last bundles' materials (a scene started again may load
 ## others, numbered otherwise): tint() builds the atlas again when next asked.
 static func forget() -> void:
+	_scene += 1
+	while not _replaced.is_empty() and int(_replaced[0][1]) < _scene - HOLD_SCENES:
+		_replaced.pop_front()
 	atlas_image = null
 	tints = []
 	bark_material = []
@@ -804,13 +809,10 @@ static func build_cloud_noise() -> ImageTexture:
 
 
 ## Sets the shaders' global texture `param` to `texture`, keeping the one it replaces
-## alive HOLD_MS more (see _globals).
+## alive HOLD_SCENES scenes more (see _replaced).
 static func set_global(param: StringName, texture: Texture2D) -> void:
-	var now := Time.get_ticks_msec()
-	while not _replaced.is_empty() and now - int(_replaced[0][1]) > HOLD_MS:
-		_replaced.pop_front()
 	var held: Texture2D = _globals.get(param)
 	if held != null and held != texture:
-		_replaced.append([held, now])
+		_replaced.append([held, _scene])
 	_globals[param] = texture
 	RenderingServer.global_shader_parameter_set(param, texture)

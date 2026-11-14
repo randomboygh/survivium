@@ -74,8 +74,8 @@ voxel models of things.
   `cursor` (and the blueprint's ghost), `land` (the plots' borders).
 - `project.godot`, the section `[shader_globals]`: the global parameters the code changes (`cut_height`,
   `snow_amount`, `wind`, `view_up`, `view_slope`, `rest_view`, `view_squash`, `light_side`, `wrap_size` and
-  others). A global texture is set by `PixelTextures.set_global`, which keeps the one it replaces for
-  `HOLD_MS` (5 s): Vulkan (Android) drew garbage after a new scene (rejoining a server, reloading mods) when the
+  others). A global texture is set by `PixelTextures.set_global`, which keeps the one it replaces while
+  that scene and the next `HOLD_SCENES` (2) run: Vulkan (Android) drew garbage after a new scene (rejoining a server, reloading mods) when the
   old one was freed at once. A global texture that changes during play is drawn again in place
   (`ImageTexture.update`), never made anew: the fires' heat map (`Effects.heat_map`) once made one for each fire
   that came, several in a row while joining a server with camps.
