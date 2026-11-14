@@ -512,8 +512,10 @@ func _test_camera_drift() -> void:
 		rig._tire(1.0 / 30.0)
 		rig._glide(1.0 / 30.0)
 	_check(rig.turn > 0.05 and rig.turn < CameraRig.DRIFT_RATE * 5.1, "left alone a minute it drifts round, slowly: %.3f" % rig.turn)
-	var all_round := ceili(TAU / CameraRig.BOX_STEP)
-	_check(PixelView.box_views.size() >= all_round, "drifting, the culling boxes hold the views all round")
+	var first: Vector2 = PixelView.box_views[0][0]
+	var last: Vector2 = PixelView.box_views[-1][0]
+	_check(PixelView.box_views.size() > 1 and absf(first.angle_to(last)) >= CameraRig.SPIN_AHEAD - 0.001
+		and absf(first.angle_to(last)) <= CameraRig.SPIN_AHEAD + 0.001, "drifting, the culling boxes hold the views a way ahead")
 	game.player.position.x += 1.0
 	rig._tire(1.0 / 30.0)
 	_check(rig.idle == 0.0, "the player walking is not being left alone")
@@ -560,7 +562,21 @@ func _test_camera_spin() -> void:
 		rig._glide(1.0 / 30.0)
 		t += 1.0 / 30.0
 	_check(rig.is_spinning() and rig.turn > 2.0 * CameraRig.TURN_STEP + 0.3, "held, the camera turns on past the step")
-	_check(PixelView.box_views.size() >= ceili(TAU / CameraRig.BOX_STEP), "turning on, the culling boxes hold the views all round")
+	# Turning on, the culling boxes hold the views from here SPIN_AHEAD on, not all round
+	# (that drew twice the chunks), and are fitted again as the view gets past them.
+	var ahead := func() -> bool:
+		var first: Vector2 = PixelView.box_views[0][0]
+		var last: Vector2 = PixelView.box_views[-1][0]
+		var now: Vector2 = PixelView.view_of(rig.turn, rig.tilt)[0]
+		var ends := now.angle_to(first) >= -0.001 and now.angle_to(last) <= 0.001
+		return PixelView.box_views.size() <= ceili(CameraRig.SPIN_AHEAD / CameraRig.BOX_STEP) + 1 and ends \
+			and absf(first.angle_to(last)) <= CameraRig.SPIN_AHEAD + 0.001
+	_check(ahead.call(), "turning on, the culling boxes hold the views a little way ahead")
+	var boxes: Array = PixelView.box_views
+	while t < 3.0:
+		rig._glide(1.0 / 30.0)
+		t += 1.0 / 30.0
+	_check(not is_same(boxes, PixelView.box_views) and ahead.call(), "turning on past them, the boxes are fitted again ahead")
 	var nearest := roundi(rig.turn / CameraRig.TURN_STEP)
 	rig.release_turn(1)
 	for i in 90:
