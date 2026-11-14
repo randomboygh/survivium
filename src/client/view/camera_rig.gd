@@ -36,6 +36,13 @@ const SPIN_RATE := PI / 2.0
 const IDLE_TIME := 60.0
 const IDLE_EASE := 4.0
 const DRIFT_RATE := TAU / 90.0
+## The player counts as walking once its feet are this far, in metres along the ground,
+## from where it stood still: a body that settles, bobs in water or is nudged by another
+## a hair at a time does not keep the view from drifting (it reset the minute for good).
+const IDLE_SLACK := 0.15
+## Mouse motion shorter than this, in pixels, is not the player at the game: a phone
+## browser sends stray moves after a tap.
+const IDLE_MOUSE := 3.0
 ## Short of sleep (Vitals.SLEEPY) the picture swims instead (grade.gdshader `sway`), more
 ## the more tired; it comes and goes at SWAY_RATE a second.
 const SWAY_RATE := 0.25
@@ -170,6 +177,11 @@ func is_spinning() -> bool:
 	return _spinning
 
 
+## Whether the view drifts round by itself, the game left alone (see drift_rate).
+func is_drifting() -> bool:
+	return _drifting
+
+
 ## Tilts the camera `steps` steps of TILT_STEP steeper (negative: lower), within
 ## STEEPER and LOWER.
 func tilt_by(steps: int) -> void:
@@ -251,8 +263,14 @@ func drift_rate() -> float:
 	return DRIFT_RATE * clampf((idle - IDLE_TIME) / IDLE_EASE, 0.05, 1.0)
 
 
-## A key, a tap or the mouse: the game is not left alone (main.gd's _input).
-func wake() -> void:
+## A key, a tap or the mouse: the game is not left alone (main.gd's _input), and the
+## drift, stopped, starts again after the next IDLE_TIME alone. Stray events (a mouse
+## moved a pixel or two, a stick of a gamepad resting off centre) do not count.
+func wake(event: InputEvent = null) -> void:
+	if event is InputEventMouseMotion and event.relative.length() < IDLE_MOUSE:
+		return
+	if event is InputEventJoypadMotion and absf(event.axis_value) < 0.5:
+		return
 	idle = 0.0
 
 
@@ -274,16 +292,23 @@ func visions() -> float:
 	return clampf(v.visions / TRIP_FADE, 0.0, 1.0)
 
 
-## Counts the time left alone (the player moving counts as input: a held key or a
-## finger held on the stick sends nothing new) and eases the swim to the body's
-## drowsiness, telling the shader when it changed.
+## Counts the time left alone (a key or the stick held, or the player walking, counts
+## as input: a held key or a finger held on the stick sends nothing new) and eases the
+## swim to the body's drowsiness, telling the shader when it changed. Only the feet's
+## way along the ground counts, from where they stood still, and not afloat: water and
+## a vessel carry the body by themselves.
 func _tire(delta: float) -> void:
 	var at: Vector3 = game.player.position
-	if at.distance_squared_to(_idle_at) > 0.0001:
+	var carried: bool = game.character != null and (game.character.vessel != 0 or game.character.riding != "")
+	var walked := Vector2(at.x - _idle_at.x, at.z - _idle_at.z).length() > IDLE_SLACK
+	var held: bool = game.get("controls") != null and game.controls.read_move() != Vector2.ZERO
+	if held or (walked and not carried) or not _idle_at.is_finite():
 		idle = 0.0
 		_idle_at = at
 	else:
 		idle += delta
+		if carried:
+			_idle_at = at
 	sway = move_toward(sway, drowsiness(), delta * SWAY_RATE)
 	if grade_mat != null and (absf(sway - _sway_set) > 0.002 or (sway == 0.0 and _sway_set > 0.0)):
 		_sway_set = sway

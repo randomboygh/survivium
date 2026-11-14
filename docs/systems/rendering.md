@@ -14,7 +14,10 @@ voxel models of things.
   down, a cell's wall 2..16 px at a top of 8 px (decision 150). The arrows and the keys `[` `]` turn the world
   towards the arrow. Left alone for `IDLE_TIME` (a minute: no key, tap or mouse, the player standing;
   `wake` from `main.gd`'s `_input`) the view itself slowly circles round the player (`drift_rate`, up to
-  `DRIFT_RATE`, a turn in 1.5 minutes); any input brings it to the nearest step. Without sleep
+  `DRIFT_RATE`, a turn in 1.5 minutes); any input brings it to the nearest step, and the next minute alone starts it again. Only a real move
+  counts: a key or the stick held, the feet `IDLE_SLACK` along the ground from where they stood (not afloat or
+  in a vessel), a mouse move of `IDLE_MOUSE` px or more; a body bobbing a hair at a time or a stray mouse event
+  used to reset the minute for good. Without sleep
   (`Vitals.SLEEPY`) the picture swims instead (`drowsiness` → `sway` of `grade.gdshader`: waves, a faint
   second image, darkening edges). After a glowing mushroom (`Vitals.visions`) it swims harder still
   (`visions` → `trip`: stronger waves and rings from the middle, the picture breathing, red and blue split
