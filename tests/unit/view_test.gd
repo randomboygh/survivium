@@ -269,7 +269,9 @@ func _test_sprite_sheet() -> void:
 	p.free()
 
 
-## Footprints: stone takes them only under a roof (the dust of a cave floor).
+## Footprints: stone takes them only under a roof (the dust of a cave floor); a print is
+## a kind, a level and a time in the map of the ground, cleared when its time is over and
+## when the player has gone so far that its place comes back as other ground.
 func _test_tracks() -> void:
 	var w := WorldData.new(8, Vector2i(4, 4))
 	for z in 4:
@@ -280,10 +282,28 @@ func _test_tracks() -> void:
 	t._ready()
 	var feet := Vector3(0.75, WorldData.CELL, 0.75)
 	t.leave(feet, Vector2(0, 1), true, true, 1.0)
-	_check(t.next == 0, "no prints on stone in the open")
+	_check(t._living.is_empty(), "no prints on stone in the open")
 	w.set_cell(1, 3, 1, Mat.STONE)
 	t.leave(feet, Vector2(0, 1), true, true, 1.0)
-	_check(t.next == 1, "prints on the stone floor of a cave")
+	_check(t._living.size() == 1, "prints on the stone floor of a cave")
+	var texels: PackedInt32Array = t._living[0][2] if t._living.size() == 1 else PackedInt32Array()
+	_check(texels.size() == 5, "a boot is five texels (%d)" % texels.size())
+	var first := texels[0] if not texels.is_empty() else 0
+	var mark := t.image.get_pixel(first % Tracks.MAP, first / Tracks.MAP)
+	var r := roundi(mark.r * 255.0)
+	_check(r >> 5 == Tracks.DUST and r & 31 == 1, "the print names its kind and level (%d)" % r)
+	t.elapsed += Tracks.LIFE[Tracks.DUST] + 1.0
+	t._expire()
+	_check(t._living.is_empty() and t.image.get_pixel(first % Tracks.MAP, first / Tracks.MAP).r == 0.0,
+		"a print is cleared when its time is over")
+	t.leave(feet, Vector2(1, 0), false, false, 1.0)
+	_check(t._living.size() == 1, "a paw print on the cave floor")
+	t.focus = Vector3(Tracks.REACH * 3.0, 0.0, 0.0)
+	t._follow()
+	var any := false
+	for packed: int in t._living[0][2]:
+		any = any or t.image.get_pixel(packed % Tracks.MAP, packed / Tracks.MAP).r > 0.0
+	_check(not any, "the map is cleared where the player has gone far from")
 	t.free()
 
 

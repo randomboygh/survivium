@@ -558,6 +558,11 @@ void fragment() {
 	}
 	float wet = roof ? 0.0 : wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
 	col *= 1.0 - 0.3 * wet;
+	// Footprints darken the ground itself, so the light and the fog fall on them as on
+	// the ground round them.
+	if (top && !cap) {
+		col *= footprint(world_pos);
+	}
 	// Puddles after rain on level open ground, not on sand, not by a fire: in patches
 	// and in the low cells, shrinking from their edges as they dry, a damp rim round
 	// them, and rings of drops on them while it rains.

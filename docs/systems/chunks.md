@@ -70,7 +70,9 @@ slice, to free the far meshes.
 - `src/client/world/foliage.gd` — the chunk's grass, plants and crowns as a MultiMesh, also by column.
 - `src/client/world/edge_haze.gd` — the haze above unbuilt chunks (see above).
 - `src/client/world/mesh_buffers.gd` — growing vertex buffers; `drifts.gd` — snowdrifts; `tracks.gd` —
-  tracks; `roof_map.gd` — the roof map for shaders (wrapped through `RoofMap.WRAP`) and beside it the map of
+  footprints, kept in a map of the ground round the player (`print_map`, repeating every `Tracks.MAP` texels) that
+  the ground's shaders read through `footprint()` before the light and the fog, so a fog hides a print as it hides
+  the ground; `roof_map.gd` — the roof map for shaders (wrapped through `RoofMap.WRAP`) and beside it the map of
   the columns' biomes (`biome_map`) with the multipliers of the materials' colour by biomes (`biome_tints`,
   from the biomes' `tints`).
 

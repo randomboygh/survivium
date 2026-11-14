@@ -231,6 +231,10 @@ void fragment() {
 		}
 	}
 	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5) * mix(vec3(1.0), vec3(0.8, 0.78, 0.7), murk), ice_amount);
+	if (ice_amount > 0.0 && world_normal.y > 0.5) {
+		// Scuffs of frost on the ice, under the fog like the ground's footprints.
+		col *= mix(vec3(1.0), footprint(world_pos), ice_amount);
+	}
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
 	// The share of the sun's and the sky's light that comes down this deep; light()
 	// undoes it for torches and fires (lamp_gain).
