@@ -18,6 +18,10 @@ const TEST_SEED := -1
 
 const FORMAT := 1
 const WORLD := "world.json"
+## What a server keeps in the world's folder beside it (ServerStore): its players'
+## records and who may come in.
+const PLAYERS := "players"
+const ACCESS := "access.json"
 ## The version of the content a world is saved with (`content` in world.json), for the
 ## translations of older saves (materials_of, Mods.of_world).
 const CONTENT := 9
@@ -264,6 +268,20 @@ static func _replace(path: String) -> bool:
 
 
 ## Removes directory `path` with all it holds.
+## Whether the world in folder `dir` was hosted as a server: it has a list of who may
+## come in, or a player's record beside single player's own (players/local.json).
+static func was_hosted(dir: String) -> bool:
+	if FileAccess.file_exists(dir + "/" + ACCESS):
+		return true
+	var players := dir + "/" + PLAYERS
+	if not DirAccess.dir_exists_absolute(players):
+		return false
+	for f: String in DirAccess.get_files_at(players):
+		if f.ends_with(".json") and f != "local.json":
+			return true
+	return false
+
+
 static func erase_dir(path: String) -> void:
 	if not DirAccess.dir_exists_absolute(path):
 		return

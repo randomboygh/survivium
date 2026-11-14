@@ -13,15 +13,21 @@ convert the saves of old versions.
   `players/<name>.json` (the place and the modules' parts), `chunks/<cx>_<cz>.bin` (a changed chunk:
   `WorldGen.pack`, `store_var`, zstd), `map/<rx>_<rz>.bin` (a region of the map), `current.json` (which world
   to start from). A file is written beside and moved over: an interrupted write leaves the old one whole.
-  `FORMAT` 1; `list_worlds`, `erase`.
+  `FORMAT` 1; `list_worlds`, `erase`; `PLAYERS`, `ACCESS` and `was_hosted(dir)` name what a server keeps
+  in the same folder.
 - `src/client/save_game.gd` — when to write: once per `INTERVAL` (30 s) a few chunks per frame, and at once
-  on the menu, loss of focus, exit; what to write is given by the shared systems (`to_dict` / `to_list`: the
+  on the menu, loss of focus, exit, and in a browser when the page is hidden or left (the page calls the game:
+  a hidden page draws no frame, and the engine writes the files to IndexedDB only in the next one, so
+  `tools/web_patch.py` gives the page `survivium_fs_sync`, called after that save); `world.json` is written
+  over the one read, so what a server keeps there (`teams`, `fights`, `next_player`) stays; what to write is given by the shared systems (`to_dict` / `to_list`: the
   clock, things, the character, the bag, skills, plots, blueprints); the modules register the player's parts
   by `save.track(name, object)`. Choosing a world (`choose_world`, `switch_world`; `replace_world` — «New world»
-  over a saved one: its save deleted, even the one played, so it is made anew with the mods chosen), restoring
+  over a saved one: its save deleted, even the one played, so it is made anew with the mods chosen; a server's
+  `access.json` stays, its players' records go, and the warning says so), restoring
   (`restore_player`, `restore_clock`). Off in tests and tools (`enabled`).
 - `src/server/server_store.gd` — the same for a server without a window: writes the world every 10 s and on
-  `stop`, with the commands, fights and players by their keys ([network.md](network.md)).
+  `stop`, with the commands, fights and players by their keys ([network.md](network.md)); the next player's
+  number is past every number the world knows (`known_players`: the players' files, the teams, the land).
 - `src/shared/content/mods.gd` — `of_world(meta)`: the bundles of a saved world by its `world.json` (shared
   code: the server opens worlds by the same).
 

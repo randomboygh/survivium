@@ -46,6 +46,14 @@ iPhone does not zoom into them. An iPhone opens the keyboard only for an input f
 the touch's own handler, and the engine focuses it a frame later: there the finger lifting
 off a field that asked for the keyboard focuses the input again (2026-11-11).
 
+The engine writes the game's files to the browser's store (IndexedDB) at the start of the
+frame after they were written. A page hidden (a phone app sent to the background, the tab
+closed) draws no more frames, so a save made as it was hidden stayed in memory and was
+lost with the page: up to the 30 s between saves (WA-057). The patch gives the page
+`window.survivium_fs_sync`, which the game calls after the save it makes when the page is
+hidden (src/client/save_game.gd); a sync already under way is waited for, since it may have
+listed the files before the save.
+
 It fails when the files are not the ones it knows, so an engine upgrade is noticed.
 
     python3 tools/web_patch.py [build/web]
@@ -161,6 +169,13 @@ VK_ENTER_KEPT = (VK_ENTER + '(function(elem){"use strict";let last=0;function se
     '})(GodotDisplayVK.textinput);')
 
 
+# Where the engine's file system is handed to the page: the page gets a sync of its own.
+FS = 'Module["copyToFS"]=GodotFS.copy_to_fs;'
+FS_SYNC = FS + (
+    'window.survivium_fs_sync=function(){"use strict";if(!GodotFS._idbfs){return}'
+    'if(GodotFS._syncing){setTimeout(window.survivium_fs_sync,100);return}GodotFS.sync()};')
+
+
 def patch(path: Path, old: str, new: str, what: str, count: int = 1) -> None:
     text = path.read_text()
     if new in text:
@@ -185,6 +200,7 @@ def main() -> None:
     patch(out / "index.js", VK_INPUT, VK_INPUT_KEPT, "the keyboard's inputs are not filled in by the browser, nor zoomed into")
     patch(out / "index.js", TOUCH_END, TOUCH_END_KEPT, "an iPhone's keyboard opens as the finger lifts off a field")
     patch(out / "index.js", VK_ENTER, VK_ENTER_KEPT, "the phone keyboard's Enter reaches the field")
+    patch(out / "index.js", FS, FS_SYNC, "the page can write the files to the browser's store at once")
 
 
 if __name__ == "__main__":

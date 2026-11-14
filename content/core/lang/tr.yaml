@@ -1188,6 +1188,7 @@
 "[create_a_world]": "Bir dünya oluştur"
 "[the_land_round_the_middle]": "Dünyanın ortasının çevresi, %d hücre genişliğinde; nokta başlangıç yerin"
 "[a_world_with_this_seed]": "Bu tohum ve bu ayarlarla bir dünya zaten kayıtlı. «Bir dünya oluştur» onu şimdi seçilen modlarla yeniden yapar ve kayıtlı olanı siler: iki kez dokun. Kayıtlı olana devam etmek için onu dünyalar listesinden aç."
+"[a_hosted_world_with_this]": "Bu tohum ve bu ayarlarla bir dünya kayıtlı ve burada sunucu olarak çalıştı. «Bir dünya oluştur» onu şimdi seçilen modlarla yeniden yapar ve kayıtlı olanı oyuncuların karakterleriyle birlikte siler; yasaklar, ev sahipleri ve giriş listesi kalır: iki kez dokun. Kayıtlı olana devam etmek için onu dünyalar listesinden aç."
 "[world_type]": "Dünya türü"
 "[custom]": "Özel"
 "[continents]": "Kıtalar"
