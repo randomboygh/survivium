@@ -124,8 +124,8 @@ and a new shared part is added to the kit and to the «Interface gallery».
   the field is open) a line goes up into transparency like a notification; after one's own line is sent the
   last ones come back for 12 s; in single player one's own line goes into the chat at once,
   with no server; the field is opened by Enter or the chat button at the top — seen only on a server; while the
-  field has the cursor, keys do not move the character, `Controls._typing`; another player's line is seen over
-  their head too for 6 s in a pixel balloon, `UiStyle.balloon` with a stepped tail, `src/client/view/others.gd`), `gesture_wheel.gd` (the gesture circle, decision 183: a
+  field has the cursor, keys do not move the character, `Controls._typing`; a line said nearby (another's or one's own) is seen over
+  the speaker's head too for 6 s in a pixel balloon, `UiStyle.balloon` with a stepped tail, `src/client/view/others.gd`), `gesture_wheel.gd` (the gesture circle, decision 183: a
   button with a palm in the top row next to the chat, the key C; in single player chat and gestures are hidden
   until the setting «Interface» → «Chat and gestures» is «always», `Hud.show_social`; eight round buttons with
   an icon and a word, the digits 1–8, a touch outside or Escape closes; only the circle under the icons is
