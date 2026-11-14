@@ -33,13 +33,16 @@ const COLUMNS := 8
 const MARGIN := 16
 const STATS_WIDTH := 200
 ## The statistics shown, in order, as [name in Character.life, caption, the forms of
-## the noun counted (one, two, five)]; "days" and "walked" always, the rest when there
-## are any.
-const STATS := [["days", "[lived]", []], ["walked", "[walked]", []],
-	["dug", "[dug]", ["[block_1]", "[block_2]", "[block_5]"]], ["built", "[built]", ["[block_1]", "[block_2]", "[block_5]"]],
-	["trees", "[chopped]", ["[tree_1]", "[tree_2]", "[tree_5]"]], ["got", "[mined]", ["[item_1]", "[item_2]", "[item_5]"]],
-	["crafted", "[crafted]", ["[item_1]", "[item_2]", "[item_5]"]], ["eaten", "[ate]", ["[time_1]", "[time_2]", "[time_5]"]],
-	["jumps", "[jumped]", ["[time_1]", "[time_2]", "[time_5]"]]]
+## the noun counted (one, two, five), the cross's phrase with the value as %s]; "days"
+## and "walked" always, the rest when there are any.
+const STATS := [["days", "[lived]", [], ""], ["walked", "[walked]", [], "[walked_s]"],
+	["dug", "[dug]", ["[block_1]", "[block_2]", "[block_5]"], "[dug_s]"],
+	["built", "[built]", ["[block_1]", "[block_2]", "[block_5]"], "[built_s]"],
+	["trees", "[chopped]", ["[tree_1]", "[tree_2]", "[tree_5]"], "[chopped_s]"],
+	["got", "[mined]", ["[item_1]", "[item_2]", "[item_5]"], "[mined_s]"],
+	["crafted", "[crafted]", ["[item_1]", "[item_2]", "[item_5]"], "[crafted_s]"],
+	["eaten", "[ate]", ["[time_1]", "[time_2]", "[time_5]"], "[ate_s]"],
+	["jumps", "[jumped]", ["[time_1]", "[time_2]", "[time_5]"], "[jumped_s]"]]
 const SHADE := Color(0.10, 0.02, 0.02, 0.4)
 ## The causes of death (Vitals.hurt_by) as a cross names them (grave_text).
 const GRAVE_CAUSES := {"hunger": "[hunger_n2]", "thirst": "[thirst_n2]", "cold": "[cold]", "fire": "[fire]",
@@ -216,10 +219,10 @@ static func grave_text(g: Dictionary) -> String:
 			counts.append(st)
 	counts.sort_custom(func(a: Array, b: Array) -> bool: return float(life[a[0]]) > float(life[b[0]]))
 	if float(life.get("walked", 0.0)) > 0.0:
-		lines.append("%s %s" % [Lang.t(STATS[1][1]), _value("walked", float(life.walked), [])])
+		lines.append(Lang.f(STATS[1][3], [_value("walked", float(life.walked), [])]))
 	var said: Array[String] = []
 	for st: Array in counts.slice(0, 2):
-		said.append("%s %s" % [Lang.t(st[1]), _value(st[0], float(life[st[0]]), st[2])])
+		said.append(Lang.f(st[3], [_value(st[0], float(life[st[0]]), st[2])]))
 	if not said.is_empty():
 		lines.append(" · ".join(said))
 	return "\n".join(lines)

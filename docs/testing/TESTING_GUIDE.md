@@ -32,7 +32,13 @@ runs two files. Each file prints its checks and seconds.
 
 | What changed | Required | Plus |
 |---|---|---|
-| only the interface (`src/client/ui/`, HUD) | 1, 2, `run_tests` | screenshots (`tools/shot.gd`) |
+| only the interface (`src/client/ui/`, HUD), the UI kit (`src/client/ui/kit/`) | 1, 2, `run_tests -- ui` | screenshots (`tools/shot.gd`), `save_test` (opens every window and tab) |
+| texts and languages (`lang/*.yaml`, `lang.gd`, a new key) | `python3 tools/lang_check.py --strict en,ru`, 1, `run_tests -- lang` | `save_test` (no raw `[key]` on screen), `tools/shot.gd -- <dir> --keys` after a big UI change |
+| signs, gestures, chat (`placed.gd`, `gestures.gd`, `sign_window.gd`) | 1, 2, `run_tests -- signs net security view` | `server_test` |
+| fences, gates, hatches, ladders | 1, 2, `run_tests -- fences actions plans` | `save_test` |
+| rafts and boats (`actions_boat.gd`, `vessels.gd`, `boats.gd`) | 1, 2, `run_tests -- boat body` | `save_test` |
+| farming, nature, growth (`actions_farm.gd`, `actions_nature.gd`, `farm_mode.gd`) | 1, 2, `run_tests -- farming clock` | `progress_other` |
+| the mods' files a server sends, the mod cache, zip import (`mod_files.gd`, `content_host.gd`, `mod_fetch.gd`, `mod_cache.gd`, `mod_import.gd`) | 1, 2, `run_tests -- mod_files content net` | `server_test` |
 | a mod's data, recipes, stations, tools, materials | 1, 2 (`validate`, `report` — after an edit run `tools/content_report.gd` without `--check`), `run_tests -- content graph bundle_system properties` | `progress_hunting progress_other` |
 | hands, gathering, crafting, `world_actions.gd`, `workshop.gd`, `placed.gd` | 1, 2, `run_tests` | `progress_*`, `save_test` |
 | building: blueprint, doors, windows, stairs, furniture (`plans.gd`, the things' flags in `placed.gd`) | 1, 2, `run_tests -- actions plans` | `save_test`, screenshots `build-*` |

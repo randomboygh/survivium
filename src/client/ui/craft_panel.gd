@@ -520,7 +520,7 @@ func _show_stations(known: Array, near: Dictionary) -> void:
 			continue
 		var id: String = ids[i]
 		_set_chip(chip, ItemIcons.picture("hand") if id == "" else ItemIcons.of_item(id))
-		chip.tooltip_text = "[by_hand]" if id == "" else "%s%s" % [Lang.t(Items.title(id)), "" if near.has(id) else Lang.t("[too_far_n2]")]
+		chip.tooltip_text = "[by_hand]" if id == "" else (Lang.t(Items.title(id)) if near.has(id) else Lang.f("[s_too_far]", [Items.title(id)]))
 		chip.modulate = Color.WHITE if id == "" or near.has(id) else Color(1, 1, 1, 0.35)
 
 
@@ -535,7 +535,7 @@ func _show_details(near: Dictionary) -> void:
 		return
 	var inv = game.character.inventory
 	_icon.texture = ItemIcons.of_item(r.makes)
-	_title.text = "%s%s" % [Lang.t(r.title), " ×%d" % r.count if r.count > 1 else ""]
+	_title.text = Lang.f("[s_times_d]", [r.title, r.count]) if r.count > 1 else Lang.t(r.title)
 	_get.visible = _free()
 	_fit_title()
 	var needs := []
