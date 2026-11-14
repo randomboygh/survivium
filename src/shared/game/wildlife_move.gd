@@ -234,6 +234,9 @@ func _tree_spot(spec: Dictionary, around: Vector3, reach: float) -> Variant:
 ## way ends at water, and a swimmer whose way ends at land, stops.
 func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 	a.moving = false
+	if a.foot.is_finite():
+		_climb(a, delta)
+		return
 	if a.perched or sits_still(spec):
 		a.vel = Vector2.ZERO
 		return
@@ -255,8 +258,10 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 	var to := Vector2(a.target.x - a.pos.x, a.target.z - a.pos.z)
 	var d := to.length()
 	if a.climb and d < 0.3:
-		# At the trunk: up into the crown.
-		a.pos = a.target
+		# At the trunk: up it into the crown (see _climb).
+		a.foot = a.pos
+		a.crown = a.target
+		a.idle = rng.randf_range(STAY_UP.x, STAY_UP.y)
 		a.perched = true
 		a.climb = false
 		a.vel = Vector2.ZERO
@@ -309,6 +314,25 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 		a.hop = 0.0
 		a.lift = 0.0
 	_catch(a, spec)
+
+
+## A climber up a tree goes up or down its trunk at CLIMB_SPEED toward its target, the
+## crown or the foot: on the trunk it keeps to the foot's x, z, and sits at the target
+## when it gets there; at the foot it is off the tree again. Told to go anywhere else
+## (its owner calls it), it comes down first.
+func _climb(a: Animal, delta: float) -> void:
+	a.vel = Vector2.ZERO
+	if a.target != a.crown and a.target != a.foot:
+		a.target = a.foot
+	var y := move_toward(a.pos.y, a.target.y, CLIMB_SPEED * delta)
+	if y != a.target.y:
+		a.pos = Vector3(a.foot.x, y, a.foot.z)
+		a.moving = true
+		return
+	a.pos = a.target
+	if a.target == a.foot:
+		a.perched = false
+		a.foot = Vector3.INF
 
 
 ## One that hops, on land: a leap along `want` (its velocity steered there), up and
