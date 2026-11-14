@@ -9,11 +9,11 @@ Last checked: 2026-11-14 ([WEEKLY_AUDIT_2026-11-14.md](WEEKLY_AUDIT_2026-11-14.m
 four pull requests merged in between (#577–#580), #579 and #578 reach WA-031 and WA-043, noted there.
 Closed since: WA-031 (#579, both main runs after it green), WA-040, WA-041, WA-042, WA-043, WA-045 (#583),
 WA-048 (`balance_report --check` in CI and `run_all.sh`), WA-028, WA-029, WA-054, WA-055, WA-056 (#585),
-WA-012, WA-013, WA-014, WA-015, WA-016, WA-017, WA-019, WA-022 (#587; WA-018 in part), WA-049, WA-050 (the owner picked option A for each).
+WA-012, WA-013, WA-014, WA-015, WA-016, WA-017, WA-019, WA-022 (#587; WA-018 in part), WA-049, WA-050 (the owner picked option A for each), WA-064 (the owner's playtest: the numbers kept).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 1 | 17 | 16 | 34 |
+| 0 | 1 | 16 | 16 | 33 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
@@ -180,16 +180,6 @@ recommendations.
 - **Consequences:** A hitch on a phone.
 - **Recommended fix:** Plan: lay out only what changed.
 - **Status:** Open: needs plan; first found 2026-11-14 (stage 4); due backlog.
-
-### WA-064 · Medium · Balance
-
-- **Description:** Balance items waiting for a playtest.
-- **Cause:** Building toughness and decay, survival thresholds with wear on, the 40-minute day.
-- **Confirmation:** `docs/balance/GAME_BALANCE_ROADMAP.md`.
-- **Files and systems:** the balance docs, the data
-- **Consequences:** The numbers are guesses until played.
-- **Recommended fix:** The user plays and picks.
-- **Status:** Open: playtest; first found 2026-11-14 (balance stage); due backlog.
 
 ### WA-065 · Medium · Process
 
