@@ -64,7 +64,7 @@ func _test_playtest() -> void:
 		== "wss://quiet-river.trycloudflare.com", "the playtest link gives the server's address")
 	_check(Playtest.address_of("https://x/?a=1&server=wss%3A%2F%2Fa.b&c=2") == "wss://a.b", "a coded address among others")
 	_check(Playtest.address_of("https://x/") == "", "no address in a link without one")
-	var arm: String = Bot._best_weapon()
+	var arm: String = Bot.best_weapon()
 	_check(arm == "" or Tools.weapon(arm).tool in ["sword", "knife"], "the bot hunts with a blade: %s" % arm)
 
 

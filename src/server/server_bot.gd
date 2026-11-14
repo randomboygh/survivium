@@ -1,4 +1,4 @@
-extends RefCounted
+extends "res://src/shared/game/bot_brain.gd"
 ## A bot the server plays itself (TestCommands, Server.add_bot): where no process of the
 ## game can be started for a bot (a server made on a phone), a player with no connection
 ## whose body the server walks and whose requests it makes, as the game's own bot does
@@ -9,8 +9,6 @@ extends RefCounted
 ## (a test's bot, whatever the rules of free items say).
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
-const Items := preload("res://src/shared/content/items.gd")
-const Tools := preload("res://src/shared/content/tools.gd")
 const Gestures := preload("res://src/shared/game/gestures.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -19,58 +17,15 @@ const Body := preload("res://src/shared/game/body.gd")
 const CELL := WorldData.CELL
 ## The longest step of the body in one go (a slow frame is cut into steps).
 const STEP_MOST := 0.05
-## How far from its spawn it walks about, and looks for a tree or an animal, in cells.
-const WANDER := 12.0
-const LOOK := 28.0
-## Close enough to a point walked to, and to an animal to work at, in cells.
-const ARRIVE := 0.8
-const REACH := 1.3
-## The longest a task goes on, in seconds; the pause between two tasks.
-const TASK_MOST := 25.0
-const PAUSE := Vector2(1.0, 4.0)
-## The seconds between two swings asked for (the requests pace them anyway).
-const SWING_EVERY := 0.6
-## Seconds before it accepts an invitation to a team; dead before it comes back.
-const INVITE_WAIT := 2.0
-const DEAD_WAIT := 6.0
-## The tasks and how often each is picked.
-const TASKS := {"walk": 5, "say": 2, "gesture": 2, "drop": 1, "sign": 1, "fire": 1, "chop": 2, "hunt": 3}
-## What it says and writes: the lines of the game's own bot (src/client/input/bot.gd).
-const LINES: Array[String] = ["[hi]", "[anyone_here]", "[look_what_i_found]", "[lets_go_to_the_river]",
-	"[wolves_here_careful]", "[nice_weather]", "[i_put_up_a_sign]", "[need_branches]", "Hello!",
-	"[lets_build_a_house]", "[wheres_the_campfire]", "[im_a_bot_but_im]"]
-const SIGN_LINES: Array[String] = ["[a_bot_was_here]", "[beware_of_animals]", "[camp]", "[to_the_river]",
-	"[do_not_cut]"]
 
 ## Its account on the server (Server.Account): `link.who` is the character, `link.requests`
 ## what it asks.
 var account
 var session
-var task := ""
-var _left := 0.0
-var _pause := 1.0
-var _target := Vector3.INF
-var _tree := Vector2i.ZERO
-var _animal := 0
-var _swing_in := 0.0
-var _dead_for := 0.0
-var _invited_for := 0.0
-var _home := Vector3.INF
-var _rng := RandomNumberGenerator.new()
 var _seq := 0
 var _swings := 0
 ## Tasks taken since it came (a test reads it).
 var tasks := 0
-## The item ids it works with, found by role.
-var _axe := ""
-var _weapon := ""
-var _sign := ""
-var _fire := ""
-## Where it last was, to tell it is stuck.
-var _last_pos := Vector3.INF
-var _still := 0.0
-var _stuck := 0
-var _missed := 0
 
 
 func _init(a, s) -> void:
@@ -186,18 +141,6 @@ func _face(to: Vector2) -> void:
 		account.link.who.facing = Vector2i(roundi(d.x), roundi(d.y))
 
 
-func _pick() -> String:
-	var total := 0
-	for k: String in TASKS:
-		total += TASKS[k]
-	var roll := _rng.randi_range(1, total)
-	for k: String in TASKS:
-		roll -= TASKS[k]
-		if roll <= 0:
-			return k
-	return "walk"
-
-
 func _start(kind: String) -> void:
 	var who = account.link.who
 	task = kind
@@ -246,16 +189,6 @@ func _start(kind: String) -> void:
 	if task != "":
 		var p: Vector3 = who.position
 		print("bot %s: %s at (%d, %d)" % [who.player_name, kind, floori(p.x / CELL), floori(p.z / CELL)])
-
-
-func _stop() -> Vector2:
-	task = ""
-	_pause = _rng.randf_range(PAUSE.x, PAUSE.y)
-	_still = 0.0
-	_stuck = 0
-	_missed = 0
-	_last_pos = Vector3.INF
-	return Vector2.ZERO
 
 
 ## The way to `to` (world units), and a new task when the body has not moved for a while.
@@ -390,16 +323,4 @@ func _nearest_animal():
 		if d < best_d:
 			best_d = d
 			best = a
-	return best
-
-
-## The strongest blade of the world (Tools.weapon), "" for none.
-static func best_weapon() -> String:
-	var best := ""
-	var most := -1.0
-	for id: String in Items.IDS:
-		var w: Dictionary = Tools.weapon(id)
-		if not w.is_empty() and w.tool in ["sword", "knife"] and float(w.get("power", 0)) > most:
-			most = float(w.get("power", 0))
-			best = id
 	return best

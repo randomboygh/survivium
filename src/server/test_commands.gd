@@ -20,14 +20,12 @@ const Content := preload("res://src/shared/content/content.gd")
 const TestMod := preload("res://src/server/test_mod.gd")
 const ServerBot := preload("res://src/server/server_bot.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Server := preload("res://src/server/server.gd")
 
 ## Bots at most.
 const MOST_BOTS := 5
 ## Worlds `worlds` names at most, the latest first.
 const WORLDS_SHOWN := 12
-## Roles of Server (its enum), not loaded from here to keep this file apart.
-const ROLE_HOST := 1
-const ROLE_OWNER := 2
 
 ## The server's scene (server_main.gd): its `server`, `config`, `say`, `renew`.
 var main: Node
@@ -81,14 +79,14 @@ func _process(delta: float) -> void:
 ## «/test `rest`» from one of `role`: the answer to the one who sent it.
 func command(rest: String, role: int) -> String:
 	var playtest: bool = main.config.playtest
-	if not playtest and role < ROLE_HOST:
+	if not playtest and role < Server.ROLE_HOST:
 		return "«test» is only for the server's host, or on a test server"
 	var words := rest.strip_edges().split(" ", false)
 	var first := words[0] if words.size() > 0 else ""
 	var arg := words[1] if words.size() > 1 else ""
 	# Another world or other mods change the server under everyone, as stopping it does:
 	# off a playtest server they are the owner's.
-	if first in ["world", "new", "mod"] and not playtest and role < ROLE_OWNER:
+	if first in ["world", "new", "mod"] and not playtest and role < Server.ROLE_OWNER:
 		return "Only the server's owner can change its world or mods"
 	match first:
 		"bot+":
@@ -109,7 +107,7 @@ func command(rest: String, role: int) -> String:
 				return "The server has no time limit"
 			return host.extend()
 		"stop":
-			if not playtest and role < ROLE_OWNER:
+			if not playtest and role < Server.ROLE_OWNER:
 				return "Only the server's owner can stop it"
 			main.say("server stopped by a player")
 			main.server.stop()

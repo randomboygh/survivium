@@ -1,4 +1,4 @@
-extends RefCounted
+extends "res://src/client/input/work_mode.gd"
 ## The build mode: building is done here only (thread «Сделать отдельный режим
 ## строительства», 2026-11-06). It is entered from the bag with a block or a part of a
 ## house chosen (InventoryWindow's «Строить», or a block's slot on the hotbar), and the
@@ -30,9 +30,6 @@ const FILTERS := ["all", "blocks", "interior"]
 const SHAPES := ["line", "plane", "square", "cube"]
 ## The heights the shapes begin with.
 const DEFAULT_HEIGHTS := {"line": 3, "plane": 1, "square": 3, "cube": 5}
-## How often the auto build looks whether the bag still holds a block for the
-## blueprint, in seconds (the ghost may have thousands of cells).
-const CHECK_TIME := 0.25
 ## A second tap on the same thing within this many ms turns it (a double tap); a single
 ## tap takes it after them.
 const DOUBLE_TAP_MS := 320
@@ -40,11 +37,6 @@ const DOUBLE_TAP_MS := 320
 ## screen's shorter side.
 const DRAG_SHARE := 0.025
 
-## The mode's state changed (the bar shows it anew).
-signal changed
-
-var game
-var on := false
 ## The shape drawn (one of Plans.KINDS), how high its walls are (levels) and how thick
 ## (cells). Kept with the player.
 var kind := "line"
@@ -63,25 +55,11 @@ var heights := DEFAULT_HEIGHTS.duplicate()
 ## player.
 var form := 0
 var turns := 0
-## Whether a stroke takes the ghost off instead of drawing it.
-var erasing := false
-## The palette's filter, one of FILTERS. Kept with the player.
-var filter := "all"
-## The action button is down: the blueprint is built until its last cell.
-var auto := false
-## What the hands held and which was in use before the mode.
-var _saved_hands: Array[String] = ["", ""]
-var _saved_active := 0
-var _check_clock := 0.0
 ## A tap on a thing that moves waiting to see whether a second one comes: {"cell", "ms"},
 ## {} for none (see DOUBLE_TAP_MS).
 var _tap_wait := {}
 ## The thing dragged now (see drag), {} for none.
 var _dragged := {}
-
-
-func _init(g) -> void:
-	game = g
 
 
 func to_dict() -> Dictionary:
@@ -122,59 +100,32 @@ static func passes(id: String, f: String) -> bool:
 	return builds_with(id)
 
 
-## The items of the bag to build with that pass the filter, in the bag's order, each once.
-func palette() -> Array[String]:
-	var out: Array[String] = []
-	for s in game.character.inventory.slots:
-		if s != null and passes(s[0], filter) and not out.has(s[0]):
-			out.append(s[0])
-	return out
+func _filters() -> Array:
+	return FILTERS
 
 
-## What the hands held before the mode, as Controls.to_dict keeps them.
-func saved_hands() -> Dictionary:
-	return {"hands": _saved_hands.duplicate(), "active": _saved_active}
+func _in_palette(id: String) -> bool:
+	return passes(id, filter)
+
+
+func _show(shown: bool) -> void:
+	game.hud.show_build(shown)
+
+
+## A tap still waiting for its second one is done, a thing dragged is set down.
+func _left() -> void:
+	_take_waiting()
+	if not _dragged.is_empty():
+		game.props.settle(_dragged)
+		_dragged = {}
 
 
 ## Enters the mode with item `id` chosen (or chooses it, already in it).
 func enter(id: String) -> void:
 	if game.farm != null and game.farm.on:
 		game.farm.leave()
-	if not on:
-		var c = game.controls
-		_saved_hands = [c.hands[0], c.hands[1]]
-		_saved_active = c.active
-		on = true
-		erasing = false
-		auto = false
-		# The bar shows no filters for now: the palette holds everything.
-		filter = "all"
-		c.cancel_stroke()
-		game.hud.show_build(true)
+	_begin()
 	choose(id)
-
-
-## Leaves the mode: the hands hold again what they held before it.
-func leave() -> void:
-	if not on:
-		return
-	on = false
-	auto = false
-	var c = game.controls
-	c.cancel_stroke()
-	_take_waiting()
-	if not _dragged.is_empty():
-		game.props.settle(_dragged)
-		_dragged = {}
-	var inv = game.character.inventory
-	for h in 2:
-		var id: String = _saved_hands[h]
-		c.hands[h] = id if id == "" or inv.count(id) > 0 else ""
-	c.active = _saved_active
-	game.cursor.show_cells([], true)
-	game.hud.show_build(false)
-	game.hud.refresh_hands()
-	changed.emit()
 
 
 ## Item `id` of the palette into the hand in use.
@@ -238,12 +189,6 @@ func form_of(first: Vector3i, last: Vector3i) -> int:
 	return form | ((side + turns) % 4) << 2
 
 
-func set_filter(f: String) -> void:
-	if f in FILTERS:
-		filter = f
-		changed.emit()
-
-
 ## The shape one level higher, round from the highest to the lowest; kept for the shape.
 func next_height() -> void:
 	var low := lowest(shape)
@@ -259,11 +204,6 @@ func set_height(h: int) -> void:
 ## The walls one cell thicker, round from the thickest to the thinnest.
 func next_thick() -> void:
 	thick = Plans.MIN_THICK + (thick - Plans.MIN_THICK + 1) % (Plans.MAX_THICK - Plans.MIN_THICK + 1)
-	changed.emit()
-
-
-func set_erasing(e: bool) -> void:
-	erasing = e
 	changed.emit()
 
 
