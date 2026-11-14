@@ -1188,6 +1188,7 @@
 "[create_a_world]": "Utwórz świat"
 "[the_land_round_the_middle]": "Ziemia wokół środka świata, %d pól szerokości; kropka to miejsce startu"
 "[a_world_with_this_seed]": "Świat z tym ziarnem i tymi ustawieniami jest już zapisany. «Utwórz świat» stworzy go od nowa z wybranymi teraz modami i usunie zapisany: dotknij dwa razy. Aby kontynuować zapisany, otwórz go z listy światów."
+"[a_hosted_world_with_this]": "Świat z tym ziarnem i tymi ustawieniami jest zapisany i działał tu jako serwer. «Utwórz świat» stworzy go od nowa z wybranymi teraz modami i usunie zapisany razem z postaciami graczy; bany, gospodarze i lista dostępu zostaną: dotknij dwa razy. Aby kontynuować zapisany, otwórz go z listy światów."
 "[world_type]": "Rodzaj świata"
 "[custom]": "Własny"
 "[continents]": "Kontynenty"

@@ -35,11 +35,14 @@ const LONGEST := 48.0
 ## The thinnest and widest a shaft is, in world units (3 pixels to 13).
 const THINNEST := 0.19
 const WIDEST := 0.8
-const MAX_SHAFTS := 256
+const MAX_SHAFTS := 384
 const MAX_FLECKS := 512
-## Shafts and flecks a tree gets at most.
-const SHAFTS := 3
+## Bunches of shafts a tree gets at most, shafts in a bunch at most, and flecks.
+const BUNCHES := 2
+const IN_BUNCH := 4
 const FLECKS := 8
+## How far apart the shafts of a bunch stand at most, along the middle plane (units).
+const BUNCH_SPREAD := 0.7
 ## Levels a crown is looked for above the foot of its trunk.
 const CROWN_LEVELS := 24
 ## Columns from the trunk a crown is looked for at the middle of its height.
@@ -306,27 +309,42 @@ func _tree_light(w, col: Vector2i) -> Array:
 	rng.seed = hash(col)
 	# Each shaft and fleck draws all its numbers first, so the rest of the tree's stay
 	# the same whether this one is there or not.
-	for i in SHAFTS:
-		var skip := rng.randf() < 0.3
+	# Shafts come in bunches through one gap in the leaves: one wide among narrow ones,
+	# bright ones beside pale ones, shimmering nearly together (phases close).
+	for b in BUNCHES:
+		var skip := rng.randf() < 0.25
 		# From the middle plane, inside the crown's outline on it.
-		var pick := rng.randf()
-		var side := rng.randf()
-		# Thin ones more often than wide ones.
-		var look := Color(lerpf(THINNEST, WIDEST, pow(rng.randf(), 1.5)), 0.0, rng.randf(), rng.randf_range(0.5, 1.0))
-		var motes_at := Vector2(rng.randf_range(0.2, 0.8), rng.randf_range(0.2, 0.8))
-		var at := _in_outline(outline, pick, side, look.r)
-		if skip or at.y <= -INF:
+		var place := _in_outline(outline, rng.randf(), rng.randf(), WIDEST)
+		var count := rng.randi_range(2, IN_BUNCH)
+		var phase := rng.randf()
+		var bright_first := rng.randf() < 0.5
+		var bunch := []
+		for i in IN_BUNCH:
+			var wide := i == 0
+			var width := rng.randf_range(0.45, WIDEST) if wide else rng.randf_range(THINNEST, 0.35)
+			var bright := (i % 2 == 0) == bright_first
+			var strength := rng.randf_range(0.75, 1.0) if bright else rng.randf_range(0.3, 0.55)
+			var offset := rng.randf_range(-1.0, 1.0) * BUNCH_SPREAD
+			var look := Color(width, 0.0, fposmod(phase + rng.randf_range(-0.08, 0.08), 1.0), strength)
+			bunch.append([offset, look, Vector2(rng.randf_range(0.2, 0.8), rng.randf_range(0.2, 0.8))])
+		if skip or place.y <= -INF:
 			continue
-		var top := Vector3(mid.x + _across.x * at.x, foot + at.y, mid.y + _across.y * at.x)
-		var length := _length(w, top)
-		if length < 1.0:
-			continue
-		look.g = length * -_down.y
-		tops.append(top)
-		bottoms.append(top + _down * length)
-		looks.append(look)
-		dust.append(top + _down * (motes_at.x * length))
-		dust.append(top + _down * (motes_at.y * length))
+		for i in count:
+			var look: Color = bunch[i][1]
+			var motes_at: Vector2 = bunch[i][2]
+			# Kept inside the level's outline.
+			var x := clampf(place.x + bunch[i][0], place.z + look.r * 0.5, place.w - look.r * 0.5) \
+				if place.z + look.r < place.w else place.x
+			var top := Vector3(mid.x + _across.x * x, foot + place.y, mid.y + _across.y * x)
+			var length := _length(w, top)
+			if length < 1.0:
+				continue
+			look.g = length * -_down.y
+			tops.append(top)
+			bottoms.append(top + _down * length)
+			looks.append(look)
+			dust.append(top + _down * (motes_at.x * length))
+			dust.append(top + _down * (motes_at.y * length))
 	# The flecks in the crown's shadow on the ground.
 	var shade := mid + _shadow * (tall * 0.6)
 	for i in FLECKS:
@@ -413,23 +431,25 @@ func _outline(w, col: Vector2i, crown: Vector3) -> PackedVector3Array:
 
 
 ## A point inside `outline` (see _outline) for a shaft `width` wide, picked by
-## `pick` and `side` (0..1; the wider a level, the likelier): Vector2(how far along
-## _across from the trunk, height over the foot), y -INF when the outline is empty.
-static func _in_outline(outline: PackedVector3Array, pick: float, side: float, width: float) -> Vector2:
+## `pick` and `side` (0..1; the wider a level, the likelier): Vector4(how far along
+## _across from the trunk, height over the foot, the level's two ends), y -INF when
+## the outline is empty.
+static func _in_outline(outline: PackedVector3Array, pick: float, side: float, width: float) -> Vector4:
 	var total := 0.0
 	for o in outline:
 		total += o.z - o.y
 	if total <= 0.0:
-		return Vector2(0.0, -INF)
+		return Vector4(0.0, -INF, 0.0, 0.0)
 	var left := pick * total
+	var at := outline[outline.size() - 1]
 	for o in outline:
 		left -= o.z - o.y
 		if left <= 0.0:
-			var a := o.y + width * 0.5
-			var b := o.z - width * 0.5
-			return Vector2(lerpf(a, b, side) if a < b else (o.y + o.z) * 0.5, o.x)
-	var last := outline[outline.size() - 1]
-	return Vector2((last.y + last.z) * 0.5, last.x)
+			at = o
+			break
+	var a := at.y + width * 0.5
+	var b := at.z - width * 0.5
+	return Vector4(lerpf(a, b, side) if a < b else (at.y + at.z) * 0.5, at.x, at.y, at.z)
 
 
 ## How far a shaft from `top` runs along the light before it meets the ground (or

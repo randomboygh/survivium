@@ -1188,6 +1188,7 @@
 "[create_a_world]": "Crea un mondo"
 "[the_land_round_the_middle]": "La terra intorno al centro del mondo, larga %d celle; il punto è la tua partenza"
 "[a_world_with_this_seed]": "Un mondo con questo seme e queste impostazioni è già salvato. «Crea un mondo» lo rifà con le mod scelte ora ed elimina quello salvato: tocca due volte. Per continuare quello salvato, aprilo dall'elenco dei mondi."
+"[a_hosted_world_with_this]": "Un mondo con questo seme e queste impostazioni è salvato ed è stato ospitato qui come server. «Crea un mondo» lo rifà con le mod scelte ora ed elimina quello salvato con i personaggi dei giocatori; i ban, gli host e l'elenco di accesso restano: tocca due volte. Per continuare quello salvato, aprilo dall'elenco dei mondi."
 "[world_type]": "Tipo di mondo"
 "[custom]": "Personale"
 "[continents]": "Continenti"

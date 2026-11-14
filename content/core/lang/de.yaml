@@ -1188,6 +1188,7 @@
 "[create_a_world]": "Welt erstellen"
 "[the_land_round_the_middle]": "Das Land um die Mitte der Welt, %d Felder breit; der Punkt ist dein Start"
 "[a_world_with_this_seed]": "Eine Welt mit diesem Seed und diesen Einstellungen ist bereits gespeichert. «Welt erstellen» erschafft sie neu mit den jetzt gewählten Mods und löscht die gespeicherte: zweimal tippen. Um die gespeicherte fortzusetzen, öffne sie aus der Liste der Welten."
+"[a_hosted_world_with_this]": "Eine Welt mit diesem Seed und diesen Einstellungen ist gespeichert und lief hier als Server. «Welt erstellen» erschafft sie neu mit den jetzt gewählten Mods und löscht die gespeicherte samt den Figuren der Spieler; Sperren, Hosts und die Zugangsliste bleiben: zweimal tippen. Um die gespeicherte fortzusetzen, öffne sie aus der Liste der Welten."
 "[world_type]": "Weltart"
 "[custom]": "Eigene"
 "[continents]": "Kontinente"

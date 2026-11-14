@@ -59,7 +59,7 @@ voxel models of things.
 - `src/client/view/fire_shadows.gd` — the shadows from fire drawn on the ground; `sun_rays.gd` — rays among
   trees, glints, dust. A shaft starts on the tree's middle plane (upright, through the trunk, across the sun's
   way) inside the crown's outline on it (a spruce's triangle), runs along the sun's light down to the ground
-  and ends on it (`_length`), 3 to 13 pixels wide; it is drawn at its own depth (lifted only `depth_lift`), so
+  and ends on it (`_length`), in bunches of 2–4 through one gap (one wide among narrow ones, bright beside pale), 3 to 13 pixels wide, slowly growing wider and paler and back in the shader; it is drawn at its own depth (lifted only `depth_lift`), so
   the leaves of its crown in front of it and the trees in front hide it: it shows coming out of the crown. The light of each tree is counted once per position of the sun (anew when the sun has
   turned by `TURN`) and several trees per frame within `WORK_US`; at a player's step by `MOVE` the ready light
   is only laid out anew. Before, everything was counted whole in a frame and in a forest gave «engine» freezes

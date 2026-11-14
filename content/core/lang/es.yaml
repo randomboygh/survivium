@@ -1188,6 +1188,7 @@
 "[create_a_world]": "Crear un mundo"
 "[the_land_round_the_middle]": "La tierra alrededor del centro del mundo, %d celdas de ancho; el punto es tu inicio"
 "[a_world_with_this_seed]": "Ya hay un mundo guardado con esta semilla y estos ajustes. «Crear un mundo» lo hace de nuevo con los mods elegidos ahora y borra el guardado: tócalo dos veces. Para seguir con el guardado, ábrelo desde la lista de mundos."
+"[a_hosted_world_with_this]": "Ya hay un mundo guardado con esta semilla y estos ajustes, y aquí funcionó como servidor. «Crear un mundo» lo hace de nuevo con los mods elegidos ahora y borra el guardado con los personajes de sus jugadores; los bloqueos, los anfitriones y la lista de acceso se quedan: tócalo dos veces. Para seguir con el guardado, ábrelo desde la lista de mundos."
 "[world_type]": "Tipo de mundo"
 "[custom]": "Personal"
 "[continents]": "Continentes"
