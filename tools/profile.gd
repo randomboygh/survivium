@@ -41,13 +41,16 @@ const SCENES := {
 	"cave": {"time": 0.45, "season": 1, "underground": true},
 	"bag": {"time": 0.45, "season": 1, "bag": true},
 	"stats": {"time": 0.45, "season": 1, "stats": true},
-	# The camera turned (steps of 45 degrees) or tilted (steps of 2 px a wall), and
-	# turning a step every 20 frames (`spin`).
+	# The camera turned (steps of 45 degrees) or tilted (steps of 2 px a wall), turning
+	# a step every 20 frames (`spin`) and held turning round (`hold`). Turning scenes play
+	# each frame as `step` seconds whatever it took: a software renderer's frame of a
+	# quarter of a second finished a step's glide in one frame.
 	"day-turn-45": {"time": 0.45, "season": 1, "turn": 1},
 	"day-turn-180": {"time": 0.45, "season": 1, "turn": 4},
 	"day-tilt-low": {"time": 0.45, "season": 1, "tilt": -2},
 	"day-tilt-steep": {"time": 0.45, "season": 1, "tilt": 2},
-	"day-turning": {"time": 0.45, "season": 1, "spin": true},
+	"day-turning": {"time": 0.45, "season": 1, "spin": true, "step": 1.0 / 30.0},
+	"day-spin": {"time": 0.45, "season": 1, "hold": true, "step": 1.0 / 30.0},
 }
 
 ## Microseconds spent in each piece over the measured frames, by name, in the order
@@ -237,11 +240,16 @@ func _profile() -> void:
 		var calls := 0.0
 		var objects := 0.0
 		var tris := 0.0
+		if s.get("hold", false):
+			main.view.hold_turn(1)
+			# Past HOLD_TIME, so the measured frames turn smoothly round.
+			for i in 15:
+				main.view.update(1.0 / 30.0)
 		var last := Time.get_ticks_usec()
 		for i in frames:
 			if s.get("spin", false) and i % 20 == 0:
 				main.view.turn_by(1)
-			_frame(main.get_process_delta_time())
+			_frame(s.get("step", main.get_process_delta_time()))
 			await process_frame
 			var now := Time.get_ticks_usec()
 			frame_us += now - last
@@ -253,6 +261,10 @@ func _profile() -> void:
 			tris += Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
 		if s.has("keys"):
 			_hold(s.keys, false)
+		if s.get("hold", false):
+			main.view.release_turn(1)
+			for i in 30:
+				main.view.update(1.0 / 30.0)
 		var game_us := 0
 		for k in acc:
 			game_us += acc[k]
