@@ -857,8 +857,10 @@
 "[caves]": "Jaskinie"
 "[markers]": "Znaczniki"
 "[debug]": "Debugowanie"
-"[device_tab]": "Urządzenie"
-"[start_tab]": "Ładowanie"
+"[mods_tab]": "Mody"
+"[device_tab]": "System"
+"[start_tab]": "Start"
+"[settings_tab]": "Opcje"
 "[log_tab]": "Dziennik"
 "[very_small]": "bardzo mały"
 "[small_ui]": "mały"
@@ -887,12 +889,13 @@
 "[above_stretch]": "Z góry: rozciągnięcie"
 "[density_of_the_first]": "Gęstość pierwszych"
 "[shadow_map]": "Mapa cieni"
+"[copy_tab]": "Kopiuj kartę"
+"[copy_all]": "Kopiuj wszystko"
 "[copy]": "Kopiuj"
 "[share]": "Udostępnij"
 "[clear_the_log]": "Wyczyść dziennik"
 "[soon_n2]": "Wkrótce"
 "[version]": "Wersja %s · %s · %s"
-"[copy_all]": "Kopiuj wszystko"
 "[freeze_log]": "Dziennik zacięć"
 "[test_data]": "Dane do testu"
 "[shader_probe]": "Test shaderów"
@@ -1503,7 +1506,7 @@
 "[no_plots_left_of]": "Nie zostało działek: %d z %d"
 "[the_territory_is_protected_again]": "Teren znów pod ochroną"
 
-# src/shared/game/wildlife.gd
+# src/shared/game/wildlife_fight.gd
 "[is_threatening_step_back]": "%s grozi: odsuń się"
 "[attacks]": "%s atakuje!"
 

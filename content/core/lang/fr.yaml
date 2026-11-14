@@ -857,9 +857,11 @@
 "[caves]": "Grottes"
 "[markers]": "Repères"
 "[debug]": "Débogage"
-"[device_tab]": "Appareil"
-"[start_tab]": "Chargement"
-"[log_tab]": "Journal"
+"[mods_tab]": "Mods"
+"[device_tab]": "Système"
+"[start_tab]": "Départ"
+"[settings_tab]": "Options"
+"[log_tab]": "Log"
 "[very_small]": "très petit"
 "[small_ui]": "petit"
 "[normal_ui]": "normal"
@@ -887,12 +889,13 @@
 "[above_stretch]": "Au-dessus : étirement"
 "[density_of_the_first]": "Densité des premières"
 "[shadow_map]": "Carte des ombres"
+"[copy_tab]": "Copier l’onglet"
+"[copy_all]": "Tout copier"
 "[copy]": "Copier"
 "[share]": "Partager"
 "[clear_the_log]": "Vider le journal"
 "[soon_n2]": "Bientôt"
 "[version]": "Version %s · %s · %s"
-"[copy_all]": "Tout copier"
 "[freeze_log]": "Journal des saccades"
 "[test_data]": "Données de test"
 "[shader_probe]": "Test des shaders"
@@ -1503,7 +1506,7 @@
 "[no_plots_left_of]": "Plus de parcelles : %d sur %d"
 "[the_territory_is_protected_again]": "Le territoire est de nouveau protégé"
 
-# src/shared/game/wildlife.gd
+# src/shared/game/wildlife_fight.gd
 "[is_threatening_step_back]": "%s menace : reculez"
 "[attacks]": "%s attaque !"
 

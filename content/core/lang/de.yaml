@@ -857,9 +857,11 @@
 "[caves]": "Höhlen"
 "[markers]": "Markierungen"
 "[debug]": "Debug"
+"[mods_tab]": "Mods"
 "[device_tab]": "Gerät"
 "[start_tab]": "Laden"
-"[log_tab]": "Protokoll"
+"[settings_tab]": "Optionen"
+"[log_tab]": "Log"
 "[very_small]": "sehr klein"
 "[small_ui]": "klein"
 "[normal_ui]": "normal"
@@ -887,12 +889,13 @@
 "[above_stretch]": "Oben: Dehnung"
 "[density_of_the_first]": "Dichte der ersten"
 "[shadow_map]": "Schattenkarte"
+"[copy_tab]": "Tab kopieren"
+"[copy_all]": "Alles kopieren"
 "[copy]": "Kopieren"
 "[share]": "Teilen"
 "[clear_the_log]": "Protokoll leeren"
 "[soon_n2]": "Bald"
 "[version]": "Version %s · %s · %s"
-"[copy_all]": "Alles kopieren"
 "[freeze_log]": "Ruckler-Protokoll"
 "[test_data]": "Testdaten"
 "[shader_probe]": "Shader-Prüfung"
@@ -1503,7 +1506,7 @@
 "[no_plots_left_of]": "Keine Parzellen mehr: %d von %d"
 "[the_territory_is_protected_again]": "Das Gebiet ist wieder geschützt"
 
-# src/shared/game/wildlife.gd
+# src/shared/game/wildlife_fight.gd
 "[is_threatening_step_back]": "%s droht: geh zurück"
 "[attacks]": "%s greift an!"
 
