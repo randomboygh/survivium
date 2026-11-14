@@ -11,11 +11,13 @@ water, a kind with `biomes` appears only on its own land.
 - `src/shared/game/wildlife.gd` — the rules: `start(seed)`, `update(delta)`, `count(kind)`, `wanted(kind)`;
   `people` — all the players. Beasts belong to the ground: each chunk made to the end (`_made`: the stage
   `SHAPED`) in the square `SPAWN_REACH` of 80 cells around a player gets its own (`_settle_new` once per
-  `SETTLE_EVERY` 1 s → `_populate_chunk`): of a kind — its `count` per square `ROAM` (`ROAM_CHUNKS` chunks),
+  `SETTLE_EVERY` 1 s → `_populate_chunk`, nearest first, at most `SETTLE_MOST` 6 chunks a frame: after a
+  teleport or a respawn the rest come in the next frames, not in one long one): of a kind — its `count` per square `ROAM` (`ROAM_CHUNKS` chunks),
   multiplied by the share of the kind's biomes in the chunk (2×2 points of the layout), the fractional part is
   rolled, in packs; no nearer than `START_AWAY` 8 units to people. While a chunk's ground is kept, its beasts
   live; with forgotten ground (`Session.DROP`) those that nobody sees leave too (`_leave`), and a chunk made
-  again gets them again. The eaten, once per `RESPAWN_EVERY` 15 s, are refilled by `_refill`: if a kind is
+  again gets them again. The eaten, once per `RESPAWN_EVERY` 15 s, are refilled (`_plan_refill` notes each kind round each player, `_refill_some` does
+  `REFILL_MOST` 2 of them a frame; `_refill` does all at once, for the tests): if a kind is
   fewer than the shares of the chunks around a player give, by more than `REFILL_SLACK` — new ones come
   farther than `NEAR` on made ground; if more — the extra invisible ones leave (`_thin`, frogs thin out like
   that after rain); a beast with no viewer (`near` off: not on the screen of any player — the rectangle that
@@ -58,7 +60,8 @@ water, a kind with `biomes` appears only on its own land.
   the figure holds the rod stretched out (the blow frame `slash`), `src/client/view/fishing_line.gd` draws the
   line from the rod's tip (`SpriteSheet.tips`) and the float, diving at a bite
   (`shaders/fishing_line.gdshader`).
-- Fire (`_find_fires` once per `FIRE_EVERY` 0.5 s, `_fire_near`): burning campfires and fireplaces, placed
+- Fire (`_find_fires` once per `FIRE_EVERY` 0.5 s over `Placed.scarers`, the things and lights whose item
+  `scares`, kept as they are put and taken; `_fire_near`): burning campfires and fireplaces, placed
   lights and light in people's hands keep beasts with `fire_wariness` from 0.5 away for the `scares` of their
   item (world units; a fleeing one keeps `FIRE_WARY` times farther): a beast in this circle flees from the
   fire as from a threat and does not choose a place for a walk inside it. A hungry (`BOLD_HUNGER`) pack of

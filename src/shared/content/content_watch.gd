@@ -11,8 +11,10 @@ extends RefCounted
 const ContentFields := preload("res://src/shared/content/content_fields.gd")
 ## The kinds of files a mod is made of.
 const KINDS := ["yaml", "png", "wav"]
-## Files and folders looked at by a step.
+## Files and folders looked at by a step; by one while the game is played, its window in
+## front (ModReload.update).
 const BUDGET := 120
+const BUDGET_PLAYED := 12
 
 ## path -> its time, from the last pass done; the pass going on.
 var _times := {}

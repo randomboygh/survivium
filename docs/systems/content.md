@@ -50,7 +50,8 @@ the code sees content.
   plain letters, digits, `_ - + .`) or over `FILE_MAX` is left out of every scan (`ModFiles.skipped`; a server
   says so in its log). The check is `mod_files_test.gd` `_test_own_mods`.
 - Hot reload (decision 184): `src/shared/content/content_watch.gd` (`ContentWatch`) watches the files of
-  `content/` (YAML, PNG, WAV) by `BUDGET` files and folders per step and at the end of a pass says whether a
+  `content/` (YAML, PNG, WAV) by `BUDGET` 120 files and folders per step (`BUDGET_PLAYED` 12 while the game's window is in
+  front, `ModReload.update`: the files are edited in another program) and at the end of a pass says whether a
   file changed, appeared or vanished (the first pass only remembers the time); it works where the files lie
   by themselves — the game run by the editor's engine from the project folder or the built game on PC with
   the mods beside it (`can_watch`), not the built-in copy and not the browser. `src/client/mod_reload.gd`

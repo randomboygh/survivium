@@ -101,6 +101,9 @@ var _snapped := {}
 ## those born since the last one (see _snap).
 var _snap_all := true
 var _born := []
+## The animals left out of a snapshot for being beyond the player's zone (_far), by id: told
+## when they come within it, even standing still.
+var _far_ones := {}
 
 
 func _init(s) -> void:
@@ -486,11 +489,25 @@ func _snap() -> Array:
 	# Only those that stepped in the last tick (Wildlife.moved) and those born since can
 	# have moved: not every animal, every flush. After a full flush, all of them.
 	var wild = session.wildlife
-	var those: Array = wild.animals if _snap_all else wild.moved + _born
+	# A copy: those coming near are added to it.
+	var those: Array = wild.animals.duplicate() if _snap_all else wild.moved + _born
 	_snap_all = false
 	_born = []
+	var home := WorldData.chunk_key(floori(who.position.x / WorldData.CELL), floori(who.position.z / WorldData.CELL))
+	var reach := Session.reach_for(who.view_half) + 1
+	for a in _far_ones.values():
+		if a.gone:
+			_far_ones.erase(a.id)
+		elif not _far(a, home, reach):
+			_far_ones.erase(a.id)
+			those.append(a)
 	for a in those:
 		if a.gone:
+			continue
+		# One beyond the chunks the player is sent is not drawn there: told once it comes
+		# near (2026-11-14 audit WA-062: every animal near anyone went to everyone).
+		if _far(a, home, reach):
+			_far_ones[a.id] = a
 			continue
 		var old: Variant = _snapped.get(a.id)
 		if old != null and (a.away != 0.0 or _same_snap(old, a)):
@@ -500,6 +517,12 @@ func _snap() -> Array:
 			_snapped[a.id] = s
 			out.append(s)
 	return out
+
+
+## Whether animal `a` is more than `reach` chunks from chunk `home` (each way).
+static func _far(a, home: Vector2i, reach: int) -> bool:
+	var key := WorldData.chunk_key(floori(a.pos.x / WorldData.CELL), floori(a.pos.z / WorldData.CELL))
+	return maxi(absi(key.x - home.x), absi(key.y - home.y)) > reach
 
 
 ## Whether animal `a` stands as entry `old` told: no Array is made for one that did
@@ -660,10 +683,15 @@ func _on_born(a) -> void:
 
 func _on_gone(a) -> void:
 	_snapped.erase(a.id)
+	_far_ones.erase(a.id)
 	_push(Protocol.ANIMAL_GONE, [a.id])
 
 
 func _on_stepped(a, at: Vector3, dir: Vector2, left: bool, size: float) -> void:
+	# A footprint is drawn only on the chunks the player has.
+	if _far(a, WorldData.chunk_key(floori(who.position.x / WorldData.CELL), floori(who.position.z / WorldData.CELL)),
+			Session.reach_for(who.view_half) + 1):
+		return
 	_push(Protocol.STEP, [a.id, at, dir, left, size])
 
 

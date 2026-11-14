@@ -1456,6 +1456,21 @@ static func centred(texture: Texture2D) -> Texture2D:
 	return _centred[key]
 
 
+## Lets go of the pictures made from others (outlined, centred) and of the images kept of
+## textures (remember), but those of the interface's own icons (icon), which stay: the
+## mods' pictures were read anew (ModReload, ItemIcons.forget), and each reload or change of
+## server would keep one more copy of every one.
+static func forget() -> void:
+	var kept := {}
+	for t: Texture2D in _icons.values():
+		var key := t.get_instance_id()
+		if _images.has(key):
+			kept[key] = _images[key]
+	_images = kept
+	_outlined = {}
+	_centred = {}
+
+
 ## Keeps the image `texture` was made from, so the picture is not read back from the
 ## texture, which in the browser waits for the graphics card.
 static func remember(texture: Texture2D, img: Image) -> void:
