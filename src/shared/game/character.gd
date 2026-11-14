@@ -131,6 +131,11 @@ func burn_left(id: String, k := 0) -> float:
 const BURN_KNOCK := 6.0
 const BURN_HOP := 4.0
 const BURN_PAUSE := 0.4
+## The warmth (air, fires, clothes, roof) and the food in the bag are worked out every
+## this many seconds of play, with the days gone since: they change slowly, and each
+## asks about the fires, the roof and every thing in the bag (a few ms a frame in a
+## phone's browser).
+const WARM_EVERY := 0.25
 
 signal state_changed
 
@@ -210,6 +215,9 @@ var position: Vector3:
 var _nagged := {}
 ## Seconds until a fire burns the body again (see BURN_PAUSE).
 var _burn_wait := 0.0
+## Seconds and days of play since warmth and spoiling were last worked out (WARM_EVERY).
+var _warm_wait := 0.0
+var _warm_days := 0.0
 ## The lights lit, by item id: the seconds each one lit has burned (see _burn_light),
 ## the first for the first hand that holds one. Kept in the save.
 var burning := {}
@@ -305,8 +313,13 @@ func update(delta: float) -> void:
 		var d := minf(left, VITALS_STEP)
 		vitals.step(d, clock.days(d), body.swimming, share)
 		left -= d
-	_spoil(p, clock.days(delta))
-	_warm(p, clock.days(delta))
+	_warm_wait += delta
+	_warm_days += clock.days(delta)
+	if _warm_wait >= WARM_EVERY:
+		_spoil(p, _warm_days)
+		_warm(p, _warm_days)
+		_warm_wait = 0.0
+		_warm_days = 0.0
 	if vitals.asleep:
 		if vitals.health < was - 0.5 or body.swimming:
 			vitals.sleep(false)
