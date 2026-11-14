@@ -141,7 +141,7 @@ func launch_from_bag(who, item: String) -> bool:
 	if vessel_of(item) <= 0.0 or vessel_id(who) != 0 or who.is_dead() or who.inventory.count(item) < 1:
 		return false
 	var near := launch_near(who)
-	if near.is_empty():
+	if near.is_empty() or not _may(who, _cell_of(near[0]), "build"):
 		return false
 	_launch(who, item, near[0], near[1])
 	return true
@@ -208,12 +208,17 @@ func boat(who) -> Dictionary:
 		"launch":
 			var item: String = who.held()
 			var at := launch_spot(who)
-			if not _launch(who, item, at, _way(who)):
+			if not _may(who, _cell_of(at), "build") or not _launch(who, item, at, _way(who)):
 				return {}
 			return _work(BOAT_SWING, "", at)
 		"board":
 			var v := boarded(who)
-			_sit(who, v, 0 if riders(v.id).is_empty() else 1)
+			var seat := 0 if riders(v.id).is_empty() else 1
+			# Rowing a vessel off another's land is taking it: the rower's seat needs the
+			# right to build there; a passenger beside its rower needs none.
+			if seat == 0 and not _may(who, _cell_of(v.at), "build"):
+				return {}
+			_sit(who, v, seat)
 			return _work(BOAT_SWING, "", v.at)
 		"ashore":
 			var at := ashore_spot(who)
@@ -234,6 +239,11 @@ func _launch(who, item: String, at: Vector3, dir: Vector2) -> bool:
 	if oars != "" and who.inventory.count(oars) == 0:
 		who.say(Lang.line("[is_on_the_water_but]", [it.title]))
 	return true
+
+
+## The cell a vessel at `at` (world units) floats in: the land rights there are its.
+static func _cell_of(at: Vector3) -> Vector3i:
+	return Vector3i(floori(at.x / CELL), floori(at.y / CELL), floori(at.z / CELL))
 
 
 ## Sits `who` in vessel `v` on seat `seat`, their body where that seat is.
@@ -297,6 +307,8 @@ func take_vessel(who, id: int) -> bool:
 		return false
 	var p: Vector3 = who.position
 	if Vector2(v.at.x - p.x, v.at.z - p.z).length() > TAKE_REACH or absf(v.at.y - p.y) > 2.0:
+		return false
+	if not _may(who, _cell_of(v.at), "build"):
 		return false
 	vessels.remove(id)
 	if who.give(v.item, 1) < 1:

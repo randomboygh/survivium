@@ -499,7 +499,8 @@ func cut_depth() -> float:
 ## is not there yet is set when it appears (the clock reads the speed every frame).
 func apply() -> void:
 	send_cheats()
-	if game.rules != null:
+	# Joined to a server, its rules come from it (Protocol.RULES), the switches sent above.
+	if game.rules != null and game.join_url == "":
 		game.rules.free_build = free_build
 		game.rules.tool_wear = tool_wear
 		game.rules.instant_craft = instant_craft

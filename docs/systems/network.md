@@ -57,7 +57,9 @@ length up to `CHAT_MAX` 160.
   `mods` (the server's bundles), `content` (the hash of its files) and `size`, and does not close the link: the
   game takes the files it lacks and says `hello` again (the events `mod_list` [] → [size, bytes], `mod_files`
   [[hash…]] → `mod_data` [[hash, offset, the file's size, the piece's size before packing, the piece]…]; `mods`
-  [hash, size, bundles] — the server's files changed, to a game in the world). The event `bye` — the client
+  [hash, size, bundles] — the server's files changed, to a game in the world; `rules` [Rules.to_dict] — the
+  rules of play the server runs, after the welcome and whenever they change: a game joined over a socket shows
+  by them the craft tab's «get» and free building, never by its own «Testing» switches). The event `bye` — the client
   leaves on its own, `kick` [why] — the server put it out. Builds of different versions do not play together
   (decision 153, 5А: the code must be the same; the data may differ since decision 189). The world through a socket: `chunk` [key, size, bytes] — a chunk's record `WorldGen.pack` in
   `var_to_bytes` and zstd (the same as in the save), `forget` [key], `cells` [[cell, material]…], `drops`
@@ -179,7 +181,7 @@ length up to `CHAT_MAX` 160.
   sounds of the world's bundles and of their mods), the hash that names them (`digest`), the list packed for
   the wire (`packed`), read at `listen()` and again by `read()` (the host's `reload`, `Server.mods_reread`). At
   `hello` the server compares the game's hash with its own: another one — the refusal `mods`, the link stays
-  open without a character (`Peer.fetching`, up to `FETCH_WAIT` 900 s, `FETCH_IDLE` 30 s asking for nothing, `FETCHING_MAX` 32 such links) and takes only `mod_list`, `mod_files`
+  open without a character (`Peer.fetching`, up to `FETCH_WAIT` 900 s, `FETCH_IDLE` 30 s asking for nothing, `FETCHING_MAX` 32 such links, `FETCHING_PER_ADDRESS` 4 from one address but this machine's) and takes only `mod_list`, `mod_files`
   and another `hello` (`Server._mods_asked`; the same two events are taken from a player in the world after a
   reload). Files go by pieces of `PIECE` 96 KB (several small files in one message, YAML packed with zstd), to
   each link no faster than `RATE` 2 MB a second and not while it has `BUFFERED_MAX` 512 KB waiting
@@ -346,7 +348,8 @@ length up to `CHAT_MAX` 160.
   the size and joins again to agree), then `server_mods` {url, digest, table} and a scene restart: `_use_mods`
   serves the table (`Content.serve`) before `Mods.activate` while the game is on that server, and the game's
   own files again afterwards; a server made in this game is told its own hash; `ModReload.watch_server` takes
-  the server's reloads in the world (`mods` → `ModFetch` → `Content.serve` → `reload()`); then `RemoteGen` by
+  the server's reloads in the world (`mods` → `ModFetch` → `Content.serve` → `reload()`; over 50 MB the
+  game leaves the server telling the size, as on joining, and joining again agrees); then `RemoteGen` by
   the seed and the
   server's settings, the map and materials as usual, `actions` — its own `WorldActions` over the world's
   read-only copy (the cursor preview, what a bush gives; the signals are given it by `Mirror`), the body at

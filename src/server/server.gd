@@ -42,6 +42,9 @@ const HELLO_WAIT := 10.0
 const FETCH_WAIT := 900.0
 const FETCH_IDLE := 30.0
 const FETCHING_MAX := 32
+## Such connections from one address at most, so one player cannot keep the others
+## waiting (this machine's, a tunnel's, count only towards FETCHING_MAX).
+const FETCHING_PER_ADDRESS := 4
 ## Seconds between the animals' snapshots over a socket (PlayerLink.snap_every).
 const SNAP_EVERY := 0.1
 ## Seconds between the other players' snapshots to a player (PlayerLink.people_every).
@@ -75,6 +78,8 @@ const RESERVED_NAMES := ["сервер", "server", "admin", "админ", "си�
 ## How the keys of the server's own bots begin (add_bot): made of their numbers, not
 ## secrets, so a hello may not come with one.
 const BOT_KEY := "bot:"
+## What begins a key kept as its hash in `access` (kept).
+const KEPT := "h:"
 ## Why one was not let in (Protocol.WHY_*), as the hosts are told it (_note).
 const WHY_NOTES := {Protocol.WHY_VERSION: "[another_version_of_the_game]", Protocol.WHY_PASSWORD: "[wrong_password]",
 	Protocol.WHY_FULL: "[server_is_full]", Protocol.WHY_NAME: "[a_name_is_required]",
@@ -184,7 +189,8 @@ var lines: Array[String] = []
 ## commands in the chat) with the name each had.
 ## The owners (keys → names) may also op and deop and stop the server (COMMANDS); the
 ## names on the list come in with the key they first came with (`listed_keys`, name →
-## key), so nobody else gets in by typing a name on it.
+## key), so nobody else gets in by typing a name on it. A key is kept as its hash
+## (kept), never itself: whoever reads the world's folder learns nobody's key.
 var access := {"banned_keys": {}, "banned_names": [], "listed_only": false, "listed": [], "hosts": {},
 	"owners": {}, "listed_keys": {}}
 ## What looked wrong, newest last ({"at", "id", "name", "what", "detail", "level"}), and
@@ -198,6 +204,8 @@ var _wrong := {}
 ## When _flag_at and _wrong were last rid of what is past their windows (_prune).
 var _pruned_at := -INF
 var _new_at: Array[float] = []
+## The rules of play the players were last told (flush).
+var _rules_sent := {}
 
 
 func _init(s, cfg: Config, info: Dictionary) -> void:
@@ -275,8 +283,15 @@ func poll() -> void:
 			_forget(a, "[the_character_of_s_left]")
 
 
-## Sends each player the events of the tick.
+## Sends each player the events of the tick; the rules of play to all when they changed
+## (Protocol.RULES).
 func flush() -> void:
+	if session != null and session.rules != null:
+		var d: Dictionary = session.rules.to_dict()
+		if d != _rules_sent:
+			_rules_sent = d
+			for key in accounts:
+				accounts[key].link.rules(d)
 	for key in accounts:
 		var a: Account = accounts[key]
 		if a.peer != null and a.peer.ws.get_ready_state() == WebSocketPeer.STATE_OPEN:
@@ -355,7 +370,7 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 			var a := _find(rest)
 			if a == null:
 				return "op <who> gives commands in the chat; no such player: " + rest
-			access.hosts[a.key] = a.name
+			access.hosts[kept(a.key)] = a.name
 			_save_access()
 			flag(a, "role", "made a host (op)", 1)
 			a.link.hear(0, "", "[you_are_a_server_host]")
@@ -363,10 +378,10 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 		"deop":
 			var low := rest.to_lower()
 			for key in access.hosts.keys():
-				if str(access.hosts[key]).to_lower() == low or str(key) == rest:
+				if str(access.hosts[key]).to_lower() == low or str(key) == kept(rest):
 					access.hosts.erase(key)
 					_save_access()
-					flag(accounts.get(key), "role", "no longer a host (deop): " + rest, 1)
+					flag(_kept_account(key), "role", "no longer a host (deop): " + rest, 1)
 					return "no longer a host: " + rest
 			return "not a host: " + rest
 		"hosts":
@@ -461,20 +476,56 @@ func _mods_told(changed: bool) -> void:
 func load_access() -> void:
 	if store == null:
 		return
-	var d: Dictionary = store.read_access()
-	for k in ["banned_keys", "hosts", "owners", "listed_keys"]:
+	if take_access(store.read_access()):
+		_save_access()
+
+
+## Takes who may come in from `d` (the save's access.json); true when it kept keys as they
+## are (a save from before they were hashed), now hashed.
+func take_access(d: Dictionary) -> bool:
+	var old := false
+	for k in ["banned_keys", "hosts", "owners"]:
 		if d.get(k) is Dictionary:
-			access[k] = d[k]
+			access[k] = {}
+			for key in d[k]:
+				# A save from before the keys were hashed is hashed now (and saved so).
+				old = old or not str(key).begins_with(KEPT)
+				access[k][_kept_once(str(key))] = d[k][key]
+	if d.get("listed_keys") is Dictionary:
+		access.listed_keys = {}
+		for name in d.listed_keys:
+			old = old or not str(d.listed_keys[name]).begins_with(KEPT)
+			access.listed_keys[name] = _kept_once(str(d.listed_keys[name]))
 	for k in ["banned_names", "listed"]:
 		if d.get(k) is Array:
 			access[k] = d[k]
 	access.listed_only = d.get("listed_only") == true
+	return old
+
+
+## How a player's key is kept in `access`: its hash, so the world's folder gives nobody
+## the owner's key (the weekly audit's WA-013).
+static func kept(key: String) -> String:
+	return KEPT + key.sha256_text()
+
+
+## `key` kept, unless it is kept already (an entry of a save).
+static func _kept_once(key: String) -> String:
+	return key if key.begins_with(KEPT) else kept(key)
+
+
+## The player here whose key is kept as `h`, null when none is.
+func _kept_account(h: String) -> Account:
+	for key in accounts:
+		if kept(key) == h:
+			return accounts[key]
+	return null
 
 
 ## The player of `key` owns the server: they made it in the game (Main._on_welcome).
 func make_host(key: String) -> void:
 	var a: Account = accounts.get(key)
-	access.owners[key] = a.name if a != null else str(access.owners.get(key, ""))
+	access.owners[kept(key)] = a.name if a != null else str(access.owners.get(kept(key), ""))
 	_save_access()
 
 
@@ -485,9 +536,10 @@ func is_host(key: String) -> bool:
 ## What the player of `key` may command (COMMANDS), by the server's lists, never by
 ## anything the client says.
 func role_of(key: String) -> int:
-	if access.owners.has(key):
+	var h := kept(key)
+	if access.owners.has(h):
 		return ROLE_OWNER
-	if access.hosts.has(key):
+	if access.hosts.has(h):
 		return ROLE_HOST
 	return ROLE_PLAYER
 
@@ -596,7 +648,7 @@ func _ban(rest: String) -> String:
 	if not access.banned_names.has(name.to_lower()):
 		access.banned_names.append(name.to_lower())
 	if a != null:
-		access.banned_keys[a.key] = a.name
+		access.banned_keys[kept(a.key)] = a.name
 		kick(a, "[the_host_banned_you]", CLOSE_KICKED, "[the_host_banned_s]")
 	_save_access()
 	_say("%s banned" % name)
@@ -639,7 +691,7 @@ func _whitelist(rest: String) -> String:
 			for a: Account in players():
 				if not access.listed.has(a.name.to_lower()):
 					access.listed.append(a.name.to_lower())
-				access.listed_keys[a.name.to_lower()] = a.key
+				access.listed_keys[a.name.to_lower()] = kept(a.key)
 		"off":
 			access.listed_only = false
 		"add":
@@ -722,6 +774,7 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 	# stops them.
 	link.requests.may_debug = is_host(peer.account.key) or config.playtest
 	link.requests.may_cheat = config.playtest or is_host(peer.account.key)
+	link.requests.log_cheats = not config.playtest
 	link.requests.day_speed = config.day_speed()
 	link.requests.ai_debug = link.requests.ai_debug and link.requests.may_debug
 	var reply: Variant = link.handle_msg(msg)
@@ -809,7 +862,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		# Welcome but for the mods' files: the game takes the server's over this connection
 		# and says hello again (on this one, or on another after it started again).
 		if not peer.fetching:
-			if _fetching() >= FETCHING_MAX:
+			if _fetching() >= FETCHING_MAX or not _local(peer.address) and _fetching(peer.address) >= FETCHING_PER_ADDRESS:
 				peer.ws.put_packet(Protocol.encode(Protocol.reply(seq, {"ok": false, "why": Protocol.WHY_WAIT})))
 				peer.close_after(CLOSE_REFUSED, Protocol.WHY_WAIT)
 				return
@@ -880,11 +933,13 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 	peer.account = a
 	if access.listed.has(name.to_lower()) and not access.listed_keys.has(name.to_lower()):
 		# A name on the list is the first key's that comes with it.
-		access.listed_keys[name.to_lower()] = a.key
+		access.listed_keys[name.to_lower()] = kept(a.key)
 		_save_access()
 	var welcome := {"ok": true, "id": a.id, "key": a.key, "name": a.name, "at": a.link.who.position,
 		"title": config.title, "playtest": config.playtest, "host": is_host(a.key)}
 	welcome.merge(world_info)
+	if session != null and session.rules != null:
+		a.link.rules(session.rules.to_dict())
 	peer.ws.put_packet(Protocol.encode(Protocol.reply(seq, welcome)))
 	for b in a.link.flush():
 		peer.ws.put_packet(b)
@@ -919,10 +974,10 @@ func _refusal(args: Array, address := "") -> String:
 	if wrong.is_empty():
 		_wrong.erase(address)
 	var low := name.to_lower()
-	if access.banned_keys.has(args[3]) or access.banned_names.has(low):
+	if access.banned_keys.has(kept(args[3])) or access.banned_names.has(low):
 		return Protocol.WHY_BANNED
 	if access.listed_only and (not access.listed.has(low)
-			or access.listed_keys.has(low) and access.listed_keys[low] != args[3]):
+			or access.listed_keys.has(low) and access.listed_keys[low] != kept(args[3])):
 		return Protocol.WHY_LIST
 	# A name that is a key (`[bag_is_full]`) would be put into words where it is shown, as
 	# if the game said it.
@@ -962,13 +1017,19 @@ func _pending(address := "") -> int:
 	return n
 
 
-## The connections taking the mods' files before a hello (Peer.fetching).
-func _fetching() -> int:
+## The connections taking the mods' files before a hello (Peer.fetching), from `address`
+## ("" any).
+func _fetching(address := "") -> int:
 	var n := 0
 	for p in peers:
-		if p.account == null and p.close_code == 0 and p.fetching:
+		if p.account == null and p.close_code == 0 and p.fetching and (address == "" or p.address == address):
 			n += 1
 	return n
+
+
+## Whether `address` is this machine's (a tunnel's connections all come from it).
+static func _local(address: String) -> bool:
+	return address in ["127.0.0.1", "::1", "::ffff:127.0.0.1", "localhost"]
 
 
 ## Whether one more message of `peer` may be read now (MSG_RATE); one that keeps sending

@@ -14,6 +14,9 @@ extends RefCounted
 
 ## The protocol's version: a client and a server of different versions do not play.
 const VERSION := 2
+## The environment variable a game started by the server (its bots) takes the server's
+## password from, so it is never on a command line other users of the machine can read.
+const PASSWORD_ENV := "SURVIVIUM_PASSWORD"
 ## The port a server listens on when it is not told another (the address a player
 ## types without one goes there).
 const PORT := 7777
@@ -349,6 +352,10 @@ const MOD_DATA := "mod_data"
 ## [the hash that names them now, their bytes, the bundles]. The game asks for what
 ## changed and reads its data again without leaving the world (ModReload).
 const MODS := "mods"
+## The rules of play the server runs (Rules.to_dict): [rules]; after the welcome and
+## whenever they change (a playtest switch, the host's window). A game joined over a
+## socket shows by them what may be done (the craft tab's «get», free building).
+const RULES := "rules"
 ## The client leaves on purpose: [] (the server lets the character linger a while less).
 const BYE := "bye"
 ## The server puts the player out: [why] (words for the player); then it closes.

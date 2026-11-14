@@ -22,6 +22,7 @@ func run() -> void:
 	_test_oars_and_save()
 	_test_ice_and_death()
 	_test_currents()
+	_test_land_rights()
 
 
 ## A character who looks where it is told and is put where a rule puts it.
@@ -448,4 +449,41 @@ func _test_currents() -> void:
 			if d[3] == 3:
 				still = d[1] / WorldData.CELL
 	_check(is_equal_approx(still.x, 9.5), "ice holds them")
+
+
+## Land where only `owner` may build (Territory.may for the rules).
+class OwnersWater extends RefCounted:
+	var owner
+
+	func may(who, _c: Vector3i, action: String) -> bool:
+		return action != "build" or who == owner
+
+
+## On another's land a vessel is theirs (the weekly audit's WA-012): a stranger may not
+## launch one there, row one off, or take one up; they may ride beside its rower.
+func _test_land_rights() -> void:
+	var w := _lake()
+	var a := _rower(w, RAFT)
+	var b := _rower(w, RAFT, 9.5)
+	var actions := _actions(w, [a, b])
+	var land := OwnersWater.new()
+	land.owner = a
+	actions.territory = land
+	_check(actions.boat(b).is_empty() and b.vessel == 0 and b.inventory.count(RAFT) == 1
+		and not actions.launch_from_bag(b, RAFT), "a stranger launches no vessel on another's water")
+	actions.boat(a)
+	var v: Dictionary = actions.vessels.of(a.vessel)
+	b.at = Vector3(3.0, 3.0, a.at.z / WorldData.CELL) * WorldData.CELL
+	_check(actions.boat_kind(b) == "board" and not actions.boat(b).is_empty() and b.vessel == v.id and b.seat == 1,
+		"but rides beside its owner rowing")
+	actions.leave_boat(b, Vector3(2.5, 3.0, 9.5) * WorldData.CELL)
+	a.facing = Vector2i(-1, 0)
+	a.at = Vector3(4.5, 2.5, a.at.z / WorldData.CELL) * WorldData.CELL
+	actions.boat(a)
+	b.at = Vector3(3.0, 3.0, v.at.z / WorldData.CELL) * WorldData.CELL
+	_check(a.vessel == 0 and actions.boat_kind(b) == "board" and actions.boat(b).is_empty() and b.vessel == 0,
+		"a vessel moored on another's land is not rowed off by a stranger")
+	_check(not actions.take_vessel(b, v.id) and actions.vessels.list.size() == 1, "nor taken up")
+	a.facing = Vector2i(1, 0)
+	_check(actions.take_vessel(a, v.id) and a.inventory.count(RAFT) == 1, "its owner takes it up")
 

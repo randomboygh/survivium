@@ -55,12 +55,19 @@ static func unpack(path: String, into: String) -> Dictionary:
 		return out
 	var names: PackedStringArray = zip.get_files()
 	var place := placing(names, path)
+	# The sizes from the zip's own list, so an entry too big is never unpacked to be
+	# weighed (a zip bomb would run the game out of memory).
+	var sizes := sizes_of(bytes)
 	var total := 0
 	for name in names:
 		if name.ends_with("/"):
 			continue
 		var rel := place.call(name.replace("\\", "/")) as String
 		if rel == "" or not ModFiles.valid_path(rel):
+			out.skipped += 1
+			continue
+		var size: int = sizes.get(name, -1)
+		if size < 0 or size > ModFiles.FILE_MAX or total + size > UNPACKED_MAX:
 			out.skipped += 1
 			continue
 		var data := zip.read_file(name)
@@ -136,3 +143,30 @@ static func _erase(path: String) -> void:
 		DirAccess.remove_absolute(path.path_join(d))
 	for f in DirAccess.get_files_at(path):
 		DirAccess.remove_absolute(path.path_join(f))
+
+
+## The unpacked size of each file of the zip `bytes` by its name, read from the zip's
+## central directory; {} when it has none that can be read (zip64 sizes are left out).
+static func sizes_of(bytes: PackedByteArray) -> Dictionary:
+	var out := {}
+	var end := -1
+	for i in range(bytes.size() - 22, maxi(-1, bytes.size() - 22 - 65536), -1):
+		if bytes.decode_u32(i) == 0x06054b50:
+			end = i
+			break
+	if end < 0:
+		return out
+	var count := bytes.decode_u16(end + 10)
+	var at := bytes.decode_u32(end + 16)
+	for n in count:
+		if at < 0 or at + 46 > bytes.size() or bytes.decode_u32(at) != 0x02014b50:
+			break
+		var size := bytes.decode_u32(at + 24)
+		var name_len := bytes.decode_u16(at + 28)
+		var skip := bytes.decode_u16(at + 30) + bytes.decode_u16(at + 32)
+		if at + 46 + name_len > bytes.size():
+			break
+		if size != 0xFFFFFFFF:
+			out[bytes.slice(at + 46, at + 46 + name_len).get_string_from_utf8()] = size
+		at += 46 + name_len + skip
+	return out
