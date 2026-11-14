@@ -24,12 +24,13 @@ the build of `main` into its GitHub release `v<stage>.<PR>` (and the rolling `an
 - `assets/app/`: the icons drawn by `tools/make_icon.py` (Android's plain, adaptive and one-colour ones, the
   Windows program's `icon.ico`).
 - `.github/workflows/build.yml`, the jobs `android` (the export, the artifact `survivium-android`) and
-  `publish-android`; `.github/actions/godot` unpacks the template `android_release.apk`.
+  `release` (the APK as a file of the release); `.github/actions/godot` unpacks the template `android_release.apk`.
 
 **Signing.** A phone installs an APK over the one it has only if both are signed by the same key and the new
 version code (`version/code`, CI sets it to the run's number) is greater. The key lives in the repository's
 secrets: `ANDROID_KEYSTORE` (the keystore in base64, the key's alias `survivium`) and `ANDROID_KEYSTORE_PASSWORD`
-(the keystore's and the key's password). Without them CI signs with a key made for that run and says so in the
+(the keystore's and the key's password); CI gives them only to a build of `main`, so an APK of a pull request is
+signed by a key of its run and does not install over a release. Without them CI signs with a key made for that run and says so in the
 release's text: such an APK must be removed before the next one is installed, and the saves go with it. The
 step prints the certificate's SHA-256 to the run's summary.
 
