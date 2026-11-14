@@ -14,6 +14,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const GlowLights := preload("res://src/client/view/glow_lights.gd")
 
 ## How far round it a lightning bolt lights, world units.
 const BOLT_RANGE := 10.0
@@ -138,6 +139,8 @@ var shadow_energy := SHADOW_ENERGY.x
 ## True while the sky is dark enough for fires to cast shadows (see SHADOW_SKY).
 var dark := true
 var flicker_clock := 0.0
+## The pools of light round the glowing mushrooms (GlowLights).
+var glows: Node3D
 var rng := RandomNumberGenerator.new()
 
 
@@ -261,6 +264,8 @@ func _ready() -> void:
 
 	for i in 2:
 		torch_flames.append(torch_flame())
+	glows = GlowLights.new()
+	add_child(glows)
 
 
 ## The flame of a torch in a hand (the player's, see hold_flames, or another player's,
@@ -584,6 +589,7 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 				# The twin lights the rest as a fire without a shadow does.
 				PixelView.twin_follow(f.light, energy / shadow_energy)
 		_light_lamps(view, sky)
+	glows.update(delta, view, sky, clock)
 
 
 ## How bright fire `f` (see add_campfire) burns now, without its flicker: by its fuel
