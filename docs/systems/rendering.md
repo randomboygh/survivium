@@ -48,6 +48,11 @@ voxel models of things.
   sideways farther than they fall), and the strokes of drops are tilted along the fall (`lean` in
   `particle.gdshader`). Under snow the grass at the joint with a torn-out cell spreads into it by separate
   texels (`GRASS_FRAY` in `world.gdshader`), with no white squares.
+- `src/client/view/glow_lights.gd` (held by `Effects.glows`) — small teal pools of light round the glowing
+  mushrooms at night: `Foliage` notes where each glowing mushroom stands (`Job.glows`, kept through a patch),
+  `ChunkStreamer` hands them over per chunk, and every `PICK_EVERY` s the `LIGHTS` (4) groups nearest the
+  view get a short light (`REACH` 1.6 units, one per group `APART`); the others glow only on their own
+  (`grass.gdshader`). Off by day and under snow, like the caps.
 - `src/client/view/fire_shadows.gd` — the shadows from fire drawn on the ground; `sun_rays.gd` — rays among
   trees, glints, dust. A shaft starts on the tree's middle plane (upright, through the trunk, across the sun's
   way) inside the crown's outline on it (a spruce's triangle), runs along the sun's light (at most `LONGEST`)

@@ -270,4 +270,11 @@ func _patch_matches(w: WorldData, key: Vector2i, built: Array, cells: Array[Vect
 		diff += "leaf cards in %s (%d, whole %d); " % [rect, jp.nc, fp.nc]
 	if not (jp.shadows == fp.shadows and jp.ns == fp.ns):
 		diff += "shadows (%d, whole %d); " % [jp.ns, fp.ns]
+	# The glowing mushrooms, in any order (GlowLights).
+	var glows := jp.glows.duplicate()
+	var fresh_glows := fp.glows.duplicate()
+	glows.sort()
+	fresh_glows.sort()
+	if glows != fresh_glows:
+		diff += "glowing mushrooms (%d, whole %d); " % [glows.size(), fresh_glows.size()]
 	return [jm, jp, diff]

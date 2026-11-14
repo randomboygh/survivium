@@ -11,6 +11,7 @@ const AutoQuality := preload("res://src/client/view/auto_quality.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
 const Others := preload("res://src/client/view/others.gd")
 const Effects := preload("res://src/client/view/effects.gd")
+const GlowLights := preload("res://src/client/view/glow_lights.gd")
 
 
 ## Settings that keep values alone, for AutoQuality.
@@ -52,6 +53,7 @@ func run() -> void:
 	_test_auto_quality()
 	_test_own_balloon()
 	_test_global_textures()
+	_test_glow_lights()
 
 
 func _test_pixel_view() -> void:
@@ -715,3 +717,41 @@ func _test_global_textures() -> void:
 	PixelTextures.set_global("heat_map", c)
 	var kept := PixelTextures._replaced.slice(held).map(func(r: Array) -> Texture2D: return r[0])
 	_check(kept.has(a) and kept.has(b), "a global texture replaced twice in a row is still held")
+
+
+## Night and snow for GlowLights.
+class FakeSky:
+	var daylight := 0.0
+
+
+class FakeClock:
+	var snow := 0.0
+
+
+## The glowing mushrooms nearest the view get a light at night, one a group; none by
+## day or under snow, and none once their chunk is gone.
+func _test_glow_lights() -> void:
+	var g = GlowLights.new()
+	g._ready()
+	var sky := FakeSky.new()
+	var clock := FakeClock.new()
+	# A group of three mushrooms close together, two lone ones, one far off.
+	g.set_spots(Vector2i(0, 0), PackedVector3Array([Vector3(1.0, 0.0, 1.0), Vector3(1.5, 0.0, 1.2),
+		Vector3(1.2, 0.0, 1.8), Vector3(5.0, 0.0, 1.0), Vector3(1.0, 0.0, 6.0)]))
+	g.set_spots(Vector2i(5, 0), PackedVector3Array([Vector3(45.0, 0.0, 1.0)]))
+	g.update(0.1, PixelView.screen_plane(Vector3(2.0, 0.0, 2.0)), sky, clock)
+	var lit: Array = g.lights.filter(func(l: OmniLight3D) -> bool: return l.visible)
+	_check(lit.size() == 3 and lit.all(func(l: OmniLight3D) -> bool: return l.light_energy > 0.0),
+		"three groups of glowing mushrooms near the view are lit at night, the far one not (%d)" % lit.size())
+	sky.daylight = 1.0
+	g.update(0.1, PixelView.screen_plane(Vector3(2.0, 0.0, 2.0)), sky, clock)
+	_check(g.lights.all(func(l: OmniLight3D) -> bool: return not l.visible), "no mushroom lights by day")
+	sky.daylight = 0.0
+	clock.snow = 1.0
+	g.update(0.1, PixelView.screen_plane(Vector3(2.0, 0.0, 2.0)), sky, clock)
+	_check(g.lights.all(func(l: OmniLight3D) -> bool: return not l.visible), "no mushroom lights under snow")
+	clock.snow = 0.0
+	g.set_spots(Vector2i(0, 0), PackedVector3Array())
+	g.update(0.1, PixelView.screen_plane(Vector3(2.0, 0.0, 2.0)), sky, clock)
+	_check(g.lights.all(func(l: OmniLight3D) -> bool: return not l.visible), "no lights once the chunk is gone")
+	g.free()
