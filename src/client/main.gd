@@ -721,7 +721,7 @@ func _process(delta: float) -> void:
 		# The server's loop ran before this frame: its steps go to the statistics as parts.
 		var took: Dictionary = host.runner.took_us
 		perf.add("sky", took.get("clock", 0))
-		perf.add("player", took.get("players", 0))
+		perf.add("server players", took.get("players", 0))
 		perf.add("animals", took.get("wildlife", 0))
 		perf.add("wind and tracks", took.get("storms", 0))
 		# The world made round the players: within the chunks' budgets (see _world_made).
@@ -803,16 +803,22 @@ func _process(delta: float) -> void:
 		if character.riding == "" and not player.body.climbing:
 			# Others are not walked through: the body makes way out of them (Body.parting).
 			player.body.nudge += others.parting(player.position, minf(delta, 0.05))
+		t = perf.note("player", t)
 		player.step(minf(delta, 0.05), jump)
+		t = perf.note("body", t)
 		character.update(delta)
 		workshop.update(delta)
 		mirror.send_input()
+		t = perf.note("character", t)
 		if playing:
 			controls.update(minf(delta, 0.05))
+			t = perf.note("controls", t)
 			gathering.update(delta)
+			t = perf.note("gathering", t)
 		hands.update()
+		t = perf.note("hands", t)
 		land.update()
-		t = perf.note("player", t)
+		t = perf.note("land", t)
 		_leave_footprints()
 		t = perf.note("wind and tracks", t)
 		save.update(delta)
