@@ -23,6 +23,11 @@ const LOWER := 4
 ## The views on the way that the culling boxes hold, this far apart: a turn sweeps
 ## the drawn heights round an arc, which the boxes of its ends alone would cut.
 const BOX_STEP := PI / 12.0
+## While it turns on by itself (held or drifting) the boxes hold the views this far
+## ahead, and are fitted again once it gets there: boxes for the whole way round grew
+## every chunk's by its heights' shear all round and drew twice the chunks (calls 280 →
+## 550 in the phone's browser, 2026-11-14), and a refit costs ~10 ms there.
+const SPIN_AHEAD := PI / 4.0
 ## How fast the view glides to the one set: the share of the way left gone a second.
 const TURN_RATE := 9.0
 ## A turn button held this many seconds turns the camera on smoothly, SPIN_RATE
@@ -85,6 +90,9 @@ var tilt := 0.0
 var _hold := 0
 var _held := 0.0
 var _spinning := false
+## The turn the culling boxes hold the views up to while it spins or drifts (see
+## _spin_boxes).
+var _boxes_to := 0.0
 ## The view drifting round the player by itself, the game left alone (see _drowse).
 var _drifting := false
 ## Seconds since the last input or step of the player (see wake), and where it stood.
@@ -234,25 +242,41 @@ func _aim() -> void:
 		game.settings.save()
 
 
-## A smooth turn starts: it may stop anywhere round, so the culling boxes hold the
-## views all the way round at once, until it settles on a step again.
+## A smooth turn starts: the culling boxes hold the views SPIN_AHEAD on, fitted again
+## as it gets there (_spin_on), until it settles on a step again.
 func _spin_start() -> void:
 	_spinning = true
 	_spin_boxes()
 
 
+## Which way the view turns on by itself: the held button's, else the drift's.
+func _spin_way() -> float:
+	return float(_hold) if _spinning else 1.0
+
+
+## The boxes hold the views from the turn now to SPIN_AHEAD on the way it turns (and the
+## tilt it goes to, if it tilts on the way).
 func _spin_boxes() -> void:
 	var views := []
-	var n := ceili(TAU / BOX_STEP)
-	for i in n:
-		views.append(PixelView.view_of(turn + i * TAU / n, tilt))
+	var n := ceili(SPIN_AHEAD / BOX_STEP)
+	var way := _spin_way()
+	_boxes_to = turn + way * SPIN_AHEAD
+	for i in n + 1:
+		views.append(PixelView.view_of(turn + way * i * SPIN_AHEAD / n, tilt))
 	var to_tilt := tilt_steps * TILT_STEP
 	if to_tilt != tilt:
-		for i in n:
-			views.append(PixelView.view_of(turn + i * TAU / n, to_tilt))
+		for i in n + 1:
+			views.append(PixelView.view_of(turn + way * i * SPIN_AHEAD / n, to_tilt))
 	PixelView.box_views = views
 	if game.chunks != null:
 		game.chunks.refit_boxes()
+
+
+## The view spun or drifted past the views the boxes hold: fitted again from here on,
+## before the frame is drawn, so nothing is cut however long the frame was.
+func _spin_on() -> void:
+	if (_boxes_to - turn) * _spin_way() < 0.0:
+		_spin_boxes()
 
 
 ## How fast the view drifts round now, radians a second: 0 until the game has been
@@ -356,6 +380,8 @@ func _glide(delta: float) -> void:
 	else:
 		turn = lerpf(turn, to, k)
 	tilt = lerpf(tilt, to_tilt, k)
+	if _spinning or _drifting:
+		_spin_on()
 	if not _spinning and not _drifting and absf(turn - to) < 0.002 and absf(tilt - to_tilt) < 0.0005:
 		turn = to
 		tilt = to_tilt
