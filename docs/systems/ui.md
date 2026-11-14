@@ -89,8 +89,10 @@ and a new shared part is added to the kit and to the «Interface gallery».
   joined loads at once), `join_screen.gd` («Join»: address, name, password, recent servers from
   `src/client/net/server_list.gd`; the fields and the recent servers inset as the settings' rows, the buttons flush; fields one under another — fits a phone held upright, with the keyboard up
   the panel goes to the top; the link `?server=` opens it with the address, a failed login — again with the
-  reason), `host_screen.gd` («Create a server» on PC, two tabs `TabRow.tabs`: «Creation» — a world from the
-  saved ones, a name, a password, «Access from the internet» (С7, the cloudflared tunnel); «Settings» —
+  reason), `host_screen.gd` («Create a server» on PC, three tabs `TabRow.tabs`: «World» — «New world…» (opens
+  `world_setup.gd` over it, as in single play, its button «Choose this world»; the world set up comes first in
+  the list and the server makes it with its mods on start, over a save of its seed only after the setup's
+  second tap) over the saved worlds, a button each; «Server» — a name, a password, «Access from the internet» (С7, the cloudflared tunnel); «Settings» —
   everything else the server takes (`Config` and its `rules`): the port, players, how often to save, the length
   of a day, «Real weather outside» (`Config.real_weather`), «Animals attack», «Tool wear», PvP, damage in
   combat, the newcomer's shield, how long combat lasts, land (lands first, per level, reach, levels, when
