@@ -19,7 +19,7 @@
   swing: 0.4
   reach: 8
   durability: 240
-  repair: {materials:planks: 1}
+  repair: {resources:branch: 1}
 - id: stone_sword
   title: "[tools.items.stone_sword]"
   weight: 1.4

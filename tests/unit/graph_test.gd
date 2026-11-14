@@ -128,9 +128,9 @@ func _test_full_set() -> void:
 		_check(g.reached.has("items/" + id), "%s can be had from a new world" % id)
 	var axe: int = g.reached.get("items/tools:stone_axe", -1)
 	_check(g.reached.get("items/resources:log") == axe and g.how["items/resources:log"].via == "fell"
-		and g.reached.get("items/materials:copper_ore") == g.reached.get("items/tools:stone_pickaxe")
+		and g.reached.get("items/materials:copper_ore") == mini(g.reached.get("items/tools:stone_pickaxe"), g.reached.get("items/tools:wooden_pickaxe"))
 		and g.reached.get("items/plants:raspberry_bush") == g.reached.get("items/tools:wooden_shovel"),
-		"what a tool gets is as deep as the tool: logs by the axe, ore by the pickaxe, a bush dug out by the shovel")
+		"what a tool gets is as deep as the tool: logs by the axe, ore by the first pickaxe, a bush dug out by the shovel")
 	_check(g.reached.get("items/resources:branch") == 0 and g.reached.get("items/resources:stone") == 0
 		and g.reached.get("items/materials:cord") == 1 and g.reached.get("tools:workbench", g.reached.get("items/tools:workbench")) == 2
 		and g.reached.get("placed/core:campfire") == 0,

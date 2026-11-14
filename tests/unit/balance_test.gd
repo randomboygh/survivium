@@ -40,6 +40,8 @@ const MOST_MIGHT := 1.0
 ## of its stamina at no skill: stamina is felt by the strong and spared by the skilled
 ## (what counts is the work a full body does, not how long it swings: the skilled swing
 ## faster, so they tire sooner by the clock and fell more by the tree).
+## The best cases count a tool of the best quality (Quality.MAX swings Quality.faster times as
+## fast): quality is reachable at the top, so the limits hold for it too.
 const LEAST_WORK_SECONDS := 8.0
 const SKILLED_TREE_COST := 0.65
 ## The best weapon kills a player in no fewer blows than this and fists in no fewer than
@@ -127,7 +129,8 @@ func _test_trees() -> void:
 	_check(best10 <= best0 * 0.6, "and with the best axe too (%.1f -> %.1f s)" % [best0, best10])
 	_check(best0 < weak10, "the best axe at no skill still beats the weakest at the last level (%.1f < %.1f s)" % [best0, weak10])
 	# The top of both roads: four swings and the fall, not a tap (the fall itself takes a moment).
-	_check(best10 >= 0.5 and Tools.hits_to(oak.hits, best.power) >= 3, "the best axe at the last level still takes over half a second and three swings on an oak (%.1f s)" % best10)
+	var top: float = best10 / Quality.faster(Quality.MAX)
+	_check(top >= 0.5 and Tools.hits_to(oak.hits, best.power) >= 3, "the best axe of the best quality at the last level still takes over half a second and three swings on an oak (%.2f s)" % top)
 	for i in range(1, axes.size()):
 		_check(Tools.hits_to(hardest, axes[i].power) <= Tools.hits_to(hardest, axes[i - 1].power),
 			"%s fells the hardest tree in no more swings than %s" % [axes[i].title, axes[i - 1].title])
@@ -217,9 +220,10 @@ func _test_stamina() -> void:
 	var drain_best: float = Vitals.cost_of("chop", s0.effort("chop")) / (best.swing * s0.pace("chop")) - rest
 	_check(drain_best > 0.0, "sustained chopping with the best axe tires an unskilled body (%.1f a second)" % drain_best)
 	_check(drain_best <= 0.0 or Vitals.MAX / drain_best >= LEAST_WORK_SECONDS, "but not within %.0f s (%.0f s)" % [LEAST_WORK_SECONDS, Vitals.MAX / maxf(0.01, drain_best)])
+	var top := Quality.faster(Quality.MAX)
 	for a: Dictionary in axes:
-		var drain: float = Vitals.cost_of("chop", s10.effort("chop")) / (a.swing * s10.pace("chop")) - rest
-		_check(drain <= 0.0 or Vitals.MAX / drain >= LEAST_WORK_SECONDS, "%s at the last level does not empty the body within %.0f s (%.0f)" % [a.title, LEAST_WORK_SECONDS, Vitals.MAX / maxf(0.01, drain)])
+		var drain: float = Vitals.cost_of("chop", s10.effort("chop")) / (a.swing * s10.pace("chop") / top) - rest
+		_check(drain <= 0.0 or Vitals.MAX / drain >= LEAST_WORK_SECONDS, "%s of the best quality at the last level does not empty the body within %.0f s (%.1f)" % [a.title, LEAST_WORK_SECONDS, Vitals.MAX / maxf(0.01, drain)])
 	var oak: Dictionary = Trees.SPECIES[Trees.first(Trees.BROAD)]
 	var weakest: Dictionary = axes[0]
 	var tree0 := Tools.hits_to(oak.hits, weakest.power) * Vitals.cost_of("chop", s0.effort("chop"))

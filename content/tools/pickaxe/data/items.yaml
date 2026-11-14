@@ -32,7 +32,7 @@
   swing: 0.8
   reach: 10
   durability: 90
-  repair: {materials:planks: 1}
+  repair: {resources:branch: 1}
 - id: copper_pickaxe
   title: "[tools.items.copper_pickaxe]"
   weight: 2.4

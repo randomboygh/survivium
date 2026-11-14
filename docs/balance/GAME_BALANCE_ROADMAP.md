@@ -28,9 +28,9 @@ remains, by priority; the systems it touches and the risks. What was done, in de
 
 | What | Why | Systems | Risk |
 |---|---|---|---|
-| Durability and `toughness` of cells for buildings (log wall 4, planks 3, brick 3, hewn stone 4) discuss with the decay of buildings (the backlog) | knocking down walls must cost effort, but not be a punishment | building, territory | a design decision |
+| Durability and `toughness` of cells for buildings (log wall 4, planks 3, brick 3, hewn stone 4) discuss with the decay of buildings (the backlog) | knocking down walls must cost effort, but not be a punishment | building, territory | the current values confirmed by the owner's playtest 2026-11-14; revisit with the decay of buildings |
 | Digging: give Digging a `yield` on a cell's `bonus` (flint from earth, fibre from grass) | the Digging skill gets only pace and strength | hands and world | small; can be done by data if `bonus_chance` is multiplied by the skill |
-| Sleep, cold, thirst: the thresholds were not touched; check on a phone with 40-minute days after wear was switched on | whether survival is a routine | character | playtest only |
+| Sleep, cold, thirst: the thresholds were not touched; check on a phone with 40-minute days after wear was switched on | whether survival is a routine | character | confirmed by the owner's playtest 2026-11-14: kept as they are |
 | Fishing: `each` 20 and `yield` 0.5 with no casting time in points | Fishing grows only with the catch | fishing | small |
 | Crafting: the points are a recipe's time with fading; the tenth level ≈ 2000 recipes | may turn out the longest skill | crafting | playtest: on complaints raise `first`/lower `growth` only for Crafting in the YAML |
 

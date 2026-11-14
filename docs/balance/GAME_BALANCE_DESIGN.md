@@ -73,7 +73,7 @@ strength with no skill, 36 at the tenth level, with a steel one — 20.
 **Wear** (`Workshop.use_tool`): a swing takes 1 from `durability` if the skill did not spare the tool (the
 chance `care × share`, 0.5 at the last); a recipe takes `wear` blows from a tool of its class, and Crafting
 spares it likewise. A thing's quality (decision 181, `Quality`) changes its durability: `durability × (1 + (q −
-50)/100)` — 100 gives +50%, 10 — −40%; and the swing's pace: `× (1 + (q − 50)/250)`. What is gathered: `35 +
+50)/100)` — 100 gives +50%, 10 — −40%; and the swing's pace: `× (1 + 0.003·(q − 50))`, 100 gives ×1.15. What is gathered: `35 +
 5·strength (up to 30) + (the tool's quality − 50)/5 + quality·share ± 5`; what is made: the average of the
 materials, not above `50 + quality·share` (Crafting, Cooking — 50) and the `quality_cap` of the station and the
 recipe. Wear is on by default (`Rules.tool_wear`; «Testing» switches it off); the durabilities: a stone axe 360
@@ -109,7 +109,7 @@ skill only on soft kinds, a steel one with no skill (1.4 s) is faster than a sto
 
 Items of one step are not alike: a sword — reach 8, mows tall grass and knocks berries down; a knife — light,
 short, fast (0.3 s), dresses carcasses; a spear — the strongest in the hand (4/6/8), slow (0.7 s), is thrown
-and picked up; a sling and a bow — reach 20–36 and the use of charges; a wooden pickaxe — weaker than a stone one, and needs planks. The «Twins» check of the content graph does not let two items coincide in everything.
+and picked up; a sling and a bow — reach 20–36 and the use of charges; wooden pickaxe, scythe and sword — weaker than stone, but made by hand from branches and cord before flint is found; a knife hits one less than a sword of its metal (it butchers). The «Twins» check of the content graph does not let two items coincide in everything.
 
 ## 6. Display
 
