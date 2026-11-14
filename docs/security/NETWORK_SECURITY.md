@@ -12,7 +12,7 @@ Russian copy: [NETWORK_SECURITY_RU.md](NETWORK_SECURITY_RU.md).
 | Connections with no greeting | `PENDING_MAX` 16, from one address `PENDING_PER_ADDRESS` 4 | a new connection is closed at once, an entry in the log |
 | Time for the greeting | `HELLO_WAIT` 10 s | closing with code 4000 |
 | Messages per second | `MSG_RATE` 300, in a burst up to `MSG_BURST` 600 | the extra ones are not read; at `FLOOD_KICK` 3 s of excess — disconnection, code 4003 |
-| A wrong password | `PASSWORD_TRIES` 8 per `PASSWORD_WINDOW` 60 s from an address | new players from the address — a refusal `wait`; a player with a known key gets in |
+| A wrong password | `PASSWORD_TRIES` 8 per `PASSWORD_WINDOW` 60 s from an address | new players from the address — a refusal `wait`; a player with a known key gets in; the addresses past the window are dropped once a `PRUNE_EVERY` 60 s (`_prune`, with the security log's old kinds) |
 | New players | `NEW_PLAYERS` 10 per `NEW_WINDOW` 60 s | a refusal `wait` (players' files do not pile up without limit) |
 
 `bytes_to_var` parses a frame without objects (`allow_objects` is off): no engine object is created from the

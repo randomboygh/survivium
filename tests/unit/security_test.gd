@@ -265,6 +265,15 @@ func _test_door() -> void:
 	_check(net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна", 5], "10.0.0.9") == Protocol.WHY_VERSION
 		and net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна"], "10.0.0.9") == Protocol.WHY_VERSION,
 		"a hello that does not name its mod files by a word is of another version")
+	# The records of wrong passwords and of flags do not pile up (Server._prune).
+	var now := Server._now()
+	net._wrong["10.9.9.9"] = [now - Server.PASSWORD_WINDOW - 1.0]
+	net._flag_at["7:spam"] = [now - Server.SECURITY_EVERY - 1.0, 0]
+	net._flag_at["8:spam"] = [now - Server.SECURITY_EVERY - 1.0, 3]
+	net._pruned_at = -INF
+	net._prune(now)
+	_check(not net._wrong.has("10.9.9.9") and net._wrong.has("10.0.0.9") and not net._flag_at.has("7:spam")
+		and net._flag_at.has("8:spam"), "the old wrong passwords and flags are forgotten, the counted kept")
 
 
 ## Who may give which command (Server.COMMANDS).

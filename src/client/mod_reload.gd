@@ -44,12 +44,19 @@ func _init(g) -> void:
 		watch = ContentWatch.new()
 
 
-## Looks at a few of the files (ContentWatch.step) and reloads when one was saved.
+## Looks at a few of the files (ContentWatch.step) and reloads when one was saved: a
+## whole step a frame while the game's window is not in front (the files are being
+## edited in another program), a tenth of one while it is played (a pass then takes
+## a few seconds, not one, for a few file times a frame instead of a hundred).
 func update() -> void:
-	if watch != null and watch.step():
+	if watch != null and watch.step(ContentWatch.BUDGET if not _in_front() else ContentWatch.BUDGET_PLAYED):
 		reload()
 	if fetch != null:
 		fetch.update()
+
+
+static func _in_front() -> bool:
+	return DisplayServer.window_is_focused()
 
 
 ## Listens to the server of connection `net` for its reloads (Protocol.MODS).

@@ -27,7 +27,8 @@ slice, to free the far meshes.
   on by default, `set_haze`): `edge_haze.gd` covers the chunks on screen without ground with a haze of the
   sky's background colour (lighter by day), which for `EdgeHaze.FADE` goes onto the built neighbouring chunks
   and melts; one mesh of quads at the player's height (the cursor's shader), rebuilt only when the set of
-  empty chunks or the level changes; edits are built first (a new edit in a chunk that is already being
+  empty chunks or the level changes, and the chunks are not even looked over while `nodes_changes` (the
+  changes of `chunk_nodes`), the screen and the level stay and the player is within `LOOK_AGAIN` 0.5; edits are built first (a new edit in a chunk that is already being
   rebuilt for an edit does not start it anew: the building goes to the end, the chunk stands in the queue once
   more — otherwise with frequent digging on a phone the relief was not updated); an edit does not wait for a
   chunk that is being built by the stream (or for the sake of `kept`): it is put aside (`stashed`) and

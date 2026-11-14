@@ -53,6 +53,7 @@ static func forget() -> void:
 	_cache = {}
 	_paths = {}
 	_images = {}
+	UiStyle.forget()
 
 
 ## The interface's picture `name` (see UI), null for none.

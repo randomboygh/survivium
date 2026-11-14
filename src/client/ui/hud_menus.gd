@@ -64,10 +64,15 @@ func toggle_bag() -> void:
 	bag.toggle()
 
 
-## The bag opened or closed: the button lit while it is open, the HUD laid out again.
+## The bag opened or closed: the button lit while it is open, the bag fitted to the screen
+## and the hints of the keys shown or hidden.
 func _on_bag_shown() -> void:
 	_bag_button.modulate = UiStyle.ACCENT if bag.visible else Color.WHITE
-	_place()
+	# Only the bag and the hints of the keys change (2026-11-14 audit WA-063: the whole HUD
+	# was laid out).
+	if bag.visible:
+		bag.fit(size)
+	_place_keys()
 
 
 func toggle_stats() -> void:
