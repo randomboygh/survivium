@@ -16,6 +16,11 @@ const INK := Color("#f3e7cc")
 const MUTED := Color("#c9b896")
 const ACCENT := Color("#e9b44c")
 const ACCENT_DARK := Color("#b98a2c")
+## The accent button's other states, as the plain one has them: lighter under the
+## cursor, its shade's colour pressed, faded towards a plain button when it cannot be pressed.
+const ACCENT_HOVER := Color("#f5c768")
+const ACCENT_DIM := Color("#7d6236")
+const ACCENT_DIM_SHADE := Color("#5a4528")
 const EDGE := Color("#0f0a06")
 const HIGHLIGHT := Color("#5b4630")
 const PANEL := Color(42 / 255.0, 32 / 255.0, 25 / 255.0, 0.92)
@@ -1734,6 +1739,13 @@ static func button(state: String, accent := false, danger := false, good := fals
 	elif accent:
 		fill = ACCENT
 		shade = ACCENT_DARK
+		if state == "hover":
+			fill = ACCENT_HOVER
+		elif state == "pressed" or state == "hover_pressed":
+			fill = ACCENT_DARK
+		elif state == "disabled":
+			fill = ACCENT_DIM
+			shade = ACCENT_DIM_SHADE
 	elif state == "hover":
 		fill = BUTTON_HOVER
 	elif state == "pressed" or state == "hover_pressed":
@@ -1789,7 +1801,7 @@ static func accent(b: Button) -> void:
 
 
 static func _paint(b: Button, kind: String) -> void:
-	for state: String in ["normal", "hover", "pressed", "hover_pressed"]:
+	for state: String in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
 		if kind == "":
 			b.remove_theme_stylebox_override(state)
 			continue
@@ -1802,6 +1814,10 @@ static func _paint(b: Button, kind: String) -> void:
 			b.remove_theme_color_override(c)
 		else:
 			b.add_theme_color_override(c, DARK_INK)
+	if kind == "":
+		b.remove_theme_color_override("font_disabled_color")
+	else:
+		b.add_theme_color_override("font_disabled_color", Color(DARK_INK, 0.6))
 
 
 ## Big round-ish touch button: an octagon with cut corners, a light rim along the top

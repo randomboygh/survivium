@@ -12,7 +12,7 @@ input.
 not drawn anew; all the game's windows are already moved to the kit. A new window is made from the kit too,
 and a new shared part is added to the kit and to the «Interface gallery».
 - `kit.gd` — static parts: a window title, a caption, an explanation; a window button (plain, amber
-  `accent_button`), a square one with an icon `icon_button`, one in the panel frame for the game screen
+  `accent_button`, with the plain one's states: lighter under the cursor, darker pressed, faded when disabled), a square one with an icon `icon_button`, one in the panel frame for the game screen
   `framed_button` (the HUD buttons, the strip's arrows), the switch `check` (`switch.gd`: in pixels: a pill track in a dark edge and a round knob in a thick one, off — dark track and pale knob on the left, on — dim amber track and amber knob on the right; the round ends are pixel circles drawn by pixel art's rules — even steps that never grow towards the diagonal, the same on every side (`_round`); inside its edge the track's ends follow the knob's steps (`_round_around`), so the room between them is one pixel all round — the text to its left); the input field `field` (the caret
   and tab switching in the browser — `TextField.fit`); column, row, inset; a scrolled list `scroll` (also by
   finger, `DragScroll`, with insets as in the settings: on the right as on the left, more only for a shown bar); the look of the screen's big buttons `octagon_look`,
@@ -22,6 +22,12 @@ and a new shared part is added to the kit and to the «Interface gallery».
   `show_fitted()` lays out at every change of the screen; the panel is centred, and taller than the screen (the
   keyboard is up) — at the top. A window sets `layout(screen)` (the heights of lists) and `back()` (what Escape
   does too). «New world», «Load world», «Join», «Create a server», the sign and the gallery are made so.
+  The window never changes its width while open: `build(title, gap, width)` fixes its column (the parts fill
+  it, no part sized to the window's full width), and a list of `Kit.scroll` counts its bar's room in its width
+  whether the bar shows or not (with no bar the rows fill that room). Every text put straight into the column
+  gets the rows' room from the sides (`Kit.text_room`, `UiStyle.BAR_GAP`), so no words touch the frame; a text in
+  a list that is not inset gets it by `Kit.text_room` too. When a part asks for other room after the window is
+  laid out (a wrapped text measured anew at its width, a note shown), the window fits itself again.
 - `shade.gd` — the shade behind a window, the pause menu and the sleep screen: as large as its parent but drawn
   over the whole window (`window_rect`), so a phone's camera cutout and a browser's toolbars, outside the safe
   rect the HUD is laid out in, are darkened too; the map and the death screen draw theirs with `window_rect`.
