@@ -906,6 +906,7 @@
 "[freeze_log]": "Freeze log"
 "[test_data]": "Test data"
 "[shader_probe]": "Shader check"
+"[what_is_drawn]": "What is drawn"
 "[last_run_log]": "Last run's log"
 "[no_log_yet]": "No log of an earlier run yet."
 "[time_and_weather]": "Time and weather"
@@ -1059,6 +1060,8 @@
 "[the_list_of_changes_appears]": "The list of changes appears in a build from the website."
 "[no_freezes]": "No freezes"
 "[no_such_freezes]": "No such freezes"
+"[show_all]": "Show all"
+"[what_is_drawn_note]": "Hide a part, close the menu and look whether the fault is gone. Parts stay hidden until shown again or the world is left."
 "[copied]": "Copied"
 "[teleport_to_a_marker]": "Teleport to a marker"
 "[go]": "Go"
@@ -1188,7 +1191,6 @@
 "[create_a_world]": "Create a world"
 "[the_land_round_the_middle]": "The land round the middle of the world, %d cells wide; the dot is where you start"
 "[a_world_with_this_seed]": "A world with this seed and these settings is saved. «Create a world» makes it anew with the mods chosen now and deletes the saved one: tap it twice. To go on with the saved one, open it from the list of worlds."
-"[a_hosted_world_with_this]": "A world with this seed and these settings is saved and was hosted as a server here. «Create a world» makes it anew with the mods chosen now and deletes the saved one with its players' characters; the bans, hosts and list of who may come in stay: tap it twice. To go on with the saved one, open it from the list of worlds."
 "[world_type]": "World type"
 "[custom]": "Custom"
 "[continents]": "Continents"
@@ -1206,6 +1208,7 @@
 "[random_seed]": "Random seed"
 "[mods_n2]": "Mods"
 "[choose_the_mods_of_the]": "Choose the mods of the new world"
+"[a_hosted_world_with_this]": "A world with this seed and these settings is saved and was hosted as a server here. «Create a world» makes it anew with the mods chosen now and deletes the saved one with its players' characters; the bans, hosts and list of who may come in stay: tap it twice. To go on with the saved one, open it from the list of worlds."
 
 # src/client/view/auto_quality.gd
 "[graphics_lowered_fps]": "Graphics lowered to keep the game smooth (%d FPS)"
@@ -1312,6 +1315,7 @@
 
 # src/shared/game/actions_dig.gd
 "[trees_are_chopped_with_an]": "Trees are chopped with an axe"
+"[water_holds_this_ground]": "Water holds this ground: no digging under water or along the shore"
 "[broke]": "Broke: %s"
 
 # src/shared/game/actions_farm.gd
@@ -1555,4 +1559,3 @@
 "[descent]": "Descent"
 "[descent_at_45]": "Descent at 45°"
 "[beach]": "Beach"
-"[water_holds_this_ground]": "Water holds this ground: no digging under water or along the shore"

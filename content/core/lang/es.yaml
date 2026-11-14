@@ -906,6 +906,7 @@
 "[freeze_log]": "Registro de tirones"
 "[test_data]": "Datos para pruebas"
 "[shader_probe]": "Prueba de shaders"
+"[what_is_drawn]": "Qué se dibuja"
 "[last_run_log]": "Registro de la última ejecución"
 "[no_log_yet]": "Aún no hay registro de una ejecución anterior."
 "[time_and_weather]": "Hora y clima"
@@ -1059,6 +1060,8 @@
 "[the_list_of_changes_appears]": "La lista de cambios aparece en una versión del sitio web."
 "[no_freezes]": "Sin tirones"
 "[no_such_freezes]": "No hay tirones así"
+"[show_all]": "Mostrar todo"
+"[what_is_drawn_note]": "Oculta una parte, cierra el menú y mira si el fallo desaparece. Lo oculto sigue oculto hasta mostrarlo o salir del mundo."
 "[copied]": "Copiado"
 "[teleport_to_a_marker]": "Teletransporte a un marcador"
 "[go]": "Ir"
@@ -1188,7 +1191,6 @@
 "[create_a_world]": "Crear un mundo"
 "[the_land_round_the_middle]": "La tierra alrededor del centro del mundo, %d celdas de ancho; el punto es tu inicio"
 "[a_world_with_this_seed]": "Ya hay un mundo guardado con esta semilla y estos ajustes. «Crear un mundo» lo hace de nuevo con los mods elegidos ahora y borra el guardado: tócalo dos veces. Para seguir con el guardado, ábrelo desde la lista de mundos."
-"[a_hosted_world_with_this]": "Ya hay un mundo guardado con esta semilla y estos ajustes, y aquí funcionó como servidor. «Crear un mundo» lo hace de nuevo con los mods elegidos ahora y borra el guardado con los personajes de sus jugadores; los bloqueos, los anfitriones y la lista de acceso se quedan: tócalo dos veces. Para seguir con el guardado, ábrelo desde la lista de mundos."
 "[world_type]": "Tipo de mundo"
 "[custom]": "Personal"
 "[continents]": "Continentes"
@@ -1206,6 +1208,7 @@
 "[random_seed]": "Semilla aleatoria"
 "[mods_n2]": "Mods"
 "[choose_the_mods_of_the]": "Elegir los mods del mundo nuevo"
+"[a_hosted_world_with_this]": "Ya hay un mundo guardado con esta semilla y estos ajustes, y aquí funcionó como servidor. «Crear un mundo» lo hace de nuevo con los mods elegidos ahora y borra el guardado con los personajes de sus jugadores; los bloqueos, los anfitriones y la lista de acceso se quedan: tócalo dos veces. Para seguir con el guardado, ábrelo desde la lista de mundos."
 
 # src/client/view/auto_quality.gd
 "[graphics_lowered_fps]": "Gráficos rebajados para que el juego vaya fluido (%d FPS)"
@@ -1312,6 +1315,7 @@
 
 # src/shared/game/actions_dig.gd
 "[trees_are_chopped_with_an]": "Los árboles se talan con hacha"
+"[water_holds_this_ground]": "Aquí se apoya el agua: no se cava bajo el agua ni en la orilla"
 "[broke]": "Se rompió: %s"
 
 # src/shared/game/actions_farm.gd
@@ -1555,4 +1559,3 @@
 "[descent]": "Bajada"
 "[descent_at_45]": "Bajada a 45°"
 "[beach]": "Playa"
-"[water_holds_this_ground]": "Aquí se apoya el agua: no se cava bajo el agua ni en la orilla"

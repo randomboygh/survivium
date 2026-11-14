@@ -906,6 +906,7 @@
 "[freeze_log]": "Dziennik zacięć"
 "[test_data]": "Dane do testu"
 "[shader_probe]": "Test shaderów"
+"[what_is_drawn]": "Co jest rysowane"
 "[last_run_log]": "Dziennik ostatniego uruchomienia"
 "[no_log_yet]": "Nie ma jeszcze dziennika wcześniejszego uruchomienia."
 "[time_and_weather]": "Czas i pogoda"
@@ -1059,6 +1060,8 @@
 "[the_list_of_changes_appears]": "Lista zmian pojawi się w wersji ze strony."
 "[no_freezes]": "Brak zacięć"
 "[no_such_freezes]": "Brak takich zacięć"
+"[show_all]": "Pokaż wszystko"
+"[what_is_drawn_note]": "Ukryj część, zamknij menu i sprawdź, czy błąd zniknął. Ukryte zostaje ukryte, dopóki go nie pokażesz lub nie wyjdziesz ze świata."
 "[copied]": "Skopiowano"
 "[teleport_to_a_marker]": "Teleport do znacznika"
 "[go]": "Idź"
@@ -1188,7 +1191,6 @@
 "[create_a_world]": "Utwórz świat"
 "[the_land_round_the_middle]": "Ziemia wokół środka świata, %d pól szerokości; kropka to miejsce startu"
 "[a_world_with_this_seed]": "Świat z tym ziarnem i tymi ustawieniami jest już zapisany. «Utwórz świat» stworzy go od nowa z wybranymi teraz modami i usunie zapisany: dotknij dwa razy. Aby kontynuować zapisany, otwórz go z listy światów."
-"[a_hosted_world_with_this]": "Świat z tym ziarnem i tymi ustawieniami jest zapisany i działał tu jako serwer. «Utwórz świat» stworzy go od nowa z wybranymi teraz modami i usunie zapisany razem z postaciami graczy; bany, gospodarze i lista dostępu zostaną: dotknij dwa razy. Aby kontynuować zapisany, otwórz go z listy światów."
 "[world_type]": "Rodzaj świata"
 "[custom]": "Własny"
 "[continents]": "Kontynenty"
@@ -1206,6 +1208,7 @@
 "[random_seed]": "Losowe ziarno"
 "[mods_n2]": "Mody"
 "[choose_the_mods_of_the]": "Wybierz mody nowego świata"
+"[a_hosted_world_with_this]": "Świat z tym ziarnem i tymi ustawieniami jest zapisany i działał tu jako serwer. «Utwórz świat» stworzy go od nowa z wybranymi teraz modami i usunie zapisany razem z postaciami graczy; bany, gospodarze i lista dostępu zostaną: dotknij dwa razy. Aby kontynuować zapisany, otwórz go z listy światów."
 
 # src/client/view/auto_quality.gd
 "[graphics_lowered_fps]": "Grafika uproszczona, żeby gra szła płynnie (%d FPS)"
@@ -1312,6 +1315,7 @@
 
 # src/shared/game/actions_dig.gd
 "[trees_are_chopped_with_an]": "Drzewa ścina się siekierą"
+"[water_holds_this_ground]": "Tu opiera się woda: nie kopie się pod wodą ani przy brzegu"
 "[broke]": "Zepsuło się: %s"
 
 # src/shared/game/actions_farm.gd
@@ -1555,4 +1559,3 @@
 "[descent]": "Zejście"
 "[descent_at_45]": "Zejście pod 45°"
 "[beach]": "Plaża"
-"[water_holds_this_ground]": "Tu opiera się woda: nie kopie się pod wodą ani przy brzegu"

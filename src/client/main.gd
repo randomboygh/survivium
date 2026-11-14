@@ -96,6 +96,7 @@ const LandView := preload("res://src/client/view/land_view.gd")
 const PlanView := preload("res://src/client/view/plan_view.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const DrawCensus := preload("res://src/client/view/draw_census.gd")
+const RenderToggles := preload("res://src/client/view/render_toggles.gd")
 const ShaderWarmup := preload("res://src/client/view/shader_warmup.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const FreezeLog := preload("res://src/client/ui/freeze_log.gd")
@@ -214,6 +215,8 @@ var menu: MainMenu
 var death_screen: DeathScreen
 ## Counts the frame's draw calls by what is drawn (the playtest page, «Отладка»).
 var draw_census: DrawCensus
+## Parts of the picture hidden from «Тестирование» to find a fault (RenderToggles).
+var render_toggles: RenderToggles
 ## Marks what the game did for the freezes' log, and shows the log («Отладка»).
 var freeze_log: FreezeLog
 ## The 3D scene, inside the view's SubViewport, and the snowdrifts of every chunk,
@@ -954,6 +957,8 @@ func _build_ui() -> void:
 	over.add_child(death_screen)
 	draw_census = DrawCensus.new(self)
 	add_child(draw_census)
+	render_toggles = RenderToggles.new(self)
+	add_child(render_toggles)
 	freeze_log = FreezeLog.new(self)
 	add_child(freeze_log)
 	# The buttons' hints over everything, the main menu too (with a mouse).

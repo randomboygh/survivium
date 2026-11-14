@@ -906,6 +906,7 @@
 "[freeze_log]": "Journal des saccades"
 "[test_data]": "Données de test"
 "[shader_probe]": "Test des shaders"
+"[what_is_drawn]": "Ce qui est dessiné"
 "[last_run_log]": "Journal du dernier lancement"
 "[no_log_yet]": "Pas encore de journal d'un lancement précédent."
 "[time_and_weather]": "Heure et météo"
@@ -1059,6 +1060,8 @@
 "[the_list_of_changes_appears]": "La liste des changements apparaît dans une version du site."
 "[no_freezes]": "Pas de saccades"
 "[no_such_freezes]": "Pas de telles saccades"
+"[show_all]": "Tout afficher"
+"[what_is_drawn_note]": "Masque une partie, ferme le menu et regarde si le défaut disparaît. Ce qui est masqué le reste jusqu'à l'afficher ou quitter le monde."
 "[copied]": "Copié"
 "[teleport_to_a_marker]": "Téléporter à un repère"
 "[go]": "Aller"
@@ -1188,7 +1191,6 @@
 "[create_a_world]": "Créer un monde"
 "[the_land_round_the_middle]": "Les terres autour du centre du monde, %d cases de large ; le point est ton départ"
 "[a_world_with_this_seed]": "Un monde avec cette graine et ces réglages est déjà sauvegardé. «Créer un monde» le refait avec les mods choisis maintenant et supprime la sauvegarde : touchez deux fois. Pour continuer la sauvegarde, ouvrez-la depuis la liste des mondes."
-"[a_hosted_world_with_this]": "Un monde avec cette graine et ces réglages est sauvegardé et a servi de serveur ici. «Créer un monde» le refait avec les mods choisis maintenant et supprime la sauvegarde avec les personnages des joueurs ; les bannissements, les hôtes et la liste d'accès restent : touchez deux fois. Pour continuer la sauvegarde, ouvrez-la depuis la liste des mondes."
 "[world_type]": "Type de monde"
 "[custom]": "Perso"
 "[continents]": "Continents"
@@ -1206,6 +1208,7 @@
 "[random_seed]": "Graine aléatoire"
 "[mods_n2]": "Mods"
 "[choose_the_mods_of_the]": "Choisir les mods du nouveau monde"
+"[a_hosted_world_with_this]": "Un monde avec cette graine et ces réglages est sauvegardé et a servi de serveur ici. «Créer un monde» le refait avec les mods choisis maintenant et supprime la sauvegarde avec les personnages des joueurs ; les bannissements, les hôtes et la liste d'accès restent : touchez deux fois. Pour continuer la sauvegarde, ouvrez-la depuis la liste des mondes."
 
 # src/client/view/auto_quality.gd
 "[graphics_lowered_fps]": "Graphismes baissés pour que le jeu reste fluide (%d FPS)"
@@ -1312,6 +1315,7 @@
 
 # src/shared/game/actions_dig.gd
 "[trees_are_chopped_with_an]": "Les arbres s'abattent à la hache"
+"[water_holds_this_ground]": "L'eau s'appuie ici : pas de creusage sous l'eau ni sur la rive"
 "[broke]": "Cassé : %s"
 
 # src/shared/game/actions_farm.gd
@@ -1555,4 +1559,3 @@
 "[descent]": "Descente"
 "[descent_at_45]": "Descente à 45°"
 "[beach]": "Plage"
-"[water_holds_this_ground]": "L'eau s'appuie ici : pas de creusage sous l'eau ni sur la rive"
