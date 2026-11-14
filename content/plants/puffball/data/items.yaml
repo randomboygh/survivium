@@ -1,0 +1,11 @@
+# Giant puffball: one is a meal, but it does not keep. Fields as for the core's items (content/core/data/items.yaml).
+- id: puffball
+  title: "[plants.items.puffball]"
+  weight: 0.4
+  stack: 5
+  food: 22
+  spoils: 2
+  rots_to: core:rot
+  model: puffball
+  icon: puffball
+  anim: eat

@@ -1,0 +1,22 @@
+# Evening primrose flowers and the calming tea brewed of them: drunk before bed, sleep comes deeper (calm — seconds
+# during which sleep rests faster, Vitals.CALM_SLEEP). Fields as for the core's items.
+- id: evening_primrose
+  title: "[plants.items.evening_primrose]"
+  weight: 0.02
+  stack: 30
+  spoils: 3
+  rots_to: core:rot
+  model: evening_primrose
+  icon: evening_primrose
+- id: primrose_tea
+  title: "[plants.items.primrose_tea]"
+  description: "[plants.items.primrose_tea.about]"
+  weight: 0.3
+  stack: 5
+  drink: 12
+  calm: 300
+  spoils: 2
+  rots_to: core:rot
+  model: primrose_tea
+  icon: primrose_tea
+  anim: eat

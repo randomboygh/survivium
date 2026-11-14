@@ -40,7 +40,7 @@ const Eras := preload("res://src/shared/content/eras.gd")
 ## use only (mending, an animal's food); `era` — the era of an item (see era). A field not
 ## here fails graph_test: the graph must know every link.
 const LINKS := {
-	"materials.item": "gives", "materials.bonus": "gives", "materials.mow": "gives", "materials.mow_gives": "gives",
+	"materials.item": "gives", "materials.bonus": "gives", "materials.finds": "gives", "materials.mow": "gives", "materials.mow_gives": "gives",
 	"items.place": "makes", "items.plant": "makes", "items.sow": "makes", "items.crop": "makes", "items.repair": "use", "items.ammo": "use", "items.oars": "use",
 	"items.serves": "serves", "items.rots_to": "rots", "items.empties_to": "empties", "items.fills_to": "fills",
 	"creatures.likes": "use", "creatures.biomes": "lives", "plants.biomes": "lives", "creatures.carcass": "gives", "creatures.catch": "gives", "creatures.wool": "gives", "creatures.trapped": "gives", "creatures.tame_food": "use",

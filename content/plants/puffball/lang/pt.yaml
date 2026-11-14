@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/puffball/bundle.yaml
+"[plants.puffball.bundle]": "Bufa-de-lobo gigante"
+
+# content/plants/puffball/data/items.yaml
+"[plants.items.puffball]": "Bufa-de-lobo"
+
+# content/plants/puffball/data/plants.yaml
+"[plants.plants.puffball]": "Bufa-de-lobo gigante"

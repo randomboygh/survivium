@@ -82,7 +82,11 @@
   Видения (`visions` предмета, светящийся гриб бандла `plants/mushrooms`): `Vitals.see_visions` прибавляет
   их секунды (`visions`, до `VISIONS_MAX`, в сохранении; съедается и сытым), они идут в реальных секундах
   и кончаются со смертью; клиент получает их целые секунды 11-м полем `VITALS`, и картинка плывёт и
-  переливается цветами (`CameraRig.visions` → `trip` в `grade.gdshader`).
+  переливается цветами (`CameraRig.visions` → `trip` в `grade.gdshader`). Покой (`calm` предмета, отвар энотеры
+  бандла `plants/evening_primrose`, пьётся и без жажды): `Vitals.calm_down` прибавляет его секунды (до `CALM_MAX`,
+  в сохранении); во сне под ним отдых идёт в `CALM_SLEEP` раз быстрее. Сон внутри ведьмина кольца
+  (`Character.in_fairy_ring`, `Grass.fairy_ring`) отдыхает в `RING_SLEEP` раз быстрее и оставляет не меньше
+  `RING_DREAMS` секунд видений.
   Вода `water` убывает на `THIRST_PER_DAY` в игровые сутки (в жару в `THIRST_HOT` раз быстрее); ниже
   `THIRSTY` — как голод (нет лечения, отдых вдвое медленнее, выносливость до `HUNGRY_CAP`), на нуле
   ранит (`hurt_by` "thirst", «Вы умерли от жажды»). `drink(amount)`; `thirst` выкл — тестовый

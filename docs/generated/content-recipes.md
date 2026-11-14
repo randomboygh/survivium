@@ -19,7 +19,7 @@
 | [crafting] (`craft`) | 123 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
 | Переработка (`refine`) | 12 | руки, [tools.items.workbench], [tools.items.drying_rack], [tools.items.loom] |
 | Плавка и обжиг (`smelt`) | 15 | [tools.items.forge], [tools.items.bloomery], [tools.items.kiln] |
-| Готовка (`cook`) | 12 | [core.items.campfire], [tools.items.kiln] |
+| Готовка (`cook`) | 14 | [core.items.campfire], [tools.items.kiln] |
 
 ## [crafting] (`craft`)
 
@@ -200,5 +200,7 @@
 | [animals.recipes.roasted_fish_from_perch] `animals:roasted_fish_from_perch` | [animals.items.roasted_fish] ×1 | [animals.items.perch] ×1, [resources.items.branch] ×1 | — | [core.items.campfire] (или [tools.items.fireplace]) | — | 3 с | 3 | 1. [core.eras.primitive] | [animals.recipes.roasted_fish_from_roach] `animals:roasted_fish_from_roach`, [animals.recipes.roasted_fish_from_pike] `animals:roasted_fish_from_pike`, [animals.recipes.roasted_fish_from_salmon] `animals:roasted_fish_from_salmon`, [animals.recipes.roasted_fish_from_cod] `animals:roasted_fish_from_cod`, [animals.recipes.roasted_fish_from_parrotfish] `animals:roasted_fish_from_parrotfish`, [animals.recipes.roasted_fish_from_catfish] `animals:roasted_fish_from_catfish` |
 | [animals.recipes.roasted_meat] `animals:roasted_meat` | [animals.items.roasted_meat] ×1 | [animals.items.raw_meat] ×1, [resources.items.branch] ×1 | — | [core.items.campfire] (или [tools.items.fireplace]) | — | 4 с | 2 | 0. [core.eras.foraging] | — |
 | [plants.recipes.flatbread] `plants:flatbread` | [plants.items.flatbread] ×1 | [plants.items.flour] ×2 | — | [tools.items.kiln] | — | 5 с | 4 | 3. [core.eras.bronze] | — |
-| [materials.recipes.bone_glue] `materials:bone_glue` | [materials.items.bone_glue] ×1 | [animals.items.bone] ×3, [resources.items.branch] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | — |
+| [materials.recipes.bone_glue] `materials:bone_glue` | [materials.items.bone_glue] ×1 | [animals.items.bone] ×3, [resources.items.branch] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | [plants.recipes.bone_glue_from_sundew] `plants:bone_glue_from_sundew` |
+| [plants.recipes.primrose_tea] `plants:primrose_tea` | [plants.items.primrose_tea] ×1 | [plants.items.evening_primrose] ×4 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 3 с | 8 | 3. [core.eras.bronze] | — |
 | [plants.recipes.roasted_acorns] `plants:roasted_acorns` | [plants.items.roasted_acorns] ×1 | [plants.items.acorn] ×6 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 5 с | 8 | 3. [core.eras.bronze] | — |
+| [plants.recipes.bone_glue_from_sundew] `plants:bone_glue_from_sundew` | [materials.items.bone_glue] ×1 | [plants.items.sundew] ×6, [resources.items.branch] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | [materials.recipes.bone_glue] `materials:bone_glue` |

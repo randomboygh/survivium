@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/finds/bundle.yaml
+"[materials.finds.bundle]": "Buluntular"
+
+# content/materials/finds/data/items.yaml
+"[materials.items.ammonite]": "Amonit"
+"[materials.items.ammonite.about]": "Çok uzun zaman önce taşa dönmüş bir kabuk. Kayada ara sıra bulunur."
+"[materials.items.geode]": "Jeot"
+"[materials.items.geode.about]": "Sıradan bir taş; içi boş ve mor kristallerle dolu."
+"[materials.items.amber]": "Kehribar"
+"[materials.items.amber.about]": "Dokununca ılık, içinde minik bir sivrisinek kalmış eski reçine."

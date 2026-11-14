@@ -252,6 +252,11 @@ static func heal_time(id: String) -> float:
 	return get_item(id).get("heal_time", 0.0)
 
 
+## Seconds of calm one of item `id` gives when drunk or eaten (a tea), 0 for none.
+static func calm(id: String) -> float:
+	return get_item(id).get("calm", 0.0)
+
+
 ## Seconds of visions one of item `id` gives when eaten (a glowing mushroom), 0 for none.
 static func visions(id: String) -> float:
 	return get_item(id).get("visions", 0.0)

@@ -1,0 +1,16 @@
+# Evening primrose (kind: custom, fields as for the fern): tall stalks of closed yellow buds by day that open into pale
+# flowers at dusk (looks: night — the second half of the frames is the plant at night); picked for its flowers.
+- id: evening_primrose
+  kind: custom
+  title: "[plants.plants.evening_primrose]"
+  sprite: evening_primrose
+  frames: 2
+  looks: night
+  grows: meadow
+  cover: 0.45
+  clumps: 0.35
+  pick: true
+  gives: {evening_primrose: 2}
+  chance: 0.8
+  winter: false
+  biomes: [biomes:meadow, biomes:steppe, biomes:forest_steppe, biomes:floodplain, biomes:beach]

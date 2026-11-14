@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/sundew/bundle.yaml
+"[plants.sundew.bundle]": "Drosera"
+
+# content/plants/sundew/data/items.yaml
+"[plants.items.sundew]": "Foglie di drosera"
+"[plants.items.sundew.about]": "Appiccicose di una rugiada che non si asciuga mai; bollite danno colla."
+
+# content/plants/sundew/data/plants.yaml
+"[plants.plants.sundew]": "Drosera"
+
+# content/plants/sundew/data/recipes.yaml
+"[plants.recipes.bone_glue_from_sundew]": "Colla di drosera"

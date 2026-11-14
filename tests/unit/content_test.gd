@@ -159,9 +159,9 @@ func _test_mods() -> void:
 		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("music") == "music" and not "sounds" in all,
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
 	_check(Lang.t(Mods.title("animals/wolf")) == "Wolf" and Lang.t(Mods.title("plants/oak")) == "Oak" and Lang.t(Mods.title("music")) == "Music" and Lang.t(Mods.title("tools/kiln")) == "Kiln"
-		and Lang.t(Mods.mod_title("plants")) == "Plants" and Mods.bundles("animals").size() == 19 and Mods.bundles("plants").size() == 42
+		and Lang.t(Mods.mod_title("plants")) == "Plants" and Mods.bundles("animals").size() == 19 and Mods.bundles("plants").size() == 46
 		and Mods.bundles("resources") == ["resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/wood"]
-		and Mods.bundles("materials").size() == 20 and Mods.bundles("tools").size() == 49 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
+		and Mods.bundles("materials").size() == 21 and Mods.bundles("tools").size() == 49 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():
 		for need in Content.deps(Content.loaded[i]):
@@ -179,7 +179,7 @@ func _test_mods() -> void:
 	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
 	_check(Lang.t(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants"))) == "Animals (1 of 19), Plants" and Lang.t(Mods.summary(["core"])) == "core only"
-		and Lang.t(Mods.summary(["core", "plants/oak"])) == "Plants (1 of 42)", "a set is summed up by mods")
+		and Lang.t(Mods.summary(["core", "plants/oak"])) == "Plants (1 of 46)", "a set is summed up by mods")
 	var before := Content.BUNDLES.duplicate()
 	for m in ["_a", "_b", "_c", "_d"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)

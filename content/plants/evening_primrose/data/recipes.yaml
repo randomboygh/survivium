@@ -1,0 +1,10 @@
+# Tea of evening primrose flowers, brewed in a clay pot ("Tools", the potter's wheel; it stays in the bag) on the
+# core's campfire.
+- id: primrose_tea
+  title: "[plants.recipes.primrose_tea]"
+  makes: primrose_tea
+  needs: {evening_primrose: 4}
+  keeps: {tools:pot: 1}
+  at: core:campfire
+  process: cook
+  time: 3

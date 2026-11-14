@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/finds/bundle.yaml
+"[materials.finds.bundle]": "Achados"
+
+# content/materials/finds/data/items.yaml
+"[materials.items.ammonite]": "Amonite"
+"[materials.items.ammonite.about]": "Uma concha que virou pedra há muito tempo. Às vezes aparece na rocha."
+"[materials.items.geode]": "Geodo"
+"[materials.items.geode.about]": "Uma pedra comum, oca e cheia de cristais violeta por dentro."
+"[materials.items.amber]": "Âmbar"
+"[materials.items.amber.about]": "Resina antiga, morna ao toque, com um mosquito preso lá dentro."

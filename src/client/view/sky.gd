@@ -26,6 +26,9 @@ const RAYS_BRIGHTNESS := 1.0
 const TORCH_ENERGY := 1.3
 const GLOW_ENERGY := 0.3
 const GLOW_RANGE := 1.5
+## How much the surf glows on spring and autumn nights (1 in summer; see sea_glow).
+const SEA_GLOW_SPRING := 0.3
+const SEA_GLOW_AUTUMN := 0.5
 ## Two torches, one in each hand, light this much farther than one.
 const TWO_TORCHES := 1.4
 ## Torches, fires and lights set down burn brighter the darker it is round them (see
@@ -445,12 +448,19 @@ func _update_weather(delta: float) -> void:
 	g.global_shader_parameter_set("berry_amount", berry_amount)
 	g.global_shader_parameter_set("blossom_amount", blossom_amount)
 	g.global_shader_parameter_set("night_glow", smoothstep(0.6, 0.15, daylight))
+	# The sea glows where the surf breaks on warm nights (plankton, water.gdshader):
+	# in summer, a little at the ends of spring and autumn, never on ice.
+	var warm_sea: float = [SEA_GLOW_SPRING, 1.0, SEA_GLOW_AUTUMN, 0.0][clock.season]
+	g.global_shader_parameter_set("sea_glow", smoothstep(0.5, 0.1, daylight) * warm_sea * (1.0 - clock.ice()))
 	g.global_shader_parameter_set("cloud_cover", clock.clouds)
 	g.global_shader_parameter_set("cloud_offset", cloud_pos)
 	g.global_shader_parameter_set("wind", wind)
 	game.water_mat.set_shader_parameter("ice_amount", clock.ice())
 	if game.player != null:
 		game.effects.update(delta, game.view.cam_target, game.player.position.y, self, clock, game.chunks.indoor)
+		game.effects.wisps.world = game.world
+		game.effects.wisps.update(delta, game.view.cam_target, game.player.position, smoothstep(0.6, 0.15, daylight),
+			clock.season == Clock.WINTER, game.effects.enabled)
 	if game.tracks != null:
 		game.tracks.snow = clock.snow
 		game.tracks.wet = clock.wet

@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/evening_primrose/bundle.yaml
+"[plants.evening_primrose.bundle]": "Evening primrose"
+
+# content/plants/evening_primrose/data/items.yaml
+"[plants.items.evening_primrose]": "Evening primrose flowers"
+"[plants.items.primrose_tea]": "Primrose tea"
+"[plants.items.primrose_tea.about]": "A calming brew: drunk before bed, sleep comes deeper and rests faster."
+
+# content/plants/evening_primrose/data/plants.yaml
+"[plants.plants.evening_primrose]": "Evening primrose"
+
+# content/plants/evening_primrose/data/recipes.yaml
+"[plants.recipes.primrose_tea]": "Primrose tea"

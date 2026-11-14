@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/sundew/bundle.yaml
+"[plants.sundew.bundle]": "Güneş gülü"
+
+# content/plants/sundew/data/items.yaml
+"[plants.items.sundew]": "Güneş gülü yaprakları"
+"[plants.items.sundew.about]": "Hiç kurumayan çiyden yapış yapış; kaynatılınca tutkal olur."
+
+# content/plants/sundew/data/plants.yaml
+"[plants.plants.sundew]": "Güneş gülü"
+
+# content/plants/sundew/data/recipes.yaml
+"[plants.recipes.bone_glue_from_sundew]": "Güneş gülü tutkalı"

@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/evening_primrose/bundle.yaml
+"[plants.evening_primrose.bundle]": "Prímula-da-noite"
+
+# content/plants/evening_primrose/data/items.yaml
+"[plants.items.evening_primrose]": "Flores de prímula-da-noite"
+"[plants.items.primrose_tea]": "Chá de prímula"
+"[plants.items.primrose_tea.about]": "Um chá calmante: bebido antes de dormir, o sono fica mais profundo e descansa mais depressa."
+
+# content/plants/evening_primrose/data/plants.yaml
+"[plants.plants.evening_primrose]": "Prímula-da-noite"
+
+# content/plants/evening_primrose/data/recipes.yaml
+"[plants.recipes.primrose_tea]": "Chá de prímula"

@@ -1,0 +1,30 @@
+# Finds: things found now and then while digging (a material's `finds`): an ammonite and a geode in stone, amber in
+# sand, clay and peat. Kept, or set down as a curio (prop, furniture: on the floor, a table, a shelf). Fields as for
+# the core's items (content/core/data/items.yaml).
+- id: ammonite
+  title: "[materials.items.ammonite]"
+  description: "[materials.items.ammonite.about]"
+  weight: 0.6
+  stack: 5
+  model: ammonite
+  icon: ammonite
+  prop: ammonite
+  furniture: true
+- id: geode
+  title: "[materials.items.geode]"
+  description: "[materials.items.geode.about]"
+  weight: 0.8
+  stack: 5
+  model: geode
+  icon: geode
+  prop: geode
+  furniture: true
+- id: amber
+  title: "[materials.items.amber]"
+  description: "[materials.items.amber.about]"
+  weight: 0.05
+  stack: 10
+  model: amber
+  icon: amber
+  prop: amber
+  furniture: true
