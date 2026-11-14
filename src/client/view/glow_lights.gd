@@ -14,7 +14,8 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const LIGHTS := 4
 ## How far round a group its light reaches, in world units (a cell is half a unit).
 const REACH := 1.6
-const ENERGY := 0.9
+## How bright a group's light is: each group its own, between these (a pale glow).
+const ENERGY := Vector2(0.22, 0.45)
 const COLOR := Color(0.35, 0.95, 0.8)
 ## How high over the mushrooms the light hangs, in world units.
 const LIFT := 0.3
@@ -80,7 +81,14 @@ func update(delta: float, view: Vector2, sky, clock) -> void:
 		# slowly as the caps do.
 		light.position = PixelView.shear(p + Vector3(0.0, LIFT, 0.0))
 		light.omni_range = PixelView.light_range(REACH)
-		light.light_energy = ENERGY * show * (0.9 + 0.1 * sin(_clock * 1.1 + float(i) * 1.7))
+		light.light_energy = brightness(p) * show * (0.9 + 0.1 * sin(_clock * 1.1 + float(i) * 1.7))
+
+
+## How bright the light of the group at `p` is: the same each night, but not the same as
+## the next group's.
+static func brightness(p: Vector3) -> float:
+	var k := fposmod(sin(p.x * 12.9898 + p.z * 78.233) * 43758.5453, 1.0)
+	return lerpf(ENERGY.x, ENERGY.y, k)
 
 
 ## Hands the lights to the groups nearest `view`, one light a group.

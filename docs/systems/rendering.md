@@ -54,7 +54,7 @@ voxel models of things.
 - `src/client/view/glow_lights.gd` (held by `Effects.glows`) — small teal pools of light round the glowing
   mushrooms at night: `Foliage` notes where each glowing mushroom stands (`Job.glows`, kept through a patch),
   `ChunkStreamer` hands them over per chunk, and every `PICK_EVERY` s the `LIGHTS` (4) groups nearest the
-  view get a short light (`REACH` 1.6 units, one per group `APART`); the others glow only on their own
+  view get a short light (`REACH` 1.6 units, one per group `APART`; each group its own pale brightness within `ENERGY`, 2–4 times dimmer than at first); the others glow only on their own
   (`grass.gdshader`). Off by day and under snow, like the caps.
 - `src/client/view/fire_shadows.gd` — the shadows from fire drawn on the ground; `sun_rays.gd` — rays among
   trees, glints, dust. A shaft starts on the tree's middle plane (upright, through the trunk, across the sun's
