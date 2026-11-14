@@ -1117,6 +1117,12 @@ func _run() -> void:
 				main.menu.open_host()
 				if shot.has("host_tab"):
 					main.menu._setup.show_tab(shot.host_tab)
+				if shot.get("host_new_world", false):
+					# A world set up on «Новый мир…», back in the list, chosen.
+					main.settings.values.world_seed = 91234
+					main.menu._setup._new_world_made(false)
+				if shot.get("host_open_new", false):
+					main.menu._setup._open_new_world()
 				for i in 3:
 					await process_frame
 			if shot.main_menu == "join":
