@@ -1,6 +1,6 @@
 # Architecture
 
-Status: ACTIVE, checked against the code of `main` on 2026-11-09 (PR #457). Only what exists is here; the
+Status: ACTIVE, checked against the code of `main` on 2026-11-14 (PR #581). Only what exists is here; the
 ideas (the editor, mods' scripts) are in the library, `plan/architecture/`. A Russian copy:
 [ARCHITECTURE_RU.md](ARCHITECTURE_RU.md).
 
@@ -60,6 +60,8 @@ The graph by folders from the code: [DEPENDENCIES.md](DEPENDENCIES.md).
 |---|---|
 | `scenes/main.tscn` (the main scene in `project.godot`) | `src/client/main.gd` — the game |
 | `godot --headless --path . -- --server [--port N] [--seed N \| --world <folder>]` (from a PC build — `Survivium.console.exe --headless -- --server`) | `scenes/server.tscn` with `src/server/server_main.gd` — a server without a window ([systems/network.md](systems/network.md)) |
+| `godot --path . -- --join ws://host:port [--name X] [--bot]` | the game joining a server at once; with `--bot` it plays itself (`src/client/input/bot.gd`) |
+| The Android APK (the preset `Android` in `export_presets.cfg`) | the same main scene; Android draws with Vulkan (decision 188, [systems/android.md](systems/android.md)) |
 | `godot --headless --path . --script res://tests/<name>.gd` | the tests, each `extends SceneTree` |
 | `godot … --script res://tools/<name>.gd` | tools: the validator, screenshots, the map, benches, asset makers |
 | `python3 tools/<name>.py` | the build's version, the patch of the web build, Pillow drawing tools, the document index |
@@ -96,7 +98,10 @@ ready, the near chunks are finished (then the spawn, things, beasts, shader warm
 the sky → the tick's events (`host.flush`), the player's body, input, gathering, hands, `input` to the
 server → tracks, autosave → the slice of levels, chunk meshes (minus the generation time), roofs, budgets to
 the node for the next frame → the roof map and the minimap → camera, warm-up, the freeze log → HUD and the
-death screen. The time of each step is noted by `perf.note` / `perf.add` (the F3 panel). The menu's pause
+death screen; then `auto_quality.update` («Quality → Auto», `src/client/view/auto_quality.gd`: it counts
+the frames in windows of 5 s and moves the graphics settings a step down or up,
+[systems/rendering.md](systems/rendering.md)). The time of each step is noted by `perf.note` / `perf.add`
+(the F3 panel). The menu's pause
 stops Main and the session's steps but not the node: the world keeps being finished
 (`_build_while_paused`).
 
@@ -115,6 +120,12 @@ stops Main and the session's steps but not the node: the world keeps being finis
 - The rules the host sets for everyone (free building, wear, instant crafting) are read by the rules from
   the shared object `rules.gd`; in single player `settings.gd` fills it, on a server — the `[rules]` section
   of its config (`src/server/config.gd`).
+- `WorldActions` is a chain of parts by topic (`actions_base` ← `actions_gather` ← `actions_fight` ←
+  `actions_water` ← `actions_dig` ← `actions_build` ← `actions_farm` ← `actions_nature` ← `actions_tame` ←
+  `actions_boat`, decision 168): building by blueprint and build mode (`plans.gd`), farming and farm mode
+  (decision 169), nature growing over and spreading in the warm seasons, taming, rafts and boats
+  (`vessels.gd` keeps the vessels on the water, decision 178). Gestures and signs are kept on the server too
+  (`gestures.gd`, `placed.gd`, decision 183) and told to the others in their `people` entries and events.
 - A signal is connected by a method, not by a lambda with `self`: a lambda holds the object, and a
   RefCounted is not freed (see `src/shared/game/character.gd`).
 
@@ -142,6 +153,27 @@ The game's text: every text for a player is a key `[…]` (decision 186); the tr
 itself (decision 183, [systems/lang.md](systems/lang.md)). When run from the project folder,
 `content_watch.gd` notices the changed files of mods, and the module `mod_reload.gd` rereads the registries,
 pictures and sounds (decision 184, [systems/content.md](systems/content.md)).
+
+The mods' files go from the server to the game (decision 189): `hello` carries the hash of the game's mod
+files (`mod_files.gd`); when it is not the server's, the server refuses with `mods` and gives its files
+(`src/server/content_host.gd`); the game takes the missing ones (`src/client/net/mod_fetch.gd`), keeps them
+by hash in `user://mod_cache/` (`mod_cache.gd`, the oldest go past the limit) and plays with them through
+`Content.serve`: every mod file is read through `Content` (`real`, `text`, `file_exists`…), never by
+`FileAccess`. On a phone one's own mods come from a zip (`src/client/mod_import.gd`).
+
+## The interface
+
+Windows are assembled from the kit (`src/client/ui/kit/`: `kit.gd` static parts, `window.gd`, `switch.gd`,
+`choice_rows.gd`, `slot_strip.gd`, `fading_list.gd`, `two_tap.gd`, `shade.gd`) with the shared style
+`ui/ui_style.gd`; a new window is made from the kit, and a new shared part goes into the kit and the
+«Interface gallery» («Testing → Debug», `tests/unit/ui_test.gd`). Details: [systems/ui.md](systems/ui.md).
+
+## Testing on a server
+
+A server's host can add bots the server plays itself (`src/server/server_bot.gd`, stepped by
+`test_commands.gd`, «/test …» in the chat), switch on a test mod that checks the sending of mod files
+(`test_mod.gd`) and run a playtest server for a term (`playtest_host.gd`); the game's own bot
+(`--bot`) plays through a socket like a player ([systems/network.md](systems/network.md)).
 
 ## Saving
 

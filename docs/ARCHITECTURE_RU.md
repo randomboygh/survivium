@@ -2,7 +2,7 @@
 
 Английская версия: [ARCHITECTURE.md](ARCHITECTURE.md) (она основная, эта — копия).
 
-Статус: ACTIVE, сверено с кодом `main` 2026-11-09 (PR #457). Здесь только то, что есть; замыслы
+Статус: ACTIVE, сверено с кодом `main` 2026-11-14 (PR #581). Здесь только то, что есть; замыслы
 (редактор, скрипты модов) — в библиотеке, `plan/architecture/`.
 
 ## Слои
@@ -59,6 +59,8 @@ graph TD
 |---|---|
 | `scenes/main.tscn` (главная сцена в `project.godot`) | `src/client/main.gd` — игра |
 | `godot --headless --path . -- --server [--port N] [--seed N \| --world <папка>]` (из сборки ПК — `Survivium.console.exe --headless -- --server`) | `scenes/server.tscn` со `src/server/server_main.gd` — сервер без окна ([systems/network.md](systems/network_RU.md)) |
+| `godot --path . -- --join ws://host:port [--name X] [--bot]` | игра, сразу входящая на сервер; с `--bot` играет сама (`src/client/input/bot.gd`) |
+| APK для Android (пресет `Android` в `export_presets.cfg`) | та же главная сцена; Android рисует через Vulkan (решение 188, [systems/android.md](systems/android_RU.md)) |
 | `godot --headless --path . --script res://tests/<имя>.gd` | тесты, каждый `extends SceneTree` |
 | `godot … --script res://tools/<имя>.gd` | инструменты: валидатор, скриншоты, карта, бенчмарки, генераторы ассетов |
 | `python3 tools/<имя>.py` | версия сборки, патч web-сборки, рисовалки на Pillow, индекс документов |
@@ -93,7 +95,9 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 вещи, звери, прогрев шейдеров) → копия часов и небо → события тика (`host.flush`), тело игрока, ввод,
 сбор, руки, `input` серверу → следы, автосохранение → срез уровней, меши чанков (за вычетом времени
 генерации), крышки, бюджеты узлу на следующий кадр → карта крыши и миникарта → камера, прогрев, журнал
-фризов → HUD и экран смерти. Время каждого шага отмечается `perf.note` / `perf.add` (панель F3). Пауза
+фризов → HUD и экран смерти; затем `auto_quality.update` («Качество → Авто», `src/client/view/auto_quality.gd`:
+считает кадры в окнах по 5 с и сдвигает настройки графики на шаг вниз или вверх,
+[systems/rendering.md](systems/rendering_RU.md)). Время каждого шага отмечается `perf.note` / `perf.add` (панель F3). Пауза
 меню останавливает Main и шаги сеанса, но не узел: мир достраивается дальше (`_build_while_paused`).
 
 ## Как правила говорят с картинкой
@@ -111,6 +115,12 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 - Правила, которые хозяин задаёт всем (свободная стройка, износ, мгновенный крафт), правила читают из
   общего объекта `rules.gd`; в одиночной игре его заполняет `settings.gd`, у сервера — раздел `[rules]`
   его конфига (`src/server/config.gd`).
+- `WorldActions` — цепочка частей по темам (`actions_base` ← `actions_gather` ← `actions_fight` ←
+  `actions_water` ← `actions_dig` ← `actions_build` ← `actions_farm` ← `actions_nature` ← `actions_tame` ←
+  `actions_boat`, решение 168): стройка по чертежу и режим стройки (`plans.gd`), огород и режим огорода
+  (решение 169), природа, которая зарастает и расселяется в тёплые сезоны, приручение, плоты и лодки
+  (`vessels.gd` хранит суда на воде, решение 178). Жесты и таблички тоже хранятся на сервере
+  (`gestures.gd`, `placed.gd`, решение 183) и сообщаются другим в их записях `people` и событиях.
 - Сигнал подключается методом, а не лямбдой с `self`: лямбда держит объект, и RefCounted не
   освобождается (см. `src/shared/game/character.gd`).
 
@@ -137,6 +147,27 @@ Main как `game` (`Controls.new(self)`, `ChunkStreamer.new(self)`…) и че�
 шлёт ключ или `Lang.line`, клиент переводит у себя (решение 183, [systems/lang.md](systems/lang_RU.md)). При
 запуске из папки проекта `content_watch.gd` замечает изменённые файлы модов, а модуль `mod_reload.gd`
 перечитывает реестры, картинки и звуки (решение 184, [systems/content.md](systems/content_RU.md)).
+
+Файлы модов идут от сервера к игре (решение 189): `hello` несёт хеш файлов модов игры (`mod_files.gd`);
+если он не серверный, сервер отказывает с `mods` и отдаёт свои файлы (`src/server/content_host.gd`); игра
+берёт недостающие (`src/client/net/mod_fetch.gd`), хранит их по хешу в `user://mod_cache/` (`mod_cache.gd`,
+сверх предела уходят самые старые) и играет с ними через `Content.serve`: каждый файл мода читается через
+`Content` (`real`, `text`, `file_exists`…), никогда через `FileAccess`. На телефоне свои моды приходят из
+zip (`src/client/mod_import.gd`).
+
+## Интерфейс
+
+Окна собираются из набора (`src/client/ui/kit/`: статичные части `kit.gd`, `window.gd`, `switch.gd`,
+`choice_rows.gd`, `slot_strip.gd`, `fading_list.gd`, `two_tap.gd`, `shade.gd`) с общим стилем
+`ui/ui_style.gd`; новое окно делается из набора, а новая общая часть идёт в набор и в «Галерею интерфейса»
+(«Тестирование → Отладка», `tests/unit/ui_test.gd`). Подробно: [systems/ui.md](systems/ui_RU.md).
+
+## Проверка на сервере
+
+Хозяин сервера может добавить ботов, за которых играет сам сервер (`src/server/server_bot.gd`, их шагает
+`test_commands.gd`, «/test …» в чате), включить тестовый мод, проверяющий отправку файлов модов
+(`test_mod.gd`), и запустить сервер для игровой проверки на срок (`playtest_host.gd`); собственный бот игры
+(`--bot`) играет через сокет, как игрок ([systems/network.md](systems/network_RU.md)).
 
 ## Сохранение
 

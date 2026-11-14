@@ -33,7 +33,13 @@ godot --headless --path . --import
 
 | Что менялось | Обязательно | Плюс |
 |---|---|---|
-| только интерфейс (`src/client/ui/`, HUD) | 1, 2, `run_tests` | скриншоты (`tools/shot.gd`) |
+| только интерфейс (`src/client/ui/`, HUD), набор интерфейса (`src/client/ui/kit/`) | 1, 2, `run_tests -- ui` | скриншоты (`tools/shot.gd`), `save_test` (открывает каждое окно и вкладку) |
+| тексты и языки (`lang/*.yaml`, `lang.gd`, новый ключ) | `python3 tools/lang_check.py --strict en,ru`, 1, `run_tests -- lang` | `save_test` (на экране нет сырых `[ключей]`), `tools/shot.gd -- <папка> --keys` после большой правки интерфейса |
+| таблички, жесты, чат (`placed.gd`, `gestures.gd`, `sign_window.gd`) | 1, 2, `run_tests -- signs net security view` | `server_test` |
+| заборы, ворота, люки, лестницы | 1, 2, `run_tests -- fences actions plans` | `save_test` |
+| плоты и лодки (`actions_boat.gd`, `vessels.gd`, `boats.gd`) | 1, 2, `run_tests -- boat body` | `save_test` |
+| огород, природа, рост (`actions_farm.gd`, `actions_nature.gd`, `farm_mode.gd`) | 1, 2, `run_tests -- farming clock` | `progress_other` |
+| файлы модов от сервера, кэш модов, импорт zip (`mod_files.gd`, `content_host.gd`, `mod_fetch.gd`, `mod_cache.gd`, `mod_import.gd`) | 1, 2, `run_tests -- mod_files content net` | `server_test` |
 | данные мода, рецепты, станки, инструменты, материалы | 1, 2 (`validate`, `report` — после правки запустить `tools/content_report.gd` без `--check`), `run_tests -- content graph bundle_system properties` | `progress_hunting progress_other` |
 | руки, сбор, крафт, `world_actions.gd`, `workshop.gd`, `placed.gd` | 1, 2, `run_tests` | `progress_*`, `save_test` |
 | стройка: чертёж, двери, окна, лестницы, мебель (`plans.gd`, флаги вещей в `placed.gd`) | 1, 2, `run_tests -- actions plans` | `save_test`, скриншоты `build-*` |

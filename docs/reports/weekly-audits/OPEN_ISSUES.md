@@ -8,11 +8,11 @@ Last checked: 2026-11-14 ([WEEKLY_AUDIT_2026-11-14.md](WEEKLY_AUDIT_2026-11-14.m
 `b35d371` with that audit's fixes in the working tree. The fixes went into `main` on top of `e395528`: of the
 four pull requests merged in between (#577–#580), #579 and #578 reach WA-031 and WA-043, noted there.
 Closed since: WA-031 (#579, both main runs after it green), WA-040, WA-041, WA-042, WA-043, WA-045 (#583),
-WA-048 (`balance_report --check` in CI and `run_all.sh`).
+WA-048 (`balance_report --check` in CI and `run_all.sh`), WA-028, WA-029, WA-054, WA-055, WA-056 (#585).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 1 | 22 | 26 | 49 |
+| 0 | 1 | 21 | 22 | 44 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
@@ -149,16 +149,6 @@ recommendations.
 - **Consequences:** The documented envelope no longer holds at the top; the next buff crosses it unnoticed.
 - **Recommended fix:** Plan: count quality in the best cases, or lower `PACE_PER_POINT` (a balance formula: the user's pick).
 - **Status:** Open: user decision; first found 2026-11-14 (new); due 2026-11-27.
-
-### WA-054 · Medium · Documentation
-
-- **Description:** The architecture overview is stamped 2026-11-09 and misses what was built since.
-- **Cause:** Not re-checked after the stage 2 work.
-- **Confirmation:** Read: `docs/ARCHITECTURE.md:3`; nothing on the UI kit, mod downloads and cache, auto quality, gestures, boats, farming or the server's bots.
-- **Files and systems:** `docs/ARCHITECTURE.md` and its `_RU` copy
-- **Consequences:** The entry page of the architecture is behind the code.
-- **Recommended fix:** Re-check it against the code and stamp it again.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-20.
 
 ### WA-057 · Medium · Saves, web
 
@@ -330,26 +320,6 @@ recommendations.
 - **Recommended fix:** The owner decides what to delete.
 - **Status:** Open: user decision; first found 2026-11-14 (new); due backlog.
 
-### WA-028 · Low · Translation
-
-- **Description:** Translated pieces are glued together.
-- **Cause:** Some texts are built from a phrase and a fragment key instead of one phrase with values.
-- **Confirmation:** Read: `src/client/ui/craft_panel.gd:523, 538`, `src/client/ui/death_screen.gd:219, 222`, `src/client/input/controls.gd:1042`, `src/client/ui/hud_messages.gd:57`.
-- **Files and systems:** the files named, `content/core/lang/`
-- **Consequences:** Word order and punctuation are wrong in some of the ten languages; `lang_check` does not see it.
-- **Recommended fix:** Plan: whole-phrase keys with `Lang.f`.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due backlog.
-
-### WA-029 · Low · Translation
-
-- **Description:** Ten phrases of the zip import and the seed warning exist only in English and Russian.
-- **Cause:** #562 added them after #560 completed every language.
-- **Confirmation:** Run: `python3 tools/lang_check.py` gives 2173 of 2183 for es, pt, fr, de, it, pl, tr, uk; the keys are `[import_mods_from_a_zip]`, `[a_world_with_this_seed]` and eight more.
-- **Files and systems:** `content/core/lang/*.yaml`
-- **Consequences:** Players in eight languages see those lines in English.
-- **Recommended fix:** Translate the ten phrases (`tools/lang_check.py --write <lang>`).
-- **Status:** Open: backlog; first found 2026-11-14 (new); due 2026-11-27.
-
 ### WA-030 · Low · Content by role
 
 - **Description:** The main menu names a content id that is not core's.
@@ -469,26 +439,6 @@ recommendations.
 - **Consequences:** Harmless now.
 - **Recommended fix:** A design choice: a use for rot (compost), different berries.
 - **Status:** Open: user decision; first found 2026-11-14 (new); due backlog.
-
-### WA-055 · Low · Documentation
-
-- **Description:** The decisions page lacks rows for seven decisions.
-- **Cause:** Rows were not added as decisions were taken.
-- **Confirmation:** Read: `docs/DECISIONS.md` against `plan/README.md`: 165, 166, 173, 175, 182, 187, 188 (188 is now only a clause).
-- **Files and systems:** `docs/DECISIONS.md` and its `_RU` copy
-- **Consequences:** The code's decisions are harder to find.
-- **Recommended fix:** Add the rows.
-- **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
-
-### WA-056 · Low · Documentation
-
-- **Description:** The testing guide does not map interface and text changes to their tests.
-- **Cause:** `ui`, `lang`, `signs`, `fences`, `boat` and `mod_files` tests came after the guide.
-- **Confirmation:** Read: `docs/testing/TESTING_GUIDE.md:35-45`.
-- **Files and systems:** `docs/testing/TESTING_GUIDE.md` and its `_RU` copy
-- **Consequences:** A change may skip the test that covers it.
-- **Recommended fix:** Add the rows.
-- **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
 
 ### WA-066 · Low · Various
 
