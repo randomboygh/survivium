@@ -89,8 +89,10 @@ and a new shared part is added to the kit and to the «Interface gallery».
   joined loads at once), `join_screen.gd` («Join»: address, name, password, recent servers from
   `src/client/net/server_list.gd`; the fields and the recent servers inset as the settings' rows, the buttons flush; fields one under another — fits a phone held upright, with the keyboard up
   the panel goes to the top; the link `?server=` opens it with the address, a failed login — again with the
-  reason), `host_screen.gd` («Create a server» on PC, two tabs `TabRow.tabs`: «Creation» — a world from the
-  saved ones, a name, a password, «Access from the internet» (С7, the cloudflared tunnel); «Settings» —
+  reason), `host_screen.gd` («Create a server» on PC, three tabs `TabRow.tabs`: «World» — «New world…» (opens
+  `world_setup.gd` over it, as in single play, its button «Choose this world»; the world set up comes first in
+  the list and the server makes it with its mods on start, over a save of its seed only after the setup's
+  second tap) over the saved worlds, a button each; «Server» — a name, a password, «Access from the internet» (С7, the cloudflared tunnel); «Settings» —
   everything else the server takes (`Config` and its `rules`): the port, players, how often to save, the length
   of a day, «Real weather outside» (`Config.real_weather`), «Animals attack», «Tool wear», PvP, damage in
   combat, the newcomer's shield, how long combat lasts, land (lands first, per level, reach, levels, when
@@ -113,7 +115,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
 - The game: `hud.gd` (the main screen; parts by topic, decision 168: `hud_parts.gd` — nodes and state, small
   details ← `hud_messages.gd` — the loading line, messages, the hint ← `hud_layout.gd` — the layout over the
   screen, the item panel, hands ← `hud_menus.gd` — the bag, statistics, the pause menu, land and team,
-  settings ← `hud.gd` — assembly, frame, input; the interface's scale, `Hud.fit`: on a phone or a tablet a fraction of the screen's shorter side / 400 times «Interface size», on a computer a step of `Hud.PC_SCALES` (×1, ×1.5, ×2, ×2.5, ×3, ×4…) nearest to the shorter side / 480, moved by the size: a 1080 px screen gets ×2, its five sizes ×1 to ×3), `button_tips.gd` (hints of buttons with a mouse: the
+  settings ← `hud.gd` — assembly, frame, input; the interface's scale, `Hud.fit`: on a phone or a tablet a fraction of the screen's shorter side / 400 times «Interface size», on a computer a whole step of `Hud.PC_SCALES` (×1, ×2, ×3, ×4…) nearest to the shorter side / 1080, moved by the size and never under ×1: a 1080 px screen gets ×1 at «Normal», ×2 and ×3 above it, the two smaller sizes are ×1 there too and get smaller only on larger screens; the world's «Scale» in «Graphics» moves its whole scale by whole steps too, `PixelView.pc_step`, ×1 to ×5 on 1080 px), `button_tips.gd` (hints of buttons with a mouse: the
   `tooltip_text` of the control under the cursor after 0.45 s beside the cursor, in the same panel and scale as
   the hint over the ground, above all windows and the main menu; Godot's own hints are switched off by
   `gui/timers/tooltip_delay_sec` in `project.godot`; on a touch screen and for a button whose label says the
@@ -248,7 +250,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   every node with noticeable work in `_process` measures itself with `perf.note`: «rays», «sound», «fire
   shadows», «animals»; world generation by the server is the part «world», `Runner.took_us`, drawing, the
   browser's page and garbage collection, compiled shaders, data in the GPU), `src/client/view/draw_census.gd`;
-  «Test data» (`SettingsMenu.report_text`, tabs World · Device · Loading · Settings · Log by `report_lines`, «Copy all» takes the whole report whatever the tab): the build, world, place, time, weather, settings, device,
+  «Test data» (`SettingsMenu.report_text`, tabs World · Mods (the mods on, their versions and bundles, the files' hash) · Device · Loading · Settings · Log by `report_lines`; «Copy tab» takes the tab shown, «Copy all» the whole report): the build, world, place, time, weather, settings, device,
   «Loading» (`start_times.gd`: in the browser the page, the download of wasm and pck — from the network or
   cache, the start of the engine; then graphics up to the engine's line «OpenGL API», which the page catches —
   `svStart` in the `head_include` of `export_presets.cfg`, compiling the scripts up to the static var of

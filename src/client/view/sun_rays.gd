@@ -1,6 +1,8 @@
 extends Node3D
 ## Sunlight among the trees by day (the «Солнечные лучи» setting): shafts of light
-## that come down past the edges of the crowns along the sun's way to the ground, the
+## that come out of the crowns along the sun's way to the ground (each starts on the
+## tree's middle plane, the upright one through its trunk across the sun's way, inside
+## the crown's outline on that plane: a spruce's triangle, a broadleaf's round), the
 ## sun's flecks that shimmer on the ground in the crowns' shadows, and specks of dust
 ## glinting in the shafts. Each tree near the player gets a few of each, placed from
 ## its column (the same every time); every tree whose light can reach the picture gets
@@ -28,8 +30,11 @@ const MOVE := 2.0
 ## The sun turns this much (the dot of its old and new way, 1 - it) before the light
 ## is laid out again.
 const TURN := 0.0004
-## How far a shaft leans from straight down at most, sideways a unit down.
-const LEAN := 0.7
+## The longest a shaft runs, in world units, when it meets no ground (out over a cliff).
+const LONGEST := 48.0
+## The thinnest and widest a shaft is, in world units (3 pixels to 13).
+const THINNEST := 0.19
+const WIDEST := 0.8
 const MAX_SHAFTS := 256
 const MAX_FLECKS := 512
 ## Shafts and flecks a tree gets at most.
@@ -39,6 +44,8 @@ const FLECKS := 8
 const CROWN_LEVELS := 24
 ## Columns from the trunk a crown is looked for at the middle of its height.
 const CROWN_REACH := 8
+## Cells of air in a row past which a crown's outline on its middle plane ends.
+const OUTLINE_GAP := 2
 ## Crowns (and the light of trees) remembered before the memory is cleared.
 const MAX_CROWNS := 4096
 ## Microseconds a frame spends at most on working out the trees' light; while it goes
@@ -64,10 +71,11 @@ var _laid_sun := Vector3.ZERO
 var _laid_trees := -1
 var _laid_view := []
 ## The sun's turns so far (each over TURN) and its way at the last: the shafts' way
-## down, how far they lean sideways a unit down, and the shadows' way along the ground.
+## down, the way across it along the ground (the trees' middle planes run along it),
+## and the shadows' way along the ground.
 var _sun_turns := 0
 var _down := Vector3.DOWN
-var _lean := Vector2.ZERO
+var _across := Vector2.RIGHT
 var _shadow := Vector2.ZERO
 ## The light of each tree near, worked out for a turn of the sun: {column: see
 ## _tree_light}.
@@ -167,7 +175,8 @@ func _process(_delta: float) -> void:
 		# laid out once all are (the old light stays until then).
 		_laid_sun = to_sun
 		_down = down
-		_lean = Vector2(down.x, down.z) / -down.y
+		var flat := Vector2(down.x, down.z)
+		_across = Vector2(-flat.y, flat.x).normalized() if flat.length() > 0.01 else Vector2.RIGHT
 		_shadow = Vector2(-to_sun.x, -to_sun.z) / maxf(to_sun.y, 0.05)
 		_sun_turns += 1
 		_next = 0
@@ -221,13 +230,9 @@ func finish() -> bool:
 	return true
 
 
-## The way the shafts run down: the sun's, but never leaning further than LEAN from
-## straight down, so a low sun's shafts still fall among the trees instead of lying
-## along the ground like its shadows.
+## The way the shafts run down: the sun's light's.
 func _shaft_way() -> Vector3:
-	var flat := Vector2(-to_sun.x, -to_sun.z) / maxf(to_sun.y, 0.05)
-	return Vector3(flat.x, -1.0, flat.y).normalized() if flat.length() <= LEAN \
-		else Vector3(flat.normalized().x * LEAN, -1.0, flat.normalized().y * LEAN).normalized()
+	return Vector3(-to_sun.x, -maxf(to_sun.y, 0.05), -to_sun.z).normalized()
 
 
 ## The picture in screen-plane world units, grown by MOVE (the player walks that far
@@ -290,6 +295,7 @@ func _tree_light(w, col: Vector2i) -> Array:
 	var tall := crown.y - foot
 	var r := crown.z
 	var mid := Vector2((col.x + 0.5) * CELL, (col.y + 0.5) * CELL)
+	var outline := _outline(w, col, crown)
 	var tops := PackedVector3Array()
 	var bottoms := PackedVector3Array()
 	var looks := PackedColorArray()
@@ -302,20 +308,20 @@ func _tree_light(w, col: Vector2i) -> Array:
 	# the same whether this one is there or not.
 	for i in SHAFTS:
 		var skip := rng.randf() < 0.3
-		# Just past the crown's edge, from high in it.
-		var a := rng.randf() * TAU
-		var at := mid + Vector2(cos(a), sin(a)) * r * rng.randf_range(0.95, 1.3)
-		var h := tall * rng.randf_range(0.6, 0.85)
-		var look := Color(rng.randf_range(0.35, 0.8), 0.0, rng.randf(), rng.randf_range(0.5, 1.0))
+		# From the middle plane, inside the crown's outline on it.
+		var pick := rng.randf()
+		var side := rng.randf()
+		# Thin ones more often than wide ones.
+		var look := Color(lerpf(THINNEST, WIDEST, pow(rng.randf(), 1.5)), 0.0, rng.randf(), rng.randf_range(0.5, 1.0))
 		var motes_at := Vector2(rng.randf_range(0.2, 0.8), rng.randf_range(0.2, 0.8))
-		if skip:
+		var at := _in_outline(outline, pick, side, look.r)
+		if skip or at.y <= -INF:
 			continue
-		var top := Vector3(at.x, foot + h, at.y)
-		var ground := _ground(w, at + _lean * h)
-		if ground <= -INF or ground > top.y - 0.5:
+		var top := Vector3(mid.x + _across.x * at.x, foot + at.y, mid.y + _across.y * at.x)
+		var length := _length(w, top)
+		if length < 1.0:
 			continue
-		var length := (top.y - ground) / -_down.y
-		look.g = top.y - ground
+		look.g = length * -_down.y
 		tops.append(top)
 		bottoms.append(top + _down * length)
 		looks.append(look)
@@ -376,6 +382,79 @@ func _lay_out(p: Vector3, near: Array) -> void:
 	if dust.is_empty():
 		dust.append(Vector3(p.x, -1000.0, p.z))
 	motes.emission_points = dust
+
+
+## The outline of the crown `crown` (see _crown) of the tree in column `col` on its
+## middle plane, the upright one through the trunk along _across: for each level with
+## leaves beside the trunk, Vector3(the level's middle over the foot, how far the
+## leaves reach to one side (-) and the other (+)) in world units.
+func _outline(w, col: Vector2i, crown: Vector3) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	var base := roundi(crown.x / CELL)
+	var top := roundi(crown.y / CELL)
+	var mid := Vector2(col.x + 0.5, col.y + 0.5)
+	var reach := CROWN_REACH * 2
+	for y in range(base, top):
+		var ends := Vector2.ZERO
+		for k in 2:
+			var way := _across * (1.0 if k == 1 else -1.0)
+			var last := 0
+			for d in range(1, reach):
+				if d - last > OUTLINE_GAP:
+					break
+				var c := mid + way * d
+				if w.get_cell(floori(c.x), y, floori(c.y)) != Mat.AIR:
+					last = d
+			if last > 0:
+				ends[k] = (last + 0.5) * CELL * (1.0 if k == 1 else -1.0)
+		if ends != Vector2.ZERO:
+			out.append(Vector3((y + 0.5) * CELL - crown.x, ends.x, ends.y))
+	return out
+
+
+## A point inside `outline` (see _outline) for a shaft `width` wide, picked by
+## `pick` and `side` (0..1; the wider a level, the likelier): Vector2(how far along
+## _across from the trunk, height over the foot), y -INF when the outline is empty.
+static func _in_outline(outline: PackedVector3Array, pick: float, side: float, width: float) -> Vector2:
+	var total := 0.0
+	for o in outline:
+		total += o.z - o.y
+	if total <= 0.0:
+		return Vector2(0.0, -INF)
+	var left := pick * total
+	for o in outline:
+		left -= o.z - o.y
+		if left <= 0.0:
+			var a := o.y + width * 0.5
+			var b := o.z - width * 0.5
+			return Vector2(lerpf(a, b, side) if a < b else (o.y + o.z) * 0.5, o.x)
+	var last := outline[outline.size() - 1]
+	return Vector2((last.y + last.z) * 0.5, last.x)
+
+
+## How far a shaft from `top` runs along the light before it meets the ground (or
+## water), LONGEST at most: found a unit at a time, then to a 16th of a unit, so the
+## shaft ends on the ground.
+func _length(w, top: Vector3) -> float:
+	var length := 1.0
+	while length < LONGEST:
+		if _under(w, top + _down * length):
+			var above := length - 1.0
+			for i in 4:
+				var half := (above + length) * 0.5
+				if _under(w, top + _down * half):
+					length = half
+				else:
+					above = half
+			return length
+		length += 1.0
+	return LONGEST
+
+
+## World point `p` is under the ground (or the water's top).
+func _under(w, p: Vector3) -> bool:
+	var ground := _ground(w, Vector2(p.x, p.z))
+	return ground <= -INF or p.y <= ground
 
 
 ## The height of the ground a walker stands on at world point `at`, -INF over water.

@@ -18,9 +18,9 @@ extends PanelContainer
 ## and from «Отладка» the log of freezes ("freezes" page, FreezeLog): a tab for each
 ## band of their length, the worst first after all of them; and what a playtest report
 ## needs to be played again ("report" page, tabs Мир: the world, the place, the camera, the
-## time, the weather, the light; Устройство: the build, the device, the frame, the server;
-## Загрузка: the start and the starts before; Настройки, a line each; Журнал: the last run's
-## log), copied or shared whole.
+## time, the weather, the light; Моды: the mods on, their versions and bundles; Система: the build, the device, the frame, the server;
+## Запуск: the start and the starts before; Настройки, a line each; Журнал: the last run's
+## log), the tab shown or the whole report copied, the whole shared.
 ## All the pages are as wide: one or two columns of rows (see fit) and room for the bar.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
@@ -78,8 +78,8 @@ const PAGES := {
 	"settings": [["game", "[game]"], ["interface", "[interface]"], ["graphics", "[graphics]"], ["sound", "[sound]"], ["other", "[other_tab]"]],
 	"test": [["world", "[world_n3]"], ["server", "[server_name]"], ["player", "[player_n2]"], ["caves", "[caves]"], ["marks", "[markers]"], ["debug", "[debug]"]],
 	"freezes": [["all", "all"], ["critical", "from 200"], ["big", "100–200"], ["small", "50–100"]],
-	"report": [["place", "[world_n3]"], ["device", "[device_tab]"], ["start", "[start_tab]"],
-		["values", "[settings]"], ["log", "[log_tab]"]],
+	"report": [["place", "[world_n3]"], ["mods", "[mods_tab]"], ["device", "[device_tab]"], ["start", "[start_tab]"],
+		["values", "[settings_tab]"], ["log", "[log_tab]"]],
 }
 ## The settings' tab of the developer mode (Settings.testing_unlocked): what is seen with
 ## no world too (the last run's log, the freezes, the interface's gallery, wiping the data).
@@ -87,7 +87,7 @@ const DEV_TAB := ["dev", "[debug]"]
 ## Sections with nothing to set yet: their tabs are dimmed, «скоро».
 const SOON := []
 ## Sections as long as there is something in them: no taller page for them, they scroll.
-const LISTS := ["marks", "all", "critical", "big", "small", "place", "device", "start", "values", "log"]
+const LISTS := ["marks", "all", "critical", "big", "small", "place", "mods", "device", "start", "values", "log"]
 ## The pages whose tabs share the window's width and never widen it.
 const SHARED_TABS := ["freezes", "report"]
 ## The room between the quality preset and the settings by hand, or the rows and a
@@ -127,6 +127,12 @@ var _clear: Button
 var _copy: Button
 var _share: Button
 var _shown_text := ""
+## Over the bottom row on the report page: «Скопировать вкладку» (the tab shown, _tab_text)
+## and «Скопировать всё» (the whole report, _shown_text).
+var _copy_row: HBoxContainer
+var _copy_tab: Button
+var _copy_all: Button
+var _tab_text := ""
 ## Where «Назад» goes from the changes, freezes and report pages: a page, or "" to close.
 var _back_to := "test"
 ## The shader probe running (ShaderProbe), null when none.
@@ -197,6 +203,10 @@ func _ready() -> void:
 	_defaults = Kit.button("[defaults]", Callable(), 0, 32)
 	_asks.guard(_defaults, _reset)
 	box.add_child(_defaults)
+	_copy_row = Kit.row(6)
+	box.add_child(_copy_row)
+	_copy_tab = _bottom(_copy_row, "[copy_tab]", func() -> void: _copy_text(_copy_tab, _tab_text))
+	_copy_all = _bottom(_copy_row, "[copy_all]", func() -> void: _copy_text(_copy_all, _shown_text))
 	var buttons := Kit.row(6)
 	box.add_child(buttons)
 	_changes = _bottom(buttons, "[whats_new]", open.bind("changes", "test"))
@@ -265,13 +275,16 @@ func _make_tabs(which: String) -> void:
 		b.disabled = key in SOON
 		b.tooltip_text = "[soon_n2]" if b.disabled else ""
 		if which in SHARED_TABS:
-			# Their counts grow (freezes), five of them stand across an upright phone (report): the tabs share the window's width and never widen it.
+			# Their counts grow (freezes), six of them stand across an upright phone (report): the
+			# tabs share the window's width and never widen it.
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			b.clip_text = true
-			if which == "report":
-				# Each takes the room of its name (the report's five differ: «Мир», «Устройство»).
-				b.size_flags_stretch_ratio = Lang.t(sec[1]).length() + 2
 		_tabs.add_child(b)
+		if which == "report":
+			# Each takes a share of the row as its name and frame need (the report's six
+			# differ: «Мир», «Настройки»), so a short one is never cut first.
+			b.size_flags_stretch_ratio = UiStyle.text_width(sec[1], b.get_theme_font_size("font_size"),
+					b.get_theme_font("font")) + b.get_theme_stylebox("normal").get_minimum_size().x
 		_tab_buttons[key] = b
 
 
@@ -288,9 +301,13 @@ func _fill() -> void:
 	_version.visible = which != "settings"
 	_changes.visible = which == "test"
 	_clear.visible = which == "freezes"
-	_copy.visible = which in ["freezes", "report", "crash", "probe"]
-	_copy.text = "[copy_all]" if which == "report" else "[copy]"
-	UiStyle.succeed(_copy, false)
+	_copy.visible = which in ["freezes", "crash", "probe"]
+	_copy_row.visible = which == "report"
+	for b: Button in [_copy, _copy_tab, _copy_all]:
+		UiStyle.succeed(b, false)
+	_copy.text = "[copy]"
+	_copy_tab.text = "[copy_tab]"
+	_copy_all.text = "[copy_all]"
 	# The phone's sharing, where the browser has it.
 	_share.visible = which == "report" and OS.has_feature("web") \
 			and int(JavaScriptBridge.eval("typeof navigator.share === 'function' ? 1 : 0", true)) == 1
@@ -920,6 +937,8 @@ func fit(screen: Vector2) -> void:
 	var rest := _title.size.y + _back.size.y + 2 * 6 + 2 * 6
 	if _defaults.visible:
 		rest += _defaults.size.y + 6
+	if _copy_row.visible:
+		rest += _back.size.y + 6
 	# As on the settings page, whose tabs the changes page has not.
 	var room := screen.y - 2 * 8 - rest - TAB_HEIGHT - 6
 	# Every page takes the columns the settings need, so all are as wide.
@@ -1071,6 +1090,7 @@ func _add_report(key: String) -> void:
 			shown.append_array(l[2])
 		else:
 			shown.append(l[1])
+	_tab_text = "\n".join(shown)
 	if shown.is_empty():
 		_list.add_child(_paragraph("[no_log_yet]", UiStyle.MUTED))
 	for t: String in shown:
@@ -1096,9 +1116,14 @@ func _probe_stepped() -> void:
 
 ## «Скопировать»: the text of the page shown into the clipboard.
 func _copy_shown() -> void:
-	DisplayServer.clipboard_set(_shown_text)
-	_copy.text = "[copied]"
-	UiStyle.succeed(_copy, true)
+	_copy_text(_copy, _shown_text)
+
+
+## Puts `text` into the clipboard; button `b` says so, green.
+func _copy_text(b: Button, text: String) -> void:
+	DisplayServer.clipboard_set(text)
+	b.text = "[copied]"
+	UiStyle.succeed(b, true)
 
 
 ## «Поделиться»: the text of the page shown to the phone's sharing.
@@ -1133,12 +1158,24 @@ func report_lines() -> Array:
 	for k in s.values:
 		values.append("%s: %s" % [k, JSON.stringify(s.values[k])])
 	var past := StartTimes.past()
+	# The mods on (Content.BUNDLES): each with its version, and which of its bundles when not all.
+	var mods := []
+	for mod: String in Content.available():
+		var mine: Array = Content.bundles_of(mod)
+		var on := mine.filter(func(b: String) -> bool: return b in Content.BUNDLES)
+		if on.is_empty():
+			continue
+		var line := "%s %s" % [mod, str(Content.info(mod).get("version", "?"))]
+		if on.size() < mine.size():
+			line += " (%d of %d: %s)" % [on.size(), mine.size(), ", ".join(on.map(func(b: String) -> String: return b.get_file()))]
+		mods.append(line)
 	var lines := [
 		["device", "%s %s · %s · %s" % [Protocol.game_name(), info.version, info.commit, info.date]],
 		["place", Lang.f("World: %s, settings %s", ["test" if s.in_test_world() else Lang.f("seed %d", [game.world_seed]),
 			JSON.stringify(game.world_options)])],
 		["place", Lang.f("Player: x %d, y %d, level %d, cut %d", [cell.x, cell.z, cell.y, game.chunks.cut_level])],
-		["place", Lang.f("Camera: turn %d°, tilt %d", [posmod(game.view.turn_steps * 45, 360), game.view.tilt_steps])],
+		["place", Lang.f("Camera: turn %d°, tilt %d, left alone %d s", [posmod(game.view.turn_steps * 45, 360), game.view.tilt_steps,
+			int(game.view.idle)])],
 		["place", Lang.f("Time: day %d, %s, %02d:%02d, speed ×%s%s%s", [clock.day, clock.SEASONS[clock.season], minutes / 60, minutes % 60,
 			str(clock.time_speed * s.time_boost), ", real time" if clock.real_time else "",
 			", real season" if clock.real_season else ""])],
@@ -1147,6 +1184,7 @@ func report_lines() -> Array:
 			clock.snowing, clock.fog, clock.storm_wind, roundi(rad_to_deg(clock.wind_angle)), clock.snow, clock.puddles])],
 		["place", Lang.f("Light: day %.2f, moon %.2f%s", [sky.daylight, sky.moon, " (picked)" if clock.moon_pin >= 0.0 or sky.moon_override >= 0.0 else ""])],
 		["values", Lang.f("Settings: %s", [JSON.stringify(s.values)]), values],
+		["mods", "Mods: %s" % "; ".join(mods), ["Mods on:"] + mods + ["Files hash: %s" % Content.playing()]],
 		["device", Lang.f("Device: %s, screen %dx%d, window %dx%d, %s", [OS.get_name(), DisplayServer.screen_get_size().x,
 			DisplayServer.screen_get_size().y, get_viewport().get_visible_rect().size.x,
 			get_viewport().get_visible_rect().size.y, RenderingServer.get_video_adapter_name()])],

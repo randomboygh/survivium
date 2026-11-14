@@ -889,7 +889,7 @@ func _input(event: InputEvent) -> void:
 		return
 	sound.input(event)
 	if view != null:
-		view.wake()
+		view.wake(event)
 	controls.input(event)
 
 

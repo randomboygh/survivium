@@ -303,6 +303,8 @@ func _run() -> void:
 			main.session.clock.settle_weather()
 			if shot.has("clouds"):
 				main.session.clock.clouds = shot.clouds
+			if shot.has("cloud_pos"):
+				main.sky.cloud_pos = Vector2(shot.cloud_pos[0], shot.cloud_pos[1])
 			main.session.clock.wet = 1.0 if main.session.clock.raining and main.session.clock.season != 3 else shot.get("after_rain", 0.0)
 			main.sky.after_rain = shot.get("after_rain", 0.0)
 			main.session.clock.puddles = shot.get("puddles", 0.0)
@@ -466,7 +468,7 @@ func _run() -> void:
 		main.settings.set_value("ui_size", shot.get("ui_size", 2))
 		main.settings.set_value("control_size", shot.get("control_size", 2))
 		for k in ["minimap_size", "level_buttons", "camera_buttons", "layer_front_from",
-				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "cut_depth", "solo_social", "crt", "second_hand"]:
+				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "cut_depth", "solo_social", "crt", "second_hand", "pixel_scale"]:
 			main.settings.set_value(k, shot.get("settings", {}).get(k, main.settings.DEFAULTS[k]))
 		await process_frame
 		await process_frame
@@ -1115,6 +1117,12 @@ func _run() -> void:
 				main.menu.open_host()
 				if shot.has("host_tab"):
 					main.menu._setup.show_tab(shot.host_tab)
+				if shot.get("host_new_world", false):
+					# A world set up on «Новый мир…», back in the list, chosen.
+					main.settings.values.world_seed = 91234
+					main.menu._setup._new_world_made(false)
+				if shot.get("host_open_new", false):
+					main.menu._setup._open_new_world()
 				for i in 3:
 					await process_frame
 			if shot.main_menu == "join":

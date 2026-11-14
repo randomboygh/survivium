@@ -208,9 +208,16 @@ func _process(delta: float) -> void:
 ## Turns animal `a` the way it moved since it was last drawn, and counts its walk.
 func _went(a, look: Look, flip: float) -> void:
 	var d := Vector2(a.pos.x - look.last.x, a.pos.z - look.last.z)
+	var rise: float = a.pos.y - look.last.y
 	look.last = a.pos
 	var moved := d.length()
 	if moved < 0.001:
+		if a.perched and not a.flying and absf(rise) > 0.001 and absf(rise) < JUMP:
+			# Up or down a trunk (Wildlife._climb): its back to us going up, head first
+			# coming down, its paws going.
+			look.walked += absf(rise)
+			if looks[a.kind][5] >= 3:
+				look.view = BACK if rise > 0.0 else FRONT
 		if look.side == 0.0:
 			look.side = a.facing * flip
 		return
