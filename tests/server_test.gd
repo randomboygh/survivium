@@ -860,7 +860,7 @@ func _commands(node: Node, host: Bot) -> Array:
 		and [again, renamed, by_name].all(func(b: Bot) -> bool: return b.reply.value.get("why") == Protocol.WHY_BANNED),
 		"a banned player is refused by the key, under another name too, and by the name")
 	var kept: Dictionary = node.saves.read_access()
-	_check(kept.get("banned_keys", {}).has(key) and node.command("bans").contains("host"), "bans are kept in the world's save")
+	_check(kept.get("banned_keys", {}).has(node.server.kept(key)) and node.command("bans").contains("host"), "bans are kept in the world's save")
 	node.command("unban Host")
 	var back := _bot("Host", key, "", PORT + 1)
 	_check(await _until(func() -> bool: return back.reply.done) and back.reply.value.get("ok") == true, "unban lets them in again")
