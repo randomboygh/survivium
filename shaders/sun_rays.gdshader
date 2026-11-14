@@ -37,7 +37,13 @@ void vertex() {
 		vec3 a = shear(o);
 		vec3 b = shear(bottom);
 		vec2 run = normalize(b.xz - a.xz);
-		vec2 across = vec2(-run.y, run.x) * q.x * COLOR.r;
+		vec2 side_way = vec2(-run.y, run.x);
+		// The leaves moving in the wind: each shaft grows wider and narrower and shifts a
+		// little, slowly, the shafts of a bunch (close phases) nearly together.
+		float t = TIME + phase * 37.0;
+		float widen = 0.8 + 0.2 * sin(t * 0.37) + 0.08 * sin(t * 0.61 + 1.7);
+		float shift = (0.06 * sin(t * 0.29 + 0.6) + 0.03 * sin(t * 0.53)) * (1.0 - 0.5 * q.y);
+		vec2 across = side_way * (q.x * COLOR.r * widen + shift);
 		world_pos = mix(o, bottom, q.y);
 		// Lifted a little towards the camera (only in depth: the camera looks straight
 		// down), so the ground it ends on does not cut it.
@@ -61,11 +67,13 @@ void fragment() {
 	float k;
 	if (mode == 0) {
 		// Soft at the sides, faded in over its first unit inside the crown, ending sharp
-		// on the ground; each shaft breathes in its own time.
+		// on the ground; each shaft grows paler and brighter, slowly, as the leaves move.
 		float side = 1.0 - abs(band.x * 2.0 - 1.0);
 		float along = smoothstep(0.0, 1.0, band.y * span);
-		float breathe = 0.6 + 0.4 * sin(TIME * 0.45 + phase * 6.28);
-		k = (smoothstep(0.0, 0.25, side) * 0.6 + step(0.6, side) * 0.4) * along * breathe * strength * amount * 0.7;
+		float t = TIME + phase * 37.0;
+		float breathe = 0.65 + 0.25 * sin(t * 0.41 + 0.9) + 0.1 * sin(t * 0.73 + 2.3);
+		// Low contrast: mostly the soft part, a little brighter in the middle.
+		k = (smoothstep(0.0, 0.4, side) * 0.75 + step(0.6, side) * 0.25) * along * breathe * strength * amount * 0.55;
 		// Three steps of light, dithered between them.
 		k = floor(k * 12.0 + dither) / 12.0;
 	} else {
