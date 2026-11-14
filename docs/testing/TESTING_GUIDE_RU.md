@@ -20,7 +20,7 @@ godot --headless --path . --import
 | Уровень | Команда | Время | Когда |
 |---|---|---|---|
 | 1. Секунды, без Godot | `python3 tools/lint.py && python3 tools/doc_index.py --check` | ~1 с | после любой правки; можно хуком перед коммитом: `git config core.hooksPath tools/hooks` |
-| 2. Компиляция и данные | `GODOT=… tests/run_all.sh parse validate report` | ~15 с | любая правка кода или данных |
+| 2. Компиляция и данные | `GODOT=… tests/run_all.sh parse validate report balance` | ~15 с | любая правка кода или данных |
 | 3. Юнит-тесты | `godot --headless --path . --script res://tests/run_tests.gd [-- тема …]` | 1–2 мин (тема — секунды) | правка правил, генератора, мешей, данных |
 | 4. Сценарии | `tests/run_all.sh save_test server_test frame_test progress_hunting progress_other` | 2–20 мин | см. таблицу ниже |
 | 5. Всё | `GODOT=… tests/run_all.sh` | ~20–30 мин на 4 ядрах | перед большим PR; CI делает это на каждый пуш |

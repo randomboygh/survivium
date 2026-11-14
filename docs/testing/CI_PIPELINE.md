@@ -25,7 +25,7 @@ publishing, which waits for everything). The fast ones fail first.
 | Job | What it does | Time | Blocks |
 |---|---|---|---|
 | `lint` | `tools/lint.py` (rules of scripts and texts, Python, shell, JS, JSON, workflow), `tools/doc_index.py --check` (paths in documents, freshness of the code index) and `tools/lang_check.py --strict en,ru` (every key exists in English and Russian, there is no Russian text in the code); without Godot | ~10 s | yes |
-| `checks` | `parse` (every script compiles, `tools/parse_check.gd`), `validate` (the mods' data and each bundle separately), `report` (freshness of `docs/generated/content-*.md`) | ~1 min | yes |
+| `checks` | `parse` (every script compiles, `tools/parse_check.gd`), `validate` (the mods' data and each bundle separately), `report` (freshness of `docs/generated/content-*.md`), `balance` (freshness of `docs/balance/GAME_BALANCE_TABLES.md`, `tools/balance_report.gd --check`) | ~1 min | yes |
 | `tests` | `run_tests` (unit tests), `save_test`, `server_test` side by side | ~3 min | yes |
 | `progress (hunting)`, `progress (other)` | two halves of `progress_test`: recipes that need something got from a beast, and the rest — on two machines | see the report | yes |
 | `frames` | `frame_test` alone on a machine (it measures frames) | ~1.5 min | yes |
