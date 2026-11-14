@@ -62,7 +62,8 @@ slice, to free the far meshes.
   it is seen above the slope as a black triangle; the caps lie `CAP_SINK` below the cells' top, otherwise their
   edge shows through the neighbouring slope as a black diagonal gap); it calls the parts that inherit
   `mesh_faces.gd` (the tables of faces, packed words, drawing primitives): `slope_mesher.gd` (slopes,
-  `patch`), `water_mesher.gd` (the surface, the shore, waterfalls), `trunk_mesher.gd` (the bark of trunks),
+  `patch`), `water_mesher.gd` (the surface, the shore, waterfalls), `trunk_mesher.gd` (the bark of trunks; a log of a tree's column is bark even with ground on up to three
+  sides, as a foot against a river's bank, and the ground beside it draws its face towards it),
   `form_mesher.gd` (built blocks that are not a cube — `WorldData.forms`: a bevel from below, a bevel from
   above, steps; a shape is described as rising to the north and turned; a face on a cell's side is not drawn
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not

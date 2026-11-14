@@ -5,6 +5,7 @@ extends "res://tests/unit/test_case.gd"
 func run() -> void:
 	_test_mesher()
 	_test_cap()
+	_test_bank_trunk()
 	_test_patch()
 
 
@@ -104,6 +105,36 @@ func _test_cap() -> void:
 	var key := WorldData.chunk_key(-6, -5)
 	var west := _mesh_area(ChunkMesher.build_cap(w, 0, key.x * WorldData.CHUNK, key.y * WorldData.CHUNK))
 	_check(absf(west - 4.0 * WorldData.CELL * WorldData.CELL) < 0.001, "cap closes whole tops at negative x as well")
+
+
+## A tree's foot against a bank a level higher on its west and north, as by a river: its
+## bark goes down to the ground (cut corners, not a block of wood), and the bank's face
+## towards it shows round the bark.
+func _test_bank_trunk() -> void:
+	var w := WorldData.new(8, Vector2i(8, 8))
+	for z in 8:
+		for x in 8:
+			w.set_cell(x, 0, z, Mat.DIRT)
+			if z < 3 or x < 3 and z == 3:
+				w.set_cell(x, 1, z, Mat.DIRT)
+	for y in range(1, 4):
+		w.set_cell(3, y, 3, Mat.LOG)
+	w.set_cell(3, 4, 3, Mat.LEAVES)
+	w.trees[Vector2i(3, 3)] = 0
+	var arrays: Array = (ChunkMesher.build_chunk(w, 0, 0, 16)[0] as ArrayMesh).surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	var cut := false
+	var bank := false
+	var c := WorldData.CELL
+	for v in verts.size():
+		var p := verts[v] / c
+		var n := normals[v]
+		var foot := p.y >= 1.0 and p.y < 1.75 and p.x >= 3.0 and p.x <= 4.0 and p.z >= 3.0 and p.z <= 4.0
+		cut = cut or foot and absf(n.x) > 0.3 and absf(n.z) > 0.3
+		bank = bank or n.x > 0.9 and absf(p.x - 3.0) < 0.001 and p.z >= 3.0 and p.z <= 4.0 and p.y >= 1.0
+	_check(cut, "a tree's foot against a bank is bark with cut corners, not a block of wood")
+	_check(bank, "the bank beside a tree's foot draws its face towards the trunk")
 
 
 ## Total area of the triangles of a mesh (0 for none).

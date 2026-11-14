@@ -1206,15 +1206,20 @@ func specimen(w, at: Vector3i, species: Array) -> void:
 
 ## A flat clearing at `at` (level of the ground there) with an oak west of the player
 ## and a spruce east of them, grown afresh each time; `fell` fells both away from the
-## player a cell above their feet, as the axe would.
-func clearing(w, at: Vector3i, fell: bool, species: Array = []) -> void:
+## player a cell above their feet, as the axe would. With `bank` the ground behind them
+## stands a level higher, as a river's bank does, and wraps round the oak's west side
+## and the spruce's east side: their feet stand against it.
+func clearing(w, at: Vector3i, fell: bool, species: Array = [], bank := false) -> void:
 	var h: int = w.surface_y(at.x, at.z)
 	for z in range(at.z - 24, at.z + 24):
 		for x in range(at.x - 30, at.x + 30):
+			var top := h
+			if bank and (z < (at.z - 3) | 1 or z == (at.z - 3) | 1 and (x < ((at.x - 7) | 1) or x > ((at.x + 7) | 1))):
+				top = h + 1
 			for y in w.size_y:
 				var m := Mat.AIR
-				if y < h:
-					m = Mat.GRASS if y == h - 1 else Mat.DIRT
+				if y < top:
+					m = Mat.GRASS if y == top - 1 else Mat.DIRT
 				w.set_cell(x, y, z, m)
 	for key: Vector2i in w.trees.keys():
 		if absi(key.x - at.x) < 40 and absi(key.y - at.z) < 34:
@@ -1322,3 +1327,4 @@ func steep(w, at: Vector3) -> Vector3:
 	main.player.position = Vector3(spot.x + 0.5, w.surface_y(spot.x, spot.y) + 1, spot.y + 0.5) * CELL
 	main.chunks.build_around()
 	return main.player.position
+
