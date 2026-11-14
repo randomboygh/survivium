@@ -58,8 +58,11 @@ Every build of `main` that passed every job is a release on GitHub (Releases), m
 - **Files.** `survivium-android.apk`, `survivium-windows.zip`, `survivium-linux.tar.gz` (the names do not
   change, so `https://github.com/randomboygh/survivium/releases/latest/download/<file>` always gives the
   newest build). The web build is Pages.
-- **Latest.** The newest version is marked "Latest"; a run finishing after a newer one (main's runs are never
-  cancelled) makes its release without the mark and leaves the rolling prereleases alone.
+- **Latest.** The release of the newest merge into main is marked "Latest" explicitly (`--latest=true`), whatever
+  its number: a PR opened early and merged late (#603 after #623) has the smaller number but is the newest
+  build. "Newer" goes by the history (`git tag --contains HEAD`); a run finishing after the run of a later
+  merge (main's runs are never cancelled) makes its release without the mark and leaves the rolling
+  prereleases alone. The notes go from the release tag nearest in the history, not the highest number.
 - **Rolling prereleases.** `android-latest` and `pc-latest` keep older links working: the same files as the
   newest release, their tags moved to its commit.
 - A rerun of a main run edits its release (notes and files) instead of failing.

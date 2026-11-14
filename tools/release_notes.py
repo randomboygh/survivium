@@ -10,7 +10,9 @@ commit that set application/config/version in project.godot).
     python3 tools/release_notes.py out.md   (GITHUB_TOKEN, GITHUB_REPOSITORY; a checkout with history and tags)
 
 Prints `tag=…`, `version=…`, `previous=…` and `latest=true|false` for $GITHUB_OUTPUT: latest is false when a
-release of a newer version is already out (main's runs are never cancelled and may finish out of order).
+release of a later commit of main is already out (main's runs are never cancelled and may finish out of order).
+"Later" goes by the history, not by the number: a pull request opened early and merged late has a smaller
+number than the ones merged before it, and its release is still the newest one.
 """
 
 import json
@@ -45,9 +47,24 @@ def key(tag: str) -> tuple:
 
 
 def previous_tag(tag: str) -> str:
-    """The newest release tag in the history of HEAD other than this one, or ""."""
-    tags = [t for t in git("tag", "--merged", "HEAD", "--list", "v*").split() if TAG.match(t) and t != tag]
-    return max(tags, key=key, default="")
+    """The release tag nearest to HEAD in its history, HEAD's own excluded, or ""."""
+    tags = set(t for t in git("tag", "--merged", "HEAD", "--list", "v*").split() if TAG.match(t) and t != tag)
+    if not tags:
+        return ""
+    # The commits from HEAD back, the newest first; the first one tagged is the last release.
+    tagged = {}
+    for t in tags:
+        tagged.setdefault(git("rev-list", "-n", "1", t), t)
+    for commit in git("rev-list", "--first-parent", "HEAD").splitlines():
+        if commit in tagged:
+            return tagged[commit]
+    return max(tags, key=key)
+
+
+def newer_tags() -> list:
+    """The release tags on commits after HEAD in the history (a later merge into main)."""
+    own = set(git("tag", "--points-at", "HEAD", "--list", "v*").split())
+    return [t for t in git("tag", "--contains", "HEAD", "--list", "v*").split() if TAG.match(t) and t not in own]
 
 
 def stage_start() -> str:
@@ -126,7 +143,7 @@ def main() -> None:
         prs.append((n, p.get("title") or "", build_info.lines_of(p.get("body"))))
     with open(out, "w", encoding="utf-8") as f:
         f.write(notes(repo or "owner/repo", prs, tag, previous, version))
-    newer = [t for t in git("tag", "--list", "v*").split() if TAG.match(t) and key(t) > key(tag)]
+    newer = newer_tags()
     print(f"tag={tag}")
     print(f"version={version}")
     print(f"previous={previous}")
