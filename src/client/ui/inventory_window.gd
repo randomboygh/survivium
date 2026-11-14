@@ -564,9 +564,9 @@ func _show_land_tab() -> void:
 		show_tab("bag")
 
 
-## The tab «Команда» shows only on a server (teams are a server's: Main.welcome).
+## The tab «Команда» shows only on a server (teams are a server's: ServerLink.welcome).
 func _show_team_tab() -> void:
-	_team_tab.visible = not game.welcome.is_empty()
+	_team_tab.visible = not game.link.welcome.is_empty()
 
 
 func open() -> void:

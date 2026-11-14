@@ -522,7 +522,7 @@ func _kept_account(h: String) -> Account:
 	return null
 
 
-## The player of `key` owns the server: they made it in the game (Main._on_welcome).
+## The player of `key` owns the server: they made it in the game (ServerLink._on_welcome).
 func make_host(key: String) -> void:
 	var a: Account = accounts.get(key)
 	access.owners[kept(key)] = a.name if a != null else str(access.owners.get(kept(key), ""))

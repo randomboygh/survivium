@@ -76,7 +76,7 @@ func forget_files() -> void:
 
 
 func _on_event(kind: String, args: Variant, net) -> void:
-	if kind != Protocol.MODS or game.welcome.is_empty():
+	if kind != Protocol.MODS or game.link.welcome.is_empty():
 		return
 	if not args is Array or args.size() != 3 or not ModFiles.valid_hash(args[0]) or not args[2] is Array \
 			or args[2].size() > 4096:
@@ -98,17 +98,17 @@ func _on_event(kind: String, args: Variant, net) -> void:
 
 
 ## The server's reload is more than ModFetch.ASK_ABOVE to take: the game leaves the server,
-## saying how much, as joining does (Main._join_world), and joining again takes it.
+## saying how much, as joining does (ServerLink.wait_welcome), and joining again takes it.
 func _too_much() -> void:
 	var f := fetch
 	fetch = null
 	f.stop()
-	game.get_script().mods_allowed = f.digest
+	game.link.mods_allowed = f.digest
 	var why := Lang.line("[the_server_asks_to_download]", ["%.1f" % (f.want / 1048576.0)])
 	print("mods: the server's reload asks for %d KB: left the server to ask the player" % (f.want >> 10))
-	game.join_error = why
-	if game.socket != null:
-		game.socket.leave()
+	game.link.join_error = why
+	if game.link.socket != null:
+		game.link.socket.leave()
 	if game.hud != null:
 		game.hud.set_loading(why)
 	if game.menu != null:
@@ -129,7 +129,7 @@ func _on_taken(ok: bool) -> void:
 	if f.bundles != Content.BUNDLES:
 		Content.BUNDLES = f.bundles.duplicate()
 		game.world_mods = f.bundles.duplicate()
-	game.server_mods = {"url": game.join_url, "digest": f.digest, "table": f.table}
+	game.link.server_mods = {"url": game.link.join_url, "digest": f.digest, "table": f.table}
 	served += 1
 	print("mods: the server's reload: %d files taken (%d KB)" % [f.files, f.got >> 10])
 	Figure.forget()
@@ -158,10 +158,10 @@ func reload() -> void:
 		game.props.remodel()
 	if game.character != null:
 		game.character.inventory.changed.emit()
-	if game.hosted != null and game.hosted.server != null:
+	if game.link.hosted != null and game.link.hosted.server != null:
 		# The server made in this game shares the data read: its rules take it, and its
 		# other players' games the files that changed.
-		game.hosted.server.mods_reread()
+		game.link.hosted.server.mods_reread()
 	if game.workshop != null:
 		game.workshop.changed.emit()
 	print("mods: read again in %d ms, %d problems" % [Time.get_ticks_msec() - t, problems.size()])

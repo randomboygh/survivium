@@ -10,7 +10,7 @@ server determines the role by the connection's key (`Server.role_of`), every tim
 |---|---|---|
 | player (`ROLE_PLAYER`) | everyone | by default; gives no commands |
 | host (`ROLE_HOST`) | a trusted player | `op <who>` of the owner or the terminal; `access.hosts` |
-| owner (`ROLE_OWNER`) | the player who created the server in the game | `Main._on_welcome` → `make_host`; `access.owners` |
+| owner (`ROLE_OWNER`) | the player who created the server in the game | `ServerLink._on_welcome` → `make_host`; `access.owners` |
 | terminal (`ROLE_CONSOLE`) | the server's console and the command field of the «Create a server» window | the server process, not the network |
 
 The lists are stored in `access.json` of the world's folder. A taken-away role (`deop`) works from the next

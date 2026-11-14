@@ -438,7 +438,7 @@ func show_keys(on: bool) -> void:
 ## True when the chat and the gestures show: on a server always, in single player when
 ## the setting «Чат и жесты» says so (`solo`).
 func social(solo: bool) -> bool:
-	return game.join_url != "" or solo
+	return game.link.join_url != "" or solo
 
 
 ## Shows or hides the chat and gesture buttons as the setting `solo` asks; hidden, an
