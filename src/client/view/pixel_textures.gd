@@ -62,11 +62,16 @@ const BUSH_ROWS := 5
 const BERRY_ALPHA := 0.65
 
 
-## The textures given to the shaders' global parameters, by name: [the one set now, the
-## one before]. A new scene sets new ones; Vulkan (Android) could still draw a frame with
-## the one before after it was freed, and drew garbage until the game restarted (white
-## and cyan quads, half a black screen). So the one before lives until the next is set.
+## The textures given to the shaders' global parameters, by name: the one set now. A new
+## scene sets new ones; Vulkan (Android) could still draw a frame with the one before
+## after it was freed, and drew garbage until the game restarted (white and cyan quads,
+## half a black screen, a green screen). So a replaced one lives on in _replaced.
 static var _globals := {}
+## The textures replaced, each [texture, Time.get_ticks_msec() it was replaced], kept
+## HOLD_MS: not just until the next is set, since a joining can set one a few times in
+## a row.
+static var _replaced: Array = []
+const HOLD_MS := 5000
 
 ## The atlas image, kept so scripts can read its tiles: reading a texture back is slow
 ## in the browser.
@@ -799,9 +804,13 @@ static func build_cloud_noise() -> ImageTexture:
 
 
 ## Sets the shaders' global texture `param` to `texture`, keeping the one it replaces
-## alive until the next (see _globals).
+## alive HOLD_MS more (see _globals).
 static func set_global(param: StringName, texture: Texture2D) -> void:
-	var held: Array = _globals.get(param, [null, null])
-	if held[0] != texture:
-		_globals[param] = [texture, held[0]]
+	var now := Time.get_ticks_msec()
+	while not _replaced.is_empty() and now - int(_replaced[0][1]) > HOLD_MS:
+		_replaced.pop_front()
+	var held: Texture2D = _globals.get(param)
+	if held != null and held != texture:
+		_replaced.append([held, now])
+	_globals[param] = texture
 	RenderingServer.global_shader_parameter_set(param, texture)
