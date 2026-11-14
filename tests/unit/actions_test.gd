@@ -9,6 +9,7 @@ func run() -> void:
 	_test_front_choice()
 	_test_tap_choice()
 	_test_world_actions()
+	_test_water_holds()
 	_test_placed()
 	_test_stairs_placed()
 	_test_start_camp()
@@ -247,6 +248,36 @@ func _test_world_actions() -> void:
 ## to rise away from the one who set them, solid by their steps; the next goes over air
 ## a level higher, and taking one up frees its cell; a chest set down looking east faces
 ## west and takes its turned cells.
+# Water has no physics yet: neither the ground under it nor a cell beside it at its level
+# or lower is dug (the user's rule, 2026-11-14), and the player is told why.
+func _test_water_holds() -> void:
+	var w := WorldData.new(40, Vector2i(24, 24))
+	for z in 24:
+		for x in 24:
+			var pond := x >= 4 and x <= 7 and z >= 4 and z <= 7
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+			w.set_cell(x, 2, z, Mat.WATER if pond else Mat.DIRT)
+			if not pond:
+				w.set_cell(x, 3, z, Mat.DIRT)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var who := Who.new()
+	who.position = Vector3(9.5, 4.0, 5.5) * WorldData.CELL
+	who.item = "tools:wooden_shovel"
+	_check(actions.water_holds(Vector3i(5, 1, 5)) and actions.water_holds(Vector3i(8, 2, 5))
+		and actions.water_holds(Vector3i(8, 1, 5)) and actions.water_holds(Vector3i(8, 2, 8)),
+		"the ground under water and beside it, diagonals too, is held by the water")
+	_check(not actions.water_holds(Vector3i(9, 2, 5)) and not actions.water_holds(Vector3i(8, 3, 5)),
+		"a cell two away from the water or above its level is not")
+	who.said.clear()
+	_check(actions.dig_at(who, Vector3i(8, 2, 5), Vector3i(1, 0, 0)).is_empty() and w.get_cell(8, 2, 5) == Mat.DIRT
+		and who.said.has(Lang.t("[water_holds_this_ground]")), "the shore is not dug, and the player is told why")
+	_check(actions.dig(who, [Vector3i(8, 1, 5)] as Array[Vector3i], 0.5).is_empty() and w.get_cell(8, 1, 5) == Mat.DIRT,
+		"dig itself (as flattening calls it) leaves the shore")
+	_check(not actions.dig_at(who, Vector3i(8, 3, 5), Vector3i.UP).is_empty() and w.get_cell(8, 3, 5) == Mat.AIR,
+		"the bank above the water's level is dug")
+
+
 func _test_stairs_placed() -> void:
 	var w := WorldData.new(40, Vector2i(48, 48))
 	for z in 48:
