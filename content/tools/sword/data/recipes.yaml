@@ -2,11 +2,11 @@
 # is needed by whoever has recipes made at it), tools - the tool classes in the bag; branch, log,
 # flint, stone and clay are "Resources", rope, planks and brick are "Materials". All the recipe fields are in
 # docs/DATA_MODEL.md.
+# Before flint is found: by hand from branches and cord, no planks or workbench; weaker than stone.
 - id: wooden_sword
   title: "[tools.recipes.wooden_sword]"
   makes: wooden_sword
-  needs: {materials:planks: 2, materials:cord: 1}
-  at: workbench
+  needs: {resources:branch: 2, materials:cord: 1}
   time: 5
 - id: stone_sword
   title: "[tools.recipes.stone_sword]"

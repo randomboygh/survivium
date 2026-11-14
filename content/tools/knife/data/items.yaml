@@ -1,6 +1,6 @@
 # Items of the "Knife" bundle of the "Tools and crafting" mod: class knife. The knife butchers carcasses (the recipe
 # "Butcher a carcass" of the "Animals" mod asks for it in the bag) and strikes an animal like a sword: a hit on an animal in
-# front of you is its power. Fields are as for swords (content/tools/sword/data/items.yaml).
+# front of you is its power, one less than a sword of the same metal (a knife cuts, a sword fights). Fields are as for swords (content/tools/sword/data/items.yaml).
 - id: flint_knife
   title: "[tools.items.flint_knife]"
   description: "[tools.items.flint_knife.about]"
@@ -11,7 +11,7 @@
   tool: knife
   sprite: flint_knife
   anim: slash
-  power: 2
+  power: 1
   swing: 0.3
   reach: 4
   durability: 360
@@ -25,7 +25,7 @@
   tool: knife
   sprite: copper_knife
   anim: slash
-  power: 3
+  power: 2
   swing: 0.3
   reach: 4
   durability: 750
@@ -39,7 +39,7 @@
   tool: knife
   sprite: bronze_knife
   anim: slash
-  power: 4
+  power: 3
   swing: 0.3
   reach: 4
   durability: 1200
@@ -53,7 +53,7 @@
   tool: knife
   sprite: iron_knife
   anim: slash
-  power: 5
+  power: 4
   swing: 0.3
   reach: 4
   durability: 2400
@@ -67,7 +67,7 @@
   tool: knife
   sprite: steel_knife
   anim: slash
-  power: 6
+  power: 5
   swing: 0.3
   reach: 4
   durability: 3600

@@ -36,7 +36,7 @@ const FARM_NUDGE := 4.0
 ## as much off (linear through NORMAL: 10 is about 60%).
 const LASTS_PER_POINT := 0.01
 ## And this share to the pace of a tool's swing.
-const PACE_PER_POINT := 0.004
+const PACE_PER_POINT := 0.003
 
 
 ## The quality of what work `role` gets with tool `t` (Tools.of) of quality `tool_q`, at

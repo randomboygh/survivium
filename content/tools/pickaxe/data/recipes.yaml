@@ -8,11 +8,11 @@
   needs: {resources:flint: 2, resources:branch: 2, materials:cord: 1}
   at: workbench
   time: 6
+# Before flint is found: by hand from branches and cord, no planks or workbench; weaker than stone.
 - id: wooden_pickaxe
   title: "[tools.recipes.wooden_pickaxe]"
   makes: wooden_pickaxe
-  needs: {materials:planks: 2, resources:branch: 2}
-  at: workbench
+  needs: {resources:branch: 3, materials:cord: 1}
   time: 4
   quality_cap: 30
 - id: copper_pickaxe

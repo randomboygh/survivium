@@ -13,10 +13,11 @@ WA-012, WA-013, WA-014, WA-015, WA-016, WA-017, WA-019, WA-022 (#587; WA-018 in 
 WA-024 (#586: `src/client/net/server_link.gd`, no forwarding left on Main),
 WA-027 (the twelve uncalled functions deleted; the palettes' filters of the build and farming modes stay: kept with the player and tested, waiting for their buttons),
 WA-026 (`work_mode.gd` under the build and farming modes, `bot_brain.gd` under the two bots, the server's roles used directly).
+WA-049, WA-050 (the owner picked option A for each), WA-064 (the owner's playtest: the numbers kept).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 1 | 16 | 16 | 33 |
+| 0 | 1 | 14 | 15 | 30 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
@@ -94,16 +95,6 @@ recommendations.
 - **Recommended fix:** A merge queue or "require branches to be up to date" (repository settings, the owner).
 - **Status:** Open: owner action; first found 2026-11-14 (new); due 2026-11-20.
 
-### WA-049 · Medium · Balance, tests
-
-- **Description:** `balance_test` leaves quality out of its best cases.
-- **Cause:** Quality 100 makes a tool 1.2× faster and 1.5× more durable, and is easy to reach.
-- **Confirmation:** Computed from `quality.gd` and the tables: a steel axe at chopping 10 and quality 100 empties stamina in 7.7 s (the test's floor is 8 s); an oak falls in 0.6 s (floor 0.5).
-- **Files and systems:** `tests/unit/balance_test.gd`, `src/shared/game/quality.gd`
-- **Consequences:** The documented envelope no longer holds at the top; the next buff crosses it unnoticed.
-- **Recommended fix:** Plan: count quality in the best cases, or lower `PACE_PER_POINT` (a balance formula: the user's pick).
-- **Status:** Open: user decision; first found 2026-11-14 (new); due 2026-11-27.
-
 ### WA-057 · Medium · Saves, web
 
 - **Description:** A browser save can lose up to 30 s.
@@ -173,16 +164,6 @@ recommendations.
 - **Consequences:** A hitch on a phone.
 - **Recommended fix:** Plan: lay out only what changed.
 - **Status:** Open: needs plan; first found 2026-11-14 (stage 4); due backlog.
-
-### WA-064 · Medium · Balance
-
-- **Description:** Balance items waiting for a playtest.
-- **Cause:** Building toughness and decay, survival thresholds with wear on, the 40-minute day.
-- **Confirmation:** `docs/balance/GAME_BALANCE_ROADMAP.md`.
-- **Files and systems:** the balance docs, the data
-- **Consequences:** The numbers are guesses until played.
-- **Recommended fix:** The user plays and picks.
-- **Status:** Open: playtest; first found 2026-11-14 (balance stage); due backlog.
 
 ### WA-065 · Medium · Process
 
@@ -293,16 +274,6 @@ recommendations.
 - **Consequences:** Noise; a real leak would hide among them.
 - **Recommended fix:** Run with `--verbose` to name the owners.
 - **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
-
-### WA-050 · Low · Balance
-
-- **Description:** Some tool tiers add little.
-- **Cause:** Wooden pickaxe, scythe and sword are weaker than their stone twins and need planks; a flint knife hits as hard as a stone sword sooner; copper → bronze shovel only adds durability.
-- **Confirmation:** The balance tables (regenerated in a copy, equal to the committed ones).
-- **Files and systems:** the tools' YAML
-- **Consequences:** Pointless items in the early game.
-- **Recommended fix:** A playtest question: give the wooden tools a niche or drop them.
-- **Status:** Open: playtest; first found 2026-11-14 (new); due backlog.
 
 ### WA-051 · Low · Data
 

@@ -86,7 +86,7 @@ func _test_made() -> void:
 func _test_effects() -> void:
 	_check(is_equal_approx(Quality.lasts(50), 1.0) and is_equal_approx(Quality.lasts(100), 1.5)
 		and is_equal_approx(Quality.lasts(10), 0.6), "normal lasts as before, the best half again, poor 60%")
-	_check(Quality.faster(100) > 1.15 and Quality.faster(10) < 0.9, "a good tool swings faster, a poor one slower")
+	_check(Quality.faster(100) > 1.1 and Quality.faster(10) < 0.9, "a good tool swings faster, a poor one slower")
 	var axe := ""
 	for id: String in Items.IDS:
 		if Items.get_item(id).get("durability", 0) > 0 and Items.get_item(id).get("tool", "none") == "axe":
