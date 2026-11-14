@@ -17,9 +17,9 @@ const INK := Color("#f3e7cc")
 const MUTED := Color("#c9b896")
 const ACCENT := Color("#e9b44c")
 const ACCENT_DARK := Color("#b98a2c")
-## The accent button's other states, as the plain one has them: lighter under the
-## cursor, its shade's colour pressed, faded towards a plain button when it cannot be pressed.
-const ACCENT_HOVER := Color("#f5c768")
+## The accent button's other states: its shade's colour while pressed, faded towards a
+## plain button when it cannot be pressed. Under the cursor it stays as it is: a touch
+## leaves the cursor on it, and a lit button after the tap looked still pressed.
 const ACCENT_DIM := Color("#7d6236")
 const ACCENT_DIM_SHADE := Color("#5a4528")
 const EDGE := Color("#0f0a06")
@@ -417,9 +417,7 @@ static func button(state: String, accent := false, danger := false, good := fals
 	elif accent:
 		fill = ACCENT
 		shade = ACCENT_DARK
-		if state == "hover":
-			fill = ACCENT_HOVER
-		elif state == "pressed" or state == "hover_pressed":
+		if state == "pressed" or state == "hover_pressed":
 			fill = ACCENT_DARK
 		elif state == "disabled":
 			fill = ACCENT_DIM
