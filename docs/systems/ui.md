@@ -12,7 +12,7 @@ input.
 not drawn anew; all the game's windows are already moved to the kit. A new window is made from the kit too,
 and a new shared part is added to the kit and to the «Interface gallery».
 - `kit.gd` — static parts: a window title, a caption, an explanation; a window button (plain, amber
-  `accent_button`, with the plain one's states: lighter under the cursor, darker pressed, faded when disabled), a square one with an icon `icon_button`, one in the panel frame for the game screen
+  `accent_button`, darker pressed, faded when disabled, not lit under the cursor: a tap leaves it there), a square one with an icon `icon_button`, one in the panel frame for the game screen
   `framed_button` (the HUD buttons, the strip's arrows), the switch `check` (`switch.gd`: in pixels: a pill track in a dark edge and a round knob in a thick one, off — dark track and pale knob on the left, on — dim amber track and amber knob on the right; the round ends are pixel circles drawn by pixel art's rules — even steps that never grow towards the diagonal, the same on every side (`_round`); inside its edge the track's ends follow the knob's steps (`_round_around`), so the room between them is one pixel all round — the text to its left); the input field `field` (the caret
   and tab switching in the browser — `TextField.fit`); column, row, inset; a scrolled list `scroll` (also by
   finger, `DragScroll`, with insets as in the settings: on the right as on the left, more only for a shown bar); the look of the screen's big buttons `octagon_look`,
