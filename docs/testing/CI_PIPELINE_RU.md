@@ -26,7 +26,7 @@
 | Задание | Что делает | Время | Блокирует |
 |---|---|---|---|
 | `lint` | `tools/lint.py` (правила скриптов и текстов, Python, shell, JS, JSON, workflow) , `tools/doc_index.py --check` (пути в документах, свежесть индекса кода) и `tools/lang_check.py --strict en,ru` (каждый ключ есть по-английски и по-русски, русского текста в коде нет); без Godot | ~10 с | да |
-| `checks` | `parse` (каждый скрипт компилируется, `tools/parse_check.gd`), `validate` (данные модов и каждый бандл отдельно), `report` (свежесть `docs/generated/content-*.md`) | ~1 мин | да |
+| `checks` | `parse` (каждый скрипт компилируется, `tools/parse_check.gd`), `validate` (данные модов и каждый бандл отдельно), `report` (свежесть `docs/generated/content-*.md`), `balance` (свежесть `docs/balance/GAME_BALANCE_TABLES.md`, `tools/balance_report.gd --check`) | ~1 мин | да |
 | `tests` | `run_tests` (юнит-тесты), `save_test`, `server_test` бок о бок | ~3 мин | да |
 | `progress (hunting)`, `progress (other)` | две половины `progress_test`: рецепты, которым нужно добытое со зверя, и остальные — на двух машинах | см. отчёт | да |
 | `frames` | `frame_test` один на машине (меряет кадры) | ~1,5 мин | да |

@@ -7,7 +7,7 @@
 #     tests/run_all.sh                       all of them
 #     tests/run_all.sh run_tests save_test   only these, side by side
 # The checks: parse (every script compiles), validate (the mods' data), report (the content
-# reports in docs/generated are fresh), run_tests, save_test, progress_hunting and
+# reports in docs/generated are fresh), balance (the balance tables in docs/balance are fresh), run_tests, save_test, progress_hunting and
 # progress_other (the two halves of progress_test, see its --part), progress_test (the whole
 # way in one run), server_test, frame_test.
 # GODOT=path/to/godot if it is not on PATH; LOGS=dir keeps each check's log there (CI
@@ -17,12 +17,12 @@ godot=${GODOT:-godot}
 out=$(mktemp -d)
 trap 'rm -rf "$out"' EXIT
 declare -A script=(
-	[parse]=tools/parse_check.gd [validate]=tools/validate.gd [report]=tools/content_report.gd
+	[parse]=tools/parse_check.gd [validate]=tools/validate.gd [report]=tools/content_report.gd [balance]=tools/balance_report.gd
 	[run_tests]=tests/run_tests.gd [save_test]=tests/save_test.gd [progress_test]=tests/progress_test.gd
 	[progress_hunting]=tests/progress_test.gd [progress_other]=tests/progress_test.gd
 	[frame_test]=tests/frame_test.gd [server_test]=tests/server_test.gd)
-declare -A args=([report]=--check [progress_hunting]="--part hunting" [progress_other]="--part other")
-declare -A limit=([parse]=120 [validate]=120 [report]=120 [run_tests]=300 [save_test]=300 [progress_test]=1500
+declare -A args=([report]=--check [balance]=--check [progress_hunting]="--part hunting" [progress_other]="--part other")
+declare -A limit=([parse]=120 [validate]=120 [report]=120 [balance]=120 [run_tests]=300 [save_test]=300 [progress_test]=1500
 	[progress_hunting]=1200 [progress_other]=1200 [frame_test]=600 [server_test]=300)
 failed=()
 summary=()
@@ -64,7 +64,7 @@ batch() {
 		fi
 		# The line of counts each check ends with ("3211 checks, 0 failed", "content OK: …").
 		local counts
-		counts=$(grep -E '[0-9]+ checks, [0-9]+ fail|^content OK|content problems|scripts, [0-9]+ do not|^content reports|stale' "$out/$n.log" | tail -1)
+		counts=$(grep -E '[0-9]+ checks, [0-9]+ fail|^content OK|content problems|scripts, [0-9]+ do not|^content reports|stale|^fresh' "$out/$n.log" | tail -1)
 		summary+=("| $n | $secs | $result | ${counts//|/\\|} |")
 		if [ "$result" != passed ]; then
 			[ -n "${GITHUB_ACTIONS:-}" ] && echo "::error title=$n $result::$(grep -m1 -E '^FAIL|^content:|ERROR' "$out/$n.log" | head -c 300)"
@@ -79,7 +79,7 @@ batch() {
 if [ $# -gt 0 ]; then
 	batch "$@"
 else
-	batch parse validate report run_tests save_test progress_hunting progress_other server_test
+	batch parse validate report balance run_tests save_test progress_hunting progress_other server_test
 	batch frame_test
 fi
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then

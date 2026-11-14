@@ -7,10 +7,12 @@ a reason; the history of each status stays in the weekly reports ([INDEX.md](IND
 Last checked: 2026-11-14 ([WEEKLY_AUDIT_2026-11-14.md](WEEKLY_AUDIT_2026-11-14.md)), at commit
 `b35d371` with that audit's fixes in the working tree. The fixes went into `main` on top of `e395528`: of the
 four pull requests merged in between (#577–#580), #579 and #578 reach WA-031 and WA-043, noted there.
+Closed since: WA-031 (#579, both main runs after it green), WA-040, WA-041, WA-042, WA-043, WA-045 (#583),
+WA-048 (`balance_report --check` in CI and `run_all.sh`).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 1 | 27 | 28 | 56 |
+| 0 | 1 | 22 | 26 | 49 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
@@ -98,16 +100,6 @@ recommendations.
 - **Recommended fix:** Plan: a shared base for the modes, a shared bot brain, the server's roles used directly.
 - **Status:** Open: needs plan; first found 2026-11-14 (new); due when next touched.
 
-### WA-031 · Medium · Tests, performance
-
-- **Description:** The frames check of mowing sits on a fixed one-off spike.
-- **Cause:** The spike (a scythe swing, 7–9.5 ms worst outside) does not scale, while the allowance is 1 + frames/250; landing had the same problem until #575.
-- **Confirmation:** CI logs of 8 main runs (11-12..13); the local run failed on mowing (182 frames, 2 over).
-- **Files and systems:** `tests/frame_test.gd`
-- **Consequences:** The job goes red on fast runners and slow machines, which hides real regressions behind reruns.
-- **Recommended fix:** Plan: treat swings as events as #575 did for landing, or a floor under the limit; a test-only change.
-- **Status:** Open: to confirm, #579 (merged after this audit) made the first swing and each thing taken up events held under a chunk, as recommended; first found 2026-11-14 (new); due 2026-11-20.
-
 ### WA-032 · Medium · Performance
 
 - **Description:** An idle frame leaves thin headroom.
@@ -147,46 +139,6 @@ recommendations.
 - **Consequences:** A broken main until someone fixes forward.
 - **Recommended fix:** A merge queue or "require branches to be up to date" (repository settings, the owner).
 - **Status:** Open: owner action; first found 2026-11-14 (new); due 2026-11-20.
-
-### WA-040 · Medium · CI, dependencies
-
-- **Description:** Every pinned action still targets Node 20.
-- **Cause:** The pins are the Node 20 majors.
-- **Confirmation:** CI logs: the Node.js 20 deprecation warning for checkout, cache, upload and download artifact, deploy pages.
-- **Files and systems:** `.github/workflows/build.yml`, `.github/actions/godot/action.yml`
-- **Consequences:** The jobs break when GitHub removes the shim.
-- **Recommended fix:** Plan: bump each pin to its Node 24 major, pinned by SHA.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-27.
-
-### WA-041 · Medium · CI, secrets
-
-- **Description:** The release Android keystore is given to every pull request from the repo.
-- **Cause:** The `android` job passes the secrets on `pull_request` with no branch condition.
-- **Confirmation:** Read: `.github/workflows/build.yml:316-317`; PR logs show the release signing.
-- **Files and systems:** `.github/workflows/build.yml`
-- **Consequences:** Anyone who can push a branch can read the release key from a PR run; PR APKs carry the release signature.
-- **Recommended fix:** Plan: the secrets only on main, or a protected environment (PR APKs keep the temporary key).
-- **Status:** Open: user decision; first found 2026-11-14 (new); due 2026-11-20.
-
-### WA-042 · Medium · CI, supply chain
-
-- **Description:** The playtest workflow downloads cloudflared with no checksum.
-- **Cause:** Only the version is pinned.
-- **Confirmation:** Read: `.github/workflows/playtest.yml:61-64`; Godot, in contrast, is checked by SHA-512.
-- **Files and systems:** `.github/workflows/playtest.yml`
-- **Consequences:** A swapped binary would run with the job's token.
-- **Recommended fix:** Pin its SHA-256 as the Godot sums are.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-27.
-
-### WA-043 · Medium · CI
-
-- **Description:** Nothing keeps an older build off Pages.
-- **Cause:** `deploy` has no concurrency group and no check that its commit is still main's head; reruns of older main runs happen. Since #578 (merged after this audit) the `release` job that replaced `publish` and `publish-android` keeps an older build off «Latest», `android-latest` and `pc-latest`.
-- **Confirmation:** Read: `.github/workflows/build.yml` `deploy`, and `release` with `latest` from `tools/release_notes.py`; 16 main runs were rerun this week.
-- **Files and systems:** `.github/workflows/build.yml`
-- **Consequences:** A late rerun can put an older build on Pages.
-- **Recommended fix:** Plan: a concurrency group for `deploy` and the head check `release` has.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-27.
 
 ### WA-049 · Medium · Balance, tests
 
@@ -458,16 +410,6 @@ recommendations.
 - **Recommended fix:** Cancel them in the GitHub interface.
 - **Status:** Open: owner action; first found 2026-11-14 (new); due 2026-11-20.
 
-### WA-045 · Low · CI, dependencies
-
-- **Description:** The toolchain is not pinned.
-- **Cause:** `ubuntu-latest`, the runner's Android build tools, `playwright-core` 1.48.2 against a floating Chrome.
-- **Confirmation:** Read: `.github/workflows/build.yml`; the android log signs with build-tools 35.0.0 and verifies with 37.0.0.
-- **Files and systems:** `.github/workflows/build.yml`, `tests/browser_smoke.mjs`
-- **Consequences:** A runner update can change builds or the smoke test without a commit.
-- **Recommended fix:** Plan: pin the image and the build tools, update `playwright-core`.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due backlog.
-
 ### WA-046 · Low · Dependencies
 
 - **Description:** No licence file and no list of external dependencies.
@@ -487,16 +429,6 @@ recommendations.
 - **Consequences:** Noise; a real leak would hide among them.
 - **Recommended fix:** Run with `--verbose` to name the owners.
 - **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
-
-### WA-048 · Low · CI, balance
-
-- **Description:** No check runs `balance_report --check`.
-- **Cause:** It could not pass until this audit (WA-008).
-- **Confirmation:** `grep balance_report .github tests/run_all.sh` finds nothing.
-- **Files and systems:** `.github/workflows/build.yml`, `tests/run_all.sh`
-- **Consequences:** The balance tables can go stale unnoticed.
-- **Recommended fix:** Add it to the `checks` job and to `run_all.sh`.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-20.
 
 ### WA-050 · Low · Balance
 

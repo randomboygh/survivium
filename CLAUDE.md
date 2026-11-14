@@ -126,6 +126,7 @@ godot --headless --path . --import
 godot --headless --path . --script res://tools/parse_check.gd
 godot --headless --path . --script res://tools/validate.gd
 godot --headless --path . --script res://tools/content_report.gd -- --check
+godot --headless --path . --script res://tools/balance_report.gd -- --check
 godot --headless --path . --script res://tests/run_tests.gd
 timeout 300 godot --headless --path . --script res://tests/save_test.gd
 timeout 1200 godot --headless --path . --script res://tests/progress_test.gd -- --part hunting
@@ -137,7 +138,7 @@ timeout 300 godot --headless --path . --script res://tests/server_test.gd
 `tests/run_all.sh` runs the godot ones after `--import`: all but `frame_test` side by side, each with
 its own `user://` (`XDG_DATA_HOME`), then `frame_test` alone, since it measures frame times
 (`GODOT=path` if `godot` is not on PATH; names as arguments run only those: `parse validate report
-run_tests save_test progress_hunting progress_other progress_test server_test frame_test`; `LOGS=dir`
+balance run_tests save_test progress_hunting progress_other progress_test server_test frame_test`; `LOGS=dir`
 keeps the logs). `frame_test` timings are noisy on a busy machine (this cloud container is too slow
 and noisy for it: CI judges): rerun it alone before blaming code. Run `--import` again after pulling
 new assets, or HUD scripts fail with null errors that look like code bugs. Wrap headless runs in
