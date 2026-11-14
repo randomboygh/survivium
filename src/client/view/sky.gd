@@ -21,6 +21,12 @@ const BERRY_AMOUNT := Bushes.BERRY_AMOUNT
 const SUN_STEPS := 1440
 ## How strong the sunlight among the trees is at most (see SunRays).
 const RAYS_BRIGHTNESS := 1.0
+## Clouds (0..1) under which the sun's rays show at full, and over which none.
+const RAYS_CLEAR := Vector2(0.25, 0.45)
+## The sun's heights in degrees (it climbs from 14 at sunrise to 55 at noon) over
+## which its rays fade in, are at full, and fade out: a higher sun drops them straight
+## down under their own crowns, which hide them, a lower one lays them along the ground.
+const RAYS_SUN := Vector4(20.0, 26.0, 42.0, 48.0)
 ## The light round the player with a torch in hand, and without one: a faint glow
 ## that reaches GLOW_RANGE world units, enough to see the cells beside them.
 const TORCH_ENERGY := 1.3
@@ -296,20 +302,22 @@ func _light_side(azimuth: float) -> void:
 	RenderingServer.global_shader_parameter_set("light_side", Vector2(-sin(a), cos(a)))
 
 
-## Sunlight among the trees (SunRays): shafts, flecks and dust by day in clear
-## weather, stronger in the wet air after rain as the clouds break up; none while
-## anything falls, in fog and under a roof. Stronger and warmer when the sun is low.
-## `rise` is how far the sun is up (0..1).
+## Sunlight among the trees (SunRays): shafts, flecks and dust only in clear weather
+## with the sun at a slant (see RAYS_CLEAR, RAYS_SUN), fading in and out smoothly; none
+## while anything falls, in fog and under a roof. `rise` is how far the sun is up (0..1).
 func _update_rays(rise: float, golden: float) -> void:
 	var rays = game.sun_rays
 	if rays == null:
 		return
 	var clock = game.clock
 	var clouds: float = clock.clouds
-	var clear := clampf((0.8 - clouds) / 0.4, 0.0, 1.0)
-	var breaking := after_rain * clampf((1.0 - clouds) / 0.3, 0.0, 1.0)
+	# Only under a clear sky (fading out as clouds gather from RAYS_CLEAR) and a sun
+	# neither low nor high (RAYS_SUN), fading in and out smoothly.
+	var clear := clampf((RAYS_CLEAR.y - clouds) / (RAYS_CLEAR.y - RAYS_CLEAR.x), 0.0, 1.0)
+	var height := rad_to_deg(asin(clampf(to_sun.y, -1.0, 1.0)))
+	var high := smoothstep(RAYS_SUN.x, RAYS_SUN.y, height) * (1.0 - smoothstep(RAYS_SUN.z, RAYS_SUN.w, height))
 	var falling: float = clock.rain + clock.snowing + clock.hail + clock.sand
-	var amount := rise * maxf(clear * 0.9, breaking) * (1.0 + 0.4 * golden)
+	var amount := rise * smoothstep(0.0, 1.0, clear) * high * 0.9
 	amount *= clampf(1.0 - falling * 4.0, 0.0, 1.0) * clampf(1.0 - clock.fog * 1.5, 0.0, 1.0)
 	if not rays_on or game.chunks.indoor:
 		amount = 0.0
