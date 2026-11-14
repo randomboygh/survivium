@@ -41,6 +41,10 @@ const Lang := preload("res://src/shared/content/lang.gd")
 ## those whose ground is forgotten go (_leave); every RESPAWN_EVERY the eaten are
 ## made up for (_refill).
 const SETTLE_EVERY := 1.0
+## The most chunks given their animals in a frame, and kinds made up for (_settle_new,
+## _refill_some): a teleport or a respawn lets the animals of some hundred chunks come.
+const SETTLE_MOST := 6
+const REFILL_MOST := 2
 const RESPAWN_EVERY := 15.0
 const CELL := WorldData.CELL
 ## Animals walk slopes and hop up a sheer step of one cell, not of two.
@@ -290,6 +294,8 @@ var _fire_timer := 0.0
 ## Whether start ran, and the tamed animals of a save waiting for it (see add_tamed).
 var _started := false
 var _kept_tame: Array = []
+## What the made up for is still to do (_plan_refill): [kind, share, around, cells].
+var _refills: Array = []
 
 
 ## Gives the chunks made so far their animals; more come as more is made.
@@ -311,18 +317,28 @@ func _made(key: Vector2i) -> bool:
 ## Gives each chunk made within ROAM of the people that has none yet its animals
 ## (_populate_chunk), and forgets the chunks no longer kept (their animals went with them, see
 ## _leave), so a chunk made again gets them again.
-func _settle_new() -> void:
+## At most `most` chunks are given theirs in a call, the nearest first; true when some
+## were left for the next (update then calls again in the next frame, not a second later:
+## after a teleport or a respawn some hundred chunks come at once, not in one frame).
+func _settle_new(most := 1 << 30) -> bool:
 	for key: Vector2i in _settled.keys():
 		if not world.chunks.has(key):
 			_settled.erase(key)
 	var r := ceili(float(SPAWN_REACH) / WorldData.CHUNK)
 	for who in people:
 		var c := Vector2i(floori(who.position.x / CELL), floori(who.position.z / CELL)) / WorldData.CHUNK
-		for kz in range(c.y - r, c.y + r + 1):
-			for kx in range(c.x - r, c.x + r + 1):
-				var key := Vector2i(kx, kz)
-				if not _settled.has(key) and _made(key):
-					_populate_chunk(key)
+		for ring in r + 1:
+			for kz in range(c.y - ring, c.y + ring + 1):
+				for kx in range(c.x - ring, c.x + ring + 1):
+					if maxi(absi(kx - c.x), absi(kz - c.y)) != ring:
+						continue
+					var key := Vector2i(kx, kz)
+					if not _settled.has(key) and _made(key):
+						if most <= 0:
+							return true
+						most -= 1
+						_populate_chunk(key)
+	return false
 
 
 ## The animals of chunk `key`: of each kind as many as its `count` (wanted) on the
@@ -377,7 +393,17 @@ func _biome_share(kind: String, biomes: Array) -> float:
 ## settled within ROAM hold of it (their shares of its `count`, so fewer while the
 ## puddles dry for one that comes after rain) by more than REFILL_SLACK gets new ones
 ## out of sight on the ground made there; one over by as much loses those no one sees.
+## All at once here; update does it a kind or two a frame (_plan_refill, _refill_some),
+## since one kind's tries at places can take milliseconds (4-5 ms on CI for the whole).
 func _refill() -> void:
+	_plan_refill()
+	_refill_some(1 << 30)
+
+
+## Notes what _refill_some is to do: for each of the people each kind the chunks around
+## them hold a share of, with where.
+func _plan_refill() -> void:
+	_refills.clear()
 	for who in people:
 		var around: Vector3 = who.position
 		var c := Vector2i(floori(around.x / CELL), floori(around.z / CELL))
@@ -391,17 +417,31 @@ func _refill() -> void:
 					shares[kind] = shares.get(kind, 0.0) + of[kind]
 		var cells := Rect2i(c - Vector2i(SPAWN_REACH, SPAWN_REACH), Vector2i(SPAWN_REACH, SPAWN_REACH) * 2 + Vector2i.ONE)
 		for kind: String in shares:
-			var want: float = wanted(kind) * shares[kind]
-			var have := _count_near(kind, around)
-			if have > want + REFILL_SLACK:
-				_thin(kind, have - ceili(want), around)
-				continue
-			for i in floori(want - REFILL_SLACK) - have:
-				var n := animals.size()
-				_spawn_group(kind, floori(want) - have, cells, NEAR)
-				have += animals.size() - n
-				if have >= floori(want):
-					break
+			_refills.append([kind, shares[kind], around, cells])
+
+
+## Does up to `most` of what _plan_refill noted: a kind short around one of the people
+## gets new ones, one over loses some.
+func _refill_some(most: int) -> void:
+	while most > 0 and not _refills.is_empty():
+		most -= 1
+		var job: Array = _refills.pop_back()
+		var kind: String = job[0]
+		if not AiRules.SPECIES.has(kind):
+			continue
+		var around: Vector3 = job[2]
+		var cells: Rect2i = job[3]
+		var want: float = wanted(kind) * job[1]
+		var have := _count_near(kind, around)
+		if have > want + REFILL_SLACK:
+			_thin(kind, have - ceili(want), around)
+			continue
+		for i in floori(want - REFILL_SLACK) - have:
+			var n := animals.size()
+			_spawn_group(kind, floori(want) - have, cells, NEAR)
+			have += animals.size() - n
+			if have >= floori(want):
+				break
 
 
 ## The animals of `kind` within ROAM of `around` (on the ground: in cells, each way).
@@ -440,12 +480,14 @@ func update(delta: float) -> void:
 	respawn_timer += delta
 	if respawn_timer > RESPAWN_EVERY:
 		respawn_timer = 0.0
-		_refill()
+		_plan_refill()
+	_refill_some(REFILL_MOST)
 	_settle_timer += delta
 	if _settle_timer > SETTLE_EVERY:
 		_settle_timer = 0.0
 		_leave()
-		_settle_new()
+		if _settle_new(SETTLE_MOST):
+			_settle_timer = SETTLE_EVERY
 	_daylight = clock.daylight()
 	_fire_timer -= delta
 	if _fire_timer <= 0.0:
@@ -838,7 +880,8 @@ const BOLD_HUNGER := 0.7
 func _find_fires() -> void:
 	_fires.clear()
 	if placed != null:
-		for e: Dictionary in placed.things + placed.lights:
+		# Only those that can scare (Placed.scarers), not every thing set down.
+		for e: Dictionary in placed.scarers:
 			var reach: float = Items.get_item(e.item).get("scares", 0.0)
 			if reach > 0.0 and e.get("lit", false):
 				_fires.append([Placed.center(e), reach, false])

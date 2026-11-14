@@ -101,6 +101,9 @@ var game
 var world: WorldData
 var gen: WorldGen
 var chunk_nodes := {}
+## Counts the changes of chunk_nodes (a chunk built or let go), so the haze knows when the
+## set is the same (EdgeHaze.update).
+var nodes_changes := 0
 ## Chunks within reach still to build, and the chunk they were listed around
 ## (the player's, see focus).
 var pending_chunks: Array[Vector2i] = []
@@ -851,7 +854,7 @@ func _update_haze() -> void:
 	if haze == null:
 		haze = EdgeHaze.new(game)
 	var tp := Time.get_ticks_usec()
-	haze.update(chunk_nodes, _at(), _screen_half(), game.player.position.y)
+	haze.update(chunk_nodes, _at(), _screen_half(), game.player.position.y, nodes_changes)
 	budget_us += Time.get_ticks_usec() - tp
 
 
@@ -907,6 +910,7 @@ func _free_chunk(key: Vector2i) -> void:
 	for node: Node in chunk_nodes[key]:
 		node.queue_free()
 	chunk_nodes.erase(key)
+	nodes_changes += 1
 	bare.erase(key)
 	_unstash(key)
 	game.props.hide_drops(key)
@@ -957,6 +961,7 @@ func _chunk_nodes(key: Vector2i) -> void:
 			else:
 				game.world_root.add_child(n)
 		chunk_nodes[key] = parts
+		nodes_changes += 1
 		# What lies on the ground of a chunk from the save.
 		if world.drops.has(key) and not game.props.drop_nodes.has(key):
 			game.props.show_drops(key)

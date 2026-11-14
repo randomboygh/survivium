@@ -142,6 +142,10 @@ var lights: Array = []
 ## place its maker and their team come back to after death (Character.find_respawns).
 ## Saved with the world (to_list).
 var things: Array = []
+## The things and lights of `things` and `lights` whose item keeps the animals off while
+## it burns (its `scares`; Wildlife._find_fires), kept as they come and go, so the
+## animals' look for fires does not go over every thing set down.
+var scarers: Array = []
 ## What the chest by the spawn holds (the first thing that stores placed).
 var chest_items = null
 ## The solid boxes of a thing of a prop kind, not turned, in each of its cells (see
@@ -192,6 +196,10 @@ const FIRE_BOXES := [
 ## model gets the crate's boxes. Called once the mods are loaded, and again when they
 ## are read anew.
 func read_footprints() -> void:
+	# The items read anew may scare otherwise.
+	scarers = []
+	for e: Dictionary in things + lights:
+		_note_scarer(e)
 	footprints = {}
 	turned = {}
 	sizes = {}
@@ -593,6 +601,7 @@ func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel 
 		if chest_items == null:
 			chest_items = e.items
 	things.append(e)
+	_note_scarer(e)
 	if rec.get("fence", false):
 		for c: Vector3i in cells_of(e):
 			_fences[c] = e
@@ -1359,6 +1368,7 @@ func _remove(e: Dictionary) -> void:
 
 ## Lets go of thing `e`: its cells are free again, it is told gone (removed).
 func _forget(e: Dictionary) -> void:
+	scarers.erase(e)
 	if is_light(e):
 		lights.erase(e)
 		removed.emit(e)
@@ -1579,8 +1589,14 @@ static func is_light(e: Dictionary) -> bool:
 func put_light(item: String, cell: Vector3i, burnt := 0.0) -> Dictionary:
 	var e := {"item": item, "cell": cell, "burnt": burnt, "light": true, "items": null, "lit": true}
 	lights.append(e)
+	_note_scarer(e)
 	added.emit(e)
 	return e
+
+
+func _note_scarer(e: Dictionary) -> void:
+	if Items.get_item(e.item).get("scares", 0.0) > 0.0:
+		scarers.append(e)
 
 
 ## The light standing in `cell`, {} for none.

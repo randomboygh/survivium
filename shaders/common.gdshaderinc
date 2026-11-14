@@ -20,7 +20,7 @@
 // COMPAT_ALBEDO, which comes closer there). A blend_mul shader ends with COMPAT_MUL: Mobile
 // keeps the picture at half its brightness (a luminance multiplier, room for light over 1)
 // and halves what a shader gives with it, which a multiply then took as a factor, so every
-// footprint and fire shadow was at least half dark there, fog or none (2026-11-14).
+// fire shadow was at least half dark there (2026-11-14).
 #if CURRENT_RENDERER == RENDERER_COMPATIBILITY
 #define SRGB : source_color
 #define SRGB_HINT , source_color
@@ -708,6 +708,40 @@ vec4 veil(vec3 p, float fade) {
 	}
 	float m = min(fog_at(p), 0.85);
 	return vec4(depth_haze * fade * (1.0 - m) + fog_color * m, 1.0 - (1.0 - fade) * (1.0 - m));
+}
+
+// Footprints (tracks.gd): a map of the ground round the player, a texel for each of the
+// ground's, repeating every PRINT_MAP texels: r the kind of print (top 3 bits, 0 none)
+// and its level modulo 32, g the clock's byte (print_now) when it was made. The ground's
+// shaders darken their colour by footprint() before the light and the fog, so a fog
+// hides a print as it hides the ground. The kinds' colours and lives in seconds
+// (Tracks.LIFE the same): snow, ice, dry and wet grass, dry and wet soil, a cave's dust.
+global uniform sampler2D print_map : filter_nearest;
+global uniform float print_now;
+const float PRINT_MAP = 768.0;
+const vec3 PRINT_TINT[8] = vec3[](vec3(1.0), vec3(0.62, 0.68, 0.84), vec3(0.78, 0.86, 0.9),
+	vec3(0.72, 0.68, 0.58), vec3(0.6, 0.56, 0.5), vec3(0.7, 0.65, 0.58), vec3(0.58, 0.53, 0.48),
+	vec3(0.66, 0.64, 0.62));
+const float PRINT_LIFE[8] = float[](0.0, 120.0, 90.0, 20.0, 40.0, 45.0, 45.0, 60.0);
+
+// What a print at `p` on the ground multiplies the ground's colour by (1 where there is
+// none): fading out by a dither over the last 40% of its life.
+vec3 footprint(vec3 p) {
+	vec2 t = floor((p.xz + 1.0 / (32.0 * TEXELS)) * TEXELS);
+	vec4 v = texelFetch(print_map, ivec2(mod(t, PRINT_MAP)), 0);
+	int r = int(round(v.r * 255.0));
+	int kind = r >> 5;
+	if (kind == 0) {
+		return vec3(1.0);
+	}
+	float d = mod(p.y / CELL - float(r & 31) + 16.0, 32.0) - 16.0;
+	float life = PRINT_LIFE[kind];
+	float age = mod(print_now - round(v.g * 255.0), 256.0);
+	float left = clamp((life - age) / (life * 0.4), 0.0, 1.0);
+	if (abs(d) > 0.6 || left <= 0.0 || bayer4(t) > left) {
+		return vec3(1.0);
+	}
+	return PRINT_TINT[kind];
 }
 
 // Toon light: a few flat bands instead of smooth shading, hard sun shadows,

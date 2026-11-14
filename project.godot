@@ -202,6 +202,14 @@ roof_map_soft={
 "type": "sampler2D",
 "value": ""
 }
+print_map={
+"type": "sampler2D",
+"value": ""
+}
+print_now={
+"type": "float",
+"value": 0.0
+}
 biome_map={
 "type": "sampler2D",
 "value": ""

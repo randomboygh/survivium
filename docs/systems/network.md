@@ -118,7 +118,9 @@ length up to `CHAT_MAX` 160.
   record changed (`_people` by number; a dead one — left), through a socket once per `people_every` 0.05 s. The
   host calls `flush` after every request (the events come before the reply) and after every tick. `snap_every`
   — seconds between snapshots of the animals (0 — every `flush`, the loop; the server over the network sets
-  `Server.SNAP_EVERY` 0.1); `rejoin()` — the player came back on a new link: the request numbers are from one
+  `Server.SNAP_EVERY` 0.1); an animal more than `Session.reach_for(view_half) + 1` chunks from the player is
+  left out of the snapshots and its paw prints (`_far`, `_far_ones`) and told once it comes nearer, even
+  standing still; `rejoin()` — the player came back on a new link: the request numbers are from one
   again, the next `flush` is full, as on entry; while a full `flush` lies ahead, `born` is not piled up (the
   animals come with the first player, and each would be named twice). `send_world` (set by `Server`: through a
   socket) — the link keeps the copy of the client's world: `_sent` — the chunks the client has; in every

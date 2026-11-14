@@ -98,7 +98,6 @@ func _place() -> void:
 	stick.visible = touch
 	_action.visible = touch
 	_jump.visible = touch
-	_keys.visible = not touch and game.controls.show_help and not bag.visible
 	var bottom := h - MARGIN
 	# The controls' own size setting, whatever the interface's: undo the latter.
 	var k: float = CONTROL_SIZES[control_size] * _screen_scale / scale.x
@@ -167,13 +166,7 @@ func _place() -> void:
 	_bag_meter.position = Vector2(x + bw - _bag_meter.size.x, y - _bag_meter.size.y + 2)
 	_bag_meter.visible = mode_bar == null
 
-	_keys.reset_size()
-	_keys.position = Vector2(w - MARGIN - _keys.size.x, bottom - _keys.size.y)
-	if _keys.position.x < x + bw + 8:
-		_keys.position.y = y - 8 - _keys.size.y
-	# Off the camera cross under the minimap, on the left of a short window.
-	if _camera.visible and Rect2(_keys.position, _keys.size).intersects(Rect2(_camera.position, _camera.size).grow(4)):
-		_keys.position.x = MARGIN
+	_place_keys()
 	# The chat in the bottom left corner: over the stick, over the hotbar where they
 	# share the left of the screen.
 	var chat_bottom: float = stick.position.y - 6 if touch else bottom
@@ -189,6 +182,23 @@ func _place() -> void:
 	bag.fit(size)
 	map_view.fit(size, touch)
 	refresh_counts()
+
+
+## The hints of the keys in the bottom right corner (a computer's, while the bag is shut):
+## beside the hotbar, over it where they do not fit. All that changes when the bag opens or
+## shuts, so that is all laid out then (_on_bag_shown), not the whole HUD.
+func _place_keys() -> void:
+	_keys.visible = not touch and game.controls.show_help and not bag.visible
+	if not _keys.visible:
+		return
+	var bar: Control = _shown_bar()
+	_keys.reset_size()
+	_keys.position = Vector2(size.x - MARGIN - _keys.size.x, size.y - MARGIN - _keys.size.y)
+	if _keys.position.x < bar.position.x + bar.size.x + 8:
+		_keys.position.y = bar.position.y - 8 - _keys.size.y
+	# Off the camera cross under the minimap, on the left of a short window.
+	if _camera.visible and Rect2(_keys.position, _keys.size).intersects(Rect2(_camera.position, _camera.size).grow(4)):
+		_keys.position.x = MARGIN
 
 
 ## Whether the hotbar shows the left hand only: a touch screen held upright with the

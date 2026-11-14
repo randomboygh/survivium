@@ -86,6 +86,8 @@ func _test_wildlife() -> void:
 	# Far from the people from now on.
 	life.people = [Who.new()]
 	life.animals.clear()
+	# No chunks settled from now on: only these animals (the settling goes on over frames).
+	life._settle_timer = -INF
 	life.clock.time_of_day = 0.5
 	var wolf := _animal(life, "animals:wolf", at)
 	life.update(0.05)
@@ -706,6 +708,7 @@ func _test_fire(w: WorldData) -> void:
 	var cell := Vector3i(40, 6, 40)
 	var fire := {"item": "core:campfire", "cell": cell, "items": null, "lit": true, "turn": 0}
 	placed.things.append(fire)
+	placed.scarers.append(fire)
 	life.placed = placed
 	var middle := Placed.center(fire)
 	var at := middle + Vector3(2.0, 0.0, 0.0)

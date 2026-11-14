@@ -66,6 +66,8 @@ const FLOOD_KICK := 3.0
 ## players (no key the server knows) in NEW_WINDOW seconds at most.
 const PASSWORD_TRIES := 8
 const PASSWORD_WINDOW := 60.0
+## How often the records of wrong passwords and of flags are rid of the old (_prune), seconds.
+const PRUNE_EVERY := 60.0
 const NEW_PLAYERS := 10
 const NEW_WINDOW := 60.0
 ## Names only the server goes by (lower case): a player may not take them.
@@ -193,6 +195,8 @@ var test_command: Callable
 var _flag_at := {}
 ## Wrong passwords by address: the times of the last ones; the times new players came.
 var _wrong := {}
+## When _flag_at and _wrong were last rid of what is past their windows (_prune).
+var _pruned_at := -INF
 var _new_at: Array[float] = []
 
 
@@ -904,6 +908,7 @@ func _refusal(args: Array, address := "") -> String:
 	# A player the server knows (by the key it gave) is never held up by others' tries:
 	# behind a tunnel everyone comes from this machine.
 	var known: bool = accounts.has(args[3]) or store != null and args[3] != "" and not store.read_player(args[3]).is_empty()
+	_prune(now)
 	var wrong: Array = _wrong.get(address, []).filter(func(t: float) -> bool: return now - t < PASSWORD_WINDOW)
 	_wrong[address] = wrong
 	if wrong.size() >= PASSWORD_TRIES and not known:
@@ -1001,6 +1006,7 @@ func flag(a: Account, what: String, detail: String, level := 1) -> void:
 	security_log.append(e)
 	while security_log.size() > SECURITY_KEPT:
 		security_log.pop_front()
+	_prune(now)
 	var k := "%d:%s" % [e.id, what]
 	var last: Array = _flag_at.get(k, [-INF, 0])
 	if level < 2 and now - last[0] < SECURITY_EVERY:
@@ -1008,6 +1014,24 @@ func flag(a: Account, what: String, detail: String, level := 1) -> void:
 		return
 	_flag_at[k] = [now, 0]
 	_say("security: " + _security_line(e) + (" (and %d more)" % last[1] if last[1] > 0 else ""))
+
+
+## Drops, at most once a PRUNE_EVERY, the addresses whose wrong passwords are all past
+## PASSWORD_WINDOW and the kinds of flag last written more than SECURITY_EVERY ago with
+## none counted since, which would otherwise pile up over a long run or a spray of
+## addresses (what is dropped would be forgotten by the next look anyway).
+func _prune(now: float) -> void:
+	if now - _pruned_at < PRUNE_EVERY:
+		return
+	_pruned_at = now
+	for address: String in _wrong.keys():
+		var times: Array = _wrong[address]
+		if times.is_empty() or now - float(times[-1]) >= PASSWORD_WINDOW:
+			_wrong.erase(address)
+	for k: String in _flag_at.keys():
+		var last: Array = _flag_at[k]
+		if last[1] == 0 and now - float(last[0]) >= SECURITY_EVERY:
+			_flag_at.erase(k)
 
 
 static func _security_line(e: Dictionary) -> String:

@@ -19,6 +19,10 @@ const FADE := 3.0
 ## How much of the way from the background to a light mist the haze is by day.
 const MIST := 0.55
 const MIST_COLOR := Color(0.74, 0.79, 0.84)
+## How far (world units) the player goes before the chunks on the screen are looked over
+## again with nothing else changed: a chunk's edge that far into the screen is within the
+## FADE the test on the screen allows round it.
+const LOOK_AGAIN := 0.5
 
 var game
 var node: MeshInstance3D
@@ -26,6 +30,12 @@ var material: ShaderMaterial
 ## The chunks the mesh covers now and the level it lies at (see update).
 var _shown: Array[Vector2i] = []
 var _level := 1 << 30
+## What the last look over the chunks went by (see update): the changes of the chunks
+## built, where the player stood, the screen's half size; and the colour last set.
+var _looked_changes := -1
+var _looked_at := Vector2.INF
+var _looked_half := Vector2.ZERO
+var _color := Color(0, 0, 0, 0)
 
 
 func _init(g) -> void:
@@ -49,9 +59,22 @@ func free_node() -> void:
 
 ## Covers the chunks on the screen around `at` (world units x, z; `half` the screen's
 ## half size, see ChunkStreamer._screen_half) that `built` has no nodes for, at height
-## `y`; the colour follows the sky.
-func update(built: Dictionary, at: Vector2, half: Vector2, y: float) -> void:
-	material.set_shader_parameter("color", haze_color())
+## `y`; the colour follows the sky. `changes` counts the changes of `built`
+## (ChunkStreamer.nodes_changes, -1: unknown): while it, the screen and the level stay and the
+## player is within LOOK_AGAIN of where the chunks were last looked over, nothing is
+## looked over (it ran every frame, 2026-11-14 audit WA-036).
+func update(built: Dictionary, at: Vector2, half: Vector2, y: float, changes := -1) -> void:
+	var color := haze_color()
+	if color != _color:
+		_color = color
+		material.set_shader_parameter("color", color)
+	var level := floori(y / CELL)
+	if changes >= 0 and changes == _looked_changes and half == _looked_half and level == _level \
+			and at.distance_squared_to(_looked_at) < LOOK_AGAIN * LOOK_AGAIN:
+		return
+	_looked_changes = changes
+	_looked_at = at
+	_looked_half = half
 	var size := CHUNK * CELL
 	var home := Vector2i((at / size).floor())
 	var reach := Vector2i(ceili(half.length() / size) + 1, ceili(half.length() / size) + 1)
@@ -61,7 +84,6 @@ func update(built: Dictionary, at: Vector2, half: Vector2, y: float) -> void:
 			var key := Vector2i(cx, cz)
 			if not built.has(key) and _on_screen(key, at, half):
 				missing.append(key)
-	var level := floori(y / CELL)
 	if missing == _shown and level == _level:
 		return
 	_shown = missing
