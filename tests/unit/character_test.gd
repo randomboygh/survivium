@@ -24,6 +24,7 @@ func run() -> void:
 	_test_bed_respawn()
 	_test_poultice()
 	_test_visions()
+	_test_calm()
 
 
 func _test_inventory() -> void:
@@ -942,3 +943,41 @@ func _test_visions() -> void:
 	ch.vitals.see_visions(30.0)
 	ch.vitals.revive(1.0)
 	_check(ch.vitals.visions == 0.0, "death ends them")
+
+
+## A primrose tea calms, thirsty or not: asleep in its calm, sleep rests faster; it is
+## kept in the save and passes. Sleep inside a fairy ring rests faster too, and dreams.
+func _test_calm() -> void:
+	var t := Items.calm("plants:primrose_tea")
+	_check(t > 0.0, "a primrose tea calms")
+	var ch := Survivor.new()
+	ch.clock = Clock.new()
+	ch.body = Body.new()
+	ch.vitals.water = Vitals.MAX
+	ch.give("plants:primrose_tea", 1)
+	var slot := ch.inventory.slots.find(ch.inventory.slots.filter(func(s: Variant) -> bool: return s != null)[0])
+	_check(ch.eat(slot) and is_equal_approx(ch.vitals.calm, t), "drunk not thirsty, and the calm comes")
+	var copy := Vitals.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(ch.vitals.to_dict())))
+	_check(is_equal_approx(copy.calm, t), "the calm left is kept in the save")
+	var a := Vitals.new()
+	var b := Vitals.new()
+	a.energy = 20.0
+	b.energy = 20.0
+	a.asleep = true
+	b.asleep = true
+	b.calm_down(100.0)
+	a.step(1.0, 0.01, false)
+	b.step(1.0, 0.01, false)
+	_check(b.energy - 20.0 > (a.energy - 20.0) * 1.4, "asleep in its calm, sleep rests faster")
+	b.step(Vitals.CALM_MAX, 0.0, false)
+	_check(b.calm == 0.0, "and the calm passes")
+	var ring := Vector3.ZERO
+	for i in 400:
+		ring = Grass.fairy_ring((i % 20) * Grass.RING_GRID, (i / 20) * Grass.RING_GRID)
+		if ring.z > 0.0:
+			break
+	var inside := Vector3(ring.x, 5.0, ring.y) * WorldData.CELL
+	var outside := Vector3(ring.x + ring.z + 3.0, 5.0, ring.y) * WorldData.CELL
+	_check(ch.in_fairy_ring(inside) and not ch.in_fairy_ring(outside)
+		and ch.sleep_rate(inside) > ch.sleep_rate(outside), "asleep inside a fairy ring, sleep rests faster")

@@ -1,0 +1,10 @@
+# Glue of sundew leaves, boiled in a clay pot ("Tools", the potter's wheel; the pot stays in the bag) on the core's
+# campfire: the glue of "Materials" (bone glue) without bones.
+- id: bone_glue_from_sundew
+  title: "[plants.recipes.bone_glue_from_sundew]"
+  makes: materials:bone_glue
+  needs: {sundew: 6, resources:branch: 1}
+  keeps: {tools:pot: 1}
+  at: core:campfire
+  process: cook
+  time: 6

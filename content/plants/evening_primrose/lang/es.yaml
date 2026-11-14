@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/evening_primrose/bundle.yaml
+"[plants.evening_primrose.bundle]": "Onagra"
+
+# content/plants/evening_primrose/data/items.yaml
+"[plants.items.evening_primrose]": "Flores de onagra"
+"[plants.items.primrose_tea]": "Infusión de onagra"
+"[plants.items.primrose_tea.about]": "Una infusión calmante: bebida antes de dormir, el sueño es más profundo y descansa antes."
+
+# content/plants/evening_primrose/data/plants.yaml
+"[plants.plants.evening_primrose]": "Onagra"
+
+# content/plants/evening_primrose/data/recipes.yaml
+"[plants.recipes.primrose_tea]": "Infusión de onagra"

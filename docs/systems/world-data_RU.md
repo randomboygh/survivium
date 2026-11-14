@@ -21,7 +21,8 @@
 - `src/shared/world/grass.gd` — что растёт на верху ячейки земли (ярусы травы, цветы, колосья, мох,
   растения модов `Plants`: на открытой траве, в тени крон, в лесу — эта тень и трава в `WOODS_EDGE` клетках
   вокруг, `_near_crown`, — у воды; кадр шириной в `across` карточек — один вид, его первый столбец, который
-  `foliage._column` рисует столькими карточками по `Plants.ACROSS`), облака-шум для теней.
+  `foliage._column` рисует столькими карточками по `Plants.ACROSS`; ведьмины кольца растения с `rings` на
+  открытой траве, одно на такую долю квадратов `RING_GRID`, `fairy_ring`, `in_ring`), облака-шум для теней.
 - `src/shared/world/voxel_raycast.gd` — луч по сетке ячеек (Amanatides & Woo), для выбора клетки.
 
 **Интерфейс.** `get_cell` / `set_cell` / `set_material`, `is_natural`, `in_bounds`, `add_tree`,

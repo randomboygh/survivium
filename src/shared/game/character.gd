@@ -20,6 +20,7 @@ const SkillSet := preload("res://src/shared/game/skill_set.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Quality := preload("res://src/shared/game/quality.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const Grass := preload("res://src/shared/world/grass.gd")
 
 const CELL := WorldData.CELL
 ## A message for the same reason is not repeated sooner than this, in seconds.
@@ -30,6 +31,10 @@ const REVIVE_HEALTH := 0.5
 const RESPAWNS_MAX := 4
 ## How much faster sleep rests under a roof (see sleep_rate).
 const ROOF_SLEEP := 1.5
+## Asleep inside a fairy ring (Grass.fairy_ring) sleep rests this much faster, and the
+## sleeper dreams: visions (Vitals) of at least RING_DREAMS seconds are left on waking.
+const RING_SLEEP := 1.25
+const RING_DREAMS := 45.0
 ## How far (cells) a bed may stand for the sleep button to take the body to it.
 const BED_REACH := 8.0
 ## Actions counted in this life's statistics when paid for, by the name they count as.
@@ -292,6 +297,8 @@ func update(delta: float) -> void:
 	var was := vitals.health
 	if vitals.asleep:
 		vitals.sleep_rate = sleep_rate(p)
+		if in_fairy_ring(p) and vitals.visions < RING_DREAMS:
+			vitals.see_visions(RING_DREAMS - vitals.visions)
 	vitals.rest_rate = placed.seat_near(p) if placed != null and stride < STILL else 1.0
 	var left := delta
 	while left > 0.0:
@@ -499,9 +506,13 @@ func eat(i: int) -> bool:
 		say(Lang.line("[health]", [roundi(heal)]))
 		return true
 	if Items.drink(s[0]) > 0.0 and Items.food(s[0]) <= 0.0:
-		if not vitals.drink(Items.drink(s[0]) * k):
+		# A tea that calms is drunk thirsty or not.
+		var calm := Items.calm(s[0])
+		if not vitals.drink(Items.drink(s[0]) * k) and calm <= 0.0:
 			nag("not_thirsty", "[not_thirsty]")
 			return false
+		if calm > 0.0:
+			vitals.calm_down(calm)
 		var empty := Items.get_item(s[0]).get("empties_to", "") as String
 		inventory.take_slot(i, 1)
 		if empty != "" and give(empty, 1) == 0:
@@ -546,14 +557,23 @@ func sleep(on: bool, to_bed := true) -> bool:
 	return true
 
 
-## How fast sleep at `p` rests the body: ROOF_SLEEP under a roof, times the `bedding` of
-## the bed lain on (Placed.bed_under: a mat, a bedroll set down).
+## How fast sleep at `p` rests the body: ROOF_SLEEP under a roof, RING_SLEEP in a fairy
+## ring, times the `bedding` of the bed lain on (Placed.bed_under: a mat, a bedroll set down).
 func sleep_rate(p: Vector3) -> float:
 	var rate := ROOF_SLEEP if _roofed(p) else 1.0
+	if in_fairy_ring(p):
+		rate *= RING_SLEEP
 	var bed: Dictionary = placed.bed_under(p) if placed != null else {}
 	if not bed.is_empty():
 		rate *= Items.get_item(bed.item).get("bedding", 1.0)
 	return rate
+
+
+## True when world point `p` lies inside a fairy ring (Grass.fairy_ring) on the open
+## ground: not under a roof.
+func in_fairy_ring(p: Vector3) -> bool:
+	var c := (p / CELL).floor()
+	return Grass.in_ring(int(c.x), int(c.z)) < 1.0 and not _roofed(p)
 
 
 ## Lies down in bed `e` (Placed: a thing with `bedding`) to sleep: the body is put on it

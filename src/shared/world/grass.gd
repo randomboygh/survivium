@@ -216,7 +216,9 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 				out.append(EAR + rng.randi_range(0, 1))
 		elif tier == MID_TIER and flat and rng.randf() < 0.01:
 			out.append(EAR + rng.randi_range(0, 1))
-		if w.leaf_col(x, z) != 0:
+		if Plants.RING_INDEX >= 0 and _on_ring(x, z):
+			_one_plant(Plants.RING_INDEX, out, rng)
+		elif w.leaf_col(x, z) != 0:
 			_forest_floor(x, z, out, rng)
 	# Reeds line grassy and muddy banks, not the sand of a beach.
 	var by_water: bool = m != Mat.BEACH and _by_water(w, x, y, z)
@@ -279,6 +281,54 @@ static func _near_crown(w, x: int, z: int) -> bool:
 		if w.leaf_col(x + d.x, z + d.y) != 0:
 			return true
 	return false
+
+
+## Fairy rings: here and there on the open grass a ring of mushrooms (Plants.RING), one
+## in a share Plants.RING_SHARE of the squares RING_GRID cells across, its middle well
+## inside the square, RING_RADIUS cells round (the least and the most). Asleep inside
+## one, a body dreams (Character).
+const RING_GRID := 40
+const RING_RADIUS := Vector2(2.2, 3.6)
+## The rings of the squares looked at (fairy_ring), at most RINGS_KEPT before they are
+## worked out again.
+static var _rings := {}
+const RINGS_KEPT := 4096
+
+
+## The fairy ring whose square column x, z lies in: its middle (cells, x and z) and
+## radius in z of the result, radius 0 when that square has none.
+static func fairy_ring(x: int, z: int) -> Vector3:
+	if Plants.RING_SHARE <= 0.0:
+		return Vector3.ZERO
+	var g := Vector2i(floori(float(x) / RING_GRID), floori(float(z) / RING_GRID))
+	if _rings.has(g):
+		return _rings[g]
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([g, "ring"])
+	var out := Vector3.ZERO
+	if rng.randf() < Plants.RING_SHARE:
+		var r := rng.randf_range(RING_RADIUS.x, RING_RADIUS.y)
+		var edge := ceilf(r) + 2.0
+		out = Vector3(g.x * RING_GRID + rng.randf_range(edge, RING_GRID - edge), g.y * RING_GRID + rng.randf_range(edge, RING_GRID - edge), r)
+	if _rings.size() > RINGS_KEPT:
+		_rings.clear()
+	_rings[g] = out
+	return out
+
+
+## How far column x, z is from the middle of its square's fairy ring as a share of the
+## ring's radius (1 on the ring), INF where there is none.
+static func in_ring(x: int, z: int) -> float:
+	var ring := fairy_ring(x, z)
+	if ring.z <= 0.0:
+		return INF
+	return Vector2(x + 0.5 - ring.x, z + 0.5 - ring.y).length() / ring.z
+
+
+## True on the line of the fairy ring of column x, z's square (see fairy_ring).
+static func _on_ring(x: int, z: int) -> bool:
+	var ring := fairy_ring(x, z)
+	return ring.z > 0.0 and absf(Vector2(x + 0.5 - ring.x, z + 0.5 - ring.y).length() - ring.z) < 0.55
 
 
 ## The plants of a column whose growth the world sets (`grow`, one of GROW_*), added to

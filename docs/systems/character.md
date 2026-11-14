@@ -85,7 +85,11 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   once. Visions (`visions` of an item, the glowing mushroom of `plants/mushrooms`): `Vitals.see_visions` adds
   its seconds (`visions`, up to `VISIONS_MAX`, in the save; eaten even when full), they run out in real
   seconds and end with death; the client gets their whole seconds as the 11th field of `VITALS` and the
-  picture swims and shifts colour (`CameraRig.visions` → `trip` of `grade.gdshader`). Water `water` falls by `THIRST_PER_DAY` per game day (in heat `THIRST_HOT` times faster); below
+  picture swims and shifts colour (`CameraRig.visions` → `trip` of `grade.gdshader`). Calm (`calm` of an item, the
+  primrose tea of `plants/evening_primrose`, drunk thirsty or not): `Vitals.calm_down` adds its seconds (up to
+  `CALM_MAX`, in the save); asleep in it, sleep rests `CALM_SLEEP` times faster. Asleep inside a fairy ring
+  (`Character.in_fairy_ring`, `Grass.fairy_ring`) sleep rests `RING_SLEEP` times faster and leaves at least
+  `RING_DREAMS` seconds of visions. Water `water` falls by `THIRST_PER_DAY` per game day (in heat `THIRST_HOT` times faster); below
   `THIRSTY` — like hunger (no healing, rest twice as slow, stamina up to `HUNGRY_CAP`), at zero it wounds
   (`hurt_by` "thirst", «You died of thirst»). `drink(amount)`; `thirst` off — the test switch «Thirst». One
   drinks at fresh water with an empty hand (`WorldActions.drink`: the action button facing water within

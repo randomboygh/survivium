@@ -5,6 +5,9 @@ extends "res://src/shared/game/actions_water.gd"
 const Grass := preload("res://src/shared/world/grass.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 
+## Whether the last cut (mow) picked a plant that puffs out spores (a puffball).
+var puffed := false
+
 
 ## The water surface a tap on `cell` drinks from (or fills a vessel at) with the hand in
 ## use of `who`, INF for none.
@@ -85,7 +88,8 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 	var q := _got(who, "dig")
 	for c in cells:
 		var was: int = world.get_cell(c.x, c.y, c.z)
-		if _built.has(c):
+		var grown := not _built.has(c)
+		if not grown:
 			_built.erase(c)
 			_undone[c] = true
 		else:
@@ -97,6 +101,13 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 		for id in [Items.dug[was], rec.bonus if randf() < rec.bonus_chance else ""]:
 			if id != "":
 				world.heap_drop(id, at, 1, randf() * TAU, q)
+				keys[WorldData.chunk_key(c.x, c.z)] = true
+		# A find now and then in a cell the world grew (an ammonite in stone), never in
+		# one a player put there this session (_built).
+		var finds: Dictionary = rec.get("finds", {}) if grown else {}
+		for id: String in finds:
+			if randf() < finds[id]:
+				world.heap_drop(Items.get_item(id).get("id", id), at, 1, randf() * TAU, q)
 				keys[WorldData.chunk_key(c.x, c.z)] = true
 	for key in keys:
 		drops_changed.emit(key)
@@ -165,10 +176,14 @@ func mow_swing(who, cells: Array[Vector3i]) -> Dictionary:
 	if cells.is_empty():
 		return {}
 	var was: int = world.get_cell(cells[0].x, cells[0].y, cells[0].z)
+	puffed = false
 	if not mow(who, cells, arc):
 		return {}
 	var done := _work(skilled(who, "gather", t.swing), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL,
 		Mat.GRASS if was != Mat.STONE else Mat.LEAVES)
+	if puffed:
+		# A puffball picked breathes out its spores (the client's Effects.puff).
+		done.puff = true
 	who.use_tool()
 	return done
 
@@ -201,6 +216,8 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 		var gives := {}
 		if not tall.is_empty():
 			gives = Plants.harvest(tall, rng)
+			for id: String in tall:
+				puffed = puffed or Plants.BY_ID.get(id, {}).get("puff", false)
 			world.set_turf(c, "")
 			looks_changed.emit(WorldData.chunk_key(c.x, c.z))
 		else:

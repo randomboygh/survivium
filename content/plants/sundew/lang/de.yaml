@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/sundew/bundle.yaml
+"[plants.sundew.bundle]": "Sonnentau"
+
+# content/plants/sundew/data/items.yaml
+"[plants.items.sundew]": "Sonnentaublätter"
+"[plants.items.sundew.about]": "Klebrig vom Tau, der nie trocknet; eingekocht ergeben sie Leim."
+
+# content/plants/sundew/data/plants.yaml
+"[plants.plants.sundew]": "Sonnentau"
+
+# content/plants/sundew/data/recipes.yaml
+"[plants.recipes.bone_glue_from_sundew]": "Sonnentauleim"

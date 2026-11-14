@@ -7,6 +7,7 @@ extends RefCounted
 
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const WorldCells := preload("res://src/shared/world/world_cells.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
@@ -69,6 +70,10 @@ func find(w, p: Vector3, what: String) -> Vector3:
 	var cz := floori(p.z / CELL)
 	if what.contains(":"):
 		return find_plant(w, cx, cz, what)
+	if what == "ring":
+		return find_ring(w, cx, cz)
+	if what == "murk":
+		return find_murk(w, cx, cz, p)
 	for r in range(0, 150):
 		for dz in range(-r, r + 1):
 			for dx in range(-r, r + 1):
@@ -97,6 +102,44 @@ func find(w, p: Vector3, what: String) -> Vector3:
 				if ok:
 					return (Vector3(x, y, z) + Vector3(0.5, 0.0, 0.5)) * CELL
 	return p
+
+
+## A spot six cells south of the nearest murky water (a swamp's pool, WorldCells.murk),
+## where the will-o'-the-wisps hang; `p` when there is none.
+func find_murk(w, cx: int, cz: int, p: Vector3) -> Vector3:
+	for r in range(0, 200):
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r:
+					continue
+				var x := cx + dx
+				var z := cz + dz
+				var y: int = WorldCells.top_level(w.water_col(x, z))
+				if y < 0 or w.murk(x, y, z) == 0:
+					continue
+				var sy: int = w.surface_y(x, z + 6)
+				return Vector3(x + 0.5, maxi(sy, y + 1), z + 6.5) * CELL
+	return p
+
+
+## A spot south of the middle of the nearest fairy ring on open grass (Grass.fairy_ring),
+## the ring in front of the player; the spot over cx, cz when there is none.
+func find_ring(w, cx: int, cz: int) -> Vector3:
+	var g := Vector2i(floori(float(cx) / Grass.RING_GRID), floori(float(cz) / Grass.RING_GRID))
+	for r in range(0, 12):
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r:
+					continue
+				var ring := Grass.fairy_ring((g.x + dx) * Grass.RING_GRID, (g.y + dz) * Grass.RING_GRID)
+				var x := floori(ring.x)
+				var z := floori(ring.y)
+				if ring.z <= 0.0 or w.chunk_at(x, z) == null:
+					continue
+				var y: int = w.surface_y(x, z)
+				if y > w.sea_level and w.get_cell(x, y - 1, z) == Mat.GRASS and w.leaf_col(x, z) == 0:
+					return (Vector3(x, y, z + ceili(ring.z) + 2) + Vector3(0.5, 0.0, 0.5)) * CELL
+	return Vector3(cx + 0.5, w.surface_y(cx, cz), cz + 0.5) * CELL
 
 
 ## A spot two cells south of the nearest grass with plant `id` on it (see Grass.plants_on),

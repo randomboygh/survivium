@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/finds/bundle.yaml
+"[materials.finds.bundle]": "Reperti"
+
+# content/materials/finds/data/items.yaml
+"[materials.items.ammonite]": "Ammonite"
+"[materials.items.ammonite.about]": "Una conchiglia diventata pietra tanto tempo fa. A volte si trova nella roccia."
+"[materials.items.geode]": "Geode"
+"[materials.items.geode.about]": "Una pietra comune, cava e piena di cristalli viola."
+"[materials.items.amber]": "Ambra"
+"[materials.items.amber.about]": "Antica resina, tiepida al tatto, con un moscerino intrappolato dentro."

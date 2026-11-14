@@ -13,6 +13,7 @@ func run() -> void:
 	_test_trees()
 	_test_bushes()
 	_test_custom_plants()
+	_test_curious_plants()
 	_test_mountain_zone()
 	_test_tropics()
 	_test_biome_bytes()
@@ -530,6 +531,39 @@ func _test_bushes() -> void:
 ## The mods' own plants (`kind: custom`): their frames follow the engine's in one row,
 ## each grows where its record says (the fern in the shade of crowns, the nettle in the
 ## open, the cranberry by the water) and is a plant with what it gives like the others.
+## Plants that look some other way at times (a mimosa folds, an evening primrose opens at
+## night) bring the other look as the second half of their frames, and the plant texture
+## says so under their columns; mushrooms grow in fairy rings here and there.
+func _test_curious_plants() -> void:
+	var shy := Plants.BY_ID.get("plants:mimosa", {}) as Dictionary
+	var night := Plants.BY_ID.get("plants:evening_primrose", {}) as Dictionary
+	_check(not shy.is_empty() and not night.is_empty() and shy.looks == "shy" and night.looks == "night",
+		"the mimosa is shy and the evening primrose opens at night")
+	_check(Plants.columns(shy) == 2 * shy.frames and Plants.looks_shift(shy) == shy.frames
+		and Plants.looks_shift(Plants.BY_ID["plants:nettle"]) == 0, "a plant with two looks has its frames twice over")
+	var tex := PixelTextures.build_plants().get_image()
+	var c: Dictionary = {}
+	for k in Plants.CUSTOM:
+		if k.id == "plants:mimosa":
+			c = k
+	var under := tex.get_pixel(PixelTextures.PLANT_W * (PixelTextures.PLANTS + c.first), PixelTextures.PLANT_H)
+	_check(tex.get_height() == PixelTextures.PLANT_H + 1 and under.r > 0.5 and under.g < 0.5
+		and roundi(under.b * 255.0) == Plants.looks_shift(c), "the plant texture tells the shader a mimosa folds, and where to")
+	_check(Plants.RING == Plants.MUSHROOMS and Plants.RING_SHARE > 0.0, "the mushrooms grow in fairy rings")
+	var ring := Vector3.ZERO
+	var at := Vector2i.ZERO
+	for i in 400:
+		at = Vector2i(i % 20, i / 20) * Grass.RING_GRID
+		ring = Grass.fairy_ring(at.x, at.y)
+		if ring.z > 0.0:
+			break
+	_check(ring.z >= Grass.RING_RADIUS.x and ring.z <= Grass.RING_RADIUS.y
+		and floori(ring.x / Grass.RING_GRID) == at.x / Grass.RING_GRID, "a fairy ring lies well inside its square")
+	var on := Vector2i(floori(ring.x + ring.z), floori(ring.y))
+	_check(Grass._on_ring(on.x, on.y) and Grass.in_ring(floori(ring.x), floori(ring.y)) < 0.5,
+		"its line is on the ring, its middle inside")
+
+
 func _test_custom_plants() -> void:
 	var frames := 0
 	var ordered := true

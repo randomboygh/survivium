@@ -29,6 +29,10 @@ uniform vec3 swamp_shallow SRGB = vec3(0.37, 0.43, 0.25);
 uniform vec3 swamp_deep SRGB = vec3(0.2, 0.26, 0.16);
 uniform vec3 bog_color SRGB = vec3(0.33, 0.31, 0.19);
 uniform vec3 swamp_foam SRGB = vec3(0.62, 0.65, 0.5);
+// 0 by day, up to 1 on warm nights (sky.gd): how much the surf and a swimmer's wake glow
+// blue where the plankton is (bays of it, by a slow noise).
+global uniform float sea_glow;
+const vec3 PLANKTON = vec3(0.2, 0.62, 1.0);
 
 // Steps of the depth's shading, and the 4x4 ordered dither between them.
 const float DEPTH_STEPS = 6.0;
@@ -138,6 +142,8 @@ void fragment() {
 		alpha = mix(alpha, mix(0.75, 1.0, depth) + 0.2 * clamp(murk * 2.0 - 1.0, 0.0, 1.0), min(murk * 2.0, 1.0));
 	}
 	vec3 foam_c = mix(foam_color, swamp_foam, min(murk * 2.0, 1.0));
+	// How much of the surf is on this texel, for the plankton's glow.
+	float surf = 0.0;
 	if (falls > 1.5) {
 		// The falling sheet: streaks a texel wide running down at their own speeds,
 		// white water at the lip and in a band of spray at the foot.
@@ -185,8 +191,10 @@ void fragment() {
 			if (float(dist[e]) < wash) {
 				col = foam_c;
 				alpha = 0.95;
+				surf = 1.0;
 			} else if (float(dist[e]) < wash + 2.0) {
 				col = mix(col, foam_c, 0.25);
+				surf = max(surf, 0.3);
 			}
 		}
 		// Over the slope of a shore: foam where the ground comes up to the surface, a
@@ -198,8 +206,10 @@ void fragment() {
 			if (d < wash) {
 				col = foam_c;
 				alpha = 0.95;
+				surf = 1.0;
 			} else if (d < wash + 2.0) {
 				col = mix(col, foam_c, 0.25);
+				surf = max(surf, 0.3);
 			}
 		}
 		// Along diagonals: the water lies away from a filled corner and on the corner's
@@ -215,8 +225,10 @@ void fragment() {
 			if (d < wash) {
 				col = foam_c;
 				alpha = 0.95;
+				surf = 1.0;
 			} else if (d < wash + 2.0) {
 				col = mix(col, foam_c, 0.25);
+				surf = max(surf, 0.3);
 			}
 		}
 		// Rain rings: each square of two by two cells gets a ring now and then while it
@@ -230,6 +242,17 @@ void fragment() {
 			col = mix(col, col * 1.4 + 0.08, ring);
 		}
 	}
+	float plankton = 0.0;
+	if (sea_glow > 0.0 && world_normal.y > 0.5 && murk < 0.5) {
+		// Plankton lights up blue where the surf breaks and round one swimming, flickering
+		// texel by texel, in bays of it here and there.
+		float bay = smoothstep(0.42, 0.6, ground_patch(world_pos.xz / 5.0, 47.0));
+		vec2 off = world_pos.xz - player_pos.xz;
+		float near = length(off);
+		float wake = abs(world_pos.y - player_pos.y - 0.25) < 0.8 ? smoothstep(1.2, 0.5, near) * step(0.25, near) : 0.0;
+		float twinkle = 0.45 + 0.55 * step(0.55, hash12(tex + floor(TIME * 4.0) * 7.0));
+		plankton = max(surf * bay, wake * step(0.5, hash12(tex + floor(TIME * 6.0) * 3.0))) * twinkle * sea_glow;
+	}
 	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5) * mix(vec3(1.0), vec3(0.8, 0.78, 0.7), murk), ice_amount);
 	if (ice_amount > 0.0 && world_normal.y > 0.5) {
 		// Scuffs of frost on the ice, under the fog like the ground's footprints.
@@ -242,7 +265,7 @@ void fragment() {
 	vec3 lit_col = col * (1.0 - veiled.a);
 	ALBEDO = lit_col * sun_part;
 	lamp_gain = sea_undo(lit_col, sun_part);
-	EMISSION = veiled.rgb;
+	EMISSION = veiled.rgb + PLANKTON * plankton * 1.6 * (1.0 - veiled.a);
 	ALPHA = mix(alpha, 1.0, ice_amount);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;

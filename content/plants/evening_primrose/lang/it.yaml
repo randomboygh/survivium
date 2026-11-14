@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/evening_primrose/bundle.yaml
+"[plants.evening_primrose.bundle]": "Enagra"
+
+# content/plants/evening_primrose/data/items.yaml
+"[plants.items.evening_primrose]": "Fiori di enagra"
+"[plants.items.primrose_tea]": "Tisana di enagra"
+"[plants.items.primrose_tea.about]": "Una tisana calmante: bevuta prima di dormire, il sonno è più profondo e riposa prima."
+
+# content/plants/evening_primrose/data/plants.yaml
+"[plants.plants.evening_primrose]": "Enagra"
+
+# content/plants/evening_primrose/data/recipes.yaml
+"[plants.recipes.primrose_tea]": "Tisana di enagra"

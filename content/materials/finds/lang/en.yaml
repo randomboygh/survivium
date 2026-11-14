@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/finds/bundle.yaml
+"[materials.finds.bundle]": "Finds"
+
+# content/materials/finds/data/items.yaml
+"[materials.items.ammonite]": "Ammonite"
+"[materials.items.ammonite.about]": "A shell turned to stone long ago. Found now and then in rock."
+"[materials.items.geode]": "Geode"
+"[materials.items.geode.about]": "A plain stone, hollow and full of violet crystals inside."
+"[materials.items.amber]": "Amber"
+"[materials.items.amber.about]": "Old resin, warm to the touch, with a tiny midge caught inside."

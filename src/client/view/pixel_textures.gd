@@ -190,8 +190,10 @@ static func tint(m: int) -> Color:
 ## pink), ears of dry grass 8..9, reeds with cattails 10..11, low herbs 12..13, low grass
 ## 14..17 and tall grass 18..21 (both masks like the tufts), cushions of moss 22..23,
 ## groups of mushrooms 24..25 and of glowing mushrooms 26..27, a spore 28 (see Grass).
+## A row under them all (PLANT_H) tells grass.gdshader how each column of a custom plant
+## that `looks` some other way at times changes (see looks_texel).
 static func build_plants() -> ImageTexture:
-	var img := Image.create_empty(PLANT_W * (PLANTS + Plants.custom_frames()), PLANT_H, false, Image.FORMAT_RGBA8)
+	var img := Image.create_empty(PLANT_W * (PLANTS + Plants.custom_frames()), PLANT_H + 1, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	# The mods' own plants after the engine's (Plants.CUSTOM, Grass.CUSTOM): each a
 	# row of frames of its picture, blank where the picture is missing or of another
@@ -203,6 +205,9 @@ static func build_plants() -> ImageTexture:
 			continue
 		pic.convert(Image.FORMAT_RGBA8)
 		img.blit_rect(pic, Rect2i(0, 0, pic.get_width(), PLANT_H), Vector2i(PLANT_W * (PLANTS + c.first), 0))
+		var shift := Plants.looks_shift(c)
+		for k in shift:
+			img.set_pixel(PLANT_W * (PLANTS + c.first + k), PLANT_H, looks_texel(c.get("looks", ""), shift))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
 	for v in 4:
@@ -343,6 +348,13 @@ static func build_plants() -> ImageTexture:
 	# A spore: one bright texel, carried up by the shader.
 	_plant_px(img, 28, 3, 0, Color(0.6, 1.0, 0.85))
 	return ImageTexture.create_from_image(img)
+
+
+## The texel under a column of a custom plant that `looks` (Plants) some other way at
+## times: red for shy (it folds as someone passes), green for night (it opens at dusk),
+## blue the columns past it its other look is (`shift`, at most 255).
+static func looks_texel(looks: String, shift: int) -> Color:
+	return Color(1.0 if looks == "shy" else 0.0, 1.0 if looks == "night" else 0.0, mini(shift, 255) / 255.0, 1.0)
 
 
 ## Sets texel (x, row) of plant `v`, rows counted from the bottom; off the plant it is

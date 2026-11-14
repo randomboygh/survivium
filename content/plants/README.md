@@ -59,7 +59,15 @@ content/plants/
   moss/                 "Moss": moss and a bandage from it
   roasted_acorns/       "Roasted acorns": the acorns of "Oak", baked on a campfire in a pot of "Tools"; its own
                         bundle, so that the oak does not depend on the potter's wheel
-  mushrooms/            "Mushrooms": mushrooms and glowing mushrooms, roasted mushrooms at a campfire
+  mushrooms/            "Mushrooms": mushrooms and glowing mushrooms, roasted mushrooms at a campfire; here and there on the
+                        open meadows mushrooms come up in a fairy ring (`rings`), and sleep inside one rests faster and dreams
+  mimosa/               "Shy mimosa": a low tropical plant (savanna, jungle) whose leaves fold as someone passes (`looks: shy`:
+                        the second half of the frames is the plant folded)
+  puffball/             "Giant puffball": a white ball on the meadows, picked to eat; picking breathes out spores (`puff`)
+  sundew/               "Sundew": a red rosette on open bog ground, its dew glints in the sun (texels of alpha 220); its leaves,
+                        boiled in a clay pot, make the same glue as bones (`bone_glue_from_sundew`)
+  evening_primrose/     "Evening primrose": yellow buds by day that open at night (`looks: night`), the flowers brewed into
+                        a calming tea (`calm`: asleep in it, sleep rests faster)
   common/models/        models shared by bundles (for now the bush)
   common/textures/      textures shared by bundles (grey bark)
 ```
