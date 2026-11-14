@@ -162,10 +162,3 @@ func water_ahead(at: Vector3, dir: Vector2, reach: int) -> Vector3:
 			return Vector3(p.x, top + 1.0, p.y) * CELL
 	return Vector3.INF
 
-
-## The biome of the column under world point `at` by the layout of the land (Biomes.NONE
-## without one).
-func biome_under(at: Vector3) -> int:
-	if wildlife == null or wildlife.gen == null:
-		return Biomes.NONE
-	return wildlife.gen.biome_of(floori(at.x / CELL), floori(at.z / CELL))

@@ -266,27 +266,6 @@ static func _material(what: String, cut: String) -> Material:
 	return sm
 
 
-## `code` with the body of `func` put as `body` (the whole function dropped when null).
-static func _body(code: String, func_name: String, body: Variant) -> String:
-	var head := "void %s() {" % func_name
-	var start := code.find(head)
-	if start < 0:
-		return code
-	var depth := 0
-	var i := start + head.length() - 1
-	while i < code.length():
-		var c := code[i]
-		if c == "{":
-			depth += 1
-		elif c == "}":
-			depth -= 1
-			if depth == 0:
-				break
-		i += 1
-	var replaced := "" if body == null else "%s\n\t%s\n}" % [head, body]
-	return code.substr(0, start) + replaced + code.substr(i + 1)
-
-
 static func _make(mesh: String, material: Material) -> GeometryInstance3D:
 	var box := BoxMesh.new()
 	if mesh == "multi":
