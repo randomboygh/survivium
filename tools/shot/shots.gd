@@ -645,6 +645,11 @@ const SHOTS := {
 	"ui-size-2": {"time": 0.45, "season": 1, "ui_size": 2},
 	"ui-size-3": {"time": 0.45, "season": 1, "ui_size": 3},
 	"ui-size-4": {"time": 0.45, "season": 1, "ui_size": 4},
+	"pixel-size-0": {"time": 0.45, "season": 1, "settings": {"pixel_scale": 0}},
+	"pixel-size-1": {"time": 0.45, "season": 1, "settings": {"pixel_scale": 1}},
+	"pixel-size-2": {"time": 0.45, "season": 1, "settings": {"pixel_scale": 2}},
+	"pixel-size-3": {"time": 0.45, "season": 1, "settings": {"pixel_scale": 3}},
+	"pixel-size-4": {"time": 0.45, "season": 1, "settings": {"pixel_scale": 4}},
 	# The camera turned (steps of 45 degrees to the left) and tilted (steps of a wall
 	# 2 px shorter): by day among trees, and the camera buttons under the minimap.
 	"turn-45": {"time": 0.45, "season": 1, "trees": true, "turn": 1},
