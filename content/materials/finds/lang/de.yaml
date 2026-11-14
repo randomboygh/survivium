@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/finds/bundle.yaml
+"[materials.finds.bundle]": "Funde"
+
+# content/materials/finds/data/items.yaml
+"[materials.items.ammonite]": "Ammonit"
+"[materials.items.ammonite.about]": "Eine Muschel, vor langer Zeit zu Stein geworden. Steckt ab und zu im Fels."
+"[materials.items.geode]": "Geode"
+"[materials.items.geode.about]": "Ein schlichter Stein, innen hohl und voller violetter Kristalle."
+"[materials.items.amber]": "Bernstein"
+"[materials.items.amber.about]": "Altes Harz, warm in der Hand, mit einer winzigen Mücke darin."

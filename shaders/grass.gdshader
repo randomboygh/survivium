@@ -8,7 +8,7 @@
 // waves as one. Tufts sink under snow; the ordinary tufts are thinned by the ground
 // patches (see ground_patch), flowers show on the lush patches, reeds stand at the
 // water, and all of them stand up again around fires.
-// INSTANCE_CUSTOM: x = plant 0..28, y = brightness, z = sway phase and thinning draw.
+// INSTANCE_CUSTOM: x = plant 0..28 (and the mods' after them), y = brightness, z = sway phase and thinning draw.
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled;
 // Grass, flowers and ears are low: the player's silhouette does not show behind them
@@ -59,6 +59,10 @@ varying float clouds;
 varying vec3 lamp_gain;
 // How far a spore is through its rise, 0..1.
 varying flat float life;
+// The plant's column in the texture: its own, or its other look's (looks_texel).
+varying flat float plant_column;
+// Someone this close (world units) folds a shy plant (Plants `looks`).
+const float SHY_REACH = 0.9;
 
 int kind_of(int plant) {
 	if (plant >= 30) {
@@ -115,6 +119,17 @@ void vertex() {
 		float t = TIME * 0.7 + custom.z * 40.0;
 		VERTEX += vec3(round(sin(t) * 2.0 * life) / TEXELS, life * SPORE_RISE, round(cos(t * 0.8) * 1.5 * life) / TEXELS);
 	}
+	plant_column = float(int(custom.x + 0.5));
+	if (kind == CUSTOM) {
+		// A plant that looks some other way at times (PixelTextures.looks_texel): folded
+		// while the player stands by (a mimosa), open at night, each a little sooner or
+		// later than the next (an evening primrose).
+		vec4 looks = texelFetch(plant_texture, ivec2(int(plant_column) * 8, 24), 0);
+		bool near = length(root.xz - player_pos.xz) < SHY_REACH && abs(root.y - player_pos.y) < 1.0;
+		if ((looks.r > 0.5 && near) || (looks.g > 0.5 && night_glow > 0.2 + 0.6 * custom.z)) {
+			plant_column += floor(looks.b * 255.0 + 0.5);
+		}
+	}
 	VERTEX = shear(stand_tall(face_view(VERTEX, root), root));
 	light_xz = VERTEX.xz;
 	drawn = VERTEX;
@@ -122,8 +137,9 @@ void vertex() {
 }
 
 void fragment() {
-	vec2 cell = vec2(float(int(custom.x + 0.5)) * 8.0, 0.0);
-	vec4 m = texture(plant_texture, (cell + UV * vec2(8.0, 24.0)) / vec2(8.0 * plant_count, 24.0));
+	vec2 cell = vec2(plant_column * 8.0, 0.0);
+	// The texture is a row taller than the plants (the looks of the columns).
+	vec4 m = texture(plant_texture, (cell + UV * vec2(8.0, 24.0)) / vec2(8.0 * plant_count, 25.0));
 	// Plants are too small to show above the cut (in the open cave view, only in front
 	// of the player). (A halo is drawn without the texture.)
 	if ((m.a < 0.5 && kind != HALO) || gone_above(root)) {
@@ -228,6 +244,12 @@ void fragment() {
 		EMISSION += m.rgb * night_glow * custom.y * 2.5 * (1.0 - life * 0.6) * (1.0 - veiled.a);
 	} else if (kind == HALO) {
 		EMISSION += GLOW_COLOR * custom.y * 0.45 * (1.0 - veiled.a);
+	} else if (kind == CUSTOM && m.a < 0.95 && night_glow < 0.5) {
+		// Dew on a plant's picture (texels of alpha 200..240, a sundew's drops) glints in
+		// the sun, a drop now and then.
+		vec2 t = floor(UV * vec2(8.0, 24.0));
+		float glint = step(0.9, fract(sin(dot(t, vec2(12.9898, 78.233)) + floor(TIME * 1.5 + custom.z * 9.0)) * 43758.5453));
+		EMISSION += vec3(1.0, 0.95, 0.9) * glint * 0.8 * sky * (1.0 - veiled.a);
 	}
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;

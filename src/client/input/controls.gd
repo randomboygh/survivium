@@ -850,6 +850,8 @@ func _did(done: Variant) -> bool:
 		game.sound.work(done, game.player.work_kind, STRIKE)
 		if done.stuff >= 0 and done.at.is_finite():
 			game.effects.burst(done.at, done.stuff, done.time * STRIKE)
+			if done.get("puff", false):
+				game.effects.puff(done.at, done.time * STRIKE)
 			if not done.has("placed"):
 				Vibration.hit(game, done.time * STRIKE)
 	return true

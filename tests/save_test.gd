@@ -295,6 +295,10 @@ func _run() -> void:
 	old_meta.content = 8
 	old_meta.erase("known")
 	old_meta.mods = Array(old_meta.mods).filter(func(b: String) -> bool: return not b in ["tools/torch", "tools/sword"])
+	# Hosted as a server since (ServerStore): its teams, fights and next player's number.
+	var hosted := {"teams": {"teams": [{"id": 1, "name": "Лиса", "lead": 2, "members": [2, 3]}], "names": {"2": "Аня", "3": "Боря"},
+		"next": 2}, "fights": {"wars": []}, "next_player": 4}
+	old_meta.merge(hosted, true)
 	store.write_json(WorldStore.WORLD, old_meta)
 
 	main = await _start()
@@ -317,6 +321,11 @@ func _run() -> void:
 	var bag2 := Bag.new()
 	main.save.track("bag", bag2)
 	_check(bag2.items == {"core:stick": 3.0}, "a module gets its part of the player back")
+	main.save.begin()
+	main.save.flush()
+	var kept: Dictionary = store.read_json(WorldStore.WORLD)
+	_check(kept.has("sky") and hosted.keys().all(func(k: String) -> bool: return str(kept.get(k)) == str(JSON.parse_string(JSON.stringify(hosted[k])))),
+		"single player's save keeps what a server saved in the world: teams, fights, the next number (%s)" % [kept.keys()])
 	_check(main.host.player.inventory.count("resources:branch") == 7, "the character's bag comes back")
 	_check(absf(main.host.player.vitals.satiety - 42.0) < 1.0, "the character's satiety comes back")
 	_check(main.markers.list.size() == 1 and main.markers.list[0].cell == Vector2i(120, -40) and main.markers.list[0].color == 4,

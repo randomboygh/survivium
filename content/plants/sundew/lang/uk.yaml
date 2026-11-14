@@ -1,0 +1,15 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/sundew/bundle.yaml
+"[plants.sundew.bundle]": "Росичка"
+
+# content/plants/sundew/data/items.yaml
+"[plants.items.sundew]": "Листя росички"
+"[plants.items.sundew.about]": "Липкі від роси, що ніколи не висихає; якщо виварити, вийде клей."
+
+# content/plants/sundew/data/plants.yaml
+"[plants.plants.sundew]": "Росичка"
+
+# content/plants/sundew/data/recipes.yaml
+"[plants.recipes.bone_glue_from_sundew]": "Клей з росички"

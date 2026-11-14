@@ -67,11 +67,13 @@ const BERRY_ALPHA := 0.65
 ## after it was freed, and drew garbage until the game restarted (white and cyan quads,
 ## half a black screen, a green screen). So a replaced one lives on in _replaced.
 static var _globals := {}
-## The textures replaced, each [texture, Time.get_ticks_msec() it was replaced], kept
-## HOLD_MS: not just until the next is set, since a joining can set one a few times in
-## a row.
+## The textures replaced, each [texture, the scene it was replaced in], kept while that
+## scene and the next HOLD_SCENES run (#608 kept them 5 s and the garbage came back on
+## going from a world of one's own to a server: some draw can hold a texture longer).
 static var _replaced: Array = []
-const HOLD_MS := 5000
+## The scenes started (forget() is called once a scene).
+static var _scene := 0
+const HOLD_SCENES := 2
 
 ## The atlas image, kept so scripts can read its tiles: reading a texture back is slow
 ## in the browser.
@@ -91,6 +93,9 @@ const MOST_MATERIALS := 63
 ## Drops what was made of the last bundles' materials (a scene started again may load
 ## others, numbered otherwise): tint() builds the atlas again when next asked.
 static func forget() -> void:
+	_scene += 1
+	while not _replaced.is_empty() and int(_replaced[0][1]) < _scene - HOLD_SCENES:
+		_replaced.pop_front()
 	atlas_image = null
 	tints = []
 	bark_material = []
@@ -190,8 +195,10 @@ static func tint(m: int) -> Color:
 ## pink), ears of dry grass 8..9, reeds with cattails 10..11, low herbs 12..13, low grass
 ## 14..17 and tall grass 18..21 (both masks like the tufts), cushions of moss 22..23,
 ## groups of mushrooms 24..25 and of glowing mushrooms 26..27, a spore 28 (see Grass).
+## A row under them all (PLANT_H) tells grass.gdshader how each column of a custom plant
+## that `looks` some other way at times changes (see looks_texel).
 static func build_plants() -> ImageTexture:
-	var img := Image.create_empty(PLANT_W * (PLANTS + Plants.custom_frames()), PLANT_H, false, Image.FORMAT_RGBA8)
+	var img := Image.create_empty(PLANT_W * (PLANTS + Plants.custom_frames()), PLANT_H + 1, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	# The mods' own plants after the engine's (Plants.CUSTOM, Grass.CUSTOM): each a
 	# row of frames of its picture, blank where the picture is missing or of another
@@ -203,6 +210,9 @@ static func build_plants() -> ImageTexture:
 			continue
 		pic.convert(Image.FORMAT_RGBA8)
 		img.blit_rect(pic, Rect2i(0, 0, pic.get_width(), PLANT_H), Vector2i(PLANT_W * (PLANTS + c.first), 0))
+		var shift := Plants.looks_shift(c)
+		for k in shift:
+			img.set_pixel(PLANT_W * (PLANTS + c.first + k), PLANT_H, looks_texel(c.get("looks", ""), shift))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
 	for v in 4:
@@ -343,6 +353,13 @@ static func build_plants() -> ImageTexture:
 	# A spore: one bright texel, carried up by the shader.
 	_plant_px(img, 28, 3, 0, Color(0.6, 1.0, 0.85))
 	return ImageTexture.create_from_image(img)
+
+
+## The texel under a column of a custom plant that `looks` (Plants) some other way at
+## times: red for shy (it folds as someone passes), green for night (it opens at dusk),
+## blue the columns past it its other look is (`shift`, at most 255).
+static func looks_texel(looks: String, shift: int) -> Color:
+	return Color(1.0 if looks == "shy" else 0.0, 1.0 if looks == "night" else 0.0, mini(shift, 255) / 255.0, 1.0)
 
 
 ## Sets texel (x, row) of plant `v`, rows counted from the bottom; off the plant it is
@@ -804,13 +821,10 @@ static func build_cloud_noise() -> ImageTexture:
 
 
 ## Sets the shaders' global texture `param` to `texture`, keeping the one it replaces
-## alive HOLD_MS more (see _globals).
+## alive HOLD_SCENES scenes more (see _replaced).
 static func set_global(param: StringName, texture: Texture2D) -> void:
-	var now := Time.get_ticks_msec()
-	while not _replaced.is_empty() and now - int(_replaced[0][1]) > HOLD_MS:
-		_replaced.pop_front()
 	var held: Texture2D = _globals.get(param)
 	if held != null and held != texture:
-		_replaced.append([held, now])
+		_replaced.append([held, _scene])
 	_globals[param] = texture
 	RenderingServer.global_shader_parameter_set(param, texture)

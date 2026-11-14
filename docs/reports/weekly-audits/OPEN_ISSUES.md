@@ -14,36 +14,17 @@ WA-024 (#586: `src/client/net/server_link.gd`, no forwarding left on Main),
 WA-027 (the twelve uncalled functions deleted; the palettes' filters of the build and farming modes stay: kept with the player and tested, waiting for their buttons),
 WA-026 (`work_mode.gd` under the build and farming modes, `bot_brain.gd` under the two bots, the server's roles used directly).
 WA-049, WA-050 (the owner picked option A for each), WA-064 (the owner's playtest: the numbers kept).
+WA-021 (#584), WA-020, WA-023, WA-057 (#596).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 1 | 14 | 15 | 30 |
+| 0 | 0 | 12 | 14 | 26 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
 a repository setting or a step in GitHub; «playtest», «needs phone data» — waits for playing or
 measuring on the phone; «backlog» — small, done when the area is next touched. The due dates are
 recommendations.
-
-### WA-020 · High · Saves, data
-
-- **Description:** A single-player save of a hosted world drops its teams, fights and the next player number.
-- **Cause:** `SaveGame._write_world` builds the world's meta anew without `teams`, `fights` and `next_player`, which `ServerStore` writes; both use the same folder (`WorldStore.world_dir`).
-- **Confirmation:** Read: `src/client/save_game.gd:229-246` against `src/server/server_store.gd:148-170`; `src/server/server_main.gd:208`; `src/server/server.gd:836-842`. Not reproduced in a run.
-- **Files and systems:** `src/client/save_game.gd`, `src/server/server_store.gd`, `src/server/server_main.gd`, `src/server/server.gd`
-- **Consequences:** After hosting, playing alone and hosting again: teams and newcomers' protection are gone, and a new player can get the id of a saved player who is offline, and with it their land and team.
-- **Recommended fix:** Plan: the single-player save keeps the keys it does not own (start from the old meta); the server raises `next_id` past the highest saved player; a hosted → single → hosted scenario in `save_test`.
-- **Status:** Open: needs plan (save format); first found 2026-11-14 (new); due 2026-11-20.
-
-### WA-021 · Medium · Synchronization
-
-- **Description:** Cell changes for a chunk waiting to be restored are dropped on the client.
-- **Cause:** `Mirror` applies `CELLS` only to a chunk already in the world, while a chunk just received waits in `RemoteGen.packs`.
-- **Confirmation:** Read: `src/client/net/mirror.gd:123-135`, `src/client/net/remote_gen.gd`. Not reproduced in a run.
-- **Files and systems:** `src/client/net/mirror.gd`, `src/client/net/remote_gen.gd`, `src/server/player_link.gd`
-- **Consequences:** On joining and in new ground a cell stays as it was (dug, felled, wetted, a door's cut) until the chunk is sent again; `DROPS` can be overwritten the same way.
-- **Recommended fix:** Plan: patch the waiting pack or keep the pending cells and apply them after the restore; a test in `net_test`.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-27.
 
 ### WA-025 · Medium · Maintainability
 
@@ -94,16 +75,6 @@ recommendations.
 - **Consequences:** A broken main until someone fixes forward.
 - **Recommended fix:** A merge queue or "require branches to be up to date" (repository settings, the owner).
 - **Status:** Open: owner action; first found 2026-11-14 (new); due 2026-11-20.
-
-### WA-057 · Medium · Saves, web
-
-- **Description:** A browser save can lose up to 30 s.
-- **Cause:** IndexedDB is synced in the main loop.
-- **Confirmation:** No sync code in `src/` or `tools/web_patch.py`; listed in `plan/backlog.md`.
-- **Files and systems:** `src/client/save_game.gd`, the web export
-- **Consequences:** Closing the tab soon after a save loses the last seconds.
-- **Recommended fix:** Plan: sync on save through the page.
-- **Status:** Open: backlog; first found 2026-11-14 (stage audits); due backlog.
 
 ### WA-058 · Medium · Security
 
@@ -184,16 +155,6 @@ recommendations.
 - **Consequences:** Other local users can read it from the process list; the file is a secret.
 - **Recommended fix:** Plan: pass it through the environment or stdin; store a hash (`_same` compares hashes already).
 - **Status:** Open: needs plan (the host's window shows the password, so a hash changes what it can show); first found 2026-11-14; bots' argv fixed by #587; due backlog.
-
-### WA-023 · Low · Saves
-
-- **Description:** «New world» over a saved world also erases the hosted data in that folder.
-- **Cause:** `SaveGame.replace_world` erases the whole folder, `players/` and `access.json` too.
-- **Confirmation:** Read: `src/client/save_game.gd:105-118`; a two-tap warning guards it.
-- **Files and systems:** `src/client/save_game.gd`
-- **Consequences:** Bans, hosts and players' records of a world hosted on this device go with it.
-- **Recommended fix:** Plan: name the hosted data in the warning, or keep `players/` and `access.json`.
-- **Status:** Open: user decision; first found 2026-11-14 (new); due backlog.
 
 ### WA-030 · Low · Content by role
 

@@ -171,6 +171,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/client/view/sun_rays.gd`: Sunlight among the trees by day (the «Солнечные лучи» setting): shafts of light that come out of the crowns along the sun's way to the ground (each starts on the tree's middle plane, the upright one…
 - `src/client/view/voxel_model.gd`: Small voxel model for furniture and details.
 - `src/client/view/voxel_props.gd`: The voxel models of things: read from `content/<mod>/models/<model>.png` (an item's `model`, see VoxelModel.from_image), drawn once by `tools/art/voxel_art.gd` and written by `tools/make_models.gd`,…
+- `src/client/view/wisps.gd`: Will-o'-the-wisps: on nights out of winter a few pale flames hang and wander over the murky water of swamps and bogs (WorldCells.murk) near the view.
 
 ## src/client/world
 
@@ -367,6 +368,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tools/make_boar.py`: Draws the boar's sheet, content/animals/boar/sprites/creatures/boar.png.
 - `tools/make_cat.py`: Draws the wild cat's sheet, content/animals/cat/sprites/creatures/cat.png.
 - `tools/make_creatures.py`: Draws the animals' pictures: content/animals/<bundle>/sprites/creatures/<sprite>.png.
+- `tools/make_curio_art.py`: Draws the pictures of the curiosities: the ground plants mimosa (open, and folded as someone passes), giant puffball, sundew (its dew glints: texels of alpha DEW, see grass.gdshader) and evening…
 - `tools/make_deer.py`: Draws the deer's sheet, content/animals/deer/sprites/creatures/deer.png.
 - `tools/make_fish.py`: Draws the fish's sheets: content/animals/perch/sprites/creatures/perch.png and the fish of the bundle «Рыба», content/animals/fish/sprites/creatures/<fish>.png.
 - `tools/make_fox.py`: Draws the fox's sheet, content/animals/fox/sprites/creatures/fox.png.

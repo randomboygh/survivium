@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/finds/bundle.yaml
+"[materials.finds.bundle]": "Trouvailles"
+
+# content/materials/finds/data/items.yaml
+"[materials.items.ammonite]": "Ammonite"
+"[materials.items.ammonite.about]": "Un coquillage devenu pierre il y a longtemps. On en trouve parfois dans la roche."
+"[materials.items.geode]": "Géode"
+"[materials.items.geode.about]": "Une pierre banale, creuse et pleine de cristaux violets."
+"[materials.items.amber]": "Ambre"
+"[materials.items.amber.about]": "Une vieille résine, tiède au toucher, avec un moucheron pris dedans."

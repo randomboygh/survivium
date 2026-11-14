@@ -1,0 +1,13 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/materials/finds/bundle.yaml
+"[materials.finds.bundle]": "Находки"
+
+# content/materials/finds/data/items.yaml
+"[materials.items.ammonite]": "Аммонит"
+"[materials.items.ammonite.about]": "Раковина, давным-давно ставшая камнем. Изредка попадается в скале."
+"[materials.items.geode]": "Жеода"
+"[materials.items.geode.about]": "Простой с виду камень, а внутри полость с фиолетовыми кристаллами."
+"[materials.items.amber]": "Янтарь"
+"[materials.items.amber.about]": "Древняя смола, тёплая на ощупь, с застывшей внутри мошкой."

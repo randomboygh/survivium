@@ -5,6 +5,9 @@ extends "res://src/shared/game/actions_water.gd"
 const Grass := preload("res://src/shared/world/grass.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 
+## Whether the last cut (mow) picked a plant that puffs out spores (a puffball).
+var puffed := false
+
 
 ## The water surface a tap on `cell` drinks from (or fills a vessel at) with the hand in
 ## use of `who`, INF for none.
@@ -15,6 +18,19 @@ func water_tapped(who, cell: Vector3i) -> Vector3:
 	if bits != 0 and cell.y <= WorldData.top_level(bits) + 1 and not too_far(who, cell, DRINK_REACH + 1):
 		return Vector3(cell.x + 0.5, WorldData.top_level(bits) + 1.0, cell.z + 0.5) * CELL
 	return Vector3.INF
+
+
+## Whether water holds `cell` in place, so it may not be dug: water stands over it, or
+## beside it (the eight columns round it) at its level or higher. Water has no physics
+## yet, so a pit there would leave a wall of water standing in the air (the user's rule,
+## 2026-11-14: no digging under water nor a cell along the shore).
+func water_holds(cell: Vector3i) -> bool:
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			var bits: int = world.water_col(cell.x + dx, cell.z + dz)
+			if bits != 0 and WorldData.top_level(bits) >= cell.y:
+				return true
+	return false
 
 
 ## Works at `cell`, tapped on its face `normal`, with the hand in use: an axe chops the
@@ -49,6 +65,9 @@ func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 			return {}
 	if Tools.mows(t) and can_mow(cell, t):
 		return mow_swing(who, mow_targets(who, [cell], t))
+	if Tools.can_dig(t, m) and water_holds(cell):
+		who.nag("water", "[water_holds_this_ground]")
+		return {}
 	if not Tools.can_dig(t, m):
 		# A sword digs nothing: at the ground it swings all the same, as at the air.
 		if t.tool == "sword":
@@ -67,6 +86,7 @@ func dig_targets(who, order: Array[Vector3i], t: Dictionary, n := -1) -> Array[V
 			break
 		var m: int = world.get_cell(c.x, c.y, c.z)
 		if c.y > 0 and m != Mat.AIR and Tools.can_dig(t, m) and tree_of(c) == null and not too_far(who, c, t.reach) \
+				and not water_holds(c) \
 				and world.blocker_top(c.x, c.y + 1, c.z) <= 0.0 and world.blocker_top(c.x, c.y, c.z) <= 0.0:
 			out.append(c)
 	return out
@@ -76,7 +96,11 @@ func dig_targets(who, order: Array[Vector3i], t: Dictionary, n := -1) -> Array[V
 ## then their bonus) falls under them. The tool in hand wears, or tool `wear` of the bag
 ## when given (flattening digs with the best tool there, Plans.best_tool).
 func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dictionary:
-	cells = _allowed(who, cells, "build")
+	var dry: Array[Vector3i] = []
+	for c in _allowed(who, cells, "build"):
+		if not water_holds(c):
+			dry.append(c)
+	cells = dry
 	if cells.is_empty() or not who.act("dig", "dig"):
 		return {}
 	var keys := {}
@@ -85,7 +109,8 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 	var q := _got(who, "dig")
 	for c in cells:
 		var was: int = world.get_cell(c.x, c.y, c.z)
-		if _built.has(c):
+		var grown := not _built.has(c)
+		if not grown:
 			_built.erase(c)
 			_undone[c] = true
 		else:
@@ -97,6 +122,13 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 		for id in [Items.dug[was], rec.bonus if randf() < rec.bonus_chance else ""]:
 			if id != "":
 				world.heap_drop(id, at, 1, randf() * TAU, q)
+				keys[WorldData.chunk_key(c.x, c.z)] = true
+		# A find now and then in a cell the world grew (an ammonite in stone), never in
+		# one a player put there this session (_built).
+		var finds: Dictionary = rec.get("finds", {}) if grown else {}
+		for id: String in finds:
+			if randf() < finds[id]:
+				world.heap_drop(Items.get_item(id).get("id", id), at, 1, randf() * TAU, q)
 				keys[WorldData.chunk_key(c.x, c.z)] = true
 	for key in keys:
 		drops_changed.emit(key)
@@ -165,10 +197,14 @@ func mow_swing(who, cells: Array[Vector3i]) -> Dictionary:
 	if cells.is_empty():
 		return {}
 	var was: int = world.get_cell(cells[0].x, cells[0].y, cells[0].z)
+	puffed = false
 	if not mow(who, cells, arc):
 		return {}
 	var done := _work(skilled(who, "gather", t.swing), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL,
 		Mat.GRASS if was != Mat.STONE else Mat.LEAVES)
+	if puffed:
+		# A puffball picked breathes out its spores (the client's Effects.puff).
+		done.puff = true
 	who.use_tool()
 	return done
 
@@ -201,6 +237,8 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 		var gives := {}
 		if not tall.is_empty():
 			gives = Plants.harvest(tall, rng)
+			for id: String in tall:
+				puffed = puffed or Plants.BY_ID.get(id, {}).get("puff", false)
 			world.set_turf(c, "")
 			looks_changed.emit(WorldData.chunk_key(c.x, c.z))
 		else:

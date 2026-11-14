@@ -1,0 +1,8 @@
+# Sundew leaves: sticky; boiled down in a pot they make the same glue as bones do. Fields as for the core's items.
+- id: sundew
+  title: "[plants.items.sundew]"
+  description: "[plants.items.sundew.about]"
+  weight: 0.02
+  stack: 30
+  model: sundew
+  icon: sundew

@@ -293,6 +293,12 @@ func _run() -> void:
 					Vector2(main.character.facing_step()).normalized(), main.actions.DRINK_REACH)
 				if ahead.is_finite():
 					break
+		if shot.has("wisps"):
+			# Will-o'-the-wisps hung by the player (east, north-west...) as Wisps would hang them
+			# over a swamp's pool, for a look at them.
+			for o: Array in shot.wisps:
+				main.effects.wisps._add(main.player.position + Vector3(o[0], o[1], o[2]))
+				main.effects.wisps.wisps[-1].fade = 1.0
 		if shot.has("cut"):
 			main.chunks.manual_level = main.player.level() + int(shot.cut)
 			main.chunks.update_cut(0.0)

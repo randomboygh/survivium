@@ -545,6 +545,12 @@ func _dig_out(actions, who, c: Vector3i) -> Dictionary:
 		cells.erase(c)
 		changed.emit([c], "")
 		return {}
+	if actions.water_holds(c):
+		# Water has no physics yet: the ground it leans on stays (WorldActions.water_holds).
+		who.nag("water", "[water_holds_this_ground]")
+		cells.erase(c)
+		changed.emit([c], "")
+		return {}
 	var tool: Variant = best_tool(who, m)
 	if tool == null:
 		who.nag("tool", Tools.why_not(Tools.of(who.held()), m))

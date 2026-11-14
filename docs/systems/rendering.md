@@ -51,6 +51,16 @@ voxel models of things.
   sideways farther than they fall), and the strokes of drops are tilted along the fall (`lean` in
   `particle.gdshader`). Under snow the grass at the joint with a torn-out cell spreads into it by separate
   texels (`GRASS_FRAY` in `world.gdshader`), with no white squares.
+- `src/client/view/wisps.gd` (held by `Effects.wisps`, moved by `Sky`) — will-o'-the-wisps: on nights out of winter up
+  to `WISPS` pale flickering emitters wander over the murky water of swamps and bogs (`WorldCells.murk`) near
+  the view; one the player comes within `SHY` of slips away fading. `Effects.puff` — the spores of a picked
+  puffball (`done.puff` of a mow, a plant's `puff`).
+- Curious plants (`grass.gdshader`): a custom plant with `looks` brings its other look as the second half of its
+  frames; `PixelTextures.build_plants` writes a row under the plants (`looks_texel`: red shy, green night, blue
+  the shift) and the vertex shader swaps the column — shy while the player stands within `SHY_REACH`, night
+  past a `night_glow` of its own. Texels of a custom picture with an alpha of 200..240 glint by day (dew).
+  The surf and a swimmer's wake glow blue on warm nights in bays of plankton (`sea_glow`, set by `Sky` from the
+  night and the season, `water.gdshader`).
 - `src/client/view/glow_lights.gd` (held by `Effects.glows`) — small teal pools of light round the glowing
   mushrooms at night: `Foliage` notes where each glowing mushroom stands (`Job.glows`, kept through a patch),
   `ChunkStreamer` hands them over per chunk, and every `PICK_EVERY` s the `LIGHTS` (4) groups nearest the
@@ -85,8 +95,8 @@ voxel models of things.
   `cursor` (and the blueprint's ghost), `land` (the plots' borders).
 - `project.godot`, the section `[shader_globals]`: the global parameters the code changes (`cut_height`,
   `snow_amount`, `wind`, `view_up`, `view_slope`, `rest_view`, `view_squash`, `light_side`, `wrap_size` and
-  others). A global texture is set by `PixelTextures.set_global`, which keeps the one it replaces for
-  `HOLD_MS` (5 s): Vulkan (Android) drew garbage after a new scene (rejoining a server, reloading mods) when the
+  others). A global texture is set by `PixelTextures.set_global`, which keeps the one it replaces while
+  that scene and the next `HOLD_SCENES` (2) run: Vulkan (Android) drew garbage after a new scene (rejoining a server, reloading mods) when the
   old one was freed at once. A global texture that changes during play is drawn again in place
   (`ImageTexture.update`), never made anew: the fires' heat map (`Effects.heat_map`) once made one for each fire
   that came, several in a row while joining a server with camps.

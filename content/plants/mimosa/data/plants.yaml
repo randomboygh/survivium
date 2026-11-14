@@ -1,0 +1,15 @@
+# Mimosa (kind: custom, fields as for the fern, content/plants/fern/data/plants.yaml): a low tropical sprawl with pink
+# pompoms whose leaves fold shut as someone walks past (looks: shy — the second half of the frames is the folded plant).
+- id: mimosa
+  kind: custom
+  title: "[plants.plants.mimosa]"
+  sprite: mimosa
+  frames: 2
+  looks: shy
+  grows: meadow
+  cover: 0.6
+  clumps: 0.35
+  gives: {resources:fiber: 1}
+  chance: 0.5
+  winter: false
+  biomes: [biomes:savanna, biomes:jungle, biomes:tropical_beach]

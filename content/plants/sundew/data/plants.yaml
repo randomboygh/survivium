@@ -1,0 +1,14 @@
+# Sundew (kind: custom, fields as for the fern): a small red rosette of open bog ground, every leaf tipped with a drop of
+# sticky dew that glints in the sun (the texels of alpha 220 of its picture, grass.gdshader); picked for its leaves.
+- id: sundew
+  kind: custom
+  title: "[plants.plants.sundew]"
+  sprite: sundew
+  frames: 2
+  grows: meadow
+  clumps: 0.2
+  cover: 0.3
+  pick: true
+  gives: {sundew: 1}
+  winter: false
+  biomes: [biomes:peat_bog, biomes:swamp, biomes:taiga, biomes:tundra, biomes:pine_wood]
