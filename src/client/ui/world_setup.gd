@@ -1,8 +1,10 @@
 extends "res://src/client/ui/kit/window.gd"
 ## The first screen: the world to make. The seed (typed in or rolled with the dice),
 ## a kind of world that sets the rest at once, and the settings of WorldGen one by one
-## as rows "name ‹ value ›" like the settings window, with a map of the land around
-## the spawn drawn a few rows a frame as the choice changes. The mods of the new world
+## as rows "name ‹ value ›" like the settings window, with a map of the land round the
+## middle of the world drawn a few rows a frame as the choice changes, the start a dot on
+## it once found. The map stays put whatever the mods: the land of a seed is the same
+## with any biomes, only where the start is (in a biome a player may start in) moves. The mods of the new world
 ## are a page of their own, opened from the row «Моды», with a page per mod of several
 ## bundles, each left with "Назад" (or Escape). "Создать мир" (or Enter) keeps the choice in Settings and starts the world,
 ## "Назад" (or Escape) leaves it.
@@ -62,6 +64,9 @@ var _texture: ImageTexture
 ## The world the map is drawn from and the next row to draw.
 var _gen: WorldGen
 var _map_row := 0
+## The start on the map, in its pixels (clamped to its edge), once it is found.
+var _spawn_px := Vector2(-1, -1)
+var _marker: Control
 ## The biomes of the bundles chosen (Biomes.tables), which the map is laid out with, and
 ## the bundles they are of.
 var _biomes: Array = []
@@ -98,15 +103,12 @@ func _ready() -> void:
 	_map.texture = _texture
 	_map.custom_minimum_size = Vector2(MAP, MAP)
 	_map.stretch_mode = TextureRect.STRETCH_KEEP
-	_map.tooltip_text = Lang.f("[the_land_around_the_start]", [(MAP * MAP_STEP)])
+	_map.tooltip_text = Lang.f("[the_land_round_the_middle]", [(MAP * MAP_STEP)])
 	frame.add_child(_map)
-	var marker := Control.new()
-	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	marker.draw.connect(func() -> void:
-		var mid := (Vector2(MAP, MAP) * 0.5).floor()
-		marker.draw_rect(Rect2(mid - Vector2(2, 2), Vector2(5, 5)), UiStyle.DARK_INK)
-		marker.draw_rect(Rect2(mid - Vector2(1, 1), Vector2(3, 3)), UiStyle.ACCENT))
-	_map.add_child(marker)
+	_marker = Control.new()
+	_marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_marker.draw.connect(_draw_marker)
+	_map.add_child(_marker)
 	_list = Kit.column(4)
 	# Inset as the settings' rows (the kit's rule): BAR_GAP from the frame's sides.
 	_scroll = Kit.scroll(_list)
@@ -397,7 +399,17 @@ func _check_saved() -> void:
 func _restart_map() -> void:
 	_gen = null
 	_map_row = 0
+	_spawn_px = Vector2(-1, -1)
+	if _marker != null:
+		_marker.queue_redraw()
 	_check_saved()
+
+
+func _draw_marker() -> void:
+	if _spawn_px.x < 0.0:
+		return
+	_marker.draw_rect(Rect2(_spawn_px - Vector2(2, 2), Vector2(5, 5)), UiStyle.DARK_INK)
+	_marker.draw_rect(Rect2(_spawn_px - Vector2(1, 1), Vector2(3, 3)), UiStyle.ACCENT)
 
 
 func _process(_delta: float) -> void:
@@ -406,7 +418,7 @@ func _process(_delta: float) -> void:
 		_shown = true
 		print("world setup shown: start %s" % _start_button.get_global_rect())
 	var t0 := Time.get_ticks_usec()
-	if _gen != null and _map_row >= MAP:
+	if _gen != null and _map_row >= MAP and not _gen.seeking:
 		return
 	# The land of the bundles chosen: their biomes in place of those the world behind
 	# plays with, for this frame's rows only.
@@ -419,21 +431,26 @@ func _process(_delta: float) -> void:
 			_biomes = Biomes.tables()
 	Biomes.use(_biomes)
 	if _gen == null:
-		# Its spawn is looked for a little each frame (a seed far from good land took
-		# seconds on a phone), the map drawn round it once found.
+		# Its spawn is looked for a little each frame once the map is drawn (a seed far
+		# from good land took seconds on a phone).
 		_gen = WorldGen.new(game.settings.values.world_seed, 48, game.settings.world_options(), false)
 		_map_row = 0
-	if not _gen.seek_spawn(maxi(MAP_BUDGET_US - (Time.get_ticks_usec() - t0), 0)):
-		Biomes.use(own)
-		return
-	var at: Vector3i = _gen.spawn_guess
+	# Round the middle of the world, where the search for the start begins, not round the
+	# start: the start moves with the biomes chosen (a meadow nearer or farther), the land
+	# does not, and a map round it seemed to move the world.
+	var x0 := -MAP / 2 * MAP_STEP
 	while _map_row < MAP and Time.get_ticks_usec() - t0 < MAP_BUDGET_US:
-		var lay := _gen.lay_out(at.x - MAP / 2 * MAP_STEP, at.z + (_map_row - MAP / 2) * MAP_STEP, MAP, 1, MAP_STEP)
+		var lay := _gen.lay_out(x0, (_map_row - MAP / 2) * MAP_STEP, MAP, 1, MAP_STEP)
 		for i in MAP:
 			_image.set_pixel(i, _map_row, _gen.column_color(lay, i))
 		_map_row += 1
-	Biomes.use(own)
 	_texture.update(_image)
+	if _map_row >= MAP and _gen.seek_spawn(maxi(MAP_BUDGET_US - (Time.get_ticks_usec() - t0), 0)):
+		var at: Vector3i = _gen.spawn_guess
+		var px := Vector2(at.x - x0, at.z - x0) / MAP_STEP
+		_spawn_px = px.clamp(Vector2(2, 2), Vector2(MAP - 3, MAP - 3)).floor()
+		_marker.queue_redraw()
+	Biomes.use(own)
 
 
 ## Up and down pick a row, left and right change it (right opens the mods from «Моды»),
