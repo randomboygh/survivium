@@ -43,7 +43,7 @@
   sprite: bronze_shovel
   anim: dig
   power: 2
-  swing: 0.18
+  swing: 0.17
   reach: 10
   durability: 1500
   repair: {materials:bronze_bar: 1}
@@ -57,7 +57,7 @@
   sprite: iron_shovel
   anim: dig
   power: 3
-  swing: 0.16
+  swing: 0.14
   reach: 10
   durability: 2400
   repair: {materials:iron_bar: 1}
@@ -71,7 +71,7 @@
   sprite: steel_shovel
   anim: dig
   power: 4
-  swing: 0.14
+  swing: 0.12
   reach: 10
   durability: 3600
   repair: {materials:steel_bar: 1}

@@ -9,11 +9,11 @@ Last checked: 2026-11-14 ([WEEKLY_AUDIT_2026-11-14.md](WEEKLY_AUDIT_2026-11-14.m
 four pull requests merged in between (#577–#580), #579 and #578 reach WA-031 and WA-043, noted there.
 Closed since: WA-031 (#579, both main runs after it green), WA-040, WA-041, WA-042, WA-043, WA-045 (#583),
 WA-048 (`balance_report --check` in CI and `run_all.sh`), WA-028, WA-029, WA-054, WA-055, WA-056 (#585),
-WA-012, WA-013, WA-014, WA-015, WA-016, WA-017, WA-019, WA-022 (#587; WA-018 in part).
+WA-012, WA-013, WA-014, WA-015, WA-016, WA-017, WA-019, WA-022 (#587; WA-018 in part), WA-049, WA-050 (the owner picked option A for each).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 1 | 18 | 17 | 36 |
+| 0 | 1 | 17 | 16 | 34 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
@@ -110,16 +110,6 @@ recommendations.
 - **Consequences:** A broken main until someone fixes forward.
 - **Recommended fix:** A merge queue or "require branches to be up to date" (repository settings, the owner).
 - **Status:** Open: owner action; first found 2026-11-14 (new); due 2026-11-20.
-
-### WA-049 · Medium · Balance, tests
-
-- **Description:** `balance_test` leaves quality out of its best cases.
-- **Cause:** Quality 100 makes a tool 1.2× faster and 1.5× more durable, and is easy to reach.
-- **Confirmation:** Computed from `quality.gd` and the tables: a steel axe at chopping 10 and quality 100 empties stamina in 7.7 s (the test's floor is 8 s); an oak falls in 0.6 s (floor 0.5).
-- **Files and systems:** `tests/unit/balance_test.gd`, `src/shared/game/quality.gd`
-- **Consequences:** The documented envelope no longer holds at the top; the next buff crosses it unnoticed.
-- **Recommended fix:** Plan: count quality in the best cases, or lower `PACE_PER_POINT` (a balance formula: the user's pick).
-- **Status:** Open: user decision; first found 2026-11-14 (new); due 2026-11-27.
 
 ### WA-057 · Medium · Saves, web
 
@@ -320,16 +310,6 @@ recommendations.
 - **Consequences:** Noise; a real leak would hide among them.
 - **Recommended fix:** Run with `--verbose` to name the owners.
 - **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
-
-### WA-050 · Low · Balance
-
-- **Description:** Some tool tiers add little.
-- **Cause:** Wooden pickaxe, scythe and sword are weaker than their stone twins and need planks; a flint knife hits as hard as a stone sword sooner; copper → bronze shovel only adds durability.
-- **Confirmation:** The balance tables (regenerated in a copy, equal to the committed ones).
-- **Files and systems:** the tools' YAML
-- **Consequences:** Pointless items in the early game.
-- **Recommended fix:** A playtest question: give the wooden tools a niche or drop them.
-- **Status:** Open: playtest; first found 2026-11-14 (new); due backlog.
 
 ### WA-051 · Low · Data
 
