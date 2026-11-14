@@ -43,6 +43,29 @@ func groups() -> Array:
 		if name.begins_with("screen") or name == "whole screen" or name.begins_with("Camera3D"):
 			continue
 		out.append([name, g[1]])
+	# The effects a piece at a time (the user's ask, 2026-11-15): by the var of Effects that
+	# holds each, else by kind (the campfires' models and lights, the bursts' emitters...).
+	var fx = game.effects
+	if fx != null:
+		var names := {}
+		for prop in fx.get_property_list():
+			if not prop.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
+				continue
+			var v = fx.get(prop.name)
+			var held: Array = v if v is Array else [v]
+			for e in held:
+				if e is Node and not names.has(e):
+					names[e] = String(prop.name).trim_prefix("_")
+		var parts := {}
+		for n in fx.get_children():
+			var key: String = names.get(n, _kind_of(n))
+			if not parts.has(key):
+				parts[key] = []
+			parts[key].append(n)
+		var fx_keys := parts.keys()
+		fx_keys.sort()
+		for key: String in fx_keys:
+			out.append(["effects: %s (%d)" % [key, parts[key].size()], parts[key]])
 	var by_shader := {}
 	for n in game.world_root.find_children("*", "GeometryInstance3D", true, false):
 		for shader in _shaders_of(n):
@@ -193,3 +216,11 @@ static func _shaders_of(n: GeometryInstance3D) -> Array:
 		if path != "" and not out.has(path):
 			out.append(path)
 	return out
+
+
+## A node's kind: its script's file, else its class (a particle emitter, a light).
+static func _kind_of(n: Node) -> String:
+	var sc: Script = n.get_script()
+	if sc != null and sc.resource_path != "":
+		return sc.resource_path.get_file().get_basename()
+	return n.get_class()

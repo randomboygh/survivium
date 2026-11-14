@@ -122,6 +122,7 @@ func _ready() -> void:
 	motes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	motes.emitting = false
 	add_child(motes)
+	PixelView.blank_particles(motes)
 
 
 func _material(mode: int) -> ShaderMaterial:
