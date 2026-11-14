@@ -516,8 +516,9 @@ func _run() -> void:
 			if shot.has("page"):
 				main.hud.open_settings(shot.page)
 				# The window keeps the section shown last: an earlier shot may have left another.
-				if shot.page in ["settings", "test"]:
-					main.hud.settings_menu().show_section(shot.get("section", "game" if shot.page == "settings" else "world"))
+				if shot.page in ["settings", "test", "report"]:
+					main.hud.settings_menu().show_section(shot.get("section",
+							{"settings": "game", "test": "world", "report": "place"}[shot.page]))
 					if shot.get("menu_end", false):
 						# The bottom of the section.
 						await process_frame
