@@ -303,6 +303,8 @@ func _run() -> void:
 			main.session.clock.settle_weather()
 			if shot.has("clouds"):
 				main.session.clock.clouds = shot.clouds
+			if shot.has("cloud_pos"):
+				main.sky.cloud_pos = Vector2(shot.cloud_pos[0], shot.cloud_pos[1])
 			main.session.clock.wet = 1.0 if main.session.clock.raining and main.session.clock.season != 3 else shot.get("after_rain", 0.0)
 			main.sky.after_rain = shot.get("after_rain", 0.0)
 			main.session.clock.puddles = shot.get("puddles", 0.0)

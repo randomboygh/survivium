@@ -21,6 +21,12 @@ const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 ## Columns the map covers each way before it repeats (a multiple of the chunk size).
 const WRAP := 512
 const MASK := WRAP - 1
+## Beside it, a coarse map of the ground's height for the fog (ground_low in
+## common.gdshaderinc): a texel per LOW by LOW columns holding the mean of their tops
+## (b of the roof map), filtered between texels, so the fog's low places change
+## smoothly over the land instead of in steps where a tall thing's edge passes.
+const LOW := 4
+const LOW_SIZE := WRAP / LOW
 ## The size of the tints: every material the atlas holds, every biome byte.
 const TINT_MATERIALS := 64
 const TINT_BIOMES := 256
@@ -35,6 +41,8 @@ var texture: ImageTexture
 var biome_image: Image
 var biome_texture: ImageTexture
 var tints_texture: ImageTexture
+var low_image: Image
+var low_texture: ImageTexture
 var dirty := false
 var biomes_dirty := false
 
@@ -46,6 +54,9 @@ func prepare(_w = null) -> void:
 	PixelTextures.set_global("roof_map", texture)
 	PixelTextures.set_global("roof_map_soft", texture)
 	RenderingServer.global_shader_parameter_set("wrap_size", Vector2(WRAP, WRAP) * 0.5)
+	low_image = Image.create_empty(LOW_SIZE, LOW_SIZE, false, Image.FORMAT_R8)
+	low_texture = ImageTexture.create_from_image(low_image)
+	PixelTextures.set_global("ground_low", low_texture)
 	biome_image = Image.create_empty(WRAP, WRAP, false, Image.FORMAT_R8)
 	biome_image.fill(Color(1, 1, 1))
 	biome_texture = ImageTexture.create_from_image(biome_image)
@@ -104,6 +115,17 @@ func fill_chunk(w, key: Vector2i) -> void:
 	image.blit_rect(Image.create_from_data(n, n, false, Image.FORMAT_RGBA8, data),
 		Rect2i(0, 0, n, n), Vector2i((key.x * n) & MASK, (key.y * n) & MASK))
 	dirty = true
+	var lows := PackedByteArray()
+	var m := n / LOW
+	lows.resize(m * m)
+	var tops := PackedInt32Array()
+	tops.resize(LOW * LOW)
+	for i in m * m:
+		for k in LOW * LOW:
+			tops[k] = data[(((i / m) * LOW + k / LOW) * n + (i % m) * LOW + k % LOW) * 4 + 2]
+		lows[i] = low_mean(tops)
+	low_image.blit_rect(Image.create_from_data(m, m, false, Image.FORMAT_R8, lows),
+		Rect2i(0, 0, m, m), Vector2i(((key.x * n) & MASK) / LOW, ((key.y * n) & MASK) / LOW))
 	if c != null:
 		biome_image.blit_rect(Image.create_from_data(n, n, false, Image.FORMAT_R8, c.biome),
 			Rect2i(0, 0, n, n), Vector2i((key.x * n) & MASK, (key.y * n) & MASK))
@@ -120,6 +142,22 @@ func touch(w, cell: Vector3i) -> void:
 	image.set_pixel(cell.x & MASK, cell.z & MASK, Color((w.roof_level(cell.x, cell.z) + 1) / 255.0, crown,
 		(top + 1) / 255.0, water))
 	dirty = true
+	var lx := (cell.x & MASK) / LOW
+	var lz := (cell.z & MASK) / LOW
+	var tops := PackedInt32Array()
+	tops.resize(LOW * LOW)
+	for k in LOW * LOW:
+		tops[k] = roundi(image.get_pixel(lx * LOW + k % LOW, lz * LOW + k / LOW).b * 255.0)
+	low_image.set_pixel(lx, lz, Color(low_mean(tops) / 255.0, 0.0, 0.0))
+
+
+## The height a block of columns stands for in ground_low: the top three quarters
+## of the way up its tops, so a pit or a ditch through it does not pull it down, nor a
+## trunk, a post or a wall standing in it lift it.
+static func low_mean(tops: PackedInt32Array) -> int:
+	var sorted := tops.duplicate()
+	sorted.sort()
+	return sorted[(sorted.size() * 3) / 4]
 
 
 ## Sends the changed map to the renderer; true when it did.
@@ -131,4 +169,5 @@ func flush() -> bool:
 		return false
 	dirty = false
 	texture.update(image)
+	low_texture.update(low_image)
 	return true
