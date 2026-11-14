@@ -30,8 +30,11 @@ const MOVE := 2.0
 ## The sun turns this much (the dot of its old and new way, 1 - it) before the light
 ## is laid out again.
 const TURN := 0.0004
-## The longest a shaft runs, in world units (a low sun's would cross the picture).
-const LONGEST := 14.0
+## The longest a shaft runs, in world units, when it meets no ground (out over a cliff).
+const LONGEST := 48.0
+## The thinnest and widest a shaft is, in world units (3 pixels to 13).
+const THINNEST := 0.19
+const WIDEST := 0.8
 const MAX_SHAFTS := 256
 const MAX_FLECKS := 512
 ## Shafts and flecks a tree gets at most.
@@ -227,8 +230,7 @@ func finish() -> bool:
 	return true
 
 
-## The way the shafts run down: the sun's light's (a low sun's shafts are cut at
-## LONGEST).
+## The way the shafts run down: the sun's light's.
 func _shaft_way() -> Vector3:
 	return Vector3(-to_sun.x, -maxf(to_sun.y, 0.05), -to_sun.z).normalized()
 
@@ -284,8 +286,7 @@ func _trees_near(p: Vector3, near: Array) -> Array:
 
 ## The light of the tree with its trunk in column `col` for the sun now, wherever the
 ## picture is: [the sun's turn (_sun_turns), the shafts' tops, bottoms and looks, the
-## flecks' places and looks, two specks of dust a shaft, the crown's top]; [the turn]
-## without a crown.
+## flecks' places and looks, two specks of dust a shaft]; [the turn] without a crown.
 func _tree_light(w, col: Vector2i) -> Array:
 	var crown := _crown(w, col)
 	if crown.x <= -INF:
@@ -310,7 +311,8 @@ func _tree_light(w, col: Vector2i) -> Array:
 		# From the middle plane, inside the crown's outline on it.
 		var pick := rng.randf()
 		var side := rng.randf()
-		var look := Color(rng.randf_range(0.35, 0.8), 0.0, rng.randf(), rng.randf_range(0.5, 1.0))
+		# Thin ones more often than wide ones.
+		var look := Color(lerpf(THINNEST, WIDEST, pow(rng.randf(), 1.5)), 0.0, rng.randf(), rng.randf_range(0.5, 1.0))
 		var motes_at := Vector2(rng.randf_range(0.2, 0.8), rng.randf_range(0.2, 0.8))
 		var at := _in_outline(outline, pick, side, look.r)
 		if skip or at.y <= -INF:
@@ -335,7 +337,7 @@ func _tree_light(w, col: Vector2i) -> Array:
 			continue
 		spots.append(Vector3(at.x, ground, at.y))
 		spot_looks.append(look)
-	return [_sun_turns, tops, bottoms, looks, spots, spot_looks, dust, crown.y]
+	return [_sun_turns, tops, bottoms, looks, spots, spot_looks, dust]
 
 
 ## Lays the light of the trees near (as far as it is worked out) out in the picture
@@ -352,10 +354,8 @@ func _lay_out(p: Vector3, near: Array) -> void:
 	var fm: MultiMesh = flecks.multimesh
 	for col: Vector2i in _trees:
 		var light: Array = _light.get(col, [])
-		if light.size() < 8:
+		if light.size() < 7:
 			continue
-		# The crown's top, to the shader: the shaft shows over its own crown.
-		var roof := Basis(Vector3.RIGHT, Vector3.UP, Vector3(0.0, 0.0, light[7]))
 		var tops: PackedVector3Array = light[1]
 		var bottoms: PackedVector3Array = light[2]
 		var looks: PackedColorArray = light[3]
@@ -364,7 +364,7 @@ func _lay_out(p: Vector3, near: Array) -> void:
 			var top := tops[i]
 			if not picture.intersects(Rect2(PixelView.screen_plane(top), Vector2.ZERO).expand(PixelView.screen_plane(bottoms[i])).grow(1.0)):
 				continue
-			sm.set_instance_transform(ns, Transform3D(roof, top))
+			sm.set_instance_transform(ns, Transform3D(Basis(), top))
 			sm.set_instance_color(ns, looks[i])
 			ns += 1
 			dust.append(specks[i * 2])
@@ -433,16 +433,28 @@ static func _in_outline(outline: PackedVector3Array, pick: float, side: float, w
 
 
 ## How far a shaft from `top` runs along the light before it meets the ground (or
-## water), LONGEST at most.
+## water), LONGEST at most: found a unit at a time, then to a 16th of a unit, so the
+## shaft ends on the ground.
 func _length(w, top: Vector3) -> float:
 	var length := 1.0
 	while length < LONGEST:
-		var p := top + _down * length
-		var ground := _ground(w, Vector2(p.x, p.z))
-		if ground <= -INF or p.y <= ground:
+		if _under(w, top + _down * length):
+			var above := length - 1.0
+			for i in 4:
+				var half := (above + length) * 0.5
+				if _under(w, top + _down * half):
+					length = half
+				else:
+					above = half
 			return length
 		length += 1.0
 	return LONGEST
+
+
+## World point `p` is under the ground (or the water's top).
+func _under(w, p: Vector3) -> bool:
+	var ground := _ground(w, Vector2(p.x, p.z))
+	return ground <= -INF or p.y <= ground
 
 
 ## The height of the ground a walker stands on at world point `at`, -INF over water.
