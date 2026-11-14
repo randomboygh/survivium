@@ -158,6 +158,9 @@ const SHOTS := {
 	"puddles-rain": {"time": 0.5, "season": 1, "rain": true, "puddles": 1.0},
 	"rays-off": {"time": 0.45, "season": 1, "rays": false},
 	"fog": {"time": 0.33, "season": 2, "weather": "fog"},
+	# The player's spot in the test world in a dense summer morning fog (2026-11-14): the fog
+	# over the land's edges and its borders.
+	"ground-fog-spot": {"clock": 0.327, "season": 1, "weather": "dense_fog", "at": [8, -24]},
 	"downpour": {"time": 0.5, "season": 1, "weather": "downpour"},
 	"storm": {"time": 0.6, "season": 1, "weather": "storm"},
 	"hail": {"time": 0.45, "season": 0, "weather": "hail"},
@@ -301,6 +304,8 @@ const SHOTS := {
 	# Cloud shadows over the mountain's and the cliffs' sheer walls: slanted along the sun,
 	# so a wall shows a soft edge, not a straight vertical stripe.
 	"clouds-mountain": {"time": 0.42, "season": 1, "place": "mountain", "clouds": 0.5},
+	# Cloud shadows on the tall brick house of the test world: a slanted edge down its walls.
+	"ground-clouds-house": {"time": 0.5, "season": 1, "at": [70, -42], "clouds": 0.55, "cloud_pos": [12, -9], "rays": false},
 	"clouds-cliffs": {"time": 0.36, "season": 1, "place": "cliffs", "clouds": 0.5},
 	"peak": {"time": 0.42, "season": 1, "place": "peak"},
 	"waterfall": {"time": 0.42, "season": 1, "place": "waterfall"},

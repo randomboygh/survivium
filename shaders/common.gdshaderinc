@@ -112,6 +112,10 @@ global uniform sampler2D roof_map : filter_nearest, repeat_enable;
 // The same map filtered between the columns' centres, for what changes smoothly over
 // the land (the fog's low places).
 global uniform sampler2D roof_map_soft : filter_linear, repeat_enable;
+// The mean height of the ground over LOW by LOW columns, a texel each (r = the tops'
+// mean plus one, over 255), filtered between texels: where the fog lies low (see
+// RoofMap.LOW, fog_at).
+global uniform sampler2D ground_low : filter_linear, repeat_enable;
 // One texel per column like the roof map: r = the column's biome (an index of Biomes,
 // 255 not known), see roof_map.gd.
 global uniform sampler2D biome_map : filter_nearest, repeat_enable;
@@ -658,6 +662,9 @@ float ground_top(vec2 xz, vec2 off) {
 // `p`, a trunk or a wall standing no higher in it than a cell over the lowest of them,
 // so the fog goes up their sides; nothing under a roof or in a cave gets any. A little
 // thinner round the player, so they can see where they go.
+// How far over its depth the fog's layer thins out to nothing (see fog_at).
+const float FOG_TOP = 1.6;
+
 float fog_at(vec3 p) {
 	vec2 c = p.xz / CELL - 0.5;
 	vec2 f = fract(c);
@@ -687,23 +694,36 @@ float fog_at(vec3 p) {
 	tops = min(tops, vec4(lowest + CELL));
 	float ground = dot(tops, w);
 	// Low places: below the ground about them, or near the sea's level. The ground about
-	// is blended between columns, or the fog would change from one cell to the next in
-	// squares.
+	// is the coarse mean of the land (ground_low) a few units round, each look held to
+	// a little over the ground here: a hill or a wall beside would otherwise make the fog
+	// thicker at once where a look passes its edge, in straight lines over flat land.
 	vec2 uv = p.xz / wrap_size;
-	vec2 far = vec2(7.0) * CELL / wrap_size;
-	float around = (texture(roof_map_soft, uv + far).b + texture(roof_map_soft, uv - far).b
-		+ texture(roof_map_soft, uv + vec2(far.x, -far.y)).b + texture(roof_map_soft, uv + vec2(-far.x, far.y)).b)
-		* 0.25 * 255.0 * CELL;
-	float low = clamp((around - ground) / 1.5, 0.0, 1.0);
+	vec2 far = vec2(3.0) / wrap_size;
+	vec4 looks = vec4(texture(ground_low, uv + far).r, texture(ground_low, uv - far).r,
+		texture(ground_low, uv + vec2(far.x, -far.y)).r, texture(ground_low, uv + vec2(-far.x, far.y)).r)
+		* 255.0 * CELL;
+	// Both sides are the coarse land, the place itself too: measured from the ground
+	// right here, the rim of a pit (whose blended ground dips into it) came out a low
+	// place, a bright ring of thick fog round the hole.
+	float here = texture(ground_low, uv).r * 255.0 * CELL;
+	float around = dot(min(looks, vec4(here + 1.5)), vec4(0.25));
+	float low = clamp((around - here) / 1.5, 0.0, 1.0);
+	// The layer's floor: the ground here, or the land about where that is higher, so a
+	// pit or a narrow hollow fills with fog to the brim instead of keeping a clear
+	// bottom under a thin layer of its own.
+	float base = max(ground, dot(looks, vec4(0.25)));
 	low = max(max(low, clamp(1.0 - (ground - fog_sea) / 4.0, 0.0, 1.0) * 0.8), water);
 	// Banks: two layers of drifting noise lift and lower the top and thin the fog.
 	vec2 q = p.xz + fog_drift;
 	float bank = texture(cloud_noise, q / 40.0).r * 0.65 + texture(cloud_noise, q / 13.0 + 0.37).r * 0.35;
 	bank = clamp((bank - 0.3) * 2.2, 0.0, 1.0);
-	float depth = fog_depth * mix(0.3, 1.0, low) * (0.45 + 0.9 * bank) + 0.15;
-	float h = max(p.y - ground, 0.0);
-	float m = clamp(1.0 - h / depth, 0.0, 1.0);
-	m = m * (2.0 - m) * mix(0.45, 1.0, low) * (0.55 + 0.45 * bank) * fog;
+	// Over flat land the layer is still deep enough to hide a ledge or a stump a few
+	// levels high, and it thins out up to FOG_TOP times its depth with no edge, so what
+	// stands out of it fades into it instead of showing a clear, sharp top.
+	float depth = fog_depth * mix(0.6, 1.0, low) * (0.45 + 0.9 * bank) + 0.15;
+	float h = max(p.y - base, 0.0);
+	float m = 1.0 - smoothstep(0.0, depth * FOG_TOP, h);
+	m = m * mix(0.45, 1.0, low) * (0.55 + 0.45 * bank) * fog;
 	// Thinner round the player, in three dithered steps like the light, not a smooth
 	// ring.
 	float near = smoothstep(1.0, 4.0, length(p.xz - player_pos.xz));

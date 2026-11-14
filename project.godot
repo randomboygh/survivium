@@ -202,6 +202,10 @@ roof_map_soft={
 "type": "sampler2D",
 "value": ""
 }
+ground_low={
+"type": "sampler2D",
+"value": ""
+}
 print_map={
 "type": "sampler2D",
 "value": ""
