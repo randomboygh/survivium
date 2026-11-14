@@ -101,6 +101,20 @@ func take_people(list: Array) -> void:
 		one.label.modulate = UiStyle.TEAM if e.size() > 14 and e[14] == true else Color.WHITE
 
 
+## How far the player's body at `at` makes way out of the others in `delta` seconds, in
+## cells (Body.parting, for its nudge): out of each on foot where they are drawn (afloat
+## they sit in their vessels, which have hulls of their own).
+func parting(at: Vector3, delta: float) -> Vector2:
+	if people.is_empty():
+		return Vector2.ZERO
+	var near := []
+	for id: int in people:
+		var f = people[id].figure
+		if f.riding == "" and not people[id].snaps.is_empty():
+			near.append([f.position, id])
+	return Body.parting(at, near, delta)
+
+
 func take_gone(id: int) -> void:
 	var one: Dictionary = people.get(id, {})
 	if one.is_empty():

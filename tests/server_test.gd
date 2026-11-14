@@ -287,10 +287,14 @@ func _run() -> void:
 		# The ring at LOAD_RANGE never comes (the server sends its zone): waited for, the
 		# best of it on the screen kept every other chunk from being built (2026-11-10, a
 		# phone held upright stood at half the loading).
+		# Round where the body stands: it steps out of the others at the spawn (Body.parting),
+		# which may take it into the next chunk.
 		var inner := func() -> bool:
+			var p: Vector3 = main.player.position
+			var key := WorldData.chunk_key(floori(p.x / WorldData.CELL), floori(p.z / WorldData.CELL))
 			for dz in range(-ChunkStreamer.LOAD_RANGE + 1, ChunkStreamer.LOAD_RANGE):
 				for dx in range(-ChunkStreamer.LOAD_RANGE + 1, ChunkStreamer.LOAD_RANGE):
-					if not main.chunks.chunk_nodes.has(spawn_key + Vector2i(dx, dz)):
+					if not main.chunks.chunk_nodes.has(key + Vector2i(dx, dz)):
 						return false
 			return true
 		_check(await _until(inner, 60.0), "every chunk inside the server's zone is built, the edge never sent waits aside (%d built)"
