@@ -37,6 +37,13 @@ const SIT_FLUTTER := Vector2(0.5, 1.2)
 ## half pixel snap); the box is also widened by half the sprite's width, where the
 ## shadow pass turns the quad to face the light.
 const CULL_MARGIN := 0.5
+## A sprite's box is fitted again only when its height changes by more than this (world
+## units): the shear moves a box by its height alone, so a walk on the level keeps it,
+## and the box is grown by the shear of this much in the steepest slope (PixelView
+## view_of: 2 at the lowest tilt). Every animal that moved used to be fitted each frame,
+## the views of a whole turn round each time while the camera spun.
+const FIT_SLACK := 0.5
+const FIT_GROW := FIT_SLACK * 2.0
 ## How much more one way on the screen than the other a move must go to turn the animal
 ## from the side to the front or back and again (between the two it keeps its view).
 const TURN_BIAS := 1.5
@@ -91,7 +98,7 @@ var _sprites := {}
 var _looks := {}
 ## The Looks of all the animals drawn, walked every frame (no lookups by animal).
 var _shown: Array[Look] = []
-## sprite -> where its culling box was fitted, and the views it was fitted for.
+## sprite -> the height its culling box was fitted at, and the views it was fitted for.
 var _fitted := {}
 var _views: Array = []
 var _rng := RandomNumberGenerator.new()
@@ -174,7 +181,7 @@ func _process(delta: float) -> void:
 	var now := Time.get_ticks_msec() * 0.001
 	var beat := now * FLAP_RATE
 	var flip := 1.0 if PixelView.right.x >= 0.0 else -1.0
-	if _views != PixelView.box_views:
+	if not is_same(_views, PixelView.box_views):
 		# The camera turns: every box again, for the views it may show.
 		_views = PixelView.box_views
 		_fitted.clear()
@@ -186,7 +193,7 @@ func _process(delta: float) -> void:
 			a.fresh = false
 			var sprite := look.sprite
 			sprite.position = PixelView.snap(a.pos + Vector3(0.0, a.lift, 0.0))
-			if _fitted.get(sprite) != sprite.position:
+			if absf(_fitted.get(sprite, INF) - sprite.position.y) > FIT_SLACK:
 				_fit(a, sprite)
 			_went(a, look, flip)
 		elif not (a.flying or a.hop > 0.0) and now < look.change_at:
@@ -396,11 +403,11 @@ func _on_gone(a) -> void:
 func _fit(a, sprite: MeshInstance3D) -> void:
 	var at := sprite.position
 	var mesh_box: AABB = looks[a.kind][0].get_aabb()
-	var box := PixelView.sheared_box(AABB(at + mesh_box.position, mesh_box.size), CULL_MARGIN + mesh_box.size.x * 0.5)
+	var box := PixelView.sheared_box(AABB(at + mesh_box.position, mesh_box.size), CULL_MARGIN + FIT_GROW + mesh_box.size.x * 0.5)
 	box.position -= at
 	var half := maxf(-box.position.x, box.end.x)
 	sprite.custom_aabb = AABB(Vector3(-half, box.position.y, box.position.z), Vector3(2.0 * half, box.size.y, box.size.z))
-	_fitted[sprite] = at
+	_fitted[sprite] = at.y
 
 
 func _on_stepped(_a, at: Vector3, dir: Vector2, left: bool, size: float) -> void:

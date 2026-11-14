@@ -23,6 +23,13 @@ voxel models of things.
   (`visions` → `trip`: stronger waves and rings from the middle, the picture breathing, red and blue split
   apart, a colour-turned second image, colours running round the wheel, teal and violet edges; fades over
   the last `TRIP_FADE` seconds).
+- Culling boxes (`PixelView.sheared_box`, `box_views`): a node's `custom_aabb` holds what it draws once
+  sheared in every view of `box_views`. At rest that is the view shown; on a step's glide the views on the way
+  (`BOX_STEP` apart); while the turn is held or the view drifts, only `SPIN_AHEAD` (45°) ahead, fitted again
+  (`_spin_on`) once the view gets there. Boxes for the whole way round grew each chunk's by its heights'
+  shear all round (ground at 12–20 units): 356 chunk parts in view instead of 91 (134 with the window), twice
+  the draw calls in the phone's browser. An animal's sprite is fitted again only when its height changes by
+  `Creatures.FIT_SLACK` (the shear moves a box by its height alone).
 - `src/client/view/auto_quality.gd` — «Quality → Auto» (Graphics, on by default; a preset saved before it
   becomes Auto, a mix of one's own stays): Main calls `update` every frame of the game, it counts the frames on
   the clock in windows of 5 s (not the loading, the shader warm-up, the menu, the death screen, frames over
