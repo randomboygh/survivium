@@ -23,7 +23,7 @@ water, a kind with `biomes` appears only on its own land.
   that after rain); a beast with no viewer (`near` off: not on the screen of any player — the rectangle that
   the client sent with its input, turned with the camera, no more than `NEAR` 28 units in each direction,
   without a screen the circle `NEAR`; `look_from` is called by the session before a step) walks by steps once
-  per 0.1 s; the pushes of bodies by mass (`_jostle`: the beasts near on the ground are sorted from west to
+  per 0.1 s and thinks half as often (`FAR_THINK`; one coming into view thinks within `NEAR_THINK`); the pushes of bodies by mass (`_jostle`: the beasts near on the ground are sorted from west to
   east and each is checked only with those within reach to the east; the body's radius is stored in
   `Animal.radius`; `_shove` takes the floor from the beast's last look, like `_move`; `pushes` for the
   player). A beast has a number `id` (by it the client's copy knows it). The signals `born`, `gone`,

@@ -79,7 +79,7 @@ func update(delta: float) -> void:
 		a.hurt = maxf(0.0, a.hurt - dt)
 		a.think -= dt
 		if a.think <= 0.0:
-			a.think = 0.4 + rng.randf() * 0.3
+			a.think = (0.4 + rng.randf() * 0.3) * (1.0 if a.near else FAR_THINK)
 			_decide(a, spec)
 		if a.foe != null or a.bite > 0.0 or a.warn > 0.0 or a.calm > 0.0:
 			_fight_step(a, spec, dt)

@@ -51,6 +51,11 @@ const REFILL_SLACK := 1.0
 ## instead of every frame: most of them are far away, and each step looks up the
 ## ground under them.
 const FAR_STEP := 0.1
+## Those no one looks at think this many times less often (their thinking looks through
+## the animals of the kinds they care about, ~half their cost); one coming into
+## view thinks within NEAR_THINK seconds.
+const FAR_THINK := 2.0
+const NEAR_THINK := 0.2
 ## World units from a player within which an animal is looked at (`near`, see
 ## look_from) when the player's screen is not known, and the most of a screen's half
 ## size taken: it moves every frame, the others step now and then. The screen of a phone
@@ -529,6 +534,8 @@ func look_from(from: Array) -> void:
 			if absf(dx * right.x + dz * right.y) < half.x and absf(dz * right.x - dx * right.y) < half.y:
 				near = true
 				break
+		if near and not a.near:
+			a.think = minf(a.think, NEAR_THINK)
 		a.near = near
 
 
