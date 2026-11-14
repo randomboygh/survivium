@@ -13,6 +13,10 @@ const Session := preload("res://src/shared/game/session.gd")
 
 ## Microseconds a frame may generate by default: a server without a client to tell it.
 const BUDGET_US := 8000
+## Seconds of play the things of the world (Session.step_things: fires and lights,
+## beds, nature, herds, traps, boats, lines, land, spoiling) are stepped together: they
+## go by the game's minutes, and a step every frame cost ~0.5 ms in a phone's browser.
+const THINGS_EVERY := 0.5
 
 var session: Session
 ## The game's pause stops the tick (single player); false on a server.
@@ -29,6 +33,8 @@ var far_us := BUDGET_US
 ## "storms", and "world" for the world made.
 var spent_us := 0
 var took_us := {}
+## Seconds of play since the things of the world last stepped (THINGS_EVERY).
+var _things_delta := 0.0
 
 
 func _init(s: Session) -> void:
@@ -50,7 +56,10 @@ func _process(delta: float) -> void:
 		t = _took("clock", t)
 		if playing:
 			session.step_players(delta)
-			session.step_things(delta)
+			_things_delta += delta
+			if _things_delta >= THINGS_EVERY:
+				session.step_things(_things_delta)
+				_things_delta = 0.0
 			t = _took("players", t)
 			session.step_wildlife(delta)
 			t = _took("wildlife", t)

@@ -43,7 +43,8 @@ that the rules read as is.
   the server will take them from the config.
 - `src/server/runner.gd` — the server node («ServerRunner», `PROCESS_MODE_ALWAYS`, `process_priority` −10:
   goes before Main) under the tree's root, not under the client's scene: it survives the scene's `restart()`
-  (a server from the menu, С5). In `_process`: the session's steps (the clock always; characters, beasts,
+  (a server from the menu, С5). In `_process`: the session's steps (the things of the world, `step_things`,
+  together every `THINGS_EVERY` 0.5 s of play; the clock always; characters, beasts,
   storms — when `playing`), then `make_chunks` within the budgets `near_us` / `far_us` set by the client, and
   `forget_far`. In single player the tree's pause (the menu) stops the steps but not generation, and that
   goes on (`PAUSE_ZONE` 7); the server sets `pausable = false`. What each step took is `took_us`, generation

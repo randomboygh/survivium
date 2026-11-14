@@ -135,7 +135,7 @@ const BURN_PAUSE := 0.4
 ## this many seconds of play, with the days gone since: they change slowly, and each
 ## asks about the fires, the roof and every thing in the bag (a few ms a frame in a
 ## phone's browser).
-const WARM_EVERY := 0.25
+const WARM_EVERY := 0.5
 
 signal state_changed
 

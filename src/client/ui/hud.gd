@@ -399,6 +399,11 @@ func _on_marks_changed(_e: Dictionary) -> void:
 ## Seconds between updates of the clock's line, and the time left to the next.
 const CLOCK_EVERY := 0.25
 var _clock_left := 0.0
+## Seconds between updates of the rest of the state shown (update_state), the time
+## left to the next and the seconds gone since the last.
+const STATE_EVERY := 0.1
+var _state_left := 0.0
+var _state_delta := 0.0
 ## While the scene tests watch the texts (Lang.watching): how often the whole game's
 ## screen is searched for a key left untranslated, in milliseconds, and when last.
 const SWEEP_EVERY := 500
@@ -408,7 +413,9 @@ var _swept_at := 0
 var swept_us := 0
 
 
-func update_state() -> void:
+## Shows the game's state on the HUD, every frame (Main); the slow part every
+## STATE_EVERY, or now with `all`.
+func update_state(all := false) -> void:
 	var winter: bool = game.clock.season == game.clock.WINTER
 	if Lang.watching and Time.get_ticks_msec() - _swept_at >= SWEEP_EVERY:
 		_swept_at = Time.get_ticks_msec()
@@ -425,17 +432,27 @@ func update_state() -> void:
 	# next change.
 	if _action.latched != _action_latched():
 		_update_hands()
+	sleep.update(get_process_delta_time())
+	# The map turns with the camera smoothly, every frame.
+	minimap.set_view_up(PixelView.up)
+	# The rest changes slowly (the body's state, the marks, the wind, the camera's and the
+	# level's labels): STATE_EVERY is enough, and saves ~1 ms a frame in a phone's browser.
+	_state_left -= get_process_delta_time()
+	_state_delta += get_process_delta_time()
+	if _state_left > 0.0 and not all:
+		return
+	_state_left = STATE_EVERY
+	var passed := _state_delta
+	_state_delta = 0.0
 	# The state stays in sight while the bag is open, by the food it may be eaten from.
 	vitals.pinned = bag.visible
-	vitals.update(game.character.vitals, get_process_delta_time(), game.character.inventory.overloaded())
-	sleep.update(get_process_delta_time())
+	vitals.update(game.character.vitals, passed, game.character.inventory.overloaded())
 	# The moon is bright when the body would sleep.
 	_sleep_button.modulate = Color.WHITE if game.character.vitals.energy < game.character.vitals.SLEEP_BELOW else Color(1, 1, 1, 0.4)
 	if bag.visible:
 		bag.refresh_state()
 	minimap.set_player(Vector2i(floori(game.player.position.x / game.CELL), floori(game.player.position.z / game.CELL)))
 	_update_marks()
-	minimap.set_view_up(PixelView.up)
 	_set_icon(_clock_icon, game.sky.icon())
 	_wind.visible = game.clock.storm_wind >= Body.WIND_FELT
 	_align_clock()

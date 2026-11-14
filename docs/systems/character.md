@@ -101,7 +101,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   `HUNGRY_CAP`; below `FREEZING` frost wounds (`hurt_by` "cold"); above `HOT` stamina up to `HOT_CAP`. Rain and
   snow wet, water — through at once, it dries in air, under a roof faster, by a fire fastest. `cold` off — the
   test switch «Cold and heat». Warmth and the spoiling of food are worked out every `Character.WARM_EVERY`
-  (0.25 s) with the days gone since.
+  (0.5 s) with the days gone since.
 - `src/shared/game/warmth.gd` — how many degrees where the body stands: `air` (the middle of the biome's
   `warmth` window between `COLDEST` and `WARMEST`, the season `SEASON`, night `NIGHT`, rain/snow/wind without a
   roof), `fire_heat` (a burning campfire within `FIRE_REACH`, weaker as the fuel runs out), `clothes` (the sum

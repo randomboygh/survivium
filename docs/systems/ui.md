@@ -212,7 +212,8 @@ and a new shared part is added to the kit and to the «Interface gallery».
   above the panel. Hands are not shown, the chosen cell is the hand at work; the bag's label is hidden (the
   palette counts blocks); the action button «Build» («Level» when levelling; always 88×88, words wrap inside)
   is pressed once and held pressed («Stop») while it builds (released in the same frame building stops:
-  `Hud.update_state`). In the bag, blocks and everything that is placed have a wide button «Build» (a hammer):
+  `Hud.update_state`: the action button and the sleep screen every frame, the rest of the state every
+  `STATE_EVERY` 0.1 s). In the bag, blocks and everything that is placed have a wide button «Build» (a hammer):
   it enters the mode. Notifications (`Hud.toast`) — a list of three under the state: a new one floats to the
   end from transparency, rising, and the oldest (by time or when the list overflows) goes up into
   transparency, and the list closes up after it (`FadingList`). Under them, a list of its own for the server's
