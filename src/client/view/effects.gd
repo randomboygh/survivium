@@ -115,6 +115,10 @@ var pollen: CPUParticles3D
 ## Each fire: {"light": OmniLight3D, "base": float, "unit": Vector3i (the world unit it
 ## stands in), "at": Vector3 (its middle on the ground)}
 var fires: Array = []
+## The texture of heat_map, made once and drawn again in place: a new texture for each
+## fire that came made the shaders' global swap textures every frame of a joining,
+## which Vulkan on Android can draw after they are freed (PixelTextures.set_global).
+var _heat_texture: ImageTexture
 ## Each light set down (a torch, a candle, a lantern; Placed.lights): {"light":
 ## OmniLight3D, "flame": CPUParticles3D, "at": Vector3}. Only the LAMP_LIGHTS nearest the
 ## view light the world, the rest show their flame alone (a field of torches on a phone).
@@ -472,7 +476,7 @@ func remove_campfire(rec: Dictionary) -> void:
 ## Warmth around the fires for the shaders (heat_map, see common.gdshaderinc): one
 ## texel per world unit, r = heat falling off over HEAT_RADIUS units, g = the height of
 ## the fire's unit. Snow melts and rain dries there. Like the roof map it repeats every
-## `size` units (see RoofMap.WRAP).
+## `size` units (see RoofMap.WRAP). The same texture each time, drawn anew.
 func heat_map(size: int) -> ImageTexture:
 	var img := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 1))
@@ -486,7 +490,11 @@ func heat_map(size: int) -> ImageTexture:
 				var heat := clampf(1.3 - Vector2(dx, dz).length() / HEAT_RADIUS, 0.0, 1.0)
 				if heat > img.get_pixel(x, z).r:
 					img.set_pixel(x, z, Color(heat, c.y / 64.0, 0.0, 1.0))
-	return ImageTexture.create_from_image(img)
+	if _heat_texture != null and _heat_texture.get_size() == Vector2(size, size):
+		_heat_texture.update(img)
+	else:
+		_heat_texture = ImageTexture.create_from_image(img)
+	return _heat_texture
 
 
 ## Moves the weather emitters over the view and turns them on and off by the weather

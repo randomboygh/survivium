@@ -10,6 +10,7 @@ const EdgeHaze := preload("res://src/client/world/edge_haze.gd")
 const AutoQuality := preload("res://src/client/view/auto_quality.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
 const Others := preload("res://src/client/view/others.gd")
+const Effects := preload("res://src/client/view/effects.gd")
 
 
 ## Settings that keep values alone, for AutoQuality.
@@ -50,6 +51,7 @@ func run() -> void:
 	_test_edge_haze()
 	_test_auto_quality()
 	_test_own_balloon()
+	_test_global_textures()
 
 
 func _test_pixel_view() -> void:
@@ -682,3 +684,24 @@ func _test_own_balloon() -> void:
 	others.speak(-1, "alone")
 	_check(others._own.line.visible and others._own.said.text == "alone", "and in single player")
 	others.free()
+
+
+## A global texture replaced lives on a while (Vulkan can still draw with it), and the
+## fires' heat map is drawn again in its own texture rather than a new one each time.
+func _test_global_textures() -> void:
+	var e = Effects.new()
+	var first: ImageTexture = e.heat_map(16)
+	e.fires.append({"unit": Vector3i(3, 2, 3)})
+	var second: ImageTexture = e.heat_map(16)
+	_check(first == second,
+		"the heat map is drawn again in the same texture")
+	e.free()
+	var a := ImageTexture.create_from_image(Image.create_empty(2, 2, false, Image.FORMAT_R8))
+	var b := ImageTexture.create_from_image(Image.create_empty(2, 2, false, Image.FORMAT_R8))
+	var c := ImageTexture.create_from_image(Image.create_empty(2, 2, false, Image.FORMAT_R8))
+	var held := PixelTextures._replaced.size()
+	PixelTextures.set_global("heat_map", a)
+	PixelTextures.set_global("heat_map", b)
+	PixelTextures.set_global("heat_map", c)
+	var kept := PixelTextures._replaced.slice(held).map(func(r: Array) -> Texture2D: return r[0])
+	_check(kept.has(a) and kept.has(b), "a global texture replaced twice in a row is still held")
