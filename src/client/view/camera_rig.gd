@@ -301,7 +301,7 @@ func _tire(delta: float) -> void:
 	var at: Vector3 = game.player.position
 	var carried: bool = game.character != null and (game.character.vessel != 0 or game.character.riding != "")
 	var walked := Vector2(at.x - _idle_at.x, at.z - _idle_at.z).length() > IDLE_SLACK
-	var held: bool = game.get("controls") != null and game.controls.read_move() != Vector2.ZERO
+	var held: bool = game.get("controls") != null and game.get("hud") != null and game.controls.read_move() != Vector2.ZERO
 	if held or (walked and not carried) or not _idle_at.is_finite():
 		idle = 0.0
 		_idle_at = at
