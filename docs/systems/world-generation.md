@@ -40,7 +40,10 @@ mountain's side goes on down the same way); with the
   gets cold half as strongly. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the
   water above the sea rises to its level (`_banks`), and farther goes down a level per column, up to
   `BANK_SLOPE` columns: the bank of a river above a rapid, going past land laid out lower, is a slope, not a
-  wall of one column.
+  wall of one column. Beyond its banks a river digs the land into a valley that rises a level a column; a
+  river through land more than ten levels over its bed (a range's crest at a river's head, a plateau) runs in a
+  canyon instead: its walls stay sheer and the land beyond keeps its height (dug into a valley, it left the
+  walls standing as a stone ridge two columns thick).
 - A body walks out of whatever it falls into (it climbs one level, `tools/escape_map.gd` checks a patch):
   ravines (`_ravine`) are `RAVINE_DEPTH` deep on a floor `RAVINE_FLOOR` wide and come up their sides in
   terraces of one level, by the distance from the noise's zero line (`_across`: the noise over its slope); a
