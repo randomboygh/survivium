@@ -24,6 +24,33 @@ const INTERVAL := 30.0
 ## Chunks written in one frame of a save while playing (under a millisecond each
 ## on a desktop, a zstd file of about a kilobyte).
 const CHUNKS_PER_FRAME := 1
+## In the browser: the page calls the game when it is hidden or left (a phone app sent to
+## the background, the tab closed), where the engine draws no frame to deliver its focus
+## going nor to write its files to the browser's store after it (strict, no `arguments`:
+## CLAUDE.md). The callback is set by `_init`.
+const PAGE := """
+(function () {
+	'use strict';
+	if (window.survivium_save) {
+		return;
+	}
+	var me = { hidden: null };
+	function hide() {
+		if (me.hidden) {
+			me.hidden();
+		}
+	}
+	document.addEventListener('visibilitychange', function () {
+		if (document.visibilityState === 'hidden') {
+			hide();
+		}
+	});
+	window.addEventListener('pagehide', hide);
+	window.survivium_save = me;
+})();
+"""
+## Writes the files to the browser's store now (tools/web_patch.py adds the function).
+const STORE_NOW := "if (window.survivium_fs_sync) { window.survivium_fs_sync(); }"
 
 var game
 var enabled := true
@@ -51,8 +78,25 @@ var _writing := false
 var _clock := 0.0
 
 
+## The page's call when it is hidden (PAGE), kept while this save is.
+var _on_hidden = null
+
+
 func _init(g) -> void:
 	game = g
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval(PAGE, true)
+		_on_hidden = JavaScriptBridge.create_callback(_page_hidden)
+		JavaScriptBridge.get_interface("survivium_save").hidden = _on_hidden
+
+
+## The page was hidden or left: everything is saved and written to the browser's store at
+## once, not in the next frame, which a hidden page does not draw (WA-057).
+func _page_hidden(_args: Array) -> void:
+	if not active:
+		return
+	flush()
+	JavaScriptBridge.eval(STORE_NOW, true)
 
 
 ## Sets the seed, settings and bundles of the world to start (game.world_seed,
@@ -104,7 +148,8 @@ func switch_world(seed_value: int, options: Dictionary) -> void:
 
 ## Makes `seed_value` and `options` the world to start next time, made anew: its save
 ## is deleted (the world being played is not saved over it again), so it starts with the
-## bundles chosen on «Новый мир», not the ones it was saved with.
+## bundles chosen on «Новый мир», not the ones it was saved with; a server's access list
+## stays.
 func replace_world(seed_value: int, options: Dictionary) -> void:
 	var dir := WorldStore.world_dir(seed_value, options)
 	if store != null and store.dir == dir:
@@ -112,7 +157,12 @@ func replace_world(seed_value: int, options: Dictionary) -> void:
 		has_save = false
 	else:
 		flush()
+	# A world hosted here keeps who may come in (bans, hosts, the list): the host's, not
+	# the world's; its players' characters go with the world (WA-023).
+	var access := WorldStore.read_json_at(dir + "/" + WorldStore.ACCESS)
 	WorldStore.new(dir).erase()
+	if not access.is_empty():
+		WorldStore.write_json_at(dir + "/" + WorldStore.ACCESS, access)
 	print("world %s made anew" % dir)
 	if enabled or game.join_url != "":
 		WorldStore.write_current(seed_value, options)
@@ -223,7 +273,10 @@ func _write_chunk(key: Vector2i) -> void:
 
 ## world.json and the player, and this world as the one to start next time.
 func _write_world() -> void:
-	meta = {
+	# What this world holds that single player does not keep (a server's teams, fights,
+	# next player's number, ServerStore._world_meta: the folder is the same) stays as it
+	# was saved; only what single player keeps is written over (WA-020).
+	var own := {
 		"format": WorldStore.FORMAT,
 		"seed": game.world_seed,
 		"settings": game.world_options,
@@ -242,6 +295,8 @@ func _write_world() -> void:
 		"tame": game.session.wildlife.tamed_list(),
 		"vessels": game.session.actions.vessels.to_list(),
 	}
+	meta = meta.duplicate()
+	meta.merge(own, true)
 	var p: Vector3 = game.player.position
 	player_record = {"format": WorldStore.FORMAT, "position": [p.x, p.y, p.z]}
 	for name: String in sections:

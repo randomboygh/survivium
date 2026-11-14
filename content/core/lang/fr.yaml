@@ -1173,6 +1173,7 @@
 "[plains]": "Plaines"
 "[the_land_round_the_middle]": "Les terres autour du centre du monde, %d cases de large ; le point est ton départ"
 "[a_world_with_this_seed]": "Un monde avec cette graine et ces réglages est déjà sauvegardé. «Créer un monde» le refait avec les mods choisis maintenant et supprime la sauvegarde : touchez deux fois. Pour continuer la sauvegarde, ouvrez-la depuis la liste des mondes."
+"[a_hosted_world_with_this]": "Un monde avec cette graine et ces réglages est sauvegardé et a servi de serveur ici. «Créer un monde» le refait avec les mods choisis maintenant et supprime la sauvegarde avec les personnages des joueurs ; les bannissements, les hôtes et la liste d'accès restent : touchez deux fois. Pour continuer la sauvegarde, ouvrez-la depuis la liste des mondes."
 "[create_a_world]": "Créer un monde"
 "[world_type]": "Type de monde"
 "[custom]": "Perso"

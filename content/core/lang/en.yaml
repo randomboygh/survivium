@@ -1173,6 +1173,7 @@
 "[plains]": "Plains"
 "[the_land_round_the_middle]": "The land round the middle of the world, %d cells wide; the dot is where you start"
 "[a_world_with_this_seed]": "A world with this seed and these settings is saved. «Create a world» makes it anew with the mods chosen now and deletes the saved one: tap it twice. To go on with the saved one, open it from the list of worlds."
+"[a_hosted_world_with_this]": "A world with this seed and these settings is saved and was hosted as a server here. «Create a world» makes it anew with the mods chosen now and deletes the saved one with its players' characters; the bans, hosts and list of who may come in stay: tap it twice. To go on with the saved one, open it from the list of worlds."
 "[create_a_world]": "Create a world"
 "[world_type]": "World type"
 "[custom]": "Custom"

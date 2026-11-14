@@ -457,8 +457,13 @@ func _run() -> void:
 ## The server again over the world it saved (С4): a save cut off (files left beside
 ## their place) is cleaned away, the world is the one left (the cell dug, the things
 ## placed), and Аня comes back with her key to her character as it was, with the same
-## number; a new player gets the next one.
+## number; a new player gets the next one, even after a single player's save of the world
+## lost "next_player".
 func _restart(w: Dictionary, ground: Vector3i, dug_at: int, things: int, dir: String) -> void:
+	# Saved in single player before WA-020 was fixed: the next player's number was lost.
+	var meta := WorldStore.read_json_at(dir + "/" + WorldStore.WORLD)
+	meta.erase("next_player")
+	WorldStore.write_json_at(dir + "/" + WorldStore.WORLD, meta)
 	WorldStore.write_json_beside(dir + "/" + WorldStore.WORLD, {"format": WorldStore.FORMAT, "seed": 99})
 	WorldStore.write_json_beside(dir + "/" + ServerStore.player_file(w.key), {"format": 1, "id": 7, "name": "ложь"})
 	server = load("res://scenes/server.tscn").instantiate()
@@ -486,7 +491,7 @@ func _restart(w: Dictionary, ground: Vector3i, dug_at: int, things: int, dir: St
 		% [who.inventory.count("resources:branch") if who != null else -1, anya.reply.value.get("at")])
 	var newcomer := _bot("Новый")
 	_check(await _until(func() -> bool: return newcomer.reply.done) and newcomer.reply.value.get("id") == 4,
-		"a new player gets the next number (%s)" % [newcomer.reply.value.get("id")])
+		"a new player gets the next number, past every player saved even when the world lost it (%s)" % [newcomer.reply.value.get("id")])
 	server.command("stop")
 	await _until(func() -> bool: return net.done())
 	root.remove_child(server)

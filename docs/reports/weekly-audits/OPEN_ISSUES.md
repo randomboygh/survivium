@@ -20,16 +20,6 @@ a repository setting or a step in GitHub; «playtest», «needs phone data» —
 measuring on the phone; «backlog» — small, done when the area is next touched. The due dates are
 recommendations.
 
-### WA-020 · High · Saves, data
-
-- **Description:** A single-player save of a hosted world drops its teams, fights and the next player number.
-- **Cause:** `SaveGame._write_world` builds the world's meta anew without `teams`, `fights` and `next_player`, which `ServerStore` writes; both use the same folder (`WorldStore.world_dir`).
-- **Confirmation:** Read: `src/client/save_game.gd:229-246` against `src/server/server_store.gd:148-170`; `src/server/server_main.gd:208`; `src/server/server.gd:836-842`. Not reproduced in a run.
-- **Files and systems:** `src/client/save_game.gd`, `src/server/server_store.gd`, `src/server/server_main.gd`, `src/server/server.gd`
-- **Consequences:** After hosting, playing alone and hosting again: teams and newcomers' protection are gone, and a new player can get the id of a saved player who is offline, and with it their land and team.
-- **Recommended fix:** Plan: the single-player save keeps the keys it does not own (start from the old meta); the server raises `next_id` past the highest saved player; a hosted → single → hosted scenario in `save_test`.
-- **Status:** Open: needs plan (save format); first found 2026-11-14 (new); due 2026-11-20.
-
 ### WA-012 · Medium · Security, land rights
 
 - **Description:** Boats ignore land rights.
@@ -58,16 +48,6 @@ recommendations.
 - **Files and systems:** `src/client/mod_reload.gd`, `src/client/net/mod_fetch.gd`
 - **Consequences:** A hostile server can push up to `SET_MAX` (256 MB) per reload with no prompt: mobile data and storage.
 - **Recommended fix:** Plan: ask above `ASK_ABOVE` during play too, or limit reloads per server; a test in `mod_files_test`.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-27.
-
-### WA-021 · Medium · Synchronization
-
-- **Description:** Cell changes for a chunk waiting to be restored are dropped on the client.
-- **Cause:** `Mirror` applies `CELLS` only to a chunk already in the world, while a chunk just received waits in `RemoteGen.packs`.
-- **Confirmation:** Read: `src/client/net/mirror.gd:123-135`, `src/client/net/remote_gen.gd`. Not reproduced in a run.
-- **Files and systems:** `src/client/net/mirror.gd`, `src/client/net/remote_gen.gd`, `src/server/player_link.gd`
-- **Consequences:** On joining and in new ground a cell stays as it was (dug, felled, wetted, a door's cut) until the chunk is sent again; `DROPS` can be overwritten the same way.
-- **Recommended fix:** Plan: patch the waiting pack or keep the pending cells and apply them after the restore; a test in `net_test`.
 - **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-27.
 
 ### WA-024 · Medium · Architecture
@@ -149,16 +129,6 @@ recommendations.
 - **Consequences:** The documented envelope no longer holds at the top; the next buff crosses it unnoticed.
 - **Recommended fix:** Plan: count quality in the best cases, or lower `PACE_PER_POINT` (a balance formula: the user's pick).
 - **Status:** Open: user decision; first found 2026-11-14 (new); due 2026-11-27.
-
-### WA-057 · Medium · Saves, web
-
-- **Description:** A browser save can lose up to 30 s.
-- **Cause:** IndexedDB is synced in the main loop.
-- **Confirmation:** No sync code in `src/` or `tools/web_patch.py`; listed in `plan/backlog.md`.
-- **Files and systems:** `src/client/save_game.gd`, the web export
-- **Consequences:** Closing the tab soon after a save loses the last seconds.
-- **Recommended fix:** Plan: sync on save through the page.
-- **Status:** Open: backlog; first found 2026-11-14 (stage audits); due backlog.
 
 ### WA-058 · Medium · Security
 
@@ -299,16 +269,6 @@ recommendations.
 - **Consequences:** On a server with free items the client shows no «get» buttons; the cheats switch sends the client's own values.
 - **Recommended fix:** Plan: the rules in the welcome, or a `RULES` event.
 - **Status:** Open: needs plan; first found 2026-11-14 (new); due backlog.
-
-### WA-023 · Low · Saves
-
-- **Description:** «New world» over a saved world also erases the hosted data in that folder.
-- **Cause:** `SaveGame.replace_world` erases the whole folder, `players/` and `access.json` too.
-- **Confirmation:** Read: `src/client/save_game.gd:105-118`; a two-tap warning guards it.
-- **Files and systems:** `src/client/save_game.gd`
-- **Consequences:** Bans, hosts and players' records of a world hosted on this device go with it.
-- **Recommended fix:** Plan: name the hosted data in the warning, or keep `players/` and `access.json`.
-- **Status:** Open: user decision; first found 2026-11-14 (new); due backlog.
 
 ### WA-027 · Low · Dead code
 

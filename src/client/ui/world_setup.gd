@@ -386,9 +386,13 @@ func _start() -> void:
 func _check_saved() -> void:
 	var dir := WorldStore.world_dir(int(game.settings.values.world_seed), game.settings.world_options())
 	var saved := FileAccess.file_exists(dir + "/" + WorldStore.WORLD)
+	# A world hosted on this device: its players' characters go too (its access stays,
+	# SaveGame.replace_world).
+	var key := "[a_hosted_world_with_this]" if saved and WorldStore.was_hosted(dir) else "[a_world_with_this_seed]"
 	_replace.disarm()
-	if saved == _saved_note.visible:
+	if saved == _saved_note.visible and key == _saved_note.text:
 		return
+	_saved_note.text = key
 	_saved_note.visible = saved
 	if is_inside_tree():
 		fit()
