@@ -14,7 +14,10 @@ voxel models of things.
   down, a cell's wall 2..16 px at a top of 8 px (decision 150). The arrows and the keys `[` `]` turn the world
   towards the arrow. Left alone for `IDLE_TIME` (a minute: no key, tap or mouse, the player standing;
   `wake` from `main.gd`'s `_input`) the view itself slowly circles round the player (`drift_rate`, up to
-  `DRIFT_RATE`, a turn in 1.5 minutes); any input brings it to the nearest step. Without sleep
+  `DRIFT_RATE`, a turn in 1.5 minutes); any input brings it to the nearest step, and the next minute alone starts it again. Only a real move
+  counts: a key or the stick held, the feet `IDLE_SLACK` along the ground from where they stood (not afloat or
+  in a vessel), a mouse move of `IDLE_MOUSE` px or more; a body bobbing a hair at a time or a stray mouse event
+  used to reset the minute for good. Without sleep
   (`Vitals.SLEEPY`) the picture swims instead (`drowsiness` → `sway` of `grade.gdshader`: waves, a faint
   second image, darkening edges). After a glowing mushroom (`Vitals.visions`) it swims harder still
   (`visions` → `trip`: stronger waves and rings from the middle, the picture breathing, red and blue split
@@ -48,8 +51,15 @@ voxel models of things.
   sideways farther than they fall), and the strokes of drops are tilted along the fall (`lean` in
   `particle.gdshader`). Under snow the grass at the joint with a torn-out cell spreads into it by separate
   texels (`GRASS_FRAY` in `world.gdshader`), with no white squares.
+- `src/client/view/glow_lights.gd` (held by `Effects.glows`) — small teal pools of light round the glowing
+  mushrooms at night: `Foliage` notes where each glowing mushroom stands (`Job.glows`, kept through a patch),
+  `ChunkStreamer` hands them over per chunk, and every `PICK_EVERY` s the `LIGHTS` (4) groups nearest the
+  view get a short light (`REACH` 1.6 units, one per group `APART`); the others glow only on their own
+  (`grass.gdshader`). Off by day and under snow, like the caps.
 - `src/client/view/fire_shadows.gd` — the shadows from fire drawn on the ground; `sun_rays.gd` — rays among
-  trees, glints, dust. The light of each tree is counted once per position of the sun (anew when the sun has
+  trees, glints, dust. A shaft starts on the tree's middle plane (upright, through the trunk, across the sun's
+  way) inside the crown's outline on it (a spruce's triangle), runs along the sun's light (at most `LONGEST`)
+  and is drawn in depth up to its crown's top, so it shows over the crown it comes out of. The light of each tree is counted once per position of the sun (anew when the sun has
   turned by `TURN`) and several trees per frame within `WORK_US`; at a player's step by `MOVE` the ready light
   is only laid out anew. Before, everything was counted whole in a frame and in a forest gave «engine» freezes
   of 100–200 ms on a phone. The time goes into the log as the part «rays».

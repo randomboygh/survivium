@@ -914,6 +914,9 @@ func _free_chunk(key: Vector2i) -> void:
 	bare.erase(key)
 	_unstash(key)
 	game.props.hide_drops(key)
+	var fx = game.get("effects")
+	if fx != null and fx.glows != null:
+		fx.glows.set_spots(key, PackedVector3Array())
 	dirty_chunks.erase(key)
 	dirty_rects.erase(key)
 	edited.erase(key)
@@ -991,6 +994,9 @@ func _apply_plants(key: Vector2i, plants: Dictionary) -> void:
 			mm.buffer = part[1]
 	for i in range(2, nodes.size()):
 		_fit_box(nodes[i])
+	var fx = game.get("effects")
+	if fx != null and fx.glows != null:
+		fx.glows.set_spots(key, plants.get("glows", PackedVector3Array()))
 
 
 ## Fits the culling boxes of every chunk shown to the views the camera may show next

@@ -218,15 +218,16 @@ void fragment() {
 	lamp_gain = sea_undo(lit_col, sun_part);
 	EMISSION = veiled.rgb;
 	if (kind == GLOW) {
-		// The caps (green well above red) glow at night, breathing slowly.
+		// The caps (green well above red) glow at night, breathing slowly; softly, as the
+		// nearest light the ground round them too (GlowLights).
 		float cap = clamp((m.g - m.r) * 2.5, 0.0, 1.0);
-		EMISSION += m.rgb * cap * night_glow * (2.6 + 0.6 * sin(TIME * 1.1 + custom.z * 6.28)) * (1.0 - veiled.a);
+		EMISSION += m.rgb * cap * night_glow * (2.0 + 0.45 * sin(TIME * 1.1 + custom.z * 6.28)) * (1.0 - veiled.a);
 	} else if (kind == SPORE) {
 		// The fog hides a spore as it hides the mushroom it rose from (it showed through
 		// a morning fog as bright green specks over the empty grass).
-		EMISSION += m.rgb * night_glow * custom.y * 3.0 * (1.0 - life * 0.6) * (1.0 - veiled.a);
+		EMISSION += m.rgb * night_glow * custom.y * 2.5 * (1.0 - life * 0.6) * (1.0 - veiled.a);
 	} else if (kind == HALO) {
-		EMISSION += GLOW_COLOR * custom.y * 0.6 * (1.0 - veiled.a);
+		EMISSION += GLOW_COLOR * custom.y * 0.45 * (1.0 - veiled.a);
 	}
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;

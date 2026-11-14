@@ -11,6 +11,7 @@ const AutoQuality := preload("res://src/client/view/auto_quality.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
 const Others := preload("res://src/client/view/others.gd")
 const Effects := preload("res://src/client/view/effects.gd")
+const GlowLights := preload("res://src/client/view/glow_lights.gd")
 
 
 ## Settings that keep values alone, for AutoQuality.
@@ -52,6 +53,7 @@ func run() -> void:
 	_test_auto_quality()
 	_test_own_balloon()
 	_test_global_textures()
+	_test_glow_lights()
 
 
 func _test_pixel_view() -> void:
@@ -472,6 +474,8 @@ class _FakeSettings:
 
 class _FakeCharacter:
 	var vitals := Vitals.new()
+	var vessel := 0
+	var riding := ""
 
 
 class _FakeGame:
@@ -518,6 +522,24 @@ func _test_camera_drift() -> void:
 	for i in 120:
 		rig._glide(1.0 / 30.0)
 	_check(rig.turn == posmod(rig.turn_steps, CameraRig.TURNS) * CameraRig.TURN_STEP, "on any input it settles on a step: %.3f" % rig.turn)
+	# Stopped, it starts again after the next minute alone, though the body bobs a hair
+	# at a time and the mouse twitches a pixel.
+	var settled: float = rig.turn
+	var twitch := InputEventMouseMotion.new()
+	twitch.relative = Vector2(1.0, 0.0)
+	var t := 0.0
+	while t < CameraRig.IDLE_TIME + 3.0:
+		rig._tire(1.0 / 30.0)
+		rig._glide(1.0 / 30.0)
+		game.player.position += Vector3(0.002 * sin(t * 7.0), 0.01 * sin(t * 3.0), 0.0)
+		rig.wake(twitch)
+		t += 1.0 / 30.0
+	_check(rig.is_drifting() and rig.turn != settled, "after the next minute alone it drifts again: idle %.1f" % rig.idle)
+	var shove := InputEventMouseMotion.new()
+	shove.relative = Vector2(20.0, 0.0)
+	rig.wake(shove)
+	rig._glide(1.0 / 30.0)
+	_check(not rig.is_drifting(), "a real move of the mouse stops it again")
 
 
 ## A turn button held turns the camera on smoothly; let go, it settles on the nearest step.
@@ -715,3 +737,41 @@ func _test_global_textures() -> void:
 	PixelTextures.set_global("heat_map", c)
 	var kept := PixelTextures._replaced.slice(held).map(func(r: Array) -> Texture2D: return r[0])
 	_check(kept.has(a) and kept.has(b), "a global texture replaced twice in a row is still held")
+
+
+## Night and snow for GlowLights.
+class FakeSky:
+	var daylight := 0.0
+
+
+class FakeClock:
+	var snow := 0.0
+
+
+## The glowing mushrooms nearest the view get a light at night, one a group; none by
+## day or under snow, and none once their chunk is gone.
+func _test_glow_lights() -> void:
+	var g = GlowLights.new()
+	g._ready()
+	var sky := FakeSky.new()
+	var clock := FakeClock.new()
+	# A group of three mushrooms close together, two lone ones, one far off.
+	g.set_spots(Vector2i(0, 0), PackedVector3Array([Vector3(1.0, 0.0, 1.0), Vector3(1.5, 0.0, 1.2),
+		Vector3(1.2, 0.0, 1.8), Vector3(5.0, 0.0, 1.0), Vector3(1.0, 0.0, 6.0)]))
+	g.set_spots(Vector2i(5, 0), PackedVector3Array([Vector3(45.0, 0.0, 1.0)]))
+	g.update(0.1, PixelView.screen_plane(Vector3(2.0, 0.0, 2.0)), sky, clock)
+	var lit: Array = g.lights.filter(func(l: OmniLight3D) -> bool: return l.visible)
+	_check(lit.size() == 3 and lit.all(func(l: OmniLight3D) -> bool: return l.light_energy > 0.0),
+		"three groups of glowing mushrooms near the view are lit at night, the far one not (%d)" % lit.size())
+	sky.daylight = 1.0
+	g.update(0.1, PixelView.screen_plane(Vector3(2.0, 0.0, 2.0)), sky, clock)
+	_check(g.lights.all(func(l: OmniLight3D) -> bool: return not l.visible), "no mushroom lights by day")
+	sky.daylight = 0.0
+	clock.snow = 1.0
+	g.update(0.1, PixelView.screen_plane(Vector3(2.0, 0.0, 2.0)), sky, clock)
+	_check(g.lights.all(func(l: OmniLight3D) -> bool: return not l.visible), "no mushroom lights under snow")
+	clock.snow = 0.0
+	g.set_spots(Vector2i(0, 0), PackedVector3Array())
+	g.update(0.1, PixelView.screen_plane(Vector3(2.0, 0.0, 2.0)), sky, clock)
+	_check(g.lights.all(func(l: OmniLight3D) -> bool: return not l.visible), "no lights once the chunk is gone")
+	g.free()
