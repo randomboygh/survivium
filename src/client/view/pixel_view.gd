@@ -73,6 +73,12 @@ static var light_reach := reach_of(1.0)
 ## The views the culling boxes must hold (see sheared_box): the one shown and, while
 ## the camera turns, the one it turns to. Each is [up, squash, slope].
 static var box_views: Array = [[Vector2(0.0, -1.0), 1.0, 1.0]]
+## The shear of each of box_views as a transform, made once for the views set rather
+## than for every box: a turn refits every chunk's boxes at once
+## (ChunkStreamer.refit_boxes), ~50 ms a step in the browser when the shear was worked
+## out in script for each box.
+static var _box_shears: Array[Transform3D] = []
+static var _shears_of: Array = []
 
 
 ## Upscale factor and low-res image size for a screen. Both sides are even, so the
@@ -81,15 +87,31 @@ static var box_views: Array = [[Vector2(0.0, -1.0), 1.0, 1.0]]
 ## the scale is a whole number picked from the height. `turning` (a phone or a tablet)
 ## scales by a fraction instead, so the short side shows as much of the world as on the
 ## reference phone (PHONE_SIDE) whatever the screen and held either way.
+## `target_height` is TARGET_HEIGHT divided by the pixel size setting (Settings.PIXEL_SIZES);
+## on a computer the setting moves the whole scale picked from the height by whole steps
+## (pc_step), as a fraction of the height it gave two sizes the same scale on most windows.
 static func layout(screen: Vector2, target_height := TARGET_HEIGHT, turning := false) -> Array:
 	var scale: float
 	if turning:
 		scale = maxf(1.0, minf(screen.x, screen.y) / (PHONE_SIDE * target_height / TARGET_HEIGHT))
 	else:
-		scale = maxi(1, roundi(screen.y / target_height))
+		scale = maxi(1, roundi(screen.y / TARGET_HEIGHT) + pc_step(TARGET_HEIGHT / target_height))
 	var w := maxi(2, ceili(screen.x / scale / 2.0) * 2)
 	var h := maxi(2, ceili(screen.y / scale / 2.0) * 2)
 	return [scale, Vector2i(w, h)]
+
+
+## The step a computer's scale moves by for a pixel size (Settings.PIXEL_SIZES): −2 and
+## −1 for the two smaller ones, 0 for the normal one (1), +1 and +2 for the two larger;
+## on a 1080 px window ×1 to ×5.
+static func pc_step(pixel_size: float) -> int:
+	if pixel_size < 0.8:
+		return -2
+	if pixel_size < 0.95:
+		return -1
+	if pixel_size < 1.1:
+		return 0
+	return 1 if pixel_size < 1.4 else 2
 
 
 ## Orthographic camera size (vertical extent in world units) for a low-res image height.
@@ -159,26 +181,28 @@ static func _shear(p: Vector3, u: Vector2, sq: float, sl: float) -> Vector3:
 ## round for what the shaders sway or raise a little (leaves, grass, ice). Set as a
 ## node's custom_aabb, it lets the camera cull the node exactly as it shows.
 static func sheared_box(a: AABB, margin: float) -> AABB:
-	var c := a.get_center()
-	var h := a.size * 0.5
-	var lo := Vector2(INF, INF)
-	var hi := -lo
+	if not is_same(_shears_of, box_views):
+		_shear_views()
+	# shear is linear: x' = A (x, z) + b y, so the engine's box of a transformed box is
+	# its box once sheared.
+	var out := _box_shears[0] * a
+	for i in range(1, _box_shears.size()):
+		out = out.merge(_box_shears[i] * a)
+	return out.grow(margin)
+
+
+## Makes _box_shears for box_views: x' = a00 x + b.x y + a01 z, y' = y,
+## z' = a01 x + b.y y + a11 z.
+static func _shear_views() -> void:
+	_shears_of = box_views
+	_box_shears.clear()
 	for v: Array in box_views:
-		# shear is linear: x' = A (x, z) + b y, so the box's middle goes where shear puts
-		# it and its half size spreads by the absolute weights.
 		var u: Vector2 = v[0]
 		var k: float = v[1] - 1.0
 		var b: Vector2 = u * float(v[2])
-		var a00 := 1.0 + k * u.x * u.x
 		var a01 := k * u.x * u.y
-		var a11 := 1.0 + k * u.y * u.y
-		var mid := Vector2(a00 * c.x + a01 * c.z + b.x * c.y, a01 * c.x + a11 * c.z + b.y * c.y)
-		var ext := Vector2(absf(a00) * h.x + absf(a01) * h.z + absf(b.x) * h.y,
-			absf(a01) * h.x + absf(a11) * h.z + absf(b.y) * h.y)
-		lo = lo.min(mid - ext)
-		hi = hi.max(mid + ext)
-	return AABB(Vector3(lo.x, a.position.y, lo.y) - Vector3.ONE * margin,
-		Vector3(hi.x - lo.x, a.size.y, hi.y - lo.y) + Vector3.ONE * 2.0 * margin)
+		_box_shears.append(Transform3D(Basis(Vector3(1.0 + k * u.x * u.x, 0.0, a01), Vector3(b.x, 1.0, b.y),
+			Vector3(a01, 0.0, 1.0 + k * u.y * u.y)), Vector3.ZERO))
 
 
 ## Position of a world point on the screen plane, in world units (x right, y down).

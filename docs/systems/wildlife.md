@@ -8,7 +8,7 @@ hungry; packs follow a leader, flyers roost in crowns, climbing walkers climb tr
 water, a kind with `biomes` appears only on its own land.
 
 **Files**
-- `src/shared/game/wildlife.gd` — the rules: `start(seed)`, `update(delta)`, `count(kind)`, `wanted(kind)`;
+- `src/shared/game/wildlife.gd` — the rules, a chain of parts (decision 168; each extends the one before, callers preload `wildlife.gd`): `wildlife_base.gd` (the numbers, `Animal`, the floor and the water under a point, the list), `wildlife_spawn.gd` (the chunks' animals, the refill, the tamed), `wildlife_move.gd` (fires, senses, flocks, walking, flying, trees, the jostle), `wildlife_fight.gd` (the blow that lands, the attacks on people), `wildlife.gd` (`update`, `_decide`, the AI's debug): `start(seed)`, `update(delta)`, `count(kind)`, `wanted(kind)`;
   `people` — all the players. Beasts belong to the ground: each chunk made to the end (`_made`: the stage
   `SHAPED`) in the square `SPAWN_REACH` of 80 cells around a player gets its own (`_settle_new` once per
   `SETTLE_EVERY` 1 s → `_populate_chunk`, nearest first, at most `SETTLE_MOST` 6 chunks a frame: after a
@@ -44,6 +44,12 @@ water, a kind with `biomes` appears only on its own land.
   cell has not stood earlier; what was shot lies at once on the ground where it fell, and the client draws its
   flight from the answer (`shot`, `Props.fly_shot`). Other players see only the wounded beast and the fallen
   arrow.
+- Climbers (`roost: trees`, the squirrel): at the trunk of the tree it ran to it notes the foot `foot` and its
+  spot on the crown `crown` and goes up the trunk at `CLIMB_SPEED` 2 units/s (`_climb`, its paws going: the
+  client shows its back going up and its front coming down); up there a person is as near to it as to its
+  foot, so the crown's height does not take it out of their sight (it used to run down and up again on tall
+  trees, flickering on the tops); once the threat is gone it sits `STAY_UP` 4–10 s and comes down the trunk
+  the same way, back up if a threat comes again on the way.
 - Fishing: `src/shared/game/fishing.gd` (`Fishing`, the session's step in `step_things`) — lines in the water.
   `WorldActions.fish`: a rod (the class `rod`, `Tools.can_fish`) without a line casts a float with the action
   button (by a tap on water — where it was tapped) into open water within `range` cells (`water_ahead`,

@@ -18,6 +18,7 @@ const ServerList := preload("res://src/client/net/server_list.gd")
 const Mirror := preload("res://src/client/net/mirror.gd")
 const RemoteGen := preload("res://src/client/net/remote_gen.gd")
 const Playtest := preload("res://src/client/net/playtest.gd")
+const ServerLink := preload("res://src/client/net/server_link.gd")
 const Bot := preload("res://src/client/input/bot.gd")
 
 
@@ -64,7 +65,7 @@ func _test_playtest() -> void:
 		== "wss://quiet-river.trycloudflare.com", "the playtest link gives the server's address")
 	_check(Playtest.address_of("https://x/?a=1&server=wss%3A%2F%2Fa.b&c=2") == "wss://a.b", "a coded address among others")
 	_check(Playtest.address_of("https://x/") == "", "no address in a link without one")
-	var arm: String = Bot._best_weapon()
+	var arm: String = Bot.best_weapon()
 	_check(arm == "" or Tools.weapon(arm).tool in ["sword", "knife"], "the bot hunts with a blade: %s" % arm)
 
 
@@ -213,6 +214,14 @@ func _test_server_list() -> void:
 		and ServerList.player_name() == "Аня", "a server forgotten leaves the list but keeps its key; the name is kept")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(ServerList.path))
 	ServerList.path = was
+	# A name the game gave (none set) goes to the server in words, which lets no key in
+	# as a name: the host's as it is, a player's with the same number for the same key.
+	var host := ServerLink.sent_name("[host]", "", true)
+	var player := ServerLink.sent_name("[player_n2]", "key1", false)
+	_check(host == Lang.t("[host]") and not Lang.is_key(host) and not Lang.is_key(player)
+		and player.begins_with(Lang.t("[player_n2]") + " ") and player == ServerLink.sent_name("[player_n2]", "key1", false)
+		and ServerLink.sent_name("Аня", "", true) == "Аня",
+		"a name the game gave is sent in words: %s, %s" % [host, player])
 
 
 func _test_protocol() -> void:

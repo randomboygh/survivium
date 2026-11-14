@@ -65,7 +65,7 @@ func _fill() -> void:
 		Kit.text_room(none)
 		_rows.add_child(none)
 	for w: Dictionary in worlds:
-		var current: bool = w.seed == game.world_seed and w.settings == game.world_options and game.join_url == ""
+		var current: bool = w.seed == game.world_seed and w.settings == game.world_options and game.link.join_url == ""
 		var row := Kit.row(4)
 		_rows.add_child(row)
 		var seed_value: int = w.seed

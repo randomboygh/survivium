@@ -1,6 +1,6 @@
 extends ScrollContainer
 ## The tab «Команда» of the inventory window (InventoryWindow; decision 50, plan/design/
-## territory-pvp.md), shown only on a server, where teams are (Main.welcome; the user's
+## territory-pvp.md), shown only on a server, where teams are (ServerLink.welcome; the user's
 ## ask 2026-11-02 moved it there from the pause menu): the team's members (the lead
 ## marked «старший», the player «вы»; the lead's tap on a member puts them out), the
 ## invitations waiting with «Принять» and «Отказаться», those the player sent still
@@ -55,7 +55,7 @@ func refresh() -> void:
 		_box.remove_child(c)
 		c.queue_free()
 	var team = game.team
-	var me := int(game.welcome.get("id", -1))
+	var me := int(game.link.welcome.get("id", -1))
 	for e: Array in team.invites:
 		_box.add_child(UiStyle.label(Lang.f("[invites_you_to_their_team]", [e[1]])))
 		var row := HBoxContainer.new()

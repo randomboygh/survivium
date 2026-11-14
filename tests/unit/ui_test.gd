@@ -280,7 +280,7 @@ func _test_fading_list() -> void:
 
 ## The chat's lines in its list: the last SHOWN heard show, the newest at the bottom.
 func _test_chat_lines() -> void:
-	var chat = ChatBox.new({"welcome": {"id": 1}, "join_url": "ws://x"})
+	var chat = ChatBox.new({"link": {"welcome": {"id": 1}, "join_url": "ws://x"}})
 	chat._ready()
 	chat.place(Vector2(8, 300), 400)
 	var watching := Lang.watching
@@ -296,18 +296,23 @@ func _test_chat_lines() -> void:
 	chat.free()
 
 
-## The interface's scale on a computer (Hud.pc_scale): smaller than on a phone, ×2 on a
-## 1080 px screen, and each of the five sizes differs from the next there and on larger ones.
+## The interface's scale on a computer (Hud.pc_scale): smaller than on a phone, ×1 on a
+## 1080 px screen, only whole numbers, and each size from «обычный» up larger than the
+## one before, the smaller ones too where the screen has room for them.
 func _test_pc_scales() -> void:
-	_check(Hud.pc_scale(1080, 2) == 2.0, "a 1080 px screen gets x2 at the normal size")
-	_check(Hud.pc_scale(1440, 2) == 3.0, "a 1440 px screen gets x3")
-	_check(Hud.pc_scale(768, 2) == 1.5, "a 768 px laptop gets x1.5")
-	for side in [950, 1080, 1440, 2160]:
-		var last := 0.0
-		for size in 5:
+	_check(Hud.pc_scale(1080, 2) == 1.0, "a 1080 px screen gets x1 at the normal size")
+	_check(Hud.pc_scale(1080, 3) == 2.0 and Hud.pc_scale(1080, 4) == 3.0, "x2 and x3 above it")
+	_check(Hud.pc_scale(2160, 2) == 2.0 and Hud.pc_scale(2160, 0) == 1.0, "a 2160 px screen gets x2, x1 at the smallest")
+	_check(Hud.pc_scale(768, 2) == 1.0, "a 768 px laptop gets x1")
+	for side in [720, 1080, 1440, 2160]:
+		var last := Hud.pc_scale(side, 2)
+		for size in [3, 4]:
 			var s := Hud.pc_scale(side, size)
-			_check(s > last, "size %d is larger than the one before on %d px" % [size, side])
+			_check(s > last and s == roundf(s), "size %d is larger than the one before on %d px" % [size, side])
 			last = s
+	for size in 5:
+		var big := Hud.pc_scale(4320, size)
+		_check(size == 0 or big > Hud.pc_scale(4320, size - 1), "every size differs on a large screen")
 	_check(Hud.pc_scale(300, 0) == 1.0, "never under a screen pixel per UI pixel")
 
 

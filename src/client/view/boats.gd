@@ -107,22 +107,6 @@ func take_gone(id: int) -> void:
 		one.wake.queue_free()
 
 
-## The vessel whose hull the view ray from `origin` along `dir` (world units) passes
-## nearest, within `reach` of its middle: its id, 0 for none.
-func vessel_at(origin: Vector3, dir: Vector3, reach: float) -> int:
-	var d := dir.normalized()
-	var best := reach
-	var out := 0
-	for id in vessels:
-		var p: Vector3 = vessels[id].node.position
-		var t := maxf(0.0, (p - origin).dot(d))
-		var miss := (origin + d * t).distance_to(p)
-		if miss < best:
-			best = miss
-			out = id
-	return out
-
-
 func _mesh(item: String) -> Mesh:
 	if not _meshes.has(item):
 		var model = VoxelProps.drop(Items.get_item(item)) if Items.has(item) else null

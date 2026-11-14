@@ -137,7 +137,13 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   `game.hands.look`, strokes by count, the name above the head in the interface's ordinary font (a Label in
   the HUD layer, set every frame at the screen's point above the head, `View.screen_of`, without smoothing)
   and above it a balloon with its chat line (6 s): light, with dark letters and a tail towards the name, so as
-  not to confuse it with notices and signs; `person_gone` removes it. It does not step with a body, the
+  not to confuse it with notices and signs (one's own line hangs so over one's own head, its tail to the head,
+  `_own`); `person_gone` removes it. Players do not walk through each other: each game moves its own body out
+  of the others on foot where it draws them (`parting` → `Body.parting` into the body's `nudge`, from `main.gd`
+  before the step): by `PART_RATE` 20 of the overlap a second, at most `PART_MOST` 10 cells a second, round
+  `PERSON_RADIUS` 0.4 cells each; one walking into another standing is held off, the other's game sees the
+  overlap and steps aside, so walking on shoves them at about half the pace (`body_test` `_test_people`). The
+  server only checks the places as for walking. It does not step with a body, the
   silhouette behind walls — only one's own. The light in another's hand (an item with `light` in their hands
   from the snapshot) burns as a flame in the place of the sprite's flame (`Effects.torch_flame`), and the
   `OTHER_LIGHTS` (3) nearest to the player also shine like one's own torch (`Sky.lamp_gain`,

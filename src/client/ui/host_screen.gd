@@ -1,9 +1,12 @@
 extends "res://src/client/ui/kit/window.gd"
 ## «Создать сервер» (plan/architecture/server.md, «Меню и экраны»; a computer, the Android app): the
-## window of the server made in the game (Main.hosted, LocalHost.host). Before it runs:
-## two tabs joined as one (TabRow.tabs). «Создание»: the world (one of the saved ones,
-## ‹ › go through them, the one played last first; the test world always among them, a
-## new one when none of the player's own is saved), the server's name, a password and
+## window of the server made in the game (ServerLink.hosted, LocalHost.host). Before it runs:
+## three tabs joined as one (TabRow.tabs). «Мир»: «Новый мир…» (WorldSetup over this
+## window, as in single play: the seed, the kind, the map, the mods; the world set up
+## there comes first in the list, chosen, and is made when the server starts) over the
+## saved worlds, a button each (the one played last first; the test world always among
+## them, a new one of the last seed when none of the player's own is saved), the chosen
+## one lit; up and down choose too. «Сервер»: the server's name, a password and
 ## «Доступ из интернета» (a Cloudflare quick tunnel, Tunnel; needs cloudflared).
 ## «Настройки»: everything else a server takes (Config and its rules, Rules): the port,
 ## how many players, how often the world is saved, how long a day lasts, «Погода с
@@ -11,7 +14,7 @@ extends "res://src/client/ui/kit/window.gd"
 ## («PvP»: выключен, по правам территорий, везде) and the fights' numbers, the land's
 ## numbers and its decay, «По умолчанию» (two taps); all from the server's settings file
 ## (LocalHost.server_settings), which the server writes back. «Запустить
-## сервер» (under either tab) starts the game again with the server made and joined (Main.host_server),
+## сервер» (under either tab) starts the game again with the server made and joined (ServerLink.host_server),
 ## «Назад» (or Escape) says `cancelled`. While it runs: the port and the players, the
 ## addresses for friends in the home network (one is copied by «Скопировать адрес»), the
 ## address from the internet once the tunnel gives it («Скопировать ссылку»: the game's
@@ -23,7 +26,7 @@ extends "res://src/client/ui/kit/window.gd"
 ## the sections of «Настройки» parted by strips with an icon (Kit.section);
 ## on the tab «Доступ» «Только по списку», the list with «Убрать» and «Добавить», the
 ## blocked with «Разбанить» and «Заблокировать» (the same commands); «Играть» says `play` (into its world),
-## «Остановить сервер» asks again and stops it (Main.stop_server), «Назад» leaves it
+## «Остановить сервер» asks again and stops it (ServerLink.stop_server), «Назад» leaves it
 ## running. It covers the whole screen over a shade of the world behind (a window of the
 ## UI kit, its choices ChoiceRows, «Остановить сервер» a TwoTap). `game` is the Main node.
 
@@ -36,6 +39,9 @@ const ServerList := preload("res://src/client/net/server_list.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
+const WorldList := preload("res://src/client/ui/world_list.gd")
+const WorldSetup := preload("res://src/client/ui/world_setup.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
 
 const WIDTH := 300
 const NAME_WIDTH := 80
@@ -93,9 +99,14 @@ var _scroll: ScrollContainer
 ## Between the scroll and the rows: room for its bar while it scrolls.
 var _room: MarginContainer
 var _box: VBoxContainer
-## The saved worlds to choose from ({dir, seed, settings, day, …}), the one chosen.
+## The saved worlds to choose from ({dir, seed, settings, day, …}; a new one has "new"
+## and its "mods", and "fresh" when it is made anew over a save of its seed), the one
+## chosen, their buttons on «Мир».
 var _worlds: Array = []
 var _world := 0
+var _world_list: VBoxContainer
+## «Новый мир…» open over this window (hidden meanwhile), or null.
+var _new_world: Control = null
 ## The rows of the tab shown (up and down, left and right go through them).
 var _choices := ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW)
 ## The tabs, their pages and their rows; the tab shown.
@@ -169,7 +180,7 @@ func back() -> void:
 
 ## The server made here is running.
 func running() -> bool:
-	return game.hosted != null
+	return game.link.hosted != null
 
 
 # --- Before it runs --------------------------------------------------------------
@@ -184,30 +195,104 @@ func _build_setup() -> void:
 	_worlds = WorldStore.list_worlds()
 	if not _worlds.any(func(w: Dictionary) -> bool: return w.seed != WorldStore.TEST_SEED):
 		# No world of its own saved yet: the one the first screen sets up, new.
-		_worlds.push_front({"dir": "", "seed": int(game.settings.values.world_seed),
-			"settings": game.settings.world_options(), "day": 0, "new": true})
+		_worlds.push_front(_new_entry(false))
 	if not _worlds.any(func(w: Dictionary) -> bool: return w.seed == WorldStore.TEST_SEED):
 		# The test world may be a server too, laid out anew when it has no save.
 		_worlds.append({"dir": "", "seed": WorldStore.TEST_SEED, "settings": {}, "day": 1})
 	for i in _worlds.size():
 		if _worlds[i].seed == game.world_seed and _worlds[i].settings == game.world_options:
 			_world = i
-	_make_tabs(["[create]", "[settings]"])
-	_rows = [_choices, ChoiceRows.new(SET_NAME, SET_VALUE, ARROW)]
-	_build_making(_pages[0], _rows[0])
-	_build_settings(_pages[1], _rows[1])
-	_error = Kit.note(game.host_error, 0.0, UiStyle.DANGER)
-	_error.visible = game.host_error != ""
+	_make_tabs(["[world_n3]", "[server_name]", "[settings]"])
+	_rows = [_choices, ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW), ChoiceRows.new(SET_NAME, SET_VALUE, ARROW)]
+	_build_worlds(_pages[0])
+	_build_making(_pages[1], _rows[1])
+	_build_settings(_pages[2], _rows[2])
+	_error = Kit.note(game.link.host_error, 0.0, UiStyle.DANGER)
+	_error.visible = game.link.host_error != ""
 	box.add_child(_error)
 	box.add_child(_button("[start_the_server]", _start, true, false))
 	box.add_child(_button("[back]", back, false, false))
 	show_tab(0)
 
 
-## «Создание»: the world, the name, the password and the access from the internet.
+## «Мир»: «Новый мир…» over the worlds to choose from.
+func _build_worlds(page: VBoxContainer) -> void:
+	page.add_child(_button("[new_world_dots]", _open_new_world, false, false))
+	page.add_child(Kit.caption("[worlds_to_host]"))
+	_world_list = Kit.column(6)
+	page.add_child(_world_list)
+	page.add_child(Kit.note("[a_new_world_is_set_up]"))
+	_fill_worlds()
+
+
+## A button for each world of `_worlds`, the chosen one lit.
+func _fill_worlds() -> void:
+	for c in _world_list.get_children():
+		_world_list.remove_child(c)
+		c.queue_free()
+	for i in _worlds.size():
+		var b := Kit.button(_world_title(_worlds[i]), choose_world.bind(i), WIDTH, ROW_H + 4)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		b.tooltip_text = _world_tip(_worlds[i])
+		if i == _world:
+			UiStyle.accent(b)
+		_world_list.add_child(b)
+
+
+## Makes world `i` of the list the server's.
+func choose_world(i: int) -> void:
+	if i < 0 or i >= _worlds.size():
+		return
+	_world = i
+	_fill_worlds()
+
+
+## A world not saved yet, of the seed, settings and mods «Новый мир» has now; `fresh`:
+## a save of that seed and those settings is made anew in its place.
+func _new_entry(fresh: bool) -> Dictionary:
+	return {"dir": "", "seed": int(game.settings.values.world_seed), "settings": game.settings.world_options(),
+		"mods": game.settings.world_mods(), "day": 0, "new": true, "fresh": fresh}
+
+
+## «Новый мир…»: WorldSetup over this window, which hides until it is left.
+func _open_new_world() -> void:
+	if _new_world != null:
+		return
+	_new_world = WorldSetup.new(game)
+	_new_world.finish = "[choose_this_world]"
+	_new_world.done.connect(_new_world_made)
+	_new_world.cancelled.connect(_close_new_world)
+	visible = false
+	set_process_unhandled_input(false)
+	get_parent().add_child(_new_world)
+
+
+func _close_new_world() -> void:
+	if _new_world != null:
+		_new_world.queue_free()
+		_new_world = null
+	visible = true
+	set_process_unhandled_input(true)
+	fit.call_deferred()
+
+
+## The world set up on «Новый мир» goes first in the list, chosen, in place of a new one
+## chosen before and of its own save (made anew when the server starts, `fresh`).
+func _new_world_made(fresh: bool) -> void:
+	var w := _new_entry(fresh)
+	var dir := WorldStore.world_dir(w.seed, w.settings)
+	_worlds = _worlds.filter(func(o: Dictionary) -> bool:
+		return not o.get("new", false) and not (o.dir == dir and o.seed != WorldStore.TEST_SEED))
+	_worlds.push_front(w)
+	_world = 0
+	_fill_worlds()
+	_close_new_world()
+	show_tab(0)
+
+
+## «Сервер»: the name, the password and the access from the internet.
 func _build_making(page: VBoxContainer, rows: ChoiceRows) -> void:
-	rows.add(page, "[world_n3]", _worlds.map(_world_title), func() -> int: return _world,
-		func(i: int) -> void: _world = i)
 	_title = _field(page, rows, "[title]", str(_set.title))
 	_title.max_length = 32
 	_password = _field(page, rows, "[password]", str(_set.password))
@@ -288,10 +373,10 @@ func _put(key: String, v: Variant) -> void:
 
 ## While the server runs, what «Настройки» changed takes effect at once (ServerMain.apply_settings).
 func _live() -> void:
-	if running() and game.hosted.has_method("apply_settings"):
+	if running() and game.link.hosted.has_method("apply_settings"):
 		var values := _set.duplicate()
 		values.rules = _rules_shown()
-		game.hosted.apply_settings(values)
+		game.link.hosted.apply_settings(values)
 
 
 ## A row «name ‹ value ›» choosing setting `key` among `options` (the file's value among
@@ -342,7 +427,7 @@ func _defaults() -> void:
 	_live()
 	for k: String in _checks:
 		_checks[k].show_value(bool(_value(k)))
-	_rows[1].refresh()
+	_rows[1 if running() else 2].refresh()
 
 
 ## The tabs `names` joined as one, a button tall, over the rows (TabRow.tabs), and a
@@ -424,13 +509,26 @@ func _button(text: String, action: Callable, accent := false, in_rows := true) -
 	return b
 
 
-## The words for world `w` of the list.
+## The words for world `w` of the list: its seed, kind and day, or that it is new.
 func _world_title(w: Dictionary) -> String:
-	if w.get("new", false):
-		return Lang.f("[new]", [w.seed])
 	if w.seed == WorldStore.TEST_SEED:
-		return Lang.f("[test_day]", [w.day])
-	return Lang.f("[day_n3]", [w.seed, w.day])
+		return Lang.f("[test_world_day]", [w.get("day", 1)])
+	var kind := WorldList._kind(w.settings)
+	if w.get("new", false):
+		return Lang.f("[seed_kind_new]", [w.seed, kind])
+	return Lang.f("[seed_kind_day]", [w.seed, kind, w.day])
+
+
+## When world `w` was saved and how long it was played, and its mods.
+func _world_tip(w: Dictionary) -> String:
+	if w.get("new", false):
+		if w.get("fresh", false):
+			return Lang.t("[made_anew_when_the_server_starts]")
+		return Lang.t("[made_when_the_server_starts]")
+	var tip := Lang.f("[saved_played_min]", [str(w.get("saved", "")).replace("T", " "), int(w.get("played", 0.0) / 60.0)])
+	if not w.get("mods", []).is_empty():
+		tip += Lang.f("[mods]", [Mods.summary(Mods.expand(w.mods))])
+	return tip
 
 
 ## The settings as Config takes them, and the host's name; "" in "why" when they do.
@@ -448,6 +546,9 @@ func settings() -> Dictionary:
 		out.world = str(_worlds[_world].dir)
 		out.seed_value = int(_worlds[_world].seed)
 		out.settings = _worlds[_world].settings
+		if _worlds[_world].get("new", false):
+			# A world made when the server starts: of the bundles chosen for it.
+			out.mods = _worlds[_world].mods
 	out.why = ""
 	if port < 1024 or port > 65535:
 		out.why = "[the_port_is_a_number_n2]"
@@ -460,21 +561,27 @@ func _start() -> void:
 	var s := settings()
 	if s.why != "":
 		if not s.port in range(1024, 65536):
-			show_tab(1)
+			show_tab(2)
 			_port.grab_focus()
+		elif s.title == "":
+			show_tab(1)
+			_title.grab_focus()
 		_error.text = s.why
 		_error.visible = true
 		fit.call_deferred()
 		return
 	s.erase("why")
+	if not _worlds.is_empty() and _worlds[_world].get("fresh", false):
+		# Set up anew over a save of its seed: that save goes (its hosts and bans stay).
+		game.save.replace_world(s.seed_value, s.settings)
 	print("host: %s" % [s])
-	game.host_server(s)
+	game.link.host_server(s)
 
 
 # --- While it runs ---------------------------------------------------------------
 
 func _build_running() -> void:
-	var node: Node = game.hosted
+	var node: Node = game.link.hosted
 	_make_tabs(["[server_name]", "[settings]", "[access]"])
 	_rows = [_choices, ChoiceRows.new(SET_NAME, SET_VALUE, ARROW), ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW)]
 	_set = game.LocalHost.settings_of(node.config)
@@ -577,7 +684,7 @@ func _name_field(hint: String, text: String, action: Callable) -> HBoxContainer:
 ## Runs the host's command `line` as the field under the log does: it and its answer
 ## go into the log, and the window shows what it changed at once.
 func _run(line: String) -> void:
-	var node: Node = game.hosted
+	var node: Node = game.link.hosted
 	if node == null:
 		return
 	node.say("> " + line)
@@ -627,7 +734,7 @@ func _paint_stop(b: Button, on: bool) -> void:
 func _stop_server() -> void:
 	_stop.disabled = true
 	_stop.text = "[stopping]"
-	game.stop_server()
+	game.link.stop_server()
 
 
 func _process(delta: float) -> void:
@@ -641,7 +748,7 @@ func _process(delta: float) -> void:
 
 ## The port, the players and the log as the server has them now.
 func _refresh() -> void:
-	var node: Node = game.hosted
+	var node: Node = game.link.hosted
 	if node == null or node.server == null:
 		return
 	var net = node.server
@@ -723,6 +830,12 @@ func layout(screen: Vector2) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _choices.key(event):
+		get_viewport().set_input_as_handled()
+		return
+	if not running() and _tab == 0 and event is InputEventKey and event.pressed \
+			and event.physical_keycode in [KEY_UP, KEY_DOWN]:
+		# Up and down choose among the worlds.
+		choose_world(clampi(_world + (1 if event.physical_keycode == KEY_DOWN else -1), 0, _worlds.size() - 1))
 		get_viewport().set_input_as_handled()
 		return
 	super(event)

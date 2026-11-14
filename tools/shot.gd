@@ -94,7 +94,7 @@ func _fake_saves() -> void:
 
 ## Servers joined lately made up for «Присоединиться», in a file of their own.
 func _fake_servers() -> void:
-	var list = main.ServerList
+	var list = main.link.ServerList
 	list.path = "user://shot_servers.cfg"
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(list.path))
 	list.set_player_name("Аня")
@@ -245,7 +245,8 @@ func _run() -> void:
 			# West of the spawn, away from the grove, the orchard and the clearing.
 			places.specimen(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 0), shot.specimen)
 		if shot.get("clearing", false):
-			places.clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false), shot.get("trees", []))
+			places.clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false), shot.get("trees", []),
+				shot.get("bank", false))
 			main.player.position += shot.get("offset", Vector3.ZERO)
 		if shot.get("gather", false):
 			_gather()
@@ -302,6 +303,8 @@ func _run() -> void:
 			main.session.clock.settle_weather()
 			if shot.has("clouds"):
 				main.session.clock.clouds = shot.clouds
+			if shot.has("cloud_pos"):
+				main.sky.cloud_pos = Vector2(shot.cloud_pos[0], shot.cloud_pos[1])
 			main.session.clock.wet = 1.0 if main.session.clock.raining and main.session.clock.season != 3 else shot.get("after_rain", 0.0)
 			main.sky.after_rain = shot.get("after_rain", 0.0)
 			main.session.clock.puddles = shot.get("puddles", 0.0)
@@ -465,7 +468,7 @@ func _run() -> void:
 		main.settings.set_value("ui_size", shot.get("ui_size", 2))
 		main.settings.set_value("control_size", shot.get("control_size", 2))
 		for k in ["minimap_size", "level_buttons", "camera_buttons", "layer_front_from",
-				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "cut_depth", "solo_social", "crt", "second_hand"]:
+				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "cut_depth", "solo_social", "crt", "second_hand", "pixel_scale"]:
 			main.settings.set_value(k, shot.get("settings", {}).get(k, main.settings.DEFAULTS[k]))
 		await process_frame
 		await process_frame
@@ -509,15 +512,16 @@ func _run() -> void:
 			ModFiles._extra = {}
 		if shot.get("playtest", false):
 			# As if on a server for checking: the «Тестирование» page shows such a server's rows.
-			main.join_url = "ws://shot"
-			main.welcome = {"playtest": true}
+			main.link.join_url = "ws://shot"
+			main.link.welcome = {"playtest": true}
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 			if shot.has("page"):
 				main.hud.open_settings(shot.page)
 				# The window keeps the section shown last: an earlier shot may have left another.
-				if shot.page in ["settings", "test"]:
-					main.hud.settings_menu().show_section(shot.get("section", "game" if shot.page == "settings" else "world"))
+				if shot.page in ["settings", "test", "report"]:
+					main.hud.settings_menu().show_section(shot.get("section",
+							{"settings": "game", "test": "world", "report": "place"}[shot.page]))
 					if shot.get("menu_end", false):
 						# The bottom of the section.
 						await process_frame
@@ -1103,16 +1107,22 @@ func _run() -> void:
 			if shot.main_menu in ["host", "host-running"]:
 				if shot.main_menu == "host-running":
 					# A server for real, on a port of its own, stopped after the shot.
-					main.hosted = main.LocalHost.host({"title": "Дача", "port": 7799, "max_players": 8,
+					main.link.hosted = main.LocalHost.host({"title": "Дача", "port": 7799, "max_players": 8,
 						"password": "", "world": "", "seed_value": main.world_seed, "settings": main.world_options}, root)
 					for i in 3:
 						await process_frame
 					for line: String in shot.get("host_commands", []):
-						main.hosted.command(line)
+						main.link.hosted.command(line)
 				main.menu._fill_page("multi")
 				main.menu.open_host()
 				if shot.has("host_tab"):
 					main.menu._setup.show_tab(shot.host_tab)
+				if shot.get("host_new_world", false):
+					# A world set up on «Новый мир…», back in the list, chosen.
+					main.settings.values.world_seed = 91234
+					main.menu._setup._new_world_made(false)
+				if shot.get("host_open_new", false):
+					main.menu._setup._open_new_world()
 				for i in 3:
 					await process_frame
 			if shot.main_menu == "join":
@@ -1169,10 +1179,10 @@ func _run() -> void:
 			setup.queue_free()
 			main.settings.values.world_mods_off = mods_off
 		if shot.has("main_menu"):
-			if main.hosted != null:
-				main.hosted.command("stop")
-				main.hosted.queue_free()
-				main.hosted = null
+			if main.link.hosted != null:
+				main.link.hosted.command("stop")
+				main.link.hosted.queue_free()
+				main.link.hosted = null
 			main.menu.get_parent().queue_free()
 			main.menu = null
 			main.hud.visible = true
@@ -1246,11 +1256,11 @@ func _run() -> void:
 ## tanned, the craft tab at the rack.
 ## A team for the shots of teams: the player (number 1) leads «Лесные» with Боря,
 ## who stands by them with Вова, not in it; `what` is "invite" (Гена's invitation),
-## "person" (Вова's card, tapped), "chat" (Боря says a line), "map" (Гена in the team
+## "person" (Вова's card, tapped), "chat" (Боря says a line, the player answers), "map" (Гена in the team
 ## too, far away, both on the map), "torches" (both hold a torch) or "" (the figures alone).
 func _fake_team(main: Node, what: String) -> void:
-	main.welcome["id"] = 1
-	main.welcome["name"] = "Аня"
+	main.link.welcome["id"] = 1
+	main.link.welcome["name"] = "Аня"
 	main.team.take_team({"id": 1, "name": "Лесные", "lead": 1, "members": [[1, "Аня"], [2, "Боря"]]})
 	var at: Vector3 = main.player.position
 	if what == "map":
@@ -1266,6 +1276,7 @@ func _fake_team(main: Node, what: String) -> void:
 	main.team.take_invites([[4, "Гена"]] if what == "invite" else [])
 	if what == "chat":
 		main.others.speak(2, "Привет! Пойдём к реке рубить деревья?")
+		main.others.speak(1, "Пойдём!")
 
 
 ## Land for the shots of territory: a boundary post set down south of the player and

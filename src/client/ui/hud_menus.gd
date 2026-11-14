@@ -222,8 +222,8 @@ func _update_menu() -> void:
 	_menu_buttons["main"].visible = game.menu != null
 	# Found by the easter egg of the main menu (Settings.testing_unlocked, not saved).
 	_menu_buttons["test"].visible = game.settings.testing_unlocked
-	# The window of the server made here (Main.hosted), the world going on meanwhile.
-	_menu_buttons["server"].visible = game.menu != null and game.hosted != null
+	# The window of the server made here (ServerLink.hosted), the world going on meanwhile.
+	_menu_buttons["server"].visible = game.menu != null and game.link.hosted != null
 	_menu.reset_size()
 	_menu.position = ((size - _menu.size) * 0.5).floor()
 

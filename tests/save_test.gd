@@ -191,6 +191,25 @@ func _every_window(main: Node) -> void:
 	for i in mm._setup._pages.size():
 		mm._setup.show_tab(i)
 		await _sweep("the server's tab %d" % i)
+	# «Новый мир…» over the server's window, then back with the world set up there first.
+	var host = mm._setup
+	host._open_new_world()
+	await _frames(2)
+	_check(not host.visible and host._new_world != null, "«Новый мир…» opens over the server's window")
+	await _sweep("a new world for the server")
+	var seed_before = main.settings.values.world_seed
+	main.settings.values.world_seed = 4242
+	host._new_world_made(false)
+	await _frames(2)
+	var chosen: Dictionary = host.settings()
+	_check(host.visible and host._new_world == null, "the server's window is back")
+	_check(host._worlds[0].get("new", false) and host._world == 0 and chosen.seed_value == 4242 and chosen.world == "",
+		"the world set up is first in the list, chosen")
+	_check(chosen.get("mods") == main.settings.world_mods(), "the new world is made with the mods chosen for it")
+	_check(host._worlds.filter(func(w: Dictionary) -> bool: return w.get("new", false)).size() == 1, "one new world in the list")
+	host.choose_world(host._worlds.size() - 1)
+	_check(not host.settings().has("mods"), "a saved world keeps its own mods")
+	main.settings.values.world_seed = seed_before
 	mm.open_join("")
 	await _sweep("joining a server")
 	mm._new_world()

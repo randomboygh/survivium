@@ -14,7 +14,10 @@ voxel models of things.
   down, a cell's wall 2..16 px at a top of 8 px (decision 150). The arrows and the keys `[` `]` turn the world
   towards the arrow. Left alone for `IDLE_TIME` (a minute: no key, tap or mouse, the player standing;
   `wake` from `main.gd`'s `_input`) the view itself slowly circles round the player (`drift_rate`, up to
-  `DRIFT_RATE`, a turn in 1.5 minutes); any input brings it to the nearest step. Without sleep
+  `DRIFT_RATE`, a turn in 1.5 minutes); any input brings it to the nearest step, and the next minute alone starts it again. Only a real move
+  counts: a key or the stick held, the feet `IDLE_SLACK` along the ground from where they stood (not afloat or
+  in a vessel), a mouse move of `IDLE_MOUSE` px or more; a body bobbing a hair at a time or a stray mouse event
+  used to reset the minute for good. Without sleep
   (`Vitals.SLEEPY`) the picture swims instead (`drowsiness` → `sway` of `grade.gdshader`: waves, a faint
   second image, darkening edges). After a glowing mushroom (`Vitals.visions`) it swims harder still
   (`visions` → `trip`: stronger waves and rings from the middle, the picture breathing, red and blue split
@@ -48,8 +51,16 @@ voxel models of things.
   sideways farther than they fall), and the strokes of drops are tilted along the fall (`lean` in
   `particle.gdshader`). Under snow the grass at the joint with a torn-out cell spreads into it by separate
   texels (`GRASS_FRAY` in `world.gdshader`), with no white squares.
+- `src/client/view/glow_lights.gd` (held by `Effects.glows`) — small teal pools of light round the glowing
+  mushrooms at night: `Foliage` notes where each glowing mushroom stands (`Job.glows`, kept through a patch),
+  `ChunkStreamer` hands them over per chunk, and every `PICK_EVERY` s the `LIGHTS` (4) groups nearest the
+  view get a short light (`REACH` 1.6 units, one per group `APART`; each group its own pale brightness within `ENERGY`, 2–4 times dimmer than at first); the others glow only on their own
+  (`grass.gdshader`). Off by day and under snow, like the caps.
 - `src/client/view/fire_shadows.gd` — the shadows from fire drawn on the ground; `sun_rays.gd` — rays among
-  trees, glints, dust. The light of each tree is counted once per position of the sun (anew when the sun has
+  trees, glints, dust. A shaft starts on the tree's middle plane (upright, through the trunk, across the sun's
+  way) inside the crown's outline on it (a spruce's triangle), runs along the sun's light down to the ground
+  and ends on it (`_length`), 3 to 13 pixels wide; it is drawn at its own depth (lifted only `depth_lift`), so
+  the leaves of its crown in front of it and the trees in front hide it: it shows coming out of the crown. The light of each tree is counted once per position of the sun (anew when the sun has
   turned by `TURN`) and several trees per frame within `WORK_US`; at a player's step by `MOVE` the ready light
   is only laid out anew. Before, everything was counted whole in a frame and in a forest gave «engine» freezes
   of 100–200 ms on a phone. The time goes into the log as the part «rays».
@@ -74,9 +85,11 @@ voxel models of things.
   `cursor` (and the blueprint's ghost), `land` (the plots' borders).
 - `project.godot`, the section `[shader_globals]`: the global parameters the code changes (`cut_height`,
   `snow_amount`, `wind`, `view_up`, `view_slope`, `rest_view`, `view_squash`, `light_side`, `wrap_size` and
-  others). A global texture is set by `PixelTextures.set_global`, which keeps the one it replaces until the
-  next: Vulkan (Android) drew garbage after a new scene (rejoining a server, reloading mods) when the old one
-  was freed at once.
+  others). A global texture is set by `PixelTextures.set_global`, which keeps the one it replaces for
+  `HOLD_MS` (5 s): Vulkan (Android) drew garbage after a new scene (rejoining a server, reloading mods) when the
+  old one was freed at once. A global texture that changes during play is drawn again in place
+  (`ImageTexture.update`), never made anew: the fires' heat map (`Effects.heat_map`) once made one for each fire
+  that came, several in a row while joining a server with camps.
 
 **Rules**
 - A new 3D shader includes `shaders/common.gdshaderinc` and shears VERTEX like the others (in the default view

@@ -12,15 +12,17 @@ const Quality := preload("res://src/shared/game/quality.gd")
 ## so its windows fit any phone as they do the reference one (1200 px wide at ×3).
 const TARGET_SIDE := 400.0
 ## The same on a computer's screen, held only one way: its interface is smaller, so a
-## 1080 px tall screen gets ×2 (960×540 UI pixels), as much of the world shows around it.
-const TARGET_SIDE_PC := 480.0
+## 1080 px tall screen gets ×1 (1920×1080 UI pixels), as much of the world shows around it.
+const TARGET_SIDE_PC := 1080.0
 ## The interface size setting, «очень мелкий» to «крупный»: on a phone the share of the
 ## scale picked from the screen, on a computer steps along PC_SCALES around the one
-## picked (UI_STEPS): halves among the small ones, so every size differs from the next
-## on a common screen too (×1, ×1.5, ×2, ×2.5, ×3 on 1080 px).
+## picked (UI_STEPS). Only whole numbers, so every UI pixel takes as many screen pixels
+## as the next (×1.5 drew some doubled and some not); never under one screen pixel, so
+## on a 1080 px screen the sizes under «обычный» are ×1 as well (×1, ×1, ×1, ×2, ×3),
+## on a 2160 px one ×1, ×1, ×2, ×3, ×4.
 const UI_SIZES := [0.67, 0.83, 1.0, 1.33, 1.67]
 const UI_STEPS := [-2, -1, 0, 1, 2]
-const PC_SCALES := [1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0]
+const PC_SCALES := [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 8.0]
 ## The size of the joystick and the touch buttons, the same five steps.
 const CONTROL_SIZES := [0.7, 0.85, 1.0, 1.2, 1.4]
 ## The width of the level buttons beside the minimap: one button's; the arrows'
@@ -438,7 +440,7 @@ func show_keys(on: bool) -> void:
 ## True when the chat and the gestures show: on a server always, in single player when
 ## the setting «Чат и жесты» says so (`solo`).
 func social(solo: bool) -> bool:
-	return game.join_url != "" or solo
+	return game.link.join_url != "" or solo
 
 
 ## Shows or hides the chat and gesture buttons as the setting `solo` asks; hidden, an

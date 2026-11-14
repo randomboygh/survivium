@@ -8,16 +8,20 @@ const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
 
 
-## A log with open sides that continues up into a trunk or crown is a tree trunk.
-static func is_trunk(nb: PackedByteArray) -> bool:
-	return not _covers(nb[0]) and not _covers(nb[1]) and not _covers(nb[4]) and not _covers(nb[5]) \
-		and (nb[2] == Mat.LOG or nb[2] == LEAVES)
+## A log with open sides that continues up into a trunk or crown is a tree trunk. A log
+## of a tree's own column (`tree`) is one with a side open too: a foot standing against
+## a higher bank or step still shows its bark, not a block of wood.
+static func is_trunk(nb: PackedByteArray, tree := false) -> bool:
+	if nb[2] != Mat.LOG and nb[2] != LEAVES:
+		return false
+	var covered := int(_covers(nb[0])) + int(_covers(nb[1])) + int(_covers(nb[4])) + int(_covers(nb[5]))
+	return covered == 0 or tree and covered < 4
 
 
 static func trunk_at(w, x: int, y: int, z: int) -> bool:
 	var nb := PackedByteArray([w.get_cell(x + 1, y, z), w.get_cell(x - 1, y, z), w.get_cell(x, y + 1, z),
 		w.get_cell(x, y - 1, z), w.get_cell(x, y, z + 1), w.get_cell(x, y, z - 1)])
-	return w.get_cell(x, y, z) == Mat.LOG and is_trunk(nb)
+	return w.get_cell(x, y, z) == Mat.LOG and is_trunk(nb, w.trees.has(Vector2i(x, z)))
 
 
 ## The trunk of a tree in its log cell at x, y, z: a column of bark of the tree's own

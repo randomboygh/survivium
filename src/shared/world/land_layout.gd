@@ -937,8 +937,10 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 					# The canyon walls stay sheer.
 					if height > bed + 2:
 						sheer = true
-				else:
+				elif not canyon:
 					# A valley: the ground beyond the bank rises a cell per cell at most.
+					# Beyond a canyon's walls the land keeps its height: dug down into a
+					# valley it left the walls standing as a ridge two columns thick.
 					height = mini(height, bed + 1 + int(d - rf))
 			# The islands of a delta lie low between its arms.
 			if wt < 0 and fan > 0.0:

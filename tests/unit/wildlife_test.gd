@@ -175,6 +175,7 @@ func _test_climbers(w: WorldData, person: Who) -> void:
 	life.clock = Clock.new()
 	life.clock.time_of_day = 0.5
 	life.people = [person]
+	_none_come(life, w)
 	var at := person.position + Vector3(2.0, 0.0, 0.0)
 	at.y = life.ground(at.x, at.z)
 	var tx := floori(at.x / WorldData.CELL) + 4
@@ -187,9 +188,9 @@ func _test_climbers(w: WorldData, person: Who) -> void:
 	var squirrel := _animal(life, "animals:squirrel", at)
 	var cat := _animal(life, "animals:cat", at + Vector3(-1.0, 0.0, 0.0))
 	cat.hunger = 1.0
-	for i in 120:
+	for i in 160:
 		life.update(0.05)
-		if squirrel.perched:
+		if squirrel.perched and is_equal_approx(squirrel.pos.y, 8 * WorldData.CELL):
 			break
 	_check(squirrel.perched and squirrel.state == "flee" and is_equal_approx(squirrel.pos.y, 8 * WorldData.CELL)
 		and life.animals.has(squirrel), "a squirrel runs up a tree from a person, out of a cat's reach")
@@ -199,13 +200,74 @@ func _test_climbers(w: WorldData, person: Who) -> void:
 	life.animals.erase(cat)
 	for i in 40:
 		life.update(0.05)
-	_check(not squirrel.perched and is_equal_approx(squirrel.pos.y, life.ground(squirrel.pos.x, squirrel.pos.z)),
-		"and comes down when they are gone")
+	_check(squirrel.perched, "it stays up a while after they are gone")
+	for i in 260:
+		life.update(0.05)
+	_check(not squirrel.perched and not squirrel.foot.is_finite()
+		and absf(squirrel.pos.y - life.ground(squirrel.pos.x, squirrel.pos.z)) < 0.6,
+		"and comes down when they are gone (%s %v)" % [squirrel.state, squirrel.pos])
 	w.remove_tree(tx, tz)
 	for dz in range(-1, 2):
 		for dx in range(-1, 2):
 			w.set_cell(tx + dx, 7, tz + dz, Mat.AIR)
 	w.set_cell(tx, 6, tz, Mat.AIR)
+	_test_tall_tree()
+
+
+## Up a tall tree a squirrel is far from a person standing near its foot, farther than
+## its sight: it stays up all the same and does not run down and up again (it flickered
+## on the tree tops), and it climbs the trunk rather than jumps onto the crown.
+func _test_tall_tree() -> void:
+	var size := WorldData.CHUNK * 3
+	var w := WorldData.new(32, Vector2i(size, size))
+	for z in size:
+		for x in size:
+			w.set_cell(x, 5, z, Mat.GRASS)
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	life.clock.time_of_day = 0.5
+	var who := Who.new()
+	who.position = Vector3(size / 2.0, 6.0, size / 2.0) * WorldData.CELL
+	life.people = [who]
+	_none_come(life, w)
+	var tx := floori(who.position.x / WorldData.CELL) + 7
+	var tz := floori(who.position.z / WorldData.CELL)
+	for y in range(6, 20):
+		w.set_cell(tx, y, tz, Mat.LOG)
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			w.set_cell(tx + dx, 20, tz + dz, Mat.LEAVES)
+	w.add_tree(tx, tz, 0)
+	var crown := 21 * WorldData.CELL
+	var at := who.position + Vector3(2.0, 0.0, 0.0)
+	at.y = life.ground(at.x, at.z)
+	var squirrel := _animal(life, "animals:squirrel", at)
+	var ups := 0
+	var downs := 0
+	var halfway := false
+	var was := false
+	for i in 600:
+		life.update(0.05)
+		if squirrel.pos.y > at.y + 1.0 and squirrel.pos.y < crown - 1.0:
+			halfway = true
+		if squirrel.perched != was:
+			was = squirrel.perched
+			if was:
+				ups += 1
+			else:
+				downs += 1
+	_check(ups == 1 and downs == 0 and is_equal_approx(squirrel.pos.y, crown),
+		"a squirrel up a tall tree stays there while a person stands by (%d up, %d down, y %.2f)"
+		% [ups, downs, squirrel.pos.y])
+	_check(halfway, "and it climbs the trunk rather than jumps up")
+
+
+## No animals come onto the chunks of `w` in `life` but those a test puts there: the
+## chunks are taken as settled, with no share of any kind.
+func _none_come(life: Wildlife, w: WorldData) -> void:
+	for key: Vector2i in w.chunks:
+		life._settled[key] = {}
 
 
 ## A layout that says every column is one biome.

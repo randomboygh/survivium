@@ -142,7 +142,7 @@ func choose_world() -> void:
 func switch_world(seed_value: int, options: Dictionary) -> void:
 	flush()
 	# Joined to a server the save is off, but the world asked for is the next one.
-	if enabled or game.join_url != "":
+	if enabled or game.link.join_url != "":
 		WorldStore.write_current(seed_value, options)
 
 
@@ -164,7 +164,7 @@ func replace_world(seed_value: int, options: Dictionary) -> void:
 	if not access.is_empty():
 		WorldStore.write_json_at(dir + "/" + WorldStore.ACCESS, access)
 	print("world %s made anew" % dir)
-	if enabled or game.join_url != "":
+	if enabled or game.link.join_url != "":
 		WorldStore.write_current(seed_value, options)
 
 

@@ -914,6 +914,9 @@ func _free_chunk(key: Vector2i) -> void:
 	bare.erase(key)
 	_unstash(key)
 	game.props.hide_drops(key)
+	var fx = game.get("effects")
+	if fx != null and fx.glows != null:
+		fx.glows.set_spots(key, PackedVector3Array())
 	dirty_chunks.erase(key)
 	dirty_rects.erase(key)
 	edited.erase(key)
@@ -991,6 +994,9 @@ func _apply_plants(key: Vector2i, plants: Dictionary) -> void:
 			mm.buffer = part[1]
 	for i in range(2, nodes.size()):
 		_fit_box(nodes[i])
+	var fx = game.get("effects")
+	if fx != null and fx.glows != null:
+		fx.glows.set_spots(key, plants.get("glows", PackedVector3Array()))
 
 
 ## Fits the culling boxes of every chunk shown to the views the camera may show next
@@ -1008,16 +1014,11 @@ func refit_boxes() -> void:
 ## of a margin of a level's height all round, which kept nearly every chunk loaded drawn
 ## (636 draw calls against 301 at the spawn by day, 2026-10-21).
 static func _fit_box(n: GeometryInstance3D) -> void:
-	var box := AABB()
-	if n is MeshInstance3D:
-		if n.mesh == null:
-			return
-		box = n.mesh.get_aabb()
-	else:
-		var mm: MultiMesh = n.multimesh
-		if mm.instance_count == 0:
-			return
-		box = mm.get_aabb()
+	# The mesh's or the multimesh's own box (VisualInstance3D.get_aabb, which leaves
+	# custom_aabb out); none when it has nothing to draw.
+	var box := n.get_aabb()
+	if box.size == Vector3.ZERO:
+		return
 	n.custom_aabb = PixelView.sheared_box(box, SWAY)
 
 

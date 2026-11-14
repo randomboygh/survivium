@@ -173,15 +173,7 @@ func toggle_painting(on: bool) -> void:
 
 ## The player's own number (0 in a game of one's own).
 func me() -> int:
-	return int(game.welcome.get("id", 0))
-
-
-## True when the player has set a claim themselves (their rights are theirs to set).
-func has_mine() -> bool:
-	for claim: Dictionary in copy.claims.values():
-		if claim.by == me():
-			return true
-	return false
+	return int(game.link.welcome.get("id", 0))
 
 
 ## What the player lets others do in their land: [team mask, others mask].

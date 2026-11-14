@@ -127,12 +127,14 @@ func submit() -> void:
 	close()
 	if text == "":
 		return
-	if game.join_url == "":
+	if game.link.join_url == "":
 		# Single player: no one hears but the player, and there are no commands.
 		if text.begins_with("/"):
 			hear(0, "", "[commands_with_work_only_on]")
 		else:
-			hear(-1, game.player_name, text.left(MAX))
+			hear(-1, game.link.player_name, text.left(MAX))
+			if game.others != null:
+				game.others.speak(-1, text.left(MAX))
 		return
 	if game.net != null:
 		print("chat: say %s" % text)
@@ -155,7 +157,7 @@ func _show_whom() -> void:
 ## A line heard: said by player `id` named `who` (0 the server, "" for its answer; -1
 ## the player in single player), to the team when `team` (marked and coloured).
 func hear(id: int, who: String, text: String, team := false) -> void:
-	var own: bool = id == -1 or id != 0 and id == int(game.welcome.get("id", -1))
+	var own: bool = id == -1 or id != 0 and id == int(game.link.welcome.get("id", -1))
 	# The server's own lines are phrases of the game; the players' are as they wrote them.
 	if id == 0:
 		text = Lang.t(text)

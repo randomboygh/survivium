@@ -34,7 +34,9 @@ device's time, the season by the calendar and real weather.
   `step_around(delta, places)` — the players in turn, `last_at`; called by the world session), the rules —
   `WorldActions.blow_branch` / `blow_berries`.
 - `src/client/view/sky.gd` — how it looks: light, colour correction, clouds, shader tints (see
-  [rendering.md](rendering.md)); `src/client/audio/nature.gd` — how it sounds.
+  [rendering.md](rendering.md)); `src/client/audio/nature.gd` — how it sounds. Cloud shadows
+  (`cloud_light` in `shaders/common.gdshaderinc`) fall along the light: `cloud_slant`, set by `_aim_sun`, moves the
+  point looked up by its height (at most `CLOUD_SLANT`), so a shadow's edge goes down a wall at a slant.
 
 **Data.** Weather and the calendar are constants of `clock.gd` (not yet moved into the mods' data, it is in the
 MVP plans); sand storms — the biome's flag `sandstorms`.

@@ -248,6 +248,11 @@ func mods_changed(digest: String, size: int, bundles: Array) -> void:
 	_push(Protocol.MODS, [digest, size, bundles])
 
 
+## The rules of play the server runs now (Rules.to_dict): Protocol.RULES.
+func rules(d: Dictionary) -> void:
+	_push(Protocol.RULES, [d])
+
+
 ## A line the server tells its host (Server._note: a player came or went, was let in or
 ## not): a phrase of the game put together (Lang.line).
 func note(line: String) -> void:

@@ -28,7 +28,7 @@ does the players' requests one at a time, whole — two who took one stack at on
 (`tests/server_test.gd` `_trades`: simultaneous, a repeated number, a dropped link). Chat is beside: the
 request `chat` [line] → the server sends `heard` [number, name, line] to all within `Server.CHAT_RANGE` 30
 units of the speaker, and to the speaker too; a line with «/» is a command, only for the server's hosts
-(`access.hosts`: those given `op`, and the player who made the server in the game — `Main._on_welcome` →
+(`access.hosts`: those given `op`, and the player who made the server in the game — `ServerLink._on_welcome` →
 `make_host`), the reply to it comes in the chat to him alone. The hosts online are told the server's comings and
 goings by the event `noted` [line] (`Server._note`, a `Lang.line`: joined for the first time, back, lost the
 connection, left, the character left the world, disconnected or banned by a host, too many messages, not let
@@ -52,12 +52,14 @@ length up to `CHAT_MAX` 160.
   `Content.playing()`]), the reply is a welcome `{"ok": true, "id", "key",
   "name", "seed", "settings", "mods", "materials", "spawn", "at"}` or a refusal `{"ok": false, "why": version |
   password | full | name | banned | list | taken | wait}` (`taken` — the name is taken by another in the world
-  or it is the server's name, `wait` — many wrong passwords or new players in a row), after which the server
+  or it is the server's name or a translation key — so a name the game gave when the player set none (`[host]`, `[player_n2]`) goes in words, a player's with four figures from the key, `ServerLink.sent_name`; `wait` — many wrong passwords or new players in a row), after which the server
   closes the link; the refusal `mods` (decision 189: the game's mod files are not the server's) also carries
   `mods` (the server's bundles), `content` (the hash of its files) and `size`, and does not close the link: the
   game takes the files it lacks and says `hello` again (the events `mod_list` [] → [size, bytes], `mod_files`
   [[hash…]] → `mod_data` [[hash, offset, the file's size, the piece's size before packing, the piece]…]; `mods`
-  [hash, size, bundles] — the server's files changed, to a game in the world). The event `bye` — the client
+  [hash, size, bundles] — the server's files changed, to a game in the world; `rules` [Rules.to_dict] — the
+  rules of play the server runs, after the welcome and whenever they change: a game joined over a socket shows
+  by them the craft tab's «get» and free building, never by its own «Testing» switches). The event `bye` — the client
   leaves on its own, `kick` [why] — the server put it out. Builds of different versions do not play together
   (decision 153, 5А: the code must be the same; the data may differ since decision 189). The world through a socket: `chunk` [key, size, bytes] — a chunk's record `WorldGen.pack` in
   `var_to_bytes` and zstd (the same as in the save), `forget` [key], `cells` [[cell, material]…], `drops`
@@ -179,7 +181,7 @@ length up to `CHAT_MAX` 160.
   sounds of the world's bundles and of their mods), the hash that names them (`digest`), the list packed for
   the wire (`packed`), read at `listen()` and again by `read()` (the host's `reload`, `Server.mods_reread`). At
   `hello` the server compares the game's hash with its own: another one — the refusal `mods`, the link stays
-  open without a character (`Peer.fetching`, up to `FETCH_WAIT` 900 s, `FETCH_IDLE` 30 s asking for nothing, `FETCHING_MAX` 32 such links) and takes only `mod_list`, `mod_files`
+  open without a character (`Peer.fetching`, up to `FETCH_WAIT` 900 s, `FETCH_IDLE` 30 s asking for nothing, `FETCHING_MAX` 32 such links, `FETCHING_PER_ADDRESS` 4 from one address but this machine's) and takes only `mod_list`, `mod_files`
   and another `hello` (`Server._mods_asked`; the same two events are taken from a player in the world after a
   reload). Files go by pieces of `PIECE` 96 KB (several small files in one message, YAML packed with zstd), to
   each link no faster than `RATE` 2 MB a second and not while it has `BUFFERED_MAX` 512 KB waiting
@@ -270,7 +272,7 @@ length up to `CHAT_MAX` 160.
   key, password)` — the first request (what is sent before opening waits in a queue), `poll()` every frame
   (`opened`, incoming into `net.receive`, `closed(code, reason)` and `ended` / `close_code` / `close_reason`:
   −1 and "" — the link is lost or there is no server), `leave()` — `bye` and closing. The game itself plays
-  through it (`Main.join_url`) and the `server_test` bots enter by it.
+  through it (`game.link.join_url`) and the `server_test` bots enter by it.
 - `src/client/net/mod_fetch.gd` — the game's side of the mods' files (decision 189): `begin(connection, hash,
   bundles)` finds where each file of the server's set is on this device (`plan`: the game's own file when its
   hash is the same, the built-in copy's, one kept from a server before), asks for the list (unless the set is
@@ -323,30 +325,31 @@ length up to `CHAT_MAX` 160.
   world is open, the bundles on, the port listened to; the node under the tree's root survives scene restarts,
   `PROCESS_MODE_ALWAYS`, with no frame limit and no terminal, `log_lines` for the window, the signal
   `stopped`; `failed` — why it did not start, «Port N is busy»), writes the settings to `user://server.cfg`.
-  `Main.host_server` puts the settings in `Main.host_ask` and restarts the scene; the new scene in `_ready`
-  before everything makes the server (`Main.hosted`) and enters it as a client by `ws://127.0.0.1:port` with
+  `ServerLink.host_server` puts the settings in `ServerLink.host_ask` and restarts the scene; the new scene in `_ready`
+  before everything (`start_hosting`) makes the server (`ServerLink.hosted`) and enters it as a client by `ws://127.0.0.1:port` with
   its bundles (`pending_mods`), the menu opens the server's window; `stop_server` — `stop` (saves the world),
   on `stopped` the node is freed and the scene is one's own world. While the server runs, the closing of the
-  socket by it is not counted as a failed login (`Main.server_stopping`).
-- `src/client/main.gd` through a socket (`join_url` from the static `Main.join` — set by the «Join» screen
+  socket by it is not counted as a failed login (`ServerLink.server_stopping`).
+- `src/client/net/server_link.gd` (`game.link`, made with the Main node) — the way onto a server through a socket, apart from the scene `main.gd` builds; what lives over a scene restart is static in it (`join_url` from the static `ServerLink.join` — set by the «Join» screen
   (`join_server`, a scene restart) or `--join <url>` with `--name`, `--password` at the first start; a test
   sets `join_url` itself; `leave_server` clears `join`, and the next start is one's own world; on the web
-  `?server=` only opens «Join» with the address, `Main.offered`; with `--bot` the game plays itself —
-  `src/client/input/bot.gd`, below): `_connect` in `_ready` — the socket, `hello` with the key of this server
+  `?server=` only opens «Join» with the address, `ServerLink.offered`; with `--bot` the game plays itself —
+  `src/client/input/bot.gd`, below): `open` from `Main._ready` — the socket, `hello` with the key of this server
   (`src/client/net/server_list.gd`: `user://servers.cfg` — keys by address, recent servers with the title from
   the welcome (`title`), the player's name; `normalize` — an address typed by hand: with no scheme — `ws://` for
   numbers and `localhost`, otherwise `wss://`, `ws://` with no port — `Protocol.PORT`; `problem` — `ws://`
   from a page over https the browser will not allow), `mirror.watch(net)` at once (events before the world is
-  built are piled up by `Mirror._pending`, `replay` after); `start_world` → `_join_world`: waits for the
+  built are piled up by `Mirror._pending`, `replay` after); `start_world` → `_join_world` → `wait_welcome`: waits for the
   welcome (`JOIN_WAIT` 15 s; a refusal — words on the loading screen: «The server does not answer», «The
   game's version is different — refresh the page», «Wrong password», «The server is full»), with other
   bundles — `pending_mods` and a scene restart (decision 153, 5А); with other mod files (the refusal `mods`,
   decision 189) — `_take_mods`: the game's own files for the server's bundles if their hash is the server's,
   else `ModFetch` over this link (the loading screen: «Mod data: 1.2 of 3.4 MB»; over 50 MB the player is told
-  the size and joins again to agree), then `server_mods` {url, digest, table} and a scene restart: `_use_mods`
+  the size and joins again to agree), then `server_mods` {url, digest, table} and a scene restart: `use_mods`
   serves the table (`Content.serve`) before `Mods.activate` while the game is on that server, and the game's
   own files again afterwards; a server made in this game is told its own hash; `ModReload.watch_server` takes
-  the server's reloads in the world (`mods` → `ModFetch` → `Content.serve` → `reload()`); then `RemoteGen` by
+  the server's reloads in the world (`mods` → `ModFetch` → `Content.serve` → `reload()`; over 50 MB the
+  game leaves the server telling the size, as on joining, and joining again agrees); then `RemoteGen` by
   the seed and the
   server's settings, the map and materials as usual, `actions` — its own `WorldActions` over the world's
   read-only copy (the cursor preview, what a bush gives; the signals are given it by `Mirror`), the body at
@@ -422,7 +425,7 @@ opens on the same port (the tunnel and link are the same), with its own saving (
 host, who is blocked and the list of its own pass over from the server (`access`); `renewed` — and
 `TestCommands` starts the bots again. The game, on getting 4010, enters again itself (`Main.rejoin_until`: up
 to 60 s, every 2 s, «The server is moving to another world…»); a server made in this game — with the bundles of
-its new world (`Main._ready` takes `hosted.mods`). In the welcome the server says `playtest` and `host` (is the
+its new world (`ServerLink.world_mods` takes `hosted.mods`). In the welcome the server says `playtest` and `host` (is the
 one who entered a host). In the game «Testing» → the tab «Server» is divided into two sections
 (`SettingsMenu._server_rows`): «Test server (GitHub)» — start and connect, and on it itself — extend by an
 hour and stop; «This server» (on a server) — add and remove a bot, the test or a new world on the server, for a
@@ -455,7 +458,7 @@ world of this device. The link is the status `playtest-link` of the launch's com
 the server itself: `Server.add_bot` makes an account with no connection (`Account.bot`: it never lingers and goes, it
 is not saved, its events are dropped), `src/server/server_bot.gd` (`ServerBot`, stepped by `TestCommands._process`)
 walks its body by `Body.step` and makes its requests through its `Requests` (paced) with the tasks and lines of the
-game's bot, given what it works with; «/test bot-» takes it out (`Server.remove_bot`). Elsewhere the bots are games with `--join … --bot`
+game's bot (both extend `src/shared/game/bot_brain.gd`: the pace, `TASKS`, `LINES`, the task's state, `best_weapon`), given what it works with; «/test bot-» takes it out (`Server.remove_bot`). Elsewhere the bots are games with `--join … --bot`
 (`src/client/input/bot.gd`, `Main.bot`): instead of keys `Bot.move` gives the walking direction and once in a
 few seconds takes a task (`TASKS`): walks near the spawn point, writes in the chat, a gesture, drops a thing,
 puts a sign with an inscription and a campfire, chops a tree nearby, hunts an animal with `health` nearby (the

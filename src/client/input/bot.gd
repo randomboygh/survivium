@@ -1,4 +1,4 @@
-extends RefCounted
+extends "res://src/shared/game/bot_brain.gd"
 ## A bot: a game joined to a server with `--bot` that plays by itself, for a playtest
 ## (.github/workflows/playtest.yml), so a person alone on a phone sees other players
 ## around: it walks about its spawn, talks in the chat, makes gestures, throws things
@@ -10,8 +10,6 @@ extends RefCounted
 ## move_input from it), and it comes back to life by itself.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
-const Items := preload("res://src/shared/content/items.gd")
-const Tools := preload("res://src/shared/content/tools.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const Gestures := preload("res://src/shared/game/gestures.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
@@ -21,53 +19,8 @@ const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const CELL := WorldData.CELL
 ## The frames a second a bot runs at (Main sets Engine.max_fps).
 const FPS := 15
-## How far from its spawn the bot walks about, and looks for a tree or an animal, in cells.
-const WANDER := 12.0
-const LOOK := 28.0
-## Close enough to a point walked to, and to a tree or an animal to work at, in cells.
-const ARRIVE := 0.8
-const REACH := 1.3
-## The longest a task goes on, in seconds; the pause between two tasks.
-const TASK_MOST := 25.0
-const PAUSE := Vector2(1.0, 4.0)
-## The seconds between two swings asked for (the server paces them anyway).
-const SWING_EVERY := 0.6
-## Seconds before it accepts an invitation to a team.
-const INVITE_WAIT := 2.0
-## Seconds dead before it comes back.
-const DEAD_WAIT := 6.0
-## The tasks and how often each is picked.
-const TASKS := {"walk": 5, "say": 2, "gesture": 2, "drop": 1, "sign": 1, "fire": 1, "chop": 2, "hunt": 3}
-## What it says in the chat and writes on signs: keys, which each reader's game puts
-## into its own language (Lang.written), as a player's words are not.
-const LINES: Array[String] = ["[hi]", "[anyone_here]", "[look_what_i_found]", "[lets_go_to_the_river]",
-	"[wolves_here_careful]", "[nice_weather]", "[i_put_up_a_sign]", "[need_branches]",
-	"[lets_build_a_house]", "[wheres_the_campfire]", "[im_a_bot_but_im]"]
-const SIGN_LINES: Array[String] = ["[a_bot_was_here]", "[beware_of_animals]", "[camp]", "[to_the_river]",
-	"[do_not_cut]"]
 
 var game
-var task := ""
-var _left := 0.0
-var _pause := 1.0
-var _target := Vector3.INF
-var _tree := Vector2i.ZERO
-var _animal := 0
-var _swing_in := 0.0
-var _dead_for := 0.0
-var _home := Vector3.INF
-var _rng := RandomNumberGenerator.new()
-## The item ids it works with, found by role: [axe, weapon, sign, campfire].
-var _axe := ""
-var _weapon := ""
-var _sign := ""
-var _fire := ""
-## Where it last saw itself, to tell it is stuck.
-var _last_pos := Vector3.INF
-var _still := 0.0
-var _stuck := 0
-var _missed := 0
-var _invited_for := 0.0
 
 
 func _init(g) -> void:
@@ -86,7 +39,7 @@ func move(delta: float) -> Vector2:
 		# The world's content is the server's, known only once in.
 		_home = game.player.position
 		_axe = Items.with_tool("axe")
-		_weapon = _best_weapon()
+		_weapon = best_weapon()
 		_sign = Items.with_prop("sign")
 		_fire = Items.with_prop("campfire")
 		print("bot: axe %s, weapon %s, sign %s, campfire %s" % [_axe, _weapon, _sign, _fire])
@@ -137,23 +90,11 @@ func move(delta: float) -> Vector2:
 	return Vector2.ZERO
 
 
-func _pick() -> String:
-	var total := 0
-	for k: String in TASKS:
-		total += TASKS[k]
-	var roll := _rng.randi_range(1, total)
-	for k: String in TASKS:
-		roll -= TASKS[k]
-		if roll <= 0:
-			return k
-	return "walk"
-
-
 func _start(kind: String) -> void:
 	task = kind
 	_left = TASK_MOST
 	var p: Vector3 = game.player.position
-	print("bot %s: %s at (%d, %d)" % [game.player_name, kind, floori(p.x / CELL), floori(p.z / CELL)])
+	print("bot %s: %s at (%d, %d)" % [game.link.player_name, kind, floori(p.x / CELL), floori(p.z / CELL)])
 	match kind:
 		"walk":
 			var turn := _rng.randf() * TAU
@@ -194,16 +135,6 @@ func _start(kind: String) -> void:
 				_hold(_weapon)
 
 
-func _stop() -> Vector2:
-	task = ""
-	_pause = _rng.randf_range(PAUSE.x, PAUSE.y)
-	_still = 0.0
-	_stuck = 0
-	_missed = 0
-	_last_pos = Vector3.INF
-	return Vector2.ZERO
-
-
 ## The way to `to` (world units), and a new task when the body has not moved for a while.
 func _walk_to(to: Vector3, arrive: float, delta: float) -> Vector2:
 	var p: Vector3 = game.player.position
@@ -216,7 +147,7 @@ func _walk_to(to: Vector3, arrive: float, delta: float) -> Vector2:
 			_stuck += 1
 			if _stuck >= 3:
 				# At a wall or a cliff: on to another task.
-				print("bot %s: stuck on the way to %s" % [game.player_name, to / CELL])
+				print("bot %s: stuck on the way to %s" % [game.link.player_name, to / CELL])
 				return _stop()
 		else:
 			_stuck = 0
@@ -249,10 +180,10 @@ func _work_at(at: Vector3, item: String) -> void:
 		# A swing at the air: nothing is left there (the tree is down, the animal away).
 		_missed = _missed + 1 if not done.at.is_finite() else 0
 		if _missed >= 2 and task != "":
-			print("bot %s: nothing left at the %s" % [game.player_name, task])
+			print("bot %s: nothing left at the %s" % [game.link.player_name, task])
 			_stop()
 		if done.get("hit", false):
-			print("bot %s: hit" % game.player_name))
+			print("bot %s: hit" % game.link.player_name))
 
 
 ## Puts `item` in the hand in use, getting one first if the bag has none.
@@ -286,14 +217,14 @@ func _put(item: String, then: Callable) -> void:
 		_obtain(item)
 	var before := _cells_of(item)
 	game.net.request(Protocol.PROP_PUT, [item, -1, game.chunks.cut_level]).then(func(ok: Variant) -> void:
-		print("bot %s: %s set down: %s" % [game.player_name, item, ok])
+		print("bot %s: %s set down: %s" % [game.link.player_name, item, ok])
 		if not ok is bool or not ok:
 			return
 		# The thing's own event may come a little after the reply.
 		game.get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			for cell: Vector3i in _cells_of(item):
 				if not before.has(cell):
-					print("bot %s: %s at %s" % [game.player_name, item, cell])
+					print("bot %s: %s at %s" % [game.link.player_name, item, cell])
 					then.call(cell)
 					return))
 
@@ -348,17 +279,4 @@ func _nearest_animal():
 		if d < best_d:
 			best_d = d
 			best = a
-	return best
-
-
-## The strongest weapon of the world struck with (Tools.weapon), "" for none.
-static func _best_weapon() -> String:
-	var best := ""
-	var most := -1.0
-	for id: String in Items.IDS:
-		var w: Dictionary = Tools.weapon(id)
-		# A blade: a spear in hand is thrown, what shoots needs its ammunition too.
-		if not w.is_empty() and w.tool in ["sword", "knife"] and float(w.get("power", 0)) > most:
-			most = float(w.get("power", 0))
-			best = id
 	return best

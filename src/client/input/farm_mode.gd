@@ -1,4 +1,4 @@
-extends RefCounted
+extends "res://src/client/input/work_mode.gd"
 ## The farming mode (thread «Сделать режим земледелия», 2026-11-06), made like the build
 ## mode (BuildMode): it is entered from the bag with seeds, a bush, a hoe, a watering can
 ## with water or a sickle chosen (InventoryWindow's «Огород»), or a slot of seeds or a
@@ -22,32 +22,12 @@ const Protocol := preload("res://src/shared/net/protocol.gd")
 const FILTERS := ["all", "seeds", "bushes"]
 ## The shapes of a stroke: a line, a filled square.
 const SHAPES := ["line", "square"]
-## How often the auto work looks whether marks are left, in seconds.
-const CHECK_TIME := 0.25
 
-## The mode's state changed (the bar shows it anew).
-signal changed
-
-var game
-var on := false
 ## The work marked (one of Plans.WORKS) and the shape of a stroke. Kept with the player.
 var work := "sow"
 var shape := "line"
-## Whether a stroke takes the marks off instead of drawing them.
-var erasing := false
-## The palette's filter, one of FILTERS. Kept with the player.
-var filter := "all"
-## The action button is down: the marks near are worked until none can be.
-var auto := false
 ## What is sown when the work is to sow (the palette's choice).
 var seed := ""
-var _saved_hands: Array[String] = ["", ""]
-var _saved_active := 0
-var _check_clock := 0.0
-
-
-func _init(g) -> void:
-	game = g
 
 
 func to_dict() -> Dictionary:
@@ -97,60 +77,29 @@ static func passes(id: String, f: String) -> bool:
 	return sows(id)
 
 
-## The items of the bag to sow and plant that pass the filter, in the bag's order, each once.
-func palette() -> Array[String]:
-	var out: Array[String] = []
-	for s in game.character.inventory.slots:
-		if s != null and passes(s[0], filter) and not out.has(s[0]):
-			out.append(s[0])
-	return out
+func _filters() -> Array:
+	return FILTERS
 
 
-## What the hands held before the mode, as Controls.to_dict keeps them.
-func saved_hands() -> Dictionary:
-	return {"hands": _saved_hands.duplicate(), "active": _saved_active}
+func _in_palette(id: String) -> bool:
+	return passes(id, filter)
+
+
+func _show(shown: bool) -> void:
+	game.hud.show_farm(shown)
 
 
 ## Enters the mode with item `id` chosen: seeds to sow, a tool for its work.
 func enter(id: String) -> void:
 	if game.build.on:
 		game.build.leave()
-	if not on:
-		var c = game.controls
-		_saved_hands = [c.hands[0], c.hands[1]]
-		_saved_active = c.active
-		on = true
-		erasing = false
-		auto = false
-		# The bar shows no filters for now: the palette holds everything.
-		filter = "all"
-		c.cancel_stroke()
-		game.hud.show_farm(true)
+	_begin()
 	if sows(id):
 		choose(id)
 	elif work_of(id) != "":
 		set_work(work_of(id))
 	else:
 		set_work(work)
-
-
-## Leaves the mode: the hands hold again what they held before it.
-func leave() -> void:
-	if not on:
-		return
-	on = false
-	auto = false
-	var c = game.controls
-	c.cancel_stroke()
-	var inv = game.character.inventory
-	for h in 2:
-		var id: String = _saved_hands[h]
-		c.hands[h] = id if id == "" or inv.count(id) > 0 else ""
-	c.active = _saved_active
-	game.cursor.show_cells([], true)
-	game.hud.show_farm(false)
-	game.hud.refresh_hands()
-	changed.emit()
 
 
 ## Item `id` of the palette is sown: into the hand in use.
@@ -214,22 +163,6 @@ func chosen() -> String:
 
 func next_shape() -> void:
 	shape = SHAPES[(SHAPES.find(shape) + 1) % SHAPES.size()]
-	changed.emit()
-
-
-func set_filter(f: String) -> void:
-	if f in FILTERS:
-		filter = f
-		changed.emit()
-
-
-## The filter button: the next filter round.
-func next_filter() -> void:
-	set_filter(FILTERS[(FILTERS.find(filter) + 1) % FILTERS.size()])
-
-
-func set_erasing(e: bool) -> void:
-	erasing = e
 	changed.emit()
 
 

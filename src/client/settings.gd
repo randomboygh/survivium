@@ -499,7 +499,8 @@ func cut_depth() -> float:
 ## is not there yet is set when it appears (the clock reads the speed every frame).
 func apply() -> void:
 	send_cheats()
-	if game.rules != null:
+	# Joined to a server, its rules come from it (Protocol.RULES), the switches sent above.
+	if game.rules != null and game.link.join_url == "":
 		game.rules.free_build = free_build
 		game.rules.tool_wear = tool_wear
 		game.rules.instant_craft = instant_craft
@@ -774,7 +775,7 @@ func set_instant_craft(on: bool) -> void:
 ## Turns the playtest switches on a playtest server on or off: on sends them all, off
 ## sends the game's own values back.
 func set_cheats(on: bool) -> void:
-	if game.socket == null or game.net == null:
+	if game.link.socket == null or game.net == null:
 		return
 	cheats = on
 	if on:
@@ -790,14 +791,14 @@ func set_cheats(on: bool) -> void:
 ## in a world of this device, on a server only with «Читы на сервере» on (a server that
 ## does not take them turns the switch off again, send_cheats).
 func may_cheat() -> bool:
-	return game.join_url == "" or (cheats and game.socket != null and game.net != null)
+	return game.link.join_url == "" or (cheats and game.link.socket != null and game.net != null)
 
 
 ## Over a socket with «Читы на тестовом сервере» on: sends this page's switches and
 ## `once` (the clock's: season, weather, moon, hour) to the server (Protocol.CHEATS);
 ## false when not (alone, or the switch off), so the caller does it here.
 func send_cheats(once := {}) -> bool:
-	if not cheats or game.socket == null or game.net == null:
+	if not cheats or game.link.socket == null or game.net == null:
 		return false
 	var d := {"speed": player_speed, "air": air_jumps, "skill": skill_rate, "heavy": not no_overload,
 		"hunger": not no_hunger, "thirst": not no_thirst, "fatigue": not no_fatigue, "cold": not no_cold,
@@ -922,7 +923,7 @@ func join_test_server() -> void:
 			_note(why)
 			return
 		var name: String = ServerList.player_name()
-		game.join_server(url, name if name != "" else "[player_n2]", ""))
+		game.link.join_server(url, name if name != "" else "[player_n2]", ""))
 
 
 ## A world of this device can be made a server here (LocalHost.host): on a computer,
@@ -935,10 +936,10 @@ func can_host() -> bool:
 ## TestCommands): saved first, then hosted as «Создать сервер» would with the server's
 ## last settings (user://server.cfg), and joined as its owner.
 func host_with_bot() -> void:
-	if not can_host() or game.join_url != "" or game.save.store == null:
+	if not can_host() or game.link.join_url != "" or game.save.store == null:
 		return
 	game.save.flush()
-	game.host_server({"world": game.save.store.dir, "seed_value": int(game.world_seed),
+	game.link.host_server({"world": game.save.store.dir, "seed_value": int(game.world_seed),
 		"settings": game.world_options, "bots": 1,
 		"player": ServerList.player_name() if ServerList.player_name() != "" else "[host]"})
 
@@ -970,7 +971,7 @@ func set_test_mod(on: bool) -> void:
 ## Asks the server joined for `what` («/test `what`», TestCommands.command): its answer
 ## comes back in the chat.
 func test_server(what: String) -> void:
-	if game.join_url == "" or game.net == null:
+	if game.link.join_url == "" or game.net == null:
 		return
 	game.net.request(Protocol.CHAT, ["/test " + what])
 	_note("[sent_to_the_test_server]")

@@ -252,7 +252,7 @@ func _test_door() -> void:
 		"a name in the world is its player's only")
 	net.access.listed_only = true
 	net.access.listed = ["боря"]
-	net.access.listed_keys = {"боря": "k3"}
+	net.access.listed_keys = {"боря": Server.kept("k3")}
 	_check(hello.call("Боря", "k4") == Protocol.WHY_LIST and hello.call("Боря", "k3") == "",
 		"a name on the list comes in with its own key, not with anyone's")
 	net.access.listed_only = false
@@ -309,15 +309,45 @@ func _test_commands() -> void:
 	_check(net.command("test bot-", Server.ROLE_PLAYER) == "ок" and asked == ["bot+", "bot-"], "on a playtest one any player gives it")
 	_check(TestCommands.find_world("../saves").is_empty() and TestCommands.find_world("a/b").is_empty()
 		and TestCommands.find_world("").is_empty(), "«test world» takes a folder's name, never a path")
+	for address: String in ["10.0.0.5", "10.0.0.5", "10.0.0.6", "127.0.0.1"]:
+		var peer := Server.Peer.new()
+		peer.address = address
+		peer.fetching = true
+		net.peers.append(peer)
+	_check(net._fetching("10.0.0.5") == 2 and net._fetching() == 4 and Server._local("127.0.0.1") and not Server._local("10.0.0.5"),
+		"the links taking the mods' files are counted by address too, this machine's apart (FETCHING_PER_ADDRESS)")
+	net.peers.clear()
+	# Another world or other mods are the owner's off a playtest server (WA-015).
+	var main_script := GDScript.new()
+	main_script.source_code = "extends Node\nvar config\nvar playtest_host\n"
+	main_script.reload()
+	var fake: Node = main_script.new()
+	fake.config = Config.new()
+	var tc := TestCommands.new(fake)
+	_check(["world x", "new 5", "new test", "mod on"].all(func(c: String) -> bool:
+		return tc.command(c, Server.ROLE_HOST).contains("owner")),
+		"a host may not change the server's world or mods")
+	_check(not tc.command("world nowhere", Server.ROLE_OWNER).contains("owner"), "its owner may")
+	fake.config.playtest = true
+	_check(not tc.command("world nowhere", Server.ROLE_PLAYER).contains("owner"), "and anyone on a playtest server")
+	tc.free()
+	fake.free()
 	cfg.playtest = false
 	cfg.take_args(PackedStringArray(["--playtest", "--minutes", "-5", "--bots", "-2"]))
 	_check(cfg.playtest and cfg.minutes == 0 and cfg.bots == 0, "a playtest server's numbers from the command line are never below 0")
-	net.access.hosts["k"] = "Аня"
-	net.access.owners["o"] = "Боря"
+	net.access.hosts[Server.kept("k")] = "Аня"
+	net.access.owners[Server.kept("o")] = "Боря"
 	_check(net.role_of("k") == Server.ROLE_HOST and net.role_of("o") == Server.ROLE_OWNER and net.role_of("x") == Server.ROLE_PLAYER,
 		"the roles come from the server's lists")
-	net.access.hosts.erase("k")
+	net.access.hosts.erase(Server.kept("k"))
 	_check(net.role_of("k") == Server.ROLE_PLAYER, "and a role taken away is gone at once")
+	var old := {"owners": {"o2": "Боря"}, "hosts": {"k2": "Аня"}, "banned_keys": {"b2": "Злой"},
+		"listed_keys": {"аня": "k2"}, "listed": ["аня"]}
+	_check(net.take_access(old) and net.role_of("o2") == Server.ROLE_OWNER and net.role_of("k2") == Server.ROLE_HOST
+		and not JSON.stringify(net.access).contains("o2") and not JSON.stringify(net.access).contains("\"k2\"")
+		and net.access.listed_keys["аня"] == Server.kept("k2"), "an old save's keys are kept as their hashes, and still work")
+	_check(not net.take_access(net.access.duplicate(true)) and net.role_of("o2") == Server.ROLE_OWNER,
+		"a save already hashed is taken as it is")
 
 
 ## The playtest page's switches (Protocol.CHEATS) are taken on a playtest server only,
@@ -331,12 +361,18 @@ func _test_cheats() -> void:
 	_check(req.handle(["cheats", 1, [{"speed": 8.0, "hunger": false, "free_items": true}]]) == [1, false]
 		and a.haste == 1.0 and a.vitals.hunger and not s.rules.free_items, "a server that is not a playtest one takes none")
 	req.may_cheat = true
+	req.log_cheats = true
+	var logged: Array = []
+	req.flagged.connect(func(what: String, detail: String) -> void: logged.append([what, detail]))
 	req.handle(["cheats", 2, [{"speed": 1000.0, "air": true, "skill": -5, "hunger": false, "free_items": true,
 		"boost": "many", "season": 9, "weather": -7, "moon": 0.5, "hour": NAN, "nothing": 1}]])
 	_check(a.haste == 8.0 and a.body.speed_scale == 8.0 and a.cheat_air and a.skills.rate == 0.0,
 		"on a playtest one the player's own switches are taken, clamped: %s %s" % [a.haste, a.skills.rate])
 	_check(not a.vitals.hunger and s.rules.free_items and s.clock.season == 3 and s.clock.weather_auto
 		and s.clock.moon_pin == 0.5 and s.clock.time_speed == 1.0, "and the world's, a value of a wrong type left")
+	_check(logged.size() == 1 and logged[0][0] == "cheats" and logged[0][1].contains("free_items"),
+		"a host's switches off a playtest server go to the server's log, named: %s" % [logged])
+	req.log_cheats = false
 	req.day_speed = 0.1
 	req.handle(["cheats", 3, [{"boost": 10.0}]])
 	_check(is_equal_approx(s.clock.time_speed, 1.0), "the pace of time multiplies the server's own")

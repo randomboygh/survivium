@@ -8,11 +8,17 @@ Last checked: 2026-11-14 ([WEEKLY_AUDIT_2026-11-14.md](WEEKLY_AUDIT_2026-11-14.m
 `b35d371` with that audit's fixes in the working tree. The fixes went into `main` on top of `e395528`: of the
 four pull requests merged in between (#577–#580), #579 and #578 reach WA-031 and WA-043, noted there.
 Closed since: WA-031 (#579, both main runs after it green), WA-040, WA-041, WA-042, WA-043, WA-045 (#583),
-WA-048 (`balance_report --check` in CI and `run_all.sh`), WA-028, WA-029, WA-054, WA-055, WA-056 (#585), WA-021 (#584), WA-020, WA-023, WA-057 (#596).
+WA-048 (`balance_report --check` in CI and `run_all.sh`), WA-028, WA-029, WA-054, WA-055, WA-056 (#585),
+WA-012, WA-013, WA-014, WA-015, WA-016, WA-017, WA-019, WA-022 (#587; WA-018 in part),
+WA-024 (#586: `src/client/net/server_link.gd`, no forwarding left on Main),
+WA-027 (the twelve uncalled functions deleted; the palettes' filters of the build and farming modes stay: kept with the player and tested, waiting for their buttons),
+WA-026 (`work_mode.gd` under the build and farming modes, `bot_brain.gd` under the two bots, the server's roles used directly).
+WA-049, WA-050 (the owner picked option A for each), WA-064 (the owner's playtest: the numbers kept).
+WA-021 (#584), WA-020, WA-023, WA-057 (#596).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 1 | 21 | 22 | 44 |
+| 0 | 0 | 12 | 14 | 26 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
@@ -20,65 +26,15 @@ a repository setting or a step in GitHub; «playtest», «needs phone data» —
 measuring on the phone; «backlog» — small, done when the area is next touched. The due dates are
 recommendations.
 
-### WA-012 · Medium · Security, land rights
-
-- **Description:** Boats ignore land rights.
-- **Cause:** `take_vessel` checks only reach, riders and death, and boarding nothing; a vessel has no owner.
-- **Confirmation:** Read: `src/shared/game/actions_boat.gd:294-305`; the file has no call to the territory.
-- **Files and systems:** `src/shared/game/actions_boat.gd`, `src/shared/game/vessels.gd`
-- **Consequences:** A boat moored on someone's land can be put into anyone's bag or rowed away.
-- **Recommended fix:** Plan: check the "build" right at the boat's cell in `take_vessel`, decide the right for boarding, add a test in `security_test`.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-20.
-
-### WA-013 · Medium · Security, secrets
-
-- **Description:** `access.json` keeps players' keys as they are.
-- **Cause:** Hosts, owners, bans and the whitelist are kept by key.
-- **Confirmation:** Read: `src/server/server.gd:351, 470, 592, 635, 876`; written by `src/server/server_store.gd`.
-- **Files and systems:** `src/server/server.gd`, `src/server/server_store.gd`, `src/server/server_main.gd`
-- **Consequences:** Whoever reads the world's folder gets the owner's key: full control of the server (`stop`, `op`).
-- **Recommended fix:** Plan: keep `sha256_text()` of the keys and compare by hash, hashing old entries on load (a data format change, so a plan first).
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-27.
-
-### WA-014 · Medium · Security, client
-
-- **Description:** An in-game mod reload downloads a server's set without asking.
-- **Cause:** `ModReload` starts `ModFetch` with `no_ask = true` for any set the server names in `MODS`.
-- **Confirmation:** Read: `src/client/mod_reload.gd:83-86`; `ASK_ABOVE` applies only before joining.
-- **Files and systems:** `src/client/mod_reload.gd`, `src/client/net/mod_fetch.gd`
-- **Consequences:** A hostile server can push up to `SET_MAX` (256 MB) per reload with no prompt: mobile data and storage.
-- **Recommended fix:** Plan: ask above `ASK_ABOVE` during play too, or limit reloads per server; a test in `mod_files_test`.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-27.
-
-### WA-024 · Medium · Architecture
-
-- **Description:** `main.gd` holds the client's connection and mod-download flow.
-- **Cause:** Joining, hosting and taking the server's files grew into the scene's root (1163 → 1466 lines).
-- **Confirmation:** Read: `src/client/main.gd:489-713` and 11 static vars at 287-324; tests write them (`tests/server_test.gd:751`).
-- **Files and systems:** `src/client/main.gd`, the menu callers, `tests/server_test.gd`, `docs/systems/network.md`
-- **Consequences:** Against the rule "main.gd only builds the scene and runs the frame": the flow is hard to test or change.
-- **Recommended fix:** Plan: a client module (for example `src/client/net/join_flow.gd`) with thin forwarding on Main. A structure change, so the user picks first.
-- **Status:** Open: user decision (structure); first found 2026-11-14 (new); due stage 2.
-
 ### WA-025 · Medium · Maintainability
 
-- **Description:** Scripts past 1500 lines are not split into parts, and some functions are very long.
-- **Cause:** Growth since 2026-11-07: `wildlife.gd` 1184 → 1942, `ui_style.gd` 1315 → 1880 lines.
+- **Description:** Some functions are very long.
+- **Cause:** Growth since 2026-11-07. The two scripts past 1500 lines are split (2026-11-14): `wildlife.gd` into a chain of five parts (#598), the icons' drawings of `ui_style.gd` into `ui_icons.gd`; `main.gd` gave its connection flow to `server_link.gd` (#586).
 - **Confirmation:** Counted: `wc -l`; longest functions `settings_menu._section_rows` 350 lines, `land_layout._layout_row` 303, `hud._ready` 276.
-- **Files and systems:** `src/shared/game/wildlife.gd`, `src/client/ui/ui_style.gd`, `src/client/ui/settings_menu.gd`, `src/shared/world/land_layout.gd`
-- **Consequences:** Hard to review and merge; `wildlife.gd` keeps growing.
-- **Recommended fix:** Plan: chains of parts as in decision 168; per-section functions.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due when next touched.
-
-### WA-026 · Medium · Duplication
-
-- **Description:** Two pairs of near-identical classes and a copy of the roles.
-- **Cause:** `build_mode.gd` and `farm_mode.gd` share their scaffolding; the client's `bot.gd` and `server_bot.gd` share tasks and helpers; `test_commands.gd` re-declares `ROLE_HOST` and `ROLE_OWNER`.
-- **Confirmation:** Read: `src/client/input/build_mode.gd:140-178` against `farm_mode.gd:115-155`; `src/server/server_bot.gd` header; `src/server/test_commands.gd:28-29`.
-- **Files and systems:** `src/client/input/`, `src/server/server_bot.gd`, `src/server/test_commands.gd`
-- **Consequences:** A fix in one copy is missed in the other; the roles can drift.
-- **Recommended fix:** Plan: a shared base for the modes, a shared bot brain, the server's roles used directly.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due when next touched.
+- **Files and systems:** `src/client/ui/settings_menu.gd`, `src/shared/world/land_layout.gd`, `src/client/ui/hud.gd`
+- **Consequences:** Hard to review and merge.
+- **Recommended fix:** Per-section functions for `_section_rows` and `hud._ready` when those files are next touched (other threads work in them now); `_layout_row` is the generator's inner loop: split only with a bench before and after.
+- **Status:** Open: backlog (the files are split, the long functions wait); first found 2026-11-14 (new); due when next touched.
 
 ### WA-032 · Medium · Performance
 
@@ -119,16 +75,6 @@ recommendations.
 - **Consequences:** A broken main until someone fixes forward.
 - **Recommended fix:** A merge queue or "require branches to be up to date" (repository settings, the owner).
 - **Status:** Open: owner action; first found 2026-11-14 (new); due 2026-11-20.
-
-### WA-049 · Medium · Balance, tests
-
-- **Description:** `balance_test` leaves quality out of its best cases.
-- **Cause:** Quality 100 makes a tool 1.2× faster and 1.5× more durable, and is easy to reach.
-- **Confirmation:** Computed from `quality.gd` and the tables: a steel axe at chopping 10 and quality 100 empties stamina in 7.7 s (the test's floor is 8 s); an oak falls in 0.6 s (floor 0.5).
-- **Files and systems:** `tests/unit/balance_test.gd`, `src/shared/game/quality.gd`
-- **Consequences:** The documented envelope no longer holds at the top; the next buff crosses it unnoticed.
-- **Recommended fix:** Plan: count quality in the best cases, or lower `PACE_PER_POINT` (a balance formula: the user's pick).
-- **Status:** Open: user decision; first found 2026-11-14 (new); due 2026-11-27.
 
 ### WA-058 · Medium · Security
 
@@ -190,16 +136,6 @@ recommendations.
 - **Recommended fix:** Plan: lay out only what changed.
 - **Status:** Open: needs plan; first found 2026-11-14 (stage 4); due backlog.
 
-### WA-064 · Medium · Balance
-
-- **Description:** Balance items waiting for a playtest.
-- **Cause:** Building toughness and decay, survival thresholds with wear on, the 40-minute day.
-- **Confirmation:** `docs/balance/GAME_BALANCE_ROADMAP.md`.
-- **Files and systems:** the balance docs, the data
-- **Consequences:** The numbers are guesses until played.
-- **Recommended fix:** The user plays and picks.
-- **Status:** Open: playtest; first found 2026-11-14 (balance stage); due backlog.
-
 ### WA-065 · Medium · Process
 
 - **Description:** The phone checklist that closes stage 1 is not confirmed.
@@ -210,75 +146,15 @@ recommendations.
 - **Recommended fix:** The user goes through the list on the phone.
 - **Status:** Open: user action; first found 2026-11-14 (stage 1); due backlog.
 
-### WA-015 · Low · Security, roles
-
-- **Description:** A host, not only the owner, can switch the server to another world.
-- **Cause:** The test commands `world`, `new` and `mod` need only `ROLE_HOST` off playtest servers, while `stop` needs the owner.
-- **Confirmation:** Read: `src/server/test_commands.gd:81-129`.
-- **Files and systems:** `src/server/test_commands.gd`, `docs/security/COMMAND_PERMISSIONS.md`
-- **Consequences:** A host can replace the world under everyone; each `new` makes a world folder.
-- **Recommended fix:** Plan: owner only off playtest servers; update the permissions doc.
-- **Status:** Open: user decision; first found 2026-11-14 (new); due backlog.
-
-### WA-016 · Low · Security, availability
-
-- **Description:** One address can take every mod-download slot.
-- **Cause:** `_fetching()` counts slots for the whole server (`FETCHING_MAX` 32), and `_pending(address)` skips fetching connections.
-- **Confirmation:** Read: `src/server/server.gd:946-952`.
-- **Files and systems:** `src/server/server.gd`
-- **Consequences:** One client with the password keeps the others with other mods waiting (`WHY_WAIT`).
-- **Recommended fix:** Plan: a cap per address (except the tunnel's local one).
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due backlog.
-
-### WA-017 · Low · Security, client
-
-- **Description:** The zip import unpacks an entry before checking its size.
-- **Cause:** `zip.read_file(name)` runs before `data.size() > FILE_MAX`.
-- **Confirmation:** Read: `src/client/mod_import.gd:66-68`.
-- **Files and systems:** `src/client/mod_import.gd`
-- **Consequences:** A zip bomb the player picks can run the game out of memory.
-- **Recommended fix:** Plan: read the sizes from the zip's directory first.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due backlog.
-
 ### WA-018 · Low · Security, secrets
 
-- **Description:** The server's password is passed on a command line and stored in plain text.
+- **Description:** The server's password is stored in plain text (the bots' command line no longer carries it, #587).
 - **Cause:** Bot processes get `--password <pw>`; `user://server.cfg` keeps the password itself.
 - **Confirmation:** Read: `src/server/test_commands.gd:242`, `src/server/config.gd:111`.
 - **Files and systems:** `src/server/test_commands.gd`, `src/server/config.gd`
 - **Consequences:** Other local users can read it from the process list; the file is a secret.
 - **Recommended fix:** Plan: pass it through the environment or stdin; store a hash (`_same` compares hashes already).
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due backlog.
-
-### WA-019 · Low · Security, audit trail
-
-- **Description:** A host's playtest switches on a normal server are not logged.
-- **Cause:** The `CHEATS` request is taken for a host (#490) but writes nothing to the security log, unlike `give`.
-- **Confirmation:** Read: `src/server/requests.gd` (`Protocol.CHEATS`), `src/server/server.gd:720`.
-- **Files and systems:** `src/server/requests.gd`, `src/server/server.gd`
-- **Consequences:** Free items or teleports for the whole world leave no trace.
-- **Recommended fix:** Plan: flag `cheats` with the keys changed when not on a playtest server.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due backlog.
-
-### WA-022 · Low · Synchronization
-
-- **Description:** The server's rules never reach a remote client.
-- **Cause:** The client makes its own `Rules.new()` and nothing carries the server's.
-- **Confirmation:** Read: `src/client/main.gd:384`; readers `craft_panel.gd:418`, `hud_layout.gd:364`, `build_mode.gd:315`.
-- **Files and systems:** `src/client/main.gd`, the craft tab, the hotbar, the build mode
-- **Consequences:** On a server with free items the client shows no «get» buttons; the cheats switch sends the client's own values.
-- **Recommended fix:** Plan: the rules in the welcome, or a `RULES` event.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due backlog.
-
-### WA-027 · Low · Dead code
-
-- **Description:** Thirteen functions are never called.
-- **Cause:** Left after changes.
-- **Confirmation:** `grep -w` over src, tests, tools, docs: `land.has_mine`, `farm_mode.next_filter`, `icon_tabs.set_tip`, `scroll_column.add_item`, `clear_items`, `set_shown`, `boats.vessel_at`, `actions_base.put_block`, `actions_water.biome_under`, `placed.is_steps`, `workshop.condition`, `shader_probe._body`; filter state "not shown for now" in the modes.
-- **Files and systems:** the files named
-- **Consequences:** Reading cost; some may be meant for the next stage.
-- **Recommended fix:** The owner decides what to delete.
-- **Status:** Open: user decision; first found 2026-11-14 (new); due backlog.
+- **Status:** Open: needs plan (the host's window shows the password, so a hash changes what it can show); first found 2026-11-14; bots' argv fixed by #587; due backlog.
 
 ### WA-030 · Low · Content by role
 
@@ -359,16 +235,6 @@ recommendations.
 - **Consequences:** Noise; a real leak would hide among them.
 - **Recommended fix:** Run with `--verbose` to name the owners.
 - **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
-
-### WA-050 · Low · Balance
-
-- **Description:** Some tool tiers add little.
-- **Cause:** Wooden pickaxe, scythe and sword are weaker than their stone twins and need planks; a flint knife hits as hard as a stone sword sooner; copper → bronze shovel only adds durability.
-- **Confirmation:** The balance tables (regenerated in a copy, equal to the committed ones).
-- **Files and systems:** the tools' YAML
-- **Consequences:** Pointless items in the early game.
-- **Recommended fix:** A playtest question: give the wooden tools a niche or drop them.
-- **Status:** Open: playtest; first found 2026-11-14 (new); due backlog.
 
 ### WA-051 · Low · Data
 

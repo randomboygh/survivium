@@ -108,6 +108,15 @@ const SAIL_BUMP := 1.5
 const SAIL_BOUNCE := 0.3
 ## A shove (see knock) dies away this fast, in cells a second per second.
 const SHOVE_DRAG := 30.0
+## People do not walk through each other (see parting): each keeps this far round the
+## middle of the feet, in cells (a little under HALF_WIDTH, so the sprites may touch).
+## A body in someone gives way by PART_RATE of the overlap a second, at most PART_MOST
+## cells a second (over SPEED: one walking into another standing is held off; the other's
+## game sees them overlap by SPEED / PART_RATE and steps aside, so walking on shoves the
+## one in the way about half as fast as walking, and only one pushing back holds a way).
+const PERSON_RADIUS := 0.4
+const PART_RATE := 20.0
+const PART_MOST := 10.0
 
 var world
 ## The weather the body walks in (Clock), null for none.
@@ -338,6 +347,31 @@ func ladder_turn(at: Vector3) -> int:
 	if p.y - c.y < CLIMB_OVER and world.ladders.has(c + Vector3i.DOWN):
 		return world.ladders[c + Vector3i.DOWN]
 	return -1
+
+
+## How far a body at `at` (world units) gives way in `delta` seconds to the people
+## `near` ([place (world units), number]…) it stands in, in cells (x east, y south; for
+## nudge): out of each by PART_RATE of the overlap a second, all of it at most
+## PART_MOST a second. Each player's own game moves only its own body, so two in one
+## place both step out; at the very same place the other's number picks the way, and the
+## other's game, with this one's number, steps the other way.
+static func parting(at: Vector3, near: Array, delta: float) -> Vector2:
+	var out := Vector2.ZERO
+	var reach := 2.0 * PERSON_RADIUS
+	for n: Array in near:
+		var o: Vector3 = n[0] / CELL
+		var p := at / CELL
+		if absf(o.y - p.y) >= HEIGHT * 0.9:
+			continue
+		var off := Vector2(p.x - o.x, p.z - o.z)
+		var d := off.length()
+		if d >= reach:
+			continue
+		var dir := off / d if d > 0.001 else Vector2.RIGHT.rotated(float(n[1]) * 2.39996)
+		out += dir * (reach - d)
+	if out == Vector2.ZERO:
+		return out
+	return (out * minf(1.0, PART_RATE * delta)).limit_length(PART_MOST * delta)
 
 
 ## True when the body with its feet at `at` (world units) is on a ladder: it does not fall

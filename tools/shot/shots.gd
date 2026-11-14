@@ -158,6 +158,9 @@ const SHOTS := {
 	"puddles-rain": {"time": 0.5, "season": 1, "rain": true, "puddles": 1.0},
 	"rays-off": {"time": 0.45, "season": 1, "rays": false},
 	"fog": {"time": 0.33, "season": 2, "weather": "fog"},
+	# The player's spot in the test world in a dense summer morning fog (2026-11-14): the fog
+	# over the land's edges and its borders.
+	"ground-fog-spot": {"clock": 0.327, "season": 1, "weather": "dense_fog", "at": [8, -24]},
 	"downpour": {"time": 0.5, "season": 1, "weather": "downpour"},
 	"storm": {"time": 0.6, "season": 1, "weather": "storm"},
 	"hail": {"time": 0.45, "season": 0, "weather": "hail"},
@@ -298,6 +301,12 @@ const SHOTS := {
 	"adit": {"time": 0.42, "season": 1, "place": "adit"},
 	"mountain": {"time": 0.42, "season": 1, "place": "mountain"},
 	"mountain-winter": {"time": 0.45, "season": 3, "place": "mountain"},
+	# Cloud shadows over the mountain's and the cliffs' sheer walls: slanted along the sun,
+	# so a wall shows a soft edge, not a straight vertical stripe.
+	"clouds-mountain": {"time": 0.42, "season": 1, "place": "mountain", "clouds": 0.5},
+	# Cloud shadows on the tall brick house of the test world: a slanted edge down its walls.
+	"ground-clouds-house": {"time": 0.5, "season": 1, "at": [70, -42], "clouds": 0.55, "cloud_pos": [12, -9], "rays": false},
+	"clouds-cliffs": {"time": 0.36, "season": 1, "place": "cliffs", "clouds": 0.5},
 	"peak": {"time": 0.42, "season": 1, "place": "peak"},
 	"waterfall": {"time": 0.42, "season": 1, "place": "waterfall"},
 	"rapids": {"time": 0.42, "season": 1, "place": "rapids"},
@@ -386,6 +395,9 @@ const SHOTS := {
 	"orchard-east-morning": {"time": 0.3, "season": 1, "orchard": true, "pan": 55},
 	# A clearing with an oak and a spruce, then the same after both are felled.
 	"clearing": {"time": 0.42, "season": 1, "clearing": true},
+	# The same trees with their feet against a bank a level higher, as by a river:
+	# bark down to the ground, not a block of wood.
+	"bank-trunks": {"time": 0.42, "season": 1, "clearing": true, "bank": true},
 	# The player just behind the oak of the clearing and behind its spruce: the trunk
 	# clears over them but for its foot, the crown round them, no silhouette there.
 	"behind-trunk": {"time": 0.42, "season": 1, "clearing": true, "offset": Vector3(-3.5, 0.0, -2.0)},
@@ -642,6 +654,11 @@ const SHOTS := {
 	"ui-size-2": {"time": 0.45, "season": 1, "ui_size": 2},
 	"ui-size-3": {"time": 0.45, "season": 1, "ui_size": 3},
 	"ui-size-4": {"time": 0.45, "season": 1, "ui_size": 4},
+	"pixel-size-0": {"time": 0.45, "season": 1, "settings": {"pixel_scale": 0}},
+	"pixel-size-1": {"time": 0.45, "season": 1, "settings": {"pixel_scale": 1}},
+	"pixel-size-2": {"time": 0.45, "season": 1, "settings": {"pixel_scale": 2}},
+	"pixel-size-3": {"time": 0.45, "season": 1, "settings": {"pixel_scale": 3}},
+	"pixel-size-4": {"time": 0.45, "season": 1, "settings": {"pixel_scale": 4}},
 	# The camera turned (steps of 45 degrees to the left) and tilted (steps of a wall
 	# 2 px shorter): by day among trees, and the camera buttons under the minimap.
 	"turn-45": {"time": 0.45, "season": 1, "trees": true, "turn": 1},
@@ -706,6 +723,10 @@ const SHOTS := {
 	# The freezes' log and the playtest report, windows of the playtest page.
 	"ui-freezes": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "freezes", "freezes": true},
 	"ui-report": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "report"},
+	# Its other tabs: the build, the device and the frame; the settings a line each.
+	"ui-report-device": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "report", "section": "device"},
+	"ui-report-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "report", "section": "values"},
+	"ui-report-mods": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "report", "section": "mods"},
 	# Two-figure counts on the tabs; «Скопировать» tapped (green), «Очистить журнал» once (red).
 	"ui-freezes-press": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "freezes", "freezes": true,
 		"many": 12, "press": ["_copy", "_clear"]},
@@ -807,7 +828,10 @@ const SHOTS := {
 	"ui-main-menu-join": {"time": 0.42, "season": 1, "touch": true, "main_menu": "join"},
 	# «Создать сервер» on a computer, before and while it runs.
 	"ui-main-menu-host": {"time": 0.42, "season": 1, "main_menu": "host"},
-	"ui-main-menu-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 1},
+	"ui-main-menu-host-server": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 1},
+	"ui-main-menu-host-new-world": {"time": 0.42, "season": 1, "main_menu": "host", "host_new_world": true},
+	"ui-main-menu-host-world-setup": {"time": 0.42, "season": 1, "main_menu": "host", "host_open_new": true},
+	"ui-main-menu-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 2},
 	"ui-main-menu-host-running": {"time": 0.42, "season": 1, "main_menu": "host-running"},
 	"ui-main-menu-host-running-settings": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 1},
 	"ui-main-menu-host-access": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 2,

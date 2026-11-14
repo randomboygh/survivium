@@ -32,6 +32,7 @@ const TestMod := preload("res://src/server/test_mod.gd")
 const ModCache := preload("res://src/client/net/mod_cache.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const MainScript := preload("res://src/client/main.gd")
+const ServerLink := preload("res://src/client/net/server_link.gd")
 
 const ROOT := "user://test_saves/server"
 const PORT := 7791
@@ -262,20 +263,20 @@ func _run() -> void:
 	server.config.max_players = 3
 	var main: Node = load("res://scenes/main.tscn").instantiate()
 	main.skip_setup = true
-	main.join_url = "ws://127.0.0.1:%d" % PORT
-	main.player_name = "Клиент"
-	main.join_password = PASSWORD
+	main.link.join_url = "ws://127.0.0.1:%d" % PORT
+	main.link.player_name = "Клиент"
+	main.link.join_password = PASSWORD
 	root.add_child(main)
-	_check(await _until(func() -> bool: return main.ready_to_play or main.join_error != "", 180.0) and main.join_error == "",
-		"the game joins the server and builds the world it sends: %s" % main.join_error)
+	_check(await _until(func() -> bool: return main.ready_to_play or main.link.join_error != "", 180.0) and main.link.join_error == "",
+		"the game joins the server and builds the world it sends: %s" % main.link.join_error)
 	if main.ready_to_play:
-		_check(main.host == null and main.session == null and main.socket != null and main.welcome.get("id") == 3
+		_check(main.host == null and main.session == null and main.link.socket != null and main.link.welcome.get("id") == 3
 			and main.world_seed == 5, "over a socket the game has no server inside, and the world is the server's")
-		var recent: Array = main.ServerList.recent()
-		_check(not recent.is_empty() and recent[0].url == main.join_url and recent[0].title == server.config.title
-			and main.ServerList.key(main.join_url) == main.welcome.key,
+		var recent: Array = main.link.ServerList.recent()
+		_check(not recent.is_empty() and recent[0].url == main.link.join_url and recent[0].title == server.config.title
+			and main.link.ServerList.key(main.link.join_url) == main.link.welcome.key,
 			"the server joined goes first in the recent ones, under its name, its key kept: %s" % [recent])
-		var at: Vector3 = main.welcome.at
+		var at: Vector3 = main.link.welcome.at
 		var spawn_key := WorldData.chunk_key(floori(at.x / WorldData.CELL), floori(at.z / WorldData.CELL))
 		_check(main.player.position.distance_to(at) < WorldData.CELL and main.world.has_chunk(spawn_key) and main.chunks.chunk_nodes.has(spawn_key)
 			and main.chunks.chunk_nodes.size() >= 9, "the body stands where the server put it (%s vs %s), on chunks the server sent (%d built, spawn %s)"
@@ -286,10 +287,14 @@ func _run() -> void:
 		# The ring at LOAD_RANGE never comes (the server sends its zone): waited for, the
 		# best of it on the screen kept every other chunk from being built (2026-11-10, a
 		# phone held upright stood at half the loading).
+		# Round where the body stands: it steps out of the others at the spawn (Body.parting),
+		# which may take it into the next chunk.
 		var inner := func() -> bool:
+			var p: Vector3 = main.player.position
+			var key := WorldData.chunk_key(floori(p.x / WorldData.CELL), floori(p.z / WorldData.CELL))
 			for dz in range(-ChunkStreamer.LOAD_RANGE + 1, ChunkStreamer.LOAD_RANGE):
 				for dx in range(-ChunkStreamer.LOAD_RANGE + 1, ChunkStreamer.LOAD_RANGE):
-					if not main.chunks.chunk_nodes.has(spawn_key + Vector2i(dx, dz)):
+					if not main.chunks.chunk_nodes.has(key + Vector2i(dx, dz)):
 						return false
 			return true
 		_check(await _until(inner, 60.0), "every chunk inside the server's zone is built, the edge never sent waits aside (%d built)"
@@ -404,8 +409,8 @@ func _run() -> void:
 	if main.ready_to_play:
 		await _reload_reaches(main)
 	# The game leaves as the menu's exit does: a goodbye, then the scene goes.
-	main.socket.leave()
-	_check(await _until(func() -> bool: return main.socket.ended and net.online() == 2), "the game's goodbye closes its connection")
+	main.link.socket.leave()
+	_check(await _until(func() -> bool: return main.link.socket.ended and net.online() == 2), "the game's goodbye closes its connection")
 	var game_account = net.accounts.values().filter(func(a) -> bool: return a.id == 3)
 	_check(game_account.size() == 1 and game_account[0].linger == net.LINGER, "out of its land its character waits")
 	game_account[0].left_at -= net.LINGER
@@ -620,9 +625,9 @@ func _reload_reaches(main: Node) -> void:
 	_check(await _until(func() -> bool: return main.mod_reload.served == 1 and main.mod_reload.fetch == null, 30.0),
 		"the game in the world takes what changed and reads its data again")
 	_check(Content.serving() and Content.playing() == net.content.digest and AiRules.SPECIES["animals:wolf"].mass == 41.0
-		and MainScript.server_mods.get("digest") == net.content.digest,
+		and ServerLink.server_mods.get("digest") == net.content.digest,
 		"it plays with the server's files: the wolf weighs %s" % AiRules.SPECIES["animals:wolf"].mass)
-	_check(main.ready_to_play and not main.socket.ended and main.join_error == "", "without leaving the world")
+	_check(main.ready_to_play and not main.link.socket.ended and main.link.join_error == "", "without leaving the world")
 	net.content.root = Content.ROOT
 	server.command("reload")
 	_check(await _until(func() -> bool: return main.mod_reload.served == 2 and main.mod_reload.fetch == null, 30.0)
@@ -648,9 +653,9 @@ func _reload_reaches(main: Node) -> void:
 	_check(main.mod_reload.fetch == null and net.content.digest == was and Content.playing() == was and not Items.has(TestMod.ITEM) and not main.settings.test_mod()
 		and net.players().all(func(a) -> bool: return a.link.who.inventory.count(TestMod.ITEM) == 0),
 		"«test mod off»: the server's own files again, the item gone")
-	_check(main.ready_to_play and not main.socket.ended, "all without leaving the world")
+	_check(main.ready_to_play and not main.link.socket.ended, "all without leaving the world")
 	Content.serve({})
-	MainScript.server_mods = {}
+	ServerLink.server_mods = {}
 	Content.live = false
 	Mods.rescan()
 
@@ -753,7 +758,7 @@ func _game_takes_mods() -> void:
 	net.content.root = _changed_mods(44)
 	net.content.read()
 	_check(net.content.digest != Content.playing(), "a server with files of its own")
-	MainScript.join = {"url": "ws://127.0.0.1:%d" % PORT, "name": "Модник", "password": ""}
+	ServerLink.join = {"url": "ws://127.0.0.1:%d" % PORT, "name": "Модник", "password": ""}
 	MainScript.play_at_once = true
 	var first: Node = load("res://scenes/main.tscn").instantiate()
 	first.skip_setup = true
@@ -764,18 +769,18 @@ func _game_takes_mods() -> void:
 	var first_id := first.get_instance_id()
 	var in_world := func() -> bool:
 		var now := current_scene
-		return now != null and now.get_instance_id() != first_id and (now.ready_to_play or now.join_error != "")
-	_check(await _until(in_world, 240.0) and current_scene.join_error == "",
-		"the game takes the server's files and comes in with them: %s" % [current_scene.join_error if current_scene != null else "no scene"])
+		return now != null and now.get_instance_id() != first_id and (now.ready_to_play or now.link.join_error != "")
+	_check(await _until(in_world, 240.0) and current_scene.link.join_error == "",
+		"the game takes the server's files and comes in with them: %s" % [current_scene.link.join_error if current_scene != null else "no scene"])
 	var main: Node = current_scene
 	_check(Content.serving() and Content.playing() == net.content.digest and AiRules.SPECIES["animals:wolf"].mass == 44.0,
 		"it plays with the server's data: the wolf weighs %s" % AiRules.SPECIES["animals:wolf"].mass)
 	_check(ModCache.size() > 0 and not ModCache.set_of(net.content.digest).is_empty() and net.online() == 1,
 		"the file taken and the set's list are kept on the device (%d bytes)" % ModCache.size())
-	main.socket.leave()
-	await _until(func() -> bool: return main.socket.ended)
-	MainScript.join = {}
-	MainScript.server_mods = {}
+	main.link.socket.leave()
+	await _until(func() -> bool: return main.link.socket.ended)
+	ServerLink.join = {}
+	ServerLink.server_mods = {}
 	current_scene = null
 	root.remove_child(main)
 	main.free()
@@ -865,7 +870,7 @@ func _commands(node: Node, host: Bot) -> Array:
 		and [again, renamed, by_name].all(func(b: Bot) -> bool: return b.reply.value.get("why") == Protocol.WHY_BANNED),
 		"a banned player is refused by the key, under another name too, and by the name")
 	var kept: Dictionary = node.saves.read_access()
-	_check(kept.get("banned_keys", {}).has(key) and node.command("bans").contains("host"), "bans are kept in the world's save")
+	_check(kept.get("banned_keys", {}).has(node.server.kept(key)) and node.command("bans").contains("host"), "bans are kept in the world's save")
 	node.command("unban Host")
 	var back := _bot("Host", key, "", PORT + 1)
 	_check(await _until(func() -> bool: return back.reply.done) and back.reply.value.get("ok") == true, "unban lets them in again")
@@ -916,11 +921,19 @@ func _chat(node: Node, a: Bot, b: Bot) -> void:
 		"a line to the team is heard by a member far away")
 	var bye = b.socket.net.request(Protocol.TEAM_LEAVE, [])
 	_check(await _until(func() -> bool: return bye.done) and bye.value == true and server.session.teams.teams.is_empty(), "the member leaves, and the team of one is gone")
+	_check(b.of(Protocol.RULES).any(func(e: Array) -> bool: return e[1][0] is Dictionary and e[1][0].has("free_items")),
+		"a player is told the server's rules of play after the welcome")
+	server.session.rules.free_items = true
+	_check(await _until(func() -> bool: return b.of(Protocol.RULES).any(func(e: Array) -> bool: return e[1][0].get("free_items") == true)),
+		"and told them again when they change")
+	server.session.rules.free_items = false
 	var cmd = b.socket.net.request(Protocol.CHAT, ["/who"])
 	_check(await _until(func() -> bool: return cmd.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and Lang.t(str(e[1][2])).contains("host"))),
 		"a command from a player who is not a host is refused in the chat")
 	_check(node.command("op Чужой").contains("Чужой") and server.is_host(b.reply.value.key)
-		and node.saves.read_access().get("hosts", {}).has(b.reply.value.key), "op makes a host, kept in the world's save")
+		and node.saves.read_access().get("hosts", {}).has(server.kept(b.reply.value.key))
+		and not FileAccess.get_file_as_string(node.saves.store.dir.path_join(node.saves.ACCESS)).contains(b.reply.value.key),
+		"op makes a host, kept in the world's save by the key's hash, never the key")
 	var who = b.socket.net.request(Protocol.CHAT, ["/who"])
 	_check(await _until(func() -> bool: return who.done and b.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][0] == 0 and str(e[1][2]).begins_with("Players online"))),
 		"a host's command in the chat is done and answered there")

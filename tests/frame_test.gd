@@ -710,11 +710,27 @@ func _run() -> void:
 	# kept once the world was built) and the server (the requests through it).
 	log_page.open("report")
 	var report: String = log_page.report_text()
-	_check(report.split("\n").size() == 13 and report.contains("World: ") and report.contains("Weather: ")
+	_check(report.split("\n").size() == 14 and report.contains("Mods: core ") and report.contains("World: ") and report.contains("Weather: ")
 		and report.contains("mod data ") and report.contains("(%d records: read " % Content.record_count())
 		and report.contains("scripts ") and report.contains(", world ") and report.contains("Earlier starts: ")
 		and report.contains("Server: in the game (loop), requests ") and main.net.requests > 0
-		and log_page._list.get_child(log_page._list.get_child_count() - 1).text == report, "the playtest report tells the moment: %s" % report)
+		and log_page._shown_text == report, "the playtest report tells the moment: %s" % report)
+	# Its tabs split it: Мир the world's lines, Загрузка the start's; «Скопировать всё» the whole.
+	log_page.show_section("place")
+	var place_lines := []
+	for line_label in log_page._list.get_children():
+		place_lines.append(line_label.text)
+	log_page.show_section("start")
+	_check(log_page._tab_buttons.size() == 6 and place_lines.size() == 6 and place_lines[0].begins_with("World: ")
+		and log_page._list.get_child(0).text.begins_with("Loading, s: ") and log_page._shown_text == report
+		and log_page._copy_row.visible and not log_page._copy.visible,
+		"the playtest report's tabs split it: %s" % [place_lines])
+	# Моды: the mods on, core first; «Скопировать вкладку» takes only them.
+	log_page.show_section("mods")
+	log_page._copy_tab.pressed.emit()
+	_check(log_page._list.get_child(1).text.begins_with("core ") and log_page._tab_text.begins_with("Mods on:\ncore ")
+		and not log_page._tab_text.contains("World: ") and log_page._copy_tab.text == "[copied]",
+		"«Скопировать вкладку» copies the tab shown: %s" % log_page._tab_text)
 	log_page.close()
 	hud.perf.freeze_log.resize(1)
 	hud.perf.last_freeze = [1234.0, [["drawing", 1200.0], ["animals", 20.0], ["sky", 9.0]], ["fire shadow", "mesh"]]

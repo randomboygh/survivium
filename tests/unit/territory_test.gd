@@ -545,12 +545,12 @@ func _test_client_land() -> void:
 	_check(not land.hits_post_square(Vector3(12.5, 20.0, 10.5), down, INF), "the next square is not")
 	_check(not land.hits_post_square(Vector3(10.5, 6.5, 0.0), Vector3(0.0, 0.0, 1.0), 5.0),
 		"nor a post hidden behind the world")
-	land.game.welcome = {"id": 8}
+	land.game.link.welcome = {"id": 8}
 	_check(not land.hits_post_square(Vector3(11.5, 20.0, 10.5), down, INF), "nor another's post")
 
 
 class _Game:
-	var welcome := {"id": 7}
+	var link := {"welcome": {"id": 7}}
 	var team := _Team.new()
 
 

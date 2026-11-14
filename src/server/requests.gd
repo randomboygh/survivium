@@ -77,6 +77,9 @@ var may_debug := false
 ## Whether the player's playtest switches are taken (Protocol.CHEATS): anyone's on a
 ## playtest server (Config.playtest), elsewhere a host's only (Server, with each message).
 var may_cheat := false
+## Whether the switches taken go to the server's log (`flagged`): a host's on a server
+## that is not a playtest one, where they change the world for everyone.
+var log_cheats := false
 ## The clock's own pace on this server (Config.day_speed): the playtest's «Ход времени»
 ## multiplies it.
 var day_speed := 1.0
@@ -365,6 +368,9 @@ func _rule(kind: String, args: Array) -> Variant:
 				return ai_debug
 		Protocol.CHEATS:
 			if may_cheat and _fit(args, [TYPE_DICTIONARY]):
+				if log_cheats:
+					var names: Array = args[0].keys().slice(0, 16).map(func(k) -> String: return Protocol.clean_text(str(k), 24))
+					flagged.emit("cheats", ", ".join(names))
 				return Cheats.apply(session, who, args[0], day_speed)
 			return false
 		Protocol.FIGHT_BRAVE:

@@ -32,7 +32,11 @@ by address are shared for them, so a player with a key does not suffer from anot
 - A ban by key and by name (`WHY_BANNED`); the whitelist — a name bound to the key it came with first
   (`access.listed_keys`, `WHY_LIST`).
 - The key is 16 random bytes from `Crypto`; in the player's file on disk — only the first 32 characters of
-  its SHA-256 (but `access.json` keeps the keys of the hosts, owners, bans and the whitelist as they are).
+  its SHA-256; in `access.json` (hosts, owners, bans, the whitelist) — only `h:` + its SHA-256
+  (`Server.kept`; an older file is hashed on loading), so the world's folder gives nobody the owner's key.
+- The bots a server starts take its password from the environment (`Protocol.PASSWORD_ENV`), not the command
+  line other users of the machine can read. `server.cfg` keeps the password itself (the host's window shows
+  it): it is a secret file.
 
 ## Requests (`src/server/requests.gd`)
 
@@ -84,7 +88,7 @@ The server, to a link that takes files:
 | What | Value | What happens beyond it |
 |---|---|---|
 | Time to take the files and greet again, and to ask for nothing | `FETCH_WAIT` 900 s, `FETCH_IDLE` 30 s | closing with code 4000 |
-| Links taking files at once | `FETCHING_MAX` 32 | a refusal `wait` |
+| Links taking files at once, and from one address (not this machine's: a tunnel's) | `FETCHING_MAX` 32, `FETCHING_PER_ADDRESS` 4 | a refusal `wait` |
 | Hashes in one `mod_files`, and waiting in all | `ASK_MAX` 256, `QUEUE_MAX` 4096 | the message is not taken (`malformed`) |
 | Lists sent to one link | `LISTS_MAX` 8 | no answer |
 | Bytes of files sent to one link | `SENT_MAX` 3 sets | the files come back as «cannot give» |

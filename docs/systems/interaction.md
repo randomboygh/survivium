@@ -150,6 +150,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
   rules not directly but by `game.net` requests (`Protocol.DIG`, `PLACE`, `PLAN`, `FRONT`, `PLANT_AT`, `EAT`),
   and by the answer plays the body's work (`_did`); so do `gathering.gd` (`GATHER`, `PICKUP`) and `props.gd`
   (`PROP_PUT`) — [network.md](network.md).
+- `src/client/input/work_mode.gd` — what the build and the farming modes share (both extend it): the hands remembered on entry and given back on `leave`, the palette of the bag under a filter, the eraser, `auto`; a mode adds its hooks (`_filters`, `_in_palette`, `_show`, `_left`).
 - `src/client/input/build_mode.gd` — build mode (`game.build`): entry from the bag («Build») or from a panel
   cell with a block or thing, exit (the hands return what they held), the palette (`palette`; the filters
   «All» / «Materials» / «Interior» are in the code but not shown yet), the shape, the kind of block (`form`:
