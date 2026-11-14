@@ -1,6 +1,6 @@
 extends "res://src/client/ui/kit/window.gd"
 ## «Создать сервер» (plan/architecture/server.md, «Меню и экраны»; a computer, the Android app): the
-## window of the server made in the game (Main.hosted, LocalHost.host). Before it runs:
+## window of the server made in the game (ServerLink.hosted, LocalHost.host). Before it runs:
 ## two tabs joined as one (TabRow.tabs). «Создание»: the world (one of the saved ones,
 ## ‹ › go through them, the one played last first; the test world always among them, a
 ## new one when none of the player's own is saved), the server's name, a password and
@@ -11,7 +11,7 @@ extends "res://src/client/ui/kit/window.gd"
 ## («PvP»: выключен, по правам территорий, везде) and the fights' numbers, the land's
 ## numbers and its decay, «По умолчанию» (two taps); all from the server's settings file
 ## (LocalHost.server_settings), which the server writes back. «Запустить
-## сервер» (under either tab) starts the game again with the server made and joined (Main.host_server),
+## сервер» (under either tab) starts the game again with the server made and joined (ServerLink.host_server),
 ## «Назад» (or Escape) says `cancelled`. While it runs: the port and the players, the
 ## addresses for friends in the home network (one is copied by «Скопировать адрес»), the
 ## address from the internet once the tunnel gives it («Скопировать ссылку»: the game's
@@ -23,7 +23,7 @@ extends "res://src/client/ui/kit/window.gd"
 ## the sections of «Настройки» parted by strips with an icon (Kit.section);
 ## on the tab «Доступ» «Только по списку», the list with «Убрать» and «Добавить», the
 ## blocked with «Разбанить» and «Заблокировать» (the same commands); «Играть» says `play` (into its world),
-## «Остановить сервер» asks again and stops it (Main.stop_server), «Назад» leaves it
+## «Остановить сервер» asks again and stops it (ServerLink.stop_server), «Назад» leaves it
 ## running. It covers the whole screen over a shade of the world behind (a window of the
 ## UI kit, its choices ChoiceRows, «Остановить сервер» a TwoTap). `game` is the Main node.
 
@@ -169,7 +169,7 @@ func back() -> void:
 
 ## The server made here is running.
 func running() -> bool:
-	return game.hosted != null
+	return game.link.hosted != null
 
 
 # --- Before it runs --------------------------------------------------------------
@@ -196,8 +196,8 @@ func _build_setup() -> void:
 	_rows = [_choices, ChoiceRows.new(SET_NAME, SET_VALUE, ARROW)]
 	_build_making(_pages[0], _rows[0])
 	_build_settings(_pages[1], _rows[1])
-	_error = Kit.note(game.host_error, 0.0, UiStyle.DANGER)
-	_error.visible = game.host_error != ""
+	_error = Kit.note(game.link.host_error, 0.0, UiStyle.DANGER)
+	_error.visible = game.link.host_error != ""
 	box.add_child(_error)
 	box.add_child(_button("[start_the_server]", _start, true, false))
 	box.add_child(_button("[back]", back, false, false))
@@ -288,10 +288,10 @@ func _put(key: String, v: Variant) -> void:
 
 ## While the server runs, what «Настройки» changed takes effect at once (ServerMain.apply_settings).
 func _live() -> void:
-	if running() and game.hosted.has_method("apply_settings"):
+	if running() and game.link.hosted.has_method("apply_settings"):
 		var values := _set.duplicate()
 		values.rules = _rules_shown()
-		game.hosted.apply_settings(values)
+		game.link.hosted.apply_settings(values)
 
 
 ## A row «name ‹ value ›» choosing setting `key` among `options` (the file's value among
@@ -468,13 +468,13 @@ func _start() -> void:
 		return
 	s.erase("why")
 	print("host: %s" % [s])
-	game.host_server(s)
+	game.link.host_server(s)
 
 
 # --- While it runs ---------------------------------------------------------------
 
 func _build_running() -> void:
-	var node: Node = game.hosted
+	var node: Node = game.link.hosted
 	_make_tabs(["[server_name]", "[settings]", "[access]"])
 	_rows = [_choices, ChoiceRows.new(SET_NAME, SET_VALUE, ARROW), ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW)]
 	_set = game.LocalHost.settings_of(node.config)
@@ -577,7 +577,7 @@ func _name_field(hint: String, text: String, action: Callable) -> HBoxContainer:
 ## Runs the host's command `line` as the field under the log does: it and its answer
 ## go into the log, and the window shows what it changed at once.
 func _run(line: String) -> void:
-	var node: Node = game.hosted
+	var node: Node = game.link.hosted
 	if node == null:
 		return
 	node.say("> " + line)
@@ -627,7 +627,7 @@ func _paint_stop(b: Button, on: bool) -> void:
 func _stop_server() -> void:
 	_stop.disabled = true
 	_stop.text = "[stopping]"
-	game.stop_server()
+	game.link.stop_server()
 
 
 func _process(delta: float) -> void:
@@ -641,7 +641,7 @@ func _process(delta: float) -> void:
 
 ## The port, the players and the log as the server has them now.
 func _refresh() -> void:
-	var node: Node = game.hosted
+	var node: Node = game.link.hosted
 	if node == null or node.server == null:
 		return
 	var net = node.server

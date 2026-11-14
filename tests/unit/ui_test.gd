@@ -280,7 +280,7 @@ func _test_fading_list() -> void:
 
 ## The chat's lines in its list: the last SHOWN heard show, the newest at the bottom.
 func _test_chat_lines() -> void:
-	var chat = ChatBox.new({"welcome": {"id": 1}, "join_url": "ws://x"})
+	var chat = ChatBox.new({"link": {"welcome": {"id": 1}, "join_url": "ws://x"}})
 	chat._ready()
 	chat.place(Vector2(8, 300), 400)
 	var watching := Lang.watching

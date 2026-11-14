@@ -499,16 +499,20 @@ func _remove(dir: String) -> void:
 ## unasked (the weekly audit's WA-014): the game leaves the server saying how much, and
 ## joining again agrees to it.
 func _test_big_reload() -> void:
+	var link_script := GDScript.new()
+	link_script.source_code = "extends RefCounted\nstatic var mods_allowed := \"\"\nvar socket\nvar join_error := \"\"\n"
+	link_script.reload()
 	var main_script := GDScript.new()
-	main_script.source_code = "extends RefCounted\nstatic var mods_allowed := \"\"\nvar bot\nvar socket\nvar hud\nvar menu\nvar join_error := \"\"\n"
+	main_script.source_code = "extends RefCounted\nvar bot\nvar link\nvar hud\nvar menu\n"
 	main_script.reload()
 	var game: RefCounted = main_script.new()
+	game.link = link_script.new()
 	var reload := ModReload.new(game)
 	reload.fetch = ModFetch.new()
 	reload.fetch.digest = "d".repeat(ModFiles.HASH_LEN)
 	reload.fetch.want = ModFetch.ASK_ABOVE + 1
 	reload.fetch.state = "ask"
 	reload.update()
-	_check(reload.fetch == null and reload.served == 0 and game.join_error != "" and main_script.mods_allowed == "d".repeat(ModFiles.HASH_LEN),
-		"a big reload of a server in play is not taken: the player is asked by joining again: %s" % game.join_error)
+	_check(reload.fetch == null and reload.served == 0 and game.link.join_error != "" and link_script.mods_allowed == "d".repeat(ModFiles.HASH_LEN),
+		"a big reload of a server in play is not taken: the player is asked by joining again: %s" % game.link.join_error)
 

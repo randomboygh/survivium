@@ -173,7 +173,7 @@ func toggle_painting(on: bool) -> void:
 
 ## The player's own number (0 in a game of one's own).
 func me() -> int:
-	return int(game.welcome.get("id", 0))
+	return int(game.link.welcome.get("id", 0))
 
 
 ## True when the player has set a claim themselves (their rights are theirs to set).

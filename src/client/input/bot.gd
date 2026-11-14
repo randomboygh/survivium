@@ -153,7 +153,7 @@ func _start(kind: String) -> void:
 	task = kind
 	_left = TASK_MOST
 	var p: Vector3 = game.player.position
-	print("bot %s: %s at (%d, %d)" % [game.player_name, kind, floori(p.x / CELL), floori(p.z / CELL)])
+	print("bot %s: %s at (%d, %d)" % [game.link.player_name, kind, floori(p.x / CELL), floori(p.z / CELL)])
 	match kind:
 		"walk":
 			var turn := _rng.randf() * TAU
@@ -216,7 +216,7 @@ func _walk_to(to: Vector3, arrive: float, delta: float) -> Vector2:
 			_stuck += 1
 			if _stuck >= 3:
 				# At a wall or a cliff: on to another task.
-				print("bot %s: stuck on the way to %s" % [game.player_name, to / CELL])
+				print("bot %s: stuck on the way to %s" % [game.link.player_name, to / CELL])
 				return _stop()
 		else:
 			_stuck = 0
@@ -249,10 +249,10 @@ func _work_at(at: Vector3, item: String) -> void:
 		# A swing at the air: nothing is left there (the tree is down, the animal away).
 		_missed = _missed + 1 if not done.at.is_finite() else 0
 		if _missed >= 2 and task != "":
-			print("bot %s: nothing left at the %s" % [game.player_name, task])
+			print("bot %s: nothing left at the %s" % [game.link.player_name, task])
 			_stop()
 		if done.get("hit", false):
-			print("bot %s: hit" % game.player_name))
+			print("bot %s: hit" % game.link.player_name))
 
 
 ## Puts `item` in the hand in use, getting one first if the bag has none.
@@ -286,14 +286,14 @@ func _put(item: String, then: Callable) -> void:
 		_obtain(item)
 	var before := _cells_of(item)
 	game.net.request(Protocol.PROP_PUT, [item, -1, game.chunks.cut_level]).then(func(ok: Variant) -> void:
-		print("bot %s: %s set down: %s" % [game.player_name, item, ok])
+		print("bot %s: %s set down: %s" % [game.link.player_name, item, ok])
 		if not ok is bool or not ok:
 			return
 		# The thing's own event may come a little after the reply.
 		game.get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			for cell: Vector3i in _cells_of(item):
 				if not before.has(cell):
-					print("bot %s: %s at %s" % [game.player_name, item, cell])
+					print("bot %s: %s at %s" % [game.link.player_name, item, cell])
 					then.call(cell)
 					return))
 
