@@ -70,8 +70,8 @@ func _fill_page(page: String) -> void:
 	_buttons.clear()
 	_order.clear()
 	_note = null
-	var joined: bool = game.join_url != ""
-	var on_server: bool = joined and not game.welcome.is_empty() and game.join_error == ""
+	var joined: bool = game.link.join_url != ""
+	var on_server: bool = joined and not game.link.welcome.is_empty() and game.link.join_error == ""
 	var lit := ""
 	match page:
 		"top":
@@ -79,7 +79,7 @@ func _fill_page(page: String) -> void:
 			var resume: bool = _entered and settled
 			if resume:
 				_add_button(_box, "resume", "[continue]", close)
-			if game.hosted != null:
+			if game.link.hosted != null:
 				# Its bundles are the server's while it runs.
 				_add_button(_box, "single", "[single_player]", Callable(), "[server]")
 			else:
@@ -99,7 +99,7 @@ func _fill_page(page: String) -> void:
 					# Quit, not crashed: the next start offers no «Журнал вылета».
 					LastLog.running(false)
 					get_tree().quit())
-			lit = "multi" if joined or game.hosted != null else "single"
+			lit = "multi" if joined or game.link.hosted != null else "single"
 			if resume:
 				lit = "resume"
 			if GlWatch.software():
@@ -116,14 +116,14 @@ func _fill_page(page: String) -> void:
 			lit = "play"
 		"multi":
 			_caption("[multiplayer]")
-			var hosting: bool = game.hosted != null
+			var hosting: bool = game.link.hosted != null
 			if on_server:
 				_add_button(_box, "server", "[back_to_the_server]", play.bind("multi"))
 				if not hosting:
 					# Out of one's land the character stays a while (Server.linger_of).
 					var home: bool = game.land.own(game.land.here())
 					_add_button(_box, "leave", "[disconnect]", func() -> void:
-						game.leave_server()
+						game.link.leave_server()
 						game.restart.call_deferred(false), "[leaves_at_once]" if home else "[stays_for_30_s]")
 			if hosting:
 				_add_button(_box, "join", "[join]", Callable(), "[server]")
@@ -151,7 +151,7 @@ func _fill_page(page: String) -> void:
 ## world under the word, the day at the right of it (from the save: the world is not
 ## loaded yet, or from the clock when it is). Joined to a server it stays one line.
 func _describe_world(b: Button) -> void:
-	if game.join_url != "":
+	if game.link.join_url != "":
 		return
 	var test: bool = game.world_seed == WorldStore.TEST_SEED
 	var kind: String = "[grounds]" if test else load(WORLD_LIST)._kind(game.world_options)
@@ -244,8 +244,8 @@ func open() -> void:
 	_show_loading(false)
 	var test: bool = game.world_seed == WorldStore.TEST_SEED
 	_map_seed.text = "[test_world]" if test else Lang.f("[seed]", [game.world_seed])
-	if game.join_url != "":
-		_map_seed.text = load(JOIN_SCREEN)._short(game.join_url)
+	if game.link.join_url != "":
+		_map_seed.text = load(JOIN_SCREEN)._short(game.link.join_url)
 	game.hud.visible = false
 	_fill_page("top")
 	_fit()
@@ -282,9 +282,9 @@ func hides_world() -> bool:
 ## «Играть» of «Одиночная игра»: the world of this scene, or, joined to a server, this
 ## device's world by a restart that loads it at once.
 func _play_single() -> void:
-	if game.join_url != "":
+	if game.link.join_url != "":
 		back_to = "single"
-		game.leave_server()
+		game.link.leave_server()
 		game.restart.call_deferred()
 	else:
 		play("single")
@@ -357,7 +357,7 @@ func _new_world() -> void:
 ## goes back to `from`. `fresh`: its save is deleted first and it is made anew, with the
 ## mods chosen on «Новый мир» (SaveGame.replace_world), even the one being played.
 func _go_to(seed_value: int, options: Dictionary, from: String, fresh := false) -> void:
-	if not fresh and seed_value == game.world_seed and options == game.world_options and game.join_url == "":
+	if not fresh and seed_value == game.world_seed and options == game.world_options and game.link.join_url == "":
 		play(from)
 	else:
 		back_to = from
@@ -365,7 +365,7 @@ func _go_to(seed_value: int, options: Dictionary, from: String, fresh := false) 
 			game.save.replace_world(seed_value, options)
 		else:
 			game.save.switch_world(seed_value, options)
-		game.leave_server()
+		game.link.leave_server()
 		game.restart.call_deferred()
 
 
@@ -387,7 +387,7 @@ func open_join(url: String, error := "") -> void:
 		_fill_page("multi"))
 	_setup.chosen.connect(func(address: String, name: String, password: String) -> void:
 		back_to = "multi"
-		game.join_server(address, name, password))
+		game.link.join_server(address, name, password))
 
 
 ## «Создать сервер» over the menu: its settings, or the server running.
@@ -407,7 +407,7 @@ func open_host() -> void:
 func join_failed(why: String) -> void:
 	open()
 	_fill_page("multi")
-	open_join(game.join_url, why)
+	open_join(game.link.join_url, why)
 
 
 ## Puts the screen of script `path`, made with `args`, over the menu in place of the

@@ -875,7 +875,7 @@ func place_at(center: Vector3i, normal: Vector3i) -> int:
 ## stroke waits as long as it takes to try again, rather than asking every frame (the
 ## server would refuse those anyway, Requests.paced). Over the loop the reply sets it at once.
 func _wait_reply() -> void:
-	if game.socket != null:
+	if game.link.socket != null:
 		_cooldown = maxf(_cooldown, WorldActions.IDLE_SWING)
 
 

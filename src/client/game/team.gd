@@ -77,7 +77,7 @@ func has_team() -> bool:
 
 ## True when the player leads their team.
 func leads() -> bool:
-	return has_team() and int(view.get("lead", -1)) == int(game.welcome.get("id", -2))
+	return has_team() and int(view.get("lead", -1)) == int(game.link.welcome.get("id", -2))
 
 
 func invite(id: int) -> void:

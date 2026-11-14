@@ -357,7 +357,7 @@ func _section_rows(key: String) -> Array:
 	var game_weather := func() -> bool: return not s.values.real_weather
 	# On a server its clock and weather are the server's (HostScreen «Настройки»): the
 	# rows that set them here are faded; in a game of this device they all work.
-	var solo := func() -> bool: return game.join_url == ""
+	var solo := func() -> bool: return game.link.join_url == ""
 	var solo_time := func() -> bool: return solo.call() and game_time.call()
 	# The playtest switches work on a server only with «Читы на сервере» on (Settings.may_cheat).
 	var may := func() -> bool: return s.may_cheat()
@@ -398,7 +398,7 @@ func _section_rows(key: String) -> Array:
 				_section("flag", "[test_world_n2]"),
 				{"action": "[back_to_your_world]" if s.in_test_world() else "[go_to_the_test_world]",
 					"do": func() -> void: s.switch_test_world()},
-			] if game.join_url == "" else [])
+			] if game.link.join_url == "" else [])
 		"server":
 			return _server_rows()
 		"player":
@@ -568,7 +568,7 @@ func _section_rows(key: String) -> Array:
 				["[weather]", ["[in_game_weather]", "[as_in_real_life]"],
 					func() -> int: return int(s.values.real_weather),
 					func(i: int) -> void: s.set_value("real_weather", i == 1), "", solo],
-			] + ([{"note": "[set_by_the_server]"}] if game.join_url != "" else []) + [
+			] + ([{"note": "[set_by_the_server]"}] if game.link.join_url != "" else []) + [
 				_section("bag", "[picking_up]"),
 				["[auto_pickup]", ["[everything]", "[whats_there]", "[food_n2]", "[nothing]"],
 					func() -> int: return s.values.pickup,
@@ -746,9 +746,9 @@ func _cheats_note() -> Array:
 
 func _server_rows() -> Array:
 	var s = game.settings
-	var joined: bool = game.join_url != ""
-	var playtest: bool = joined and game.welcome.get("playtest") == true
-	var host: bool = joined and (game.hosted != null or game.welcome.get("host") == true)
+	var joined: bool = game.link.join_url != ""
+	var playtest: bool = joined and game.link.welcome.get("playtest") == true
+	var host: bool = joined and (game.link.hosted != null or game.link.welcome.get("host") == true)
 	var rows := [_section("server", "[test_server_github]")]
 	if playtest:
 		rows += [
@@ -778,18 +778,18 @@ func _server_rows() -> Array:
 		{"action": "[test_world_on_the_server]", "do": func() -> void: s.test_server("new test"), "confirm": true},
 		{"action": "[new_world_on_the_server]", "do": func() -> void: s.test_server("new"), "confirm": true},
 	]
-	if game.hosted != null:
+	if game.link.hosted != null:
 		# The server is made here: its worlds are this device's.
 		for w: Dictionary in s.server_worlds():
 			rows.append({"action": Lang.f("[world_day]", [w.seed, w.day]) if w.seed != WorldStore.TEST_SEED else "[test_world_n2]",
 				"do": func() -> void: s.test_server("world " + str(w.dir).get_file()), "confirm": true})
 	else:
 		rows.append({"action": "[the_servers_worlds_list_in]", "do": func() -> void: s.test_server("worlds")})
-	if game.hosted != null:
-		rows.append({"action": "[stop_the_server]", "do": func() -> void: game.stop_server(), "confirm": true})
+	if game.link.hosted != null:
+		rows.append({"action": "[stop_the_server]", "do": func() -> void: game.link.stop_server(), "confirm": true})
 	elif not playtest:
 		rows.append({"action": "[stop_the_server]", "do": func() -> void: s.test_server("stop"), "confirm": true})
-	if game.hosted == null:
+	if game.link.hosted == null:
 		# A server that is its own process: files put over its mods' own, for the games that
 		# join to take (decision 189).
 		rows += [_section("hammer", "[test_mod]"),
@@ -1118,7 +1118,7 @@ func report_text() -> String:
 		lines.append("Last run's log, " + last_log)
 	if game.net != null:
 		lines.append(Lang.f("Server: %s, requests %d, bytes out %d, in %d, coding %.1f ms, waiting %d", [
-			Lang.f("over the net %s", [game.join_url]) if game.socket != null else "in the game (loop)",
+			Lang.f("over the net %s", [game.link.join_url]) if game.link.socket != null else "in the game (loop)",
 			game.net.requests, game.net.sent_bytes, game.net.received_bytes, game.net.coding_us / 1000.0, game.net.pending()]))
 	return "\n".join(lines)
 

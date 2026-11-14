@@ -77,7 +77,7 @@ static func sheet(worn: Array, hands := {}) -> SpriteSheet:
 
 
 ## Forgets the pictures read and what was worked out of them: the mods' files are others
-## now (a server's, Main._use_mods), the next figure reads them anew.
+## now (a server's, ServerLink.use_mods), the next figure reads them anew.
 static func forget() -> void:
 	_data = {}
 	_layers = {}

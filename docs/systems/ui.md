@@ -96,7 +96,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   combat, the newcomer's shield, how long combat lasts, land (lands first, per level, reach, levels, when
   abandoned, the step and kind of decay), «Defaults» (two touches); the values from `user://server.cfg`
   (`LocalHost.server_settings`), a file value not in the list is put into the list; «Start the server» under
-  both tabs → `Main.host_server`; while it runs — the port and players, the home network's addresses, the tabs
+  both tabs → `ServerLink.host_server`; while it runs — the port and players, the home network's addresses, the tabs
   «Server», «Settings» and «Access»; «Server»: «Copy the address», «From the internet:» (the tunnel's address, «still
   starting…» or why not) and «Copy the link», players with «Kick» and «Ban» (two touches), the log (12 lines) and the
   command field; «Settings»: the same rows as before it starts, each change made at once

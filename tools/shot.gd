@@ -94,7 +94,7 @@ func _fake_saves() -> void:
 
 ## Servers joined lately made up for «Присоединиться», in a file of their own.
 func _fake_servers() -> void:
-	var list = main.ServerList
+	var list = main.link.ServerList
 	list.path = "user://shot_servers.cfg"
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(list.path))
 	list.set_player_name("Аня")
@@ -509,8 +509,8 @@ func _run() -> void:
 			ModFiles._extra = {}
 		if shot.get("playtest", false):
 			# As if on a server for checking: the «Тестирование» page shows such a server's rows.
-			main.join_url = "ws://shot"
-			main.welcome = {"playtest": true}
+			main.link.join_url = "ws://shot"
+			main.link.welcome = {"playtest": true}
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 			if shot.has("page"):
@@ -1103,12 +1103,12 @@ func _run() -> void:
 			if shot.main_menu in ["host", "host-running"]:
 				if shot.main_menu == "host-running":
 					# A server for real, on a port of its own, stopped after the shot.
-					main.hosted = main.LocalHost.host({"title": "Дача", "port": 7799, "max_players": 8,
+					main.link.hosted = main.LocalHost.host({"title": "Дача", "port": 7799, "max_players": 8,
 						"password": "", "world": "", "seed_value": main.world_seed, "settings": main.world_options}, root)
 					for i in 3:
 						await process_frame
 					for line: String in shot.get("host_commands", []):
-						main.hosted.command(line)
+						main.link.hosted.command(line)
 				main.menu._fill_page("multi")
 				main.menu.open_host()
 				if shot.has("host_tab"):
@@ -1169,10 +1169,10 @@ func _run() -> void:
 			setup.queue_free()
 			main.settings.values.world_mods_off = mods_off
 		if shot.has("main_menu"):
-			if main.hosted != null:
-				main.hosted.command("stop")
-				main.hosted.queue_free()
-				main.hosted = null
+			if main.link.hosted != null:
+				main.link.hosted.command("stop")
+				main.link.hosted.queue_free()
+				main.link.hosted = null
 			main.menu.get_parent().queue_free()
 			main.menu = null
 			main.hud.visible = true
@@ -1249,8 +1249,8 @@ func _run() -> void:
 ## "person" (Вова's card, tapped), "chat" (Боря says a line), "map" (Гена in the team
 ## too, far away, both on the map), "torches" (both hold a torch) or "" (the figures alone).
 func _fake_team(main: Node, what: String) -> void:
-	main.welcome["id"] = 1
-	main.welcome["name"] = "Аня"
+	main.link.welcome["id"] = 1
+	main.link.welcome["name"] = "Аня"
 	main.team.take_team({"id": 1, "name": "Лесные", "lead": 1, "members": [[1, "Аня"], [2, "Боря"]]})
 	var at: Vector3 = main.player.position
 	if what == "map":

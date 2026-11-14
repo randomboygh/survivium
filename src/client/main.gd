@@ -19,7 +19,8 @@ extends Node
 ## crafting queue, tool wear), Wildlife and Storms, under the Rules of play. The session
 ## runs on the server inside the game (LocalHost); what the views draw are the client's
 ## copies (`character`, `workshop`, `placed`, `clock`, `wildlife`), fed by the server's
-## events (Mirror): their signals redraw the things and the animals.
+## events (Mirror): their signals redraw the things and the animals. Joining a server far
+## away, making one here and taking its mods' files is ServerLink's (`link`).
 ## The 3D scene renders into a low-resolution SubViewport (about 360 px
 ## tall) in an oblique 3/4 view, is colour graded and scaled up by a whole number
 ## without filtering (see PixelView); the interface (Hud) is scaled by a whole number
@@ -50,8 +51,7 @@ const Rules := preload("res://src/shared/game/rules.gd")
 const Session := preload("res://src/shared/game/session.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
 const Connection := preload("res://src/client/net/connection.gd")
-const Socket := preload("res://src/client/net/socket.gd")
-const ServerList := preload("res://src/client/net/server_list.gd")
+const ServerLink := preload("res://src/client/net/server_link.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const RemoteGen := preload("res://src/client/net/remote_gen.gd")
 const Mirror := preload("res://src/client/net/mirror.gd")
@@ -65,9 +65,6 @@ const SettingsScript := preload("res://src/client/settings.gd")
 const AutoQuality := preload("res://src/client/view/auto_quality.gd")
 const ModReload := preload("res://src/client/mod_reload.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
-const Content := preload("res://src/shared/content/content.gd")
-const ModFiles := preload("res://src/shared/content/mod_files.gd")
-const ModFetch := preload("res://src/client/net/mod_fetch.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const MeshFaces := preload("res://src/client/world/mesh_faces.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
@@ -183,20 +180,12 @@ var session: Session
 var host: LocalHost
 var net: Connection
 var mirror: Mirror
-## Over the network (С3.2): the socket to the server far away, the address joined
-## (from `join`, or set by a test before the scene starts), the player's name, the
-## password given, the welcome the server gave and why joining failed (words for the
-## loading screen and «Присоединиться», MainMenu.join_failed). `host` and `session` are null
-## then: the world comes from the server through `world_maker` (RemoteGen).
-var socket: Socket
-var join_url := ""
-var player_name := "[player_n2]"
-var join_password := ""
-var welcome := {}
-## The server's mods' files being taken before the game is let in (_take_mods), null
-## when none are.
-var mod_fetch: ModFetch
-var join_error := ""
+## The way onto a server: the socket to one far away (`link.socket`, null in a world of
+## this device), the address joined, its welcome, the server made here from the menu
+## and the server's mods' files (ServerLink). Over a socket `host` and `session` are null:
+## the world comes from the server through `world_maker` (RemoteGen). Made with the node,
+## so a test can set the address before the scene starts.
+var link := ServerLink.new(self)
 ## What orders the world made around the player: the session over the loop, the
 ## generator copy over a socket (make_chunk, make_chunks, forget_far, take_work).
 var world_maker
@@ -285,43 +274,6 @@ var _seated := Vector2i.ZERO
 var _stages_total := 0
 ## Set before a restart for another world: the scene that comes up goes straight in.
 static var play_at_once := false
-## The bundles a server far away plays with, when they are not the ones loaded: the
-## scene is started again with them (decision 153, 5А).
-static var pending_mods: Array = []
-## The mods' files of the server joined when they are not the game's own (decision 189):
-## {"url", "digest", "table" (a path inside content/ → the file that holds it, ModFetch)},
-## kept over the restarts of the scene while the game is on that server (_use_mods);
-## and how many times in a row the server said its files are others (a server whose
-## files keep changing is given up).
-static var server_mods := {}
-static var mods_tries := 0
-const MODS_TRIES := 3
-## The set (its hash) the player was told is large to take (ModFetch.ASK_ABOVE): joining
-## again takes it.
-static var mods_allowed := ""
-## The server to join, kept over a restart of the scene ({url, name, password}): set
-## by the «Присоединиться» screen (join_server) or `--join`, emptied when the player goes
-## back to a world of their own (leave_server).
-static var join := {}
-## The command line and the page's address are read once, at the first start.
-static var _args_read := false
-## The address of `?server=` on the web: the menu opens «Присоединиться» with it.
-static var offered := ""
-## The server made from the menu on a computer (С5.2, LocalHost.host): it lives under
-## the tree's root over the restarts, and the game joins it over a socket. `host_ask`
-## holds its settings over the restart that starts it; `host_error` why it did not
-## start; `show_host` opens the menu on its window after that restart.
-static var hosted: Node = null
-static var host_ask := {}
-static var host_error := ""
-static var show_host := false
-## Seconds to wait for a server's welcome.
-const JOIN_WAIT := 15.0
-## Seconds a server going over to another world (Protocol.CLOSE_RENEW) is given to come
-## back, and between two tries to join it again; until when it is tried (msec).
-const REJOIN_WAIT := 60.0
-const REJOIN_EVERY := 2.0
-static var rejoin_until := 0
 
 
 func _ready() -> void:
@@ -338,11 +290,10 @@ func _ready() -> void:
 	StartTimes.begin()
 	StartTimes.compiled_ms = _compiled_ms
 	LastLog.begin()
-	if not host_ask.is_empty():
-		_start_hosting()
-	_read_join()
+	link.start_hosting()
+	link.read_join()
 	controls = Controls.new(self)
-	if join_url != "" and Bot.asked():
+	if link.join_url != "" and Bot.asked():
 		bot = Bot.new(self)
 		# Bots run beside the server on one machine: unbounded, their frames took the
 		# server's processor, and its tick fell behind (the animals lagged, the players'
@@ -359,28 +310,20 @@ func _ready() -> void:
 	sound = SoundScript.new(self)
 	add_child(sound)
 	save = SaveGame.new(self)
-	save.enabled = (not skip_setup or save_root != "") and join_url == ""
+	save.enabled = (not skip_setup or save_root != "") and link.join_url == ""
 	if save_root != "":
 		WorldStore.root = save_root
-	if join_url == "":
+	if link.join_url == "":
 		save.choose_world()
-	elif hosted != null:
-		# The server made here plays its world's bundles, which a world it went over to
-		# may have changed; this game loads the same ones (one Mods for both).
-		world_mods = hosted.mods.duplicate()
-		pending_mods = []
-	elif not pending_mods.is_empty():
-		world_mods = pending_mods
-		pending_mods = []
 	else:
-		world_mods = settings.world_mods()
-	_use_mods()
+		world_mods = link.world_mods()
+	link.use_mods()
 	# What the last scene worked out of its materials goes with them: this world's bundles
 	# may number them otherwise.
 	PixelTextures.forget()
 	MeshFaces.forget()
-	if join_url != "":
-		_connect()
+	if link.join_url != "":
+		link.open()
 	rules = Rules.new()
 	view = CameraRig.new(self)
 	chunks = ChunkStreamer.new(self)
@@ -394,7 +337,7 @@ func _ready() -> void:
 	props.watch(placed)
 	wildlife = RemoteWildlife.new()
 	# Over a socket the animals glide between the server's snapshots.
-	wildlife.smooth = join_url != ""
+	wildlife.smooth = link.join_url != ""
 	character = CharacterScript.new(self)
 	character.clock = clock
 	character.placed = placed
@@ -402,7 +345,7 @@ func _ready() -> void:
 	hands = HandsScript.new(self)
 	workshop = RemoteWorkshop.new(character, placed, rules)
 	mirror = Mirror.new(self)
-	if socket != null:
+	if link.socket != null:
 		# The server speaks right after the welcome: the copies keep what comes before
 		# the world is made (Mirror.replay).
 		mirror.watch(net)
@@ -421,7 +364,7 @@ func _ready() -> void:
 	view.on_screen_resized()
 	StartTimes.mark("modules")
 	# A server's world comes over the socket opened above: it loads at once.
-	if skip_setup or join_url != "":
+	if skip_setup or link.join_url != "":
 		begin_world()
 	if not skip_setup:
 		_build_menu()
@@ -440,10 +383,7 @@ func begin_world() -> void:
 ## a server's world is left first (a server made here keeps running and its window
 ## opens: the world loads behind it again).
 func cancel_loading() -> void:
-	if hosted != null:
-		show_host = true
-	elif join_url != "":
-		leave_server()
+	link.cancel()
 	restart.call_deferred(false)
 
 
@@ -456,267 +396,12 @@ func restart(go_in := true) -> void:
 	get_tree().reload_current_scene()
 
 
-## The address to join: the one a test set, else the one of `join` (from the
-## «Присоединиться» screen, or the command line's `--join <url>`, `--name`,
-## `--password` read at the first start). On the web `?server=` only fills the
-## «Присоединиться» screen (offered).
-func _read_join() -> void:
-	if not _args_read:
-		_args_read = true
-		var args := OS.get_cmdline_user_args()
-		var given := {"url": "", "name": "[player_n2]", "password": ""}
-		for i in args.size() - 1:
-			match args[i]:
-				"--join":
-					given.url = args[i + 1]
-				"--name":
-					given.name = args[i + 1]
-				"--password":
-					given.password = args[i + 1]
-		if given.url != "" and given.password == "":
-			given.password = OS.get_environment(Protocol.PASSWORD_ENV)
-		if given.url != "":
-			join = given
-		if OS.has_feature("web"):
-			var v: Variant = JavaScriptBridge.eval("new URLSearchParams(location.search).get('server') || ''", true)
-			if v is String:
-				offered = v
-	if join_url == "" and not join.is_empty():
-		join_url = join.url
-		player_name = join.name
-		join_password = join.password
-
-
-## Starts the game again joined to the server of `url` as `name`.
-func join_server(url: String, name: String, password: String) -> void:
-	join = {"url": url, "name": name, "password": password}
-	mods_tries = 0
-	# After the tap that asked it is over (its sound played in this scene).
-	restart.call_deferred()
-
-
-## The next start is a world of this device's own again, not the server's.
-func leave_server() -> void:
-	join = {}
-
-
-## Starts the game again with a server made here of the settings `values` (Config's,
-## and "player": the host's name), joined to it (see _start_hosting).
-func host_server(values: Dictionary) -> void:
-	host_ask = values.duplicate()
-	restart.call_deferred(false)
-
-
-## Before anything of the scene is built: the server of `host_ask` is made (its world's
-## bundles activated), and the game joins it at its port as the host, with those
-## bundles; the menu opens on the server's window.
-func _start_hosting() -> void:
-	var values := host_ask
-	host_ask = {}
-	show_host = true
-	var player := str(values.get("player", "[host]"))
-	values.erase("player")
-	# The day lasts on the server made here as its window says, else as in the host's
-	# own game («Длина суток»).
-	if settings != null and not values.has("day_minutes"):
-		values["day_minutes"] = Clock.DAY_LENGTH / settings.time_speed() / 60.0
-	var node := LocalHost.host(values, get_tree().root)
-	if node.failed != "":
-		host_error = node.failed
-		node.free()
-		return
-	host_error = ""
-	hosted = node
-	join = {"url": "ws://127.0.0.1:%d" % node.config.port, "name": player, "password": node.config.password}
-	pending_mods = node.mods.duplicate()
-	print("hosting: port %d, world %s" % [node.config.port, node.store.dir])
-
-
-## Stops the server made here: it saves the world and closes the connections, then the
-## game starts again in a world of this device.
-func stop_server() -> void:
-	if hosted == null:
-		return
-	if not hosted.stopped.is_connected(_on_server_stopped):
-		hosted.stopped.connect(_on_server_stopped)
-	hosted.command("stop")
-
-
-func _on_server_stopped() -> void:
-	if hosted != null:
-		hosted.queue_free()
-	hosted = null
-	join = {}
-	restart(false)
-
-
-## The server made here is stopping: its connections closing are not a failure.
-static func server_stopping() -> bool:
-	return hosted != null and hosted.server != null and hosted.server.stopping
-
-
-## Loads the bundles of the world (`world_mods`) from the mods' files it plays with: on a
-## server whose files were taken (`server_mods`), those; else the game's own. What was
-## read of the other files before (phrases, models, icons, the figure's pictures, the
-## sounds) is read anew.
-func _use_mods() -> void:
-	var was := Content.served_digest
-	if join_url != "" and hosted == null and server_mods.get("url", "") == join_url:
-		Content.serve(server_mods.table, server_mods.digest)
-	else:
-		server_mods = {}
-		Content.serve({})
-	Mods.activate(world_mods)
-	if Content.served_digest != was:
-		mod_reload.forget_files()
-		sound.read_records()
-
-
-## Opens the socket to the server and says hello; the welcome comes while the scene
-## is built (see start_world).
-func _connect() -> void:
-	socket = Socket.new()
-	socket.closed.connect(_on_socket_closed)
-	if socket.open(join_url) != OK:
-		join_error = "[invalid_server_address]"
-		return
-	net = socket.net
-	mod_reload.watch_server(net)
-	# The hello names the mods' files the game plays with, set by now (_use_mods); a
-	# server made here is told its own.
-	# A bot comes in new each time: bots started side by side share this device's keys.
-	var key: String = "" if bot != null else ServerList.key(join_url)
-	var mods := ""
-	if hosted != null and hosted.server != null:
-		hosted.server.content.ready()
-		mods = hosted.server.content.digest
-	socket.hello(player_name, key, join_password, mods).then(_on_welcome)
-
-
-func _on_welcome(v: Variant) -> void:
-	if not v is Dictionary or v.get("ok") != true:
-		var why: String = v.get("why", "") if v is Dictionary else ""
-		if why == Protocol.WHY_MODS and _take_mods(v):
-			return
-		join_error = {Protocol.WHY_VERSION: "[different_game_version_reload_the]",
-			Protocol.WHY_PASSWORD: "[wrong_password]", Protocol.WHY_FULL: "[server_is_full]",
-			Protocol.WHY_NAME: "[a_name_is_required]", Protocol.WHY_BANNED: "[the_server_host_has_banned]",
-			Protocol.WHY_LIST: "[this_server_lets_in_only]",
-			Protocol.WHY_TAKEN: "[this_name_is_already_taken]",
-			Protocol.WHY_WAIT: "[too_many_attempts_wait_a]"}.get(why, "[the_server_did_not_let]")
-		return
-	if not v.get("seed") is int or not v.get("settings") is Dictionary or not v.get("mods") is Array \
-			or not v.get("materials") is Array or not v.get("at") is Vector3:
-		join_error = "[the_server_answered_in_an]"
-		return
-	welcome = v
-	rejoin_until = 0
-	mods_tries = 0
-	if bot == null:
-		ServerList.remember(join_url, str(v.get("key", "")), str(v.get("title", "")))
-	# The player who made the server here is its host: commands in the chat are theirs.
-	if hosted != null and hosted.server != null:
-		hosted.server.make_host(str(v.get("key", "")))
-
-
-## The server plays with other mods' files than this game (the refusal `v`,
-## Protocol.WHY_MODS): with its own files for the server's bundles when those are the
-## same, else with the server's, taken over this connection (ModFetch; _join_world shows
-## how it goes); then the scene starts again with them and says hello anew. False when
-## the refusal is not one to act on (join_error says why).
-func _take_mods(v: Dictionary) -> bool:
-	var list: Variant = v.get("mods")
-	var digest: Variant = v.get("content")
-	mods_tries += 1
-	if not list is Array or list.size() > 4096 or not ModFiles.valid_hash(digest) or hosted != null:
-		join_error = "[the_server_answered_in_an]"
-		return true
-	for b: Variant in list:
-		if not b is String or b.length() > 128:
-			join_error = "[the_server_answered_in_an]"
-			return true
-	if mods_tries > MODS_TRIES:
-		join_error = "[the_servers_mod_data_keeps]"
-		return true
-	print("the server plays with other mod files (%s, %d KB)" % [digest, int(v.get("size", 0)) >> 10])
-	pending_mods = Array(list)
-	server_mods = {}
-	Content.serve({})
-	if Content.own_digest(pending_mods) == digest:
-		# The same files, other bundles: this game's own will do.
-		restart.call_deferred()
-		return true
-	mod_fetch = ModFetch.new()
-	mod_fetch.no_ask = bot != null
-	mod_fetch.finished.connect(_on_mods_taken)
-	mod_fetch.begin(net, digest, pending_mods)
-	return true
-
-
-func _on_mods_taken(ok: bool) -> void:
-	if not is_inside_tree():
-		return
-	if not ok:
-		join_error = mod_fetch.error
-		pending_mods = []
-		return
-	print("the server's mod files: %d taken (%d KB), %d in all" % [mod_fetch.files, mod_fetch.got >> 10, mod_fetch.table.size()])
-	server_mods = {"url": join_url, "digest": mod_fetch.digest, "table": mod_fetch.table}
-	restart.call_deferred()
-
-
-func _on_socket_closed(code: int, reason: String) -> void:
-	if not is_inside_tree():
-		return
-	if code == Protocol.CLOSE_RENEW and not welcome.is_empty():
-		# The server goes over to another world: in again once it is up.
-		print("the server goes over to another world: joining again")
-		rejoin_until = Time.get_ticks_msec() + int(REJOIN_WAIT * 1000.0)
-		if hud != null:
-			hud.set_loading("[the_server_is_moving_to_n2]")
-		restart.call_deferred()
-		return
-	if server_stopping():
-		return
-	if mod_fetch != null and mod_fetch.state in ["list", "ask", "files"]:
-		mod_fetch.stop()
-	if join_error == "" and welcome.is_empty():
-		# A browser says nothing of a server that is not there but a code without words.
-		join_error = "[the_server_does_not_respond]" if code < 0 or reason == "" else Lang.line("[the_server_closed_the_door]", [reason])
-	elif join_error == "":
-		join_error = "[connection_to_the_server_lost]" if code < 0 else (Lang.line("[server_n3]", [reason]) if reason != "" else "[the_server_closed_the_connection]")
-		if hud != null:
-			hud.set_loading(join_error)
-		if menu != null:
-			menu.join_failed(join_error)
-
-
-## The loading screen while the server's mods' files are taken: how much of them came.
-func _show_mods_taken() -> void:
-	if hud == null or mod_fetch == null:
-		return
-	var text := ""
-	if mod_fetch.state == "files":
-		text = Lang.line("[mod_data_s_of_s_mb]", [_mb(mod_fetch.got), _mb(mod_fetch.want)])
-	elif mod_fetch.state == "list":
-		text = "[mod_data]"
-	if text != "" and text != loading_stage:
-		# The menu's loading card names the stage; the plain line shows without a menu.
-		loading_stage = text
-		hud.set_loading(text)
-
-
-## `bytes` as megabytes with one digit after the point.
-static func _mb(bytes: int) -> String:
-	return "%.1f" % (bytes / 1048576.0)
-
-
 ## Generates the world chosen (see SaveGame.choose_world) and builds the scene around
 ## the spawn, or where the player was when it was saved; over a socket, takes the world
 ## of the server's welcome and builds the scene where the server put the character.
 func start_world() -> void:
-	_stages_count = 4 if socket != null else 3
-	if socket != null:
+	_stages_count = 4 if link.socket != null else 3
+	if link.socket != null:
 		await _join_world()
 		return
 	# Each heavy part says what it does and lets it show first; `world` is set only once
@@ -793,39 +478,9 @@ func _join_world() -> void:
 	await _loading_stage("[connecting_to_the_server]")
 	if not is_inside_tree():
 		return
-	var since := Time.get_ticks_msec()
-	while welcome.is_empty() and join_error == "":
-		if mod_fetch != null:
-			# The server's mods' files are being taken: the scene starts again with them.
-			mod_fetch.update()
-			_show_mods_taken()
-			if mod_fetch.state == "ask":
-				# A lot to take: the player is told how much and joins again to agree.
-				if mods_allowed == mod_fetch.digest:
-					mod_fetch.allow()
-				else:
-					mods_allowed = mod_fetch.digest
-					join_error = Lang.line("[the_server_asks_to_download]", [_mb(mod_fetch.want)])
-		elif Time.get_ticks_msec() - since > JOIN_WAIT * 1000.0:
-			join_error = "[the_server_does_not_respond]"
-			break
-		await get_tree().process_frame
-		# The loading was cancelled: the scene is out of the tree, going.
-		if not is_inside_tree():
-			return
-	if join_error != "" and Time.get_ticks_msec() < rejoin_until:
-		# The server is making its other world: tried again a little later.
-		hud.set_loading("[the_server_is_moving_to_n2]")
-		await get_tree().create_timer(REJOIN_EVERY).timeout
-		if is_inside_tree():
-			restart()
+	if not await link.wait_welcome():
 		return
-	if join_error != "":
-		hud.set_loading(join_error)
-		print("join %s failed: %s" % [join_url, join_error])
-		if menu != null:
-			menu.join_failed(join_error)
-		return
+	var welcome := link.welcome
 	world_seed = welcome.seed
 	world_options = {}
 	for k: String in WorldGen.DEFAULT_SETTINGS:
@@ -833,7 +488,7 @@ func _join_world() -> void:
 	if Array(welcome.mods) != world_mods:
 		# The server's bundles: the scene starts again with them (decision 153, 5А).
 		print("the server plays with other bundles: starting again with them")
-		pending_mods = Array(welcome.mods)
+		ServerLink.pending_mods = Array(welcome.mods)
 		restart()
 		return
 	await _loading_stage("[continents_and_rivers]")
@@ -844,7 +499,7 @@ func _join_world() -> void:
 	if Array(welcome.materials) != Array(Mat.IDS):
 		# The server numbered its materials in its own order: translate.
 		gen.material_map = Mat.remap(PackedStringArray(welcome.materials))
-	print("world %d %s of %s: laid out in %d ms" % [world_seed, world_options, join_url, Time.get_ticks_msec() - t0])
+	print("world %d %s of %s: laid out in %d ms" % [world_seed, world_options, link.join_url, Time.get_ticks_msec() - t0])
 	await _loading_stage("[map_and_materials]")
 	if not is_inside_tree():
 		return
@@ -993,9 +648,9 @@ func _build_while_paused() -> void:
 	# The tree's signal, so it also comes in the frame a restart takes this scene out.
 	if not is_inside_tree():
 		return
-	if get_tree().paused and socket != null:
+	if get_tree().paused and link.socket != null:
 		# The server goes on: what it sends is taken while the game here is paused.
-		socket.poll()
+		link.socket.poll()
 	if not get_tree().paused or not ready_to_play or world == null:
 		return
 	chunks.paused = true
@@ -1029,9 +684,9 @@ func _exit_tree() -> void:
 	Lang.drop()
 	if host != null and host.runner != null:
 		host.stop()
-	if socket != null:
-		socket.leave()
-		socket.poll()
+	if link.socket != null:
+		link.socket.leave()
+		link.socket.poll()
 
 
 ## Points the player's body the way its vessel points when it takes the oars (boarded,
@@ -1055,9 +710,9 @@ func _process(delta: float) -> void:
 	perf.add_frame(delta)
 	# Taken before the poll, so the part «сеть» holds what the copies took of it.
 	var t := Time.get_ticks_usec()
-	if socket != null:
+	if link.socket != null:
 		# What the server sent since the last frame: the copies take it first.
-		socket.poll()
+		link.socket.poll()
 	if world == null:
 		# On the menu, before the world is asked for: the safe rect still follows the screen.
 		view.poll_safe_rect(delta)
@@ -1314,14 +969,14 @@ func _build_menu() -> void:
 	if play_at_once:
 		play_at_once = false
 		menu.play(MainMenu.back_to)
-	elif show_host:
+	elif ServerLink.show_host:
 		# The server was made (or not) by the restart: its window.
-		show_host = false
+		ServerLink.show_host = false
 		menu.open_host()
-	elif offered != "":
+	elif ServerLink.offered != "":
 		# A link with `?server=`: «Присоединиться» with its address.
-		menu.open_join(offered)
-		offered = ""
+		menu.open_join(ServerLink.offered)
+		ServerLink.offered = ""
 	elif MainMenu.back_to != "":
 		# The loading was cancelled: the page it was asked from.
 		menu.go_back()
