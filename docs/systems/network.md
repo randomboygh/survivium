@@ -52,7 +52,7 @@ length up to `CHAT_MAX` 160.
   `Content.playing()`]), the reply is a welcome `{"ok": true, "id", "key",
   "name", "seed", "settings", "mods", "materials", "spawn", "at"}` or a refusal `{"ok": false, "why": version |
   password | full | name | banned | list | taken | wait}` (`taken` — the name is taken by another in the world
-  or it is the server's name, `wait` — many wrong passwords or new players in a row), after which the server
+  or it is the server's name or a translation key — so a name the game gave when the player set none (`[host]`, `[player_n2]`) goes in words, a player's with four figures from the key, `ServerLink.sent_name`; `wait` — many wrong passwords or new players in a row), after which the server
   closes the link; the refusal `mods` (decision 189: the game's mod files are not the server's) also carries
   `mods` (the server's bundles), `content` (the hash of its files) and `size`, and does not close the link: the
   game takes the files it lacks and says `hello` again (the events `mod_list` [] → [size, bytes], `mod_files`
