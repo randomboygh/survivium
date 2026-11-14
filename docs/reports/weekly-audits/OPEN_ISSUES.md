@@ -10,12 +10,13 @@ four pull requests merged in between (#577–#580), #579 and #578 reach WA-031 a
 Closed since: WA-031 (#579, both main runs after it green), WA-040, WA-041, WA-042, WA-043, WA-045 (#583),
 WA-048 (`balance_report --check` in CI and `run_all.sh`), WA-028, WA-029, WA-054, WA-055, WA-056 (#585),
 WA-012, WA-013, WA-014, WA-015, WA-016, WA-017, WA-019, WA-022 (#587; WA-018 in part),
-WA-024 (#586: `src/client/net/server_link.gd`, no forwarding left on Main).
+WA-024 (#586: `src/client/net/server_link.gd`, no forwarding left on Main),
+WA-027 (the twelve uncalled functions deleted; the palettes' filters of the build and farming modes stay: kept with the player and tested, waiting for their buttons).
 WA-049, WA-050 (the owner picked option A for each), WA-064 (the owner's playtest: the numbers kept).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 1 | 15 | 16 | 32 |
+| 0 | 1 | 15 | 15 | 31 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
@@ -201,16 +202,6 @@ recommendations.
 - **Files and systems:** `src/client/save_game.gd`
 - **Consequences:** Bans, hosts and players' records of a world hosted on this device go with it.
 - **Recommended fix:** Plan: name the hosted data in the warning, or keep `players/` and `access.json`.
-- **Status:** Open: user decision; first found 2026-11-14 (new); due backlog.
-
-### WA-027 · Low · Dead code
-
-- **Description:** Thirteen functions are never called.
-- **Cause:** Left after changes.
-- **Confirmation:** `grep -w` over src, tests, tools, docs: `land.has_mine`, `farm_mode.next_filter`, `icon_tabs.set_tip`, `scroll_column.add_item`, `clear_items`, `set_shown`, `boats.vessel_at`, `actions_base.put_block`, `actions_water.biome_under`, `placed.is_steps`, `workshop.condition`, `shader_probe._body`; filter state "not shown for now" in the modes.
-- **Files and systems:** the files named
-- **Consequences:** Reading cost; some may be meant for the next stage.
-- **Recommended fix:** The owner decides what to delete.
 - **Status:** Open: user decision; first found 2026-11-14 (new); due backlog.
 
 ### WA-030 · Low · Content by role

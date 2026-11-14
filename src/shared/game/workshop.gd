@@ -304,12 +304,6 @@ func _wear_tools(r: Dictionary) -> void:
 				break
 
 
-## How much of tool `id` worn by `worn` swings of quality `q` is left, 0..1 (1 for no wear).
-static func condition(id: String, worn: int, q := Quality.NORMAL) -> float:
-	var d: int = Quality.durability(Items.get_item(id).get("durability", 0), q)
-	return 1.0 if d <= 0 else clampf(1.0 - float(worn) / d, 0.0, 1.0)
-
-
 ## Why the tool in bag slot `i` cannot be repaired now; "" when it can.
 func why_not_repair(i: int) -> String:
 	var inv = who.inventory

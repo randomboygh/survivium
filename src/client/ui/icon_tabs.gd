@@ -67,12 +67,6 @@ func set_tabs(keys: Array, icons: Dictionary, tips: Dictionary) -> bool:
 	return chosen != was
 
 
-## Tooltip `tip` on tab `key`.
-func set_tip(key: String, tip: String) -> void:
-	if _buttons.has(key):
-		_buttons[key].tooltip_text = tip
-
-
 func pick(key: String) -> void:
 	if _column.swiped:
 		_column.swiped = false
