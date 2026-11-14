@@ -256,6 +256,10 @@ func _test_swimmers(w: WorldData) -> void:
 	life.clock = Clock.new()
 	life.clock.time_of_day = 0.5
 	life.people = [Who.new()]
+	# The animals that come round the person meanwhile (perches into this pond, frogs on its
+	# bank) are drawn from the numbers, unseeded a new draw each run: the check failed CI once
+	# (2026-11-14) and passed on a rerun. Seeded, the swim is the same each run.
+	life.rng.seed = 11
 	var at := Vector3(px + 3.0, 0.0, pz + 3.0) * WorldData.CELL
 	var top := (5.0 + WorldData.WATER_TOP) * WorldData.CELL
 	_check(is_equal_approx(life.water_top(at.x, at.z), top), "the water surface of a pond")
