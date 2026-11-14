@@ -386,6 +386,9 @@ const SHOTS := {
 	"orchard-east-morning": {"time": 0.3, "season": 1, "orchard": true, "pan": 55},
 	# A clearing with an oak and a spruce, then the same after both are felled.
 	"clearing": {"time": 0.42, "season": 1, "clearing": true},
+	# The same trees with their feet against a bank a level higher, as by a river:
+	# bark down to the ground, not a block of wood.
+	"bank-trunks": {"time": 0.42, "season": 1, "clearing": true, "bank": true},
 	# The player just behind the oak of the clearing and behind its spruce: the trunk
 	# clears over them but for its foot, the crown round them, no silhouette there.
 	"behind-trunk": {"time": 0.42, "season": 1, "clearing": true, "offset": Vector3(-3.5, 0.0, -2.0)},

@@ -262,7 +262,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				Water.falls(water, faces, c, nb, side_offsets, i, dy, base)
 			if fills != 0:
 				_fill_faces(solid, c, sh, cov, i, dy, dz, base)
-		elif m == Mat.LOG and Trunks.is_trunk(nb):
+		elif m == Mat.LOG and Trunks.is_trunk(nb, w.trees.has(Vector2i(x, z))):
 			Trunks.trunk_faces(solid, w, x, y, z, nb, base, m)
 		elif sh[i] & 15 != 0 and not cov[nb[2]]:
 			var cuts := sh[i] >> 4
@@ -289,8 +289,9 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				var n := nb[d]
 				if cov[n] and sh[i + side_offsets[d]] & 15 == 0 \
 						and not (by_form and forms.has(i + offsets[d]) and not Forms.covers_side(forms[i + offsets[d]], d ^ 1)):
-					# The ground under a thin trunk still shows around it.
-					if not (d == FACE_TOP and n == Mat.LOG and Trunks.trunk_at(w, x, y + 1, z)):
+					# The ground under a thin trunk, and a bank beside its foot, still show around it.
+					var o: Vector3i = DIRS[d]
+					if not (n == Mat.LOG and d != FACE_BOTTOM and Trunks.trunk_at(w, x + o.x, y + o.y, z + o.z)):
 						continue
 				var tile := m * 3 + (0 if d == FACE_TOP else (2 if d == FACE_BOTTOM else 1))
 				var edges := 0
@@ -514,7 +515,7 @@ static func finish_part(job: Job, i: int) -> ArrayMesh:
 
 ## Cells of each column of x0..x1, z0..z1 (row by row) that may show a face, as bit
 ## masks of levels: those that hide what is behind them next to an open or sloping
-## cell, under a cut corner or a trunk; water next to air; open cells with filled
+## cell, under a cut corner or a trunk, beside a log (a trunk's foot against a bank); water next to air; open cells with filled
 ## corners. Where no chunk is kept beside, the cells count as next to open air.
 static func _candidates(w, x0: int, z0: int, x1: int, z1: int) -> PackedInt64Array:
 	var all: int = w.all_bits
@@ -541,7 +542,8 @@ static func _candidates(w, x0: int, z0: int, x1: int, z1: int) -> PackedInt64Arr
 			var corners := corner_cols[col]
 			var cover := ~open & all
 			var near := (open >> 1) | top_bit | (open << 1) & all | sloped | (sloped >> 1) | (sloped << 1) & all \
-				| (corners & cover) >> 1 | log_cols[col] >> 1
+				| (corners & cover) >> 1 | log_cols[col] >> 1 \
+				| log_cols[col - 1] | log_cols[col + 1] | log_cols[col - sx] | log_cols[col + sx]
 			var air_near := (air >> 1) | top_bit
 			var a := air_cols[col - 1] | air_cols[col + 1] | air_cols[col - sx] | air_cols[col + sx]
 			near |= a | water_cols[col - 1] | water_cols[col + 1] | water_cols[col - sx] | water_cols[col + sx] \
