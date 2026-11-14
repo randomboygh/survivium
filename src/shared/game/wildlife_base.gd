@@ -71,8 +71,12 @@ const DESCENT := 4.0
 const FLY_CHANCE := 0.05
 ## Chance a walker that likes some plants looks for them when it picks where to go.
 const GRAZE_CHANCE := 0.3
-## How far a climber looks for a tree to run up from a threat, in world units.
+## How far a climber looks for a tree to run up from a threat, in world units; how
+## fast it goes up and down the trunk, in world units a second; and how many seconds
+## it stays up there once the threat is gone, before it comes down.
 const CLIMB_REACH := 6.0
+const CLIMB_SPEED := 2.0
+const STAY_UP := Vector2(4.0, 10.0)
 ## A swimmer keeps this far under the water surface, in cells.
 const DIP := 0.35
 ## A flock keeps within this many world units of its lead.
@@ -173,6 +177,10 @@ class Animal:
 	var perched := false
 	## A climber on its way to the tree its target is on top of.
 	var climb := false
+	## A climber up a tree (perched): where it stood at the trunk's foot, which it
+	## comes down to (INF: not up a tree), and its spot on top of the crown.
+	var foot := Vector3.INF
+	var crown := Vector3.ZERO
 	## The one it follows in its flock, null for a lead or one alone, and its own
 	## place in the flock around the lead.
 	var lead: Animal = null

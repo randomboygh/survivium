@@ -114,7 +114,9 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			if not spec.tame_food.is_empty() and a.hurt <= 0.0 and who.has_method("held") and who.held() in spec.tame_food:
 				continue
 			var at: Vector3 = who.position
-			var d := a.pos.distance_to(at)
+			# Up a tree it is as near to them as its foot is: however high the crown, a
+			# person by the trunk keeps it up there (it ran down and up again).
+			var d := (a.foot if a.foot.is_finite() else a.pos).distance_to(at)
 			if d < wary and d < threat_d:
 				threat_pos = at
 				threat_d = d
@@ -184,8 +186,13 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			if a.flying or not spec.swims:
 				return
 		if spec.roost == "trees":
-			# A climber stays up its tree, or runs up the nearest one.
-			if a.perched or a.climb:
+			# A climber stays up its tree (back up, if it was coming down) a while
+			# after the threat is gone, or runs up the nearest one.
+			if a.foot.is_finite():
+				a.target = a.crown
+				a.idle = rng.randf_range(STAY_UP.x, STAY_UP.y)
+				return
+			if a.climb:
 				return
 			var tree: Variant = _tree_spot(spec, a.pos, CLIMB_REACH)
 			if tree != null:
@@ -206,6 +213,9 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 		a.cause = ""
 		if a.climb:
 			return
+		if a.foot.is_finite():
+			a.target = a.crown
+			return
 		if spec.roost == "trees" and not a.aloft() and not was_resting:
 			var around: Vector3 = a.pos if lead == null or lead == a else lead.target
 			var tree: Variant = _tree_spot(spec, around, FLIGHT if spec.flies else CLIMB_REACH)
@@ -219,11 +229,13 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 		if not a.flying:
 			a.target = a.pos
 		return
-	if a.perched and not spec.flies:
-		# Safe and awake: a climber comes down.
-		a.perched = false
-		a.pos.y = ground(a.pos.x, a.pos.z)
-		a.target = a.pos
+	if a.foot.is_finite():
+		# Safe and awake: a climber comes down its trunk, once it has sat a while.
+		a.state = "wander"
+		a.cause = ""
+		if a.idle <= 0.0:
+			a.target = a.foot
+		return
 	if prey != null and a.hunger > 0.5:
 		a.state = "hunt"
 		a.cause = prey.kind

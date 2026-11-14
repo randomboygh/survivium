@@ -85,8 +85,8 @@ content/animals/
   in one of these colours (the picture is multiplied by it; draw such a one light). Beasts speed up and
   slow down smoothly, stand a while where they arrived, and push each other and the player apart by mass:
   the bear pushes the player aside, the player pushes the rabbit. A walker with `roost: trees` climbs (the squirrel):
-  from a threat it runs to the nearest tree and sleeps in the crown, where it cannot be reached, and comes down when it is
-  safe. A walker cannot reach a swimmer and vice versa, a flyer reaches all — this is how from masses and
+  from a threat it runs to the nearest tree and climbs its trunk, sleeps in the crown, where it cannot be reached, and
+  climbs down a few seconds after it is safe. A walker cannot reach a swimmer and vice versa, a flyer reaches all — this is how from masses and
   diets comes who catches whom.
 - Where it lives: `biomes: [biomes:taiga, biomes:forest]` — the beast comes only onto the land of these biomes
   (soft references to the "Biomes" mod: without it or without the biome's bundle — everywhere). `flock: [3, 5]` — in a herd
