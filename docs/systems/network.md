@@ -458,7 +458,7 @@ world of this device. The link is the status `playtest-link` of the launch's com
 the server itself: `Server.add_bot` makes an account with no connection (`Account.bot`: it never lingers and goes, it
 is not saved, its events are dropped), `src/server/server_bot.gd` (`ServerBot`, stepped by `TestCommands._process`)
 walks its body by `Body.step` and makes its requests through its `Requests` (paced) with the tasks and lines of the
-game's bot, given what it works with; «/test bot-» takes it out (`Server.remove_bot`). Elsewhere the bots are games with `--join … --bot`
+game's bot (both extend `src/shared/game/bot_brain.gd`: the pace, `TASKS`, `LINES`, the task's state, `best_weapon`), given what it works with; «/test bot-» takes it out (`Server.remove_bot`). Elsewhere the bots are games with `--join … --bot`
 (`src/client/input/bot.gd`, `Main.bot`): instead of keys `Bot.move` gives the walking direction and once in a
 few seconds takes a task (`TASKS`): walks near the spawn point, writes in the chat, a gesture, drops a thing,
 puts a sign with an inscription and a campfire, chops a tree nearby, hunts an animal with `health` nearby (the
