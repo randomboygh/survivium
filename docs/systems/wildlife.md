@@ -8,7 +8,7 @@ hungry; packs follow a leader, flyers roost in crowns, climbing walkers climb tr
 water, a kind with `biomes` appears only on its own land.
 
 **Files**
-- `src/shared/game/wildlife.gd` — the rules: `start(seed)`, `update(delta)`, `count(kind)`, `wanted(kind)`;
+- `src/shared/game/wildlife.gd` — the rules, a chain of parts (decision 168; each extends the one before, callers preload `wildlife.gd`): `wildlife_base.gd` (the numbers, `Animal`, the floor and the water under a point, the list), `wildlife_spawn.gd` (the chunks' animals, the refill, the tamed), `wildlife_move.gd` (fires, senses, flocks, walking, flying, trees, the jostle), `wildlife_fight.gd` (the blow that lands, the attacks on people), `wildlife.gd` (`update`, `_decide`, the AI's debug): `start(seed)`, `update(delta)`, `count(kind)`, `wanted(kind)`;
   `people` — all the players. Beasts belong to the ground: each chunk made to the end (`_made`: the stage
   `SHAPED`) in the square `SPAWN_REACH` of 80 cells around a player gets its own (`_settle_new` once per
   `SETTLE_EVERY` 1 s → `_populate_chunk`, nearest first, at most `SETTLE_MOST` 6 chunks a frame: after a
