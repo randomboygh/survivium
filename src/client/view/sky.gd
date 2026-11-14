@@ -93,6 +93,8 @@ var fog_drift := Vector2.ZERO
 var after_rain := 0.0
 ## Towards the sun or the moon in the sky, as _aim_sun last put it.
 var to_sun := Vector3.UP
+## The cloud shadows' slant last given to the shaders (see _aim_sun).
+var cloud_slant := Vector2.ZERO
 ## The side of the sky the light is on, in eighths of a turn from south toward west
 ## (see _light_side): the edges of the cells toward it are lit.
 var light_side := 0
@@ -271,8 +273,11 @@ func _aim_sun(azimuth: float, elevation: float) -> void:
 	# Cloud shadows fall along the light (cloud_light in common.gdshaderinc): how far
 	# across the land a shadow moves for each unit of height, no more than CLOUD_SLANT,
 	# so a low sun does not smear them over a whole hillside.
-	var slant := Vector2(to_sun.x, to_sun.z) / maxf(to_sun.y, 0.05)
-	RenderingServer.global_shader_parameter_set("cloud_slant", slant.limit_length(CLOUD_SLANT))
+	# Set only when the light has moved: the sun moves in steps.
+	var slant := (Vector2(to_sun.x, to_sun.z) / maxf(to_sun.y, 0.05)).limit_length(CLOUD_SLANT)
+	if slant != cloud_slant:
+		cloud_slant = slant
+		RenderingServer.global_shader_parameter_set("cloud_slant", slant)
 	_light_side(azimuth)
 
 
