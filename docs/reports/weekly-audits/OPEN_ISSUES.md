@@ -8,7 +8,7 @@ Last checked: 2026-11-14 ([WEEKLY_AUDIT_2026-11-14.md](WEEKLY_AUDIT_2026-11-14.m
 `b35d371` with that audit's fixes in the working tree. The fixes went into `main` on top of `e395528`: of the
 four pull requests merged in between (#577–#580), #579 and #578 reach WA-031 and WA-043, noted there.
 Closed since: WA-031 (#579, both main runs after it green), WA-040, WA-041, WA-042, WA-043, WA-045 (#583),
-WA-048 (`balance_report --check` in CI and `run_all.sh`), WA-028, WA-029, WA-054, WA-055, WA-056 (#585).
+WA-048 (`balance_report --check` in CI and `run_all.sh`), WA-028, WA-029, WA-054, WA-055, WA-056 (#585), WA-021 (#584), WA-020, WA-023, WA-057 (#596).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
