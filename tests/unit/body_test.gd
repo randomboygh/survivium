@@ -12,6 +12,7 @@ func run() -> void:
 	_test_long_step()
 	_test_wide_trunk()
 	_test_ground()
+	_test_people()
 
 
 func _test_raycast() -> void:
@@ -710,3 +711,52 @@ func _climb_pit(air_jumps: bool) -> float:
 		top = maxf(top, player.position.y / WorldData.CELL)
 	player.free()
 	return top
+
+
+## People do not walk through each other (Body.parting): two in one place step apart each
+## their own way, one walking into another standing is held off them, and none is pushed
+## into a wall.
+func _test_people() -> void:
+	var w := WorldData.new(8, Vector2i(8, 8))
+	for z in 8:
+		for x in 8:
+			w.set_cell(x, 0, z, Mat.STONE)
+	w.set_cell(5, 1, 4, Mat.STONE)
+	var cell := WorldData.CELL
+	var a := Body.new()
+	a.world = w
+	a.on_ground = true
+	var b := Body.new()
+	b.world = w
+	b.on_ground = true
+	var pa := Vector3(3.5, 1.0, 4.5) * cell
+	var pb := pa
+	for i in 60:
+		var na := Body.parting(pa, [[pb, 2]], 1.0 / 60.0)
+		var nb := Body.parting(pb, [[pa, 1]], 1.0 / 60.0)
+		a.nudge += na
+		b.nudge += nb
+		pa = a.step(pa, 1.0 / 60.0, false)
+		pb = b.step(pb, 1.0 / 60.0, false)
+	var apart := Vector2(pa.x - pb.x, pa.z - pb.z).length() / cell
+	_check(apart >= 2.0 * Body.PERSON_RADIUS - 0.05, "two in one place step apart (%.2f cells)" % apart)
+	var c := Body.new()
+	c.world = w
+	c.on_ground = true
+	var stands := Vector3(3.5, 1.0, 2.5) * cell
+	var at := Vector3(1.5, 1.0, 2.5) * cell
+	c.move_input = Vector2.RIGHT
+	for i in 60:
+		c.nudge += Body.parting(at, [[stands, 7]], 1.0 / 60.0)
+		at = c.step(at, 1.0 / 60.0, false)
+	_check(at.x < stands.x - 0.2 * cell, "walking into one standing does not pass through them")
+	var d := Body.new()
+	d.world = w
+	d.on_ground = true
+	at = Vector3(4.5, 1.0, 4.5) * cell
+	for i in 60:
+		d.nudge += Body.parting(at, [[Vector3(4.2, 1.0, 4.5) * cell, 3]], 1.0 / 60.0)
+		at = d.step(at, 1.0 / 60.0, false)
+	_check(at.x / cell <= 5.0 - Body.HALF_WIDTH + 0.01, "nobody is pushed into a wall")
+	_check(Body.parting(at, [[at + Vector3(0.0, 2.0 * cell, 0.0), 3]], 0.1) == Vector2.ZERO,
+		"one over the head is not stood in")
