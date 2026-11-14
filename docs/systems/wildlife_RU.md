@@ -10,7 +10,7 @@
 держатся открытой воды, вид с `biomes` появляется только на своей земле.
 
 **Файлы**
-- `src/shared/game/wildlife.gd` — правила: `start(seed)`, `update(delta)`, `count(kind)`, `wanted(kind)`;
+- `src/shared/game/wildlife.gd` — правила, цепочка частей (решение 168; каждая расширяет предыдущую, вызывающие грузят `wildlife.gd`): `wildlife_base.gd` (числа, `Animal`, пол и вода под точкой, список), `wildlife_spawn.gd` (звери чанков, восполнение, приручённые), `wildlife_move.gd` (огни, чувства, стаи, ходьба, полёт, деревья, толкание), `wildlife_fight.gd` (удар, атаки на людей), `wildlife.gd` (`update`, `_decide`, отладка ИИ): `start(seed)`, `update(delta)`, `count(kind)`, `wanted(kind)`;
   `people` — все игроки. Звери принадлежат земле: каждый чанк, сделанный до конца (`_made`: стадия
   `SHAPED`), в квадрате `SPAWN_REACH` 80 клеток вокруг игрока получает своих (`_settle_new` раз в
   `SETTLE_EVERY` 1 с → `_populate_chunk`, ближние первыми, не больше `SETTLE_MOST` 6 чанков за кадр: после

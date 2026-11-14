@@ -11,12 +11,13 @@ Closed since: WA-031 (#579, both main runs after it green), WA-040, WA-041, WA-0
 WA-048 (`balance_report --check` in CI and `run_all.sh`), WA-028, WA-029, WA-054, WA-055, WA-056 (#585),
 WA-012, WA-013, WA-014, WA-015, WA-016, WA-017, WA-019, WA-022 (#587; WA-018 in part),
 WA-024 (#586: `src/client/net/server_link.gd`, no forwarding left on Main),
-WA-027 (the twelve uncalled functions deleted; the palettes' filters of the build and farming modes stay: kept with the player and tested, waiting for their buttons).
+WA-027 (the twelve uncalled functions deleted; the palettes' filters of the build and farming modes stay: kept with the player and tested, waiting for their buttons),
+WA-026 (`work_mode.gd` under the build and farming modes, `bot_brain.gd` under the two bots, the server's roles used directly).
 WA-049, WA-050 (the owner picked option A for each), WA-064 (the owner's playtest: the numbers kept).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 1 | 15 | 15 | 31 |
+| 0 | 1 | 14 | 15 | 30 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
@@ -52,16 +53,6 @@ recommendations.
 - **Files and systems:** `src/shared/game/wildlife.gd`, `src/client/ui/ui_style.gd`, `src/client/ui/settings_menu.gd`, `src/shared/world/land_layout.gd`
 - **Consequences:** Hard to review and merge; `wildlife.gd` keeps growing.
 - **Recommended fix:** Plan: chains of parts as in decision 168; per-section functions.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due when next touched.
-
-### WA-026 · Medium · Duplication
-
-- **Description:** Two pairs of near-identical classes and a copy of the roles.
-- **Cause:** `build_mode.gd` and `farm_mode.gd` share their scaffolding; the client's `bot.gd` and `server_bot.gd` share tasks and helpers; `test_commands.gd` re-declares `ROLE_HOST` and `ROLE_OWNER`.
-- **Confirmation:** Read: `src/client/input/build_mode.gd:140-178` against `farm_mode.gd:115-155`; `src/server/server_bot.gd` header; `src/server/test_commands.gd:28-29`.
-- **Files and systems:** `src/client/input/`, `src/server/server_bot.gd`, `src/server/test_commands.gd`
-- **Consequences:** A fix in one copy is missed in the other; the roles can drift.
-- **Recommended fix:** Plan: a shared base for the modes, a shared bot brain, the server's roles used directly.
 - **Status:** Open: needs plan; first found 2026-11-14 (new); due when next touched.
 
 ### WA-032 · Medium · Performance
