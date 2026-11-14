@@ -9,11 +9,12 @@ Last checked: 2026-11-14 ([WEEKLY_AUDIT_2026-11-14.md](WEEKLY_AUDIT_2026-11-14.m
 four pull requests merged in between (#577–#580), #579 and #578 reach WA-031 and WA-043, noted there.
 Closed since: WA-031 (#579, both main runs after it green), WA-040, WA-041, WA-042, WA-043, WA-045 (#583),
 WA-048 (`balance_report --check` in CI and `run_all.sh`), WA-028, WA-029, WA-054, WA-055, WA-056 (#585),
-WA-012, WA-013, WA-014, WA-015, WA-016, WA-017, WA-019, WA-022 (#587; WA-018 in part).
+WA-012, WA-013, WA-014, WA-015, WA-016, WA-017, WA-019, WA-022 (#587; WA-018 in part),
+WA-024 (#586: `src/client/net/server_link.gd`, no forwarding left on Main).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 1 | 18 | 17 | 36 |
+| 0 | 1 | 17 | 17 | 35 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
@@ -40,16 +41,6 @@ recommendations.
 - **Consequences:** On joining and in new ground a cell stays as it was (dug, felled, wetted, a door's cut) until the chunk is sent again; `DROPS` can be overwritten the same way.
 - **Recommended fix:** Plan: patch the waiting pack or keep the pending cells and apply them after the restore; a test in `net_test`.
 - **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-27.
-
-### WA-024 · Medium · Architecture
-
-- **Description:** `main.gd` holds the client's connection and mod-download flow.
-- **Cause:** Joining, hosting and taking the server's files grew into the scene's root (1163 → 1466 lines).
-- **Confirmation:** Read: `src/client/main.gd:489-713` and 11 static vars at 287-324; tests write them (`tests/server_test.gd:751`).
-- **Files and systems:** `src/client/main.gd`, the menu callers, `tests/server_test.gd`, `docs/systems/network.md`
-- **Consequences:** Against the rule "main.gd only builds the scene and runs the frame": the flow is hard to test or change.
-- **Recommended fix:** Plan: a client module (for example `src/client/net/join_flow.gd`) with thin forwarding on Main. A structure change, so the user picks first.
-- **Status:** Open: user decision (structure); first found 2026-11-14 (new); due stage 2.
 
 ### WA-025 · Medium · Maintainability
 
