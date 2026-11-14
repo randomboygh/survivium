@@ -1,6 +1,7 @@
 // Sunlight among the trees (sun_rays.gd): mode 0 a shaft of light from the instance's
-// origin down along the light to the ground (COLOR: width, height over the ground,
-// phase, strength), drawn as a band across the view; mode 1 a fleck of sun on the
+// origin (on its tree's middle plane) down along the light to the ground (COLOR: width,
+// height over the ground, phase, strength; the basis's z.z: the crown's top), drawn as
+// a band across the view; mode 1 a fleck of sun on the
 // ground (COLOR: size, -, phase, strength). Light added to the picture, in a few
 // dithered steps like the rest of the light.
 shader_type spatial;
@@ -34,9 +35,11 @@ void vertex() {
 		vec2 run = normalize(b.xz - a.xz);
 		vec2 across = vec2(-run.y, run.x) * q.x * COLOR.r;
 		world_pos = mix(o, bottom, q.y);
-		// Lifted towards the camera (only in depth: the camera looks straight down), so the
-		// shaft shows over the lower edges of the crowns it comes past, not over their tops.
-		VERTEX = vec3(mix(a.x, b.x, q.y) + across.x, mix(a.y, b.y, q.y) + depth_lift, mix(a.z, b.z, q.y) + across.y);
+		// Lifted towards the camera (only in depth: the camera looks straight down) up to
+		// its crown's top, so the shaft shows over the crown it comes out of from its
+		// middle, and over the lower edges of the crowns it comes past, not over their tops.
+		float roof = MODEL_MATRIX[2].z + 0.5;
+		VERTEX = vec3(mix(a.x, b.x, q.y) + across.x, max(mix(a.y, b.y, q.y) + depth_lift, roof), mix(a.z, b.z, q.y) + across.y);
 	} else {
 		// Drifting a little with the leaves moving in the wind.
 		float sway = sin(TIME * 0.7 + phase * 6.28) * 0.04;

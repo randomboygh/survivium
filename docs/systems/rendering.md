@@ -57,7 +57,9 @@ voxel models of things.
   view get a short light (`REACH` 1.6 units, one per group `APART`); the others glow only on their own
   (`grass.gdshader`). Off by day and under snow, like the caps.
 - `src/client/view/fire_shadows.gd` — the shadows from fire drawn on the ground; `sun_rays.gd` — rays among
-  trees, glints, dust. The light of each tree is counted once per position of the sun (anew when the sun has
+  trees, glints, dust. A shaft starts on the tree's middle plane (upright, through the trunk, across the sun's
+  way) inside the crown's outline on it (a spruce's triangle), runs along the sun's light (at most `LONGEST`)
+  and is drawn in depth up to its crown's top, so it shows over the crown it comes out of. The light of each tree is counted once per position of the sun (anew when the sun has
   turned by `TURN`) and several trees per frame within `WORK_US`; at a player's step by `MOVE` the ready light
   is only laid out anew. Before, everything was counted whole in a frame and in a forest gave «engine» freezes
   of 100–200 ms on a phone. The time goes into the log as the part «rays».
