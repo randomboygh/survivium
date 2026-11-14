@@ -69,7 +69,7 @@ voxel models of things.
 - `src/client/view/fire_shadows.gd` — the shadows from fire drawn on the ground; `sun_rays.gd` — rays among
   trees, glints, dust. A shaft starts on the tree's middle plane (upright, through the trunk, across the sun's
   way) inside the crown's outline on it (a spruce's triangle), runs along the sun's light down to the ground
-  and ends on it (`_length`), 3 to 13 pixels wide; it is drawn at its own depth (lifted only `depth_lift`), so
+  and ends on it (`_length`), in bunches of 2–4 through one gap (one wide among narrow ones, bright beside pale), 3 to 13 pixels wide, slowly growing wider and paler and back in the shader; it is drawn at its own depth (lifted only `depth_lift`), so
   the leaves of its crown in front of it and the trees in front hide it: it shows coming out of the crown. The light of each tree is counted once per position of the sun (anew when the sun has
   turned by `TURN`) and several trees per frame within `WORK_US`; at a player's step by `MOVE` the ready light
   is only laid out anew. Before, everything was counted whole in a frame and in a forest gave «engine» freezes
@@ -95,8 +95,8 @@ voxel models of things.
   `cursor` (and the blueprint's ghost), `land` (the plots' borders).
 - `project.godot`, the section `[shader_globals]`: the global parameters the code changes (`cut_height`,
   `snow_amount`, `wind`, `view_up`, `view_slope`, `rest_view`, `view_squash`, `light_side`, `wrap_size` and
-  others). A global texture is set by `PixelTextures.set_global`, which keeps the one it replaces for
-  `HOLD_MS` (5 s): Vulkan (Android) drew garbage after a new scene (rejoining a server, reloading mods) when the
+  others). A global texture is set by `PixelTextures.set_global`, which keeps the one it replaces while
+  that scene and the next `HOLD_SCENES` (2) run: Vulkan (Android) drew garbage after a new scene (rejoining a server, reloading mods) when the
   old one was freed at once. A global texture that changes during play is drawn again in place
   (`ImageTexture.update`), never made anew: the fires' heat map (`Effects.heat_map`) once made one for each fire
   that came, several in a row while joining a server with camps.
