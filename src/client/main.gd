@@ -800,6 +800,9 @@ func _process(delta: float) -> void:
 			# Carried in someone's vessel: the body sits where its seat is.
 			player.body.move_input = Vector2.ZERO
 			player.position = WorldActions.seat_at(boats.vessels[character.vessel], 1)
+		if character.riding == "" and not player.body.climbing:
+			# Others are not walked through: the body makes way out of them (Body.parting).
+			player.body.nudge += others.parting(player.position, minf(delta, 0.05))
 		player.step(minf(delta, 0.05), jump)
 		character.update(delta)
 		workshop.update(delta)
