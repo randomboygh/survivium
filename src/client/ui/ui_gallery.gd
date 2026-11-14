@@ -146,6 +146,10 @@ func _buttons_page() -> void:
 	var off := Kit.button("[disabled]", say.bind("[disabled]"))
 	off.disabled = true
 	row.add_child(off)
+	# The main one has the plain one's states: lighter under the cursor, darker pressed, faded off.
+	var main_off := Kit.accent_button("[disabled]")
+	main_off.disabled = true
+	row.add_child(main_off)
 	_caption("[risky_ones_take_two_taps]")
 	row = _flow()
 	var bin := Kit.button("[delete]")
