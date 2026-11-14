@@ -53,6 +53,7 @@ func run() -> void:
 	_test_auto_quality()
 	_test_own_balloon()
 	_test_global_textures()
+	_test_fire_shadows_blank()
 	_test_glow_lights()
 
 
@@ -782,3 +783,14 @@ func _test_glow_lights() -> void:
 	g.update(0.1, PixelView.screen_plane(Vector3(2.0, 0.0, 2.0)), sky, clock)
 	_check(g.lights.all(func(l: OmniLight3D) -> bool: return not l.visible), "no lights once the chunk is gone")
 	g.free()
+
+
+## A new scene's fire shadows draw nothing until there are shadows: hidden, every
+## instance zeroed (a phone drew an unwritten buffer as long coloured wedges).
+func _test_fire_shadows_blank() -> void:
+	var f = FireShadows.new()
+	f._ready()
+	var b: PackedFloat32Array = f.multimesh.buffer
+	_check(not f.visible and b.size() == FireShadows.MAX_SHADOWS * 20 and b.count(0.0) == b.size(),
+		"fire shadows start hidden with every instance zeroed")
+	f.free()

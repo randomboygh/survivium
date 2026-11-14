@@ -130,8 +130,15 @@ func _ready() -> void:
 	mm.use_custom_data = true
 	mm.mesh = _wedge_mesh()
 	mm.instance_count = MAX_SHADOWS
+	# Every instance zeroed (no size, no strength): a new buffer may hold whatever the
+	# memory held, and the phone drew it after a new scene (long yellow and blue wedges
+	# and lines by day, 2026-11-14) as if visible_instance_count were not there.
+	var zero := PackedFloat32Array()
+	zero.resize(MAX_SHADOWS * (12 + 4 + 4))
+	mm.buffer = zero
 	mm.visible_instance_count = 0
 	multimesh = mm
+	visible = false
 	var mat := ShaderMaterial.new()
 	mat.shader = FireShadowShader
 	material_override = mat
@@ -193,6 +200,9 @@ func _process(_delta: float) -> void:
 		_show_spots([])
 	_shade(shades)
 	mm.visible_instance_count = n
+	# Nothing drawn at all while there are no shadows (by day, switched off).
+	if visible != (n > 0):
+		visible = n > 0
 	game.hud.perf.note("fire shadows", t)
 
 
