@@ -133,6 +133,8 @@ func submit() -> void:
 			hear(0, "", "[commands_with_work_only_on]")
 		else:
 			hear(-1, game.link.player_name, text.left(MAX))
+			if game.others != null:
+				game.others.speak(-1, text.left(MAX))
 		return
 	if game.net != null:
 		print("chat: say %s" % text)

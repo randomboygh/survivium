@@ -6,7 +6,8 @@ extends Node3D
 ## name over its head. One the server stops telling of (PERSON_GONE: out of the zone or
 ## the world) goes; a member of the player's team has the name in the team's colour
 ## (the entry's last field). A line one says in the chat (HEARD) hangs over the name SAY_TIME
-## seconds in a balloon. The name and the balloon are the interface's own letters (like
+## seconds in a balloon; a line the player says hangs so over their own head (no name
+## there: the balloon's tail points at the head). The name and the balloon are the interface's own letters (like
 ## the signs' text, SignLabels), on a layer under the rest of it, put at the head's place
 ## on the screen each frame, whole pixels. A light one holds (a torch, a candle, a
 ## lantern: an item with `light`) burns in their hand, its flames there and, for the
@@ -75,6 +76,9 @@ var _flicker_clock := 0.0
 var _rng := RandomNumberGenerator.new()
 ## The layer the names and the balloons are on: the whole interface, under its other parts.
 var _layer: Control
+## The balloon over the player's own head: "line", "said", "tail", "until" as an entry of
+## `people` (made the first time they speak).
+var _own := {}
 
 
 ## Takes a PEOPLE event: the entries of those that changed.
@@ -114,14 +118,20 @@ func _exit_tree() -> void:
 		for flame: CPUParticles3D in one.flames:
 			flame.queue_free()
 		one.flames = []
+	_own = {}
 	if _layer != null:
 		_layer.queue_free()
 		_layer = null
 
 
-## Player `id` said `text` in the chat: it hangs over their head a while.
+## Player `id` said `text` in the chat: it hangs over their head a while. The player's
+## own id (the server's welcome) or -1 (single player) is the player themself.
 func speak(id: int, text: String) -> void:
 	var one: Dictionary = people.get(id, {})
+	if id == -1 or game != null and game.link != null and id == int(game.link.welcome.get("id", -2)):
+		if _own.is_empty():
+			_own = _make_line()
+		one = _own
 	if one.is_empty():
 		return
 	var said: Label = one.said
@@ -174,6 +184,16 @@ func _make(at: Vector3) -> Dictionary:
 	label.add_theme_constant_override("outline_size", 4)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_layer_made().add_child(label)
+	var out := _make_line()
+	out.merge({"figure": f, "label": label, "head": at,
+		"snaps": [], "work_n": -1, "hands": "", "gear": "", "light": "", "two": false,
+		"flames": [], "flicker": 1.0, "print_at": at, "left": false,
+		"col": Vector2i(floori(at.x / CELL), floori(at.z / CELL))})
+	return out
+
+
+## A balloon of what one says, hidden: "line" (the box), "said" (its words), "tail".
+func _make_line() -> Dictionary:
 	var line := PanelContainer.new()
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	line.add_theme_stylebox_override("panel", _balloon())
@@ -190,10 +210,7 @@ func _make(at: Vector3) -> Dictionary:
 	line.add_child(said)
 	line.visible = false
 	_layer_made().add_child(line)
-	return {"figure": f, "label": label, "line": line, "said": said, "tail": tail, "until": 0.0, "head": at,
-		"snaps": [], "work_n": -1, "hands": "", "gear": "", "light": "", "two": false,
-		"flames": [], "flicker": 1.0, "print_at": at, "left": false,
-		"col": Vector2i(floori(at.x / CELL), floori(at.z / CELL))}
+	return {"line": line, "said": said, "tail": tail, "until": 0.0}
 
 
 func _layer_made() -> Control:
@@ -228,17 +245,31 @@ func _place_labels() -> void:
 		label.reset_size()
 		var at: Vector2 = (game.view.screen_of(one.head) - t.origin) / t.get_scale()
 		label.position = (at - Vector2(label.size.x * 0.5, label.size.y)).floor()
-		var line: PanelContainer = one.line
-		if line.visible:
-			line.visible = now < one.until
-			line.reset_size()
-			var tail_h := float(UiStyle.BALLOON_TAIL / 2)
-			line.position = (Vector2(at.x - line.size.x * 0.5, label.position.y - line.size.y - tail_h - 1.0)).floor()
-			one.tail.position = Vector2(floorf(line.size.x * 0.5) - UiStyle.BALLOON_TAIL / 2, line.size.y - 1.0)
+		_place_line(one, at.x, label.position.y, now)
+	# The player's own, over their head where a name would stand.
+	if not _own.is_empty() and _own.line.visible and game.player != null:
+		var head: Vector3 = game.player.position + Vector3(0.0, Body.HEIGHT * CELL + NAME_OVER, 0.0)
+		var at: Vector2 = (game.view.screen_of(head) - t.origin) / t.get_scale()
+		_place_line(_own, at.x, floorf(at.y), now)
+
+
+## Puts the balloon of `one` (if it shows, till its time is up) with its middle at `x`, its
+## tail's tip over `top` (layer units).
+func _place_line(one: Dictionary, x: float, top: float, now: float) -> void:
+	var line: PanelContainer = one.line
+	if not line.visible:
+		return
+	line.visible = now < one.until
+	line.reset_size()
+	var tail_h := float(UiStyle.BALLOON_TAIL / 2)
+	line.position = (Vector2(x - line.size.x * 0.5, top - line.size.y - tail_h - 1.0)).floor()
+	one.tail.position = Vector2(floorf(line.size.x * 0.5) - UiStyle.BALLOON_TAIL / 2, line.size.y - 1.0)
 
 
 func _process(delta: float) -> void:
 	if people.is_empty():
+		if not _own.is_empty() and _own.line.visible:
+			_place_labels()
 		return
 	var t := Time.get_ticks_usec()
 	var now := Time.get_ticks_msec() / 1000.0 - DELAY

@@ -9,6 +9,7 @@ const FireShadows := preload("res://src/client/view/fire_shadows.gd")
 const EdgeHaze := preload("res://src/client/world/edge_haze.gd")
 const AutoQuality := preload("res://src/client/view/auto_quality.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
+const Others := preload("res://src/client/view/others.gd")
 
 
 ## Settings that keep values alone, for AutoQuality.
@@ -21,6 +22,18 @@ class FakeSettings:
 
 	func save() -> void:
 		pass
+
+
+## The link and the game's parts the others' view asks of, for the own balloon.
+class FakeLink:
+	var welcome := {"id": 5}
+
+
+class FakeGame:
+	var link := FakeLink.new()
+	var hud = null
+	var player = null
+	var view = null
 
 
 func run() -> void:
@@ -36,6 +49,7 @@ func run() -> void:
 	_test_light_maps()
 	_test_edge_haze()
 	_test_auto_quality()
+	_test_own_balloon()
 
 
 func _test_pixel_view() -> void:
@@ -652,3 +666,19 @@ func _test_auto_quality() -> void:
 	_check(s.values.pixel_scale == 0, "and is left alone")
 	auto.turn_on()
 	_check(auto.step() == 0 and s.values.auto_ceiling == 0 and s.values.auto_quality, "«Авто» picked starts from the top")
+
+
+## A line the player says (their own id from the server, -1 in single player) hangs in a
+## balloon over their own head; one of nobody known shows none.
+func _test_own_balloon() -> void:
+	var others = Others.new()
+	others.game = FakeGame.new()
+	others.speak(7, "who?")
+	_check(others._own.is_empty(), "a line of one not seen makes no balloon")
+	others.speak(5, "hello")
+	_check(not others._own.is_empty() and others._own.line.visible and others._own.said.text == "hello",
+		"the player's own line on a server shows over their head")
+	others._own.line.visible = false
+	others.speak(-1, "alone")
+	_check(others._own.line.visible and others._own.said.text == "alone", "and in single player")
+	others.free()
