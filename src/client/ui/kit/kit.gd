@@ -109,6 +109,21 @@ static func field(hint := "", width := 0.0, most := 0, height := FIELD_H) -> Lin
 	return f
 
 
+## Gives text `l` the room a list's rows keep from their sides (UiStyle.BAR_GAP), so
+## words never stand closer to a window's frame than a row's name does. A window of the
+## kit (window.gd) gives it to every text put straight into its column; a text inside
+## an inset list (UiStyle.inset) has that room already.
+static func text_room(l: Label) -> void:
+	if _text_box == null:
+		_text_box = StyleBoxEmpty.new()
+		_text_box.content_margin_left = UiStyle.BAR_GAP
+		_text_box.content_margin_right = UiStyle.BAR_GAP
+	l.add_theme_stylebox_override("normal", _text_box)
+
+
+static var _text_box: StyleBoxEmpty
+
+
 ## Things one under another, `gap` apart.
 static func column(gap := 4) -> VBoxContainer:
 	var c := VBoxContainer.new()
@@ -194,6 +209,18 @@ static func scroll(content: Control, inset := true) -> ScrollContainer:
 		s.add_child(room)
 		var bar := s.get_v_scroll_bar()
 		bar.visibility_changed.connect(func() -> void: UiStyle.bar_room(room, bar.visible, s))
+		# The bar's room counts in the list's width whether it shows or not, so the
+		# window does not widen when the list starts to scroll: with no bar the rows
+		# fill that room (the kit's rule: as much room on the right as on the left).
+		var rows: Control = room.get_child(0)
+		var keep := func() -> void:
+			var w := bar.get_combined_minimum_size().x
+			s.custom_minimum_size.x = rows.get_combined_minimum_size().x \
+				+ room.get_theme_constant("margin_left") + UiStyle.BAR_GAP + 2 * w
+		rows.minimum_size_changed.connect(keep)
+		# A room inset by its owner after (UiStyle.inset_room) is counted then.
+		room.minimum_size_changed.connect(keep)
+		keep.call()
 	DragScroll.attach(s)
 	return s
 
