@@ -49,6 +49,9 @@ const SCHEMAS := {
 		"toughness": {"type": "float", "min": 0.0, "default": 0.0},
 		"bonus": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "dig"},
 		"bonus_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		# Things found now and then in a cell dug out of the world as it grew (not one a
+		# player put there): item -> the chance (0..1) one of it comes out with the cell.
+		"finds": {"type": "shares", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "dig"},
 		"mow": {"type": "ref:materials", "default": "", "rel": "becomes", "via": "mow"},
 		"mow_gives": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "mow"},
 		"step": {"type": "sound", "default": ""},
@@ -61,6 +64,9 @@ const SCHEMAS := {
 		"heal": {"type": "float", "min": 0.0, "default": 0.0},
 		"heal_time": {"type": "float", "min": 0.0, "default": 0.0},
 		"visions": {"type": "float", "min": 0.0, "max": 600.0, "default": 0.0},
+		# Seconds of calm one drunk or eaten gives (a tea): asleep in them, sleep rests
+		# Vitals.CALM_SLEEP times faster; they add up to Vitals.CALM_MAX.
+		"calm": {"type": "float", "min": 0.0, "max": 600.0, "default": 0.0},
 		"place": {"type": "ref:materials", "default": "", "rel": "builds", "via": "place"},
 		"model": {"type": "string", "default": ""},
 		"icon": {"type": "string", "default": ""},
@@ -417,6 +423,16 @@ const SCHEMAS := {
 		# sprite's frames are each `across` columns of PLANT_W px, left to right.
 		"across": {"type": "int", "min": 1, "max": 4, "default": 1},
 		"grows": {"type": "enum", "values": ["meadow", "shade", "woods", "bank", "field"], "default": "meadow"},
+		# How a custom plant changes as it stands (grass.gdshader): shy — it folds as someone
+		# passes, night — it opens at dusk; the second half of its frames is the plant so
+		# (the folded, the open one). Texels of its picture with an alpha of 200..240 glint
+		# in the sun (dew).
+		"looks": {"type": "enum", "values": ["", "shy", "night"], "default": ""},
+		# Picking it breathes out a puff of spores (a puffball; the client's Effects.puff).
+		"puff": {"type": "bool", "default": false},
+		# The share of the places on the open meadows (Grass.RING_GRID cells apart) where
+		# it grows in a fairy ring (Grass.fairy_ring); 0 never.
+		"rings": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		# A crop (kind crop, sown on a bed from an item with `crop`): the days it grows in
 		# the warm seasons on a wet bed until it is ripe (its last frame), and whether a
 		# scythe cuts it (grain, flax), not only hands and a sickle.

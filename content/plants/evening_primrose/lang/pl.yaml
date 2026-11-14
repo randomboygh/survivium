@@ -1,0 +1,16 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/evening_primrose/bundle.yaml
+"[plants.evening_primrose.bundle]": "Wiesiołek"
+
+# content/plants/evening_primrose/data/items.yaml
+"[plants.items.evening_primrose]": "Kwiaty wiesiołka"
+"[plants.items.primrose_tea]": "Napar z wiesiołka"
+"[plants.items.primrose_tea.about]": "Kojący napar: wypity przed snem pogłębia sen i szybciej daje wypoczynek."
+
+# content/plants/evening_primrose/data/plants.yaml
+"[plants.plants.evening_primrose]": "Wiesiołek"
+
+# content/plants/evening_primrose/data/recipes.yaml
+"[plants.recipes.primrose_tea]": "Napar z wiesiołka"

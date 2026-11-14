@@ -15,6 +15,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const GlowLights := preload("res://src/client/view/glow_lights.gd")
+const Wisps := preload("res://src/client/view/wisps.gd")
 
 ## How far round it a lightning bolt lights, world units.
 const BOLT_RANGE := 10.0
@@ -141,6 +142,10 @@ var dark := true
 var flicker_clock := 0.0
 ## The pools of light round the glowing mushrooms (GlowLights).
 var glows: Node3D
+## The will-o'-the-wisps over the swamps at night (Wisps, moved by Sky).
+var wisps: Node3D
+## The spores of a puffball picked (puff), made on first use.
+var _puff: CPUParticles3D
 var rng := RandomNumberGenerator.new()
 
 
@@ -266,6 +271,8 @@ func _ready() -> void:
 		torch_flames.append(torch_flame())
 	glows = GlowLights.new()
 	add_child(glows)
+	wisps = Wisps.new()
+	add_child(wisps)
 
 
 ## The flame of a torch in a hand (the player's, see hold_flames, or another player's,
@@ -739,6 +746,37 @@ func _burst_now(at: Vector3, m: int) -> void:
 	p.color_ramp = _ramp([c.lightened(0.15), c, c.darkened(0.25)])
 	p.position = at
 	p.restart()
+
+
+## A puff of brown spores breathed out of a puffball picked at `at`, `delay` seconds on
+## (as the hand reaches it): a soft cloud that rises a little and drifts off.
+func puff(at: Vector3, delay := 0.0) -> void:
+	if not enabled or not is_inside_tree():
+		return
+	get_tree().create_timer(delay).timeout.connect(_puff_now.bind(at))
+
+
+func _puff_now(at: Vector3) -> void:
+	if _puff == null:
+		_puff = _emitter(18, 2.2, Vector2(2.0 * PX, 2.0 * PX), 1.0)
+		_puff.one_shot = true
+		_puff.explosiveness = 0.85
+		_puff.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+		_puff.emission_sphere_radius = 0.1
+		_puff.direction = Vector3.UP
+		_puff.spread = 60.0
+		_puff.initial_velocity_min = 0.3
+		_puff.initial_velocity_max = 0.8
+		_puff.gravity = Vector3(0.15, 0.1, 0.0)
+		_puff.damping_min = 0.6
+		_puff.damping_max = 1.0
+		_puff.scale_amount_min = 1.0
+		_puff.scale_amount_max = 2.0
+		_puff.scale_amount_curve = _curve([0.5, 1.0])
+		_puff.color_ramp = _ramp([Color(0.55, 0.42, 0.28, 0.0), Color(0.6, 0.47, 0.3, 0.7), Color(0.66, 0.55, 0.4, 0.0)])
+		(_puff.mesh as QuadMesh).material.set_shader_parameter("sky_only", 0.0)
+	_puff.position = at
+	_puff.restart()
 
 
 ## Dust thrown out low round a thing just set down on ground of material `m` (Mat, -1

@@ -12,6 +12,8 @@
   gives: {mushroom: 2}
   pick: true
   winter: false
+  # Here and there on the open meadows they come up in a fairy ring (Grass.fairy_ring): in this share of its squares.
+  rings: 0.12
 - id: glow_mushrooms
   kind: glow_mushrooms
   title: "[plants.plants.glow_mushrooms]"

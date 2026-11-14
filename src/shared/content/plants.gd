@@ -43,6 +43,11 @@ static var CUSTOM: Array = []
 ## frame starting at that column (its plant's `across`), 0 for the other columns of a
 ## wide frame.
 static var ACROSS := PackedByteArray()
+## The plant that grows in fairy rings (its `rings` above 0; the last loaded such), ""
+## none, its index in BY_ID and the share of the places that hold a ring (Grass.fairy_ring).
+static var RING := ""
+static var RING_INDEX := -1
+static var RING_SHARE := 0.0
 
 
 static func _static_init() -> void:
@@ -54,8 +59,15 @@ static func refresh() -> void:
 	BY_KIND = {}
 	CUSTOM = []
 	ACROSS = PackedByteArray()
+	RING = ""
+	RING_INDEX = -1
+	RING_SHARE = 0.0
 	var frames := 0
 	for r in Content.records("plants"):
+		if r.get("rings", 0.0) > 0.0:
+			RING = r.id
+			RING_INDEX = BY_ID.size()
+			RING_SHARE = r.rings
 		BY_ID[r.id] = r
 		BY_KIND[r.kind] = r.id
 		if r.kind in [KINDS.CUSTOM, KINDS.CROP, KINDS.SAPLING]:
@@ -94,9 +106,16 @@ static func custom_frames() -> int:
 
 
 ## How many columns of PixelTextures.PLANT_W px the sprite of custom plant `c` has: its
-## frames, each `across` wide.
+## frames, each `across` wide, twice over for one that `looks` some other way at times
+## (folded, open at night: the second half).
 static func columns(c: Dictionary) -> int:
-	return c.frames * c.get("across", 1)
+	return c.frames * c.get("across", 1) * (2 if c.get("looks", "") != "" else 1)
+
+
+## How many columns past its own the other look of the column of custom plant `c` is (see
+## columns), 0 for a plant with one look.
+static func looks_shift(c: Dictionary) -> int:
+	return c.frames * c.get("across", 1) if c.get("looks", "") != "" else 0
 
 
 ## The custom plant whose frame `frame` (among all custom frames) is, "" past the end.
