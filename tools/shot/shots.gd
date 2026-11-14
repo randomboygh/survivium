@@ -298,6 +298,10 @@ const SHOTS := {
 	"adit": {"time": 0.42, "season": 1, "place": "adit"},
 	"mountain": {"time": 0.42, "season": 1, "place": "mountain"},
 	"mountain-winter": {"time": 0.45, "season": 3, "place": "mountain"},
+	# Cloud shadows over the mountain's and the cliffs' sheer walls: slanted along the sun,
+	# so a wall shows a soft edge, not a straight vertical stripe.
+	"clouds-mountain": {"time": 0.42, "season": 1, "place": "mountain", "clouds": 0.5},
+	"clouds-cliffs": {"time": 0.36, "season": 1, "place": "cliffs", "clouds": 0.5},
 	"peak": {"time": 0.42, "season": 1, "place": "peak"},
 	"waterfall": {"time": 0.42, "season": 1, "place": "waterfall"},
 	"rapids": {"time": 0.42, "season": 1, "place": "rapids"},

@@ -242,6 +242,10 @@ sun_view={
 "type": "vec3",
 "value": Vector3(0, 0, 1)
 }
+cloud_slant={
+"type": "vec2",
+"value": Vector2(0, 0)
+}
 ambient_light={
 "type": "vec3",
 "value": Vector3(0, 0, 0)

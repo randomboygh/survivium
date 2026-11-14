@@ -32,7 +32,9 @@
   `step_around(delta, места)` — игроки по очереди, `last_at`; зовёт сеанс мира),
   правила — `WorldActions.blow_branch` / `blow_berries`.
 - `src/client/view/sky.gd` — как это выглядит: свет, цветокор, облака, оттенки шейдеров
-  (см. [rendering.md](rendering_RU.md)); `src/client/audio/nature.gd` — как звучит.
+  (см. [rendering.md](rendering_RU.md)); `src/client/audio/nature.gd` — как звучит. Тени облаков
+  (`cloud_light` в `shaders/common.gdshaderinc`) падают по свету: `cloud_slant`, который ставит `_aim_sun`, сдвигает
+  точку выборки на её высоту (не больше `CLOUD_SLANT`), так что край тени идёт по стене наискось.
 
 **Данные.** Погода и календарь — константы `clock.gd` (в данные модов пока не вынесены, это в планах
 MVP); песчаные бури — флаг биома `sandstorms`.

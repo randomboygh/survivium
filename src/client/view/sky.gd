@@ -47,6 +47,9 @@ const LIGHT_SIDE_MARGIN := 7.5
 const AFTER_RAIN_DAYS := 0.08
 
 var game
+## How far a cloud's shadow may move across the land per unit of height at most
+## (cloud_slant): about a sun 20° up.
+const CLOUD_SLANT := 2.75
 var sun: DirectionalLight3D
 ## Steps a day the sun and the moon move in (see _update_light); 0 smoothly.
 var sun_steps := SUN_STEPS
@@ -265,6 +268,11 @@ func _aim_sun(azimuth: float, elevation: float) -> void:
 	sun.global_transform.basis = Basis.looking_at(-PixelView.light_dir(to_sun), Vector3.UP)
 	var view := PixelView.camera_transform(Vector2.ZERO).basis
 	RenderingServer.global_shader_parameter_set("sun_view", view.transposed() * to_sun)
+	# Cloud shadows fall along the light (cloud_light in common.gdshaderinc): how far
+	# across the land a shadow moves for each unit of height, no more than CLOUD_SLANT,
+	# so a low sun does not smear them over a whole hillside.
+	var slant := Vector2(to_sun.x, to_sun.z) / maxf(to_sun.y, 0.05)
+	RenderingServer.global_shader_parameter_set("cloud_slant", slant.limit_length(CLOUD_SLANT))
 	_light_side(azimuth)
 
 
