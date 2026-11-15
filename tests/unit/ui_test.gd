@@ -19,6 +19,7 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const MenuBackdrop := preload("res://src/client/ui/menu_backdrop.gd")
 const Settings := preload("res://src/client/settings.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
+const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 
 
 func run() -> void:
@@ -36,6 +37,7 @@ func run() -> void:
 	_test_menu_sparrow()
 	_test_map_fit()
 	_test_vibration()
+	_test_fling()
 
 
 func _test_two_tap() -> void:
@@ -494,3 +496,81 @@ func _test_vibration() -> void:
 	_check(s.values.vibration == Settings.DEFAULTS.vibration, "a step not offered is left as it comes")
 	DirAccess.remove_absolute(Settings.path)
 	Settings.path = was
+
+
+## A list flicked flies on and slows to a stop; pulled past an end it stretches less than
+## the finger went and springs back; a flick into an end bounces and comes back to rest
+## there; the wheel glides; a list whose rows fit neither scrolls nor stretches. Built
+## out of the tree: the bar's bounds are set by hand, time is stepped by hand.
+func _test_fling() -> void:
+	var list := ScrollContainer.new()
+	list.size = Vector2(200, 200)
+	var rows := Control.new()
+	rows.custom_minimum_size = Vector2(200, 1000)
+	list.add_child(rows)
+	var bar := list.get_v_scroll_bar()
+	bar.max_value = 1000
+	bar.page = 200
+	var drag = DragScroll.new()
+	list.add_child(drag)
+	drag._ready()
+	drag.now_ms = 1000
+	# A flick up by 120 px in 60 ms.
+	drag._finger = 0
+	drag.dragged = true
+	drag._scroll_from = 100.0
+	for i in 7:
+		drag.now_ms = 1000 + i * 10
+		drag._drag_to(100.0 + i * 20.0)
+	drag._finger = -1
+	drag._lift()
+	_check(drag.moving() and drag._speed > 1000.0, "a flick flies on (%.0f px/s)" % drag._speed)
+	var at := list.scroll_vertical
+	for i in 30:
+		drag.step(1.0 / 60.0)
+	_check(list.scroll_vertical > at + 100, "the list goes on after the finger lifts (%d → %d)" % [at, list.scroll_vertical])
+	for i in 300:
+		drag.step(1.0 / 60.0)
+	_check(not drag.moving() and list.scroll_vertical <= 800, "and slows to a stop within the list (%d)" % list.scroll_vertical)
+	# Pulled 100 px past the top: stretched less, back to 0 when let go.
+	list.scroll_vertical = 0
+	drag._finger = 0
+	drag.dragged = true
+	drag.now_ms = 5000
+	drag._drag_to(-100.0)
+	_check(drag.stretch() < 0 and drag.stretch() > -100 and rows.position.y > 0.0,
+		"pulled past the top the list stretches less than the finger went (%d)" % drag.stretch())
+	_check(list.scroll_vertical == 0, "and its scroll stays at the top")
+	drag.now_ms = 5200
+	drag._finger = -1
+	drag._lift()
+	for i in 120:
+		drag.step(1.0 / 60.0)
+	_check(drag.stretch() == 0 and not drag.moving() and is_zero_approx(rows.position.y),
+		"let go, it springs back (%d)" % drag.stretch())
+	# A fast flick into the end bounces a little past it and rests at the end.
+	list.scroll_vertical = 700
+	drag._fly(4000.0, DragScroll.FRICTION)
+	var most := 0
+	for i in 180:
+		drag.step(1.0 / 60.0)
+		most = maxi(most, drag.stretch())
+	_check(most > 0 and most <= roundi(DragScroll.BOUNCE * 200.0) + 1, "a flick into the end bounces a little (%d px)" % most)
+	_check(list.scroll_vertical == 800 and drag.stretch() == 0 and not drag.moving(), "and rests at the end")
+	# The wheel glides an eighth of the list a notch.
+	list.scroll_vertical = 0
+	drag.wheel(1.0)
+	for i in 120:
+		drag.step(1.0 / 60.0)
+	_check(absi(list.scroll_vertical - 25) <= 2, "a notch of the wheel glides an eighth of the list (%d)" % list.scroll_vertical)
+	# Rows that fit: no scroll, no stretch.
+	bar.max_value = 200
+	list.scroll_vertical = 0
+	drag._finger = 0
+	drag._drag_to(-80.0)
+	drag._drag_to(80.0)
+	_check(list.scroll_vertical == 0 and drag.stretch() == 0, "a list whose rows fit neither scrolls nor stretches")
+	drag._finger = -1
+	drag._lift()
+	_check(not drag.moving(), "nor flies")
+	list.free()
