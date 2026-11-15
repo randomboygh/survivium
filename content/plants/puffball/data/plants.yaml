@@ -6,7 +6,7 @@
   sprite: puffball
   frames: 2
   grows: meadow
-  cover: 0.15
+  cover: 0.0375
   clumps: 0.4
   clump_size: 14
   pick: true
