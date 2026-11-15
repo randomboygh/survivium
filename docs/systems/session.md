@@ -20,7 +20,8 @@ that the rules read as is.
   frame up to `CATCH_UP` 1 s is counted whole, the body — in steps of 0.05 s; longer — the rest is lost) →
   `step_things` (a placed light burns down, `Placed.step`) → `step_wildlife` (the beasts on the players'
   screens are looked at — `look_from` by `Character.view_right` / `view_half`, a circle `Wildlife.NEAR`
-  without a screen; they walk every step, the others once per 0.1 s) → `step_storms` (the wind around the
+  without a screen, every `LOOK_EVERY` 0.1 s; they walk every step, the others once per 0.1 s or 0.4 s, see
+  `docs/systems/wildlife.md`) → `step_storms` (the wind around the
   players in turn); `sleep_speed()` — `SLEEP_SPEED` (12) while all live players sleep, otherwise 1: the
   runner (`src/server/runner.gd`) multiplies the tick's `delta` by it, and the night passes quickly;
   `push_on(who)` — what the beasts pushed the player with, taken once (the link sends it as the event

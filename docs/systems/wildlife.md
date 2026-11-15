@@ -22,8 +22,10 @@ water, a kind with `biomes` appears only on its own land.
   farther than `NEAR` on made ground; if more — the extra invisible ones leave (`_thin`, frogs thin out like
   that after rain); a beast with no viewer (`near` off: not on the screen of any player — the rectangle that
   the client sent with its input, turned with the camera, no more than `NEAR` 28 units in each direction,
-  without a screen the circle `NEAR`; `look_from` is called by the session before a step) walks by steps once
-  per 0.1 s and thinks half as often (`FAR_THINK`; one coming into view thinks within `NEAR_THINK`); the pushes of bodies by mass (`_jostle`: the beasts near on the ground are sorted from west to
+  without a screen the circle `NEAR`; `look_from` is called by the session every `Session.LOOK_EVERY` 0.1 s) walks by steps once
+  per 0.1 s (`FAR_STEP`), once per 0.4 s (`OUT_STEP`) when it is farther than `OUT_MARGIN` 6 units past every screen
+  (`out`), at most `FAR_MOST` 16 such steps an update (after a long frame all are due at once; the next update
+  starts where this one stopped, and a step is at most `LONGEST_STEP` 0.5 s long), and thinks half as often (`FAR_THINK`; one coming into view thinks within `NEAR_THINK`); the pushes of bodies by mass (`_jostle`: the beasts near on the ground are sorted from west to
   east and each is checked only with those within reach to the east; the body's radius is stored in
   `Animal.radius`; `_shove` takes the floor from the beast's last look, like `_move`; `pushes` for the
   player). A beast has a number `id` (by it the client's copy knows it). The signals `born`, `gone`,
@@ -126,7 +128,8 @@ water, a kind with `biomes` appears only on its own land.
   `Creatures` every frame; farther than `GLIDE_MOST` — at once); in one's own world a snapshot every frame is
   taken as is.
 - `src/client/game/creatures.gd` — draws the copy's beasts: frame 0 at rest, the steps' frames by steps, the
-  wings' frames in the air; it sets the picture anew when the server moved the beast (`Animal.fresh`).
+  wings' frames in the air; it sets the picture anew when the server moved the beast (`Animal.fresh`); a beast off every screen (`near`
+  off) changes its picture only then.
 - `src/client/audio/voices.gd` — the voices (`calls`) and the cry of fright (`alarm`);
   `src/client/world/tracks.gd` — tracks.
 

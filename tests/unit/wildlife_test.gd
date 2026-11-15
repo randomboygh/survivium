@@ -751,6 +751,35 @@ func _test_looked(w: WorldData) -> void:
 	_check(far.near and not farther.near, "a screen told too wide is taken as at most NEAR each way")
 	life.look_from([[Vector3.ZERO, Vector2(1.0, 0.0), Vector2(10.0, 5.0)], [Vector3(30.0, 1.0, 10.0), Vector2(1.0, 0.0), Vector2(5.0, 12.0)]])
 	_check(east.near and farther.near and not far.near, "a second player's screen shows the deer by them too")
+	# Past the screen by more than OUT_MARGIN no one is about to see it: it steps seldom.
+	life.look_from([[Vector3.ZERO, Vector2(1.0, 0.0), Vector2(10.0, 5.0)]])
+	_check(not east.out and not south.out and far.out and farther.out, "a deer just off the screen is not out, those far past it are")
+	var off := _animal(life, "animals:deer", Vector3(18.0, 1.0, 0.0))
+	life.look_from([[Vector3.ZERO, Vector2(1.0, 0.0), Vector2(10.0, 5.0)]])
+	_check(not off.near and off.out == (18.0 > 10.0 + Wildlife.OUT_MARGIN), "out goes by the screen and the margin")
+	off.out = true
+	off.near = false
+	life.animals = [off]
+	off.away = 0.0
+	off.wait = 0.0
+	life.update(0.05)
+	_check(is_equal_approx(off.wait, Wildlife.OUT_STEP - 0.05), "one out of sight waits OUT_STEP for its next step (%.2f)" % off.wait)
+	# After a long frame all are due at once: at most FAR_MOST step in one update, the
+	# rest in the next.
+	life.animals = []
+	for i in Wildlife.FAR_MOST + 10:
+		var d := _animal(life, "animals:deer", Vector3(40.0 + i, 1.0, 0.0))
+		d.near = false
+		d.out = true
+		d.wait = 0.0
+	life.update(0.1)
+	var first: Array = life.moved.duplicate()
+	life.update(0.01)
+	var both := {}
+	for d in first + life.moved:
+		both[d] = true
+	_check(first.size() == Wildlife.FAR_MOST and both.size() == life.animals.size(),
+		"at most FAR_MOST far steps an update, the rest the next (%d, %d of %d)" % [first.size(), both.size(), life.animals.size()])
 
 
 class Torchbearer extends RefCounted:
