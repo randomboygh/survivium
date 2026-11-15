@@ -322,6 +322,10 @@ void fragment() {
 		gp.xz += rest_view.xy * (rest_view.z * band);
 	}
 	vec3 tp = gp + vec3(1.0 / (32.0 * TEXELS));
+	// Sand trembles in the heat (heat_wobble); what stands on it does not.
+	if (heat_ground > 0.0 && top && tile != NONE && ((material_bits[tile / 3] >> GROUND_SHIFT) & 3) == 2) {
+		tp.x += heat_wobble(floor(tp.xz * TEXELS), TIME) / TEXELS;
+	}
 	vec2 wt = floor(tp.xz * TEXELS);
 	float warm = warm_spot(world_pos, hash12(wt + 41.0));
 	// The tile drawn here: this face's, or a neighbour's spilling over the edge.

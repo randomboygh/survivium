@@ -18,6 +18,22 @@ const GlowLights := preload("res://src/client/view/glow_lights.gd")
 const WindowGlow := preload("res://src/client/view/window_glow.gd")
 
 
+## Ground all of one material (or all sea), for AirEffects.hot_ground.
+class FakeGround:
+	var sea_level := 10
+	var top := 0
+	var water := false
+
+	func surface_y(_x: int, _z: int) -> int:
+		return -1 if water else 11
+
+	func get_cell(_x: int, _y: int, _z: int) -> int:
+		return top
+
+	func sea(_x: int, _y: int, _z: int) -> bool:
+		return water
+
+
 ## Settings that keep values alone, for AutoQuality.
 class FakeSettings:
 	var values := {}
@@ -61,6 +77,7 @@ func run() -> void:
 	_test_glow_lights()
 	_test_window_glow()
 	_test_small_effects()
+	_test_hot_ground()
 
 
 func _test_pixel_view() -> void:
@@ -898,3 +915,19 @@ func _test_small_effects() -> void:
 	var fly: ImageTexture = NatureEffects._shape(NatureEffects.FLY_UP)
 	_check(fly.get_width() == 5 and fly.get_height() == 3 and fly.get_image().get_pixel(0, 0).a > 0.5,
 		"a dragonfly is five pixels long with its wings up")
+
+
+## The air trembles over the ground only over sand and the sea.
+func _test_hot_ground() -> void:
+	var sand := -1
+	for i in Mat.RECORDS.size():
+		if Mat.RECORDS[i].get("ground", "") == "sand":
+			sand = i
+			break
+	var w := FakeGround.new()
+	w.top = Mat.GRASS
+	_check(AirEffects.hot_ground(w, Vector3.ZERO) == 0.0, "no heat haze over grass")
+	w.top = sand
+	_check(sand < 0 or AirEffects.hot_ground(w, Vector3.ZERO) == 1.0, "heat haze over sand")
+	w.water = true
+	_check(AirEffects.hot_ground(w, Vector3.ZERO) == 1.0, "heat haze over the sea")
