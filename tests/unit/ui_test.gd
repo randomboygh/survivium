@@ -17,6 +17,7 @@ const MapView := preload("res://src/client/ui/map_view.gd")
 const Minimap := preload("res://src/client/ui/minimap.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const MenuBackdrop := preload("res://src/client/ui/menu_backdrop.gd")
+const Settings := preload("res://src/client/settings.gd")
 
 
 func run() -> void:
@@ -29,6 +30,7 @@ func run() -> void:
 	_test_fading_list()
 	_test_chat_lines()
 	_test_pc_scales()
+	_test_saved_size()
 	_test_menu_sparrow()
 	_test_map_fit()
 
@@ -314,6 +316,18 @@ func _test_pc_scales() -> void:
 		var big := Hud.pc_scale(4320, size)
 		_check(size == 0 or big > Hud.pc_scale(4320, size - 1), "every size differs on a large screen")
 	_check(Hud.pc_scale(300, 0) == 1.0, "never under a screen pixel per UI pixel")
+
+
+## The HUD made for a new scene (the main menu after a world, or the game's start)
+## takes the sizes the settings keep, so the menu, fitted to the HUD's scale, is as
+## small or as large as the player chose.
+func _test_saved_size() -> void:
+	var hud := Hud.new()
+	var saved := {"ui_size": 0, "control_size": 4}
+	_check(Settings.size_hud(hud, saved) and hud.ui_size == 0 and hud.control_size == 4,
+		"the HUD takes the saved sizes")
+	_check(not Settings.size_hud(hud, saved), "the same sizes again change nothing")
+	hud.free()
 
 
 ## The whole map fills a phone held upright, whatever size it was laid out at before,
