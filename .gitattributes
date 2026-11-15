@@ -1,0 +1,2 @@
+docs/generated/** linguist-generated=true -diff
+docs/balance/GAME_BALANCE_TABLES.md linguist-generated=true -diff
