@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ice_fishing/bundle.yaml
+"[tools.ice_fishing.bundle]": "Wędkarstwo podlodowe"
+
+# content/tools/ice_fishing/data/items.yaml
+"[tools.items.ice_pick]": "Pierzchnia"
+"[tools.items.ice_pick.about]": "Ciężki drąg z kamiennym dłutem. Kilka uderzeń wykuwa w lodzie przerębel do łowienia."
+"[tools.items.ice_auger]": "Świder lodowy"
+"[tools.items.ice_auger.about]": "Miedziana śruba z korbą. Wierci przerębel dwa razy szybciej niż pierzchnia."
+"[tools.items.winter_rod]": "Wędka podlodowa"
+"[tools.items.winter_rod.about]": "Krótka wędka z małym kołowrotkiem. Zarzuca się blisko, w przerębel: ryby podpływają dwa razy częściej."
+
+# content/tools/ice_fishing/data/recipes.yaml
+"[tools.recipes.ice_pick]": "Pierzchnia"
+"[tools.recipes.ice_auger]": "Świder lodowy"
+"[tools.recipes.winter_rod]": "Wędka podlodowa"

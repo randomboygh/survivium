@@ -74,6 +74,9 @@
 # content/tools/hoe/data/items.yaml
 "[tool.hoe]": "тяпка"
 
+# content/tools/ice_fishing/data/items.yaml
+"[tool.ice]": "пешня"
+
 # content/tools/knife/data/items.yaml
 "[tool.knife]": "нож"
 
@@ -168,6 +171,7 @@
 "[release]": "Выпустить"
 "[launch]": "На воду"
 "[ashore]": "На берег"
+"[cut_ice]": "Долбить лёд"
 "[hook]": "Подсечь"
 "[reel_in]": "Смотать"
 "[cast]": "Закинуть"
@@ -1017,6 +1021,10 @@
 "[custom_quality]": "своё"
 "[screen_n2]": "Экран"
 "[fps_limit]": "Предел FPS"
+"[crt]": "Кинескоп"
+"[crt_soft]": "мягкий"
+"[crt_old]": "старый"
+"[crt_tape]": "кассета"
 "[light_and_shadows]": "Свет и тени"
 "[shadows]": "Тени"
 "[drawn]": "нарисованные"
@@ -1025,9 +1033,6 @@
 "[shadow_on_things]": "Тень на вещах"
 "[sun_rays]": "Солнечные лучи"
 "[effects]": "Эффекты"
-"[simple]": "простой"
-"[on_the_ground]": "по земле"
-"[haze_at_the_edge]": "Дымка на краю"
 "[weather_and_fire]": "Погода и огонь"
 "[on_the_water]": "На воде"
 "[rings_and_glints]": "круги и блики"
@@ -1037,10 +1042,9 @@
 "[heat_shimmer]": "Дрожание жара"
 "[drops_on_the_screen]": "Капли и снег на экране"
 "[fog_and_haze]": "Туман и дымка"
-"[crt]": "Кинескоп"
-"[crt_soft]": "мягкий"
-"[crt_old]": "старый"
-"[crt_tape]": "кассета"
+"[simple]": "простой"
+"[on_the_ground]": "по земле"
+"[haze_at_the_edge]": "Дымка на краю"
 "[your_own_mods]": "Свои моды"
 "[own_mod_files_d]": "Файлов своих модов: %d"
 "[delete_your_own_mods]": "Удалить свои моды"
@@ -1366,10 +1370,12 @@
 # src/shared/game/actions_water.gd
 "[sea_water_is_salty_you]": "Морская вода солёная: пить её нельзя"
 "[not_thirsty]": "Пить не хочется"
-"[the_water_is_frozen_fish]": "Вода замёрзла: рыба подо льдом не клюёт"
 "[a_rod_is_cast_into]": "Удочку закидывают в воду: подойдите к ней"
 "[no_fish_to_be_seen]": "Рядом с поплавком не видно рыбы"
 "[without_bait_bites_are_rare]": "Без наживки клюёт редко: нужна «%s»"
+"[cut_a_hole_in_the]": "Чтобы рыбачить, пробей рядом лунку во льду"
+"[stand_by_the_ice_to]": "Встань у льда, чтобы пробить лунку"
+"[the_hole_is_open]": "Лунка открыта: закинь в неё удочку"
 "[the_bag_is_full_the]": "Сумка полна: рыба ушла"
 "[no_bite]": "Не клюнуло"
 "[it_got_away]": "Сорвалась"
@@ -1471,6 +1477,11 @@
 "[bow_down]": "Поклон"
 "[clap]": "Хлопать"
 "[sit]": "Сесть"
+
+# src/shared/game/ice.gd
+"[the_water_is_not_frozen]": "Вода не замёрзла"
+"[no_ice_here]": "Здесь нет льда"
+"[the_ice_lies_on_the_bottom]": "Здесь лёд до самого дна: рыбы под ним нет"
 
 # src/shared/game/inventory.gd
 "[by_kind]": "по виду"

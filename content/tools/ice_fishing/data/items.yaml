@@ -1,0 +1,51 @@
+# Items of the "Ice fishing" bundle of the "Tools and crafting" mod (the user's ask of 2026-11-15). tool: ice - cuts a hole in
+# frozen water two cells deep or more (Ice, src/shared/game/ice.gd): the action button (or a tap on the ice) strikes the ice in
+# front, a hole takes 4 blows of power 1 (an auger of power 2 cuts it in 2); an open hole skins over in a day, and one blow
+# breaks the crust. A rod is cast into an open hole next to the angler; the winter rod (short, lure 2) brings fish twice as often.
+- id: ice_pick
+  title: "[tools.items.ice_pick]"
+  description: "[tools.items.ice_pick.about]"
+  weight: 1.4
+  stack: 1
+  model: ice_pick
+  icon: ice_pick
+  tool: ice
+  sprite: ice_pick
+  anim: dig
+  power: 1
+  swing: 0.8
+  reach: 4
+  durability: 200
+  repair: {resources:stone: 1}
+- id: ice_auger
+  title: "[tools.items.ice_auger]"
+  description: "[tools.items.ice_auger.about]"
+  weight: 1.8
+  stack: 1
+  model: ice_auger
+  icon: ice_auger
+  tool: ice
+  sprite: ice_auger
+  anim: dig
+  power: 2
+  swing: 0.8
+  reach: 4
+  durability: 600
+  repair: {materials:copper_bar: 1}
+- id: winter_rod
+  title: "[tools.items.winter_rod]"
+  description: "[tools.items.winter_rod.about]"
+  weight: 0.3
+  stack: 1
+  model: winter_rod
+  icon: winter_rod
+  tool: rod
+  sprite: winter_rod
+  anim: slash
+  swing: 0.9
+  reach: 4
+  range: 2
+  lure: 2.0
+  ammo: bait
+  durability: 240
+  repair: {materials:cord: 1}

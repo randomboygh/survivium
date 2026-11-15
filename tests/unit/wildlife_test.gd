@@ -442,17 +442,108 @@ func _test_fishing(w: WorldData) -> void:
 	done = actions.fish(who)
 	var under := life.under_ice(px * WorldData.CELL + 1.0, pz * WorldData.CELL + 1.0)
 	var roach: Dictionary = AiRules.SPECIES["animals:roach"]
-	_check(not fishing.has_line(who) and "The water is frozen: fish under the ice don't bite" in who.said
+	_check(not fishing.has_line(who) and "Cut a hole in the ice nearby to fish" in who.said
 		and is_equal_approx(under, 5.0 * WorldData.CELL)
 		and life._floor(roach, px * WorldData.CELL + 1.0, pz * WorldData.CELL + 1.0) < under
 		and life.water_top(px * WorldData.CELL + 1.0, pz * WorldData.CELL + 1.0) == -INF,
-		"frozen water takes no cast; its fish swim under the ice")
+		"frozen water with no hole takes no cast; its fish swim under the ice")
+	_test_ice_holes(w, life, actions, fishing, who, Vector2i(px + 8, pz + side - 1))
 	w.water_frozen = false
 	for z in range(pz, pz + side):
 		for x in range(px, px + side):
 			w.set_cell(x, 3, z, Mat.AIR)
 			w.set_cell(x, 4, z, Mat.AIR)
 			w.set_cell(x, 5, z, Mat.GRASS)
+
+
+## Winter fishing (the user's ask of 2026-11-15): an ice pick cuts a hole in the frozen
+## pond ahead in a few blows, a body over it falls in, a rod is cast into it and a fish
+## under the ice bites; the winter rod lures better; the hole skins over in a day and one
+## blow breaks the crust; thawed water takes the holes.
+func _test_ice_holes(w: WorldData, life: Wildlife, actions: WorldActions, fishing, who: Who, col: Vector2i) -> void:
+	const Ice := preload("res://src/shared/game/ice.gd")
+	var ice := Ice.new()
+	ice.world = w
+	ice.clock = life.clock
+	actions.ice = ice
+	var holes := [0]
+	ice.changed.connect(func() -> void: holes[0] += 1)
+	who.item = "tools:ice_pick"
+	who.said.clear()
+	_check(ice.why_not(col) == "" and actions.ice_ahead(who) == col, "the ice pick cuts the ice a cell ahead (%s)" % [actions.ice_ahead(who)])
+	var blows := 0
+	while not ice.is_open(col) and blows < 10:
+		actions.cut_ice(who)
+		blows += 1
+	_check(blows == Ice.HOLE_WORK and holes[0] == 1 and not w.frozen_at(col.x, col.y) and w.surface_y(col.x, col.y) == -1
+		and w.frozen_at(col.x + 1, col.y) and w.surface_y(col.x + 1, col.y) == 6,
+		"%d blows of an ice pick cut a hole of open water in the ice, the ice round it whole" % blows)
+	_check(ice.why_not(Vector2i(col.x, col.y - 20)) == "[no_ice_here]", "no ice is cut on dry land")
+	actions.cut_ice(who)
+	_check("The hole is open: cast a rod into it" in who.said, "an open hole is not cut again")
+	who.item = "tools:fishing_rod"
+	var top := (5.0 + WorldData.WATER_TOP) * WorldData.CELL
+	var fish := _animal(life, "animals:roach", Vector3(col.x + 0.5, 5.0 - Wildlife.DIP, col.y - 6.5) * WorldData.CELL)
+	actions.fish(who)
+	_check(fishing.has_line(who) and is_equal_approx(who.line.x, (col.x + 0.5) * WorldData.CELL)
+		and is_equal_approx(who.line.z, (col.y + 0.5) * WorldData.CELL) and is_equal_approx(who.line.y, top)
+		and is_equal_approx(fishing.lines[who].lure, 1.0),
+		"a rod is cast into the hole nearby, the float on its water (%v)" % who.line)
+	var t := 0.0
+	while t < 60.0 and not who.bite:
+		fishing.step(0.05)
+		life.update(0.05)
+		t += 0.05
+	_check(who.bite, "a fish under the ice comes to the hole and bites (%.1f s)" % t)
+	actions.fish(who)
+	_check(who.inventory.count("animals:roach") == 2 and fish.gone, "the fish is pulled out of the hole into the bag")
+	who.item = "tools:winter_rod"
+	actions.fish(who)
+	_check(fishing.has_line(who) and fishing.lines[who].lure > 1.0, "the winter rod lures the fish better")
+	actions.fish(who)
+	# A body on the hole falls into the water; out of it, it climbs onto the ice.
+	var player = PlayerScript.new()
+	player.body.world = w
+	player.position = Vector3(col.x + 0.5, 5.5, col.y + 0.5) * WorldData.CELL
+	var fell := false
+	for i in 60:
+		player.step(1.0 / 60.0, false)
+		fell = fell or player.body.water_depth > 0.0 or player.body.swimming
+	_check(fell and player.position.y / WorldData.CELL < 5.5, "a body on the hole falls into the water (%v)" % (player.position / WorldData.CELL))
+	player.body.move_input = Vector2(1, 0)
+	for i in 60:
+		player.step(1.0 / 60.0, false)
+	_check(player.position.x / WorldData.CELL > col.x + 1.5 and player.position.y / WorldData.CELL > 5.49,
+		"out of the hole the body climbs back onto the ice (%v)" % (player.position / WorldData.CELL))
+	player.free()
+	# A day on, the hole skins over; a blow breaks the crust.
+	life.clock.day += 1
+	ice.step(Ice.CHECK_EVERY)
+	_check(ice.is_crust(col) and w.frozen_at(col.x, col.y) and holes[0] == 2, "a day on, a crust grows over the hole")
+	who.said.clear()
+	who.item = "tools:fishing_rod"
+	actions.fish(who)
+	_check(not fishing.has_line(who) and "Cut a hole in the ice nearby to fish" in who.said, "no rod is cast through the crust")
+	who.item = "tools:ice_pick"
+	actions.cut_ice(who)
+	_check(ice.is_open(col), "one blow breaks the crust")
+	_check(ice.to_list() == [[col.x, col.y, true]], "the holes go out as a list")
+	var copy := WorldData.new(10, Vector2i(4, 4))
+	Ice.take_list(copy, [[col.x, col.y, false], ["x", 1, true], [1, 2], 5])
+	_check(copy.ice_holes.size() == 1 and copy.ice_holes.has(col) and copy.ice_holes[col] < 0.0,
+		"the holes sent are checked: a bad entry is dropped")
+	var saved: Array = JSON.parse_string(JSON.stringify(ice.to_saved()))
+	var kept := Ice.new()
+	kept.world = WorldData.new(10, Vector2i(4, 4))
+	kept.from_saved(saved + [["x", 0, 1.0], [1, 2]])
+	_check(kept.world.ice_holes.size() == 1 and is_equal_approx(kept.world.ice_holes.get(col, -5.0), w.ice_holes[col]),
+		"the holes are saved with the world and read back, a bad entry dropped")
+	w.water_frozen = false
+	ice.step(Ice.CHECK_EVERY)
+	_check(w.ice_holes.is_empty(), "the water thawed, the holes are gone")
+	w.water_frozen = true
+	actions.ice = null
+	who.item = "tools:fishing_rod"
 
 
 ## Birds (the sparrow bundle of the animals mod) come in flocks around a lead, fly off from a person together

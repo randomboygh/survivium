@@ -21,7 +21,7 @@ const Starts := preload("res://src/shared/content/starts.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 
 ## The classes of tools whose work in the world the engine knows (see can_dig and the rest).
-const WORLD_KINDS := ["axe", "pickaxe", "shovel", "sword", "scythe", "rod", "hoe", "sickle", "can"]
+const WORLD_KINDS := ["axe", "pickaxe", "shovel", "sword", "scythe", "rod", "hoe", "sickle", "can", "ice"]
 ## How far blocks, plants and seeds are placed from the body, in cells.
 const PLACE_REACH := 10
 ## Brushes of the hand that places: squares across the tapped face, two cells one on
@@ -147,6 +147,11 @@ static func can_fish(t: Dictionary) -> bool:
 	return t.get("tool", "") == "rod"
 
 
+## Whether tool `t` cuts holes in the ice of frozen water (Ice): an ice pick, an auger.
+static func cuts_ice(t: Dictionary) -> bool:
+	return t.get("tool", "") == "ice"
+
+
 ## Whether tool `t` digs a bush out whole, to be planted again: a shovel.
 static func can_dig_out(t: Dictionary) -> bool:
 	return t.tool == "shovel"
@@ -256,7 +261,7 @@ static func hits_to(toughness: float, power: int) -> int:
 const ROLE_OF := {
 	"hand": "", "axe": "chop", "pickaxe": "dig", "shovel": "dig", "scythe": "gather", "knife": "hunt",
 	"needle": "craft", "sword": "hunt", "spear": "hunt", "bow": "hunt", "sling": "hunt", "rod": "fish",
-	"hoe": "farm", "sickle": "farm", "can": "farm",
+	"ice": "fish", "hoe": "farm", "sickle": "farm", "can": "farm",
 }
 
 

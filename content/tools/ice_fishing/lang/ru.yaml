@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ice_fishing/bundle.yaml
+"[tools.ice_fishing.bundle]": "Зимняя рыбалка"
+
+# content/tools/ice_fishing/data/items.yaml
+"[tools.items.ice_pick]": "Пешня"
+"[tools.items.ice_pick.about]": "Тяжёлый шест с каменным долотом. Несколькими ударами пробивает во льду лунку для рыбалки."
+"[tools.items.ice_auger]": "Ледобур"
+"[tools.items.ice_auger.about]": "Медный винт с воротком. Сверлит лунку во льду вдвое быстрее пешни."
+"[tools.items.winter_rod]": "Зимняя удочка"
+"[tools.items.winter_rod.about]": "Короткая удочка с маленькой катушкой. Закидывается недалеко, в лунку рядом: рыба подходит вдвое чаще."
+
+# content/tools/ice_fishing/data/recipes.yaml
+"[tools.recipes.ice_pick]": "Пешня"
+"[tools.recipes.ice_auger]": "Ледобур"
+"[tools.recipes.winter_rod]": "Зимняя удочка"

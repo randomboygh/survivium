@@ -74,6 +74,9 @@
 # content/tools/hoe/data/items.yaml
 "[tool.hoe]": "çapa"
 
+# content/tools/ice_fishing/data/items.yaml
+"[tool.ice]": "buz kazması"
+
 # content/tools/knife/data/items.yaml
 "[tool.knife]": "bıçak"
 
@@ -168,6 +171,7 @@
 "[release]": "Bırak"
 "[launch]": "Suya"
 "[ashore]": "Kıyıya"
+"[cut_ice]": "Buzu del"
 "[hook]": "Tak"
 "[reel_in]": "Sar"
 "[cast]": "At"
@@ -1017,6 +1021,10 @@
 "[custom_quality]": "özel"
 "[screen_n2]": "Ekran"
 "[fps_limit]": "FPS sınırı"
+"[crt]": "Tüplü ekran"
+"[crt_soft]": "yumuşak"
+"[crt_old]": "eski"
+"[crt_tape]": "kaset"
 "[light_and_shadows]": "Işık ve gölgeler"
 "[shadows]": "Gölgeler"
 "[drawn]": "çizilmiş"
@@ -1025,9 +1033,6 @@
 "[shadow_on_things]": "Eşyalarda gölge"
 "[sun_rays]": "Güneş ışınları"
 "[effects]": "Efektler"
-"[simple]": "basit"
-"[on_the_ground]": "yerde"
-"[haze_at_the_edge]": "Kenarda pus"
 "[weather_and_fire]": "Hava ve ateş"
 "[on_the_water]": "Suyun üstünde"
 "[rings_and_glints]": "halkalar ve parıltılar"
@@ -1037,10 +1042,9 @@
 "[heat_shimmer]": "Sıcak titreşimi"
 "[drops_on_the_screen]": "Ekranda damla ve kar"
 "[fog_and_haze]": "Sis ve pus"
-"[crt]": "Tüplü ekran"
-"[crt_soft]": "yumuşak"
-"[crt_old]": "eski"
-"[crt_tape]": "kaset"
+"[simple]": "basit"
+"[on_the_ground]": "yerde"
+"[haze_at_the_edge]": "Kenarda pus"
 "[your_own_mods]": "Kendi modların"
 "[own_mod_files_d]": "Kendi modlarının dosyaları: %d"
 "[delete_your_own_mods]": "Kendi modlarını sil"
@@ -1366,10 +1370,12 @@
 # src/shared/game/actions_water.gd
 "[sea_water_is_salty_you]": "Deniz suyu tuzlu: içilmez"
 "[not_thirsty]": "Susamadın"
-"[the_water_is_frozen_fish]": "Su donmuş: buz altındaki balıklar vurmuyor"
 "[a_rod_is_cast_into]": "Olta suya atılır: ona yaklaş"
 "[no_fish_to_be_seen]": "Şamandıranın yanında balık görünmüyor"
 "[without_bait_bites_are_rare]": "Yemsiz nadiren vurur: “%s” gerekli"
+"[cut_a_hole_in_the]": "Balık tutmak için yakında buzda bir delik aç"
+"[stand_by_the_ice_to]": "Delik açmak için buzun yanında dur"
+"[the_hole_is_open]": "Delik açık: oltayı içine at"
 "[the_bag_is_full_the]": "Çanta dolu: balık kaçtı"
 "[no_bite]": "Vurmadı"
 "[it_got_away]": "Kaçtı"
@@ -1471,6 +1477,11 @@
 "[bow_down]": "Selam ver"
 "[clap]": "Alkışla"
 "[sit]": "Otur"
+
+# src/shared/game/ice.gd
+"[the_water_is_not_frozen]": "Su donmamış"
+"[no_ice_here]": "Burada buz yok"
+"[the_ice_lies_on_the_bottom]": "Burada buz dibe kadar: altında balık yok"
 
 # src/shared/game/inventory.gd
 "[by_kind]": "türe göre"

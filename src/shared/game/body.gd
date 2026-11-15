@@ -199,7 +199,7 @@ func speed_at(at: Vector3) -> float:
 	if vessel > 0.0 and floats(at):
 		return _sail_pace()
 	var surface := _water_surface(p)
-	if surface == -INF or world.water_frozen:
+	if surface == -INF or world.frozen_at(floori(p.x), floori(p.z)):
 		return _pace(0.0)
 	return _pace(maxf(0.0, surface - p.y), _bog(p))
 
@@ -246,7 +246,7 @@ func _step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		if top > -INF and not _collides(Vector3(p.x, top, p.z)):
 			p.y = top
 	var surface := _water_surface(p)
-	if surface > -INF and world.water_frozen:
+	if surface > -INF and world.frozen_at(floori(p.x), floori(p.z)):
 		# The water froze around the body: stand on the ice.
 		p.y = maxf(p.y, surface)
 		surface = -INF
@@ -550,7 +550,7 @@ func knock(dir: Vector2, speed: float, hop: float) -> void:
 
 ## True when the body at `p` (in cells) stands on frozen water.
 func on_ice(p: Vector3) -> bool:
-	if not on_ground or not world.water_frozen:
+	if not on_ground or not world.frozen_at(floori(p.x), floori(p.z)):
 		return false
 	# Ice lies at the water's surface, inside its cell.
 	return world.get_cell(floori(p.x), floori(p.y - 0.01), floori(p.z)) == Mat.WATER

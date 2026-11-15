@@ -339,6 +339,8 @@ func _open_world() -> bool:
 		session.wildlife.add_tamed(meta.tame)
 	if had_save and meta.get("vessels") is Array:
 		session.actions.vessels.from_list(meta.vessels)
+	if had_save and meta.get("ice_holes") is Array:
+		session.ice.from_saved(meta.ice_holes)
 	if had_save and meta.get("placed") is Array:
 		placed.from_list(meta.placed)
 	else:

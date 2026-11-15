@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ice_fishing/bundle.yaml
+"[tools.ice_fishing.bundle]": "Pêche sur glace"
+
+# content/tools/ice_fishing/data/items.yaml
+"[tools.items.ice_pick]": "Pic à glace"
+"[tools.items.ice_pick.about]": "Une lourde perche à ciseau de pierre. Quelques coups percent dans la glace un trou pour pêcher."
+"[tools.items.ice_auger]": "Tarière à glace"
+"[tools.items.ice_auger.about]": "Une vis de cuivre à manivelle. Perce la glace deux fois plus vite qu'un pic."
+"[tools.items.winter_rod]": "Canne d'hiver"
+"[tools.items.winter_rod.about]": "Une canne courte à petit moulinet. Lancez-la tout près, dans un trou : les poissons viennent deux fois plus."
+
+# content/tools/ice_fishing/data/recipes.yaml
+"[tools.recipes.ice_pick]": "Pic à glace"
+"[tools.recipes.ice_auger]": "Tarière à glace"
+"[tools.recipes.winter_rod]": "Canne d'hiver"

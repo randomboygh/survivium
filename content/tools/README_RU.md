@@ -22,7 +22,7 @@ head/body/legs/feet и `warmth` — на сколько градусов в не
 ```
 content/tools/
   mod.yaml                      id: tools, название, версия, api
-  axe/ pickaxe/ shovel/ sword/ knife/ spear/ sling/ leather_sling/ bow/ composite_bow/ needle/ scythe/ fishing_rod/ torch/ tar_torch/ lantern/
+  axe/ pickaxe/ shovel/ sword/ knife/ spear/ sling/ leather_sling/ bow/ composite_bow/ needle/ scythe/ fishing_rod/ ice_fishing/ torch/ tar_torch/ lantern/
   candle/ workbench/ kiln/ forge/ loom/ potters_wheel/ drying_rack/ bloomery/ anvil/ chest/ big_chest/
   wicker_bag/ leather_bag/ canvas_backpack/
   hoe/ sickle/ watering_can/    земледелие: тяпка, серп, лейка
@@ -59,7 +59,7 @@ content/tools/
 
 ## Как он устроен
 
-- Движок знает работу в мире шести классов `tool` (axe, pickaxe, shovel, sword, scythe, rod — удочка: что чем
+- Движок знает работу в мире семи классов `tool` (axe, pickaxe, shovel, sword, scythe, rod — удочка, ice — пешня или ледобур, рубит лунки в замёрзшей воде для зимней рыбалки, а `lure` зимней удочки делает клёв лучше: что чем
   копают, рубят и удят — `src/shared/content/tools.gd`); любой другой класс (hammer) — для рецептов и станков, в мире
   он как руки. Нож (knife) в мире тоже как руки, но, как и меч, сначала бьёт зверя перед собой (`Tools.hunts`; другие руки — только зверя вплотную),
   а в сумке разделывает туши (рецепт «Разделать тушу» мода «Животные» просит класс knife). Игла (needle) в мире

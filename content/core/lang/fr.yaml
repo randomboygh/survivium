@@ -74,6 +74,9 @@
 # content/tools/hoe/data/items.yaml
 "[tool.hoe]": "houe"
 
+# content/tools/ice_fishing/data/items.yaml
+"[tool.ice]": "pic à glace"
+
 # content/tools/knife/data/items.yaml
 "[tool.knife]": "couteau"
 
@@ -168,6 +171,7 @@
 "[release]": "Relâcher"
 "[launch]": "À l'eau"
 "[ashore]": "À terre"
+"[cut_ice]": "Percer la glace"
 "[hook]": "Ferrer"
 "[reel_in]": "Remonter"
 "[cast]": "Lancer"
@@ -1017,6 +1021,10 @@
 "[custom_quality]": "perso"
 "[screen_n2]": "Écran"
 "[fps_limit]": "Limite de FPS"
+"[crt]": "Écran cathodique"
+"[crt_soft]": "doux"
+"[crt_old]": "ancien"
+"[crt_tape]": "cassette"
 "[light_and_shadows]": "Lumière et ombres"
 "[shadows]": "Ombres"
 "[drawn]": "dessinées"
@@ -1025,9 +1033,6 @@
 "[shadow_on_things]": "Ombre sur les objets"
 "[sun_rays]": "Rayons du soleil"
 "[effects]": "Effets"
-"[simple]": "simple"
-"[on_the_ground]": "au sol"
-"[haze_at_the_edge]": "Brume au bord"
 "[weather_and_fire]": "Météo et feu"
 "[on_the_water]": "Sur l’eau"
 "[rings_and_glints]": "ronds et reflets"
@@ -1037,10 +1042,9 @@
 "[heat_shimmer]": "Air qui ondule"
 "[drops_on_the_screen]": "Gouttes et neige sur l’écran"
 "[fog_and_haze]": "Brouillard et brume"
-"[crt]": "Écran cathodique"
-"[crt_soft]": "doux"
-"[crt_old]": "ancien"
-"[crt_tape]": "cassette"
+"[simple]": "simple"
+"[on_the_ground]": "au sol"
+"[haze_at_the_edge]": "Brume au bord"
 "[your_own_mods]": "Vos propres mods"
 "[own_mod_files_d]": "Fichiers de vos propres mods : %d"
 "[delete_your_own_mods]": "Supprimer vos propres mods"
@@ -1366,10 +1370,12 @@
 # src/shared/game/actions_water.gd
 "[sea_water_is_salty_you]": "L'eau de mer est salée : on ne peut pas la boire"
 "[not_thirsty]": "Pas soif"
-"[the_water_is_frozen_fish]": "L'eau est gelée : les poissons sous la glace ne mordent pas"
 "[a_rod_is_cast_into]": "Une canne se lance dans l'eau : approchez-vous-en"
 "[no_fish_to_be_seen]": "Aucun poisson en vue près du flotteur"
 "[without_bait_bites_are_rare]": "Sans appât ça mord rarement : il faut « %s »"
+"[cut_a_hole_in_the]": "Percez un trou dans la glace tout près pour pêcher"
+"[stand_by_the_ice_to]": "Approchez-vous de la glace pour la percer"
+"[the_hole_is_open]": "Le trou est ouvert : lancez-y la ligne"
 "[the_bag_is_full_the]": "Le sac est plein : le poisson s'est échappé"
 "[no_bite]": "Ça n'a pas mordu"
 "[it_got_away]": "Il s'est échappé"
@@ -1471,6 +1477,11 @@
 "[bow_down]": "S'incliner"
 "[clap]": "Applaudir"
 "[sit]": "S'asseoir"
+
+# src/shared/game/ice.gd
+"[the_water_is_not_frozen]": "L'eau n'est pas gelée"
+"[no_ice_here]": "Pas de glace ici"
+"[the_ice_lies_on_the_bottom]": "Ici la glace touche le fond : pas de poissons dessous"
 
 # src/shared/game/inventory.gd
 "[by_kind]": "par type"

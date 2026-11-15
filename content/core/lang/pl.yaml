@@ -74,6 +74,9 @@
 # content/tools/hoe/data/items.yaml
 "[tool.hoe]": "motyka"
 
+# content/tools/ice_fishing/data/items.yaml
+"[tool.ice]": "pierzchnia"
+
 # content/tools/knife/data/items.yaml
 "[tool.knife]": "nóż"
 
@@ -168,6 +171,7 @@
 "[release]": "Wypuść"
 "[launch]": "Na wodę"
 "[ashore]": "Na brzeg"
+"[cut_ice]": "Kuj lód"
 "[hook]": "Zatnij"
 "[reel_in]": "Zwiń"
 "[cast]": "Zarzuć"
@@ -1017,6 +1021,10 @@
 "[custom_quality]": "własne"
 "[screen_n2]": "Ekran"
 "[fps_limit]": "Limit FPS"
+"[crt]": "Kineskop"
+"[crt_soft]": "łagodny"
+"[crt_old]": "stary"
+"[crt_tape]": "kaseta"
 "[light_and_shadows]": "Światło i cienie"
 "[shadows]": "Cienie"
 "[drawn]": "rysowane"
@@ -1025,9 +1033,6 @@
 "[shadow_on_things]": "Cień na rzeczach"
 "[sun_rays]": "Promienie słońca"
 "[effects]": "Efekty"
-"[simple]": "prosty"
-"[on_the_ground]": "po ziemi"
-"[haze_at_the_edge]": "Mgiełka na krawędzi"
 "[weather_and_fire]": "Pogoda i ogień"
 "[on_the_water]": "Na wodzie"
 "[rings_and_glints]": "kręgi i błyski"
@@ -1037,10 +1042,9 @@
 "[heat_shimmer]": "Drganie upału"
 "[drops_on_the_screen]": "Krople i śnieg na ekranie"
 "[fog_and_haze]": "Mgła i zamglenie"
-"[crt]": "Kineskop"
-"[crt_soft]": "łagodny"
-"[crt_old]": "stary"
-"[crt_tape]": "kaseta"
+"[simple]": "prosty"
+"[on_the_ground]": "po ziemi"
+"[haze_at_the_edge]": "Mgiełka na krawędzi"
 "[your_own_mods]": "Własne mody"
 "[own_mod_files_d]": "Pliki własnych modów: %d"
 "[delete_your_own_mods]": "Usuń własne mody"
@@ -1366,10 +1370,12 @@
 # src/shared/game/actions_water.gd
 "[sea_water_is_salty_you]": "Woda morska jest słona: nie można jej pić"
 "[not_thirsty]": "Nie chce się pić"
-"[the_water_is_frozen_fish]": "Woda zamarzła: ryby pod lodem nie biorą"
 "[a_rod_is_cast_into]": "Wędkę zarzuca się do wody: podejdź do niej"
 "[no_fish_to_be_seen]": "Przy spławiku nie widać ryb"
 "[without_bait_bites_are_rare]": "Bez przynęty bierze rzadko: potrzeba „%s”"
+"[cut_a_hole_in_the]": "Wykuj przerębel w lodzie obok, aby łowić"
+"[stand_by_the_ice_to]": "Stań przy lodzie, aby wykuć przerębel"
+"[the_hole_is_open]": "Przerębel jest otwarty: zarzuć wędkę"
 "[the_bag_is_full_the]": "Torba pełna: ryba uciekła"
 "[no_bite]": "Nie wzięła"
 "[it_got_away]": "Zerwała się"
@@ -1471,6 +1477,11 @@
 "[bow_down]": "Ukłon"
 "[clap]": "Klaskaj"
 "[sit]": "Usiądź"
+
+# src/shared/game/ice.gd
+"[the_water_is_not_frozen]": "Woda nie zamarzła"
+"[no_ice_here]": "Tu nie ma lodu"
+"[the_ice_lies_on_the_bottom]": "Tu lód sięga dna: nie ma pod nim ryb"
 
 # src/shared/game/inventory.gd
 "[by_kind]": "według rodzaju"

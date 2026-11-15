@@ -74,6 +74,9 @@
 # content/tools/hoe/data/items.yaml
 "[tool.hoe]": "enxada"
 
+# content/tools/ice_fishing/data/items.yaml
+"[tool.ice]": "picareta de gelo"
+
 # content/tools/knife/data/items.yaml
 "[tool.knife]": "faca"
 
@@ -168,6 +171,7 @@
 "[release]": "Soltar"
 "[launch]": "À água"
 "[ashore]": "À terra"
+"[cut_ice]": "Furar gelo"
 "[hook]": "Fisgar"
 "[reel_in]": "Recolher"
 "[cast]": "Lançar"
@@ -1017,6 +1021,10 @@
 "[custom_quality]": "personalizado"
 "[screen_n2]": "Tela"
 "[fps_limit]": "Limite de FPS"
+"[crt]": "Tela CRT"
+"[crt_soft]": "suave"
+"[crt_old]": "antiga"
+"[crt_tape]": "fita"
 "[light_and_shadows]": "Luz e sombras"
 "[shadows]": "Sombras"
 "[drawn]": "desenhadas"
@@ -1025,9 +1033,6 @@
 "[shadow_on_things]": "Sombra nas coisas"
 "[sun_rays]": "Raios de sol"
 "[effects]": "Efeitos"
-"[simple]": "simples"
-"[on_the_ground]": "no chão"
-"[haze_at_the_edge]": "Névoa na borda"
 "[weather_and_fire]": "Clima e fogo"
 "[on_the_water]": "Na água"
 "[rings_and_glints]": "ondas e brilhos"
@@ -1037,10 +1042,9 @@
 "[heat_shimmer]": "Ar tremulante"
 "[drops_on_the_screen]": "Gotas e neve na tela"
 "[fog_and_haze]": "Névoa e neblina"
-"[crt]": "Tela CRT"
-"[crt_soft]": "suave"
-"[crt_old]": "antiga"
-"[crt_tape]": "fita"
+"[simple]": "simples"
+"[on_the_ground]": "no chão"
+"[haze_at_the_edge]": "Névoa na borda"
 "[your_own_mods]": "Mods próprios"
 "[own_mod_files_d]": "Arquivos dos seus próprios mods: %d"
 "[delete_your_own_mods]": "Apagar seus próprios mods"
@@ -1366,10 +1370,12 @@
 # src/shared/game/actions_water.gd
 "[sea_water_is_salty_you]": "A água do mar é salgada: não dá para beber"
 "[not_thirsty]": "Sem sede"
-"[the_water_is_frozen_fish]": "A água congelou: os peixes sob o gelo não mordem"
 "[a_rod_is_cast_into]": "A vara se lança na água: chegue mais perto dela"
 "[no_fish_to_be_seen]": "Não se veem peixes perto da boia"
 "[without_bait_bites_are_rare]": "Sem isca as mordidas são raras: precisa de “%s”"
+"[cut_a_hole_in_the]": "Faça um buraco no gelo por perto para pescar"
+"[stand_by_the_ice_to]": "Fique perto do gelo para fazer um buraco"
+"[the_hole_is_open]": "O buraco está aberto: lance a vara"
 "[the_bag_is_full_the]": "A bolsa está cheia: o peixe escapou"
 "[no_bite]": "Não mordeu"
 "[it_got_away]": "Escapou"
@@ -1471,6 +1477,11 @@
 "[bow_down]": "Reverência"
 "[clap]": "Aplaudir"
 "[sit]": "Sentar"
+
+# src/shared/game/ice.gd
+"[the_water_is_not_frozen]": "A água não está congelada"
+"[no_ice_here]": "Não há gelo aqui"
+"[the_ice_lies_on_the_bottom]": "Aqui o gelo vai até o fundo: não há peixes"
 
 # src/shared/game/inventory.gd
 "[by_kind]": "por tipo"

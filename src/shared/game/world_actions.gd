@@ -56,6 +56,8 @@ func act_in_front(who, top: int) -> Dictionary:
 	var t: Dictionary = who.tool()
 	if Tools.can_fish(t):
 		return fish(who)
+	if Tools.cuts_ice(t):
+		return cut_ice(who)
 	if _drinks_with(who):
 		var water := water_ahead(who.position, Vector2(who.facing_step()).normalized(), DRINK_REACH)
 		if water.is_finite() and (who.vitals.water < who.vitals.MAX - DRINK * 0.5 or _fills(who) != ""):
@@ -107,7 +109,7 @@ func _gather_work(who, work: Dictionary) -> Dictionary:
 ## cell itself (a tree there, the grass on it, digging).
 func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 	var t: Dictionary = who.tool()
-	if Tools.shoots(Tools.weapon(who.held())) or Tools.can_fish(t) or water_tapped(who, cell).is_finite():
+	if Tools.shoots(Tools.weapon(who.held())) or Tools.can_fish(t) or Tools.cuts_ice(t) or water_tapped(who, cell).is_finite():
 		return super(who, cell, normal)
 	var done := _tap_animal(who, cell)
 	if not done.is_empty():
@@ -212,7 +214,7 @@ func _tree_in_reach(who, col: Vector2i) -> bool:
 
 
 ## What the action button would do in front of `who` now (see act_in_front), changing
-## nothing, for its label: "build" (the blueprint), "place", "plant", "fish", "drink", "fill" (a vessel at the
+## nothing, for its label: "build" (the blueprint), "place", "plant", "fish", "ice" (a hole cut), "drink", "fill" (a vessel at the
 ## water), "shoot", "hit" (a player or an animal there), "till", "water", "reap" (farming,
 ## front_farm), "chop", "gather" (a tree or a bush), "mow", "dig", or "" for a swing at
 ## the air.
@@ -230,6 +232,8 @@ func front_kind(who) -> String:
 	var t: Dictionary = who.tool()
 	if Tools.can_fish(t):
 		return "fish"
+	if Tools.cuts_ice(t):
+		return "ice"
 	if _drinks_with(who):
 		var water := water_ahead(who.position, Vector2(who.facing_step()).normalized(), DRINK_REACH)
 		if water.is_finite():

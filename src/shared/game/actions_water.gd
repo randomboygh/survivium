@@ -1,10 +1,13 @@
 extends "res://src/shared/game/actions_fight.gd"
 ## The rules of the hands, part four (world_actions.gd): drinking and filling a vessel
-## at the water, fishing with a rod, and the water and the biome ahead of the body.
+## at the water, fishing with a rod (in winter through a hole in the ice), cutting holes
+## in the ice, and the water and the biome ahead of the body.
 
 const Biomes := preload("res://src/shared/content/biomes.gd")
 ## The fishing lines cast (Fishing): a rod casts and pulls them.
 var fishing
+## The holes in the ice (Ice): a tool of class `ice` cuts them, a rod is cast into them.
+var ice
 ## Water a gulp at fresh water gives, how long it takes, and how far off the water can be
 ## (cells; a tap on it reaches one more).
 const DRINK := 25.0
@@ -69,7 +72,8 @@ const CATCH_SPEED := 8.0
 ## not finite) into the nearest open water within the rod's `range`, one of its `ammo`
 ## from the bag on the hook (Fishing.cast; the reply's "line" is where the float lies);
 ## with a line out, pulls it: a fish biting goes into the bag, its flight to the angler
-## in `shot` (Fishing.pull). Nothing on frozen water, or with no water there.
+## in `shot` (Fishing.pull). On frozen water only into an open hole in the ice within
+## HOLE_REACH (hole_near); nothing with no water there.
 func fish(who, aim := Vector3.INF) -> Dictionary:
 	if fishing == null:
 		return {"swing": IDLE_SWING}
@@ -81,8 +85,7 @@ func fish(who, aim := Vector3.INF) -> Dictionary:
 	if aim.is_finite() and Vector2(aim.x - at.x, aim.z - at.z).length() > 0.05:
 		dir = Vector2(aim.x - at.x, aim.z - at.z).normalized()
 	if world.water_frozen:
-		who.nag("fish", "[the_water_is_frozen_fish]")
-		return {"swing": IDLE_SWING}
+		return _fish_hole(who, aim)
 	var water := water_ahead(at, dir, maxi(2, rod.get("range", 0)))
 	if water == Vector3.INF:
 		who.nag("fish", "[a_rod_is_cast_into]")
@@ -93,8 +96,14 @@ func fish(who, aim := Vector3.INF) -> Dictionary:
 	water = _cast_out(at, dir, water, maxi(2, rod.get("range", 0)))
 	# The float lies on the water's surface, not at the top of its cell.
 	water.y -= (1.0 - WorldData.WATER_TOP) * CELL
+	return _cast_at(who, water)
+
+
+## Lays the float of the rod in hand of `who` at `water` (see fish), with the rod's bait
+## and lure.
+func _cast_at(who, water: Vector3) -> Dictionary:
 	var item := Items.get_item(who.held())
-	fishing.cast(who, water, item.get("ammo", ""))
+	fishing.cast(who, water, item.get("ammo", ""), item.get("lure", 1.0))
 	if fishing.fish_near(water) == null:
 		who.nag("no_fish", "[no_fish_to_be_seen]")
 	elif item.get("ammo", "") != "" and fishing.lines[who].bait == "":
@@ -106,6 +115,92 @@ func fish(who, aim := Vector3.INF) -> Dictionary:
 
 ## How far past the shore a cast lays the float, in cells, where the water goes on.
 const CAST_OUT := 3.0
+## How far from the body a hole in the ice is fished, and its ice cut, in cells.
+const HOLE_REACH := 2.5
+
+
+## The rod in hand of `who` in a frozen world: cast into the open hole nearest `aim` (or
+## the body) within HOLE_REACH, the float on the water in the middle of the hole.
+func _fish_hole(who, aim: Vector3) -> Dictionary:
+	var col: Variant = hole_near(who, aim)
+	if col == null:
+		who.nag("fish", "[cut_a_hole_in_the]")
+		return {"swing": IDLE_SWING}
+	if not who.act("swing"):
+		return {}
+	who.use_tool()
+	var top := WorldData.top_level(world.water_col(col.x, col.y))
+	return _cast_at(who, Vector3(col.x + 0.5, top + WorldData.WATER_TOP, col.y + 0.5) * CELL)
+
+
+## The open hole in the ice nearest `aim` (else the body of `who`) within HOLE_REACH cells
+## of the body, null for none.
+func hole_near(who, aim := Vector3.INF) -> Variant:
+	if ice == null or world.ice_holes.is_empty():
+		return null
+	var from: Vector3 = who.position / CELL
+	var to: Vector3 = aim / CELL if aim.is_finite() else from
+	var best = null
+	var best_d := INF
+	for col: Vector2i in world.ice_holes:
+		if not ice.is_open(col):
+			continue
+		var mid := Vector2(col.x + 0.5, col.y + 0.5)
+		if mid.distance_to(Vector2(from.x, from.z)) > HOLE_REACH:
+			continue
+		var d := mid.distance_to(Vector2(to.x, to.z))
+		if d < best_d:
+			best_d = d
+			best = col
+	return best
+
+
+## The column of ice a tool of class `ice` in hand of `who` cuts: the one at `aim` (a tap,
+## world units) or else ahead of the body, one or two cells off, frozen water within
+## HOLE_REACH; null for none.
+func ice_ahead(who, aim := Vector3.INF) -> Variant:
+	if not world.water_frozen:
+		return null
+	var from: Vector3 = who.position / CELL
+	var cols: Array[Vector2i] = []
+	if aim.is_finite():
+		cols.append(Vector2i(floori(aim.x / CELL), floori(aim.z / CELL)))
+	else:
+		var dir := Vector2(who.facing_step()).normalized()
+		for i in [2, 3, 4]:
+			var p: Vector2 = Vector2(from.x, from.z) + dir * (i * 0.5)
+			cols.append(Vector2i(floori(p.x), floori(p.y)))
+	var feet := Vector2i(floori(from.x), floori(from.z))
+	for col in cols:
+		if col == feet or Vector2(col.x + 0.5, col.y + 0.5).distance_to(Vector2(from.x, from.z)) > HOLE_REACH:
+			continue
+		if world.water_col(col.x, col.y) != 0:
+			return col
+	return null
+
+
+## A blow of the ice tool in hand of `who` at the ice ahead (or at `aim`): it cuts a hole
+## there in a few blows, or breaks the crust over one (Ice.cut).
+func cut_ice(who, aim := Vector3.INF) -> Dictionary:
+	var t: Dictionary = who.tool()
+	var col: Variant = ice_ahead(who, aim)
+	if ice == null or col == null:
+		who.nag("ice", "[stand_by_the_ice_to]")
+		return {"swing": IDLE_SWING}
+	var why: String = ice.why_not(col)
+	if why != "":
+		who.nag("ice", why)
+		return {"swing": IDLE_SWING}
+	if ice.is_open(col):
+		who.nag("ice", "[the_hole_is_open]")
+		return {"swing": IDLE_SWING}
+	var top := WorldData.top_level(world.water_col(col.x, col.y))
+	if _allowed(who, [Vector3i(col.x, top, col.y)] as Array[Vector3i], "build").is_empty() or not who.act("dig", "dig"):
+		return {}
+	ice.cut(col, int(t.get("power", 1)))
+	who.use_tool()
+	return _work(skilled(who, "fish", t.swing), "",
+		Vector3(col.x + 0.5, top + WorldData.WATER_TOP, col.y + 0.5) * CELL, Mat.WATER)
 
 
 ## Where a cast from `at` along `dir` lands past `water`, the first open water ahead: up

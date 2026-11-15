@@ -4,7 +4,7 @@ extends RefCounted
 ## The fish are the animals that swim and have a `catch` (Wildlife, content `creatures`):
 ## every LURE_EVERY seconds one within LURE_REACH of the float may come to it, with
 ## chance LURE_BAIT while bait is on the hook (one of the rod's `ammo` from the bag a
-## cast) and LURE_BARE without. It swims there (Animal.bait) and once at the float bites
+## cast) and LURE_BARE without, times the rod's `lure` (a winter rod's is more). It swims there (Animal.bait) and once at the float bites
 ## for BITE seconds (Character.bite: the float dips): a pull then takes it out of the
 ## water into the bag as its `catch`. A bite let go, the fish has eaten the bait and swims
 ## off. A line is reeled in by itself when its angler walks off or puts the rod away,
@@ -50,6 +50,8 @@ class Line:
 	var bite := 0.0
 	## Seconds to the next roll for a fish to come.
 	var wait := 0.0
+	## How many times likelier a fish comes than with a plain rod (the rod's `lure`).
+	var lure := 1.0
 
 
 var world
@@ -66,10 +68,11 @@ func has_line(who) -> bool:
 
 
 ## Casts the line of `who` with the float at world point `at`: one `bait` from the bag
-## goes on the hook when there is any ("" for a rod without).
-func cast(who, at: Vector3, bait: String) -> void:
+## goes on the hook when there is any ("" for a rod without); `lure` is the rod's.
+func cast(who, at: Vector3, bait: String, lure := 1.0) -> void:
 	var line := Line.new()
 	line.at = at
+	line.lure = maxf(lure, 0.0)
 	line.from = who.position
 	if bait != "" and who.inventory.count(bait) > 0:
 		who.inventory.remove(bait, 1)
@@ -121,7 +124,7 @@ func step(delta: float) -> void:
 			line.wait -= delta
 			if line.wait <= 0.0:
 				line.wait = LURE_EVERY
-				if rng.randf() < (LURE_BAIT if line.bait != "" else LURE_BARE):
+				if rng.randf() < (LURE_BAIT if line.bait != "" else LURE_BARE) * line.lure:
 					_lure(line)
 			continue
 		if line.bite > 0.0:
@@ -167,7 +170,8 @@ static func catch_of(a) -> String:
 
 ## Whether the line of `who` stays in the water.
 func _holds(who, line: Line) -> bool:
-	if who.is_dead() or who.vitals.asleep or world.water_frozen or not Tools.can_fish(who.tool()):
+	if who.is_dead() or who.vitals.asleep or world.frozen_at(floori(line.at.x / CELL), floori(line.at.z / CELL)) \
+			or not Tools.can_fish(who.tool()):
 		return false
 	var at: Vector3 = who.position
 	return Vector2(at.x - line.from.x, at.z - line.from.z).length() <= WANDER

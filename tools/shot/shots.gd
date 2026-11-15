@@ -382,6 +382,9 @@ const SHOTS := {
 		"animals:catfish"]},
 	# The same in winter: the lake frozen, the fish under its ice not shown.
 	"fish-ice": {"time": 0.45, "season": 3, "place": "lake", "depths": ["animals:roach", "animals:pike"]},
+	# Winter fishing: the frozen lake with its fish faint under the ice, clear patches, an
+	# open hole over a fish, a crusted one and a campfire on the ice thawing the frost.
+	"ice-holes": {"time": 0.45, "season": 3, "place": "lake", "depths": ["animals:roach", "animals:pike"], "ice_holes": true},
 	# Moss and mushrooms in the shade of a forest, and glowing mushrooms by night.
 	"mushrooms": {"time": 0.42, "season": 1, "find": "plants:mushrooms"},
 	"glow-day": {"time": 0.42, "season": 1, "find": "plants:glow_mushrooms"},
@@ -684,6 +687,9 @@ const SHOTS := {
 		"cast": "wait"},
 	"fishing-bite": {"time": 0.42, "season": 1, "place": "lake", "hands": {"tool": "tools:fishing_rod", "facing": "s", "stay": true},
 		"cast": "bite"},
+	# The short winter rod cast: its line hangs from the rod's end.
+	"winter-rod-cast": {"time": 0.42, "season": 1, "place": "lake", "hands": {"tool": "tools:winter_rod", "facing": "s", "stay": true},
+		"cast": "wait"},
 	# A drying rack set down by the workbench and kiln, closed, a composite bow in hand, the
 	# things of leather and bone lying in front; and the rack open, leather being tanned.
 	"leather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "craft": true, "closed": true, "dry": true,

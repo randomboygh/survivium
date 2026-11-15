@@ -74,6 +74,9 @@
 # content/tools/hoe/data/items.yaml
 "[tool.hoe]": "Hacke"
 
+# content/tools/ice_fishing/data/items.yaml
+"[tool.ice]": "Eispickel"
+
 # content/tools/knife/data/items.yaml
 "[tool.knife]": "Messer"
 
@@ -168,6 +171,7 @@
 "[release]": "Freilassen"
 "[launch]": "Zu Wasser"
 "[ashore]": "An Land"
+"[cut_ice]": "Eis hacken"
 "[hook]": "Anschlagen"
 "[reel_in]": "Einholen"
 "[cast]": "Auswerfen"
@@ -1017,6 +1021,10 @@
 "[custom_quality]": "eigene"
 "[screen_n2]": "Bildschirm"
 "[fps_limit]": "FPS-Grenze"
+"[crt]": "Röhrenbildschirm"
+"[crt_soft]": "weich"
+"[crt_old]": "alt"
+"[crt_tape]": "Kassette"
 "[light_and_shadows]": "Licht und Schatten"
 "[shadows]": "Schatten"
 "[drawn]": "gezeichnet"
@@ -1025,9 +1033,6 @@
 "[shadow_on_things]": "Schatten auf Dingen"
 "[sun_rays]": "Sonnenstrahlen"
 "[effects]": "Effekte"
-"[simple]": "einfach"
-"[on_the_ground]": "am Boden"
-"[haze_at_the_edge]": "Dunst am Rand"
 "[weather_and_fire]": "Wetter und Feuer"
 "[on_the_water]": "Auf dem Wasser"
 "[rings_and_glints]": "Ringe und Glitzern"
@@ -1037,10 +1042,9 @@
 "[heat_shimmer]": "Hitzeflimmern"
 "[drops_on_the_screen]": "Tropfen und Schnee auf dem Bildschirm"
 "[fog_and_haze]": "Nebel und Dunst"
-"[crt]": "Röhrenbildschirm"
-"[crt_soft]": "weich"
-"[crt_old]": "alt"
-"[crt_tape]": "Kassette"
+"[simple]": "einfach"
+"[on_the_ground]": "am Boden"
+"[haze_at_the_edge]": "Dunst am Rand"
 "[your_own_mods]": "Eigene Mods"
 "[own_mod_files_d]": "Dateien eigener Mods: %d"
 "[delete_your_own_mods]": "Eigene Mods löschen"
@@ -1366,10 +1370,12 @@
 # src/shared/game/actions_water.gd
 "[sea_water_is_salty_you]": "Meerwasser ist salzig: man kann es nicht trinken"
 "[not_thirsty]": "Kein Durst"
-"[the_water_is_frozen_fish]": "Das Wasser ist gefroren: Fische unter dem Eis beißen nicht"
 "[a_rod_is_cast_into]": "Eine Angel wirft man ins Wasser: geh näher heran"
 "[no_fish_to_be_seen]": "Keine Fische beim Schwimmer zu sehen"
 "[without_bait_bites_are_rare]": "Ohne Köder beißt selten etwas: braucht „%s“"
+"[cut_a_hole_in_the]": "Hack ein Loch ins Eis in der Nähe, um zu angeln"
+"[stand_by_the_ice_to]": "Stell dich ans Eis, um ein Loch zu hacken"
+"[the_hole_is_open]": "Das Loch ist offen: wirf die Angel hinein"
 "[the_bag_is_full_the]": "Die Tasche ist voll: der Fisch ist entkommen"
 "[no_bite]": "Kein Biss"
 "[it_got_away]": "Entwischt"
@@ -1471,6 +1477,11 @@
 "[bow_down]": "Verbeugen"
 "[clap]": "Klatschen"
 "[sit]": "Setzen"
+
+# src/shared/game/ice.gd
+"[the_water_is_not_frozen]": "Das Wasser ist nicht gefroren"
+"[no_ice_here]": "Hier ist kein Eis"
+"[the_ice_lies_on_the_bottom]": "Hier liegt das Eis auf dem Grund: keine Fische darunter"
 
 # src/shared/game/inventory.gd
 "[by_kind]": "nach Art"

@@ -74,6 +74,9 @@
 # content/tools/hoe/data/items.yaml
 "[tool.hoe]": "zappa"
 
+# content/tools/ice_fishing/data/items.yaml
+"[tool.ice]": "piccone da ghiaccio"
+
 # content/tools/knife/data/items.yaml
 "[tool.knife]": "coltello"
 
@@ -168,6 +171,7 @@
 "[release]": "Libera"
 "[launch]": "In acqua"
 "[ashore]": "A riva"
+"[cut_ice]": "Rompere il ghiaccio"
 "[hook]": "Ferra"
 "[reel_in]": "Recupera"
 "[cast]": "Lancia"
@@ -1017,6 +1021,10 @@
 "[custom_quality]": "personale"
 "[screen_n2]": "Schermo"
 "[fps_limit]": "Limite FPS"
+"[crt]": "Schermo CRT"
+"[crt_soft]": "morbido"
+"[crt_old]": "vecchio"
+"[crt_tape]": "cassetta"
 "[light_and_shadows]": "Luce e ombre"
 "[shadows]": "Ombre"
 "[drawn]": "disegnate"
@@ -1025,9 +1033,6 @@
 "[shadow_on_things]": "Ombra sugli oggetti"
 "[sun_rays]": "Raggi del sole"
 "[effects]": "Effetti"
-"[simple]": "semplice"
-"[on_the_ground]": "a terra"
-"[haze_at_the_edge]": "Foschia al bordo"
 "[weather_and_fire]": "Meteo e fuoco"
 "[on_the_water]": "Sull’acqua"
 "[rings_and_glints]": "cerchi e riflessi di luce"
@@ -1037,10 +1042,9 @@
 "[heat_shimmer]": "Tremolio del caldo"
 "[drops_on_the_screen]": "Gocce e neve sullo schermo"
 "[fog_and_haze]": "Nebbia e foschia"
-"[crt]": "Schermo CRT"
-"[crt_soft]": "morbido"
-"[crt_old]": "vecchio"
-"[crt_tape]": "cassetta"
+"[simple]": "semplice"
+"[on_the_ground]": "a terra"
+"[haze_at_the_edge]": "Foschia al bordo"
 "[your_own_mods]": "Mod personali"
 "[own_mod_files_d]": "File delle tue mod: %d"
 "[delete_your_own_mods]": "Elimina le tue mod"
@@ -1366,10 +1370,12 @@
 # src/shared/game/actions_water.gd
 "[sea_water_is_salty_you]": "L'acqua di mare è salata: non si può bere"
 "[not_thirsty]": "Niente sete"
-"[the_water_is_frozen_fish]": "L'acqua è gelata: i pesci sotto il ghiaccio non abboccano"
 "[a_rod_is_cast_into]": "La canna si lancia in acqua: avvicinati"
 "[no_fish_to_be_seen]": "Nessun pesce in vista vicino al galleggiante"
 "[without_bait_bites_are_rare]": "Senza esca abboccano di rado: serve «%s»"
+"[cut_a_hole_in_the]": "Fai un buco nel ghiaccio qui vicino per pescare"
+"[stand_by_the_ice_to]": "Avvicinati al ghiaccio per fare un buco"
+"[the_hole_is_open]": "Il buco è aperto: lancia la lenza"
 "[the_bag_is_full_the]": "La borsa è piena: il pesce è scappato"
 "[no_bite]": "Niente abboccata"
 "[it_got_away]": "È scappato"
@@ -1471,6 +1477,11 @@
 "[bow_down]": "Inchino"
 "[clap]": "Applaudi"
 "[sit]": "Siediti"
+
+# src/shared/game/ice.gd
+"[the_water_is_not_frozen]": "L'acqua non è ghiacciata"
+"[no_ice_here]": "Qui non c'è ghiaccio"
+"[the_ice_lies_on_the_bottom]": "Qui il ghiaccio tocca il fondo: niente pesci sotto"
 
 # src/shared/game/inventory.gd
 "[by_kind]": "per tipo"

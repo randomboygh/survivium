@@ -19,6 +19,7 @@ const Teams := preload("res://src/shared/game/teams.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
 const Fights := preload("res://src/shared/game/fights.gd")
 const Fishing := preload("res://src/shared/game/fishing.gd")
+const Ice := preload("res://src/shared/game/ice.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
@@ -71,6 +72,8 @@ var storms: Storms
 var wildlife: Wildlife
 ## The fishing lines cast (Fishing).
 var fishing := Fishing.new()
+## The holes cut in the ice (Ice).
+var ice := Ice.new()
 ## The teams of the world's players (Teams).
 var teams := Teams.new()
 ## The land claimed (Territory).
@@ -144,6 +147,9 @@ func _init(w, g, c: Clock, r, p) -> void:
 	fishing.world = world
 	fishing.wildlife = wildlife
 	actions.fishing = fishing
+	ice.world = world
+	ice.clock = clock
+	actions.ice = ice
 
 
 ## Brings `who` (Character) into the world with their `workshop` (Workshop).
@@ -226,7 +232,7 @@ func step_players(delta: float) -> void:
 ## (WorldActions.step_traps); a rider whose vessel no longer
 ## floats is put ashore and the rivers carry the bodies and the things in them
 ## (WorldActions.step_boats, Currents);
-## the fishing lines in the water (Fishing.step); the sacks of deaths are gone after
+## the fishing lines in the water (Fishing.step), the holes in the ice (Ice.step); the sacks of deaths are gone after
 ## Character.SACK_DAYS (WorldActions.expire_sacks), a cross standing where each lay
 ## (Placed.put_grave).
 func step_things(delta: float) -> void:
@@ -239,6 +245,7 @@ func step_things(delta: float) -> void:
 	actions.step_traps(d)
 	actions.step_boats(d, players)
 	fishing.step(d)
+	ice.step(d)
 	territory.step(clock.days(d), players, d)
 	placed.spoil(clock.days(d), clock.season == clock.WINTER)
 	_sack_wait -= d

@@ -44,6 +44,8 @@ func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 		return shoot(who, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
 	if Tools.can_fish(who.tool()):
 		return fish(who, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
+	if Tools.cuts_ice(who.tool()):
+		return cut_ice(who, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
 	var water := water_tapped(who, cell)
 	if water.is_finite():
 		return drink(who, water)

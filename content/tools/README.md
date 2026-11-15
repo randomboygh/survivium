@@ -22,7 +22,7 @@ a rope, but not chop trees or put things into a chest. Before, all this lay in c
 ```
 content/tools/
   mod.yaml                      id: tools, name, version, api
-  axe/ pickaxe/ shovel/ sword/ knife/ spear/ sling/ leather_sling/ bow/ composite_bow/ needle/ scythe/ fishing_rod/ torch/ tar_torch/ lantern/
+  axe/ pickaxe/ shovel/ sword/ knife/ spear/ sling/ leather_sling/ bow/ composite_bow/ needle/ scythe/ fishing_rod/ ice_fishing/ torch/ tar_torch/ lantern/
   candle/ workbench/ kiln/ forge/ loom/ potters_wheel/ drying_rack/ bloomery/ anvil/ chest/ big_chest/
   wicker_bag/ leather_bag/ canvas_backpack/
   hoe/ sickle/ watering_can/    farming: hoe, sickle, watering can
@@ -59,7 +59,7 @@ all of them; a hand-drawn model is overwritten, so name what to redo).
 
 ## How it works
 
-- The engine knows the work in the world of six `tool` classes (axe, pickaxe, shovel, sword, scythe, rod — a fishing rod: what is
+- The engine knows the work in the world of seven `tool` classes (axe, pickaxe, shovel, sword, scythe, rod — a fishing rod, ice — an ice pick or auger that cuts holes in frozen water for winter fishing, its own `lure` making a winter rod bite better: what is
   dug, chopped and fished with what is in `src/shared/content/tools.gd`); any other class (hammer) is for recipes and stations, in the world
   it is like hands. A knife (knife) in the world is also like hands, but, like a sword, it first strikes the animal in front of one (`Tools.hunts`; other hands only an animal at point-blank range),
   and in the bag it butchers carcasses (the "Butcher a carcass" recipe of the "Animals" mod asks for the class knife). A needle (needle) in the world

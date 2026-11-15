@@ -74,6 +74,9 @@
 # content/tools/hoe/data/items.yaml
 "[tool.hoe]": "azada"
 
+# content/tools/ice_fishing/data/items.yaml
+"[tool.ice]": "pico de hielo"
+
 # content/tools/knife/data/items.yaml
 "[tool.knife]": "cuchillo"
 
@@ -168,6 +171,7 @@
 "[release]": "Soltar"
 "[launch]": "Al agua"
 "[ashore]": "A tierra"
+"[cut_ice]": "Picar hielo"
 "[hook]": "Tirar"
 "[reel_in]": "Recoger"
 "[cast]": "Lanzar"
@@ -1017,6 +1021,10 @@
 "[custom_quality]": "personal"
 "[screen_n2]": "Pantalla"
 "[fps_limit]": "Límite de FPS"
+"[crt]": "Pantalla CRT"
+"[crt_soft]": "suave"
+"[crt_old]": "antigua"
+"[crt_tape]": "cinta"
 "[light_and_shadows]": "Luz y sombras"
 "[shadows]": "Sombras"
 "[drawn]": "dibujadas"
@@ -1025,9 +1033,6 @@
 "[shadow_on_things]": "Sombra en las cosas"
 "[sun_rays]": "Rayos de sol"
 "[effects]": "Efectos"
-"[simple]": "simple"
-"[on_the_ground]": "en el suelo"
-"[haze_at_the_edge]": "Bruma en el borde"
 "[weather_and_fire]": "Clima y fuego"
 "[on_the_water]": "En el agua"
 "[rings_and_glints]": "ondas y destellos"
@@ -1037,10 +1042,9 @@
 "[heat_shimmer]": "Calima"
 "[drops_on_the_screen]": "Gotas y nieve en la pantalla"
 "[fog_and_haze]": "Niebla y bruma"
-"[crt]": "Pantalla CRT"
-"[crt_soft]": "suave"
-"[crt_old]": "antigua"
-"[crt_tape]": "cinta"
+"[simple]": "simple"
+"[on_the_ground]": "en el suelo"
+"[haze_at_the_edge]": "Bruma en el borde"
 "[your_own_mods]": "Mods propios"
 "[own_mod_files_d]": "Archivos de tus propios mods: %d"
 "[delete_your_own_mods]": "Borrar tus propios mods"
@@ -1366,10 +1370,12 @@
 # src/shared/game/actions_water.gd
 "[sea_water_is_salty_you]": "El agua de mar es salada: no se puede beber"
 "[not_thirsty]": "No tienes sed"
-"[the_water_is_frozen_fish]": "El agua está helada: los peces bajo el hielo no pican"
 "[a_rod_is_cast_into]": "La caña se lanza al agua: acércate a ella"
 "[no_fish_to_be_seen]": "No se ven peces cerca del flotador"
 "[without_bait_bites_are_rare]": "Sin cebo pican poco: hace falta «%s»"
+"[cut_a_hole_in_the]": "Haz un agujero en el hielo cerca para pescar"
+"[stand_by_the_ice_to]": "Ponte junto al hielo para hacer un agujero"
+"[the_hole_is_open]": "El agujero está abierto: lanza la caña"
 "[the_bag_is_full_the]": "La bolsa está llena: el pez se escapó"
 "[no_bite]": "No picó"
 "[it_got_away]": "Se escapó"
@@ -1471,6 +1477,11 @@
 "[bow_down]": "Reverencia"
 "[clap]": "Aplaudir"
 "[sit]": "Sentarse"
+
+# src/shared/game/ice.gd
+"[the_water_is_not_frozen]": "El agua no está congelada"
+"[no_ice_here]": "Aquí no hay hielo"
+"[the_ice_lies_on_the_bottom]": "Aquí el hielo llega al fondo: no hay peces debajo"
 
 # src/shared/game/inventory.gd
 "[by_kind]": "por tipo"

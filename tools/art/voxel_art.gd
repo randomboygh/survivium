@@ -245,6 +245,12 @@ static func drop(model: String) -> VoxelModel:
 			return _fish(Color(0.42, 0.26, 0.15), Color(0.7, 0.44, 0.24), Color(0.32, 0.2, 0.12))
 		"fishing_rod":
 			return _rod()
+		"winter_rod":
+			return _winter_rod()
+		"ice_pick":
+			return _tool(Color(0.55, 0.57, 0.6), [Vector3i(5, 0, 0), Vector3i(6, 0, 0), Vector3i(7, 0, 0), Vector3i(8, 0, 0), Vector3i(5, 1, 0)])
+		"ice_auger":
+			return _auger()
 		"banana":
 			return _banana()
 		"raspberry":
@@ -1495,6 +1501,46 @@ static func _rod() -> VoxelModel:
 	for z in range(1, 4):
 		m.set_voxel(Vector3i(8, 0, z), Color(0.84, 0.8, 0.7))
 	m.set_voxel(Vector3i(7, 0, 3), Color(0.5, 0.52, 0.56))
+	return m
+
+
+## A short winter rod lying flat: a stick, a little reel by the grip, the line wound on it
+## and hanging from the rod's end to a float.
+static func _winter_rod() -> VoxelModel:
+	var m := VoxelModel.new()
+	for x in range(-5, 5):
+		m.set_voxel(Vector3i(x, 0, 0), Color(0.55, 0.4, 0.24) * (0.88 if x % 3 == 0 else 1.0))
+	for z in range(-1, 2):
+		m.set_voxel(Vector3i(-3, 0, z), Color(0.3, 0.22, 0.14))
+	m.set_voxel(Vector3i(-3, 1, 0), Color(0.84, 0.8, 0.7))
+	for z in range(1, 4):
+		m.set_voxel(Vector3i(5, 0, z), Color(0.84, 0.8, 0.7))
+	m.set_voxel(Vector3i(5, 0, 4), Color(0.85, 0.2, 0.15))
+	return m
+
+
+## An ice auger lying flat: a T-handle across the end of a wooden shaft, a copper collar
+## and a copper screw winding round the shaft's end.
+static func _auger() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.4, 0.28, 0.16)
+	var copper := Color(0.78, 0.45, 0.24)
+	for x in range(-7, 9):
+		m.set_voxel(Vector3i(x, 2, 0), wood * (0.85 if x % 3 == 0 else 1.0) if x < 2 else copper * 0.85)
+	for z in range(-3, 4):
+		m.set_voxel(Vector3i(-7, 2, z), wood * (0.8 if absi(z) == 3 else 0.9))
+	for z in range(-1, 2):
+		for y in range(1, 4):
+			m.set_voxel(Vector3i(2, y, z), copper * 0.9)
+	# The screw: a flight a turn per four voxels, two out from the shaft.
+	var way: Array[Vector2i] = [Vector2i(0, 1), Vector2i(1, 1), Vector2i(1, 0), Vector2i(1, -1), Vector2i(0, -1),
+		Vector2i(-1, -1), Vector2i(-1, 0), Vector2i(-1, 1)]
+	for x in range(3, 9):
+		for k in 2:
+			var d: Vector2i = way[(x * 2 + k) % 8]
+			m.set_voxel(Vector3i(x, 2 + d.y, d.x), copper * (1.15 if d.y > 0 else 1.0))
+			m.set_voxel(Vector3i(x, 2 + d.y * 2, d.x * 2) if d.x == 0 or d.y == 0 else Vector3i(x, 2 + d.y, d.x * 2),
+				copper * (1.2 if d.y > 0 else 0.95))
 	return m
 
 

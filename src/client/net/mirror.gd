@@ -13,6 +13,7 @@ extends RefCounted
 ## `game.placed`, `game.clock` and `game.wildlife`.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
+const Ice := preload("res://src/shared/game/ice.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
@@ -116,6 +117,13 @@ func _on_event(kind: String, args: Variant) -> void:
 				var r := Crafting.get_recipe(str(args[0]))
 				if not r.is_empty():
 					game.workshop.made.emit(r)
+		Protocol.ICE_HOLES:
+			# Over a socket the list comes into the client's own world; over the loop the
+			# world is the server's.
+			if args is Array and args.size() == 1 and args[0] is Array and game.host == null:
+				Ice.take_list(game.world, args[0])
+			if game.ice_view != null:
+				game.ice_view.holes_changed()
 		Protocol.DROPS:
 			if args is Array and args.size() >= 1 and args[0] is Vector2i:
 				# A chunk still to be restored takes them after its record (RemoteGen.held).

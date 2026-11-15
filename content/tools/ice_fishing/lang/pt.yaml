@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ice_fishing/bundle.yaml
+"[tools.ice_fishing.bundle]": "Pesca no gelo"
+
+# content/tools/ice_fishing/data/items.yaml
+"[tools.items.ice_pick]": "Picareta de gelo"
+"[tools.items.ice_pick.about]": "Uma vara pesada com um cinzel de pedra. Alguns golpes abrem no gelo um buraco para pescar."
+"[tools.items.ice_auger]": "Broca de gelo"
+"[tools.items.ice_auger.about]": "Um parafuso de cobre com manivela. Fura o gelo duas vezes mais rápido que a picareta."
+"[tools.items.winter_rod]": "Vara de inverno"
+"[tools.items.winter_rod.about]": "Uma vara curta com um carretel pequeno. Lance perto, num buraco: os peixes vêm duas vezes mais."
+
+# content/tools/ice_fishing/data/recipes.yaml
+"[tools.recipes.ice_pick]": "Picareta de gelo"
+"[tools.recipes.ice_auger]": "Broca de gelo"
+"[tools.recipes.winter_rod]": "Vara de inverno"

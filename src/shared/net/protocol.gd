@@ -237,6 +237,9 @@ const MADE := "made"
 ## Things lying on the ground changed in a chunk: [key] over the loop (the world is one
 ## object), [key, list] over a socket (the things as WorldData.drops keeps them).
 const DROPS := "drops"
+## The holes in the ice (Ice), on joining and when they change: [] over the loop (the world
+## is one object), [[[x, z, open], …]] over a socket (Ice.to_list).
+const ICE_HOLES := "ice_holes"
 ## The player's fishing line, when it changed: [where its float lies (INF: none in the
 ## water), a fish bites at it] (Character.line, bite; Fishing).
 const LINE := "line"

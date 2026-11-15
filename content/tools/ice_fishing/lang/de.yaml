@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ice_fishing/bundle.yaml
+"[tools.ice_fishing.bundle]": "Eisangeln"
+
+# content/tools/ice_fishing/data/items.yaml
+"[tools.items.ice_pick]": "Eispickel"
+"[tools.items.ice_pick.about]": "Eine schwere Stange mit einem Steinmeißel. Ein paar Schläge hacken ein Loch ins Eis zum Angeln."
+"[tools.items.ice_auger]": "Eisbohrer"
+"[tools.items.ice_auger.about]": "Eine Kupferschraube mit Kurbel. Bohrt ein Eisloch doppelt so schnell wie ein Eispickel."
+"[tools.items.winter_rod]": "Winterangel"
+"[tools.items.winter_rod.about]": "Eine kurze Angel mit kleiner Rolle. Wirf sie in ein Loch in der Nähe: Fische kommen doppelt so oft."
+
+# content/tools/ice_fishing/data/recipes.yaml
+"[tools.recipes.ice_pick]": "Eispickel"
+"[tools.recipes.ice_auger]": "Eisbohrer"
+"[tools.recipes.winter_rod]": "Winterangel"

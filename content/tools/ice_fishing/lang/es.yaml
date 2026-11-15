@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ice_fishing/bundle.yaml
+"[tools.ice_fishing.bundle]": "Pesca en hielo"
+
+# content/tools/ice_fishing/data/items.yaml
+"[tools.items.ice_pick]": "Pico de hielo"
+"[tools.items.ice_pick.about]": "Un palo pesado con un cincel de piedra. Unos golpes abren en el hielo un agujero para pescar."
+"[tools.items.ice_auger]": "Barrena de hielo"
+"[tools.items.ice_auger.about]": "Un tornillo de cobre con manivela. Perfora el hielo el doble de rápido que un pico."
+"[tools.items.winter_rod]": "Caña de invierno"
+"[tools.items.winter_rod.about]": "Una caña corta con un carrete pequeño. Se lanza cerca, a un agujero: los peces acuden el doble."
+
+# content/tools/ice_fishing/data/recipes.yaml
+"[tools.recipes.ice_pick]": "Pico de hielo"
+"[tools.recipes.ice_auger]": "Barrena de hielo"
+"[tools.recipes.winter_rod]": "Caña de invierno"

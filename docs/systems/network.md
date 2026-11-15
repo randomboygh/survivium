@@ -134,7 +134,8 @@ length up to `CHAT_MAX` 160.
   cells of a ready chunk are no longer changed by generation — the neighbours' trees have already grown into
   it), and `forget` for chunks farther than this zone + 4; `drops` — by `actions.drops_changed` and `who.laid`,
   through a socket with the list `world.drops[key]`; `taken` — only through a socket (through the loop the
-  client listens to the rule itself).
+  client listens to the rule itself); `ice_holes` — by `session.ice.changed` (and on entry), through a socket with the list
+  `Ice.to_list`, which the client checks (`Ice.take_list`), through the loop empty (the world is the same).
 - `src/server/server.gd` — the server over the network: `listen()` on the config's port (`TCPServer`), `poll()`
   accepts links every frame (`WebSocketPeer.accept_stream`, the outgoing buffer `BUFFER` 4 MB for С3.2's
   chunks, the incoming `INBOUND` 256 KB; with no greeting no more than `PENDING_MAX` 16 links, from one address

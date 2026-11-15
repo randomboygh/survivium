@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ice_fishing/bundle.yaml
+"[tools.ice_fishing.bundle]": "Ice fishing"
+
+# content/tools/ice_fishing/data/items.yaml
+"[tools.items.ice_pick]": "Ice pick"
+"[tools.items.ice_pick.about]": "A heavy pole with a stone chisel. A few blows cut a hole in the ice to fish through."
+"[tools.items.ice_auger]": "Ice auger"
+"[tools.items.ice_auger.about]": "A copper screw on a crank. Drills a hole in the ice twice as fast as an ice pick."
+"[tools.items.winter_rod]": "Winter rod"
+"[tools.items.winter_rod.about]": "A short rod with a little reel. Cast it into a hole close by: fish come to it twice as often."
+
+# content/tools/ice_fishing/data/recipes.yaml
+"[tools.recipes.ice_pick]": "Ice pick"
+"[tools.recipes.ice_auger]": "Ice auger"
+"[tools.recipes.winter_rod]": "Winter rod"
