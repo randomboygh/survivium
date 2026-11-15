@@ -31,8 +31,8 @@ const WATER_TOP := WorldData.WATER_TOP
 ## Vertex alpha of a waterfall's sheet and of the foam where it lands (see falls).
 const FALL_SHEET := 0.0
 const FALL_FOAM := 0.5
-## Vertex alpha of a river's water (WorldData.RIVER_WATER; still water has 1).
-const RIVER_ALPHA := 0.85
+## Vertex alpha of the sea's water (WorldData.SEA_WATER; other water has 1).
+const SEA_ALPHA := 0.85
 ## How far out from the step a waterfall's sheet reaches at its foot, in cells.
 const FALL_SPREAD := 0.75
 static var AIR: int = Mat.AIR

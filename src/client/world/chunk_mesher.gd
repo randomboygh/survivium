@@ -74,9 +74,9 @@ static func build_chunk(w, x0: int, z0: int, size: int) -> Array:
 ## cells that may show a face. A whole copy takes about 0.9 ms on a desktop, some ten
 ## times that on a phone, three times the streamer's budget, so it goes half a step.
 const PREP_STEPS := 5
-## Added to a plain water cell's depth in its key (the depth is 8 at most) on a river's
-## water (WorldData.RIVER_WATER), so the rows of a river and of still water stay apart.
-const RIVER_TILE := 16
+## Added to a plain water cell's depth in its key (the depth is 8 at most) on the sea's
+## water (WorldData.SEA_WATER), so the rows of the sea and of other water stay apart.
+const SEA_TILE := 16
 
 
 ## Begins building the meshes of a chunk; `step` then copies its cells and builds a
@@ -244,7 +244,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				if fills & (1 << k):
 					foam |= _fill_shape(c, cov, i, dy, k) << (16 + 2 * k)
 			var murk: int = w.murk(x, y, z) if nb[2] == AIR else 0
-			var river: bool = nb[2] == AIR and w.river(x, y, z)
+			var sea: bool = nb[2] == AIR and w.sea(x, y, z)
 			# Open water has no land beside it, so no foam.
 			if cov[nb[0]] or cov[nb[1]] or cov[nb[4]] or cov[nb[5]]:
 				foam |= Water.foam(c, sh, cov, i, dy, dz)
@@ -253,16 +253,16 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				depth += 1
 			var level := nb[2] == AIR and Water.level_bed(c, sh, cov, i, dy, dz, depth)
 			if foam == 0 and level and murk == 0 and nb[0] != AIR and nb[1] != AIR and nb[4] != AIR and nb[5] != AIR:
-				# A river's plain water is told by RIVER_TILE over its depth (see _plain_rows).
-				water_plain.append(((y * 64 + depth + (RIVER_TILE if river else 0)) * 64 + z - z0) * 64 + x - x0)
+				# The sea's plain water is told by SEA_TILE over its depth (see _plain_rows).
+				water_plain.append(((y * 64 + depth + (SEA_TILE if sea else 0)) * 64 + z - z0) * 64 + x - x0)
 			else:
 				var corners := PackedColorArray()
 				var murks := Water.murk_corners(w, c, i, dz, base) if murk > 0 else PackedFloat32Array([0, 0, 0, 0])
 				if level or nb[2] != AIR:
 					for k in 4:
-						corners.append(Water.water_color(depth - WATER_TOP, 1.0, Water.kind(false, murks[k]), river))
+						corners.append(Water.water_color(depth - WATER_TOP, 1.0, Water.kind(false, murks[k]), sea))
 				else:
-					corners = Water.water_corners(c, sh, cov, i, dy, dz, depth, murks, river)
+					corners = Water.water_corners(c, sh, cov, i, dy, dz, depth, murks, sea)
 				Water.water_faces(water, faces, nb, base, depth, foam, corners)
 				Water.falls(water, faces, c, nb, side_offsets, i, dy, base)
 			if fills != 0:
@@ -641,11 +641,11 @@ static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := 
 		var length := end - j
 		var lx := first & 63
 		var lz := first >> 6 & 63
-		# The top's material, or the water's depth (plus RIVER_TILE on a river).
+		# The top's material, or the water's depth (plus SEA_TILE on the sea).
 		var tile := first >> 12 & 63
-		var river := water and tile >= RIVER_TILE
-		if river:
-			tile -= RIVER_TILE
+		var sea := water and tile >= SEA_TILE
+		if sea:
+			tile -= SEA_TILE
 		var y := first >> 18
 		var base := Vector3(x0 + lx, y, z0 + lz)
 		var pts := []
@@ -653,7 +653,7 @@ static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := 
 		for v: Vector3 in corners:
 			pts.append(base + Vector3(v.x * length, v.y * height, v.z))
 			uvs.append(Vector2(v.x * length, v.z))
-		buf.quad(pts, Vector3.UP, uvs, Water.water_color(tile - WATER_TOP, 1.0, 0.0, river) if water else white,
+		buf.quad(pts, Vector3.UP, uvs, Water.water_color(tile - WATER_TOP, 1.0, 0.0, sea) if water else white,
 			Vector2(0.0, tile) if water else Vector2(pack(tile * 3, 0, 0), no_tiles))
 		j = end
 	return j

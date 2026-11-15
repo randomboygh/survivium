@@ -386,14 +386,13 @@ const SHOTS := {
 	"curio-puffball-growing": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:puffball", "shrooms": 0.6},
 	"curio-puffball-dry": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:puffball"},
 	"curio-sundew": {"time": 0.33, "season": 1, "place": "peat_bog", "find": "plants:sundew"},
-	# Sparkles on still water only: a lake has them, a river none.
-	"water-lake": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake"},
-	"water-river": {"time": 0.42, "season": 1, "weather": "clear", "place": "delta"},
+	# On the same glowing night a lake's shore stays dark: the plankton is the sea's only.
+	"plankton-lake": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "lake"},
 	"curio-primrose": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:evening_primrose"},
 	"curio-primrose-night": {"time": 0.95, "season": 1, "moon": 1.0, "place": "meadow", "find": "plants:evening_primrose"},
 	"curio-ring": {"time": 0.42, "season": 1, "find": "ring"},
 	"curio-surf": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "beach"},
-	"curio-wake": {"time": 0.95, "season": 1, "moon": 0.0, "place": "lake", "water": 2},
+	"curio-wake": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "beach", "water": 2},
 	"curio-wisps": {"time": 0.95, "season": 1, "moon": 0.5, "place": "swamp", "find": "murk",
 		"wisps": [[2.5, 0.6, -2.0], [-3.0, 0.8, -3.0], [4.0, 0.5, 1.0]]},
 	# Ferns in the shade of a forest's edge, a field of clover on a meadow.

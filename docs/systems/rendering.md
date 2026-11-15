@@ -87,7 +87,7 @@ voxel models of things.
   past a `night_glow` of its own; an `after_rain` plant (a puffball) grows in four steps by the global `shrooms` (`Clock.shrooms`, set by `Sky`), its column sooner or later by the same sum as `Clock.shroom_size`. Texels of a custom picture with an alpha of 200..240 glint by day (dew).
   The surf and a faint V behind a swimmer (`wake_way`, from `WaterEffects`) glow blue on rare warm nights in
   bays of plankton (`sea_glow`, set by `Sky` from the night, one in `SEA_GLOW_NIGHTS` (`Sky.glowing_night`), and
-  the season, `water.gdshader`). Sparkles glint only on still water (seas, lakes, ponds): a river's water cells carry `WorldData.RIVER_WATER` from the generator, the mesher gives them vertex alpha `RIVER_ALPHA` (plain rows: `RIVER_TILE` over the depth in the key), and the shader draws none there.
+  the season, `water.gdshader`). The plankton glows only in the sea, not in lakes, ponds or rivers: the sea's water cells carry `WorldData.SEA_WATER` from the generator (the layout's `OCEAN`), the mesher gives them vertex alpha `SEA_ALPHA` (plain rows: `SEA_TILE` over the depth in the key), and the shader's `sea_here` lets it glow only there.
 - `src/client/view/glow_lights.gd` (held by `Effects.glows`) — small teal pools of light round the glowing
   mushrooms at night: `Foliage` notes where each glowing mushroom stands (`Job.glows`, kept through a patch),
   `ChunkStreamer` hands them over per chunk, and every `PICK_EVERY` s the `LIGHTS` (4) groups nearest the

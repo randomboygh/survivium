@@ -15,8 +15,8 @@
 // 0.5 a swamp's, 1 a bog's), blended across the cells (ChunkMesher._kind).
 // Waterfalls (ChunkMesher._falls): vertex alpha FALL_SHEET marks the sheet of water
 // falling over a step of a river, whose UV2.y is then the level of its foot, and
-// FALL_FOAM the churning foam on the water where it lands; RIVER_ALPHA a river's water
-// (WorldData.RIVER_WATER), which has no sparkles.
+// FALL_FOAM the churning foam on the water where it lands; SEA_ALPHA the sea's water
+// (WorldData.SEA_WATER), the only water the plankton glows in.
 shader_type spatial;
 render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
 
@@ -71,8 +71,8 @@ varying vec3 lamp_gain;
 varying float open_sky;
 // 2 on a waterfall's sheet, 1 on the foam where it lands, 0 elsewhere.
 varying flat float falls;
-// 1 on a river's water, blended to 0 on still water (see RIVER_ALPHA above).
-varying float river_here;
+// 1 on the sea's water, blended to 0 on other water (see SEA_ALPHA above).
+varying float sea_here;
 
 // Ice: clear blue-green over the shallows and darker over the deep, milky frost
 // patches, straight white cracks and glints that do not move, and a dusting of snow
@@ -128,7 +128,7 @@ void vertex() {
 	world_normal = NORMAL;
 	data = UV2;
 	falls = COLOR.a < 0.25 ? 2.0 : (COLOR.a < 0.75 ? 1.0 : 0.0);
-	river_here = COLOR.a > 0.75 && COLOR.a < 0.95 ? 1.0 : 0.0;
+	sea_here = COLOR.a > 0.75 && COLOR.a < 0.95 ? 1.0 : 0.0;
 	depth_here = COLOR.r * 8.0;
 	shore_under = COLOR.g;
 	VERTEX = shear(VERTEX);
@@ -220,8 +220,8 @@ void fragment() {
 		float n2 = texture(cloud_noise, (tex / TEXELS - vec2(TIME * 0.03, -TIME * 0.04)) / 9.0 + 0.5).r;
 		float line = step(abs(n - 0.55), 0.012) + step(abs(n2 - 0.45), 0.01);
 		col = mix(col, col * 1.35 + 0.05, clamp(line, 0.0, 1.0) * 0.8 * (1.0 - 0.6 * murk));
-		// Sparkles on still water (seas, lakes, ponds), none on a bog or a river.
-		float s = step(0.993, hash12(tex + floor(TIME * 3.0) * 17.0)) * step(murk, 0.75) * step(river_here, 0.5);
+		// Sparkles, none on a bog.
+		float s = step(0.993, hash12(tex + floor(TIME * 3.0) * 17.0)) * step(murk, 0.75);
 		col += vec3(0.35) * s * (1.0 - ice_amount);
 		if (sun_path.z > 0.0 && murk < 0.75) {
 			vec2 off = world_pos.xz - player_pos.xz;
@@ -328,7 +328,8 @@ void fragment() {
 		}
 	}
 	float plankton = 0.0;
-	if (sea_glow > 0.0 && world_normal.y > 0.5 && murk < 0.5) {
+	// Only in the sea (not lakes, ponds or rivers).
+	if (sea_glow > 0.0 && world_normal.y > 0.5 && murk < 0.5 && sea_here > 0.5) {
 		// Plankton lights up blue where the surf breaks and round one swimming, flickering
 		// texel by texel, in bays of it here and there.
 		float bay = smoothstep(0.42, 0.6, ground_patch(world_pos.xz / 5.0, 47.0));
