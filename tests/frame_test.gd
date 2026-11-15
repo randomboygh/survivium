@@ -706,8 +706,8 @@ func _run() -> void:
 		"a freeze tells what was marked in the frame before it: %s" % [hud.perf.last_freeze])
 	_check(hud.perf.freeze_log.size() == 1 and hud.perf.freeze_log[0][3] == ["fire shadow", "mesh", "video +512 KB"],
 		"the freezes' log keeps the marks with what they say: %s" % [hud.perf.freeze_log])
-	_check(hud.perf.freeze_log[0][2][0][0] == hud.perf.REST and hud.perf.freeze_log[0].size() == 5,
-		"time outside the game's code and the drawing is the browser's, with the draw calls: %s" % [hud.perf.freeze_log])
+	_check(hud.perf.freeze_log[0][2][0][0] == hud.perf.REST and hud.perf.freeze_log[0].size() == 6 and hud.perf.freeze_log[0][5] == hud.perf.scene,
+		"time outside the game's code and the drawing is the browser's, with the draw calls and the scene: %s" % [hud.perf.freeze_log])
 	hud.perf.add_frame(0.01)
 	_check(hud.perf.usual[0] >= 10.0 and hud.perf.freeze_log.size() == 1,
 		"an ordinary frame is averaged, not logged: %s" % [hud.perf.usual])
