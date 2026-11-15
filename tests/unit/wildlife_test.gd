@@ -557,7 +557,7 @@ func _test_shore(w: WorldData) -> void:
 	life.rules.animal_attacks = false
 	var pond := Rect2(px, pz, side, side)
 	var at := Vector3(px + side * 0.5, 0.0, pz + side * 0.5) * WorldData.CELL
-	life.rng.seed = 7
+	life.rng.seed = 1
 	var duck := _animal(life, "animals:duck", at)
 	duck.pos.y = life.water_top(at.x, at.z) - Wildlife.DIP * WorldData.CELL
 	duck.home = duck.pos
