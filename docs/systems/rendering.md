@@ -66,7 +66,10 @@ voxel models of things.
   rain running down the screen's edges (`grade.gdshader` `heat_spots`, `heat_haze`, `drop_state`: when they stop the drops there run off within
   `DRY_RUN`), breath steaming in
   a frost (puffs from a pool, `Creatures.muzzle`), the sun's path on the water at sunrise and sunset and the
-  moon's at night (`water.gdshader` `sun_path`, `Sky.sun_height`). WaterEffects: rings and splashes (fish jumping,
+  moon's at night (`water.gdshader` `sun_path`, `Sky.sun_height`; only where the light reaches the water:
+  `sun_reaches` looks along it for cloud shadow, ground and tree crowns in the roof map; glints fade in and out
+  each on its own clock). Snow on tops glitters a texel at a time in the sun's or the moon's light
+  (`world.gdshader` `glint`, passed from fragment to light, so none in shadow). WaterEffects: rings and splashes (fish jumping,
   a shot landing, wading, a fall into the water), steam over open water on cold mornings, fires and torches
   glittering on the water towards the viewer (`fire_glints`), and the figures by the water mirrored in it
   (`sprite_mirror.gdshader`: the sprite upside down, drawn after the water and over the body's part under it
