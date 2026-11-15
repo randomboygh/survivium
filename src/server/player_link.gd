@@ -67,6 +67,8 @@ var _again := {}
 ## Cells changed since the last flush, and the chunks whose things on the ground changed.
 var _cells := {}
 var _drops := {}
+## Grass cells cut short since the last flush (ActionsGather.grass_changed).
+var _grass := {}
 
 var _you := true
 var _team := true
@@ -146,6 +148,8 @@ func _init(s) -> void:
 	placed.cell_changed.connect(_on_cell)
 	actions.drops_changed.connect(_on_drops)
 	actions.looks_changed.connect(_on_looks)
+	actions.grass_changed.connect(_on_grass)
+	actions.spores.connect(_on_spores)
 	actions.taken.connect(_on_taken)
 	actions.vessels.changed.connect(_on_vessel)
 	actions.vessels.gone.connect(_on_vessel_gone)
@@ -170,6 +174,8 @@ func leave() -> void:
 	actions.cells_set.disconnect(_on_cells)
 	actions.drops_changed.disconnect(_on_drops)
 	actions.looks_changed.disconnect(_on_looks)
+	actions.grass_changed.disconnect(_on_grass)
+	actions.spores.disconnect(_on_spores)
 	actions.taken.disconnect(_on_taken)
 	actions.vessels.changed.disconnect(_on_vessel)
 	actions.vessels.gone.disconnect(_on_vessel_gone)
@@ -217,6 +223,7 @@ func rejoin() -> void:
 	_again.clear()
 	_cells.clear()
 	_drops.clear()
+	_grass.clear()
 	# What piled up while the player was away is in the full flush; sent again after
 	# it, a thing placed meanwhile would be put twice.
 	outbox.clear()
@@ -381,6 +388,13 @@ func _world_events(out: Array[PackedByteArray]) -> void:
 	_cells.clear()
 	if not cells.is_empty():
 		out.append(_event(Protocol.CELLS, cells))
+	var grass := []
+	for cell: Vector3i in _grass:
+		if _sent.has(WorldData.chunk_key(cell.x, cell.z)):
+			grass.append(cell)
+	_grass.clear()
+	if not grass.is_empty():
+		out.append(_event(Protocol.GRASS, grass))
 	var gen = session.gen
 	if gen == null:
 		return
@@ -607,6 +621,17 @@ func _on_cells(cells: Array[Vector3i]) -> void:
 func _on_looks(key: Vector2i) -> void:
 	if send_world:
 		_again[key] = true
+
+
+func _on_grass(cell: Vector3i) -> void:
+	if send_world:
+		_grass[cell] = true
+
+
+## Spores puffed out where the client holds the world are seen there.
+func _on_spores(at: Vector3) -> void:
+	if send_world and _sent.has(WorldData.chunk_key(floori(at.x / WorldData.CELL), floori(at.z / WorldData.CELL))):
+		_push(Protocol.SPORES, [at])
 
 
 ## Only the one who took it sees it fly into their bag.

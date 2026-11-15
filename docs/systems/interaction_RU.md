@@ -18,8 +18,8 @@
   зовёт только своё и предыдущих, снаружи знают только `world_actions.gd`:
   `actions_base.gd` (состояние, сигнал `cell_changed`, досягаемость, `skilled`, `build_cell`, что позволяет
   хозяин земли) ← `actions_gather.gd` (деревья: `chop`, `fell`; сбор с кустов и деревьев, подбор с земли,
-  сигналы `looks_changed`, `drops_changed`, `taken`) ← `actions_fight.gd` (`swing_air`, `strike`, `shoot`) ←
-  `actions_water.gd` (`drink`, `fish`, `water_ahead`) ← `actions_dig.gd` (`dig_at`, `dig`, `mow`; `water_holds`: пока у воды нет физики, землю под водой и в полосе в одну клетку рядом с ней на её уровне и ниже не копают — ни касанием, ни кнопкой, ни по чертежу, с подсказкой `[water_holds_this_ground]`) ←
+  сигналы `looks_changed`, `grass_changed` (одна клетка травы скошена: клиент перерисовывает только её, первой), `spores` (споры дождевика), `drops_changed`, `taken`) ← `actions_fight.gd` (`swing_air`, `strike`, `shoot`) ←
+  `actions_water.gd` (`drink`, `fish`, `water_ahead`) ← `actions_dig.gd` (`dig_at`, `dig`, `mow`; `in_season(ids, cell)` — растения, что там сейчас: зимой нет тех, у кого `winter` выключен, и нет растений `after_rain` там, где `Clock.shroom_size` равен 0; `tread(who)`, его зовёт `Session.step_players` — растение с `crush` на клетке травы, на которую ступил игрок, давится: споры, `crush` секунд видений, подсказка `[spores_in_the_eyes]`; `water_holds`: пока у воды нет физики, землю под водой и в полосе в одну клетку рядом с ней на её уровне и ниже не копают — ни касанием, ни кнопкой, ни по чертежу, с подсказкой `[water_holds_this_ground]`) ←
   `actions_build.gd` (`place_at`, `can_place`, `plant`) ← `actions_farm.gd` (земледелие: `farm_at` — касание
   тяпкой вскапывает траву или землю в грядку `Mat.BED`, касание полной лейкой поливает грядку (`Mat.BED_WET` на
   `WET_DAYS`, лейка — инструмент класса `can`, её поливы — `durability`, опустев — `empties_to`), спелый посев

@@ -61,6 +61,8 @@ var trips := 0
 var _found := {}
 ## Where the stations stand; the player comes back here to make things.
 var camp := Vector3.ZERO
+## How many places of its biomes were tried for each plant (see _trip_to_biome).
+var _biome_trips := {}
 ## The recipes in the order they become possible, and the ones made.
 var order: Array = []
 ## The recipes of `order` this run sets out to make (see _part); what they need is made too.
@@ -965,25 +967,34 @@ func _fell(seed := "") -> bool:
 func _mow(id: String, plant: String) -> bool:
 	main.controls.put_in_hand("", -1, false)
 	var w = main.world
+	if Plants.BY_ID.get(plant, {}).get("after_rain", false):
+		# It comes up only after rain (Clock.shrooms): the day after one.
+		main.session.clock.shrooms = 1.0
+		main.session.clock.soak = main.session.clock.SOAK_DAYS
 	var hand := Tools.HAND
 	for attempt in MAX_TRIPS:
 		var feet: Vector3i = main.controls.feet()
 		var best := Vector3i.MAX
 		var best_d := INF
-		for dz in range(-SEARCH, SEARCH + 1):
-			for dx in range(-SEARCH, SEARCH + 1):
+		# A plant of some biomes only (a sundew in clumps by the bog pools) is looked for
+		# farther, in the chunks held.
+		var reach := SEARCH * (3 if not Plants.BY_ID.get(plant, {}).get("biomes", []).is_empty() else 1)
+		for dz in range(-reach, reach + 1):
+			for dx in range(-reach, reach + 1):
 				var d := Vector2(dx, dz).length()
 				if d >= best_d:
 					continue
 				var x := feet.x + dx
 				var z := feet.z + dz
+				if w.chunk_at(x, z) == null:
+					continue
 				var y: int = w.surface_y(x, z) - 1
 				if y < 1 or _near_camp(x, z):
 					continue
 				var cell := Vector3i(x, y, z)
 				if not main.actions.can_mow(cell, hand):
 					continue
-				if plant != "" and not Grass.plants_on(w, x, y, z).has(plant):
+				if plant != "" and not main.actions.in_season(Grass.plants_on(w, x, y, z), cell).has(plant):
 					continue
 				best = cell
 				best_d = d
@@ -999,9 +1010,35 @@ func _mow(id: String, plant: String) -> bool:
 			return true
 		if await _back_to("grass " + id):
 			continue
+		if plant != "" and await _trip_to_biome(Plants.BY_ID.get(plant, {}).get("biomes", []), _biome_trips.get(plant, 0)):
+			# The next time, on to the next place: this one had none.
+			_biome_trips[plant] = _biome_trips.get(plant, 0) + 1
+			continue
 		if not await _trip():
 			break
 	return _fail("no grass found that gives %s" % Items.title(id))
+
+
+## A trip to the nearest place of the `k`-th of `biomes` (a plant that grows only there,
+## a sundew of the bogs: its first biome is where it grows most); false when there are
+## not that many or none is found.
+func _trip_to_biome(biomes: Array, k: int) -> bool:
+	var from := Vector2i(floori(camp.x / CELL), floori(camp.z / CELL))
+	if k >= biomes.size():
+		return false
+	var best: Vector2i = main.gen.find_place((biomes[k] as String).get_slice(":", 1), from, 3000)
+	if best == from:
+		return false
+	await _go(Vector3(best.x + 0.5, main.world.size_y - 2, best.y + 0.5) * CELL)
+	var frames := 0
+	while frames < 4000:
+		await process_frame
+		frames += 1
+		if frames > 5 and main.gen.stages.get(WorldData.chunk_key(best.x, best.y), 0) >= WorldGen.SHAPED and main.chunks.map_done:
+			break
+	await _go(Vector3(best.x + 0.5, maxi(main.world.surface_y(best.x, best.y), 1), best.y + 0.5) * CELL)
+	print("trip to %s at %s" % [biomes, best])
+	return true
 
 
 ## Digs for `id` in the cells of materials `mats` (their item or their bonus), with the
