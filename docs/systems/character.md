@@ -179,7 +179,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — the death screen,
   the strengths' strips, the screen's response to damage (and an icy blue frame growing while the body is cold, from
   `Vitals.COLD` to `CHILL_FULL` below `FREEZING`, breathing while it freezes; and below `LOW_HEALTH` a crimson vignette, heavy in the corners, and a red wash beating
-  like a heart, faster the weaker), the phone's vibration.
+  like a slow heart, faster the weaker: each beat the vignette jumps in `HEART_REACH` of the screen and eases back, and the
+  picture darkens and hardens for that moment, grade `heart`), the phone's vibration.
 
 **Skills** (decision 164). Nine skills are a mod's data (`content/core/data/skills.yaml`, the kind `skills`,
 the registry `src/shared/content/skills.gd`): Gathering, Chopping, Digging, Crafting, Building, Cooking,
