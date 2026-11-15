@@ -46,6 +46,12 @@ const BUNCHES := 2
 const IN_BUNCH := 4
 ## How far apart the shafts of a bunch stand at most, along the middle plane (units).
 const BUNCH_SPREAD := 0.7
+## Shafts whose end on the ground crowns hide in the picture are kept this often (0..1):
+## a thick wood shows only a few; and how high over the ground is looked for them.
+const HIDDEN_KEPT := 0.2
+const SEEN_ABOVE := 12.0
+## Specks of dust a shaft gives the motes to come from, along its bright part.
+const DUST_SPECKS := 6
 ## Levels a crown is looked for above the foot of its trunk.
 const CROWN_LEVELS := 24
 ## Columns from the trunk a crown is looked for at the middle of its height.
@@ -76,6 +82,8 @@ var _laid_at := Vector3.INF
 var _laid_sun := Vector3.ZERO
 var _laid_trees := -1
 var _laid_view := []
+## The view (up, squash, slope) the trees' light was worked out for.
+var _worked_view := []
 ## The sun's turns so far (each over TURN) and its way at the last: the shafts' way
 ## down, the way across it along the ground (the trees' middle planes run along it),
 ## and the shadows' way along the ground.
@@ -102,24 +110,27 @@ func _ready() -> void:
 	shafts = _instances(MAX_SHAFTS, _shaft_mat)
 	flecks = _instances(MAX_FLECKS, _fleck_mat)
 	motes = CPUParticles3D.new()
-	motes.amount = 48
-	motes.lifetime = 5.0
+	motes.amount = 96
+	motes.lifetime = 4.0
 	motes.local_coords = false
 	motes.emission_shape = CPUParticles3D.EMISSION_SHAPE_POINTS
 	motes.emission_points = PackedVector3Array([Vector3.ZERO])
 	motes.direction = Vector3.UP
 	motes.spread = 180.0
-	motes.initial_velocity_min = 0.02
-	motes.initial_velocity_max = 0.08
-	motes.gravity = Vector3(0.0, -0.01, 0.0)
+	motes.initial_velocity_min = 0.04
+	motes.initial_velocity_max = 0.14
+	motes.gravity = Vector3(0.0, -0.015, 0.0)
+	# Each speck glints a few times as it turns in the light, between dim drifting.
 	motes.color_ramp = Gradient.new()
-	motes.color_ramp.offsets = PackedFloat32Array([0.0, 0.3, 0.7, 1.0])
-	motes.color_ramp.colors = PackedColorArray([Color(1, 0.95, 0.8, 0), Color(1, 0.95, 0.8, 1), Color(1, 0.9, 0.7, 1), Color(1, 0.9, 0.7, 0)])
+	motes.color_ramp.offsets = PackedFloat32Array([0.0, 0.12, 0.2, 0.32, 0.45, 0.55, 0.68, 0.8, 1.0])
+	var glint := Color(1.0, 0.97, 0.85, 1.0)
+	var dim := Color(1.0, 0.92, 0.75, 0.3)
+	motes.color_ramp.colors = PackedColorArray([Color(1, 0.92, 0.75, 0), glint, dim, dim, glint, dim, dim, glint, Color(1, 0.92, 0.75, 0)])
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE / PixelView.PIXELS_PER_UNIT
 	var m := ShaderMaterial.new()
 	m.shader = ParticleShader
-	m.set_shader_parameter("brightness", 1.3)
+	m.set_shader_parameter("brightness", 1.6)
 	quad.material = m
 	motes.mesh = quad
 	motes.extra_cull_margin = 32.0
@@ -178,9 +189,12 @@ func _process(_delta: float) -> void:
 		m.set_shader_parameter("amount", amount)
 		m.set_shader_parameter("light_color", color)
 		m.set_shader_parameter("light_down", down)
-	if to_sun.dot(_laid_sun) <= 1.0 - TURN:
-		# The sun has turned: every tree's light is worked out anew, a few a frame, and
-		# laid out once all are (the old light stays until then).
+	var view := _view()
+	if to_sun.dot(_laid_sun) <= 1.0 - TURN or view.slice(0, 3) != _worked_view:
+		# The sun or the view (which shafts show depends on it, see _seen) has turned:
+		# every tree's light is worked out anew, a few a frame, and laid out once all
+		# are (the old light stays until then).
+		_worked_view = view.slice(0, 3)
 		_laid_sun = to_sun
 		_down = down
 		var flat := Vector2(down.x, down.z)
@@ -190,7 +204,6 @@ func _process(_delta: float) -> void:
 	var p: Vector3 = game.player.position
 	var near := _near(p)
 	var count := _tree_count(near)
-	var view := _view()
 	if p.distance_to(_laid_at) >= MOVE or count != _laid_trees or view != _laid_view:
 		_laid_at = p
 		_laid_trees = count
@@ -328,8 +341,9 @@ class TreeJob:
 	## The sun's turn (_sun_turns) it is for.
 	var turn := 0
 	var foot := 0.0
-	## The shafts still to be looked along: [top, look, where its two specks of dust
-	## are along it (0..1)] each, and the next of them.
+	## The shafts still to be looked along: [top, look, where its specks of dust
+	## are along it and across it (0..1), the roll to keep it hidden (HIDDEN_KEPT)]
+	## each, and the next of them.
 	var shafts := []
 	var next := 0
 	var shaft_data := PackedFloat32Array()
@@ -342,7 +356,7 @@ class TreeJob:
 ## shafts' tops and looks; null without a crown. Its shafts'
 ## lengths are found by _shaft_step, and _job_light gives the light: [the sun's turn
 ## (_sun_turns), the shafts' and the flecks' instance data as MultiMesh.buffer has it
-## (INSTANCE_FLOATS each), two specks of dust a shaft, the box (world) round all of it,
+## (INSTANCE_FLOATS each), DUST_SPECKS specks of dust a shaft, the box (world) round all of it,
 ## and the screen-plane rectangle of that box with the view it was worked out for
 ## (see _shown_rect)].
 func _plan(w, col: Vector2i) -> TreeJob:
@@ -378,7 +392,9 @@ func _plan(w, col: Vector2i) -> TreeJob:
 			var strength := rng.randf_range(0.75, 1.0) if bright else rng.randf_range(0.3, 0.55)
 			var offset := rng.randf_range(-1.0, 1.0) * BUNCH_SPREAD
 			var look := Color(width, 0.0, fposmod(phase + rng.randf_range(-0.08, 0.08), 1.0), strength)
-			bunch.append([offset, look, Vector2(rng.randf_range(0.2, 0.8), rng.randf_range(0.2, 0.8))])
+			# (The roll to keep it hidden by a hash, not the rng: the shafts stay as they were.)
+			bunch.append([offset, look, Vector2(rng.randf_range(0.2, 0.8), rng.randf_range(0.2, 0.8)),
+				float(hash(Vector3i(col.x, col.y, b * IN_BUNCH + i)) % 1000) / 1000.0])
 		if skip or place.y <= -INF:
 			continue
 		for i in count:
@@ -386,7 +402,7 @@ func _plan(w, col: Vector2i) -> TreeJob:
 			# Kept inside the level's outline.
 			var x := clampf(place.x + bunch[i][0], place.z + look.r * 0.5, place.w - look.r * 0.5) \
 				if place.z + look.r < place.w else place.x
-			job.shafts.append([Vector3(mid.x + _across.x * x, foot + place.y, mid.y + _across.y * x), look, bunch[i][2]])
+			job.shafts.append([Vector3(mid.x + _across.x * x, foot + place.y, mid.y + _across.y * x), look, bunch[i][2], bunch[i][3]])
 	return job
 
 
@@ -398,17 +414,27 @@ func _shaft_step(w, job: TreeJob) -> bool:
 	job.next += 1
 	var top: Vector3 = shaft[0]
 	var length := _length(w, top, job.foot)
+	# Only where it shows in the picture: the ground it falls on (a glade) or its
+	# middle, and a few (HIDDEN_KEPT) where crowns nearer the camera hide it (a thick wood).
+	var keep: float = shaft[3]
+	var end_seen := length < LONGEST and _seen(w, top + _down * length, 2.0)
+	if length >= 1.0 and keep >= HIDDEN_KEPT and not end_seen and not _seen(w, top + _down * (length * 0.45), 1.0) \
+			and not _seen(w, top + _down * (length * 0.65), 1.0):
+		length = 0.0
 	if length >= 1.0:
 		var look: Color = shaft[1]
 		var motes_at: Vector2 = shaft[2]
 		look.g = length * -_down.y
 		_put(job.shaft_data, top, look)
 		job.box = job.box.expand(top).expand(top + _down * length)
-		job.dust.append(top + _down * (motes_at.x * length))
-		job.dust.append(top + _down * (motes_at.y * length))
+		# Specks of dust glinting all along the shaft's bright part, a little to its sides.
+		for k in DUST_SPECKS:
+			var along := 0.08 + fposmod(motes_at.x + k * 0.137, 0.62)
+			var side := (fposmod(motes_at.y + k * 0.383, 1.0) - 0.5) * look.r
+			job.dust.append(top + _down * (along * length) + Vector3(_across.x, 0.0, _across.y) * side)
 		# Its fleck where it meets the ground, in the crown's shadow (the shaft came
-		# through the crown): none for a shaft that met no ground.
-		if length < LONGEST:
+		# through the crown), where that shows: none for a shaft that met no ground.
+		if end_seen:
 			_put(job.fleck_data, top + _down * length, Color(look.r, 0.0, look.b, look.a))
 	return job.next >= job.shafts.size()
 
@@ -556,6 +582,20 @@ func _length(w, top: Vector3, foot: float) -> float:
 		else:
 			above = half
 	return length
+
+
+## World point `p` shows in the picture: nothing stands over it on the way to the
+## camera (the view now), looked at from `from` levels up (2 for the ground: a step of
+## the ground in front hides little of it) to SEEN_ABOVE world units higher.
+func _seen(w, p: Vector3, from: float) -> bool:
+	var run := PixelView.up * PixelView.slope / PixelView.squash
+	var way := Vector3(-run.x, 1.0, -run.y) * CELL
+	var at := p + way * from
+	while at.y - p.y < SEEN_ABOVE:
+		if w.get_cell(floori(at.x / CELL), floori(at.y / CELL), floori(at.z / CELL)) != Mat.AIR:
+			return false
+		at += way
+	return true
 
 
 ## World point `p` is under the ground (or the water's top).

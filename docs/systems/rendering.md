@@ -62,7 +62,7 @@ voxel models of things.
   `.nature`, made by `Main`, stepped by `Sky`) — the small effects, each by its setting in «Эффекты» (`effects`
   weather and fire, `water_fx` 0/1/2, `nature_fx`, `body_fx`, `heat_fx`, `drops_fx`; off on «низкое», mirroring
   and heat off on «среднее», `Settings.QUALITIES`, `AutoQuality.STEPS`) and hidden one by one in «Что рисуется»
-  (their `parts()`). AirEffects: the air trembling over the nearest fires (stronger, higher and wider the more wood is left, `fire.fuel` from `Effects.fire_strength`) and over hot ground at noon and drops of
+  (their `parts()`). AirEffects: the air trembling over the nearest fires (stronger, higher and wider the more wood is left, `fire.fuel` from `Effects.fire_strength`) and over hot ground at a clear noon, only over sand or the sea (`hot_ground`, from 30° of air) and drops of
   rain running down the screen's edges (`grade.gdshader` `heat_spots`, `heat_haze`, `drop_state`: when they stop the drops there run off within
   `DRY_RUN` even if new ones start; a jump in the water, under `SWIM_LEFT` s out of it, still counts as a swim), snow on the screen (`frost_state`, `screen_snow`: flakes stick to the edges and melt while it snows
   outside, frost creeps in from the edges, deepest in the corners, below `FROST_FROM` degrees; the hotbar gathers snow, `hotbar_snow`;
@@ -107,7 +107,7 @@ voxel models of things.
 - `src/client/view/fire_shadows.gd` — the shadows from fire drawn on the ground; `sun_rays.gd` — rays among
   trees, glints, dust. A shaft starts on the tree's middle plane (upright, through the trunk, across the sun's
   way) inside the crown's outline on it (a spruce's triangle), runs along the sun's light down to the ground
-  (`_length`), fading away over its lower part, and a fleck of sun lies where it meets the ground (in its crown's shadow, as wide as the shaft, stretched along the light, breathing with it; no other flecks), in bunches of 2–4 through one gap (one wide among narrow ones, bright beside pale), 3 to 13 pixels wide, slowly growing wider and paler and back in the shader; it is drawn at its own depth (lifted only `depth_lift`), so
+  (`_length`; drawn only where the ground it ends on or its middle shows in the picture, `_seen`, and `HIDDEN_KEPT` of the others, so a thick wood shows a few; which depends on the view, so a camera turn works the light out again), fading away over its lower part, and a fleck of sun lies where it meets the ground (in its crown's shadow, 0.7 of the shaft, crisp and ragged, stretched along the light, breathing with it, only where it shows; no other flecks; specks of dust glint along the shaft, `DUST_SPECKS`), in bunches of 2–4 through one gap (one wide among narrow ones, bright beside pale), 3 to 13 pixels wide, slowly growing wider and paler and back in the shader; it is drawn at its own depth (lifted only `depth_lift`), so
   the leaves of its crown in front of it and the trees in front hide it: it shows coming out of the crown. `Sky._update_rays` shows them only under a clear sky (`RAYS_CLEAR`) and with the sun at a slant (`RAYS_SUN`, 20–48°, full 26–42°): a higher sun drops them under their own crowns, a lower one lays them along the ground. The light of each tree is counted once per position of the sun (anew when the sun has
   turned by `TURN`) within `WORK_US` a frame, a shaft at a time (`_plan`, `_shaft_step`, `_job_light`: a whole
   tree was 5–11 ms on a phone); `_length` looks along a shaft every `COARSE` units until it comes near the

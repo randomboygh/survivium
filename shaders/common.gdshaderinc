@@ -92,6 +92,9 @@ global uniform float snow_line;
 // (Sky._update_light): snow in it is lighter and its shades softer, as a sunny snow field
 // throws its light back into its own hollows and shadows.
 global uniform float snow_sun;
+// The air trembling over hot sand and the sea at a clear noon (AirEffects), 0..1: see
+// heat_wobble.
+global uniform float heat_ground;
 global uniform float wetness;
 global uniform vec3 foliage_tint;
 global uniform vec3 grass_tint;
@@ -969,4 +972,12 @@ bool light_blocked(int i, vec3 p) {
 bool light_hidden(vec3 at, vec3 dir, vec3 p, vec3 normal) {
 	int i = light_spot(at, dir);
 	return i >= 0 && light_blocked(i, p + normal * 0.025);
+}
+
+// How many texels the hot air moves the ground's pattern sideways at world texel
+// `texel` at `time` (heat_ground): rows of texels sway together in slow waves, by the world, so
+// the trembling lies on the ground and stays still as the camera moves; a texel at most.
+float heat_wobble(vec2 texel, float time) {
+	float w = sin(texel.y * 0.9 + time * 4.0 + floor(texel.x / 11.0) * 1.3) * 0.6 + sin(texel.y * 0.37 - time * 2.2) * 0.5;
+	return floor(w * heat_ground * 1.1 + 0.5);
 }

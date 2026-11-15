@@ -182,6 +182,10 @@ void fragment() {
 		discard;
 	}
 	vec2 tex = floor(world_pos.xz * TEXELS);
+	// The sea trembles in the heat (heat_wobble).
+	if (heat_ground > 0.0 && sea_here > 0.5 && world_normal.y > 0.5) {
+		tex.x += heat_wobble(tex, TIME);
+	}
 	int last = int(CELL_TEXELS) - 1;
 	ivec2 t = clamp(ivec2(floor(UV * CELL_TEXELS)), ivec2(0), ivec2(last));
 	int dist[4] = int[](t.y, last - t.y, t.x, last - t.x);

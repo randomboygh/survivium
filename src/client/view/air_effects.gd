@@ -16,6 +16,8 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const Warmth := preload("res://src/shared/game/warmth.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const PX := 1.0 / 16.0
 ## The fires whose air trembles at once (grade.gdshader heat_spots), the nearest to the
@@ -26,9 +28,14 @@ const HEAT_REACH := 16.0
 ## over its flames.
 const HEAT_HALF := 0.7
 const HEAT_HIGH := 2.4
-## The ground's air trembles at noon from this many degrees, in full at HAZE_FULL.
-const HAZE_FROM := 27.0
-const HAZE_FULL := 34.0
+## The ground's air trembles at noon from this many degrees, in full at HAZE_FULL,
+## only over sand and the sea (a desert, a beach): over HOT_GROUND of the columns round
+## the player (HOT_LOOK columns each way, HOT_STEP apart) in full.
+const HAZE_FROM := 30.0
+const HAZE_FULL := 36.0
+const HOT_GROUND := 0.6
+const HOT_LOOK := 3
+const HOT_STEP := 4
 ## Drops come on the screen in rain this strong (Clock.rain: a downpour or a storm),
 ## come and go thicker and thinner at DROPS_RATE a second; out of the water they stay
 ## WET_TIME seconds. When they stop, no more come and the ones on the screen run off
@@ -101,6 +108,10 @@ var _breath := 0.0
 var _now := false
 ## The air where the player is (Warmth.air), looked at every BREATH_LOOK seconds.
 var _air := 15.0
+## The share of the ground round the player that is sand or the sea (see hot_ground).
+var _hot := 0.0
+## The heat_ground last given to the shaders.
+var _haze := 0.0
 ## Seconds to the next look at the sun's path, and whether heat spots were given.
 var _path_in := 0.0
 var _heat_shown := true
@@ -164,8 +175,34 @@ func _give(mat: ShaderMaterial, key: String, value) -> void:
 	mat.set_shader_parameter(key, value)
 
 
+## The share (0..1) of the ground round world point `p` that is sand (a material whose
+## `ground` is sand) or the sea: (HOT_LOOK * 2 + 1)² columns HOT_STEP apart.
+static func hot_ground(w, p: Vector3) -> float:
+	if w == null:
+		return 0.0
+	var cx := floori(p.x / WorldData.CELL)
+	var cz := floori(p.z / WorldData.CELL)
+	var hot := 0
+	var all := 0
+	for i in range(-HOT_LOOK, HOT_LOOK + 1):
+		for j in range(-HOT_LOOK, HOT_LOOK + 1):
+			var x := cx + i * HOT_STEP
+			var z := cz + j * HOT_STEP
+			all += 1
+			var y: int = w.surface_y(x, z)
+			if y < 0:
+				var level: int = w.sea_level
+				if w.sea(x, level - 1, z) or w.sea(x, level, z):
+					hot += 1
+			elif y > 0:
+				var m: int = w.get_cell(x, y - 1, z)
+				if m > 0 and m < Mat.RECORDS.size() and Mat.RECORDS[m].get("ground", "") == "sand":
+					hot += 1
+	return float(hot) / float(all)
+
+
 ## The air over the HEAT_FIRES burning fires nearest the view trembles, and in a hot
-## noon under the open sky the air over the ground in patches.
+## clear noon under the open sky over sand or the sea the air over the ground in patches.
 func _heat(on: bool, sky, clock, indoor: bool) -> void:
 	var view = game.view
 	if view == null or view.camera == null:
@@ -207,9 +244,12 @@ func _heat(on: bool, sky, clock, indoor: bool) -> void:
 	# The air is looked at with the breath (BREATH_LOOK), not every frame.
 	var haze := 0.0
 	if on and not indoor:
-		haze = clampf((_air - HAZE_FROM) / (HAZE_FULL - HAZE_FROM), 0.0, 1.0) \
+		haze = clampf((_air - HAZE_FROM) / (HAZE_FULL - HAZE_FROM), 0.0, 1.0) * clampf(_hot / HOT_GROUND, 0.0, 1.0) \
 			* smoothstep(0.6, 0.95, sky.sun_light) * (1.0 - clampf(clock.clouds, 0.0, 1.0)) * (1.0 - clock.rain)
-	_give(mat, "heat_haze", snappedf(haze, 0.02))
+	haze = snappedf(haze, 0.02)
+	if haze != _haze:
+		_haze = haze
+		RenderingServer.global_shader_parameter_set("heat_ground", haze)
 
 
 ## Drops on the screen in a downpour under the open sky, and for WET_TIME seconds after
@@ -329,6 +369,7 @@ func _breathe(delta: float, on: bool, sky, clock) -> void:
 	var step := BREATH_LOOK - _look
 	_look = BREATH_LOOK
 	_air = Warmth.air(game.world, clock, game.player.position)
+	_hot = hot_ground(game.world, game.player.position) if _air > HAZE_FROM else 0.0
 	_breath = breath_strength(sky, clock) if on else 0.0
 	if _breath <= 0.0:
 		_breaths.clear()
