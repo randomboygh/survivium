@@ -12,7 +12,13 @@
 # way in one run), server_test, frame_test.
 # GODOT=path/to/godot if it is not on PATH; LOGS=dir keeps each check's log there (CI
 # uploads them); in GitHub Actions the times and results also go to the job's summary.
+# Quiet by default outside GitHub Actions: one line per check (time, exit code, counts), the
+# FAIL / SCRIPT ERROR lines of a check that did not pass, and the full logs in LOGS (default
+# logs/, which git ignores). VERBOSE=1, or GITHUB_ACTIONS, prints every full log as before.
 set -u
+verbose=
+if [ -n "${VERBOSE:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then verbose=1; fi
+if [ -z "$verbose" ]; then LOGS=${LOGS:-logs}; fi
 godot=${GODOT:-godot}
 out=$(mktemp -d)
 trap 'rm -rf "$out"' EXIT
@@ -44,7 +50,7 @@ batch() {
 	for n in "$@"; do
 		read -r code secs <"$out/$n.code"
 		if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::group::$n: $secs s, exit $code"; else echo "=== $n: $secs s, exit $code"; fi
-		cat "$out/$n.log"
+		[ -n "$verbose" ] && cat "$out/$n.log"
 		[ -n "${GITHUB_ACTIONS:-}" ] && echo "::endgroup::"
 		local result=passed
 		if [ "$code" = 124 ]; then
@@ -66,9 +72,14 @@ batch() {
 		local counts
 		counts=$(grep -E '[0-9]+ checks, [0-9]+ fail|^content OK|content problems|scripts, [0-9]+ do not|^content reports|stale|^fresh' "$out/$n.log" | tail -1)
 		summary+=("| $n | $secs | $result | ${counts//|/\\|} |")
+		[ -z "$verbose" ] && [ -n "$counts" ] && echo "    $counts"
 		if [ "$result" != passed ]; then
 			[ -n "${GITHUB_ACTIONS:-}" ] && echo "::error title=$n $result::$(grep -m1 -E '^FAIL|^content:|ERROR' "$out/$n.log" | head -c 300)"
 			grep -E '^FAIL' "$out/$n.log" | head -10 | sed 's/^/    /' >>"$out/fails.txt"
+			if [ -z "$verbose" ]; then
+				grep -E -A2 '^FAIL|SCRIPT ERROR|^content:|^ERROR' "$out/$n.log" | head -30
+				echo "    full log: ${LOGS}/$n.log"
+			fi
 		fi
 		if [ -n "${LOGS:-}" ]; then
 			mkdir -p "$LOGS" && cp "$out/$n.log" "$LOGS/$n.log"
