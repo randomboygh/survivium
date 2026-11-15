@@ -189,7 +189,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   all); `haptics.gd` (a child of the HUD) watches the character (a bite on the line, death, low health's heart,
   waking up), the season, team invitations, things made, picked up and fires lit near; the rest buzz where
   they happen (a strike, a felled tree, a shot that hits, a catch in `Controls._did`, a landing and water in
-  `Steps`, thunder in `Nature` (the one heard rolls in the phone by its own shape, `src/client/audio/thunder_shape.gd`,
+  `Steps`, thunder in `Nature` (the one heard is felt as its «ту-дууух», a hit and a boom, at most once in 8 s, by its own shape, `src/client/audio/thunder_shape.gd`,
   which `tools/make_sounds.gd` makes its six variants by; `Vibration.rumble`), a thing set down in `Props._land`, a warning beast in `Voices`, buttons in
   `Sound`, a full bag and a broken tool in the client's `Character.say`, chat lines in `ChatBox.hear`).
 
