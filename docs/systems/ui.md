@@ -185,7 +185,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   ones, then far ones pale — as many as fit). The sorting by kind and the tabs go in the order of
   `Items.CATEGORIES`: stations, tools, light, gear, materials, blocks, food, healing, plants; the crafting
   recipes are sorted the same way. The action button on the game screen names what it will do now
-  (`Controls.action_name`, once per `LABEL_TIME` by `WorldActions.front_kind`, and when the hand's thing or the mode changes; a change of the bag alone leaves it for `Hud.ACTION_NAME_MS`, since a look ahead costs ~2 ms on a PC — the same choice that
+  (`Controls.action_name`, once per `LABEL_TIME` by `WorldActions.front_kind`, and when the hand's thing or the mode changes; a change of the bag alone leaves it for `Hud.ACTION_NAME_MS`, since a look ahead costs ~0.5 ms on a PC; `front_kind` takes the kind by `_choice_kind`, which stops at the first grass worth more than the best tree or bush where `front_choice` ranks every cell ahead — the same choice that
   `act_in_front` makes, with no change of the world): «Drink» at water with an empty hand, «Fill with water»
   with an empty vessel, «Gather» at berries with a torch in the hand, «Dig» when everything around is
   gathered, «Chop», «Mow» (grass with hands — «Gather»), «Hit»; for a building item, food and healing — «Place»,

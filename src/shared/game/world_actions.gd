@@ -248,15 +248,15 @@ func front_kind(who) -> String:
 	var farm: Variant = front_farm(who)
 	if farm != null:
 		return farm[0]
-	var work := front_choice(who)
-	if work.has("trunk"):
-		return "chop"
-	if work.has("tree") or work.has("bush"):
-		return "gather"
-	if work.has("mow"):
-		return "mow"
-	if work.has("dig"):
-		return "dig"
+	match _choice_kind(who):
+		"trunk":
+			return "chop"
+		"tree", "bush":
+			return "gather"
+		"mow":
+			return "mow"
+		"dig":
+			return "dig"
 	return ""
 
 
@@ -380,6 +380,37 @@ func front_choice(who) -> Dictionary:
 		return best
 	var cells := dig_targets(who, order, t, 1)
 	return {"dig": cells} if not cells.is_empty() else {}
+
+
+## Which of front_choice's keys it would give ("trunk", "tree", "bush", "mow", "dig",
+## "" for nothing), without the cells: hands and a sword stop at the first grass that
+## gives more than the best tree or bush, where front_choice looks over every cell
+## ahead for the best (~2 ms on a PC, the action button's label 4 times a second).
+func _choice_kind(who) -> String:
+	var t: Dictionary = who.tool()
+	if not t.tool in ["hand", "sword"]:
+		var work := front_choice(who)
+		return "" if work.is_empty() else str(work.keys()[0])
+	var best := ""
+	var best_rank := DIG_RANK
+	for target in front_targets(who):
+		var r := _rank(_gives(who, target))
+		if r < best_rank:
+			best = str(target.keys()[0])
+			best_rank = r
+	var order := front_order(who)
+	if Tools.mows(t) and best_rank != FOOD_RANK:
+		var ranks := {}
+		for c in order:
+			if can_mow(c, t) and not too_far(who, c, t.reach):
+				var gives := _mow_gives(c)
+				if not ranks.has(gives):
+					ranks[gives] = _rank(gives)
+				if ranks[gives] < best_rank and not mow_targets(who, [c], t).is_empty():
+					return "mow"
+	if best != "":
+		return best
+	return "dig" if not dig_targets(who, order, t, 1).is_empty() else ""
 
 
 ## The items gathering from tree or bush `target` (see front_targets) would give now.
