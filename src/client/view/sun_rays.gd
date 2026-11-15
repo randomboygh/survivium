@@ -10,7 +10,9 @@ extends Node3D
 ## the camera has turned or the trees have changed. Each tree's light is worked out
 ## once for the sun's way (again when it has turned TURN), a few trees a frame within
 ## WORK_US, so neither a walk in a wood nor the sun's turning takes a long frame; the shaders
-## (sun_rays.gdshader) draw them. Sky tells how strong and what colour they are and
+## (sun_rays.gdshader) draw them. New light never jumps in: it is laid into the second of two
+## sets of shafts and flecks and dissolves in, texel by texel, as the old dissolves out over
+## FADE seconds (a shaft in both stays as it was), one change at a time. Sky tells how strong and what colour they are and
 ## where the sun is (see Sky._update_rays). `game` is the Main node.
 
 const PixelView := preload("res://src/client/view/pixel_view.gd")
@@ -64,17 +66,26 @@ const MAX_CROWNS := 4096
 ## on, the light worked out so far is laid out this often (ms).
 const WORK_US := 1000
 const SHOW_EVERY_MS := 250
+## Seconds new light takes to dissolve in, and the old out.
+const FADE := 1.5
 
 var game
 ## How strong the light is (0 none) and its colour, and the way to the sun.
 var amount := 0.0
 var color := Color(1.0, 0.95, 0.8)
 var to_sun := Vector3.UP
-var shafts: MultiMeshInstance3D
-var flecks: MultiMeshInstance3D
+## Two sets of shafts and flecks (see FADE): the light shown now is in set _front.
+var shafts: Array[MultiMeshInstance3D] = []
+var flecks: Array[MultiMeshInstance3D] = []
 var motes: CPUParticles3D
-var _shaft_mat: ShaderMaterial
-var _fleck_mat: ShaderMaterial
+var _mats: Array[ShaderMaterial] = []
+var _front := 0
+## How far set _front has dissolved in (1 done), and the light waiting to be shown
+## after it: [shafts' data, flecks' data] or empty.
+var _fade := 1.0
+var _waiting := []
+## The light set _front shows: [shafts' data, flecks' data].
+var _shown := [PackedFloat32Array(), PackedFloat32Array()]
 ## The crowns found: {column: Vector3(foot, top, radius) in world units}.
 var _crowns := {}
 ## Where and for what sun the light was laid out last, and how many trees there were.
@@ -105,10 +116,12 @@ var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
-	_shaft_mat = _material(0)
-	_fleck_mat = _material(1)
-	shafts = _instances(MAX_SHAFTS, _shaft_mat)
-	flecks = _instances(MAX_FLECKS, _fleck_mat)
+	for i in 2:
+		var shaft_mat := _material(0)
+		var fleck_mat := _material(1)
+		_mats.append_array([shaft_mat, fleck_mat])
+		shafts.append(_instances(MAX_SHAFTS, shaft_mat))
+		flecks.append(_instances(MAX_FLECKS, fleck_mat))
 	motes = CPUParticles3D.new()
 	motes.amount = 96
 	motes.lifetime = 4.0
@@ -175,20 +188,22 @@ static func _quad() -> ArrayMesh:
 	return mesh
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	var on := amount > 0.0 and game != null and game.player != null and to_sun.y > 0.05
-	shafts.visible = on
-	flecks.visible = on
+	for node in shafts + flecks:
+		node.visible = on
 	if motes.emitting != on:
 		motes.emitting = on
 	if not on:
 		return
 	var t := Time.get_ticks_usec()
 	var down := _shaft_way()
-	for m in [_shaft_mat, _fleck_mat]:
+	for m in _mats:
 		m.set_shader_parameter("amount", amount)
 		m.set_shader_parameter("light_color", color)
 		m.set_shader_parameter("light_down", down)
+	if _fade < 1.0:
+		_dissolve(minf(_fade + delta / FADE, 1.0))
 	var view := _view()
 	if to_sun.dot(_laid_sun) <= 1.0 - TURN or view.slice(0, 3) != _worked_view:
 		# The sun or the view (which shafts show depends on it, see _seen) has turned:
@@ -217,6 +232,49 @@ func _process(_delta: float) -> void:
 			_lay_out(p, near)
 	if game.hud != null:
 		game.hud.perf.note("sun rays", t)
+
+
+## Set _front dissolved in as far as `fade` (0..1), the other out; when it is done,
+## the light waiting (see _show) comes next.
+func _dissolve(fade: float) -> void:
+	_fade = fade
+	# The front shows where a texel's dither is under `fade`, the back where it is not:
+	# a shaft in both is drawn once at every texel all along.
+	for m in _mats:
+		m.set_shader_parameter("fade", fade)
+	for i in 2:
+		_mats[i * 2].set_shader_parameter("fade_out", i != _front)
+		_mats[i * 2 + 1].set_shader_parameter("fade_out", i != _front)
+	if fade >= 1.0:
+		var back := 1 - _front
+		shafts[back].multimesh.visible_instance_count = 0
+		flecks[back].multimesh.visible_instance_count = 0
+		if not _waiting.is_empty():
+			var next: Array = _waiting
+			_waiting = []
+			_show(next[0], next[1])
+
+
+## Shows the light in `shaft_data` and `fleck_data` (see _put): dissolved in over FADE
+## (after the change under way, if one is), or `at_once`.
+func _show(shaft_data: PackedFloat32Array, fleck_data: PackedFloat32Array, at_once := false) -> void:
+	if at_once:
+		_waiting = []
+		_shown = [shaft_data, fleck_data]
+		_fill(shafts[_front].multimesh, shaft_data, MAX_SHAFTS)
+		_fill(flecks[_front].multimesh, fleck_data, MAX_FLECKS)
+		_dissolve(1.0)
+		return
+	if _fade < 1.0:
+		_waiting = [shaft_data, fleck_data]
+		return
+	if shaft_data == _shown[0] and fleck_data == _shown[1]:
+		return
+	_shown = [shaft_data, fleck_data]
+	_front = 1 - _front
+	_fill(shafts[_front].multimesh, shaft_data, MAX_SHAFTS)
+	_fill(flecks[_front].multimesh, fleck_data, MAX_FLECKS)
+	_dissolve(0.0)
 
 
 ## Works out the light of the trees near whose light is not of the sun now, the
@@ -253,7 +311,7 @@ func _work_out(t0: int, budget := WORK_US) -> void:
 ## which take a picture before the game would have worked it all out); false when the
 ## light is off.
 func finish() -> bool:
-	if not shafts.visible or game == null or game.player == null:
+	if not shafts[0].visible or game == null or game.player == null:
 		return false
 	var p: Vector3 = game.player.position
 	var near := _near(p)
@@ -261,7 +319,7 @@ func finish() -> bool:
 	_laid_view = _view()
 	_next = 0
 	_work_out(Time.get_ticks_usec(), 1 << 40)
-	_lay_out(p, near)
+	_lay_out(p, near, true)
 	return true
 
 
@@ -467,8 +525,8 @@ static func _shown_rect(light: Array, view: Array) -> Rect2:
 
 ## Lays the light of the trees near (as far as it is worked out) out in the picture
 ## round the player at `p`: the shafts and flecks that show in it, the nearest trees'
-## first.
-func _lay_out(p: Vector3, near: Array) -> void:
+## first; dissolved in (see _show), or `at_once`.
+func _lay_out(p: Vector3, near: Array, at_once := false) -> void:
 	_worked = false
 	_shown_at = Time.get_ticks_msec()
 	var picture: Rect2 = near[0]
@@ -492,20 +550,20 @@ func _lay_out(p: Vector3, near: Array) -> void:
 		var flecks_of: PackedFloat32Array = light[2]
 		if not flecks_of.is_empty() and fleck_data.size() + flecks_of.size() <= fleck_room:
 			fleck_data.append_array(flecks_of)
-	_fill(shafts.multimesh, shaft_data, MAX_SHAFTS)
-	_fill(flecks.multimesh, fleck_data, MAX_FLECKS)
+	_show(shaft_data, fleck_data, at_once)
 	if dust.is_empty():
 		dust.append(Vector3(p.x, -1000.0, p.z))
 	motes.emission_points = dust
 
 
 ## Hands the instances in `data` (see _put) to MultiMesh `mm` of `most` instances at
-## once, the rest of its buffer left as it was and not drawn.
+## once, the rest of its buffer left as it was and not drawn (`data` itself is left as it is).
 static func _fill(mm: MultiMesh, data: PackedFloat32Array, most: int) -> void:
 	var n := data.size() / INSTANCE_FLOATS
 	if n > 0:
-		data.resize(most * INSTANCE_FLOATS)
-		mm.buffer = data
+		var all := data.duplicate()
+		all.resize(most * INSTANCE_FLOATS)
+		mm.buffer = all
 	mm.visible_instance_count = n
 
 
