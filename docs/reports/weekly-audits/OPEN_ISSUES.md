@@ -15,10 +15,13 @@ WA-027 (the twelve uncalled functions deleted; the palettes' filters of the buil
 WA-026 (`work_mode.gd` under the build and farming modes, `bot_brain.gd` under the two bots, the server's roles used directly).
 WA-049, WA-050 (the owner picked option A for each), WA-064 (the owner's playtest: the numbers kept).
 WA-021 (#584), WA-020, WA-023, WA-057 (#596).
+WA-033, WA-035, WA-036, WA-037, WA-038, WA-062, WA-063 (#589, checked in the code on 2026-11-15: the mods' files are stepped 12 a frame while the game is in front, fires are kept in a list, the haze skips its scan, `UiStyle.forget`, `Server._prune`, far animals left out of snapshots, the bag lays out only itself).
+WA-058 (the owner, 2026-11-15: keep ws:// on a local network, TLS only through the tunnel), WA-059 (the owner: no player accounts).
+WA-060 (checked 2026-11-15 on the `main protection` ruleset: a pull request and the checks lint, checks, tests, progress (hunting), progress (other), frames, export, pc, android are required).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 0 | 12 | 14 | 26 |
+| 0 | 0 | 6 | 10 | 16 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
@@ -30,7 +33,7 @@ recommendations.
 
 - **Description:** Some functions are very long.
 - **Cause:** Growth since 2026-11-07. The two scripts past 1500 lines are split (2026-11-14): `wildlife.gd` into a chain of five parts (#598), the icons' drawings of `ui_style.gd` into `ui_icons.gd`; `main.gd` gave its connection flow to `server_link.gd` (#586).
-- **Confirmation:** Counted: `wc -l`; longest functions `settings_menu._section_rows` 350 lines, `land_layout._layout_row` 303, `hud._ready` 276.
+- **Confirmation:** Counted: `wc -l`; longest functions `settings_menu._section_rows` 390 lines, `land_layout._layout_row` 312, `hud._ready` 280 (counted again 2026-11-15).
 - **Files and systems:** `src/client/ui/settings_menu.gd`, `src/shared/world/land_layout.gd`, `src/client/ui/hud.gd`
 - **Consequences:** Hard to review and merge.
 - **Recommended fix:** Per-section functions for `_section_rows` and `hud._ready` when those files are next touched (other threads work in them now); `_layout_row` is the generator's inner loop: split only with a bench before and after.
@@ -45,16 +48,6 @@ recommendations.
 - **Consequences:** By the project's 10× rule a phone spends about 10 ms of 16.7 doing nothing.
 - **Recommended fix:** Profile the player part on a phone (stats panel, F3) before changing code.
 - **Status:** Open: needs phone data; first found 2026-11-14 (new); due 2026-11-27.
-
-### WA-033 · Medium · Performance
-
-- **Description:** PC builds poll the mods' files on disk every frame.
-- **Cause:** `ModReload.update` steps `ContentWatch` every frame, 120 files or folders a call, forever, whenever `content/` is beside the program.
-- **Confirmation:** Read: `src/client/mod_reload.gd:48-50`, `src/shared/content/content_watch.gd:15`; about 3700 entries, a pass every ~31 frames, ~7000 stat calls a second at 60 fps. Not measured.
-- **Files and systems:** `src/client/mod_reload.gd`, `src/shared/content/content_watch.gd`
-- **Consequences:** Constant disk calls on Windows and Linux for a feature only modders use.
-- **Recommended fix:** Plan: step every 0.25 s or every N frames; measure on Windows first.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due 2026-11-27.
 
 ### WA-034 · Medium · Performance
 
@@ -74,37 +67,7 @@ recommendations.
 - **Files and systems:** `.github/workflows/build.yml`, repository settings
 - **Consequences:** A broken main until someone fixes forward.
 - **Recommended fix:** A merge queue or "require branches to be up to date" (repository settings, the owner).
-- **Status:** Open: owner action; first found 2026-11-14 (new); due 2026-11-20.
-
-### WA-058 · Medium · Security
-
-- **Description:** Unencrypted ws:// on a local network (S-20).
-- **Cause:** TLS is only through the tunnel.
-- **Confirmation:** No `TLSOptions` in `src/`; `src/server/tunnel.gd`.
-- **Files and systems:** `src/server/`, `src/client/net/`
-- **Consequences:** Traffic on a LAN can be read.
-- **Recommended fix:** The owner's choice (keep the tunnel, or add certificates).
-- **Status:** Open: user decision; first found 2026-11-14 (stage 7); due backlog.
-
-### WA-059 · Medium · Security
-
-- **Description:** No player accounts (S-22).
-- **Cause:** The key is the only identity.
-- **Confirmation:** `plan/backlog.md`; a ban by name is evaded by another name.
-- **Files and systems:** `src/server/server.gd`
-- **Consequences:** Bans and roles are only as strong as the key on one device.
-- **Recommended fix:** A user decision.
-- **Status:** Open: user decision; first found 2026-11-14 (stage 7); due backlog.
-
-### WA-060 · Medium · CI
-
-- **Description:** Required checks on main are not confirmed.
-- **Cause:** A repository setting, not visible in the repo.
-- **Confirmation:** Cannot be checked from the repository.
-- **Files and systems:** repository settings
-- **Consequences:** A red PR could be merged.
-- **Recommended fix:** The owner turns on required checks.
-- **Status:** Open: owner action; first found 2026-11-14 (stage 5); due 2026-11-20.
+- **Status:** Open: owner action. Checked 2026-11-15: the `main protection` ruleset requires the checks but `strict_required_status_checks_policy` is off, so a branch need not be up to date (a personal repository has no merge queue); threads rebase before merging by hand; first found 2026-11-14 (new); due 2026-11-20.
 
 ### WA-061 · Medium · Performance
 
@@ -115,26 +78,6 @@ recommendations.
 - **Consequences:** A real teleport or join may hit the same cost.
 - **Recommended fix:** Find the cause (see WA-034).
 - **Status:** Open: needs plan; first found 2026-11-14 (stage 5); due backlog.
-
-### WA-062 · Medium · Network
-
-- **Description:** Animals' snapshots go over the whole world (net-8, net-m1).
-- **Cause:** Only the people list is filtered by zone.
-- **Confirmation:** Read: `src/server/player_link.gd` `_snap` has no zone test.
-- **Files and systems:** `src/server/player_link.gd`
-- **Consequences:** Traffic grows with the world's animals, not with what a player sees.
-- **Recommended fix:** Plan: filter snapshots by zone as people are.
-- **Status:** Open: needs plan; first found 2026-11-14 (stage 4); due backlog.
-
-### WA-063 · Medium · Interface, performance
-
-- **Description:** A setting change or a bag opening lays out the whole HUD (ui-big-3).
-- **Cause:** `hud_layout._place` redoes everything.
-- **Confirmation:** Read: `src/client/ui/hud_layout.gd`; not measured again.
-- **Files and systems:** `src/client/ui/hud_layout.gd`
-- **Consequences:** A hitch on a phone.
-- **Recommended fix:** Plan: lay out only what changed.
-- **Status:** Open: needs plan; first found 2026-11-14 (stage 4); due backlog.
 
 ### WA-065 · Medium · Process
 
@@ -165,46 +108,6 @@ recommendations.
 - **Consequences:** Against the rule "the engine asks for content by role".
 - **Recommended fix:** Plan: a role in the YAML (an animal marked for the menu).
 - **Status:** Open: needs plan; first found 2026-11-14 (new); due backlog.
-
-### WA-035 · Low · Performance
-
-- **Description:** The scare of fires scans every placed thing every half second.
-- **Cause:** `Wildlife._find_fires` builds `placed.things + placed.lights` each time.
-- **Confirmation:** Read: `src/shared/game/wildlife.gd:827, 841`.
-- **Files and systems:** `src/shared/game/wildlife.gd`
-- **Consequences:** O(all placed things) on the server's tick of a long-running or phone-hosted server.
-- **Recommended fix:** Plan: keep a list of lit things that scare, updated when their light changes.
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due backlog.
-
-### WA-036 · Low · Performance
-
-- **Description:** The edge haze recomputes its grid every frame.
-- **Cause:** `EdgeHaze.update` walks the key grid and compares arrays each frame.
-- **Confirmation:** Read: `src/client/world/edge_haze.gd:53-72`; CI idle `chunks` part 0.06–0.10 ms.
-- **Files and systems:** `src/client/world/edge_haze.gd`
-- **Consequences:** At most about 1 ms on a phone.
-- **Recommended fix:** Skip the work unless the home chunk, the built set or the screen changed.
-- **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
-
-### WA-037 · Low · Memory
-
-- **Description:** Icon image caches are never cleared.
-- **Cause:** `UiStyle._images` and `_outlined` are keyed by texture id; mod reloads make new textures.
-- **Confirmation:** Read: `src/client/ui/ui_style.gd:1374-1376`, `remember` at 1461; no `forget`.
-- **Files and systems:** `src/client/ui/ui_style.gd`, `src/client/mod_reload.gd`
-- **Consequences:** Each reload or server switch keeps one more copy of every icon.
-- **Recommended fix:** Add `UiStyle.forget()` beside `ItemIcons.forget()`.
-- **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
-
-### WA-038 · Low · Memory
-
-- **Description:** Two server dictionaries are never pruned.
-- **Cause:** `_flag_at` (by player and kind) and `_wrong` (by address) only grow.
-- **Confirmation:** Read: `src/server/server.gd:901, 998-1000`.
-- **Files and systems:** `src/server/server.gd`
-- **Consequences:** Slow growth over a long uptime or an address spray.
-- **Recommended fix:** Drop entries older than their windows when writing.
-- **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
 
 ### WA-044 · Low · CI
 
