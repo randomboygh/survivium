@@ -23,6 +23,7 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const PlayerView := preload("res://src/client/view/player.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Effects := preload("res://src/client/view/effects.gd")
+const WindowGlow := preload("res://src/client/view/window_glow.gd")
 
 ## The mixes of lights: [the sun's shadow, a light without a shadow (the torch, the far
 ## fires), the layers the nearest fire's real shadow falls from (0 without one), whether
@@ -113,12 +114,13 @@ func _build() -> void:
 	var kinds := {}
 	_collect(game.view.world_root, kinds)
 	# What may not be around yet: the ground's, water's and the low things' material on a
-	# face like the chunks have.
+	# face like the chunks have, and a window's glass lit from inside (WindowGlow).
 	# The ground's material is on the props too, where no fire's shadow falls.
 	# The things' too, on their own layer (PixelView.LAYER_THINGS), where a fire's real
 	# shadow falls with «Тень на вещах».
 	for m: Array in [[game.world_mat, PixelView.LAYER_GROUND], [game.world_mat, 1], [game.low_mat, 1],
-			[game.water_mat, 1], [game.world_mat, PixelView.LAYER_THINGS], [game.low_mat, PixelView.LAYER_THINGS]]:
+			[game.water_mat, 1], [game.world_mat, PixelView.LAYER_THINGS], [game.low_mat, PixelView.LAYER_THINGS],
+			[WindowGlow.shared_material(), PixelView.LAYER_THINGS]]:
 		var face := MeshInstance3D.new()
 		face.mesh = _face()
 		face.material_override = m[0]

@@ -12,6 +12,7 @@ const SettingsScript := preload("res://src/client/settings.gd")
 const Others := preload("res://src/client/view/others.gd")
 const Effects := preload("res://src/client/view/effects.gd")
 const GlowLights := preload("res://src/client/view/glow_lights.gd")
+const WindowGlow := preload("res://src/client/view/window_glow.gd")
 
 
 ## Settings that keep values alone, for AutoQuality.
@@ -55,6 +56,7 @@ func run() -> void:
 	_test_global_textures()
 	_test_fire_shadows_blank()
 	_test_glow_lights()
+	_test_window_glow()
 
 
 func _test_pixel_view() -> void:
@@ -810,3 +812,55 @@ func _test_fire_shadows_blank() -> void:
 	_check(not f.visible and b.size() == FireShadows.MAX_SHADOWS * 20 and b.count(0.0) == b.size(),
 		"fire shadows start hidden with every instance zeroed")
 	f.free()
+
+
+## How light it is round a window, for WindowGlow.
+class WindowSky:
+	var sky_light := 0.0
+
+	func charge_gain(_left: float) -> float:
+		return 1.0
+
+
+## A window glows at night with a light lit under the roof of its room, from the side
+## away from the light; not by day, not for a light out in the open, not for one far off,
+## and not once it is taken away; its glass alone (not the frame) is drawn.
+func _test_window_glow() -> void:
+	var g = WindowGlow.new()
+	var model = VoxelProps.prop("window_1x2")
+	var node := MeshInstance3D.new()
+	node.mesh = model.build_mesh()
+	node.scale = Vector3.ONE / 16.0
+	var cell := Vector3i(10, 4, 10)
+	g.add(cell, node, model)
+	var sky := WindowSky.new()
+	var mid: Vector3 = g.windows[cell].mid
+	var inside := mid + Vector3(0.0, -0.3, -2.0)
+	var lamps: Array = [{"at": inside, "placed": {}, "reach": 7.0}]
+	var roofed := func(p: Vector3) -> bool: return p.z < mid.z
+	for i in 20:
+		g.update(0.1, sky, [], lamps, roofed)
+	var w: Dictionary = g.windows[cell]
+	_check(w.amount > 0.3 and w.glow != null and w.glow.visible, "a window glows at night with a lamp in its room (%.2f)" % w.amount)
+	var mat: ShaderMaterial = w.glow.material_override
+	_check((mat.get_shader_parameter("source") as Vector3).is_equal_approx(inside), "its glass glows away from the lamp")
+	var glass: ArrayMesh = w.glow.mesh
+	_check(glass.get_aabb().size.z < 4.0 and glass.get_aabb().size.x < node.mesh.get_aabb().size.x,
+		"only the glass glows, not the frame")
+	sky.sky_light = 1.0
+	g._wait = 0.0
+	for i in 40:
+		g.update(0.1, sky, [], lamps, roofed)
+	_check(w.amount == 0.0 and not w.glow.visible, "no glow by day")
+	sky.sky_light = 0.0
+	lamps[0].at = mid + Vector3(0.0, -0.3, 2.0)
+	g._wait = 0.0
+	g.update(0.1, sky, [], lamps, roofed)
+	_check(w.target == 0.0, "a lamp out in the open does not light the glass")
+	lamps[0].at = mid + Vector3(0.0, -0.3, -9.0)
+	g._wait = 0.0
+	g.update(0.1, sky, [], lamps, roofed)
+	_check(w.target == 0.0, "a lamp beyond its reach does not either")
+	g.remove(cell)
+	_check(g.windows.is_empty(), "a window taken away is forgotten")
+	node.free()

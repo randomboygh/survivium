@@ -16,6 +16,7 @@ const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const GlowLights := preload("res://src/client/view/glow_lights.gd")
 const Wisps := preload("res://src/client/view/wisps.gd")
+const WindowGlow := preload("res://src/client/view/window_glow.gd")
 
 ## How far round it a lightning bolt lights, world units.
 const BOLT_RANGE := 10.0
@@ -144,6 +145,8 @@ var flicker_clock := 0.0
 var glows: Node3D
 ## The will-o'-the-wisps over the swamps at night (Wisps, moved by Sky).
 var wisps: Node3D
+## The windows lit from inside by the fires and lights in their rooms (WindowGlow).
+var windows := WindowGlow.new()
 ## The spores of a puffball picked (puff), made on first use.
 var _puff: CPUParticles3D
 var rng := RandomNumberGenerator.new()
@@ -273,6 +276,7 @@ func _ready() -> void:
 	add_child(glows)
 	wisps = Wisps.new()
 	add_child(wisps)
+	windows.fire_full = FIRE_ENERGY
 
 
 ## The flame of a torch in a hand (the player's, see hold_flames, or another player's,
@@ -423,7 +427,7 @@ func add_lamp(at: Vector3, reach: float, placed := {}) -> Dictionary:
 	light.visible = false
 	add_child(light)
 	anchor(light, at)
-	var rec := {"light": light, "flame": flame, "at": at, "placed": placed}
+	var rec := {"light": light, "flame": flame, "at": at, "placed": placed, "reach": reach}
 	lamps.append(rec)
 	return rec
 
@@ -597,6 +601,7 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 				PixelView.twin_follow(f.light, energy / shadow_energy)
 		_light_lamps(view, sky)
 	glows.update(delta, view, sky, clock)
+	windows.update(delta, sky, fires, lamps, roofed)
 
 
 ## How bright fire `f` (see add_campfire) burns now, without its flicker: by its fuel
