@@ -68,10 +68,10 @@ void fragment() {
 	if (c.a < 0.5) {
 		discard;
 	}
-	vec3 rgb = mix(c.rgb * tint * 0.9, water, 0.3) * light;
+	vec3 rgb = mix(c.rgb * tint * 0.9, water, 0.4) * light;
 	ALBEDO = rgb;
 	// Fainter the deeper, dithered in steps so it stays pixel art.
-	float a = 0.8 * (1.0 - smoothstep(0.3, 1.6, depth));
+	float a = 0.45 * (1.0 - smoothstep(0.3, 1.6, depth));
 	ALPHA = a < bayer4(floor(surface.xz * TEXELS)) * 0.3 ? 0.0 : a;
 	COMPAT_ALBEDO
 }
