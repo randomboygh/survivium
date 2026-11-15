@@ -27,8 +27,8 @@ const REACH := 12.0
 const FARTHEST := 40.0
 ## The player moves this far, in world units, before the light is laid out again.
 const MOVE := 2.0
-## The sun turns this much (the dot of its old and new way, 1 - it) before the light
-## is laid out again.
+## The shafts' way turns this much (the dot of its old and new way, 1 - it), as the sun
+## or the view turns, before the light is worked out again.
 const TURN := 0.0004
 ## The longest a shaft runs, in world units, when it meets no ground (out over a cliff).
 const LONGEST := 48.0
@@ -46,6 +46,10 @@ const BUNCHES := 2
 const IN_BUNCH := 4
 ## How far apart the shafts of a bunch stand at most, along the middle plane (units).
 const BUNCH_SPREAD := 0.7
+## The least angle below the level a shaft is drawn at in the picture (degrees), and
+## the steps of 2 degrees its fall is made steeper by at most to get there.
+const STEEP_PICTURE := 40.0
+const STEEPEST := 40
 ## Levels a crown is looked for above the foot of its trunk.
 const CROWN_LEVELS := 24
 ## Columns from the trunk a crown is looked for at the middle of its height.
@@ -178,9 +182,10 @@ func _process(_delta: float) -> void:
 		m.set_shader_parameter("amount", amount)
 		m.set_shader_parameter("light_color", color)
 		m.set_shader_parameter("light_down", down)
-	if to_sun.dot(_laid_sun) <= 1.0 - TURN:
-		# The sun has turned: every tree's light is worked out anew, a few a frame, and
-		# laid out once all are (the old light stays until then).
+	if down.dot(_down) <= 1.0 - TURN or _laid_sun == Vector3.ZERO:
+		# The sun (or the view, which the shafts' way follows) has turned: every tree's
+		# light is worked out anew, a few a frame, and laid out once all are (the old
+		# light stays until then).
 		_laid_sun = to_sun
 		_down = down
 		var flat := Vector2(down.x, down.z)
@@ -257,9 +262,31 @@ func _view() -> Array:
 	return [PixelView.up, PixelView.squash, PixelView.slope, game.view.image_size]
 
 
-## The way the shafts run down: the sun's light's.
+## The way the shafts run down in the view now (see steep_way).
 func _shaft_way() -> Vector3:
-	return Vector3(-to_sun.x, -maxf(to_sun.y, 0.05), -to_sun.z).normalized()
+	return steep_way(to_sun, PixelView.up, PixelView.squash, PixelView.slope)
+
+
+## The way of the sun's light from `sun` (the way to the sun) as a shaft runs, in the
+## view `up`, `squash`, `slope` (PixelView.set_view): the sun's own way when the
+## picture draws it falling at least STEEP_PICTURE below the level, else the same
+## way across the ground falling steeper, just so steep. The camera looks down from
+## the south at the slope of a wall: a morning sun in the east or an afternoon one in
+## the south throws light the picture draws nearly level, or as a dot.
+static func steep_way(sun: Vector3, up: Vector2, squash: float, slope: float) -> Vector3:
+	var level := Vector2(-sun.x, -sun.z)
+	var across := level.normalized() if level.length() > 0.001 else Vector2(0.0, 1.0)
+	var rise := asin(clampf(sun.y, 0.05, 1.0))
+	var way := Vector3.ZERO
+	for i in STEEPEST:
+		way = Vector3(across.x * cos(rise), -sin(rise), across.y * cos(rise))
+		var flat := Vector2(way.x, way.z)
+		var drawn := flat + up * (flat.dot(up) * (squash - 1.0) + slope * way.y)
+		var down := drawn.dot(-up)
+		if down > 0.0 and atan2(down, absf(drawn.dot(Vector2(-up.y, up.x)))) >= deg_to_rad(STEEP_PICTURE):
+			break
+		rise = minf(rise + deg_to_rad(2.0), deg_to_rad(88.0))
+	return way
 
 
 ## The picture in screen-plane world units, grown by MOVE (the player walks that far

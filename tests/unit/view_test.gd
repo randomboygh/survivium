@@ -16,6 +16,7 @@ const Others := preload("res://src/client/view/others.gd")
 const Effects := preload("res://src/client/view/effects.gd")
 const GlowLights := preload("res://src/client/view/glow_lights.gd")
 const WindowGlow := preload("res://src/client/view/window_glow.gd")
+const SunRays := preload("res://src/client/view/sun_rays.gd")
 
 
 ## Settings that keep values alone, for AutoQuality.
@@ -61,6 +62,7 @@ func run() -> void:
 	_test_glow_lights()
 	_test_window_glow()
 	_test_small_effects()
+	_test_sun_ray_way()
 
 
 func _test_pixel_view() -> void:
@@ -898,3 +900,21 @@ func _test_small_effects() -> void:
 	var fly: ImageTexture = NatureEffects._shape(NatureEffects.FLY_UP)
 	_check(fly.get_width() == 5 and fly.get_height() == 3 and fly.get_image().get_pixel(0, 0).a > 0.5,
 		"a dragonfly is five pixels long with its wings up")
+
+
+## A shaft falls at least SunRays.STEEP_PICTURE below the level in the picture: a
+## morning sun in the east, low, is made steeper, keeping its way across the ground;
+## a sun whose light already falls steeply enough is kept as it is.
+func _test_sun_ray_way() -> void:
+	var up := Vector2(0.0, -1.0)
+	for sun in [Vector3(-0.83, 0.39, 0.41).normalized(), Vector3(0.05, 0.7, 0.7).normalized(),
+			Vector3(-0.3, 0.8, -0.5).normalized()]:
+		var way := SunRays.steep_way(sun, up, 1.0, 1.0)
+		var flat := Vector2(way.x, way.z)
+		var drawn := flat + up * (flat.dot(up) * 0.0 + way.y)
+		var angle := rad_to_deg(atan2(drawn.dot(-up), absf(drawn.x)))
+		_check(angle >= SunRays.STEEP_PICTURE - 0.01, "a shaft is drawn %.0f degrees below the level (sun %s)" % [angle, sun])
+		var across := Vector2(-sun.x, -sun.z).normalized()
+		_check(flat.normalized().dot(across) > 0.999, "a shaft keeps the light's way across the ground")
+	var steep := Vector3(0.0, 0.9, -0.3).normalized()
+	_check(SunRays.steep_way(steep, up, 1.0, 1.0).is_equal_approx(-steep), "a steep enough light is kept")
