@@ -353,6 +353,17 @@ func _run() -> void:
 	await process_frame
 	_check(held and main.props._drops_shown.get(dug_key, 0) == w.drops.get(dug_key, []).size(),
 		"what is dug is drawn on the ground when the chunk is drawn dug, not before")
+	# Things taken up are folded away in the chunk's mesh of things lying, not the whole
+	# mesh made again (16-52 ms a pickup on the phone by a busy camp, 2026-11-15).
+	var lying_nodes: Array = main.props.drop_nodes.get(dug_key, [])
+	var lying_mesh: Object = lying_nodes[-1] if not lying_nodes.is_empty() else null
+	var lying_before: int = w.drops.get(dug_key, []).size()
+	main.actions.pick_up_near(main.host.player)
+	var lying_after: int = w.drops.get(dug_key, []).size()
+	var nodes_after: Array = main.props.drop_nodes.get(dug_key, [])
+	_check(lying_mesh is MeshInstance3D and lying_after < lying_before and not nodes_after.is_empty()
+		and nodes_after[-1] == lying_mesh and main.props._drops_shown.get(dug_key, 0) == lying_after,
+		"what is taken up is folded away in the mesh of things lying, not made again (%d -> %d)" % [lying_before, lying_after])
 	_check(kept and main.chunks.patches > patches_before,
 		"the chunk at the player's feet keeps its jobs and a dig rebuilds only the columns around it")
 	# Its ground shows first (ChunkStreamer.bare), its plants after: wait for both.
