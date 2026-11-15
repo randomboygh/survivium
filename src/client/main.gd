@@ -951,7 +951,7 @@ func print_debug() -> void:
 	print("debug: screen %s, density %.2f, image %s x%.2f, ui %s, ui scale %.2f, stick %s, buttons %s, jump %s, hotbar %s, menu %s, test %s, season %s, player (%.2f, %.2f, %.2f), season now %s, touch %s, stick value (%.2f, %.2f)" % [
 		get_viewport().get_visible_rect().size, DisplayServer.screen_get_scale(), view.viewport.size,
 		view.view_scale, view.safe_rect, hud.scale.x, r.stick, r.buttons, r.jump, r.hotbar, r.menu, r.test, r.season,
-		p.x, p.y, p.z, Clock.SEASONS[clock.season], controls.touch, hud.stick.value.x, hud.stick.value.y])
+		p.x, p.y, p.z, Clock.SEASON_IDS[clock.season], controls.touch, hud.stick.value.x, hud.stick.value.y])
 
 
 # --- Setup -----------------------------------------------------------------

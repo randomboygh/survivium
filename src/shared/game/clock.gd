@@ -17,6 +17,8 @@ const REAL_DAY := 86400.0
 ## Days in a season (the user's pick, 2026-11-07: two weeks; a crop ripens within one).
 const DAYS_PER_SEASON := 14.0
 const SEASONS := ["[spring]", "[summer]", "[autumn]", "[winter]"]
+## The seasons in plain English, for logs and «Data for the test» (internal texts are not translated).
+const SEASON_IDS := ["spring", "summer", "autumn", "winter"]
 const SPRING := 0
 const AUTUMN := 2
 const WINTER := 3

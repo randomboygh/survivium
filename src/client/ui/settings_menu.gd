@@ -1253,11 +1253,11 @@ func report_lines() -> Array:
 		["place", Lang.f("Player: x %d, y %d, level %d, cut %d", [cell.x, cell.z, cell.y, game.chunks.cut_level])],
 		["place", Lang.f("Camera: turn %d°, tilt %d, left alone %d s", [posmod(game.view.turn_steps * 45, 360), game.view.tilt_steps,
 			int(game.view.idle)])],
-		["place", Lang.f("Time: day %d, %s, %02d:%02d, speed ×%s%s%s", [clock.day, clock.SEASONS[clock.season], minutes / 60, minutes % 60,
+		["place", Lang.f("Time: day %d, %s, %02d:%02d, speed ×%s%s%s", [clock.day, clock.SEASON_IDS[clock.season], minutes / 60, minutes % 60,
 			str(clock.time_speed * s.time_boost), ", real time" if clock.real_time else "",
 			", real season" if clock.real_season else ""])],
 		["place", Lang.f("Weather: %s%s, clouds %.2f, rain %.2f, snow %.2f, fog %.2f, wind %.2f to %d°, snow cover %.2f, puddles %.2f", [
-			clock.WEATHERS[clock.weather].name, "" if clock.weather_auto else " (picked)", clock.clouds, clock.rain,
+			clock.WEATHERS[clock.weather].id, "" if clock.weather_auto else " (picked)", clock.clouds, clock.rain,
 			clock.snowing, clock.fog, clock.storm_wind, roundi(rad_to_deg(clock.wind_angle)), clock.snow, clock.puddles])],
 		["place", Lang.f("Light: day %.2f, moon %.2f%s", [sky.daylight, sky.moon, " (picked)" if clock.moon_pin >= 0.0 or sky.moon_override >= 0.0 else ""])],
 		["values", Lang.f("Settings: %s", [JSON.stringify(s.values)]), values],

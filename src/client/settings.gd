@@ -824,7 +824,7 @@ func set_season(s: int) -> void:
 	var clock = game.session.clock
 	clock.season = posmod(s, 4)
 	clock.season_clock = 0.0
-	print("season: %s" % clock.SEASONS[clock.season])
+	print("season: %s" % clock.SEASON_IDS[clock.season])
 	if game.actions != null:
 		game.actions.on_season(clock.season)
 
