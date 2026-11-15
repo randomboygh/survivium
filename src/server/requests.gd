@@ -193,12 +193,18 @@ func _rule(kind: String, args: Array) -> Variant:
 				return placed.put_at(who, args[0], args[1], session.world.size_y)
 			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_INT]) and args[2] >= 0 and args[2] < 4:
 				return placed.put_at(who, args[0], args[1], session.world.size_y, args[2])
+			# The turn kept for things of its kind (BuildMode.kept_turns): taken by any thing.
+			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_INT, TYPE_BOOL]) and args[2] >= 0 and args[2] < 4:
+				return placed.put_at(who, args[0], args[1], session.world.size_y, args[2], args[3])
 		Protocol.LIGHT_PUT:
 			if _fit(args, [TYPE_STRING, TYPE_INT]):
 				return placed.put_light_from_bag(who, args[0], args[1])
 		Protocol.PROP_TAKE:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])
+				if e.is_empty() and not placed.at(args[0]).is_empty():
+					# Said, not left silent: the thing tapped stays where it stands.
+					who.nag("take", "[too_far]")
 				return not e.is_empty() and placed.take_up(who, e)
 		Protocol.PROP_MOVE:
 			if _fit(args, [TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT]) and args[2] >= 0 and args[2] < 4:

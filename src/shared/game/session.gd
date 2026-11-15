@@ -102,6 +102,12 @@ var _all_made := false
 ## chunks ahead of each zone (zone → offset in chunks), see _update_leads.
 var _motion := {}
 var _leads := {}
+## Chunks a client in this process waits for to draw its screen, the most wanted first
+## (ChunkStreamer.wanted): made before the rings round the zones. With `wanted_only` (the
+## client's screen has a hole: the player outran the building) only they are made, so
+## the frame's time goes to the screen, not to the sides of the zone behind it.
+var wanted: Array[Vector2i] = []
+var wanted_only := false
 ## Chunks beyond DROP of every zone, listed when the zones move (see forget_far).
 var _drop_queue: Array[Vector2i] = []
 ## Time spent generating, and on each kind of work since take_work last read it
@@ -386,6 +392,18 @@ func _distance(key: Vector2i) -> int:
 	return best
 
 
+## The zone (a player's chunk) nearest to chunk `key`.
+func _nearest_zone(key: Vector2i) -> Vector2i:
+	var best := key
+	var best_d := 1 << 30
+	for z in _zones:
+		var d := maxi(absi(key.x - z.x), absi(key.y - z.y))
+		if d < best_d:
+			best_d = d
+			best = z
+	return best
+
+
 ## The next stage some chunk within `reach` of a zone needs ([chunk, stage], see
 ## WorldGen.needed), the nearest chunk not SHAPED first, then the terrain and trees
 ## of the chunks around the zone's edge; empty when the zones are made.
@@ -408,7 +426,7 @@ func _next_needed(reach: int) -> Array:
 					if maxi(absi(key.x - z.x), absi(key.y - z.y)) > reach:
 						continue
 					if gen.stage_of(key) < WorldGen.SHAPED:
-						return gen.needed(key)
+						return gen.needed(key, z)
 	for z in _zones:
 		var m: Variant = gen.missing(z, reach + 2, WorldGen.TERRAIN)
 		if m != null:
@@ -417,6 +435,19 @@ func _next_needed(reach: int) -> Array:
 		if m != null:
 			return [m, WorldGen.PLANTED]
 	_all_made = true
+	return []
+
+
+## The next stage the first wanted chunk within `reach` of a zone needs (see `wanted`),
+## empty when they have all they need.
+func _wanted_needed(reach: int) -> Array:
+	if gen == null:
+		return []
+	for key in wanted:
+		if _distance(key) <= reach:
+			var need: Array = gen.needed(key, _nearest_zone(key))
+			if not need.is_empty():
+				return need
 	return []
 
 
@@ -430,7 +461,11 @@ func make_chunks(near_us: int, far_us: int, reach := ZONE) -> int:
 	var worked := false
 	while true:
 		if _gen_job == null:
-			var need := _next_needed(reach)
+			var need := _wanted_needed(reach)
+			if need.is_empty() and wanted_only:
+				break
+			if need.is_empty():
+				need = _next_needed(reach)
 			if need.is_empty():
 				break
 			_gen_job = gen.start(need[0], need[1])

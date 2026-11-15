@@ -235,7 +235,7 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 		_start_paint(button, pos)
 		return
 	if mode().on:
-		if _stroke.has("prop"):
+		if _stroke.has("prop") or _stroke.has("put"):
 			# A second press while a thing is dragged (another finger, or a press the
 			# browser or the phone adds to a long one) lets the thing go first: dropped
 			# unreleased, it stayed held up in the air.
@@ -301,8 +301,8 @@ func update(delta: float) -> void:
 	# Under a sign's window the world is not worked: a stroke ends, the action button
 	# held when it opened does nothing.
 	var covered: bool = game.hud != null and game.hud.sign_window != null
-	if _stroke.has("prop"):
-		# A thing of the build mode dragged (BuildMode.drag), or let go.
+	if _stroke.has("prop") or _stroke.has("put"):
+		# A thing of the build mode dragged or held up (BuildMode.drag), or let go.
 		# On a touch screen it is let go with the last finger too (a lift the mouse's
 		# emulation missed).
 		if _stroke.held and (covered or not Input.is_mouse_button_pressed(_stroke.button) or (touch and fingers.is_empty())):
@@ -348,10 +348,11 @@ func update(delta: float) -> void:
 		game.cursor.show_cells([], true)
 
 
-## The thing of the build mode's stroke now (held on it, BuildMode.drag, or let go and
-## not yet released), {} for none.
+## The build mode's stroke on a thing now (a thing set down, "prop", or one new from the
+## bag, "put"; held, BuildMode.drag, or let go and not yet released), {} for none.
 func dragging() -> Dictionary:
-	return _stroke.prop if _stroke.has("prop") else {}
+	return _stroke if _stroke.has("prop") or _stroke.has("put") else {}
+
 
 
 func set_touch(on: bool) -> void:

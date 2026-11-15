@@ -7,6 +7,7 @@ func run() -> void:
 	_test_cap()
 	_test_bank_trunk()
 	_test_patch()
+	_test_way_order()
 
 
 func _test_mesher() -> void:
@@ -278,3 +279,21 @@ func _patch_matches(w: WorldData, key: Vector2i, built: Array, cells: Array[Vect
 	if glows != fresh_glows:
 		diff += "glowing mushrooms (%d, whole %d); " % [glows.size(), fresh_glows.size()]
 	return [jm, jp, diff]
+
+
+## The order chunks are built in (ChunkStreamer._way_score): walking north from the middle
+## of chunk (0, 0), the row along the way first, from the player's onwards and ahead
+## before behind, then the rows beside it; standing, ring by ring round the player.
+func _test_way_order() -> void:
+	var CS := load("res://src/client/world/chunk_streamer.gd")
+	var size: float = CS.CHUNK * CS.CELL
+	var at := Vector2(0.5, 0.5) * size
+	var north := Vector2(0, -1)
+	var keys: Array[Vector2i] = [Vector2i(0, 0), Vector2i(0, -1), Vector2i(0, -4), Vector2i(0, 1), Vector2i(1, 0),
+		Vector2i(-1, -3), Vector2i(2, -1)]
+	var order := keys.duplicate()
+	order.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return CS._way_score(a, at, north) < CS._way_score(b, at, north))
+	_check(order == [Vector2i(0, 0), Vector2i(0, -1), Vector2i(0, 1), Vector2i(0, -4), Vector2i(1, 0), Vector2i(-1, -3),
+		Vector2i(2, -1)], "chunks along the way first, then the rows beside it: %s" % [order])
+	_check(CS._way_score(Vector2i(1, 1), at, Vector2.ZERO) < CS._way_score(Vector2i(0, 2), at, Vector2.ZERO),
+		"standing, ring by ring round the player")
