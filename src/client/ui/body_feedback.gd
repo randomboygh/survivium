@@ -43,13 +43,17 @@ const WASH := 0.12
 const CHILL_COLOR := Color(0.55, 0.82, 1.0)
 const CHILL_FULL := 6.0
 const CHILL_EASE := 0.5
-## Low health: below LOW_HEALTH the screen reddens and a dark crimson vignette, heavy in
-## the corners and soft inwards (unlike the hurt's even bands), beats like a heart,
-## lub-dub, faster and stronger the lower health is (HEART_BPM from LOW_HEALTH to 0).
+## Low health: below LOW_HEALTH the screen reddens and a dark crimson vignette, soft
+## inwards and heavy in the corners (unlike the hurt's even bands), beats like a slow
+## heart (HEART_BPM from LOW_HEALTH to 0): with each beat it jumps in HEART_REACH of the
+## screen from every edge in HEART_HIT of the beat, then slides back out slowly, and the
+## picture under it goes darker and harsher for that moment (grade `heart`).
 const LOW_HEALTH := 30.0
 const HEART_COLOR := Color(0.62, 0.0, 0.06)
-const HEART_BPM := Vector2(60.0, 120.0)
-const HEART_RINGS := 8
+const HEART_BPM := Vector2(15.0, 30.0)
+const HEART_RINGS := 10
+const HEART_REACH := 0.2
+const HEART_HIT := 0.04
 ## The camera shakes by a low-res pixel for each this many points of a hurt, up to
 ## SHAKE_MOST pixels.
 const SHAKE_PER := 4.0
@@ -69,6 +73,8 @@ var _fade := FADE
 ## How weak the body is (0 at LOW_HEALTH and over, 1 at none) and the heart's beat clock.
 var _weak := 0.0
 var _beat := 0.0
+## How dark the picture is under the beat now (grade `heart`).
+var _dark := 0.0
 ## How strong the icy frame of the cold is now, 0..1, and whether the body freezes.
 var _chill := 0.0
 var _freezing := false
@@ -116,6 +122,7 @@ func _process(delta: float) -> void:
 	elif _beat != 0.0:
 		_beat = 0.0
 		queue_redraw()
+	_dark_picture()
 	var warmth: float = v.warmth if not c.is_dead() else Vitals.COMFORT
 	var want := clampf((Vitals.COLD - warmth) / (Vitals.COLD - Vitals.FREEZING + CHILL_FULL), 0.0, 1.0)
 	_freezing = warmth < Vitals.FREEZING
@@ -214,32 +221,49 @@ func _draw() -> void:
 		_band(full.grow(-i * BAND), Color(_frame_color, BANDS[i] * _frame))
 
 
-## The heart beating at low health over `full`: lub, then a softer dub, then rest; the
-## screen reddens with each beat and a crimson vignette closes in, round in the corners.
+## The heart beating at low health over `full`: the vignette jumps in with the beat and
+## eases back out; the screen reddens with it.
 func _heart(full: Rect2) -> void:
-	var lub := exp(-_beat * 9.0)
-	var dub := exp(-maxf(_beat - 0.22, 0.0) * 9.0) * 0.65 if _beat > 0.22 else 0.0
-	var k := clampf(maxf(lub, dub), 0.0, 1.0) * (0.45 + 0.55 * _weak)
-	draw_rect(full, Color(0.7, 0.0, 0.05, (0.05 + 0.1 * k) * (0.4 + 0.6 * _weak)))
-	var depth := minf(full.size.x, full.size.y) * (0.1 + 0.08 * _weak + 0.04 * k)
+	var k := _beat_push()
+	draw_rect(full, Color(0.7, 0.0, 0.05, (0.04 + 0.12 * k) * (0.4 + 0.6 * _weak)))
+	# Between beats a thin frame stays; at the beat it reaches HEART_REACH of each side.
+	var reach := lerpf(0.05 + 0.03 * _weak, HEART_REACH, k)
+	var depth := full.size * reach
 	for i in HEART_RINGS:
 		var t := float(i) / HEART_RINGS
-		var a := (1.0 - t) * (1.0 - t) * (0.35 + 0.5 * k) * (0.5 + 0.5 * _weak)
+		var a := (1.0 - t) * (1.0 - t) * (0.4 + 0.45 * k) * (0.5 + 0.5 * _weak)
 		var col := Color(HEART_COLOR, a * 0.5)
 		var w := depth / HEART_RINGS
-		_band_w(full.grow(-t * depth), col, w)
+		var r := full.grow_individual(-t * depth.x, -t * depth.y, -t * depth.x, -t * depth.y)
+		draw_rect(Rect2(r.position, Vector2(r.size.x, w.y)), col)
+		draw_rect(Rect2(r.position.x, r.end.y - w.y, r.size.x, w.y), col)
+		draw_rect(Rect2(r.position.x, r.position.y + w.y, w.x, r.size.y - 2 * w.y), col)
+		draw_rect(Rect2(r.end.x - w.x, r.position.y + w.y, w.x, r.size.y - 2 * w.y), col)
 		# The corners heavier: a disc in each, inside the rings.
-		var r := depth * (1.0 - t) * 0.9
+		var cr := minf(depth.x, depth.y) * (1.0 - t) * 0.9
 		for corner: Vector2 in [full.position, Vector2(full.end.x, full.position.y), full.end, Vector2(full.position.x, full.end.y)]:
-			draw_circle(corner, r, Color(HEART_COLOR, a * 0.35))
+			draw_circle(corner, cr, Color(HEART_COLOR, a * 0.35))
 
 
-## One band of a frame, `w` wide, along the inside of `r`.
-func _band_w(r: Rect2, col: Color, w: float) -> void:
-	draw_rect(Rect2(r.position, Vector2(r.size.x, w)), col)
-	draw_rect(Rect2(r.position.x, r.end.y - w, r.size.x, w), col)
-	draw_rect(Rect2(r.position.x, r.position.y + w, w, r.size.y - 2 * w), col)
-	draw_rect(Rect2(r.end.x - w, r.position.y + w, w, r.size.y - 2 * w), col)
+## How far the heart's beat has pushed in now, 0..1: up fast in HEART_HIT of the beat,
+## then back down smoothly over the rest.
+func _beat_push() -> float:
+	if _weak <= 0.0:
+		return 0.0
+	if _beat < HEART_HIT:
+		return smoothstep(0.0, 1.0, _beat / HEART_HIT)
+	var back := (_beat - HEART_HIT) / (1.0 - HEART_HIT)
+	return (1.0 - back) * (1.0 - back) * (1.0 - back * 0.5)
+
+
+## The picture under the beat goes darker and harsher (grade `heart`), set only when it
+## changes.
+func _dark_picture() -> void:
+	var k := snappedf(_beat_push() * (0.5 + 0.5 * _weak), 0.01)
+	if k == _dark or game.view == null:
+		return
+	_dark = k
+	game.view.grade_mat.set_shader_parameter("heart", k)
 
 
 ## One band of a frame, BAND wide, along the inside of `r`.

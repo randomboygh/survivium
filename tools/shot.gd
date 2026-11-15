@@ -646,7 +646,7 @@ func _run() -> void:
 			main.host.player.vitals.health = shot.health
 			for i in 4:
 				await process_frame
-			main.hud.feedback._beat = 0.03
+			main.hud.feedback._beat = 0.045
 			main.hud.feedback.queue_redraw()
 			await process_frame
 		if shot.has("screen_snow"):

@@ -25,6 +25,9 @@ uniform float sway = 0.0;
 // and breathes, rings ripple out from the middle, the colours split apart and run round
 // the wheel in waves, and the edges glow the mushrooms' teal and violet.
 uniform float trip = 0.0;
+// A heartbeat at low health (BodyFeedback._dark_picture), 0..1: the picture goes darker
+// and harsher for the moment of the beat.
+uniform float heart = 0.0;
 // The air trembling over the fires nearest the view (AirEffects): each spot is the
 // flames' base in pixels of the picture, how far the trembling reaches to each side and
 // how high over them, in pixels; heat_power how strongly each fire burns (0 none).
@@ -416,6 +419,11 @@ void fragment() {
 		c = mix(vec3(cl), c, 1.0 + 0.45 * trip);
 		vec3 glow = mix(vec3(0.25, 0.95, 0.8), vec3(0.75, 0.35, 1.0), 0.5 + 0.5 * sin(TIME * 0.7));
 		c = mix(c, glow, trip * (0.28 + 0.1 * sin(TIME * 1.7)) * smoothstep(0.5, 1.1, d));
+	}
+	if (heart > 0.0) {
+		c = (c - 0.45) * (1.0 + 0.6 * heart) + 0.45;
+		c *= 1.0 - 0.4 * heart;
+		c = mix(c, c * vec3(1.0, 0.75, 0.75), heart * 0.5);
 	}
 	if (frost_state.y > 0.0 || frost_state.z > 0.0) {
 		vec4 snow = screen_snow(glass, 1.0 / TEXTURE_PIXEL_SIZE);
