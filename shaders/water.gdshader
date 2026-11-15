@@ -351,9 +351,10 @@ void fragment() {
 					float d = length(world_pos.xz - a - ab * t);
 					float k = mix(ka, b.z, t);
 					// Close to the swimmer the band is narrow and parts round them.
-					float half_w = 0.3 + (1.0 - k) * 0.45;
+					float half_w = 0.45 + (1.0 - k) * 0.68;
 					float near = length(world_pos.xz - player_pos.xz);
-					wake = max(wake, smoothstep(half_w, half_w * 0.3, d) * k * smoothstep(0.15, 0.45, near));
+					// Dimming fast just behind the swimmer and ever slower towards the end (k squared).
+					wake = max(wake, smoothstep(half_w, half_w * 0.3, d) * k * k * smoothstep(0.15, 0.45, near));
 				}
 				a = b.xy;
 				ka = b.z;

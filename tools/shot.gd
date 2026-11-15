@@ -658,7 +658,7 @@ func _run() -> void:
 			fx._trail.clear()
 			for i in fx.WAKE_POINTS:
 				var back: Vector2 = dir * float(fx.WAKE_STEP) * (i + 0.6)
-				fx._trail.append(Vector4(at.x + back.x, at.z + back.y, 1.0 - 0.11 * i, at.y + 0.25))
+				fx._trail.append(Vector4(at.x + back.x, at.z + back.y, 1.0 - (i + 1.0) / (fx.WAKE_POINTS + 1.0), at.y + 0.25))
 			fx._wake_k = 1.0
 			for i in 3:
 				await process_frame
