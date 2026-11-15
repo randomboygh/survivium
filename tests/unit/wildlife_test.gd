@@ -337,6 +337,21 @@ func _test_swimmers(w: WorldData) -> void:
 	_check(swam and in_water and fish.pos.x < (px + side) * WorldData.CELL and fish.target == fish.pos
 		and is_equal_approx(fish.pos.y, top - Wildlife.DIP * WorldData.CELL),
 		"a perch swims to the shore and no further (%v)" % fish.pos)
+	# A fish dives as deep as the pond lets it (BED_GAP over its bed, two cells of water)
+	# and comes up again, standing or swimming.
+	var bed := 4.0 * WorldData.CELL
+	_check(is_equal_approx(life.water_room(fish.pos.x, fish.pos.z), top - bed), "the depth of a pond's water")
+	fish.dip_to = Wildlife.DEEPEST * WorldData.CELL
+	for i in 100:
+		life.update(0.05)
+	_check(is_equal_approx(fish.pos.y, bed + Wildlife.BED_GAP * WorldData.CELL),
+		"a perch dives down to just over the bed (%v)" % fish.pos)
+	fish.dip_to = Wildlife.DIP * WorldData.CELL
+	fish.target = fish.pos - Vector3(4.0, 0.0, 0.0) * WorldData.CELL
+	for i in 100:
+		life.update(0.05)
+	_check(is_equal_approx(fish.pos.y, top - Wildlife.DIP * WorldData.CELL) and fish.pos.x < at.x + side * WorldData.CELL - 1.0,
+		"a perch comes up again under the surface (%v)" % fish.pos)
 	life.animals.clear()
 	life.people = [Who.new()]
 	# In the middle of the world, so all the square they come on is made.

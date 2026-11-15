@@ -104,6 +104,16 @@ water, a kind with `biomes` appears only on its own land.
   attack. The rule `Rules.animal_attacks` (the switch «Beast attacks» on «Testing») turns it all off.
 - Under ice: a fish (swims, does not fly and does not come ashore, `under_ice_swimmer`) in frozen water two or
   more cells deep swims under the ice (`under_ice`), appears there too; a duck and a frog — no.
+- Depth: a fish (`dives`, the same as `under_ice_swimmer`) swims at a depth of its own, `Animal.dip` world units
+  under the surface (or the ice), from `DIP` to `DEEPEST` cells and `BED_GAP` cells over the bed at least
+  (`water_room`, kept as `Animal.room` by `_look_floor`); it goes toward `dip_to` at `DIVE_SPEED` (`_dive`, a step
+  of `_move`). A new way takes a new depth `DIVE_CHANCE` of the times, a school keeps its lead's, a fright sends it
+  down to the deepest, the float of a line brings it up. Only `pos.y` changes: the client works the depth out from
+  the water over the fish (`Creatures._sink`) and gives it to the shaders as the sprite's scale along y past 1. The
+  fish is drawn after the water by `sprite_water.gdshader` (`whole`, the sprite's `material_overlay`), in up to three
+  steps more of the water's colour the deeper it is; its `sprite.gdshader` picture (`shadow_only`) only casts the
+  shadow on the bed. Only a fish near the surface jumps (`WaterEffects.FISH_JUMP_DEPTH`). Under ice (`Clock.ice` from
+  `Creatures.ICE_HIDES`, or frozen water) the fish are not drawn. The shots `fish-depths`, `fish-ice`.
 - AI debugging (decision 184): an `Animal` has a cause `cause` — what it flees from (`person`, `fire`, `hurt`,
   `alarm` or a beast's kind), whom it hunts (a kind), `graze`, `lead`, `owner`; it is set by `_decide`.
   `mind(a)` — what is on a beast's mind (the state, the cause, and in a fight with a person `hunt_person` or
@@ -163,7 +173,7 @@ stroke from the row «from the front», laid flat at mid-height, with the wings 
 An example of a beast by data and a picture alone: `content/animals/sparrow/README.md`.
 
 **Limits.** A walker does not reach a swimmer and the other way round, a flyer reaches both. The column's
-biome is taken from `gen.lay_out`. There is no diving; the beast's side on the client is derived from its
+biome is taken from `gen.lay_out`. Only fish dive (see Depth); the beast's side on the client is derived from its
 movement, the server does not know it. The voices are brought by a bundle as ready `.wav` (the synthesis — a
 table in `tools/make_sounds.gd`).
 
