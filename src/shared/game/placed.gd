@@ -1043,12 +1043,13 @@ func _shape_of(item: String, turn: int) -> Dictionary:
 
 ## Where `who` setting thing `id` down at cell `aim` puts it (put_at): [its north-west
 ## corner, null where it has no room; its quarter turn]. `view` is the view's turn, taken
-## by a thing that faces the camera (faces_view). The build mode shows it while a thing
-## new from the bag is held up in the air.
-func put_spot(who, id: String, aim: Vector3i, top: int, view := -1) -> Array:
+## by a thing that faces the camera (faces_view), or by any thing when `kept` (the turn the
+## player gave the last one of its kind, kept in the build mode). The build mode shows it
+## while a thing new from the bag is held up in the air.
+func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := false) -> Array:
 	var item := Items.get_item(id)
 	var p: Vector3 = who.position / CELL
-	var turn := view if view >= 0 and faces_view(item.id) else turn_facing(Tools.step_of(Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z)))
+	var turn := view if view >= 0 and (kept or faces_view(item.id)) else turn_facing(Tools.step_of(Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z)))
 	var rest := rest_of(item.id)
 	if rest == ON_LADDER:
 		# A ladder goes on with the one under it, turned as it is.
@@ -1073,7 +1074,7 @@ func put_spot(who, id: String, aim: Vector3i, top: int, view := -1) -> Array:
 ## cells nearest it at that level (or one up or down). A door or a window cuts its
 ## opening into a wall: the blocks put there (not natural ground) where it goes are taken
 ## out and fall as if dug. True if it was set down.
-func put_at(who, id: String, aim: Vector3i, top: int, view := -1) -> bool:
+func put_at(who, id: String, aim: Vector3i, top: int, view := -1, kept := false) -> bool:
 	var item := Items.get_item(id)
 	if item.get("prop", "none") == "none":
 		return false
@@ -1092,7 +1093,7 @@ func put_at(who, id: String, aim: Vector3i, top: int, view := -1) -> bool:
 	if Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z).length() > Tools.PLACE_REACH or absf(aim.y - p.y) > Tools.PLACE_REACH:
 		who.nag("put", "[too_far]")
 		return false
-	var found := put_spot(who, item.id, aim, top, view)
+	var found := put_spot(who, item.id, aim, top, view, kept)
 	var spot: Variant = found[0]
 	var turn: int = found[1]
 	var rest := rest_of(item.id)

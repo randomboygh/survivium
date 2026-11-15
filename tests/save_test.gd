@@ -171,7 +171,7 @@ func _hold_to_put(main: Node) -> void:
 	var put := func(held_ms: int) -> Dictionary:
 		var s := {"button": MOUSE_BUTTON_MIDDLE, "dig": false, "pos": off, "held": true, "pending": false,
 			"put": "tools:chest", "from": off, "ms": Time.get_ticks_msec() - held_ms, "up": false, "aim": aim,
-			"turn": 0, "spot": null, "shown": null}
+			"turn": 0, "kept": false, "spot": null, "shown": null}
 		main.controls._stroke = s
 		return s
 	# A tap: let go at once, set down where tapped.
@@ -192,32 +192,48 @@ func _hold_to_put(main: Node) -> void:
 	# A hold: it hangs in the air while held, and is set down as it is let go.
 	s = put.call(1000)
 	await _wait_ms(200)
-	_check(main.props.holding_new() and main.build.holding(), "a thing new from the bag held hangs in the air")
+	_check(main.props.holding_new(), "a thing new from the bag held hangs in the air")
 	_check(s.spot != null, "the place it hangs over is free")
-	main.build.turn()
-	_check(int(s.turn) == 1, "the turn button turns the thing hanging in the air")
 	s.held = false
 	await _wait_ms(300)
 	_check(main.controls._stroke.is_empty() and not main.props.holding_new() and count.call() == before - 1,
 		"let go, the thing hanging is set down")
 	e = main.placed.things[main.placed.things.size() - 1]
-	var turn0: int = int(e.get("turn", 0))
-	# Held on a thing set down: it hangs, turns and is set down turned.
+	# Held on a thing set down: it hangs, and let go it stands again.
 	main.controls._stroke = {"button": MOUSE_BUTTON_MIDDLE, "dig": false, "pos": main.view.screen_of(Placed.center(e)),
 		"held": true, "pending": false, "prop": e, "from": Vector2(-1, -1), "ms": Time.get_ticks_msec() - 1000,
-		"moved": false, "to": null, "corner": null, "turn": turn0, "shown": null, "grab": Vector3i.ZERO}
+		"moved": false, "to": null, "corner": null, "turn": int(e.get("turn", 0)), "shown": null, "grab": Vector3i.ZERO}
 	var held: Dictionary = main.controls._stroke
 	await _wait_ms(200)
-	_check(held.moved and main.build.holding(), "a thing set down and held hangs in the air")
-	main.build.turn()
-	await _frames(2)
-	if held.to == null:
-		held.to = e.cell
+	_check(held.moved and not main.props.standing(e), "a thing set down and held hangs in the air")
 	held.held = false
 	await _wait_ms(400)
-	var now: Dictionary = main.placed.at(held.to)
-	_check(not now.is_empty() and int(now.get("turn", 0)) == (turn0 + 1) % 4 and main.props.standing(now),
-		"a thing held up, turned and let go stands turned")
+	e = main.placed.things[main.placed.things.size() - 1]
+	_check(main.controls._stroke.is_empty() and main.props.standing(e), "let go, a thing held up stands again")
+	# A double tap turns it, and the next of its kind is set down turned so.
+	var turned: int = (int(e.get("turn", 0)) + 1) % 4
+	main.build.turn_thing(e)
+	await _wait_ms(300)
+	_check(main.build.kept_turns.get("tools:chest") == turned, "the turn of a thing double tapped is kept for its kind")
+	aim = main.placed.at(e.cell).cell if not main.placed.at(e.cell).is_empty() else aim
+	for d: Vector3i in [Vector3i(4, 0, 0), Vector3i(-4, 0, 0), Vector3i(0, 0, 4), Vector3i(0, 0, -4), Vector3i(-4, 0, -4)]:
+		var a: Vector3i = me + d
+		a.y = main.world.surface_y(a.x, a.z) + 1
+		if main.placed.put_spot(main.character, "tools:chest", a, main.world.size_y, turned, true)[0] != null:
+			aim = a
+	var things_before: int = main.placed.things.size()
+	s = put.call(0)
+	s.turn = main.build.kept_turns.get("tools:chest", 0)
+	s.kept = true
+	main.build.release(s)
+	main.controls._stroke = {}
+	await _wait_ms(300)
+	var last: Dictionary = main.placed.things[main.placed.things.size() - 1]
+	_check(main.placed.things.size() == things_before + 1 and int(last.get("turn", 0)) == turned,
+		"the next thing of that kind is set down turned the same")
+	main.build.kept_turns["tools:big_chest"] = 2
+	await _frames(3)
+	_check(not main.build.kept_turns.has("tools:big_chest"), "a kept turn is forgotten once the bag holds none of its kind")
 	press = press.duplicate()
 	press.pressed = false
 	Input.parse_input_event(press)

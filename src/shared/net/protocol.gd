@@ -89,7 +89,8 @@ const LIGHT_PUT := "light_put"
 ## Takes a thing placed, or a light set down, back into the bag: [cell] (Placed.take_up).
 const PROP_TAKE := "prop_take"
 ## The build mode sets a thing from the bag down at the cell tapped: [item id, cell, (the
-## camera's turn 0..3, as for PROP_PUT)]
+## camera's turn 0..3, as for PROP_PUT), (true: the turn is the one kept for its kind,
+## taken by any thing)]
 ## (Placed.put_at; a door or a window cuts its opening into a wall).
 const PROP_PUT_AT := "prop_put_at"
 ## The build mode moves a thing placed, or turns it where it stands: [its cell, the

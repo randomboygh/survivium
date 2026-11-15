@@ -269,12 +269,6 @@ func refresh() -> void:
 	_show_palette()
 
 
-## Whether screen point `pos` is on the turn button (a second finger presses it while the
-## first holds a thing up, Controls.input).
-func turn_hit(pos: Vector2) -> bool:
-	return is_visible_in_tree() and _turn != null and _turn.get_global_rect().has_point(pos)
-
-
 ## Shows the mode's buttons anew.
 func _show_panel() -> void:
 	var b = game.build
@@ -285,8 +279,7 @@ func _show_panel() -> void:
 	TabRow.light(_flatten, b.kind == "flatten")
 	_form.icon = UiStyle.centred(UiStyle.icon(FORMS[b.form][0]))
 	_form.tooltip_text = Lang.f("[press_for_the_next_form]", [FORMS[b.form][1]])
-	# The turn button turns a thing held up in the air too (BuildMode.turn).
-	_turn.disabled = b.form == 0 and not b.holding()
+	_turn.disabled = b.form == 0
 	# A plane is as many levels as its height and has no walls to thicken.
 	_number(_height, b.height, b.kind == "flatten")
 	_number(_thick, b.thick, b.kind in ["plane", "flatten"])

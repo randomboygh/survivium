@@ -114,10 +114,6 @@ func input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			fingers[event.index] = true
-			# Another finger on the turn button turns the thing the first one holds up in the
-			# air (only the first finger clicks the interface's plain buttons).
-			if event.index > 0 and game.build.on and game.build.holding() and game.hud.build_bar.turn_hit(event.position):
-				game.build.turn()
 		else:
 			fingers.erase(event.index)
 		set_touch(true)
@@ -357,12 +353,6 @@ func update(delta: float) -> void:
 func dragging() -> Dictionary:
 	return _stroke if _stroke.has("prop") or _stroke.has("put") else {}
 
-
-## The build mode's stroke holding a thing up in the air now (BuildMode.drag), {} for none.
-func held_up() -> Dictionary:
-	if not _stroke.get("held", false):
-		return {}
-	return _stroke if _stroke.get("moved", false) or _stroke.get("up", false) else {}
 
 
 func set_touch(on: bool) -> void:

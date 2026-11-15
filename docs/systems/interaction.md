@@ -170,8 +170,9 @@ lies around. The rules are shared (the server checks them), input and hints are 
   furniture, a sign, a fireplace) held the same way hangs in the air (a stroke with `prop`: `drag` each frame
   — the model is held up `Props.LIFT` over the free place nearest under the finger, `Placed.move_spot` as the
   server looks for it, its cells framed light or red; `release` — `PROP_MOVE`, `Placed.move`, or the model
-  drops back, `Props.settle`); while a thing hangs the turn button (`turn`; pressed by a second finger too,
-  `BuildBar.turn_hit`) turns it a quarter (`Props.hold_at` with a turn); a model held up never stays in the
+  drops back, `Props.settle`); a double tap turns a thing (`turn_thing`) and keeps that turn for its kind
+  (`kept_turns`): the next ones are set down turned so (`PROP_PUT_AT` with `true`, `Placed.put_spot` `kept`)
+  until the bag holds none; a model held up never stays in the
   air: `update` drops it once the stroke is no longer on it (`Controls.dragging`), a second press releases the
   stroke first, on a touch screen the stroke ends with the last finger up, and while a finger is down only its
   own motion moves the stroke; the

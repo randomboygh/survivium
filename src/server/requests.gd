@@ -193,6 +193,9 @@ func _rule(kind: String, args: Array) -> Variant:
 				return placed.put_at(who, args[0], args[1], session.world.size_y)
 			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_INT]) and args[2] >= 0 and args[2] < 4:
 				return placed.put_at(who, args[0], args[1], session.world.size_y, args[2])
+			# The turn kept for things of its kind (BuildMode.kept_turns): taken by any thing.
+			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_INT, TYPE_BOOL]) and args[2] >= 0 and args[2] < 4:
+				return placed.put_at(who, args[0], args[1], session.world.size_y, args[2], args[3])
 		Protocol.LIGHT_PUT:
 			if _fit(args, [TYPE_STRING, TYPE_INT]):
 				return placed.put_light_from_bag(who, args[0], args[1])

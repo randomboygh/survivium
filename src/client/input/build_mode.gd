@@ -12,9 +12,9 @@ extends "res://src/client/input/work_mode.gd"
 ## the bag has no block left for it). A tap on a part of a house set down takes it back
 ## into the bag: they are taken only here. A thing that moves (Placed.movable: a station,
 ## a chest, furniture, a sign) is taken up into the air by a finger or the mouse held on
-## it, carried to another place and set down there as it is let go (turned a quarter by
-## the turn button while it hangs, or by a double tap); a single tap takes it once the
-## double tap's time is over. A thing new from the bag is set down
+## it, carried to another place and set down there as it is let go; a double tap turns
+## it a quarter, and the next of its kind is set down turned so (`kept_turns`) while the
+## bag holds one; a single tap takes it once the double tap's time is over. A thing new from the bag is set down
 ## where tapped, or held hangs in the air the same way and is set down where it is let
 ## go. Leaving gives the hands back what they held before.
 ## `game` is the Main node.
@@ -64,6 +64,9 @@ var turns := 0
 ## A tap on a thing that moves waiting to see whether a second one comes: {"cell", "ms"},
 ## {} for none (see DOUBLE_TAP_MS).
 var _tap_wait := {}
+## The turn the player last gave a thing of each kind by a double tap, by item id: the
+## next ones are set down turned so while the bag holds one (then it is forgotten).
+var kept_turns := {}
 ## The thing dragged now (see drag), {} for none.
 var _dragged := {}
 
@@ -177,22 +180,10 @@ func set_form(f: int) -> void:
 	changed.emit()
 
 
-## Turns the thing held up in the air a quarter (see drag), else the slopes and stairs
-## drawn.
+## Turns the slopes and stairs drawn a quarter more.
 func turn() -> void:
-	var s: Dictionary = game.controls.held_up()
-	if not s.is_empty():
-		s.turn = (int(s.turn) + 1) % 4
-		s.shown = null
-		drag(s)
-		return
 	turns = (turns + 1) % 4
 	changed.emit()
-
-
-## Whether a thing is held up in the air now (the turn button turns it).
-func holding() -> bool:
-	return not game.controls.held_up().is_empty()
 
 
 ## The form of the blocks of a stroke from `first` (WorldData.forms): the form chosen,
@@ -251,6 +242,9 @@ func toggle_auto() -> void:
 func update(delta: float) -> void:
 	if not _tap_wait.is_empty() and Time.get_ticks_msec() - int(_tap_wait.ms) > DOUBLE_TAP_MS:
 		_take_waiting()
+	for id: String in kept_turns.keys():
+		if game.character.inventory.count(id) <= 0:
+			kept_turns.erase(id)
 	if game.props.holding_new() and not game.controls.dragging().has("put"):
 		# A thing new from the bag held up with no stroke on it any more goes.
 		game.cursor.show_boxes([], [])
@@ -326,9 +320,9 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 			game.net.request(Protocol.PROP_TAKE, [e.cell])
 			return {}
 		if not _tap_wait.is_empty() and _tap_wait.cell == e.cell:
-			# The second tap of a double tap: turned a quarter where it stands.
+			# The second tap of a double tap.
 			_tap_wait = {}
-			game.net.request(Protocol.PROP_MOVE, [e.cell, e.cell, (int(e.get("turn", 0)) + 1) % 4])
+			turn_thing(e)
 			return {}
 		_take_waiting()
 		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "prop": e,
@@ -342,7 +336,8 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		# the place under the finger until it is let go (drag, release).
 		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "put": chosen(),
 			"from": pos, "ms": Time.get_ticks_msec(), "up": false, "aim": _aim(hit, item),
-			"turn": game.props.view_turn(), "spot": null, "shown": null}
+			"turn": kept_turns.get(chosen(), game.props.view_turn()), "kept": kept_turns.has(chosen()),
+			"spot": null, "shown": null}
 	var first := start_cell(hit)
 	if erasing:
 		# The ghost under the finger, when it is nearer than the cell tapped.
@@ -377,6 +372,14 @@ func _aim(hit: Dictionary, item: Dictionary) -> Vector3i:
 	return cell if into_wall or into_floor else cell + hit.normal
 
 
+## Thing `e` turned a quarter where it stands (a double tap on it), and the next of its
+## kind set down turned so while the bag holds one (kept_turns).
+func turn_thing(e: Dictionary) -> void:
+	var turned := (int(e.get("turn", 0)) + 1) % 4
+	kept_turns[e.item] = turned
+	game.net.request(Protocol.PROP_MOVE, [e.cell, e.cell, turned])
+
+
 ## The tap on a thing waiting for a second one takes the thing now (see DOUBLE_TAP_MS).
 func _take_waiting() -> void:
 	if _tap_wait.is_empty():
@@ -400,8 +403,7 @@ func _lift_due(s: Dictionary) -> bool:
 ## from the bag (stroke `s` of start_stroke): once held long enough (_lift_due) the thing
 ## hangs in the air over the free place nearest under the finger (Placed.move_spot,
 ## Placed.put_spot, as the server will look for it), its cells framed (red where it does
-## not fit); the turn button turns it there (turn). Called every frame while held
-## (Controls.update).
+## not fit). Called every frame while held (Controls.update).
 func drag(s: Dictionary) -> void:
 	if s.has("put"):
 		_drag_new(s)
@@ -446,7 +448,7 @@ func _drag_new(s: Dictionary) -> void:
 	if s.shown == shown:
 		return
 	s.shown = shown
-	var found: Array = game.placed.put_spot(game.character, s.put, s.aim, game.world.size_y, s.turn)
+	var found: Array = game.placed.put_spot(game.character, s.put, s.aim, game.world.size_y, s.turn, s.kept)
 	s.spot = found[0]
 	var at: Vector3i = s.spot if s.spot != null else s.aim
 	game.props.hold_new(s.put, at, found[1])
@@ -477,7 +479,7 @@ func release(s: Dictionary) -> void:
 		game.props.drop_new()
 		game.cursor.show_boxes([], [])
 		game.land.expect_post(s.put)
-		game.net.request(Protocol.PROP_PUT_AT, [s.put, s.aim, s.turn])
+		game.net.request(Protocol.PROP_PUT_AT, [s.put, s.aim, s.turn, true] if s.kept else [s.put, s.aim, s.turn])
 		if was_up:
 			changed.emit()
 		return
