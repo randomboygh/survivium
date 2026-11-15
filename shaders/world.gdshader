@@ -549,9 +549,12 @@ void fragment() {
 	glint = 0.0;
 	if (snow > 0.0) {
 		col = mix(col, snow_color(gp.xz, wt), snow);
-		// A few texels of snow on a top flare and fade, each on a clock of its own.
+		// A few texels of snow on a top flare and fade as the camera moves or turns, each
+		// along a way of its own; with the camera still they change only slowly.
 		if (top) {
-			float t = TIME * 0.9 + hash12(wt + 67.0) * 9.0;
+			vec2 way = vec2(hash12(wt + 11.0), hash12(wt + 29.0)) * 2.4 - 1.2;
+			float t = TIME * 0.12 + hash12(wt + 67.0) * 9.0
+				+ dot(CAMERA_POSITION_WORLD.xz, way) + atan(view_up.x, view_up.y) * 2.5;
 			glint = step(0.985, hash12(wt + floor(t) * 31.0 + 53.0)) * sin(fract(t) * 3.14159) * snow;
 		}
 	}

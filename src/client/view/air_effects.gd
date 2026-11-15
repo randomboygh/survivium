@@ -36,6 +36,7 @@ const HAZE_FULL := 34.0
 const DROPS_RAIN := 0.7
 const DROPS_RATE := 0.5
 const DRY_RUN := 1.6
+const SWIM_LEFT := 0.6
 const WET_TIME := 5.0
 ## Breath steams at this many degrees and below in full, fading out up to BREATH_MILD;
 ## on a morning (from an hour before sunrise to MORNING_SPAN of a day after it) up to
@@ -97,6 +98,8 @@ var _dry_at := -1.0
 var _dry_was := 0.0
 var _wet := 0.0
 var _was_swimming := false
+## Seconds since the player was last swimming.
+var _out_for := 100.0
 ## What was last given to the shaders, so they are set only on a change.
 var _set := {}
 
@@ -194,7 +197,12 @@ func _rain_drops(delta: float, on: bool, clock, indoor: bool) -> void:
 	var view = game.view
 	if view == null:
 		return
-	var swimming: bool = game.player.body != null and game.player.body.swimming
+	# Out of the water only after SWIM_LEFT seconds out: a jump in the water is still a swim.
+	if game.player.body != null and game.player.body.swimming:
+		_out_for = 0.0
+	else:
+		_out_for += delta
+	var swimming := _out_for < SWIM_LEFT
 	if _was_swimming and not swimming:
 		_wet = WET_TIME
 	_was_swimming = swimming
@@ -207,12 +215,13 @@ func _rain_drops(delta: float, on: bool, clock, indoor: bool) -> void:
 			want = maxf(want, 0.8)
 	if want <= 0.0 and _drops > 0.0:
 		# The rain has stopped (or one went under a roof, into the water): no more drops
-		# come, the ones there run off.
-		_dry_at = _drop_clock
-		_dry_was = _drops
+		# come, the ones there run off. Those still running off from before keep running.
+		if _dry_at < 0.0:
+			_dry_at = _drop_clock
+			_dry_was = _drops
 		_drops = 0.0
 	elif want > 0.0:
-		_dry_at = -1.0
+		# New drops come thin and thicken; the ones running off finish their run.
 		_drops = move_toward(_drops, want, delta * DROPS_RATE)
 	if _dry_at >= 0.0 and _drop_clock - _dry_at > DRY_RUN:
 		_dry_at = -1.0
