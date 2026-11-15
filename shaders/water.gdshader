@@ -351,16 +351,16 @@ void fragment() {
 					float d = length(world_pos.xz - a - ab * t);
 					float k = mix(ka, b.z, t);
 					// Close to the swimmer the band is narrow and parts round them.
-					float half_w = 0.12 + (1.0 - k) * 0.22;
+					float half_w = 0.3 + (1.0 - k) * 0.45;
 					float near = length(world_pos.xz - player_pos.xz);
-					wake = max(wake, smoothstep(half_w, half_w * 0.4, d) * k * smoothstep(0.15, 0.45, near));
+					wake = max(wake, smoothstep(half_w, half_w * 0.3, d) * k * smoothstep(0.15, 0.45, near));
 				}
 				a = b.xy;
 				ka = b.z;
 			}
 		}
 		float twinkle = 0.45 + 0.55 * step(0.55, hash12(tex + floor(TIME * 4.0) * 7.0));
-		plankton = max(surf * bay, wake * 0.8 * step(0.45, hash12(tex + floor(TIME * 6.0) * 3.0))) * twinkle * sea_glow;
+		plankton = max(surf * bay, min(wake * 1.6, 1.0) * (0.75 + 0.25 * step(0.3, hash12(tex + floor(TIME * 6.0) * 3.0)))) * twinkle * sea_glow;
 	}
 	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5) * mix(vec3(1.0), vec3(0.8, 0.78, 0.7), murk), ice_amount);
 	if (ice_amount > 0.0 && world_normal.y > 0.5) {
@@ -375,7 +375,9 @@ void fragment() {
 	ALBEDO = lit_col * sun_part;
 	lamp_gain = sea_undo(lit_col, sun_part);
 	EMISSION = veiled.rgb + (PLANKTON * plankton * 1.6 + shine * (1.0 - ice_amount)) * (1.0 - veiled.a);
-	ALPHA = mix(alpha, 1.0, ice_amount);
+	// The plankton's light is not thinned by clear water: it glows as bright in the open
+	// sea as in the surf.
+	ALPHA = mix(mix(alpha, 1.0, min(plankton, 1.0)), 1.0, ice_amount);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);

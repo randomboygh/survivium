@@ -34,9 +34,9 @@ const WADE_STEP := 0.9
 const SWIM_RING := 1.1
 ## The glowing wake: a point of it every WAKE_STEP units swum, at most WAKE_POINTS, each
 ## fading out over WAKE_LIFE seconds.
-const WAKE_STEP := 0.5
+const WAKE_STEP := 1.0
 const WAKE_POINTS := 8
-const WAKE_LIFE := 3.5
+const WAKE_LIFE := 6.0
 ## Falling this fast (world units a second) into the water splashes.
 const SPLASH_FALL := 3.0
 ## The steam: emitter spots looked for again when the view moved this far, from this many
