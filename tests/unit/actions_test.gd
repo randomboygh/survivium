@@ -7,6 +7,7 @@ const Warmth := preload("res://src/shared/game/warmth.gd")
 func run() -> void:
 	_test_felling()
 	_test_front_choice()
+	_test_choice_kind()
 	_test_tap_choice()
 	_test_world_actions()
 	_test_water_holds()
@@ -123,6 +124,39 @@ func _test_front_choice() -> void:
 	body.on_ground = true
 	var sunk := body.step(Vector3(20.5, 1.6, 20.5) * WorldData.CELL, 1.0 / 60.0, false) / WorldData.CELL
 	_check(is_equal_approx(sunk.y, 2.0), "a body found in the ground stands up onto it (%.2f)" % sunk.y)
+
+
+## The action button's label (front_kind) comes from a short look ahead (_choice_kind)
+## that must name what front_choice would do, on grown ground, every way, every tool.
+func _test_choice_kind() -> void:
+	var gen := WorldGen.new(20261018)
+	var home := Vector2i(gen.spawn_guess.x >> 4, gen.spawn_guess.z >> 4)
+	gen.generate_area(home - Vector2i(1, 1), home + Vector2i(2, 2))
+	var w = gen.world
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var who := Who.new()
+	var differ := []
+	var kinds := {}
+	for item in ["", "tools:wooden_sword", "tools:stone_axe", "tools:stone_scythe", "tools:wooden_shovel"]:
+		if item != "" and not Items.has(item):
+			continue
+		who.item = item
+		for z in range(home.y * 16 - 8, home.y * 16 + 24, 3):
+			for x in range(home.x * 16 - 8, home.x * 16 + 24, 3):
+				var y: int = w.surface_y(x, z)
+				if y <= 0:
+					continue
+				who.position = Vector3(x + 0.5, y, z + 0.5) * WorldData.CELL
+				for facing in [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]:
+					who.facing = facing
+					var work: Dictionary = actions.front_choice(who)
+					var want: String = "" if work.is_empty() else str(work.keys()[0])
+					var got: String = actions._choice_kind(who)
+					kinds[want] = true
+					if got != want and differ.size() < 5:
+						differ.append([item, Vector3i(x, y, z), facing, want, got])
+	_check(differ.is_empty() and kinds.has("mow") and kinds.has("dig") and kinds.has("trunk"),
+		"the action button's label names what the button does (%s, kinds %s)" % [differ, kinds.keys()])
 
 
 ## A tap or a click on a cell works as the action button does in front, only at the cell:
