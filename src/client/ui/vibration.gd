@@ -53,7 +53,7 @@ const PATTERNS := {
 	# Л: the bag is full, «no».
 	"full": [[40, 60, 40], 0.6, IMPORTANT],
 	# М: a landing that does not hurt (Steps scales it by the fall).
-	"land": [[18], 0.25, ALL],
+	"land": [[8], 0.12, ALL],
 	# Н: a button of the interface.
 	"click": [[8], 0.3, ALL],
 	# П: a tool broke, a sharp snap.
@@ -109,20 +109,33 @@ static func play(game, id: String, delay := 0.0, scale := 1.0) -> void:
 	_later(game, p[0], strengths, delay)
 
 
-## Milliseconds of each step of a thunder's rumble, and the most pulses a browser takes
-## in one pattern (Chrome refuses a longer one).
-const RUMBLE_STEP := 200
+## A thunder's «ту»: each hit's pulse (ms, the first sharp with the crack); its «дууух»
+## at most and at least this long, in BOOM_PARTS pulses fading by BOOM_FADE; and no
+## thunder is felt sooner than THUNDER_AGAIN seconds after the last one (a storm
+## flashes every few seconds).
+const HIT_PULSE := 60
+const BOOM_MS := Vector2i(350, 900)
+const BOOM_FADE := [1.0, 0.75, 0.5, 0.3]
+const THUNDER_AGAIN := 8.0
+## The most pulses a browser takes in one pattern (Chrome refuses a longer one).
 const WEB_MOST := 99
+
+## When a thunder was last felt (Time ms).
+static var _thunder_at := -100000
 
 
 ## The thunder heard (Sound.play_later's `then`: variant `played.variant` at speed
-## `played.pitch`) felt as it rolls (ThunderShape), its strength times `scale`: each
-## RUMBLE_STEP a pulse as long and as strong as the thunder is loud then. A thunder
-## of a mod with other variants than the made ones buzzes the short rumble.
+## `played.pitch`) felt as «ту-дууух» (ThunderShape: its hits, then its boom), its
+## strength times `scale`. A thunder of a mod with other variants than the made ones
+## buzzes the short pattern.
 static func rumble(game, played: Dictionary, scale: float) -> void:
 	var p: Array = PATTERNS.thunder
 	if not allows(game, p[2]):
 		return
+	var now := Time.get_ticks_msec()
+	if now - _thunder_at < THUNDER_AGAIN * 1000.0:
+		return
+	_thunder_at = now
 	var v: int = played.get("variant", -1)
 	var count: int = game.sound.streams("thunder").size() if game.get("sound") != null else 0
 	if v < 0 or count != ThunderShape.KINDS.size():
@@ -133,38 +146,26 @@ static func rumble(game, played: Dictionary, scale: float) -> void:
 
 
 ## The pulses (on, off… ms) and their strengths of thunder shape `s` played at speed
-## `pitch`, as strong as `scale` (see rumble).
+## `pitch`, as strong as `scale` (see rumble): a pulse a hit, a pause, the boom.
 static func rumble_steps(s: Dictionary, pitch: float, scale: float) -> Array:
-	var span: float = s.span
-	var n := ceili(span / pitch * 1000.0 / RUMBLE_STEP)
-	var levels := []
-	var top := 0.001
-	for i in n:
-		var t := (i + 0.5) * RUMBLE_STEP / 1000.0 * pitch
-		var g := ThunderShape.gain(s, t)
-		for c: Array in s.cracks:
-			if absf(t - c[0]) < RUMBLE_STEP / 1000.0 * pitch:
-				g += c[1] * 1.5
-		levels.append(g)
-		top = maxf(top, g)
 	var steps := []
 	var strengths := []
-	var off := 0
-	for g: float in levels:
-		var level := clampf(g / top * scale, 0.0, 1.0)
-		var on := roundi(RUMBLE_STEP * level) if level > 0.12 else 0
-		if on == 0:
-			off += RUMBLE_STEP
-			continue
+	var end := 0
+	for h: Array in s.hits:
+		var at := roundi(float(h[0]) * 1000.0 / pitch)
 		if not steps.is_empty():
-			steps.append(off)
-		elif off > 0:
-			# Silent at first: the pattern starts with a pause of nothing felt.
-			steps.append_array([1, off])
-			strengths.append(0.05)
-		steps.append(on)
-		strengths.append(clampf(level, 0.05, 1.0))
-		off = RUMBLE_STEP - on
+			steps.append(maxi(at - end, 40))
+		steps.append(HIT_PULSE)
+		strengths.append(clampf(float(h[1]) * scale, 0.1, 1.0))
+		end = maxi(at, end) + HIT_PULSE
+	var boom_at := roundi(float(s.boom[0]) * 1000.0 / pitch)
+	steps.append(maxi(boom_at - end, 60))
+	var boom := clampi(roundi(float(s.boom[1]) * 1000.0 / pitch), BOOM_MS.x, BOOM_MS.y)
+	for i in BOOM_FADE.size():
+		if i > 0:
+			steps.append(0)
+		steps.append(boom / BOOM_FADE.size())
+		strengths.append(clampf(BOOM_FADE[i] * scale, 0.05, 1.0))
 	return [steps, strengths]
 
 

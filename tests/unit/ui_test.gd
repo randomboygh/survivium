@@ -487,10 +487,11 @@ func _test_vibration() -> void:
 		for ms in r[0]:
 			total += int(ms)
 		rumbles.append(total)
-		_check(r[0].size() % 2 == 1 and r[0].size() <= Vibration.WEB_MOST and r[1].size() == (r[0].size() + 1) / 2,
-			"thunder %d rolls in pulses and pauses a browser takes (%d)" % [v, r[0].size()])
-	_check(rumbles.min() > 1500 and rumbles.max() > 5000 and rumbles.max() - rumbles.min() > 2000,
-		"the thunders are felt long and unlike each other (%s ms)" % [rumbles])
+		_check(r[0].size() % 2 == 1 and r[0].size() <= Vibration.WEB_MOST and r[1].size() == (r[0].size() + 1) / 2
+			and r[0][0] == Vibration.HIT_PULSE and r[1][0] >= r[1][-1],
+			"thunder %d is felt as a hit, a pause and a boom that fades (%s)" % [v, r[0]])
+	_check(rumbles.min() >= 400 and rumbles.max() <= 1600 and rumbles.max() - rumbles.min() >= 200,
+		"the thunders are felt short, «ту-дууух», and unlike each other (%s ms)" % [rumbles])
 	var was: String = Settings.path
 	Settings.path = "user://test_vibration.cfg"
 	var cfg := ConfigFile.new()
