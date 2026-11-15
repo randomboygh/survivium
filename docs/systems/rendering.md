@@ -271,7 +271,8 @@ voxel models of things.
   (without fire, fire without a shadow, and fire with a shadow — by the setting of fire shadows, with the
   layers that cast a shadow; everything under the sun with a shadow by the setting; the sun in the game does
   not go out — at night its brightness is 0, but the shaders are the same). All this is behind the loading
-  screen (`step`, a combination per frame); behind the menu the world is not drawn, so nothing is left for the
+  screen (`step`, a combination per frame, each frame marked «warm-up» in the freeze log: in the browser the
+  first combination builds ~120 programs and the next three ~11, 9 and 4, checked 2026-11-15); behind the menu the world is not drawn, so nothing is left for the
   first frames of the game. In the game (`update`, `main.shaders`) only what the settings asked for (the sun's
   shadow, fire shadows), one kind at a time once per `PACE`. A new kind of fire or a material that appears
   later is added there (the HUD is hidden by the menu at that time, so the interface's elements are on the

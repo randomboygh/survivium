@@ -96,6 +96,7 @@ func start() -> void:
 	_build()
 	_mix(ahead[0])
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	game.hud.perf.mark("warm-up")
 	_say()
 	if one_by_one:
 		for copy in copies:
@@ -320,6 +321,9 @@ func step() -> bool:
 	# the first mix was never drawn).
 	if Engine.get_process_frames() == start_frame:
 		return false
+	# The freeze log names these frames: their shaders are the warm-up's own, built
+	# behind the loading screen (a phone's log showed them as if missed, 2026-11-15).
+	game.hud.perf.mark("warm-up")
 	if one_by_one:
 		copies[ahead_kind].visible = false
 		if ahead_kind + 1 < copies.size():
