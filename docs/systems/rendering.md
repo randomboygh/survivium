@@ -73,7 +73,7 @@ voxel models of things.
   a shot landing, wading, a fall into the water), steam over open water on cold mornings, fires and torches
   glittering on the water towards the viewer (`fire_glints`), and the figures by the water mirrored in it
   (`sprite_mirror.gdshader`: the sprite upside down, drawn after the water and over the body's part under it
-  (priority 2) with no depth test, kept to the water and its wet edge by the roof map's columns; a figure is
+  (priority 2) with no depth test, kept to the water and the half of a shore's cell next to it (`SHORE_WET`) by the roof map's columns; a figure is
   mirrored with open water within `MIRROR_LOOK` cells round its feet, a swimmer too; its box fitted with `PixelView.sheared_box`). NatureEffects: dandelion fluff,
   midges by the water at sunset and over one standing still, dragonflies over the water, dust or snow from
   under the feet.
