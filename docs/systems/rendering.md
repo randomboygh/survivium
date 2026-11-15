@@ -85,7 +85,7 @@ voxel models of things.
   frames; `PixelTextures.build_plants` writes a row under the plants (`looks_texel`: red shy, green night, blue
   the shift) and the vertex shader swaps the column — shy while the player stands within `SHY_REACH`, night
   past a `night_glow` of its own. Texels of a custom picture with an alpha of 200..240 glint by day (dew).
-  The surf and a faint V behind a swimmer (`wake_way`, from `WaterEffects`) glow blue on rare warm nights in
+  The surf and a trail along the way a swimmer swam, fading as it ages (`wake_trail`, `wake_now`, from `WaterEffects`) glow blue on rare warm nights in
   bays of plankton (`sea_glow`, set by `Sky` from the night, one in `SEA_GLOW_NIGHTS` (`Sky.glowing_night`), and
   the season, `water.gdshader`).
 - `src/client/view/glow_lights.gd` (held by `Effects.glows`) — small teal pools of light round the glowing
