@@ -5,6 +5,8 @@ extends RefCounted
 ## filter, an eraser, and the action button that works on by itself (`auto`). Each mode
 ## adds what it draws and asks of the server.
 
+const ToolKinds := preload("res://src/shared/content/tools.gd")
+
 ## Seconds between two looks at whether the work going on by itself can go on.
 const CHECK_TIME := 0.25
 
@@ -23,6 +25,10 @@ var auto := false
 var _saved_hands: Array[String] = ["", ""]
 var _saved_active := 0
 var _check_clock := 0.0
+## How many of each palette item the bag held at the last look (_on_bag_changed), and
+## the bag looked at.
+var _counts := {}
+var _watched = null
 
 
 func _init(g) -> void:
@@ -77,7 +83,41 @@ func _begin() -> void:
 	# The bar shows no filters for now: the palette holds everything.
 	filter = "all"
 	c.cancel_stroke()
+	_watch()
 	_show(true)
+
+
+## Watches the bag: what comes into it while the mode is on (a thing taken back, a block
+## knocked out, a harvest) has its slot chosen on the palette, unless the hand holds a tool
+## (the user's rule, 2026-11-15).
+func _watch() -> void:
+	var inv = game.character.inventory
+	if _watched != inv:
+		if _watched != null and _watched.changed.is_connected(_on_bag_changed):
+			_watched.changed.disconnect(_on_bag_changed)
+		inv.changed.connect(_on_bag_changed)
+		_watched = inv
+	_counts = _palette_counts()
+
+
+func _palette_counts() -> Dictionary:
+	var out := {}
+	var inv = game.character.inventory
+	for id in palette():
+		out[id] = inv.count(id)
+	return out
+
+
+func _on_bag_changed() -> void:
+	var now := _palette_counts()
+	# A tool in the hand stays in it (a sickle reaping, the user's rule, 2026-11-15).
+	if on and not auto and ToolKinds.use_of(game.controls.held()) != "tool":
+		for id: String in now:
+			if now[id] > int(_counts.get(id, 0)) and id != game.controls.held():
+				game.controls.put_in_hand(id, -1, false)
+				changed.emit()
+				break
+	_counts = now
 
 
 ## Leaves the mode: the hands hold again what they held before it.

@@ -11,9 +11,12 @@ extends "res://src/client/input/work_mode.gd"
 ## whole blueprint near the player cell by cell and lets go after the last one (or when
 ## the bag has no block left for it). A tap on a part of a house set down takes it back
 ## into the bag: they are taken only here. A thing that moves (Placed.movable: a station,
-## a chest, furniture, a sign) is dragged to another place with a finger or the mouse
-## held on it, and turned a quarter by a double tap; a single tap takes it once the
-## double tap's time is over. Leaving gives the hands back what they held before.
+## a chest, furniture, a sign) is taken up into the air by a finger or the mouse held on
+## it, carried to another place and set down there as it is let go; a double tap turns
+## it a quarter, and the next of its kind is set down turned so (`kept_turns`) while the
+## bag holds one; a single tap takes it once the double tap's time is over. A thing new from the bag is set down
+## where tapped, or held hangs in the air the same way and is set down where it is let
+## go. Leaving gives the hands back what they held before.
 ## `game` is the Main node.
 
 const Items := preload("res://src/shared/content/items.gd")
@@ -32,9 +35,12 @@ const SHAPES := ["line", "plane", "square", "cube"]
 const DEFAULT_HEIGHTS := {"line": 3, "plane": 1, "square": 3, "cube": 5}
 ## A second tap on the same thing within this many ms turns it (a double tap); a single
 ## tap takes it after them.
-const DOUBLE_TAP_MS := 320
-## How far a finger or the mouse goes on a thing before it is dragged, a share of the
-## screen's shorter side.
+const DOUBLE_TAP_MS := 180
+## A finger or the mouse held this many ms takes a thing up into the air (a thing set
+## down, or one new from the bag to set down); let go sooner it was a tap.
+const HOLD_MS := 280
+## How far a finger or the mouse goes before a thing is taken up sooner than HOLD_MS, a
+## share of the screen's shorter side.
 const DRAG_SHARE := 0.025
 
 ## The shape drawn (one of Plans.KINDS), how high its walls are (levels) and how thick
@@ -58,6 +64,9 @@ var turns := 0
 ## A tap on a thing that moves waiting to see whether a second one comes: {"cell", "ms"},
 ## {} for none (see DOUBLE_TAP_MS).
 var _tap_wait := {}
+## The turn the player last gave a thing of each kind by a double tap, by item id: the
+## next ones are set down turned so while the bag holds one (then it is forgotten).
+var kept_turns := {}
 ## The thing dragged now (see drag), {} for none.
 var _dragged := {}
 
@@ -112,9 +121,10 @@ func _show(shown: bool) -> void:
 	game.hud.show_build(shown)
 
 
-## A tap still waiting for its second one is done, a thing dragged is set down.
+## A thing dragged is set down, one new from the bag held up goes.
 func _left() -> void:
 	_take_waiting()
+	game.props.drop_new()
 	if not _dragged.is_empty():
 		game.props.settle(_dragged)
 		_dragged = {}
@@ -232,7 +242,14 @@ func toggle_auto() -> void:
 func update(delta: float) -> void:
 	if not _tap_wait.is_empty() and Time.get_ticks_msec() - int(_tap_wait.ms) > DOUBLE_TAP_MS:
 		_take_waiting()
-	if not _dragged.is_empty() and not is_same(game.controls.dragging(), _dragged):
+	for id: String in kept_turns.keys():
+		if game.character.inventory.count(id) <= 0:
+			kept_turns.erase(id)
+	if game.props.holding_new() and not game.controls.dragging().has("put"):
+		# A thing new from the bag held up with no stroke on it any more goes.
+		game.cursor.show_boxes([], [])
+		game.props.drop_new()
+	if not _dragged.is_empty() and not is_same(game.controls.dragging().get("prop"), _dragged):
 		# Held up with no finger or button on it any more (its stroke went another way):
 		# it drops back where it stands, never left hanging in the air.
 		game.cursor.show_boxes([], [])
@@ -297,34 +314,40 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		# A wicket or a gate tapped onto a fence takes the place of its segments.
 		game.net.request(Protocol.PROP_PUT_AT, [chosen(), target.prop.cell])
 		return {}
+	if target.has("prop") and not Placed.is_light(target.prop) and Items.is_interior(target.prop.item) \
+			and not erasing and _beside_kind(target.prop):
+		# A thing one cell big tapped with one of its kind in the hand: the next is set down
+		# beside it (held, it hangs in the air there), not the one standing taken; once the
+		# bag holds none of them a tap takes them back.
+		var near: Dictionary = target.prop
+		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "put": chosen(),
+			"from": pos, "ms": Time.get_ticks_msec(), "up": false, "aim": _beside(near, pos),
+			"turn": kept_turns.get(chosen(), game.props.view_turn()), "kept": kept_turns.has(chosen()),
+			"spot": null, "shown": null}
 	if target.has("prop") and not Placed.is_light(target.prop) and Items.is_interior(target.prop.item):
 		var e: Dictionary = target.prop
 		if not Placed.movable(e):
-			game.net.request(Protocol.PROP_TAKE, [e.cell])
+			_take(e.cell)
 			return {}
 		if not _tap_wait.is_empty() and _tap_wait.cell == e.cell:
-			# The second tap of a double tap: turned a quarter where it stands.
+			# The second tap of a double tap.
 			_tap_wait = {}
-			game.net.request(Protocol.PROP_MOVE, [e.cell, e.cell, (int(e.get("turn", 0)) + 1) % 4])
+			turn_thing(e)
 			return {}
 		_take_waiting()
 		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "prop": e,
-			"from": pos, "moved": false, "to": null, "corner": null, "grab": _grab(e, pos)}
+			"from": pos, "ms": Time.get_ticks_msec(), "moved": false, "to": null, "corner": null,
+			"turn": int(e.get("turn", 0)), "shown": null, "grab": _grab(e, pos)}
 	var hit: Dictionary = game.controls.pick(pos)
 	if hit.is_empty():
 		return {}
 	if not Plans.drawn_with(chosen()) and not erasing:
-		# A thing is set down at once where tapped (a door or a window into the side of a
-		# wall tapped; on the top of a floor it stands on it, never cut into it; a hatch into
-		# the floor or the ceiling of blocks tapped).
-		var cell: Vector3i = hit.cell
-		var built: bool = not game.world.is_natural(cell.x, cell.y, cell.z)
-		var into_wall: bool = (item.get("door", false) or item.get("window", false)) and not item.get("hatch", false) \
-			and hit.normal.y == 0 and built
-		var into_floor: bool = item.get("hatch", false) and hit.normal.y != 0 and built
-		game.land.expect_post(chosen())
-		game.net.request(Protocol.PROP_PUT_AT, [chosen(), cell if into_wall or into_floor else cell + hit.normal, game.props.view_turn()])
-		return {}
+		# A thing is set down where tapped as the finger lifts; held, it hangs in the air over
+		# the place under the finger until it is let go (drag, release).
+		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "put": chosen(),
+			"from": pos, "ms": Time.get_ticks_msec(), "up": false, "aim": _aim(hit, item),
+			"turn": kept_turns.get(chosen(), game.props.view_turn()), "kept": kept_turns.has(chosen()),
+			"spot": null, "shown": null}
 	var first := start_cell(hit)
 	if erasing:
 		# The ghost under the finger, when it is nearer than the cell tapped.
@@ -346,6 +369,27 @@ func _grab(e: Dictionary, pos: Vector2) -> Vector3i:
 	return Vector3i(clampi(d.x, 0, n - 1), 0, clampi(d.z, 0, n - 1))
 
 
+## The cell a thing new from the bag is set down at on the cell `hit` (VoxelRaycast.cast)
+## of item record `item`: a door or a window into the side of a wall tapped; on the top of
+## a floor it stands on it, never cut into it; a hatch into the floor or the ceiling of
+## blocks tapped; else the cell over the face tapped.
+func _aim(hit: Dictionary, item: Dictionary) -> Vector3i:
+	var cell: Vector3i = hit.cell
+	var built: bool = not game.world.is_natural(cell.x, cell.y, cell.z)
+	var into_wall: bool = (item.get("door", false) or item.get("window", false)) and not item.get("hatch", false) \
+		and hit.normal.y == 0 and built
+	var into_floor: bool = item.get("hatch", false) and hit.normal.y != 0 and built
+	return cell if into_wall or into_floor else cell + hit.normal
+
+
+## Thing `e` turned a quarter where it stands (a double tap on it), and the next of its
+## kind set down turned so while the bag holds one (kept_turns).
+func turn_thing(e: Dictionary) -> void:
+	var turned := (int(e.get("turn", 0)) + 1) % 4
+	kept_turns[e.item] = turned
+	game.net.request(Protocol.PROP_MOVE, [e.cell, e.cell, turned])
+
+
 ## The tap on a thing waiting for a second one takes the thing now (see DOUBLE_TAP_MS).
 func _take_waiting() -> void:
 	if _tap_wait.is_empty():
@@ -353,63 +397,162 @@ func _take_waiting() -> void:
 	var cell: Vector3i = _tap_wait.cell
 	_tap_wait = {}
 	if not game.placed.at(cell).is_empty():
-		game.net.request(Protocol.PROP_TAKE, [cell])
+		_take(cell)
 
 
-## A finger or the mouse held on a thing that moves (stroke `s` of start_stroke): once
-## it has gone far enough the thing is held up over the free place nearest under it
-## (Placed.move_spot, as the server will look for it), its cells framed (red where it
-## does not fit). Called every frame while held (Controls.update).
+## The thing at `cell` back into the bag (Protocol.PROP_TAKE); taken, its slot is chosen
+## on the palette (WorkMode._on_bag_changed).
+func _take(cell: Vector3i) -> void:
+	game.net.request(Protocol.PROP_TAKE, [cell])
+
+
+## Whether a tap on thing `e` sets the next of its kind down beside it: it is one cell big
+## and the hand holds one of its kind.
+func _beside_kind(e: Dictionary) -> bool:
+	return e.item == chosen() and Placed.size_of(e.item) == 1 and game.character.inventory.count(e.item) > 0
+
+
+## The cell beside thing `e` (one cell big) the finger at `pos` points to: the cell under the
+## finger when it is not the thing's own, else the cell past the face of the thing the
+## finger's ray goes in by.
+func _beside(e: Dictionary, pos: Vector2) -> Vector3i:
+	var hit: Dictionary = game.controls.pick(pos)
+	if not hit.is_empty():
+		var aim := _aim(hit, Items.get_item(chosen()))
+		if aim != e.cell and game.placed.at(aim).is_empty():
+			return aim
+	var ray: Array = game.controls._ray(pos)
+	return e.cell + face_in(Vector3(e.cell), ray[0], ray[1])
+
+
+## The face of the unit cube at `corner` a ray from `from` along `dir` goes in by, as the
+## step out of it (up when it misses).
+static func face_in(corner: Vector3, from: Vector3, dir: Vector3) -> Vector3i:
+	var enter := -INF
+	var face := Vector3i.UP
+	for axis in 3:
+		if absf(dir[axis]) < 0.000001:
+			continue
+		var t0 := (corner[axis] - from[axis]) / dir[axis]
+		var t1 := (corner[axis] + 1.0 - from[axis]) / dir[axis]
+		var near := minf(t0, t1)
+		if near > enter:
+			enter = near
+			var step := Vector3i.ZERO
+			step[axis] = -1 if dir[axis] > 0.0 else 1
+			face = step
+	return face
+
+
+## Whether stroke `s` takes its thing up into the air now: held HOLD_MS, or gone DRAG_SHARE
+## of the screen.
+func _lift_due(s: Dictionary) -> bool:
+	if Time.get_ticks_msec() - int(s.ms) >= HOLD_MS:
+		return true
+	var screen: Vector2 = game.get_viewport().get_visible_rect().size
+	return s.pos.distance_to(s.from) >= minf(screen.x, screen.y) * DRAG_SHARE
+
+
+## A finger or the mouse held on a thing that moves, or on the ground with a thing new
+## from the bag (stroke `s` of start_stroke): once held long enough (_lift_due) the thing
+## hangs in the air over the free place nearest under the finger (Placed.move_spot,
+## Placed.put_spot, as the server will look for it), its cells framed (red where it does
+## not fit). Called every frame while held (Controls.update).
 func drag(s: Dictionary) -> void:
+	if s.has("put"):
+		_drag_new(s)
+		return
 	var e: Dictionary = s.prop
 	if not is_same(game.placed.at(e.cell), e):
 		# Gone or changed under the finger: what was held up drops back (update).
 		return
 	if not s.moved:
-		var screen: Vector2 = game.get_viewport().get_visible_rect().size
-		if s.pos.distance_to(s.from) < minf(screen.x, screen.y) * DRAG_SHARE:
+		if not _lift_due(s):
 			return
 		s.moved = true
 		_dragged = e
+		changed.emit()
 	var on_it: Variant = game.controls.on_plane(s.pos, e.cell, Vector3i.UP)
 	if on_it == null:
 		return
 	var corner: Vector3i = on_it - s.grab
-	if s.corner == corner:
+	var shown := [corner, s.turn]
+	if s.shown == shown:
 		return
-	s.corner = corner
-	var turn: int = e.get("turn", 0)
+	s.shown = shown
+	var turn: int = s.turn
 	s.to = game.placed.move_spot(game.character, e, corner, turn)
 	var at: Vector3i = s.to if s.to != null else corner
-	game.props.hold_at(e, at)
+	game.props.hold_at(e, at, turn)
+	_frame(e.item, at, turn, s.to != null)
+
+
+## A thing new from the bag held (stroke `s` with "put"): see drag.
+func _drag_new(s: Dictionary) -> void:
+	if not s.up:
+		if not _lift_due(s):
+			return
+		s.up = true
+		changed.emit()
+	# The place under the finger, while it is on the screen.
+	var hit: Dictionary = game.controls.pick(s.pos) if game.get_viewport().get_visible_rect().has_point(s.pos) else {}
+	if not hit.is_empty():
+		s.aim = _aim(hit, Items.get_item(s.put))
+	var shown := [s.aim, s.turn]
+	if s.shown == shown:
+		return
+	s.shown = shown
+	var found: Array = game.placed.put_spot(game.character, s.put, s.aim, game.world.size_y, s.turn, s.kept)
+	s.spot = found[0]
+	var at: Vector3i = s.spot if s.spot != null else s.aim
+	game.props.hold_new(s.put, at, found[1])
+	_frame(s.put, at, found[1], s.spot != null)
+
+
+## Frames the cells thing `id` turned `turn` takes from the north-west cell `at`: light
+## where it fits, red where not.
+func _frame(id: String, at: Vector3i, turn: int, fits: bool) -> void:
 	var cells: Array = []
-	for o: Vector3i in game.placed.cells_of({"item": e.item, "cell": Vector3i.ZERO, "turn": turn}):
+	for o: Vector3i in game.placed.cells_of({"item": id, "cell": Vector3i.ZERO, "turn": turn}):
 		cells.append(at + o)
-	if s.to != null:
+	if fits:
 		game.cursor.show_boxes(cells, [])
 	else:
 		game.cursor.show_boxes([], cells)
 
 
-## The finger or the mouse let go of a thing (stroke `s`): dragged, it is moved where it
-## was held up (Protocol.PROP_MOVE; it drops back when it cannot go there); only tapped,
-## it waits for a second tap (DOUBLE_TAP_MS).
+## The finger or the mouse let go (stroke `s`). A thing new from the bag is set down where
+## it hung, or where tapped (Protocol.PROP_PUT_AT). A thing set down and held up is moved
+## where it hung (Protocol.PROP_MOVE; it drops back when it cannot go there); only tapped,
+## it waits for a second tap (DOUBLE_TAP_MS) and then goes back into the bag.
 func release(s: Dictionary) -> void:
+	s.held = false
+	if s.has("put"):
+		var was_up: bool = s.up
+		s.up = false
+		game.props.drop_new()
+		game.cursor.show_boxes([], [])
+		game.land.expect_post(s.put)
+		game.net.request(Protocol.PROP_PUT_AT, [s.put, s.aim, s.turn, true] if s.kept else [s.put, s.aim, s.turn])
+		if was_up:
+			changed.emit()
+		return
 	var e: Dictionary = s.prop
 	_dragged = {}
-	s.held = false
 	if not s.moved:
 		_tap_wait = {"cell": e.cell, "ms": Time.get_ticks_msec()}
 		return
+	changed.emit()
 	game.cursor.show_boxes([], [])
 	if not is_same(game.placed.at(e.cell), e):
-		# Changed while it was held (written, turned, filled): its model drops back.
+		# Changed while it was held (written, filled): its model drops back.
 		game.props.settle(e)
 		return
-	if s.to == null or s.to == e.cell:
+	var turn: int = s.turn
+	if s.to == null or s.to == e.cell and turn == int(e.get("turn", 0)):
 		game.props.settle(e)
 		return
-	game.net.request(Protocol.PROP_MOVE, [e.cell, s.to, int(e.get("turn", 0))]).then(func(moved: Variant) -> void:
+	game.net.request(Protocol.PROP_MOVE, [e.cell, s.to, turn]).then(func(moved: Variant) -> void:
 		if not (moved is bool and moved) and game.placed.at(e.cell) == e:
 			game.props.settle(e))
 

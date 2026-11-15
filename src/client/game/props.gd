@@ -71,6 +71,8 @@ var _standing := {}
 var _heat_queued := false
 ## The things just gone, by cell: [item, turn, when (ms)] (see RENEW_MS).
 var _gone := {}
+## The model of a thing new from the bag held up in the build mode (hold_new), null for none.
+var _held_new: MeshInstance3D = null
 ## Things newly fallen in a chunk wait to be drawn while the ground they came from is
 ## still drawn whole (a felled tree's chunk not yet rebuilt): they show as the tree goes.
 ## The chunks waiting, with when they began to; how many things each chunk shows.
@@ -329,16 +331,66 @@ func _land(e: Dictionary) -> void:
 		Vibration.play(game, "thud", 0.0, 1.0 if n < 2.0 else 1.4)
 
 
-## Holds the model of thing `e` up over the north-west cell `corner` (its turn kept) while
-## the build mode drags it (BuildMode); false when it has no model of its own.
-func hold_at(e: Dictionary, corner: Vector3i) -> bool:
+## Holds the model of thing `e` up over the north-west cell `corner`, turned `turn` (its own
+## when -1), while the build mode drags it (BuildMode); false when it has no model of its own.
+func hold_at(e: Dictionary, corner: Vector3i, turn := -1) -> bool:
 	var node: Node3D = _nodes.get(e.cell)
-	if node == null or not is_instance_valid(node):
+	if node == null or not is_instance_valid(node) or not node is MeshInstance3D:
 		return false
 	_stop_fall(node)
+	_turn_model(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
 	node.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
 	node.extra_cull_margin = CULL_MARGIN
 	return true
+
+
+## The model of thing `e` in `node` turned `turn` (held up in the build mode and turned
+## there); back to its own turn it is its own model again.
+func _turn_model(node: MeshInstance3D, e: Dictionary, turn: int) -> void:
+	var was: int = node.get_meta("turn", int(e.get("turn", 0)))
+	if was == turn:
+		return
+	var kind: String = Items.get_item(e.item).prop
+	node.mesh = _model(kind, turn, e.get("open", false), e.get("join", -1)).build_mesh()
+	node.set_meta("turn", turn)
+
+
+## A thing new from the bag held up in the air by the build mode over the north-west cell
+## `corner`, turned `turn`, before it is set down (BuildMode); false for one with no model
+## of its own (a campfire, a light). One at a time: drop_new takes it away.
+func hold_new(id: String, corner: Vector3i, turn: int) -> bool:
+	var item := Items.get_item(id)
+	var kind: String = item.get("prop", "none")
+	var probe := {"item": id, "cell": corner, "turn": turn, "lit": false}
+	if kind == "none" or Placed.is_light_item(id) or Placed.is_fire(probe) and not Placed.is_hearth(probe):
+		drop_new()
+		return false
+	var key := "%s/%d" % [id, turn]
+	if _held_new == null or not is_instance_valid(_held_new):
+		_held_new = MeshInstance3D.new()
+		_held_new.scale = Vector3.ONE / 16.0
+		_held_new.layers = PixelView.LAYER_THINGS
+		_held_new.extra_cull_margin = CULL_MARGIN
+		game.world_root.add_child(_held_new)
+	if _held_new.get_meta("key", "") != key:
+		_held_new.mesh = _model(kind, turn).build_mesh()
+		_held_new.material_override = game.low_mat if _held_new.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
+		_held_new.set_meta("key", key)
+	_held_new.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
+	return true
+
+
+## The thing new from the bag held up (hold_new) goes away: set down, the server's thing
+## drops in its place.
+func drop_new() -> void:
+	if _held_new != null and is_instance_valid(_held_new):
+		_held_new.queue_free()
+	_held_new = null
+
+
+## Whether a thing new from the bag is held up (hold_new).
+func holding_new() -> bool:
+	return _held_new != null and is_instance_valid(_held_new)
 
 
 ## The model of thing `e` dragged and not moved (BuildMode): it drops back where it stands.
@@ -346,6 +398,8 @@ func settle(e: Dictionary) -> void:
 	var node: Node3D = _nodes.get(e.cell)
 	if node == null or not is_instance_valid(node):
 		return
+	if node is MeshInstance3D:
+		_turn_model(node, e, int(e.get("turn", 0)))
 	var from := node.position
 	var to := Vector3(e.cell) * CELL
 	if from.is_equal_approx(to):
