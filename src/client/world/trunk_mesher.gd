@@ -10,9 +10,11 @@ const Growth := preload("res://src/shared/world/growth.gd")
 
 ## A log with open sides that continues up into a trunk or crown is a tree trunk. A log
 ## of a tree's own column (`tree`) is one with a side open too: a foot standing against
-## a higher bank or step still shows its bark, not a block of wood.
+## a higher bank or step still shows its bark, not a block of wood; and whatever is above
+## it: the top of a stump left by felling, or of a trunk under open air, is a cut, not a
+## block of wood standing on the bark below.
 static func is_trunk(nb: PackedByteArray, tree := false) -> bool:
-	if nb[2] != Mat.LOG and nb[2] != LEAVES:
+	if not tree and nb[2] != Mat.LOG and nb[2] != LEAVES:
 		return false
 	var covered := int(_covers(nb[0])) + int(_covers(nb[1])) + int(_covers(nb[4])) + int(_covers(nb[5]))
 	return covered == 0 or tree and covered < 4
