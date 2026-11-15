@@ -351,6 +351,10 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tests/unit/view_test.gd`: The client view: the pixel view, sprite sheets, tracks, the level cut, sound and the camera's smooth turn.
 - `tests/unit/wildlife_test.gd`: The animals: who fears whom, how they come, wander, flee and hunt, flocks and birds.
 
+## tools
+
+- `tools/_p4.gd`: (no description)
+
 ## tools/art
 
 - `tools/art/icon_art.gd`: The pictures of the prototype's items and the small pictures of the interface, drawn one character per pixel: `tools/make_icons.gd` writes the items' into `content/<mod>/icons/<icon>.png` and the…

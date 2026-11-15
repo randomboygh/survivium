@@ -430,6 +430,14 @@ void fragment() {
 		if (top) {
 			tm = tile_mirror(tm, floor(world_pos.xz));
 		}
+		// The cut of a tree's trunk (its end grain, TrunkMesher: vertex alpha under 1) is
+		// laid by UV, cells from its middle at 1 (the middle of the tile, two cells across),
+		// so the rings centre on the stump; a cut wider than the tile goes on in it
+		// mirrored at its edge.
+		if (top && tile % 3 == 0 && COLOR.a < 0.9 && (material_bits[tile / 3] & TRUNK) != 0) {
+			ivec2 o = ivec2(mod(floor(UV * CELL_TEXELS), 2.0 * TEXELS));
+			tm = min(o, ivec2(int(2.0 * TEXELS) - 1) - o);
+		}
 		if ((flag & ~1) == 4) {
 			// A slope covers more or fewer screen rows than a flat top: take texels
 			// where they show on screen, one texel per pixel, in the view the camera

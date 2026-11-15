@@ -171,11 +171,12 @@ static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, 
 		var ring: Array = cap[0]
 		var tint := Color(color.r * cap[4], color.g * cap[4], color.b * cap[4], color.a)
 		var packed := Vector2(pack(cap[3], 0, 0), around)
-		# The tile spans the cap, its middle on the cap's middle: the rings of the end
-		# grain centred on the stump however wide it is and wherever it leans.
+		# UV in cells from the cap's middle, which is at 1 (the middle of the tile, two
+		# cells across): world.gdshader lays the end grain of a tree's cut by it, the rings
+		# centred on the stump however wide it is and wherever it leans (other tops go by
+		# the world's grid).
 		var r: Rect2i = cap[5]
 		var middle := Vector2(r.get_center())
-		var span := float(maxi(1, maxi(r.size.x, r.size.y)))
 		var rows := [[ring[7], ring[2], ring[3], ring[6]]]
 		if c > 0:
 			rows.append([ring[7], ring[0], ring[1], ring[2]])
@@ -185,7 +186,7 @@ static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, 
 			var uvs := []
 			for p: Vector2 in q:
 				pts.append(_texel(base, p, cap[1]))
-				uvs.append(Vector2(0.5, 0.5) + (p - middle) / span)
+				uvs.append(Vector2(1.0, 1.0) + (p - middle) / 8.0)
 			_facing(buf, pts, cap[2], uvs, tint, packed)
 
 
