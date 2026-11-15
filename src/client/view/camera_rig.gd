@@ -505,6 +505,8 @@ func update(delta: float) -> void:
 	grade_mat.set_shader_parameter("view_origin", snapped * PixelView.PIXELS_PER_UNIT - Vector2(image_size) / 2.0)
 	container.position = (-Vector2.ONE * PixelView.MARGIN - frac) * view_scale
 	container.position = container.position.round()
+	# The drops and snow on the screen keep to the screen, not to the gliding picture.
+	grade_mat.set_shader_parameter("screen_shift", container.position / view_scale + Vector2.ONE * PixelView.MARGIN)
 	if game.settings.values.crt != 0 or sway > 0.0 or trip > 0.0:
 		Crt.frame(grade_mat, game.get_viewport().get_visible_rect().size, container.position, view_scale,
 			Engine.get_process_frames())
