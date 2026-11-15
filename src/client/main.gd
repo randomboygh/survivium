@@ -949,6 +949,7 @@ func _build_ui() -> void:
 	hud.game = self
 	layer.add_child(hud)
 	hud.set_touch(controls.touch)
+	SettingsScript.size_hud(hud, settings.values)
 	var over := CanvasLayer.new()
 	over.layer = layer.layer
 	over.process_mode = Node.PROCESS_MODE_ALWAYS

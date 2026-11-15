@@ -571,16 +571,25 @@ func apply() -> void:
 		view.on_screen_resized()
 	var hud = game.hud
 	if hud != null:
-		if hud.ui_size != values.ui_size or hud.control_size != values.control_size:
-			hud.ui_size = values.ui_size
-			hud.control_size = values.control_size
-			if view != null:
-				view.layout_ui(view.safe_rect)
+		if size_hud(hud, values) and view != null:
+			view.layout_ui(view.safe_rect)
 		hud.set_corner(values.minimap_size, values.level_buttons, values.camera_buttons)
 		hud.show_keys(values.show_help)
 		hud.show_social(values.solo_social)
 		hud.show_stats_button(values.stats_button)
 		hud.show_second_hand(values.second_hand)
+
+
+## Gives `hud` the interface and touch controls sizes of `settings`; whether they changed
+## (the HUD is then to be fitted again). Main calls it as soon as the HUD is made, before
+## the first fit: the main menu takes the HUD's scale, and apply() runs only once a world
+## starts, so the menu came up at «обычный» after every start and every exit from a world.
+static func size_hud(hud: Node, settings: Dictionary) -> bool:
+	if hud.ui_size == settings.ui_size and hud.control_size == settings.control_size:
+		return false
+	hud.ui_size = settings.ui_size
+	hud.control_size = settings.control_size
+	return true
 
 
 ## Puts every setting back as it comes, all but the world the setup screen makes.
