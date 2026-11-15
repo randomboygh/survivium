@@ -225,7 +225,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   open), and a column of what hinders the body — wet, out of breath, overloaded, `VitalsPanel.debuffs_of`;
   the panel is as wide as what it shows), `sleep_screen.gd`
   (darkening in sleep: a tap, a step or a jump wakes, `Protocol.SLEEP`; the moon «Go to sleep» — on the HUD's
-  clock), `body_feedback.gd`, `hotbar_snow.gd` (snow settling on the hotbar's top edge, `AirEffects.hotbar_snow`), `sound_marks.gd` (marks of sounds' directions), `vibration.gd`.
+  clock), `body_feedback.gd`, `hotbar_snow.gd` (snow settling on the hotbar's top edge, `AirEffects.hotbar_snow`), `sound_marks.gd` (marks of sounds' directions), `vibration.gd`, `haptics.gd` (what the phone buzzes for: `docs/systems/character.md`).
 - Maps: `minimap.gd` (the map is painted a chunk at a time into regions of 32 chunks, kept in the save; marks
   of what was placed, of sacks and of rafts and boats on water, except the one one sits in — `set_marks`, from
   `hud.gd`; teammates — `draw_mates` by `Team.mates`, see [territory.md](territory.md);
@@ -252,7 +252,9 @@ and a new shared part is added to the kit and to the «Interface gallery».
   step of loading; the freeze log: the game's parts, the engine — everything outside the measured parts, so
   every node with noticeable work in `_process` measures itself with `perf.note`: «rays», «sound», «fire
   shadows», «animals»; world generation by the server is the part «world», `Runner.took_us`, drawing, the
-  browser's page and garbage collection, compiled shaders, data in the GPU), `src/client/view/draw_census.gd`;
+  browser's page and garbage collection, compiled shaders, data in the GPU; a line also tells in brackets what
+  was around the player where that changed from the line below, `FreezeLog.scene`: daylight, weather, water,
+  roof, cut view, fires, animals drawn, screen effects), `src/client/view/draw_census.gd`;
   «Test data» (`SettingsMenu.report_text`, tabs World · Mods (the mods on, their versions and bundles, the files' hash) · Device · Loading · Settings · Log by `report_lines`; «Copy tab» takes the tab shown, «Copy all» the whole report): the build, world, place, time, weather, settings, device,
   «Loading» (`start_times.gd`: in the browser the page, the download of wasm and pck — from the network or
   cache, the start of the engine; then graphics up to the engine's line «OpenGL API», which the page catches —

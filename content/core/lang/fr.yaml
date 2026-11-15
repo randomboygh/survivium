@@ -991,6 +991,8 @@
 "[feel]": "Ressenti"
 "[screen_shake]": "Tremblement de l'écran"
 "[vibration]": "Vibration"
+"[vibration_important]": "l'essentiel"
+"[vibration_usual]": "normal"
 "[server_data]": "Données des serveurs"
 "[mod_files_from_servers_s]": "Fichiers de mods gardés des serveurs : %s Mo"
 "[clear_server_data]": "Effacer les données des serveurs"

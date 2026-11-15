@@ -225,6 +225,8 @@ func _pull(who) -> Dictionary:
 	var done := _work(PULL_SWING, "", r.from)
 	done.line = Vector3.INF
 	if r.caught != "":
+		# The client feels it come out (Vibration "catch").
+		done.caught = true
 		who.note("fished")
 		_learn_each(who, "fish")
 		# A skilled angler now and then lands two.

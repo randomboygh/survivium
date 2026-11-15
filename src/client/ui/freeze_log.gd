@@ -4,7 +4,8 @@ extends Node
 ## the sun gone, the weather turned...) on the statistics (PerfPanel.mark), which keeps
 ## them with every freeze, and tells the freezes kept as lines, the newest first, for
 ## the window of the playtest page («Отладка» → «Журнал фризов», SettingsMenu), each
-## band of length (BANDS) on a tab of its own, so the worst can be fixed first.
+## band of length (BANDS) on a tab of its own, so the worst can be fixed first. A line
+## also says what was around the player (scene), where that changed from the line before.
 
 
 ## The bands of freezes the window shows apart, by the tabs' keys (SettingsMenu.PAGES):
@@ -14,6 +15,9 @@ const Lang := preload("res://src/shared/content/lang.gd")
 const BANDS := {"all": [0.0, INF], "critical": [200.0, INF], "big": [100.0, 200.0], "small": [0.0, 100.0]}
 ## The parts of an ordinary frame, in the order of PerfPanel.usual after the frame itself.
 const PARTS := ["game", "engine", "drawing", "input", "browser", "frame end"]
+const Clock := preload("res://src/shared/game/clock.gd")
+## Milliseconds between two looks at what is around the player (scene).
+const SCENE_EVERY := 1000
 
 var game
 var _torch := false
@@ -23,6 +27,7 @@ var _ground := true
 var _swimming := false
 var _view := Vector2i.ZERO
 var _paused := false
+var _scene_at := 0
 
 
 func _init(g) -> void:
@@ -90,6 +95,66 @@ func update() -> void:
 	if paused != _paused:
 		_mark("pause")
 	_paused = paused
+	var now := Time.get_ticks_msec()
+	if now - _scene_at >= SCENE_EVERY:
+		_scene_at = now
+		game.hud.perf.scene = scene()
+
+
+## What is around the player, in short: the light of the day, the weather, the season
+## in winter, where the player is (in the water, under a roof or in a cave), the fires
+## whose light the drawn shadows know, the animals drawn, and what the screen shows over
+## the picture (drops, frost, snow, heat shimmer, cold and the beat of low health), as
+## "night, rain · water · fires 2, animals 5 · drops, cold". Internal text, in English.
+func scene() -> String:
+	var groups := []
+	var c = game.clock
+	var sky = game.sky
+	var daylight: float = sky.daylight
+	var first := ["day" if daylight > 0.7 else "night" if daylight < 0.2 else "dusk"]
+	if c.weather >= 0 and c.weather < Clock.WEATHERS.size():
+		first.append(Clock.WEATHERS[c.weather].id)
+	if c.season == Clock.WINTER:
+		first.append("winter")
+	groups.append(", ".join(first))
+	var place := []
+	if game.player.body.swimming:
+		place.append("water")
+	if game.chunks.indoor:
+		place.append("roof")
+	if game.chunks.cut_level >= 0:
+		place.append("cut")
+	if not place.is_empty():
+		groups.append(", ".join(place))
+	var near := []
+	var lights = game.fire_shadows.material_override.get_shader_parameter("light_count") \
+		if game.fire_shadows != null and game.fire_shadows.material_override != null else null
+	if lights is int and lights > 0:
+		near.append("fires %d" % lights)
+	var shown = game.creatures.get("_shown") if game.creatures != null else null
+	if shown is Array and not shown.is_empty():
+		near.append("animals %d" % shown.size())
+	if not near.is_empty():
+		groups.append(", ".join(near))
+	# Read by name and checked: these belong to the screen's effects, which change often.
+	var screen := []
+	var air = game.effects.air if game.effects != null else null
+	if air != null:
+		for e: Array in [["_drops", "drops"], ["_frost", "frost"], ["_flakes", "snow"]]:
+			var v = air.get(e[0])
+			if (v is float or v is int) and v > 0.01:
+				screen.append(e[1])
+		if air.get("_heat_shown") == true:
+			screen.append("heat")
+	var feel = game.hud.feedback if game.hud != null else null
+	if feel != null:
+		for e: Array in [["_chill", "cold"], ["_weak", "low health"]]:
+			var v = feel.get(e[0])
+			if (v is float or v is int) and v > 0.01:
+				screen.append(e[1])
+	if not screen.is_empty():
+		groups.append(", ".join(screen))
+	return " · ".join(groups)
 
 
 ## An ordinary frame and its parts, heading the log.
@@ -112,10 +177,13 @@ func lines(key: String) -> Array:
 	var band: Array = BANDS[key]
 	var out := []
 	var kept: Array = game.hud.perf.freeze_log
+	var shown := []
 	for i in range(kept.size() - 1, -1, -1):
 		var f: Array = kept[i]
-		if f[1] < band[0] or f[1] >= band[1]:
-			continue
+		if f[1] >= band[0] and f[1] < band[1]:
+			shown.append(f)
+	for n in shown.size():
+		var f: Array = shown[n]
 		var at := int(f[0])
 		var parts := []
 		for p: Array in f[2]:
@@ -126,6 +194,12 @@ func lines(key: String) -> Array:
 			line += " · " + ", ".join(f[3])
 		if f.size() > 4:
 			line += Lang.f(" · calls %d", [f[4]])
+		# Where the scene changed from the freeze before (the next line down), and on the
+		# oldest line.
+		var scene: String = f[5] if f.size() > 5 else ""
+		var before: String = shown[n + 1][5] if n + 1 < shown.size() and shown[n + 1].size() > 5 else ""
+		if scene != "" and (scene != before or n + 1 == shown.size()):
+			line += " · [%s]" % scene
 		out.append([f[1], line])
 	return out
 

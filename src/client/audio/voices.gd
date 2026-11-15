@@ -8,6 +8,7 @@ extends RefCounted
 ## each frame.
 
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
 
 ## Seconds between two calls of one animal, about (a flock shares one voice, see
 ## FLOCK_SHARE).
@@ -21,6 +22,8 @@ const ALARM_AGAIN := 4.0
 ## (world units).
 const DANGER := 20.0
 const FAR_REACH := 60.0
+## A beast warning one off nearer than this (world units) is felt (Vibration).
+const WARN_FELT := 10.0
 ## At most one voice starts in this many seconds.
 const GAP := 0.3
 ## The animals are listened to over this many frames, a share each frame.
@@ -77,6 +80,9 @@ func _listen(a, delta: float, daylight: float, ear: Vector3) -> void:
 	var reach: float = FAR_REACH if _danger(spec) else game.sound.HEAR_RANGE
 	if a.pos.distance_squared_to(ear) > reach * reach:
 		return
+	# A beast warning one off close by is felt (Vibration "warn").
+	if a.state == "warn" and was != "warn" and a.pos.distance_squared_to(ear) < WARN_FELT * WARN_FELT:
+		Vibration.play(game, "warn")
 	if a.state != was and a.state in ["flee", "hunt", "warn", "charge"] and spec.alarm != "" and _time >= float(_quiet.get(a, 0.0)):
 		_quiet[a] = _time + ALARM_AGAIN
 		_say(spec.alarm, a.pos, spec)

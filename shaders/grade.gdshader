@@ -126,8 +126,10 @@ float heat_shift(vec2 p) {
 		if (up < -0.1 || up > 1.0 || side > 1.0) {
 			continue;
 		}
-		float k = heat_power[i] * (1.0 - up * up) * (1.0 - side * side) * 2.2;
-		float w = sin(p.y * 1.1 + TIME * 8.0 + h.x) * 0.7 + sin(p.y * 0.37 + TIME * 4.3) * 0.5;
+		// Long, slow waves up the column: several rows go aside together and drift up,
+		// rather than every other row shivering.
+		float k = heat_power[i] * (1.0 - up * up) * (1.0 - side * side) * 1.5;
+		float w = sin(p.y * 0.3 + TIME * 3.5 + h.x) * 0.7 + sin(p.y * 0.11 + TIME * 1.9) * 0.5;
 		s += floor(w * k + 0.5);
 	}
 	if (heat_haze > 0.0) {

@@ -17,6 +17,7 @@ const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Kit := preload("res://src/client/ui/kit/kit.gd")
 const FadingList := preload("res://src/client/ui/kit/fading_list.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
 
 ## Lines kept, lines shown while closed and while open, seconds a line shows.
 const KEPT := 30
@@ -26,6 +27,8 @@ const FADE := 12.0
 const WIDTH := 220
 ## Letters a line may have (Requests.CHAT_MAX on the server cuts it there too).
 const MAX := 160
+## Seconds after a line of another player is felt (Vibration "call") till the next is.
+const FELT_AGAIN := 10.0
 
 var game
 ## The lines heard: {"text", "color", "at" (seconds), "n" (its number)}, the newest last.
@@ -40,6 +43,8 @@ var _field: LineEdit
 ## Whom a line goes to: those near, or the team (shown only to one in a team).
 var _to_team := false
 var _whom: Button
+## When a line of another player was last felt.
+var _felt := -1000.0
 ## Lines heard in all: the next line's number.
 var _heard := 0
 ## When a line was last sent (seconds): the lines heard before it fade from then on.
@@ -168,6 +173,9 @@ func hear(id: int, who: String, text: String, team := false) -> void:
 	if team:
 		line = tr("[team_n2]") + line
 	var color := UiStyle.MUTED if id == 0 else (UiStyle.TEAM if team else (UiStyle.ACCENT if own else UiStyle.INK))
+	if id != 0 and not own and _now() - _felt > FELT_AGAIN:
+		_felt = _now()
+		Vibration.play(game, "call")
 	lines.append({"text": line, "color": color, "at": _now(), "n": _heard})
 	_heard += 1
 	while lines.size() > KEPT:

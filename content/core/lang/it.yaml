@@ -991,6 +991,8 @@
 "[feel]": "Sensazioni"
 "[screen_shake]": "Scossa dello schermo"
 "[vibration]": "Vibrazione"
+"[vibration_important]": "solo l'importante"
+"[vibration_usual]": "normale"
 "[server_data]": "Dati dei server"
 "[mod_files_from_servers_s]": "File di mod tenuti dai server: %s MB"
 "[clear_server_data]": "Cancella i dati dei server"

@@ -724,6 +724,13 @@ func _test_fall() -> void:
 	_check(ch.vitals.health == Vitals.MAX, "nor by a blow or fire")
 	ch.vitals.harm = true
 	ch.vitals.health = Vitals.MAX
+	ch.vitals.burn(0.0)
+	var weak := Vitals.MAX - ch.vitals.health
+	ch.vitals.health = Vitals.MAX
+	ch.vitals.burn(1.0)
+	var full := Vitals.MAX - ch.vitals.health
+	_check(weak > 0.0 and full > weak * 4.0, "a fire full of fuel burns harder than a dying one (%.1f, %.1f)" % [weak, full])
+	ch.vitals.health = Vitals.MAX
 	ch.forget_fall()
 	ch.at = Vector3(2.5, 9.0, 2.5) * WorldData.CELL
 	ch.update(0.05)

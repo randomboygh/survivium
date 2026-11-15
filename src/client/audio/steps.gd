@@ -7,6 +7,7 @@ extends RefCounted
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Body := preload("res://src/shared/game/body.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
 
 const CELL := WorldData.CELL
 ## World units walked from one step to the next (two a walk cycle of the figure).
@@ -55,8 +56,11 @@ func update(delta: float) -> void:
 		var hard := clampf((_fall - LAND_SPEED) / (Body.MAX_FALL - LAND_SPEED), 0.0, 1.0)
 		var id := "splash" if in_water else "land_snow" if _underfoot(p, false) == "step_snow" else "land"
 		sound.play(id, p, 0.5 + 0.5 * hard)
+		# Felt too: a splash, or a landing the harder the higher (a hurt buzzes itself).
+		Vibration.play(game, "splash" if in_water else "land", 0.0, 1.0 if in_water else 0.5 + hard)
 	elif in_water and not _was_in_water and _fall > LAND_SPEED:
 		sound.play("splash", p)
+		Vibration.play(game, "splash")
 	_fall = -body.velocity_y if not body.on_ground else 0.0
 	_was_on_ground = body.on_ground
 	_was_in_water = in_water

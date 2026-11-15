@@ -40,8 +40,10 @@ const HUNGRY_CAP := 60.0
 ## Stamina per second while swimming; with none left a swimmer loses health this fast.
 const SWIM_COST := 5.0
 const DROWN := 8.0
-## Health a touch of a burning campfire takes.
-const BURN := 2.0
+## Health a touch of a burning campfire takes: BURN_LOW from one about to go out, up to
+## BURN_HIGH from one full of fuel (Placed.fuel_share).
+const BURN_LOW := 0.5
+const BURN_HIGH := 4.0
 ## A fall from more than FALL_SAFE levels hurts FALL_PER_LEVEL health for each level past
 ## them (Character._fall); water shallower than a level under the landing halves it.
 ## With 100 health a fall of 6 levels is safe and one of 19 kills.
@@ -208,8 +210,8 @@ func warm(days: float, feel: float, rain := 0.0, snow := 0.0, swimming := false,
 
 
 ## The body touched a burning fire.
-func burn() -> void:
-	_hurt(BURN, "fire")
+func burn(share := 1.0) -> void:
+	_hurt(lerpf(BURN_LOW, BURN_HIGH, clampf(share, 0.0, 1.0)), "fire")
 
 
 ## The body takes a wound of `amount` health (a blow of another player), `why` for the
