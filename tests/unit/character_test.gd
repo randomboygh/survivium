@@ -335,15 +335,32 @@ func _test_warmth() -> void:
 	var winter := Clock.new()
 	winter.season = Clock.WINTER
 	_check(Warmth.air(null, winter, Vector3.ZERO) < Warmth.air(null, summer, Vector3.ZERO), "winter is colder")
+	var day := Clock.new()
+	day.clouds = 0.0
+	var hours := {}
+	for h: float in [4.0, 7.0, 12.0, 15.0, 20.0]:
+		day.time_of_day = h / 24.0
+		hours[h] = Warmth.air(null, day, Vector3.ZERO)
+	var morning: float = hours[7.0]
+	var midday: float = hours[12.0]
+	var afternoon: float = hours[15.0]
+	var evening: float = hours[20.0]
+	_check(morning < midday and midday < afternoon and evening < afternoon and hours[4.0] < evening,
+		"the air warms through the morning, is warmest in the afternoon, cools at night: %s %s %s %s" % [morning, midday, afternoon, evening])
+	day.clouds = 1.0
+	day.time_of_day = 15.0 / 24.0
+	var cloudy_afternoon := Warmth.air(null, day, Vector3.ZERO)
+	day.time_of_day = 7.0 / 24.0
+	_check(afternoon - morning > cloudy_afternoon - Warmth.air(null, day, Vector3.ZERO), "clouds even the day out")
 	winter.air_pin = 32.0
 	winter.time_of_day = 0.5
 	var noon := Warmth.air(null, winter, Vector3.ZERO)
 	winter.time_of_day = 0.0
 	var night := Warmth.air(null, winter, Vector3.ZERO)
 	winter.set_weather(Clock.RAIN)
-	_check(is_equal_approx(noon, 32.0) and night < noon and Warmth.air(null, winter, Vector3.ZERO) < night
+	_check(noon <= 32.0 and noon > 32.0 - Warmth.DAY_SWING and night < noon and Warmth.air(null, winter, Vector3.ZERO) < night
 		and Warmth.air(null, winter, Vector3.ZERO, true) == night,
-		"the air the playtest page pins is a clear day's, cooler at night and in rain: %s %s" % [noon, night])
+		"the air the playtest page pins is a clear day's warmest, cooler at night and in rain: %s %s" % [noon, night])
 
 
 ## Good food (roasted meat) heals a little and quenches thirst besides filling; the

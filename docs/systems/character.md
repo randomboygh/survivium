@@ -104,7 +104,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   test switch «Cold and heat». Warmth and the spoiling of food are worked out every `Character.WARM_EVERY`
   (0.5 s) with the days gone since.
 - `src/shared/game/warmth.gd` — how many degrees where the body stands: `air` (the middle of the biome's
-  `warmth` window between `COLDEST` and `WARMEST`, the season `SEASON`, night `NIGHT`, rain/snow/wind without a
+  `warmth` window between `COLDEST` and `WARMEST`, the season `SEASON`, the hour `daily` (warmest at `WARMEST_AT` of the sun's time, about 15:00, coldest at sunrise,
+  `DAY_SWING` degrees apart, less under clouds), rain/snow/wind without a
   roof; «Testing» → «World» → «Temperature» pins `Clock.air_pin` in place of the biome and season, the same
   everywhere, still cooled by night and weather, on the server's
   clock: `Settings.AIR_TEMPS`, cheat `air_temp`), `fire_heat` (a burning campfire within `FIRE_REACH`, weaker as the fuel runs out), `clothes` (the sum
