@@ -717,6 +717,12 @@ func _test_fall() -> void:
 	ch.vitals.falls = false
 	_check(drop.call(Vector3(2.5, 9.0, 2.5), Vector3(4.5, 1.0, 4.5)) == 0.0, "with the test switch off a fall hurts not")
 	ch.vitals.falls = true
+	ch.vitals.harm = false
+	_check(drop.call(Vector3(2.5, 9.0, 2.5), Vector3(4.5, 1.0, 4.5)) == 0.0, "an invulnerable body is not hurt by a fall")
+	ch.vitals.wound(30.0, "player:x")
+	ch.vitals.burn()
+	_check(ch.vitals.health == Vitals.MAX, "nor by a blow or fire")
+	ch.vitals.harm = true
 	ch.vitals.health = Vitals.MAX
 	ch.forget_fall()
 	ch.at = Vector3(2.5, 9.0, 2.5) * WorldData.CELL

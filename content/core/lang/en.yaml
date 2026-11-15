@@ -939,6 +939,8 @@
 "[instant]": "instant"
 "[free_items]": "Free items"
 "[survival]": "Survival"
+"[all_survival]": "All survival"
+"[invulnerability]": "Invulnerability"
 "[hunger]": "Hunger"
 "[thirst]": "Thirst"
 "[fatigue]": "Fatigue"
