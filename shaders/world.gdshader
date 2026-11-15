@@ -591,10 +591,13 @@ void fragment() {
 	if (tile == NONE) {
 		// A snowdrift's relief is a soft shade baked into its vertex alpha, halved.
 		// In clear sun its shaded side goes turquoise blue like the snow's other shades.
-		// In clear sun its foot is shaded a little, so white on white the mound still
-		// shows its round edge (DRIFT_FOOT).
-		float foot_r = length(UV - 4.0) * 2.0 / max(drift_size(), 0.01);
-		float foot = bayer4(floor(world_pos.xz * TEXELS)) < (foot_r - 0.62) * 4.0 ? mix(1.0, DRIFT_FOOT, snow_sun) : 1.0;
+		// In clear sun its foot is shaded a little on its east and west sides, so white on
+		// white the mound still shows its round edge (DRIFT_FOOT); toward the viewer and
+		// behind it the mound runs smoothly into the snow.
+		vec2 from_mid = UV - 4.0;
+		float foot_r = length(from_mid) * 2.0 / max(drift_size(), 0.01);
+		float side = smoothstep(0.55, 0.9, abs(from_mid.x) / max(length(from_mid), 0.001));
+		float foot = bayer4(floor(world_pos.xz * TEXELS)) < (foot_r - 0.62) * 4.0 * side ? mix(1.0, DRIFT_FOOT, snow_sun) : 1.0;
 		col *= snow_shade(COLOR.a * 2.0 * foot, snow_sun);
 	}
 	float wet = roof ? 0.0 : wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
