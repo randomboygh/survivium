@@ -90,8 +90,11 @@ var _work := {}
 ## switched), which lands in REST: told beside a freeze, which it may have caused.
 var _marks := {}
 ## The freezes kept for the log in «Отладка» (see freeze_log.gd), the newest last:
-## [seconds since the start, ms, parts, marks with what they say].
+## [seconds since the start, ms, parts, marks with what they say, draw calls, scene].
 var freeze_log := []
+## What is around the player now, as FreezeLog.scene tells it (once a second): kept with
+## each freeze, so its log says where it came without asking the player.
+var scene := ""
 ## Video memory and objects drawn in the frame before, to mark a jump (see _engine_marks).
 var _video := 0.0
 var _objects := 0.0
@@ -377,7 +380,7 @@ func _record_freeze(ms: float) -> void:
 	for m: String in marks:
 		told.append(m + (" " + _marks[m] if _marks[m] != "" else ""))
 	freeze_log.append([Time.get_ticks_msec() / 1000.0, ms, parts.slice(0, FREEZE_PARTS), told,
-		roundi(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))])
+		roundi(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)), scene])
 	if freeze_log.size() > LOG_SIZE:
 		freeze_log.pop_front()
 	if not _long_frames.is_empty():
