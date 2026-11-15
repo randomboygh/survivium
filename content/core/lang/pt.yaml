@@ -900,6 +900,7 @@
 "[above_stretch]": "Acima: estiramento"
 "[density_of_the_first]": "Densidade das primeiras"
 "[shadow_map]": "Mapa de sombras"
+"[save]": "Salvar"
 "[copy_tab]": "Copiar aba"
 "[copy_all]": "Copiar tudo"
 "[copy]": "Copiar"
@@ -918,6 +919,7 @@
 "[by_itself]": "sozinho"
 "[moon]": "Lua"
 "[by_phase]": "pela fase"
+"[temperature]": "Temperatura"
 "[time_of_day]": "Hora do dia"
 "[hour]": "Hora"
 "[stopped]": "parado"
@@ -1087,7 +1089,6 @@
 "[line_n3]": "Linha %d"
 "[nothing_is_written_here]": "Nada está escrito aqui"
 "[whoever_builds_on_this_land]": "Pode escrever quem constrói nesta terra"
-"[save]": "Salvar"
 "[turn]": "Girar"
 
 # src/client/ui/sleep_screen.gd
@@ -1334,6 +1335,7 @@
 "[trees_are_chopped_with_an]": "Árvores se cortam com machado"
 "[water_holds_this_ground]": "A água se apoia aqui: não se cava debaixo d'água nem na margem"
 "[broke]": "Quebrou: %s"
+"[spores_in_the_eyes]": "Esporos de bufa-de-lobo nos olhos: tudo flutua"
 
 # src/shared/game/actions_farm.gd
 "[cant_be_cut_with_a]": "%s não se corta com foice: colha à mão ou com foicinha"
@@ -1583,4 +1585,3 @@
 "[descent]": "Descida"
 "[descent_at_45]": "Descida a 45°"
 "[beach]": "Praia"
-"[spores_in_the_eyes]": "Esporos de bufa-de-lobo nos olhos: tudo flutua"

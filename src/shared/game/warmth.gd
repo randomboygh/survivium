@@ -44,8 +44,11 @@ const WATER_MOST := 22.0
 
 ## The air at world point `p` (world units), by its column's biome in `world`, the
 ## season, the time of day and the weather of `clock`, under the open sky; `roofed`
-## keeps the weather off.
+## keeps the weather off. The air the playtest page pins (Clock.air_pin) is the same
+## everywhere.
 static func air(world, clock, p: Vector3, roofed := false) -> float:
+	if clock != null and clock.air_pinned():
+		return clock.air_pin
 	var t := 0.5
 	if world != null:
 		var b: int = world.biome_at(floori(p.x / WorldData.CELL), floori(p.z / WorldData.CELL))

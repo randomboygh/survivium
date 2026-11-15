@@ -900,6 +900,7 @@
 "[above_stretch]": "Oben: Dehnung"
 "[density_of_the_first]": "Dichte der ersten"
 "[shadow_map]": "Schattenkarte"
+"[save]": "Speichern"
 "[copy_tab]": "Tab kopieren"
 "[copy_all]": "Alles kopieren"
 "[copy]": "Kopieren"
@@ -918,6 +919,7 @@
 "[by_itself]": "von selbst"
 "[moon]": "Mond"
 "[by_phase]": "nach Phase"
+"[temperature]": "Temperatur"
 "[time_of_day]": "Tageszeit"
 "[hour]": "Stunde"
 "[stopped]": "steht"
@@ -1087,7 +1089,6 @@
 "[line_n3]": "Zeile %d"
 "[nothing_is_written_here]": "Hier steht nichts"
 "[whoever_builds_on_this_land]": "Schreiben darf, wer auf diesem Land baut"
-"[save]": "Speichern"
 "[turn]": "Drehen"
 
 # src/client/ui/sleep_screen.gd
@@ -1334,6 +1335,7 @@
 "[trees_are_chopped_with_an]": "Bäume fällt man mit der Axt"
 "[water_holds_this_ground]": "Hier hält das Wasser: unter Wasser und am Ufer wird nicht gegraben"
 "[broke]": "Kaputt: %s"
+"[spores_in_the_eyes]": "Bovistsporen in den Augen: alles verschwimmt"
 
 # src/shared/game/actions_farm.gd
 "[cant_be_cut_with_a]": "%s lässt sich nicht mit der Sense schneiden: sammle es von Hand oder mit der Sichel"
@@ -1583,4 +1585,3 @@
 "[descent]": "Abstieg"
 "[descent_at_45]": "Abstieg im 45°-Winkel"
 "[beach]": "Strand"
-"[spores_in_the_eyes]": "Bovistsporen in den Augen: alles verschwimmt"

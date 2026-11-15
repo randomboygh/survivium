@@ -335,6 +335,9 @@ func _test_warmth() -> void:
 	var winter := Clock.new()
 	winter.season = Clock.WINTER
 	_check(Warmth.air(null, winter, Vector3.ZERO) < Warmth.air(null, summer, Vector3.ZERO), "winter is colder")
+	winter.air_pin = 32.0
+	_check(Warmth.air(null, winter, Vector3.ZERO) == 32.0 and Warmth.air(null, winter, Vector3.ZERO, true) == 32.0,
+		"the air the playtest page pins is the same everywhere")
 
 
 ## Good food (roasted meat) heals a little and quenches thirst besides filling; the

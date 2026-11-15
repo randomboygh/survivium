@@ -900,6 +900,7 @@
 "[above_stretch]": "Üstte: esneme"
 "[density_of_the_first]": "İlklerin yoğunluğu"
 "[shadow_map]": "Gölge haritası"
+"[save]": "Kaydet"
 "[copy_tab]": "Sekmeyi kopyala"
 "[copy_all]": "Tümünü kopyala"
 "[copy]": "Kopyala"
@@ -918,6 +919,7 @@
 "[by_itself]": "kendiliğinden"
 "[moon]": "Ay"
 "[by_phase]": "evreye göre"
+"[temperature]": "Sıcaklık"
 "[time_of_day]": "Günün saati"
 "[hour]": "Saat"
 "[stopped]": "durdu"
@@ -1087,7 +1089,6 @@
 "[line_n3]": "Satır %d"
 "[nothing_is_written_here]": "Burada hiçbir şey yazmıyor"
 "[whoever_builds_on_this_land]": "Bu toprakta inşa edebilen yazabilir"
-"[save]": "Kaydet"
 "[turn]": "Döndür"
 
 # src/client/ui/sleep_screen.gd
@@ -1334,6 +1335,7 @@
 "[trees_are_chopped_with_an]": "Ağaçlar baltayla kesilir"
 "[water_holds_this_ground]": "Burada su duruyor: su altında ve kıyıda kazılmaz"
 "[broke]": "Kırıldı: %s"
+"[spores_in_the_eyes]": "Gözüne puf mantarı sporları kaçtı: her şey yüzüyor"
 
 # src/shared/game/actions_farm.gd
 "[cant_be_cut_with_a]": "%s tırpanla kesilmez: elle ya da orakla topla"
@@ -1583,4 +1585,3 @@
 "[descent]": "İniş"
 "[descent_at_45]": "45° iniş"
 "[beach]": "Plaj"
-"[spores_in_the_eyes]": "Gözüne puf mantarı sporları kaçtı: her şey yüzüyor"

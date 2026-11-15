@@ -900,6 +900,7 @@
 "[above_stretch]": "Au-dessus : étirement"
 "[density_of_the_first]": "Densité des premières"
 "[shadow_map]": "Carte des ombres"
+"[save]": "Enregistrer"
 "[copy_tab]": "Copier l’onglet"
 "[copy_all]": "Tout copier"
 "[copy]": "Copier"
@@ -918,6 +919,7 @@
 "[by_itself]": "d'elle-même"
 "[moon]": "Lune"
 "[by_phase]": "selon la phase"
+"[temperature]": "Température"
 "[time_of_day]": "Heure du jour"
 "[hour]": "Heure"
 "[stopped]": "arrêté"
@@ -1087,7 +1089,6 @@
 "[line_n3]": "Ligne %d"
 "[nothing_is_written_here]": "Rien n'est écrit ici"
 "[whoever_builds_on_this_land]": "Peut écrire celui qui construit sur cette terre"
-"[save]": "Enregistrer"
 "[turn]": "Tourner"
 
 # src/client/ui/sleep_screen.gd
@@ -1334,6 +1335,7 @@
 "[trees_are_chopped_with_an]": "Les arbres s'abattent à la hache"
 "[water_holds_this_ground]": "L'eau s'appuie ici : pas de creusage sous l'eau ni sur la rive"
 "[broke]": "Cassé : %s"
+"[spores_in_the_eyes]": "Des spores de vesse-de-loup dans les yeux : tout se brouille"
 
 # src/shared/game/actions_farm.gd
 "[cant_be_cut_with_a]": "%s ne se coupe pas à la faux : cueillez-le à la main ou à la faucille"
@@ -1583,4 +1585,3 @@
 "[descent]": "Descente"
 "[descent_at_45]": "Descente à 45°"
 "[beach]": "Plage"
-"[spores_in_the_eyes]": "Des spores de vesse-de-loup dans les yeux : tout se brouille"

@@ -900,6 +900,7 @@
 "[above_stretch]": "Sopra: allungamento"
 "[density_of_the_first]": "Densità dei primi"
 "[shadow_map]": "Mappa delle ombre"
+"[save]": "Salva"
 "[copy_tab]": "Copia scheda"
 "[copy_all]": "Copia tutto"
 "[copy]": "Copia"
@@ -918,6 +919,7 @@
 "[by_itself]": "da sé"
 "[moon]": "Luna"
 "[by_phase]": "secondo la fase"
+"[temperature]": "Temperatura"
 "[time_of_day]": "Ora del giorno"
 "[hour]": "Ora"
 "[stopped]": "fermo"
@@ -1087,7 +1089,6 @@
 "[line_n3]": "Riga %d"
 "[nothing_is_written_here]": "Qui non c'è scritto niente"
 "[whoever_builds_on_this_land]": "Può scrivere chi costruisce su questa terra"
-"[save]": "Salva"
 "[turn]": "Ruota"
 
 # src/client/ui/sleep_screen.gd
@@ -1334,6 +1335,7 @@
 "[trees_are_chopped_with_an]": "Gli alberi si abbattono con l'ascia"
 "[water_holds_this_ground]": "Qui si appoggia l'acqua: non si scava sott'acqua né sulla riva"
 "[broke]": "Rotto: %s"
+"[spores_in_the_eyes]": "Spore di vescia negli occhi: tutto ondeggia"
 
 # src/shared/game/actions_farm.gd
 "[cant_be_cut_with_a]": "%s non si taglia con la falce: raccoglilo a mano o col falcetto"
@@ -1583,4 +1585,3 @@
 "[descent]": "Discesa"
 "[descent_at_45]": "Discesa a 45°"
 "[beach]": "Spiaggia"
-"[spores_in_the_eyes]": "Spore di vescia negli occhi: tutto ondeggia"

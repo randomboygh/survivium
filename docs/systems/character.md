@@ -105,7 +105,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   (0.5 s) with the days gone since.
 - `src/shared/game/warmth.gd` — how many degrees where the body stands: `air` (the middle of the biome's
   `warmth` window between `COLDEST` and `WARMEST`, the season `SEASON`, night `NIGHT`, rain/snow/wind without a
-  roof), `fire_heat` (a burning campfire within `FIRE_REACH`, weaker as the fuel runs out), `clothes` (the sum
+  roof; the same everywhere when «Testing» → «World» → «Temperature» pins `Clock.air_pin`, on the server's
+  clock: `Settings.AIR_TEMPS`, cheat `air_temp`), `fire_heat` (a burning campfire within `FIRE_REACH`, weaker as the fuel runs out), `clothes` (the sum
   of the `warmth` of what is worn), `feel` (fire, clothes — wet by half, a wet body −`WET_CHILL`, a roof
   +`ROOF`, in water colder than air). Counted by the character's step (`_warm`); the strip with a thermometer
   and a drop in `vitals_panel.gd`.

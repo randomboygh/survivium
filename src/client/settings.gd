@@ -22,6 +22,7 @@ const Minimap := preload("res://src/client/ui/minimap.gd")
 const Music := preload("res://src/client/audio/music.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
+const Clock := preload("res://src/shared/game/clock.gd")
 const Playtest := preload("res://src/client/net/playtest.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 
@@ -33,7 +34,7 @@ const PATH := "user://settings.cfg"
 const TEST_SAVED := ["player_speed", "skill_rate", "air_jumps", "revive_at_death", "free_build", "tool_wear",
 	"no_overload", "instant_craft", "free_items", "no_hunger", "no_thirst", "no_fatigue", "no_cold",
 	"no_fall_damage", "invulnerable", "animal_attacks", "time_boost", "shadow_map", "debug_tips", "keys_log",
-	"free_view"]
+	"free_view", "air_temp"]
 ## The switches of the survival section, each with its value that means «survival on»
 ## (set_survival turns them all at once).
 const SURVIVAL := {"no_hunger": false, "no_thirst": false, "no_fatigue": false, "no_cold": false,
@@ -222,6 +223,10 @@ const QUALITIES := [
 const TIME_BOOSTS := [0.0, 1.0, 10.0, 100.0]
 ## What the T key switches to: a whole day in about 24 seconds.
 const FAST_FORWARD := 100.0
+## Playtest air, degrees (Clock.air_pin): the first, by itself, is the world's own; then
+## frost and freezing, breath steam (AirEffects.BREATH_MILD), mild, warm, and the heat
+## the haze over sand and the sea begins at (AirEffects.HAZE_FROM) and beyond.
+const AIR_TEMPS := [Clock.FREE_AIR, -30.0, -15.0, 0.0, 5.0, 15.0, 25.0, 30.0, 35.0, 45.0]
 ## Playtest multipliers of the player's walking speed, for looking around the map.
 const PLAYER_SPEEDS := [1.0, 2.0, 4.0, 8.0]
 ## Playtest multipliers of how fast the skills grow.
@@ -238,6 +243,8 @@ var values := {}
 static var testing_unlocked := false
 ## Playtest switch: how many times faster the clock runs (0 stops it). Not saved.
 var time_boost := 1.0
+## Playtest switch: the air everywhere, an index into AIR_TEMPS (0: the world's own).
+var air_temp := 0
 ## Playtest switch: the player's speed multiplier. Not saved.
 var player_speed := 1.0
 ## Playtest switch: how many times faster the skills grow (SkillSet.rate). Not saved.
@@ -419,6 +426,8 @@ func _use_test(d: Dictionary) -> void:
 				v = v if TIME_BOOSTS.has(v) else 1.0
 			"shadow_map":
 				v = clampi(v, 0, SHADOW_MAPS.size() - 1)
+			"air_temp":
+				v = clampi(v, 0, AIR_TEMPS.size() - 1)
 		set(k, v)
 
 
@@ -618,6 +627,8 @@ func apply() -> void:
 		game.session.clock.time_speed = time_speed() * time_boost
 		game.session.clock.real_time = values.real_time
 		game.session.clock.real_season = values.real_season
+		if game.link.join_url == "":
+			game.session.clock.air_pin = AIR_TEMPS[air_temp]
 	if game.host != null and game.host.real_weather != null:
 		game.host.real_weather.enabled = values.real_weather
 	var sky = game.sky
@@ -863,6 +874,13 @@ func set_time_boost(k: float) -> void:
 	apply()
 
 
+## Pins the air everywhere to AIR_TEMPS[`i`] (0: the world's own), on the server's
+## clock when joined to one with cheats on.
+func set_air_temp(i: int) -> void:
+	air_temp = clampi(i, 0, AIR_TEMPS.size() - 1)
+	apply()
+
+
 func set_skill_rate(k: float) -> void:
 	skill_rate = k
 	apply()
@@ -933,7 +951,8 @@ func send_cheats(once := {}) -> bool:
 		"hunger": not no_hunger, "thirst": not no_thirst, "fatigue": not no_fatigue, "cold": not no_cold,
 		"falls": not no_fall_damage, "harm": not invulnerable,
 		"free_build": free_build, "tool_wear": tool_wear, "instant_craft": instant_craft,
-		"free_items": free_items, "animal_attacks": animal_attacks, "boost": time_boost}
+		"free_items": free_items, "animal_attacks": animal_attacks, "boost": time_boost,
+		"air_temp": AIR_TEMPS[air_temp]}
 	d.merge(once, true)
 	game.net.request(Protocol.CHEATS, [d]).then(func(taken: Variant) -> void:
 		if taken != true and cheats:

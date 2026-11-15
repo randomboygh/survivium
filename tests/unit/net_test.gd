@@ -12,6 +12,7 @@ const Connection := preload("res://src/client/net/connection.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
 const RemotePlaced := preload("res://src/client/net/remote_placed.gd")
 const RemoteClock := preload("res://src/client/net/remote_clock.gd")
+const Warmth := preload("res://src/shared/game/warmth.gd")
 const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 const RemoteWorkshop := preload("res://src/client/net/remote_workshop.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
@@ -287,6 +288,10 @@ func _test_requests() -> void:
 	s.clock.moon_pin = 0.25
 	_check(pinned.from_snapshot(s.clock.snapshot()) and pinned.moon_pin == 0.25, "the moon the playtest page pins comes with the clock")
 	s.clock.moon_pin = -1.0
+	s.clock.air_pin = 35.0
+	_check(pinned.from_snapshot(s.clock.snapshot()) and pinned.air_pin == 35.0 and Warmth.air(null, pinned, Vector3.ZERO) == 35.0,
+		"the air the playtest page pins comes with the clock")
+	s.clock.air_pin = RemoteClock.FREE_AIR
 	var told: Array[int] = []
 	var fresh := RemoteClock.new()
 	fresh.season_changed.connect(func(season: int) -> void: told.append(season))

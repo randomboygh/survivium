@@ -422,6 +422,9 @@ func _section_rows(key: String) -> Array:
 								return i + 1
 						return 0,
 					func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1]), "", may],
+				["[temperature]", ["[by_itself]"] + Settings.AIR_TEMPS.slice(1).map(func(t: float) -> String: return "%d°" % int(t)),
+					func() -> int: return s.air_temp,
+					func(i: int) -> void: s.set_air_temp(i), "", may],
 				["[time_of_day]", HOURS,
 					func() -> int:
 						var h: float = clock.time_of_day * 24.0
@@ -1260,6 +1263,7 @@ func report_lines() -> Array:
 			clock.WEATHERS[clock.weather].id, "" if clock.weather_auto else " (picked)", clock.clouds, clock.rain,
 			clock.snowing, clock.fog, clock.storm_wind, roundi(rad_to_deg(clock.wind_angle)), clock.snow, clock.puddles])],
 		["place", Lang.f("Light: day %.2f, moon %.2f%s", [sky.daylight, sky.moon, " (picked)" if clock.moon_pin >= 0.0 or sky.moon_override >= 0.0 else ""])],
+		["place", Lang.f("Air: %.1f°%s", [game.hud.air(), " (picked)" if clock.air_pinned() else ""])],
 		["values", Lang.f("Settings: %s", [JSON.stringify(s.values)]), values],
 		["mods", "Mods: %s" % "; ".join(mods), ["Mods on:"] + mods + ["Files hash: %s" % Content.playing()]],
 		["device", Lang.f("Device: %s, screen %dx%d, window %dx%d, %s", [OS.get_name(), DisplayServer.screen_get_size().x,

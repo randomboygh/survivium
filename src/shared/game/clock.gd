@@ -122,6 +122,9 @@ var real_time := false
 ## The season follows the calendar of the device (a setting): spring from March, summer
 ## from June, autumn from September, winter from December.
 var real_season := false
+## air_pin when the air is not pinned: colder than any air can be.
+const FREE_AIR := -1000.0
+
 var season := 1
 var season_clock := 0.0
 ## How many days out of winter have begun since the world began: nature grows a little on
@@ -134,6 +137,10 @@ var weather_auto := true
 ## The moonlight the playtest page pins (0 new moon .. 1 full moon), -1 for the phase of
 ## the moon; on the server's clock, so every player sees the same (Sky).
 var moon_pin := -1.0
+## The air the playtest page pins, degrees (Warmth.air gives it everywhere, whatever the
+## biome, season, hour and weather), or FREE_AIR: the air is the world's own. On the
+## server's clock, so every player feels and sees the same.
+var air_pin := FREE_AIR
 ## The wind's strength of the real weather (see set_real_weather), or -1: the
 ## weather's own.
 var real_wind := -1.0
@@ -496,7 +503,7 @@ const SNAPSHOT: Array[StringName] = [&"day", &"time_of_day", &"time_speed", &"re
 	&"season", &"season_clock", &"weather", &"weather_auto", &"real_wind", &"weather_left", &"rain",
 	&"snowing", &"hail", &"sand", &"fog", &"fog_depth", &"haze", &"storm_wind", &"wind_angle", &"wind_to",
 	&"leaf_fall", &"clouds", &"snow", &"wet", &"puddles", &"morning_fog_pin", &"biome", &"moon_pin", &"soak",
-	&"shrooms"]
+	&"shrooms", &"air_pin"]
 
 
 ## All the clock shows (the time, the season, the weather and what it leaves on the
@@ -524,6 +531,11 @@ func from_snapshot(a: Array) -> bool:
 	if season != was:
 		season_changed.emit(season)
 	return true
+
+
+## Whether the playtest page pins the air (air_pin).
+func air_pinned() -> bool:
+	return air_pin > FREE_AIR
 
 
 ## The fog lying on the ground now: x how thick (0..1), y how deep it is above the

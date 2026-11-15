@@ -6,8 +6,8 @@ extends RefCounted
 ## air, the rate of skills, overload, hunger, thirst, fatigue, cold, fall damage, harm
 ## (invulnerability). The world's, for
 ## everyone on it: free building, tool wear, instant crafting, free items, animal
-## attacks, and on the clock the season, the weather, the moon, the hour and the pace
-## of time; once, a teleport of the body to a point («at»: a marker or a respawn point
+## attacks, and on the clock the season, the weather, the moon, the air's warmth, the hour and the
+## pace of time; once, a teleport of the body to a point («at»: a marker or a respawn point
 ## of the page, the place one died at). Every value is checked for its type and
 ## clamped; a key not known is left.
 
@@ -15,6 +15,8 @@ extends RefCounted
 const MOST_SPEED := 8.0
 const MOST_SKILL := 200.0
 const MOST_BOOST := 100.0
+## The air the page may pin, degrees each way («air_temp»; colder than this frees it).
+const MOST_AIR := 60.0
 ## The farthest from the world's middle a teleport («at») goes, in world units on each axis.
 const MOST_FAR := 1.0e6
 ## Switches of the character (vitals and the bag) and of the world's rules.
@@ -62,6 +64,9 @@ static func apply(session, who, d: Variant, day_speed := 1.0) -> bool:
 	var moon := _number(d, "moon", -1.0, 1.0)
 	if is_finite(moon):
 		clock.moon_pin = moon if moon >= 0.0 else -1.0
+	var air_t := _number(d, "air_temp", clock.FREE_AIR, MOST_AIR)
+	if is_finite(air_t):
+		clock.air_pin = air_t if air_t >= -MOST_AIR else clock.FREE_AIR
 	var hour := _number(d, "hour", 0.0, 24.0)
 	if is_finite(hour):
 		clock.time_of_day = fposmod(hour / 24.0, 1.0)
