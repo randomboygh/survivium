@@ -7,6 +7,7 @@ shader_type spatial;
 render_mode world_vertex_coords, blend_mix, depth_draw_never, cull_disabled, shadows_disabled;
 
 #include "res://shaders/common.gdshaderinc"
+#include "res://shaders/ice.gdshaderinc"
 
 uniform sampler2D sprite_texture : filter_nearest SRGB_HINT;
 // The frame of a sprite sheet to show, as in sprite.gdshader.
@@ -21,6 +22,10 @@ uniform vec3 deep SRGB = vec3(0.13, 0.29, 0.42);
 uniform float whole = 0.0;
 // A species' tint, as in sprite.gdshader.
 uniform vec3 tint = vec3(1.0);
+// How much the water is iced over (as water.gdshader's): a fish under the ice shows faint
+// (every other texel, in the ice's colour), clearer under clear ice, as in water under a
+// hole (ice.gdshaderinc, IceView).
+uniform float ice_amount = 0.0;
 // A fish shows as it is down to FISH_CLEAR world units under the surface, then a
 // step more in the water's colour each FISH_STEP deeper, FISH_STEPS steps at most.
 const float FISH_CLEAR = 0.25;
@@ -72,6 +77,17 @@ void fragment() {
 		float k = clamp(floor((swim_depth - FISH_CLEAR) / FISH_STEP) + 1.0, 0.0, FISH_STEPS) / FISH_STEPS;
 		vec3 water = mix(shallow, deep, 0.3 + 0.6 * k);
 		col = mix(c.rgb, water, 0.12 + 0.6 * k);
+		if (ice_amount > 0.0 && ice_hole(world_pos.xz) < 1.0) {
+			if (ice_clear(world_pos.xz) > 0.5) {
+				col = mix(col, vec3(0.12, 0.22, 0.32), 0.4 * ice_amount);
+			} else {
+				ivec2 px = ivec2(floor(uv * vec2(textureSize(sprite_texture, 0))));
+				if (ice_amount > 0.5 && (px.x + px.y) % 2 == 0) {
+					discard;
+				}
+				col = mix(col, vec3(0.46, 0.64, 0.72), 0.65 * ice_amount);
+			}
+		}
 	} else {
 		// Two steps of tint: a texel row or more under the surface, then deeper than a
 		// cell, so the pixel art stays flat.

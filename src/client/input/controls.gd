@@ -527,6 +527,8 @@ func action_name() -> String:
 			return "[water_plants]"
 		"sickle":
 			return "[reap]"
+		"ice":
+			return "[cut_ice]"
 		"rod":
 			if game.character.bite:
 				return "[hook]"

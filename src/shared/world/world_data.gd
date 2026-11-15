@@ -543,10 +543,10 @@ func ground_height(x: float, z: float) -> float:
 			if inside and m != Mat.LEAVES and shapes[i] & corner:
 				return y + 1.0
 			if m == Mat.WATER:
-				return y + ice_top(cx, y, cz) if water_frozen else -1.0
+				return y + ice_top(cx, y, cz) if frozen_at(cx, cz) else -1.0
 			continue
 		if inside and shapes[i] & corner:
-			if get_cell(cx + d.x, y, cz) == Mat.WATER and not water_frozen:
+			if get_cell(cx + d.x, y, cz) == Mat.WATER and not frozen_at(cx + d.x, cz):
 				return -1.0
 			continue
 		if not forms.is_empty():
@@ -704,7 +704,7 @@ func ice_top(x: int, y: int, z: int) -> float:
 func _cell_blocks(x: int, y: int, z: int) -> bool:
 	var m := get_cell(x, y, z)
 	if m == Mat.WATER:
-		return water_frozen
+		return frozen_at(x, z)
 	return m != Mat.LEAVES and Mat.is_solid(m)
 
 
@@ -801,7 +801,7 @@ func ground_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: fl
 				return false
 		return true
 	var m := get_cell(x, y, z)
-	return m != Mat.LEAVES and Mat.is_solid(m) or water_frozen and m == Mat.WATER \
+	return m != Mat.LEAVES and Mat.is_solid(m) or m == Mat.WATER and frozen_at(x, z) \
 		or _fill_touched(x, y, z, ax, bx, az, bz) or not blockers.is_empty() and blocker_part(x, y, z, ax, bx, az, bz) > 0.0
 
 

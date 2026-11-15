@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ice_fishing/bundle.yaml
+"[tools.ice_fishing.bundle]": "Зимова риболовля"
+
+# content/tools/ice_fishing/data/items.yaml
+"[tools.items.ice_pick]": "Пішня"
+"[tools.items.ice_pick.about]": "Важка жердина з кам'яним долотом. Кількома ударами продовбує в льоду ополонку для риболовлі."
+"[tools.items.ice_auger]": "Льодобур"
+"[tools.items.ice_auger.about]": "Мідний гвинт із воротком. Свердлить ополонку вдвічі швидше за пішню."
+"[tools.items.winter_rod]": "Зимова вудка"
+"[tools.items.winter_rod.about]": "Коротка вудка з маленькою котушкою. Закидається близько, в ополонку поруч: риба підходить удвічі частіше."
+
+# content/tools/ice_fishing/data/recipes.yaml
+"[tools.recipes.ice_pick]": "Пішня"
+"[tools.recipes.ice_auger]": "Льодобур"
+"[tools.recipes.winter_rod]": "Зимова вудка"

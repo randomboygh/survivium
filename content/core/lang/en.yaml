@@ -74,6 +74,9 @@
 # content/tools/hoe/data/items.yaml
 "[tool.hoe]": "hoe"
 
+# content/tools/ice_fishing/data/items.yaml
+"[tool.ice]": "ice pick"
+
 # content/tools/knife/data/items.yaml
 "[tool.knife]": "knife"
 
@@ -168,6 +171,7 @@
 "[release]": "Release"
 "[launch]": "Launch"
 "[ashore]": "Ashore"
+"[cut_ice]": "Cut ice"
 "[hook]": "Hook"
 "[reel_in]": "Reel in"
 "[cast]": "Cast"
@@ -1013,6 +1017,10 @@
 "[custom_quality]": "custom"
 "[screen_n2]": "Screen"
 "[fps_limit]": "FPS limit"
+"[crt]": "CRT screen"
+"[crt_soft]": "soft"
+"[crt_old]": "old"
+"[crt_tape]": "tape"
 "[light_and_shadows]": "Light and shadows"
 "[shadows]": "Shadows"
 "[drawn]": "drawn"
@@ -1021,9 +1029,6 @@
 "[shadow_on_things]": "Shadow on things"
 "[sun_rays]": "Sun rays"
 "[effects]": "Effects"
-"[simple]": "simple"
-"[on_the_ground]": "on the ground"
-"[haze_at_the_edge]": "Haze at the edge"
 "[weather_and_fire]": "Weather and fire"
 "[on_the_water]": "On the water"
 "[rings_and_glints]": "rings and glints"
@@ -1033,10 +1038,9 @@
 "[heat_shimmer]": "Heat shimmer"
 "[drops_on_the_screen]": "Drops and snow on the screen"
 "[fog_and_haze]": "Fog and haze"
-"[crt]": "CRT screen"
-"[crt_soft]": "soft"
-"[crt_old]": "old"
-"[crt_tape]": "tape"
+"[simple]": "simple"
+"[on_the_ground]": "on the ground"
+"[haze_at_the_edge]": "Haze at the edge"
 "[your_own_mods]": "Your own mods"
 "[own_mod_files_d]": "Files of your own mods: %d"
 "[delete_your_own_mods]": "Delete your own mods"
@@ -1362,10 +1366,12 @@
 # src/shared/game/actions_water.gd
 "[sea_water_is_salty_you]": "Sea water is salty: you can't drink it"
 "[not_thirsty]": "Not thirsty"
-"[the_water_is_frozen_fish]": "The water is frozen: fish under the ice don't bite"
 "[a_rod_is_cast_into]": "A rod is cast into water: come closer to it"
 "[no_fish_to_be_seen]": "No fish to be seen near the float"
 "[without_bait_bites_are_rare]": "Without bait bites are rare: needs “%s”"
+"[cut_a_hole_in_the]": "Cut a hole in the ice nearby to fish"
+"[stand_by_the_ice_to]": "Stand by the ice to cut a hole in it"
+"[the_hole_is_open]": "The hole is open: cast a rod into it"
 "[the_bag_is_full_the]": "The bag is full: the fish got away"
 "[no_bite]": "No bite"
 "[it_got_away]": "It got away"
@@ -1467,6 +1473,11 @@
 "[bow_down]": "Bow down"
 "[clap]": "Clap"
 "[sit]": "Sit"
+
+# src/shared/game/ice.gd
+"[the_water_is_not_frozen]": "The water is not frozen"
+"[no_ice_here]": "No ice here"
+"[the_ice_lies_on_the_bottom]": "The ice lies on the bottom here: no fish under it"
 
 # src/shared/game/inventory.gd
 "[by_kind]": "by kind"

@@ -1,0 +1,18 @@
+# Recipes of the "Ice fishing" bundle: an ice pick from a branch and a stone by hand, a copper auger at the workbench, a short
+# winter rod from a branch, a rope and a flint hook by hand.
+- id: ice_pick
+  title: "[tools.recipes.ice_pick]"
+  makes: ice_pick
+  needs: {resources:branch: 2, resources:stone: 2, materials:cord: 1}
+  time: 4
+- id: ice_auger
+  title: "[tools.recipes.ice_auger]"
+  makes: ice_auger
+  needs: {materials:copper_bar: 2, materials:planks: 1}
+  at: workbench
+  time: 6
+- id: winter_rod
+  title: "[tools.recipes.winter_rod]"
+  makes: winter_rod
+  needs: {resources:branch: 1, materials:cord: 2, resources:flint: 1}
+  time: 4

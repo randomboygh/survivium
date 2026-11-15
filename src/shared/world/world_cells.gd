@@ -43,6 +43,10 @@ const SNOW_LINE := 18
 ## In winter water freezes and is walked on like ground; otherwise it is waded and
 ## swum through.
 var water_frozen := false
+## Holes cut in the ice (Ice): column (Vector2i x, z) -> the day (Clock.now) it was cut
+## while it is open, -1 once a crust has grown over it. An open hole is open water
+## (frozen_at), in a frozen world. Not saved: they skin over in a day anyway.
+var ice_holes := {}
 ## The chunks kept, by Vector2i(cx, cz) (chunk cx holds the columns cx * CHUNK and on).
 var chunks := {}
 ## WILD for every cell the generator left in place, SHEER besides on loose ground that
@@ -790,9 +794,15 @@ func surface_y(x: int, z: int) -> int:
 	var y := top_level(~(c.air[col] | c.leaf[col]) & all_bits)
 	if y < 0:
 		return 0
-	if c.water[col] & (1 << y) and not water_frozen:
+	if c.water[col] & (1 << y) and not frozen_at(x, z):
 		return -1
 	return y + 1
+
+
+## Whether the water of column (x, z) is ice: all water is in a frozen world, but for the
+## open holes cut in it (ice_holes).
+func frozen_at(x: int, z: int) -> bool:
+	return water_frozen and (ice_holes.is_empty() or ice_holes.get(Vector2i(x, z), -1.0) < 0.0)
 
 
 ## Notes a change by the player to the chunk of column (x, z) that is not a cell (a

@@ -63,7 +63,8 @@ water, a kind with `biomes` appears only on its own land.
   pulled out during the bite leaves the world (`Wildlife.take`) and goes into the bag as the item `catch`, and
   the client draws its flight to the angler (`shot`); one not pulled out eats the bait and flees from the
   float. The line is reeled in by itself if the angler moved away (`WANDER`), put the rod away, fell asleep,
-  died or the water froze; one cannot cast onto frozen water. The server tells the client about its line by
+  died or the water froze over its float. A rod's `lure` (items, 1 by default) multiplies the chance of a fish
+  coming (`Line.lure`; the winter rod of the bundle `tools/ice_fishing` has 2). The server tells the client about its line by
   the event `LINE`, the others — in `PEOPLE`; the action button stays pressed («Reel in», at a bite «Hook»),
   the figure holds the rod stretched out (the blow frame `slash`), `src/client/view/fishing_line.gd` draws the
   line from the rod's tip (`SpriteSheet.tips`) and the float, diving at a bite
@@ -112,8 +113,24 @@ water, a kind with `biomes` appears only on its own land.
   the water over the fish (`Creatures._sink`) and gives it to the shaders as the sprite's scale along y past 1. The
   fish is drawn after the water by `sprite_water.gdshader` (`whole`, the sprite's `material_overlay`), in up to three
   steps more of the water's colour the deeper it is; its `sprite.gdshader` picture (`shadow_only`) only casts the
-  shadow on the bed. Only a fish near the surface jumps (`WaterEffects.FISH_JUMP_DEPTH`). Under ice (`Clock.ice` from
-  `Creatures.ICE_HIDES`, or frozen water) the fish are not drawn. The shots `fish-depths`, `fish-ice`.
+  shadow on the bed. Only a fish near the surface jumps (`WaterEffects.FISH_JUMP_DEPTH`). Under ice the fish shows
+  faint (every other texel, tinted to the ice: `ice_amount`), darker but whole under clear ice, as is in an open hole.
+  The shots `fish-depths`, `fish-ice`, `ice-holes`.
+- Winter fishing (the user's ask of 2026-11-15): `src/shared/game/ice.gd` (`Ice`, the session's `ice`, a step of
+  `step_things`) keeps the holes in the ice, `WorldData.ice_holes` (column → the day it was cut, -1 for a crust; not
+  saved). A tool of class `ice` (`Tools.cuts_ice`: the ice pick of stick and stone, the copper ice auger of power 2
+  twice as fast; bundle `tools/ice_fishing`) cuts the column of frozen water ahead (`ActionsWater.ice_ahead`,
+  `cut_ice`, through `act_in_front` and `dig_at`) in `HOLE_WORK` blows of power 1, where the water is `DEEP` cells
+  deep at least (`Ice.why_not`); an open hole is open water: `WorldData.frozen_at` is false there, so the surface,
+  the body (it falls in, gets wet, swims out onto the ice), the fish (`water_room`, `_floor`) and the line
+  (`Fishing._holds`) see water. In a frozen world a rod is cast into the open hole nearest the tap or the body within
+  `HOLE_REACH` cells (`_fish_hole`), the float in the middle of the hole. A hole skins over `SKIN_DAYS` after it
+  was cut, one blow breaks the crust; the water thawed, the holes are gone; at most `MOST`, the oldest crusts go
+  first. The server sends them by the event `ICE_HOLES` (`Ice.to_list`/`take_list`, checked; nothing over the
+  loop, where the world is shared); `src/client/view/ice_view.gd` (`IceView`) gives the 8 nearest holes and the 4
+  nearest burning fires to `water.gdshader` and the fish (`shaders/ice.gdshaderinc`): the ice is drawn with dark
+  clear patches (`ice_clear`, a fifth or so), clear round a fire (`THAW_REACH`), an open hole as water with a rim
+  of broken ice, a crust grey.
 - AI debugging (decision 184): an `Animal` has a cause `cause` — what it flees from (`person`, `fire`, `hurt`,
   `alarm` or a beast's kind), whom it hunts (a kind), `graze`, `lead`, `owner`; it is set by `_decide`.
   `mind(a)` — what is on a beast's mind (the state, the cause, and in a fight with a person `hunt_person` or

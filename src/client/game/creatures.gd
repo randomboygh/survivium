@@ -20,7 +20,7 @@ extends Node3D
 ## them for each animal. A fish (Wildlife.dives) is drawn after the water, all of it in
 ## the water's colour, the more the deeper it swims (sprite_water.gdshader `whole`, its
 ## sprite's material_overlay); its own picture only casts its shadow on the bed. Under
-## the ice of frozen water the fish are not drawn.
+## ice it shows faint, clearer under clear ice (IceView gives its materials the ice).
 
 const Content := preload("res://src/shared/content/content.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
@@ -70,9 +70,6 @@ const BACK := 2
 const HOP_STEP := 0.36
 ## Seconds each attack frame of a bite shows (Wildlife.BITE_TIME over three frames).
 const BITE_FRAME := 0.13
-## From this much ice over the water (Clock.ice, as the water shader shows it) the fish
-## under it are not drawn.
-const ICE_HIDES := 0.5
 
 
 ## How an animal is drawn now: its view, which way it goes, how far it has walked (for
@@ -101,8 +98,6 @@ class Look:
 var wildlife
 ## The world (WorldData) the fish swim in: the water over them (see _sink).
 var world
-## The clock (RemoteClock): how much the water is iced over (Clock.ice).
-var clock
 ## Footprints (see tracks.gd); animals leave paw prints sized by their mass.
 var tracks
 ## The performance statistics (PerfPanel), told how long the animals take a frame.
@@ -221,13 +216,8 @@ func _process(delta: float) -> void:
 		_fitted.clear()
 		for look in _shown:
 			_fit(look.animal, look.sprite)
-	# Fish under ice are not seen, from when the water looks mostly iced over (their
-	# picture would show over it, drawn after the water).
-	var frozen: bool = (world != null and world.water_frozen) or (clock != null and clock.ice() >= ICE_HIDES)
 	for look in _shown:
 		var a = look.animal
-		if look.depth >= 0.0 and look.sprite.visible == frozen:
-			look.sprite.visible = not frozen
 		if a.fresh:
 			a.fresh = false
 			var sprite := look.sprite
@@ -418,6 +408,16 @@ func sprite_of(a) -> MeshInstance3D:
 	return _sprites.get(a)
 
 
+## The materials the fish are drawn with over the water (IceView gives them the ice).
+func fish_materials() -> Array[ShaderMaterial]:
+	var out: Array[ShaderMaterial] = []
+	for kind in looks:
+		for over: Array in looks[kind][8]:
+			for m: ShaderMaterial in over:
+				out.append(m)
+	return out
+
+
 ## How deep under the water surface fish `a` swims as drawn (world units), -1 for one
 ## not drawn or not a fish.
 func depth_of(a) -> float:
@@ -478,7 +478,7 @@ func _sink(a, look: Look) -> void:
 		var bits: int = world.water_col(floori(a.pos.x / CELL), floori(a.pos.z / CELL))
 		if bits != 0:
 			var top := WorldData.top_level(bits)
-			var surface := float(top) if world.water_frozen else top + WorldData.WATER_TOP
+			var surface := float(top) if world.frozen_at(floori(a.pos.x / CELL), floori(a.pos.z / CELL)) else top + WorldData.WATER_TOP
 			under = maxf(0.0, surface * CELL - a.pos.y)
 	if absf(under - look.depth) * PixelView.PIXELS_PER_UNIT >= 0.5 or look.depth == 0.0:
 		look.depth = maxf(under, 0.001)

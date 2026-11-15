@@ -73,6 +73,7 @@ const OthersScript := preload("res://src/client/view/others.gd")
 const SignLabelsScript := preload("res://src/client/view/sign_labels.gd")
 const BoatsScript := preload("res://src/client/view/boats.gd")
 const CreaturesScript := preload("res://src/client/game/creatures.gd")
+const IceViewScript := preload("res://src/client/view/ice_view.gd")
 const AiDebugScript := preload("res://src/client/view/ai_debug.gd")
 const Hud := preload("res://src/client/ui/hud.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
@@ -132,6 +133,8 @@ var player
 var creatures
 ## What the animals near have in mind, drawn over them while the playtest switch is on.
 var ai_debug
+## The ice's holes and thawed spots for the shaders (IceView).
+var ice_view
 ## The other players on the screen (С3.3).
 var others
 ## The text of the signs near, over them (SignLabels).
@@ -1115,9 +1118,11 @@ func _build_scene() -> void:
 	creatures = CreaturesScript.new()
 	creatures.tracks = tracks
 	creatures.world = world
-	creatures.clock = clock
 	creatures.perf = hud.perf
 	world_root.add_child(creatures)
+	ice_view = IceViewScript.new()
+	ice_view.game = self
+	world_root.add_child(ice_view)
 	ai_debug = AiDebugScript.new()
 	ai_debug.game = self
 	world_root.add_child(ai_debug)

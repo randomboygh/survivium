@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ice_fishing/bundle.yaml
+"[tools.ice_fishing.bundle]": "Buz balıkçılığı"
+
+# content/tools/ice_fishing/data/items.yaml
+"[tools.items.ice_pick]": "Buz kazması"
+"[tools.items.ice_pick.about]": "Taş keskili ağır bir sırık. Birkaç vuruşla buzda balık tutmak için delik açar."
+"[tools.items.ice_auger]": "Buz burgusu"
+"[tools.items.ice_auger.about]": "Kollu bakır bir vida. Buzu kazmadan iki kat hızlı deler."
+"[tools.items.winter_rod]": "Kış oltası"
+"[tools.items.winter_rod.about]": "Küçük makaralı kısa bir olta. Yakındaki deliğe atılır: balıklar iki kat sık gelir."
+
+# content/tools/ice_fishing/data/recipes.yaml
+"[tools.recipes.ice_pick]": "Buz kazması"
+"[tools.recipes.ice_auger]": "Buz burgusu"
+"[tools.recipes.winter_rod]": "Kış oltası"

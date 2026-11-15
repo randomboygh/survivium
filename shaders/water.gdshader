@@ -21,6 +21,7 @@ shader_type spatial;
 render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
 
 #include "res://shaders/common.gdshaderinc"
+#include "res://shaders/ice.gdshaderinc"
 
 uniform float ice_amount : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 shallow SRGB = vec3(0.36, 0.62, 0.6);
@@ -77,12 +78,27 @@ varying float sea_here;
 
 // Ice: clear blue-green over the shallows and darker over the deep, milky frost
 // patches, straight white cracks and glints that do not move, and a dusting of snow
-// in the hollows of the patch noise while snow lies.
-vec3 ice_color(vec2 tex, float depth, bool side) {
+// in the hollows of the patch noise while snow lies. Clear ice (ice_clear: its patches,
+// thawed round a fire) is dark, the water under it seen, with no frost or snow on it, a
+// few white bubbles in it; the crust over a hole is thin and grey, its rim broken white
+// (`hole` of ice_hole).
+vec3 ice_color(vec2 tex, float depth, bool side, float clear, float hole) {
 	vec2 xz = tex / TEXELS;
 	vec3 c = mix(vec3(0.46, 0.64, 0.72), vec3(0.28, 0.43, 0.58), depth);
 	if (side) {
 		return c * 0.85;
+	}
+	if (hole > 0.4) {
+		// The crust over a hole: thin, grey, a few bubbles.
+		return mix(vec3(0.36, 0.48, 0.56), vec3(0.62, 0.7, 0.74), step(0.97, hash12(tex + 5.0)));
+	}
+	if (hole > 0.1) {
+		// The rim of broken ice round a hole.
+		return mix(vec3(0.82, 0.9, 0.94), vec3(0.6, 0.72, 0.8), step(0.6, hash12(tex + 9.0)));
+	}
+	if (clear > 0.5) {
+		c = mix(vec3(0.27, 0.42, 0.52), vec3(0.18, 0.31, 0.43), depth);
+		return mix(c, vec3(0.7, 0.8, 0.86), step(0.985, hash12(tex + 23.0)));
 	}
 	float frost = ground_patch(xz, 17.0);
 	c = frost > 0.6 ? mix(c, vec3(0.68, 0.78, 0.84), 0.55) : (frost < 0.36 ? c * vec3(0.92, 0.96, 1.0) : c);
@@ -176,6 +192,15 @@ void fragment() {
 	depth = clamp(floor(depth * DEPTH_STEPS + bayer) / DEPTH_STEPS, 0.0, 1.0);
 	vec3 col = mix(shallow, deep, depth) * biome_tint(WATER_MATERIAL, world_pos.xz);
 	float alpha = mix(0.45, 1.0, depth);
+	// The ice here (none in an open hole), what of a hole is here, and whether it is clear.
+	float ice = ice_amount;
+	float hole = 0.0;
+	float clear_ice = 0.0;
+	if (ice_amount > 0.0) {
+		hole = ice_hole(world_pos.xz);
+		ice = hole >= 1.0 ? 0.0 : ice_amount;
+		clear_ice = ice_clear(world_pos.xz);
+	}
 	// Murky water: the murk blended over the cells, broken up by a still patch noise
 	// between its levels (clear, swamp, bog) and dithered in steps, so a swamp runs
 	// into a bog (or clear water) unevenly.
@@ -223,7 +248,7 @@ void fragment() {
 		col = mix(col, col * 1.35 + 0.05, clamp(line, 0.0, 1.0) * 0.8 * (1.0 - 0.6 * murk));
 		// Sparkles, none on a bog.
 		float s = step(0.993, hash12(tex + floor(TIME * 3.0) * 17.0)) * step(murk, 0.75);
-		col += vec3(0.35) * s * (1.0 - ice_amount);
+		col += vec3(0.35) * s * (1.0 - ice);
 		if (sun_path.z > 0.0 && murk < 0.75) {
 			vec2 off = world_pos.xz - player_pos.xz;
 			float along = dot(off, sun_path.xy);
@@ -362,10 +387,10 @@ void fragment() {
 		float twinkle = 0.45 + 0.55 * step(0.55, hash12(tex + floor(TIME * 4.0) * 7.0));
 		plankton = max(surf * bay, wake * 0.8 * step(0.45, hash12(tex + floor(TIME * 6.0) * 3.0))) * twinkle * sea_glow;
 	}
-	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5) * mix(vec3(1.0), vec3(0.8, 0.78, 0.7), murk), ice_amount);
-	if (ice_amount > 0.0 && world_normal.y > 0.5) {
+	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5, clear_ice, hole) * mix(vec3(1.0), vec3(0.8, 0.78, 0.7), murk), ice);
+	if (ice > 0.0 && world_normal.y > 0.5) {
 		// Scuffs of frost on the ice, under the fog like the ground's footprints.
-		col *= mix(vec3(1.0), footprint(world_pos), ice_amount);
+		col *= mix(vec3(1.0), footprint(world_pos), ice);
 	}
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
 	// The share of the sun's and the sky's light that comes down this deep; light()
@@ -374,8 +399,8 @@ void fragment() {
 	vec3 lit_col = col * (1.0 - veiled.a);
 	ALBEDO = lit_col * sun_part;
 	lamp_gain = sea_undo(lit_col, sun_part);
-	EMISSION = veiled.rgb + (PLANKTON * plankton * 1.6 + shine * (1.0 - ice_amount)) * (1.0 - veiled.a);
-	ALPHA = mix(alpha, 1.0, ice_amount);
+	EMISSION = veiled.rgb + (PLANKTON * plankton * 1.6 + shine * (1.0 - ice)) * (1.0 - veiled.a);
+	ALPHA = mix(alpha, 1.0, ice);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);

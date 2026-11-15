@@ -69,6 +69,8 @@ var _cells := {}
 var _drops := {}
 ## Grass cells cut short since the last flush (ActionsGather.grass_changed).
 var _grass := {}
+## The holes in the ice changed since they were last sent (Ice.changed).
+var _holes := true
 
 var _you := true
 var _team := true
@@ -147,6 +149,7 @@ func _init(s) -> void:
 	actions.cells_set.connect(_on_cells)
 	placed.cell_changed.connect(_on_cell)
 	actions.drops_changed.connect(_on_drops)
+	session.ice.changed.connect(_on_holes)
 	actions.looks_changed.connect(_on_looks)
 	actions.grass_changed.connect(_on_grass)
 	actions.spores.connect(_on_spores)
@@ -173,6 +176,7 @@ func leave() -> void:
 	actions.cell_changed.disconnect(_on_cell)
 	actions.cells_set.disconnect(_on_cells)
 	actions.drops_changed.disconnect(_on_drops)
+	session.ice.changed.disconnect(_on_holes)
 	actions.looks_changed.disconnect(_on_looks)
 	actions.grass_changed.disconnect(_on_grass)
 	actions.spores.disconnect(_on_spores)
@@ -347,6 +351,9 @@ func flush() -> Array[PackedByteArray]:
 		_snap_all = true
 	if send_world:
 		_world_events(out)
+	if _holes:
+		_holes = false
+		out.append(_event(Protocol.ICE_HOLES, [session.ice.to_list()] if send_world else []))
 	for key: Vector2i in _drops:
 		out.append(_event(Protocol.DROPS, [key, session.world.drops.get(key, [])] if send_world else [key]))
 	_drops.clear()
@@ -605,6 +612,10 @@ func _on_laid(key: Vector2i) -> void:
 
 func _on_drops(key: Vector2i) -> void:
 	_drops[key] = true
+
+
+func _on_holes() -> void:
+	_holes = true
 
 
 func _on_cell(cell: Vector3i) -> void:

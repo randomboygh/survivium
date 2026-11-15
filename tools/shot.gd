@@ -344,6 +344,8 @@ func _run() -> void:
 			_place_zoo(shot.zoo == "water")
 		if shot.has("depths"):
 			await _place_depths(shot.depths)
+		if shot.get("ice_holes", false):
+			added_fires.append_array(_place_ice_holes())
 		if shot.has("shadow_zoo"):
 			await _place_shadow_zoo(shot.shadow_zoo)
 		if shot.get("trap", false):
@@ -1653,6 +1655,35 @@ func _place_depths(kinds: Array) -> void:
 	for f in 10:
 		await process_frame
 	main.creatures.set_process(false)
+
+
+## Holes in the ice of the frozen water nearest the player (Ice): an open one over the
+## first fish of _place_depths, a crusted one by it, and a campfire on the ice farther on.
+## Returns the fires set down.
+func _place_ice_holes() -> Array:
+	var life = main.session.wildlife
+	var w = main.world
+	var p: Vector3 = main.player.position
+	# The deep frozen cells of _place_depths, nearest first: the first fish is under cols[0].
+	var cols: Array[Vector2i] = []
+	for dz in range(-20, 21, 2):
+		for dx in range(-20, 21, 2):
+			var at := p + Vector3(dx, 0.0, dz) * CELL
+			if life.under_ice(at.x, at.z) > 0.0 and life.water_room(at.x, at.z) > (life.DEEPEST + life.BED_GAP) * CELL:
+				cols.append(Vector2i(floori(at.x / CELL), floori(at.z / CELL)))
+	var fires := []
+	if cols.is_empty():
+		return fires
+	cols.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return Vector2(a).distance_to(Vector2(p.x, p.z) / CELL) < Vector2(b).distance_to(Vector2(p.x, p.z) / CELL))
+	w.ice_holes[cols[0]] = main.session.clock.now()
+	w.ice_holes[cols[0] + Vector2i(-3, 1)] = -1.0
+	var fire := cols[mini(cols.size() - 1, 5)] + Vector2i(1, 1)
+	var y: int = w.surface_y(fire.x, fire.y)
+	if y > 0:
+		fires.append(main.session.placed.put(main.session.placed.CAMPFIRE, Vector3i(fire.x, y, fire.y), null))
+	main.session.ice.changed.emit()
+	return fires
 
 
 ## Animals `kinds` ([species, frame, height above the ground, view]) in a row before

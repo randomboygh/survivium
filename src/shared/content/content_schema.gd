@@ -86,6 +86,9 @@ const SCHEMAS := {
 		# it out of the bag a shot; none: the weapon itself is thrown).
 		"range": {"type": "int", "min": 0, "default": 0},
 		"ammo": {"type": "ref:items", "default": "", "rel": "consumes"},
+		# A rod: how many times likelier a fish comes to its float than to a plain rod's (a
+		# winter rod's, Fishing).
+		"lure": {"type": "float", "min": 0.0, "max": 10.0, "default": 1.0},
 		"repair": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "repaired_with", "via": "repair"},
 		# Set down on cells (the square its model's slices cover: 16 voxels two by two, 8 one
 		# cell; turned to face who set it), a thing of this class (its model, its solid parts); a

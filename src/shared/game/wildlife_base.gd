@@ -450,7 +450,7 @@ func water_room(x: float, z: float) -> float:
 		return 0.0
 	var top := WorldData.top_level(bits)
 	var bed := WorldData.top_level(~bits & ((1 << top) - 1))
-	var surface := float(top) if world.water_frozen else top + WorldData.WATER_TOP
+	var surface := float(top) if world.frozen_at(floori(x / CELL), floori(z / CELL)) else top + WorldData.WATER_TOP
 	return maxf(0.0, surface - (bed + 1)) * CELL
 
 

@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/ice_fishing/bundle.yaml
+"[tools.ice_fishing.bundle]": "Pesca sul ghiaccio"
+
+# content/tools/ice_fishing/data/items.yaml
+"[tools.items.ice_pick]": "Piccone da ghiaccio"
+"[tools.items.ice_pick.about]": "Un'asta pesante con uno scalpello di pietra. Pochi colpi aprono nel ghiaccio un buco per pescare."
+"[tools.items.ice_auger]": "Trivella da ghiaccio"
+"[tools.items.ice_auger.about]": "Una vite di rame con manovella. Fora il ghiaccio due volte più in fretta di un piccone."
+"[tools.items.winter_rod]": "Canna invernale"
+"[tools.items.winter_rod.about]": "Una canna corta con un mulinello. Si lancia vicino, in un buco: i pesci arrivano il doppio."
+
+# content/tools/ice_fishing/data/recipes.yaml
+"[tools.recipes.ice_pick]": "Piccone da ghiaccio"
+"[tools.recipes.ice_auger]": "Trivella da ghiaccio"
+"[tools.recipes.winter_rod]": "Canna invernale"

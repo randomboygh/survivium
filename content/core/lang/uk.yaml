@@ -74,6 +74,9 @@
 # content/tools/hoe/data/items.yaml
 "[tool.hoe]": "сапа"
 
+# content/tools/ice_fishing/data/items.yaml
+"[tool.ice]": "пішня"
+
 # content/tools/knife/data/items.yaml
 "[tool.knife]": "ніж"
 
@@ -168,6 +171,7 @@
 "[release]": "Випустити"
 "[launch]": "На воду"
 "[ashore]": "На берег"
+"[cut_ice]": "Довбати лід"
 "[hook]": "Підсікти"
 "[reel_in]": "Змотати"
 "[cast]": "Закинути"
@@ -1013,6 +1017,10 @@
 "[custom_quality]": "своє"
 "[screen_n2]": "Екран"
 "[fps_limit]": "Межа FPS"
+"[crt]": "Кінескоп"
+"[crt_soft]": "м'який"
+"[crt_old]": "старий"
+"[crt_tape]": "касета"
 "[light_and_shadows]": "Світло й тіні"
 "[shadows]": "Тіні"
 "[drawn]": "намальовані"
@@ -1021,9 +1029,6 @@
 "[shadow_on_things]": "Тінь на речах"
 "[sun_rays]": "Сонячні промені"
 "[effects]": "Ефекти"
-"[simple]": "простий"
-"[on_the_ground]": "по землі"
-"[haze_at_the_edge]": "Серпанок на краю"
 "[weather_and_fire]": "Погода й вогонь"
 "[on_the_water]": "На воді"
 "[rings_and_glints]": "кола й відблиски"
@@ -1033,10 +1038,9 @@
 "[heat_shimmer]": "Тремтіння спеки"
 "[drops_on_the_screen]": "Краплі й сніг на екрані"
 "[fog_and_haze]": "Туман і серпанок"
-"[crt]": "Кінескоп"
-"[crt_soft]": "м'який"
-"[crt_old]": "старий"
-"[crt_tape]": "касета"
+"[simple]": "простий"
+"[on_the_ground]": "по землі"
+"[haze_at_the_edge]": "Серпанок на краю"
 "[your_own_mods]": "Власні моди"
 "[own_mod_files_d]": "Файлів своїх модів: %d"
 "[delete_your_own_mods]": "Видалити свої моди"
@@ -1362,10 +1366,12 @@
 # src/shared/game/actions_water.gd
 "[sea_water_is_salty_you]": "Морська вода солона: пити її не можна"
 "[not_thirsty]": "Пити не хочеться"
-"[the_water_is_frozen_fish]": "Вода замерзла: риба під кригою не клює"
 "[a_rod_is_cast_into]": "Вудку закидають у воду: підійдіть до неї"
 "[no_fish_to_be_seen]": "Біля поплавця не видно риби"
 "[without_bait_bites_are_rare]": "Без наживки клює рідко: потрібна «%s»"
+"[cut_a_hole_in_the]": "Щоб рибалити, продовбай поруч ополонку в льоду"
+"[stand_by_the_ice_to]": "Стань біля льоду, щоб продовбати ополонку"
+"[the_hole_is_open]": "Ополонка відкрита: закинь у неї вудку"
 "[the_bag_is_full_the]": "Сумка повна: риба пішла"
 "[no_bite]": "Не клюнуло"
 "[it_got_away]": "Зірвалася"
@@ -1467,6 +1473,11 @@
 "[bow_down]": "Уклін"
 "[clap]": "Плескати"
 "[sit]": "Сісти"
+
+# src/shared/game/ice.gd
+"[the_water_is_not_frozen]": "Вода не замерзла"
+"[no_ice_here]": "Тут немає льоду"
+"[the_ice_lies_on_the_bottom]": "Тут лід до самого дна: риби під ним немає"
 
 # src/shared/game/inventory.gd
 "[by_kind]": "за видом"
