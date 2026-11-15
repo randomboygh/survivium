@@ -33,10 +33,20 @@ extends "res://src/shared/game/wildlife_fight.gd"
 
 ## How often the fires that keep the animals off are looked for again, in seconds.
 const FIRE_EVERY := 0.5
+## The most steps of animals no one looks at in one update: after a long frame all of
+## them are due at once, and on a phone that many steps froze the next frame too.
+const FAR_MOST := 16
+## The longest step, in seconds, of one that waited (see FAR_MOST, OUT_STEP).
+const LONGEST_STEP := 0.5
+
+## Where in the list the steps of those no one looks at begin in the next update: the
+## ones the last one left out (see FAR_MOST).
+var _far_from := 0
 
 
 ## Runs the animals for `delta` seconds: the near ones every call, the others every
-## FAR_STEP seconds.
+## FAR_STEP seconds (those no one is about to see every OUT_STEP), at most FAR_MOST
+## of them a call.
 func update(delta: float) -> void:
 	delta = minf(delta, 0.1)
 	respawn_timer += delta
@@ -56,7 +66,12 @@ func update(delta: float) -> void:
 		_fire_timer = FIRE_EVERY
 		_find_fires()
 	moved.clear()
-	for a in animals.duplicate():
+	var all := animals.duplicate()
+	var n := all.size()
+	var start := _far_from % maxi(n, 1)
+	var far_steps := 0
+	for i in n:
+		var a: Animal = all[(start + i) % n]
 		if a.gone:
 			continue
 		var dt := delta
@@ -67,10 +82,21 @@ func update(delta: float) -> void:
 			a.away += delta
 			if a.away < a.wait:
 				continue
-			dt = a.away
+			if far_steps >= FAR_MOST:
+				# Steps enough this frame (after a long one all are due): it steps
+				# in a frame to come, the time gathered, and those after it in the
+				# list go first then.
+				if far_steps == FAR_MOST:
+					_far_from = (start + i) % n
+					far_steps += 1
+				continue
+			far_steps += 1
+			# A step no longer than LONGEST_STEP: the ground is looked at where it ends.
+			dt = minf(a.away, LONGEST_STEP)
 			# A long frame lets many animals step at once; their next steps fall on
 			# their own beats again, or they would all come to step in one frame.
-			a.wait = FAR_STEP - fmod(a.away - a.wait, FAR_STEP)
+			var beat := OUT_STEP if a.out else FAR_STEP
+			a.wait = beat - fmod(a.away - a.wait, beat)
 		a.away = 0.0
 		moved.append(a)
 		var spec: Dictionary = AiRules.SPECIES[a.kind]

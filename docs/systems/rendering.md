@@ -62,11 +62,14 @@ voxel models of things.
   `.nature`, made by `Main`, stepped by `Sky`) — the small effects, each by its setting in «Эффекты» (`effects`
   weather and fire, `water_fx` 0/1/2, `nature_fx`, `body_fx`, `heat_fx`, `drops_fx`; off on «низкое», mirroring
   and heat off on «среднее», `Settings.QUALITIES`, `AutoQuality.STEPS`) and hidden one by one in «Что рисуется»
-  (their `parts()`). AirEffects: the air trembling over the nearest fires and over hot ground at noon and drops of
+  (their `parts()`). AirEffects: the air trembling over the nearest fires (stronger, higher and wider the more wood is left, `fire.fuel` from `Effects.fire_strength`) and over hot ground at noon and drops of
   rain running down the screen's edges (`grade.gdshader` `heat_spots`, `heat_haze`, `drop_state`: when they stop the drops there run off within
-  `DRY_RUN`), breath steaming in
+  `DRY_RUN` even if new ones start; a jump in the water, under `SWIM_LEFT` s out of it, still counts as a swim), breath steaming in
   a frost (puffs from a pool, `Creatures.muzzle`), the sun's path on the water at sunrise and sunset and the
-  moon's at night (`water.gdshader` `sun_path`, `Sky.sun_height`). WaterEffects: rings and splashes (fish jumping,
+  moon's at night (`water.gdshader` `sun_path`, `Sky.sun_height`; only where the light reaches the water:
+  `sun_reaches` looks along it for cloud shadow, ground and tree crowns in the roof map; glints fade in and out
+  each on its own clock). Snow on tops glitters a texel at a time in the sun's or the moon's light as the camera
+  moves or turns, slowly when it stands (`world.gdshader` `glint`, passed from fragment to light, so none in shadow). WaterEffects: rings and splashes (fish jumping,
   a shot landing, wading, a fall into the water), steam over open water on cold mornings, fires and torches
   glittering on the water towards the viewer (`fire_glints`), and the figures by the water mirrored in it
   (`sprite_mirror.gdshader`: the sprite upside down, drawn after the water and over the body's part under it
@@ -103,8 +106,11 @@ voxel models of things.
   way) inside the crown's outline on it (a spruce's triangle), runs along the sun's light down to the ground
   and ends on it (`_length`), in bunches of 2–4 through one gap (one wide among narrow ones, bright beside pale), 3 to 13 pixels wide, slowly growing wider and paler and back in the shader; it is drawn at its own depth (lifted only `depth_lift`), so
   the leaves of its crown in front of it and the trees in front hide it: it shows coming out of the crown. `Sky._update_rays` shows them only under a clear sky (`RAYS_CLEAR`) and with the sun at a slant (`RAYS_SUN`, 20–48°, full 26–42°): a higher sun drops them under their own crowns, a lower one lays them along the ground. The light of each tree is counted once per position of the sun (anew when the sun has
-  turned by `TURN`) and several trees per frame within `WORK_US`; at a player's step by `MOVE` the ready light
-  is only laid out anew. Before, everything was counted whole in a frame and in a forest gave «engine» freezes
+  turned by `TURN`) within `WORK_US` a frame, a shaft at a time (`_plan`, `_shaft_step`, `_job_light`: a whole
+  tree was 5–11 ms on a phone); `_length` looks along a shaft every `COARSE` units until it comes near the
+  height of the tree's foot, then a unit at a time. A tree's light keeps its shafts and flecks as MultiMesh
+  buffer data, so laying out copies whole trees whose box shows in the picture; at a player's step by `MOVE`
+  the ready light is only laid out anew. Before, everything was counted whole in a frame and in a forest gave «engine» freezes
   of 100–200 ms on a phone. The time goes into the log as the part «rays».
 - `src/client/view/pixel_textures.gd` — the atlas of materials from the mods' textures, bark as virtual
   materials after the real ones, grass, shrubs, cloud noise; `tint` — the mean colour for maps and particles.
@@ -265,7 +271,8 @@ voxel models of things.
   (without fire, fire without a shadow, and fire with a shadow — by the setting of fire shadows, with the
   layers that cast a shadow; everything under the sun with a shadow by the setting; the sun in the game does
   not go out — at night its brightness is 0, but the shaders are the same). All this is behind the loading
-  screen (`step`, a combination per frame); behind the menu the world is not drawn, so nothing is left for the
+  screen (`step`, a combination per frame, each frame marked «warm-up» in the freeze log: in the browser the
+  first combination builds ~120 programs and the next three ~11, 9 and 4, checked 2026-11-15); behind the menu the world is not drawn, so nothing is left for the
   first frames of the game. In the game (`update`, `main.shaders`) only what the settings asked for (the sun's
   shadow, fire shadows), one kind at a time once per `PACE`. A new kind of fire or a material that appears
   later is added there (the HUD is hidden by the menu at that time, so the interface's elements are on the

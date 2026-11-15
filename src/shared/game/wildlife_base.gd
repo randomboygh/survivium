@@ -51,6 +51,11 @@ const REFILL_SLACK := 1.0
 ## instead of every frame: most of them are far away, and each step looks up the
 ## ground under them.
 const FAR_STEP := 0.1
+## Those farther than OUT_MARGIN past every screen (`out`, see look_from) step this
+## seldom: none of them can walk into sight within a step, and they are most of the
+## animals, so their steps were most of the animals' time (a phone's frame, 2026-11-15).
+const OUT_STEP := 0.4
+const OUT_MARGIN := 6.0
 ## Those no one looks at think this many times less often (their thinking looks through
 ## the animals of the kinds they care about, ~half their cost); one coming into
 ## view thinks within NEAR_THINK seconds.
@@ -157,6 +162,9 @@ class Animal:
 	## Someone looks at it (within NEAR of one of the players, see look_from), so it
 	## moves every frame; set by the owner before update().
 	var near := true
+	## No one is about to see it either (farther than OUT_MARGIN past every screen): it
+	## steps every OUT_STEP instead of FAR_STEP; set with `near`.
+	var out := false
 	## Its body's half width on the ground (see radius), kept from the species.
 	var radius := 0.0
 	## Time gathered since the last step while not near (see FAR_STEP); 0 right after
@@ -522,8 +530,10 @@ func look_from(from: Array) -> void:
 		rights.append(view[1])
 		# A screen not told is a circle (see below).
 		halves.append(Vector2.ZERO if half == Vector2.ZERO else Vector2(minf(half.x, NEAR), minf(half.y, NEAR)))
+	var edge2 := (NEAR + OUT_MARGIN) * (NEAR + OUT_MARGIN)
 	for a in animals:
 		var near := false
+		var out := true
 		var px := a.pos.x
 		var pz := a.pos.z
 		for i in n:
@@ -531,17 +541,25 @@ func look_from(from: Array) -> void:
 			var dz := pz - ats[i].y
 			var half := halves[i]
 			if half == Vector2.ZERO:
-				if dx * dx + dz * dz < near2:
+				var d2 := dx * dx + dz * dz
+				if d2 < near2:
 					near = true
 					break
+				if d2 < edge2:
+					out = false
 				continue
 			var right := rights[i]
-			if absf(dx * right.x + dz * right.y) < half.x and absf(dz * right.x - dx * right.y) < half.y:
+			var across := absf(dx * right.x + dz * right.y)
+			var along := absf(dz * right.x - dx * right.y)
+			if across < half.x and along < half.y:
 				near = true
 				break
+			if across < half.x + OUT_MARGIN and along < half.y + OUT_MARGIN:
+				out = false
 		if near and not a.near:
 			a.think = minf(a.think, NEAR_THINK)
 		a.near = near
+		a.out = out and not near
 
 
 ## A body's half width on the ground, in world units, by its mass.

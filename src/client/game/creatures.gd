@@ -196,6 +196,9 @@ func _process(delta: float) -> void:
 			if absf(_fitted.get(sprite, INF) - sprite.position.y) > FIT_SLACK:
 				_fit(a, sprite)
 			_went(a, look, flip)
+		elif not a.near:
+			# Off every screen (Wildlife.look_from): its picture waits for its next step.
+			continue
 		elif not (a.flying or a.hop > 0.0) and now < look.change_at:
 			# Its walk goes by the way it covered, which changes only when it is fresh.
 			continue

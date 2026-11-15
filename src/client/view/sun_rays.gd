@@ -37,6 +37,10 @@ const THINNEST := 0.19
 const WIDEST := 0.8
 const MAX_SHAFTS := 384
 const MAX_FLECKS := 512
+## The step a shaft is looked along at high over the ground (see _length), in world units.
+const COARSE := 3.0
+## Floats of one instance in a MultiMesh's buffer: a transform (12) and a colour (4).
+const INSTANCE_FLOATS := 16
 ## Bunches of shafts a tree gets at most, shafts in a bunch at most, and flecks.
 const BUNCHES := 2
 const IN_BUNCH := 4
@@ -86,6 +90,8 @@ var _light := {}
 ## The trunk columns near, nearest first, and the next whose light is to be checked.
 var _trees := []
 var _next := 0
+## The tree whose light is being worked out (see _work_out), null for none.
+var _job: TreeJob
 ## Light was worked out since it was laid out last, and when that was (ms).
 var _worked := false
 var _shown_at := 0
@@ -187,7 +193,7 @@ func _process(_delta: float) -> void:
 	var p: Vector3 = game.player.position
 	var near := _near(p)
 	var count := _tree_count(near)
-	var view := [PixelView.up, PixelView.squash, PixelView.slope, game.view.image_size]
+	var view := _view()
 	if p.distance_to(_laid_at) >= MOVE or count != _laid_trees or view != _laid_view:
 		_laid_at = p
 		_laid_trees = count
@@ -207,7 +213,19 @@ func _process(_delta: float) -> void:
 ## nearest first, until `budget` microseconds have gone since `t0`.
 func _work_out(t0: int, budget := WORK_US) -> void:
 	var w = game.world
-	while _next < _trees.size() and Time.get_ticks_usec() - t0 < budget:
+	while Time.get_ticks_usec() - t0 < budget:
+		if _job != null:
+			# A tree's shafts are looked along one a call: each looks at the ground many
+			# times, a whole tree was 5-11 ms on a phone.
+			if _job.turn != _sun_turns:
+				_job = null
+			elif _shaft_step(w, _job):
+				_light[_job.col] = _job_light(_job)
+				_job = null
+				_worked = true
+			continue
+		if _next >= _trees.size():
+			break
 		var col: Vector2i = _trees[_next]
 		_next += 1
 		var had: Array = _light.get(col, [])
@@ -215,8 +233,10 @@ func _work_out(t0: int, budget := WORK_US) -> void:
 			continue
 		if _light.size() > MAX_CROWNS:
 			_light.clear()
-		_light[col] = _tree_light(w, col)
-		_worked = true
+		_job = _plan(w, col)
+		if _job == null:
+			_light[col] = [_sun_turns]
+			_worked = true
 
 
 ## Works out the light of all the trees near at once and lays it out (the screenshots,
@@ -228,10 +248,16 @@ func finish() -> bool:
 	var p: Vector3 = game.player.position
 	var near := _near(p)
 	_trees = _trees_near(p, near)
+	_laid_view = _view()
 	_next = 0
 	_work_out(Time.get_ticks_usec(), 1 << 40)
 	_lay_out(p, near)
 	return true
+
+
+## What of the view the light's place in the picture goes by.
+func _view() -> Array:
+	return [PixelView.up, PixelView.squash, PixelView.slope, game.view.image_size]
 
 
 ## The way the shafts run down: the sun's light's.
@@ -289,23 +315,53 @@ func _trees_near(p: Vector3, near: Array) -> Array:
 
 
 ## The light of the tree with its trunk in column `col` for the sun now, wherever the
-## picture is: [the sun's turn (_sun_turns), the shafts' tops, bottoms and looks, the
-## flecks' places and looks, two specks of dust a shaft]; [the turn] without a crown.
+## picture is, worked out at once (see _plan, _shaft_step, _job_light).
 func _tree_light(w, col: Vector2i) -> Array:
+	var job := _plan(w, col)
+	if job == null:
+		return [_sun_turns]
+	while not _shaft_step(w, job):
+		pass
+	return _job_light(job)
+
+
+## The light of one tree being worked out (see _plan): what is known of it so far.
+class TreeJob:
+	var col: Vector2i
+	## The sun's turn (_sun_turns) it is for.
+	var turn := 0
+	var foot := 0.0
+	## The shafts still to be looked along: [top, look, where its two specks of dust
+	## are along it (0..1)] each, and the next of them.
+	var shafts := []
+	var next := 0
+	var shaft_data := PackedFloat32Array()
+	var fleck_data := PackedFloat32Array()
+	var dust := PackedVector3Array()
+	var box := AABB()
+
+
+## Starts the light of the tree with its trunk in column `col` for the sun now: the
+## shafts' tops and looks, and the flecks under it; null without a crown. Its shafts'
+## lengths are found by _shaft_step, and _job_light gives the light: [the sun's turn
+## (_sun_turns), the shafts' and the flecks' instance data as MultiMesh.buffer has it
+## (INSTANCE_FLOATS each), two specks of dust a shaft, the box (world) round all of it,
+## and the screen-plane rectangle of that box with the view it was worked out for
+## (see _shown_rect)].
+func _plan(w, col: Vector2i) -> TreeJob:
 	var crown := _crown(w, col)
 	if crown.x <= -INF:
-		return [_sun_turns]
+		return null
+	var job := TreeJob.new()
+	job.col = col
+	job.turn = _sun_turns
 	var foot := crown.x
+	job.foot = foot
 	var tall := crown.y - foot
 	var r := crown.z
 	var mid := Vector2((col.x + 0.5) * CELL, (col.y + 0.5) * CELL)
+	job.box = AABB(Vector3(mid.x, foot, mid.y), Vector3.ZERO)
 	var outline := _outline(w, col, crown)
-	var tops := PackedVector3Array()
-	var bottoms := PackedVector3Array()
-	var looks := PackedColorArray()
-	var spots := PackedVector3Array()
-	var spot_looks := PackedColorArray()
-	var dust := PackedVector3Array()
 	var rng := _rng
 	rng.seed = hash(col)
 	# Each shaft and fleck draws all its numbers first, so the rest of the tree's stay
@@ -332,20 +388,10 @@ func _tree_light(w, col: Vector2i) -> Array:
 			continue
 		for i in count:
 			var look: Color = bunch[i][1]
-			var motes_at: Vector2 = bunch[i][2]
 			# Kept inside the level's outline.
 			var x := clampf(place.x + bunch[i][0], place.z + look.r * 0.5, place.w - look.r * 0.5) \
 				if place.z + look.r < place.w else place.x
-			var top := Vector3(mid.x + _across.x * x, foot + place.y, mid.y + _across.y * x)
-			var length := _length(w, top)
-			if length < 1.0:
-				continue
-			look.g = length * -_down.y
-			tops.append(top)
-			bottoms.append(top + _down * length)
-			looks.append(look)
-			dust.append(top + _down * (motes_at.x * length))
-			dust.append(top + _down * (motes_at.y * length))
+			job.shafts.append([Vector3(mid.x + _across.x * x, foot + place.y, mid.y + _across.y * x), look, bunch[i][2]])
 	# The flecks in the crown's shadow on the ground.
 	var shade := mid + _shadow * (tall * 0.6)
 	for i in FLECKS:
@@ -354,9 +400,55 @@ func _tree_light(w, col: Vector2i) -> Array:
 		var ground := _ground(w, at)
 		if ground <= -INF:
 			continue
-		spots.append(Vector3(at.x, ground, at.y))
-		spot_looks.append(look)
-	return [_sun_turns, tops, bottoms, looks, spots, spot_looks, dust]
+		var spot := Vector3(at.x, ground, at.y)
+		_put(job.fleck_data, spot, look)
+		job.box = job.box.expand(spot)
+	return job
+
+
+## Looks along the next shaft of `job` to the ground; true when it has none left.
+func _shaft_step(w, job: TreeJob) -> bool:
+	if job.next >= job.shafts.size():
+		return true
+	var shaft: Array = job.shafts[job.next]
+	job.next += 1
+	var top: Vector3 = shaft[0]
+	var length := _length(w, top, job.foot)
+	if length >= 1.0:
+		var look: Color = shaft[1]
+		var motes_at: Vector2 = shaft[2]
+		look.g = length * -_down.y
+		_put(job.shaft_data, top, look)
+		job.box = job.box.expand(top).expand(top + _down * length)
+		job.dust.append(top + _down * (motes_at.x * length))
+		job.dust.append(top + _down * (motes_at.y * length))
+	return job.next >= job.shafts.size()
+
+
+## The light `job` worked out (see _plan).
+func _job_light(job: TreeJob) -> Array:
+	return [job.turn, job.shaft_data, job.fleck_data, job.dust, job.box, Rect2(), null]
+
+
+## Adds one instance at `at` in `look` to MultiMesh data `data`: a transform (no turn)
+## and a colour, as MultiMesh.buffer lays them out.
+static func _put(data: PackedFloat32Array, at: Vector3, look: Color) -> void:
+	data.append_array(PackedFloat32Array([1.0, 0.0, 0.0, at.x, 0.0, 1.0, 0.0, at.y, 0.0, 0.0, 1.0, at.z,
+		look.r, look.g, look.b, look.a]))
+
+
+## The screen-plane rectangle round the box of tree light `light` (see _tree_light),
+## kept for the view `view` it was worked out for.
+static func _shown_rect(light: Array, view: Array) -> Rect2:
+	if light[6] == view:
+		return light[5]
+	var box: AABB = light[4]
+	var rect := Rect2(PixelView.screen_plane(box.position), Vector2.ZERO)
+	for i in range(1, 8):
+		rect = rect.expand(PixelView.screen_plane(box.get_endpoint(i)))
+	light[5] = rect
+	light[6] = view
+	return rect
 
 
 ## Lays the light of the trees near (as far as it is worked out) out in the picture
@@ -366,41 +458,41 @@ func _lay_out(p: Vector3, near: Array) -> void:
 	_worked = false
 	_shown_at = Time.get_ticks_msec()
 	var picture: Rect2 = near[0]
-	var ns := 0
-	var nf := 0
+	var shaft_data := PackedFloat32Array()
+	var fleck_data := PackedFloat32Array()
 	var dust := PackedVector3Array()
-	var sm: MultiMesh = shafts.multimesh
-	var fm: MultiMesh = flecks.multimesh
+	var shaft_room := MAX_SHAFTS * INSTANCE_FLOATS
+	var fleck_room := MAX_FLECKS * INSTANCE_FLOATS
 	for col: Vector2i in _trees:
 		var light: Array = _light.get(col, [])
 		if light.size() < 7:
 			continue
-		var tops: PackedVector3Array = light[1]
-		var bottoms: PackedVector3Array = light[2]
-		var looks: PackedColorArray = light[3]
-		var specks: PackedVector3Array = light[6]
-		for i in mini(tops.size(), MAX_SHAFTS - ns):
-			var top := tops[i]
-			if not picture.intersects(Rect2(PixelView.screen_plane(top), Vector2.ZERO).expand(PixelView.screen_plane(bottoms[i])).grow(1.0)):
-				continue
-			sm.set_instance_transform(ns, Transform3D(Basis(), top))
-			sm.set_instance_color(ns, looks[i])
-			ns += 1
-			dust.append(specks[i * 2])
-			dust.append(specks[i * 2 + 1])
-		var spots: PackedVector3Array = light[4]
-		var spot_looks: PackedColorArray = light[5]
-		for i in mini(spots.size(), MAX_FLECKS - nf):
-			if not picture.has_point(PixelView.screen_plane(spots[i])):
-				continue
-			fm.set_instance_transform(nf, Transform3D(Basis(), spots[i]))
-			fm.set_instance_color(nf, spot_looks[i])
-			nf += 1
-	sm.visible_instance_count = ns
-	fm.visible_instance_count = nf
+		# A tree whose light shows in the picture at all brings all of it (the shaders
+		# draw nothing off the screen): one test a tree, its data copied whole.
+		if not picture.intersects(_shown_rect(light, _laid_view).grow(1.0)):
+			continue
+		var shafts_of: PackedFloat32Array = light[1]
+		if not shafts_of.is_empty() and shaft_data.size() + shafts_of.size() <= shaft_room:
+			shaft_data.append_array(shafts_of)
+			dust.append_array(light[3])
+		var flecks_of: PackedFloat32Array = light[2]
+		if not flecks_of.is_empty() and fleck_data.size() + flecks_of.size() <= fleck_room:
+			fleck_data.append_array(flecks_of)
+	_fill(shafts.multimesh, shaft_data, MAX_SHAFTS)
+	_fill(flecks.multimesh, fleck_data, MAX_FLECKS)
 	if dust.is_empty():
 		dust.append(Vector3(p.x, -1000.0, p.z))
 	motes.emission_points = dust
+
+
+## Hands the instances in `data` (see _put) to MultiMesh `mm` of `most` instances at
+## once, the rest of its buffer left as it was and not drawn.
+static func _fill(mm: MultiMesh, data: PackedFloat32Array, most: int) -> void:
+	var n := data.size() / INSTANCE_FLOATS
+	if n > 0:
+		data.resize(most * INSTANCE_FLOATS)
+		mm.buffer = data
+	mm.visible_instance_count = n
 
 
 ## The outline of the crown `crown` (see _crown) of the tree in column `col` on its
@@ -454,22 +546,28 @@ static func _in_outline(outline: PackedVector3Array, pick: float, side: float, w
 
 
 ## How far a shaft from `top` runs along the light before it meets the ground (or
-## water), LONGEST at most: found a unit at a time, then to a 16th of a unit, so the
-## shaft ends on the ground.
-func _length(w, top: Vector3) -> float:
+## water), LONGEST at most. Until it comes down near the height of the tree's foot
+## `foot` only a hill can stop it, so it is looked at every COARSE units there and a
+## unit at a time below; then halved down to a 16th of a unit, so the shaft ends on
+## the ground. (A unit at a time all the way was 20-40 looks at the ground a shaft, up
+## to a millisecond a tree on a PC: a phone's frame of 5-11 ms, 2026-11-15.)
+func _length(w, top: Vector3, foot: float) -> float:
+	var drop := -_down.y
+	var level := (top.y - foot) / drop if drop > 0.01 else LONGEST
+	var above := 0.0
 	var length := 1.0
-	while length < LONGEST:
-		if _under(w, top + _down * length):
-			var above := length - 1.0
-			for i in 4:
-				var half := (above + length) * 0.5
-				if _under(w, top + _down * half):
-					length = half
-				else:
-					above = half
-			return length
-		length += 1.0
-	return LONGEST
+	while not _under(w, top + _down * length):
+		above = length
+		length += COARSE if length + COARSE < level - 1.0 else 1.0
+		if length >= LONGEST:
+			return LONGEST
+	while length - above > 1.0 / 16.0:
+		var half := (above + length) * 0.5
+		if _under(w, top + _down * half):
+			length = half
+		else:
+			above = half
+	return length
 
 
 ## World point `p` is under the ground (or the water's top).

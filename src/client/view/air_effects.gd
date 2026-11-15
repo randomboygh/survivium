@@ -36,6 +36,7 @@ const HAZE_FULL := 34.0
 const DROPS_RAIN := 0.7
 const DROPS_RATE := 0.5
 const DRY_RUN := 1.6
+const SWIM_LEFT := 0.6
 const WET_TIME := 5.0
 ## Breath steams at this many degrees and below in full, fading out up to BREATH_MILD;
 ## on a morning (from an hour before sunrise to MORNING_SPAN of a day after it) up to
@@ -97,6 +98,8 @@ var _dry_at := -1.0
 var _dry_was := 0.0
 var _wet := 0.0
 var _was_swimming := false
+## Seconds since the player was last swimming.
+var _out_for := 100.0
 ## What was last given to the shaders, so they are set only on a change.
 var _set := {}
 
@@ -162,10 +165,17 @@ func _heat(on: bool, sky, clock, indoor: bool) -> void:
 			var f: Dictionary = n[1]
 			# The flames' base and the top of the trembling air, as pixels of the picture
 			# (a world unit is PIXELS_PER_UNIT of them across).
+			# The more wood in it, the stronger, higher and wider the air trembles over it
+			# (Effects.fire_strength keeps its fuel share; a fire without one is full).
+			var fuel: float = f.get("fuel", 1.0)
+			var high := HEAT_HIGH * lerpf(0.35, 1.3, fuel)
 			var base: Vector2 = cam.unproject_position(PixelView.shear(f.at + Vector3(0.0, 0.25, 0.0)))
-			var top: Vector2 = cam.unproject_position(PixelView.shear(f.at + Vector3(0.0, 0.25 + HEAT_HIGH, 0.0)))
-			power[spots.size()] = snappedf(clampf(f.base / fx.FIRE_ENERGY, 0.3, 1.0), 0.05)
-			spots.append(Vector4(roundf(base.x), roundf(base.y), HEAT_HALF * PixelView.PIXELS_PER_UNIT, roundf(maxf(4.0, base.y - top.y))))
+			var top: Vector2 = cam.unproject_position(PixelView.shear(f.at + Vector3(0.0, 0.25 + high, 0.0)))
+			if fuel <= 0.02:
+				continue
+			power[spots.size()] = snappedf(lerpf(0.15, 1.0, fuel), 0.05)
+			spots.append(Vector4(roundf(base.x), roundf(base.y), roundf(HEAT_HALF * lerpf(0.6, 1.2, fuel) * PixelView.PIXELS_PER_UNIT),
+				roundf(maxf(3.0, base.y - top.y))))
 	# No fire near: the spots are cleared once.
 	if not spots.is_empty() or _heat_shown:
 		_heat_shown = not spots.is_empty()
@@ -187,7 +197,12 @@ func _rain_drops(delta: float, on: bool, clock, indoor: bool) -> void:
 	var view = game.view
 	if view == null:
 		return
-	var swimming: bool = game.player.body != null and game.player.body.swimming
+	# Out of the water only after SWIM_LEFT seconds out: a jump in the water is still a swim.
+	if game.player.body != null and game.player.body.swimming:
+		_out_for = 0.0
+	else:
+		_out_for += delta
+	var swimming := _out_for < SWIM_LEFT
 	if _was_swimming and not swimming:
 		_wet = WET_TIME
 	_was_swimming = swimming
@@ -200,12 +215,13 @@ func _rain_drops(delta: float, on: bool, clock, indoor: bool) -> void:
 			want = maxf(want, 0.8)
 	if want <= 0.0 and _drops > 0.0:
 		# The rain has stopped (or one went under a roof, into the water): no more drops
-		# come, the ones there run off.
-		_dry_at = _drop_clock
-		_dry_was = _drops
+		# come, the ones there run off. Those still running off from before keep running.
+		if _dry_at < 0.0:
+			_dry_at = _drop_clock
+			_dry_was = _drops
 		_drops = 0.0
 	elif want > 0.0:
-		_dry_at = -1.0
+		# New drops come thin and thicken; the ones running off finish their run.
 		_drops = move_toward(_drops, want, delta * DROPS_RATE)
 	if _dry_at >= 0.0 and _drop_clock - _dry_at > DRY_RUN:
 		_dry_at = -1.0
@@ -239,8 +255,10 @@ func _sun_path(on: bool, sky, clock, indoor: bool) -> void:
 		k *= (1.0 - 0.9 * clampf(clock.clouds, 0.0, 1.0)) * (1.0 - clock.ice()) * (1.0 - clock.rain)
 		var flat := Vector2(sky.to_sun.x, sky.to_sun.z)
 		if k > 0.02 and flat.length() > 0.01:
+			# How steeply the light comes down, for what stands in its way (water.gdshader).
+			var rise: float = maxf(sky.to_sun.y, 0.0) / flat.length()
 			flat = flat.normalized()
-			path = Vector4(snappedf(flat.x, 0.01), snappedf(flat.y, 0.01), snappedf(k, 0.02), 0.0)
+			path = Vector4(snappedf(flat.x, 0.01), snappedf(flat.y, 0.01), snappedf(k, 0.02), snappedf(rise, 0.02))
 	_give(mat, "sun_path", path)
 	if path.z > 0.0:
 		_give(mat, "sun_path_color", Vector3(snappedf(c.r, 0.02), snappedf(c.g, 0.02), snappedf(c.b, 0.02)))

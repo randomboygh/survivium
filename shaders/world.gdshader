@@ -104,6 +104,9 @@ bool is_drift(float packed_tile, vec2 uv) {
 
 // Where the point is in the picture, for the dither of the light rings (light_texel).
 varying vec2 light_xz;
+// How much this texel of snow glitters now, 0..1: lit by the sun or the moon in light()
+// (fragment to light), none in shadow.
+varying float glint;
 
 // Whether the rock's section ends at the cell beside, `q` the same point of its face a
 // hair inside it: the cell is open, or the layers keep it (its own face shows), or the
@@ -543,8 +546,17 @@ void fragment() {
 		float fringe = snow_here * (0.24 + 0.24 * h);
 		snow = step(1.0 - fringe, fract(world_pos.y / CELL)) * step(0.3, snow_here);
 	}
+	glint = 0.0;
 	if (snow > 0.0) {
 		col = mix(col, snow_color(gp.xz, wt), snow);
+		// A few texels of snow on a top flare and fade as the camera moves or turns, each
+		// along a way of its own; with the camera still they change only slowly.
+		if (top) {
+			vec2 way = vec2(hash12(wt + 11.0), hash12(wt + 29.0)) * 2.4 - 1.2;
+			float t = TIME * 0.12 + hash12(wt + 67.0) * 9.0
+				+ dot(CAMERA_POSITION_WORLD.xz, way) + atan(view_up.x, view_up.y) * 2.5;
+			glint = step(0.985, hash12(wt + floor(t) * 31.0 + 53.0)) * sin(fract(t) * 3.14159) * snow;
+		}
 	}
 	if (slanted) {
 		// The height of a slope shows as levels: each one shades darker toward its foot
@@ -619,6 +631,9 @@ void fragment() {
 	COMPAT_COLORS
 }
 
+// How much brighter a glittering texel of snow is in the sun's or the moon's light.
+const float GLINT = 1.6;
+
 void light() {
 	// A torch or a fire lights the faces turned to where it stands in the world, not
 	// to its sheared place (see unshear_dir): the foot of a wall beside it too.
@@ -631,5 +646,5 @@ void light() {
 			normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz), world_pos, world_normal)) {
 		lit = vec3(0.0);
 	}
-	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? compat_sun(lit, ALBEDO) : lit * lamp_gain;
+	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? compat_sun(lit, ALBEDO) * (1.0 + glint * GLINT) : lit * lamp_gain;
 }

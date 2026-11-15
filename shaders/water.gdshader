@@ -40,8 +40,9 @@ uniform vec3 wake_way = vec3(0.0, 1.0, 0.0);
 const float WAKE_LONG = 2.6;
 const vec3 PLANKTON = vec3(0.2, 0.62, 1.0);
 // The sun's path on the water while the sun is low (AirEffects): xy the way to the sun
-// along the ground, z how strong (0 none); glints thick on a band from the player
-// towards it, widening as it goes, in sun_path_color.
+// along the ground, z how strong (0 none), w how steeply the light comes down (rise per
+// unit along the ground); glints thick on a band from the player towards it, widening
+// as it goes, in sun_path_color, only where the light reaches the water (sun_reaches).
 uniform vec4 sun_path = vec4(0.0);
 uniform vec3 sun_path_color SRGB = vec3(1.0, 0.8, 0.5);
 // Fires, torches and lamps glittering on the water (WaterEffects): each x, z, height and
@@ -134,6 +135,30 @@ void vertex() {
 	light_xz = VERTEX.xz;
 }
 
+// Whether the low sun (or moon) reaches the water at `p`: no cloud's shadow on it, and
+// nothing standing in the way toward the light for SUN_LOOK steps along the ground: the
+// ground rising over the line or a tree's crown it passes under (the roof map's columns;
+// a crown taken as CROWN_HIGH tall over its ground). 0 hidden, 1 in the light.
+const int SUN_LOOK = 8;
+const float CROWN_HIGH = 4.0;
+float sun_reaches(vec3 p) {
+	float lit = clamp((cloud_light(p) - 0.6) / 0.4, 0.0, 1.0);
+	if (lit <= 0.0) {
+		return 0.0;
+	}
+	for (int i = 1; i <= SUN_LOOK; i++) {
+		float d = float(i) * CELL * 2.0;
+		vec2 xz = p.xz + sun_path.xy * d;
+		float y = p.y + d * sun_path.w;
+		vec4 col = column(floor(xz / CELL));
+		float ground = floor(col.b * 255.0 + 0.5) * CELL;
+		if (ground > y + 0.05 || (col.g > 0.5 && ground + CROWN_HIGH > y)) {
+			return 0.0;
+		}
+	}
+	return lit;
+}
+
 void fragment() {
 	if (above_cut(world_pos)) {
 		discard;
@@ -206,9 +231,15 @@ void fragment() {
 			float path = step(-0.5, along) * (1.0 - smoothstep(width * 0.3, width, across))
 				* (1.0 - smoothstep(6.0, 18.0, along)) * sun_path.z;
 			if (path > 0.0) {
-				// Glints flashing a texel at a time, thickest down the middle, and the
-				// ripple lines catching the light.
-				float g = step(1.0 - 0.13 * path, hash12(tex + floor(TIME * 5.0) * 23.0));
+				path *= sun_reaches(world_pos);
+			}
+			if (path > 0.0) {
+				// Glints flaring and fading a texel at a time, each on a clock of its own
+				// so they come and go smoothly rather than all at once, thickest down the
+				// middle, and the ripple lines catching the light.
+				float t = TIME * 1.6 + hash12(tex + 41.0) * 9.0;
+				float on = step(1.0 - 0.2 * path, hash12(tex + floor(t) * 23.0));
+				float g = on * sin(fract(t) * 3.14159);
 				shine += sun_path_color * (g * 0.9 + (line * 0.4 + 0.06) * path);
 				alpha = max(alpha, 0.85 * g);
 			}

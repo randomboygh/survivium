@@ -84,6 +84,9 @@ var fights := Fights.new()
 var players: Array = []
 var workshops: Array = []
 var _wild := false
+## Seconds until the animals on the players' screens are looked for again (step_wildlife).
+const LOOK_EVERY := 0.1
+var _look_wait := 0.0
 ## The generator job going on (WorldGen.Job), kept across calls of make_chunks.
 var _gen_job: WorldGen.Job
 ## The chunks the zones were last worked out around (see _zones), the reach then, and
@@ -246,13 +249,16 @@ func step_things(delta: float) -> void:
 
 
 ## The animals: those on a player's screen move every step, the rest now and then
-## (Wildlife.look_from).
+## (Wildlife.look_from, done every LOOK_EVERY seconds: it goes through every animal).
 func step_wildlife(delta: float) -> void:
 	if _wild:
-		var around: Array = []
-		for who in players:
-			around.append([who.position, who.view_right, who.view_half])
-		wildlife.look_from(around)
+		_look_wait -= delta
+		if _look_wait <= 0.0:
+			_look_wait = LOOK_EVERY
+			var around: Array = []
+			for who in players:
+				around.append([who.position, who.view_right, who.view_half])
+			wildlife.look_from(around)
 		wildlife.update(delta)
 
 
