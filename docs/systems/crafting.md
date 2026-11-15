@@ -116,7 +116,7 @@ campfire's fuel — by `fuel` (`Items.fuel_in`, how long it burns — `Items.fue
 said by the item's flags: `storage` (keeps things, a chest: 16 places, a big chest: 40; such a thing is not a
 station), `fire` (burns: is put out, lit with fuel, burns whoever touched the logs (`Placed.FLAMES_HALF` — the
 same half-cell from the middle as `FIRE_BOXES`, plus the body's width) or bumped into them by a step
-(`Body.bumped`): `Vitals.BURN`, the knock `Character.BURN_KNOCK`; one can warm up on the stones around; only
+(`Body.bumped`): `Vitals.BURN_LOW`..`BURN_HIGH` by its fuel (`Placed.fuel_share`), the knock `Character.BURN_KNOCK`; one can warm up on the stones around; only
 the logs in the middle are solid, cell by cell, `Placed.FIRE_BOXES`, the ring of stones is passable; a fire
 with a model of its own is a hearth, `Placed.is_hearth`: the 2×1 fireplace of the bundle `tools/fireplace` is
 solid by its model, does not burn, is placed cold (`fuel_start` 0), an extinguished one is taken into the bag,
