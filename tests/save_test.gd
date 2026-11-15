@@ -78,6 +78,68 @@ func _frames(n: int) -> void:
 		await process_frame
 
 
+## A thing the build mode holds up (BuildMode.drag) never stays in the air: dropped when
+## its stroke goes without a release, when another press comes while it is dragged, and
+## when the last finger is up though the mouse's emulation missed it (the user's report
+## of 2026-11-15: a thing set down with the finger held hung in the air).
+func _held_props(main: Node) -> void:
+	main.host.player.inventory.add("tools:chest", 1)
+	await _frames(2)
+	_check(main.props.put_from_bag("tools:chest"), "a chest is set down in front of the player")
+	var e: Dictionary = {}
+	for t: Dictionary in main.placed.things:
+		if t.item == "tools:chest" and t.cell != main.placed.things[0].cell:
+			e = t
+	if e.is_empty():
+		_check(false, "the chest set down is in the client's copy")
+		return
+	main.build.enter("tools:chest")
+	var held_up := func(how: String) -> void:
+		main.props.hold_at(e, e.cell + Vector3i(1, 0, 0))
+		main.build._dragged = e
+		main.controls._stroke = {"button": MOUSE_BUTTON_LEFT, "dig": false, "pos": Vector2(1, 1), "held": true,
+			"pending": false, "prop": e, "from": Vector2(1, 1), "moved": true, "to": null, "corner": null,
+			"grab": Vector3i.ZERO}
+		_check(not main.props.standing(e), "a thing dragged is held up (%s)" % how)
+	# Its stroke dropped with no release.
+	held_up.call("stroke gone")
+	main.controls._stroke = {}
+	await _wait_ms(500)
+	_check(main.props.standing(e), "a thing held up whose stroke is gone drops back")
+	# Another press while it is dragged.
+	held_up.call("second press")
+	main.controls.tap(main.controls.active, Vector2(2, 2))
+	await _wait_ms(500)
+	_check(main.props.standing(e) and main.build._dragged.is_empty(), "a second press lets the thing dragged drop back")
+	main.controls._stroke = {}
+	# The finger lifted, the mouse's emulation still pressed (the middle button here: the
+	# world does nothing with it).
+	var was_touch: bool = main.controls.touch
+	main.controls.set_touch(true)
+	main.controls.fingers.clear()
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_MIDDLE
+	press.pressed = true
+	Input.parse_input_event(press)
+	await _frames(2)
+	held_up.call("finger up")
+	main.controls._stroke.button = MOUSE_BUTTON_MIDDLE
+	await _wait_ms(500)
+	_check(main.props.standing(e) and main.controls._stroke.is_empty(), "a thing dragged drops back once no finger is down")
+	press = press.duplicate()
+	press.pressed = false
+	Input.parse_input_event(press)
+	main.controls.set_touch(was_touch)
+	main.build.leave()
+	await _frames(2)
+
+
+func _wait_ms(ms: int) -> void:
+	var end := Time.get_ticks_msec() + ms
+	while Time.get_ticks_msec() < end:
+		await process_frame
+
+
 ## A sign's window on a touch screen: its buttons act as the finger lifts, and the field keeps
 ## the keys while a button is held; a finger lifted off the field lets it go; the world under
 ## the window is not touched; closing it lets the keys go.
@@ -425,6 +487,7 @@ func _run() -> void:
 	WorldStore.erase_dir(wipe)
 	await _sign_window(main)
 	await _every_window(main)
+	await _held_props(main)
 	main.queue_free()
 	await process_frame
 	WorldStore.new(ROOT).erase()

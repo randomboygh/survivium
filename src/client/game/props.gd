@@ -295,12 +295,25 @@ func _arrive(e: Dictionary, node: Node3D) -> void:
 ## Drops `node` onto world point `to` from `height` cells over it in `time` seconds,
 ## faster as it goes; while it is up it is culled loosely (its box is fitted to `to`).
 func _fall(node: Node3D, to: Vector3, height: float, time: float) -> Tween:
+	_stop_fall(node)
 	node.position = to + Vector3(0.0, height * CELL, 0.0)
 	node.extra_cull_margin = CULL_MARGIN
 	var tw := node.create_tween()
 	tw.tween_property(node, "position", to, time).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void: node.extra_cull_margin = 0.0)
+	node.set_meta("fall", tw)
 	return tw
+
+
+## The drop of `node` still going (_fall, settle) stops where it is: a thing taken up
+## while it drops is not pulled down under the finger, nor one settled twice.
+func _stop_fall(node: Node3D) -> void:
+	if not node.has_meta("fall"):
+		return
+	var tw: Variant = node.get_meta("fall")
+	if tw is Tween and tw.is_valid():
+		tw.kill()
+	node.remove_meta("fall")
 
 
 ## Thing `e` touched the ground: dust of the ground under it from its edges, and a thud,
@@ -322,6 +335,7 @@ func hold_at(e: Dictionary, corner: Vector3i) -> bool:
 	var node: Node3D = _nodes.get(e.cell)
 	if node == null or not is_instance_valid(node):
 		return false
+	_stop_fall(node)
 	node.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
 	node.extra_cull_margin = CULL_MARGIN
 	return true
@@ -336,10 +350,21 @@ func settle(e: Dictionary) -> void:
 	var to := Vector3(e.cell) * CELL
 	if from.is_equal_approx(to):
 		return
+	_stop_fall(node)
 	node.extra_cull_margin = CULL_MARGIN
 	var tw := node.create_tween()
 	tw.tween_property(node, "position", to, DROP_TIME).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void: node.extra_cull_margin = 0.0)
+	node.set_meta("fall", tw)
+
+
+## Whether the model of thing `e` stands on its cells (not held up by the build mode nor
+## dropping); true when it has no model of its own.
+func standing(e: Dictionary) -> bool:
+	var node: Node3D = _nodes.get(e.cell)
+	if node == null or not is_instance_valid(node):
+		return true
+	return node.position.is_equal_approx(Vector3(e.cell) * CELL)
 
 
 ## Light `e` set down: its model standing in the middle of its cell and its flame on top

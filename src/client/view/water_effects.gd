@@ -58,7 +58,8 @@ const MIRROR_LOOK := 3
 const MIRROR_DEEP := 1.6
 const MIRROR_HIGH := 1.2
 
-## Seconds between two looks at the steam and the glints.
+## Seconds between two looks at the steam and the glints (every frame while a torch is
+## carried, see _torch_lit).
 const SLOW_LOOK := 0.2
 
 ## The parts as «Что рисуется» names them (RenderToggles).
@@ -141,6 +142,9 @@ func update(delta: float, sky, clock, indoor: bool) -> void:
 	if _slow <= 0.0:
 		_slow = SLOW_LOOK
 		_steam(sky, clock, indoor)
+		_glints(sky)
+	elif _torch_lit():
+		# A torch carried moves every frame: its glint on the water keeps up with it.
 		_glints(sky)
 	_mirror(delta, sky)
 
@@ -361,6 +365,14 @@ func _place_steam(view: Vector2, ground: float) -> void:
 			continue
 		spots.append(Vector3((x + randf()) * CELL, top + 0.05, (z + randf()) * CELL) - at)
 	steam.emission_points = spots
+
+
+## Whether a torch is burning in someone's hands (Effects.torch_flames).
+func _torch_lit() -> bool:
+	for flame: CPUParticles3D in fx.torch_flames:
+		if flame.emitting:
+			return true
+	return false
 
 
 ## The GLINTS lights nearest the view glitter on the water: the fires, the lights set
