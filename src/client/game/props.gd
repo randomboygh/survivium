@@ -73,6 +73,10 @@ var _gone := {}
 ## The chunks waiting, with when they began to; how many things each chunk shows.
 var _drops_held := {}
 var _drops_shown := {}
+## What each chunk's mesh of the things lying draws, by where a thing lies: [kind, first
+## vertex, vertices, its sack's glow or null] apiece. A thing taken up is folded away in
+## the mesh as it is (`_fold_taken`), not the whole mesh made again.
+var _drop_spans := {}
 ## The longest things newly fallen wait for their chunk to be rebuilt, ms.
 const DROPS_HOLD_MS := 4000
 
@@ -144,7 +148,7 @@ func remodel() -> void:
 			if not Items.get_item(e.item).is_empty():
 				_on_added(e)
 	for key: Vector2i in drop_nodes.keys():
-		show_drops(key)
+		show_drops(key, true)
 
 
 ## The player places item `id` from the bag (see Placed.put_from_bag) below the level
@@ -393,9 +397,14 @@ func _update_heat() -> void:
 ## Shows what lies on the ground in chunk `key` (see WorldData.drops) afresh, all of
 ## it one mesh: a thing apiece cost a draw call in every light's pass and the sun's
 ## shadow, some 600 calls round a busy camp on the phone (2026-10-24). A death's sack
-## glows (Effects.sack_glow).
-func show_drops(key: Vector2i) -> void:
+## glows (Effects.sack_glow). Things only taken up are folded away in the mesh drawn
+## (`_fold_taken`) unless `whole`: a busy chunk's mesh took 16-52 ms to make on the phone
+## at every pickup (2026-11-15).
+func show_drops(key: Vector2i, whole := false) -> void:
 	var count: int = game.world.drops.get(key, []).size()
+	if not whole and _fold_taken(key):
+		_drops_shown[key] = count
+		return
 	# More things than drawn, while a chunk round whose own cells changed is still to be
 	# rebuilt (ChunkStreamer.edited, the chunks of a felled tree): drawn when it is
 	# (drops_rebuilt), so the logs appear as the tree goes. Fewer (taken up) are drawn
@@ -411,12 +420,17 @@ func show_drops(key: Vector2i) -> void:
 		return
 	_drops_shown[key] = count
 	var nodes := []
+	var spans := {}
 	var parts := [PackedVector3Array(), PackedVector3Array(), PackedVector2Array(),
 		PackedVector2Array(), PackedColorArray()]
 	for d: Array in game.world.drops.get(key, []):
 		var arrays := _arrays_of(d[0])
 		if arrays.is_empty():
 			continue
+		var span := [d[0], parts[0].size(), (arrays[0] as PackedVector3Array).size(), null]
+		if not spans.has(d[1]):
+			spans[d[1]] = []
+		spans[d[1]].append(span)
 		# Turned in steps of 45 degrees, which keep the pixels tidy.
 		var turn := Basis(Vector3.UP, -snappedf(d[2], PI / 4.0))
 		parts[0].append_array(Transform3D(turn.scaled(Vector3.ONE / 16.0), d[1]) * (arrays[0] as PackedVector3Array))
@@ -424,7 +438,8 @@ func show_drops(key: Vector2i) -> void:
 		for i in range(2, 5):
 			parts[i].append_array(arrays[i])
 		if d[0] == Items.SACK:
-			nodes.append(game.effects.sack_glow(d[1]))
+			span[3] = game.effects.sack_glow(d[1])
+			nodes.append(span[3])
 	if not parts[0].is_empty():
 		var surface := []
 		surface.resize(Mesh.ARRAY_MAX)
@@ -443,7 +458,48 @@ func show_drops(key: Vector2i) -> void:
 		_fit(node)
 		game.world_root.add_child(node)
 		nodes.append(node)
+		_drop_spans[key] = spans
 	drop_nodes[key] = nodes
+
+
+## Folds away in chunk `key`'s mesh of things lying (show_drops) each thing no longer
+## there: its vertices all go to one point, so it draws nothing. False (nothing done)
+## when the chunk shows no such mesh or something lies there that the mesh lacks.
+func _fold_taken(key: Vector2i) -> bool:
+	var spans: Dictionary = _drop_spans.get(key, {})
+	var nodes: Array = drop_nodes.get(key, [])
+	if spans.is_empty() or nodes.is_empty() or not nodes[-1] is MeshInstance3D:
+		return false
+	var left := {}
+	for at: Vector3 in spans:
+		left[at] = (spans[at] as Array).duplicate()
+	for d: Array in game.world.drops.get(key, []):
+		if _arrays_of(d[0]).is_empty():
+			continue
+		var here: Array = left.get(d[1], [])
+		var found := -1
+		for i in here.size():
+			if here[i][0] == d[0]:
+				found = i
+				break
+		if found < 0:
+			return false
+		here.remove_at(found)
+	var mesh: ArrayMesh = (nodes[-1] as MeshInstance3D).mesh
+	var format := mesh.surface_get_format(0)
+	var total := mesh.surface_get_array_len(0)
+	var stride := RenderingServer.mesh_surface_get_format_vertex_stride(format, total)
+	var start := RenderingServer.mesh_surface_get_format_offset(format, total, Mesh.ARRAY_VERTEX)
+	for at: Vector3 in left:
+		for span: Array in left[at]:
+			var nothing := PackedByteArray()
+			nothing.resize(int(span[2]) * stride)
+			mesh.surface_update_vertex_region(0, start + int(span[1]) * stride, nothing)
+			if span[3] != null:
+				(span[3] as Node).queue_free()
+				nodes.erase(span[3])
+			(spans[at] as Array).erase(span)
+	return true
 
 
 ## Draws a shot in flight (WorldActions.shoot, its `shot`: [kind, from, to, seconds]):
@@ -474,6 +530,7 @@ func hide_drops(key: Vector2i) -> void:
 		node.queue_free()
 	drop_nodes.erase(key)
 	_drops_shown.erase(key)
+	_drop_spans.erase(key)
 
 
 ## A chunk's new mesh is shown (ChunkStreamer): the things that waited for it are drawn.

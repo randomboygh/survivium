@@ -202,7 +202,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
 - `src/client/game/character.gd` — the character's copy on the client; `who` for what the client reads from the
   rules itself (the cursor frame, hints). The rules over the world go on the server, where `who` is
   `src/server/player.gd`.
-- `src/client/game/props.gd` — what lies on the ground and its flight into the bag (connected to the signals).
+- `src/client/game/props.gd` — what lies on the ground and its flight into the bag (connected to the signals). What lies in a chunk is one mesh (`show_drops`); a thing taken up is folded away in it (its vertices put at one point, `_fold_taken`), the mesh is made again only when something new lies there.
   New things in a chunk are drawn when the neighbouring chunks in which the cells themselves changed have been
   rebuilt (`ChunkStreamer.edited`, they go first in the queue; neighbours touched only by an edge are not
   waited for; `drops_rebuilt` from `ChunkStreamer`, no longer than `DROPS_HOLD_MS`): the logs of a felled
