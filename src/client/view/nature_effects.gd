@@ -22,6 +22,8 @@ const CELL := WorldData.CELL
 ## still this many seconds.
 const MIDGE_WARM := 12.0
 const MIDGE_IDLE := 4.0
+## How wide a cloud of midges is round its middle (units).
+const MIDGE_RADIUS := 1.2
 ## Dragonflies at once; how far from their spot over the water they go (world units),
 ## how long they hover between two darts (seconds) and how fast a dart is.
 const DRAGONFLIES := 3
@@ -126,24 +128,24 @@ func _own(e: CPUParticles3D) -> CPUParticles3D:
 	return e
 
 
-## A cloud of midges dancing round its node: dark specks darting every way, close in.
+## A cloud of midges dancing round its node: specks darting every way, loose and wide.
 func _midge_cloud() -> CPUParticles3D:
-	# A dense little cloud of specks dancing in place, some caught by the low sun.
-	var e := _own(fx._emitter(30, 0.9, Vector2(PX, PX), 1.0))
+	# A wide thin cloud of specks dancing in place, some caught softly by the low sun.
+	var e := _own(fx._emitter(60, 1.4, Vector2(PX, PX), 1.0))
 	e.local_coords = true
 	e.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
-	e.emission_sphere_radius = 0.3
+	e.emission_sphere_radius = MIDGE_RADIUS
 	e.direction = Vector3.UP
 	e.spread = 180.0
-	e.initial_velocity_min = 0.15
-	e.initial_velocity_max = 0.4
+	e.initial_velocity_min = 0.2
+	e.initial_velocity_max = 0.5
 	e.gravity = Vector3.ZERO
 	var specks := Gradient.new()
 	specks.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
-	specks.colors = PackedColorArray([Color(0.1, 0.1, 0.08), Color(0.95, 0.85, 0.6), Color(0.1, 0.1, 0.08)])
+	specks.colors = PackedColorArray([Color(0.3, 0.29, 0.24), Color(0.72, 0.66, 0.5), Color(0.3, 0.29, 0.24)])
 	e.color_initial_ramp = specks
 	e.scale_amount_min = 1.0
-	e.scale_amount_max = 2.0
+	e.scale_amount_max = 1.5
 	(e.mesh as QuadMesh).material.set_shader_parameter("sky_only", 0.0)
 	return e
 
@@ -210,10 +212,10 @@ func update(delta: float, sky, clock, indoor: bool) -> void:
 		for p: Vector3 in _spots:
 			if PixelView.screen_plane(p).distance_to(view) < PixelView.screen_plane(best).distance_to(view):
 				best = p
-		midges.position = best + Vector3(0.0, 0.7, 0.0)
+		midges.position = best + Vector3(0.0, 1.2, 0.0)
 	_emit(midges, by_water)
 	var idle: bool = evening and not hidden.has(MIDGES_PART) and game.view.idle > MIDGE_IDLE
-	head_midges.position = player.position + Vector3(0.0, 1.25, 0.0)
+	head_midges.position = player.position + Vector3(0.0, 1.7, 0.0)
 	_emit(head_midges, idle)
 	for e: CPUParticles3D in [midges, head_midges]:
 		if e.emitting:
