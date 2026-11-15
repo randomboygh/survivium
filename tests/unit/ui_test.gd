@@ -481,17 +481,17 @@ func _test_vibration() -> void:
 	_check(bad.is_empty(), "the vibration patterns are short pulses with strengths and a step (%s)" % [bad])
 	_check(not Vibration.allows({}, Vibration.IMPORTANT), "a stand-in for the game buzzes nothing")
 	var rumbles := []
-	for v in Vibration.ThunderShape.KINDS.size():
+	for v in Vibration.ThunderShape.ENVELOPES.size():
 		var r: Array = Vibration.rumble_steps(Vibration.ThunderShape.of(v), 1.0, 1.0)
 		var total := 0
 		for ms in r[0]:
 			total += int(ms)
 		rumbles.append(total)
 		_check(r[0].size() % 2 == 1 and r[0].size() <= Vibration.WEB_MOST and r[1].size() == (r[0].size() + 1) / 2
-			and r[1][0] >= r[1][-1],
-			"thunder %d is felt as its hits and a boom that fades (%s)" % [v, r[0]])
-	_check(rumbles.min() >= 400 and rumbles.max() <= 2000 and rumbles.max() - rumbles.min() >= 200,
-		"the thunders are felt short, «ту-дууух», and unlike each other (%s ms)" % [rumbles])
+			and r[0][2] == Vibration.HIT_PULSE and r[1][1] >= r[1][-1],
+			"thunder %d is felt as a sharp pulse and a boom that fades (%s)" % [v, r[0]])
+	_check(rumbles.min() >= 500 and rumbles.max() <= 2000,
+		"the thunders are felt short, «ту-дууух» (%s ms)" % [rumbles])
 	var was: String = Settings.path
 	Settings.path = "user://test_vibration.cfg"
 	var cfg := ConfigFile.new()

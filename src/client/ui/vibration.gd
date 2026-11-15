@@ -109,11 +109,14 @@ static func play(game, id: String, delay := 0.0, scale := 1.0) -> void:
 	_later(game, p[0], strengths, delay)
 
 
-## A thunder's «ту»: each hit's pulse (ms, the first sharp with the crack); its «дууух»
+## A thunder's «ту»: the sharp pulse as the peal comes up, and the pause after; its «дууух»
 ## at most and at least this long, in BOOM_PARTS pulses fading by BOOM_FADE; and no
 ## thunder is felt sooner than THUNDER_AGAIN seconds after the last one (a storm
 ## flashes every few seconds).
 const HIT_PULSE := 60
+const HIT_GAP := 90
+## A peal is «loud» while its envelope is above this (ThunderShape).
+const LOUD := 0.45
 const BOOM_MS := Vector2i(400, 1000)
 const BOOM_FADE := [1.0, 0.75, 0.5, 0.3]
 const THUNDER_AGAIN := 8.0
@@ -138,7 +141,7 @@ static func rumble(game, played: Dictionary, scale: float) -> void:
 	_thunder_at = now
 	var v: int = played.get("variant", -1)
 	var count: int = game.sound.streams("thunder").size() if game.get("sound") != null else 0
-	if v < 0 or count != ThunderShape.KINDS.size():
+	if v < 0 or count != ThunderShape.ENVELOPES.size():
 		play(game, "thunder", 0.0, scale)
 		return
 	var steps := rumble_steps(ThunderShape.of(v), float(played.get("pitch", 1.0)), scale)
@@ -146,22 +149,20 @@ static func rumble(game, played: Dictionary, scale: float) -> void:
 
 
 ## The pulses (on, off… ms) and their strengths of thunder shape `s` played at speed
-## `pitch`, as strong as `scale` (see rumble): a pulse a hit, a pause, the boom.
+## `pitch`, as strong as `scale` (see rumble): a sharp pulse as the peal comes up, a
+## short pause, then the boom fading over the time the peal stays loud.
 static func rumble_steps(s: Dictionary, pitch: float, scale: float) -> Array:
-	var steps := []
-	var strengths := []
-	var end := 0
-	for h: Array in s.hits:
-		var at := roundi(float(h[0]) * 1000.0 / pitch)
-		if not steps.is_empty():
-			steps.append(maxi(at - end, 40))
-		steps.append(HIT_PULSE)
-		strengths.append(clampf(float(h[1]) * scale, 0.1, 1.0))
-		end = maxi(at, end) + HIT_PULSE
-	var boom_at := roundi(float(s.hold[0]) * 1000.0 / pitch)
-	if not steps.is_empty():
-		steps.append(maxi(boom_at - end, 60))
-	var boom := clampi(roundi(float(s.hold[1]) * 1000.0 / pitch * 0.6), BOOM_MS.x, BOOM_MS.y)
+	var env: Array = s.env
+	var step := ThunderShape.STEP * 1000.0 / pitch
+	var up := 0
+	while up < env.size() - 1 and env[up] < LOUD:
+		up += 1
+	var loud := up
+	while loud < env.size() and env[loud] >= LOUD:
+		loud += 1
+	var steps := [1, maxi(roundi(up * step), 1), HIT_PULSE, HIT_GAP]
+	var strengths := [0.05, clampf(scale, 0.1, 1.0)]
+	var boom := clampi(roundi((loud - up) * step) - HIT_PULSE - HIT_GAP, BOOM_MS.x, BOOM_MS.y)
 	for i in BOOM_FADE.size():
 		if i > 0:
 			steps.append(0)
