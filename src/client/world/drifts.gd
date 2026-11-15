@@ -126,14 +126,19 @@ static func build(w, x0 := 0, z0 := 0, size := WorldData.CHUNK) -> Array:
 			rng.seed = hash(Vector3i(x, y, z))
 			var turn := Basis(Vector3.UP, rng.randf_range(-0.6, 0.6))
 			var centre := Vector3(x + 0.5 + rng.randf_range(-0.3, 0.3), y, z + 0.5 + rng.randf_range(-0.3, 0.3))
-			var r := rng.randf_range(0.9, 2.0)
-			var h := rng.randf_range(0.16, 0.4)
-			_mound(buf, rng, turn, centre, r, h)
-			count += 1
 			# Some drifts are a ridge of two humps drawn out downwind, some a heap of
 			# three, the rest one mound (MOUND_SHAPES).
 			var shape := rng.randf()
 			var more := 0 if shape < MOUND_SHAPES.x else (1 if shape < MOUND_SHAPES.y else 2)
+			# Most are small, a few big (up to MOUND_MAX): as big as the level ground
+			# round them lets them be.
+			var grow := pow(rng.randf(), MOUND_SKEW)
+			var r := lerpf(MOUND_MIN, MOUND_MAX, grow)
+			var reach := 1.0 if more == 0 else 2.0
+			r = minf(r, (_flat_radius(w, x, y, z, ceili(r * reach)) + 1.0) / reach)
+			var h := rng.randf_range(0.16, 0.4) * lerpf(1.0, 2.0, inverse_lerp(MOUND_MIN, MOUND_MAX, maxf(r, MOUND_MIN)))
+			_mound(buf, rng, turn, centre, r, h)
+			count += 1
 			for i in more:
 				var along := turn.x * (rng.randf_range(0.45, 0.8) * r * (1.0 if i == 0 else -0.8))
 				var aside := turn.z * rng.randf_range(-0.25, 0.25) * r
@@ -144,6 +149,23 @@ static func build(w, x0 := 0, z0 := 0, size := WorldData.CHUNK) -> Array:
 
 ## Shares of the drifts that are one mound (x), a ridge of two (y - x), a heap of three.
 const MOUND_SHAPES := Vector2(0.4, 0.75)
+## A mound's length in world units, the smallest and the biggest, and how rare the big
+## ones are (the power a random share is raised to).
+const MOUND_MIN := 0.9
+const MOUND_MAX := 6.0
+const MOUND_SKEW := 2.2
+
+
+## How many rings of cells round (x, z), up to `most`, are level ground at `y` under
+## the open sky, past the 3 by 3 already checked (1 if only those). Each ring is checked
+## at every other cell.
+static func _flat_radius(w, x: int, y: int, z: int, most: int) -> int:
+	for k in range(2, most + 1):
+		for t in range(-k, k + 1, 2):
+			for c in [Vector2i(x + t, z - k), Vector2i(x + t, z + k), Vector2i(x - k, z + t), Vector2i(x + k, z + t)]:
+				if w.surface_y(c.x, c.y) != y or w.get_cell(c.x, y, c.y) != Mat.AIR or w.roof_level(c.x, c.y) != y - 1:
+					return k - 1
+	return maxi(most, 1)
 
 
 ## One mound at `centre` (cells), `r` world units long, `h` high, turned by `turn`, drawn out
