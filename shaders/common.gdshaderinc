@@ -981,3 +981,16 @@ float heat_wobble(vec2 texel, float time) {
 	float w = sin(texel.y * 0.9 + time * 4.0 + floor(texel.x / 11.0) * 1.3) * 0.6 + sin(texel.y * 0.37 - time * 2.2) * 0.5;
 	return floor(w * heat_ground * 1.1 + 0.5);
 }
+
+// How many texels the hot air moves what stands over the ground sideways (people, animals,
+// plants, things): the row of the picture world point `p` is on sways with the ground's
+// waves (heat_wobble), all of a thing's row together (`foot` gives the column), the
+// most at the ground and less `h` world units up it, to a quarter by 2.5 units.
+float heat_sway(vec3 p, vec3 foot, float h, float time) {
+	if (heat_ground <= 0.0) {
+		return 0.0;
+	}
+	vec2 t = vec2(floor(screen_plane(foot).x * TEXELS), floor(screen_plane(p).y * TEXELS + 0.001));
+	float w = sin(t.y * 0.9 + time * 4.0 + floor(t.x / 11.0) * 1.3) * 0.6 + sin(t.y * 0.37 - time * 2.2) * 0.5;
+	return floor(w * heat_ground * 1.1 * clamp(1.0 - h * 0.3, 0.25, 1.0) + 0.5);
+}

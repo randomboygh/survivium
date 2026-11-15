@@ -93,7 +93,17 @@ void vertex() {
 
 void fragment() {
 	vec4 shown = IN_SHADOW_PASS && flat_shadow > 0.5 ? shadow_uv : frame_uv;
-	vec2 uv = shown.xy + UV * shown.zw;
+	vec2 at = UV;
+	// In the heat over sand and the sea the body's rows sway aside with the air (heat_sway).
+	if (heat_ground > 0.0 && !IN_SHADOW_PASS) {
+		vec3 foot = MODEL_MATRIX[3].xyz;
+		float wide = abs(shown.z) * float(textureSize(sprite_texture, 0).x);
+		at.x -= heat_sway(world_pos, foot, world_pos.y - foot.y, TIME) / max(wide, 1.0);
+		if (at.x < 0.0 || at.x > 1.0) {
+			discard;
+		}
+	}
+	vec2 uv = shown.xy + at * shown.zw;
 	vec4 c = texture(sprite_texture, uv);
 	c.rgb *= tint;
 	// The player stays whole whatever level is cut; everyone else goes with their level.

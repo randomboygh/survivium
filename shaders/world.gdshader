@@ -159,6 +159,14 @@ void vertex() {
 	world_pos = VERTEX;
 	world_normal = NORMAL;
 	packed = UV2;
+	// A thing of voxels (a placed thing, a dropped one: no material, not a drift) sways
+	// aside in the heat over sand and the sea, row by row of the picture, its foot most
+	// (heat_sway); the ground itself trembles by its texels (see fragment).
+	if (heat_ground > 0.0 && int(UV2.x + 0.5) % 64 == NO_MATERIAL && !is_drift(UV2.x, UV)) {
+		vec3 foot = MODEL_MATRIX[3].xyz;
+		float s = heat_sway(VERTEX, foot, VERTEX.y - foot.y, TIME) / TEXELS;
+		VERTEX.xz += vec2(-view_up.y, view_up.x) * s;
+	}
 	VERTEX = shear(VERTEX);
 	light_xz = VERTEX.xz;
 }
