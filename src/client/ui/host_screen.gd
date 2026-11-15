@@ -42,6 +42,7 @@ const Clock := preload("res://src/shared/game/clock.gd")
 const WorldList := preload("res://src/client/ui/world_list.gd")
 const WorldSetup := preload("res://src/client/ui/world_setup.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
+const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 
 const WIDTH := 300
 const NAME_WIDTH := 80
@@ -616,6 +617,7 @@ func _build_running() -> void:
 	_log_scroll.custom_minimum_size = Vector2(WIDTH - 2 * UiStyle.WELL_PAD,
 		LOG_TALL * UiStyle.font().get_height(UiStyle.FONT_SIZE))
 	well.add_child(_log_scroll)
+	DragScroll.attach(_log_scroll)
 	_log = UiStyle.label("", UiStyle.MUTED)
 	_log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_log.custom_minimum_size = Vector2(WIDTH - 2 * UiStyle.WELL_PAD - UiStyle.SCROLL_BAR - 2, 0)

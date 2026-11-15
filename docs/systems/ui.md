@@ -281,8 +281,14 @@ and a new shared part is added to the kit and to the «Interface gallery».
   arrows at the top and bottom and a finger drag, like the hotbar's; the tabs of kinds `icon_tabs.gd` are on
   it), `drag_scroll.gd` (a drag over a ScrollContainer's list scrolls it, including one started on a button: as
   soon as the finger moves, the press of the list's buttons is released, and the finger's release presses
-  nothing; a touch of a slider, a bar or an input field stays theirs; `DragScroll.attach`: the bag, crafting,
-  «Load world», «New world», settings, «Land», «Team»). The crafting recipe list taller than four rows
+  nothing; a touch of a slider, a bar or an input field stays theirs; like a phone's lists, a flick flies on
+  and slows by itself (`FRICTION`; a touch stops it and picks nothing), a pull past the top or the end stretches
+  the list less and less (`PULL`) and springs back when let go (`SPRING`), a flick into an end bounces off it a
+  little (`BOUNCE`); the mouse wheel glides an eighth of the list a notch and bounces too; a list whose rows fit
+  neither scrolls nor stretches and leaves its wheel to the list around it; the stretch moves the content after
+  each sort of the ScrollContainer, its scroll stays within bounds; the engine's own touch drag of the list is
+  off; `DragScroll.attach`: every `Kit.scroll` (settings, testing, main menu pages, host and join windows,
+  «Load world», «New world», the gallery), the bag, crafting, «Land», «Team», the server log). The crafting recipe list taller than four rows
   (`CraftPanel.ROWS`) or than the window's room scrolls.
 
 **Data.** The interface's texts are keys `[…]` in the UI code, translated by `lang/<code>.yaml`
