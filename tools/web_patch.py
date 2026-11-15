@@ -54,6 +54,14 @@ lost with the page: up to the 30 s between saves (WA-057). The patch gives the p
 hidden (src/client/save_game.gd); a sync already under way is waited for, since it may have
 listed the files before the save.
 
+The engine also writes to the browser's store once for every frame in which a file was
+written, one after another, and each of those passes looks at every file of the store: the
+game's save writes a few chunks a frame, so a save every 30 s was a run of passes, each
+some 15 ms on a phone before the frame and more in the page's work after it, and their
+garbage (2026-11-15, the freeze log's «input» with every «save»). The patch has a pass the
+engine asks for wait SYNC_WAIT ms first, so the files of a whole save go in one or two
+passes; the game's own sync when the page is hidden does not wait.
+
 It fails when the files are not the ones it knows, so an engine upgrade is noticed.
 
     python3 tools/web_patch.py [build/web]
@@ -169,6 +177,15 @@ VK_ENTER_KEPT = (VK_ENTER + '(function(elem){"use strict";let last=0;function se
     '})(GodotDisplayVK.textinput);')
 
 
+# The engine's pass that writes its files to the browser's store: it waits SYNC_WAIT ms
+# first (and for a sync of the page's own under way), so the files written meanwhile go too.
+SYNC_WAIT = 2000
+SYNC = "GodotOS._fs_sync_promise=GodotFS.sync();GodotOS._fs_sync_promise.then(function(err){func()})"
+SYNC_LATER = ("GodotOS._fs_sync_promise=new Promise(function(done){\"use strict\";function go(){"
+    "if(GodotFS._syncing){setTimeout(go,100);return}GodotFS.sync().then(done)}"
+    "setTimeout(go,%d)});GodotOS._fs_sync_promise.then(function(err){func()})" % SYNC_WAIT)
+
+
 # Where the engine's file system is handed to the page: the page gets a sync of its own.
 FS = 'Module["copyToFS"]=GodotFS.copy_to_fs;'
 FS_SYNC = FS + (
@@ -201,6 +218,7 @@ def main() -> None:
     patch(out / "index.js", TOUCH_END, TOUCH_END_KEPT, "an iPhone's keyboard opens as the finger lifts off a field")
     patch(out / "index.js", VK_ENTER, VK_ENTER_KEPT, "the phone keyboard's Enter reaches the field")
     patch(out / "index.js", FS, FS_SYNC, "the page can write the files to the browser's store at once")
+    patch(out / "index.js", SYNC, SYNC_LATER, "the files go to the browser's store %d ms after the first written" % SYNC_WAIT)
 
 
 if __name__ == "__main__":
