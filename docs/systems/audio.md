@@ -11,7 +11,7 @@ voices, steps, quiet music from notes.
   (everywhere), `spot` (from a place), `work`, `resolve(id)`; the world around the player is looked over once
   per `Sound.TICK` (0.25 s), not every frame; several voices per world (`VOICES`), a repeat within `MIN_GAP`
   is not doubled.
-- `src/client/audio/nature.gd` — weather, water, a campfire, birds by day, an owl at night, crickets; duller
+- `src/client/audio/nature.gd` — weather, water, a campfire, birds by day, an owl at night, crickets (a faint far chorus loop and a few near ones chirp by chirp, each with its own place, pitch, pace and rests, hushed when the player comes close); duller
   under a roof.
 - `src/client/audio/steps.gd` — steps by what the feet stand on, a splash, strokes, a jump.
 - `src/client/audio/voices.gd` — the beasts' voices (`calls`) and fright (`alarm`).
