@@ -134,6 +134,7 @@ func place() -> void:
 ## thing on the ground drawn again from its model as its file has it now.
 func remodel() -> void:
 	_models = {}
+	game.effects.windows.forget_models()
 	_standing = {}
 	drop_meshes = {}
 	_drop_arrays = {}
@@ -211,7 +212,8 @@ func _on_added(e: Dictionary, still := false) -> void:
 			return
 	var node := MeshInstance3D.new()
 	var kind: String = Items.get_item(e.item).prop
-	node.mesh = _model(kind, e.get("turn", 0), e.get("open", false), e.get("join", -1)).build_mesh()
+	var model = _model(kind, e.get("turn", 0), e.get("open", false), e.get("join", -1))
+	node.mesh = model.build_mesh()
 	node.material_override = game.low_mat if node.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
 	if kind in THIN_PROPS:
 		# A pole two voxels thin is under a texel of the sun's shadow map: its shadow
@@ -226,6 +228,8 @@ func _on_added(e: Dictionary, still := false) -> void:
 	_fit(node)
 	game.world_root.add_child(node)
 	_nodes[e.cell] = node
+	if Placed.lets_light(e):
+		game.effects.windows.add(e.cell, node, model)
 	if not still:
 		_arrive(e, node)
 
@@ -251,6 +255,7 @@ func _on_removed(e: Dictionary) -> void:
 	if _nodes.has(e.cell):
 		_nodes[e.cell].queue_free()
 		_nodes.erase(e.cell)
+	game.effects.windows.remove(e.cell)
 	if _fires.has(e.cell):
 		game.effects.remove_campfire(_fires[e.cell])
 		_fires.erase(e.cell)
@@ -516,6 +521,10 @@ func _fit(node: MeshInstance3D) -> void:
 	var to_world := node.transform
 	var box := PixelView.sheared_box(to_world * node.mesh.get_aabb(), FIT_MARGIN)
 	node.custom_aabb = to_world.affine_inverse() * box
+	# A window's glass lit from inside (WindowGlow) is culled with it.
+	for child in node.get_children():
+		if child is MeshInstance3D:
+			(child as MeshInstance3D).custom_aabb = node.custom_aabb
 
 
 ## Fits the boxes of every model again for the views the camera shows now (see
