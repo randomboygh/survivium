@@ -151,7 +151,7 @@ func _build() -> void:
 		mirror.mesh = figure.mesh
 		var mirror_mat := ShaderMaterial.new()
 		mirror_mat.shader = MirrorShader
-		mirror_mat.render_priority = 1
+		mirror_mat.render_priority = 2
 		mirror.material_override = mirror_mat
 		mirror.scale = Vector3(1.0, -1.0, 1.0)
 		var mirror_key := _key(mirror)

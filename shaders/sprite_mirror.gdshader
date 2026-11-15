@@ -1,9 +1,10 @@
 // A figure mirrored in the water it stands by (WaterEffects): its sprite turned upside
 // down under the surface, as pale as a reflection, rippling a pixel sideways row by
-// row, fading with the depth. Drawn after the water (a higher render priority), with no
-// depth test: a pixel shows only where the water's surface that this pixel of the
-// picture falls on is open water at the mirror's level (the roof map's columns), so the
-// banks and the land in front keep it off. Unshaded: it takes the sky's light (`light`).
+// row, fading with the depth. Drawn after the water and over the body's part under it
+// (render priority 2), with no depth test: a pixel shows only where the water's surface
+// that this pixel of the picture falls on is open water at the mirror's level, or the
+// wet edge of the bank beside it (the roof map's columns), so the banks and the land in
+// front keep it off. Unshaded: it takes the sky's light (`light`).
 shader_type spatial;
 render_mode world_vertex_coords, unshaded, blend_mix, depth_draw_never, depth_test_disabled, cull_disabled, shadows_disabled;
 
@@ -29,6 +30,23 @@ void vertex() {
 	VERTEX = shear(tall);
 }
 
+// Whether the surface at `xz` shows the mirror: open water at the level, or the ground
+// at the water's edge level with it (the foam on the sand, a bank half under water)
+// with water beside it.
+bool mirrors(vec2 xz) {
+	vec2 c = floor(xz / CELL);
+	vec4 col = column(c);
+	float top = floor(col.b * 255.0 + 0.5) * CELL;
+	if (col.a > 0.5) {
+		return abs(top - level) <= 0.6;
+	}
+	if (abs(top - CELL * 0.5 - level) > 0.1) {
+		return false;
+	}
+	return column(c + vec2(1.0, 0.0)).a > 0.5 || column(c - vec2(1.0, 0.0)).a > 0.5
+		|| column(c + vec2(0.0, 1.0)).a > 0.5 || column(c - vec2(0.0, 1.0)).a > 0.5;
+}
+
 void fragment() {
 	if (world_pos.y > level) {
 		discard;
@@ -37,8 +55,7 @@ void fragment() {
 	// the drawn point, up to the level.
 	vec3 to = toward_camera();
 	vec3 surface = tall + to * ((level - tall.y) / max(to.y, 0.05));
-	vec4 col = column(floor(surface.xz / CELL));
-	if (col.a < 0.5 || abs(floor(col.b * 255.0 + 0.5) * CELL - level) > 0.6 || gone_above(surface)) {
+	if (!mirrors(surface.xz) || gone_above(surface)) {
 		discard;
 	}
 	float depth = level - world_pos.y;

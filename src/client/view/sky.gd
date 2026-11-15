@@ -35,6 +35,8 @@ const GLOW_RANGE := 1.5
 ## How much the surf glows on spring and autumn nights (1 in summer; see sea_glow).
 const SEA_GLOW_SPRING := 0.3
 const SEA_GLOW_AUTUMN := 0.5
+## The sea glows on about one night in this many (the user's ask 2026-11-15: a rare sight).
+const SEA_GLOW_NIGHTS := 6
 ## Two torches, one in each hand, light this much farther than one.
 const TWO_TORCHES := 1.4
 ## Torches, fires and lights set down burn brighter the darker it is round them (see
@@ -463,6 +465,8 @@ func _update_weather(delta: float) -> void:
 	# The sea glows where the surf breaks on warm nights (plankton, water.gdshader):
 	# in summer, a little at the ends of spring and autumn, never on ice.
 	var warm_sea: float = [SEA_GLOW_SPRING, 1.0, SEA_GLOW_AUTUMN, 0.0][clock.season]
+	if not glowing_night(clock.day, clock.time_of_day):
+		warm_sea = 0.0
 	g.global_shader_parameter_set("sea_glow", smoothstep(0.5, 0.1, daylight) * warm_sea * (1.0 - clock.ice()))
 	g.global_shader_parameter_set("cloud_cover", clock.clouds)
 	g.global_shader_parameter_set("cloud_offset", cloud_pos)
@@ -504,3 +508,11 @@ func _update_lightning(delta: float, on: bool) -> void:
 		game.sound.nature.thunder(flash)
 	if game.player != null and not game.chunks.indoor and rng.randf() < 0.7:
 		game.effects.strike(game.view.cam_target, game.player.position.y, flash)
+
+
+## Whether the night about day `day` at `time_of_day` (from the noon before to the noon
+## after) is one of the rare ones the sea glows: one in SEA_GLOW_NIGHTS, by the day.
+static func glowing_night(day: int, time_of_day: float) -> bool:
+	var night := day + floori(time_of_day + 0.5)
+	var h := (((night * 1103515245 + 12345) & 0x7fffffff) >> 16) ^ (night * 2654435761 & 0xffff)
+	return h % SEA_GLOW_NIGHTS == 0

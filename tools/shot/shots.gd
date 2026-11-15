@@ -20,11 +20,18 @@ const SHOTS := {
 	# steam on a cold morning, wading in the shallows (rings), dragonflies by day, midges
 	# at sunset; dust behind one walking on a dry beach.
 	"fx-reflect": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1},
+	# Mirrored deep in the water, on the bank's edge and with the camera turned.
+	"fx-reflect-deep": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 2},
+	"fx-reflect-shore": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "shore": true},
+	"fx-reflect-turn1": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 1},
+	"fx-reflect-turn2": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 2},
+	"fx-reflect-turn4": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 4},
 	"fx-fire-water": {"time": 0.95, "season": 1, "moon": 0.0, "weather": "clear", "place": "lake", "water": 1, "hands": {"tool": "tools:torch", "facing": "s"}},
 	"fx-steam": {"time": 0.27, "season": 3, "snow": 0.0, "weather": "clear", "place": "lake"},
 	"fx-wade": {"time": 0.42, "season": 1, "weather": "clear", "water": 1, "keys": [KEY_D], "key_frames": 40},
 	"fx-flies": {"time": 0.45, "season": 1, "weather": "clear", "place": "lake"},
 	"fx-midges": {"time": 0.72, "season": 1, "weather": "clear", "place": "lake"},
+	"fx-midges-head": {"time": 0.72, "season": 1, "weather": "clear", "place": "lake", "water": 1},
 	"fx-dust": {"time": 0.45, "season": 1, "weather": "clear", "place": "beach", "keys": [KEY_D], "key_frames": 40},
 	"fx-moon-path": {"time": 0.95, "season": 1, "moon": 1.0, "weather": "clear", "place": "lake"},
 	"fx-sun-path-evening": {"time": 0.72, "season": 1, "weather": "clear", "place": "lake"},
@@ -376,7 +383,7 @@ const SHOTS := {
 	"curio-primrose": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:evening_primrose"},
 	"curio-primrose-night": {"time": 0.95, "season": 1, "moon": 1.0, "place": "meadow", "find": "plants:evening_primrose"},
 	"curio-ring": {"time": 0.42, "season": 1, "find": "ring"},
-	"curio-surf": {"time": 0.95, "season": 1, "moon": 0.0, "place": "beach"},
+	"curio-surf": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "beach"},
 	"curio-wake": {"time": 0.95, "season": 1, "moon": 0.0, "place": "lake", "water": 2},
 	"curio-wisps": {"time": 0.95, "season": 1, "moon": 0.5, "place": "swamp", "find": "murk",
 		"wisps": [[2.5, 0.6, -2.0], [-3.0, 0.8, -3.0], [4.0, 0.5, 1.0]]},
