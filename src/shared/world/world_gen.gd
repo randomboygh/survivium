@@ -168,28 +168,40 @@ func around(key: Vector2i, reach: int, stage: int) -> bool:
 
 
 ## The first chunk within `reach` of `key` that has not reached `stage`, nearest to
-## `key` first, or null when all have.
-func missing(key: Vector2i, reach: int, stage: int) -> Variant:
+## `key` first, or null when all have; of those as near to `key`, the nearest to chunk
+## `toward` when it is given (where the player is: the world is made from the player
+## outwards).
+func missing(key: Vector2i, reach: int, stage: int, toward: Variant = null) -> Variant:
 	for r in range(0, reach + 1):
+		var best: Variant = null
+		var best_d := 1 << 30
 		for dz in range(-r, r + 1):
 			for dx in range(-r, r + 1):
 				if maxi(absi(dx), absi(dz)) != r:
 					continue
 				var k := Vector2i(key.x + dx, key.y + dz)
 				if stages.get(k, 0) < stage:
-					return k
+					if toward == null:
+						return k
+					var d: int = (k - toward).length_squared()
+					if d < best_d:
+						best_d = d
+						best = k
+		if best != null:
+			return best
 	return null
 
 
 ## The next stage some chunk needs before `key` can be meshed: [chunk, stage], or
-## empty when it can be. A chunk is meshed once it is SHAPED, which takes the chunks
+## empty when it can be (of the chunks around it the nearest to `toward` first, see
+## missing). A chunk is meshed once it is SHAPED, which takes the chunks
 ## around it PLANTED, which takes the chunks around those with terrain (a chunk from
 ## the save, SHAPED at once, still waits for them: its meshes read their cells).
-func needed(key: Vector2i) -> Array:
-	var m: Variant = missing(key, 2, TERRAIN)
+func needed(key: Vector2i, toward: Variant = null) -> Array:
+	var m: Variant = missing(key, 2, TERRAIN, toward)
 	if m != null:
 		return [m, TERRAIN]
-	m = missing(key, 1, PLANTED)
+	m = missing(key, 1, PLANTED, toward)
 	if m != null:
 		return [m, PLANTED]
 	if stages.get(key, 0) < SHAPED:

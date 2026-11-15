@@ -392,6 +392,18 @@ func _distance(key: Vector2i) -> int:
 	return best
 
 
+## The zone (a player's chunk) nearest to chunk `key`.
+func _nearest_zone(key: Vector2i) -> Vector2i:
+	var best := key
+	var best_d := 1 << 30
+	for z in _zones:
+		var d := maxi(absi(key.x - z.x), absi(key.y - z.y))
+		if d < best_d:
+			best_d = d
+			best = z
+	return best
+
+
 ## The next stage some chunk within `reach` of a zone needs ([chunk, stage], see
 ## WorldGen.needed), the nearest chunk not SHAPED first, then the terrain and trees
 ## of the chunks around the zone's edge; empty when the zones are made.
@@ -414,7 +426,7 @@ func _next_needed(reach: int) -> Array:
 					if maxi(absi(key.x - z.x), absi(key.y - z.y)) > reach:
 						continue
 					if gen.stage_of(key) < WorldGen.SHAPED:
-						return gen.needed(key)
+						return gen.needed(key, z)
 	for z in _zones:
 		var m: Variant = gen.missing(z, reach + 2, WorldGen.TERRAIN)
 		if m != null:
@@ -433,7 +445,7 @@ func _wanted_needed(reach: int) -> Array:
 		return []
 	for key in wanted:
 		if _distance(key) <= reach:
-			var need: Array = gen.needed(key)
+			var need: Array = gen.needed(key, _nearest_zone(key))
 			if not need.is_empty():
 				return need
 	return []

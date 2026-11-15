@@ -72,6 +72,14 @@ const SEEN_MARGIN := 4.0
 const LOOK_AHEAD := 1.5
 ## How far ahead (world units) the look may go at most: three chunks.
 const LEAD_MOST := 24.0
+## The player's way (see `way`) is taken once the look ahead (lead) is this long (world
+## units), and taken again when it turns more than about 20° (the cosine).
+const WAY_FROM := 2.0
+const WAY_TURN := 0.94
+## What the order of building (see _build_score) adds to a chunk off the screen.
+const OFF_SCREEN := 100000.0
+## How many chunks the session is told to make first at most (see wanted).
+const WANTED_MOST := 4
 ## Chunks this near the player's keep what their meshes and plants were built from (see
 ## `kept`), so an edit there rebuilds only the columns around it (ChunkMesher.patch):
 ## every chunk streamed in, so the first tree felled at a new place does not wait for
@@ -198,9 +206,15 @@ var job_part := -1
 ## _finish_part). A chunk of `bare` has its ground and waits for its plants.
 var job_ground := false
 var bare := {}
+## Chunks of `bare` whose plants wait while the screen has a hole (see _finish_part):
+## the job that built their meshes, kept for patching once the plants are built too.
+var plants_wait := {}
 ## Where the player is going: world units (x, z) ahead of it, LOOK_AHEAD seconds of its
 ## way, smoothed (see _track_motion).
 var lead := Vector2.ZERO
+## The way the player went last (a unit vector on the ground, x z; zero before it has
+## moved): the chunks along it come first, then those beside them (see _way_score).
+var way := Vector2.ZERO
 var _last_at := Vector2.INF
 var _last_ms := 0
 ## A chunk on the screen has no ground yet (see _check_lag): building gets LAG_BUDGET_US.
@@ -363,30 +377,40 @@ func _list_pending() -> void:
 		map_done = false
 
 
-## The chunks on the screen (seen from the player or from where it is going, see
-## next_chunk) the session has not made yet, the one being built first, then the
-## nearest to the screen: the session makes them first (Session.wanted). Walking into
-## new land a phone needs about a second of building a second for the whole zone round
-## the player and has a third of it (2026-11-15): the screen comes first, the sides of
-## the zone when the player stops.
+## The pending chunks the session has not made yet, in the order they are built (see
+## _build_score), the one being built first, WANTED_MOST at most: the session makes them
+## first (Session.wanted). Walking into new land a phone needs about a second of
+## building a second for the whole zone round the player and has a third of it
+## (2026-11-15): the screen comes first, the way ahead on it first, the rest of the zone
+## when the player stops.
 func wanted() -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	if not game.ready_to_play or paused or focus.is_finite() or game.player == null:
 		return out
-	var half := _screen_half()
-	var here := _at()
-	var scored := []
-	if has_target and not job_edit:
-		scored.append([-INF, job_key])
+	if has_target and not job_edit and not gen.needed(job_key).is_empty():
+		out.append(job_key)
+	var shaped := WorldGen.SHAPED
+	var keys: Array[Vector2i] = []
+	var scores := PackedFloat32Array()
+	var ctx := _score_context()
 	for k in pending_chunks:
-		var a := _screen_score(k, here, half)
-		var b := _screen_score(k, here + lead, half)
-		if minf(a, b) <= 0.0:
-			scored.append([a + b, k])
-	scored.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
-	for e: Array in scored:
-		if not gen.needed(e[1]).is_empty():
-			out.append(e[1])
+		# A chunk made to the end needs nothing more (gen.needed looks at its neighbours).
+		if gen.stages.get(k, 0) < shaped:
+			keys.append(k)
+			scores.append(_build_score(k, ctx))
+	# The best few, a pass for each (a sort of all of them every frame costs more).
+	var tries := 0
+	while out.size() < WANTED_MOST and tries < WANTED_MOST * 3 and not keys.is_empty():
+		tries += 1
+		var best := 0
+		for i in scores.size():
+			if scores[i] < scores[best]:
+				best = i
+		var k := keys[best]
+		keys.remove_at(best)
+		scores.remove_at(best)
+		if not gen.needed(k).is_empty():
+			out.append(k)
 	return out
 
 
@@ -400,25 +424,25 @@ func _on_screen(k: Vector2i) -> bool:
 ## Whether a pending chunk on the screen can be built now (the session has made it).
 func _ready_on_screen() -> bool:
 	for k in pending_chunks:
-		if not waiting.has(k) and _on_screen(k):
+		if not waiting.has(k) and not plants_wait.has(k) and _on_screen(k):
 			return true
 	return false
 
 
-## The pending chunk to build next: the one nearest to the screen seen from the player
-## and from where it is going (lead), so what is on the screen ahead comes first and
-## what is behind and to the sides off the screen last; around the focus, the nearest.
+## The pending chunk to build next: the one first in the order of building (see
+## _build_score) the session has made, of all of them waited for (see waiting) the first;
+## around the focus, the nearest. Behind the player's walk (lagging) the chunks whose
+## ground is shown and whose plants wait (plants_wait) go last.
 func next_chunk() -> Vector2i:
 	var at := _load_chunk()
-	var best := 0
-	var best_d := INF
-	var half := _screen_half()
-	var here := _at()
 	var all_wait := true
 	for k in pending_chunks:
 		if not waiting.has(k):
 			all_wait = false
 			break
+	var ctx := _score_context()
+	var best := 0
+	var best_d := INF
 	for i in pending_chunks.size():
 		var k := pending_chunks[i]
 		if not all_wait and waiting.has(k):
@@ -427,11 +451,53 @@ func next_chunk() -> Vector2i:
 		if focus.is_finite():
 			d = maxi(absi(k.x - at.x), absi(k.y - at.y))
 		else:
-			d = _screen_score(k, here, half) + _screen_score(k, here + lead, half)
+			d = _build_score(k, ctx)
+			if lagging and plants_wait.has(k):
+				# The holes on the screen first (see plants_wait).
+				d += OFF_SCREEN * 10.0
 		if d < best_d:
 			best_d = d
 			best = i
 	return pending_chunks.pop_at(best)
+
+
+## What _build_score looks from: the middle of the player's chunk, the player, where it is
+## going, the screen's half and the way.
+func _score_context() -> Array:
+	if game.player == null:
+		return []
+	var size := CHUNK * CELL
+	var c := _player_chunk()
+	var mid := (Vector2(c) + Vector2(0.5, 0.5)) * size
+	return [mid, _at(), _at() + lead, _screen_half(), way, game.view != null and game.ready_to_play]
+
+
+## Where chunk `key` comes in the order of building (lower first), user 2026-11-15: what
+## the screen shows (seen from the player or from where it is going) before the rest
+## (OFF_SCREEN), each in the order of the way (see _way_score) from the player's chunk.
+static func _build_score(key: Vector2i, ctx: Array) -> float:
+	if ctx.is_empty():
+		return 0.0
+	var score := _way_score(key, ctx[0], ctx[4])
+	if ctx[5]:
+		var half: Vector2 = ctx[3]
+		if minf(_screen_score(key, ctx[1], half), _screen_score(key, ctx[2], half)) > 0.0:
+			score += OFF_SCREEN
+	return score
+
+
+## Where chunk `key` comes along the way, seen from `from` (world units x, z: the middle
+## of the player's chunk, so its row is the way's) going `dir`: the chunks along the way first, from the player's onwards, those ahead
+## before those behind as far, then the row beside them on either side, and so on out
+## (1000 a row); before the player has moved, ring by ring round it, nearest first.
+static func _way_score(key: Vector2i, from: Vector2, dir: Vector2) -> float:
+	var size := CHUNK * CELL
+	var d := (Vector2(key) + Vector2(0.5, 0.5)) * size - from
+	if dir == Vector2.ZERO:
+		return floorf(maxf(absf(d.x), absf(d.y)) / size + 0.5) * 1000.0 + d.length() / size
+	var across := floorf(absf(d.cross(dir)) / size + 0.5)
+	var along := d.dot(dir) / size
+	return across * 1000.0 + (along if along >= 0.0 else 0.5 - along)
 
 
 ## The player's place on the ground plane (world units x, z).
@@ -482,6 +548,10 @@ func _track_motion() -> void:
 	elif dt > 0.0:
 		var want := ((at - _last_at) / dt * LOOK_AHEAD).limit_length(LEAD_MOST)
 		lead = lead.lerp(want, 1.0 - exp(-dt * 4.0))
+		if lead.length() > WAY_FROM:
+			var dir := lead.normalized()
+			if way == Vector2.ZERO or dir.dot(way) < WAY_TURN:
+				way = dir
 	_last_at = at
 	_last_ms = now
 
@@ -628,6 +698,14 @@ func _finish_part() -> bool:
 		_chunk_nodes(job_key)
 		_apply_ground(job_key, job_meshes)
 		bare[job_key] = true
+		if lagging and not job_edit:
+			# Behind the player's walk the plants wait (a third of a chunk's building) and
+			# the next hole on the screen gets its ground sooner; they are built once the
+			# screen has its ground (see run_jobs).
+			plants_wait[job_key] = job_mesh
+			pending_chunks.append(job_key)
+			_drop_job()
+			return true
 		job_part = -2
 		return false
 	elif i < plants_from + Foliage.FINISH_PARTS:
@@ -639,6 +717,7 @@ func _finish_part() -> bool:
 		else:
 			_apply_chunk(job_key, job_meshes, job_plant_parts)
 		bare.erase(job_key)
+		plants_wait.erase(job_key)
 		_drop_job()
 		if job_edit and not dirty_chunks.has(job_key):
 			edited.erase(job_key)
@@ -835,6 +914,13 @@ func run_jobs(spent := 0) -> void:
 				job_mesh = ChunkMesher.start_rect(world, rect.position.x, rect.position.y, rect.end.x, rect.end.y, true)
 				job_plants = Foliage.start_part(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK,
 					Foliage.part_columns(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK, rect))
+			elif not job_edit and not job_keep and plants_wait.has(job_key) and bare.has(job_key):
+				# Its ground is shown: only the plants (see plants_wait).
+				job_mesh = plants_wait[job_key]
+				plants_wait.erase(job_key)
+				job_plants = Foliage.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
+				job_ground = true
+				job_part = -2
 			else:
 				job_mesh = ChunkMesher.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
 				job_plants = Foliage.start(world, job_key.x * CHUNK, job_key.y * CHUNK, CHUNK)
@@ -965,6 +1051,7 @@ func _free_chunk(key: Vector2i) -> void:
 	chunk_nodes.erase(key)
 	nodes_changes += 1
 	bare.erase(key)
+	plants_wait.erase(key)
 	_unstash(key)
 	game.props.hide_drops(key)
 	var fx = game.get("effects")

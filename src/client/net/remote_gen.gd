@@ -92,8 +92,8 @@ func start(key: Vector2i, stage: int) -> Job:
 
 ## A chunk can be meshed once it and the chunks around it are in (the mesher reads
 ## their cells at the edges; the records hold the cells final).
-func needed(key: Vector2i) -> Array:
-	var m: Variant = missing(key, 1, SHAPED)
+func needed(key: Vector2i, toward: Variant = null) -> Array:
+	var m: Variant = missing(key, 1, SHAPED, toward)
 	if m != null:
 		return [m, SHAPED]
 	return []

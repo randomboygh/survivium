@@ -82,6 +82,7 @@ static var custom_noises := {}
 ## The tileable noise of the ground patches, the clouds and the water's ripples (see
 ## PixelTextures.build_cloud_noise), kept so scripts read the same patches the shaders do.
 static var cloud_image: Image
+static var _cloud_values := PackedFloat32Array()
 
 
 static func _fields() -> void:
@@ -118,18 +119,26 @@ static func cloud_noise() -> Image:
 
 ## The cloud noise at `uv` (wrapping), bilinear like the shaders' sampler.
 static func cloud_sample(uv: Vector2) -> float:
-	var img := cloud_noise()
-	var n := img.get_width()
-	var p := Vector2(fposmod(uv.x, 1.0), fposmod(uv.y, 1.0)) * n - Vector2(0.5, 0.5)
+	if _cloud_values.is_empty():
+		# The pixels' values read once (get_pixel makes a Color each time): every grass
+		# cell of a chunk's plants samples them eight times (see tier_at).
+		var img := cloud_noise()
+		_cloud_values.resize(img.get_width() * img.get_height())
+		for y in img.get_height():
+			for x in img.get_width():
+				_cloud_values[y * img.get_width() + x] = img.get_pixel(x, y).r
+	var v := _cloud_values
+	const N := 128
+	var p := Vector2(fposmod(uv.x, 1.0), fposmod(uv.y, 1.0)) * N - Vector2(0.5, 0.5)
 	var x0 := floori(p.x)
 	var y0 := floori(p.y)
 	var fx := p.x - x0
 	var fy := p.y - y0
-	var a := img.get_pixel(posmod(x0, n), posmod(y0, n)).r
-	var b := img.get_pixel(posmod(x0 + 1, n), posmod(y0, n)).r
-	var c := img.get_pixel(posmod(x0, n), posmod(y0 + 1, n)).r
-	var d := img.get_pixel(posmod(x0 + 1, n), posmod(y0 + 1, n)).r
-	return lerpf(lerpf(a, b, fx), lerpf(c, d, fx), fy)
+	var xa := posmod(x0, N)
+	var xb := posmod(x0 + 1, N)
+	var ya := posmod(y0, N) * N
+	var yb := posmod(y0 + 1, N) * N
+	return lerpf(lerpf(v[ya + xa], v[ya + xb], fx), lerpf(v[yb + xa], v[yb + xb], fx), fy)
 
 
 ## The ground patch noise at a world position, the same as `ground_patch` in
@@ -239,40 +248,78 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 ## is one kind, its first column (Foliage draws the rest beside it). `tier` and
 ## `by_water` are the cell's, as kinds found them.
 static func _custom(w, x: int, z: int, m: int, tier: int, by_water: bool, out: Array[int], rng: RandomNumberGenerator) -> void:
+	if not is_same(_rules_of, Plants.CUSTOM) or not is_same(_rules_biomes, Biomes.RECORDS):
+		_compile_custom()
 	var shaded: bool = w.leaf_col(x, z) != 0
-	for c in Plants.CUSTOM:
-		match c.grows:
-			"meadow":
-				if m != Mat.GRASS or shaded or tier == BARE_TIER:
+	var grass := m == Mat.GRASS
+	var b := -1
+	for r: Array in _rules:
+		match r[0]:
+			MEADOW:
+				if not grass or shaded or tier == BARE_TIER:
 					continue
-			"shade":
-				if m != Mat.GRASS or not shaded:
+			SHADE:
+				if not grass or not shaded:
 					continue
-			"woods":
+			WOODS:
 				# The near-crown test (a few columns) waits for the cheaper ones below.
-				if m != Mat.GRASS:
+				if not grass:
 					continue
-			"bank":
+			BANK:
 				if not by_water:
 					continue
-			"field":
-				# A crop grows only where it was sown (WorldData.fields).
+		var in_biomes: PackedByteArray = r[1]
+		if not in_biomes.is_empty():
+			if b < 0:
+				b = w.biome_at(x, z)
+			if b >= in_biomes.size() or in_biomes[b] == 0:
 				continue
+		var noise: FastNoiseLite = r[2]
+		if noise != null and noise.get_noise_2d(x, z) < r[3]:
+			continue
+		if r[0] == WOODS and not shaded and not _near_crown(w, x, z):
+			continue
+		if rng.randf() < r[4] and (r[5] == 0 or _near_water(w, x, z, r[5])):
+			out.append(CUSTOM + r[6] + rng.randi_range(0, r[7] - 1) * r[8])
+
+
+## Where a custom plant grows (its `grows`, see _custom).
+const MEADOW := 0
+const SHADE := 1
+const WOODS := 2
+const BANK := 3
+const GROWS := {"meadow": MEADOW, "shade": SHADE, "woods": WOODS, "bank": BANK}
+## Plants.CUSTOM as _custom reads it, made once for each load of the plants and the
+## biomes (_custom runs for every grass cell a chunk's plants are built on): for each
+## plant that grows wild, [where it grows, a byte per biome index (1 where it grows,
+## empty for anywhere), its clumps' noise (null for none), the noise's threshold,
+## cover, near_water, first frame, frames, across].
+static var _rules: Array[Array] = []
+static var _rules_of: Array = []
+static var _rules_biomes: Array = []
+
+
+static func _compile_custom() -> void:
+	_rules = []
+	_rules_of = Plants.CUSTOM
+	_rules_biomes = Biomes.RECORDS
+	for c: Dictionary in Plants.CUSTOM:
+		# A crop grows only where it was sown (WorldData.fields).
+		if c.grows == "field":
+			continue
+		var in_biomes := PackedByteArray()
 		if not c.biomes.is_empty():
-			var b: int = w.biome_at(x, z)
-			if b >= Biomes.IDS.size() or not Biomes.IDS[b] in c.biomes:
-				continue
+			in_biomes.resize(Biomes.IDS.size())
+			for i in Biomes.IDS.size():
+				in_biomes[i] = 1 if Biomes.IDS[i] in c.biomes else 0
+		var noise: FastNoiseLite = null
 		if c.clumps > -1.0:
-			var noise: FastNoiseLite = custom_noises.get(c.id)
+			noise = custom_noises.get(c.id)
 			if noise == null:
 				noise = _field_noise(hash(c.id), 1.0 / c.get("clump_size", 10.0))
 				custom_noises[c.id] = noise
-			if noise.get_noise_2d(x, z) < c.clumps:
-				continue
-		if c.grows == "woods" and not shaded and not _near_crown(w, x, z):
-			continue
-		if rng.randf() < c.cover and (c.get("near_water", 0) == 0 or _near_water(w, x, z, c.near_water)):
-			out.append(CUSTOM + c.first + rng.randi_range(0, c.frames - 1) * c.get("across", 1))
+		_rules.append([GROWS.get(c.grows, -1), in_biomes, noise, float(c.clumps), float(c.cover), int(c.get("near_water", 0)),
+			int(c.first), int(c.frames), int(c.get("across", 1))])
 
 
 ## Whether water stands within `reach` cells of column x, z (eight ways out from it, a
@@ -285,6 +332,7 @@ static func _near_water(w, x: int, z: int, reach: int) -> bool:
 	return false
 
 
+const SIDE_WAYS: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 const NEAR_WAYS: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1),
 	Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]
 
@@ -535,7 +583,7 @@ static func plant_of(kind: int) -> String:
 ## or one below.
 static func _by_water(w, x: int, y: int, z: int) -> bool:
 	var bits := (1 << y) | (1 << (y - 1) if y > 0 else 0)
-	for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+	for d: Vector2i in SIDE_WAYS:
 		var nx := x + d.x
 		var nz := z + d.y
 		if w.water_col(nx, nz) & bits:
