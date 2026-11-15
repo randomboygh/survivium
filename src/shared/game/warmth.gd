@@ -17,10 +17,16 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 ## in spring.
 const COLDEST := -10.0
 const WARMEST := 35.0
-## How the season moves the air (spring, summer, autumn, winter), and how much colder
-## the night is than the day.
+## How the season moves the air (spring, summer, autumn, winter).
 const SEASON := [0.0, 8.0, -3.0, -14.0]
-const NIGHT := 6.0
+## The day's round of the air (see daily): the warmest of a clear day comes at this
+## sun time (Clock.sun_time: sunrise 0.25, noon 0.5, sunset 0.75; 0.6 is about three in
+## the afternoon in spring), the coldest at sunrise, DAY_SWING degrees below it; clouds
+## keep the warmth in at night and the sun off by day, a full sky of them leaves
+## CLOUDED_SWING of the swing.
+const WARMEST_AT := 0.6
+const DAY_SWING := 11.0
+const CLOUDED_SWING := 0.4
 ## How much colder rain, snow and wind make the air felt under the open sky (per their
 ## strength in Clock.WEATHERS).
 const RAIN_CHILL := 4.0
@@ -43,7 +49,7 @@ const WATER_MOST := 22.0
 
 
 ## The air at world point `p` (world units), by its column's biome in `world`, the
-## season, the time of day and the weather of `clock`, under the open sky; `roofed`
+## season, the hour (daily) and the weather of `clock`, under the open sky; `roofed`
 ## keeps the weather off. The air the playtest page pins (Clock.air_pin) takes the place
 ## of the biome's and the season's, the same everywhere; the night and the weather still
 ## cool it.
@@ -60,11 +66,26 @@ static func air(world, clock, p: Vector3, roofed := false) -> float:
 			out = clock.air_pin
 		else:
 			out += SEASON[clampi(clock.season, 0, 3)]
-		out -= NIGHT * (1.0 - clock.daylight())
+		out -= daily(clock)
 		if not roofed:
 			var w: Dictionary = clock.WEATHERS[clock.weather]
 			out -= RAIN_CHILL * w.get("rain", 0.0) + SNOW_CHILL * w.get("snow", 0.0) + WIND_CHILL * w.get("wind", 0.0)
 	return out
+
+
+## How many degrees colder than the warmest of the day the air is now, by `clock`'s
+## sun time and clouds: it warms from sunrise till WARMEST_AT and cools slowly through
+## the evening and the night down to the next sunrise.
+static func daily(clock) -> float:
+	var s: float = clock.sun_time()
+	var w: float
+	var rise := 0.25
+	if s >= rise and s < WARMEST_AT:
+		w = 0.5 - 0.5 * cos(PI * (s - rise) / (WARMEST_AT - rise))
+	else:
+		w = 0.5 + 0.5 * cos(PI * fposmod(s - WARMEST_AT, 1.0) / (1.0 - WARMEST_AT + rise))
+	var swing := DAY_SWING * lerpf(1.0, CLOUDED_SWING, clampf(clock.clouds, 0.0, 1.0))
+	return swing * (1.0 - w)
 
 
 ## The warmth of the burning campfires of `placed` near world point `p`: the most any one
