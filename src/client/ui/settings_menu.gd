@@ -142,6 +142,10 @@ var _changes_left := []
 var _changes_pr := -1
 var _scroll: ScrollContainer
 var _list: VBoxContainer
+## How tall the list's window stands on a page with tabs: its longest section's
+## (_page_height), so the tabs do not move. The window's height, not the rows': a tab
+## shorter than it leaves room under its rows and shows no scroll bar.
+var _tall := 0
 ## The kinds of change and their icons, under the changes.
 var _legend: PanelContainer
 var _legend_grid: GridContainer
@@ -986,7 +990,7 @@ func fit(screen: Vector2) -> void:
 	# list of markers) scrolls in it; the window never grows or shrinks on a tab.
 	var tall := _list.get_combined_minimum_size().y
 	if PAGES.has(page) and page != "freezes":
-		tall = _list.custom_minimum_size.y
+		tall = _tall
 	if page == "report":
 		# Its tabs are lists of any length: the window stands as tall as the settings', whatever
 		# the tab, so the tabs never move; a longer tab scrolls.
@@ -1002,13 +1006,14 @@ func content_width() -> int:
 
 
 ## Puts the rows in `n` columns; a page with tabs is as tall as its longest section, so
-## the tabs do not move.
+## the tabs do not move. Only the window takes that height (_tall), never the rows: rows
+## made that tall scrolled every tab, the short ones too, once the window was lower.
 func _set_columns(n: int) -> void:
 	_columns = n
 	for c in _list.get_children():
 		if c is GridContainer:
 			c.columns = n
-	_list.custom_minimum_size.y = _page_height(page, n)
+	_tall = _page_height(page, n)
 
 
 ## The tabs of page `which`: PAGES', and on the settings the developer mode's.
