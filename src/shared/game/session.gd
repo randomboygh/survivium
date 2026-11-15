@@ -102,6 +102,13 @@ var _all_made := false
 ## chunks ahead of each zone (zone → offset in chunks), see _update_leads.
 var _motion := {}
 var _leads := {}
+## The way each zone's player went last (zone → a unit vector in chunks, x z), kept while
+## it stands (see _update_leads, _way_score).
+var _ways := {}
+## The way (see _ways) is taken once the look ahead is this many cells, and taken again
+## when it turns more than about 20° (the cosine).
+const WAY_FROM := 4.0
+const WAY_TURN := 0.94
 ## Chunks a client in this process waits for to draw its screen, the most wanted first
 ## (ChunkStreamer.wanted): made before the rings round the zones. With `wanted_only` (the
 ## client's screen has a hole: the player outran the building) only they are made, so
@@ -365,22 +372,28 @@ func _look(reach: int) -> void:
 ## between come first too; a jump of more than a chunk (a teleport) starts over.
 func _update_leads() -> void:
 	_leads.clear()
+	_ways.clear()
 	var now := Time.get_ticks_msec()
 	for who in players:
 		if who.is_dead():
 			continue
 		var at := Vector2(who.position.x, who.position.z) / WorldData.CELL
-		var m: Array = _motion.get(who, [at, now, Vector2.ZERO])
+		var m: Array = _motion.get(who, [at, now, Vector2.ZERO, Vector2.ZERO])
 		var dt := (now - int(m[1])) / 1000.0
 		var ahead: Vector2 = m[2]
 		if dt > 1.0 or at.distance_to(m[0]) > WorldData.CHUNK:
 			ahead = Vector2.ZERO
 		elif dt > 0.0:
 			ahead = ahead.lerp((at - m[0]) / dt * LOOK_AHEAD, 1.0 - exp(-dt * 4.0))
-		_motion[who] = [at, now, ahead]
+		var way: Vector2 = m[3] if m.size() > 3 else Vector2.ZERO
+		if ahead.length() > WAY_FROM and (way == Vector2.ZERO or ahead.normalized().dot(way) < WAY_TURN):
+			way = ahead.normalized()
+		_motion[who] = [at, now, ahead, way]
+		var z := WorldData.chunk_key(floori(who.position.x / WorldData.CELL), floori(who.position.z / WorldData.CELL))
+		if way != Vector2.ZERO:
+			_ways[z] = way
 		var lead := Vector2i((ahead * 0.5 / WorldData.CHUNK).round()).clampi(-LEAD_MOST, LEAD_MOST)
 		if lead != Vector2i.ZERO:
-			var z := WorldData.chunk_key(floori(who.position.x / WorldData.CELL), floori(who.position.z / WorldData.CELL))
 			_leads[z] = lead
 
 
@@ -405,37 +418,56 @@ func _nearest_zone(key: Vector2i) -> Vector2i:
 
 
 ## The next stage some chunk within `reach` of a zone needs ([chunk, stage], see
-## WorldGen.needed), the nearest chunk not SHAPED first, then the terrain and trees
-## of the chunks around the zone's edge; empty when the zones are made.
+## WorldGen.needed), the chunk not SHAPED first in the order of _way_score (user
+## 2026-11-15: from the player outwards, along its way first, then the rows beside it;
+## the map shows the land coming in the same order), then the terrain and trees of the
+## chunks round the zone's edge, ring by ring from the player, those along its way
+## first; empty when the zones are made.
 func _next_needed(reach: int) -> Array:
 	if _all_made or gen == null:
 		return []
-	var most := 0
-	for lead: Vector2i in _leads.values():
-		most = maxi(most, maxi(absi(lead.x), absi(lead.y)))
-	for r in range(0, reach + most + 1):
-		for z in _zones:
-			# The ring at r round where the player is going, in the order of a square's
-			# rows: a whole row at its top and bottom, its two ends between; only the
-			# chunks within `reach` of the zone.
-			var c: Vector2i = z + _leads.get(z, Vector2i.ZERO)
-			for dz in range(-r, r + 1):
-				var step := 1 if absi(dz) == r else maxi(2 * r, 1)
-				for dx in range(-r, r + 1, step):
-					var key := Vector2i(c.x + dx, c.y + dz)
-					if maxi(absi(key.x - z.x), absi(key.y - z.y)) > reach:
-						continue
-					if gen.stage_of(key) < WorldGen.SHAPED:
-						return gen.needed(key, z)
+	var best := Vector2i.ZERO
+	var best_z := Vector2i.ZERO
+	var best_d := INF
 	for z in _zones:
-		var m: Variant = gen.missing(z, reach + 2, WorldGen.TERRAIN)
+		var dir: Vector2 = _ways.get(z, Vector2.ZERO)
+		for dz in range(-reach, reach + 1):
+			for dx in range(-reach, reach + 1):
+				var key := Vector2i(z.x + dx, z.y + dz)
+				if gen.stage_of(key) >= WorldGen.SHAPED:
+					continue
+				var d := _way_score(Vector2(dx, dz), dir)
+				if d < best_d:
+					best_d = d
+					best = key
+					best_z = z
+	if best_d < INF:
+		return gen.needed(best, best_z)
+	for z in _zones:
+		# The rings round the zone's edge, of each the chunks nearest to a point far
+		# along the player's way first (WorldGen.missing).
+		var aim := z + Vector2i((Vector2(_ways.get(z, Vector2.ZERO)) * 4.0 * reach).round())
+		var m: Variant = gen.missing(z, reach + 2, WorldGen.TERRAIN, aim)
 		if m != null:
 			return [m, WorldGen.TERRAIN]
-		m = gen.missing(z, reach + 1, WorldGen.PLANTED)
+		m = gen.missing(z, reach + 1, WorldGen.PLANTED, aim)
 		if m != null:
 			return [m, WorldGen.PLANTED]
 	_all_made = true
 	return []
+
+
+## Where a chunk `d` chunks from a player's comes in the order of making (lower first),
+## the player going `dir` (a unit vector, zero when it has not moved): the row along the
+## way first, from the player's chunk onwards, ahead before behind, then the rows
+## beside it, one further each time; with no way, ring by ring, nearest first (as
+## ChunkStreamer._way_score).
+static func _way_score(d: Vector2, dir: Vector2) -> float:
+	if dir == Vector2.ZERO:
+		return maxf(absf(d.x), absf(d.y)) * 1000.0 + d.length()
+	var across := floorf(absf(d.cross(dir)) + 0.5)
+	var along := d.dot(dir)
+	return across * 1000.0 + (along if along >= 0.0 else 0.5 - along)
 
 
 ## The next stage the first wanted chunk within `reach` of a zone needs (see `wanted`),
@@ -497,7 +529,9 @@ func make_chunk(key: Vector2i) -> void:
 			pass
 		_note_work(_gen_job, Time.get_ticks_usec() - tg)
 		_gen_job = null
-	var need: Array = gen.needed(key)
+	# The chunks it needs nearest to the player first (see WorldGen.needed).
+	var toward: Variant = _nearest_zone(key) if not _zones.is_empty() else key
+	var need: Array = gen.needed(key, toward)
 	while not need.is_empty():
 		var job: WorldGen.Job = gen.start(need[0], need[1])
 		if job == null:
@@ -506,7 +540,7 @@ func make_chunk(key: Vector2i) -> void:
 		while not gen.step(job, 1 << 30):
 			pass
 		_note_work(job, Time.get_ticks_usec() - tg)
-		need = gen.needed(key)
+		need = gen.needed(key, toward)
 	gen_us += Time.get_ticks_usec() - t0
 
 

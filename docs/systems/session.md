@@ -29,14 +29,16 @@ that the rules read as is.
   dead one; `make_chunks(near_us, far_us, reach)` — generates the chunks within `reach` (`reach()`: `ZONE` 5
   or more for the widest screen of the players, `reach_for(view_half)` — half the screen's diagonal in
   chunks + 1, up to `ZONE_MOST` 10) of the zones by a step of the job within a budget (`near_us` while the
-  chunk is within `NEAR` 4 of a zone, otherwise `far_us`; at least a step per call), the nearest non-SHAPED
-  first with what it needs (`WorldGen.needed`) — the rings are counted around a point ahead of the walking
-  player (`_update_leads`: half the path in `LOOK_AHEAD` 1.5 s, no further than `LEAD_MOST` 3 chunks, only
-  the chunks within `reach` of its zone), so what is ahead is made earlier than what is behind (before the
+  chunk is within `NEAR` 4 of a zone, otherwise `far_us`; at least a step per call), the non-SHAPED chunk
+  first in the order of `_way_score` with what it needs (`WorldGen.needed`): user 2026-11-15, from the
+  player outwards, the row along its way first (`_ways`, the direction of its look ahead, `_update_leads`),
+  ahead before behind, then the rows beside it, one further each time; standing, ring by ring (the map
+  shows the land coming in the same order, never from a corner of the square) (before the
   rings, the chunks a client in this process builds next, `wanted`, in its order; with
   `wanted_only`, set while that client lags, nothing else; of the chunks a chunk needs made first, those
   nearest to the player's chunk first, `WorldGen.needed(key, toward)`), — then the
-  terrain and trees at the edge; the job lives between calls (`_gen_job`); when everything is made there is
+  terrain and trees at the edge, ring by ring from the player, of each the chunks nearest to a point far along its
+  way first (`WorldGen.missing(..., toward)`); `make_chunk` too makes what a chunk needs nearest to the player first; the job lives between calls (`_gen_job`); when everything is made there is
   nothing to scan (`_all_made`) until a zone moves or a chunk is forgotten; `make_chunk(key)` — whole, after
   the current job (the loading screen, tools); `forget_far(n)` — up to `n` chunks farther than `drop()`
   (`reach()` + 4) from all zones (`WorldGen.forget`, the changed ones stay), the queue is built when a zone

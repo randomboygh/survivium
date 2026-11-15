@@ -11,6 +11,7 @@ func run() -> void:
 	_test_lead()
 	_test_wanted()
 	_test_reach()
+	_test_way_order()
 
 
 func _test_rules() -> void:
@@ -241,3 +242,18 @@ func _test_reach() -> void:
 	a.view_half = Vector2(50.0, 20.0)
 	_check(s.reach() == Session.reach_for(a.view_half) and s.reach() > Session.ZONE and s.drop() == s.reach() + 4,
 		"a wider screen moves the zone and the drop out")
+
+
+## The order the session makes chunks in (Session._way_score, user 2026-11-15): going
+## north, the row along the way first, ahead before behind, then the rows beside it;
+## standing, ring by ring, the middles of a ring's sides before its corners.
+func _test_way_order() -> void:
+	var S := load("res://src/shared/game/session.gd")
+	var north := Vector2(0, -1)
+	_check(S._way_score(Vector2(0, -2), north) < S._way_score(Vector2(0, 2), north)
+		and S._way_score(Vector2(0, 2), north) < S._way_score(Vector2(1, 0), north)
+		and S._way_score(Vector2(1, -4), north) < S._way_score(Vector2(2, 0), north),
+		"going, the way's row first from the player, ahead before behind as far, then the rows beside it")
+	_check(S._way_score(Vector2(0, 1), Vector2.ZERO) < S._way_score(Vector2(1, 1), Vector2.ZERO)
+		and S._way_score(Vector2(1, 1), Vector2.ZERO) < S._way_score(Vector2(2, 0), Vector2.ZERO),
+		"standing, ring by ring round the player, a ring's corners last, never from a corner of the square")
