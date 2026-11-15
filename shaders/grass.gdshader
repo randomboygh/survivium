@@ -106,6 +106,9 @@ void vertex() {
 		sway += sign(away.x + 0.001) * 2.0 * (1.0 - d / 0.6) + 0.5 * sign(away.x);
 	}
 	VERTEX.x += round(sway) / TEXELS * tip;
+	// In the heat over sand and the sea a plant sways aside with the air, its foot most (heat_sway).
+	float up = (1.0 - UV.y) * HEIGHT;
+	VERTEX.x += heat_sway(vec3(VERTEX.x, root.y + up, VERTEX.z), root, up, TIME) / TEXELS;
 	// A wind from the north or the south lays the tips over that way a little.
 	VERTEX.z += round(wind.y * 1.2 * reach) / TEXELS * tip;
 	// Plants under a roof or an overhang see no snow and no rain.

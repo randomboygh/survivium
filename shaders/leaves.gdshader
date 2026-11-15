@@ -106,6 +106,8 @@ void vertex() {
 	VERTEX.xz += away;
 	float sway = sin(TIME * 1.1 + center.x * 0.4 + fract(custom.w) * 6.28) * (0.3 + length(wind) * 1.4);
 	VERTEX.x += round(sway) / TEXELS;
+	// In the heat over sand and the sea a bush or a crown trembles a little with the air (heat_sway).
+	VERTEX.x += heat_sway(VERTEX, center, 2.0, TIME) / TEXELS;
 	if (flat_card) {
 		// A conifer's branch carries how far out from its trunk it lies in the length of
 		// its normal beyond 2 (Foliage._spruce): its tier is drawn shallower along the
