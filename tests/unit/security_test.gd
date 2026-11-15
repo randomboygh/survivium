@@ -384,6 +384,11 @@ func _test_cheats() -> void:
 	_check(a.at == to, "a teleport to no point is left")
 	req.handle(["cheats", 7, [{"at": Vector3(1e9, 0.0, -1e9)}]])
 	_check(a.at == Vector3(Requests.Cheats.MOST_FAR, 0.0, -Requests.Cheats.MOST_FAR), "and one too far is clamped")
+	req.handle(["cheats", 8, [{"harm": false}]])
+	_check(not a.vitals.harm, "invulnerability is taken from a playtest one")
+	req.handle(["cheats", 9, [{"harm": "no"}]])
+	_check(not a.vitals.harm, "and a value of a wrong type leaves it")
+	a.vitals.harm = true
 	a.teleport(to)
 	var cfg := Config.new()
 	_check(is_equal_approx(cfg.day_speed(), 0.1), "a server's day lasts 40 minutes, as the game's own by default")

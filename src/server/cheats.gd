@@ -3,7 +3,8 @@ extends RefCounted
 ## turned on «Читы на тестовом сервере» sends them (Protocol.CHEATS, Requests.may_cheat,
 ## src/client/settings.gd `send_cheats`), and the server takes them as the game in one's
 ## own world does (Settings.apply). Their own: the pace of walking and work, jumps in the
-## air, the rate of skills, overload, hunger, thirst, fatigue, cold, fall damage. The world's, for
+## air, the rate of skills, overload, hunger, thirst, fatigue, cold, fall damage, harm
+## (invulnerability). The world's, for
 ## everyone on it: free building, tool wear, instant crafting, free items, animal
 ## attacks, and on the clock the season, the weather, the moon, the hour and the pace
 ## of time; once, a teleport of the body to a point («at»: a marker or a respawn point
@@ -17,7 +18,7 @@ const MOST_BOOST := 100.0
 ## The farthest from the world's middle a teleport («at») goes, in world units on each axis.
 const MOST_FAR := 1.0e6
 ## Switches of the character (vitals and the bag) and of the world's rules.
-const VITALS := ["hunger", "thirst", "fatigue", "cold", "falls"]
+const VITALS := ["hunger", "thirst", "fatigue", "cold", "falls", "harm"]
 const RULES := ["free_build", "tool_wear", "instant_craft", "free_items", "animal_attacks"]
 
 
