@@ -162,10 +162,17 @@ func _heat(on: bool, sky, clock, indoor: bool) -> void:
 			var f: Dictionary = n[1]
 			# The flames' base and the top of the trembling air, as pixels of the picture
 			# (a world unit is PIXELS_PER_UNIT of them across).
+			# The more wood in it, the stronger, higher and wider the air trembles over it
+			# (Effects.fire_strength keeps its fuel share; a fire without one is full).
+			var fuel: float = f.get("fuel", 1.0)
+			var high := HEAT_HIGH * lerpf(0.35, 1.3, fuel)
 			var base: Vector2 = cam.unproject_position(PixelView.shear(f.at + Vector3(0.0, 0.25, 0.0)))
-			var top: Vector2 = cam.unproject_position(PixelView.shear(f.at + Vector3(0.0, 0.25 + HEAT_HIGH, 0.0)))
-			power[spots.size()] = snappedf(clampf(f.base / fx.FIRE_ENERGY, 0.3, 1.0), 0.05)
-			spots.append(Vector4(roundf(base.x), roundf(base.y), HEAT_HALF * PixelView.PIXELS_PER_UNIT, roundf(maxf(4.0, base.y - top.y))))
+			var top: Vector2 = cam.unproject_position(PixelView.shear(f.at + Vector3(0.0, 0.25 + high, 0.0)))
+			if fuel <= 0.02:
+				continue
+			power[spots.size()] = snappedf(lerpf(0.15, 1.0, fuel), 0.05)
+			spots.append(Vector4(roundf(base.x), roundf(base.y), roundf(HEAT_HALF * lerpf(0.6, 1.2, fuel) * PixelView.PIXELS_PER_UNIT),
+				roundf(maxf(3.0, base.y - top.y))))
 	# No fire near: the spots are cleared once.
 	if not spots.is_empty() or _heat_shown:
 		_heat_shown = not spots.is_empty()

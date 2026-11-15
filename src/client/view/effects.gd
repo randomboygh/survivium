@@ -411,6 +411,8 @@ func fire_strength(rec: Dictionary, share: float) -> void:
 	# Through the anchor, so a turn or tilt of the view keeps the short light short.
 	set_reach(light, 8.0 * lerpf(0.45, 1.1, k))
 	rec.fire.base = FIRE_ENERGY * lerpf(0.35, 1.0, k)
+	# What it has left to burn, as it is: the air over it trembles by it (AirEffects).
+	rec.fire.fuel = clampf(share, 0.0, 1.0)
 
 
 ## Sets how bright emitter `p` (made by _emitter) draws its particles.
