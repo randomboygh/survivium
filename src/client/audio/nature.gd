@@ -175,13 +175,19 @@ func thunder(strength: float) -> void:
 	var delay := rng.randf_range(THUNDER_DELAY.x, THUNDER_DELAY.y)
 	var near := 1.0 - (delay - THUNDER_DELAY.x) / (THUNDER_DELAY.y - THUNDER_DELAY.x)
 	var muffle := MUFFLED if game.chunks.indoor else 1.0
-	game.sound.play_later(delay, "thunder", Vector3.INF, muffle * strength * lerpf(0.5, 1.0, near),
-		lerpf(0.85, 1.0, near), "Nature")
-	# Felt as well: a near one's rumble, and the strike itself of a very near one.
+	# Felt as well: a near one rolls in the phone as it is heard (Vibration.rumble), and
+	# the strike itself of a very near one.
+	var felt := Callable()
 	if near > THUNDER_FELT:
-		Vibration.play(game, "thunder", delay, muffle * strength * near)
+		felt = _felt.bind(muffle * strength * near)
+	game.sound.play_later(delay, "thunder", Vector3.INF, muffle * strength * lerpf(0.5, 1.0, near),
+		lerpf(0.85, 1.0, near), "Nature", felt)
 	if near > STRIKE_FELT and strength > 0.7:
 		Vibration.play(game, "strike", 0.0, muffle)
+
+
+func _felt(played: Dictionary, scale: float) -> void:
+	Vibration.rumble(game, played, scale)
 
 
 ## The nearest burning campfire crackles from where it is.
