@@ -66,18 +66,19 @@ voxel models of things.
   rain running down the screen's edges (`grade.gdshader` `heat_spots`, `heat_haze`, `drop_state`: when they stop the drops there run off within
   `DRY_RUN` even if new ones start; a jump in the water, under `SWIM_LEFT` s out of it, still counts as a swim), snow on the screen (`frost_state`, `screen_snow`: flakes stick to the edges and melt while it snows
   outside, frost creeps in from the edges, deepest in the corners, below `FROST_FROM` degrees; the hotbar gathers snow, `hotbar_snow`;
-  by the same setting as the drops), breath steaming in
+  by the same setting as the drops; drops and snow are placed on the screen's own grid, `screen_shift` from `CameraRig.update`,
+  so they do not glide or jitter with the picture), breath steaming in
   a frost (puffs from a pool, `Creatures.muzzle`), the sun's path on the water at sunrise and sunset and the
   moon's at night (`water.gdshader` `sun_path`, `Sky.sun_height`; only where the light reaches the water:
   `sun_reaches` looks along it for cloud shadow, ground and tree crowns in the roof map; glints fade in and out
   each on its own clock). Snow on tops glitters a texel at a time in the sun's or the moon's light as the camera
-  moves or turns, slowly when it stands (`world.gdshader` `glint`, passed from fragment to light, so none in shadow). WaterEffects: rings and splashes (fish jumping,
+  moves or turns, slowly when it stands (`world.gdshader` `glint`, passed from fragment to light, so none in shadow). In clear sun (`snow_sun`, Sky: daylight with no overcast) snow is lighter and softer: its tones closer together and less blue (`snow_color`), its hollows and slope steps shaded less, and light() lifts its shadows and the slopes turned from the sun part of the way to sunlit flat ground (`snow_lit`, `SNOW_BOUNCE`), tinted turquoise blue (`SNOW_BOUNCE_TINT`, and `snow_shade` for the dark texels of slope steps and drifts). Snowdrifts (`drifts.gd`: one mound, a ridge of two or a heap of three, leaning downwind, 0.9 to 6 units long, mostly small, big ones only where the ground round them is level, `_flat_radius`) get their normal set straight up in vertex(): the MultiMesh's flattening scale squashed it, so they took no snow and the light of a slope turned away; in clear sun their foot is shaded on the east and west sides only (`DRIFT_FOOT`) so a white mound still shows on white snow. WaterEffects: rings and splashes (fish jumping,
   a shot landing, wading, a fall into the water), steam over open water on cold mornings, fires and torches
   glittering on the water towards the viewer (`fire_glints`), and the figures by the water mirrored in it
   (`sprite_mirror.gdshader`: the sprite upside down, drawn after the water and over the body's part under it
   (priority 2) with no depth test, kept to the water and the half of a shore's cell next to it (`SHORE_WET`) by the roof map's columns; a figure is
   mirrored with open water within `MIRROR_LOOK` cells round its feet, a swimmer too; its box fitted with `PixelView.sheared_box`). NatureEffects: dandelion fluff,
-  midges by the water at sunset and over one standing still, dragonflies over the water, dust or snow from
+  midges by the water at sunset and over one standing still (faint single pixels pulled back to a slowly wandering middle, `_midge_drift`, so they dart to and fro across it), dragonflies over the water, dust or snow from
   under the feet.
 - `src/client/view/wisps.gd` (held by `Effects.wisps`, moved by `Sky`) — will-o'-the-wisps: on nights out of winter up
   to `WISPS` pale flickering emitters wander over the murky water of swamps and bogs (`WorldCells.murk`) near
@@ -87,7 +88,7 @@ voxel models of things.
   frames; `PixelTextures.build_plants` writes a row under the plants (`looks_texel`: red shy, green night, blue
   the shift, alpha 1 for `after_rain`) and the vertex shader swaps the column — shy while the player stands within `SHY_REACH`, night
   past a `night_glow` of its own; an `after_rain` plant (a puffball) grows in four steps by the global `shrooms` (`Clock.shrooms`, set by `Sky`), its column sooner or later by the same sum as `Clock.shroom_size`. Texels of a custom picture with an alpha of 200..240 glint by day (dew).
-  The surf and a trail along the way a swimmer swam, fading as it ages (`wake_trail`, `wake_now`, from `WaterEffects`) glow blue on rare warm nights in
+  The surf and a trail along the way a swimmer swam, fading as it ages (`wake_trail`, `wake_now`, from `WaterEffects`; the glow makes the water opaque so the open sea shines as bright as the surf) glow blue on rare warm nights in
   bays of plankton (`sea_glow`, set by `Sky` from the night, one in `SEA_GLOW_NIGHTS` (`Sky.glowing_night`), and
   the season, `water.gdshader`). The plankton glows only in the sea, not in lakes, ponds or rivers: the sea's water cells carry `WorldData.SEA_WATER` from the generator (the layout's `OCEAN`), the mesher gives them vertex alpha `SEA_ALPHA` (plain rows: `SEA_TILE` over the depth in the key), and the shader's `sea_here` lets it glow only there.
 - `src/client/view/glow_lights.gd` (held by `Effects.glows`) — small teal pools of light round the glowing

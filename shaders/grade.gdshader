@@ -25,6 +25,9 @@ uniform float sway = 0.0;
 // and breathes, rings ripple out from the middle, the colours split apart and run round
 // the wheel in waves, and the edges glow the mushrooms' teal and violet.
 uniform float trip = 0.0;
+// A heartbeat at low health (BodyFeedback._dark_picture), 0..1: the picture goes darker
+// and harsher for the moment of the beat.
+uniform float heart = 0.0;
 // The air trembling over the fires nearest the view (AirEffects): each spot is the
 // flames' base in pixels of the picture, how far the trembling reaches to each side and
 // how high over them, in pixels; heat_power how strongly each fire burns (0 none).
@@ -41,8 +44,17 @@ uniform vec4 drop_state = vec4(0.0, 0.0, -1.0, 0.0);
 uniform vec4 frost_state = vec4(0.0);
 // The pixels of the picture round its edges left off the screen (PixelView.MARGIN).
 uniform float view_margin = 0.0;
+// How far the picture is moved on the screen, in its pixels (CameraRig: the margin and
+// the leftover fraction the view glides by): the drops and the snow on the screen are
+// placed by this, so they stay put on the glass while the world glides under them.
+uniform vec2 screen_shift = vec2(0.0);
 global uniform sampler2D cloud_noise : filter_linear, repeat_enable;
 global uniform vec2 cloud_offset;
+
+// The pixel of the screen's own grid (in pixels of the picture) under `uv` of the picture.
+vec2 glass_px(vec2 uv, vec2 texel) {
+	return floor(uv / texel + screen_shift);
+}
 global uniform float cloud_cover;
 // The old screen look (src/client/view/crt.gd, setting «Кинескоп»), off unless crt_on.
 // crt_screen: the screen's size and the picture's top left corner on it; crt_scale:
@@ -99,7 +111,7 @@ float crt_hash(vec2 p) {
 }
 
 // How many pixels the hot air moves the picture at its pixel `p` sideways: rows waving
-// up over each fire, weaker to its sides and top, two pixels at most; in a hot noon rows
+// up over each fire, weaker to its sides and top, a pixel at most; in a hot noon rows
 // wobbling in drifting patches over the whole ground.
 float heat_shift(vec2 p) {
 	float s = 0.0;
@@ -114,7 +126,7 @@ float heat_shift(vec2 p) {
 		if (up < -0.1 || up > 1.0 || side > 1.0) {
 			continue;
 		}
-		float k = heat_power[i] * (1.0 - up * up) * (1.0 - side * side) * 3.2;
+		float k = heat_power[i] * (1.0 - up * up) * (1.0 - side * side) * 2.2;
 		float w = sin(p.y * 1.1 + TIME * 8.0 + h.x) * 0.7 + sin(p.y * 0.37 + TIME * 4.3) * 0.5;
 		s += floor(w * k + 0.5);
 	}
@@ -124,7 +136,7 @@ float heat_shift(vec2 p) {
 		float k = heat_haze * smoothstep(0.5, 0.7, n) * 1.4;
 		s += floor(sin(p.y * 1.7 + TIME * 6.0 + n * 9.0) * k + 0.5);
 	}
-	return clamp(s, -2.0, 2.0);
+	return clamp(s, -1.0, 1.0);
 }
 
 // A drop of rain on the screen at pixel `p` of a picture `size` pixels: xy how far it
@@ -200,6 +212,14 @@ vec3 screen_drop(vec2 p, vec2 size) {
 	return out_d;
 }
 
+// A pixel `d` from the middle of a snowflake of `r` pixels: on one of its six arms (and
+// the twigs off the ends of a big one: a star, not a cross).
+bool flake_arm(vec2 d, float r) {
+	d = abs(d);
+	bool arm = (d.x == 0.0 && d.y <= r) || (d.y == 0.0 && d.x <= r) || (d.x == d.y && d.x <= r - 1.0);
+	return arm || (r >= 4.0 && ((d.x == r - 1.0 && d.y == 1.0) || (d.y == r - 1.0 && d.x == 1.0)));
+}
+
 // Snow on the screen at pixel `p` of the picture (`size` pixels): flakes that land near
 // the edges, lie a while and melt away, each a little six-armed star; and frost growing
 // in from the edges, deeper in the corners, in feathery ridges. xyz the colour, w how much.
@@ -225,26 +245,35 @@ vec4 screen_snow(vec2 p, vec2 size) {
 			out_c = vec4(0.86, 0.94, 1.0, a);
 		}
 	}
-	if (frost_state.y > 0.0 && near < 34.0) {
-		// Cells of 9 pixels along the edges, each with a flake now and then.
-		vec2 cell = floor(p / 9.0);
+	if (frost_state.y > 0.0 && near < 48.0) {
+		// Cells of 15 pixels along the edges, each with a flake now and then.
+		vec2 cell = floor(p / 15.0);
 		float h = crt_hash(cell + 5.3);
 		float t = frost_state.x * (0.05 + 0.04 * h) + h * 9.0;
 		float round_n = floor(t);
 		float f = fract(t);
-		float edge_k = 1.0 - near / 34.0;
-		if (crt_hash(cell + round_n * 1.7) < frost_state.y * edge_k * 0.7 && f < 0.85) {
-			vec2 at = cell * 9.0 + 2.0 + floor(vec2(crt_hash(cell + round_n), crt_hash(cell - round_n)) * 5.0);
+		float edge_k = 1.0 - near / 48.0;
+		if (crt_hash(cell + round_n * 1.7) < frost_state.y * edge_k * 0.8 && f < 0.85) {
+			vec2 at = cell * 15.0 + 4.0 + floor(vec2(crt_hash(cell + round_n), crt_hash(cell - round_n)) * 7.0);
 			// It lands at once, lies, and melts down to a dot at the end.
-			float r = f < 0.6 ? 2.0 : (f < 0.75 ? 1.0 : 0.0);
-			if (crt_hash(cell * 1.3 + round_n) < 0.4) {
-				r = min(r, 1.0);
+			float r = f < 0.55 ? 4.0 : (f < 0.68 ? 3.0 : (f < 0.78 ? 2.0 : 1.0));
+			if (crt_hash(cell * 1.3 + round_n) < 0.35) {
+				r = min(r, 3.0);
 			}
-			vec2 d = abs(p - at);
-			bool arm = (d.x == 0.0 && d.y <= r) || (d.y == 0.0 && d.x <= r) || (d.x == d.y && d.x <= r - 1.0);
-			if (arm) {
-				float a = (d.x + d.y == 0.0 ? 0.95 : 0.75) * (1.0 - smoothstep(0.7, 0.85, f));
-				out_c = vec4(mix(out_c.rgb, vec3(0.97, 0.99, 1.0), a), max(out_c.a, a));
+			vec2 d = p - at;
+			float a = 0.0;
+			vec3 col = vec3(0.97, 0.99, 1.0);
+			if (flake_arm(d, r)) {
+				a = d == vec2(0.0) ? 0.95 : 0.82;
+			} else if (flake_arm(d + vec2(1.0, 0.0), r) || flake_arm(d - vec2(1.0, 0.0), r)
+					|| flake_arm(d + vec2(0.0, 1.0), r) || flake_arm(d - vec2(0.0, 1.0), r)) {
+				// A thin bluish shadow round it, so it shows over snow too.
+				a = 0.32;
+				col = vec3(0.42, 0.55, 0.72);
+			}
+			a *= 1.0 - smoothstep(0.7, 0.85, f);
+			if (a > 0.0) {
+				out_c = vec4(mix(out_c.rgb, col, a), max(out_c.a, a));
 			}
 		}
 	}
@@ -272,6 +301,7 @@ void fragment() {
 	float edge = 1.0;
 	float band = 0.0;
 	vec3 drop = vec3(0.0);
+	vec2 glass = vec2(0.0);
 	vec3 src;
 	if (crt_on) {
 		// The tube's curve: the middle swells, the corners bend away and go black.
@@ -284,6 +314,8 @@ void fragment() {
 		vec2 out_px = min(sp, 1.0 - sp) * crt_screen.xy;
 		edge = clamp(min(out_px.x, out_px.y) / 2.0, 0.0, 1.0);
 		vec2 read = sp;
+		// The glass does not swim or jitter with the picture.
+		glass = glass_px((sp * crt_screen.xy - crt_screen.zw) / picture, TEXTURE_PIXEL_SIZE);
 		if (sway > 0.0 || trip > 0.0) {
 			read += sway_shift(sp) / picture;
 		}
@@ -304,7 +336,7 @@ void fragment() {
 			uv.x += heat_shift(floor(uv / TEXTURE_PIXEL_SIZE)) * TEXTURE_PIXEL_SIZE.x;
 		}
 		if (drop_state.y > 0.0 || drop_state.z >= 0.0) {
-			drop = screen_drop(floor(uv / TEXTURE_PIXEL_SIZE), 1.0 / TEXTURE_PIXEL_SIZE);
+			drop = screen_drop(glass, 1.0 / TEXTURE_PIXEL_SIZE);
 			uv += drop.xy * TEXTURE_PIXEL_SIZE;
 		}
 		float off = crt_rgb * long_side / picture.x;
@@ -318,6 +350,7 @@ void fragment() {
 			src = clamp(vec3(dot(src, w)) + smear - vec3(dot(smear, w)), 0.0, 1.0);
 		}
 	} else {
+		glass = glass_px(uv, TEXTURE_PIXEL_SIZE);
 		if (sway > 0.0 || trip > 0.0) {
 			uv += sway_shift(sp) * TEXTURE_PIXEL_SIZE;
 		}
@@ -325,7 +358,7 @@ void fragment() {
 			uv.x += heat_shift(floor(uv / TEXTURE_PIXEL_SIZE)) * TEXTURE_PIXEL_SIZE.x;
 		}
 		if (drop_state.y > 0.0 || drop_state.z >= 0.0) {
-			drop = screen_drop(floor(uv / TEXTURE_PIXEL_SIZE), 1.0 / TEXTURE_PIXEL_SIZE);
+			drop = screen_drop(glass, 1.0 / TEXTURE_PIXEL_SIZE);
 			uv += drop.xy * TEXTURE_PIXEL_SIZE;
 		}
 		if (trip > 0.0) {
@@ -387,8 +420,13 @@ void fragment() {
 		vec3 glow = mix(vec3(0.25, 0.95, 0.8), vec3(0.75, 0.35, 1.0), 0.5 + 0.5 * sin(TIME * 0.7));
 		c = mix(c, glow, trip * (0.28 + 0.1 * sin(TIME * 1.7)) * smoothstep(0.5, 1.1, d));
 	}
+	if (heart > 0.0) {
+		c = (c - 0.45) * (1.0 + 0.6 * heart) + 0.45;
+		c *= 1.0 - 0.4 * heart;
+		c = mix(c, c * vec3(1.0, 0.75, 0.75), heart * 0.5);
+	}
 	if (frost_state.y > 0.0 || frost_state.z > 0.0) {
-		vec4 snow = screen_snow(floor(uv / TEXTURE_PIXEL_SIZE), 1.0 / TEXTURE_PIXEL_SIZE);
+		vec4 snow = screen_snow(glass, 1.0 / TEXTURE_PIXEL_SIZE);
 		c = mix(c, snow.rgb * max(exposure, 0.35) * tint, snow.a);
 	}
 	if (crt_on) {

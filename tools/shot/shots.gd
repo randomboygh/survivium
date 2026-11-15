@@ -402,6 +402,8 @@ const SHOTS := {
 	"curio-primrose": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:evening_primrose"},
 	"curio-primrose-night": {"time": 0.95, "season": 1, "moon": 1.0, "place": "meadow", "find": "plants:evening_primrose"},
 	"curio-ring": {"time": 0.42, "season": 1, "find": "ring"},
+	# The plankton's wake behind a swimmer on a glowing night, the way swum to the south-west.
+	"plankton-wake": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "beach", "water": 2, "wake": [-0.6, 1.0]},
 	"curio-surf": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "beach"},
 	"curio-wake": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "beach", "water": 2},
 	"curio-wisps": {"time": 0.95, "season": 1, "moon": 0.5, "place": "swamp", "find": "murk",
