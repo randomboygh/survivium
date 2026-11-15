@@ -26,6 +26,18 @@ const Playtest := preload("res://src/client/net/playtest.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 
 const PATH := "user://settings.cfg"
+## The playtest switches «Сохранить» of «Тестирование» keeps (save_test), in section
+## "test" of the same file: loaded with the settings, so the next start begins with them;
+## «По умолчанию» there puts them back as they come and forgets them (reset_test). The
+## rest (the clock, the weather, «Читы на сервере») is the world's or the moment's.
+const TEST_SAVED := ["player_speed", "skill_rate", "air_jumps", "revive_at_death", "free_build", "tool_wear",
+	"no_overload", "instant_craft", "free_items", "no_hunger", "no_thirst", "no_fatigue", "no_cold",
+	"no_fall_damage", "invulnerable", "animal_attacks", "time_boost", "shadow_map", "debug_tips", "keys_log",
+	"free_view"]
+## The switches of the survival section, each with its value that means «survival on»
+## (set_survival turns them all at once).
+const SURVIVAL := {"no_hunger": false, "no_thirst": false, "no_fatigue": false, "no_cold": false,
+	"no_fall_damage": false, "invulnerable": false, "animal_attacks": true}
 ## The language the tools and the scene tests play in, whatever the settings say ("" none):
 ## the tests read the Russian they are written in, the screenshots ask for one.
 static var language_override := ""
@@ -274,6 +286,8 @@ var no_thirst := false
 var no_cold := false
 ## Playtest switch: falls do not hurt (Vitals.falls off). Not saved.
 var no_fall_damage := false
+## Playtest switch: health never goes down (Vitals.harm off). Not saved.
+var invulnerable := false
 ## Playtest switch: on a playtest server the switches of this page go to the server
 ## (send_cheats, src/server/cheats.gd), as they work in one's own world. Not saved.
 var cheats := false
@@ -290,6 +304,9 @@ var revive_at_death := false
 const SHADOW_MAPS := [1024, 2048, 4096]
 ## Playtest switch: the side of the sun's shadow map, an index into SHADOW_MAPS. Not saved.
 var shadow_map := 1
+## The playtest switches as they come (TEST_SAVED), and as last saved ({} when never).
+var _test_defaults := {}
+var _test_saved := {}
 ## The full screen last asked for in the browser, and when (see fullscreen).
 var _fullscreen_wanted := false
 var _fullscreen_asked := -100000
@@ -301,12 +318,20 @@ const FULLSCREEN_WAIT := 2.0
 func _init(g) -> void:
 	game = g
 	values = DEFAULTS.duplicate()
+	for k: String in TEST_SAVED:
+		_test_defaults[k] = get(k)
 
 
 func load() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(path) != OK:
 		return
+	_test_saved = {}
+	for k: String in TEST_SAVED:
+		var t: Variant = cfg.get_value("test", k, null)
+		if t != null and typeof(t) == typeof(_test_defaults[k]):
+			_test_saved[k] = t
+	_use_test(_test_saved)
 	var limits := _index_limits()
 	for k in DEFAULTS:
 		var v: Variant = cfg.get_value("game", k, DEFAULTS[k])
@@ -338,7 +363,75 @@ func save() -> void:
 	var cfg := ConfigFile.new()
 	for k in values:
 		cfg.set_value("game", k, values[k])
+	for k: String in _test_saved:
+		cfg.set_value("test", k, _test_saved[k])
 	cfg.save(path)
+
+
+## «Сохранить» of «Тестирование»: the playtest switches as they are now are kept
+## (TEST_SAVED), and the next start begins with them.
+func save_test() -> void:
+	_test_saved = {}
+	for k: String in TEST_SAVED:
+		_test_saved[k] = get(k)
+	save()
+
+
+## «По умолчанию» of «Тестирование»: the playtest switches go back as they come and
+## the saved ones are forgotten.
+func reset_test() -> void:
+	var gave: bool = free_items
+	var tips: bool = ai_debug
+	_use_test(_test_defaults)
+	_test_saved = {}
+	save()
+	apply()
+	if gave:
+		set_free_items(false)
+	if tips:
+		set_ai_debug(false)
+
+
+## Whether the playtest switches were saved and are as saved.
+func test_kept() -> bool:
+	if _test_saved.is_empty():
+		return false
+	for k: String in TEST_SAVED:
+		if get(k) != _test_saved.get(k, _test_defaults[k]):
+			return false
+	return true
+
+
+## Puts the playtest switches of `d` (TEST_SAVED keys) into their places, the values
+## the page's rows offer only.
+func _use_test(d: Dictionary) -> void:
+	for k: String in d:
+		var v: Variant = d[k]
+		match k:
+			"player_speed":
+				v = v if PLAYER_SPEEDS.has(v) else 1.0
+			"skill_rate":
+				v = v if SKILL_RATES.has(v) else 1.0
+			"time_boost":
+				v = v if TIME_BOOSTS.has(v) else 1.0
+			"shadow_map":
+				v = clampi(v, 0, SHADOW_MAPS.size() - 1)
+		set(k, v)
+
+
+## Whether every survival switch is as the game comes (SURVIVAL).
+func survival_on() -> bool:
+	for k: String in SURVIVAL:
+		if get(k) != SURVIVAL[k]:
+			return false
+	return true
+
+
+## Turns all the survival switches on (as the game comes) or off at once (SURVIVAL).
+func set_survival(on: bool) -> void:
+	for k: String in SURVIVAL:
+		set(k, SURVIVAL[k] if on else not SURVIVAL[k])
+	apply()
 
 
 ## Changes one setting, applies it and saves.
@@ -573,6 +666,7 @@ func apply() -> void:
 			who.vitals.hunger = not no_hunger
 			who.vitals.cold = not no_cold
 			who.vitals.falls = not no_fall_damage
+			who.vitals.harm = not invulnerable
 			who.vitals.thirst = not no_thirst
 			who.vitals.fatigue = not no_fatigue
 			who.skills.rate = skill_rate
@@ -814,7 +908,7 @@ func set_cheats(on: bool) -> void:
 		send_cheats()
 	else:
 		game.net.request(Protocol.CHEATS, [{"speed": 1.0, "air": false, "skill": 1.0, "heavy": true,
-			"hunger": true, "thirst": true, "fatigue": true, "cold": true, "falls": true, "free_build": false, "tool_wear": true,
+			"hunger": true, "thirst": true, "fatigue": true, "cold": true, "falls": true, "harm": true, "free_build": false, "tool_wear": true,
 			"instant_craft": false, "free_items": false, "animal_attacks": true, "boost": 1.0}])
 		_note("[cheats_off]")
 
@@ -834,7 +928,7 @@ func send_cheats(once := {}) -> bool:
 		return false
 	var d := {"speed": player_speed, "air": air_jumps, "skill": skill_rate, "heavy": not no_overload,
 		"hunger": not no_hunger, "thirst": not no_thirst, "fatigue": not no_fatigue, "cold": not no_cold,
-		"falls": not no_fall_damage,
+		"falls": not no_fall_damage, "harm": not invulnerable,
 		"free_build": free_build, "tool_wear": tool_wear, "instant_craft": instant_craft,
 		"free_items": free_items, "animal_attacks": animal_attacks, "boost": time_boost}
 	d.merge(once, true)
@@ -886,6 +980,11 @@ func set_no_cold(on: bool) -> void:
 
 func set_no_fall_damage(on: bool) -> void:
 	no_fall_damage = on
+	apply()
+
+
+func set_invulnerable(on: bool) -> void:
+	invulnerable = on
 	apply()
 
 
