@@ -246,8 +246,10 @@ func _sun_path(on: bool, sky, clock, indoor: bool) -> void:
 		k *= (1.0 - 0.9 * clampf(clock.clouds, 0.0, 1.0)) * (1.0 - clock.ice()) * (1.0 - clock.rain)
 		var flat := Vector2(sky.to_sun.x, sky.to_sun.z)
 		if k > 0.02 and flat.length() > 0.01:
+			# How steeply the light comes down, for what stands in its way (water.gdshader).
+			var rise: float = maxf(sky.to_sun.y, 0.0) / flat.length()
 			flat = flat.normalized()
-			path = Vector4(snappedf(flat.x, 0.01), snappedf(flat.y, 0.01), snappedf(k, 0.02), 0.0)
+			path = Vector4(snappedf(flat.x, 0.01), snappedf(flat.y, 0.01), snappedf(k, 0.02), snappedf(rise, 0.02))
 	_give(mat, "sun_path", path)
 	if path.z > 0.0:
 		_give(mat, "sun_path_color", Vector3(snappedf(c.r, 0.02), snappedf(c.g, 0.02), snappedf(c.b, 0.02)))
