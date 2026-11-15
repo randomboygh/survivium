@@ -143,6 +143,11 @@ func _ready() -> void:
 	mat.shader = FireShadowShader
 	material_override = mat
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# Unshaded, so on the layer the fires' lights leave out (PixelView.unlit ran when this
+	# entered the tree, before it had its material): lit by the fires it took variants of
+	# its shader for each mix of lights, one of them built in the game at night (176 ms on a
+	# phone, 2026-11-15).
+	PixelView.unlit(self)
 	# The shadows are moved every frame wherever the casters are.
 	extra_cull_margin = 16384.0
 	_atlas = Image.create_empty(MAP * MAX_LIGHTS, MAP_ROWS_TALL, false, Image.FORMAT_R8)
