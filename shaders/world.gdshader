@@ -151,6 +151,10 @@ void vertex() {
 		// The mound stands on the top of its cell and is lower than a cell.
 		float base = floor(VERTEX.y / CELL + 0.01) * CELL;
 		VERTEX.y = base + (VERTEX.y - base) * drift_size();
+		// Its normals point straight up, but the mound's flattening scale (MultiMesh)
+		// squashed them to a short, tilted vector: it took no snow (not a top) and the
+		// sun's light as on a slope turned away, a grey violet unlike the snow round it.
+		NORMAL = vec3(0.0, 1.0, 0.0);
 	}
 	world_pos = VERTEX;
 	world_normal = NORMAL;
@@ -197,6 +201,17 @@ vec3 ground_variety(int mat, vec2 xz, vec2 wt) {
 // move up to that plus SUN_SNOW_WHITE.
 const float SUN_SNOW_SPREAD = 0.6;
 const vec3 SUN_SNOW_WHITE = vec3(0.33, 0.32, 0.3);
+// How a shade on snow in clear sun darkens each channel, for a shade that darkens by
+// 1 - k: red most, blue least, so the snow's dark places go turquoise blue.
+const vec3 SNOW_SHADE = vec3(1.45, 0.85, 0.7);
+// The shade of a snowdrift's foot (see the fragment's drifts).
+const float DRIFT_FOOT = 0.76;
+
+// A shade `k` (below 1 darker) on snow, turned turquoise blue by how much the snow is
+// in clear sun (`sun`).
+vec3 snow_shade(float k, float sun) {
+	return mix(vec3(k), clamp(1.0 - (1.0 - k) * SNOW_SHADE, 0.0, 1.5), sun);
+}
 vec3 snow_color(vec2 xz, vec2 wt) {
 	float drift = ground_patch(xz, 9.0);
 	// Kept under 1 because the noon light adds up to more than 1 and the screen
@@ -571,12 +586,16 @@ void fragment() {
 		// The height of a slope shows as levels: each one shades darker toward its foot
 		// in an ordered dither, so a tall slope reads as steps, not one smooth smear.
 		float foot = 1.0 - band / CELL;
-		col *= bayer4(floor(rest_plane(world_pos) * TEXELS)) < foot * 0.9 - 0.15 ? 0.88 + 0.06 * snow_lit : 1.0;
+		col *= bayer4(floor(rest_plane(world_pos) * TEXELS)) < foot * 0.9 - 0.15 ? snow_shade(0.88 + 0.06 * snow_lit, snow_lit) : vec3(1.0);
 	}
 	if (tile == NONE) {
 		// A snowdrift's relief is a soft shade baked into its vertex alpha, halved.
-		// In clear sun the snow throws light into its hollows: half as deep.
-		col *= mix(COLOR.a * 2.0, 1.0, 0.5 * snow_sun);
+		// In clear sun its shaded side goes turquoise blue like the snow's other shades.
+		// In clear sun its foot is shaded a little, so white on white the mound still
+		// shows its round edge (DRIFT_FOOT).
+		float foot_r = length(UV - 4.0) * 2.0 / max(drift_size(), 0.01);
+		float foot = bayer4(floor(world_pos.xz * TEXELS)) < (foot_r - 0.62) * 4.0 ? mix(1.0, DRIFT_FOOT, snow_sun) : 1.0;
+		col *= snow_shade(COLOR.a * 2.0 * foot, snow_sun);
 	}
 	float wet = roof ? 0.0 : wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
 	col *= 1.0 - 0.3 * wet;
@@ -645,6 +664,9 @@ void fragment() {
 const float GLINT = 1.6;
 // How much of the way from shade to sunlit flat ground snow in clear sun is lifted.
 const float SNOW_BOUNCE = 0.35;
+// The colour of that light against the sun's: the sky's turquoise blue a snow field
+// gives back, so its shadows go turquoise rather than grey violet.
+const vec3 SNOW_BOUNCE_TINT = vec3(0.62, 0.97, 1.04);
 
 void light() {
 	// A torch or a fire lights the faces turned to where it stands in the world, not
@@ -662,7 +684,7 @@ void light() {
 	// way to the light of open flat ground (clouds' shadows still pass over it), the
 	// light a sunny snow field throws back.
 	if (LIGHT_IS_DIRECTIONAL && snow_lit > 0.0) {
-		lit = mix(lit, max(lit, LIGHT_COLOR * clouds / PI), SNOW_BOUNCE * snow_lit);
+		lit = mix(lit, max(lit, LIGHT_COLOR * clouds / PI * SNOW_BOUNCE_TINT), SNOW_BOUNCE * snow_lit);
 	}
 	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? compat_sun(lit, ALBEDO) * (1.0 + glint * GLINT) : lit * lamp_gain;
 }

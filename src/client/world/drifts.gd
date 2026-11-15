@@ -20,7 +20,7 @@ const SPARSITY := 12
 ## field and the north slope dimmer; the mound also casts its own thin shadow north.
 ## The body has to be visibly lighter than the field: a shadow crescent alone, with
 ## no body to belong to, reads as a hollow.
-const RELIEF := 0.12
+const RELIEF := 0.16
 
 
 ## A faceted low dome one unit across and one high, flat shaded, with the vertex data
@@ -99,7 +99,8 @@ static func _triangle(verts: PackedVector3Array, normals: PackedVector4Array, a:
 ## Mound transforms for the cells x0..x0+size, z0..z0+size (a chunk from the origin
 ## by default): [count, MultiMesh buffer]. Mounds lie on level loose ground under the
 ## open sky with level open ground all around, a few cells apart, each of its own
-## size, drawn out west to east as the prevailing wind leaves them.
+## size and shape (one mound, a ridge, a heap), drawn out west to east as the
+## prevailing wind leaves them.
 static func build(w, x0 := 0, z0 := 0, size := WorldData.CHUNK) -> Array:
 	var buf := PackedFloat32Array()
 	var count := 0
@@ -123,11 +124,36 @@ static func build(w, x0 := 0, z0 := 0, size := WorldData.CHUNK) -> Array:
 			if not flat:
 				continue
 			rng.seed = hash(Vector3i(x, y, z))
-			var r := rng.randf_range(1.0, 1.9)
-			var basis := Basis(Vector3.UP, rng.randf_range(-0.5, 0.5)) \
-				* Basis.from_scale(Vector3(r, rng.randf_range(0.18, 0.36), r * rng.randf_range(0.45, 0.7)))
-			var p := PixelView.snap(Vector3(x + 0.5 + rng.randf_range(-0.3, 0.3), y, z + 0.5 + rng.randf_range(-0.3, 0.3)) * CELL)
-			buf.append_array([basis.x.x, basis.y.x, basis.z.x, p.x, basis.x.y, basis.y.y, basis.z.y, p.y,
-				basis.x.z, basis.y.z, basis.z.z, p.z])
+			var turn := Basis(Vector3.UP, rng.randf_range(-0.6, 0.6))
+			var centre := Vector3(x + 0.5 + rng.randf_range(-0.3, 0.3), y, z + 0.5 + rng.randf_range(-0.3, 0.3))
+			var r := rng.randf_range(0.9, 2.0)
+			var h := rng.randf_range(0.16, 0.4)
+			_mound(buf, rng, turn, centre, r, h)
 			count += 1
+			# Some drifts are a ridge of two humps drawn out downwind, some a heap of
+			# three, the rest one mound (MOUND_SHAPES).
+			var shape := rng.randf()
+			var more := 0 if shape < MOUND_SHAPES.x else (1 if shape < MOUND_SHAPES.y else 2)
+			for i in more:
+				var along := turn.x * (rng.randf_range(0.45, 0.8) * r * (1.0 if i == 0 else -0.8))
+				var aside := turn.z * rng.randf_range(-0.25, 0.25) * r
+				_mound(buf, rng, turn, centre + along + aside, r * rng.randf_range(0.45, 0.75), h * rng.randf_range(0.55, 0.9))
+				count += 1
 	return [count, buf]
+
+
+## Shares of the drifts that are one mound (x), a ridge of two (y - x), a heap of three.
+const MOUND_SHAPES := Vector2(0.4, 0.75)
+
+
+## One mound at `centre` (cells), `r` world units long, `h` high, turned by `turn`, drawn out
+## along it and leaning its top a little downwind (east, as the wind leaves it) or,
+## now and then, the other way.
+static func _mound(buf: PackedFloat32Array, rng: RandomNumberGenerator, turn: Basis, centre: Vector3, r: float, h: float) -> void:
+	var lean := rng.randf_range(-0.12, 0.3) * r
+	var shape := Basis(Vector3(r, 0.0, 0.0), Vector3(lean, h, rng.randf_range(-0.08, 0.08) * r),
+		Vector3(0.0, 0.0, r * rng.randf_range(0.4, 0.8)))
+	var basis := turn * shape
+	var p := PixelView.snap(centre * CELL)
+	buf.append_array([basis.x.x, basis.y.x, basis.z.x, p.x, basis.x.y, basis.y.y, basis.z.y, p.y,
+		basis.x.z, basis.y.z, basis.z.z, p.z])
