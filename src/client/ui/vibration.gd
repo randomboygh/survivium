@@ -12,6 +12,8 @@ extends RefCounted
 ## landing, water), Nature (thunder), LevelUp, Voices (a beast warns), Sound (buttons).
 
 ## The setting's steps (`vibration`).
+const ThunderShape := preload("res://src/client/audio/thunder_shape.gd")
+
 const OFF := 0
 const IMPORTANT := 1
 const USUAL := 2
@@ -31,7 +33,8 @@ const PATTERNS := {
 	"bite": [[25, 80, 25], 0.5, IMPORTANT],
 	# Б: a felled tree hits the ground.
 	"tree": [[110], 0.6, USUAL],
-	# В: thunder near, a rumble (its strength scaled by how near).
+	# В: thunder near, a rumble (its strength scaled by how near); the thunder heard is
+	# followed by its own long shape instead (rumble), this when its shape is unknown.
 	"thunder": [[60, 40, 90, 60, 40], [0.5, 0.8, 0.4], USUAL],
 	# Г: a skill's new level, a trill.
 	"level": [[30, 60, 30, 60, 80], [0.5, 0.5, 0.8], USUAL],
@@ -50,7 +53,7 @@ const PATTERNS := {
 	# Л: the bag is full, «no».
 	"full": [[40, 60, 40], 0.6, IMPORTANT],
 	# М: a landing that does not hurt (Steps scales it by the fall).
-	"land": [[35], 0.5, ALL],
+	"land": [[18], 0.25, ALL],
 	# Н: a button of the interface.
 	"click": [[8], 0.3, ALL],
 	# П: a tool broke, a sharp snap.
@@ -106,6 +109,65 @@ static func play(game, id: String, delay := 0.0, scale := 1.0) -> void:
 	_later(game, p[0], strengths, delay)
 
 
+## Milliseconds of each step of a thunder's rumble, and the most pulses a browser takes
+## in one pattern (Chrome refuses a longer one).
+const RUMBLE_STEP := 200
+const WEB_MOST := 99
+
+
+## The thunder heard (Sound.play_later's `then`: variant `played.variant` at speed
+## `played.pitch`) felt as it rolls (ThunderShape), its strength times `scale`: each
+## RUMBLE_STEP a pulse as long and as strong as the thunder is loud then. A thunder
+## of a mod with other variants than the made ones buzzes the short rumble.
+static func rumble(game, played: Dictionary, scale: float) -> void:
+	var p: Array = PATTERNS.thunder
+	if not allows(game, p[2]):
+		return
+	var v: int = played.get("variant", -1)
+	var count: int = game.sound.streams("thunder").size() if game.get("sound") != null else 0
+	if v < 0 or count != ThunderShape.KINDS.size():
+		play(game, "thunder", 0.0, scale)
+		return
+	var steps := rumble_steps(ThunderShape.of(v), float(played.get("pitch", 1.0)), scale)
+	_pulses(game, steps[0], steps[1])
+
+
+## The pulses (on, off… ms) and their strengths of thunder shape `s` played at speed
+## `pitch`, as strong as `scale` (see rumble).
+static func rumble_steps(s: Dictionary, pitch: float, scale: float) -> Array:
+	var span: float = s.span
+	var n := ceili(span / pitch * 1000.0 / RUMBLE_STEP)
+	var levels := []
+	var top := 0.001
+	for i in n:
+		var t := (i + 0.5) * RUMBLE_STEP / 1000.0 * pitch
+		var g := ThunderShape.gain(s, t)
+		for c: Array in s.cracks:
+			if absf(t - c[0]) < RUMBLE_STEP / 1000.0 * pitch:
+				g += c[1] * 1.5
+		levels.append(g)
+		top = maxf(top, g)
+	var steps := []
+	var strengths := []
+	var off := 0
+	for g: float in levels:
+		var level := clampf(g / top * scale, 0.0, 1.0)
+		var on := roundi(RUMBLE_STEP * level) if level > 0.12 else 0
+		if on == 0:
+			off += RUMBLE_STEP
+			continue
+		if not steps.is_empty():
+			steps.append(off)
+		elif off > 0:
+			# Silent at first: the pattern starts with a pause of nothing felt.
+			steps.append_array([1, off])
+			strengths.append(0.05)
+		steps.append(on)
+		strengths.append(clampf(level, 0.05, 1.0))
+		off = RUMBLE_STEP - on
+	return [steps, strengths]
+
+
 ## The buzz of a hurt of `points`.
 static func hurt(game, points: int) -> void:
 	buzz(game, mini(HURT_MS + HURT_PER_POINT * points, HURT_MOST), 0.0, -1.0, IMPORTANT)
@@ -129,7 +191,7 @@ static func _later(game, steps: Array, strengths: Array, delay: float) -> void:
 static func _pulses(game, steps: Array, strengths: Array) -> void:
 	if OS.has_feature("web"):
 		var ms := PackedStringArray()
-		for s in steps:
+		for s in steps.slice(0, WEB_MOST):
 			ms.append(str(int(s)))
 		JavaScriptBridge.eval("navigator.vibrate && navigator.vibrate([%s])" % ",".join(ms), true)
 	elif OS.has_feature("android"):

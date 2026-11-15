@@ -232,18 +232,20 @@ func in_range(pos: Vector3) -> bool:
 ## or from the interface when `pos` is INF; `volume` is linear on top of the sound's
 ## own, `pitch` the speed (a little random on top, so a sound repeated does not sound
 ## the same), `bus` where it goes (Sounds, the interface's UI for a sound from no
-## place; or Nature for the birds and the weather).
-func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "Sounds") -> void:
+## place; or Nature for the birds and the weather). Returns which variant played and
+## how fast, {"variant": i, "pitch": p} (the thunder's vibration follows it), or {}.
+func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "Sounds") -> Dictionary:
 	id = resolve(id)
 	if id == "" or not unlocked or volume <= SILENT or _time - float(_started.get(id, -1.0)) < MIN_GAP:
-		return
+		return {}
 	if pos != Vector3.INF and not in_range(pos):
-		return
+		return {}
 	var list := streams(id)
 	if list.is_empty():
-		return
+		return {}
 	_started[id] = _time
-	var stream: AudioStream = list[randi() % list.size()]
+	var variant := randi() % list.size()
+	var stream: AudioStream = list[variant]
 	var db := linear_to_db(volume * records[id].volume)
 	var p_scale := pitch * randf_range(0.94, 1.06)
 	if pos == Vector3.INF:
@@ -254,9 +256,9 @@ func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "S
 		u.pitch_scale = p_scale
 		if not mute:
 			u.play()
-		return
+		return {"variant": variant, "pitch": p_scale}
 	if _voices.is_empty():
-		return
+		return {}
 	var v: AudioStreamPlayer3D = free_voice(_voices)
 	v.stream = stream
 	v.volume_db = db
@@ -265,17 +267,25 @@ func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "S
 	v.global_position = pos
 	if not mute:
 		v.play()
+	return {"variant": variant, "pitch": p_scale}
 
 
-## Plays sound `id` (see play) `delay` seconds from now.
-func play_later(delay: float, id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "Sounds") -> void:
+## Plays sound `id` (see play) `delay` seconds from now; `then` is called with what
+## play returned, if it played.
+func play_later(delay: float, id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "Sounds",
+		then := Callable()) -> void:
 	id = resolve(id)
 	if id == "" or not unlocked:
 		return
 	if delay <= 0.0:
-		play(id, pos, volume, pitch, bus)
+		_then(play(id, pos, volume, pitch, bus), then)
 	else:
-		_later.append([_time + delay, id, pos, volume, pitch, bus])
+		_later.append([_time + delay, id, pos, volume, pitch, bus, then])
+
+
+static func _then(played: Dictionary, then: Callable) -> void:
+	if not played.is_empty() and then.is_valid():
+		then.call(played)
 
 
 ## A voice of `pool` that is not playing, or the one that has played longest.
@@ -417,7 +427,7 @@ func _process(delta: float) -> void:
 		var l: Array = _later[i]
 		if l[0] <= _time:
 			_later.remove_at(i)
-			play(l[1], l[2], l[3], l[4], l[5])
+			_then(play(l[1], l[2], l[3], l[4], l[5]), l[6])
 		else:
 			i += 1
 	var k := 1.0 - exp(-FADE_RATE * delta)

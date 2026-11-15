@@ -7,6 +7,7 @@ extends SceneTree
 ## Each sound has its own seed: making it again gives the same file.
 
 const Synth := preload("res://tools/sound/synth.gd")
+const ThunderShape := preload("res://src/client/audio/thunder_shape.gd")
 
 ## Seconds of the loops, and how much of their end is faded into their start.
 const LOOP := 8.0
@@ -23,7 +24,7 @@ const SOUNDS := {
 	"crickets": ["sounds/nature", 1, true],
 	# Nature: one-off.
 	"cricket": ["sounds/nature", 6, false],
-	"thunder": ["sounds/nature", 2, false],
+	"thunder": ["sounds/nature", 6, false],
 	"bird": ["animals/sparrow", 5, false],
 	# The player.
 	"step_grass": ["sounds/player", 4, false],
@@ -223,17 +224,16 @@ func _cricket(v: int) -> PackedFloat32Array:
 	return Synth.normalize(Synth.lowpass(b, 6500.0), 0.6)
 
 
-func _thunder(_v: int) -> PackedFloat32Array:
-	var span := rng.randf_range(3.5, 5.0)
-	var crack := Synth.env(Synth.bandpass(Synth.white(0.4, rng), 1800.0, 0.6), 0.002, 0.08)
-	var rumble := Synth.lowpass(Synth.brown(span, rng), 220.0)
-	var swells := [rng.randf_range(0.2, 0.6), rng.randf_range(0.8, 1.6), rng.randf_range(1.8, 2.8)]
-	rumble = Synth.shape(Synth.normalize(rumble, 1.0), func(t: float, l: float) -> float:
-		var g := 0.0
-		for s: float in swells:
-			g += exp(-pow((t - s) / 0.5, 2.0))
-		return (0.3 + g) * smoothstep(l, l * 0.4, t) * minf(t / 0.05, 1.0))
-	var b := Synth.mix(Synth.normalize(rumble, 0.9), crack, 0.5 * rng.randf())
+func _thunder(v: int) -> PackedFloat32Array:
+	# Its shape in time is shared with the vibration that follows it (ThunderShape).
+	var s := ThunderShape.of(v)
+	var span: float = s.span
+	var rumble := Synth.lowpass(Synth.brown(span, rng), s.low)
+	rumble = Synth.shape(Synth.normalize(rumble, 1.0), func(t: float, _l: float) -> float: return ThunderShape.gain(s, t))
+	var b := Synth.normalize(rumble, 0.9)
+	for c: Array in s.cracks:
+		var crack := Synth.env(Synth.bandpass(Synth.white(0.5, rng), rng.randf_range(1400.0, 2200.0), 0.6), 0.002, 0.1)
+		b = Synth.mix(b, Synth.normalize(crack, 1.0), 0.6 * c[1], c[0])
 	return Synth.normalize(b, 0.9)
 
 
