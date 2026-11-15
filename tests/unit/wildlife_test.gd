@@ -489,6 +489,10 @@ func _test_ice_holes(w: WorldData, life: Wildlife, actions: WorldActions, fishin
 		and is_equal_approx(who.line.z, (col.y + 0.5) * WorldData.CELL) and is_equal_approx(who.line.y, top)
 		and is_equal_approx(fishing.lines[who].lure, 1.0),
 		"a rod is cast into the hole nearby, the float on its water (%v)" % who.line)
+	# A bare hook lures a fish 4% a second (Fishing.LURE_BARE): no bite in 60 s one run in
+	# twelve (CI, 2026-11-15) while the fish wandered off. Here it is the hole that is
+	# checked, not the luck: the line lures ten times as well.
+	fishing.lines[who].lure = 10.0
 	var t := 0.0
 	while t < 60.0 and not who.bite:
 		fishing.step(0.05)
