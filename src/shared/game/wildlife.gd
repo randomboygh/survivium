@@ -123,6 +123,8 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 		a.cause = ""
 		a.idle = 0.0
 		a.target = Vector3(a.bait.x, a.pos.y, a.bait.z)
+		# Up to the float.
+		a.dip_to = DIP * CELL
 		return
 	if a.state == "bite":
 		# Its jaws close (see _fight_step): nothing else for that moment.
@@ -201,6 +203,9 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 		away.y = 0.0
 		if away.length() < 0.01:
 			away = Vector3(rng.randf_range(-1.0, 1.0), 0.0, rng.randf_range(-1.0, 1.0))
+		if dives(spec):
+			# A fish dives away into the deep.
+			a.dip_to = DEEPEST * CELL
 		if spec.flies:
 			if a.flying:
 				return
@@ -281,6 +286,8 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 	if lead != null and lead != a:
 		a.cause = "lead"
 		_follow(a, spec, lead)
+		# A school keeps to the depth of its lead.
+		a.dip_to = lead.dip_to
 		return
 	if spec.flies:
 		if rng.randf() < FLY_CHANCE * (SWIM_FLY if spec.swims else 1.0):
@@ -319,6 +326,9 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 				else _place(spec, a.pos, LOVE_REACH if loves else 6.0, false, 8 if loves else 4)
 		a.target = to if to != null else a.pos + Vector3(rng.randf_range(-6.0, 6.0), 0.0, rng.randf_range(-6.0, 6.0))
 		a.cause = "graze" if to != null else ""
+		if dives(spec) and (was != "wander" or rng.randf() < DIVE_CHANCE):
+			# A new way at a new depth (after a fright, up again from the deep).
+			a.dip_to = rng.randf_range(DIP, DEEPEST) * CELL
 		if _fire_near(a, spec, a.target) != null:
 			# It does not wander up to a fire: it stays where it is a while instead.
 			a.target = a.pos

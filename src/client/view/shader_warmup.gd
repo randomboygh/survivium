@@ -146,6 +146,19 @@ func _build() -> void:
 			kinds[key] = animal
 		else:
 			animal.free()
+	# A fish under the water (Creatures): the player's under-water shader on the
+	# animals' layer, casting its shadow.
+	var under: MeshInstance3D = game.player.underwater if game.player != null and "underwater" in game.player else null
+	if under != null and under.mesh != null:
+		var fish := MeshInstance3D.new()
+		fish.mesh = under.mesh
+		fish.material_override = under.material_override
+		fish.layers = PixelView.LAYER_THINGS
+		var fish_key := _key(fish)
+		if not kinds.has(fish_key):
+			kinds[fish_key] = fish
+		else:
+			fish.free()
 	# A figure mirrored in the water (WaterEffects), shown only by the water.
 	if figure != null and figure.mesh != null:
 		var mirror := MeshInstance3D.new()

@@ -34,10 +34,11 @@ uniform vec3 swamp_foam SRGB = vec3(0.62, 0.65, 0.5);
 // 0 by day, up to 1 on the rare warm nights it glows (sky.gd glowing_night): how much the
 // surf and a swimmer's wake glow blue where the plankton is (bays of it, by a slow noise).
 global uniform float sea_glow;
-// The way the player moves through the water (x, y: along the ground, a unit) and how
-// fast, 0..1 (z), for the plankton's wake behind them (WaterEffects), and how far it trails.
-uniform vec3 wake_way = vec3(0.0, 1.0, 0.0);
-const float WAKE_LONG = 2.6;
+// The way the player swam (WaterEffects): points left behind, newest first (x, y along
+// the ground, z how bright the plankton still glows there, 0..1, w the water's height);
+// the wake glows along the path from the player through them and fades where it is old.
+uniform vec4 wake_trail[8];
+uniform float wake_now = 0.0;
 const vec3 PLANKTON = vec3(0.2, 0.62, 1.0);
 // The sun's path on the water while the sun is low (AirEffects): xy the way to the sun
 // along the ground, z how strong (0 none), w how steeply the light comes down (rise per
@@ -333,16 +334,33 @@ void fragment() {
 		// Plankton lights up blue where the surf breaks and round one swimming, flickering
 		// texel by texel, in bays of it here and there.
 		float bay = smoothstep(0.42, 0.6, ground_patch(world_pos.xz / 5.0, 47.0));
-		// Behind one moving in the water: a faint V of it trailing off (wake_way).
-		vec2 off = world_pos.xz - player_pos.xz;
-		float behind = -dot(off, wake_way.xy);
-		float side = abs(off.x * wake_way.y - off.y * wake_way.x);
+		// Along the way the player swam: a band glowing on the path left behind, widening
+		// and fading as it ages (wake_trail).
 		float wake = 0.0;
-		if (wake_way.z > 0.0 && behind > 0.2 && behind < WAKE_LONG && abs(world_pos.y - player_pos.y - 0.25) < 0.8) {
-			wake = smoothstep(0.16, 0.04, abs(side - behind * 0.32)) * (1.0 - behind / WAKE_LONG) * wake_way.z * 0.55;
+		if (wake_trail[0].z > 0.0 || wake_now > 0.0) {
+			vec2 a = player_pos.xz;
+			float ka = wake_now;
+			for (int i = 0; i < 8; i++) {
+				vec4 b = wake_trail[i];
+				if (ka <= 0.0 && b.z <= 0.0) {
+					break;
+				}
+				if (abs(world_pos.y - b.w) < 0.8) {
+					vec2 ab = b.xy - a;
+					float t = clamp(dot(world_pos.xz - a, ab) / max(dot(ab, ab), 0.0001), 0.0, 1.0);
+					float d = length(world_pos.xz - a - ab * t);
+					float k = mix(ka, b.z, t);
+					// Close to the swimmer the band is narrow and parts round them.
+					float half_w = 0.12 + (1.0 - k) * 0.22;
+					float near = length(world_pos.xz - player_pos.xz);
+					wake = max(wake, smoothstep(half_w, half_w * 0.4, d) * k * smoothstep(0.15, 0.45, near));
+				}
+				a = b.xy;
+				ka = b.z;
+			}
 		}
 		float twinkle = 0.45 + 0.55 * step(0.55, hash12(tex + floor(TIME * 4.0) * 7.0));
-		plankton = max(surf * bay, wake * step(0.6, hash12(tex + floor(TIME * 6.0) * 3.0))) * twinkle * sea_glow;
+		plankton = max(surf * bay, wake * 0.8 * step(0.45, hash12(tex + floor(TIME * 6.0) * 3.0))) * twinkle * sea_glow;
 	}
 	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5) * mix(vec3(1.0), vec3(0.8, 0.78, 0.7), murk), ice_amount);
 	if (ice_amount > 0.0 && world_normal.y > 0.5) {

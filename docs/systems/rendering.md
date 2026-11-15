@@ -64,7 +64,9 @@ voxel models of things.
   and heat off on «среднее», `Settings.QUALITIES`, `AutoQuality.STEPS`) and hidden one by one in «Что рисуется»
   (their `parts()`). AirEffects: the air trembling over the nearest fires (stronger, higher and wider the more wood is left, `fire.fuel` from `Effects.fire_strength`) and over hot ground at noon and drops of
   rain running down the screen's edges (`grade.gdshader` `heat_spots`, `heat_haze`, `drop_state`: when they stop the drops there run off within
-  `DRY_RUN` even if new ones start; a jump in the water, under `SWIM_LEFT` s out of it, still counts as a swim), breath steaming in
+  `DRY_RUN` even if new ones start; a jump in the water, under `SWIM_LEFT` s out of it, still counts as a swim), snow on the screen (`frost_state`, `screen_snow`: flakes stick to the edges and melt while it snows
+  outside, frost creeps in from the edges, deepest in the corners, below `FROST_FROM` degrees; the hotbar gathers snow, `hotbar_snow`;
+  by the same setting as the drops), breath steaming in
   a frost (puffs from a pool, `Creatures.muzzle`), the sun's path on the water at sunrise and sunset and the
   moon's at night (`water.gdshader` `sun_path`, `Sky.sun_height`; only where the light reaches the water:
   `sun_reaches` looks along it for cloud shadow, ground and tree crowns in the roof map; glints fade in and out
@@ -73,7 +75,7 @@ voxel models of things.
   a shot landing, wading, a fall into the water), steam over open water on cold mornings, fires and torches
   glittering on the water towards the viewer (`fire_glints`), and the figures by the water mirrored in it
   (`sprite_mirror.gdshader`: the sprite upside down, drawn after the water and over the body's part under it
-  (priority 2) with no depth test, kept to the water and its wet edge by the roof map's columns; a figure is
+  (priority 2) with no depth test, kept to the water and the half of a shore's cell next to it (`SHORE_WET`) by the roof map's columns; a figure is
   mirrored with open water within `MIRROR_LOOK` cells round its feet, a swimmer too; its box fitted with `PixelView.sheared_box`). NatureEffects: dandelion fluff,
   midges by the water at sunset and over one standing still, dragonflies over the water, dust or snow from
   under the feet.
@@ -85,7 +87,7 @@ voxel models of things.
   frames; `PixelTextures.build_plants` writes a row under the plants (`looks_texel`: red shy, green night, blue
   the shift, alpha 1 for `after_rain`) and the vertex shader swaps the column — shy while the player stands within `SHY_REACH`, night
   past a `night_glow` of its own; an `after_rain` plant (a puffball) grows in four steps by the global `shrooms` (`Clock.shrooms`, set by `Sky`), its column sooner or later by the same sum as `Clock.shroom_size`. Texels of a custom picture with an alpha of 200..240 glint by day (dew).
-  The surf and a faint V behind a swimmer (`wake_way`, from `WaterEffects`) glow blue on rare warm nights in
+  The surf and a trail along the way a swimmer swam, fading as it ages (`wake_trail`, `wake_now`, from `WaterEffects`) glow blue on rare warm nights in
   bays of plankton (`sea_glow`, set by `Sky` from the night, one in `SEA_GLOW_NIGHTS` (`Sky.glowing_night`), and
   the season, `water.gdshader`). The plankton glows only in the sea, not in lakes, ponds or rivers: the sea's water cells carry `WorldData.SEA_WATER` from the generator (the layout's `OCEAN`), the mesher gives them vertex alpha `SEA_ALPHA` (plain rows: `SEA_TILE` over the depth in the key), and the shader's `sea_here` lets it glow only there.
 - `src/client/view/glow_lights.gd` (held by `Effects.glows`) — small teal pools of light round the glowing

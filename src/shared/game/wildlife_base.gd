@@ -94,6 +94,14 @@ const CLIMB_SPEED := 2.0
 const STAY_UP := Vector2(4.0, 10.0)
 ## A swimmer keeps this far under the water surface, in cells.
 const DIP := 0.35
+## A fish (see dives) swims at a depth of its own, between DIP and DEEPEST cells under
+## the surface and at least BED_GAP cells over the bed; it goes up or down at DIVE_SPEED
+## world units a second. With a new way it takes a new depth DIVE_CHANCE of the times;
+## it dives to the deepest from a threat and comes up to the float of a line.
+const DEEPEST := 3.0
+const BED_GAP := 0.3
+const DIVE_SPEED := 0.35
+const DIVE_CHANCE := 0.5
 ## A flock keeps within this many world units of its lead.
 const FLOCK_REACH := 1.5
 const FLOCK_GAP := 4.0
@@ -227,6 +235,12 @@ class Animal:
 	## A fish lured by the float of a fishing line swims there and stays (Fishing sets
 	## and clears it); INF none.
 	var bait := Vector3.INF
+	## A fish (see dives): how deep under the surface it swims (world units), the depth it
+	## goes to, and how deep the water is under the surface where it last looked at
+	## its floor (see _look_floor).
+	var dip := DIP * CELL
+	var dip_to := DIP * CELL
+	var room := INF
 	## Tamed (Taming): the number of its owner (Player.id), -1 for a wild one; where it
 	## was told to stay (INF: it follows its owner); how many times a wild one was fed by
 	## hand, when it last ate from a hand and when it was last shorn (days of the Clock).
@@ -423,6 +437,23 @@ static func under_ice_swimmer(spec: Dictionary) -> bool:
 	return spec.swims and not spec.flies and not spec.ashore
 
 
+## Whether species `spec` swims at depths of its own (see DEEPEST): a fish.
+static func dives(spec: Dictionary) -> bool:
+	return under_ice_swimmer(spec)
+
+
+## How deep the water is at a world point, from its surface (or the bottom of its ice)
+## down to its bed, in world units; 0 where there is none.
+func water_room(x: float, z: float) -> float:
+	var bits: int = world.water_col(floori(x / CELL), floori(z / CELL))
+	if bits == 0:
+		return 0.0
+	var top := WorldData.top_level(bits)
+	var bed := WorldData.top_level(~bits & ((1 << top) - 1))
+	var surface := float(top) if world.water_frozen else top + WorldData.WATER_TOP
+	return maxf(0.0, surface - (bed + 1)) * CELL
+
+
 ## Where an animal of species `spec` stands at a world point, in world units: the
 ## ground for a walker, DIP under the water surface for a swimmer (the ground out of
 ## the water for one that comes ashore), DIP under the ice for a fish in frozen water;
@@ -578,6 +609,8 @@ func _look_floor(a: Animal, spec: Dictionary, at: Vector3) -> float:
 	a.looked = at
 	a.floor_y = y
 	a.floor_wet = spec.swims and (not spec.ashore or water_top(at.x, at.z) > -INF)
+	if dives(spec):
+		a.room = water_room(at.x, at.z)
 	if spec.ashore and a.floor_wet:
 		a.home = at
 	return y

@@ -19,6 +19,9 @@ uniform float level = -1000.0;
 uniform float light = 1.0;
 uniform vec3 water SRGB = vec3(0.3, 0.52, 0.58);
 
+// How far into a shore's cell from the water the mirror shows, in cells.
+const float SHORE_WET = 0.45;
+
 varying vec3 world_pos;
 // The point as it is drawn (stand_tall), not sheared.
 varying vec3 tall;
@@ -43,8 +46,23 @@ bool mirrors(vec2 xz) {
 	if (abs(top - CELL * 0.5 - level) > 0.1) {
 		return false;
 	}
-	return column(c + vec2(1.0, 0.0)).a > 0.5 || column(c - vec2(1.0, 0.0)).a > 0.5
-		|| column(c + vec2(0.0, 1.0)).a > 0.5 || column(c - vec2(0.0, 1.0)).a > 0.5;
+	// The water covers the slope of a shore up to about its middle: only the part of the
+	// cell nearer to a side (or a corner) with water beyond it shows the mirror.
+	vec2 f = xz / CELL - c;
+	float near = 1.0;
+	if (column(c + vec2(1.0, 0.0)).a > 0.5) near = min(near, 1.0 - f.x);
+	if (column(c - vec2(1.0, 0.0)).a > 0.5) near = min(near, f.x);
+	if (column(c + vec2(0.0, 1.0)).a > 0.5) near = min(near, 1.0 - f.y);
+	if (column(c - vec2(0.0, 1.0)).a > 0.5) near = min(near, f.y);
+	if (near > SHORE_WET) {
+		for (int k = 0; k < 4; k++) {
+			vec2 o = vec2(k % 2 == 0 ? 1.0 : -1.0, k < 2 ? 1.0 : -1.0);
+			if (column(c + o).a > 0.5) {
+				near = min(near, length(f - (o * 0.5 + 0.5)) * 0.8);
+			}
+		}
+	}
+	return near <= SHORE_WET;
 }
 
 void fragment() {

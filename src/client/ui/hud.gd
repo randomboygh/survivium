@@ -19,6 +19,7 @@ const PerfPanel := preload("res://src/client/ui/perf_panel.gd")
 const TouchStick := preload("res://src/client/input/touch_stick.gd")
 const TouchButton := preload("res://src/client/input/touch_button.gd")
 const Warmth := preload("res://src/shared/game/warmth.gd")
+const HotbarSnow := preload("res://src/client/ui/hotbar_snow.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const LevelUp := preload("res://src/client/ui/level_up.gd")
@@ -227,6 +228,7 @@ func _ready() -> void:
 	_strip = SlotStrip.new("[previous_slots]", "[next_slots]")
 	_strip.scrolled.connect(_show_page)
 	bar_row.add_child(_strip)
+	_bar.add_child(HotbarSnow.new(game))
 	for i in Inventory.HOTBAR:
 		var s = _slot(_strip.cells, _select_slot.bind(i))
 		s.on_release = true

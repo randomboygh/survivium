@@ -1114,6 +1114,8 @@ func _build_scene() -> void:
 
 	creatures = CreaturesScript.new()
 	creatures.tracks = tracks
+	creatures.world = world
+	creatures.clock = clock
 	creatures.perf = hud.perf
 	world_root.add_child(creatures)
 	ai_debug = AiDebugScript.new()

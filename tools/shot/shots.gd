@@ -28,6 +28,12 @@ const SHOTS := {
 	"fx-reflect-turn4": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 4},
 	"fx-fire-water": {"time": 0.95, "season": 1, "moon": 0.0, "weather": "clear", "place": "lake", "water": 1, "hands": {"tool": "tools:torch", "facing": "s"}},
 	# Snow glittering in the sun and under a full moon.
+	# Winter on the screen: flakes on the edges, frost from the corners, snow on the
+	# hotbar, and the blue frame of a freezing body.
+	"fx-winter-screen": {"time": 0.45, "season": 3, "snow": 1.0, "weather": "blizzard", "place": "meadow",
+		"screen_snow": [1.0, 0.8, 0.8], "chill": [8.0, 0.2]},
+	# Low health: the heart beating red round the screen.
+	"fx-low-health": {"time": 0.45, "season": 1, "weather": "clear", "place": "meadow", "health": 10.0},
 	"fx-snow-sun": {"time": 0.4, "season": 3, "snow": 1.0, "weather": "clear", "place": "meadow"},
 	"fx-snow-moon": {"time": 0.97, "season": 3, "snow": 1.0, "moon": 1.0, "weather": "clear", "place": "meadow"},
 	"fx-steam": {"time": 0.27, "season": 3, "snow": 0.0, "weather": "clear", "place": "lake"},
@@ -371,6 +377,11 @@ const SHOTS := {
 	"trap": {"time": 0.42, "season": 1, "find": "meadow", "trap": true,
 		"hands": {"tool": "tools:live_rabbit", "facing": "n", "stay": true}},
 	"animals-water": {"time": 0.42, "season": 1, "place": "lake", "zoo": "water"},
+	# Fish at four depths each in a lake, from just under the surface to the deepest.
+	"fish-depths": {"time": 0.42, "season": 1, "place": "lake", "depths": ["animals:roach", "animals:pike", "animals:salmon",
+		"animals:catfish"]},
+	# The same in winter: the lake frozen, the fish under its ice not shown.
+	"fish-ice": {"time": 0.45, "season": 3, "place": "lake", "depths": ["animals:roach", "animals:pike"]},
 	# Moss and mushrooms in the shade of a forest, and glowing mushrooms by night.
 	"mushrooms": {"time": 0.42, "season": 1, "find": "plants:mushrooms"},
 	"glow-day": {"time": 0.42, "season": 1, "find": "plants:glow_mushrooms"},

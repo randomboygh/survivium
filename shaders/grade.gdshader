@@ -36,6 +36,9 @@ uniform float heat_haze = 0.0;
 // (AirEffects): x their clock (seconds), y how thick they come now (0..1), z when on
 // that clock the screen began to dry (-1 while it does not), w how thick they were then.
 uniform vec4 drop_state = vec4(0.0, 0.0, -1.0, 0.0);
+// Snow on the screen (AirEffects): x its clock (seconds), y how thick flakes stick to
+// the edges while it snows (0..1), z how far frost has crept in from the edges (0..1).
+uniform vec4 frost_state = vec4(0.0);
 // The pixels of the picture round its edges left off the screen (PixelView.MARGIN).
 uniform float view_margin = 0.0;
 global uniform sampler2D cloud_noise : filter_linear, repeat_enable;
@@ -96,7 +99,7 @@ float crt_hash(vec2 p) {
 }
 
 // How many pixels the hot air moves the picture at its pixel `p` sideways: rows waving
-// up over each fire, weaker to its sides and top, a pixel at most; in a hot noon rows
+// up over each fire, weaker to its sides and top, two pixels at most; in a hot noon rows
 // wobbling in drifting patches over the whole ground.
 float heat_shift(vec2 p) {
 	float s = 0.0;
@@ -111,7 +114,7 @@ float heat_shift(vec2 p) {
 		if (up < -0.1 || up > 1.0 || side > 1.0) {
 			continue;
 		}
-		float k = heat_power[i] * (1.0 - up * up) * (1.0 - side * side) * 1.6;
+		float k = heat_power[i] * (1.0 - up * up) * (1.0 - side * side) * 3.2;
 		float w = sin(p.y * 1.1 + TIME * 8.0 + h.x) * 0.7 + sin(p.y * 0.37 + TIME * 4.3) * 0.5;
 		s += floor(w * k + 0.5);
 	}
@@ -121,7 +124,7 @@ float heat_shift(vec2 p) {
 		float k = heat_haze * smoothstep(0.5, 0.7, n) * 1.4;
 		s += floor(sin(p.y * 1.7 + TIME * 6.0 + n * 9.0) * k + 0.5);
 	}
-	return clamp(s, -1.0, 1.0);
+	return clamp(s, -2.0, 2.0);
 }
 
 // A drop of rain on the screen at pixel `p` of a picture `size` pixels: xy how far it
@@ -195,6 +198,57 @@ vec3 screen_drop(vec2 p, vec2 size) {
 		}
 	}
 	return out_d;
+}
+
+// Snow on the screen at pixel `p` of the picture (`size` pixels): flakes that land near
+// the edges, lie a while and melt away, each a little six-armed star; and frost growing
+// in from the edges, deeper in the corners, in feathery ridges. xyz the colour, w how much.
+vec4 screen_snow(vec2 p, vec2 size) {
+	p -= view_margin;
+	size -= 2.0 * view_margin;
+	vec2 near2 = min(p, size - 1.0 - p);
+	float near = min(near2.x, near2.y);
+	vec4 out_c = vec4(0.0);
+	if (frost_state.z > 0.0) {
+		// Deeper in a corner: how near the other edge is too.
+		float corner = 1.0 - smoothstep(0.0, 60.0, max(near2.x, near2.y));
+		float reach = frost_state.z * (16.0 + 44.0 * corner);
+		vec2 q = p / 64.0;
+		float n = texture(cloud_noise, q).r * 0.6 + texture(cloud_noise, q * 3.1 + 0.37).r * 0.4;
+		float in_k = near - reach * (0.55 + n);
+		if (in_k < 0.0) {
+			// Feathers: thin ridges of the noise, a solid rim along the edge itself.
+			float ridge = abs(fract(n * 7.0 + texture(cloud_noise, q * 9.0).r * 0.6) - 0.5);
+			float rim = step(near, frost_state.z * 2.5);
+			float a = max(rim * 0.75, step(ridge, 0.2) * 0.6 + 0.2);
+			a *= clamp(-in_k / 4.0, 0.0, 1.0);
+			out_c = vec4(0.86, 0.94, 1.0, a);
+		}
+	}
+	if (frost_state.y > 0.0 && near < 34.0) {
+		// Cells of 9 pixels along the edges, each with a flake now and then.
+		vec2 cell = floor(p / 9.0);
+		float h = crt_hash(cell + 5.3);
+		float t = frost_state.x * (0.05 + 0.04 * h) + h * 9.0;
+		float round_n = floor(t);
+		float f = fract(t);
+		float edge_k = 1.0 - near / 34.0;
+		if (crt_hash(cell + round_n * 1.7) < frost_state.y * edge_k * 0.7 && f < 0.85) {
+			vec2 at = cell * 9.0 + 2.0 + floor(vec2(crt_hash(cell + round_n), crt_hash(cell - round_n)) * 5.0);
+			// It lands at once, lies, and melts down to a dot at the end.
+			float r = f < 0.6 ? 2.0 : (f < 0.75 ? 1.0 : 0.0);
+			if (crt_hash(cell * 1.3 + round_n) < 0.4) {
+				r = min(r, 1.0);
+			}
+			vec2 d = abs(p - at);
+			bool arm = (d.x == 0.0 && d.y <= r) || (d.y == 0.0 && d.x <= r) || (d.x == d.y && d.x <= r - 1.0);
+			if (arm) {
+				float a = (d.x + d.y == 0.0 ? 0.95 : 0.75) * (1.0 - smoothstep(0.7, 0.85, f));
+				out_c = vec4(mix(out_c.rgb, vec3(0.97, 0.99, 1.0), a), max(out_c.a, a));
+			}
+		}
+	}
+	return out_c;
 }
 
 // The bright part of the picture around `uv`, blurred: eight filtered taps on two rings.
@@ -332,6 +386,10 @@ void fragment() {
 		c = mix(vec3(cl), c, 1.0 + 0.45 * trip);
 		vec3 glow = mix(vec3(0.25, 0.95, 0.8), vec3(0.75, 0.35, 1.0), 0.5 + 0.5 * sin(TIME * 0.7));
 		c = mix(c, glow, trip * (0.28 + 0.1 * sin(TIME * 1.7)) * smoothstep(0.5, 1.1, d));
+	}
+	if (frost_state.y > 0.0 || frost_state.z > 0.0) {
+		vec4 snow = screen_snow(floor(uv / TEXTURE_PIXEL_SIZE), 1.0 / TEXTURE_PIXEL_SIZE);
+		c = mix(c, snow.rgb * max(exposure, 0.35) * tint, snow.a);
 	}
 	if (crt_on) {
 		c += crt_bloom(uv, TEXTURE_PIXEL_SIZE) * crt_glow * exposure * tint;

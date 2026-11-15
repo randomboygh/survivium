@@ -17,13 +17,20 @@ extends Node3D
 ## and then while it stands. Which
 ## view and which way is worked out here from how it moved on the screen: the server
 ## sends only where it is. A species with `tints` has its picture multiplied by one of
-## them for each animal.
+## them for each animal. A fish (Wildlife.dives) is drawn after the water, all of it in
+## the water's colour, the more the deeper it swims (sprite_water.gdshader `whole`, its
+## sprite's material_overlay); its own picture only casts its shadow on the bed. Under
+## the ice of frozen water the fish are not drawn.
 
 const Content := preload("res://src/shared/content/content.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const PlayerScript := preload("res://src/client/view/player.gd")
 const SpriteShader := preload("res://shaders/sprite.gdshader")
+const UnderwaterShader := preload("res://shaders/sprite_water.gdshader")
+const Wildlife := preload("res://src/shared/game/wildlife.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
+const CELL := WorldData.CELL
 
 ## Frames of a wing beat a second.
 const FLAP_RATE := 12.0
@@ -63,6 +70,9 @@ const BACK := 2
 const HOP_STEP := 0.36
 ## Seconds each attack frame of a bite shows (Wildlife.BITE_TIME over three frames).
 const BITE_FRAME := 0.13
+## From this much ice over the water (Clock.ice, as the water shader shows it) the fish
+## under it are not drawn.
+const ICE_HIDES := 0.5
 
 
 ## How an animal is drawn now: its view, which way it goes, how far it has walked (for
@@ -83,16 +93,25 @@ class Look:
 	var flip := 0.0
 	## When its bite began to be drawn (-1: it does not bite now).
 	var bite_at := -1.0
+	## A fish: how deep under the surface it was last drawn (world units, see _sink;
+	## -1 for the others).
+	var depth := -1.0
 
 
 var wildlife
+## The world (WorldData) the fish swim in: the water over them (see _sink).
+var world
+## The clock (RemoteClock): how much the water is iced over (Clock.ice).
+var clock
 ## Footprints (see tracks.gd); animals leave paw prints sized by their mass.
 var tracks
 ## The performance statistics (PerfPanel), told how long the animals take a frame.
 var perf
 ## kind -> [mesh, materials: for each of its tints (one, white, for none) one a view and
 ## frame (view * frames + frame), the size of the body its first frame shows (world
-## units, see body_size), frames a row, frames of its walk, views, hop frames, attack frames]
+## units, see body_size), frames a row, frames of its walk, views, hop frames, attack
+## frames, a fish's materials drawn over those after the water (as the materials; empty
+## for the others)]
 var looks := {}
 var _sprites := {}
 var _looks := {}
@@ -130,7 +149,7 @@ func relook() -> void:
 		look.sprite.mesh = looks[a.kind][0]
 		look.view = SIDE
 		a.frame = 0
-		look.sprite.material_override = _mats(a)[0]
+		_show(a, look.sprite, 0)
 		_fit(a, look.sprite)
 
 
@@ -145,12 +164,26 @@ func _build_looks() -> void:
 		var views: int = spec.get("views", 1)
 		var tints: Array = spec.tints if not spec.tints.is_empty() else [Color.WHITE]
 		var variants := []
+		var overs := []
+		var fish := Wildlife.dives(spec)
 		for tint: Color in tints:
 			var mats := []
+			var over := []
 			for v in views:
 				for f in frames:
 					var m := PlayerScript.sprite_material(SpriteShader, tex)
-					m.set_shader_parameter("frame_uv", Vector4(float(f) / frames, float(v) / views, 1.0 / frames, 1.0 / views))
+					var uv := Vector4(float(f) / frames, float(v) / views, 1.0 / frames, 1.0 / views)
+					if fish:
+						# Its own picture only casts the shadow on the bed; the fish is drawn
+						# over it after the water, which is drawn at priority 0 (as Player.underwater).
+						m.set_shader_parameter("shadow_only", 1.0)
+						var w := PlayerScript.sprite_material(UnderwaterShader, tex)
+						w.render_priority = 1
+						w.set_shader_parameter("whole", 1.0)
+						w.set_shader_parameter("frame_uv", uv)
+						w.set_shader_parameter("tint", Vector3(tint.r, tint.g, tint.b))
+						over.append(w)
+					m.set_shader_parameter("frame_uv", uv)
 					m.set_shader_parameter("tint", Vector3(tint.r, tint.g, tint.b))
 					if spec.flies and f >= 1 and f <= walk_frames(spec):
 						# A wing beat in the air: its shadow is the front's frame laid flat, a bird
@@ -160,9 +193,10 @@ func _build_looks() -> void:
 						m.set_shader_parameter("shadow_uv", Vector4(float(f) / frames, float(front) / views, 1.0 / frames, 1.0 / views))
 					mats.append(m)
 			variants.append(mats)
+			overs.append(over)
 		looks[kind] = [PixelView.sprite_mesh(tex.get_width() / frames, tex.get_height() / views), variants,
 			body_size(tex, frames, views), frames, walk_frames(spec), views, mini(spec.get("hop", 0), frames - 1 - walk_frames(spec)),
-			mini(spec.get("attack", 0), frames - 1 - walk_frames(spec))]
+			mini(spec.get("attack", 0), frames - 1 - walk_frames(spec)), overs if fish else []]
 
 
 ## How many frames of species `spec`'s picture are its walk (or wing beat).
@@ -187,12 +221,19 @@ func _process(delta: float) -> void:
 		_fitted.clear()
 		for look in _shown:
 			_fit(look.animal, look.sprite)
+	# Fish under ice are not seen, from when the water looks mostly iced over (their
+	# picture would show over it, drawn after the water).
+	var frozen: bool = (world != null and world.water_frozen) or (clock != null and clock.ice() >= ICE_HIDES)
 	for look in _shown:
 		var a = look.animal
+		if look.depth >= 0.0 and look.sprite.visible == frozen:
+			look.sprite.visible = not frozen
 		if a.fresh:
 			a.fresh = false
 			var sprite := look.sprite
 			sprite.position = PixelView.snap(a.pos + Vector3(0.0, a.lift, 0.0))
+			if look.depth >= 0.0:
+				_sink(a, look)
 			if absf(_fitted.get(sprite, INF) - sprite.position.y) > FIT_SLACK:
 				_fit(a, sprite)
 			_went(a, look, flip)
@@ -206,7 +247,7 @@ func _process(delta: float) -> void:
 		var shown: int = look.view * looks[a.kind][3] + frame
 		if shown != a.frame:
 			a.frame = shown
-			look.sprite.material_override = _mats(a)[shown]
+			_show(a, look.sprite, shown)
 		var sx := look.side if look.view == SIDE else 1.0
 		if sx != look.flip:
 			look.flip = sx
@@ -322,6 +363,18 @@ func _mats(a) -> Array:
 	return variants[a.tint % variants.size()]
 
 
+## Shows frame `shown` (view * frames + frame) of animal `a` on its sprite: a fish's
+## drawn over it after the water too (its material_overlay).
+func _show(a, sprite: MeshInstance3D, shown: int) -> void:
+	sprite.material_override = _mats(a)[shown]
+	var overs: Array = looks[a.kind][8]
+	if not overs.is_empty():
+		var over: Array = overs[a.tint % overs.size()]
+		sprite.material_overlay = over[shown]
+	elif sprite.material_overlay != null:
+		sprite.material_overlay = null
+
+
 ## How wide and how tall the body drawn in the first frame of picture `tex` (of
 ## `frames` frames side by side) is, in world units: its opaque pixels. An animal's
 ## drawn shadows are as big (see FireShadows._cast_all), so a new one needs no size.
@@ -365,6 +418,13 @@ func sprite_of(a) -> MeshInstance3D:
 	return _sprites.get(a)
 
 
+## How deep under the water surface fish `a` swims as drawn (world units), -1 for one
+## not drawn or not a fish.
+func depth_of(a) -> float:
+	var look: Look = _looks.get(a)
+	return look.depth if look != null else -1.0
+
+
 ## Where animal `a` breathes out (AirEffects): [its muzzle (world units, unsheared), the
 ## way it faces (world xz)], high in its body and ahead of its middle the way it is drawn
 ## facing; empty while it is not drawn or shows its back.
@@ -387,7 +447,7 @@ func _on_born(a) -> void:
 		return
 	var sprite := MeshInstance3D.new()
 	sprite.mesh = looks[a.kind][0]
-	sprite.material_override = _mats(a)[0]
+	_show(a, sprite, 0)
 	# The player's real shadow from a fire falls on it with «Тень на вещах» (PixelView.LAYER_THINGS).
 	sprite.layers = PixelView.LAYER_THINGS
 	sprite.position = PixelView.snap(a.pos + Vector3(0.0, a.lift, 0.0))
@@ -403,7 +463,26 @@ func _on_born(a) -> void:
 	_shown.append(look)
 	look.flip = look.side
 	sprite.scale.x = look.side
+	if Wildlife.dives(AiRules.SPECIES[a.kind]):
+		look.depth = 0.0
+		_sink(a, look)
 	_fit(a, sprite)
+
+
+## Tells fish `a`'s picture how deep under the water surface (or the ice) over it it
+## swims: by the sprite's scale along y past 1 (sprite_water.gdshader `whole`), set only
+## when it changes by a texel row.
+func _sink(a, look: Look) -> void:
+	var under := 0.0
+	if world != null:
+		var bits: int = world.water_col(floori(a.pos.x / CELL), floori(a.pos.z / CELL))
+		if bits != 0:
+			var top := WorldData.top_level(bits)
+			var surface := float(top) if world.water_frozen else top + WorldData.WATER_TOP
+			under = maxf(0.0, surface * CELL - a.pos.y)
+	if absf(under - look.depth) * PixelView.PIXELS_PER_UNIT >= 0.5 or look.depth == 0.0:
+		look.depth = maxf(under, 0.001)
+		look.sprite.scale.y = 1.0 + look.depth
 
 
 func _on_gone(a) -> void:
