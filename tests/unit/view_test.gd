@@ -16,6 +16,7 @@ const Others := preload("res://src/client/view/others.gd")
 const Effects := preload("res://src/client/view/effects.gd")
 const GlowLights := preload("res://src/client/view/glow_lights.gd")
 const WindowGlow := preload("res://src/client/view/window_glow.gd")
+const SunRays := preload("res://src/client/view/sun_rays.gd")
 
 
 ## Ground all of one material (or all sea), for AirEffects.hot_ground.
@@ -78,6 +79,7 @@ func run() -> void:
 	_test_window_glow()
 	_test_small_effects()
 	_test_hot_ground()
+	_test_rays_dissolve()
 
 
 func _test_pixel_view() -> void:
@@ -931,3 +933,33 @@ func _test_hot_ground() -> void:
 	_check(sand < 0 or AirEffects.hot_ground(w, Vector3.ZERO) == 1.0, "heat haze over sand")
 	w.water = true
 	_check(AirEffects.hot_ground(w, Vector3.ZERO) == 1.0, "heat haze over the sea")
+
+
+## New sun light dissolves in while the old dissolves out, one change at a time; the
+## same light again changes nothing; a screenshot's light is shown at once.
+func _test_rays_dissolve() -> void:
+	var r = SunRays.new()
+	r._ready()
+	var one := PackedFloat32Array()
+	SunRays._put(one, Vector3(1, 2, 3), Color(0.5, 4.0, 0.1, 1.0))
+	var two := PackedFloat32Array()
+	SunRays._put(two, Vector3(5, 2, 3), Color(0.5, 4.0, 0.1, 1.0))
+	r._show(one, PackedFloat32Array())
+	var front: int = r._front
+	_check(r._fade == 0.0 and r.shafts[front].multimesh.visible_instance_count == 1,
+		"new light starts dissolving in")
+	_check(r._mats[(1 - front) * 2].get_shader_parameter("fade_out") == true, "and the old dissolving out")
+	r._show(two, PackedFloat32Array())
+	_check(r._front == front and r._waiting.size() == 2, "the next change waits for this one")
+	r._dissolve(1.0)
+	_check(r._front != front and r._fade == 0.0 and r.shafts[r._front].multimesh.visible_instance_count == 1,
+		"then dissolves in in its turn")
+	r._dissolve(1.0)
+	_check(r.shafts[front].multimesh.visible_instance_count == 0, "the old light is gone when done")
+	var now: int = r._front
+	r._show(two, PackedFloat32Array())
+	_check(r._front == now and r._fade == 1.0, "the same light again changes nothing")
+	r._show(one, PackedFloat32Array(), true)
+	_check(r._front == now and r._fade == 1.0 and r.shafts[now].multimesh.visible_instance_count == 1,
+		"a screenshot's light is shown at once")
+	r.free()

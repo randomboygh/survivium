@@ -4,7 +4,9 @@
 // away as it nears the ground; mode 1 the fleck of sun where a shaft meets the ground,
 // in its crown's shadow (COLOR: the shaft's width, -, phase, strength), stretched along
 // the light as a slanting shaft's patch is, and breathing with its shaft. Light added to
-// the picture, in a few dithered steps like the rest of the light.
+// the picture, in a few dithered steps like the rest of the light, the dither held to the
+// world's texels (light_texel) so it does not crawl as the camera moves. New light
+// dissolves in texel by texel while the old dissolves out (`fade`, `fade_out`).
 shader_type spatial;
 render_mode world_vertex_coords, unshaded, cull_disabled, blend_add, depth_draw_never, shadows_disabled;
 
@@ -18,6 +20,10 @@ uniform vec3 light_down = vec3(0.0, -1.0, 0.0);
 // World units a shaft is drawn nearer the camera than it is: little, so the leaves of
 // its crown in front of it hide it and it shows coming out of the crown.
 uniform float depth_lift = 0.4;
+// How far the new light has dissolved in, 0..1: drawn where a texel's dither is under it,
+// or, for the old light going (`fade_out`), where it is not.
+uniform float fade = 1.0;
+uniform bool fade_out = false;
 
 varying vec2 band;
 // A fleck's size to its shaft's width.
@@ -28,6 +34,8 @@ varying float strength;
 // How long the shaft is, in world units.
 varying float span;
 varying vec3 world_pos;
+// Where it is in the picture, sheared (see light_texel).
+varying vec2 sheared_xz;
 
 void vertex() {
 	vec3 o = MODEL_MATRIX[3].xyz;
@@ -52,6 +60,7 @@ void vertex() {
 		// Lifted a little towards the camera (only in depth: the camera looks straight
 		// down), so the ground it ends on does not cut it.
 		VERTEX = vec3(mix(a.x, b.x, q.y) + across.x, mix(a.y, b.y, q.y) + depth_lift, mix(a.z, b.z, q.y) + across.y);
+		sheared_xz = VERTEX.xz;
 	} else {
 		span = 1.0;
 		// The shaft's patch on the ground: a little narrower than the shaft (FLECK_SIZE),
@@ -68,6 +77,7 @@ void vertex() {
 		vec2 at = side_way * (q.x * size + shift) + run * ((q.y - 0.5) * size * stretch);
 		world_pos = o + vec3(at.x, 0.02, at.y);
 		VERTEX = shear(world_pos);
+		sheared_xz = VERTEX.xz;
 	}
 }
 
@@ -75,9 +85,11 @@ void fragment() {
 	if (gone_above(world_pos)) {
 		discard;
 	}
-	ivec2 b = ivec2(mod(FRAGCOORD.xy, 4.0));
-	int m[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
-	float dither = (float(m[b.y * 4 + b.x]) + 0.5) / 16.0;
+	vec2 texel = light_texel(sheared_xz);
+	if (fade < 1.0 && (bayer4(texel + vec2(1.0, 3.0)) < fade) == fade_out) {
+		discard;
+	}
+	float dither = bayer4(texel);
 	float k;
 	if (mode == 0) {
 		// Soft at the sides, faded in over its first unit inside the crown and away over

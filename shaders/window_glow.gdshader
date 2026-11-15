@@ -22,6 +22,9 @@ uniform float depth_lift = 0.01;
 
 varying vec3 world_pos;
 varying float facing;
+// Where it is in the picture, sheared (see light_texel): the dither is held to the
+// world's texels, so it does not crawl as the camera moves.
+varying vec2 sheared_xz;
 
 void vertex() {
 	world_pos = VERTEX;
@@ -30,6 +33,7 @@ void vertex() {
 	out_way.y = 0.0;
 	facing = dot(normalize(NORMAL), normalize(out_way + vec3(1e-4, 0.0, 0.0)));
 	VERTEX = shear(VERTEX);
+	sheared_xz = VERTEX.xz;
 	VERTEX.y += depth_lift;
 }
 
@@ -37,9 +41,7 @@ void fragment() {
 	if (facing < 0.3 || gone_above(world_pos)) {
 		discard;
 	}
-	ivec2 b = ivec2(mod(FRAGCOORD.xy, 4.0));
-	int m[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
-	float dither = (float(m[b.y * 4 + b.x]) + 0.5) / 16.0;
+	float dither = bayer4(light_texel(sheared_xz));
 	float t = TIME * 7.0 + seed * 13.0;
 	float wave = 0.6 * sin(t) + 0.3 * sin(t * 2.3 + 1.1) + 0.1 * sin(t * 5.7 + 2.9);
 	float k = amount * (1.0 - flicker * 0.18 * (0.5 + 0.5 * wave));
