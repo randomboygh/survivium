@@ -3,7 +3,7 @@ extends Node3D
 ## that come out of the crowns along the sun's way to the ground (each starts on the
 ## tree's middle plane, the upright one through its trunk across the sun's way, inside
 ## the crown's outline on that plane: a spruce's triangle, a broadleaf's round), the
-## sun's flecks that shimmer on the ground in the crowns' shadows, and specks of dust
+## sun's flecks where the shafts meet the ground in the crowns' shadows, and specks of dust
 ## glinting in the shafts. Each tree near the player gets a few of each, placed from
 ## its column (the same every time); every tree whose light can reach the picture gets
 ## them, the nearest first, laid out again when the player has moved MOVE world units,
@@ -41,10 +41,9 @@ const MAX_FLECKS := 512
 const COARSE := 3.0
 ## Floats of one instance in a MultiMesh's buffer: a transform (12) and a colour (4).
 const INSTANCE_FLOATS := 16
-## Bunches of shafts a tree gets at most, shafts in a bunch at most, and flecks.
+## Bunches of shafts a tree gets at most, and shafts in a bunch at most.
 const BUNCHES := 2
 const IN_BUNCH := 4
-const FLECKS := 8
 ## How far apart the shafts of a bunch stand at most, along the middle plane (units).
 const BUNCH_SPREAD := 0.7
 ## Levels a crown is looked for above the foot of its trunk.
@@ -83,7 +82,6 @@ var _laid_view := []
 var _sun_turns := 0
 var _down := Vector3.DOWN
 var _across := Vector2.RIGHT
-var _shadow := Vector2.ZERO
 ## The light of each tree near, worked out for a turn of the sun: {column: see
 ## _tree_light}.
 var _light := {}
@@ -187,7 +185,6 @@ func _process(_delta: float) -> void:
 		_down = down
 		var flat := Vector2(down.x, down.z)
 		_across = Vector2(-flat.y, flat.x).normalized() if flat.length() > 0.01 else Vector2.RIGHT
-		_shadow = Vector2(-to_sun.x, -to_sun.z) / maxf(to_sun.y, 0.05)
 		_sun_turns += 1
 		_next = 0
 	var p: Vector3 = game.player.position
@@ -342,7 +339,7 @@ class TreeJob:
 
 
 ## Starts the light of the tree with its trunk in column `col` for the sun now: the
-## shafts' tops and looks, and the flecks under it; null without a crown. Its shafts'
+## shafts' tops and looks; null without a crown. Its shafts'
 ## lengths are found by _shaft_step, and _job_light gives the light: [the sun's turn
 ## (_sun_turns), the shafts' and the flecks' instance data as MultiMesh.buffer has it
 ## (INSTANCE_FLOATS each), two specks of dust a shaft, the box (world) round all of it,
@@ -357,14 +354,12 @@ func _plan(w, col: Vector2i) -> TreeJob:
 	job.turn = _sun_turns
 	var foot := crown.x
 	job.foot = foot
-	var tall := crown.y - foot
-	var r := crown.z
 	var mid := Vector2((col.x + 0.5) * CELL, (col.y + 0.5) * CELL)
 	job.box = AABB(Vector3(mid.x, foot, mid.y), Vector3.ZERO)
 	var outline := _outline(w, col, crown)
 	var rng := _rng
 	rng.seed = hash(col)
-	# Each shaft and fleck draws all its numbers first, so the rest of the tree's stay
+	# Each shaft draws all its numbers first, so the rest of the tree's stay
 	# the same whether this one is there or not.
 	# Shafts come in bunches through one gap in the leaves: one wide among narrow ones,
 	# bright ones beside pale ones, shimmering nearly together (phases close).
@@ -392,17 +387,6 @@ func _plan(w, col: Vector2i) -> TreeJob:
 			var x := clampf(place.x + bunch[i][0], place.z + look.r * 0.5, place.w - look.r * 0.5) \
 				if place.z + look.r < place.w else place.x
 			job.shafts.append([Vector3(mid.x + _across.x * x, foot + place.y, mid.y + _across.y * x), look, bunch[i][2]])
-	# The flecks in the crown's shadow on the ground.
-	var shade := mid + _shadow * (tall * 0.6)
-	for i in FLECKS:
-		var at := shade + Vector2.from_angle(rng.randf() * TAU) * r * sqrt(rng.randf()) * 0.85
-		var look := Color(rng.randf_range(0.15, 0.3), 0.0, rng.randf(), rng.randf_range(0.6, 1.0))
-		var ground := _ground(w, at)
-		if ground <= -INF:
-			continue
-		var spot := Vector3(at.x, ground, at.y)
-		_put(job.fleck_data, spot, look)
-		job.box = job.box.expand(spot)
 	return job
 
 
@@ -422,6 +406,10 @@ func _shaft_step(w, job: TreeJob) -> bool:
 		job.box = job.box.expand(top).expand(top + _down * length)
 		job.dust.append(top + _down * (motes_at.x * length))
 		job.dust.append(top + _down * (motes_at.y * length))
+		# Its fleck where it meets the ground, in the crown's shadow (the shaft came
+		# through the crown): none for a shaft that met no ground.
+		if length < LONGEST:
+			_put(job.fleck_data, top + _down * length, Color(look.r, 0.0, look.b, look.a))
 	return job.next >= job.shafts.size()
 
 
