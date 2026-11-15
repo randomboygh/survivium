@@ -901,6 +901,7 @@
 "[above_stretch]": "Arriba: estiramiento"
 "[density_of_the_first]": "Densidad de las primeras"
 "[shadow_map]": "Mapa de sombras"
+"[save]": "Guardar"
 "[copy_tab]": "Copiar pestaña"
 "[copy_all]": "Copiar todo"
 "[copy]": "Copiar"
@@ -919,6 +920,7 @@
 "[by_itself]": "solo"
 "[moon]": "Luna"
 "[by_phase]": "según la fase"
+"[temperature]": "Temperatura"
 "[time_of_day]": "Hora del día"
 "[hour]": "Hora"
 "[stopped]": "parado"
@@ -1088,7 +1090,6 @@
 "[line_n3]": "Línea %d"
 "[nothing_is_written_here]": "Aquí no hay nada escrito"
 "[whoever_builds_on_this_land]": "Puede escribir quien construye en esta tierra"
-"[save]": "Guardar"
 "[turn]": "Girar"
 
 # src/client/ui/sleep_screen.gd
@@ -1335,6 +1336,7 @@
 "[trees_are_chopped_with_an]": "Los árboles se talan con hacha"
 "[water_holds_this_ground]": "Aquí se apoya el agua: no se cava bajo el agua ni en la orilla"
 "[broke]": "Se rompió: %s"
+"[spores_in_the_eyes]": "Esporas de bejín en los ojos: todo da vueltas"
 
 # src/shared/game/actions_farm.gd
 "[cant_be_cut_with_a]": "%s no se corta con guadaña: recógelo a mano o con hoz"
@@ -1584,4 +1586,3 @@
 "[descent]": "Bajada"
 "[descent_at_45]": "Bajada a 45°"
 "[beach]": "Playa"
-"[spores_in_the_eyes]": "Esporas de bejín en los ojos: todo da vueltas"

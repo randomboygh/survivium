@@ -901,6 +901,7 @@
 "[above_stretch]": "Сверху: растяжение"
 "[density_of_the_first]": "Плотность первых"
 "[shadow_map]": "Карта теней"
+"[save]": "Сохранить"
 "[copy_tab]": "Скопировать вкладку"
 "[copy_all]": "Скопировать всё"
 "[copy]": "Скопировать"
@@ -919,6 +920,7 @@
 "[by_itself]": "сама"
 "[moon]": "Луна"
 "[by_phase]": "по фазе"
+"[temperature]": "Температура"
 "[time_of_day]": "Время суток"
 "[hour]": "Час"
 "[stopped]": "стоит"
@@ -1088,7 +1090,6 @@
 "[line_n3]": "Строка %d"
 "[nothing_is_written_here]": "Здесь ничего не написано"
 "[whoever_builds_on_this_land]": "Писать может тот, кто строит на этой земле"
-"[save]": "Сохранить"
 "[turn]": "Повернуть"
 
 # src/client/ui/sleep_screen.gd
@@ -1335,6 +1336,7 @@
 "[trees_are_chopped_with_an]": "Дерево рубят топором"
 "[water_holds_this_ground]": "Здесь держится вода: под водой и у берега копать нельзя"
 "[broke]": "Сломалось: %s"
+"[spores_in_the_eyes]": "Споры дождевика попали в глаза: всё плывёт"
 
 # src/shared/game/actions_farm.gd
 "[cant_be_cut_with_a]": "%s косой не срезать: соберите руками или серпом"
@@ -1584,4 +1586,3 @@
 "[descent]": "Спуск"
 "[descent_at_45]": "Спуск под 45°"
 "[beach]": "Пляж"
-"[spores_in_the_eyes]": "Споры дождевика попали в глаза: всё плывёт"

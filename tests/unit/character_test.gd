@@ -335,6 +335,15 @@ func _test_warmth() -> void:
 	var winter := Clock.new()
 	winter.season = Clock.WINTER
 	_check(Warmth.air(null, winter, Vector3.ZERO) < Warmth.air(null, summer, Vector3.ZERO), "winter is colder")
+	winter.air_pin = 32.0
+	winter.time_of_day = 0.5
+	var noon := Warmth.air(null, winter, Vector3.ZERO)
+	winter.time_of_day = 0.0
+	var night := Warmth.air(null, winter, Vector3.ZERO)
+	winter.set_weather(Clock.RAIN)
+	_check(is_equal_approx(noon, 32.0) and night < noon and Warmth.air(null, winter, Vector3.ZERO) < night
+		and Warmth.air(null, winter, Vector3.ZERO, true) == night,
+		"the air the playtest page pins is a clear day's, cooler at night and in rain: %s %s" % [noon, night])
 
 
 ## Good food (roasted meat) heals a little and quenches thirst besides filling; the

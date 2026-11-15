@@ -901,6 +901,7 @@
 "[above_stretch]": "Above: stretch"
 "[density_of_the_first]": "Density of the first"
 "[shadow_map]": "Shadow map"
+"[save]": "Save"
 "[copy_tab]": "Copy tab"
 "[copy_all]": "Copy all"
 "[copy]": "Copy"
@@ -919,6 +920,7 @@
 "[by_itself]": "by itself"
 "[moon]": "Moon"
 "[by_phase]": "by phase"
+"[temperature]": "Temperature"
 "[time_of_day]": "Time of day"
 "[hour]": "Hour"
 "[stopped]": "stopped"
@@ -1088,7 +1090,6 @@
 "[line_n3]": "Line %d"
 "[nothing_is_written_here]": "Nothing is written here"
 "[whoever_builds_on_this_land]": "Whoever builds on this land may write"
-"[save]": "Save"
 "[turn]": "Turn"
 
 # src/client/ui/sleep_screen.gd
@@ -1335,6 +1336,7 @@
 "[trees_are_chopped_with_an]": "Trees are chopped with an axe"
 "[water_holds_this_ground]": "Water holds this ground: no digging under water or along the shore"
 "[broke]": "Broke: %s"
+"[spores_in_the_eyes]": "Puffball spores in your eyes: everything swims"
 
 # src/shared/game/actions_farm.gd
 "[cant_be_cut_with_a]": "%s can't be cut with a scythe: gather it by hand or with a sickle"
@@ -1584,4 +1586,3 @@
 "[descent]": "Descent"
 "[descent_at_45]": "Descent at 45°"
 "[beach]": "Beach"
-"[spores_in_the_eyes]": "Puffball spores in your eyes: everything swims"

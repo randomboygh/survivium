@@ -392,6 +392,12 @@ func _test_cheats() -> void:
 	_check(not a.vitals.harm, "invulnerability is taken from a playtest one")
 	req.handle(["cheats", 9, [{"harm": "no"}]])
 	_check(not a.vitals.harm, "and a value of a wrong type leaves it")
+	req.handle(["cheats", 10, [{"air_temp": 500.0}]])
+	var hot: float = s.clock.air_pin
+	req.handle(["cheats", 11, [{"air_temp": "warm"}]])
+	_check(hot == 60.0 and s.clock.air_pin == 60.0, "the pinned air is clamped, a string left: %s" % hot)
+	req.handle(["cheats", 12, [{"air_temp": -5000.0}]])
+	_check(not s.clock.air_pinned(), "an air colder than the page offers frees it")
 	a.vitals.harm = true
 	a.teleport(to)
 	var cfg := Config.new()

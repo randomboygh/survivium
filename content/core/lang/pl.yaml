@@ -901,6 +901,7 @@
 "[above_stretch]": "Z góry: rozciągnięcie"
 "[density_of_the_first]": "Gęstość pierwszych"
 "[shadow_map]": "Mapa cieni"
+"[save]": "Zapisz"
 "[copy_tab]": "Kopiuj kartę"
 "[copy_all]": "Kopiuj wszystko"
 "[copy]": "Kopiuj"
@@ -919,6 +920,7 @@
 "[by_itself]": "sama"
 "[moon]": "Księżyc"
 "[by_phase]": "według fazy"
+"[temperature]": "Temperatura"
 "[time_of_day]": "Pora dnia"
 "[hour]": "Godzina"
 "[stopped]": "stoi"
@@ -1088,7 +1090,6 @@
 "[line_n3]": "Wiersz %d"
 "[nothing_is_written_here]": "Nic tu nie napisano"
 "[whoever_builds_on_this_land]": "Pisać może ten, kto buduje na tej ziemi"
-"[save]": "Zapisz"
 "[turn]": "Obróć"
 
 # src/client/ui/sleep_screen.gd
@@ -1335,6 +1336,7 @@
 "[trees_are_chopped_with_an]": "Drzewa ścina się siekierą"
 "[water_holds_this_ground]": "Tu opiera się woda: nie kopie się pod wodą ani przy brzegu"
 "[broke]": "Zepsuło się: %s"
+"[spores_in_the_eyes]": "Zarodniki purchawki w oczach: wszystko się rozmywa"
 
 # src/shared/game/actions_farm.gd
 "[cant_be_cut_with_a]": "%s nie zetniesz kosą: zbierz rękami lub sierpem"
@@ -1584,4 +1586,3 @@
 "[descent]": "Zejście"
 "[descent_at_45]": "Zejście pod 45°"
 "[beach]": "Plaża"
-"[spores_in_the_eyes]": "Zarodniki purchawki w oczach: wszystko się rozmywa"
