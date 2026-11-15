@@ -150,6 +150,15 @@ func _on_event(kind: String, args: Variant) -> void:
 								cols[col] = cell
 				for col: Vector2i in cols:
 					game.actions.cell_changed.emit(cols[col])
+		Protocol.GRASS:
+			if args is Array and game.host == null:
+				for cell in args:
+					if cell is Vector3i and game.world.has_chunk(WorldData.chunk_key(cell.x, cell.z)):
+						game.world.set_turf(cell, "")
+						game.actions.grass_changed.emit(cell)
+		Protocol.SPORES:
+			if args is Array and args.size() == 1 and args[0] is Vector3 and args[0].is_finite() and game.host == null:
+				game.actions.spores.emit(args[0])
 		Protocol.TAKEN:
 			if args is Array and args.size() == 2 and args[0] is String and args[1] is Vector3 and game.host == null:
 				game.actions.taken.emit(args[0], args[1])

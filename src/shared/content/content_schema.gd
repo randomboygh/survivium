@@ -235,6 +235,9 @@ const SCHEMAS := {
 		"flock": {"type": "list", "of": "int", "len": 2, "min": 1, "default": [1, 1]},
 		"roost": {"type": "enum", "values": ["ground", "trees"], "default": "ground"},
 		"likes": {"type": "list", "of": "ref:plants", "soft": true, "default": [], "rel": "feeds_on"},
+		# Of the plants it likes, the ones it goes for first (a rabbit's clover): a grazer
+		# looks farther for them, oftener, and lingers there (Wildlife._place).
+		"loves": {"type": "list", "of": "ref:plants", "soft": true, "default": [], "rel": "feeds_on"},
 		"biomes": {"type": "list", "of": "ref:biomes", "soft": true, "default": [], "rel": "lives_in"},
 		"calls": {"type": "sound", "default": ""},
 		"alarm": {"type": "sound", "default": ""},
@@ -423,6 +426,9 @@ const SCHEMAS := {
 		# sprite's frames are each `across` columns of PLANT_W px, left to right.
 		"across": {"type": "int", "min": 1, "max": 4, "default": 1},
 		"grows": {"type": "enum", "values": ["meadow", "shade", "woods", "bank", "field"], "default": "meadow"},
+		# A custom plant grows only within this many cells of water (a sundew round the bog
+		# pools; Grass._near_water); 0 anywhere its `grows` says.
+		"near_water": {"type": "int", "min": 0, "max": 8, "default": 0},
 		# How a custom plant changes as it stands (grass.gdshader): shy — it folds as someone
 		# passes, night — it opens at dusk; the second half of its frames is the plant so
 		# (the folded, the open one). Texels of its picture with an alpha of 200..240 glint
@@ -430,6 +436,12 @@ const SCHEMAS := {
 		"looks": {"type": "enum", "values": ["", "shy", "night"], "default": ""},
 		# Picking it breathes out a puff of spores (a puffball; the client's Effects.puff).
 		"puff": {"type": "bool", "default": false},
+		# It comes up only after rain (Clock.shrooms; a puffball): grows on a soaked ground
+		# once the rain stops, each place a little sooner or later, and goes after some dry days.
+		"after_rain": {"type": "bool", "default": false},
+		# Stepping on it crushes it (ActionsDig.tread), and its spores make the one who
+		# stepped see the picture swim this many seconds (Vitals.see_visions); 0 never.
+		"crush": {"type": "float", "min": 0.0, "max": 60.0, "default": 0.0},
 		# The share of the places on the open meadows (Grass.RING_GRID cells apart) where
 		# it grows in a fairy ring (Grass.fairy_ring); 0 never.
 		"rings": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},

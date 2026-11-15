@@ -232,7 +232,8 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 
 ## The mods' own plants on the cell (see Plants.CUSTOM): each where it `grows` (open
 ## grass, the shade of a crown, the woods: that shade and the open grass within
-## WOODS_EDGE cells of a crown, a bank), on the share of that ground its `cover` says,
+## WOODS_EDGE cells of a crown, a bank), on the share of that ground its `cover` says
+## (within `near_water` cells of water when that is set),
 ## and only in clumps `clump_size` cells wide where its own noise is above `clumps` when
 ## that is set, and only in its `biomes` when it names some. A frame `across` cards wide
 ## is one kind, its first column (Foliage draws the rest beside it). `tier` and
@@ -270,8 +271,22 @@ static func _custom(w, x: int, z: int, m: int, tier: int, by_water: bool, out: A
 				continue
 		if c.grows == "woods" and not shaded and not _near_crown(w, x, z):
 			continue
-		if rng.randf() < c.cover:
+		if rng.randf() < c.cover and (c.get("near_water", 0) == 0 or _near_water(w, x, z, c.near_water)):
 			out.append(CUSTOM + c.first + rng.randi_range(0, c.frames - 1) * c.get("across", 1))
+
+
+## Whether water stands within `reach` cells of column x, z (eight ways out from it, a
+## cell at a time): where a plant with `near_water` grows.
+static func _near_water(w, x: int, z: int, reach: int) -> bool:
+	for r in range(1, reach + 1):
+		for d: Vector2i in NEAR_WAYS:
+			if w.water_col(x + d.x * r, z + d.y * r) != 0:
+				return true
+	return false
+
+
+const NEAR_WAYS: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1),
+	Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]
 
 
 ## Whether a crown stands over a column about WOODS_EDGE cells from column x, z (eight

@@ -378,8 +378,14 @@ const SHOTS := {
 	# a fairy ring of mushrooms, the surf glowing on a summer night with the player
 	# swimming, will-o'-the-wisps over a swamp.
 	"curio-mimosa": {"time": 0.42, "season": 1, "at": [-1268, -364], "find": "plants:mimosa"},
-	"curio-puffball": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:puffball"},
+	"curio-puffball": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:puffball", "shrooms": 1.0},
+	# The day after a rain: some puffballs up, some still small, most not yet.
+	"curio-puffball-growing": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:puffball", "shrooms": 0.6},
+	"curio-puffball-dry": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:puffball"},
 	"curio-sundew": {"time": 0.33, "season": 1, "place": "peat_bog", "find": "plants:sundew"},
+	# Sparkles on still water only: a lake has them, a river none.
+	"water-lake": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake"},
+	"water-river": {"time": 0.42, "season": 1, "weather": "clear", "place": "delta"},
 	"curio-primrose": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:evening_primrose"},
 	"curio-primrose-night": {"time": 0.95, "season": 1, "moon": 1.0, "place": "meadow", "find": "plants:evening_primrose"},
 	"curio-ring": {"time": 0.42, "season": 1, "find": "ring"},

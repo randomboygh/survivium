@@ -128,7 +128,7 @@ length up to `CHAT_MAX` 160.
   socket) — the link keeps the copy of the client's world: `_sent` — the chunks the client has; in every
   `flush` (`_world_events`) — `cells` by edits (`actions.cell_changed`, `actions.cells_set` — all cells of a
   felled tree, `placed.cell_changed`) in the client's chunks, the chunks whose look changed (`looks_changed`:
-  berries, mown grass — the chunk is sent anew whole, the record carries `turf`, bushes, trees), then the
+  berries, a bush — the chunk is sent anew whole, the record carries `turf`, bushes, trees), `grass` — grass cells cut short (`grass_changed`), `spores` where the client holds the world, then the
   missing chunks of the zone around the body by its screen (`Session.reach_for(who.view_half)`, not less than
   `Session.ZONE`), the nearest first, `CHUNKS_PER_FLUSH` 2 per `flush` and only ready ones (`SHAPED`: the
   cells of a ready chunk are no longer changed by generation — the neighbours' trees have already grown into

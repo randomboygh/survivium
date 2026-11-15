@@ -21,6 +21,8 @@ global uniform sampler2D terrain_atlas : filter_nearest SRGB_HINT;
 uniform sampler2D plant_texture : filter_nearest;
 // 0 by day, 1 at night (sky.gd): how much the glowing mushrooms shine.
 global uniform float night_glow;
+// How far the mushrooms that come up after rain have grown, 0..1 (Clock.shrooms, sky.gd).
+global uniform float shrooms;
 
 const float WIDTH = 0.5;
 const float HEIGHT = 1.5;
@@ -128,6 +130,15 @@ void vertex() {
 		bool near = length(root.xz - player_pos.xz) < SHY_REACH && abs(root.y - player_pos.y) < 1.0;
 		if ((looks.r > 0.5 && near) || (looks.g > 0.5 && night_glow > 0.2 + 0.6 * custom.z)) {
 			plant_column += floor(looks.b * 255.0 + 0.5);
+		}
+		if (looks.a > 0.75) {
+			// It comes up only after rain, each column a little later than the next, and
+			// grows in four steps (the same sum as Clock.shroom_size; none under 0.15 of it).
+			vec2 col = floor(root.xz / CELL);
+			float late = fract(col.x * 0.7548777 + col.y * 0.5698403);
+			float size = clamp((shrooms - 0.7 * late) / 0.3, 0.0, 1.0);
+			size = size < 0.15 ? 0.0 : ceil(size * 4.0) / 4.0;
+			VERTEX = root + (VERTEX - root) * size;
 		}
 	}
 	VERTEX = shear(stand_tall(face_view(VERTEX, root), root));

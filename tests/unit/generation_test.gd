@@ -17,6 +17,7 @@ func run() -> void:
 	_test_mountain_zone()
 	_test_tropics()
 	_test_biome_bytes()
+	_test_river_water()
 
 
 func _test_generation() -> void:
@@ -764,3 +765,29 @@ func _test_biome_bytes() -> void:
 		counts.append(n)
 	_check(shaded != Vector3i.MAX and counts[0] == 0 and counts[1] > 0,
 		"the monstera grows in the shade of a jungle chunk only: %s" % [counts])
+
+
+## A river's water is marked as such (WorldData.RIVER_WATER: water.gdshader draws no
+## sparkles on it); a lake's is not.
+func _test_river_water() -> void:
+	var gen := WorldGen.new(20261018)
+	var near := Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
+	var counts := []
+	for what in ["river", "lake"]:
+		var p := gen.find_place(what, near)
+		var key := WorldData.chunk_key(p.x, p.y)
+		gen.generate_area(key, key + Vector2i(1, 1))
+		var w: WorldData = gen.world
+		var river := 0
+		var water := 0
+		var x0 := key.x * WorldData.CHUNK
+		var z0 := key.y * WorldData.CHUNK
+		for z in range(z0, z0 + WorldData.CHUNK):
+			for x in range(x0, x0 + WorldData.CHUNK):
+				var bits: int = w.water_col(x, z)
+				if bits != 0:
+					water += 1
+					river += 1 if w.river(x, WorldData.top_level(bits), z) else 0
+		counts.append([water, river])
+	_check(counts[0][1] > counts[0][0] / 2 and counts[1][0] > 0 and counts[1][1] < counts[1][0] / 4,
+		"a river's water is marked, a lake's is not (%s)" % [counts])

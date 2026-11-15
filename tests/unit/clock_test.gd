@@ -5,6 +5,7 @@ extends "res://tests/unit/test_case.gd"
 func run() -> void:
 	_test_clock()
 	_test_weather()
+	_test_shrooms()
 
 
 ## The world's clock runs without the client: days and seasons pass, and the snow of
@@ -173,3 +174,32 @@ func _test_weather() -> void:
 		"a storm breaks branches off a tree, no more than it has (%d of %d)" % [branches, s.twigs])
 	w.tree_twigs[Vector2i(24, 24)] = s.twigs
 	_check(not actions.blow_branch(Vector2i(24, 24), Vector3(24.5, 2.0, 26.5) * WorldData.CELL, 0.0), "and none once they are gone")
+
+
+## Mushrooms that come up after rain (Clock.shrooms) do not grow while it rains, grow on
+## the soaked ground once it stops, and wither when it has dried; none in winter.
+func _test_shrooms() -> void:
+	var w := WorldData.new(40, Vector2i(16, 16))
+	var clock := Clock.new()
+	clock.world = w
+	clock.weather_auto = false
+	clock.season = 1
+	_check(clock.shrooms == 0.0, "no mushrooms before any rain")
+	clock.weather = Clock.RAIN
+	clock.rain = 0.5
+	clock._grow_shrooms(0.1, false)
+	_check(clock.soak > 0.0 and clock.shrooms == 0.0, "rain soaks the ground, nothing grows while it falls")
+	clock.weather = Clock.CLEAR
+	clock.rain = 0.0
+	clock._grow_shrooms(Clock.SHROOM_GROW, false)
+	_check(clock.shrooms == 1.0, "after the rain they come up in half a day")
+	clock._grow_shrooms(Clock.SOAK_DAYS + Clock.SHROOM_FADE, false)
+	_check(clock.shrooms == 0.0 and clock.soak == 0.0, "the ground dries and they wither")
+	clock.shrooms = 1.0
+	clock._grow_shrooms(Clock.SHROOM_FADE, true)
+	_check(clock.shrooms == 0.0, "the frost takes them")
+	var saved := Clock.new()
+	clock.shrooms = 0.6
+	clock.soak = 1.0
+	saved.from_dict(clock.to_dict())
+	_check(is_equal_approx(saved.shrooms, 0.6) and is_equal_approx(saved.soak, 1.0), "they are kept in the save")

@@ -1082,6 +1082,27 @@ func on_cell_changed(cell: Vector3i) -> void:
 	game.props.on_cell_changed(cell)
 
 
+## Draws the grass of cell `cell` again (cut short, a plant picked or crushed): only the
+## column of the cell, its chunk first in the queue as an edit (see on_cell_changed), so
+## the plant is gone within a frame or two, not after the chunk is rebuilt whole.
+func regrow_cell(cell: Vector3i) -> void:
+	var key := WorldData.chunk_key(cell.x, cell.z)
+	if not chunk_nodes.has(key):
+		return
+	if job_mesh != null and job_key == key and not job_edit:
+		if not job_keep:
+			has_target = true
+		_drop_job()
+	_unstash(key)
+	var part := Rect2i(cell.x, cell.z, 1, 1)
+	dirty_rects[key] = dirty_rects[key].merge(part) if dirty_rects.has(key) else part
+	edited[key] = true
+	var queue := {key: true}
+	for k in dirty_chunks:
+		queue[k] = true
+	dirty_chunks = queue
+
+
 ## Builds the mesh of chunk `key` again, by itself: what is drawn on it changed (the
 ## berries of a bush) but no cell did.
 func remesh_chunk(key: Vector2i) -> void:

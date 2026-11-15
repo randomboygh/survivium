@@ -77,14 +77,14 @@ voxel models of things.
 - `src/client/view/wisps.gd` (held by `Effects.wisps`, moved by `Sky`) — will-o'-the-wisps: on nights out of winter up
   to `WISPS` pale flickering emitters wander over the murky water of swamps and bogs (`WorldCells.murk`) near
   the view; one the player comes within `SHY` of slips away fading. `Effects.puff` — the spores of a picked
-  puffball (`done.puff` of a mow, a plant's `puff`).
+  or crushed puffball (a plant's `puff`; `WorldActions.spores`, the event `spores` from a server), at once.
 - Curious plants (`grass.gdshader`): a custom plant with `looks` brings its other look as the second half of its
   frames; `PixelTextures.build_plants` writes a row under the plants (`looks_texel`: red shy, green night, blue
-  the shift) and the vertex shader swaps the column — shy while the player stands within `SHY_REACH`, night
-  past a `night_glow` of its own. Texels of a custom picture with an alpha of 200..240 glint by day (dew).
+  the shift, alpha 1 for `after_rain`) and the vertex shader swaps the column — shy while the player stands within `SHY_REACH`, night
+  past a `night_glow` of its own; an `after_rain` plant (a puffball) grows in four steps by the global `shrooms` (`Clock.shrooms`, set by `Sky`), its column sooner or later by the same sum as `Clock.shroom_size`. Texels of a custom picture with an alpha of 200..240 glint by day (dew).
   The surf and a faint V behind a swimmer (`wake_way`, from `WaterEffects`) glow blue on rare warm nights in
   bays of plankton (`sea_glow`, set by `Sky` from the night, one in `SEA_GLOW_NIGHTS` (`Sky.glowing_night`), and
-  the season, `water.gdshader`).
+  the season, `water.gdshader`). Sparkles glint only on still water (seas, lakes, ponds): a river's water cells carry `WorldData.RIVER_WATER` from the generator, the mesher gives them vertex alpha `RIVER_ALPHA` (plain rows: `RIVER_TILE` over the depth in the key), and the shader draws none there.
 - `src/client/view/glow_lights.gd` (held by `Effects.glows`) — small teal pools of light round the glowing
   mushrooms at night: `Foliage` notes where each glowing mushroom stands (`Job.glows`, kept through a patch),
   `ChunkStreamer` hands them over per chunk, and every `PICK_EVERY` s the `LIGHTS` (4) groups nearest the

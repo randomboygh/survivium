@@ -54,6 +54,9 @@ const SHEER := 2
 ## is waded slower (see Body); both lie like water in every other way.
 const BOG := 4
 const SWAMP := 8
+## On a water cell: the water of a river, which runs (Currents): no sparkles on it
+## (water.gdshader).
+const RIVER_WATER := 16
 
 ## The forms of built blocks that are not whole cubes (the build mode's slopes and
 ## stairs, thread «Сделать отдельный режим строительства»), by cell: FORM_* in bits 0..1,
@@ -396,6 +399,16 @@ func murk(x: int, y: int, z: int) -> int:
 		return 0
 	var n := c.natural[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)]
 	return 2 if n & BOG else (1 if n & SWAMP else 0)
+
+
+## Whether the water cell x, y, z is a river's (RIVER_WATER).
+func river(x: int, y: int, z: int) -> bool:
+	if y < 0 or y >= size_y:
+		return false
+	var c := chunk_at(x, z)
+	if c == null:
+		return false
+	return c.natural[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)] & RIVER_WATER != 0
 
 
 ## The masks of column (x, z): air (all levels where no chunk is kept), water, leaves

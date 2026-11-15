@@ -432,7 +432,7 @@ func _gives(who, target: Dictionary) -> Array:
 ## it first, else the low grass and the material's own; a plant's only when it gives
 ## them at least every other time.
 func _mow_gives(cell: Vector3i) -> Array:
-	var plants := in_season(Grass.plants_on(world, cell.x, cell.y, cell.z))
+	var plants := in_season(Grass.plants_on(world, cell.x, cell.y, cell.z), cell)
 	var tall := plants.filter(func(id: String) -> bool: return id != Plants.TUFT)
 	var out := []
 	for id in (tall if not tall.is_empty() else plants):

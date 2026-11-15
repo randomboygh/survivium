@@ -317,6 +317,9 @@ func _run() -> void:
 			main.session.clock.wet = 1.0 if main.session.clock.raining and main.session.clock.season != 3 else shot.get("after_rain", 0.0)
 			main.sky.after_rain = shot.get("after_rain", 0.0)
 			main.session.clock.puddles = shot.get("puddles", 0.0)
+			# The puffballs that come up after rain (Clock.shrooms), on a soaked ground so they stay.
+			main.session.clock.shrooms = shot.get("shrooms", 0.0)
+			main.session.clock.soak = main.session.clock.SOAK_DAYS if main.session.clock.shrooms > 0.0 else 0.0
 			main.sky.foliage = main.sky.FOLIAGE[main.session.clock.season]
 			main.sky.grass = main.sky.GRASS[main.session.clock.season]
 			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.session.clock.season]

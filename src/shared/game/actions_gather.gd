@@ -32,6 +32,12 @@ const WINTER := 3
 ## What is drawn on chunk `key` changed while its cells did not (berries picked, grass
 ## cut short, a bush planted).
 signal looks_changed(key: Vector2i)
+## The grass of cell `cell` was cut short or a plant on it picked or crushed (WorldData.turf):
+## only the columns about it are drawn again, the first of all (ChunkStreamer.regrow_cell).
+signal grass_changed(cell: Vector3i)
+## A puffball breathed out its spores at `at` (world units), picked or stepped on (the
+## client's Effects.puff).
+signal spores(at: Vector3)
 ## The things lying on the ground in chunk `key` (WorldData.drops) changed.
 signal drops_changed(key: Vector2i)
 ## A thing lying at `from` flew into the bag of `by` by itself (see pick_up_near).

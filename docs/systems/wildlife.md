@@ -137,7 +137,7 @@ water, a kind with `biomes` appears only on its own land.
 
 **Data.** The kind `creatures` (`health`, `carcass`, `bite`, `mass`, `diet`, `speed`, `sight`,
 `human_wariness`, `fire_wariness`, `active`, `count`, `sprite`, `frames`, `walk`, `hop`, `attack`, `views`,
-`flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`, `likes`, `biomes`,
+`flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`, `likes`, `loves` (of those, the ones it goes for first, oftener (`LOVE_CHANCE`) and farther (`LOVE_REACH`), standing on them `LOVE_LINGER` times longer: a rabbit on clover), `biomes`,
 `calls`, `alarm`, taming: `tame_food`, `tame_feeds`, `wool`, `wool_days`, `breed_days`, `herd`, `trapped` — a
 live item from a live trap) in the bundles `content/animals/<beast>/`; the picture is the bundle's
 `sprites/creatures/<sprite>.png`: a row per side (`views`: 1 — from the side; 3 — side, front, back), in a

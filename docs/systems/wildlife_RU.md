@@ -127,7 +127,7 @@
 
 **Данные.** Вид `creatures` (`health`, `carcass`, `bite`, `mass`, `diet`, `speed`, `sight`, `human_wariness`, `fire_wariness`, `active`, `count`,
 `sprite`, `frames`, `walk`, `hop`, `attack`, `views`, `flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`,
-`likes`, `biomes`, `calls`, `alarm`, приручение: `tame_food`, `tame_feeds`, `wool`, `wool_days`, `breed_days`, `herd`, `trapped` — живой предмет из живоловки) в бандлах `content/animals/<зверь>/`; картинка —
+`likes`, `loves` (из них те, к которым идёт первым делом, чаще (`LOVE_CHANCE`) и дальше (`LOVE_REACH`), и стоит на них в `LOVE_LINGER` раз дольше: кролик на клевере), `biomes`, `calls`, `alarm`, приручение: `tame_food`, `tame_feeds`, `wool`, `wool_days`, `breed_days`, `herd`, `trapped` — живой предмет из живоловки) в бандлах `content/animals/<зверь>/`; картинка —
 `sprites/creatures/<sprite>.png` бандла: ряд на сторону (`views`: 1 — сбоку; 3 — сбоку, спереди, сзади),
 в ряду `frames`
 кадров — стоит, `walk` кадров шага или взмахов, последние `hop` у летающего — прыжки по земле

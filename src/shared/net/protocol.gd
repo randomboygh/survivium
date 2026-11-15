@@ -334,6 +334,10 @@ const FORGET := "forget"
 ## Cells of the world changed (dug, built, cut): [[cell, material | form << 8], …] (the
 ## form of a built slope or stairs, WorldData.forms).
 const CELLS := "cells"
+## Grass cells cut short, a plant on them picked or crushed (WorldData.turf ""): [cell, …].
+const GRASS := "grass"
+## A puffball breathed out its spores (ActionsGather.spores): [at].
+const SPORES := "spores"
 ## Something was taken from the world by anyone, for the picture of it flying to the
 ## bag: [id, from] (WorldActions.taken).
 const TAKEN := "taken"

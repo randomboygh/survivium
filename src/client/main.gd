@@ -550,8 +550,16 @@ func _attach_world() -> void:
 func _watch_actions() -> void:
 	actions.cell_changed.connect(chunks.on_cell_changed)
 	actions.looks_changed.connect(chunks.remesh_chunk)
+	actions.grass_changed.connect(chunks.regrow_cell)
+	actions.spores.connect(_on_spores)
 	actions.drops_changed.connect(props.show_drops)
 	actions.taken.connect(props.fly)
+
+
+## A puffball picked or stepped on breathes out its spores at `at` (ActionsDig._pull_plants).
+func _on_spores(at: Vector3) -> void:
+	if effects != null:
+		effects.puff(at)
 
 ## The part of the loading going on, in a few words for the loading screens: what
 ## start_world does, then the work going on while the land around is built, each

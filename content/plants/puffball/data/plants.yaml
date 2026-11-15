@@ -1,5 +1,6 @@
 # Giant puffball (kind: custom, fields as for the fern): a white ball the size of a head here and there on the meadows,
-# picked by hand and good to eat; picking one breathes out a puff of spores (puff).
+# picked by hand and good to eat; picking one breathes out a puff of spores (puff). They come up only
+# after rain (after_rain), and one stepped on bursts, its spores in the eyes (crush: seconds of visions).
 - id: puffball
   kind: custom
   title: "[plants.plants.puffball]"
@@ -11,6 +12,8 @@
   clump_size: 14
   pick: true
   puff: true
+  after_rain: true
+  crush: 8
   gives: {puffball: 1}
   winter: false
   biomes: [biomes:meadow, biomes:forest_steppe, biomes:floodplain, biomes:steppe, biomes:birch_grove]

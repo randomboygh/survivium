@@ -204,11 +204,13 @@ func step_clock(delta: float) -> void:
 	clock.step(delta, players[0].position if not players.is_empty() else Vector3.INF)
 
 
-## Every character's state and their workshop's queue.
+## Every character's state, what gives way under their feet (WorldActions.tread) and
+## their workshop's queue.
 func step_players(delta: float) -> void:
 	var d := minf(delta, CATCH_UP)
 	for i in players.size():
 		players[i].update(d)
+		actions.tread(players[i])
 		workshops[i].update(d)
 	territory.step_walk(players)
 	fights.step(d, players)

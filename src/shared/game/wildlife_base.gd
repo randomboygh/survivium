@@ -76,6 +76,11 @@ const DESCENT := 4.0
 const FLY_CHANCE := 0.05
 ## Chance a walker that likes some plants looks for them when it picks where to go.
 const GRAZE_CHANCE := 0.3
+## The same for one that loves some plants (`loves`), and how far it looks for them.
+const LOVE_CHANCE := 0.6
+const LOVE_REACH := 10.0
+## It stands this many times longer on a plant it loves.
+const LOVE_LINGER := 3.0
 ## How far a climber looks for a tree to run up from a threat, in world units; how
 ## fast it goes up and down the trunk, in world units a second; and how many seconds
 ## it stays up there once the threat is gone, before it comes down.

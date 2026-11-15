@@ -1,4 +1,5 @@
-# Sundew (kind: custom, fields as for the fern): a small red rosette of open bog ground, every leaf tipped with a drop of
+# Sundew (kind: custom, fields as for the fern): small red rosettes in clumps on the open ground round the bog pools
+# (near_water: within 4 cells of water), every leaf tipped with a drop of
 # sticky dew that glints in the sun (the texels of alpha 220 of its picture, grass.gdshader); picked for its leaves.
 - id: sundew
   kind: custom
@@ -6,8 +7,9 @@
   sprite: sundew
   frames: 2
   grows: meadow
+  near_water: 4
   clumps: 0.2
-  cover: 0.3
+  cover: 0.45
   pick: true
   gives: {sundew: 1}
   winter: false
