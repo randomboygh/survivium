@@ -987,6 +987,8 @@
 "[feel]": "His"
 "[screen_shake]": "Ekran sarsıntısı"
 "[vibration]": "Titreşim"
+"[vibration_important]": "sadece önemli"
+"[vibration_usual]": "normal"
 "[server_data]": "Sunucu verileri"
 "[mod_files_from_servers_s]": "Sunuculardan saklanan mod dosyaları: %s MB"
 "[clear_server_data]": "Sunucu verilerini temizle"

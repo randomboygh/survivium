@@ -987,6 +987,8 @@
 "[feel]": "Gefühl"
 "[screen_shake]": "Bildschirmwackeln"
 "[vibration]": "Vibration"
+"[vibration_important]": "nur Wichtiges"
+"[vibration_usual]": "normal"
 "[server_data]": "Serverdaten"
 "[mod_files_from_servers_s]": "Moddateien von Servern: %s MB"
 "[clear_server_data]": "Serverdaten löschen"

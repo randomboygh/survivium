@@ -987,6 +987,8 @@
 "[feel]": "Odczucia"
 "[screen_shake]": "Wstrząsy ekranu"
 "[vibration]": "Wibracje"
+"[vibration_important]": "tylko ważne"
+"[vibration_usual]": "zwykle"
 "[server_data]": "Dane serwerów"
 "[mod_files_from_servers_s]": "Pliki modów z serwerów: %s MB"
 "[clear_server_data]": "Wyczyść dane serwerów"

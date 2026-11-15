@@ -18,6 +18,7 @@ const Minimap := preload("res://src/client/ui/minimap.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const MenuBackdrop := preload("res://src/client/ui/menu_backdrop.gd")
 const Settings := preload("res://src/client/settings.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
 
 
 func run() -> void:
@@ -34,6 +35,7 @@ func run() -> void:
 	_test_kept_test_switches()
 	_test_menu_sparrow()
 	_test_map_fit()
+	_test_vibration()
 
 
 func _test_two_tap() -> void:
@@ -456,3 +458,39 @@ func _test_menu_sparrow() -> void:
 		"the menu's sparrow stays with no sparrow in the creatures loaded")
 	for m in [cold, first, again]:
 		m.free()
+
+
+## Each vibration pattern is pulses and pauses that start and end with a pulse, short,
+## with strengths in 0..1 and a step of the setting; the old on/off setting turned off
+## stays off as a step.
+func _test_vibration() -> void:
+	var bad := []
+	for id: String in Vibration.PATTERNS:
+		var p: Array = Vibration.PATTERNS[id]
+		var steps: Array = p[0]
+		var strengths: Array = p[1] if p[1] is Array else [p[1]]
+		var total := 0
+		for ms in steps:
+			total += int(ms)
+		if steps.size() % 2 == 0 or total > 700 or steps.any(func(ms: int) -> bool: return ms <= 0) \
+				or strengths.any(func(a: float) -> bool: return a <= 0.0 or a > 1.0) \
+				or not p[2] in [Vibration.IMPORTANT, Vibration.USUAL, Vibration.ALL]:
+			bad.append(id)
+	_check(bad.is_empty(), "the vibration patterns are short pulses with strengths and a step (%s)" % [bad])
+	_check(not Vibration.allows({}, Vibration.IMPORTANT), "a stand-in for the game buzzes nothing")
+	var was: String = Settings.path
+	Settings.path = "user://test_vibration.cfg"
+	var cfg := ConfigFile.new()
+	cfg.set_value("game", "vibrate", false)
+	cfg.save(Settings.path)
+	var s := Settings.new(null)
+	s.load()
+	_check(s.values.vibration == Vibration.OFF, "the vibration turned off before its steps stays off")
+	cfg = ConfigFile.new()
+	cfg.set_value("game", "vibration", 9)
+	cfg.save(Settings.path)
+	s = Settings.new(null)
+	s.load()
+	_check(s.values.vibration == Settings.DEFAULTS.vibration, "a step not offered is left as it comes")
+	DirAccess.remove_absolute(Settings.path)
+	Settings.path = was

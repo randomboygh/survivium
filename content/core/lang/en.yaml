@@ -987,6 +987,8 @@
 "[feel]": "Feel"
 "[screen_shake]": "Screen shake"
 "[vibration]": "Vibration"
+"[vibration_important]": "important only"
+"[vibration_usual]": "usual"
 "[server_data]": "Server data"
 "[mod_files_from_servers_s]": "Mod files kept from servers: %s MB"
 "[clear_server_data]": "Clear server data"

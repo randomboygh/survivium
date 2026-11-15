@@ -987,6 +987,8 @@
 "[feel]": "Відчуття"
 "[screen_shake]": "Трясіння екрана"
 "[vibration]": "Вібрація"
+"[vibration_important]": "лише важливе"
+"[vibration_usual]": "звичайно"
 "[server_data]": "Дані серверів"
 "[mod_files_from_servers_s]": "Файли модів із серверів: %s МБ"
 "[clear_server_data]": "Очистити дані серверів"

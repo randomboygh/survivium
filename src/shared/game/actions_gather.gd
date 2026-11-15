@@ -103,7 +103,8 @@ func chop(who, cell: Vector3i) -> Dictionary:
 	if chops[col] < s.hits:
 		return done
 	chops.erase(col)
-	fell(who, cell)
+	# The client feels it hit the ground (Vibration "tree").
+	done.felled = fell(who, cell)
 	return done
 
 

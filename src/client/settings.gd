@@ -161,8 +161,8 @@ const DEFAULTS := {
 	"pickup_heavy": false,
 	# The camera shakes when the body is hurt (see BodyFeedback).
 	"shake": true,
-	# The phone buzzes on a hurt and when a swing strikes (see Vibration).
-	"vibrate": true,
+	# How much the phone buzzes (Vibration): off, only the important, the usual, all.
+	"vibration": 2,
 	# Volumes in steps of Sound.STEPS (0 is off): the music, all the sounds, nature
 	# (wind, rain, water, birds) and the interface among them.
 	"music_volume": 3,
@@ -200,7 +200,7 @@ static func _index_limits() -> Dictionary:
 	var volumes := Sound.STEPS + 1
 	return {"time_speed": TIME_SPEEDS.size(), "pixel_scale": PIXEL_SIZES.size(), "fps_limit": FPS_LIMITS.size(),
 		"ui_size": Hud.UI_SIZES.size(), "control_size": Hud.CONTROL_SIZES.size(), "minimap_size": Minimap.SIDES.size(),
-		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "fire_shadows": 4, "water_fx": 3, "crt": Crt.LOOKS.size(),
+		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "vibration": 4, "fire_shadows": 4, "water_fx": 3, "crt": Crt.LOOKS.size(),
 		"layer_front_from": CaveLayers.FIRSTS.size(), "layer_front_stretch": CaveLayers.STRETCHES.size(),
 		"layer_above_from": CaveLayers.FIRSTS.size(), "layer_above_stretch": CaveLayers.STRETCHES.size(),
 		"layer_density": CaveLayers.DENSITIES.size(), "layer_line": CaveLayers.LINES.size(),
@@ -340,6 +340,9 @@ func load() -> void:
 	# Before the kinds of pickup it was on or off.
 	if not cfg.has_section_key("game", "pickup") and cfg.get_value("game", "auto_pickup", true) == false:
 		values.pickup = 3
+	# Before its steps the vibration was on or off.
+	if not cfg.has_section_key("game", "vibration") and cfg.get_value("game", "vibrate", true) == false:
+		values.vibration = 0
 	# Before five sizes the interface had three, the normal one first.
 	if not cfg.has_section_key("game", "ui_size") and cfg.has_section_key("game", "ui_scale"):
 		values.ui_size = clampi(int(cfg.get_value("game", "ui_scale", 0)) + 2, 0, 4)

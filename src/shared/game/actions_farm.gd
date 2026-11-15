@@ -530,6 +530,7 @@ func reap(who, cells: Array[Vector3i], tool: Variant = null) -> Dictionary:
 	if cells.is_empty() or not who.act("cut", "farm"):
 		return {}
 	var keys := {}
+	var gave := false
 	for c in cells:
 		var f: Array = world.field_at(c)
 		var rng := RandomNumberGenerator.new()
@@ -540,6 +541,7 @@ func reap(who, cells: Array[Vector3i], tool: Variant = null) -> Dictionary:
 		keys[WorldData.chunk_key(c.x, c.z)] = true
 		if gives.is_empty():
 			continue
+		gave = true
 		if _extra(who, "farm"):
 			var first: String = gives.keys()[0]
 			gives[first] += 1
@@ -550,6 +552,8 @@ func reap(who, cells: Array[Vector3i], tool: Variant = null) -> Dictionary:
 		drops_changed.emit(key)
 	var t: Dictionary = who.tool() if tool == null else Tools.of(tool)
 	var done := _work(skilled(who, "farm", t.swing), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL, Mat.GRASS)
+	# The client feels a crop come in (Vibration "catch").
+	done.reaped = gave
 	if t.tool != "hand":
 		_wear(who, tool)
 	return done

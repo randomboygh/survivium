@@ -44,6 +44,8 @@ const CURSOR_TIME := 0.6
 const TOUCH_TIP_TIME := 4.0
 ## The share of a swing at which the tool strikes: the bits fly then (Effects.burst).
 const STRIKE := 0.5
+## Seconds from the blow that fells a tree to its thud on the ground (Vibration "tree").
+const TREE_DOWN := 0.35
 
 var game
 var touch := false
@@ -845,6 +847,8 @@ func _did(done: Variant) -> bool:
 	_cooldown = done.swing
 	if done.has("shot"):
 		game.props.fly_shot(done.shot)
+		if done.get("hit", false) and done.shot.size() > 3:
+			Vibration.play(game, "shot", float(done.shot[3]))
 	if done.has("work"):
 		game.player.work(done.work, done.time, done.at)
 		game.sound.work(done, game.player.work_kind, STRIKE)
@@ -852,6 +856,11 @@ func _did(done: Variant) -> bool:
 			game.effects.burst(done.at, done.stuff, done.time * STRIKE)
 			if not done.has("placed"):
 				Vibration.hit(game, done.time * STRIKE)
+		# A tree felled thuds down a moment after the last blow; a fish out, a crop in.
+		if done.get("felled", false):
+			Vibration.play(game, "tree", done.time * STRIKE + TREE_DOWN)
+		if done.get("caught", false) or done.get("reaped", false):
+			Vibration.play(game, "catch", done.time * STRIKE)
 	return true
 
 
