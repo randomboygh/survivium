@@ -412,6 +412,15 @@ func _spikes() -> void:
 	inv.add("resources:flint", 3)
 	inv.add("core:campfire", 2)
 	print("action | call ms | next frame ms | frame after ms")
+	# Things taken up from a pile: the bag, the toasts, the action's label, the mesh of
+	# the things lying (Props._fold_taken) in the frame after.
+	for n in 3:
+		var feet: Vector3 = main.host.player.position
+		for i in 10:
+			main.world.add_drop(["resources:stone", "resources:branch", "plants:acorn", "resources:flint", "materials:planks"][i % 5],
+				feet + Vector3(0.1 * (i % 4), 0.0, 0.1 * (i / 4)), 0.0, 1)
+		main.props.show_drops(main.world.chunk_key(floori(feet.x / main.CELL), floori(feet.z / main.CELL)))
+		await _spike("10 things at the feet taken up", func() -> void: main.actions.pick_up_near(main.host.player))
 	await _spike("camera turned a step", func() -> void: main.view.turn_by(1))
 	await _frames(60)
 	await _spike("camera turned a step back", func() -> void: main.view.turn_by(-1))
