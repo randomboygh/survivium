@@ -169,7 +169,10 @@ lies around. The rules are shared (the server checks them), input and hints are 
   finger or the mouse held on it and moved `DRAG_SHARE` of the screen drags it (a stroke with `prop`: `drag`
   each frame — the model is held up `Props.LIFT` over the free place nearest under the finger, `Placed.move_spot`
   as the server looks for it, its cells framed light or red; `release` — `PROP_MOVE`, `Placed.move`, or the
-  model drops back, `Props.settle`); the action button is
+  model drops back, `Props.settle`; a model held up never stays in the air: `update` drops it once the stroke
+  is no longer on it (`Controls.dragging`), a second press releases the stroke first, on a touch screen the
+  stroke ends with the last finger up, and while a finger is down only its own motion moves the stroke); the
+  action button is
   pressed once (`auto`) and builds the whole blueprint nearby, releases after the last cell or when the blocks
   run out. The settings are kept with the player (`"build"`).
 - `src/client/input/farm_mode.gd` — farm mode (`game.farm`), made like build mode: entry from the bag
