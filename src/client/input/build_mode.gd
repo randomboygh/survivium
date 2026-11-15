@@ -232,6 +232,12 @@ func toggle_auto() -> void:
 func update(delta: float) -> void:
 	if not _tap_wait.is_empty() and Time.get_ticks_msec() - int(_tap_wait.ms) > DOUBLE_TAP_MS:
 		_take_waiting()
+	if not _dragged.is_empty() and not is_same(game.controls.dragging(), _dragged):
+		# Held up with no finger or button on it any more (its stroke went another way):
+		# it drops back where it stands, never left hanging in the air.
+		game.cursor.show_boxes([], [])
+		game.props.settle(_dragged)
+		_dragged = {}
 	if not on or not auto:
 		return
 	_check_clock -= delta
@@ -356,7 +362,8 @@ func _take_waiting() -> void:
 ## does not fit). Called every frame while held (Controls.update).
 func drag(s: Dictionary) -> void:
 	var e: Dictionary = s.prop
-	if game.placed.at(e.cell) != e:
+	if not is_same(game.placed.at(e.cell), e):
+		# Gone or changed under the finger: what was held up drops back (update).
 		return
 	if not s.moved:
 		var screen: Vector2 = game.get_viewport().get_visible_rect().size
@@ -390,11 +397,14 @@ func drag(s: Dictionary) -> void:
 func release(s: Dictionary) -> void:
 	var e: Dictionary = s.prop
 	_dragged = {}
+	s.held = false
 	if not s.moved:
 		_tap_wait = {"cell": e.cell, "ms": Time.get_ticks_msec()}
 		return
 	game.cursor.show_boxes([], [])
-	if game.placed.at(e.cell) != e:
+	if not is_same(game.placed.at(e.cell), e):
+		# Changed while it was held (written, turned, filled): its model drops back.
+		game.props.settle(e)
 		return
 	if s.to == null or s.to == e.cell:
 		game.props.settle(e)

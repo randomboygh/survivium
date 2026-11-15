@@ -182,7 +182,9 @@ func unhandled_input(event: InputEvent) -> void:
 			KEY_H:
 				game.settings.set_value("show_help", not show_help)
 	elif event is InputEventMouseMotion:
-		if not _stroke.is_empty():
+		# While a finger is down only its own motion moves the stroke: a browser also sends
+		# mouse motion of its own for a touch (a long press), not always where the finger is.
+		if not _stroke.is_empty() and (fingers.is_empty() or event.device == InputEvent.DEVICE_ID_EMULATION):
 			_stroke.pos = event.position
 	elif event is InputEventMouseButton and event.pressed:
 		var n := Inventory.HOTBAR
@@ -233,6 +235,11 @@ func tap(hand: int, pos: Vector2, button := MOUSE_BUTTON_LEFT) -> void:
 		_start_paint(button, pos)
 		return
 	if mode().on:
+		if _stroke.has("prop"):
+			# A second press while a thing is dragged (another finger, or a press the
+			# browser or the phone adds to a long one) lets the thing go first: dropped
+			# unreleased, it stayed held up in the air.
+			game.build.release(_stroke)
 		_stroke = mode().start_stroke(button, pos)
 		if touch and _stroke.has("plan"):
 			mode().show_stroke(_stroke)
@@ -296,7 +303,9 @@ func update(delta: float) -> void:
 	var covered: bool = game.hud != null and game.hud.sign_window != null
 	if _stroke.has("prop"):
 		# A thing of the build mode dragged (BuildMode.drag), or let go.
-		if _stroke.held and (covered or not Input.is_mouse_button_pressed(_stroke.button)):
+		# On a touch screen it is let go with the last finger too (a lift the mouse's
+		# emulation missed).
+		if _stroke.held and (covered or not Input.is_mouse_button_pressed(_stroke.button) or (touch and fingers.is_empty())):
 			_stroke.held = false
 		if _stroke.held:
 			game.build.drag(_stroke)
@@ -337,6 +346,12 @@ func update(delta: float) -> void:
 		_action_was = false
 	if touch and _cursor_clock <= 0.0:
 		game.cursor.show_cells([], true)
+
+
+## The thing of the build mode's stroke now (held on it, BuildMode.drag, or let go and
+## not yet released), {} for none.
+func dragging() -> Dictionary:
+	return _stroke.prop if _stroke.has("prop") else {}
 
 
 func set_touch(on: bool) -> void:
