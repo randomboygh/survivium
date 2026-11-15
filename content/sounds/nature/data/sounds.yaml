@@ -24,11 +24,11 @@
 - id: crickets
   title: "[sounds.sounds.crickets]"
   loop: true
-  volume: 0.25
+  volume: 0.05
 - id: cricket
   title: "[sounds.sounds.cricket]"
   variants: 6
-  volume: 0.45
+  volume: 0.3
 - id: thunder
   title: "[sounds.sounds.thunder]"
   variants: 2
