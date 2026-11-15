@@ -9,6 +9,7 @@ func run() -> void:
 	_test_session()
 	_test_making()
 	_test_lead()
+	_test_wanted()
 	_test_reach()
 
 
@@ -191,6 +192,36 @@ func _test_lead() -> void:
 	s._motion.clear()
 	s._update_leads()
 	_check(s._leads.is_empty(), "a player standing looks nowhere ahead")
+
+
+## A client's screen comes first (Session.wanted, ChunkStreamer.wanted): the chunks it
+## waits for are made before the rings round the player, and while it lags behind
+## (wanted_only) nothing else is made.
+func _test_wanted() -> void:
+	var gen := WorldGen.new(42, 40)
+	var s := Session.new(gen.world, gen, Clock.new(), Rules.new(), Placed.new())
+	var a := Survivor.new()
+	a.body = Body.new()
+	a.at = Vector3(8.0, 20.0, 8.0) * WorldData.CELL
+	s.add_player(a, Workshop.new(a, s.placed, s.rules))
+	var made: Array = []
+	gen.made.connect(func(key: Vector2i, _stage: int) -> void: made.append(key))
+	var want := Vector2i(3, 0)
+	s.wanted = [want]
+	s.wanted_only = true
+	var calls := 0
+	while not gen.needed(want).is_empty() and calls < 100000:
+		s.make_chunks(2000, 2000, 4)
+		calls += 1
+	_check(gen.stage_of(want) == WorldGen.SHAPED and made.all(func(k: Vector2i) -> bool: return maxi(absi(k.x - want.x), absi(k.y)) <= 2),
+		"a wanted chunk is made first, with only what it needs (%d chunks)" % made.size())
+	made.clear()
+	s.make_chunks(2000, 2000, 4)
+	_check(made.is_empty() and s._gen_job == null and gen.stage_of(Vector2i(-1, 0)) == 0,
+		"while the client lags nothing but the wanted chunks is made")
+	s.wanted_only = false
+	s.make_chunks(2000, 2000, 4)
+	_check(s._gen_job != null or not made.is_empty(), "then the rings round the player are made again")
 
 
 ## The zones reach as far as the widest screen of the players needs (a wide window on a

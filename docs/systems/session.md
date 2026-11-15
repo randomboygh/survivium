@@ -32,7 +32,9 @@ that the rules read as is.
   chunk is within `NEAR` 4 of a zone, otherwise `far_us`; at least a step per call), the nearest non-SHAPED
   first with what it needs (`WorldGen.needed`) — the rings are counted around a point ahead of the walking
   player (`_update_leads`: half the path in `LOOK_AHEAD` 1.5 s, no further than `LEAD_MOST` 3 chunks, only
-  the chunks within `reach` of its zone), so what is ahead is made earlier than what is behind, — then the
+  the chunks within `reach` of its zone), so what is ahead is made earlier than what is behind (before the
+  rings, the chunks a client in this process waits for on its screen, `wanted`, nearest first; with
+  `wanted_only`, set while that client lags, nothing else), — then the
   terrain and trees at the edge; the job lives between calls (`_gen_job`); when everything is made there is
   nothing to scan (`_all_made`) until a zone moves or a chunk is forgotten; `make_chunk(key)` — whole, after
   the current job (the loading screen, tools); `forget_far(n)` — up to `n` chunks farther than `drop()`

@@ -683,6 +683,8 @@ func _budget_server() -> void:
 	var budgets := chunks.gen_budgets()
 	host.runner.near_us = budgets.x
 	host.runner.far_us = budgets.y
+	host.session.wanted = chunks.wanted()
+	host.session.wanted_only = chunks.lagging
 
 
 ## Microseconds the world's making took this frame, for the streamer's budget: the
