@@ -10,22 +10,29 @@ slice, to free the far meshes.
 - `src/client/world/chunk_streamer.gd` — the queue and the budgets: first those near the spawn (before the
   game), then within `reach()` by the screen (no less than `LOAD_RANGE` = `Session.ZONE`, 5 chunks; a window
   wider than a phone's — farther, `Session.reach_for` from half the screen, up to `Session.ZONE_MOST` 10; the
-  caps above the slice — by as much): first the chunk nearest to the screen, as it is seen from the player
-  and from the point where they will come in `LOOK_AHEAD` (1.5 s) of the path (`lead`, `_track_motion`, no
-  further than `LEAD_MOST`; `_screen_score` — by how many screens the chunk is beyond the screen's edge, the
-  screen's size — the camera, `_screen_half`), so what is seen ahead is built earlier, and what is not seen
-  at the side and behind — last; each — when the session has made it (`WorldGen.needed` is empty; otherwise
+  caps above the slice — by as much) in the order of `_build_score` (user 2026-11-15: from the player outwards,
+  along the way first): the chunks on the screen, as it is seen from the player and from the point where they
+  will come in `LOOK_AHEAD` (1.5 s) of the path (`lead`, `_track_motion`, no further than `LEAD_MOST`;
+  `_on_screen`, `_screen_score`, the screen's size — the camera, `_screen_half`), before the rest; within each,
+  `_way_score`, from the middle of the player's chunk: the row of chunks along the player's way (`way`, the direction of `lead` once it is longer
+  than `WAY_FROM`, taken again after a turn of about 20°, `WAY_TURN`) from the player's onwards, ahead before
+  behind, then the rows beside it, one row further each time (before the player has moved — ring by ring
+  round it); walking fast builds a narrow strip ahead, stopping fills in the sides nearest first. The score is
+  worked out afresh for each pick (`next_chunk`, `wanted`), as the screen moves; each — when the session has made it (`WorldGen.needed` is empty; otherwise
   the chunk goes back into the queue, falls into `waiting`, and `next_chunk` takes another in the same frame
   until the generator has made something (`made`): over the network the ring at `LOAD_RANGE` never comes, and
   waiting for it held the near chunks at the sides of a narrow screen); **ground first**: a new chunk on
   screen (`job_ground`) shows the ground and water as soon as their mesh is built (`_apply_ground`), and
   builds the grass, shrubs and crowns after (`job_part` −2) and shows them at the end (`_apply_plants`); such
-  a chunk lies in `bare` to the end (if its building was interrupted — in the queue again); **lag**: while
+  a chunk lies in `bare` to the end (if its building was interrupted — in the queue again); while the
+  screen lags (below) its plants wait (`plants_wait`, with the mesh job kept for patching), the next hole gets
+  its ground sooner, and they are built once the screen has its ground; **lag**: while
   there is a chunk without ground on screen (`lagging`, `_check_lag`), the building of such a chunk and the
   generation near the player take up to `LAG_BUDGET_US` (16 ms) of the frame instead of 9 ms — the FPS on a
   run sags, there are fewer voids; and the frame goes to the screen alone: a chunk off the screen is not
   started (`_ready_on_screen`), a chunk on it already started gets the lag budget at once, and the session
-  makes only the chunks the screen waits for (`wanted()` → `Session.wanted`, `wanted_only`); walking into new
+  makes only the first `WANTED_MOST` (4) pending chunks of the order it has not made (`wanted()` →
+  `Session.wanted`, `wanted_only`; at other times they go first); walking into new
   land a phone (4–5× slower than a PC here) needs about a second of building a second for the whole zone and
   has a third of it (2026-11-15), so the sides of the zone wait until the player stops; **the haze at the edge** (the setting «Haze at the edge», key `edge_mist`,
   on by default, `set_haze`): `edge_haze.gd` covers the chunks on screen without ground with a haze of the
