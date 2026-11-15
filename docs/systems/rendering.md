@@ -73,6 +73,14 @@ voxel models of things.
   `ChunkStreamer` hands them over per chunk, and every `PICK_EVERY` s the `LIGHTS` (4) groups nearest the
   view get a short light (`REACH` 1.6 units, one per group `APART`; each group its own pale brightness within `ENERGY`, 2–4 times dimmer than at first); the others glow only on their own
   (`grass.gdshader`). Off by day and under snow, like the caps.
+- `src/client/view/window_glow.gd` (held by `Effects.windows`) — windows lit from inside: `Props` hands over each
+  window placed (an item with `window`) with its voxel model; every `PICK_EVERY` s the lit fires and lights set
+  down under a roof (`Effects.roofed`) within their reach of a window (and `HEIGHT` up or down) give it a target
+  glow, more the darker the sky (`DUSK`..`NIGHT` of `Sky.sky_light`), and the glow eases to it. A glowing window
+  gets a child mesh of its glass alone (voxels bluer than the frame, `GLASS_BLUE`) with its own copy of the
+  material (`window_glow.gdshader`, warm colour mixed over the glass, flickering with fires): only the faces
+  looking away from the lights glow, so it shows from outside. A window that does not glow draws nothing; the
+  base material is drawn ahead in `ShaderWarmup`.
 - `src/client/view/fire_shadows.gd` — the shadows from fire drawn on the ground; `sun_rays.gd` — rays among
   trees, glints, dust. A shaft starts on the tree's middle plane (upright, through the trunk, across the sun's
   way) inside the crown's outline on it (a spruce's triangle), runs along the sun's light down to the ground
