@@ -6,12 +6,15 @@ extends Control
 ## character's Vitals each frame, so it shows whatever changed them (hunger, water,
 ## animals, fire, food, bandages). A slow loss (hunger, drowning) is gathered and shown
 ## once it adds up to a whole point; the slow healing of a fed body shows nothing.
+## The edges also frost over blue while the body is cold, more the colder, and beat red
+## like a heart while health is low.
 ## Drawn under the rest of the interface, over the whole screen. `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
 const Body := preload("res://src/shared/game/body.gd")
+const Vitals := preload("res://src/shared/game/vitals.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
 ## What a change of each kind looks like: frame and number colour, and icon.
@@ -34,6 +37,19 @@ const FLOAT_TIME := 1.1
 const BANDS := [0.9, 0.65, 0.45, 0.28, 0.14]
 const BAND := 5.0
 const WASH := 0.12
+## The cold: an icy frame along the edges, growing from Vitals.COLD down to CHILL_FULL
+## degrees of warmth below Vitals.FREEZING, eased by CHILL_EASE a second; it breathes
+## while the body freezes.
+const CHILL_COLOR := Color(0.55, 0.82, 1.0)
+const CHILL_FULL := 6.0
+const CHILL_EASE := 0.5
+## Low health: below LOW_HEALTH the screen reddens and a dark crimson vignette, heavy in
+## the corners and soft inwards (unlike the hurt's even bands), beats like a heart,
+## lub-dub, faster and stronger the lower health is (HEART_BPM from LOW_HEALTH to 0).
+const LOW_HEALTH := 30.0
+const HEART_COLOR := Color(0.62, 0.0, 0.06)
+const HEART_BPM := Vector2(60.0, 120.0)
+const HEART_RINGS := 8
 ## The camera shakes by a low-res pixel for each this many points of a hurt, up to
 ## SHAKE_MOST pixels.
 const SHAKE_PER := 4.0
@@ -50,6 +66,12 @@ var _since := {"hurt": EVERY, "heal": EVERY, "food": EVERY}
 var _frame := 0.0
 var _frame_color := UiStyle.DANGER
 var _fade := FADE
+## How weak the body is (0 at LOW_HEALTH and over, 1 at none) and the heart's beat clock.
+var _weak := 0.0
+var _beat := 0.0
+## How strong the icy frame of the cold is now, 0..1, and whether the body freezes.
+var _chill := 0.0
+var _freezing := false
 ## The numbers rising: {"node": HBoxContainer, "age": seconds}.
 var _floats := []
 
@@ -86,6 +108,19 @@ func _process(delta: float) -> void:
 			_since[k] = 0.0
 	if _frame > 0.0:
 		_frame = maxf(0.0, _frame - delta / _fade)
+		queue_redraw()
+	_weak = 0.0 if c.is_dead() else clampf((LOW_HEALTH - v.health) / LOW_HEALTH, 0.0, 1.0)
+	if _weak > 0.0:
+		_beat = fmod(_beat + delta * lerpf(HEART_BPM.x, HEART_BPM.y, _weak) / 60.0, 1.0)
+		queue_redraw()
+	elif _beat != 0.0:
+		_beat = 0.0
+		queue_redraw()
+	var warmth: float = v.warmth if not c.is_dead() else Vitals.COMFORT
+	var want := clampf((Vitals.COLD - warmth) / (Vitals.COLD - Vitals.FREEZING + CHILL_FULL), 0.0, 1.0)
+	_freezing = warmth < Vitals.FREEZING
+	if want != _chill or _chill > 0.0:
+		_chill = move_toward(_chill, want, delta * CHILL_EASE)
 		queue_redraw()
 	_move_floats(delta)
 
@@ -162,15 +197,54 @@ func _move_floats(delta: float) -> void:
 ## The frame: bands along every edge of the whole screen (past the safe rect), the
 ## outer ones stronger.
 func _draw() -> void:
-	if _frame <= 0.0:
-		return
 	var s := get_global_transform().get_scale()
 	var full := Rect2(-get_global_transform().origin / s, get_viewport_rect().size / s).grow(1)
+	if _chill > 0.0:
+		# The cold's frame: wider the colder, breathing while the body freezes.
+		var k := _chill * (0.85 + 0.15 * sin(Time.get_ticks_msec() * 0.003) if _freezing else 1.0)
+		var bands := 2 + int(round(_chill * 4.0))
+		for i in bands:
+			_band(full.grow(-i * BAND), Color(CHILL_COLOR, 0.55 * k * (1.0 - float(i) / bands)))
+	if _weak > 0.0:
+		_heart(full)
+	if _frame <= 0.0:
+		return
 	draw_rect(full, Color(_frame_color, WASH * _frame))
 	for i in BANDS.size():
-		var r := full.grow(-i * BAND)
-		var col := Color(_frame_color, BANDS[i] * _frame)
-		draw_rect(Rect2(r.position, Vector2(r.size.x, BAND)), col)
-		draw_rect(Rect2(r.position.x, r.end.y - BAND, r.size.x, BAND), col)
-		draw_rect(Rect2(r.position.x, r.position.y + BAND, BAND, r.size.y - 2 * BAND), col)
-		draw_rect(Rect2(r.end.x - BAND, r.position.y + BAND, BAND, r.size.y - 2 * BAND), col)
+		_band(full.grow(-i * BAND), Color(_frame_color, BANDS[i] * _frame))
+
+
+## The heart beating at low health over `full`: lub, then a softer dub, then rest; the
+## screen reddens with each beat and a crimson vignette closes in, round in the corners.
+func _heart(full: Rect2) -> void:
+	var lub := exp(-_beat * 9.0)
+	var dub := exp(-maxf(_beat - 0.22, 0.0) * 9.0) * 0.65 if _beat > 0.22 else 0.0
+	var k := clampf(maxf(lub, dub), 0.0, 1.0) * (0.45 + 0.55 * _weak)
+	draw_rect(full, Color(0.7, 0.0, 0.05, (0.05 + 0.1 * k) * (0.4 + 0.6 * _weak)))
+	var depth := minf(full.size.x, full.size.y) * (0.1 + 0.08 * _weak + 0.04 * k)
+	for i in HEART_RINGS:
+		var t := float(i) / HEART_RINGS
+		var a := (1.0 - t) * (1.0 - t) * (0.35 + 0.5 * k) * (0.5 + 0.5 * _weak)
+		var col := Color(HEART_COLOR, a * 0.5)
+		var w := depth / HEART_RINGS
+		_band_w(full.grow(-t * depth), col, w)
+		# The corners heavier: a disc in each, inside the rings.
+		var r := depth * (1.0 - t) * 0.9
+		for corner: Vector2 in [full.position, Vector2(full.end.x, full.position.y), full.end, Vector2(full.position.x, full.end.y)]:
+			draw_circle(corner, r, Color(HEART_COLOR, a * 0.35))
+
+
+## One band of a frame, `w` wide, along the inside of `r`.
+func _band_w(r: Rect2, col: Color, w: float) -> void:
+	draw_rect(Rect2(r.position, Vector2(r.size.x, w)), col)
+	draw_rect(Rect2(r.position.x, r.end.y - w, r.size.x, w), col)
+	draw_rect(Rect2(r.position.x, r.position.y + w, w, r.size.y - 2 * w), col)
+	draw_rect(Rect2(r.end.x - w, r.position.y + w, w, r.size.y - 2 * w), col)
+
+
+## One band of a frame, BAND wide, along the inside of `r`.
+func _band(r: Rect2, col: Color) -> void:
+	draw_rect(Rect2(r.position, Vector2(r.size.x, BAND)), col)
+	draw_rect(Rect2(r.position.x, r.end.y - BAND, r.size.x, BAND), col)
+	draw_rect(Rect2(r.position.x, r.position.y + BAND, BAND, r.size.y - 2 * BAND), col)
+	draw_rect(Rect2(r.end.x - BAND, r.position.y + BAND, BAND, r.size.y - 2 * BAND), col)

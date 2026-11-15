@@ -38,6 +38,19 @@ const DROPS_RATE := 0.5
 const DRY_RUN := 1.6
 const SWIM_LEFT := 0.6
 const WET_TIME := 5.0
+## Snow on the screen (grade.gdshader frost_state): flakes stick to its edges while it
+## snows outside (thicker by SNOW_RATE a second); frost creeps in from the edges in air
+## colder than FROST_FROM degrees, full at FROST_FULL, growing at FROST_GROW a second
+## and thawing at FROST_THAW. Snow settles on the hotbar (hotbar_snow), full after
+## HOTBAR_FILL seconds of a heavy snowfall, melting in HOTBAR_MELT seconds in the warm
+## or under a roof.
+const SNOW_RATE := 0.3
+const FROST_FROM := -2.0
+const FROST_FULL := -15.0
+const FROST_GROW := 0.02
+const FROST_THAW := 0.08
+const HOTBAR_FILL := 120.0
+const HOTBAR_MELT := 45.0
 ## Breath steams at this many degrees and below in full, fading out up to BREATH_MILD;
 ## on a morning (from an hour before sunrise to MORNING_SPAN of a day after it) up to
 ## BREATH_MORNING degrees, fainter.
@@ -66,6 +79,7 @@ const MOON_PATH := 0.6
 ## The parts as «Что рисуется» names them (RenderToggles), and the ones hidden there.
 const HEAT := "effects: heat shimmer"
 const DROPS := "effects: drops on the screen"
+const SNOW := "effects: snow and frost on the screen"
 const BREATH := "effects: breath steam"
 const SUN_PATH := "effects: sun path on water"
 var hidden := {}
@@ -100,6 +114,12 @@ var _wet := 0.0
 var _was_swimming := false
 ## Seconds since the player was last swimming.
 var _out_for := 100.0
+## Snow on the screen: its clock, how thick the flakes come and how far the frost has
+## crept in (0..1), and how deep the snow lies on the hotbar (0..1, the HUD draws it).
+var _snow_clock := 0.0
+var _flakes := 0.0
+var _frost := 0.0
+var hotbar_snow := 0.0
 ## What was last given to the shaders, so they are set only on a change.
 var _set := {}
 
@@ -112,7 +132,7 @@ func _init(g, effects) -> void:
 ## The parts of the picture this draws, for «Что рисуется»: [name, Callable(hide)].
 func parts() -> Array:
 	var out := []
-	for name: String in [HEAT, DROPS, BREATH, SUN_PATH]:
+	for name: String in [HEAT, DROPS, SNOW, BREATH, SUN_PATH]:
 		out.append([name, func(hide: bool) -> void:
 			if hide:
 				hidden[name] = true
@@ -128,6 +148,7 @@ func update(delta: float, sky, clock, indoor: bool) -> void:
 		return
 	_heat(heat_on and not hidden.has(HEAT), sky, clock, indoor)
 	_rain_drops(delta, drops_on and not hidden.has(DROPS), clock, indoor)
+	_screen_snow(delta, drops_on and not hidden.has(SNOW), clock, indoor)
 	_path_in -= delta
 	if _path_in <= 0.0:
 		_path_in = PATH_LOOK
@@ -262,6 +283,31 @@ func _sun_path(on: bool, sky, clock, indoor: bool) -> void:
 	_give(mat, "sun_path", path)
 	if path.z > 0.0:
 		_give(mat, "sun_path_color", Vector3(snappedf(c.r, 0.02), snappedf(c.g, 0.02), snappedf(c.b, 0.02)))
+
+
+## Snowflakes stuck round the screen's edges while it snows outside, frost creeping in
+## from them in a hard frost, snow settling on the hotbar; all thaw slowly in the warm.
+func _screen_snow(delta: float, on: bool, clock, indoor: bool) -> void:
+	var view = game.view
+	if view == null:
+		return
+	var outside: bool = on and not indoor
+	var snowing: float = clock.snowing if outside and clock.snowing > 0.15 else 0.0
+	_flakes = move_toward(_flakes, clampf(snowing, 0.3, 1.0) if snowing > 0.0 else 0.0, delta * SNOW_RATE)
+	var cold := clampf((FROST_FROM - _air) / (FROST_FROM - FROST_FULL), 0.0, 1.0) if on else 0.0
+	if indoor:
+		cold *= 0.4
+	_frost = move_toward(_frost, cold, delta * (FROST_GROW if cold > _frost else FROST_THAW))
+	if not on:
+		hotbar_snow = 0.0
+	elif snowing > 0.0:
+		hotbar_snow = minf(1.0, hotbar_snow + delta * snowing / HOTBAR_FILL)
+	elif indoor or _air > 0.0:
+		hotbar_snow = maxf(0.0, hotbar_snow - delta / HOTBAR_MELT)
+	var active := _flakes > 0.0 or _frost > 0.0
+	_snow_clock = _snow_clock + delta if active else 0.0
+	_give(view.grade_mat, "frost_state", Vector4(_snow_clock, snappedf(_flakes, 0.02), snappedf(_frost, 0.01), 0.0)
+		if active else Vector4.ZERO)
 
 
 ## How much breath steams now, 0..1: by the air where the player is, more on a morning.
