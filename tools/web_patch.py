@@ -193,6 +193,59 @@ FS_SYNC = FS + (
     'if(GodotFS._syncing){setTimeout(window.survivium_fs_sync,100);return}GodotFS.sync()};')
 
 
+
+# The browser's store (Emscripten's IDBFS) is written by comparing every file with every
+# entry: a pass stats each file of the persistent folder and reads every key of the store,
+# one callback a key, whatever was written. A player's folder holds every world's chunks
+# and maps and the mods taken from servers, thousands of files, so each save's pass (every
+# 30 s, and after any setting) was hundreds of small tasks before the frames and a heap of
+# Dates and paths for the garbage collector: "browser before" 20-100 ms and a full
+# collection a minute in a phone's log (2026-11-15). The patch notes the paths the game
+# opens for writing, makes, moves or removes in the folder, and a pass writes only those
+# (a folder moved, a failed pass or the first pass after loading compare everything).
+IDB_MOUNT = "mount:mount=>{var mnt=MEMFS.mount(mount);"
+IDB_MOUNT_TRACKED = IDB_MOUNT + "IDBFS.survivium_track(mount);"
+IDB_SYNC = ("syncfs:(mount,populate,callback)=>{IDBFS.getLocalSet(mount,(err,local)=>{if(err)return callback(err);"
+    "IDBFS.getRemoteSet(mount,(err,remote)=>{if(err)return callback(err);var src=populate?remote:local;"
+    "var dst=populate?local:remote;IDBFS.reconcile(src,dst,callback)})})},")
+IDB_SYNC_DIRTY = (
+    # The mounts whose changed paths are noted; FS's calls that change a file wrapped once.
+    "survivium_mounts:[],"
+    "survivium_track:mount=>{\"use strict\";mount.survivium_dirty=new Set();mount.survivium_full=true;"
+    "IDBFS.survivium_mounts.push(mount);if(FS.survivium_wrapped){return}FS.survivium_wrapped=true;"
+    "function note(path,full){if(typeof path!==\"string\"){return}var ms=IDBFS.survivium_mounts;"
+    "for(var i=0;i<ms.length;i++){var at=ms[i].mountpoint;if(path.startsWith(at+\"/\")){"
+    "if(full){ms[i].survivium_full=true}ms[i].survivium_dirty.add(path)}}}"
+    "var open=FS.open;FS.open=function(path,flags,mode){var stream=open.call(FS,path,flags,mode);"
+    "if(typeof flags===\"string\"?flags!==\"r\":(flags&3)!==0){note(stream.path)}return stream};"
+    "var write=FS.write;FS.write=function(stream,buffer,offset,length,position,canOwn){"
+    "note(stream.path);return write.call(FS,stream,buffer,offset,length,position,canOwn)};"
+    "var rename=FS.rename;FS.rename=function(from,to){var dir=false;"
+    "try{dir=FS.isDir(FS.stat(from).mode)}catch(e){}note(from,dir);note(to,dir);return rename.call(FS,from,to)};"
+    "[\"unlink\",\"rmdir\",\"mkdir\"].forEach(function(name){var f=FS[name];"
+    "FS[name]=function(path,mode){note(path);return f.call(FS,path,mode)}});"
+    "var symlink=FS.symlink;FS.symlink=function(from,to){note(to);return symlink.call(FS,from,to)}},"
+    # Writes the noted paths: what is there is put, what is gone is deleted.
+    "survivium_push:(mount,paths,callback)=>{\"use strict\";if(!paths.size){return callback(null)}"
+    "IDBFS.getDB(mount.mountpoint,(err,db)=>{if(err)return callback(err);var errored=false,tr;"
+    "try{tr=db.transaction([IDBFS.DB_STORE_NAME],\"readwrite\")}catch(e){return callback(e)}"
+    "var store=tr.objectStore(IDBFS.DB_STORE_NAME);function done(err){if(err&&!errored){errored=true;callback(err)}}"
+    "tr.onerror=tr.onabort=e=>{done(e.target.error);e.preventDefault()};tr.oncomplete=()=>{if(!errored)callback(null)};"
+    "Array.from(paths).sort().forEach(path=>{var there=true;try{FS.stat(path)}catch(e){there=false}"
+    "if(there){IDBFS.loadLocalEntry(path,(err,entry)=>{if(err)return done(err);IDBFS.storeRemoteEntry(store,path,entry,done)})}"
+    "else{IDBFS.removeRemoteEntry(store,path,done)}})})},"
+    "syncfs:(mount,populate,callback)=>{var dirty=mount.survivium_dirty;"
+    "if(dirty&&!populate&&!mount.survivium_full){mount.survivium_dirty=new Set();"
+    "return IDBFS.survivium_push(mount,dirty,err=>{if(err){mount.survivium_full=true}callback(err)})}"
+    "if(dirty){mount.survivium_dirty=new Set();mount.survivium_full=false}"
+    "IDBFS.getLocalSet(mount,(err,local)=>{if(err){mount.survivium_full=true;return callback(err)}"
+    "IDBFS.getRemoteSet(mount,(err,remote)=>{if(err){mount.survivium_full=true;return callback(err)}"
+    "var src=populate?remote:local;var dst=populate?local:remote;"
+    "IDBFS.reconcile(src,dst,err=>{if(err){mount.survivium_full=true}"
+    # What loading the store wrote into the folder is in the store already.
+    "else if(populate&&dirty){mount.survivium_dirty=new Set()}callback(err)})})})},")
+
+
 def patch(path: Path, old: str, new: str, what: str, count: int = 1) -> None:
     text = path.read_text()
     if new in text:
@@ -218,6 +271,8 @@ def main() -> None:
     patch(out / "index.js", TOUCH_END, TOUCH_END_KEPT, "an iPhone's keyboard opens as the finger lifts off a field")
     patch(out / "index.js", VK_ENTER, VK_ENTER_KEPT, "the phone keyboard's Enter reaches the field")
     patch(out / "index.js", FS, FS_SYNC, "the page can write the files to the browser's store at once")
+    patch(out / "index.js", IDB_MOUNT, IDB_MOUNT_TRACKED, "the paths the game changes in the persistent folder noted")
+    patch(out / "index.js", IDB_SYNC, IDB_SYNC_DIRTY, "a pass to the browser's store writes only the paths changed")
     patch(out / "index.js", SYNC, SYNC_LATER, "the files go to the browser's store %d ms after the first written" % SYNC_WAIT)
 
 

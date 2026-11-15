@@ -19,7 +19,10 @@ convert the saves of old versions.
   on the menu, loss of focus, exit, and in a browser when the page is hidden or left (the page calls the game:
   a hidden page draws no frame, and the engine writes the files to IndexedDB only in the next one, so
   `tools/web_patch.py` gives the page `survivium_fs_sync`, called after that save; the engine's own pass to the
-  browser's store waits `SYNC_WAIT` 2 s, so a save's files go in one or two passes, not one a frame); `world.json` is written
+  browser's store waits `SYNC_WAIT` 2 s, so a save's files go in one or two passes, not one a frame; a pass writes only the paths the game opened for
+  writing, made, moved or removed in the persistent folder, not a comparison of every file of every world and
+  mod with every entry of the store, which with thousands of files took hundreds of small tasks and fed the
+  garbage collector; a folder moved, a failed pass and the first after loading still compare everything); `world.json` is written
   over the one read, so what a server keeps there (`teams`, `fights`, `next_player`) stays; what to write is given by the shared systems (`to_dict` / `to_list`: the
   clock, things, the character, the bag, skills, plots, blueprints); the modules register the player's parts
   by `save.track(name, object)`. Choosing a world (`choose_world`, `switch_world`; `replace_world` — «New world»
