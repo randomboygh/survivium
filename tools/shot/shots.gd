@@ -32,6 +32,8 @@ const SHOTS := {
 	# hotbar, and the blue frame of a freezing body.
 	"fx-winter-screen": {"time": 0.45, "season": 3, "snow": 1.0, "weather": "blizzard", "place": "meadow",
 		"screen_snow": [1.0, 0.8, 0.8], "chill": [8.0, 0.2]},
+	# Low health: the heart beating red round the screen.
+	"fx-low-health": {"time": 0.45, "season": 1, "weather": "clear", "place": "meadow", "health": 10.0},
 	"fx-snow-sun": {"time": 0.4, "season": 3, "snow": 1.0, "weather": "clear", "place": "meadow"},
 	"fx-snow-moon": {"time": 0.97, "season": 3, "snow": 1.0, "moon": 1.0, "weather": "clear", "place": "meadow"},
 	"fx-steam": {"time": 0.27, "season": 3, "snow": 0.0, "weather": "clear", "place": "lake"},
