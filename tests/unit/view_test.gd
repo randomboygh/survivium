@@ -889,7 +889,7 @@ func _test_small_effects() -> void:
 		_check(part.hidden.is_empty(), "%s: and shows again" % script.resource_path.get_file())
 		if part is Node:
 			part.free()
-	_check(names.size() == all.size() and all.size() == 12, "twelve parts, each named once: %s" % [all])
+	_check(names.size() == all.size() and all.size() == 13, "thirteen parts, each named once: %s" % [all])
 	var low: Dictionary = SettingsScript.QUALITIES[0]
 	var medium: Dictionary = SettingsScript.QUALITIES[1]
 	_check(low.water_fx == 0 and not low.nature_fx and not low.body_fx and not low.heat_fx and not low.drops_fx,

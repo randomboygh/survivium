@@ -64,7 +64,9 @@ voxel models of things.
   and heat off on «среднее», `Settings.QUALITIES`, `AutoQuality.STEPS`) and hidden one by one in «Что рисуется»
   (their `parts()`). AirEffects: the air trembling over the nearest fires (stronger, higher and wider the more wood is left, `fire.fuel` from `Effects.fire_strength`) and over hot ground at noon and drops of
   rain running down the screen's edges (`grade.gdshader` `heat_spots`, `heat_haze`, `drop_state`: when they stop the drops there run off within
-  `DRY_RUN` even if new ones start; a jump in the water, under `SWIM_LEFT` s out of it, still counts as a swim), breath steaming in
+  `DRY_RUN` even if new ones start; a jump in the water, under `SWIM_LEFT` s out of it, still counts as a swim), snow on the screen (`frost_state`, `screen_snow`: flakes stick to the edges and melt while it snows
+  outside, frost creeps in from the edges, deepest in the corners, below `FROST_FROM` degrees; the hotbar gathers snow, `hotbar_snow`;
+  by the same setting as the drops), breath steaming in
   a frost (puffs from a pool, `Creatures.muzzle`), the sun's path on the water at sunrise and sunset and the
   moon's at night (`water.gdshader` `sun_path`, `Sky.sun_height`; only where the light reaches the water:
   `sun_reaches` looks along it for cloud shadow, ground and tree crowns in the roof map; glints fade in and out

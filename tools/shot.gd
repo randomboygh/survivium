@@ -636,6 +636,24 @@ func _run() -> void:
 			main.hud.vitals.pinned = true
 			for i in 4:
 				await process_frame
+		if shot.has("health"):
+			# A weak body: the heart beats red round the screen, caught on a beat.
+			main.host.player.vitals.health = shot.health
+			for i in 4:
+				await process_frame
+			main.hud.feedback._beat = 0.03
+			main.hud.feedback.queue_redraw()
+			await process_frame
+		if shot.has("screen_snow"):
+			# Snow on the screen as after a while of it: flakes, frost, snow on the hotbar.
+			var air = main.effects.air
+			air._flakes = shot.screen_snow[0]
+			air._frost = shot.screen_snow[1]
+			air.hotbar_snow = shot.screen_snow[2]
+			# The cold's frame at once, not eased in.
+			main.hud.feedback._chill = 1.0
+			for i in 4:
+				await process_frame
 		if shot.has("tired"):
 			# Out of breath: the stamina bar red, the bolt in the last column.
 			main.host.player.vitals.stamina = 3.0
