@@ -363,6 +363,48 @@ func _list_pending() -> void:
 		map_done = false
 
 
+## The chunks on the screen (seen from the player or from where it is going, see
+## next_chunk) the session has not made yet, the one being built first, then the
+## nearest to the screen: the session makes them first (Session.wanted). Walking into
+## new land a phone needs about a second of building a second for the whole zone round
+## the player and has a third of it (2026-11-15): the screen comes first, the sides of
+## the zone when the player stops.
+func wanted() -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	if not game.ready_to_play or paused or focus.is_finite() or game.player == null:
+		return out
+	var half := _screen_half()
+	var here := _at()
+	var scored := []
+	if has_target and not job_edit:
+		scored.append([-INF, job_key])
+	for k in pending_chunks:
+		var a := _screen_score(k, here, half)
+		var b := _screen_score(k, here + lead, half)
+		if minf(a, b) <= 0.0:
+			scored.append([a + b, k])
+	scored.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+	for e: Array in scored:
+		if not gen.needed(e[1]).is_empty():
+			out.append(e[1])
+	return out
+
+
+## Whether chunk `k` is on the screen, seen from the player or from where it is going.
+func _on_screen(k: Vector2i) -> bool:
+	var half := _screen_half()
+	var here := _at()
+	return minf(_screen_score(k, here, half), _screen_score(k, here + lead, half)) <= 0.0
+
+
+## Whether a pending chunk on the screen can be built now (the session has made it).
+func _ready_on_screen() -> bool:
+	for k in pending_chunks:
+		if not waiting.has(k) and _on_screen(k):
+			return true
+	return false
+
+
 ## The pending chunk to build next: the one nearest to the screen seen from the player
 ## and from where it is going (lead), so what is on the screen ahead comes first and
 ## what is behind and to the sides off the screen last; around the focus, the nearest.
@@ -707,6 +749,10 @@ func run_jobs(spent := 0) -> void:
 	_keep_around()
 	_track_motion()
 	_check_lag()
+	if lagging and not job_edit and job_mesh != null and _on_screen(job_key):
+		# A chunk started before the screen reached it (at the stream budget) gets the lag
+		# budget from the frame the lag starts, not a step a frame.
+		job_budget = LAG_BUDGET_US
 	if not dirty_chunks.is_empty() and game.ready_to_play and not paused:
 		# Edits wait: the frame has their budget, whatever was built before (a far chunk
 		# at the stream budget, which the making of the world could use up before a
@@ -746,6 +792,10 @@ func run_jobs(spent := 0) -> void:
 				continue
 			elif (game.ready_to_play or load_steps) and (has_target or not pending_chunks.is_empty()):
 				if not has_target:
+					# Behind the player's walk the frame goes to the screen alone: a chunk
+					# off it waits until the screen has its ground.
+					if lagging and not _ready_on_screen():
+						break
 					job_key = next_chunk()
 					has_target = true
 				job_edit = false
