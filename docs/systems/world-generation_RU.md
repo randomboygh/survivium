@@ -62,7 +62,7 @@
   `Biomes.NONE` — голая трава.
 - `src/shared/content/trees.gd`, `bushes.gd` — реестры пород деревьев и видов кустов (данные модов).
 - `src/shared/world/growth.gd` — как дерево и куст растут в ячейки мира: форма ствола и кроны
-  (`trunk_box`, `height`, `fit`), `place` / `grow` / `fill`, `bush_fits` / `place_bush`; генератор сажает куст только там, где вокруг нет перепада вниз
+  (`trunk_box`, `height`, `fit`; ствол всегда доходит до кроны, `LOWEST_POINT`), `place` / `grow` / `fill`, `bush_fits` / `place_bush`; генератор сажает куст только там, где вокруг нет перепада вниз
   (`bush_level`), иначе на одиночном бугре или у края обрыва он висит над воздухом. Клиент ставит куст на землю
   под его серединой (`Foliage.bush_foot`): если рядом выкопали и под ним стал склон, куст опускается на склон. Рубка — правило
   игры: `src/shared/game/felling.gd` (`fell`), см. [interaction.md](interaction_RU.md).

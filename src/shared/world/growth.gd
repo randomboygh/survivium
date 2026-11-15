@@ -127,6 +127,10 @@ static func _broadleaf(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumb
 	var rz: float = (s.crown[2] + rng.randf_range(-0.2, 0.2)) * scale
 	# Points sit on even levels, the middle one just above the trunk.
 	var middle := ((y + trunk - 1) & ~1) + 2
+	# A short trunk on an even foot would put the middle under LOWEST_POINT, and a small
+	# crown then loses all its points: the middle goes a level up (the trunk follows it).
+	if middle < y + LOWEST_POINT:
+		middle += 2
 	var points: Array[Vector3i] = []
 	var reach := ceili(maxf(rx, maxf(ry, rz)))
 	var column: bool = s.shape == "column"
@@ -150,6 +154,16 @@ static func _broadleaf(w, x: int, y: int, z: int, s: Dictionary, rng: RandomNumb
 					points.append(Vector3i(x + 2 * dx, middle + 2 * dy, z + 2 * dz))
 	if s.shape == "weeping":
 		_curtain(points, x, z, y + 1, rng)
+	# A short trunk whose crown's lowest points were held up by LOWEST_POINT goes on up
+	# to the crown (whose leaves reach a cell below its lowest point): else the crown
+	# hangs over an empty cell and the trunk's top log shows as a stump under it.
+	var low := y + trunk + 1
+	if not points.is_empty():
+		low = points[0].y
+	for p in points:
+		low = mini(low, p.y)
+	for i in range(y + trunk, low - 1):
+		w.set_cell(x, i, z, Mat.LOG)
 	return points
 
 

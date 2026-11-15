@@ -64,7 +64,7 @@ mountain's side goes on down the same way); with the
 - `src/shared/content/trees.gd`, `bushes.gd` — the registries of species of trees and kinds of shrubs (the
   mods' data).
 - `src/shared/world/growth.gd` — how a tree and a shrub grow into the world's cells: the shape of the trunk
-  and crown (`trunk_box`, `height`, `fit`), `place` / `grow` / `fill`, `bush_fits` / `place_bush`; the
+  and crown (`trunk_box`, `height`, `fit`; a trunk always goes up into its crown, `LOWEST_POINT`), `place` / `grow` / `fill`, `bush_fits` / `place_bush`; the
   generator plants a shrub only where there is no drop down around (`bush_level`), otherwise on a lone mound
   or at the edge of a cliff it hangs over air. The client puts a shrub on the ground under its middle
   (`Foliage.bush_foot`): if beside it was dug and under it became a slope, the shrub goes down onto the slope.

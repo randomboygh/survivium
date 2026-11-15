@@ -2,6 +2,7 @@ extends "res://tests/unit/test_case.gd"
 ## What the hands do to the world: felling, digging and building, the action in front, placed things.
 
 const Warmth := preload("res://src/shared/game/warmth.gd")
+const Trunks := preload("res://src/client/world/trunk_mesher.gd")
 
 
 func run() -> void:
@@ -57,6 +58,7 @@ func _test_felling() -> void:
 	_check(not gone.is_empty() and gone[0] == Vector3i(15, 2, 23), "a cut trunk is felled from the cut")
 	_check(not w.blocks_part(16, 2, 23, 0.0, 0.1, 0.4, 0.6), "bark of a felled trunk stops nothing")
 	_check(w.log_col(15, 23) == 0b10, "the stump stays below the cut")
+	_check(Trunks.trunk_at(w, 15, 1, 23), "and is drawn as a stump with a cut top, not a block of wood")
 	var left := 0
 	for z in range(10, 37):
 		for x in range(6, 24):

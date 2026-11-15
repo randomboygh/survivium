@@ -381,18 +381,27 @@ func _test_trees() -> void:
 	# generator can tell whether a tree fits under the top of the world.
 	var rng := RandomNumberGenerator.new()
 	var fits := true
+	var reached := []
 	for species in Trees.SPECIES.size():
 		for scale in [0.6, 0.8, 1.0, 1.3]:
-			for k in 6:
+			for k in 12:
 				rng.seed = k
 				var w := WorldData.new(40, Vector2i(32, 32))
-				Growth.place(w, 15, 1, 15, species, rng, scale)
+				# On odd and even feet: the crown's points stand on even levels.
+				var foot := 1 + k % 2
+				Growth.place(w, 15, foot, 15, species, rng, scale)
 				var top := 0
 				for c: WorldData.Chunk in w.chunks.values():
 					for col in WorldData.LAYER:
 						top = maxi(top, WorldData.top_level(c.leaf[col] | c.logs[col]))
-				fits = fits and top <= Growth.height(species, scale)
+				fits = fits and top + 1 - foot <= Growth.height(species, scale)
+				# The trunk goes up into its crown, with no air over its top log (seen as a
+				# stump under a hanging crown, 2026-11-15).
+				var trunk_top := WorldData.top_level(w.log_col(15, 15))
+				if w.get_cell(15, trunk_top + 1, 15) == Mat.AIR:
+					reached.append([Trees.SPECIES[species].id, scale, k])
 	_check(fits, "trees stay within Growth.height")
+	_check(reached.is_empty(), "every trunk reaches up into its crown: %s" % [reached])
 	var strips := _woods()
 	var w: WorldData = strips.world
 	var kinds := {}
