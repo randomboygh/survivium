@@ -23,7 +23,12 @@ const CELL := WorldData.CELL
 const MIDGE_WARM := 12.0
 const MIDGE_IDLE := 4.0
 ## How wide a cloud of midges is round its middle (units).
-const MIDGE_RADIUS := 1.2
+const MIDGE_RADIUS := 0.9
+## How many midges a cloud holds, and how much of the picture behind shows through one.
+const MIDGE_COUNT := 24
+const MIDGE_ALPHA := 0.55
+## How far the middle of a cloud wanders from where it hangs (units).
+const MIDGE_WANDER := 0.5
 ## Dragonflies at once; how far from their spot over the water they go (world units),
 ## how long they hover between two darts (seconds) and how fast a dart is.
 const DRAGONFLIES := 3
@@ -61,6 +66,8 @@ var fluff: CPUParticles3D
 ## The midges by the water, and over the head of one standing still.
 var midges: CPUParticles3D
 var head_midges: CPUParticles3D
+## Where the cloud by the water hangs; its middle wanders round it.
+var _midge_home := Vector3.ZERO
 var flies: Array[MeshInstance3D] = []
 ## Each dragonfly: {"home": its spot, "to": where it darts, "wait": seconds left to
 ## hover, "flap": seconds to the next wing beat}.
@@ -100,6 +107,10 @@ func _ready() -> void:
 
 	midges = _midge_cloud()
 	head_midges = _midge_cloud()
+	# A smaller, thinner cloud round one's head.
+	head_midges.amount = MIDGE_COUNT / 2
+	head_midges.emission_sphere_radius = MIDGE_RADIUS * 0.6
+	PixelView.blank_particles(head_midges)
 
 	_fly_shapes = [_shape(FLY_UP), _shape(FLY_DOWN)]
 	for i in DRAGONFLIES:
@@ -128,24 +139,31 @@ func _own(e: CPUParticles3D) -> CPUParticles3D:
 	return e
 
 
-## A cloud of midges dancing round its node: specks darting every way, loose and wide.
+## A cloud of midges dancing round its node: single faint specks, each pulled back to
+## the middle as it darts out, so they zip to and fro across it on curving paths, the
+## way a swarm hangs over one spot; the middle itself wanders slowly (_midge_drift).
 func _midge_cloud() -> CPUParticles3D:
-	# A wide thin cloud of specks dancing in place, some caught softly by the low sun.
-	var e := _own(fx._emitter(60, 1.4, Vector2(PX, PX), 1.0))
+	var e := _own(fx._emitter(MIDGE_COUNT, 3.0, Vector2(PX, PX), 1.0))
 	e.local_coords = true
 	e.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 	e.emission_sphere_radius = MIDGE_RADIUS
 	e.direction = Vector3.UP
 	e.spread = 180.0
-	e.initial_velocity_min = 0.2
-	e.initial_velocity_max = 0.5
+	e.initial_velocity_min = 0.5
+	e.initial_velocity_max = 1.1
 	e.gravity = Vector3.ZERO
+	# Drawn back to the middle: past it they turn and dart back, on bent paths.
+	e.radial_accel_min = -2.6
+	e.radial_accel_max = -1.4
+	e.tangential_accel_min = -1.6
+	e.tangential_accel_max = 1.6
 	var specks := Gradient.new()
-	specks.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
-	specks.colors = PackedColorArray([Color(0.3, 0.29, 0.24), Color(0.72, 0.66, 0.5), Color(0.3, 0.29, 0.24)])
-	e.color_initial_ramp = specks
+	specks.offsets = PackedFloat32Array([0.0, 0.15, 0.5, 0.85, 1.0])
+	specks.colors = PackedColorArray([Color(0.3, 0.29, 0.24, 0.0), Color(0.3, 0.29, 0.24, MIDGE_ALPHA),
+		Color(0.62, 0.58, 0.46, MIDGE_ALPHA), Color(0.3, 0.29, 0.24, MIDGE_ALPHA), Color(0.3, 0.29, 0.24, 0.0)])
+	e.color_ramp = specks
 	e.scale_amount_min = 1.0
-	e.scale_amount_max = 1.5
+	e.scale_amount_max = 1.0
 	(e.mesh as QuadMesh).material.set_shader_parameter("sky_only", 0.0)
 	return e
 
@@ -212,16 +230,24 @@ func update(delta: float, sky, clock, indoor: bool) -> void:
 		for p: Vector3 in _spots:
 			if PixelView.screen_plane(p).distance_to(view) < PixelView.screen_plane(best).distance_to(view):
 				best = p
-		midges.position = best + Vector3(0.0, 1.2, 0.0)
+		_midge_home = best + Vector3(0.0, 1.2, 0.0)
 	_emit(midges, by_water)
 	var idle: bool = evening and not hidden.has(MIDGES_PART) and game.view.idle > MIDGE_IDLE
-	head_midges.position = player.position + Vector3(0.0, 1.7, 0.0)
+	var wander := _midge_drift()
+	midges.position = _midge_home + wander
+	head_midges.position = player.position + Vector3(0.0, 1.7, 0.0) + wander * 0.5
 	_emit(head_midges, idle)
 	for e: CPUParticles3D in [midges, head_midges]:
 		if e.emitting:
 			(e.mesh as QuadMesh).material.set_shader_parameter("light", light)
 	_dragonflies(delta, outside and summer and calm and sky.daylight > 0.6 and not hidden.has(FLIES_PART), light)
 	_dust(clock, dust_on and not hidden.has(DUST_PART), indoor)
+
+
+## How far the middle of a midge cloud has wandered now: slow loops of MIDGE_WANDER.
+static func _midge_drift() -> Vector3:
+	var t := Time.get_ticks_msec() * 0.001
+	return Vector3(sin(t * 0.31) + 0.4 * sin(t * 0.83), 0.3 * sin(t * 0.47), cos(t * 0.23) + 0.4 * cos(t * 0.71)) * MIDGE_WANDER / 1.4
 
 
 ## Switches emitter `e` only when it changes (each switch restarts its emission).
