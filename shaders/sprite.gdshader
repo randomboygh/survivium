@@ -32,6 +32,10 @@ uniform vec4 shadow_uv = vec4(0.0, 0.0, 1.0, 1.0);
 // A colour the picture is multiplied by: one of a species' tints (butterflies of many
 // colours), white for none.
 uniform vec3 tint = vec3(1.0);
+// 1 for a fish: this picture only casts the shadow, the fish is drawn over it after
+// the water (sprite_water.gdshader `whole`, its material_overlay), and the sprite's
+// scale along y past 1 is how deep it swims, undone here.
+uniform float shadow_only = 0.0;
 // What a drawn shadow of a fire or the torch leaves of the light where the sprite
 // stands (FireShadows): 1 out of them. It comes as the sprite's scale along z, which
 // the flat quad does not use: an instance uniform read as 0 in the web build, and the
@@ -49,6 +53,9 @@ varying vec2 light_xz;
 varying vec3 drawn;
 
 void vertex() {
+	if (shadow_only > 0.5) {
+		VERTEX.y = MODEL_MATRIX[3].y + (VERTEX.y - MODEL_MATRIX[3].y) / length(MODEL_MATRIX[1].xyz);
+	}
 	if (IN_SHADOW_PASS) {
 		vec3 foot = MODEL_MATRIX[3].xyz;
 		if (flat_shadow > 0.5) {
@@ -93,7 +100,7 @@ void fragment() {
 	bool me = length(world_pos.xz - player_pos.xz) < 0.7 && abs(world_pos.y - player_pos.y) < 1.5;
 	// The whole body casts its shadow, under the water too, so the shadow on the bed
 	// has the body's full shape; only the drawn sprite stops at the surface.
-	if ((world_pos.y < water_line && !IN_SHADOW_PASS) || (!me && above_cut(world_pos))) {
+	if (((world_pos.y < water_line || shadow_only > 0.5) && !IN_SHADOW_PASS) || (!me && above_cut(world_pos))) {
 		discard;
 	}
 	if (world_pos.y < water_line + 1.0 / TEXELS && !IN_SHADOW_PASS) {

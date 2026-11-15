@@ -377,6 +377,11 @@ const SHOTS := {
 	"trap": {"time": 0.42, "season": 1, "find": "meadow", "trap": true,
 		"hands": {"tool": "tools:live_rabbit", "facing": "n", "stay": true}},
 	"animals-water": {"time": 0.42, "season": 1, "place": "lake", "zoo": "water"},
+	# Fish at four depths each in a lake, from just under the surface to the deepest.
+	"fish-depths": {"time": 0.42, "season": 1, "place": "lake", "depths": ["animals:roach", "animals:pike", "animals:salmon",
+		"animals:catfish"]},
+	# The same in winter: the lake frozen, the fish under its ice not shown.
+	"fish-ice": {"time": 0.45, "season": 3, "place": "lake", "depths": ["animals:roach", "animals:pike"]},
 	# Moss and mushrooms in the shade of a forest, and glowing mushrooms by night.
 	"mushrooms": {"time": 0.42, "season": 1, "find": "plants:mushrooms"},
 	"glow-day": {"time": 0.42, "season": 1, "find": "plants:glow_mushrooms"},

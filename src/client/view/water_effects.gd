@@ -26,6 +26,8 @@ const RINGS := 6
 ## seconds between two jumps.
 const FISH_REACH := 12.0
 const FISH_GAP := Vector2(3.0, 10.0)
+## Only a fish no deeper than this under the surface (world units) jumps.
+const FISH_JUMP_DEPTH := 0.4
 ## World units walked in shallow water from one ring to the next, seconds between two
 ## rings of one swimming.
 const WADE_STEP := 0.9
@@ -305,10 +307,16 @@ func _fish(delta: float) -> void:
 	for a in creatures.wildlife.animals:
 		if not AiRules.SPECIES.get(a.kind, {}).get("swims", false):
 			continue
+		# Only one swimming near the surface jumps out (Creatures.depth_of; a duck or a
+		# frog is not a fish and swims on it).
+		var depth: float = creatures.depth_of(a)
+		if depth > FISH_JUMP_DEPTH:
+			continue
 		if PixelView.screen_plane(a.pos).distance_to(view) < FISH_REACH:
 			near.append(a)
 	if not near.is_empty():
-		ring(near.pick_random().pos + Vector3(0.0, 0.6, 0.0), true)
+		var a = near.pick_random()
+		ring(a.pos + Vector3(0.0, maxf(creatures.depth_of(a), 0.0) + 0.6, 0.0), true)
 
 
 ## Steam rising thinly off the open water near the view in a frost and on cold mornings.

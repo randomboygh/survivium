@@ -339,6 +339,8 @@ func _run() -> void:
 			_place_birds()
 		if shot.has("zoo"):
 			_place_zoo(shot.zoo == "water")
+		if shot.has("depths"):
+			await _place_depths(shot.depths)
 		if shot.has("shadow_zoo"):
 			await _place_shadow_zoo(shot.shadow_zoo)
 		if shot.get("trap", false):
@@ -1613,6 +1615,40 @@ func _place_zoo(water: bool) -> void:
 		c.left = i % 2 == 0
 		i += 1
 	main.creatures._process(0.0)
+	main.creatures.set_process(false)
+
+
+## Fish of species `kinds` in the deep water nearest the player, at depths from just
+## under the surface down to Wildlife.DEEPEST, the deeper the farther in a row (each held there).
+func _place_depths(kinds: Array) -> void:
+	var life = main.session.wildlife
+	var p: Vector3 = main.player.position
+	for c in life.animals:
+		c.pos = p + Vector3(60.0, 0.0, 60.0)
+		c.target = c.pos
+		c.think = 100.0
+	# Water cells deep enough for the deepest, two cells apart, nearest first.
+	var cells: Array[Vector3] = []
+	for dz in range(-20, 21, 2):
+		for dx in range(-20, 21, 2):
+			var at := p + Vector3(dx, 0.0, dz) * CELL
+			if maxf(life.water_top(at.x, at.z), life.under_ice(at.x, at.z)) > 0.0 \
+					and life.water_room(at.x, at.z) > (life.DEEPEST + life.BED_GAP) * CELL:
+				cells.append(at)
+	cells.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_to(p) < b.distance_to(p))
+	var steps := 4
+	for i in mini(cells.size(), kinds.size() * steps):
+		var at: Vector3 = cells[i]
+		var dip: float = lerpf(life.DIP, life.DEEPEST, float(i % steps) / (steps - 1)) * CELL
+		at.y = maxf(life.water_top(at.x, at.z), life.under_ice(at.x, at.z)) - dip
+		var c = life._add(kinds[i / steps], at)
+		c.think = 100.0
+		c.dip = dip
+		c.dip_to = dip
+		c.facing = 1.0 if i % 2 == 0 else -1.0
+	# The drawn fish are the client's copies: held where they are once they come.
+	for f in 10:
+		await process_frame
 	main.creatures.set_process(false)
 
 
