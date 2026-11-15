@@ -58,6 +58,20 @@ voxel models of things.
   sideways farther than they fall), and the strokes of drops are tilted along the fall (`lean` in
   `particle.gdshader`). Under snow the grass at the joint with a torn-out cell spreads into it by separate
   texels (`GRASS_FRAY` in `world.gdshader`), with no white squares.
+- `src/client/view/air_effects.gd`, `water_effects.gd`, `nature_effects.gd` (held by `Effects.air`, `.water`,
+  `.nature`, made by `Main`, stepped by `Sky`) — the small effects, each by its setting in «Эффекты» (`effects`
+  weather and fire, `water_fx` 0/1/2, `nature_fx`, `body_fx`, `heat_fx`, `drops_fx`; off on «низкое», mirroring
+  and heat off on «среднее», `Settings.QUALITIES`, `AutoQuality.STEPS`) and hidden one by one in «Что рисуется»
+  (their `parts()`). AirEffects: the air trembling over the nearest fires and over hot ground at noon and drops of
+  rain running down the screen's edges (`grade.gdshader` `heat_spots`, `heat_haze`, `drops`), breath steaming in
+  a frost (puffs from a pool, `Creatures.muzzle`), the sun's path on the water at sunrise and sunset and the
+  moon's at night (`water.gdshader` `sun_path`, `Sky.sun_height`). WaterEffects: rings and splashes (fish jumping,
+  a shot landing, wading, a fall into the water), steam over open water on cold mornings, fires and torches
+  glittering on the water towards the viewer (`fire_glints`), and the figures by the water mirrored in it
+  (`sprite_mirror.gdshader`: the sprite upside down, drawn after the water with no depth test, kept to the
+  water by the roof map's columns; its box fitted with `PixelView.sheared_box`). NatureEffects: dandelion fluff,
+  midges by the water at sunset and over one standing still, dragonflies over the water, dust or snow from
+  under the feet.
 - `src/client/view/wisps.gd` (held by `Effects.wisps`, moved by `Sky`) — will-o'-the-wisps: on nights out of winter up
   to `WISPS` pale flickering emitters wander over the murky water of swamps and bogs (`WorldCells.murk`) near
   the view; one the player comes within `SHY` of slips away fading. `Effects.puff` — the spores of a picked

@@ -102,6 +102,9 @@ var fog_drift := Vector2.ZERO
 var after_rain := 0.0
 ## Towards the sun or the moon in the sky, as _aim_sun last put it.
 var to_sun := Vector3.UP
+## How high the sun is, -1 at midnight to 1 at noon, 0 as it rises and sets (to_sun is
+## the moon's way while it is below 0).
+var sun_height := 0.0
 ## The cloud shadows' slant last given to the shaders (see _aim_sun).
 var cloud_slant := Vector2.ZERO
 ## The side of the sky the light is on, in eighths of a turn from south toward west
@@ -143,6 +146,7 @@ func _update_light(delta: float) -> void:
 	var time_of_day: float = clock.sun_time()
 	var snow: float = clock.snow
 	var h := -cos(time_of_day * TAU)
+	sun_height = h
 	daylight = clock.daylight()
 	var pin: float = moon_override if moon_override >= 0.0 else clock.moon_pin
 	moon = pin if pin >= 0.0 else Clock.moon_phase_light(clock.day + clock.time_of_day)
@@ -469,6 +473,9 @@ func _update_weather(delta: float) -> void:
 		game.effects.wisps.world = game.world
 		game.effects.wisps.update(delta, game.view.cam_target, game.player.position, smoothstep(0.6, 0.15, daylight),
 			clock.season == Clock.WINTER, game.effects.enabled)
+		for part in [game.effects.air, game.effects.water, game.effects.nature]:
+			if part != null:
+				part.update(delta, self, clock, game.chunks.indoor)
 	if game.tracks != null:
 		game.tracks.snow = clock.snow
 		game.tracks.wet = clock.wet

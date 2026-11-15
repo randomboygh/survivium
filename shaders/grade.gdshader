@@ -25,6 +25,17 @@ uniform float sway = 0.0;
 // and breathes, rings ripple out from the middle, the colours split apart and run round
 // the wheel in waves, and the edges glow the mushrooms' teal and violet.
 uniform float trip = 0.0;
+// The air trembling over the fires nearest the view (AirEffects): each spot is the
+// flames' base in pixels of the picture, how far the trembling reaches to each side and
+// how high over them, in pixels; heat_power how strongly each fire burns (0 none).
+uniform vec4 heat_spots[4];
+uniform vec4 heat_power = vec4(0.0);
+// The air over the ground trembling in patches in a hot noon, 0..1.
+uniform float heat_haze = 0.0;
+// Drops of rain running down the screen's edges in a downpour or after a swim, 0..1.
+uniform float drops = 0.0;
+// The pixels of the picture round its edges left off the screen (PixelView.MARGIN).
+uniform float view_margin = 0.0;
 global uniform sampler2D cloud_noise : filter_linear, repeat_enable;
 global uniform vec2 cloud_offset;
 global uniform float cloud_cover;
@@ -82,6 +93,87 @@ float crt_hash(vec2 p) {
 	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
+// How many pixels the hot air moves the picture at its pixel `p` sideways: rows waving
+// up over each fire, weaker to its sides and top, a pixel at most; in a hot noon rows
+// wobbling in drifting patches over the whole ground.
+float heat_shift(vec2 p) {
+	float s = 0.0;
+	for (int i = 0; i < 4; i++) {
+		if (heat_power[i] <= 0.0) {
+			continue;
+		}
+		vec4 h = heat_spots[i];
+		vec2 d = p - h.xy;
+		float up = -d.y / h.w;
+		float side = abs(d.x) / h.z;
+		if (up < -0.1 || up > 1.0 || side > 1.0) {
+			continue;
+		}
+		float k = heat_power[i] * (1.0 - up * up) * (1.0 - side * side) * 1.6;
+		float w = sin(p.y * 1.1 + TIME * 8.0 + h.x) * 0.7 + sin(p.y * 0.37 + TIME * 4.3) * 0.5;
+		s += floor(w * k + 0.5);
+	}
+	if (heat_haze > 0.0) {
+		vec2 wp = (p + view_origin) / 16.0;
+		float n = texture(cloud_noise, wp / 23.0 + vec2(TIME * 0.01, 0.0)).r;
+		float k = heat_haze * smoothstep(0.5, 0.7, n) * 1.4;
+		s += floor(sin(p.y * 1.7 + TIME * 6.0 + n * 9.0) * k + 0.5);
+	}
+	return clamp(s, -1.0, 1.0);
+}
+
+// A drop of rain on the screen at pixel `p` of a picture `size` pixels: xy how far it
+// moves the picture under it (a drop shows what is behind it upside down, shrunk), z its
+// light (a glint at its top, a darker rim below, a wet trail above, negative darker).
+// Lanes along the left and right edges get a drop now and then: it clings, runs down in
+// a slide and dries away.
+vec3 screen_drop(vec2 p, vec2 size) {
+	const float LANE = 12.0;
+	p -= view_margin;
+	size -= 2.0 * view_margin;
+	float lanes = floor(size.x / LANE);
+	float col = floor(p.x / LANE);
+	float edge = min(col, lanes - 1.0 - col);
+	if (edge > 2.0) {
+		return vec3(0.0);
+	}
+	vec3 out_d = vec3(0.0);
+	// Two drops a lane, on clocks of their own.
+	for (int k = 0; k < 2; k++) {
+		float seed = col + float(k) * 57.0;
+		float h = crt_hash(vec2(seed, 3.1));
+		float t = TIME * (0.07 + 0.08 * h) + h * 7.0;
+		float round_n = floor(t);
+		float f = fract(t);
+		if (crt_hash(vec2(seed, round_n)) > drops * (0.8 - edge * 0.2)) {
+			continue;
+		}
+		float x = col * LANE + 3.0 + floor(crt_hash(vec2(round_n, seed)) * (LANE - 6.0));
+		float y0 = floor(crt_hash(vec2(seed + 9.0, round_n)) * size.y * 0.7);
+		float y = floor(y0 + smoothstep(0.3, 0.9, f) * size.y * 0.3);
+		float r = floor(mix(3.6, 0.8, smoothstep(0.75, 1.0, f)) + crt_hash(vec2(seed, round_n + 0.5)) * 1.5 + 0.5);
+		vec2 d = p - vec2(x, y);
+		float dist = length(d + 0.5);
+		if (dist < r) {
+			// A brighter body over the picture under it, turned over, a darker rim at the
+			// bottom and a glint at the top left.
+			float light = 0.1;
+			vec2 g = vec2(-floor(r * 0.5));
+			if (d == g || (r >= 3.0 && d == g + vec2(1.0, 0.0))) {
+				light = 0.55;
+			} else if (dist > r - 1.0 && d.y >= -0.5) {
+				light = -0.2;
+			}
+			return vec3(-d * 1.6, light);
+		}
+		// The wet trail it leaves, a pixel wide.
+		if (d.x == 0.0 && d.y < 0.0 && p.y > y0 && f > 0.3) {
+			out_d = vec3(1.0, 0.0, 0.05 * (1.0 - smoothstep(0.85, 1.0, f)));
+		}
+	}
+	return out_d;
+}
+
 // The bright part of the picture around `uv`, blurred: eight filtered taps on two rings.
 vec3 crt_bloom(vec2 uv, vec2 texel) {
 	vec3 sum = vec3(0.0);
@@ -102,6 +194,7 @@ void fragment() {
 	vec2 sp = (crt_screen.zw + UV * picture) / crt_screen.xy;
 	float edge = 1.0;
 	float band = 0.0;
+	vec3 drop = vec3(0.0);
 	vec3 src;
 	if (crt_on) {
 		// The tube's curve: the middle swells, the corners bend away and go black.
@@ -130,6 +223,13 @@ void fragment() {
 			band = in_band * crt_band;
 		}
 		uv = (read * crt_screen.xy - crt_screen.zw) / picture;
+		if (heat_power != vec4(0.0) || heat_haze > 0.0) {
+			uv.x += heat_shift(floor(uv / TEXTURE_PIXEL_SIZE)) * TEXTURE_PIXEL_SIZE.x;
+		}
+		if (drops > 0.0) {
+			drop = screen_drop(floor(uv / TEXTURE_PIXEL_SIZE), 1.0 / TEXTURE_PIXEL_SIZE);
+			uv += drop.xy * TEXTURE_PIXEL_SIZE;
+		}
 		float off = crt_rgb * long_side / picture.x;
 		src = vec3(texture(TEXTURE, uv + vec2(off, 0.0)).r, texture(TEXTURE, uv).g, texture(TEXTURE, uv - vec2(off, 0.0)).b);
 		if (crt_bleed > 0.0) {
@@ -143,6 +243,13 @@ void fragment() {
 	} else {
 		if (sway > 0.0 || trip > 0.0) {
 			uv += sway_shift(sp) * TEXTURE_PIXEL_SIZE;
+		}
+		if (heat_power != vec4(0.0) || heat_haze > 0.0) {
+			uv.x += heat_shift(floor(uv / TEXTURE_PIXEL_SIZE)) * TEXTURE_PIXEL_SIZE.x;
+		}
+		if (drops > 0.0) {
+			drop = screen_drop(floor(uv / TEXTURE_PIXEL_SIZE), 1.0 / TEXTURE_PIXEL_SIZE);
+			uv += drop.xy * TEXTURE_PIXEL_SIZE;
 		}
 		if (trip > 0.0) {
 			// The picture breathes: it swells and shrinks slowly round the middle.
@@ -165,6 +272,7 @@ void fragment() {
 		vec2 off = vec2(sin(TIME * 0.45 + 2.0), cos(TIME * 0.61)) * 5.0 * trip * TEXTURE_PIXEL_SIZE;
 		src = mix(src, hue_turn(texture(TEXTURE, uv - off).rgb, 2.1), trip * (0.18 + 0.07 * sin(TIME * 1.1)));
 	}
+	src = clamp(src + drop.z, 0.0, 1.0);
 	vec3 c = src * exposure;
 	float l = dot(c, vec3(0.299, 0.587, 0.114));
 	c = mix(vec3(l), c, saturation);

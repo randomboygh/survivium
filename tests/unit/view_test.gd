@@ -8,6 +8,9 @@ const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const FireShadows := preload("res://src/client/view/fire_shadows.gd")
 const EdgeHaze := preload("res://src/client/world/edge_haze.gd")
 const AutoQuality := preload("res://src/client/view/auto_quality.gd")
+const AirEffects := preload("res://src/client/view/air_effects.gd")
+const WaterEffects := preload("res://src/client/view/water_effects.gd")
+const NatureEffects := preload("res://src/client/view/nature_effects.gd")
 const SettingsScript := preload("res://src/client/settings.gd")
 const Others := preload("res://src/client/view/others.gd")
 const Effects := preload("res://src/client/view/effects.gd")
@@ -57,6 +60,7 @@ func run() -> void:
 	_test_fire_shadows_blank()
 	_test_glow_lights()
 	_test_window_glow()
+	_test_small_effects()
 
 
 func _test_pixel_view() -> void:
@@ -864,3 +868,33 @@ func _test_window_glow() -> void:
 	g.remove(cell)
 	_check(g.windows.is_empty(), "a window taken away is forgotten")
 	node.free()
+
+
+## The small effects (AirEffects, WaterEffects, NatureEffects): each part can be hidden
+## in «Что рисуется» on its own by a name of its own, the low preset turns them all off
+## and the medium one the costliest (the mirroring and the heat), and a dragonfly's
+## picture is its pixels.
+func _test_small_effects() -> void:
+	var names := {}
+	var all := []
+	for script in [AirEffects, WaterEffects, NatureEffects]:
+		var part = script.new(null, null)
+		for p: Array in part.parts():
+			all.append(p[0])
+			names[p[0]] = part
+			p[1].call(true)
+		_check(part.hidden.size() == part.parts().size(), "%s: each part hides" % script.resource_path.get_file())
+		for p: Array in part.parts():
+			p[1].call(false)
+		_check(part.hidden.is_empty(), "%s: and shows again" % script.resource_path.get_file())
+		if part is Node:
+			part.free()
+	_check(names.size() == all.size() and all.size() == 12, "twelve parts, each named once: %s" % [all])
+	var low: Dictionary = SettingsScript.QUALITIES[0]
+	var medium: Dictionary = SettingsScript.QUALITIES[1]
+	_check(low.water_fx == 0 and not low.nature_fx and not low.body_fx and not low.heat_fx and not low.drops_fx,
+		"the low preset draws none of the small effects")
+	_check(medium.water_fx == 1 and not medium.heat_fx and medium.drops_fx, "the medium one leaves out the mirroring and the heat")
+	var fly: ImageTexture = NatureEffects._shape(NatureEffects.FLY_UP)
+	_check(fly.get_width() == 5 and fly.get_height() == 3 and fly.get_image().get_pixel(0, 0).a > 0.5,
+		"a dragonfly is five pixels long with its wings up")

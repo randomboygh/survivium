@@ -362,6 +362,22 @@ func sprite_of(a) -> MeshInstance3D:
 	return _sprites.get(a)
 
 
+## Where animal `a` breathes out (AirEffects): [its muzzle (world units, unsheared), the
+## way it faces (world xz)], high in its body and ahead of its middle the way it is drawn
+## facing; empty while it is not drawn or shows its back.
+func muzzle(a) -> Array:
+	var look: Look = _looks.get(a)
+	if look == null or look.view == BACK:
+		return []
+	var body: Vector2 = looks[a.kind][2]
+	var at := look.sprite.position + Vector3(0.0, body.y * 0.7, 0.0)
+	if look.view == FRONT:
+		var toward := Vector2(-PixelView.up.x, -PixelView.up.y)
+		return [at + Vector3(toward.x, 0.0, toward.y) * 0.05, toward]
+	var ahead := PixelView.right * look.side
+	return [at + Vector3(ahead.x, 0.0, ahead.y) * body.x * 0.45, ahead]
+
+
 func _on_born(a) -> void:
 	if not looks.has(a.kind):
 		# A species the client's data does not have (a server with other data).

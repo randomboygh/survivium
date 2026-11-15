@@ -147,6 +147,13 @@ var glows: Node3D
 var wisps: Node3D
 ## The windows lit from inside by the fires and lights in their rooms (WindowGlow).
 var windows := WindowGlow.new()
+## The heat shimmer, the drops on the screen, the breath and the sun's path on water
+## (AirEffects); the rings, splashes, steam, glints and reflections on the water
+## (WaterEffects); the fluff, midges, dragonflies and dust (NatureEffects). Made by Main,
+## moved by Sky.
+var air
+var water
+var nature
 ## The spores of a puffball picked (puff), made on first use.
 var _puff: CPUParticles3D
 var rng := RandomNumberGenerator.new()
