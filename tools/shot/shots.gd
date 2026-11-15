@@ -28,6 +28,10 @@ const SHOTS := {
 	"fx-reflect-turn4": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 4},
 	"fx-fire-water": {"time": 0.95, "season": 1, "moon": 0.0, "weather": "clear", "place": "lake", "water": 1, "hands": {"tool": "tools:torch", "facing": "s"}},
 	# Snow glittering in the sun and under a full moon.
+	# Winter on the screen: flakes on the edges, frost from the corners, snow on the
+	# hotbar, and the blue frame of a freezing body.
+	"fx-winter-screen": {"time": 0.45, "season": 3, "snow": 1.0, "weather": "blizzard", "place": "meadow",
+		"screen_snow": [1.0, 0.8, 0.8], "chill": [8.0, 0.2]},
 	"fx-snow-sun": {"time": 0.4, "season": 3, "snow": 1.0, "weather": "clear", "place": "meadow"},
 	"fx-snow-moon": {"time": 0.97, "season": 3, "snow": 1.0, "moon": 1.0, "weather": "clear", "place": "meadow"},
 	"fx-steam": {"time": 0.27, "season": 3, "snow": 0.0, "weather": "clear", "place": "lake"},

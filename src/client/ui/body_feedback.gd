@@ -6,12 +6,14 @@ extends Control
 ## character's Vitals each frame, so it shows whatever changed them (hunger, water,
 ## animals, fire, food, bandages). A slow loss (hunger, drowning) is gathered and shown
 ## once it adds up to a whole point; the slow healing of a fed body shows nothing.
+## The edges also frost over blue while the body is cold, more the colder.
 ## Drawn under the rest of the interface, over the whole screen. `game` is the Main node.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
 const Body := preload("res://src/shared/game/body.gd")
+const Vitals := preload("res://src/shared/game/vitals.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
 ## What a change of each kind looks like: frame and number colour, and icon.
@@ -34,6 +36,12 @@ const FLOAT_TIME := 1.1
 const BANDS := [0.9, 0.65, 0.45, 0.28, 0.14]
 const BAND := 5.0
 const WASH := 0.12
+## The cold: an icy frame along the edges, growing from Vitals.COLD down to CHILL_FULL
+## degrees of warmth below Vitals.FREEZING, eased by CHILL_EASE a second; it breathes
+## while the body freezes.
+const CHILL_COLOR := Color(0.55, 0.82, 1.0)
+const CHILL_FULL := 6.0
+const CHILL_EASE := 0.5
 ## The camera shakes by a low-res pixel for each this many points of a hurt, up to
 ## SHAKE_MOST pixels.
 const SHAKE_PER := 4.0
@@ -50,6 +58,9 @@ var _since := {"hurt": EVERY, "heal": EVERY, "food": EVERY}
 var _frame := 0.0
 var _frame_color := UiStyle.DANGER
 var _fade := FADE
+## How strong the icy frame of the cold is now, 0..1, and whether the body freezes.
+var _chill := 0.0
+var _freezing := false
 ## The numbers rising: {"node": HBoxContainer, "age": seconds}.
 var _floats := []
 
@@ -86,6 +97,12 @@ func _process(delta: float) -> void:
 			_since[k] = 0.0
 	if _frame > 0.0:
 		_frame = maxf(0.0, _frame - delta / _fade)
+		queue_redraw()
+	var warmth: float = v.warmth if not c.is_dead() else Vitals.COMFORT
+	var want := clampf((Vitals.COLD - warmth) / (Vitals.COLD - Vitals.FREEZING + CHILL_FULL), 0.0, 1.0)
+	_freezing = warmth < Vitals.FREEZING
+	if want != _chill or _chill > 0.0:
+		_chill = move_toward(_chill, want, delta * CHILL_EASE)
 		queue_redraw()
 	_move_floats(delta)
 
@@ -162,15 +179,24 @@ func _move_floats(delta: float) -> void:
 ## The frame: bands along every edge of the whole screen (past the safe rect), the
 ## outer ones stronger.
 func _draw() -> void:
-	if _frame <= 0.0:
-		return
 	var s := get_global_transform().get_scale()
 	var full := Rect2(-get_global_transform().origin / s, get_viewport_rect().size / s).grow(1)
+	if _chill > 0.0:
+		# The cold's frame: wider the colder, breathing while the body freezes.
+		var k := _chill * (0.85 + 0.15 * sin(Time.get_ticks_msec() * 0.003) if _freezing else 1.0)
+		var bands := 2 + int(round(_chill * 4.0))
+		for i in bands:
+			_band(full.grow(-i * BAND), Color(CHILL_COLOR, 0.55 * k * (1.0 - float(i) / bands)))
+	if _frame <= 0.0:
+		return
 	draw_rect(full, Color(_frame_color, WASH * _frame))
 	for i in BANDS.size():
-		var r := full.grow(-i * BAND)
-		var col := Color(_frame_color, BANDS[i] * _frame)
-		draw_rect(Rect2(r.position, Vector2(r.size.x, BAND)), col)
-		draw_rect(Rect2(r.position.x, r.end.y - BAND, r.size.x, BAND), col)
-		draw_rect(Rect2(r.position.x, r.position.y + BAND, BAND, r.size.y - 2 * BAND), col)
-		draw_rect(Rect2(r.end.x - BAND, r.position.y + BAND, BAND, r.size.y - 2 * BAND), col)
+		_band(full.grow(-i * BAND), Color(_frame_color, BANDS[i] * _frame))
+
+
+## One band of a frame, BAND wide, along the inside of `r`.
+func _band(r: Rect2, col: Color) -> void:
+	draw_rect(Rect2(r.position, Vector2(r.size.x, BAND)), col)
+	draw_rect(Rect2(r.position.x, r.end.y - BAND, r.size.x, BAND), col)
+	draw_rect(Rect2(r.position.x, r.position.y + BAND, BAND, r.size.y - 2 * BAND), col)
+	draw_rect(Rect2(r.end.x - BAND, r.position.y + BAND, BAND, r.size.y - 2 * BAND), col)

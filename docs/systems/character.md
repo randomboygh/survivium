@@ -176,7 +176,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
 - `src/client/ui/person_panel.gd` — the character in the inventory window (the slots of what is worn and of
   the hands, cells, the skills' strips); `src/client/ui/level_up.gd` — the effect of a skill's new level;
   `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — the death screen,
-  the strengths' strips, the screen's response to damage, the phone's vibration.
+  the strengths' strips, the screen's response to damage (and an icy blue frame growing while the body is cold, from
+  `Vitals.COLD` to `CHILL_FULL` below `FREEZING`, breathing while it freezes), the phone's vibration.
 
 **Skills** (decision 164). Nine skills are a mod's data (`content/core/data/skills.yaml`, the kind `skills`,
 the registry `src/shared/content/skills.gd`): Gathering, Chopping, Digging, Crafting, Building, Cooking,

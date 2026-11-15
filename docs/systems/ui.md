@@ -225,7 +225,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   open), and a column of what hinders the body — wet, out of breath, overloaded, `VitalsPanel.debuffs_of`;
   the panel is as wide as what it shows), `sleep_screen.gd`
   (darkening in sleep: a tap, a step or a jump wakes, `Protocol.SLEEP`; the moon «Go to sleep» — on the HUD's
-  clock), `body_feedback.gd`, `sound_marks.gd` (marks of sounds' directions), `vibration.gd`.
+  clock), `body_feedback.gd`, `hotbar_snow.gd` (snow settling on the hotbar's top edge, `AirEffects.hotbar_snow`), `sound_marks.gd` (marks of sounds' directions), `vibration.gd`.
 - Maps: `minimap.gd` (the map is painted a chunk at a time into regions of 32 chunks, kept in the save; marks
   of what was placed, of sacks and of rafts and boats on water, except the one one sits in — `set_marks`, from
   `hud.gd`; teammates — `draw_mates` by `Team.mates`, see [territory.md](territory.md);
