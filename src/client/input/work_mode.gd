@@ -5,6 +5,8 @@ extends RefCounted
 ## filter, an eraser, and the action button that works on by itself (`auto`). Each mode
 ## adds what it draws and asks of the server.
 
+const ToolKinds := preload("res://src/shared/content/tools.gd")
+
 ## Seconds between two looks at whether the work going on by itself can go on.
 const CHECK_TIME := 0.25
 
@@ -86,7 +88,8 @@ func _begin() -> void:
 
 
 ## Watches the bag: what comes into it while the mode is on (a thing taken back, a block
-## knocked out, a harvest) has its slot chosen on the palette (the user's rule, 2026-11-15).
+## knocked out, a harvest) has its slot chosen on the palette, unless the hand holds a tool
+## (the user's rule, 2026-11-15).
 func _watch() -> void:
 	var inv = game.character.inventory
 	if _watched != inv:
@@ -107,7 +110,8 @@ func _palette_counts() -> Dictionary:
 
 func _on_bag_changed() -> void:
 	var now := _palette_counts()
-	if on and not auto:
+	# A tool in the hand stays in it (a sickle reaping, the user's rule, 2026-11-15).
+	if on and not auto and ToolKinds.use_of(game.controls.held()) != "tool":
 		for id: String in now:
 			if now[id] > int(_counts.get(id, 0)) and id != game.controls.held():
 				game.controls.put_in_hand(id, -1, false)

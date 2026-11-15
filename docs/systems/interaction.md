@@ -175,7 +175,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
   until the bag holds none; a thing one cell big tapped with one of its kind in the hand sets the next down
   beside it (`_beside_kind`, `_beside`: the cell under the finger, else past the face the ray goes in by,
   `face_in`; held, it hangs there), and is taken only once the bag holds none; whatever comes into the bag
-  while the build or farming mode is on (not while `auto` works) has its palette slot chosen
+  while the build or farming mode is on (not while `auto` works, nor over a tool in the hand) has its palette slot chosen
   (`WorkMode._on_bag_changed`); a model held up never stays in the
   air: `update` drops it once the stroke is no longer on it (`Controls.dragging`), a second press releases the
   stroke first, on a touch screen the stroke ends with the last finger up, and while a finger is down only its
