@@ -121,6 +121,9 @@ var fatigue := true
 var cold := true
 ## Whether a fall hurts (fall); a playtest switch turns it off.
 var falls := true
+## Whether health goes down at all (hunger, thirst, cold, fire, falls, water, blows,
+## bites); the playtest switch «Неуязвимость» turns it off.
+var harm := true
 ## Why health went down last ("hunger", "thirst", "water", "fire", "cold", "fall", "player:<name>"), for the
 ## message on death.
 var hurt_by := ""
@@ -216,7 +219,7 @@ func wound(amount: float, why: String) -> void:
 
 
 func _hurt(amount: float, why: String) -> void:
-	if amount > 0.0:
+	if amount > 0.0 and harm:
 		health = maxf(0.0, health - amount)
 		hurt_by = why
 
@@ -302,7 +305,7 @@ func calm_down(seconds: float) -> void:
 ## A fall of `levels` levels hurts past FALL_SAFE, half as much into shallow water
 ## (`soft`); returns the health it took (none with `falls` off).
 func fall(levels: float, soft := false) -> float:
-	if not falls:
+	if not falls or not harm:
 		return 0.0
 	var hurt := maxf(0.0, levels - FALL_SAFE) * FALL_PER_LEVEL * (0.5 if soft else 1.0)
 	_hurt(hurt, "fall")

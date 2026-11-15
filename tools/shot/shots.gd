@@ -785,6 +785,9 @@ const SHOTS := {
 	"ui-test-player": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player"},
 	"ui-test-player-end": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player",
 		"menu_end": true},
+	# The same with «Сохранить» pressed: lit green while the switches are as saved.
+	"ui-test-player-kept": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player",
+		"menu_end": true, "press": ["_keep"]},
 	"ui-test-debug": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug"},
 	"ui-test-server": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "server"},
 	# The same on a server for checking, its end: the test mod (decision 189). The last shot of a run: the game stays «joined».

@@ -162,6 +162,10 @@ var _back: Button
 ## «По умолчанию» on the settings page: the first tap asks, the second puts every
 ## setting back as it comes (Settings.reset).
 var _defaults: Button
+## «Сохранить» beside it on the playtest page: keeps its switches for the next start
+## (Settings.save_test), lit green while they are as kept.
+var _keep: Button
+var _kept_lit := false
 var _screen := Vector2.ZERO
 ## Rows side by side: 2 on a wide screen too low for them in one column (see fit).
 var _columns := 1
@@ -204,9 +208,11 @@ func _ready() -> void:
 	_legend.add_child(_legend_grid)
 	for k in CHANGE_KINDS:
 		_legend_grid.add_child(_change_line(k, CHANGE_KINDS[k], UiStyle.MUTED, 0))
-	_defaults = Kit.button("[defaults]", Callable(), 0, 32)
+	var keep := Kit.row(6)
+	box.add_child(keep)
+	_keep = _bottom(keep, "[save]", _keep_test)
+	_defaults = _bottom(keep, "[defaults]", Callable())
 	_asks.guard(_defaults, _reset)
-	box.add_child(_defaults)
 	_copy_row = Kit.row(6)
 	box.add_child(_copy_row)
 	_copy_tab = _bottom(_copy_row, "[copy_tab]", func() -> void: _copy_text(_copy_tab, _tab_text))
@@ -223,8 +229,9 @@ func _ready() -> void:
 	_choices.stepped.connect(_stepped)
 
 
-## A row was stepped: the window fits its values again.
+## A row was stepped: the window fits its values again («Сохранить» is lit as they are).
 func _stepped(_index: int) -> void:
+	_light_keep()
 	reset_size()
 
 
@@ -315,7 +322,10 @@ func _fill() -> void:
 	# The phone's sharing, where the browser has it.
 	_share.visible = which == "report" and OS.has_feature("web") \
 			and int(JavaScriptBridge.eval("typeof navigator.share === 'function' ? 1 : 0", true)) == 1
-	_defaults.visible = which == "settings"
+	_defaults.visible = which in ["settings", "test"]
+	_keep.visible = which == "test"
+	_kept_lit = which == "test" and game.settings.test_kept()
+	UiStyle.succeed(_keep, _kept_lit)
 	_tabs.visible = PAGES.has(which)
 	_legend.visible = which == "changes" and not info.changes.is_empty()
 	_make_tabs(which)
@@ -466,6 +476,13 @@ func _section_rows(key: String) -> Array:
 					func() -> int: return int(s.free_items),
 					func(i: int) -> void: s.set_free_items(i == 1), "", may],
 				_section("shield", "[survival]"),
+				# All the survival switches at once: on while each is as the game comes.
+				["[all_survival]", ["[off]", "[on]"],
+					func() -> int: return int(s.survival_on()),
+					func(i: int) -> void: s.set_survival(i == 1), "", may],
+				["[invulnerability]", ["[off]", "[on]"],
+					func() -> int: return int(s.invulnerable),
+					func(i: int) -> void: s.set_invulnerable(i == 1), "", may],
 				["[hunger]", ["[on]", "[off]"],
 					func() -> int: return int(s.no_hunger),
 					func(i: int) -> void: s.set_no_hunger(i == 1), "", may],
@@ -915,8 +932,24 @@ static func build_info() -> Dictionary:
 ## from (see open), the other pages close.
 ## «По умолчанию», on its second tap: the settings as they come.
 func _reset() -> void:
-	game.settings.reset()
+	if page == "test":
+		game.settings.reset_test()
+	else:
+		game.settings.reset()
 	_fill()
+
+
+func _keep_test() -> void:
+	game.settings.save_test()
+	_light_keep()
+
+
+## «Сохранить» green while the playtest switches are as saved.
+func _light_keep() -> void:
+	var lit: bool = page == "test" and game.settings.test_kept()
+	if lit != _kept_lit:
+		_kept_lit = lit
+		UiStyle.succeed(_keep, lit)
 
 
 func _go_back() -> void:
@@ -936,6 +969,7 @@ func close() -> void:
 ## clock runs while the playtest page is open); the window is laid out again only when
 ## a label changed.
 func refresh() -> void:
+	_light_keep()
 	if _choices.refresh():
 		reset_size()
 
