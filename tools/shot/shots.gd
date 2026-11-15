@@ -311,6 +311,10 @@ const SHOTS := {
 	"clouds-mountain": {"time": 0.42, "season": 1, "place": "mountain", "clouds": 0.5},
 	# Cloud shadows on the tall brick house of the test world: a slanted edge down its walls.
 	"ground-clouds-house": {"time": 0.5, "season": 1, "at": [70, -42], "clouds": 0.55, "cloud_pos": [12, -9], "rays": false},
+	# The test world's house at night and at dusk, its lanterns lit: the windows glow from
+	# inside (WindowGlow).
+	"ground-house-windows": {"time": 0.95, "season": 1, "moon": 0.0, "at": [70, -44]},
+	"ground-house-windows-dusk": {"time": 0.8, "season": 1, "at": [70, -44]},
 	"clouds-cliffs": {"time": 0.36, "season": 1, "place": "cliffs", "clouds": 0.5},
 	"peak": {"time": 0.42, "season": 1, "place": "peak"},
 	"waterfall": {"time": 0.42, "season": 1, "place": "waterfall"},
