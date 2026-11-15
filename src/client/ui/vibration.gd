@@ -114,7 +114,7 @@ static func play(game, id: String, delay := 0.0, scale := 1.0) -> void:
 ## thunder is felt sooner than THUNDER_AGAIN seconds after the last one (a storm
 ## flashes every few seconds).
 const HIT_PULSE := 60
-const BOOM_MS := Vector2i(350, 900)
+const BOOM_MS := Vector2i(400, 1000)
 const BOOM_FADE := [1.0, 0.75, 0.5, 0.3]
 const THUNDER_AGAIN := 8.0
 ## The most pulses a browser takes in one pattern (Chrome refuses a longer one).
@@ -158,9 +158,10 @@ static func rumble_steps(s: Dictionary, pitch: float, scale: float) -> Array:
 		steps.append(HIT_PULSE)
 		strengths.append(clampf(float(h[1]) * scale, 0.1, 1.0))
 		end = maxi(at, end) + HIT_PULSE
-	var boom_at := roundi(float(s.boom[0]) * 1000.0 / pitch)
-	steps.append(maxi(boom_at - end, 60))
-	var boom := clampi(roundi(float(s.boom[1]) * 1000.0 / pitch), BOOM_MS.x, BOOM_MS.y)
+	var boom_at := roundi(float(s.hold[0]) * 1000.0 / pitch)
+	if not steps.is_empty():
+		steps.append(maxi(boom_at - end, 60))
+	var boom := clampi(roundi(float(s.hold[1]) * 1000.0 / pitch * 0.6), BOOM_MS.x, BOOM_MS.y)
 	for i in BOOM_FADE.size():
 		if i > 0:
 			steps.append(0)
