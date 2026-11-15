@@ -79,7 +79,7 @@ void fragment() {
 		col = mix(c.rgb, water, 0.12 + 0.6 * k);
 		if (ice_amount > 0.0 && ice_hole(world_pos.xz) < 1.0) {
 			if (ice_clear(world_pos.xz) > 0.5) {
-				col = mix(col, vec3(0.12, 0.22, 0.32), 0.4 * ice_amount);
+				col = mix(col, vec3(0.4, 0.56, 0.64), 0.3 * ice_amount);
 			} else {
 				ivec2 px = ivec2(floor(uv * vec2(textureSize(sprite_texture, 0))));
 				if (ice_amount > 0.5 && (px.x + px.y) % 2 == 0) {

@@ -192,5 +192,6 @@ func _world_meta(next_id: int) -> Dictionary:
 		"fights": session.fights.to_dict(),
 		"tame": session.wildlife.tamed_list(),
 		"vessels": session.actions.vessels.to_list(),
+		"ice_holes": session.ice.to_saved(),
 		"next_player": next_id,
 	}

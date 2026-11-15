@@ -532,6 +532,12 @@ func _test_ice_holes(w: WorldData, life: Wildlife, actions: WorldActions, fishin
 	Ice.take_list(copy, [[col.x, col.y, false], ["x", 1, true], [1, 2], 5])
 	_check(copy.ice_holes.size() == 1 and copy.ice_holes.has(col) and copy.ice_holes[col] < 0.0,
 		"the holes sent are checked: a bad entry is dropped")
+	var saved: Array = JSON.parse_string(JSON.stringify(ice.to_saved()))
+	var kept := Ice.new()
+	kept.world = WorldData.new(10, Vector2i(4, 4))
+	kept.from_saved(saved + [["x", 0, 1.0], [1, 2]])
+	_check(kept.world.ice_holes.size() == 1 and is_equal_approx(kept.world.ice_holes.get(col, -5.0), w.ice_holes[col]),
+		"the holes are saved with the world and read back, a bad entry dropped")
 	w.water_frozen = false
 	ice.step(Ice.CHECK_EVERY)
 	_check(w.ice_holes.is_empty(), "the water thawed, the holes are gone")

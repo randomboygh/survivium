@@ -685,6 +685,9 @@ const SHOTS := {
 		"cast": "wait"},
 	"fishing-bite": {"time": 0.42, "season": 1, "place": "lake", "hands": {"tool": "tools:fishing_rod", "facing": "s", "stay": true},
 		"cast": "bite"},
+	# The short winter rod cast: its line hangs from the rod's end.
+	"winter-rod-cast": {"time": 0.42, "season": 1, "place": "lake", "hands": {"tool": "tools:winter_rod", "facing": "s", "stay": true},
+		"cast": "wait"},
 	# A drying rack set down by the workbench and kiln, closed, a composite bow in hand, the
 	# things of leather and bone lying in front; and the rack open, leather being tanned.
 	"leather": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "craft": true, "closed": true, "dry": true,

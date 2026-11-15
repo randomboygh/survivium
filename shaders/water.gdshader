@@ -79,7 +79,7 @@ varying float sea_here;
 // Ice: clear blue-green over the shallows and darker over the deep, milky frost
 // patches, straight white cracks and glints that do not move, and a dusting of snow
 // in the hollows of the patch noise while snow lies. Clear ice (ice_clear: its patches,
-// thawed round a fire) is dark, the water under it seen, with no frost or snow on it, a
+// thawed round a fire) is the ice a little darker, the fish under it seen whole, no frost or snow on it, a
 // few white bubbles in it; the crust over a hole is thin and grey, its rim broken white
 // (`hole` of ice_hole).
 vec3 ice_color(vec2 tex, float depth, bool side, float clear, float hole) {
@@ -97,8 +97,9 @@ vec3 ice_color(vec2 tex, float depth, bool side, float clear, float hole) {
 		return mix(vec3(0.82, 0.9, 0.94), vec3(0.6, 0.72, 0.8), step(0.6, hash12(tex + 9.0)));
 	}
 	if (clear > 0.5) {
-		c = mix(vec3(0.27, 0.42, 0.52), vec3(0.18, 0.31, 0.43), depth);
-		return mix(c, vec3(0.7, 0.8, 0.86), step(0.985, hash12(tex + 23.0)));
+		// Nearly the ice's own colour, a little darker: no frost or snow on it.
+		c *= vec3(0.88, 0.91, 0.94);
+		return mix(c, vec3(0.7, 0.8, 0.86), step(0.99, hash12(tex + 23.0)));
 	}
 	float frost = ground_patch(xz, 17.0);
 	c = frost > 0.6 ? mix(c, vec3(0.68, 0.78, 0.84), 0.55) : (frost < 0.36 ? c * vec3(0.92, 0.96, 1.0) : c);

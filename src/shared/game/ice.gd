@@ -6,7 +6,8 @@ extends RefCounted
 ## under the ice come to it, and a body over it falls into the water. It skins over
 ## SKIN_DAYS after it was cut, and one blow breaks the crust again. The water thawed, the
 ## holes are gone. A step of the session (Session.step_things); what changed it tells by
-## `changed` (PlayerLink sends the holes, Protocol.ICE_HOLES).
+## `changed` (PlayerLink sends the holes, Protocol.ICE_HOLES). The holes are saved with the
+## world ("ice_holes" of world.json: to_saved, from_saved).
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
@@ -30,7 +31,8 @@ var world
 var clock
 ## Blows so far into the ice of each column being cut (Vector2i -> blows of power 1).
 var _blows := {}
-var _wait := 0.0
+# The first look waits for the clock to tell whether the water is frozen (a world loaded).
+var _wait := CHECK_EVERY
 
 
 ## Why the ice of column `col` cannot be cut ("" when it can): a key for the player.
@@ -122,6 +124,24 @@ func to_list() -> Array:
 	for col: Vector2i in world.ice_holes:
 		out.append([col.x, col.y, world.ice_holes[col] >= 0.0])
 	return out
+
+
+## The holes for world.json: [[x, z, day cut or -1 for a crust], …].
+func to_saved() -> Array:
+	var out := []
+	for col: Vector2i in world.ice_holes:
+		out.append([col.x, col.y, world.ice_holes[col]])
+	return out
+
+
+## The holes saved (to_saved) back into the world, checked.
+func from_saved(list: Array) -> void:
+	world.ice_holes.clear()
+	for e in list:
+		if e is Array and e.size() == 3 and (e[0] is int or e[0] is float) and (e[1] is int or e[1] is float) \
+				and (e[2] is int or e[2] is float) and world.ice_holes.size() < MOST:
+			world.ice_holes[Vector2i(int(e[0]), int(e[1]))] = maxf(float(e[2]), -1.0)
+	changed.emit()
 
 
 ## The holes the server sent (Protocol.ICE_HOLES) into world `w`, checked.
