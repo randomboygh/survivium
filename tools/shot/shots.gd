@@ -246,6 +246,11 @@ const SHOTS := {
 	"build-forms-turned": {"time": 0.4, "season": 1, "forms": true, "hud": false, "turn": 3, "offset": Vector3(0, 0, -3)},
 	"build-mode-flatten": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "flatten"},
 	"build-mode-forms": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "form": 3},
+	# Flights of ramps, stairs and upturned ramps built along lines and a square of stairs
+	# drawn (Plans.flight).
+	"build-mode-flights": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "flights": [
+		[1, "line", Vector3i(-16, 0, 8), Vector3i(-16, 0, 3), 6], [3, "line", Vector3i(-13, 0, 8), Vector3i(-13, 0, 3), 6],
+		[2, "line", Vector3i(-10, 0, 8), Vector3i(-10, 0, 3), 6], [3, "square", Vector3i(-7, 0, 8), Vector3i(-2, 0, 3), 5]]},
 	"build-mode-touch": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "touch": true},
 	"build-mode-plane": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "plane", "height": 2},
 	# Furniture on a floor of planks: a table with stools, a bed, a cupboard, a barrel, a rug.

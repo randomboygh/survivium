@@ -310,6 +310,7 @@
 "[press_again_to_remove_all]": "Натисніть ще раз, щоб прибрати всі креслення поруч"
 "[press_for_the_next_shape]": "%s (натиснути — наступна фігура)"
 "[press_for_the_next_form]": "%s (натиснути — наступна форма)"
+"[slopes_and_stairs_are_drawn_by]": "Скоси та сходинки малюються лінією або квадратом"
 "[height_floor_walls_cube_with]": "Висота: підлога %s, стіни %s, куб %s (з підлогою й стелею)"
 "[erasing_the_blueprint_press_to]": "Стирати креслення (натиснути — малювати)"
 "[drawing_the_blueprint_press_to]": "Малювати креслення (натиснути — стирати)"

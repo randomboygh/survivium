@@ -277,9 +277,13 @@ func _show_panel() -> void:
 	_shape.tooltip_text = Lang.f("[press_for_the_next_shape]", [shape[1]])
 	TabRow.light(_shape, b.kind != "flatten")
 	TabRow.light(_flatten, b.kind == "flatten")
-	_form.icon = UiStyle.centred(UiStyle.icon(FORMS[b.form][0]))
-	_form.tooltip_text = Lang.f("[press_for_the_next_form]", [FORMS[b.form][1]])
-	_turn.disabled = b.form == 0
+	# A plane and a room are of cubes: no slopes or stairs for them.
+	var formed: bool = b.forms_drawn()
+	_form.icon = UiStyle.centred(UiStyle.icon(FORMS[b.form if formed else 0][0]))
+	_form.tooltip_text = Lang.f("[press_for_the_next_form]", [FORMS[b.form][1]]) if formed \
+		else "[slopes_and_stairs_are_drawn_by]"
+	_form.disabled = not formed
+	_turn.disabled = b.form == 0 or not formed
 	# A plane is as many levels as its height and has no walls to thicken.
 	_number(_height, b.height, b.kind == "flatten")
 	_number(_thick, b.thick, b.kind in ["plane", "flatten"])

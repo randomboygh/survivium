@@ -310,6 +310,7 @@
 "[press_again_to_remove_all]": "Press again to remove all blueprints nearby"
 "[press_for_the_next_shape]": "%s (press for the next shape)"
 "[press_for_the_next_form]": "%s (press for the next form)"
+"[slopes_and_stairs_are_drawn_by]": "Slopes and stairs are drawn by a line or a square"
 "[height_floor_walls_cube_with]": "Height: floor %s, walls %s, cube %s (with floor and ceiling)"
 "[erasing_the_blueprint_press_to]": "Erasing the blueprint (press to draw)"
 "[drawing_the_blueprint_press_to]": "Drawing the blueprint (press to erase)"
