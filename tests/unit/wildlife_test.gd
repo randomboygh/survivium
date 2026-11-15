@@ -396,11 +396,16 @@ func _test_fishing(w: WorldData) -> void:
 		and who.inventory.count("tools:bait") == 1 and is_equal_approx(who.line.y, top) and not "No fish to be seen near the float" in who.said,
 		"a rod cast from the shore lays the float on the water, bait on the hook (%v)" % who.line)
 	var t := 0.0
-	while not who.bite and t < 30.0:
+	# The distance is taken when the fish bites: a far fish's next update may carry it on
+	# by up to half a second of swimming (Wildlife.LONGEST_STEP), which flaked on CI.
+	var at := INF
+	while t < 30.0:
 		fishing.step(0.05)
+		if who.bite:
+			at = Vector2(fish.pos.x - who.line.x, fish.pos.z - who.line.z).length()
+			break
 		life.update(0.05)
 		t += 0.05
-	var at := Vector2(fish.pos.x - who.line.x, fish.pos.z - who.line.z).length()
 	_check(who.bite and at <= Fishing.BITE_NEAR, "the fish of the pond swims to the float and bites (%.1f s, %.2f away)" % [t, at])
 	done = actions.fish(who)
 	_check(who.inventory.count("animals:roach") == 1 and fish.gone and not life.animals.has(fish) and not who.line.is_finite()
