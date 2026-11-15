@@ -300,13 +300,18 @@ func build_near(ms: int) -> bool:
 	var t0 := Time.get_ticks_msec()
 	var home := _player_chunk()
 	while near_pending > 0 and Time.get_ticks_msec() - t0 < ms:
+		# The nearest to the player first (user 2026-11-15: the world and its map come in
+		# from the player outwards, not from a corner).
 		var key := Vector2i.ZERO
 		var found := false
+		var best := INF
 		for k in pending_chunks:
 			if _is_near(k, home):
-				key = k
-				found = true
-				break
+				var d := _way_score(k, (Vector2(home) + Vector2(0.5, 0.5)) * (CHUNK * CELL), Vector2.ZERO)
+				if d < best:
+					best = d
+					key = k
+					found = true
 		if not found:
 			near_pending = 0
 			break
