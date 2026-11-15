@@ -674,6 +674,11 @@ func _run() -> void:
 			main.hud.feedback._chill = 1.0
 			for i in 4:
 				await process_frame
+		if shot.has("glass_wind"):
+			# The wind across the screen at once, not eased in: drops aslant, flakes aside.
+			main.effects.air._wind = shot.glass_wind
+			for i in 4:
+				await process_frame
 		if shot.has("tired"):
 			# Out of breath: the stamina bar red, the bolt in the last column.
 			main.host.player.vitals.stamina = 3.0

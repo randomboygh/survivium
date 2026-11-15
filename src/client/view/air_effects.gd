@@ -125,12 +125,17 @@ var _wet := 0.0
 var _was_swimming := false
 ## Seconds since the player was last swimming.
 var _out_for := 100.0
+## How fast the wind on the screen's glass follows the wind outside, a second.
+const GLASS_WIND_EASE := 0.15
+
 ## Snow on the screen: its clock, how thick the flakes come and how far the frost has
 ## crept in (0..1), and how deep the snow lies on the hotbar (0..1, the HUD draws it).
 var _snow_clock := 0.0
 var _flakes := 0.0
 var _frost := 0.0
 var hotbar_snow := 0.0
+## The wind on the screen's glass now (see _glass_wind).
+var _wind := 0.0
 ## What was last given to the shaders, so they are set only on a change.
 var _set := {}
 
@@ -160,6 +165,7 @@ func update(delta: float, sky, clock, indoor: bool) -> void:
 	_heat(heat_on and not hidden.has(HEAT), sky, clock, indoor)
 	_rain_drops(delta, drops_on and not hidden.has(DROPS), clock, indoor)
 	_screen_snow(delta, drops_on and not hidden.has(SNOW), clock, indoor)
+	_glass_wind(delta, clock, indoor)
 	_path_in -= delta
 	if _path_in <= 0.0:
 		_path_in = PATH_LOOK
@@ -294,6 +300,20 @@ func _rain_drops(delta: float, on: bool, clock, indoor: bool) -> void:
 	_give(view.grade_mat, "drop_state", Vector4(_drop_clock, snappedf(_drops, 0.02), _dry_at, _dry_was) if active
 		else Vector4(0.0, 0.0, -1.0, 0.0))
 	_give(view.grade_mat, "view_margin", float(PixelView.MARGIN))
+
+
+## The wind across the screen's glass (grade `glass_wind`, -1..1, + to the right): what
+## of the wind blows across the view (PixelView.up turns with the camera), stronger in a
+## storm, none under a roof; eased by GLASS_WIND_EASE a second so the drops and flakes
+## it carries do not jump when it turns.
+func _glass_wind(delta: float, clock, indoor: bool) -> void:
+	var view = game.view
+	if view == null:
+		return
+	var right := Vector2(-PixelView.up.y, PixelView.up.x)
+	var want := 0.0 if indoor else clampf(clock.wind_dir().dot(right) * (0.35 + clock.storm_wind), -1.0, 1.0)
+	_wind = move_toward(_wind, want, delta * GLASS_WIND_EASE)
+	_give(view.grade_mat, "glass_wind", snappedf(_wind, 0.01))
 
 
 ## The sun's path on the water: from the player towards the sun along the ground, while

@@ -40,6 +40,10 @@ uniform vec4 drop_state = vec4(0.0, 0.0, -1.0, 0.0);
 // Snow on the screen (AirEffects): x its clock (seconds), y how thick flakes stick to
 // the edges while it snows (0..1), z how far frost has crept in from the edges (0..1).
 uniform vec4 frost_state = vec4(0.0);
+// The wind across the screen (AirEffects._glass_wind), -1..1, + to the right: the drops
+// run aslant and the flakes slide aside with it, by up to GLASS_LANES lanes or cells.
+uniform float glass_wind = 0.0;
+const float GLASS_LANES = 2.0;
 // The pixels of the picture round its edges left off the screen (PixelView.MARGIN).
 uniform float view_margin = 0.0;
 // How far the picture is moved on the screen, in its pixels (CameraRig: the margin and
@@ -145,61 +149,74 @@ vec3 screen_drop(vec2 p, vec2 size) {
 	size -= 2.0 * view_margin;
 	float lanes = floor(size.x / LANE);
 	float col = floor(p.x / LANE);
-	float edge = min(col, lanes - 1.0 - col);
-	if (edge > 2.0) {
+	if (min(col, lanes - 1.0 - col) > 2.0 + GLASS_LANES) {
 		return vec3(0.0);
 	}
 	float now = drop_state.x;
 	bool drying = drop_state.z >= 0.0;
+	// The wind blows the drops aside as they run (glass_wind): at most GLASS_LANES lanes
+	// over their run, so a pixel looks at that many lanes upwind of it too.
+	float run_y = size.y * 0.3;
+	float slant = glass_wind * GLASS_LANES * LANE / run_y;
 	vec3 out_d = vec3(0.0);
-	// Two drops a lane, on clocks of their own.
-	for (int k = 0; k < 2; k++) {
-		float seed = col + float(k) * 57.0;
-		float h = crt_hash(vec2(seed, 3.1));
-		float speed = 0.07 + 0.08 * h;
-		float t = now * speed + h * 7.0;
-		float round_n = floor(t);
-		float f = fract(t);
-		// As thick as the drops were when this one came: the ones there before the drying
-		// run off.
-		float born = (round_n - h * 7.0) / speed;
-		bool old = drying && born < drop_state.z;
-		if (crt_hash(vec2(seed, round_n)) > (old ? drop_state.w : drop_state.y) * (0.8 - edge * 0.2)) {
+	for (int j = -int(GLASS_LANES); j <= int(GLASS_LANES); j++) {
+		float c = col + float(j);
+		float edge = min(c, lanes - 1.0 - c);
+		if (c < 0.0 || edge > 2.0) {
 			continue;
 		}
-		float run = old ? clamp((now - drop_state.z) / DRY_RUN, 0.0, 1.0) : 0.0;
-		f += (1.0 - f) * run;
-		if (run >= 1.0) {
-			continue;
-		}
-		float x = col * LANE + 3.0 + floor(crt_hash(vec2(round_n, seed)) * (LANE - 6.0));
-		float y0 = floor(crt_hash(vec2(seed + 9.0, round_n)) * size.y * 0.7);
-		float y = floor(y0 + smoothstep(0.3, 0.9, f) * size.y * 0.3 + run * 14.0);
-		float r = floor((mix(3.4, 0.8, smoothstep(0.75, 1.0, f)) + crt_hash(vec2(seed, round_n + 0.5)) * 1.4) * (1.0 - run) + 0.5);
-		vec2 d = p - vec2(x, y);
-		// Drawn out up and down, pointed at the top: a drop hanging as it runs.
-		vec2 e = d + 0.5;
-		e.y *= e.y < 0.0 ? 0.55 : 0.85;
-		float dist = length(e);
-		if (r >= 1.0 && dist < r) {
-			// A brighter body over the picture under it, turned over, a darker rim at the
-			// bottom and a glint at the top left.
-			float light = 0.1;
-			vec2 g = vec2(-floor(r * 0.5), -floor(r * 0.9));
-			if (d == g || (r >= 3.0 && d == g + vec2(0.0, 1.0))) {
-				light = 0.55;
-			} else if (dist > r - 1.0 && d.y >= -0.5) {
-				light = -0.2;
+		// Two drops a lane, on clocks of their own.
+		for (int k = 0; k < 2; k++) {
+			float seed = c + float(k) * 57.0;
+			float h = crt_hash(vec2(seed, 3.1));
+			float speed = 0.07 + 0.08 * h;
+			float t = now * speed + h * 7.0;
+			float round_n = floor(t);
+			float f = fract(t);
+			// As thick as the drops were when this one came: the ones there before the drying
+			// run off.
+			float born = (round_n - h * 7.0) / speed;
+			bool old = drying && born < drop_state.z;
+			if (crt_hash(vec2(seed, round_n)) > (old ? drop_state.w : drop_state.y) * (0.8 - edge * 0.2)) {
+				continue;
 			}
-			return vec3(-d * vec2(1.6, 1.1), light);
-		}
-		// The wet trail it leaves: two pixels wide near the drop, one further up, bending
-		// the picture behind it a pixel toward its middle, fading as it dries.
-		float above = -d.y;
-		float wide = above < 10.0 && r >= 2.0 ? 1.0 : 0.0;
-		if (above > 0.0 && p.y > y0 && f > 0.3 && (d.x == 0.0 || (wide > 0.0 && d.x == -1.0))) {
-			float fade = (1.0 - smoothstep(0.85, 1.0, f)) * (1.0 - run);
-			out_d = vec3(d.x == 0.0 ? -1.0 : 1.0, -1.0, (0.06 - above * 0.0008) * fade);
+			float run = old ? clamp((now - drop_state.z) / DRY_RUN, 0.0, 1.0) : 0.0;
+			f += (1.0 - f) * run;
+			if (run >= 1.0) {
+				continue;
+			}
+			float x0 = c * LANE + 3.0 + floor(crt_hash(vec2(round_n, seed)) * (LANE - 6.0));
+			float y0 = floor(crt_hash(vec2(seed + 9.0, round_n)) * size.y * 0.7);
+			float y = floor(y0 + smoothstep(0.3, 0.9, f) * run_y + run * 14.0);
+			float x = floor(x0 + (y - y0) * slant + 0.5);
+			float r = floor((mix(3.4, 0.8, smoothstep(0.75, 1.0, f)) + crt_hash(vec2(seed, round_n + 0.5)) * 1.4) * (1.0 - run) + 0.5);
+			vec2 d = p - vec2(x, y);
+			// Drawn out up and down, pointed at the top: a drop hanging as it runs.
+			vec2 e = d + 0.5;
+			e.y *= e.y < 0.0 ? 0.55 : 0.85;
+			float dist = length(e);
+			if (r >= 1.0 && dist < r) {
+				// A brighter body over the picture under it, turned over, a darker rim at the
+				// bottom and a glint at the top left.
+				float light = 0.1;
+				vec2 g = vec2(-floor(r * 0.5), -floor(r * 0.9));
+				if (d == g || (r >= 3.0 && d == g + vec2(0.0, 1.0))) {
+					light = 0.55;
+				} else if (dist > r - 1.0 && d.y >= -0.5) {
+					light = -0.2;
+				}
+				return vec3(-d * vec2(1.6, 1.1), light);
+			}
+			// The wet trail it leaves along the way it ran: two pixels wide near the drop,
+			// one further up, bending the picture behind it a pixel toward its middle,
+			// fading as it dries.
+			float above = -d.y;
+			float tx = p.x - floor(x0 + (p.y - y0) * slant + 0.5);
+			float wide = above < 10.0 && r >= 2.0 ? 1.0 : 0.0;
+			if (above > 0.0 && p.y > y0 && f > 0.3 && (tx == 0.0 || (wide > 0.0 && tx == -1.0))) {
+				float fade = (1.0 - smoothstep(0.85, 1.0, f)) * (1.0 - run);
+				out_d = vec3(tx == 0.0 ? -1.0 : 1.0, -1.0, (0.06 - above * 0.0008) * fade);
+			}
 		}
 	}
 	return out_d;
@@ -238,22 +255,37 @@ vec4 screen_snow(vec2 p, vec2 size) {
 			out_c = vec4(0.86, 0.94, 1.0, a);
 		}
 	}
-	if (frost_state.y > 0.0 && near < 48.0) {
-		// Cells of 15 pixels along the edges, each with a flake now and then.
-		vec2 cell = floor(p / 15.0);
-		float h = crt_hash(cell + 5.3);
-		float t = frost_state.x * (0.05 + 0.04 * h) + h * 9.0;
-		float round_n = floor(t);
-		float f = fract(t);
-		float edge_k = 1.0 - near / 48.0;
-		if (crt_hash(cell + round_n * 1.7) < frost_state.y * edge_k * 0.8 && f < 0.85) {
+	if (frost_state.y > 0.0 && near < 48.0 + GLASS_LANES * 15.0) {
+		// Cells of 15 pixels along the edges, each with a flake now and then; the wind
+		// slides a lying flake aside over its life (glass_wind), so a pixel looks at the
+		// cells upwind of it too.
+		for (int j = -int(GLASS_LANES); j <= int(GLASS_LANES); j++) {
+			vec2 cell = floor(p / 15.0) + vec2(float(j), 0.0);
+			vec2 mid = cell * 15.0 + 7.5;
+			vec2 near_c = min(mid, size - 1.0 - mid);
+			float cell_near = min(near_c.x, near_c.y);
+			if (cell_near >= 48.0 || mid.x < 0.0 || mid.x > size.x) {
+				continue;
+			}
+			float h = crt_hash(cell + 5.3);
+			float t = frost_state.x * (0.05 + 0.04 * h) + h * 9.0;
+			float round_n = floor(t);
+			float f = fract(t);
+			float edge_k = 1.0 - cell_near / 48.0;
+			if (crt_hash(cell + round_n * 1.7) >= frost_state.y * edge_k * 0.8 || f >= 0.85) {
+				continue;
+			}
 			vec2 at = cell * 15.0 + 4.0 + floor(vec2(crt_hash(cell + round_n), crt_hash(cell - round_n)) * 7.0);
+			at.x += floor(glass_wind * GLASS_LANES * 15.0 * f + 0.5);
 			// It lands at once, lies, and melts down to a dot at the end.
 			float r = f < 0.55 ? 4.0 : (f < 0.68 ? 3.0 : (f < 0.78 ? 2.0 : 1.0));
 			if (crt_hash(cell * 1.3 + round_n) < 0.35) {
 				r = min(r, 3.0);
 			}
 			vec2 d = p - at;
+			if (abs(d.x) > 5.0 || abs(d.y) > 5.0) {
+				continue;
+			}
 			float a = 0.0;
 			vec3 col = vec3(0.97, 0.99, 1.0);
 			if (flake_arm(d, r)) {

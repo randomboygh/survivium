@@ -14,6 +14,8 @@ const SHOTS := {
 	"fx-heat": {"time": 0.5, "season": 1, "by_fire": Vector3(0.6, 0.0, 1.4)},
 	"fx-heat-desert": {"time": 0.5, "season": 1, "place": "desert"},
 	"fx-drops": {"time": 0.45, "season": 1, "weather": "downpour"},
+	# The same with a wind blowing to the right across the screen: the drops run aslant.
+	"fx-drops-wind": {"time": 0.45, "season": 1, "weather": "downpour", "glass_wind": 1.0},
 	"fx-breath": {"time": 0.3, "season": 3, "snow": 0.0, "weather": "clear", "place": "beach", "animal": Vector3(1.2, 0.0, 0.6), "breathe": true},
 	"fx-sun-path": {"time": 0.27, "season": 1, "weather": "clear", "place": "lake"},
 	# On the water: the figures mirrored by the lake, a fire glittering on it at night,
