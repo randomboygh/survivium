@@ -33,8 +33,6 @@ uniform float heart = 0.0;
 // how high over them, in pixels; heat_power how strongly each fire burns (0 none).
 uniform vec4 heat_spots[4];
 uniform vec4 heat_power = vec4(0.0);
-// The air over the ground trembling in patches in a hot noon, 0..1.
-uniform float heat_haze = 0.0;
 // Drops of rain running down the screen's edges in a downpour or after a swim
 // (AirEffects): x their clock (seconds), y how thick they come now (0..1), z when on
 // that clock the screen began to dry (-1 while it does not), w how thick they were then.
@@ -111,8 +109,7 @@ float crt_hash(vec2 p) {
 }
 
 // How many pixels the hot air moves the picture at its pixel `p` sideways: rows waving
-// up over each fire, weaker to its sides and top, a pixel at most; in a hot noon rows
-// wobbling in drifting patches over the whole ground.
+// up over each fire, weaker to its sides and top, a pixel at most.
 float heat_shift(vec2 p) {
 	float s = 0.0;
 	for (int i = 0; i < 4; i++) {
@@ -131,12 +128,6 @@ float heat_shift(vec2 p) {
 		float k = heat_power[i] * (1.0 - up * up) * (1.0 - side * side) * 1.5;
 		float w = sin(p.y * 0.3 + TIME * 3.5 + h.x) * 0.7 + sin(p.y * 0.11 + TIME * 1.9) * 0.5;
 		s += floor(w * k + 0.5);
-	}
-	if (heat_haze > 0.0) {
-		vec2 wp = (p + view_origin) / 16.0;
-		float n = texture(cloud_noise, wp / 23.0 + vec2(TIME * 0.01, 0.0)).r;
-		float k = heat_haze * smoothstep(0.5, 0.7, n) * 1.4;
-		s += floor(sin(p.y * 1.7 + TIME * 6.0 + n * 9.0) * k + 0.5);
 	}
 	return clamp(s, -1.0, 1.0);
 }
@@ -334,7 +325,7 @@ void fragment() {
 			band = in_band * crt_band;
 		}
 		uv = (read * crt_screen.xy - crt_screen.zw) / picture;
-		if (heat_power != vec4(0.0) || heat_haze > 0.0) {
+		if (heat_power != vec4(0.0)) {
 			uv.x += heat_shift(floor(uv / TEXTURE_PIXEL_SIZE)) * TEXTURE_PIXEL_SIZE.x;
 		}
 		if (drop_state.y > 0.0 || drop_state.z >= 0.0) {
@@ -356,7 +347,7 @@ void fragment() {
 		if (sway > 0.0 || trip > 0.0) {
 			uv += sway_shift(sp) * TEXTURE_PIXEL_SIZE;
 		}
-		if (heat_power != vec4(0.0) || heat_haze > 0.0) {
+		if (heat_power != vec4(0.0)) {
 			uv.x += heat_shift(floor(uv / TEXTURE_PIXEL_SIZE)) * TEXTURE_PIXEL_SIZE.x;
 		}
 		if (drop_state.y > 0.0 || drop_state.z >= 0.0) {

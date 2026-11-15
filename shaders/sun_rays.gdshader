@@ -20,6 +20,9 @@ uniform vec3 light_down = vec3(0.0, -1.0, 0.0);
 uniform float depth_lift = 0.4;
 
 varying vec2 band;
+// A fleck's size to its shaft's width.
+const float FLECK_SIZE = 0.7;
+
 varying float phase;
 varying float strength;
 // How long the shaft is, in world units.
@@ -51,8 +54,9 @@ void vertex() {
 		VERTEX = vec3(mix(a.x, b.x, q.y) + across.x, mix(a.y, b.y, q.y) + depth_lift, mix(a.z, b.z, q.y) + across.y);
 	} else {
 		span = 1.0;
-		// The shaft's patch on the ground: as wide as the shaft, longer along the light
-		// the lower the sun; wider and narrower, and shifting, with its shaft.
+		// The shaft's patch on the ground: a little narrower than the shaft (FLECK_SIZE),
+		// longer along the light the lower the sun; wider and narrower, and shifting,
+		// with its shaft.
 		vec2 level_way = vec2(light_down.x, light_down.z);
 		vec2 run = length(level_way) > 0.01 ? normalize(level_way) : vec2(0.0, 1.0);
 		vec2 side_way = vec2(-run.y, run.x);
@@ -60,7 +64,8 @@ void vertex() {
 		float t = TIME + phase * 37.0;
 		float widen = 0.8 + 0.2 * sin(t * 0.37) + 0.08 * sin(t * 0.61 + 1.7);
 		float shift = 0.5 * (0.06 * sin(t * 0.29 + 0.6) + 0.03 * sin(t * 0.53));
-		vec2 at = side_way * (q.x * COLOR.r * widen + shift) + run * ((q.y - 0.5) * COLOR.r * widen * stretch);
+		float size = COLOR.r * widen * FLECK_SIZE;
+		vec2 at = side_way * (q.x * size + shift) + run * ((q.y - 0.5) * size * stretch);
 		world_pos = o + vec3(at.x, 0.02, at.y);
 		VERTEX = shear(world_pos);
 	}
@@ -87,13 +92,15 @@ void fragment() {
 		// Three steps of light, dithered between them.
 		k = floor(k * 12.0 + dither) / 12.0;
 	} else {
-		// A patch of sun at the end of its shaft, paler and brighter with it; crisp, the
-		// middle a step brighter.
-		float d = length(band * 2.0 - vec2(1.0));
+		// A patch of sun at the end of its shaft, paler and brighter with it: crisp, of
+		// a ragged shape of its own (the gap in the leaves), the middle a step brighter.
+		vec2 v = band * 2.0 - vec2(1.0);
+		float a = atan(v.y, v.x);
+		float d = length(v) * (1.0 + 0.22 * sin(3.0 * a + phase * 6.28) + 0.13 * sin(5.0 * a + phase * 17.0));
 		float t = TIME + phase * 37.0;
 		float breathe = 0.65 + 0.25 * sin(t * 0.41 + 0.9) + 0.1 * sin(t * 0.73 + 2.3);
-		k = (step(d, 0.9) * 0.6 + step(d, 0.5) * 0.4) * breathe * strength * amount * 0.7;
-		k = floor(k * 12.0 + dither) / 12.0;
+		k = (step(d, 0.8) * 0.65 + step(d, 0.45) * 0.35) * breathe * strength * amount * 0.85;
+		k = floor(k * 8.0 + 0.5) / 8.0;
 	}
 	if (k <= 0.0) {
 		discard;

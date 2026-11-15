@@ -16,7 +16,22 @@ const Others := preload("res://src/client/view/others.gd")
 const Effects := preload("res://src/client/view/effects.gd")
 const GlowLights := preload("res://src/client/view/glow_lights.gd")
 const WindowGlow := preload("res://src/client/view/window_glow.gd")
-const SunRays := preload("res://src/client/view/sun_rays.gd")
+
+
+## Ground all of one material (or all sea), for AirEffects.hot_ground.
+class FakeGround:
+	var sea_level := 10
+	var top := 0
+	var water := false
+
+	func surface_y(_x: int, _z: int) -> int:
+		return -1 if water else 11
+
+	func get_cell(_x: int, _y: int, _z: int) -> int:
+		return top
+
+	func sea(_x: int, _y: int, _z: int) -> bool:
+		return water
 
 
 ## Settings that keep values alone, for AutoQuality.
@@ -62,7 +77,7 @@ func run() -> void:
 	_test_glow_lights()
 	_test_window_glow()
 	_test_small_effects()
-	_test_sun_ray_way()
+	_test_hot_ground()
 
 
 func _test_pixel_view() -> void:
@@ -902,19 +917,17 @@ func _test_small_effects() -> void:
 		"a dragonfly is five pixels long with its wings up")
 
 
-## A shaft falls at least SunRays.STEEP_PICTURE below the level in the picture: a
-## morning sun in the east, low, is made steeper, keeping its way across the ground;
-## a sun whose light already falls steeply enough is kept as it is.
-func _test_sun_ray_way() -> void:
-	var up := Vector2(0.0, -1.0)
-	for sun in [Vector3(-0.83, 0.39, 0.41).normalized(), Vector3(0.05, 0.7, 0.7).normalized(),
-			Vector3(-0.3, 0.8, -0.5).normalized()]:
-		var way := SunRays.steep_way(sun, up, 1.0, 1.0)
-		var flat := Vector2(way.x, way.z)
-		var drawn := flat + up * (flat.dot(up) * 0.0 + way.y)
-		var angle := rad_to_deg(atan2(drawn.dot(-up), absf(drawn.x)))
-		_check(angle >= SunRays.STEEP_PICTURE - 0.01, "a shaft is drawn %.0f degrees below the level (sun %s)" % [angle, sun])
-		var across := Vector2(-sun.x, -sun.z).normalized()
-		_check(flat.normalized().dot(across) > 0.999, "a shaft keeps the light's way across the ground")
-	var steep := Vector3(0.0, 0.9, -0.3).normalized()
-	_check(SunRays.steep_way(steep, up, 1.0, 1.0).is_equal_approx(-steep), "a steep enough light is kept")
+## The air trembles over the ground only over sand and the sea.
+func _test_hot_ground() -> void:
+	var sand := -1
+	for i in Mat.RECORDS.size():
+		if Mat.RECORDS[i].get("ground", "") == "sand":
+			sand = i
+			break
+	var w := FakeGround.new()
+	w.top = Mat.GRASS
+	_check(AirEffects.hot_ground(w, Vector3.ZERO) == 0.0, "no heat haze over grass")
+	w.top = sand
+	_check(sand < 0 or AirEffects.hot_ground(w, Vector3.ZERO) == 1.0, "heat haze over sand")
+	w.water = true
+	_check(AirEffects.hot_ground(w, Vector3.ZERO) == 1.0, "heat haze over the sea")
