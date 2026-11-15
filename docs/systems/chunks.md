@@ -23,7 +23,11 @@ slice, to free the far meshes.
   a chunk lies in `bare` to the end (if its building was interrupted — in the queue again); **lag**: while
   there is a chunk without ground on screen (`lagging`, `_check_lag`), the building of such a chunk and the
   generation near the player take up to `LAG_BUDGET_US` (16 ms) of the frame instead of 9 ms — the FPS on a
-  run sags, there are fewer voids; **the haze at the edge** (the setting «Haze at the edge», key `edge_mist`,
+  run sags, there are fewer voids; and the frame goes to the screen alone: a chunk off the screen is not
+  started (`_ready_on_screen`), a chunk on it already started gets the lag budget at once, and the session
+  makes only the chunks the screen waits for (`wanted()` → `Session.wanted`, `wanted_only`); walking into new
+  land a phone (4–5× slower than a PC here) needs about a second of building a second for the whole zone and
+  has a third of it (2026-11-15), so the sides of the zone wait until the player stops; **the haze at the edge** (the setting «Haze at the edge», key `edge_mist`,
   on by default, `set_haze`): `edge_haze.gd` covers the chunks on screen without ground with a haze of the
   sky's background colour (lighter by day), which for `EdgeHaze.FADE` goes onto the built neighbouring chunks
   and melts; one mesh of quads at the player's height (the cursor's shader), rebuilt only when the set of

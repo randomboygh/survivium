@@ -102,6 +102,12 @@ var _all_made := false
 ## chunks ahead of each zone (zone → offset in chunks), see _update_leads.
 var _motion := {}
 var _leads := {}
+## Chunks a client in this process waits for to draw its screen, the most wanted first
+## (ChunkStreamer.wanted): made before the rings round the zones. With `wanted_only` (the
+## client's screen has a hole: the player outran the building) only they are made, so
+## the frame's time goes to the screen, not to the sides of the zone behind it.
+var wanted: Array[Vector2i] = []
+var wanted_only := false
 ## Chunks beyond DROP of every zone, listed when the zones move (see forget_far).
 var _drop_queue: Array[Vector2i] = []
 ## Time spent generating, and on each kind of work since take_work last read it
@@ -420,6 +426,19 @@ func _next_needed(reach: int) -> Array:
 	return []
 
 
+## The next stage the first wanted chunk within `reach` of a zone needs (see `wanted`),
+## empty when they have all they need.
+func _wanted_needed(reach: int) -> Array:
+	if gen == null:
+		return []
+	for key in wanted:
+		if _distance(key) <= reach:
+			var need: Array = gen.needed(key)
+			if not need.is_empty():
+				return need
+	return []
+
+
 ## Generates the chunks within `reach` of the zones a step at a time: `near_us`
 ## microseconds when the chunk being made is within NEAR of a zone, else `far_us`.
 ## At least one step is taken, so a job always ends. Returns the time spent.
@@ -430,7 +449,11 @@ func make_chunks(near_us: int, far_us: int, reach := ZONE) -> int:
 	var worked := false
 	while true:
 		if _gen_job == null:
-			var need := _next_needed(reach)
+			var need := _wanted_needed(reach)
+			if need.is_empty() and wanted_only:
+				break
+			if need.is_empty():
+				need = _next_needed(reach)
 			if need.is_empty():
 				break
 			_gen_job = gen.start(need[0], need[1])
