@@ -78,7 +78,7 @@ voxel models of things.
   (`sprite_mirror.gdshader`: the sprite upside down, drawn after the water and over the body's part under it
   (priority 2) with no depth test, kept to the water and the half of a shore's cell next to it (`SHORE_WET`) by the roof map's columns; a figure is
   mirrored with open water within `MIRROR_LOOK` cells round its feet, a swimmer too; its box fitted with `PixelView.sheared_box`). NatureEffects: dandelion fluff,
-  midges by the water at sunset and over one standing still, dragonflies over the water, dust or snow from
+  midges by the water at sunset and over one standing still (faint single pixels pulled back to a slowly wandering middle, `_midge_drift`, so they dart to and fro across it), dragonflies over the water, dust or snow from
   under the feet.
 - `src/client/view/wisps.gd` (held by `Effects.wisps`, moved by `Sky`) — will-o'-the-wisps: on nights out of winter up
   to `WISPS` pale flickering emitters wander over the murky water of swamps and bogs (`WorldCells.murk`) near
