@@ -11,6 +11,7 @@ extends SceneTree
 ## searched in cells (half a world unit); the player stands in world units.
 
 const Items := preload("res://src/shared/content/items.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const ModFiles := preload("res://src/shared/content/mod_files.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
@@ -950,9 +951,27 @@ func _run() -> void:
 				# On the ground (a floor or a room stand on it), or the ground itself flattened.
 				var y := -1 if main.build.kind == "flatten" else 0
 				s = {"plan": main.build.kind, "first": feet + Vector3i(2, y, -3), "last": feet + Vector3i(6, y, 1)}
+			if shot.has("flights"):
+				# Flights drawn by the server and built at once: [form, kind, first, last, height]
+				# from the feet, no stroke held; the panel shows the last.
+				var hp = main.host.player
+				hp.hands = ["materials:planks", ""]
+				hp.active = 0
+				var block := Mat.index(Items.get_item("materials:planks").get("place", ""))
+				for fl: Array in shot.flights:
+					main.session.plans.draw(main.session.actions, hp, fl[1], feet + fl[2], feet + fl[3], fl[4], 1, false, fl[0])
+				for c: Vector3i in main.session.plans.cells.keys():
+					main.session.actions.build_cell(c, block, main.session.plans.forms.get(c, 0))
+				main.session.plans.erase(main.session.actions, hp, main.session.plans.cells.keys())
+				main.build.form = shot.flights[-1][0] & 3
+				main.build.set_kind(shot.flights[-1][1])
+				main.build.set_height(shot.flights[-1][4])
+				for i in 30:
+					await process_frame
 			for i in 3:
 				await process_frame
-			main.build.show_stroke(s)
+			if not shot.has("flights"):
+				main.build.show_stroke(s)
 		if shot.has("sapling_tree"):
 			# The oak sapling at its last stage east of the farm (TestGround.SAPLINGS) grown
 			# by the server into a young tree ("young") or a tree ("grown", "felled"), and

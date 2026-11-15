@@ -310,6 +310,7 @@
 "[press_again_to_remove_all]": "Drücke nochmal, um alle Baupläne in der Nähe zu entfernen"
 "[press_for_the_next_shape]": "%s (drücken: nächste Figur)"
 "[press_for_the_next_form]": "%s (drücken: nächste Form)"
+"[slopes_and_stairs_are_drawn_by]": "Schrägen und Stufen zeichnet man als Linie oder Quadrat"
 "[height_floor_walls_cube_with]": "Höhe: Boden %s, Wände %s, Würfel %s (mit Boden und Decke)"
 "[erasing_the_blueprint_press_to]": "Bauplan löschen (drücken: zeichnen)"
 "[drawing_the_blueprint_press_to]": "Bauplan zeichnen (drücken: löschen)"

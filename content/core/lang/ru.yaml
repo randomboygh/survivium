@@ -310,6 +310,7 @@
 "[press_again_to_remove_all]": "Нажмите ещё раз, чтобы убрать все чертежи рядом"
 "[press_for_the_next_shape]": "%s (нажать — следующая фигура)"
 "[press_for_the_next_form]": "%s (нажать — следующая форма)"
+"[slopes_and_stairs_are_drawn_by]": "Скосы и ступеньки рисуются линией или квадратом"
 "[height_floor_walls_cube_with]": "Высота: пол %s, стены %s, куб %s (с полом и потолком)"
 "[erasing_the_blueprint_press_to]": "Стирать чертёж (нажать — рисовать)"
 "[drawing_the_blueprint_press_to]": "Рисовать чертёж (нажать — стирать)"

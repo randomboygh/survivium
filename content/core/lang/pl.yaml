@@ -310,6 +310,7 @@
 "[press_again_to_remove_all]": "Naciśnij jeszcze raz, by usunąć wszystkie plany w pobliżu"
 "[press_for_the_next_shape]": "%s (naciśnij: następna figura)"
 "[press_for_the_next_form]": "%s (naciśnij: następny kształt)"
+"[slopes_and_stairs_are_drawn_by]": "Skosy i stopnie rysuje się linią lub kwadratem"
 "[height_floor_walls_cube_with]": "Wysokość: podłoga %s, ściany %s, sześcian %s (z podłogą i sufitem)"
 "[erasing_the_blueprint_press_to]": "Wymazywanie planu (naciśnij: rysuj)"
 "[drawing_the_blueprint_press_to]": "Rysowanie planu (naciśnij: wymaż)"

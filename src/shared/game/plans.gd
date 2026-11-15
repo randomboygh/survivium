@@ -52,6 +52,9 @@ var forms := {}
 ## The kinds of shape (the build mode's panel): a wall along a line, a floor in a
 ## plane, walls round a square, a box with walls, a floor and a ceiling.
 const KINDS := ["line", "plane", "square", "cube", "flatten"]
+## The shapes drawn as a flight of slopes or stairs when a form is chosen (flight); the
+## others are drawn of cubes whatever the form.
+const FLIGHTS := ["line", "square"]
 ## The ghost of a cell to dig out (flattening): in `cells` in place of a block's item.
 const CUT := "-"
 ## How far over and under the level a flattening reaches, in levels, and how many
@@ -81,10 +84,15 @@ static func is_fence(id: String) -> bool:
 ## rectangle, `height` high and `thick` thick inward; «cube» `height` levels in all
 ## (MIN_ROOM at least): a floor on the level of `a`, walls on it and a ceiling over them.
 ## In no order.
-static func shape(kind: String, a: Vector3i, b: Vector3i, height: int, near := Vector2.INF, thick := 1) -> Array[Vector3i]:
+## With slopes or stairs (`form`, see flight) a line or a square is a flight of them.
+static func shape(kind: String, a: Vector3i, b: Vector3i, height: int, near := Vector2.INF, thick := 1,
+		form := 0) -> Array[Vector3i]:
 	var out: Array[Vector3i] = []
 	# Counted before it is made: corners far apart would make millions of cells.
 	if too_big(kind, a, b, height, thick):
+		return out
+	if form & 3 != 0 and kind in FLIGHTS:
+		out.assign(flight(kind, a, b, height, near, thick, form).keys())
 		return out
 	height = clampi(height, MIN_HEIGHT, MAX_HEIGHT)
 	thick = clampi(thick, MIN_THICK, MAX_THICK)
@@ -131,6 +139,65 @@ static func shape(kind: String, a: Vector3i, b: Vector3i, height: int, near := V
 						for y in walls:
 							out.append(Vector3i(x, a.y + 1 + y, z))
 	return out
+
+
+## The cells of a flight of slopes or stairs (`form`, WorldData.forms: its kind in bits
+## 0..1, the side a lone column rises to in bits 2..3) drawn as shape `kind` (a line or a
+## square, FLIGHTS) from `a` to `b`, by cell → its form (0 a cube). It climbs from the
+## first corner, one level high, to the last, `height` levels high: a line along the way
+## the stroke went, a square along both its sides to the far corner (each row of a thick
+## wall the same). A column is filled with cubes under its top, which is a slope or a step
+## rising toward `b` where the column is higher than the one before it. An upturned slope
+## mirrors that from the top: every column reaches `height` levels, the first hangs one
+## level high at the top, the last goes down to the ground, and the lowest cell of each
+## column that reaches lower than the one before it is the upturned slope.
+static func flight(kind: String, a: Vector3i, b: Vector3i, height: int, near := Vector2.INF, thick := 1,
+		form := 0) -> Dictionary:
+	var out := {}
+	if kind not in FLIGHTS or form & 3 == 0 or too_big(kind, a, b, height, thick):
+		return out
+	height = clampi(height, MIN_HEIGHT, MAX_HEIGHT)
+	thick = clampi(thick, MIN_THICK, MAX_THICK)
+	var f := form & 3
+	var d := b - a
+	var along_x := absi(d.x) >= absi(d.z)
+	var lo := Vector2i(mini(a.x, b.x), mini(a.z, b.z))
+	var hi := Vector2i(maxi(a.x, b.x), maxi(a.z, b.z))
+	# How many steps along the way from the first corner to the last.
+	var span := (absi(d.x) if along_x else absi(d.z)) if kind == "line" else absi(d.x) + absi(d.z)
+	for c in shape(kind, a, b, 1, near, thick):
+		var t := absi(c.x - a.x) + absi(c.z - a.z)
+		var by_x := along_x
+		if kind == "line":
+			t = absi(c.x - a.x) if along_x else absi(c.z - a.z)
+		elif d.x == 0 or d.z == 0:
+			by_x = d.x != 0
+		else:
+			# Along the side it lies on; a corner along the side the way comes into it by.
+			var row := c.z - lo.y < thick or hi.y - c.z < thick
+			var col := c.x - lo.x < thick or hi.x - c.x < thick
+			by_x = row and not (col and absi(c.x - a.x) < thick and absi(c.z - a.z) >= thick)
+		var side := form >> 2 & 3
+		if span > 0:
+			side = (1 if d.x > 0 else 3) if by_x else (2 if d.z > 0 else 0)
+		var h := _rise(t, span, height)
+		var formed := t == 0 or h > _rise(t - 1, span, height)
+		# The cell that takes the form: the top, or the bottom of an upturned flight.
+		var edge := Vector3i(c.x, a.y + height - h, c.z) if f == WorldData.FORM_UPPER else Vector3i(c.x, a.y + h - 1, c.z)
+		var up := 1 if f == WorldData.FORM_UPPER else -1
+		for y in h:
+			out[edge + Vector3i(0, y * up, 0)] = 0
+		if formed:
+			out[edge] = f | side << 2
+	return out
+
+
+## How many levels high the column `t` steps along a flight `span` steps long is: one at
+## the first, `height` at the last, evenly between.
+static func _rise(t: int, span: int, height: int) -> int:
+	if span <= 0:
+		return height
+	return 1 + ((height - 1) * 2 * t + span) / (2 * span)
 
 
 ## Whether column x, z lies in the walls `thick` cells thick round the rectangle lo..hi.
@@ -226,18 +293,22 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 	elif block < 0:
 		who.nag("plan_block", "[choose_a_block_for_the]")
 		return 0
-	var sorted := sort(actions, who, kind, a, shape(kind, a, b, height, Vector2(p.x, p.z), thick), block)
+	form &= 15
+	if form & 3 == 0 or kind not in FLIGHTS:
+		form = 0
+	var steps := flight(kind, a, b, height, Vector2(p.x, p.z), thick, form)
+	var sorted := sort(actions, who, kind, a, shape(kind, a, b, height, Vector2(p.x, p.z), thick, form), block,
+		form & 3 == WorldData.FORM_UPPER)
 	var added: Array = []
 	for c: Vector3i in sorted.fit:
 		if cells.size() + added.size() >= MAX_CELLS:
 			who.nag("plan_full", "[too_many_blueprints]")
 			break
 		added.append(c)
-	form &= 15
 	for c: Vector3i in added:
 		cells[c] = item
-		if form & 3 != 0:
-			forms[c] = form
+		if steps.get(c, 0) != 0:
+			forms[c] = steps[c]
 		else:
 			forms.erase(c)
 	if not added.is_empty():
@@ -314,9 +385,10 @@ static func best_tool(who, m: int) -> Variant:
 ## The cells `all` of shape `kind` drawn from `a` with `block` (see shape), sorted:
 ## {"fit": those the ghost goes on, "blocked": those it cannot (inside other blocks, a
 ## floor buried under ground, where `who` may not build), "hanging": those of «fit»
-## with nothing under them yet (uneven ground: a wall over a dip)}. Ghost cells there
-## already are in none. The client shows the same before the stroke ends.
-func sort(actions, who, kind: String, a: Vector3i, all: Array[Vector3i], block: int) -> Dictionary:
+## with nothing under them yet (uneven ground: a wall over a dip; none with `hangs`, an
+## upturned flight, which hangs by its shape)}. Ghost cells there already are in none.
+## The client shows the same before the stroke ends.
+func sort(actions, who, kind: String, a: Vector3i, all: Array[Vector3i], block: int, hangs := false) -> Dictionary:
 	var out := {"fit": [], "blocked": [], "hanging": []}
 	var mine := {}
 	# The lowest cell of the shape in each column: only those can hang (a ceiling rests
@@ -344,7 +416,7 @@ func sort(actions, who, kind: String, a: Vector3i, all: Array[Vector3i], block: 
 			continue
 		out.fit.append(c)
 		var down := c + Vector3i.DOWN
-		if actions != null and lowest[Vector2i(c.x, c.z)] == c.y and not cells.has(down) \
+		if actions != null and not hangs and lowest[Vector2i(c.x, c.z)] == c.y and not cells.has(down) \
 				and not actions.world.is_solid(down.x, down.y, down.z):
 			out.hanging.append(c)
 	return out

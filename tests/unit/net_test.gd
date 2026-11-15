@@ -502,15 +502,15 @@ func _test_requests() -> void:
 	a.active = 0
 	a.inventory.add("materials:planks", 4)
 	var g0 := Vector3i(a.feet().x - 3, a.feet().y, a.feet().z - 3)
-	# Ramps rising east (WorldData.FORM_RAMP, side 1).
+	# A flight of ramps rising east (WorldData.FORM_RAMP, side 1), 1 to 3 levels high.
 	var ramp := WorldData.FORM_RAMP | 1 << 2
-	_check(net.request(Protocol.PLAN, ["line", g0, g0 + Vector3i(2, 0, 0), 1, 1, false, ramp]).value == 3 and s.plans.cells.size() == 3,
-		"a wall of the blueprint is drawn on the server")
+	_check(net.request(Protocol.PLAN, ["line", g0, g0 + Vector3i(2, 0, 0), 3, 1, false, ramp]).value == 6 and s.plans.cells.size() == 6,
+		"a flight of the blueprint is drawn on the server")
 	_check(s.plans.forms.size() == 3 and s.plans.forms.values().all(func(f: int) -> bool: return f == ramp),
 		"with the form chosen for its blocks")
 	host.flush(net)
 	_check(events.any(func(e: Array) -> bool: return e[0] == Protocol.PLAN_CELLS and e[1][1] == "materials:planks" \
-		and e[1][0].size() == 3 and e[1][2] == [ramp, ramp, ramp]), "and the ghost is told to the client, forms too")
+		and e[1][0].size() == 6 and e[1][2].count(ramp) == 3 and e[1][2].count(0) == 3), "and the ghost is told to the client, forms too")
 	_check(net.request(Protocol.PLAN, ["roof", g0, g0, 1, 1, false, 0]).value == null, "a shape of no known kind is refused")
 	_check(net.request(Protocol.BUILD, []).value is Dictionary, "the build mode's button builds through the server")
 	_check(net.request(Protocol.PLAN_CLEAR, []).value >= 2 and s.plans.cells.is_empty(), "and the ghost near is cleared")

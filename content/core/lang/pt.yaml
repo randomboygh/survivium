@@ -310,6 +310,7 @@
 "[press_again_to_remove_all]": "Toque de novo para remover todas as plantas por perto"
 "[press_for_the_next_shape]": "%s (toque para a próxima figura)"
 "[press_for_the_next_form]": "%s (toque para a próxima forma)"
+"[slopes_and_stairs_are_drawn_by]": "Rampas e degraus desenham-se com linha ou quadrado"
 "[height_floor_walls_cube_with]": "Altura: piso %s, paredes %s, cubo %s (com piso e teto)"
 "[erasing_the_blueprint_press_to]": "Apagando a planta (toque para desenhar)"
 "[drawing_the_blueprint_press_to]": "Desenhando a planta (toque para apagar)"

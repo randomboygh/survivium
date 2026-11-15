@@ -23,6 +23,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 
@@ -186,10 +187,18 @@ func turn() -> void:
 	changed.emit()
 
 
-## The form of the blocks of a stroke from `first` (WorldData.forms): the form chosen,
-## rising toward the side of the shape away from the player, turned `turns` more.
+## Whether the shape drawn now takes slopes and stairs (a line or a square, drawn as a
+## flight of them: Plans.flight); a plane and a room are of cubes.
+func forms_drawn() -> bool:
+	return kind in Plans.FLIGHTS
+
+
+## The form of the blocks of a stroke from `first` (WorldData.forms): the form chosen, 0
+## for a shape of cubes (forms_drawn). A flight rises along the stroke (Plans.flight);
+## the side kept here is for a stroke of one column: away from the player, turned
+## `turns` more.
 func form_of(first: Vector3i, last: Vector3i) -> int:
-	if form == 0:
+	if form == 0 or not forms_drawn():
 		return 0
 	var p: Vector3 = game.player.position / Plans.CELL
 	var mid := (Vector2(first.x, first.z) + Vector2(last.x, last.z)) * 0.5 + Vector2(0.5, 0.5)
@@ -574,7 +583,7 @@ func stroke_cells(s: Dictionary) -> Array[Vector3i]:
 	if Plans.is_fence(chosen()):
 		# A fence: one segment high and thick (Plans.draw).
 		return Plans.shape(s.plan, s.first, s.last, 1, Vector2(p.x, p.z), 1) if s.plan in ["line", "square"] else []
-	return Plans.shape(s.plan, s.first, s.last, height, Vector2(p.x, p.z), thick)
+	return Plans.shape(s.plan, s.first, s.last, height, Vector2(p.x, p.z), thick, form_of(s.first, s.last))
 
 
 ## Shows what stroke `s` would do: the cells the ghost goes on light, those it cannot and
@@ -624,4 +633,5 @@ func end_stroke(s: Dictionary) -> void:
 
 func _sorted(s: Dictionary, cells: Array[Vector3i]) -> Dictionary:
 	var block := Mat.index(Items.get_item(chosen()).get("place", ""))
-	return game.plans.sort(game.actions, game.character, s.plan, s.first, cells, block)
+	return game.plans.sort(game.actions, game.character, s.plan, s.first, cells, block,
+		form_of(s.first, s.last) & 3 == WorldData.FORM_UPPER)

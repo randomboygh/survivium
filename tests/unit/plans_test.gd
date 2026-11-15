@@ -10,6 +10,7 @@ func run() -> void:
 	_test_shapes()
 	_test_build()
 	_test_forms()
+	_test_flights()
 	_test_flatten()
 
 
@@ -108,6 +109,70 @@ func _test_build() -> void:
 		"and the blocked cells are not drawn")
 
 
+## A line or a square drawn with slopes or stairs is a flight (Plans.flight): from the
+## first corner one level high to the last `height` levels high, an upturned one hanging
+## from the top; a plane and a room stay cubes.
+func _test_flights() -> void:
+	var ramp := WorldData.FORM_RAMP
+	var east := ramp | 1 << 2
+	var up := Plans.flight("line", Vector3i(0, 1, 0), Vector3i(5, 1, 0), 6, Vector2.INF, 1, ramp)
+	var right := up.size() == 21
+	for x in 6:
+		right = right and up.get(Vector3i(x, 1 + x, 0)) == east and not up.has(Vector3i(x, 2 + x, 0)) \
+			and (x == 0 or up.get(Vector3i(x, x, 0)) == 0)
+	_check(right, "a line of ramps climbs a level a column from the first corner to the height at the last: %s" % [up])
+	var back := Plans.flight("line", Vector3i(5, 1, 0), Vector3i(0, 1, 0), 6, Vector2.INF, 1, ramp)
+	_check(back.get(Vector3i(5, 1, 0)) == ramp | 3 << 2 and back.get(Vector3i(0, 6, 0)) == ramp | 3 << 2
+		and not back.has(Vector3i(5, 2, 0)), "drawn the other way it climbs the other way")
+	var long := Plans.flight("line", Vector3i(0, 1, 0), Vector3i(8, 1, 0), 3, Vector2.INF, 2, WorldData.FORM_STAIRS)
+	var formed := 0
+	for c: Vector3i in long:
+		formed += 1 if long[c] != 0 else 0
+	_check(long.has(Vector3i(8, 3, 0)) and long.has(Vector3i(8, 3, 1)) and not long.has(Vector3i(8, 4, 0))
+		and long.get(Vector3i(0, 1, 0)) == WorldData.FORM_STAIRS | 1 << 2 and not long.has(Vector3i(0, 2, 0))
+		and formed == 6, "a long flight goes up in even steps, with flat cubes between, each row the same: %s" % [long])
+	var upper := WorldData.FORM_UPPER | 1 << 2
+	var under := Plans.flight("line", Vector3i(0, 1, 0), Vector3i(5, 1, 0), 6, Vector2.INF, 1, WorldData.FORM_UPPER)
+	right = under.size() == 21
+	for x in 6:
+		right = right and under.get(Vector3i(x, 6 - x, 0)) == upper and under.get(Vector3i(x, 6, 0)) != null \
+			and not under.has(Vector3i(x, 5 - x, 0))
+	_check(right, "an upturned flight hangs from the height at the first corner down to the ground at the last: %s" % [under])
+	var square := Plans.flight("square", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 4, Vector2.INF, 1, WorldData.FORM_STAIRS)
+	_check(square.get(Vector3i(0, 1, 0)) == WorldData.FORM_STAIRS | 1 << 2 and not square.has(Vector3i(0, 2, 0))
+		and square.has(Vector3i(3, 4, 3)) and not square.has(Vector3i(3, 5, 3))
+		and square.get(Vector3i(3, 3, 0)) == WorldData.FORM_STAIRS | 1 << 2 and not square.has(Vector3i(3, 4, 0))
+		and square.get(Vector3i(0, 3, 3)) == WorldData.FORM_STAIRS | 2 << 2
+		and square.get(Vector3i(0, 2, 1)) == WorldData.FORM_STAIRS | 2 << 2
+		and not square.has(Vector3i(1, 1, 1)), "a square climbs along both sides from the first corner to the far one: %s" % [square])
+	var lone := Plans.flight("line", Vector3i(2, 1, 2), Vector3i(2, 1, 2), 2, Vector2.INF, 1, ramp | 3 << 2)
+	_check(lone == {Vector3i(2, 1, 2): 0, Vector3i(2, 2, 2): ramp | 3 << 2}, "a lone column rises to the side given: %s" % [lone])
+	_check(Plans.shape("plane", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 2, Vector2.INF, 1, east).size() == 32
+		and Plans.shape("cube", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 4, Vector2.INF, 1, east)
+			== Plans.shape("cube", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 4)
+		and Plans.flight("plane", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 2, Vector2.INF, 1, east).is_empty(),
+		"a plane and a room take no slopes or stairs")
+	var w := WorldData.new(40, Vector2i(32, 32))
+	for z in 32:
+		for x in 32:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var plans := Plans.new()
+	actions.plans = plans
+	var who := Who.new()
+	who.position = Vector3(10.5, 1.0, 10.5) * WorldData.CELL
+	who.item = PLANKS
+	_check(plans.draw(actions, who, "plane", Vector3i(12, 1, 9), Vector3i(13, 1, 10), 1, 1, false, east) == 4
+		and plans.forms.is_empty(), "a plane drawn with a ramp chosen is of cubes")
+	_check(plans.draw(actions, who, "line", Vector3i(14, 1, 9), Vector3i(17, 1, 9), 4, 1, false, WorldData.FORM_UPPER) == 10
+		and plans.forms.get(Vector3i(14, 4, 9)) == upper and plans.forms.get(Vector3i(17, 1, 9)) == upper
+		and plans.forms.size() == 4, "an upturned flight is drawn with its forms")
+	var sorted := plans.sort(actions, who, "line", Vector3i(14, 1, 12),
+		Plans.shape("line", Vector3i(14, 1, 12), Vector3i(17, 1, 12), 4, Vector2.INF, 1, WorldData.FORM_UPPER),
+		Mat.index(Plans.Items.get_item(PLANKS).get("place", "")), true)
+	_check(sorted.fit.size() == 10 and sorted.hanging.is_empty(), "and its hanging cells are not told as uneven ground")
+
+
 ## Slopes and stairs (WorldData.forms): drawn as a form of the ghost, built so, saved
 ## with the chunk, walked up, and a cube again once the cell changes.
 func _test_forms() -> void:
@@ -124,7 +189,9 @@ func _test_forms() -> void:
 	who.item = PLANKS
 	who.inventory.add(PLANKS, 10)
 	var ramp := WorldData.FORM_RAMP | 1 << 2
-	_check(plans.draw(actions, who, "line", Vector3i(12, 2, 9), Vector3i(12, 2, 10), 1, 1, false, ramp) == 2
+	# A stroke of one column rises to the side it is given (away from the player, turned).
+	_check(plans.draw(actions, who, "line", Vector3i(12, 2, 9), Vector3i(12, 2, 9), 1, 1, false, ramp) == 1
+		and plans.draw(actions, who, "line", Vector3i(12, 2, 10), Vector3i(12, 2, 10), 1, 1, false, ramp) == 1
 		and plans.forms.get(Vector3i(12, 2, 9)) == ramp, "a ramp's ghost keeps its form")
 	var copy := Plans.new()
 	copy.from_list(plans.to_list())
