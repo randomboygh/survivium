@@ -787,8 +787,13 @@ func _test_sack_ends() -> void:
 	var rest: Array = w.drops.get(key, [[""]])[0]
 	_check(ch.sacks.size() == 1 and rest[0] == Items.SACK and rest.size() == 6 and rest[4] == sack[4] and rest[5] == sack[5],
 		"a sack taken in part keeps its day and who died there")
+	var redrawn := []
+	var count_redrawn := func(k: Vector2i) -> void: redrawn.append(k)
+	acts.drops_changed.connect(count_redrawn)
 	for i in 5:
 		acts.pick_up_near(ch)
+	acts.drops_changed.disconnect(count_redrawn)
+	_check(redrawn.is_empty(), "a sack that does not fit is not taken and put back at every pickup (%s)" % [redrawn])
 	_check(ch.said.is_empty(), "standing by a sack that does not fit the bag does not say so at every pickup (%s)" % [ch.said])
 	_check(not acts.pick_up(ch, key, 0) and not acts.pick_up(ch, key, 0) and ch.said.map(Lang.t) == ["Not everything was taken: the bag is full"],
 		"a tap on it says so, but not twice in a row (%s)" % [ch.said])

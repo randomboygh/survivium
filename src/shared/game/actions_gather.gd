@@ -242,7 +242,10 @@ func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 				if d[1].distance_to(feet) > PICKUP or _is_held_back(held_back, d[1]):
 					continue
 				var most := -1
-				if d[0] != Items.SACK:
+				if d[0] == Items.SACK:
+					if not _sack_fits(who.inventory, d[3]):
+						continue
+				else:
 					var id: String = Items.get_item(d[0]).get("id", d[0])
 					if who.inventory.room_for(id) == 0 or not _wanted(who.inventory, id, mode):
 						continue
@@ -256,10 +259,22 @@ func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 					world.add_drop(rest[0], rest[1], rest[2], rest[3], rest[4] if rest.size() > 4 else -1.0, _grave(rest))
 				if rest.is_empty() or str(rest[3]) != str(d[3]):
 					taken.emit(d[0], d[1], who)
+				else:
+					# Nothing went into the bag: left alone till the feet go away, or the
+					# next pickup would put it back again (and redraw the chunk's drops).
+					held_back.append(d[1])
 				took = true
 				list = world.drops.get(key, [])
 			if took:
 				drops_changed.emit(key)
+
+
+## Whether anything of sack `things` (its stacks) has room in bag `inv`.
+static func _sack_fits(inv, things: Array) -> bool:
+	for t: Array in things:
+		if inv.room_for(str(t[0])) > 0:
+			return true
+	return false
 
 
 ## Whether things of `id` are taken by themselves in pickup `mode`.
