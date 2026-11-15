@@ -53,9 +53,12 @@ const EDIT_BUDGET_US := 9000
 ## Microseconds a frame for building the near chunks behind the main menu (load_steps):
 ## the menu keeps moving while the world is made, a little slower than at once. Where
 ## the menu alone takes longer a frame (a slow screen), loading gets as long as it took,
-## up to LOAD_MAX_US, so the world is still built in about twice the time at most.
+## up to LOAD_MAX_US, so the world is still built in about twice the time at most. Up to
+## 2026-11-15 that was 100 ms: where the loading screen took a second a frame (software GL
+## on a slow CI runner, 1.1-1.2 s), 24 s of building took 300 s and the phone smoke test
+## failed again and again.
 const LOAD_BUDGET_US := 14000
-const LOAD_MAX_US := 100000
+const LOAD_MAX_US := 1000000
 const STREAM_BUDGET_US := 3000
 ## While a chunk on screen has no ground yet (the player outran the building: running,
 ## a fast playtest speed, a boat down a river), building it and making it may take this
