@@ -11,6 +11,8 @@ const ThunderShape := preload("res://src/client/audio/thunder_shape.gd")
 
 ## Seconds of the loops, and how much of their end is faded into their start.
 const LOOP := 8.0
+## Bursts a second in a thunder's roar at its loudest (see _thunder).
+const THUNDER_GRAINS := 90.0
 const OVERLAP := 1.0
 ## name: [bundle folder under content/, variants, loop]; the sound is made by the method `_<name>`.
 const SOUNDS := {
@@ -225,32 +227,39 @@ func _cricket(v: int) -> PackedFloat32Array:
 
 
 func _thunder(v: int) -> PackedFloat32Array:
-	# «Ту-дууух»: its shape in time is shared with the vibration that follows it
-	# (ThunderShape). The body sits in the low middle (a few hundred Hz) and is driven
-	# into soft clipping, so a phone's small speaker plays it loud and dull, not only
-	# the deep rumble it cannot.
+	# Like a recorded peal (ThunderShape, shared with the vibration): a hit, then a
+	# roar that holds and rolls away. The roar is hundreds of short dull bursts of noise
+	# (each low-passed at its own cut-off, most faint, a few loud) over a deep body, so
+	# its loudness jostles as real thunder's does; most of it lies at 60-500 Hz, enough
+	# above 250 Hz for a phone's speaker.
 	var s := ThunderShape.of(v)
 	var span: float = s.span
-	var noise := Synth.brown(span, rng)
-	var body := Synth.normalize(Synth.bandpass(noise, s.body, 0.8), 1.0)
-	var low := Synth.normalize(Synth.lowpass(noise, 600.0), 1.0)
-	var b := Synth.mix(Synth.gain(body, 0.7), low, 0.6)
-	b = Synth.shape(b, func(t: float, _l: float) -> float: return ThunderShape.gain(s, t))
+	var body := Synth.normalize(Synth.highpass(Synth.lowpass(Synth.brown(span, rng), 160.0), 45.0), 1.0)
+	body = Synth.shape(body, func(t: float, _l: float) -> float: return ThunderShape.gain(s, t))
+	var roar := Synth.silence(span)
+	var t := 0.0
+	while t < span:
+		var g := ThunderShape.gain(s, t)
+		t += rng.randf_range(0.3, 1.7) / (THUNDER_GRAINS * g + 2.0)
+		if g < 0.01:
+			continue
+		var d := rng.randf_range(0.05, 0.3)
+		var cut := rng.randf_range(s.low, s.high)
+		var grain := Synth.lowpass(Synth.lowpass(Synth.white(d, rng), cut), cut)
+		grain = Synth.env(Synth.normalize(grain, 1.0), rng.randf_range(0.005, 0.04), d * 0.45)
+		roar = Synth.mix(roar, grain, g * pow(rng.randf(), 2.0), t)
+	var b := Synth.mix(Synth.normalize(roar, 1.0), body, 0.55)
 	for h: Array in s.hits:
-		var f0: float = s.body * 0.4
-		var thump := Synth.tone(0.3, func(x: float) -> float: return lerpf(f0, f0 * 0.45, minf(x / 0.2, 1.0)),
-			[[1.0, 1.0, 0.0], [2.0, 0.6, 0.0], [3.0, 0.35, 0.0]])
-		thump = Synth.env(thump, 0.003, 0.11)
-		var knock := Synth.env(Synth.bandpass(Synth.white(0.12, rng), s.body * 1.6, 1.2), 0.002, 0.04)
-		thump = Synth.mix(Synth.normalize(thump, 1.0), Synth.normalize(knock, 1.0), 0.35)
-		b = Synth.mix(b, thump, 0.9 * h[1], h[0])
-	b = Synth.normalize(b, 1.0)
-	# The sharp crack of the lightning first, over the first hit.
-	var crack := Synth.env(Synth.bandpass(Synth.white(0.45, rng), rng.randf_range(1600.0, 2400.0), 0.6), 0.002, 0.09)
-	b = Synth.mix(b, Synth.normalize(crack, 1.0), 0.8 * float(s.hits[0][1]))
-	# Soft clipping: louder and denser, with the overtones a small speaker can play.
+		var thump := Synth.tone(0.35, func(x: float) -> float: return lerpf(150.0, 55.0, minf(x / 0.25, 1.0)),
+			[[1.0, 1.0, 0.0], [2.0, 0.5, 0.0], [3.0, 0.25, 0.0]])
+		thump = Synth.env(thump, 0.004, 0.14)
+		var crack := Synth.env(Synth.bandpass(Synth.white(0.3, rng), rng.randf_range(1200.0, 2000.0), 0.7), 0.002, 0.06)
+		b = Synth.mix(b, Synth.normalize(thump, 1.0), 0.6 * h[1], h[0])
+		b = Synth.mix(b, Synth.normalize(crack, 1.0), 0.15 * h[1], h[0])
+	b = Synth.normalize(Synth.highpass(b, 50.0), 1.0)
+	# A little soft clipping: denser, and the overtones a small speaker can play.
 	for i in b.size():
-		b[i] = tanh(b[i] * 2.5)
+		b[i] = tanh(b[i] * 1.3)
 	return Synth.normalize(b, 0.95)
 
 
