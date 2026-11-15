@@ -27,6 +27,9 @@ const SHOTS := {
 	"fx-reflect-turn2": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 2},
 	"fx-reflect-turn4": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 4},
 	"fx-fire-water": {"time": 0.95, "season": 1, "moon": 0.0, "weather": "clear", "place": "lake", "water": 1, "hands": {"tool": "tools:torch", "facing": "s"}},
+	# Snow glittering in the sun and under a full moon.
+	"fx-snow-sun": {"time": 0.4, "season": 3, "snow": 1.0, "weather": "clear", "place": "meadow"},
+	"fx-snow-moon": {"time": 0.97, "season": 3, "snow": 1.0, "moon": 1.0, "weather": "clear", "place": "meadow"},
 	"fx-steam": {"time": 0.27, "season": 3, "snow": 0.0, "weather": "clear", "place": "lake"},
 	"fx-wade": {"time": 0.42, "season": 1, "weather": "clear", "water": 1, "keys": [KEY_D], "key_frames": 40},
 	"fx-flies": {"time": 0.45, "season": 1, "weather": "clear", "place": "lake"},
