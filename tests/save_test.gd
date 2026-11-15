@@ -7,6 +7,7 @@ extends SceneTree
 ## godot --headless --path . --script res://tests/save_test.gd
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
 const SettingsFile := preload("res://src/client/settings.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
@@ -98,8 +99,8 @@ func _held_props(main: Node) -> void:
 		main.props.hold_at(e, e.cell + Vector3i(1, 0, 0))
 		main.build._dragged = e
 		main.controls._stroke = {"button": MOUSE_BUTTON_LEFT, "dig": false, "pos": Vector2(1, 1), "held": true,
-			"pending": false, "prop": e, "from": Vector2(1, 1), "moved": true, "to": null, "corner": null,
-			"grab": Vector3i.ZERO}
+			"pending": false, "prop": e, "from": Vector2(1, 1), "ms": 0, "moved": true, "to": null, "corner": null,
+			"turn": int(e.get("turn", 0)), "shown": null, "grab": Vector3i.ZERO}
 		_check(not main.props.standing(e), "a thing dragged is held up (%s)" % how)
 	# Its stroke dropped with no release.
 	held_up.call("stroke gone")
@@ -130,8 +131,96 @@ func _held_props(main: Node) -> void:
 	press.pressed = false
 	Input.parse_input_event(press)
 	main.controls.set_touch(was_touch)
+	await _hold_to_put(main)
 	main.build.leave()
 	await _frames(2)
+
+
+## The build mode's hands with a thing (the user's picks of 2026-11-15): a tap on the ground
+## sets one from the bag down at once, a hold hangs it in the air until it is let go there;
+## a tap on a thing set down takes it back into the bag at once, a hold hangs it in the air,
+## the turn button turns it there, and letting go sets it down turned.
+func _hold_to_put(main: Node) -> void:
+	main.controls._stroke = {}
+	var inv = main.host.player.inventory
+	inv.add("tools:chest", 2)
+	main.build.choose("tools:chest")
+	await _frames(2)
+	var me := Vector3i((main.player.position / main.CELL).floor())
+	var aim := Vector3i.ZERO
+	var found := false
+	for d: Vector3i in [Vector3i(4, 0, 0), Vector3i(-4, 0, 0), Vector3i(0, 0, 4), Vector3i(0, 0, -4), Vector3i(4, 0, 4)]:
+		var a: Vector3i = me + d
+		a.y = main.world.surface_y(a.x, a.z) + 1
+		if not found and main.placed.put_spot(main.character, "tools:chest", a, main.world.size_y, 0)[0] != null:
+			aim = a
+			found = true
+	if not found:
+		_check(false, "a free place for a chest near the player")
+		return
+	var count := func() -> int: return inv.count("tools:chest")
+	# The middle button stands for the finger held (the world does nothing with it).
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_MIDDLE
+	press.pressed = true
+	Input.parse_input_event(press)
+	await _frames(2)
+	var before: int = count.call()
+	# Off the screen: the finger's place does not move the aim.
+	var off := Vector2(-1000, -1000)
+	var put := func(held_ms: int) -> Dictionary:
+		var s := {"button": MOUSE_BUTTON_MIDDLE, "dig": false, "pos": off, "held": true, "pending": false,
+			"put": "tools:chest", "from": off, "ms": Time.get_ticks_msec() - held_ms, "up": false, "aim": aim,
+			"turn": 0, "spot": null, "shown": null}
+		main.controls._stroke = s
+		return s
+	# A tap: let go at once, set down where tapped.
+	var s: Dictionary = put.call(0)
+	main.build.release(s)
+	main.controls._stroke = {}
+	await _wait_ms(300)
+	_check(count.call() == before - 1 and not main.props.holding_new(), "a tap on the ground sets a thing down at once")
+	var e: Dictionary = main.placed.things[main.placed.things.size() - 1]
+	# A tap on it takes it back at once.
+	main.controls._stroke = {"button": MOUSE_BUTTON_MIDDLE, "dig": false, "pos": off, "held": true, "pending": false,
+		"prop": e, "from": off, "ms": Time.get_ticks_msec(), "moved": false, "to": null, "corner": null,
+		"turn": int(e.get("turn", 0)), "shown": null, "grab": Vector3i.ZERO}
+	main.build.release(main.controls._stroke)
+	main.controls._stroke = {}
+	await _wait_ms(200)
+	_check(count.call() == before and not main.placed.things.has(e), "a tap on a thing set down takes it back into the bag at once")
+	# A hold: it hangs in the air while held, and is set down as it is let go.
+	s = put.call(1000)
+	await _wait_ms(200)
+	_check(main.props.holding_new() and main.build.holding(), "a thing new from the bag held hangs in the air")
+	_check(s.spot != null, "the place it hangs over is free")
+	main.build.turn()
+	_check(int(s.turn) == 1, "the turn button turns the thing hanging in the air")
+	s.held = false
+	await _wait_ms(300)
+	_check(main.controls._stroke.is_empty() and not main.props.holding_new() and count.call() == before - 1,
+		"let go, the thing hanging is set down")
+	e = main.placed.things[main.placed.things.size() - 1]
+	var turn0: int = int(e.get("turn", 0))
+	# Held on a thing set down: it hangs, turns and is set down turned.
+	main.controls._stroke = {"button": MOUSE_BUTTON_MIDDLE, "dig": false, "pos": main.view.screen_of(Placed.center(e)),
+		"held": true, "pending": false, "prop": e, "from": Vector2(-1, -1), "ms": Time.get_ticks_msec() - 1000,
+		"moved": false, "to": null, "corner": null, "turn": turn0, "shown": null, "grab": Vector3i.ZERO}
+	var held: Dictionary = main.controls._stroke
+	await _wait_ms(200)
+	_check(held.moved and main.build.holding(), "a thing set down and held hangs in the air")
+	main.build.turn()
+	await _frames(2)
+	if held.to == null:
+		held.to = e.cell
+	held.held = false
+	await _wait_ms(400)
+	var now: Dictionary = main.placed.at(held.to)
+	_check(not now.is_empty() and int(now.get("turn", 0)) == (turn0 + 1) % 4 and main.props.standing(now),
+		"a thing held up, turned and let go stands turned")
+	press = press.duplicate()
+	press.pressed = false
+	Input.parse_input_event(press)
 
 
 func _wait_ms(ms: int) -> void:

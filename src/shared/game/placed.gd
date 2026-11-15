@@ -1041,6 +1041,33 @@ func _shape_of(item: String, turn: int) -> Dictionary:
 	return {"offsets": cells_of(probe), "high": high}
 
 
+## Where `who` setting thing `id` down at cell `aim` puts it (put_at): [its north-west
+## corner, null where it has no room; its quarter turn]. `view` is the view's turn, taken
+## by a thing that faces the camera (faces_view). The build mode shows it while a thing
+## new from the bag is held up in the air.
+func put_spot(who, id: String, aim: Vector3i, top: int, view := -1) -> Array:
+	var item := Items.get_item(id)
+	var p: Vector3 = who.position / CELL
+	var turn := view if view >= 0 and faces_view(item.id) else turn_facing(Tools.step_of(Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z)))
+	var rest := rest_of(item.id)
+	if rest == ON_LADDER:
+		# A ladder goes on with the one under it, turned as it is.
+		for dy in [1, 2]:
+			if world.ladders.has(aim - Vector3i(0, dy, 0)) and not world.ladders.has(aim - Vector3i(0, dy - 1, 0)):
+				turn = world.ladders[aim - Vector3i(0, dy, 0)]
+	var shape := _shape_of(item.id, turn)
+	var cuts: bool = item.get("door", false) or item.get("window", false)
+	# An opening is cut from the level of their feet up: never into the floor they stand on;
+	# a hatch's into the floor or the ceiling tapped.
+	var cut_from: int = floori(p.y + 0.25) if cuts else NO_CUT
+	if rest == IN_FLOOR:
+		cut_from = aim.y
+	_swap_fences = item.get("door", false) and item.get("fence", false)
+	var spot: Variant = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, size_of(item.id), shape.offsets, rest, shape.high, cut_from)
+	_swap_fences = false
+	return [spot, turn]
+
+
 ## The build mode (Протокол PROP_PUT_AT): `who` sets thing `id` from the bag down at cell
 ## `aim` (the cell tapped, within the reach of placing), its front to them: on the free
 ## cells nearest it at that level (or one up or down). A door or a window cuts its
@@ -1065,24 +1092,12 @@ func put_at(who, id: String, aim: Vector3i, top: int, view := -1) -> bool:
 	if Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z).length() > Tools.PLACE_REACH or absf(aim.y - p.y) > Tools.PLACE_REACH:
 		who.nag("put", "[too_far]")
 		return false
-	var turn := view if view >= 0 and faces_view(item.id) else turn_facing(Tools.step_of(Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z)))
+	var found := put_spot(who, item.id, aim, top, view)
+	var spot: Variant = found[0]
+	var turn: int = found[1]
 	var rest := rest_of(item.id)
-	if rest == ON_LADDER:
-		# A ladder goes on with the one under it, turned as it is.
-		for dy in [1, 2]:
-			if world.ladders.has(aim - Vector3i(0, dy, 0)) and not world.ladders.has(aim - Vector3i(0, dy - 1, 0)):
-				turn = world.ladders[aim - Vector3i(0, dy, 0)]
 	var shape := _shape_of(item.id, turn)
-	var n := size_of(item.id)
 	var cuts: bool = item.get("door", false) or item.get("window", false)
-	# An opening is cut from the level of their feet up: never into the floor they stand on;
-	# a hatch's into the floor or the ceiling tapped.
-	var cut_from: int = floori(p.y + 0.25) if cuts else NO_CUT
-	if rest == IN_FLOOR:
-		cut_from = aim.y
-	_swap_fences = item.get("door", false) and item.get("fence", false)
-	var spot: Variant = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, n, shape.offsets, rest, shape.high, cut_from)
-	_swap_fences = false
 	if spot == null:
 		who.nag("put", Lang.line("[no_room_here]", [Items.title(id)]))
 		return false

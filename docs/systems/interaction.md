@@ -160,18 +160,21 @@ lies around. The rules are shared (the server checks them), input and hints are 
   when levelling, «Level»;
   the stroke (`start_stroke`, `show_stroke` — light cells will stand, red ones are inside blocks or over a
   void, when erasing a red box and the ghost in it above blueprints; `end_stroke` — `PLAN`);
-  a thing (everything that is placed: `Items.is_interior`) is placed by a touch at once (`PROP_PUT_AT`,
-  `Placed.put_at`: a door or window pressed on the side of a wall with no opening knocks the blocks out, they
-  fall as if dug; blocks below the level of the player's feet are not knocked out, so a door on the floor
-  stands on the floor); a touch of a placed thing takes it back (only in this mode); a thing that moves
-  (`Placed.movable`: a station, a chest, furniture, a sign, a fireplace) is taken by a single tap only after
-  `DOUBLE_TAP_MS` (`_tap_wait`), a second tap on it within that time turns it a quarter where it stands, and a
-  finger or the mouse held on it and moved `DRAG_SHARE` of the screen drags it (a stroke with `prop`: `drag`
-  each frame — the model is held up `Props.LIFT` over the free place nearest under the finger, `Placed.move_spot`
-  as the server looks for it, its cells framed light or red; `release` — `PROP_MOVE`, `Placed.move`, or the
-  model drops back, `Props.settle`; a model held up never stays in the air: `update` drops it once the stroke
-  is no longer on it (`Controls.dragging`), a second press releases the stroke first, on a touch screen the
-  stroke ends with the last finger up, and while a finger is down only its own motion moves the stroke); the
+  a thing (everything that is placed: `Items.is_interior`) from the bag is set down where tapped as the finger
+  lifts (a stroke with `put`; `PROP_PUT_AT`, `Placed.put_at`: a door or window pressed on the side of a wall
+  with no opening knocks the blocks out, they fall as if dug; blocks below the level of the player's feet are
+  not knocked out, so a door on the floor stands on the floor); held `HOLD_MS` (or moved `DRAG_SHARE` of the
+  screen) it hangs in the air (`Props.hold_new`) over the place under the finger (`Placed.put_spot`, as the
+  server will look for it), framed light or red, and is set down where it is let go; a touch of a placed thing
+  takes it back at once (only in this mode); a thing that moves (`Placed.movable`: a station, a chest,
+  furniture, a sign, a fireplace) held the same way hangs in the air (a stroke with `prop`: `drag` each frame
+  — the model is held up `Props.LIFT` over the free place nearest under the finger, `Placed.move_spot` as the
+  server looks for it, its cells framed light or red; `release` — `PROP_MOVE`, `Placed.move`, or the model
+  drops back, `Props.settle`); while a thing hangs the turn button (`turn`; pressed by a second finger too,
+  `BuildBar.turn_hit`) turns it a quarter (`Props.hold_at` with a turn); a model held up never stays in the
+  air: `update` drops it once the stroke is no longer on it (`Controls.dragging`), a second press releases the
+  stroke first, on a touch screen the stroke ends with the last finger up, and while a finger is down only its
+  own motion moves the stroke; the
   action button is
   pressed once (`auto`) and builds the whole blueprint nearby, releases after the last cell or when the blocks
   run out. The settings are kept with the player (`"build"`).
