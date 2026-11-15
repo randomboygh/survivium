@@ -190,6 +190,8 @@ func _update_light(delta: float) -> void:
 	RenderingServer.global_shader_parameter_set("sun_shadowed", 1.0 if sun.shadow_enabled and sun.visible else 0.0)
 	env.background_color = Color(0.2, 0.32, 0.38).lerp(Color(0.04, 0.06, 0.12).lerp(Color(0.01, 0.012, 0.02), 1.0 - minf(moonlight, 1.0)), night)
 	sun_light = daylight * (1.0 - 0.35 * overcast)
+	# Snow in clear sun is lighter and softer (see snow_sun in common.gdshaderinc).
+	RenderingServer.global_shader_parameter_set("snow_sun", daylight * (1.0 - overcast) * (1.0 - overcast))
 	sky_light = clampf(daylight + 0.45 * moonlight * night, 0.0, 1.0) * (1.0 - 0.35 * overcast)
 	# Levels far below the player fade into the background outdoors and into darkness
 	# under a roof (see depth_fade in common.gdshaderinc).

@@ -88,6 +88,10 @@ global uniform float snow_amount;
 // Height (world units) above which snow lies all year: the tops of high mountains (see
 // WorldData.SNOW_LINE and peak_snow).
 global uniform float snow_line;
+// How much clear sun there is, 0 at night or under an overcast sky .. 1 on a clear day
+// (Sky._update_light): snow in it is lighter and its shades softer, as a sunny snow field
+// throws its light back into its own hollows and shadows.
+global uniform float snow_sun;
 global uniform float wetness;
 global uniform vec3 foliage_tint;
 global uniform vec3 grass_tint;

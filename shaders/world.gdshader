@@ -107,6 +107,8 @@ varying vec2 light_xz;
 // How much this texel of snow glitters now, 0..1: lit by the sun or the moon in light()
 // (fragment to light), none in shadow.
 varying float glint;
+// How much this texel is snow in clear sun (snow_sun), 0..1: light() lifts its shades.
+varying float snow_lit;
 
 // Whether the rock's section ends at the cell beside, `q` the same point of its face a
 // hair inside it: the cell is open, or the layers keep it (its own face shows), or the
@@ -191,6 +193,10 @@ vec3 ground_variety(int mat, vec2 xz, vec2 wt) {
 // Snow is not flat white: drifts in three soft tones, none of them pure white so the
 // noon sun does not wash the field out, wind ripples a shade apart stretched along
 // the wind, bluish hollows and a few glints.
+// In clear sun (snow_sun) the snow's tones keep this share of their differences and
+// move up to that plus SUN_SNOW_WHITE.
+const float SUN_SNOW_SPREAD = 0.6;
+const vec3 SUN_SNOW_WHITE = vec3(0.33, 0.32, 0.3);
 vec3 snow_color(vec2 xz, vec2 wt) {
 	float drift = ground_patch(xz, 9.0);
 	// Kept under 1 because the noon light adds up to more than 1 and the screen
@@ -209,7 +215,9 @@ vec3 snow_color(vec2 xz, vec2 wt) {
 	} else if (n < 0.05) {
 		c *= vec3(0.9, 0.92, 0.97);
 	}
-	return c;
+	// In clear sun the tones draw together and toward white, less blue: a sunny field
+	// reads light and soft rather than blue grey.
+	return mix(c, c * SUN_SNOW_SPREAD + SUN_SNOW_WHITE, snow_sun);
 }
 
 // Where on the roof map a face at `p` (normal `n`, flags `flag`, a top or not) looks for
@@ -547,6 +555,7 @@ void fragment() {
 		snow = step(1.0 - fringe, fract(world_pos.y / CELL)) * step(0.3, snow_here);
 	}
 	glint = 0.0;
+	snow_lit = snow * snow_sun;
 	if (snow > 0.0) {
 		col = mix(col, snow_color(gp.xz, wt), snow);
 		// A few texels of snow on a top flare and fade as the camera moves or turns, each
@@ -562,11 +571,12 @@ void fragment() {
 		// The height of a slope shows as levels: each one shades darker toward its foot
 		// in an ordered dither, so a tall slope reads as steps, not one smooth smear.
 		float foot = 1.0 - band / CELL;
-		col *= bayer4(floor(rest_plane(world_pos) * TEXELS)) < foot * 0.9 - 0.15 ? 0.88 : 1.0;
+		col *= bayer4(floor(rest_plane(world_pos) * TEXELS)) < foot * 0.9 - 0.15 ? 0.88 + 0.06 * snow_lit : 1.0;
 	}
 	if (tile == NONE) {
 		// A snowdrift's relief is a soft shade baked into its vertex alpha, halved.
-		col *= COLOR.a * 2.0;
+		// In clear sun the snow throws light into its hollows: half as deep.
+		col *= mix(COLOR.a * 2.0, 1.0, 0.5 * snow_sun);
 	}
 	float wet = roof ? 0.0 : wetness * (1.0 - snow) * (1.0 - 0.7 * warm);
 	col *= 1.0 - 0.3 * wet;
@@ -633,6 +643,8 @@ void fragment() {
 
 // How much brighter a glittering texel of snow is in the sun's or the moon's light.
 const float GLINT = 1.6;
+// How much of the way from shade to sunlit flat ground snow in clear sun is lifted.
+const float SNOW_BOUNCE = 0.35;
 
 void light() {
 	// A torch or a fire lights the faces turned to where it stands in the world, not
@@ -645,6 +657,12 @@ void light() {
 	if (!LIGHT_IS_DIRECTIONAL && lit != vec3(0.0) && light_hidden(shear(world_pos),
 			normalize((INV_VIEW_MATRIX * vec4(LIGHT, 0.0)).xyz), world_pos, world_normal)) {
 		lit = vec3(0.0);
+	}
+	// Snow in clear sun: its shadows and the slopes turned from the sun get part of the
+	// way to the light of open flat ground (clouds' shadows still pass over it), the
+	// light a sunny snow field throws back.
+	if (LIGHT_IS_DIRECTIONAL && snow_lit > 0.0) {
+		lit = mix(lit, max(lit, LIGHT_COLOR * clouds / PI), SNOW_BOUNCE * snow_lit);
 	}
 	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? compat_sun(lit, ALBEDO) * (1.0 + glint * GLINT) : lit * lamp_gain;
 }
