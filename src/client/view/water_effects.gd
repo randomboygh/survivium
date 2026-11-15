@@ -424,7 +424,10 @@ func _mirror(delta: float, sky) -> void:
 		mat.set_shader_parameter("light", light)
 		var p: Vector3 = sprite.global_position
 		var at := Vector3(p.x, 2.0 * level_y - p.y, p.z)
-		if at != m.position or m.scale.x != sprite.scale.x:
+		# The box follows the shear too: turning or tilting the camera moves the picture.
+		var view := Vector3(PixelView.up.x, PixelView.up.y, PixelView.slope)
+		if at != m.position or m.scale.x != sprite.scale.x or m.get_meta("view", Vector3.ZERO) != view:
+			m.set_meta("view", view)
 			m.position = at
 			m.scale = Vector3(sprite.scale.x, -1.0, 1.0)
 			# Its box where the shear draws it (the shear moves a point by its height), as
