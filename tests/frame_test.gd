@@ -746,6 +746,11 @@ func _run() -> void:
 		and report.contains("scripts ") and report.contains(", world ") and report.contains("Earlier starts: ")
 		and report.contains("Server: in the game (loop), requests ") and main.net.requests > 0
 		and log_page._shown_text == report, "the playtest report tells the moment: %s" % report)
+	# Internal text: English whatever the game's language (here Russian), no keys, no Cyrillic.
+	var cyrillic := RegEx.create_from_string("[\\x{0400}-\\x{04FF}]")
+	_check(cyrillic.search(report) == null and report.contains(", %s, " % main.clock.SEASON_IDS[main.clock.season])
+		and report.contains("Weather: %s" % main.clock.WEATHERS[main.clock.weather].id),
+		"the playtest report is in English in a Russian game: %s" % report)
 	# Its tabs split it: Мир the world's lines, Загрузка the start's; «Скопировать всё» the whole.
 	log_page.show_section("place")
 	var place_lines := []

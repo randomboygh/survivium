@@ -86,7 +86,7 @@ func apply(data: Dictionary) -> bool:
 		return false
 	clock.set_real_weather(int(now.weather_code), float(now.get("wind_speed_10m", 0.0)),
 		float(now.get("wind_direction_10m", 0.0)))
-	status = "%s, %s" % [place if place != "" else "nearby", clock.WEATHERS[clock.weather].name.to_lower()]
+	status = "%s, %s" % [place if place != "" else "nearby", clock.WEATHERS[clock.weather].id]
 	_say("real weather: %s (code %d)" % [status, int(now.weather_code)])
 	return true
 
