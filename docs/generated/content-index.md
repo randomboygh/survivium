@@ -603,7 +603,7 @@
 | `core:iron` | [core.eras.iron] | порядок 5 | [core.eras.iron.about] | `core` | 0 / 4 | ок |
 | `core:steel` | [core.eras.steel] | порядок 6 | [core.eras.steel.about] | `core` | 0 / 1 | ок |
 
-## Звуки (`sounds`, 56)
+## Звуки (`sounds`, 57)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
@@ -638,6 +638,7 @@
 | `sounds:water` | [sounds.sounds.water] |  |  | `sounds/nature` | 0 / 0 | ок |
 | `sounds:fire` | [sounds.sounds.fire] |  |  | `sounds/nature` | 0 / 0 | ок |
 | `sounds:crickets` | [sounds.sounds.crickets] |  |  | `sounds/nature` | 0 / 0 | ок |
+| `sounds:cricket` | [sounds.sounds.cricket] |  |  | `sounds/nature` | 0 / 0 | ок |
 | `sounds:thunder` | [sounds.sounds.thunder] |  |  | `sounds/nature` | 0 / 0 | ок |
 | `sounds:step_grass` | [sounds.sounds.step_grass] |  |  | `sounds/player` | 0 / 0 | ок |
 | `sounds:step_dirt` | [sounds.sounds.step_dirt] |  |  | `sounds/player` | 0 / 0 | ок |

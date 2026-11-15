@@ -22,6 +22,7 @@ const SOUNDS := {
 	"fire": ["sounds/nature", 1, true],
 	"crickets": ["sounds/nature", 1, true],
 	# Nature: one-off.
+	"cricket": ["sounds/nature", 6, false],
 	"thunder": ["sounds/nature", 2, false],
 	"bird": ["animals/sparrow", 5, false],
 	# The player.
@@ -181,26 +182,45 @@ func _fire(_v: int) -> PackedFloat32Array:
 	return Synth.normalize(b, 0.75)
 
 
+## The far chorus under the near crickets (Nature.crickets): many faint ones at their own
+## pitch and pace, none of them heard on its own, so the loop has no rhythm to notice.
 func _crickets(_v: int) -> PackedFloat32Array:
 	var span := LOOP + OVERLAP
 	var b := Synth.silence(span)
-	# A few crickets, each at its own pitch and pace, nearer ones louder; each sings a
-	# while and then rests, so most of the time one or two are heard, not a choir.
-	for c in 3:
-		var hz := rng.randf_range(3800.0, 4600.0)
-		var period := rng.randf_range(0.9, 1.4)
-		var level := rng.randf_range(0.3, 1.0) if c > 0 else 1.0
-		var pulses := rng.randi_range(2, 3)
-		var t := rng.randf() * 3.0
-		while t < span - 0.2:
-			var bout := t + rng.randf_range(1.5, 3.5)
-			while t < minf(bout, span - 0.2):
+	for c in 9:
+		var hz := rng.randf_range(3600.0, 4900.0)
+		var period := rng.randf_range(0.45, 1.6)
+		var level := rng.randf_range(0.15, 0.45)
+		var pulses := rng.randi_range(1, 4)
+		var gap := rng.randf_range(0.03, 0.06)
+		var t := rng.randf() * 4.0
+		while t < span - 0.3:
+			var bout := t + rng.randf_range(1.0, 4.0)
+			while t < minf(bout, span - 0.3):
 				for p in pulses:
-					var chirp := Synth.env(Synth.tone(0.03, hz), 0.006, 0.012)
-					b = _add(b, chirp, level, t + p * 0.04)
-				t += period * rng.randf_range(0.9, 1.1)
-			t += rng.randf_range(2.0, 4.5)
-	return Synth.normalize(Synth.lowpass(b, 6000.0), 0.45)
+					var chirp := Synth.env(Synth.tone(0.025, hz * rng.randf_range(0.99, 1.01)), 0.005, 0.012)
+					b = _add(b, chirp, level * rng.randf_range(0.6, 1.0), t + p * gap)
+				t += period * rng.randf_range(0.8, 1.25)
+			t += rng.randf_range(0.5, 3.0)
+	return Synth.normalize(Synth.lowpass(b, 4500.0), 0.3)
+
+
+## One phrase of a near cricket: a chirp of a few pulses, each variant its own count,
+## pace and swell, or (the last) a short trill; Nature plays them at each cricket's pitch.
+func _cricket(v: int) -> PackedFloat32Array:
+	var trill := v == 5
+	var hz := rng.randf_range(4100.0, 4500.0)
+	var pulses: int = rng.randi_range(9, 14) if trill else [2, 3, 3, 4, 5][v]
+	var gap := rng.randf_range(0.024, 0.03) if trill else rng.randf_range(0.035, 0.06)
+	var length := gap * 0.6
+	var b := Synth.silence(pulses * gap + 0.05)
+	for p in pulses:
+		var x := float(p) / maxf(pulses - 1, 1)
+		# The first pulses softer, then full, a trill fading at its end.
+		var level := lerpf(0.55, 1.0, minf(x * 2.5, 1.0)) * (1.0 - 0.5 * x if trill else 1.0)
+		var chirp := Synth.env(Synth.tone(length, hz * (1.0 + 0.01 * x)), 0.004, length * 0.4)
+		b = _add(b, chirp, level * rng.randf_range(0.85, 1.0), p * gap)
+	return Synth.normalize(Synth.lowpass(b, 6500.0), 0.6)
 
 
 func _thunder(_v: int) -> PackedFloat32Array:

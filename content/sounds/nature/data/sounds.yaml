@@ -1,4 +1,4 @@
-# Sounds of nature and weather: wind, rain, hail, blizzard, water, fire, crickets, thunder, owl. Files
+# Sounds of nature and weather: wind, rain, hail, blizzard, water, fire, crickets (a far chorus loop and near ones chirp by chirp), thunder, owl. Files
 # sounds/<id>.wav, or <id>_1.wav ... - as many as variants; volume - loudness, loop - on
 # repeat. Built by tools/make_sounds.gd; the code asks for a sound by name (rain) - a recording with that
 # name from any loaded bundle will do, if there is none - silence.
@@ -24,7 +24,11 @@
 - id: crickets
   title: "[sounds.sounds.crickets]"
   loop: true
-  volume: 0.4
+  volume: 0.05
+- id: cricket
+  title: "[sounds.sounds.cricket]"
+  variants: 6
+  volume: 0.3
 - id: thunder
   title: "[sounds.sounds.thunder]"
   variants: 2
