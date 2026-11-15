@@ -44,20 +44,23 @@ const WATER_MOST := 22.0
 
 ## The air at world point `p` (world units), by its column's biome in `world`, the
 ## season, the time of day and the weather of `clock`, under the open sky; `roofed`
-## keeps the weather off. The air the playtest page pins (Clock.air_pin) is the same
-## everywhere.
+## keeps the weather off. The air the playtest page pins (Clock.air_pin) takes the place
+## of the biome's and the season's, the same everywhere; the night and the weather still
+## cool it.
 static func air(world, clock, p: Vector3, roofed := false) -> float:
-	if clock != null and clock.air_pinned():
-		return clock.air_pin
 	var t := 0.5
-	if world != null:
+	if world != null and (clock == null or not clock.air_pinned()):
 		var b: int = world.biome_at(floori(p.x / WorldData.CELL), floori(p.z / WorldData.CELL))
 		if b >= 0 and b < Biomes.RECORDS.size():
 			var w: Array = Biomes.RECORDS[b].warmth
 			t = (w[0] + w[1]) * 0.5
 	var out := lerpf(COLDEST, WARMEST, t)
 	if clock != null:
-		out += SEASON[clampi(clock.season, 0, 3)] - NIGHT * (1.0 - clock.daylight())
+		if clock.air_pinned():
+			out = clock.air_pin
+		else:
+			out += SEASON[clampi(clock.season, 0, 3)]
+		out -= NIGHT * (1.0 - clock.daylight())
 		if not roofed:
 			var w: Dictionary = clock.WEATHERS[clock.weather]
 			out -= RAIN_CHILL * w.get("rain", 0.0) + SNOW_CHILL * w.get("snow", 0.0) + WIND_CHILL * w.get("wind", 0.0)

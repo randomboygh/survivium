@@ -137,8 +137,8 @@ var weather_auto := true
 ## The moonlight the playtest page pins (0 new moon .. 1 full moon), -1 for the phase of
 ## the moon; on the server's clock, so every player sees the same (Sky).
 var moon_pin := -1.0
-## The air the playtest page pins, degrees (Warmth.air gives it everywhere, whatever the
-## biome, season, hour and weather), or FREE_AIR: the air is the world's own. On the
+## The air the playtest page pins, degrees: a clear day's, the same everywhere whatever
+## the biome and season, cooler at night and in rain, snow and wind (Warmth.air), or FREE_AIR: the air is the world's own. On the
 ## server's clock, so every player feels and sees the same.
 var air_pin := FREE_AIR
 ## The wind's strength of the real weather (see set_real_weather), or -1: the
