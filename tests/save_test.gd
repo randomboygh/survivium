@@ -8,6 +8,7 @@ extends SceneTree
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
 const SettingsFile := preload("res://src/client/settings.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
@@ -231,6 +232,32 @@ func _hold_to_put(main: Node) -> void:
 	var last: Dictionary = main.placed.things[main.placed.things.size() - 1]
 	_check(main.placed.things.size() == things_before + 1 and int(last.get("turn", 0)) == turned,
 		"the next thing of that kind is set down turned the same")
+	# A thing one cell big tapped with its kind in the hand: the next goes beside it; with none
+	# left in the bag it is taken, and its slot chosen.
+	_check(main.build.face_in(Vector3.ZERO, Vector3(0.5, 5.0, 0.5), Vector3.DOWN) == Vector3i.UP
+		and main.build.face_in(Vector3.ZERO, Vector3(-5.0, 0.5, 0.5), Vector3.RIGHT) == Vector3i.LEFT,
+		"the face a finger's ray goes in by")
+	inv.add("tools:stairs", 1)
+	main.build.choose("tools:stairs")
+	await _wait_ms(200)
+	var step_aim: Vector3i = aim + Vector3i(0, 0, 3)
+	step_aim.y = main.world.surface_y(step_aim.x, step_aim.z) + 1
+	main.net.request(Protocol.PROP_PUT_AT, ["tools:stairs", step_aim, 0])
+	await _wait_ms(300)
+	var step: Dictionary = {}
+	for t: Dictionary in main.placed.things:
+		if t.item == "tools:stairs":
+			step = t
+	_check(not step.is_empty() and not main.build._beside_kind(step), "with none of its kind left a tap takes a step")
+	inv.add("tools:stairs", 1)
+	await _wait_ms(200)
+	_check(not step.is_empty() and main.build._beside_kind(step), "with one of its kind in the hand a tap sets the next beside it")
+	main.build.choose("tools:chest")
+	await _frames(2)
+	if not step.is_empty():
+		main.build._take(step.cell)
+	await _wait_ms(300)
+	_check(main.controls.held() == "tools:stairs", "a thing taken back has its slot chosen")
 	main.build.kept_turns["tools:big_chest"] = 2
 	await _frames(3)
 	_check(not main.build.kept_turns.has("tools:big_chest"), "a kept turn is forgotten once the bag holds none of its kind")

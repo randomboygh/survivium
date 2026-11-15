@@ -314,10 +314,20 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		# A wicket or a gate tapped onto a fence takes the place of its segments.
 		game.net.request(Protocol.PROP_PUT_AT, [chosen(), target.prop.cell])
 		return {}
+	if target.has("prop") and not Placed.is_light(target.prop) and Items.is_interior(target.prop.item) \
+			and not erasing and _beside_kind(target.prop):
+		# A thing one cell big tapped with one of its kind in the hand: the next is set down
+		# beside it (held, it hangs in the air there), not the one standing taken; once the
+		# bag holds none of them a tap takes them back.
+		var near: Dictionary = target.prop
+		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "put": chosen(),
+			"from": pos, "ms": Time.get_ticks_msec(), "up": false, "aim": _beside(near, pos),
+			"turn": kept_turns.get(chosen(), game.props.view_turn()), "kept": kept_turns.has(chosen()),
+			"spot": null, "shown": null}
 	if target.has("prop") and not Placed.is_light(target.prop) and Items.is_interior(target.prop.item):
 		var e: Dictionary = target.prop
 		if not Placed.movable(e):
-			game.net.request(Protocol.PROP_TAKE, [e.cell])
+			_take(e.cell)
 			return {}
 		if not _tap_wait.is_empty() and _tap_wait.cell == e.cell:
 			# The second tap of a double tap.
@@ -387,7 +397,51 @@ func _take_waiting() -> void:
 	var cell: Vector3i = _tap_wait.cell
 	_tap_wait = {}
 	if not game.placed.at(cell).is_empty():
-		game.net.request(Protocol.PROP_TAKE, [cell])
+		_take(cell)
+
+
+## The thing at `cell` back into the bag (Protocol.PROP_TAKE); taken, its slot is chosen
+## on the palette (WorkMode._on_bag_changed).
+func _take(cell: Vector3i) -> void:
+	game.net.request(Protocol.PROP_TAKE, [cell])
+
+
+## Whether a tap on thing `e` sets the next of its kind down beside it: it is one cell big
+## and the hand holds one of its kind.
+func _beside_kind(e: Dictionary) -> bool:
+	return e.item == chosen() and Placed.size_of(e.item) == 1 and game.character.inventory.count(e.item) > 0
+
+
+## The cell beside thing `e` (one cell big) the finger at `pos` points to: the cell under the
+## finger when it is not the thing's own, else the cell past the face of the thing the
+## finger's ray goes in by.
+func _beside(e: Dictionary, pos: Vector2) -> Vector3i:
+	var hit: Dictionary = game.controls.pick(pos)
+	if not hit.is_empty():
+		var aim := _aim(hit, Items.get_item(chosen()))
+		if aim != e.cell and game.placed.at(aim).is_empty():
+			return aim
+	var ray: Array = game.controls._ray(pos)
+	return e.cell + face_in(Vector3(e.cell), ray[0], ray[1])
+
+
+## The face of the unit cube at `corner` a ray from `from` along `dir` goes in by, as the
+## step out of it (up when it misses).
+static func face_in(corner: Vector3, from: Vector3, dir: Vector3) -> Vector3i:
+	var enter := -INF
+	var face := Vector3i.UP
+	for axis in 3:
+		if absf(dir[axis]) < 0.000001:
+			continue
+		var t0 := (corner[axis] - from[axis]) / dir[axis]
+		var t1 := (corner[axis] + 1.0 - from[axis]) / dir[axis]
+		var near := minf(t0, t1)
+		if near > enter:
+			enter = near
+			var step := Vector3i.ZERO
+			step[axis] = -1 if dir[axis] > 0.0 else 1
+			face = step
+	return face
 
 
 ## Whether stroke `s` takes its thing up into the air now: held HOLD_MS, or gone DRAG_SHARE

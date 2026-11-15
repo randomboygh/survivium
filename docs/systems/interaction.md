@@ -172,7 +172,11 @@ lies around. The rules are shared (the server checks them), input and hints are 
   server looks for it, its cells framed light or red; `release` — `PROP_MOVE`, `Placed.move`, or the model
   drops back, `Props.settle`); a double tap turns a thing (`turn_thing`) and keeps that turn for its kind
   (`kept_turns`): the next ones are set down turned so (`PROP_PUT_AT` with `true`, `Placed.put_spot` `kept`)
-  until the bag holds none; a model held up never stays in the
+  until the bag holds none; a thing one cell big tapped with one of its kind in the hand sets the next down
+  beside it (`_beside_kind`, `_beside`: the cell under the finger, else past the face the ray goes in by,
+  `face_in`; held, it hangs there), and is taken only once the bag holds none; whatever comes into the bag
+  while the build or farming mode is on (not while `auto` works) has its palette slot chosen
+  (`WorkMode._on_bag_changed`); a model held up never stays in the
   air: `update` drops it once the stroke is no longer on it (`Controls.dragging`), a second press releases the
   stroke first, on a touch screen the stroke ends with the last finger up, and while a finger is down only its
   own motion moves the stroke; the
