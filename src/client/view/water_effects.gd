@@ -240,7 +240,7 @@ func _watch_bodies(delta: float) -> void:
 			if st.walked > (WADE_STEP if not b.swimming else SWIM_RING * 0.8):
 				st.walked = 0.0
 				ring(at + Vector3(0.0, 0.5, 0.0))
-		if key == "me":
+		if fig == game.player:
 			_wake(Vector2(at.x - st.last.x, at.z - st.last.z), delta, wet)
 		st.was = wet
 		st.fall = fall
