@@ -614,7 +614,8 @@ func _run() -> void:
 		await process_frame
 		room.append(main.hud.size.x)
 		room.append(menu.size.x <= main.hud.size.x)
-	# On a tall phone no page scrolls: the bar shows only when the rows do not fit.
+	# On a tall phone the bar shows only when the rows do not fit (the player's playtest tab is
+	# longer than such a phone since «All survival» and «Invulnerability»).
 	var bars := []
 	for which in ["settings", "test", "changes"]:
 		menu.open(which)
@@ -623,7 +624,8 @@ func _run() -> void:
 				menu.show_section(sec[0])
 			await process_frame
 			await process_frame
-			if menu._scroll.get_v_scroll_bar().visible:
+			if menu._scroll.get_v_scroll_bar().visible \
+					and menu._list.get_combined_minimum_size().y <= menu._scroll.size.y + 1.0:
 				bars.append("%s/%s" % [which, sec[0]])
 	_check(bars.is_empty(), "no scroll bar while the rows fit the screen: %s" % [bars])
 	# On a phone held sideways the window is lower than the longest tab: only a tab whose
