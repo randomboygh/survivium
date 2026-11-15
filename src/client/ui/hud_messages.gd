@@ -17,6 +17,9 @@ const MAX_SERVER_NOTES := 3
 const SERVER_MARK_GAP := 4
 const KEYS := "[wasd_walk_space_jump_lmb]"
 
+## The toasts said this frame, not shown yet (see toast).
+var _toasts_due: Array[String] = []
+
 
 func set_loading(text: String) -> void:
 	Lang.seen(text)
@@ -29,9 +32,21 @@ func set_loading(text: String) -> void:
 ## A short message under the state, in a list of the last MAX_TOASTS: it comes into the
 ## end of the list out of nothing, rising a little; after TOAST_TIME, or when a newer one
 ## would make the list too long, the oldest fades up and away and the rest move up.
+## The toasts said in a frame are shown at its end, only the last MAX_TOASTS of them:
+## a pickup of ten things said ten, and seven came only to fade out at once (each a
+## panel laid out and a fade, some 4 ms a pickup on a PC, 2026-11-15).
 func toast(text: String) -> void:
 	Lang.seen(text)
-	_toast(text)
+	_toasts_due.append(text)
+	if _toasts_due.size() == 1:
+		_show_toasts_due.call_deferred()
+
+
+func _show_toasts_due() -> void:
+	var due := _toasts_due.slice(-MAX_TOASTS)
+	_toasts_due.clear()
+	for text: String in due:
+		_toast(text)
 
 
 func _toast(text: String) -> Control:

@@ -30,6 +30,11 @@ const CONTROL_SIZES := [0.7, 0.85, 1.0, 1.2, 1.4]
 const LEVEL_WIDTH := 40
 const LEVEL_ARROW := 24
 const LEVEL_MIDDLE := 34
+## How long the action button's label stands for changes of the bag (see _name_action), ms.
+const ACTION_NAME_MS := 250
+## The hand's thing and the time (ms) the action button's label was last worked out for.
+var _named_held := "\u0000"
+var _named_at := -ACTION_NAME_MS
 
 
 ## Fits the UI into `rect` (screen pixels) and places everything for the screen's
@@ -255,7 +260,8 @@ func refresh_counts() -> void:
 		# A weapon with nothing in the bag to shoot shows inactive.
 		_slots[i].inactive = s != null and FactChips.unarmed(game.character.inventory, s[0])
 		_slots[i].key = str(i + 1)
-	_update_hands()
+	# A change of the bag (each pickup) leaves the action's label for a moment.
+	_update_hands(false)
 	_fit_bag_meter()
 	_bag_meter.queue_redraw()
 
@@ -371,7 +377,7 @@ func show_farm(on: bool) -> void:
 
 ## Shows what each hand holds and marks the hand in use and the blocks in the hands;
 ## called when any of it changes.
-func _update_hands() -> void:
+func _update_hands(name_now := true) -> void:
 	var c = game.controls
 	var free: bool = game.rules.free_build
 	for h in 2:
@@ -392,7 +398,7 @@ func _update_hands() -> void:
 		_slots[i].selected = item != "" and c.held() == item
 		_slots[i].tag = "" if item == "" else ("[l]" if c.hands[0] == item else ("[r]" if c.hands[1] == item else
 			("[w]" if game.character.inventory.worn_on(i) != "" else "")))
-	_action.text = c.action_name()
+	_name_action(name_now)
 	# Pressed down while the fishing line is in the water, or while the build mode builds.
 	_action.latch(_action_latched())
 	# The picture of what the hand in use holds, bare hands for nothing.
@@ -414,6 +420,19 @@ func refresh_hands() -> void:
 ## The action button's label anew for what is in front of the player now
 ## (Controls.action_name).
 func refresh_action() -> void:
+	_name_action(true)
+
+
+## The action button's label (Controls.action_name, ~2 ms on a PC: what is in front is
+## looked over) worked out again when `now`, the hand's thing changed or ACTION_NAME_MS
+## passed; not at every change of the bag (each pickup, several a second).
+func _name_action(now: bool) -> void:
+	var held: String = game.controls.held()
+	var at := Time.get_ticks_msec()
+	if not now and held == _named_held and at - _named_at < ACTION_NAME_MS:
+		return
+	_named_held = held
+	_named_at = at
 	var text: String = game.controls.action_name()
 	if _action.text != text:
 		_action.text = text

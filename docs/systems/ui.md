@@ -185,7 +185,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   ones, then far ones pale — as many as fit). The sorting by kind and the tabs go in the order of
   `Items.CATEGORIES`: stations, tools, light, gear, materials, blocks, food, healing, plants; the crafting
   recipes are sorted the same way. The action button on the game screen names what it will do now
-  (`Controls.action_name`, once per `LABEL_TIME` by `WorldActions.front_kind` — the same choice that
+  (`Controls.action_name`, once per `LABEL_TIME` by `WorldActions.front_kind`, and when the hand's thing or the mode changes; a change of the bag alone leaves it for `Hud.ACTION_NAME_MS`, since a look ahead costs ~2 ms on a PC — the same choice that
   `act_in_front` makes, with no change of the world): «Drink» at water with an empty hand, «Fill with water»
   with an empty vessel, «Gather» at berries with a torch in the hand, «Dig» when everything around is
   gathered, «Chop», «Mow» (grass with hands — «Gather»), «Hit»; for a building item, food and healing — «Place»,
@@ -214,7 +214,7 @@ and a new shared part is added to the kit and to the «Interface gallery».
   is pressed once and held pressed («Stop») while it builds (released in the same frame building stops:
   `Hud.update_state`: the action button and the sleep screen every frame, the rest of the state every
   `STATE_EVERY` 0.1 s). In the bag, blocks and everything that is placed have a wide button «Build» (a hammer):
-  it enters the mode. Notifications (`Hud.toast`) — a list of three under the state: a new one floats to the
+  it enters the mode. Notifications (`Hud.toast`) — a list of three under the state (the toasts said in a frame are shown at its end, only the last three of them): a new one floats to the
   end from transparency, rising, and the oldest (by time or when the list overflows) goes up into
   transparency, and the list closes up after it (`FadingList`). Under them, a list of its own for the server's
   notices to its host (`Hud.server_note`, the event `noted`: who joined for the first time or came back, lost
