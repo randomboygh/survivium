@@ -128,16 +128,22 @@ func _own(e: CPUParticles3D) -> CPUParticles3D:
 
 ## A cloud of midges dancing round its node: dark specks darting every way, close in.
 func _midge_cloud() -> CPUParticles3D:
-	var e := _own(fx._emitter(16, 0.5, Vector2(PX, PX), 1.0))
+	# A dense little cloud of specks dancing in place, some caught by the low sun.
+	var e := _own(fx._emitter(30, 0.9, Vector2(PX, PX), 1.0))
 	e.local_coords = true
 	e.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
-	e.emission_sphere_radius = 0.22
+	e.emission_sphere_radius = 0.3
 	e.direction = Vector3.UP
 	e.spread = 180.0
-	e.initial_velocity_min = 0.2
-	e.initial_velocity_max = 0.6
+	e.initial_velocity_min = 0.15
+	e.initial_velocity_max = 0.4
 	e.gravity = Vector3.ZERO
-	e.color = Color(0.13, 0.13, 0.11, 0.9)
+	var specks := Gradient.new()
+	specks.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	specks.colors = PackedColorArray([Color(0.1, 0.1, 0.08), Color(0.95, 0.85, 0.6), Color(0.1, 0.1, 0.08)])
+	e.color_initial_ramp = specks
+	e.scale_amount_min = 1.0
+	e.scale_amount_max = 2.0
 	(e.mesh as QuadMesh).material.set_shader_parameter("sky_only", 0.0)
 	return e
 
@@ -196,10 +202,15 @@ func update(delta: float, sky, clock, indoor: bool) -> void:
 	if (warm or outside) and (_spots_home.distance_to(view) >= SPOTS_MOVE):
 		_find_spots(view, ground)
 	# Midges on warm evenings, about sunset (Sky.sun_height near 0).
-	var evening: bool = warm and absf(sky.sun_height) < 0.3 and clock.time_of_day > 0.5
+	var evening: bool = warm and absf(sky.sun_height) < 0.4 and clock.time_of_day > 0.5
 	var by_water: bool = evening and not hidden.has(MIDGES_PART) and not _spots.is_empty()
 	if by_water and not midges.emitting:
-		midges.position = _spots.pick_random() + Vector3(0.0, 0.7, 0.0)
+		# The spot by the water nearest the view, where they will be seen.
+		var best: Vector3 = _spots[0]
+		for p: Vector3 in _spots:
+			if PixelView.screen_plane(p).distance_to(view) < PixelView.screen_plane(best).distance_to(view):
+				best = p
+		midges.position = best + Vector3(0.0, 0.7, 0.0)
 	_emit(midges, by_water)
 	var idle: bool = evening and not hidden.has(MIDGES_PART) and game.view.idle > MIDGE_IDLE
 	head_midges.position = player.position + Vector3(0.0, 1.25, 0.0)

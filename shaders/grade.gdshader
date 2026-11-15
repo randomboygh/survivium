@@ -32,8 +32,10 @@ uniform vec4 heat_spots[4];
 uniform vec4 heat_power = vec4(0.0);
 // The air over the ground trembling in patches in a hot noon, 0..1.
 uniform float heat_haze = 0.0;
-// Drops of rain running down the screen's edges in a downpour or after a swim, 0..1.
-uniform float drops = 0.0;
+// Drops of rain running down the screen's edges in a downpour or after a swim
+// (AirEffects): x their clock (seconds), y how thick they come now (0..1), z when on
+// that clock the screen began to dry (-1 while it does not), w how thick they were then.
+uniform vec4 drop_state = vec4(0.0, 0.0, -1.0, 0.0);
 // The pixels of the picture round its edges left off the screen (PixelView.MARGIN).
 uniform float view_margin = 0.0;
 global uniform sampler2D cloud_noise : filter_linear, repeat_enable;
@@ -126,9 +128,11 @@ float heat_shift(vec2 p) {
 // moves the picture under it (a drop shows what is behind it upside down, shrunk), z its
 // light (a glint at its top, a darker rim below, a wet trail above, negative darker).
 // Lanes along the left and right edges get a drop now and then: it clings, runs down in
-// a slide and dries away.
+// a slide and dries away. Drops born before the screen began to dry (drop_state.z) run
+// down and shrink away fast instead of vanishing.
 vec3 screen_drop(vec2 p, vec2 size) {
 	const float LANE = 12.0;
+	const float DRY_RUN = 1.6;
 	p -= view_margin;
 	size -= 2.0 * view_margin;
 	float lanes = floor(size.x / LANE);
@@ -137,38 +141,57 @@ vec3 screen_drop(vec2 p, vec2 size) {
 	if (edge > 2.0) {
 		return vec3(0.0);
 	}
+	float now = drop_state.x;
+	bool drying = drop_state.z >= 0.0;
 	vec3 out_d = vec3(0.0);
 	// Two drops a lane, on clocks of their own.
 	for (int k = 0; k < 2; k++) {
 		float seed = col + float(k) * 57.0;
 		float h = crt_hash(vec2(seed, 3.1));
-		float t = TIME * (0.07 + 0.08 * h) + h * 7.0;
+		float speed = 0.07 + 0.08 * h;
+		float t = now * speed + h * 7.0;
 		float round_n = floor(t);
 		float f = fract(t);
-		if (crt_hash(vec2(seed, round_n)) > drops * (0.8 - edge * 0.2)) {
+		// As thick as the drops were when this one came: the ones there before the drying
+		// run off.
+		float born = (round_n - h * 7.0) / speed;
+		bool old = drying && born < drop_state.z;
+		if (crt_hash(vec2(seed, round_n)) > (old ? drop_state.w : drop_state.y) * (0.8 - edge * 0.2)) {
+			continue;
+		}
+		float run = old ? clamp((now - drop_state.z) / DRY_RUN, 0.0, 1.0) : 0.0;
+		f += (1.0 - f) * run;
+		if (run >= 1.0) {
 			continue;
 		}
 		float x = col * LANE + 3.0 + floor(crt_hash(vec2(round_n, seed)) * (LANE - 6.0));
 		float y0 = floor(crt_hash(vec2(seed + 9.0, round_n)) * size.y * 0.7);
-		float y = floor(y0 + smoothstep(0.3, 0.9, f) * size.y * 0.3);
-		float r = floor(mix(3.6, 0.8, smoothstep(0.75, 1.0, f)) + crt_hash(vec2(seed, round_n + 0.5)) * 1.5 + 0.5);
+		float y = floor(y0 + smoothstep(0.3, 0.9, f) * size.y * 0.3 + run * 14.0);
+		float r = floor((mix(3.4, 0.8, smoothstep(0.75, 1.0, f)) + crt_hash(vec2(seed, round_n + 0.5)) * 1.4) * (1.0 - run) + 0.5);
 		vec2 d = p - vec2(x, y);
-		float dist = length(d + 0.5);
-		if (dist < r) {
+		// Drawn out up and down, pointed at the top: a drop hanging as it runs.
+		vec2 e = d + 0.5;
+		e.y *= e.y < 0.0 ? 0.55 : 0.85;
+		float dist = length(e);
+		if (r >= 1.0 && dist < r) {
 			// A brighter body over the picture under it, turned over, a darker rim at the
 			// bottom and a glint at the top left.
 			float light = 0.1;
-			vec2 g = vec2(-floor(r * 0.5));
-			if (d == g || (r >= 3.0 && d == g + vec2(1.0, 0.0))) {
+			vec2 g = vec2(-floor(r * 0.5), -floor(r * 0.9));
+			if (d == g || (r >= 3.0 && d == g + vec2(0.0, 1.0))) {
 				light = 0.55;
 			} else if (dist > r - 1.0 && d.y >= -0.5) {
 				light = -0.2;
 			}
-			return vec3(-d * 1.6, light);
+			return vec3(-d * vec2(1.6, 1.1), light);
 		}
-		// The wet trail it leaves, a pixel wide.
-		if (d.x == 0.0 && d.y < 0.0 && p.y > y0 && f > 0.3) {
-			out_d = vec3(1.0, 0.0, 0.05 * (1.0 - smoothstep(0.85, 1.0, f)));
+		// The wet trail it leaves: two pixels wide near the drop, one further up, bending
+		// the picture behind it a pixel toward its middle, fading as it dries.
+		float above = -d.y;
+		float wide = above < 10.0 && r >= 2.0 ? 1.0 : 0.0;
+		if (above > 0.0 && p.y > y0 && f > 0.3 && (d.x == 0.0 || (wide > 0.0 && d.x == -1.0))) {
+			float fade = (1.0 - smoothstep(0.85, 1.0, f)) * (1.0 - run);
+			out_d = vec3(d.x == 0.0 ? -1.0 : 1.0, -1.0, (0.06 - above * 0.0008) * fade);
 		}
 	}
 	return out_d;
@@ -226,7 +249,7 @@ void fragment() {
 		if (heat_power != vec4(0.0) || heat_haze > 0.0) {
 			uv.x += heat_shift(floor(uv / TEXTURE_PIXEL_SIZE)) * TEXTURE_PIXEL_SIZE.x;
 		}
-		if (drops > 0.0) {
+		if (drop_state.y > 0.0 || drop_state.z >= 0.0) {
 			drop = screen_drop(floor(uv / TEXTURE_PIXEL_SIZE), 1.0 / TEXTURE_PIXEL_SIZE);
 			uv += drop.xy * TEXTURE_PIXEL_SIZE;
 		}
@@ -247,7 +270,7 @@ void fragment() {
 		if (heat_power != vec4(0.0) || heat_haze > 0.0) {
 			uv.x += heat_shift(floor(uv / TEXTURE_PIXEL_SIZE)) * TEXTURE_PIXEL_SIZE.x;
 		}
-		if (drops > 0.0) {
+		if (drop_state.y > 0.0 || drop_state.z >= 0.0) {
 			drop = screen_drop(floor(uv / TEXTURE_PIXEL_SIZE), 1.0 / TEXTURE_PIXEL_SIZE);
 			uv += drop.xy * TEXTURE_PIXEL_SIZE;
 		}

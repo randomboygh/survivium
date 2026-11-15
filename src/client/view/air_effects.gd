@@ -30,9 +30,12 @@ const HEAT_HIGH := 1.4
 const HAZE_FROM := 27.0
 const HAZE_FULL := 34.0
 ## Drops come on the screen in rain this strong (Clock.rain: a downpour or a storm),
-## grow in and dry off at DROPS_RATE a second; out of the water they stay WET_TIME seconds.
+## come and go thicker and thinner at DROPS_RATE a second; out of the water they stay
+## WET_TIME seconds. When they stop, no more come and the ones on the screen run off
+## within DRY_RUN seconds (grade.gdshader screen_drop).
 const DROPS_RAIN := 0.7
 const DROPS_RATE := 0.5
+const DRY_RUN := 1.6
 const WET_TIME := 5.0
 ## Breath steams at this many degrees and below in full, fading out up to BREATH_MILD;
 ## on a morning (from an hour before sunrise to MORNING_SPAN of a day after it) up to
@@ -87,6 +90,11 @@ var _air := 15.0
 var _path_in := 0.0
 var _heat_shown := true
 var _drops := 0.0
+## The drops' clock, and when on it the screen began to dry (-1 while it does not) and
+## how thick the drops were then.
+var _drop_clock := 0.0
+var _dry_at := -1.0
+var _dry_was := 0.0
 var _wet := 0.0
 var _was_swimming := false
 ## What was last given to the shaders, so they are set only on a change.
@@ -188,9 +196,26 @@ func _rain_drops(delta: float, on: bool, clock, indoor: bool) -> void:
 	if on and not swimming:
 		if not indoor and clock.rain > DROPS_RAIN:
 			want = clampf((clock.rain - DROPS_RAIN) / (1.0 - DROPS_RAIN) + 0.4, 0.0, 1.0)
-		want = maxf(want, clampf(_wet / 2.0, 0.0, 1.0))
-	_drops = move_toward(_drops, want, delta * DROPS_RATE)
-	_give(view.grade_mat, "drops", snappedf(_drops, 0.02))
+		if _wet > 0.0:
+			want = maxf(want, 0.8)
+	if want <= 0.0 and _drops > 0.0:
+		# The rain has stopped (or one went under a roof, into the water): no more drops
+		# come, the ones there run off.
+		_dry_at = _drop_clock
+		_dry_was = _drops
+		_drops = 0.0
+	elif want > 0.0:
+		_dry_at = -1.0
+		_drops = move_toward(_drops, want, delta * DROPS_RATE)
+	if _dry_at >= 0.0 and _drop_clock - _dry_at > DRY_RUN:
+		_dry_at = -1.0
+	var active := _drops > 0.0 or _dry_at >= 0.0
+	if active:
+		_drop_clock += delta
+	elif _drop_clock > 0.0:
+		_drop_clock = 0.0
+	_give(view.grade_mat, "drop_state", Vector4(_drop_clock, snappedf(_drops, 0.02), _dry_at, _dry_was) if active
+		else Vector4(0.0, 0.0, -1.0, 0.0))
 	_give(view.grade_mat, "view_margin", float(PixelView.MARGIN))
 
 
