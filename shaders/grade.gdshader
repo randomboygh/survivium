@@ -99,7 +99,7 @@ float crt_hash(vec2 p) {
 }
 
 // How many pixels the hot air moves the picture at its pixel `p` sideways: rows waving
-// up over each fire, weaker to its sides and top, two pixels at most; in a hot noon rows
+// up over each fire, weaker to its sides and top, a pixel at most; in a hot noon rows
 // wobbling in drifting patches over the whole ground.
 float heat_shift(vec2 p) {
 	float s = 0.0;
@@ -114,7 +114,7 @@ float heat_shift(vec2 p) {
 		if (up < -0.1 || up > 1.0 || side > 1.0) {
 			continue;
 		}
-		float k = heat_power[i] * (1.0 - up * up) * (1.0 - side * side) * 3.2;
+		float k = heat_power[i] * (1.0 - up * up) * (1.0 - side * side) * 2.2;
 		float w = sin(p.y * 1.1 + TIME * 8.0 + h.x) * 0.7 + sin(p.y * 0.37 + TIME * 4.3) * 0.5;
 		s += floor(w * k + 0.5);
 	}
@@ -124,7 +124,7 @@ float heat_shift(vec2 p) {
 		float k = heat_haze * smoothstep(0.5, 0.7, n) * 1.4;
 		s += floor(sin(p.y * 1.7 + TIME * 6.0 + n * 9.0) * k + 0.5);
 	}
-	return clamp(s, -2.0, 2.0);
+	return clamp(s, -1.0, 1.0);
 }
 
 // A drop of rain on the screen at pixel `p` of a picture `size` pixels: xy how far it
