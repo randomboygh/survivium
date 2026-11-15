@@ -30,9 +30,13 @@ uniform vec3 swamp_shallow SRGB = vec3(0.37, 0.43, 0.25);
 uniform vec3 swamp_deep SRGB = vec3(0.2, 0.26, 0.16);
 uniform vec3 bog_color SRGB = vec3(0.33, 0.31, 0.19);
 uniform vec3 swamp_foam SRGB = vec3(0.62, 0.65, 0.5);
-// 0 by day, up to 1 on warm nights (sky.gd): how much the surf and a swimmer's wake glow
-// blue where the plankton is (bays of it, by a slow noise).
+// 0 by day, up to 1 on the rare warm nights it glows (sky.gd glowing_night): how much the
+// surf and a swimmer's wake glow blue where the plankton is (bays of it, by a slow noise).
 global uniform float sea_glow;
+// The way the player moves through the water (x, y: along the ground, a unit) and how
+// fast, 0..1 (z), for the plankton's wake behind them (WaterEffects), and how far it trails.
+uniform vec3 wake_way = vec3(0.0, 1.0, 0.0);
+const float WAKE_LONG = 2.6;
 const vec3 PLANKTON = vec3(0.2, 0.62, 1.0);
 // The sun's path on the water while the sun is low (AirEffects): xy the way to the sun
 // along the ground, z how strong (0 none); glints thick on a band from the player
@@ -293,11 +297,16 @@ void fragment() {
 		// Plankton lights up blue where the surf breaks and round one swimming, flickering
 		// texel by texel, in bays of it here and there.
 		float bay = smoothstep(0.42, 0.6, ground_patch(world_pos.xz / 5.0, 47.0));
+		// Behind one moving in the water: a faint V of it trailing off (wake_way).
 		vec2 off = world_pos.xz - player_pos.xz;
-		float near = length(off);
-		float wake = abs(world_pos.y - player_pos.y - 0.25) < 0.8 ? smoothstep(1.2, 0.5, near) * step(0.25, near) : 0.0;
+		float behind = -dot(off, wake_way.xy);
+		float side = abs(off.x * wake_way.y - off.y * wake_way.x);
+		float wake = 0.0;
+		if (wake_way.z > 0.0 && behind > 0.2 && behind < WAKE_LONG && abs(world_pos.y - player_pos.y - 0.25) < 0.8) {
+			wake = smoothstep(0.16, 0.04, abs(side - behind * 0.32)) * (1.0 - behind / WAKE_LONG) * wake_way.z * 0.55;
+		}
 		float twinkle = 0.45 + 0.55 * step(0.55, hash12(tex + floor(TIME * 4.0) * 7.0));
-		plankton = max(surf * bay, wake * step(0.5, hash12(tex + floor(TIME * 6.0) * 3.0))) * twinkle * sea_glow;
+		plankton = max(surf * bay, wake * step(0.6, hash12(tex + floor(TIME * 6.0) * 3.0))) * twinkle * sea_glow;
 	}
 	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5) * mix(vec3(1.0), vec3(0.8, 0.78, 0.7), murk), ice_amount);
 	if (ice_amount > 0.0 && world_normal.y > 0.5) {

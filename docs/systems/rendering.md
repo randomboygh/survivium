@@ -63,13 +63,15 @@ voxel models of things.
   weather and fire, `water_fx` 0/1/2, `nature_fx`, `body_fx`, `heat_fx`, `drops_fx`; off on «низкое», mirroring
   and heat off on «среднее», `Settings.QUALITIES`, `AutoQuality.STEPS`) and hidden one by one in «Что рисуется»
   (their `parts()`). AirEffects: the air trembling over the nearest fires and over hot ground at noon and drops of
-  rain running down the screen's edges (`grade.gdshader` `heat_spots`, `heat_haze`, `drops`), breath steaming in
+  rain running down the screen's edges (`grade.gdshader` `heat_spots`, `heat_haze`, `drop_state`: when they stop the drops there run off within
+  `DRY_RUN`), breath steaming in
   a frost (puffs from a pool, `Creatures.muzzle`), the sun's path on the water at sunrise and sunset and the
   moon's at night (`water.gdshader` `sun_path`, `Sky.sun_height`). WaterEffects: rings and splashes (fish jumping,
   a shot landing, wading, a fall into the water), steam over open water on cold mornings, fires and torches
   glittering on the water towards the viewer (`fire_glints`), and the figures by the water mirrored in it
-  (`sprite_mirror.gdshader`: the sprite upside down, drawn after the water with no depth test, kept to the
-  water by the roof map's columns; its box fitted with `PixelView.sheared_box`). NatureEffects: dandelion fluff,
+  (`sprite_mirror.gdshader`: the sprite upside down, drawn after the water and over the body's part under it
+  (priority 2) with no depth test, kept to the water and its wet edge by the roof map's columns; a figure is
+  mirrored with open water within `MIRROR_LOOK` cells round its feet, a swimmer too; its box fitted with `PixelView.sheared_box`). NatureEffects: dandelion fluff,
   midges by the water at sunset and over one standing still, dragonflies over the water, dust or snow from
   under the feet.
 - `src/client/view/wisps.gd` (held by `Effects.wisps`, moved by `Sky`) — will-o'-the-wisps: on nights out of winter up
@@ -80,8 +82,9 @@ voxel models of things.
   frames; `PixelTextures.build_plants` writes a row under the plants (`looks_texel`: red shy, green night, blue
   the shift) and the vertex shader swaps the column — shy while the player stands within `SHY_REACH`, night
   past a `night_glow` of its own. Texels of a custom picture with an alpha of 200..240 glint by day (dew).
-  The surf and a swimmer's wake glow blue on warm nights in bays of plankton (`sea_glow`, set by `Sky` from the
-  night and the season, `water.gdshader`).
+  The surf and a faint V behind a swimmer (`wake_way`, from `WaterEffects`) glow blue on rare warm nights in
+  bays of plankton (`sea_glow`, set by `Sky` from the night, one in `SEA_GLOW_NIGHTS` (`Sky.glowing_night`), and
+  the season, `water.gdshader`).
 - `src/client/view/glow_lights.gd` (held by `Effects.glows`) — small teal pools of light round the glowing
   mushrooms at night: `Foliage` notes where each glowing mushroom stands (`Job.glows`, kept through a patch),
   `ChunkStreamer` hands them over per chunk, and every `PICK_EVERY` s the `LIGHTS` (4) groups nearest the

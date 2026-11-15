@@ -626,6 +626,24 @@ func _run() -> void:
 			if menu._scroll.get_v_scroll_bar().visible:
 				bars.append("%s/%s" % [which, sec[0]])
 	_check(bars.is_empty(), "no scroll bar while the rows fit the screen: %s" % [bars])
+	# On a phone held sideways the window is lower than the longest tab: only a tab whose
+	# own rows do not fit scrolls, a short one (sound, the test server) shows no bar.
+	main.hud.fit(Rect2(Vector2.ZERO, Vector2(2608, 1200)), true)
+	var wrong := []
+	var short := 0
+	for which in ["settings", "test"]:
+		menu.open(which)
+		for sec in menu.PAGES[which]:
+			menu.show_section(sec[0])
+			await process_frame
+			await process_frame
+			var over: bool = menu._list.get_combined_minimum_size().y > menu._scroll.size.y + 0.5
+			var shown: bool = menu._scroll.get_v_scroll_bar().visible
+			if shown != over:
+				wrong.append("%s/%s" % [which, sec[0]])
+			if not shown:
+				short += 1
+	_check(wrong.is_empty() and short > 0, "a scroll bar only on a tab whose rows overflow: %s" % [wrong])
 	menu.open("settings")
 	menu.show_section("game")
 	# The top of a phone held upright: the minimap two buttons square, the level

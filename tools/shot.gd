@@ -117,6 +117,9 @@ func _run() -> void:
 		var shot: Dictionary = Shots.SHOTS[shot_name]
 		main.session.clock.time_speed = 0.0
 		main.session.clock.season = shot.season
+		# The day, where it matters (the sea glows on some nights only, Sky.glowing_night).
+		if shot.has("day"):
+			main.session.clock.day = shot.day
 		# A shot's time is the sun's: the same light whatever the season's day length.
 		main.session.clock.season_clock = main.session.clock.DAYS_PER_SEASON * 0.5
 		main.session.clock.time_of_day = shot.clock if shot.has("clock") else main.session.clock.time_at_sun(shot.time)

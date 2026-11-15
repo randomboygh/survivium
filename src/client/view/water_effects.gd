@@ -42,10 +42,14 @@ const STEAM_MILD := 9.0
 const GLINTS := 4
 const GLINT_REACH := 16.0
 ## Figures mirrored at once, the nearest the view within MIRROR_REACH; a figure is
-## mirrored while there is water within MIRROR_LOOK cells in front of it.
+## mirrored while there is open water within MIRROR_LOOK cells round its feet.
 const MIRRORS := 8
 const MIRROR_REACH := 14.0
-const MIRROR_LOOK := 4
+const MIRROR_LOOK := 3
+## How far over the feet the water may come (a swimmer's feet hang under it) and how
+## far under them it may lie (one standing up the bank), world units.
+const MIRROR_DEEP := 1.6
+const MIRROR_HIGH := 1.2
 
 ## Seconds between two looks at the steam and the glints.
 const SLOW_LOOK := 0.2
@@ -68,6 +72,9 @@ var _fish_in := 2.0
 ## Each one watched (by key): {"was": [in water, swimming], "fall": the speed it fell,
 ## "walked": world units walked in water since its last ring, "last": where it was}.
 var _bodies := {}
+## The way the player moves through the water and how fast, 0..1, smoothed (_wake).
+var _wake_way := Vector2(0.0, 1.0)
+var _wake_k := 0.0
 var steam: CPUParticles3D
 var _steam_home := Vector2.INF
 ## Each figure mirrored: its sprite -> its mirror (MeshInstance3D).
@@ -233,6 +240,8 @@ func _watch_bodies(delta: float) -> void:
 			if st.walked > (WADE_STEP if not b.swimming else SWIM_RING * 0.8):
 				st.walked = 0.0
 				ring(at + Vector3(0.0, 0.5, 0.0))
+		if fig == game.player:
+			_wake(Vector2(at.x - st.last.x, at.z - st.last.z), delta, wet)
 		st.was = wet
 		st.fall = fall
 		st.last = at
@@ -240,6 +249,20 @@ func _watch_bodies(delta: float) -> void:
 	for key in _bodies.keys():
 		if not seen.has(key):
 			_bodies.erase(key)
+
+
+## The glowing plankton's wake behind the player moving in the water
+## (water.gdshader wake_way): the way they go, how fast, eased in and out.
+func _wake(moved: Vector2, delta: float, wet: bool) -> void:
+	var speed := moved.length() / maxf(delta, 0.001)
+	if speed > 0.3:
+		_wake_way = _wake_way.lerp(moved / moved.length(), minf(1.0, delta * 6.0)).normalized()
+	var want := clampf(speed / 2.5, 0.0, 1.0) if wet else 0.0
+	_wake_k = move_toward(_wake_k, want, delta * 1.5)
+	var way := Vector3(snappedf(_wake_way.x, 0.05), snappedf(_wake_way.y, 0.05), snappedf(_wake_k, 0.05))
+	if _set.get("wake") != way:
+		_set["wake"] = way
+		game.water_mat.set_shader_parameter("wake_way", way)
 
 
 ## Now and then a fish near the view jumps: a splash and rings over it.
@@ -366,7 +389,9 @@ func _mirror(delta: float, sky) -> void:
 				var m := MeshInstance3D.new()
 				var mat := ShaderMaterial.new()
 				mat.shader = MirrorShader
-				mat.render_priority = 1
+				# Over the part of the body under the water (Player.underwater, 1), so the
+				# legs in the water do not cover their mirrored picture.
+				mat.render_priority = 2
 				m.material_override = mat
 				m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				add_child(m)
@@ -434,15 +459,29 @@ func _mirrored() -> Dictionary:
 			found.append([d, s])
 	found.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	var out := {}
-	var toward := Vector2i(roundi(-PixelView.up.x), roundi(-PixelView.up.y))
 	for one: Array in found:
 		if out.size() >= MIRRORS:
 			break
 		var p: Vector3 = one[1].global_position
 		var c := Vector3i((p / CELL).floor())
-		for i in range(0, MIRROR_LOOK + 1):
-			var top := water_top(c.x + toward.x * i, c.z + toward.y * i, c.y)
-			if top != -INF and top <= p.y + 0.3 and top > p.y - 1.2:
+		# The nearest open water round the feet, any way the camera looks: from a swimmer
+		# (the feet deep under it) to one a cell or two up the bank.
+		for r in range(0, MIRROR_LOOK + 1):
+			var top := _water_ring(c, r, p.y)
+			if top != -INF:
 				out[one[1]] = top
 				break
 	return out
+
+
+## The top of open water among the cells `r` from cell `c` (a square ring), within
+## reach of feet at height `feet`; -INF when there is none.
+func _water_ring(c: Vector3i, r: int, feet: float) -> float:
+	for dz in range(-r, r + 1):
+		for dx in range(-r, r + 1):
+			if maxi(absi(dx), absi(dz)) != r:
+				continue
+			var top := water_top(c.x + dx, c.z + dz, c.y + 2)
+			if top != -INF and top <= feet + MIRROR_DEEP and top > feet - MIRROR_HIGH:
+				return top
+	return -INF
