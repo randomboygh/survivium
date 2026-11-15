@@ -1,9 +1,10 @@
 // Sunlight among the trees (sun_rays.gd): mode 0 a shaft of light from the instance's
 // origin (on its tree's middle plane) down along the light to the ground (COLOR: width,
-// height over the ground, phase, strength), drawn as a band across the view that ends
-// where it meets the ground; mode 1 a fleck of sun on the
-// ground (COLOR: size, -, phase, strength). Light added to the picture, in a few
-// dithered steps like the rest of the light.
+// height over the ground, phase, strength), drawn as a band across the view that fades
+// away as it nears the ground; mode 1 the fleck of sun where a shaft meets the ground,
+// in its crown's shadow (COLOR: the shaft's width, -, phase, strength), stretched along
+// the light as a slanting shaft's patch is, and breathing with its shaft. Light added to
+// the picture, in a few dithered steps like the rest of the light.
 shader_type spatial;
 render_mode world_vertex_coords, unshaded, cull_disabled, blend_add, depth_draw_never, shadows_disabled;
 
@@ -50,9 +51,17 @@ void vertex() {
 		VERTEX = vec3(mix(a.x, b.x, q.y) + across.x, mix(a.y, b.y, q.y) + depth_lift, mix(a.z, b.z, q.y) + across.y);
 	} else {
 		span = 1.0;
-		// Drifting a little with the leaves moving in the wind.
-		float sway = sin(TIME * 0.7 + phase * 6.28) * 0.04;
-		world_pos = o + vec3(q.x * COLOR.r + sway * wind.x, 0.02, (q.y - 0.5) * COLOR.r + sway * wind.y);
+		// The shaft's patch on the ground: as wide as the shaft, longer along the light
+		// the lower the sun; wider and narrower, and shifting, with its shaft.
+		vec2 level_way = vec2(light_down.x, light_down.z);
+		vec2 run = length(level_way) > 0.01 ? normalize(level_way) : vec2(0.0, 1.0);
+		vec2 side_way = vec2(-run.y, run.x);
+		float stretch = 1.0 / max(sqrt(1.0 - dot(level_way, level_way)), 0.4);
+		float t = TIME + phase * 37.0;
+		float widen = 0.8 + 0.2 * sin(t * 0.37) + 0.08 * sin(t * 0.61 + 1.7);
+		float shift = 0.5 * (0.06 * sin(t * 0.29 + 0.6) + 0.03 * sin(t * 0.53));
+		vec2 at = side_way * (q.x * COLOR.r * widen + shift) + run * ((q.y - 0.5) * COLOR.r * widen * stretch);
+		world_pos = o + vec3(at.x, 0.02, at.y);
 		VERTEX = shear(world_pos);
 	}
 }
@@ -66,10 +75,11 @@ void fragment() {
 	float dither = (float(m[b.y * 4 + b.x]) + 0.5) / 16.0;
 	float k;
 	if (mode == 0) {
-		// Soft at the sides, faded in over its first unit inside the crown, ending sharp
-		// on the ground; each shaft grows paler and brighter, slowly, as the leaves move.
+		// Soft at the sides, faded in over its first unit inside the crown and away over
+		// its lower part, gone as it meets the ground (its fleck lights the ground there);
+		// each shaft grows paler and brighter, slowly, as the leaves move.
 		float side = 1.0 - abs(band.x * 2.0 - 1.0);
-		float along = smoothstep(0.0, 1.0, band.y * span);
+		float along = smoothstep(0.0, 1.0, band.y * span) * (1.0 - smoothstep(0.3, 0.95, band.y));
 		float t = TIME + phase * 37.0;
 		float breathe = 0.65 + 0.25 * sin(t * 0.41 + 0.9) + 0.1 * sin(t * 0.73 + 2.3);
 		// Low contrast: mostly the soft part, a little brighter in the middle.
@@ -77,11 +87,13 @@ void fragment() {
 		// Three steps of light, dithered between them.
 		k = floor(k * 12.0 + dither) / 12.0;
 	} else {
-		// A round fleck that comes and goes as the leaves above move.
+		// A patch of sun at the end of its shaft, paler and brighter with it; crisp, the
+		// middle a step brighter.
 		float d = length(band * 2.0 - vec2(1.0));
-		float shimmer = smoothstep(0.35, 0.75, 0.5 + 0.5 * sin(TIME * (1.1 + phase) + phase * 6.28));
-		// Crisp, in two steps: the middle brighter.
-		k = (step(d, 0.9) * 0.6 + step(d, 0.45) * 0.4) * step(0.5, shimmer) * strength * amount * 0.7;
+		float t = TIME + phase * 37.0;
+		float breathe = 0.65 + 0.25 * sin(t * 0.41 + 0.9) + 0.1 * sin(t * 0.73 + 2.3);
+		k = (step(d, 0.9) * 0.6 + step(d, 0.5) * 0.4) * breathe * strength * amount * 0.7;
+		k = floor(k * 12.0 + dither) / 12.0;
 	}
 	if (k <= 0.0) {
 		discard;
