@@ -741,7 +741,7 @@ func _run() -> void:
 	# kept once the world was built) and the server (the requests through it).
 	log_page.open("report")
 	var report: String = log_page.report_text()
-	_check(report.split("\n").size() == 14 and report.contains("Mods: core ") and report.contains("World: ") and report.contains("Weather: ")
+	_check(report.split("\n").size() == 15 and report.contains("Mods: core ") and report.contains("World: ") and report.contains("Weather: ")
 		and report.contains("mod data ") and report.contains("(%d records: read " % Content.record_count())
 		and report.contains("scripts ") and report.contains(", world ") and report.contains("Earlier starts: ")
 		and report.contains("Server: in the game (loop), requests ") and main.net.requests > 0
@@ -757,7 +757,7 @@ func _run() -> void:
 	for line_label in log_page._list.get_children():
 		place_lines.append(line_label.text)
 	log_page.show_section("start")
-	_check(log_page._tab_buttons.size() == 6 and place_lines.size() == 6 and place_lines[0].begins_with("World: ")
+	_check(log_page._tab_buttons.size() == 6 and place_lines.size() == 7 and place_lines[0].begins_with("World: ")
 		and log_page._list.get_child(0).text.begins_with("Loading, s: ") and log_page._shown_text == report
 		and log_page._copy_row.visible and not log_page._copy.visible,
 		"the playtest report's tabs split it: %s" % [place_lines])
