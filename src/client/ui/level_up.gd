@@ -8,6 +8,7 @@ extends Node
 
 const Skills := preload("res://src/shared/content/skills.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
 
 ## The gold of the glow and how long it fades, seconds.
 const GOLD := Color("#f2c75c")
@@ -45,3 +46,4 @@ func _on_leveled(id: String, level: int) -> void:
 	if game.effects != null and game.player != null:
 		game.effects.level_sparks(game.player.position)
 	game.sound.play("level_up", Vector3.INF, 0.8, 1.0, "UI")
+	Vibration.play(game, "level")

@@ -20,6 +20,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Nature := preload("res://src/client/audio/nature.gd")
 const Steps := preload("res://src/client/audio/steps.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
 const Voices := preload("res://src/client/audio/voices.gd")
 const Music := preload("res://src/client/audio/music.gd")
 const SoundMarks := preload("res://src/client/ui/sound_marks.gd")
@@ -388,6 +389,7 @@ func _on_node_added(node: Node) -> void:
 
 func _on_button(b: BaseButton) -> void:
 	play("tab" if b.toggle_mode else "click")
+	Vibration.play(game, "click")
 
 
 func _process(delta: float) -> void:

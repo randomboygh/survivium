@@ -23,6 +23,7 @@ const HotbarSnow := preload("res://src/client/ui/hotbar_snow.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const LevelUp := preload("res://src/client/ui/level_up.gd")
+const Haptics := preload("res://src/client/ui/haptics.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
 const Body := preload("res://src/shared/game/body.gd")
 ## The camera cross: the width of its arms at the sides and the height of those above
@@ -39,6 +40,7 @@ func _ready() -> void:
 	feedback = BodyFeedback.new(game)
 	add_child(feedback)
 	add_child(LevelUp.new(game))
+	add_child(Haptics.new(game))
 
 	_left = VBoxContainer.new()
 	_left.add_theme_constant_override("separation", 6)

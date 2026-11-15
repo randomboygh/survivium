@@ -18,6 +18,7 @@ const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
 
 const CELL := WorldData.CELL
 ## World units the bounding box of a thing flying to the player grows by, so the shear
@@ -47,6 +48,8 @@ const HOP := 0.35
 const RENEW_MS := 300
 ## Cells a thing dragged in the build mode is held up over its ground (BuildMode).
 const LIFT := 0.3
+## A thing landing this near the player (world units) is felt (Vibration "thud").
+const THUD_NEAR := 4.0
 
 var game
 ## Meshes of the things on the ground by model, their vertices one triangle after
@@ -306,6 +309,9 @@ func _land(e: Dictionary) -> void:
 	var under: int = game.world.get_cell(c.x, c.y - 1, c.z) if game.world != null else -1
 	game.effects.dust(Vector3(c) * CELL, n * 0.75 if Placed.is_light(e) else n, under if under != Mat.AIR else -1)
 	game.sound.play("place", Placed.center(e), 1.0, 1.0 if n < 2.0 else 0.8)
+	# Set down beside the player, the thud is felt (Vibration "thud").
+	if game.player != null and Placed.center(e).distance_to(game.player.position) < THUD_NEAR:
+		Vibration.play(game, "thud", 0.0, 1.0 if n < 2.0 else 1.4)
 
 
 ## Holds the model of thing `e` up over the north-west cell `corner` (its turn kept) while

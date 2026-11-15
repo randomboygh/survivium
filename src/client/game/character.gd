@@ -8,6 +8,10 @@ extends "res://src/shared/game/character.gd"
 ## any column (go_to_column). `game` is the Main node.
 
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
+
+## What the server says that is felt too (Vibration): its template, and the pattern.
+const FELT := {"[the_bag_is_full]": "full", "[the_bag_is_full_the]": "full", "[broke]": "broke"}
 
 var game
 ## The column the player was taken to, held there until its chunk is made; else null.
@@ -26,6 +30,12 @@ func _where() -> Vector3:
 ## Says `text` under the clock at once.
 func say(text: String) -> void:
 	game.hud.toast(text)
+	var key := text
+	if text.begins_with(Lang.LINE):
+		var parts: Variant = JSON.parse_string(text.substr(Lang.LINE.length()))
+		key = str(parts[0]) if parts is Array and not parts.is_empty() else ""
+	if FELT.has(key):
+		Vibration.play(game, FELT[key])
 
 
 ## Takes the state a YOU event gives (see PlayerLink.flush): the bag, the body's state,

@@ -633,9 +633,10 @@ func _section_rows(key: String) -> Array:
 					func(i: int) -> void: s.set_value("shake", i == 1)],
 				# Faded and «нет» where the browser or device cannot buzz (a computer,
 				# Safari, some phones' own browsers).
-				["[vibration]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.vibrate) if Vibration.supported() else -1,
-					func(i: int) -> void: s.set_value("vibrate", i == 1), "[no_n2]", Vibration.supported],
+				# The steps of Vibration: off, only the important, the usual, all.
+				["[vibration]", ["[off]", "[vibration_important]", "[vibration_usual]", "[everything]"],
+					func() -> int: return int(s.values.vibration) if Vibration.supported() else -1,
+					_set_vibration, "[no_n2]", Vibration.supported],
 			]
 		"other":
 			return [
@@ -1429,3 +1430,10 @@ func debug_rects() -> Dictionary:
 		var b: Button = r.right
 		out[r.name.text] = b.get_global_rect() if b.is_visible_in_tree() else Rect2()
 	return out
+
+
+## Sets the vibration's step `i` and lets it be felt: a full bag's «no» for the
+## important only, a new level's trill for the rest.
+func _set_vibration(i: int) -> void:
+	game.settings.set_value("vibration", i)
+	Vibration.play(game, "full" if i == Vibration.IMPORTANT else "level")

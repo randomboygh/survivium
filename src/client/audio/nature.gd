@@ -10,6 +10,7 @@ extends RefCounted
 ## Sound runs it each frame.
 
 const Clock := preload("res://src/shared/game/clock.gd")
+const Vibration := preload("res://src/client/ui/vibration.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
@@ -39,6 +40,10 @@ const CRICKET_HUSH := 2.5
 ## Seconds a cricket sings, and rests between.
 const CRICKET_BOUT := Vector2(2.0, 7.0)
 const CRICKET_REST := Vector2(10.0, 45.0)
+## Thunder nearer than this (0 far .. 1 near) rumbles in the phone; nearer than
+## STRIKE_FELT a strong lightning is felt as it strikes (Vibration).
+const THUNDER_FELT := 0.5
+const STRIKE_FELT := 0.85
 ## Seconds from a lightning flash to its thunder: near and far.
 const THUNDER_DELAY := Vector2(0.4, 3.0)
 
@@ -172,6 +177,11 @@ func thunder(strength: float) -> void:
 	var muffle := MUFFLED if game.chunks.indoor else 1.0
 	game.sound.play_later(delay, "thunder", Vector3.INF, muffle * strength * lerpf(0.5, 1.0, near),
 		lerpf(0.85, 1.0, near), "Nature")
+	# Felt as well: a near one's rumble, and the strike itself of a very near one.
+	if near > THUNDER_FELT:
+		Vibration.play(game, "thunder", delay, muffle * strength * near)
+	if near > STRIKE_FELT and strength > 0.7:
+		Vibration.play(game, "strike", 0.0, muffle)
 
 
 ## The nearest burning campfire crackles from where it is.

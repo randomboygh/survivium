@@ -180,7 +180,14 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   the strengths' strips, the screen's response to damage (and an icy blue frame growing while the body is cold, from
   `Vitals.COLD` to `CHILL_FULL` below `FREEZING`, breathing while it freezes; and below `LOW_HEALTH` a crimson vignette, heavy in the corners, and a red wash beating
   like a slow heart, faster the weaker: each beat the vignette jumps in `HEART_REACH` of the screen and eases back, and the
-  picture darkens and hardens for that moment, grade `heart`), the phone's vibration.
+  picture darkens and hardens for that moment, grade `heart`), the phone's vibration: `Vibration.PATTERNS` holds each event's pulses,
+  pauses and strength (the strength only in the Android build; the browser's Vibration API takes the pattern
+  without it, Safari has none) and the step of the setting «Vibration» it needs (off, important only, usual,
+  all); `haptics.gd` (a child of the HUD) watches the character (a bite on the line, death, low health's heart,
+  waking up), the season, team invitations, things made, picked up and fires lit near; the rest buzz where
+  they happen (a strike, a felled tree, a shot that hits, a catch in `Controls._did`, a landing and water in
+  `Steps`, thunder in `Nature`, a thing set down in `Props._land`, a warning beast in `Voices`, buttons in
+  `Sound`, a full bag and a broken tool in the client's `Character.say`, chat lines in `ChatBox.hear`).
 
 **Skills** (decision 164). Nine skills are a mod's data (`content/core/data/skills.yaml`, the kind `skills`,
 the registry `src/shared/content/skills.gd`): Gathering, Chopping, Digging, Crafting, Building, Cooking,
