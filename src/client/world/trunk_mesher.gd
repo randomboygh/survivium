@@ -164,13 +164,18 @@ static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, 
 			_facing(buf, pts, n, uvs, color, Vector2(pack(side, hf[6], 0), around))
 	var caps: Array = []
 	if top != CAP_NONE:
-		caps.append([high, y1, Vector3.UP, m * 3 + (0 if top == CAP_CUT else 1), shade])
+		caps.append([high, y1, Vector3.UP, m * 3 + (0 if top == CAP_CUT else 1), shade, r1])
 	if bottom:
-		caps.append([low, y0, Vector3.DOWN, m * 3 + 2, 1.0])
+		caps.append([low, y0, Vector3.DOWN, m * 3 + 2, 1.0, r0])
 	for cap: Array in caps:
 		var ring: Array = cap[0]
 		var tint := Color(color.r * cap[4], color.g * cap[4], color.b * cap[4], color.a)
 		var packed := Vector2(pack(cap[3], 0, 0), around)
+		# The tile spans the cap, its middle on the cap's middle: the rings of the end
+		# grain centred on the stump however wide it is and wherever it leans.
+		var r: Rect2i = cap[5]
+		var middle := Vector2(r.get_center())
+		var span := float(maxi(1, maxi(r.size.x, r.size.y)))
 		var rows := [[ring[7], ring[2], ring[3], ring[6]]]
 		if c > 0:
 			rows.append([ring[7], ring[0], ring[1], ring[2]])
@@ -180,7 +185,7 @@ static func _bark(buf, base: Vector3, r0: Rect2i, r1: Rect2i, y0: int, y1: int, 
 			var uvs := []
 			for p: Vector2 in q:
 				pts.append(_texel(base, p, cap[1]))
-				uvs.append(Vector2(clampf(p.x / 8.0, 0.0, 1.0), clampf(p.y / 8.0, 0.0, 1.0)))
+				uvs.append(Vector2(0.5, 0.5) + (p - middle) / span)
 			_facing(buf, pts, cap[2], uvs, tint, packed)
 
 
