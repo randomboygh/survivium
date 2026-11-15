@@ -106,8 +106,11 @@ voxel models of things.
   way) inside the crown's outline on it (a spruce's triangle), runs along the sun's light down to the ground
   and ends on it (`_length`), in bunches of 2–4 through one gap (one wide among narrow ones, bright beside pale), 3 to 13 pixels wide, slowly growing wider and paler and back in the shader; it is drawn at its own depth (lifted only `depth_lift`), so
   the leaves of its crown in front of it and the trees in front hide it: it shows coming out of the crown. `Sky._update_rays` shows them only under a clear sky (`RAYS_CLEAR`) and with the sun at a slant (`RAYS_SUN`, 20–48°, full 26–42°): a higher sun drops them under their own crowns, a lower one lays them along the ground. The light of each tree is counted once per position of the sun (anew when the sun has
-  turned by `TURN`) and several trees per frame within `WORK_US`; at a player's step by `MOVE` the ready light
-  is only laid out anew. Before, everything was counted whole in a frame and in a forest gave «engine» freezes
+  turned by `TURN`) within `WORK_US` a frame, a shaft at a time (`_plan`, `_shaft_step`, `_job_light`: a whole
+  tree was 5–11 ms on a phone); `_length` looks along a shaft every `COARSE` units until it comes near the
+  height of the tree's foot, then a unit at a time. A tree's light keeps its shafts and flecks as MultiMesh
+  buffer data, so laying out copies whole trees whose box shows in the picture; at a player's step by `MOVE`
+  the ready light is only laid out anew. Before, everything was counted whole in a frame and in a forest gave «engine» freezes
   of 100–200 ms on a phone. The time goes into the log as the part «rays».
 - `src/client/view/pixel_textures.gd` — the atlas of materials from the mods' textures, bark as virtual
   materials after the real ones, grass, shrubs, cloud noise; `tint` — the mean colour for maps and particles.
