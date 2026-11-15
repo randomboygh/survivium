@@ -649,6 +649,19 @@ func _run() -> void:
 			main.hud.feedback._beat = 0.045
 			main.hud.feedback.queue_redraw()
 			await process_frame
+		if shot.has("wake"):
+			# A swimmer's glowing wake: the way swum laid down behind the player, as if they
+			# had come from `wake` (a direction on the ground), freshest nearest.
+			var fx = main.effects.water
+			var dir := Vector2(shot.wake[0], shot.wake[1]).normalized()
+			var at: Vector3 = main.player.position
+			fx._trail.clear()
+			for i in fx.WAKE_POINTS:
+				var back: Vector2 = dir * float(fx.WAKE_STEP) * (i + 0.6)
+				fx._trail.append(Vector4(at.x + back.x, at.z + back.y, 1.0 - 0.11 * i, at.y + 0.25))
+			fx._wake_k = 1.0
+			for i in 3:
+				await process_frame
 		if shot.has("screen_snow"):
 			# Snow on the screen as after a while of it: flakes, frost, snow on the hotbar.
 			var air = main.effects.air
