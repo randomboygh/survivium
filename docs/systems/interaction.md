@@ -166,7 +166,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
   not knocked out, so a door on the floor stands on the floor); held `HOLD_MS` (or moved `DRAG_SHARE` of the
   screen) it hangs in the air (`Props.hold_new`) over the place under the finger (`Placed.put_spot`, as the
   server will look for it), framed light or red, and is set down where it is let go; a touch of a placed thing
-  takes it back at once (only in this mode); a thing that moves (`Placed.movable`: a station, a chest,
+  takes it back after `DOUBLE_TAP_MS` (`_tap_wait`; a second tap within that time turns it a quarter where it stands; only in this mode); a thing that moves (`Placed.movable`: a station, a chest,
   furniture, a sign, a fireplace) held the same way hangs in the air (a stroke with `prop`: `drag` each frame
   — the model is held up `Props.LIFT` over the free place nearest under the finger, `Placed.move_spot` as the
   server looks for it, its cells framed light or red; `release` — `PROP_MOVE`, `Placed.move`, or the model

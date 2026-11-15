@@ -13,7 +13,8 @@ extends "res://src/client/input/work_mode.gd"
 ## into the bag: they are taken only here. A thing that moves (Placed.movable: a station,
 ## a chest, furniture, a sign) is taken up into the air by a finger or the mouse held on
 ## it, carried to another place and set down there as it is let go (turned a quarter by
-## the turn button while it hangs); a tap takes it. A thing new from the bag is set down
+## the turn button while it hangs, or by a double tap); a single tap takes it once the
+## double tap's time is over. A thing new from the bag is set down
 ## where tapped, or held hangs in the air the same way and is set down where it is let
 ## go. Leaving gives the hands back what they held before.
 ## `game` is the Main node.
@@ -32,6 +33,9 @@ const FILTERS := ["all", "blocks", "interior"]
 const SHAPES := ["line", "plane", "square", "cube"]
 ## The heights the shapes begin with.
 const DEFAULT_HEIGHTS := {"line": 3, "plane": 1, "square": 3, "cube": 5}
+## A second tap on the same thing within this many ms turns it (a double tap); a single
+## tap takes it after them.
+const DOUBLE_TAP_MS := 180
 ## A finger or the mouse held this many ms takes a thing up into the air (a thing set
 ## down, or one new from the bag to set down); let go sooner it was a tap.
 const HOLD_MS := 280
@@ -57,6 +61,9 @@ var heights := DEFAULT_HEIGHTS.duplicate()
 ## player.
 var form := 0
 var turns := 0
+## A tap on a thing that moves waiting to see whether a second one comes: {"cell", "ms"},
+## {} for none (see DOUBLE_TAP_MS).
+var _tap_wait := {}
 ## The thing dragged now (see drag), {} for none.
 var _dragged := {}
 
@@ -113,6 +120,7 @@ func _show(shown: bool) -> void:
 
 ## A thing dragged is set down, one new from the bag held up goes.
 func _left() -> void:
+	_take_waiting()
 	game.props.drop_new()
 	if not _dragged.is_empty():
 		game.props.settle(_dragged)
@@ -241,6 +249,8 @@ func toggle_auto() -> void:
 
 ## Runs the auto build for a frame; called while playing.
 func update(delta: float) -> void:
+	if not _tap_wait.is_empty() and Time.get_ticks_msec() - int(_tap_wait.ms) > DOUBLE_TAP_MS:
+		_take_waiting()
 	if game.props.holding_new() and not game.controls.dragging().has("put"):
 		# A thing new from the bag held up with no stroke on it any more goes.
 		game.cursor.show_boxes([], [])
@@ -315,6 +325,12 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		if not Placed.movable(e):
 			game.net.request(Protocol.PROP_TAKE, [e.cell])
 			return {}
+		if not _tap_wait.is_empty() and _tap_wait.cell == e.cell:
+			# The second tap of a double tap: turned a quarter where it stands.
+			_tap_wait = {}
+			game.net.request(Protocol.PROP_MOVE, [e.cell, e.cell, (int(e.get("turn", 0)) + 1) % 4])
+			return {}
+		_take_waiting()
 		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "prop": e,
 			"from": pos, "ms": Time.get_ticks_msec(), "moved": false, "to": null, "corner": null,
 			"turn": int(e.get("turn", 0)), "shown": null, "grab": _grab(e, pos)}
@@ -359,6 +375,16 @@ func _aim(hit: Dictionary, item: Dictionary) -> Vector3i:
 		and hit.normal.y == 0 and built
 	var into_floor: bool = item.get("hatch", false) and hit.normal.y != 0 and built
 	return cell if into_wall or into_floor else cell + hit.normal
+
+
+## The tap on a thing waiting for a second one takes the thing now (see DOUBLE_TAP_MS).
+func _take_waiting() -> void:
+	if _tap_wait.is_empty():
+		return
+	var cell: Vector3i = _tap_wait.cell
+	_tap_wait = {}
+	if not game.placed.at(cell).is_empty():
+		game.net.request(Protocol.PROP_TAKE, [cell])
 
 
 ## Whether stroke `s` takes its thing up into the air now: held HOLD_MS, or gone DRAG_SHARE
@@ -442,7 +468,7 @@ func _frame(id: String, at: Vector3i, turn: int, fits: bool) -> void:
 ## The finger or the mouse let go (stroke `s`). A thing new from the bag is set down where
 ## it hung, or where tapped (Protocol.PROP_PUT_AT). A thing set down and held up is moved
 ## where it hung (Protocol.PROP_MOVE; it drops back when it cannot go there); only tapped,
-## it goes back into the bag (Protocol.PROP_TAKE).
+## it waits for a second tap (DOUBLE_TAP_MS) and then goes back into the bag.
 func release(s: Dictionary) -> void:
 	s.held = false
 	if s.has("put"):
@@ -458,8 +484,7 @@ func release(s: Dictionary) -> void:
 	var e: Dictionary = s.prop
 	_dragged = {}
 	if not s.moved:
-		if not game.placed.at(e.cell).is_empty():
-			game.net.request(Protocol.PROP_TAKE, [e.cell])
+		_tap_wait = {"cell": e.cell, "ms": Time.get_ticks_msec()}
 		return
 	changed.emit()
 	game.cursor.show_boxes([], [])

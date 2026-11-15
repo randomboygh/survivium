@@ -138,7 +138,7 @@ func _held_props(main: Node) -> void:
 
 ## The build mode's hands with a thing (the user's picks of 2026-11-15): a tap on the ground
 ## sets one from the bag down at once, a hold hangs it in the air until it is let go there;
-## a tap on a thing set down takes it back into the bag at once, a hold hangs it in the air,
+## a tap on a thing set down takes it back into the bag after the double tap's time, a hold hangs it in the air,
 ## the turn button turns it there, and letting go sets it down turned.
 func _hold_to_put(main: Node) -> void:
 	main.controls._stroke = {}
@@ -187,8 +187,8 @@ func _hold_to_put(main: Node) -> void:
 		"turn": int(e.get("turn", 0)), "shown": null, "grab": Vector3i.ZERO}
 	main.build.release(main.controls._stroke)
 	main.controls._stroke = {}
-	await _wait_ms(200)
-	_check(count.call() == before and not main.placed.things.has(e), "a tap on a thing set down takes it back into the bag at once")
+	await _wait_ms(main.build.DOUBLE_TAP_MS + 200)
+	_check(count.call() == before and not main.placed.things.has(e), "a tap on a thing set down takes it back into the bag")
 	# A hold: it hangs in the air while held, and is set down as it is let go.
 	s = put.call(1000)
 	await _wait_ms(200)

@@ -199,6 +199,9 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.PROP_TAKE:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])
+				if e.is_empty() and not placed.at(args[0]).is_empty():
+					# Said, not left silent: the thing tapped stays where it stands.
+					who.nag("take", "[too_far]")
 				return not e.is_empty() and placed.take_up(who, e)
 		Protocol.PROP_MOVE:
 			if _fit(args, [TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT]) and args[2] >= 0 and args[2] < 4:
