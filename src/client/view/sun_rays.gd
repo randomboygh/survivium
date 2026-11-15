@@ -27,8 +27,8 @@ const REACH := 12.0
 const FARTHEST := 40.0
 ## The player moves this far, in world units, before the light is laid out again.
 const MOVE := 2.0
-## The shafts' way turns this much (the dot of its old and new way, 1 - it), as the sun
-## or the view turns, before the light is worked out again.
+## The sun turns this much (the dot of its old and new way, 1 - it) before the light
+## is laid out again.
 const TURN := 0.0004
 ## The longest a shaft runs, in world units, when it meets no ground (out over a cliff).
 const LONGEST := 48.0
@@ -46,10 +46,14 @@ const BUNCHES := 2
 const IN_BUNCH := 4
 ## How far apart the shafts of a bunch stand at most, along the middle plane (units).
 const BUNCH_SPREAD := 0.7
-## The least angle below the level a shaft is drawn at in the picture (degrees), and
-## the steps of 2 degrees its fall is made steeper by at most to get there.
-const STEEP_PICTURE := 40.0
+## The least angle below the level a shaft is drawn at in the picture (degrees, see
+## steep_way), and the steps of 2 degrees its fall is made steeper by at most.
+const STEEP_PICTURE := 25.0
 const STEEPEST := 40
+## Shafts whose end on the ground crowns hide in the picture are kept this often (0..1):
+## a thick wood shows only a few; and how high over the ground is looked for them.
+const HIDDEN_KEPT := 0.2
+const SEEN_ABOVE := 12.0
 ## Levels a crown is looked for above the foot of its trunk.
 const CROWN_LEVELS := 24
 ## Columns from the trunk a crown is looked for at the middle of its height.
@@ -80,6 +84,8 @@ var _laid_at := Vector3.INF
 var _laid_sun := Vector3.ZERO
 var _laid_trees := -1
 var _laid_view := []
+## The view (up, squash, slope) the trees' light was worked out for.
+var _worked_view := []
 ## The sun's turns so far (each over TURN) and its way at the last: the shafts' way
 ## down, the way across it along the ground (the trees' middle planes run along it),
 ## and the shadows' way along the ground.
@@ -182,10 +188,12 @@ func _process(_delta: float) -> void:
 		m.set_shader_parameter("amount", amount)
 		m.set_shader_parameter("light_color", color)
 		m.set_shader_parameter("light_down", down)
-	if down.dot(_down) <= 1.0 - TURN or _laid_sun == Vector3.ZERO:
-		# The sun (or the view, which the shafts' way follows) has turned: every tree's
-		# light is worked out anew, a few a frame, and laid out once all are (the old
-		# light stays until then).
+	var view := _view()
+	if to_sun.dot(_laid_sun) <= 1.0 - TURN or view.slice(0, 3) != _worked_view:
+		# The sun or the view (which shafts show depends on it, see _seen) has turned:
+		# every tree's light is worked out anew, a few a frame, and laid out once all
+		# are (the old light stays until then).
+		_worked_view = view.slice(0, 3)
 		_laid_sun = to_sun
 		_down = down
 		var flat := Vector2(down.x, down.z)
@@ -195,7 +203,6 @@ func _process(_delta: float) -> void:
 	var p: Vector3 = game.player.position
 	var near := _near(p)
 	var count := _tree_count(near)
-	var view := _view()
 	if p.distance_to(_laid_at) >= MOVE or count != _laid_trees or view != _laid_view:
 		_laid_at = p
 		_laid_trees = count
@@ -269,10 +276,10 @@ func _shaft_way() -> Vector3:
 
 ## The way of the sun's light from `sun` (the way to the sun) as a shaft runs, in the
 ## view `up`, `squash`, `slope` (PixelView.set_view): the sun's own way when the
-## picture draws it falling at least STEEP_PICTURE below the level, else the same
-## way across the ground falling steeper, just so steep. The camera looks down from
-## the south at the slope of a wall: a morning sun in the east or an afternoon one in
-## the south throws light the picture draws nearly level, or as a dot.
+## picture draws it falling at least STEEP_PICTURE below the level, else the same way
+## across the ground falling steeper, just so steep. The camera looks down from the
+## south: the sun's own light either runs nearly level in the picture (a morning sun in
+## the east), or away behind the crowns (a higher one), or up the picture (afternoon).
 static func steep_way(sun: Vector3, up: Vector2, squash: float, slope: float) -> Vector3:
 	var level := Vector2(-sun.x, -sun.z)
 	var across := level.normalized() if level.length() > 0.001 else Vector2(0.0, 1.0)
@@ -280,13 +287,21 @@ static func steep_way(sun: Vector3, up: Vector2, squash: float, slope: float) ->
 	var way := Vector3.ZERO
 	for i in STEEPEST:
 		way = Vector3(across.x * cos(rise), -sin(rise), across.y * cos(rise))
-		var flat := Vector2(way.x, way.z)
-		var drawn := flat + up * (flat.dot(up) * (squash - 1.0) + slope * way.y)
-		var down := drawn.dot(-up)
-		if down > 0.0 and atan2(down, absf(drawn.dot(Vector2(-up.y, up.x)))) >= deg_to_rad(STEEP_PICTURE):
+		if picture_fall(way, up, squash, slope) >= STEEP_PICTURE:
 			break
 		rise = minf(rise + deg_to_rad(2.0), deg_to_rad(88.0))
 	return way
+
+
+## How far below the level, in degrees, the view `up`, `squash`, `slope`
+## (PixelView.set_view) draws a light running `way`: 90 straight down the picture,
+## 0 level across it, below 0 going up it.
+static func picture_fall(way: Vector3, up: Vector2, squash: float, slope: float) -> float:
+	var flat := Vector2(way.x, way.z)
+	var drawn := flat + up * (flat.dot(up) * (squash - 1.0) + slope * way.y)
+	if drawn.length() < 0.001:
+		return 0.0
+	return rad_to_deg(atan2(drawn.dot(-up), absf(drawn.dot(Vector2(-up.y, up.x)))))
 
 
 ## The picture in screen-plane world units, grown by MOVE (the player walks that far
@@ -405,7 +420,7 @@ func _plan(w, col: Vector2i) -> TreeJob:
 			var strength := rng.randf_range(0.75, 1.0) if bright else rng.randf_range(0.3, 0.55)
 			var offset := rng.randf_range(-1.0, 1.0) * BUNCH_SPREAD
 			var look := Color(width, 0.0, fposmod(phase + rng.randf_range(-0.08, 0.08), 1.0), strength)
-			bunch.append([offset, look, Vector2(rng.randf_range(0.2, 0.8), rng.randf_range(0.2, 0.8))])
+			bunch.append([offset, look, Vector2(rng.randf_range(0.2, 0.8), rng.randf_range(0.2, 0.8)), rng.randf()])
 		if skip or place.y <= -INF:
 			continue
 		for i in count:
@@ -413,7 +428,7 @@ func _plan(w, col: Vector2i) -> TreeJob:
 			# Kept inside the level's outline.
 			var x := clampf(place.x + bunch[i][0], place.z + look.r * 0.5, place.w - look.r * 0.5) \
 				if place.z + look.r < place.w else place.x
-			job.shafts.append([Vector3(mid.x + _across.x * x, foot + place.y, mid.y + _across.y * x), look, bunch[i][2]])
+			job.shafts.append([Vector3(mid.x + _across.x * x, foot + place.y, mid.y + _across.y * x), look, bunch[i][2], bunch[i][3]])
 	return job
 
 
@@ -425,6 +440,11 @@ func _shaft_step(w, job: TreeJob) -> bool:
 	job.next += 1
 	var top: Vector3 = shaft[0]
 	var length := _length(w, top, job.foot)
+	# Only where the ground it falls on shows in the picture (a glade), and a few
+	# (HIDDEN_KEPT) where crowns nearer the camera hide it (a thick wood).
+	var keep: float = shaft[3]
+	if length >= 1.0 and length < LONGEST and keep >= HIDDEN_KEPT and not _seen(w, top + _down * length):
+		length = 0.0
 	if length >= 1.0:
 		var look: Color = shaft[1]
 		var motes_at: Vector2 = shaft[2]
@@ -583,6 +603,19 @@ func _length(w, top: Vector3, foot: float) -> float:
 		else:
 			above = half
 	return length
+
+
+## Ground at world point `p` shows in the picture: nothing stands over it on the way
+## to the camera (the view now) up to SEEN_ABOVE world units higher.
+func _seen(w, p: Vector3) -> bool:
+	var run := PixelView.up * PixelView.slope / PixelView.squash
+	var way := Vector3(-run.x, 1.0, -run.y) * CELL
+	var at := p + way
+	while at.y - p.y < SEEN_ABOVE:
+		if w.get_cell(floori(at.x / CELL), floori(at.y / CELL), floori(at.z / CELL)) != Mat.AIR:
+			return false
+		at += way
+	return true
 
 
 ## World point `p` is under the ground (or the water's top).
