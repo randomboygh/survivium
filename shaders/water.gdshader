@@ -15,7 +15,8 @@
 // 0.5 a swamp's, 1 a bog's), blended across the cells (ChunkMesher._kind).
 // Waterfalls (ChunkMesher._falls): vertex alpha FALL_SHEET marks the sheet of water
 // falling over a step of a river, whose UV2.y is then the level of its foot, and
-// FALL_FOAM the churning foam on the water where it lands.
+// FALL_FOAM the churning foam on the water where it lands; SEA_ALPHA the sea's water
+// (WorldData.SEA_WATER), the only water the plankton glows in.
 shader_type spatial;
 render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
 
@@ -71,6 +72,8 @@ varying vec3 lamp_gain;
 varying float open_sky;
 // 2 on a waterfall's sheet, 1 on the foam where it lands, 0 elsewhere.
 varying flat float falls;
+// 1 on the sea's water, blended to 0 on other water (see SEA_ALPHA above).
+varying float sea_here;
 
 // Ice: clear blue-green over the shallows and darker over the deep, milky frost
 // patches, straight white cracks and glints that do not move, and a dusting of snow
@@ -126,6 +129,7 @@ void vertex() {
 	world_normal = NORMAL;
 	data = UV2;
 	falls = COLOR.a < 0.25 ? 2.0 : (COLOR.a < 0.75 ? 1.0 : 0.0);
+	sea_here = COLOR.a > 0.75 && COLOR.a < 0.95 ? 1.0 : 0.0;
 	depth_here = COLOR.r * 8.0;
 	shore_under = COLOR.g;
 	VERTEX = shear(VERTEX);
@@ -325,7 +329,8 @@ void fragment() {
 		}
 	}
 	float plankton = 0.0;
-	if (sea_glow > 0.0 && world_normal.y > 0.5 && murk < 0.5) {
+	// Only in the sea (not lakes, ponds or rivers).
+	if (sea_glow > 0.0 && world_normal.y > 0.5 && murk < 0.5 && sea_here > 0.5) {
 		// Plankton lights up blue where the surf breaks and round one swimming, flickering
 		// texel by texel, in bays of it here and there.
 		float bay = smoothstep(0.42, 0.6, ground_patch(world_pos.xz / 5.0, 47.0));
@@ -346,16 +351,17 @@ void fragment() {
 					float d = length(world_pos.xz - a - ab * t);
 					float k = mix(ka, b.z, t);
 					// Close to the swimmer the band is narrow and parts round them.
-					float half_w = 0.12 + (1.0 - k) * 0.22;
+					float half_w = 0.45 + (1.0 - k) * 0.68;
 					float near = length(world_pos.xz - player_pos.xz);
-					wake = max(wake, smoothstep(half_w, half_w * 0.4, d) * k * smoothstep(0.15, 0.45, near));
+					// Dimming fast just behind the swimmer and ever slower towards the end (k squared).
+					wake = max(wake, smoothstep(half_w, half_w * 0.3, d) * k * k * smoothstep(0.15, 0.45, near));
 				}
 				a = b.xy;
 				ka = b.z;
 			}
 		}
 		float twinkle = 0.45 + 0.55 * step(0.55, hash12(tex + floor(TIME * 4.0) * 7.0));
-		plankton = max(surf * bay, wake * 0.8 * step(0.45, hash12(tex + floor(TIME * 6.0) * 3.0))) * twinkle * sea_glow;
+		plankton = max(surf * bay, min(wake * 1.6, 1.0) * (0.75 + 0.25 * step(0.3, hash12(tex + floor(TIME * 6.0) * 3.0)))) * twinkle * sea_glow;
 	}
 	col = mix(col, ice_color(tex, depth, world_normal.y < 0.5) * mix(vec3(1.0), vec3(0.8, 0.78, 0.7), murk), ice_amount);
 	if (ice_amount > 0.0 && world_normal.y > 0.5) {
@@ -370,7 +376,9 @@ void fragment() {
 	ALBEDO = lit_col * sun_part;
 	lamp_gain = sea_undo(lit_col, sun_part);
 	EMISSION = veiled.rgb + (PLANKTON * plankton * 1.6 + shine * (1.0 - ice_amount)) * (1.0 - veiled.a);
-	ALPHA = mix(alpha, 1.0, ice_amount);
+	// The plankton's light is not thinned by clear water: it glows as bright in the open
+	// sea as in the surf.
+	ALPHA = mix(mix(alpha, 1.0, min(plankton, 1.0)), 1.0, ice_amount);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 	clouds = cloud_light(world_pos);

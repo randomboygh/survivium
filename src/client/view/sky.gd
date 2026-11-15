@@ -61,6 +61,9 @@ var game
 ## How far a cloud's shadow may move across the land per unit of height at most
 ## (cloud_slant): about a sun 20° up.
 const CLOUD_SLANT := 2.75
+## The haze's two layers of noise repeat every 40 and 13 units (grade.gdshader), so
+## both every 520.
+const HAZE_WRAP := 520.0
 var sun: DirectionalLight3D
 ## Steps a day the sun and the moon move in (see _update_light); 0 smoothly.
 var sun_steps := SUN_STEPS
@@ -100,6 +103,11 @@ var rays_on := true
 var fog_on := true
 ## How far the fog's banks have drifted with the wind.
 var fog_drift := Vector2.ZERO
+## How far the haze's banks over the picture have drifted (grade.gdshader haze_offset):
+## summed from their speed each frame, so a change of the wind changes how fast they go,
+## never where they are (as cloud_pos times the wind did, jerking them in storms). Kept
+## within HAZE_WRAP, where both layers of its noise repeat.
+var haze_drift := Vector2.ZERO
 ## 1 while it rains, fading to 0 over AFTER_RAIN_DAYS once it stops.
 var after_rain := 0.0
 ## Towards the sun or the moon in the sky, as _aim_sun last put it.
@@ -401,7 +409,7 @@ func _update_grade(golden: float, night: float, moonlight: float) -> void:
 	grade_mat.set_shader_parameter("haze_amount", haze_amount)
 	# Fog lies in banks; a storm is thick everywhere and streams with the wind.
 	grade_mat.set_shader_parameter("haze_patchy", lerpf(0.7, 0.3, maxf(sand, white)))
-	grade_mat.set_shader_parameter("haze_offset", cloud_pos * Vector2(1.5, 0.6) * (1.0 + 3.0 * clock.storm_wind))
+	grade_mat.set_shader_parameter("haze_offset", haze_drift)
 
 
 ## A new season began on the server (see Clock.next_season): the player is told. The
@@ -449,7 +457,11 @@ func _update_weather(delta: float) -> void:
 		after_rain = 1.0
 	else:
 		after_rain = maxf(0.0, after_rain - clock.days(delta) / AFTER_RAIN_DAYS)
-	cloud_pos -= (dir * 0.6 + Vector2(0.0, 0.25)) * delta * (1.0 + strength)
+	var cloud_step := (dir * 0.6 + Vector2(0.0, 0.25)) * delta * (1.0 + strength)
+	cloud_pos -= cloud_step
+	# A storm's haze streams faster than the clouds, the stronger the wind.
+	haze_drift -= cloud_step * Vector2(1.5, 0.6) * (1.0 + 3.0 * storm_wind)
+	haze_drift = Vector2(fposmod(haze_drift.x, HAZE_WRAP), fposmod(haze_drift.y, HAZE_WRAP))
 	var g := RenderingServer
 	g.global_shader_parameter_set("snow_amount", clock.snow)
 	g.global_shader_parameter_set("snow_line", (game.world.sea_level + WorldData.SNOW_LINE) * WorldData.CELL)
@@ -469,6 +481,7 @@ func _update_weather(delta: float) -> void:
 	var warm_sea: float = [SEA_GLOW_SPRING, 1.0, SEA_GLOW_AUTUMN, 0.0][clock.season]
 	if not glowing_night(clock.day, clock.time_of_day):
 		warm_sea = 0.0
+	g.global_shader_parameter_set("shrooms", clock.shrooms)
 	g.global_shader_parameter_set("sea_glow", smoothstep(0.5, 0.1, daylight) * warm_sea * (1.0 - clock.ice()))
 	g.global_shader_parameter_set("cloud_cover", clock.clouds)
 	g.global_shader_parameter_set("cloud_offset", cloud_pos)

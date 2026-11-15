@@ -939,6 +939,8 @@
 "[instant]": "instant"
 "[free_items]": "Free items"
 "[survival]": "Survival"
+"[all_survival]": "All survival"
+"[invulnerability]": "Invulnerability"
 "[hunger]": "Hunger"
 "[thirst]": "Thirst"
 "[fatigue]": "Fatigue"
@@ -1568,3 +1570,4 @@
 "[descent]": "Descent"
 "[descent_at_45]": "Descent at 45°"
 "[beach]": "Beach"
+"[spores_in_the_eyes]": "Puffball spores in your eyes: everything swims"

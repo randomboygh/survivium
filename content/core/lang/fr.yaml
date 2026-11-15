@@ -939,6 +939,8 @@
 "[instant]": "immédiate"
 "[free_items]": "Objets gratuits"
 "[survival]": "Survie"
+"[all_survival]": "Toute la survie"
+"[invulnerability]": "Invulnérabilité"
 "[hunger]": "Faim"
 "[thirst]": "Soif"
 "[fatigue]": "Fatigue"
@@ -1568,3 +1570,4 @@
 "[descent]": "Descente"
 "[descent_at_45]": "Descente à 45°"
 "[beach]": "Plage"
+"[spores_in_the_eyes]": "Des spores de vesse-de-loup dans les yeux : tout se brouille"

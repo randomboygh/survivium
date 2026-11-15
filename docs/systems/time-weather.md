@@ -14,7 +14,7 @@ device's time, the season by the calendar and real weather.
   stored by saves and the server; what each brings and how often by season); the signal `season_changed` (the
   session connects the spring reset `WorldActions.on_season` to it: shrubs, twigs, mown grass — only on the
   world's clock, not on a copy); `warm_days` — how many days of non-winter have begun (nature grows by them,
-  `WorldActions.step_nature`); `to_dict` / `from_dict` (saving), `snapshot` / `from_snapshot` (everything the
+  `WorldActions.step_nature`); `soak` and `shrooms` — rain soaks the ground for `SOAK_DAYS`, once it stops the plants with `after_rain` (a puffball) grow on it in `SHROOM_GROW` days and wither `SHROOM_FADE` days after it dries (at once in the frost); `shroom_size(shrooms, x, z)` — how grown they are on a column, each column sooner or later (`grass.gdshader` sums the same); `to_dict` / `from_dict` (saving), `snapshot` / `from_snapshot` (everything the
   clock shows, the fields `SNAPSHOT`, for the client's copy).
 - `src/client/net/remote_clock.gd` — the clock's copy on the client (`game.clock`): the server's snapshots
   every 0.25 s (the event `clock`, [network.md](network.md)), between them it leads only the time of day

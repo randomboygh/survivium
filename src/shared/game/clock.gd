@@ -66,6 +66,16 @@ const MORNING_FOG_LOOK := [Vector2.ZERO, Vector2(0.55, 0.7), Vector2(0.9, 3.0)]
 ## over this many days of the game, sooner in the summer sun, slower in the cold.
 const PUDDLE_FILL := 0.04
 const PUDDLE_DAYS := 0.3
+## Mushrooms that come up after rain (Plants `after_rain`, a puffball): rain soaks the
+## ground for SOAK_DAYS; once it stops they grow on the soaked ground, all of them in
+## SHROOM_GROW days, and wither over SHROOM_FADE days once it has dried.
+const SOAK_DAYS := 2.0
+const SHROOM_GROW := 0.5
+const SHROOM_FADE := 1.5
+## Each place comes up this much later than the soonest (by shroom_place), and a plant
+## shows from this share of its size (smaller ones are not there yet).
+const SHROOM_SPREAD := 0.7
+const SHROOM_FIRST := 0.15
 ## In a desert the precipitation turns into sand storms that often.
 const DESERT_SAND_CHANCE := 2.0
 ## How long one weather lasts, in days of the game.
@@ -150,6 +160,10 @@ var wet := 0.0
 ## How much water stands in puddles after rain, 0..1: they fill in rain and dry out
 ## slowly after it (PUDDLE_DAYS).
 var puddles := 0.0
+## Days the ground stays soaked after the last rain, and how far the mushrooms that come
+## up after rain have grown, 0..1 (see SOAK_DAYS, shroom_size).
+var soak := 0.0
+var shrooms := 0.0
 ## The kind of the morning fog of each day (index in MORNING_FOG_LOOK) is a roll of
 ## the day; the playtest page and screenshots can pin one (-1: by the day).
 var morning_fog_pin := -1
@@ -424,13 +438,43 @@ func _change_weather(delta: float, at: Vector3) -> void:
 	else:
 		var sun: float = [1.0, 1.6, 0.7, 0.4][season] * (0.5 + daylight())
 		puddles = maxf(0.0, puddles - days(delta) / PUDDLE_DAYS * sun)
+	_grow_shrooms(days(delta), winter)
 	world.water_frozen = ice() > 0.8
+
+
+## The ground soaks in rain; the mushrooms that come up after it grow once it stops, on
+## a ground still soaked, and wither when it has dried or in the frost.
+func _grow_shrooms(d: float, winter: bool) -> void:
+	if rain > 0.2:
+		soak = SOAK_DAYS
+	else:
+		soak = maxf(0.0, soak - d)
+	if winter:
+		shrooms = maxf(0.0, shrooms - d / SHROOM_FADE * 4.0)
+	elif soak > 0.0 and rain <= 0.2:
+		shrooms = minf(1.0, shrooms + d / SHROOM_GROW)
+	elif soak <= 0.0:
+		shrooms = maxf(0.0, shrooms - d / SHROOM_FADE)
+
+
+## How grown the mushrooms that come up after rain are on column (`x`, `z`) when they
+## have grown `grown` in all (shrooms), 0..1: 0 when none is there. The same sum as
+## grass.gdshader's.
+static func shroom_size(grown: float, x: int, z: int) -> float:
+	var size := clampf((grown - SHROOM_SPREAD * shroom_place(x, z)) / (1.0 - SHROOM_SPREAD), 0.0, 1.0)
+	return size if size >= SHROOM_FIRST else 0.0
+
+
+## How late the mushrooms of column (`x`, `z`) come up, 0..1 (a sequence that spreads
+## them evenly; grass.gdshader has the same).
+static func shroom_place(x: int, z: int) -> float:
+	return fposmod(x * 0.7548777 + z * 0.5698403, 1.0)
 
 
 ## The time of the clock as plain data for the save.
 func to_dict() -> Dictionary:
 	return {"day": day, "time": time_of_day, "season": season, "season_clock": season_clock, "leaf_fall": leaf_fall,
-		"warm_days": warm_days}
+		"warm_days": warm_days, "soak": soak, "shrooms": shrooms}
 
 
 ## Puts back the time of a save (see to_dict).
@@ -441,13 +485,16 @@ func from_dict(d: Dictionary) -> void:
 	season_clock = d.get("season_clock", season_clock)
 	leaf_fall = clampf(d.get("leaf_fall", 0.0), 0.0, 1.0)
 	warm_days = maxi(0, int(d.get("warm_days", warm_days)))
+	soak = clampf(float(d.get("soak", 0.0)), 0.0, SOAK_DAYS)
+	shrooms = clampf(float(d.get("shrooms", 0.0)), 0.0, 1.0)
 
 
 ## The names of the fields a snapshot carries, in its order (see snapshot).
 const SNAPSHOT: Array[StringName] = [&"day", &"time_of_day", &"time_speed", &"real_time", &"real_season",
 	&"season", &"season_clock", &"weather", &"weather_auto", &"real_wind", &"weather_left", &"rain",
 	&"snowing", &"hail", &"sand", &"fog", &"fog_depth", &"haze", &"storm_wind", &"wind_angle", &"wind_to",
-	&"leaf_fall", &"clouds", &"snow", &"wet", &"puddles", &"morning_fog_pin", &"biome", &"moon_pin"]
+	&"leaf_fall", &"clouds", &"snow", &"wet", &"puddles", &"morning_fog_pin", &"biome", &"moon_pin", &"soak",
+	&"shrooms"]
 
 
 ## All the clock shows (the time, the season, the weather and what it leaves on the

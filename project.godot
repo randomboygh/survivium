@@ -170,6 +170,10 @@ sea_glow={
 "type": "float",
 "value": 0.0
 }
+shrooms={
+"type": "float",
+"value": 0.0
+}
 berry_amount={
 "type": "float",
 "value": 1.0

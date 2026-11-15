@@ -150,7 +150,7 @@ func _lift_off(a: Animal) -> void:
 
 
 ## A place to go within `reach` of `around`: of `tries` tried, one where something the
-## species likes grows, else any open ground (open water for a swimmer, or for one
+## species loves grows, else one where something it likes does, else any open ground (open water for a swimmer, or for one
 ## that comes ashore the ground within SHORE of `home`, rather than water); a spot in a crown when
 ## `tree` and there is a tree near. Null when all of those tried are water or under
 ## crowns (land, for a swimmer).
@@ -175,19 +175,39 @@ func _place(spec: Dictionary, around: Vector3, reach: float, tree: bool, tries :
 			continue
 		# The shore, when it may go there, is where it goes.
 		var score := 1 if spec.swims and y != -1 else 0
-		if not spec.likes.is_empty() and y > 0:
+		var loves: Array = spec.get("loves", [])
+		if (not spec.likes.is_empty() or not loves.is_empty()) and y > 0:
 			for plant in Grass.plants_on(world, x, y - 1, z):
-				if plant in spec.likes:
-					score = 1
+				if plant in loves:
+					score = 2
+				elif plant in spec.likes:
+					score = maxi(score, 1)
 		if score > best_score:
 			best_score = score
 			best = p
-			if score > 0:
+			# What it loves ends the looking; what it likes, unless it loves something.
+			if score >= (2 if not loves.is_empty() else 1):
 				break
 	if best_score < 0:
 		return null
 	best.y = _floor(spec, best.x, best.z)
 	return best
+
+
+## Whether a plant species `spec` loves grows on the ground at `at` (world units).
+func _loved_at(spec: Dictionary, at: Vector3) -> bool:
+	var loves: Array = spec.get("loves", [])
+	if loves.is_empty():
+		return false
+	var x := floori(at.x / CELL)
+	var z := floori(at.z / CELL)
+	var y: int = world.surface_y(x, z)
+	if y <= 0:
+		return false
+	for plant in Grass.plants_on(world, x, y - 1, z):
+		if plant in loves:
+			return true
+	return false
 
 
 ## Where to sit at x, z of `at`: on the crown there when `tree` and there is one,

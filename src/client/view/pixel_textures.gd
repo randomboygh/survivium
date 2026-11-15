@@ -196,7 +196,7 @@ static func tint(m: int) -> Color:
 ## 14..17 and tall grass 18..21 (both masks like the tufts), cushions of moss 22..23,
 ## groups of mushrooms 24..25 and of glowing mushrooms 26..27, a spore 28 (see Grass).
 ## A row under them all (PLANT_H) tells grass.gdshader how each column of a custom plant
-## that `looks` some other way at times changes (see looks_texel).
+## that `looks` some other way at times changes, or comes up only after rain (see looks_texel).
 static func build_plants() -> ImageTexture:
 	var img := Image.create_empty(PLANT_W * (PLANTS + Plants.custom_frames()), PLANT_H + 1, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
@@ -211,8 +211,9 @@ static func build_plants() -> ImageTexture:
 		pic.convert(Image.FORMAT_RGBA8)
 		img.blit_rect(pic, Rect2i(0, 0, pic.get_width(), PLANT_H), Vector2i(PLANT_W * (PLANTS + c.first), 0))
 		var shift := Plants.looks_shift(c)
-		for k in shift:
-			img.set_pixel(PLANT_W * (PLANTS + c.first + k), PLANT_H, looks_texel(c.get("looks", ""), shift))
+		var after_rain: bool = c.get("after_rain", false)
+		for k in (shift if shift > 0 else (Plants.columns(c) if after_rain else 0)):
+			img.set_pixel(PLANT_W * (PLANTS + c.first + k), PLANT_H, looks_texel(c.get("looks", ""), shift, after_rain))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
 	for v in 4:
@@ -357,9 +358,11 @@ static func build_plants() -> ImageTexture:
 
 ## The texel under a column of a custom plant that `looks` (Plants) some other way at
 ## times: red for shy (it folds as someone passes), green for night (it opens at dusk),
-## blue the columns past it its other look is (`shift`, at most 255).
-static func looks_texel(looks: String, shift: int) -> Color:
-	return Color(1.0 if looks == "shy" else 0.0, 1.0 if looks == "night" else 0.0, mini(shift, 255) / 255.0, 1.0)
+## blue the columns past it its other look is (`shift`, at most 255); alpha 1 for a plant
+## that comes up only after rain (Plants `after_rain`, Clock.shroom_size), else 0.5.
+static func looks_texel(looks: String, shift: int, after_rain := false) -> Color:
+	return Color(1.0 if looks == "shy" else 0.0, 1.0 if looks == "night" else 0.0, mini(shift, 255) / 255.0,
+		1.0 if after_rain else 0.5)
 
 
 ## Sets texel (x, row) of plant `v`, rows counted from the bottom; off the plant it is

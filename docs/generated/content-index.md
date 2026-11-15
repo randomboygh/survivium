@@ -497,7 +497,7 @@
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
-| `plants:clover` | [plants.plants.clover] | custom |  | `plants/clover` | 8 / 2 | ок |
+| `plants:clover` | [plants.plants.clover] | custom |  | `plants/clover` | 8 / 3 | ок |
 | `plants:cranberry` | [plants.plants.cranberry] | custom |  | `plants/cranberry` | 1 / 0 | ок |
 | `plants:fern` | [plants.plants.fern] | custom |  | `plants/fern` | 9 / 0 | ок |
 | `plants:tuft` | [plants.plants.tuft] | tuft |  | `plants/grass` | 1 / 2 | ок |
@@ -541,7 +541,7 @@
 | `animals:hedgehog` | [animals.creatures.hedgehog] |  |  | `animals/hedgehog`; патчи: `biomes/birch_grove` | 4 / 0 | ок |
 | `animals:owl` | [animals.creatures.owl] |  |  | `animals/owl`; патчи: `biomes/birch_grove`, `biomes/pine_wood` | 5 / 0 | ок |
 | `animals:perch` | [animals.creatures.perch] |  |  | `animals/perch` | 1 / 0 | ок |
-| `animals:rabbit` | [animals.creatures.rabbit] |  |  | `animals/rabbit`; патчи: `biomes/birch_grove`, `biomes/steppe` | 12 / 0 | ок |
+| `animals:rabbit` | [animals.creatures.rabbit] |  |  | `animals/rabbit`; патчи: `biomes/birch_grove`, `biomes/steppe` | 13 / 0 | ок |
 | `animals:sparrow` | [animals.creatures.sparrow] |  |  | `animals/sparrow` | 1 / 0 | ок |
 | `animals:squirrel` | [animals.creatures.squirrel] |  |  | `animals/squirrel`; патчи: `biomes/pine_wood` | 5 / 0 | ок |
 | `animals:wolf` | [animals.creatures.wolf] |  |  | `animals/wolf`; патчи: `biomes/pine_wood` | 5 / 0 | ок |

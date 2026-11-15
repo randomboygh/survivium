@@ -31,6 +31,7 @@ func run() -> void:
 	_test_chat_lines()
 	_test_pc_scales()
 	_test_saved_size()
+	_test_kept_test_switches()
 	_test_menu_sparrow()
 	_test_map_fit()
 
@@ -328,6 +329,33 @@ func _test_saved_size() -> void:
 		"the HUD takes the saved sizes")
 	_check(not Settings.size_hud(hud, saved), "the same sizes again change nothing")
 	hud.free()
+
+
+## «Сохранить» of «Тестирование» keeps the playtest switches for the next start, in their own
+## section of the settings' file; a value the page does not offer is not taken back.
+func _test_kept_test_switches() -> void:
+	var was: String = Settings.path
+	Settings.path = "user://test_kept_switches.cfg"
+	var s := Settings.new(null)
+	_check(not s.test_kept() and s.survival_on(), "never saved, nothing is kept and survival is as it comes")
+	s.no_hunger = true
+	s.invulnerable = true
+	s.player_speed = 4.0
+	_check(not s.survival_on(), "a survival switch off: «all survival» is off")
+	s.save_test()
+	_check(s.test_kept(), "saved, the switches are as kept")
+	s.no_hunger = false
+	_check(not s.test_kept(), "changed, they are not")
+	var cfg := ConfigFile.new()
+	cfg.load(Settings.path)
+	cfg.set_value("test", "skill_rate", 7.0)
+	cfg.save(Settings.path)
+	var next := Settings.new(null)
+	next.load()
+	_check(next.no_hunger and next.invulnerable and next.player_speed == 4.0 and next.skill_rate == 1.0
+		and next.values.shake == Settings.DEFAULTS.shake, "the next start loads them, a speed not offered left as it comes")
+	DirAccess.remove_absolute(Settings.path)
+	Settings.path = was
 
 
 ## The whole map fills a phone held upright, whatever size it was laid out at before,

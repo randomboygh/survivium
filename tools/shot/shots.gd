@@ -392,13 +392,20 @@ const SHOTS := {
 	# a fairy ring of mushrooms, the surf glowing on a summer night with the player
 	# swimming, will-o'-the-wisps over a swamp.
 	"curio-mimosa": {"time": 0.42, "season": 1, "at": [-1268, -364], "find": "plants:mimosa"},
-	"curio-puffball": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:puffball"},
+	"curio-puffball": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:puffball", "shrooms": 1.0},
+	# The day after a rain: some puffballs up, some still small, most not yet.
+	"curio-puffball-growing": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:puffball", "shrooms": 0.6},
+	"curio-puffball-dry": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:puffball"},
 	"curio-sundew": {"time": 0.33, "season": 1, "place": "peat_bog", "find": "plants:sundew"},
+	# On the same glowing night a lake's shore stays dark: the plankton is the sea's only.
+	"plankton-lake": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "lake"},
 	"curio-primrose": {"time": 0.42, "season": 1, "place": "meadow", "find": "plants:evening_primrose"},
 	"curio-primrose-night": {"time": 0.95, "season": 1, "moon": 1.0, "place": "meadow", "find": "plants:evening_primrose"},
 	"curio-ring": {"time": 0.42, "season": 1, "find": "ring"},
+	# The plankton's wake behind a swimmer on a glowing night, the way swum to the south-west.
+	"plankton-wake": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "beach", "water": 2, "wake": [-0.6, 1.0]},
 	"curio-surf": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "beach"},
-	"curio-wake": {"time": 0.95, "season": 1, "moon": 0.0, "place": "lake", "water": 2},
+	"curio-wake": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "beach", "water": 2},
 	"curio-wisps": {"time": 0.95, "season": 1, "moon": 0.5, "place": "swamp", "find": "murk",
 		"wisps": [[2.5, 0.6, -2.0], [-3.0, 0.8, -3.0], [4.0, 0.5, 1.0]]},
 	# Ferns in the shade of a forest's edge, a field of clover on a meadow.
@@ -774,6 +781,9 @@ const SHOTS := {
 	"ui-test-player": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player"},
 	"ui-test-player-end": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player",
 		"menu_end": true},
+	# The same with «Сохранить» pressed: lit green while the switches are as saved.
+	"ui-test-player-kept": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player",
+		"menu_end": true, "press": ["_keep"]},
 	"ui-test-debug": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug"},
 	"ui-test-server": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "server"},
 	# The same on a server for checking, its end: the test mod (decision 189). The last shot of a run: the game stays «joined».

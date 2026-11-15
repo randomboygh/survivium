@@ -24,8 +24,8 @@ const HEAT_FIRES := 4
 const HEAT_REACH := 16.0
 ## The trembling air over a fire, world units: as wide each way from its middle, as high
 ## over its flames.
-const HEAT_HALF := 0.4
-const HEAT_HIGH := 1.4
+const HEAT_HALF := 0.7
+const HEAT_HIGH := 2.4
 ## The ground's air trembles at noon from this many degrees, in full at HAZE_FULL.
 const HAZE_FROM := 27.0
 const HAZE_FULL := 34.0

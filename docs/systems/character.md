@@ -32,7 +32,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   crashed»); water under the landing place of 2 cells and deeper puts the fall out, of one — halves it
   (`Body.water_under`). A jump down faster than any fall (a teleport), the test's «jumps in the air» and
   `forget_fall` (respawn, `Player.teleport`) begin the count anew; on a leaning ladder (`Body.on_ladder`) there
-  is no fall, the count goes from it. The test switch «Fall damage» (`Vitals.falls` off) makes every fall harmless.
+  is no fall, the count goes from it. The test switch «Fall damage» (`Vitals.falls` off) makes every fall harmless; «Invulnerability» (`Vitals.harm` off,
+  sent to a playtest server as `harm`, `Cheats.VITALS`) keeps health from going down at all.
 - `src/shared/game/inventory.gd` — the bag: `SLOTS` 16 (`base`), the first `HOTBAR` 8 — the bar below;
   stacks, weight (40 kg with no slowing), sorting, moving into a chest, wear (`wear_tool`, `mend`); the signal
   `changed`. Quality (decision 181): a stack has a number 1–100 (`quality(s)`, `quality_at(i)`; `NORMAL` 50 —
@@ -178,7 +179,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — the death screen,
   the strengths' strips, the screen's response to damage (and an icy blue frame growing while the body is cold, from
   `Vitals.COLD` to `CHILL_FULL` below `FREEZING`, breathing while it freezes; and below `LOW_HEALTH` a crimson vignette, heavy in the corners, and a red wash beating
-  like a heart, faster the weaker), the phone's vibration.
+  like a slow heart, faster the weaker: each beat the vignette jumps in `HEART_REACH` of the screen and eases back, and the
+  picture darkens and hardens for that moment, grade `heart`), the phone's vibration.
 
 **Skills** (decision 164). Nine skills are a mod's data (`content/core/data/skills.yaml`, the kind `skills`,
 the registry `src/shared/content/skills.gd`): Gathering, Chopping, Digging, Crafting, Building, Cooking,

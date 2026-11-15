@@ -8,6 +8,8 @@ extends Control
 ## column of it.
 const HIGH := 10.0
 const STEP := 2.0
+## How far in from each end of the panel the drifts slope down to nothing, UI px.
+const TAPER := 22.0
 const SNOW := Color(0.94, 0.97, 1.0)
 const SHADE := Color(0.72, 0.82, 0.93)
 
@@ -38,8 +40,12 @@ func _draw() -> void:
 		var i := x / STEP
 		# Drifts: two slow waves and a little roughness, all still with the depth.
 		var lump := 0.55 + 0.3 * sin(i * 0.21 + 1.3) + 0.15 * sin(i * 0.67) + 0.1 * (fposmod(i * 7.31, 1.0) - 0.5)
-		var h := roundf(HIGH * _depth * clampf(lump, 0.2, 1.0) + 1.0)
+		# Sloping down to nothing at the ends, as snow does off a ledge.
 		var w := minf(STEP, panel.end.x - 2.0 - x)
-		draw_rect(Rect2(x, top - h + 2.0, w, h), SNOW)
-		draw_rect(Rect2(x, top + 2.0, w, 1.0), SHADE)
+		var end_k := clampf(minf(x - panel.position.x, panel.end.x - x - w) / TAPER, 0.0, 1.0)
+		end_k = end_k * (2.0 - end_k)
+		var h := roundf((HIGH * _depth * clampf(lump, 0.2, 1.0) + 1.0) * end_k)
+		if h >= 1.0:
+			draw_rect(Rect2(x, top - h + 2.0, w, h), SNOW)
+			draw_rect(Rect2(x, top + 2.0, w, 1.0), SHADE)
 		x += STEP

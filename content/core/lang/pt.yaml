@@ -939,6 +939,8 @@
 "[instant]": "na hora"
 "[free_items]": "Itens grátis"
 "[survival]": "Sobrevivência"
+"[all_survival]": "Toda a sobrevivência"
+"[invulnerability]": "Invulnerabilidade"
 "[hunger]": "Fome"
 "[thirst]": "Sede"
 "[fatigue]": "Cansaço"
@@ -1568,3 +1570,4 @@
 "[descent]": "Descida"
 "[descent_at_45]": "Descida a 45°"
 "[beach]": "Praia"
+"[spores_in_the_eyes]": "Esporos de bufa-de-lobo nos olhos: tudo flutua"

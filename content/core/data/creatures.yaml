@@ -11,8 +11,8 @@
 # ashore — a swimmer also comes ashore by its water; hops — hops on the ground; after_rain —
 # comes out only after rain, while puddles stand; tints — the colours the picture is multiplied by
 # (each animal has its own); flock — [from, to] how many stay together (pack, herd); roost — where it sleeps and
-# rests: ground or trees; likes — plants (data/plants.yaml of the bundles of "Plants") it is
-# drawn to; calls — a voice heard from time to time, alarm — a cry of fear or threat
+# rests: ground or trees; likes — plants (data/plants.yaml of the bundles of "Plants") it is drawn to, loves — those of them it goes for first;
+# calls — a voice heard from time to time, alarm — a cry of fear or threat
 # (sounds.yaml). human — players. Animals and birds live in the mod content/animals, a bundle per species;
 # only the human remains in the core.
 # Any record may also have common fields: description — text for the player; tags — labels for

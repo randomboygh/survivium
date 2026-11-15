@@ -7,7 +7,7 @@
   frames: 2
   looks: night
   grows: meadow
-  cover: 0.45
+  cover: 0.09
   clumps: 0.35
   pick: true
   gives: {evening_primrose: 2}

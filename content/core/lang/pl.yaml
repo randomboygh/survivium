@@ -939,6 +939,8 @@
 "[instant]": "od razu"
 "[free_items]": "Darmowe przedmioty"
 "[survival]": "Przetrwanie"
+"[all_survival]": "Całe przetrwanie"
+"[invulnerability]": "Nieśmiertelność"
 "[hunger]": "Głód"
 "[thirst]": "Pragnienie"
 "[fatigue]": "Zmęczenie"
@@ -1568,3 +1570,4 @@
 "[descent]": "Zejście"
 "[descent_at_45]": "Zejście pod 45°"
 "[beach]": "Plaża"
+"[spores_in_the_eyes]": "Zarodniki purchawki w oczach: wszystko się rozmywa"

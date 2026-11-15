@@ -939,6 +939,8 @@
 "[instant]": "immediata"
 "[free_items]": "Oggetti gratis"
 "[survival]": "Sopravvivenza"
+"[all_survival]": "Tutta la sopravvivenza"
+"[invulnerability]": "Invulnerabilità"
 "[hunger]": "Fame"
 "[thirst]": "Sete"
 "[fatigue]": "Stanchezza"
@@ -1568,3 +1570,4 @@
 "[descent]": "Discesa"
 "[descent_at_45]": "Discesa a 45°"
 "[beach]": "Spiaggia"
+"[spores_in_the_eyes]": "Spore di vescia negli occhi: tutto ondeggia"

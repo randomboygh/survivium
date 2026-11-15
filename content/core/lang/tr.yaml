@@ -939,6 +939,8 @@
 "[instant]": "anında"
 "[free_items]": "Bedava eşyalar"
 "[survival]": "Hayatta kalma"
+"[all_survival]": "Tüm hayatta kalma"
+"[invulnerability]": "Ölümsüzlük"
 "[hunger]": "Açlık"
 "[thirst]": "Susuzluk"
 "[fatigue]": "Yorgunluk"
@@ -1568,3 +1570,4 @@
 "[descent]": "İniş"
 "[descent_at_45]": "45° iniş"
 "[beach]": "Plaj"
+"[spores_in_the_eyes]": "Gözüne puf mantarı sporları kaçtı: her şey yüzüyor"

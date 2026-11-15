@@ -150,17 +150,18 @@ const SCRIPT := """
 		gone.register({}, 0);
 	}
 	// The page's long frames (over 50 ms), each with when it began, how long it was and
-	// what ran in it for 5 ms or more: the scripts by what called them, and the time
-	// before the first script and after the last one that no script took (the page's
-	// own tasks, a garbage collection of its own, waiting for the GPU), as
-	// "start:ms:name ms,name ms".
+	// what ran in it for 5 ms or more: the scripts by what called them and which
+	// function of the page that was ("touchend@touch_cb"), the style and layout they made
+	// the browser work out at once, and the time before the first script and after the
+	// last one that no script took (the page's own tasks, a garbage collection of its own,
+	// waiting for the GPU), as "start:ms:name ms,name ms".
 	if (typeof PerformanceObserver !== 'undefined') {
 		try {
 			new PerformanceObserver(function (list) {
 				var es = list.getEntries();
 				for (var q = 0; q < es.length; q++) {
 					var e = es[q];
-					var by = {}, order = [], sc = e.scripts || [];
+					var by = {}, order = [], sc = e.scripts || [], layout = 0;
 					var first = e.startTime + e.duration, last = e.startTime;
 					for (var r = 0; r < sc.length; r++) {
 						first = Math.min(first, sc[r].startTime);
@@ -173,13 +174,19 @@ const SCRIPT := """
 							if (inv.indexOf('on') === 0) inv = inv.slice(2);
 							if (inv === 'message' || inv === 'ended') inv = 'sound';
 						}
+						// Which function of the page ran (the engine's own are named in its
+						// index.js), and the style and layout it made the browser work out at once.
+						var fn = String(sc[r].sourceFunctionName || '').replace(/[|;,:@ ]/g, '').slice(0, 24);
+						if (fn) inv += '@' + fn;
 						if (!(inv in by)) { by[inv] = 0; order.push(inv); }
 						by[inv] += sc[r].duration;
+						layout += sc[r].forcedStyleAndLayoutDuration || 0;
 					}
 					var parts = [];
 					var pre = first - e.startTime, post = e.startTime + e.duration - last;
 					if (pre >= 5) parts.push('before ' + Math.round(pre));
 					for (r = 0; r < order.length; r++) if (by[order[r]] >= 5) parts.push(order[r] + ' ' + Math.round(by[order[r]]));
+					if (layout >= 5) parts.push('layout ' + Math.round(layout));
 					if (post >= 5) parts.push('after ' + Math.round(post));
 					if (frames.length < 16) frames.push(Math.round(e.startTime) + ':' + Math.round(e.duration) + ':' + parts.join(','));
 				}

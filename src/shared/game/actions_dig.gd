@@ -4,9 +4,11 @@ extends "res://src/shared/game/actions_water.gd"
 
 const Grass := preload("res://src/shared/world/grass.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
+const ClockScript := preload("res://src/shared/game/clock.gd")
 
-## Whether the last cut (mow) picked a plant that puffs out spores (a puffball).
-var puffed := false
+## The grass cell each one last stood on (tread), by their instance id, so a plant
+## underfoot is crushed once.
+var _trod := {}
 
 
 ## The water surface a tap on `cell` drinks from (or fills a vessel at) with the hand in
@@ -155,18 +157,23 @@ func can_mow(cell: Vector3i, t := {}) -> bool:
 	return t.is_empty() or Tools.mows_low(t) or Grass.has_tall(world, cell)
 
 
-## Plants `ids` without those that are gone in winter (mushrooms; a plant with
-## `winter` off) when it is winter.
-func in_season(ids: Array) -> Array:
-	if clock.season != WINTER:
-		return ids
-	return ids.filter(func(id: String) -> bool: return Plants.BY_ID.get(id, {}).get("winter", true))
+## Plants `ids` of grass cell `cell` without those that are not there now: gone in
+## winter (mushrooms; a plant with `winter` off), or come up only after rain and not
+## grown there (Plants `after_rain`, Clock.shroom_size).
+func in_season(ids: Array, cell: Vector3i) -> Array:
+	var winter: bool = clock.season == WINTER
+	# (A test's clock may be a Dictionary without it: none grown then.)
+	var shrooms = clock.get("shrooms")
+	var grown := ClockScript.shroom_size(float(shrooms) if shrooms != null else 0.0, cell.x, cell.z) > 0.0
+	return ids.filter(func(id: String) -> bool:
+		var p: Dictionary = Plants.BY_ID.get(id, {})
+		return (not winter or p.get("winter", true)) and (grown or not p.get("after_rain", false)))
 
 
 ## The name of what is picked by hand on grass cell `cell` (moss, mushrooms; a plant with
 ## `pick`), "" when nothing there is: cutting the cell picks it first.
 func picking(cell: Vector3i) -> String:
-	for id in in_season(Grass.plants_on(world, cell.x, cell.y, cell.z)):
+	for id in in_season(Grass.plants_on(world, cell.x, cell.y, cell.z), cell):
 		var p: Dictionary = Plants.BY_ID.get(id, {})
 		if p.get("pick", false):
 			return p.title
@@ -197,14 +204,10 @@ func mow_swing(who, cells: Array[Vector3i]) -> Dictionary:
 	if cells.is_empty():
 		return {}
 	var was: int = world.get_cell(cells[0].x, cells[0].y, cells[0].z)
-	puffed = false
 	if not mow(who, cells, arc):
 		return {}
 	var done := _work(skilled(who, "gather", t.swing), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL,
 		Mat.GRASS if was != Mat.STONE else Mat.LEAVES)
-	if puffed:
-		# A puffball picked breathes out its spores (the client's Effects.puff).
-		done.puff = true
 	who.use_tool()
 	return done
 
@@ -228,7 +231,7 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 		var to := Tools.mown(m)
 		if to < 0 and not Grass.stone_moss(world, c.x, c.y, c.z):
 			continue
-		var plants := in_season(Grass.plants_on(world, c.x, c.y, c.z))
+		var plants := in_season(Grass.plants_on(world, c.x, c.y, c.z), c)
 		var tall := plants.filter(func(id: String) -> bool: return id != Plants.TUFT)
 		if tall.is_empty() and to < 0:
 			continue
@@ -237,10 +240,7 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 		var gives := {}
 		if not tall.is_empty():
 			gives = Plants.harvest(tall, rng)
-			for id: String in tall:
-				puffed = puffed or Plants.BY_ID.get(id, {}).get("puff", false)
-			world.set_turf(c, "")
-			looks_changed.emit(WorldData.chunk_key(c.x, c.z))
+			_pull_plants(c, tall)
 		else:
 			gives = Plants.harvest(plants, rng)
 			var own: Dictionary = Mat.RECORDS[m].mow_gives
@@ -275,6 +275,44 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 	for key in keys:
 		drops_changed.emit(key)
 	return true
+
+
+## Takes plants `ids` off grass cell `cell`, which stays grass cut short: drawn again at
+## once (grass_changed), and a puffball among them breathes out its spores (spores).
+func _pull_plants(cell: Vector3i, ids: Array) -> void:
+	world.set_turf(cell, "")
+	grass_changed.emit(cell)
+	for id: String in ids:
+		if Plants.BY_ID.get(id, {}).get("puff", false):
+			spores.emit((Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
+			break
+
+
+## Crushes what gives way underfoot (a plant with `crush`, a puffball) on the grass cell
+## `who` stands on, once as they step onto it (Session.step_players): it is gone, and
+## its spores make the picture swim for its `crush` seconds (Vitals.see_visions).
+func tread(who) -> void:
+	if who.body == null or who.body.world == null or who.is_dead() or who.riding != "":
+		return
+	var p: Vector3 = who.position
+	var cell := Vector3i(floori(p.x / CELL), floori(p.y / CELL - 0.5), floori(p.z / CELL))
+	var whose: int = who.get_instance_id()
+	if _trod.has(whose) and _trod[whose] == cell or not who.body.standing(p):
+		return
+	_trod[whose] = cell
+	var plants := in_season(Grass.plants_on(world, cell.x, cell.y, cell.z), cell)
+	var seconds := 0.0
+	var crushed := []
+	for id: String in plants:
+		var k: float = Plants.BY_ID.get(id, {}).get("crush", 0.0)
+		if k > 0.0:
+			seconds = maxf(seconds, k)
+			crushed.append(id)
+	if crushed.is_empty():
+		return
+	_pull_plants(cell, crushed)
+	who.vitals.see_visions(seconds)
+	who.nag("spores", "[spores_in_the_eyes]")
 
 
 # --- Placing blocks -------------------------------------------------------------------

@@ -13,7 +13,7 @@
   `sunrise()` / `sunset()`, `moon_phase_light`, `wind_dir()`, `set_weather`, `settle_weather`,
   `set_real_weather`, `ground_fog`, `ice`; таблица `WEATHERS` (13 видов, новые в конце: индекс хранят сохранения и сервер; что приносит и как часто по
   сезонам); сигнал `season_changed` (сеанс подключает к нему весенний сброс `WorldActions.on_season`:
-  кусты, ветки, скошенная трава — только на часах мира, не на копии); `warm_days` — сколько дней не зимы началось
+  кусты, ветки, скошенная трава — только на часах мира, не на копии); `soak` и `shrooms` — дождь мочит землю на `SOAK_DAYS`, после него растения с `after_rain` (дождевик) растут на ней за `SHROOM_GROW` дней и вянут через `SHROOM_FADE` дней после того, как она высохла (в мороз сразу); `shroom_size(shrooms, x, z)` — насколько они выросли на столбце, каждый столбец раньше или позже (`grass.gdshader` считает так же); `warm_days` — сколько дней не зимы началось
   (по ним растёт природа, `WorldActions.step_nature`); `to_dict` / `from_dict` (сохранение), `snapshot` / `from_snapshot`
   (всё, что часы показывают, поля `SNAPSHOT`, для копии клиента).
 - `src/client/net/remote_clock.gd` — копия часов на клиенте (`game.clock`): снимки сервера раз в 0,25 с

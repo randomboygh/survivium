@@ -17,7 +17,8 @@ static func cut_water(w, water, c: PackedByteArray, i: int, dy: int, base: Vecto
 				depth += 1
 			var foam := 1 << (12 + k) | shape << (16 + 2 * k)
 			var murk: int = w.murk(int(base.x) + o.x, int(base.y), int(base.z))
-			var col := water_color(depth - WATER_TOP, 1.0, kind(false, murk / 2.0))
+			var col := water_color(depth - WATER_TOP, 1.0, kind(false, murk / 2.0),
+				w.sea(int(base.x) + o.x, int(base.y), int(base.z)))
 			_piece(water, base, WATER_TOP, k, CORNER, Vector3.UP, col, Vector2(float(foam), float(depth)), shape)
 
 
@@ -116,9 +117,15 @@ static func kind(shore: bool, murk: float) -> float:
 
 ## Vertex colour of water for water.gdshader: r the depth of the water over the ground
 ## in cells (/ 8), g how far the ground of a shore lies under the surface (1 where the
-## water goes all the way down), b its kind (see kind).
-static func water_color(depth: float, shore: float, kind: float) -> Color:
-	return Color(clampf(depth / 8.0, 0.0, 1.0), clampf(shore, 0.0, 1.0), kind)
+## water goes all the way down), b its kind (see kind), alpha SEA_ALPHA on the sea's
+## (WorldData.SEA_WATER: the plankton glows there), else 1.
+static func water_color(depth: float, shore: float, kind: float, sea := false) -> Color:
+	return Color(clampf(depth / 8.0, 0.0, 1.0), clampf(shore, 0.0, 1.0), kind, SEA_ALPHA if sea else 1.0)
+
+
+## Whether water cell `cell` or one beside it is the sea's (see water_color).
+static func sea_near(w, x: int, y: int, z: int) -> bool:
+	return w.sea(x, y, z) or w.sea(x + 1, y, z) or w.sea(x - 1, y, z) or w.sea(x, y, z + 1) or w.sea(x, y, z - 1)
 
 
 ## True when the bed under the top water cell `i` (`depth` cells of water) and under the
@@ -164,7 +171,7 @@ static func _ground_at(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteA
 ## the ground at each corner, from the ground of the four columns that meet there, so
 ## the water darkens smoothly over a sloping bed instead of cell by cell.
 static func water_corners(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int,
-		depth: int, murks: PackedFloat32Array) -> PackedColorArray:
+		depth: int, murks: PackedFloat32Array, sea := false) -> PackedColorArray:
 	var out := PackedColorArray()
 	for k in 4:
 		var o: Vector2i = CORNER_DIRS[k]
@@ -177,7 +184,7 @@ static func water_corners(c: PackedByteArray, sh: PackedByteArray, cov: PackedBy
 			if not is_nan(g):
 				sum += g
 				count += 1
-		out.append(water_color(maxf(0.0, WATER_TOP - sum / count), 1.0, kind(false, murks[k])))
+		out.append(water_color(maxf(0.0, WATER_TOP - sum / count), 1.0, kind(false, murks[k]), sea))
 	return out
 
 
@@ -236,6 +243,7 @@ static func shore(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz:
 static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: int,
 		base: Vector3, foam := 0) -> void:
 	var murks := murk_corners(w, c, i, dz, base)
+	var sea := sea_near(w, int(base.x), int(base.y), int(base.z))
 	var steps := Vector2i(Slopes.PATCH_STEPS, Slopes.PATCH_STEPS)
 	var hs: PackedFloat32Array = Slopes.patch_grid(Slopes.patch(c, sh, i, dy, dz), 0.0, steps)[0]
 	var start: int = buf.verts.size()
@@ -251,7 +259,7 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 			buf.uvs.append(Vector2(x, z))
 			buf.uv2s.append(data)
 			var murk := lerpf(lerpf(murks[0], murks[1], x), lerpf(murks[3], murks[2], x), z)
-			buf.colors.append(water_color(maxf(under, 0.0), under, kind(true, murk)))
+			buf.colors.append(water_color(maxf(under, 0.0), under, kind(true, murk), sea))
 	for b in steps.y:
 		for a in steps.x:
 			var j := start + b * nu + a

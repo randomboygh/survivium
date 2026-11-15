@@ -317,6 +317,9 @@ func _run() -> void:
 			main.session.clock.wet = 1.0 if main.session.clock.raining and main.session.clock.season != 3 else shot.get("after_rain", 0.0)
 			main.sky.after_rain = shot.get("after_rain", 0.0)
 			main.session.clock.puddles = shot.get("puddles", 0.0)
+			# The puffballs that come up after rain (Clock.shrooms), on a soaked ground so they stay.
+			main.session.clock.shrooms = shot.get("shrooms", 0.0)
+			main.session.clock.soak = main.session.clock.SOAK_DAYS if main.session.clock.shrooms > 0.0 else 0.0
 			main.sky.foliage = main.sky.FOLIAGE[main.session.clock.season]
 			main.sky.grass = main.sky.GRASS[main.session.clock.season]
 			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.session.clock.season]
@@ -643,9 +646,22 @@ func _run() -> void:
 			main.host.player.vitals.health = shot.health
 			for i in 4:
 				await process_frame
-			main.hud.feedback._beat = 0.03
+			main.hud.feedback._beat = 0.045
 			main.hud.feedback.queue_redraw()
 			await process_frame
+		if shot.has("wake"):
+			# A swimmer's glowing wake: the way swum laid down behind the player, as if they
+			# had come from `wake` (a direction on the ground), freshest nearest.
+			var fx = main.effects.water
+			var dir := Vector2(shot.wake[0], shot.wake[1]).normalized()
+			var at: Vector3 = main.player.position
+			fx._trail.clear()
+			for i in fx.WAKE_POINTS:
+				var back: Vector2 = dir * float(fx.WAKE_STEP) * (i + 0.6)
+				fx._trail.append(Vector4(at.x + back.x, at.z + back.y, 1.0 - (i + 1.0) / (fx.WAKE_POINTS + 1.0), at.y + 0.25))
+			fx._wake_k = 1.0
+			for i in 3:
+				await process_frame
 		if shot.has("screen_snow"):
 			# Snow on the screen as after a while of it: flakes, frost, snow on the hotbar.
 			var air = main.effects.air
