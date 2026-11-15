@@ -2,7 +2,9 @@ extends RefCounted
 ## The sounds of the world around the player, always there (decision 89): the wind by
 ## its strength, rain, hail and the blizzard's whistle, thunder after the lightning,
 ## the water near (a river, a lake, the sea) from where it is, a burning campfire from
-## where it is, birds in the trees by day and an owl at night, crickets on warm nights.
+## where it is, birds in the trees by day and an owl at night, crickets on warm nights:
+## a faint far chorus and a few near ones, each in its own spot in the grass with its own
+## pitch, pace and loudness, singing a while and resting, hushed when the player comes up.
 ## Under a roof or in a cave the weather is heard muffled. The land around is looked
 ## over a row a frame (SCAN cells each way), never all at once. `game` is the Main node;
 ## Sound runs it each frame.
@@ -26,6 +28,17 @@ const BIRDS_OPEN := 0.08
 const DAWN_CHORUS := 2.0
 ## An owl, a second, at night in the woods.
 const OWL_RATE := 0.025
+## The most near crickets at once in summer (fewer in spring); seconds between new counts.
+const CRICKETS_MOST := 5
+const CRICKETS_RECOUNT := Vector2(15.0, 45.0)
+## Where a near cricket sits, world units from the player; one farther away is replaced,
+## one nearer than HUSH falls silent for a while.
+const CRICKET_NEAR := Vector2(3.0, 14.0)
+const CRICKET_GONE := 18.0
+const CRICKET_HUSH := 2.5
+## Seconds a cricket sings, and rests between.
+const CRICKET_BOUT := Vector2(3.0, 15.0)
+const CRICKET_REST := Vector2(1.5, 12.0)
 ## Seconds from a lightning flash to its thunder: near and far.
 const THUNDER_DELAY := Vector2(0.4, 3.0)
 
@@ -46,6 +59,12 @@ var woods := 0.0
 ## World units from the player to the nearest burning campfire (INF for none), as the last
 ## tick found it; the music reads it too.
 var fire_d := INF
+## The near crickets: {at, pitch, loud, period, next, until (the end of the song)}, and
+## how many there are to be until the next count; seconds of this clock.
+var _crickets: Array[Dictionary] = []
+var _cricket_count := 0
+var _recount := 0.0
+var _time := 0.0
 
 
 func _init(g) -> void:
@@ -56,6 +75,7 @@ func _init(g) -> void:
 func update(delta: float) -> void:
 	var sound = game.sound
 	var clock = game.clock
+	_time += delta
 	_scan()
 	var indoor: bool = game.chunks.indoor
 	var open := MUFFLED if indoor else 1.0
@@ -82,6 +102,7 @@ func update(delta: float) -> void:
 	if warm and calm and not indoor and daylight < 0.3:
 		crickets = (1.0 - woods * 0.5) * smoothstep(0.3, 0.05, daylight)
 	sound.loop("crickets", crickets)
+	_near_crickets(sound, crickets, clock.season != Clock.SPRING, delta)
 	if indoor or not calm:
 		return
 	# Birds by day, most at dawn and fewest in winter; an owl in the woods at night.
@@ -94,6 +115,54 @@ func update(delta: float) -> void:
 			sound.play("bird", _around(6.0, 16.0, 2.0), rng.randf_range(0.5, 1.0), rng.randf_range(0.9, 1.15), "Nature")
 	elif daylight < 0.15 and woods > 0.15 and rng.randf() < OWL_RATE * delta:
 		sound.play("owl", _around(10.0, 18.0, 3.0), rng.randf_range(0.6, 1.0), 1.0, "Nature")
+
+
+## The near crickets at `level` (0..1) for the next `ahead` seconds: their count changes
+## now and then, each chirps at its own pace through a song and rests after it, and the
+## chirps are laid out within the coming tick so the pace is not the tick's.
+func _near_crickets(sound, level: float, summer: bool, ahead: float) -> void:
+	if level < 0.05:
+		_crickets.clear()
+		_recount = 0.0
+		return
+	_recount -= ahead
+	if _recount <= 0.0:
+		_recount = rng.randf_range(CRICKETS_RECOUNT.x, CRICKETS_RECOUNT.y)
+		var most := roundi((CRICKETS_MOST if summer else 3) * level)
+		_cricket_count = rng.randi_range(1 if level > 0.5 else 0, most)
+	while _crickets.size() > _cricket_count:
+		_crickets.remove_at(rng.randi() % _crickets.size())
+	while _crickets.size() < _cricket_count:
+		_crickets.append(_new_cricket())
+	var p: Vector3 = game.player.position
+	for i in _crickets.size():
+		var c := _crickets[i]
+		var d: float = Vector2(c.at.x - p.x, c.at.z - p.z).length()
+		if d > CRICKET_GONE:
+			c = _new_cricket()
+			_crickets[i] = c
+		elif d < CRICKET_HUSH:
+			c.next = maxf(c.next, _time + rng.randf_range(4.0, 10.0))
+			c.until = maxf(c.until, c.next + 2.0)
+			continue
+		c.next = maxf(c.next, _time)
+		while c.next < _time + ahead:
+			if c.next > c.until:
+				c.next += rng.randf_range(CRICKET_REST.x, CRICKET_REST.y)
+				c.until = c.next + rng.randf_range(CRICKET_BOUT.x, CRICKET_BOUT.y)
+				c.period = clampf(c.period * rng.randf_range(0.85, 1.15), 0.4, 1.6)
+				continue
+			sound.play_later(c.next - _time, "cricket", c.at, level * c.loud * rng.randf_range(0.75, 1.0),
+				c.pitch, "Nature")
+			c.next += c.period * rng.randf_range(0.9, 1.1)
+
+
+## A cricket somewhere in the grass round the player, beginning its song soon.
+func _new_cricket() -> Dictionary:
+	var start := _time + rng.randf_range(0.0, 4.0)
+	return {"at": _around(CRICKET_NEAR.x, CRICKET_NEAR.y, 0.3), "pitch": rng.randf_range(0.85, 1.15),
+		"loud": rng.randf_range(0.4, 1.0), "period": rng.randf_range(0.45, 1.4), "next": start,
+		"until": start + rng.randf_range(CRICKET_BOUT.x, CRICKET_BOUT.y)}
 
 
 ## Thunder for a lightning flash of `strength` (0..1), late as it is far.
