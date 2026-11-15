@@ -3,8 +3,8 @@
   title: "[plants.items.currant]"
   weight: 0.1
   stack: 30
-  food: 3
-  spoils: 3
+  food: 2
+  spoils: 5
   rots_to: core:rot
   model: currant
   icon: currant
