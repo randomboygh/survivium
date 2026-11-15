@@ -240,6 +240,9 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 	if a.perched or sits_still(spec):
 		a.vel = Vector2.ZERO
 		return
+	var diver := dives(spec)
+	if diver:
+		_dive(a, delta)
 	var speed: float = spec.speed
 	match a.state:
 		"rest":
@@ -279,6 +282,10 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 	var v := a.vel * delta
 	if v.length_squared() < 1e-10:
 		a.vel = Vector2.ZERO
+		if diver and a.looked.x != INF and a.floor_y > 0.0:
+			# Still: right at its depth over the floor it last looked at.
+			a.pos.y = a.floor_y + DIP * CELL - a.dip
+			a.target.y = a.pos.y
 		_catch(a, spec)
 		return
 	if v.length() > d and a.hop == 0.0:
@@ -292,7 +299,15 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 	else:
 		ny = _look_floor(a, spec, np)
 	if ny > 0.0 and ((spec.swims and not spec.ashore) or absf(ny - a.pos.y) <= MAX_STEP):
+		if diver:
+			# At its own depth, never under the bed of shallower water ahead.
+			a.dip = minf(a.dip, _deepest(a))
+			ny -= a.dip - DIP * CELL
 		a.pos = Vector3(np.x, lerpf(a.pos.y, ny, minf(1.0, delta * 12.0)), np.z)
+		if diver:
+			# Its way goes over the water, at whatever depth: it is there when it is
+			# over the spot (the target's height follows its own).
+			a.target.y = a.pos.y
 		a.moving = v.length() > speed * delta * 0.2 or a.hop > 0.0
 		# Turns round only when it really goes the other way, not on a wobble.
 		if absf(a.vel.x) > 0.15 * spec.speed + 0.05 and signf(a.vel.x) != a.facing:
@@ -313,7 +328,26 @@ func _move(a: Animal, spec: Dictionary, delta: float) -> void:
 		a.vel = Vector2.ZERO
 		a.hop = 0.0
 		a.lift = 0.0
+		if diver:
+			# Its depth goes by the water where it stays, not the shore it was stopped by.
+			_look_floor(a, spec, a.pos)
 	_catch(a, spec)
+
+
+## Fish `a` goes up or down toward the depth it wants (dip_to), within the water there.
+func _dive(a: Animal, delta: float) -> void:
+	var to := clampf(a.dip_to, DIP * CELL, _deepest(a))
+	var was := a.dip
+	a.dip = move_toward(a.dip, to, DIVE_SPEED * delta)
+	if a.dip != was:
+		a.pos.y -= a.dip - was
+		a.target.y = a.pos.y
+
+
+## How deep fish `a` may swim where it last looked at its floor: BED_GAP over the bed,
+## DIP at the least.
+func _deepest(a: Animal) -> float:
+	return clampf(a.room - BED_GAP * CELL, DIP * CELL, DEEPEST * CELL)
 
 
 ## A climber up a tree goes up or down its trunk at CLIMB_SPEED toward its target, the
