@@ -27,6 +27,7 @@ const SCENES := {
 	"day": {"time": 0.45, "season": 1},
 	"forest": {"time": 0.42, "season": 1, "forest": true},
 	"walk": {"time": 0.45, "season": 1, "keys": [KEY_D]},
+	"forest-walk": {"time": 0.42, "season": 1, "forest": true, "keys": [KEY_D]},
 	"night-moon": {"time": 0.95, "season": 1, "moon": 1.0},
 	"fire-off": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 0},
 	"fire-drawn": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "fire_shadows": 1},
