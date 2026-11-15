@@ -243,6 +243,8 @@ func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 					continue
 				var most := -1
 				if d[0] == Items.SACK:
+					# A sack nothing of which fits is left lying, or each pickup would take it
+					# and put it back (and the client redraw the chunk's drops).
 					if not _sack_fits(who.inventory, d[3]):
 						continue
 				else:
@@ -259,10 +261,6 @@ func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 					world.add_drop(rest[0], rest[1], rest[2], rest[3], rest[4] if rest.size() > 4 else -1.0, _grave(rest))
 				if rest.is_empty() or str(rest[3]) != str(d[3]):
 					taken.emit(d[0], d[1], who)
-				else:
-					# Nothing went into the bag: left alone till the feet go away, or the
-					# next pickup would put it back again (and redraw the chunk's drops).
-					held_back.append(d[1])
 				took = true
 				list = world.drops.get(key, [])
 			if took:
