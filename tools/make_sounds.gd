@@ -7,12 +7,10 @@ extends SceneTree
 ## Each sound has its own seed: making it again gives the same file.
 
 const Synth := preload("res://tools/sound/synth.gd")
-const ThunderShape := preload("res://src/client/audio/thunder_shape.gd")
+const ThunderBands := preload("res://tools/sound/thunder_bands.gd")
 
 ## Seconds of the loops, and how much of their end is faded into their start.
 const LOOP := 8.0
-## Bursts a second in a thunder's roar at its loudest (see _thunder).
-const THUNDER_GRAINS := 90.0
 const OVERLAP := 1.0
 ## name: [bundle folder under content/, variants, loop]; the sound is made by the method `_<name>`.
 const SOUNDS := {
@@ -227,39 +225,32 @@ func _cricket(v: int) -> PackedFloat32Array:
 
 
 func _thunder(v: int) -> PackedFloat32Array:
-	# Like a recorded peal (ThunderShape, shared with the vibration): a hit, then a
-	# roar that holds and rolls away. The roar is hundreds of short dull bursts of noise
-	# (each low-passed at its own cut-off, most faint, a few loud) over a deep body, so
-	# its loudness jostles as real thunder's does; most of it lies at 60-500 Hz, enough
-	# above 250 Hz for a phone's speaker.
-	var s := ThunderShape.of(v)
-	var span: float = s.span
-	var body := Synth.normalize(Synth.highpass(Synth.lowpass(Synth.brown(span, rng), 160.0), 45.0), 1.0)
-	body = Synth.shape(body, func(t: float, _l: float) -> float: return ThunderShape.gain(s, t))
-	var roar := Synth.silence(span)
-	var t := 0.0
-	while t < span:
-		var g := ThunderShape.gain(s, t)
-		t += rng.randf_range(0.3, 1.7) / (THUNDER_GRAINS * g + 2.0)
-		if g < 0.01:
-			continue
-		var d := rng.randf_range(0.05, 0.3)
-		var cut := rng.randf_range(s.low, s.high)
-		var grain := Synth.lowpass(Synth.lowpass(Synth.white(d, rng), cut), cut)
-		grain = Synth.env(Synth.normalize(grain, 1.0), rng.randf_range(0.005, 0.04), d * 0.45)
-		roar = Synth.mix(roar, grain, g * pow(rng.randf(), 2.0), t)
-	var b := Synth.mix(Synth.normalize(roar, 1.0), body, 0.55)
-	for h: Array in s.hits:
-		var thump := Synth.tone(0.35, func(x: float) -> float: return lerpf(150.0, 55.0, minf(x / 0.25, 1.0)),
-			[[1.0, 1.0, 0.0], [2.0, 0.5, 0.0], [3.0, 0.25, 0.0]])
-		thump = Synth.env(thump, 0.004, 0.14)
-		var crack := Synth.env(Synth.bandpass(Synth.white(0.3, rng), rng.randf_range(1200.0, 2000.0), 0.7), 0.002, 0.06)
-		b = Synth.mix(b, Synth.normalize(thump, 1.0), 0.6 * h[1], h[0])
-		b = Synth.mix(b, Synth.normalize(crack, 1.0), 0.15 * h[1], h[0])
-	b = Synth.normalize(Synth.highpass(b, 50.0), 1.0)
-	# A little soft clipping: denser, and the overtones a small speaker can play.
-	for i in b.size():
-		b[i] = tanh(b[i] * 1.3)
+	# Built from recorded peals' measurements (tools/sound/thunder_bands.gd): noise in each
+	# band of frequencies, as loud as the recording was in that band every FRAME
+	# seconds, so its rise, its jostling roar and its long roll are the recording's;
+	# the same variant's envelope drives the vibration (ThunderShape).
+	var bands: Array = ThunderBands.VARIANTS[v % ThunderBands.VARIANTS.size()]
+	var frame: float = ThunderBands.FRAME
+	var n: int = bands[0].size()
+	var span := n * frame
+	var b := Synth.silence(span)
+	for k in ThunderBands.BANDS.size():
+		var lo: float = ThunderBands.BANDS[k][0]
+		var hi: float = ThunderBands.BANDS[k][1]
+		var noise := Synth.bandpass(Synth.white(span, rng), sqrt(lo * hi), sqrt(lo * hi) / (hi - lo))
+		noise = Synth.bandpass(noise, sqrt(lo * hi), sqrt(lo * hi) / (hi - lo))
+		var rms := 0.0
+		for x in noise:
+			rms += x * x
+		rms = sqrt(rms / maxf(noise.size(), 1.0))
+		var level: Array = bands[k]
+		noise = Synth.shape(noise, func(t: float, _l: float) -> float:
+			var f := t / frame - 0.5
+			var i := clampi(floori(f), 0, n - 1)
+			return lerpf(level[i], level[mini(i + 1, n - 1)], clampf(f - i, 0.0, 1.0)) / maxf(rms, 1e-6))
+		b = Synth.mix(b, noise)
+	# The last half second fades, for a peal cut from a longer recording.
+	b = Synth.shape(b, func(t: float, l: float) -> float: return minf((l - t) / 0.5, 1.0))
 	return Synth.normalize(b, 0.95)
 
 
