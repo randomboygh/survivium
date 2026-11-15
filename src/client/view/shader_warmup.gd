@@ -18,6 +18,7 @@ extends RefCounted
 ## Later, in the game (update): a mix the settings asked for that was not built yet (the
 ## sun's shadow or the fires' switched), a kind at a time so each stop is short.
 
+const MirrorShader := preload("res://shaders/sprite_mirror.gdshader")
 const MeshBuffers := preload("res://src/client/world/mesh_buffers.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const PlayerView := preload("res://src/client/view/player.gd")
@@ -144,6 +145,20 @@ func _build() -> void:
 			kinds[key] = animal
 		else:
 			animal.free()
+	# A figure mirrored in the water (WaterEffects), shown only by the water.
+	if figure != null and figure.mesh != null:
+		var mirror := MeshInstance3D.new()
+		mirror.mesh = figure.mesh
+		var mirror_mat := ShaderMaterial.new()
+		mirror_mat.shader = MirrorShader
+		mirror_mat.render_priority = 1
+		mirror.material_override = mirror_mat
+		mirror.scale = Vector3(1.0, -1.0, 1.0)
+		var mirror_key := _key(mirror)
+		if not kinds.has(mirror_key):
+			kinds[mirror_key] = mirror
+		else:
+			mirror.free()
 	# The names over the others and the letters "z" over a sleeper, shown only later.
 	var label := Label3D.new()
 	label.font = UiStyle.font()

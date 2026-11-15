@@ -8,6 +8,26 @@ extends RefCounted
 
 const SHOTS := {
 	"day": {"time": 0.45, "season": 1},
+	# Small effects of the air (AirEffects): the air trembling over a fire and over hot
+	# ground at noon, drops on the screen in a downpour, breath in a frost, the sun's
+	# path on a lake at sunrise and sunset.
+	"fx-heat": {"time": 0.5, "season": 1, "by_fire": Vector3(0.6, 0.0, 1.4)},
+	"fx-heat-desert": {"time": 0.5, "season": 1, "place": "desert"},
+	"fx-drops": {"time": 0.45, "season": 1, "weather": "downpour"},
+	"fx-breath": {"time": 0.3, "season": 3, "snow": 0.0, "weather": "clear", "place": "beach", "animal": Vector3(1.2, 0.0, 0.6), "breathe": true},
+	"fx-sun-path": {"time": 0.27, "season": 1, "weather": "clear", "place": "lake"},
+	# On the water: the figures mirrored by the lake, a fire glittering on it at night,
+	# steam on a cold morning, wading in the shallows (rings), dragonflies by day, midges
+	# at sunset; dust behind one walking on a dry beach.
+	"fx-reflect": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1},
+	"fx-fire-water": {"time": 0.95, "season": 1, "moon": 0.0, "weather": "clear", "place": "lake", "water": 1, "hands": {"tool": "tools:torch", "facing": "s"}},
+	"fx-steam": {"time": 0.27, "season": 3, "snow": 0.0, "weather": "clear", "place": "lake"},
+	"fx-wade": {"time": 0.42, "season": 1, "weather": "clear", "water": 1, "keys": [KEY_D], "key_frames": 40},
+	"fx-flies": {"time": 0.45, "season": 1, "weather": "clear", "place": "lake"},
+	"fx-midges": {"time": 0.72, "season": 1, "weather": "clear", "place": "lake"},
+	"fx-dust": {"time": 0.45, "season": 1, "weather": "clear", "place": "beach", "keys": [KEY_D], "key_frames": 40},
+	"fx-moon-path": {"time": 0.95, "season": 1, "moon": 1.0, "weather": "clear", "place": "lake"},
+	"fx-sun-path-evening": {"time": 0.72, "season": 1, "weather": "clear", "place": "lake"},
 	# The old screen look (Crt.LOOKS): by day, and by a fire at night for the glow.
 	"crt-soft": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 1}},
 	"crt-old": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 2}},
@@ -726,6 +746,8 @@ const SHOTS := {
 	# The graphics section of the settings: the quality preset over the settings by hand.
 	"ui-settings-graphics": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "graphics"},
 	"ui-settings-graphics-pc": {"time": 0.45, "season": 1, "menu": true, "page": "settings", "section": "graphics"},
+	# Its bottom: the effects by kind, then fog and haze.
+	"ui-settings-effects": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "settings", "section": "graphics", "menu_end": true},
 	"ui-test-pc": {"time": 0.45, "season": 1, "menu": true, "page": "test"},
 	# The playtest page's other tabs: the player's switches and the tools button, debugging.
 	"ui-test-player": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "player"},

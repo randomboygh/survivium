@@ -38,6 +38,7 @@ const STEPS := [
 	["sprite", "box", "res://shaders/sprite.gdshader", "omni", ""],
 	["sprite_xray", "box", "res://shaders/sprite_xray.gdshader", "omni", ""],
 	["sprite_water", "box", "res://shaders/sprite_water.gdshader", "omni", ""],
+	["sprite_mirror", "box", "res://shaders/sprite_mirror.gdshader", "omni", ""],
 	["water", "box", "res://shaders/water.gdshader", "omni", ""],
 	["land", "box", "res://shaders/land.gdshader", "omni", ""],
 	["particle", "box", "res://shaders/particle.gdshader", "omni", ""],

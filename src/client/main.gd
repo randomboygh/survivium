@@ -80,6 +80,9 @@ const Bushes := preload("res://src/shared/content/bushes.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Drifts := preload("res://src/client/world/drifts.gd")
 const EffectsScript := preload("res://src/client/view/effects.gd")
+const AirEffectsScript := preload("res://src/client/view/air_effects.gd")
+const WaterEffectsScript := preload("res://src/client/view/water_effects.gd")
+const NatureEffectsScript := preload("res://src/client/view/nature_effects.gd")
 const FireShadowsScript := preload("res://src/client/view/fire_shadows.gd")
 const SunRaysScript := preload("res://src/client/view/sun_rays.gd")
 const TracksScript := preload("res://src/client/world/tracks.gd")
@@ -1125,6 +1128,12 @@ func _build_scene() -> void:
 	effects.world = world
 	effects.perf = hud.perf
 	world_root.add_child(effects)
+	effects.air = AirEffectsScript.new(self, effects)
+	effects.add_child(effects.air)
+	effects.water = WaterEffectsScript.new(self, effects)
+	effects.add_child(effects.water)
+	effects.nature = NatureEffectsScript.new(self, effects)
+	effects.add_child(effects.nature)
 	fire_shadows = FireShadowsScript.new()
 	fire_shadows.game = self
 	world_root.add_child(fire_shadows)

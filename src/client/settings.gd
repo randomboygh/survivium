@@ -70,7 +70,19 @@ const DEFAULTS := {
 	# too, not on the ground alone (PixelView.shadow_on_things): a few shaders more to
 	# build while loading.
 	"shadow_on_things": true,
+	# The weather's particles, the fires' sparks and smoke, the fireflies and the pollen.
 	"effects": true,
+	# The small effects (the user's ask 2026-11-15, «Эффекты» in the settings): on the
+	# water 0 none, 1 rings, splashes, steam, glints and the sun's path, 2 those and the
+	# figures mirrored (WaterEffects, AirEffects.path_on); the fluff, midges and dragonflies
+	# (NatureEffects.on); breath and dust under the feet (AirEffects.breath_on,
+	# NatureEffects.dust_on); the air trembling over fires and hot ground
+	# (AirEffects.heat_on); drops of rain on the screen (AirEffects.drops_on).
+	"water_fx": 2,
+	"nature_fx": true,
+	"body_fx": true,
+	"heat_fx": true,
+	"drops_fx": true,
 	# Sunlight among the trees in clear weather and after rain: shafts, flecks, dust (SunRays).
 	"sun_rays": true,
 	# Fog drawn on the ground, deep in the low places (Sky._update_fog); off, a plain haze.
@@ -176,7 +188,7 @@ static func _index_limits() -> Dictionary:
 	var volumes := Sound.STEPS + 1
 	return {"time_speed": TIME_SPEEDS.size(), "pixel_scale": PIXEL_SIZES.size(), "fps_limit": FPS_LIMITS.size(),
 		"ui_size": Hud.UI_SIZES.size(), "control_size": Hud.CONTROL_SIZES.size(), "minimap_size": Minimap.SIDES.size(),
-		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "fire_shadows": 4, "crt": Crt.LOOKS.size(),
+		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "fire_shadows": 4, "water_fx": 3, "crt": Crt.LOOKS.size(),
 		"layer_front_from": CaveLayers.FIRSTS.size(), "layer_front_stretch": CaveLayers.STRETCHES.size(),
 		"layer_above_from": CaveLayers.FIRSTS.size(), "layer_above_stretch": CaveLayers.STRETCHES.size(),
 		"layer_density": CaveLayers.DENSITIES.size(), "layer_line": CaveLayers.LINES.size(),
@@ -188,11 +200,11 @@ static func _index_limits() -> Dictionary:
 ## Any other mix of them is «своё» (see quality). The FPS limit is not part of them.
 const QUALITIES := [
 	{"pixel_scale": 4, "shadows": false, "fire_shadows": 0, "shadow_on_things": false, "effects": false, "sun_rays": false,
-		"fog": false},
+		"fog": false, "water_fx": 0, "nature_fx": false, "body_fx": false, "heat_fx": false, "drops_fx": false},
 	{"pixel_scale": 2, "shadows": true, "fire_shadows": 1, "shadow_on_things": false, "effects": true, "sun_rays": false,
-		"fog": true},
+		"fog": true, "water_fx": 1, "nature_fx": true, "body_fx": true, "heat_fx": false, "drops_fx": true},
 	{"pixel_scale": 2, "shadows": true, "fire_shadows": 3, "shadow_on_things": true, "effects": true, "sun_rays": true,
-		"fog": true},
+		"fog": true, "water_fx": 2, "nature_fx": true, "body_fx": true, "heat_fx": true, "drops_fx": true},
 ]
 ## Playtest clock: stopped, normal, or faster on top of the time speed setting.
 const TIME_BOOSTS := [0.0, 1.0, 10.0, 100.0]
@@ -524,6 +536,17 @@ func apply() -> void:
 		Crt.apply(game.view.grade_mat, values.crt, game.view.viewport.get_texture())
 	if game.effects != null:
 		game.effects.enabled = values.effects
+		var fx = game.effects
+		if fx.air != null:
+			fx.air.heat_on = values.heat_fx
+			fx.air.drops_on = values.drops_fx
+			fx.air.breath_on = values.body_fx
+			fx.air.path_on = values.water_fx >= 1
+		if fx.water != null:
+			fx.water.level = values.water_fx
+		if fx.nature != null:
+			fx.nature.on = values.nature_fx
+			fx.nature.dust_on = values.body_fx
 		game.effects.shadows = values.shadows and values.fire_shadows >= 2
 		game.effects.player_only = values.fire_shadows == 3
 	if PixelView.shadow_on_things != values.shadow_on_things:

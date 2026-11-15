@@ -16,19 +16,20 @@ const Settings := preload("res://src/client/settings.gd")
 ## The steps from the best picture to the lightest to draw, each what it changes from
 ## the one before; the first is the «высокое» preset (Settings.QUALITIES[2]) and the
 ## whole list passes through «среднее» (3) and ends at «низкое» (8). First go the things
-## least missed: the fires' real shadows, the sun's rays, the shadows on the things set
-## down, the fog on the ground; then a larger pixel (a smaller image); the sun's shadows
+## least missed: the fires' real shadows, the sun's rays and the figures mirrored in the
+## water, the shadows on the things set down and the air trembling over fires, the fog
+## on the ground; then a larger pixel (a smaller image); the sun's shadows
 ## and the effects last. The pixel never gets smaller than the normal one by itself.
 const STEPS := [
 	{},
 	{"fire_shadows": 1},
-	{"sun_rays": false},
-	{"shadow_on_things": false},
+	{"sun_rays": false, "water_fx": 1},
+	{"shadow_on_things": false, "heat_fx": false},
 	{"fog": false},
 	{"pixel_scale": 3},
 	{"pixel_scale": 4},
 	{"shadows": false, "fire_shadows": 0},
-	{"effects": false},
+	{"effects": false, "water_fx": 0, "nature_fx": false, "body_fx": false, "drops_fx": false},
 ]
 ## The game's frames are counted in windows this long (ms of the clock).
 const WINDOW_MS := 5000

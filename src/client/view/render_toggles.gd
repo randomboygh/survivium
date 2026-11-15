@@ -66,6 +66,11 @@ func groups() -> Array:
 		fx_keys.sort()
 		for key: String in fx_keys:
 			out.append(["effects: %s (%d)" % [key, parts[key].size()], parts[key]])
+		# The small effects a piece at a time, those drawn in the shaders too (AirEffects,
+		# WaterEffects, NatureEffects).
+		for part in [fx.air, fx.water, fx.nature]:
+			if part != null:
+				out.append_array(part.parts())
 	var by_shader := {}
 	for n in game.world_root.find_children("*", "GeometryInstance3D", true, false):
 		for shader in _shaders_of(n):

@@ -522,6 +522,9 @@ func fly_shot(shot: Array) -> void:
 	tween.tween_method(func(k: float) -> void:
 		node.position = from.lerp(to, k) + Vector3(0.0, sin(k * PI) * arc, 0.0), 0.0, 1.0, maxf(0.05, float(shot[3])))
 	tween.tween_callback(node.queue_free)
+	# Into the water: a splash and rings where it lands.
+	if game.effects != null and game.effects.water != null:
+		tween.tween_callback(game.effects.water.ring.bind(to + Vector3(0.0, 1.0, 0.0), true))
 
 
 ## Frees what was drawn lying in chunk `key`, as its chunk goes from the screen.

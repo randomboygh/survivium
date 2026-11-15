@@ -1,5 +1,6 @@
 // Water: see-through over shallows and darker in the deep, foam that laps at the
-// shore, drifting ripple lines and sparkles, rain rings, ice in winter (footprints
+// shore, drifting ripple lines and sparkles, rain rings, the sun's path at sunrise and
+// sunset, ice in winter (footprints
 // on the ice are tracks.gd's).
 // UV2.x: foam bits for the half edges that touch land (2 per edge N, S, W, E: the
 // west or north half, then the other), then for the diagonals of corners NW, NE, SE,
@@ -33,6 +34,17 @@ uniform vec3 swamp_foam SRGB = vec3(0.62, 0.65, 0.5);
 // blue where the plankton is (bays of it, by a slow noise).
 global uniform float sea_glow;
 const vec3 PLANKTON = vec3(0.2, 0.62, 1.0);
+// The sun's path on the water while the sun is low (AirEffects): xy the way to the sun
+// along the ground, z how strong (0 none); glints thick on a band from the player
+// towards it, widening as it goes, in sun_path_color.
+uniform vec4 sun_path = vec4(0.0);
+uniform vec3 sun_path_color SRGB = vec3(1.0, 0.8, 0.5);
+// Fires, torches and lamps glittering on the water (WaterEffects): each x, z, height and
+// how strongly (0 none); the glitter runs from under the light towards the viewer
+// (glint_toward, along the ground), flickering.
+uniform vec4 fire_glints[4];
+uniform vec2 glint_toward = vec2(0.0, 1.0);
+const vec3 FIRE_GLINT = vec3(1.0, 0.62, 0.28);
 
 // Steps of the depth's shading, and the 4x4 ordered dither between them.
 const float DEPTH_STEPS = 6.0;
@@ -144,6 +156,8 @@ void fragment() {
 	vec3 foam_c = mix(foam_color, swamp_foam, min(murk * 2.0, 1.0));
 	// How much of the surf is on this texel, for the plankton's glow.
 	float surf = 0.0;
+	// The sun's path and the lights glittering on the surface: light of their own.
+	vec3 shine = vec3(0.0);
 	if (falls > 1.5) {
 		// The falling sheet: streaks a texel wide running down at their own speeds,
 		// white water at the lip and in a band of spray at the foot.
@@ -176,6 +190,38 @@ void fragment() {
 		// Sparkles, none on a bog.
 		float s = step(0.993, hash12(tex + floor(TIME * 3.0) * 17.0)) * step(murk, 0.75);
 		col += vec3(0.35) * s * (1.0 - ice_amount);
+		if (sun_path.z > 0.0 && murk < 0.75) {
+			vec2 off = world_pos.xz - player_pos.xz;
+			float along = dot(off, sun_path.xy);
+			float across = abs(dot(off, vec2(-sun_path.y, sun_path.x)));
+			float width = 0.5 + max(along, 0.0) * 0.2;
+			float path = step(-0.5, along) * (1.0 - smoothstep(width * 0.3, width, across))
+				* (1.0 - smoothstep(6.0, 18.0, along)) * sun_path.z;
+			if (path > 0.0) {
+				// Glints flashing a texel at a time, thickest down the middle, and the
+				// ripple lines catching the light.
+				float g = step(1.0 - 0.13 * path, hash12(tex + floor(TIME * 5.0) * 23.0));
+				shine += sun_path_color * (g * 0.9 + (line * 0.4 + 0.06) * path);
+				alpha = max(alpha, 0.85 * g);
+			}
+		}
+		for (int i = 0; i < 4; i++) {
+			vec4 f = fire_glints[i];
+			if (f.w <= 0.0 || abs(world_pos.y - f.z) > 1.6) {
+				continue;
+			}
+			vec2 off = world_pos.xz - f.xy;
+			float along = dot(off, glint_toward);
+			float across = abs(dot(off, vec2(-glint_toward.y, glint_toward.x)));
+			if (along < -0.3 || along > 5.0 || across > 0.2 + along * 0.08) {
+				continue;
+			}
+			// Thicker near the light and down the middle, broken into texels that flicker.
+			float k = f.w * (1.0 - along / 5.0) * (1.0 - across / (0.2 + along * 0.08));
+			float g = step(1.0 - 0.6 * k, hash12(tex + floor(TIME * 7.0 + float(i) * 0.37) * 19.0));
+			shine += FIRE_GLINT * (g * 0.9 + line * 0.5 * k);
+			alpha = max(alpha, 0.9 * g);
+		}
 		// Foam along the shore, washing in and out by a texel or two.
 		// An exact whole number in a flat varying: its corner fills reach bit 23, where
 		// `+ 0.5` would round an odd word to even.
@@ -265,7 +311,7 @@ void fragment() {
 	vec3 lit_col = col * (1.0 - veiled.a);
 	ALBEDO = lit_col * sun_part;
 	lamp_gain = sea_undo(lit_col, sun_part);
-	EMISSION = veiled.rgb + PLANKTON * plankton * 1.6 * (1.0 - veiled.a);
+	EMISSION = veiled.rgb + (PLANKTON * plankton * 1.6 + shine * (1.0 - ice_amount)) * (1.0 - veiled.a);
 	ALPHA = mix(alpha, 1.0, ice_amount);
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;

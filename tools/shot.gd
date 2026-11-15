@@ -447,6 +447,10 @@ func _run() -> void:
 			main.effects.burst(main.player.position + Vector3(0.6, 0.4, 0.0), main.Mat.index(shot.burst))
 			for i in 3:
 				await process_frame
+		if shot.get("breathe", false):
+			# Everyone breathes out at once, and the puffs are let rise a little.
+			main.effects.air.breathe_now()
+			await create_timer(0.5).timeout
 		if shot.has("fuel"):
 			# A campfire just north of the player, every fire this full, its flames given a
 			# while to follow.
