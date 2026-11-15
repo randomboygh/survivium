@@ -30,6 +30,11 @@ const FISH_GAP := Vector2(3.0, 10.0)
 ## rings of one swimming.
 const WADE_STEP := 0.9
 const SWIM_RING := 1.1
+## The glowing wake: a point of it every WAKE_STEP units swum, at most WAKE_POINTS, each
+## fading out over WAKE_LIFE seconds.
+const WAKE_STEP := 0.5
+const WAKE_POINTS := 8
+const WAKE_LIFE := 3.5
 ## Falling this fast (world units a second) into the water splashes.
 const SPLASH_FALL := 3.0
 ## The steam: emitter spots looked for again when the view moved this far, from this many
@@ -72,9 +77,11 @@ var _fish_in := 2.0
 ## Each one watched (by key): {"was": [in water, swimming], "fall": the speed it fell,
 ## "walked": world units walked in water since its last ring, "last": where it was}.
 var _bodies := {}
-## The way the player moves through the water and how fast, 0..1, smoothed (_wake).
-var _wake_way := Vector2(0.0, 1.0)
+## How brightly the plankton glows at the swimmer, 0..1, by their speed, smoothed, and
+## the points of the way they swam, newest first (see _wake).
 var _wake_k := 0.0
+var _trail: Array[Vector4] = []
+var _trail_sent := false
 var steam: CPUParticles3D
 var _steam_home := Vector2.INF
 ## Each figure mirrored: its sprite -> its mirror (MeshInstance3D).
@@ -241,7 +248,7 @@ func _watch_bodies(delta: float) -> void:
 				st.walked = 0.0
 				ring(at + Vector3(0.0, 0.5, 0.0))
 		if fig == game.player:
-			_wake(Vector2(at.x - st.last.x, at.z - st.last.z), delta, wet)
+			_wake(at, Vector2(at.x - st.last.x, at.z - st.last.z), delta, wet)
 		st.was = wet
 		st.fall = fall
 		st.last = at
@@ -251,18 +258,37 @@ func _watch_bodies(delta: float) -> void:
 			_bodies.erase(key)
 
 
-## The glowing plankton's wake behind the player moving in the water
-## (water.gdshader wake_way): the way they go, how fast, eased in and out.
-func _wake(moved: Vector2, delta: float, wet: bool) -> void:
+## The glowing plankton's wake along the way the player swam (water.gdshader
+## wake_trail): a point left every WAKE_STEP units moved in the water, each fading out
+## over WAKE_LIFE seconds; how bright at the swimmer by how fast they go, eased.
+func _wake(at: Vector3, moved: Vector2, delta: float, wet: bool) -> void:
 	var speed := moved.length() / maxf(delta, 0.001)
-	if speed > 0.3:
-		_wake_way = _wake_way.lerp(moved / moved.length(), minf(1.0, delta * 6.0)).normalized()
-	var want := clampf(speed / 2.5, 0.0, 1.0) if wet else 0.0
-	_wake_k = move_toward(_wake_k, want, delta * 1.5)
-	var way := Vector3(snappedf(_wake_way.x, 0.05), snappedf(_wake_way.y, 0.05), snappedf(_wake_k, 0.05))
-	if _set.get("wake") != way:
-		_set["wake"] = way
-		game.water_mat.set_shader_parameter("wake_way", way)
+	var want := clampf(speed / 2.0, 0.0, 1.0) if wet else 0.0
+	_wake_k = move_toward(_wake_k, want, delta * 2.0)
+	for i in range(_trail.size() - 1, -1, -1):
+		var p: Vector4 = _trail[i]
+		p.z -= delta / WAKE_LIFE
+		if p.z <= 0.0:
+			_trail.remove_at(i)
+		else:
+			_trail[i] = p
+	var water_y := at.y + 0.25
+	if wet and _wake_k > 0.05:
+		if _trail.is_empty() or Vector2(_trail[0].x, _trail[0].y).distance_to(Vector2(at.x, at.z)) >= WAKE_STEP:
+			_trail.insert(0, Vector4(at.x, at.z, _wake_k, water_y))
+			if _trail.size() > WAKE_POINTS:
+				_trail.resize(WAKE_POINTS)
+	if _trail.is_empty() and not _trail_sent and _wake_k <= 0.0 and _set.get("wake_now", 0.0) == 0.0:
+		return
+	_trail_sent = not _trail.is_empty()
+	var points := PackedVector4Array(_trail)
+	while points.size() < WAKE_POINTS:
+		points.append(Vector4(0.0, 0.0, 0.0, -1000.0))
+	game.water_mat.set_shader_parameter("wake_trail", points)
+	var now := snappedf(_wake_k, 0.05)
+	if _set.get("wake_now", 0.0) != now:
+		_set["wake_now"] = now
+		game.water_mat.set_shader_parameter("wake_now", now)
 
 
 ## Now and then a fish near the view jumps: a splash and rings over it.
