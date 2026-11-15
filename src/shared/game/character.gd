@@ -448,7 +448,7 @@ func _touch_fire(p: Vector3) -> void:
 		fire = placed.burning(body.bumped)
 	if fire.is_empty():
 		return
-	vitals.burn()
+	vitals.burn(placed.fuel_share(fire))
 	_burn_wait = BURN_PAUSE
 	var mid: Vector3 = placed.center(fire)
 	var away := Vector2(p.x - mid.x, p.z - mid.z)
