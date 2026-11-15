@@ -467,6 +467,7 @@ func _update_weather(delta: float) -> void:
 	var warm_sea: float = [SEA_GLOW_SPRING, 1.0, SEA_GLOW_AUTUMN, 0.0][clock.season]
 	if not glowing_night(clock.day, clock.time_of_day):
 		warm_sea = 0.0
+	g.global_shader_parameter_set("shrooms", clock.shrooms)
 	g.global_shader_parameter_set("sea_glow", smoothstep(0.5, 0.1, daylight) * warm_sea * (1.0 - clock.ice()))
 	g.global_shader_parameter_set("cloud_cover", clock.clouds)
 	g.global_shader_parameter_set("cloud_offset", cloud_pos)

@@ -124,6 +124,7 @@ func _test_wildlife() -> void:
 	_test_taming(w)
 	_test_trap(w)
 	_test_attacks(w)
+	_test_clover()
 
 
 ## The animals of the chunks made come none at the person's feet; those on ground
@@ -556,7 +557,7 @@ func _test_shore(w: WorldData) -> void:
 	life.rules.animal_attacks = false
 	var pond := Rect2(px, pz, side, side)
 	var at := Vector3(px + side * 0.5, 0.0, pz + side * 0.5) * WorldData.CELL
-	life.rng.seed = 7
+	life.rng.seed = 1
 	var duck := _animal(life, "animals:duck", at)
 	duck.pos.y = life.water_top(at.x, at.z) - Wildlife.DIP * WorldData.CELL
 	duck.home = duck.pos
@@ -1117,3 +1118,28 @@ func _test_attacks(w: WorldData) -> void:
 		life.update(0.05)
 	_check(boar.state != "warn" and boar.foe == null, "with the attacks off a boar lets people be (%s)" % boar.state)
 	_check(Survivor.cause_text("animal:animals:wolf").map(Lang.t) == ["An animal mauled you", "Wolf"], "death by a wolf is told")
+
+
+## A rabbit loves clover (`loves`): looking about, it picks a spot where clover grows
+## over grass it merely likes, and grazes there a long while.
+func _test_clover() -> void:
+	var clover := Plants.BY_ID.keys().find("plants:clover")
+	_check(clover >= 0, "clover is loaded")
+	var w := WorldData.new(8, Vector2i(64, 64))
+	for z in 64:
+		for x in 64:
+			w.set_cell(x, 5, z, Mat.GRASS)
+	# A patch of clover in a meadow of tufts.
+	w.grows = func(x: int, z: int) -> int: return Grass.GROW_PLANT + clover if x >= 36 and x < 46 and z >= 28 and z < 38 else 0
+	var life := Wildlife.new()
+	life.world = w
+	life.clock = Clock.new()
+	var rabbit: Dictionary = AiRules.SPECIES["animals:rabbit"]
+	_check("plants:clover" in rabbit.get("loves", []), "a rabbit loves clover")
+	var around := Vector3(32.0, 6.0, 32.0) * WorldData.CELL
+	var found := 0
+	for i in 20:
+		var to: Variant = life._place(rabbit, around, Wildlife.LOVE_REACH, false, 64)
+		if to != null and life._loved_at(rabbit, to):
+			found += 1
+	_check(found >= 15, "a rabbit looking about goes to the clover (%d of 20)" % found)

@@ -15,7 +15,6 @@ extends "res://src/shared/game/actions_farm.gd"
 ## catches up at once. A chunk first made, or saved before this, starts from today.
 
 const BiomesData := preload("res://src/shared/content/biomes.gd")
-const ClockScript := preload("res://src/shared/game/clock.gd")
 
 ## Seconds between two rows of columns worked (each NATURE_ROWS rows of a chunk).
 const NATURE_EVERY := 0.1

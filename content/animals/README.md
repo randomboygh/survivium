@@ -90,7 +90,7 @@ content/animals/
   diets comes who catches whom.
 - Where it lives: `biomes: [biomes:taiga, biomes:forest]` — the beast comes only onto the land of these biomes
   (soft references to the "Biomes" mod: without it or without the biome's bundle — everywhere). `flock: [3, 5]` — in a herd
-  behind a leader (deer, boars, wolves in pairs), `likes: [plants:tuft]` — looks for places where this grows.
+  behind a leader (deer, boars, wolves in pairs), `likes: [plants:tuft]` — looks for places where this grows; `loves: [plants:clover]` — goes for these first, oftener and farther, and grazes there long (a rabbit on clover).
 - Voices (`calls`, `alarm`) are entries of the bundle's `data/sounds.yaml` and files `sounds/<name>_N.wav` beside it
   (made by `tools/make_sounds.gd`, your own can be recorded too); the code asks for a sound by name without a prefix.
   The hoot "owl" lies with the owl: the night forest calls it by name, and without the owl's bundle it is silent.

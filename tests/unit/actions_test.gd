@@ -11,6 +11,7 @@ func run() -> void:
 	_test_tap_choice()
 	_test_world_actions()
 	_test_water_holds()
+	_test_puffballs()
 	_test_placed()
 	_test_stairs_placed()
 	_test_start_camp()
@@ -276,6 +277,52 @@ func _test_world_actions() -> void:
 		and not Grass.stone_moss(rock, mossy.x, mossy.y, mossy.z) and not rock.drops.is_empty()
 		and (rock.drops.values()[0][0][0] as String).ends_with("moss"), "picking it gives moss and leaves the stone bare")
 	_check(not picker.can_mow(mossy, Tools.of("")), "and there is no more to pick there")
+
+
+## Puffballs come up only after rain (Clock.shrooms): none to pick on a dry ground, all
+## of them once grown. Picking one puffs its spores and redraws only its cell at once,
+## and one stepped on is crushed: gone, spores out, the picture swims (Vitals.visions).
+func _test_puffballs() -> void:
+	var puffball := Plants.BY_ID.keys().find("plants:puffball")
+	_check(puffball >= 0, "the puffball is loaded")
+	var w := WorldData.new(40, Vector2i(24, 24))
+	for z in 24:
+		for x in 24:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.GRASS)
+	w.grows = func(_x: int, _z: int) -> int: return Grass.GROW_PLANT + puffball
+	var clock := {"season": 1, "day": 0, "shrooms": 0.0}
+	var actions := WorldActions.new(w, clock, Rules.new())
+	var spores: Array[Vector3] = []
+	var regrown: Array[Vector3i] = []
+	var looks := [0]
+	actions.spores.connect(func(at: Vector3) -> void: spores.append(at))
+	actions.grass_changed.connect(func(c: Vector3i) -> void: regrown.append(c))
+	actions.looks_changed.connect(func(_k: Vector2i) -> void: looks[0] += 1)
+	var cell := Vector3i(8, 1, 8)
+	_check(Grass.plants_on(w, cell.x, cell.y, cell.z).has("plants:puffball") and actions.picking(cell) == "",
+		"no puffball is there to pick before the rain")
+	clock.shrooms = 1.0
+	_check(actions.picking(cell) != "", "after the rain puffballs have come up")
+	_check(Clock.shroom_size(0.0, 3, 5) == 0.0 and Clock.shroom_size(1.0, 3, 5) == 1.0
+		and Clock.shroom_size(0.5, 0, 0) > 0.0 and Clock.shroom_size(0.5, 1, 0) == 0.0,
+		"some places come up sooner than others")
+	var who := Who.new()
+	who.position = Vector3(8.5, 2.0, 9.5) * WorldData.CELL
+	_check(actions.mow(who, [cell] as Array[Vector3i]) and spores.size() == 1 and regrown.size() == 1 and regrown[0] == cell and looks[0] == 0
+		and actions.picking(cell) == "", "a puffball picked puffs its spores and only its cell is drawn again")
+	var walker := Survivor.new()
+	walker.world = w
+	walker.clock = Clock.new()
+	walker.body = Body.new()
+	walker.body.world = w
+	walker.at = Vector3(12.5, 2.0, 12.5) * WorldData.CELL
+	actions.tread(walker)
+	_check(spores.size() == 2 and regrown.has(Vector3i(12, 1, 12)) and walker.vitals.visions > 0.0
+		and not walker.said.is_empty() and actions.picking(Vector3i(12, 1, 12)) == "",
+		"a puffball stepped on is crushed, and its spores make the picture swim")
+	actions.tread(walker)
+	_check(spores.size() == 2, "standing on the same cell crushes nothing more")
 
 
 ## Stairs (a thing of one cell with `steps`) are set down in the cell in front, turned

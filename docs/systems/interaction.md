@@ -18,8 +18,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   outside, only `world_actions.gd` is known:
   `actions_base.gd` (state, the signal `cell_changed`, reach, `skilled`, `build_cell`, what the land's owner
   allows) ← `actions_gather.gd` (trees: `chop`, `fell`; gathering from bushes and trees, picking up from the
-  ground, the signals `looks_changed`, `drops_changed`, `taken`) ← `actions_fight.gd` (`swing_air`, `strike`,
-  `shoot`) ← `actions_water.gd` (`drink`, `fish`, `water_ahead`) ← `actions_dig.gd` (`dig_at`, `dig`, `mow`; `water_holds`: until water has physics, the ground under water and in the one-cell strip beside it at its level or lower is not dug, by hand, the button or a blueprint, with the hint `[water_holds_this_ground]`) ←
+  ground, the signals `looks_changed`, `grass_changed` (one grass cell cut short: the client redraws only it, first), `spores` (a puffball's puff), `drops_changed`, `taken`) ← `actions_fight.gd` (`swing_air`, `strike`,
+  `shoot`) ← `actions_water.gd` (`drink`, `fish`, `water_ahead`) ← `actions_dig.gd` (`dig_at`, `dig`, `mow`; `in_season(ids, cell)` — the plants there now: none with `winter` off in winter, none with `after_rain` where `Clock.shroom_size` is 0; `tread(who)`, called by `Session.step_players` — a plant with `crush` on the grass cell a player steps onto is crushed: spores, `crush` seconds of visions, the hint `[spores_in_the_eyes]`; `water_holds`: until water has physics, the ground under water and in the one-cell strip beside it at its level or lower is not dug, by hand, the button or a blueprint, with the hint `[water_holds_this_ground]`) ←
   `actions_build.gd` (`place_at`, `can_place`, `plant`) ← `actions_farm.gd` (farming: `farm_at` — a touch with
   a hoe turns grass or earth into a bed `Mat.BED`, a touch with a full watering can waters the bed
   (`Mat.BED_WET` for `WET_DAYS`; the can is a tool of the class `can`, its waterings are its `durability`,

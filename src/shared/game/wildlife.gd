@@ -302,6 +302,10 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 		return
 	var came := a.pos.distance_to(a.target) < 0.3
 	if was != "wander" or came or rng.randf() < 0.05:
+		if came and was == "wander" and _loved_at(spec, a.pos):
+			# Grazes a long while on what it loves (a rabbit on clover).
+			a.idle = rng.randf_range(LINGER.x, LINGER.y) * LOVE_LINGER
+			return
 		if came and was == "wander" and rng.randf() < 0.5:
 			# Stands a while where it came.
 			a.idle = rng.randf_range(LINGER.x, LINGER.y)
@@ -316,7 +320,10 @@ func _decide(a: Animal, spec: Dictionary) -> void:
 			return
 		# A grazer looks for what it likes now and then (looking is the dear part of a
 		# walker's thinking), else it wanders.
-		var to: Variant = null if spec.likes.is_empty() or rng.randf() > GRAZE_CHANCE else _place(spec, a.pos, 6.0, false, 4)
+		# One that loves a plant (a rabbit, clover) looks oftener and farther, and stays on it.
+		var loves: bool = not spec.get("loves", []).is_empty()
+		var to: Variant = null if (spec.likes.is_empty() and not loves) or rng.randf() > (LOVE_CHANCE if loves else GRAZE_CHANCE) \
+				else _place(spec, a.pos, LOVE_REACH if loves else 6.0, false, 8 if loves else 4)
 		a.target = to if to != null else a.pos + Vector3(rng.randf_range(-6.0, 6.0), 0.0, rng.randf_range(-6.0, 6.0))
 		a.cause = "graze" if to != null else ""
 		if dives(spec) and (was != "wander" or rng.randf() < DIVE_CHANCE):
