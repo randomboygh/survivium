@@ -36,10 +36,10 @@
 | `materials:copper_ore` | [materials.items.copper_ore] | [materials] |  | `materials/copper` | 3. [core.eras.bronze] | 1 / 2 | ок |
 | `materials:copper_bar` | [materials.items.copper_bar] | [materials] |  | `materials/copper` | 3. [core.eras.bronze] | 0 / 21 | ок |
 | `materials:planks` | [materials.items.planks] | [blocks] |  | `materials/planks` | 1. [core.eras.primitive] | 1 / 61 | ок |
-| `plants:blueberry` | [plants.items.blueberry] | [food] |  | `plants/blueberry` | 0. [core.eras.foraging] | 1 / 1 | предупреждения: 1 |
+| `plants:blueberry` | [plants.items.blueberry] | [food] |  | `plants/blueberry` | 0. [core.eras.foraging] | 1 / 1 | ок |
 | `plants:blueberry_bush` | [plants.items.blueberry_bush] | [planting] |  | `plants/blueberry` | 1. [core.eras.primitive] | 1 / 1 | ок |
 | `plants:cranberry` | [plants.items.cranberry] | [food] |  | `plants/cranberry` | 0. [core.eras.foraging] | 1 / 1 | ок |
-| `plants:currant` | [plants.items.currant] | [food] |  | `plants/currant` | 0. [core.eras.foraging] | 1 / 1 | предупреждения: 1 |
+| `plants:currant` | [plants.items.currant] | [food] |  | `plants/currant` | 0. [core.eras.foraging] | 1 / 1 | ок |
 | `plants:currant_bush` | [plants.items.currant_bush] | [planting] |  | `plants/currant` | 1. [core.eras.primitive] | 1 / 1 | ок |
 | `plants:grass_seeds` | [plants.items.grass_seeds] | [planting] |  | `plants/grass` | 0. [core.eras.foraging] | 1 / 2 | ок |
 | `plants:carrot_seeds` | [plants.items.carrot_seeds] | [planting] | [plants.items.carrot_seeds.about] | `plants/carrot` | 0. [core.eras.foraging] | 1 / 2 | ок |
