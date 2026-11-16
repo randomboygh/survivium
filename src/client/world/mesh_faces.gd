@@ -28,9 +28,14 @@ const CORNERS := [
 ]
 ## Water stands half a cell (4 px) below the shore, so the bank shows above it.
 const WATER_TOP := WorldData.WATER_TOP
-## Vertex alpha of a waterfall's sheet and of the foam where it lands (see falls).
+## Vertex alpha of a waterfall's sheet, of the spray at its foot and of the foam where
+## it lands (see WaterMesher.fall_faces).
 const FALL_SHEET := 0.0
+const FALL_SPRAY := 0.3
 const FALL_FOAM := 0.5
+## Half the width of a fall's spray and the most it rises, in cells.
+const SPRAY_HALF := 0.75
+const SPRAY_HIGH := 2.5
 ## Vertex alpha of the sea's water (WorldData.SEA_WATER; other water has 1).
 const SEA_ALPHA := 0.85
 ## How far out from the step a waterfall's sheet reaches at its foot, in cells.

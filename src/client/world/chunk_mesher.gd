@@ -41,9 +41,12 @@ class Job extends RefCounted:
 	var side_offsets: PackedInt32Array
 	var plain: PackedInt32Array
 	var water_plain: PackedInt32Array
+	## The waterfalls, drawn after all the other water (WaterMesher.falls).
+	var water_falls: PackedInt32Array
 	## How many of the plain tops are drawn (see _plain_rows).
 	var plain_j := 0
 	var water_j := 0
+	var falls_j := 0
 	var cands: PackedInt64Array
 	## The forms of the built blocks that are not cubes (WorldData.forms) in the padded
 	## grid, by index, and the steps to a cell's neighbours in DIRS order.
@@ -112,6 +115,7 @@ static func start_rect(w, x0: int, z0: int, x1: int, z1: int, part := false) -> 
 	# merged into rows.
 	job.plain = PackedInt32Array()
 	job.water_plain = PackedInt32Array()
+	job.water_falls = PackedInt32Array()
 	return job
 
 
@@ -166,13 +170,17 @@ static func step(job: Job, columns: int) -> bool:
 	# has over a thousand).
 	if job.part:
 		return job.z >= job.z1
-	while columns > 0 and job.z >= job.z1 and (job.plain_j < job.plain.size() or job.water_j < job.water_plain.size()):
+	while columns > 0 and job.z >= job.z1 and (job.plain_j < job.plain.size() or job.water_j < job.water_plain.size()
+			or job.falls_j < job.water_falls.size()):
 		if job.plain_j < job.plain.size():
 			job.plain_j = _plain_rows(job.solid, job.plain, job.x0, job.z0, false, job.plain_j, PLAIN_RUNS)
-		else:
+		elif job.water_j < job.water_plain.size():
 			job.water_j = _plain_rows(job.water, job.water_plain, job.x0, job.z0, true, job.water_j, PLAIN_RUNS)
+		else:
+			job.falls_j = Water.fall_faces(job.water, job.faces, job.water_falls, job.x0, job.z0, job.falls_j, PLAIN_RUNS)
 		columns -= 1
-	return job.z >= job.z1 and job.plain_j >= job.plain.size() and job.water_j >= job.water_plain.size()
+	return (job.z >= job.z1 and job.plain_j >= job.plain.size() and job.water_j >= job.water_plain.size()
+		and job.falls_j >= job.water_falls.size())
 
 
 ## Cells of a column built in one step: most columns show a few, but the ten cells of
@@ -264,7 +272,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				else:
 					corners = Water.water_corners(c, sh, cov, i, dy, dz, depth, murks, sea)
 				Water.water_faces(water, faces, nb, base, depth, foam, corners)
-				Water.falls(water, faces, c, nb, side_offsets, i, dy, base)
+				Water.falls(job.water_falls, c, nb, side_offsets, i, dy, x - x0, z - z0, y)
 			if fills != 0:
 				_fill_faces(solid, c, sh, cov, i, dy, dz, base)
 		elif m == Mat.LOG and Trunks.is_trunk(nb, w.trees.has(Vector2i(x, z))):
@@ -458,8 +466,11 @@ static func patch(old: Job, part: Job) -> Job:
 	job.water_plain = _merged_keys(old.water_plain, part.water_plain, old, part)
 	_plain_rows(job.solid, job.plain, job.x0, job.z0)
 	_plain_rows(job.water, job.water_plain, job.x0, job.z0, true)
+	job.water_falls = _merged_keys(old.water_falls, part.water_falls, old, part)
+	Water.fall_faces(job.water, face_table(), job.water_falls, job.x0, job.z0)
 	job.plain_j = job.plain.size()
 	job.water_j = job.water_plain.size()
+	job.falls_j = job.water_falls.size()
 	return job
 
 

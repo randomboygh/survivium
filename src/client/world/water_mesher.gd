@@ -40,26 +40,68 @@ static func foam(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, 
 	return foam
 
 
+## The sides a waterfall can face, in DIRS order, and for each the sides of the cell it
+## lands in that its foam may spill over: [out, left, right] (left and right across it,
+## left the lower x or z).
+const FALL_DIRS := [0, 1, 4, 5]
+const FALL_SIDES := [[0, 5, 4], [1, 5, 4], [4, 1, 0], [5, 1, 0]]
+## How far the foam of a fall spills over the open water beside the cell it lands in,
+## out along the fall and to each side, in cells.
+const FOAM_OUT := 1.0
+const FOAM_SIDE := 0.5
+
+
 ## Water falling over a step of a river from padded cell `i` (see WorldGen.FALL_STEP):
-## on each side open to the air over lower water or ground, a sheet slants out from the
-## lip down to the water or ground below (so a fall to the east or west shows from
-## above too), with churning foam on the water where it lands. Both are marked by vertex alpha (FALL_SHEET, FALL_FOAM, see
-## water.gdshader); UV2.y of the sheet is the level of its foot.
-static func falls(buf, faces: Array, c: PackedByteArray, nb: PackedByteArray, side_offsets: PackedInt32Array, i: int,
-		dy: int, base: Vector3) -> void:
+## a key for each side open to the air over lower water or ground, added to `keys` (the
+## cell `lx`, `lz` from the chunk's corner and level `y`, the side, the drop, whether it
+## lands in water and over which sides of that cell its foam spills, see fall_faces).
+## They are drawn after the chunk's other water (ChunkMesher.step), so the foam and the
+## spray lie over the pool they land in whichever of its cells came later.
+static func falls(keys: PackedInt32Array, c: PackedByteArray, nb: PackedByteArray, side_offsets: PackedInt32Array,
+		i: int, dy: int, lx: int, lz: int, y: int) -> void:
 	if nb[2] != AIR:
 		return
-	for d: int in [0, 1, 4, 5]:
+	for q in 4:
+		var d: int = FALL_DIRS[q]
 		if nb[d] != AIR:
 			continue
 		var n := i + side_offsets[d]
 		var k := 1
 		while k < 12 and c[n - k * dy] == AIR:
 			k += 1
-		var landing: int = c[n - k * dy]
-		var foot := base.y - k + (WATER_TOP if landing == WATER else 1.0)
-		if foot >= base.y:
-			continue
+		var landing := n - k * dy
+		var wet := c[landing] == WATER
+		var spill := 0
+		if wet:
+			var sides: Array = FALL_SIDES[q]
+			for e in 3:
+				var o: int = landing + side_offsets[sides[e]]
+				if c[o] == WATER and c[o + dy] == AIR:
+					spill |= 1 << e
+		keys.append((((((y * 8 + spill) * 2 + int(wet)) * 16 + k - 1) * 4 + q) << 12) | lz << 6 | lx)
+
+
+## Draws the waterfalls of `keys` (see falls) of the chunk with its corner at `x0`, `z0`,
+## from the `from`-th, `runs` of them; returns where it stopped. On each, a sheet slants
+## out from the lip down to the water or ground below (so a fall to the east or west
+## shows from above too); where it lands in water, foam on the pool, spilling over the
+## open water beside, and an upright quad of spray and mist at its foot. They are marked
+## by vertex alpha (FALL_SHEET, FALL_FOAM, FALL_SPRAY, see water.gdshader).
+static func fall_faces(buf, faces: Array, keys: PackedInt32Array, x0: int, z0: int, from := 0,
+		runs := 1 << 30) -> int:
+	var j := from
+	var n := keys.size()
+	while j < n and runs > 0:
+		runs -= 1
+		var key := keys[j]
+		j += 1
+		var q := key >> 12 & 3
+		var k := (key >> 14 & 15) + 1
+		var wet := (key >> 18 & 1) == 1
+		var spill := key >> 19 & 7
+		var base := Vector3(x0 + (key & 63), key >> 22, z0 + (key >> 6 & 63))
+		var d: int = FALL_DIRS[q]
+		var foot := base.y - k + (WATER_TOP if wet else 1.0)
 		var out := Vector3(DIRS[d])
 		var size := Vector3(1.0, WATER_TOP - (foot - base.y), 1.0)
 		var lift := Vector3(0.0, foot - base.y, 0.0)
@@ -70,12 +112,48 @@ static func falls(buf, faces: Array, c: PackedByteArray, nb: PackedByteArray, si
 			var v: Vector3 = lift + corner * size
 			pts.append(base + v + out * (0.04 if corner.y > 0.5 else FALL_SPREAD))
 			uvs.append(face_uv(d, v))
-		buf.quad(pts, (face.normal + Vector3.UP * FALL_SPREAD / size.y).normalized(), uvs, Color(1, 1, 1, FALL_SHEET),
-			Vector2(0.0, foot))
-		if landing == WATER:
-			var under := base + Vector3(DIRS[d]) + Vector3(0.0, -k, 0.0)
-			_add(buf, faces[FACE_TOP], FACE_TOP, under, Vector3(1.0, WATER_TOP + 0.02, 1.0), Vector3.ZERO,
-				Color(1, 1, 1, FALL_FOAM), Vector2(0.0, 1.0))
+		# UV2: the levels of its lip and of its foot.
+		buf.quad(pts, (face.normal + Vector3.UP * FALL_SPREAD / size.y).normalized(), uvs, Color(0, 1, 0, FALL_SHEET),
+			Vector2(base.y + WATER_TOP, foot))
+		if wet:
+			_fall_foam(buf, faces, base + out + Vector3(0.0, -k, 0.0), out, spill)
+			_fall_spray(buf, base + out + Vector3(0.0, -k, 0.0), out, k, float((key & 4095) % 97))
+	return j
+
+
+## The foam on the pool cell at `cell` (its corner) a fall towards `out` lands in, spilling
+## over the sides of `spill` (see falls). UV: cells along the fall from the step and
+## across the cell; UV2: where the patch ends along it, and which sides spill (1 left,
+## 2 right), for its ragged edge.
+static func _fall_foam(buf, faces: Array, cell: Vector3, out: Vector3, spill: int) -> void:
+	var far := 1.0 + (FOAM_OUT if spill & 1 else 0.0)
+	var left := -FOAM_SIDE if spill & 2 else 0.0
+	var right := 1.0 + (FOAM_SIDE if spill & 4 else 0.0)
+	# The patch in the cell's own x and z.
+	var along := Vector2(0.0, far) if out.x + out.z > 0.0 else Vector2(1.0 - far, 1.0)
+	var lo := Vector2(along.x, left) if out.x != 0.0 else Vector2(left, along.x)
+	var hi := Vector2(along.y, right) if out.x != 0.0 else Vector2(right, along.y)
+	var pts := []
+	var uvs := []
+	for corner: Vector3 in faces[FACE_TOP].corners:
+		var x := lerpf(lo.x, hi.x, corner.x)
+		var z := lerpf(lo.y, hi.y, corner.z)
+		pts.append(cell + Vector3(x, WATER_TOP + 0.02, z))
+		var a := x if out.x > 0.0 else (1.0 - x if out.x < 0.0 else (z if out.z > 0.0 else 1.0 - z))
+		uvs.append(Vector2(a, z if out.x != 0.0 else x))
+	buf.quad(pts, Vector3.UP, uvs, Color(0, 1, 0, FALL_FOAM), Vector2(far, float(spill >> 1)))
+
+
+## The spray and mist over the foot of a fall of `k` levels towards `out` into the pool
+## cell at `cell`: an upright quad turned to the camera by the shader, so all its corners
+## lie at its root and UV holds each corner's offset from it in cells; UV2 its height in
+## cells and a number of its own for the drops.
+static func _fall_spray(buf, cell: Vector3, out: Vector3, k: int, seed: float) -> void:
+	var root := cell + Vector3(0.5, WATER_TOP, 0.5) + out * (FALL_SPREAD - 0.4)
+	var tall := minf(1.0 + 0.4 * k, SPRAY_HIGH)
+	var pts := [root, root, root, root]
+	var uvs := [Vector2(-SPRAY_HALF, 0.0), Vector2(-SPRAY_HALF, tall), Vector2(SPRAY_HALF, tall), Vector2(SPRAY_HALF, 0.0)]
+	buf.quad(pts, Vector3.UP, uvs, Color(0, 1, 0, FALL_SPRAY), Vector2(tall, seed))
 
 
 ## Water: the top face carries foam bits (UV2.x: the half edges that touch land, then
@@ -98,6 +176,9 @@ static func water_faces(buf, faces: Array, nb: PackedByteArray, base: Vector3, d
 				for q in 4:
 					_piece(buf, base, h, q, CUT if fills & (1 << q) else QUARTER, Vector3.UP, mid, data,
 						foam >> (16 + 2 * q) & 3, corners)
+				continue
+			# A side open to the air under the open sky is a fall's: its sheet covers it.
+			if d != FACE_TOP and nb[2] == AIR:
 				continue
 			_add(buf, faces[d], d, base, Vector3(1.0, h, 1.0), Vector3.ZERO, mid, data)
 

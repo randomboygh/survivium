@@ -13,9 +13,13 @@
 // cells (foam where it comes up to it), 1 elsewhere; COLOR.b: 0.5 and over for water
 // over a shore (ice does not lift it), plus how murky the water is times 0.45 (0 clear,
 // 0.5 a swamp's, 1 a bog's), blended across the cells (ChunkMesher._kind).
-// Waterfalls (ChunkMesher._falls): vertex alpha FALL_SHEET marks the sheet of water
-// falling over a step of a river, whose UV2.y is then the level of its foot, and
-// FALL_FOAM the churning foam on the water where it lands; SEA_ALPHA the sea's water
+// Waterfalls (WaterMesher.fall_faces): vertex alpha FALL_SHEET marks the sheet of water
+// falling over a step of a river, whose UV2 is then the levels of its lip and its foot;
+// FALL_FOAM the foam on the water where it lands (UV: cells along the fall from its step
+// and across it; UV2.x where the patch ends along it, UV2.y which sides spill over open
+// water, 1 left, 2 right); FALL_SPRAY the spray and mist over its foot, an upright quad
+// turned to the camera (its corners at its root, UV their offsets in cells, UV2 its
+// height in cells and a number of its own); SEA_ALPHA the sea's water
 // (WorldData.SEA_WATER), the only water the plankton glows in.
 shader_type spatial;
 render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
@@ -54,6 +58,10 @@ uniform vec4 fire_glints[4];
 uniform vec2 glint_toward = vec2(0.0, 1.0);
 const vec3 FIRE_GLINT = vec3(1.0, 0.62, 0.28);
 
+// Half the width of a fall's spray and how far its foam spills to each side, in cells
+// (MeshFaces.SPRAY_HALF, WaterMesher.FOAM_SIDE).
+const float SPRAY_HALF = 0.75;
+const float FOAM_SIDE = 0.5;
 // Steps of the depth's shading, and the 4x4 ordered dither between them.
 const float DEPTH_STEPS = 6.0;
 const int BAYER[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
@@ -71,7 +79,7 @@ varying float clouds;
 varying vec3 lamp_gain;
 // 1 under the open sky, where nothing casts a shadow on the surface (see light()).
 varying float open_sky;
-// 2 on a waterfall's sheet, 1 on the foam where it lands, 0 elsewhere.
+// 2 on a waterfall's sheet, 3 on its spray, 1 on the foam where it lands, 0 elsewhere.
 varying flat float falls;
 // 1 on the sea's water, blended to 0 on other water (see SEA_ALPHA above).
 varying float sea_here;
@@ -145,10 +153,18 @@ void vertex() {
 	world_pos = VERTEX;
 	world_normal = NORMAL;
 	data = UV2;
-	falls = COLOR.a < 0.25 ? 2.0 : (COLOR.a < 0.75 ? 1.0 : 0.0);
+	falls = COLOR.a < 0.15 ? 2.0 : (COLOR.a < 0.4 ? 3.0 : (COLOR.a < 0.75 ? 1.0 : 0.0));
 	sea_here = COLOR.a > 0.75 && COLOR.a < 0.95 ? 1.0 : 0.0;
 	depth_here = COLOR.r * 8.0;
 	shore_under = COLOR.g;
+	if (falls > 2.5) {
+		// The spray stands up from its root facing the camera, as the plants do.
+		vec3 root = VERTEX;
+		world_pos = face_view(root + vec3(UV.x, UV.y, 0.0) * CELL, root);
+		VERTEX = stand_tall(world_pos, root);
+		NORMAL = vec3(0.0, 1.0, 0.0);
+		world_normal = NORMAL;
+	}
 	VERTEX = shear(VERTEX);
 	light_xz = VERTEX.xz;
 }
@@ -222,29 +238,106 @@ void fragment() {
 	float surf = 0.0;
 	// The sun's path and the lights glittering on the surface: light of their own.
 	vec3 shine = vec3(0.0);
-	if (falls > 1.5) {
-		// The falling sheet: streaks a texel wide running down at their own speeds,
-		// white water at the lip and in a band of spray at the foot.
+	if (falls > 2.5) {
+		// Spray and mist over a fall's foot, on the texels of the quad (x across from its
+		// middle, y up from the water): drops thrown up and falling back, three to a column
+		// each on a clock of its own; a churning white crown where the water lands; mist
+		// rising and thinning, dithered, drifting up through a slow noise. None under ice.
+		if (ice > 0.0) {
+			discard;
+		}
+		vec2 q = floor(UV * CELL_TEXELS);
+		float tall = data.x * CELL_TEXELS;
+		float up = q.y / tall;
+		float half_w = SPRAY_HALF * CELL_TEXELS;
+		float side = 1.0 - smoothstep(0.4, 1.0, abs(q.x + 0.5) / half_w);
+		bool drop = false;
+		for (int j = 0; j < 3; j++) {
+			float seed = hash12(vec2(q.x + data.y * 13.0, float(j) * 7.0));
+			float t = TIME * (0.8 + 0.7 * seed) + seed * 5.0;
+			float ph = fract(t);
+			float top = tall * side * (0.25 + 0.35 * hash12(vec2(q.x + data.y, floor(t))));
+			drop = drop || q.y == floor(top * 4.0 * ph * (1.0 - ph));
+		}
+		float bayer_s = float(BAYER[int(mod(q.y, 4.0)) * 4 + int(mod(q.x, 4.0))]) / 16.0;
+		float n = texture(cloud_noise, vec2(q.x / 20.0 + data.y * 0.37, q.y / 20.0 - TIME * 0.18)).r;
+		float mist = (1.0 - up) * side * smoothstep(0.3, 0.75, n);
+		if (drop && up < 0.85) {
+			col = foam_color;
+			alpha = 0.9;
+		} else if (q.y < 3.0 && hash12(q + data.y + floor(TIME * 7.0) * 5.0) < side * (0.9 - q.y / 3.0)) {
+			col = foam_color;
+			alpha = 0.85;
+		} else if (bayer_s < mist * 0.45) {
+			col = mix(foam_color, shallow, 0.15);
+			alpha = 0.3;
+		} else {
+			discard;
+		}
+	} else if (falls > 1.5) {
+		// The falling sheet: the water's own colour and clearness, streaks a texel wide
+		// running down at their own speeds, now and then a white one, a pale lip and
+		// white water at the foot.
 		vec3 across = abs(world_normal.x) > 0.5 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
 		float tx = floor(dot(world_pos, across) * TEXELS);
 		float ty = floor(world_pos.y * TEXELS);
 		float speed = 10.0 + 6.0 * hash12(vec2(tx, 3.0));
 		float run = hash12(vec2(tx, floor((ty + TIME * speed) / 3.0)));
 		float above_foot = world_pos.y / CELL - data.y;
-		col = mix(shallow * 1.15, deep * 1.2, 0.35);
-		col = mix(col, foam_color, step(0.62, run) * 0.85);
-		if (above_foot < 0.35 + 0.15 * hash12(vec2(tx, floor(TIME * 6.0)))) {
-			col = foam_color;
+		float below_lip = data.x - world_pos.y / CELL;
+		col = mix(shallow, deep, 0.15) * biome_tint(WATER_MATERIAL, world_pos.xz);
+		alpha = 0.5;
+		if (run > 0.93) {
+			col = mix(col, foam_color, 0.5);
+			alpha = 0.75;
+		} else if (run > 0.7) {
+			col = col * 1.2 + 0.04;
+			alpha = 0.6;
 		}
-		alpha = 0.93;
+		if (below_lip < 1.5 / CELL_TEXELS) {
+			col = mix(col, foam_color, 0.6);
+			alpha = 0.8;
+		}
+		if (above_foot < 0.2 + 0.15 * hash12(vec2(tx, floor(TIME * 6.0)))) {
+			col = foam_color;
+			alpha = 0.92;
+		}
 	} else if (falls > 0.5) {
-		// Foam where the fall lands, boiling up in texels that come and go.
-		float b = hash12(tex + floor(TIME * 5.0) * 13.0);
-		col = mix(col, foam_color, b < 0.55 ? 0.9 : 0.4);
-		alpha = 0.9;
+		// Foam where the fall lands: thick and boiling at the foot, thinning out along the
+		// fall and over the open water beside into a ragged edge that tears and mends,
+		// with torn bubbles beyond it (UV and data: see the top).
+		vec2 q = (floor(UV * CELL_TEXELS) + 0.5) / CELL_TEXELS;
+		int spill = int(data.y + 0.5);
+		float edge = data.x - q.x;
+		if ((spill & 1) != 0) {
+			edge = min(edge, q.y + FOAM_SIDE);
+		}
+		if ((spill & 2) != 0) {
+			edge = min(edge, 1.0 + FOAM_SIDE - q.y);
+		}
+		float churn = texture(cloud_noise, tex / TEXELS / 1.5 + vec2(TIME * 0.06, -TIME * 0.045)).r;
+		float boil = hash12(tex + floor(TIME * 5.0) * 13.0);
+		float f = clamp(edge / 0.7, 0.0, 1.0) + (churn - 0.5) * 1.4 + (hash12(tex + 71.0) - 0.5) * 0.3;
+		if (f > 0.32) {
+			// Bubbles in it: a few texels a shade darker, and the water showing through
+			// where it is thinnest.
+			col = foam_color * (boil < 0.25 ? 0.86 : 1.0);
+			alpha = 0.95;
+			if (f < 0.5 && boil > 0.8) {
+				col = mix(col, shallow, 0.4);
+				alpha = 0.7;
+			}
+		} else if (f > 0.12 && boil > 0.72) {
+			col = mix(col, foam_color, 0.75);
+			alpha = 0.8;
+		} else {
+			discard;
+		}
 	} else if (world_normal.y < 0.5) {
-		col *= 0.8;
-		alpha = 0.9;
+		// A side of water open to the air (under a fall's lip, or cut by the layers): as
+		// clear as the surface over shallows, a little darker than it.
+		col = mix(col, shallow * biome_tint(WATER_MATERIAL, world_pos.xz), 0.7 * (1.0 - min(murk * 2.0, 1.0))) * 0.92;
+		alpha = 0.55;
 	} else {
 		// Drifting ripple lines: thin bands of a slowly moving noise.
 		float n = texture(cloud_noise, (tex / TEXELS + vec2(TIME * 0.05, TIME * 0.02)) / 6.0).r;
