@@ -17,6 +17,7 @@ WA-049, WA-050 (the owner picked option A for each), WA-064 (the owner's playtes
 WA-021 (#584), WA-020, WA-023, WA-057 (#596).
 WA-033, WA-035, WA-036, WA-037, WA-038, WA-062, WA-063 (#589, checked in the code on 2026-11-15: the mods' files are stepped 12 a frame while the game is in front, fires are kept in a list, the haze skips its scan, `UiStyle.forget`, `Server._prune`, far animals left out of snapshots, the bag lays out only itself).
 WA-030 (the owner picked the YAML mark: a creature field `menu`, `AiRules.menu_species`), WA-051 (`quality: 0` for building and swimming).
+WA-047 in part (`run_tests` leaves nothing at exit now: `RemoteGen` no longer holds itself in `saved`, the camera test frees its node).
 WA-018 (the owner, 2026-11-16: the password stays in `server.cfg` as it is; a hash would need typing it at each start, as the host and the bots join with it).
 WA-058 (the owner, 2026-11-15: keep ws:// on a local network, TLS only through the tunnel), WA-059 (the owner: no player accounts).
 WA-025 (#696: `settings_menu._section_rows` one function per tab, `hud._ready` eight build steps, `land_layout._layout_row` two passes `_water_row` and `_cover_row`, the layout byte-identical and as fast on a bench).
@@ -104,13 +105,13 @@ recommendations.
 
 ### WA-047 · Low · Tests
 
-- **Description:** Leaks at exit in the test logs.
-- **Cause:** Objects or resources still alive when the tests quit.
-- **Confirmation:** Run: "ObjectDB instances leaked" in `run_tests` and `server_test`; `server_test` keeps 3 ERROR lines (a thread exit, pages in use, resources in use).
-- **Files and systems:** the scene tests
-- **Consequences:** Noise; a real leak would hide among them.
-- **Recommended fix:** Run with `--verbose` to name the owners.
-- **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
+- **Description:** `server_test` still leaks a little at exit (`run_tests` no longer does).
+- **Cause:** Found 2026-11-16: `RemoteGen` held itself in `saved` (a reference cycle: fixed, `_kept()`), and the camera test's player node was never freed (fixed). Left in `server_test`: two suspended `await`s (`GDScriptFunctionState`) of requests still waiting when the server stops, one CanvasItem RID, and the engine's «Thread exited with errno: 10» line from a process check.
+- **Confirmation:** Run: `godot --headless --verbose --script res://tests/server_test.gd` lists them at the end.
+- **Files and systems:** `tests/server_test.gd`
+- **Consequences:** Noise at exit; a real leak would hide among the three lines.
+- **Recommended fix:** Resolve or drop the pending requests before the server stops, free the UI node of the main scene the test builds.
+- **Status:** Open: backlog; first found 2026-11-14 (new); narrowed 2026-11-16; due backlog.
 
 ### WA-052 · Low · Data
 
