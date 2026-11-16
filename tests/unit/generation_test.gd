@@ -9,6 +9,7 @@ func run() -> void:
 	_test_mountains()
 	_test_caves()
 	_test_cave_shape()
+	_test_landscape()
 	_test_relief()
 	_test_trees()
 	_test_bushes()
@@ -282,6 +283,39 @@ func _test_caves() -> void:
 	_check(counts[0][1] < counts[1][1] and counts[1][1] < counts[2][1], "more cave mouths with the setting")
 	_check(counts[0][2] < counts[1][2] and counts[1][2] < counts[2][2], "more hollows under the ground with the setting")
 	_check(WorldGen.new(20261018).settings.caves == 1, "a world made before the setting keeps its caves")
+
+
+## Landscape 1 (new worlds): biomes several times wider than before, rivers deeper
+## (to RIVER_DEEP) and wider; a world made before keeps its landscape.
+func _test_landscape() -> void:
+	_check(WorldGen.new(20261018).settings.landscape == 0, "a world made before the landscape keeps its own")
+	var old_gen := WorldGen.new(20261018, 48, {"relief": 1, "climate": 1, "cave_shape": 1}, false)
+	var gen := WorldGen.new(20261018, 48, {"relief": 1, "climate": 1, "cave_shape": 1, "landscape": 1}, false)
+	var edges := []
+	for g: WorldGen in [old_gen, gen]:
+		var lay := g.lay_out(-4096, -4096, 128, 128, 64)
+		var count := 0
+		for z in 128:
+			for x in 127:
+				var j := z * 128 + x
+				if lay.biome[j] != lay.biome[j + 1] and _by_climate(lay.biome[j]) and _by_climate(lay.biome[j + 1]):
+					count += 1
+		edges.append(count)
+	_check(edges[1] * 2 < edges[0], "wide climate biomes have under half the edges (%d, before %d)" % [edges[1], edges[0]])
+	var deepest := []
+	for g: WorldGen in [old_gen, gen]:
+		var at := g.find_place("river", Vector2i(g.spawn_guess.x, g.spawn_guess.z))
+		var lay := g.lay_out(at.x - 48, at.y - 48, 96, 96)
+		var most := 0
+		for j in lay.water.size():
+			if lay.feature[j] == WorldGen.RIVER:
+				most = maxi(most, lay.water[j] - lay.heights[j])
+		deepest.append(most)
+	_check(deepest[0] <= 2 and deepest[1] >= 3, "rivers run deeper (%d, before %d)" % [deepest[1], deepest[0]])
+
+
+static func _by_climate(b: int) -> bool:
+	return b != Biomes.NONE and Biomes.RECORDS[b].where == "climate"
 
 
 ## Cave shape 1 (new worlds): halls and galleries no lower than three cells, so there

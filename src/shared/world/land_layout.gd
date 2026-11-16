@@ -54,10 +54,15 @@ const CANYON := 4
 ## (see _ranges_and_mesas); climate: 0 warmth from one noise, so any climate can lie
 ## next to any other, 1 in zones (see ZONE_SPREAD); cave_shape: 0 hollows of 3D noise
 ## with mouths as pits and slits, 1 halls joined by galleries with funnels for mouths
-## (see WorldGen._halls). Here caves is 1, relief, climate and cave_shape 0, what worlds
-## made before those settings have; «Новый мир» makes caves 0, the others 1.
+## (see WorldGen._halls); landscape: 0 as before, 1 the stage 2 landscape: biomes
+## BIG_BIOMES times wider, rivers longer, wider and deeper (see RIVER_*_WIDE). Here caves
+## is 1, relief, climate, cave_shape and landscape 0, what worlds made before those
+## settings have; «Новый мир» makes caves 0, the others 1.
 const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 1, "relief": 0,
-	"climate": 0, "cave_shape": 0}
+	"climate": 0, "cave_shape": 0, "landscape": 0}
+## Every world setting, in the order the saves and the menus list them.
+const SETTING_KEYS := ["size", "water", "mountains", "rivers", "biomes", "caves", "relief", "climate", "cave_shape",
+	"landscape"]
 const SIZE_SCALE := [0.4, 1.0, 2.2]
 const WATER_SHARE := [0.25, 0.4, 0.58]
 ## Where the mountain noise starts and ends raising mountains.
@@ -71,6 +76,14 @@ const BIOME_SCALE := [0.5, 1.0, 2.0]
 ## side by side in patches and the zones follow one another, the cold far from the hot.
 const ZONE_SLOWER := 2.5
 const ZONE_SPREAD := 0.18
+## Landscape 1: how many times slower the climate's noises (warmth, moisture, zones)
+## run, so a biome takes minutes to walk across.
+const BIG_BIOMES := 4.0
+## Further octaves of those noises, and their field bent by up to WARP cells (a
+## noise WARP_FREQ fast), so the edges of a biome still wind.
+const BIG_BIOMES_OCTAVES := 2
+const WARP := 220.0
+const WARP_FREQ := 0.004
 ## Caves by the caves setting: the 3D noise level above which the ground is hollow
 ## (under a cave mouth and elsewhere; about 4%, 7.5% and 11% of the ground away from
 ## mouths), the level of the mouths noise above which a cave mouth opens, and the
@@ -119,6 +132,20 @@ const FLAT_BEACH := 28.0
 ## Rivers widen towards the sea or a lake over this many cells, so they are brooks
 ## at their sources and broad at their mouths.
 const MOUTH_REACH := 400.0
+## Landscape 1: the river noises run RIVER_LONGER times slower, so rivers are fewer,
+## straighter and longer; a river is RIVER_WIDER times wider, widens over
+## MOUTH_REACH_WIDE cells before its mouth, and its bed sinks a level for every
+## RIVER_SINK cells in from its bank, to RIVER_DEEP levels.
+const RIVER_LONGER := 2.0
+const RIVER_WIDER := 1.6
+const MOUTH_REACH_WIDE := 900.0
+const RIVER_SINK := 1.5
+const RIVER_DEEP := 4
+## Landscape 1: the lake noise runs this many times slower (fewer, bigger lakes), and
+## the land dries away from water WET_FADE_WIDE a step of 16 cells instead of 0.04, so
+## the biomes round every lake and river are not rings of their own.
+const LAKES_WIDER := 2.0
+const WET_FADE_WIDE := 0.02
 ## Mountains: the smooth rise of the highest of them over the land around, and their
 ## ridges on top of it (see _relief); above ROCK_LINE levels over the sea their slopes
 ## are bare scree with sheer stone outcrops, and above WorldData.SNOW_LINE snow lies on
@@ -286,6 +313,9 @@ var window_noises: Array
 func _noises() -> void:
 	var size: float = SIZE_SCALE[settings.size]
 	var biomes: float = BIOME_SCALE[settings.biomes]
+	var wide: bool = settings.get("landscape", 0) >= 1
+	if wide:
+		biomes *= BIG_BIOMES
 	n_hills = _noise(0, 0.005, 4)
 	n_ridges = _noise(1, 0.009, 3)
 	n_mount = _noise(2, 0.0022 / sqrt(size), 2)
@@ -298,10 +328,16 @@ func _noises() -> void:
 	n_gully = _noise(9, 0.01, 1)
 	n_mouths = _noise(10, 0.02, 1)
 	n_pools = _noise(11, 0.07, 2)
-	n_temp = _noise(12, 0.0005 / biomes, 1)
-	n_moist = _noise(13, 0.0008 / biomes, 2)
+	# Wider climates keep the old wobble at their edges in further octaves.
+	var fray := BIG_BIOMES_OCTAVES if wide else 0
+	n_temp = _noise(12, 0.0005 / biomes, 1 + fray)
+	n_moist = _noise(13, 0.0008 / biomes, 2 + fray)
+	if wide:
+		_warp(n_temp)
+		_warp(n_moist)
 	n_swamp = _noise(17, 0.006, 2)
-	n_flow = _noise(18, 0.0009, 2)
+	var longer := RIVER_LONGER if wide else 1.0
+	n_flow = _noise(18, 0.0009 / longer, 2)
 	n_dunes = _noise(19, 0.035, 2)
 	n_roll = _noise(23, 0.003, 2)
 	n_peak = _noise(24, 0.0016, 1)
@@ -312,8 +348,8 @@ func _noises() -> void:
 	n_gallery = _noise(33, 0.009, 1)
 	n_ores = _noise(15, 0.075, 1)
 	n_land = _noise(20, 0.00028 / size, 4)
-	n_river = _noise(21, 0.0018, 2)
-	n_lake = _noise(22, 0.004, 2)
+	n_river = _noise(21, 0.0018 / longer, 2)
+	n_lake = _noise(22, 0.004 / (LAKES_WIDER if wide else 1.0), 2)
 	n_range = _noise(25, 0.003, 1)
 	n_gorge = _noise(26, 0.005, 2)
 	n_crag = _noise(27, 0.06, 2)
@@ -323,7 +359,9 @@ func _noises() -> void:
 		window_noises.append_array([n_range, n_gorge, n_crag])
 	zone_grid = -1
 	if settings.get("climate", 0) >= 1:
-		n_zone = _noise(28, 0.0005 / biomes / ZONE_SLOWER, 1)
+		n_zone = _noise(28, 0.0005 / biomes / ZONE_SLOWER, 1 + fray)
+		if wide:
+			_warp(n_zone)
 		zone_grid = window_noises.size()
 		window_noises.append(n_zone)
 
@@ -348,6 +386,17 @@ func _coast_level() -> float:
 			values.append(n_land.get_noise_2d((i - 16) * spread * 0.37, (j - 16) * spread * 0.41))
 	values.sort()
 	return values[int(values.size() * WATER_SHARE[settings.water])]
+
+
+## Bends the field of noise `n` by WARP cells, so the edges of what it lays out wind
+## (landscape 1's climates: lines of a slow noise run straight for hundreds of cells).
+static func _warp(n: FastNoiseLite) -> void:
+	n.domain_warp_enabled = true
+	n.domain_warp_type = FastNoiseLite.DOMAIN_WARP_SIMPLEX
+	n.domain_warp_amplitude = WARP
+	n.domain_warp_frequency = WARP_FREQ
+	n.domain_warp_fractal_type = FastNoiseLite.DOMAIN_WARP_FRACTAL_PROGRESSIVE
+	n.domain_warp_fractal_octaves = 3
 
 
 ## Byte value of a noise level, as the sampled grids hold them (0..255 for -1..1).
@@ -404,7 +453,14 @@ func _sample(lay: Dictionary, k: int) -> void:
 	# A grid of one sample every `step` cells: the noise runs `step` times faster.
 	n.frequency = f * step
 	n.offset = Vector3(lay.x0 / float(step), lay.z0 / float(step), 0.0)
+	var warped := n.domain_warp_enabled
+	if warped:
+		n.domain_warp_frequency *= step
+		n.domain_warp_amplitude /= step
 	lay.grids.append(n.get_image(lay.w, lay.h, false, false, false).get_data())
+	if warped:
+		n.domain_warp_frequency /= step
+		n.domain_warp_amplitude *= step
 	n.frequency = f
 	n.offset = Vector3.ZERO
 
@@ -821,6 +877,9 @@ func _water_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 	var w: int = lay.w
 	var steep_t := _byte(0.4)
 	var river_from: float = RIVER_FROM[settings.rivers]
+	var wide: bool = settings.get("landscape", 0) >= 1
+	var wider := RIVER_WIDER if wide else 1.0
+	var mouth_reach := MOUTH_REACH_WIDE if wide else MOUTH_REACH
 	var x0: int = lay.x0
 	var z0: int = lay.z0 + lz * lay.step
 	for lx in w:
@@ -846,8 +905,8 @@ func _water_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		var up: float = r[3]
 		var flowing := smoothstep(river_from, river_from + 0.35, flow[j] / 127.5 - 1.0) * (1.0 - smoothstep(0.45, 0.9, up))
 		var d := river[j]
-		var mouth := 1.0 - smoothstep(0.0, MOUTH_REACH, minf(coast[j], -lake[j]))
-		var rw := 0.6 + (1.6 + 4.4 * mouth) * flowing
+		var mouth := 1.0 - smoothstep(0.0, mouth_reach, minf(coast[j], -lake[j]))
+		var rw := 0.6 + (1.6 + 4.4 * mouth) * flowing * wider
 		var wet_bed := flowing > 0.2
 		var climb: float = r[2] * RIVER_CLIMB
 		var level := sea + _river_level(climb) if climb > 0.0 and flowing > 0.0 else sea
@@ -871,7 +930,8 @@ func _water_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 				d = minf(d, rw + 0.5)
 		# The river's bed, also cut into the floor of the lake or the sea it flows
 		# into, so the channel runs on without a step until the floor is deeper.
-		var channel := level - (2 if d < rw - 1.0 else 1) if wet_bed and d <= rw else size_y
+		var sink := (2 if d < rw - 1.0 else 1) if not wide else clampi(1 + int((rw - d) / RIVER_SINK), 1, RIVER_DEEP)
+		var channel := level - sink if wet_bed and d <= rw else size_y
 		if height < sea:
 			wt = sea
 			watery = true
@@ -986,6 +1046,7 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 	var mire_reach := 36
 	var mire_t := _byte(-0.2)
 	var river_from: float = RIVER_FROM[settings.rivers]
+	var wet_fade := WET_FADE_WIDE if settings.get("landscape", 0) >= 1 else 0.04
 	var x0: int = lay.x0
 	var z0: int = lay.z0 + lz * lay.step
 	for lx in w:
@@ -1007,7 +1068,7 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		var wet := clampi(int(near / 16.0), 0, 15)
 		# Climate: warmth from the slow noise, colder up the hills; wetter near water.
 		var t := clampf(0.5 + (temp[j] / 255.0 - 0.5) * 1.6, 0.0, 1.0) - (height - sea) * cooling
-		var m := (moist[j] / 255.0) * 0.6 + 0.4 - mini(wet, 5) * 0.04
+		var m := (moist[j] / 255.0) * 0.6 + 0.4 - mini(wet, 5) * wet_fade
 		# Ravines: narrow winding cuts along a noise's zero line, RAVINE_DEPTH cells
 		# deep, through the dry hot lowland and the rolling hills only (see _ravine).
 		# They grow shallow towards where the land is no longer rough or dry or lies

@@ -11,6 +11,7 @@ const Crt := preload("res://src/client/view/crt.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+const LandLayout := preload("res://src/shared/world/land_layout.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Content := preload("res://src/shared/content/content.gd")
@@ -190,6 +191,9 @@ const DEFAULTS := {
 	# New worlds have roomy smooth caves (WorldGen cave_shape 1); worlds made before keep
 	# the old ones (0). Not on «Новый мир».
 	"world_cave_shape": 1,
+	# New worlds have the stage 2 landscape, wide biomes and big rivers (WorldGen
+	# landscape 1); worlds made before keep theirs (0). Not on «Новый мир».
+	"world_landscape": 1,
 	## The bundles (or whole mods) a new world is made without, comma-separated ids
 	## (everything found is on).
 	"world_mods_off": "",
@@ -518,10 +522,10 @@ func use_page_quality() -> void:
 
 
 ## The world settings for WorldGen: size, water, mountains, rivers, biomes, caves, relief,
-## climate, cave_shape.
+## climate, cave_shape, landscape.
 func world_options() -> Dictionary:
 	var out := {}
-	for k in ["size", "water", "mountains", "rivers", "biomes", "caves", "relief", "climate", "cave_shape"]:
+	for k in LandLayout.SETTING_KEYS:
 		out[k] = values["world_" + k]
 	return out
 

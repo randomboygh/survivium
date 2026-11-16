@@ -38,7 +38,14 @@ mountain's side goes on down the same way); with the
   (new worlds; 0 — old ones) warmth goes by climate zones: the slow noise of a zone (`n_zone`, `ZONE_SLOWER`
   times slower than the former warmth noise), which the former noise only stirs by `ZONE_SPREAD` (`_zoned`),
   so the biomes of one zone lie in patches side by side, and the cold ones far from the hot; with height it
-  gets cold half as strongly. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the
+  gets cold half as strongly; with the setting `landscape` 1 (new worlds; 0 — old ones, the stage 2 landscape)
+  the noises of warmth, moisture and zones run `BIG_BIOMES` times slower with `BIG_BIOMES_OCTAVES` more octaves
+  and their field bent by `WARP` cells (`_warp`, scaled with the window's step in `_sample`), so a biome takes
+  minutes to walk across and its edges still wind; the river noises run `RIVER_LONGER` times slower (fewer,
+  longer, straighter rivers), a river is `RIVER_WIDER` times wider, widens over `MOUTH_REACH_WIDE` cells before
+  its mouth and its bed sinks a level every `RIVER_SINK` cells in from the bank, to `RIVER_DEEP`; lakes are
+  fewer and bigger (`LAKES_WIDER`) and the land dries away from water more slowly (`WET_FADE_WIDE`), so no
+  ring of another biome lies round every pond. `SETTING_KEYS` lists the settings for the saves and menus. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the
   water above the sea rises to its level (`_banks`), and farther goes down a level per column, up to
   `BANK_SLOPE` columns: the bank of a river above a rapid, going past land laid out lower, is a slope, not a
   wall of one column. Beyond its banks a river digs the land into a valley that rises a level a column; a
