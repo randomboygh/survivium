@@ -184,17 +184,28 @@ func _column(x: int, icon: String, share: float, color: Color) -> void:
 
 
 ## Health as cells left to right: full ones, the one being lost filled from the left
-## in proportion, then empty ones; a lit top line on what is filled.
+## in proportion, then empty ones; a lit top line on what is filled. A cell's corner
+## pixels are left out, so it reads rounded.
 func _cells(health: float) -> void:
 	var shine := UiStyle.DANGER.lightened(0.3)
 	for i in CELLS:
 		var r := Rect2(HEALTH.position.x + i * (CELL + GAP), HEALTH.position.y, CELL, HEALTH.size.y)
-		_canvas.draw_rect(r, UiStyle.WELL)
+		_rounded(r, CELL, UiStyle.WELL)
 		var w := roundf(CELL * clampf((health - i * CELL_HP) / CELL_HP, 0.0, 1.0))
 		if w <= 0.0:
 			continue
-		_canvas.draw_rect(Rect2(r.position, Vector2(w, r.size.y)), UiStyle.DANGER)
-		_canvas.draw_rect(Rect2(r.position, Vector2(w, 1)), shine)
+		_rounded(r, w, UiStyle.DANGER)
+		if w > 1.0:
+			_canvas.draw_rect(Rect2(r.position.x + 1, r.position.y, minf(w, CELL - 1) - 1, 1), shine)
+
+
+## The left `w` pixels of cell `r` without its corner pixels.
+func _rounded(r: Rect2, w: float, color: Color) -> void:
+	_canvas.draw_rect(Rect2(r.position.x, r.position.y + 1, w, r.size.y - 2), color)
+	var top := minf(w, CELL - 1) - 1
+	if top > 0.0:
+		_canvas.draw_rect(Rect2(r.position.x + 1, r.position.y, top, 1), color)
+		_canvas.draw_rect(Rect2(r.position.x + 1, r.end.y - 1, top, 1), color)
 
 
 ## A lying bar `bar` with picture `icon` at height `y` left of it, filled `share`.
