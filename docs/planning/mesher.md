@@ -44,7 +44,7 @@ thread that implements it. No code is changed yet: this thread agreed the design
 - Tests: `tests/unit/shapes_test.gd`, `body_test.gd` (`slopes`, `ground`), test world ground «Сочетания»
   (`test_ground.gd`, [relief-combos memory]) for shots.
 
-## Proposed PRs (architecture — confirm with the user first, CLAUDE.md step 3)
+## PRs (architecture picked by the user 2026-11-17: shapes shared, rounding client-only)
 
 Recommended: shapes stay computed from the cells in shared `WorldData` (server and client agree, old saves
 need no conversion); rounding and bevels are only client mesh geometry from material fields.
