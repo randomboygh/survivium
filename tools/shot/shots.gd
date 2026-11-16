@@ -1081,6 +1081,9 @@ const SHOTS := {
 	"ground-combo-ramp": {"time": 0.42, "season": 1, "at": [-118, -414]},
 	"ground-stream": {"time": 0.42, "season": 1, "at": [156, 37]},
 	"ground-stream-top": {"time": 0.42, "season": 1, "at": [142, 20]},
+	# The stream's falls turned to face the camera: the sheet, the ragged foam at its foot,
+	# the spray and the mist over it.
+	"ground-falls": {"time": 0.42, "season": 1, "at": [150, 28], "turn": 2},
 	"ground-ears": {"time": 0.42, "season": 1, "at": [116, 13]},
 	# The grove's floor: moss, mushrooms, and the mushrooms that glow at night.
 	"ground-grove": {"time": 0.42, "season": 1, "at": [112, 26]},
