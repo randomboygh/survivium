@@ -10,9 +10,11 @@ voices, steps, quiet music from notes.
 - `src/client/audio/sound.gd` — `play(id, pos)` (`pos` = INF — from nowhere), `play_later`, `loop`
   (everywhere), `spot` (from a place), `work`, `resolve(id)`; the world around the player is looked over once
   per `Sound.TICK` (0.25 s), not every frame; several voices per world (`VOICES`), a repeat within `MIN_GAP`
-  is not doubled.
+  is not doubled; `play` can pick a variant and a second to start at; `duck(depth, seconds)` holds the
+  weather's loops (`DUCKED`: rain, hail, wind, blizzard) down while a peal of thunder roars.
 - `src/client/audio/nature.gd` — weather, water, a campfire, birds by day, an owl at night, crickets (a barely heard far chorus loop and now and then one or two near ones, each with its own place, pitch and pace, short songs and long rests, hushed when the player comes close); duller
-  under a roof.
+  under a roof. Thunder (`thunder(strength, struck)`): late and quieter as the flash is far; with the bolt on
+  the screen at once, at full loudness, from the peal's peak (`ThunderShape.peak`); either way it ducks the rain.
 - `src/client/audio/steps.gd` — steps by what the feet stand on, a splash, strokes, a jump.
 - `src/client/audio/voices.gd` — the beasts' voices (`calls`) and fright (`alarm`).
 - `src/client/audio/music.gd` — music as notes by a schedule (dawn, new places, an evening by the campfire,

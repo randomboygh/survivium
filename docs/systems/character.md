@@ -191,7 +191,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   they happen (a strike, a felled tree, a shot that hits, a catch in `Controls._did`, a landing and water in
   `Steps`, thunder in `Nature` (the one heard is felt as a sharp pulse and a fading boom, at most once in 8 s, by its envelope in
   `src/client/audio/thunder_shape.gd`; the six variants are built by `tools/make_sounds.gd` from band loudness measured off
-  recorded peals, `tools/sound/thunder_bands.py` → `thunder_bands.gd`; `Vibration.rumble`), a thing set down in `Props._land`, a warning beast in `Voices`, buttons in
+  recorded peals, `tools/sound/thunder_bands.py` → `thunder_bands.gd`, then held by a limiter so they are loud; `Vibration.rumble`; a flash whose bolt is on the screen is heard at once from the peal's peak, `ThunderShape.peak`, with the strike's pulse, so flash, roar and buzz come together), a thing set down in `Props._land`, a warning beast in `Voices`, buttons in
   `Sound`, a full bag and a broken tool in the client's `Character.say`, chat lines in `ChatBox.hear`).
 
 **Skills** (decision 164). Nine skills are a mod's data (`content/core/data/skills.yaml`, the kind `skills`,
