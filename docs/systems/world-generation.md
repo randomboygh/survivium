@@ -21,7 +21,8 @@ same.
   trace that comes to a kept square takes its way, so a river never turns back. The search runs `BUDGET_US`
   a frame, one river at a time; till it ends the river stands still (`budget_us` — more in tests and tools).
 - `src/shared/world/land_layout.gd` — the layout from noises: slow noises on a lattice through `LATTICE`
-  cells, the distances to the shore and a river; continents, mountains with scree and snow above
+  cells, the distances to the shore and a river; each row of a window in two passes, `_water_row` (relief, sea,
+  lakes, rivers, deltas) then `_cover_row` (climate, ground, biome); continents, mountains with scree and snow above
   `WorldData.SNOW_LINE`, rivers by steps (rapids, waterfalls), deltas, lakes (no nearer than `LAKE_SHORE` to
   the sea: a low shore stays between a lake and the sea, a lake does not cut into the shallows deeper than
   it), the climate (warmth, moisture), caves (`_tunnels`, the number by the setting `caves`; with the setting
@@ -98,7 +99,7 @@ into data.
 **Limits.** Worlds of old seeds after a change of biomes are laid out differently (accepted, decision 146);
 the settings `relief` and `climate` are stored in the world so that old worlds do not change. A biome's zone
 (`zone` in the record) is only a label for the map and reports: which zone lies where is decided by the
-record's warmth window. A column's moisture is never below 0.2 (`m` in `_layout_row`: the noise gives
+record's warmth window. A column's moisture is never below 0.2 (`m` in `_cover_row`: the noise gives
 0.4–1.0, nearness of water takes it down to 0.2), so windows drier than 0.2 are empty; the shares of biomes
 on the world's map — by a script over `gen.lay_out` with a step (like `tools/map.gd`). With `climate` 1 the
 mountain zone is relief biomes: the rocks of mountains in the warmth window of the biome `glacier` — a glacier

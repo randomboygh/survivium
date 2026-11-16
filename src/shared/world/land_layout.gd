@@ -773,9 +773,22 @@ static func _river_level(climb: float) -> int:
 
 
 ## Lays out one row of the window: height, top, flags and biome of each column, with
-## the sea, the lakes and the rivers cut in.
+## the sea, the lakes and the rivers cut in (_water_row), then its climate, ground and
+## biome laid over (_cover_row).
 func _layout_row(lay: Dictionary, lz: int) -> void:
 	_lattice_row(lay, lz)
+	var temp: PackedByteArray = lay.grids[12]
+	if zone_grid >= 0:
+		temp = _zoned(lay.grids[zone_grid], temp, lz * lay.w, lay.w)
+	_water_row(lay, lz, temp)
+	_cover_row(lay, lz, temp)
+
+
+## The relief of each column of row `lz` with the sea, the lakes, the rivers (their
+## rapids and falls) and the deltas cut in: its height, water, top, kind, feature and
+## cut, and in its flags only whether it is sheer (SHEER_TOP), for _cover_row to go on
+## from. `temp` is the row's warmth (zoned with climate 1).
+func _water_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 	var grids: Array = lay.grids
 	var hills: PackedByteArray = grids[0]
 	var ridges: PackedByteArray = grids[1]
@@ -784,53 +797,30 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 	var cliff: PackedByteArray = grids[4]
 	var plateau: PackedByteArray = grids[5]
 	var steep: PackedByteArray = grids[6]
-	var soil: PackedByteArray = grids[7]
-	var gully: PackedByteArray = grids[9]
-	var mouths: PackedByteArray = grids[10]
-	var pools: PackedByteArray = grids[11]
-	var temp: PackedByteArray = grids[12]
-	# How much colder a level up is: in zones, half as much, so the hills of a hot zone
-	# are not tundra.
-	var cooling := 0.006
-	var zoned := zone_grid >= 0
-	if zone_grid >= 0:
-		temp = _zoned(grids[zone_grid], temp, lz * lay.w, lay.w)
-		cooling = 0.003
 	var moist: PackedByteArray = grids[13]
-	var swamp: PackedByteArray = grids[14]
 	var flow: PackedByteArray = grids[15]
-	var dunes: PackedByteArray = grids[16]
 	var roll: PackedByteArray = grids[17]
-	var coast: PackedFloat32Array = lay.coast
-	var river: PackedFloat32Array = lay.river
-	var lake: PackedFloat32Array = lay.lake
-	var heights: PackedInt32Array = lay.heights
-	var water: PackedInt32Array = lay.water
-	var tops: PackedByteArray = lay.tops
-	var flags: PackedByteArray = lay.flags
-	var biome: PackedByteArray = lay.biome
-	var kinds: PackedByteArray = lay.kind
-	var features: PackedByteArray = lay.feature
-	var w: int = lay.w
-	var soil_t := _byte(0.25)
-	var steep_t := _byte(0.4)
-	var mouth_t := _byte(MOUTH_FROM[settings.caves])
-	var rough_t := _byte(0.3)
-	var pool_t := _byte(0.12)
-	var mud_t := _byte(0.0)
-	var swamp_t := _byte(0.35)
-	var mire_reach := 36
-	var mire_t := _byte(-0.2)
-	var river_from: float = RIVER_FROM[settings.rivers]
-	var side: PackedFloat32Array = lay.side
-	var seaward: PackedFloat32Array = lay.seaward
-	var forest: PackedByteArray = grids[8]
 	var peak: PackedByteArray = grids[18]
-	var falls: PackedByteArray = lay.falls
 	var old_relief: bool = settings.relief < 1
 	var ranges: PackedByteArray = grids[19] if not old_relief else PackedByteArray()
 	var gorges: PackedByteArray = grids[20] if not old_relief else PackedByteArray()
 	var crags: PackedByteArray = grids[21] if not old_relief else PackedByteArray()
+	var coast: PackedFloat32Array = lay.coast
+	var river: PackedFloat32Array = lay.river
+	var lake: PackedFloat32Array = lay.lake
+	var side: PackedFloat32Array = lay.side
+	var seaward: PackedFloat32Array = lay.seaward
+	var heights: PackedInt32Array = lay.heights
+	var water: PackedInt32Array = lay.water
+	var tops: PackedByteArray = lay.tops
+	var flags: PackedByteArray = lay.flags
+	var kinds: PackedByteArray = lay.kind
+	var features: PackedByteArray = lay.feature
+	var cuts: PackedByteArray = lay.cut
+	var falls: PackedByteArray = lay.falls
+	var w: int = lay.w
+	var steep_t := _byte(0.4)
+	var river_from: float = RIVER_FROM[settings.rivers]
 	var x0: int = lay.x0
 	var z0: int = lay.z0 + lz * lay.step
 	for lx in w:
@@ -841,10 +831,8 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 				peak[j], ranges[j], gorges[j], crags[j], temp[j], moist[j])
 		var height: int = r[0]
 		var kind: int = r[1]
-		var f := 0
 		var feature := DRY
 		var top := Mat.GRASS
-		var b := Biomes.NONE
 		var watery := false
 		var sheer := steep[j] >= steep_t or kind == CLIFFS or kind == HIGHLAND
 		if kind == MOUNTAIN:
@@ -945,6 +933,73 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			# The islands of a delta lie low between its arms.
 			if wt < 0 and fan > 0.0:
 				height = mini(height, sea + 1 + int(maxf(0.0, absf(side[j]) - fan) / 2.0))
+		heights[j] = height
+		water[j] = wt
+		tops[j] = top
+		flags[j] = SHEER_TOP if sheer else 0
+		kinds[j] = kind
+		features[j] = feature
+		cuts[j] = r[4]
+
+
+## The climate, the ground and the biome of each column of row `lz` laid out by
+## _water_row: ravines, bare rock, swamps and their pools, the climate's biomes, the
+## mountains' woods, sheer tops and cave mouths; it finishes the row's heights, water,
+## tops, flags and biomes.
+func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
+	var grids: Array = lay.grids
+	var shape: PackedByteArray = grids[3]
+	var steep: PackedByteArray = grids[6]
+	var soil: PackedByteArray = grids[7]
+	var forest: PackedByteArray = grids[8]
+	var gully: PackedByteArray = grids[9]
+	var mouths: PackedByteArray = grids[10]
+	var pools: PackedByteArray = grids[11]
+	var moist: PackedByteArray = grids[13]
+	var swamp: PackedByteArray = grids[14]
+	var flow: PackedByteArray = grids[15]
+	var dunes: PackedByteArray = grids[16]
+	var roll: PackedByteArray = grids[17]
+	# How much colder a level up is: in zones, half as much, so the hills of a hot zone
+	# are not tundra.
+	var zoned := zone_grid >= 0
+	var cooling := 0.003 if zoned else 0.006
+	var coast: PackedFloat32Array = lay.coast
+	var river: PackedFloat32Array = lay.river
+	var lake: PackedFloat32Array = lay.lake
+	var heights: PackedInt32Array = lay.heights
+	var water: PackedInt32Array = lay.water
+	var tops: PackedByteArray = lay.tops
+	var flags: PackedByteArray = lay.flags
+	var biome: PackedByteArray = lay.biome
+	var kinds: PackedByteArray = lay.kind
+	var features: PackedByteArray = lay.feature
+	var cuts: PackedByteArray = lay.cut
+	var w: int = lay.w
+	var soil_t := _byte(0.25)
+	var steep_t := _byte(0.4)
+	var mouth_t := _byte(MOUTH_FROM[settings.caves])
+	var rough_t := _byte(0.3)
+	var pool_t := _byte(0.12)
+	var mud_t := _byte(0.0)
+	var swamp_t := _byte(0.35)
+	var mire_reach := 36
+	var mire_t := _byte(-0.2)
+	var river_from: float = RIVER_FROM[settings.rivers]
+	var x0: int = lay.x0
+	var z0: int = lay.z0 + lz * lay.step
+	for lx in w:
+		var j := lz * w + lx
+		var height: int = heights[j]
+		var kind: int = kinds[j]
+		var wt: int = water[j]
+		var watery := wt >= 0
+		var feature: int = features[j]
+		var top: int = tops[j]
+		var sheer := flags[j] != 0
+		var cut: int = cuts[j]
+		var f := 0
+		var b := Biomes.NONE
 		# How near water is, in steps of 16 cells: the coast, a lake or a river.
 		var near := minf(coast[j], -lake[j])
 		if flow[j] / 127.5 - 1.0 > river_from + 0.07:
@@ -964,8 +1019,6 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 			height -= mini(_ravine(x0 + lx * lay.step, z0), most)
 		# Bare rock: mountains above their rock line, which wavers a little, high
 		# plateaus and cliff coasts.
-		var cut: int = r[4]
-		lay.cut[j] = cut
 		var rocky := (height > sea + 12 and cut != CANYON_FLOOR and cut != MESA) or (kind == CLIFFS and height >= sea) \
 			or cut == TOR
 		if kind == MOUNTAIN:
@@ -1077,8 +1130,6 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		tops[j] = top
 		flags[j] = f
 		biome[j] = b
-		kinds[j] = kind
-		features[j] = feature
 
 
 ## How deep a ravine cuts column x, z, 0 outside one. Its floor runs along the zero

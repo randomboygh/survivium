@@ -17,28 +17,20 @@ WA-049, WA-050 (the owner picked option A for each), WA-064 (the owner's playtes
 WA-021 (#584), WA-020, WA-023, WA-057 (#596).
 WA-033, WA-035, WA-036, WA-037, WA-038, WA-062, WA-063 (#589, checked in the code on 2026-11-15: the mods' files are stepped 12 a frame while the game is in front, fires are kept in a list, the haze skips its scan, `UiStyle.forget`, `Server._prune`, far animals left out of snapshots, the bag lays out only itself).
 WA-030 (the owner picked the YAML mark: a creature field `menu`, `AiRules.menu_species`), WA-051 (`quality: 0` for building and swimming).
+WA-018 (the owner, 2026-11-16: the password stays in `server.cfg` as it is; a hash would need typing it at each start, as the host and the bots join with it).
 WA-058 (the owner, 2026-11-15: keep ws:// on a local network, TLS only through the tunnel), WA-059 (the owner: no player accounts).
+WA-025 (#696: `settings_menu._section_rows` one function per tab, `hud._ready` eight build steps, `land_layout._layout_row` two passes `_water_row` and `_cover_row`, the layout byte-identical and as fast on a bench).
 WA-060 (checked 2026-11-15 on the `main protection` ruleset: a pull request and the checks lint, checks, tests, progress (hunting), progress (other), frames, export, pc, android are required).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 0 | 6 | 8 | 14 |
+| 0 | 0 | 5 | 7 | 12 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
 a repository setting or a step in GitHub; «playtest», «needs phone data» — waits for playing or
 measuring on the phone; «backlog» — small, done when the area is next touched. The due dates are
 recommendations.
-
-### WA-025 · Medium · Maintainability
-
-- **Description:** Some functions are very long.
-- **Cause:** Growth since 2026-11-07. The two scripts past 1500 lines are split (2026-11-14): `wildlife.gd` into a chain of five parts (#598), the icons' drawings of `ui_style.gd` into `ui_icons.gd`; `main.gd` gave its connection flow to `server_link.gd` (#586).
-- **Confirmation:** Counted: `wc -l`; longest functions `settings_menu._section_rows` 390 lines, `land_layout._layout_row` 312, `hud._ready` 280 (counted again 2026-11-15).
-- **Files and systems:** `src/client/ui/settings_menu.gd`, `src/shared/world/land_layout.gd`, `src/client/ui/hud.gd`
-- **Consequences:** Hard to review and merge.
-- **Recommended fix:** Per-section functions for `_section_rows` and `hud._ready` when those files are next touched (other threads work in them now); `_layout_row` is the generator's inner loop: split only with a bench before and after.
-- **Status:** Open: backlog (the files are split, the long functions wait); first found 2026-11-14 (new); due when next touched.
 
 ### WA-032 · Medium · Performance
 
@@ -89,16 +81,6 @@ recommendations.
 - **Consequences:** Stage 1 behaviour on a phone is unconfirmed while stage 2 goes on.
 - **Recommended fix:** The user goes through the list on the phone.
 - **Status:** Open: user action; first found 2026-11-14 (stage 1); due backlog.
-
-### WA-018 · Low · Security, secrets
-
-- **Description:** The server's password is stored in plain text (the bots' command line no longer carries it, #587).
-- **Cause:** Bot processes get `--password <pw>`; `user://server.cfg` keeps the password itself.
-- **Confirmation:** Read: `src/server/test_commands.gd:242`, `src/server/config.gd:111`.
-- **Files and systems:** `src/server/test_commands.gd`, `src/server/config.gd`
-- **Consequences:** Other local users can read it from the process list; the file is a secret.
-- **Recommended fix:** Plan: pass it through the environment or stdin; store a hash (`_same` compares hashes already).
-- **Status:** Open: needs plan (the host's window shows the password, so a hash changes what it can show); first found 2026-11-14; bots' argv fixed by #587; due backlog.
 
 ### WA-044 · Low · CI
 
