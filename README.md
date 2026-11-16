@@ -63,3 +63,8 @@ default the test world and 3 bots that play beside you on their own), or in the 
 - All the checks at once: `tests/run_all.sh`. Rules, checks and pitfalls: [CLAUDE.md](CLAUDE.md); the code's
   documentation: [docs/INDEX.md](docs/INDEX.md). The plan and game design live in the `plan/` folder of the
   Claude project.
+
+## Licence
+
+Code under GPL-3.0, pictures, sounds and content data under CC BY-NC-SA 4.0 (the author may sell the game), the font under OFL.
+Details, mods and contributions: [LICENSING.md](LICENSING.md); third-party components: [THIRD_PARTY.md](THIRD_PARTY.md).
