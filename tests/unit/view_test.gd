@@ -676,8 +676,8 @@ func _test_light_maps() -> void:
 
 
 ## The fog over the chunks not built (EdgeHaze): a missing chunk's fog is whole at once,
-## a built one's dissolves over DISSOLVE and is dropped; the mesh covers the fog and a
-## chunk round it, each chunk at its height, with walls between.
+## a built one's dissolves over DISSOLVE and is dropped; the quad covers the fog and a
+## chunk round it, on the plane of the ground.
 func _test_edge_haze() -> void:
 	var amounts := {}
 	var a := Vector2i(0, 0)
@@ -689,13 +689,12 @@ func _test_edge_haze() -> void:
 	EdgeHaze.step(amounts, [a] as Array[Vector2i], EdgeHaze.DISSOLVE)
 	_check(amounts == {a: 1.0}, "and is dropped once clear")
 	_check(EdgeHaze.cover([a, b]) == Rect2i(-1, -1, 4, 3), "the quad covers the fog and a chunk round it")
-	var mesh := EdgeHaze.build_mesh(Rect2i(0, 0, 2, 1), {a: 1.0, b: 3.0})
+	var mesh := EdgeHaze.build_mesh(Rect2i(0, 0, 1, 1), 1.0)
 	var verts: PackedVector3Array = mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
-	var ok := verts.size() == 18
-	for i in 6:
-		ok = ok and verts[i].y == 1.0 and verts[6 + i].x == 8.0 and verts[12 + i].y == 3.0
-	ok = ok and verts[6].y == 1.0 and verts[8].y == 3.0
-	_check(ok, "a top over each chunk at its height, a wall between them")
+	var ok := verts.size() == 6
+	for v in verts:
+		ok = ok and v.y == 1.0 and v.x >= 0.0 and v.x <= 8.0 and v.z >= 0.0 and v.z <= 8.0
+	_check(ok, "one quad over the chunks, on the plane of the ground")
 
 
 ## The graphics quality the game picks itself: the steps run from «высокое» through
