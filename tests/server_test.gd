@@ -1064,7 +1064,7 @@ func _security(node: Node) -> void:
 
 
 ## A host's own mod put on the server over the socket (Protocol.MOD_PUT, stage 2 item 3
-## step 7): refused before op, then taken in pieces under the server's inbound buffer; its
+## step 7): refused to a host by op alone, then, named an author by the owner, taken in pieces under the server's inbound buffer; its
 ## bundle joins the world's and the players are told the new files (MODS).
 func _mod_put(node: Node) -> void:
 	var server = node.server
@@ -1089,9 +1089,15 @@ func _mod_put(node: Node) -> void:
 	var author := _bot("Автор", "", "", PORT + 1)
 	_check(await _until(func() -> bool: return author.reply.done) and author.reply.value.get("ok") == true, "an author comes in")
 	var first = author.socket.net.request(Protocol.MOD_PUT, ["mine", 0, n, bytes.slice(0, Protocol.MOD_PIECE)])
-	_check(await _until(func() -> bool: return first.done) and first.value == false and not DirAccess.dir_exists_absolute(dir.path_join("mine")),
-		"a player who is no host puts no mod on the server")
 	node.command("op Автор")
+	_check(await _until(func() -> bool: return first.done) and first.value is Dictionary and first.value.error == "[editor_server_authors_only]"
+		and not DirAccess.dir_exists_absolute(dir.path_join("mine")), "a player who is no author puts no mod on the server")
+	var as_host = author.socket.net.request(Protocol.MOD_PUT, ["mine", 0, n, bytes.slice(0, Protocol.MOD_PIECE)])
+	_check(await _until(func() -> bool: return as_host.done) and as_host.value is Dictionary and as_host.value.error == "[editor_server_authors_only]",
+		"nor a host made by op alone")
+	node.command("author Автор")
+	_check(await _until(func() -> bool: return author.of(Protocol.HEARD).any(func(e: Array) -> bool: return str(e[1][2]) == "[you_may_put_your_mods]")),
+		"the owner's «author» lets them, and tells them so")
 	var reply = null
 	for i in n:
 		var r = author.socket.net.request(Protocol.MOD_PUT, ["mine", i, n, bytes.slice(i * Protocol.MOD_PIECE, (i + 1) * Protocol.MOD_PIECE)])
@@ -1103,6 +1109,7 @@ func _mod_put(node: Node) -> void:
 		and await _until(func() -> bool: return author.of(Protocol.MODS).any(func(e: Array) -> bool: return e[1][0] == server.content.digest)),
 		"its bundle joins the world's and the players are told its files")
 	_check(not author.socket.ended, "the connection stays")
+	node.command("unauthor Автор")
 	node.command("deop Автор")
 	server.world_info.mods.erase("mine")
 	Content.BUNDLES = server.world_info.mods.duplicate()

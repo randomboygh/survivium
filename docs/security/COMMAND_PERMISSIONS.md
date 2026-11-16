@@ -11,6 +11,7 @@ server determines the role by the connection's key (`Server.role_of`), every tim
 | player (`ROLE_PLAYER`) | everyone | by default; gives no commands |
 | host (`ROLE_HOST`) | a trusted player | `op <who>` of the owner or the terminal; `access.hosts` |
 | owner (`ROLE_OWNER`) | the player who created the server in the game | `ServerLink._on_welcome` → `make_host`; `access.owners` |
+| author (not a role: a right) | a player who may put their own mods on the server from the editor, and nothing more | `author <who>` of the owner or the terminal; `access.authors` |
 | terminal (`ROLE_CONSOLE`) | the server's console and the command field of the «Create a server» window | the server process, not the network |
 
 The lists are stored in `access.json` of the world's folder. A taken-away role (`deop`) works from the next
@@ -32,6 +33,8 @@ command, with no restart. The client does not send a role: there is no role fiel
 | `reload` | — | host | reread the mods' data from disk (hot reload) |
 | `help`, `?` | — | host | the list |
 | `op`, `deop` | who / a name | owner | give or take away the host's role |
+| `author`, `unauthor` | who / a name | owner | let a player put their own mods on the server from the content editor (`access.authors`, `Server.may_author`; a host by `op` alone may not), or take it back |
+| `authors` | — | host | who may put mods: the owners and the authors |
 | `stop` | — | owner | save and stop the server |
 | `test` | `bot+`, `bot-`, `worlds`, `world <folder>`, `new [seed]`, `new test`, `mod on\|off\|next`, `stop`, `hour` | on a server with `--playtest` — any player; on another — the host (`stop`, `world`, `new`, `mod` — the owner: they change the server under everyone) | bots, another world of the server (the name of a folder under the saves, not a path), stopping, the term of a test server (`TestCommands`, `PlaytestHost`) |
 

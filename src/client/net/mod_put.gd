@@ -1,5 +1,5 @@
 extends RefCounted
-## One's own mod put on the server this game is a host of (stage 2 item 3, step 7;
+## One's own mod put on the server this game is joined to (stage 2 item 3, step 7;
 ## Protocol.MOD_PUT): the content editor's saves, joined to a server far away, send the
 ## mod's zip (ModZip.pack) in pieces of Protocol.MOD_PIECE, each after the answer to the
 ## one before; the server unpacks it, reads it and sends its files to every player, this

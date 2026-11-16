@@ -209,7 +209,7 @@ const AI_DEBUG := "ai_debug"
 ## season, weather, moon, hour, at (a teleport: Vector3)}]; true when taken.
 const CHEATS := "cheats"
 ## One's own mod put on the server by its author (stage 2 item 3, step 7; the content
-## editor of a host, Requests.may_author): [mod id, piece, pieces, bytes], the zip of the
+## editor of the server's owner or an author they named with `author`, Requests.may_author): [mod id, piece, pieces, bytes], the zip of the
 ## mod (ModZip.pack) cut in pieces of at most MOD_PIECE bytes sent in order; a piece taken
 ## is answered true, the last one with what was made of the whole ({"files", "skipped",
 ## "error": a key or ""}): the mod takes the place of what the server had of it, joins the

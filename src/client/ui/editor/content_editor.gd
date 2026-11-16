@@ -11,9 +11,9 @@ extends "res://src/client/ui/kit/window.gd"
 ## picture from the device into the mod (PicturePick, ContentEdits.picture), a model's
 ## «Edit model» opens the voxel editor (VoxelEditor) and its save is written so; «Export
 ## zip» hands the chosen mod out as a zip, «Import zip» takes one in (ModImport). Joined to
-## a server far away, a host's saves put the mod on the server (`put_on_server`, ModPut,
-## Protocol.MOD_PUT: it reads it and sends it to every player, this game too); another
-## player's stay on the device. A server made in this game takes the mod with the game's
+## a server far away, the saves put the mod on the server (`put_on_server`, ModPut,
+## Protocol.MOD_PUT: it reads it and sends it to every player, this game too) when this
+## player is its owner or an author the owner named (`/author`); another's stay on the device. A server made in this game takes the mod with the game's
 ## reload (Server.mods_reread). One column on every screen (12А). Opened from the main
 ## menu and the pause menu («Editor»); «Close» or Escape closes it. `game` is the Main node.
 
@@ -447,31 +447,29 @@ func undo() -> void:
 	say("[editor_undone]")
 
 
-## Where the saves go besides this device: "server" on a server far away this game is a
-## host of (the mod is put there), "guest" on one where it is not, "" in a world of this
-## device or a server made in this game (its reload takes the mod, Server.mods_reread).
+## Where the saves go besides this device: "server" on a server far away (the mod is put
+## there: its owner and the authors the owner named may, Server.may_author, the others are
+## told the save stayed here), "" in a world of this device or a server made in this game
+## (its reload takes the mod, Server.mods_reread).
 func server_mode() -> String:
 	if game == null or game.link == null or game.link.join_url == "" or game.link.hosted != null:
 		return ""
-	return "server" if game.link.welcome.get("host") == true else "guest"
+	return "server"
 
 
-## Puts the chosen own mod on the server this game is a host of (ModPut).
+## Puts the chosen own mod on the server this game is joined to (ModPut).
 func put_on_server() -> void:
 	if mod != "" and game != null and game.net != null:
 		ModPut.put(game.net, OwnMods.root().path_join(mod), say)
 
 
 ## Reads the mods again with the chosen one in the world's set, and shows the record anew.
-## On a server far away the game plays with the server's files: a host's mod is put there
-## and comes back with the server's reload; another player's edits stay on the device.
+## On a server far away the game plays with the server's files: the mod is put there and
+## comes back with the server's reload (an author's; another player's stays on the device).
 func _apply() -> void:
 	match server_mode():
 		"server":
 			put_on_server()
-			return
-		"guest":
-			say.call_deferred("[editor_server_hosts_only]")
 			return
 	join(mod)
 	if game != null and game.mod_reload != null:

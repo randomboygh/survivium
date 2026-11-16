@@ -95,6 +95,8 @@ const COMMANDS := {"who": ROLE_HOST, "say": ROLE_HOST, "kick": ROLE_HOST, "give"
 	"tp": ROLE_HOST, "ban": ROLE_HOST, "unban": ROLE_HOST, "bans": ROLE_HOST, "whitelist": ROLE_HOST,
 	"hosts": ROLE_HOST, "help": ROLE_HOST, "?": ROLE_HOST, "security": ROLE_HOST, "reload": ROLE_HOST,
 	"op": ROLE_OWNER, "deop": ROLE_OWNER, "stop": ROLE_OWNER,
+	# Who may put their own mods on the server from the editor (may_author).
+	"author": ROLE_OWNER, "unauthor": ROLE_OWNER, "authors": ROLE_HOST,
 	# Any player on a playtest server (Config.playtest), a host elsewhere (TestCommands).
 	"test": ROLE_PLAYER}
 ## Lines the security log keeps (security), and seconds between two lines of one kind
@@ -193,8 +195,10 @@ var lines: Array[String] = []
 ## names on the list come in with the key they first came with (`listed_keys`, name →
 ## key), so nobody else gets in by typing a name on it. A key is kept as its hash
 ## (kept), never itself: whoever reads the world's folder learns nobody's key.
+## The authors (keys → names, `author` of the owner) may put their own mods on the server
+## from the content editor (may_author), with no command of a host.
 var access := {"banned_keys": {}, "banned_names": [], "listed_only": false, "listed": [], "hosts": {},
-	"owners": {}, "listed_keys": {}}
+	"owners": {}, "listed_keys": {}, "authors": {}}
 ## What looked wrong, newest last ({"at", "id", "name", "what", "detail", "level"}), and
 ## when each kind about each player was last written (SECURITY_EVERY) with how many since.
 var security_log: Array = []
@@ -386,6 +390,30 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 					flag(_kept_account(key), "role", "no longer a host (deop): " + rest, 1)
 					return "no longer a host: " + rest
 			return "not a host: " + rest
+		"author":
+			var who := _find(rest)
+			if who == null:
+				return "author <who> lets a player put their own mods on the server from the editor; no such player: " + rest
+			access.authors[kept(who.key)] = who.name
+			_save_access()
+			flag(who, "role", "made an author (author)", 1)
+			who.link.hear(0, "", "[you_may_put_your_mods]")
+			return "author: " + who.name
+		"unauthor":
+			var low_name := rest.to_lower()
+			for key in access.authors.keys():
+				if str(access.authors[key]).to_lower() == low_name or str(key) == kept(rest):
+					access.authors.erase(key)
+					_save_access()
+					var gone := _kept_account(key)
+					flag(gone, "role", "no longer an author (unauthor): " + rest, 1)
+					if gone != null:
+						gone.link.hear(0, "", "[you_may_no_longer_put]")
+					return "no longer an author: " + rest
+			return "not an author: " + rest
+		"authors":
+			var listed: Array = access.owners.values().map(func(n) -> String: return "%s (owner)" % n) + access.authors.values()
+			return "authors: " + (", ".join(listed) if not listed.is_empty() else "the owner only")
 		"hosts":
 			var names: Array = access.owners.values().map(func(n) -> String: return "%s (owner)" % n) + access.hosts.values()
 			return "hosts: " + (", ".join(names) if not names.is_empty() else "the terminal only")
@@ -410,6 +438,7 @@ func command(line: String, role := ROLE_CONSOLE) -> String:
 				"give <who> <item> [count]: give; tp <who> <x> <y> <z> | <to whom>: move (cells)",
 				"ban <who or name>, unban <name>, bans: blocking; whitelist on|off|add <name>|remove <name>: let in only the listed",
 				"op <who>, deop <name>, hosts: who may give commands in the chat with «/» (op, deop, stop: the owner)",
+				"author <who>, unauthor <name>, authors: who may put their own mods on the server from the editor (author, unauthor: the owner)",
 				"security [kind or name]: what looked suspicious",
 				"reload: read the mods' data from disk again (hot reload: numbers, animals, recipes; the world's cells stay)",
 				"test bot+|bot-: bots; test worlds, test world <name>, test new [seed], test new test: another world for the server",
@@ -463,7 +492,7 @@ func mods_reread() -> void:
 
 
 ## Player `key`'s own mod `mod` came whole as zip `bytes` (Protocol.MOD_PUT, a host's
-## content editor; Requests.may_author): it takes the place of what the server had of it
+## content editor; Requests.may_author, the owner's or an author's): it takes the place of what the server had of it
 ## in its own mods' folder (OwnMods.root, ModZip.unpack_mod: only an own mod, never one of
 ## the game's or another's that is not own), its bundles join the world's (kept in its
 ## save), and the mods' data is read again and sent to every player (reload_mods). What
@@ -471,8 +500,8 @@ func mods_reread() -> void:
 func put_mod(mod: String, bytes: PackedByteArray, key: String) -> Dictionary:
 	var a: Account = accounts.get(key)
 	var out := {"files": 0, "skipped": 0, "error": ""}
-	if not is_host(key):
-		out.error = "[editor_server_hosts_only]"
+	if not may_author(key):
+		out.error = "[editor_server_authors_only]"
 		return out
 	var known := mod in Mods.available() or DirAccess.dir_exists_absolute(Content.ROOT.path_join(mod)) \
 		or DirAccess.dir_exists_absolute(OwnMods.root().path_join(mod))
@@ -533,7 +562,7 @@ func load_access() -> void:
 ## are (a save from before they were hashed), now hashed.
 func take_access(d: Dictionary) -> bool:
 	var old := false
-	for k in ["banned_keys", "hosts", "owners"]:
+	for k in ["banned_keys", "hosts", "owners", "authors"]:
 		if d.get(k) is Dictionary:
 			access[k] = {}
 			for key in d[k]:
@@ -576,6 +605,12 @@ func make_host(key: String) -> void:
 	var a: Account = accounts.get(key)
 	access.owners[kept(key)] = a.name if a != null else str(access.owners.get(kept(key), ""))
 	_save_access()
+
+
+## Whether the player of `key` may put their own mod on the server (Protocol.MOD_PUT): the
+## owner, and the authors the owner named (`author`); a host by `op` alone may not.
+func may_author(key: String) -> bool:
+	return role_of(key) == ROLE_OWNER or access.authors.has(kept(key))
 
 
 func is_host(key: String) -> bool:
@@ -826,7 +861,7 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 	link.requests.log_cheats = not config.playtest
 	link.requests.day_speed = config.day_speed()
 	link.requests.ai_debug = link.requests.ai_debug and link.requests.may_debug
-	link.requests.may_author = is_host(peer.account.key)
+	link.requests.may_author = may_author(peer.account.key)
 	var reply: Variant = link.handle_msg(msg)
 	if reply is PackedByteArray and open:
 		for b in link.flush():
