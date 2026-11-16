@@ -1019,8 +1019,14 @@ func go_to_death() -> void:
 	if not c.fell_at.is_finite():
 		c.say("[you_havent_died_in_this]")
 		return
-	c.teleport(c.fell_at)
-	send_cheats({"at": c.fell_at})
+	if game.trip.going():
+		return
+	# Once the world there is built (Trip).
+	var at: Vector3 = c.fell_at
+	game.hud.toast("[getting_the_place_ready]")
+	game.trip.go(at, func() -> void:
+		c.teleport(at)
+		send_cheats({"at": at}))
 
 
 func set_shadow_map(i: int) -> void:

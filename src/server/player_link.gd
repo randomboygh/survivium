@@ -416,23 +416,46 @@ func _world_events(out: Array[PackedByteArray]) -> void:
 	# As far as this player's screen needs (Session.reach_for), not every player's.
 	var reach := Session.reach_for(who.view_half)
 	var drop := reach + Session.DROP - Session.ZONE
-	for r in range(0, reach + 1):
-		if n >= CHUNKS_PER_FLUSH:
-			break
-		for dz in range(-r, r + 1):
-			for dx in range(-r, r + 1):
-				if maxi(absi(dx), absi(dz)) != r or n >= CHUNKS_PER_FLUSH:
-					continue
-				var key := Vector2i(home.x + dx, home.y + dz)
-				if _sent.has(key) or gen.stage_of(key) < WorldGen.SHAPED:
-					continue
-				out.append(_event(Protocol.CHUNK, _packed(key)))
-				_sent[key] = true
-				n += 1
+	# Where the player is about to go comes after its own zone: the client builds it
+	# ahead (ChunkStreamer.focus), so the jump lands in a world built.
+	var homes: Array[Vector2i] = [home]
+	for to: Vector3 in [Session.going_of(who), _respawn_ahead()]:
+		if to.is_finite():
+			var key := WorldData.chunk_key(floori(to.x / WorldData.CELL), floori(to.z / WorldData.CELL))
+			if not homes.has(key):
+				homes.append(key)
+	for h: Vector2i in homes:
+		for r in range(0, reach + 1):
+			if n >= CHUNKS_PER_FLUSH:
+				break
+			for dz in range(-r, r + 1):
+				for dx in range(-r, r + 1):
+					if maxi(absi(dx), absi(dz)) != r or n >= CHUNKS_PER_FLUSH:
+						continue
+					var key := Vector2i(h.x + dx, h.y + dz)
+					if _sent.has(key) or gen.stage_of(key) < WorldGen.SHAPED:
+						continue
+					out.append(_event(Protocol.CHUNK, _packed(key)))
+					_sent[key] = true
+					n += 1
 	for key: Vector2i in _sent.keys():
-		if maxi(absi(key.x - home.x), absi(key.y - home.y)) > drop:
+		var near := false
+		for h: Vector2i in homes:
+			if maxi(absi(key.x - h.x), absi(key.y - h.y)) <= drop:
+				near = true
+				break
+		if not near:
 			_sent.erase(key)
 			out.append(_event(Protocol.FORGET, [key]))
+
+
+## The first respawn point of the player lying dead (the world is made there,
+## Session.zones), else INF.
+func _respawn_ahead() -> Vector3:
+	if not who.is_dead():
+		return Vector3.INF
+	var points: Array = who.respawn_points()
+	return points[0][1] if not points.is_empty() else Vector3.INF
 
 
 ## The other players within Session.ZONE chunks of the body, those whose entry changed

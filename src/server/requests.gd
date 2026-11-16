@@ -389,6 +389,22 @@ func _rule(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_VECTOR3]) and who.is_dead():
 				who.revive(_revive_at(args[0]))
 				return true
+		Protocol.PREPARE:
+			# Where the player is about to go: as REVIVE would take it while dead, a
+			# teleport's place (Cheats «at», within its bounds) only with the switches or
+			# in one's own game (not over a socket: `paced`).
+			if _fit(args, [TYPE_VECTOR3]) and args[0].is_finite():
+				var at: Vector3 = args[0]
+				if who.is_dead():
+					at = _revive_at(at)
+				elif may_cheat or not paced:
+					at = at.clamp(-Vector3.ONE * Cheats.MOST_FAR, Vector3.ONE * Cheats.MOST_FAR)
+				else:
+					return false
+				who.going = at
+				who.going_ms = Time.get_ticks_msec()
+				return true
+			return false
 	return null
 
 

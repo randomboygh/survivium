@@ -28,17 +28,30 @@ slice, to free the far meshes.
   screen lags (below) its plants wait (`plants_wait`, with the mesh job kept for patching), the next hole gets
   its ground sooner, and they are built once the screen has its ground; **lag**: while
   there is a chunk without ground on screen (`lagging`, `_check_lag`), the building of such a chunk and the
-  generation near the player take up to `LAG_BUDGET_US` (16 ms) of the frame instead of 9 ms — the FPS on a
-  run sags, there are fewer voids; and the frame goes to the screen alone: a chunk off the screen is not
+  generation near the player take up to `lag_budget()` of the frame instead of 9 ms: `LAG_BUDGET_US` (16 ms),
+  for `JUMP_SECONDS` (3 s) after a jump of more than a chunk (a teleport, a respawn) `JUMP_BUDGET_US` (30 ms) —
+  the FPS on a run sags, there are fewer voids; once a chunk of the screen is made, the generation takes half
+  of it, so the first ground comes before the last of the screen is made; a jump drops the chunk being built
+  off the new screen (it went on a step a frame), and the maps are painted with what is left of a lagging
+  frame (`paint_queue`, before: one chunk a frame held the ground back for some 240 frames after a
+  teleport); and the frame goes to the screen alone: a chunk off the screen is not
   started (`_ready_on_screen`), a chunk on it already started gets the lag budget at once, and the session
   makes only the first `WANTED_MOST` (4) pending chunks of the order it has not made (`wanted()` →
   `Session.wanted`, `wanted_only`; at other times they go first); walking into new
   land a phone (4–5× slower than a PC here) needs about a second of building a second for the whole zone and
-  has a third of it (2026-11-15), so the sides of the zone wait until the player stops; **the haze at the edge** (the setting «Haze at the edge», key `edge_mist`,
-  on by default, `set_haze`): `edge_haze.gd` covers the chunks on screen without ground with a haze of the
-  sky's background colour (lighter by day), which for `EdgeHaze.FADE` goes onto the built neighbouring chunks
-  and melts; one mesh of quads at the player's height (the cursor's shader), rebuilt only when the set of
-  empty chunks or the level changes, and the chunks are not even looked over while `nodes_changes` (the
+  has a third of it (2026-11-15), so the sides of the zone wait until the player stops; **the fog at the edge** (the setting «Fog at the edge», key `edge_mist`,
+  on by default, `set_haze`; user 2026-11-16, before a haze of the sky's colour): `edge_haze.gd` covers the
+  chunks on screen without ground with a dense white fog (towards the background at night, `NIGHT_KEEP`) with
+  puffy pixel cumulus over it (`shaders/edge_fog.gdshader`, as the user's examples: a cloud or none per
+  `CLOUD_CELL` of the image plane, a row of round heads on a flat base, a tier over its middle and a crown;
+  white tops, pale blue lower sides and rims, blue at the base, borders dithered; drifting; a cloud as big
+  as the fog under its middle, so it shrinks whole as that dissolves); a missing chunk's fog is whole at once, a built one's
+  dissolves over `DISSOLVE` (1.2 s): its clouds shrink and the fog melts by dithering
+  (`bayer4`); how much fog each chunk has (`amounts`) is a texel of a `GRID`² (32) texture round the player,
+  read between the chunks' middles, so the fog thins a few units into the built ones beside; written only
+  while something changes; one quad over the chunks with fog and one round them at the player's height, made
+  again only when that rect or the level changes; its shader is built ahead (`haze_material`, ShaderWarmup);
+  the chunks are not even looked over while `nodes_changes` (the
   changes of `chunk_nodes`), the screen and the level stay and the player is within `LOOK_AGAIN` 0.5; edits are built first (a new edit in a chunk that is already being
   rebuilt for an edit does not start it anew: the building goes to the end, the chunk stands in the queue once
   more — otherwise with frequent digging on a phone the relief was not updated); an edit does not wait for a
@@ -82,7 +95,7 @@ slice, to free the far meshes.
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not
   whole, `covers_side`; the cells at the shapes are candidates, `_take_forms`).
 - `src/client/world/foliage.gd` — the chunk's grass, plants and crowns as a MultiMesh, also by column.
-- `src/client/world/edge_haze.gd` — the haze above unbuilt chunks (see above).
+- `src/client/world/edge_haze.gd`, `shaders/edge_fog.gdshader` — the fog and clouds above unbuilt chunks (see above).
 - `src/client/world/mesh_buffers.gd` — growing vertex buffers; `drifts.gd` — snowdrifts; `tracks.gd` —
   footprints, kept in a map of the ground round the player (`print_map`, repeating every `Tracks.MAP` texels) that
   the ground's shaders read through `footprint()` before the light and the fog, so a fog hides a print as it hides
@@ -94,7 +107,8 @@ slice, to free the far meshes.
   ground, so pits fill with fog and a hill's edge draws no straight seams).
 
 **Interface.** `ChunkStreamer.prepare(gen)`, `build_near(n)`, `run_jobs(spent)`, `gen_budgets()`,
-`take_work()`, `set_focus(at)`, `update_cut(delta)`, `update_caps()`, `refit_boxes()`, `on_cell_changed(cell)`,
+`take_work()`, `set_focus(at)` (the chunks are built round `at`: where the player comes back behind the death
+screen, or where `Trip` goes; the chunks on its screen at the lag budget, `focus_built()` — their share built), `update_cut(delta)`, `update_caps()`, `refit_boxes()`, `on_cell_changed(cell)`,
 `remesh_chunk(key)`; `ChunkMesher.start` / `start_rect` / `step` / `finish` / `patch` / `reach`,
 `Foliage.start` / `start_part` / `part_columns` / `step` / `finish` / `patch`.
 
@@ -122,8 +136,8 @@ timings are noisy on a busy machine, before blaming the code run it alone.
   mesh is one object, beyond the limit neighbouring chunks are lit by different fires.
 
 **Tests.** `tests/unit/mesher_test.gd` (`mesher`, `cap`, `patch`: trees in a forest, taiga and jungle felled
-one by one, a dug cell — the glue equals a full rebuild), `tests/unit/view_test.gd` (`edge_haze`: the haze's
-quads and their edges), `tests/frame_test.gd` (the step's limit — with `LAG_BUDGET_US`), `tools/bench_mesh.gd`,
+one by one, a dug cell — the glue equals a full rebuild), `tests/unit/view_test.gd` (`edge_haze`: the fog is whole
+over a missing chunk at once, dissolves over a built one, and its quad), `tests/frame_test.gd` (the step's limit — with `LAG_BUDGET_US`), `tools/bench_mesh.gd`,
 `tools/bench_edit.gd`, `tools/bench_turn.gd`, `tools/profile.gd`.
 
 **In more detail.** `plan/architecture/performance.md`, `plan/architecture/rendering.md`.

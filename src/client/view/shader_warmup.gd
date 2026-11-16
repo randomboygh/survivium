@@ -116,13 +116,15 @@ func _build() -> void:
 	var kinds := {}
 	_collect(game.view.world_root, kinds)
 	# What may not be around yet: the ground's, water's and the low things' material on a
-	# face like the chunks have, and a window's glass lit from inside (WindowGlow).
+	# face like the chunks have, a window's glass lit from inside (WindowGlow), and the fog
+	# over the edge of the world built (EdgeHaze: first seen after a jump, when a stop hurts most).
 	# The ground's material is on the props too, where no fire's shadow falls.
 	# The things' too, on their own layer (PixelView.LAYER_THINGS), where a fire's real
 	# shadow falls with «Тень на вещах».
 	for m: Array in [[game.world_mat, PixelView.LAYER_GROUND], [game.world_mat, 1], [game.low_mat, 1],
 			[game.water_mat, 1], [game.world_mat, PixelView.LAYER_THINGS], [game.low_mat, PixelView.LAYER_THINGS],
-			[WindowGlow.shared_material(), PixelView.LAYER_THINGS]]:
+			[WindowGlow.shared_material(), PixelView.LAYER_THINGS]] \
+			+ ([[game.chunks.haze_material(), 1]] if game.chunks != null and game.chunks.haze_material() != null else []):
 		var face := MeshInstance3D.new()
 		face.mesh = _face()
 		face.material_override = m[0]

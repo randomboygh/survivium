@@ -168,6 +168,10 @@ const SLEEP := "sleep"
 const LIE_IN := "lie_in"
 ## Comes back to life at a point: [at] (Character.revive).
 const REVIVE := "revive"
+## Has the world made ready where the player is about to go (Character.going): [at],
+## a respawn point (or where they fell, as REVIVE takes it) while dead, a place of the
+## test page while the playtest switches are taken (Requests.may_cheat); true when taken.
+const PREPARE := "prepare"
 ## Says a line in the chat: [text]; true when it was said (the server hands it to the
 ## players within the chat's reach, HEARD; a line that begins with "/" is a command,
 ## done for the server's hosts only, its answer coming back as HEARD from the server).

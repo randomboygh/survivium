@@ -674,25 +674,26 @@ func _test_light_maps() -> void:
 	shadows.free()
 
 
-## The haze over the chunks not built (EdgeHaze): a chunk alone gets its quad, a strip
-## fading out on each side and a corner at each corner; two side by side have no strip
-## between them; the strips go from opaque at the chunk to clear.
+## The fog over the chunks not built (EdgeHaze): a missing chunk's fog is whole at once,
+## a built one's dissolves over DISSOLVE and is dropped; the quad covers the fog and a
+## chunk round it, at the height asked.
 func _test_edge_haze() -> void:
-	var one := EdgeHaze.build_mesh([Vector2i(0, 0)] as Array[Vector2i], 1.0)
-	var n := one.surface_get_array_len(0)
-	_check(n == 9 * 6, "a chunk alone: its quad, four strips and four corners (%d vertices)" % n)
-	var two := EdgeHaze.build_mesh([Vector2i(0, 0), Vector2i(1, 0)] as Array[Vector2i], 1.0)
-	_check(two.surface_get_array_len(0) == 2 * (1 + 3 + 2) * 6, "two side by side: no strip and no corners between them")
-	var arrays := one.surface_get_arrays(0)
-	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
-	var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
-	var ok := true
-	for i in verts.size():
-		var v := verts[i]
-		var inside := v.x >= 0.0 and v.x <= 8.0 and v.z >= 0.0 and v.z <= 8.0
-		if (colors[i].a == 1.0) != inside or v.y != 1.0:
-			ok = false
-	_check(ok, "opaque on the chunk, clear at the far edge of the strips, at the height asked")
+	var amounts := {}
+	var a := Vector2i(0, 0)
+	var b := Vector2i(1, 0)
+	_check(EdgeHaze.step(amounts, [a, b] as Array[Vector2i], 0.0) and amounts == {a: 1.0, b: 1.0},
+		"the chunks missing are covered whole at once")
+	EdgeHaze.step(amounts, [a] as Array[Vector2i], EdgeHaze.DISSOLVE * 0.5)
+	_check(amounts[a] == 1.0 and is_equal_approx(amounts[b], 0.5), "a chunk built dissolves: %s" % [amounts])
+	EdgeHaze.step(amounts, [a] as Array[Vector2i], EdgeHaze.DISSOLVE)
+	_check(amounts == {a: 1.0}, "and is dropped once clear")
+	_check(EdgeHaze.cover([a, b]) == Rect2i(-1, -1, 4, 3), "the quad covers the fog and a chunk round it")
+	var mesh := EdgeHaze.build_mesh(Rect2i(0, 0, 1, 1), 1.0)
+	var verts: PackedVector3Array = mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	var ok := verts.size() == 6
+	for v in verts:
+		ok = ok and v.y == 1.0 and v.x >= 0.0 and v.x <= 8.0 and v.z >= 0.0 and v.z <= 8.0
+	_check(ok, "one quad over the chunks, at the height asked")
 
 
 ## The graphics quality the game picks itself: the steps run from «высокое» through

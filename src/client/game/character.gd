@@ -91,6 +91,15 @@ func _fell() -> void:
 		game.hud.toggle_bag()
 
 
+## Takes the player to column `cell` (the playtest page) once the world there is built
+## (Trip): the player goes on meanwhile.
+func travel_to_column(cell: Vector2i) -> void:
+	if game.trip.going():
+		return
+	game.hud.toast("[getting_the_place_ready]")
+	game.trip.go(Vector3(cell.x + 0.5, 0.0, cell.y + 0.5) * CELL, go_to_column.bind(cell))
+
+
 ## Takes the player to column `cell` (the playtest page): over the ground as the
 ## generator lays it out, held there until the chunk is made, then onto level grass
 ## near it (see WorldGen.find_spawn), or onto the water where there is none.

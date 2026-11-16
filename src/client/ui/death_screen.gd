@@ -61,6 +61,9 @@ var _sack: Label
 var _sack_row: HBoxContainer
 var _note: Label
 var _respawn: VBoxContainer
+## The respawn button pressed while the place is being built (Trip), and its words.
+var _going_button: Button
+var _going_text := ""
 var _menu_button: Button
 var _new_button: Button
 var _stats_panel: PanelContainer
@@ -199,6 +202,8 @@ func update() -> void:
 	if visible:
 		# The main menu, closing, shows the interface again.
 		game.hud.visible = false
+		if _going_button != null and is_instance_valid(_going_button) and game.trip.going():
+			_going_button.text = Lang.f("[getting_the_place_ready_d]", [roundi(100.0 * game.trip.progress())])
 		var hud: Control = game.hud
 		if Rect2(hud.position, hud.size * hud.scale) != _fit_for or scale != hud.scale:
 			_fit()
@@ -286,7 +291,8 @@ func _fill() -> void:
 	for p: Array in choices:
 		var at: Vector3 = p[1]
 		var title := Lang.t(p[0])
-		var b := _button(_respawn, Lang.f("[respawn]", [title.left(1).to_lower() + title.substr(1)]), func() -> void: _revive(at))
+		var b := _button(_respawn, Lang.f("[respawn]", [title.left(1).to_lower() + title.substr(1)]), Callable())
+		b.pressed.connect(_revive.bind(at, b))
 		UiStyle.accent(b)
 		b.add_theme_color_override("font_focus_color", UiStyle.DARK_INK)
 	var has_menu: bool = game.menu != null
@@ -380,7 +386,28 @@ static func _where(sack: Variant, point: Array) -> String:
 	return Lang.f("[m_of]", [roundi(d.length()), DIRECTIONS[sector], title])
 
 
-func _revive(at: Vector3) -> void:
+## Comes back at `at` once the world there is built (Trip); the button pressed (`b`, null
+## for a key) tells how much of it is meanwhile.
+func _revive(at: Vector3, b: Button = null) -> void:
+	if game.trip.going():
+		return
+	_going_button = b
+	_going_text = b.text if b != null else ""
+	for c in _respawn.get_children():
+		if c is Button:
+			c.disabled = c != b
+	game.trip.go(at, _come_back.bind(at))
+
+
+func _come_back(at: Vector3) -> void:
+	if _going_button != null and is_instance_valid(_going_button):
+		_going_button.text = _going_text
+	_going_button = null
+	for c in _respawn.get_children():
+		if c is Button:
+			c.disabled = false
+	if not game.character.is_dead():
+		return
 	game.net.request(Protocol.REVIVE, [at])
 	visible = false
 	game.hud.visible = true

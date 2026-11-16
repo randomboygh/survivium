@@ -164,6 +164,12 @@ var home := Vector3.ZERO
 ## The other places to come back at, best first, as find_respawns found them on the
 ## server (the client's copy is told them with the state): [[title, position]…].
 var respawns: Array = []
+## Where the character is about to go, in world units (a respawn point picked on the
+## death screen, a place of the test page's): the world is made there too (Session.zones),
+## so the jump lands in a world built; INF for none. Set by Protocol.PREPARE, dropped on
+## arriving (revive, a teleport) or Session.GOING_MS after it was asked for (going_ms, Time).
+var going := Vector3.INF
+var going_ms := 0
 ## The character's death while they lie dead, else empty: "cause" (Vitals.hurt_by),
 ## "day" and "time" (the clock), "at" (where they fell, world units), "sack" (where
 ## the sack lies, or null), "lost" ([id, count] of each stack the sack holds), "life"
@@ -770,6 +776,7 @@ func find_respawns(camp, teams) -> bool:
 func revive(at: Vector3) -> void:
 	death = {}
 	life = {}
+	going = Vector3.INF
 	born = _now()
 	_last_at = Vector3.INF
 	forget_fall()
