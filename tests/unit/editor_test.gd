@@ -15,6 +15,7 @@ func run() -> void:
 	_test_own_mods()
 	_test_edits()
 	_test_new_records()
+	_test_field_names()
 
 
 ## Writing YAML that the reader reads back as the same value.
@@ -192,3 +193,19 @@ func _test_new_records() -> void:
 	Lang.reread()
 	Lang.drop()
 	_check(Content.find("creatures", "mine:dog").is_empty(), "the game is as it was")
+
+
+## Every field a form shows has a name and a line in the game's languages (FieldNames).
+func _test_field_names() -> void:
+	var FieldNames := load("res://src/client/ui/editor/field_names.gd")
+	var RecordForm := load("res://src/client/ui/editor/record_form.gd")
+	var english := Lang.english()
+	var bad := []
+	for kind: String in Content.SCHEMAS:
+		for field: String in Content.schema(kind):
+			if field in RecordForm.HIDDEN:
+				continue
+			var keys: Array = FieldNames.of(kind, field)
+			if keys[1] == "" or english.text_of(keys[0]) == keys[0] or english.text_of(keys[1]) == keys[1]:
+				bad.append("%s.%s" % [kind, field])
+	_check(bad.is_empty(), "every field has a name and a line: not %s" % [bad.slice(0, 8)])

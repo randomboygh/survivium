@@ -1,6 +1,7 @@
 extends VBoxContainer
 ## The form of one record in the content editor (content_editor.gd), made from its kind's
-## schema (Content.schema): a row per field, its name on the left (the YAML's) and what
+## schema (Content.schema): a row per field, its name on the left (in the game's language,
+## FieldNames; under the row a line on what it does and the YAML's name) and what
 ## changes it on the right — a switch for a bool, a row of values with arrows for a
 ## choice of a few (an enum, a whole number in a short range), a text field for the rest
 ## (a number, a word, an id, or a list or mapping written as YAML on one line:
@@ -17,6 +18,7 @@ const Content := preload("res://src/shared/content/content.gd")
 const ContentEdits := preload("res://src/shared/content/content_edits.gd")
 const Yaml := preload("res://src/shared/content/yaml.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const FieldNames := preload("res://src/client/ui/editor/field_names.gd")
 
 ## The fields not in the form: the id, the title and description (texts on top), the
 ## loader's own.
@@ -63,7 +65,7 @@ func _init(kind_: String, rec_: Dictionary, name_width: float) -> void:
 			_switch(field, value == true, name_width)
 		elif not steps.is_empty():
 			_picked[field] = steps.find(str(value))
-			_choices.add(self, field, steps, func() -> int: return _picked[field],
+			_choices.add(self, FieldNames.of(kind, field)[0], steps, func() -> int: return _picked[field],
 				func(i: int) -> void:
 					_picked[field] = i
 					_mark(field)
@@ -71,6 +73,7 @@ func _init(kind_: String, rec_: Dictionary, name_width: float) -> void:
 			fields[field] = ["choice", _choices.rows[-1].name, steps]
 		else:
 			_text(field, value, spec, name_width)
+		_about(field)
 		_mark(field)
 	_choices.refresh()
 
@@ -86,7 +89,7 @@ static func _steps(spec: Dictionary) -> Array:
 
 func _switch(field: String, on: bool, name_width: float) -> void:
 	var row := Kit.row(4)
-	var name := _name(field, name_width)
+	var name := _name(FieldNames.of(kind, field)[0], name_width)
 	row.add_child(name)
 	var sw := Kit.check("", on)
 	sw.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -100,7 +103,7 @@ func _switch(field: String, on: bool, name_width: float) -> void:
 
 func _text(field: String, value: Variant, spec: Dictionary, name_width: float) -> void:
 	var row := Kit.row(4)
-	var name := _name(field, name_width)
+	var name := _name(FieldNames.of(kind, field)[0], name_width)
 	row.add_child(name)
 	var hint := ""
 	if spec.has("min") or spec.has("max"):
@@ -140,6 +143,16 @@ func texts_changed() -> Dictionary:
 		if now != texts[field][2]:
 			out[field] = now
 	return out
+
+
+## The line under field `field`'s row: what it does, and its name in the YAML.
+func _about(field: String) -> void:
+	var about: String = FieldNames.of(kind, field)[1]
+	var text := field if about == "" else "%s · %s" % [Lang.t(about), field]
+	var l := UiStyle.label(text, UiStyle.MUTED)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	add_child(l)
 
 
 func _name(field: String, width: float) -> Label:
