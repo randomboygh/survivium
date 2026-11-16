@@ -1,5 +1,6 @@
 extends RefCounted
-## A PNG picked from the device for the content editor (stage 2 item 3, step 4): the
+## A file picked from the device for the content editor (stage 2 item 3, steps 4 and 6: a
+## PNG, a zip of a mod): the
 ## system's file picker on a computer and a phone (as ModImport picks a zip), a file input
 ## of the page in the browser. `done` gets the file's bytes and its name; nothing is called
 ## when the picker is left. What the bytes are is the caller's to check (ModFiles.may_be).
@@ -11,10 +12,10 @@ const Lang := preload("res://src/shared/content/lang.gd")
 const PAGE := """(function () {
 	'use strict';
 	var p = window.survivium_pick = window.survivium_pick || {};
-	p.open = function () {
+	p.open = function (accept) {
 		var input = document.createElement('input');
 		input.type = 'file';
-		input.accept = 'image/png';
+		input.accept = String(accept);
 		input.onchange = function () {
 			var f = input.files && input.files[0];
 			if (!f || !p.done) { return; }
@@ -39,18 +40,20 @@ static func can_pick() -> bool:
 	return OS.has_feature("web") or DisplayServer.has_feature(DisplayServer.FEATURE_NATIVE_DIALOG_FILE)
 
 
-## Opens the picker; `done(bytes: PackedByteArray, name: String)` gets the file picked.
-static func pick(done: Callable) -> void:
+## Opens the picker; `done(bytes: PackedByteArray, name: String)` gets the file picked:
+## a PNG, or a zip when `zip`.
+static func pick(done: Callable, zip := false) -> void:
 	if OS.has_feature("web"):
 		_done = done
 		if _callback == null:
 			JavaScriptBridge.eval(PAGE, true)
 			_callback = JavaScriptBridge.create_callback(_picked)
 			JavaScriptBridge.get_interface("survivium_pick").done = _callback
-		JavaScriptBridge.eval("window.survivium_pick.open();", true)
+		JavaScriptBridge.eval("window.survivium_pick.open('%s');" % (".zip,application/zip" if zip else "image/png"), true)
 		return
-	DisplayServer.file_dialog_show(Lang.t("[editor_pick_png]"), "", "", false,
-		DisplayServer.FILE_DIALOG_MODE_OPEN_FILE, PackedStringArray(["*.png;PNG;image/png"]),
+	DisplayServer.file_dialog_show(Lang.t("[editor_import_zip]" if zip else "[editor_pick_png]"), "", "", false,
+		DisplayServer.FILE_DIALOG_MODE_OPEN_FILE,
+		PackedStringArray(["*.zip;ZIP;application/zip"] if zip else ["*.png;PNG;image/png"]),
 		func(ok: bool, paths: PackedStringArray, _filter: int) -> void:
 			if ok and not paths.is_empty():
 				done.call(FileAccess.get_file_as_bytes(paths[0]), paths[0].uri_decode().get_file()))

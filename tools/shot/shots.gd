@@ -815,6 +815,8 @@ const SHOTS := {
 		"edit_check": true},
 	"editor-picture": {"time": 0.45, "season": 1, "touch": true, "menu": true, "editor": "creatures", "record": "animals:wolf",
 		"editor_mod": "my_mod", "picture": ["sprite", "res://content/animals/fox/sprites/creatures/fox.png"], "scroll_to": "walk"},
+	"editor-zips": {"time": 0.45, "season": 1, "touch": true, "menu": true, "editor": "items", "editor_mod": "my_mod",
+		"zips": true},
 	"editor-voxel": {"time": 0.45, "season": 1, "touch": true, "menu": true, "editor": "items", "record": "tools:workbench",
 		"editor_mod": "my_mod", "voxel": "model", "voxel_level": 4, "voxel_paint": [[2, 2], [3, 2], [4, 2], [5, 2], [5, 3]]},
 	"editor-voxel-new": {"time": 0.45, "season": 1, "touch": true, "menu": true, "editor": "items", "record": "resources:stone",

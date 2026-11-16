@@ -65,8 +65,11 @@ the code sees content.
   (round its middle for a thing lying, its corner for one placed on cells), a palette of the model's colours
   and the game's, lighter and darker, a leaf switch (alpha 128, tinted by the season); «Undo» takes back a
   stroke. The model is `voxel_sheet.gd` (`VoxelSheet`: the PNG of slices `VoxelModel.from_image` reads);
-  «Save» writes it as a picture (`ContentEdits.picture`). Upright, one column; sideways, three. A zip and
-  the server come next (plan: `plan/mvp.md`,
+  «Save» writes it as a picture (`ContentEdits.picture`). Upright, one column; sideways, three. «Export
+  zip» packs the chosen own mod (`ModImport.pack`, `src/client/mod_import.gd`: `<mod>/…`, only files a mod
+  may have) and hands it out (`ModImport.offer`: the browser's download, else the system's save dialog);
+  «Import zip» takes one in (`PicturePick.pick(…, true)`, `ModImport.unpack_bytes` into `OwnMods.root()`,
+  never over a mod that is not one's own) and chooses the mod it brought. The server comes next (plan: `plan/mvp.md`,
   stage 2 item 3; state: `docs/planning/editor.md`).
 - Where the mods lie (decision 186): `Content.ROOT` — the folder `content/` beside the program in the built
   game on PC (Windows, Linux), if it has `core/mod.yaml` (`Content.find_root`, `Content.beside()`), otherwise

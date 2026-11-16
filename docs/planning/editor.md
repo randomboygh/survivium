@@ -39,12 +39,25 @@ continues it. Stage 2 item 3 of `plan/mvp.md` (decision 186, 11А 12А 13А).
   `voxel_editor.gd` (`VoxelSheet` the PNG of slices with undo, `SliceGrid` painting with the level under it
   faint, `VoxelPreview` turning in its own world); saved through `ContentEdits.picture`. Shots
   `editor-voxel`, `editor-voxel-new` (`voxel`, `voxel_level`, `voxel_paint`, `voxel_turn`, `voxel_save`).
+- Step 6: «Export zip» / «Import zip» on top of the editor (`ModImport.pack`, `offer` — browser download,
+  native save dialog — `unpack_bytes` with `refuse` for mods not one's own; `PicturePick.pick(done, true)`).
+  Shot `editor-zips` (`zips` key). Android's save dialog writing to a content:// path is untested on a phone.
 
 ## Left, in order (one PR each)
 
-6. Zip export and import of an own mod (browser: download through JavaScriptBridge; `ModImport.unpack`).
 7. Server: an author's edits as requests (`protocol.gd`, `requests.gd`, rights, `Requests.PACED`, a test in
    `security_test.gd`), the server writes into its folder and its `reload` sends the files to players.
+   Proposed shape (not built yet): the editor keeps writing the own mod locally as now; when the game is
+   joined to a server (`game.link.join_url != ""`) and is its host (`welcome.host`), after each write it sends
+   the whole mod folder (`ModImport.pack` bytes, the mod's files are small) as one request, e.g. `MOD_PUT`
+   {mod, zip}. The server: only `Server.is_host(key)` (else `flag`), the mod id `OwnMods.valid_id` and not a
+   mod that is not own there, size ≤ `ModImport.ZIP_MAX`, unpacked with `ModImport`'s checks — but that file
+   is client code: move `unpack_bytes`/`sizes_of`/`placing` into `src/shared/content/` first (layers rule) —
+   into its own-mods root, the files of the mod not in the zip removed; then the mod's bundles join the
+   world set (`content.read(set)`, the world's save `bundles`, `Mods.activate`) and `reload_mods()` sends the
+   files to every player (`mods_changed`). Paced (`Requests.PACED`, a few seconds) so it cannot be spammed.
+   A server made in the game (same process) can skip the request: call `server.content.read(set)` with the
+   mod's bundles and `mods_reread()` after `ContentEditor._apply`.
 
 ## Known gaps
 

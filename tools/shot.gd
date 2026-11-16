@@ -554,6 +554,10 @@ func _run() -> void:
 				var editor: Control = main.hud.open_editor()
 				await process_frame
 				editor._set_kind(editor.KINDS.map(func(k: Array) -> String: return k[0]).find(shot.editor))
+				# `zips`: «Export zip» and «Import zip» shown, as where the system has a file dialog.
+				if shot.get("zips", false):
+					for b: Control in editor._export.get_parent().get_children():
+						b.visible = true
 				if shot.has("record"):
 					editor.open(shot.record)
 				# `copy`: the id typed into «Copy»'s row; `copy_make`: the copy made (and opened).
