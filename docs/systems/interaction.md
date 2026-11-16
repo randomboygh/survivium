@@ -23,9 +23,9 @@ lies around. The rules are shared (the server checks them), input and hints are 
   `actions_build.gd` (`place_at`, `can_place`, `plant`) ← `actions_farm.gd` (farming: `farm_at` — a touch with
   a hoe turns grass or earth into a bed `Mat.BED`, a touch with a full watering can waters the bed
   (`Mat.BED_WET` for `WET_DAYS`; the can is a tool of the class `can`, its waterings are its `durability`,
-  when empty it becomes `empties_to`), a ripe crop is reaped by hands and a sickle (`area` cells), a scythe
+  when empty it becomes `empties_to`, a watering takes its `water_swing` seconds), a ripe crop is reaped by hands and a sickle (`area` cells), a scythe
   only takes `mown`; hands do not dig a bed, a shovel does, and the crop is lost; `plant_at` for an item with
-  `crop` sows on an empty bed, not in winter; `front_farm` / `farm_in_front` — the same with the action
+  `crop` sows on an empty bed, not in winter (its `sow_swing` seconds); `front_farm` / `farm_in_front` — the same with the action
   button, `front_kind` «till», «water», «reap»; `step_fields` / `grow_fields` — a step of the session once per
   `FIELD_TICK`: rain `Clock.rain` ≥ `RAIN_WETS` wets beds under the open sky, a wet one dries after a day, a
   crop on a wet bed grows in the warm seasons (`grow_days` days to ripe), in winter and under a block it
@@ -36,14 +36,15 @@ lies around. The rules are shared (the server checks them), input and hints are 
   chunk; a chunk remembers how many warm days it has lived (`Chunk.grown`, saved; −1 — from today), and one
   that lags behind `Clock.warm_days` catches up in one pass with the chances of all the missed days (no more
   than `CATCH_UP_DAYS`); the chances are yearly, divided by `WARM_DAYS` (`chance_over`); `regrow_row`: bare
-  natural earth next to grass grows over (`GRASS_BACK`, where the biome lays grass), a bush sets a like one
-  beside it (`BUSH_SEED`, `BUSH_REACH`), a grown living tree drops a seed on open earth of the lattice with no
-  trunks within `TREE_ROOM` (`TREE_SEED`, `TREE_REACH`) — a sapling (`sapling_of`: its own or one like it by
+  natural earth next to grass grows over (the biome's `grass_back`, where the biome lays grass), a bush sets a
+  like one beside it (the bush's `seeding`, `seed_reach`, `seed_tries`), a grown living tree drops a seed on open
+  earth of the lattice with no trunks within its `seed_room` (the tree's `seeding`, `seed_reach`, `seed_tries`;
+  all content data, the chances by record cached for the row) — a sapling (`sapling_of`: its own or one like it by
   the leaves; a bed's record `[sapling, days, 0, tree]`, the fourth field is the kind, `sapling_tree`) that
   grows like a planted one; on occupied ground — as everywhere)
   ← `actions_tame.gd` (taming from the hand, decision 178: `tended` — the animal in front within
   `TEND_REACH` whose kind has `tame_food`: a wild one if its food is in the hand, one's own tame one always;
-  `tend_kind` — «feed», «shear», «stay», «follow»; `tend` with the action button before a blow: feeds (after
+  `tend_kind` — «feed», «shear», «stay», «follow»; `tend` (the kind's `tend_swing` seconds) with the action button before a blow: feeds (after
   `tame_feeds` feedings the animal is the feeder's, `Animal.owner` = `Player.id`), shears with a knife
   (`Tools.shears`, once per `wool_days`, the item `wool`), with an empty hand or a non-weapon — «Stay» here
   (`Animal.stay`) or «Call»; a knife with no wool ready hits; someone else's tame animal is not hit
@@ -60,8 +61,9 @@ lies around. The rules are shared (the server checks them), input and hints are 
   action button facing open water (`launch_spot`: the water column ahead within `LAUNCH_REACH`, the whole
   hull `Body.HULL` on water of one level, the surface no farther than `LAUNCH_DROP` from the feet) is put on
   the water — leaves the bag and floats (`Vessels`), the character sits in it and rows (`Character.riding`,
-  `vessel`, `seat` 0; `front_kind` «launch»); facing a vessel with a free seat — «board»: the first rows, the
-  second rides (seat 1, `seat_at` — behind the rower); `step_boats` — a step of the session: the vessel
+  `vessel`, `seat` 0; `front_kind` «launch»); facing a vessel with a free seat (the item's `seats`,
+  `Vessels.seats`) — «board»: the first rows, the others ride (seat 1, `seat_at` — behind the rower); a launch,
+  a boarding and a step ashore take the item's `board_swing` seconds; `step_boats` — a step of the session: the vessel
   follows the rower; once per `BOATS_EVERY` the seats are put in order (the rower left — the second starts
   rowing, no vessel — into the water), and from frozen water — to the nearest shore within `ASHORE_ROUND`;
   facing the shore (`ashore_spot`) — «ashore», the vessel stays at the shore; a touch of an empty vessel

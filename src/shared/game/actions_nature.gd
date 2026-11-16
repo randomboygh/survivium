@@ -6,7 +6,9 @@ extends "res://src/shared/game/actions_farm.gd"
 ## beside it; a grown tree's seed now and then takes root on open ground near it, a
 ## sapling (ActionsFarm) that grows into the same species. So a felled wood comes back
 ## from the trees left at its edge, a dug-out bush from its neighbours. The chances are
-## a year's (GRASS_BACK, BUSH_SEED, TREE_SEED), shared out over its warm days.
+## a year's, data of the content (a biome's `grass_back`, a bush's and a tree's
+## `seeding`, with their `seed_reach`, `seed_tries` and a tree's `seed_room`), shared out
+## over its warm days.
 ##
 ## A chunk keeps the count of warm days it has grown for (Chunk.grown, saved with it): one
 ## the clock has passed a warm day since (Clock.warm_days) is worked again, a row of
@@ -15,21 +17,10 @@ extends "res://src/shared/game/actions_farm.gd"
 ## catches up at once. A chunk first made, or saved before this, starts from today.
 
 const BiomesData := preload("res://src/shared/content/biomes.gd")
+const ContentSchema := preload("res://src/shared/content/content_schema.gd")
 
 ## Seconds between two rows of columns worked (each NATURE_ROWS rows of a chunk).
 const NATURE_EVERY := 0.1
-## The chance a bare natural ground cell beside grass grows over in a year.
-const GRASS_BACK := 0.6
-## The chance a bush puts a new one beside it in a year, and how far, in cells.
-const BUSH_SEED := 0.15
-const BUSH_REACH := 3
-## The chance a grown tree's seed takes root near it in a year, how far (in cells), and
-## how many columns round the spot must be free of trunks.
-const TREE_SEED := 0.12
-const TREE_REACH := 7
-const TREE_ROOM := 3
-## Tries to find a spot for a bush's or a tree's seed.
-const SEED_TRIES := 4
 ## A level no ground has (see _ground_top).
 const NO_GROUND := -(1 << 20)
 ## The warm days of a year (spring, summer and autumn), over which its chances are
@@ -99,9 +90,10 @@ static func chance_over(year: float, share: float) -> float:
 ## Works `share` of a year (see _nature_share) on row `row` (z within the chunk) of chunk
 ## `key`: each column's ground on top (see the top of the file).
 func regrow_row(key: Vector2i, row: int, share := 1.0) -> void:
-	var grass_back := chance_over(GRASS_BACK, share)
-	var bush_seed := chance_over(BUSH_SEED, share)
-	var tree_seed := chance_over(TREE_SEED, share)
+	# The chances over `share` by biome, bush type and tree species (index -> chance).
+	var grass_back := {}
+	var bush_seed := {}
+	var tree_seed := {}
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([key, row, clock.warm_days, clock.day])
 	var z := key.y * WorldData.CHUNK + row
@@ -114,35 +106,52 @@ func regrow_row(key: Vector2i, row: int, share := 1.0) -> void:
 		var cell := Vector3i(x, y, z)
 		var m: int = world.get_cell(x, y, z)
 		if m == Mat.DIRT and world.is_natural(x, y, z) and _grass_biome(x, z) and _grass_beside(cell) \
-				and rng.randf() < grass_back:
+				and rng.randf() < _grass_chance(world.biome_at(x, z), share, grass_back):
 			world.set_turf(cell, null)
 			world.set_material(x, y, z, Mat.GRASS)
 			_changed(cell)
 		var up := cell + Vector3i.UP
-		if world.bushes.has(up) and rng.randf() < bush_seed:
-			var spot: Variant = _bush_spot(up, rng)
+		if world.bushes.has(up) and rng.randf() < _chance(Bushes.TYPES, world.bushes[up], share, bush_seed):
+			var spot: Variant = _bush_spot(up, Bushes.TYPES[world.bushes[up]], rng)
 			if spot != null:
 				Growth.place_bush(world, spot.x, spot.y, spot.z, world.bushes[up])
 				world.note_bush(spot)
 				looks[WorldData.chunk_key(spot.x, spot.z)] = true
 	# The trees whose trunk stands in the row.
 	for col: Vector2i in world.tree_chunks.get(key, {}).keys():
-		if col.y != z or rng.randf() >= tree_seed:
+		if col.y != z or rng.randf() >= _chance(Trees.SPECIES, world.trees[col], share, tree_seed):
 			continue
-		var s: Dictionary = Trees.SPECIES[world.trees[col]] if world.trees[col] < Trees.SPECIES.size() else {}
+		var s: Dictionary = Trees.SPECIES[world.trees[col]]
 		if s.is_empty() or s.get("dead", false) or _young_ground(col.x, col.y) != null \
 				or world.get_cell(col.x, _ground_top(col.x, col.y) + 1, col.y) != Mat.LOG:
 			continue
 		var sapling := sapling_of(s.id)
 		if sapling == "":
 			continue
-		var spot: Variant = _tree_spot(col, rng)
+		var spot: Variant = _tree_spot(col, s, rng)
 		if spot != null:
 			world.set_field(spot, [sapling, 0.0, 0.0, s.id])
 			world.note_edit(spot.x, spot.z)
 			looks[WorldData.chunk_key(spot.x, spot.z)] = true
 	for k in looks:
 		looks_changed.emit(k)
+
+
+## The chance over `share` of a year of the `seeding` of record `i` of `list` (a bush
+## type's, a tree species'), kept in `known` by index; 0 for a record not loaded.
+static func _chance(list: Array, i: int, share: float, known: Dictionary) -> float:
+	if not known.has(i):
+		known[i] = chance_over(list[i].seeding, share) if i >= 0 and i < list.size() else 0.0
+	return known[i]
+
+
+## The chance over `share` of a year that bare ground beside grass in biome `b` grows over
+## (its `grass_back`; the schema's default where the biome is not known), kept in `known`.
+static func _grass_chance(b: int, share: float, known: Dictionary) -> float:
+	if not known.has(b):
+		var r := BiomesData.of(b)
+		known[b] = chance_over(r.get("grass_back", ContentSchema.default_of("biomes", "grass_back")), share)
+	return known[b]
 
 
 ## The sapling plant a seed of tree species `tree` sprouts as: its own (a sapling whose
@@ -203,12 +212,14 @@ func _grass_beside(cell: Vector3i) -> bool:
 	return false
 
 
-## An air cell near bush cell `at` where a new bush fits: on grass a level up or down at
-## most, with no bush beside it; null for none found.
-func _bush_spot(at: Vector3i, rng: RandomNumberGenerator) -> Variant:
-	for i in SEED_TRIES:
-		var x := at.x + rng.randi_range(-BUSH_REACH, BUSH_REACH)
-		var z := at.z + rng.randi_range(-BUSH_REACH, BUSH_REACH)
+## An air cell near bush cell `at` (of type `bush`, its record: `seed_reach`,
+## `seed_tries`) where a new bush fits: on grass a level up or down at most, with no bush
+## beside it; null for none found.
+func _bush_spot(at: Vector3i, bush: Dictionary, rng: RandomNumberGenerator) -> Variant:
+	var reach: int = bush.seed_reach
+	for i in bush.seed_tries:
+		var x := at.x + rng.randi_range(-reach, reach)
+		var z := at.z + rng.randi_range(-reach, reach)
 		var y := _ground_top(x, z)
 		if y == NO_GROUND or absi(y + 1 - at.y) > 1 or world.get_cell(x, y, z) != Mat.GRASS:
 			continue
@@ -228,28 +239,30 @@ func _bush_beside(at: Vector3i) -> bool:
 	return false
 
 
-## A ground cell near the trunk in column `col` where its seed takes root (see can_root):
-## on the trees' lattice, with no trunk within TREE_ROOM columns; null for none found.
-func _tree_spot(col: Vector2i, rng: RandomNumberGenerator) -> Variant:
-	for i in SEED_TRIES:
-		var x := (col.x + rng.randi_range(-TREE_REACH, TREE_REACH)) | 1
-		var z := (col.y + rng.randi_range(-TREE_REACH, TREE_REACH)) | 1
+## A ground cell near the trunk in column `col` (of species `s`, its record: `seed_reach`,
+## `seed_room`, `seed_tries`) where its seed takes root (see can_root): on the trees'
+## lattice, with no trunk within `seed_room` columns; null for none found.
+func _tree_spot(col: Vector2i, s: Dictionary, rng: RandomNumberGenerator) -> Variant:
+	var reach: int = s.seed_reach
+	for i in s.seed_tries:
+		var x := (col.x + rng.randi_range(-reach, reach)) | 1
+		var z := (col.y + rng.randi_range(-reach, reach)) | 1
 		if Vector2i(x, z) == col:
 			continue
 		var y := _ground_top(x, z)
 		if y == NO_GROUND:
 			continue
 		var cell := Vector3i(x, y, z)
-		if Mat.is_bed(world.get_cell(x, y, z)) or not can_root(cell) or _trunk_near(x, z):
+		if Mat.is_bed(world.get_cell(x, y, z)) or not can_root(cell) or _trunk_near(x, z, s.seed_room):
 			continue
 		return cell
 	return null
 
 
-## True when a trunk stands within TREE_ROOM columns of column x, z.
-func _trunk_near(x: int, z: int) -> bool:
-	for dz in range(-TREE_ROOM, TREE_ROOM + 1):
-		for dx in range(-TREE_ROOM, TREE_ROOM + 1):
+## True when a trunk stands within `room` columns of column x, z.
+func _trunk_near(x: int, z: int, room: int) -> bool:
+	for dz in range(-room, room + 1):
+		for dx in range(-room, room + 1):
 			if world.trees.has(Vector2i(x + dx, z + dz)):
 				return true
 	return false
