@@ -3,7 +3,7 @@
 Part of [Interface and settings](../ui.md). Texts, the pitfalls of the keyboard and the browser, the tests.
 
 **Data.** The interface's texts are keys `[…]` in the UI code, translated by `lang/<code>.yaml`
-([lang.md](../lang.md)); item pictures are with their bundles; the loading tips — `MainMenu.TIPS`; the sky's
+([lang.md](../lang.md)); item pictures are with their bundles; the loading tips — `TIPS` of `menu_loading.gd`; the sky's
 colours by the clock — `MainMenu.SKIES`.
 
 **Pitfalls**
