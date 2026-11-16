@@ -87,6 +87,16 @@ const TIPS := [
 	"[to_play_with_friends_choose]",
 	"[the_testing_tab_sets_the]",
 	"[white_fog_at_the_edge]",
+	"[a_bed_of_planks_and]",
+	"[rain_and_snow_make_you]",
+	"[a_fall_from_higher_than]",
+	"[a_poultice_of_moss_and]",
+	"[hold_the_food_an_animal]",
+	"[a_clay_pot_fired_in]",
+	"[fur_and_leather_clothes_made]",
+	"[invite_a_player_to_your]",
+	"[steel_is_made_of_an]",
+	"[when_cold_you_dont_heal]",
 ]
 ## The seed written over the map.
 var _map_seed: Label
