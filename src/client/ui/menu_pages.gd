@@ -15,6 +15,7 @@ const SETTINGS_MENU := "res://src/client/ui/settings_menu.gd"
 const WORLD_LIST := "res://src/client/ui/world_list.gd"
 const JOIN_SCREEN := "res://src/client/ui/join_screen.gd"
 const HOST_SCREEN := "res://src/client/ui/host_screen.gd"
+const CONTENT_EDITOR := "res://src/client/ui/editor/content_editor.gd"
 ## The name's top as a share of the screen's height, and UI px between it and the column.
 const TITLE_AT := 0.1
 const GAP := 14
@@ -85,7 +86,7 @@ func _fill_page(page: String) -> void:
 			else:
 				_add_button(_box, "single", "[single_player]", _fill_page.bind("single"))
 			_add_button(_box, "multi", "[multiplayer]", _fill_page.bind("multi"))
-			_add_button(_box, "editor", "[editor]", Callable(), "[soon]")
+			_add_button(_box, "editor", "[editor]", _open_editor)
 			_add_button(_box, "changes", "[whats_new]", _open_changes)
 			if LastLog.crashed:
 				_add_button(_box, "crash", "[crash_log]", _open_crash_log)
@@ -446,6 +447,16 @@ func _open_crash_log() -> void:
 	_column.visible = false
 	settings_menu().open("crash", "")
 	_settings.fit(_screen.size)
+
+
+## The content editor over the menu (no world: what it changes is seen in the next one).
+func _open_editor() -> void:
+	_column.visible = false
+	var editor: Control = load(CONTENT_EDITOR).new(game)
+	editor.closed.connect(func() -> void:
+		_column.visible = not loading
+		_fit())
+	_screen.add_child(editor)
 
 
 ## The settings over the menu, made the first time they are asked for.

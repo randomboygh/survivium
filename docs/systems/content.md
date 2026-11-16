@@ -31,10 +31,20 @@ the code sees content.
   phone's folder, `find_extra`); `make(id, name)` writes a mod.yaml with `own: true` (`MOD_SCHEMA`) and its
   English name; `put` writes a record of a kind into `data/<kind>.yaml`, `patch` a patch of another mod's
   record (`patch: true`, only the fields given, gathered into one patch per record), `remove` takes one out.
-  Writing changes only files: the caller rereads the mods. `src/client/ui/editor/content_editor.gd` — the
-  editor's window (pause menu → «Content editor»): the kind (`KINDS`), a search by name or id, the list of
-  records, a record's fields as loaded (defaults faded), where it comes from and which bundles patch it. The
-  forms that change a record come next (plan: `plan/mvp.md`, stage 2 item 3).
+  Writing changes only files: the caller rereads the mods. `src/shared/content/content_edits.gd`
+  (`ContentEdits`) — a form's changes: `check` (a field's value against its schema, as the loader checks it),
+  `data_of` (a loaded value back to the data's: colours, vectors), `changed` (the fields that differ from the
+  loaded record), `save` (into the record itself when it is the mod's own — `owns` — else a patch of the
+  other's: the game's files are never written, 2А) and `undo` (the file as it was; `history`, at most
+  `MOST_UNDO`). `src/client/ui/editor/content_editor.gd` — the editor's window («Editor» in the main menu and
+  the pause menu): the own mod saves go into (several, 3Б; «+» makes one by its id), the kind (`KINDS`), a
+  search by name or id, the list of records; a record opens as a form (`record_form.gd`, `RecordForm`: a
+  switch for a bool, a row of values for an enum or a whole number of a short range, a text field for the
+  rest, lists and mappings as one line of YAML; changed names amber, default ones faded, wrong ones red).
+  «Save» writes the changed fields, the mod's bundles join the loaded set and the world played
+  (`join`: `Content.BUNDLES`, `game.world_mods`, kept with the save), and the mods are read again at once
+  (`ModReload.reload`); «Undo» takes the last save back. New records, PNG import, the voxel editor, a zip and
+  the server come next (plan: `plan/mvp.md`, stage 2 item 3).
 - Where the mods lie (decision 186): `Content.ROOT` — the folder `content/` beside the program in the built
   game on PC (Windows, Linux), if it has `core/mod.yaml` (`Content.find_root`, `Content.beside()`), otherwise
   the built-in copy `res://content` (`BUILT_IN`; the editor, the browser, a phone, a build without the

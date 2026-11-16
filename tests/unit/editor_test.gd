@@ -4,6 +4,7 @@ extends "res://tests/unit/test_case.gd"
 
 const OwnMods := preload("res://src/shared/content/own_mods.gd")
 const ModFiles := preload("res://src/shared/content/mod_files.gd")
+const ContentEdits := preload("res://src/shared/content/content_edits.gd")
 
 const DIR := "user://test_editor"
 
@@ -12,6 +13,7 @@ func run() -> void:
 	_test_yaml_write()
 	_test_every_file()
 	_test_own_mods()
+	_test_edits()
 
 
 ## Writing YAML that the reader reads back as the same value.
@@ -85,3 +87,43 @@ func _test_own_mods() -> void:
 	Mods.activate(bundles)
 	_check(Content.playing() == stock and not Items.has("mine:pebble") and AiRules.SPECIES["animals:wolf"].mass == mass,
 		"without the folder the game is as it was")
+
+
+## A form's changes saved: another mod's record as a patch of the fields changed, one's
+## own record in place; each taken back; a wrong value refused by the check.
+func _test_edits() -> void:
+	var bundles: Array = Mods.all()
+	var mass: float = AiRules.SPECIES["animals:wolf"].mass
+	if DirAccess.dir_exists_absolute(DIR):
+		_remove(DIR)
+	ModFiles.extra_dir = DIR
+	OwnMods.make("mine")
+	OwnMods.put("mine", "items", {"id": "pebble", "title": "[mine.items.pebble]", "weight": 0.1, "stack": 20})
+	Content.BUNDLES = Mods.all()
+	Content.refresh()
+	Mods.activate(Mods.all())
+	_check(ContentEdits.check("creatures", "mass", -1.0, "mine") != "" and ContentEdits.check("creatures", "mass", 50, "mine") == ""
+		and ContentEdits.check("creatures", "active", "noon", "mine") != "", "a wrong value is found")
+	var wolf := Content.find("creatures", "animals:wolf")
+	var fields := ContentEdits.changed("creatures", wolf, {"mass": mass + 3.0, "speed": ContentEdits.data_of(wolf.speed)})
+	_check(fields == {"mass": mass + 3.0}, "only the fields changed: %s" % [fields])
+	var edits := ContentEdits.new()
+	_check(edits.save("mine", "creatures", "animals:wolf", fields) == ""
+		and OwnMods.records("mine", "creatures") == [{"id": "animals:wolf", "patch": true, "mass": mass + 3.0}],
+		"another mod's record is changed by a patch")
+	_check(not ContentEdits.owns("mine", "creatures", "animals:wolf") and ContentEdits.owns("mine", "items", "mine:pebble"),
+		"the mod's own records are told from others'")
+	_check(edits.save("mine", "items", "mine:pebble", {"stack": 30}) == ""
+		and OwnMods.records("mine", "items")[0].stack == 30 and not OwnMods.records("mine", "items")[0].has("patch"),
+		"one's own record is changed in place")
+	Mods.rescan()
+	_check(AiRules.SPECIES["animals:wolf"].mass == mass + 3.0 and Content.find("items", "mine:pebble").stack == 30, "the game reads the changes")
+	_check(edits.undo() == "" and OwnMods.records("mine", "items")[0].stack == 20, "a save is taken back")
+	_check(edits.undo() == "" and OwnMods.records("mine", "creatures").is_empty() and edits.history.is_empty(),
+		"and the first one: the file it made is gone")
+	_remove(DIR)
+	ModFiles.extra_dir = ""
+	Content.BUNDLES = bundles.duplicate()
+	Content.refresh()
+	Mods.activate(bundles)
+	_check(AiRules.SPECIES["animals:wolf"].mass == mass, "the game is as it was")

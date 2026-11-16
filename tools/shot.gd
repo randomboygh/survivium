@@ -14,6 +14,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const ModFiles := preload("res://src/shared/content/mod_files.gd")
+const OwnMods := preload("res://src/shared/content/own_mods.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Shots := preload("res://tools/shot/shots.gd")
 const Inventory := preload("res://src/shared/game/inventory.gd")
@@ -544,12 +545,23 @@ func _run() -> void:
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
 			# The content editor on kind `editor`, record `record` open when given.
+			# `editor_mod`: an own mod made in a folder of the shots (nothing of the player's).
 			if shot.has("editor"):
+				if shot.has("editor_mod"):
+					ModFiles.extra_dir = "user://shot_content"
+					OwnMods.make(shot.editor_mod)
 				var editor: Control = main.hud.open_editor()
 				await process_frame
 				editor._set_kind(editor.KINDS.map(func(k: Array) -> String: return k[0]).find(shot.editor))
 				if shot.has("record"):
-					editor._open(shot.record)
+					editor.open(shot.record)
+				# `edit`: field -> text typed into the form.
+				for field: String in shot.get("edit", {}):
+					var f: Array = editor.form.fields[field]
+					(f[2] as LineEdit).text = shot.edit[field]
+					editor.form._mark(field)
+				if shot.get("edit_check", false):
+					editor.save()
 				await process_frame
 			if shot.has("page"):
 				main.hud.open_settings(shot.page)
