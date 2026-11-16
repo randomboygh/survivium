@@ -1,24 +1,29 @@
 // The fog over the edge of the world built (edge_haze.gd, setting «Туман на краю»): a dense
-// white fog over the chunks on the screen with no ground yet, which thins out over the built
-// chunks beside them and, once a chunk is built, melts over it by dithering (no clouds
-// over it, user 2026-11-16). `amounts` holds how much fog each chunk has
-// (0..1, a texel a chunk, see EdgeHaze), read between the chunks' middles, so the fog's edge
-// lies across the borders. It lies on the land itself (each chunk at its highest ground,
-// walls between) and is depth tested, so land nearer the camera hides the fog behind it.
+// white fog along the camera's rays that end on a chunk with no ground yet (user
+// 2026-11-16), so it is drawn where the chunk's square on the plane of the ground is, over
+// everything, whatever the heights. Whole over the square and DENSE units past its edges,
+// it thins out over REACH units further into the built chunks beside it, from a corner
+// round; once a chunk is built its fog melts by dithering. `amounts` holds how much fog each
+// chunk has (0..1, a texel a chunk, see EdgeHaze).
 shader_type spatial;
-render_mode world_vertex_coords, unshaded, cull_disabled, shadows_disabled;
+render_mode world_vertex_coords, unshaded, depth_test_disabled, cull_disabled, shadows_disabled;
 
 #include "res://shaders/common.gdshaderinc"
 
-uniform sampler2D amounts : filter_linear;
-// The world point (x, z) of the texture's corner and how many world units it spans.
+uniform sampler2D amounts : filter_nearest;
+// The world point (x, z) of the texture's corner, how many world units it spans and how
+// many chunks a side it holds.
 uniform vec2 origin = vec2(0.0);
 uniform float span = 256.0;
+uniform int grid = 32;
 // The fog's light (white by day, towards the sky's background at night).
 uniform vec3 color SRGB = vec3(1.0);
 
 // The fog's own tone.
 const vec3 FOG_TONE = vec3(0.9, 0.93, 0.98);
+// World units past a missing chunk's edge the fog stays whole, and over which it then thins.
+const float DENSE = 1.0;
+const float REACH = 4.0;
 
 varying vec3 world_pos;
 
@@ -31,15 +36,31 @@ void fragment() {
 	if (above_cut(world_pos)) {
 		discard;
 	}
-	float a = texture(amounts, (world_pos.xz - origin) / span).r;
-	// A texel of the picture: the fog is drawn in its pixels.
+	float size = span / float(grid);
+	vec2 p = world_pos.xz - origin;
+	ivec2 home = ivec2(floor(p / size));
+	// The fog of each chunk round, by how far the point is from its square.
+	float fog_d = 0.0;
+	for (int dz = -1; dz <= 1; dz++) {
+		for (int dx = -1; dx <= 1; dx++) {
+			ivec2 k = home + ivec2(dx, dz);
+			if (k.x < 0 || k.y < 0 || k.x >= grid || k.y >= grid) {
+				continue;
+			}
+			float a = texelFetch(amounts, k, 0).r;
+			if (a <= 0.0) {
+				continue;
+			}
+			vec2 lo = vec2(k) * size;
+			vec2 d = max(max(lo - p, p - lo - size), vec2(0.0));
+			fog_d = max(fog_d, a * (1.0 - clamp((length(d) - DENSE) / REACH, 0.0, 1.0)));
+		}
+	}
+	// A texel of the picture: the fog is drawn in its pixels, its rim torn by the noise.
 	vec2 texel = floor(screen_plane(world_pos) * TEXELS);
 	float n = texture(cloud_noise, (texel + 0.5) / TEXELS / 9.0).r;
-	// Whole over a chunk with no ground (a 1 there; 0.5 at its border with a built one),
-	// thinning a few units into the built one, its rim torn by the noise; melts by
-	// dithering in pixels.
-	float fog_d = smoothstep(0.12, 0.5, a + (n - 0.5) * 0.3);
-	if (fog_d < bayer4(texel)) {
+	fog_d = fog_d >= 1.0 ? 1.0 : clamp(fog_d + (n - 0.5) * 0.3, 0.0, 1.0);
+	if (fog_d < bayer4(texel) + 0.001) {
 		discard;
 	}
 	ALBEDO = color * FOG_TONE;
