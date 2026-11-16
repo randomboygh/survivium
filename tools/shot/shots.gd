@@ -559,6 +559,8 @@ const SHOTS := {
 	"hands-one": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true},
 	"hands-two": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true,
 		"settings": {"second_hand": true}},
+	# Hardiness at level 6 (three more cells), a little hurt, with golden health after them.
+	"vitals-hardy": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "skills": {"endure": 6}, "gold": [20.0, 117.0]},
 	# The same with nothing hindering the body: the panel ends at the moon.
 	"vitals-plain": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "thirst": 15.0},
 	"bag-clothes": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,

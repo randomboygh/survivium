@@ -85,6 +85,8 @@
   food: 18
   heal: 4
   drink: 5
+  fortify: 10
+  fortify_time: 480
   spoils: 3
   rots_to: core:rot
   model: roasted_fish

@@ -21,6 +21,7 @@ const Skills := preload("res://src/shared/content/skills.gd")
 const FactChips := preload("res://src/client/ui/fact_chips.gd")
 const Quality := preload("res://src/shared/game/quality.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const Vitals := preload("res://src/shared/game/vitals.gd")
 
 signal picked(slot: String)
 
@@ -255,6 +256,9 @@ func _show_skills(inv) -> void:
 		var spared := roundi(skills.care_chance(sk.role) * 100.0)
 		if spared > 0:
 			text += Lang.f("[the_tool_does_not_wear]", [spared])
+		var hardier := floori(sk.get("health", 0.0) * level / sk.levels / Vitals.CELL + 0.0001) * roundi(Vitals.CELL)
+		if hardier > 0:
+			text += Lang.f("[more_health]", [hardier])
 		if _tool.has(sk.role):
 			text += Lang.f("[in_hand]", [Lang.t(Items.title(_tool[sk.role]))])
 		if sk.get("description", "") != "":

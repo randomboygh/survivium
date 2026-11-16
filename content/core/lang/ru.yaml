@@ -54,6 +54,8 @@
 "[core.skills.swimming.about]": "Растёт, пока плывёшь. Быстрее плывёт (потом и на плотах, лодках)."
 "[core.skills.farming]": "Земледелие"
 "[core.skills.farming.about]": "Грядки тяпкой, посев, полив и урожай. Быстрее работает на грядках, иногда собирает на одну больше."
+"[core.skills.hardiness]": "Закалка"
+"[core.skills.hardiness.about]": "Растёт от пережитых ран, голода, жажды, холода и жары. Каждый второй уровень добавляет ячейку здоровья."
 
 # content/core/data/starts.yaml
 "[core.starts.default]": "Обычный старт"
@@ -946,6 +948,8 @@
 "[quality_of_what_you_get]": "\nКачество добытого +%d"
 "[quality_of_what_you_make]": "\nКачество сделанного до %d"
 "[the_tool_does_not_wear]": "\nИнструмент не изнашивается: шанс %d%%"
+"[more_health]": "\nЗдоровье +%d"
+"[golden_health_for_min]": "Золотое здоровье сверх шкалы на %d мин: теряется первым"
 "[in_hand]": "\nВ руке: «%s»"
 
 # src/client/ui/scroll_column.gd
@@ -1762,6 +1766,10 @@
 "[field.items.visions.about]": "Сколько секунд плывёт картинка после еды"
 "[field.items.calm]": "Покой"
 "[field.items.calm.about]": "Секунд покоя от чая: сон восстанавливает быстрее"
+"[field.items.fortify]": "Золотое здоровье"
+"[field.items.fortify.about]": "Здоровье сверх полной шкалы, теряется первым (не больше 30)"
+"[field.items.fortify_time]": "Время золотого здоровья"
+"[field.items.fortify_time.about]": "Сколько секунд держится золотое здоровье"
 "[field.items.place]": "Ставит"
 "[field.items.place.about]": "Какой блок ставит в мир"
 "[field.items.model]": "Модель"
@@ -2194,6 +2202,8 @@
 "[field.skills.might.about]": "Насколько сильнее удар на последнем"
 "[field.skills.care]": "Бережность"
 "[field.skills.care.about]": "Шанс, что взмах не износит инструмент"
+"[field.skills.health]": "Здоровье"
+"[field.skills.health.about]": "Сколько здоровья добавляет последний уровень, по ячейке в 10"
 "[field.plants.kind]": "Вид"
 "[field.plants.kind.about]": "Что это за растение"
 "[field.plants.gives]": "Даёт"

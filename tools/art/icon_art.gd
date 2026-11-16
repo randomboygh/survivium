@@ -2076,6 +2076,7 @@ const PICTURES := {
 ## Pictures drawn as another one with some colours swapped: name -> [the picture,
 ## {letter: letter}] (a stone sword, wooden heads of a pickaxe and a scythe).
 const RECOLOURED := {
+	"heart_gold": ["heart", {"h": "a"}],
 	"leather": ["hide", {"t": "n", "B": "o"}],
 	"pike": ["roach", {"s": "l", "S": "L", "f": "l"}],
 	"perch": ["roach", {"s": "l", "S": "Q", "f": "o"}],

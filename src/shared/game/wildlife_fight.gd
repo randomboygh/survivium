@@ -239,7 +239,7 @@ func _strong_enough(a: Animal, spec: Dictionary, who) -> bool:
 				pack += float(spec.mass)
 	if clock != null and clock.season == clock.WINTER:
 		pack *= WINTER_BOLD
-	var share: float = clampf(float(who.vitals.health) / 100.0, 0.0, 1.0)
+	var share: float = clampf(float(who.vitals.health) / who.vitals.most, 0.0, 1.0)
 	var person: float = float(AiRules.SPECIES[AiRules.HUMAN].mass) * PERSON_WITS * (PERSON_WEAK + (1.0 - PERSON_WEAK) * share)
 	if who.has_method("held") and not Tools.weapon(str(who.held())).is_empty():
 		person *= ARMED

@@ -10,6 +10,14 @@ extends RefCounted
 ## server can run the same rules; these numbers are the default difficulty.
 
 const MAX := 100.0
+## Health is counted in cells of CELL (the HUD draws them): the most health is MAX plus
+## whole cells a skill adds (SkillSet.health_bonus, Character sets `most`).
+const CELL := 10.0
+## Golden health over the most (a hearty meal, a tea, sleep by a fire: `fortify`) is
+## lost first and gone when its time runs out; there is at most EXTRA_MAX of it.
+const EXTRA_MAX := 30.0
+## The most health skills may add, whatever the mods say (the most a save keeps).
+const MOST_ADDED := 200.0
 ## Satiety lost per game day, and what is left when hunger starts to show.
 const HUNGER_PER_DAY := 60.0
 const HUNGRY := 25.0
@@ -93,6 +101,13 @@ const BUSY := 1.0
 const WORK_REST := 0.6
 
 var health := MAX
+## The most health the body can have now (MAX and the cells a skill adds).
+var most := MAX
+## Golden health over `most`, and seconds it still lasts (see fortify).
+var extra := 0.0
+var extra_time := 0.0
+## Health (golden too) lost since the rules last asked (Character: hardiness grows by it).
+var suffered := 0.0
 var satiety := 80.0
 var water := 80.0
 var energy := 80.0
@@ -152,16 +167,20 @@ func step(delta: float, days: float, swimming: bool, load_factor := 0.0) -> void
 	if water <= 0.0:
 		_hurt(DRY_PER_DAY * days, "thirst")
 	elif satiety > WELL_FED and water >= THIRSTY and warmth >= COLD:
-		health = minf(MAX, health + HEAL_PER_DAY * days * (2.0 if asleep else 1.0))
+		health = minf(most, health + HEAL_PER_DAY * days * (2.0 if asleep else 1.0))
 	if visions > 0.0:
 		visions = maxf(0.0, visions - delta)
 	if calm > 0.0:
 		calm = maxf(0.0, calm - delta)
+	if extra_time > 0.0:
+		extra_time = maxf(0.0, extra_time - delta)
+		if extra_time <= 0.0:
+			extra = 0.0
 	if mending > 0.0:
 		var got := minf(mending, mend_rate * delta)
 		mending -= got
-		health = minf(MAX, health + got)
-		if health >= MAX:
+		health = minf(most, health + got)
+		if health >= most:
 			mending = 0.0
 	if swimming and fatigue:
 		stamina = maxf(0.0, stamina - SWIM_COST * delta)
@@ -220,9 +239,15 @@ func wound(amount: float, why: String) -> void:
 	_hurt(amount, why)
 
 
+## Golden health goes first, then health.
 func _hurt(amount: float, why: String) -> void:
 	if amount > 0.0 and harm:
-		health = maxf(0.0, health - amount)
+		suffered += amount
+		var gold := minf(extra, amount)
+		extra -= gold
+		if extra <= 0.0:
+			extra_time = 0.0
+		health = maxf(0.0, health - (amount - gold))
 		hurt_by = why
 
 
@@ -278,20 +303,39 @@ func drink(amount: float) -> bool:
 
 ## Puts back `amount` health (a bandage); false when not hurt.
 func heal(amount: float) -> bool:
-	if health >= MAX - 0.5:
+	if health >= most - 0.5:
 		return false
-	health = minf(MAX, health + amount)
+	health = minf(most, health + amount)
 	return true
 
 
 ## Starts giving back `amount` health over `seconds` (a poultice); false when not hurt
 ## or while one is still at work.
 func mend(amount: float, seconds: float) -> bool:
-	if health >= MAX - 0.5 or mending > 0.0 or amount <= 0.0:
+	if health >= most - 0.5 or mending > 0.0 or amount <= 0.0:
 		return false
 	mending = amount
 	mend_rate = amount / maxf(seconds, 0.001)
 	return true
+
+
+## Golden health: tops it up to `amount` (at most EXTRA_MAX) and makes it last at least
+## `seconds`; it does not add up, so two meals give no more than the better one. False
+## when it changes nothing.
+func fortify(amount: float, seconds: float) -> bool:
+	var to := minf(EXTRA_MAX, amount)
+	if to <= 0.0 or seconds <= 0.0 or (extra >= to - 0.01 and extra_time >= seconds - 0.5):
+		return false
+	extra = maxf(extra, to)
+	extra_time = maxf(extra_time, seconds)
+	return true
+
+
+## Sets the most health (Character: MAX and the cells a skill adds); health over it is
+## cut back.
+func set_most(value: float) -> void:
+	most = maxf(1.0, value)
+	health = minf(health, most)
 
 
 ## Adds `seconds` of visions (something eaten that brings them), up to VISIONS_MAX.
@@ -338,8 +382,10 @@ func is_dead() -> bool:
 
 ## A fresh body after death, at `share` of full health.
 func revive(share: float) -> void:
-	health = MAX * share
+	health = most * share
 	stamina = MAX
+	extra = 0.0
+	extra_time = 0.0
 	satiety = maxf(satiety, HUNGRY + 10.0)
 	water = maxf(water, THIRSTY + 10.0)
 	energy = maxf(energy, SLEEPY + 10.0)
@@ -354,11 +400,12 @@ func revive(share: float) -> void:
 
 func to_dict() -> Dictionary:
 	return {"health": health, "satiety": satiety, "water": water, "energy": energy, "stamina": stamina, "warmth": warmth, "wet": wet,
-		"mending": mending, "mend_rate": mend_rate, "visions": visions, "calm": calm}
+		"mending": mending, "mend_rate": mend_rate, "visions": visions, "calm": calm, "extra": extra, "extra_time": extra_time}
 
 
 func from_dict(d: Dictionary) -> void:
-	health = clampf(float(d.get("health", MAX)), 1.0, MAX)
+	# The most is not known yet (the skills give it): set_most cuts health back later.
+	health = clampf(float(d.get("health", MAX)), 1.0, MAX + MOST_ADDED)
 	satiety = clampf(float(d.get("satiety", satiety)), 0.0, MAX)
 	water = clampf(float(d.get("water", water)), 0.0, MAX)
 	energy = clampf(float(d.get("energy", energy)), 0.0, MAX)
@@ -369,3 +416,7 @@ func from_dict(d: Dictionary) -> void:
 	mend_rate = maxf(0.0, float(d.get("mend_rate", 0.0)))
 	visions = clampf(float(d.get("visions", 0.0)), 0.0, VISIONS_MAX)
 	calm = clampf(float(d.get("calm", 0.0)), 0.0, CALM_MAX)
+	extra = clampf(float(d.get("extra", 0.0)), 0.0, EXTRA_MAX)
+	extra_time = clampf(float(d.get("extra_time", 0.0)), 0.0, 1800.0)
+	if extra_time <= 0.0:
+		extra = 0.0

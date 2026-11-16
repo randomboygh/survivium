@@ -95,7 +95,15 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   seconds and end with death; the client gets their whole seconds as the 11th field of `VITALS` and the
   picture swims and shifts colour (`CameraRig.visions` → `trip` of `grade.gdshader`). Calm (`calm` of an item, the
   primrose tea of `plants/evening_primrose`, drunk thirsty or not): `Vitals.calm_down` adds its seconds (up to
-  `CALM_MAX`, in the save); asleep in it, sleep rests `CALM_SLEEP` times faster. Asleep inside a fairy ring
+  `CALM_MAX`, in the save); asleep in it, sleep rests `CALM_SLEEP` times faster. Golden health (`fortify` and
+  `fortify_time` of an item: roasted meat 20 for 10 min, roasted fish and primrose tea 10; asleep by a fire
+  `Character.FIRE_SLEEP_GOLD` for `FIRE_SLEEP_TIME`): `Vitals.fortify` tops `extra` up to the amount (at most
+  `EXTRA_MAX`, two meals do not add up) and makes it last `extra_time` seconds (both in the save); a wound
+  takes it first (`_hurt`), it is gone when its time runs out or at death. The most health `Vitals.most` is
+  `MAX` plus the cells the skills add (`SkillSet.health_bonus`, set each frame by `Character.update` →
+  `Vitals.set_most`); healing reaches `most`, a save keeps health up to `MAX + MOST_ADDED` until the skills cut
+  it back. `VITALS` carries `most` and `extra` as its 12th and 13th fields; the HUD draws health as cells of
+  `Vitals.CELL`, golden ones after the red (`docs/systems/ui/hud.md`). Asleep inside a fairy ring
   (`Character.in_fairy_ring`, `Grass.fairy_ring`) sleep rests `RING_SLEEP` times faster and leaves at least
   `RING_DREAMS` seconds of visions. Water `water` falls by `THIRST_PER_DAY` per game day (in heat `THIRST_HOT` times faster); below
   `THIRSTY` — like hunger (no healing, rest twice as slow, stamina up to `HUNGRY_CAP`), at zero it wounds
@@ -201,15 +209,18 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   recorded peals, `tools/sound/thunder_bands.py` → `thunder_bands.gd`, then held by a limiter so they are loud; `Vibration.rumble`; a flash whose bolt is on the screen is heard at once from the peal's peak, `ThunderShape.peak`, with the strike's pulse, so flash, roar and buzz come together), a thing set down in `Props._land`, a warning beast in `Voices`, buttons in
   `Sound`, a full bag and a broken tool in the client's `Character.say`, chat lines in `ChatBox.hear`).
 
-**Skills** (decision 164). Nine skills are a mod's data (`content/core/data/skills.yaml`, the kind `skills`,
+**Skills** (decision 164). Eleven skills are a mod's data (`content/core/data/skills.yaml`, the kind `skills`,
 the registry `src/shared/content/skills.gd`): Gathering, Chopping, Digging, Crafting, Building, Cooking,
-Hunting, Fishing, Swimming; the engine asks for a skill by the work's role (`Skills.of_role`). What the
+Hunting, Fishing, Swimming, Farming, Hardiness; the engine asks for a skill by the work's role (`Skills.of_role`). What the
 character has learned is `SkillSet` (`src/shared/game/skill_set.gd`, `Character.skills`): points by the
 skill's id, 10 levels, the first for `first` (120) points, each next `growth` (1.45) times dearer (the tenth —
 about three hours of pure work). The points are seconds of useful work: a rule gives a stroke that did
 something (`WorldActions.skilled`: digging, chopping, mowing and gathering, building, a blow at a beast), a
 recipe by its time (`Workshop`, `gain_recipe`: the same recipe in a row gives less and less, `REPEAT_FADE`),
 swimming by the time on the way (`Character.update`), a whole thing by `each` (a hunted beast, a caught fish).
+Hardiness (role `endure`) grows by `each` (4) points for every health lost (`Vitals.suffered`, golden too) and
+`Character.ENDURE_HARDSHIP` a second hungry, thirsty, cold or hot (`Character._endure`); its `health` (50) adds
+a cell of `Vitals.CELL` to the most health every second level (`SkillSet.health_bonus`).
 Digging out a block placed by a player and placing it again where such a one was dug out give no experience
 (`WorldActions._built`, `_undone`, not in the save). A skill makes the hand better, not the tool (the balance
 model `docs/balance/GAME_BALANCE_DESIGN.md`): the time of a stroke and of a recipe × `pace` (down to 1 / (1 +

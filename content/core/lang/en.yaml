@@ -54,6 +54,8 @@
 "[core.skills.swimming.about]": "Grows while you swim. Swims faster (later on rafts and boats too)."
 "[core.skills.farming]": "Farm"
 "[core.skills.farming.about]": "Beds with a hoe, sowing, watering and harvest. Works the beds faster, sometimes harvests one more."
+"[core.skills.hardiness]": "Hardiness"
+"[core.skills.hardiness.about]": "Grows from wounds, hunger, thirst, cold and heat lived through. Every second level adds a cell of health."
 
 # content/core/data/starts.yaml
 "[core.starts.default]": "Standard start"
@@ -946,6 +948,8 @@
 "[quality_of_what_you_get]": "\nQuality of what you get +%d"
 "[quality_of_what_you_make]": "\nQuality of what you make up to %d"
 "[the_tool_does_not_wear]": "\nThe tool does not wear: %d%% chance"
+"[more_health]": "\nHealth +%d"
+"[golden_health_for_min]": "Golden health over the full bar for %d min: lost first"
 "[in_hand]": "\nIn hand: “%s”"
 
 # src/client/ui/scroll_column.gd
@@ -1762,6 +1766,10 @@
 "[field.items.visions.about]": "Seconds the picture swims after eating"
 "[field.items.calm]": "Calm"
 "[field.items.calm.about]": "Seconds of calm a tea gives: sleep rests faster"
+"[field.items.fortify]": "Golden health"
+"[field.items.fortify.about]": "Health over the full bar one gives, lost first (at most 30)"
+"[field.items.fortify_time]": "Golden health time"
+"[field.items.fortify_time.about]": "Seconds the golden health lasts"
 "[field.items.place]": "Places"
 "[field.items.place.about]": "The block it puts into the world"
 "[field.items.model]": "Model"
@@ -2194,6 +2202,8 @@
 "[field.skills.might.about]": "More damage at the last level, share"
 "[field.skills.care]": "Care"
 "[field.skills.care.about]": "Chance a swing does not wear the tool"
+"[field.skills.health]": "Health"
+"[field.skills.health.about]": "Most health added at the last level, a cell of 10 at a time"
 "[field.plants.kind]": "Kind"
 "[field.plants.kind.about]": "What sort of plant it is"
 "[field.plants.gives]": "Gives"
