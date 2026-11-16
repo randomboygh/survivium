@@ -1,5 +1,6 @@
 # The rock and the floors of the kinds of caves (biomes where: cave, content/biomes/*_cave): fields as for the core
-# materials (content/core/data/materials.yaml); glow — how brightly it shines by itself in the dark, 0..1.
+# materials (content/core/data/materials.yaml); glow — how brightly it shines by itself in the dark, 0..1; light —
+# the colour of the light it casts round itself; burns — health a touch of it takes (a thing dropped on it burns).
 # Mycelium: the soft floor of a mushroom cave, white threads in dark earth (role mycelium: moss and mushrooms,
 # glowing ones too, grow on it). Dug with a shovel and gives earth.
 - id: mycelium
@@ -26,6 +27,7 @@
   hardness: 2
   toughness: 2
   glow: 0.8
+  light: "#a77cff"
   step: step_stone
 # Deep rock: dark blue-grey stone round the halls of the lower tier. Harder than stone; gives stone.
 - id: deepstone
@@ -37,8 +39,8 @@
   hardness: 2
   toughness: 4
   step: step_stone
-# Lava: molten rock in pools where the floor of a lava cave dips deepest. It does not flow; it glows. It cannot
-# be dug.
+# Lava: molten rock in pools where the floor of a lava cave dips deepest. It does not flow; it glows and lights
+# the cave. A touch burns and throws back; a thing dropped on it burns up. It cannot be dug.
 - id: lava
   title: "[resources.materials.lava]"
   priority: 7
@@ -46,4 +48,6 @@
   drains: true
   dig: none
   glow: 1.0
+  light: "#ff7a2a"
+  burns: 3.0
   step: step_stone

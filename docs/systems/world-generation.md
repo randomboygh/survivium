@@ -39,7 +39,10 @@ mycelium, on which `Grass._cave_floor` grows moss and mushrooms, glowing ones to
 dips deepest (lava; the hall's size over `pools_from` of `HALL_MOST`), still water to `flood` (at most
 `FLOOD_HEADROOM` under the ceiling, its bits in `_hall_water`), blocks of `crystals` on the floor or under the
 ceiling by `crystal_chance`, and `cave_walls` (deep rock) `CAVE_WALL` levels round its halls and in a thinning shell
-beside them; with no cave bundle the caves are bare stone as before); with the
+beside them; with no cave bundle the caves are bare stone as before). Lava (`burns`) burns a body that stands
+on it or walks into it and throws it back (`Character._touch_hot`), and a thing dropped on it burns up
+(`WorldCells.add_drop`, a death's sack stays); lava and crystals (`light`) light the cave round them
+(`GlowLights`, `Effects.lit`). Water is still, so nothing yet turns lava under water to stone; with the
   setting `relief` 1 (new worlds; 0 — old ones) ridges, gorges and outliers where it is cool and damp, mesas
   with striped walls and canyons where it is hot and dry (`_ranges_and_mesas`); with the setting `climate` 1
   (new worlds; 0 — old ones) warmth goes by climate zones: the slow noise of a zone (`n_zone`, `ZONE_SLOWER`

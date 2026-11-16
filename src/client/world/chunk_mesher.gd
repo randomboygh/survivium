@@ -59,6 +59,10 @@ class Job extends RefCounted:
 	var ends := PackedInt32Array()
 	## Columns for `patch` only: the plain tops are left as keys, not drawn.
 	var part := false
+	## Where cells that cast light (Mat.lit: lava, crystals) show to the air, over their
+	## middles in world units, and the material of each (GlowLights lights the nearest).
+	var glows := PackedVector3Array()
+	var glow_mats := PackedByteArray()
 
 
 ## The solid and water meshes of the cells x0..x0+size, z0..z0+size, all at once:
@@ -245,6 +249,9 @@ static func _column(job: Job, x: int, z: int) -> bool:
 		nb[4] = c[i + dz]
 		nb[5] = c[i - dz]
 		var base := Vector3(x, y, z)
+		if Mat.lit[m] != 0 and (nb[0] == AIR or nb[1] == AIR or nb[2] == AIR or nb[3] == AIR or nb[4] == AIR or nb[5] == AIR):
+			job.glows.append((base + Vector3(0.5, 1.0, 0.5)) * CELL)
+			job.glow_mats.append(m)
 		if not forms.is_empty() and forms.has(i):
 			Forms.form_faces(solid, c, cov, forms, offsets, i, base, m, forms[i])
 			continue
@@ -476,6 +483,14 @@ static func patch(old: Job, part: Job) -> Job:
 	job.plain_j = job.plain.size()
 	job.water_j = job.water_plain.size()
 	job.falls_j = job.water_falls.size()
+	# The lit cells of the old columns outside the part, then the part's.
+	for g in old.glows.size():
+		var p := old.glows[g] / CELL
+		if p.x < part.x0 or p.x >= part.x1 or p.z < part.z0 or p.z >= part.z1:
+			job.glows.append(old.glows[g])
+			job.glow_mats.append(old.glow_mats[g])
+	job.glows.append_array(part.glows)
+	job.glow_mats.append_array(part.glow_mats)
 	return job
 
 

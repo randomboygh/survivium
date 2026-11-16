@@ -94,6 +94,12 @@ static var corner_shape: PackedByteArray = []
 static var layers: PackedByteArray = []
 ## The word of each material for the world shader (see DRAINS).
 static var shader_bits: PackedInt32Array = []
+## Health a touch of each material takes (the `burns` field; 0 for most).
+static var burns: PackedFloat32Array = []
+## The colour of the light each material casts where it shows to the air (the `light`
+## field), and 1 in `lit` for those that cast one (ChunkMesher notes where they show).
+static var lights: Array = []
+static var lit: PackedByteArray = []
 
 
 static func _static_init() -> void:
@@ -109,6 +115,9 @@ static func refresh() -> void:
 	corner_shape = []
 	layers = []
 	shader_bits = []
+	burns = []
+	lights = []
+	lit = []
 	var hotbar := []
 	for i in COUNT:
 		var r: Dictionary = RECORDS[i]
@@ -118,6 +127,9 @@ static func refresh() -> void:
 		corner_shape.append(["sharp", "soft", "round"].find(r.corners))
 		layers.append(r.layers)
 		shader_bits.append(r.priority | (DRAINS if r.drains else 0) | (GROUNDS.find(r.ground) << GROUND_SHIFT) | (r.fray << FRAY_SHIFT) | (r.side_fray << SIDE_FRAY_SHIFT) | (roundi(r.glow * 15.0) << GLOW_SHIFT))
+		burns.append(r.burns)
+		lights.append(r.light)
+		lit.append(1 if r.light != null else 0)
 		if r.hotbar > 0:
 			hotbar.append([r.hotbar, i])
 	hotbar.sort()

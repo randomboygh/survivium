@@ -623,6 +623,7 @@ func build_chunk(key: Vector2i) -> void:
 	edited.erase(key)
 	_keep(key, jm, jp)
 	_apply_chunk(key, meshes, plants)
+	_apply_lit(key, jm)
 
 
 ## Generates and builds every chunk within reach of the player at once and
@@ -753,6 +754,7 @@ func _finish_part() -> bool:
 	elif job_ground and i == ChunkMesher.FINISH_PARTS:
 		_chunk_nodes(job_key)
 		_apply_ground(job_key, job_meshes)
+		_apply_lit(job_key, job_mesh)
 		bare[job_key] = true
 		if lagging and not job_edit:
 			# Behind the player's walk the plants wait (a third of a chunk's building) and
@@ -772,6 +774,7 @@ func _finish_part() -> bool:
 			_apply_plants(job_key, job_plant_parts)
 		else:
 			_apply_chunk(job_key, job_meshes, job_plant_parts)
+			_apply_lit(job_key, job_mesh)
 		bare.erase(job_key)
 		plants_wait.erase(job_key)
 		_drop_job()
@@ -1133,6 +1136,7 @@ func _free_chunk(key: Vector2i) -> void:
 	var fx = game.get("effects")
 	if fx != null and fx.glows != null:
 		fx.glows.set_spots(key, PackedVector3Array())
+		fx.lit.set_spots(key, PackedVector3Array())
 	dirty_chunks.erase(key)
 	dirty_rects.erase(key)
 	edited.erase(key)
@@ -1212,7 +1216,16 @@ func _apply_plants(key: Vector2i, plants: Dictionary) -> void:
 		_fit_box(nodes[i])
 	var fx = game.get("effects")
 	if fx != null and fx.glows != null:
+		fx.glows.sea_top = (world.sea_level + 1) * CELL
 		fx.glows.set_spots(key, plants.get("glows", PackedVector3Array()))
+
+
+## Hands the cells of chunk `key` that cast light (lava, crystals), as mesh job `jm`
+## found them, to their lights (Effects.lit).
+func _apply_lit(key: Vector2i, jm: ChunkMesher.Job) -> void:
+	var fx = game.get("effects")
+	if fx != null and fx.lit != null:
+		fx.lit.set_spots(key, jm.glows, jm.glow_mats)
 
 
 ## Fits the culling boxes of every chunk shown to the views the camera may show next

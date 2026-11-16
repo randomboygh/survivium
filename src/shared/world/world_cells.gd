@@ -607,13 +607,18 @@ func add_bush(cell: Vector3i, type: int) -> void:
 
 ## Lays a thing of `kind` on the ground at `pos` (world units), turned by `angle`;
 ## `data` is how many (see drops); `until`, when not below 0, the day it is gone; `grave`,
-## when not empty, who died there (a death's sack, see drops).
+## when not empty, who died there (a death's sack, see drops). A thing laid on ground that
+## burns (Mat.burns: lava) burns up; a death's sack stays.
 func add_drop(kind: String, pos: Vector3, angle: float, data: Variant = 1, until := -1.0, grave := {}) -> void:
 	var x := floori(pos.x / CELL)
 	var z := floori(pos.z / CELL)
 	var c := chunk_at(x, z)
 	if c == null:
 		return
+	if grave.is_empty():
+		var under := get_cell(x, floori(pos.y / CELL - 0.01), z)
+		if under >= 0 and under < Mat.burns.size() and Mat.burns[under] > 0.0:
+			return
 	note_edit(x, z)
 	var key := Vector2i(x >> SHIFT, z >> SHIFT)
 	if not drops.has(key):

@@ -59,6 +59,12 @@ const SCHEMAS := {
 		# How brightly it shines by itself, 0..1 (lava, crystals): world.gdshader draws its
 		# faces lit however dark it is round them (Mat.GLOW in shader_bits).
 		"glow": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		# The colour of the light it casts round itself where it shows to the air, day and
+		# night (lava, crystals: GlowLights at the cells nearest the view); none by default.
+		"light": {"type": "color", "default": null},
+		# Health a touch of it takes (lava): stepping on it or into it burns the body and
+		# throws it back (Character._touch_hot), and a thing dropped on it burns up.
+		"burns": {"type": "float", "min": 0.0, "max": 20.0, "default": 0.0},
 	},
 	"items": {
 		"weight": {"type": "float", "min": 0.0},
