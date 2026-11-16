@@ -14,6 +14,7 @@ func run() -> void:
 	_test_water_holds()
 	_test_puffballs()
 	_test_placed()
+	_test_lava()
 	_test_stairs_placed()
 	_test_start_camp()
 	_test_lights()
@@ -422,6 +423,40 @@ func _test_stairs_placed() -> void:
 	who.position = Vector3(30.5, 1.0, 22.5) * WorldData.CELL
 	_check(placed.put_from_bag(who, "tools:window", -1, 40) and placed.things[-1].cell != door.cell and Placed.is_part(placed.things[-1]),
 		"a window is set down too, and taken up at a tap")
+
+
+## Lava (Mat.burns) burns the body that steps on it and throws it back off, and a thing
+## dropped on it burns up; a death's sack stays.
+func _test_lava() -> void:
+	var lava := Mat.index("resources:lava")
+	_check(lava >= 0 and Mat.burns[lava] > 0.0 and Mat.lit[lava] == 1, "lava burns and casts light")
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	w.set_cell(20, 1, 20, lava)
+	var walker := Survivor.new()
+	walker.world = w
+	walker.clock = Clock.new()
+	walker.body = Body.new()
+	walker.body.world = w
+	walker.at = Vector3(16.5, 2.0, 16.5) * WorldData.CELL
+	walker.update(0.5)
+	_check(walker.vitals.health == Vitals.MAX, "ground beside no lava does not burn")
+	walker.at = Vector3(20.5, 2.0, 20.4) * WorldData.CELL
+	walker.update(0.1)
+	_check(walker.vitals.health < Vitals.MAX and walker.vitals.hurt_by == "fire", "stepping on lava burns")
+	_check(walker.body.shove.length() > 0.0, "and throws the body back")
+	var hurt := walker.vitals.health
+	walker.update(0.1)
+	_check(walker.vitals.health >= hurt, "not again before BURN_PAUSE")
+	w.add_drop("resources:branch", Vector3(20.5, 2.0, 20.5) * WorldData.CELL, 0.0)
+	w.add_drop("resources:branch", Vector3(22.5, 2.0, 20.5) * WorldData.CELL, 0.0)
+	var key := Vector2i(20 >> WorldData.SHIFT, 20 >> WorldData.SHIFT)
+	_check(w.drops.get(key, []).size() == 1, "a thing dropped on lava burns up, beside it it lies")
+	w.add_drop("resources:branch", Vector3(20.5, 2.0, 20.5) * WorldData.CELL, 0.0, 1, -1.0, {"name": "x"})
+	_check(w.drops.get(key, []).size() == 2, "a death's sack on lava stays")
 
 
 ## The rules of placed things and crafting run without the client: a workbench put

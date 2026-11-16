@@ -15,6 +15,7 @@ const Vitals := preload("res://src/shared/game/vitals.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Starts := preload("res://src/shared/content/starts.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
 const Warmth := preload("res://src/shared/game/warmth.gd")
 const SkillSet := preload("res://src/shared/game/skill_set.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
@@ -347,6 +348,8 @@ func update(delta: float) -> void:
 	_burn_wait = maxf(0.0, _burn_wait - delta)
 	if placed != null and _burn_wait <= 0.0:
 		_touch_fire(p)
+	if _burn_wait <= 0.0:
+		_touch_hot(p)
 	_burn_light(delta)
 	_fall(p, delta, stride >= STRIDE_MAX)
 	_forget_old_sacks()
@@ -462,6 +465,35 @@ func _touch_fire(p: Vector3) -> void:
 		away = Vector2(0.0, 1.0)
 	body.knock(away, BURN_KNOCK, BURN_HOP)
 	nag("fire", "[hot]")
+
+
+## Ground that burns (Mat.burns: lava) the body at `p` (world units) stands on, or tried
+## to walk into this step (Body.bumped), burns it and throws it back, away from the
+## middle of the burning cell.
+func _touch_hot(p: Vector3) -> void:
+	if world == null or body == null:
+		return
+	var cell := Vector3i(floori(p.x / CELL), floori(p.y / CELL - 0.01), floori(p.z / CELL))
+	var hot := _burns_at(cell)
+	if hot <= 0.0 and body.bumped.is_finite():
+		var b: Vector3 = body.bumped
+		cell = Vector3i(floori(b.x / CELL), floori(b.y / CELL + 0.01), floori(b.z / CELL))
+		hot = _burns_at(cell)
+	if hot <= 0.0:
+		return
+	vitals.wound(hot, "fire")
+	_burn_wait = BURN_PAUSE
+	var away := Vector2(p.x - (cell.x + 0.5) * CELL, p.z - (cell.z + 0.5) * CELL)
+	if away.length() < 0.01:
+		away = Vector2(0.0, 1.0)
+	body.knock(away, BURN_KNOCK, BURN_HOP)
+	nag("fire", "[hot]")
+
+
+## The health a touch of the cell at `c` takes (Mat.burns), 0 for most.
+func _burns_at(c: Vector3i) -> float:
+	var m: int = world.get_cell(c.x, c.y, c.z)
+	return Mat.burns[m] if m >= 0 and m < Mat.burns.size() else 0.0
 
 
 ## Whether the character may jump now: not when overloaded or out of breath.
