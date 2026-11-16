@@ -50,6 +50,11 @@ const STRIKE_FELT := 0.85
 const THUNDER_LOUD := Vector2(0.55, 0.85)
 const STRUCK_LOUD := 1.0
 const STRUCK_LEAD := 0.05
+## While a peal roars the rain, hail and wind are held down to this (Sound.duck): far
+## and near, and for a bolt on the screen; for this many seconds, then they come back.
+const THUNDER_DUCK := Vector2(0.6, 0.4)
+const STRUCK_DUCK := 0.3
+const DUCK_SECONDS := 2.5
 ## Seconds from a lightning flash to its thunder: near and far.
 const THUNDER_DELAY := Vector2(0.4, 3.0)
 
@@ -190,23 +195,26 @@ func thunder(strength: float, struck := false) -> void:
 			from = maxf(ThunderShape.peak(v) - STRUCK_LEAD, 0.0)
 		var played: Dictionary = game.sound.play("thunder", Vector3.INF, muffle * STRUCK_LOUD, 1.0, "Nature", v, from)
 		if not played.is_empty():
+			game.sound.duck(STRUCK_DUCK, DUCK_SECONDS)
 			Vibration.rumble(game, played, muffle, true)
 		return
 	var delay := rng.randf_range(THUNDER_DELAY.x, THUNDER_DELAY.y)
 	var near := 1.0 - (delay - THUNDER_DELAY.x) / (THUNDER_DELAY.y - THUNDER_DELAY.x)
 	# Felt as well: a near one rolls in the phone as it is heard (Vibration.rumble), and
-	# the strike itself of a very near one.
-	var felt := Callable()
-	if near > THUNDER_FELT:
-		felt = _felt.bind(muffle * strength * near)
+	# the strike itself of a very near one; the rain is held down under it (_heard).
+	var felt := muffle * strength * near if near > THUNDER_FELT else 0.0
 	game.sound.play_later(delay, "thunder", Vector3.INF, muffle * strength * lerpf(THUNDER_LOUD.x, THUNDER_LOUD.y, near),
-		lerpf(0.85, 1.0, near), "Nature", felt)
+		lerpf(0.85, 1.0, near), "Nature", _heard.bind(felt, lerpf(THUNDER_DUCK.x, THUNDER_DUCK.y, near)))
 	if near > STRIKE_FELT and strength > 0.7:
 		Vibration.play(game, "strike", 0.0, muffle)
 
 
-func _felt(played: Dictionary, scale: float) -> void:
-	Vibration.rumble(game, played, scale)
+## A peal heard (see thunder): the weather held down under it to `duck`, and felt as
+## strong as `felt` (0: not felt).
+func _heard(played: Dictionary, felt: float, duck: float) -> void:
+	game.sound.duck(duck, DUCK_SECONDS)
+	if felt > 0.0:
+		Vibration.rumble(game, played, felt)
 
 
 ## The nearest burning campfire crackles from where it is.
