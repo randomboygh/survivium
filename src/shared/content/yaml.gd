@@ -282,3 +282,97 @@ func _fail(number: int, what: String) -> Variant:
 	if error == "":
 		error = "%s:%d: %s" % [_source, number, what]
 	return null
+
+
+## Writes `value` as YAML that `parse` reads back to the same value: a list of mappings
+## (a data file) as block items, a mapping's keys in the order they were added, short
+## lists and mappings of scalars on one line (`[a, b]`, `{core:fiber: 1}`), strings
+## quoted where a plain word would read back as something else. `head` goes first as
+## `# ` comment lines.
+static func write(value: Variant, head := "") -> String:
+	var out := PackedStringArray()
+	for line in head.split("\n", false):
+		out.append(("# " + line).strip_edges(false, true))
+	_write_block(value, 0, out)
+	return "\n".join(out) + "\n"
+
+
+static func _write_block(value: Variant, indent: int, out: PackedStringArray) -> void:
+	var pad := " ".repeat(indent)
+	if value is Array:
+		if value.is_empty():
+			out.append(pad + "[]")
+		for item: Variant in value:
+			if item is Dictionary and not item.is_empty() and not _flat(item):
+				# The first key on the item's line, the rest two columns in.
+				var lines := PackedStringArray()
+				_write_block(item, indent + 2, lines)
+				lines[0] = pad + "- " + lines[0].substr(indent + 2)
+				out.append_array(lines)
+			elif _flat(item):
+				out.append(pad + "- " + inline(item))
+			else:
+				out.append(pad + "-")
+				_write_block(item, indent + 2, out)
+	elif value is Dictionary:
+		if value.is_empty():
+			out.append(pad + "{}")
+		for key: Variant in value:
+			var v: Variant = value[key]
+			var k := pad + _word(str(key), true) + ":"
+			if _flat(v):
+				out.append(k + " " + inline(v))
+			else:
+				out.append(k)
+				_write_block(v, indent + 2, out)
+	else:
+		out.append(pad + inline(value))
+
+
+## Whether `v` goes on one line: a scalar, or a short list or mapping of scalars.
+static func _flat(v: Variant) -> bool:
+	if v is Array or v is Dictionary:
+		if v.is_empty():
+			return true
+		for x: Variant in (v.values() if v is Dictionary else v):
+			if x is Array or x is Dictionary:
+				return false
+		return inline(v).length() <= 100
+	return true
+
+
+static func inline(v: Variant) -> String:
+	if v is Array:
+		var parts := PackedStringArray()
+		for x: Variant in v:
+			parts.append(inline(x))
+		return "[" + ", ".join(parts) + "]"
+	if v is Dictionary:
+		var parts := PackedStringArray()
+		for k: Variant in v:
+			parts.append(_word(str(k), true) + ": " + inline(v[k]))
+		return "{" + ", ".join(parts) + "}"
+	if v == null:
+		return "null"
+	if v is bool:
+		return "true" if v else "false"
+	if v is int:
+		return str(v)
+	if v is float:
+		var s := str(v)
+		# A whole float keeps its point, so that it reads back a float.
+		return s if s.contains(".") or s.contains("e") or s.contains("inf") or s.contains("nan") else s + ".0"
+	return _word(str(v), false)
+
+
+## A string as a plain word when it reads back as itself, else in double quotes.
+static func _word(s: String, key: bool) -> String:
+	var plain := s != "" and s == s.strip_edges() and _plain(s) is String
+	if plain:
+		for bad in [": ", " #", ",", "[", "]", "{", "}", "\"", "'", "\n", "\t"]:
+			if s.contains(bad):
+				plain = false
+				break
+	if plain and (s[0] in "-?&*!|>%@`#" or s.ends_with(":")):
+		plain = false
+	return s if plain else "\"" + s.c_escape() + "\""

@@ -452,6 +452,26 @@
 "[m_of]": "в %d м %s от точки «%s»"
 "[you_are_alive_again]": "Вы снова живы"
 
+# src/client/ui/editor/content_editor.gd
+"[editor_items]": "Предметы"
+"[editor_materials]": "Материалы"
+"[editor_recipes]": "Рецепты"
+"[editor_creatures]": "Существа"
+"[editor_trees]": "Деревья"
+"[editor_bushes]": "Кусты"
+"[editor_plants]": "Растения"
+"[editor_biomes]": "Биомы"
+"[editor_skills]": "Навыки"
+"[editor_eras]": "Эпохи"
+"[editor_starts]": "Старты"
+"[editor_sounds]": "Звуки"
+"[editor_kind]": "Вид"
+"[editor_search]": "Поиск по названию или id"
+"[editor_nothing_found]": "Ничего не найдено"
+"[editor_more_records]": "И ещё %d: уточните поиск"
+"[editor_from_bundle]": "Откуда: %s"
+"[editor_patched_by]": "Изменено в: %s"
+
 # src/client/ui/fact_chips.gd
 "[weight]": "Вес"
 "[kg]": "%.1f кг"
@@ -631,6 +651,7 @@
 "[nothing_allowed]": "ничего нельзя"
 "[territory_abandoned]": "Территория «%s» заброшена: %s"
 "[territory]": "Территория «%s»: %s"
+"[content_editor]": "Редактор контента"
 "[season]": "Сезон"
 
 # src/client/ui/hud_messages.gd

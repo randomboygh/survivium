@@ -22,7 +22,19 @@ the code sees content.
   - `content.gd` — loading a set (`load_all`), replacements (`replaces`) and patches, checking references (and
     inside `entries`), warnings about names, `records` / `find` / `canon` / `origin`, `asset`, `sound_files`.
 - `src/shared/content/yaml.gd` — our own parsing of the part of YAML the data needs (keys with `:` inside,
-  `{core:fiber: 1}`).
+  `{core:fiber: 1}`), and writing it back (`Yaml.write`: what `parse` reads as the same value; every data
+  file of the game goes through both unchanged, `editor_test.gd`).
+- The content editor (stage 2, decision 186, 11А, 13А; under way): `src/shared/content/own_mods.gd`
+  (`OwnMods`) — one's own mods, the ones the editor writes: `root()` is `Content.ROOT` when the mods lie
+  beside the game, else `ModFiles.extra_dir` (the app's folder on a phone; `ModFiles.USER_DIR`
+  `user://content` in the browser and on a computer running the built-in copy, laid over the game's like a
+  phone's folder, `find_extra`); `make(id, name)` writes a mod.yaml with `own: true` (`MOD_SCHEMA`) and its
+  English name; `put` writes a record of a kind into `data/<kind>.yaml`, `patch` a patch of another mod's
+  record (`patch: true`, only the fields given, gathered into one patch per record), `remove` takes one out.
+  Writing changes only files: the caller rereads the mods. `src/client/ui/editor/content_editor.gd` — the
+  editor's window (pause menu → «Content editor»): the kind (`KINDS`), a search by name or id, the list of
+  records, a record's fields as loaded (defaults faded), where it comes from and which bundles patch it. The
+  forms that change a record come next (plan: `plan/mvp.md`, stage 2 item 3).
 - Where the mods lie (decision 186): `Content.ROOT` — the folder `content/` beside the program in the built
   game on PC (Windows, Linux), if it has `core/mod.yaml` (`Content.find_root`, `Content.beside()`), otherwise
   the built-in copy `res://content` (`BUILT_IN`; the editor, the browser, a phone, a build without the
@@ -194,7 +206,7 @@ the folder. In the container's browser on 2026-11-01 on 419 records the reading 
   `MeshFaces.pack`; `uniform int material_bits[63]` in `world.gdshader`); 38 are used (30 materials and 8
   barks, 2026-11-05). More — fails `validate.gd`.
 
-**Tests.** `tests/unit/content_test.gd` (`yaml`, `content`, `schemas` — the kind of link at every reference,
+**Tests.** `tests/unit/editor_test.gd` (writing YAML back, one's own mods), `tests/unit/content_test.gd` (`yaml`, `content`, `schemas` — the kind of link at every reference,
 `mods` — and the chain of the cause of a dropped bundle, `old_worlds` — supplementing bundles and worlds of
 the marks `content` 1–9, `parsed_cache` — parsed YAML from `content_cache.bin`, `records` — the common fields,
 replacements, warnings, `renames` — `was` and the records' origin, `starts` — the start, its patch and the

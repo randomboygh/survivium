@@ -543,6 +543,14 @@ func _run() -> void:
 				await process_frame
 		if shot.get("menu", false):
 			main.hud.toggle_menu()
+			# The content editor on kind `editor`, record `record` open when given.
+			if shot.has("editor"):
+				var editor: Control = main.hud.open_editor()
+				await process_frame
+				editor._set_kind(editor.KINDS.map(func(k: Array) -> String: return k[0]).find(shot.editor))
+				if shot.has("record"):
+					editor._open(shot.record)
+				await process_frame
 			if shot.has("page"):
 				main.hud.open_settings(shot.page)
 				# The window keeps the section shown last: an earlier shot may have left another.
@@ -1288,7 +1296,8 @@ func _run() -> void:
 		# «Витрина интерфейса» goes with its shot (it would cover the next one), before
 		# the window under it closes (it shows that one again).
 		for c in main.hud.get_children():
-			if c.get_script() != null and (c.get_script() as Script).resource_path.ends_with("ui_gallery.gd"):
+			if c.get_script() != null and ((c.get_script() as Script).resource_path.ends_with("ui_gallery.gd")
+					or (c.get_script() as Script).resource_path.ends_with("content_editor.gd")):
 				c.close()
 		if shot.get("menu", false):
 			main.hud.toggle_menu()

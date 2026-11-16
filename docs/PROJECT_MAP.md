@@ -23,7 +23,8 @@ src/client/              the picture, input and sound of this device; main.gd, s
   game/                  the client's parts of systems: the player's character, gathering, things and beasts on screen, map markers
   net/                   the connection to the server (connection.gd), the socket to a server over the network (socket.gd), joining, leaving and hosting a server (server_link.gd), the server inside the game (local_host.gd — the only one that loads src/server/), copies of the world (remote_gen.gd: chunks from the server), of the workshop, things on cells, the clock and beasts (mirror.gd, remote_*.gd), recent servers (server_list.gd), the mods' files taken from a server (mod_fetch.gd, mod_cache.gd), the playtest server (playtest.gd)
   audio/                 buses, the ear, nature, steps, voices, music
-  ui/                    HUD, menus, the bag and crafting windows, settings, maps, death, the freeze log, style
+  ui/                    HUD, menus, the bag and crafting windows, settings, maps, death, the freeze log, style;
+                         editor/ — the content editor (stage 2)
     kit/                 the UI kit: ready parts of windows (window, buttons, fields, «‹ ›» rows, two taps, the strip of cells)
 shaders/                 3D shaders (the shared common.gdshaderinc), colour correction, the map, the interface
 content/<mod>/           mods: mod.yaml, README, bundle folders with bundle.yaml, data/, sprites/, icons/, models/, textures/, sounds/, lang/ (translations); common/ shared assets

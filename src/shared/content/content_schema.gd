@@ -540,6 +540,8 @@ const MOD_SCHEMA := {
 	"api": {"type": "int", "min": 1, "max": 1},
 	"requires": {"type": "list", "of": "string", "default": []},
 	"wants": {"type": "list", "of": "string", "default": []},
+	# One's own mod, made by the content editor (OwnMods): its files are the editor's to write.
+	"own": {"type": "bool", "default": false},
 }
 const BUNDLE_SCHEMA := {
 	"title": {"type": "string"},
