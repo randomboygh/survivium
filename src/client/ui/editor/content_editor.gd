@@ -4,7 +4,10 @@ extends "res://src/client/ui/kit/window.gd"
 ## form (RecordForm) whose changes are saved into one's own mod chosen on top (OwnMods,
 ## several, 3Б): into the record itself when it is that mod's, else as a patch of the
 ## other's (2А); «Undo» takes the last save back. A save is read into the game at once
-## (ModReload.reload) and the mod joins the world being played (its bundles). One column
+## (ModReload.reload) and the mod joins the world being played (its bundles). A record's
+## «Copy» makes a new record of the mod from it (ContentEdits.copy), «Delete» takes one's
+## own record out, «Reset» one's patch of another's; the title and description are
+## written in the game's language as the mod's phrases. One column
 ## on every screen (12А). Opened from the main menu and the pause menu («Editor»);
 ## «Close» or Escape closes it. `game` is the Main node.
 
@@ -54,6 +57,8 @@ var _list: VBoxContainer
 var _actions: HBoxContainer
 var _save: Button
 var _undo: Button
+var _copy_row: HBoxContainer
+var _copy_field: LineEdit
 var _said: Label
 
 
@@ -216,6 +221,7 @@ func open(id: String) -> void:
 	_list.add_child(Kit.button("[back]", _show_list))
 	_list.add_child(Kit.title(Lang.t(str(rec.get("title", id)))))
 	_list.add_child(Kit.note(id))
+	_record_actions(id)
 	var from := Content.origin(kind, id)
 	_list.add_child(Kit.note(Lang.line("[editor_from_bundle]", [str(rec.get("bundle", rec.get("mod", "")))])))
 	if not from.get("patched", []).is_empty():
@@ -236,16 +242,86 @@ func save() -> void:
 		say(Lang.line("[editor_fix_fields]", [", ".join(bad)]))
 		return
 	var fields := ContentEdits.changed(kind, form.rec, form.values())
-	if fields.is_empty():
+	var texts := form.texts_changed()
+	if fields.is_empty() and texts.is_empty():
 		say("[editor_nothing_changed]")
 		return
-	var error := edits.save(mod, kind, record, fields)
+	var error := edits.save(mod, kind, record, fields, texts)
 	if error != "":
 		printerr("editor: ", error)
 		say("[editor_not_saved]")
 		return
 	_apply()
-	say(Lang.line("[editor_saved]", [fields.size(), mod]))
+	say(Lang.line("[editor_saved]", [fields.size() + texts.size(), mod]))
+
+
+## The record's own buttons: «Copy» (with its row for the new id, hidden), «Delete» for
+## the chosen mod's own record, «Reset» for its patch of another's.
+func _record_actions(id: String) -> void:
+	var row := Kit.row(4)
+	var copy := Kit.button("[editor_copy]", _toggle_copy)
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(copy)
+	if mod != "" and ContentEdits.owns(mod, kind, id):
+		var b := Kit.button("[editor_delete]", delete)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(b)
+	elif mod != "" and OwnMods._find(OwnMods.records(mod, kind), id) >= 0:
+		var b := Kit.button("[editor_reset]", delete)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(b)
+	_list.add_child(row)
+	_copy_row = Kit.row(4)
+	_copy_field = Kit.field("[editor_new_id]", 0.0, 32)
+	_copy_field.text_submitted.connect(func(_t: String) -> void: copy_record())
+	_copy_row.add_child(_copy_field)
+	_copy_row.add_child(Kit.button("[editor_create]", copy_record))
+	_copy_row.visible = false
+	_list.add_child(_copy_row)
+
+
+func _toggle_copy() -> void:
+	if mod == "":
+		say("[editor_make_a_mod_first]")
+		return
+	_copy_row.visible = not _copy_row.visible
+	if _copy_row.visible:
+		_copy_field.grab_focus()
+	fit()
+
+
+## Makes a copy of the record open under the id in the field, in the chosen mod, and opens it.
+func copy_record() -> void:
+	var name := _copy_field.text.strip_edges().to_lower()
+	var id := "%s:%s" % [mod, name]
+	if mod == "" or not OwnMods.valid_id(name) or not Content.find(kind, id).is_empty():
+		say("[editor_bad_record_id]")
+		return
+	var error := edits.copy(mod, kind, record, name)
+	if error != "":
+		printerr("editor: ", error)
+		say("[editor_bad_record_id]")
+		return
+	record = id
+	_apply()
+	say(Lang.line("[editor_copied]", [id]))
+
+
+## Takes the record open out of the chosen mod: its own record (back to the list), or its
+## patch of another's (the record as its mod has it).
+func delete() -> void:
+	var own := ContentEdits.owns(mod, kind, record)
+	var error := edits.delete(mod, kind, record)
+	if error != "":
+		printerr("editor: ", error)
+		say("[editor_not_saved]")
+		return
+	if own:
+		record = ""
+	_apply()
+	if own:
+		_show_list()
+	say("[editor_deleted]" if own else "[editor_reset_done]")
 
 
 ## Takes the last save back and reads the mods again.
@@ -267,7 +343,9 @@ func _apply() -> void:
 	else:
 		Mods.rescan(true)
 	var problems := Array(Content.problems).filter(func(p: String) -> bool: return p.contains(mod))
-	if record != "":
+	if record != "" and Content.find(kind, record).is_empty():
+		_show_list()
+	elif record != "":
 		open(record)
 	if not problems.is_empty():
 		say(Lang.line("[editor_mod_problems]", [problems[0]]))
@@ -286,7 +364,8 @@ func join(id: String) -> void:
 
 
 func _update_actions() -> void:
-	_actions.visible = form != null
+	_actions.visible = form != null or not edits.history.is_empty()
+	_save.visible = form != null
 	_save.disabled = mod == ""
 	_save.tooltip_text = "" if mod != "" else "[editor_make_a_mod_first]"
 	_undo.disabled = edits.history.is_empty()

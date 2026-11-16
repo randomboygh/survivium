@@ -43,8 +43,15 @@ the code sees content.
   rest, lists and mappings as one line of YAML; changed names amber, default ones faded, wrong ones red).
   «Save» writes the changed fields, the mod's bundles join the loaded set and the world played
   (`join`: `Content.BUNDLES`, `game.world_mods`, kept with the save), and the mods are read again at once
-  (`ModReload.reload`); «Undo» takes the last save back. New records, PNG import, the voxel editor, a zip and
-  the server come next (plan: `plan/mvp.md`, stage 2 item 3).
+  (`ModReload.reload`); «Undo» takes the last save back. A record's title and description are fields on top of
+  the form in the game's language, written as the mod's phrases (`ContentEdits.key_of`: `[<mod>.<kind>.<id>]`,
+  `….about`; a patch of another mod's record gets `[<mod>.<kind>.<other>_<id>]`) into its `lang/<code>.yaml`,
+  English's too while it has none. «Copy» makes a new record of the mod from any record (`ContentEdits.copy`:
+  the fields as loaded, defaults and `was` left out, title and description under the copy's keys in English
+  and the game's language); «Delete» takes the mod's own record out with its phrases, «Reset» its patch of
+  another's (`ContentEdits.delete`). A save, copy or delete is taken back whole (`history` keeps every file
+  each one changed). PNG import, the voxel editor, a zip and the server come next (plan: `plan/mvp.md`,
+  stage 2 item 3; state: `docs/planning/editor.md`).
 - Where the mods lie (decision 186): `Content.ROOT` — the folder `content/` beside the program in the built
   game on PC (Windows, Linux), if it has `core/mod.yaml` (`Content.find_root`, `Content.beside()`), otherwise
   the built-in copy `res://content` (`BUILT_IN`; the editor, the browser, a phone, a build without the
