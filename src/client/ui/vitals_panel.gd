@@ -1,7 +1,7 @@
 extends PanelContainer
-## The character's state in the top left corner, as tall as a button: health as a thick
-## bar with stamina as a thinner one under it (the load is on the bag button), and beside
-## them standing bars under their pictures, in this order: satiety under a loaf, water
+## The character's state in the top left corner, as tall as a button: health as a row
+## of cells after a big heart, with stamina as a thinner bar under it (the load is on the
+## bag button), and beside them standing bars under their pictures, in this order: satiety under a loaf, water
 ## under a mug, the body's warmth under a thermometer (full at Vitals.COMFORT, blue below
 ## Vitals.COLD, red above Vitals.HOT) and its energy under a moon; red when hungry,
 ## thirsty, sleepy. A standing bar shows only while it is low (`critical`), or all of them
@@ -16,14 +16,20 @@ const Vitals := preload("res://src/shared/game/vitals.gd")
 
 ## The panel's height inside its frame, and the horizontal bars: health, then stamina.
 const HEIGHT := 28
-const BAR_X := 12
-const HEALTH := Rect2(BAR_X, 1, 60, 12)
+const BAR_X := 15
+## Health is a row of cells, CELL_HP of health each, CELL wide with GAP between them:
+## as many cells as the body's most health holds (Vitals.MAX now, 10 cells).
+const CELL_HP := 10.0
+const CELL := 5
+const GAP := 1
+const CELLS := int(Vitals.MAX / CELL_HP)
+const HEALTH := Rect2(BAR_X, 1, CELLS * (CELL + GAP) - GAP, 10)
 const STAMINA := Rect2(BAR_X, 20, 50, 5)
-## Where the pictures of the two rows stand.
-const HEALTH_Y := 3
+## Where the pictures of the two rows stand: the big heart, then the bolt.
+const HEALTH_Y := 0
 const STAMINA_Y := 18
 ## The standing bars: where the first starts, how far apart they are, how wide a bar is.
-const COLUMN_X := BAR_X + 60 + 5
+const COLUMN_X := BAR_X + CELLS * (CELL + GAP) - GAP + 5
 const COLUMN := 10
 const COLUMN_BAR := 5
 ## The standing bars in their order: what, its picture, its colour.
@@ -133,8 +139,8 @@ func _fit() -> void:
 
 
 func _draw_state() -> void:
-	var health: float = _values.get("health", Vitals.MAX)
-	_row(HEALTH_Y, "heart", HEALTH, health / Vitals.MAX, UiStyle.DANGER)
+	_canvas.draw_texture(ItemIcons.picture("heart_big"), Vector2(0, HEALTH_Y))
+	_cells(_values.get("health", Vitals.MAX))
 	var stamina: float = _values.get("stamina", Vitals.MAX)
 	_row(STAMINA_Y, "bolt", STAMINA, stamina / Vitals.MAX, UiStyle.DANGER if stamina < Vitals.TIRED else UiStyle.GOOD)
 	var x := COLUMN_X
@@ -175,6 +181,20 @@ func _column(x: int, icon: String, share: float, color: Color) -> void:
 	_canvas.draw_rect(r, UiStyle.WELL)
 	var full := roundf(r.size.y * clampf(share, 0.0, 1.0))
 	_canvas.draw_rect(Rect2(r.position.x, r.end.y - full, COLUMN_BAR, full), color)
+
+
+## Health as cells left to right: full ones, the one being lost filled from the left
+## in proportion, then empty ones; a lit top line on what is filled.
+func _cells(health: float) -> void:
+	var shine := UiStyle.DANGER.lightened(0.3)
+	for i in CELLS:
+		var r := Rect2(HEALTH.position.x + i * (CELL + GAP), HEALTH.position.y, CELL, HEALTH.size.y)
+		_canvas.draw_rect(r, UiStyle.WELL)
+		var w := roundf(CELL * clampf((health - i * CELL_HP) / CELL_HP, 0.0, 1.0))
+		if w <= 0.0:
+			continue
+		_canvas.draw_rect(Rect2(r.position, Vector2(w, r.size.y)), UiStyle.DANGER)
+		_canvas.draw_rect(Rect2(r.position, Vector2(w, 1)), shine)
 
 
 ## A lying bar `bar` with picture `icon` at height `y` left of it, filled `share`.
