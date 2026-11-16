@@ -6,6 +6,7 @@ func run() -> void:
 	_test_mesher()
 	_test_cap()
 	_test_bank_trunk()
+	_test_diagonal_step()
 	_test_patch()
 	_test_way_order()
 
@@ -136,6 +137,46 @@ func _test_bank_trunk() -> void:
 		bank = bank or n.x > 0.9 and absf(p.x - 3.0) < 0.001 and p.z >= 3.0 and p.z <= 4.0 and p.y >= 1.0
 	_check(cut, "a tree's foot against a bank is bark with cut corners, not a block of wood")
 	_check(bank, "the bank beside a tree's foot draws its face towards the trunk")
+
+
+## A step of a river running diagonally: the upper water's lip runs straight across it
+## (its corners cut, the corners of the air beside filled) and falls over it diagonally,
+## not in stairs of sheets one side of a cell each.
+func _test_diagonal_step() -> void:
+	var w := WorldData.new(4, Vector2i(10, 10))
+	for z in 10:
+		for x in 10:
+			w.set_cell(x, 0, z, Mat.STONE)
+			if x + z <= 9:
+				w.set_cell(x, 1, z, Mat.STONE)
+				w.set_cell(x, 2, z, Mat.WATER)
+			else:
+				w.set_cell(x, 1, z, Mat.WATER)
+	var arrays: Array = (ChunkMesher.build_chunk(w, 0, 0, 16)[1] as ArrayMesh).surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
+	var c := WorldData.CELL
+	var diagonal := 0
+	var square := 0
+	var off_line := 0
+	for v in verts.size():
+		var p := verts[v] / c
+		var n := normals[v]
+		if p.x < 3.0 or p.x > 7.0 or p.z < 3.0 or p.z > 7.0:
+			continue
+		if colors[v].a < 0.15:
+			if absf(n.x) > 0.3 and absf(n.z) > 0.3:
+				diagonal += 1
+			elif absf(n.x) > 0.3 or absf(n.z) > 0.3:
+				square += 1
+		elif n.y > 0.9 and absf(p.y - 2.5) < 0.01 and absf(p.x + p.z - 10.5) > 0.06 and p.x + p.z > 10.0:
+			# Upper water's surface beyond the straight line through the middles of the
+			# sides of the stairs.
+			off_line += 1
+	_check(diagonal > 0 and square == 0, "a diagonal step falls over a straight diagonal lip, not in stairs (%d, %d)"
+		% [diagonal, square])
+	_check(off_line == 0, "the water of a diagonal step's lip ends on a straight line (%d off it)" % off_line)
 
 
 ## Total area of the triangles of a mesh (0 for none).

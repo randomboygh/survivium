@@ -232,6 +232,10 @@ static func _column(job: Job, x: int, z: int) -> bool:
 		if m == AIR or m == LEAVES:
 			if sh[i] >= 16:
 				_fill_faces(solid, c, sh, cov, i, dy, dz, Vector3(x, y, z))
+			elif m == AIR:
+				var lips := Water.lip_fills(c, i, dy, dz)
+				if lips != 0:
+					Water.lip_fill(water, job.water_falls, w, c, i, dy, dz, Vector3(x, y, z), lips, x - x0, z - z0)
 			continue
 		# Neighbours in DIRS order: +x, -x, +y, -y, +z, -z.
 		nb[0] = c[i + dx]
@@ -271,8 +275,9 @@ static func _column(job: Job, x: int, z: int) -> bool:
 						corners.append(Water.water_color(depth - WATER_TOP, 1.0, Water.kind(false, murks[k]), sea))
 				else:
 					corners = Water.water_corners(c, sh, cov, i, dy, dz, depth, murks, sea)
-				Water.water_faces(water, faces, nb, base, depth, foam, corners)
-				Water.falls(job.water_falls, c, nb, side_offsets, i, dy, x - x0, z - z0, y)
+				var lips := Water.lip_cuts(c, i, dy, dz) if nb[2] == AIR else 0
+				Water.water_faces(water, faces, nb, base, depth, foam, corners, lips)
+				Water.falls(job.water_falls, c, nb, side_offsets, i, dy, dz, x - x0, z - z0, y)
 			if fills != 0:
 				_fill_faces(solid, c, sh, cov, i, dy, dz, base)
 		elif m == Mat.LOG and Trunks.is_trunk(nb, w.trees.has(Vector2i(x, z))):
@@ -566,7 +571,10 @@ static func _candidates(w, x0: int, z0: int, x1: int, z1: int) -> PackedInt64Arr
 				| leaf_cols[col - 1] | leaf_cols[col + 1] | leaf_cols[col - sx] | leaf_cols[col + sx] \
 				| sloped_cols[col - 1] | sloped_cols[col + 1] | sloped_cols[col - sx] | sloped_cols[col + sx]
 			air_near |= a
-			out[j] = cover & near | water & air_near | corners & open
+			# Air beside water on its level: the lip of a step, whose corners water may fill
+			# (WaterMesher.lip_fills).
+			var wet_near := water_cols[col - 1] | water_cols[col + 1] | water_cols[col - sx] | water_cols[col + sx]
+			out[j] = cover & near | water & air_near | corners & open | air & wet_near
 			j += 1
 	return out
 
