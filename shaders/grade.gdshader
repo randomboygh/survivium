@@ -84,6 +84,15 @@ uniform float crt_jitter = 0.0;
 uniform float crt_bleed = 0.0;
 uniform float crt_band = 0.0;
 uniform float crt_noise = 0.0;
+// The retro palettes (crt.gd RETRO_*, the same setting), 0 off: the picture's pixels drawn
+// twice as big, on the world's grid so the big pixels do not crawl as the view moves, and
+// the colours brought to a palette with ordered dithering on the big pixels: 1 RGB 3-3-2
+// (256 colours), 2 black and white, 3 CGA (black, cyan, magenta, white).
+uniform int retro = 0;
+// The gamma 1 bit and CGA lift the picture's darks by before the palette
+// (Sky._update_grade: lower the darker the sky), 1 by day.
+uniform float retro_lift = 1.0;
+const vec3 CGA[4] = vec3[](vec3(0.0), vec3(0.333, 1.0, 1.0), vec3(1.0, 0.333, 1.0), vec3(1.0));
 
 // How far, in picture pixels, the waves of a sleepy eye move the pixel at screen point
 // `sp` (0..1): slow sines across and along, crossing, so nothing moves in step.
@@ -305,6 +314,50 @@ vec4 screen_snow(vec2 p, vec2 size) {
 	return out_c;
 }
 
+// Brings colour `c` to the retro palette (`retro`), `d` the big pixel's ordered dither
+// threshold, 0..1.
+vec3 retro_color(vec3 c, float d) {
+	if (retro == 1) {
+		// Eight levels of red and green, four of blue, each rounded up or down by the dither.
+		vec3 n = vec3(7.0, 7.0, 3.0);
+		return floor(c * n + d) / n;
+	}
+	if (retro == 2) {
+		// The greys in five steps, black, three patterns and white, so a surface keeps one
+		// even pattern instead of a noise of dots; brightness spread wider first, so the
+		// picture is not all half grey.
+		float l = dot(c, vec3(0.299, 0.587, 0.114));
+		l = clamp((l - 0.45) * 1.7 + 0.5, 0.0, 1.0);
+		return vec3(step(d, floor(l * 4.0 + 0.5) / 4.0));
+	}
+	// Colours a little richer and harder first: the palette is far from the picture's.
+	float g = dot(c, vec3(0.299, 0.587, 0.114));
+	c = clamp((mix(vec3(g), c, 1.4) - 0.45) * 1.3 + 0.5, 0.0, 1.0);
+	// The nearest two colours of the palette, and between them by the dither: how far `c`
+	// lies from the first toward the second.
+	int a = 0;
+	int b = 1;
+	float da = 1e9;
+	float db = 1e9;
+	for (int i = 0; i < 4; i++) {
+		vec3 e = c - CGA[i];
+		float k = dot(e, e);
+		if (k < da) {
+			db = da;
+			b = a;
+			da = k;
+			a = i;
+		} else if (k < db) {
+			db = k;
+			b = i;
+		}
+	}
+	vec3 ab = CGA[b] - CGA[a];
+	float t = clamp(dot(c - CGA[a], ab) / dot(ab, ab), 0.0, 1.0);
+	// In steps too, as the greys of 1 bit.
+	return floor(t * 4.0 + 0.5) / 4.0 > d ? CGA[b] : CGA[a];
+}
+
 // The bright part of the picture around `uv`, blurred: eight filtered taps on two rings.
 vec3 crt_bloom(vec2 uv, vec2 texel) {
 	vec3 sum = vec3(0.0);
@@ -390,7 +443,17 @@ void fragment() {
 			// The picture breathes: it swells and shrinks slowly round the middle.
 			uv = 0.5 + (uv - 0.5) * (1.0 - trip * 0.025 * (0.5 + 0.5 * sin(TIME * 0.8)));
 		}
-		src = texture(TEXTURE, uv).rgb;
+		if (retro > 0) {
+			// The big pixel: the pair of pixels across and down it starts at an even pixel of
+			// the world. Its four are read at once, averaged (crt_view is filtered), so the
+			// fine detail does not turn into a noise of dots; uv stays on its first.
+			vec2 pp = floor(uv / TEXTURE_PIXEL_SIZE);
+			pp -= mod(pp + floor(view_origin + 0.5), 2.0);
+			uv = (pp + 0.5) * TEXTURE_PIXEL_SIZE;
+			src = texture(crt_view, (pp + 1.0) * TEXTURE_PIXEL_SIZE).rgb;
+		} else {
+			src = texture(TEXTURE, uv).rgb;
+		}
 	}
 	if (sway > 0.0) {
 		// The second image, a few pixels off and wandering, comes and goes.
@@ -453,6 +516,17 @@ void fragment() {
 	if (frost_state.y > 0.0 || frost_state.z > 0.0) {
 		vec4 snow = screen_snow(glass, 1.0 / TEXTURE_PIXEL_SIZE);
 		c = mix(c, snow.rgb * max(exposure, 0.35) * tint, snow.a);
+	}
+	if (retro > 0) {
+		// The dither by big pixels, on the world's grid as they are.
+		ivec2 rb = ivec2(mod(floor(px / 2.0), 4.0));
+		if (retro > 1) {
+			// Four colours lose a dark picture whole: by night its darks are lifted by the
+			// sky's light (retro_lift, a gamma), so the ground still shows dim round a fire's
+			// patch while the patch itself does not go all white.
+			c = pow(max(c, vec3(0.0)), vec3(retro_lift));
+		}
+		c = retro_color(clamp(c, 0.0, 1.0), (float(m[rb.y * 4 + rb.x]) + 0.5) / 16.0);
 	}
 	if (crt_on) {
 		c += crt_bloom(uv, TEXTURE_PIXEL_SIZE) * crt_glow * exposure * tint;

@@ -403,6 +403,8 @@ func _update_grade(golden: float, night: float, moonlight: float) -> void:
 	grade_mat.set_shader_parameter("exposure", exposure)
 	grade_mat.set_shader_parameter("contrast", contrast)
 	grade_mat.set_shader_parameter("keep_highlights", lerpf(0.0, 0.8, night))
+	# The four-colour screen effects (Crt.RETRO_*) see the night lifted, or it is all black.
+	grade_mat.set_shader_parameter("retro_lift", lerpf(0.45, 1.0, clampf(sky_light / 0.6, 0.0, 1.0)))
 	var deep := Color(0.02, 0.03, 0.09).lerp(Color(0.006, 0.01, 0.022), 1.0 - moonlight)
 	grade_mat.set_shader_parameter("shadow_tint", Color(0.0, 0.01, 0.04).lerp(deep, night))
 	grade_mat.set_shader_parameter("haze_color", Color(haze_col.x, haze_col.y, haze_col.z))
