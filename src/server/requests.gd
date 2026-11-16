@@ -48,6 +48,9 @@ const PACED := [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.GATHER, P
 const WORK_AHEAD := 2.0
 ## The seconds a paced request that tells no swing costs (one set down, one sown).
 const WORK_STEP := 0.25
+## Seconds between two mods put on the server by one player (Protocol.MOD_PUT): each is
+## unpacked, read and sent to every player, so it is not done faster.
+const MOD_PUT_EVERY := 5.0
 
 ## The player said `text` in the chat (trimmed and cut; "/…" a command).
 signal chatted(text: String)
@@ -84,6 +87,18 @@ var log_cheats := false
 ## multiplies it.
 var day_speed := 1.0
 var ai_debug := false
+## Whether the player may put their own mod on the server (Protocol.MOD_PUT): a host's only
+## (Server, with each message; never in a single game); and what takes the whole zip
+## (Server.put_mod: (mod, bytes) -> {"files", "skipped", "error"}).
+var may_author := false
+var author := Callable()
+## The mod being put (Protocol.MOD_PUT): its id, the pieces it has in all, the bytes so
+## far and how many came; when the last was taken (seconds).
+var _put_mod := ""
+var _put_pieces := 0
+var _put_bytes := PackedByteArray()
+var _put_got := 0
+var _put_at := -INF
 var _owed := 0.0
 var _owed_at := -1.0
 
@@ -379,6 +394,9 @@ func _rule(kind: String, args: Array) -> Variant:
 					flagged.emit("cheats", ", ".join(names))
 				return Cheats.apply(session, who, args[0], day_speed)
 			return false
+		Protocol.MOD_PUT:
+			if _fit(args, [TYPE_STRING, TYPE_INT, TYPE_INT, TYPE_PACKED_BYTE_ARRAY]):
+				return _mod_put(args[0], args[1], args[2], args[3])
 		Protocol.FIGHT_BRAVE:
 			if _fit(args, []):
 				return session.fights.give_up(who.id)
@@ -476,6 +494,41 @@ func _near(cell: Vector3i) -> Dictionary:
 	if e.is_empty() or not WorldActions.within_hand(who, session.placed.center(e)):
 		return {}
 	return e
+
+
+## A piece `piece` of `pieces` of the zip of own mod `mod` (Protocol.MOD_PUT): only from
+## one who may (a host), pieces in order and within MOD_PIECE and MOD_PIECES, a mod at most
+## each MOD_PUT_EVERY seconds; the last hands the whole to `author`. Anything else drops
+## what came so far and is answered false (a wrong one is told, `flagged`).
+func _mod_put(mod: String, piece: int, pieces: int, bytes: PackedByteArray) -> Variant:
+	if not may_author or not author.is_valid():
+		flagged.emit("author", "a mod put without the right")
+		return false
+	var fits := mod.length() <= 32 and pieces >= 1 and pieces <= Protocol.MOD_PIECES and bytes.size() <= Protocol.MOD_PIECE \
+		and not bytes.is_empty() and piece >= 0 and piece < pieces
+	var next := piece == 0 or (mod == _put_mod and pieces == _put_pieces and piece == _put_got)
+	if not fits or not next:
+		_put_mod = ""
+		_put_bytes = PackedByteArray()
+		flagged.emit("malformed", "mod_put piece %d of %d (%d bytes)" % [piece, pieces, bytes.size()])
+		return false
+	if piece == 0:
+		if _now() - _put_at < MOD_PUT_EVERY:
+			flagged.emit("pace", "mod_put again after %.1f s" % (_now() - _put_at))
+			return false
+		_put_mod = mod
+		_put_pieces = pieces
+		_put_bytes = PackedByteArray()
+		_put_got = 0
+	_put_bytes.append_array(bytes)
+	_put_got += 1
+	if _put_got < _put_pieces:
+		return true
+	_put_at = _now()
+	var whole := _put_bytes
+	_put_mod = ""
+	_put_bytes = PackedByteArray()
+	return author.call(mod, whole)
 
 
 ## A line of chat: made safe and cut to CHAT_MAX (Protocol.clean_text), told to the server (to the team's

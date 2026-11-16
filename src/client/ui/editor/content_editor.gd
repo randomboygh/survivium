@@ -10,9 +10,12 @@ extends "res://src/client/ui/kit/window.gd"
 ## written in the game's language as the mod's phrases; a picture field's «PNG…» takes a
 ## picture from the device into the mod (PicturePick, ContentEdits.picture), a model's
 ## «Edit model» opens the voxel editor (VoxelEditor) and its save is written so; «Export
-## zip» hands the chosen mod out as a zip, «Import zip» takes one in (ModImport). One column
-## on every screen (12А). Opened from the main menu and the pause menu («Editor»);
-## «Close» or Escape closes it. `game` is the Main node.
+## zip» hands the chosen mod out as a zip, «Import zip» takes one in (ModImport). Joined to
+## a server far away, a host's saves put the mod on the server (`put_on_server`, ModPut,
+## Protocol.MOD_PUT: it reads it and sends it to every player, this game too); another
+## player's stay on the device. A server made in this game takes the mod with the game's
+## reload (Server.mods_reread). One column on every screen (12А). Opened from the main
+## menu and the pause menu («Editor»); «Close» or Escape closes it. `game` is the Main node.
 
 const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
 const RecordForm := preload("res://src/client/ui/editor/record_form.gd")
@@ -25,6 +28,8 @@ const Lang := preload("res://src/shared/content/lang.gd")
 const PicturePick := preload("res://src/client/ui/editor/picture_pick.gd")
 const VoxelSheet := preload("res://src/client/ui/editor/voxel_sheet.gd")
 const ModImport := preload("res://src/client/mod_import.gd")
+const ModZip := preload("res://src/shared/content/mod_zip.gd")
+const ModPut := preload("res://src/client/net/mod_put.gd")
 const VOXEL_EDITOR := "res://src/client/ui/editor/voxel_editor.gd"
 
 ## The kinds in the order shown, each with its name.
@@ -292,7 +297,7 @@ func export_mod() -> void:
 	if mod == "":
 		say("[editor_make_a_mod_first]")
 		return
-	var bytes := ModImport.pack(OwnMods.root().path_join(mod))
+	var bytes := ModZip.pack(OwnMods.root().path_join(mod))
 	if bytes.is_empty():
 		say("[editor_not_saved]")
 		return
@@ -300,12 +305,12 @@ func export_mod() -> void:
 		say(Lang.line("[editor_exported]", [where]) if where != "" else "[editor_not_saved]"))
 
 
-## Takes zip `bytes` (file `file`) of a mod into one's own mods (ModImport.unpack_bytes;
+## Takes zip `bytes` (file `file`) of a mod into one's own mods (ModZip.unpack_bytes;
 ## never over a mod that is not one's own), chooses the first own mod it brought and reads
 ## the mods again.
 func import_mod(bytes: PackedByteArray, file: String) -> void:
 	var others := Mods.available().filter(func(m: String) -> bool: return not m in OwnMods.list())
-	var got := ModImport.unpack_bytes(bytes, file, OwnMods.root(), others)
+	var got := ModZip.unpack_bytes(bytes, file, OwnMods.root(), others)
 	if got.error != "":
 		say(got.error)
 		return
@@ -442,8 +447,32 @@ func undo() -> void:
 	say("[editor_undone]")
 
 
+## Where the saves go besides this device: "server" on a server far away this game is a
+## host of (the mod is put there), "guest" on one where it is not, "" in a world of this
+## device or a server made in this game (its reload takes the mod, Server.mods_reread).
+func server_mode() -> String:
+	if game == null or game.link == null or game.link.join_url == "" or game.link.hosted != null:
+		return ""
+	return "server" if game.link.welcome.get("host") == true else "guest"
+
+
+## Puts the chosen own mod on the server this game is a host of (ModPut).
+func put_on_server() -> void:
+	if mod != "" and game != null and game.net != null:
+		ModPut.put(game.net, OwnMods.root().path_join(mod), say)
+
+
 ## Reads the mods again with the chosen one in the world's set, and shows the record anew.
+## On a server far away the game plays with the server's files: a host's mod is put there
+## and comes back with the server's reload; another player's edits stay on the device.
 func _apply() -> void:
+	match server_mode():
+		"server":
+			put_on_server()
+			return
+		"guest":
+			say.call_deferred("[editor_server_hosts_only]")
+			return
 	join(mod)
 	if game != null and game.mod_reload != null:
 		game.mod_reload.reload()

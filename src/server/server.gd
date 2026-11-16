@@ -27,6 +27,8 @@ const Mods := preload("res://src/shared/content/mods.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const ContentHost := preload("res://src/server/content_host.gd")
 const ModFiles := preload("res://src/shared/content/mod_files.gd")
+const ModZip := preload("res://src/shared/content/mod_zip.gd")
+const OwnMods := preload("res://src/shared/content/own_mods.gd")
 
 ## Seconds a character stays in the world after its connection is lost or a goodbye,
 ## out of their land (see linger_of).
@@ -450,9 +452,56 @@ func _reloaded(problems: Array, changed: bool) -> String:
 
 ## The mods' data was read again (reload_mods; a server made in the game: by the game's
 ## own hot reload, ModReload): the rules play with it, and when the files are not the ones
-## they were the players' games are told, to take what changed (Protocol.MODS).
+## they were the players' games are told, to take what changed (Protocol.MODS). A server
+## made in the game shares the bundles loaded with it: those the game's content editor
+## joined (ContentEditor.join, one's own mod) join the world's too.
 func mods_reread() -> void:
-	_mods_told(content.read())
+	var added: Array = Content.BUNDLES.filter(func(b: String) -> bool: return not b in world_info.get("mods", []))
+	if not added.is_empty() and world_info.get("mods") is Array:
+		_join_bundles(added)
+	_mods_told(content.read(world_info.get("mods", [])))
+
+
+## Player `key`'s own mod `mod` came whole as zip `bytes` (Protocol.MOD_PUT, a host's
+## content editor; Requests.may_author): it takes the place of what the server had of it
+## in its own mods' folder (OwnMods.root, ModZip.unpack_mod: only an own mod, never one of
+## the game's or another's that is not own), its bundles join the world's (kept in its
+## save), and the mods' data is read again and sent to every player (reload_mods). What
+## was made of it: {"files", "skipped", "error": a key or ""}.
+func put_mod(mod: String, bytes: PackedByteArray, key: String) -> Dictionary:
+	var a: Account = accounts.get(key)
+	var out := {"files": 0, "skipped": 0, "error": ""}
+	if not is_host(key):
+		out.error = "[editor_server_hosts_only]"
+		return out
+	var known := mod in Mods.available() or DirAccess.dir_exists_absolute(Content.ROOT.path_join(mod)) \
+		or DirAccess.dir_exists_absolute(OwnMods.root().path_join(mod))
+	if not OwnMods.valid_id(mod) or known and not OwnMods.own(mod):
+		flag(a, "author", "mod `%s` is not an own mod here" % mod.left(32), 1)
+		out.error = "[editor_server_not_own]"
+		return out
+	var got := ModZip.unpack_mod(bytes, mod, OwnMods.root())
+	out.files = got.files
+	out.skipped = got.skipped
+	out.error = got.error
+	_say("%s put mod %s: %d files, %d left out%s" % [a.name if a != null else key.left(8), mod, got.files, got.skipped,
+		"" if got.error == "" else ", " + str(got.error)])
+	if got.error != "":
+		return out
+	Content.refresh()
+	_join_bundles(Mods.bundles(mod))
+	Content.BUNDLES = world_info.mods.duplicate()
+	_reloaded(Mods.rescan(true), content.read(world_info.mods))
+	return out
+
+
+## `bundles` join the world's set (its save keeps them: the one Array of the server, its
+## save and ServerMain), in the order their needs ask (Mods.resolve).
+func _join_bundles(bundles: Array) -> void:
+	var mods: Array = world_info.mods
+	var order: Array = Mods.resolve(mods + bundles.filter(func(b: String) -> bool: return not b in mods)).order
+	mods.clear()
+	mods.append_array(order)
 
 
 ## Tells the host of the mods' files left out of what the players are given.
@@ -777,6 +826,7 @@ func _take(peer: Peer, bytes: PackedByteArray) -> void:
 	link.requests.log_cheats = not config.playtest
 	link.requests.day_speed = config.day_speed()
 	link.requests.ai_debug = link.requests.ai_debug and link.requests.may_debug
+	link.requests.may_author = is_host(peer.account.key)
 	var reply: Variant = link.handle_msg(msg)
 	if reply is PackedByteArray and open:
 		for b in link.flush():
@@ -911,6 +961,7 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 		a.link.who.check_moves = true
 		a.link.requests.paced = true
 		a.link.requests.flagged.connect(_on_flagged.bind(a.key))
+		a.link.requests.author = put_mod.bind(a.key)
 		a.link.requests.chatted.connect(_on_chat.bind(a.key))
 		a.link.requests.team_chatted.connect(_on_team_chat.bind(a.key))
 		if record.is_empty():

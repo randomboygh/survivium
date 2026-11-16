@@ -7,7 +7,9 @@ const ModFiles := preload("res://src/shared/content/mod_files.gd")
 const ContentEdits := preload("res://src/shared/content/content_edits.gd")
 const VoxelSheet := preload("res://src/client/ui/editor/voxel_sheet.gd")
 const SliceGrid := preload("res://src/client/ui/editor/slice_grid.gd")
-const ModImport := preload("res://src/client/mod_import.gd")
+const ModZip := preload("res://src/shared/content/mod_zip.gd")
+const Server := preload("res://src/server/server.gd")
+const Config := preload("res://src/server/config.gd")
 
 const DIR := "user://test_editor"
 
@@ -22,6 +24,7 @@ func run() -> void:
 	_test_pictures()
 	_test_voxels()
 	_test_zips()
+	_test_server_put()
 
 
 ## Writing YAML that the reader reads back as the same value.
@@ -349,13 +352,13 @@ func _test_zips() -> void:
 	OwnMods.make("mine", "Mine")
 	_check(OwnMods.put("mine", "items", {"id": "pebble", "title": "[mine.items.pebble]", "weight": 0.1, "stack": 10}) == "",
 		"a record to pack")
-	var bytes := ModImport.pack(OwnMods.root().path_join("mine"))
-	var sizes := ModImport.sizes_of(bytes)
+	var bytes := ModZip.pack(OwnMods.root().path_join("mine"))
+	var sizes := ModZip.sizes_of(bytes)
 	_check(sizes.has("mine/mod.yaml") and sizes.has("mine/data/items.yaml") and sizes.has("mine/lang/en.yaml"),
 		"the zip holds the mod under its name: %s" % [sizes.keys()])
 	_remove(DIR)
 	ModFiles.extra_dir = DIR
-	var got := ModImport.unpack_bytes(bytes, "whatever.zip", OwnMods.root(), ["core"])
+	var got := ModZip.unpack_bytes(bytes, "whatever.zip", OwnMods.root(), ["core"])
 	_check(got.error == "" and got.files == sizes.size() and got.mods == ["mine"] and "mine" in OwnMods.list()
 		and OwnMods.records("mine", "items")[0].id == "pebble", "the zip taken in is one's own mod again")
 	var zip := ZIPPacker.new()
@@ -365,8 +368,44 @@ func _test_zips() -> void:
 		zip.write_file("id: x\n".to_utf8_buffer())
 		zip.close_file()
 	zip.close()
-	got = ModImport.unpack_bytes(FileAccess.get_file_as_bytes(DIR.path_join("bad.zip")), "bad.zip", OwnMods.root(), ["core"])
+	got = ModZip.unpack_bytes(FileAccess.get_file_as_bytes(DIR.path_join("bad.zip")), "bad.zip", OwnMods.root(), ["core"])
 	_check(got.files == 1 and got.skipped == 1 and not FileAccess.file_exists(DIR.path_join("core/mod.yaml")),
 		"a zip writes nothing over a mod that is not one's own")
 	_remove(DIR)
 	ModFiles.extra_dir = ""
+
+
+## A host's own mod put on a server (Protocol.MOD_PUT, Server.put_mod): it takes the
+## place of what the server had of it (a file gone from the zip is gone there too), its
+## bundle joins the world's, and the files the players are given change.
+func _test_server_put() -> void:
+	if DirAccess.dir_exists_absolute(DIR):
+		_remove(DIR)
+	ModFiles.extra_dir = DIR
+	var bundles: Array = Mods.all()
+	var world: Array = bundles.duplicate()
+	OwnMods.make("mine", "Mine")
+	OwnMods.put("mine", "items", {"id": "pebble", "title": "[mine.items.pebble]", "weight": 0.1, "stack": 10})
+	var bytes := ModZip.pack(OwnMods.root().path_join("mine"))
+	_remove(DIR)
+	ModFiles.extra_dir = DIR
+	OwnMods.make("mine", "Mine")
+	var stale := FileAccess.open(DIR.path_join("mine/data/old.yaml"), FileAccess.WRITE)
+	stale.store_string("[]\n")
+	stale.close()
+	ModFiles.read_extra()
+	Content.refresh()
+	var net := Server.new(null, Config.new(), {"mods": world})
+	net.content.ready()
+	var digest: String = net.content.digest
+	net.access.hosts[Server.kept("author")] = "Author"
+	var got := net.put_mod("mine", bytes, "author")
+	_check(got.error == "" and got.files == 3 and not FileAccess.file_exists(DIR.path_join("mine/data/old.yaml"))
+		and OwnMods.records("mine", "items")[0].id == "pebble", "the mod takes the place of the server's copy: %s" % [got])
+	_check("mine" in world and Items.has("mine:pebble") and net.content.digest != digest and net.content.list.has("mine/data/items.yaml"),
+		"its bundle joins the world's (%s) and its files are given to the players" % [world.filter(func(b: String) -> bool: return b.begins_with("mine"))])
+	_remove(DIR)
+	ModFiles.extra_dir = ""
+	Content.BUNDLES = bundles.duplicate()
+	Content.refresh()
+	Mods.activate(bundles)

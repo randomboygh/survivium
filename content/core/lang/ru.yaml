@@ -521,6 +521,13 @@
 "[editor_export_zip]": "Экспорт в zip"
 "[editor_import_zip]": "Импорт zip"
 "[editor_exported]": "Мод сохранён: %s"
+"[editor_putting_on_server]": "Мод отправляется на сервер…"
+"[editor_put_on_server]": "На сервере: файлов %d из мода %s, разослано всем игрокам"
+"[editor_server_refused]": "Сервер не принял мод"
+"[editor_server_hosts_only]": "Сохранено только на этом устройстве: загружать моды на сервер могут только его хосты"
+"[editor_server_not_own]": "На сервере уже есть мод с таким именем, и он не свой"
+"[editor_too_large_for_server]": "Мод слишком большой для сервера (не больше 8 МБ)"
+"[the_zip_is_not_that_mod]": "В архиве нет этого своего мода"
 "[voxel_levels_most]": "Не больше %d уровней"
 
 # src/client/ui/fact_chips.gd

@@ -208,6 +208,16 @@ const AI_DEBUG := "ai_debug"
 ## free_build, tool_wear, instant_craft, free_items, animal_attacks, boost, and once:
 ## season, weather, moon, hour, at (a teleport: Vector3)}]; true when taken.
 const CHEATS := "cheats"
+## One's own mod put on the server by its author (stage 2 item 3, step 7; the content
+## editor of a host, Requests.may_author): [mod id, piece, pieces, bytes], the zip of the
+## mod (ModZip.pack) cut in pieces of at most MOD_PIECE bytes sent in order; a piece taken
+## is answered true, the last one with what was made of the whole ({"files", "skipped",
+## "error": a key or ""}): the mod takes the place of what the server had of it, joins the
+## world's bundles and every player takes its files (MODS); false when refused.
+const MOD_PUT := "mod_put"
+## Bytes of one piece of MOD_PUT (under the server's inbound buffer), and pieces at most.
+const MOD_PIECE := 128 << 10
+const MOD_PIECES := 64
 
 ## The events: `[kind, args]`, with no reply. From the client, each frame: where its
 ## body is and what it does. From the server: what the player's state became, for the
