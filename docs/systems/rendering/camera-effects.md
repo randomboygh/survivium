@@ -91,7 +91,12 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   mushrooms at night: `Foliage` notes where each glowing mushroom stands (`Job.glows`, kept through a patch),
   `ChunkStreamer` hands them over per chunk, and every `PICK_EVERY` s the `LIGHTS` (4) groups nearest the
   view get a short light (`REACH` 1.6 units, one per group `APART`; each group its own pale brightness within `ENERGY`, 2–4 times dimmer than at first); the others glow only on their own
-  (`grass.gdshader`). Off by day and under snow, like the caps.
+  (`grass.gdshader`). Off by day and under snow, like the caps, except below the sea's surface (`sea_top`, set
+  by `ChunkStreamer._apply_plants`), where they fade in over 4 levels by day too, as `dark_glow` does. A second
+  set, `Effects.lit` (`lit` true), lights the cells that cast light (materials with `light`: lava, crystals)
+  always, each light in its material's colour (`Mat.lights`), `LIT_REACH` 3.2, `LIT_ENERGY`, `LIT_APART`: the
+  mesher notes such cells that show to the air (`ChunkMesher.Job.glows`/`glow_mats`, kept through a patch) and
+  `ChunkStreamer._apply_lit` hands them over.
 - `src/client/view/window_glow.gd` (held by `Effects.windows`) — windows lit from inside: `Props` hands over each
   window placed (an item with `window`) with its voxel model; every `PICK_EVERY` s the lit fires and lights set
   down under a roof (`Effects.roofed`) within their reach of a window (and `HEIGHT` up or down) give it a target

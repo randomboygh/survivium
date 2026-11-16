@@ -143,6 +143,8 @@ var dark := true
 var flicker_clock := 0.0
 ## The pools of light round the glowing mushrooms (GlowLights).
 var glows: Node3D
+## The pools of light round the cells that cast light: lava, crystals (GlowLights `lit`).
+var lit: Node3D
 ## The will-o'-the-wisps over the swamps at night (Wisps, moved by Sky).
 var wisps: Node3D
 ## The windows lit from inside by the fires and lights in their rooms (WindowGlow).
@@ -281,6 +283,9 @@ func _ready() -> void:
 		torch_flames.append(torch_flame())
 	glows = GlowLights.new()
 	add_child(glows)
+	lit = GlowLights.new()
+	lit.lit = true
+	add_child(lit)
 	wisps = Wisps.new()
 	add_child(wisps)
 	windows.fire_full = FIRE_ENERGY
@@ -610,6 +615,7 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 				PixelView.twin_follow(f.light, energy / shadow_energy)
 		_light_lamps(view, sky)
 	glows.update(delta, view, sky, clock)
+	lit.update(delta, view, sky, clock)
 	windows.update(delta, sky, fires, lamps, roofed)
 
 
