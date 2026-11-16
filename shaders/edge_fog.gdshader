@@ -3,9 +3,10 @@
 // chunks beside them and, once a chunk is built, melts over it by dithering (no clouds
 // over it, user 2026-11-16). `amounts` holds how much fog each chunk has
 // (0..1, a texel a chunk, see EdgeHaze), read between the chunks' middles, so the fog's edge
-// lies across the borders.
+// lies across the borders. It lies on the land itself (each chunk at its highest ground,
+// walls between) and is depth tested, so land nearer the camera hides the fog behind it.
 shader_type spatial;
-render_mode world_vertex_coords, unshaded, depth_test_disabled, cull_disabled, shadows_disabled;
+render_mode world_vertex_coords, unshaded, cull_disabled, shadows_disabled;
 
 #include "res://shaders/common.gdshaderinc"
 
