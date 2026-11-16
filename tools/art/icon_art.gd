@@ -1979,6 +1979,21 @@ const PICTURES := {
 		"....h....",
 		".........",
 	],
+	## The big heart before the health bar (VitalsPanel), with a shine.
+	"heart_big": [
+		"..hhh...hhh..",
+		".hhhhh.hhhhh.",
+		"hhwwhhhhhhhhh",
+		"hhwhhhhhhhhhh",
+		"hhhhhhhhhhhhh",
+		"hhhhhhhhhhhhh",
+		".hhhhhhhhhhh.",
+		"..hhhhhhhhh..",
+		"...hhhhhhh...",
+		"....hhhhh....",
+		".....hhh.....",
+		"......h......",
+	],
 	"food": [
 		"....l....",
 		"...lL....",
