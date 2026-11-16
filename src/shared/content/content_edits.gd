@@ -13,6 +13,14 @@ const Content := preload("res://src/shared/content/content.gd")
 const OwnMods := preload("res://src/shared/content/own_mods.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Yaml := preload("res://src/shared/content/yaml.gd")
+const ModFiles := preload("res://src/shared/content/mod_files.gd")
+
+## The fields that name a picture, by `<kind>.<field>`: the folder of a bundle it lies in
+## (as the registries read them: ItemIcons, Hands, Figure, Creatures, Plants, Materials,
+## Trees), `<folder>/<name>.png`.
+const PICTURES := {"items.icon": "icons", "items.sprite": "sprites/held", "items.look": "sprites/worn",
+	"creatures.sprite": "sprites/creatures", "plants.sprite": "sprites/plants", "materials.texture": "textures",
+	"trees.bark": "textures"}
 
 ## The most writes kept to take back.
 const MOST_UNDO := 50
@@ -180,6 +188,45 @@ func delete(mod: String, kind: String, id: String) -> String:
 	return _done(group, error)
 
 
+## The file of picture field `field` of record `rec` of `kind` as loaded ("" for none):
+## Content.asset of its folder and name (a material's texture is named by its id when none).
+static func picture_path(kind: String, rec: Dictionary, field: String, value := "") -> String:
+	var dir: String = PICTURES.get("%s.%s" % [kind, field], "")
+	var name := value if value != "" else str(rec.get(field, ""))
+	if name == "" and kind == "materials":
+		name = str(rec.get("id", "")).get_slice(":", 1)
+	if dir == "" or name == "":
+		return ""
+	return Content.asset(rec, "%s/%s.png" % [dir, name])
+
+
+## Writes picture `bytes` (a PNG, ModFiles.may_be) into own mod `mod` for picture field
+## `field` of record `id` (qualified) of `kind`, and the field: its own record names it by
+## its name, another mod's by `<mod>:<other>_<name>` (Content.asset), as a patch. "" when written.
+func picture(mod: String, kind: String, id: String, field: String, bytes: PackedByteArray) -> String:
+	var dir: String = PICTURES.get("%s.%s" % [kind, field], "")
+	if dir == "":
+		return "`%s` of %s names no picture" % [field, kind]
+	if not ModFiles.may_be(bytes, "png"):
+		return "not a PNG of at most %d px" % ModFiles.PICTURE_MAX
+	var own := owns(mod, kind, id)
+	var name := id.trim_prefix(mod + ":") if own else id.replace(":", "_")
+	var path := OwnMods.root().path_join(mod).path_join(dir).path_join(name + ".png")
+	var before: Variant = FileAccess.get_file_as_bytes(path) if FileAccess.file_exists(path) else ""
+	var error := save(mod, kind, id, {field: name if own else "%s:%s" % [mod, name]})
+	if error != "":
+		return error
+	DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		return "cannot write %s" % path
+	f.store_buffer(bytes)
+	f.close()
+	# The same write as the field's (save kept it last): taken back together.
+	history[-1].append([path, before])
+	return ""
+
+
 ## Takes the last write back (every file it changed); "" when done or there is none.
 func undo() -> String:
 	if history.is_empty():
@@ -187,14 +234,17 @@ func undo() -> String:
 	var group: Array = history.pop_back()
 	group.reverse()
 	for last: Array in group:
-		if last[1] == "":
+		if last[1] is String and last[1] == "":
 			if FileAccess.file_exists(last[0]):
 				DirAccess.remove_absolute(last[0])
 			continue
 		var f := FileAccess.open(last[0], FileAccess.WRITE)
 		if f == null:
 			return "cannot write %s" % last[0]
-		f.store_string(last[1])
+		if last[1] is PackedByteArray:
+			f.store_buffer(last[1])
+		else:
+			f.store_string(last[1])
 		f.close()
 	return ""
 

@@ -813,6 +813,8 @@ const SHOTS := {
 	"editor-dog": {"time": 0.45, "season": 1, "touch": true, "menu": true, "editor": "creatures", "record": "animals:wolf",
 		"editor_mod": "my_mod", "copy": "dog", "copy_make": true, "texts": {"title": "Dog", "description": "A tame wolf"},
 		"edit_check": true},
+	"editor-picture": {"time": 0.45, "season": 1, "touch": true, "menu": true, "editor": "creatures", "record": "animals:wolf",
+		"editor_mod": "my_mod", "picture": ["sprite", "res://content/animals/fox/sprites/creatures/fox.png"], "scroll_to": "walk"},
 	"ui-gallery-buttons": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "buttons"},
 	"ui-gallery-rows": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "rows"},
 	"ui-gallery-slots": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "slots"},

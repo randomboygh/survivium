@@ -134,8 +134,15 @@ static func origin(kind: String, id: String) -> Dictionary:
 
 
 ## Where record `rec` keeps file `rel` (`sprites/creatures/wolf.png`): in its bundle,
-## else in its mod's `common/`; the bundle's path when neither has it.
+## else in its mod's `common/`; the bundle's path when neither has it. A file named
+## `<mod>:<name>` is another mod's (`sprites/creatures/mine:wolf.png`: a picture one's own
+## mod gave a record of another, the content editor's patch), in its bundle of the same name.
 static func asset(rec: Dictionary, rel: String) -> String:
+	var file := rel.get_file()
+	var other := file.get_slice(":", 0)
+	if file.contains(":") and other.is_valid_identifier():
+		rec = {"bundle": other, "mod": other}
+		rel = rel.get_base_dir().path_join(file.get_slice(":", 1))
 	var own := "%s/%s/%s" % [ROOT, rec.get("bundle", rec.get("mod", "core")), rel]
 	if exists(own):
 		return own

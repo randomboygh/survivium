@@ -7,7 +7,8 @@ extends "res://src/client/ui/kit/window.gd"
 ## (ModReload.reload) and the mod joins the world being played (its bundles). A record's
 ## «Copy» makes a new record of the mod from it (ContentEdits.copy), «Delete» takes one's
 ## own record out, «Reset» one's patch of another's; the title and description are
-## written in the game's language as the mod's phrases. One column
+## written in the game's language as the mod's phrases; a picture field's «PNG…» takes a
+## picture from the device into the mod (PicturePick, ContentEdits.picture). One column
 ## on every screen (12А). Opened from the main menu and the pause menu («Editor»);
 ## «Close» or Escape closes it. `game` is the Main node.
 
@@ -19,6 +20,7 @@ const OwnMods := preload("res://src/shared/content/own_mods.gd")
 const ModFiles := preload("res://src/shared/content/mod_files.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const PicturePick := preload("res://src/client/ui/editor/picture_pick.gd")
 
 ## The kinds in the order shown, each with its name.
 const KINDS := [["items", "[editor_items]"], ["materials", "[editor_materials]"],
@@ -228,6 +230,7 @@ func open(id: String) -> void:
 		_list.add_child(Kit.note(Lang.line("[editor_patched_by]", [", ".join(from.patched)])))
 	form = RecordForm.new(kind, rec, NAME_WIDTH)
 	form.edited.connect(_update_actions)
+	form.picture_wanted.connect(_pick_picture)
 	_list.add_child(form)
 	_update_actions()
 	fit()
@@ -253,6 +256,33 @@ func save() -> void:
 		return
 	_apply()
 	say(Lang.line("[editor_saved]", [fields.size() + texts.size(), mod]))
+
+
+## Asks the device for a PNG for picture field `field` of the record open.
+func _pick_picture(field: String) -> void:
+	if mod == "":
+		say("[editor_make_a_mod_first]")
+		return
+	if not PicturePick.can_pick():
+		say("[editor_cannot_pick]")
+		return
+	PicturePick.pick(set_picture.bind(field))
+
+
+## Writes picture `bytes` for picture field `field` of the record open into the chosen mod.
+func set_picture(bytes: PackedByteArray, file: String, field: String) -> void:
+	if record == "" or mod == "":
+		return
+	if not ModFiles.may_be(bytes, "png"):
+		say(Lang.line("[editor_bad_png]", [ModFiles.PICTURE_MAX]))
+		return
+	var error := edits.picture(mod, kind, record, field, bytes)
+	if error != "":
+		printerr("editor: ", error)
+		say("[editor_not_saved]")
+		return
+	_apply()
+	say(Lang.line("[editor_picture_set]", [file]))
 
 
 ## The record's own buttons: «Copy» (with its row for the new id, hidden), «Delete» for

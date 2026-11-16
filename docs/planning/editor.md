@@ -31,11 +31,13 @@ continues it. Stage 2 item 3 of `plan/mvp.md` (decision 186, 11А 12А 13А).
   write. Shots `editor-copy-row`, `editor-dog` (`copy`, `copy_make`, `texts` keys). Field names are still
   the YAML's: the user was asked about translated names in the thread.
 
+- Step 3b, PR #712: field names in the game's language with a line under each (`field_names.gd`).
+- Step 4: «Load PNG» on picture fields (`ContentEdits.PICTURES`, `picture`, `picture_path`;
+  `picture_pick.gd` native dialog or the page's file input; `Content.asset` reads `<mod>:<name>`). Shot
+  `editor-picture` (`picture`, `scroll_to` keys).
+
 ## Left, in order (one PR each)
 
-4. PNG import for icons, sprites, textures: the system file dialog (`ModImport.pick` shows how, Android and
-   PC), in the browser a JS file input; size checks (`ModFiles.may_be`, `PICTURE_MAX`); preview; written into
-   the mod's `icons/`, `sprites/`, `textures/`.
 5. Voxel model editor (4А): slices of `models/<model>.png`, palette, 3D preview turning.
 6. Zip export and import of an own mod (browser: download through JavaScriptBridge; `ModImport.unpack`).
 7. Server: an author's edits as requests (`protocol.gd`, `requests.gd`, rights, `Requests.PACED`, a test in

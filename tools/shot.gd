@@ -573,6 +573,14 @@ func _run() -> void:
 					editor.form._mark(field)
 				if shot.get("edit_check", false):
 					editor.save()
+				# `picture`: [field, a PNG of the game] taken in as if picked on the device.
+				if shot.has("picture"):
+					editor.set_picture(FileAccess.get_file_as_bytes(shot.picture[1]), shot.picture[1].get_file(), shot.picture[0])
+				# `scroll_to`: the form scrolled to that field.
+				if shot.has("scroll_to"):
+					await process_frame
+					await process_frame
+					editor._scroll.ensure_control_visible(editor.form.fields[shot.scroll_to][2])
 				await process_frame
 			if shot.has("page"):
 				main.hud.open_settings(shot.page)
