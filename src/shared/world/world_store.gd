@@ -14,6 +14,7 @@ extends RefCounted
 
 ## The test world's seed (TestGround.SEED): named here, so what only asks whether a
 ## world is the test one does not compile the test ground's plan.
+const LandLayout := preload("res://src/shared/world/land_layout.gd")
 const TEST_SEED := -1
 
 const FORMAT := 1
@@ -71,6 +72,8 @@ static func world_dir(seed_value: int, options: Dictionary) -> String:
 		digits += "c%d" % int(options.climate)
 	if int(options.get("cave_shape", 0)) != 0:
 		digits += "s%d" % int(options.cave_shape)
+	if int(options.get("landscape", 0)) != 0:
+		digits += "l%d" % int(options.landscape)
 	return "%s/%d-%s" % [root, seed_value, digits]
 
 
@@ -106,8 +109,8 @@ static func list_worlds() -> Array:
 			continue
 		var settings := {}
 		var saved_settings: Dictionary = meta.get("settings", {})
-		for k in ["size", "water", "mountains", "rivers", "biomes", "caves", "relief", "climate", "cave_shape"]:
-			settings[k] = int(saved_settings.get(k, 0 if k in ["relief", "climate", "cave_shape"] else 1))
+		for k in LandLayout.SETTING_KEYS:
+			settings[k] = int(saved_settings.get(k, LandLayout.DEFAULT_SETTINGS[k]))
 		var mods: Array = Array(meta.get("mods", [])).filter(func(m) -> bool: return m is String)
 		out.append({"dir": "%s/%s" % [root, name], "seed": int(meta.seed), "settings": settings, "mods": mods,
 			"day": int(meta.get("sky", {}).get("day", 1)), "saved": str(meta.get("saved", "")),
