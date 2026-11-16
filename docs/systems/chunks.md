@@ -43,10 +43,11 @@ slice, to free the far meshes.
   on by default, `set_haze`; user 2026-11-16, before a haze of the sky's colour): `edge_haze.gd` covers the
   chunks on screen without ground with a dense white fog (towards the background at night, `NIGHT_KEEP`), its rim torn by
   noise, with no clouds; it lies along the camera's rays that end on a chunk not built (user 2026-11-16): one quad on the
-  plane of the ground (`plane_y`, the sea's top) drawn over everything, so it does not depend on the land's or the
-  player's height; the shader (`shaders/edge_fog.gdshader`) keeps it whole over a missing chunk's square and `DENSE`
-  past it, thinning over `REACH` only into the built chunks beside, from a corner round (the 3×3 chunks round each pixel,
-  by distance to their squares); a missing chunk's fog is whole at once, a built one's dissolves over `DISSOLVE` (1.2 s),
+  plane of the ground (`plane_y`: the land round about, the mean of the ground at the middles of the 5×5 chunks round
+  the player, eased over `GROUND_EASE` 1 s; at the sea's top the fog of far chunks hid the land built near) drawn over
+  everything, so a jump does not move it; the shader (`shaders/edge_fog.gdshader`) keeps it whole over a missing chunk's square and `DENSE`
+  (0.5) past it, thinning over `REACH` (3, squared) only into the built chunks beside, from a corner round (the 3×3 chunks round each pixel,
+  by distance to their squares; the noise only scales fog that is there, so none shows where there is none); a missing chunk's fog is whole at once, a built one's dissolves over `DISSOLVE` (1.2 s),
   melting by dithering
   (`bayer4`); how much fog each chunk has (`amounts`) is a texel of a `GRID`² (32) texture round the player, written only
   while something changes; the quad covers the chunks with fog and one round them, made again only when that rect or the
