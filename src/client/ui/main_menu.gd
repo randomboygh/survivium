@@ -40,9 +40,8 @@ const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const ShaderWarmup := preload("res://src/client/view/shader_warmup.gd")
 ## Seconds the painted landscape takes to fade once the world's first frames are calm.
 const FADE := 1.2
-## The sparrow on the name is the game's own (the animals mod's picture, facing right):
-## sitting it is the first frame, in a hop it beats its wings with the others.
-const SPARROW := "animals:sparrow"
+## The sparrow on the name is the creature marked `menu` in the content (the animals mod's
+## picture, facing right): sitting it is the first frame, in a hop it beats its wings with the others.
 ## Seconds between two glints over the name.
 const GLINT_EVERY := 4.0
 const GLINT_SHADER := """
@@ -117,7 +116,7 @@ func _ready() -> void:
 	_sparrow = Control.new()
 	_sparrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_sparrow.draw.connect(_draw_sparrow)
-	_take_sparrow(AiRules.SPECIES.get(SPARROW, {}), SPARROW)
+	_take_sparrow(AiRules.menu_species())
 	title.add_child(_sparrow)
 	_sparrow_hit = Control.new()
 	_sparrow_hit.mouse_filter = Control.MOUSE_FILTER_STOP

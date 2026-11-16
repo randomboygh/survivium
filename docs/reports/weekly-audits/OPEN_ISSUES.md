@@ -16,13 +16,15 @@ WA-026 (`work_mode.gd` under the build and farming modes, `bot_brain.gd` under t
 WA-049, WA-050 (the owner picked option A for each), WA-064 (the owner's playtest: the numbers kept).
 WA-021 (#584), WA-020, WA-023, WA-057 (#596).
 WA-033, WA-035, WA-036, WA-037, WA-038, WA-062, WA-063 (#589, checked in the code on 2026-11-15: the mods' files are stepped 12 a frame while the game is in front, fires are kept in a list, the haze skips its scan, `UiStyle.forget`, `Server._prune`, far animals left out of snapshots, the bag lays out only itself).
+WA-030 (the owner picked the YAML mark: a creature field `menu`, `AiRules.menu_species`), WA-051 (`quality: 0` for building and swimming).
+WA-018 (the owner, 2026-11-16: the password stays in `server.cfg` as it is; a hash would need typing it at each start, as the host and the bots join with it).
 WA-058 (the owner, 2026-11-15: keep ws:// on a local network, TLS only through the tunnel), WA-059 (the owner: no player accounts).
 WA-025 (#696: `settings_menu._section_rows` one function per tab, `hud._ready` eight build steps, `land_layout._layout_row` two passes `_water_row` and `_cover_row`, the layout byte-identical and as fast on a bench).
 WA-060 (checked 2026-11-15 on the `main protection` ruleset: a pull request and the checks lint, checks, tests, progress (hunting), progress (other), frames, export, pc, android are required).
 
 | Critical | High | Medium | Low | All |
 |---|---|---|---|---|
-| 0 | 0 | 5 | 10 | 15 |
+| 0 | 0 | 5 | 7 | 12 |
 
 Statuses: «needs plan» — the fix touches what the rules say to plan first (architecture, protocol,
 saves, data formats, balance formulas); «user decision» — a choice of the owner's; «owner action» —
@@ -80,26 +82,6 @@ recommendations.
 - **Recommended fix:** The user goes through the list on the phone.
 - **Status:** Open: user action; first found 2026-11-14 (stage 1); due backlog.
 
-### WA-018 · Low · Security, secrets
-
-- **Description:** The server's password is stored in plain text (the bots' command line no longer carries it, #587).
-- **Cause:** Bot processes get `--password <pw>`; `user://server.cfg` keeps the password itself.
-- **Confirmation:** Read: `src/server/test_commands.gd:242`, `src/server/config.gd:111`.
-- **Files and systems:** `src/server/test_commands.gd`, `src/server/config.gd`
-- **Consequences:** Other local users can read it from the process list; the file is a secret.
-- **Recommended fix:** Plan: pass it through the environment or stdin; store a hash (`_same` compares hashes already).
-- **Status:** Open: needs plan (the host's window shows the password, so a hash changes what it can show); first found 2026-11-14; bots' argv fixed by #587; due backlog.
-
-### WA-030 · Low · Content by role
-
-- **Description:** The main menu names a content id that is not core's.
-- **Cause:** `main_menu.gd` asks for `animals:sparrow` by id.
-- **Confirmation:** Read: `src/client/ui/main_menu.gd:45, 120`; it falls back when the bundle is off.
-- **Files and systems:** `src/client/ui/main_menu.gd`
-- **Consequences:** Against the rule "the engine asks for content by role".
-- **Recommended fix:** Plan: a role in the YAML (an animal marked for the menu).
-- **Status:** Open: needs plan; first found 2026-11-14 (new); due backlog.
-
 ### WA-044 · Low · CI
 
 - **Description:** Runs stuck in «queued».
@@ -128,16 +110,6 @@ recommendations.
 - **Files and systems:** the scene tests
 - **Consequences:** Noise; a real leak would hide among them.
 - **Recommended fix:** Run with `--verbose` to name the owners.
-- **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
-
-### WA-051 · Low · Data
-
-- **Description:** The skills table shows quality for build and swim that nothing uses.
-- **Cause:** `Quality.GETS` and `MAKES` have no build or swim.
-- **Confirmation:** Read: `src/shared/game/quality.gd`; the character window hides it (`person_panel.gd:251-254`).
-- **Files and systems:** `content/core/data/skills.yaml`, `docs/balance/GAME_BALANCE_TABLES.md`
-- **Consequences:** Only the generated table misleads.
-- **Recommended fix:** Optional `quality: 0` for build and swim.
 - **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
 
 ### WA-052 · Low · Data
