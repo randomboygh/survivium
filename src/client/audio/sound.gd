@@ -44,6 +44,11 @@ const FULL_RANGE := 3.0
 const VOLUME_STEP_DB := 0.3
 ## How fast a loop goes to the level asked for: the share of the way gone in a second.
 const FADE_RATE := 1.5
+## The loops the weather makes, held down under a peal of thunder (duck) so it is heard
+## over them; how fast they go down and come back up (share of the way a second).
+const DUCKED := ["rain", "hail", "wind", "blizzard"]
+const DUCK_DOWN := 25.0
+const DUCK_UP := 1.2
 ## A level this low is silent: the loop is stopped.
 const SILENT := 0.001
 ## Files loaded a frame once the game can sound.
@@ -85,6 +90,11 @@ var _spots := {}
 ## flash): [time, id, pos, volume, pitch, bus].
 var _later: Array = []
 var _tick := 0.0
+## How loud the DUCKED loops are let be now (1 untouched), how low they are asked to
+## go and until when (_time).
+var _duck := 1.0
+var _duck_to := 1.0
+var _duck_until := 0.0
 
 
 func _init(g) -> void:
@@ -233,8 +243,10 @@ func in_range(pos: Vector3) -> bool:
 ## own, `pitch` the speed (a little random on top, so a sound repeated does not sound
 ## the same), `bus` where it goes (Sounds, the interface's UI for a sound from no
 ## place; or Nature for the birds and the weather). Returns which variant played and
-## how fast, {"variant": i, "pitch": p} (the thunder's vibration follows it), or {}.
-func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "Sounds") -> Dictionary:
+## how fast, {"variant": i, "pitch": p, "from": s} (the thunder's vibration follows it), or
+## {}. `variant` picks one (-1 any), `from` the second of it to start at.
+func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "Sounds", variant := -1,
+		from := 0.0) -> Dictionary:
 	id = resolve(id)
 	if id == "" or not unlocked or volume <= SILENT or _time - float(_started.get(id, -1.0)) < MIN_GAP:
 		return {}
@@ -244,7 +256,8 @@ func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "S
 	if list.is_empty():
 		return {}
 	_started[id] = _time
-	var variant := randi() % list.size()
+	if variant < 0 or variant >= list.size():
+		variant = randi() % list.size()
 	var stream: AudioStream = list[variant]
 	var db := linear_to_db(volume * records[id].volume)
 	var p_scale := pitch * randf_range(0.94, 1.06)
@@ -255,8 +268,8 @@ func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "S
 		u.volume_db = db
 		u.pitch_scale = p_scale
 		if not mute:
-			u.play()
-		return {"variant": variant, "pitch": p_scale}
+			u.play(from)
+		return {"variant": variant, "pitch": p_scale, "from": from}
 	if _voices.is_empty():
 		return {}
 	var v: AudioStreamPlayer3D = free_voice(_voices)
@@ -266,8 +279,8 @@ func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "S
 	v.bus = bus
 	v.global_position = pos
 	if not mute:
-		v.play()
-	return {"variant": variant, "pitch": p_scale}
+		v.play(from)
+	return {"variant": variant, "pitch": p_scale, "from": from}
 
 
 ## Plays sound `id` (see play) `delay` seconds from now; `then` is called with what
@@ -315,8 +328,19 @@ func loop(id: String, level: float, bus := "Nature") -> void:
 		p.bus = bus
 		p.stream = streams(id)[0]
 		add_child(p)
-		_loops[id] = {"player": p, "level": 0.0, "want": 0.0, "gain": records[id].volume}
+		_loops[id] = {"player": p, "level": 0.0, "want": 0.0, "gain": records[id].volume,
+			"ducks": id in DUCKED, "duck": 1.0}
 	_loops[id].want = level
+
+
+## Holds the weather's loops (DUCKED) down to `depth` (0..1) for `seconds`, as a peal
+## of thunder drowns out the rain; a deeper or longer ask wins over a running one.
+func duck(depth: float, seconds: float) -> void:
+	if _time >= _duck_until:
+		_duck_to = depth
+	else:
+		_duck_to = minf(_duck_to, depth)
+	_duck_until = maxf(_duck_until, _time + seconds)
 
 
 ## Asks loop `id` to sound from world point `pos` at `level` (see loop); the place may
@@ -430,6 +454,10 @@ func _process(delta: float) -> void:
 			_then(play(l[1], l[2], l[3], l[4], l[5]), l[6])
 		else:
 			i += 1
+	var duck_to := _duck_to if _time < _duck_until else 1.0
+	_duck = lerpf(_duck, duck_to, 1.0 - exp(-(DUCK_DOWN if duck_to < _duck else DUCK_UP) * delta))
+	if absf(_duck - duck_to) < 0.005:
+		_duck = duck_to
 	var k := 1.0 - exp(-FADE_RATE * delta)
 	for list: Dictionary in [_loops, _spots]:
 		for id in list:
@@ -442,8 +470,10 @@ func _process(delta: float) -> void:
 func _fade(l: Dictionary, k: float) -> void:
 	var p: Node = l.player
 	var want: float = l.want if unlocked else 0.0
-	if l.level == want and (p.playing or mute if want > SILENT else not p.playing):
+	var duck: float = _duck if l.get("ducks", false) else 1.0
+	if l.level == want and l.get("duck", 1.0) == duck and (p.playing or mute if want > SILENT else not p.playing):
 		return
+	l.duck = duck
 	l.level = lerpf(l.level, want, k)
 	if absf(l.level - want) < SILENT:
 		l.level = want
@@ -453,8 +483,8 @@ func _fade(l: Dictionary, k: float) -> void:
 		return
 	# Written only when it changes audibly: in the browser each write sends the voice's
 	# volumes to the page, a string and arrays for its garbage collector.
-	var db := linear_to_db(l.level * l.gain)
-	if absf(p.volume_db - db) > VOLUME_STEP_DB or l.level == want:
+	var db := linear_to_db(l.level * l.gain * duck)
+	if absf(p.volume_db - db) > VOLUME_STEP_DB or l.level == want and (duck == 1.0 or duck == _duck_to):
 		p.volume_db = db
 	if not p.playing and not mute:
 		# A loop starts somewhere in the middle, so two of the same do not beat together.

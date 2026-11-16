@@ -11,6 +11,8 @@ const ThunderBands := preload("res://tools/sound/thunder_bands.gd")
 
 ## Seconds of the loops, and how much of their end is faded into their start.
 const LOOP := 8.0
+## How much nearer its peaks a thunder's roar is lifted (_thunder's limiter).
+const THUNDER_LIMIT := 4.0
 const OVERLAP := 1.0
 ## name: [bundle folder under content/, variants, loop]; the sound is made by the method `_<name>`.
 const SOUNDS := {
@@ -251,7 +253,38 @@ func _thunder(v: int) -> PackedFloat32Array:
 		b = Synth.mix(b, noise)
 	# The last half second fades, for a peal cut from a longer recording.
 	b = Synth.shape(b, func(t: float, l: float) -> float: return minf((l - t) / 0.5, 1.0))
-	return Synth.normalize(b, 0.95)
+	# Held down by a limiter, as a loud recording is: the roar comes up THUNDER_LIMIT
+	# times nearer its peaks, so the peal is much louder at the same peak.
+	return Synth.normalize(_limit(Synth.normalize(b, 1.0), 1.0 / THUNDER_LIMIT, 0.15), 0.97)
+
+
+## Sound `b` with its loudness held at most `ceiling` (0..1 of its peak): the gain falls
+## at once (a block ahead) and comes back over `release` seconds.
+static func _limit(b: PackedFloat32Array, ceiling: float, release: float) -> PackedFloat32Array:
+	var block := 64
+	var blocks := ceili(b.size() / float(block))
+	var peaks := PackedFloat32Array()
+	peaks.resize(blocks)
+	for i in b.size():
+		peaks[i / block] = maxf(peaks[i / block], absf(b[i]))
+	var gains := PackedFloat32Array()
+	gains.resize(blocks + 1)
+	var back := exp(-block / (release * Synth.RATE))
+	var g := 1.0
+	for k in blocks:
+		var top := maxf(peaks[k], peaks[mini(k + 1, blocks - 1)])
+		if k > 0:
+			top = maxf(top, peaks[k - 1])
+		var want := minf(1.0, ceiling / maxf(top, 1e-6))
+		g = want if want < g else want + (g - want) * back
+		gains[k] = g
+	gains[blocks] = g
+	var out := PackedFloat32Array()
+	out.resize(b.size())
+	for i in b.size():
+		var k := i / block
+		out[i] = b[i] * lerpf(gains[k], gains[k + 1], float(i % block) / block)
+	return out
 
 
 func _bird(_v: int) -> PackedFloat32Array:

@@ -24,6 +24,12 @@ static func of(v: int) -> Dictionary:
 	return {"span": env.size() * STEP, "env": env}
 
 
+## The second variant `v`'s peal is loudest at (at most a STEP off).
+static func peak(v: int) -> float:
+	var env: Array = ENVELOPES[v % ENVELOPES.size()]
+	return env.find(env.max()) * STEP
+
+
 ## How loud thunder `s` (see of) is at `t` seconds (0..1).
 static func gain(s: Dictionary, t: float) -> float:
 	var env: Array = s.env
