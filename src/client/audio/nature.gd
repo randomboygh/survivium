@@ -11,6 +11,7 @@ extends RefCounted
 
 const Clock := preload("res://src/shared/game/clock.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
+const ThunderShape := preload("res://src/client/audio/thunder_shape.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 
@@ -44,6 +45,11 @@ const CRICKET_REST := Vector2(10.0, 45.0)
 ## STRIKE_FELT a strong lightning is felt as it strikes (Vibration).
 const THUNDER_FELT := 0.5
 const STRIKE_FELT := 0.85
+## How loud a thunder is, far and near (times the flash's strength), and one whose bolt
+## is on the screen; the latter heard STRUCK_LEAD s before its peak.
+const THUNDER_LOUD := Vector2(0.55, 0.85)
+const STRUCK_LOUD := 1.0
+const STRUCK_LEAD := 0.05
 ## Seconds from a lightning flash to its thunder: near and far.
 const THUNDER_DELAY := Vector2(0.4, 3.0)
 
@@ -170,17 +176,30 @@ func _new_cricket() -> Dictionary:
 		"until": start + rng.randf_range(CRICKET_BOUT.x, CRICKET_BOUT.y)}
 
 
-## Thunder for a lightning flash of `strength` (0..1), late as it is far.
-func thunder(strength: float) -> void:
+## Thunder for a lightning flash of `strength` (0..1), late and quieter as it is far;
+## `struck` when its bolt is on the screen: then it is heard at once and at its loudest,
+## the peal started at its peak (ThunderShape.peak), so the flash, the roar and the
+## strike felt in the phone come together.
+func thunder(strength: float, struck := false) -> void:
+	var muffle := MUFFLED if game.chunks.indoor else 1.0
+	if struck:
+		var count: int = game.sound.streams("thunder").size()
+		var v := randi() % maxi(count, 1)
+		var from := 0.0
+		if count == ThunderShape.ENVELOPES.size():
+			from = maxf(ThunderShape.peak(v) - STRUCK_LEAD, 0.0)
+		var played: Dictionary = game.sound.play("thunder", Vector3.INF, muffle * STRUCK_LOUD, 1.0, "Nature", v, from)
+		if not played.is_empty():
+			Vibration.rumble(game, played, muffle, true)
+		return
 	var delay := rng.randf_range(THUNDER_DELAY.x, THUNDER_DELAY.y)
 	var near := 1.0 - (delay - THUNDER_DELAY.x) / (THUNDER_DELAY.y - THUNDER_DELAY.x)
-	var muffle := MUFFLED if game.chunks.indoor else 1.0
 	# Felt as well: a near one rolls in the phone as it is heard (Vibration.rumble), and
 	# the strike itself of a very near one.
 	var felt := Callable()
 	if near > THUNDER_FELT:
 		felt = _felt.bind(muffle * strength * near)
-	game.sound.play_later(delay, "thunder", Vector3.INF, muffle * strength * lerpf(0.5, 1.0, near),
+	game.sound.play_later(delay, "thunder", Vector3.INF, muffle * strength * lerpf(THUNDER_LOUD.x, THUNDER_LOUD.y, near),
 		lerpf(0.85, 1.0, near), "Nature", felt)
 	if near > STRIKE_FELT and strength > 0.7:
 		Vibration.play(game, "strike", 0.0, muffle)

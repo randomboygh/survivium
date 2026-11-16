@@ -492,6 +492,14 @@ func _test_vibration() -> void:
 			"thunder %d is felt as a sharp pulse and a boom that fades (%s)" % [v, r[0]])
 	_check(rumbles.min() >= 500 and rumbles.max() <= 2000,
 		"the thunders are felt short, «ту-дууух» (%s ms)" % [rumbles])
+	var struck := []
+	for v in Vibration.ThunderShape.ENVELOPES.size():
+		var shape: Dictionary = Vibration.ThunderShape.of(v)
+		var at: float = Vibration.ThunderShape.peak(v)
+		var r: Array = Vibration.rumble_steps(shape, 1.0, 0.5, at, true)
+		if at < 0.0 or at >= shape.span or r[0][1] > 1 or r[0][2] != Vibration.STRIKE_PULSE or r[1][1] != 1.0:
+			struck.append(v)
+	_check(struck.is_empty(), "a thunder whose bolt is on the screen is felt at full strength at once (%s)" % [struck])
 	var was: String = Settings.path
 	Settings.path = "user://test_vibration.cfg"
 	var cfg := ConfigFile.new()

@@ -233,8 +233,10 @@ func in_range(pos: Vector3) -> bool:
 ## own, `pitch` the speed (a little random on top, so a sound repeated does not sound
 ## the same), `bus` where it goes (Sounds, the interface's UI for a sound from no
 ## place; or Nature for the birds and the weather). Returns which variant played and
-## how fast, {"variant": i, "pitch": p} (the thunder's vibration follows it), or {}.
-func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "Sounds") -> Dictionary:
+## how fast, {"variant": i, "pitch": p, "from": s} (the thunder's vibration follows it), or
+## {}. `variant` picks one (-1 any), `from` the second of it to start at.
+func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "Sounds", variant := -1,
+		from := 0.0) -> Dictionary:
 	id = resolve(id)
 	if id == "" or not unlocked or volume <= SILENT or _time - float(_started.get(id, -1.0)) < MIN_GAP:
 		return {}
@@ -244,7 +246,8 @@ func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "S
 	if list.is_empty():
 		return {}
 	_started[id] = _time
-	var variant := randi() % list.size()
+	if variant < 0 or variant >= list.size():
+		variant = randi() % list.size()
 	var stream: AudioStream = list[variant]
 	var db := linear_to_db(volume * records[id].volume)
 	var p_scale := pitch * randf_range(0.94, 1.06)
@@ -255,8 +258,8 @@ func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "S
 		u.volume_db = db
 		u.pitch_scale = p_scale
 		if not mute:
-			u.play()
-		return {"variant": variant, "pitch": p_scale}
+			u.play(from)
+		return {"variant": variant, "pitch": p_scale, "from": from}
 	if _voices.is_empty():
 		return {}
 	var v: AudioStreamPlayer3D = free_voice(_voices)
@@ -266,8 +269,8 @@ func play(id: String, pos := Vector3.INF, volume := 1.0, pitch := 1.0, bus := "S
 	v.bus = bus
 	v.global_position = pos
 	if not mute:
-		v.play()
-	return {"variant": variant, "pitch": p_scale}
+		v.play(from)
+	return {"variant": variant, "pitch": p_scale, "from": from}
 
 
 ## Plays sound `id` (see play) `delay` seconds from now; `then` is called with what
