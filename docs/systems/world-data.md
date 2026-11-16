@@ -3,7 +3,7 @@
 Status: ACTIVE. A Russian copy: [world-data_RU.md](world-data_RU.md).
 
 **Purpose.** To keep the world's cells by chunks and everything that stands and lies on them; to compute the
-shapes of natural ground (slopes, bevelled corners) and to answer what meets a body.
+shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answer what meets a body.
 
 **Files**
 - `src/shared/world/world_cells.gd` — the cells in a `Chunk` by key (`chunk_at`, `chunk_key`; `>>` and `&`
@@ -13,10 +13,20 @@ shapes of natural ground (slopes, bevelled corners) and to answer what meets a b
   — the kind of tree; `field_at` / `set_field`; `set_cell` removes the entry, they are saved in `pack_chunk`
   «fields»), trails; `track_edits` / `note_edit`, `pack_chunk` / `unpack_chunk` for saving.
 - `src/shared/world/world_data.gd` (inherits) — shapes: `update_shapes` (slopes and corners by column), the
-  surfaces of slopes (`surface_patch`, `ground_height`), what meets a body (`blocks_body`, `blocks_part`,
-  `ground_part`). `ground_height` is asked at every step of a beast and a body: it reads the cells and shapes
-  of the column straight from the chunk (the rules `corner_fills`, `corner_cuts`, `slope_mask` are the same)
-  and looks at the neighbouring columns only in the corner's triangle.
+  surfaces of slopes (`top_height`, `split_ne_sw`, `ground_height`), what meets a body (`blocks_body`,
+  `blocks_part`, `ground_part`). Natural ground is built of a few shapes (the user's design, decision of
+  2026-11-16, `docs/planning/mesher.md`): a cube; a sloping top whose corners are at full height or one level
+  down (`slope_mask`: both corners of a side one level lower go down, a corner with only the column across it
+  lower too where both columns beside may slope; all four down stays a cube), drawn as two flat triangles split
+  along one diagonal — a hip or a valley where a ramp goes on beside the odd corner, a chamfer across it
+  where the outline runs diagonally (`split_ne_sw`, computed from the shapes beside, not stored); and
+  half-blocks: a cell cut (`corner_cuts`) or an open cell filled (`corner_fills`) at one corner at most, the
+  whole half beyond the diagonal across it, so several in a row make one straight 45° face. A fill gives way
+  where the ground beside is open round its own corner facing it (it is cut there), else the two would make a
+  saw. A slope is cut only at a low corner where the ground drops more than a level beside. `ground_height` is
+  asked at every step of a beast and a body: it reads the cells and shapes of the column straight from the
+  chunk (the rules `corner_fills`, `corner_cuts`, `slope_mask` are the same) and looks at the neighbouring
+  columns only when the column has cut or filled corners.
 - `src/shared/world/grass.gd` — what grows on top of a ground cell (tiers of grass, flowers, ears, moss, the
   mods' plants `Plants`: on open grass, in the shade of crowns, in the woods — that shade and the grass
   `WOODS_EDGE` cells round it, `_near_crown` —, on banks; a frame `across` cards wide is one kind, its first
