@@ -20,8 +20,8 @@ extends "res://src/client/ui/menu_pages.gd"
 ## would load other bundles under it (single player, joining another server,
 ## disconnecting) waits until it is stopped.
 ## «Что нового» opens the list of the recent changes of the build (SettingsMenu's
-## "changes" page, «Назад» back to the menu). «Настройки» opens the settings page. The editor is not there yet, so its button is
-## disabled, and "Выход" is disabled in the browser.
+## "changes" page, «Назад» back to the menu). «Настройки» opens the settings page. «Редактор» opens the content editor
+## (src/client/ui/editor/) over the menu. "Выход" is disabled in the browser.
 ## The loading screen takes the place of the menu while the world loads: the map around
 ## the start painted in as its chunks are made, the seed over it, a tip under it, and at
 ## the bottom how far the loading has gone, in two lines (what is being done, the seconds

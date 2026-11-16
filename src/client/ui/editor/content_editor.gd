@@ -1,16 +1,21 @@
 extends "res://src/client/ui/kit/window.gd"
 ## The content editor (stage 2, decision 186, 11А): every kind of the mods' records
-## (Content.SCHEMAS), a kind's records found by name or id, and a record's fields as the
-## game reads them (defaults filled in, patches applied), a field left at its default
-## faded. One column on every screen (12А). Opened from the pause menu over the running
-## world; «Close» or Escape closes it. This first part only shows; the forms that change
-## a record and write it into one's own mod (OwnMods) come next.
-## `game` is the Main node.
+## (Content.SCHEMAS), a kind's records found by name or id, and a record's fields as a
+## form (RecordForm) whose changes are saved into one's own mod chosen on top (OwnMods,
+## several, 3Б): into the record itself when it is that mod's, else as a patch of the
+## other's (2А); «Undo» takes the last save back. A save is read into the game at once
+## (ModReload.reload) and the mod joins the world being played (its bundles). One column
+## on every screen (12А). Opened from the main menu and the pause menu («Editor»);
+## «Close» or Escape closes it. `game` is the Main node.
 
 const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
+const RecordForm := preload("res://src/client/ui/editor/record_form.gd")
 const Content := preload("res://src/shared/content/content.gd")
+const ContentEdits := preload("res://src/shared/content/content_edits.gd")
+const OwnMods := preload("res://src/shared/content/own_mods.gd")
+const ModFiles := preload("res://src/shared/content/mod_files.gd")
+const Mods := preload("res://src/shared/content/mods.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
-const Yaml := preload("res://src/shared/content/yaml.gd")
 
 ## The kinds in the order shown, each with its name.
 const KINDS := [["items", "[editor_items]"], ["materials", "[editor_materials]"],
@@ -18,8 +23,6 @@ const KINDS := [["items", "[editor_items]"], ["materials", "[editor_materials]"]
 	["bushes", "[editor_bushes]"], ["plants", "[editor_plants]"], ["biomes", "[editor_biomes]"],
 	["skills", "[editor_skills]"], ["eras", "[editor_eras]"], ["starts", "[editor_starts]"],
 	["sounds", "[editor_sounds]"]]
-## The fields every record has that are not the schema's, not shown as fields.
-const HIDDEN := ["id", "title", "mod", "bundle"]
 ## The most records listed at once: a search narrows the rest.
 const MOST_LISTED := 120
 ## The widest and tallest the window's list grows on a big screen.
@@ -30,15 +33,28 @@ const VALUE_WIDTH := 150
 
 signal closed
 
+## The own mod saves go into, and the writes that can be taken back: kept while the
+## game runs, from one opening of the editor to the next.
+static var mod := ""
+static var edits := ContentEdits.new()
+
 var game
 ## The kind shown and the record open in it ("" for the kind's list).
 var kind := "items"
 var record := ""
+## The form of the record open, null on the list.
+var form: RecordForm
 var _choices := ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, Kit.SQUARE)
 var _top: VBoxContainer
+var _new_mod: HBoxContainer
+var _new_mod_field: LineEdit
 var _search: LineEdit
 var _scroll: ScrollContainer
 var _list: VBoxContainer
+var _actions: HBoxContainer
+var _save: Button
+var _undo: Button
+var _said: Label
 
 
 func _init(g) -> void:
@@ -46,9 +62,20 @@ func _init(g) -> void:
 
 
 func _ready() -> void:
-	build("[content_editor]", 4)
+	build("[editor]", 4)
+	if not mod in OwnMods.list():
+		mod = OwnMods.list()[0] if not OwnMods.list().is_empty() else ""
 	_top = Kit.column(4)
 	box.add_child(_top)
+	_choices.add(_top, "[editor_mod]", OwnMods.list(), _mod_index, _set_mod,
+		{"other": "[editor_no_mod]", "open": _toggle_new_mod, "open_icon": "plus", "open_tip": "[editor_new_mod]"})
+	_new_mod = Kit.row(4)
+	_new_mod_field = Kit.field("[editor_mod_id]", 0.0, 32)
+	_new_mod_field.text_submitted.connect(func(_t: String) -> void: _make_mod())
+	_new_mod.add_child(_new_mod_field)
+	_new_mod.add_child(Kit.button("[editor_create]", _make_mod))
+	_new_mod.visible = false
+	_top.add_child(_new_mod)
 	var names := []
 	for k: Array in KINDS:
 		names.append(k[1])
@@ -60,6 +87,17 @@ func _ready() -> void:
 	_list = Kit.column(2)
 	_scroll = Kit.scroll(_list)
 	box.add_child(_scroll)
+	_said = UiStyle.label("", UiStyle.MUTED)
+	_said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(_said)
+	_actions = Kit.row(4)
+	_save = Kit.accent_button("[save]", save)
+	_save.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_actions.add_child(_save)
+	_undo = Kit.button("[editor_undo]", undo)
+	_undo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_actions.add_child(_undo)
+	box.add_child(_actions)
 	box.add_child(Kit.button("[close]", close))
 	get_parent().resized.connect(fit)
 	_show_list()
@@ -77,6 +115,42 @@ func back() -> void:
 		_show_list()
 	else:
 		close()
+
+
+func _mod_index() -> int:
+	return OwnMods.list().find(mod)
+
+
+func _set_mod(i: int) -> void:
+	mod = OwnMods.list()[i]
+	_update_actions()
+
+
+func _toggle_new_mod() -> void:
+	_new_mod.visible = not _new_mod.visible
+	if _new_mod.visible:
+		_new_mod_field.grab_focus()
+	fit()
+
+
+## Makes the own mod whose id is in the field and chooses it.
+func _make_mod() -> void:
+	var id := _new_mod_field.text.strip_edges().to_lower()
+	if not OwnMods.valid_id(id) or id in Mods.available():
+		say("[editor_bad_mod_id]")
+		return
+	var error := OwnMods.make(id, id.capitalize())
+	if error != "":
+		printerr("editor: ", error)
+		say("[editor_bad_mod_id]")
+		return
+	mod = id
+	_new_mod_field.text = ""
+	_new_mod.visible = false
+	_choices.rows[0].values = OwnMods.list()
+	_choices.refresh()
+	say(Lang.line("[editor_mod_made]", [id]))
+	fit()
 
 
 func _kind_index() -> int:
@@ -104,14 +178,22 @@ func records() -> Array:
 	return out
 
 
+## Tells under the list what happened.
+func say(text: String) -> void:
+	_said.text = text
+	_said.visible = text != ""
+	fit()
+
+
 ## Shows the kind's list.
 func _show_list() -> void:
 	record = ""
+	form = null
 	_top.visible = true
 	_clear()
 	var all := records()
 	for r: Array in all.slice(0, MOST_LISTED):
-		var b := Kit.button(r[0], _open.bind(r[1]))
+		var b := Kit.button(r[0], open.bind(r[1]))
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.clip_text = true
 		b.tooltip_text = r[1]
@@ -121,11 +203,12 @@ func _show_list() -> void:
 	elif all.size() > MOST_LISTED:
 		_list.add_child(Kit.note(Lang.line("[editor_more_records]", [all.size() - MOST_LISTED])))
 	_scroll.scroll_vertical = 0
+	_update_actions()
 	fit()
 
 
-## Shows record `id` of the kind shown: where it comes from and its fields.
-func _open(id: String) -> void:
+## Opens record `id` of the kind shown as a form, with where it comes from.
+func open(id: String) -> void:
 	record = id
 	_top.visible = false
 	_clear()
@@ -137,35 +220,76 @@ func _open(id: String) -> void:
 	_list.add_child(Kit.note(Lang.line("[editor_from_bundle]", [str(rec.get("bundle", rec.get("mod", "")))])))
 	if not from.get("patched", []).is_empty():
 		_list.add_child(Kit.note(Lang.line("[editor_patched_by]", [", ".join(from.patched)])))
-	var schema: Dictionary = Content.schema(kind)
-	for field: String in schema:
-		if field in HIDDEN:
-			continue
-		var value: Variant = rec.get(field, schema[field].get("default"))
-		var row := Kit.row(4)
-		var name := UiStyle.label(field)
-		name.custom_minimum_size.x = NAME_WIDTH
-		name.clip_text = true
-		row.add_child(name)
-		var at_default: bool = schema[field].has("default") and var_to_str(value) == var_to_str(schema[field].default)
-		var shown := UiStyle.label(_text(value), UiStyle.MUTED if at_default else UiStyle.INK)
-		shown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		shown.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
-		row.add_child(shown)
-		_list.add_child(row)
-	_scroll.scroll_vertical = 0
+	form = RecordForm.new(kind, rec, NAME_WIDTH)
+	form.edited.connect(_update_actions)
+	_list.add_child(form)
+	_update_actions()
 	fit()
 
 
-## A field's value as one line of text (the engine's types back to the data's).
-static func _text(value: Variant) -> String:
-	if value is Color:
-		return "#" + value.to_html(false)
-	if value is Vector3 or value is Vector3i or value is Vector2 or value is Vector2i:
-		return str(value)
-	if value is String and value == "":
-		return "-"
-	return Yaml.inline(value)
+## Saves the fields changed in the form into the chosen own mod and reads the mods again.
+func save() -> void:
+	if form == null or mod == "":
+		return
+	var bad := form.errors(mod)
+	if not bad.is_empty():
+		say(Lang.line("[editor_fix_fields]", [", ".join(bad)]))
+		return
+	var fields := ContentEdits.changed(kind, form.rec, form.values())
+	if fields.is_empty():
+		say("[editor_nothing_changed]")
+		return
+	var error := edits.save(mod, kind, record, fields)
+	if error != "":
+		printerr("editor: ", error)
+		say("[editor_not_saved]")
+		return
+	_apply()
+	say(Lang.line("[editor_saved]", [fields.size(), mod]))
+
+
+## Takes the last save back and reads the mods again.
+func undo() -> void:
+	if edits.history.is_empty():
+		return
+	var error := edits.undo()
+	if error != "":
+		printerr("editor: ", error)
+	_apply()
+	say("[editor_undone]")
+
+
+## Reads the mods again with the chosen one in the world's set, and shows the record anew.
+func _apply() -> void:
+	join(mod)
+	if game != null and game.mod_reload != null:
+		game.mod_reload.reload()
+	else:
+		Mods.rescan(true)
+	var problems := Array(Content.problems).filter(func(p: String) -> bool: return p.contains(mod))
+	if record != "":
+		open(record)
+	if not problems.is_empty():
+		say(Lang.line("[editor_mod_problems]", [problems[0]]))
+
+
+## Own mod `id`'s bundles join the bundles loaded and the world being played, so its
+## records and patches are read (Mods.of_world keeps them with the world's save).
+func join(id: String) -> void:
+	ModFiles.read_extra()
+	Content.refresh()
+	var have: Array = Content.BUNDLES
+	var on := Mods.all().filter(func(b: String) -> bool: return b in have or Mods.mod_of(b) == id)
+	Content.BUNDLES = on
+	if game != null and not game.world_mods.is_empty():
+		game.world_mods = Mods.all().filter(func(b: String) -> bool: return b in game.world_mods or Mods.mod_of(b) == id)
+
+
+func _update_actions() -> void:
+	_actions.visible = form != null
+	_save.disabled = mod == ""
+	_save.tooltip_text = "" if mod != "" else "[editor_make_a_mod_first]"
+	_undo.disabled = edits.history.is_empty()
 
 
 func _clear() -> void:
@@ -177,6 +301,7 @@ func _clear() -> void:
 func layout(screen: Vector2) -> void:
 	var width := minf(screen.x - 2 * MARGIN - UiStyle.PAD.x - UiStyle.PAD.z, MOST_WIDTH)
 	_scroll.custom_minimum_size = Vector2(width, 0)
+	_said.custom_minimum_size.x = width
 	panel.reset_size()
 	var rest := panel.get_combined_minimum_size().y
 	_scroll.custom_minimum_size.y = clampf(screen.y - 2 * MARGIN - rest, 80.0, MOST_HEIGHT)

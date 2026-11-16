@@ -213,7 +213,7 @@ func _build_menu() -> void:
 	_menu_buttons["resume"] = _add_menu_button(box, "[continue]", toggle_menu)
 	_menu_buttons["settings"] = _add_menu_button(box, "[settings]", open_settings.bind("settings"))
 	_menu_buttons["test"] = _add_menu_button(box, "[testing]", open_settings.bind("test"))
-	_menu_buttons["editor"] = _add_menu_button(box, "[content_editor]", open_editor)
+	_menu_buttons["editor"] = _add_menu_button(box, "[editor]", open_editor)
 	_menu_buttons["server"] = _add_menu_button(box, "[server_name]", _to_server)
 	_menu_buttons["main"] = _add_menu_button(box, "[main_menu]", _to_main_menu)
 
