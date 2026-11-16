@@ -13,11 +13,9 @@ uniform sampler2D amounts : filter_linear;
 // The world point (x, z) of the texture's corner and how many world units it spans.
 uniform vec2 origin = vec2(0.0);
 uniform float span = 256.0;
-// The fog's light (white by day, towards the sky's background at night).
+// The fog's light (white by day, towards the sky's background at night): the same colour
+// as the background while the fog is on (Sky), so the two meet with no seam.
 uniform vec3 color SRGB = vec3(1.0);
-
-// The fog's own tone.
-const vec3 FOG_TONE = vec3(0.9, 0.93, 0.98);
 
 varying vec3 world_pos;
 
@@ -41,6 +39,6 @@ void fragment() {
 	if (fog_d < bayer4(texel)) {
 		discard;
 	}
-	ALBEDO = color * FOG_TONE;
+	ALBEDO = color;
 	COMPAT_ALBEDO
 }

@@ -2,8 +2,8 @@ extends RefCounted
 ## The fog over the edge of the world built (setting «Туман на краю», on by default; user
 ## 2026-11-16, before a haze of the sky's colour): where the player outran the building of
 ## the chunks (ChunkStreamer) or jumped far, the chunks on the screen with no ground yet are
-## covered by a dense white fog (no clouds over it, user 2026-11-16), instead of the empty
-## background; it thins out over the built chunks beside them, and once a chunk is built its
+## covered by a dense white fog (no clouds over it, user 2026-11-16): the background itself is
+## the fog's colour while it is on (Sky), so no hole shows whatever the heights; it thins out over the built chunks beside them, and once a chunk is built its
 ## fog dissolves over DISSOLVE seconds (shaders/edge_fog.gdshader). How much fog each chunk
 ## has is a texel of a small texture round the player (GRID chunks a side), written only while
 ## something changes; one quad over the chunks with fog, laid at the player's height (the
@@ -22,8 +22,9 @@ const FADE := 3.0
 const DISSOLVE := 1.2
 ## The chunks a side of the texture of the fog's amounts, round the player.
 const GRID := 32
-## The fog's light by day, and how much of it is kept at night (the rest the background).
-const FOG_COLOR := Color(0.97, 0.98, 1.0)
+## The fog's light by day (a pale blue-white), and how much of it is kept at night (the rest
+## the background).
+const FOG_COLOR := Color(0.873, 0.911, 0.98)
 const NIGHT_KEEP := 0.3
 ## How far (world units) the player goes before the chunks on the screen are looked over
 ## again with nothing else changed: a chunk's edge that far into the screen is within the
@@ -197,8 +198,14 @@ func fog_color() -> Color:
 	var sky = game.sky
 	if sky == null or sky.env == null:
 		return FOG_COLOR
-	var bg: Color = sky.env.background_color
-	return bg.lerp(FOG_COLOR, NIGHT_KEEP + (1.0 - NIGHT_KEEP) * clampf(sky.sky_light, 0.0, 1.0))
+	return fog_of(sky.background, sky.sky_light)
+
+
+## The fog's light over `background` (the sky's own) at `sky_light`; also the background
+## the world is drawn over while the fog is on (Sky), so the land not built yet is fog
+## whatever its height on the screen.
+static func fog_of(background: Color, sky_light: float) -> Color:
+	return background.lerp(FOG_COLOR, NIGHT_KEEP + (1.0 - NIGHT_KEEP) * clampf(sky_light, 0.0, 1.0))
 
 
 static func _on_screen(key: Vector2i, at: Vector2, half: Vector2) -> bool:

@@ -10,6 +10,7 @@ const Clock := preload("res://src/shared/game/clock.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const EdgeHaze := preload("res://src/client/world/edge_haze.gd")
 
 const FOLIAGE := [Vector3(0.95, 1.1, 0.8), Vector3(1.0, 1.0, 1.0), Vector3(2.2, 1.05, 0.55), Vector3(1.3, 0.9, 0.7)]
 const GRASS := [Vector3(0.95, 1.08, 0.85), Vector3(1.0, 1.0, 1.0), Vector3(1.1, 0.9, 0.66), Vector3(0.9, 0.85, 0.72)]
@@ -79,6 +80,9 @@ var moon_override := -1.0
 ## How bright the open sky is, 0 on a moonless night .. 1 by day; the torch and the
 ## weather particles follow it.
 var sky_light := 1.0
+## The sky's own background (the empty world's colour), before the cut's darkness or the
+## fog at the edge take its place (env.background_color is what is drawn).
+var background := Color(0.2, 0.32, 0.38)
 ## How much of the sun's light there is, the moon left out: 0 after dusk .. 1 by day,
 ## less under clouds; fires cast their shadows below Effects.SHADOW_SKY of it.
 var sun_light := 1.0
@@ -211,8 +215,13 @@ func _update_light(delta: float) -> void:
 	# frame or two where the caps of a new cut level
 	# are still being built. It is as dark as the rock's section, not the sky's blue,
 	# which flickered in stripes on a walk through a cave.
+	background = env.background_color
 	if cut_on:
 		env.background_color = Color(0.09, 0.085, 0.1)
+	elif game.chunks.haze_on and game.ready_to_play:
+		# Outdoors the background shows only where the land is not built yet: the fog at
+		# the edge is drawn there, whatever the heights (user 2026-11-16).
+		env.background_color = EdgeHaze.fog_of(background, sky_light)
 	if game.player != null:
 		_update_torch(delta)
 	_update_grade(golden, night, minf(moonlight, 1.0))

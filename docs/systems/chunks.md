@@ -41,7 +41,9 @@ slice, to free the far meshes.
   land a phone (4–5× slower than a PC here) needs about a second of building a second for the whole zone and
   has a third of it (2026-11-15), so the sides of the zone wait until the player stops; **the fog at the edge** (the setting «Fog at the edge», key `edge_mist`,
   on by default, `set_haze`; user 2026-11-16, before a haze of the sky's colour): `edge_haze.gd` covers the
-  chunks on screen without ground with a dense white fog (towards the background at night, `NIGHT_KEEP`), its rim torn by noise, with no clouds over it
+  chunks on screen without ground with a dense white fog (towards the background at night, `NIGHT_KEEP`), its rim torn by noise, with no clouds over it;
+  while it is on the background itself is the fog's colour outdoors (`Sky`, `EdgeHaze.fog_of`; the sky's own colour is
+  `Sky.background`), so land not built yet is fog whatever its height on the screen and the player's
   (`shaders/edge_fog.gdshader`; the cumulus were removed, user 2026-11-16); a missing chunk's fog is whole at once, a built one's
   dissolves over `DISSOLVE` (1.2 s), melting by dithering
   (`bayer4`); how much fog each chunk has (`amounts`) is a texel of a `GRID`² (32) texture round the player,
