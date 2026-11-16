@@ -25,8 +25,9 @@ that the rules read as is.
   players in turn); `sleep_speed()` — `SLEEP_SPEED` (12) while all live players sleep, otherwise 1: the
   runner (`src/server/runner.gd`) multiplies the tick's `delta` by it, and the night passes quickly;
   `push_on(who)` — what the beasts pushed the player with, taken once (the link sends it as the event
-  `push`). The world around the players: `zones()` — each player's chunk and the first respawn point of a
-  dead one; `make_chunks(near_us, far_us, reach)` — generates the chunks within `reach` (`reach()`: `ZONE` 5
+  `push`). The world around the players: `zones()` — each player's chunk, the first respawn point of a
+  dead one and where a player is about to go (`Character.going`, request `prepare`, for `GOING_MS`;
+  `going_of(who)`); while a client's screen waits (`wanted_only`) its chunks' needs take `near_us` however far; `make_chunks(near_us, far_us, reach)` — generates the chunks within `reach` (`reach()`: `ZONE` 5
   or more for the widest screen of the players, `reach_for(view_half)` — half the screen's diagonal in
   chunks + 1, up to `ZONE_MOST` 10) of the zones by a step of the job within a budget (`near_us` while the
   chunk is within `NEAR` 4 of a zone, otherwise `far_us`; at least a step per call), the non-SHAPED chunk

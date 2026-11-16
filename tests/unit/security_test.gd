@@ -26,6 +26,7 @@ func run() -> void:
 	_test_door()
 	_test_commands()
 	_test_cheats()
+	_test_prepare()
 
 
 ## A flat world of 32 by 32 cells with a player over the socket (check_moves, paced) and
@@ -407,3 +408,29 @@ func _test_cheats() -> void:
 	var ins := _input(a.at, a.feet_cell, ["", ""], true)
 	a.take_input(ins)
 	_check(a.body.air_jumps, "jumps in the air are allowed then")
+
+
+## A place to be made ready (Protocol.PREPARE, Character.going) is taken for a teleport of
+## the playtest page only with its switches, and for the dead only at a respawn point.
+func _test_prepare() -> void:
+	var p := _socket_player()
+	var s: Session = p[0]
+	var host: LocalHost = p[1]
+	var a = p[2]
+	var req: Requests = host.link.requests
+	var far: Vector3 = a.at + Vector3(4000.0, 0.0, 0.0)
+	_check(req.handle(["prepare", 1, [far]]) == [1, false] and not a.going.is_finite(),
+		"a place far away is not made ready without the switches")
+	_check(req.handle(["prepare", 2, [Vector3(NAN, 0.0, 0.0)]]) == [2, false]
+		and req.handle(["prepare", 3, ["far"]]) == [3, false], "nor no point, nor a word")
+	req.may_cheat = true
+	req.handle(["prepare", 4, [Vector3(1e9, 0.0, 0.0)]])
+	var key := WorldData.chunk_key(floori(Requests.Cheats.MOST_FAR / WorldData.CELL), 0)
+	_check(a.going == Vector3(Requests.Cheats.MOST_FAR, 0.0, 0.0) and s.zones().has(key),
+		"with them it is, clamped, and the world is made there too")
+	a.teleport(a.at)
+	_check(not a.going.is_finite(), "arriving forgets it")
+	req.may_cheat = false
+	a.death = {"at": [a.at.x, a.at.y, a.at.z]}
+	req.handle(["prepare", 5, [far]])
+	_check(a.going.distance_to(a.home) < 0.01, "the dead have it made ready at a respawn point only: %s" % [a.going])

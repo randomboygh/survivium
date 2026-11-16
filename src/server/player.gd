@@ -210,6 +210,7 @@ func _came_back(to: Vector3) -> void:
 func teleport(to: Vector3) -> void:
 	at = to
 	_sim = to
+	going = Vector3.INF
 	_strikes = 0
 	_claim_at = -1.0
 	body.velocity_y = 0.0

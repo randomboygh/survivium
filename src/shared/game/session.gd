@@ -44,6 +44,9 @@ const NEAR := 4
 ## While the game is paused (its menu open, single player) the chunks are made this
 ## far, still within DROP, so less is left to make when the player walks on.
 const PAUSE_ZONE := ZONE + 2
+## How long a place a player asked to be made ready (Character.going) is made ready, ms:
+## longer than the client waits for it (Trip.MOST_MS).
+const GOING_MS := 40000
 ## Beyond this many chunks from every player the generator forgets chunks nobody
 ## changed. A chunk ZONE away needs the terrain of chunks two farther, which must stay.
 ## A screen wider than a phone's moves it out with its zone (drop).
@@ -329,9 +332,9 @@ func drop() -> int:
 	return reach() + DROP - ZONE
 
 
-## The chunks the world is made around: each player's, and the first respawn point of
+## The chunks the world is made around: each player's, the first respawn point of
 ## one lying dead, so coming back there lands in a world already made (the place of
-## death stays too).
+## death stays too), and where a player is about to go (Character.going).
 func zones() -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	for who in players:
@@ -341,7 +344,18 @@ func zones() -> Array[Vector2i]:
 			var points: Array = who.respawn_points()
 			if not points.is_empty():
 				_add_zone(out, points[0][1])
+		var going := going_of(who)
+		if going.is_finite():
+			_add_zone(out, going)
 	return out
+
+
+## Where `who` is about to go (Character.going) while it is still asked for, else INF.
+static func going_of(who) -> Vector3:
+	var at: Vector3 = who.going
+	if at.is_finite() and Time.get_ticks_msec() - int(who.going_ms) < GOING_MS:
+		return at
+	return Vector3.INF
 
 
 func _add_zone(out: Array[Vector2i], at: Vector3) -> void:
@@ -503,7 +517,10 @@ func make_chunks(near_us: int, far_us: int, reach := ZONE) -> int:
 			_gen_job = gen.start(need[0], need[1])
 			if _gen_job == null:
 				break
-		var budget := near_us if _distance(_gen_job.key) <= NEAR else far_us
+		# What a client's screen waits for (wanted_only: a chunk on it has no ground) takes the
+		# near budget however far the neighbours it needs lie: at the far budget the ring
+		# round a screen of new land took seconds after a teleport (2026-11-16).
+		var budget := near_us if wanted_only or _distance(_gen_job.key) <= NEAR else far_us
 		var tg := Time.get_ticks_usec()
 		var done := false
 		while not done and (Time.get_ticks_usec() - t0 < budget or not worked):

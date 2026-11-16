@@ -1374,11 +1374,11 @@ func _add_place(color: Color, name: String, cell: Vector2i, tip: String) -> void
 	row.add_child(label)
 	var b := Kit.button("[go]", Callable(), 0, ARROW)
 	b.tooltip_text = tip
-	# On a server a place is gone to as a cheat (Settings.may_cheat, go_to_column).
+	# On a server a place is gone to as a cheat (Settings.may_cheat, travel_to_column).
 	b.disabled = not game.settings.may_cheat()
 	b.modulate.a = 0.4 if b.disabled else 1.0
 	b.pressed.connect(func() -> void:
-		game.character.go_to_column(cell)
+		game.character.travel_to_column(cell)
 		close()
 		if get_tree().paused:
 			game.hud.toggle_menu())

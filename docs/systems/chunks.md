@@ -28,8 +28,13 @@ slice, to free the far meshes.
   screen lags (below) its plants wait (`plants_wait`, with the mesh job kept for patching), the next hole gets
   its ground sooner, and they are built once the screen has its ground; **lag**: while
   there is a chunk without ground on screen (`lagging`, `_check_lag`), the building of such a chunk and the
-  generation near the player take up to `LAG_BUDGET_US` (16 ms) of the frame instead of 9 ms — the FPS on a
-  run sags, there are fewer voids; and the frame goes to the screen alone: a chunk off the screen is not
+  generation near the player take up to `lag_budget()` of the frame instead of 9 ms: `LAG_BUDGET_US` (16 ms),
+  for `JUMP_SECONDS` (3 s) after a jump of more than a chunk (a teleport, a respawn) `JUMP_BUDGET_US` (30 ms) —
+  the FPS on a run sags, there are fewer voids; once a chunk of the screen is made, the generation takes half
+  of it, so the first ground comes before the last of the screen is made; a jump drops the chunk being built
+  off the new screen (it went on a step a frame), and the maps are painted with what is left of a lagging
+  frame (`paint_queue`, before: one chunk a frame held the ground back for some 240 frames after a
+  teleport); and the frame goes to the screen alone: a chunk off the screen is not
   started (`_ready_on_screen`), a chunk on it already started gets the lag budget at once, and the session
   makes only the first `WANTED_MOST` (4) pending chunks of the order it has not made (`wanted()` →
   `Session.wanted`, `wanted_only`; at other times they go first); walking into new
@@ -94,7 +99,8 @@ slice, to free the far meshes.
   ground, so pits fill with fog and a hill's edge draws no straight seams).
 
 **Interface.** `ChunkStreamer.prepare(gen)`, `build_near(n)`, `run_jobs(spent)`, `gen_budgets()`,
-`take_work()`, `set_focus(at)`, `update_cut(delta)`, `update_caps()`, `refit_boxes()`, `on_cell_changed(cell)`,
+`take_work()`, `set_focus(at)` (the chunks are built round `at`: where the player comes back behind the death
+screen, or where `Trip` goes; the chunks on its screen at the lag budget, `focus_built()` — their share built), `update_cut(delta)`, `update_caps()`, `refit_boxes()`, `on_cell_changed(cell)`,
 `remesh_chunk(key)`; `ChunkMesher.start` / `start_rect` / `step` / `finish` / `patch` / `reach`,
 `Foliage.start` / `start_part` / `part_columns` / `step` / `finish` / `patch`.
 

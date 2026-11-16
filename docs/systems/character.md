@@ -18,6 +18,13 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   (`_forget_old_sacks`, `forget_sack`). A sack taken not whole keeps its day. The death screen writes how long
   it will lie (`death.sack_days`). A cross at the sack's place: the sixth field of the sack's record is who
   died (`grave_of`: the player's name, the cause, the day, how long they lived, the `life` counters above 0).
+  `going` — where the character is about to go (`Session.zones` makes the world there; request `prepare`).
+- `src/client/game/trip.gd` — going far (user's pick 2026-11-16): `go(at, then)` asks the server to make the
+  place ready (`prepare`), Main builds the chunks round it (`ChunkStreamer.set_focus`) and `then` runs once
+  the chunks on its screen are built (`focus_built`) or after `MOST_MS` (20 s). The death screen's respawn
+  buttons go this way (the button shows «Getting the place ready… N%»; the first point is built behind the
+  screen already), and so do the test page's «Go» to a place (`Character.travel_to_column`) and «To the
+  place of death» (`Settings.go_to_death`): the player goes on meanwhile.
   When the sack vanishes, `expire_sacks` returns where it lay and who died, and the session puts a cross there
   (`Placed.put_grave`: the first item with `grave`, at the base `core:grave`; in the sack's cell or the nearest
   free one within `Placed.GRAVE_REACH` (3) cells, a level above or below; no place — no cross). The cross's

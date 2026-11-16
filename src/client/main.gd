@@ -42,6 +42,7 @@ const FarmMode := preload("res://src/client/input/farm_mode.gd")
 const CameraRig := preload("res://src/client/view/camera_rig.gd")
 const Props := preload("res://src/client/game/props.gd")
 const CharacterScript := preload("res://src/client/game/character.gd")
+const Trip := preload("res://src/client/game/trip.gd")
 const Gathering := preload("res://src/client/game/gathering.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Storms := preload("res://src/shared/game/storms.gd")
@@ -167,6 +168,8 @@ var farm: FarmMode
 var view: CameraRig
 var props: Props
 var character: CharacterScript
+## Going somewhere far: the place is built first (Trip).
+var trip: Trip
 var gathering: Gathering
 ## The markers the player set on the map.
 var markers: Markers
@@ -348,6 +351,7 @@ func _ready() -> void:
 	# Over a socket the animals glide between the server's snapshots.
 	wildlife.smooth = link.join_url != ""
 	character = CharacterScript.new(self)
+	trip = Trip.new(self)
 	character.clock = clock
 	character.placed = placed
 	gathering = Gathering.new(self)
@@ -844,8 +848,16 @@ func _process(delta: float) -> void:
 		mod_reload.update()
 		t = perf.note("save", t)
 	chunks.update_cut(delta)
-	# Behind the death screen the world is made ready where the character comes back.
-	chunks.set_focus(character.respawn_points()[0][1] if ready_to_play and character.is_dead() else Vector3.INF)
+	# Where the player is going (Trip), and behind the death screen where the character
+	# comes back first, the world is made ready.
+	if ready_to_play:
+		trip.update()
+	var ahead := Vector3.INF
+	if ready_to_play and trip.going():
+		ahead = trip.target
+	elif ready_to_play and character.is_dead():
+		ahead = character.respawn_points()[0][1]
+	chunks.set_focus(ahead)
 	chunks.run_jobs(_world_made())
 	chunks.update_caps()
 	_budget_server()

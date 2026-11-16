@@ -598,8 +598,18 @@ func _run() -> void:
 	_check(place.get("place") == ch.respawn_points()[0][0]
 		and Vector2(main.player.position.x, main.player.position.z).distance_to(Vector2(ch.home.x, ch.home.z)) < 1.0,
 		"the playtest page takes the player back to the respawn point")
+	# Once the world there is built (Trip).
 	main.settings.go_to_death()
+	var trip_from := Time.get_ticks_msec()
+	while main.trip.going() and Time.get_ticks_msec() - trip_from < 30000:
+		await process_frame
 	_check(main.player.position.distance_to(fell) < 0.01 and not ch.is_dead(), "the playtest button goes back where they fell")
+	# Back by the respawn point, where the things are set down next.
+	ch.go_to_column(place.cell)
+	frames = 0
+	while ch.arriving != null and frames < 1200:
+		await process_frame
+		frames += 1
 	main.settings.set_no_overload(true)
 	_check(not ch.inventory.heavy, "the playtest switch turns overload off")
 	main.settings.set_no_overload(false)

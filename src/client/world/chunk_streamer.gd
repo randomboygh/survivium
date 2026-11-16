@@ -64,6 +64,11 @@ const STREAM_BUDGET_US := 3000
 ## a fast playtest speed, a boat down a river), building it and making it may take this
 ## much of a frame: the frame rate drops a while, and less of the world is missing.
 const LAG_BUDGET_US := 16000
+## ...and for JUMP_SECONDS after a jump (a teleport, coming back to life somewhere not
+## built), this much: the frame rate drops to some 30 a second for a moment, and the
+## holes close about twice as fast (user's pick, 2026-11-16).
+const JUMP_BUDGET_US := 30000
+const JUMP_SECONDS := 3.0
 ## World units past the screen's edge the server counts as seen (Mirror.SEEN_MARGIN):
 ## the reach is worked out from the same screen the server is told.
 const SEEN_MARGIN := 4.0
@@ -217,7 +222,10 @@ var lead := Vector2.ZERO
 var way := Vector2.ZERO
 var _last_at := Vector2.INF
 var _last_ms := 0
-## A chunk on the screen has no ground yet (see _check_lag): building gets LAG_BUDGET_US.
+## When the player last jumped more than a chunk in a frame (Time.get_ticks_msec, see
+## _track_motion and lag_budget).
+var _jumped_ms := -1000000
+## A chunk on the screen has no ground yet (see _check_lag): building gets lag_budget().
 var lagging := false
 ## The haze over the edge of what is built (the «Дымка на краю» setting), null when off.
 var haze: EdgeHaze
@@ -550,6 +558,15 @@ func _track_motion() -> void:
 	var dt := (now - _last_ms) / 1000.0
 	if not _last_at.is_finite() or dt > 1.0 or at.distance_to(_last_at) > CHUNK * CELL:
 		lead = Vector2.ZERO
+		if _last_at.is_finite() and at.distance_to(_last_at) > CHUNK * CELL:
+			_jumped_ms = now
+			if (has_target or job_mesh != null) and not job_edit and not job_keep \
+					and _screen_score(job_key, at, _screen_half()) > 0.0:
+				# The chunk being built where the player was: it went on at the stream
+				# budget a step a frame while the new screen waited (some 250 frames,
+				# 2026-11-16), and the server may forget it under the job.
+				has_target = false
+				_drop_job()
 	elif dt > 0.0:
 		var want := ((at - _last_at) / dt * LOOK_AHEAD).limit_length(LEAD_MOST)
 		lead = lead.lerp(want, 1.0 - exp(-dt * 4.0))
@@ -652,8 +669,42 @@ func take_work() -> Dictionary:
 func gen_budgets() -> Vector2i:
 	if not game.ready_to_play or paused:
 		return Vector2i(load_budget, load_budget)
-	var near := LAG_BUDGET_US if lagging else EDIT_BUDGET_US
+	var near := lag_budget() if lagging or focus.is_finite() else EDIT_BUDGET_US
+	if lagging and (has_target or job_mesh != null or _ready_on_screen()):
+		# A chunk of the screen is made: building it takes half the frame, or the making
+		# of the rest of the screen took it all and the first ground came after the last
+		# (2 s after a teleport, 2026-11-16).
+		near /= 2
 	return Vector2i(near, 0 if not dirty_chunks.is_empty() else STREAM_BUDGET_US)
+
+
+## The budget of building and making while a chunk on the screen has no ground, or the
+## world is built ahead where the player is about to go (focus): JUMP_BUDGET_US for a
+## while after a jump, else LAG_BUDGET_US.
+func lag_budget() -> int:
+	return JUMP_BUDGET_US if Time.get_ticks_msec() - _jumped_ms < JUMP_SECONDS * 1000.0 else LAG_BUDGET_US
+
+
+## The share of the chunks on the screen round the focus (where the player is about to
+## go) built, 0..1; 1 with no focus.
+func focus_built() -> float:
+	if not focus.is_finite():
+		return 1.0
+	var at := Vector2(focus.x, focus.z)
+	var half := _screen_half()
+	var size := CHUNK * CELL
+	var home := Vector2i((at / size).floor())
+	var r := ceili(half.length() / size) + 1
+	var all := 0
+	var built := 0
+	for cz in range(home.y - r, home.y + r + 1):
+		for cx in range(home.x - r, home.x + r + 1):
+			var key := Vector2i(cx, cz)
+			if _screen_score(key, at, half) <= 0.0:
+				all += 1
+				if chunk_nodes.has(key):
+					built += 1
+	return float(built) / maxf(1.0, all)
 
 
 ## A chunk reached a stage (WorldGen.made): once it is SHAPED its columns are final,
@@ -836,14 +887,14 @@ func run_jobs(spent := 0) -> void:
 	if lagging and not job_edit and job_mesh != null and _on_screen(job_key):
 		# A chunk started before the screen reached it (at the stream budget) gets the lag
 		# budget from the frame the lag starts, not a step a frame.
-		job_budget = LAG_BUDGET_US
+		job_budget = lag_budget()
 	if not dirty_chunks.is_empty() and game.ready_to_play and not paused:
 		# Edits wait: the frame has their budget, whatever was built before (a far chunk
 		# at the stream budget, which the making of the world could use up before a
 		# single step of the edits, 2026-11-08).
 		job_budget = EDIT_BUDGET_US
 	var worked := false
-	if not paint_queue.is_empty():
+	if not paint_queue.is_empty() and not lagging:
 		var tp := Time.get_ticks_usec()
 		_paint(paint_queue.pop_front())
 		budget_us += Time.get_ticks_usec() - tp
@@ -887,7 +938,10 @@ func run_jobs(spent := 0) -> void:
 				var near := maxi(absi(job_key.x - at.x), absi(job_key.y - at.y)) <= URGENT_CHUNKS
 				job_budget = EDIT_BUDGET_US if near else STREAM_BUDGET_US
 				if lagging and _screen_score(job_key, _at(), _screen_half()) <= 0.0:
-					job_budget = LAG_BUDGET_US
+					job_budget = lag_budget()
+				elif focus.is_finite() and _screen_score(job_key, Vector2(focus.x, focus.z), _screen_half()) <= 0.0:
+					# Where the player is about to go: they wait for it (Trip).
+					job_budget = lag_budget()
 				if not game.ready_to_play or paused:
 					job_budget = load_budget
 				if not gen.needed(job_key).is_empty():
@@ -975,6 +1029,13 @@ func run_jobs(spent := 0) -> void:
 			if not job_edit and pending_chunks.is_empty() and not map_done:
 				map_done = true
 				print("chunks around built in %d ms (generation %d ms, meshes %d ms)" % [Time.get_ticks_msec(), game.world_maker.gen_us / 1000, mesh_us / 1000])
+	if lagging and not paint_queue.is_empty() and Time.get_ticks_usec() - t0 < job_budget:
+		# Behind the player's walk or a jump the maps are painted with what is left of the
+		# frame: first, a chunk a frame, they held the screen's ground back (a paint and a
+		# part of a mesh a frame; after a teleport some 240 frames, 4 s at 60 a second).
+		var tp := Time.get_ticks_usec()
+		_paint(paint_queue.pop_front())
+		budget_us += Time.get_ticks_usec() - tp
 	mesh_us += Time.get_ticks_usec() - t0 - spent
 	_unload_some()
 	_forget_some()
