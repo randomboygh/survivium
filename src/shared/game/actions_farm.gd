@@ -19,9 +19,6 @@ const WET_DAYS := 1.0
 const RAIN_WETS := 0.3
 ## How often the beds are looked at (grow_fields), in seconds of play.
 const FIELD_TICK := 1.0
-## Seconds a sowing and a watering take with no skill.
-const SOW_SWING := 0.3
-const WATER_SWING := 0.6
 ## A sapling is planted no nearer than this to another tree or sapling, in cells (the
 ## crowns' lattice: trunks on odd columns).
 const SAPLING_GAP := 2
@@ -260,7 +257,7 @@ func sow(who, item: Dictionary, cell: Vector3i) -> void:
 	if q != Quality.NORMAL and not Plants.is_sapling(item.crop):
 		record.append_array(["", q])
 	world.set_field(cell, record)
-	skilled(who, "farm", SOW_SWING)
+	skilled(who, "farm", item.sow_swing)
 	looks_changed.emit(WorldData.chunk_key(cell.x, cell.z))
 
 
@@ -480,7 +477,7 @@ func water(who, cells: Array[Vector3i], with := "") -> Dictionary:
 				who.give(empty, 1)
 			who.say("[the_watering_can_is_empty]")
 			break
-	return _work(skilled(who, "farm", WATER_SWING), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL, Mat.WATER)
+	return _work(skilled(who, "farm", item.water_swing), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL, Mat.WATER)
 
 
 ## Makes bed `cell` wet until time `until` (Clock.now), wet to look at (Mat.BED_WET).

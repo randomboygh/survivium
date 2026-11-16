@@ -568,6 +568,7 @@ func _test_camera_drift() -> void:
 	rig.wake(shove)
 	rig._glide(1.0 / 30.0)
 	_check(not rig.is_drifting(), "a real move of the mouse stops it again")
+	game.player.free()
 
 
 ## A turn button held turns the camera on smoothly; let go, it settles on the nearest step.

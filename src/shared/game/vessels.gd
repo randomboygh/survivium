@@ -17,8 +17,6 @@ signal gone(id: int)
 ## How far (world units) and how much (radians) a vessel moves before it is told again.
 const TELL_MOVE := 0.1
 const TELL_TURN := 0.3
-## The seats of a vessel.
-const SEATS := 2
 
 ## The vessels by id.
 var list := {}
@@ -51,6 +49,11 @@ func move(v: Dictionary, at: Vector3, turn: float) -> void:
 func remove(id: int) -> void:
 	if list.erase(id):
 		gone.emit(id)
+
+
+## The seats of vessel `v` (its item's `seats`), 0 when its item is not loaded.
+static func seats(v: Dictionary) -> int:
+	return Items.get_item(v.get("item", "")).get("seats", 0)
 
 
 ## The vessel nearest `at` (world units, across the ground) within `reach`, {} for none.
