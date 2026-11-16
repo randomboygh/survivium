@@ -43,13 +43,14 @@ continues it. Stage 2 item 3 of `plan/mvp.md` (decision 186, 11А 12А 13А).
   native save dialog — `unpack_bytes` with `refuse` for mods not one's own; `PicturePick.pick(done, true)`).
   Shot `editor-zips` (`zips` key). Android's save dialog writing to a content:// path is untested on a phone.
 
-- Step 7: a host's own mod put on a server (`Protocol.MOD_PUT`, `src/client/net/mod_put.gd`,
+- Step 7: an author's own mod put on a server (`Protocol.MOD_PUT`, `src/client/net/mod_put.gd`,
   `Requests._mod_put`, `Server.put_mod`, `ModZip.unpack_mod`; zip code moved to
-  `src/shared/content/mod_zip.gd`). Joined to a server far away as a host, the editor's saves go to the
-  server (not read here): it unpacks the mod in place of its copy, joins its bundles to the world's and
-  sends the files to every player. Not a host: saved on the device only. A server made in the game: its
-  `mods_reread` joins the bundles the editor joined. Rights: hosts (`op`); the user was asked whether a
-  separate «author» role is wanted.
+  `src/shared/content/mod_zip.gd`). Joined to a server far away, the editor's saves go to the server (not
+  read here): it unpacks the mod in place of its copy, joins its bundles to the world's and sends the files
+  to every player. Rights (the user's pick Б, 2026-11-16): the owner and the authors the owner names with
+  `/author <who>` (`unauthor`, `authors`; `access.authors`, `Server.may_author`), not hosts by `op` alone;
+  anyone else is told the save stayed on the device. A server made in the game: its `mods_reread` joins
+  the bundles the editor joined.
 
 ## Left
 

@@ -5,7 +5,7 @@ extends "res://tests/unit/test_case.gd"
 ## cancelled gives back what it took as it was, a blueprint of huge corners is not made,
 ## text typed is made safe, free items only when the rules allow them, and the server's door: reserved and taken names, the list's
 ## names bound to their keys, wrong passwords, and who may give which command; a mod is
-## put on a server only by a host, in pieces in order and bounds, not too often, and only
+## put on a server only by its owner or an author the owner named, in pieces in order and bounds, not too often, and only
 ## as an own mod of that name.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
@@ -440,7 +440,7 @@ func _test_prepare() -> void:
 	_check(a.going.distance_to(a.home) < 0.01, "the dead have it made ready at a respawn point only: %s" % [a.going])
 
 
-## Protocol.MOD_PUT: refused without the right (a host's, Requests.may_author), pieces out
+## Protocol.MOD_PUT: refused without the right (the owner's or an author's, Requests.may_author), pieces out
 ## of order or bounds drop what came, a second mod within MOD_PUT_EVERY is refused; the
 ## server takes it only from a host and only as an own mod (never the game's), and a zip
 ## of another mod or of one not own is not unpacked over it.
@@ -455,8 +455,9 @@ func _test_mod_put() -> void:
 		return {"files": 1, "skipped": 0, "error": ""}
 	var piece := PackedByteArray()
 	piece.resize(16)
-	_check(req.handle(Protocol.request(Protocol.MOD_PUT, 1, ["mine", 0, 1, piece]))[1] == false and whole.is_empty()
-		and "author" in logged, "a player who is no host puts no mod")
+	var refused: Variant = req.handle(Protocol.request(Protocol.MOD_PUT, 1, ["mine", 0, 1, piece]))[1]
+	_check(refused is Dictionary and refused.error == "[editor_server_authors_only]" and whole.is_empty(),
+		"a player who is no author puts no mod, and is told so")
 	req.may_author = true
 	_check(req.handle(Protocol.request(Protocol.MOD_PUT, 2, ["mine", 0, 3, piece]))[1] == true
 		and req.handle(Protocol.request(Protocol.MOD_PUT, 3, ["mine", 2, 3, piece]))[1] == false
@@ -474,12 +475,23 @@ func _test_mod_put() -> void:
 		and whole == [["mine", 32]], "pieces in order make the whole, handed to the server")
 	_check(req.handle(Protocol.request(Protocol.MOD_PUT, 12, ["mine", 0, 1, piece]))[1] == false and whole.size() == 1
 		and "pace" in logged, "another mod at once is refused (MOD_PUT_EVERY)")
-	# The server: a host's only, an own mod's only.
+	# The server: the owner's and the authors' only, an own mod's only.
 	var net := Server.new(null, Config.new(), {"mods": []})
-	_check(net.put_mod("mine", piece, "someone").error == "[editor_server_hosts_only]", "the server takes no mod from one who is no host")
-	net.access.hosts[Server.kept("author")] = "Author"
-	_check(net.put_mod("core", piece, "author").error == "[editor_server_not_own]", "nor over one of the game's mods, from a host either")
+	net.access.hosts[Server.kept("host")] = "Host"
+	_check(net.put_mod("mine", piece, "someone").error == "[editor_server_authors_only]"
+		and net.put_mod("mine", piece, "host").error == "[editor_server_authors_only]" and not net.may_author("host"),
+		"the server takes no mod from a player, nor from a host who is no author")
+	net.access.owners[Server.kept("owner")] = "Owner"
+	_check(net.may_author("owner"), "the owner may put mods")
+	_check(net.command("author someone", Server.ROLE_HOST).contains("owner") and net.command("unauthor x", Server.ROLE_HOST).contains("owner")
+		and net.command("authors", Server.ROLE_HOST).begins_with("authors"), "a host may not name authors, only see them")
+	net.access.authors[Server.kept("author")] = "Author"
+	_check(net.may_author("author") and net.command("unauthor author", Server.ROLE_OWNER).begins_with("no longer")
+		and not net.may_author("author"), "an author named may, and unauthor takes it back")
+	net.access.authors[Server.kept("author")] = "Author"
+	_check(net.put_mod("core", piece, "author").error == "[editor_server_not_own]", "nor over one of the game's mods, from an author either")
 	_check(net.put_mod("../x", piece, "author").error == "[editor_server_not_own]", "nor of a name that is no mod's id")
+	_check(net.take_access({"authors": {"k": "Kept"}}) and net.may_author("k"), "the authors are kept in the world's save, keys hashed")
 	# A zip of another mod, or of one not own, is not unpacked over the mod.
 	var into := "user://test_mod_put"
 	ModZip.erase(into)

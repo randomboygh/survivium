@@ -39,7 +39,8 @@ request `fight_brave`, the event `fight`. AI debugging (decision 184): the reque
 `Requests.may_debug` (single player — `LocalHost.join`; on a server the host, `Server` sets it before every
 message by `is_host`, a host who is removed loses even a switched-on debug), the event `minds`
 (`Wildlife.mind`) once per 0.25 s. An author's own mod (stage 2 item 3, step 7): the request `mod_put` [mod,
-piece, pieces, bytes] — only with `Requests.may_author` (a host, set like `may_debug`), the editor's zip in
+piece, pieces, bytes] — only with `Requests.may_author` (the owner or an author named by `author`, `Server.may_author`, set
+like `may_debug`; others are answered `{error: [editor_server_authors_only]}`), the editor's zip in
 pieces of `MOD_PIECE` 128 KB in order, answered `true` per piece and `{files, skipped, error}` for the last
 (`Server.put_mod`: the mod in its folder, its bundles in the world's, `mods` to every player); see
 `docs/security/NETWORK_SECURITY.md`. No more often than `Requests.CHAT_LINES` 5 lines per `CHAT_WINDOW` 8 s,

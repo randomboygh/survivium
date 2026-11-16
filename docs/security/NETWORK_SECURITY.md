@@ -120,11 +120,11 @@ own (`Content.serve({})`).
 
 ## An author's mod put on the server (`Protocol.MOD_PUT`, `Requests._mod_put`, `Server.put_mod`)
 
-The content editor of a host sends its own mod's zip in pieces; the server distrusts all of it:
+The content editor of an author sends its own mod's zip in pieces; the server distrusts all of it:
 
 | What | Value | What happens beyond it |
 |---|---|---|
-| Who | a host (`Requests.may_author`, set from `Server.is_host` with each message) | `false`, noted `author` |
+| Who | the owner or an author the owner named (`author`; `Requests.may_author`, set from `Server.may_author` with each message) | error `[editor_server_authors_only]` (a player's editor tries; the right may come while they play) |
 | A piece | `MOD_PIECE` 128 KB (under `INBOUND` 256 KB), not empty, in order, `MOD_PIECES` 64 at most | the pieces so far dropped, `false`, noted `malformed` |
 | How often | one mod each `MOD_PUT_EVERY` 5 s per player | `false`, noted `pace` |
 | The mod | an id of `OwnMods.valid_id`; not one of the game's or any other mod that is not own there | error `[editor_server_not_own]`, noted `author` |

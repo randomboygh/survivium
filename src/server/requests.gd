@@ -87,8 +87,8 @@ var log_cheats := false
 ## multiplies it.
 var day_speed := 1.0
 var ai_debug := false
-## Whether the player may put their own mod on the server (Protocol.MOD_PUT): a host's only
-## (Server, with each message; never in a single game); and what takes the whole zip
+## Whether the player may put their own mod on the server (Protocol.MOD_PUT): the owner's
+## and the authors' (Server.may_author, with each message; never in a single game); and what takes the whole zip
 ## (Server.put_mod: (mod, bytes) -> {"files", "skipped", "error"}).
 var may_author := false
 var author := Callable()
@@ -497,13 +497,16 @@ func _near(cell: Vector3i) -> Dictionary:
 
 
 ## A piece `piece` of `pieces` of the zip of own mod `mod` (Protocol.MOD_PUT): only from
-## one who may (a host), pieces in order and within MOD_PIECE and MOD_PIECES, a mod at most
-## each MOD_PUT_EVERY seconds; the last hands the whole to `author`. Anything else drops
-## what came so far and is answered false (a wrong one is told, `flagged`).
+## one who may (the owner, an author), pieces in order and within MOD_PIECE and MOD_PIECES,
+## a mod at most each MOD_PUT_EVERY seconds; the last hands the whole to `author`. One who
+## may not is told so ([editor_server_authors_only]: any player's editor tries, the right
+## can come while they play); anything else drops what came so far and is answered false
+## (and told, `flagged`).
 func _mod_put(mod: String, piece: int, pieces: int, bytes: PackedByteArray) -> Variant:
 	if not may_author or not author.is_valid():
-		flagged.emit("author", "a mod put without the right")
-		return false
+		_put_mod = ""
+		_put_bytes = PackedByteArray()
+		return {"files": 0, "skipped": 0, "error": "[editor_server_authors_only]"}
 	var fits := mod.length() <= 32 and pieces >= 1 and pieces <= Protocol.MOD_PIECES and bytes.size() <= Protocol.MOD_PIECE \
 		and not bytes.is_empty() and piece >= 0 and piece < pieces
 	var next := piece == 0 or (mod == _put_mod and pieces == _put_pieces and piece == _put_got)

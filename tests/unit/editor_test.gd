@@ -398,7 +398,7 @@ func _test_server_put() -> void:
 	var net := Server.new(null, Config.new(), {"mods": world})
 	net.content.ready()
 	var digest: String = net.content.digest
-	net.access.hosts[Server.kept("author")] = "Author"
+	net.access.authors[Server.kept("author")] = "Author"
 	var got := net.put_mod("mine", bytes, "author")
 	_check(got.error == "" and got.files == 3 and not FileAccess.file_exists(DIR.path_join("mine/data/old.yaml"))
 		and OwnMods.records("mine", "items")[0].id == "pebble", "the mod takes the place of the server's copy: %s" % [got])
