@@ -54,21 +54,24 @@ const FOAM_SIDE := 0.5
 ## Water falling over a step of a river from padded cell `i` (see WorldGen.FALL_STEP):
 ## a key for each side open to the air over lower water or ground, added to `keys` (the
 ## cell `lx`, `lz` from the chunk's corner and level `y`, the side, the drop, whether it
-## lands in water and over which sides of that cell its foam spills, see fall_faces).
-## They are drawn after the chunk's other water (ChunkMesher.step), so the foam and the
-## spray lie over the pool they land in whichever of its cells came later.
+## lands in water, over which sides of that cell its foam spills, and which halves of the
+## side the diagonal lip leaves out, see trims and fall_faces); a key of a diagonal fall
+## for each corner the lip cuts off (see lip_cuts). They are drawn after the chunk's other
+## water (ChunkMesher.step), so the foam and the spray lie over the pool they land in
+## whichever of its cells came later.
 static func falls(keys: PackedInt32Array, c: PackedByteArray, nb: PackedByteArray, side_offsets: PackedInt32Array,
-		i: int, dy: int, lx: int, lz: int, y: int) -> void:
+		i: int, dy: int, dz: int, lx: int, lz: int, y: int) -> void:
 	if nb[2] != AIR:
 		return
 	for q in 4:
 		var d: int = FALL_DIRS[q]
 		if nb[d] != AIR:
 			continue
+		var trim := trims(c, i, dy, dz, d, side_offsets[d])
+		if trim == 3:
+			continue
 		var n := i + side_offsets[d]
-		var k := 1
-		while k < 12 and c[n - k * dy] == AIR:
-			k += 1
+		var k := _drop(c, n, dy)
 		var landing := n - k * dy
 		var wet := c[landing] == WATER
 		var spill := 0
@@ -78,7 +81,101 @@ static func falls(keys: PackedInt32Array, c: PackedByteArray, nb: PackedByteArra
 				var o: int = landing + side_offsets[sides[e]]
 				if c[o] == WATER and c[o + dy] == AIR:
 					spill |= 1 << e
-		keys.append((((((y * 8 + spill) * 2 + int(wet)) * 16 + k - 1) * 4 + q) << 12) | lz << 6 | lx)
+		keys.append(_key(lx, lz, y, q, k, wet, spill, trim, false))
+	var cuts := lip_cuts(c, i, dy, dz)
+	for q in 4:
+		if cuts & (1 << q):
+			var o: Vector2i = CORNER_DIRS[q]
+			var n := i + o.x + o.y * dz
+			var k := _drop(c, n, dy)
+			keys.append(_key(lx, lz, y, q, k, c[n - k * dy] == WATER, 0, 0, true))
+
+
+## Levels from padded cell `n` (air) down to the first that is not air (up to 12).
+static func _drop(c: PackedByteArray, n: int, dy: int) -> int:
+	var k := 1
+	while k < 12 and c[n - k * dy] == AIR:
+		k += 1
+	return k
+
+
+## A waterfall's key (see falls): the cell, its side (or corner, for a diagonal fall),
+## the drop `k`, whether it lands in water, the sides its foam spills over, the halves of
+## the side left out (a diagonal fall: 1 when it is a filled corner's, see lip_fill).
+static func _key(lx: int, lz: int, y: int, q: int, k: int, wet: bool, spill: int, trim: int, diag: bool) -> int:
+	return ((((((((y * 2 + int(diag)) * 4 + trim) * 8 + spill) * 2 + int(wet)) * 16 + k - 1) * 4 + q) << 12) \
+		| lz << 6 | lx)
+
+
+## The diagonal lip of a step of a river: water seen from above runs straight across the
+## step instead of in stairs. Its corners where the three cells around it on its level
+## are air (the lower side of the step) are cut off, from the middle of one side to the
+## middle of the next, as the land's corners are (WorldData.update_corners), so the
+## water lines up with the bed under it, cut the same way; an air cell whose three cells
+## around a corner are water with air above (the step turning back) gets that corner of
+## water (lip_fill). The corners of the water cut off in padded cell `i`, as bits 1 << k.
+static func lip_cuts(c: PackedByteArray, i: int, dy: int, dz: int) -> int:
+	var cuts := 0
+	for k in 4:
+		var o: Vector2i = CORNER_DIRS[k]
+		var x := i + o.x
+		var z := i + o.y * dz
+		if c[x] == AIR and c[z] == AIR and c[x + o.y * dz] == AIR:
+			cuts |= 1 << k
+	return cuts
+
+
+## The corners of air cell `i` that the water of a step's lip fills (see lip_cuts): the
+## three cells around it on its level are water with air above.
+static func lip_fills(c: PackedByteArray, i: int, dy: int, dz: int) -> int:
+	var fills := 0
+	for k in 4:
+		var o: Vector2i = CORNER_DIRS[k]
+		var x := i + o.x
+		var z := i + o.y * dz
+		var d := x + o.y * dz
+		if c[x] == WATER and c[z] == WATER and c[d] == WATER and c[x + dy] == AIR and c[z + dy] == AIR \
+				and c[d + dy] == AIR:
+			fills |= 1 << k
+	return fills
+
+
+## The halves of side `d` (`off` the way to the cell beside) of water cell `i` that its
+## fall leaves out (bit 0 the half at the side's first corner, see SIDE_CORNERS, bit 1
+## the other): where the lip runs diagonally across the corner there, cut from this cell
+## or filled into the air cell beside (see lip_cuts, lip_fills).
+static func trims(c: PackedByteArray, i: int, dy: int, dz: int, d: int, off: int) -> int:
+	var out := 0
+	var ks: Array = SIDE_CORNERS[d]
+	for h in 2:
+		var o: Vector2i = CORNER_DIRS[ks[h]]
+		var e := o.y * dz if d < 2 else o.x
+		var b := c[i + e]
+		var bd := c[i + off + e]
+		if b == AIR and bd == AIR or b == WATER and bd == WATER and c[i + e + dy] == AIR and c[i + off + e + dy] == AIR:
+			out |= 1 << h
+	return out
+
+
+## The water of the corners `fills` of air cell `i` at the lip of a step (see lip_fills):
+## a corner of surface each, coloured as the water beside, and a diagonal fall from it.
+static func lip_fill(buf, keys: PackedInt32Array, w, c: PackedByteArray, i: int, dy: int, dz: int, base: Vector3,
+		fills: int, lx: int, lz: int) -> void:
+	for k in 4:
+		if fills & (1 << k) == 0:
+			continue
+		var o: Vector2i = CORNER_DIRS[k]
+		var n := i + o.x + o.y * dz
+		var depth := 1
+		while depth < 8 and c[n - depth * dy] == WATER:
+			depth += 1
+		var x := int(base.x) + o.x
+		var z := int(base.z) + o.y
+		var murk: int = w.murk(x, int(base.y), z)
+		var col := water_color(depth - WATER_TOP, 1.0, kind(false, murk / 2.0), w.sea(x, int(base.y), z))
+		_piece(buf, base, WATER_TOP, k, CORNER, Vector3.UP, col, Vector2(0.0, float(depth)))
+		var drop := _drop(c, i, dy)
+		keys.append(_key(lx, lz, int(base.y), k, drop, c[i - drop * dy] == WATER, 0, 1, true))
 
 
 ## Draws the waterfalls of `keys` (see falls) of the chunk with its corner at `x0`, `z0`,
@@ -99,17 +196,30 @@ static func fall_faces(buf, faces: Array, keys: PackedInt32Array, x0: int, z0: i
 		var k := (key >> 14 & 15) + 1
 		var wet := (key >> 18 & 1) == 1
 		var spill := key >> 19 & 7
-		var base := Vector3(x0 + (key & 63), key >> 22, z0 + (key >> 6 & 63))
-		var d: int = FALL_DIRS[q]
+		var trim := key >> 22 & 3
+		var base := Vector3(x0 + (key & 63), key >> 25, z0 + (key >> 6 & 63))
 		var foot := base.y - k + (WATER_TOP if wet else 1.0)
+		if key >> 24 & 1:
+			_diag_fall(buf, base, q, trim == 1, k, wet, foot, float((key & 4095) % 97))
+			continue
+		var d: int = FALL_DIRS[q]
 		var out := Vector3(DIRS[d])
 		var size := Vector3(1.0, WATER_TOP - (foot - base.y), 1.0)
 		var lift := Vector3(0.0, foot - base.y, 0.0)
 		var face: Dictionary = faces[d]
+		# The part of the side drawn, along it: the halves the diagonal lip leaves out
+		# are not (see trims).
+		var lo := 0.5 if trim & 1 else 0.0
+		var hi := 0.5 if trim & 2 else 1.0
 		var pts := []
 		var uvs := []
 		for corner: Vector3 in face.corners:
-			var v: Vector3 = lift + corner * size
+			var cc := corner
+			if d < 2:
+				cc.z = lerpf(lo, hi, corner.z)
+			else:
+				cc.x = lerpf(lo, hi, corner.x)
+			var v: Vector3 = lift + cc * size
 			pts.append(base + v + out * (0.04 if corner.y > 0.5 else FALL_SPREAD))
 			uvs.append(face_uv(d, v))
 		# UV2: the levels of its lip and of its foot.
@@ -117,8 +227,43 @@ static func fall_faces(buf, faces: Array, keys: PackedInt32Array, x0: int, z0: i
 			Vector2(base.y + WATER_TOP, foot))
 		if wet:
 			_fall_foam(buf, faces, base + out + Vector3(0.0, -k, 0.0), out, spill)
-			_fall_spray(buf, base + out + Vector3(0.0, -k, 0.0), out, k, float((key & 4095) % 97))
+			_fall_spray(buf, base + out + Vector3(0.5, WATER_TOP - k, 0.5) + out * (FALL_SPREAD - 0.4), k,
+				float((key & 4095) % 97))
 	return j
+
+
+## A fall over the diagonal lip of a step (see lip_cuts) across corner `q` of the cell at
+## `base`: off the cut corner of the water there, or (`filled`) from the corner of water
+## in the air cell beside the step (lip_fill), facing away from that corner. It runs from
+## the middle of one side to the middle of the next; its foot spreads out along those
+## sides as the falls over them do, so it meets them and the next diagonal piece without
+## a gap. The foam where it lands reaches a cell out the same way.
+static func _diag_fall(buf, base: Vector3, q: int, filled: bool, k: int, wet: bool, foot: float, seed: float) -> void:
+	var o := Vector2(CORNER_DIRS[q]) * (-1.0 if filled else 1.0)
+	var line := corner_curve(q, 0)
+	var out := Vector3(o.x, 0.0, o.y).normalized()
+	var spread := PackedVector3Array()
+	for p in line:
+		# Along the axis of the side it lies on, outwards.
+		spread.append(Vector3(o.x, 0.0, 0.0) if p.x == 0.0 or p.x == 1.0 else Vector3(0.0, 0.0, o.y))
+	var high := base.y + WATER_TOP
+	var tall := high - foot
+	var a := base + Vector3(line[0].x, WATER_TOP, line[0].y)
+	var b := base + Vector3(line[1].x, WATER_TOP, line[1].y)
+	var drop := Vector3(0.0, -tall, 0.0)
+	var pts := [a + out * 0.04, b + out * 0.04, b + drop + spread[1] * FALL_SPREAD, a + drop + spread[0] * FALL_SPREAD]
+	var uvs := [Vector2(0.0, 0.0), Vector2(1.0, 0.0), Vector2(1.0, tall), Vector2(0.0, tall)]
+	_wound(buf, pts, (out + Vector3.UP * FALL_SPREAD / tall).normalized(), uvs, Color(0, 1, 0, FALL_SHEET),
+		Vector2(high, foot))
+	if not wet:
+		return
+	var lift := Vector3(0.0, 0.02, 0.0)
+	var fa := a + drop + lift
+	var fb := b + drop + lift
+	var foam := [fa, fb, fb + spread[1], fa + spread[0]]
+	_wound(buf, foam, Vector3.UP, [Vector2(0.0, 0.0), Vector2(0.0, 1.0), Vector2(1.0, 1.0), Vector2(1.0, 0.0)],
+		Color(0, 1, 0, FALL_FOAM), Vector2(1.0, 0.0))
+	_fall_spray(buf, (fa + fb) * 0.5 - lift + out * (0.5 + FALL_SPREAD - 0.4), k, seed)
 
 
 ## The foam on the pool cell at `cell` (its corner) a fall towards `out` lands in, spilling
@@ -144,12 +289,11 @@ static func _fall_foam(buf, faces: Array, cell: Vector3, out: Vector3, spill: in
 	buf.quad(pts, Vector3.UP, uvs, Color(0, 1, 0, FALL_FOAM), Vector2(far, float(spill >> 1)))
 
 
-## The spray and mist over the foot of a fall of `k` levels towards `out` into the pool
-## cell at `cell`: an upright quad turned to the camera by the shader, so all its corners
-## lie at its root and UV holds each corner's offset from it in cells; UV2 its height in
-## cells and a number of its own for the drops.
-static func _fall_spray(buf, cell: Vector3, out: Vector3, k: int, seed: float) -> void:
-	var root := cell + Vector3(0.5, WATER_TOP, 0.5) + out * (FALL_SPREAD - 0.4)
+## The spray and mist over the foot of a fall of `k` levels, rising from `root` on the
+## pool: an upright quad turned to the camera by the shader, so all its corners lie at its
+## root and UV holds each corner's offset from it in cells; UV2 its height in cells and a
+## number of its own for the drops.
+static func _fall_spray(buf, root: Vector3, k: int, seed: float) -> void:
 	var tall := minf(1.0 + 0.4 * k, SPRAY_HIGH)
 	var pts := [root, root, root, root]
 	var uvs := [Vector2(-SPRAY_HALF, 0.0), Vector2(-SPRAY_HALF, tall), Vector2(SPRAY_HALF, tall), Vector2(SPRAY_HALF, 0.0)]
@@ -159,10 +303,10 @@ static func _fall_spray(buf, cell: Vector3, out: Vector3, k: int, seed: float) -
 ## Water: the top face carries foam bits (UV2.x: the half edges that touch land, then
 ## the filled corners, then the cut corners of the land beside, see water.gdshader) and
 ## the depth to the bottom in cells (UV2.y); `corners` are the vertex colours at the
-## top's corners NW, NE, SE, SW (see water_color). Filled corners are left out of the
-## top.
+## top's corners NW, NE, SE, SW (see water_color). Filled corners, and `cuts`, those the
+## lip of a step cuts off (see lip_cuts), are left out of the top.
 static func water_faces(buf, faces: Array, nb: PackedByteArray, base: Vector3, depth: int, foam: int,
-		corners: PackedColorArray) -> void:
+		corners: PackedColorArray, cuts := 0) -> void:
 	if nb[0] != AIR and nb[1] != AIR and nb[2] != AIR and nb[4] != AIR and nb[5] != AIR:
 		return
 	var h := WATER_TOP if nb[2] == AIR else 1.0
@@ -171,10 +315,10 @@ static func water_faces(buf, faces: Array, nb: PackedByteArray, base: Vector3, d
 	var mid: Color = corners[0].lerp(corners[1], 0.5).lerp(corners[3].lerp(corners[2], 0.5), 0.5)
 	for d in 6:
 		if d != FACE_BOTTOM and nb[d] == AIR:
-			if d == FACE_TOP and (fills != 0 or corners[1] != corners[0] or corners[2] != corners[0] \
+			if d == FACE_TOP and ((fills | cuts) != 0 or corners[1] != corners[0] or corners[2] != corners[0] \
 					or corners[3] != corners[0]):
 				for q in 4:
-					_piece(buf, base, h, q, CUT if fills & (1 << q) else QUARTER, Vector3.UP, mid, data,
+					_piece(buf, base, h, q, CUT if (fills | cuts) & (1 << q) else QUARTER, Vector3.UP, mid, data,
 						foam >> (16 + 2 * q) & 3, corners)
 				continue
 			# A side open to the air under the open sky is a fall's: its sheet covers it.
