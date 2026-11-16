@@ -10,6 +10,7 @@ const ContentHost := preload("res://src/server/content_host.gd")
 const TestMod := preload("res://src/server/test_mod.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const ModImport := preload("res://src/client/mod_import.gd")
+const ModZip := preload("res://src/shared/content/mod_zip.gd")
 const ModReload := preload("res://src/client/mod_reload.gd")
 
 const DIR := "user://mod_files_test"
@@ -465,13 +466,13 @@ func _test_import() -> void:
 	zip = ZIPPacker.new()
 	zip.open(zip_path)
 	var huge := PackedByteArray()
-	huge.resize(ModImport.ModFiles.FILE_MAX + 1)
+	huge.resize(ModFiles.FILE_MAX + 1)
 	for entry: Array in [["mod.yaml", "id: pack\n".to_utf8_buffer()], ["bomb/data/items.yaml", huge]]:
 		zip.start_file(entry[0])
 		zip.write_file(entry[1])
 		zip.close_file()
 	zip.close()
-	var sizes := ModImport.sizes_of(FileAccess.get_file_as_bytes(zip_path))
+	var sizes := ModZip.sizes_of(FileAccess.get_file_as_bytes(zip_path))
 	got = ModImport.unpack(zip_path, dir)
 	_check(sizes.get("bomb/data/items.yaml") == huge.size() and sizes.get("mod.yaml") == 9 and got.files == 1 and got.skipped == 1
 		and not FileAccess.file_exists(dir + "/my_pack_2/bomb/data/items.yaml"),

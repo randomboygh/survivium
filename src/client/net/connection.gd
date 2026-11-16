@@ -29,7 +29,9 @@ class Reply extends RefCounted:
 		done = true
 		value = v
 		for cb in _then:
-			cb.call(v)
+			# One whose object is gone (a window closed) is not called.
+			if cb.is_valid():
+				cb.call(v)
 		_then.clear()
 
 

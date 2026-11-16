@@ -66,11 +66,20 @@ the code sees content.
   and the game's, lighter and darker, a leaf switch (alpha 128, tinted by the season); «Undo» takes back a
   stroke. The model is `voxel_sheet.gd` (`VoxelSheet`: the PNG of slices `VoxelModel.from_image` reads);
   «Save» writes it as a picture (`ContentEdits.picture`). Upright, one column; sideways, three. «Export
-  zip» packs the chosen own mod (`ModImport.pack`, `src/client/mod_import.gd`: `<mod>/…`, only files a mod
-  may have) and hands it out (`ModImport.offer`: the browser's download, else the system's save dialog);
-  «Import zip» takes one in (`PicturePick.pick(…, true)`, `ModImport.unpack_bytes` into `OwnMods.root()`,
-  never over a mod that is not one's own) and chooses the mod it brought. The server comes next (plan: `plan/mvp.md`,
-  stage 2 item 3; state: `docs/planning/editor.md`).
+  zip» packs the chosen own mod (`ModZip.pack`, `src/shared/content/mod_zip.gd`: `<mod>/…`, only files a
+  mod may have) and hands it out (`ModImport.offer`, `src/client/mod_import.gd`: the browser's download,
+  else the system's save dialog); «Import zip» takes one in (`PicturePick.pick(…, true)`,
+  `ModZip.unpack_bytes` into `OwnMods.root()`, never over a mod that is not one's own) and chooses the mod
+  it brought. On a server (step 7): joined to a server far away whose host this game is
+  (`welcome.host`), every save puts the mod there instead of reading it here (`ContentEditor.server_mode`,
+  `src/client/net/mod_put.gd`: the zip in pieces of `Protocol.MOD_PIECE` 128 KB, at most `MOD_PIECES` 64,
+  one put each `ModPut.EVERY` 5.5 s, saves in between put once after; closing the editor does not stop
+  it); the server (`Server.put_mod`) takes it only from a host and only as an own mod (`ModZip.unpack_mod`:
+  unpacked aside, then in place of what the mod had in its `OwnMods.root()`), joins its bundles to the
+  world's (kept in the save) and sends the files to every player (`Protocol.MODS`), the author too. A
+  player who is not a host saves only on the device. A server made in the game takes the mod with the
+  game's reload (`Server.mods_reread` joins the bundles the editor joined). State:
+  `docs/planning/editor.md`.
 - Where the mods lie (decision 186): `Content.ROOT` — the folder `content/` beside the program in the built
   game on PC (Windows, Linux), if it has `core/mod.yaml` (`Content.find_root`, `Content.beside()`), otherwise
   the built-in copy `res://content` (`BUILT_IN`; the editor, the browser, a phone, a build without the

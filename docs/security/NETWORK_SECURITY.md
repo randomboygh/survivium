@@ -118,6 +118,21 @@ The game, of a server (`ModFiles.unpack`, `may_be`, `ModCache.store`):
 A server's files are used only while the game is on that server: the menu and other worlds read the game's
 own (`Content.serve({})`).
 
+## An author's mod put on the server (`Protocol.MOD_PUT`, `Requests._mod_put`, `Server.put_mod`)
+
+The content editor of a host sends its own mod's zip in pieces; the server distrusts all of it:
+
+| What | Value | What happens beyond it |
+|---|---|---|
+| Who | a host (`Requests.may_author`, set from `Server.is_host` with each message) | `false`, noted `author` |
+| A piece | `MOD_PIECE` 128 KB (under `INBOUND` 256 KB), not empty, in order, `MOD_PIECES` 64 at most | the pieces so far dropped, `false`, noted `malformed` |
+| How often | one mod each `MOD_PUT_EVERY` 5 s per player | `false`, noted `pace` |
+| The mod | an id of `OwnMods.valid_id`; not one of the game's or any other mod that is not own there | error `[editor_server_not_own]`, noted `author` |
+| The zip | `ModZip.unpack_mod`: the sizes from the zip's own list (`ZIP_MAX`, `UNPACKED_MAX`, `FILE_MAX`), only `valid_path` names under `<mod>/`, unpacked aside and put in place only with the mod's `mod.yaml` (`own: true`, its id) | error `[the_zip_is_not_that_mod]`, the mod's folder untouched |
+
+What comes is data only, as the files a server gives (YAML, pictures, sounds); the players take it as any
+reload (`MODS`, `ASK_ABOVE` asks them above 50 MB). The log names who put which mod.
+
 ## What the client sees
 
 The engine's errors and the internal reasons do not go to the client: a refusal is `null`, `false` or `{}`, a

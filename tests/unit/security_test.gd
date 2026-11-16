@@ -4,7 +4,9 @@ extends "res://tests/unit/test_case.gd"
 ## farther, the hands' work is paced, a bag counted from its end does not grow, a craft
 ## cancelled gives back what it took as it was, a blueprint of huge corners is not made,
 ## text typed is made safe, free items only when the rules allow them, and the server's door: reserved and taken names, the list's
-## names bound to their keys, wrong passwords, and who may give which command.
+## names bound to their keys, wrong passwords, and who may give which command; a mod is
+## put on a server only by a host, in pieces in order and bounds, not too often, and only
+## as an own mod of that name.
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
@@ -14,6 +16,7 @@ const Config := preload("res://src/server/config.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const Requests := preload("res://src/server/requests.gd")
 const Gestures := preload("res://src/shared/game/gestures.gd")
+const ModZip := preload("res://src/shared/content/mod_zip.gd")
 
 
 func run() -> void:
@@ -27,6 +30,7 @@ func run() -> void:
 	_test_commands()
 	_test_cheats()
 	_test_prepare()
+	_test_mod_put()
 
 
 ## A flat world of 32 by 32 cells with a player over the socket (check_moves, paced) and
@@ -434,3 +438,65 @@ func _test_prepare() -> void:
 	a.death = {"at": [a.at.x, a.at.y, a.at.z]}
 	req.handle(["prepare", 5, [far]])
 	_check(a.going.distance_to(a.home) < 0.01, "the dead have it made ready at a respawn point only: %s" % [a.going])
+
+
+## Protocol.MOD_PUT: refused without the right (a host's, Requests.may_author), pieces out
+## of order or bounds drop what came, a second mod within MOD_PUT_EVERY is refused; the
+## server takes it only from a host and only as an own mod (never the game's), and a zip
+## of another mod or of one not own is not unpacked over it.
+func _test_mod_put() -> void:
+	var p := _socket_player()
+	var req: Requests = p[1].link.requests
+	var whole: Array = []
+	var logged: Array = []
+	req.flagged.connect(func(what: String, _detail: String) -> void: logged.append(what))
+	req.author = func(mod: String, bytes: PackedByteArray) -> Dictionary:
+		whole.append([mod, bytes.size()])
+		return {"files": 1, "skipped": 0, "error": ""}
+	var piece := PackedByteArray()
+	piece.resize(16)
+	_check(req.handle(Protocol.request(Protocol.MOD_PUT, 1, ["mine", 0, 1, piece]))[1] == false and whole.is_empty()
+		and "author" in logged, "a player who is no host puts no mod")
+	req.may_author = true
+	_check(req.handle(Protocol.request(Protocol.MOD_PUT, 2, ["mine", 0, 3, piece]))[1] == true
+		and req.handle(Protocol.request(Protocol.MOD_PUT, 3, ["mine", 2, 3, piece]))[1] == false
+		and req.handle(Protocol.request(Protocol.MOD_PUT, 4, ["mine", 1, 3, piece]))[1] == false, "a piece out of order drops the mod")
+	var big := PackedByteArray()
+	big.resize(Protocol.MOD_PIECE + 1)
+	_check(req.handle(Protocol.request(Protocol.MOD_PUT, 5, ["mine", 0, 2, big]))[1] == false
+		and req.handle(Protocol.request(Protocol.MOD_PUT, 6, ["mine", 0, Protocol.MOD_PIECES + 1, piece]))[1] == false
+		and req.handle(Protocol.request(Protocol.MOD_PUT, 7, ["mine", 0, 1, PackedByteArray()]))[1] == false
+		and req.handle(Protocol.request(Protocol.MOD_PUT, 8, ["mine", 0, 1, "zip"]))[1] == null
+		and req.handle(Protocol.request(Protocol.MOD_PUT, 9, ["x".repeat(40), 0, 1, piece]))[1] == false
+		and whole.is_empty(), "a piece too big, too many pieces, an empty one, one of no bytes and a long name are refused")
+	_check(req.handle(Protocol.request(Protocol.MOD_PUT, 10, ["mine", 0, 2, piece]))[1] == true
+		and req.handle(Protocol.request(Protocol.MOD_PUT, 11, ["mine", 1, 2, piece]))[1] is Dictionary
+		and whole == [["mine", 32]], "pieces in order make the whole, handed to the server")
+	_check(req.handle(Protocol.request(Protocol.MOD_PUT, 12, ["mine", 0, 1, piece]))[1] == false and whole.size() == 1
+		and "pace" in logged, "another mod at once is refused (MOD_PUT_EVERY)")
+	# The server: a host's only, an own mod's only.
+	var net := Server.new(null, Config.new(), {"mods": []})
+	_check(net.put_mod("mine", piece, "someone").error == "[editor_server_hosts_only]", "the server takes no mod from one who is no host")
+	net.access.hosts[Server.kept("author")] = "Author"
+	_check(net.put_mod("core", piece, "author").error == "[editor_server_not_own]", "nor over one of the game's mods, from a host either")
+	_check(net.put_mod("../x", piece, "author").error == "[editor_server_not_own]", "nor of a name that is no mod's id")
+	# A zip of another mod, or of one not own, is not unpacked over the mod.
+	var into := "user://test_mod_put"
+	ModZip.erase(into)
+	DirAccess.make_dir_recursive_absolute(into.path_join("mine"))
+	var keep := FileAccess.open(into.path_join("mine/mod.yaml"), FileAccess.WRITE)
+	keep.store_string("id: mine\nown: true\n")
+	keep.close()
+	for files: Dictionary in [{"other/mod.yaml": "id: other\nown: true\n"}, {"mine/mod.yaml": "id: mine\n"}]:
+		var path := into.path_join("bad.zip")
+		var zip := ZIPPacker.new()
+		zip.open(path)
+		for name: String in files:
+			zip.start_file(name)
+			zip.write_file((files[name] as String).to_utf8_buffer())
+			zip.close_file()
+		zip.close()
+		var got := ModZip.unpack_mod(FileAccess.get_file_as_bytes(path), "mine", into)
+		_check(got.error == "[the_zip_is_not_that_mod]" and FileAccess.get_file_as_string(into.path_join("mine/mod.yaml")).contains("own: true")
+			and not DirAccess.dir_exists_absolute(into.path_join("other")), "a zip of %s is not put over the mod" % [files.keys()])
+	ModZip.erase(into)

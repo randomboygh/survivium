@@ -33,6 +33,8 @@ const ModCache := preload("res://src/client/net/mod_cache.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const MainScript := preload("res://src/client/main.gd")
 const ServerLink := preload("res://src/client/net/server_link.gd")
+const OwnMods := preload("res://src/shared/content/own_mods.gd")
+const ModZip := preload("res://src/shared/content/mod_zip.gd")
 
 const ROOT := "user://test_saves/server"
 const PORT := 7791
@@ -574,6 +576,7 @@ func _hosted() -> void:
 	await _chat(node, pair[0], pair[1])
 	await _trades(node, pair[0], pair[1])
 	await _security(node)
+	await _mod_put(node)
 	await _mods(node)
 	await _renew(node)
 	var said := [false]
@@ -1058,6 +1061,57 @@ func _security(node: Node) -> void:
 	var line = quiet.socket.net.request(Protocol.CHAT, ["раз\nдва\u202E"])
 	_check(await _until(func() -> bool: return line.done and quiet.of(Protocol.HEARD).any(func(e: Array) -> bool: return e[1][2] == "раз два")),
 		"a line of chat comes out on one line, its hidden marks gone")
+
+
+## A host's own mod put on the server over the socket (Protocol.MOD_PUT, stage 2 item 3
+## step 7): refused before op, then taken in pieces under the server's inbound buffer; its
+## bundle joins the world's and the players are told the new files (MODS).
+func _mod_put(node: Node) -> void:
+	var server = node.server
+	var dir := "user://test_mod_put"
+	ModZip.erase(dir)
+	ModFiles.extra_dir = dir
+	OwnMods.make("mine", "Mine")
+	OwnMods.put("mine", "items", {"id": "pebble", "title": "[mine.items.pebble]", "weight": 0.1, "stack": 10})
+	# A picture of noise, so the zip is more than one piece.
+	var noise := Image.create(300, 300, false, Image.FORMAT_RGBA8)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for y in 300:
+		for x in 300:
+			noise.set_pixel(x, y, Color(rng.randf(), rng.randf(), rng.randf(), 1.0))
+	DirAccess.make_dir_recursive_absolute(dir.path_join("mine/icons"))
+	noise.save_png(dir.path_join("mine/icons/noise.png"))
+	var bytes := ModZip.pack(dir.path_join("mine"))
+	var n := ceili(bytes.size() / float(Protocol.MOD_PIECE))
+	ModZip.erase(dir.path_join("mine"))
+	ModFiles.read_extra()
+	var author := _bot("Автор", "", "", PORT + 1)
+	_check(await _until(func() -> bool: return author.reply.done) and author.reply.value.get("ok") == true, "an author comes in")
+	var first = author.socket.net.request(Protocol.MOD_PUT, ["mine", 0, n, bytes.slice(0, Protocol.MOD_PIECE)])
+	_check(await _until(func() -> bool: return first.done) and first.value == false and not DirAccess.dir_exists_absolute(dir.path_join("mine")),
+		"a player who is no host puts no mod on the server")
+	node.command("op Автор")
+	var reply = null
+	for i in n:
+		var r = author.socket.net.request(Protocol.MOD_PUT, ["mine", i, n, bytes.slice(i * Protocol.MOD_PIECE, (i + 1) * Protocol.MOD_PIECE)])
+		await _until(func() -> bool: return r.done)
+		reply = r.value
+	_check(n >= 2 and reply is Dictionary and reply.get("error") == "" and reply.get("files") == 4
+		and FileAccess.file_exists(dir.path_join("mine/icons/noise.png")), "a host's mod comes in %d pieces and is unpacked: %s" % [n, reply])
+	_check("mine" in server.world_info.mods and server.content.list.has("mine/icons/noise.png") and Items.has("mine:pebble")
+		and await _until(func() -> bool: return author.of(Protocol.MODS).any(func(e: Array) -> bool: return e[1][0] == server.content.digest)),
+		"its bundle joins the world's and the players are told its files")
+	_check(not author.socket.ended, "the connection stays")
+	node.command("deop Автор")
+	server.world_info.mods.erase("mine")
+	Content.BUNDLES = server.world_info.mods.duplicate()
+	ModZip.erase(dir)
+	ModFiles.extra_dir = ""
+	ModFiles.read_extra()
+	node.command("reload")
+	author.socket.leave()
+	await _until(func() -> bool: return author.socket.ended)
 
 
 static func _unique(a: Array) -> Array:
