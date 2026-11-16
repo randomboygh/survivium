@@ -549,12 +549,23 @@ func _run() -> void:
 			if shot.has("editor"):
 				if shot.has("editor_mod"):
 					ModFiles.extra_dir = "user://shot_content"
+					_remove_dir(ModFiles.extra_dir.path_join(shot.editor_mod))
 					OwnMods.make(shot.editor_mod)
 				var editor: Control = main.hud.open_editor()
 				await process_frame
 				editor._set_kind(editor.KINDS.map(func(k: Array) -> String: return k[0]).find(shot.editor))
 				if shot.has("record"):
 					editor.open(shot.record)
+				# `copy`: the id typed into «Copy»'s row; `copy_make`: the copy made (and opened).
+				if shot.has("copy"):
+					editor._toggle_copy()
+					editor._copy_field.text = shot.copy
+					if shot.get("copy_make", false):
+						editor.copy_record()
+				# `texts`: the title or description typed in the game's language.
+				for field: String in shot.get("texts", {}):
+					(editor.form.texts[field][1] as LineEdit).text = shot.texts[field]
+					(editor.form.texts[field][1] as LineEdit).text_changed.emit(shot.texts[field])
 				# `edit`: field -> text typed into the form.
 				for field: String in shot.get("edit", {}):
 					var f: Array = editor.form.fields[field]
@@ -1838,3 +1849,14 @@ func _place_birds() -> void:
 		i += 1
 	main.creatures._process(0.0)
 	main.creatures.set_process(false)
+
+
+## Removes folder `dir` with everything in it (the own mod of an earlier editor shot).
+func _remove_dir(dir: String) -> void:
+	if not DirAccess.dir_exists_absolute(dir):
+		return
+	for d in DirAccess.get_directories_at(dir):
+		_remove_dir(dir.path_join(d))
+	for f in DirAccess.get_files_at(dir):
+		DirAccess.remove_absolute(dir.path_join(f))
+	DirAccess.remove_absolute(dir)

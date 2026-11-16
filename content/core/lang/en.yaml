@@ -486,6 +486,16 @@
 "[editor_undone]": "The last save is undone"
 "[editor_mod_problems]": "The mod has problems: %s"
 "[editor_make_a_mod_first]": "Make a mod first: its button is by the Mod row"
+"[editor_title]": "Title"
+"[editor_about]": "Description"
+"[editor_copy]": "Copy"
+"[editor_new_id]": "New record's id: latin letters, digits, _"
+"[editor_delete]": "Delete"
+"[editor_reset]": "Reset my changes"
+"[editor_bad_record_id]": "Record id: latin lowercase letters, digits and _, a letter first, not taken"
+"[editor_copied]": "Copy %s is made"
+"[editor_deleted]": "The record is deleted: Undo brings it back"
+"[editor_reset_done]": "Your changes to this record are removed"
 
 # src/client/ui/fact_chips.gd
 "[weight]": "Weight"

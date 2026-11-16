@@ -25,12 +25,14 @@ continues it. Stage 2 item 3 of `plan/mvp.md` (decision 186, 11А 12А 13А).
   Tests `tests/unit/editor_test.gd`; shots `editor-items`, `editor-wolf`, `editor-wolf-wrong` (`editor`,
   `record`, `editor_mod`, `edit`, `edit_check` keys of `tools/shot/shots.gd`).
 
+- Step 3: `ContentEdits.copy` («Copy», a new record of the mod from any), `delete` («Delete» one's own record
+  with its phrases, «Reset» one's patch), title and description fields on top of the form written as the
+  mod's phrases (`key_of`, `lang/<code>.yaml`, English too while missing); undo takes back every file of a
+  write. Shots `editor-copy-row`, `editor-dog` (`copy`, `copy_make`, `texts` keys). Field names are still
+  the YAML's: the user was asked about translated names in the thread.
+
 ## Left, in order (one PR each)
 
-3. New records: «Create from this one» (a copy under a new id in the chosen mod), delete one's own record,
-   the record's title and description: a key `[<mod>.<kind>.<id>]` written into the mod's `lang/en.yaml`
-   (and the player's language file), other languages fall back to English. Field names are still the YAML's;
-   the user was offered translated hints — ask once.
 4. PNG import for icons, sprites, textures: the system file dialog (`ModImport.pick` shows how, Android and
    PC), in the browser a JS file input; size checks (`ModFiles.may_be`, `PICTURE_MAX`); preview; written into
    the mod's `icons/`, `sprites/`, `textures/`.

@@ -6,7 +6,9 @@ extends VBoxContainer
 ## (a number, a word, an id, or a list or mapping written as YAML on one line:
 ## `[a, b]`, `{core:fiber: 2}`). A field left at its default is faded, one with a wrong
 ## value red. `values` gives every field's value as the data holds it; `errors` checks
-## them as the loader would (ContentEdits.check).
+## them as the loader would (ContentEdits.check). On top, the title and the description
+## as the player reads them, in the game's language (`texts_changed`: they are written as
+## phrases of the mod, ContentEdits.save).
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Kit := preload("res://src/client/ui/kit/kit.gd")
@@ -14,9 +16,13 @@ const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const ContentEdits := preload("res://src/shared/content/content_edits.gd")
 const Yaml := preload("res://src/shared/content/yaml.gd")
+const Lang := preload("res://src/shared/content/lang.gd")
 
-## The fields not in the form: the id and title (named elsewhere), the loader's own.
-const HIDDEN := ["id", "title", "mod", "bundle"]
+## The fields not in the form: the id, the title and description (texts on top), the
+## loader's own.
+const HIDDEN := ["id", "title", "description", "mod", "bundle"]
+## The texts on top, each with its name.
+const TEXTS := [["title", "[editor_title]"], ["description", "[editor_about]"]]
 ## A whole number whose range holds no more values than this is a row of values.
 const MOST_STEPS := 32
 ## The width of the value between the arrows of a row of values.
@@ -32,6 +38,8 @@ var kind: String
 var rec: Dictionary
 ## Field -> [its type, its name Label, the control that holds its value].
 var fields := {}
+## Text ("title", "description") -> [its name Label, its LineEdit, the text as it was].
+var texts := {}
 var _choices: ChoiceRows
 ## The values picked on the rows of values, by field.
 var _picked := {}
@@ -42,6 +50,8 @@ func _init(kind_: String, rec_: Dictionary, name_width: float) -> void:
 	rec = rec_
 	add_theme_constant_override("separation", 2)
 	_choices = ChoiceRows.new(name_width, VALUE_WIDTH, Kit.SQUARE)
+	for t: Array in TEXTS:
+		_phrase(t[0], t[1], name_width)
 	var schema: Dictionary = Content.schema(kind)
 	for field: String in schema:
 		if field in HIDDEN:
@@ -103,6 +113,33 @@ func _text(field: String, value: Variant, spec: Dictionary, name_width: float) -
 	row.add_child(f)
 	add_child(row)
 	fields[field] = ["text", name, f]
+
+
+func _phrase(field: String, title: String, name_width: float) -> void:
+	var row := Kit.row(4)
+	var name := _name(title, name_width)
+	row.add_child(name)
+	var was := Lang.t(str(rec.get(field, "")))
+	if field == "title" and was == str(rec.get("id", "")):
+		was = ""
+	var f := Kit.field()
+	f.text = was
+	f.text_changed.connect(func(t: String) -> void:
+		name.add_theme_color_override("font_color", UiStyle.ACCENT if t.strip_edges() != was else UiStyle.INK)
+		edited.emit())
+	row.add_child(f)
+	add_child(row)
+	texts[field] = [name, f, was]
+
+
+## The texts changed ({"title": …, "description": …}), as written, in the game's language.
+func texts_changed() -> Dictionary:
+	var out := {}
+	for field: String in texts:
+		var now: String = (texts[field][1] as LineEdit).text.strip_edges()
+		if now != texts[field][2]:
+			out[field] = now
+	return out
 
 
 func _name(field: String, width: float) -> Label:

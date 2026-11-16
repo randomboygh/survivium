@@ -486,6 +486,16 @@
 "[editor_undone]": "Последнее сохранение отменено"
 "[editor_mod_problems]": "В моде ошибки: %s"
 "[editor_make_a_mod_first]": "Сначала создайте мод: кнопка у строки «Мод»"
+"[editor_title]": "Название"
+"[editor_about]": "Описание"
+"[editor_copy]": "Копия"
+"[editor_new_id]": "id новой записи: латиница, цифры, _"
+"[editor_delete]": "Удалить"
+"[editor_reset]": "Сбросить мои правки"
+"[editor_bad_record_id]": "id записи: строчная латиница, цифры и _, первой буква, не занятый"
+"[editor_copied]": "Копия %s создана"
+"[editor_deleted]": "Запись удалена: «Отменить» вернёт её"
+"[editor_reset_done]": "Ваши правки этой записи убраны"
 
 # src/client/ui/fact_chips.gd
 "[weight]": "Вес"
