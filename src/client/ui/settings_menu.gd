@@ -784,7 +784,7 @@ func _graphics_rows() -> Array:
 		["[fps_limit]", Settings.FPS_LIMITS.map(func(v: int) -> String: return "[no_n2]" if v == 0 else str(v)),
 			func() -> int: return s.values.fps_limit,
 			func(i: int) -> void: s.set_value("fps_limit", i)],
-		["[crt]", ["[off]", "[crt_soft]", "[crt_old]", "[crt_tape]"],
+		["[screen_effect]", ["[off]", "[crt_soft]", "[crt_old]", "[crt_tape]", "[fx_8bit]", "[fx_1bit]", "[fx_cga]"],
 			func() -> int: return s.values.crt,
 			func(i: int) -> void: s.set_value("crt", i)],
 		_section("sun", "[light_and_shadows]"),
