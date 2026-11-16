@@ -36,7 +36,10 @@ device's time, the season by the calendar and real weather.
 - `src/client/view/sky.gd` — how it looks: light, colour correction, clouds, shader tints (see
   [rendering.md](rendering.md)); `src/client/audio/nature.gd` — how it sounds. Cloud shadows
   (`cloud_light` in `shaders/common.gdshaderinc`) fall along the light: `cloud_slant`, set by `_aim_sun`, moves the
-  point looked up by its height (at most `CLOUD_SLANT`), so a shadow's edge goes down a wall at a slant.
+  point looked up by its height (at most `CLOUD_SLANT`), so a shadow's edge goes down a wall at a slant. A biome's
+  own mist (`Biomes.mist`: swamps, bogs, mangroves) lies under the fog of the weather near the player (`_ease_mist`:
+  the biome underfoot looked up every second, eased in at `MIST_EASE` a second): thin by day, thick at dawn and
+  dusk, gone in rain, snow and storm wind.
 
 **Data.** Weather and the calendar are constants of `clock.gd` (not yet moved into the mods' data, it is in the
 MVP plans); sand storms — the biome's flag `sandstorms`.

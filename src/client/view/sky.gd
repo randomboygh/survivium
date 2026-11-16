@@ -5,6 +5,7 @@ extends RefCounted
 ## on the ground, puddles after rain, how strong the sunlight among the trees is (SunRays) and the fog on the ground. Everything the shaders need goes out as global shader parameters.
 ## `game` is the Main node that owns the scene.
 
+const Biomes := preload("res://src/shared/content/biomes.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -110,6 +111,12 @@ var fog_drift := Vector2.ZERO
 var haze_drift := Vector2.ZERO
 ## 1 while it rains, fading to 0 over AFTER_RAIN_DAYS once it stops.
 var after_rain := 0.0
+## The fog of the biome round the player (Biomes.mist: a swamp's), eased in as they walk
+## into it, and the seconds to the next look at the biome underfoot.
+var mist := 0.0
+var mist_clock := 0.0
+var mist_target := 0.0
+const MIST_EASE := 0.25
 ## Towards the sun or the moon in the sky, as _aim_sun last put it.
 var to_sun := Vector3.UP
 ## How high the sun is, -1 at midnight to 1 at noon, 0 as it rises and sets (to_sun is
@@ -342,6 +349,17 @@ func _update_rays(rise: float, golden: float) -> void:
 	rays.to_sun = to_sun
 
 
+## Eases `mist` toward the mist of the biome under the player, looked up every second.
+func _ease_mist(delta: float) -> void:
+	mist_clock -= delta
+	if mist_clock <= 0.0 and game.player != null and game.world != null:
+		mist_clock = 1.0
+		var p: Vector3 = game.player.position
+		var b: int = game.world.biome_at(floori(p.x / WorldData.CELL), floori(p.z / WorldData.CELL))
+		mist_target = 0.0 if b == WorldData.NO_BIOME else Biomes.mist(b)
+	mist = move_toward(mist, mist_target, delta * MIST_EASE)
+
+
 ## The fog on the ground (Clock.ground_fog, see fog_at in common.gdshaderinc): the
 ## weather's or the morning's, and a light one after rain; outdoors only. Its colour
 ## follows the light, its banks drift slowly with the wind.
@@ -349,9 +367,17 @@ func _update_fog(golden: float, delta: float) -> void:
 	var clock = game.clock
 	var f: Vector2 = clock.ground_fog()
 	var falling: float = clock.rain + clock.snowing + clock.hail + clock.sand
-	var wet: float = after_rain * 0.35 * clampf(1.0 - falling * 3.0, 0.0, 1.0)
+	var calm := clampf(1.0 - falling * 3.0, 0.0, 1.0)
+	var wet: float = after_rain * 0.35 * calm
 	if wet > f.x:
 		f = Vector2(wet, 0.6)
+	_ease_mist(delta)
+	# A swamp's own mist: thin by day, thick at dawn and at dusk.
+	var t: float = clock.time_of_day
+	var low_sun := maxf(smoothstep(0.16, 0.22, t) * (1.0 - smoothstep(0.3, 0.4, t)), smoothstep(0.72, 0.8, t) * (1.0 - smoothstep(0.88, 0.95, t)))
+	var marsh := mist * lerpf(0.45, 1.0, low_sun) * calm * clampf(1.0 - clock.storm_wind * 1.2, 0.0, 1.0)
+	if marsh > f.x:
+		f = Vector2(marsh, lerpf(0.7, 1.4, low_sun))
 	if not fog_on or game.chunks.indoor or game.player == null:
 		f.x = 0.0
 	var g := RenderingServer

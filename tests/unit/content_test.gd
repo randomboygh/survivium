@@ -159,7 +159,7 @@ func _test_mods() -> void:
 		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("music") == "music" and not "sounds" in all,
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
 	_check(Lang.t(Mods.title("animals/wolf")) == "Wolf" and Lang.t(Mods.title("plants/oak")) == "Oak" and Lang.t(Mods.title("music")) == "Music" and Lang.t(Mods.title("tools/kiln")) == "Kiln"
-		and Lang.t(Mods.mod_title("plants")) == "Plants" and Mods.bundles("animals").size() == 19 and Mods.bundles("plants").size() == 46
+		and Lang.t(Mods.mod_title("plants")) == "Plants" and Mods.bundles("animals").size() == 19 and Mods.bundles("plants").size() == 49
 		and Mods.bundles("resources") == ["resources/caves", "resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/wood"]
 		and Mods.bundles("materials").size() == 21 and Mods.bundles("tools").size() == 50 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
@@ -179,7 +179,7 @@ func _test_mods() -> void:
 	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
 	_check(Lang.t(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants"))) == "Animals (1 of 19), Plants" and Lang.t(Mods.summary(["core"])) == "core only"
-		and Lang.t(Mods.summary(["core", "plants/oak"])) == "Plants (1 of 46)", "a set is summed up by mods")
+		and Lang.t(Mods.summary(["core", "plants/oak"])) == "Plants (1 of 49)", "a set is summed up by mods")
 	var before := Content.BUNDLES.duplicate()
 	for m in ["_a", "_b", "_c", "_d"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
@@ -266,6 +266,10 @@ func _test_mods() -> void:
 		and Biomes.pick(0.85, 0.6) == Biomes.named("savanna") and Biomes.pick(0.95, 0.4) == Biomes.named("red_rocks")
 		and Biomes.pick(0.85, 0.8) == Biomes.named("jungle"),
 		"a column's climate picks the biome whose windows hold it, the most specific first")
+	_check(Biomes.by_water(Biomes.named("desert")) == Biomes.named("oasis") and Biomes.named("oasis") >= 0
+		and not Biomes.named("oasis") in Biomes.CLIMATE and Biomes.by_water(forest) == -1
+		and Biomes.pick(0.75, 0.54) == Biomes.named("rocky_desert") and Biomes.mist(Biomes.SWAMP) > 0.0,
+		"a desert greens into an oasis by water, which no climate picks; a rocky desert lies by the savanna; a swamp has its mist")
 	var gen := WorldGen.new(20261018, 48)
 	_check(Biomes.top(Biomes.named("ice_waste"), gen.grounds) == Mat.SNOW and Mat.SNOW >= 0
 		and Biomes.top(Biomes.named("ice_waste"), bare_gen.grounds) == Mat.STONE and bare_gen.snow == Mat.STONE

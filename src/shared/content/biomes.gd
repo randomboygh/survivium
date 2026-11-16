@@ -71,6 +71,9 @@ static func refresh(only: Variant = null) -> void:
 		var i := RECORDS.size()
 		RECORDS.append(b)
 		IDS.append(b.id)
+		if b.where == "by_water":
+			b.variant = false
+			continue
 		if b.where == "cave":
 			var tier := 1 if b.tier == "lower" else 0
 			CAVES[tier].append(i)
@@ -101,6 +104,8 @@ static func refresh(only: Variant = null) -> void:
 			_:
 				CLIMATE.append(i)
 	CLIMATE.sort_custom(_specific)
+	for b: Dictionary in RECORDS:
+		b.by_water_index = index(b.by_water) if b.by_water != "" else -1
 	for w in VARIANTS:
 		VARIANTS[w].sort_custom(_specific)
 
@@ -282,6 +287,17 @@ static func tints(b: int) -> Dictionary:
 ## The colour of biome `b` on the map; a dull green for NONE.
 static func color(b: int) -> Color:
 	return of(b).get("color", Color(0.45, 0.5, 0.35))
+
+
+## How thick a fog lies over biome `b`'s ground (its `mist`, 0..1).
+static func mist(b: int) -> float:
+	return of(b).get("mist", 0.0)
+
+
+## The biome land of biome `b` takes within its `by_water_reach` cells of a lake or a
+## river (an oasis), -1 for none.
+static func by_water(b: int) -> int:
+	return of(b).get("by_water_index", -1)
 
 
 static func sandstorms(b: int) -> bool:

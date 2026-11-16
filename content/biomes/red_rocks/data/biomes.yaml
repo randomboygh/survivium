@@ -21,4 +21,6 @@
   bushes: {plants:shrub: 1.0}
   bush_sparsity: 900
   sandstorms: true
+  by_water: oasis
+  by_water_reach: 10
   color: "#b5583a"

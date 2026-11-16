@@ -1,0 +1,14 @@
+# Juniper: a low, dense, blue-green bush of the highlands and stony slopes (small: one low clump), with dusky blue
+# berries; it gives twigs and is dug out like the other bushes. Fields as for the shrub.
+- id: juniper
+  title: "[plants.bushes.juniper]"
+  tint: "#2f564a"
+  berries: "#3a4a6e"
+  berry_cards: 0.3
+  cards: 7
+  rise: 0.24
+  spread: [0.3, 0.2, 0.3]
+  small: true
+  twigs: 2
+  twig: resources:branch
+  item: juniper_bush

@@ -9,9 +9,14 @@
 # sandstorms. zone — the climate zone (polar, north, temperate, steppe, hot, tropic, mountain), a label
 # for the map and reports. color — the colour on the map. tints — the biome's ground and water colours instead of their own (by
 # the names of the top field and water: {sand: "#e6dcbe", water: "#4cc6bc"}). References to species and bushes are soft: without their bundle the share is empty.
+# Plateau (where: plateau): high flat land, bare stone on its highest parts, grass lower; in new worlds stone and
+# scree show through the grass (stone_below, clay_as: scree), and low junipers grow on it ("Plants", soft).
 - id: plateau
   title: "[biomes.biomes.plateau]"
   where: plateau
-  bushes: {plants:shrub: 1.0}
-  bush_sparsity: 400
+  stone_below: -0.45
+  clay_above: 0.4
+  clay_as: scree
+  bushes: {plants:juniper: 0.6, plants:shrub: 0.4}
+  bush_sparsity: 220
   color: "#8c9466"

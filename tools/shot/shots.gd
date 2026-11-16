@@ -341,6 +341,13 @@ const SHOTS := {
 	"tor": {"time": 0.42, "season": 1, "place": "tor", "tilt": -2},
 	"lake": {"time": 0.42, "season": 1, "place": "lake"},
 	"swamp": {"time": 0.42, "season": 1, "place": "swamp"},
+	# Surface zones of new worlds (landscape 1): cacti on the sand, an oasis by a desert
+	# lake, the stone and scree of a rocky desert, a swamp's mist at dawn with hummocks
+	# and cattails.
+	"desert": {"time": 0.42, "season": 1, "place": "desert"},
+	"oasis": {"time": 0.42, "season": 1, "place": "oasis"},
+	"rocky-desert": {"time": 0.42, "season": 1, "place": "rocky_desert"},
+	"swamp-dawn": {"time": 0.3, "season": 1, "place": "swamp"},
 	"cliffs": {"time": 0.42, "season": 1, "place": "cliffs"},
 	"beach": {"time": 0.42, "season": 1, "place": "beach"},
 	# The tallest slope turned to the camera by a beach: its patterns a pixel a texel,

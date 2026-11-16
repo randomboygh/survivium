@@ -24,4 +24,6 @@
   trees_on: [clay]
   bushes: {plants:shrub: 1.0}
   bush_sparsity: 160
+  hummocks: 0.08
+  mist: 0.3
   color: "#3d6a47"

@@ -9,6 +9,8 @@
 # sandstorms. zone — the climate zone (polar, north, temperate, steppe, hot, tropic, mountain), a label
 # for the map and reports. color — the colour on the map. tints — the biome's ground and water colours instead of their own (by
 # the names of the top field and water: {sand: "#e6dcbe", water: "#4cc6bc"}). References to species and bushes are soft: without their bundle the share is empty.
+# Swamp (where: swamp): pools and mires on low wet ground, oaks, willows and dead trees; in new worlds grassy
+# hummocks (hummocks); a mist over it, thick at dawn and dusk (mist).
 - id: swamp
   title: "[biomes.biomes.swamp]"
   where: swamp
@@ -16,4 +18,6 @@
   tree_chance: 0.03
   bushes: {plants:shrub: 1.0}
   bush_sparsity: 200
+  hummocks: 0.14
+  mist: 0.45
   color: "#5c704d"

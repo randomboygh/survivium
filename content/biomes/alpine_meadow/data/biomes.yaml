@@ -11,15 +11,17 @@
 # the names of the top field and water: {sand: "#e6dcbe", water: "#4cc6bc"}). References to species and bushes are soft: without their bundle the share is empty.
 # Alpine meadow (where: alpine): open upper mountain slopes below the cliffs, where there is no mountain forest, in
 # worlds with climate zones; the warmth window says in which climate the mountains grow over like this. Grass,
-# sparse larches, bilberry and bushes.
+# sparse larches, bilberry, junipers and bushes; in new worlds stone and scree show through.
 - id: alpine_meadow
   title: "[biomes.biomes.alpine_meadow]"
   where: alpine
   zone: mountain
   warmth: [0.22, 0.8]
   stone_below: -0.6
+  clay_above: 0.45
+  clay_as: scree
   trees: {plants:larch: 0.3}
   tree_chance: 0.01
-  bushes: {plants:blueberry: 0.4, plants:shrub: 0.6}
-  bush_sparsity: 220
+  bushes: {plants:juniper: 0.4, plants:blueberry: 0.3, plants:shrub: 0.3}
+  bush_sparsity: 180
   color: "#8fbf6a"

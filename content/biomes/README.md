@@ -42,6 +42,9 @@ content/biomes/
                            "Tropical sea" (where: sea with a warmth window — turquoise water over white sand):
                            the tropical zone; a beach and a swamp with their own window are relief variants, only in worlds
                            with climate zones
+  oasis/, rocky_desert/    "Oasis" (where: by_water — the land of a desert within its `by_water_reach` of a lake or a river
+                           that carries water: grass, palms, sand under them; only in new worlds) and "Rocky desert" (the desert's
+                           window next to the savanna: stone and scree through the sand, no dunes): the hot zone
   cave/, mushroom_cave/,     Kinds of caves (where: cave) in the halls of new worlds, a region of a tier each: "Cave"
   crystal_cave/,           (bare stone), "Mushroom cave" (a mycelium floor, moss, glowing mushrooms), "Crystal cave"
   flooded_cave/,           (glowing crystals), "Flooded cave" (still water) in the upper tier; "Deep cave" (deep rock,
@@ -65,8 +68,12 @@ content/biomes/
   entry with that `where`; one entry per relief.
 - The ground on top is `top`: `grass`, `dirt`, `stone`, `sand` (the material of role `beach`, the sand of "Resources")
   or `clay` (of role `bank`). `stone_below` and `clay_above` are thresholds of the soil noise (-1..1), below and above
-  which stone and clay show through (tundra); `dunes` — by how many cells dunes raise the land
-  (desert).
+  which stone and clay show through (tundra; `clay_as` — what shows instead of clay: peat, sand, `scree`); `dunes` — by how many cells dunes raise the land
+  (desert). In new worlds (the setting `landscape` 1) the patches show on the plateau and the alpine meadow too.
+- In new worlds: `by_water` and `by_water_reach` — the biome the land becomes within so many cells of a lake or a river
+  that carries water (the desert's oasis; that biome has `where: by_water`); `hummocks` — the share of a swamp's level
+  ground that rises a level in a grassy hummock. In any world `mist` (0..1) — a fog over the biome round the player,
+  thin by day, thick at dawn and dusk (the client's sky).
 - What grows: `trees` — shares of species at the nodes of the tree lattice (`{plants:oak: 0.85, plants:spruce:
   0.15}`; the remainder of the share up to one is empty), `tree_chance` — the chance of a tree at a node, `groves` — the chance
   where the forest noise is high (meadow groves); `bushes` — shares of bushes, `bush_sparsity` — one bush attempt

@@ -46,7 +46,7 @@ const LINKS := {
 	"creatures.likes": "use", "creatures.loves": "use", "creatures.biomes": "lives", "plants.biomes": "lives", "creatures.carcass": "gives", "creatures.catch": "gives", "creatures.wool": "gives", "creatures.trapped": "gives", "creatures.tame_food": "use",
 	"trees.seed": "gives", "trees.log": "gives", "trees.twig": "gives",
 	"bushes.fruit": "gives", "bushes.twig": "gives", "bushes.item": "gives",
-	"biomes.trees": "grows", "biomes.bushes": "grows", "biomes.cave_floor": "grows", "biomes.cave_walls": "grows", "biomes.pools": "grows", "biomes.crystals": "grows",
+	"biomes.trees": "grows", "biomes.bushes": "grows", "biomes.cave_floor": "grows", "biomes.cave_walls": "grows", "biomes.pools": "grows", "biomes.crystals": "grows", "biomes.by_water": "grows",
 	"recipes.makes": "made", "recipes.also.item": "also", "recipes.needs": "needs", "recipes.keeps": "needs",
 	"recipes.at": "station",
 	"starts.bag": "start", "starts.camp.item": "camp",

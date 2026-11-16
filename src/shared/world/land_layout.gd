@@ -36,6 +36,9 @@ const LATTICE := 4
 const PLAIN := 0
 const MOUNTAIN := 1
 const HIGHLAND := 2
+## How far over the river noise's start a river must flow for an oasis to green by it
+## (see _cover_row): fainter ones are dry beds or trickles.
+const OASIS_FLOW := 0.25
 const CLIFFS := 3
 const SEA_FLOOR := 4
 ## Water of a column: none, the sea, a lake or a river (a canyon floor counts as river).
@@ -1052,7 +1055,8 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 	var mire_reach := 36
 	var mire_t := _byte(-0.2)
 	var river_from: float = RIVER_FROM[settings.rivers]
-	var wet_fade := WET_FADE_WIDE if settings.get("landscape", 0) >= 1 else 0.04
+	var wide: bool = settings.get("landscape", 0) >= 1
+	var wet_fade := WET_FADE_WIDE if wide else 0.04
 	var x0: int = lay.x0
 	var z0: int = lay.z0 + lz * lay.step
 	for lx in w:
@@ -1069,8 +1073,17 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		var b := Biomes.NONE
 		# How near water is, in steps of 16 cells: the coast, a lake or a river.
 		var near := minf(coast[j], -lake[j])
-		if flow[j] / 127.5 - 1.0 > river_from + 0.07:
+		var flows := flow[j] / 127.5 - 1.0 - river_from
+		if flows > 0.07:
 			near = minf(near, river[j])
+		# How far fresh water is that a desert greens by (an oasis): a lake (only low in
+		# the plains, away from the sea, as _water_row lays them), or a river that carries
+		# water (a dry bed does not), from its bank.
+		var fresh := INF
+		if kind == PLAIN and height <= sea + 8:
+			fresh = -minf(lake[j], coast[j] - LAKE_SHORE)
+		if flows > OASIS_FLOW:
+			fresh = minf(fresh, river[j] - 2.0)
 		var wet := clampi(int(near / 16.0), 0, 15)
 		# Climate: warmth from the slow noise, colder up the hills; wetter near water.
 		var t := clampf(0.5 + (temp[j] / 255.0 - 0.5) * 1.6, 0.0, 1.0) - (height - sea) * cooling
@@ -1130,6 +1143,9 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		elif kind == HIGHLAND:
 			b = _biome(Biomes.PLATEAU)
 			top = Mat.STONE if height >= sea + 14 else Mat.GRASS
+			if wide and top == Mat.GRASS:
+				# New worlds: the plateau's own ground, with stone and scree showing through.
+				top = _patches(b, Biomes.top(b, grounds), soil[j])
 		elif height <= sea + 2 and wet <= 1:
 			# With climate 1 the beach of a warm coast may be a biome of its own (palms).
 			b = _biome(Biomes.relief(Biomes.BEACH, t, m) if zoned else Biomes.BEACH)
@@ -1154,19 +1170,22 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 				f |= MARSH if p > pool_t else MIRE
 			else:
 				top = bank if p > mud_t else Mat.GRASS
+				if wide and top == Mat.GRASS and low and _chance(x0 + lx * lay.step, z0, 41) < Biomes.of(b).get("hummocks", 0.0):
+					# New worlds: a grassy hummock a level over the wet ground.
+					height += 1
 			sheer = false
 		else:
 			# The climate's say: the loaded biome whose windows hold the warmth and the
 			# moisture, with its ground (sand in dunes, stone and clay showing through).
 			climate = true
 			b = Biomes.pick(t, m)
+			# New worlds: by a lake or a river a desert turns green (an oasis).
+			if wide and Biomes.by_water(b) >= 0 and fresh < Biomes.of(b).by_water_reach + _chance(x0 + lx * lay.step, z0, 43) * 4.0:
+				b = Biomes.by_water(b)
 			var rec := Biomes.of(b)
 			top = Biomes.top(b, grounds)
 			if not rec.is_empty():
-				if soil[j] < _byte(rec.stone_below):
-					top = Mat.STONE
-				elif soil[j] > _byte(rec.clay_above):
-					top = Biomes.clay_as(b, grounds)
+				top = _patches(b, top, soil[j])
 				if rec.dunes > 0.0 and kind == PLAIN and not sheer:
 					height += int(dunes[j] / 255.0 * rec.dunes)
 		# Some mountains are wooded between the foot and the rock, whatever grows below.
@@ -1175,9 +1194,12 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 			top = Mat.GRASS
 		elif kind == MOUNTAIN and wt < 0 and climate and zoned and Biomes.ALPINE >= 0 and height >= sea + ROCK_LINE - ALPINE_BELOW \
 				and _in_window(Biomes.ALPINE, t, m):
-			# With climate 1 the open upper slopes are an alpine meadow.
+			# With climate 1 the open upper slopes are an alpine meadow (in new worlds
+			# with stone and scree showing through).
 			b = Biomes.ALPINE
 			top = Biomes.top(b, grounds)
+			if wide:
+				top = _patches(b, top, soil[j])
 		# A dry bed through land that lies under snow (a canyon in the ice waste) is
 		# snow too, not sand.
 		if zoned and top == beach and wt < 0 and not watery and Biomes.top(Biomes.pick(t, m), grounds) == snow:
@@ -1197,6 +1219,19 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		tops[j] = top
 		flags[j] = f
 		biome[j] = b
+
+
+## The ground `top` of biome `b` with its patches by the soil noise `soil` (a byte):
+## stone below its `stone_below`, its `clay_as` above its `clay_above`.
+func _patches(b: int, top: int, soil: int) -> int:
+	var rec := Biomes.of(b)
+	if rec.is_empty():
+		return top
+	if soil < _byte(rec.stone_below):
+		return Mat.STONE
+	if soil > _byte(rec.clay_above):
+		return Biomes.clay_as(b, grounds)
+	return top
 
 
 ## How deep a ravine cuts column x, z, 0 outside one. Its floor runs along the zero
