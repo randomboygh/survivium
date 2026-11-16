@@ -3,7 +3,7 @@ extends "res://src/shared/world/world_gen.gd"
 ## 153, 1А; С3.2): a generator that makes nothing, but lays the land out the same as
 ## the server's (the seed and settings of the welcome: the biomes, the map, where the
 ## animals may live) and takes the chunks the server sends ready (Protocol.CHUNK, the
-## record WorldGen.pack gives) as the generator takes a saved chunk: `saved` is this,
+## record WorldGen.pack gives) as the generator takes a saved chunk: `_kept` is this,
 ## and a chunk's job restores the record, so the chunk is SHAPED at once. Nothing is
 ## generated: a chunk the server has not sent is not there, and the streamer waits for
 ## it. It stands in for the session where the client orders the world (Main.world_maker:
@@ -34,7 +34,12 @@ var gen_us := 0
 
 func _init(seed_value: int, sy := 48, options := {}) -> void:
 	super(seed_value, sy, options)
-	saved = self
+
+
+## The chunks the server sent are what it asks of a save (`saved` stays empty: a
+## generator holding itself is never freed).
+func _kept():
+	return self
 
 
 # --- What the generator asks of a save (WorldGen.saved) -----------------------------
