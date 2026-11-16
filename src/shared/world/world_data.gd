@@ -1,14 +1,11 @@
 extends "res://src/shared/world/world_cells.gd"
 ## The world with the shapes of its natural ground: slopes and diagonal corners worked
 ## out from the cells around (`update_shapes`, a column at a time, after edits), the
-## smooth surface of a slope (`surface_patch`, `ground_height`), the cut and filled
+## flat triangles of a slope (`top_height`, `ground_height`), the cut and filled
 ## corners a body walks around, and what a body meets in a cell (`blocks_body`,
 ## `blocks_part`, `ground_part`). The cells themselves are kept by world_cells.gd.
 
 
-## Surfaces of sloping tops looked at lately (see surface_patch), by cell; emptied
-## whenever shapes change.
-var _patches := {}
 ## Corner bits of a slope mask: which corners of the cell's top are at full height.
 ## North is -z. FULL is a whole cube.
 const NW := 1
@@ -18,10 +15,10 @@ const SW := 8
 const FULL := 15
 ## Horizontal neighbours N, S, W, E.
 const SIDES: Array[Vector2i] = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]
-## Slope mask for the low sides N, S, W, E (1, 2, 4, 8) of a cell; FULL where it stays
-## a cube: no low side, or two opposite ones.
-const RAMPS := [FULL, SE | SW, NW | NE, FULL, NE | SE, SE, NE, FULL, NW | SW, SW, NW,
-	FULL, FULL, FULL, FULL, FULL]
+## Low corners of a top for its low sides N, S, W, E (1, 2, 4, 8): each low side takes
+## its two corners down.
+const LOW_CORNERS := [0, NW | NE, SE | SW, FULL, NW | SW, FULL & ~SE, FULL & ~NE, FULL, NE | SE, FULL & ~SW,
+	FULL & ~NW, FULL, FULL, FULL, FULL, FULL]
 ## Way from a cell to its corners NW, NE, SE, SW (corner k is bit 1 << k of a mask).
 const CORNER_DIRS := [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(1, 1), Vector2i(-1, 1)]
 ## The eight columns round one: beside it, then across its corners.
@@ -85,7 +82,6 @@ func _masks(x0: int, z0: int, x1: int, z1: int) -> Dictionary:
 ## their slopes; update_corners then adds the corners, which look at the slopes
 ## beside them (all of a region's slopes must be done before its corners).
 func update_slopes(x0: int, z0: int, x1: int, z1: int) -> void:
-	_patches.clear()
 	for z in range(z0, z1):
 		var x := x0
 		while x < x1:
@@ -143,27 +139,24 @@ func update_slopes(x0: int, z0: int, x1: int, z1: int) -> void:
 					continue
 				var lows := (1 if low_n & bit else 0) | (2 if low_s & bit else 0) | (4 if low_w & bit else 0) \
 					| (8 if low_e & bit else 0)
-				var mask: int = RAMPS[lows]
-				if lows == 0:
-					# Inner corner: exactly one lower diagonal between two sloping neighbours.
-					for k in 4:
-						if low[j + diag[k]] & bit == 0:
-							continue
-						var o: Vector2i = CORNER_DIRS[k]
-						if _can_slope(x + o.x, y, z) and _can_slope(x, y, z + o.y):
-							if mask != FULL:
-								mask = FULL
-								break
-							mask = FULL & ~(1 << k)
-				if mask != FULL:
-					shapes[i] = FULL & ~mask
+				var mask: int = LOW_CORNERS[lows]
+				# A corner with only the column across it lower goes down too, where both
+				# columns beside it may slope (and so go down there as well).
+				for k in 4:
+					if mask & (1 << k) or low[j + diag[k]] & bit == 0:
+						continue
+					var o: Vector2i = CORNER_DIRS[k]
+					if _can_slope(x + o.x, y, z) and _can_slope(x, y, z + o.y):
+						mask |= 1 << k
+				# All four corners down (a ridge one cell wide): it stays a cube.
+				if mask != 0 and mask != FULL:
+					shapes[i] = mask
 					c.sloped[col] |= bit
 
 
 ## Works out the cut and filled corners of the columns x0..x1, z0..z1 (ends
 ## exclusive) from the cells and slopes around them (see corner_cut, corner_fill).
 func update_corners(x0: int, z0: int, x1: int, z1: int) -> void:
-	_update_deep(x0, z0, x1, z1)
 	var mk := _masks(x0, z0, x1, z1)
 	var wl: int = mk.wl
 	var hl: int = mk.hl
@@ -173,128 +166,68 @@ func update_corners(x0: int, z0: int, x1: int, z1: int) -> void:
 	var ground: PackedInt64Array = mk.ground
 	var wild: PackedInt64Array = mk.wild
 	var sloped: PackedInt64Array = mk.sloped
+	var low: PackedInt64Array = mk.low
 	var side_x := PackedInt32Array([-1, 1, 1, -1])
 	var side_z := PackedInt32Array([-wl, -wl, wl, wl])
-	# Corners.
-	for lz in range(1, hl - 1):
-		for lx in range(1, wl - 1):
-			var j := lz * wl + lx
-			if wild[j] == 0:
-				continue
-			var aw := air[j] | water[j]
-			var gr := ground[j]
-			# Mostly the ground beside is as high as here: nothing to cut or fill.
-			if gr & (air[j - wl] | air[j + wl] | air[j - 1] | air[j + 1] | water[j - wl] | water[j + wl] \
-					| water[j - 1] | water[j + 1]) == 0 \
-					and aw & (ground[j - wl] | ground[j + wl] | ground[j - 1] | ground[j + 1]) == 0:
-				continue
-			var x := x0 - 1 + lx
-			var z := z0 - 1 + lz
-			var c := chunk_at(x, z)
-			var col := ((z & MASK) << SHIFT) | (x & MASK)
-			for k in 4:
-				var cx := j + side_x[k]
-				var cz := j + side_z[k]
-				var cd := cx + side_z[k]
-				var wild4 := wild[j] & wild[cx] & wild[cz] & wild[cd]
-				if wild4 == 0:
+	var found := PackedInt64Array([0, 0, 0, 0])
+	for fills in 2:
+		for lz in range(1, hl - 1):
+			for lx in range(1, wl - 1):
+				var j := lz * wl + lx
+				if wild[j] == 0:
 					continue
-				var cut := gr & wild4 & (air[cx] & air[cz] & air[cd] | water[cx] & water[cz] & water[cd])
-				if cut != 0:
-					# A slope is cut only at a corner where it is low, and not where it goes
-					# on down into the cell below.
-					var sl := cut & sloped[j]
-					while sl != 0:
-						var bit := sl & -sl
-						sl ^= bit
-						var i := (level_of(bit) << 8) | col
-						if c.shapes[i] & (1 << k) == 0 or i >= LAYER and c.shapes[i - LAYER] & (1 << k):
-							cut &= ~bit
-					# The runs of such cells whose top has an open cell above.
-					_mark(c, col, _spread(cut, cut & ~(cut >> 1) & ((open[j] >> 1) | top_bit), -1), 16 << k)
-				var fill := aw & wild4 & ground[cx] & ground[cz] & ground[cd] & ~sloped[cx] & ~sloped[cz]
-				if fill != 0:
-					# The runs of such cells standing on something that hides what is behind it.
-					_mark(c, col, _spread(fill, fill & ~(fill << 1) & ((~open[j] << 1) | 1), 1), 16 << k)
-
-
-## Low corners of the sloping tops of the columns x0..x1, z0..z1 (ends exclusive) that
-## go on down a level into the cell below (see _deep_corner), kept in that cell's
-## shape (bits 0..3; it is covered, so it has no slope of its own). Needs the slopes
-## of the columns around done.
-func _update_deep(x0: int, z0: int, x1: int, z1: int) -> void:
-	for z in range(z0, z1):
-		for x in range(x0, x1):
-			var c := chunk_at(x, z)
-			if c == null:
-				continue
-			var col := ((z & MASK) << SHIFT) | (x & MASK)
-			var m := c.sloped[col] & ~1
-			while m != 0:
-				var bit := m & -m
-				m ^= bit
-				var y := level_of(bit)
-				var i := (y << 8) | col
-				var deep := 0
+				var aw := air[j] | water[j]
+				var gr := ground[j]
+				# Mostly the ground beside is as high as here: nothing to cut or fill.
+				if gr & (air[j - wl] | air[j + wl] | air[j - 1] | air[j + 1] | water[j - wl] | water[j + wl] \
+						| water[j - 1] | water[j + 1]) == 0 \
+						and aw & (ground[j - wl] | ground[j + wl] | ground[j - 1] | ground[j + 1]) == 0:
+					continue
+				var x := x0 - 1 + lx
+				var z := z0 - 1 + lz
+				var c := chunk_at(x, z)
+				var col := ((z & MASK) << SHIFT) | (x & MASK)
 				for k in 4:
-					if c.shapes[i] & (1 << k) and _deep_corner(x, y, z, k):
-						deep |= 1 << k
-				if deep != 0:
-					c.shapes[i - LAYER] = c.shapes[i - LAYER] | deep
-					c.corner[col] |= bit >> 1
-
-
-## True when low corner k of the sloping top at (x, y, z) goes on down to level y - 1,
-## so that slopes falling a level a cell on the diagonal meet without steps: every
-## other column around the corner meets it a level lower there, is a sloping top on
-## this level, low there and going down with it, is open more than two levels down,
-## or (only the column east or west) stands as high or higher; at least one meets it
-## lower. The cells going down are loose wild ground.
-func _deep_corner(x: int, y: int, z: int, k: int) -> bool:
-	if not _deepable(x, y - 1, z):
-		return false
-	var o: Vector2i = CORNER_DIRS[k]
-	var lower := false
-	for n in 3:
-		var nx := x + (o.x if n != 1 else 0)
-		var nz := z + (o.y if n != 0 else 0)
-		# The neighbour's own corner at this one.
-		var kk: int = [k ^ 1, 3 - k, (k + 2) & 3][n]
-		var a := get_cell(nx, y, nz)
-		if a == Mat.AIR or a == Mat.WATER:
-			var b := get_cell(nx, y - 1, nz)
-			if b == Mat.AIR or b == Mat.WATER:
-				# Two levels lower it meets the corner if its top is high there; lower
-				# still (a bank over deep water, a cliff) it has no part in it.
-				if _surface_ground(get_cell(nx, y - 2, nz)) and _shape(nx, y - 2, nz) & (1 << kk) == 0:
-					lower = true
-			elif not _surface_ground(b) or _shape(nx, y - 1, nz) & (1 << kk) == 0:
-				return false
-			else:
-				lower = true
-		elif n == 0:
-			# The column to the east or west at the corner's level or higher: if it
-			# stays up, the wall between them faces sideways, which the view never
-			# shows, and the slope still meets the ground below and beyond.
-			continue
-		elif _surface_ground(a):
-			var up := get_cell(nx, y + 1, nz)
-			if up != Mat.AIR and up != Mat.WATER or _shape(nx, y, nz) & (1 << kk) == 0 \
-					or not _deepable(nx, y - 1, nz):
-				return false
-		else:
-			return false
-	return lower
-
-
-func _deepable(x: int, y: int, z: int) -> bool:
-	if y < 0 or y >= size_y:
-		return false
-	var c := chunk_at(x, z)
-	if c == null:
-		return false
-	var i := (y << 8) | ((z & MASK) << SHIFT) | (x & MASK)
-	return c.natural[i] == WILD and Mat.can_slope(c.cells[i])
+					found[k] = 0
+					var cx := j + side_x[k]
+					var cz := j + side_z[k]
+					var cd := cx + side_z[k]
+					var wild4 := wild[j] & wild[cx] & wild[cz] & wild[cd]
+					if wild4 == 0:
+						continue
+					if fills == 0:
+						var cut := gr & wild4 & (air[cx] & air[cz] & air[cd] | water[cx] & water[cz] & water[cd])
+						if cut == 0:
+							continue
+						# A slope is cut only at a corner where it is low, and where the ground
+						# drops further than a level beside it (else the slopes meet in a hip).
+						var sl := cut & sloped[j]
+						var drop := (air[cx] | water[cx]) & ~low[cx] | (air[cz] | water[cz]) & ~low[cz] \
+							| (air[cd] | water[cd]) & ~low[cd]
+						while sl != 0:
+							var bit := sl & -sl
+							sl ^= bit
+							var i := (level_of(bit) << 8) | col
+							if c.shapes[i] & (1 << k) == 0 or drop & bit == 0:
+								cut &= ~bit
+						# The runs of such cells whose top has an open cell above.
+						found[k] = _spread(cut, cut & ~(cut >> 1) & ((open[j] >> 1) | top_bit), -1)
+					else:
+						var fill := aw & wild4 & ground[cx] & ground[cz] & ground[cd] & ~sloped[cx] & ~sloped[cz]
+						if fill == 0:
+							continue
+						# Ground beside that is open round its corner facing this cell (so it
+						# is cut there) takes the diagonal: both would make a saw.
+						var bx := j - side_x[k]
+						var bz := j - side_z[k]
+						fill &= ~(air[j] & air[bx] & air[bx + side_z[k]] | water[j] & water[bx] & water[bx + side_z[k]] \
+							| air[j] & air[bz] & air[bz + side_x[k]] | water[j] & water[bz] & water[bz + side_x[k]])
+						# The runs of such cells standing on something that hides what is behind it.
+						found[k] = _spread(fill, fill & ~(fill << 1) & ((~open[j] << 1) | 1), 1)
+				# One corner of a cell at most: a cell cut or filled at two is left whole.
+				for k in 4:
+					var only := found[k] & ~(found[(k + 1) & 3] | found[(k + 2) & 3] | found[(k + 3) & 3])
+					_mark(c, col, only, 16 << k)
 
 
 static func _surface_ground(m: int) -> bool:
@@ -346,10 +279,10 @@ func _mark(c: Chunk, col: int, bits: int, value: int) -> void:
 
 ## Shape of a cell's top as a mask of corners at full height (NW, NE, SE, SW). Natural
 ## loose ground with open air above slopes down to each side where the ground is one
-## level lower (or water): a ramp to one side, an outer corner to two neighbouring
-## sides, an inner corner where only a diagonal neighbour is lower. Stone, built blocks
-## and drops of two levels or more stay whole cubes: those are cliffs. For a covered
-## cell, the corners where the slope above goes on down into it (see _deep_corner).
+## level lower (or water), both corners of that side going down; a corner goes down
+## too where only the column across it is lower and both columns beside it may slope.
+## A top with every corner down (a ridge a cell wide), stone, built blocks and drops of
+## two levels or more stay whole cubes: those are cliffs.
 func slope_mask(x: int, y: int, z: int) -> int:
 	if y < 0 or y >= size_y:
 		return FULL
@@ -360,145 +293,88 @@ func slope_mask(x: int, y: int, z: int) -> int:
 	return FULL & ~(c.shapes[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)] & 15)
 
 
-## A sloping top is one smooth surface over its cell, a bicubic patch through the
-## heights of its four corners (1 high, 0 low, -1 down into the cell below, see
-## _deep_corner) with slopes there worked out from the corners of the tops beside it
-## (see patch_tangent): a ramp between level ground starts and ends level and is
-## steepest in the middle, a long slope stays straight, and tops that share a corner
-## meet there at the same height and slope. The patch is 12 numbers: the heights of the
-## corners NW, NE, SE, SW above the cell's level, then their slopes along x, then
-## along z. The mesher builds the same patch from its copy of the cells
-## (SlopeMesher.patch); tests check that both agree.
-const PATCH_CI := [0, 1, 1, 0]
-const PATCH_CJ := [0, 0, 1, 1]
-
-
 # --- Slope surfaces --------------------------------------------------------------
 
 
-## Height above the cell's level of patch `p` at (u, v) inside the cell, 0..1.
-static func patch_height(p: PackedFloat32Array, u: float, v: float) -> float:
-	# The corners k = 0..3 lie at (i, j) = PATCH_CI/CJ[k]: (0,0), (1,0), (1,1), (0,1),
-	# summed in that order (locals, not arrays: this runs for every body step on a slope).
-	var au0 := 1.0 - u * u * (3.0 - 2.0 * u)
-	var au1 := u * u * (3.0 - 2.0 * u)
-	var av0 := 1.0 - v * v * (3.0 - 2.0 * v)
-	var av1 := v * v * (3.0 - 2.0 * v)
-	var bu0 := u * (1.0 - u) * (1.0 - u)
-	var bu1 := u * u * (u - 1.0)
-	var bv0 := v * (1.0 - v) * (1.0 - v)
-	var bv1 := v * v * (v - 1.0)
-	var h := 0.0
-	h += p[0] * au0 * av0 + p[4] * bu0 * av0 + p[8] * au0 * bv0
-	h += p[1] * au1 * av0 + p[5] * bu1 * av0 + p[9] * au1 * bv0
-	h += p[2] * au1 * av1 + p[6] * bu1 * av1 + p[10] * au1 * bv1
-	h += p[3] * au0 * av1 + p[7] * bu0 * av1 + p[11] * au0 * bv1
-	return h
+## A sloping top is two flat triangles, the cell split along one diagonal, each with
+## its corners at full height or a level down (see slope_mask): a ramp is one plane, a
+## corner of a hill a hip (both triangles falling away from the crease to its one high
+## corner), the inside corner of a hill a valley. Where the outline of a hill runs
+## diagonally its corners are chamfers instead: the crease runs past the odd corner,
+## one triangle level and the other falling from the odd corner. A top cut at a corner
+## (see corner_cut) keeps the triangle away from it. The mesher splits its copy of the
+## cells the same way (split_ne_sw); tests check that both agree.
 
 
-## Slope of a patch at a corner from the rise d1 of the step before it and d2 of the
-## one after, along a line of corners: level where the ground turns (or stays level),
-## so a patch never bulges beyond its corners, and a steady slope where both agree.
-static func patch_tangent(d1: float, d2: float) -> float:
-	if d1 * d2 <= 0.0:
-		return 0.0
-	return 2.0 * d1 * d2 / (d1 + d2)
+## True when a top of shape `s` (Chunk.shapes) is split along its diagonal NE-SW (else
+## NW-SE); `sn`, `ss`, `sw`, `se` are the shapes of the cells beside it N, S, W, E on
+## its level. A cut corner takes the diagonal across it. One corner unlike the other
+## three is a hip or a valley (the crease through it) where a ramp goes on beside it
+## at that corner, else a chamfer (the crease across it). Two opposite corners down
+## make a ridge between the high ones.
+static func split_ne_sw(s: int, sn: int, ss: int, sw: int, se: int) -> bool:
+	var cut := s >> 4
+	if cut != 0:
+		return cut & (NW | SE) != 0
+	var lows := s & 15
+	var odd: int = ODD_CORNER[lows]
+	if odd < 0:
+		return lows == NW | SE
+	var o: Vector2i = CORNER_DIRS[odd]
+	var through := _ramp(sw if o.x < 0 else se) or _ramp(sn if o.y < 0 else ss)
+	# The crease through corner NW or SE is the diagonal NW-SE.
+	return through != (odd == 0 or odd == 2)
 
 
-## The patch from the heights of the corners `h` and those one step on along x and
-## along z from each, `far` (two per corner; see far_corner), above the cell's level.
-static func make_patch(h: PackedInt32Array, far: PackedInt32Array) -> PackedFloat32Array:
-	var p := PackedFloat32Array()
-	p.resize(12)
-	for k in 4:
-		p[k] = h[k]
-		var kx := k ^ 1
-		var kz := 3 - k
-		p[4 + k] = patch_tangent(h[k] - far[2 * k], h[kx] - h[k]) if PATCH_CI[k] == 0 \
-			else patch_tangent(h[k] - h[kx], far[2 * k] - h[k])
-		p[8 + k] = patch_tangent(h[k] - far[2 * k + 1], h[kz] - h[k]) if PATCH_CJ[k] == 0 \
-			else patch_tangent(h[k] - h[kz], far[2 * k + 1] - h[k])
-	return p
+## The corner of a top with one corner unlike the other three, by its low corners; -1
+## for none.
+const ODD_CORNER := [-1, 0, 1, -1, 2, -1, -1, 3, 3, -1, -1, 2, -1, 1, 0, -1]
+
+
+## True when shape `s` is a straight ramp: two corners down along one side.
+static func _ramp(s: int) -> bool:
+	var lows := s & 15
+	return s < 16 and (lows == NW | NE or lows == SE | SW or lows == NW | SW or lows == NE | SE)
+
+
+## Height above its level of the top of shape `s` split as `ne_sw` says, at (fx, fz)
+## inside the cell (0..1): on the plane of the triangle the point lies in.
+static func top_height(s: int, ne_sw: bool, fx: float, fz: float) -> float:
+	var h0 := 0.0 if s & NW else 1.0
+	var h1 := 0.0 if s & NE else 1.0
+	var h2 := 0.0 if s & SE else 1.0
+	var h3 := 0.0 if s & SW else 1.0
+	if ne_sw:
+		if fx + fz <= 1.0:
+			return h0 + (h1 - h0) * fx + (h3 - h0) * fz
+		return h2 + (h2 - h3) * (fx - 1.0) + (h2 - h1) * (fz - 1.0)
+	if fx >= fz:
+		return h0 + (h1 - h0) * fx + (h2 - h1) * fz
+	return h0 + (h2 - h3) * fx + (h3 - h0) * fz
+
+
+## Whether the top of cell (x, y, z) is split along NE-SW (see split_ne_sw).
+func split_at(x: int, y: int, z: int) -> bool:
+	return split_ne_sw(_shape(x, y, z), _shape(x, y, z - 1), _shape(x, y, z + 1), _shape(x - 1, y, z),
+		_shape(x + 1, y, z))
 
 
 ## Heights of the corners NW, NE, SE, SW of the top of the ground cell (x, y, z) above
-## its level: 1 high, 0 low, -1 going on down into the cell below.
+## its level: 1 high, 0 low.
 func corner_heights(x: int, y: int, z: int) -> PackedInt32Array:
 	var s := _shape(x, y, z)
-	var below := _shape(x, y - 1, z) if s & 15 else 0
 	var h := PackedInt32Array([1, 1, 1, 1])
 	for k in 4:
 		if s & (1 << k):
-			h[k] = -1 if below & (1 << k) else 0
+			h[k] = 0
 	return h
 
 
-## The surface of the sloping top of cell (x, y, z) above its level (see make_patch). A
-## covered cell that a slope above goes down into gets that slope's surface, a level
-## higher. Kept until shapes change.
-func surface_patch(x: int, y: int, z: int) -> PackedFloat32Array:
-	refresh_shapes()
-	var key := Vector3i(x, y, z)
-	var p: PackedFloat32Array = _patches.get(key, PackedFloat32Array())
-	if not p.is_empty():
-		return p
-	var up := get_cell(x, y + 1, z)
-	if up != Mat.AIR and up != Mat.WATER:
-		p = surface_patch(x, y + 1, z).duplicate()
-		for k in 4:
-			p[k] += 1.0
-	else:
-		var h := corner_heights(x, y, z)
-		var far := PackedInt32Array()
-		far.resize(8)
-		for k in 4:
-			var o: Vector2i = CORNER_DIRS[k]
-			var d := (k + 2) & 3
-			far[2 * k] = far_corner(_patch_far(x + o.x, y, z, k ^ 1, k, h[k]),
-				_patch_far(x + o.x, y, z + o.y, d, 3 - k, h[k]), h[k])
-			far[2 * k + 1] = far_corner(_patch_far(x, y, z + o.y, 3 - k, k, h[k]),
-				_patch_far(x + o.x, y, z + o.y, d, k ^ 1, h[k]), h[k])
-		p = make_patch(h, far)
-	if _patches.size() > 4096:
-		_patches.clear()
-	_patches[key] = p
-	return p
-
-
-## No top meets the corner (see _patch_far).
-const NO_CORNER := 99
-
-
-## The corner one step on along a line of corners from one at `hv`, as the two tops
-## along that line beyond it give it (`a` beside the cell, `b` beside the one across
-## the line): one alone, or both if they agree; `hv` (level) if neither meets the
-## corner or they disagree. Both cells along the line work it out the same, so their
-## shared side has the same curve.
-static func far_corner(a: int, b: int, hv: int) -> int:
-	if a == NO_CORNER:
-		return hv if b == NO_CORNER else b
-	return a if b == NO_CORNER or b == a else hv
-
-
-## Height above level y of corner `far` of the top in column (x, z) whose corner `near`
-## meets the corner at `hv` above level y; NO_CORNER where no top there meets it. A
-## corner is -1, 0 or 1 above its top's level, so the tops that can meet it lie a level
-## above, at or below the corner itself: the same levels from either cell beside it.
-func _patch_far(x: int, y: int, z: int, near: int, far: int, hv: int) -> int:
-	for dl: int in [hv + 1, hv, hv - 1]:
-		var l := y + dl
-		var up := get_cell(x, l + 1, z)
-		if (up == Mat.AIR or up == Mat.WATER) and _surface_ground(get_cell(x, l, z)) and l >= 0:
-			var h := corner_heights(x, l, z)
-			if h[near] + dl == hv:
-				return h[far] + dl
-	return NO_CORNER
-
-
 ## Height of the surface of the sloping cell (x, y, z) at (fx, fz) inside it, above its
-## level (see surface_patch).
+## level.
 func surface_height(x: int, y: int, z: int, fx: float, fz: float) -> float:
-	return patch_height(surface_patch(x, y, z), fx, fz)
+	refresh_shapes()
+	return top_height(_shape(x, y, z), split_at(x, y, z), fx, fz)
 
 
 ## The highest level of column (x, z) that is not air or leaves, -1 for none.
@@ -525,27 +401,29 @@ func ground_height(x: float, z: float) -> float:
 		return 0.0
 	var col := ((cz & MASK) << SHIFT) | (cx & MASK)
 	var top := top_level(~(c.air[col] | c.leaf[col]) & all_bits)
-	var k := corner_at(fx, fz)
-	# Only the corner triangle of the quarter the point is in can be cut or filled; a
-	# filled corner needs ground beside it at its own level, so then nothing is to stand
-	# on above the highest cell of this column and of the three beside corner k.
-	var inside := in_corner(k, fx, fx, fz, fz)
-	var d: Vector2i = CORNER_DIRS[k]
-	if inside:
-		top = maxi(maxi(top, _top(cx + d.x, cz)), maxi(_top(cx, cz + d.y), _top(cx + d.x, cz + d.y)))
+	# The corner triangles the point is in: only those can be cut or filled. A filled
+	# corner needs ground beside it at its own level, so then nothing is to stand on
+	# above the highest cell of this column and of the three beside such a corner.
+	var inside := corners_at(fx, fz)
+	if c.corner[col] != 0:
+		for k in 4:
+			if inside & (1 << k):
+				var d: Vector2i = CORNER_DIRS[k]
+				top = maxi(maxi(top, _top(cx + d.x, cz)), maxi(_top(cx, cz + d.y), _top(cx + d.x, cz + d.y)))
 	var cells := c.cells
 	var shapes := c.shapes
-	var corner := 1 << (k + 4)
 	for y in range(top, -1, -1):
 		var i := (y << 8) | col
 		var m := cells[i]
+		var corner := shapes[i] >> 4 & inside
 		if m == Mat.AIR or m == Mat.LEAVES or m == Mat.WATER:
-			if inside and m != Mat.LEAVES and shapes[i] & corner:
+			if corner and m != Mat.LEAVES:
 				return y + 1.0
 			if m == Mat.WATER:
 				return y + ice_top(cx, y, cz) if frozen_at(cx, cz) else -1.0
 			continue
-		if inside and shapes[i] & corner:
+		if corner:
+			var d: Vector2i = CORNER_DIRS[level_of(corner)]
 			if get_cell(cx + d.x, y, cz) == Mat.WATER and not frozen_at(cx + d.x, cz):
 				return -1.0
 			continue
@@ -555,7 +433,7 @@ func ground_height(x: float, z: float) -> float:
 				return y + form_top(f, fx, fx, fz, fz)
 		if shapes[i] & 15 == 0:
 			return y + 1.0
-		return y + surface_height(cx, y, cz, fx, fz)
+		return y + top_height(shapes[i], split_at(cx, y, cz), fx, fz)
 	return 0.0
 
 
@@ -584,24 +462,25 @@ static func form_top(f: int, ax: float, bx: float, az: float, bz: float) -> floa
 	return 1.0 if t > 0.5 else 0.5
 
 
-## The corner (NW, NE, SE, SW as 0..3) of the quarter of a cell that (fx, fz) is in.
-static func corner_at(fx: float, fz: float) -> int:
-	if fz < 0.5:
-		return 0 if fx < 0.5 else 1
-	return 3 if fx < 0.5 else 2
+## Mask of the corners (NW, NE, SE, SW) whose triangle (half the cell, cut off by a
+## diagonal) holds (fx, fz) inside a cell: two of them, both on a diagonal.
+static func corners_at(fx: float, fz: float) -> int:
+	return (NW if fx + fz < 1.0 else 0) | (SE if fx + fz > 1.0 else 0) | (NE if fx > fz else 0) \
+		| (SW if fz > fx else 0)
 
 
 ## True when the box ax..bx, az..bz inside a cell (0..1) lies wholly in the triangle that
-## a cut takes off corner k (half a cell along each side), touching its edge at most.
+## a cut takes off corner k (half the cell, up to the diagonal across it), touching its
+## edge at most.
 static func in_corner(k: int, ax: float, bx: float, az: float, bz: float) -> bool:
 	match k:
 		0:
-			return bx + bz <= 0.5
+			return bx + bz <= 1.0
 		1:
-			return ax - bz >= 0.5
+			return ax >= bz
 		2:
-			return ax + az >= 1.5
-	return az - bx >= 0.5
+			return ax + az >= 1.0
+	return az >= bx
 
 
 ## True when the box ax..bx, az..bz inside a cell (0..1) reaches into the triangle that
@@ -609,19 +488,20 @@ static func in_corner(k: int, ax: float, bx: float, az: float, bz: float) -> boo
 static func touches_corner(k: int, ax: float, bx: float, az: float, bz: float) -> bool:
 	match k:
 		0:
-			return ax + az < 0.5
+			return ax + az < 1.0
 		1:
-			return bx - az > 0.5
+			return bx > az
 		2:
-			return bx + bz > 1.5
-	return bz - ax > 0.5
+			return bx + bz > 1.0
+	return bz > ax
 
 
 ## True when corner k of the cell at (x, y, z) is cut off in plan, so cliffs, banks and
-## creeks turn diagonally instead of at right angles: wild ground loses the corner
-## triangle (half a cell along each side) where both sides and the diagonal are the same
-## open wild cells (all air or all water), and the cell above is open or cut there too.
-## A slope is cut only at a corner where it is low.
+## creeks turn diagonally instead of at right angles: wild ground loses the half of the
+## cell beyond the diagonal across corner k (a half-block) where both sides and the
+## diagonal are the same open wild cells (all air or all water), and the cell above is
+## open or cut there too. A slope is cut only at a corner where it is low and the
+## ground drops more than a level beside it. A cell is cut at one corner at most.
 func corner_cut(x: int, y: int, z: int, k: int) -> bool:
 	return corner_cuts(x, y, z) & (1 << k) != 0
 
@@ -639,9 +519,11 @@ func corner_cuts(x: int, y: int, z: int) -> int:
 	return c.shapes[i] >> 4 if m != Mat.AIR and m != Mat.WATER and m != Mat.LEAVES else 0
 
 
-## True when the open cell at (x, y, z) gets ground in the triangle at corner k: the
-## inner corner where both sides and the diagonal are wild ground, the sides whole
-## cubes, standing on ground or on the same fill below.
+## True when the open cell at (x, y, z) gets ground in the half beyond the diagonal
+## across corner k: the inner corner where both sides and the diagonal are wild ground,
+## the sides whole cubes, standing on ground or on the same fill below; not where a
+## side is open round its own corner facing this cell (the side is cut there, and both
+## would make a saw). A cell is filled at one corner at most.
 func corner_fill(x: int, y: int, z: int, k: int) -> bool:
 	return corner_fills(x, y, z) & (1 << k) != 0
 

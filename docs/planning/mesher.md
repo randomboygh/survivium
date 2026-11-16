@@ -1,7 +1,19 @@
 # The new relief mesher: blocks, corners, rounding — state and what is left
 
-Status: ACTIVE hand-off note (2026-11-17) of the thread «Переделать мешер на несколько видов блоков» for the
-thread that implements it. No code is changed yet: this thread agreed the design with the user in pictures.
+Status: ACTIVE (2026-11-17). Design agreed in the thread «Переделать мешер на несколько видов блоков»;
+implemented in the thread «Сделать новый мешер рельефа». Architecture picked by the user: shapes computed in
+shared `WorldData` (server and client agree, no save conversion), rounding and bevels client-only.
+
+## Progress
+
+- PR 1 (shapes and walking): one-level corners only (`_update_deep` gone), corner heights 0/1 from the 2×2
+  columns, `split_ne_sw` (hip/valley through the odd corner where a ramp goes on beside it, chamfer across
+  it otherwise; not stored, computed from the shapes beside), planar `top_height` for walking and drawing,
+  full-diagonal half-blocks (one corner per cell; a fill gives way where the ground beside is open round its
+  facing corner, so a staircase gets one straight line of cuts), water lips the same, shaders
+  (`corner_distance`, `in_cell_corners`) on the full diagonal. `Mat.corner_shape` and `CORNER_P` are kept,
+  unused by the geometry, for PR 2. Known: diamond hills two or more levels high show small triangles of
+  wall between the chamfer steps of neighbouring levels (one-level corners cannot meet there).
 
 - Spec (Claude doc, Russian, the user's words): https://claude.ai/artifact/1q8gbPYdyqXoDE5bMxKjoT
 - Pictures: project library `survivium-builds/mesher-blocks/` (`blocks-1-main.png` … `blocks-10-all.png`),
