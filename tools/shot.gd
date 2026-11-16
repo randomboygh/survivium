@@ -172,6 +172,13 @@ func _run() -> void:
 			main.player.position = places.forms(main.world, main.player.position, shot.get("only", 0))
 		if shot.get("underground", false):
 			main.player.position = Places.cave(main.world, main.player.position)
+		if shot.has("cave_kind"):
+			# A hall of a kind of cave (Biomes.CAVES): the nearest region of it, then a spot
+			# in it by a cell of its material.
+			var near := Places.cave_region(main.gen, shot.cave_kind, main.player.position)
+			main.player.position = Vector3(near.x + 0.5, main.world.size_y - 1, near.y + 0.5) * CELL
+			main.chunks.build_around()
+			main.player.position = Places.cave_by(main.world, main.player.position, shot.cave_mark)
 		if shot.get("corners", false):
 			main.player.position = places.corners(main.world, main.player.position)
 		if shot.get("trees", false):

@@ -1,0 +1,6 @@
+# A crystal in the bag: set down as a glowing crystal block.
+- id: crystal
+  title: "[resources.items.crystal]"
+  weight: 0.6
+  stack: 20
+  place: crystal

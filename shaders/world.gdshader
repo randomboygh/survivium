@@ -75,6 +75,10 @@ const int FRAY_SHIFT = 8;
 // Texels a material reaches into another on the sides of cells (3 bits, see
 // Mat.SIDE_FRAY_SHIFT): its texels go over the boundary in lumps, then specks.
 const int SIDE_FRAY_SHIFT = 11;
+// How brightly the material shines by itself, 0..15 (Mat.GLOW_SHIFT), and how much light
+// that is at full glow.
+const int GLOW_SHIFT = 14;
+const float GLOW_GAIN = 1.3;
 // Cells of a trunk over its foot it takes to clear in full round the player.
 const float TRUNK_RISE = 3.0;
 const int GROUND_SOIL = 1;
@@ -663,6 +667,12 @@ void fragment() {
 	ALBEDO = lit_col * sun_part;
 	lamp_gain = sea_undo(lit_col, sun_part);
 	EMISSION = veiled.rgb;
+	// A material that shines by itself (lava, crystals: Mat.GLOW_SHIFT) is lit however
+	// dark it is round it.
+	if (tile != NONE) {
+		float glow = float((material_bits[tile / 3] >> GLOW_SHIFT) & 15) / 15.0;
+		EMISSION += lit_col * glow * GLOW_GAIN;
+	}
 	// Walls get less sky light than tops.
 	AO = ao * (top ? 1.0 : 0.8);
 	AO_LIGHT_AFFECT = 0.6;

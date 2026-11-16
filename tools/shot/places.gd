@@ -15,6 +15,7 @@ const Trees := preload("res://src/shared/content/trees.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
+const Biomes := preload("res://src/shared/content/biomes.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
 const CELL := 0.5
 ## How far around the player (in cells) the shore, water and lone tree searches look:
@@ -539,6 +540,47 @@ static func cave(w, at: Vector3) -> Vector3:
 					best_depth = top - y
 					best = Vector3(x + 0.5, y, z + 0.5)
 	return best * CELL
+
+
+## The middle of the nearest region (to `at`, world units) of the kind of cave named
+## `kind` ("lava_cave"), in cells (x, z); `at` itself when there is none near.
+static func cave_region(gen, kind: String, at: Vector3) -> Vector2i:
+	var b := Biomes.named(kind)
+	var from := Vector2i(int(at.x / CELL), int(at.z / CELL))
+	var tier := 1 if Biomes.of(b).get("tier", "upper") == "lower" else 0
+	for r in range(0, 4000, 32):
+		for k in 32:
+			var a := k * TAU / 32.0
+			var p := from + Vector2i(int(cos(a) * r), int(sin(a) * r))
+			if gen.cave_kind(p.x, p.y, tier) == b and gen.lay_out(p.x, p.y, 1, 1).heights[0] > gen.sea + 6:
+				return p
+	return from
+
+
+## A spot on a cave floor near `at` (world units) beside a cell of material `mark` (an id
+## without its mod: "lava", "crystal", "water"), roofed over, with room round it; the
+## deepest such spot if no cell of it lies near.
+static func cave_by(w, at: Vector3, mark: String) -> Vector3:
+	var from := at / CELL
+	var m := Mat.WATER if mark == "water" else Mat.index("resources:" + mark)
+	var best := Vector3.INF
+	var best_d := INF
+	for z in range(int(from.z) - 70, int(from.z) + 71):
+		for x in range(int(from.x) - 70, int(from.x) + 71):
+			var top: int = w.surface_y(x, z)
+			for y in range(2, top - 5):
+				if w.get_cell(x, y, z) != m or (m == Mat.WATER and w.get_cell(x, y + 1, z) != Mat.AIR):
+					continue
+				for d: Vector2i in [Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2)]:
+					for dy in range(-1, 3):
+						var p := Vector3i(x + d.x, y + dy, z + d.y)
+						if w.get_cell(p.x, p.y, p.z) == Mat.AIR and w.get_cell(p.x, p.y + 1, p.z) == Mat.AIR \
+								and Mat.is_solid(w.get_cell(p.x, p.y - 1, p.z)):
+							var dist := Vector2(x - from.x, z - from.z).length()
+							if dist < best_d:
+								best_d = dist
+								best = Vector3(p.x + 0.5, p.y, p.z + 0.5)
+	return best * CELL if best != Vector3.INF else cave(w, at)
 
 
 ## Builds a plank hut on flat grass near `at` with the most trees around and puts the

@@ -32,7 +32,14 @@ cells wide, every hollow three cells tall or more: `WorldGen._halls`; the way in
 (`_cut_descents`, `DESCENT_*`): a trench three cells wide from dry ground that sinks three levels in four
 cells, turns into a tunnel `DESCENT_HEAD` cells tall and ends on a hall's floor, which is filled up to it, with
 rubble sloping a level a cell from its sides, so whoever comes down walks back up; a gallery into a
-mountain's side goes on down the same way); with the
+mountain's side goes on down the same way; kinds of caves (biomes `where: cave`, `Biomes.CAVES` by tier): each
+region of about `CAVE_REGION` cells of a tier, its edges bent by `CAVE_WOBBLE`, is one kind picked by `cave_share`
+(`WorldGen.cave_kind(x, z, tier)`), and `_cave_kind_cells` gives its halls the kind's floor (`cave_floor`:
+mycelium, on which `Grass._cave_floor` grows moss and mushrooms, glowing ones too), a pool of `pools` where the floor
+dips deepest (lava; the hall's size over `pools_from` of `HALL_MOST`), still water to `flood` (at most
+`FLOOD_HEADROOM` under the ceiling, its bits in `_hall_water`), blocks of `crystals` on the floor or under the
+ceiling by `crystal_chance`, and `cave_walls` (deep rock) `CAVE_WALL` levels round its halls and in a thinning shell
+beside them; with no cave bundle the caves are bare stone as before); with the
   setting `relief` 1 (new worlds; 0 — old ones) ridges, gorges and outliers where it is cool and damp, mesas
   with striped walls and canyons where it is hot and dry (`_ranges_and_mesas`); with the setting `climate` 1
   (new worlds; 0 — old ones) warmth goes by climate zones: the slow noise of a zone (`n_zone`, `ZONE_SLOWER`

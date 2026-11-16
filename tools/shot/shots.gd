@@ -216,6 +216,13 @@ const SHOTS := {
 	"litter-autumn": {"time": 0.42, "season": 2, "forest": true, "leaf_fall": 1.0},
 	"cave": {"time": 0.45, "season": 1, "cut": -4},
 	"underground": {"time": 0.45, "season": 1, "underground": true},
+	# The kinds of caves (Biomes.CAVES), each by a cell of its own: a mushroom cave, a
+	# crystal cave, a flooded one, a deep one and a lava cave.
+	"cave-mushroom": {"time": 0.45, "season": 1, "cave_kind": "mushroom_cave", "cave_mark": "mycelium"},
+	"cave-crystal": {"time": 0.45, "season": 1, "cave_kind": "crystal_cave", "cave_mark": "crystal"},
+	"cave-flooded": {"time": 0.45, "season": 1, "cave_kind": "flooded_cave", "cave_mark": "water", "hands": {"tool": "tools:torch", "facing": "s", "stay": true}},
+	"cave-deep": {"time": 0.45, "season": 1, "cave_kind": "deep_cave", "cave_mark": "deepstone", "hands": {"tool": "tools:torch", "facing": "s", "stay": true}},
+	"cave-lava": {"time": 0.45, "season": 1, "cave_kind": "lava_cave", "cave_mark": "lava"},
 	"underground-winter": {"time": 0.45, "season": 3, "rain": true, "underground": true},
 	# The deepest cave floor near the spawn of a world with many caves (world_caves 2 in
 	# settings.cfg) in the view in layers, dense, early, from the head.

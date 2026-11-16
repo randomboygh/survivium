@@ -37,6 +37,10 @@ static var CLIMATE: Array = []
 ## a mangrove swamp): `where` -> their indices, most specific first. With climate 1 they
 ## stand for the relief where their windows hold the column's climate (see relief).
 static var VARIANTS: Dictionary = {}
+## The kinds of caves (where: cave) of the upper and of the lower tier of halls, in load
+## order, and the sum of their `cave_share` (see cave).
+static var CAVES: Array = [[], []]
+static var CAVE_SHARES := PackedFloat32Array([0.0, 0.0])
 
 
 static func _static_init() -> void:
@@ -57,6 +61,8 @@ static func refresh(only: Variant = null) -> void:
 	GLACIER = -1
 	CLIMATE = []
 	VARIANTS = {}
+	CAVES = [[], []]
+	CAVE_SHARES = PackedFloat32Array([0.0, 0.0])
 	for r in Content.records_of("biomes", only) if only is Array else Content.records("biomes"):
 		var b: Dictionary = r.duplicate()
 		b.tree_shares = _shares(b.trees, Trees.SPECIES)
@@ -65,6 +71,12 @@ static func refresh(only: Variant = null) -> void:
 		var i := RECORDS.size()
 		RECORDS.append(b)
 		IDS.append(b.id)
+		if b.where == "cave":
+			var tier := 1 if b.tier == "lower" else 0
+			CAVES[tier].append(i)
+			CAVE_SHARES[tier] += b.cave_share
+			b.variant = false
+			continue
 		b.variant = b.where != "climate" and b.where != "alpine" and b.where != "glacier" and b.area < 1.0
 		if b.variant:
 			if not VARIANTS.has(b.where):
@@ -97,7 +109,7 @@ static func refresh(only: Variant = null) -> void:
 ## the land of the bundles chosen there (refresh with `only`) while the world behind it
 ## plays with its own, swapping the tables round the layout of each frame.
 static func tables() -> Array:
-	return [RECORDS, IDS, SEA, BEACH, ROCK, PLATEAU, SWAMP, ALPINE, GLACIER, CLIMATE, VARIANTS]
+	return [RECORDS, IDS, SEA, BEACH, ROCK, PLATEAU, SWAMP, ALPINE, GLACIER, CLIMATE, VARIANTS, CAVES, CAVE_SHARES]
 
 
 ## Puts back tables `t` (see tables).
@@ -113,6 +125,8 @@ static func use(t: Array) -> void:
 	GLACIER = t[8]
 	CLIMATE = t[9]
 	VARIANTS = t[10]
+	CAVES = t[11]
+	CAVE_SHARES = t[12]
 
 
 ## Whether biome `a` comes before `c`: the smaller window first, the first loaded on a tie.
@@ -168,6 +182,17 @@ static func relief(b: int, t: float, m: float) -> int:
 		if t >= r.warmth[0] and t <= r.warmth[1] and m >= r.moisture[0] and m <= r.moisture[1]:
 			return i
 	return b
+
+
+## The kind of cave of tier `tier` (0 upper, 1 lower) for the roll `roll` (0..1): each
+## kind takes its `cave_share` of the roll in turn; NONE when no bundle gives one.
+static func cave(tier: int, roll: float) -> int:
+	var left := roll * CAVE_SHARES[tier]
+	for i: int in CAVES[tier]:
+		left -= RECORDS[i].cave_share
+		if left < 0.0:
+			return i
+	return NONE if CAVES[tier].is_empty() else CAVES[tier][-1]
 
 
 ## The relief biome `b` stands for ("climate" for a climate biome, "" for NONE).
@@ -280,14 +305,15 @@ static func title(b: int) -> String:
 
 
 ## What is wrong with the loaded biomes for the engine, if anything: a window must not
-## be empty, and a relief may have one biome without a window of its own.
+## be empty, and a relief may have one biome without a window of its own (the kinds of
+## caves are many by design).
 static func check() -> PackedStringArray:
 	var out: PackedStringArray = []
 	var seen := {}
 	for b in RECORDS:
 		if b.warmth[0] > b.warmth[1] or b.moisture[0] > b.moisture[1]:
 			out.append("biomes: `%s`: an empty warmth or moisture window" % b.id)
-		if b.where != "climate" and not b.variant:
+		if b.where != "climate" and b.where != "cave" and not b.variant:
 			if seen.has(b.where):
 				out.append("biomes: `%s` and `%s` both stand for the %s" % [seen[b.where], b.id, b.where])
 			seen[b.where] = b.id

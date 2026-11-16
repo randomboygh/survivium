@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/biomes/crystal_cave/bundle.yaml
+"[biomes.crystal_cave.bundle]": "Кристальная пещера"
+
+# content/biomes/crystal_cave/data/biomes.yaml
+"[biomes.biomes.crystal_cave]": "Кристальная пещера"

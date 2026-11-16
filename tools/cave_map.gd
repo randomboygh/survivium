@@ -4,12 +4,17 @@ extends SceneTree
 ## Left: from above, each column shaded by how much cave air lies under it (brighter is
 ## more), the mouths red. Right: four slices from the side (x across, y up) at even
 ## steps of z: stone grey, other ground brown, cave air black, open air sky blue,
-## water blue. Prints the cave cells, their share with no more than two air
+## water blue, the materials of the kinds of caves in their colours (CAVE_COLORS); over
+## the caves from above, the colour of the upper tier's kind. Prints the cave cells, their share with no more than two air
 ## neighbours across (narrow), and the share with rock all round but one side.
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Biomes := preload("res://src/shared/content/biomes.gd")
+## The materials of the kinds of caves in the slices, by id.
+const CAVE_COLORS := {"lava": Color(1.0, 0.45, 0.1), "crystal": Color(0.75, 0.5, 1.0), "deepstone": Color(0.3, 0.32, 0.4),
+	"mycelium": Color(0.85, 0.8, 0.7)}
 
 
 func _initialize() -> void:
@@ -67,6 +72,10 @@ func _initialize() -> void:
 				narrow += 1 if across <= 2 else 0
 				pocket += 1 if solid >= 5 else 0
 			var c := Color(0.15, 0.3, 0.12).lerp(Color(1, 1, 0.85), clampf(n / 16.0, 0.0, 1.0)) if n > 0 else Color(0.15, 0.3, 0.12)
+			# Over caves the colour of the upper tier's kind (Biomes.CAVES), if any.
+			var kind: Dictionary = Biomes.of(gen.cave_kind(x, z, 0))
+			if n > 0 and not kind.is_empty():
+				c = c.lerp(Color(kind.color), 0.5)
 			if lay.flags[lz * cells + lx] & WorldGen.ENTRANCE:
 				c = c.lerp(Color(1, 0.2, 0.1), 0.5)
 			if lay.adit[lz * cells + lx] > 0 or lay.pit[lz * cells + lx] > 0:
@@ -89,6 +98,8 @@ func _initialize() -> void:
 					c = Color(0.2, 0.35, 0.8)
 				elif m == Mat.STONE:
 					c = Color(0.5, 0.5, 0.52)
+				elif CAVE_COLORS.has(Mat.IDS[m].get_slice(":", 1)):
+					c = CAVE_COLORS[Mat.IDS[m].get_slice(":", 1)]
 				else:
 					c = Color(0.55, 0.4, 0.25)
 				img.set_pixel(cells + 8 + lx, oy + sy - 1 - y, c)
