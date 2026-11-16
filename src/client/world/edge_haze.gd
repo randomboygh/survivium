@@ -2,7 +2,7 @@ extends RefCounted
 ## The fog over the edge of the world built (setting «Туман на краю», on by default; user
 ## 2026-11-16, before a haze of the sky's colour): where the player outran the building of
 ## the chunks (ChunkStreamer) or jumped far, the chunks on the screen with no ground yet are
-## covered by a dense white fog with heads of white cumulus over it, instead of the empty
+## covered by a dense white fog (no clouds over it, user 2026-11-16), instead of the empty
 ## background; it thins out over the built chunks beside them, and once a chunk is built its
 ## fog dissolves over DISSOLVE seconds (shaders/edge_fog.gdshader). How much fog each chunk
 ## has is a texel of a small texture round the player (GRID chunks a side), written only while
@@ -25,8 +25,6 @@ const GRID := 32
 ## The fog's light by day, and how much of it is kept at night (the rest the background).
 const FOG_COLOR := Color(0.97, 0.98, 1.0)
 const NIGHT_KEEP := 0.3
-## The clouds' underside, as a share of the fog's light.
-const SHADE := Color(0.72, 0.82, 0.95)
 ## How far (world units) the player goes before the chunks on the screen are looked over
 ## again with nothing else changed: a chunk's edge that far into the screen is within the
 ## FADE the test on the screen allows round it.
@@ -64,7 +62,6 @@ func _init(g) -> void:
 	_texture = ImageTexture.create_from_image(_image)
 	material.set_shader_parameter("amounts", _texture)
 	material.set_shader_parameter("span", float(GRID * CHUNK) * CELL)
-	material.set_shader_parameter("shade", SHADE)
 	node = MeshInstance3D.new()
 	node.material_override = material
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
