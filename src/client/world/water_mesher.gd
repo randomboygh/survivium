@@ -35,7 +35,7 @@ static func foam(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, 
 	for h in 8:
 		var e := h >> 1
 		var n: int = i + (-dz if e == 0 else (dz if e == 1 else (-1 if e == 2 else 1)))
-		if cov[c[n]] and sh[n] >> 4 & (1 << HALF_CORNER[h]) == 0 and shores & (1 << e) == 0:
+		if cov[c[n]] and sh[n] >> 4 & (1 << HALF_CORNER[h] | 1 << HALF_CORNER[h ^ 1]) == 0 and shores & (1 << e) == 0:
 			foam |= 1 << h
 	return foam
 
@@ -109,8 +109,8 @@ static func _key(lx: int, lz: int, y: int, q: int, k: int, wet: bool, spill: int
 
 ## The diagonal lip of a step of a river: water seen from above runs straight across the
 ## step instead of in stairs. Its corners where the three cells around it on its level
-## are air (the lower side of the step) are cut off, from the middle of one side to the
-## middle of the next, as the land's corners are (WorldData.update_corners), so the
+## are air (the lower side of the step) are cut off along the diagonal across it, as
+## the land's corners are (WorldData.update_corners), so the
 ## water lines up with the bed under it, cut the same way; an air cell whose three cells
 ## around a corner are water with air above (the step turning back) gets that corner of
 ## water (lip_fill). The corners of the water cut off in padded cell `i`, as bits 1 << k.
@@ -122,7 +122,8 @@ static func lip_cuts(c: PackedByteArray, i: int, dy: int, dz: int) -> int:
 		var z := i + o.y * dz
 		if c[x] == AIR and c[z] == AIR and c[x + o.y * dz] == AIR:
 			cuts |= 1 << k
-	return cuts
+	# One corner at most, as the land's.
+	return cuts if cuts & (cuts - 1) == 0 else 0
 
 
 ## The corners of air cell `i` that the water of a step's lip fills (see lip_cuts): the
@@ -136,8 +137,12 @@ static func lip_fills(c: PackedByteArray, i: int, dy: int, dz: int) -> int:
 		var d := x + o.y * dz
 		if c[x] == WATER and c[z] == WATER and c[d] == WATER and c[x + dy] == AIR and c[z + dy] == AIR \
 				and c[d + dy] == AIR:
-			fills |= 1 << k
-	return fills
+			# Not where a side's own corner facing this cell is cut (see lip_cuts).
+			var bx := i - o.x
+			var bz := i - o.y * dz
+			if not (c[bx] == AIR and c[bx + o.y * dz] == AIR or c[bz] == AIR and c[bz + o.x] == AIR):
+				fills |= 1 << k
+	return fills if fills & (fills - 1) == 0 else 0
 
 
 ## The halves of side `d` (`off` the way to the cell beside) of water cell `i` that its
@@ -318,7 +323,7 @@ static func water_faces(buf, faces: Array, nb: PackedByteArray, base: Vector3, d
 			if d == FACE_TOP and ((fills | cuts) != 0 or corners[1] != corners[0] or corners[2] != corners[0] \
 					or corners[3] != corners[0]):
 				for q in 4:
-					_piece(buf, base, h, q, CUT if (fills | cuts) & (1 << q) else QUARTER, Vector3.UP, mid, data,
+					_piece(buf, base, h, q, cut_kind(fills | cuts), Vector3.UP, mid, data,
 						foam >> (16 + 2 * q) & 3, corners)
 				continue
 			# A side open to the air under the open sky is a fall's: its sheet covers it.
@@ -470,7 +475,7 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 	var murks := murk_corners(w, c, i, dz, base)
 	var sea := sea_near(w, int(base.x), int(base.y), int(base.z))
 	var steps := Vector2i(Slopes.PATCH_STEPS, Slopes.PATCH_STEPS)
-	var hs: PackedFloat32Array = Slopes.patch_grid(Slopes.patch(c, sh, i, dy, dz), 0.0, steps)[0]
+	var hs: PackedFloat32Array = Slopes.surface_grid(c, sh, i, dy, dz, steps)
 	var start: int = buf.verts.size()
 	var nu := steps.x + 1
 	var data := Vector2(float(foam), 1.0)
