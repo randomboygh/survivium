@@ -18,6 +18,7 @@ WA-021 (#584), WA-020, WA-023, WA-057 (#596).
 WA-033, WA-035, WA-036, WA-037, WA-038, WA-062, WA-063 (#589, checked in the code on 2026-11-15: the mods' files are stepped 12 a frame while the game is in front, fires are kept in a list, the haze skips its scan, `UiStyle.forget`, `Server._prune`, far animals left out of snapshots, the bag lays out only itself).
 WA-030 (the owner picked the YAML mark: a creature field `menu`, `AiRules.menu_species`), WA-051 (`quality: 0` for building and swimming).
 WA-018 (the owner, 2026-11-16: the password stays in `server.cfg` as it is; a hash would need typing it at each start, as the host and the bots join with it).
+WA-052 (the owner picked "move now": vessels' `seats`/`board_swing`, seeds' `sow_swing`, cans' `water_swing`, creatures' `tend_swing`, trees' and bushes' `seeding`/`seed_reach`/`seed_tries`, trees' `seed_room`, biomes' `grass_back`; defaults equal the old constants).
 WA-058 (the owner, 2026-11-15: keep ws:// on a local network, TLS only through the tunnel), WA-059 (the owner: no player accounts).
 WA-025 (#696: `settings_menu._section_rows` one function per tab, `hud._ready` eight build steps, `land_layout._layout_row` two passes `_water_row` and `_cover_row`, the layout byte-identical and as fast on a bench).
 WA-060 (checked 2026-11-15 on the `main protection` ruleset: a pull request and the checks lint, checks, tests, progress (hunting), progress (other), frames, export, pc, android are required).
@@ -110,16 +111,6 @@ recommendations.
 - **Files and systems:** the scene tests
 - **Consequences:** Noise; a real leak would hide among them.
 - **Recommended fix:** Run with `--verbose` to name the owners.
-- **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
-
-### WA-052 · Low · Data
-
-- **Description:** Numbers that describe content live in code constants.
-- **Cause:** Kept as rule tunables.
-- **Confirmation:** Read: `src/shared/game/vessels.gd:21` `SEATS`, `actions_nature.gd:25-31` seed chances, swing times in `actions_farm.gd`, `actions_boat.gd`, `actions_tame.gd`.
-- **Files and systems:** the files named
-- **Consequences:** A mod cannot change them.
-- **Recommended fix:** Move to YAML fields when a mod needs another value.
 - **Status:** Open: backlog; first found 2026-11-14 (new); due backlog.
 
 ### WA-053 · Low · Content

@@ -31,8 +31,6 @@ const BACK_SEAT := 0.6
 ## the vessel no longer floats.
 const ASHORE_AHEAD := [1.0, 1.5]
 const ASHORE_ROUND := 3
-## Seconds of the hands a launch, a boarding or a step ashore takes.
-const BOAT_SWING := 0.5
 ## Seconds between two looks at whether the vessels still float (step_boats), and
 ## between two moves of the things the rivers carry (step_drift).
 const BOATS_EVERY := 0.5
@@ -155,7 +153,7 @@ func boarded(who) -> Dictionary:
 		return {}
 	var ahead: Vector3 = who.position + Vector3(dir.x, 0.0, dir.y) * CELL
 	var v: Dictionary = vessels.near(ahead, BOARD_REACH)
-	if v.is_empty() or riders(v.id).size() >= VesselsScript.SEATS or not _probe().floats(v.at):
+	if v.is_empty() or riders(v.id).size() >= VesselsScript.seats(v) or not _probe().floats(v.at):
 		return {}
 	return v
 
@@ -210,7 +208,7 @@ func boat(who) -> Dictionary:
 			var at := launch_spot(who)
 			if not _may(who, _cell_of(at), "build") or not _launch(who, item, at, _way(who)):
 				return {}
-			return _work(BOAT_SWING, "", at)
+			return _work(board_swing(item), "", at)
 		"board":
 			var v := boarded(who)
 			var seat := 0 if riders(v.id).is_empty() else 1
@@ -219,12 +217,19 @@ func boat(who) -> Dictionary:
 			if seat == 0 and not _may(who, _cell_of(v.at), "build"):
 				return {}
 			_sit(who, v, seat)
-			return _work(BOAT_SWING, "", v.at)
+			return _work(board_swing(v.item), "", v.at)
 		"ashore":
 			var at := ashore_spot(who)
+			var swing := board_swing(who.riding)
 			leave_boat(who, at)
-			return _work(BOAT_SWING, "", at)
+			return _work(swing, "", at)
 	return {}
+
+
+## Seconds of the hands a launch, a boarding or a step ashore of vessel item `item` takes
+## (its `board_swing`).
+static func board_swing(item: String) -> float:
+	return Items.get_item(item).get("board_swing", ContentSchema.default_of("items", "board_swing"))
 
 
 ## Puts vessel `item` out of `who`'s bag on the water at `at`, turned along `dir`, and
@@ -344,7 +349,7 @@ func step_boats(seconds: float, players: Array) -> void:
 		var v: Dictionary = vessels.of(id)
 		var taken: Array = seats.get(id, [])
 		seats[id] = taken
-		if v.is_empty() or taken.size() >= VesselsScript.SEATS:
+		if v.is_empty() or taken.size() >= VesselsScript.seats(v):
 			who.riding = ""
 			who.vessel = 0
 			who.seat = 0

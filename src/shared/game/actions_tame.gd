@@ -137,11 +137,8 @@ func tend(who, dir := Vector2.ZERO) -> Dictionary:
 		"follow":
 			a.stay = Vector3.INF
 			who.say(Lang.line("[follows_you]", [spec.title]))
-	return _work(TEND_SWING, "", a.pos + Vector3(0.0, 0.2, 0.0))
+	return _work(spec.tend_swing, "", a.pos + Vector3(0.0, 0.2, 0.0))
 
-
-## Seconds of the hands a tending takes.
-const TEND_SWING := 0.6
 
 ## The herds over `seconds` of play, looked at every HERD_EVERY (see the top): a pair of
 ## fed tame ones staying together has a young one.
@@ -202,7 +199,7 @@ func release(who) -> Dictionary:
 		return {}
 	var a = wildlife.release(kind, at, owner_id(who))
 	who.say(Lang.line("[is_yours_now_and_follows]", [AiRules.SPECIES[kind].title]))
-	return _work(TEND_SWING, "", a.pos + Vector3(0.0, 0.2, 0.0))
+	return _work(AiRules.SPECIES[kind].tend_swing, "", a.pos + Vector3(0.0, 0.2, 0.0))
 
 
 ## The kinds the bait in trap `e` lures (their `trapped` set, one of their `tame_food`

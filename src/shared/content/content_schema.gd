@@ -80,6 +80,10 @@ const SCHEMAS := {
 		"plant": {"type": "ref:bushes", "default": "", "rel": "grows_into", "via": "plant"},
 		"sow": {"type": "ref:materials", "default": "", "rel": "grows_into", "via": "sow"},
 		"crop": {"type": "ref:plants", "default": "", "rel": "grows_into", "via": "sow"},
+		# Seconds of the hands sowing one of this seed on a bed takes (ActionsFarm.sow).
+		"sow_swing": {"type": "float", "min": 0.05, "default": 0.3},
+		# Seconds of the hands watering with this can takes (ActionsFarm.water).
+		"water_swing": {"type": "float", "min": 0.05, "default": 0.6},
 		"reach": {"type": "int", "min": 1, "default": 8},
 		"durability": {"type": "int", "min": 0, "default": 0},
 		# A weapon that shoots or is thrown: how far, in cells, and what it shoots (one of
@@ -175,6 +179,10 @@ const SCHEMAS := {
 		# A vessel (Vessels): launched on water from the bag, it carries one at this share of
 		# the walking pace; `oars` — the item that must be in the bag to row it ("" none).
 		"vessel": {"type": "float", "min": 0.0, "default": 0.0},
+		# The seats of a vessel (the first rows it, the others are carried) and the seconds
+		# of the hands launching, boarding or leaving it takes (ActionsBoat.boat).
+		"seats": {"type": "int", "min": 1, "default": 2},
+		"board_swing": {"type": "float", "min": 0.05, "default": 0.5},
 		"windage": {"type": "float", "min": 0.0, "default": 0.0},
 		"oars": {"type": "ref:items", "soft": true, "default": "", "rel": "requires"},
 		# A trap (ActionsTame.step_traps): set down with bait in it, it lures from this many
@@ -261,6 +269,9 @@ const SCHEMAS := {
 		# the kind live there.
 		"tame_food": {"type": "list", "of": "ref:items", "soft": true, "default": [], "rel": "feeds_on"},
 		"tame_feeds": {"type": "int", "min": 1, "default": 3},
+		# Seconds of the hands tending one (feeding, shearing, telling it to stay or follow,
+		# letting it out of the bag) takes (ActionsTame.tend).
+		"tend_swing": {"type": "float", "min": 0.05, "default": 0.6},
 		"wool": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "shear"},
 		"wool_days": {"type": "float", "min": 0.1, "default": 2.0},
 		"breed_days": {"type": "float", "min": 0.1, "default": 4.0},
@@ -295,6 +306,13 @@ const SCHEMAS := {
 		"hits": {"type": "int", "min": 1, "default": 4},
 		"twigs": {"type": "int", "min": 0, "default": 0},
 		"seeds": {"type": "int", "min": 0, "default": 0},
+		# Nature on its own (ActionsNature): the chance a grown tree's seed takes root near it
+		# in a year, how far (cells), how many columns round the spot must be free of trunks
+		# and the tries to find a spot.
+		"seeding": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.12},
+		"seed_reach": {"type": "int", "min": 1, "default": 7},
+		"seed_room": {"type": "int", "min": 0, "default": 3},
+		"seed_tries": {"type": "int", "min": 1, "default": 4},
 	},
 	"bushes": {
 		"tint": {"type": "color"},
@@ -309,6 +327,11 @@ const SCHEMAS := {
 		"twigs": {"type": "int", "min": 0, "default": 0},
 		"twig": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "gather"},
 		"item": {"type": "ref:items", "default": "", "rel": "drops", "via": "dig_out"},
+		# Nature on its own (ActionsNature): the chance the bush puts a new one of its kind
+		# beside it in a year, how far (cells) and the tries to find a spot.
+		"seeding": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.15},
+		"seed_reach": {"type": "int", "min": 1, "default": 3},
+		"seed_tries": {"type": "int", "min": 1, "default": 4},
 	},
 	"biomes": {
 		"where": {"type": "enum", "values": ["climate", "sea", "beach", "rock", "plateau", "swamp", "alpine", "glacier"], "default": "climate"},
@@ -331,6 +354,9 @@ const SCHEMAS := {
 		"bushes": {"type": "shares", "of": "ref:bushes", "soft": true, "default": {}, "rel": "spawns"},
 		"bush_sparsity": {"type": "int", "min": 0, "default": 0},
 		"spawn": {"type": "bool", "default": false},
+		# The chance a bare natural ground cell beside grass grows over in a year where the
+		# biome lays grass on top (ActionsNature).
+		"grass_back": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.6},
 		"sandstorms": {"type": "bool", "default": false},
 		"color": {"type": "color"},
 		# The colour the biome's ground and water take instead of their own, by the names
@@ -525,6 +551,11 @@ static var _at := {}
 static var _schemas := {}
 ## refs by kind.
 static var _refs := {}
+
+
+## The default of field `field` of records of `kind` (null for none).
+static func default_of(kind: String, field: String) -> Variant:
+	return schema(kind).get(field, {}).get("default")
 
 
 ## The fields of a record of `kind`: its kind's and the COMMON ones.
