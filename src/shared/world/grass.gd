@@ -191,6 +191,10 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 		if grow != 0:
 			_grown(grow, out, rng)
 			return loaded(out)
+	if m == Mat.MYCELIUM and m >= 0:
+		_fields()
+		_cave_floor(x, z, out, rng)
+		return loaded(out)
 	var tier := BARE_TIER
 	if m == Mat.GRASS:
 		_fields()
@@ -473,6 +477,18 @@ static func _forest_floor(x: int, z: int, out: Array[int], rng: RandomNumberGene
 		if rng.randf() < 0.55:
 			out.append(GLOW + rng.randi_range(0, 1))
 	elif mushroom_noise.get_noise_2d(x, z) > 0.4 and rng.randf() < 0.5:
+		out.append(MUSHROOM + rng.randi_range(0, 1))
+
+
+## The floor of a mushroom cave (Mat.MYCELIUM): moss in its patches, mushrooms in groups,
+## and glowing ones more often than in the woods (they glow in the dark, grass.gdshader).
+static func _cave_floor(x: int, z: int, out: Array[int], rng: RandomNumberGenerator) -> void:
+	if moss_noise.get_noise_2d(x, z) > -0.3 and rng.randf() < 0.7:
+		out.append(MOSS + rng.randi_range(0, 1))
+	if glow_noise.get_noise_2d(x, z) > 0.1:
+		if rng.randf() < 0.6:
+			out.append(GLOW + rng.randi_range(0, 1))
+	elif mushroom_noise.get_noise_2d(x, z) > 0.0 and rng.randf() < 0.5:
 		out.append(MUSHROOM + rng.randi_range(0, 1))
 
 

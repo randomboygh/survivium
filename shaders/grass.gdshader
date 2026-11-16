@@ -151,6 +151,9 @@ void vertex() {
 }
 
 void fragment() {
+	// Glowing mushrooms, their spores and halo glow at night, and always deep down where
+	// no daylight comes (a mushroom cave).
+	float dark_glow = max(night_glow, 1.0 - sea_bright(root.y));
 	vec2 cell = vec2(plant_column * 8.0, 0.0);
 	// The texture is a row taller than the plants (the looks of the columns).
 	vec4 m = texture(plant_texture, (cell + UV * vec2(8.0, 24.0)) / vec2(8.0 * plant_count, 25.0));
@@ -211,7 +214,7 @@ void fragment() {
 		col = m.rgb * custom.y * (kind == GLOW ? 0.7 : 1.0);
 	} else if (kind == SPORE) {
 		// Spores only show in the dark, and are gone near the top of their rise.
-		if (night_glow < 0.3 || life > 0.92 || snow_here > 0.4) {
+		if (dark_glow < 0.3 || life > 0.92 || snow_here > 0.4) {
 			discard;
 		}
 		col = vec3(0.0);
@@ -222,7 +225,7 @@ void fragment() {
 		// moves.
 		vec2 p = floor(vec2((UV.x - 0.5) * 8.0, (1.0 - UV.y) * 24.0) * HALO_SCALE);
 		float k = max(1.0 - length(p + vec2(0.5, -2.5)) / 9.0, 0.0);
-		k = k * k * night_glow;
+		k = k * k * dark_glow;
 		if (k <= 0.0 || snow_here > 0.4 || bayer4(p + 64.0) > k * 1.2) {
 			discard;
 		}
@@ -251,14 +254,14 @@ void fragment() {
 		// The caps (green well above red) glow at night, breathing slowly; softly, as the
 		// nearest light the ground round them too (GlowLights).
 		float cap = clamp((m.g - m.r) * 2.5, 0.0, 1.0);
-		EMISSION += m.rgb * cap * night_glow * (2.0 + 0.45 * sin(TIME * 1.1 + custom.z * 6.28)) * (1.0 - veiled.a);
+		EMISSION += m.rgb * cap * dark_glow * (2.0 + 0.45 * sin(TIME * 1.1 + custom.z * 6.28)) * (1.0 - veiled.a);
 	} else if (kind == SPORE) {
 		// The fog hides a spore as it hides the mushroom it rose from (it showed through
 		// a morning fog as bright green specks over the empty grass).
-		EMISSION += m.rgb * night_glow * custom.y * 2.5 * (1.0 - life * 0.6) * (1.0 - veiled.a);
+		EMISSION += m.rgb * dark_glow * custom.y * 2.5 * (1.0 - life * 0.6) * (1.0 - veiled.a);
 	} else if (kind == HALO) {
 		EMISSION += GLOW_COLOR * custom.y * 0.45 * (1.0 - veiled.a);
-	} else if (kind == CUSTOM && m.a < 0.95 && night_glow < 0.5) {
+	} else if (kind == CUSTOM && m.a < 0.95 && dark_glow < 0.5) {
 		// Dew on a plant's picture (texels of alpha 200..240, a sundew's drops) glints in
 		// the sun, a drop now and then.
 		vec2 t = floor(UV * vec2(8.0, 24.0));

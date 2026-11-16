@@ -30,18 +30,21 @@ const RENAMED := {
 ## fills.
 const ROLES := {
 	"beach": "BEACH", "bank": "BANK", "scree": "SCREE", "snow": "SNOW", "peat": "PEAT", "salt": "SALT", "ice": "ICE", "ore": "ORE", "trunk": "LOG", "crown": "LEAVES",
-	"bed": "BED", "bed_wet": "BED_WET",
+	"bed": "BED", "bed_wet": "BED_WET", "mycelium": "MYCELIUM",
 }
 ## Bits of `shader_bits`, one word per material for world.gdshader: the priority at a
 ## boundary (low 4 bits), DRAINS (no puddles), and the kind of patches on open ground
 ## (`ground`: none, soil, sand, rock) in bits 5 and 6, from bit 8 the texels its
 ## boundaries go ragged over (`fray`, 0..7), from bit 11 the texels it reaches into
-## another material on the sides of cells (`side_fray`, 0..7).
+## another material on the sides of cells (`side_fray`, 0..7), from bit 14 how brightly
+## it shines by itself (`glow` × 15).
 const PRIORITY_MASK := 15
 const DRAINS := 16
 const GROUND_SHIFT := 5
 const FRAY_SHIFT := 8
 const SIDE_FRAY_SHIFT := 11
+## The material shines by itself (`glow` over zero): bits 14..17 hold glow × 15.
+const GLOW_SHIFT := 14
 ## The bit main.gd adds for the log and the barks: they clear round the player.
 const TRUNK := 128
 const GROUNDS := ["none", "soil", "sand", "rock"]
@@ -65,6 +68,8 @@ static var LEAVES := -1
 ## Tilled ground (a bed, WorldData.fields), dry and wet.
 static var BED := -1
 static var BED_WET := -1
+## The floor of a mushroom cave: moss and mushrooms grow on it (Grass.kinds).
+static var MYCELIUM := -1
 static var COUNT := 0
 ## What each material becomes mown (its `mow`, an index), -1 for none (Tools.mown).
 static var mow_to: PackedInt32Array = []
@@ -112,7 +117,7 @@ static func refresh() -> void:
 		flags.append((SOLID if r.solid else 0) | (ROOF if r.roof else 0) | (SLOPE if r.slope else 0))
 		corner_shape.append(["sharp", "soft", "round"].find(r.corners))
 		layers.append(r.layers)
-		shader_bits.append(r.priority | (DRAINS if r.drains else 0) | (GROUNDS.find(r.ground) << GROUND_SHIFT) | (r.fray << FRAY_SHIFT) | (r.side_fray << SIDE_FRAY_SHIFT))
+		shader_bits.append(r.priority | (DRAINS if r.drains else 0) | (GROUNDS.find(r.ground) << GROUND_SHIFT) | (r.fray << FRAY_SHIFT) | (r.side_fray << SIDE_FRAY_SHIFT) | (roundi(r.glow * 15.0) << GLOW_SHIFT))
 		if r.hotbar > 0:
 			hotbar.append([r.hotbar, i])
 	hotbar.sort()
@@ -140,6 +145,7 @@ static func refresh() -> void:
 	LEAVES = -1
 	BED = -1
 	BED_WET = -1
+	MYCELIUM = -1
 	ORES = []
 	ORE_SUMS = []
 	for i in COUNT:
@@ -163,6 +169,7 @@ static func refresh() -> void:
 			LEAVES = i if role == "crown" else LEAVES
 			BED = i if role == "bed" else BED
 			BED_WET = i if role == "bed_wet" else BED_WET
+			MYCELIUM = i if role == "mycelium" else MYCELIUM
 
 
 ## The ore of the vein a share `pick` (0..1) of the way through the ores' `veins`, or

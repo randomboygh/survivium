@@ -9,6 +9,7 @@ func run() -> void:
 	_test_mountains()
 	_test_caves()
 	_test_cave_shape()
+	_test_cave_kinds()
 	_test_landscape()
 	_test_relief()
 	_test_trees()
@@ -316,6 +317,51 @@ func _test_landscape() -> void:
 
 static func _by_climate(b: int) -> bool:
 	return b != Biomes.NONE and Biomes.RECORDS[b].where == "climate"
+
+
+## The kinds of caves (Biomes.CAVES, where: cave): each region of a tier is one kind, and
+## the halls of each kind have its own: mycelium, crystals, water, deep rock, lava; lava and
+## deep rock only in the lower tier; lava and crystals shine (Mat.GLOW_SHIFT).
+func _test_cave_kinds() -> void:
+	_check(not Biomes.CAVES[0].is_empty() and not Biomes.CAVES[1].is_empty(), "kinds of caves for both tiers")
+	var gen := WorldGen.new(20261018, 48, {"caves": 1, "cave_shape": 1, "relief": 1, "climate": 1, "landscape": 1}, false)
+	_check(gen.cave_kind(1000, -2000, 0) == gen.cave_kind(1000, -2000, 0), "a column's kind of cave is the same each time")
+	for pair: Array in [["mushroom_cave", "resources:mycelium"], ["crystal_cave", "resources:crystal"],
+			["flooded_cave", "core:water"], ["deep_cave", "resources:deepstone"], ["lava_cave", "resources:lava"]]:
+		var b := Biomes.named(pair[0])
+		var tier := 1 if Biomes.of(b).tier == "lower" else 0
+		var m := Mat.index(pair[1])
+		# The first few regions of the kind near the spawn: a region may hold no hall
+		# big enough for every part of its kind.
+		var found := 0
+		var tried := 0
+		for r in range(0, 4000, 48):
+			for k in 16:
+				var p := Vector2i(int(cos(k * TAU / 16) * r), int(sin(k * TAU / 16) * r)) + Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
+				if found > 0 or tried >= 4 or gen.cave_kind(p.x, p.y, tier) != b or gen.lay_out(p.x, p.y, 1, 1).heights[0] <= gen.sea + 8:
+					continue
+				tried += 1
+				found += _cells_of(gen, WorldData.chunk_key(p.x, p.y), m)
+		_check(found > 0, "the halls of a %s have %s (%d cells)" % [pair[0], pair[1], found])
+	_check(Mat.shader_bits[Mat.index("resources:lava")] >> Mat.GLOW_SHIFT > 0, "lava shines by itself")
+	_check(Mat.shader_bits[Mat.STONE] >> Mat.GLOW_SHIFT == 0, "stone does not")
+
+
+## The cells of material `m` under the ground in the 5×5 chunks round chunk `key`.
+func _cells_of(gen: WorldGen, key: Vector2i, m: int) -> int:
+	gen.generate_area(key - Vector2i(2, 2), key + Vector2i(2, 2))
+	var found := 0
+	for dz in range(-2, 3):
+		for dx in range(-2, 3):
+			var x0 := (key.x + dx) * WorldData.CHUNK
+			var z0 := (key.y + dz) * WorldData.CHUNK
+			for lz in WorldData.CHUNK:
+				for lx in WorldData.CHUNK:
+					var top := gen.world.surface_y(x0 + lx, z0 + lz)
+					for y in range(1, top - 2):
+						if gen.world.get_cell(x0 + lx, y, z0 + lz) == m:
+							found += 1
+	return found
 
 
 ## Cave shape 1 (new worlds): halls and galleries no lower than three cells, so there

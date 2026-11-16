@@ -31,6 +31,7 @@ const Bushes := preload("res://src/shared/content/bushes.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const CELL := WorldData.CELL
 const CHUNK := WorldData.CHUNK
@@ -477,6 +478,8 @@ func _place(id: String) -> bool:
 				await process_frame
 		for shift in shifts:
 			await _go(camp + shift * CELL)
+			if Placed.rest_of(id) == Placed.ON_WALL:
+				_wall_beside(camp + shift * CELL)
 			for facing in SpriteSheet.COMPASS:
 				main.player.facing = facing
 				# Set down in front as the bag's old button did (the build mode sets things down
@@ -488,6 +491,19 @@ func _place(id: String) -> bool:
 					print("set down %s" % Items.title(id))
 					return true
 	return _fail("%s cannot be set down at the camp: %s" % [Items.title(id), _camp_report()])
+
+
+## Builds a stone post two cells high two cells east of `at` (world units) where the
+## ground is open, as a player would for a thing hung on a wall (a notice board): the
+## camp of a world on open plains has no cliff or trunk beside it.
+func _wall_beside(at: Vector3) -> void:
+	var w = main.session.world
+	var foot := Vector3i(floori(at.x / CELL) + 2, floori(at.y / CELL + 0.01), floori(at.z / CELL))
+	if not w.is_solid(foot.x, foot.y - 1, foot.z):
+		return
+	for dy in 2:
+		if w.get_cell(foot.x, foot.y + dy, foot.z) == Mat.AIR:
+			main.session.actions.build_cell(foot + Vector3i(0, dy, 0), Mat.STONE)
 
 
 ## The camp as the placing sees it, for a failure's message: the view's cut, the feet,

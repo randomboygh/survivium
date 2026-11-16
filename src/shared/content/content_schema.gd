@@ -28,7 +28,7 @@ const SCHEMAS := {
 		"slope": {"type": "bool", "default": false},
 		"hotbar": {"type": "int", "min": 0, "default": 0},
 		"corners": {"type": "enum", "values": ["sharp", "soft", "round"], "default": "sharp"},
-		"role": {"type": "enum", "values": ["none", "beach", "bank", "scree", "snow", "peat", "salt", "ice", "ore", "trunk", "crown", "bed", "bed_wet"], "default": "none"},
+		"role": {"type": "enum", "values": ["none", "beach", "bank", "scree", "snow", "peat", "salt", "ice", "ore", "trunk", "crown", "bed", "bed_wet", "mycelium"], "default": "none"},
 		# An ore's share of the veins in the rock, against the other ores' (role ore).
 		"veins": {"type": "float", "min": 0.0, "default": 1.0},
 		"priority": {"type": "int", "min": 0, "max": 15, "default": 0},
@@ -56,6 +56,9 @@ const SCHEMAS := {
 		"mow_gives": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "mow"},
 		"step": {"type": "sound", "default": ""},
 		"hit": {"type": "sound", "default": ""},
+		# How brightly it shines by itself, 0..1 (lava, crystals): world.gdshader draws its
+		# faces lit however dark it is round them (Mat.GLOW in shader_bits).
+		"glow": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 	},
 	"items": {
 		"weight": {"type": "float", "min": 0.0},
@@ -334,7 +337,7 @@ const SCHEMAS := {
 		"seed_tries": {"type": "int", "min": 1, "default": 4},
 	},
 	"biomes": {
-		"where": {"type": "enum", "values": ["climate", "sea", "beach", "rock", "plateau", "swamp", "alpine", "glacier"], "default": "climate"},
+		"where": {"type": "enum", "values": ["climate", "sea", "beach", "rock", "plateau", "swamp", "alpine", "glacier", "cave"], "default": "climate"},
 		# The climate zone the biome belongs to (with climate 1 a zone's biomes lie side by
 		# side): a label for the map, the reports and the test world, not a rule.
 		"zone": {"type": "enum", "values": ["", "polar", "north", "temperate", "steppe", "hot", "tropic", "mountain"], "default": ""},
@@ -363,6 +366,22 @@ const SCHEMAS := {
 		# of the `top` field and water (white sand and turquoise water by a tropical beach,
 		# yellow grass in a savanna): the client tints the texture toward it.
 		"tints": {"type": "colors", "keys": ["grass", "dirt", "sand", "clay", "snow", "peat", "salt", "water"], "default": {}},
+		# A kind of cave (where: cave; the halls of new worlds, WorldGen._halls): each region of
+		# CAVE_REGION cells of a tier of halls is one kind, picked by `cave_share` among the
+		# kinds of that tier (upper, or lower: TIER_GAP deeper). Its floor and the rock round it
+		# are of these materials ("" leaves stone); water stands over the floor to the share
+		# `flood` of a hall's height; where the floor dips deepest (the hall's size over
+		# `pools_from`, 0..1) it is a pool of `pools`; on the floor and from the ceiling a
+		# column now and then (`crystal_chance`) is a block of `crystals`.
+		"tier": {"type": "enum", "values": ["upper", "lower"], "default": "upper"},
+		"cave_share": {"type": "float", "min": 0.0, "default": 1.0},
+		"cave_floor": {"type": "ref:materials", "soft": true, "default": "", "rel": "spawns"},
+		"cave_walls": {"type": "ref:materials", "soft": true, "default": "", "rel": "spawns"},
+		"flood": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		"pools": {"type": "ref:materials", "soft": true, "default": "", "rel": "spawns"},
+		"pools_from": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.6},
+		"crystals": {"type": "ref:materials", "soft": true, "default": "", "rel": "spawns"},
+		"crystal_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 	},
 	# What a recipe makes and its by-products (`also`, each with its chance, decided by the
 	# job: Crafting.outputs), what it uses up (`needs`), what must be in the bag and is not

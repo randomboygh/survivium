@@ -23,6 +23,9 @@ content/resources/
   peat/                 "Peat": the brown ground of peat bogs (role: peat) with a texture; dug with a shovel, peat
                         lights a campfire (fuel)
   salt/                 "Salt": the white crust of salt flats (role: salt) with a texture; dug with a shovel and gives salt
+  caves/                "Cave rock": the materials of the kinds of caves, with textures: mycelium (role: mycelium, the
+                        floor of mushroom caves), glowing crystal (gives a crystal, set down again as a glowing block),
+                        deep rock round the lower halls, and lava in their pools (glows, cannot be dug)
 ```
 
 Each bundle is a folder with `bundle.yaml` (`title`) and its own `data/<kind>.yaml`, `icons/`, `models/`,

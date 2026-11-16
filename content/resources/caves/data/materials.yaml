@@ -1,0 +1,49 @@
+# The rock and the floors of the kinds of caves (biomes where: cave, content/biomes/*_cave): fields as for the core
+# materials (content/core/data/materials.yaml); glow — how brightly it shines by itself in the dark, 0..1.
+# Mycelium: the soft floor of a mushroom cave, white threads in dark earth (role mycelium: moss and mushrooms,
+# glowing ones too, grow on it). Dug with a shovel and gives earth.
+- id: mycelium
+  title: "[resources.materials.mycelium]"
+  role: mycelium
+  corners: soft
+  slope: true
+  priority: 4
+  side_fray: 2
+  ground: soil
+  item: dirt
+  dig: shovel
+  step: step_dirt
+  hit: dig
+# Crystal: a block of violet crystal grown on the floor and from the ceiling of a crystal cave; it glows. Broken
+# with a pickaxe it gives a crystal, which is set down again as a glowing block.
+- id: crystal
+  title: "[resources.materials.crystal]"
+  priority: 5
+  side_fray: 0
+  ground: rock
+  drains: true
+  item: crystal
+  hardness: 2
+  toughness: 2
+  glow: 0.8
+  step: step_stone
+# Deep rock: dark blue-grey stone round the halls of the lower tier. Harder than stone; gives stone.
+- id: deepstone
+  title: "[resources.materials.deepstone]"
+  priority: 1
+  side_fray: 3
+  ground: rock
+  item: stone
+  hardness: 2
+  toughness: 4
+  step: step_stone
+# Lava: molten rock in pools where the floor of a lava cave dips deepest. It does not flow; it glows. It cannot
+# be dug.
+- id: lava
+  title: "[resources.materials.lava]"
+  priority: 7
+  ground: none
+  drains: true
+  dig: none
+  glow: 1.0
+  step: step_stone

@@ -51,6 +51,19 @@ const WOODS_CHANCE := 0.12
 const SPAWN_CALM := 64
 ## Veins are of one ore in each block of 2^VEIN_SHIFT cells a side (see _vein).
 const VEIN_SHIFT := 3
+## Kinds of caves (Biomes.CAVES): each region of about CAVE_REGION cells across of a tier
+## of halls is one kind, its edges bent by up to CAVE_WOBBLE cells; the rock CAVE_WALL
+## levels round its halls and galleries, thinning away beside them, is the kind's
+## `cave_walls`; water of a flooded kind
+## stands at most this high under a hall's ceiling (so a way through stays above it).
+const CAVE_REGION := 160.0
+const CAVE_WOBBLE := 48.0
+const CAVE_WALL := 3
+## How far below a hall's threshold (HALL_FROM) of its noise the rock is still the kind's.
+const CAVE_WALL_REACH := 0.08
+const FLOOD_HEADROOM := 2
+## The halls' widest lens (HALL_RISE + 1.8): `pools_from` is a share of it.
+const HALL_MOST := 6.3
 
 var world: WorldData
 ## Cells of a saved chunk come from a world saved with materials in another order:
@@ -66,6 +79,8 @@ var planted := {}
 ## Where the player is first put: a meadow near the origin, refined by find_spawn once
 ## its chunk is made.
 var spawn_guess: Vector3i
+## The water bits _halls left in the column it last cut (a flooded cave).
+var _hall_water := 0
 ## The spawn is still being looked for (seek_spawn); where the search is (ring, row,
 ## column), and whether land was met yet (the fallback).
 var seeking := false
@@ -486,6 +501,8 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		if settings.cave_shape == 1:
 			if height > sea + 2 and wt < 0 and _dry_around(water, j):
 				air_bits |= _halls(cells, col, x_first + lx, z, height, lay, j)
+				if _hall_water != 0:
+					water_cols[col] |= _hall_water
 			# A descent is cut wherever it runs on dry land, low ground too, or it
 			# would end in a wall.
 			if wt < 0:
@@ -537,7 +554,10 @@ func _halls(cells: PackedByteArray, col: int, x: int, z: int, height: int, lay: 
 	var entrance: bool = lay.flags[j] & ENTRANCE != 0
 	var t: float = HALL_FROM[settings.caves] - (0.25 if entrance else 0.0)
 	var way: int = lay.descent[j] - 1
+	_hall_water = 0
 	for tier in 2:
+		var kind := cave_kind(x, z, tier)
+		var rec: Dictionary = Biomes.of(kind)
 		var v := (n_hall if tier == 0 else n_hall2).get_noise_2d(x, z)
 		var m := mid - tier * TIER_GAP
 		var half := 0.0
@@ -548,6 +568,18 @@ func _halls(cells: PackedByteArray, col: int, x: int, z: int, height: int, lay: 
 		var gw := GALLERY_WIDTH + 0.02 * n_mid.get_noise_2d(z, x)
 		if g < gw:
 			half = maxf(half, 1.6 + 0.6 * (1.0 - g / gw))
+		# The rock round a hall or a gallery of the tier, a little past their edge, is its
+		# kind's (`cave_walls`).
+		# Round a hall, CAVE_WALL levels over and under it; beside one, a shell that
+		# thins away from it (by how far its noise is under the threshold).
+		var walls := _cave_mat(rec, "cave_walls")
+		if walls >= 0:
+			var near := maxf((v - tt + CAVE_WALL_REACH) / CAVE_WALL_REACH, 1.0 - (g - gw) / gw)
+			if half > 0.0 or near > 0.0:
+				var reach := half + CAVE_WALL if half > 0.0 else CAVE_WALL * minf(near, 1.0)
+				for yc in range(maxi(1, roundi(m - reach)), mini(cap + 2, roundi(m + reach)) + 1):
+					if cells[yc * layer + col] == Mat.STONE:
+						cells[yc * layer + col] = walls
 		if half <= 0.0:
 			continue
 		var lo := roundi(m - half * HALL_DIP)
@@ -556,19 +588,71 @@ func _halls(cells: PackedByteArray, col: int, x: int, z: int, height: int, lay: 
 		lo = maxi(lo, 1)
 		if hi - lo < 2:
 			continue
+		var natural_floor := true
 		if way >= 0 and hi >= way and lo <= way:
 			lo = way + 1
+			natural_floor = false
 		elif lay.pile[j] > lo and hi >= lay.pile[j] - 1:
 			lo = lay.pile[j]
+			natural_floor = false
 		for yc in range(lo, hi + 1):
 			cells[yc * layer + col] = Mat.AIR
 			bits |= 1 << yc
+		if not rec.is_empty():
+			bits = _cave_kind_cells(cells, col, x, z, rec, m, half, lo, hi, natural_floor, bits)
 	# A gallery into a mountain's side (see _tunnels), five cells tall.
 	var adit_y: int = lay.adit[j]
 	if adit_y > 0 and lay.flags[j] & GALLERY:
 		for yc in range(adit_y, mini(adit_y + ADIT + 1, height + 1)):
 			cells[yc * layer + col] = Mat.AIR
 			bits |= 1 << yc
+	return bits
+
+
+## The kind of cave (a Biomes index, Biomes.NONE for none) of tier `tier` (0 upper,
+## 1 lower) at column x, z: the region it lies in, see CAVE_REGION.
+func cave_kind(x: int, z: int, tier: int) -> int:
+	if Biomes.CAVES[tier].is_empty():
+		return Biomes.NONE
+	var wob := n_mid.get_noise_2d(z * 0.5 + 311.0, x * 0.5) * CAVE_WOBBLE
+	var rx := floori((x + wob) / CAVE_REGION)
+	var rz := floori((z - wob) / CAVE_REGION)
+	return Biomes.cave(tier, _chance(rx, rz, 41 + tier))
+
+
+## The material of cave kind `rec`'s field `field`, -1 for none (or one not loaded).
+static func _cave_mat(rec: Dictionary, field: String) -> int:
+	var id: String = rec.get(field, "")
+	return Mat.index(id) if id != "" else -1
+
+
+## What cave kind `rec` makes of a hall cut from `lo` to `hi` in column `col` (x, z) round
+## the tier's middle `m`, the lens `half` tall: its floor (when the floor is the rock's
+## own, not a descent's), a pool where it dips deepest, water up to the flood's level
+## (in _hall_water), a block of crystal on the floor or under the ceiling. Gives the
+## column's air bits less what it filled.
+func _cave_kind_cells(cells: PackedByteArray, col: int, x: int, z: int, rec: Dictionary, m: float, half: float,
+		lo: int, hi: int, natural_floor: bool, bits: int) -> int:
+	var layer := WorldData.LAYER
+	if natural_floor and lo >= 2:
+		var pool := _cave_mat(rec, "pools")
+		var floor := _cave_mat(rec, "cave_floor")
+		if pool >= 0 and half / HALL_MOST > rec.pools_from:
+			cells[(lo - 1) * layer + col] = pool
+		elif floor >= 0:
+			cells[(lo - 1) * layer + col] = floor
+	if rec.flood > 0.0:
+		var level := mini(roundi(m - 1.0 + rec.flood * 4.0), hi - FLOOD_HEADROOM)
+		for yc in range(lo, level + 1):
+			cells[yc * layer + col] = Mat.WATER
+			bits &= ~(1 << yc)
+			_hall_water |= 1 << yc
+	var crystal := _cave_mat(rec, "crystals")
+	if crystal >= 0 and hi - lo >= 4 and _chance(x, z, 43) < rec.crystal_chance:
+		var y := lo if _chance(x, z, 44) < 0.5 else hi
+		if cells[y * layer + col] == Mat.AIR:
+			cells[y * layer + col] = crystal
+			bits &= ~(1 << y)
 	return bits
 
 

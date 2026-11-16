@@ -42,6 +42,11 @@ content/biomes/
                            "Tropical sea" (where: sea with a warmth window — turquoise water over white sand):
                            the tropical zone; a beach and a swamp with their own window are relief variants, only in worlds
                            with climate zones
+  cave/, mushroom_cave/,     Kinds of caves (where: cave) in the halls of new worlds, a region of a tier each: "Cave"
+  crystal_cave/,           (bare stone), "Mushroom cave" (a mycelium floor, moss, glowing mushrooms), "Crystal cave"
+  flooded_cave/,           (glowing crystals), "Flooded cave" (still water) in the upper tier; "Deep cave" (deep rock,
+  deep_cave/, lava_cave/   a crystal here and there) and "Lava cave" (lava pools) in the lower; the materials are in
+                           "Resources" → "Cave rock"
   birch_grove/, pine_wood/, "Birch grove", "Pine wood", "Steppe": biomes added by whole bundles — a climate
   steppe/                  window inside meadow, taiga and desert, species and bushes of other bundles
     data/creatures.yaml    of "Plants" (birch, pine, rowan, dog rose, currant) and patches to the beasts

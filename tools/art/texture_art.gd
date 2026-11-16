@@ -17,7 +17,7 @@ const GRASS := Color(0.4, 0.54, 0.25)
 static func picture(name: String) -> Image:
 	if not name in ["grass", "dirt", "stone", "sand", "water", "log", "leaves", "planks", "clay", "copper_ore", "tin_ore", "iron_ore", "scree", "brick", "snow", "peat", "salt", "ice",
 			"silver_ore", "gold_ore", "platinum_ore", "silver_block", "gold_block", "platinum_block",
-			"log_wall", "wattle", "cut_stone", "bed", "bed_wet"]:
+			"log_wall", "wattle", "cut_stone", "bed", "bed_wet", "mycelium", "crystal", "deepstone", "lava"]:
 		return null
 	var img := Image.create_empty(TILE * KINDS, TILE, false, Image.FORMAT_RGBA8)
 	var rng := RandomNumberGenerator.new()
@@ -170,6 +170,33 @@ static func _texel(name: String, kind: int, px: int, py: int, rng: RandomNumberG
 			return _wattle(kind, px, py, rng)
 		"cut_stone":
 			return _cut_stone(kind, px, py, rng)
+		"mycelium":
+			# Dark earth laced with white threads; on the sides the threads thin out.
+			var thread := (px * 3 + py) % 7 == 0 or (px + py * 5) % 11 == 0
+			if thread and (kind == 0 or py < 5) and rng.randf() < 0.8:
+				return _vary(Color(0.78, 0.76, 0.7), rng, 0.05)
+			return _vary(Color(0.3, 0.24, 0.22) * (0.9 if rng.randf() < 0.2 else 1.0), rng, 0.04)
+		"crystal":
+			# Violet facets: bands of light and dark running aslant, a white glint here and there.
+			var band := ((px + py * 2) / 3) % 3
+			if rng.randf() < 0.04:
+				return _vary(Color(0.95, 0.9, 1.0), rng, 0.02)
+			return _vary(Color(0.62, 0.42, 0.9) * [1.15, 0.95, 0.78][band], rng, 0.03)
+		"deepstone":
+			# Dark blue-grey stone with faint pale specks.
+			if rng.randf() < 0.04:
+				return _vary(Color(0.5, 0.54, 0.62), rng, 0.03)
+			var crack := (px * 5 + py * 3) % 19 == 0
+			return _vary(Color(0.26, 0.28, 0.34) * (0.8 if crack else 1.0), rng, 0.03)
+		"lava":
+			# Bright orange molten rock, yellow where it is hottest, under a dark crust in cracks.
+			var cell := (px / 4 + py / 4 * 3 + kind) % 5
+			var crust := (px + py * 2) % 9 == 0 or (px * 2 + py) % 13 == 0
+			if crust:
+				return _vary(Color(0.25, 0.1, 0.06), rng, 0.05)
+			if cell == 0 or rng.randf() < 0.1:
+				return _vary(Color(1.0, 0.85, 0.3), rng, 0.03)
+			return _vary(Color(0.95, 0.42, 0.12), rng, 0.04)
 	return Color.MAGENTA
 
 

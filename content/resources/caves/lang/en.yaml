@@ -1,0 +1,14 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/resources/caves/bundle.yaml
+"[resources.caves.bundle]": "Cave rock"
+
+# content/resources/caves/data/items.yaml
+"[resources.items.crystal]": "Crystal"
+
+# content/resources/caves/data/materials.yaml
+"[resources.materials.mycelium]": "Mycelium"
+"[resources.materials.crystal]": "Crystal"
+"[resources.materials.deepstone]": "Deep rock"
+"[resources.materials.lava]": "Lava"

@@ -1,0 +1,11 @@
+# A kind of cave (where: cave) of the halls of new worlds: tier — upper, or lower (deeper); cave_share — how often
+# against the other kinds of its tier; cave_floor, cave_walls — the materials of the floor and of the rock round it;
+# flood — how high still water stands (0..1); pools, pools_from — a material in pools where the floor dips deepest
+# (the hall's size over that share); crystals, crystal_chance — blocks on the floor and under the ceiling. color — on
+# the map. Without any cave bundle all caves are of bare stone.
+- id: cave
+  title: "[biomes.biomes.cave]"
+  where: cave
+  tier: upper
+  cave_share: 3.0
+  color: "#5a5650"

@@ -79,7 +79,8 @@ Part of [The picture](../rendering.md). What goes wrong on the GPUs, the web and
   `main.gd`: priority, `DRAINS`, the kind of patches, `TRUNK`, from bit 8 — `fray`, by how many texels the
   joint with a material tears into tatters in both directions, like salt; from bit 11 — `side_fray`, by how
   many texels the material reaches into another on the sides of cells, in lumps and then specks: ore in the
-  rock, stone under soil; 0 for built blocks, whose sides stay straight both ways); the size is a constant of the
+  rock, stone under soil; 0 for built blocks, whose sides stay straight both ways; from bit 14 — `glow` × 15, how
+  brightly the material shines by itself: lava and crystals are lit in the dark, `GLOW_GAIN`); the size is a constant of the
   shader (63 = `PixelTextures.MOST_MATERIALS`), raise it together with the atlas.
 - In the mesh's UV2.x is the number of the material (6 bits, 63 — the vertex's colour), not of the tile: the
   sides' tile is set by bit 1 of the flag, the underside's — by a face looking down (`MeshFaces.pack`); the
