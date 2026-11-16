@@ -391,385 +391,469 @@ func _fill() -> void:
 ## {"marker": index} a marker with its button that takes the player there; {"place":
 ## name, "cell", "color", "tip"} the same for another place; {"note": text} a line of text.
 func _section_rows(key: String) -> Array:
-	var s = game.settings
-	var sky = game.sky
-	var clock = game.clock
-	# What the clock decides by itself while it follows the device's time or calendar.
-	var game_time := func() -> bool: return not s.values.real_time
-	var game_season := func() -> bool: return not s.values.real_season
-	var game_weather := func() -> bool: return not s.values.real_weather
-	# On a server its clock and weather are the server's (HostScreen «Настройки»): the
-	# rows that set them here are faded; in a game of this device they all work.
-	var solo := func() -> bool: return game.link.join_url == ""
-	var solo_time := func() -> bool: return solo.call() and game_time.call()
-	# The playtest switches work on a server only with «Читы на сервере» on (Settings.may_cheat).
-	var may := func() -> bool: return s.may_cheat()
-	var may_time := func() -> bool: return may.call() and game_time.call()
 	match key:
 		"world":
-			return _cheats_note() + [
-				_section("clock", "[time_and_weather]"),
-				["[season]", clock.SEASONS,
-					func() -> int: return clock.season,
-					func(i: int) -> void: s.set_season(i), "", func() -> bool: return may.call() and game_season.call()],
-				["[weather]", ["[by_itself]"] + clock.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
-					func() -> int: return 0 if clock.weather_auto else clock.weather + 1,
-					func(i: int) -> void: s.set_weather(i - 1), "", func() -> bool: return may.call() and game_weather.call()],
-				["[moon]", ["[by_phase]"] + MOONS.map(func(m: Array) -> String: return m[0]),
-					func() -> int:
-						for i in MOONS.size():
-							if is_equal_approx(clock.moon_pin, MOONS[i][1]):
-								return i + 1
-						return 0,
-					func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1]), "", may],
-				["[temperature]", ["[by_itself]"] + Settings.AIR_TEMPS.slice(1).map(func(t: float) -> String: return "%d°" % int(t)),
-					func() -> int: return s.air_temp,
-					func(i: int) -> void: s.set_air_temp(i), "", may],
-				["[time_of_day]", HOURS,
-					func() -> int:
-						var h: float = clock.time_of_day * 24.0
-						var best := 0
-						for i in HOUR_OF.size():
-							if h >= HOUR_OF[i] - 0.5:
-								best = i
-						return best,
-					func(i: int) -> void: s.set_hour(HOUR_OF[i]), "", may_time],
-				["[hour]", range(24).map(func(h: int) -> String: return "%02d:00" % h),
-					func() -> int: return int(clock.time_of_day * 24.0) % 24,
-					func(i: int) -> void: s.set_hour(i), "", may_time],
-				["[flow_of_time]", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "[stopped]" if v == 0.0 else ("[normal_ui]" if v == 1.0 else "×%d" % int(v))),
-					func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),
-					func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i]), "", may_time],
-			] + ([
-				_section("flag", "[test_world_n2]"),
-				{"action": "[back_to_your_world]" if s.in_test_world() else "[go_to_the_test_world]",
-					"do": func() -> void: s.switch_test_world()},
-			] if game.link.join_url == "" else [])
+			return _world_rows()
 		"server":
 			return _server_rows()
 		"player":
-			return _cheats_note() + [
-				_section("person", "[movement]"),
-				["[player_speed]", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),
-					func() -> int: return Settings.PLAYER_SPEEDS.find(s.player_speed),
-					func(i: int) -> void: s.set_player_speed(Settings.PLAYER_SPEEDS[i]), "", may],
-				["[skill_growth]", Settings.SKILL_RATES.map(func(v: float) -> String: return "×%d" % int(v)),
-					func() -> int: return Settings.SKILL_RATES.find(s.skill_rate),
-					func(i: int) -> void: s.set_skill_rate(Settings.SKILL_RATES[i]), "", may],
-				["[jumps]", ["[from_the_ground]", "[and_in_the_air]"],
-					func() -> int: return int(s.air_jumps),
-					func(i: int) -> void: s.set_air_jumps(i == 1), "", may],
-				["[respawn_n2]", ["[at_the_campfire]", "[and_where_you_fell]"],
-					func() -> int: return int(s.revive_at_death),
-					func(i: int) -> void: s.revive_at_death = i == 1],
-				_section("hammer", "[work_and_things]"),
-				["[building]", ["[from_the_bag]", "[free]"],
-					func() -> int: return int(s.free_build),
-					func(i: int) -> void: s.set_free_build(i == 1), "", may],
-				["[tool_wear]", ["[off]", "[on]"],
-					func() -> int: return int(s.tool_wear),
-					func(i: int) -> void: s.set_tool_wear(i == 1), "", may],
-				["[overload]", ["[on]", "[off]"],
-					func() -> int: return int(s.no_overload),
-					func(i: int) -> void: s.set_no_overload(i == 1), "", may],
-				["[crafting]", ["[takes_time]", "[instant]"],
-					func() -> int: return int(s.instant_craft),
-					func(i: int) -> void: s.set_instant_craft(i == 1), "", may],
-				["[free_items]", ["[off]", "[on]"],
-					func() -> int: return int(s.free_items),
-					func(i: int) -> void: s.set_free_items(i == 1), "", may],
-				_section("shield", "[survival]"),
-				# All the survival switches at once: on while each is as the game comes.
-				["[all_survival]", ["[off]", "[on]"],
-					func() -> int: return int(s.survival_on()),
-					func(i: int) -> void: s.set_survival(i == 1), "", may],
-				["[invulnerability]", ["[off]", "[on]"],
-					func() -> int: return int(s.invulnerable),
-					func(i: int) -> void: s.set_invulnerable(i == 1), "", may],
-				["[hunger]", ["[on]", "[off]"],
-					func() -> int: return int(s.no_hunger),
-					func(i: int) -> void: s.set_no_hunger(i == 1), "", may],
-				["[thirst]", ["[on]", "[off]"],
-					func() -> int: return int(s.no_thirst),
-					func(i: int) -> void: s.set_no_thirst(i == 1), "", may],
-				["[fatigue]", ["[on]", "[off]"],
-					func() -> int: return int(s.no_fatigue),
-					func(i: int) -> void: s.set_no_fatigue(i == 1), "", may],
-				["[cold_and_heat]", ["[on]", "[off]"],
-					func() -> int: return int(s.no_cold),
-					func(i: int) -> void: s.set_no_cold(i == 1), "", may],
-				["[fall_damage]", ["[on]", "[off]"],
-					func() -> int: return int(s.no_fall_damage),
-					func(i: int) -> void: s.set_no_fall_damage(i == 1), "", may],
-				["[animal_attacks]", ["[off]", "[on]"],
-					func() -> int: return int(s.animal_attacks),
-					func(i: int) -> void: s.set_animal_attacks(i == 1), "", may],
-				_section("go", "[actions]"),
-				# Tools and the land's marks are given and cleared in a world of this device only.
-				{"action": "[give_tools]", "do": func() -> void: s.give_tools(), "works": game.host != null},
-				{"action": "[to_the_place_of_the]", "do": func() -> void: s.go_to_death(), "works": s.may_cheat()},
-				{"action": "[clear_territory]", "do": func() -> void: s.clear_land(), "confirm": true,
-					"works": game.host != null},
-			]
+			return _player_rows()
 		"caves":
-			var counts: Array = CaveLayers.FIRSTS.map(func(v: int) -> String: return str(v))
-			var stretches: Array = CaveLayers.STRETCHES.map(func(v: int) -> String: return str(v))
-			var lines: Array = CaveLayers.LINES.map(func(v: int) -> String: return "%+d" % v if v != 0 else "[0_feet]")
-			var percents := func(v: float) -> String: return "%d%%" % roundi(v * 100.0)
-			var rows := [
-				# For the whole world: how much darker each level under the sea gets.
-				_section("moon", "[depth]"),
-				["[darkening_per_level]", CaveLayers.DEPTH_STEPS.map(percents),
-					func() -> int: return s.values.cut_depth,
-					func(i: int) -> void: s.set_value("cut_depth", i)],
-				_section("cells", "[layers]"),
-			]
-			# The view in layers (CaveLayers).
-			var settings := [["[line_height]", "layer_line", lines],
-				["[ahead_first_layers]", "layer_front_from", counts],
-				["[ahead_stretch]", "layer_front_stretch", stretches],
-				["[above_first_layers]", "layer_above_from", counts],
-				["[above_stretch]", "layer_above_stretch", stretches],
-				["[density_of_the_first]", "layer_density", CaveLayers.DENSITIES.map(percents)]]
-			var note := "[only_what_is_in_front]"
-			for r: Array in settings:
-				var setting: String = r[1]
-				rows.append([r[0], r[2],
-					func() -> int: return s.values[setting],
-					func(i: int) -> void: s.set_value(setting, i)])
-			rows.append({"note": note})
-			return rows
+			return _cave_rows()
 		"marks":
-			var marks := _cheats_note()
-			for p: Array in game.character.respawn_points():
-				var at: Vector3 = p[1] / game.character.CELL
-				marks.append({"place": p[0], "cell": Vector2i(floori(at.x), floori(at.z)),
-					"color": UiStyle.INK, "tip": "[teleport_to_a_respawn_point]"})
-			if game.markers != null:
-				for i in game.markers.list.size():
-					marks.append({"marker": i})
-			if game.markers == null or game.markers.list.is_empty():
-				marks.append({"note": "[no_markers_put_them_on]"})
-			return marks
+			return _marks_rows()
 		"dev":
-			var dev := []
-			if not OS.has_feature("web"):
-				dev.append({"action": "[last_run_log]", "do": func() -> void: open("crash", "settings")})
-			dev.append({"action": "[shader_probe]", "do": _run_probe})
-			dev.append({"action": "[freeze_log]", "do": func() -> void: open("freezes", "settings")})
-			dev.append({"action": "[ui_gallery]", "do": func() -> void: open_gallery()})
-			dev.append(_section("trash", "[danger]"))
-			dev.append({"action": "[shader_probe_again]", "do": func() -> void:
-				ShaderProbe.clear()
-				_run_probe(), "confirm": true})
-			dev.append({"action": "[clear_all_data]", "do": func() -> void: s.wipe_all(), "confirm": true})
-			return dev
+			return _dev_rows()
 		"debug":
-			return [
-				_section("chart", "[on_screen]"),
-				["[shadow_map]", Settings.SHADOW_MAPS.map(func(v: int) -> String: return str(v)),
-					func() -> int: return s.shadow_map,
-					func(i: int) -> void: s.set_shadow_map(i)],
-				["[statistics]", ["[off]", "[on]"],
-					func() -> int: return int(game.hud.perf.visible),
-					func(i: int) -> void:
-						if game.hud.perf.visible != (i == 1):
-							game.hud.toggle_stats()],
-				["[debug_hints]", ["[off]", "[on]"],
-					func() -> int: return int(s.debug_tips),
-					func(i: int) -> void: s.debug_tips = i == 1],
-				["[animal_ai_debug]", ["[off]", "[on]"],
-					func() -> int: return int(s.ai_debug),
-					func(i: int) -> void: s.set_ai_debug(i == 1)],
-				["[key_log]", ["[off]", "[on]"],
-					func() -> int: return int(s.keys_log),
-					func(i: int) -> void: s.keys_log = i == 1],
-				["[level_overview]", ["±%d" % game.chunks.VIEW_REACH, "[all_n2]"],
-					func() -> int: return int(s.free_view),
-					func(i: int) -> void: s.free_view = i == 1],
-				_section("hammer", "[tools]"),
-				{"action": "[break_down_draw_calls]", "do": func() -> void:
-					close()
-					if get_tree().paused:
-						game.hud.toggle_menu()
-					game.draw_census.start()},
-				{"action": "[what_is_drawn]", "do": func() -> void: open("parts")},
-				{"action": "[freeze_log]", "do": func() -> void: open("freezes")},
-				{"action": "[test_data]", "do": func() -> void: open("report")},
-				{"action": "[ui_gallery]", "do": func() -> void: open_gallery()},
-				{"action": "[reload_mod_data]", "do": func() -> void: s.reload_mods()},
-				_section("trash", "[danger]"),
-				{"action": "[clear_all_data]", "do": func() -> void: s.wipe_all(), "confirm": true},
-			]
+			return _debug_rows()
 		"game":
-			return [
-				_section("chat", "[language]"),
-				["[language]", Lang.LANGS.map(func(l: Array) -> String: return l[1]),
-					func() -> int: return maxi(0, Lang.LANGS.map(func(l: Array) -> String: return l[0]).find(Lang.code)),
-					func(i: int) -> void:
-						s.set_language(Lang.LANGS[i][0])
-						_fill.call_deferred()],
-				_section("clock", "[time_and_weather]"),
-				["[day_length]", Settings.TIME_SPEEDS.map(func(v: float) -> String: return Lang.f("[min]", [roundi(clock.DAY_LENGTH / v / 60.0)])),
-					func() -> int: return s.values.time_speed,
-					func(i: int) -> void: s.set_value("time_speed", i), "", solo_time],
-				["[time_of_day]", ["[in_game_time]", "[as_in_real_life]"],
-					func() -> int: return int(s.values.real_time),
-					func(i: int) -> void: s.set_value("real_time", i == 1), "", solo],
-				["[season]", ["[in_game_season]", "[as_in_real_life]"],
-					func() -> int: return int(s.values.real_season),
-					func(i: int) -> void: s.set_value("real_season", i == 1), "", solo],
-				["[weather]", ["[in_game_weather]", "[as_in_real_life]"],
-					func() -> int: return int(s.values.real_weather),
-					func(i: int) -> void: s.set_value("real_weather", i == 1), "", solo],
-			] + ([{"note": "[set_by_the_server]"}] if game.link.join_url != "" else []) + [
-				_section("bag", "[picking_up]"),
-				["[auto_pickup]", ["[everything]", "[whats_there]", "[food_n2]", "[nothing]"],
-					func() -> int: return s.values.pickup,
-					func(i: int) -> void: s.set_value("pickup", i)],
-				["[over_the_load]", ["[dont_take]", "[take]"],
-					func() -> int: return int(s.values.pickup_heavy),
-					func(i: int) -> void: s.set_value("pickup_heavy", i == 1)],
-				_section("person", "[feel]"),
-				["[screen_shake]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.shake),
-					func(i: int) -> void: s.set_value("shake", i == 1)],
-				# Faded and «нет» where the browser or device cannot buzz (a computer,
-				# Safari, some phones' own browsers).
-				# The steps of Vibration: off, only the important, the usual, all.
-				["[vibration]", ["[off]", "[vibration_important]", "[vibration_usual]", "[everything]"],
-					func() -> int: return int(s.values.vibration) if Vibration.supported() else -1,
-					_set_vibration, "[no_n2]", Vibration.supported],
-			]
+			return _game_rows()
 		"other":
-			return [
-				# The mods' files taken from servers (decision 189, ModCache): how much is
-				# kept, and a button that empties it (but for the server played on now).
-				_section("server", "[server_data]"),
-				{"note": Lang.line("[mod_files_from_servers_s]", ["%.1f" % (ModCache.size() / 1048576.0)])},
-				{"action": "[clear_server_data]", "confirm": true, "do": func() -> void:
-					ModCache.clear(ModCache.in_use(Content.served))
-					_fill.call_deferred()},
-			] + _own_mods_rows()
+			return _other_rows()
 		"interface":
-			var rows := [
-				_section("cells", "[sizes]"),
-				["[interface_size]", SIZES,
-					func() -> int: return s.values.ui_size,
-					func(i: int) -> void: s.set_value("ui_size", i)],
-			]
-			if game.controls.touch:
-				rows.append(["[controls_size]", SIZES,
-					func() -> int: return s.values.control_size,
-					func(i: int) -> void: s.set_value("control_size", i)])
-			rows.append_array([
-				["[minimap]", MAP_SIZES,
-					func() -> int: return s.values.minimap_size,
-					func(i: int) -> void: s.set_value("minimap_size", i)],
-			])
-			if s.can_fullscreen():
-				rows.append(["[full_screen]", ["[off]", "[on]"],
-					func() -> int: return int(s.fullscreen()),
-					func(i: int) -> void: s.set_fullscreen(i == 1)])
-			rows.append_array([
-				_section("menu", "[buttons_n2]"),
-				["[level_and_cut]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.level_buttons),
-					func(i: int) -> void: s.set_value("level_buttons", i == 1)],
-				["[camera_buttons]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.camera_buttons),
-					func(i: int) -> void: s.set_value("camera_buttons", i == 1)],
-				["[chat_and_gestures]", ["[online]", "[always]"],
-					func() -> int: return int(s.values.solo_social),
-					func(i: int) -> void: s.set_value("solo_social", i == 1)],
-				["[stats_button]", ["[hidden]", "[shown]"],
-					func() -> int: return int(s.values.stats_button),
-					func(i: int) -> void: s.set_value("stats_button", i == 1)],
-			])
-			if game.controls.touch:
-				rows.append(["[second_hand_upright]", ["[hidden]", "[shown]"],
-					func() -> int: return int(s.values.second_hand),
-					func(i: int) -> void: s.set_value("second_hand", i == 1)])
-			if not game.controls.touch:
-				rows.append(["[key_hints]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.show_help),
-					func(i: int) -> void: s.set_value("show_help", i == 1)])
-			return rows
+			return _interface_rows()
 		"sound":
-			# The music and the sounds on one tab, each under its strip.
-			return [
-				_section("music", "[music]"),
-				_volume_row("[volume]", "music_volume"),
-				["[how_often]", ["[rarely]", "[sometimes]", "[often]"],
-					func() -> int: return s.values.music_often,
-					func(i: int) -> void: s.set_value("music_often", i)],
-				_section("speaker", "[sounds]"),
-				_volume_row("[volume]", "sound_volume"),
-				_volume_row("[nature]", "nature_volume"),
-				_volume_row("[interface]", "ui_volume"),
-			]
+			return _sound_rows()
 		"graphics":
-			# From the lightest to draw to the heaviest; mixed (3) came after real (2).
-			var fire_order := [0, 1, 3, 2]
-			return [
-				# «Авто» first, then the presets from the best (Settings.QUALITIES goes the other
-				# way, «авто» past them); «своё» when the settings are a mix of the player's own.
-				["[quality]", ["[auto_quality]", "[high]", "[medium_quality]", "[low]"],
-					func() -> int: return -1 if s.quality() < 0 else Settings.QUALITIES.size() - s.quality(),
-					func(i: int) -> void: s.set_quality(Settings.QUALITIES.size() - i), "[custom_quality]"],
-				_section("cells", "[screen_n2]"),
-				["[scale]", SIZES,
-					func() -> int: return s.values.pixel_scale,
-					func(i: int) -> void: s.set_value("pixel_scale", i)],
-				["[fps_limit]", Settings.FPS_LIMITS.map(func(v: int) -> String: return "[no_n2]" if v == 0 else str(v)),
-					func() -> int: return s.values.fps_limit,
-					func(i: int) -> void: s.set_value("fps_limit", i)],
-				["[crt]", ["[off]", "[crt_soft]", "[crt_old]", "[crt_tape]"],
-					func() -> int: return s.values.crt,
-					func(i: int) -> void: s.set_value("crt", i)],
-				_section("sun", "[light_and_shadows]"),
-				["[shadows]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.shadows),
-					func(i: int) -> void: s.set_value("shadows", i == 1)],
-				["[fire_shadows]", ["[off]", "[drawn]", "[mixed]", "[real]"],
-					func() -> int: return fire_order.find(s.values.fire_shadows),
-					func(i: int) -> void: s.set_value("fire_shadows", fire_order[i])],
-				["[shadow_on_things]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.shadow_on_things),
-					func(i: int) -> void: s.set_value("shadow_on_things", i == 1)],
-				["[sun_rays]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.sun_rays),
-					func(i: int) -> void: s.set_value("sun_rays", i == 1)],
-				# The effects, from the weather everyone sees to the small touches (the user's
-				# ask 2026-11-15); each goes off on «низкое», some on «среднее» (Settings.QUALITIES).
-				_section("rain", "[effects]"),
-				["[weather_and_fire]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.effects),
-					func(i: int) -> void: s.set_value("effects", i == 1)],
-				["[on_the_water]", ["[off]", "[rings_and_glints]", "[with_reflections]"],
-					func() -> int: return s.values.water_fx,
-					func(i: int) -> void: s.set_value("water_fx", i)],
-				["[life_in_the_air]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.nature_fx),
-					func(i: int) -> void: s.set_value("nature_fx", i == 1)],
-				["[breath_and_dust]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.body_fx),
-					func(i: int) -> void: s.set_value("body_fx", i == 1)],
-				["[heat_shimmer]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.heat_fx),
-					func(i: int) -> void: s.set_value("heat_fx", i == 1)],
-				["[drops_on_the_screen]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.drops_fx),
-					func(i: int) -> void: s.set_value("drops_fx", i == 1)],
-				_section("fog", "[fog_and_haze]"),
-				["[fog]", ["[simple]", "[on_the_ground]"],
-					func() -> int: return int(s.values.fog),
-					func(i: int) -> void: s.set_value("fog", i == 1)],
-				["[haze_at_the_edge]", ["[off]", "[on]"],
-					func() -> int: return int(s.values.edge_mist),
-					func(i: int) -> void: s.set_value("edge_mist", i == 1)],
-			]
+			return _graphics_rows()
 	return []
+
+
+## The `world` tab: the clock, the weather, the moon, the air and the time's flow (playtest
+## switches, faded where they do not work now), and the way to the test world and back.
+func _world_rows() -> Array:
+	var s = game.settings
+	var clock = game.clock
+	return _cheats_note() + [
+		_section("clock", "[time_and_weather]"),
+		["[season]", clock.SEASONS,
+			func() -> int: return clock.season,
+			func(i: int) -> void: s.set_season(i), "", func() -> bool: return _may() and not s.values.real_season],
+		["[weather]", ["[by_itself]"] + clock.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
+			func() -> int: return 0 if clock.weather_auto else clock.weather + 1,
+			func(i: int) -> void: s.set_weather(i - 1), "", func() -> bool: return _may() and not s.values.real_weather],
+		["[moon]", ["[by_phase]"] + MOONS.map(func(m: Array) -> String: return m[0]),
+			func() -> int:
+				for i in MOONS.size():
+					if is_equal_approx(clock.moon_pin, MOONS[i][1]):
+						return i + 1
+				return 0,
+			func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1]), "", _may],
+		["[temperature]", ["[by_itself]"] + Settings.AIR_TEMPS.slice(1).map(func(t: float) -> String: return "%d°" % int(t)),
+			func() -> int: return s.air_temp,
+			func(i: int) -> void: s.set_air_temp(i), "", _may],
+		["[time_of_day]", HOURS,
+			func() -> int:
+				var h: float = clock.time_of_day * 24.0
+				var best := 0
+				for i in HOUR_OF.size():
+					if h >= HOUR_OF[i] - 0.5:
+						best = i
+				return best,
+			func(i: int) -> void: s.set_hour(HOUR_OF[i]), "", _may_time],
+		["[hour]", range(24).map(func(h: int) -> String: return "%02d:00" % h),
+			func() -> int: return int(clock.time_of_day * 24.0) % 24,
+			func(i: int) -> void: s.set_hour(i), "", _may_time],
+		["[flow_of_time]", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "[stopped]" if v == 0.0 else ("[normal_ui]" if v == 1.0 else "×%d" % int(v))),
+			func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),
+			func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i]), "", _may_time],
+	] + ([
+		_section("flag", "[test_world_n2]"),
+		{"action": "[back_to_your_world]" if s.in_test_world() else "[go_to_the_test_world]",
+			"do": func() -> void: s.switch_test_world()},
+	] if game.link.join_url == "" else [])
+
+
+## The `player` tab: the playtest switches of movement, work and survival, and the
+## actions (tools given, the place of death, the territory cleared).
+func _player_rows() -> Array:
+	var s = game.settings
+	return _cheats_note() + [
+		_section("person", "[movement]"),
+		["[player_speed]", Settings.PLAYER_SPEEDS.map(func(v: float) -> String: return "×%d" % int(v)),
+			func() -> int: return Settings.PLAYER_SPEEDS.find(s.player_speed),
+			func(i: int) -> void: s.set_player_speed(Settings.PLAYER_SPEEDS[i]), "", _may],
+		["[skill_growth]", Settings.SKILL_RATES.map(func(v: float) -> String: return "×%d" % int(v)),
+			func() -> int: return Settings.SKILL_RATES.find(s.skill_rate),
+			func(i: int) -> void: s.set_skill_rate(Settings.SKILL_RATES[i]), "", _may],
+		["[jumps]", ["[from_the_ground]", "[and_in_the_air]"],
+			func() -> int: return int(s.air_jumps),
+			func(i: int) -> void: s.set_air_jumps(i == 1), "", _may],
+		["[respawn_n2]", ["[at_the_campfire]", "[and_where_you_fell]"],
+			func() -> int: return int(s.revive_at_death),
+			func(i: int) -> void: s.revive_at_death = i == 1],
+		_section("hammer", "[work_and_things]"),
+		["[building]", ["[from_the_bag]", "[free]"],
+			func() -> int: return int(s.free_build),
+			func(i: int) -> void: s.set_free_build(i == 1), "", _may],
+		["[tool_wear]", ["[off]", "[on]"],
+			func() -> int: return int(s.tool_wear),
+			func(i: int) -> void: s.set_tool_wear(i == 1), "", _may],
+		["[overload]", ["[on]", "[off]"],
+			func() -> int: return int(s.no_overload),
+			func(i: int) -> void: s.set_no_overload(i == 1), "", _may],
+		["[crafting]", ["[takes_time]", "[instant]"],
+			func() -> int: return int(s.instant_craft),
+			func(i: int) -> void: s.set_instant_craft(i == 1), "", _may],
+		["[free_items]", ["[off]", "[on]"],
+			func() -> int: return int(s.free_items),
+			func(i: int) -> void: s.set_free_items(i == 1), "", _may],
+		_section("shield", "[survival]"),
+		# All the survival switches at once: on while each is as the game comes.
+		["[all_survival]", ["[off]", "[on]"],
+			func() -> int: return int(s.survival_on()),
+			func(i: int) -> void: s.set_survival(i == 1), "", _may],
+		["[invulnerability]", ["[off]", "[on]"],
+			func() -> int: return int(s.invulnerable),
+			func(i: int) -> void: s.set_invulnerable(i == 1), "", _may],
+		["[hunger]", ["[on]", "[off]"],
+			func() -> int: return int(s.no_hunger),
+			func(i: int) -> void: s.set_no_hunger(i == 1), "", _may],
+		["[thirst]", ["[on]", "[off]"],
+			func() -> int: return int(s.no_thirst),
+			func(i: int) -> void: s.set_no_thirst(i == 1), "", _may],
+		["[fatigue]", ["[on]", "[off]"],
+			func() -> int: return int(s.no_fatigue),
+			func(i: int) -> void: s.set_no_fatigue(i == 1), "", _may],
+		["[cold_and_heat]", ["[on]", "[off]"],
+			func() -> int: return int(s.no_cold),
+			func(i: int) -> void: s.set_no_cold(i == 1), "", _may],
+		["[fall_damage]", ["[on]", "[off]"],
+			func() -> int: return int(s.no_fall_damage),
+			func(i: int) -> void: s.set_no_fall_damage(i == 1), "", _may],
+		["[animal_attacks]", ["[off]", "[on]"],
+			func() -> int: return int(s.animal_attacks),
+			func(i: int) -> void: s.set_animal_attacks(i == 1), "", _may],
+		_section("go", "[actions]"),
+		# Tools and the land's marks are given and cleared in a world of this device only.
+		{"action": "[give_tools]", "do": func() -> void: s.give_tools(), "works": game.host != null},
+		{"action": "[to_the_place_of_the]", "do": func() -> void: s.go_to_death(), "works": s.may_cheat()},
+		{"action": "[clear_territory]", "do": func() -> void: s.clear_land(), "confirm": true,
+			"works": game.host != null},
+	]
+
+
+## The `caves` tab: how much darker each level under the sea gets, and the view in
+## layers (CaveLayers).
+func _cave_rows() -> Array:
+	var s = game.settings
+	var counts: Array = CaveLayers.FIRSTS.map(func(v: int) -> String: return str(v))
+	var stretches: Array = CaveLayers.STRETCHES.map(func(v: int) -> String: return str(v))
+	var lines: Array = CaveLayers.LINES.map(func(v: int) -> String: return "%+d" % v if v != 0 else "[0_feet]")
+	var percents := func(v: float) -> String: return "%d%%" % roundi(v * 100.0)
+	var rows := [
+		# For the whole world: how much darker each level under the sea gets.
+		_section("moon", "[depth]"),
+		["[darkening_per_level]", CaveLayers.DEPTH_STEPS.map(percents),
+			func() -> int: return s.values.cut_depth,
+			func(i: int) -> void: s.set_value("cut_depth", i)],
+		_section("cells", "[layers]"),
+	]
+	# The view in layers (CaveLayers).
+	var settings := [["[line_height]", "layer_line", lines],
+		["[ahead_first_layers]", "layer_front_from", counts],
+		["[ahead_stretch]", "layer_front_stretch", stretches],
+		["[above_first_layers]", "layer_above_from", counts],
+		["[above_stretch]", "layer_above_stretch", stretches],
+		["[density_of_the_first]", "layer_density", CaveLayers.DENSITIES.map(percents)]]
+	var note := "[only_what_is_in_front]"
+	for r: Array in settings:
+		var setting: String = r[1]
+		rows.append([r[0], r[2],
+			func() -> int: return s.values[setting],
+			func(i: int) -> void: s.set_value(setting, i)])
+	rows.append({"note": note})
+	return rows
+
+
+## The `marks` tab: the respawn points and the markers, each with a button that takes
+## the player there.
+func _marks_rows() -> Array:
+	var marks := _cheats_note()
+	for p: Array in game.character.respawn_points():
+		var at: Vector3 = p[1] / game.character.CELL
+		marks.append({"place": p[0], "cell": Vector2i(floori(at.x), floori(at.z)),
+			"color": UiStyle.INK, "tip": "[teleport_to_a_respawn_point]"})
+	if game.markers != null:
+		for i in game.markers.list.size():
+			marks.append({"marker": i})
+	if game.markers == null or game.markers.list.is_empty():
+		marks.append({"note": "[no_markers_put_them_on]"})
+	return marks
+
+
+## The `dev` tab (the developer's, in the main menu): the logs, the shader probe, the UI
+## gallery and wiping all data.
+func _dev_rows() -> Array:
+	var s = game.settings
+	var dev := []
+	if not OS.has_feature("web"):
+		dev.append({"action": "[last_run_log]", "do": func() -> void: open("crash", "settings")})
+	dev.append({"action": "[shader_probe]", "do": _run_probe})
+	dev.append({"action": "[freeze_log]", "do": func() -> void: open("freezes", "settings")})
+	dev.append({"action": "[ui_gallery]", "do": func() -> void: open_gallery()})
+	dev.append(_section("trash", "[danger]"))
+	dev.append({"action": "[shader_probe_again]", "do": func() -> void:
+		ShaderProbe.clear()
+		_run_probe(), "confirm": true})
+	dev.append({"action": "[clear_all_data]", "do": func() -> void: s.wipe_all(), "confirm": true})
+	return dev
+
+
+## The `debug` tab: what is shown on screen, the tools that look into the drawing, and
+## wiping all data.
+func _debug_rows() -> Array:
+	var s = game.settings
+	return [
+		_section("chart", "[on_screen]"),
+		["[shadow_map]", Settings.SHADOW_MAPS.map(func(v: int) -> String: return str(v)),
+			func() -> int: return s.shadow_map,
+			func(i: int) -> void: s.set_shadow_map(i)],
+		["[statistics]", ["[off]", "[on]"],
+			func() -> int: return int(game.hud.perf.visible),
+			func(i: int) -> void:
+				if game.hud.perf.visible != (i == 1):
+					game.hud.toggle_stats()],
+		["[debug_hints]", ["[off]", "[on]"],
+			func() -> int: return int(s.debug_tips),
+			func(i: int) -> void: s.debug_tips = i == 1],
+		["[animal_ai_debug]", ["[off]", "[on]"],
+			func() -> int: return int(s.ai_debug),
+			func(i: int) -> void: s.set_ai_debug(i == 1)],
+		["[key_log]", ["[off]", "[on]"],
+			func() -> int: return int(s.keys_log),
+			func(i: int) -> void: s.keys_log = i == 1],
+		["[level_overview]", ["±%d" % game.chunks.VIEW_REACH, "[all_n2]"],
+			func() -> int: return int(s.free_view),
+			func(i: int) -> void: s.free_view = i == 1],
+		_section("hammer", "[tools]"),
+		{"action": "[break_down_draw_calls]", "do": func() -> void:
+			close()
+			if get_tree().paused:
+				game.hud.toggle_menu()
+			game.draw_census.start()},
+		{"action": "[what_is_drawn]", "do": func() -> void: open("parts")},
+		{"action": "[freeze_log]", "do": func() -> void: open("freezes")},
+		{"action": "[test_data]", "do": func() -> void: open("report")},
+		{"action": "[ui_gallery]", "do": func() -> void: open_gallery()},
+		{"action": "[reload_mod_data]", "do": func() -> void: s.reload_mods()},
+		_section("trash", "[danger]"),
+		{"action": "[clear_all_data]", "do": func() -> void: s.wipe_all(), "confirm": true},
+	]
+
+
+## The `game` tab: the language, the clock and the weather of a game of this device (set
+## by the server on one), picking up and the feel (shake, vibration).
+func _game_rows() -> Array:
+	var s = game.settings
+	var clock = game.clock
+	return [
+		_section("chat", "[language]"),
+		["[language]", Lang.LANGS.map(func(l: Array) -> String: return l[1]),
+			func() -> int: return maxi(0, Lang.LANGS.map(func(l: Array) -> String: return l[0]).find(Lang.code)),
+			func(i: int) -> void:
+				s.set_language(Lang.LANGS[i][0])
+				_fill.call_deferred()],
+		_section("clock", "[time_and_weather]"),
+		["[day_length]", Settings.TIME_SPEEDS.map(func(v: float) -> String: return Lang.f("[min]", [roundi(clock.DAY_LENGTH / v / 60.0)])),
+			func() -> int: return s.values.time_speed,
+			func(i: int) -> void: s.set_value("time_speed", i), "", _solo_time],
+		["[time_of_day]", ["[in_game_time]", "[as_in_real_life]"],
+			func() -> int: return int(s.values.real_time),
+			func(i: int) -> void: s.set_value("real_time", i == 1), "", _solo],
+		["[season]", ["[in_game_season]", "[as_in_real_life]"],
+			func() -> int: return int(s.values.real_season),
+			func(i: int) -> void: s.set_value("real_season", i == 1), "", _solo],
+		["[weather]", ["[in_game_weather]", "[as_in_real_life]"],
+			func() -> int: return int(s.values.real_weather),
+			func(i: int) -> void: s.set_value("real_weather", i == 1), "", _solo],
+	] + ([{"note": "[set_by_the_server]"}] if game.link.join_url != "" else []) + [
+		_section("bag", "[picking_up]"),
+		["[auto_pickup]", ["[everything]", "[whats_there]", "[food_n2]", "[nothing]"],
+			func() -> int: return s.values.pickup,
+			func(i: int) -> void: s.set_value("pickup", i)],
+		["[over_the_load]", ["[dont_take]", "[take]"],
+			func() -> int: return int(s.values.pickup_heavy),
+			func(i: int) -> void: s.set_value("pickup_heavy", i == 1)],
+		_section("person", "[feel]"),
+		["[screen_shake]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.shake),
+			func(i: int) -> void: s.set_value("shake", i == 1)],
+		# Faded and «нет» where the browser or device cannot buzz (a computer,
+		# Safari, some phones' own browsers).
+		# The steps of Vibration: off, only the important, the usual, all.
+		["[vibration]", ["[off]", "[vibration_important]", "[vibration_usual]", "[everything]"],
+			func() -> int: return int(s.values.vibration) if Vibration.supported() else -1,
+			_set_vibration, "[no_n2]", Vibration.supported],
+	]
+
+
+## The `other` tab: the mods' files taken from servers, and one's own mods.
+func _other_rows() -> Array:
+	return [
+		# The mods' files taken from servers (decision 189, ModCache): how much is
+		# kept, and a button that empties it (but for the server played on now).
+		_section("server", "[server_data]"),
+		{"note": Lang.line("[mod_files_from_servers_s]", ["%.1f" % (ModCache.size() / 1048576.0)])},
+		{"action": "[clear_server_data]", "confirm": true, "do": func() -> void:
+			ModCache.clear(ModCache.in_use(Content.served))
+			_fill.call_deferred()},
+	] + _own_mods_rows()
+
+
+## The `interface` tab: the sizes, the minimap, full screen and which buttons show.
+func _interface_rows() -> Array:
+	var s = game.settings
+	var rows := [
+		_section("cells", "[sizes]"),
+		["[interface_size]", SIZES,
+			func() -> int: return s.values.ui_size,
+			func(i: int) -> void: s.set_value("ui_size", i)],
+	]
+	if game.controls.touch:
+		rows.append(["[controls_size]", SIZES,
+			func() -> int: return s.values.control_size,
+			func(i: int) -> void: s.set_value("control_size", i)])
+	rows.append_array([
+		["[minimap]", MAP_SIZES,
+			func() -> int: return s.values.minimap_size,
+			func(i: int) -> void: s.set_value("minimap_size", i)],
+	])
+	if s.can_fullscreen():
+		rows.append(["[full_screen]", ["[off]", "[on]"],
+			func() -> int: return int(s.fullscreen()),
+			func(i: int) -> void: s.set_fullscreen(i == 1)])
+	rows.append_array([
+		_section("menu", "[buttons_n2]"),
+		["[level_and_cut]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.level_buttons),
+			func(i: int) -> void: s.set_value("level_buttons", i == 1)],
+		["[camera_buttons]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.camera_buttons),
+			func(i: int) -> void: s.set_value("camera_buttons", i == 1)],
+		["[chat_and_gestures]", ["[online]", "[always]"],
+			func() -> int: return int(s.values.solo_social),
+			func(i: int) -> void: s.set_value("solo_social", i == 1)],
+		["[stats_button]", ["[hidden]", "[shown]"],
+			func() -> int: return int(s.values.stats_button),
+			func(i: int) -> void: s.set_value("stats_button", i == 1)],
+	])
+	if game.controls.touch:
+		rows.append(["[second_hand_upright]", ["[hidden]", "[shown]"],
+			func() -> int: return int(s.values.second_hand),
+			func(i: int) -> void: s.set_value("second_hand", i == 1)])
+	if not game.controls.touch:
+		rows.append(["[key_hints]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.show_help),
+			func(i: int) -> void: s.set_value("show_help", i == 1)])
+	return rows
+
+
+## The `sound` tab: the music and the sounds, each under its strip.
+func _sound_rows() -> Array:
+	var s = game.settings
+	# The music and the sounds on one tab, each under its strip.
+	return [
+		_section("music", "[music]"),
+		_volume_row("[volume]", "music_volume"),
+		["[how_often]", ["[rarely]", "[sometimes]", "[often]"],
+			func() -> int: return s.values.music_often,
+			func(i: int) -> void: s.set_value("music_often", i)],
+		_section("speaker", "[sounds]"),
+		_volume_row("[volume]", "sound_volume"),
+		_volume_row("[nature]", "nature_volume"),
+		_volume_row("[interface]", "ui_volume"),
+	]
+
+
+## The `graphics` tab: the quality preset, the screen, light and shadows, the effects, fog.
+func _graphics_rows() -> Array:
+	var s = game.settings
+	# From the lightest to draw to the heaviest; mixed (3) came after real (2).
+	var fire_order := [0, 1, 3, 2]
+	return [
+		# «Авто» first, then the presets from the best (Settings.QUALITIES goes the other
+		# way, «авто» past them); «своё» when the settings are a mix of the player's own.
+		["[quality]", ["[auto_quality]", "[high]", "[medium_quality]", "[low]"],
+			func() -> int: return -1 if s.quality() < 0 else Settings.QUALITIES.size() - s.quality(),
+			func(i: int) -> void: s.set_quality(Settings.QUALITIES.size() - i), "[custom_quality]"],
+		_section("cells", "[screen_n2]"),
+		["[scale]", SIZES,
+			func() -> int: return s.values.pixel_scale,
+			func(i: int) -> void: s.set_value("pixel_scale", i)],
+		["[fps_limit]", Settings.FPS_LIMITS.map(func(v: int) -> String: return "[no_n2]" if v == 0 else str(v)),
+			func() -> int: return s.values.fps_limit,
+			func(i: int) -> void: s.set_value("fps_limit", i)],
+		["[crt]", ["[off]", "[crt_soft]", "[crt_old]", "[crt_tape]"],
+			func() -> int: return s.values.crt,
+			func(i: int) -> void: s.set_value("crt", i)],
+		_section("sun", "[light_and_shadows]"),
+		["[shadows]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.shadows),
+			func(i: int) -> void: s.set_value("shadows", i == 1)],
+		["[fire_shadows]", ["[off]", "[drawn]", "[mixed]", "[real]"],
+			func() -> int: return fire_order.find(s.values.fire_shadows),
+			func(i: int) -> void: s.set_value("fire_shadows", fire_order[i])],
+		["[shadow_on_things]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.shadow_on_things),
+			func(i: int) -> void: s.set_value("shadow_on_things", i == 1)],
+		["[sun_rays]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.sun_rays),
+			func(i: int) -> void: s.set_value("sun_rays", i == 1)],
+		# The effects, from the weather everyone sees to the small touches (the user's
+		# ask 2026-11-15); each goes off on «низкое», some on «среднее» (Settings.QUALITIES).
+		_section("rain", "[effects]"),
+		["[weather_and_fire]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.effects),
+			func(i: int) -> void: s.set_value("effects", i == 1)],
+		["[on_the_water]", ["[off]", "[rings_and_glints]", "[with_reflections]"],
+			func() -> int: return s.values.water_fx,
+			func(i: int) -> void: s.set_value("water_fx", i)],
+		["[life_in_the_air]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.nature_fx),
+			func(i: int) -> void: s.set_value("nature_fx", i == 1)],
+		["[breath_and_dust]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.body_fx),
+			func(i: int) -> void: s.set_value("body_fx", i == 1)],
+		["[heat_shimmer]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.heat_fx),
+			func(i: int) -> void: s.set_value("heat_fx", i == 1)],
+		["[drops_on_the_screen]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.drops_fx),
+			func(i: int) -> void: s.set_value("drops_fx", i == 1)],
+		_section("fog", "[fog_and_haze]"),
+		["[fog]", ["[simple]", "[on_the_ground]"],
+			func() -> int: return int(s.values.fog),
+			func(i: int) -> void: s.set_value("fog", i == 1)],
+		["[haze_at_the_edge]", ["[off]", "[on]"],
+			func() -> int: return int(s.values.edge_mist),
+			func(i: int) -> void: s.set_value("edge_mist", i == 1)],
+	]
+
+
+## Whether the game is of this device (not on a server): on a server its clock and
+## weather are the server's (HostScreen «Настройки»), and the rows that set them here
+## are faded.
+func _solo() -> bool:
+	return game.link.join_url == ""
+
+
+## Whether the day length works: in a game of this device whose clock does not follow
+## the device's time.
+func _solo_time() -> bool:
+	return _solo() and not game.settings.values.real_time
+
+
+## Whether the playtest switches work: on a server only with «Читы на сервере» on
+## (Settings.may_cheat).
+func _may() -> bool:
+	return game.settings.may_cheat()
+
+
+## Whether a playtest switch of the clock works: cheats allowed and the clock not
+## following the device's time.
+func _may_time() -> bool:
+	return _may() and not game.settings.values.real_time
 
 
 ## A row of the volume setting `key`, «выкл» to «100%» in Sound.STEPS steps.

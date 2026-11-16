@@ -114,6 +114,8 @@ static func play(game, id: String, delay := 0.0, scale := 1.0) -> void:
 ## thunder is felt sooner than THUNDER_AGAIN seconds after the last one (a storm
 ## flashes every few seconds).
 const HIT_PULSE := 60
+## The pulse of a peal whose bolt is on the screen (as the "strike" pattern's).
+const STRIKE_PULSE := 150
 const HIT_GAP := 90
 ## A peal is «loud» while its envelope is above this (ThunderShape).
 const LOUD := 0.45
@@ -127,16 +129,19 @@ const WEB_MOST := 99
 static var _thunder_at := -100000
 
 
-## The thunder heard (Sound.play_later's `then`: variant `played.variant` at speed
-## `played.pitch`) felt as «ту-дууух» (ThunderShape: its hits, then its boom), its
-## strength times `scale`. A thunder of a mod with other variants than the made ones
-## buzzes the short pattern.
-static func rumble(game, played: Dictionary, scale: float) -> void:
+## The thunder heard (Sound.play's result: variant `played.variant` at speed
+## `played.pitch` from second `played.from`) felt as «ту-дууух» (ThunderShape: a pulse as
+## the peal turns loud, then its boom), its strength times `scale`; `struck` when the
+## bolt is on the screen and the peal starts at its loudest, the pulse then the strike's.
+## A thunder of a mod with other variants than the made ones buzzes the short pattern.
+static func rumble(game, played: Dictionary, scale: float, struck := false) -> void:
 	var p: Array = PATTERNS.thunder
 	if not allows(game, p[2]):
 		return
 	var now := Time.get_ticks_msec()
 	if now - _thunder_at < THUNDER_AGAIN * 1000.0:
+		if struck:
+			play(game, "strike", 0.0, scale)
 		return
 	_thunder_at = now
 	var v: int = played.get("variant", -1)
@@ -144,15 +149,17 @@ static func rumble(game, played: Dictionary, scale: float) -> void:
 	if v < 0 or count != ThunderShape.ENVELOPES.size():
 		play(game, "thunder", 0.0, scale)
 		return
-	var steps := rumble_steps(ThunderShape.of(v), float(played.get("pitch", 1.0)), scale)
+	var steps := rumble_steps(ThunderShape.of(v), float(played.get("pitch", 1.0)), scale,
+		float(played.get("from", 0.0)), struck)
 	_pulses(game, steps[0], steps[1])
 
 
 ## The pulses (on, off… ms) and their strengths of thunder shape `s` played at speed
-## `pitch`, as strong as `scale` (see rumble): a sharp pulse as the peal comes up, a
-## short pause, then the boom fading over the time the peal stays loud.
-static func rumble_steps(s: Dictionary, pitch: float, scale: float) -> Array:
-	var env: Array = s.env
+## `pitch` from second `from`, as strong as `scale` (see rumble): a sharp pulse as the
+## peal comes up (the strike's, `struck`), a short pause, then the boom fading over the
+## time the peal stays loud.
+static func rumble_steps(s: Dictionary, pitch: float, scale: float, from := 0.0, struck := false) -> Array:
+	var env: Array = s.env.slice(clampi(floori(from / ThunderShape.STEP), 0, s.env.size() - 1))
 	var step := ThunderShape.STEP * 1000.0 / pitch
 	var up := 0
 	while up < env.size() - 1 and env[up] < LOUD:
@@ -160,8 +167,8 @@ static func rumble_steps(s: Dictionary, pitch: float, scale: float) -> Array:
 	var loud := up
 	while loud < env.size() and env[loud] >= LOUD:
 		loud += 1
-	var steps := [1, maxi(roundi(up * step), 1), HIT_PULSE, HIT_GAP]
-	var strengths := [0.05, clampf(scale, 0.1, 1.0)]
+	var steps := [1, maxi(roundi(up * step), 1), STRIKE_PULSE if struck else HIT_PULSE, HIT_GAP]
+	var strengths := [0.05, 1.0 if struck else clampf(scale, 0.1, 1.0)]
 	var boom := clampi(roundi((loud - up) * step) - HIT_PULSE - HIT_GAP, BOOM_MS.x, BOOM_MS.y)
 	for i in BOOM_FADE.size():
 		if i > 0:

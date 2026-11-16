@@ -443,19 +443,18 @@ func _drag(c: Control, index: int, at: Vector2) -> void:
 ## chosen was played without the sparrow's bundle: the menu then finds no such creature
 ## loaded, at the start too (the record is read from the bundle on disk), and after.
 func _test_menu_sparrow() -> void:
-	var id := "animals:sparrow"
 	MenuBackdrop._sparrow_kept = []
 	var cold = MenuBackdrop.new()
-	cold._take_sparrow({}, id)
+	cold._take_sparrow({})
 	_check(cold._sparrow_picture != null and cold._sparrow_frames > 1 and cold._sparrow_views == 3,
 		"the menu's sparrow comes from the bundle on disk with no sparrow loaded")
 	MenuBackdrop._sparrow_kept = []
 	var first = MenuBackdrop.new()
-	first._take_sparrow(AiRules.SPECIES.get(id, {}), id)
+	first._take_sparrow(AiRules.menu_species())
 	_check(first._sparrow_picture != null and first._sparrow_frames == cold._sparrow_frames
 		and first._sparrow_walk == cold._sparrow_walk, "the menu's sparrow from the creatures loaded is the one on disk")
 	var again = MenuBackdrop.new()
-	again._take_sparrow({}, id)
+	again._take_sparrow({})
 	_check(again._sparrow_picture == first._sparrow_picture and again._sparrow_views == first._sparrow_views,
 		"the menu's sparrow stays with no sparrow in the creatures loaded")
 	for m in [cold, first, again]:
@@ -492,6 +491,14 @@ func _test_vibration() -> void:
 			"thunder %d is felt as a sharp pulse and a boom that fades (%s)" % [v, r[0]])
 	_check(rumbles.min() >= 500 and rumbles.max() <= 2000,
 		"the thunders are felt short, «ту-дууух» (%s ms)" % [rumbles])
+	var struck := []
+	for v in Vibration.ThunderShape.ENVELOPES.size():
+		var shape: Dictionary = Vibration.ThunderShape.of(v)
+		var at: float = Vibration.ThunderShape.peak(v)
+		var r: Array = Vibration.rumble_steps(shape, 1.0, 0.5, at, true)
+		if at < 0.0 or at >= shape.span or r[0][1] > 1 or r[0][2] != Vibration.STRIKE_PULSE or r[1][1] != 1.0:
+			struck.append(v)
+	_check(struck.is_empty(), "a thunder whose bolt is on the screen is felt at full strength at once (%s)" % [struck])
 	var was: String = Settings.path
 	Settings.path = "user://test_vibration.cfg"
 	var cfg := ConfigFile.new()

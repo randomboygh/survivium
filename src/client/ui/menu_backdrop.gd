@@ -233,10 +233,10 @@ func _pixel_disc(at: Vector2, r: float, color: Color) -> void:
 
 ## Takes the sparrow's picture from `spec` (a record of AiRules.SPECIES, empty when the
 ## creatures loaded have none), else the one kept from before (_sparrow_kept), else the
-## record `id` as written in a bundle on disk, loaded or not.
-func _take_sparrow(spec: Dictionary, id: String) -> void:
+## creature marked `menu` as written in a bundle on disk, loaded or not.
+func _take_sparrow(spec: Dictionary) -> void:
 	if spec.is_empty() and _sparrow_kept.is_empty():
-		spec = _sparrow_on_disk(id)
+		spec = _sparrow_on_disk()
 	var picture: Texture2D = Creatures.picture(spec) if not spec.is_empty() else null
 	if picture != null:
 		_sparrow_kept = [picture, spec.frames, Creatures.walk_frames(spec), spec.views]
@@ -248,13 +248,13 @@ func _take_sparrow(spec: Dictionary, id: String) -> void:
 	_sparrow_views = _sparrow_kept[3]
 
 
-## Creature `id` as written in the bundle that owns it (Content.universe: every bundle
+## The creature marked `menu` as written in the bundle that owns it (Content.universe: every bundle
 ## on disk, not only the world's), with the fields the menu reads; empty when none has it.
-static func _sparrow_on_disk(id: String) -> Dictionary:
+static func _sparrow_on_disk() -> Dictionary:
 	var all := Content.universe()
 	for b: String in all:
 		for r: Dictionary in all[b].records.get("creatures", []):
-			if r.id != id or r.get("patch") == true or not r.get("sprite") is String:
+			if r.get("menu", false) != true or r.get("patch") == true or not r.get("sprite") is String:
 				continue
 			var spec := r.duplicate()
 			spec.bundle = b

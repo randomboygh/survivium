@@ -41,7 +41,23 @@ func _ready() -> void:
 	add_child(feedback)
 	add_child(LevelUp.new(game))
 	add_child(Haptics.new(game))
+	_build_left()
+	_build_top()
+	_build_level()
+	minimap = Minimap.new()
+	add_child(minimap)
+	_build_camera()
+	_build_map()
+	_build_hotbar()
+	_build_touch()
+	_build_windows()
+	_build_menu()
+	_update_hands()
 
+
+## The column on the left: the clock with the wind and the sleep button, the state
+## (VitalsPanel), the toasts and the server's notices; and the statistics panel.
+func _build_left() -> void:
 	_left = VBoxContainer.new()
 	_left.add_theme_constant_override("separation", 6)
 	_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -100,6 +116,9 @@ func _ready() -> void:
 		else:
 			_server_notes = list
 
+
+## The buttons along the top: statistics, testing, chat, gestures, the bag and the menu.
+func _build_top() -> void:
 	_top = HBoxContainer.new()
 	_top.add_theme_constant_override("separation", 6)
 	add_child(_top)
@@ -117,7 +136,9 @@ func _ready() -> void:
 	_bag_button = _icon_button(_top, "person", "[character_bag_and_crafting]", toggle_bag)
 	_menu_button = _icon_button(_top, "menu", "[menu]", toggle_menu)
 
-	# The level buttons in a column beside the minimap, as tall as it.
+
+## The level buttons in a column beside the minimap, as tall as it.
+func _build_level() -> void:
 	_level = BoxContainer.new()
 	_level.vertical = true
 	_level.add_theme_constant_override("separation", 2)
@@ -138,10 +159,11 @@ func _ready() -> void:
 	_level_down = down
 	for b: Button in [up, _level_label, down]:
 		_see_through(b)
-	minimap = Minimap.new()
-	add_child(minimap)
-	# The camera buttons as a cross under the minimap: turn at the sides, tilt above
-	# and below, the view in the middle (a tap puts it back).
+
+
+## The camera buttons as a cross under the minimap: turn at the sides, tilt above and
+## below, the view in the middle (a tap puts it back).
+func _build_camera() -> void:
 	_camera = GridContainer.new()
 	_camera.columns = 3
 	_camera.add_theme_constant_override("h_separation", 2)
@@ -185,6 +207,10 @@ func _ready() -> void:
 		b.custom_minimum_size = Vector2(DPAD_SIDE, DPAD_MIDDLE.y)
 	for b: Button in [tilt_up, turn_left, turn_right, tilt_down, _camera_reset]:
 		_see_through(b)
+
+
+## The big map, opened from the minimap, and what redraws them both.
+func _build_map() -> void:
 	map_view = MapView.new()
 	map_view.minimap = minimap
 	map_view.game = game
@@ -202,6 +228,10 @@ func _ready() -> void:
 		game.markers.changed.connect(minimap.redraw)
 		game.markers.changed.connect(map_view.redraw)
 
+
+## The hotbar (both hands and the slots in a strip), the bag's meter and the bars of
+## the build and farm modes.
+func _build_hotbar() -> void:
 	_bar = _panel(self)
 	_bar.add_theme_stylebox_override("panel", _bar_box())
 	var bar_row := HBoxContainer.new()
@@ -252,6 +282,9 @@ func _ready() -> void:
 	farm_bar.visible = false
 	add_child(farm_bar)
 
+
+## The touch controls: the stick, the action button and the jump button.
+func _build_touch() -> void:
 	stick = TouchStick.new()
 	add_child(stick)
 	_action = TouchButton.new()
@@ -283,6 +316,10 @@ func _ready() -> void:
 	_jump.held.connect(func(on: bool) -> void: game.controls.jump_held = on)
 	add_child(_jump)
 
+
+## The key hints, the hover hint, the loading line and the windows over the game: sleep,
+## chat, the person's card and the bag.
+func _build_windows() -> void:
 	_keys = _panel(self)
 	_keys.add_child(UiStyle.label(KEYS, UiStyle.MUTED))
 
@@ -307,9 +344,6 @@ func _ready() -> void:
 	# However the window closes (the button, its cross, a key), the button follows it.
 	bag.visibility_changed.connect(_on_bag_shown)
 	game.character.state_changed.connect(_counts_later)
-
-	_build_menu()
-	_update_hands()
 
 
 func _unhandled_input(event: InputEvent) -> void:
