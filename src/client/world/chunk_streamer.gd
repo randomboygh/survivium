@@ -227,7 +227,7 @@ var _last_ms := 0
 var _jumped_ms := -1000000
 ## A chunk on the screen has no ground yet (see _check_lag): building gets lag_budget().
 var lagging := false
-## The haze over the edge of what is built (the «Дымка на краю» setting), null when off.
+## The haze over the edge of what is built (the «Туман на краю» setting), null when off.
 var haze: EdgeHaze
 var haze_on := false
 var job_meshes := []
@@ -1043,13 +1043,23 @@ func run_jobs(spent := 0) -> void:
 	_jobs_end = Time.get_ticks_usec()
 
 
-## Turns the haze over the edge of what is built on or off («Дымка на краю»); it is
+## Turns the haze over the edge of what is built on or off («Туман на краю»); it is
 ## made with the first frame of play.
 func set_haze(on: bool) -> void:
 	haze_on = on
 	if not on and haze != null:
 		haze.free_node()
 		haze = null
+
+
+## The fog's material (made with the fog when it is on), null when off: its shader is
+## built ahead (ShaderWarmup).
+func haze_material() -> ShaderMaterial:
+	if not haze_on or game.world_root == null:
+		return null
+	if haze == null:
+		haze = EdgeHaze.new(game)
+	return haze.material
 
 
 ## Lays the haze over the chunks on the screen with no ground yet.

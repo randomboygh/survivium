@@ -7,6 +7,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 
 - `shaders/common.gdshaderinc`: Shared by every 3D shader of the world.
 - `shaders/cursor.gdshader`: The cursor frame round the cells a tap or the action button works on: one-pixel lines over everything (see cursor.gd), hidden above the level cut like the cells.
+- `shaders/edge_fog.gdshader`: The fog over the edge of the world built (edge_haze.gd, setting «Туман на краю»): a dense white fog over the chunks on the screen with no ground yet, with white heads of cumulus over it, which thins…
 - `shaders/fire_shadow.gdshader`: Drawn shadows of fires and the torch (FireShadows), multiplied into what is drawn under them and taking back about as much as the light's ring there gives, leaving the night's own light, so they are…
 - `shaders/fishing_line.gdshader`: A fishing line and its float (see fishing_line.gd): one-pixel lines in the colours of their vertices, hidden behind what stands in front and above the level cut like the cells.
 - `shaders/grade.gdshader`: Colour grade of the whole picture: one place that sets the mood of the time of day, season, weather and biome.
@@ -191,7 +192,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/client/world/chunk_mesher.gd`: Builds meshes from the cell grid: one quad per visible cell face, with the data the world shader needs for edges and material transitions (see world.gdshader).
 - `src/client/world/chunk_streamer.gd`: The chunks of the world on screen and the level cut.
 - `src/client/world/drifts.gd`: Snowdrifts: low mounds on open level ground that show up with the snow cover and sink and shrink as it melts (drift_size in the terrain shader).
-- `src/client/world/edge_haze.gd`: The haze over the edge of the world built (setting «Дымка на краю», on by default): where the player outran the building of the chunks (ChunkStreamer), the chunks on the screen with no ground yet are…
+- `src/client/world/edge_haze.gd`: The fog over the edge of the world built (setting «Туман на краю», on by default; user 2026-11-16, before a haze of the sky's colour): where the player outran the building of the chunks…
 - `src/client/world/foliage.gd`: Grass tufts and tree crowns for one chunk, as MultiMesh instance buffers.
 - `src/client/world/form_mesher.gd`: Draws the built blocks that are not whole cubes (WorldData.forms: the build mode's ramps, upturned ramps and stairs) for ChunkMesher: each form is laid out rising toward the north and turned to the…
 - `src/client/world/mesh_buffers.gd`: Growing vertex buffers for one mesh surface.
