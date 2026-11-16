@@ -9,7 +9,7 @@ extends RefCounted
 ## The fog lies along the camera's rays between the camera and the plane of the ground
 ## (user 2026-11-16): a ray that ends on a chunk not built, on its edges too, is in the
 ## densest fog, whatever the heights of the land or of the player. On the screen that is
-## where the chunk's square on that plane (`plane_y`, the sea's level) is drawn: one quad
+## where the chunk's square on that plane (`plane_y`, the land's height round about) is drawn: one quad
 ## there, drawn over everything; past the square's edges the fog stays dense a little and
 ## thins out only towards the built chunks, from a corner round. `game` is the Main node.
 
@@ -21,7 +21,7 @@ const CHUNK := WorldData.CHUNK
 const CELL := WorldData.CELL
 ## How far past a missing chunk's edge the screen counts it, in world units: the fog
 ## reaches that far into the built ones beside it (REACH in edge_fog.gdshader).
-const FADE := 5.0
+const FADE := 3.5
 ## Seconds a built chunk's fog takes to dissolve.
 const DISSOLVE := 1.2
 ## The chunks a side of the texture of the fog's amounts, round the player.
@@ -33,6 +33,8 @@ const NIGHT_KEEP := 0.3
 ## again with nothing else changed: a chunk's edge that far into the screen is within the
 ## FADE the test on the screen allows round it.
 const LOOK_AGAIN := 0.5
+## Seconds the plane of the fog takes to follow the land round about (plane_y).
+const GROUND_EASE := 1.0
 
 var game
 var node: MeshInstance3D
@@ -47,6 +49,8 @@ var _texture: ImageTexture
 var _origin := Vector2i(1 << 30, 0)
 var _quad := Rect2i()
 var _plane := INF
+## The height of the land round about the plane follows, eased (see plane_y).
+var _ground := NAN
 ## What the last look over the chunks went by (see update): the changes of the chunks
 ## built, where the player stood, the screen's half size; the colour last set; the time.
 var _looked_changes := -1
@@ -96,7 +100,7 @@ func update(built: Dictionary, at: Vector2, half: Vector2, _y: float, changes :=
 	if color != _color:
 		_color = color
 		material.set_shader_parameter("color", color)
-	var plane := plane_y()
+	var plane := plane_y(at, delta)
 	var middle := screen_middle(Vector3(at.x, plane, at.y))
 	if not (changes >= 0 and changes == _looked_changes and half == _looked_half and plane == _plane \
 			and middle.distance_squared_to(_looked_at) < LOOK_AGAIN * LOOK_AGAIN):
@@ -123,10 +127,34 @@ func update(built: Dictionary, at: Vector2, half: Vector2, _y: float, changes :=
 	node.visible = not amounts.is_empty()
 
 
-## The height (world y) of the plane of the ground the fog lies on: the top of the sea.
-func plane_y() -> float:
+## The height (world y) of the plane of the ground the fog lies on: the land round about
+## (the mean of the ground at the middles of the chunks round `at` whose cells are here;
+## the sea's top for water), eased over GROUND_EASE seconds and kept to whole cells. At
+## the sea's top it lay far under hills, so the fog of chunks far off covered the land
+## built near (user 2026-11-16: it went much later than before); a jump does not move it.
+func plane_y(at: Vector2, delta: float) -> float:
 	var world = game.world
-	return float(world.sea_level + 1) * CELL if world != null else 0.0
+	if world == null:
+		return 0.0
+	var sea := float(world.sea_level + 1) * CELL
+	var sum := 0.0
+	var n := 0
+	var home := Vector2i((at / (CHUNK * CELL)).floor())
+	for dz in range(-2, 3):
+		for dx in range(-2, 3):
+			var x := (home.x + dx) * CHUNK + CHUNK / 2
+			var z := (home.y + dz) * CHUNK + CHUNK / 2
+			if world.chunk_at(x, z) == null:
+				continue
+			var h: float = world.ground_height(x + 0.5, z + 0.5)
+			sum += h * CELL if h >= 0.0 else sea
+			n += 1
+	var target := sum / n if n > 0 else (sea if is_nan(_ground) else _ground)
+	if is_nan(_ground):
+		_ground = target
+	else:
+		_ground = lerpf(_ground, target, clampf(delta / GROUND_EASE, 0.0, 1.0))
+	return roundf(_ground / CELL) * CELL
 
 
 ## Where the middle of the screen is (PixelView.screen_plane): the camera's, which trails

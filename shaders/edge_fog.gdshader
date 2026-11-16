@@ -1,9 +1,9 @@
 // The fog over the edge of the world built (edge_haze.gd, setting «Туман на краю»): a dense
 // white fog along the camera's rays that end on a chunk with no ground yet (user
-// 2026-11-16), so it is drawn where the chunk's square on the plane of the ground is, over
-// everything, whatever the heights. Whole over the square and DENSE units past its edges,
-// it thins out over REACH units further into the built chunks beside it, from a corner
-// round; once a chunk is built its fog melts by dithering. `amounts` holds how much fog each
+// 2026-11-16), so it is drawn where the chunk's square on the plane of the ground (the land
+// round about, EdgeHaze.plane_y) is, over everything; a jump does not move it. Whole over
+// the square and DENSE units past its edges, it thins out over REACH units further into the
+// built chunks beside it, from a corner round; once a chunk is built its fog melts by dithering. `amounts` holds how much fog each
 // chunk has (0..1, a texel a chunk, see EdgeHaze).
 shader_type spatial;
 render_mode world_vertex_coords, unshaded, depth_test_disabled, cull_disabled, shadows_disabled;
@@ -22,8 +22,8 @@ uniform vec3 color SRGB = vec3(1.0);
 // The fog's own tone.
 const vec3 FOG_TONE = vec3(0.9, 0.93, 0.98);
 // World units past a missing chunk's edge the fog stays whole, and over which it then thins.
-const float DENSE = 1.0;
-const float REACH = 4.0;
+const float DENSE = 0.5;
+const float REACH = 3.0;
 
 varying vec3 world_pos;
 
@@ -53,14 +53,17 @@ void fragment() {
 			}
 			vec2 lo = vec2(k) * size;
 			vec2 d = max(max(lo - p, p - lo - size), vec2(0.0));
-			fog_d = max(fog_d, a * (1.0 - clamp((length(d) - DENSE) / REACH, 0.0, 1.0)));
+			float t = 1.0 - clamp((length(d) - DENSE) / REACH, 0.0, 1.0);
+			fog_d = max(fog_d, a * t * t);
 		}
 	}
 	// A texel of the picture: the fog is drawn in its pixels, its rim torn by the noise.
 	vec2 texel = floor(screen_plane(world_pos) * TEXELS);
 	float n = texture(cloud_noise, (texel + 0.5) / TEXELS / 9.0).r;
-	fog_d = fog_d >= 1.0 ? 1.0 : clamp(fog_d + (n - 0.5) * 0.3, 0.0, 1.0);
-	if (fog_d < bayer4(texel) + 0.001) {
+	// The noise only scales fog that is there: none where there is none (it added dots
+	// all over the quad, user 2026-11-16).
+	fog_d = fog_d >= 1.0 ? 1.0 : clamp(fog_d * (1.0 + (n - 0.5) * 0.8), 0.0, 1.0);
+	if (fog_d <= bayer4(texel)) {
 		discard;
 	}
 	ALBEDO = color * FOG_TONE;
