@@ -568,9 +568,11 @@ func _gather(id: String) -> bool:
 			return await _branch()
 		if id == s.log:
 			return await _fell()
-	for p: Dictionary in Plants.BY_ID.values():
-		if p.gives.has(id) or p.gives.has(id.get_slice(":", 1)):
-			return await _mow(id, p.id)
+	# A plant that grows anywhere first (reeds), then one of some biomes only (cactus).
+	for anywhere in [true, false]:
+		for p: Dictionary in Plants.BY_ID.values():
+			if p.get("biomes", []).is_empty() == anywhere and (p.gives.has(id) or p.gives.has(id.get_slice(":", 1))):
+				return await _mow(id, p.id)
 	for m in Mat.RECORDS.size():
 		var rec: Dictionary = Mat.RECORDS[m]
 		if rec.mow_gives.has(id) or rec.mow_gives.has(id.get_slice(":", 1)):
