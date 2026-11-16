@@ -186,8 +186,9 @@ func _test_new_records() -> void:
 	Content.BUNDLES = bundles.duplicate()
 	Content.refresh()
 	Mods.activate(bundles)
-	if lang_was != "":
-		Lang.use(lang_was)
-	else:
-		Lang.reread()
+	# The phrases read again without the mod, and no table left in the TranslationServer: a
+	# scripted one crashes the engine on the way out (Lang.drop).
+	Lang.code = lang_was
+	Lang.reread()
+	Lang.drop()
 	_check(Content.find("creatures", "mine:dog").is_empty(), "the game is as it was")
