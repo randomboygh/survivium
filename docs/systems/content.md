@@ -40,7 +40,9 @@ the code sees content.
   the pause menu): the own mod saves go into (several, 3Б; «+» makes one by its id), the kind (`KINDS`), a
   search by name or id, the list of records; a record opens as a form (`record_form.gd`, `RecordForm`: a
   switch for a bool, a row of values for an enum or a whole number of a short range, a text field for the
-  rest, lists and mappings as one line of YAML; changed names amber, default ones faded, wrong ones red).
+  rest, lists and mappings as one line of YAML; changed names amber, default ones faded, wrong ones red; each
+  field named in the game's language with a line under it on what it does and its YAML name,
+  `src/client/ui/editor/field_names.gd`, keys `[field.<kind>.<field>]`, `….about`).
   «Save» writes the changed fields, the mod's bundles join the loaded set and the world played
   (`join`: `Content.BUNDLES`, `game.world_mods`, kept with the save), and the mods are read again at once
   (`ModReload.reload`); «Undo» takes the last save back. A record's title and description are fields on top of
