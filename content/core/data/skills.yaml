@@ -41,6 +41,7 @@
   description: "[core.skills.building.about]"
   role: build
   order: 4
+  quality: 0
 - id: cooking
   title: "[core.skills.cooking]"
   description: "[core.skills.cooking.about]"
@@ -73,6 +74,7 @@
   speed: 1.0
   effort: 0.0
   care: 0.0
+  quality: 0
 - id: farming
   title: "[core.skills.farming]"
   description: "[core.skills.farming.about]"

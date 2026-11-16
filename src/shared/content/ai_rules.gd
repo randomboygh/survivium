@@ -17,6 +17,15 @@ static var SPECIES := {}
 static var CARCASSES := {}
 
 
+## The species the main menu shows on the game's name (the first marked `menu`), empty when
+## the creatures loaded have none.
+static func menu_species() -> Dictionary:
+	for id in SPECIES:
+		if SPECIES[id].get("menu", false) == true:
+			return SPECIES[id]
+	return {}
+
+
 static func _static_init() -> void:
 	refresh()
 

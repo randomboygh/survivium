@@ -18,6 +18,7 @@
   hop: 2
   views: 3
   flies: true
+  menu: true
   flock: [4, 8]
   roost: trees
   likes: [plants:ears]

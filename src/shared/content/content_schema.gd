@@ -229,6 +229,8 @@ const SCHEMAS := {
 		"hop": {"type": "int", "min": 0, "default": 0},
 		"attack": {"type": "int", "min": 0, "default": 0},
 		"flies": {"type": "bool", "default": false},
+		# The creature the main menu shows sitting on the game's name (the first one marked).
+		"menu": {"type": "bool", "default": false},
 		"swims": {"type": "bool", "default": false},
 		"ashore": {"type": "bool", "default": false},
 		"hops": {"type": "bool", "default": false},
