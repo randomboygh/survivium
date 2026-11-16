@@ -56,7 +56,7 @@
 | `plants:shrub_bush` | [plants.items.shrub_bush] | [planting] |  | `plants/shrub` | 1. [core.eras.primitive] | 1 / 1 | ок |
 | `plants:turnip_seeds` | [plants.items.turnip_seeds] | [planting] | [plants.items.turnip_seeds.about] | `plants/turnip` | 0. [core.eras.foraging] | 1 / 2 | ок |
 | `plants:turnip` | [plants.items.turnip] | [food] | [plants.items.turnip.about] | `plants/turnip` | 0. [core.eras.foraging] | 1 / 2 | ок |
-| `resources:crystal` | [resources.items.crystal] | [blocks] |  | `resources/caves` | — | 1 / 1 | ошибки: 2 |
+| `resources:crystal` | [resources.items.crystal] | [blocks] |  | `resources/caves` | 1. [core.eras.primitive] | 1 / 1 | ок |
 | `resources:fiber` | [resources.items.fiber] | [materials] |  | `resources/fiber` | 0. [core.eras.foraging] | 0 / 24 | ок |
 | `materials:cord` | [materials.items.cord] | [materials] |  | `materials/cord` | 1. [core.eras.primitive] | 1 / 55 | ок |
 | `plants:moss` | [plants.items.moss] | [materials] |  | `plants/moss` | 0. [core.eras.foraging] | 0 / 3 | ок |
@@ -442,9 +442,9 @@
 | `materials:copper_ore` | [materials.materials.copper_ore] | ore |  | `materials/copper` | 1 / 0 | ок |
 | `materials:planks` | [materials.materials.planks] |  |  | `materials/planks` | 1 / 1 | ок |
 | `resources:mycelium` | [resources.materials.mycelium] | mycelium |  | `resources/caves` | 1 / 1 | ок |
-| `resources:crystal` | [resources.materials.crystal] |  |  | `resources/caves` | 1 / 3 | ошибки: 1, предупреждения: 1 |
-| `resources:deepstone` | [resources.materials.deepstone] |  |  | `resources/caves` | 1 / 2 | предупреждения: 1 |
-| `resources:lava` | [resources.materials.lava] |  |  | `resources/caves` | 0 / 1 | предупреждения: 1 |
+| `resources:crystal` | [resources.materials.crystal] |  |  | `resources/caves` | 1 / 3 | ок |
+| `resources:deepstone` | [resources.materials.deepstone] |  |  | `resources/caves` | 1 / 2 | ок |
+| `resources:lava` | [resources.materials.lava] |  |  | `resources/caves` | 0 / 1 | ок |
 | `resources:peat` | [resources.materials.peat] | peat |  | `resources/peat`; патчи: `materials/finds` | 2 / 1 | ок |
 | `resources:salt` | [resources.materials.salt] | salt |  | `resources/salt` | 1 / 1 | ок |
 | `resources:snow` | [resources.materials.snow] | snow |  | `resources/snow` | 1 / 1 | ок |
