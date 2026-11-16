@@ -26,6 +26,9 @@ const KINDS := ["yaml", "png", "wav"]
 ## (`pack`ed).
 const BUILT_IN := "res://content"
 const LISTED := "res://content_files.bin"
+## One's own mods where the game's are built in and no folder of the app is shared (the
+## browser, a computer without `content/` beside the game): see find_extra.
+const USER_DIR := "user://content"
 ## Letters of a hash (the first 128 bits of the SHA-256 of the bytes, as hex).
 const HASH_LEN := 32
 ## The file only the test mod of a server for checking has (src/server/test_mod.gd): a
@@ -77,12 +80,19 @@ static var skipped: PackedStringArray = []
 
 
 ## On a phone, `content` in the app's own folder of the shared storage
-## (Android/data/<the app>/files/content: no permission is asked for it).
+## (Android/data/<the app>/files/content: no permission is asked for it). Elsewhere, when
+## the mods are not plain files beside the game (Content.beside: one's own mods are then
+## folders there), USER_DIR, where the content editor keeps one's own mods (OwnMods): in
+## the browser always, on a computer once the editor has made it.
 static func find_extra() -> String:
-	if OS.get_name() != "Android":
-		return ""
-	var docs := OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS, false)
-	return docs.get_base_dir().path_join("content") if docs != "" else ""
+	if OS.get_name() == "Android":
+		var docs := OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS, false)
+		return docs.get_base_dir().path_join("content") if docs != "" else ""
+	var beside := OS.has_feature("template") and OS.has_feature("pc") \
+		and FileAccess.file_exists(OS.get_executable_path().get_base_dir().path_join("content/core/mod.yaml"))
+	if not beside and (OS.get_name() == "Web" or DirAccess.dir_exists_absolute(USER_DIR)):
+		return USER_DIR
+	return ""
 
 
 ## The files of `extra_dir`, read once (the folder is made, so that it can be found);

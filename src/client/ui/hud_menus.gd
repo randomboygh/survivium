@@ -6,6 +6,8 @@ extends "res://src/client/ui/hud_layout.gd"
 ## The settings and the playtest page, compiled and made when first opened (settings_menu).
 
 const SETTINGS_MENU := "res://src/client/ui/settings_menu.gd"
+## The content editor, compiled and made when opened.
+const CONTENT_EDITOR := "res://src/client/ui/editor/content_editor.gd"
 
 
 ## Opens the bag with the chest by the spawn beside it.
@@ -157,6 +159,18 @@ func open_settings(page: String) -> void:
 	_settings.fit(size)
 
 
+## Opens the content editor in place of the pause menu; the menu comes back when it closes.
+func open_editor() -> Control:
+	_menu.visible = false
+	var editor: Control = load(CONTENT_EDITOR).new(game)
+	editor.closed.connect(func() -> void:
+		if get_tree().paused:
+			_menu.visible = true
+			_update_menu())
+	add_child(editor)
+	return editor
+
+
 ## The «Тестирование» buttons come out: the easter egg of the main menu found them.
 func unlock_testing() -> void:
 	_test_button.visible = true
@@ -199,6 +213,7 @@ func _build_menu() -> void:
 	_menu_buttons["resume"] = _add_menu_button(box, "[continue]", toggle_menu)
 	_menu_buttons["settings"] = _add_menu_button(box, "[settings]", open_settings.bind("settings"))
 	_menu_buttons["test"] = _add_menu_button(box, "[testing]", open_settings.bind("test"))
+	_menu_buttons["editor"] = _add_menu_button(box, "[content_editor]", open_editor)
 	_menu_buttons["server"] = _add_menu_button(box, "[server_name]", _to_server)
 	_menu_buttons["main"] = _add_menu_button(box, "[main_menu]", _to_main_menu)
 

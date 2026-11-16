@@ -803,6 +803,8 @@ const SHOTS := {
 	"ui-test-server-mod": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "server",
 		"playtest": true, "menu_end": true},
 	# «Витрина интерфейса» (UiGallery), each of its tabs.
+	"editor-items": {"time": 0.45, "season": 1, "touch": true, "menu": true, "editor": "items"},
+	"editor-wolf": {"time": 0.45, "season": 1, "touch": true, "menu": true, "editor": "creatures", "record": "animals:wolf"},
 	"ui-gallery-buttons": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "buttons"},
 	"ui-gallery-rows": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "rows"},
 	"ui-gallery-slots": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "debug", "gallery": "slots"},

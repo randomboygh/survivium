@@ -452,6 +452,26 @@
 "[m_of]": "%d m %s of “%s”"
 "[you_are_alive_again]": "You are alive again"
 
+# src/client/ui/editor/content_editor.gd
+"[editor_items]": "Items"
+"[editor_materials]": "Materials"
+"[editor_recipes]": "Recipes"
+"[editor_creatures]": "Creatures"
+"[editor_trees]": "Trees"
+"[editor_bushes]": "Bushes"
+"[editor_plants]": "Plants"
+"[editor_biomes]": "Biomes"
+"[editor_skills]": "Skills"
+"[editor_eras]": "Eras"
+"[editor_starts]": "Starts"
+"[editor_sounds]": "Sounds"
+"[editor_kind]": "Kind"
+"[editor_search]": "Search by name or id"
+"[editor_nothing_found]": "Nothing found"
+"[editor_more_records]": "And %d more: narrow the search"
+"[editor_from_bundle]": "From: %s"
+"[editor_patched_by]": "Changed by: %s"
+
 # src/client/ui/fact_chips.gd
 "[weight]": "Weight"
 "[kg]": "%.1f kg"
@@ -631,6 +651,7 @@
 "[nothing_allowed]": "nothing allowed"
 "[territory_abandoned]": "Territory “%s” abandoned: %s"
 "[territory]": "Territory “%s”: %s"
+"[content_editor]": "Content editor"
 "[season]": "Season"
 
 # src/client/ui/hud_messages.gd
