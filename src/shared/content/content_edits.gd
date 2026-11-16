@@ -17,10 +17,13 @@ const ModFiles := preload("res://src/shared/content/mod_files.gd")
 
 ## The fields that name a picture, by `<kind>.<field>`: the folder of a bundle it lies in
 ## (as the registries read them: ItemIcons, Hands, Figure, Creatures, Plants, Materials,
-## Trees), `<folder>/<name>.png`.
+## Trees, VoxelProps), `<folder>/<name>.png`.
 const PICTURES := {"items.icon": "icons", "items.sprite": "sprites/held", "items.look": "sprites/worn",
 	"creatures.sprite": "sprites/creatures", "plants.sprite": "sprites/plants", "materials.texture": "textures",
-	"trees.bark": "textures"}
+	"trees.bark": "textures", "items.model": "models"}
+## The picture fields that are voxel models (PNG sheets of slices, VoxelModel.from_image),
+## which the voxel editor paints.
+const MODELS := ["items.model"]
 
 ## The most writes kept to take back.
 const MOST_UNDO := 50

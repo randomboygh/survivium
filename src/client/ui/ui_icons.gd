@@ -1073,6 +1073,28 @@ const ICONS := {
 		"w..w....",
 		"wwww....",
 	],
+	# The voxel editor's tools: a bucket pouring (fill a joined patch) and a dropper
+	# (take a voxel's colour).
+	"voxel_fill": [
+		"..w.....",
+		".w.w....",
+		"w...w...",
+		"ww...w..",
+		"w.w...w.",
+		"w..w.w.w",
+		"w...ww.w",
+		".......w",
+	],
+	"voxel_take": [
+		"......ww",
+		".....www",
+		"...wwww.",
+		"....ww..",
+		"...w.w..",
+		"..w.w...",
+		".w.w....",
+		"w.......",
+	],
 	# How high the walls are and how thick: arrows up and down, left and right.
 	"build_height": [
 		"..w..",

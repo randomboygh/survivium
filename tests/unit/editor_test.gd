@@ -5,6 +5,8 @@ extends "res://tests/unit/test_case.gd"
 const OwnMods := preload("res://src/shared/content/own_mods.gd")
 const ModFiles := preload("res://src/shared/content/mod_files.gd")
 const ContentEdits := preload("res://src/shared/content/content_edits.gd")
+const VoxelSheet := preload("res://src/client/ui/editor/voxel_sheet.gd")
+const SliceGrid := preload("res://src/client/ui/editor/slice_grid.gd")
 
 const DIR := "user://test_editor"
 
@@ -17,6 +19,7 @@ func run() -> void:
 	_test_new_records()
 	_test_field_names()
 	_test_pictures()
+	_test_voxels()
 
 
 ## Writing YAML that the reader reads back as the same value.
@@ -249,6 +252,85 @@ func _test_pictures() -> void:
 		"a mod's name that is no name takes no other folder")
 	_check(edits.undo() == "" and not FileAccess.file_exists(DIR.path_join("mine/sprites/creatures/animals_wolf.png"))
 		and OwnMods.records("mine", "creatures").size() == 1, "a picture is taken back with its field")
+	_remove(DIR)
+	ModFiles.extra_dir = ""
+	Content.BUNDLES = bundles.duplicate()
+	Content.refresh()
+	Mods.activate(bundles)
+
+
+## The voxel editor's sheet: painting, leaves, fill, levels added, copied and taken out, a
+## slice made narrower round its middle or its corner, undo; its PNG is the model the game
+## reads; a stroke on the grid is taken back at once; the model written into one's own mod.
+func _test_voxels() -> void:
+	var s: VoxelSheet = VoxelSheet.of(null)
+	_check(s.side == 16 and s.levels == 1 and s.count() == 0, "an empty sheet: one level 16 across")
+	var red := Color(0.8, 0.1, 0.1)
+	s.remember()
+	_check(s.put(3, 0, 4, VoxelSheet.ink(red, false)) and s.at(3, 0, 4).is_equal_approx(VoxelSheet.exact(red))
+		and not s.leaf(3, 0, 4), "a voxel painted")
+	_check(s.put(5, 0, 5, VoxelSheet.ink(red, true)) and s.leaf(5, 0, 5), "a leaf painted")
+	_check(not s.put(30, 0, 0, Color.RED), "nothing painted outside")
+	_check(s.add_level(0, true) and s.levels == 2 and s.at(3, 1, 4) == s.at(3, 0, 4) and s.count() == 4,
+		"a level copied up")
+	_check(s.add_level(1, false) and s.levels == 3 and s.count() == 4, "an empty level added")
+	_check(s.fill(0, 2, 0, Color.BLUE) and s.count() == 4 + 256, "a fill covers the empty level")
+	_check(s.remove_level(2) and s.levels == 2 and s.count() == 4, "a level taken out")
+	var m = s.model()
+	_check(m.voxels.size() == 4 and m.foliage.size() == 2 and m.voxels.has(Vector3i(3 - 8, 1, 4 - 8)),
+		"the sheet is the model the game reads, centred")
+	var back: VoxelSheet = VoxelSheet.of(Image.create_from_data(s.img.get_width(), s.img.get_height(), false,
+		Image.FORMAT_RGBA8, s.img.get_data()))
+	_check(back.levels == 2 and back.side == 16 and back.count() == 4, "a sheet read from its picture")
+	_check(s.resize(8) and s.side == 8 and s.at(3 - 4, 0, 4 - 4).a == 0.0 and s.at(5 - 4, 0, 5 - 4).a > 0.0,
+		"a centred slice made narrower keeps its middle")
+	var corner: VoxelSheet = VoxelSheet.of(null, false)
+	corner.put(0, 0, 0, Color.RED)
+	corner.put(15, 0, 15, Color.RED)
+	_check(corner.resize(8) and corner.at(0, 0, 0).a > 0.0 and corner.count() == 1,
+		"a placed thing's slice keeps its corner")
+	var steps := 0
+	while s.undo():
+		steps += 1
+	_check(s.side == 16 and s.levels == 1 and s.count() == 0 and steps == 5, "every change taken back (%d)" % steps)
+	var pike := Content.picture("res://content/animals/fish/models/pike.png")
+	var p: VoxelSheet = VoxelSheet.of(pike)
+	_check(p.side == pike.get_height() and p.levels == pike.get_width() / pike.get_height()
+		and p.png().size() > 0 and not p.colours().is_empty(), "a model of the game opened as it is")
+	var grid := SliceGrid.new()
+	grid.sheet = p
+	grid.size = Vector2(160, 160)
+	grid.color = Color.YELLOW
+	var was := p.count()
+	grid.use(Vector2i(0, 0), true)
+	grid.use(Vector2i(1, 0), false)
+	grid.use(Vector2i(2, 0), false)
+	_check(p.history.size() == 1 and p.undo() and p.count() == was, "a stroke is one step back")
+	grid.tool = SliceGrid.Tool.TAKE
+	grid.use(Vector2i(0, 0), true)
+	grid.free()
+	# The model written into one's own mod, for its own record and as a patch of another's.
+	var bundles: Array = Mods.all()
+	if DirAccess.dir_exists_absolute(DIR):
+		_remove(DIR)
+	ModFiles.extra_dir = DIR
+	OwnMods.make("mine")
+	var read_all := func() -> void:
+		Content.BUNDLES = Mods.all()
+		Content.refresh()
+		Mods.activate(Mods.all())
+	read_all.call()
+	var item := ""
+	for r: Dictionary in Content.records("items"):
+		if str(r.get("model", "")) != "":
+			item = r.id
+			break
+	var edits := ContentEdits.new()
+	_check(item != "" and edits.picture("mine", "items", item, "model", p.png()) == "", "a model written for %s" % item)
+	read_all.call()
+	var at := ContentEdits.picture_path("items", Content.find("items", item), "model")
+	var got := Content.picture(at)
+	_check(at.contains("/mine/") and got != null and got.get_width() == p.img.get_width(), "the game finds the model at %s" % at)
 	_remove(DIR)
 	ModFiles.extra_dir = ""
 	Content.BUNDLES = bundles.duplicate()
