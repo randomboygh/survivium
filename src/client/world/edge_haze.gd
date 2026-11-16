@@ -26,7 +26,7 @@ const GRID := 32
 const FOG_COLOR := Color(0.97, 0.98, 1.0)
 const NIGHT_KEEP := 0.3
 ## The clouds' underside, as a share of the fog's light.
-const SHADE := Color(0.78, 0.82, 0.9)
+const SHADE := Color(0.72, 0.82, 0.95)
 ## How far (world units) the player goes before the chunks on the screen are looked over
 ## again with nothing else changed: a chunk's edge that far into the screen is within the
 ## FADE the test on the screen allows round it.
