@@ -509,9 +509,8 @@ void fragment() {
 		}
 	}
 	if ((flag & 8) != 0) {
-		// Texel distance to the curve of corner k (the diagonal half a cell from the
-		// corner, or a rounder curve, see ChunkMesher.corner_curve), counted on the
-		// face, positive toward the middle of the cell.
+		// Texel distance to the diagonal across corner k (see MeshFaces.corner_curve),
+		// counted on the face, positive away from the corner.
 		int k = (flag >> 4) & 3;
 		int dd = corner_distance(t, k, corner_shapes[tile / 3]);
 		dd = (flag & 64) != 0 ? -dd : dd;
