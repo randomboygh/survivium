@@ -41,20 +41,18 @@ slice, to free the far meshes.
   land a phone (4–5× slower than a PC here) needs about a second of building a second for the whole zone and
   has a third of it (2026-11-15), so the sides of the zone wait until the player stops; **the fog at the edge** (the setting «Fog at the edge», key `edge_mist`,
   on by default, `set_haze`; user 2026-11-16, before a haze of the sky's colour): `edge_haze.gd` covers the
-  chunks on screen without ground with a dense white fog (towards the background at night, `NIGHT_KEEP`), its rim torn by noise, with no clouds over it;
-  it lies on the land itself (user 2026-11-16): each chunk under it has a top at its ground's height (`ground_of`, the highest of 16
-  columns of the cells the server sent; a chunk with no cells yet takes the nearest ring of chunks with cells, `GUESS_RINGS`,
-  else the player's) and walls join the steps; it is depth tested, so land nearer the camera hides it; which chunks are on
-  the screen is found at their land's height round the camera's middle (`missing_on_screen`, `DEEP_RING`), so the land not
-  built is fog wherever it is drawn, whatever the player's height
-  (`shaders/edge_fog.gdshader`; the cumulus were removed, user 2026-11-16); a missing chunk's fog is whole at once, a built one's
-  dissolves over `DISSOLVE` (1.2 s), melting by dithering
-  (`bayer4`); how much fog each chunk has (`amounts`) is a texel of a `GRID`² (32) texture round the player,
-  read between the chunks' middles, so the fog thins a few units into the built ones beside; written only
-  while something changes; one mesh over the chunks with fog and one round them (tops and walls), made
-  again only when that rect or their heights change (looked at every `HEIGHTS_EVERY`); its shader is built ahead (`haze_material`, ShaderWarmup);
-  the chunks are not even looked over while `nodes_changes` (the
-  changes of `chunk_nodes`), the screen and the level stay and the player is within `LOOK_AGAIN` 0.5; edits are built first (a new edit in a chunk that is already being
+  chunks on screen without ground with a dense white fog (towards the background at night, `NIGHT_KEEP`), its rim torn by
+  noise, with no clouds; it lies along the camera's rays that end on a chunk not built (user 2026-11-16): one quad on the
+  plane of the ground (`plane_y`, the sea's top) drawn over everything, so it does not depend on the land's or the
+  player's height; the shader (`shaders/edge_fog.gdshader`) keeps it whole over a missing chunk's square and `DENSE`
+  past it, thinning over `REACH` only into the built chunks beside, from a corner round (the 3×3 chunks round each pixel,
+  by distance to their squares); a missing chunk's fog is whole at once, a built one's dissolves over `DISSOLVE` (1.2 s),
+  melting by dithering
+  (`bayer4`); how much fog each chunk has (`amounts`) is a texel of a `GRID`² (32) texture round the player, written only
+  while something changes; the quad covers the chunks with fog and one round them, made again only when that rect or the
+  plane changes; its shader is built ahead (`haze_material`, ShaderWarmup); the chunks are not even looked over while
+  `nodes_changes` (the changes of `chunk_nodes`) and the screen stay and the screen's middle (the camera's) moved less
+  than `LOOK_AGAIN` 0.5; edits are built first (a new edit in a chunk that is already being
   rebuilt for an edit does not start it anew: the building goes to the end, the chunk stands in the queue once
   more — otherwise with frequent digging on a phone the relief was not updated); an edit does not wait for a
   chunk that is being built by the stream (or for the sake of `kept`): it is put aside (`stashed`) and
