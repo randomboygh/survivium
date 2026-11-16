@@ -42,7 +42,7 @@ mountain's side goes on down the same way); with the
   the noises of warmth, moisture and zones run `BIG_BIOMES` times slower with `BIG_BIOMES_OCTAVES` more octaves
   and their field bent by `WARP` cells (`_warp`, scaled with the window's step in `_sample`), so a biome takes
   minutes to walk across and its edges still wind; the river noises run `RIVER_LONGER` times slower (fewer,
-  longer, straighter rivers), a river is `RIVER_WIDER` times wider, widens over `MOUTH_REACH_WIDE` cells before
+  longer, straighter rivers), a river is 1 to `RIVER_WIDEST` times wider by the moisture of its land (`RIVER_DRY`..`RIVER_WET`: narrow through deserts and tundra, wide through forests, swamps and jungle), widens over `MOUTH_REACH_WIDE` cells before
   its mouth and its bed sinks a level every `RIVER_SINK` cells in from the bank, to `RIVER_DEEP`; lakes are
   fewer and bigger (`LAKES_WIDER`) and the land dries away from water more slowly (`WET_FADE_WIDE`), so no
   ring of another biome lies round every pond. `SETTING_KEYS` lists the settings for the saves and menus. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the

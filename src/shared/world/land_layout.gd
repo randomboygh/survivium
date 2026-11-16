@@ -133,11 +133,15 @@ const FLAT_BEACH := 28.0
 ## at their sources and broad at their mouths.
 const MOUTH_REACH := 400.0
 ## Landscape 1: the river noises run RIVER_LONGER times slower, so rivers are fewer,
-## straighter and longer; a river is RIVER_WIDER times wider, widens over
+## straighter and longer; a river is from 1 to RIVER_WIDEST times wider by the land's
+## moisture (narrow through deserts and tundra, wide through forests, swamps and the
+## jungle: from RIVER_DRY to RIVER_WET of the climate's moisture), widens over
 ## MOUTH_REACH_WIDE cells before its mouth, and its bed sinks a level for every
 ## RIVER_SINK cells in from its bank, to RIVER_DEEP levels.
 const RIVER_LONGER := 2.0
-const RIVER_WIDER := 1.6
+const RIVER_WIDEST := 4.0
+const RIVER_DRY := 0.45
+const RIVER_WET := 0.9
 const MOUTH_REACH_WIDE := 900.0
 const RIVER_SINK := 1.5
 const RIVER_DEEP := 4
@@ -878,7 +882,6 @@ func _water_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 	var steep_t := _byte(0.4)
 	var river_from: float = RIVER_FROM[settings.rivers]
 	var wide: bool = settings.get("landscape", 0) >= 1
-	var wider := RIVER_WIDER if wide else 1.0
 	var mouth_reach := MOUTH_REACH_WIDE if wide else MOUTH_REACH
 	var x0: int = lay.x0
 	var z0: int = lay.z0 + lz * lay.step
@@ -906,6 +909,9 @@ func _water_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		var flowing := smoothstep(river_from, river_from + 0.35, flow[j] / 127.5 - 1.0) * (1.0 - smoothstep(0.45, 0.9, up))
 		var d := river[j]
 		var mouth := 1.0 - smoothstep(0.0, mouth_reach, minf(coast[j], -lake[j]))
+		var wider := 1.0
+		if wide:
+			wider += (RIVER_WIDEST - 1.0) * smoothstep(RIVER_DRY, RIVER_WET, moist[j] / 255.0 * 0.6 + 0.4)
 		var rw := 0.6 + (1.6 + 4.4 * mouth) * flowing * wider
 		var wet_bed := flowing > 0.2
 		var climb: float = r[2] * RIVER_CLIMB
