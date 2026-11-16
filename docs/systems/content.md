@@ -52,7 +52,12 @@ the code sees content.
   the fields as loaded, defaults and `was` left out, title and description under the copy's keys in English
   and the game's language); «Delete» takes the mod's own record out with its phrases, «Reset» its patch of
   another's (`ContentEdits.delete`). A save, copy or delete is taken back whole (`history` keeps every file
-  each one changed). PNG import, the voxel editor, a zip and the server come next (plan: `plan/mvp.md`,
+  each one changed). A picture field (`ContentEdits.PICTURES`: an item's icon, held sprite and worn look, a
+  creature's and a plant's sprite, a material's texture, a tree's bark) shows its picture and «Load PNG»
+  (`src/client/ui/editor/picture_pick.gd`: the system's file picker, a file input of the page in the
+  browser); `ContentEdits.picture` checks it (`ModFiles.may_be`) and writes it into the mod's
+  `<folder>/<name>.png` with the field, one write to take back: a record of another mod gets
+  `<mod>:<name>`, which `Content.asset` finds in that mod's folder. The voxel editor, a zip and the server come next (plan: `plan/mvp.md`,
   stage 2 item 3; state: `docs/planning/editor.md`).
 - Where the mods lie (decision 186): `Content.ROOT` — the folder `content/` beside the program in the built
   game on PC (Windows, Linux), if it has `core/mod.yaml` (`Content.find_root`, `Content.beside()`), otherwise

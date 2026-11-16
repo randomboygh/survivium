@@ -34,6 +34,11 @@ const WRITTEN := ["list", "amounts", "shares", "entries", "vec3", "colors"]
 
 ## A field's value was changed.
 signal edited
+## A picture is wanted for picture field `field` (ContentEdits.PICTURES): its button was tapped.
+signal picture_wanted(field: String)
+
+## The tallest a picture's preview is drawn, in UI px.
+const PREVIEW_H := 48.0
 
 var kind: String
 ## The record as loaded (defaults filled in, patches applied).
@@ -73,6 +78,8 @@ func _init(kind_: String, rec_: Dictionary, name_width: float) -> void:
 			fields[field] = ["choice", _choices.rows[-1].name, steps]
 		else:
 			_text(field, value, spec, name_width)
+		if ContentEdits.PICTURES.has("%s.%s" % [kind, field]):
+			_picture(field, name_width)
 		_about(field)
 		_mark(field)
 	_choices.refresh()
@@ -143,6 +150,30 @@ func texts_changed() -> Dictionary:
 		if now != texts[field][2]:
 			out[field] = now
 	return out
+
+
+## A picture field's row of its own: the picture as it is (a preview, nearest pixels) and
+## «PNG…», which asks for another (`picture_wanted`).
+func _picture(field: String, name_width: float) -> void:
+	var row := Kit.row(4)
+	var room := Control.new()
+	room.custom_minimum_size.x = name_width
+	row.add_child(room)
+	var img := Content.picture(ContentEdits.picture_path(kind, rec, field))
+	if img != null:
+		var view := TextureRect.new()
+		view.texture = ImageTexture.create_from_image(img)
+		view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		view.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		view.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+		var h := minf(PREVIEW_H, img.get_height() * maxf(1.0, floorf(PREVIEW_H / img.get_height())))
+		view.custom_minimum_size = Vector2(minf(img.get_width() * h / img.get_height(), PREVIEW_H * 2.5), h)
+		view.tooltip_text = "%d×%d" % [img.get_width(), img.get_height()]
+		row.add_child(view)
+	var b := Kit.button("[editor_pick_png]", func() -> void: picture_wanted.emit(field))
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(b)
+	add_child(row)
 
 
 ## The line under field `field`'s row: what it does, and its name in the YAML.

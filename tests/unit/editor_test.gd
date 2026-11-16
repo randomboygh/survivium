@@ -16,6 +16,7 @@ func run() -> void:
 	_test_edits()
 	_test_new_records()
 	_test_field_names()
+	_test_pictures()
 
 
 ## Writing YAML that the reader reads back as the same value.
@@ -209,3 +210,47 @@ func _test_field_names() -> void:
 			if keys[1] == "" or english.text_of(keys[0]) == keys[0] or english.text_of(keys[1]) == keys[1]:
 				bad.append("%s.%s" % [kind, field])
 	_check(bad.is_empty(), "every field has a name and a line: not %s" % [bad.slice(0, 8)])
+
+
+## A picture taken into one's own mod: for its own record by its name, for another mod's
+## by `<mod>:<name>` in a patch; the game finds both; a file that is no PNG is refused;
+## each taken back with its field.
+func _test_pictures() -> void:
+	var bundles: Array = Mods.all()
+	if DirAccess.dir_exists_absolute(DIR):
+		_remove(DIR)
+	ModFiles.extra_dir = DIR
+	OwnMods.make("mine")
+	var read_all := func() -> void:
+		Content.BUNDLES = Mods.all()
+		Content.refresh()
+		Mods.activate(Mods.all())
+	read_all.call()
+	var img := Image.create(5, 3, false, Image.FORMAT_RGBA8)
+	img.fill(Color.RED)
+	var png := img.save_png_to_buffer()
+	var edits := ContentEdits.new()
+	_check(edits.copy("mine", "creatures", "animals:wolf", "dog") == "", "a copy to give a picture")
+	read_all.call()
+	_check(edits.picture("mine", "creatures", "mine:dog", "sprite", "no png".to_utf8_buffer()) != ""
+		and edits.picture("mine", "creatures", "mine:dog", "mass", png) != "", "no PNG, or a field of no picture, is refused")
+	_check(edits.picture("mine", "creatures", "mine:dog", "sprite", png) == ""
+		and FileAccess.file_exists(DIR.path_join("mine/sprites/creatures/dog.png"))
+		and OwnMods.records("mine", "creatures")[0].sprite == "dog", "one's own record's picture by its name")
+	_check(edits.picture("mine", "creatures", "animals:wolf", "sprite", png) == ""
+		and OwnMods.records("mine", "creatures")[1] == {"id": "animals:wolf", "patch": true, "sprite": "mine:animals_wolf"},
+		"another mod's record's picture by a patch")
+	read_all.call()
+	for id: String in ["mine:dog", "animals:wolf"]:
+		var at := ContentEdits.picture_path("creatures", Content.find("creatures", id), "sprite")
+		var got := Content.picture(at)
+		_check(got != null and got.get_width() == 5, "the game finds the picture of %s at %s" % [id, at])
+	_check(Content.asset({"bundle": "x"}, "sprites/creatures/..:y.png").begins_with(Content.ROOT + "/x/"),
+		"a mod's name that is no name takes no other folder")
+	_check(edits.undo() == "" and not FileAccess.file_exists(DIR.path_join("mine/sprites/creatures/animals_wolf.png"))
+		and OwnMods.records("mine", "creatures").size() == 1, "a picture is taken back with its field")
+	_remove(DIR)
+	ModFiles.extra_dir = ""
+	Content.BUNDLES = bundles.duplicate()
+	Content.refresh()
+	Mods.activate(bundles)

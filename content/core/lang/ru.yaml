@@ -496,6 +496,10 @@
 "[editor_copied]": "Копия %s создана"
 "[editor_deleted]": "Запись удалена: «Отменить» вернёт её"
 "[editor_reset_done]": "Ваши правки этой записи убраны"
+"[editor_pick_png]": "Загрузить PNG"
+"[editor_cannot_pick]": "Здесь нет выбора файла"
+"[editor_bad_png]": "Нужна картинка PNG не больше %d px по стороне"
+"[editor_picture_set]": "Картинка %s добавлена в мод"
 
 # src/client/ui/fact_chips.gd
 "[weight]": "Вес"

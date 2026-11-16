@@ -496,6 +496,10 @@
 "[editor_copied]": "Copy %s is made"
 "[editor_deleted]": "The record is deleted: Undo brings it back"
 "[editor_reset_done]": "Your changes to this record are removed"
+"[editor_pick_png]": "Load PNG"
+"[editor_cannot_pick]": "No file picker here"
+"[editor_bad_png]": "Not a PNG picture of at most %d px a side"
+"[editor_picture_set]": "Picture %s is in the mod"
 
 # src/client/ui/fact_chips.gd
 "[weight]": "Weight"
