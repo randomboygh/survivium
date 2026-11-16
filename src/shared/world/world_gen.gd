@@ -78,6 +78,12 @@ const SPAWN_RINGS := 160
 var saved
 
 
+## What `start` asks for the chunks kept: `saved`. (RemoteGen is its own: it cannot hold
+## itself in `saved`, a reference to itself would keep it alive for ever.)
+func _kept():
+	return saved
+
+
 ## A chunk's generation job, stepped a row of columns (or a tree) at a time (see start,
 ## step).
 class Job extends RefCounted:
@@ -243,8 +249,9 @@ func start(key: Vector2i, stage: int) -> Job:
 	var job := Job.new()
 	job.key = key
 	job.stage = stage
-	if stage == TERRAIN and saved != null and saved.has_chunk(key):
-		var d: Dictionary = saved.read_chunk(key)
+	var kept = _kept()
+	if stage == TERRAIN and kept != null and kept.has_chunk(key):
+		var d: Dictionary = kept.read_chunk(key)
 		if world.can_unpack(d):
 			if not material_map.is_empty():
 				var cells: PackedByteArray = d.cells
