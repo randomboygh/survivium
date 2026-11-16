@@ -576,6 +576,22 @@ func _run() -> void:
 				# `picture`: [field, a PNG of the game] taken in as if picked on the device.
 				if shot.has("picture"):
 					editor.set_picture(FileAccess.get_file_as_bytes(shot.picture[1]), shot.picture[1].get_file(), shot.picture[0])
+				# `voxel`: the voxel editor opened on that model field, on level `voxel_level`,
+				# with `voxel_paint` ([x, z] each) painted there in amber, turned `voxel_turn`.
+				if shot.has("voxel"):
+					await process_frame
+					var v: Control = editor.edit_model(shot.voxel)
+					await process_frame
+					v._set_level(shot.get("voxel_level", 0))
+					v.set_colour(Color("#e9b44c"))
+					for at: Array in shot.get("voxel_paint", []):
+						v.grid.use(Vector2i(at[0], at[1]), at == shot.voxel_paint[0])
+					v._changed()
+					v.preview.turn_to(shot.get("voxel_turn", 0.6))
+					v.preview._rest = 1000.0
+					# `voxel_save`: «Save» tapped (the model written into the shots' own mod).
+					if shot.get("voxel_save", false):
+						v.save()
 				# `scroll_to`: the form scrolled to that field.
 				if shot.has("scroll_to"):
 					await process_frame

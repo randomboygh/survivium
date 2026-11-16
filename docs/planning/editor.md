@@ -35,10 +35,13 @@ continues it. Stage 2 item 3 of `plan/mvp.md` (decision 186, 11А 12А 13А).
 - Step 4: «Load PNG» on picture fields (`ContentEdits.PICTURES`, `picture`, `picture_path`;
   `picture_pick.gd` native dialog or the page's file input; `Content.asset` reads `<mod>:<name>`). Shot
   `editor-picture` (`picture`, `scroll_to` keys).
+- Step 5: the voxel model editor (4А): «Edit model» on `items.model` (`ContentEdits.MODELS`) opens
+  `voxel_editor.gd` (`VoxelSheet` the PNG of slices with undo, `SliceGrid` painting with the level under it
+  faint, `VoxelPreview` turning in its own world); saved through `ContentEdits.picture`. Shots
+  `editor-voxel`, `editor-voxel-new` (`voxel`, `voxel_level`, `voxel_paint`, `voxel_turn`, `voxel_save`).
 
 ## Left, in order (one PR each)
 
-5. Voxel model editor (4А): slices of `models/<model>.png`, palette, 3D preview turning.
 6. Zip export and import of an own mod (browser: download through JavaScriptBridge; `ModImport.unpack`).
 7. Server: an author's edits as requests (`protocol.gd`, `requests.gd`, rights, `Requests.PACED`, a test in
    `security_test.gd`), the server writes into its folder and its `reload` sends the files to players.

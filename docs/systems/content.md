@@ -53,11 +53,20 @@ the code sees content.
   and the game's language); «Delete» takes the mod's own record out with its phrases, «Reset» its patch of
   another's (`ContentEdits.delete`). A save, copy or delete is taken back whole (`history` keeps every file
   each one changed). A picture field (`ContentEdits.PICTURES`: an item's icon, held sprite and worn look, a
-  creature's and a plant's sprite, a material's texture, a tree's bark) shows its picture and «Load PNG»
+  creature's and a plant's sprite, a material's texture, a tree's bark, an item's model) shows its picture and «Load PNG»
   (`src/client/ui/editor/picture_pick.gd`: the system's file picker, a file input of the page in the
   browser); `ContentEdits.picture` checks it (`ModFiles.may_be`) and writes it into the mod's
   `<folder>/<name>.png` with the field, one write to take back: a record of another mod gets
-  `<mod>:<name>`, which `Content.asset` finds in that mod's folder. The voxel editor, a zip and the server come next (plan: `plan/mvp.md`,
+  `<mod>:<name>`, which `Content.asset` finds in that mod's folder. A model field (`ContentEdits.MODELS`) has
+  «Edit model» too: the voxel editor (`src/client/ui/editor/voxel_editor.gd`, 4А) paints the model level by
+  level on a flat grid (`slice_grid.gd`: the level under it faint; paint, erase, fill, take a colour) beside
+  its 3D picture turning (`voxel_preview.gd`: `VoxelModel.build_mesh` in a small world of its own, a drag
+  turns it, the level painted outlined); levels added, copied up and taken out, the slice made 4..32 across
+  (round its middle for a thing lying, its corner for one placed on cells), a palette of the model's colours
+  and the game's, lighter and darker, a leaf switch (alpha 128, tinted by the season); «Undo» takes back a
+  stroke. The model is `voxel_sheet.gd` (`VoxelSheet`: the PNG of slices `VoxelModel.from_image` reads);
+  «Save» writes it as a picture (`ContentEdits.picture`). Upright, one column; sideways, three. A zip and
+  the server come next (plan: `plan/mvp.md`,
   stage 2 item 3; state: `docs/planning/editor.md`).
 - Where the mods lie (decision 186): `Content.ROOT` — the folder `content/` beside the program in the built
   game on PC (Windows, Linux), if it has `core/mod.yaml` (`Content.find_root`, `Content.beside()`), otherwise

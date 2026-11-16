@@ -8,7 +8,8 @@ extends "res://src/client/ui/kit/window.gd"
 ## «Copy» makes a new record of the mod from it (ContentEdits.copy), «Delete» takes one's
 ## own record out, «Reset» one's patch of another's; the title and description are
 ## written in the game's language as the mod's phrases; a picture field's «PNG…» takes a
-## picture from the device into the mod (PicturePick, ContentEdits.picture). One column
+## picture from the device into the mod (PicturePick, ContentEdits.picture), a model's
+## «Edit model» opens the voxel editor (VoxelEditor) and its save is written so. One column
 ## on every screen (12А). Opened from the main menu and the pause menu («Editor»);
 ## «Close» or Escape closes it. `game` is the Main node.
 
@@ -21,6 +22,8 @@ const ModFiles := preload("res://src/shared/content/mod_files.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const PicturePick := preload("res://src/client/ui/editor/picture_pick.gd")
+const VoxelSheet := preload("res://src/client/ui/editor/voxel_sheet.gd")
+const VOXEL_EDITOR := "res://src/client/ui/editor/voxel_editor.gd"
 
 ## The kinds in the order shown, each with its name.
 const KINDS := [["items", "[editor_items]"], ["materials", "[editor_materials]"],
@@ -106,7 +109,6 @@ func _ready() -> void:
 	_actions.add_child(_undo)
 	box.add_child(_actions)
 	box.add_child(Kit.button("[close]", close))
-	get_parent().resized.connect(fit)
 	_show_list()
 	show_fitted()
 
@@ -231,6 +233,7 @@ func open(id: String) -> void:
 	form = RecordForm.new(kind, rec, NAME_WIDTH)
 	form.edited.connect(_update_actions)
 	form.picture_wanted.connect(_pick_picture)
+	form.model_wanted.connect(edit_model)
 	_list.add_child(form)
 	_update_actions()
 	fit()
@@ -269,20 +272,45 @@ func _pick_picture(field: String) -> void:
 	PicturePick.pick(set_picture.bind(field))
 
 
+## Opens the voxel editor on model field `field` of the record open (its model, or an
+## empty one), this window hidden while it is open; its «Save» writes the model into the
+## chosen mod (`set_picture`). Returns the voxel editor.
+func edit_model(field: String) -> Control:
+	if mod == "":
+		say("[editor_make_a_mod_first]")
+		return null
+	var rec := Content.find(kind, record)
+	var img := Content.picture(ContentEdits.picture_path(kind, rec, field))
+	# A thing placed on cells has its slices' corner at the cell's; one lying, its middle.
+	var sheet: VoxelSheet = VoxelSheet.of(img, str(rec.get("prop", "none")) == "none")
+	var voxels: Control = load(VOXEL_EDITOR).new(sheet, Lang.t(str(rec.get("title", record))))
+	voxels.saved.connect(func(png: PackedByteArray) -> void:
+		var ok := set_picture(png, "%s.png" % record, field)
+		voxels.say(Lang.line("[voxel_saved]", [mod]) if ok else _said.text))
+	voxels.closed.connect(func() -> void:
+		visible = true
+		fit())
+	visible = false
+	get_parent().add_child(voxels)
+	return voxels
+
+
 ## Writes picture `bytes` for picture field `field` of the record open into the chosen mod.
-func set_picture(bytes: PackedByteArray, file: String, field: String) -> void:
+## Whether it was written.
+func set_picture(bytes: PackedByteArray, file: String, field: String) -> bool:
 	if record == "" or mod == "":
-		return
+		return false
 	if not ModFiles.may_be(bytes, "png"):
 		say(Lang.line("[editor_bad_png]", [ModFiles.PICTURE_MAX]))
-		return
+		return false
 	var error := edits.picture(mod, kind, record, field, bytes)
 	if error != "":
 		printerr("editor: ", error)
 		say("[editor_not_saved]")
-		return
+		return false
 	_apply()
 	say(Lang.line("[editor_picture_set]", [file]))
+	return true
 
 
 ## The record's own buttons: «Copy» (with its row for the new id, hidden), «Delete» for

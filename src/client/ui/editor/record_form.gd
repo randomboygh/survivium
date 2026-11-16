@@ -36,6 +36,8 @@ const WRITTEN := ["list", "amounts", "shares", "entries", "vec3", "colors"]
 signal edited
 ## A picture is wanted for picture field `field` (ContentEdits.PICTURES): its button was tapped.
 signal picture_wanted(field: String)
+## The voxel editor is wanted for model field `field` (ContentEdits.MODELS): its button was tapped.
+signal model_wanted(field: String)
 
 ## The tallest a picture's preview is drawn, in UI px.
 const PREVIEW_H := 48.0
@@ -153,7 +155,8 @@ func texts_changed() -> Dictionary:
 
 
 ## A picture field's row of its own: the picture as it is (a preview, nearest pixels) and
-## «PNG…», which asks for another (`picture_wanted`).
+## «PNG…», which asks for another (`picture_wanted`); a model's also «Edit model» under it
+## (`model_wanted`, the voxel editor).
 func _picture(field: String, name_width: float) -> void:
 	var row := Kit.row(4)
 	var room := Control.new()
@@ -174,6 +177,15 @@ func _picture(field: String, name_width: float) -> void:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(b)
 	add_child(row)
+	if ContentEdits.MODELS.has("%s.%s" % [kind, field]):
+		var edit := Kit.row(4)
+		var room2 := Control.new()
+		room2.custom_minimum_size.x = name_width
+		edit.add_child(room2)
+		var m := Kit.button("[voxel_edit]", func() -> void: model_wanted.emit(field))
+		m.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		edit.add_child(m)
+		add_child(edit)
 
 
 ## The line under field `field`'s row: what it does, and its name in the YAML.
