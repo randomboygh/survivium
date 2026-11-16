@@ -518,6 +518,9 @@
 "[voxel_lighter]": "Lighter"
 "[voxel_empty]": "The model has no voxels yet"
 "[voxel_saved]": "Model saved into mod %s"
+"[editor_export_zip]": "Export zip"
+"[editor_import_zip]": "Import zip"
+"[editor_exported]": "Mod saved as %s"
 "[voxel_levels_most]": "At most %d levels"
 
 # src/client/ui/fact_chips.gd

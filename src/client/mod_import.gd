@@ -7,12 +7,17 @@ extends RefCounted
 ## `<mod>/<bundle>/…`), that folder itself (`content/…`, also inside a folder), or the files
 ## of one mod (its mod.yaml at the top: the mod is named after the zip). Only the files a
 ## mod may have go in (ModFiles.valid_path, FILE_MAX); the mods are then read again.
+## The content editor packs one's own mod into such a zip (`pack`, `<mod>/…`) and hands it
+## to the player (`offer`: the browser's download, the system's save dialog) — stage 2
+## item 3, step 6 — and unpacks one picked (`unpack_bytes`).
 
 const ModFiles := preload("res://src/shared/content/mod_files.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 
 ## Where the picked zip is copied before it is read (the picker gives a content:// path).
 const COPY := "user://mod_import.zip"
+## Where a zip being packed is written first.
+const PACKED := "user://mod_export.zip"
 ## Bytes of a zip taken at most, and of all its files unpacked.
 const ZIP_MAX := 64 << 20
 const UNPACKED_MAX := 256 << 20
@@ -37,8 +42,15 @@ static func pick(done: Callable) -> void:
 ## Unpacks the zip at `path` into the mods' folder `into` (see the top): {"files": how many
 ## went in, "skipped": how many were left out, "error": a key of what went wrong, or ""}.
 static func unpack(path: String, into: String) -> Dictionary:
-	var out := {"files": 0, "skipped": 0, "error": ""}
-	var bytes := FileAccess.get_file_as_bytes(path)
+	return unpack_bytes(FileAccess.get_file_as_bytes(path), path, into)
+
+
+## Unpacks zip `bytes` (a file named `path`, the mod's name when it holds one mod's files)
+## into the mods' folder `into`, as `unpack`; also "mods": the mods' folders it wrote into.
+## The files of mods named in `refuse` are left out (the game's own, which a zip must not
+## write over where one's own mods lie beside them).
+static func unpack_bytes(bytes: PackedByteArray, path: String, into: String, refuse: Array = []) -> Dictionary:
+	var out := {"files": 0, "skipped": 0, "error": "", "mods": []}
 	if bytes.is_empty() or bytes.size() > ZIP_MAX:
 		out.error = "[the_file_could_not_be_read]" if bytes.is_empty() else "[the_zip_is_too_large]"
 		return out
@@ -63,7 +75,7 @@ static func unpack(path: String, into: String) -> Dictionary:
 		if name.ends_with("/"):
 			continue
 		var rel := place.call(name.replace("\\", "/")) as String
-		if rel == "" or not ModFiles.valid_path(rel):
+		if rel == "" or not ModFiles.valid_path(rel) or rel.get_slice("/", 0) in refuse:
 			out.skipped += 1
 			continue
 		var size: int = sizes.get(name, -1)
@@ -84,6 +96,8 @@ static func unpack(path: String, into: String) -> Dictionary:
 		f.store_buffer(data)
 		f.close()
 		out.files += 1
+		if rel.contains("/") and not rel.get_slice("/", 0) in out.mods:
+			out.mods.append(rel.get_slice("/", 0))
 	zip.close()
 	DirAccess.remove_absolute(COPY)
 	if out.files == 0 and out.error == "":
@@ -170,3 +184,62 @@ static func sizes_of(bytes: PackedByteArray) -> Dictionary:
 			out[bytes.slice(at + 46, at + 46 + name_len).get_string_from_utf8()] = size
 		at += 46 + name_len + skip
 	return out
+
+
+## The files of mod folder `dir` (one's own mod) packed into a zip, each under the mod's
+## name (`<mod>/mod.yaml`, `<mod>/data/items.yaml`…): only the files a mod may have
+## (ModFiles.valid_path). Empty when nothing could be packed.
+static func pack(dir: String) -> PackedByteArray:
+	var mod := dir.trim_suffix("/").get_file()
+	var files: Array[String] = []
+	_files(dir, "", files)
+	files.sort()
+	var zip := ZIPPacker.new()
+	if files.is_empty() or zip.open(PACKED) != OK:
+		return PackedByteArray()
+	for rel in files:
+		if not ModFiles.valid_path(mod.path_join(rel)):
+			continue
+		zip.start_file(mod.path_join(rel))
+		zip.write_file(FileAccess.get_file_as_bytes(dir.path_join(rel)))
+		zip.close_file()
+	zip.close()
+	var bytes := FileAccess.get_file_as_bytes(PACKED)
+	DirAccess.remove_absolute(PACKED)
+	return bytes
+
+
+static func _files(dir: String, rel: String, out: Array[String]) -> void:
+	var at := dir.path_join(rel)
+	for f in DirAccess.get_files_at(at):
+		out.append(rel.path_join(f) if rel != "" else f)
+	for d in DirAccess.get_directories_at(at):
+		_files(dir, rel.path_join(d) if rel != "" else d, out)
+
+
+## Whether a zip can be handed to the player here (a download in the browser, the
+## system's save dialog elsewhere).
+static func can_offer() -> bool:
+	return OS.has_feature("web") or DisplayServer.has_feature(DisplayServer.FEATURE_NATIVE_DIALOG_FILE)
+
+
+## Hands zip `bytes` to the player as file `name`: the browser downloads it; elsewhere the
+## system's save dialog asks where. `done(where: String)` gets where it went ("" when the
+## dialog was left or it could not be written).
+static func offer(bytes: PackedByteArray, name: String, done: Callable) -> void:
+	if OS.has_feature("web"):
+		JavaScriptBridge.download_buffer(bytes, name, "application/zip")
+		done.call(name)
+		return
+	DisplayServer.file_dialog_show(Lang.t("[editor_export_zip]"), "", name, false,
+		DisplayServer.FILE_DIALOG_MODE_SAVE_FILE, PackedStringArray(["*.zip;ZIP;application/zip"]),
+		func(ok: bool, paths: PackedStringArray, _filter: int) -> void:
+			if not ok or paths.is_empty():
+				return
+			var f := FileAccess.open(paths[0], FileAccess.WRITE)
+			if f == null:
+				done.call("")
+				return
+			f.store_buffer(bytes)
+			f.close()
+			done.call(paths[0].uri_decode().get_file()))

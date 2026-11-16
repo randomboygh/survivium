@@ -9,7 +9,8 @@ extends "res://src/client/ui/kit/window.gd"
 ## own record out, «Reset» one's patch of another's; the title and description are
 ## written in the game's language as the mod's phrases; a picture field's «PNG…» takes a
 ## picture from the device into the mod (PicturePick, ContentEdits.picture), a model's
-## «Edit model» opens the voxel editor (VoxelEditor) and its save is written so. One column
+## «Edit model» opens the voxel editor (VoxelEditor) and its save is written so; «Export
+## zip» hands the chosen mod out as a zip, «Import zip» takes one in (ModImport). One column
 ## on every screen (12А). Opened from the main menu and the pause menu («Editor»);
 ## «Close» or Escape closes it. `game` is the Main node.
 
@@ -23,6 +24,7 @@ const Mods := preload("res://src/shared/content/mods.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const PicturePick := preload("res://src/client/ui/editor/picture_pick.gd")
 const VoxelSheet := preload("res://src/client/ui/editor/voxel_sheet.gd")
+const ModImport := preload("res://src/client/mod_import.gd")
 const VOXEL_EDITOR := "res://src/client/ui/editor/voxel_editor.gd"
 
 ## The kinds in the order shown, each with its name.
@@ -65,6 +67,7 @@ var _undo: Button
 var _copy_row: HBoxContainer
 var _copy_field: LineEdit
 var _said: Label
+var _export: Button
 
 
 func _init(g) -> void:
@@ -86,6 +89,17 @@ func _ready() -> void:
 	_new_mod.add_child(Kit.button("[editor_create]", _make_mod))
 	_new_mod.visible = false
 	_top.add_child(_new_mod)
+	# The mod chosen packed into a zip and handed out, and a zip of a mod taken in.
+	var zips := Kit.row(4)
+	_export = Kit.button("[editor_export_zip]", export_mod)
+	_export.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_export.visible = ModImport.can_offer()
+	zips.add_child(_export)
+	var take := Kit.button("[editor_import_zip]", func() -> void: PicturePick.pick(import_mod, true))
+	take.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	take.visible = PicturePick.can_pick()
+	zips.add_child(take)
+	_top.add_child(zips)
 	var names := []
 	for k: Array in KINDS:
 		names.append(k[1])
@@ -270,6 +284,41 @@ func _pick_picture(field: String) -> void:
 		say("[editor_cannot_pick]")
 		return
 	PicturePick.pick(set_picture.bind(field))
+
+
+## Packs the chosen own mod into a zip and hands it to the player (ModImport.offer: the
+## browser downloads it, elsewhere the system asks where to save it).
+func export_mod() -> void:
+	if mod == "":
+		say("[editor_make_a_mod_first]")
+		return
+	var bytes := ModImport.pack(OwnMods.root().path_join(mod))
+	if bytes.is_empty():
+		say("[editor_not_saved]")
+		return
+	ModImport.offer(bytes, "%s.zip" % mod, func(where: String) -> void:
+		say(Lang.line("[editor_exported]", [where]) if where != "" else "[editor_not_saved]"))
+
+
+## Takes zip `bytes` (file `file`) of a mod into one's own mods (ModImport.unpack_bytes;
+## never over a mod that is not one's own), chooses the first own mod it brought and reads
+## the mods again.
+func import_mod(bytes: PackedByteArray, file: String) -> void:
+	var others := Mods.available().filter(func(m: String) -> bool: return not m in OwnMods.list())
+	var got := ModImport.unpack_bytes(bytes, file, OwnMods.root(), others)
+	if got.error != "":
+		say(got.error)
+		return
+	var mine := (got.mods as Array).filter(func(m: String) -> bool: return m in OwnMods.list())
+	if not mine.is_empty():
+		mod = mine[0]
+	_choices.rows[0].values = OwnMods.list()
+	_choices.refresh()
+	if mod != "":
+		_apply()
+	if record == "":
+		_show_list()
+	say(Lang.line("[mod_files_imported_d_left]", [got.files, got.skipped]))
 
 
 ## Opens the voxel editor on model field `field` of the record open (its model, or an

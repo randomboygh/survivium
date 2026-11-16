@@ -518,6 +518,9 @@
 "[voxel_lighter]": "Светлее"
 "[voxel_empty]": "В модели пока нет вокселей"
 "[voxel_saved]": "Модель сохранена в мод %s"
+"[editor_export_zip]": "Экспорт в zip"
+"[editor_import_zip]": "Импорт zip"
+"[editor_exported]": "Мод сохранён: %s"
 "[voxel_levels_most]": "Не больше %d уровней"
 
 # src/client/ui/fact_chips.gd
