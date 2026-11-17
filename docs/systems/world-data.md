@@ -23,7 +23,7 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
   half-blocks: a cell cut (`corner_cuts`) or an open cell filled (`corner_fills`) at one corner at most, the
   whole half beyond the diagonal across it, so several in a row make one straight 45° face. A fill gives way
   where the ground beside is open round its own corner facing it (it is cut there), else the two would make a
-  saw. A slope is cut only at a low corner where the ground drops more than a level beside. `ground_height` is
+  saw. A slope is cut only at a low corner where the ground drops more than a level beside; the ground under the lowest cut cell then slopes on down in the cut as an open top would (`_floor_slopes`, its low corners kept in its shape), so a steep diagonal slope has no step at the cut. `ground_height` is
   asked at every step of a beast and a body: it reads the cells and shapes of the column straight from the
   chunk (the rules `corner_fills`, `corner_cuts`, `slope_mask` are the same) and looks at the neighbouring
   columns only when the column has cut or filled corners.
