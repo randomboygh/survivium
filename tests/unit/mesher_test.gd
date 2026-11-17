@@ -234,6 +234,16 @@ func _test_edges() -> void:
 	_check(grass_brow > 0, "sheer grass's top edge is rounded its radius down")
 	_check(placed_cut == 0, "a placed block keeps sharp edges (%d)" % placed_cut)
 	_check(seams == 0, "rounded ground meets the cells beside it at one height (%d seams)" % seams)
+	# The setting «rounded terrain» off: the same ground drawn sharp, as the built blocks.
+	ChunkMesher.rounded = false
+	verts = (ChunkMesher.build_chunk(w, 0, 0, 16)[0] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	ChunkMesher.rounded = true
+	var off_edges := 0
+	for v in verts.size():
+		var p := verts[v] / WorldData.CELL
+		if absf(p.y - roundf(p.y)) > 0.001:
+			off_edges += 1
+	_check(off_edges == 0, "with rounded terrain off no brow drops nor foot heaps (%d points between levels)" % off_edges)
 	# Layered cliff: dirt over stone stands back, a ledge of the stone's top stays.
 	w = WorldData.new(6, Vector2i(16, 16))
 	ch = w.chunks[Vector2i.ZERO]

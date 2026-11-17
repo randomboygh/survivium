@@ -8,6 +8,7 @@ extends RefCounted
 
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Crt := preload("res://src/client/view/crt.gd")
+const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
@@ -106,6 +107,10 @@ const DEFAULTS := {
 	# it was off by default under the key `edge_haze`, which saved files still hold and
 	# load ignores, so every player gets it on once.
 	"edge_mist": true,
+	# Natural ground drawn with rounded and bevelled edges and bent slopes (ChunkMesher.rounded,
+	# EdgeMesher); off, sharp like the built blocks and quicker to build. Not part of the
+	# quality presets.
+	"rounded_ground": true,
 	# The retro palette of the world (Crt.PALETTES: none, NES, 1 bit, CGA) and the size of
 	# its pixels (Crt.PIXELS: 1×, 2×, 4×). Not part of the quality presets.
 	"palette": 0,
@@ -655,6 +660,9 @@ func apply() -> void:
 		sky.fog_on = values.fog
 	if game.chunks != null:
 		game.chunks.set_haze(values.edge_mist)
+		game.chunks.set_rounded(values.rounded_ground)
+	else:
+		ChunkMesher.rounded = values.rounded_ground
 	if game.view != null and game.view.grade_mat != null:
 		Crt.apply(game.view.grade_mat, values.crt, values.palette, values.retro_pixel, game.view.viewport.get_texture())
 	if game.effects != null:

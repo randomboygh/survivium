@@ -1,6 +1,7 @@
 extends SceneTree
 ## Times building the meshes and plants of 16 by 16 chunks around the spawn:
-## godot --headless --path . --script res://tools/bench_mesh.gd
+## godot --headless --path . --script res://tools/bench_mesh.gd [-- --sharp]
+## (`--sharp`: with the setting «rounded terrain» off, ChunkMesher.rounded).
 
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
@@ -9,6 +10,7 @@ const CHUNK := 16
 
 
 func _initialize() -> void:
+	ChunkMesher.rounded = not OS.get_cmdline_user_args().has("--sharp")
 	var t0 := Time.get_ticks_usec()
 	var gen := WorldGen.new(20261018)
 	var home := Vector2i(gen.spawn_guess.x >> 4, gen.spawn_guess.z >> 4) - Vector2i(8, 8)

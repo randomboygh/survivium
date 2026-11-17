@@ -18,6 +18,11 @@ const Edges := preload("res://src/client/world/edge_mesher.gd")
 
 ## Per direction: [corners, uvs, normal] of a whole cell face.
 static var _cell_faces: Array = []
+## Whether natural ground is drawn with its rounded and bevelled edges and bent slopes
+## (EdgeMesher, SlopeMesher.bend): the graphics setting «rounded terrain» (Settings
+## `rounded_ground`). Off, it is drawn sharp like the built blocks, and faster. A job
+## takes it when it starts (see Job.rounded).
+static var rounded := true
 
 
 ## The state of a chunk's meshes being built column by column (see `start`, `step`, `finish`),
@@ -52,6 +57,9 @@ class Job extends RefCounted:
 	## The forms of the built blocks that are not cubes (WorldData.forms) in the padded
 	## grid, by index, and the steps to a cell's neighbours in DIRS order.
 	var forms := {}
+	## ChunkMesher.rounded when the job started: off, no cell is natural to EdgeMesher
+	## and SlopeMesher (`wild` stays empty) and EdgeMesher is not asked.
+	var rounded := true
 	var offsets: PackedInt32Array
 	## Steps of copying the cells before the columns (see PREP_STEPS); 0 once done.
 	var prep := PREP_STEPS
@@ -109,6 +117,7 @@ static func start_rect(w, x0: int, z0: int, x1: int, z1: int, part := false) -> 
 	job.z = z0
 	job.x = x0
 	job.part = part
+	job.rounded = rounded
 	job.faces = face_table()
 	job.solid = MeshBuffers.new()
 	job.water = MeshBuffers.new()
@@ -153,7 +162,8 @@ static func _prepare(job: Job, i: int) -> void:
 			job.sh.append_array(w.padded(true, 0, x0, z0, x1, z1, half))
 		1:
 			job.cands = _candidates(w, job.x0, job.z0, job.x1, job.z1)
-			job.wild = Edges.wild_masks(w, x0, z0, x1, z1)
+			if job.rounded:
+				job.wild = Edges.wild_masks(w, x0, z0, x1, z1)
 			_take_forms(job)
 
 

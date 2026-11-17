@@ -127,7 +127,11 @@ slice, to free the far meshes.
   flat, the heap hides its foot); a whole top is drawn only on the `lines` of `GRID` its brows bend (a straight brow needs the lines across
   it, a free end both ways; halves and diagonal brows take the whole grid); tops are cached as indexed shapes by
   the brows and feet that make them (`_shapes`, `MeshBuffers.shape`); a job keeps `segments`, `feet` and a packed
-  `_info` per padded cell. Preview shots: `ground-edges-*`),
+  `_info` per padded cell. Preview shots: `ground-edges-*`. The graphics setting «rounded terrain»
+  (`rounded_ground`, per player) switches it off: `ChunkMesher.rounded` false leaves the job's `wild` empty,
+  `prepare` answers nothing and slopes do not bend, so natural ground is drawn sharp like the built blocks,
+  about 3x quicker to build (`tools/bench_mesh.gd -- --sharp`); `ChunkStreamer.set_rounded` builds the chunks
+  shown again, nearest first),
   `form_mesher.gd` (built blocks that are not a cube — `WorldData.forms`: a bevel from below, a bevel from
   above, steps; a shape is described as rising to the north and turned; a face on a cell's side is not drawn
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not

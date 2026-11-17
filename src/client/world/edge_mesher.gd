@@ -757,6 +757,8 @@ static func _turns(job, i: int, p: int) -> bool:
 ## The brows and feet of padded cell `i` when a rounded edge reaches it ([drops, heaps]),
 ## else an empty array: ChunkMesher draws it its own way.
 static func prepare(job, i: int) -> Array:
+	if not job.rounded:
+		return []
 	var c: PackedByteArray = job.c
 	var sh: PackedByteArray = job.sh
 	var cov: PackedByteArray = job.cov

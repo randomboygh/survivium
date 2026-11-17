@@ -1048,6 +1048,25 @@ func run_jobs(spent := 0) -> void:
 
 ## Turns the haze over the edge of what is built on or off («Туман на краю»); it is
 ## made with the first frame of play.
+## Draws natural ground rounded or sharp (ChunkMesher.rounded, the setting «rounded
+## terrain»): every chunk shown is built again, the nearest first, as edits are (a few
+## columns a frame); the kept jobs go, they were built the other way.
+func set_rounded(on: bool) -> void:
+	if ChunkMesher.rounded == on:
+		return
+	ChunkMesher.rounded = on
+	kept.clear()
+	keep_queue.clear()
+	forget_queue.clear()
+	var home := _player_chunk() if game.player != null else kept_home
+	var keys: Array = chunk_nodes.keys()
+	keys.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return maxi(absi(a.x - home.x), absi(a.y - home.y)) < maxi(absi(b.x - home.x), absi(b.y - home.y)))
+	for key: Vector2i in keys:
+		remesh_chunk(key)
+	kept_home = Vector2i(-1000000, 0)
+
+
 func set_haze(on: bool) -> void:
 	haze_on = on
 	if not on and haze != null:
