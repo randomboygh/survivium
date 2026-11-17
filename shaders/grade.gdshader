@@ -43,6 +43,11 @@ uniform vec4 frost_state = vec4(0.0);
 // The wind across the screen (AirEffects._glass_wind), -1..1, + to the right: the drops
 // run aslant and the flakes slide aside with it, by up to GLASS_LANES lanes or cells.
 uniform float glass_wind = 0.0;
+// The rainbow after rain (AirEffects._rainbow): x how strong (0..1), y how far its top
+// stands from the middle of the screen towards its edge (a share of the way there:
+// high with a low sun, low at noon), zw the way across the screen
+// away from the sun (x right, y down), where the bow stands.
+uniform vec4 rainbow = vec4(0.0);
 const float GLASS_LANES = 2.0;
 // The pixels of the picture round its edges left off the screen (PixelView.MARGIN).
 uniform float view_margin = 0.0;
@@ -84,6 +89,17 @@ uniform float crt_jitter = 0.0;
 uniform float crt_bleed = 0.0;
 uniform float crt_band = 0.0;
 uniform float crt_noise = 0.0;
+// The retro palettes (crt.gd RETRO_*, the same setting), 0 off: the picture's pixels drawn
+// twice as big, on the world's grid so the big pixels do not crawl as the view moves, and
+// the colours brought to a palette with ordered dithering on the big pixels: 1 the NES's
+// (55 colours), 2 black and white, 3 CGA (black, cyan, magenta, white).
+uniform int retro = 0;
+// The nearest colour of the NES palette for 8 bit (assets/nes_lut.png, tools/make_nes_lut.py).
+uniform sampler2D retro_lut : filter_nearest;
+// The gamma 1 bit and CGA lift the picture's darks by before the palette
+// (Sky._update_grade: lower the darker the sky), 1 by day.
+uniform float retro_lift = 1.0;
+const vec3 CGA[4] = vec3[](vec3(0.0), vec3(0.333, 1.0, 1.0), vec3(1.0, 0.333, 1.0), vec3(1.0));
 
 // How far, in picture pixels, the waves of a sleepy eye move the pixel at screen point
 // `sp` (0..1): slow sines across and along, crossing, so nothing moves in step.
@@ -230,6 +246,42 @@ bool flake_arm(vec2 d, float r) {
 	return arm || (r >= 4.0 && ((d.x == r - 1.0 && d.y == 1.0) || (d.y == r - 1.0 && d.x == 1.0)));
 }
 
+// The rainbow at pixel `p` of the screen's own grid (a picture `size` pixels): an arc of
+// six bands of whole pixels, red outside, round a point far off the screen away from
+// the sun, so it hangs where the sky would be and stays put on the glass as the world
+// glides (a rainbow goes along with the one who looks); the sky inside it a little
+// lighter, a faint second bow outside with its colours turned round, and its feet
+// fading towards the near side of the view. rgb its colour, a how much of it.
+vec4 rainbow_at(vec2 p, vec2 size) {
+	vec3 bands[6] = vec3[](vec3(0.95, 0.27, 0.25), vec3(1.0, 0.6, 0.22), vec3(1.0, 0.92, 0.38),
+		vec3(0.38, 0.86, 0.36), vec3(0.3, 0.52, 1.0), vec3(0.62, 0.38, 0.92));
+	float half_diag = length(size) * 0.5;
+	float band = max(1.0, floor(min(size.x, size.y) / 80.0));
+	float radius = half_diag * 1.3;
+	vec2 dir = rainbow.zw;
+	vec2 off = p + 0.5 - size * 0.5;
+	// How far the screen reaches from its middle along the bow's way, so its top stands
+	// as high on a wide screen as on a tall one.
+	float reach = 0.5 * dot(abs(dir), size);
+	vec2 rel = off - dir * (reach * rainbow.y - radius);
+	float t = (radius - length(rel)) / band;
+	float feet = smoothstep(-0.75, 0.15, dot(off, dir) / half_diag);
+	vec4 out_c = vec4(0.0);
+	if (t >= 0.0 && t < 6.0) {
+		out_c = vec4(bands[int(t)], 0.32);
+	} else if (t >= 6.0 && t < 18.0) {
+		out_c = vec4(vec3(1.0), 0.07 * (1.0 - (t - 6.0) / 12.0));
+	} else if (t < -8.0 && t >= -14.0) {
+		out_c = vec4(bands[int(-8.0 - t)], 0.11);
+	}
+	out_c.a *= feet * rainbow.x;
+	// In steps of an eighth, dithered on the screen's grid: whole pixels, no smear.
+	ivec2 b = ivec2(mod(p, 4.0));
+	int m[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
+	out_c.a = floor(out_c.a * 8.0 + (float(m[b.y * 4 + b.x]) + 0.5) / 16.0) / 8.0;
+	return out_c;
+}
+
 // Snow on the screen at pixel `p` of the picture (`size` pixels): flakes that land near
 // the edges, lie a while and melt away, each a little six-armed star; and frost growing
 // in from the edges, deeper in the corners, in feathery ridges. xyz the colour, w how much.
@@ -303,6 +355,54 @@ vec4 screen_snow(vec2 p, vec2 size) {
 		}
 	}
 	return out_c;
+}
+
+// Brings colour `c` to the retro palette (`retro`), `d` the big pixel's ordered dither
+// threshold, 0..1.
+vec3 retro_color(vec3 c, float d) {
+	if (retro == 1) {
+		// The NES's palette: the colour, richer first (the palette's greys would take the
+		// muted greens of the crowns) and nudged by the dither, looked up in retro_lut, which
+		// holds the nearest of the palette's 55 for each of 32 levels of red, green and blue.
+		float g = dot(c, vec3(0.299, 0.587, 0.114));
+		c = clamp(mix(vec3(g), c, 1.6), 0.0, 1.0);
+		ivec3 k = ivec3(clamp(floor((c + (d - 0.5) * 0.16) * 31.0 + 0.5), 0.0, 31.0));
+		return texelFetch(retro_lut, ivec2(k.b * 32 + k.r, k.g), 0).rgb;
+	}
+	if (retro == 2) {
+		// The greys in five steps, black, three patterns and white, so a surface keeps one
+		// even pattern instead of a noise of dots; brightness spread wider first, so the
+		// picture is not all half grey.
+		float l = dot(c, vec3(0.299, 0.587, 0.114));
+		l = clamp((l - 0.45) * 1.7 + 0.5, 0.0, 1.0);
+		return vec3(step(d, floor(l * 4.0 + 0.5) / 4.0));
+	}
+	// Colours a little richer and harder first: the palette is far from the picture's.
+	float g = dot(c, vec3(0.299, 0.587, 0.114));
+	c = clamp((mix(vec3(g), c, 1.4) - 0.45) * 1.3 + 0.5, 0.0, 1.0);
+	// The nearest two colours of the palette, and between them by the dither: how far `c`
+	// lies from the first toward the second.
+	int a = 0;
+	int b = 1;
+	float da = 1e9;
+	float db = 1e9;
+	for (int i = 0; i < 4; i++) {
+		vec3 e = c - CGA[i];
+		float k = dot(e, e);
+		if (k < da) {
+			db = da;
+			b = a;
+			da = k;
+			a = i;
+		} else if (k < db) {
+			db = k;
+			b = i;
+		}
+	}
+	vec3 ab = CGA[b] - CGA[a];
+	float t = clamp(dot(c - CGA[a], ab) / dot(ab, ab), 0.0, 1.0);
+	// In steps too, as the greys of 1 bit.
+	return floor(t * 4.0 + 0.5) / 4.0 > d ? CGA[b] : CGA[a];
 }
 
 // The bright part of the picture around `uv`, blurred: eight filtered taps on two rings.
@@ -390,7 +490,17 @@ void fragment() {
 			// The picture breathes: it swells and shrinks slowly round the middle.
 			uv = 0.5 + (uv - 0.5) * (1.0 - trip * 0.025 * (0.5 + 0.5 * sin(TIME * 0.8)));
 		}
-		src = texture(TEXTURE, uv).rgb;
+		if (retro > 0) {
+			// The big pixel: the pair of pixels across and down it starts at an even pixel of
+			// the world. Its four are read at once, averaged (crt_view is filtered), so the
+			// fine detail does not turn into a noise of dots; uv stays on its first.
+			vec2 pp = floor(uv / TEXTURE_PIXEL_SIZE);
+			pp -= mod(pp + floor(view_origin + 0.5), 2.0);
+			uv = (pp + 0.5) * TEXTURE_PIXEL_SIZE;
+			src = texture(crt_view, (pp + 1.0) * TEXTURE_PIXEL_SIZE).rgb;
+		} else {
+			src = texture(TEXTURE, uv).rgb;
+		}
 	}
 	if (sway > 0.0) {
 		// The second image, a few pixels off and wandering, comes and goes.
@@ -418,6 +528,11 @@ void fragment() {
 	ivec2 b = ivec2(mod(px, 4.0));
 	int m[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
 	float dither = (float(m[b.y * 4 + b.x]) + 0.5) / 16.0 - 0.5;
+	if (rainbow.x > 0.0) {
+		// Light added in the air, as warm or cool as the hour's light.
+		vec4 bow = rainbow_at(glass, 1.0 / TEXTURE_PIXEL_SIZE);
+		c = 1.0 - (1.0 - c) * (1.0 - clamp(bow.rgb * tint, 0.0, 1.0) * bow.a);
+	}
 	if (haze_amount > 0.0) {
 		// Banks from two layers of noise, in whole pixels, with a dithered edge.
 		vec2 p = px / 16.0 + haze_offset;
@@ -453,6 +568,17 @@ void fragment() {
 	if (frost_state.y > 0.0 || frost_state.z > 0.0) {
 		vec4 snow = screen_snow(glass, 1.0 / TEXTURE_PIXEL_SIZE);
 		c = mix(c, snow.rgb * max(exposure, 0.35) * tint, snow.a);
+	}
+	if (retro > 0) {
+		// The dither by big pixels, on the world's grid as they are.
+		ivec2 rb = ivec2(mod(floor(px / 2.0), 4.0));
+		if (retro > 1) {
+			// Four colours lose a dark picture whole: by night its darks are lifted by the
+			// sky's light (retro_lift, a gamma), so the ground still shows dim round a fire's
+			// patch while the patch itself does not go all white.
+			c = pow(max(c, vec3(0.0)), vec3(retro_lift));
+		}
+		c = retro_color(clamp(c, 0.0, 1.0), (float(m[rb.y * 4 + rb.x]) + 0.5) / 16.0);
 	}
 	if (crt_on) {
 		c += crt_bloom(uv, TEXTURE_PIXEL_SIZE) * crt_glow * exposure * tint;

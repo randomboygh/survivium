@@ -35,7 +35,8 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   down, a minute at 50 FPS (90 % of the screen rate or the FPS limit if lower) a try up; a slow window in the
   next 20 s takes the try back and sets `auto_ceiling`. Each step is told by a toast and in the F3 panel's
   full view. Any graphics setting by hand (`Settings.set_value`, a preset) turns it off.
-- `src/client/view/crt.gd` — the setting «CRT» (Graphics): off, soft, old, cassette (`LOOKS`). The old screen
+- `src/client/view/crt.gd` — the setting «Screen effect» (Graphics, key `crt`): off, soft CRT, old CRT, VHS
+  tape, 8 bit, 1 bit, CGA (`LOOKS`). The old screen
   is counted in the colour-correction pass (`grade.gdshader`, the parameters `crt_*`) by the screen's pixels
   (the shifts — by the screen's long side, the bend — by the diagonal, the mask's stripes are wider on a dense
   screen, so in portrait and in landscape it is the same), it has no pass of its own: scan lines with
@@ -43,7 +44,14 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   `crt_view`), split channels, the tube's curvature, a vignette, flicker, an aperture grille; the «old» one
   also has a rolling light band, the «cassette» — a jitter of lines, colour blurred along a line, a band of
   interference at the bottom and noise. The interface on top stays sharp. The picture's position on the
-  screen for the curvature is given by `CameraRig.update` every frame (`Crt.frame`).
+  screen for the curvature is given by `CameraRig.update` every frame (`Crt.frame`). The retro palettes
+  (`retro` of `grade.gdshader`, `Crt.RETRO_*`) draw the picture's pixels twice as big, on the world's grid
+  (`view_origin`, so they do not crawl as the view glides), each big pixel one filtered tap of `crt_view` (its four
+  averaged), then bring the colour to the palette with a 4×4 ordered dither by big pixels: 8 bit is the NES's palette
+  (55 colours: the nearest by eye looked up in `assets/nes_lut.png`, a 32³ grid made by `tools/make_nes_lut.py`); 1 bit black and white, the brightness stretched and put in five steps (black, three patterns,
+  white) so a surface keeps one even pattern; CGA black, cyan, magenta, white, the two nearest colours mixed by
+  the dither in the same five steps. For 1 bit and CGA the night's darks are lifted by a gamma (`retro_lift`,
+  set by `Sky._update_grade` from `sky_light`), else the world is all black outside a fire's light.
 - `src/client/view/sky.gd` — light, colour correction, ground fog, puddles, weather on screen for
   `game.clock`; `light_side` (one of eight sides, with a margin).
 - `src/client/view/effects.gd` — particles, campfires, the torch (an item with `light` in the hand, otherwise
@@ -60,7 +68,7 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   and heat off on «среднее», `Settings.QUALITIES`, `AutoQuality.STEPS`) and hidden one by one in «Что рисуется»
   (their `parts()`). AirEffects: the air trembling over the nearest fires (stronger, higher and wider the more wood is left, `fire.fuel` from `Effects.fire_strength`) and over hot ground at a clear noon, only over sand or the sea (`hot_ground`, from 30° of air; global `heat_ground`: the ground's texels move in rows by the world, `heat_wobble` in `world.gdshader` and `water.gdshader`, and what stands over it sways along, `heat_sway`: sprites by their rows, plants, crowns and things of voxels by their vertices, most at the foot) and drops of
   rain running down the screen's edges (`grade.gdshader` `heat_spots`, `heat_haze`, `drop_state`: when they stop the drops there run off within
-  `DRY_RUN` even if new ones start; a jump in the water, under `SWIM_LEFT` s out of it, still counts as a swim), snow on the screen (`frost_state`, `screen_snow`: flakes stick to the edges and melt while it snows
+  `DRY_RUN` even if new ones start; a jump in the water, under `SWIM_LEFT` s out of it, still counts as a swim), a rainbow after rain (`_rainbow`, grade `rainbow`, `rainbow_at`: six bands of whole pixels on the screen's own grid, away from the sun, turned with the view, high with a low sun and low and fainter at noon, a lighter sky inside and a faint second bow; it comes as the rain thins while `Sky.after_rain` lasts, with clouds under `RAINBOW_CLOUDS`, outdoors, by day; no setting, hidden only in «Что рисуется»), snow on the screen (`frost_state`, `screen_snow`: flakes stick to the edges and melt while it snows
   outside, frost creeps in from the edges, deepest in the corners, below `FROST_FROM` degrees; the hotbar gathers snow, `hotbar_snow`;
   by the same setting as the drops; drops and snow are placed on the screen's own grid, `screen_shift` from `CameraRig.update`,
   so they do not glide or jitter with the picture; the wind across the view, `glass_wind` from `AirEffects._glass_wind`, runs the drops aslant and slides lying flakes aside by up to `GLASS_LANES` lanes or cells), breath steaming in

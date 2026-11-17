@@ -34,7 +34,8 @@ device's time, the season by the calendar and real weather.
   `step_around(delta, places)` — the players in turn, `last_at`; called by the world session), the rules —
   `WorldActions.blow_branch` / `blow_berries`.
 - `src/client/view/sky.gd` — how it looks: light, colour correction, clouds, shader tints (see
-  [rendering.md](rendering.md)); `src/client/audio/nature.gd` — how it sounds. Cloud shadows
+  [rendering.md](rendering.md)); a rainbow away from the sun after rain (`AirEffects._rainbow`, by `after_rain`,
+  [camera-effects](rendering/camera-effects.md)); `src/client/audio/nature.gd` — how it sounds. Cloud shadows
   (`cloud_light` in `shaders/common.gdshaderinc`) fall along the light: `cloud_slant`, set by `_aim_sun`, moves the
   point looked up by its height (at most `CLOUD_SLANT`), so a shadow's edge goes down a wall at a slant. A biome's
   own mist (`Biomes.mist`: swamps, bogs, mangroves) lies under the fog of the weather near the player (`_ease_mist`:
