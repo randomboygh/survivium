@@ -1225,6 +1225,7 @@
 "[no_saved_worlds_yet]": "Збережених світів поки немає"
 "[seed_day]": "зерно %d\n%s · день %d"
 "[test_world_grounds_day]": "Тестовий світ\nмайданчики · день %d"
+"[test_world_old_slopes_day]": "Тестовий світ\nстарі схили · день %d"
 "[delete_the_world_tap_twice]": "Видалити світ (натиснути двічі)"
 "[reset_the_test_world_tap]": "Повернути тестовий світ до початку (натиснути двічі)"
 "[this_world_is_being_played]": "Світ зараз у грі"

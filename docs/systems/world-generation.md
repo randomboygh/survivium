@@ -102,7 +102,7 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   or at the edge of a cliff it hangs over air. The client puts a shrub on the ground under its middle
   (`Foliage.bush_foot`): if beside it was dug and under it became a slope, the shrub goes down onto the slope.
   Felling is a rule of the game: `src/shared/game/felling.gd` (`fell`), see [interaction.md](interaction.md).
-- `src/shared/world/test_ground.gd` — the test world (opened from the «Testing» page): sites of relief,
+- `src/shared/world/test_ground.gd` — the test world, two of them (the world setting `slopes` 0 and 1, folders `test` and `test-o1`), listed last on «Load a world» in the developer mode (`WorldList.test_worlds`): sites of relief,
   biomes, plants (a garden — pens of trees of 15 cells, east of it fields of ears), «Camp», «Star cave»
   (`TestGround.STAR_*`), a two-storey brick «House» (`HOUSE_*`: walls and floors — cells from `extras`, the
   door, windows, the ladder, furniture and lanterns — `plan_things`, put by `Placed.put_plan` only in a new

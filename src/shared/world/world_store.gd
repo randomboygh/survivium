@@ -60,7 +60,9 @@ func _init(path: String) -> void:
 ## world is "test".
 static func world_dir(seed_value: int, options: Dictionary) -> String:
 	if seed_value == TEST_SEED:
-		return root + "/test"
+		# Two test worlds: with the new slopes and with the old ones ("test-o1").
+		var slopes := int(options.get("slopes", 0))
+		return root + "/test" + ("-o%d" % slopes if slopes != 0 else "")
 	var digits := ""
 	for k in ["size", "water", "mountains", "rivers", "biomes"]:
 		digits += str(int(options.get(k, 1)))

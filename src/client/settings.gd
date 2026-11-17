@@ -1174,33 +1174,18 @@ func in_test_world() -> bool:
 	return game.world_seed == WorldStore.TEST_SEED
 
 
-## Saves the world and goes over to the test world, or from it back to the world
-## saved last before it (the one set up on the first screen when there is none).
-func switch_test_world() -> void:
-	var seed_value := WorldStore.TEST_SEED
-	var options: Dictionary = game.world_options
-	if in_test_world():
-		seed_value = values.world_seed
-		options = world_options()
-		for w: Dictionary in WorldStore.list_worlds():
-			if w.seed != WorldStore.TEST_SEED:
-				seed_value = w.seed
-				options = w.settings
-				break
-	game.save.switch_world(seed_value, options)
-	game.restart()
-
-
-## Forgets the test world's save, so it is laid out anew from TestGround; when it is
-## the world being played, goes into it again at once without saving it first.
-func reset_test_world() -> void:
-	if in_test_world() and game.save.store != null:
+## Forgets the save of the test world with the world settings `options` (of them only
+## the slopes count: two test worlds), so it is laid out anew from TestGround; when it
+## is the world being played, goes into it again at once without saving it first.
+func reset_test_world(options := {}) -> void:
+	var same := int(options.get("slopes", 0)) == int(game.world_options.get("slopes", 0))
+	if in_test_world() and same and game.save.store != null:
 		game.save.active = false
 		game.save.store.erase()
 		WorldStore.write_current(WorldStore.TEST_SEED, game.world_options)
 		game.restart()
 	else:
-		WorldStore.new(WorldStore.world_dir(WorldStore.TEST_SEED, {})).erase()
+		WorldStore.new(WorldStore.world_dir(WorldStore.TEST_SEED, options)).erase()
 
 
 ## Forgets everything the game keeps on this device (the worlds with their maps and

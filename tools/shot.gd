@@ -1237,6 +1237,8 @@ func _run() -> void:
 				await process_frame
 			if shot.main_menu == "worlds":
 				_fake_saves()
+				# In the developer mode the two test worlds show too (WorldList.test_worlds).
+				main.settings.testing_unlocked = shot.get("dev", false)
 				main.menu._open_worlds()
 				await process_frame
 			if shot.get("dev", false):

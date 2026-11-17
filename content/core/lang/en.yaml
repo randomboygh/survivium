@@ -1310,6 +1310,7 @@
 "[no_saved_worlds_yet]": "No saved worlds yet"
 "[seed_day]": "seed %d\n%s · day %d"
 "[test_world_grounds_day]": "Test world\ngrounds · day %d"
+"[test_world_old_slopes_day]": "Test world\nold slopes · day %d"
 "[delete_the_world_tap_twice]": "Delete the world (tap twice)"
 "[reset_the_test_world_tap]": "Reset the test world (tap twice)"
 "[this_world_is_being_played]": "This world is being played"
