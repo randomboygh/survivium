@@ -34,7 +34,13 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
   opposite corners down is a cube (its corner cut instead, a straight wall on the diagonal), an inner corner
   goes down only where the tops beside go down there too; the tip of a ridge a cell wide ramps down to its
   end (`TIP_END`) instead of standing as a post. The client draws them without EdgeMesher (`Job.soft`): every
-  natural slope bends level at its brow and foot by `SlopeMesher.SOFT_RADIUS`, cliffs stay sharp.
+  natural slope bends level at its brow and foot by `SlopeMesher.SOFT_RADIUS` (the old slopes' cubic Hermite
+  profile), cliffs stay sharp. A diagonal slope rises a level every two cells; where its bands follow one
+  another the lattice points between them are drawn and walked on `LIFT` higher (foot) or lower (brow), so
+  they read as one plane of about 35° (`corner_lift`, `corner_lifts`, `lifted_height`; the client's copy
+  `SlopeMesher.corner_lifts` from the padded cells). A high corner of a sloping top that every other top round
+  that point meets a level lower (a ridge tip ending at a diagonal band) is taken down a level (`_lone_post`),
+  so no post sticks up there. `surface_height`, `ground_height` and `body.gd` `_top` follow the lifts.
 - Old slopes (`WorldData.old_slopes`, set by nothing now; kept and checked by `old_shapes_test` until the
   user decides to remove them): the shapes of before the blocky relief (#722). A slope is a smooth bicubic patch
   (`surface_patch`, `make_patch`, `patch_height`), a corner may go down two levels into the covered cell below

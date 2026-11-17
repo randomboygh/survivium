@@ -441,6 +441,151 @@ static func _ramp(s: int) -> bool:
 	return s < 16 and (lows == NW | NE or lows == SE | SW or lows == NW | SW or lows == NE | SE)
 
 
+## Soft slopes (soft_slopes): a slope running on the diagonal rises a level every two
+## cells (nothing steeper than 45°), which the flat triangles draw as a band of slope
+## half a cell wide and a level shelf beside it. Where such bands follow one another,
+## the points of the lattice between them are drawn and walked on LIFT higher (at the
+## foot of a band) or lower (at its brow), so the bands and shelves are one plane of
+## about 35°. Told by the four tops round the point alone (corner_lift), so every cell
+## round it agrees.
+const LIFT := 0.25
+## Where the cells round a point of the lattice lie, by quadrant NW, NE, SE, SW of it
+## (cell q has the point as its corner (q + 2) & 3), and where corner k lies in a cell.
+const QUAD_CELL: Array[Vector2i] = [Vector2i(-1, -1), Vector2i(0, -1), Vector2i(0, 0), Vector2i(-1, 0)]
+const CORNER_AT: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0), Vector2i(1, 1), Vector2i(0, 1)]
+
+
+## How much higher than its level the point of the lattice is drawn whose four cells
+## round it (quadrants NW, NE, SE, SW, see QUAD_CELL) have tops at `levels` with shapes
+## `shapes` (-1 where the column has no plain sloping top there): LIFT at the foot of a
+## band of diagonal slope with another band below it, -LIFT at its brow with another
+## above, else 0. Only where the four tops make one surface over the eight points
+## round it, every one a chamfer (one corner unlike the others, no cut; see
+## split_ne_sw), and the ground rises by a level
+## toward one side along x and toward one along z and stays level toward the others.
+## Returned as Vector3(lift, rise along x, rise along z): the rises over the points two
+## apart across it, the slope of the plane the lifts make (for the normals), also where
+## nothing is lifted but the four tops meet (a level one among them); NAN where they
+## do not.
+static func corner_lift(levels: PackedInt32Array, shapes: PackedInt32Array) -> Vector3:
+	var g := PackedInt32Array()
+	g.resize(9)
+	g.fill(-999999)
+	var slopes := true
+	for q in 4:
+		var s := shapes[q]
+		if s < 0 or s >= 16:
+			return Vector3(0.0, NAN, NAN)
+		# Only chamfers (one corner unlike the other three) make a band on the diagonal.
+		slopes = slopes and ODD_CORNER[s] >= 0
+		for k in 4:
+			var at: Vector2i = QUAD_CELL[q] + CORNER_AT[k] + Vector2i.ONE
+			var h := levels[q] + (0 if s & (1 << k) else 1)
+			var j := at.y * 3 + at.x
+			if g[j] == -999999:
+				g[j] = h
+			elif g[j] != h:
+				return Vector3(0.0, NAN, NAN)
+	var mid := g[4]
+	var xs := Vector2i(g[3] - mid, g[5] - mid)
+	var zs := Vector2i(g[1] - mid, g[7] - mid)
+	var rise := Vector2(g[5] - g[3], g[7] - g[1]) * 0.5
+	if not slopes or rise.x == 0.0 or rise.y == 0.0:
+		return Vector3(0.0, rise.x, rise.y)
+	# The band goes on along the diagonal across the rise: a level up across the corner
+	# it rises to, down across the one it falls from, level across the two others (not
+	# the end of a band, where it meets other slopes).
+	var dx := 1 if rise.x > 0.0 else -1
+	var dz := 1 if rise.y > 0.0 else -1
+	if g[(1 + dz) * 3 + 1 + dx] != mid + 1 or g[(1 - dz) * 3 + 1 - dx] != mid - 1 \
+			or g[(1 + dz) * 3 + 1 - dx] != mid or g[(1 - dz) * 3 + 1 + dx] != mid:
+		return Vector3(0.0, rise.x, rise.y)
+	if (xs == Vector2i(1, 0) or xs == Vector2i(0, 1)) and (zs == Vector2i(1, 0) or zs == Vector2i(0, 1)):
+		return Vector3(LIFT, rise.x, rise.y)
+	if (xs == Vector2i(-1, 0) or xs == Vector2i(0, -1)) and (zs == Vector2i(-1, 0) or zs == Vector2i(0, -1)):
+		return Vector3(-LIFT, rise.x, rise.y)
+	return Vector3(0.0, rise.x, rise.y)
+
+
+## The lifts of the corners NW, NE, SE, SW of the top of cell (x, y, z) (see LIFT);
+## empty where none is lifted or the world has no soft slopes.
+func corner_lifts(x: int, y: int, z: int) -> PackedFloat32Array:
+	if not soft_slopes:
+		return PackedFloat32Array()
+	var s := _shape(x, y, z)
+	if s & 15 == 0 or s >= 16:
+		return PackedFloat32Array()
+	var out := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
+	var any := false
+	for k in 4:
+		var p: Vector2i = Vector2i(x, z) + CORNER_AT[k]
+		var h := y + (0 if s & (1 << k) else 1)
+		var levels := PackedInt32Array([0, 0, 0, 0])
+		var shapes := PackedInt32Array([-1, -1, -1, -1])
+		for q in 4:
+			var col: Vector2i = p + QUAD_CELL[q]
+			var near := (q + 2) & 3
+			for l: int in [y, y - 1, y + 1]:
+				if l < 0 or l + 1 >= size_y:
+					continue
+				var up := get_cell(col.x, l + 1, col.y)
+				if (up != Mat.AIR and up != Mat.WATER) or not _surface_ground(get_cell(col.x, l, col.y)):
+					continue
+				var o := _shape(col.x, l, col.y)
+				if l + (0 if o & (1 << near) else 1) == h:
+					levels[q] = l
+					shapes[q] = o
+					break
+		out[k] = corner_lift(levels, shapes).x
+		if h == y + 1 and out[k] == 0.0 and shapes.count(-1) == 3 and _lone_post(x, y, z, k):
+			out[k] = -1.0
+		any = any or out[k] != 0.0
+	return out if any else PackedFloat32Array()
+
+
+## Whether the high corner k of the sloping top of cell (x, y, z) stands alone: every
+## other top round that point of the lattice meets it a level lower (the end of a ridge
+## tip ramp where a band on the diagonal meets a straight slope). Soft slopes take such
+## a corner down a level (corner_lifts), or it sticks up as a post.
+func _lone_post(x: int, y: int, z: int, k: int) -> bool:
+	var p: Vector2i = Vector2i(x, z) + CORNER_AT[k]
+	for q in 4:
+		var near := (q + 2) & 3
+		if near == k:
+			continue
+		var col: Vector2i = p + QUAD_CELL[q]
+		var found := false
+		for l: int in [y, y - 1]:
+			if l < 0 or l + 1 >= size_y:
+				continue
+			var up := get_cell(col.x, l + 1, col.y)
+			if (up != Mat.AIR and up != Mat.WATER) or not _surface_ground(get_cell(col.x, l, col.y)):
+				continue
+			var o := _shape(col.x, l, col.y)
+			if o >= 16:
+				return false
+			found = l + (0 if o & (1 << near) else 1) == y
+			break
+		if not found:
+			return false
+	return true
+
+
+## top_height with the corners lifted by `lifts` (NW, NE, SE, SW; see LIFT): each
+## triangle a plane through its lifted corners.
+static func lifted_height(s: int, ne_sw: bool, fx: float, fz: float, lifts: PackedFloat32Array) -> float:
+	var h := top_height(s, ne_sw, fx, fz)
+	if lifts.is_empty():
+		return h
+	if ne_sw:
+		if fx + fz <= 1.0:
+			return h + lifts[0] + (lifts[1] - lifts[0]) * fx + (lifts[3] - lifts[0]) * fz
+		return h + lifts[2] + (lifts[2] - lifts[3]) * (fx - 1.0) + (lifts[2] - lifts[1]) * (fz - 1.0)
+	if fx >= fz:
+		return h + lifts[0] + (lifts[1] - lifts[0]) * fx + (lifts[2] - lifts[1]) * fz
+	return h + lifts[0] + (lifts[2] - lifts[3]) * fx + (lifts[3] - lifts[0]) * fz
+
+
 ## Height above its level of the top of shape `s` split as `ne_sw` says, at (fx, fz)
 ## inside the cell (0..1): on the plane of the triangle the point lies in.
 static func top_height(s: int, ne_sw: bool, fx: float, fz: float) -> float:
@@ -482,7 +627,7 @@ func surface_height(x: int, y: int, z: int, fx: float, fz: float) -> float:
 	if old_slopes:
 		return patch_height(surface_patch(x, y, z), fx, fz)
 	refresh_shapes()
-	return top_height(_shape(x, y, z), split_at(x, y, z), fx, fz)
+	return lifted_height(_shape(x, y, z), split_at(x, y, z), fx, fz, corner_lifts(x, y, z))
 
 
 ## The highest level of column (x, z) that is not air or leaves, -1 for none.
@@ -543,6 +688,8 @@ func ground_height(x: float, z: float) -> float:
 				return y + form_top(f, fx, fx, fz, fz)
 		if shapes[i] & 15 == 0:
 			return y + 1.0
+		if soft_slopes:
+			return y + lifted_height(shapes[i], split_at(cx, y, cz), fx, fz, corner_lifts(cx, y, cz))
 		return y + top_height(shapes[i], split_at(cx, y, cz), fx, fz)
 	return 0.0
 

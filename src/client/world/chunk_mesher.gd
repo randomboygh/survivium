@@ -125,6 +125,7 @@ static func start_rect(w, x0: int, z0: int, x1: int, z1: int, part := false) -> 
 	job.part = part
 	# A world with old slopes is drawn as before the blocky relief: no rounded edges.
 	old_slopes = w.old_slopes
+	soft_slopes = w.soft_slopes
 	job.rounded = rounded and not old_slopes
 	job.soft = w.soft_slopes
 	job.faces = face_table()
@@ -383,7 +384,8 @@ static func _column(job: Job, x: int, z: int) -> bool:
 					continue
 				# (A top or bottom looks at the cell's own slope: a sloping top under a cut is
 				# drawn by its slope, so its cube's top and bottom stay hidden.)
-				if cov[n] and (sh[i + side_offsets[d]] & 15 == 0 or floor_k >= 0 and side_offsets[d] == 0) \
+				if cov[n] and (sh[i + side_offsets[d]] & 15 == 0 or floor_k >= 0 and side_offsets[d] == 0 \
+						or soft_slopes and not cov[c[i + side_offsets[d] + dy]] and _meets_side(sh, i + side_offsets[d], d)) \
 						and not (by_form and forms.has(i + offsets[d]) and not Forms.covers_side(forms[i + offsets[d]], d ^ 1)):
 					# The ground under a thin trunk, and a bank beside its foot, still show around it.
 					var o: Vector3i = DIRS[d]
@@ -455,6 +457,23 @@ static func _by_form(forms: Dictionary, offsets: PackedInt32Array, i: int) -> bo
 		if forms.has(i + offsets[d]):
 			return true
 	return false
+
+
+## Soft slopes: whether the sloping top `o` beside a cube (open above), across its side
+## `d` (padded cell `j`), is high at both corners of that side (no cut there), so it
+## hides the side whole. Such a side
+## was drawn, under the slope; where the points between diagonal bands are lifted
+## lower (WorldData.LIFT) its top edge would stand out through the slope.
+static func _meets_side(sh: PackedByteArray, j: int, d: int) -> bool:
+	var o := sh[j]
+	if d == FACE_TOP or d == FACE_BOTTOM or o >= 16:
+		return false
+	var ks: Array = SIDE_CORNERS[d]
+	var m0: int = ks[0] ^ 1 if d < 2 else 3 - ks[0]
+	var m1: int = ks[1] ^ 1 if d < 2 else 3 - ks[1]
+	# (Where a corner of it is lifted lower, WorldData.LIFT, the side would stand out
+	# through the slope: hidden all the same.)
+	return o & (1 << m0 | 1 << m1) == 0
 
 
 ## Takes the forms of the built blocks in the padded grid of the job (WorldData.forms)
@@ -954,6 +973,7 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 		return null
 	w.refresh_shapes()
 	old_slopes = w.old_slopes
+	soft_slopes = w.soft_slopes
 	var buf := MeshBuffers.new()
 	var x1: int = x0 + size
 	var z1: int = z0 + size

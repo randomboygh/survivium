@@ -56,6 +56,20 @@ If the user picks Б: swap the ramp profile in `SlopeMesher` for soft worlds (th
   `shapes_test._test_soft` (45° rule, ridge tips).
 - Docs: `docs/systems/world-data.md`, `land_layout.gd`.
 
+## Done in parts 3 and 4 (option В, the user's open pick defaulted)
+
+- The old slopes looked better mostly because the old test ramp rose a level every diagonal cell (~55°); with
+  the 45° rule it rises a level every two, which flat triangles drew as band + shelf. Now: the old cubic
+  Hermite profile (`SlopeMesher.SOFT_RADIUS` 1.0) and the points between diagonal bands lifted by
+  `WorldData.LIFT` 0.25, so a two-cell band reads as one plane of about 35° (`corner_lift`, `corner_lifts`,
+  `lifted_height`, `SlopeMesher._lifted_top`); bodies and shore water follow the lifts.
+- Cube sides under a sloping neighbour that is high at both ends of that side are hidden (dark ticks through
+  lifted slopes, `ChunkMesher._meets_side`).
+- A high corner standing alone (every other top round the point a level lower: a ridge tip where a diagonal
+  band ends at the plot's edge) goes down a level (`WorldData._lone_post`, `SlopeMesher._lone_post`).
+- Tests: `shapes_test._test_lifts`. Shots `ground-old-*-near` hide grass; pictures
+  `survivium-builds/old-new-merge/part4/`.
+
 ## Left
 
 1. Decide (with the user) whether the old bicubic code and `old_slope_mesher.gd` are removed.
