@@ -1,6 +1,9 @@
 # Old and new mesher merged: state and what is left
 
-Status: in a PR (2026-11-17). Threads «Совместить старый и новый мешер» (branch `claude/project-thread-swdhm6`)
+Status: PARKED by the user (2026-11-18): back to the old mesher. The world setting `slopes` 1 is
+`WorldData.old_slopes` again (the old curved slopes, now a level a cell, no corners going down two levels);
+`soft_slopes` is set by nothing and kept for this work. Parts 3-4 are in draft PR #742.
+Earlier status: in a PR (2026-11-17). Threads «Совместить старый и новый мешер» (branch `claude/project-thread-swdhm6`)
 and its part 2 (branch `claude/project-thread-dvxhsh`). Plan of the earlier mesher work: `docs/planning/mesher.md`.
 
 ## What the user asked (2026-11-17, Russian, paraphrased)

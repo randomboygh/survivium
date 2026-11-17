@@ -1,6 +1,6 @@
 extends "res://tests/unit/test_case.gd"
 ## The old slopes of natural ground (a world with WorldData.old_slopes: curved patches,
-## corners going down two levels, corners cut half a cell along each side) against the
+## a level a cell, corners cut half a cell along each side) against the
 ## rules written out one cell at a time; shapes_test checks the blocky relief.
 
 const OldSlopeMesher := preload("res://src/client/world/old_slope_mesher.gd")
@@ -66,14 +66,11 @@ func _test_shapes() -> void:
 	var keys: Array = land.area
 	var from: Vector2i = keys[0] * 16
 	var to: Vector2i = keys[keys.size() - 1] * 16 + Vector2i(16, 16)
-	_check(g.soft_slopes and not g.old_slopes, "a world made with the setting slopes 1 has soft slopes")
-	_check(not WorldGen.new(7, 40).world.soft_slopes, "worlds made before the setting keep the blocky slopes")
-	_check(TestGround.new(0, 48, {"slopes": 1}).world.soft_slopes and not TestGround.new(0, 48, {}).world.soft_slopes,
+	_check(g.old_slopes and not g.soft_slopes, "a world made with the setting slopes 1 has the old slopes")
+	_check(not WorldGen.new(7, 40).world.old_slopes, "worlds made before the setting keep the blocky slopes")
+	_check(TestGround.new(0, 48, {"slopes": 1}).world.old_slopes and not TestGround.new(0, 48, {}).world.old_slopes,
 		"the test world takes the slopes setting")
-	# No world is made with the old slopes now; their code is checked on this one.
-	g.soft_slopes = false
-	g.old_slopes = true
-	g.update_shapes(from.x - 1, from.y - 1, to.x + 1, to.y + 1)
+	_check(_no_deep(g, from, to), "old slopes: no slope goes down two levels in a cell")
 	var store := preload("res://src/shared/world/world_store.gd")
 	_check(store.world_dir(7, {"slopes": 1}) != store.world_dir(7, {}), "a world with old slopes is saved apart")
 	_check(_shapes_match(g, from, to), "old slopes: shapes of a generated world follow the rules")
@@ -100,6 +97,17 @@ func _test_shapes() -> void:
 		g.set_cell(x, y, z, [Mat.AIR, Mat.DIRT, Mat.STONE][i % 3])
 	_check(_shapes_match(g, from, to), "shapes follow the rules after digging and building")
 	_check(_ground_matches(g, from, to), "and so does the ground a walker stands on")
+
+
+## True when no sloping top of the columns from..to goes on down into the cell below
+## it (every slope is a level a cell, user 2026-11-18).
+func _no_deep(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
+	for z in range(from.y, to.y):
+		for x in range(from.x, to.x):
+			for y in range(1, w.size_y):
+				if w.corner_heights(x, y, z).has(-1):
+					return false
+	return true
 
 
 ## True when WorldData.ground_height, which starts below the highest cells around,
@@ -147,13 +155,13 @@ func _ground_from_sky(w: WorldData, x: float, z: float) -> float:
 
 
 ## True when the mesher builds the same surface for every sloping top of the columns
-## from..to as the world does, and some slopes go down two levels.
+## from..to as the world does, and there are some.
 func _patches_match(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
 	var c := w.padded(false, Mat.STONE, from.x - 2, from.y - 2, to.x + 2, to.y + 2)
 	var sh := w.padded(true, 0, from.x - 2, from.y - 2, to.x + 2, to.y + 2)
 	var dz := to.x - from.x + 4
 	var dy := dz * (to.y - from.y + 4)
-	var deep := 0
+	var slopes := 0
 	for y in w.size_y:
 		for z in range(from.y, to.y):
 			for x in range(from.x, to.x):
@@ -166,8 +174,8 @@ func _patches_match(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
 					if not is_equal_approx(a[k], b[k]):
 						printerr("patch differs at %s: %s / %s" % [Vector3i(x, y, z), a, b])
 						return false
-				deep += int(w.corner_heights(x, y, z).has(-1))
-	return deep > 0
+				slopes += 1
+	return slopes > 0
 
 
 ## True when every two sloping tops side by side whose corners meet at both ends of
@@ -219,56 +227,10 @@ func _shapes_match(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
 	return true
 
 
-## Slope mask of a cell: its sloping top's, or for a covered cell the corners the
-## slope above goes down into.
+## Slope mask of a cell: its sloping top's (a covered cell has none, nothing goes
+## down into it).
 func _ref_slope(w: WorldData, x: int, y: int, z: int) -> int:
-	var top := _ref_top_slope(w, x, y, z)
-	return top if top != WorldData.FULL else WorldData.FULL & ~_ref_deep(w, x, y, z)
-
-
-## Corners of the slope above covered cell (x, y, z) that go down into it: low there,
-## and every other column around meets it a level lower, is a slope on its level low
-## there and going down too, is open further down, or (east or west only) stands as
-## high or higher (at least one meets it lower); the cells going down are loose wild
-## ground.
-func _ref_deep(w: WorldData, x: int, y: int, z: int) -> int:
-	var mask := _ref_top_slope(w, x, y + 1, z)
-	if mask == WorldData.FULL or not _ref_deepable(w, x, y, z):
-		return 0
-	var out := 0
-	for k in 4:
-		if mask & (1 << k):
-			continue
-		var o: Vector2i = WorldData.CORNER_DIRS[k]
-		var ok := true
-		var lower := false
-		for n: Vector2i in [Vector2i(o.x, 0), Vector2i(0, o.y), o]:
-			var kk := k
-			if n.x != 0:
-				kk ^= 1
-			if n.y != 0:
-				kk = 3 - kk
-			var nx := x + n.x
-			var nz := z + n.y
-			if w.get_cell(nx, y + 1, nz) in [Mat.AIR, Mat.WATER]:
-				if w.get_cell(nx, y, nz) in [Mat.AIR, Mat.WATER]:
-					# Open further down than the corner: no part in it unless its top is high.
-					lower = lower or _ref_ground(w, nx, y - 1, nz) and _ref_top_slope(w, nx, y - 1, nz) & (1 << kk) != 0
-				else:
-					ok = ok and _ref_ground(w, nx, y, nz) and _ref_top_slope(w, nx, y, nz) & (1 << kk) == 0
-					lower = true
-			elif n.y != 0:
-				# A column east or west as high or higher has no part in it.
-				ok = ok and _ref_ground(w, nx, y + 1, nz) and _ref_top_slope(w, nx, y + 1, nz) & (1 << kk) == 0 \
-					and _ref_deepable(w, nx, y, nz)
-		if ok and lower:
-			out |= 1 << k
-	return out
-
-
-func _ref_deepable(w: WorldData, x: int, y: int, z: int) -> bool:
-	return w.in_bounds(x, y, z) and w.chunk_at(x, z).natural[y * WorldData.LAYER + WorldData.col_of(x, z)] == WorldData.WILD \
-		and Mat.can_slope(w.get_cell(x, y, z))
+	return _ref_top_slope(w, x, y, z)
 
 
 func _ref_top_slope(w: WorldData, x: int, y: int, z: int) -> int:
@@ -317,7 +279,7 @@ func _ref_cut_here(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 			and w.is_natural(x, y, z + o.y) and w.is_natural(x + o.x, y, z + o.y)):
 		return false
 	var mask := _ref_top_slope(w, x, y, z)
-	return mask == WorldData.FULL or mask & (1 << k) == 0 and _ref_deep(w, x, y - 1, z) & (1 << k) == 0
+	return mask == WorldData.FULL or mask & (1 << k) == 0
 
 
 func _ref_cut(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
