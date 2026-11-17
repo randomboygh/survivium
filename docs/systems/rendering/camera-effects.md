@@ -35,23 +35,28 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   down, a minute at 50 FPS (90 % of the screen rate or the FPS limit if lower) a try up; a slow window in the
   next 20 s takes the try back and sets `auto_ceiling`. Each step is told by a toast and in the F3 panel's
   full view. Any graphics setting by hand (`Settings.set_value`, a preset) turns it off.
-- `src/client/view/crt.gd` — the setting «Screen effect» (Graphics, key `crt`): off, soft CRT, old CRT, VHS
-  tape, 8 bit, 1 bit, CGA (`LOOKS`). The old screen
-  is counted in the colour-correction pass (`grade.gdshader`, the parameters `crt_*`) by the screen's pixels
+- `src/client/view/crt.gd` — three settings of «Graphics», any mix of them works: «Screen effect» (key `crt`: off,
+  soft CRT, old CRT, VHS tape; `LOOKS`), «Palette» (key `palette`: none, NES, 1 bit, CGA; `PALETTES`) and «Pixel size»
+  (key `retro_pixel`: 1×, 2×, 4×; `PIXELS`). Saved screen effects 4..6 of the first build (#726) turn into a palette
+  with 2× pixels (`Settings.load`). All of it is counted in the colour-correction pass (`grade.gdshader`), with no pass of
+  its own; the interface on top stays sharp.
+  The old screen (parameters `crt_*`) goes by the screen's pixels
   (the shifts — by the screen's long side, the bend — by the diagonal, the mask's stripes are wider on a dense
-  screen, so in portrait and in landscape it is the same), it has no pass of its own: scan lines with
+  screen, so in portrait and in landscape it is the same): scan lines with
   interlacing, the glow of bright pixels (8 samples of the world's picture with linear filtering,
   `crt_view`), split channels, the tube's curvature, a vignette, flicker, an aperture grille; the «old» one
   also has a rolling light band, the «cassette» — a jitter of lines, colour blurred along a line, a band of
-  interference at the bottom and noise. The interface on top stays sharp. The picture's position on the
-  screen for the curvature is given by `CameraRig.update` every frame (`Crt.frame`). The retro palettes
-  (`retro` of `grade.gdshader`, `Crt.RETRO_*`) draw the picture's pixels twice as big, on the world's grid
-  (`view_origin`, so they do not crawl as the view glides), each big pixel one filtered tap of `crt_view` (its four
-  averaged), then bring the colour to the palette with a 4×4 ordered dither by big pixels: 8 bit is the NES's palette
-  (55 colours: the nearest by eye looked up in `assets/nes_lut.png`, a 32³ grid made by `tools/make_nes_lut.py`); 1 bit black and white, the brightness stretched and put in five steps (black, three patterns,
-  white) so a surface keeps one even pattern; CGA black, cyan, magenta, white, the two nearest colours mixed by
-  the dither in the same five steps. For 1 bit and CGA the night's darks are lifted by a gamma (`retro_lift`,
-  set by `Sky._update_grade` from `sky_light`), else the world is all black outside a fire's light.
+  interference at the bottom and noise. The picture's position on the
+  screen for the curvature is given by `CameraRig.update` every frame (`Crt.frame`).
+  Big pixels (`retro_px`) lie on the world's grid (`view_origin`, `big_pixel`, so they do not crawl as the view
+  glides); without the tube each is one filtered tap of `crt_view` at its middle (its middle four averaged), under
+  the tube its first pixel. A palette (`retro`) brings the colour to it after the grade, before the tube's lines,
+  with a 4×4 ordered dither by big pixels: NES — 55 colours, the colour made richer (×1.6) and looked up in
+  `assets/nes_lut.png` (a 32³ grid of the nearest by eye, made by `tools/make_nes_lut.py`); 1 bit — black and white,
+  the brightness stretched and put in five steps (black, three patterns, white) so a surface keeps one even
+  pattern; CGA — black, cyan, magenta, white, the two nearest colours mixed by the dither in the same five steps.
+  For 1 bit and CGA the night's darks are lifted by a gamma (`retro_lift`, set by `Sky._update_grade` from
+  `sky_light`), else the world is all black outside a fire's light.
 - `src/client/view/sky.gd` — light, colour correction, ground fog, puddles, weather on screen for
   `game.clock`; `light_side` (one of eight sides, with a margin).
 - `src/client/view/effects.gd` — particles, campfires, the torch (an item with `light` in the hand, otherwise
