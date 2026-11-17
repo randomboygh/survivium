@@ -1121,6 +1121,16 @@ const SHOTS := {
 	# The combinations ground (TestGround.COMBO_*): its west (the shapes of the relief
 	# ground) and its east (bowl, diagonal, notch, shafts, overhang, tunnel), the rows of
 	# one material to the north of each band and the mixed ones to the south.
+	# The places of the user's notes on old slopes (2026-11-17), with `--old-slopes`.
+	"ground-old-wave": {"time": 0.42, "season": 1, "at": [197, -231], "turn": 6},
+	"ground-old-odd": {"time": 0.42, "season": 1, "at": [172, -211]},
+	"ground-old-corner": {"time": 0.42, "season": 1, "at": [196, -303], "y": 22, "turn": 6},
+	"ground-old-seam": {"time": 0.42, "season": 1, "at": [201, -318], "turn": 2},
+	"ground-old-flat": {"time": 0.42, "season": 1, "at": [138, -294]},
+	"ground-old-corner-near": {"time": 0.42, "season": 1, "at": [196, -303], "y": 22, "turn": 6, "settings": {"pixel_scale": 4}},
+	"ground-old-dry-near": {"time": 0.42, "season": 1, "at": [196, -175], "turn": 6, "settings": {"pixel_scale": 4}},
+	"ground-old-dry-noshadow": {"time": 0.42, "season": 1, "at": [196, -175], "turn": 6, "settings": {"pixel_scale": 4, "shadows": false}},
+	"ground-old-flat-near": {"time": 0.42, "season": 1, "at": [138, -294], "settings": {"pixel_scale": 4}},
 	"ground-combo-west": {"time": 0.42, "season": 1, "at": [-80, -190]},
 	"ground-combo-mixed": {"time": 0.42, "season": 1, "at": [-80, -130]},
 	"ground-combo-east": {"time": 0.42, "season": 1, "at": [80, -190]},

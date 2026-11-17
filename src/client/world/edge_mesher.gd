@@ -139,7 +139,7 @@ static func _natural(job, i: int, p: int) -> bool:
 	if not job.cov[job.c[i]] and p >= 0 and p < FULL:
 		j += CORNER_DIRS[p].x
 	var y := j / dy - 1
-	if y < 0 or job.wild.is_empty():
+	if y < 0 or job.wild.is_empty() or job.soft:
 		return false
 	return (job.wild[j % dy] >> y) & 1 != 0
 

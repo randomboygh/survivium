@@ -204,9 +204,12 @@ const DEFAULTS := {
 	# New worlds have the stage 2 landscape, wide biomes and big rivers (WorldGen
 	# landscape 1); worlds made before keep theirs (0). Not on «Новый мир».
 	"world_landscape": 1,
-	# New worlds have the blocky relief's slopes (WorldGen slopes 0) unless the player
-	# picks the old curved ones (1) on «Новый мир»; worlds made before keep 0.
-	"world_slopes": 0,
+	# New worlds have the old slopes (WorldGen slopes 1) unless the player picks the
+	# blocky relief's (0) on «Новый мир»; worlds made before keep theirs.
+	"world_slopes": 1,
+	# Saved once the old slopes became the default for new worlds, so a pick of the
+	# blocky ones saved before that is taken back once (see load).
+	"old_slopes_default": true,
 	## The bundles (or whole mods) a new world is made without, comma-separated ids
 	## (everything found is on).
 	"world_mods_off": "",
@@ -386,6 +389,9 @@ func load() -> void:
 	if not cfg.has_section_key("game", "palette") and old_crt >= Crt.LOOKS.size() and old_crt < Crt.LOOKS.size() + 3:
 		values.palette = old_crt - Crt.LOOKS.size() + 1
 		values.retro_pixel = 1
+	# Before the old slopes became the default, «Новый мир» kept the blocky ones.
+	if not cfg.has_section_key("game", "old_slopes_default"):
+		values.world_slopes = 1
 	# Before «Авто» the graphics were the player's: a preset turns into «Авто», a mix of
 	# their own stays theirs.
 	if not cfg.has_section_key("game", "auto_quality"):

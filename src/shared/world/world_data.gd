@@ -12,6 +12,11 @@ extends "res://src/shared/world/world_cells.gd"
 ## filled corners take a triangle half a cell along each side. False (the default) for
 ## the flat triangles, one-level corners and half-blocks. Set by WorldGen.
 var old_slopes := false
+## True for a world with the world setting `slopes` 1: the shapes are the blocky relief's
+## (one level a cell, straight diagonals, flat triangles) but drawn soft, as the old
+## slopes looked: every natural slope bends level at its brow and foot, edges stay sharp
+## (ChunkMesher Job.soft). Set by WorldGen.
+var soft_slopes := false
 ## Surfaces of sloping tops looked at lately with old slopes (see surface_patch), by
 ## cell; emptied whenever shapes change.
 var _patches := {}
@@ -121,6 +126,9 @@ func update_slopes(x0: int, z0: int, x1: int, z1: int) -> void:
 	var wild: PackedInt64Array = mk.wild
 	var low: PackedInt64Array = mk.low
 	var diag := PackedInt32Array([-wl - 1, -wl + 1, wl + 1, wl - 1])
+	# Inner corners (only the column across lower) of soft slopes, checked once all the
+	# slopes are done.
+	var inner: Array[Vector4i] = []
 	# Slopes: loose wild ground with air or water above, so lake and river beds get
 	# ramps too.
 	for lz in range(1, hl - 1):
@@ -164,10 +172,41 @@ func update_slopes(x0: int, z0: int, x1: int, z1: int) -> void:
 					var o: Vector2i = CORNER_DIRS[k]
 					if _can_slope(x + o.x, y, z) and _can_slope(x, y, z + o.y):
 						mask |= 1 << k
+						if soft_slopes and lows == 0:
+							inner.append(Vector4i(x, y, z, k))
+				# No slope steeper than 45 degrees: a corner the column across drops two levels
+				# or more at (open there and a level under) stays up, and a top that keeps
+				# only two opposite corners down that way stays a cube (its corner is cut
+				# instead, a straight wall on the diagonal).
+				if soft_slopes and mask != 0:
+					for k in 4:
+						if mask & (1 << k) == 0:
+							continue
+						var d := j + diag[k]
+						var od := air[d] | water[d]
+						if od & (od << 1) & bit:
+							mask &= ~(1 << k)
+					if mask == (NW | SE) or mask == (NE | SW):
+						mask = 0
 				# All four corners down (a ridge one cell wide): it stays a cube.
 				if mask != 0 and mask != FULL:
 					shapes[i] = mask
 					c.sloped[col] |= bit
+	# An inner corner goes down only where the tops beside it go down there too: beside
+	# a top kept whole by the 45 degree limit it stays up (and the cell a cube).
+	for v in inner:
+		var o: Vector2i = CORNER_DIRS[v.w]
+		var a := _shape(v.x + o.x, v.y, v.z)
+		var b := _shape(v.x, v.y, v.z + o.y)
+		if a & 15 & (1 << (v.w ^ 1)) != 0 and b & 15 & (1 << (3 - v.w)) != 0:
+			continue
+		var c := chunk_at(v.x, v.z)
+		var col := ((v.z & MASK) << SHIFT) | (v.x & MASK)
+		var i := (v.y << 8) | col
+		var mask := c.shapes[i] & ~(1 << v.w)
+		c.shapes[i] = mask
+		if mask & 15 == 0:
+			c.sloped[col] &= ~(1 << v.y)
 
 
 ## Works out the cut and filled corners of the columns x0..x1, z0..z1 (ends
