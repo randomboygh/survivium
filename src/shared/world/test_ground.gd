@@ -191,10 +191,10 @@ const RELIEF_Z := 44
 ## two terraces on a diagonal, a square with notches and a lone hole, shafts 4 and 2
 ## deep, a block with a hollow under its south half, a mound with a tunnel through; then
 ## the diagonal ones and the smooth ones two and three cells high: a diamond a cell high
-## (its edges step on the diagonal), a diamond of two and a cone of three in rings a cell
-## wide, pillars 2 and 3 high (two of them meeting only at a corner), an L three high,
-## walls a cell thick on the diagonal 1 and 2 high, a ramp up two levels a cell each
-## along x and along the diagonal.
+## (its edges step on the diagonal), a diamond of two and a cone of three in rings two
+## cells wide on the diagonal (45° slopes at most), pillars 2 and 3 high (two of them meeting only at a corner), an L three high,
+## walls a cell thick on the diagonal 1 and 2 high, a ramp up two levels, a cell each
+## along x and two cells each along the diagonal.
 const COMBO_SHAPES := ["cell", "square", "ell", "ring", "pit", "pyramid", "stair", "cliff", "ridge", "checker",
 	"round", "cross", "bowl", "diagonal", "notch", "shaft", "overhang", "tunnel", "diamond", "diamond2", "cone",
 	"pillar", "ell3", "zigzag", "slope2", "slope2_diag"]
@@ -501,11 +501,12 @@ func relief_rise(shape: String, px: int, pz: int) -> int:
 			return 3 if px >= 1 and pz >= 2 and px < 9 and pz < 8 else 0
 		"diamond", "diamond2", "cone":
 			# Twice the distance from the middle along x plus along z: 2 in the middle,
-			# 2 more a cell further.
+			# 2 more a cell further. A level every two rings, so the sides on the diagonal
+			# are slopes no steeper than 45° (a ring a cell wide there would be a cliff).
 			var m := absi(2 * px - 9) + absi(2 * pz - 9)
 			if shape == "diamond":
 				return 1 if m <= 10 else 0
-			return clampi((12 - m) / 2, 0, 2 if shape == "diamond2" else 3)
+			return clampi(((12 if shape == "diamond2" else 14) - m) / 4, 0, 3)
 		"pillar":
 			var c := Vector2i(px, pz)
 			if c == Vector2i(2, 2) or c == Vector2i(6, 6) or c == Vector2i(7, 7):
@@ -522,7 +523,8 @@ func relief_rise(shape: String, px: int, pz: int) -> int:
 				return 0
 			return 2 if px >= 6 else (1 if px == 5 else 0)
 		"slope2_diag":
-			return 2 if px + pz >= 11 else (1 if px + pz == 10 else 0)
+			# A level every two cells across the diagonal (one would be steeper than 45°).
+			return clampi((px + pz - 9) / 2, 0, 2)
 	return 0
 
 

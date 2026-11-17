@@ -10,6 +10,7 @@ var _cuts := {}
 func run() -> void:
 	_test_corners()
 	_test_shapes()
+	_test_soft()
 
 
 ## Wild stone floor with a two-level wild stone block at x, z 3..6 missing its
@@ -55,6 +56,30 @@ func _test_corners() -> void:
 	w.set_cell(3, 2, 3, Mat.STONE)
 	_check(not w.corner_cut(3, 2, 3, 0) and not w.corner_cut(3, 1, 3, 0), "placed blocks stay square")
 	player.free()
+
+
+## Soft slopes (world setting slopes 1): no slope steeper than 45 degrees and no post
+## at the tip of a ridge a cell wide. Dirt on a stone floor: a ridge a cell high along x
+## 2..6 at z 1, a block two high at x, z 4..9.
+func _test_soft() -> void:
+	var w := WorldData.new(6, Vector2i(12, 12))
+	w.soft_slopes = true
+	var c: WorldData.Chunk = w.chunks[Vector2i.ZERO]
+	c.natural.fill(WorldData.WILD)
+	for z in 12:
+		for x in 12:
+			c.cells[z * 16 + x] = Mat.STONE
+			var h := 1 if z == 1 and x >= 2 and x <= 6 else (2 if x >= 4 and x <= 9 and z >= 4 and z <= 9 else 0)
+			for y in range(1, h + 1):
+				c.cells[(y * 16 + z) * 16 + x] = Mat.DIRT
+	w.rebuild_columns()
+	w.refresh_shapes()
+	_check(w._shape(6, 1, 1) & 15 == WorldData.NE | WorldData.SE and w._shape(2, 1, 1) & 15 == WorldData.NW | WorldData.SW,
+		"soft slopes: the tips of a ridge a cell wide ramp down to their ends")
+	_check(w._shape(4, 1, 1) & 15 == 0, "soft slopes: the ridge between its tips stays level")
+	_check(w._shape(6, 2, 4) & 15 == 0 and w._shape(4, 2, 6) & 15 == 0,
+		"soft slopes: no slope over a drop of two levels (it would be steeper than 45 degrees)")
+	_check(w.corner_cut(4, 2, 4, 0), "soft slopes: the corner of a cliff two high is cut on the diagonal")
 
 
 ## The shapes the world works out a column at a time match the rules written out for

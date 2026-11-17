@@ -24,6 +24,8 @@ static var _cell_faces: Array = []
 ## `rounded_ground`). Off, it is drawn sharp like the built blocks, and faster. A job
 ## takes it when it starts (see Job.rounded).
 static var rounded := true
+## How far a cut's wall reaches down into a slope under it (see _cut_walls), in cells.
+const CUT_SKIRT := 0.08
 
 
 ## The state of a chunk's meshes being built column by column (see `start`, `step`, `finish`),
@@ -61,6 +63,9 @@ class Job extends RefCounted:
 	## ChunkMesher.rounded when the job started: off, no cell is natural to EdgeMesher
 	## and SlopeMesher (`wild` stays empty) and EdgeMesher is not asked.
 	var rounded := true
+	## The world's slopes are soft (WorldData.soft_slopes): no EdgeMesher, every natural
+	## slope bends at its brow and foot by SOFT_RADIUS (SlopeMesher.rounding).
+	var soft := false
 	var offsets: PackedInt32Array
 	## Steps of copying the cells before the columns (see PREP_STEPS); 0 once done.
 	var prep := PREP_STEPS
@@ -121,6 +126,7 @@ static func start_rect(w, x0: int, z0: int, x1: int, z1: int, part := false) -> 
 	# A world with old slopes is drawn as before the blocky relief: no rounded edges.
 	old_slopes = w.old_slopes
 	job.rounded = rounded and not old_slopes
+	job.soft = w.soft_slopes
 	job.faces = face_table()
 	job.solid = MeshBuffers.new()
 	job.water = MeshBuffers.new()
@@ -375,7 +381,9 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				var n := nb[d]
 				if floor_k >= 0 and d != FACE_TOP and d != FACE_BOTTOM and SIDE_CORNERS[d].has(floor_k):
 					continue
-				if cov[n] and sh[i + side_offsets[d]] & 15 == 0 \
+				# (A top or bottom looks at the cell's own slope: a sloping top under a cut is
+				# drawn by its slope, so its cube's top and bottom stay hidden.)
+				if cov[n] and (sh[i + side_offsets[d]] & 15 == 0 or floor_k >= 0 and side_offsets[d] == 0) \
 						and not (by_form and forms.has(i + offsets[d]) and not Forms.covers_side(forms[i + offsets[d]], d ^ 1)):
 					# The ground under a thin trunk, and a bank beside its foot, still show around it.
 					var o: Vector3i = DIRS[d]
@@ -422,7 +430,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				else:
 					_add_cell_face(solid, d, base, color, Vector2(pack(tile, edges, flag), around))
 			if cuts != 0:
-				_cut_walls(w, solid, water, c, cov, i, dy, base, m, cuts)
+				_cut_walls(w, solid, water, c, cov, i, dy, base, m, cuts, sh[i - dy] & 15 != 0 and cov[c[i - dy]])
 			# The ground under a cut corner of the cell above shows there.
 			var exposed := sh[i + dy] >> 4 & ~cuts if cov[c[i + dy]] else 0
 			if floor_k >= 0:
@@ -430,6 +438,10 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				Slopes.slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, c[i + dy],
 					float(_around_tiles(c, cov, i, dy, dz, sh)), 0, floor_k, Slopes.rounding(job, i + dy, c[i + dy]),
 					Slopes.corner_bends(job, i), job)
+				# Water beside goes on up it as up a shore's slope, so the waterline runs
+				# straight along a diagonal slope instead of stepping round the cut cells.
+				if Water.shore(c, cov, i, dy, dz):
+					Water.shore_water(water, w, c, sh, i, dy, dz, base, Water.foam(c, sh, cov, i, dy, dz))
 			elif exposed != 0:
 				var edges := _top_edges(c, cov, i, dy, dz)
 				_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges,
@@ -843,15 +855,19 @@ static func _cut_side(buf, faces: Array, d: int, base: Vector3, cuts: int, color
 ## Diagonal walls of the cut corners of padded cell `i`, and water standing in them
 ## where the cell is beside water.
 static func _cut_walls(w, buf, water, c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, base: Vector3,
-		m: int, cuts: int) -> void:
+		m: int, cuts: int, on_slope := false) -> void:
 	var white := Color(1, 1, 1)
 	var no_tiles := float(NO_TILES)
+	# Over a slope going on down in the cut (WorldData._floor_slopes) the wall reaches a
+	# little into the ground below, so no crack shows between it and the slope.
+	var skirt := CUT_SKIRT if on_slope else 0.0
 	for k in 4:
 		if cuts & (1 << k) == 0:
 			continue
 		var edges := 0 if cov[c[i - dy]] else DARK << EDGE_S
 		var flag := SLOPE | (0 if cov[c[i + dy]] else OPEN_TOP)
-		_diag_wall(buf, base, k, true, white, Vector2(pack(m * 3 + 1, edges, flag), no_tiles), Mat.corner_shape[m])
+		_diag_wall(buf, base - Vector3(0.0, skirt, 0.0), k, true, white, Vector2(pack(m * 3 + 1, edges, flag), no_tiles),
+			Mat.corner_shape[m], 1.0 + skirt, 1.0 + skirt)
 	Water.cut_water(w, water, c, i, dy, base, cuts, Mat.corner_shape[m])
 
 

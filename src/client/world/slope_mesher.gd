@@ -162,14 +162,19 @@ static func cover(m: int) -> bool:
 ## The radius the slopes of padded cell `i` of material `m` round by, for ChunkMesher's
 ## job: the material's edge_size on natural ground of a material that rounds, else 0
 ## (drawn flat, as built; hard ground keeps its slopes' edges).
+## How far the slopes of a world with soft slopes bend at the brow and the foot, every
+## material alike: half a cell, so a ramp between level ground curves over its whole cell.
+const SOFT_RADIUS := 0.5
+
+
 static func rounding(job, i: int, m: int) -> float:
-	if Mat.edge_mode[m] != Mat.EDGE_ROUND or job.wild.is_empty():
+	if job.wild.is_empty() or not job.soft and Mat.edge_mode[m] != Mat.EDGE_ROUND:
 		return 0.0
 	var dy: int = job.dy
 	var y := i / dy - 1
 	if y < 0 or (job.wild[i % dy] >> y) & 1 == 0:
 		return 0.0
-	return Mat.edge_size[m]
+	return SOFT_RADIUS if job.soft else Mat.edge_size[m]
 
 
 ## Where the top of padded cell `i` may bend, by its corners: bit k where the ground
