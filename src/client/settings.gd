@@ -106,8 +106,12 @@ const DEFAULTS := {
 	# it was off by default under the key `edge_haze`, which saved files still hold and
 	# load ignores, so every player gets it on once.
 	"edge_mist": true,
+	# The retro palette of the world (Crt.PALETTES: none, NES, 1 bit, CGA) and the size of
+	# its pixels (Crt.PIXELS: 1×, 2×, 4×). Not part of the quality presets.
+	"palette": 0,
+	"retro_pixel": 0,
 	# The screen effect over the world (Crt.LOOKS): 0 off, 1..3 the old screens (soft,
-	# old, tape), 4..6 the retro palettes (8 bit, 1 bit, CGA). Not part of
+	# old, tape). Not part of
 	# the quality presets.
 	"crt": 0,
 	"pixel_scale": 2,
@@ -207,6 +211,7 @@ static func _index_limits() -> Dictionary:
 	return {"time_speed": TIME_SPEEDS.size(), "pixel_scale": PIXEL_SIZES.size(), "fps_limit": FPS_LIMITS.size(),
 		"ui_size": Hud.UI_SIZES.size(), "control_size": Hud.CONTROL_SIZES.size(), "minimap_size": Minimap.SIDES.size(),
 		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "vibration": 4, "fire_shadows": 4, "water_fx": 3, "crt": Crt.LOOKS.size(),
+		"palette": Crt.PALETTES.size(), "retro_pixel": Crt.PIXELS.size(),
 		"layer_front_from": CaveLayers.FIRSTS.size(), "layer_front_stretch": CaveLayers.STRETCHES.size(),
 		"layer_above_from": CaveLayers.FIRSTS.size(), "layer_above_stretch": CaveLayers.STRETCHES.size(),
 		"layer_density": CaveLayers.DENSITIES.size(), "layer_line": CaveLayers.LINES.size(),
@@ -367,6 +372,12 @@ func load() -> void:
 	# Before five steps the pixel had three, the normal one first, then 1.5 and 2.
 	if not cfg.has_section_key("game", "pixel_scale") and cfg.has_section_key("game", "pixel_size"):
 		values.pixel_scale = 2 if int(cfg.get_value("game", "pixel_size", 0)) == 0 else 4
+	# Before the palettes had settings of their own they were the screen effect's steps
+	# 4..6, with pixels twice as big.
+	var old_crt := int(cfg.get_value("game", "crt", 0))
+	if not cfg.has_section_key("game", "palette") and old_crt >= Crt.LOOKS.size() and old_crt < Crt.LOOKS.size() + 3:
+		values.palette = old_crt - Crt.LOOKS.size() + 1
+		values.retro_pixel = 1
 	# Before «Авто» the graphics were the player's: a preset turns into «Авто», a mix of
 	# their own stays theirs.
 	if not cfg.has_section_key("game", "auto_quality"):
@@ -645,7 +656,7 @@ func apply() -> void:
 	if game.chunks != null:
 		game.chunks.set_haze(values.edge_mist)
 	if game.view != null and game.view.grade_mat != null:
-		Crt.apply(game.view.grade_mat, values.crt, game.view.viewport.get_texture())
+		Crt.apply(game.view.grade_mat, values.crt, values.palette, values.retro_pixel, game.view.viewport.get_texture())
 	if game.effects != null:
 		game.effects.enabled = values.effects
 		var fx = game.effects

@@ -89,11 +89,13 @@ uniform float crt_jitter = 0.0;
 uniform float crt_bleed = 0.0;
 uniform float crt_band = 0.0;
 uniform float crt_noise = 0.0;
-// The retro palettes (crt.gd RETRO_*, the same setting), 0 off: the picture's pixels drawn
-// twice as big, on the world's grid so the big pixels do not crawl as the view moves, and
-// the colours brought to a palette with ordered dithering on the big pixels: 1 the NES's
-// (55 colours), 2 black and white, 3 CGA (black, cyan, magenta, white).
+// The retro palette (crt.gd PALETTES, setting «Палитра»), 0 none: the colours brought to
+// it with ordered dithering by big pixels: 1 the NES's (55 colours), 2 black and white,
+// 3 CGA (black, cyan, magenta, white).
 uniform int retro = 0;
+// The pixel's size (crt.gd PIXELS, setting «Размер пикселя»): how many pixels of the
+// picture make one big pixel, on the world's grid so they do not crawl as the view moves.
+uniform float retro_px = 1.0;
 // The nearest colour of the NES palette for 8 bit (assets/nes_lut.png, tools/make_nes_lut.py).
 uniform sampler2D retro_lut : filter_nearest;
 // The gamma 1 bit and CGA lift the picture's darks by before the palette
@@ -405,6 +407,13 @@ vec3 retro_color(vec3 c, float d) {
 	return floor(t * 4.0 + 0.5) / 4.0 > d ? CGA[b] : CGA[a];
 }
 
+// The first pixel of the big pixel (retro_px) under `uv`, in pixels of the picture: the
+// big pixels start at the world's pixels that divide by their size.
+vec2 big_pixel(vec2 uv, vec2 texel) {
+	vec2 pp = floor(uv / texel);
+	return pp - mod(pp + floor(view_origin + 0.5), retro_px);
+}
+
 // The bright part of the picture around `uv`, blurred: eight filtered taps on two rings.
 vec3 crt_bloom(vec2 uv, vec2 texel) {
 	vec3 sum = vec3(0.0);
@@ -464,6 +473,9 @@ void fragment() {
 			drop = screen_drop(glass, 1.0 / TEXTURE_PIXEL_SIZE);
 			uv += drop.xy * TEXTURE_PIXEL_SIZE;
 		}
+		if (retro_px > 1.0) {
+			uv = (big_pixel(uv, TEXTURE_PIXEL_SIZE) + 0.5) * TEXTURE_PIXEL_SIZE;
+		}
 		float off = crt_rgb * long_side / picture.x;
 		src = vec3(texture(TEXTURE, uv + vec2(off, 0.0)).r, texture(TEXTURE, uv).g, texture(TEXTURE, uv - vec2(off, 0.0)).b);
 		if (crt_bleed > 0.0) {
@@ -490,14 +502,13 @@ void fragment() {
 			// The picture breathes: it swells and shrinks slowly round the middle.
 			uv = 0.5 + (uv - 0.5) * (1.0 - trip * 0.025 * (0.5 + 0.5 * sin(TIME * 0.8)));
 		}
-		if (retro > 0) {
-			// The big pixel: the pair of pixels across and down it starts at an even pixel of
-			// the world. Its four are read at once, averaged (crt_view is filtered), so the
-			// fine detail does not turn into a noise of dots; uv stays on its first.
-			vec2 pp = floor(uv / TEXTURE_PIXEL_SIZE);
-			pp -= mod(pp + floor(view_origin + 0.5), 2.0);
+		if (retro_px > 1.0) {
+			// The big pixel, read in one filtered tap at its middle (crt_view): its middle four
+			// pixels averaged, so the fine detail does not turn into a noise of dots; uv stays
+			// on its first pixel.
+			vec2 pp = big_pixel(uv, TEXTURE_PIXEL_SIZE);
 			uv = (pp + 0.5) * TEXTURE_PIXEL_SIZE;
-			src = texture(crt_view, (pp + 1.0) * TEXTURE_PIXEL_SIZE).rgb;
+			src = texture(crt_view, (pp + retro_px * 0.5) * TEXTURE_PIXEL_SIZE).rgb;
 		} else {
 			src = texture(TEXTURE, uv).rgb;
 		}
@@ -571,7 +582,7 @@ void fragment() {
 	}
 	if (retro > 0) {
 		// The dither by big pixels, on the world's grid as they are.
-		ivec2 rb = ivec2(mod(floor(px / 2.0), 4.0));
+		ivec2 rb = ivec2(mod(floor(px / retro_px), 4.0));
 		if (retro > 1) {
 			// Four colours lose a dark picture whole: by night its darks are lifted by the
 			// sky's light (retro_lift, a gamma), so the ground still shows dim round a fire's
