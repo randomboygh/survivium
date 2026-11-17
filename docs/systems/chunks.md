@@ -114,9 +114,17 @@ slice, to free the far meshes.
   a wall against them); otherwise the chunk mesher draws it as before. Layered cliffs: a soft layer whose
   cliff goes down through soft levels to a hard one stands back `LEDGE` (1/8 block, a `GRID` line) from the
   brow, leaving a ledge of the hard layer's top (`_ledge`, `_ledge_wall`). A whole top drops the edge codes of
-  sides where its level goes on into a half beside (`_level_edges`). Speed (bench `tools/bench_mesh.gd`): a cell
-  under a whole one goes to EdgeMesher only for a ledge (a wall standing on a heap is drawn flat, the heap hides its
-  foot); a whole top is drawn only on the `lines` of `GRID` its brows bend (a straight brow needs the lines across
+  sides where its level goes on into a half beside (`_level_edges`). Corners in plan (`_add_corners`): where two
+  brows of one edge meet at a convex square corner of a cell (a cliff's lower levels, the tip of a diamond of
+  halves), they stop where an arc of the radius touches them (a cut for a bevel) and a corner record
+  (`CORNER_KIND`) takes the corner: the points of the top and walls cut off move onto the arc (`_project`), the
+  walls face out from it (smooth), the ground below fills the strip under the cut corner with the heap at the
+  arc's foot (`_floor`; not where the level below rounds the same corner, `_turns` lets a covered cell with a
+  square corner be drawn here), and the feet below heap round the arc. A round corner of 135° (a side meeting a
+  diagonal: the arc would cut a few hundredths) only rounds the top (`CORNER_TOP_KIND`), the walls keep their
+  corner; a bevel there keeps its mitre. Speed (bench `tools/bench_mesh.gd`): a cell
+  under a whole one goes to EdgeMesher only for a ledge or a square corner (a wall standing on a heap is drawn
+  flat, the heap hides its foot); a whole top is drawn only on the `lines` of `GRID` its brows bend (a straight brow needs the lines across
   it, a free end both ways; halves and diagonal brows take the whole grid); tops are cached as indexed shapes by
   the brows and feet that make them (`_shapes`, `MeshBuffers.shape`); a job keeps `segments`, `feet` and a packed
   `_info` per padded cell. Preview shots: `ground-edges-*`),

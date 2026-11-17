@@ -37,6 +37,8 @@ const GN := 6
 ## What the brows and feet round a cell make of it (_entry): its top (_top_shape), the
 ## lines of its top and the heights along its sides and diagonal. Most edges repeat.
 static var _shapes := {}
+## Walls bent round corners (see draw), by the corners, the side and the piece.
+static var _bent_walls := {}
 const SHAPES_MAX := 4096
 ## GRID and its ends as packed arrays (not constant expressions).
 static var GRID_P := PackedFloat32Array(GRID)
@@ -194,6 +196,169 @@ static func _square_distance(a: Vector2, b: Vector2) -> float:
 	return best
 
 
+## A convex corner of a level's plan, rounded in plan (CORNER_KIND, see _add_corners): its
+## record holds the points T1, T2 where its arc (or cut) meets the two brows, then the
+## centre O of the arc of its radius touching both brows (a bevel cuts straight from T1 to
+## T2), the radius and the mode, no place (no wall of its own: the walls of the brows bend
+## round it), the kind and no inset.
+const CORNER_KIND := 5
+## A round corner of a wider angle (a brow meeting a diagonal one at 135°): its arc would
+## cut the plan by a few hundredths of a block, so it only rounds the top (the brow does
+## not mitre there); the walls keep their corner. (A bevel there keeps its mitre.)
+const CORNER_TOP_KIND := 6
+const NO_PLACE := -1
+
+
+## Rounds the convex corners of the plan `segs` at the corners of the middle cell: where two
+## brows of the same edge (radius, mode, standing at their brow) meet at an angle, they
+## stop where an arc of their radius touches them (a cut of it for a bevel), and a corner
+## record takes the corner between them. The cells round a corner see the same brows, so
+## they agree on it.
+static func _add_corners(segs: PackedFloat32Array) -> PackedFloat32Array:
+	var n := segs.size()
+	if n < 2 * ST:
+		return segs
+	var out := segs
+	var found := false
+	for g in range(0, n, ST):
+		if segs[g + 6] <= 0.0 or segs[g + 7] == WALL_ONLY or segs[g + 10] > 0.0:
+			continue
+		for eg in 2:
+			var cx := segs[g + 2 * eg]
+			var cz := segs[g + 2 * eg + 1]
+			if (cx != 0.0 and cx != 1.0) or (cz != 0.0 and cz != 1.0):
+				continue
+			for h in range(g + ST, n, ST):
+				if segs[h + 6] != segs[g + 6] or segs[h + 7] != segs[g + 7] or segs[h + 10] > 0.0:
+					continue
+				var eh := -1
+				if segs[h] == cx and segs[h + 1] == cz:
+					eh = 0
+				elif segs[h + 2] == cx and segs[h + 3] == cz:
+					eh = 1
+				if eh < 0:
+					continue
+				var c := Vector2(cx, cz)
+				var pg := Vector2(segs[g + 2 - 2 * eg], segs[g + 3 - 2 * eg])
+				var ph := Vector2(segs[h + 2 - 2 * eh], segs[h + 3 - 2 * eh])
+				var ng := Vector2(segs[g + 4], segs[g + 5])
+				var nh := Vector2(segs[h + 4], segs[h + 5])
+				# Convex: each brow runs off behind the other one's edge.
+				if (ph - c).dot(ng) > -0.0001 or (pg - c).dot(nh) > -0.0001:
+					continue
+				var dg := (pg - c).normalized()
+				var dh := (ph - c).normalized()
+				var cosa := clampf(dg.dot(dh), -0.999, 0.999)
+				var right := absf(cosa) < 0.01
+				if not right and segs[g + 7] != Mat.EDGE_ROUND:
+					continue
+				var r := segs[g + 6]
+				var t := r * sqrt((1.0 + cosa) / (1.0 - cosa))
+				var t1 := c + dg * t
+				var t2 := c + dh * t
+				if not found:
+					out = segs.duplicate()
+					found = true
+				out[g + 2 * eg] = t1.x
+				out[g + 2 * eg + 1] = t1.y
+				out[h + 2 * eh] = t2.x
+				out[h + 2 * eh + 1] = t2.y
+				_push(out, t1, t2, t1 - ng * r, r, int(segs[g + 7]), NO_PLACE, CORNER_KIND if right else CORNER_TOP_KIND)
+				break
+	return out
+
+
+## The corner records of `segs` that cut its plan (see _add_corners).
+static func _corners(segs: PackedFloat32Array) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	for g in range(0, segs.size(), ST):
+		if segs[g + 9] == CORNER_KIND:
+			out.append_array(segs.slice(g, g + ST))
+	return out
+
+
+## Whether point `p` lies in the wedge of corner `g` of `segs`: between the lines from its
+## centre through T1 and T2, on the corner's side (where its arc shapes the ground); and
+## if `inner`, on the ground's side of both brows too (the corner's own piece of plan).
+static func _in_corner(p: Vector2, segs: PackedFloat32Array, g: int, inner: bool) -> bool:
+	var t1 := Vector2(segs[g], segs[g + 1])
+	var t2 := Vector2(segs[g + 2], segs[g + 3])
+	var o := Vector2(segs[g + 4], segs[g + 5])
+	var v1 := t1 - o
+	var v2 := t2 - o
+	if inner and ((p - t1).dot(v1) > 0.00001 or (p - t2).dot(v2) > 0.00001):
+		return false
+	var u1 := Vector2(-v1.y, v1.x)
+	if u1.dot(t2 - t1) < 0.0:
+		u1 = -u1
+	var u2 := Vector2(-v2.y, v2.x)
+	if u2.dot(t1 - t2) < 0.0:
+		u2 = -u2
+	return (p - t1).dot(u1) >= -0.00001 and (p - t2).dot(u2) >= -0.00001
+
+
+## How far point `p` lies in from the arc of round corner `g` of `segs` (a drop), or out
+## from it (`out`, a heap); -1 where the corner does not shape the ground at `p`. (A
+## bevel's cut is a plain segment: its flat cut mitres with the brows' ones.)
+static func _corner_distance(p: Vector2, segs: PackedFloat32Array, g: int, out: bool) -> float:
+	if not _in_corner(p, segs, g, not out):
+		return -1.0
+	var d := p.distance_to(Vector2(segs[g + 4], segs[g + 5])) - segs[g + 6]
+	return maxf(0.0, d if out else -d)
+
+
+## Point `p` within the corners `cuts` moved out onto their arcs (or cuts): the other
+## way from _project.
+static func _push_out(p: Vector2, cuts: PackedFloat32Array) -> Vector2:
+	for g in range(0, cuts.size(), ST):
+		if not _in_corner(p, cuts, g, true):
+			continue
+		var t1 := Vector2(cuts[g], cuts[g + 1])
+		var o := Vector2(cuts[g + 4], cuts[g + 5])
+		var r := cuts[g + 6]
+		if cuts[g + 7] == Mat.EDGE_ROUND:
+			var d := p.distance_to(o)
+			if d > 0.00001:
+				return o + (p - o) / d * r
+		else:
+			var nc := (t1 - o + Vector2(cuts[g + 2], cuts[g + 3]) - o).normalized()
+			return p - nc * (p - t1).dot(nc)
+	return p
+
+
+## Point `p` moved as _project moves it.
+static func _moved(p: Vector2, cuts: PackedFloat32Array) -> Vector2:
+	if cuts.is_empty():
+		return p
+	var pj := _project(p, cuts)
+	return Vector2(pj.x, pj.y)
+
+
+## Point `p` moved onto the plan of the corners `cuts` where they cut it off (onto the arc,
+## or onto the cut of a bevel), with the way the plan's edge faces there: (x, z, nx, nz),
+## the normal zero where `p` stays and twice as long on a cut (one way along all of it).
+static func _project(p: Vector2, cuts: PackedFloat32Array) -> Vector4:
+	for g in range(0, cuts.size(), ST):
+		if not _in_corner(p, cuts, g, true):
+			continue
+		var t1 := Vector2(cuts[g], cuts[g + 1])
+		var o := Vector2(cuts[g + 4], cuts[g + 5])
+		var r := cuts[g + 6]
+		if cuts[g + 7] == Mat.EDGE_ROUND:
+			var d := p.distance_to(o)
+			if d > r + 0.00001:
+				var nr := (p - o) / d
+				var q := o + nr * r
+				return Vector4(q.x, q.y, nr.x, nr.y)
+		else:
+			var nc := (t1 - o + Vector2(cuts[g + 2], cuts[g + 3]) - o).normalized()
+			var s := (p - t1).dot(nc)
+			if s > 0.00001:
+				var q := p - nc * s
+				return Vector4(q.x, q.y, nc.x * 2.0, nc.y * 2.0)
+	return Vector4(p.x, p.y, 0.0, 0.0)
+
+
 ## The edge segments of the plan of the level of padded cell `i` that reach the cell:
 ## where its pieces end at an open cell (a brow), or at one drawn its own way (WALL_ONLY,
 ## only those of the cell itself).
@@ -268,7 +433,7 @@ static func _segments(job, i: int) -> PackedFloat32Array:
 				if not own and _square_distance(a, b) >= r:
 					continue
 				_push(out, a, b, -Vector2(CORNER_DIRS[p]).normalized(), r, mode, place, DIAG_KIND)
-	return out
+	return _add_corners(out)
 
 
 ## The sides of a cell of the window (by place) that touch the middle cell: not its far ones.
@@ -393,7 +558,7 @@ static func _feet(job, i: int) -> PackedFloat32Array:
 					continue
 				if _solid_at(job, i, (a + b) * 0.5 + nd * 0.05):
 					_push(out, a, b, nd, r, mode, place, DIAG_KIND)
-	return out
+	return _add_corners(out)
 
 
 ## How far below the edge's height a point `d` from it lies: a quarter circle of radius
@@ -415,16 +580,28 @@ static func height(p: Vector2, drops: PackedFloat32Array, heaps: PackedFloat32Ar
 		var r := drops[g + 6]
 		if r <= 0.0 or drops[g + 7] == WALL_ONLY:
 			continue
-		var a := Vector2(drops[g], drops[g + 1])
-		var b := Vector2(drops[g + 2], drops[g + 3])
-		# A wall set back (a ledge under it) rounds from where it stands.
-		var d := maxf(0.0, p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b)) - drops[g + 10])
+		var d := 0.0
+		if drops[g + 9] >= CORNER_KIND and drops[g + 7] == Mat.EDGE_ROUND:
+			d = _corner_distance(p, drops, g, false)
+			if d < 0.0:
+				continue
+		else:
+			var a := Vector2(drops[g], drops[g + 1])
+			var b := Vector2(drops[g + 2], drops[g + 3])
+			# A wall set back (a ledge under it) rounds from where it stands.
+			d = maxf(0.0, p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b)) - drops[g + 10])
 		drop = maxf(drop, profile(d, r, int(drops[g + 7])))
 	var heap := 0.0
 	for g in range(0, heaps.size(), ST):
-		var a := Vector2(heaps[g], heaps[g + 1])
-		var b := Vector2(heaps[g + 2], heaps[g + 3])
-		var d := p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b))
+		var d := 0.0
+		if heaps[g + 9] >= CORNER_KIND and heaps[g + 7] == Mat.EDGE_ROUND:
+			d = _corner_distance(p, heaps, g, true)
+			if d < 0.0:
+				continue
+		else:
+			var a := Vector2(heaps[g], heaps[g + 1])
+			var b := Vector2(heaps[g + 2], heaps[g + 3])
+			d = p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b))
 		heap = maxf(heap, profile(d, heaps[g + 6], int(heaps[g + 7])))
 	return 1.0 - drop + heap
 
@@ -446,31 +623,48 @@ static func surface(p: Vector2, drops: PackedFloat32Array, heaps: PackedFloat32A
 		var r := drops[g + 6]
 		if r <= 0.0 or drops[g + 7] == WALL_ONLY:
 			continue
-		var a := Vector2(drops[g], drops[g + 1])
-		var b := Vector2(drops[g + 2], drops[g + 3])
-		var q := Geometry2D.get_closest_point_to_segment(p, a, b)
-		var d := maxf(0.0, p.distance_to(q) - drops[g + 10])
 		var mode := int(drops[g + 7])
+		var d := 0.0
+		var away := Vector2.ZERO
+		if drops[g + 9] >= CORNER_KIND and mode == Mat.EDGE_ROUND:
+			d = _corner_distance(p, drops, g, false)
+			if d < 0.0:
+				continue
+			# In from the arc: toward its centre.
+			away = (Vector2(drops[g + 4], drops[g + 5]) - p).normalized()
+		else:
+			var a := Vector2(drops[g], drops[g + 1])
+			var b := Vector2(drops[g + 2], drops[g + 3])
+			var q := Geometry2D.get_closest_point_to_segment(p, a, b)
+			d = maxf(0.0, p.distance_to(q) - drops[g + 10])
+			away = (p - q).normalized() if p.distance_to(q) > 0.0001 else -Vector2(drops[g + 4], drops[g + 5])
 		var v := profile(d, r, mode)
 		if v > drop:
 			drop = v
 			# The drop falls toward the edge: its gradient points out of the ground.
-			var away := (p - q).normalized() if p.distance_to(q) > 0.0001 else -Vector2(drops[g + 4], drops[g + 5])
 			dg = -away * _steepness(d, r, mode)
 			round_drop = mode == Mat.EDGE_ROUND
 	var heap := 0.0
 	var hg := Vector2.ZERO
 	var round_heap := false
 	for g in range(0, heaps.size(), ST):
-		var a := Vector2(heaps[g], heaps[g + 1])
-		var b := Vector2(heaps[g + 2], heaps[g + 3])
-		var q := Geometry2D.get_closest_point_to_segment(p, a, b)
-		var d := p.distance_to(q)
 		var mode := int(heaps[g + 7])
+		var d := 0.0
+		var away := Vector2.ZERO
+		if heaps[g + 9] >= CORNER_KIND and mode == Mat.EDGE_ROUND:
+			d = _corner_distance(p, heaps, g, true)
+			if d < 0.0:
+				continue
+			away = (p - Vector2(heaps[g + 4], heaps[g + 5])).normalized()
+		else:
+			var a := Vector2(heaps[g], heaps[g + 1])
+			var b := Vector2(heaps[g + 2], heaps[g + 3])
+			var q := Geometry2D.get_closest_point_to_segment(p, a, b)
+			d = p.distance_to(q)
+			away = (p - q) / d if d > 0.0001 else Vector2(heaps[g + 4], heaps[g + 5])
 		var v := profile(d, heaps[g + 6], mode)
 		if v > heap:
 			heap = v
-			var away := (p - q) / d if d > 0.0001 else Vector2(heaps[g + 4], heaps[g + 5])
 			hg = -away * _steepness(d, heaps[g + 6], mode)
 			round_heap = mode == Mat.EDGE_ROUND
 	var grad := hg - dg
@@ -528,6 +722,38 @@ static func _walls_shaped(job, i: int, p: int) -> bool:
 	return false
 
 
+## Corner `k` of a cell as the cell beside it across side `s` numbers it.
+static func _mirror(k: int, s: int) -> int:
+	# Across N or S the corners swap NW-SW and NE-SE; across W or E, NW-NE and SW-SE.
+	return [3, 2, 1, 0][k] if s < 2 else [1, 0, 3, 2][k]
+
+
+## Whether the plan of piece `p` of padded cell `i` may turn a corner out on it: a brow
+## of its own that does not run on along the cell beside past an end, or a diagonal one.
+static func _turns(job, i: int, p: int) -> bool:
+	if p < FULL:
+		return true
+	var c: PackedByteArray = job.c
+	var sh: PackedByteArray = job.sh
+	var cov: PackedByteArray = job.cov
+	var dz: int = job.dz
+	for s in 4:
+		var f: int = SIDE_OFF[s].x + SIDE_OFF[s].y * dz
+		if has_side(portion(c, sh, cov, i + f), OPP[s]):
+			continue
+		for s2 in ([2, 3] if s < 2 else [0, 1]):
+			var f2: int = SIDE_OFF[s2].x + SIDE_OFF[s2].y * dz
+			# Past this end the cell beside holds nothing at the corner: the brow turns
+			# out square (a half there going on from the corner turns it at 135°, which
+			# leaves the walls as they are).
+			var k: int = SIDE_K[s][0] if SIDE_K[s2].has(SIDE_K[s][0]) else SIDE_K[s][1]
+			var p2 := portion(c, sh, cov, i + f2)
+			var k2 := _mirror(k, s2)
+			if p2 == EMPTY or (p2 != FULL and p2 == (k2 + 2) & 3):
+				return true
+	return false
+
+
 ## The brows and feet of padded cell `i` when a rounded edge reaches it ([drops, heaps]),
 ## else an empty array: ChunkMesher draws it its own way.
 static func prepare(job, i: int) -> Array:
@@ -537,17 +763,22 @@ static func prepare(job, i: int) -> Array:
 	if _plain_window(c, sh, cov, i, job.dy, job.dz):
 		return []
 	# A whole cell under a whole one of a material that does not round: its walls stand
-	# flat (see _walls_shaped).
-	if cov[c[i]] and sh[i] < 16 and cov[c[i + job.dy]] and sh[i + job.dy] < 16 \
-			and Mat.edge_mode[c[i]] != Mat.EDGE_ROUND:
+	# flat (see _walls_shaped), but where they turn a corner.
+	var whole := cov[c[i]] and sh[i] < 16 and cov[c[i + job.dy]] and sh[i + job.dy] < 16
+	if whole and Mat.edge_mode[c[i]] == Mat.EDGE_SHARP:
 		return []
 	var p := portion(c, sh, cov, i)
 	if p == EMPTY or _odd(job, i):
 		return []
+	var turns := _turns(job, i, p)
+	if whole and Mat.edge_mode[c[i]] != Mat.EDGE_ROUND and not turns:
+		return []
 	var covered := open_part(p, portion(c, sh, cov, i + job.dy)) == EMPTY
-	if covered and not _walls_shaped(job, i, p):
+	if covered and not turns and not _walls_shaped(job, i, p):
 		return []
 	var drops := segments(job, i)
+	if covered and _corners(drops).is_empty() and not _walls_shaped(job, i, p):
+		return []
 	# A covered top has no heaps to draw.
 	var heaps := PackedFloat32Array() if covered else feet(job, i)
 	if not _rounds(drops) and not _rounds(heaps):
@@ -572,8 +803,9 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 	var pa := portion(c, sh, cov, i + dy)
 	var m := material(c, cov, i, p)
 	var t := open_part(p, pa)
-	var entry := _entry(t, drops, heaps)
-	var ln: Array = entry[1]
+	# A covered top needs its entry only for an open wall (see below).
+	var entry := _entry(t, drops, heaps) if t != EMPTY else []
+	var ln: Array = entry[1] if t != EMPTY else []
 	if t != EMPTY:
 		var mt := m
 		if p == FULL and t != FULL:
@@ -606,12 +838,21 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 	var below_heaps := PackedFloat32Array()
 	var below_ready := false
 	var white := Color(1, 1, 1)
+	# Corners rounded in plan: the walls bend round them (from the whole side or diagonal,
+	# whose brow stops at the arc).
+	var cuts := _corners(drops)
 	for g in range(0, drops.size(), ST):
 		if int(drops[g + 8]) != MIDDLE:
 			continue
 		var kind := int(drops[g + 9])
 		var a := Vector2(drops[g], drops[g + 1])
 		var b := Vector2(drops[g + 2], drops[g + 3])
+		if kind < DIAG_KIND:
+			a = SIDE_A[kind]
+			b = SIDE_B[kind]
+		else:
+			a = Vector2(0.5, 0.5) + Vector2(CORNER_DIRS[(p + 1) & 3]) * 0.5
+			b = Vector2(0.5, 0.5) + Vector2(CORNER_DIRS[(p + 3) & 3]) * 0.5
 		var n := Vector2(drops[g + 4], drops[g + 5])
 		var open := not has_side(pa, kind) if kind < DIAG_KIND else (pa == EMPTY or (pa != FULL and pa != p))
 		var inset := drops[g + 10]
@@ -619,7 +860,10 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 			var ab := _ledge_wall(job, buf, i, base, drops, heaps, g, open)
 			a = ab[0]
 			b = ab[1]
-		var below := inset == 0.0 and _solid_at(job, i - dy, (a + b) * 0.5 + n * 0.05)
+		# A wall bent round a corner under a covered top stands from the floor whatever is
+		# before it: the heap of the ground below hides its foot.
+		var bent := not open and inset == 0.0 and not cuts.is_empty()
+		var below := inset == 0.0 and not bent and _solid_at(job, i - dy, (a + b) * 0.5 + n * 0.05)
 		if below and not below_ready:
 			below_drops = segments(job, i - dy)
 			below_heaps = feet(job, i - dy)
@@ -630,27 +874,44 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 		var qs := GRID_P
 		# The wall's shape where the top's entry keeps it (made once for all such cells).
 		var shape = null
-		if not open and not below and kind < DIAG_KIND and inset == 0.0:
+		if not open and not below and cuts.is_empty() and kind < DIAG_KIND and inset == 0.0:
 			qs = ENDS
 			tops = ENDS_UP
 			shape = _plain_walls[kind]
 		elif open and inset == 0.0 and not below and (kind < DIAG_KIND or t == p):
+			if entry.is_empty():
+				entry = _entry(t, drops, heaps)
+				ln = entry[1]
 			# The top's own heights along the side (or its diagonal), made with it.
 			qs = GRID_P if kind == DIAG_KIND else ln[0] if kind < 2 else ln[1]
 			tops = entry[2][kind]
 			shape = entry[3][kind]
 			if shape == null:
-				shape = _wall_shape(a, b, n, kind, tops, _zeros(qs.size()), qs)
+				shape = _wall_shape(a, b, n, kind, tops, _zeros(qs.size()), qs, cuts)
 				entry[3][kind] = shape
-		elif not open and not below:
+		elif not open and not below and cuts.is_empty():
 			qs = ENDS
 			tops = ENDS_UP
 			bottoms = ENDS_DOWN
+		elif bent:
+			# Floor to top, bent round a corner: the same for every cell of a rounded cliff.
+			var wkey := cuts.duplicate()
+			wkey.append(kind)
+			wkey.append(p)
+			shape = _bent_walls.get(wkey)
+			if shape == null:
+				if _bent_walls.size() >= SHAPES_MAX:
+					_bent_walls.clear()
+				shape = _wall_shape(a, b, n, kind, _ones(GN), _zeros(GN), GRID_P, cuts)
+				_bent_walls[wkey] = shape
 		else:
-			if kind < DIAG_KIND and inset == 0.0 and not below:
+			if kind < DIAG_KIND and inset == 0.0 and not below and open:
+				if entry.is_empty():
+					entry = _entry(t, drops, heaps)
+					ln = entry[1]
 				qs = ln[0] if kind < 2 else ln[1]
 			for q: float in qs:
-				var pt := a.lerp(b, q)
+				var pt := _moved(a.lerp(b, q), cuts)
 				tops.append(height(pt, drops, heaps) if open else 1.0)
 				bottoms.append(maxf(0.0, height(pt, below_drops, below_heaps) - 1.0) if below else 0.0)
 		var edges := 0
@@ -673,7 +934,7 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 			edges = 0 if cov[c[i - dy]] else DARK << EDGE_S
 		var packed := Vector2(pack(m * 3 + 1, edges, flag), around_w)
 		if shape == null:
-			_wall(buf, base, a, b, n, kind, tops, bottoms, packed, white, qs)
+			_wall(buf, base, a, b, n, kind, tops, bottoms, packed, white, qs, cuts)
 		elif not shape.is_empty():
 			buf.shape(base, shape, white, packed)
 		if int(drops[g + 7]) == WALL_ONLY and open:
@@ -683,9 +944,128 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 			for q: float in qs:
 				caps.append(Slopes.bent_height(job, nj, a.lerp(b, q) - Vector2(SIDE_OFF[kind])) if cov[c[nj]] and sh[nj] & 15 != 0 else 1.0)
 			_wall(buf, base, a, b, -n, kind, caps, tops, Vector2(pack(c[nj] * 3 + 1, 0, 0), float(NO_TILES)), white, qs)
+	if not cuts.is_empty():
+		_floor(job, buf, i, base, p, cuts, drops)
 	if t == EMPTY:
 		return
 	_shared_sides(job, buf, i, base, t, entry)
+
+
+## The ground of the level below piece `p` of padded cell `i` where the corners `cuts`
+## round its plan off: the strip between the old corner and the arc (with the heap at the
+## arc's foot) would show nothing there, since the top below is covered. Not where the
+## level below rounds the same corner (a rounded cliff going on down).
+static func _floor(job, buf, i: int, base: Vector3, p: int, cuts: PackedFloat32Array,
+		drops: PackedFloat32Array) -> void:
+	var dy: int = job.dy
+	var below := i - dy
+	if below < 0:
+		return
+	# A cliff going on down: the level below turns the same corners (the same square
+	# corner of ground of the same edge, open round it).
+	var c: PackedByteArray = job.c
+	var sh: PackedByteArray = job.sh
+	var cov: PackedByteArray = job.cov
+	var dz: int = job.dz
+	var info := _infos(job)
+	var vb := info[below]
+	if vb == 0:
+		vb = _info(job, below)
+	var pb := (vb & 7) - 1
+	var mb := (vb >> 5) & 255
+	var rest := PackedFloat32Array()
+	for g in range(0, cuts.size(), ST):
+		var cpt := Vector2(cuts[g] + cuts[g + 2] - cuts[g + 4], cuts[g + 1] + cuts[g + 3] - cuts[g + 5])
+		var kx := roundi(cpt.x)
+		var kz := roundi(cpt.y)
+		var k: int = [[0, 3], [1, 2]][kx][kz]
+		var same := pb != EMPTY and (pb == FULL or pb == k) and vb & ODD_BIT == 0 and vb & NATURAL_BIT != 0 \
+				and Mat.edge_mode[mb] == int(cuts[g + 7]) and Mat.edge_size[mb] == cuts[g + 6]
+		if same:
+			# The other three cells round the corner hold none of it.
+			for o: Vector2i in [Vector2i(kx * 2 - 1, 0), Vector2i(0, kz * 2 - 1), Vector2i(kx * 2 - 1, kz * 2 - 1)]:
+				var po := portion(c, sh, cov, below + o.x + o.y * dz)
+				# Their corner at C: k mirrored across the sides crossed.
+				var ko := k
+				if o.x != 0:
+					ko = [1, 0, 3, 2][ko]
+				if o.y != 0:
+					ko = [3, 2, 1, 0][ko]
+				if po == FULL or (po >= 0 and po != (ko + 2) & 3):
+					same = false
+					break
+		if not same:
+			rest.append_array(cuts.slice(g, g + ST))
+	if rest.is_empty():
+		return
+	var need := rest
+	# The ground below lies level there, heaped up at the foot of this level's walls (its
+	# brows, as `feet` gives them to the ground below; a brow of the level below as near
+	# as this is left out).
+	var heaps := PackedFloat32Array()
+	for g in range(0, drops.size(), ST):
+		if drops[g + 6] > 0.0 and drops[g + 7] != WALL_ONLY and drops[g + 10] == 0.0:
+			heaps.append_array(drops.slice(g, g + ST))
+	var none := PackedFloat32Array()
+	var out_p := PackedVector3Array()
+	var out_n := PackedVector3Array()
+	var out_uv := PackedVector2Array()
+	var idx := PackedInt32Array()
+	# Along each brow of the piece, strips from its old line in to the arc (the points
+	# its wall moves along), so they meet the ground beside on its line and the wall's
+	# foot on the arc.
+	for s in 5:
+		var a: Vector2
+		var b: Vector2
+		if s < DIAG_KIND:
+			if not has_side(p, s):
+				continue
+			a = SIDE_A[s]
+			b = SIDE_B[s]
+		else:
+			if p == FULL:
+				continue
+			a = Vector2(0.5, 0.5) + Vector2(CORNER_DIRS[(p + 1) & 3]) * 0.5
+			b = Vector2(0.5, 0.5) + Vector2(CORNER_DIRS[(p + 3) & 3]) * 0.5
+		var olds := PackedVector2Array()
+		var news := PackedVector2Array()
+		var moved := false
+		for q: float in GRID:
+			var pt := a.lerp(b, q)
+			var pj := _project(pt, need)
+			olds.append(pt)
+			news.append(Vector2(pj.x, pj.y))
+			moved = moved or pj.z != 0.0 or pj.w != 0.0
+		if not moved:
+			continue
+		for k in GN - 1:
+			if olds[k] == news[k] and olds[k + 1] == news[k + 1]:
+				continue
+			var quad := [olds[k], olds[k + 1], news[k + 1], news[k]]
+			if not _solid_at(job, below, (olds[k] + olds[k + 1] + news[k] + news[k + 1]) * 0.25):
+				continue
+			var start := out_p.size()
+			for pt: Vector2 in quad:
+				var sf := surface(pt, none, heaps)
+				out_p.append(Vector3(pt.x, sf.x - 1.0, pt.y))
+				out_n.append(Vector3(-sf.y, 1.0, -sf.z).normalized())
+				out_uv.append(pt)
+			for tri in [[0, 1, 2], [0, 2, 3]]:
+				var v0: Vector3 = out_p[start + tri[0]]
+				var v1: Vector3 = out_p[start + tri[1]]
+				var v2: Vector3 = out_p[start + tri[2]]
+				var cr := (v1 - v0).cross(v2 - v0)
+				if absf(cr.y) < 0.0000001:
+					continue
+				# Clockwise seen from above.
+				if cr.y > 0.0:
+					idx.append_array([start + tri[0], start + tri[2], start + tri[1]])
+				else:
+					idx.append_array([start + tri[0], start + tri[1], start + tri[2]])
+	if idx.is_empty():
+		return
+	var mf := material(c, cov, below, portion(c, sh, cov, below))
+	buf.shape(base, [out_p, out_n, out_uv, idx], Color(1, 1, 1), Vector2(pack(mf * 3, 0, 0), float(NO_TILES)))
 
 
 ## The walls of the ground beside piece `t` of padded cell `i` whose top is covered,
@@ -832,24 +1212,46 @@ static func _ledge_wall(job, buf, i: int, base: Vector3, drops: PackedFloat32Arr
 ## A wall along a..b facing `n` (side `kind` or a diagonal), from `bottoms` up to `tops`
 ## at the points `qs` along it (of GRID); one quad where both stay level.
 static func _wall(buf, base: Vector3, a: Vector2, b: Vector2, n: Vector2, kind: int, tops: PackedFloat32Array,
-		bottoms: PackedFloat32Array, packed: Vector2, color: Color, qs: PackedFloat32Array) -> void:
-	var shape := _wall_shape(a, b, n, kind, tops, bottoms, qs)
+		bottoms: PackedFloat32Array, packed: Vector2, color: Color, qs: PackedFloat32Array,
+		cuts := PackedFloat32Array()) -> void:
+	var shape := _wall_shape(a, b, n, kind, tops, bottoms, qs, cuts)
 	if not shape.is_empty():
 		buf.shape(base, shape, color, packed)
 
 
 ## The wall of `_wall` at the origin, as MeshBuffers.shape takes it (empty where it has
-## no height anywhere).
+## no height anywhere). Where the corners `cuts` round the plan, its points move onto
+## their arcs (or cuts) and face out from them there.
 static func _wall_shape(a: Vector2, b: Vector2, n: Vector2, kind: int, tops: PackedFloat32Array,
-		bottoms: PackedFloat32Array, qs: PackedFloat32Array) -> Array:
+		bottoms: PackedFloat32Array, qs: PackedFloat32Array, cuts := PackedFloat32Array()) -> Array:
 	var nn := Vector3(n.x, 0.0, n.y)
 	var level := true
 	var gn := qs.size()
+	var at := PackedVector2Array()
+	var faces := PackedVector2Array()
+	at.resize(gn)
+	faces.resize(gn)
+	for g in gn:
+		var pt := a.lerp(b, qs[g])
+		var pj := _project(pt, cuts) if not cuts.is_empty() else Vector4(pt.x, pt.y, 0.0, 0.0)
+		at[g] = Vector2(pj.x, pj.y)
+		faces[g] = Vector2(pj.z, pj.w)
+		if faces[g] != Vector2.ZERO:
+			level = false
+	var flat := true
 	for g in range(1, gn):
 		if absf(tops[g] - tops[0]) > 0.0001 or absf(bottoms[g] - bottoms[0]) > 0.0001:
-			level = false
+			flat = false
 			break
-	var steps: Array = [0, gn - 1] if level else range(gn)
+	var steps: Array = [0, gn - 1] if level and flat else range(gn)
+	if flat and not level:
+		# Level along it but bent round a corner: only the moved points, and where the
+		# straight part starts.
+		steps = []
+		for g in gn:
+			if g == 0 or g == gn - 1 or faces[g] != Vector2.ZERO or faces[g - 1] != Vector2.ZERO \
+					or faces[g + 1] != Vector2.ZERO:
+				steps.append(g)
 	# A diagonal wall stands a little inside the ground (see _diag_wall).
 	var inside := -n * EPS if kind == DIAG_KIND else Vector2.ZERO
 	var out_p := PackedVector3Array()
@@ -859,22 +1261,39 @@ static func _wall_shape(a: Vector2, b: Vector2, n: Vector2, kind: int, tops: Pac
 	for g in range(steps.size() - 1):
 		var g0: int = steps[g]
 		var g1: int = steps[g + 1]
-		var p0 := a.lerp(b, qs[g0]) + inside
-		var p1 := a.lerp(b, qs[g1]) + inside
+		var p0 := at[g0] + inside
+		var p1 := at[g1] + inside
 		if tops[g0] - bottoms[g0] < 0.0001 and tops[g1] - bottoms[g1] < 0.0001:
 			continue
+		if p0.distance_squared_to(p1) < 0.00000001:
+			continue
+		# Facing out of the plan: the wall's way, or the arc's at a moved point (a cut's
+		# whole quad faces the cut's way).
+		var f0 := faces[g0]
+		var f1 := faces[g1]
+		if f0 == Vector2.ZERO and f1.length_squared() > 2.0:
+			f0 = f1
+		elif f1 == Vector2.ZERO and f0.length_squared() > 2.0:
+			f1 = f0
+		var n0 := Vector3(f0.x, 0.0, f0.y).normalized() if f0 != Vector2.ZERO else nn
+		var n1 := Vector3(f1.x, 0.0, f1.y).normalized() if f1 != Vector2.ZERO else nn
 		var vs: Array[Vector3] = [Vector3(p0.x, bottoms[g0], p0.y), Vector3(p1.x, bottoms[g1], p1.y)]
+		var ns: Array[Vector3] = [n0, n1]
 		if tops[g1] - bottoms[g1] >= 0.0001:
 			vs.append(Vector3(p1.x, tops[g1], p1.y))
+			ns.append(n1)
 		if tops[g0] - bottoms[g0] >= 0.0001:
 			vs.append(Vector3(p0.x, tops[g0], p0.y))
+			ns.append(n0)
 		# Clockwise seen from the front (as _wound turns them).
 		if (vs[1] - vs[0]).cross(vs[2] - vs[0]).dot(nn) > 0.0:
 			vs.reverse()
+			ns.reverse()
 		var start := out_p.size()
-		for v: Vector3 in vs:
+		for v_k in vs.size():
+			var v := vs[v_k]
 			out_p.append(v)
-			out_n.append(nn)
+			out_n.append(ns[v_k])
 			out_uv.append(face_uv(SIDE_D[kind], v) if kind < DIAG_KIND else Vector2(v.x, 1.0 - v.y))
 		idx.append_array([start, start + 1, start + 2])
 		if vs.size() == 4:
@@ -901,6 +1320,9 @@ static func lines(drops: PackedFloat32Array, heaps: PackedFloat32Array, t: int) 
 		for g in range(0, segs.size(), ST):
 			var r := segs[g + 6]
 			if r <= 0.0 or (not foot and segs[g + 7] == WALL_ONLY):
+				continue
+			# A corner lies within the bands round the free ends of its brows (T1, T2).
+			if segs[g + 9] >= CORNER_KIND:
 				continue
 			var reach := r + (0.0 if foot else segs[g + 10])
 			var ax := segs[g]
@@ -986,18 +1408,19 @@ static func _entry(t: int, drops: PackedFloat32Array, heaps: PackedFloat32Array)
 		drops = _rounding(drops)
 		heaps = _rounding(heaps)
 		# The heights along the sides on the top's lines, and along the half's diagonal.
+		var cuts := _corners(drops)
 		var sides := []
 		for s in 4:
 			var hs := PackedFloat32Array()
 			for q: float in ln[0] if s < 2 else ln[1]:
-				hs.append(height(SIDE_A[s].lerp(SIDE_B[s], q), drops, heaps))
+				hs.append(height(_moved(SIDE_A[s].lerp(SIDE_B[s], q), cuts), drops, heaps))
 			sides.append(hs)
 		var diag := PackedFloat32Array()
 		if t >= 0 and t < FULL:
 			var a := Vector2(0.5, 0.5) + Vector2(CORNER_DIRS[(t + 1) & 3]) * 0.5
 			var b := Vector2(0.5, 0.5) + Vector2(CORNER_DIRS[(t + 3) & 3]) * 0.5
 			for q: float in GRID:
-				diag.append(height(a.lerp(b, q), drops, heaps))
+				diag.append(height(_moved(a.lerp(b, q), cuts), drops, heaps))
 		sides.append(diag)
 		entry = [_top_shape(t, drops, heaps, ln, ne_sw) if t != EMPTY else [], ln, sides, [null, null, null, null, null]]
 		_shapes[key] = entry
@@ -1030,6 +1453,13 @@ static func _rounding(segs: PackedFloat32Array) -> PackedFloat32Array:
 	return out
 
 
+static func _ones(n: int) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	out.resize(n)
+	out.fill(1.0)
+	return out
+
+
 static func _zeros(n: int) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
 	out.resize(n)
@@ -1051,11 +1481,19 @@ static func _top_shape(t: int, drops: PackedFloat32Array, heaps: PackedFloat32Ar
 	ns.resize(nx * nz)
 	smooth.resize(nx * nz)
 	inside.resize(nx * nz)
+	# Where a corner rounds the plan, the points cut off move onto its arc (or cut).
+	var cuts := _corners(drops)
+	var spot := PackedVector2Array()
+	spot.resize(nx * nz)
 	for b in nz:
 		for a in nx:
 			var pt := Vector2(xs[a], zs[b])
 			var k := b * nx + a
 			inside[k] = 1 if (t == FULL or (pt - Vector2(0.5, 0.5)).dot(dir) > -0.0001) and not _on_ledge(pt, drops) else 0
+			if not cuts.is_empty():
+				var pj := _project(pt, cuts)
+				pt = Vector2(pj.x, pj.y)
+			spot[k] = pt
 			if inside[k]:
 				var sf := surface(pt, drops, heaps)
 				hs[k] = sf.x
@@ -1077,7 +1515,7 @@ static func _top_shape(t: int, drops: PackedFloat32Array, heaps: PackedFloat32Ar
 	var pos := PackedVector3Array()
 	pos.resize(nx * nz)
 	for k in nx * nz:
-		pos[k] = Vector3(xs[k % nx], hs[k], zs[k / nx])
+		pos[k] = Vector3(spot[k].x, hs[k], spot[k].y)
 	var tri := PackedInt32Array([0, 0, 0])
 	for b in nz - 1:
 		for a in nx - 1:
@@ -1106,6 +1544,9 @@ static func _top_shape(t: int, drops: PackedFloat32Array, heaps: PackedFloat32Ar
 				var level := absf(hs[tri[0]] - 1.0) < 0.0001 and absf(hs[tri[1]] - 1.0) < 0.0001 \
 						and absf(hs[tri[2]] - 1.0) < 0.0001
 				var cr := (pos[tri[1]] - pos[tri[0]]).cross(pos[tri[2]] - pos[tri[0]])
+				# Two corners moved onto one point of an arc: nothing to draw.
+				if absf(cr.y) < 0.000001:
+					continue
 				# Clockwise seen from above (Godot's front faces).
 				if cr.y > 0.0:
 					var swap := tri[1]

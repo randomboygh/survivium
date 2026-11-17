@@ -54,9 +54,17 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   slopes stay flat: a one-sided bevel cannot lie level at the cell's edge. Bench: ~4.6 s cold, ~3.8 s warm,
   1475620 vertices (+16% over #733). Test `mesher_test._test_bent_slopes`; preview tool
   `notes/edge-preview/slope_preview.gd` in the project library.
-  Left:
-  - PR 2 part 2b: vertical corners in plan (now a convex corner keeps its plan; the brow mitres there);
-  - the remaining `corners` field / `CORNER_P` / shader `corner_shapes` go in PR 4.
+- PR 2 part 2b (corners in plan, thread «Скруглить рельеф по материалам, часть 3»): EdgeMesher rounds a convex
+  square corner of a level's plan (a cliff's lower levels under a chamfered top, diamond tips of halves): the
+  brows stop at the arc's tangent points, a corner record takes the corner (`_add_corners`), points cut off move
+  onto the arc / the bevel's cut (`_project`) in the top and the walls (normals from the arc), the ground below
+  fills the strip under a cut corner (`_floor`), the heaps below follow the arc. Corners of 135° (a side meeting
+  a diagonal, most corners of natural ground after PR 1): the arc would cut ~0.03 block, so only the top rounds
+  there (no mitre), the walls keep their corner; a bevel keeps its mitre there. Inner corners: no fillet (they are
+  135° too after PR 1, and the foot heap already fills them). Bench (this container, slower than before: main
+  ~7.1-7.5 s cold / ~6.5-7.6 warm): ~10.7-10.9 cold / ~8.2-8.5 warm, 1692905 vertices (+15%). Test
+  `mesher_test._test_plan_corners`.
+  Left: the remaining `corners` field / `CORNER_P` / shader `corner_shapes` go in PR 4.
 - Spec (Claude doc, Russian, the user's words): https://claude.ai/artifact/1q8gbPYdyqXoDE5bMxKjoT
 - Pictures: project library `survivium-builds/mesher-blocks/` (`blocks-1-main.png` … `blocks-10-all.png`),
   the Python renderer that drew them in `src/` there (numpy z-buffer, 3/4 view, the game's 45° pitch).
