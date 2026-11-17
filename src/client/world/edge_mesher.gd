@@ -18,6 +18,8 @@ extends "res://src/client/world/mesh_faces.gd"
 ## Pieces of a cell (see portion): none, a whole cell, or 0..3, the half holding
 ## corner k (NW, NE, SE, SW), cut off by the diagonal across the cell beside k.
 
+const Slopes := preload("res://src/client/world/slope_mesher.gd")
+
 const EMPTY := -1
 const FULL := 4
 ## Sides N, S, W, E: the way out, the corners on them, the opposite side, the DIRS face
@@ -679,7 +681,7 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 			var nj: int = i + SIDE_OFF[kind].x + SIDE_OFF[kind].y * dz
 			var caps := PackedFloat32Array()
 			for q: float in qs:
-				caps.append(_slope_height(sh[nj], a.lerp(b, q) - Vector2(SIDE_OFF[kind])) if cov[c[nj]] and sh[nj] & 15 != 0 else 1.0)
+				caps.append(Slopes.bent_height(job, nj, a.lerp(b, q) - Vector2(SIDE_OFF[kind])) if cov[c[nj]] and sh[nj] & 15 != 0 else 1.0)
 			_wall(buf, base, a, b, -n, kind, caps, tops, Vector2(pack(c[nj] * 3 + 1, 0, 0), float(NO_TILES)), white, qs)
 	if t == EMPTY:
 		return
@@ -825,17 +827,6 @@ static func _ledge_wall(job, buf, i: int, base: Vector3, drops: PackedFloat32Arr
 		_wall(buf, base, e0, e1, face, fk, tops, bottoms, Vector2(pack(m * 3 + 1, 0, OPEN_TOP if open else 0),
 			float(NO_TILES)), white, GRID_P)
 	return [wa - n * inset, wb - n * inset]
-
-
-## Height of the top of a slope of shape `s` at point `l` of its cell (0..1, on its
-## edge), from its corner heights.
-static func _slope_height(s: int, l: Vector2) -> float:
-	var h := PackedFloat32Array()
-	for k in 4:
-		h.append(0.0 if s & (1 << k) else 1.0)
-	var u := clampf(l.x, 0.0, 1.0)
-	var v := clampf(l.y, 0.0, 1.0)
-	return lerpf(lerpf(h[0], h[1], u), lerpf(h[3], h[2], u), v)
 
 
 ## A wall along a..b facing `n` (side `kind` or a diagonal), from `bottoms` up to `tops`
