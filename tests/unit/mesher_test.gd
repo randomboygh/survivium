@@ -7,6 +7,7 @@ func run() -> void:
 	_test_cap()
 	_test_bank_trunk()
 	_test_diagonal_step()
+	_test_edges()
 	_test_patch()
 	_test_way_order()
 
@@ -177,6 +178,57 @@ func _test_diagonal_step() -> void:
 	_check(diagonal > 0 and square == 0, "a diagonal step falls over a straight diagonal lip, not in stairs (%d, %d)"
 		% [diagonal, square])
 	_check(off_line == 0, "the water of a diagonal step's lip ends on a straight line (%d off it)" % off_line)
+
+
+## Natural stone (bevel 0.25) and grass kept sheer (round 0.35) on a grass floor, and a
+## placed stone block: the natural edges are cut down by their size, the cells beside
+## each other agree on the height of the ground (no seams), and the placed block stays
+## sharp (EdgeMesher).
+func _test_edges() -> void:
+	var w := WorldData.new(6, Vector2i(16, 16))
+	var ch: WorldData.Chunk = w.chunks[Vector2i.ZERO]
+	for z in 16:
+		for x in 16:
+			ch.cells[z * 16 + x] = Mat.DIRT
+			ch.cells[(16 + z) * 16 + x] = Mat.GRASS
+			for y in range(2, 4):
+				if x >= 1 and x <= 4 and z >= 1 and z <= 4:
+					ch.cells[(y * 16 + z) * 16 + x] = Mat.STONE
+				if x >= 7 and x <= 11 and z >= 1 and z <= 5 and (y == 2 or (x >= 8 and x <= 10 and z >= 2 and z <= 4)):
+					ch.cells[(y * 16 + z) * 16 + x] = Mat.GRASS
+			if x >= 2 and x <= 4 and z >= 10 and z <= 12:
+				ch.cells[(32 + z) * 16 + x] = Mat.STONE
+	ch.natural.fill(WorldData.WILD | WorldData.SHEER)
+	for z in range(10, 13):
+		for x in range(2, 5):
+			ch.natural[(32 + z) * 16 + x] = 0
+	w.rebuild_columns()
+	var arrays: Array = (ChunkMesher.build_chunk(w, 0, 0, 16)[0] as ArrayMesh).surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	var stone_brow := 0
+	var grass_brow := 0
+	var placed_cut := 0
+	# Heights of the ground's tops by place: one height per place and level.
+	var tops := {}
+	var seams := 0
+	for v in verts.size():
+		var p := verts[v] / WorldData.CELL
+		if absf(p.y - 3.75) < 0.001 and p.x >= 1.0 and p.x <= 5.0 and p.z >= 1.0 and p.z <= 5.0:
+			stone_brow += 1
+		if absf(p.y - 3.65) < 0.001 and p.x >= 7.0 and p.x <= 12.0 and p.z >= 1.0 and p.z <= 6.0:
+			grass_brow += 1
+		if p.y > 2.6 and p.y < 2.99 and p.x > 2.01 and p.x < 4.99 and p.z > 10.01 and p.z < 12.99:
+			placed_cut += 1
+		if normals[v].y > 0.05:
+			var key := Vector3i(roundi(p.x * 8.0), floori(p.y - 0.5), roundi(p.z * 8.0))
+			if tops.has(key) and absf(tops[key] - p.y) > 0.001:
+				seams += 1
+			tops[key] = p.y
+	_check(stone_brow > 0, "natural stone's top edge is bevelled a quarter of a block down")
+	_check(grass_brow > 0, "sheer grass's top edge is rounded its radius down")
+	_check(placed_cut == 0, "a placed block keeps sharp edges (%d)" % placed_cut)
+	_check(seams == 0, "rounded ground meets the cells beside it at one height (%d seams)" % seams)
 
 
 ## Total area of the triangles of a mesh (0 for none).

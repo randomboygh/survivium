@@ -17,6 +17,24 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   down in the cut (`WorldData._floor_slopes`, `SlopeMesher.slope_faces(only)`, drawn in the material above),
   so steep diagonal hills meet without walls.
 
+- PR 2 part 1 (edges by material, branch `claude/project-thread-2ppwze`): material fields `edge`
+  (sharp | round | bevel) and `edge_size` (the radii table), `src/client/world/edge_mesher.gd`: per level one
+  height function over the plan of pieces (whole cell / diagonal half): brows drop by the material's curve, feet
+  heap up by the wall's curve, each cell draws its top on a grid (`GRID`, lines at 0, 1/8, 1/4, 3/4, 7/8, 1) and
+  its walls to that height, so cells meet without seams; round edges get the curve's normals (smooth), bevels
+  flat; placed blocks stay sharp (`wild_masks`). Test `mesher_test._test_edges`; shots `ground-edges-*`;
+  pictures `survivium-builds/mesher-blocks/pr2/`. Geometry preview without the game (a tool that dumps a
+  chunk's triangles, a numpy renderer): `notes/edge-preview/` in the project library.
+  Left for the next thread:
+  - a light square outline inside the stone ring (`ground-edges-stone`, third plot): the whole cell beside a
+    cut corner cell takes its side to the cut as a brow (the half does not hold that side), so a groove runs
+    along it; check the plan there (portions) and decide (no brow where the outline only touches at a corner,
+    or let the cut cell's diagonal run on);
+  - layered cliffs: a soft layer over a hard one set back with a narrow ledge of the hard one (now the layers
+    stack straight, only the top layer rounds); snow over stone already rounds only the snow;
+  - slopes: crest and foot of soft slopes, diagonal hips (slopes are still drawn by SlopeMesher, sharp);
+  - vertical corners in plan (now a convex corner keeps its plan; the brow mitres there);
+  - the remaining `corners` field / `CORNER_P` / shader `corner_shapes` go in PR 4.
 - Spec (Claude doc, Russian, the user's words): https://claude.ai/artifact/1q8gbPYdyqXoDE5bMxKjoT
 - Pictures: project library `survivium-builds/mesher-blocks/` (`blocks-1-main.png` … `blocks-10-all.png`),
   the Python renderer that drew them in `src/` there (numpy z-buffer, 3/4 view, the game's 45° pitch).

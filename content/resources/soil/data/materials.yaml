@@ -4,6 +4,8 @@
 # bundle: without it sand gives only sand.
 - id: sand
   title: "[resources.materials.sand]"
+  edge: round
+  edge_size: 0.5
   role: beach
   corners: round
   slope: true
@@ -21,6 +23,8 @@
   hit: dig
 - id: clay
   title: "[resources.materials.clay]"
+  edge: round
+  edge_size: 0.25
   role: bank
   corners: soft
   slope: true

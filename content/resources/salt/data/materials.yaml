@@ -3,6 +3,8 @@
 # by name, from the "Sounds" mod. Without the bundle, sand takes its place (role beach), and without that - earth.
 - id: salt
   title: "[resources.materials.salt]"
+  edge: bevel
+  edge_size: 0.25
   role: salt
   corners: soft
   slope: true
