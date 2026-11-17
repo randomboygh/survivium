@@ -15,12 +15,43 @@ func run() -> void:
 	_test_craft()
 	_test_land()
 	_test_yield_quality()
+	_test_hardiness()
+
+
+## Hardiness adds a cell of health every second level; golden health over the most is
+## lost first and runs out; the most cuts health back and a save keeps what is over MAX.
+func _test_hardiness() -> void:
+	var hard := Skills.of_role("endure")
+	var s := SkillSet.new()
+	_check(s.health_bonus() == 0.0, "no hardiness, no more health")
+	s.gain("endure", Skills.need(hard, 1))
+	_check(s.health_bonus() == 0.0, "the first level adds no cell yet")
+	s.gain("endure", Skills.need(hard, 2) - Skills.need(hard, 1))
+	_check(s.health_bonus() == Vitals.CELL, "the second level adds a cell")
+	s.gain("endure", Skills.need(hard, 20))
+	_check(s.health_bonus() == 50.0, "the last level five cells")
+	var v := Vitals.new()
+	v.set_most(Vitals.MAX + s.health_bonus())
+	_check(v.most == 150.0 and v.heal(100.0) and v.health == 150.0 and not v.heal(40.0), "it heals up to the higher most, then is not hurt")
+	v.wound(30.0, "test")
+	_check(is_equal_approx(v.health, 120.0) and v.suffered == 30.0, "a wound counts for hardiness")
+	_check(v.fortify(20.0, 60.0) and not v.fortify(10.0, 30.0) and v.extra == 20.0, "golden health tops up, never adds up")
+	v.wound(25.0, "test")
+	_check(v.extra == 0.0 and is_equal_approx(v.health, 115.0) and v.suffered == 55.0, "a wound takes the gold first")
+	v.fortify(10.0, 1.0)
+	v.step(1.5, 0.0, false)
+	_check(v.extra == 0.0 and v.extra_time == 0.0, "golden health is gone when its time runs out")
+	var again := Vitals.new()
+	again.from_dict(v.to_dict())
+	_check(is_equal_approx(again.health, 115.0), "a save keeps health over MAX until the skills set the most")
+	again.set_most(110.0)
+	_check(again.health == 110.0, "and a lower most cuts it back")
 
 
 func _test_levels() -> void:
-	_check(Skills.ALL.size() == 10 and Skills.ALL[0].role == "gather" and Lang.t(Skills.of_role("swim").title) == "Swim"
-		and Lang.t(Skills.of_role("farm").title) == "Farm",
-		"ten skills in their order, each found by its work")
+	_check(Skills.ALL.size() == 11 and Skills.ALL[0].role == "gather" and Lang.t(Skills.of_role("swim").title) == "Swim"
+		and Lang.t(Skills.of_role("farm").title) == "Farm" and Lang.t(Skills.of_role("endure").title) == "Hardiness",
+		"eleven skills in their order, each found by its work")
 	var dig := Skills.of_role("dig")
 	_check(Skills.level_at(dig, 0.0) == 0 and Skills.level_at(dig, dig.first) == 1
 		and Skills.level_at(dig, Skills.need(dig, 10) * 2.0) == dig.levels, "points make levels, no more than the last")

@@ -144,6 +144,9 @@ static func item_groups(id: String, count: int, worn := NEW, weight := -1.0, bur
 				Lang.f("[freshness_spoils_in_longer_in]", [days])])
 		if Items.heal(id) > 0.0:
 			food.append([ItemIcons.picture("heart"), "+%d" % roundi(Items.heal(id) * k), false, "[health_n2]"])
+		if Items.fortify(id) > 0.0:
+			food.append([ItemIcons.picture("heart_gold"), "+%d" % roundi(Items.fortify(id) * k), false,
+				Lang.f("[golden_health_for_min]", [roundi(Items.fortify_time(id) / 60.0)])])
 		groups.append(["[food]", food])
 	if Items.drink(id) > 0.0:
 		groups.append(["[drinking]", [[ItemIcons.picture("water"), "+%d" % roundi(Items.drink(id) * k), false, "[water]"]]])

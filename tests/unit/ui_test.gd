@@ -227,6 +227,15 @@ func _test_vitals() -> void:
 	panel.pinned = true
 	panel.update(thirsty, 0.1, false)
 	_check(panel.columns.size() == 4, "all of them with the bag open")
+	panel.pinned = false
+	var hardy := Vitals.new()
+	panel.update(hardy, 0.1, false)
+	var ten := canvas.custom_minimum_size.x
+	hardy.set_most(120.0)
+	hardy.fortify(15.0, 60.0)
+	panel.update(hardy, 0.1, false)
+	_check(panel.cells == 12 and panel.gold_cells == 2 and canvas.custom_minimum_size.x == ten + 4 * (VitalsPanel.CELL + VitalsPanel.GAP),
+		"a hardier body has more cells, golden health more after them, and the row grows")
 	panel.free()
 
 

@@ -235,6 +235,13 @@ const BURN_WARN := 20.0
 const BURN_TELL := 5.0
 ## Seconds of one step of the body (Vitals.step) within a longer frame.
 const VITALS_STEP := 0.05
+## Hardiness (the skill of role `endure`) grows by its `each` points for every health lost,
+## and by ENDURE_HARDSHIP a second spent hungry, thirsty, cold or hot.
+const ENDURE_HARDSHIP := 0.25
+## Asleep by a fire, the body gets FIRE_SLEEP_GOLD golden health that lasts
+## FIRE_SLEEP_TIME seconds (Vitals.fortify).
+const FIRE_SLEEP_GOLD := 10.0
+const FIRE_SLEEP_TIME := 300.0
 ## Game days a death's sack lies before it is gone with what it holds (plan/design/
 ## character.md «Смерть»: 2 days, about 80 minutes).
 const SACK_DAYS := 2.0
@@ -309,6 +316,7 @@ func update(delta: float) -> void:
 	_last_at = p
 	# The body runs in short steps, so a long frame drowns or heals as short ones would.
 	var share := inventory.load_share() if inventory.heavy else 0.0
+	vitals.set_most(Vitals.MAX + skills.health_bonus())
 	var was := vitals.health
 	if vitals.asleep:
 		vitals.sleep_rate = sleep_rate(p)
@@ -334,6 +342,7 @@ func update(delta: float) -> void:
 		elif vitals.energy >= vitals.MAX and clock.daylight() > 0.5:
 			vitals.sleep(false)
 			say("[you_slept_well]")
+	_endure(delta)
 	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
 	body.swim_scale = skills.boost("swim")
 	body.vessel = vessel_pace()
@@ -355,6 +364,17 @@ func update(delta: float) -> void:
 	_forget_old_sacks()
 	if vitals.is_dead():
 		die()
+
+
+## Hardiness grows by the health lost (Vitals.suffered) and the time spent in hardship.
+func _endure(delta: float) -> void:
+	var s := SkillSet.Skills.of_role("endure")
+	var v := vitals
+	var points: float = v.suffered * float(s.get("each", 0.0))
+	v.suffered = 0.0
+	if v.satiety < v.HUNGRY or v.water < v.THIRSTY or v.warmth < v.COLD or v.warmth > v.HOT:
+		points += ENDURE_HARDSHIP * delta
+	skills.gain("endure", points)
 
 
 ## A body that lands more than Vitals.FALL_SAFE levels below where it last stood is hurt
@@ -431,6 +451,8 @@ func _warm(p: Vector3, days: float) -> void:
 		rain = w.get("rain", 0.0) + w.get("hail", 0.0) * 0.5
 		snow = w.get("snow", 0.0)
 	vitals.warm(days, feel, rain, snow, body.swimming, roofed, fire)
+	if vitals.asleep and fire > 0.0:
+		vitals.fortify(FIRE_SLEEP_GOLD, FIRE_SLEEP_TIME)
 
 
 ## Whether a roof (a cave, a house: anything over the head that keeps the rain off,
@@ -559,7 +581,8 @@ func eat(i: int) -> bool:
 	if Items.drink(s[0]) > 0.0 and Items.food(s[0]) <= 0.0:
 		# A tea that calms is drunk thirsty or not.
 		var calm := Items.calm(s[0])
-		if not vitals.drink(Items.drink(s[0]) * k) and calm <= 0.0:
+		var gold := Items.fortify(s[0]) > 0.0 and vitals.fortify(Items.fortify(s[0]) * k, Items.fortify_time(s[0]))
+		if not vitals.drink(Items.drink(s[0]) * k) and calm <= 0.0 and not gold:
 			nag("not_thirsty", "[not_thirsty]")
 			return false
 		if calm > 0.0:
@@ -584,6 +607,9 @@ func eat(i: int) -> bool:
 		vitals.heal(heal)
 	if Items.drink(s[0]) > 0.0:
 		vitals.drink(Items.drink(s[0]) * k)
+	# A hearty meal gives golden health over the most for a while (Vitals.fortify).
+	if Items.fortify(s[0]) > 0.0:
+		vitals.fortify(Items.fortify(s[0]) * k, Items.fortify_time(s[0]))
 	inventory.take_slot(i, 1)
 	note("eaten")
 	return true

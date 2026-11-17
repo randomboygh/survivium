@@ -196,7 +196,7 @@ func _test_skills() -> void:
 		_check(hours >= LAST_LEVEL_HOURS.x and hours <= LAST_LEVEL_HOURS.y, "%s: the last level within %.0f–%.0f hours of work (%.1f)" % [sk.title, LAST_LEVEL_HOURS.x, LAST_LEVEL_HOURS.y, hours])
 		_check(sk.speed <= MOST_SPEED and sk.might <= MOST_MIGHT and sk.yield <= 1.0 and sk.effort <= 0.9 and sk.care <= 0.9,
 			"%s: no effect past its bound (speed %.1f, might %.1f)" % [sk.title, sk.speed, sk.might])
-		_check(sk.speed > 0.0 or sk.yield > 0.0 or sk.might > 0.0 or sk.quality > 0.0, "%s does something" % sk.title)
+		_check(sk.speed > 0.0 or sk.yield > 0.0 or sk.might > 0.0 or sk.quality > 0.0 or sk.get("health", 0.0) > 0.0, "%s does something" % sk.title)
 		for n in range(1, sk.levels):
 			_check(Skills.need(sk, n + 1) - Skills.need(sk, n) > Skills.need(sk, n) - Skills.need(sk, n - 1), "%s: level %d costs more than level %d" % [sk.title, n + 1, n])
 	var s0 := _at(0)

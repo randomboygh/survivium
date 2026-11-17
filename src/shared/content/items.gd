@@ -247,6 +247,16 @@ static func heal(id: String) -> float:
 	return get_item(id).get("heal", 0.0)
 
 
+## Golden health one of item `id` gives over the most (Vitals.fortify), 0 for none.
+static func fortify(id: String) -> float:
+	return get_item(id).get("fortify", 0.0)
+
+
+## Seconds the golden health of item `id` lasts (see fortify).
+static func fortify_time(id: String) -> float:
+	return get_item(id).get("fortify_time", 0.0)
+
+
 ## Seconds over which item `id` gives its `heal` back (a poultice), 0 for at once.
 static func heal_time(id: String) -> float:
 	return get_item(id).get("heal_time", 0.0)

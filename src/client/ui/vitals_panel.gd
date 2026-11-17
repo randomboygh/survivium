@@ -18,18 +18,20 @@ const Vitals := preload("res://src/shared/game/vitals.gd")
 const HEIGHT := 28
 const BAR_X := 15
 ## Health is a row of cells, CELL_HP of health each, CELL wide with GAP between them:
-## as many cells as the body's most health holds (Vitals.MAX now, 10 cells).
-const CELL_HP := 10.0
+## as many as the body's most health holds (Vitals.most: 10 cells, more with hardiness),
+## then golden ones for the golden health over it (Vitals.extra), so the row grows.
+const CELL_HP := Vitals.CELL
 const CELL := 5
 const GAP := 1
-const CELLS := int(Vitals.MAX / CELL_HP)
-const HEALTH := Rect2(BAR_X, 1, CELLS * (CELL + GAP) - GAP, 10)
+const HEALTH := Rect2(BAR_X, 1, 0, 10)
 const STAMINA := Rect2(BAR_X, 20, 50, 5)
+const GOLD := UiStyle.ACCENT
 ## Where the pictures of the two rows stand: the big heart, then the bolt.
 const HEALTH_Y := 0
 const STAMINA_Y := 18
-## The standing bars: where the first starts, how far apart they are, how wide a bar is.
-const COLUMN_X := BAR_X + CELLS * (CELL + GAP) - GAP + 5
+## The standing bars: how far after the health row the first starts, how far apart
+## they are, how wide a bar is.
+const COLUMN_GAP := 5
 const COLUMN := 10
 const COLUMN_BAR := 5
 ## The standing bars in their order: what, its picture, its colour.
@@ -61,6 +63,11 @@ var _linger := 0.0
 var debuffs: Array = []
 ## The standing bars shown now (their keys, in the order of COLUMNS).
 var columns: Array = []
+## The cells of health and of golden health drawn now.
+var cells := 10
+var gold_cells := 0
+var _most := Vitals.MAX
+var _extra := 0.0
 var _canvas: Control
 
 
@@ -92,6 +99,20 @@ func update(vitals, delta: float, overloaded := false) -> void:
 	if absf(wet - _values.get("wet", 0.0)) >= 0.05 or (wet > 0.0) != (_values.get("wet", 0.0) > 0.0):
 		_values["wet"] = wet
 		_canvas.queue_redraw()
+	var most: float = vitals.most
+	var extra: float = vitals.extra
+	if absf(extra - _extra) >= 1.0 or (extra > 0.0) != (_extra > 0.0) or most != _most:
+		if extra > _extra + 0.5 or most > _most:
+			_linger = LINGER
+		_extra = extra
+		_most = most
+		_canvas.queue_redraw()
+	var n_cells := ceili(most / CELL_HP - 0.001)
+	var n_gold := ceili(extra / CELL_HP - 0.001)
+	if n_cells != cells or n_gold != gold_cells:
+		cells = n_cells
+		gold_cells = n_gold
+		_fit()
 	var now := debuffs_of(vitals, overloaded)
 	var shown_columns := []
 	for c in COLUMNS:
@@ -132,7 +153,7 @@ static func debuffs_of(vitals, overloaded: bool) -> Array:
 ## the body, its column.
 func _fit() -> void:
 	var n := columns.size() + (0 if debuffs.is_empty() else 1)
-	var w := BAR_X + int(HEALTH.size.x) if n == 0 else COLUMN_X + (n - 1) * COLUMN + 9
+	var w := BAR_X + _row_width() if n == 0 else _column_x() + (n - 1) * COLUMN + 9
 	_canvas.custom_minimum_size = Vector2(w, HEIGHT)
 	_canvas.size = _canvas.custom_minimum_size
 	reset_size()
@@ -143,7 +164,7 @@ func _draw_state() -> void:
 	_cells(_values.get("health", Vitals.MAX))
 	var stamina: float = _values.get("stamina", Vitals.MAX)
 	_row(STAMINA_Y, "bolt", STAMINA, stamina / Vitals.MAX, UiStyle.DANGER if stamina < Vitals.TIRED else UiStyle.GOOD)
-	var x := COLUMN_X
+	var x := _column_x()
 	for c in COLUMNS:
 		if not c[0] in columns:
 			continue
@@ -187,16 +208,33 @@ func _column(x: int, icon: String, share: float, color: Color) -> void:
 ## in proportion, then empty ones; a lit top line on what is filled. A cell's corner
 ## pixels are left out, so it reads rounded.
 func _cells(health: float) -> void:
-	var shine := UiStyle.DANGER.lightened(0.3)
-	for i in CELLS:
-		var r := Rect2(HEALTH.position.x + i * (CELL + GAP), HEALTH.position.y, CELL, HEALTH.size.y)
-		_rounded(r, CELL, UiStyle.WELL)
-		var w := roundf(CELL * clampf((health - i * CELL_HP) / CELL_HP, 0.0, 1.0))
-		if w <= 0.0:
-			continue
-		_rounded(r, w, UiStyle.DANGER)
-		if w > 1.0:
-			_canvas.draw_rect(Rect2(r.position.x + 1, r.position.y, minf(w, CELL - 1) - 1, 1), shine)
+	for i in cells:
+		var top := minf(CELL_HP, _most - i * CELL_HP)
+		_cell(i, clampf((health - i * CELL_HP) / top, 0.0, 1.0), UiStyle.DANGER)
+	for i in gold_cells:
+		_cell(cells + i, clampf((_extra - i * CELL_HP) / CELL_HP, 0.0, 1.0), GOLD)
+
+
+## Cell `i` of the row, filled `share` from the left in `color`, with a lit top line.
+func _cell(i: int, share: float, color: Color) -> void:
+	var r := Rect2(HEALTH.position.x + i * (CELL + GAP), HEALTH.position.y, CELL, HEALTH.size.y)
+	_rounded(r, CELL, UiStyle.WELL)
+	var w := roundf(CELL * share)
+	if w <= 0.0:
+		return
+	_rounded(r, w, color)
+	if w > 1.0:
+		_canvas.draw_rect(Rect2(r.position.x + 1, r.position.y, minf(w, CELL - 1) - 1, 1), color.lightened(0.3))
+
+
+## How wide the row of health is, golden cells too.
+func _row_width() -> int:
+	return (cells + gold_cells) * (CELL + GAP) - GAP
+
+
+## Where the first standing bar starts.
+func _column_x() -> int:
+	return BAR_X + _row_width() + COLUMN_GAP
 
 
 ## The left `w` pixels of cell `r` without its corner pixels.

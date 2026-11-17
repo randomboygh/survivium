@@ -35,6 +35,8 @@
   food: 30
   heal: 5
   drink: 5
+  fortify: 20
+  fortify_time: 600
   spoils: 4
   rots_to: core:rot
   model: roasted_meat
