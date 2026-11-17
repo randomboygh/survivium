@@ -361,6 +361,11 @@ const SHOTS := {
 	"oasis": {"time": 0.42, "season": 1, "place": "oasis"},
 	"rocky-desert": {"time": 0.42, "season": 1, "place": "rocky_desert"},
 	"swamp-dawn": {"time": 0.3, "season": 1, "place": "swamp"},
+	# Volcanic land of new worlds: a cone's crater with lava from its rim, the same at
+	# night (the lava lights it), and a hot spring among basalt, black sand and ash.
+	"volcano": {"time": 0.42, "season": 1, "place": "crater", "tilt": -2},
+	"volcano-night": {"time": 0.95, "season": 1, "moon": 0.0, "place": "crater"},
+	"hot-spring": {"time": 0.42, "season": 1, "place": "hot_spring"},
 	"cliffs": {"time": 0.42, "season": 1, "place": "cliffs"},
 	"beach": {"time": 0.42, "season": 1, "place": "beach"},
 	# The tallest slope turned to the camera by a beach: its patterns a pixel a texel,

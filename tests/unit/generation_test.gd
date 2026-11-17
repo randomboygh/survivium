@@ -11,6 +11,7 @@ func run() -> void:
 	_test_cave_shape()
 	_test_cave_kinds()
 	_test_landscape()
+	_test_volcanic()
 	_test_relief()
 	_test_trees()
 	_test_bushes()
@@ -313,6 +314,54 @@ func _test_landscape() -> void:
 				most = maxi(most, lay.water[j] - lay.heights[j])
 		deepest.append(most)
 	_check(deepest[0] <= 2 and deepest[1] >= 3, "rivers run deeper (%d, before %d)" % [deepest[1], deepest[0]])
+
+
+## Volcanic land (landscape 1, Biomes.VOLCANIC): rare regions of basalt, black sand and
+## ash with cones whose craters are floored with lava, and hot springs; none in a world
+## made before the landscape.
+func _test_volcanic() -> void:
+	var v := Biomes.VOLCANIC
+	_check(v >= 0 and not v in Biomes.CLIMATE and Biomes.where(v) == "volcanic", "volcanic land is a biome no climate picks")
+	var basalt := Mat.index("resources:basalt")
+	var black := Mat.index("resources:black_sand")
+	var ash := Mat.index("resources:ash")
+	var lava := Mat.index("resources:lava")
+	_check(basalt >= 0 and Biomes.top(v, {}) == basalt and Biomes.stone_as(v) == black and Biomes.clay_as(v, {}) == ash
+		and Biomes.stone_as(Biomes.named("forest")) == Mat.STONE, "volcanic land lays basalt with black sand and ash")
+	var old_gen := WorldGen.new(20261018, 48, {"relief": 1, "climate": 1, "cave_shape": 1}, false)
+	var gen := WorldGen.new(20261018, 48, {"relief": 1, "climate": 1, "cave_shape": 1, "landscape": 1}, false)
+	var shares := []
+	for g: WorldGen in [old_gen, gen]:
+		var lay := g.lay_out(-8000, -8000, 160, 160, 100)
+		var n := 0
+		var land := 0
+		for j in lay.biome.size():
+			if lay.heights[j] >= g.sea and lay.water[j] < 0:
+				land += 1
+				n += int(lay.biome[j] == v)
+		shares.append(float(n) / maxi(land, 1))
+	_check(shares[0] == 0.0 and shares[1] > 0.005 and shares[1] < 0.12,
+		"volcanic land is rare and only in new worlds (%.3f of the land, before %.3f)" % [shares[1], shares[0]])
+	var near := Vector2i(gen.spawn_guess.x, gen.spawn_guess.z)
+	var at := gen.find_place("crater", near, 12000)
+	_check(at != near, "a crater lies within reach")
+	var lay := gen.lay_out(at.x - 40, at.y - 40, 80, 80)
+	var crater := 0
+	var lava_top := 0
+	var rim := 0
+	for j in lay.biome.size():
+		if lay.cut[j] == WorldGen.CRATER:
+			crater += 1
+			lava_top += int(lay.tops[j] == lava)
+		elif lay.cut[j] == WorldGen.CONE:
+			rim = maxi(rim, lay.heights[j])
+	var floor_h: int = lay.heights[40 * 80 + 40]
+	_check(crater > 10 and lava_top == crater and rim > floor_h and lay.biome[40 * 80 + 40] == v,
+		"a crater is floored with lava under its cone's rim (%d columns, %d of lava, rim %d over %d)" % [crater, lava_top, rim, floor_h])
+	var spring := gen.find_place("hot_spring", near, 12000, 4)
+	var s_lay := gen.lay_out(spring.x, spring.y, 1, 1)
+	_check(s_lay.water[0] > s_lay.heights[0] and s_lay.biome[0] == v and s_lay.tops[0] == black,
+		"a hot spring stands over black sand in volcanic land")
 
 
 static func _by_climate(b: int) -> bool:

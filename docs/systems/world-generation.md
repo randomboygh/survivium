@@ -59,7 +59,17 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   `by_water_reach` cells of a lake (a low one in the plains, as lakes are laid) or of a river that carries water
   (`OASIS_FLOW` over the river noise's start; dry beds do not count) is that biome (a desert's oasis); a swamp's level
   open ground stands a level up in a hummock on the share `hummocks` of its columns; the plateau and the alpine
-  meadow show their record's stone and `clay_as` patches (`_patches`, scree among them: the ground name `scree`). `SETTING_KEYS` lists the settings for the saves and menus. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the
+  meadow show their record's stone and `clay_as` patches (`_patches`, scree among them: the ground name `scree`). Also with
+  `landscape` 1, volcanic land (`Biomes.VOLCANIC`, a biome `where: volcanic`; none without its bundle): where the region
+  noise `n_volcano` (`VOLCANO_FREQ`, warped, the last of `window_noises`, `volcano_grid`) is over the record's
+  `region_from` the land is that biome whatever the climate, its ground the record's `ground` with `ground_below` and
+  `ground_above` patches (basalt, black sand, ash; black sand by the sea); in each square of `CONE_GRID` cells a cone
+  stands with the chance `cones` where the region noise at its middle is `CONE_INSIDE` higher (`_cone_at`, cached in
+  `cones`): `cone_rise` levels over the land at its rim, `cone_reach` cells round (shrinking within `CONE_COAST` of
+  the coast), its slope a power `CONE_POWER` of the distance, its crater (`crater_share` of the reach) `CRATER_DEPTH`
+  under the rim and floored with `crater` (lava); the cuts `CONE` and `CRATER` keep rivers, lakes and cave mouths off
+  it. Hot springs lie in the deepest hollows of the low patches, where the soil noise is under `springs_below`: a pool
+  a level or two into the ground, on black sand, its water tinted by the record. `SETTING_KEYS` lists the settings for the saves and menus. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the
   water above the sea rises to its level (`_banks`), and farther goes down a level per column, up to
   `BANK_SLOPE` columns: the bank of a river above a rapid, going past land laid out lower, is a slope, not a
   wall of one column. Beyond its banks a river digs the land into a valley that rises a level a column; a

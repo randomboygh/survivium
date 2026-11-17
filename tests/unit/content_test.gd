@@ -81,7 +81,7 @@ func _test_content() -> void:
 		"hotbar order comes from the data across the mods: %s" % [Mat.PLACEABLE])
 	_check(Mat.IDS[Mat.BEACH] == "resources:sand" and Mat.IDS[Mat.BANK] == "resources:clay" and Mat.IDS[Mat.SCREE] == "resources:scree"
 		and Mat.IDS[Mat.ORE] == "materials:copper_ore" and Mat.IDS[Mat.LOG] == "plants:log" and Mat.IDS[Mat.LEAVES] == "plants:leaves"
-		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.IDS[Mat.SNOW] == "resources:snow" and Mat.IDS[Mat.PEAT] == "resources:peat" and Mat.IDS[Mat.SALT] == "resources:salt" and Mat.IDS[Mat.ICE] == "resources:ice" and Mat.COUNT == 34
+		and Mat.of_role("beach", Mat.DIRT) == Mat.BEACH and Mat.IDS[Mat.SNOW] == "resources:snow" and Mat.IDS[Mat.PEAT] == "resources:peat" and Mat.IDS[Mat.SALT] == "resources:salt" and Mat.IDS[Mat.ICE] == "resources:ice" and Mat.COUNT == 37
 		and Mat.ORES == PackedInt32Array([Mat.ORE, Mat.index("materials:iron_ore"), Mat.index("materials:tin_ore"),
 			Mat.index("materials:gold_ore"), Mat.index("materials:platinum_ore"), Mat.index("materials:silver_ore")])
 		and Mat.vein_at(0.0, -1) == Mat.ORE and Mat.vein_at(0.3, -1) == Mat.ORE and Mat.vein_at(0.5, -1) == Mat.index("materials:iron_ore")
@@ -160,7 +160,7 @@ func _test_mods() -> void:
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
 	_check(Lang.t(Mods.title("animals/wolf")) == "Wolf" and Lang.t(Mods.title("plants/oak")) == "Oak" and Lang.t(Mods.title("music")) == "Music" and Lang.t(Mods.title("tools/kiln")) == "Kiln"
 		and Lang.t(Mods.mod_title("plants")) == "Plants" and Mods.bundles("animals").size() == 19 and Mods.bundles("plants").size() == 49
-		and Mods.bundles("resources") == ["resources/caves", "resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/wood"]
+		and Mods.bundles("resources") == ["resources/caves", "resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/volcanic", "resources/wood"]
 		and Mods.bundles("materials").size() == 21 and Mods.bundles("tools").size() == 50 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
 	for i in Content.loaded.size():

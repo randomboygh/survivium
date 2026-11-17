@@ -1,0 +1,10 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/resources/volcanic/bundle.yaml
+"[resources.volcanic.bundle]": "Volcanic rock"
+
+# content/resources/volcanic/data/materials.yaml
+"[resources.materials.basalt]": "Basalt"
+"[resources.materials.black_sand]": "Black sand"
+"[resources.materials.ash]": "Ash"

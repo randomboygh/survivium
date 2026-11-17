@@ -31,6 +31,9 @@ static var SWAMP := -1
 ## (see LandLayout): the record's warmth window says where.
 static var ALPINE := -1
 static var GLACIER := -1
+## The volcanic land of new worlds (where: volcanic, see LandLayout._volcanic), -1 when no
+## loaded bundle gives it.
+static var VOLCANIC := -1
 ## The climate biomes, most specific first (see pick).
 static var CLIMATE: Array = []
 ## Biomes of a relief with a warmth or moisture window of their own (a tropical beach,
@@ -59,6 +62,7 @@ static func refresh(only: Variant = null) -> void:
 	SWAMP = -1
 	ALPINE = -1
 	GLACIER = -1
+	VOLCANIC = -1
 	CLIMATE = []
 	VARIANTS = {}
 	CAVES = [[], []]
@@ -68,6 +72,9 @@ static func refresh(only: Variant = null) -> void:
 		b.tree_shares = _shares(b.trees, Trees.SPECIES)
 		b.bush_shares = _shares(b.bushes, Bushes.TYPES)
 		b.area = (b.warmth[1] - b.warmth[0]) * (b.moisture[1] - b.moisture[0])
+		# The mods' grounds by index (-1 where the field is empty or its bundle not loaded).
+		for f: String in ["ground", "ground_below", "ground_above", "crater"]:
+			b[f + "_mat"] = Mat.index(b[f]) if b[f] != "" else -1
 		var i := RECORDS.size()
 		RECORDS.append(b)
 		IDS.append(b.id)
@@ -78,6 +85,10 @@ static func refresh(only: Variant = null) -> void:
 			var tier := 1 if b.tier == "lower" else 0
 			CAVES[tier].append(i)
 			CAVE_SHARES[tier] += b.cave_share
+			b.variant = false
+			continue
+		if b.where == "volcanic":
+			VOLCANIC = i
 			b.variant = false
 			continue
 		b.variant = b.where != "climate" and b.where != "alpine" and b.where != "glacier" and b.area < 1.0
@@ -114,7 +125,7 @@ static func refresh(only: Variant = null) -> void:
 ## the land of the bundles chosen there (refresh with `only`) while the world behind it
 ## plays with its own, swapping the tables round the layout of each frame.
 static func tables() -> Array:
-	return [RECORDS, IDS, SEA, BEACH, ROCK, PLATEAU, SWAMP, ALPINE, GLACIER, CLIMATE, VARIANTS, CAVES, CAVE_SHARES]
+	return [RECORDS, IDS, SEA, BEACH, ROCK, PLATEAU, SWAMP, ALPINE, GLACIER, CLIMATE, VARIANTS, CAVES, CAVE_SHARES, VOLCANIC]
 
 
 ## Puts back tables `t` (see tables).
@@ -132,6 +143,7 @@ static func use(t: Array) -> void:
 	VARIANTS = t[10]
 	CAVES = t[11]
 	CAVE_SHARES = t[12]
+	VOLCANIC = t[13]
 
 
 ## Whether biome `a` comes before `c`: the smaller window first, the first loaded on a tie.
@@ -255,15 +267,25 @@ static func sparsity(b: int) -> int:
 
 ## The material biome `b` lays on top, of `ground` (the generator's grounds by the names
 ## of the `top` field: grass, dirt, stone, and the loaded mods' materials of the roles
-## beach as sand, bank as clay, snow, peat, salt, ice); grass unless its record says otherwise.
+## beach as sand, bank as clay, snow, peat, salt, ice); its `ground` (a material of a mod) when
+## that is loaded; grass unless its record says otherwise.
 static func top(b: int, ground: Dictionary) -> int:
-	return ground.get(of(b).get("top", "grass"), Mat.GRASS)
+	var own: int = of(b).get("ground_mat", -1)
+	return own if own >= 0 else ground.get(of(b).get("top", "grass"), Mat.GRASS)
 
 
 ## The material that shows in patches of biome `b` where the soil noise is above its
 ## `clay_above` (clay unless its record says otherwise), of `ground` (see top).
 static func clay_as(b: int, ground: Dictionary) -> int:
-	return ground.get(of(b).get("clay_as", "clay"), Mat.GRASS)
+	var own: int = of(b).get("ground_above_mat", -1)
+	return own if own >= 0 else ground.get(of(b).get("clay_as", "clay"), Mat.GRASS)
+
+
+## The material that shows in patches of biome `b` where the soil noise is below its
+## `stone_below`: its `ground_below`, else stone.
+static func stone_as(b: int) -> int:
+	var own: int = of(b).get("ground_below_mat", -1)
+	return own if own >= 0 else Mat.STONE
 
 
 ## The colours biome `b`'s grounds and water take (its `tints`): material -> colour, by
