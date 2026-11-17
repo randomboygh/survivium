@@ -202,6 +202,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `src/client/world/chunk_streamer.gd`: The chunks of the world on screen and the level cut.
 - `src/client/world/drifts.gd`: Snowdrifts: low mounds on open level ground that show up with the snow cover and sink and shrink as it melts (drift_size in the terrain shader).
 - `src/client/world/edge_haze.gd`: The fog over the edge of the world built (setting «Туман на краю», on by default; user 2026-11-16, before a haze of the sky's colour): where the player outran the building of the chunks…
+- `src/client/world/edge_mesher.gd`: Rounded and bevelled edges of natural ground, by material (Mat.edge_mode, edge_size): drawn only, the cells, walking and the server keep the shapes of WorldData.
 - `src/client/world/foliage.gd`: Grass tufts and tree crowns for one chunk, as MultiMesh instance buffers.
 - `src/client/world/form_mesher.gd`: Draws the built blocks that are not whole cubes (WorldData.forms: the build mode's ramps, upturned ramps and stairs) for ChunkMesher: each form is laid out rising toward the north and turned to the…
 - `src/client/world/mesh_buffers.gd`: Growing vertex buffers for one mesh surface.

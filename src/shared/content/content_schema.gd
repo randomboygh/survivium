@@ -28,6 +28,10 @@ const SCHEMAS := {
 		"slope": {"type": "bool", "default": false},
 		"hotbar": {"type": "int", "min": 0, "default": 0},
 		"corners": {"type": "enum", "values": ["sharp", "soft", "round"], "default": "sharp"},
+		# How the mesher draws the edges of natural ground of the material (client only):
+		# sharp, round (radius edge_size) or bevel (a flat cut edge_size wide), in blocks.
+		"edge": {"type": "enum", "values": ["sharp", "round", "bevel"], "default": "sharp"},
+		"edge_size": {"type": "float", "min": 0.0, "max": 0.5, "default": 0.0},
 		"role": {"type": "enum", "values": ["none", "beach", "bank", "scree", "snow", "peat", "salt", "ice", "ore", "trunk", "crown", "bed", "bed_wet", "mycelium"], "default": "none"},
 		# An ore's share of the veins in the rock, against the other ores' (role ore).
 		"veins": {"type": "float", "min": 0.0, "default": 1.0},

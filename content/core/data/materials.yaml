@@ -6,7 +6,9 @@
 # Fields: solid — solid (cannot be walked through, can be walked on); roof — counts as a roof when
 # cutting levels; slope — loose ground, lies as a slope where there is a step down; hotbar —
 # the place on the block bar (0 — not placed); corners — cut corners of natural ground: sharp —
-# a straight cut at 45°, soft — slightly rounded, round — quarter circles; item — the item
+# a straight cut at 45°, soft — slightly rounded, round — quarter circles; edge — how the edges of natural
+# ground are drawn: sharp, round (radius edge_size) or bevel (a flat cut edge_size wide), edge_size in blocks
+# (0–0.5; only drawn, cells and walking keep their shapes); item — the item
 # a dug-out cell gives (no field — nothing); dig — what digs it: hand — anything,
 # shovel — soft (slowly by hand, quickly with a shovel, with a pickaxe too), pickaxe — only a pickaxe,
 # axe — only an axe, none — cannot be dug; hardness — a pickaxe or axe needs
@@ -43,6 +45,8 @@
   dig: none
 - id: grass
   title: "[core.materials.grass]"
+  edge: round
+  edge_size: 0.35
   corners: soft
   slope: true
   priority: 6
@@ -56,6 +60,8 @@
   hit: dig
 - id: dirt
   title: "[core.materials.dirt]"
+  edge: round
+  edge_size: 0.35
   corners: soft
   slope: true
   priority: 4
@@ -70,6 +76,8 @@
   hit: dig
 - id: stone
   title: "[core.materials.stone]"
+  edge: bevel
+  edge_size: 0.25
   priority: 1
   side_fray: 3
   ground: rock

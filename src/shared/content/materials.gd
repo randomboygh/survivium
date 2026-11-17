@@ -89,6 +89,14 @@ static var flags: PackedByteArray = []
 ## How round the cut corners of natural ground are, by material: 0 a straight cut at
 ## 45 degrees, 1 a little rounded, 2 a quarter circle (see ChunkMesher.CORNER_P).
 static var corner_shape: PackedByteArray = []
+## How the edges of natural ground of each material are drawn (the `edge` field): EDGE_SHARP,
+## EDGE_ROUND or EDGE_BEVEL, and how far in from the edge they reach, in blocks (`edge_size`;
+## 0 for sharp). Only the client's meshes go by them (EdgeMesher).
+const EDGE_SHARP := 0
+const EDGE_ROUND := 1
+const EDGE_BEVEL := 2
+static var edge_mode: PackedByteArray = []
+static var edge_size: PackedFloat32Array = []
 ## How many cells of the material lie under it where the generator lays it as the top,
 ## in place of the dirt (the `layers` field).
 static var layers: PackedByteArray = []
@@ -113,6 +121,8 @@ static func refresh() -> void:
 	NAMES = []
 	flags = []
 	corner_shape = []
+	edge_mode = []
+	edge_size = []
 	layers = []
 	shader_bits = []
 	burns = []
@@ -125,6 +135,9 @@ static func refresh() -> void:
 		NAMES.append(r.title)
 		flags.append((SOLID if r.solid else 0) | (ROOF if r.roof else 0) | (SLOPE if r.slope else 0))
 		corner_shape.append(["sharp", "soft", "round"].find(r.corners))
+		var mode: int = ["sharp", "round", "bevel"].find(r.edge)
+		edge_mode.append(mode if r.edge_size > 0.0 else EDGE_SHARP)
+		edge_size.append(r.edge_size if mode != EDGE_SHARP else 0.0)
 		layers.append(r.layers)
 		shader_bits.append(r.priority | (DRAINS if r.drains else 0) | (GROUNDS.find(r.ground) << GROUND_SHIFT) | (r.fray << FRAY_SHIFT) | (r.side_fray << SIDE_FRAY_SHIFT) | (roundi(r.glow * 15.0) << GLOW_SHIFT))
 		burns.append(r.burns)

@@ -5,6 +5,8 @@
 # glowing ones too, grow on it). Dug with a shovel and gives earth.
 - id: mycelium
   title: "[resources.materials.mycelium]"
+  edge: round
+  edge_size: 0.35
   role: mycelium
   corners: soft
   slope: true
@@ -32,6 +34,8 @@
 # Deep rock: dark blue-grey stone round the halls of the lower tier. Harder than stone; gives stone.
 - id: deepstone
   title: "[resources.materials.deepstone]"
+  edge: bevel
+  edge_size: 0.25
   priority: 1
   side_fray: 3
   ground: rock

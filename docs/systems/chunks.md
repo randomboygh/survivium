@@ -92,6 +92,25 @@ slice, to free the far meshes.
   sides, as a foot against a river's bank, and the ground beside it draws its face towards it; its top log under air, as a
   stump left by felling, gets a cut top, not a block of wood; the cut's UV is cells from its middle, by which
   `world.gdshader` centres the rings of the end grain on it),
+  `edge_mesher.gd` (the edges of natural ground by material, `edge` / `edge_size` in the materials' YAML:
+  round — a quarter circle of that radius — or bevel — a flat cut that wide; drawn only, cells and walking keep
+  their shapes. A level's plan is cut into pieces, a whole cell or half of one on a side of its diagonal
+  (`portion`); `segments` are its edges at something open (brows) and `feet` the brows of the level above
+  standing on it. The top of a level is one height function, `height` / `surface`: 1 less the drop of the
+  nearest brow plus the heap at the foot of a wall rising from it (the same curve); each cell draws its top on
+  the `GRID` (lines close by its edges) and its walls up to that height, so cells and materials meet without
+  seams, and a soft material's rounding runs out into a hard neighbour's edge. Rounded edges get the normals of
+  the curve (smooth shading), bevels flat ones. `prepare` says whether a rounded edge reaches a cell (the
+  natural cells by `wild_masks`, placed blocks stay sharp; slopes, logs and forms are drawn their own way, with
+  a wall against them); otherwise the chunk mesher draws it as before. Layered cliffs: a soft layer whose
+  cliff goes down through soft levels to a hard one stands back `LEDGE` (1/8 block, a `GRID` line) from the
+  brow, leaving a ledge of the hard layer's top (`_ledge`, `_ledge_wall`). A whole top drops the edge codes of
+  sides where its level goes on into a half beside (`_level_edges`). Speed (bench `tools/bench_mesh.gd`): a cell
+  under a whole one goes to EdgeMesher only for a ledge (a wall standing on a heap is drawn flat, the heap hides its
+  foot); a whole top is drawn only on the `lines` of `GRID` its brows bend (a straight brow needs the lines across
+  it, a free end both ways; halves and diagonal brows take the whole grid); tops are cached as indexed shapes by
+  the brows and feet that make them (`_shapes`, `MeshBuffers.shape`); a job keeps `segments`, `feet` and a packed
+  `_info` per padded cell. Preview shots: `ground-edges-*`),
   `form_mesher.gd` (built blocks that are not a cube — `WorldData.forms`: a bevel from below, a bevel from
   above, steps; a shape is described as rising to the north and turned; a face on a cell's side is not drawn
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not

@@ -3,6 +3,8 @@
 # core's materials (content/core/data/materials.yaml); sounds by name, from the "Sounds" mod.
 - id: platinum_ore
   title: "[materials.materials.platinum_ore]"
+  edge: bevel
+  edge_size: 0.25
   role: ore
   veins: 0.12
   priority: 2
