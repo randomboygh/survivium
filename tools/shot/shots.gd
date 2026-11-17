@@ -1122,6 +1122,13 @@ const SHOTS := {
 	# ground) and its east (bowl, diagonal, notch, shafts, overhang, tunnel), the rows of
 	# one material to the north of each band and the mixed ones to the south.
 	# The places of the user's notes on old slopes (2026-11-17), with `--old-slopes`.
+	# Old slopes going down two levels in a cell (before they were taken out) and now.
+	"ground-deep-stair": {"time": 0.42, "season": 1, "at": [-26, -207], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
+	"ground-deep-diagonal": {"time": 0.42, "season": 1, "at": [53, -207], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
+	"ground-deep-slope2": {"time": 0.42, "season": 1, "at": [192, -207], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
+	"ground-deep-water": {"time": 0.42, "season": 1, "at": [77, -335], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
+	"ground-deep-zigzag": {"time": 0.42, "season": 1, "at": [176, -335], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
+	"ground-deep-star": {"time": 0.42, "season": 1, "at": [28, -72], "hide": ["chunks: grass"]},
 	"ground-old-wave": {"time": 0.42, "season": 1, "at": [197, -231], "y": 23, "turn": 6},
 	"ground-old-odd": {"time": 0.42, "season": 1, "at": [172, -211]},
 	"ground-old-corner": {"time": 0.42, "season": 1, "at": [196, -303], "y": 22, "turn": 6},

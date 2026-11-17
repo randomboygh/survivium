@@ -27,20 +27,20 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
   asked at every step of a beast and a body: it reads the cells and shapes of the column straight from the
   chunk (the rules `corner_fills`, `corner_cuts`, `slope_mask` are the same) and looks at the neighbouring
   columns only when the column has cut or filled corners.
-- Soft slopes, a world setting and the default of «Новый мир» (`slopes` 1 in `LandLayout.DEFAULT_SETTINGS`, the
-  row «Склоны: Старые», `WorldData.soft_slopes` set by `WorldGen`; the world's folder gets `o1`; the user's
-  pick of 2026-11-17, `docs/planning/mesher-merge.md`): the blocky relief's shapes with the old slopes' look.
-  No slope is steeper than 45°: a corner whose diagonal column drops two levels stays up, a top left with two
-  opposite corners down is a cube (its corner cut instead, a straight wall on the diagonal), an inner corner
-  goes down only where the tops beside go down there too; the tip of a ridge a cell wide ramps down to its
+- Soft slopes (`WorldData.soft_slopes`, set by nothing now: the combined mesher was parked by the user on
+  2026-11-18, `docs/planning/mesher-merge.md`; checked by `shapes_test`): the blocky relief's shapes with the old
+  slopes' look. No slope is steeper than 45°: a corner whose diagonal column drops two levels stays up, a top left
+  with two opposite corners down is a cube (its corner cut instead, a straight wall on the diagonal), an inner
+  corner goes down only where the tops beside go down there too; the tip of a ridge a cell wide ramps down to its
   end (`TIP_END`) instead of standing as a post. The client draws them without EdgeMesher (`Job.soft`): every
   natural slope bends level at its brow and foot by `SlopeMesher.SOFT_RADIUS`, cliffs stay sharp.
-- Old slopes (`WorldData.old_slopes`, set by nothing now; kept and checked by `old_shapes_test` until the
-  user decides to remove them): the shapes of before the blocky relief (#722). A slope is a smooth bicubic patch
-  (`surface_patch`, `make_patch`, `patch_height`), a corner may go down two levels into the covered cell below
-  (`_update_deep`, `_deep_corner`, kept in that cell's shape bits 0..3), cut and filled corners take a triangle
-  half a cell along each side and a cell may have several (`_old_update_corners`, `_old_in_corner`,
-  `corner_at`); `ground_height` and `body.gd` `_cell_top` follow the patch. The client draws them with
+- Old slopes, a world setting and the default of «Новый мир» (`slopes` 1 in `LandLayout.DEFAULT_SETTINGS`, the
+  row «Склоны: Старые», `WorldData.old_slopes` set by `WorldGen`; the world's folder gets `o1`; checked by
+  `old_shapes_test`): the shapes of before the blocky relief (#722). A slope is a smooth bicubic patch
+  (`surface_patch`, `make_patch`, `patch_height`) going down one level in its cell, never two (user 2026-11-18:
+  every slope 1×1; the corner heights may still read -1 from the cell below, which nothing sets now), cut and
+  filled corners take a triangle half a cell along each side and a cell may have several
+  (`_old_update_corners`, `_old_in_corner`, `corner_at`); `ground_height` and `body.gd` `_cell_top` follow the patch. The client draws them with
   `src/client/world/old_slope_mesher.gd` (the old `slope_mesher.gd`), `MeshFaces.old_slopes` (curved cut
   pieces `OLD_CUT`, `_old_curve` by `Mat.corner_shape`, `_old_diag_wall`), the water's lips and foam, and the
   shader global `old_slopes` (`corner_distance`, `in_cell_corners`); no rounded edges (EdgeMesher off).
