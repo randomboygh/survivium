@@ -225,9 +225,13 @@ func update_corners(x0: int, z0: int, x1: int, z1: int) -> void:
 						# The runs of such cells standing on something that hides what is behind it.
 						found[k] = _spread(fill, fill & ~(fill << 1) & ((~open[j] << 1) | 1), 1)
 				# One corner of a cell at most: a cell cut or filled at two is left whole.
+				var all_cut := 0
 				for k in 4:
 					var only := found[k] & ~(found[(k + 1) & 3] | found[(k + 2) & 3] | found[(k + 3) & 3])
 					_mark(c, col, only, 16 << k)
+					all_cut |= only
+				if fills == 0 and all_cut != 0:
+					_floor_slopes(c, col, x, z, j, (all_cut & ~(all_cut << 1)) >> 1 & ground[j] & wild[j] & ~all_cut, mk)
 
 
 static func _surface_ground(m: int) -> bool:
@@ -243,6 +247,37 @@ func _shape(x: int, y: int, z: int) -> int:
 	if c == null:
 		return 0
 	return c.shapes[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)]
+
+
+## The ground cells `floors` of column (x, z) (index `j` in the masks `mk`), each under the
+## lowest of a run of cut cells: the cut shows their top, which slopes as an open top
+## would (the rules of update_slopes on its level), so a slope cut by a diagonal goes on
+## down into the cut instead of standing a level over the slopes beside. Only the
+## triangle under the cut is drawn and walked on; the low corners are kept in the
+## cell's shape (bits 0..3) and the cell marked in Chunk.corner.
+func _floor_slopes(c: Chunk, col: int, x: int, z: int, j: int, floors: int, mk: Dictionary) -> void:
+	var low: PackedInt64Array = mk.low
+	var wl: int = mk.wl
+	var diag := PackedInt32Array([-wl - 1, -wl + 1, wl + 1, wl - 1])
+	while floors != 0:
+		var bit := floors & -floors
+		floors ^= bit
+		var y := level_of(bit)
+		var i := (y << 8) | col
+		if c.natural[i] != WILD or not Mat.can_slope(c.cells[i]):
+			continue
+		var lows := (1 if low[j - wl] & bit else 0) | (2 if low[j + wl] & bit else 0) | (4 if low[j - 1] & bit else 0) \
+			| (8 if low[j + 1] & bit else 0)
+		var mask: int = LOW_CORNERS[lows]
+		for k in 4:
+			if mask & (1 << k) or low[j + diag[k]] & bit == 0:
+				continue
+			var o: Vector2i = CORNER_DIRS[k]
+			if _can_slope(x + o.x, y, z) and _can_slope(x, y, z + o.y):
+				mask |= 1 << k
+		if mask != 0 and mask != FULL:
+			c.shapes[i] = c.shapes[i] | mask
+			c.corner[col] |= bit
 
 
 ## Level of the single bit set in `bit`.
@@ -308,12 +343,16 @@ func slope_mask(x: int, y: int, z: int) -> int:
 
 ## True when a top of shape `s` (Chunk.shapes) is split along its diagonal NE-SW (else
 ## NW-SE); `sn`, `ss`, `sw`, `se` are the shapes of the cells beside it N, S, W, E on
-## its level. A cut corner takes the diagonal across it. One corner unlike the other
+## its level, `above` that of the cell above. A cut corner takes the diagonal across
+## it, as does the cut above a sloping top under it. One corner unlike the other
 ## three is a hip or a valley (the crease through it) where a ramp goes on beside it
 ## at that corner, else a chamfer (the crease across it). Two opposite corners down
 ## make a ridge between the high ones.
-static func split_ne_sw(s: int, sn: int, ss: int, sw: int, se: int) -> bool:
+static func split_ne_sw(s: int, sn: int, ss: int, sw: int, se: int, above := 0) -> bool:
 	var cut := s >> 4
+	if cut == 0 and s & 15 != 0:
+		# The ground under a cut (see _floor_slopes): the cut's diagonal.
+		cut = above >> 4
 	if cut != 0:
 		return cut & (NW | SE) != 0
 	var lows := s & 15
@@ -356,7 +395,7 @@ static func top_height(s: int, ne_sw: bool, fx: float, fz: float) -> float:
 ## Whether the top of cell (x, y, z) is split along NE-SW (see split_ne_sw).
 func split_at(x: int, y: int, z: int) -> bool:
 	return split_ne_sw(_shape(x, y, z), _shape(x, y, z - 1), _shape(x, y, z + 1), _shape(x - 1, y, z),
-		_shape(x + 1, y, z))
+		_shape(x + 1, y, z), _shape(x, y + 1, z) if _surface_ground(get_cell(x, y + 1, z)) else 0)
 
 
 ## Heights of the corners NW, NE, SE, SW of the top of the ground cell (x, y, z) above
@@ -501,7 +540,9 @@ static func touches_corner(k: int, ax: float, bx: float, az: float, bz: float) -
 ## cell beyond the diagonal across corner k (a half-block) where both sides and the
 ## diagonal are the same open wild cells (all air or all water), and the cell above is
 ## open or cut there too. A slope is cut only at a corner where it is low and the
-## ground drops more than a level beside it. A cell is cut at one corner at most.
+## ground drops more than a level beside it. A cell is cut at one corner at most. The
+## ground under the lowest cut cell shows in the cut and slopes there as an open top
+## would (see _floor_slopes).
 func corner_cut(x: int, y: int, z: int, k: int) -> bool:
 	return corner_cuts(x, y, z) & (1 << k) != 0
 

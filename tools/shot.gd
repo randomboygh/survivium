@@ -325,6 +325,9 @@ func _run() -> void:
 				main.sky.cloud_pos = Vector2(shot.cloud_pos[0], shot.cloud_pos[1])
 			main.session.clock.wet = 1.0 if main.session.clock.raining and main.session.clock.season != 3 else shot.get("after_rain", 0.0)
 			main.sky.after_rain = shot.get("after_rain", 0.0)
+			# The rainbow comes in slowly (AirEffects.RAINBOW_EASE): shown at once.
+			if shot.has("rainbow") and main.effects.air != null:
+				main.effects.air.rainbow = shot.rainbow
 			main.session.clock.puddles = shot.get("puddles", 0.0)
 			# The puffballs that come up after rain (Clock.shrooms), on a soaked ground so they stay.
 			main.session.clock.shrooms = shot.get("shrooms", 0.0)
@@ -497,7 +500,7 @@ func _run() -> void:
 		main.settings.set_value("ui_size", shot.get("ui_size", 2))
 		main.settings.set_value("control_size", shot.get("control_size", 2))
 		for k in ["minimap_size", "level_buttons", "camera_buttons", "layer_front_from",
-				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "cut_depth", "solo_social", "crt", "second_hand", "pixel_scale"]:
+				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "cut_depth", "solo_social", "crt", "palette", "retro_pixel", "second_hand", "pixel_scale"]:
 			main.settings.set_value(k, shot.get("settings", {}).get(k, main.settings.DEFAULTS[k]))
 		await process_frame
 		await process_frame

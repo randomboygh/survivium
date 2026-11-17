@@ -1,0 +1,14 @@
+# Cattail (kind: custom, fields as for the fern): tall stalks with brown velvet heads among long leaves, in thick
+# clumps on the banks of swamps and bogs (grows: bank — beside water); cut, it gives fibre.
+- id: cattail
+  kind: custom
+  title: "[plants.plants.cattail]"
+  sprite: cattail
+  across: 2
+  frames: 2
+  grows: bank
+  clumps: 0.1
+  clump_size: 8.0
+  cover: 0.6
+  gives: {resources:fiber: 2}
+  biomes: [biomes:swamp, biomes:peat_bog, biomes:mangrove, biomes:floodplain, biomes:oasis]

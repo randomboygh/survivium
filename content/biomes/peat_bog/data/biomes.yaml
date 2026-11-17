@@ -23,4 +23,5 @@
   tree_chance: 0.03
   bushes: {plants:blueberry: 0.5, plants:shrub: 0.5}
   bush_sparsity: 180
+  mist: 0.35
   color: "#6b6a3c"

@@ -1,0 +1,12 @@
+# The fruit of the prickly pear: sweet and juicy, a little food in the desert. Fields as for the core's items.
+- id: cactus_fruit
+  title: "[plants.items.cactus_fruit]"
+  description: "[plants.items.cactus_fruit.about]"
+  weight: 0.1
+  stack: 30
+  food: 3
+  spoils: 6
+  rots_to: core:rot
+  model: cactus_fruit
+  icon: cactus_fruit
+  anim: eat

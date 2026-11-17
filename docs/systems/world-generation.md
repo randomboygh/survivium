@@ -55,7 +55,22 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   longer, straighter rivers), a river is 1 to `RIVER_WIDEST` times wider by the moisture of its land (`RIVER_DRY`..`RIVER_WET`: narrow through deserts and tundra, wide through forests, swamps and jungle), widens over `MOUTH_REACH_WIDE` cells before
   its mouth and its bed sinks a level every `RIVER_SINK` cells in from the bank, to `RIVER_DEEP`; lakes are
   fewer and bigger (`LAKES_WIDER`) and the land dries away from water more slowly (`WET_FADE_WIDE`), so no
-  ring of another biome lies round every pond. `SETTING_KEYS` lists the settings for the saves and menus. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the
+  ring of another biome lies round every pond. Also with `landscape` 1: land of a climate biome with `by_water` within its
+  `by_water_reach` cells of a lake (a low one in the plains, as lakes are laid) or of a river that carries water
+  (`OASIS_FLOW` over the river noise's start; dry beds do not count) is that biome (a desert's oasis); a swamp's level
+  open ground stands a level up in a hummock on the share `hummocks` of its columns; the plateau and the alpine
+  meadow show their record's stone and `clay_as` patches (`_patches`, scree among them: the ground name `scree`). Also with
+  `landscape` 1, volcanic land (`Biomes.VOLCANIC`, a biome `where: volcanic`; none without its bundle): where the region
+  noise `n_volcano` (`VOLCANO_FREQ`, warped, the last of `window_noises`, `volcano_grid`) is over the record's
+  `region_from` the land is that biome whatever the climate (never within `VOLCANO_CALM` of the world's middle, where
+  the start is looked for, `_calm`), its ground the record's `ground` with `ground_below` and
+  `ground_above` patches (basalt, black sand, ash; black sand by the sea); in each square of `CONE_GRID` cells a cone
+  stands with the chance `cones` where the region noise at its middle is `CONE_INSIDE` higher (`_cone_at`, cached in
+  `cones`): `cone_rise` levels over the land at its rim, `cone_reach` cells round (shrinking within `CONE_COAST` of
+  the coast), its slope a power `CONE_POWER` of the distance, its crater (`crater_share` of the reach) `CRATER_DEPTH`
+  under the rim and floored with `crater` (lava); the cuts `CONE` and `CRATER` keep rivers, lakes and cave mouths off
+  it. Hot springs lie in the deepest hollows of the low patches, where the soil noise is under `springs_below`: a pool
+  a level or two into the ground, on black sand, its water tinted by the record. `SETTING_KEYS` lists the settings for the saves and menus. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the
   water above the sea rises to its level (`_banks`), and farther goes down a level per column, up to
   `BANK_SLOPE` columns: the bank of a river above a rapid, going past land laid out lower, is a slope, not a
   wall of one column. Beyond its banks a river digs the land into a valley that rises a level a column; a

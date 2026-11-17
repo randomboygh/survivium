@@ -1,0 +1,44 @@
+# The grounds of volcanic land (biome where: volcanic, content/biomes/volcanic): fields as for the core materials
+# (content/core/data/materials.yaml). layers — how many cells of it lie under it when it is the top of a column.
+# Basalt: dark grey rock of old lava flows, the main ground of volcanic land and the slopes of its cones. Harder
+# than stone; gives stone.
+- id: basalt
+  title: "[resources.materials.basalt]"
+  corners: sharp
+  priority: 2
+  side_fray: 2
+  ground: rock
+  layers: 4
+  item: stone
+  hardness: 2
+  toughness: 4
+  step: step_stone
+# Black sand: fine sand of crushed basalt in hollows and by the water of volcanic land. Lies in slopes, dug with a
+# shovel, gives sand.
+- id: black_sand
+  title: "[resources.materials.black_sand]"
+  corners: round
+  slope: true
+  priority: 3
+  side_fray: 2
+  ground: sand
+  drains: true
+  layers: 3
+  item: sand
+  dig: shovel
+  step: step_sand
+  hit: dig
+# Ash: light grey volcanic ash in drifts on the high ground. Soft, lies in slopes, dug with a shovel, gives earth.
+- id: ash
+  title: "[resources.materials.ash]"
+  corners: soft
+  slope: true
+  priority: 4
+  side_fray: 2
+  ground: soil
+  drains: true
+  layers: 2
+  item: dirt
+  dig: shovel
+  step: step_sand
+  hit: dig

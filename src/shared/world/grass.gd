@@ -245,7 +245,7 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 
 ## The mods' own plants on the cell (see Plants.CUSTOM): each where it `grows` (open
 ## grass, the shade of a crown, the woods: that shade and the open grass within
-## WOODS_EDGE cells of a crown, a bank), on the share of that ground its `cover` says
+## WOODS_EDGE cells of a crown, a bank, open ground other than grass), on the share of that ground its `cover` says
 ## (within `near_water` cells of water when that is set),
 ## and only in clumps `clump_size` cells wide where its own noise is above `clumps` when
 ## that is set, and only in its `biomes` when it names some. A frame `across` cards wide
@@ -272,6 +272,9 @@ static func _custom(w, x: int, z: int, m: int, tier: int, by_water: bool, out: A
 			BANK:
 				if not by_water:
 					continue
+			BARE:
+				if grass:
+					continue
 		var in_biomes: PackedByteArray = r[1]
 		if not in_biomes.is_empty():
 			if b < 0:
@@ -292,7 +295,8 @@ const MEADOW := 0
 const SHADE := 1
 const WOODS := 2
 const BANK := 3
-const GROWS := {"meadow": MEADOW, "shade": SHADE, "woods": WOODS, "bank": BANK}
+const BARE := 4
+const GROWS := {"meadow": MEADOW, "shade": SHADE, "woods": WOODS, "bank": BANK, "bare": BARE}
 ## Plants.CUSTOM as _custom reads it, made once for each load of the plants and the
 ## biomes (_custom runs for every grass cell a chunk's plants are built on): for each
 ## plant that grows wild, [where it grows, a byte per biome index (1 where it grows,

@@ -348,17 +348,19 @@ const SCHEMAS := {
 		"seed_tries": {"type": "int", "min": 1, "default": 4},
 	},
 	"biomes": {
-		"where": {"type": "enum", "values": ["climate", "sea", "beach", "rock", "plateau", "swamp", "alpine", "glacier", "cave"], "default": "climate"},
+		# by_water: a biome only another one's `by_water` lays (an oasis by a desert's water);
+		# volcanic: rare regions of new worlds by a noise of their own (see region_from).
+		"where": {"type": "enum", "values": ["climate", "sea", "beach", "rock", "plateau", "swamp", "alpine", "glacier", "cave", "by_water", "volcanic"], "default": "climate"},
 		# The climate zone the biome belongs to (with climate 1 a zone's biomes lie side by
 		# side): a label for the map, the reports and the test world, not a rule.
 		"zone": {"type": "enum", "values": ["", "polar", "north", "temperate", "steppe", "hot", "tropic", "mountain"], "default": ""},
 		"warmth": {"type": "list", "of": "float", "len": 2, "min": 0.0, "max": 1.0, "default": [0.0, 1.0]},
 		"moisture": {"type": "list", "of": "float", "len": 2, "min": 0.0, "max": 1.0, "default": [0.0, 1.0]},
-		"top": {"type": "enum", "values": ["grass", "dirt", "stone", "sand", "clay", "snow", "peat", "salt", "ice"], "default": "grass"},
+		"top": {"type": "enum", "values": ["grass", "dirt", "stone", "sand", "clay", "snow", "peat", "salt", "ice", "scree"], "default": "grass"},
 		"stone_below": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
 		"clay_above": {"type": "float", "min": -1.0, "max": 1.0, "default": 1.0},
 		# The ground that shows where the soil noise is above clay_above.
-		"clay_as": {"type": "enum", "values": ["grass", "dirt", "stone", "sand", "clay", "snow", "peat", "salt", "ice"], "default": "clay"},
+		"clay_as": {"type": "enum", "values": ["grass", "dirt", "stone", "sand", "clay", "snow", "peat", "salt", "ice", "scree"], "default": "clay"},
 		"dunes": {"type": "float", "min": 0.0, "default": 0.0},
 		"trees": {"type": "shares", "of": "ref:trees", "soft": true, "default": {}, "rel": "spawns"},
 		"tree_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
@@ -372,6 +374,16 @@ const SCHEMAS := {
 		# biome lays grass on top (ActionsNature).
 		"grass_back": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.6},
 		"sandstorms": {"type": "bool", "default": false},
+		# With the setting landscape 1: land of this biome within `by_water_reach` cells of a
+		# lake or a river is the biome named here instead (an oasis, green banks in a desert).
+		"by_water": {"type": "ref:biomes", "soft": true, "default": "", "rel": "spawns"},
+		"by_water_reach": {"type": "int", "min": 0, "max": 64, "default": 0},
+		# With the setting landscape 1: a share (0..1) of the level open ground of a swamp
+		# that stands a level up in a grassy hummock.
+		"hummocks": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		# How thick a fog lies over the biome's ground all day, thicker at dawn and dusk
+		# (the client's Sky, near the player), 0..1.
+		"mist": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"color": {"type": "color"},
 		# The colour the biome's ground and water take instead of their own, by the names
 		# of the `top` field and water (white sand and turquoise water by a tropical beach,
@@ -393,6 +405,24 @@ const SCHEMAS := {
 		"pools_from": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.6},
 		"crystals": {"type": "ref:materials", "soft": true, "default": "", "rel": "spawns"},
 		"crystal_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		# Grounds of the mods' materials instead of the named ones: `ground` instead of `top`,
+		# `ground_below` instead of the stone below `stone_below`, `ground_above` instead of
+		# `clay_as` above `clay_above` ("" keeps the named one; soft, so without its bundle too).
+		"ground": {"type": "ref:materials", "soft": true, "default": "", "rel": "spawns"},
+		"ground_below": {"type": "ref:materials", "soft": true, "default": "", "rel": "spawns"},
+		"ground_above": {"type": "ref:materials", "soft": true, "default": "", "rel": "spawns"},
+		# Volcanic land (where: volcanic; the setting landscape 1, LandLayout._volcanic): land
+		# where the region noise is over `region_from` (-1..1; the higher, the rarer); in a grid
+		# cell of CONE_GRID cells of it a cone stands with the chance `cones`, `cone_rise` levels
+		# high and `cone_reach` cells round, its crater (the share `crater_share` of its reach)
+		# floored with `crater`; hot springs where the soil noise is under `springs_below`.
+		"region_from": {"type": "float", "min": -1.0, "max": 1.0, "default": 1.0},
+		"cones": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		"cone_rise": {"type": "list", "of": "int", "len": 2, "min": 1, "max": 30, "default": [12, 20]},
+		"cone_reach": {"type": "list", "of": "int", "len": 2, "min": 8, "max": 60, "default": [28, 44]},
+		"crater_share": {"type": "float", "min": 0.0, "max": 0.6, "default": 0.22},
+		"crater": {"type": "ref:materials", "soft": true, "default": "", "rel": "spawns"},
+		"springs_below": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
 	},
 	# What a recipe makes and its by-products (`also`, each with its chance, decided by the
 	# job: Crafting.outputs), what it uses up (`needs`), what must be in the bag and is not
@@ -490,7 +520,8 @@ const SCHEMAS := {
 		# How many cards side by side draw one frame (a sapling wider than a crop): the
 		# sprite's frames are each `across` columns of PLANT_W px, left to right.
 		"across": {"type": "int", "min": 1, "max": 4, "default": 1},
-		"grows": {"type": "enum", "values": ["meadow", "shade", "woods", "bank", "field"], "default": "meadow"},
+		# bare: open ground other than grass (the sand and stone of a desert: cacti).
+		"grows": {"type": "enum", "values": ["meadow", "shade", "woods", "bank", "field", "bare"], "default": "meadow"},
 		# A custom plant grows only within this many cells of water (a sundew round the bog
 		# pools; Grass._near_water); 0 anywhere its `grows` says.
 		"near_water": {"type": "int", "min": 0, "max": 8, "default": 0},

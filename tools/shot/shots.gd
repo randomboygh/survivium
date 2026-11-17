@@ -51,6 +51,14 @@ const SHOTS := {
 	"crt-old": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 2}},
 	"crt-tape": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 3}},
 	"crt-off": {"time": 0.45, "season": 1, "trees": true},
+	# The retro palettes (Crt.PALETTES, pixels 2×; then tube + NES + 4×): by day, and by a fire at night.
+	"retro-8bit": {"time": 0.45, "season": 1, "trees": true, "settings": {"palette": 1, "retro_pixel": 1}},
+	"retro-1bit": {"time": 0.45, "season": 1, "trees": true, "settings": {"palette": 2, "retro_pixel": 1}},
+	"retro-cga": {"time": 0.45, "season": 1, "trees": true, "settings": {"palette": 3, "retro_pixel": 1}},
+	"retro-fire-8bit": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"palette": 1, "retro_pixel": 1}},
+	"retro-fire-1bit": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"palette": 2, "retro_pixel": 1}},
+	"retro-tube-nes-4x": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 1, "palette": 1, "retro_pixel": 2}},
+	"retro-fire-cga": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"palette": 3, "retro_pixel": 1}},
 	"crt-fire-soft": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"crt": 1}},
 	"crt-fire-old": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"crt": 2}},
 	"crt-fire-tape": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"crt": 3}},
@@ -195,6 +203,11 @@ const SHOTS := {
 	"fog-dense-forest": {"time": 0.33, "season": 2, "weather": "dense_fog", "forest": true},
 	"fog-dense-river": {"time": 0.33, "season": 2, "weather": "dense_fog", "place": "river"},
 	"fog-simple": {"time": 0.33, "season": 2, "weather": "fog", "fog": false},
+	# A rainbow after rain, away from the sun: morning (the sun in the east, the bow in
+	# the west), noon (low and faint) and evening.
+	"rainbow-morning": {"time": 0.32, "season": 1, "after_rain": 1.0, "puddles": 0.6, "rainbow": 1.0},
+	"rainbow-noon": {"time": 0.47, "season": 1, "after_rain": 1.0, "puddles": 0.6, "rainbow": 1.0},
+	"rainbow-evening": {"time": 0.7, "season": 1, "after_rain": 1.0, "puddles": 0.6, "rainbow": 1.0},
 	# Puddles: just after rain, half dried, and in the rain.
 	"puddles": {"time": 0.42, "season": 1, "puddles": 1.0, "after_rain": 1.0},
 	"puddles-drying": {"time": 0.42, "season": 1, "puddles": 0.35},
@@ -341,6 +354,18 @@ const SHOTS := {
 	"tor": {"time": 0.42, "season": 1, "place": "tor", "tilt": -2},
 	"lake": {"time": 0.42, "season": 1, "place": "lake"},
 	"swamp": {"time": 0.42, "season": 1, "place": "swamp"},
+	# Surface zones of new worlds (landscape 1): cacti on the sand, an oasis by a desert
+	# lake, the stone and scree of a rocky desert, a swamp's mist at dawn with hummocks
+	# and cattails.
+	"desert": {"time": 0.42, "season": 1, "place": "desert"},
+	"oasis": {"time": 0.42, "season": 1, "place": "oasis"},
+	"rocky-desert": {"time": 0.42, "season": 1, "place": "rocky_desert"},
+	"swamp-dawn": {"time": 0.3, "season": 1, "place": "swamp"},
+	# Volcanic land of new worlds: a cone's crater with lava from its rim, the same at
+	# night (the lava lights it), and a hot spring among basalt, black sand and ash.
+	"volcano": {"time": 0.42, "season": 1, "place": "crater", "tilt": -2},
+	"volcano-night": {"time": 0.95, "season": 1, "moon": 0.0, "place": "crater"},
+	"hot-spring": {"time": 0.42, "season": 1, "place": "hot_spring"},
 	"cliffs": {"time": 0.42, "season": 1, "place": "cliffs"},
 	"beach": {"time": 0.42, "season": 1, "place": "beach"},
 	# The tallest slope turned to the camera by a beach: its patterns a pixel a texel,

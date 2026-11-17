@@ -3,6 +3,10 @@ extends "res://tests/unit/test_case.gd"
 ## the rules written out one cell at a time.
 
 
+## The reference cuts worked out lately (see _ref_cut), emptied before each look.
+var _cuts := {}
+
+
 func run() -> void:
 	_test_corners()
 	_test_shapes()
@@ -90,6 +94,7 @@ func _test_shapes() -> void:
 ## finds the same ground as a look down every level of the column from the top, at
 ## points all over the columns from..to, with the water open and frozen.
 func _ground_matches(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
+	_cuts.clear()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
 	var ok := true
@@ -151,6 +156,8 @@ func _ref_height(lows: int, ne_sw: bool, fx: float, fz: float) -> float:
 ## the slopes beside it.
 func _ref_split(w: WorldData, x: int, y: int, z: int) -> bool:
 	var cut := w.corner_cuts(x, y, z)
+	if cut == 0:
+		cut = w.corner_cuts(x, y + 1, z)
 	if cut != 0:
 		return cut & (WorldData.NW | WorldData.SE) != 0
 	var lows := WorldData.FULL & ~w.slope_mask(x, y, z)
@@ -216,6 +223,7 @@ func _patches_match(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
 
 ## True when the shapes of the columns from..to follow the rules.
 func _shapes_match(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
+	_cuts.clear()
 	for y in w.size_y:
 		for z in range(from.y, to.y):
 			for x in range(from.x, to.x):
@@ -237,8 +245,17 @@ func _shapes_match(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
 ## a corner where only the column across it is lower and both beside it may slope; a
 ## top with every corner down stays whole.
 func _ref_slope(w: WorldData, x: int, y: int, z: int) -> int:
-	if not _ref_can_slope(w, x, y, z):
+	if not _ref_can_slope(w, x, y, z) and not _ref_floor(w, x, y, z):
 		return WorldData.FULL
+	return _ref_lows(w, x, y, z)
+
+
+## The slope of an open top (not the ground under a cut): what cuts and fills look at.
+func _ref_top(w: WorldData, x: int, y: int, z: int) -> int:
+	return _ref_lows(w, x, y, z) if _ref_can_slope(w, x, y, z) else WorldData.FULL
+
+
+func _ref_lows(w: WorldData, x: int, y: int, z: int) -> int:
 	var low := 0
 	for k in 4:
 		var o: Vector2i = WorldData.CORNER_DIRS[k]
@@ -246,6 +263,20 @@ func _ref_slope(w: WorldData, x: int, y: int, z: int) -> int:
 				and _ref_can_slope(w, x + o.x, y, z) and _ref_can_slope(w, x, y, z + o.y):
 			low |= 1 << k
 	return WorldData.FULL if low == WorldData.FULL else WorldData.FULL & ~low
+
+
+## Loose wild ground under the lowest of a run of cut cells, not cut itself: its top
+## shows in the cut and slopes as an open top would.
+func _ref_floor(w: WorldData, x: int, y: int, z: int) -> bool:
+	if not (w.in_bounds(x, y, z) and w.is_natural(x, y, z) and Mat.can_slope(w.get_cell(x, y, z))) \
+			or y + 1 >= w.size_y:
+		return false
+	var above := false
+	for k in 4:
+		above = above or _ref_cut(w, x, y + 1, z, k)
+		if _ref_cut(w, x, y, z, k):
+			return false
+	return above
 
 
 func _ref_can_slope(w: WorldData, x: int, y: int, z: int) -> bool:
@@ -277,7 +308,7 @@ func _ref_cut_here(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 	if not (_ref_ground(w, x, y, z) and w.is_natural(x, y, z) and w.is_natural(x + o.x, y, z) \
 			and w.is_natural(x, y, z + o.y) and w.is_natural(x + o.x, y, z + o.y)):
 		return false
-	var mask := _ref_slope(w, x, y, z)
+	var mask := _ref_top(w, x, y, z)
 	if mask == WorldData.FULL:
 		return true
 	# A slope: only at a low corner, where the ground drops further than a level beside.
@@ -296,14 +327,17 @@ func _ref_cut_any(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 	return false
 
 
-## Cut at corner k and at no other corner.
+## Cut at corner k and at no other corner (remembered in _cuts until the world changes).
 func _ref_cut(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
-	if not _ref_cut_any(w, x, y, z, k):
-		return false
+	var key := Vector4i(x, y, z, k)
+	if _cuts.has(key):
+		return _cuts[key]
+	var out := _ref_cut_any(w, x, y, z, k)
 	for j in 4:
-		if j != k and _ref_cut_any(w, x, y, z, j):
-			return false
-	return true
+		if out and j != k and _ref_cut_any(w, x, y, z, j):
+			out = false
+	_cuts[key] = out
+	return out
 
 
 func _ref_fill_here(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
@@ -320,8 +354,8 @@ func _ref_fill_here(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 			return false
 	return _ref_ground(w, x + o.x, y, z) and _ref_ground(w, x, y, z + o.y) and _ref_ground(w, x + o.x, y, z + o.y) \
 		and w.is_natural(x, y, z) and w.is_natural(x + o.x, y, z) and w.is_natural(x, y, z + o.y) \
-		and w.is_natural(x + o.x, y, z + o.y) and _ref_slope(w, x + o.x, y, z) == WorldData.FULL \
-		and _ref_slope(w, x, y, z + o.y) == WorldData.FULL
+		and w.is_natural(x + o.x, y, z + o.y) and _ref_top(w, x + o.x, y, z) == WorldData.FULL \
+		and _ref_top(w, x, y, z + o.y) == WorldData.FULL
 
 
 func _ref_fill_any(w: WorldData, x: int, y: int, z: int, k: int) -> bool:

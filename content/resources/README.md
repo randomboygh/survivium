@@ -26,6 +26,8 @@ content/resources/
   caves/                "Cave rock": the materials of the kinds of caves, with textures: mycelium (role: mycelium, the
                         floor of mushroom caves), glowing crystal (gives a crystal, set down again as a glowing block),
                         deep rock round the lower halls, and lava in their pools (glows, cannot be dug)
+  volcanic/             "Volcanic rock": the grounds of volcanic land, with textures: basalt (harder than stone, gives
+                        stone), black sand (gives sand) and ash (gives earth)
 ```
 
 Each bundle is a folder with `bundle.yaml` (`title`) and its own `data/<kind>.yaml`, `icons/`, `models/`,

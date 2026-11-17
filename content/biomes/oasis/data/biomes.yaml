@@ -1,0 +1,28 @@
+# Biome: where — where it lies: climate (by a window of warmth and moisture, 0..1; of the matching ones the
+# narrowest is taken, on a tie the one loaded earlier) or a terrain the generator decides: sea, beach,
+# rock, plateau, swamp (one record per terrain). top — the ground on top: grass, dirt, stone, sand (the material
+# of role beach), clay (role bank), snow, peat, salt (the materials of those roles); stone_below / clay_above — the soil noise threshold (-1..1), below/above
+# which stone/clay shows through (instead of clay, the ground of field clay_as); dunes — by how many cells dunes raise the ground (dune noise).
+# trees — shares of species on the tree grid (the rest is empty), tree_chance — the chance of a tree at a grid node,
+# groves — the chance in groves (where forest noise is high); bushes — shares of bushes, bush_sparsity — one attempt
+# of a bush per that many cells (0 — none). spawn — the game can start here; sandstorms — instead of rain
+# sandstorms. zone — the climate zone (polar, north, temperate, steppe, hot, tropic, mountain), a label
+# for the map and reports. color — the colour on the map. tints — the biome's ground and water colours instead of their own (by
+# the names of the top field and water: {sand: "#e6dcbe", water: "#4cc6bc"}). References to species and bushes are soft: without their bundle the share is empty.
+# Oasis (where: by_water): the land of a desert within its `by_water_reach` of a lake or a river, in new worlds
+# (the setting landscape 1): grass and palms by the water, sand under the palms, reeds and cattails on the
+# banks. Palm is a bundle of "Plants", the reference is soft.
+- id: oasis
+  title: "[biomes.biomes.oasis]"
+  where: by_water
+  zone: hot
+  clay_above: 0.35
+  clay_as: sand
+  trees: {plants:palm: 0.6, plants:acacia: 0.1}
+  tree_chance: 0.1
+  groves: 0.2
+  trees_on: [sand]
+  bushes: {plants:shrub: 1.0}
+  bush_sparsity: 120
+  tints: {grass: "#7fa046"}
+  color: "#6fa055"

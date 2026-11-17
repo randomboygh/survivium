@@ -891,6 +891,34 @@ func _test_window_glow() -> void:
 	node.free()
 
 
+## The rainbow (AirEffects._rainbow): it comes after rain with the sun out by day, and
+## not in the rain, under thick clouds, at night, under a roof or long after the rain.
+func _test_rainbow() -> void:
+	var air = AirEffects.new({"view": null}, null)
+	var sky := {"sun_height": 0.2, "to_sun": Vector3(0.6, 0.4, 0.5), "after_rain": 1.0}
+	var clock := {"rain": 0.0, "hail": 0.0, "snowing": 0.0, "clouds": 0.3, "fog": 0.0}
+	var after := func(changes: Dictionary, indoor := false) -> float:
+		var s := sky.duplicate()
+		var c := clock.duplicate()
+		for k: String in changes:
+			if s.has(k):
+				s[k] = changes[k]
+			else:
+				c[k] = changes[k]
+		air.rainbow = 0.0
+		for i in 100:
+			air._rainbow(1.0, true, s, c, indoor)
+		return air.rainbow
+	_check(after.call({}) > 0.9, "rainbow: after rain with the sun out")
+	_check(after.call({"rain": 0.5}) == 0.0, "rainbow: none in the rain")
+	_check(after.call({"clouds": 0.8}) == 0.0, "rainbow: none under thick clouds")
+	_check(after.call({"sun_height": -0.3}) == 0.0, "rainbow: none at night")
+	_check(after.call({"after_rain": 0.0}) == 0.0, "rainbow: none long after the rain")
+	_check(after.call({}, true) == 0.0, "rainbow: none under a roof")
+	_check(after.call({"sun_height": 1.0}) < after.call({"sun_height": 0.2}), "rainbow: fainter at noon")
+	air.free()
+
+
 ## The small effects (AirEffects, WaterEffects, NatureEffects): each part can be hidden
 ## in «Что рисуется» on its own by a name of its own, the low preset turns them all off
 ## and the medium one the costliest (the mirroring and the heat), and a dragonfly's
@@ -910,7 +938,8 @@ func _test_small_effects() -> void:
 		_check(part.hidden.is_empty(), "%s: and shows again" % script.resource_path.get_file())
 		if part is Node:
 			part.free()
-	_check(names.size() == all.size() and all.size() == 13, "thirteen parts, each named once: %s" % [all])
+	_check(names.size() == all.size() and all.size() == 14, "fourteen parts, each named once: %s" % [all])
+	_test_rainbow()
 	var low: Dictionary = SettingsScript.QUALITIES[0]
 	var medium: Dictionary = SettingsScript.QUALITIES[1]
 	_check(low.water_fx == 0 and not low.nature_fx and not low.body_fx and not low.heat_fx and not low.drops_fx,

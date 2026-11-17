@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/cactus/bundle.yaml
+"[plants.cactus.bundle]": "Cacti"
+
+# content/plants/cactus/data/items.yaml
+"[plants.items.cactus_fruit]": "Prickly pear fruit"
+"[plants.items.cactus_fruit.about]": "Sweet and juicy under its prickly skin: a little food in the desert."
+
+# content/plants/cactus/data/plants.yaml
+"[plants.plants.cactus]": "Cactus"

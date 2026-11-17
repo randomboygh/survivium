@@ -308,8 +308,15 @@ static func _column(job: Job, x: int, z: int) -> bool:
 					and not cov[c[i + dy - dz]]:
 				plain.append(((y * 64 + m) * 64 + z - z0) * 64 + x - x0)
 				continue
+			# Ground under a cut whose top slopes there (WorldData._floor_slopes): the
+			# sides beside the cut corner go up to that slope.
+			var floor_k := -1
+			if sh[i] & 15 != 0 and cov[nb[2]] and sh[i + dy] >= 16:
+				floor_k = WorldData.level_of(sh[i + dy] >> 4 & -(sh[i + dy] >> 4))
 			for d in 6:
 				var n := nb[d]
+				if floor_k >= 0 and d != FACE_TOP and d != FACE_BOTTOM and SIDE_CORNERS[d].has(floor_k):
+					continue
 				if cov[n] and sh[i + side_offsets[d]] & 15 == 0 \
 						and not (by_form and forms.has(i + offsets[d]) and not Forms.covers_side(forms[i + offsets[d]], d ^ 1)):
 					# The ground under a thin trunk, and a bank beside its foot, still show around it.
@@ -360,7 +367,11 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				_cut_walls(w, solid, water, c, cov, i, dy, base, m, cuts)
 			# The ground under a cut corner of the cell above shows there.
 			var exposed := sh[i + dy] >> 4 & ~cuts if cov[c[i + dy]] else 0
-			if exposed != 0:
+			if floor_k >= 0:
+				# Drawn in the material of the cut cell above: its surface goes on down.
+				Slopes.slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, c[i + dy],
+					float(_around_tiles(c, cov, i, dy, dz, sh)), 0, floor_k)
+			elif exposed != 0:
 				var edges := _top_edges(c, cov, i, dy, dz)
 				_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges,
 					_covered_halves(c, sh, cov, i, dy, dz, edges), sh[i + dy] & 15 == 0, c[i + dy])

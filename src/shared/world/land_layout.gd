@@ -36,6 +36,9 @@ const LATTICE := 4
 const PLAIN := 0
 const MOUNTAIN := 1
 const HIGHLAND := 2
+## How far over the river noise's start a river must flow for an oasis to green by it
+## (see _cover_row): fainter ones are dry beds or trickles.
+const OASIS_FLOW := 0.25
 const CLIFFS := 3
 const SEA_FLOOR := 4
 ## Water of a column: none, the sea, a lake or a river (a canyon floor counts as river).
@@ -196,6 +199,9 @@ const GORGE := 1
 const CANYON_FLOOR := 2
 const MESA := 3
 const TOR := 4
+## Cuts of volcanic land (any relief, landscape 1): the slope of a cone and its crater.
+const CONE := 5
+const CRATER := 6
 ## Rivers in the mountains run higher, climbing a fraction RIVER_CLIMB of the
 ## mountain's rise in steps (see _river_level): FALL_STEP levels apart, each a rapid of
 ## one level and then a waterfall of the rest. Boulders stand in the channel where it
@@ -239,6 +245,24 @@ const BANK_SLOPE := 3
 ## A lake keeps this many cells (by the coast distance) from the sea: between them lies
 ## a strip of low shore, so a lake never opens into the shallows deeper than they are.
 const LAKE_SHORE := 16.0
+## Volcanic land (landscape 1, biome where: volcanic, see _volcanic): how slow its region
+## noise is, the side of the grid squares that may each hold one cone, how much further
+## inside the region a cone's middle must lie, how the cone's slope curves (a power of
+## the distance from its rim), by how much its outline wobbles (a share of its reach),
+## how deep its crater sinks under the rim and how near the coast a cone shrinks away.
+const VOLCANO_FREQ := 0.0003
+const CONE_GRID := 128
+const CONE_INSIDE := 0.06
+const CONE_POWER := 1.3
+const CONE_WOBBLE := 0.12
+const CRATER_DEPTH := 3
+const CONE_COAST := 40.0
+## No volcanic land within VOLCANO_CALM cells of the world's middle, where the start is
+## looked for (a world begins in ordinary land), fading in over VOLCANO_FADE cells more:
+## the region noise must be up to CALM_RISE higher there.
+const VOLCANO_CALM := 1200.0
+const VOLCANO_FADE := 500.0
+const CALM_RISE := 0.6
 
 var world_seed: int
 var settings: Dictionary
@@ -302,6 +326,13 @@ var n_ores: FastNoiseLite
 ## Climate 1 only: the zones' warmth, and where it lies in window_noises (-1 without).
 var n_zone: FastNoiseLite
 var zone_grid := -1
+## Landscape 1 only: the region noise of volcanic land, and where it lies in
+## window_noises (-1 without).
+var n_volcano: FastNoiseLite
+var volcano_grid := -1
+## The cones of volcanic land by grid square (see _cone_at): [x, z, rise, reach,
+## crater share], or [] for a square without one.
+var cones := {}
 ## The slow noises sampled on the lattice: continents, rivers (along its zero lines)
 ## and lakes (over its high spots).
 var n_land: FastNoiseLite
@@ -368,6 +399,12 @@ func _noises() -> void:
 			_warp(n_zone)
 		zone_grid = window_noises.size()
 		window_noises.append(n_zone)
+	volcano_grid = -1
+	if wide:
+		n_volcano = _noise(34, VOLCANO_FREQ, 2)
+		_warp(n_volcano)
+		volcano_grid = window_noises.size()
+		window_noises.append(n_volcano)
 
 
 func _noise(salt: int, freq: float, octaves: int) -> FastNoiseLite:
@@ -893,6 +930,23 @@ func _water_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 				peak[j], ranges[j], gorges[j], crags[j], temp[j], moist[j])
 		var height: int = r[0]
 		var kind: int = r[1]
+		var cut: int = r[4]
+		# Volcanic land: a cone over the land, its crater sunk into its top; no river
+		# nor lake lies on one.
+		var on_cone := false
+		if volcano_grid >= 0 and Biomes.VOLCANIC >= 0 and height >= sea:
+			var cone := _cone_at(_col.x, _col.y)
+			var reach := cone.x * (1.0 + (shape[j] - 128) / 128.0 * CONE_WOBBLE)
+			if reach < 1.0:
+				on_cone = true
+				var rise := cone.y * smoothstep(0.0, CONE_COAST, coast[j])
+				if reach < cone.z and rise > CRATER_DEPTH + 2:
+					height += int(rise) - CRATER_DEPTH
+					cut = CRATER
+				else:
+					height += int(round(rise * pow((1.0 - reach) / (1.0 - cone.z), CONE_POWER))) if reach > cone.z else int(rise)
+					cut = CONE
+				height = mini(height, size_y - 4)
 		var feature := DRY
 		var top := Mat.GRASS
 		var watery := false
@@ -905,7 +959,7 @@ func _water_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		# Rivers along the zero lines of the river noise, where the flow noise lets
 		# them run, narrow at the source and wider towards the sea or a lake, higher
 		# up in the mountains, where they rise: none comes over the top.
-		var up: float = r[3]
+		var up: float = 1.0 if on_cone else r[3]
 		var flowing := smoothstep(river_from, river_from + 0.35, flow[j] / 127.5 - 1.0) * (1.0 - smoothstep(0.45, 0.9, up))
 		var d := river[j]
 		var mouth := 1.0 - smoothstep(0.0, mouth_reach, minf(coast[j], -lake[j]))
@@ -947,7 +1001,7 @@ func _water_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 			# Lakes over the high spots of the lake noise in the plains, with gentle
 			# shores.
 			var in_lake := minf(lake[j], coast[j] - LAKE_SHORE)
-			if kind == PLAIN and height <= sea + 8 and in_lake > -8.0:
+			if kind == PLAIN and height <= sea + 8 and in_lake > -8.0 and not on_cone:
 				if in_lake > 0.0:
 					height = mini(mini(height, sea - 1 - mini(4, int(in_lake / 3.0))), channel)
 					wt = sea
@@ -1005,7 +1059,7 @@ func _water_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		flags[j] = SHEER_TOP if sheer else 0
 		kinds[j] = kind
 		features[j] = feature
-		cuts[j] = r[4]
+		cuts[j] = cut
 
 
 ## The climate, the ground and the biome of each column of row `lz` laid out by
@@ -1052,7 +1106,14 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 	var mire_reach := 36
 	var mire_t := _byte(-0.2)
 	var river_from: float = RIVER_FROM[settings.rivers]
-	var wet_fade := WET_FADE_WIDE if settings.get("landscape", 0) >= 1 else 0.04
+	var wide: bool = settings.get("landscape", 0) >= 1
+	var wet_fade := WET_FADE_WIDE if wide else 0.04
+	# Volcanic land: its region noise, the level over which it lies and the soil noise's
+	# level under which a hot spring lies.
+	var volcanic_rec := Biomes.of(Biomes.VOLCANIC) if volcano_grid >= 0 else {}
+	var region: PackedByteArray = grids[volcano_grid] if not volcanic_rec.is_empty() else PackedByteArray()
+	var region_t := _byte(volcanic_rec.get("region_from", 1.0))
+	var spring_t := _byte(volcanic_rec.get("springs_below", -1.0))
 	var x0: int = lay.x0
 	var z0: int = lay.z0 + lz * lay.step
 	for lx in w:
@@ -1069,8 +1130,17 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		var b := Biomes.NONE
 		# How near water is, in steps of 16 cells: the coast, a lake or a river.
 		var near := minf(coast[j], -lake[j])
-		if flow[j] / 127.5 - 1.0 > river_from + 0.07:
+		var flows := flow[j] / 127.5 - 1.0 - river_from
+		if flows > 0.07:
 			near = minf(near, river[j])
+		# How far fresh water is that a desert greens by (an oasis): a lake (only low in
+		# the plains, away from the sea, as _water_row lays them), or a river that carries
+		# water (a dry bed does not), from its bank.
+		var fresh := INF
+		if kind == PLAIN and height <= sea + 8:
+			fresh = -minf(lake[j], coast[j] - LAKE_SHORE)
+		if flows > OASIS_FLOW:
+			fresh = minf(fresh, river[j] - 2.0)
 		var wet := clampi(int(near / 16.0), 0, 15)
 		# Climate: warmth from the slow noise, colder up the hills; wetter near water.
 		var t := clampf(0.5 + (temp[j] / 255.0 - 0.5) * 1.6, 0.0, 1.0) - (height - sea) * cooling
@@ -1091,7 +1161,32 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		if kind == MOUNTAIN:
 			rocky = height >= sea + ROCK_LINE + (shape[j] - 128) / 48
 		var climate := false
-		if rocky and wt < 0:
+		var x: int = x0 + lx * lay.step
+		var volcanic := not watery and (cut == CONE or cut == CRATER
+			or (not region.is_empty() and region[j] + int(_chance(x, z0, 45) * 6.0) > region_t + 3 + _calm(x, z0) * 127.5))
+		if volcanic:
+			b = Biomes.VOLCANIC
+			# Hot springs lie in the deepest hollows of the low patches' ground.
+			var spring := cut == 0 and kind == PLAIN and not sheer and height > sea + 1 and soil[j] < spring_t
+			if cut == CRATER:
+				top = volcanic_rec.crater_mat if volcanic_rec.crater_mat >= 0 else Mat.STONE
+			elif spring:
+				# A hot spring: a pool sunk a level or two into the ground (its banks are
+				# raised round it, see _banks), floored with the low patches' ground.
+				wt = height
+				height -= 1 if soil[j] > spring_t - 8 else 2
+				watery = true
+				feature = LAKE
+				features[j] = LAKE
+				top = Biomes.stone_as(b)
+			elif height <= sea + 2 and wet <= 1:
+				# By the sea: the low patches' ground (black sand).
+				top = Biomes.stone_as(b)
+			else:
+				top = _patches(b, Biomes.top(b, grounds), soil[j])
+			if cut != 0:
+				sheer = false
+		elif rocky and wt < 0:
 			top = Mat.STONE
 			b = _biome(Biomes.ROCK)
 			if kind == MOUNTAIN:
@@ -1130,6 +1225,9 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		elif kind == HIGHLAND:
 			b = _biome(Biomes.PLATEAU)
 			top = Mat.STONE if height >= sea + 14 else Mat.GRASS
+			if wide and top == Mat.GRASS:
+				# New worlds: the plateau's own ground, with stone and scree showing through.
+				top = _patches(b, Biomes.top(b, grounds), soil[j])
 		elif height <= sea + 2 and wet <= 1:
 			# With climate 1 the beach of a warm coast may be a biome of its own (palms).
 			b = _biome(Biomes.relief(Biomes.BEACH, t, m) if zoned else Biomes.BEACH)
@@ -1154,19 +1252,22 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 				f |= MARSH if p > pool_t else MIRE
 			else:
 				top = bank if p > mud_t else Mat.GRASS
+				if wide and top == Mat.GRASS and low and _chance(x0 + lx * lay.step, z0, 41) < Biomes.of(b).get("hummocks", 0.0):
+					# New worlds: a grassy hummock a level over the wet ground.
+					height += 1
 			sheer = false
 		else:
 			# The climate's say: the loaded biome whose windows hold the warmth and the
 			# moisture, with its ground (sand in dunes, stone and clay showing through).
 			climate = true
 			b = Biomes.pick(t, m)
+			# New worlds: by a lake or a river a desert turns green (an oasis).
+			if wide and Biomes.by_water(b) >= 0 and fresh < Biomes.of(b).by_water_reach + _chance(x0 + lx * lay.step, z0, 43) * 4.0:
+				b = Biomes.by_water(b)
 			var rec := Biomes.of(b)
 			top = Biomes.top(b, grounds)
 			if not rec.is_empty():
-				if soil[j] < _byte(rec.stone_below):
-					top = Mat.STONE
-				elif soil[j] > _byte(rec.clay_above):
-					top = Biomes.clay_as(b, grounds)
+				top = _patches(b, top, soil[j])
 				if rec.dunes > 0.0 and kind == PLAIN and not sheer:
 					height += int(dunes[j] / 255.0 * rec.dunes)
 		# Some mountains are wooded between the foot and the rock, whatever grows below.
@@ -1175,9 +1276,12 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 			top = Mat.GRASS
 		elif kind == MOUNTAIN and wt < 0 and climate and zoned and Biomes.ALPINE >= 0 and height >= sea + ROCK_LINE - ALPINE_BELOW \
 				and _in_window(Biomes.ALPINE, t, m):
-			# With climate 1 the open upper slopes are an alpine meadow.
+			# With climate 1 the open upper slopes are an alpine meadow (in new worlds
+			# with stone and scree showing through).
 			b = Biomes.ALPINE
 			top = Biomes.top(b, grounds)
+			if wide:
+				top = _patches(b, top, soil[j])
 		# A dry bed through land that lies under snow (a canyon in the ice waste) is
 		# snow too, not sand.
 		if zoned and top == beach and wt < 0 and not watery and Biomes.top(Biomes.pick(t, m), grounds) == snow:
@@ -1190,13 +1294,66 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		if sheer:
 			f |= SHEER_TOP
 		# Cave mouths here and there in the hills, more often in the mountains.
-		if height > sea + 3 and mouths[j] > (mouth_t - 20 if rocky else mouth_t):
+		if height > sea + 3 and mouths[j] > (mouth_t - 20 if rocky else mouth_t) and cut != CONE and cut != CRATER and not watery:
 			f |= ENTRANCE
 		heights[j] = height
 		water[j] = wt
 		tops[j] = top
 		flags[j] = f
 		biome[j] = b
+
+
+## The cone of volcanic land over column x, z: Vector3(its distance from the cone's
+## middle as a share of its reach, the cone's rise, its crater's share of the reach); the
+## distance is INF where no cone stands. Each square of CONE_GRID cells holds one cone at
+## most, with the chance `cones` of the volcanic biome, where the region noise at its
+## middle is CONE_INSIDE over the biome's `region_from`; it lies wholly in its square,
+## so a column asks only its own (see `cones`).
+func _cone_at(x: int, z: int) -> Vector3:
+	var g := Vector2i(floori(x / float(CONE_GRID)), floori(z / float(CONE_GRID)))
+	var c: Array = cones.get(g, [null])
+	if c.size() == 1:
+		c = _find_cone(g)
+		cones[g] = c
+	if c.is_empty():
+		return Vector3(INF, 0.0, 0.0)
+	return Vector3(Vector2(x - c[0], z - c[1]).length() / c[3], c[2], c[4])
+
+
+## How much higher the region noise of volcanic land must be at column x, z (see
+## VOLCANO_CALM): CALM_RISE in the middle of the world, 0 far from it.
+static func _calm(x: int, z: int) -> float:
+	if absi(x) > VOLCANO_CALM + VOLCANO_FADE or absi(z) > VOLCANO_CALM + VOLCANO_FADE:
+		return 0.0
+	return CALM_RISE * (1.0 - smoothstep(VOLCANO_CALM, VOLCANO_CALM + VOLCANO_FADE, Vector2(x, z).length()))
+
+
+func _find_cone(g: Vector2i) -> Array:
+	var rec := Biomes.of(Biomes.VOLCANIC)
+	if rec.is_empty() or _chance(g.x, g.y, 46) >= rec.cones:
+		return []
+	var reach := minf(lerpf(rec.cone_reach[0], rec.cone_reach[1], _chance(g.x, g.y, 47)), CONE_GRID * 0.5 - 2.0)
+	var rise := lerpf(rec.cone_rise[0], rec.cone_rise[1], _chance(g.x, g.y, 48))
+	var free := CONE_GRID - 2.0 * reach
+	var cx := g.x * CONE_GRID + reach + _chance(g.x, g.y, 49) * free
+	var cz := g.y * CONE_GRID + reach + _chance(g.x, g.y, 50) * free
+	if n_volcano.get_noise_2d(cx, cz) < rec.region_from + CONE_INSIDE + _calm(int(cx), int(cz)):
+		return []
+	return [cx, cz, rise, reach, rec.crater_share]
+
+
+## The ground `top` of biome `b` with its patches by the soil noise `soil` (a byte):
+## stone (or its `ground_below`) below its `stone_below`, its `clay_as` (or its
+## `ground_above`) above its `clay_above`.
+func _patches(b: int, top: int, soil: int) -> int:
+	var rec := Biomes.of(b)
+	if rec.is_empty():
+		return top
+	if soil < _byte(rec.stone_below):
+		return Biomes.stone_as(b)
+	if soil > _byte(rec.clay_above):
+		return Biomes.clay_as(b, grounds)
+	return top
 
 
 ## How deep a ravine cuts column x, z, 0 outside one. Its floor runs along the zero
@@ -1669,6 +1826,10 @@ func _is_place(what: String, lay: Dictionary, j: int) -> bool:
 			return lay.flags[j] & ENTRANCE and kind == PLAIN and mouths[j] > _byte(0.7) and lay.heights[j] > sea + 7
 		"adit":
 			return lay.flags[j] & ENTRANCE and kind == MOUNTAIN
+		"crater":
+			return lay.cut[j] == CRATER
+		"hot_spring":
+			return b == Biomes.VOLCANIC and b >= 0 and lay.water[j] >= 0
 	# Any other name is a biome's ("forest", "desert"...), off the wooded slopes of
 	# mountains, where trees grow whatever the biome.
 	return b != Biomes.NONE and b == Biomes.named(what) and lay.flags[j] & WOODS == 0
@@ -1682,6 +1843,8 @@ func column_color(lay: Dictionary, j: int) -> Color:
 	if wt >= 0:
 		var deep := clampf((wt - h - 1) / 6.0, 0.0, 1.0)
 		return Color(0.36, 0.6, 0.68).lerp(Color(0.12, 0.24, 0.42), deep)
+	if lay.cut[j] == CRATER:
+		return Color(0.95, 0.42, 0.12)
 	var c := Biomes.color(lay.biome[j])
 	return c * (0.75 + 0.5 * clampf((h - sea) / 24.0, 0.0, 1.0))
 
