@@ -64,7 +64,7 @@ static func corner_lifts(c: PackedByteArray, sh: PackedByteArray, i: int, dy: in
 					shapes[q] = sh[l]
 					break
 		out[k] = WorldData.corner_lift(levels, shapes)
-		if h == 1 and _lone_post(c, sh, i, dy, dz, k):
+		if h == 1 and out[k].x == 0.0 and shapes.count(-1) == 3 and _lone_post(c, sh, i, dy, dz, k):
 			out[k] = Vector3(-1.0, NAN, NAN)
 		any = any or out[k].x != 0.0
 	return out if any else PackedVector3Array()

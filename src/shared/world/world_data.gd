@@ -537,7 +537,7 @@ func corner_lifts(x: int, y: int, z: int) -> PackedFloat32Array:
 					shapes[q] = o
 					break
 		out[k] = corner_lift(levels, shapes).x
-		if h == y + 1 and _lone_post(x, y, z, k):
+		if h == y + 1 and out[k] == 0.0 and shapes.count(-1) == 3 and _lone_post(x, y, z, k):
 			out[k] = -1.0
 		any = any or out[k] != 0.0
 	return out if any else PackedFloat32Array()
