@@ -9,6 +9,7 @@ func run() -> void:
 	_test_bank_trunk()
 	_test_diagonal_step()
 	_test_edges()
+	_test_plan_corners()
 	_test_bent_slopes()
 	_test_patch()
 	_test_way_order()
@@ -222,7 +223,9 @@ func _test_edges() -> void:
 			grass_brow += 1
 		if p.y > 2.6 and p.y < 2.99 and p.x > 2.01 and p.x < 4.99 and p.z > 10.01 and p.z < 12.99:
 			placed_cut += 1
-		if normals[v].y > 0.05:
+		# On the grid only (a corner rounded in plan moves points onto its arc).
+		if normals[v].y > 0.05 and absf(p.x * 8.0 - roundf(p.x * 8.0)) < 0.001 \
+				and absf(p.z * 8.0 - roundf(p.z * 8.0)) < 0.001:
 			var key := Vector3i(roundi(p.x * 8.0), floori(p.y - 0.5), roundi(p.z * 8.0))
 			if tops.has(key) and absf(tops[key] - p.y) > 0.001:
 				seams += 1
@@ -256,6 +259,57 @@ func _test_edges() -> void:
 
 ## Slopes of natural ground of a material that rounds bend level at their brow and foot,
 ## stay straight where a slope goes on, and meet the cells beside without seams.
+## A little hill of beach sand (round 0.5) two by two cells: its plan is a diamond of
+## halves whose square tips round in plan (an arc of the sand's radius touching both
+## diagonals), and the ground below fills in under the cut tip without a hole.
+func _test_plan_corners() -> void:
+	if Mat.BEACH < 0:
+		return
+	var w := WorldData.new(6, Vector2i(16, 16))
+	var ch: WorldData.Chunk = w.chunks[Vector2i.ZERO]
+	for z in 16:
+		for x in 16:
+			ch.cells[z * 16 + x] = Mat.DIRT
+			ch.cells[(16 + z) * 16 + x] = Mat.GRASS
+			if x >= 6 and x <= 7 and z >= 6 and z <= 7:
+				ch.cells[(32 + z) * 16 + x] = Mat.BEACH
+	ch.natural.fill(WorldData.WILD | WorldData.SHEER)
+	w.rebuild_columns()
+	var arrays: Array = (ChunkMesher.build_chunk(w, 0, 0, 16)[0] as ArrayMesh).surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	# The south tip (7, 8): the arc's centre lies 0.5 * sqrt(2) north of it.
+	var centre := Vector2(7.0, 8.0 - 0.5 * sqrt(2.0))
+	var on_arc := 0
+	var beyond := 0
+	for v in verts.size():
+		var p := verts[v] / WorldData.CELL
+		if p.y < 2.4 or absf(p.x - 7.0) > 0.4 or p.z < 7.4:
+			continue
+		var d := Vector2(p.x, p.z).distance_to(centre)
+		if absf(d - 0.5) < 0.002:
+			on_arc += 1
+		elif d > 0.5:
+			beyond += 1
+	_check(on_arc > 0 and beyond == 0, "a square tip of a round material rounds in plan (%d on the arc, %d beyond)" % [on_arc, beyond])
+	# Seen from above, the ground round the hill is closed: every point is under a triangle.
+	var holes := 0
+	for gz in range(0, 40):
+		for gx in range(0, 40):
+			var pt := Vector2(5.5 + gx * 0.075 + 0.0137, 5.5 + gz * 0.075 + 0.0191)
+			var hit := false
+			for t in range(0, indices.size(), 3):
+				var a := verts[indices[t]] / WorldData.CELL
+				var b := verts[indices[t + 1]] / WorldData.CELL
+				var c := verts[indices[t + 2]] / WorldData.CELL
+				if Geometry2D.point_is_inside_triangle(pt, Vector2(a.x, a.z), Vector2(b.x, b.z), Vector2(c.x, c.z)):
+					hit = true
+					break
+			if not hit:
+				holes += 1
+	_check(holes == 0, "the ground round a hill rounded in plan has no holes (%d)" % holes)
+
+
 func _test_bent_slopes() -> void:
 	var w := WorldData.new(8, Vector2i(16, 16))
 	var ch: WorldData.Chunk = w.chunks[Vector2i.ZERO]
@@ -292,7 +346,8 @@ func _test_bent_slopes() -> void:
 			tops[cell] = {}
 		# Within the ramp and the mound (their outer brows meet the cliffs' at their corners).
 		var inside := (p.z > 2.05 and p.z < 6.95) or (p.x > 3.05 and p.x < 8.95 and p.z > 9.05 and p.z < 14.95)
-		if inside and not tops[cell].has(hy):
+		var on_grid := absf(p.x * 8.0 - roundf(p.x * 8.0)) < 0.001 and absf(p.z * 8.0 - roundf(p.z * 8.0)) < 0.001
+		if inside and on_grid and not tops[cell].has(hy):
 			for other: int in tops[cell]:
 				# Two heights at one place a little apart: a crack (a wall stands between
 				# heights a level or more apart).
