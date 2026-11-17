@@ -255,7 +255,7 @@ func place(w, what: String) -> Vector3:
 	if what == "mountain-cave":
 		p = mountain_cave(p)
 	elif not what in ["lake", "river", "canyon", "gorge",
-			"mesa", "tor", "cliffs", "beach", "tropical_beach", "oasis", "waterfall", "rapids", "delta", "pit", "adit", "peak", "mountain"]:
+			"mesa", "tor", "cliffs", "beach", "tropical_beach", "oasis", "crater", "hot_spring", "waterfall", "rapids", "delta", "pit", "adit", "peak", "mountain"]:
 		p = inland(what, near, p)
 	main.player.position = Vector3(p.x + 0.5, w.size_y - 1, p.y + 0.5) * CELL
 	main.chunks.build_around()
@@ -264,8 +264,11 @@ func place(w, what: String) -> Vector3:
 			return falls_view(w, p, 2)
 		"rapids":
 			return falls_view(w, p, 1)
-		"lake", "river", "canyon", "swamp", "delta", "oasis":
+		"lake", "river", "canyon", "swamp", "delta", "oasis", "hot_spring":
 			return dry_near(w, p, 24)
+		"crater":
+			# On the rim, off the lava.
+			return dry_near(w, p, 24, Mat.index("resources:lava"))
 		"cliffs":
 			return coast(w, p, seaward(w, p), 3.0)
 		"beach", "tropical_beach":
@@ -306,7 +309,7 @@ func inland(what: String, near: Vector2i, p: Vector2, reach := 3200) -> Vector2:
 
 
 ## Nearest dry standing spot to the cell point `p` within `radius` cells.
-func dry_near(w, p: Vector2, radius: int) -> Vector3:
+func dry_near(w, p: Vector2, radius: int, avoid := -1) -> Vector3:
 	var best := Vector3.ZERO
 	var best_d := INF
 	for dz in range(-radius, radius + 1):
@@ -315,6 +318,8 @@ func dry_near(w, p: Vector2, radius: int) -> Vector3:
 			var z := int(p.y) + dz
 			var y: int = w.surface_y(x, z)
 			if y <= w.sea_level or y >= w.size_y - 2 or w.get_cell(x, y, z) != Mat.AIR:
+				continue
+			if avoid >= 0 and w.get_cell(x, y - 1, z) == avoid:
 				continue
 			var d := Vector2(dx, dz).length()
 			if d < best_d:

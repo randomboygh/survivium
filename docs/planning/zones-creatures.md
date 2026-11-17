@@ -22,6 +22,10 @@ Decision 186, item 4 (plan/mvp.md). The user's picks (2026-11-16, all «А»):
 - #720 (merged): material fields `burns` (`Character._touch_hot`, `WorldCells.add_drop`) and `light`
   (`ChunkMesher.Job.glows` → `ChunkStreamer._apply_lit` → `Effects.lit`); mushroom lights by day underground.
 
+- #723 (merged): oases, rocky desert, cacti, cattails, juniper, swamp hummocks and mist, highland scree.
+- Step 3b: volcanic land (biome `where: volcanic`, bundles `biomes/volcanic`, `resources/volcanic`): rare regions
+  by the noise `n_volcano` (about 4% of the land), basalt / black sand / ash, cones with lava craters, hot springs.
+
 Pictures: `survivium-builds/zones/` in the project library (maps before/after, rivers, caves, cave lights).
 
 ## Left
@@ -31,8 +35,7 @@ Pictures: `survivium-builds/zones/` in the project library (maps before/after, r
 - Step 3, zones on the surface (new bundles, new worlds only):
   - Desert: today bare sand with rare shrubs. Cacti (a new tree `shape` "cactus": a green trunk with arms, no
     crown, or a bush look), oases (a lake ringed by palms and grass in a desert), rocky desert (stone_below).
-  - Volcanic land: a new climate biome or terrain: basalt, black sand, ash, hot springs, craters with lava
-    (reuse `resources:lava`, `burns`, `light`).
+  - Volcanic land: done in step 3b. Possible later: steam over hot springs, warmth by them, smoke from cones.
   - Swamp: hummocks, cattail/reeds, fog (`swamp`, `peat_bog`, `mangrove` exist).
   - Highlands: scree, low shrubs (`alpine_meadow`, `plateau`, `glacier` exist).
   Land animals live almost only in forest/meadow/taiga: step 4 adds per-zone ones.
