@@ -9,6 +9,7 @@ func run() -> void:
 	_test_bank_trunk()
 	_test_diagonal_step()
 	_test_edges()
+	_test_bent_slopes()
 	_test_patch()
 	_test_way_order()
 
@@ -252,6 +253,71 @@ func _test_edges() -> void:
 				and p.x > 4.0 and p.x < 8.0:
 			ledge += 1
 	_check(ledge > 0, "soft ground over a hard cliff stands back, a ledge of the hard top stays")
+
+## Slopes of natural ground of a material that rounds bend level at their brow and foot,
+## stay straight where a slope goes on, and meet the cells beside without seams.
+func _test_bent_slopes() -> void:
+	var w := WorldData.new(8, Vector2i(16, 16))
+	var ch: WorldData.Chunk = w.chunks[Vector2i.ZERO]
+	for z in 16:
+		for x in 16:
+			ch.cells[z * 16 + x] = Mat.DIRT
+			ch.cells[(16 + z) * 16 + x] = Mat.GRASS
+			# A ramp up three levels eastward (x 3..5) to a flat top, and a mound beside.
+			if z >= 2 and z <= 6:
+				for y in range(2, 2 + clampi(x - 2, 0, 3)):
+					ch.cells[(y * 16 + z) * 16 + x] = Mat.GRASS
+			for k in 2:
+				if x >= 3 + k and x <= 8 - k and z >= 9 + k and z <= 14 - k:
+					ch.cells[((2 + k) * 16 + z) * 16 + x] = Mat.GRASS
+	ch.natural.fill(WorldData.WILD)
+	w.rebuild_columns()
+	w.update_shapes(0, 0, 16, 16)
+	var arrays: Array = (ChunkMesher.build_chunk(w, 0, 0, 16)[0] as ArrayMesh).surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	var tops := {}
+	var seams := 0
+	var level_bends := 0
+	var middle := 0
+	for v in verts.size():
+		var p := verts[v] / WorldData.CELL
+		var n := normals[v]
+		if n.y <= 0.05:
+			continue
+		var cell := Vector2i(roundi(p.x * 8.0), roundi(p.z * 8.0))
+		var hy := roundi(p.y * 64.0)
+		if not tops.has(cell):
+			tops[cell] = {}
+		# Within the ramp and the mound (their outer brows meet the cliffs' at their corners).
+		var inside := (p.z > 2.05 and p.z < 6.95) or (p.x > 3.05 and p.x < 8.95 and p.z > 9.05 and p.z < 14.95)
+		if inside and not tops[cell].has(hy):
+			for other: int in tops[cell]:
+				# Two heights at one place a little apart: a crack (a wall stands between
+				# heights a level or more apart).
+				if absi(other - hy) < 48:
+					seams += 1
+			tops[cell][hy] = true
+		if p.z > 2.5 and p.z < 6.5:
+			# The ramp's foot (x 3) and brow (x 6) bend: an eighth in, a plain slope
+			# would stand an eighth up from the foot and down from the brow.
+			if absf(p.x - 3.125) < 0.001 and p.y > 2.01 and p.y < 2.1:
+				level_bends += 1
+			if absf(p.x - 5.875) < 0.001 and p.y > 4.9 and p.y < 4.99:
+				level_bends += 1
+			# Inside the ramp's middle cell (x 4..5), nothing: one straight plane.
+			if p.x > 4.05 and p.x < 4.95:
+				middle += 1
+	_check(level_bends >= 2, "a rounded slope lies level at its foot and its brow (%d)" % level_bends)
+	_check(middle == 0, "a slope going on up and down stays straight (%d points inside)" % middle)
+	_check(seams == 0, "bent slopes meet the cells beside without cracks (%d)" % seams)
+	var clockwise := true
+	for t in range(0, indices.size(), 3):
+		var p0 := verts[indices[t]]
+		if (verts[indices[t + 1]] - p0).cross(verts[indices[t + 2]] - p0).dot(normals[indices[t]]) >= 0.0:
+			clockwise = false
+	_check(clockwise, "bent slopes are wound clockwise")
 
 
 ## Total area of the triangles of a mesh (0 for none).

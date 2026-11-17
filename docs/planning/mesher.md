@@ -44,9 +44,18 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   with nothing to round; `feet` ~0.35 s), `draw` ~1.4 s (new top shapes ~0.45 s for ~3.5k: eval ~70 us, triangles
   ~60 us each; emitting ~4 shapes a cell). Without walls ~0.2-0.3 s less, without feet ~0.7 s less. GDScript here
   costs ~50 ns an operation: the floor is the per-cell look at the 3x3 window.
-  Left for the next thread (PR 2 part 2, after the speed-up):
-  - slopes: crest and foot of soft slopes, diagonal hips (slopes are still drawn by SlopeMesher, sharp);
-  - vertical corners in plan (now a convex corner keeps its plan; the brow mitres there);
+  Merged as #733 at ~2.4x cold / ~1.9x warm (the user's pick, 2026-11-17; option B, edge codes kept in
+  WorldData, waits for the phone's verdict on loading).
+- PR 2 part 2a (slopes): SlopeMesher bends the slopes of natural ground of a round material: `bend` maps the plain
+  height so the top lies level within `edge_size` of the brow and the foot, only where flat ground goes on past
+  the corner (`corner_bends`, flags per lattice corner so the cells round it agree; a long slope stays straight);
+  hips/valleys on the diagonal rounded, fading out at the cell's sides (`_plain`), so a hip down several levels
+  shows soft lenses pinched at the corners (accepted: the straight cells beside meet it there). Hard (bevel)
+  slopes stay flat: a one-sided bevel cannot lie level at the cell's edge. Bench: ~4.6 s cold, ~3.8 s warm,
+  1475620 vertices (+16% over #733). Test `mesher_test._test_bent_slopes`; preview tool
+  `notes/edge-preview/slope_preview.gd` in the project library.
+  Left:
+  - PR 2 part 2b: vertical corners in plan (now a convex corner keeps its plan; the brow mitres there);
   - the remaining `corners` field / `CORNER_P` / shader `corner_shapes` go in PR 4.
 - Spec (Claude doc, Russian, the user's words): https://claude.ai/artifact/1q8gbPYdyqXoDE5bMxKjoT
 - Pictures: project library `survivium-builds/mesher-blocks/` (`blocks-1-main.png` … `blocks-10-all.png`),

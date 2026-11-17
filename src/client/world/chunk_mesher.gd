@@ -307,7 +307,8 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			Trunks.trunk_faces(solid, w, x, y, z, nb, base, m)
 		elif sh[i] & 15 != 0 and not cov[nb[2]]:
 			var cuts := sh[i] >> 4
-			Slopes.slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m, float(_around_tiles(c, cov, i, dy, dz, sh)), cuts)
+			Slopes.slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m, float(_around_tiles(c, cov, i, dy, dz, sh)), cuts,
+				-1, Slopes.rounding(job, i, m), Slopes.corner_bends(job, i), job)
 			# The water beside goes on up the slope of a shore to where it rises out of it.
 			if Water.shore(c, cov, i, dy, dz):
 				Water.shore_water(water, w, c, sh, i, dy, dz, base, Water.foam(c, sh, cov, i, dy, dz))
@@ -403,7 +404,8 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			if floor_k >= 0:
 				# Drawn in the material of the cut cell above: its surface goes on down.
 				Slopes.slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, c[i + dy],
-					float(_around_tiles(c, cov, i, dy, dz, sh)), 0, floor_k)
+					float(_around_tiles(c, cov, i, dy, dz, sh)), 0, floor_k, Slopes.rounding(job, i + dy, c[i + dy]),
+					Slopes.corner_bends(job, i), job)
 			elif exposed != 0:
 				var edges := _top_edges(c, cov, i, dy, dz)
 				_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges,
