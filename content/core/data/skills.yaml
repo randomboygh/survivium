@@ -8,7 +8,9 @@
 # of what is made (30 by default, 50 for crafting; quality is decision 181); effort — by
 # what share a swing is cheaper in stamina at the last level (0.4 by default); care — the chance at the last level
 # that a swing does not wear the tool (0.5 by default); might — by what share a tool's blow is stronger at the
-# last level (hunting only: 0.5; for the others 0 — the tool decides the strength of a blow). Without first and growth: 120 points
+# last level (hunting only: 0.5; for the others 0 — the tool decides the strength of a blow); health — the most health added at the last
+# level, a whole cell of 10 at a time (hardiness: 50, a cell every second level; its each — points for one health lost, and a quarter
+# point a second hungry, thirsty, cold or hot). Without first and growth: 120 points
 # for the first level, each next one 1.45 times dearer (the tenth is about three hours of pure work).
 # Formulas and tables: docs/balance/GAME_BALANCE_DESIGN.md. The order of the bars in the character window is order. A mod adds a skill with a record of a new
 # role, only when the engine knows that work.
@@ -81,3 +83,14 @@
   role: farm
   order: 9
   yield: 0.6
+- id: hardiness
+  title: "[core.skills.hardiness]"
+  description: "[core.skills.hardiness.about]"
+  role: endure
+  order: 10
+  each: 4
+  speed: 0.0
+  effort: 0.0
+  care: 0.0
+  quality: 0
+  health: 50

@@ -10,6 +10,7 @@ extends RefCounted
 ## (Protocol.SKILLS, `take`), and `leveled` says which skill rose to which level.
 
 const Skills := preload("res://src/shared/content/skills.gd")
+const Vitals := preload("res://src/shared/game/vitals.gd")
 
 ## The same recipe made again gives this share of the points of the one before, down to
 ## REPEAT_LEAST of its time.
@@ -128,6 +129,17 @@ func care_chance(role: String) -> float:
 func spares(role: String) -> bool:
 	var k := care_chance(role)
 	return k > 0.0 and randf() < k
+
+
+## The health the skills add to the most (their `health` at the last level), a whole cell
+## of Vitals.CELL at a time as the levels go: 50 over 10 levels is a cell every second one.
+func health_bonus() -> float:
+	var n := 0.0
+	for s: Dictionary in Skills.ALL:
+		var most: float = s.get("health", 0.0)
+		if most > 0.0:
+			n += floorf(most * level(s.id) / s.levels / Vitals.CELL + 0.0001) * Vitals.CELL
+	return minf(n, Vitals.MOST_ADDED)
 
 
 ## The sum of the levels of every skill (the land a player may hold, Territory.budget).

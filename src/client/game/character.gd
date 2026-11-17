@@ -83,6 +83,9 @@ func take_vitals(v: Array) -> void:
 	vitals.energy = float(v[8])
 	vitals.asleep = bool(v[9])
 	vitals.visions = float(v[10]) if v.size() > 10 else 0.0
+	if v.size() > 12:
+		vitals.most = float(v[11])
+		vitals.extra = float(v[12])
 
 
 func _fell() -> void:

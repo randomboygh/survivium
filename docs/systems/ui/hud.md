@@ -110,7 +110,8 @@ Part of [Interface and settings](../ui.md). The HUD and the windows opened in th
   notices to its host (`Hud.server_note`, the event `noted`: who joined for the first time or came back, lost
   the connection, left, was disconnected or banned by a host, was not let in and why): cool-tinted panels with
   the server's mark, three at most, 6 s each. Both lists are drawn over the windows and their shade (`TOASTS_Z`), taps go through them. `vitals_panel.gd` (the state in the
-  top left corner: a big heart and health as a row of cells, `VitalsPanel.CELL_HP` = 10 health each, with
+  top left corner: a big heart and health as a row of rounded cells, `Vitals.CELL` = 10 health each, as many
+  as `Vitals.most` holds (more with Hardiness), then golden ones for `Vitals.extra` (the row grows), with
   a thinner stamina bar under it, then standing bars for satiety,
   water, warmth and sleep, each only while it is low (`VitalsPanel.critical`; all of them while the bag is
   open), and a column of what hinders the body — wet, out of breath, overloaded, `VitalsPanel.debuffs_of`;

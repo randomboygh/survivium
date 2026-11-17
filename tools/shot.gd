@@ -705,6 +705,16 @@ func _run() -> void:
 			main.hud.vitals.pinned = true
 			for i in 4:
 				await process_frame
+		if shot.has("gold"):
+			# More health from hardiness and golden health over it: [gold, health].
+			var hv = main.host.player.vitals
+			for i in 2:
+				await process_frame
+			hv.fortify(shot.gold[0], 600.0)
+			hv.health = shot.gold[1]
+			main.hud.vitals.pinned = true
+			for i in 4:
+				await process_frame
 		if shot.has("chill"):
 			# A body chilled and wet: the warmth bar low and blue, the drop by it.
 			var v = main.host.player.vitals

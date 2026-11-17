@@ -13,7 +13,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 
 ## The interface's own pictures (see picture).
-const UI := ["hand", "sack", "heart", "heart_big", "food", "bolt", "weight", "thermo", "drop", "water", "sleep"]
+const UI := ["hand", "sack", "heart", "heart_big", "heart_gold", "food", "bolt", "weight", "thermo", "drop", "water", "sleep"]
 
 static var _cache := {}
 ## Where each item's picture lies, by its bundle, mod and icon (see icon_path): looking

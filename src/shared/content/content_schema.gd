@@ -80,6 +80,11 @@ const SCHEMAS := {
 		# Seconds of calm one drunk or eaten gives (a tea): asleep in them, sleep rests
 		# Vitals.CALM_SLEEP times faster; they add up to Vitals.CALM_MAX.
 		"calm": {"type": "float", "min": 0.0, "max": 600.0, "default": 0.0},
+		# Golden health one eaten or drunk gives over the most (a hearty meal, a tea), lost
+		# first and gone after `fortify_time` seconds (Vitals.fortify, at most
+		# Vitals.EXTRA_MAX; another one does not add up, it only tops up and lasts longer).
+		"fortify": {"type": "float", "min": 0.0, "max": 30.0, "default": 0.0},
+		"fortify_time": {"type": "float", "min": 0.0, "max": 1800.0, "default": 0.0},
 		"place": {"type": "ref:materials", "default": "", "rel": "builds", "via": "place"},
 		"model": {"type": "string", "default": ""},
 		"icon": {"type": "string", "default": ""},
@@ -485,9 +490,12 @@ const SCHEMAS := {
 	# work gets or to the most a thing made can be (`quality`, points of 1..100, Quality), how much less stamina the work costs at the last
 	# level (`effort`, a share of the cost), how much more a blow of the work does
 	# (`might`, a share of the tool's power: hunting) and the chance a swing does not
-	# wear the tool (`care`). docs/balance/GAME_BALANCE_DESIGN.md has the formulas.
+	# wear the tool (`care`), and the most health it adds at the last level (`health`, given
+	# a whole cell of Vitals.CELL at a time as the levels go: hardiness, role `endure`, grows
+	# from the health lost and the time spent hungry, thirsty, cold or hot; its `each` is the
+	# points for one health lost). docs/balance/GAME_BALANCE_DESIGN.md has the formulas.
 	"skills": {
-		"role": {"type": "enum", "values": ["gather", "chop", "dig", "craft", "build", "cook", "hunt", "fish", "swim", "farm"]},
+		"role": {"type": "enum", "values": ["gather", "chop", "dig", "craft", "build", "cook", "hunt", "fish", "swim", "farm", "endure"]},
 		"order": {"type": "int", "min": 0, "default": 0},
 		"levels": {"type": "int", "min": 1, "max": 20, "default": 10},
 		"first": {"type": "float", "min": 1.0, "default": 120.0},
@@ -499,6 +507,7 @@ const SCHEMAS := {
 		"effort": {"type": "float", "min": 0.0, "max": 0.9, "default": 0.4},
 		"might": {"type": "float", "min": 0.0, "max": 2.0, "default": 0.0},
 		"care": {"type": "float", "min": 0.0, "max": 0.9, "default": 0.5},
+		"health": {"type": "float", "min": 0.0, "max": 200.0, "default": 0.0},
 	},
 	"plants": {
 		"kind": {"type": "enum", "values": ["tuft", "tall_grass", "flowers", "herbs", "ears", "reeds", "moss",
