@@ -68,6 +68,8 @@ func _test_shapes() -> void:
 	var to: Vector2i = keys[keys.size() - 1] * 16 + Vector2i(16, 16)
 	_check(g.old_slopes, "a world made with the setting slopes 1 has old slopes")
 	_check(not WorldGen.new(7, 40).world.old_slopes, "worlds made before the setting keep the new slopes")
+	_check(TestGround.new(0, 48, {"slopes": 1}).world.old_slopes and not TestGround.new(0, 48, {}).world.old_slopes,
+		"the test world takes the slopes setting")
 	var store := preload("res://src/shared/world/world_store.gd")
 	_check(store.world_dir(7, {"slopes": 1}) != store.world_dir(7, {}), "a world with old slopes is saved apart")
 	_check(_shapes_match(g, from, to), "old slopes: shapes of a generated world follow the rules")
