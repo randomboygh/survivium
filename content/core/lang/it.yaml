@@ -1225,6 +1225,7 @@
 "[no_saved_worlds_yet]": "Ancora nessun mondo salvato"
 "[seed_day]": "seme %d\n%s · giorno %d"
 "[test_world_grounds_day]": "Mondo di prova\naree · giorno %d"
+"[test_world_old_slopes_day]": "Mondo di prova\npendii vecchi · giorno %d"
 "[delete_the_world_tap_twice]": "Elimina il mondo (tocca due volte)"
 "[reset_the_test_world_tap]": "Riporta all'inizio il mondo di prova (tocca due volte)"
 "[this_world_is_being_played]": "Questo mondo è in gioco"

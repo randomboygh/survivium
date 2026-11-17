@@ -964,6 +964,7 @@ const SHOTS := {
 	# The settings over the main menu in the developer mode: the tab «Отладка».
 	"ui-main-menu-dev-tab": {"time": 0.42, "season": 1, "touch": true, "main_menu": "dev", "dev": true},
 	"ui-main-menu-worlds": {"time": 0.42, "season": 1, "touch": true, "main_menu": "worlds"},
+	"ui-main-menu-worlds-dev": {"time": 0.42, "season": 1, "touch": true, "main_menu": "worlds", "dev": true},
 	# The pages «Одиночная игра» and «Мультиплеер» («Создать сервер» tapped on a phone),
 	# and «Присоединиться» over a few servers made up for it, then saying why joining failed.
 	# Opened from the pause over a running world: «Продолжить» first.

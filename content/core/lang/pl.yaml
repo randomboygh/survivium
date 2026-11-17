@@ -1225,6 +1225,7 @@
 "[no_saved_worlds_yet]": "Na razie brak zapisanych światów"
 "[seed_day]": "ziarno %d\n%s · dzień %d"
 "[test_world_grounds_day]": "Świat testowy\npoligon · dzień %d"
+"[test_world_old_slopes_day]": "Świat testowy\nstare zbocza · dzień %d"
 "[delete_the_world_tap_twice]": "Usuń świat (stuknij dwa razy)"
 "[reset_the_test_world_tap]": "Przywróć świat testowy do początku (stuknij dwa razy)"
 "[this_world_is_being_played]": "Ten świat jest teraz w grze"
