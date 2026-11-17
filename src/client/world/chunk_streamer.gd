@@ -292,6 +292,8 @@ func prepare(g: WorldGen) -> void:
 	world = g.world
 	# Under the sea's surface the light of the sun and the sky fades (sea_bright).
 	RenderingServer.global_shader_parameter_set("sea_top", (world.sea_level + 1) * CELL)
+	# Cut and filled corners as the world shapes them (WorldData.old_slopes).
+	RenderingServer.global_shader_parameter_set("old_slopes", world.old_slopes)
 	gen.made.connect(_on_generated)
 	ground_level = game.player.level()
 	_list_pending()

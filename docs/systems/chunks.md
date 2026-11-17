@@ -131,7 +131,8 @@ slice, to free the far meshes.
   (`rounded_ground`, per player) switches it off: `ChunkMesher.rounded` false leaves the job's `wild` empty,
   `prepare` answers nothing and slopes do not bend, so natural ground is drawn sharp like the built blocks,
   about 3x quicker to build (`tools/bench_mesh.gd -- --sharp`); `ChunkStreamer.set_rounded` builds the chunks
-  shown again, nearest first),
+  shown again, nearest first; a world with old slopes, `WorldData.old_slopes`, is always drawn without it and
+  its slopes by `old_slope_mesher.gd`, see `docs/systems/world-data.md`),
   `form_mesher.gd` (built blocks that are not a cube — `WorldData.forms`: a bevel from below, a bevel from
   above, steps; a shape is described as rising to the north and turned; a face on a cell's side is not drawn
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not

@@ -27,6 +27,16 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
   asked at every step of a beast and a body: it reads the cells and shapes of the column straight from the
   chunk (the rules `corner_fills`, `corner_cuts`, `slope_mask` are the same) and looks at the neighbouring
   columns only when the column has cut or filled corners.
+- Old slopes, a world setting (`slopes` 1 in `LandLayout.DEFAULT_SETTINGS`, the row «Склоны: Старые» on
+  «Новый мир», `WorldData.old_slopes` set by `WorldGen`; the world's folder gets `o1`): the shapes of before
+  the blocky relief (#722) kept beside the new ones and picked at run time. A slope is a smooth bicubic patch
+  (`surface_patch`, `make_patch`, `patch_height`), a corner may go down two levels into the covered cell below
+  (`_update_deep`, `_deep_corner`, kept in that cell's shape bits 0..3), cut and filled corners take a triangle
+  half a cell along each side and a cell may have several (`_old_update_corners`, `_old_in_corner`,
+  `corner_at`); `ground_height` and `body.gd` `_cell_top` follow the patch. The client draws them with
+  `src/client/world/old_slope_mesher.gd` (the old `slope_mesher.gd`), `MeshFaces.old_slopes` (curved cut
+  pieces `OLD_CUT`, `_old_curve` by `Mat.corner_shape`, `_old_diag_wall`), the water's lips and foam, and the
+  shader global `old_slopes` (`corner_distance`, `in_cell_corners`); no rounded edges (EdgeMesher off).
 - `src/shared/world/grass.gd` — what grows on top of a ground cell (tiers of grass, flowers, ears, moss, the
   mods' plants `Plants`: on open grass, in the shade of crowns, in the woods — that shade and the grass
   `WOODS_EDGE` cells round it, `_near_crown` —, on banks; a frame `across` cards wide is one kind, its first
@@ -55,7 +65,8 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
   `form_at`, any `set_cell` returns a cube; they are saved in `pack_chunk` («forms»), over the network — in
   `CELLS` (`material | shape << 8`). The body and `ground_height` go by them through `form_top`.
 
-**Tests.** `tests/unit/shapes_test.gd` (`corners`, `shapes`), `tests/unit/body_test.gd` (`raycast`, `slopes`,
+**Tests.** `tests/unit/shapes_test.gd` (`corners`, `shapes`), `tests/unit/old_shapes_test.gd` (the same for old
+slopes, with the mesher's patches), `tests/unit/body_test.gd` (`raycast`, `slopes`,
 `steps`, `ground`), `tests/unit/generation_test.gd`.
 
 **In more detail.** `plan/architecture/simulation.md` (the section «Storing the world»),

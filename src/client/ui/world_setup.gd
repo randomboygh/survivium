@@ -159,6 +159,8 @@ func _build_rows() -> void:
 	_add_row("[rivers_and_lakes]", LEVELS, _getter("rivers"), _setter("rivers"), STOP)
 	_add_row("[biomes]", ["[small_biomes]", "[normal_biomes]", "[large_biomes]"], _getter("biomes"), _setter("biomes"), STOP)
 	_add_row("[caves]", LEVELS, _getter("caves"), _setter("caves"), STOP)
+	# The slopes of the blocky relief or the old curved ones (WorldData.old_slopes).
+	_add_row("[world_slopes]", ["[slopes_new]", "[slopes_old]"], _getter("slopes"), _setter("slopes"), STOP)
 	_mods_row()
 	_choices.refresh()
 

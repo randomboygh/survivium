@@ -55,8 +55,8 @@ func _init(path: String) -> void:
 
 ## The directory of the world of `seed_value` and WorldGen `options`: the seed and one
 ## digit per setting (size, water, mountains, rivers, biomes, then caves unless 1 and
-## "r" and the relief, "c" and the climate and "s" and the cave shape unless 0, as worlds made before those
-## settings have); the test
+## "r" and the relief, "c" and the climate, "s" and the cave shape, "l" and the landscape and
+## "o" and the slopes unless 0, as worlds made before those settings have); the test
 ## world is "test".
 static func world_dir(seed_value: int, options: Dictionary) -> String:
 	if seed_value == TEST_SEED:
@@ -74,6 +74,8 @@ static func world_dir(seed_value: int, options: Dictionary) -> String:
 		digits += "s%d" % int(options.cave_shape)
 	if int(options.get("landscape", 0)) != 0:
 		digits += "l%d" % int(options.landscape)
+	if int(options.get("slopes", 0)) != 0:
+		digits += "o%d" % int(options.slopes)
 	return "%s/%d-%s" % [root, seed_value, digits]
 
 

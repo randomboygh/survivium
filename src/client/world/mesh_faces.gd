@@ -78,10 +78,12 @@ const CORNER_DIRS := WorldData.CORNER_DIRS
 const QUARTER := 0
 const CORNER := 2
 const CUT_BY := 4
+## Old slopes (see old_slopes): the part of quarter q away from its cut corner.
+const OLD_CUT := 1
 ## Cut and filled corners run along the diagonal of the cell across the corner, from
-## one neighbouring corner to the other (WorldData.corner_cut); CORNER_P and
-## CURVE_STEPS are kept for the materials' rounding of edges (Mat.corner_shape), which
-## the mesher does not draw yet.
+## one neighbouring corner to the other (WorldData.corner_cut); with old slopes they
+## take half a cell along each side, curved by CORNER_P and CURVE_STEPS (see
+## old_slopes, Mat.corner_shape).
 const CORNER_P := [1.0, 1.5, 2.0]
 const CURVE_STEPS := 4
 ## Diagonals reach past their line, so the texels it runs through belong to the ground
@@ -111,6 +113,12 @@ static var _faces: Array = []
 static var _covers_lut := PackedByteArray()
 ## Points of the corner curves, by corner and shape (see corner_curve).
 static var _curves := {}
+## The world being drawn has old slopes (WorldData.old_slopes): cut and filled corners
+## take a triangle half a cell along each side, from the middle of one side to the
+## middle of the next, along a curve by the material's corner shape (see corner_curve);
+## a cell may be cut at several corners, each quarter on its own (OLD_CUT). Set from
+## the world when a mesh job starts (ChunkMesher.start_rect, build_cap).
+static var old_slopes := false
 
 
 ## Takes the materials of the bundles now loaded (Mods.activate): leaves are a role a
@@ -168,7 +176,9 @@ static func _diag(k: int, corner_side: bool, code: int) -> int:
 ## The line of corner k's cut or fill on the top of a cell: the diagonal across it,
 ## from the neighbouring corner along x to the one along z. `shape` is kept for the
 ## materials' rounding (not drawn yet).
-static func corner_curve(k: int, _shape := 0) -> PackedVector2Array:
+static func corner_curve(k: int, shape := 0) -> PackedVector2Array:
+	if old_slopes:
+		return _old_curve(k, shape)
 	if _curves.has(k):
 		return _curves[k]
 	var o := Vector2(CORNER_DIRS[k])
@@ -176,6 +186,37 @@ static func corner_curve(k: int, _shape := 0) -> PackedVector2Array:
 		Vector2(0.5, 0.5) + Vector2(o.x, -o.y) * 0.5])
 	_curves[k] = pts
 	return pts
+
+
+## Old slopes: the curve of corner k for corner shape `shape` (see CORNER_P) on the top
+## of a cell, from the middle of its west or east side to the middle of its north or
+## south side: u^p + v^p = 0.5^p around the cell's middle, p 1 a straight diagonal
+## (stone), 1.5 a little rounded (soil), 2 a quarter circle (sand), in CURVE_STEPS
+## straight pieces.
+static func _old_curve(k: int, shape: int) -> PackedVector2Array:
+	var key := 16 + k * 4 + shape
+	if _curves.has(key):
+		return _curves[key]
+	var o := Vector2(CORNER_DIRS[k])
+	var p: float = CORNER_P[shape]
+	var steps := 1 if shape == 0 else CURVE_STEPS
+	var pts := PackedVector2Array()
+	for j in steps + 1:
+		var a := PI * 0.5 * j / steps
+		var cs := cos(a)
+		var sn := sin(a)
+		var r := 0.5 / pow(pow(cs, p) + pow(sn, p), 1.0 / p) if j > 0 and j < steps else 0.5
+		pts.append(Vector2(0.5, 0.5) + Vector2(cs * o.x, sn * o.y) * r)
+	_curves[key] = pts
+	return pts
+
+
+## The kind of piece for quarter q of a top cut at corners `cuts`: with old slopes each
+## quarter by its own corner (OLD_CUT), else as cut_kind.
+static func quarter_kind(cuts: int, q: int) -> int:
+	if old_slopes:
+		return OLD_CUT if cuts & (1 << q) else QUARTER
+	return cut_kind(cuts)
 
 
 ## The kind of piece for quarter q of a top whose cut corners are `cuts` (one at most).
@@ -189,10 +230,23 @@ static func cut_kind(cuts: int) -> int:
 ## `corners`, when given, are colours at the cell's corners NW, NE, SE, SW, blended
 ## across the piece.
 static func _piece(buf, base: Vector3, h: float, q: int, kind: int, n: Vector3, color: Color, packed: Vector2,
-		_shape := 0, corners := PackedColorArray()) -> void:
+		shape := 0, corners := PackedColorArray()) -> void:
 	var o := Vector2(CORNER_DIRS[q])
 	var corner := Vector2(0.5, 0.5) + o * 0.5
 	var pts: Array
+	if kind == OLD_CUT or kind == CORNER and old_slopes:
+		# A fan from the middle of the cell (a cut) or from the corner (the corner beyond
+		# the curve).
+		var hub := Vector2(0.5, 0.5) if kind == OLD_CUT else corner
+		var curve := _old_curve(q, shape)
+		var off := o * (EPS if kind == OLD_CUT else -EPS)
+		for j in curve.size() - 1:
+			pts = [hub, curve[j] + off, curve[j + 1] + off]
+			var tri := []
+			for p: Vector2 in pts:
+				tri.append(base + Vector3(p.x, h, p.y))
+			_wound(buf, tri, n, pts, color, packed, _blend(corners, pts))
+		return
 	if kind == CORNER:
 		# The corner and the two beside it, the diagonal a little past its line.
 		var line := corner_curve(q)
@@ -233,8 +287,11 @@ static func _blend(corners: PackedColorArray, pts: Array) -> Array:
 ## corner (a cut) or away from it (a fill). It stands EPS inside the solid side, so
 ## where it meets the ground below on the line the ground is in front and the pixels on
 ## the line are the ground's. `shape` is kept for the materials' rounding.
-static func _diag_wall(buf, base: Vector3, k: int, outward: bool, color: Color, packed: Vector2, _shape := 0,
+static func _diag_wall(buf, base: Vector3, k: int, outward: bool, color: Color, packed: Vector2, shape := 0,
 		h0 := 1.0, h1 := 1.0) -> void:
+	if old_slopes:
+		_old_diag_wall(buf, base, k, outward, color, packed, shape)
+		return
 	var o := Vector2(CORNER_DIRS[k])
 	var curve := corner_curve(k)
 	var inside := o * (-EPS if outward else EPS)
@@ -252,6 +309,50 @@ static func _diag_wall(buf, base: Vector3, k: int, outward: bool, color: Color, 
 	if vs.size() < 3:
 		return
 	_wound(buf, vs, n, uvs, color, packed)
+
+
+## Old slopes: the wall along the curve of corner k (see _old_curve), a straight piece
+## per piece of the curve; a round one has the curve's own normals at its points, so
+## the light runs smoothly around it.
+static func _old_diag_wall(buf, base: Vector3, k: int, outward: bool, color: Color, packed: Vector2,
+		shape: int) -> void:
+	var o := Vector2(CORNER_DIRS[k])
+	var curve := _old_curve(k, shape)
+	var inside := o * (-EPS if outward else EPS)
+	for j in curve.size() - 1:
+		var p1 := curve[j] + inside
+		var p2 := curve[j + 1] + inside
+		var d := p2 - p1
+		var side := Vector2(d.y, -d.x).normalized()
+		if side.dot(o) < 0.0:
+			side = -side
+		var facing := 1.0 if outward else -1.0
+		var n := Vector3(side.x, 0.0, side.y) * facing
+		var vs := [base + Vector3(p1.x, 0.0, p1.y), base + Vector3(p2.x, 0.0, p2.y),
+			base + Vector3(p2.x, 1.0, p2.y), base + Vector3(p1.x, 1.0, p1.y)]
+		var uvs := [Vector2(p1.x, 1.0), Vector2(p2.x, 1.0), Vector2(p2.x, 0.0), Vector2(p1.x, 0.0)]
+		if shape == 0:
+			_wound(buf, vs, n, uvs, color, packed)
+			continue
+		var n1 := _curve_normal(p1, o, shape) * facing
+		var n2 := _curve_normal(p2, o, shape) * facing
+		var ns := [n1, n2, n2, n1]
+		if (vs[1] - vs[0]).cross(vs[2] - vs[0]).dot(n) > 0.0:
+			vs.reverse()
+			uvs.reverse()
+			ns.reverse()
+		buf.tri_n([vs[0], vs[1], vs[2]], [ns[0], ns[1], ns[2]], [uvs[0], uvs[1], uvs[2]], color, packed)
+		buf.tri_n([vs[0], vs[2], vs[3]], [ns[0], ns[2], ns[3]], [uvs[0], uvs[2], uvs[3]], color, packed)
+
+
+## Normal of the curve of a corner toward `o` with corner shape `shape` at point `q`,
+## pointing to the corner: across the curve u^p + v^p = 0.5^p.
+static func _curve_normal(q: Vector2, o: Vector2, shape: int) -> Vector3:
+	var p: float = CORNER_P[shape]
+	var u := maxf((q.x - 0.5) * o.x, 0.0)
+	var v := maxf((q.y - 0.5) * o.y, 0.0)
+	var g := Vector2(pow(u, p - 1.0) * o.x, pow(v, p - 1.0) * o.y).normalized()
+	return Vector3(g.x, 0.0, g.y)
 
 
 ## Adds a triangle or quad with corners in either order, turned to face along `n`;

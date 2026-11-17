@@ -204,6 +204,9 @@ const DEFAULTS := {
 	# New worlds have the stage 2 landscape, wide biomes and big rivers (WorldGen
 	# landscape 1); worlds made before keep theirs (0). Not on «Новый мир».
 	"world_landscape": 1,
+	# New worlds have the blocky relief's slopes (WorldGen slopes 0) unless the player
+	# picks the old curved ones (1) on «Новый мир»; worlds made before keep 0.
+	"world_slopes": 0,
 	## The bundles (or whole mods) a new world is made without, comma-separated ids
 	## (everything found is on).
 	"world_mods_off": "",
@@ -539,7 +542,7 @@ func use_page_quality() -> void:
 
 
 ## The world settings for WorldGen: size, water, mountains, rivers, biomes, caves, relief,
-## climate, cave_shape, landscape.
+## climate, cave_shape, landscape, slopes.
 func world_options() -> Dictionary:
 	var out := {}
 	for k in LandLayout.SETTING_KEYS:
