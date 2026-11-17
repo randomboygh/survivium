@@ -7,9 +7,10 @@ extends Node3D
 ## sun's path glittering on the water from the player towards a low sun at sunrise and
 ## sunset (water.gdshader `sun_path`). Held by Effects (`air`) and stepped by Sky, like
 ## Wisps. All of it stops with the effects setting, and each can be hidden on its own in
-## «Тестирование» → «Отладка» → «Что рисуется» (parts). Cheap: the shimmer, the drops and
-## the sun's path are a few lines in passes the picture makes anyway, set only when they
-## change; the breath is a few short puffs from a small pool of emitters, looked for five
+## «Тестирование» → «Отладка» → «Что рисуется» (parts). A rainbow stands away from the
+## sun once rain stops and the sun comes out (grade.gdshader `rainbow`). Cheap: the
+## shimmer, the drops, the rainbow and the sun's path are a few lines in passes the
+## picture makes anyway, set only when they change; the breath is a few short puffs from a small pool of emitters, looked for five
 ## times a second and only in the cold.
 
 const PixelView := preload("res://src/client/view/pixel_view.gd")
@@ -82,6 +83,19 @@ const PATH_HIGH := 0.35
 ## The sun's path moves slowly: looked at this often, seconds.
 const PATH_LOOK := 0.25
 const MOON_PATH := 0.6
+## The rainbow (grade.gdshader rainbow): it comes as the rain thins (gone in rain of
+## RAINBOW_RAIN and more) while Sky.after_rain lasts, fading out over its last
+## RAINBOW_FADE; only with the sun out (clouds thinner than RAINBOW_CLOUDS.x, none from
+## .y) and up (Sky.sun_height). Its top stands RAINBOW_TOP of the way from the middle
+## of the screen to its edge with a low sun, sinking to RAINBOW_NOON at noon, where it is
+## RAINBOW_NOON_DIM fainter. It comes and goes at RAINBOW_EASE a second.
+const RAINBOW_RAIN := 0.3
+const RAINBOW_FADE := 0.5
+const RAINBOW_CLOUDS := Vector2(0.55, 0.72)
+const RAINBOW_TOP := 0.65
+const RAINBOW_NOON := 0.0
+const RAINBOW_NOON_DIM := 0.5
+const RAINBOW_EASE := 0.15
 
 ## The parts as «Что рисуется» names them (RenderToggles), and the ones hidden there.
 const HEAT := "effects: heat shimmer"
@@ -89,6 +103,7 @@ const DROPS := "effects: drops on the screen"
 const SNOW := "effects: snow and frost on the screen"
 const BREATH := "effects: breath steam"
 const SUN_PATH := "effects: sun path on water"
+const RAINBOW := "effects: rainbow"
 var hidden := {}
 ## The settings of each (see Settings.apply).
 var heat_on := true
@@ -115,6 +130,8 @@ var _haze := 0.0
 ## Seconds to the next look at the sun's path, and whether heat spots were given.
 var _path_in := 0.0
 var _heat_shown := true
+## How strong the rainbow is now (0..1), eased towards what the weather allows.
+var rainbow := 0.0
 var _drops := 0.0
 ## The drops' clock, and when on it the screen began to dry (-1 while it does not) and
 ## how thick the drops were then.
@@ -148,7 +165,7 @@ func _init(g, effects) -> void:
 ## The parts of the picture this draws, for «Что рисуется»: [name, Callable(hide)].
 func parts() -> Array:
 	var out := []
-	for name: String in [HEAT, DROPS, SNOW, BREATH, SUN_PATH]:
+	for name: String in [HEAT, DROPS, SNOW, BREATH, SUN_PATH, RAINBOW]:
 		out.append([name, func(hide: bool) -> void:
 			if hide:
 				hidden[name] = true
@@ -166,11 +183,38 @@ func update(delta: float, sky, clock, indoor: bool) -> void:
 	_rain_drops(delta, drops_on and not hidden.has(DROPS), clock, indoor)
 	_screen_snow(delta, drops_on and not hidden.has(SNOW), clock, indoor)
 	_glass_wind(delta, clock, indoor)
+	_rainbow(delta, not hidden.has(RAINBOW), sky, clock, indoor)
 	_path_in -= delta
 	if _path_in <= 0.0:
 		_path_in = PATH_LOOK
 		_sun_path(path_on and not hidden.has(SUN_PATH), sky, clock, indoor)
 	_breathe(delta, breath_on and not hidden.has(BREATH), sky, clock)
+
+
+## The rainbow after rain: how strong it may be now (see RAINBOW_*), where it stands on
+## the screen (away from the sun, turned with the view) and how high.
+func _rainbow(delta: float, on: bool, sky, clock, indoor: bool) -> void:
+	var h: float = sky.sun_height
+	var want := 0.0
+	var flat := Vector2(-sky.to_sun.x, -sky.to_sun.z)
+	if on and not indoor and h > 0.0 and flat.length() > 0.01:
+		var falling: float = clock.rain + clock.hail + clock.snowing
+		want = clampf(1.0 - falling / RAINBOW_RAIN, 0.0, 1.0)
+		want *= smoothstep(0.0, RAINBOW_FADE, sky.after_rain)
+		want *= smoothstep(RAINBOW_CLOUDS.y, RAINBOW_CLOUDS.x, clock.clouds)
+		want *= smoothstep(0.02, 0.12, h) * (1.0 - RAINBOW_NOON_DIM * smoothstep(0.4, 1.0, h))
+		want *= clampf(1.0 - clock.fog * 1.5, 0.0, 1.0)
+	rainbow = move_toward(rainbow, want, delta * RAINBOW_EASE)
+	var view = game.view
+	if view == null:
+		return
+	if rainbow <= 0.0:
+		_give(view.grade_mat, "rainbow", Vector4.ZERO)
+		return
+	var d := PixelView.screen_dir(flat).normalized()
+	var top := lerpf(RAINBOW_TOP, RAINBOW_NOON, clampf(h, 0.0, 1.0))
+	_give(view.grade_mat, "rainbow", Vector4(snappedf(rainbow, 0.01), snappedf(top, 0.01),
+		snappedf(d.x, 0.01), snappedf(d.y, 0.01)))
 
 
 ## Gives a shader parameter to `mat` only when it changed.
