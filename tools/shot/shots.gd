@@ -202,6 +202,11 @@ const SHOTS := {
 	"fog-dense-forest": {"time": 0.33, "season": 2, "weather": "dense_fog", "forest": true},
 	"fog-dense-river": {"time": 0.33, "season": 2, "weather": "dense_fog", "place": "river"},
 	"fog-simple": {"time": 0.33, "season": 2, "weather": "fog", "fog": false},
+	# A rainbow after rain, away from the sun: morning (the sun in the east, the bow in
+	# the west), noon (low and faint) and evening.
+	"rainbow-morning": {"time": 0.32, "season": 1, "after_rain": 1.0, "puddles": 0.6, "rainbow": 1.0},
+	"rainbow-noon": {"time": 0.47, "season": 1, "after_rain": 1.0, "puddles": 0.6, "rainbow": 1.0},
+	"rainbow-evening": {"time": 0.7, "season": 1, "after_rain": 1.0, "puddles": 0.6, "rainbow": 1.0},
 	# Puddles: just after rain, half dried, and in the rain.
 	"puddles": {"time": 0.42, "season": 1, "puddles": 1.0, "after_rain": 1.0},
 	"puddles-drying": {"time": 0.42, "season": 1, "puddles": 0.35},

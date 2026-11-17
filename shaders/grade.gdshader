@@ -43,6 +43,11 @@ uniform vec4 frost_state = vec4(0.0);
 // The wind across the screen (AirEffects._glass_wind), -1..1, + to the right: the drops
 // run aslant and the flakes slide aside with it, by up to GLASS_LANES lanes or cells.
 uniform float glass_wind = 0.0;
+// The rainbow after rain (AirEffects._rainbow): x how strong (0..1), y how far its top
+// stands from the middle of the screen towards its edge (a share of the way there:
+// high with a low sun, low at noon), zw the way across the screen
+// away from the sun (x right, y down), where the bow stands.
+uniform vec4 rainbow = vec4(0.0);
 const float GLASS_LANES = 2.0;
 // The pixels of the picture round its edges left off the screen (PixelView.MARGIN).
 uniform float view_margin = 0.0;
@@ -239,6 +244,42 @@ bool flake_arm(vec2 d, float r) {
 	d = abs(d);
 	bool arm = (d.x == 0.0 && d.y <= r) || (d.y == 0.0 && d.x <= r) || (d.x == d.y && d.x <= r - 1.0);
 	return arm || (r >= 4.0 && ((d.x == r - 1.0 && d.y == 1.0) || (d.y == r - 1.0 && d.x == 1.0)));
+}
+
+// The rainbow at pixel `p` of the screen's own grid (a picture `size` pixels): an arc of
+// six bands of whole pixels, red outside, round a point far off the screen away from
+// the sun, so it hangs where the sky would be and stays put on the glass as the world
+// glides (a rainbow goes along with the one who looks); the sky inside it a little
+// lighter, a faint second bow outside with its colours turned round, and its feet
+// fading towards the near side of the view. rgb its colour, a how much of it.
+vec4 rainbow_at(vec2 p, vec2 size) {
+	vec3 bands[6] = vec3[](vec3(0.95, 0.27, 0.25), vec3(1.0, 0.6, 0.22), vec3(1.0, 0.92, 0.38),
+		vec3(0.38, 0.86, 0.36), vec3(0.3, 0.52, 1.0), vec3(0.62, 0.38, 0.92));
+	float half_diag = length(size) * 0.5;
+	float band = max(1.0, floor(min(size.x, size.y) / 80.0));
+	float radius = half_diag * 1.3;
+	vec2 dir = rainbow.zw;
+	vec2 off = p + 0.5 - size * 0.5;
+	// How far the screen reaches from its middle along the bow's way, so its top stands
+	// as high on a wide screen as on a tall one.
+	float reach = 0.5 * dot(abs(dir), size);
+	vec2 rel = off - dir * (reach * rainbow.y - radius);
+	float t = (radius - length(rel)) / band;
+	float feet = smoothstep(-0.75, 0.15, dot(off, dir) / half_diag);
+	vec4 out_c = vec4(0.0);
+	if (t >= 0.0 && t < 6.0) {
+		out_c = vec4(bands[int(t)], 0.32);
+	} else if (t >= 6.0 && t < 18.0) {
+		out_c = vec4(vec3(1.0), 0.07 * (1.0 - (t - 6.0) / 12.0));
+	} else if (t < -8.0 && t >= -14.0) {
+		out_c = vec4(bands[int(-8.0 - t)], 0.11);
+	}
+	out_c.a *= feet * rainbow.x;
+	// In steps of an eighth, dithered on the screen's grid: whole pixels, no smear.
+	ivec2 b = ivec2(mod(p, 4.0));
+	int m[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
+	out_c.a = floor(out_c.a * 8.0 + (float(m[b.y * 4 + b.x]) + 0.5) / 16.0) / 8.0;
+	return out_c;
 }
 
 // Snow on the screen at pixel `p` of the picture (`size` pixels): flakes that land near
@@ -487,6 +528,11 @@ void fragment() {
 	ivec2 b = ivec2(mod(px, 4.0));
 	int m[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
 	float dither = (float(m[b.y * 4 + b.x]) + 0.5) / 16.0 - 0.5;
+	if (rainbow.x > 0.0) {
+		// Light added in the air, as warm or cool as the hour's light.
+		vec4 bow = rainbow_at(glass, 1.0 / TEXTURE_PIXEL_SIZE);
+		c = 1.0 - (1.0 - c) * (1.0 - clamp(bow.rgb * tint, 0.0, 1.0) * bow.a);
+	}
 	if (haze_amount > 0.0) {
 		// Banks from two layers of noise, in whole pixels, with a dithered edge.
 		vec2 p = px / 16.0 + haze_offset;
