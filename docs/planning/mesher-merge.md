@@ -1,7 +1,7 @@
 # Old and new mesher merged: state and what is left
 
-Status: ACTIVE (2026-11-17). Thread «Совместить старый и новый мешер». Branch `claude/project-thread-swdhm6`
-(work in progress, no PR yet). Plan of the earlier mesher work: `docs/planning/mesher.md`.
+Status: in a PR (2026-11-17). Threads «Совместить старый и новый мешер» (branch `claude/project-thread-swdhm6`)
+and its part 2 (branch `claude/project-thread-dvxhsh`). Plan of the earlier mesher work: `docs/planning/mesher.md`.
 
 ## What the user asked (2026-11-17, Russian, paraphrased)
 
@@ -44,23 +44,22 @@ If the user picks Б: swap the ramp profile in `SlopeMesher` for soft worlds (th
 - Pictures: project library `survivium-builds/old-new-merge/` (`before-*` old vs new, `variant-a-*` first
   draft, `now-*` current).
 
+## Done in part 2 (thread «Совместить старый и новый мешер, часть 2»)
+
+- Test shapes: `diamond2`, `cone` rise a level every two rings (`(12|14 - m) / 4`), `slope2_diag` a level
+  every two cells across the diagonal: their sides are true slopes, not half-block steps.
+- Soft worlds: the tip of a ridge a cell wide (lower on three sides) ramps down to its end (`TIP_END`)
+  instead of standing as a cube post (the posts at the ends of the diagonal ramps).
+- Foam along diagonal slopes looks straight on the shots now; the steps left are where the outline itself
+  steps.
+- Tests: `old_shapes_test` checks the old slopes' code on a world switched to them by hand;
+  `shapes_test._test_soft` (45° rule, ridge tips).
+- Docs: `docs/systems/world-data.md`, `land_layout.gd`.
+
 ## Left
 
-1. Foam/waterline still notched a little along diagonal slopes in water (`ground-old-corner-near`), and the
-   stepped foam round the 1-level diamonds in water (`ground-old-flat`): the water lips follow cells.
-2. `diamond2` / `cone` (2–3 levels, rings a cell wide on the diagonal): the upper rings are now half-block
-   cliffs (the 45° rule) and look stepped; decide with item 2 (test shapes): rings two cells wide on the
-   diagonal make true 45° slopes. Same for `slope2_diag` (band of 1 should be two cells wide on the diagonal:
-   `rise = clamp((px + pz - 9) / 2, 0, 2)`), pillars (now diamond-topped prisms).
-3. The small notch at the foot end of `slope2` / `slope2_diag` in water (`now-seam.png`, bottom tips).
-4. Test world (item 2): update `test_ground.gd` shapes and their doc comment.
-5. Tests: `old_shapes_test` line ~71 expects `TestGround({"slopes":1}).world.old_slopes` (now false): change
-   to `soft_slopes`; add a `shapes_test` case for the 45° rule (diagonal two lower → cube + cut) and a
-   `mesher_test` case (floor under cut has no flat lid). Run `run_tests -- generation mesher shapes store`.
-6. Docs: `docs/systems/world-data.md` (shapes, soft slopes), `land_layout.gd` comment on `slopes`,
-   `world_setup.gd` labels (`[slopes_old]` text may need renaming, en+ru), `docs/planning/mesher.md`.
-7. Decide (with the user) whether the old bicubic code and `old_slope_mesher.gd` are removed.
-8. PR with «Что нового» lines, screenshots, merge on green CI.
+1. Decide (with the user) whether the old bicubic code and `old_slope_mesher.gd` are removed.
+2. A `mesher_test` case for the floor under a cut (no flat lid) would be good.
 
 ## Tools (project library `notes/mesher-merge/`, copy into `tools/_dbg/`, never commit)
 

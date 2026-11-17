@@ -33,6 +33,9 @@ const SIDES: Array[Vector2i] = [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0)
 ## its two corners down.
 const LOW_CORNERS := [0, NW | NE, SE | SW, FULL, NW | SW, FULL & ~SE, FULL & ~NE, FULL, NE | SE, FULL & ~SW,
 	FULL & ~NW, FULL, FULL, FULL, FULL, FULL]
+## The side a ridge's tip lower on three sides (by `lows`: 1 N, 2 S, 4 W, 8 E) ends
+## at: the one across from its higher side.
+const TIP_END := {7: 4, 11: 8, 13: 1, 14: 2}
 ## Way from a cell to its corners NW, NE, SE, SW (corner k is bit 1 << k of a mask).
 const CORNER_DIRS := [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(1, 1), Vector2i(-1, 1)]
 ## The eight columns round one: beside it, then across its corners.
@@ -164,6 +167,10 @@ func update_slopes(x0: int, z0: int, x1: int, z1: int) -> void:
 						c.sloped[col] |= bit
 					continue
 				var mask: int = LOW_CORNERS[lows]
+				# With soft slopes the tip of a ridge a cell wide (lower on three sides) ramps
+				# down to its free end instead of standing up as a post.
+				if soft_slopes and mask == FULL and lows != 15 and lows != 3 and lows != 12:
+					mask = LOW_CORNERS[TIP_END[lows]]
 				# A corner with only the column across it lower goes down too, where both
 				# columns beside it may slope (and so go down there as well).
 				for k in 4:

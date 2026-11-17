@@ -59,9 +59,9 @@ const CANYON := 4
 ## with mouths as pits and slits, 1 halls joined by galleries with funnels for mouths
 ## (see WorldGen._halls); landscape: 0 as before, 1 the stage 2 landscape: biomes
 ## BIG_BIOMES times wider, rivers longer, wider and deeper (see RIVER_*_WIDE); slopes: 0
-## the blocky relief (flat slopes, one-level corners, half-blocks), 1 the slopes of
-## before it, curved and going down two levels at a corner (WorldData.old_slopes; it
-## shapes the ground, not how it is laid out). Here caves is 1, relief, climate,
+## the blocky relief (flat slopes, one-level corners, half-blocks, rounded edges), 1 the
+## same shapes no steeper than 45° drawn soft as the old slopes looked
+## (WorldData.soft_slopes; it shapes the ground, not how it is laid out). Here caves is 1, relief, climate,
 ## cave_shape, landscape and slopes 0, what worlds made before those settings have;
 ## «Новый мир» makes caves 0, the others 1, and slopes what the player picks.
 const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 1, "relief": 0,
