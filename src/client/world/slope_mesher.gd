@@ -120,7 +120,7 @@ static func slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 		flag = SLOPE | _diag(only, true, 0)
 	var top := Vector2(pack(m * 3, 0, flag), around)
 	if lifted != 0:
-		_lifted_top(buf, base, h, ne_sw, lifts, r, bends, top)
+		_lifted_top(buf, base, h, ne_sw, lifts, r, bends, top, c, sh, i, dy, side_offsets)
 	elif r > 0.0:
 		buf.shape(base, _bent_top(h, ne_sw, cut, r, bends), white, top)
 	# The triangles by the corners they join, each named by the corner it holds alone.
@@ -211,7 +211,8 @@ static func slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 ## beside that is not lifted, rounded by `r` where `bends` say: it follows that one's
 ## bent line (_bent_line), each triangle a fan from its middle.
 static func _lifted_top(buf, base: Vector3, h: PackedFloat32Array, ne_sw: bool, lifts: PackedVector3Array,
-		r: float, bends: int, top: Vector2) -> void:
+		r: float, bends: int, top: Vector2, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int,
+		side_offsets: PackedInt32Array) -> void:
 	var white := Color(1, 1, 1)
 	var tris: Array = [[0, 1, 3], [1, 2, 3]] if ne_sw else [[0, 1, 2], [0, 2, 3]]
 	var ps: Array[Vector3] = []
@@ -237,7 +238,8 @@ static func _lifted_top(buf, base: Vector3, h: PackedFloat32Array, ne_sw: bool, 
 			ring.append(ps[k0])
 			rn.append(cn[e])
 			var side := (k0 + 1) & 3 == k1 or (k1 + 1) & 3 == k0
-			if r <= 0.0 or not side or lifts[k0].x != 0.0 or lifts[k1].x != 0.0 or h[k0] == h[k1]:
+			if r <= 0.0 or not side or lifts[k0].x != 0.0 or lifts[k1].x != 0.0 \
+					or not _bent_side(c, sh, i, dy, side_offsets, h, k0, k1):
 				continue
 			var qs := BENT_LINES
 			var hs := _bent_line(h[k0], h[k1], k0, k1, qs, r, bends)
@@ -253,6 +255,43 @@ static func _lifted_top(buf, base: Vector3, h: PackedFloat32Array, ne_sw: bool, 
 		for g in ring.size():
 			var g1 := (g + 1) % ring.size()
 			_lifted_tri(buf, base, [mid, ring[g], ring[g1]], [mn, rn[g], rn[g1]], white, top)
+
+
+## Whether the side of padded cell `i` (with heights `h`) from corner k0 to k1 is drawn
+## on BENT_LINES by the top beside it, as _bent_top lays its lines: a sloping top meeting
+## it (on this level, or one up or down) changing height along that side's direction
+## (or this one, when that one too has lifted corners). Matching its points one for one
+## leaves no crack along the seam.
+static func _bent_side(c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, side_offsets: PackedInt32Array,
+		h: PackedFloat32Array, k0: int, k1: int) -> bool:
+	var along_x := k0 + k1 == 1 or k0 + k1 == 5
+	var d := -1
+	for f in [0, 1, 4, 5]:
+		if (SIDE_CORNERS[f] as Array).has(k0) and (SIDE_CORNERS[f] as Array).has(k1):
+			d = f
+	var m0: int = k0 ^ 1 if d < 2 else 3 - k0
+	var m1: int = k1 ^ 1 if d < 2 else 3 - k1
+	var h0 := roundi(h[k0])
+	var h1 := roundi(h[k1])
+	for dl: int in [0, -1, 1]:
+		var j := i + side_offsets[d] + dl * dy
+		if j - dy < 0 or j + dy >= c.size() or not cover(c[j]) or cover(c[j + dy]):
+			continue
+		var o := sh[j]
+		if o >= 16 or dl + (0 if o & (1 << m0) else 1) != h0 or dl + (0 if o & (1 << m1) else 1) != h1:
+			continue
+		if o & 15 == 0:
+			return false
+		var n := PackedFloat32Array()
+		for k in 4:
+			n.append(0.0 if o & (1 << k) else 1.0)
+		if n[0] != n[1] or n[3] != n[2] if along_x else n[0] != n[3] or n[1] != n[2]:
+			return true
+		if corner_lifts(c, sh, j, dy, side_offsets[4]).is_empty():
+			return false
+		return roundf(h[0]) != roundf(h[1]) or roundf(h[3]) != roundf(h[2]) if along_x \
+			else roundf(h[0]) != roundf(h[3]) or roundf(h[1]) != roundf(h[2])
+	return false
 
 
 ## One triangle of _lifted_top, wound to face up.
@@ -482,7 +521,9 @@ static func _bent_top(h: PackedFloat32Array, ne_sw: bool, cut: int, r: float, be
 		var db := pb.x + pb.y * m.x + pb.z * m.y
 		crease = 0 if absf(da - db) < 0.0001 else (1 if da < db else -1)
 	# Straight where nothing bends (the middle of a long slope).
-	var plain := bends == 0 and crease == 0
+	# (Not with the soft slopes' rounding: the tops beside lifted corners follow these
+	# lines point for point, see _lifted_top, or the seams between them would crack.)
+	var plain := bends == 0 and crease == 0 and r < 1.0
 	var xs := BENT_LINES if (h[0] != h[1] or h[3] != h[2]) and not plain else STRAIGHT_LINES
 	var zs := BENT_LINES if (h[0] != h[3] or h[1] != h[2]) and not plain else STRAIGHT_LINES
 	var cb := bends & 15
