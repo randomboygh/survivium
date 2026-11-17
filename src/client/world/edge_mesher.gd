@@ -34,14 +34,20 @@ const GN := 6
 ## A segment of a level's plan edge, ST floats: the ends a, b (x, z, from the middle
 ## cell's NW corner), the way out n, the radius and EDGE_* mode of its owner, the
 ## owner's place in the window (3 * (oz + 1) + ox + 1, 4 the middle cell) and its kind
-## (side 0..3 or DIAG_KIND). WALL_ONLY: a wall against a cell drawn its own way (a slope,
-## a trunk, a built form), no drop.
-const ST := 10
+## (side 0..3 or DIAG_KIND), and how far its wall stands back from it (LEDGE or 0).
+## WALL_ONLY: a wall against a cell drawn its own way (a slope, a trunk, a built form), no
+## drop.
+const ST := 11
 const DIAG_KIND := 4
 const WALL_ONLY := 0
 const MIDDLE := 4
 ## The most any material rounds, in blocks: what lies farther away reaches no cell.
 const REACH := 0.5
+## How far a soft layer's wall stands back from the brow of a hard layer under it,
+## leaving a ledge of the hard one: a line of GRID, so the top ends on it.
+const LEDGE := 0.125
+## How many soft levels down a wall is followed to a hard layer under it.
+const LEDGE_DEPTH := 8
 
 
 ## The piece of padded cell `i` on its level (see EMPTY, FULL).
@@ -121,8 +127,31 @@ static func _natural(job, i: int, p: int) -> bool:
 
 
 static func _push(out: PackedFloat32Array, a: Vector2, b: Vector2, n: Vector2, r: float, mode: int, place: int,
-		kind: int) -> void:
-	out.append_array([a.x, a.y, b.x, b.y, n.x, n.y, r, mode, place, kind])
+		kind: int, inset := 0.0) -> void:
+	out.append_array([a.x, a.y, b.x, b.y, n.x, n.y, r, mode, place, kind, inset])
+
+
+## How far the wall of side `s` of soft piece `p` of padded cell `j` stands back
+## (LEDGE or 0): where the cliff under it goes down through soft levels to a hard one
+## whose side is open too (layered cliffs: a narrow ledge of the hard layer stays).
+static func _ledge(job, j: int, p: int, s: int) -> float:
+	var c: PackedByteArray = job.c
+	var sh: PackedByteArray = job.sh
+	var cov: PackedByteArray = job.cov
+	var dy: int = job.dy
+	var f: int = SIDE_OFF[s].x + SIDE_OFF[s].y * job.dz
+	var k := j
+	for n in LEDGE_DEPTH:
+		k -= dy
+		if k < 0:
+			return 0.0
+		var pk := portion(c, sh, cov, k)
+		if not has_side(pk, s) or _odd(job, k) or has_side(portion(c, sh, cov, k + f), OPP[s]):
+			return 0.0
+		var m := material(c, cov, k, pk)
+		if Mat.edge_mode[m] != Mat.EDGE_ROUND:
+			return LEDGE if _natural(job, k, pk) else 0.0
+	return 0.0
 
 
 ## Distance between the middle cell (0..1 square) and segment a, b.
@@ -177,9 +206,12 @@ static func segments(job, i: int) -> PackedFloat32Array:
 					md = WALL_ONLY
 				var a := SIDE_A[s] + o
 				var b := SIDE_B[s] + o
-				if not own and _square_distance(a, b) >= r:
+				var inset := 0.0
+				if md == Mat.EDGE_ROUND and r > 0.0:
+					inset = _ledge(job, j, p, s)
+				if not own and _square_distance(a, b) >= r + inset:
 					continue
-				_push(out, a, b, Vector2(so), r, md, place, s)
+				_push(out, a, b, Vector2(so), r, md, place, s, inset)
 			if p < FULL:
 				var a := Vector2(0.5, 0.5) + Vector2(CORNER_DIRS[(p + 1) & 3]) * 0.5 + o
 				var b := Vector2(0.5, 0.5) + Vector2(CORNER_DIRS[(p + 3) & 3]) * 0.5 + o
@@ -242,7 +274,8 @@ static func height(p: Vector2, drops: PackedFloat32Array, heaps: PackedFloat32Ar
 			continue
 		var a := Vector2(drops[g], drops[g + 1])
 		var b := Vector2(drops[g + 2], drops[g + 3])
-		var d := p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b))
+		# A wall set back (a ledge under it) rounds from where it stands.
+		var d := maxf(0.0, p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b)) - drops[g + 10])
 		drop = maxf(drop, profile(d, r, int(drops[g + 7])))
 	var heap := 0.0
 	for g in range(0, heaps.size(), ST):
@@ -273,13 +306,13 @@ static func surface(p: Vector2, drops: PackedFloat32Array, heaps: PackedFloat32A
 		var a := Vector2(drops[g], drops[g + 1])
 		var b := Vector2(drops[g + 2], drops[g + 3])
 		var q := Geometry2D.get_closest_point_to_segment(p, a, b)
-		var d := p.distance_to(q)
+		var d := maxf(0.0, p.distance_to(q) - drops[g + 10])
 		var mode := int(drops[g + 7])
 		var v := profile(d, r, mode)
 		if v > drop:
 			drop = v
 			# The drop falls toward the edge: its gradient points out of the ground.
-			var away := (p - q) / d if d > 0.0001 else -Vector2(drops[g + 4], drops[g + 5])
+			var away := (p - q).normalized() if p.distance_to(q) > 0.0001 else -Vector2(drops[g + 4], drops[g + 5])
 			dg = -away * _steepness(d, r, mode)
 			round_drop = mode == Mat.EDGE_ROUND
 	var heap := 0.0
@@ -382,6 +415,8 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 		# outline (the shader draws them on the outermost texels, the rounded edge's foot).
 		var flag := 0
 		var edges := top_edges if t == p and cov[c[i]] else 0
+		if t == FULL:
+			edges = _level_edges(job, i, edges)
 		if t < FULL:
 			flag = _diag(t, true, DARK if t == p else CONTACT)
 			# Only the sides the half holds: the shader draws a side's code on every
@@ -402,7 +437,12 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 		var b := Vector2(drops[g + 2], drops[g + 3])
 		var n := Vector2(drops[g + 4], drops[g + 5])
 		var open := not has_side(pa, kind) if kind < DIAG_KIND else (pa == EMPTY or (pa != FULL and pa != p))
-		var below := _solid_at(job, i - dy, (a + b) * 0.5 + n * 0.05)
+		var inset := drops[g + 10]
+		if inset > 0.0:
+			var ab := _ledge_wall(job, buf, i, base, drops, heaps, g, open)
+			a = ab[0]
+			b = ab[1]
+		var below := inset == 0.0 and _solid_at(job, i - dy, (a + b) * 0.5 + n * 0.05)
 		if below and not below_ready:
 			below_drops = segments(job, i - dy)
 			below_heaps = feet(job, i - dy)
@@ -460,6 +500,115 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 		if dips:
 			_wall(buf, base, SIDE_A[s], SIDE_B[s], -Vector2(SIDE_OFF[s]), s, ones, tops,
 				Vector2(pack(material(c, cov, nj, pn) * 3 + 1, 0, 0), float(NO_TILES)), white)
+
+
+## The edge codes `edges` of the whole top of padded cell `i` less those of the sides
+## where its level goes on: a filled corner of the open cell beside (no rim), or a cut
+## corner of the wall above it (no contact shadow). ChunkMesher's codes see only whole
+## cells, and a rim along such a side ran on past the diagonal as a square outline.
+static func _level_edges(job, i: int, edges: int) -> int:
+	var c: PackedByteArray = job.c
+	var sh: PackedByteArray = job.sh
+	var cov: PackedByteArray = job.cov
+	for s in 4:
+		var code := (edges >> (2 * s)) & 3
+		if code == 0:
+			continue
+		var nj: int = i + SIDE_OFF[s].x + SIDE_OFF[s].y * job.dz
+		var gone := false
+		if code == CONTACT:
+			gone = not has_side(portion(c, sh, cov, nj + job.dy), OPP[s])
+		else:
+			gone = has_side(portion(c, sh, cov, nj), OPP[s])
+		if gone:
+			edges &= ~(3 << (2 * s))
+	return edges
+
+
+## Whether point `pt` of the middle cell lies on the ledge in front of a wall of its set
+## back (see LEDGE): no top of its own there.
+static func _on_ledge(pt: Vector2, drops: PackedFloat32Array) -> bool:
+	for g in range(0, drops.size(), ST):
+		var inset := drops[g + 10]
+		if inset <= 0.0 or int(drops[g + 8]) != MIDDLE:
+			continue
+		var a := Vector2(drops[g], drops[g + 1])
+		var b := Vector2(drops[g + 2], drops[g + 3])
+		var n := Vector2(drops[g + 4], drops[g + 5])
+		var along := (pt - a).dot(b - a) / (b - a).length_squared()
+		if along >= -0.0001 and along <= 1.0001 and (pt - a).dot(n) > -inset + 0.0001:
+			return true
+	return false
+
+
+## The own wall `g` of `drops` set back from its brow (LEDGE): its ends where it
+## stands ([a, b], shortened at a corner where the next side stands back too), the
+## ledge in front of it (the hard layer's top, on the lowest soft level) and the ends of
+## the ledge where it runs into ground that does not stand back.
+static func _ledge_wall(job, buf, i: int, base: Vector3, drops: PackedFloat32Array, heaps: PackedFloat32Array, g: int,
+		open: bool) -> Array:
+	var c: PackedByteArray = job.c
+	var sh: PackedByteArray = job.sh
+	var cov: PackedByteArray = job.cov
+	var dy: int = job.dy
+	var dz: int = job.dz
+	var kind := int(drops[g + 9])
+	var inset := drops[g + 10]
+	var a := Vector2(drops[g], drops[g + 1])
+	var b := Vector2(drops[g + 2], drops[g + 3])
+	var n := Vector2(drops[g + 4], drops[g + 5])
+	var along := (b - a).normalized()
+	var ends := [a, b]
+	var convex := [false, false]
+	for h in range(0, drops.size(), ST):
+		if h == g or int(drops[h + 8]) != MIDDLE or drops[h + 10] <= 0.0:
+			continue
+		var ha := Vector2(drops[h], drops[h + 1])
+		var hb := Vector2(drops[h + 2], drops[h + 3])
+		for e in 2:
+			if ends[e].is_equal_approx(ha) or ends[e].is_equal_approx(hb):
+				convex[e] = true
+	var lowest := false
+	var below := i - dy
+	var pb := portion(c, sh, cov, below)
+	if has_side(pb, kind) and not _odd(job, below):
+		lowest = Mat.edge_mode[material(c, cov, below, pb)] != Mat.EDGE_ROUND
+	var wa := a + along * inset if convex[0] else a
+	var wb := b - along * inset if convex[1] else b
+	var white := Color(1, 1, 1)
+	if lowest:
+		# The ledge: the top of the hard layer below, from the brow to the wall (mitred
+		# at a corner where the next side has one too).
+		var mh := material(c, cov, below, pb)
+		var vs := [base + Vector3(a.x, 0.0, a.y), base + Vector3(b.x, 0.0, b.y),
+			base + Vector3(wb.x - n.x * inset, 0.0, wb.y - n.y * inset),
+			base + Vector3(wa.x - n.x * inset, 0.0, wa.y - n.y * inset)]
+		var uvs := []
+		for v: Vector3 in vs:
+			uvs.append(Vector2(v.x - base.x, v.z - base.z))
+		_wound(buf, vs, Vector3.UP, uvs, white, Vector2(pack(mh * 3, DARK << (2 * kind), 0), float(NO_TILES)))
+	# Where the ledge runs into ground beside that does not stand back: its end.
+	var m := material(c, cov, i, portion(c, sh, cov, i))
+	for e in 2:
+		if convex[e]:
+			continue
+		var out := -along if e == 0 else along
+		var nj: int = i + int(out.x) + int(out.y) * dz
+		var pn := portion(c, sh, cov, nj)
+		if pn == EMPTY or (has_side(pn, kind) and not _odd(job, nj) and _ledge(job, nj, pn, kind) > 0.0):
+			continue
+		var e0: Vector2 = ends[e]
+		var e1: Vector2 = e0 - n * inset
+		var tops := PackedFloat32Array()
+		var bottoms := PackedFloat32Array()
+		for q: float in GRID:
+			tops.append(height(e0.lerp(e1, q), drops, heaps) if open else 1.0)
+			bottoms.append(0.0)
+		var face := -out
+		var fk := SIDE_OFF.find(Vector2i(roundi(face.x), roundi(face.y)))
+		_wall(buf, base, e0, e1, face, fk, tops, bottoms, Vector2(pack(m * 3 + 1, 0, OPEN_TOP if open else 0),
+			float(NO_TILES)), white)
+	return [wa - n * inset, wb - n * inset]
 
 
 ## Height of the top of a slope of shape `s` at point `l` of its cell (0..1, on its
@@ -532,7 +681,7 @@ static func _top(buf, t: int, base: Vector3, drops: PackedFloat32Array, heaps: P
 		for a in GN:
 			var pt := Vector2(GRID[a], GRID[b])
 			var k := b * GN + a
-			inside[k] = 1 if t == FULL or (pt - Vector2(0.5, 0.5)).dot(dir) > -0.0001 else 0
+			inside[k] = 1 if (t == FULL or (pt - Vector2(0.5, 0.5)).dot(dir) > -0.0001) and not _on_ledge(pt, drops) else 0
 			if inside[k]:
 				var sf := surface(pt, drops, heaps)
 				hs[k] = sf.x

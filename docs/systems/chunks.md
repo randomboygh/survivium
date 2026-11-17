@@ -102,7 +102,10 @@ slice, to free the far meshes.
   seams, and a soft material's rounding runs out into a hard neighbour's edge. Rounded edges get the normals of
   the curve (smooth shading), bevels flat ones. `prepare` says whether a rounded edge reaches a cell (the
   natural cells by `wild_masks`, placed blocks stay sharp; slopes, logs and forms are drawn their own way, with
-  a wall against them); otherwise the chunk mesher draws it as before. Preview shots: `ground-edges-*`),
+  a wall against them); otherwise the chunk mesher draws it as before. Layered cliffs: a soft layer whose
+  cliff goes down through soft levels to a hard one stands back `LEDGE` (1/8 block, a `GRID` line) from the
+  brow, leaving a ledge of the hard layer's top (`_ledge`, `_ledge_wall`). A whole top drops the edge codes of
+  sides where its level goes on into a half beside (`_level_edges`). Preview shots: `ground-edges-*`),
   `form_mesher.gd` (built blocks that are not a cube — `WorldData.forms`: a bevel from below, a bevel from
   above, steps; a shape is described as rising to the north and turned; a face on a cell's side is not drawn
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not

@@ -1,5 +1,6 @@
 extends "res://tests/unit/test_case.gd"
 ## The chunk meshes: cells, slopes and cut caps.
+const EdgeMesher := preload("res://src/client/world/edge_mesher.gd")
 
 
 func run() -> void:
@@ -229,6 +230,28 @@ func _test_edges() -> void:
 	_check(grass_brow > 0, "sheer grass's top edge is rounded its radius down")
 	_check(placed_cut == 0, "a placed block keeps sharp edges (%d)" % placed_cut)
 	_check(seams == 0, "rounded ground meets the cells beside it at one height (%d seams)" % seams)
+	# Layered cliff: dirt over stone stands back, a ledge of the stone's top stays.
+	w = WorldData.new(6, Vector2i(16, 16))
+	ch = w.chunks[Vector2i.ZERO]
+	for z in 16:
+		for x in 16:
+			ch.cells[z * 16 + x] = Mat.DIRT
+			ch.cells[(16 + z) * 16 + x] = Mat.GRASS
+			if x >= 3 and x <= 8 and z >= 3 and z <= 8:
+				ch.cells[(32 + z) * 16 + x] = Mat.STONE
+				ch.cells[(48 + z) * 16 + x] = Mat.DIRT
+	ch.natural.fill(WorldData.WILD | WorldData.SHEER)
+	w.rebuild_columns()
+	arrays = (ChunkMesher.build_chunk(w, 0, 0, 16)[0] as ArrayMesh).surface_get_arrays(0)
+	verts = arrays[Mesh.ARRAY_VERTEX]
+	normals = arrays[Mesh.ARRAY_NORMAL]
+	var ledge := 0
+	for v in verts.size():
+		var p := verts[v] / WorldData.CELL
+		if normals[v].y > 0.9 and absf(p.y - 3.0) < 0.001 and absf(p.z - (9.0 - EdgeMesher.LEDGE)) < 0.001 \
+				and p.x > 4.0 and p.x < 8.0:
+			ledge += 1
+	_check(ledge > 0, "soft ground over a hard cliff stands back, a ledge of the hard top stays")
 
 
 ## Total area of the triangles of a mesh (0 for none).

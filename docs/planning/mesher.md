@@ -25,13 +25,11 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   flat; placed blocks stay sharp (`wild_masks`). Test `mesher_test._test_edges`; shots `ground-edges-*`;
   pictures `survivium-builds/mesher-blocks/pr2/`. Geometry preview without the game (a tool that dumps a
   chunk's triangles, a numpy renderer): `notes/edge-preview/` in the project library.
-  Left for the next thread:
-  - a light square outline inside the stone ring (`ground-edges-stone`, third plot): the whole cell beside a
-    cut corner cell takes its side to the cut as a brow (the half does not hold that side), so a groove runs
-    along it; check the plan there (portions) and decide (no brow where the outline only touches at a corner,
-    or let the cut cell's diagonal run on);
-  - layered cliffs: a soft layer over a hard one set back with a narrow ledge of the hard one (now the layers
-    stack straight, only the top layer rounds); snow over stone already rounds only the snow;
+  Done in the second thread: the light square outline inside the stone ring was the shader's rim (edge codes)
+  along a whole cell's side where a filled half goes on at the same height (`_level_edges` drops them);
+  layered cliffs: a soft layer over a hard one stands back 1/8 block (`LEDGE`), a ledge of the hard top stays
+  (straight sides only; a diagonal side of a soft layer still stacks straight).
+  Left for the next thread (PR 2 part 2):
   - slopes: crest and foot of soft slopes, diagonal hips (slopes are still drawn by SlopeMesher, sharp);
   - vertical corners in plan (now a convex corner keeps its plan; the brow mitres there);
   - the remaining `corners` field / `CORNER_P` / shader `corner_shapes` go in PR 4.
