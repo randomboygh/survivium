@@ -16,6 +16,8 @@ const NAMES := {
 	"materials.drains": ["[field.materials.drains]", "[field.materials.drains.about]"],
 	"materials.fray": ["[field.materials.fray]", "[field.materials.fray.about]"],
 	"materials.side_fray": ["[field.materials.side_fray]", "[field.materials.side_fray.about]"],
+	"materials.edge": ["[field.materials.edge]", "[field.materials.edge.about]"],
+	"materials.edge_size": ["[field.materials.edge_size]", "[field.materials.edge_size.about]"],
 	"materials.layers": ["[field.materials.layers]", "[field.materials.layers.about]"],
 	"materials.texture": ["[field.materials.texture]", "[field.materials.texture.about]"],
 	"materials.item": ["[field.materials.item]", "[field.materials.item.about]"],
