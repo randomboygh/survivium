@@ -9,6 +9,7 @@
 # sandstorms. zone — the climate zone (polar, north, temperate, steppe, hot, tropic, mountain), a label
 # for the map and reports. color — the colour on the map. tints — the biome's ground and water colours instead of their own (by
 # the names of the top field and water: {sand: "#e6dcbe", water: "#4cc6bc"}). References to species and bushes are soft: without their bundle the share is empty.
+# Desert: dunes of sand; in new worlds (the setting landscape 1) an oasis by its lakes and rivers (by_water).
 - id: desert
   title: "[biomes.biomes.desert]"
   zone: hot
@@ -19,4 +20,6 @@
   bushes: {plants:shrub: 1.0}
   bush_sparsity: 900
   sandstorms: true
+  by_water: oasis
+  by_water_reach: 14
   color: "#dbbd75"

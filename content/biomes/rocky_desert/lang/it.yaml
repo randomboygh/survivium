@@ -1,0 +1,8 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/biomes/rocky_desert/bundle.yaml
+"[biomes.rocky_desert.bundle]": "Deserto roccioso"
+
+# content/biomes/rocky_desert/data/biomes.yaml
+"[biomes.biomes.rocky_desert]": "Deserto roccioso"

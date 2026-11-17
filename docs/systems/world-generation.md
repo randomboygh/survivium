@@ -55,7 +55,11 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   longer, straighter rivers), a river is 1 to `RIVER_WIDEST` times wider by the moisture of its land (`RIVER_DRY`..`RIVER_WET`: narrow through deserts and tundra, wide through forests, swamps and jungle), widens over `MOUTH_REACH_WIDE` cells before
   its mouth and its bed sinks a level every `RIVER_SINK` cells in from the bank, to `RIVER_DEEP`; lakes are
   fewer and bigger (`LAKES_WIDER`) and the land dries away from water more slowly (`WET_FADE_WIDE`), so no
-  ring of another biome lies round every pond. `SETTING_KEYS` lists the settings for the saves and menus. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the
+  ring of another biome lies round every pond. Also with `landscape` 1: land of a climate biome with `by_water` within its
+  `by_water_reach` cells of a lake (a low one in the plains, as lakes are laid) or of a river that carries water
+  (`OASIS_FLOW` over the river noise's start; dry beds do not count) is that biome (a desert's oasis); a swamp's level
+  open ground stands a level up in a hummock on the share `hummocks` of its columns; the plateau and the alpine
+  meadow show their record's stone and `clay_as` patches (`_patches`, scree among them: the ground name `scree`). `SETTING_KEYS` lists the settings for the saves and menus. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the
   water above the sea rises to its level (`_banks`), and farther goes down a level per column, up to
   `BANK_SLOPE` columns: the bank of a river above a rapid, going past land laid out lower, is a slope, not a
   wall of one column. Beyond its banks a river digs the land into a valley that rises a level a column; a

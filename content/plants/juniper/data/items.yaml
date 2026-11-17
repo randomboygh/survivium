@@ -1,0 +1,7 @@
+- id: juniper_bush
+  title: "[plants.items.juniper_bush]"
+  weight: 2.0
+  stack: 5
+  model: bush
+  icon: bush_juniper
+  plant: juniper

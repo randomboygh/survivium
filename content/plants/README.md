@@ -66,6 +66,12 @@ content/plants/
   puffball/             "Giant puffball": a white ball on the meadows, picked to eat; picking breathes out spores (`puff`); comes up only after rain (`after_rain`), crushed underfoot (`crush`)
   sundew/               "Sundew": red rosettes in clumps round the bog pools (`near_water`: within 4 cells of water), its dew glints in the sun (texels of alpha 220); its leaves,
                         boiled in a clay pot, make the same glue as bones (`bone_glue_from_sundew`)
+  cactus/               "Cacti": a tall cactus with arms, a prickly pear, a barrel cactus in flower, alone far apart on the
+                        sand and stone of the deserts and the oasis (`grows: bare`); cut, a fibre and now and then a prickly pear
+                        fruit (`cactus_fruit`, food)
+  cattail/              "Cattail": tall stalks with brown heads in clumps on the banks of swamps, bogs, mangroves,
+                        floodplains and oases (`grows: bank`); cut, fibre
+  juniper/              "Juniper": a low blue-green bush (`small`) of the plateaus and alpine meadows
   evening_primrose/     "Evening primrose": yellow buds by day that open at night (`looks: night`), the flowers brewed into
                         a calming tea (`calm`: asleep in it, sleep rests faster)
   common/models/        models shared by bundles (for now the bush)
@@ -88,7 +94,7 @@ folder lacks, the game looks for in the mod's `common/`.
   (`sprite`, a row of `frames` frames of 8×24 in the bundle's `sprites/plants/`, or wider with `across`: a frame of
   `across` such columns drawn as that many cards side by side), which says itself where it
   grows (`grows`: `meadow` — open grass, `shade` — the shade of crowns, `woods` — that shade and the open grass a few
-  cells round the crowns, `bank` — by the water), what share of such land it takes (`cover`), whether it grows in
+  cells round the crowns, `bank` — by the water, `bare` — open ground other than grass: the sand and stone of a desert), what share of such land it takes (`cover`), whether it grows in
   patches (`clumps` — a noise threshold, no field — everywhere) and how wide they are (`clump_size`, in cells, 10 if
   not given), and in which biomes (`biomes`, none — in any);
   there can be any number of such plants, they grow side by side (fern, nettle, cranberry, clover).
