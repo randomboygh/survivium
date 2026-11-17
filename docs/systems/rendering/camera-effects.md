@@ -47,8 +47,8 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   screen for the curvature is given by `CameraRig.update` every frame (`Crt.frame`). The retro palettes
   (`retro` of `grade.gdshader`, `Crt.RETRO_*`) draw the picture's pixels twice as big, on the world's grid
   (`view_origin`, so they do not crawl as the view glides), each big pixel one filtered tap of `crt_view` (its four
-  averaged), then bring the colour to the palette with a 4×4 ordered dither by big pixels: 8 bit is RGB 3-3-2
-  (256 colours); 1 bit black and white, the brightness stretched and put in five steps (black, three patterns,
+  averaged), then bring the colour to the palette with a 4×4 ordered dither by big pixels: 8 bit is the NES's palette
+  (55 colours: the nearest by eye looked up in `assets/nes_lut.png`, a 32³ grid made by `tools/make_nes_lut.py`); 1 bit black and white, the brightness stretched and put in five steps (black, three patterns,
   white) so a surface keeps one even pattern; CGA black, cyan, magenta, white, the two nearest colours mixed by
   the dither in the same five steps. For 1 bit and CGA the night's darks are lifted by a gamma (`retro_lift`,
   set by `Sky._update_grade` from `sky_light`), else the world is all black outside a fire's light.

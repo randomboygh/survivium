@@ -28,12 +28,13 @@ const LOOKS := [
 	{"retro": 2},
 	{"retro": 3},
 ]
-## The palettes of `retro` in grade.gdshader: 1 RGB 3-3-2 (256 colours, the 8-bit
-## computers'), 2 black and white with the greys dithered, 3 CGA (black, cyan, magenta,
+## The palettes of `retro` in grade.gdshader: 1 the NES's (55 colours, looked up in
+## NES_LUT), 2 black and white with the greys dithered, 3 CGA (black, cyan, magenta,
 ## white). The picture's pixels are drawn twice as big for each.
 const RETRO_8BIT := 1
 const RETRO_1BIT := 2
 const RETRO_CGA := 3
+const NES_LUT := preload("res://assets/nes_lut.png")
 const PARAMS := ["scan", "lines", "interlace", "glow", "threshold", "rgb", "curve", "vignette", "flicker",
 	"mask", "roll", "jitter", "bleed", "band", "noise"]
 
@@ -44,6 +45,7 @@ static func apply(mat: ShaderMaterial, i: int, tex: Texture2D) -> void:
 	var look: Dictionary = LOOKS[clampi(i, 0, LOOKS.size() - 1)]
 	var retro: int = look.get("retro", 0)
 	mat.set_shader_parameter("retro", retro)
+	mat.set_shader_parameter("retro_lut", NES_LUT if retro == RETRO_8BIT else null)
 	var tube := not look.is_empty() and retro == 0
 	mat.set_shader_parameter("crt_on", tube)
 	# The filtered picture: the tube's glow reads it, and a palette its big pixels.

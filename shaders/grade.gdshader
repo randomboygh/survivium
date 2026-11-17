@@ -91,9 +91,11 @@ uniform float crt_band = 0.0;
 uniform float crt_noise = 0.0;
 // The retro palettes (crt.gd RETRO_*, the same setting), 0 off: the picture's pixels drawn
 // twice as big, on the world's grid so the big pixels do not crawl as the view moves, and
-// the colours brought to a palette with ordered dithering on the big pixels: 1 RGB 3-3-2
-// (256 colours), 2 black and white, 3 CGA (black, cyan, magenta, white).
+// the colours brought to a palette with ordered dithering on the big pixels: 1 the NES's
+// (55 colours), 2 black and white, 3 CGA (black, cyan, magenta, white).
 uniform int retro = 0;
+// The nearest colour of the NES palette for 8 bit (assets/nes_lut.png, tools/make_nes_lut.py).
+uniform sampler2D retro_lut : filter_nearest;
 // The gamma 1 bit and CGA lift the picture's darks by before the palette
 // (Sky._update_grade: lower the darker the sky), 1 by day.
 uniform float retro_lift = 1.0;
@@ -359,9 +361,13 @@ vec4 screen_snow(vec2 p, vec2 size) {
 // threshold, 0..1.
 vec3 retro_color(vec3 c, float d) {
 	if (retro == 1) {
-		// Eight levels of red and green, four of blue, each rounded up or down by the dither.
-		vec3 n = vec3(7.0, 7.0, 3.0);
-		return floor(c * n + d) / n;
+		// The NES's palette: the colour, richer first (the palette's greys would take the
+		// muted greens of the crowns) and nudged by the dither, looked up in retro_lut, which
+		// holds the nearest of the palette's 55 for each of 32 levels of red, green and blue.
+		float g = dot(c, vec3(0.299, 0.587, 0.114));
+		c = clamp(mix(vec3(g), c, 1.6), 0.0, 1.0);
+		ivec3 k = ivec3(clamp(floor((c + (d - 0.5) * 0.16) * 31.0 + 0.5), 0.0, 31.0));
+		return texelFetch(retro_lut, ivec2(k.b * 32 + k.r, k.g), 0).rgb;
 	}
 	if (retro == 2) {
 		// The greys in five steps, black, three patterns and white, so a surface keeps one
