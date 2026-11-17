@@ -106,7 +106,8 @@ const DEFAULTS := {
 	# it was off by default under the key `edge_haze`, which saved files still hold and
 	# load ignores, so every player gets it on once.
 	"edge_mist": true,
-	# The old screen look over the world (Crt.LOOKS): 0 off, 1 soft, 2 old. Not part of
+	# The screen effect over the world (Crt.LOOKS): 0 off, 1..3 the old screens (soft,
+	# old, tape), 4..6 the retro palettes (8 bit, 1 bit, CGA). Not part of
 	# the quality presets.
 	"crt": 0,
 	"pixel_scale": 2,

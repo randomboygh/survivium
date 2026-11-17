@@ -51,6 +51,13 @@ const SHOTS := {
 	"crt-old": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 2}},
 	"crt-tape": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 3}},
 	"crt-off": {"time": 0.45, "season": 1, "trees": true},
+	# The retro palettes (Crt.RETRO_*): by day, and by a fire at night.
+	"retro-8bit": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 4}},
+	"retro-1bit": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 5}},
+	"retro-cga": {"time": 0.45, "season": 1, "trees": true, "settings": {"crt": 6}},
+	"retro-fire-8bit": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"crt": 4}},
+	"retro-fire-1bit": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"crt": 5}},
+	"retro-fire-cga": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"crt": 6}},
 	"crt-fire-soft": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"crt": 1}},
 	"crt-fire-old": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"crt": 2}},
 	"crt-fire-tape": {"time": 0.95, "season": 1, "moon": 0.0, "by_fire": Vector3(0.6, 0.0, -1.4), "settings": {"crt": 3}},
