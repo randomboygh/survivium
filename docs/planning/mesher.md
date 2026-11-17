@@ -17,6 +17,31 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   down in the cut (`WorldData._floor_slopes`, `SlopeMesher.slope_faces(only)`, drawn in the material above),
   so steep diagonal hills meet without walls.
 
+- PR 2 part 1 (edges by material, branch `claude/project-thread-2ppwze`): material fields `edge`
+  (sharp | round | bevel) and `edge_size` (the radii table), `src/client/world/edge_mesher.gd`: per level one
+  height function over the plan of pieces (whole cell / diagonal half): brows drop by the material's curve, feet
+  heap up by the wall's curve, each cell draws its top on a grid (`GRID`, lines at 0, 1/8, 1/4, 3/4, 7/8, 1) and
+  its walls to that height, so cells meet without seams; round edges get the curve's normals (smooth), bevels
+  flat; placed blocks stay sharp (`wild_masks`). Test `mesher_test._test_edges`; shots `ground-edges-*`;
+  pictures `survivium-builds/mesher-blocks/pr2/`. Geometry preview without the game (a tool that dumps a
+  chunk's triangles, a numpy renderer): `notes/edge-preview/` in the project library.
+  Done in the second thread: the light square outline inside the stone ring was the shader's rim (edge codes)
+  along a whole cell's side where a filled half goes on at the same height (`_level_edges` drops them);
+  layered cliffs: a soft layer over a hard one stands back 1/8 block (`LEDGE`), a ledge of the hard top stays
+  (straight sides only; a diagonal side of a soft layer still stacks straight).
+  BLOCKER before #732 can merge (found 2026-11-17): meshing is ~6x slower and makes ~3.4x the vertices.
+  `tools/bench_mesh.gd` (16x16 chunks round the spawn): main meshes 2114 ms / 663805 vertices, #732 12313 ms /
+  2281489 vertices. Of 64075 cells `prepare` looks at, 48063 are drawn by EdgeMesher (39157 with a brow of
+  their own); `prepare` costs ~4.9 s in all, `draw` ~5.6 s. CI `progress (other)` times out at 1200 s.
+  Ideas: a cheap early reject in `prepare` before `segments` (no open cell or wall round on the level);
+  grid lines per axis only where a segment changes the height that way (a straight brow needs the lines
+  across it, not along it: drop interior lines where the heights are linear), cutting vertices and `height`
+  calls; precompute segment data (a, b, r) once per cell instead of reading the float array per grid point;
+  cache `segments` of the window per level. Target: within ~1.5x of main.
+  Left for the next thread (PR 2 part 2, after the speed-up):
+  - slopes: crest and foot of soft slopes, diagonal hips (slopes are still drawn by SlopeMesher, sharp);
+  - vertical corners in plan (now a convex corner keeps its plan; the brow mitres there);
+  - the remaining `corners` field / `CORNER_P` / shader `corner_shapes` go in PR 4.
 - Spec (Claude doc, Russian, the user's words): https://claude.ai/artifact/1q8gbPYdyqXoDE5bMxKjoT
 - Pictures: project library `survivium-builds/mesher-blocks/` (`blocks-1-main.png` … `blocks-10-all.png`),
   the Python renderer that drew them in `src/` there (numpy z-buffer, 3/4 view, the game's 45° pitch).

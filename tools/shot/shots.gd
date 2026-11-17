@@ -1102,6 +1102,13 @@ const SHOTS := {
 	"ground-bushes": {"time": 0.42, "season": 1, "at": [78, 9]},
 	"ground-relief-west": {"time": 0.42, "season": 1, "at": [-46, 64]},
 	"ground-relief-middle": {"time": 0.42, "season": 1, "at": [2, 64]},
+	# Edges by material (EdgeMesher) on the combinations ground's dry band: grass kept
+	# sheer (rounded), stone (bevelled), grass beside stone; west and the diagonal shapes.
+	"ground-edges-sheer": {"time": 0.42, "season": 1, "at": [-62, -106]},
+	"ground-edges-sheer-diag": {"time": 0.42, "season": 1, "at": [140, -106]},
+	"ground-edges-stone": {"time": 0.42, "season": 1, "at": [-62, -154]},
+	"ground-edges-stone-diag": {"time": 0.42, "season": 1, "at": [140, -154]},
+	"ground-edges-halves": {"time": 0.42, "season": 1, "at": [-62, -130]},
 	"ground-relief-east": {"time": 0.42, "season": 1, "at": [50, 64]},
 	"ground-relief-winter": {"time": 0.42, "season": 3, "at": [2, 64]},
 	# The stream down its terraces, from the meadow south of it and from its top.

@@ -3,6 +3,8 @@
 # (content/core/data/materials.yaml); sounds by name, from the "Sounds" mod.
 - id: scree
   title: "[resources.materials.scree]"
+  edge: round
+  edge_size: 0.3
   role: scree
   corners: sharp
   slope: true

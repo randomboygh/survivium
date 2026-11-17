@@ -2,6 +2,8 @@
 # (hardness 4). Fields as for the core's materials (content/core/data/materials.yaml).
 - id: iron_ore
   title: "[materials.materials.iron_ore]"
+  edge: bevel
+  edge_size: 0.25
   role: ore
   veins: 0.6
   priority: 2

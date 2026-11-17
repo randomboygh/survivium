@@ -3,6 +3,8 @@
 # sounds by name, from the "Sounds" mod. Without the bundle, earth takes its place.
 - id: peat
   title: "[resources.materials.peat]"
+  edge: round
+  edge_size: 0.4
   role: peat
   corners: soft
   slope: true

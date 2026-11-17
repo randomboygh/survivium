@@ -14,6 +14,7 @@ const Slopes := preload("res://src/client/world/slope_mesher.gd")
 const Water := preload("res://src/client/world/water_mesher.gd")
 const Trunks := preload("res://src/client/world/trunk_mesher.gd")
 const Forms := preload("res://src/client/world/form_mesher.gd")
+const Edges := preload("res://src/client/world/edge_mesher.gd")
 
 ## Per direction: [corners, uvs, normal] of a whole cell face.
 static var _cell_faces: Array = []
@@ -63,6 +64,8 @@ class Job extends RefCounted:
 	## middles in world units, and the material of each (GlowLights lights the nearest).
 	var glows := PackedVector3Array()
 	var glow_mats := PackedByteArray()
+	## The natural cells of the padded columns (EdgeMesher.wild_masks): only they round.
+	var wild := PackedInt64Array()
 
 
 ## The solid and water meshes of the cells x0..x0+size, z0..z0+size, all at once:
@@ -146,6 +149,7 @@ static func _prepare(job: Job, i: int) -> void:
 			job.sh.append_array(w.padded(true, 0, x0, z0, x1, z1, half))
 		1:
 			job.cands = _candidates(w, job.x0, job.z0, job.x1, job.z1)
+			job.wild = Edges.wild_masks(w, x0, z0, x1, z1)
 			_take_forms(job)
 
 
@@ -235,7 +239,11 @@ static func _column(job: Job, x: int, z: int) -> bool:
 		var m := c[i]
 		if m == AIR or m == LEAVES:
 			if sh[i] >= 16:
-				_fill_faces(solid, c, sh, cov, i, dy, dz, Vector3(x, y, z))
+				var ready := Edges.prepare(job, i)
+				if ready.is_empty():
+					_fill_faces(solid, c, sh, cov, i, dy, dz, Vector3(x, y, z))
+				else:
+					Edges.draw(job, solid, i, Vector3(x, y, z), ready, no_tiles, 0)
 			elif m == AIR:
 				var lips := Water.lip_fills(c, i, dy, dz)
 				if lips != 0:
@@ -286,7 +294,11 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				Water.water_faces(water, faces, nb, base, depth, foam, corners, lips)
 				Water.falls(job.water_falls, c, nb, side_offsets, i, dy, dz, x - x0, z - z0, y)
 			if fills != 0:
-				_fill_faces(solid, c, sh, cov, i, dy, dz, base)
+				var ready := Edges.prepare(job, i)
+				if ready.is_empty():
+					_fill_faces(solid, c, sh, cov, i, dy, dz, base)
+				else:
+					Edges.draw(job, solid, i, base, ready, no_tiles, 0)
 		elif m == Mat.LOG and Trunks.is_trunk(nb, w.trees.has(Vector2i(x, z))):
 			Trunks.trunk_faces(solid, w, x, y, z, nb, base, m)
 		elif sh[i] & 15 != 0 and not cov[nb[2]]:
@@ -303,11 +315,28 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			# Most tops lie under open sky amid the same flat ground: no sides, no
 			# edges, no transitions.
 			if cuts == 0 and not bare and not by_form and not cov[nb[2]] and cov[nb[3]] and nb[0] == m and nb[1] == m and nb[4] == m \
-					and nb[5] == m and (sh[i + dx] | sh[i - dx] | sh[i + dz] | sh[i - dz]) & 15 == 0 \
+					and nb[5] == m and (sh[i + dx] | sh[i - dx] | sh[i + dz] | sh[i - dz]) < 16 \
+					and (sh[i + dx] | sh[i - dx] | sh[i + dz] | sh[i - dz]) & 15 == 0 \
+					and cov[c[i + dx + dz]] and cov[c[i + dx - dz]] and cov[c[i - dx + dz]] and cov[c[i - dx - dz]] \
 					and not cov[c[i + dy + dx]] and not cov[c[i + dy - dx]] and not cov[c[i + dy + dz]] \
 					and not cov[c[i + dy - dz]]:
 				plain.append(((y * 64 + m) * 64 + z - z0) * 64 + x - x0)
 				continue
+			# Natural ground with a rounded or bevelled edge near (EdgeMesher).
+			if sh[i] & 15 == 0 and not bare and not by_form:
+				var ready := Edges.prepare(job, i)
+				if not ready.is_empty():
+					Edges.draw(job, solid, i, base, ready, float(_around_tiles(c, cov, i, dy, dz, sh)),
+						_top_edges(c, cov, i, dy, dz))
+					if not cov[nb[FACE_BOTTOM]]:
+						var under := Vector2(pack(m * 3 + 2, 0, 0), no_tiles)
+						if cuts != 0:
+							_cut_side(solid, faces, FACE_BOTTOM, base, cuts, white, under)
+						else:
+							_add_cell_face(solid, FACE_BOTTOM, base, white, under)
+					if cuts != 0:
+						Water.cut_water(w, water, c, i, dy, base, cuts, Mat.corner_shape[m])
+					continue
 			# Ground under a cut whose top slopes there (WorldData._floor_slopes): the
 			# sides beside the cut corner go up to that slope.
 			var floor_k := -1
@@ -633,24 +662,6 @@ static func _tile_beside(c: PackedByteArray, cov: PackedByteArray, sh: PackedByt
 	elif sloped and j - dy >= 0 and cov[c[j - dy]]:
 		return c[j - dy]
 	return NO_MATERIAL
-
-
-## Materials of the cells beside a wall of padded cell `i` on its plane, packed like
-## _around_tiles for UV2.y in the order of the wall's edges: above, below, and the
-## ends of its texture row (W at i - s, E at i + s), each where its own side shows on
-## the same plane (the cell before it, `f` on, open), else NO_MATERIAL. The shader
-## lets their texels reach in over the boundary (the materials' `side_fray`).
-static func _side_tiles(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, f: int, s: int) -> int:
-	var m := c[i]
-	var a := c[i + dy]
-	var b := c[i - dy]
-	var w := c[i - s]
-	var e := c[i + s]
-	var tn := a if a != m and cov[a] and not cov[c[i + dy + f]] else NO_MATERIAL
-	var ts := b if b != m and cov[b] and not cov[c[i - dy + f]] else NO_MATERIAL
-	var tw := w if w != m and cov[w] and not cov[c[i - s + f]] else NO_MATERIAL
-	var te := e if e != m and cov[e] and not cov[c[i + s + f]] else NO_MATERIAL
-	return tn | ts << 6 | tw << 12 | te << 18
 
 
 ## True when no neighbour's top material differs from material `m`, so the top has no

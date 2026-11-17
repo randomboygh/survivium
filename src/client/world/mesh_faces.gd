@@ -293,3 +293,21 @@ static func covers_table() -> PackedByteArray:
 ## Cells that hide what is behind them; leaves and water do not.
 static func _covers(m: int) -> bool:
 	return m != AIR and m != WATER and m != LEAVES
+
+
+## Materials of the cells beside a wall of padded cell `i` on its plane, packed like
+## _around_tiles for UV2.y in the order of the wall's edges: above, below, and the
+## ends of its texture row (W at i - s, E at i + s), each where its own side shows on
+## the same plane (the cell before it, `f` on, open), else NO_MATERIAL. The shader
+## lets their texels reach in over the boundary (the materials' `side_fray`).
+static func _side_tiles(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, f: int, s: int) -> int:
+	var m := c[i]
+	var a := c[i + dy]
+	var b := c[i - dy]
+	var w := c[i - s]
+	var e := c[i + s]
+	var tn := a if a != m and cov[a] and not cov[c[i + dy + f]] else NO_MATERIAL
+	var ts := b if b != m and cov[b] and not cov[c[i - dy + f]] else NO_MATERIAL
+	var tw := w if w != m and cov[w] and not cov[c[i - s + f]] else NO_MATERIAL
+	var te := e if e != m and cov[e] and not cov[c[i + s + f]] else NO_MATERIAL
+	return tn | ts << 6 | tw << 12 | te << 18
