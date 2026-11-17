@@ -105,7 +105,12 @@ slice, to free the far meshes.
   a wall against them); otherwise the chunk mesher draws it as before. Layered cliffs: a soft layer whose
   cliff goes down through soft levels to a hard one stands back `LEDGE` (1/8 block, a `GRID` line) from the
   brow, leaving a ledge of the hard layer's top (`_ledge`, `_ledge_wall`). A whole top drops the edge codes of
-  sides where its level goes on into a half beside (`_level_edges`). Preview shots: `ground-edges-*`),
+  sides where its level goes on into a half beside (`_level_edges`). Speed (bench `tools/bench_mesh.gd`): a cell
+  under a whole one goes to EdgeMesher only for a ledge (a wall standing on a heap is drawn flat, the heap hides its
+  foot); a whole top is drawn only on the `lines` of `GRID` its brows bend (a straight brow needs the lines across
+  it, a free end both ways; halves and diagonal brows take the whole grid); tops are cached as indexed shapes by
+  the brows and feet that make them (`_shapes`, `MeshBuffers.shape`); a job keeps `segments`, `feet` and a packed
+  `_info` per padded cell. Preview shots: `ground-edges-*`),
   `form_mesher.gd` (built blocks that are not a cube — `WorldData.forms`: a bevel from below, a bevel from
   above, steps; a shape is described as rising to the north and turned; a face on a cell's side is not drawn
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not

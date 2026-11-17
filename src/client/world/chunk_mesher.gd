@@ -66,6 +66,10 @@ class Job extends RefCounted:
 	var glow_mats := PackedByteArray()
 	## The natural cells of the padded columns (EdgeMesher.wild_masks): only they round.
 	var wild := PackedInt64Array()
+	## EdgeMesher's brows and feet by padded cell (each is asked for by the cells round it).
+	var edge_segs := {}
+	var edge_feet := {}
+	var edge_info := PackedInt32Array()
 
 
 ## The solid and water meshes of the cells x0..x0+size, z0..z0+size, all at once:

@@ -29,15 +29,15 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   along a whole cell's side where a filled half goes on at the same height (`_level_edges` drops them);
   layered cliffs: a soft layer over a hard one stands back 1/8 block (`LEDGE`), a ledge of the hard top stays
   (straight sides only; a diagonal side of a soft layer still stacks straight).
-  BLOCKER before #732 can merge (found 2026-11-17): meshing is ~6x slower and makes ~3.4x the vertices.
-  `tools/bench_mesh.gd` (16x16 chunks round the spawn): main meshes 2114 ms / 663805 vertices, #732 12313 ms /
-  2281489 vertices. Of 64075 cells `prepare` looks at, 48063 are drawn by EdgeMesher (39157 with a brow of
-  their own); `prepare` costs ~4.9 s in all, `draw` ~5.6 s. CI `progress (other)` times out at 1200 s.
-  Ideas: a cheap early reject in `prepare` before `segments` (no open cell or wall round on the level);
-  grid lines per axis only where a segment changes the height that way (a straight brow needs the lines
-  across it, not along it: drop interior lines where the heights are linear), cutting vertices and `height`
-  calls; precompute segment data (a, b, r) once per cell instead of reading the float array per grid point;
-  cache `segments` of the window per level. Target: within ~1.5x of main.
+  Speed (found 2026-11-17: meshing was ~6x slower than main, CI `progress (other)` timed out at 1200 s). Third
+  thread «Ускорить мешер со скруглениями»: `tools/bench_mesh.gd` (16x16 chunks round the spawn, in the cloud
+  container) main 1857 ms / 663805 vertices; before 10324 ms / 2281489; after 4302 ms / 1276112 (~2.3x). Done:
+  covered cells only for ledges; whole tops on the `lines` the brows need; tops cached as indexed shapes
+  (3332 distinct of 13767); job caches of `segments`, `feet`, `_info`; `feet` skips a bare level above.
+  What is left of the cost (~2.4 s): `prepare` ~1.2 s (about 40k `segments` of ~12-18 us, GDScript loops over
+  the 3x3 window), `draw` ~1.5 s (tops ~0.8 s of which cache misses ~0.55 s, walls ~0.5 s, shared sides
+  ~0.2 s). Further ideas: cache whole draws (walls too) like the tops; fewer `GRID` lines for halves and
+  diagonal brows (needs lines along the diagonal); count fewer cells in `prepare` from ChunkMesher.
   Left for the next thread (PR 2 part 2, after the speed-up):
   - slopes: crest and foot of soft slopes, diagonal hips (slopes are still drawn by SlopeMesher, sharp);
   - vertical corners in plan (now a convex corner keeps its plan; the brow mitres there);

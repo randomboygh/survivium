@@ -57,6 +57,24 @@ func tri_n(p: Array, n: Array, uv: Array, color: Color, packed: Vector2) -> void
 	indices.append(start + 2)
 
 
+## Adds a shape ([verts, normals, uvs, indices], made at the origin) at `base`, all of it
+## with `color` and `packed`.
+func shape(base: Vector3, s: Array, color: Color, packed: Vector2) -> void:
+	var p: PackedVector3Array = s[0]
+	var start := verts.size()
+	var count := p.size()
+	verts.append_array(Transform3D(Basis.IDENTITY, base) * p)
+	normals.append_array(s[1])
+	uvs.append_array(s[2])
+	uv2s.resize(start + count)
+	colors.resize(start + count)
+	for k in range(start, start + count):
+		uv2s[k] = packed
+		colors[k] = color
+	for k: int in s[3]:
+		indices.append(start + k)
+
+
 func is_empty() -> bool:
 	return verts.is_empty()
 
