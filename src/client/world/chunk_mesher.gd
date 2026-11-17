@@ -11,6 +11,7 @@ extends "res://src/client/world/mesh_faces.gd"
 ## and scaled to world units.
 
 const Slopes := preload("res://src/client/world/slope_mesher.gd")
+const OldSlopes := preload("res://src/client/world/old_slope_mesher.gd")
 const Water := preload("res://src/client/world/water_mesher.gd")
 const Trunks := preload("res://src/client/world/trunk_mesher.gd")
 const Forms := preload("res://src/client/world/form_mesher.gd")
@@ -117,7 +118,9 @@ static func start_rect(w, x0: int, z0: int, x1: int, z1: int, part := false) -> 
 	job.z = z0
 	job.x = x0
 	job.part = part
-	job.rounded = rounded
+	# A world with old slopes is drawn as before the blocky relief: no rounded edges.
+	old_slopes = w.old_slopes
+	job.rounded = rounded and not old_slopes
 	job.faces = face_table()
 	job.solid = MeshBuffers.new()
 	job.water = MeshBuffers.new()
@@ -315,6 +318,17 @@ static func _column(job: Job, x: int, z: int) -> bool:
 					Edges.draw(job, solid, i, base, ready, no_tiles, 0)
 		elif m == Mat.LOG and Trunks.is_trunk(nb, w.trees.has(Vector2i(x, z))):
 			Trunks.trunk_faces(solid, w, x, y, z, nb, base, m)
+		elif sh[i] & 15 != 0 and not cov[nb[2]] and old_slopes:
+			var cuts := sh[i] >> 4
+			OldSlopes.slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m,
+				float(_around_tiles(c, cov, i, dy, dz, sh)), cuts)
+			if Water.shore(c, cov, i, dy, dz):
+				Water.shore_water(water, w, c, sh, i, dy, dz, base, Water.foam(c, sh, cov, i, dy, dz))
+			elif cuts:
+				Water.cut_water(w, water, c, i, dy, base, cuts)
+		elif sh[i] & 15 != 0 and sh[i] < 16 and old_slopes:
+			# Old slopes: a covered cell that the slope above goes on down into.
+			OldSlopes.deep_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m)
 		elif sh[i] & 15 != 0 and not cov[nb[2]]:
 			var cuts := sh[i] >> 4
 			Slopes.slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m, float(_around_tiles(c, cov, i, dy, dz, sh)), cuts,
@@ -355,7 +369,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			# Ground under a cut whose top slopes there (WorldData._floor_slopes): the
 			# sides beside the cut corner go up to that slope.
 			var floor_k := -1
-			if sh[i] & 15 != 0 and cov[nb[2]] and sh[i + dy] >= 16:
+			if sh[i] & 15 != 0 and cov[nb[2]] and sh[i + dy] >= 16 and not old_slopes:
 				floor_k = WorldData.level_of(sh[i + dy] >> 4 & -(sh[i + dy] >> 4))
 			for d in 6:
 				var n := nb[d]
@@ -766,8 +780,9 @@ static func _covered_halves(c: PackedByteArray, sh: PackedByteArray, cov: Packed
 	for h in 8:
 		var e := h >> 1
 		var n: int = i + (-dz if e == 0 else (dz if e == 1 else (-1 if e == 2 else 1)))
-		# A neighbour's cut or fill at either corner of the edge covers all of it.
-		var bit: int = 1 << HALF_CORNER[h] | 1 << HALF_CORNER[h ^ 1]
+		# A neighbour's cut or fill at either corner of the edge covers all of it (old
+		# slopes: half a cell along each side, only the corner by this half).
+		var bit: int = 1 << HALF_CORNER[h] | (0 if old_slopes else 1 << HALF_CORNER[h ^ 1])
 		# A fill of the open neighbour, or a cut of the ground above it.
 		if not cov[c[n]] and sh[n] >> 4 & bit \
 				or edges >> (2 * e) & 3 == CONTACT and cov[c[n + dy]] and sh[n + dy] >> 4 & bit:
@@ -788,6 +803,13 @@ static func _quarter_edges(q: int, edges: int, halves: int) -> int:
 ## where the ground goes on lose their edge code.
 static func _top_pieces(buf, base: Vector3, m: int, cuts: int, edges: int, halves: int, around: float) -> void:
 	var white := Color(1, 1, 1)
+	if old_slopes:
+		for q in 4:
+			var e := _quarter_edges(q, edges, halves)
+			var cut := cuts & (1 << q) != 0
+			var packed := Vector2(pack(m * 3, e, _diag(q, false, DARK) if cut else 0), around)
+			_piece(buf, base, 1.0, q, OLD_CUT if cut else QUARTER, Vector3.UP, white, packed, Mat.corner_shape[m])
+		return
 	var kind := cut_kind(cuts)
 	# Lower ground beyond the diagonal: a rim or an outline by the view.
 	var flag := _diag(kind - CUT_BY, false, DARK) if cuts != 0 else 0
@@ -802,9 +824,18 @@ static func _cut_side(buf, faces: Array, d: int, base: Vector3, cuts: int, color
 		shape := 0) -> void:
 	if d == FACE_BOTTOM:
 		for q in 4:
-			_piece(buf, base, 0.0, q, cut_kind(cuts), Vector3.DOWN, color, packed, shape)
+			_piece(buf, base, 0.0, q, quarter_kind(cuts, q), Vector3.DOWN, color, packed, shape)
 		return
 	var ks: Array = SIDE_CORNERS[d]
+	if old_slopes:
+		# Halves of the side next to an uncut corner.
+		for j in 2:
+			if cuts & (1 << ks[j]) == 0:
+				var along_z := d < 2
+				var size := Vector3(1.0, 1.0, 0.5) if along_z else Vector3(0.5, 1.0, 1.0)
+				var offset := Vector3(0.0, 0.0, 0.5 * j) if along_z else Vector3(0.5 * j, 0.0, 0.0)
+				_add(buf, faces[d], d, base, size, offset, color, packed)
+		return
 	if cuts & ((1 << ks[0]) | (1 << ks[1])) == 0:
 		_add(buf, faces[d], d, base, Vector3.ONE, Vector3.ZERO, color, packed)
 
@@ -906,6 +937,7 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 	if level < 0 or level >= w.size_y - 1:
 		return null
 	w.refresh_shapes()
+	old_slopes = w.old_slopes
 	var buf := MeshBuffers.new()
 	var x1: int = x0 + size
 	var z1: int = z0 + size
@@ -962,7 +994,7 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 				if shapes[i] & 15 != 0:
 					continue
 				for q in 4:
-					_piece(buf, base, 1.0, q, cut_kind(cuts), Vector3.UP, dark, packed)
+					_piece(buf, base, 1.0, q, quarter_kind(cuts, q), Vector3.UP, dark, packed, Mat.corner_shape[cells[i]])
 			elif open & bit and shapes[i] >= 16 and cells[i] != LEAVES:
 				var fills: int = shapes[i] >> 4
 				if open & bit << 1:

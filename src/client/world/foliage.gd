@@ -327,7 +327,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 		for kind in kinds:
 			var fx := rng.randi_range(1, 7) / 8.0
 			var fz := rng.randi_range(1, 7) / 8.0
-			if cuts & WorldData.corners_at(fx, fz):
+			if w.in_cuts(cuts, fx, fz):
 				continue
 			var h: float = 1.0 if mask == WorldData.FULL else w.surface_height(x, y, z, fx, fz)
 			if kind >= Grass.CUSTOM and Plants.ACROSS[kind - Grass.CUSTOM] > 1:

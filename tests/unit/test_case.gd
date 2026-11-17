@@ -103,8 +103,8 @@ func _ensure_stage(gen, key: Vector2i, stage: int) -> void:
 
 ## A world of `seed` made at once over four by four chunks at its spawn: {"gen", "world",
 ## "area" (the chunk keys, row by row)}.
-func _land(seed_value: int) -> Dictionary:
-	var gen := WorldGen.new(seed_value, 40)
+func _land(seed_value: int, options := {}) -> Dictionary:
+	var gen := WorldGen.new(seed_value, 40, options)
 	var from := WorldData.chunk_key(gen.spawn_guess.x, gen.spawn_guess.z) - Vector2i(2, 2)
 	gen.generate_area(from, from + Vector2i(4, 4))
 	var area := []

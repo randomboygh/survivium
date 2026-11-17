@@ -4,6 +4,7 @@ extends "res://src/client/world/mesh_faces.gd"
 ## on a shore that follows the slope under it. Called by ChunkMesher a column at a time.
 
 const Slopes := preload("res://src/client/world/slope_mesher.gd")
+const OldSlopes := preload("res://src/client/world/old_slope_mesher.gd")
 
 
 ## Water standing in the cut corners of padded cell `i` beside water with air above,
@@ -35,7 +36,8 @@ static func foam(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, 
 	for h in 8:
 		var e := h >> 1
 		var n: int = i + (-dz if e == 0 else (dz if e == 1 else (-1 if e == 2 else 1)))
-		if cov[c[n]] and sh[n] >> 4 & (1 << HALF_CORNER[h] | 1 << HALF_CORNER[h ^ 1]) == 0 and shores & (1 << e) == 0:
+		var bits: int = 1 << HALF_CORNER[h] | (0 if old_slopes else 1 << HALF_CORNER[h ^ 1])
+		if cov[c[n]] and sh[n] >> 4 & bits == 0 and shores & (1 << e) == 0:
 			foam |= 1 << h
 	return foam
 
@@ -122,8 +124,8 @@ static func lip_cuts(c: PackedByteArray, i: int, dy: int, dz: int) -> int:
 		var z := i + o.y * dz
 		if c[x] == AIR and c[z] == AIR and c[x + o.y * dz] == AIR:
 			cuts |= 1 << k
-	# One corner at most, as the land's.
-	return cuts if cuts & (cuts - 1) == 0 else 0
+	# One corner at most, as the land's (old slopes: any).
+	return cuts if old_slopes or cuts & (cuts - 1) == 0 else 0
 
 
 ## The corners of air cell `i` that the water of a step's lip fills (see lip_cuts): the
@@ -140,9 +142,9 @@ static func lip_fills(c: PackedByteArray, i: int, dy: int, dz: int) -> int:
 			# Not where a side's own corner facing this cell is cut (see lip_cuts).
 			var bx := i - o.x
 			var bz := i - o.y * dz
-			if not (c[bx] == AIR and c[bx + o.y * dz] == AIR or c[bz] == AIR and c[bz + o.x] == AIR):
+			if old_slopes or not (c[bx] == AIR and c[bx + o.y * dz] == AIR or c[bz] == AIR and c[bz + o.x] == AIR):
 				fills |= 1 << k
-	return fills if fills & (fills - 1) == 0 else 0
+	return fills if old_slopes or fills & (fills - 1) == 0 else 0
 
 
 ## The halves of side `d` (`off` the way to the cell beside) of water cell `i` that its
@@ -323,7 +325,7 @@ static func water_faces(buf, faces: Array, nb: PackedByteArray, base: Vector3, d
 			if d == FACE_TOP and ((fills | cuts) != 0 or corners[1] != corners[0] or corners[2] != corners[0] \
 					or corners[3] != corners[0]):
 				for q in 4:
-					_piece(buf, base, h, q, cut_kind(fills | cuts), Vector3.UP, mid, data,
+					_piece(buf, base, h, q, quarter_kind(fills | cuts, q), Vector3.UP, mid, data,
 						foam >> (16 + 2 * q) & 3, corners)
 				continue
 			# A side open to the air under the open sky is a fall's: its sheet covers it.
@@ -386,7 +388,7 @@ static func _ground_at(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteA
 	if m != WATER:
 		if not cov[m] or cov[c[n + dy]]:
 			return NAN
-		var h := Slopes.corner_height(sh, n, dy, k)
+		var h := OldSlopes.corner_height(sh, n, dy, k) if old_slopes else Slopes.corner_height(sh, n, dy, k)
 		return float(h) if h < 1 else NAN
 	var d := 1
 	while d < 8 and c[n - d * dy] == WATER:
@@ -394,7 +396,7 @@ static func _ground_at(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteA
 	var b := n - d * dy
 	if not cov[c[b]]:
 		return 1.0 - d
-	return float(Slopes.corner_height(sh, b, dy, k) - d)
+	return float((OldSlopes.corner_height(sh, b, dy, k) if old_slopes else Slopes.corner_height(sh, b, dy, k)) - d)
 
 
 ## Colours at the corners NW, NE, SE, SW of the top of water cell `i`: the depth over
@@ -475,7 +477,8 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 	var murks := murk_corners(w, c, i, dz, base)
 	var sea := sea_near(w, int(base.x), int(base.y), int(base.z))
 	var steps := Vector2i(Slopes.PATCH_STEPS, Slopes.PATCH_STEPS)
-	var hs: PackedFloat32Array = Slopes.surface_grid(c, sh, i, dy, dz, steps)
+	var hs: PackedFloat32Array = OldSlopes.patch_grid(OldSlopes.patch(c, sh, i, dy, dz), 0.0, steps)[0] \
+		if old_slopes else Slopes.surface_grid(c, sh, i, dy, dz, steps)
 	var start: int = buf.verts.size()
 	var nu := steps.x + 1
 	var data := Vector2(float(foam), 1.0)

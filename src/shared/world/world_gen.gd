@@ -139,6 +139,7 @@ func _init(seed_value: int, sy := 48, options := {}, spawn := true) -> void:
 		if settings.has(k):
 			settings[k] = clampi(int(options[k]), 0, 2)
 	world = WorldData.new(sy)
+	world.old_slopes = settings.slopes == 1
 	sea = world.sea_level
 	beach = Mat.of_role("beach", Mat.DIRT)
 	bank = Mat.of_role("bank", Mat.DIRT)

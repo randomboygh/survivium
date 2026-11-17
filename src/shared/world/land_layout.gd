@@ -58,14 +58,17 @@ const CANYON := 4
 ## next to any other, 1 in zones (see ZONE_SPREAD); cave_shape: 0 hollows of 3D noise
 ## with mouths as pits and slits, 1 halls joined by galleries with funnels for mouths
 ## (see WorldGen._halls); landscape: 0 as before, 1 the stage 2 landscape: biomes
-## BIG_BIOMES times wider, rivers longer, wider and deeper (see RIVER_*_WIDE). Here caves
-## is 1, relief, climate, cave_shape and landscape 0, what worlds made before those
-## settings have; «Новый мир» makes caves 0, the others 1.
+## BIG_BIOMES times wider, rivers longer, wider and deeper (see RIVER_*_WIDE); slopes: 0
+## the blocky relief (flat slopes, one-level corners, half-blocks), 1 the slopes of
+## before it, curved and going down two levels at a corner (WorldData.old_slopes; it
+## shapes the ground, not how it is laid out). Here caves is 1, relief, climate,
+## cave_shape, landscape and slopes 0, what worlds made before those settings have;
+## «Новый мир» makes caves 0, the others 1, and slopes what the player picks.
 const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 1, "relief": 0,
-	"climate": 0, "cave_shape": 0, "landscape": 0}
+	"climate": 0, "cave_shape": 0, "landscape": 0, "slopes": 0}
 ## Every world setting, in the order the saves and the menus list them.
 const SETTING_KEYS := ["size", "water", "mountains", "rivers", "biomes", "caves", "relief", "climate", "cave_shape",
-	"landscape"]
+	"landscape", "slopes"]
 const SIZE_SCALE := [0.4, 1.0, 2.2]
 const WATER_SHARE := [0.25, 0.4, 0.58]
 ## Where the mountain noise starts and ends raising mountains.

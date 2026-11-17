@@ -2,7 +2,7 @@ extends SceneTree
 ## Renders the game and saves screenshots, for looking at visual changes without a
 ## browser. Needs a display (not --headless), for example:
 ## xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 \
-##     --resolution 1280x720 --script res://tools/shot.gd -- /tmp/shots [--phone] [name ...]
+##     --resolution 1280x720 --script res://tools/shot.gd -- /tmp/shots [--phone] [--old-slopes] [name ...]
 ## `--phone` lays the window out as a phone's screen (fractional scales, CameraRig.turning).
 ## `--keys` saves no pictures (it runs headless too): each shot's screen is searched for
 ## a key left untranslated (Lang.keys_shown), each one printed as `KEYS <shot>: <node>: <text>`.
@@ -39,6 +39,7 @@ var out_dir := "user://shots"
 var names: Array = []
 var phone := false
 var keys_only := false
+var old_slopes := false
 ## The spots and scenes of the shots (see tools/shot/places.gd).
 var places := Places.new()
 
@@ -49,6 +50,9 @@ func _initialize() -> void:
 	args.erase("--phone")
 	keys_only = "--keys" in args
 	args.erase("--keys")
+	# `--old-slopes`: the test world with the world setting slopes 1 (WorldData.old_slopes).
+	old_slopes = "--old-slopes" in args
+	args.erase("--old-slopes")
 	# `--lang en`: the shots in that language (else Russian, as the game is written).
 	SettingsScript.language_override = "ru"
 	var at := args.find("--lang")
@@ -78,7 +82,7 @@ func _test_world() -> void:
 	store.erase_dir(TEST_SAVES)
 	store.root = TEST_SAVES
 	DirAccess.make_dir_recursive_absolute(TEST_SAVES)
-	store.write_current(-1, {})
+	store.write_current(-1, {"slopes": 1} if old_slopes else {})
 
 
 ## Saved worlds made up for the world list, in a folder of their own.
