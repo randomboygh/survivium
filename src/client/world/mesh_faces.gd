@@ -119,6 +119,10 @@ static var _curves := {}
 ## a cell may be cut at several corners, each quarter on its own (OLD_CUT). Set from
 ## the world when a mesh job starts (ChunkMesher.start_rect, build_cap).
 static var old_slopes := false
+## The world being drawn has soft slopes (WorldData.soft_slopes): the points between
+## bands of diagonal slope are lifted (WorldData.LIFT, SlopeMesher.corner_lifts). Set
+## with old_slopes.
+static var soft_slopes := false
 
 
 ## Takes the materials of the bundles now loaded (Mods.activate): leaves are a role a

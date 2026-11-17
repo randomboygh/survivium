@@ -33,17 +33,55 @@ static func split(sh: PackedByteArray, i: int, dz: int, dy := 0) -> bool:
 	return WorldData.split_ne_sw(sh[i], sh[i - dz], sh[i + dz], sh[i - 1], sh[i + 1], sh[i + dy] if dy != 0 else 0)
 
 
+## The lifts of the corners NW, NE, SE, SW of the sloping top of padded cell `i`, each
+## Vector3(lift, rise along x, rise along z) (see WorldData.LIFT, corner_lift; the same
+## as WorldData.corner_lifts from the padded copy); empty where none is lifted, the top
+## is cut or the world has no soft slopes.
+static func corner_lifts(c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: int) -> PackedVector3Array:
+	var s := sh[i]
+	if not soft_slopes or s & 15 == 0 or s >= 16:
+		return PackedVector3Array()
+	var out := PackedVector3Array([Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO])
+	var any := false
+	var levels := PackedInt32Array([0, 0, 0, 0])
+	var shapes := PackedInt32Array([-1, -1, -1, -1])
+	for k in 4:
+		var h := 0 if s & (1 << k) else 1
+		for q in 4:
+			var o: Vector2i = WorldData.CORNER_AT[k] + WorldData.QUAD_CELL[q]
+			var j := i + o.x + o.y * dz
+			var near := (q + 2) & 3
+			shapes[q] = -1
+			for dl: int in [0, -1, 1]:
+				var l := j + dl * dy
+				if l - dy < 0 or l + dy >= c.size():
+					continue
+				var up := c[l + dy]
+				var m := c[l]
+				if (up == AIR or up == WATER) and cover(m) and m != Mat.LOG \
+						and dl + (0 if sh[l] & (1 << near) else 1) == h:
+					levels[q] = dl
+					shapes[q] = sh[l]
+					break
+		out[k] = WorldData.corner_lift(levels, shapes)
+		any = any or out[k].x != 0.0
+	return out if any else PackedVector3Array()
+
+
 ## Heights of the top of padded cell `i` at the points of a grid of `steps` squares, row
 ## by row from the north-west.
 static func surface_grid(_c: PackedByteArray, sh: PackedByteArray, i: int, _dy: int, dz: int,
 		steps: Vector2i) -> PackedFloat32Array:
 	var s := sh[i] & 15
 	var ne_sw := split(sh, i, dz)
+	var lifts := PackedFloat32Array()
+	for l: Vector3 in corner_lifts(_c, sh, i, _dy, dz):
+		lifts.append(l.x)
 	var hs := PackedFloat32Array()
 	hs.resize((steps.x + 1) * (steps.y + 1))
 	for b in steps.y + 1:
 		for a in steps.x + 1:
-			hs[b * (steps.x + 1) + a] = WorldData.top_height(s, ne_sw, float(a) / steps.x, float(b) / steps.y)
+			hs[b * (steps.x + 1) + a] = WorldData.lifted_height(s, ne_sw, float(a) / steps.x, float(b) / steps.y, lifts)
 	return hs
 
 
@@ -62,6 +100,14 @@ static func slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 	var h := PackedFloat32Array()
 	for k in 4:
 		h.append(0.0 if s & (1 << k) else 1.0)
+	# Soft slopes: the points between bands of diagonal slope lifted (WorldData.LIFT);
+	# the cells round such a point meet there, so no side wall touches it.
+	var lifts := corner_lifts(c, sh, i, dy, dz) if only < 0 and cuts == 0 else PackedVector3Array()
+	var lifted := 0
+	for k in lifts.size():
+		h[k] += lifts[k].x
+		if lifts[k].x != 0.0:
+			lifted |= 1 << k
 	var ne_sw := split(sh, i, dz, dy if only >= 0 else 0)
 	var white := Color(1, 1, 1)
 	var cut := -1 if cuts == 0 else WorldData.level_of(cuts & -cuts)
@@ -73,13 +119,15 @@ static func slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 		# Under the cell above: lit and snowed on as the open column beyond the corner.
 		flag = SLOPE | _diag(only, true, 0)
 	var top := Vector2(pack(m * 3, 0, flag), around)
-	if r > 0.0:
+	if lifted != 0:
+		_lifted_top(buf, base, h, ne_sw, lifts, r, bends, top)
+	elif r > 0.0:
 		buf.shape(base, _bent_top(h, ne_sw, cut, r, bends), white, top)
 	# The triangles by the corners they join, each named by the corner it holds alone.
 	var tris: Array = [[0, 1, 3], [1, 2, 3]] if ne_sw else [[0, 1, 2], [0, 2, 3]]
 	var alone: Array = [0, 2] if ne_sw else [1, 3]
 	for t in 2:
-		if alone[t] == cut or r > 0.0:
+		if alone[t] == cut or r > 0.0 or lifted != 0:
 			continue
 		var tri: Array = tris[t]
 		var vs := []
@@ -112,6 +160,8 @@ static func slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 		if cut >= 0 and (ks[0] == cut or ks[1] == cut):
 			continue
 		if only >= 0 and ks[0] != only and ks[1] != only:
+			continue
+		if lifted & (1 << ks[0] | 1 << ks[1]):
 			continue
 		var h0: float = h[ks[0]]
 		var h1: float = h[ks[1]]
@@ -154,6 +204,71 @@ static func slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 			_piece(buf, base, 0.0, q, cut_kind(cuts), Vector3.DOWN, white, Vector2(pack(m * 3 + 2, 0, 0), float(NO_TILES)))
 
 
+## The top of a slope with lifted corners (WorldData.LIFT): its two flat triangles, so
+## the contours run straight along the diagonal, shaded smooth as the old slopes were:
+## at each corner as the ground rises across it (WorldData.corner_lift), where the tops
+## round it meet, else as its own triangle. A side with neither end lifted meets a slope
+## beside that is not lifted, rounded by `r` where `bends` say: it follows that one's
+## bent line (_bent_line), each triangle a fan from its middle.
+static func _lifted_top(buf, base: Vector3, h: PackedFloat32Array, ne_sw: bool, lifts: PackedVector3Array,
+		r: float, bends: int, top: Vector2) -> void:
+	var white := Color(1, 1, 1)
+	var tris: Array = [[0, 1, 3], [1, 2, 3]] if ne_sw else [[0, 1, 2], [0, 2, 3]]
+	var ps: Array[Vector3] = []
+	var ns: Array[Vector3] = []
+	for k in 4:
+		var p := Vector2(CORNER_DIRS[k]) * 0.5 + Vector2(0.5, 0.5)
+		ps.append(Vector3(p.x, h[k], p.y))
+	for tri: Array in tris:
+		var a: Vector3 = ps[tri[0]]
+		var flat: Vector3 = (ps[tri[1]] - a).cross(ps[tri[2]] - a).normalized()
+		if flat.y < 0.0:
+			flat = -flat
+		var cn: Array[Vector3] = []
+		for k: int in tri:
+			var l: Vector3 = lifts[k]
+			cn.append(flat if is_nan(l.y) else Vector3(-l.y, 1.0, -l.z).normalized())
+		# The outline: each edge from its first corner, with the points of a bent side.
+		var ring: Array[Vector3] = []
+		var rn: Array[Vector3] = []
+		for e in 3:
+			var k0: int = tri[e]
+			var k1: int = tri[(e + 1) % 3]
+			ring.append(ps[k0])
+			rn.append(cn[e])
+			var side := (k0 + 1) & 3 == k1 or (k1 + 1) & 3 == k0
+			if r <= 0.0 or not side or lifts[k0].x != 0.0 or lifts[k1].x != 0.0 or h[k0] == h[k1]:
+				continue
+			var qs := BENT_LINES
+			var hs := _bent_line(h[k0], h[k1], k0, k1, qs, r, bends)
+			for g in range(1, qs.size() - 1):
+				var p := ps[k0].lerp(ps[k1], qs[g])
+				ring.append(Vector3(p.x, hs[g], p.z))
+				rn.append(cn[e].lerp(cn[(e + 1) % 3], qs[g]).normalized())
+		if ring.size() == 3:
+			_lifted_tri(buf, base, [ring[0], ring[1], ring[2]], [rn[0], rn[1], rn[2]], white, top)
+			continue
+		var mid: Vector3 = (ps[tri[0]] + ps[tri[1]] + ps[tri[2]]) / 3.0
+		var mn: Vector3 = (cn[0] + cn[1] + cn[2]).normalized()
+		for g in ring.size():
+			var g1 := (g + 1) % ring.size()
+			_lifted_tri(buf, base, [mid, ring[g], ring[g1]], [mn, rn[g], rn[g1]], white, top)
+
+
+## One triangle of _lifted_top, wound to face up.
+static func _lifted_tri(buf, base: Vector3, pts: Array, ns: Array, white: Color, top: Vector2) -> void:
+	var vs := []
+	var uvs := []
+	for p: Vector3 in pts:
+		vs.append(base + p)
+		uvs.append(Vector2(p.x, p.z))
+	if (vs[1] - vs[0]).cross(vs[2] - vs[0]).y > 0.0:
+		vs.reverse()
+		ns.reverse()
+		uvs.reverse()
+	buf.tri_n(vs, ns, uvs, white, top)
+
+
 ## Whether material `m` hides what is behind it (not air, water or leaves).
 static func cover(m: int) -> bool:
 	return m != AIR and m != WATER and m != LEAVES
@@ -162,9 +277,12 @@ static func cover(m: int) -> bool:
 ## The radius the slopes of padded cell `i` of material `m` round by, for ChunkMesher's
 ## job: the material's edge_size on natural ground of a material that rounds, else 0
 ## (drawn flat, as built; hard ground keeps its slopes' edges).
-## How far the slopes of a world with soft slopes bend at the brow and the foot, every
-## material alike: half a cell, so a ramp between level ground curves over its whole cell.
-const SOFT_RADIUS := 0.5
+## The rounding of the slopes of a world with soft slopes, every material alike: a whole
+## cell, the cubic S of the old slopes (see bend: level at a brow and at a foot, as steep
+## as the slope going on where it goes on, curved over the whole cell between).
+const SOFT_RADIUS := 1.0
+## How far in from a crease the hips and valleys of soft slopes round (see _plain).
+const SOFT_HIP := 0.5
 
 
 static func rounding(job, i: int, m: int) -> float:
@@ -221,9 +339,17 @@ static func _phi(t: float) -> float:
 ## its level): within `r` of the top it curves to lie level at it as much as `crest`
 ## (0..1) says, within `r` of the floor as much as `foot`; between them it stays.
 static func bend(b: float, r: float, crest: float, foot: float) -> float:
+	if r >= 1.0 and (b < 0.0 or b > 1.0):
+		# A lifted corner (WorldData.LIFT): the slope goes on there, straight.
+		return b
 	b = clampf(b, 0.0, 1.0)
 	if r <= 0.0:
 		return b
+	if r >= 1.0:
+		# The cubic between 0 and 1 with the slope 1 - foot at the floor and 1 - crest at
+		# the top: the old slopes' profile (WorldData.patch_tangent: level where the
+		# ground stays level, the slope's own where it goes on).
+		return b * b * (3.0 - 2.0 * b) + (1.0 - foot) * b * (1.0 - b) * (1.0 - b) - (1.0 - crest) * b * b * (1.0 - b)
 	if b > 1.0 - r:
 		return b + crest * (1.0 - r * _phi((1.0 - b) / r) - b)
 	if b < r:
@@ -233,9 +359,14 @@ static func bend(b: float, r: float, crest: float, foot: float) -> float:
 
 ## The gradient of `bend` over (b, crest, foot).
 static func _bend_grad(b: float, r: float, crest: float, foot: float) -> Vector3:
+	if r >= 1.0 and (b < 0.0 or b > 1.0):
+		return Vector3(1.0, 0.0, 0.0)
 	b = clampf(b, 0.0, 1.0)
 	if r <= 0.0:
 		return Vector3(1.0, 0.0, 0.0)
+	if r >= 1.0:
+		return Vector3(6.0 * b * (1.0 - b) + (1.0 - foot) * (1.0 - b) * (1.0 - 3.0 * b)
+			- (1.0 - crest) * b * (2.0 - 3.0 * b), b * b * (1.0 - b), -b * (1.0 - b) * (1.0 - b))
 	if b > 1.0 - r:
 		var t := (1.0 - b) / r
 		return Vector3(1.0 + crest * (t * (4.0 - 3.0 * t) - 1.0), 1.0 - r * _phi(t) - b, 0.0)
@@ -255,8 +386,8 @@ static func _bent_line(h0: float, h1: float, k0: int, k1: int, qs: PackedFloat32
 	var f1 := float((bends >> (4 + k1)) & 1)
 	var out := PackedFloat32Array()
 	for q: float in qs:
-		out.append(bend(lerpf(h0, h1, q), r, minf(1.0, lerpf(c0, c1, q) / (1.0 - r)),
-			minf(1.0, lerpf(f0, f1, q) / (1.0 - r))))
+		var s := 1.0 if r >= 1.0 else 1.0 / (1.0 - r)
+		out.append(bend(lerpf(h0, h1, q), r, minf(1.0, lerpf(c0, c1, q) * s), minf(1.0, lerpf(f0, f1, q) * s)))
 	return out
 
 
@@ -282,7 +413,7 @@ static func bent_height(job, j: int, l: Vector2) -> float:
 ## all along).
 static func _corner_mix(bits: int, u: float, v: float, r: float) -> float:
 	var w := lerpf(lerpf(float(bits & 1), float((bits >> 1) & 1), u), lerpf(float((bits >> 3) & 1), float((bits >> 2) & 1), u), v)
-	return minf(1.0, w / (1.0 - r))
+	return w if r >= 1.0 else minf(1.0, w / (1.0 - r))
 
 
 ## The planes of the two triangles of a top with corner heights `h` (NW, NE, SE, SW),
@@ -326,14 +457,23 @@ static func _plain(planes: Array, side: int, crease: int, x: float, z: float, r:
 ## less the triangle holding corner `cut` (-1 none), rounded by `r` where `bends` say;
 ## made once for each and kept (MeshBuffers.shape's arrays, at the origin).
 static func _bent_top(h: PackedFloat32Array, ne_sw: bool, cut: int, r: float, bends: int) -> Array:
-	var key := Vector4i(int(h[0]) | int(h[1]) << 1 | int(h[2]) << 2 | int(h[3]) << 3 | int(ne_sw) << 4,
-		cut, roundi(r * 1000.0), bends)
+	var hk := int(ne_sw)
+	for k in 4:
+		# Heights of 0 or 1, lifted by -LIFT, 0 or LIFT: 6 kinds, 3 bits each.
+		hk |= (roundi(h[k] / WorldData.LIFT) + 1) << (1 + 3 * k)
+	var key := Vector4i(hk, cut, roundi(r * 1000.0), bends)
 	var got = _bent_tops.get(key)
 	if got != null:
 		return got
 	var planes := _planes(h, ne_sw)
 	var crease := 0
-	if cut < 0:
+	# Lifted corners (WorldData.LIFT, heights off 0 and 1): the fold between the two
+	# triangles runs straight along the diagonal and stays sharp (a rounding fading
+	# toward the sides would bend it into a wave).
+	var lifted := false
+	for k in 4:
+		lifted = lifted or (h[k] != 0.0 and h[k] != 1.0)
+	if cut < 0 and not lifted:
 		# Which way the top folds along the diagonal, told in the middle of the first triangle.
 		var pa: Vector3 = planes[0]
 		var pb: Vector3 = planes[1]
@@ -379,13 +519,13 @@ static func _bent_top(h: PackedFloat32Array, ne_sw: bool, cut: int, r: float, be
 					if v == null:
 						v = verts.size()
 						at[vk] = v
-						var pl := _plain(planes, side, crease, pt.x, pt.y, r)
+						var pl := _plain(planes, side, crease, pt.x, pt.y, minf(r, SOFT_HIP))
 						var wc := _corner_mix(cb, pt.x, pt.y, r)
 						var wf := _corner_mix(fb, pt.x, pt.y, r)
 						var g := _bend_grad(pl.x, r, wc, wf)
 						# Where a blend is whole it stays so: no slope of its own.
-						var gc := 0.0 if wc >= 1.0 else 1.0 / (1.0 - r)
-						var gf := 0.0 if wf >= 1.0 else 1.0 / (1.0 - r)
+						var gc := 1.0 if r >= 1.0 else (0.0 if wc >= 1.0 else 1.0 / (1.0 - r))
+						var gf := 1.0 if r >= 1.0 else (0.0 if wf >= 1.0 else 1.0 / (1.0 - r))
 						var cx := lerpf(cs.y - cs.x, cs.z - cs.w, pt.y) * gc
 						var cz := lerpf(cs.w - cs.x, cs.z - cs.y, pt.x) * gc
 						var fx := lerpf(fs.y - fs.x, fs.z - fs.w, pt.y) * gf
