@@ -179,6 +179,8 @@ static func rounding(job, i: int, m: int) -> float:
 ## past a corner it stays straight there. Told by the corners, so the cells round a
 ## corner agree; blended over the cell by _corner_mix.
 static func corner_bends(job, i: int) -> int:
+	if job.wild.is_empty():
+		return 0
 	var c: PackedByteArray = job.c
 	var sh: PackedByteArray = job.sh
 	var cov: PackedByteArray = job.cov

@@ -1111,6 +1111,9 @@ const SHOTS := {
 	"ground-edges-stone": {"time": 0.42, "season": 1, "at": [-62, -154]},
 	"ground-edges-stone-diag": {"time": 0.42, "season": 1, "at": [140, -154]},
 	"ground-edges-halves": {"time": 0.42, "season": 1, "at": [-62, -130]},
+	# The same with the setting «rounded terrain» off: drawn sharp.
+	"ground-edges-sheer-sharp": {"time": 0.42, "season": 1, "at": [-62, -106], "settings": {"rounded_ground": false}},
+	"ground-edges-stone-sharp": {"time": 0.42, "season": 1, "at": [-62, -154], "settings": {"rounded_ground": false}},
 	"ground-relief-east": {"time": 0.42, "season": 1, "at": [50, 64]},
 	"ground-relief-winter": {"time": 0.42, "season": 3, "at": [2, 64]},
 	# The stream down its terraces, from the meadow south of it and from its top.
