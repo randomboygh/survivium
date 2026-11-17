@@ -108,7 +108,8 @@ Every build of `main` that passed every job is a release on GitHub (Releases), m
 ## Time
 
 Measurements before and after — [../audit/TESTING_CI_REPORT.md](../audit/TESTING_CI_REPORT.md). The longest
-is the path to every recipe (`progress_test`); it is divided into two halves that go on two machines. Each job
+is the path to every recipe (`progress_test`); it is divided into two halves that go on two machines, and it draws natural ground sharp (the setting
+`rounded_ground` off: about three times quicker to build, recipes do not need the looks). Each job
 is limited by `timeout-minutes`, each check — by its own limit in `tests/run_all.sh`.
 
 ## What to do when CI is red
