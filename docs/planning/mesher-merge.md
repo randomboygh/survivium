@@ -61,9 +61,9 @@ If the user picks Б: swap the ramp profile in `SlopeMesher` for soft worlds (th
 1. Decide (with the user) whether the old bicubic code and `old_slope_mesher.gd` are removed.
 2. A `mesher_test` case for the floor under a cut (no flat lid) would be good.
 
-## Tools (project library `notes/mesher-merge/`, copy into `tools/_dbg/`, never commit)
+## Tools (in the project library under notes/mesher-merge/, copied into a debug folder under tools, never committed)
 
-- `cells.gd`: `godot --headless --path . --script res://tools/_dbg/cells.gd -- x0 z0 x1 z1 slopes` prints
+- cells.gd, run with godot --headless --script on the copy, arguments x0 z0 x1 z1 slopes: prints
   each column's ground level, `~` if water on top, and the shape byte (bits 0..3 low corners NW NE SE SW,
   16<<k cut/fill).
 - `dump.gd` + `render.py`: triangles of the test world's chunks, rendered with numpy (see
