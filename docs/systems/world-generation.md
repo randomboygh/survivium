@@ -62,7 +62,8 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   meadow show their record's stone and `clay_as` patches (`_patches`, scree among them: the ground name `scree`). Also with
   `landscape` 1, volcanic land (`Biomes.VOLCANIC`, a biome `where: volcanic`; none without its bundle): where the region
   noise `n_volcano` (`VOLCANO_FREQ`, warped, the last of `window_noises`, `volcano_grid`) is over the record's
-  `region_from` the land is that biome whatever the climate, its ground the record's `ground` with `ground_below` and
+  `region_from` the land is that biome whatever the climate (never within `VOLCANO_CALM` of the world's middle, where
+  the start is looked for, `_calm`), its ground the record's `ground` with `ground_below` and
   `ground_above` patches (basalt, black sand, ash; black sand by the sea); in each square of `CONE_GRID` cells a cone
   stands with the chance `cones` where the region noise at its middle is `CONE_INSIDE` higher (`_cone_at`, cached in
   `cones`): `cone_rise` levels over the land at its rim, `cone_reach` cells round (shrinking within `CONE_COAST` of

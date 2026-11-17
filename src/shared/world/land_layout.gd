@@ -257,6 +257,12 @@ const CONE_POWER := 1.3
 const CONE_WOBBLE := 0.12
 const CRATER_DEPTH := 3
 const CONE_COAST := 40.0
+## No volcanic land within VOLCANO_CALM cells of the world's middle, where the start is
+## looked for (a world begins in ordinary land), fading in over VOLCANO_FADE cells more:
+## the region noise must be up to CALM_RISE higher there.
+const VOLCANO_CALM := 1200.0
+const VOLCANO_FADE := 500.0
+const CALM_RISE := 0.6
 
 var world_seed: int
 var settings: Dictionary
@@ -1157,7 +1163,7 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 		var climate := false
 		var x: int = x0 + lx * lay.step
 		var volcanic := not watery and (cut == CONE or cut == CRATER
-			or (not region.is_empty() and region[j] + int(_chance(x, z0, 45) * 6.0) > region_t + 3))
+			or (not region.is_empty() and region[j] + int(_chance(x, z0, 45) * 6.0) > region_t + 3 + _calm(x, z0) * 127.5))
 		if volcanic:
 			b = Biomes.VOLCANIC
 			# Hot springs lie in the deepest hollows of the low patches' ground.
@@ -1314,6 +1320,14 @@ func _cone_at(x: int, z: int) -> Vector3:
 	return Vector3(Vector2(x - c[0], z - c[1]).length() / c[3], c[2], c[4])
 
 
+## How much higher the region noise of volcanic land must be at column x, z (see
+## VOLCANO_CALM): CALM_RISE in the middle of the world, 0 far from it.
+static func _calm(x: int, z: int) -> float:
+	if absi(x) > VOLCANO_CALM + VOLCANO_FADE or absi(z) > VOLCANO_CALM + VOLCANO_FADE:
+		return 0.0
+	return CALM_RISE * (1.0 - smoothstep(VOLCANO_CALM, VOLCANO_CALM + VOLCANO_FADE, Vector2(x, z).length()))
+
+
 func _find_cone(g: Vector2i) -> Array:
 	var rec := Biomes.of(Biomes.VOLCANIC)
 	if rec.is_empty() or _chance(g.x, g.y, 46) >= rec.cones:
@@ -1323,7 +1337,7 @@ func _find_cone(g: Vector2i) -> Array:
 	var free := CONE_GRID - 2.0 * reach
 	var cx := g.x * CONE_GRID + reach + _chance(g.x, g.y, 49) * free
 	var cz := g.y * CONE_GRID + reach + _chance(g.x, g.y, 50) * free
-	if n_volcano.get_noise_2d(cx, cz) < rec.region_from + CONE_INSIDE:
+	if n_volcano.get_noise_2d(cx, cz) < rec.region_from + CONE_INSIDE + _calm(int(cx), int(cz)):
 		return []
 	return [cx, cz, rise, reach, rec.crater_share]
 
