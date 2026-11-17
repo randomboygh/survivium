@@ -12,8 +12,10 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   full-diagonal half-blocks (one corner per cell; a fill gives way where the ground beside is open round its
   facing corner, so a staircase gets one straight line of cuts), water lips the same, shaders
   (`corner_distance`, `in_cell_corners`) on the full diagonal. `Mat.corner_shape` and `CORNER_P` are kept,
-  unused by the geometry, for PR 2. Known: diamond hills two or more levels high show small triangles of
-  wall between the chamfer steps of neighbouring levels (one-level corners cannot meet there).
+  unused by the geometry, for PR 2. Merged as #722.
+- Fix (user 2026-11-17: the small triangle walls must go): the ground under the lowest cut cell slopes on
+  down in the cut (`WorldData._floor_slopes`, `SlopeMesher.slope_faces(only)`, drawn in the material above),
+  so steep diagonal hills meet without walls.
 
 - Spec (Claude doc, Russian, the user's words): https://claude.ai/artifact/1q8gbPYdyqXoDE5bMxKjoT
 - Pictures: project library `survivium-builds/mesher-blocks/` (`blocks-1-main.png` … `blocks-10-all.png`),
