@@ -17,7 +17,8 @@ const GRASS := Color(0.4, 0.54, 0.25)
 static func picture(name: String) -> Image:
 	if not name in ["grass", "dirt", "stone", "sand", "water", "log", "leaves", "planks", "clay", "copper_ore", "tin_ore", "iron_ore", "scree", "brick", "snow", "peat", "salt", "ice",
 			"silver_ore", "gold_ore", "platinum_ore", "silver_block", "gold_block", "platinum_block",
-			"log_wall", "wattle", "cut_stone", "bed", "bed_wet", "mycelium", "crystal", "deepstone", "lava"]:
+			"log_wall", "wattle", "cut_stone", "bed", "bed_wet", "mycelium", "crystal", "deepstone", "lava",
+			"basalt", "black_sand", "ash"]:
 		return null
 	var img := Image.create_empty(TILE * KINDS, TILE, false, Image.FORMAT_RGBA8)
 	var rng := RandomNumberGenerator.new()
@@ -197,6 +198,27 @@ static func _texel(name: String, kind: int, px: int, py: int, rng: RandomNumberG
 			if cell == 0 or rng.randf() < 0.1:
 				return _vary(Color(1.0, 0.85, 0.3), rng, 0.03)
 			return _vary(Color(0.95, 0.42, 0.12), rng, 0.04)
+		"basalt":
+			# Dark grey rock; on the sides columns of it split by thin joints, on the top
+			# a few pale grey specks and darker joints.
+			if kind == 1 and (px % 5 == 4 or (py + px / 5 * 3) % 7 == 6):
+				return _vary(Color(0.17, 0.17, 0.19), rng, 0.03)
+			if rng.randf() < 0.03:
+				return _vary(Color(0.44, 0.43, 0.43), rng, 0.03)
+			var joint := (px * 3 + py * 7) % 17 == 0
+			return _vary(Color(0.29, 0.29, 0.31) * (0.78 if joint else 1.0), rng, 0.04)
+		"black_sand":
+			# Near-black grains, glinting a little.
+			var r := rng.randf()
+			if r < 0.05:
+				return _vary(Color(0.42, 0.41, 0.42), rng, 0.03)
+			return _vary(Color(0.2, 0.19, 0.2) * (0.85 if r > 0.9 else 1.0), rng, 0.03)
+		"ash":
+			# Soft pale grey ash with darker cinders.
+			var r := rng.randf()
+			if r < 0.07:
+				return _vary(Color(0.3, 0.29, 0.29), rng, 0.04)
+			return _vary(Color(0.5, 0.49, 0.48) * (0.94 if r > 0.85 else 1.0), rng, 0.025)
 	return Color.MAGENTA
 
 

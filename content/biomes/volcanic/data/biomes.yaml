@@ -1,0 +1,39 @@
+# Biome: where — where it lies: climate (by a window of warmth and moisture, 0..1; of the matching ones the
+# narrowest is taken, on a tie the one loaded earlier) or a terrain the generator decides: sea, beach,
+# rock, plateau, swamp (one record per terrain). top — the ground on top: grass, dirt, stone, sand (the material
+# of role beach), clay (role bank), snow, peat, salt (the materials of those roles); stone_below / clay_above — the soil noise threshold (-1..1), below/above
+# which stone/clay shows through (instead of clay, the ground of field clay_as); dunes — by how many cells dunes raise the ground (dune noise).
+# trees — shares of species on the tree grid (the rest is empty), tree_chance — the chance of a tree at a grid node,
+# groves — the chance in groves (where forest noise is high); bushes — shares of bushes, bush_sparsity — one attempt
+# of a bush per that many cells (0 — none). spawn — the game can start here; sandstorms — instead of rain
+# sandstorms. zone — the climate zone (polar, north, temperate, steppe, hot, tropic, mountain), a label
+# for the map and reports. color — the colour on the map. tints — the biome's ground and water colours instead of their own (by
+# the names of the top field and water: {sand: "#e6dcbe", water: "#4cc6bc"}). References to species and bushes are soft: without their bundle the share is empty.
+# Volcanic land (where: volcanic): rare regions of new worlds (the setting landscape 1) where the region noise is
+# over region_from, whatever the climate: basalt with black sand in hollows and by the sea and ash drifts on the
+# high ground; cones of old volcanoes with lava in their craters (lava burns and lights the night) and hot springs
+# with turquoise water. Grounds are of "Resources: Volcanic rock", lava of "Resources: Cave rock"; without them
+# basalt is stone and the craters are dry.
+- id: volcanic
+  title: "[biomes.biomes.volcanic]"
+  where: volcanic
+  zone: mountain
+  ground: resources:basalt
+  stone_below: -0.3
+  ground_below: resources:black_sand
+  clay_above: 0.35
+  ground_above: resources:ash
+  top: stone
+  region_from: 0.55
+  cones: 0.55
+  cone_rise: [12, 20]
+  cone_reach: [28, 44]
+  crater_share: 0.22
+  crater: resources:lava
+  springs_below: -0.6
+  bushes: {plants:shrub: 1.0}
+  bush_sparsity: 260
+  grass_back: 0.0
+  mist: 0.12
+  tints: {water: "#5fd2c4"}
+  color: "#4a4446"
