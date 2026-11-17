@@ -11,6 +11,7 @@ func run() -> void:
 	_test_corners()
 	_test_shapes()
 	_test_soft()
+	_test_lifts()
 
 
 ## Wild stone floor with a two-level wild stone block at x, z 3..6 missing its
@@ -400,3 +401,21 @@ func _ref_fill(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 		if j != k and _ref_fill_any(w, x, y, z, j):
 			return false
 	return true
+
+
+## Soft slopes on the test world's two-level diagonal ramp (slope2_diag, dry band):
+## the points between its bands are lifted into one plane, and the tip where a band
+## ends at the plot's edge has its lone high corners taken down (no post).
+func _test_lifts() -> void:
+	var g := TestGround.new(0, 48, {"slopes": 1})
+	g.generate_area(Vector2i(11, -13), Vector2i(14, -10))
+	var w: WorldData = g.world
+	w.refresh_shapes()
+	var band := w.corner_lifts(199, 23, -175)
+	_check(band.size() == 4 and band[1] == -WorldData.LIFT and band[2] == WorldData.LIFT,
+		"soft slopes: the points between two diagonal bands are lifted into one plane")
+	var tip := w.corner_lifts(201, 23, -178)
+	_check(tip.size() == 4 and tip[2] == -1.0 and tip[3] == -1.0,
+		"soft slopes: a ridge tip ending at a diagonal band keeps no corner standing alone")
+	_check(is_equal_approx(w.surface_height(201, 23, -178, 0.5, 0.9), 0.0),
+		"soft slopes: the ground of such a tip is level with the ground round it")

@@ -64,8 +64,37 @@ static func corner_lifts(c: PackedByteArray, sh: PackedByteArray, i: int, dy: in
 					shapes[q] = sh[l]
 					break
 		out[k] = WorldData.corner_lift(levels, shapes)
+		if h == 1 and _lone_post(c, sh, i, dy, dz, k):
+			out[k] = Vector3(-1.0, NAN, NAN)
 		any = any or out[k].x != 0.0
 	return out if any else PackedVector3Array()
+
+
+## WorldData._lone_post from the padded copy: every other top round corner k of padded
+## cell `i` meets it a level lower.
+static func _lone_post(c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: int, k: int) -> bool:
+	for q in 4:
+		var near := (q + 2) & 3
+		if near == k:
+			continue
+		var o: Vector2i = WorldData.CORNER_AT[k] + WorldData.QUAD_CELL[q]
+		var j := i + o.x + o.y * dz
+		var found := false
+		for dl: int in [0, -1]:
+			var l := j + dl * dy
+			if l - dy < 0 or l + dy >= c.size():
+				continue
+			var up := c[l + dy]
+			var m := c[l]
+			if not ((up == AIR or up == WATER) and cover(m) and m != Mat.LOG):
+				continue
+			if sh[l] >= 16:
+				return false
+			found = dl + (0 if sh[l] & (1 << near) else 1) == 0
+			break
+		if not found:
+			return false
+	return true
 
 
 ## Heights of the top of padded cell `i` at the points of a grid of `steps` squares, row

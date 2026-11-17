@@ -537,8 +537,38 @@ func corner_lifts(x: int, y: int, z: int) -> PackedFloat32Array:
 					shapes[q] = o
 					break
 		out[k] = corner_lift(levels, shapes).x
+		if h == y + 1 and _lone_post(x, y, z, k):
+			out[k] = -1.0
 		any = any or out[k] != 0.0
 	return out if any else PackedFloat32Array()
+
+
+## Whether the high corner k of the sloping top of cell (x, y, z) stands alone: every
+## other top round that point of the lattice meets it a level lower (the end of a ridge
+## tip ramp where a band on the diagonal meets a straight slope). Soft slopes take such
+## a corner down a level (corner_lifts), or it sticks up as a post.
+func _lone_post(x: int, y: int, z: int, k: int) -> bool:
+	var p: Vector2i = Vector2i(x, z) + CORNER_AT[k]
+	for q in 4:
+		var near := (q + 2) & 3
+		if near == k:
+			continue
+		var col: Vector2i = p + QUAD_CELL[q]
+		var found := false
+		for l: int in [y, y - 1]:
+			if l < 0 or l + 1 >= size_y:
+				continue
+			var up := get_cell(col.x, l + 1, col.y)
+			if (up != Mat.AIR and up != Mat.WATER) or not _surface_ground(get_cell(col.x, l, col.y)):
+				continue
+			var o := _shape(col.x, l, col.y)
+			if o >= 16:
+				return false
+			found = l + (0 if o & (1 << near) else 1) == y
+			break
+		if not found:
+			return false
+	return true
 
 
 ## top_height with the corners lifted by `lifts` (NW, NE, SE, SW; see LIFT): each

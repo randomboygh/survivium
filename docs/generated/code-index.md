@@ -369,6 +369,17 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tests/unit/view_test.gd`: The client view: the pixel view, sprite sheets, tracks, the level cut, sound and the camera's smooth turn.
 - `tests/unit/wildlife_test.gd`: The animals: who fears whom, how they come, wander, flee and hunt, flocks and birds.
 
+## tools/_dbg
+
+- `tools/_dbg/cells.gd`: Debug: prints the top level, shape bits and water of cells x0..x1, z0..z1 of the test world.
+- `tools/_dbg/crop.py`: (no description)
+- `tools/_dbg/dump.gd`: Debug: meshes the test world's chunks over cells x0..x1, z0..z1 and writes triangles. -- out.txt x0 z0 x1 z1 slopes [soft]
+- `tools/_dbg/lattice.gd`: Debug: lattice point heights (each of the 4 cells round it), "a" if all agree else "a/b".
+- `tools/_dbg/lifts.gd`: (no description)
+- `tools/_dbg/render.py`: (no description)
+- `tools/_dbg/shear.py`: (no description)
+- `tools/_dbg/top.py`: (no description)
+
 ## tools/art
 
 - `tools/art/icon_art.gd`: The pictures of the prototype's items and the small pictures of the interface, drawn one character per pixel: `tools/make_icons.gd` writes the items' into `content/<mod>/icons/<icon>.png` and the…
