@@ -86,6 +86,14 @@ func _frames(n: int) -> void:
 ## of 2026-11-15: a thing set down with the finger held hung in the air).
 func _held_props(main: Node) -> void:
 	main.host.player.inventory.add("tools:chest", 1)
+	# Level ground round the player, whatever the land of the start is (a slope of the hills
+	# there leaves no level square in front).
+	var at := Vector3i((main.host.player.position / main.CELL).floor())
+	for dz in range(-8, 9):
+		for dx in range(-8, 9):
+			main.world.set_cell(at.x + dx, at.y - 1, at.z + dz, Mat.GRASS)
+			for dy in 4:
+				main.world.set_cell(at.x + dx, at.y + dy, at.z + dz, Mat.AIR)
 	await _frames(2)
 	_check(main.props.put_from_bag("tools:chest"), "a chest is set down in front of the player")
 	var e: Dictionary = {}
