@@ -568,10 +568,13 @@ func _gather(id: String) -> bool:
 			return await _branch()
 		if id == s.log:
 			return await _fell()
-	# A plant that grows anywhere first (reeds), then one of some biomes only (cactus).
-	for anywhere in [true, false]:
+	# A wild plant that grows anywhere first (reeds), then one of some biomes only (cactus,
+	# flax), then a sown one.
+	for pass_ in 3:
 		for p: Dictionary in Plants.BY_ID.values():
-			if p.get("biomes", []).is_empty() == anywhere and (p.gives.has(id) or p.gives.has(id.get_slice(":", 1))):
+			var sown: bool = p.kind in ["crop", "sapling"]
+			var anywhere: bool = p.get("biomes", []).is_empty()
+			if [not sown and anywhere, not sown and not anywhere, sown][pass_] and (p.gives.has(id) or p.gives.has(id.get_slice(":", 1))):
 				return await _mow(id, p.id)
 	for m in Mat.RECORDS.size():
 		var rec: Dictionary = Mat.RECORDS[m]
