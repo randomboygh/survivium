@@ -121,3 +121,33 @@ need no conversion); rounding and bevels are only client mesh geometry from mate
    remembered in settings, `[key]` texts en+ru).
 4. Remove the curved patch code, docs (`docs/systems/world-data.md`, rendering pages), screenshots
    `survivium-builds/mesher/`, «Что нового» lines.
+
+## Two switches (the user's pick 2026-11-17, after #735)
+
+1. Done, #736: graphics setting «rounded terrain» (`rounded_ground`, per player, `ChunkMesher.rounded`): off, no
+   EdgeMesher and no bent slopes (natural ground sharp, ~3x quicker to build: bench 2.3 s vs 7.1 s). #737:
+   `progress_test` runs with it off (main's `progress (other)` passed 1200 s after #735).
+2. Next: old slopes (before #722) or new ones, a world flag; the user picked «both codes side by side, a flag of
+   the world» (not two scripts, not looks only). Plan:
+   - The flag is a world setting in `LandLayout.DEFAULT_SETTINGS` / `SETTING_KEYS` (e.g. `slopes`: 0 new, the
+     default and what saves without it get; 1 old), so it travels in `hello`'s `settings` and in the world's save
+     like `cave_shape`; the «Новый мир» menu gets a row (translation keys en+ru). Not in `WorldStore`'s dir suffix:
+     shapes are worked out from the cells, never saved, so the flag may change for a made world (later: a host
+     setting).
+   - `WorldData` gets `old_slopes: bool`, set by the session/WorldGen from the settings on server and client.
+     Restore beside the new code, dispatching on it (old code: `git show a182dbd^:<path>`):
+     `world_data.gd` `_update_deep`, `_deep_corner`, `_deepable`, `patch_height`, `patch_tangent`, `make_patch`,
+     `surface_patch`, `far_corner`, `_patch_far`, `corner_at`, the old `ground_height` / `surface_height` / cut
+     tests (`in_corner`); `update_corners` before #722 (corners from the neighbours, not the 2x2 columns);
+     #729's `_floor_slopes` is new-only. `body.gd` `_cell_top` (patch vs `top_height`), `foliage.gd`
+     (`corner_at` + `in_corner` vs `corners_at`).
+   - Client: `slope_mesher.gd` old `patch`, `patch_grid`, `_surface`, `_cut_surface`, `deep_faces`, `_patch_side`,
+     `_clip`, `_onto_cut`; `mesh_faces.gd` old `corner_curve(k, shape)` / `_curve_normal` (curved cuts by
+     `Mat.corner_shape`); `chunk_mesher.gd` old `_diag`; `water_mesher.gd` lips; shaders: a uniform (e.g.
+     `old_slopes`) picking the old `corner_distance` (`corner_shapes`) and `in_cell_corners` in
+     `common.gdshaderinc` / `world.gdshader`, set like the other world uniforms.
+   - With old slopes EdgeMesher stays on only for cliffs of whole cells (brows, feet); plan corners (#735) and
+     bent slopes (#734) off; diagonal cuts keep the old curved cut.
+   - Tests: `shapes_test` / `body_test` run both ways (old expectations from `a182dbd^:tests/unit/shapes_test.gd`),
+     `mesher_test` an old-slopes chunk (curved patch, deep corner), `save_test` the flag survives, `net_test`
+     the client gets it. Shots: `ground-combo-*` both ways.
