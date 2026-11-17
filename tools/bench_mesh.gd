@@ -26,6 +26,11 @@ func _initialize() -> void:
 		for cx in range(home.x, home.x + 16):
 			Foliage.build_chunk(w, cx * CHUNK, cz * CHUNK, CHUNK)
 	var t3 := Time.get_ticks_usec()
-	print("generate %d ms, meshes %d ms (%d vertices), foliage %d ms" % [
-		(t1 - t0) / 1000, (t2 - t1) / 1000, verts, (t3 - t2) / 1000])
+	# Again, with what the meshers keep between chunks made (as after a while of play).
+	for cz in range(home.y, home.y + 16):
+		for cx in range(home.x, home.x + 16):
+			ChunkMesher.build_chunk(w, cx * CHUNK, cz * CHUNK, CHUNK)
+	var t4 := Time.get_ticks_usec()
+	print("generate %d ms, meshes %d ms (%d vertices), again %d ms, foliage %d ms" % [
+		(t1 - t0) / 1000, (t2 - t1) / 1000, verts, (t4 - t3) / 1000, (t3 - t2) / 1000])
 	quit()

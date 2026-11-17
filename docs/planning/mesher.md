@@ -29,15 +29,21 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   along a whole cell's side where a filled half goes on at the same height (`_level_edges` drops them);
   layered cliffs: a soft layer over a hard one stands back 1/8 block (`LEDGE`), a ledge of the hard top stays
   (straight sides only; a diagonal side of a soft layer still stacks straight).
-  Speed (found 2026-11-17: meshing was ~6x slower than main, CI `progress (other)` timed out at 1200 s). Third
-  thread «Ускорить мешер со скруглениями»: `tools/bench_mesh.gd` (16x16 chunks round the spawn, in the cloud
-  container) main 1857 ms / 663805 vertices; before 10324 ms / 2281489; after 4302 ms / 1276112 (~2.3x). Done:
-  covered cells only for ledges; whole tops on the `lines` the brows need; tops cached as indexed shapes
-  (3332 distinct of 13767); job caches of `segments`, `feet`, `_info`; `feet` skips a bare level above.
-  What is left of the cost (~2.4 s): `prepare` ~1.2 s (about 40k `segments` of ~12-18 us, GDScript loops over
-  the 3x3 window), `draw` ~1.5 s (tops ~0.8 s of which cache misses ~0.55 s, walls ~0.5 s, shared sides
-  ~0.2 s). Further ideas: cache whole draws (walls too) like the tops; fewer `GRID` lines for halves and
-  diagonal brows (needs lines along the diagonal); count fewer cells in `prepare` from ChunkMesher.
+  Speed (found 2026-11-17: meshing was ~6x slower than main, CI `progress (other)` timed out at 1200 s). Thread
+  «Ускорить мешер со скруглениями», PR #733 (supersedes #732). `tools/bench_mesh.gd` (16x16 chunks round the spawn;
+  «again» meshes them a second time with the static caches warm, as after a while of play), in the cloud
+  container, min of 3: main 1871 / 1850 ms, 663805 vertices; #732 ~10300 ms, 2281489; #733 ~4400 / ~3600 ms,
+  1276112 (~2.3x cold, ~1.95x warm). The user asked for 1.5x before merging (2026-11-17).
+  Done: covered cells only for ledges; whole tops on the `lines` the brows need; `_entry` caches per brows+feet the
+  top shape, its lines, heights along the sides and the wall shapes; job caches of `segments`, `feet`, `_info`;
+  `feet` builds the above level's brows itself (no `_ledge`), skips a bare level.
+  Tried, not worth it: a key of the 3x3 cells' packed codes (`_code`) to skip `segments`: codes for ~147k cells a
+  pass cost more than the segments, and cold only 25% of keys repeat; `_far` box tests before distances; filling
+  UV2/colours with `fill`.
+  Where the time is now (cold pass): `prepare` ~1.2 s (70k calls; `segments` ~0.5 s for 23k, a third of them end
+  with nothing to round; `feet` ~0.35 s), `draw` ~1.4 s (new top shapes ~0.45 s for ~3.5k: eval ~70 us, triangles
+  ~60 us each; emitting ~4 shapes a cell). Without walls ~0.2-0.3 s less, without feet ~0.7 s less. GDScript here
+  costs ~50 ns an operation: the floor is the per-cell look at the 3x3 window.
   Left for the next thread (PR 2 part 2, after the speed-up):
   - slopes: crest and foot of soft slopes, diagonal hips (slopes are still drawn by SlopeMesher, sharp);
   - vertical corners in plan (now a convex corner keeps its plan; the brow mitres there);

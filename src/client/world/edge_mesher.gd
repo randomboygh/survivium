@@ -32,12 +32,17 @@ const SIDE_B: Array[Vector2] = [Vector2(1, 0), Vector2(1, 1), Vector2(0, 1), Vec
 ## edges, where the curves are. Symmetric, so a diagonal runs through its points.
 const GRID: Array[float] = [0.0, 0.125, 0.25, 0.75, 0.875, 1.0]
 const GN := 6
-## Tops made (_top_shape) by the brows and feet that shape them: most edges repeat.
+## What the brows and feet round a cell make of it (_entry): its top (_top_shape), the
+## lines of its top and the heights along its sides and diagonal. Most edges repeat.
 static var _shapes := {}
 const SHAPES_MAX := 4096
 ## GRID and its ends as packed arrays (not constant expressions).
 static var GRID_P := PackedFloat32Array(GRID)
 static var ENDS := PackedFloat32Array([0.0, 1.0])
+static var ENDS_UP := PackedFloat32Array([1.0, 1.0])
+## The whole walls of the four sides of a cell, floor to top.
+static var _plain_walls := [_side_wall(0), _side_wall(1), _side_wall(2), _side_wall(3)]
+static var ENDS_DOWN := PackedFloat32Array([0.0, 0.0])
 ## The whole of GRID as a mask of its lines (see lines).
 const ALL_LINES := 63
 ## A segment of a level's plan edge, ST floats: the ends a, b (x, z, from the middle
@@ -341,15 +346,51 @@ static func _feet(job, i: int) -> PackedFloat32Array:
 			break
 	if bare:
 		return PackedFloat32Array()
-	var above := segments(job, i + job.dy)
+	# The brows of the level above (as `segments` makes them, those that round) whose
+	# wall stands on ground of this level.
+	var info := _infos(job)
+	var modes: PackedByteArray = Mat.edge_mode
+	var sizes: PackedFloat32Array = Mat.edge_size
 	var out := PackedFloat32Array()
-	for g in range(0, above.size(), ST):
-		if above[g + 7] == WALL_ONLY or above[g + 6] <= 0.0:
-			continue
-		var mid := Vector2(above[g] + above[g + 2], above[g + 1] + above[g + 3]) * 0.5 \
-				+ Vector2(above[g + 4], above[g + 5]) * 0.05
-		if _solid_at(job, i, mid):
-			out.append_array(above.slice(g, g + ST))
+	for oz in range(-1, 2):
+		for ox in range(-1, 2):
+			var j := up + ox + oz * dz
+			var v := info[j]
+			if v == 0:
+				v = _info(job, j)
+			var p := (v & 7) - 1
+			if p == EMPTY or v & ODD_BIT or v & NATURAL_BIT == 0:
+				continue
+			var m := (v >> 5) & 255
+			var mode: int = modes[m]
+			if mode == Mat.EDGE_SHARP:
+				continue
+			var r: float = sizes[m]
+			var o := Vector2(ox, oz)
+			var place := 3 * (oz + 1) + ox + 1
+			var sides: int = SIDE_MASK[p + 1] & NEAR_SIDES[place]
+			for s in 4:
+				if sides & (1 << s) == 0:
+					continue
+				var so := SIDE_OFF[s]
+				var nj := j + so.x + so.y * dz
+				var vn := info[nj]
+				if vn == 0:
+					vn = _info(job, nj)
+				if SIDE_MASK[(vn & 7)] & (1 << OPP[s]):
+					continue
+				var a := SIDE_A[s] + o
+				var b := SIDE_B[s] + o
+				if _solid_at(job, i, (a + b) * 0.5 + Vector2(so) * 0.05):
+					_push(out, a, b, Vector2(so), r, mode, place, s)
+			if p < FULL:
+				var a := Vector2(0.5, 0.5) + Vector2(CORNER_DIRS[(p + 1) & 3]) * 0.5 + o
+				var b := Vector2(0.5, 0.5) + Vector2(CORNER_DIRS[(p + 3) & 3]) * 0.5 + o
+				var nd := -Vector2(CORNER_DIRS[p]).normalized()
+				if (ox != 0 or oz != 0) and _square_distance(a, b) >= r:
+					continue
+				if _solid_at(job, i, (a + b) * 0.5 + nd * 0.05):
+					_push(out, a, b, nd, r, mode, place, DIAG_KIND)
 	return out
 
 
@@ -529,7 +570,8 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 	var pa := portion(c, sh, cov, i + dy)
 	var m := material(c, cov, i, p)
 	var t := open_part(p, pa)
-	var ln := lines(drops, heaps, t)
+	var entry := _entry(t, drops, heaps)
+	var ln: Array = entry[1]
 	if t != EMPTY:
 		var mt := m
 		if p == FULL and t != FULL:
@@ -554,7 +596,10 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 			for s in 4:
 				if not has_side(t, s):
 					edges &= ~(3 << (2 * s))
-		_top(buf, t, base, drops, heaps, mt, around if t == FULL else float(NO_TILES), edges, flag)
+		# Textured by x and z like a flat top (not as a slope, whose patterns go by its
+		# height over the level): the rounding is low, and its texels join the top's.
+		buf.shape(base, entry[0], Color(1, 1, 1), Vector2(pack(mt * 3, edges, flag),
+			around if t == FULL else float(NO_TILES)))
 	var below_drops := PackedFloat32Array()
 	var below_heaps := PackedFloat32Array()
 	var below_ready := false
@@ -581,14 +626,31 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 		var bottoms := PackedFloat32Array()
 		# Along a side, the lines the top has there (its edge meets the wall's top).
 		var qs := GRID_P
-		if not open and not below:
+		# The wall's shape where the top's entry keeps it (made once for all such cells).
+		var shape = null
+		if not open and not below and kind < DIAG_KIND and inset == 0.0:
 			qs = ENDS
-		elif kind < DIAG_KIND and inset == 0.0 and not below:
-			qs = ln[0] if kind < 2 else ln[1]
-		for q: float in qs:
-			var pt := a.lerp(b, q)
-			tops.append(height(pt, drops, heaps) if open else 1.0)
-			bottoms.append(maxf(0.0, height(pt, below_drops, below_heaps) - 1.0) if below else 0.0)
+			tops = ENDS_UP
+			shape = _plain_walls[kind]
+		elif open and inset == 0.0 and not below and (kind < DIAG_KIND or t == p):
+			# The top's own heights along the side (or its diagonal), made with it.
+			qs = GRID_P if kind == DIAG_KIND else ln[0] if kind < 2 else ln[1]
+			tops = entry[2][kind]
+			shape = entry[3][kind]
+			if shape == null:
+				shape = _wall_shape(a, b, n, kind, tops, _zeros(qs.size()), qs)
+				entry[3][kind] = shape
+		elif not open and not below:
+			qs = ENDS
+			tops = ENDS_UP
+			bottoms = ENDS_DOWN
+		else:
+			if kind < DIAG_KIND and inset == 0.0 and not below:
+				qs = ln[0] if kind < 2 else ln[1]
+			for q: float in qs:
+				var pt := a.lerp(b, q)
+				tops.append(height(pt, drops, heaps) if open else 1.0)
+				bottoms.append(maxf(0.0, height(pt, below_drops, below_heaps) - 1.0) if below else 0.0)
 		var edges := 0
 		var flag := OPEN_TOP if open else 0
 		var around_w := float(NO_TILES)
@@ -607,7 +669,11 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 		else:
 			flag |= SLOPE
 			edges = 0 if cov[c[i - dy]] else DARK << EDGE_S
-		_wall(buf, base, a, b, n, kind, tops, bottoms, Vector2(pack(m * 3 + 1, edges, flag), around_w), white, qs)
+		var packed := Vector2(pack(m * 3 + 1, edges, flag), around_w)
+		if shape == null:
+			_wall(buf, base, a, b, n, kind, tops, bottoms, packed, white, qs)
+		elif not shape.is_empty():
+			buf.shape(base, shape, white, packed)
 		if int(drops[g + 7]) == WALL_ONLY and open:
 			# Against a slope, a trunk or a form: the gap over the dipping top.
 			var nj: int = i + SIDE_OFF[kind].x + SIDE_OFF[kind].y * dz
@@ -617,13 +683,13 @@ static func draw(job, buf, i: int, base: Vector3, ready: Array, around: float, t
 			_wall(buf, base, a, b, -n, kind, caps, tops, Vector2(pack(c[nj] * 3 + 1, 0, 0), float(NO_TILES)), white, qs)
 	if t == EMPTY:
 		return
-	_shared_sides(job, buf, i, base, t, drops, heaps, ln)
+	_shared_sides(job, buf, i, base, t, entry)
 
 
 ## The walls of the ground beside piece `t` of padded cell `i` whose top is covered,
 ## over the top of `t` where it dips by them; `ln` the lines of its top (see lines).
-static func _shared_sides(job, buf, i: int, base: Vector3, t: int, drops: PackedFloat32Array,
-		heaps: PackedFloat32Array, ln: Array) -> void:
+static func _shared_sides(job, buf, i: int, base: Vector3, t: int, entry: Array) -> void:
+	var ln: Array = entry[1]
 	var c: PackedByteArray = job.c
 	var sh: PackedByteArray = job.sh
 	var cov: PackedByteArray = job.cov
@@ -639,15 +705,15 @@ static func _shared_sides(job, buf, i: int, base: Vector3, t: int, drops: Packed
 		if not has_side(pn, OPP[s]) or _odd(job, nj) or has_side(open_part(pn, portion(c, sh, cov, nj + dy)), OPP[s]):
 			continue
 		var tops := PackedFloat32Array()
-		var ones := PackedFloat32Array()
 		var dips := false
 		var qs: PackedFloat32Array = ln[0] if s < 2 else ln[1]
-		for q: float in qs:
-			var h := height(SIDE_A[s].lerp(SIDE_B[s], q), drops, heaps)
+		for h: float in entry[2][s]:
 			dips = dips or h < 0.999
 			tops.append(minf(h, 1.0))
-			ones.append(1.0)
 		if dips:
+			var ones := PackedFloat32Array()
+			ones.resize(qs.size())
+			ones.fill(1.0)
 			_wall(buf, base, SIDE_A[s], SIDE_B[s], -Vector2(SIDE_OFF[s]), s, ones, tops,
 				Vector2(pack(material(c, cov, nj, pn) * 3 + 1, 0, 0), float(NO_TILES)), white, qs)
 
@@ -776,6 +842,15 @@ static func _slope_height(s: int, l: Vector2) -> float:
 ## at the points `qs` along it (of GRID); one quad where both stay level.
 static func _wall(buf, base: Vector3, a: Vector2, b: Vector2, n: Vector2, kind: int, tops: PackedFloat32Array,
 		bottoms: PackedFloat32Array, packed: Vector2, color: Color, qs: PackedFloat32Array) -> void:
+	var shape := _wall_shape(a, b, n, kind, tops, bottoms, qs)
+	if not shape.is_empty():
+		buf.shape(base, shape, color, packed)
+
+
+## The wall of `_wall` at the origin, as MeshBuffers.shape takes it (empty where it has
+## no height anywhere).
+static func _wall_shape(a: Vector2, b: Vector2, n: Vector2, kind: int, tops: PackedFloat32Array,
+		bottoms: PackedFloat32Array, qs: PackedFloat32Array) -> Array:
 	var nn := Vector3(n.x, 0.0, n.y)
 	var level := true
 	var gn := qs.size()
@@ -786,6 +861,10 @@ static func _wall(buf, base: Vector3, a: Vector2, b: Vector2, n: Vector2, kind: 
 	var steps: Array = [0, gn - 1] if level else range(gn)
 	# A diagonal wall stands a little inside the ground (see _diag_wall).
 	var inside := -n * EPS if kind == DIAG_KIND else Vector2.ZERO
+	var out_p := PackedVector3Array()
+	var out_n := PackedVector3Array()
+	var out_uv := PackedVector2Array()
+	var idx := PackedInt32Array()
 	for g in range(steps.size() - 1):
 		var g0: int = steps[g]
 		var g1: int = steps[g + 1]
@@ -793,18 +872,25 @@ static func _wall(buf, base: Vector3, a: Vector2, b: Vector2, n: Vector2, kind: 
 		var p1 := a.lerp(b, qs[g1]) + inside
 		if tops[g0] - bottoms[g0] < 0.0001 and tops[g1] - bottoms[g1] < 0.0001:
 			continue
-		var vs := [base + Vector3(p0.x, bottoms[g0], p0.y), base + Vector3(p1.x, bottoms[g1], p1.y)]
-		var pts := [Vector3(p0.x, bottoms[g0], p0.y), Vector3(p1.x, bottoms[g1], p1.y)]
+		var vs: Array[Vector3] = [Vector3(p0.x, bottoms[g0], p0.y), Vector3(p1.x, bottoms[g1], p1.y)]
 		if tops[g1] - bottoms[g1] >= 0.0001:
-			vs.append(base + Vector3(p1.x, tops[g1], p1.y))
-			pts.append(Vector3(p1.x, tops[g1], p1.y))
+			vs.append(Vector3(p1.x, tops[g1], p1.y))
 		if tops[g0] - bottoms[g0] >= 0.0001:
-			vs.append(base + Vector3(p0.x, tops[g0], p0.y))
-			pts.append(Vector3(p0.x, tops[g0], p0.y))
-		var uvs := []
-		for v: Vector3 in pts:
-			uvs.append(face_uv(SIDE_D[kind], v) if kind < DIAG_KIND else Vector2(v.x, 1.0 - v.y))
-		_wound(buf, vs, nn, uvs, color, packed)
+			vs.append(Vector3(p0.x, tops[g0], p0.y))
+		# Clockwise seen from the front (as _wound turns them).
+		if (vs[1] - vs[0]).cross(vs[2] - vs[0]).dot(nn) > 0.0:
+			vs.reverse()
+		var start := out_p.size()
+		for v: Vector3 in vs:
+			out_p.append(v)
+			out_n.append(nn)
+			out_uv.append(face_uv(SIDE_D[kind], v) if kind < DIAG_KIND else Vector2(v.x, 1.0 - v.y))
+		idx.append_array([start, start + 1, start + 2])
+		if vs.size() == 4:
+			idx.append_array([start, start + 2, start + 3])
+	if out_p.is_empty():
+		return []
+	return [out_p, out_n, out_uv, idx]
 
 
 ## The lines of GRID the top over piece `t` is drawn on, across x and z ([xs, zs]): only
@@ -893,47 +979,78 @@ static func _mask_lines(m: int) -> PackedFloat32Array:
 
 ## The top over piece `t` of a cell on the GRID, its heights from the brows and feet:
 ## flat squares as a plain top (with the cell's edge codes), the rest as slopes.
-static func _top(buf, t: int, base: Vector3, drops: PackedFloat32Array, heaps: PackedFloat32Array, m: int,
-		around: float, edges: int, flag: int) -> void:
+static func _entry(t: int, drops: PackedFloat32Array, heaps: PackedFloat32Array) -> Array:
 	# What shapes the top, the same for every cell with the same edges round it.
 	var key := PackedFloat32Array([t])
-	for segs: PackedFloat32Array in [drops, heaps]:
-		key.append(-9.0)
-		for g in range(0, segs.size(), ST):
-			var inset := segs[g + 10] if int(segs[g + 8]) == MIDDLE else 0.0
-			# (A diagonal one sets how the squares split, see _top_shape.)
-			if (segs[g + 6] <= 0.0 or segs[g + 7] == WALL_ONLY) and inset <= 0.0 and int(segs[g + 9]) != DIAG_KIND:
-				continue
-			key.append_array(segs.slice(g, g + 8))
-			key.append(segs[g + 10])
-			key.append(inset)
-			key.append(1.0 if int(segs[g + 9]) == DIAG_KIND else 0.0)
-	var shape: Array = _shapes.get(key, [])
-	if shape.is_empty():
+	key.append_array(drops)
+	key.append(-9.0)
+	key.append_array(heaps)
+	var entry: Array = _shapes.get(key, [])
+	if entry.is_empty():
 		if _shapes.size() >= SHAPES_MAX:
 			_shapes.clear()
-		shape = _top_shape(t, drops, heaps)
-		_shapes[key] = shape
-	# Textured by x and z like a flat top (not as a slope, whose patterns go by its
-	# height over the level): the rounding is low, and its texels join the top's.
-	buf.shape(base, shape, Color(1, 1, 1), Vector2(pack(m * 3, edges, flag), around))
+		var ln := lines(drops, heaps, t)
+		var ne_sw := _splits_ne_sw(t, drops, heaps)
+		# Only the brows that round shape the heights.
+		drops = _rounding(drops)
+		heaps = _rounding(heaps)
+		# The heights along the sides on the top's lines, and along the half's diagonal.
+		var sides := []
+		for s in 4:
+			var hs := PackedFloat32Array()
+			for q: float in ln[0] if s < 2 else ln[1]:
+				hs.append(height(SIDE_A[s].lerp(SIDE_B[s], q), drops, heaps))
+			sides.append(hs)
+		var diag := PackedFloat32Array()
+		if t >= 0 and t < FULL:
+			var a := Vector2(0.5, 0.5) + Vector2(CORNER_DIRS[(t + 1) & 3]) * 0.5
+			var b := Vector2(0.5, 0.5) + Vector2(CORNER_DIRS[(t + 3) & 3]) * 0.5
+			for q: float in GRID:
+				diag.append(height(a.lerp(b, q), drops, heaps))
+		sides.append(diag)
+		entry = [_top_shape(t, drops, heaps, ln, ne_sw) if t != EMPTY else [], ln, sides, [null, null, null, null, null]]
+		_shapes[key] = entry
+	return entry
+
+
+static func _side_wall(s: int) -> Array:
+	return _wall_shape(SIDE_A[s], SIDE_B[s], Vector2(SIDE_OFF[s]), s, PackedFloat32Array([1.0, 1.0]),
+		PackedFloat32Array([0.0, 0.0]), PackedFloat32Array([0.0, 1.0]))
+
+
+## How the squares of the top over piece `t` split: along the piece's diagonal, or a
+## diagonal brow's near it (NE to SW), else NW to SE.
+static func _splits_ne_sw(t: int, drops: PackedFloat32Array, heaps: PackedFloat32Array) -> bool:
+	if t != FULL:
+		return t == 0 or t == 2
+	for segs: PackedFloat32Array in [drops, heaps]:
+		for g in range(0, segs.size(), ST):
+			if int(segs[g + 9]) == DIAG_KIND and segs[g + 4] * segs[g + 5] > 0.0:
+				return true
+	return false
+
+
+## The segments of `segs` that round (a radius, not a wall only).
+static func _rounding(segs: PackedFloat32Array) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	for g in range(0, segs.size(), ST):
+		if segs[g + 6] > 0.0 and segs[g + 7] != WALL_ONLY:
+			out.append_array(segs.slice(g, g + ST))
+	return out
+
+
+static func _zeros(n: int) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	out.resize(n)
+	return out
 
 
 ## The top over piece `t` at the origin, as MeshBuffers.shape takes it.
-static func _top_shape(t: int, drops: PackedFloat32Array, heaps: PackedFloat32Array) -> Array:
-	var ln := lines(drops, heaps, t)
+static func _top_shape(t: int, drops: PackedFloat32Array, heaps: PackedFloat32Array, ln: Array, ne_sw: bool) -> Array:
 	var xs: PackedFloat32Array = ln[0]
 	var zs: PackedFloat32Array = ln[1]
 	var nx := xs.size()
 	var nz := zs.size()
-	# The split of the squares: along the piece's diagonal, or a diagonal brow's near it.
-	var ne_sw := t == 0 or t == 2
-	if t == FULL:
-		for g in range(0, drops.size() + heaps.size(), ST):
-			var segs := drops if g < drops.size() else heaps
-			var h := g if g < drops.size() else g - drops.size()
-			if int(segs[h + 9]) == DIAG_KIND and segs[h + 4] * segs[h + 5] > 0.0:
-				ne_sw = true
 	var dir := Vector2(CORNER_DIRS[t]) if t < FULL else Vector2.ZERO
 	var hs := PackedFloat32Array()
 	var ns: Array = []
@@ -966,56 +1083,69 @@ static func _top_shape(t: int, drops: PackedFloat32Array, heaps: PackedFloat32Ar
 	up_at.fill(-1)
 	round_at.fill(-1)
 	var flat_at := {}
+	var pos := PackedVector3Array()
+	pos.resize(nx * nz)
+	for k in nx * nz:
+		pos[k] = Vector3(xs[k % nx], hs[k], zs[k / nx])
+	var tri := PackedInt32Array([0, 0, 0])
 	for b in nz - 1:
 		for a in nx - 1:
-			var k00 := b * nx + a
-			var ks := [k00, k00 + 1, k00 + nx + 1, k00 + nx]
-			var n_in := inside[ks[0]] + inside[ks[1]] + inside[ks[2]] + inside[ks[3]]
+			var k0 := b * nx + a
+			var k1 := k0 + 1
+			var k2 := k0 + nx + 1
+			var k3 := k0 + nx
+			var n_in := inside[k0] + inside[k1] + inside[k2] + inside[k3]
 			if n_in < 3:
 				continue
-			var tris: Array
-			if n_in == 3:
-				var tri := []
-				for k: int in ks:
-					if inside[k]:
-						tri.append(k)
-				tris = [tri]
-			elif ne_sw:
-				tris = [[ks[0], ks[1], ks[3]], [ks[1], ks[2], ks[3]]]
-			else:
-				tris = [[ks[0], ks[1], ks[2]], [ks[0], ks[2], ks[3]]]
-			for tri: Array in tris:
-				var vs: Array[Vector3] = []
-				var level := true
-				for k: int in tri:
-					vs.append(Vector3(xs[k % nx], hs[k], zs[k / nx]))
-					level = level and absf(hs[k] - 1.0) < 0.0001
-				var cr := (vs[1] - vs[0]).cross(vs[2] - vs[0])
+			for half in (1 if n_in == 3 else 2):
+				if n_in == 3:
+					var n := 0
+					for k in [k0, k1, k2, k3]:
+						if inside[k]:
+							tri[n] = k
+							n += 1
+				elif ne_sw:
+					tri[0] = k0 if half == 0 else k1
+					tri[1] = k1 if half == 0 else k2
+					tri[2] = k3
+				else:
+					tri[0] = k0
+					tri[1] = k1 if half == 0 else k2
+					tri[2] = k2 if half == 0 else k3
+				var level := absf(hs[tri[0]] - 1.0) < 0.0001 and absf(hs[tri[1]] - 1.0) < 0.0001 \
+						and absf(hs[tri[2]] - 1.0) < 0.0001
+				var cr := (pos[tri[1]] - pos[tri[0]]).cross(pos[tri[2]] - pos[tri[0]])
 				# Clockwise seen from above (Godot's front faces).
-				var order := [0, 2, 1] if cr.y > 0.0 else [0, 1, 2]
+				if cr.y > 0.0:
+					var swap := tri[1]
+					tri[1] = tri[2]
+					tri[2] = swap
 				if level or smooth[tri[0]] + smooth[tri[1]] + smooth[tri[2]] != 0:
-					var at := up_at if level else round_at
-					for o: int in order:
-						var k: int = tri[o]
-						if at[k] < 0:
-							at[k] = out_p.size()
-							out_p.append(vs[o])
+					for k: int in tri:
+						var at := up_at[k] if level else round_at[k]
+						if at < 0:
+							at = out_p.size()
+							if level:
+								up_at[k] = at
+							else:
+								round_at[k] = at
+							out_p.append(pos[k])
 							out_n.append(Vector3.UP if level else ns[k])
-							out_uv.append(Vector2(vs[o].x, vs[o].z))
-						idx.append(at[k])
+							out_uv.append(Vector2(pos[k].x, pos[k].z))
+						idx.append(at)
 					continue
 				# A bevel: flat, the triangle's own normal.
 				var nrm := cr.normalized()
 				if nrm.y < 0.0:
 					nrm = -nrm
-				for o: int in order:
-					var fk := Vector4(tri[o], nrm.x, nrm.y, nrm.z)
+				for k: int in tri:
+					var fk := Vector4(k, nrm.x, nrm.y, nrm.z)
 					var at: int = flat_at.get(fk, -1)
 					if at < 0:
 						at = out_p.size()
 						flat_at[fk] = at
-						out_p.append(vs[o])
+						out_p.append(pos[k])
 						out_n.append(nrm)
-						out_uv.append(Vector2(vs[o].x, vs[o].z))
+						out_uv.append(Vector2(pos[k].x, pos[k].z))
 					idx.append(at)
 	return [out_p, out_n, out_uv, idx]
