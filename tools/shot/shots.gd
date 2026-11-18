@@ -1211,6 +1211,8 @@ const SHOTS := {
 	"ground-round-corners": {"time": 0.42, "season": 1, "at": [185, -159], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
 	"ground-holes-phone": {"time": 0.42, "season": 1, "at": [196, -171], "y": 24, "hide": ["environment: background magenta"]},
 	# The user's note 2026-11-18: the edge of the overhang's roof cut round like its top (x 92 z -276).
+	# Thin cracks where a cut corner's curve ends at its side (old slopes, magenta background, 45° view).
+	"ground-slope-cracks": {"time": 0.42, "season": 1, "at": [173, -158], "turn": 1, "hide": ["chunks: grass", "environment: background magenta"], "settings": {"pixel_scale": 3}},
 	"ground-hole-check": {"time": 0.42, "season": 1, "at": [-144, 11], "y": 27, "turn": 1, "hide": ["chunks: grass", "environment: background magenta"], "settings": {"pixel_scale": 3}},
 	"ground-overhang-edge": {"time": 0.42, "season": 1, "at": [92, -276], "y": 25, "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
 	"ground-round-corners-phone": {"time": 0.42, "season": 1, "at": [185, -159], "y": 24},
