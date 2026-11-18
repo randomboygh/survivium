@@ -897,7 +897,9 @@ func _old_update_corners(x0: int, z0: int, x1: int, z1: int) -> void:
 				var wild4 := wild[j] & wild[cx] & wild[cz] & wild[cd]
 				if wild4 == 0:
 					continue
-				var cut := gr & wild4 & (air[cx] & air[cz] & air[cd] | water[cx] & water[cz] & water[cd])
+				# Not over an open cell (a cave under a thin roof): the cut would open a hole
+				# into it (2026-11-18).
+				var cut := gr & wild4 & (air[cx] & air[cz] & air[cd] | water[cx] & water[cz] & water[cd]) & (gr << 1)
 				if cut != 0:
 					# A slope is cut only at a corner where it is low, and not where it goes
 					# on down into the cell below.
@@ -947,7 +949,7 @@ func _update_deep(x0: int, z0: int, x1: int, z1: int) -> void:
 ## other column around the corner meets it a level lower there, is a sloping top on
 ## this level, low there and going down with it, is open more than two levels down,
 ## or (only the column east or west) stands as high or higher; at least one meets it
-## lower. The cells going down are loose wild ground.
+## lower. The cells going down are wild ground (of any material).
 func _deep_corner(x: int, y: int, z: int, k: int) -> bool:
 	if not _deepable(x, y - 1, z):
 		return false
@@ -992,7 +994,10 @@ func _deepable(x: int, y: int, z: int) -> bool:
 	if c == null:
 		return false
 	var i := (y << 8) | ((z & MASK) << SHIFT) | (x & MASK)
-	return c.natural[i] == WILD and Mat.can_slope(c.cells[i])
+	# Any wild ground, also one that does not lie in slopes itself (scree over stone):
+	# else a slope's corner over it was cut, a sharp wall where a ramp of sand or earth
+	# goes down round (the user, 2026-11-18).
+	return c.natural[i] == WILD and _surface_ground(c.cells[i])
 
 
 ## A sloping top is one smooth surface over its cell, a bicubic patch through the

@@ -344,18 +344,56 @@ static func _grid_at(hs: PackedFloat32Array, steps: Vector2i, q: Vector2) -> flo
 	return hs[roundi(q.y * steps.y) * (steps.x + 1) + roundi(q.x * steps.x)]
 
 
+## The ground under the cut corners `cuts` of the slope above deep cell `i` (base `base`
+## of that slope's cell): level with the slope's foot where the slope stands higher (its
+## cut wall rises from there), the slope's own surface where it goes on down into cell
+## `i`, so it meets the cut edge of the slope and the ground beside without a gap
+## (2026-11-18: a hole showed there). `tops[k]`: the packed tile of corner k.
+static func cut_floor(buf, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: int, base: Vector3,
+		cuts: int, tops: Array) -> void:
+	var p := patch(c, sh, i + dy, dy, dz)
+	var hs: PackedFloat32Array = patch_grid(p, 0.0, Vector2i(PATCH_STEPS, PATCH_STEPS))[0]
+	var white := Color(1, 1, 1)
+	var n := PATCH_STEPS + 1
+	var step := 1.0 / PATCH_STEPS
+	for k in 4:
+		if cuts & (1 << k) == 0:
+			continue
+		for b in PATCH_STEPS:
+			for a in PATCH_STEPS:
+				var j := b * n + a
+				var q00 := Vector3(a * step, minf(hs[j], 0.0), b * step)
+				var q10 := Vector3((a + 1) * step, minf(hs[j + 1], 0.0), b * step)
+				var q11 := Vector3((a + 1) * step, minf(hs[j + n + 1], 0.0), (b + 1) * step)
+				var q01 := Vector3(a * step, minf(hs[j + n], 0.0), (b + 1) * step)
+				for t: Array in [[q00, q10, q11], [q00, q11, q01]]:
+					var poly: Array = _clip(t, k, -1.0)[0]
+					for v in range(1, poly.size() - 1):
+						var pts: Array = [poly[0], poly[v], poly[v + 1]]
+						var nrm: Vector3 = (pts[2] - pts[0]).cross(pts[1] - pts[0])
+						if nrm.length_squared() < 1e-12:
+							continue
+						nrm = nrm.normalized()
+						if nrm.y < 0.0:
+							nrm = -nrm
+						buf.tri_n([base + pts[0], base + pts[1], base + pts[2]], [nrm, nrm, nrm],
+							[Vector2(pts[0].x, pts[0].z), Vector2(pts[1].x, pts[1].z), Vector2(pts[2].x, pts[2].z)],
+							white, tops[k])
+
+
 ## Clips a convex polygon of points in a cell (x, z in 0..1, y the height) to the side of
-## the diagonal of corner k away from the corner. Returns the polygon and the points
-## where it crosses the diagonal, in the order they were found.
-static func _clip(poly: Array, k: int) -> Array:
+## the diagonal of corner k away from the corner (with `side` -1, to the corner's side).
+## Returns the polygon and the points where it crosses the diagonal, in the order they
+## were found.
+static func _clip(poly: Array, k: int, side := 1.0) -> Array:
 	var out := []
 	var ends := []
 	var count := poly.size()
 	for j in count:
 		var p: Vector3 = poly[j]
 		var q: Vector3 = poly[(j + 1) % count]
-		var dp := _keep(k, p)
-		var dq := _keep(k, q)
+		var dp := _keep(k, p) * side
+		var dq := _keep(k, q) * side
 		if dp >= 0.0:
 			out.append(p)
 		if (dp >= 0.0) != (dq >= 0.0):
@@ -368,7 +406,9 @@ static func _clip(poly: Array, k: int) -> Array:
 ## Point q of a cut surface, brought down onto a cut of `cuts` it lies on where the
 ## wall there would be lower than LOW_CUT.
 static func _onto_cut(q: Vector3, cuts: int) -> Vector3:
-	if q.y < LOW_CUT:
+	# (Not where the slope goes on down into the cell below: the ground under the cut
+	# follows it there, see cut_floor.)
+	if q.y < LOW_CUT and q.y > 0.0:
 		for k in 4:
 			if cuts & (1 << k) and absf(_keep(k, q)) < 0.0001:
 				q.y = 0.0

@@ -127,6 +127,9 @@ var cloud_slant := Vector2.ZERO
 ## The side of the sky the light is on, in eighths of a turn from south toward west
 ## (see _light_side): the edges of the cells toward it are lit.
 var light_side := 0
+## The background drawn magenta, to see the holes in the ground through it
+## (RenderToggles «environment: background magenta», a tool for the developer).
+var magenta := false
 
 
 func _init(g) -> void:
@@ -220,6 +223,8 @@ func _update_light(delta: float) -> void:
 	# which flickered in stripes on a walk through a cave.
 	if cut_on:
 		env.background_color = Color(0.09, 0.085, 0.1)
+	if magenta:
+		env.background_color = Color.MAGENTA
 	if game.player != null:
 		_update_torch(delta)
 	_update_grade(golden, night, minf(moonlight, 1.0))

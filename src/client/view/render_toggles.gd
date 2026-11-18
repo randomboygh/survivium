@@ -103,6 +103,8 @@ func groups() -> Array:
 		out.append(["environment: glow", func(hide: bool) -> void: env.glow_enabled = false if hide else env.get_meta("glow", env.glow_enabled)])
 		out.append(["environment: colour adjustment", func(hide: bool) -> void:
 			env.adjustment_enabled = false if hide else env.get_meta("adjustment", env.adjustment_enabled)])
+		# Not hidden but drawn magenta: a hole in the ground shows bright through it.
+		out.append(["environment: background magenta", func(hide: bool) -> void: sky.magenta = hide])
 	return out
 
 
