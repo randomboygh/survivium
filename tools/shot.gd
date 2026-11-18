@@ -1253,6 +1253,8 @@ func _run() -> void:
 			if shot.has("ui_size"):
 				main.settings.set_value("ui_size", shot.ui_size)
 				await process_frame
+			if shot.get("updates", false):
+				_fake_updates()
 			main._build_menu()
 			# The landscape only for "sky" and "loading": the world is built already, so it
 			# would fade (the menu holds it while it is open and no world was asked for).
@@ -1969,3 +1971,26 @@ func _remove_dir(dir: String) -> void:
 	for f in DirAccess.get_files_at(dir):
 		DirAccess.remove_absolute(dir.path_join(f))
 	DirAccess.remove_absolute(dir)
+
+
+## A build of main with a few changes, a newer one out and a build run before (src/client/net/updates.gd).
+func _fake_updates() -> void:
+	var Protocol := load("res://src/shared/net/protocol.gd")
+	var Updates := load("res://src/client/net/updates.gd")
+	var line := func(pr: int, day: int, kind: String, en: String, ru: String) -> Dictionary:
+		var at := "2026-11-%02dT12:00:00Z" % day
+		return {"pr": pr, "date": at.left(10), "merged": at, "kind": kind, "text": ru, "texts": {"ru": ru, "en": en}}
+	var mine := [line.call(757, 18, "new", "The Strength skill raises the weight you carry", "Навык «Сила» поднимает переносимый вес"),
+		line.call(755, 17, "better", "Wide tall meadows and rare big ears of grass", "Широкие высокие луга и редкие крупные колосья"),
+		line.call(754, 16, "new", "Grass is trodden down where someone walks", "Трава приминается там, где ходят"),
+		line.call(749, 14, "fix", "Holes under cut slope corners", "Дыры под срезанными углами склонов"),
+		line.call(748, 13, "new", "Flat sandy shores level with the sea", "Пологие песчаные берега вровень с морем")]
+	Protocol._build_info = {"version": "0.3.757", "commit": "abc1234", "date": "2026-11-18",
+		"merged": mine[0].merged, "changes": mine}
+	Updates.latest = {"version": "0.3.760", "merged": "2026-11-20T12:00:00Z", "changes": [
+		line.call(760, 20, "new", "A dot on «What's new» when a newer version is out", "Точка на «Что нового», когда вышла новая версия"),
+		line.call(759, 19, "fix", "Cacti no longer stop a boat", "Кактусы больше не останавливают лодку")] + mine}
+	Updates.before = "2026-11-15T12:00:00Z"
+	Updates.before_version = "0.3.749"
+	Updates._noted = true
+	Updates._asked = true

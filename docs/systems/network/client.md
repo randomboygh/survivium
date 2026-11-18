@@ -26,6 +26,12 @@ Part of [Protocol and server](../network.md). The connection, the copy of the wo
   (`opened`, incoming into `net.receive`, `closed(code, reason)` and `ended` / `close_code` / `close_reason`:
   −1 and "" — the link is lost or there is no server), `leave()` — `bye` and closing. The game itself plays
   through it (`game.link.join_url`) and the `server_test` bots enter by it.
+- `src/client/net/updates.gd` — a newer build for «What's new»: a build of main (not `dev`, not a PR's `+pr`)
+  asks for `latest.json` beside the web build (`tools/build_info.py --latest`) `WAIT` 3 s after the menu shows,
+  once a run, quietly offline; a build whose PR merged later than this one's is newer (`latest`, signal `found`:
+  the menu's dot). `note_run` keeps this and the build run before in `user://versions.cfg` (`before`,
+  `is_new`); `coming` — the changes the newer build brings; `update` reloads the web page past the browser's
+  cache, else opens the latest release's APK, Windows or Linux file.
 - `src/client/net/mod_fetch.gd` — the game's side of the mods' files (decision 189): `begin(connection, hash,
   bundles)` finds where each file of the server's set is on this device (`plan`: the game's own file when its
   hash is the same, the built-in copy's, one kept from a server before), asks for the list (unless the set is

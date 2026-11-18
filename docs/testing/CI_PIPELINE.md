@@ -57,7 +57,9 @@ Every build of `main` that passed every job is a release on GitHub (Releases), m
   began. A main run that failed makes no release: its changes go into the next one.
 - **Files.** `survivium-android.apk`, `survivium-windows.zip`, `survivium-linux.tar.gz` (the names do not
   change, so `https://github.com/randomboygh/survivium/releases/latest/download/<file>` always gives the
-  newest build). The web build is Pages.
+  newest build). The web build is Pages, with `latest.json` beside it (`build_info.py --latest`: the version,
+  when its PR merged, its 100 newest changes): every build of main asks for it a few seconds after its menu shows
+  and offers the update in «What's new» (`src/client/net/updates.gd`).
 - **Latest.** The release of the newest merge into main is marked "Latest" explicitly (`--latest=true`), whatever
   its number: a PR opened early and merged late (#603 after #623) has the smaller number but is the newest
   build. "Newer" goes by the history (`git tag --contains HEAD`); a run finishing after the run of a later

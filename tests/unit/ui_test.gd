@@ -20,6 +20,7 @@ const MenuBackdrop := preload("res://src/client/ui/menu_backdrop.gd")
 const Settings := preload("res://src/client/settings.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
+const Updates := preload("res://src/client/net/updates.gd")
 
 
 func run() -> void:
@@ -38,6 +39,7 @@ func run() -> void:
 	_test_map_fit()
 	_test_vibration()
 	_test_fling()
+	_test_updates()
 
 
 func _test_two_tap() -> void:
@@ -602,3 +604,41 @@ func _test_fling() -> void:
 	drag._lift()
 	_check(not drag.moving(), "nor flies")
 	list.free()
+
+
+## «Что нового»: the build run before this one is remembered, the changes since it are new, a
+## build merged later is newer and brings the changes merged after this one.
+func _test_updates() -> void:
+	var keep := [Updates.path, Updates.latest, Updates.before, Updates.before_version]
+	Updates.path = "user://test_versions.cfg"
+	DirAccess.remove_absolute(Updates.path)
+	var c1 := {"pr": 1, "merged": "2026-11-01T10:00:00Z", "text": "a"}
+	var c2 := {"pr": 2, "merged": "2026-11-02T10:00:00Z", "text": "b"}
+	var c3 := {"pr": 3, "merged": "2026-11-03T10:00:00Z", "text": "c"}
+	var old := {"version": "0.3.1", "merged": c1.merged, "changes": [c1]}
+	var now := {"version": "0.3.2", "changes": [c2, c1]}
+	Updates._noted = false
+	Updates.note_run(old)
+	_check(Updates.before == "" and not Updates.is_new(c1, old), "the first run has nothing new")
+	Updates._noted = false
+	Updates.note_run(now)
+	_check(Updates.merged_of(now) == c2.merged, "a build without \"merged\" takes its newest change's")
+	_check(Updates.before_version == "0.3.1" and Updates.is_new(c2, now) and not Updates.is_new(c1, now),
+		"the change since the build run before is new, the older one is not")
+	Updates._noted = false
+	Updates.note_run(now)
+	_check(Updates.before_version == "0.3.1" and Updates.is_new(c2, now), "a second run of the same build keeps it")
+	Updates.latest = {}
+	_check(not Updates.take({"version": "0.3.1", "merged": c1.merged, "changes": [c1]}, now)
+		and not Updates.newer(), "an older build is no update")
+	_check(not Updates.take(null, now) and not Updates.take({"merged": c3.merged}, now), "a broken file is no update")
+	_check(Updates.take({"version": "0.3.3", "merged": c3.merged, "changes": [c3, c2, c1]}, now)
+		and Updates.newer(), "a build merged later is an update")
+	var coming := Updates.coming(now)
+	_check(coming.size() == 1 and coming[0].pr == 3, "the update brings only the changes after this build")
+	DirAccess.remove_absolute(Updates.path)
+	Updates.path = keep[0]
+	Updates.latest = keep[1]
+	Updates.before = keep[2]
+	Updates.before_version = keep[3]
+	Updates._noted = false
