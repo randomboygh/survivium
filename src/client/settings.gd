@@ -1211,7 +1211,7 @@ func in_test_world() -> bool:
 
 
 ## Forgets the save of the test world with the world settings `options` (of them only
-## the slopes count: two test worlds), so it is laid out anew from TestGround; when it
+## the slopes count), so it is laid out anew from TestGround; when it
 ## is the world being played, goes into it again at once without saving it first.
 func reset_test_world(options := {}) -> void:
 	var same := int(options.get("slopes", 0)) == int(game.world_options.get("slopes", 0))

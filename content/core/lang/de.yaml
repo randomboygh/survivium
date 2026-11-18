@@ -1224,8 +1224,6 @@
 # src/client/ui/world_list.gd
 "[no_saved_worlds_yet]": "Noch keine gespeicherten Welten"
 "[seed_day]": "Seed %d\n%s · Tag %d"
-"[test_world_grounds_day]": "Testwelt\nTestgelände · Tag %d"
-"[test_world_old_slopes_day]": "Testwelt\nalte Hänge · Tag %d"
 "[delete_the_world_tap_twice]": "Welt löschen (zweimal tippen)"
 "[reset_the_test_world_tap]": "Testwelt zurücksetzen (zweimal tippen)"
 "[this_world_is_being_played]": "Diese Welt wird gerade gespielt"

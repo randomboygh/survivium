@@ -1224,8 +1224,6 @@
 # src/client/ui/world_list.gd
 "[no_saved_worlds_yet]": "Henüz kayıtlı dünya yok"
 "[seed_day]": "tohum %d\n%s · gün %d"
-"[test_world_grounds_day]": "Test dünyası\nalanlar · gün %d"
-"[test_world_old_slopes_day]": "Test dünyası\neski yamaçlar · gün %d"
 "[delete_the_world_tap_twice]": "Dünyayı sil (iki kez dokun)"
 "[reset_the_test_world_tap]": "Test dünyasını başa döndür (iki kez dokun)"
 "[this_world_is_being_played]": "Bu dünya şu an oynanıyor"

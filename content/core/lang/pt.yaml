@@ -1224,8 +1224,6 @@
 # src/client/ui/world_list.gd
 "[no_saved_worlds_yet]": "Ainda não há mundos salvos"
 "[seed_day]": "semente %d\n%s · dia %d"
-"[test_world_grounds_day]": "Mundo de teste\náreas · dia %d"
-"[test_world_old_slopes_day]": "Mundo de teste\nencostas antigas · dia %d"
 "[delete_the_world_tap_twice]": "Apagar o mundo (toque duas vezes)"
 "[reset_the_test_world_tap]": "Reiniciar o mundo de teste (toque duas vezes)"
 "[this_world_is_being_played]": "Este mundo está em jogo"
