@@ -2274,6 +2274,8 @@
 "[field.plants.puff.about]": "Picking it puffs spores"
 "[field.plants.after_rain]": "After rain"
 "[field.plants.after_rain.about]": "Comes up only after rain"
+"[field.plants.sway]": "Sway"
+"[field.plants.sway.about]": "How far it sways in the wind, a share of a grass tuft's; 0 stiff"
 "[field.plants.crush]": "Crush"
 "[field.plants.crush.about]": "Seconds of visions when stepped on; 0 never"
 "[field.plants.rings]": "Rings"

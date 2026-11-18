@@ -2274,6 +2274,8 @@
 "[field.plants.puff.about]": "При сборе выпускает споры"
 "[field.plants.after_rain]": "После дождя"
 "[field.plants.after_rain.about]": "Появляется только после дождя"
+"[field.plants.sway]": "Качание"
+"[field.plants.sway.about]": "Как сильно качается на ветру, доля от пучка травы; 0 — не качается"
 "[field.plants.crush]": "Давится"
 "[field.plants.crush.about]": "Секунд видений, если наступить; 0 — нет"
 "[field.plants.rings]": "Кольца"

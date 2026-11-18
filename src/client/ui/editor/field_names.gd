@@ -288,6 +288,7 @@ const NAMES := {
 	"plants.looks": ["[field.plants.looks]", "[field.plants.looks.about]"],
 	"plants.puff": ["[field.plants.puff]", "[field.plants.puff.about]"],
 	"plants.after_rain": ["[field.plants.after_rain]", "[field.plants.after_rain.about]"],
+	"plants.sway": ["[field.plants.sway]", "[field.plants.sway.about]"],
 	"plants.crush": ["[field.plants.crush]", "[field.plants.crush.about]"],
 	"plants.rings": ["[field.plants.rings]", "[field.plants.rings.about]"],
 	"plants.grow_days": ["[field.plants.grow_days]", "[field.plants.grow_days.about]"],

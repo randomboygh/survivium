@@ -8,6 +8,8 @@
   sprite: cactus
   across: 2
   frames: 3
+  # Too stiff to sway in the wind.
+  sway: 0
   grows: bare
   cover: 0.012
   gives: {resources:fiber: 1}

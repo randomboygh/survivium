@@ -214,6 +214,8 @@ static func build_plants() -> ImageTexture:
 		var after_rain: bool = c.get("after_rain", false)
 		for k in (shift if shift > 0 else (Plants.columns(c) if after_rain else 0)):
 			img.set_pixel(PLANT_W * (PLANTS + c.first + k), PLANT_H, looks_texel(c.get("looks", ""), shift, after_rain))
+		for k in Plants.columns(c):
+			img.set_pixel(PLANT_W * (PLANTS + c.first + k) + 1, PLANT_H, sway_texel(c.get("sway", 1.0)))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
 	for v in 4:
@@ -363,6 +365,12 @@ static func build_plants() -> ImageTexture:
 static func looks_texel(looks: String, shift: int, after_rain := false) -> Color:
 	return Color(1.0 if looks == "shy" else 0.0, 1.0 if looks == "night" else 0.0, mini(shift, 255) / 255.0,
 		1.0 if after_rain else 0.5)
+
+
+## The second texel of a custom plant's looks row: how far its tips sway in the wind
+## (Plants `sway`, 0..2, as a share of a grass tuft's), read by grass.gdshader.
+static func sway_texel(sway: float) -> Color:
+	return Color(clampf(sway, 0.0, 2.0) / 2.0, 0.0, 0.0, 1.0)
 
 
 ## Sets texel (x, row) of plant `v`, rows counted from the bottom; off the plant it is
