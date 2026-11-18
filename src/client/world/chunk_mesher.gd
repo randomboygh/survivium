@@ -84,6 +84,9 @@ class Job extends RefCounted:
 	var edge_segs := {}
 	var edge_feet := {}
 	var edge_info := PackedInt32Array()
+	## How far each column (and one round them) lies from the sea's waterline over land
+	## level with it, for the surf (WaterMesher.swash_map); empty where it reaches none.
+	var swash := PackedFloat32Array()
 
 
 ## The solid and water meshes of the cells x0..x0+size, z0..z0+size, all at once:
@@ -171,6 +174,7 @@ static func _prepare(job: Job, i: int) -> void:
 			job.sh.append_array(w.padded(true, 0, x0, z0, x1, z1, half))
 		1:
 			job.cands = _candidates(w, job.x0, job.z0, job.x1, job.z1)
+			job.swash = Water.swash_map(w, job.x0, job.z0, job.x1, job.z1)
 			if job.rounded:
 				job.wild = Edges.wild_masks(w, x0, z0, x1, z1)
 			_take_forms(job)
@@ -283,6 +287,10 @@ static func _column(job: Job, x: int, z: int) -> bool:
 		if Mat.lit[m] != 0 and (nb[0] == AIR or nb[1] == AIR or nb[2] == AIR or nb[3] == AIR or nb[4] == AIR or nb[5] == AIR):
 			job.glows.append((base + Vector3(0.5, 1.0, 0.5)) * CELL)
 			job.glow_mats.append(m)
+		# The surf over land level with the sea (over a slope, not a flat top's cut corner).
+		if not job.swash.is_empty() and y == w.sea_level and m != WATER and cov[m] and not cov[nb[2]] \
+				and nb[2] != WATER and (sh[i] >> 4 == 0 or sh[i] & 15 != 0):
+			Water.swash(water, job.swash, x1 - x0 + 2, c, sh, i, dy, dz, x - x0 + 1, z - z0 + 1, base)
 		if not forms.is_empty() and forms.has(i):
 			Forms.form_faces(solid, c, cov, forms, offsets, i, base, m, forms[i])
 			continue

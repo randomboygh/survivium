@@ -38,6 +38,9 @@ const SPRAY_HALF := 0.75
 const SPRAY_HIGH := 2.5
 ## Vertex alpha of the sea's water (WorldData.SEA_WATER; other water has 1).
 const SEA_ALPHA := 0.85
+## Vertex alpha of the surf washing over the land level with the sea (see
+## WaterMesher.swash): between the foam of a fall's (below 0.6) and the sea's.
+const SWASH_ALPHA := 0.68
 ## How far out from the step a waterfall's sheet reaches at its foot, in cells.
 const FALL_SPREAD := 0.75
 static var AIR: int = Mat.AIR

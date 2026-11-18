@@ -1338,6 +1338,13 @@ func _run() -> void:
 			await process_frame
 			await process_frame
 			root.get_texture().get_image().save_png(out_dir.path_join("%s-%02d.png" % [shot_name, i + 1]))
+		# Frames as time goes on, `frames_ms` apart, to see what moves (the surf's waves):
+		# <name>-b01.png and on.
+		for i in (0 if keys_only else shot.get("frames_every", 0)):
+			var since := Time.get_ticks_msec()
+			while Time.get_ticks_msec() - since < int(shot.get("frames_ms", 500)):
+				await process_frame
+			root.get_texture().get_image().save_png(out_dir.path_join("%s-b%02d.png" % [shot_name, i + 1]))
 		main.creatures.set_process(true)
 		if shot.has("keys"):
 			_hold(shot.keys, false)

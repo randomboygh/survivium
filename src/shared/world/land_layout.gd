@@ -61,14 +61,18 @@ const CANYON := 4
 ## BIG_BIOMES times wider, rivers longer, wider and deeper (see RIVER_*_WIDE); slopes: 0
 ## the blocky relief (flat slopes, one-level corners, half-blocks, rounded edges), 1 the
 ## old curved slopes of before it, a level a cell (WorldData.old_slopes; it shapes the
-## ground, not how it is laid out). Here caves is 1, relief, climate,
-## cave_shape, landscape and slopes 0, what worlds made before those settings have;
+## ground, not how it is laid out); shores: 0 as before, 1 shores level with the water:
+## the low land by the coast lies at the sea's level for tens of cells (SHORE_LOW; the
+## water's surface half a level under its top, where the surf washes over it, see
+## WaterMesher.swash), the shallows off it are wider (SHALLOWS_WIDE) and a lake's shore
+## rises a level every LAKE_SHORE_RUN cells. Here caves is 1, relief, climate,
+## cave_shape, landscape, slopes and shores 0, what worlds made before those settings have;
 ## «Новый мир» makes caves 0, the others 1, and slopes what the player picks.
 const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 1, "relief": 0,
-	"climate": 0, "cave_shape": 0, "landscape": 0, "slopes": 0}
+	"climate": 0, "cave_shape": 0, "landscape": 0, "slopes": 0, "shores": 0}
 ## Every world setting, in the order the saves and the menus list them.
 const SETTING_KEYS := ["size", "water", "mountains", "rivers", "biomes", "caves", "relief", "climate", "cave_shape",
-	"landscape", "slopes"]
+	"landscape", "slopes", "shores"]
 const SIZE_SCALE := [0.4, 1.0, 2.2]
 const WATER_SHARE := [0.25, 0.4, 0.58]
 ## Where the mountain noise starts and ends raising mountains.
@@ -135,6 +139,17 @@ const ADIT := 4
 const PIT_DEPTH := 12
 ## Cells of level sand along a flat coast (see _relief).
 const FLAT_BEACH := 28.0
+## Shores 1: the low land by the coast lies SHORE_LOW levels lower, down to the sea's
+## level, fading out between SHORE_FADE_FROM and SHORE_FADE_TO cells inland, so the land
+## that rose a level every ten cells or so from the water lies level with it for tens of
+## cells; and off it the sea floor stays a level under the surface (water half a level
+## deep) for SHALLOWS_WIDE cells before it deepens.
+const SHORE_LOW := 1.5
+const SHORE_FADE_FROM := 70.0
+const SHORE_FADE_TO := 140.0
+const SHALLOWS_WIDE := 14.0
+## Shores 1: a lake's shore rises a level every this many cells (else every cell).
+const LAKE_SHORE_RUN := 4.0
 ## Rivers widen towards the sea or a lake over this many cells, so they are brooks
 ## at their sources and broad at their mouths.
 const MOUTH_REACH := 400.0
@@ -631,13 +646,18 @@ func _relief(coast: float, hills: int, ridges: int, mount: int, shape: int, clif
 	# above the sea for a band of FLAT_BEACH cells, and the sea floor slopes gently.
 	var cl := cliff / 127.5 - 1.0
 	var flat := 1.0 - smoothstep(-0.3, -0.05, cl)
+	var level_shores: bool = settings.get("shores", 0) >= 1
 	var inland := clampf((coast - FLAT_BEACH * flat) / 64.0, 0.0, 1.0)
 	# The hills grow in further from the coast than the land rises, and only where
 	# the rolling noise is high: elsewhere the plains lie nearly level.
 	var rolling := 0.2 + 0.8 * smoothstep(-0.05, 0.4, roll / 127.5 - 1.0)
 	var land := sea + 1.0 + inland * (1.0 + h * 7.0 * inland * rolling)
+	if level_shores:
+		# The low land by the coast lies level with the sea (see SHORE_LOW).
+		land = maxf(sea, land - SHORE_LOW * (1.0 - smoothstep(SHORE_FADE_FROM, SHORE_FADE_TO, coast)))
 	# Off a beach the water stays shallow for a few cells, then deepens slowly.
-	var floor_h := lerpf(sea - 2.0 - minf(5.0, -coast / 8.0), sea - 1.0 - minf(6.0, maxf(0.0, -coast - 6.0) / 12.0), flat)
+	var shallows := SHALLOWS_WIDE if level_shores else 6.0
+	var floor_h := lerpf(sea - 2.0 - minf(5.0, -coast / 8.0), sea - 1.0 - minf(6.0, maxf(0.0, -coast - shallows) / 12.0), flat)
 	var kind := PLAIN
 	var mask := smoothstep(-6.0, 6.0, coast)
 	# Cliff coasts: the land keeps its height right up to the water and drops into
@@ -923,6 +943,7 @@ func _water_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 	var river_from: float = RIVER_FROM[settings.rivers]
 	var wide: bool = settings.get("landscape", 0) >= 1
 	var mouth_reach := MOUTH_REACH_WIDE if wide else MOUTH_REACH
+	var level_shores: bool = settings.get("shores", 0) >= 1
 	var x0: int = lay.x0
 	var z0: int = lay.z0 + lz * lay.step
 	for lx in w:
@@ -1004,15 +1025,18 @@ func _water_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 			# Lakes over the high spots of the lake noise in the plains, with gentle
 			# shores.
 			var in_lake := minf(lake[j], coast[j] - LAKE_SHORE)
-			if kind == PLAIN and height <= sea + 8 and in_lake > -8.0 and not on_cone:
+			# Shores 1: the shore rises a level every LAKE_SHORE_RUN cells, and the lake
+			# stays shallow twice as far out.
+			var run := LAKE_SHORE_RUN if level_shores else 1.0
+			if kind == PLAIN and height <= sea + 8 and in_lake > -8.0 * run and not on_cone:
 				if in_lake > 0.0:
-					height = mini(mini(height, sea - 1 - mini(4, int(in_lake / 3.0))), channel)
+					height = mini(mini(height, sea - 1 - mini(4, int(in_lake / (6.0 if level_shores else 3.0)))), channel)
 					wt = sea
 					watery = true
 					feature = LAKE
 				else:
 					# The shore at the water's level, so it slopes into the water.
-					height = mini(height, sea + int(-in_lake))
+					height = mini(height, sea + int(-in_lake / run))
 			# Where the flow fades the valley rises and the river ends.
 			if wt < 0 and flowing > 0.0:
 				var bed := level if wet_bed else int(lerpf(height, level, flowing / 0.2))

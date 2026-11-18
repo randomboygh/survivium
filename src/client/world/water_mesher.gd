@@ -1,7 +1,8 @@
 extends "res://src/client/world/mesh_faces.gd"
 ## Water in the chunk meshes: the surface with its shore, murk and depth colours,
-## the water of cut corners, waterfalls with their sheet and foam, and the water
-## on a shore that follows the slope under it. Called by ChunkMesher a column at a time.
+## the water of cut corners, waterfalls with their sheet and foam, the water on a
+## shore that follows the slope under it, and the surf washing up over the land level
+## with the sea (swash). Called by ChunkMesher a column at a time.
 
 const Slopes := preload("res://src/client/world/slope_mesher.gd")
 const OldSlopes := preload("res://src/client/world/old_slope_mesher.gd")
@@ -494,6 +495,145 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 			buf.uv2s.append(data)
 			var murk := lerpf(lerpf(murks[0], murks[1], x), lerpf(murks[3], murks[2], x), z)
 			buf.colors.append(water_color(maxf(under, 0.0), under, kind(true, murk), sea))
+	for b in steps.y:
+		for a in steps.x:
+			var j := start + b * nu + a
+			buf.indices.append(j)
+			buf.indices.append(j + 1)
+			buf.indices.append(j + nu + 1)
+			buf.indices.append(j)
+			buf.indices.append(j + nu + 1)
+			buf.indices.append(j + nu)
+
+
+## Surf: the sea washes up over the land whose top is level with it (the sea's level,
+## its water half a level under the land's top, see WATER_TOP) in a thin sheet with foam
+## at its front, up to SWASH_REACH cells from the waterline (water.gdshader draws the
+## waves). The flat beaches of worlds with the setting shores 1 lie at that level.
+const SWASH_REACH := 5.0
+## How far over the ground the sheet lies, in cells.
+const SWASH_LIFT := 0.03
+
+
+## How far each column of x0 - 1..x1 + 1, z0 - 1..z1 + 1 (ends exclusive, row by row)
+## lies from the sea's waterline, in cells, going only over land whose top is at the
+## sea's level: from the middle of the column, -0.5 on the sea's water at its edge, INF
+## where it is farther than SWASH_REACH or not level; empty when the surf reaches none
+## of them. A chamfer distance (two passes) over a window SWASH_REACH + 2 wider all
+## round, from its column masks; the sea is told only for the water next to land.
+static func swash_map(w, x0: int, z0: int, x1: int, z1: int) -> PackedFloat32Array:
+	var lv: int = w.sea_level
+	if lv < 0 or lv + 1 >= w.size_y:
+		return PackedFloat32Array()
+	var m := int(SWASH_REACH) + 2
+	var gx0 := x0 - m
+	var gz0 := z0 - m
+	var gw := x1 - x0 + 2 * m
+	var gh := z1 - z0 + 2 * m
+	var masks: Dictionary = w.column_masks(gx0, gz0, gx0 + gw, gz0 + gh)
+	var air: PackedInt64Array = masks.air
+	var water: PackedInt64Array = masks.water
+	var leaf: PackedInt64Array = masks.leaf
+	var wet := 1 << lv
+	var above: int = w.all_bits & ~((1 << (lv + 1)) - 1)
+	# 1 land with its top at the sea's level, 2 water with open air over it there.
+	var kind := PackedByteArray()
+	kind.resize(gw * gh)
+	var lands := false
+	var waters := false
+	for k in gw * gh:
+		var open: int = air[k] | leaf[k]
+		if open & above != above or open & wet != 0:
+			continue
+		if water[k] & wet != 0:
+			kind[k] = 2
+			waters = true
+		else:
+			kind[k] = 1
+			lands = true
+	if not lands or not waters:
+		return PackedFloat32Array()
+	var d := PackedFloat32Array()
+	d.resize(gw * gh)
+	d.fill(INF)
+	var any := false
+	for z in range(1, gh - 1):
+		for x in range(1, gw - 1):
+			var k := z * gw + x
+			if kind[k] != 2:
+				continue
+			if (kind[k - 1] == 1 or kind[k + 1] == 1 or kind[k - gw] == 1 or kind[k + gw] == 1
+					or kind[k - gw - 1] == 1 or kind[k - gw + 1] == 1 or kind[k + gw - 1] == 1 or kind[k + gw + 1] == 1) \
+					and w.sea(gx0 + x, lv, gz0 + z):
+				d[k] = -0.5
+				any = true
+	if not any:
+		return PackedFloat32Array()
+	const DIAG := 1.4142
+	for z in range(1, gh - 1):
+		for x in range(1, gw - 1):
+			var k := z * gw + x
+			if kind[k] == 1:
+				d[k] = minf(d[k], minf(minf(d[k - 1] + 1.0, d[k - gw] + 1.0), minf(d[k - gw - 1] + DIAG, d[k - gw + 1] + DIAG)))
+	for z in range(gh - 2, 0, -1):
+		for x in range(gw - 2, 0, -1):
+			var k := z * gw + x
+			if kind[k] == 1:
+				d[k] = minf(d[k], minf(minf(d[k + 1] + 1.0, d[k + gw] + 1.0), minf(d[k + gw + 1] + DIAG, d[k + gw - 1] + DIAG)))
+	var out := PackedFloat32Array()
+	var reached := false
+	for z in range(m - 1, gh - m + 1):
+		for x in range(m - 1, gw - m + 1):
+			var v := d[z * gw + x]
+			if v > SWASH_REACH + 1.0:
+				v = INF
+			elif v > 0.0:
+				reached = true
+			out.append(v)
+	return out if reached else PackedFloat32Array()
+
+
+## The surf's sheet over the top of land cell `i` (see swash), column `gx`, `gz` of the
+## map `sw` (swash_map, `sw_w` columns a row): over the cell's top, its slope's where it
+## slopes, never under the water's surface; each point tells the shader how far from the
+## waterline it is, from the columns that meet at the cell's corners.
+static func swash(buf, sw: PackedFloat32Array, sw_w: int, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int,
+		dz: int, gx: int, gz: int, base: Vector3) -> void:
+	var g := gz * sw_w + gx
+	if sw[g] > SWASH_REACH:
+		return
+	var corners := PackedFloat32Array()
+	for k in 4:
+		var o: Vector2i = CORNER_DIRS[k]
+		var sum := 0.0
+		var count := 0
+		for n: int in [g, g + o.x, g + o.y * sw_w, g + o.x + o.y * sw_w]:
+			if sw[n] < INF:
+				sum += sw[n]
+				count += 1
+		corners.append(sum / count)
+	var sloped := sh[i] & 15 != 0
+	var steps := Vector2i(Slopes.PATCH_STEPS, Slopes.PATCH_STEPS) if sloped else Vector2i(1, 1)
+	var hs := PackedFloat32Array()
+	if not sloped:
+		hs = PackedFloat32Array([1.0, 1.0, 1.0, 1.0])
+	elif old_slopes:
+		hs = OldSlopes.patch_grid(OldSlopes.patch(c, sh, i, dy, dz), 0.0, steps)[0]
+	else:
+		hs = Slopes.surface_grid(c, sh, i, dy, dz, steps)
+	var start: int = buf.verts.size()
+	var nu := steps.x + 1
+	for b in steps.y + 1:
+		var z := float(b) / steps.y
+		for a in nu:
+			var x := float(a) / steps.x
+			# Corners NW, NE, SE, SW at (0, 0), (1, 0), (1, 1), (0, 1).
+			var far := lerpf(lerpf(corners[0], corners[1], x), lerpf(corners[3], corners[2], x), z)
+			buf.verts.append(base + Vector3(x, maxf(hs[b * nu + a], WATER_TOP) + SWASH_LIFT, z))
+			buf.normals.append(Vector3.UP)
+			buf.uvs.append(Vector2(x, z))
+			buf.uv2s.append(Vector2.ZERO)
+			buf.colors.append(Color(clampf((far + 0.5) / 8.0, 0.0, 1.0), 1.0, 0.0, SWASH_ALPHA))
 	for b in steps.y:
 		for a in steps.x:
 			var j := start + b * nu + a
