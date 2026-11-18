@@ -345,9 +345,13 @@ func _ref_cut_here(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 	var a := w.get_cell(x + o.x, y, z)
 	if a != Mat.AIR and a != Mat.WATER or w.get_cell(x, y, z + o.y) != a or w.get_cell(x + o.x, y, z + o.y) != a:
 		return false
-	# Not over an open cell (a cave under a thin roof).
+	# Not over an open cell (a cave under a thin roof), unless the corner is open under
+	# it too (an overhang's roof).
 	if not _ref_ground(w, x, y - 1, z):
-		return false
+		var b := w.get_cell(x + o.x, y - 1, z)
+		if b != Mat.AIR and b != Mat.WATER or w.get_cell(x, y - 1, z + o.y) != b \
+				or w.get_cell(x + o.x, y - 1, z + o.y) != b:
+			return false
 	if not (_ref_ground(w, x, y, z) and w.is_natural(x, y, z) and w.is_natural(x + o.x, y, z) \
 			and w.is_natural(x, y, z + o.y) and w.is_natural(x + o.x, y, z + o.y)):
 		return false
