@@ -3,7 +3,7 @@
 // held upright opening a link to a server, then as an iPhone tapping a field there. Plays
 // a little in the first two, joins in the third, prints the browser console and a
 // screenshot of each as base64, and fails on
-// script or shader errors or touch controls outside the visible screen. Software WebGL
+// script, shader or WebGL errors or touch controls outside the visible screen. Software WebGL
 // draws a frame in a second or more and every input event waits for one, so the test sends
 // as few events as it can.
 // Run from the repo root after exporting to build/web and serving it on port 8060:
@@ -32,12 +32,27 @@ const rectOf = (line, key) => {
   return at < 0 ? '' : line.slice(at + key.length + 2, line.indexOf(']', at) + 1);
 };
 
+// Software WebGL has 32 texture units, phones and most desktop browsers 16: the page is
+// told 16, so Godot keeps its own textures (the sun's shadows, the sky) in the top units
+// as there, and a shader with too many samplers shares a unit with them and is refused
+// (GL_INVALID_OPERATION below), as the grass was after #754 (tools/lint.py MAX_SAMPLERS).
+const sixteenUnits = () => {
+  const proto = WebGL2RenderingContext.prototype;
+  const get = proto.getParameter;
+  proto.getParameter = function (key) {
+    if (key === this.MAX_TEXTURE_IMAGE_UNITS || key === this.MAX_VERTEX_TEXTURE_IMAGE_UNITS) return 16;
+    if (key === this.MAX_COMBINED_TEXTURE_IMAGE_UNITS) return 32;
+    return get.call(this, key);
+  };
+};
+
 // Opens the page, goes into the world from the main menu and waits until it is built:
 // the phone taps «Одиночная игра», "Новый мир" and then "Создать мир" on the setup
 // screen (the same world, so the menu goes straight in), the desktop presses Enter on
 // «Одиночная игра» and on "Играть".
 async function open(name, options, init, tapDpr, url = URL) {
   const context = await browser.newContext(options);
+  await context.addInitScript(sixteenUnits);
   if (init) await context.addInitScript(init);
   const page = await context.newPage();
   const log = [];
@@ -45,7 +60,7 @@ async function open(name, options, init, tapDpr, url = URL) {
     const text = m.text();
     log.push(text);
     console.log(`[${name} console.${m.type()}] ${text}`);
-    if (/SCRIPT ERROR|SHADER ERROR|Parse Error|Invalid call|Invalid access|Invalid get|Invalid set/.test(text)) errors.push(`${name}: ${text}`);
+    if (/SCRIPT ERROR|SHADER ERROR|Parse Error|Invalid call|Invalid access|Invalid get|Invalid set|GL_INVALID_OPERATION/.test(text)) errors.push(`${name}: ${text}`);
   });
   page.on('pageerror', (e) => {
     console.log(`[${name} pageerror] ${e.message}`);
@@ -252,7 +267,7 @@ if (runs('upright')) {
     const text = m.text();
     log.push(text);
     console.log(`[upright console.${m.type()}] ${text}`);
-    if (/SCRIPT ERROR|SHADER ERROR|Parse Error|Invalid call|Invalid access|Invalid get|Invalid set/.test(text)) errors.push(`upright: ${text}`);
+    if (/SCRIPT ERROR|SHADER ERROR|Parse Error|Invalid call|Invalid access|Invalid get|Invalid set|GL_INVALID_OPERATION/.test(text)) errors.push(`upright: ${text}`);
   });
   page.on('pageerror', (e) => errors.push(`upright: ${e.message}`));
   await page.goto(`${LIGHT}&server=127.0.0.1:9`);
@@ -344,7 +359,7 @@ if (runs('upright')) {
   const iosLog = [];
   ios.on('console', (m) => {
     iosLog.push(m.text());
-    if (/SCRIPT ERROR|Invalid call|Invalid access|Invalid get|Invalid set/.test(m.text())) errors.push(`iphone: ${m.text()}`);
+    if (/SCRIPT ERROR|Invalid call|Invalid access|Invalid get|Invalid set|GL_INVALID_OPERATION/.test(m.text())) errors.push(`iphone: ${m.text()}`);
   });
   ios.on('pageerror', (e) => errors.push(`iphone: ${e.message}`));
   await ios.goto(`${URL}?server=127.0.0.1:9`);
