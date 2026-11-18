@@ -995,6 +995,10 @@ const SHOTS := {
 	"ui-main-menu-setup": {"time": 0.42, "season": 1, "touch": true, "main_menu": "setup"},
 	# The list of saved worlds, over a few saves made up for it.
 	"ui-main-menu-changes": {"time": 0.42, "season": 1, "touch": true, "main_menu": "changes"},
+	# A newer build out (Updates, made up by _fake_updates): the dot on «Что нового», and on its page
+	# the update's changes, those new since the build run before, «Обновить».
+	"ui-main-menu-update": {"time": 0.42, "season": 1, "touch": true, "main_menu": "live", "updates": true},
+	"ui-main-menu-changes-update": {"time": 0.42, "season": 1, "touch": true, "main_menu": "changes", "updates": true},
 	# The settings over the main menu in the developer mode: the tab «Отладка».
 	"ui-main-menu-dev-tab": {"time": 0.42, "season": 1, "touch": true, "main_menu": "dev", "dev": true},
 	"ui-main-menu-worlds": {"time": 0.42, "season": 1, "touch": true, "main_menu": "worlds"},

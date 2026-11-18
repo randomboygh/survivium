@@ -133,6 +133,10 @@ func _ready() -> void:
 	_scroll = Kit.scroll(_room, false)
 	panel.add_child(_scroll)
 	_fill_page("top")
+	# Asks for a newer build a while after the menu shows; the dot comes when one is found.
+	var updates := Updates.new()
+	add_child(updates)
+	updates.found.connect(_update_dot)
 
 	_build_loading()
 	_fx = Control.new()

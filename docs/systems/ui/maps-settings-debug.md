@@ -14,7 +14,10 @@ Part of [Interface and settings](../ui.md). The maps, the settings, the performa
   at the next start, «Defaults» there puts them back and forgets them; «All survival» turns the `SURVIVAL` ones
   at once), `settings_menu.gd` (pages of rows «name ‹ value ›», sections parted by strips `{"section": icon, "title"}` → `Kit.section`; the settings' tabs «Game», «Interface», «Graphics», «Sound» (the music's and the sounds' volumes, each under its strip) and «Other» (the mods' files kept from servers and «Clear server data», where one's own mods go); a tabbed page keeps one height on every tab, its longest section's (the window's, never its rows': a tab whose rows fit shows no scroll bar), and a taller tab scrolls in it; on a server the rows of day length, time of day, season and weather are faded with a note, the server's host sets them in its window; the version and «What's new» from
   `build_info.json`: also opened from the main menu, «Back» goes there; the changes are built by
-  `CHANGES_STEP` while scrolling).
+  `CHANGES_STEP` while scrolling). With a newer build out (`src/client/net/updates.gd`) the page starts with its
+  changes under the strip «Update <version>», then the ones that came since the build run before on this device
+  under «New since <version>» (`user://versions.cfg`), then the rest, dimmed, under «Earlier»; «Update» beside
+  «Back» reloads the web page or downloads the latest release's APK or PC archive (shot `ui-main-menu-changes-update`).
 - Debugging: `perf_panel.gd` (F3; the graph button in the top row only with the setting «Interface» →
   «Statistics button», hidden by default, decision 186, `Hud.show_stats_button`; the panel is opened by F3 and
   by «Testing» → «Debug» → «Statistics»), `freeze_log.gd` and `gl_watch.gd` (`GlWatch.software()` — the

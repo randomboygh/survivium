@@ -42,6 +42,8 @@ const LastLog := preload("res://src/client/ui/last_log.gd")
 const ShaderProbe := preload("res://src/client/view/shader_probe.gd")
 const GlWatch := preload("res://src/client/ui/gl_watch.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
+## A newer build, the changes it brings and those new since the build run before (changes page).
+const Updates := preload("res://src/client/net/updates.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 ## «Витрина интерфейса», loaded only when opened.
@@ -145,6 +147,12 @@ var _probe: Node = null
 ## The changes of the changes page not made yet (see CHANGES_STEP), and the PR made last.
 var _changes_left := []
 var _changes_pr := -1
+## The group of the change made last: "coming" (the newer build brings it), "new" (came since the
+## build run before), "old"; a strip parts the groups when there is more than "old".
+var _changes_group := ""
+var _changes_group_strips := false
+## «Обновить» beside «Назад» on the changes page while a newer build is out (Updates.update).
+var _update: Button
 var _scroll: ScrollContainer
 var _list: VBoxContainer
 ## How tall the list's window stands on a page with tabs: its longest section's
@@ -229,6 +237,8 @@ func _ready() -> void:
 	_share = _bottom(buttons, "[share]", _share_shown)
 	_clear = _bottom(buttons, "[clear_the_log]", Callable())
 	_asks.guard(_clear, _clear_freezes)
+	_update = _bottom(buttons, "[update]", _update_game)
+	UiStyle.accent(_update)
 	_back = _bottom(buttons, "[back]", _go_back)
 	_choices.scroll = _scroll
 	_choices.stepped.connect(_stepped)
@@ -317,6 +327,9 @@ func _fill() -> void:
 	_version.visible = which != "settings"
 	_changes.visible = which == "test"
 	_clear.visible = which == "freezes"
+	_update.visible = which == "changes" and Updates.newer()
+	_update.disabled = false
+	_update.text = "[update]"
 	_copy.visible = which in ["freezes", "crash", "probe"]
 	_copy_row.visible = which == "report"
 	for b: Button in [_copy, _copy_tab, _copy_all]:
@@ -1174,14 +1187,43 @@ func _page_height(which: String, n: int) -> int:
 	return tallest
 
 
-## One wrapped paragraph a change, as wide as the rows of the other pages.
+## One wrapped paragraph a change, as wide as the rows of the other pages: first what a newer
+## build brings (Updates.coming), then what came since the build run before (Updates.is_new), then
+## the rest, dimmed, each group under its strip.
 func _add_changes(changes: Array) -> void:
-	if changes.is_empty():
+	_changes_left = []
+	for c: Dictionary in Updates.coming():
+		_changes_left.append(c.merged({"group": "coming"}))
+	for c: Dictionary in changes:
+		_changes_left.append(c.merged({"group": "new" if Updates.is_new(c) else "old"}))
+	if _changes_left.is_empty():
 		_list.add_child(_paragraph("[the_list_of_changes_appears]", UiStyle.MUTED))
 		return
-	_changes_left = changes.duplicate()
 	_changes_pr = -1
+	_changes_group_strips = _changes_left[0].group != "old"
+	_changes_group = "" if _changes_group_strips else "old"
 	_more_changes()
+
+
+## The strip over a group of changes (see _changes_group).
+static func _group_strip(group: String) -> HBoxContainer:
+	match group:
+		"coming":
+			var v := Lang.f("[update_to]", [Updates.latest.get("version", "")])
+			return Kit.section("up", v, v)
+		"new":
+			var t := Lang.f("[new_since]", [Updates.before_version]) if Updates.before_version != "" \
+					else Lang.t("[new_since_last_run]")
+			return Kit.section("star", t, t)
+	return Kit.section("clock", "[earlier]", "[earlier]")
+
+
+## «Обновить»: the newer build (the web page reloads, the others download it).
+func _update_game() -> void:
+	Updates.update()
+	if OS.has_feature("web"):
+		_update.disabled = true
+		_update.text = "[loading]"
 
 
 ## The text of a change in the game's language, else English, else the one `text` holds (Russian
@@ -1198,10 +1240,17 @@ static func change_text(c: Dictionary) -> String:
 ## The next CHANGES_STEP changes at the end of the changes page.
 func _more_changes() -> void:
 	for c: Dictionary in _changes_left.slice(0, CHANGES_STEP):
+		if c.group != _changes_group:
+			_changes_group = c.group
+			_changes_pr = -1
+			_list.add_child(_group_strip(c.group))
 		if int(c.pr) != _changes_pr:
 			_changes_pr = int(c.pr)
 			_list.add_child(_paragraph("#%d · %s" % [_changes_pr, merged_at(c)], UiStyle.ACCENT))
-		_list.add_child(_change_line(str(c.get("kind", "new")), change_text(c), UiStyle.INK, content_width()))
+		# The old ones dimmed only when there is something to tell them from.
+		var dim: bool = c.group == "old" and _changes_group_strips
+		_list.add_child(_change_line(str(c.get("kind", "new")), change_text(c), UiStyle.MUTED if dim else UiStyle.INK,
+				content_width()))
 	_changes_left = _changes_left.slice(CHANGES_STEP)
 
 

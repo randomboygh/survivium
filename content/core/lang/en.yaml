@@ -961,6 +961,12 @@
 "[lower]": "Lower"
 
 # src/client/ui/settings_menu.gd
+"[update]": "Update"
+"[loading]": "Loading…"
+"[update_to]": "Update %s"
+"[new_since]": "New since %s"
+"[new_since_last_run]": "New since your last run"
+"[earlier]": "Earlier"
 "[new_n2]": "new"
 "[improved]": "improved"
 "[fixed]": "fixed"

@@ -29,7 +29,8 @@ Part of [Interface and settings](../ui.md). Files of the screens before the game
   the build number is written small under the logo, at the right edge (`MainMenu.version_text`, from
   `build_info.json`; «dev» without it; the shot `ui-main-menu-dev`). The pages in one panel: «Continue» (only
   over a running world — from the pause or the death screen: closes the menu, lit first), «Single player»,
-  «Multiplayer», «Editor», «What's new» (the list of the build's changes, `MainMenu._open_changes`),
+  «Multiplayer», «Editor», «What's new» (the list of the build's changes, `MainMenu._open_changes`; a red dot in its corner while a
+  newer build is out, `_update_dot`, shot `ui-main-menu-update`),
   «Settings», «Exit» → «Single player» (Play/Continue, New world, Load world, Back) and «Multiplayer» (Join,
   Create a server — PC only, on a phone a touch explains; on a server first «Back to the server»,
   «Disconnect»; while one's own server runs, «Single player», «Join» and «Disconnect» are closed: other
