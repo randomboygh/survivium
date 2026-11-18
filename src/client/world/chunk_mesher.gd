@@ -309,6 +309,13 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			if cov[nb[0]] or cov[nb[1]] or cov[nb[4]] or cov[nb[5]]:
 				foam |= Water.foam(c, sh, cov, i, dy, dz)
 			var surf := Water.surf_here(sea, y)
+			if surf:
+				# The surf outlines the sea where the land beside is level with it; along a
+				# wall rising out of it the water keeps its foam.
+				for e in 4:
+					var n: int = i + (-dz if e == 0 else (dz if e == 1 else (-1 if e == 2 else 1)))
+					if not (cov[c[n]] and cov[c[n + dy]]):
+						foam &= ~(3 << (2 * e))
 			var depth := 1
 			while depth < 8 and c[i - depth * dy] == WATER:
 				depth += 1
@@ -325,8 +332,8 @@ static func _column(job: Job, x: int, z: int) -> bool:
 							surf))
 				else:
 					corners = Water.water_corners(c, sh, cov, i, dy, dz, depth, murks, sea, water_top(y), surf)
-				if surf and fills != 0:
-					Water.swash_fills(water, base, fills, foam)
+				if surf and fills != 0 and not job.swash.is_empty():
+					Water.swash_fills(water, base, fills, foam, job.swash, x1 - x0 + 2, x - x0 + 1, z - z0 + 1)
 				var lips := Water.lip_cuts(c, i, dy, dz) if nb[2] == AIR else 0
 				Water.water_faces(water, faces, nb, base, depth, foam, corners, lips)
 				Water.falls(job.water_falls, c, nb, side_offsets, i, dy, dz, x - x0, z - z0, y)
