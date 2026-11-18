@@ -103,7 +103,7 @@ float drift_size() {
 }
 
 bool is_drift(float packed_tile, vec2 uv) {
-	return int(packed_tile + 0.5) % 64 == NO_MATERIAL && uv.x > 2.5;
+	return int(round(packed_tile)) % 64 == NO_MATERIAL && uv.x > 2.5;
 }
 
 // Where the point is in the picture, for the dither of the light rings (light_texel).
@@ -166,7 +166,7 @@ void vertex() {
 	// A thing of voxels (a placed thing, a dropped one: no material, not a drift) sways
 	// aside in the heat over sand and the sea, row by row of the picture, its foot most
 	// (heat_sway); the ground itself trembles by its texels (see fragment).
-	if (heat_ground > 0.0 && int(UV2.x + 0.5) % 64 == NO_MATERIAL && !is_drift(UV2.x, UV)) {
+	if (heat_ground > 0.0 && int(round(UV2.x)) % 64 == NO_MATERIAL && !is_drift(UV2.x, UV)) {
 		vec3 foot = MODEL_MATRIX[3].xyz;
 		float s = heat_sway(VERTEX, foot, VERTEX.y - foot.y, TIME) / TEXELS;
 		VERTEX.xz += vec2(-view_up.y, view_up.x) * s;
@@ -287,7 +287,9 @@ void fragment() {
 			discard;
 		}
 	}
-	int a = int(packed.x + 0.5);
+	// Whole already, up to 2^24 (flag 512 is over 2^23, where adding a half rounds an odd
+	// word up to the next even one, the next material: see packed.y below).
+	int a = int(round(packed.x));
 	int code = a % 64;
 	int flag = a / 16384;
 	int tile = code == NO_MATERIAL ? NONE
