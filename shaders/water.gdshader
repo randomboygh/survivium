@@ -304,8 +304,9 @@ void fragment() {
 				col = mix(col, foam_c, 0.6);
 				alpha = 0.8;
 				surf = 0.5;
-			} else if (left > 0.0 && abs(lace - 0.5) < 0.09 * left) {
-				// The left foam the water slides back over.
+			} else if (left > 0.0 && abs(lace - 0.5) < 0.09 * left * smoothstep(0.5, SWASH_BASE + 0.5, far)) {
+				// The left foam the water slides back over, thinning out toward the
+				// sea's own water (none along the waterline itself).
 				col = mix(col, foam_c, 0.8);
 				alpha = 0.85;
 				surf = 0.6 * left;
