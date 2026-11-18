@@ -23,4 +23,5 @@
   groves: 0.18
   bushes: {plants:currant: 0.5, plants:shrub: 0.5}
   bush_sparsity: 160
+  tints: {water: "#68a28c"}
   color: "#6fa86a"

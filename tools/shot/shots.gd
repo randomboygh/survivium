@@ -338,6 +338,13 @@ const SHOTS := {
 	"forest-autumn": {"time": 0.42, "season": 2, "forest": true},
 	"forest-winter": {"time": 0.45, "season": 3, "forest": true},
 	"river": {"time": 0.42, "season": 1, "place": "river"},
+	# The colour of water by body and biome (RoofMap.water_tint): a river's mouth into the
+	# sea, a river, a lake, the tropical sea; the grass hidden to see the water's edges.
+	"water-delta": {"time": 0.42, "season": 1, "place": "delta", "hide": ["chunks: grass"]},
+	"water-river": {"time": 0.42, "season": 1, "place": "river", "hide": ["chunks: grass"]},
+	"water-lake": {"time": 0.42, "season": 1, "place": "lake", "hide": ["chunks: grass"]},
+	"water-beach": {"time": 0.42, "season": 1, "place": "beach", "hide": ["chunks: grass"]},
+	"water-tropical": {"time": 0.42, "season": 1, "place": "tropical_beach", "hide": ["chunks: grass"]},
 	# The biomes of the temperate zone of new worlds: red maples, willows and poplars by water.
 	"maple-wood": {"time": 0.42, "season": 1, "place": "maple_wood"},
 	"floodplain": {"time": 0.42, "season": 1, "place": "floodplain"},
