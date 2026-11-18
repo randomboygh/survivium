@@ -17,7 +17,7 @@
 //          diagonal wall (textured in screen texels so it is not stretched), 8 = an
 //          edge along the diagonal of corner k (bits 16..32: NW, NE, SE, SW), the face
 //          lying on the corner's side of it if bit 64, with the edge code in bits
-//          128..256
+//          128..256, drawn straight whatever the material's corner shape if bit 512
 //   UV2.y = top materials of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces; on a wall the materials of the cells
 //          beside it on its plane, above, below, W and E (see ChunkMesher._side_tiles)
@@ -512,7 +512,9 @@ void fragment() {
 		// Texel distance to the diagonal across corner k (see MeshFaces.corner_curve),
 		// counted on the face, positive away from the corner.
 		int k = (flag >> 4) & 3;
-		int dd = corner_distance(t, k, corner_shapes[tile / 3]);
+		// Flag 512: straight whatever the material (a diagonal going on, see
+		// MeshFaces.DIAG_STRAIGHT).
+		int dd = corner_distance(t, k, (flag & 512) != 0 ? 0 : corner_shapes[tile / 3]);
 		dd = (flag & 64) != 0 ? -dd : dd;
 		int code = (flag >> 7) & 3;
 		if (top && (code == 1 || code == 2)) {

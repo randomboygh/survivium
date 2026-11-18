@@ -8,11 +8,12 @@ const OldSlopes := preload("res://src/client/world/old_slope_mesher.gd")
 
 
 ## Water standing in the cut corners of padded cell `i` beside water with air above,
-## up to the curve of corner shape `shape`.
-static func cut_water(w, water, c: PackedByteArray, i: int, dy: int, base: Vector3, cuts: int, shape := 0) -> void:
+## up to the curve of each corner's shape (`shapes`, 2 bits a corner, NW lowest).
+static func cut_water(w, water, c: PackedByteArray, i: int, dy: int, base: Vector3, cuts: int, shapes := 0) -> void:
 	for k in 4:
 		var o: Vector2i = CORNER_DIRS[k]
 		if cuts & (1 << k) and c[i + o.x] == WATER and c[i + o.x + dy] == AIR:
+			var shape := shapes >> (2 * k) & 3
 			var depth := 1
 			while depth < 8 and w.get_cell(int(base.x) + o.x, int(base.y) - depth, int(base.z)) == WATER:
 				depth += 1

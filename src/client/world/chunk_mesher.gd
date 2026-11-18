@@ -292,7 +292,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			var foam := fills << 8
 			for k in 4:
 				if fills & (1 << k):
-					foam |= _fill_shape(c, cov, i, dy, k) << (16 + 2 * k)
+					foam |= _diag_shape(c, sh, cov, i, dz, k, _fill_shape(c, cov, i, dy, k)) << (16 + 2 * k)
 			var murk: int = w.murk(x, y, z) if nb[2] == AIR else 0
 			var sea: bool = nb[2] == AIR and w.sea(x, y, z)
 			# Open water has no land beside it, so no foam.
@@ -346,6 +346,8 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				Water.cut_water(w, water, c, i, dy, base, cuts)
 		else:
 			var cuts := sh[i] >> 4
+			# Corner shapes of the cuts, 2 bits a corner (see _diag_shapes).
+			var shapes := _diag_shapes(c, sh, cov, i, dz, cuts, Mat.corner_shape[m]) if cuts != 0 else 0
 			var bare: bool = m == Mat.STONE and not picked.is_empty() and picked.get(Vector3i(x, y, z), null) == ""
 			# Most tops lie under open sky amid the same flat ground: no sides, no
 			# edges, no transitions.
@@ -370,7 +372,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 						else:
 							_add_cell_face(solid, FACE_BOTTOM, base, white, under)
 					if cuts != 0:
-						Water.cut_water(w, water, c, i, dy, base, cuts, Mat.corner_shape[m])
+						Water.cut_water(w, water, c, i, dy, base, cuts, Mat.corner_shape[m] * ALL_CORNERS)
 					continue
 			# Ground under a cut whose top slopes there (WorldData._floor_slopes): the
 			# sides beside the cut corner go up to that slope.
@@ -399,7 +401,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 					var halves := _covered_halves(c, sh, cov, i, dy, dz, edges)
 					var a := _around_tiles(c, cov, i, dy, dz, sh)
 					if cuts != 0 or halves != 0:
-						_top_pieces(solid, base, m, cuts, edges, halves, float(a))
+						_top_pieces(solid, base, m, cuts, edges, halves, float(a), shapes)
 						continue
 					if edges == 0 and not bare and _plain_around(a, m):
 						plain.append(((y * 64 + m) * 64 + z - z0) * 64 + x - x0)
@@ -425,12 +427,11 @@ static func _column(job: Job, x: int, z: int) -> bool:
 						edges |= DARK << EDGE_E
 					around = float(_side_tiles(c, cov, i, dy, f, s))
 				if cuts != 0:
-					_cut_side(solid, faces, d, base, cuts, white, Vector2(pack(tile, edges, flag), around),
-						Mat.corner_shape[m])
+					_cut_side(solid, faces, d, base, cuts, white, Vector2(pack(tile, edges, flag), around), shapes)
 				else:
 					_add_cell_face(solid, d, base, color, Vector2(pack(tile, edges, flag), around))
 			if cuts != 0:
-				_cut_walls(w, solid, water, c, cov, i, dy, base, m, cuts, sh[i - dy] & 15 != 0 and cov[c[i - dy]])
+				_cut_walls(w, solid, water, c, cov, i, dy, base, m, cuts, shapes, sh[i - dy] & 15 != 0 and cov[c[i - dy]])
 			# The ground under a cut corner of the cell above shows there.
 			var exposed := sh[i + dy] >> 4 & ~cuts if cov[c[i + dy]] else 0
 			if floor_k >= 0:
@@ -813,14 +814,16 @@ static func _quarter_edges(q: int, edges: int, halves: int) -> int:
 
 ## The top of a cell drawn in quarters: cut corners leave their diagonal, and half edges
 ## where the ground goes on lose their edge code.
-static func _top_pieces(buf, base: Vector3, m: int, cuts: int, edges: int, halves: int, around: float) -> void:
+static func _top_pieces(buf, base: Vector3, m: int, cuts: int, edges: int, halves: int, around: float,
+		shapes := 0) -> void:
 	var white := Color(1, 1, 1)
 	if old_slopes:
 		for q in 4:
 			var e := _quarter_edges(q, edges, halves)
 			var cut := cuts & (1 << q) != 0
-			var packed := Vector2(pack(m * 3, e, _diag(q, false, DARK) if cut else 0), around)
-			_piece(buf, base, 1.0, q, OLD_CUT if cut else QUARTER, Vector3.UP, white, packed, Mat.corner_shape[m])
+			var shape := shapes >> (2 * q) & 3
+			var packed := Vector2(pack(m * 3, e, _diag(q, false, DARK, shape) if cut else 0), around)
+			_piece(buf, base, 1.0, q, OLD_CUT if cut else QUARTER, Vector3.UP, white, packed, shape)
 		return
 	var kind := cut_kind(cuts)
 	# Lower ground beyond the diagonal: a rim or an outline by the view.
@@ -833,10 +836,10 @@ static func _top_pieces(buf, base: Vector3, m: int, cuts: int, edges: int, halve
 ## Side `d` of a cell with a cut corner: the sides beside the cut corner are gone with
 ## the half of the cell beyond its diagonal; the bottom in pieces.
 static func _cut_side(buf, faces: Array, d: int, base: Vector3, cuts: int, color: Color, packed: Vector2,
-		shape := 0) -> void:
+		shapes := 0) -> void:
 	if d == FACE_BOTTOM:
 		for q in 4:
-			_piece(buf, base, 0.0, q, quarter_kind(cuts, q), Vector3.DOWN, color, packed, shape)
+			_piece(buf, base, 0.0, q, quarter_kind(cuts, q), Vector3.DOWN, color, packed, shapes >> (2 * q) & 3)
 		return
 	var ks: Array = SIDE_CORNERS[d]
 	if old_slopes:
@@ -855,7 +858,7 @@ static func _cut_side(buf, faces: Array, d: int, base: Vector3, cuts: int, color
 ## Diagonal walls of the cut corners of padded cell `i`, and water standing in them
 ## where the cell is beside water.
 static func _cut_walls(w, buf, water, c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, base: Vector3,
-		m: int, cuts: int, on_slope := false) -> void:
+		m: int, cuts: int, shapes: int, on_slope := false) -> void:
 	var white := Color(1, 1, 1)
 	var no_tiles := float(NO_TILES)
 	# Over a slope going on down in the cut (WorldData._floor_slopes) the wall reaches a
@@ -867,8 +870,8 @@ static func _cut_walls(w, buf, water, c: PackedByteArray, cov: PackedByteArray, 
 		var edges := 0 if cov[c[i - dy]] else DARK << EDGE_S
 		var flag := SLOPE | (0 if cov[c[i + dy]] else OPEN_TOP)
 		_diag_wall(buf, base - Vector3(0.0, skirt, 0.0), k, true, white, Vector2(pack(m * 3 + 1, edges, flag), no_tiles),
-			Mat.corner_shape[m], 1.0 + skirt, 1.0 + skirt)
-	Water.cut_water(w, water, c, i, dy, base, cuts, Mat.corner_shape[m])
+			shapes >> (2 * k) & 3, 1.0 + skirt, 1.0 + skirt)
+	Water.cut_water(w, water, c, i, dy, base, cuts, shapes)
 
 
 ## Ground filling the corners of open padded cell `i`: a diagonal wall, and its top
@@ -884,7 +887,7 @@ static func _fill_faces(buf, c: PackedByteArray, sh: PackedByteArray, cov: Packe
 		var o: Vector2i = CORNER_DIRS[k]
 		var mf := c[i + o.x]
 		var open_top: bool = not cov[c[i + dy]] and sh[i + dy] >> 4 & (1 << k) == 0
-		var shape := _fill_shape(c, cov, i, dy, k)
+		var shape := _diag_shape(c, sh, cov, i, dz, k, _fill_shape(c, cov, i, dy, k))
 		_diag_wall(buf, base, k, false, white, Vector2(pack(mf * 3 + 1, 0, SLOPE | (OPEN_TOP if open_top else 0)), no_tiles),
 			shape)
 		# The top continues the ground around it: under a slope beside, the slope's.
@@ -900,8 +903,37 @@ static func _fill_faces(buf, c: PackedByteArray, sh: PackedByteArray, cov: Packe
 			if o.y > 0 and cov[c[i + dy + dz]]:
 				edges |= CONTACT << EDGE_S
 			# Open across its diagonal: a rim or an outline by the view.
-			var flag := _diag(k, true, DARK)
+			var flag := _diag(k, true, DARK, shape)
 			_piece(buf, base, 1.0, k, CORNER, Vector3.UP, white, Vector2(pack(mf * 3, edges, flag), no_tiles), shape)
+
+
+## Old slopes: corner shape `shape` of the cut (ground cell) or fill (open cell) at
+## corner k of padded cell `i`, or 0 (straight) where the diagonal goes on into a cell
+## beside it: a cut beside a fill, a fill beside a cut. A diagonal wall so runs straight
+## from cell to cell instead of bulging at each cut and sinking at each fill; the
+## material's rounding stays where the outline turns (the ends of a wall).
+static func _diag_shape(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dz: int, k: int,
+		shape: int) -> int:
+	if shape == 0:
+		return 0
+	var bit := 16 << ((k + 2) & 3)
+	var o: Vector2i = CORNER_DIRS[k]
+	var x := i + o.x
+	var z := i + o.y * dz
+	if sh[x] & bit and cov[c[x]] != cov[c[i]] or sh[z] & bit and cov[c[z]] != cov[c[i]]:
+		return 0
+	return shape
+
+
+## The corner shapes (see _diag_shape) of the corners `corners` of padded cell `i` of
+## corner shape `shape`, 2 bits a corner (NW lowest).
+static func _diag_shapes(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dz: int,
+		corners: int, shape: int) -> int:
+	var out := 0
+	for k in 4:
+		if corners & (1 << k):
+			out |= _diag_shape(c, sh, cov, i, dz, k, shape) << (2 * k)
+	return out
 
 
 ## Corner shape of the ground filling corner k of open padded cell `i`: that of the
@@ -1010,7 +1042,8 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 				if shapes[i] & 15 != 0:
 					continue
 				for q in 4:
-					_piece(buf, base, 1.0, q, quarter_kind(cuts, q), Vector3.UP, dark, packed, Mat.corner_shape[cells[i]])
+					_piece(buf, base, 1.0, q, quarter_kind(cuts, q), Vector3.UP, dark, packed,
+						_cap_shape(w, x, level, z, q, Mat.corner_shape[cells[i]]) if cuts & (1 << q) else 0)
 			elif open & bit and shapes[i] >= 16 and cells[i] != LEAVES:
 				var fills: int = shapes[i] >> 4
 				if open & bit << 1:
@@ -1021,8 +1054,22 @@ static func build_cap(w, level: int, x0 := 0, z0 := 0, size := WorldData.CHUNK) 
 						var o: Vector2i = CORNER_DIRS[k]
 						var mf: int = w.get_cell(x + o.x, level, z)
 						_piece(buf, base, 1.0, k, CORNER, Vector3.UP, dark, Vector2(pack(mf * 3, 0, 0), no_tiles),
-							Mat.corner_shape[mf])
+							_cap_shape(w, x, level, z, k, Mat.corner_shape[mf]))
 	return null if buf.is_empty() else buf.to_mesh(CELL)
+
+
+## The corner shape of a cap's cut or filled corner k at (x, level, z) as the cells are
+## drawn (see _diag_shape): straight where the cell beside on this level or the next has
+## the corner that goes on with the diagonal.
+static func _cap_shape(w, x: int, level: int, z: int, k: int, shape: int) -> int:
+	if shape == 0:
+		return 0
+	var bit := 16 << ((k + 2) & 3)
+	var o: Vector2i = CORNER_DIRS[k]
+	for y in [level, level + 1]:
+		if w._shape(x + o.x, y, z) & bit or w._shape(x, y, z + o.y) & bit:
+			return 0
+	return shape
 
 
 ## Which of the stone tops beside (x, y, z) had their moss picked too: bits N, S, W, E

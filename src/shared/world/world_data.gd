@@ -826,10 +826,17 @@ func _fill_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: 
 ## The low corners of an old slope's top (see old_slopes) for its low sides `lows` (N,
 ## S, W, E as 1, 2, 4, 8) at bit `bit` of column j of the masks (`low`, `diag` as in
 ## update_slopes): a ramp to one side, an outer corner to two neighbouring sides, an
-## inner corner where only a diagonal neighbour is lower; 0 for a whole cube.
+## inner corner where only a diagonal neighbour is lower; 0 for a whole cube. An outer
+## corner whose one high corner has the column across it lower too (a ridge running on
+## the diagonal, two cells wide) stays a cube: its tops would each rise to a sharp peak
+## at that corner; cut at its corners instead, it is a straight wall on the diagonal, as
+## stone is.
 func _old_slope(lows: int, j: int, bit: int, low: PackedInt64Array, diag: PackedInt32Array, x: int, y: int,
 		z: int) -> int:
 	var mask: int = RAMPS[lows]
+	var one: int = ODD_CORNER[mask] if mask & (mask - 1) == 0 and mask != 0 else -1
+	if one >= 0 and low[j + diag[one]] & bit:
+		return 0
 	if lows == 0:
 		# Inner corner: exactly one lower diagonal between two sloping neighbours.
 		for k in 4:

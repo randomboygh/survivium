@@ -1128,6 +1128,11 @@ const SHOTS := {
 	"ground-deep-slope2": {"time": 0.42, "season": 1, "at": [192, -207], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
 	"ground-deep-water": {"time": 0.42, "season": 1, "at": [77, -335], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
 	"ground-deep-zigzag": {"time": 0.42, "season": 1, "at": [176, -335], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
+	# Diagonal walls on the zigzag plots (old slopes): sand and clay, scree and stone, then in water.
+	"ground-zz-soft": {"time": 0.42, "season": 1, "at": [173, -182], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
+	"ground-zz-stone": {"time": 0.42, "season": 1, "at": [173, -158], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
+	"ground-zz-water": {"time": 0.42, "season": 1, "at": [173, -310], "y": 23, "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
+	"ground-zz-water-stone": {"time": 0.42, "season": 1, "at": [173, -286], "y": 23, "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
 	"ground-deep-star": {"time": 0.42, "season": 1, "at": [28, -72], "hide": ["chunks: grass"]},
 	"ground-old-wave": {"time": 0.42, "season": 1, "at": [197, -231], "y": 23, "turn": 6},
 	"ground-old-odd": {"time": 0.42, "season": 1, "at": [172, -211]},
