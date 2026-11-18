@@ -26,4 +26,5 @@
   bush_sparsity: 160
   hummocks: 0.08
   mist: 0.3
+  tints: {water: "#66987c"}
   color: "#3d6a47"

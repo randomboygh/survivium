@@ -1013,3 +1013,42 @@ float heat_sway(vec3 p, vec3 foot, float h, float time) {
 	float w = sin(t.y * 0.9 + time * 4.0 + floor(t.x / 11.0) * 1.3) * 0.6 + sin(t.y * 0.37 - time * 2.2) * 0.5;
 	return floor(w * heat_ground * 1.1 * clamp(1.0 - h * 0.3, 0.25, 1.0) + 0.5);
 }
+
+// The surf (WaterMesher.SWASH_REACH): the farthest a wave runs up from the waterline, in
+// cells, and the seconds from one wave to the next.
+const float SWASH_REACH = 5.0;
+const float SWASH_PERIOD = 7.0;
+
+// The surf's wave at world texel `tex` at `time` (drawn by water.gdshader over the sheet,
+// mirrored in by sprite_mirror.gdshader): how far from the waterline its front is and
+// the farthest this wave got, in cells; `p` how far through its time the wave is (0..1);
+// `left` how much of the foam it leaves behind is still there; `lace`, `fizz` the noise
+// that foam is laid by; `wave` which wave it is. Along the shore the waves come in at their own times and reach
+// as far as a slow noise says.
+void surf_wave(vec2 tex, float time, out float front, out float peak, out float p, out float left, out float lace, out float fizz, out float wave) {
+	vec2 xz = tex / TEXELS;
+	float t = time / SWASH_PERIOD + texture(cloud_noise, xz / 18.0).r * 2.3;
+	wave = floor(t);
+	p = fract(t);
+	float reach = SWASH_REACH * (0.35 + 0.65 * texture(cloud_noise, xz / 11.0 + wave * 0.29).r);
+	// Up fast over the first quarter, easing out; back over the rest, easing in.
+	float run = p < 0.25 ? 1.0 - (1.0 - p / 0.25) * (1.0 - p / 0.25) : 1.0 - smoothstep(0.25, 1.0, p);
+	float rag = (texture(cloud_noise, xz / 2.5 + vec2(wave * 0.41, time * 0.02)).r - 0.5) * 0.9
+		+ (hash12(vec2(floor(tex.x / 2.0) + floor(tex.y / 2.0), wave)) - 0.5) * 0.25;
+	// The front, never behind the waterline; and how far this wave got.
+	front = max(reach * run + rag * run, 0.0);
+	peak = max(reach + rag, 0.0);
+	// How much of the foam the wave leaves behind is still there: all of it as the
+	// wave turns, none by the time the next one comes.
+	left = p > 0.25 ? 1.0 - smoothstep(0.25, 0.95, p) : 0.0;
+	lace = texture(cloud_noise, xz / 1.6 + vec2(wave * 0.37, 0.0)).r;
+	fizz = hash12(tex + wave * 13.0);
+}
+
+// Whether the foam a wave left on the sand behind it is at `far` cells from the
+// waterline (see surf_wave): a line along where it reached and lace between, breaking
+// up into fewer and fewer bubbles as it dissolves.
+bool surf_left_foam(float far, float peak, float left, float lace, float fizz) {
+	bool line = peak - far < 5.0 / CELL_TEXELS;
+	return line ? fizz < 0.35 + 0.65 * left : abs(lace - 0.5) < 0.1 * left && fizz < 0.4 + 0.6 * left;
+}

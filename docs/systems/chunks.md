@@ -145,12 +145,17 @@ slice, to free the far meshes.
   the ground; every stride that leaves a print (the player's, the other players', the beasts') also treads the grass
   in `trample.gd` (`trample_map`, a quarter-unit texel: when, which way, how hard, the level), which `grass.gdshader`
   reads through `trodden()` to lay the tufts and the mods' plants over and lower; they stand up again over
-  `Trample.LIFE` seconds; `roof_map.gd` — the roof map for shaders (wrapped through `RoofMap.WRAP`) and beside it the map of
+  `Trample.LIFE` seconds; `roof_map.gd` — the roof map for shaders (wrapped through `RoofMap.WRAP`; g is `CROWN` under a crown plus `NO_PUDDLE` on a top that drains or slopes) and beside it the map of
   the columns' biomes (`biome_map`) with the multipliers of the materials' colour by biomes (`biome_tints`,
   from the biomes' `tints`), and a coarse map of the land's height for the ground fog (`ground_low`: a texel per
   `RoofMap.LOW`² columns, the top three quarters of the way up their tops, so a pit or a trunk does not move it;
   `fog_at` in `common.gdshaderinc` measures low places by it and lays the fog's layer over the higher of it and the
-  ground, so pits fill with fog and a hill's edge draws no straight seams).
+  ground, so pits fill with fog and a hill's edge draws no straight seams). The same texture's g, b, a hold the colour
+  of the water there (`RoofMap._water_tints`, read by `water_tint` in `water.gdshader`): the mean over the block's water
+  columns of their biome's water tint times their body's (`SEA_TINT` for `WorldData.SEA_WATER`, `RIVER_TINT` for
+  `WorldData.RIVER_WATER`, which the generator sets on rivers and canyon floors, `LAKE_TINT` else) and a slow noise
+  (`VARY_*`) that shades one lake from the next; filtered between texels, so a river's mouth runs into the sea's colour
+  over a few cells.
 
 **Interface.** `ChunkStreamer.prepare(gen)`, `build_near(n)`, `run_jobs(spent)`, `gen_budgets()`,
 `take_work()`, `set_focus(at)` (the chunks are built round `at`: where the player comes back behind the death

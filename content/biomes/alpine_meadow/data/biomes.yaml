@@ -24,4 +24,5 @@
   tree_chance: 0.01
   bushes: {plants:juniper: 0.4, plants:blueberry: 0.3, plants:shrub: 0.3}
   bush_sparsity: 180
+  tints: {water: "#56a6aa"}
   color: "#8fbf6a"

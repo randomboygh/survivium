@@ -24,6 +24,7 @@
   by_water: oasis
   by_water_reach: 10
   sandstorms: true
+  tints: {water: "#60a49c"}
   color: "#a8936a"
   # Tumbleweeds rolling with the wind round the player (a picture only).
   tumbleweeds: 2

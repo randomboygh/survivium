@@ -485,6 +485,8 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		var wet := WorldData.WILD | (WorldData.BOG if flags[j] & MIRE else (WorldData.SWAMP if flags[j] & MARSH else 0))
 		if lay.feature[j] == OCEAN:
 			wet |= WorldData.SEA_WATER
+		elif lay.feature[j] == RIVER or lay.feature[j] == CANYON:
+			wet |= WorldData.RIVER_WATER
 		while y <= wt:
 			i += layer
 			cells[i] = Mat.WATER

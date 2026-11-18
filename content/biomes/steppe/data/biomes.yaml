@@ -19,5 +19,5 @@
   tree_chance: 0.0
   bushes: {plants:rosehip: 0.5, plants:shrub: 0.5}
   bush_sparsity: 600
-  tints: {grass: "#87904a"}
+  tints: {grass: "#87904a", water: "#6a9e8a"}
   color: "#b9b05c"
