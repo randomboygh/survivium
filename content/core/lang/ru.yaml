@@ -2011,8 +2011,6 @@
 # src/client/ui/world_list.gd
 "[no_saved_worlds_yet]": "Сохранённых миров пока нет"
 "[seed_day]": "зерно %d\n%s · день %d"
-"[test_world_old_slopes_day]": "Тестовый мир\nстарые склоны · день %d"
-"[test_world_grounds_day]": "Тестовый мир\nплощадки · день %d"
 "[delete_the_world_tap_twice]": "Удалить мир (нажать дважды)"
 "[reset_the_test_world_tap]": "Вернуть тестовый мир к началу (нажать дважды)"
 "[this_world_is_being_played]": "Мир сейчас в игре"
