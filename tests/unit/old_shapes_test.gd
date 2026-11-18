@@ -255,8 +255,8 @@ func _ref_slope(w: WorldData, x: int, y: int, z: int) -> int:
 ## Corners of the slope above covered cell (x, y, z) that go down into it: low there,
 ## and every other column around meets it a level lower, is a slope on its level low
 ## there and going down too, is open further down, or (east or west only) stands as
-## high or higher (at least one meets it lower); the cells going down are loose wild
-## ground.
+## high or higher (at least one meets it lower); the cells going down are wild ground
+## of any material.
 func _ref_deep(w: WorldData, x: int, y: int, z: int) -> int:
 	var mask := _ref_top_slope(w, x, y + 1, z)
 	if mask == WorldData.FULL or not _ref_deepable(w, x, y, z):
@@ -294,7 +294,7 @@ func _ref_deep(w: WorldData, x: int, y: int, z: int) -> int:
 
 func _ref_deepable(w: WorldData, x: int, y: int, z: int) -> bool:
 	return w.in_bounds(x, y, z) and w.chunk_at(x, z).natural[y * WorldData.LAYER + WorldData.col_of(x, z)] == WorldData.WILD \
-		and Mat.can_slope(w.get_cell(x, y, z))
+		and _ref_ground(w, x, y, z)
 
 
 func _ref_top_slope(w: WorldData, x: int, y: int, z: int) -> int:
@@ -344,6 +344,9 @@ func _ref_cut_here(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 	var o: Vector2i = WorldData.CORNER_DIRS[k]
 	var a := w.get_cell(x + o.x, y, z)
 	if a != Mat.AIR and a != Mat.WATER or w.get_cell(x, y, z + o.y) != a or w.get_cell(x + o.x, y, z + o.y) != a:
+		return false
+	# Not over an open cell (a cave under a thin roof).
+	if not _ref_ground(w, x, y - 1, z):
 		return false
 	if not (_ref_ground(w, x, y, z) and w.is_natural(x, y, z) and w.is_natural(x + o.x, y, z) \
 			and w.is_natural(x, y, z + o.y) and w.is_natural(x + o.x, y, z + o.y)):

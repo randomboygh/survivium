@@ -2,7 +2,7 @@ extends SceneTree
 ## Renders the game and saves screenshots, for looking at visual changes without a
 ## browser. Needs a display (not --headless), for example:
 ## xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 \
-##     --resolution 1280x720 --script res://tools/shot.gd -- /tmp/shots [--phone] [--old-slopes] [name ...]
+##     --resolution 1280x720 --script res://tools/shot.gd -- /tmp/shots [--phone] [--old-slopes] [--magenta] [name ...]
 ## `--phone` lays the window out as a phone's screen (fractional scales, CameraRig.turning).
 ## `--keys` saves no pictures (it runs headless too): each shot's screen is searched for
 ## a key left untranslated (Lang.keys_shown), each one printed as `KEYS <shot>: <node>: <text>`.
@@ -40,6 +40,7 @@ var names: Array = []
 var phone := false
 var keys_only := false
 var old_slopes := false
+var magenta := false
 ## The spots and scenes of the shots (see tools/shot/places.gd).
 var places := Places.new()
 
@@ -53,6 +54,9 @@ func _initialize() -> void:
 	# `--old-slopes`: the test world with the world setting slopes 1 (WorldData.old_slopes).
 	old_slopes = "--old-slopes" in args
 	args.erase("--old-slopes")
+	# `--magenta`: the background drawn magenta in every shot, to find holes in the ground.
+	magenta = "--magenta" in args
+	args.erase("--magenta")
 	# `--lang en`: the shots in that language (else Russian, as the game is written).
 	SettingsScript.language_override = "ru"
 	var at := args.find("--lang")
@@ -551,9 +555,12 @@ func _run() -> void:
 			main.link.join_url = "ws://shot"
 			main.link.welcome = {"playtest": true}
 		# Parts of the picture hidden (RenderToggles, «Что рисуется»).
-		for part: String in shot.get("hide", []):
+		var hide: Array = shot.get("hide", []).duplicate()
+		if magenta:
+			hide.append("environment: background magenta")
+		for part: String in hide:
 			main.render_toggles.set_hidden(part, true)
-		if shot.has("hide"):
+		if not hide.is_empty():
 			for i in 5:
 				await process_frame
 		if shot.get("menu", false):

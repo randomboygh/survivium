@@ -344,6 +344,16 @@ static func _column(job: Job, x: int, z: int) -> bool:
 		elif sh[i] & 15 != 0 and sh[i] < 16 and old_slopes:
 			# Old slopes: a covered cell that the slope above goes on down into.
 			OldSlopes.deep_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m)
+			# The ground under a cut corner of the slope above shows there (without it the
+			# corner was a hole through the ground, 2026-11-18), going down with the slope.
+			var exposed := sh[i + dy] >> 4 if cov[c[i + dy]] else 0
+			if exposed != 0:
+				var edges := _top_edges(c, cov, i, dy, dz)
+				var halves := _covered_halves(c, sh, cov, i, dy, dz, edges)
+				var tops := []
+				for k in 4:
+					tops.append(_exposed_tile(c, cov, i, dz, m, k, edges, halves, false, c[i + dy]))
+				OldSlopes.cut_floor(solid, c, sh, i, dy, dz, base + Vector3.UP, exposed, tops)
 		elif sh[i] & 15 != 0 and not cov[nb[2]]:
 			var cuts := sh[i] >> 4
 			Slopes.slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m, float(_around_tiles(c, cov, i, dy, dz, sh)), cuts,
@@ -960,22 +970,28 @@ static func _exposed_tops(buf, c: PackedByteArray, cov: PackedByteArray, i: int,
 		exposed: int, edges: int, halves: int, under_wall: bool, over: int) -> void:
 	var white := Color(1, 1, 1)
 	for k in 4:
-		if exposed & (1 << k) == 0:
-			continue
-		var o: Vector2i = CORNER_DIRS[k]
-		var me := c[i + o.x]
-		if not cov[me]:
-			me = c[i + o.y * dz]
-		if not cov[me]:
-			me = m
-		# Under a slope the corner lies at its foot: the slope's ground goes on into it
-		# when it grows over the ground beside (grass over sand), or a triangle of sand
-		# shows amid the grass.
-		if not under_wall and Mat.shader_bits[over] & Mat.PRIORITY_MASK > Mat.shader_bits[me] & Mat.PRIORITY_MASK:
-			me = over
-		var flag := _diag(k, true, CONTACT if under_wall else 0)
-		_piece(buf, base, 1.0, k, CORNER, Vector3.UP, white,
-			Vector2(pack(me * 3, _quarter_edges(k, edges, halves), flag), float(NO_TILES)))
+		if exposed & (1 << k) != 0:
+			_piece(buf, base, 1.0, k, CORNER, Vector3.UP, white,
+				_exposed_tile(c, cov, i, dz, m, k, edges, halves, under_wall, over))
+
+
+## The packed tile of the top of padded cell `i` under cut corner k of the cell above
+## (see _exposed_tops).
+static func _exposed_tile(c: PackedByteArray, cov: PackedByteArray, i: int, dz: int, m: int, k: int, edges: int,
+		halves: int, under_wall: bool, over: int) -> Vector2:
+	var o: Vector2i = CORNER_DIRS[k]
+	var me := c[i + o.x]
+	if not cov[me]:
+		me = c[i + o.y * dz]
+	if not cov[me]:
+		me = m
+	# Under a slope the corner lies at its foot: the slope's ground goes on into it
+	# when it grows over the ground beside (grass over sand), or a triangle of sand
+	# shows amid the grass.
+	if not under_wall and Mat.shader_bits[over] & Mat.PRIORITY_MASK > Mat.shader_bits[me] & Mat.PRIORITY_MASK:
+		me = over
+	var flag := _diag(k, true, CONTACT if under_wall else 0)
+	return Vector2(pack(me * 3, _quarter_edges(k, edges, halves), flag), float(NO_TILES))
 
 
 ## How far under the cut the caps lie, in cells: a slope going down beside a cap meets
