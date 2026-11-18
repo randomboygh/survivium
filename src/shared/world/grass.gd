@@ -4,8 +4,9 @@ extends RefCounted
 ## the cell and slow noises over the map. Grass grows in tiers that follow the ground's
 ## own patches (ground_patch, the noise that also tints the ground): bare dirt on the
 ## lowest spots, low sparse grass on thin ground, the ordinary tufts in between (the
-## shader thins them further), and small meadows of tall grass, three tufts a cell, on
-## the lush islands. Flowers and low herbs grow in clumps of their own; ears of dry grass
+## shader thins them further); and over them, by a slow noise of their own, wide meadows
+## of tall grass, three tufts a cell, several chunks across, with wide lawns of dense low
+## grass between them. Flowers and low herbs grow in clumps of their own; ears of dry grass
 ## stand in fields on flat fertile lowland and hardly anywhere else; reeds line the
 ## water, except on sand. In the shade of the crowns moss grows in patches on the forest
 ## floor and mushrooms in groups, and here and there groups of mushrooms that glow at
@@ -40,6 +41,8 @@ const BARE_TIER := 0
 const LOW_TIER := 1
 const MID_TIER := 2
 const TALL_TIER := 3
+## A dense lawn of low grass, two or three tufts a cell (see MEADOW_TALL).
+const LAWN_TIER := 4
 ## What a world laid out by hand (WorldData.grows) makes grow on a column whatever the
 ## noises say: a field of ears, moss, moss with mushrooms, moss with glowing mushrooms,
 ## nothing; from GROW_PLANT on one plant alone, the plant of that place in the load
@@ -63,6 +66,15 @@ const WOODS_PROBES: Array[Vector2i] = [Vector2i(WOODS_EDGE, 0), Vector2i(-WOODS_
 	Vector2i(0, -WOODS_EDGE), Vector2i(2, 2), Vector2i(-2, 2), Vector2i(2, -2), Vector2i(-2, -2)]
 ## Lowland for ears: this many levels above the sea at most.
 const FERTILE_LEVELS := 10
+## The meadow noise (meadow_noise, about 140 cells from one meadow to the next): tall
+## grass above MEADOW_TALL, a dense lawn of low grass below -MEADOW_TALL, a tenth of the
+## ground each, in patches two to three chunks wide.
+const MEADOW_FREQ := 0.007
+const MEADOW_TALL := 0.35
+## Fields of ears: large (two to three chunks of the noise, broken up by what is not flat
+## fertile lowland) and rare, a few in a square of a thousand cells.
+const EAR_FREQ := 0.005
+const EAR_FIELD := 0.45
 
 ## Meadows of tall grass, clumps of flowers and herbs and the fields of ears: slow
 ## noises over the map.
@@ -88,10 +100,10 @@ static var _cloud_values := PackedFloat32Array()
 static func _fields() -> void:
 	if flower_noise != null:
 		return
-	meadow_noise = _field_noise(20, 0.028)
+	meadow_noise = _field_noise(20, MEADOW_FREQ)
 	flower_noise = _field_noise(21, 0.06)
 	herb_noise = _field_noise(22, 0.12)
-	ear_noise = _field_noise(23, 0.035)
+	ear_noise = _field_noise(23, EAR_FREQ)
 	moss_noise = _field_noise(24, 0.08)
 	mushroom_noise = _field_noise(25, 0.16)
 	glow_noise = _field_noise(26, 0.11)
@@ -150,16 +162,21 @@ static func ground_patch(xz: Vector2, salt := 0.0) -> float:
 	return clampf((a - 0.5) + (b - 0.5) * 0.45 + 0.5, 0.0, 1.0)
 
 
-## Grass tier of a column: tall meadows by a slow noise of their own, so they come as
-## whole islands that the small patches do not break up and never repeat the way the
-## tiled patches do; bare and low by the patch noise at the middle of the cell (the same
-## noise that tints the ground).
+## Grass tier of a column: tall meadows and dense lawns by a slow noise of their own, so
+## they come as whole fields that the small patches do not break up and never repeat the
+## way the tiled patches do; bare and low by the patch noise at the middle of the cell
+## (the same noise that tints the ground), bare spots also inside a lawn.
 static func tier_at(x: int, z: int) -> int:
 	_fields()
-	if meadow_noise.get_noise_2d(x, z) > 0.4:
+	var meadow := meadow_noise.get_noise_2d(x, z)
+	if meadow > MEADOW_TALL:
 		return TALL_TIER
 	var patch := ground_patch(Vector2(x + 0.5, z + 0.5) * CELL)
-	return BARE_TIER if patch < 0.2 else (LOW_TIER if patch < 0.38 else MID_TIER)
+	if patch < 0.2:
+		return BARE_TIER
+	if meadow < -MEADOW_TALL:
+		return LAWN_TIER
+	return LOW_TIER if patch < 0.38 else MID_TIER
 
 
 ## How far into a clump of flowers column x, z lies: 0 outside, a little above 0 at its
@@ -179,7 +196,7 @@ static func ear_field_at(w, x: int, y: int, z: int) -> bool:
 	_fields()
 	if y > w.sea_level + FERTILE_LEVELS or w.leaf_col(x, z) != 0:
 		return false
-	return ear_noise.get_noise_2d(x, z) > 0.4
+	return ear_noise.get_noise_2d(x, z) > EAR_FIELD
 
 
 ## The plants growing on ground cell x, y, z of material `m` (with air above), as kinds,
@@ -204,6 +221,9 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 				out.append(TALL + rng.randi_range(0, 3))
 		elif tier == LOW_TIER:
 			if rng.randf() < 0.65:
+				out.append(LOW + rng.randi_range(0, 3))
+		elif tier == LAWN_TIER:
+			for k in (2 if rng.randf() < 0.6 else 3):
 				out.append(LOW + rng.randi_range(0, 3))
 		elif tier == MID_TIER:
 			# No tuft on a quarter of the cells and two on another quarter, so

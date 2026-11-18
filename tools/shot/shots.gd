@@ -422,6 +422,7 @@ const SHOTS := {
 	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
 	"ears": {"time": 0.42, "season": 1, "find": "ears"},
+	"lawn": {"time": 0.42, "season": 1, "find": "lawn"},
 	# A flock of sparrows (the animals mod) about the player: on the ground, in the air
 	# and in the crowns near.
 	"birds": {"time": 0.42, "season": 1, "find": "ears", "birds": true},
