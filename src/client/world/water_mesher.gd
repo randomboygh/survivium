@@ -529,7 +529,7 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 ## where its water fills the cell, see water_top) in a thin sheet with foam
 ## at its front, up to SWASH_REACH cells from the waterline (water.gdshader draws the
 ## waves). The flat beaches of worlds with the setting shores 1 lie at that level.
-const SWASH_REACH := 5.0
+const SWASH_REACH := 8.0
 ## How far over the ground the sheet lies, in cells.
 const SWASH_LIFT := 0.03
 ## swash_map's value of a slope under the sea's flush water by the waterline.

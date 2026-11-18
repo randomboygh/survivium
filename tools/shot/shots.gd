@@ -1199,6 +1199,8 @@ const SHOTS := {
 	"ground-holes-turn": {"time": 0.42, "season": 1, "at": [196, -171], "turn": 4, "hide": ["chunks: grass", "environment: background magenta"], "settings": {"pixel_scale": 3}},
 	"ground-round-corners": {"time": 0.42, "season": 1, "at": [185, -159], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
 	"ground-holes-phone": {"time": 0.42, "season": 1, "at": [196, -171], "y": 24, "hide": ["environment: background magenta"]},
+	# The user's note 2026-11-18: the edge of the overhang's roof cut round like its top (x 92 z -276).
+	"ground-overhang-edge": {"time": 0.42, "season": 1, "at": [92, -276], "y": 25, "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
 	"ground-round-corners-phone": {"time": 0.42, "season": 1, "at": [185, -159], "y": 24},
 	"ground-deep-star": {"time": 0.42, "season": 1, "at": [28, -72], "hide": ["chunks: grass"]},
 	"ground-old-wave": {"time": 0.42, "season": 1, "at": [197, -231], "y": 23, "turn": 6},
