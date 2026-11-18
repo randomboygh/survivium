@@ -16,6 +16,24 @@ func run() -> void:
 	_test_land()
 	_test_yield_quality()
 	_test_hardiness()
+	_test_strength()
+
+
+## Strength adds an even share of its `carry` to the carrying limit at each level, and a
+## character's bag (on the server or a client's copy) follows the points it is told.
+func _test_strength() -> void:
+	var strong := Skills.of_role("carry")
+	_check(strong.get("carry", 0.0) == 60.0, "strength adds 60 kg at its last level")
+	var s := SkillSet.new()
+	_check(s.carry_bonus() == 0.0, "no strength, no more weight")
+	s.gain("carry", Skills.need(strong, 1))
+	_check(s.carry_bonus() == 6.0, "the first level adds 6 kg")
+	var who = load("res://src/shared/game/character.gd").new()
+	_check(who.inventory.weight_limit == 40.0, "a new character carries 40 kg")
+	who.skills.take(s.to_dict(), false)
+	_check(who.inventory.weight_limit == 46.0, "a level of strength raises the limit of the bag")
+	who.skills.gain("carry", Skills.need(strong, 20))
+	_check(who.inventory.weight_limit == 100.0, "the last level carries 100 kg")
 
 
 ## Hardiness adds a cell of health every second level; golden health over the most is
@@ -49,9 +67,9 @@ func _test_hardiness() -> void:
 
 
 func _test_levels() -> void:
-	_check(Skills.ALL.size() == 11 and Skills.ALL[0].role == "gather" and Lang.t(Skills.of_role("swim").title) == "Swim"
-		and Lang.t(Skills.of_role("farm").title) == "Farm" and Lang.t(Skills.of_role("endure").title) == "Hardiness",
-		"eleven skills in their order, each found by its work")
+	_check(Skills.ALL.size() == 12 and Skills.ALL[0].role == "gather" and Lang.t(Skills.of_role("swim").title) == "Swim"
+		and Lang.t(Skills.of_role("farm").title) == "Farm" and Lang.t(Skills.of_role("endure").title) == "Hardiness" and Lang.t(Skills.of_role("carry").title) == "Strength",
+		"twelve skills in their order, each found by its work")
 	var dig := Skills.of_role("dig")
 	_check(Skills.level_at(dig, 0.0) == 0 and Skills.level_at(dig, dig.first) == 1
 		and Skills.level_at(dig, Skills.need(dig, 10) * 2.0) == dig.levels, "points make levels, no more than the last")

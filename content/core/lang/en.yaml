@@ -56,6 +56,8 @@
 "[core.skills.farming.about]": "Beds with a hoe, sowing, watering and harvest. Works the beds faster, sometimes harvests one more."
 "[core.skills.hardiness]": "Hardiness"
 "[core.skills.hardiness.about]": "Grows from wounds, hunger, thirst, cold and heat lived through. Every second level adds a cell of health."
+"[core.skills.strength]": "Strength"
+"[core.skills.strength.about]": "Grows from walking with a heavy load: from 70% of the limit, twice as fast when overloaded. Each level adds 6 kg to what you carry."
 
 # content/core/data/starts.yaml
 "[core.starts.default]": "Standard start"
@@ -810,6 +812,7 @@
 # src/client/ui/level_up.gd
 "[level_of]": "Level %d of %d"
 "[level_of_by]": "Level %d of %d, %s by %d%%"
+"[level_of_carries]": "Level %d of %d, carries +%.1f kg"
 "[swims_faster]": "swims faster"
 "[works_faster]": "works faster"
 "[a_new_level]": "%s: a new level"
@@ -949,6 +952,7 @@
 "[quality_of_what_you_make]": "\nQuality of what you make up to %d"
 "[the_tool_does_not_wear]": "\nThe tool does not wear: %d%% chance"
 "[more_health]": "\nHealth +%d"
+"[carries_more_kg]": "\nCarries +%.1f kg"
 "[golden_health_for_min]": "Golden health over the full bar for %d min: lost first"
 "[in_hand]": "\nIn hand: “%s”"
 
@@ -2261,6 +2265,8 @@
 "[field.skills.care.about]": "Chance a swing does not wear the tool"
 "[field.skills.health]": "Health"
 "[field.skills.health.about]": "Most health added at the last level, a cell of 10 at a time"
+"[field.skills.carry]": "Carrying"
+"[field.skills.carry.about]": "Kilograms added to the carrying limit at the last level, an even share at each"
 "[field.plants.kind]": "Kind"
 "[field.plants.kind.about]": "What sort of plant it is"
 "[field.plants.gives]": "Gives"

@@ -42,7 +42,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   is no fall, the count goes from it. The test switch «Fall damage» (`Vitals.falls` off) makes every fall harmless; «Invulnerability» (`Vitals.harm` off,
   sent to a playtest server as `harm`, `Cheats.VITALS`) keeps health from going down at all.
 - `src/shared/game/inventory.gd` — the bag: `SLOTS` 16 (`base`), the first `HOTBAR` 8 — the bar below;
-  stacks, weight (40 kg with no slowing), sorting, moving into a chest, wear (`wear_tool`, `mend`); the signal
+  stacks, weight (40 kg with no slowing, more with strength), sorting, moving into a chest, wear (`wear_tool`, `mend`); the signal
   `changed`. Quality (decision 181): a stack has a number 1–100 (`quality(s)`, `quality_at(i)`; `NORMAL` 50 —
   what was before quality and at old saves), the cell's fifth field `[id, n, wear, things or null, quality]`
   only when it is not 50 (`stack` builds the cell, `held(s)` — the chest's things); stacks of one thing merge
@@ -209,9 +209,9 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   recorded peals, `tools/sound/thunder_bands.py` → `thunder_bands.gd`, then held by a limiter so they are loud; `Vibration.rumble`; a flash whose bolt is on the screen is heard at once from the peal's peak, `ThunderShape.peak`, with the strike's pulse, so flash, roar and buzz come together), a thing set down in `Props._land`, a warning beast in `Voices`, buttons in
   `Sound`, a full bag and a broken tool in the client's `Character.say`, chat lines in `ChatBox.hear`).
 
-**Skills** (decision 164). Eleven skills are a mod's data (`content/core/data/skills.yaml`, the kind `skills`,
+**Skills** (decision 164). Twelve skills are a mod's data (`content/core/data/skills.yaml`, the kind `skills`,
 the registry `src/shared/content/skills.gd`): Gathering, Chopping, Digging, Crafting, Building, Cooking,
-Hunting, Fishing, Swimming, Farming, Hardiness; the engine asks for a skill by the work's role (`Skills.of_role`). What the
+Hunting, Fishing, Swimming, Farming, Hardiness, Strength; the engine asks for a skill by the work's role (`Skills.of_role`). What the
 character has learned is `SkillSet` (`src/shared/game/skill_set.gd`, `Character.skills`): points by the
 skill's id, 10 levels, the first for `first` (120) points, each next `growth` (1.45) times dearer (the tenth —
 about three hours of pure work). The points are seconds of useful work: a rule gives a stroke that did
@@ -221,6 +221,11 @@ swimming by the time on the way (`Character.update`), a whole thing by `each` (a
 Hardiness (role `endure`) grows by `each` (4) points for every health lost (`Vitals.suffered`, golden too) and
 `Character.ENDURE_HARDSHIP` a second hungry, thirsty, cold or hot (`Character._endure`); its `health` (50) adds
 a cell of `Vitals.CELL` to the most health every second level (`SkillSet.health_bonus`).
+Strength (role `carry`) grows by a point a second of walking with at least `Character.CARRY_FROM` (70%) of the
+carrying limit on the back, `CARRY_OVER` (2) past it; its `carry` (60) adds an even share, 6 kg a level, to
+the limit (`SkillSet.carry_bonus`): 40 kg at none, 100 kg at the last. `Character._on_skills_changed` sets
+`Inventory.weight_limit` whenever the points change, on the server and on a client's copy (told by `SKILLS`),
+so the limit needs no field of its own on the wire or in the save.
 Digging out a block placed by a player and placing it again where such a one was dug out give no experience
 (`WorldActions._built`, `_undone`, not in the save). A skill makes the hand better, not the tool (the balance
 model `docs/balance/GAME_BALANCE_DESIGN.md`): the time of a stroke and of a recipe × `pace` (down to 1 / (1 +

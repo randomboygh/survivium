@@ -10,7 +10,9 @@
 # that a swing does not wear the tool (0.5 by default); might — by what share a tool's blow is stronger at the
 # last level (hunting only: 0.5; for the others 0 — the tool decides the strength of a blow); health — the most health added at the last
 # level, a whole cell of 10 at a time (hardiness: 50, a cell every second level; its each — points for one health lost, and a quarter
-# point a second hungry, thirsty, cold or hot). Without first and growth: 120 points
+# point a second hungry, thirsty, cold or hot); carry — the kilograms added to the carrying limit at the last
+# level, an even share at each (strength: 60, 6 kg a level; it grows a point a second walking with at least 70% of
+# the limit on the back, two past the limit). Without first and growth: 120 points
 # for the first level, each next one 1.45 times dearer (the tenth is about three hours of pure work).
 # Formulas and tables: docs/balance/GAME_BALANCE_DESIGN.md. The order of the bars in the character window is order. A mod adds a skill with a record of a new
 # role, only when the engine knows that work.
@@ -94,3 +96,13 @@
   care: 0.0
   quality: 0
   health: 50
+- id: strength
+  title: "[core.skills.strength]"
+  description: "[core.skills.strength.about]"
+  role: carry
+  order: 11
+  speed: 0.0
+  effort: 0.0
+  care: 0.0
+  quality: 0
+  carry: 60

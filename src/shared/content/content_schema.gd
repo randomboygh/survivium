@@ -493,9 +493,11 @@ const SCHEMAS := {
 	# wear the tool (`care`), and the most health it adds at the last level (`health`, given
 	# a whole cell of Vitals.CELL at a time as the levels go: hardiness, role `endure`, grows
 	# from the health lost and the time spent hungry, thirsty, cold or hot; its `each` is the
-	# points for one health lost). docs/balance/GAME_BALANCE_DESIGN.md has the formulas.
+	# points for one health lost), and the kilograms it adds to the carrying limit at the
+	# last level (`carry`, an even share at each level: strength, role `carry`, grows from
+	# walking with a heavy load). docs/balance/GAME_BALANCE_DESIGN.md has the formulas.
 	"skills": {
-		"role": {"type": "enum", "values": ["gather", "chop", "dig", "craft", "build", "cook", "hunt", "fish", "swim", "farm", "endure"]},
+		"role": {"type": "enum", "values": ["gather", "chop", "dig", "craft", "build", "cook", "hunt", "fish", "swim", "farm", "endure", "carry"]},
 		"order": {"type": "int", "min": 0, "default": 0},
 		"levels": {"type": "int", "min": 1, "max": 20, "default": 10},
 		"first": {"type": "float", "min": 1.0, "default": 120.0},
@@ -508,6 +510,7 @@ const SCHEMAS := {
 		"might": {"type": "float", "min": 0.0, "max": 2.0, "default": 0.0},
 		"care": {"type": "float", "min": 0.0, "max": 0.9, "default": 0.5},
 		"health": {"type": "float", "min": 0.0, "max": 200.0, "default": 0.0},
+		"carry": {"type": "float", "min": 0.0, "max": 200.0, "default": 0.0},
 	},
 	"plants": {
 		"kind": {"type": "enum", "values": ["tuft", "tall_grass", "flowers", "herbs", "ears", "reeds", "moss",

@@ -56,6 +56,8 @@
 "[core.skills.farming.about]": "Грядки тяпкой, посев, полив и урожай. Быстрее работает на грядках, иногда собирает на одну больше."
 "[core.skills.hardiness]": "Закалка"
 "[core.skills.hardiness.about]": "Растёт от пережитых ран, голода, жажды, холода и жары. Каждый второй уровень добавляет ячейку здоровья."
+"[core.skills.strength]": "Сила"
+"[core.skills.strength.about]": "Растёт от ходьбы с тяжёлым грузом: от 70% предела, при перегрузе вдвое быстрее. Каждый уровень добавляет 6 кг к переносимому весу."
 
 # content/core/data/starts.yaml
 "[core.starts.default]": "Обычный старт"
@@ -810,6 +812,7 @@
 # src/client/ui/level_up.gd
 "[level_of]": "Уровень %d из %d"
 "[level_of_by]": "Уровень %d из %d, %s на %d%%"
+"[level_of_carries]": "Уровень %d из %d, переносит +%.1f кг"
 "[swims_faster]": "плывёт быстрее"
 "[works_faster]": "работа быстрее"
 "[a_new_level]": "%s: новый уровень"
@@ -949,6 +952,7 @@
 "[quality_of_what_you_make]": "\nКачество сделанного до %d"
 "[the_tool_does_not_wear]": "\nИнструмент не изнашивается: шанс %d%%"
 "[more_health]": "\nЗдоровье +%d"
+"[carries_more_kg]": "\nПереносит +%.1f кг"
 "[golden_health_for_min]": "Золотое здоровье сверх шкалы на %d мин: теряется первым"
 "[in_hand]": "\nВ руке: «%s»"
 
@@ -2261,6 +2265,8 @@
 "[field.skills.care.about]": "Шанс, что взмах не износит инструмент"
 "[field.skills.health]": "Здоровье"
 "[field.skills.health.about]": "Сколько здоровья добавляет последний уровень, по ячейке в 10"
+"[field.skills.carry]": "Грузоподъёмность"
+"[field.skills.carry.about]": "Сколько килограммов добавляет к пределу веса последний уровень, поровну на каждый"
 "[field.plants.kind]": "Вид"
 "[field.plants.kind.about]": "Что это за растение"
 "[field.plants.gives]": "Даёт"
