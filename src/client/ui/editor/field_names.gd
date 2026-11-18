@@ -34,6 +34,7 @@ const NAMES := {
 	"materials.glow": ["[field.materials.glow]", "[field.materials.glow.about]"],
 	"materials.light": ["[field.materials.light]", "[field.materials.light.about]"],
 	"materials.burns": ["[field.materials.burns]", "[field.materials.burns.about]"],
+	"materials.decay": ["[field.materials.decay]", "[field.materials.decay.about]"],
 	"items.weight": ["[field.items.weight]", "[field.items.weight.about]"],
 	"items.stack": ["[field.items.stack]", "[field.items.stack.about]"],
 	"items.food": ["[field.items.food]", "[field.items.food.about]"],

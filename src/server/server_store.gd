@@ -193,5 +193,6 @@ func _world_meta(next_id: int) -> Dictionary:
 		"tame": session.wildlife.tamed_list(),
 		"vessels": session.actions.vessels.to_list(),
 		"ice_holes": session.ice.to_saved(),
+		"decay": session.decay.to_dict(),
 		"next_player": next_id,
 	}

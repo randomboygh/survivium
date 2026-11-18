@@ -17,6 +17,7 @@ const Storms := preload("res://src/shared/game/storms.gd")
 const Wildlife := preload("res://src/shared/game/wildlife.gd")
 const Teams := preload("res://src/shared/game/teams.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
+const Decay := preload("res://src/shared/game/decay.gd")
 const Fights := preload("res://src/shared/game/fights.gd")
 const Fishing := preload("res://src/shared/game/fishing.gd")
 const Ice := preload("res://src/shared/game/ice.gd")
@@ -81,6 +82,8 @@ var ice := Ice.new()
 var teams := Teams.new()
 ## The land claimed (Territory).
 var territory := Territory.new()
+## Buildings outside the claims decaying where nobody comes (Decay).
+var decay := Decay.new()
 ## The blueprint's ghost cells (Plans).
 var plans := Plans.new()
 ## Players fighting players: protection of newcomers and the fights' tags (Fights).
@@ -147,6 +150,11 @@ func _init(w, g, c: Clock, r, p) -> void:
 	actions.fights = fights
 	actions.people = players
 	actions.plans = plans
+	decay.world = world
+	decay.rules = rules
+	decay.territory = territory
+	actions.cell_changed.connect(decay.cell_changed)
+	actions.cells_set.connect(decay.cells_set)
 	# The spring reset (bushes, twigs, cut grass) follows the seasons of this clock, the
 	# server's; a client's copy only shows the season.
 	clock.season_changed.connect(actions.on_season)
@@ -250,7 +258,7 @@ func step_players(delta: float) -> void:
 ## (WorldActions.step_boats, Currents);
 ## the fishing lines in the water (Fishing.step), the holes in the ice (Ice.step); the sacks of deaths are gone after
 ## Character.SACK_DAYS (WorldActions.expire_sacks), a cross standing where each lay
-## (Placed.put_grave).
+## (Placed.put_grave); the buildings nobody tends decay (Decay.step).
 func step_things(delta: float) -> void:
 	var d := minf(delta, CATCH_UP)
 	var rain: float = clock.WEATHERS[clock.weather].get("rain", 0.0)
@@ -263,6 +271,7 @@ func step_things(delta: float) -> void:
 	fishing.step(d)
 	ice.step(d)
 	territory.step(clock.days(d), players, d)
+	decay.step(clock.days(d), players, d)
 	placed.spoil(clock.days(d), clock.season == clock.WINTER)
 	_sack_wait -= d
 	if _sack_wait <= 0.0:

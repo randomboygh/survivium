@@ -7,3 +7,5 @@
   toughness: 4
   step: step_wood
   hit: chop
+  # Stages of decay per Rules.building_decay_days nobody tends it (Decay).
+  decay: 1.0

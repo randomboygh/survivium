@@ -1,7 +1,7 @@
 # Teams and territory
 
 Status: ACTIVE (steps Т1 — teams, Т2 — the boundary post and plots, Т3 — rights and protection, Т4 —
-respawn at the team's campfires and leaving the game, Т5 — PvP, Т6 — the decay of abandoned land; the idea
+respawn at the team's campfires and leaving the game, Т5 — PvP, Т6 — the decay of abandoned land; buildings outside the land decay (started); the idea
 `plan/design/territory-pvp.md`, decisions 15, 39, 48, 50, 71, 101, 102; the user's choice of 2026-11-02: 1А
 2А 3А 4А 5А). A Russian copy: [territory_RU.md](territory_RU.md).
 
@@ -182,7 +182,29 @@ single player's player is number 0).
   into account, so the caption at entering («Territory «…» is abandoned: one may …») and the «Land» tab («The
   land is abandoned…») show what has become allowed.
 
-**Tests**: `tests/unit/territory_test.gd` (`_test_decay` — decay by steps, the client's copy, saving, the
+**How it is built (buildings outside the land decay, stage 2 item 5, decision 186; the user's picks of
+2026-11-19: 1А 2Б 3В 4Б 5А 6А 7Б 8А 9А)**
+- `src/shared/game/decay.gd` — `Session.decay`, a step of `Session.step_things` (game days and seconds). The
+  world is tended by chunks: an edited chunk within `TEND_REACH` (16) cells of a live player, or holding a
+  square of any claim (weakened too), is tended now (`tended`, the day of `Decay.time`, the game days the world
+  ran with decay on); a claim gone to no-man's land leaves its chunks to decay from then. In a chunk left
+  alone a built cell (not WILD: placed by a player) of a material with `decay` (its YAML field: wattle 2, planks
+  and log wall 1, cut stone and brick 0.5; 0 — the ground, trees, ores — never) goes a stage further each
+  `Rules.building_decay_days` (10) / `decay` game days: first it cracks (`cracked`, cell → material; the signal
+  `cracks_changed`), then it falls to a ruin (a later step). A player coming back stops the clock (`passed` = 0),
+  the cracks stay. A cell changed (`WorldActions.cell_changed`, `cells_set`) loses its crack. Every
+  `LOOK_EVERY` (2 s) it looks at `CHUNKS_PER_LOOK` (32) edited chunks for one due, and works it through
+  `SCAN_COLUMNS` (32) columns a step (the built cells of a column by the masks `air`, `water`, `wild`); a chunk
+  with nothing that decays is `bare` until a player is near again. Edited chunks stay in memory however far,
+  so far buildings decay too; a stopped server decays nothing.
+- Switches: `Rules.building_decay` (the server: `[rules]` of `server.cfg`) and the world's own `Decay.on`,
+  set by the row «Building decay» of «New world» (`Settings` `world_decay`, `WorldSetup`), kept in
+  `world.json` as `decay` (`to_dict` / `from_dict`: `on`, `time`, `tended`, `cracked`); a world saved before it
+  decays, its clock starting at the first load.
+
+**Tests**: `tests/unit/decay_test.gd` (the paces of the materials, the ground and the generator's cells
+untouched, a player near and a claim tend, cracks stay when one comes back and go when the cell changes,
+saving through JSON, both switches, the session's step); `tests/unit/territory_test.gd` (`_test_decay` — decay by steps, the client's copy, saving, the
 team's return, the modes `rights` and `radius`; the teams' rules, saving through JSON, the requests of two
 players on one server; plots, the budget, connectivity, the post through `put_from_bag` and `land_paint`; the
 default and given rights, saving, the land's colour and the request `land_color`, digging, a chest, taking a

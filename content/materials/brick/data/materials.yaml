@@ -7,3 +7,5 @@
   toughness: 3
   step: step_stone
   hit: hit_stone
+  # Stages of decay per Rules.building_decay_days nobody tends it (Decay).
+  decay: 0.5

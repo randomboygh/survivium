@@ -124,6 +124,12 @@ func place() -> void:
 		game.session.actions.vessels.from_list(meta.vessels)
 	if meta.get("ice_holes") is Array:
 		game.session.ice.from_saved(meta.ice_holes)
+	# Building decay: as the world was saved; a new world as «New game» set it, a world
+	# saved before decay with it on.
+	if meta.get("decay") is Dictionary:
+		game.session.decay.from_dict(meta.decay)
+	elif not game.save.has_save:
+		game.session.decay.on = int(game.settings.values.get("world_decay", 1)) != 0
 	if meta.get("placed") is Array:
 		placed.from_list(meta.placed)
 	elif meta.get("props") is Dictionary:
