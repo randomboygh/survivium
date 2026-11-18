@@ -166,19 +166,9 @@ func update_slopes(x0: int, z0: int, x1: int, z1: int) -> void:
 					continue
 				var lows := (1 if low_n & bit else 0) | (2 if low_s & bit else 0) | (4 if low_w & bit else 0) \
 					| (8 if low_e & bit else 0)
-				# Land at the sea's level slopes down under its flush water only along a
-				# straight shore (lower on one side, and the columns across that side lower
-				# too): where the shore turns or steps diagonally it stays flat to the
-				# water, whose filled corners and surf make the waterline smooth there
-				# (sloped, they left steps of foam, #761).
+				# Land at the sea's level slopes down under its flush water as anywhere
+				# (`low`; corners and cut floors keep to `flat`, see _masks).
 				var lw := low
-				var side := -wl if lows == 1 else (wl if lows == 2 else (-1 if lows == 4 else (1 if lows == 8 else 0)))
-				var across := 1 if lows <= 2 else wl
-				if y == sea_level and (side == 0 or low[j + side - across] & bit == 0
-						or low[j + side + across] & bit == 0):
-					lw = flat
-					lows = (1 if flat[j - wl] & bit else 0) | (2 if flat[j + wl] & bit else 0) \
-						| (4 if flat[j - 1] & bit else 0) | (8 if flat[j + 1] & bit else 0)
 				if old_slopes:
 					var old := _old_slope(lows, j, bit, lw, diag, x, y, z)
 					if old != 0:

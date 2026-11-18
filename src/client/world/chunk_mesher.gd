@@ -349,7 +349,9 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			var cuts := sh[i] >> 4
 			OldSlopes.slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m,
 				float(_around_tiles(c, cov, i, dy, dz, sh)), cuts)
-			if Water.shore(c, cov, i, dy, dz):
+			if y == sea_level and Water.under_swash(job.swash, x1 - x0 + 2, x - x0 + 1, z - z0 + 1):
+				pass
+			elif Water.shore(c, cov, i, dy, dz):
 				Water.shore_water(water, w, c, sh, i, dy, dz, base, Water.foam(c, sh, cov, i, dy, dz))
 			elif cuts:
 				Water.cut_water(w, water, c, i, dy, base, cuts)
@@ -370,8 +372,11 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			var cuts := sh[i] >> 4
 			Slopes.slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m, float(_around_tiles(c, cov, i, dy, dz, sh)), cuts,
 				-1, Slopes.rounding(job, i, m), Slopes.corner_bends(job, i), job)
-			# The water beside goes on up the slope of a shore to where it rises out of it.
-			if Water.shore(c, cov, i, dy, dz):
+			# The water beside goes on up the slope of a shore to where it rises out of it
+			# (by the sea's surf the sheet covers it, Water.swash).
+			if y == sea_level and Water.under_swash(job.swash, x1 - x0 + 2, x - x0 + 1, z - z0 + 1):
+				pass
+			elif Water.shore(c, cov, i, dy, dz):
 				Water.shore_water(water, w, c, sh, i, dy, dz, base, Water.foam(c, sh, cov, i, dy, dz))
 			elif cuts:
 				Water.cut_water(w, water, c, i, dy, base, cuts)

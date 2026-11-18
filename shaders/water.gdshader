@@ -261,7 +261,13 @@ void fragment() {
 	float surf = 0.0;
 	// The sun's path and the lights glittering on the surface: light of their own.
 	vec3 shine = vec3(0.0);
-	if (swash > 0.5 && swash < 1.5) {
+	// The surf's sheet over a beach's slope under the sea (WaterMesher._swash_under, green
+	// SWASH_UNDER_G): behind the waterline it is the sea's water, drawn as the water.
+	float sw = swash;
+	if (swash > 0.5 && swash < 1.5 && shore_under < 0.75 && depth_here < 0.5) {
+		sw = 2.0;
+	}
+	if (sw > 0.5 && sw < 1.5) {
 		// The surf: the sea itself running on up over the level sand. Each wave goes on
 		// from the water's edge in a thin sheet of the shallows' colour, clearer towards
 		// its front, outlined by the same line of foam the water has along every other
@@ -497,7 +503,7 @@ void fragment() {
 			}
 			// Over the slope of a shore: foam where the ground comes up to the surface, a
 			// texel of shore for each eighth of a cell it lies under it.
-			if (shore_under < 1.0 && swash < 1.5) {
+			if (shore_under < 1.0 && sw < 1.5) {
 				float wash = 1.0 + step(0.0, sin(TIME * 1.7 + (tex.x + tex.y) * 0.6))
 					+ step(0.75, hash12(vec2(tex.x + tex.y, floor(TIME * 1.5))));
 				float d = shore_under * CELL_TEXELS;
@@ -512,7 +518,7 @@ void fragment() {
 			}
 			// Along diagonals: the water lies away from a filled corner and on the corner's
 			// side of a cut one.
-			for (int k = 0; k < 4 && swash < 1.5; k++) {
+			for (int k = 0; k < 4 && sw < 1.5; k++) {
 				bool filled = ((foam >> (8 + k)) & 1) != 0;
 				if (!filled && ((foam >> (12 + k)) & 1) == 0) {
 					continue;
