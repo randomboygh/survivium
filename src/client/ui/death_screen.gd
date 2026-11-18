@@ -128,7 +128,7 @@ func _ready() -> void:
 	row.add_theme_constant_override("separation", 6)
 	box.add_child(row)
 	_menu_button = _button(row, "[main_menu]", _to_menu)
-	_new_button = _button(row, "[new_world]", _new_world)
+	_new_button = _button(row, "[new_game]", _new_world)
 	for b: Button in [_menu_button, _new_button]:
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.alignment = HORIZONTAL_ALIGNMENT_CENTER

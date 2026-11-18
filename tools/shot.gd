@@ -1253,9 +1253,11 @@ func _run() -> void:
 			main.settings.values.world_mods_off = shot.get("mods_off", mods_off)
 			setup = load("res://src/client/ui/world_setup.gd").new(main)
 			main.hud.add_child(setup)
-			# A page of the screen other than the first ("mods").
-			if shot.setup is String:
-				setup._show_page(shot.setup)
+			# «Мир» unless the shot is of «Персонаж»; a page of it other than the first ("mods").
+			if not (shot.setup is String and shot.setup == "character"):
+				setup.show_tab(1)
+				if shot.setup is String:
+					setup._show_page(shot.setup)
 			# The map of the setup screen is drawn a few rows a frame.
 			for i in 120:
 				await process_frame
@@ -1352,7 +1354,8 @@ func _run() -> void:
 					main.menu._setup._new_world_made(false)
 				if shot.get("host_open_new", false):
 					main.menu._setup._open_new_world()
-				for i in 3:
+				# The character's sheet is built a little a frame (FigurePreview).
+				for i in 30:
 					await process_frame
 			if shot.main_menu == "join":
 				_fake_servers()

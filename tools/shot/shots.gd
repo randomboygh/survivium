@@ -958,6 +958,7 @@ const SHOTS := {
 	"ui-minimap-large": {"time": 0.45, "season": 1, "touch": true, "settings": {"minimap_size": 2}},
 	"ui-corner-hidden": {"time": 0.45, "season": 1, "touch": true, "settings": {"level_buttons": false, "camera_buttons": false}},
 	# The first screen (the world to make) and the whole map of what is explored.
+	"ui-setup-character": {"time": 0.45, "season": 1, "touch": true, "setup": "character"},
 	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
 	"ui-setup-mods": {"time": 0.45, "season": 1, "touch": true, "setup": "mods"},
 	# The page of one mod: a row per bundle (its animals), each switched on its own.
@@ -1041,13 +1042,14 @@ const SHOTS := {
 	"ui-main-menu-join": {"time": 0.42, "season": 1, "touch": true, "main_menu": "join"},
 	# «Создать сервер» on a computer, before and while it runs.
 	"ui-main-menu-host": {"time": 0.42, "season": 1, "main_menu": "host"},
-	"ui-main-menu-host-server": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 1},
+	"ui-main-menu-host-world": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 1},
+	"ui-main-menu-host-server": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 2},
 	"ui-main-menu-host-new-world": {"time": 0.42, "season": 1, "main_menu": "host", "host_new_world": true},
 	"ui-main-menu-host-world-setup": {"time": 0.42, "season": 1, "main_menu": "host", "host_open_new": true},
-	"decay-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 2, "host_end": true},
+	"decay-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 3, "host_end": true},
 	"decay-test-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "world",
 		"menu_end": true},
-	"ui-main-menu-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 2},
+	"ui-main-menu-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 3},
 	"ui-main-menu-host-running": {"time": 0.42, "season": 1, "main_menu": "host-running"},
 	"ui-main-menu-host-running-settings": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 1},
 	"ui-main-menu-host-access": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 2,
