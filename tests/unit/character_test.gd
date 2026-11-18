@@ -1017,8 +1017,8 @@ func _test_calm() -> void:
 	b.step(Vitals.CALM_MAX, 0.0, false)
 	_check(b.calm == 0.0, "and the calm passes")
 	var ring := Vector3.ZERO
-	for i in 400:
-		ring = Grass.fairy_ring((i % 20) * Grass.RING_GRID, (i / 20) * Grass.RING_GRID)
+	for i in 4900:
+		ring = Grass.fairy_ring((i % 70) * Grass.RING_GRID, (i / 70) * Grass.RING_GRID)
 		if ring.z > 0.0:
 			break
 	var inside := Vector3(ring.x, 5.0, ring.y) * WorldData.CELL

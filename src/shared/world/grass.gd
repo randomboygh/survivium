@@ -4,8 +4,9 @@ extends RefCounted
 ## the cell and slow noises over the map. Grass grows in tiers that follow the ground's
 ## own patches (ground_patch, the noise that also tints the ground): bare dirt on the
 ## lowest spots, low sparse grass on thin ground, the ordinary tufts in between (the
-## shader thins them further), and small meadows of tall grass, three tufts a cell, on
-## the lush islands. Flowers and low herbs grow in clumps of their own; ears of dry grass
+## shader thins them further); and over them, by a slow noise of their own, wide meadows
+## of tall grass, three tufts a cell, several chunks across, with wide lawns of dense low
+## grass between them. Flowers and low herbs grow in clumps of their own; ears of dry grass
 ## stand in fields on flat fertile lowland and hardly anywhere else; reeds line the
 ## water, except on sand. In the shade of the crowns moss grows in patches on the forest
 ## floor and mushrooms in groups, and here and there groups of mushrooms that glow at
@@ -40,6 +41,8 @@ const BARE_TIER := 0
 const LOW_TIER := 1
 const MID_TIER := 2
 const TALL_TIER := 3
+## A dense lawn of low grass, two or three tufts a cell (see MEADOW_TALL).
+const LAWN_TIER := 4
 ## What a world laid out by hand (WorldData.grows) makes grow on a column whatever the
 ## noises say: a field of ears, moss, moss with mushrooms, moss with glowing mushrooms,
 ## nothing; from GROW_PLANT on one plant alone, the plant of that place in the load
@@ -63,6 +66,15 @@ const WOODS_PROBES: Array[Vector2i] = [Vector2i(WOODS_EDGE, 0), Vector2i(-WOODS_
 	Vector2i(0, -WOODS_EDGE), Vector2i(2, 2), Vector2i(-2, 2), Vector2i(2, -2), Vector2i(-2, -2)]
 ## Lowland for ears: this many levels above the sea at most.
 const FERTILE_LEVELS := 10
+## The meadow noise (meadow_noise, about 140 cells from one meadow to the next): tall
+## grass above MEADOW_TALL, a dense lawn of low grass below -MEADOW_TALL, a tenth of the
+## ground each, in patches two to three chunks wide.
+const MEADOW_FREQ := 0.007
+const MEADOW_TALL := 0.35
+## Fields of ears: large (two to three chunks of the noise, broken up by what is not flat
+## fertile lowland) and rare, a few in a square of a thousand cells.
+const EAR_FREQ := 0.005
+const EAR_FIELD := 0.45
 
 ## Meadows of tall grass, clumps of flowers and herbs and the fields of ears: slow
 ## noises over the map.
@@ -88,10 +100,10 @@ static var _cloud_values := PackedFloat32Array()
 static func _fields() -> void:
 	if flower_noise != null:
 		return
-	meadow_noise = _field_noise(20, 0.028)
+	meadow_noise = _field_noise(20, MEADOW_FREQ)
 	flower_noise = _field_noise(21, 0.06)
 	herb_noise = _field_noise(22, 0.12)
-	ear_noise = _field_noise(23, 0.035)
+	ear_noise = _field_noise(23, EAR_FREQ)
 	moss_noise = _field_noise(24, 0.08)
 	mushroom_noise = _field_noise(25, 0.16)
 	glow_noise = _field_noise(26, 0.11)
@@ -150,16 +162,21 @@ static func ground_patch(xz: Vector2, salt := 0.0) -> float:
 	return clampf((a - 0.5) + (b - 0.5) * 0.45 + 0.5, 0.0, 1.0)
 
 
-## Grass tier of a column: tall meadows by a slow noise of their own, so they come as
-## whole islands that the small patches do not break up and never repeat the way the
-## tiled patches do; bare and low by the patch noise at the middle of the cell (the same
-## noise that tints the ground).
+## Grass tier of a column: tall meadows and dense lawns by a slow noise of their own, so
+## they come as whole fields that the small patches do not break up and never repeat the
+## way the tiled patches do; bare and low by the patch noise at the middle of the cell
+## (the same noise that tints the ground), bare spots also inside a lawn.
 static func tier_at(x: int, z: int) -> int:
 	_fields()
-	if meadow_noise.get_noise_2d(x, z) > 0.4:
+	var meadow := meadow_noise.get_noise_2d(x, z)
+	if meadow > MEADOW_TALL:
 		return TALL_TIER
 	var patch := ground_patch(Vector2(x + 0.5, z + 0.5) * CELL)
-	return BARE_TIER if patch < 0.2 else (LOW_TIER if patch < 0.38 else MID_TIER)
+	if patch < 0.2:
+		return BARE_TIER
+	if meadow < -MEADOW_TALL:
+		return LAWN_TIER
+	return LOW_TIER if patch < 0.38 else MID_TIER
 
 
 ## How far into a clump of flowers column x, z lies: 0 outside, a little above 0 at its
@@ -179,7 +196,7 @@ static func ear_field_at(w, x: int, y: int, z: int) -> bool:
 	_fields()
 	if y > w.sea_level + FERTILE_LEVELS or w.leaf_col(x, z) != 0:
 		return false
-	return ear_noise.get_noise_2d(x, z) > 0.4
+	return ear_noise.get_noise_2d(x, z) > EAR_FIELD
 
 
 ## The plants growing on ground cell x, y, z of material `m` (with air above), as kinds,
@@ -204,6 +221,9 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 				out.append(TALL + rng.randi_range(0, 3))
 		elif tier == LOW_TIER:
 			if rng.randf() < 0.65:
+				out.append(LOW + rng.randi_range(0, 3))
+		elif tier == LAWN_TIER:
+			for k in (2 if rng.randf() < 0.6 else 3):
 				out.append(LOW + rng.randi_range(0, 3))
 		elif tier == MID_TIER:
 			# No tuft on a quarter of the cells and two on another quarter, so
@@ -552,6 +572,93 @@ static func has_tall(w, cell: Vector3i) -> bool:
 		if id != Plants.TUFT:
 			return true
 	return false
+
+
+## A plant that stops a body (Plants.SOLID: a cactus) on the top of ground cell x, y, z
+## (with air above), where Foliage._column draws it: [id, root x, root z], the root in
+## 0..1 of the cell, as the same draws of the cell's `rng` put it; [] for none. Whether
+## it shows this season is the caller's (`winter`).
+static func solid_plant(w, x: int, y: int, z: int) -> Array:
+	if Plants.SOLID.is_empty():
+		return []
+	var ch: WorldData.Chunk = w.chunk_at(x, z)
+	if ch == null or y < 0 or y + 1 >= w.size_y:
+		return []
+	var col := WorldData.col_of(x, z)
+	var i := y * WorldData.LAYER + col
+	var m: int = ch.cells[i]
+	if not Mat.can_slope(m) or m == Mat.GRASS and Plants.SOLID_BARE or ch.cells[i + WorldData.LAYER] != Mat.AIR:
+		return []
+	if not is_same(_solid_of, Plants.SOLID) or not is_same(_solid_biomes_of, Biomes.RECORDS):
+		_compile_solid()
+	if not _solid_biomes.is_empty():
+		var b: int = ch.biome[col]
+		if b < 0 or b >= _solid_biomes.size() or _solid_biomes[b] == 0:
+			return []
+	var cell := Vector3i(x, y, z)
+	var beds: Dictionary = w.fields.get(ch.key, {})
+	if beds.has(cell):
+		return []
+	var shape: int = ch.shapes[i]
+	var turf: Variant = w.turf_at(cell)
+	# Bodies ask of the same few cells step after step: what was found is kept while the
+	# cell, its shape and its turf stay as they were.
+	var seen: Variant = _solid_seen.get(cell)
+	if seen != null and seen[0] == w.get_instance_id() and seen[1] == m and seen[2] == shape and seen[3] == turf:
+		return seen[4]
+	var found := _find_solid(w, cell, m, shape, turf)
+	if _solid_seen.size() >= SOLID_SEEN_MOST:
+		_solid_seen.clear()
+	_solid_seen[cell] = [w.get_instance_id(), m, shape, turf, found]
+	return found
+
+
+## How many cells solid_plant keeps what it found on.
+const SOLID_SEEN_MOST := 2048
+static var _solid_seen := {}
+
+
+static func _find_solid(w, cell: Vector3i, m: int, shape: int, turf: Variant) -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(cell)
+	var mask := WorldData.FULL & ~(shape & 15)
+	var cuts := shape >> 4
+	var grown := kinds(w, cell.x, cell.y, cell.z, m, mask == WorldData.FULL and cuts == 0, rng)
+	if turf != null:
+		grown = turf_kinds(grown, turf, rng)
+	# The same draws as Foliage._column: a root, then the card's light and phase.
+	for kind in grown:
+		var fx := rng.randi_range(1, 7) / 8.0
+		var fz := rng.randi_range(1, 7) / 8.0
+		if w.in_cuts(cuts, fx, fz):
+			continue
+		var id := plant_of(kind)
+		if Plants.SOLID.has(id):
+			return [id, fx, fz]
+		rng.randf()
+		rng.randf()
+	return []
+
+
+## The biomes a solid plant grows in (a byte per biome index, 1 where one does; empty
+## when one grows anywhere), made once for each load of the plants and the biomes.
+static var _solid_biomes := PackedByteArray()
+static var _solid_of: Dictionary = {}
+static var _solid_biomes_of: Array = []
+
+
+static func _compile_solid() -> void:
+	_solid_of = Plants.SOLID
+	_solid_biomes_of = Biomes.RECORDS
+	_solid_biomes = PackedByteArray()
+	_solid_biomes.resize(Biomes.IDS.size())
+	for r: Dictionary in Plants.SOLID.values():
+		if r.get("biomes", []).is_empty():
+			_solid_biomes = PackedByteArray()
+			return
+		for k in Biomes.IDS.size():
+			if Biomes.IDS[k] in r.biomes:
+				_solid_biomes[k] = 1
 
 
 ## The plants of a grass cell the player changed (see WorldData.turf): cut short, only
