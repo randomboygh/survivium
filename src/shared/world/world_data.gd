@@ -7,8 +7,8 @@ extends "res://src/shared/world/world_cells.gd"
 
 
 ## True for a world with the slopes of before the blocky relief (the world setting
-## `slopes` 1, see LandLayout.DEFAULT_SETTINGS): a sloping top goes down a level in its
-## cell, a smooth curved patch (surface_patch), and cut and
+## `slopes` 1, see LandLayout.DEFAULT_SETTINGS): a corner may go down two levels
+## (_update_deep), a sloping top is a smooth curved patch (surface_patch), and cut and
 ## filled corners take a triangle half a cell along each side. False (the default) for
 ## the flat triangles, one-level corners and half-blocks. Set by WorldGen.
 var old_slopes := false
@@ -467,8 +467,7 @@ func split_at(x: int, y: int, z: int) -> bool:
 ## its level: 1 high, 0 low.
 func corner_heights(x: int, y: int, z: int) -> PackedInt32Array:
 	var s := _shape(x, y, z)
-	# Old slopes: -1 where the corner goes on down into the cell below (no world makes
-	# such corners now, see _old_update_corners; the mesher reads them the same way).
+	# Old slopes: -1 where the corner goes on down into the cell below (_update_deep).
 	var below := _shape(x, y - 1, z) if old_slopes and s & 15 else 0
 	var h := PackedInt32Array([1, 1, 1, 1])
 	for k in 4:
@@ -852,10 +851,10 @@ const RAMPS := [FULL, SE | SW, NW | NE, FULL, NE | SE, SE, NE, FULL, NW | SW, SW
 
 
 ## Old slopes: works out the cut and filled corners of the columns x0..x1, z0..z1 (ends
-## exclusive). A cut or fill takes a triangle half a cell along each side; a cell may
-## have several. A slope goes down one level in its cell, never two (user 2026-11-18):
-## where the ground beside drops further the corner is cut or meets a step.
+## exclusive), the corners of a slope going on down a level first (_update_deep). A cut
+## or fill takes a triangle half a cell along each side; a cell may have several.
 func _old_update_corners(x0: int, z0: int, x1: int, z1: int) -> void:
+	_update_deep(x0, z0, x1, z1)
 	var mk := _masks(x0, z0, x1, z1)
 	var wl: int = mk.wl
 	var hl: int = mk.hl
@@ -910,9 +909,88 @@ func _old_update_corners(x0: int, z0: int, x1: int, z1: int) -> void:
 					_mark(c, col, _spread(fill, fill & ~(fill << 1) & ((~open[j] << 1) | 1), 1), 16 << k)
 
 
+## Low corners of the sloping tops of the columns x0..x1, z0..z1 (ends exclusive) that
+## go on down a level into the cell below (see _deep_corner), kept in that cell's
+## shape (bits 0..3; it is covered, so it has no slope of its own). Needs the slopes
+## of the columns around done.
+func _update_deep(x0: int, z0: int, x1: int, z1: int) -> void:
+	for z in range(z0, z1):
+		for x in range(x0, x1):
+			var c := chunk_at(x, z)
+			if c == null:
+				continue
+			var col := ((z & MASK) << SHIFT) | (x & MASK)
+			var m := c.sloped[col] & ~1
+			while m != 0:
+				var bit := m & -m
+				m ^= bit
+				var y := level_of(bit)
+				var i := (y << 8) | col
+				var deep := 0
+				for k in 4:
+					if c.shapes[i] & (1 << k) and _deep_corner(x, y, z, k):
+						deep |= 1 << k
+				if deep != 0:
+					c.shapes[i - LAYER] = c.shapes[i - LAYER] | deep
+					c.corner[col] |= bit >> 1
+
+
+## True when low corner k of the sloping top at (x, y, z) goes on down to level y - 1,
+## so that slopes falling a level a cell on the diagonal meet without steps: every
+## other column around the corner meets it a level lower there, is a sloping top on
+## this level, low there and going down with it, is open more than two levels down,
+## or (only the column east or west) stands as high or higher; at least one meets it
+## lower. The cells going down are loose wild ground.
+func _deep_corner(x: int, y: int, z: int, k: int) -> bool:
+	if not _deepable(x, y - 1, z):
+		return false
+	var o: Vector2i = CORNER_DIRS[k]
+	var lower := false
+	for n in 3:
+		var nx := x + (o.x if n != 1 else 0)
+		var nz := z + (o.y if n != 0 else 0)
+		# The neighbour's own corner at this one.
+		var kk: int = [k ^ 1, 3 - k, (k + 2) & 3][n]
+		var a := get_cell(nx, y, nz)
+		if a == Mat.AIR or a == Mat.WATER:
+			var b := get_cell(nx, y - 1, nz)
+			if b == Mat.AIR or b == Mat.WATER:
+				# Two levels lower it meets the corner if its top is high there; lower
+				# still (a bank over deep water, a cliff) it has no part in it.
+				if _surface_ground(get_cell(nx, y - 2, nz)) and _shape(nx, y - 2, nz) & (1 << kk) == 0:
+					lower = true
+			elif not _surface_ground(b) or _shape(nx, y - 1, nz) & (1 << kk) == 0:
+				return false
+			else:
+				lower = true
+		elif n == 0:
+			# The column to the east or west at the corner's level or higher: if it
+			# stays up, the wall between them faces sideways, which the view never
+			# shows, and the slope still meets the ground below and beyond.
+			continue
+		elif _surface_ground(a):
+			var up := get_cell(nx, y + 1, nz)
+			if up != Mat.AIR and up != Mat.WATER or _shape(nx, y, nz) & (1 << kk) == 0 \
+					or not _deepable(nx, y - 1, nz):
+				return false
+		else:
+			return false
+	return lower
+
+
+func _deepable(x: int, y: int, z: int) -> bool:
+	if y < 0 or y >= size_y:
+		return false
+	var c := chunk_at(x, z)
+	if c == null:
+		return false
+	var i := (y << 8) | ((z & MASK) << SHIFT) | (x & MASK)
+	return c.natural[i] == WILD and Mat.can_slope(c.cells[i])
+
+
 ## A sloping top is one smooth surface over its cell, a bicubic patch through the
-## heights of its four corners (1 high, 0 low; -1, down into the cell below, is no
-## longer made) with slopes there worked out from the corners of the tops beside it
+## heights of its four corners (1 high, 0 low, -1 down into the cell below, see
+## _deep_corner) with slopes there worked out from the corners of the tops beside it
 ## (see patch_tangent): a ramp between level ground starts and ends level and is
 ## steepest in the middle, a long slope stays straight, and tops that share a corner
 ## meet there at the same height and slope. The patch is 12 numbers: the heights of the

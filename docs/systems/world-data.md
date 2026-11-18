@@ -37,9 +37,9 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
 - Old slopes, a world setting and the default of «Новый мир» (`slopes` 1 in `LandLayout.DEFAULT_SETTINGS`, the
   row «Склоны: Старые», `WorldData.old_slopes` set by `WorldGen`; the world's folder gets `o1`; checked by
   `old_shapes_test`): the shapes of before the blocky relief (#722). A slope is a smooth bicubic patch
-  (`surface_patch`, `make_patch`, `patch_height`) going down one level in its cell, never two (user 2026-11-18:
-  every slope 1×1; the corner heights may still read -1 from the cell below, which nothing sets now), cut and
-  filled corners take a triangle half a cell along each side and a cell may have several
+  (`surface_patch`, `make_patch`, `patch_height`), a corner may go down two levels into the covered cell below
+  (`_update_deep`, `_deep_corner`, kept in that cell's shape bits 0..3; taken out by #743 and brought back by the
+  user on 2026-11-18: without it a ramp's foot against a cliff shows a step), cut and filled corners take a triangle half a cell along each side and a cell may have several
   (`_old_update_corners`, `_old_in_corner`, `corner_at`); `ground_height` and `body.gd` `_cell_top` follow the patch. The client draws them with
   `src/client/world/old_slope_mesher.gd` (the old `slope_mesher.gd`), `MeshFaces.old_slopes` (curved cut
   pieces `OLD_CUT`, `_old_curve` by `Mat.corner_shape`, `_old_diag_wall`), the water's lips and foam, and the
