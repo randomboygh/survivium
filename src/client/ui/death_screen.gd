@@ -25,6 +25,7 @@ const CharacterScript := preload("res://src/client/game/character.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
 
 const WIDTH := 252
 const BUTTON_H := 30
@@ -242,6 +243,8 @@ static func _grave_cause(cause: String) -> String:
 	if cause.begins_with("animal:"):
 		var spec: Dictionary = AiRules.SPECIES.get(cause.substr(7), {})
 		return Lang.t(str(spec.get("title", "[beast]"))).to_lower()
+	if cause.begins_with("plant:"):
+		return Lang.t(str(Plants.BY_ID.get(cause.substr(6), {}).get("title", "[unknown]"))).to_lower()
 	return Lang.t(GRAVE_CAUSES.get(cause, "[unknown]"))
 
 

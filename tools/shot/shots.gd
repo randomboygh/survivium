@@ -363,6 +363,9 @@ const SHOTS := {
 	"desert": {"time": 0.42, "season": 1, "place": "desert"},
 	"oasis": {"time": 0.42, "season": 1, "place": "oasis"},
 	"rocky-desert": {"time": 0.42, "season": 1, "place": "rocky_desert"},
+	# Tumbleweeds rolling with a strong wind over the desert (frames to see them roll).
+	"tumbleweeds": {"time": 0.42, "season": 1, "place": "desert", "gust": 1.5, "wind": 0.4, "tumbleweeds": 3,
+		"frames_every": 12, "frames_ms": 120},
 	"swamp-dawn": {"time": 0.3, "season": 1, "place": "swamp"},
 	# Volcanic land of new worlds: a cone's crater with lava from its rim, the same at
 	# night (the lava lights it), and a hot spring among basalt, black sand and ash.
@@ -422,6 +425,7 @@ const SHOTS := {
 	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
 	"ears": {"time": 0.42, "season": 1, "find": "ears"},
+	"lawn": {"time": 0.42, "season": 1, "find": "lawn"},
 	# A flock of sparrows (the animals mod) about the player: on the ground, in the air
 	# and in the crowns near.
 	"birds": {"time": 0.42, "season": 1, "find": "ears", "birds": true},

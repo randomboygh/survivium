@@ -11,6 +11,7 @@ func run() -> void:
 	_test_steps()
 	_test_long_step()
 	_test_wide_trunk()
+	_test_cactus()
 	_test_ground()
 	_test_people()
 
@@ -457,6 +458,79 @@ func _test_wide_trunk() -> void:
 	_check(body.blocked(corner), "a body cannot stand inside a thick trunk across its corner")
 	_check(not body.blocked(Vector3(col.x - 1.5, 2.0, col.y - 1.5) * WorldData.CELL),
 		"a body stands two cells off a thick trunk")
+
+
+## A cactus (a plant with `solid` and `pricks`) on the desert's sand stops a body round
+## its root where it is drawn, lets out one standing in it, and pricks one who touches it:
+## a little health, a push back, the cause on death.
+func _test_cactus() -> void:
+	var cactus := ""
+	for id: String in Plants.SOLID:
+		if Plants.SOLID[id].get("pricks", 0.0) > 0.0:
+			cactus = id
+	if cactus == "":
+		_check(false, "a loaded plant that is solid and pricks (plants:cactus)")
+		return
+	var desert := Biomes.IDS.find("biomes:desert")
+	var n := 64
+	var w := WorldData.new(8, Vector2i(n, n))
+	for z in n:
+		for x in n:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.BEACH)
+	for ch: WorldData.Chunk in w.chunks.values():
+		ch.biome.fill(desert)
+	var root := Vector3.INF
+	var many := 0
+	for z in range(3, n - 3):
+		for x in range(3, n - 3):
+			var plant := Grass.solid_plant(w, x, 1, z)
+			if plant.is_empty():
+				continue
+			many += 1
+			if not root.is_finite():
+				root = Vector3(x + plant[1], 2.0, z + plant[2])
+	_check(many > 0 and many < n * n / 20, "cacti stand alone and far apart on the desert's sand (%d)" % many)
+	if not root.is_finite():
+		return
+	_check(Grass.solid_plant(w, floori(root.x), 1, floori(root.z))[0] == cactus, "the plant found is the cactus")
+	var body := Body.new()
+	body.world = w
+	_check(body.blocked(root * WorldData.CELL), "a body cannot stand in a cactus")
+	_check(body.blocked((root + Vector3(0.0, 1.5, 0.0)) * WorldData.CELL), "nor jump over it: it stands two levels high")
+	_check(not body.blocked((root + Vector3(2.0, 0.0, 0.0)) * WorldData.CELL), "a body stands two cells off a cactus")
+	# Walking at it from the west stops short of it.
+	var at := (root + Vector3(-3.0, 0.0, 0.0)) * WorldData.CELL
+	body.on_ground = true
+	body.move_input = Vector2(1, 0)
+	for i in 60:
+		at = body.step(at, 1.0 / 60.0, false)
+	var gap := root.x - at.x / WorldData.CELL
+	_check(gap > Body.HALF_WIDTH and gap < Body.HALF_WIDTH + 0.5 and body.bumped.is_finite(),
+		"walking into a cactus stops by it (%.2f cells off its root)" % gap)
+	# One standing in it (it grew there) walks out.
+	at = root * WorldData.CELL
+	for i in 60:
+		at = body.step(at, 1.0 / 60.0, false)
+	_check(at.x / WorldData.CELL - root.x > 0.5, "one standing in a cactus walks out of it")
+	# Touching it pricks.
+	var who := Survivor.new()
+	who.world = w
+	who.clock = Clock.new()
+	who.body = Body.new()
+	who.body.world = w
+	who.at = (root + Vector3(-Body.HALF_WIDTH - 0.25, 0.0, 0.0)) * WorldData.CELL
+	who.update(0.05)
+	var lost := Vitals.MAX - who.vitals.health
+	_check(lost > 0.0 and lost <= 5.0 and who.vitals.hurt_by == "plant:" + cactus, "touching a cactus pricks a little (%.1f)" % lost)
+	_check(who.body.shove.x < 0.0, "and throws the body back from it")
+	var after: float = who.vitals.health
+	who.update(0.05)
+	_check(who.vitals.health > after - 0.5, "it pricks again only after a pause (%.2f, %.2f)" % [after, who.vitals.health])
+	who.vitals.health = Vitals.MAX
+	who.at = (root + Vector3(-3.0, 0.0, 0.0)) * WorldData.CELL
+	who.update(1.0)
+	_check(who.vitals.health == Vitals.MAX, "a cactus three cells off does not prick")
 
 
 ## The test world: its grounds are where the plan says, made the same in any order.
