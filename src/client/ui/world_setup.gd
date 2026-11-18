@@ -1,5 +1,7 @@
 extends "res://src/client/ui/kit/window.gd"
-## The first screen: the world to make. The seed (typed in or rolled with the dice),
+## «Новая игра»: two tabs joined as one (TabRow.tabs), «Персонаж» (CharacterPage: the
+## character drawn big, turned by a drag, and its name; a character belongs to the world
+## it is made in, plan/mvp.md stage 3) and «Мир», the world to make. The seed (typed in or rolled with the dice),
 ## a kind of world that sets the rest at once, and the settings of WorldGen one by one
 ## as rows "name ‹ value ›" like the settings window, with a map of the land round the
 ## middle of the world drawn a few rows a frame as the choice changes, the start a dot on
@@ -9,7 +11,9 @@ extends "res://src/client/ui/kit/window.gd"
 ## bundles, each left with "Назад" (or Escape). "Создать мир" (or Enter) keeps the choice in Settings and starts the world,
 ## "Назад" (or Escape) leaves it.
 ## It covers the whole screen over a shade of the world behind, the panel in the
-## middle. `game` is the Main node.
+## middle. Opened by «Создать сервер» for its «Новый мир…» (`with_character` false) it
+## is «Новый мир», the world's rows only: the host's character is on that window's own
+## tab. `game` is the Main node.
 
 const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
@@ -18,6 +22,8 @@ const Lang := preload("res://src/shared/content/lang.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Biomes := preload("res://src/shared/content/biomes.gd")
 const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
+const TabRow := preload("res://src/client/ui/tab_row.gd")
+const CharacterPage := preload("res://src/client/ui/character_page.gd")
 
 ## The names of the rows, as wide on every page (the mods' are the longest), so the
 ## panel keeps its size from page to page.
@@ -76,6 +82,8 @@ var _start_button: Button
 var _replace := TwoTap.new()
 ## Says that a world of this seed and these settings is saved, and what «Создать мир» does to it.
 var _saved_note: Label
+## Whether that world is saved (the note shows it on «Мир»).
+var _saved := false
 var _shown := false
 ## The height of the world's rows, the first page's: every page is given it (the
 ## longer ones scroll), so the panel does not change size from page to page.
@@ -83,6 +91,13 @@ var _rows_height := 0.0
 ## The words of the button that makes the world: «Создать мир», or what the screen that
 ## opened this one does with it («Выбрать этот мир» for a server, HostScreen).
 var finish := "[create_a_world]"
+## Whether the screen has the tab «Персонаж» (see the top); set before it is shown.
+var with_character := true
+## The tabs (null without the character), the character's page, the tab shown (0
+## «Персонаж», 1 «Мир»).
+var _tabs: HBoxContainer = null
+var _character: CharacterPage = null
+var tab := 1
 
 
 func _init(g) -> void:
@@ -90,7 +105,14 @@ func _init(g) -> void:
 
 
 func _ready() -> void:
-	var outer := build("[new_world]", 8)
+	var outer := build("[new_game]" if with_character else "[new_world]", 8)
+	if with_character:
+		_tabs = TabRow.tabs([["[character]", "", show_tab.bind(0)], ["[world_n3]", "", show_tab.bind(1)]], Kit.BUTTON_H)
+		for b: Button in _tabs.get_children():
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		outer.add_child(_tabs)
+		_character = CharacterPage.new(_choices.width())
+		outer.add_child(_character)
 	_box = BoxContainer.new()
 	_box.add_theme_constant_override("separation", 10)
 	outer.add_child(_box)
@@ -130,7 +152,21 @@ func _ready() -> void:
 	_start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	buttons.add_child(_start_button)
 	_check_saved()
+	show_tab(0 if with_character else 1)
 	show_fitted()
+
+
+## Shows tab `i`: 0 «Персонаж», 1 «Мир» (the world's rows); its tab lit.
+func show_tab(i: int) -> void:
+	tab = i if _tabs != null else 1
+	if _tabs != null:
+		_character.visible = tab == 0
+		for j in _tabs.get_child_count():
+			TabRow.light(_tabs.get_child(j), j == tab)
+	_box.visible = tab == 1
+	_saved_note.visible = tab == 1 and _saved
+	if is_inside_tree():
+		fit()
 
 
 ## Fills the list with the rows of `_page`: the seed, the kind of world and the land's
@@ -240,7 +276,9 @@ func _show_page(page: String) -> void:
 ## "Назад": a mod's page goes back to the mods, the mods page to the world's rows, the
 ## world's rows leave the screen.
 func back() -> void:
-	if _page.begins_with("mod:"):
+	if tab == 0:
+		cancelled.emit()
+	elif _page.begins_with("mod:"):
 		_show_page("mods")
 	elif _page == "mods":
 		_show_page("world")
@@ -374,13 +412,22 @@ func layout(screen: Vector2) -> void:
 	var over := panel.size.y + 2 * MARGIN - screen.y
 	if over > 0.0:
 		_scroll.custom_minimum_size.y = maxf(_rows_height - over, ARROW * 2)
+	if _character != null:
+		# «Персонаж» takes the room of «Мир», the figure where the map is: the panel
+		# keeps its size from tab to tab.
+		_character.vertical = _box.vertical
+		_character.rows.custom_minimum_size.x = _scroll.custom_minimum_size.x - 2 * UiStyle.BAR_GAP
+		_character.custom_minimum_size.y = _box.get_combined_minimum_size().y
 
 
 func _start() -> void:
 	if _seed.text.is_empty():
 		_seed.text = str(game.settings.values.world_seed)
 	# Over a saved world only on the second tap: it is made anew, the save gone.
-	var fresh := _saved_note.visible
+	var fresh := _saved
+	if fresh and tab != 1:
+		# The note is on «Мир»: it is shown before the second tap is asked.
+		show_tab(1)
 	if fresh and not _replace.ask(_start_button):
 		return
 	game.settings.save()
@@ -397,10 +444,11 @@ func _check_saved() -> void:
 	# SaveGame.replace_world).
 	var key := "[a_hosted_world_with_this]" if saved and WorldStore.was_hosted(dir) else "[a_world_with_this_seed]"
 	_replace.disarm()
-	if saved == _saved_note.visible and key == _saved_note.text:
+	if saved == _saved and key == _saved_note.text:
 		return
+	_saved = saved
 	_saved_note.text = key
-	_saved_note.visible = saved
+	_saved_note.visible = saved and tab == 1
 	if is_inside_tree():
 		fit()
 
@@ -464,8 +512,8 @@ func _process(_delta: float) -> void:
 	Biomes.use(own)
 
 
-## Up and down pick a row, left and right change it (right opens the mods from «Моды»),
-## Enter makes the world, Escape leaves the mods page or the screen.
+## On «Мир» up and down pick a row, left and right change it (right opens the mods from
+## «Моды»); on «Персонаж» left and right turn the figure. Enter makes the world, Escape leaves the mods page or the screen.
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed):
 		return
@@ -476,7 +524,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_ESCAPE:
 			if not event.echo:
 				back()
+		KEY_LEFT, KEY_RIGHT:
+			if tab == 0:
+				_character.preview.turn(1 if event.physical_keycode == KEY_RIGHT else -1)
+			elif not _choices.key(event):
+				return
 		_:
-			if not _choices.key(event):
+			if tab == 0 or not _choices.key(event):
 				return
 	get_viewport().set_input_as_handled()
