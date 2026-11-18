@@ -365,10 +365,23 @@ func _test_kept_test_switches() -> void:
 	cfg.load(Settings.path)
 	cfg.set_value("test", "skill_rate", 7.0)
 	cfg.save(Settings.path)
+	var unlocked: bool = Settings.testing_unlocked
+	Settings.testing_unlocked = false
+	var plain := Settings.new(null)
+	plain.load()
+	_check(not plain.no_hunger and not plain.invulnerable and plain.player_speed == 1.0 and plain.survival_on(),
+		"outside the developer mode the saved switches are not used")
+	plain.set_testing(true)
+	_check(plain.no_hunger and plain.invulnerable and plain.player_speed == 4.0,
+		"the developer mode turned on uses them at once")
+	plain.set_testing(false)
+	_check(not plain.no_hunger and plain.player_speed == 1.0 and plain.survival_on(), "turned off, they go back")
+	Settings.testing_unlocked = true
 	var next := Settings.new(null)
 	next.load()
 	_check(next.no_hunger and next.invulnerable and next.player_speed == 4.0 and next.skill_rate == 1.0
 		and next.values.shake == Settings.DEFAULTS.shake, "the next start loads them, a speed not offered left as it comes")
+	Settings.testing_unlocked = unlocked
 	DirAccess.remove_absolute(Settings.path)
 	Settings.path = was
 
