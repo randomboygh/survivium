@@ -5,7 +5,7 @@ extends VBoxContainer
 ## now), the stations near as a column of pictures on the right (hands first, then the
 ## stations of the recipes known, the far ones dimmed). Under them two panels: the recipe
 ## chosen, as named groups of small wells laid side by side (see FactChips): «Материалы»
-## and «Не тратится» (have / need, short in red), «На чём» (the station or hands), «Чем» (the tools,
+## and «Не тратится» (need / have, short in red), «На чём» (the station or hands), «Чем» (the tools,
 ## «нет» in red when missing), the time (at the character's skill), what it makes
 ## (weight, work, how long it lasts) and its by-products, then an amber «сделать» with
 ## «×5» (five can be made) and «MAX» (more than one) joined, in one line on the left; and under it, while it holds jobs, the queue, a
@@ -541,11 +541,11 @@ func _show_details(near: Dictionary) -> void:
 	var needs := []
 	for id in r.needs:
 		var have: int = inv.count(id)
-		needs.append([ItemIcons.of_item(id), "%d/%d" % [have, r.needs[id]], have < r.needs[id], Lang.t(Items.title(id))])
+		needs.append([ItemIcons.of_item(id), "%d/%d" % [r.needs[id], have], have < r.needs[id], Lang.t(Items.title(id))])
 	var keeps := []
 	for id in r.keeps:
 		var have: int = inv.count(id)
-		keeps.append([ItemIcons.of_item(id), "%d/%d" % [have, r.keeps[id]], have < r.keeps[id], Lang.f("[not_used_up]", [Lang.t(Items.title(id))])])
+		keeps.append([ItemIcons.of_item(id), "%d/%d" % [r.keeps[id], have], have < r.keeps[id], Lang.f("[not_used_up]", [Lang.t(Items.title(id))])])
 	var at := []
 	if r.at != "":
 		at.append([ItemIcons.of_item(r.at), "" if near.has(r.at) else "[no_n2]", not near.has(r.at), Lang.t(Items.title(r.at))])
