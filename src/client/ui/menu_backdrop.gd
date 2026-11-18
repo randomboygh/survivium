@@ -409,7 +409,7 @@ func _explode() -> void:
 	_taps = 0
 	print("easter egg: the sparrow blew up")
 	if not game.settings.testing_unlocked:
-		game.settings.testing_unlocked = true
+		game.settings.set_testing(true)
 		game.hud.unlock_testing()
 	var r := _bird_rect()
 	var at := _title.position + r.get_center()
