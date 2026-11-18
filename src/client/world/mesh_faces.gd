@@ -37,8 +37,12 @@ const FALL_FOAM := 0.5
 ## Half the width of a fall's spray and the most it rises, in cells.
 const SPRAY_HALF := 0.75
 const SPRAY_HIGH := 2.5
-## Vertex alpha of the sea's water (WorldData.SEA_WATER; other water has 1).
+## Vertex alpha of the sea's water (WorldData.SEA_WATER; other water has 1), and of the
+## sea's water in its top level where the surf runs on over the land beside (SURF_ALPHA,
+## see WaterMesher.water_color): it draws no foam of its own along the shore, the surf's
+## front is its outline there.
 const SEA_ALPHA := 0.85
+const SURF_ALPHA := 0.9
 ## Vertex alpha of the surf washing over the land level with the sea (see
 ## WaterMesher.swash): between the foam of a fall's (below 0.6) and the sea's.
 const SWASH_ALPHA := 0.68

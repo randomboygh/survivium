@@ -20,7 +20,8 @@
 // water, 1 left, 2 right); FALL_SPRAY the spray and mist over its foot, an upright quad
 // turned to the camera (its corners at its root, UV their offsets in cells, UV2 its
 // height in cells and a number of its own); SEA_ALPHA the sea's water
-// (WorldData.SEA_WATER), the only water the plankton glows in; SWASH_ALPHA the surf
+// (WorldData.SEA_WATER), the only water the plankton glows in, SURF_ALPHA the sea's
+// water in its top level, where the surf is its shore's outline; SWASH_ALPHA the surf
 // washing over the land level with the sea (WaterMesher.swash: COLOR.r is how far from
 // the waterline, in cells + 0.5, / 8).
 shader_type spatial;
@@ -91,6 +92,9 @@ varying flat float falls;
 varying float sea_here;
 // 1 on the surf's sheet (SWASH_ALPHA above), 0 elsewhere.
 varying flat float swash;
+// 1 on the sea's water where the surf runs on over the shore (MeshFaces.SURF_ALPHA): it
+// draws no foam along the shore, the surf's front is its outline.
+varying flat float surf_sea;
 
 // Ice: clear blue-green over the shallows and darker over the deep, milky frost
 // patches, straight white cracks and glints that do not move, and a dusting of snow
@@ -163,6 +167,7 @@ void vertex() {
 	data = UV2;
 	falls = COLOR.a < 0.15 ? 2.0 : (COLOR.a < 0.4 ? 3.0 : (COLOR.a < 0.6 ? 1.0 : 0.0));
 	swash = COLOR.a > 0.6 && COLOR.a < 0.75 ? 1.0 : 0.0;
+	surf_sea = COLOR.a > 0.875 && COLOR.a < 0.95 ? 1.0 : 0.0;
 	sea_here = COLOR.a > 0.75 && COLOR.a < 0.95 || swash > 0.5 ? 1.0 : 0.0;
 	depth_here = COLOR.r * 8.0;
 	shore_under = COLOR.g;
@@ -248,15 +253,22 @@ void fragment() {
 	// The sun's path and the lights glittering on the surface: light of their own.
 	vec3 shine = vec3(0.0);
 	if (swash > 0.5) {
-		// The surf: each wave rushes up over the level sand in a thin clear sheet with a
-		// ragged line of foam at its front, then slides back slower, leaving the sand dark
-		// and wet behind it and lace of foam that thins out. Along the shore the waves come
-		// in at their own times and reach as far as a slow noise says, on the texel grid.
-		// None under ice.
+		// The surf: the sea itself running on up over the level sand. Each wave goes on
+		// from the water's edge in a thin sheet of the shallows' colour, clearer towards
+		// its front, outlined by the same line of foam the water has along every other
+		// shore (that water leaves it out here, see ChunkMesher), so the line runs up and
+		// back with the waves and lies at the waterline while the sea is still. Going back
+		// slower, the wave leaves its foam behind: a white line where it reached and lace
+		// between, dissolving over the rest of its time; and the sand dark and wet behind
+		// it. Along the shore the waves come in at their own times and reach as far as a
+		// slow noise says, on the texel grid. None under ice.
 		if (ice > 0.0) {
 			discard;
 		}
 		float far = floor((depth_here - 0.5) * CELL_TEXELS) / CELL_TEXELS;
+		if (far < 0.0) {
+			discard;
+		}
 		vec2 xz = tex / TEXELS;
 		float t = TIME / SWASH_PERIOD + texture(cloud_noise, xz / 18.0).r * 2.3;
 		float wave = floor(t);
@@ -266,40 +278,53 @@ void fragment() {
 		float run = p < 0.25 ? 1.0 - (1.0 - p / 0.25) * (1.0 - p / 0.25) : 1.0 - smoothstep(0.25, 1.0, p);
 		float rag = (texture(cloud_noise, xz / 2.5 + vec2(wave * 0.41, TIME * 0.02)).r - 0.5) * 0.9
 			+ (hash12(vec2(floor(tex.x / 2.0) + floor(tex.y / 2.0), wave)) - 0.5) * 0.25;
-		float front = reach * run + rag * run;
+		// The front, never behind the waterline; and how far this wave got.
+		float front = max(reach * run + rag * run, 0.0);
+		float peak = max(reach + rag, 0.0);
 		float edge = front - far;
-		if (far < 0.0) {
-			discard;
-		}
-		if (edge > 0.0) {
-			// The sheet, thinner and clearer towards its front.
-			col = mix(shallow, foam_color, 0.18) * biome_tint(WATER_MATERIAL, world_pos.xz);
-			alpha = mix(0.3, 0.55, clamp(1.0 - far / max(front, 0.1), 0.0, 1.0));
+		// How much of the foam the wave leaves behind is still there: all of it as the
+		// wave turns, none by the time the next one comes.
+		float left = p > 0.25 ? 1.0 - smoothstep(0.25, 0.95, p) : 0.0;
+		float lace = texture(cloud_noise, xz / 1.6 + vec2(wave * 0.37, 0.0)).r;
+		float fizz = hash12(tex + wave * 13.0);
+		if (edge >= 0.0) {
+			// The sheet: the shallows' colour at the waterline, thinning to clear water.
+			float on = clamp(far / max(front, 0.1), 0.0, 1.0);
+			col = mix(shallow, mix(shallow, foam_color, 0.2), on) * biome_tint(WATER_MATERIAL, world_pos.xz);
+			alpha = mix(0.45, 0.25, on);
 			if (edge < 1.5 / CELL_TEXELS) {
-				col = foam_color;
+				// The foam line round the water's edge.
+				col = foam_c;
 				alpha = 0.95;
 				surf = 1.0;
 			} else if (edge < 3.0 / CELL_TEXELS && hash12(tex + wave * 7.0) > 0.35) {
-				col = mix(col, foam_color, 0.6);
+				col = mix(col, foam_c, 0.6);
 				alpha = 0.8;
 				surf = 0.5;
-			} else if (p > 0.25) {
-				// Lace of foam left by the wave going back.
-				float lace = texture(cloud_noise, xz / 1.6 + vec2(wave * 0.37, 0.0)).r;
-				if (abs(lace - 0.5) < 0.035 * (1.0 - p) && edge < reach * 0.6) {
-					col = foam_color;
-					alpha = 0.85;
-					surf = 0.6;
-				}
+			} else if (left > 0.0 && abs(lace - 0.5) < 0.04 * left) {
+				// The left foam the water slides back over.
+				col = mix(col, foam_c, 0.8);
+				alpha = 0.85;
+				surf = 0.6 * left;
 			}
 			// Sparkles.
 			col += vec3(0.3) * step(0.992, hash12(tex + floor(TIME * 3.0) * 17.0));
-		} else if (far < reach + rag && p > 0.25) {
-			// Wet sand where the wave ran up, drying as the next one comes.
-			col = vec3(0.12, 0.09, 0.05);
-			alpha = 0.22 * (1.0 - smoothstep(0.4, 1.0, p));
-			if (alpha < 0.02) {
-				discard;
+		} else if (far < peak && left > 0.0) {
+			// The sand the wave ran over: wet and dark, and the foam it left there, a line
+			// along where it reached and lace between, breaking up into fewer and fewer
+			// bubbles as it dissolves.
+			bool line = peak - far < 2.0 / CELL_TEXELS;
+			bool foamy = line ? fizz < 0.35 + 0.65 * left : abs(lace - 0.5) < 0.05 * left && fizz < 0.4 + 0.6 * left;
+			if (foamy) {
+				col = foam_c;
+				alpha = 0.6 + 0.35 * left;
+				surf = 0.7 * left;
+			} else {
+				col = vec3(0.12, 0.09, 0.05);
+				alpha = 0.22 * (1.0 - smoothstep(0.4, 1.0, p));
+				if (alpha < 0.02) {
+					discard;
+				}
 			}
 		} else {
 			discard;
@@ -451,59 +476,62 @@ void fragment() {
 			shine += FIRE_GLINT * (g * 0.9 + line * 0.5 * k);
 			alpha = max(alpha, 0.9 * g);
 		}
-		// Foam along the shore, washing in and out by a texel or two.
-		// An exact whole number in a flat varying: its corner fills reach bit 23, where
-		// `+ 0.5` would round an odd word to even.
-		int foam = int(data.x);
-		int mid = int(CELL_TEXELS) / 2;
-		for (int e = 0; e < 4; e++) {
-			int half = (e < 2 ? t.x : t.y) / mid;
-			if (((foam >> (2 * e + half)) & 1) == 0) {
-				continue;
+		// The shore's foam; none on the sea's water where the surf runs on over the shore.
+		if (surf_sea < 0.5) {
+			// Foam along the shore, washing in and out by a texel or two.
+			// An exact whole number in a flat varying: its corner fills reach bit 23, where
+			// `+ 0.5` would round an odd word to even.
+			int foam = int(data.x);
+			int mid = int(CELL_TEXELS) / 2;
+			for (int e = 0; e < 4; e++) {
+				int half = (e < 2 ? t.x : t.y) / mid;
+				if (((foam >> (2 * e + half)) & 1) == 0) {
+					continue;
+				}
+				float along = e < 2 ? tex.x : tex.y;
+				float wash = 1.0 + step(0.0, sin(TIME * 1.7 + along * 0.6)) + step(0.75, hash12(vec2(along, floor(TIME * 1.5))));
+				if (float(dist[e]) < wash) {
+					col = foam_c;
+					alpha = 0.95;
+					surf = 1.0;
+				} else if (float(dist[e]) < wash + 2.0) {
+					col = mix(col, foam_c, 0.25);
+					surf = max(surf, 0.3);
+				}
 			}
-			float along = e < 2 ? tex.x : tex.y;
-			float wash = 1.0 + step(0.0, sin(TIME * 1.7 + along * 0.6)) + step(0.75, hash12(vec2(along, floor(TIME * 1.5))));
-			if (float(dist[e]) < wash) {
-				col = foam_c;
-				alpha = 0.95;
-				surf = 1.0;
-			} else if (float(dist[e]) < wash + 2.0) {
-				col = mix(col, foam_c, 0.25);
-				surf = max(surf, 0.3);
+			// Over the slope of a shore: foam where the ground comes up to the surface, a
+			// texel of shore for each eighth of a cell it lies under it.
+			if (shore_under < 1.0) {
+				float wash = 1.0 + step(0.0, sin(TIME * 1.7 + (tex.x + tex.y) * 0.6))
+					+ step(0.75, hash12(vec2(tex.x + tex.y, floor(TIME * 1.5))));
+				float d = shore_under * CELL_TEXELS;
+				if (d < wash) {
+					col = foam_c;
+					alpha = 0.95;
+					surf = 1.0;
+				} else if (d < wash + 2.0) {
+					col = mix(col, foam_c, 0.25);
+					surf = max(surf, 0.3);
+				}
 			}
-		}
-		// Over the slope of a shore: foam where the ground comes up to the surface, a
-		// texel of shore for each eighth of a cell it lies under it.
-		if (shore_under < 1.0) {
-			float wash = 1.0 + step(0.0, sin(TIME * 1.7 + (tex.x + tex.y) * 0.6))
-				+ step(0.75, hash12(vec2(tex.x + tex.y, floor(TIME * 1.5))));
-			float d = shore_under * CELL_TEXELS;
-			if (d < wash) {
-				col = foam_c;
-				alpha = 0.95;
-				surf = 1.0;
-			} else if (d < wash + 2.0) {
-				col = mix(col, foam_c, 0.25);
-				surf = max(surf, 0.3);
-			}
-		}
-		// Along diagonals: the water lies away from a filled corner and on the corner's
-		// side of a cut one.
-		for (int k = 0; k < 4; k++) {
-			bool filled = ((foam >> (8 + k)) & 1) != 0;
-			if (!filled && ((foam >> (12 + k)) & 1) == 0) {
-				continue;
-			}
-			int sd = corner_distance(t, k, (foam >> (16 + 2 * k)) & 3);
-			float d = float(filled ? sd : -sd);
-			float wash = 1.0 + step(0.0, sin(TIME * 1.7 + tex.x * 0.6)) + step(0.75, hash12(vec2(tex.x, floor(TIME * 1.5))));
-			if (d < wash) {
-				col = foam_c;
-				alpha = 0.95;
-				surf = 1.0;
-			} else if (d < wash + 2.0) {
-				col = mix(col, foam_c, 0.25);
-				surf = max(surf, 0.3);
+			// Along diagonals: the water lies away from a filled corner and on the corner's
+			// side of a cut one.
+			for (int k = 0; k < 4; k++) {
+				bool filled = ((foam >> (8 + k)) & 1) != 0;
+				if (!filled && ((foam >> (12 + k)) & 1) == 0) {
+					continue;
+				}
+				int sd = corner_distance(t, k, (foam >> (16 + 2 * k)) & 3);
+				float d = float(filled ? sd : -sd);
+				float wash = 1.0 + step(0.0, sin(TIME * 1.7 + tex.x * 0.6)) + step(0.75, hash12(vec2(tex.x, floor(TIME * 1.5))));
+				if (d < wash) {
+					col = foam_c;
+					alpha = 0.95;
+					surf = 1.0;
+				} else if (d < wash + 2.0) {
+					col = mix(col, foam_c, 0.25);
+					surf = max(surf, 0.3);
+				}
 			}
 		}
 		// Rain rings: each square of two by two cells gets a ring now and then while it
