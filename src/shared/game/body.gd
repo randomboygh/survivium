@@ -42,6 +42,8 @@ const ASSIST := 0.35
 ## a sheer step of a whole cell is not walked up or down.
 const STEP_UP := 0.5
 const STEP_DOWN := 0.6
+## The steepest rise over run that is a slope walked along (a taller step is a step).
+const SLOPE_MOST := 1.5
 ## On a ladder (WorldData.ladders) a body climbs this fast, in cells a second, and holds
 ## on this far over the top of its highest segment, in cells: over the floor a hatch's
 ## hole cuts or by the top of a wall, where a step (STEP_UP) takes it off.
@@ -287,6 +289,16 @@ func _step(at: Vector3, delta: float, jump: bool) -> Vector3:
 		p = _try_move(p, Vector3(0.0, 0.0, nudge.y), reach)
 		bumped = bump
 		nudge = Vector2.ZERO
+	# Up a slope the way along the ground is longer than the way over it: the same pace
+	# along the ground, not over it (a step up of a block is not a slope).
+	if on_ground and not jump and p.y > before.y:
+		var run := Vector2(p.x - before.x, p.z - before.z)
+		var rise := p.y - before.y
+		var h := run.length()
+		if h > 0.0 and rise <= h * SLOPE_MOST:
+			var k := h / sqrt(h * h + rise * rise)
+			p.x = before.x + run.x * k
+			p.z = before.z + run.y * k
 	# A wall stops the glide along it.
 	if absf(p.x - before.x) < absf(glide.x * delta) * 0.5:
 		glide.x = 0.0
