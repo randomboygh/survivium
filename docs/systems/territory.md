@@ -216,6 +216,10 @@ single player's player is number 0).
   `Decay.crumbled` → `Protocol.CRUMBLED` [cells, materials (-1 a thing)] to the players whose screen reaches it;
   `Props.crumbled` raises dust and bits of the material, a knock of its `hit` sound and a thud, felt near.
   Shot `decay-ruins` (`places.age_near`: the walls left 2.5 game days a stage).
+- Repair (decision 6A): a cracked block tapped in build mode (`BuildMode.start_stroke`, not erasing) is mended
+  free with a swing of the tool in the hand: `Controls.mend` → `Protocol.MEND` [cell] (paced, `Requests.PACED`)
+  → `Decay.mend` (cracked, within `Tools.PLACE_REACH`, the right «build»; `WorldData.mend`, `cracks_changed`
+  false → `Protocol.CRACKS`). A fallen block is built again by the blueprint at its full price.
 - Switches: `Rules.building_decay` (the server: `[rules]` of `server.cfg`) and the world's own `Decay.on`,
   set by the row «Building decay» of «New world» (`Settings` `world_decay`, `WorldSetup`), kept in
   `world.json` as `decay` (`to_dict` / `from_dict`: `on`, `time`, `tended`, `cracked`); a world saved before it
@@ -225,7 +229,7 @@ single player's player is number 0).
 untouched, a player near and a claim tend, cracks stay when one comes back and go when the cell changes,
 saving through JSON, both switches, the session's step, `CRACKS` over a socket and the loop, the faster swing,
 the mesher's mark; `_test_ruins`: a wall row by row to its cracked lowest row, a roof, a long neglect at once, a
-fence falls apart and a chest stays, what fell is told, rubble gives about half); `tests/unit/territory_test.gd` (`_test_decay` — decay by steps, the client's copy, saving, the
+fence falls apart and a chest stays, what fell is told, rubble gives about half); `tests/unit/security_test.gd` `_test_mend` (the mend's checks and pace); `tests/unit/territory_test.gd` (`_test_decay` — decay by steps, the client's copy, saving, the
 team's return, the modes `rights` and `radius`; the teams' rules, saving through JSON, the requests of two
 players on one server; plots, the budget, connectivity, the post through `put_from_bag` and `land_paint`; the
 default and given rights, saving, the land's colour and the request `land_color`, digging, a chest, taking a

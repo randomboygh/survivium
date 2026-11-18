@@ -44,7 +44,7 @@ const REVIVE_NEAR := 1.0
 ## player may be ahead of the clock (a quick finger along a stroke, a reply late).
 const PACED := [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.GATHER, Protocol.PLANT,
 	Protocol.PLANT_AT, Protocol.PROP_PUT, Protocol.PROP_PUT_AT, Protocol.PROP_MOVE, Protocol.LIGHT_PUT, Protocol.BUILD,
-	Protocol.FARM_WORK, Protocol.VESSEL_LAUNCH, Protocol.SIGN_WRITE, Protocol.SIGN_TURN, Protocol.PROP_DRINK]
+	Protocol.FARM_WORK, Protocol.VESSEL_LAUNCH, Protocol.SIGN_WRITE, Protocol.SIGN_TURN, Protocol.PROP_DRINK, Protocol.MEND]
 const WORK_AHEAD := 2.0
 ## The seconds a paced request that tells no swing costs (one set down, one sown).
 const WORK_STEP := 0.25
@@ -129,7 +129,7 @@ func _do(kind: String, args: Array) -> Variant:
 	var timed := paced and kind in PACED
 	if timed and _ahead() > WORK_AHEAD:
 		flagged.emit("pace", "%s: %.1f s of work ahead" % [kind, _owed])
-		return {} if kind in [Protocol.DIG, Protocol.PLACE, Protocol.FRONT] else false
+		return {} if kind in [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.MEND] else false
 	var tool_swing: float = who.tool().get("swing", WORK_STEP) if kind == Protocol.GATHER else WORK_STEP
 	var out: Variant = _rule(kind, args)
 	if out == null:
@@ -262,6 +262,9 @@ func _rule(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT, TYPE_BOOL, TYPE_INT]) \
 					and args[0] in Plans.KINDS and args[6] >= 0 and args[6] < 16:
 				return session.plans.draw(actions, who, args[0], args[1], args[2], args[3], args[4], args[5], args[6])
+		Protocol.MEND:
+			if _fit(args, [TYPE_VECTOR3I]):
+				return session.decay.mend(who, args[0])
 		Protocol.BUILD:
 			if _fit(args, []):
 				return session.plans.build(actions, who)

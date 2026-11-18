@@ -263,6 +263,9 @@ const ICE_HOLES := "ice_holes"
 ## after the chunk: [key] over the loop (the world is one object, the chunk is drawn
 ## again), [key, PackedInt32Array x, y, z, …] over a socket (WorldData.cracks_of).
 const CRACKS := "cracks"
+## Mend a cracked built cell (building decay, decision 6A: free, a swing of the hand's
+## tool in build mode): [cell]; the swing (WorldActions._work) or {} back.
+const MEND := "mend"
 ## Built cells that fell and things that fell apart of decay: [[cell, …], PackedInt32Array
 ## the material of each, -1 a thing] (Decay.crumbled), for the dust and the sound; the
 ## cells themselves come as CELLS, the things as PROP_GONE.

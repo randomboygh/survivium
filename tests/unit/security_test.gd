@@ -31,6 +31,7 @@ func run() -> void:
 	_test_cheats()
 	_test_prepare()
 	_test_mod_put()
+	_test_mend()
 
 
 ## A flat world of 32 by 32 cells with a player over the socket (check_moves, paced) and
@@ -524,3 +525,56 @@ func _test_mod_put() -> void:
 		_check(got.error == "[the_zip_is_not_that_mod]" and FileAccess.get_file_as_string(into.path_join("mine/mod.yaml")).contains("own: true")
 			and not DirAccess.dir_exists_absolute(into.path_join("other")), "a zip of %s is not put over the mod" % [files.keys()])
 	ModZip.erase(into)
+
+
+class NoBuild:
+	func may(_who, _cell: Vector3i, _action: String) -> bool:
+		return false
+
+
+## A crack is mended (Protocol.MEND) only with the right argument, on a cracked cell, within
+## the reach of building, where the player may build, and paced as the hands' work.
+func _test_mend() -> void:
+	var p := _socket_player()
+	var s = p[0]
+	var host = p[1]
+	var a = p[2]
+	var w = s.world
+	a.teleport(Vector3(8.5, 2.0, 8.5) * WorldData.CELL)
+	a.take_input(_input(a.position, Vector3i(8, 2, 8)))
+	var req = host.link.requests
+	var planks := Mat.index("materials:planks")
+	var near := Vector3i(10, 2, 8)
+	var far := Vector3i(30, 2, 30)
+	for c: Vector3i in [near, far, near + Vector3i(0, 1, 0)]:
+		w.set_cell(c.x, c.y, c.z, planks)
+		w.crack(c, planks)
+	var seq := 200
+	for bad: Array in [[], [near, near], ["10,2,8"], [Vector2i(10, 2)], [10, 2, 8]]:
+		seq += 1
+		_check(req.handle(Protocol.request(Protocol.MEND, seq, bad))[1] == null, "a mend with a wrong argument is refused: %s" % [bad])
+	_check(w.is_cracked(near.x, near.y, near.z), "and mends nothing")
+	seq += 1
+	_check(req.handle(Protocol.request(Protocol.MEND, seq, [Vector3i(8, 1, 8)]))[1] == {} and not w.is_cracked(8, 1, 8),
+		"a cell not cracked is not mended")
+	seq += 1
+	_check(req.handle(Protocol.request(Protocol.MEND, seq, [far]))[1] == {} and w.is_cracked(far.x, far.y, far.z),
+		"nor one beyond the reach of building")
+	s.decay.territory = NoBuild.new()
+	seq += 1
+	_check(req.handle(Protocol.request(Protocol.MEND, seq, [near]))[1] == {} and w.is_cracked(near.x, near.y, near.z),
+		"nor one where the player may not build")
+	s.decay.territory = s.territory
+	seq += 1
+	var done: Variant = req.handle(Protocol.request(Protocol.MEND, seq, [near]))[1]
+	_check(done is Dictionary and done.get("swing", 0.0) > 0.0 and not w.is_cracked(near.x, near.y, near.z)
+		and w.get_cell(near.x, near.y, near.z) == planks, "one cracked within reach is mended, free, with a swing")
+	var many := 0
+	for i in 40:
+		seq += 1
+		var c := near + Vector3i(0, 1, 0)
+		w.crack(c, planks)
+		var r: Variant = req.handle(Protocol.request(Protocol.MEND, seq, [c]))[1]
+		if r is Dictionary and not r.is_empty():
+			many += 1
+	_check(many < 40, "mends asked at once are paced (%d of 40)" % many)

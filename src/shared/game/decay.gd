@@ -19,6 +19,7 @@ extends RefCounted
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
 
 ## Cells that cracked (true) or were mended (false), for the clients (a cell changed
 ## loses its crack in WorldData.set_cell and is sent as a changed cell).
@@ -41,6 +42,8 @@ const SCAN_COLUMNS := 32
 ## not chests, stations, fires, signs, crosses): as wood. At THING_STAGES they fall apart.
 const THING_PACE := 1.0
 const THING_STAGES := 2
+## The seconds a mend takes with no tool's swing known.
+const MEND_SWING := 0.5
 
 ## The world's own switch (a world made with building decay off keeps it off).
 var on := true
@@ -330,6 +333,26 @@ static func _level(bit: int) -> int:
 	if bit & 0x1 == 0:
 		y += 1
 	return y
+
+
+## `who` mends cracked cell `cell` (decision 6A: free, a swing of the tool in the hand)
+## within the reach of building and where they may build; the swing (WorldActions._work)
+## or {} when there is nothing to mend there.
+func mend(who, cell: Vector3i) -> Dictionary:
+	if world == null or actions == null or not world.is_cracked(cell.x, cell.y, cell.z):
+		return {}
+	if actions.too_far(who, cell, Tools.PLACE_REACH):
+		who.nag("far", "[too_far]")
+		return {}
+	if territory != null and not territory.may(who, cell, "build"):
+		return {}
+	var m: int = world.get_cell(cell.x, cell.y, cell.z)
+	if not world.mend(cell):
+		return {}
+	var cells: Array[Vector3i] = [cell]
+	cracks_changed.emit(cells, false)
+	var t: Dictionary = who.tool()
+	return actions._work(float(t.get("swing", MEND_SWING)), "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, m)
 
 
 ## Whether cell `cell` is cracked now.

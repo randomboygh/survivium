@@ -350,6 +350,11 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 	var hit: Dictionary = game.controls.pick(pos)
 	if hit.is_empty():
 		return {}
+	if not erasing and game.world.is_cracked(hit.cell.x, hit.cell.y, hit.cell.z):
+		# A cracked block (building decay) tapped is mended, free, with a swing of the tool
+		# in the hand (decision 6A); once whole, a tap on it builds on as ever.
+		game.controls.mend(hit.cell)
+		return {}
 	if not Plans.drawn_with(chosen()) and not erasing:
 		# A thing is set down where tapped as the finger lifts; held, it hangs in the air over
 		# the place under the finger until it is let go (drag, release).
