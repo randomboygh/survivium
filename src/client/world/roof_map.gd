@@ -3,7 +3,8 @@ extends RefCounted
 ## holding the level of the highest cell that keeps the weather off, plus one, so snow,
 ## rain and their particles stay off the ground under overhangs, roofs and cave
 ## ceilings while an open ravine takes them; and whether a tree's crown is over the
-## column, for the leaves fallen under it; and the top of the ground or the water in the
+## column, for the leaves fallen under it, and whether a puddle may stand on its top
+## after rain (g, see CROWN); and the top of the ground or the water in the
 ## column with whether it is water, which the fog lies on. The world has no edge, so the map covers
 ## WRAP by WRAP columns and repeats: column (x, z) is texel (x, z) modulo WRAP, far more
 ## than the view shows. Columns are filled as their chunks are generated; the texture
@@ -32,6 +33,10 @@ const TINT_MATERIALS := 64
 const TINT_BIOMES := 256
 ## No tint: the factor 1, kept over 4 (factors up to 4 whiten dark sand).
 const NO_TINT := 0.25
+## The roof map's g: CROWN under a tree's crown (over half, so the filtered map gives
+## the crowns' cover as before), plus NO_PUDDLE where the top keeps no puddle (_dry_top).
+const CROWN := 254
+const NO_PUDDLE := 1
 ## Water's own colour where shallow (`shallow` in water.gdshader), which its tint is
 ## taken against.
 const WATER_SHALLOW := Color(0.36, 0.62, 0.6)
@@ -105,11 +110,13 @@ func fill_chunk(w, key: Vector2i) -> void:
 		var air: PackedInt64Array = c.air
 		var water: PackedInt64Array = c.water
 		var leaf: PackedInt64Array = c.leaf
+		var sloped: PackedInt64Array = c.sloped
+		var cells: PackedByteArray = c.cells
 		var all: int = w.all_bits
 		for col in n * n:
 			var top: int = w.top_level(~(air[col] | leaf[col]) & all)
 			data[col * 4] = w.top_level(~(air[col] | water[col] | leaf[col]) & all) + 1
-			data[col * 4 + 1] = 255 if leaf[col] != 0 else 0
+			data[col * 4 + 1] = (CROWN if leaf[col] != 0 else 0) | (_dry_top(cells[(top << 8) | col], sloped[col], top) if top >= 0 else 0)
 			data[col * 4 + 2] = top + 1
 			data[col * 4 + 3] = 255 if top >= 0 and water[col] & (1 << top) else 0
 	image.blit_rect(Image.create_from_data(n, n, false, Image.FORMAT_RGBA8, data),
@@ -132,12 +139,26 @@ func fill_chunk(w, key: Vector2i) -> void:
 		biomes_dirty = true
 
 
+## The bits of the roof map's g under the crown's (CROWN) for the column whose top is
+## material `m` at level `top`, `sloped` its slope mask: NO_PUDDLE where no puddle
+## stands on it after rain (a material that drains, a sloping top), as world.gdshader
+## leaves it dry; the figures' mirrors (sprite_mirror.gdshader) look it up.
+static func _dry_top(m: int, sloped: int, top: int) -> int:
+	if m < Mat.shader_bits.size() and Mat.shader_bits[m] & Mat.DRAINS != 0:
+		return NO_PUDDLE
+	return NO_PUDDLE if sloped & (1 << top) != 0 else 0
+
+
 ## Refreshes the column of a changed cell.
 func touch(w, cell: Vector3i) -> void:
 	if image == null:
 		return
-	var crown := 1.0 if w.leaf_col(cell.x, cell.z) != 0 else 0.0
 	var top: int = w.top_level(~(w.air_col(cell.x, cell.z) | w.leaf_col(cell.x, cell.z)) & w.all_bits)
+	var bits := CROWN if w.leaf_col(cell.x, cell.z) != 0 else 0
+	var c = w.chunk_at(cell.x, cell.z)
+	if top >= 0 and c != null:
+		bits |= _dry_top(w.get_cell(cell.x, top, cell.z), c.sloped[((cell.z & w.MASK) << w.SHIFT) | (cell.x & w.MASK)], top)
+	var crown := bits / 255.0
 	var water := 1.0 if top >= 0 and w.water_col(cell.x, cell.z) & (1 << top) else 0.0
 	image.set_pixel(cell.x & MASK, cell.z & MASK, Color((w.roof_level(cell.x, cell.z) + 1) / 255.0, crown,
 		(top + 1) / 255.0, water))

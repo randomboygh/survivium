@@ -4,7 +4,8 @@ extends Node3D
 ## into the water from a fall or a jump; steam rising off open water on cold mornings
 ## and in frost; fires, torches and lamps glittering on the water in a path towards the
 ## viewer (water.gdshader `fire_glints`); and the people and the beasts by the water
-## mirrored in it (sprite_mirror.gdshader). Held by Effects (`water`), stepped by Sky.
+## mirrored in it (sprite_mirror.gdshader), and on the beach in the sea's surf and the wet
+## sand it leaves, and in the puddles after rain. Held by Effects (`water`), stepped by Sky.
 ## The setting «Вода» (Settings `water_fx`): 0 none, 1 all but the mirroring, 2 all; each
 ## can be hidden on its own in «Что рисуется» (parts). Cheap: rings and splashes come
 ## from a small pool of emitters used in turn, the steam is one emitter whose spots are
@@ -16,6 +17,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const Warmth := preload("res://src/shared/game/warmth.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
+const Clock := preload("res://src/shared/game/clock.gd")
 const MirrorShader := preload("res://shaders/sprite_mirror.gdshader")
 
 const PX := 1.0 / 16.0
@@ -49,7 +51,8 @@ const STEAM_MILD := 9.0
 const GLINTS := 4
 const GLINT_REACH := 16.0
 ## Figures mirrored at once, the nearest the view within MIRROR_REACH; a figure is
-## mirrored while there is open water within MIRROR_LOOK cells round its feet.
+## mirrored while there is open water within MIRROR_LOOK cells round its feet, it stands
+## on the sand the sea's surf runs up (the sea within SURF_LOOK cells), or puddles stand.
 const MIRRORS := 8
 const MIRROR_REACH := 14.0
 const MIRROR_LOOK := 3
@@ -57,6 +60,10 @@ const MIRROR_LOOK := 3
 ## far under them it may lie (one standing up the bank), world units.
 const MIRROR_DEEP := 1.6
 const MIRROR_HIGH := 1.2
+## How far from the sea's water a figure on the sand level with it may stand to be
+## mirrored in the surf, in cells (WaterMesher.SWASH_REACH and the shortest figure's
+## reflection beyond it).
+const SURF_LOOK := 7
 
 ## Seconds between two looks at the steam and the glints (every frame while a torch is
 ## carried, see _torch_lit).
@@ -92,6 +99,8 @@ var _mirrors := {}
 ## Each mirror: the sprite's material its picture was last taken from.
 var _from := {}
 var _look := 0.0
+## How much water stands in puddles after rain (Clock.puddles, none in winter).
+var _puddles := 0.0
 var _slow := 0.0
 var _set := {}
 
@@ -135,6 +144,7 @@ func _on(part: String) -> bool:
 
 ## Steps the effects by `delta` seconds (`sky` Sky, `clock` Clock).
 func update(delta: float, sky, clock, indoor: bool) -> void:
+	_puddles = 0.0 if clock == null or clock.season == Clock.WINTER else clock.puddles
 	_watch_bodies(delta)
 	_fish(delta)
 	# The steam and the glints change slowly: looked at a few times a second.
@@ -514,6 +524,12 @@ func _mirrored() -> Dictionary:
 			break
 		var p: Vector3 = one[1].global_position
 		var c := Vector3i((p / CELL).floor())
+		# On the sand level with the sea by its surf: mirrored at the feet, in the sheet.
+		var land := _land_top(c.x, c.z, c.y)
+		var on_land := land != -INF and absf(land - p.y) < 0.3
+		if on_land and _by_surf(c, land):
+			out[one[1]] = land
+			continue
 		# The nearest open water round the feet, any way the camera looks: from a swimmer
 		# (the feet deep under it) to one a cell or two up the bank.
 		for r in range(0, MIRROR_LOOK + 1):
@@ -521,7 +537,40 @@ func _mirrored() -> Dictionary:
 			if top != -INF:
 				out[one[1]] = top
 				break
+		# Puddles after rain: mirrored at the feet, where the ground keeps a puddle.
+		if not out.has(one[1]) and on_land and _puddles > 0.0:
+			out[one[1]] = land
 	return out
+
+
+## The top of the dry ground in column `x`, `z` at level `y` or a little over, -INF where
+## water lies on it or there is none.
+func _land_top(x: int, z: int, y: int) -> float:
+	var w = game.world
+	if w == null:
+		return -INF
+	var water: int = w.water_col(x, z)
+	var bits: int = ~(w.air_col(x, z) | water | w.leaf_col(x, z)) & w.all_bits & ((1 << mini(y + 2, 62)) - 1)
+	if bits == 0:
+		return -INF
+	var top: int = w.top_level(bits)
+	if water & (1 << mini(top + 1, 62)) != 0:
+		return -INF
+	return (top + 1) * CELL
+
+
+## Whether ground with its top at `land` by cell `c` is the sand the sea's surf runs up:
+## level with the sea, its water within SURF_LOOK cells.
+func _by_surf(c: Vector3i, land: float) -> bool:
+	var w = game.world
+	var lv: int = w.sea_level
+	if lv < 0 or absf(land - (lv + 1) * CELL) > 0.01 or w.water_frozen:
+		return false
+	for dz in range(-SURF_LOOK, SURF_LOOK + 1):
+		for dx in range(-SURF_LOOK, SURF_LOOK + 1):
+			if w.water_col(c.x + dx, c.z + dz) & (1 << lv) != 0 and w.sea(c.x + dx, lv, c.z + dz):
+				return true
+	return false
 
 
 ## The top of open water among the cells `r` from cell `c` (a square ring), within
