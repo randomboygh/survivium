@@ -295,6 +295,7 @@ func _write_world() -> void:
 		"tame": game.session.wildlife.tamed_list(),
 		"vessels": game.session.actions.vessels.to_list(),
 		"ice_holes": game.session.ice.to_saved(),
+		"decay": game.session.decay.to_dict(),
 	}
 	meta = meta.duplicate()
 	meta.merge(own, true)

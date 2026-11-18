@@ -158,7 +158,8 @@ The interface's pictures are `assets/ui/`. The assets are drawn by `tools/make_*
 the bundles there were at saving: a supplementing bundle the world did not know enters it,
 `Mods.of_world`), `content` (the mark of the content's version, now 9), `materials` (ids in the order of
 numbers), `levels`, `created`, `saved`, `played`, `sky` (the clock), `placed` (things on cells),
-`territory` (plots), `plans` (blueprints); a server's world also has `teams`, `fights` and `next_player`.
+`territory` (plots), `plans` (blueprints), `decay` (building decay: the switch, the tended chunks, the
+cracks); a server's world also has `teams`, `fights` and `next_player`.
 `players/<name>.json`: `position` and the parts of modules (`inventory`, `vitals`, `character`,
 `knowledge`, `crafting`, `skills`, `hands`, `markers`). Chunks are `chunks/<cx>_<cz>.bin`, the map is
 `map/<rx>_<rz>.bin`. Conversions of old versions: [systems/saving.md](systems/saving.md).

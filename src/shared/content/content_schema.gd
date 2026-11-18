@@ -69,6 +69,10 @@ const SCHEMAS := {
 		# Health a touch of it takes (lava): stepping on it or into it burns the body and
 		# throws it back (Character._touch_hot), and a thing dropped on it burns up.
 		"burns": {"type": "float", "min": 0.0, "max": 20.0, "default": 0.0},
+		# How fast a built cell of it decays where nobody tends it (Decay, decision 186
+		# 16А): stages per Rules.building_decay_days of neglect; 0 never (the ground,
+		# trees, ores: nature is not touched).
+		"decay": {"type": "float", "min": 0.0, "max": 10.0, "default": 0.0},
 	},
 	"items": {
 		"weight": {"type": "float", "min": 0.0},

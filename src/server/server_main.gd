@@ -341,6 +341,8 @@ func _open_world() -> bool:
 		session.actions.vessels.from_list(meta.vessels)
 	if had_save and meta.get("ice_holes") is Array:
 		session.ice.from_saved(meta.ice_holes)
+	if had_save and meta.get("decay") is Dictionary:
+		session.decay.from_dict(meta.decay)
 	if had_save and meta.get("placed") is Array:
 		placed.from_list(meta.placed)
 	else:

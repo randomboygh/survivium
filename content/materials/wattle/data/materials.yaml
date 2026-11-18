@@ -6,3 +6,5 @@
   dig: hand
   step: step_wood
   hit: rustle
+  # Stages of decay per Rules.building_decay_days nobody tends it (Decay).
+  decay: 2.0

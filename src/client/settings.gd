@@ -211,6 +211,8 @@ const DEFAULTS := {
 	# New worlds have flat shores level with the water (WorldGen shores 1); worlds made
 	# before keep theirs (0). Not on «Новый мир».
 	"world_shores": 1,
+	# Buildings outside anyone's land decay in a new world (Decay.on); kept by the world.
+	"world_decay": 1,
 	# Saved once the old slopes became the default for new worlds, so a pick of the
 	# blocky ones saved before that is taken back once (see load).
 	"old_slopes_default": true,
