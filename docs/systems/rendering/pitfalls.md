@@ -119,3 +119,6 @@ One-line forms of the rules; the detail is above and in the other pages of this 
   8 barks).
 - Headless runs never compile shaders: a shader error (a varying named like a uniform or a local)
   shows only in a real render (`xvfb-run … --rendering-driver opengl3`) or the browser smoke test.
+- Varyings are few on phone GPUs: `water.gdshader` with one varying more (16) compiled on the desktop
+  and in the browser but drew the water plain grey on Android (#752; fixed by packing it into
+  `swash`). Pack a new flag into an existing flat varying instead of adding one.
