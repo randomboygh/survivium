@@ -263,6 +263,10 @@ const ICE_HOLES := "ice_holes"
 ## after the chunk: [key] over the loop (the world is one object, the chunk is drawn
 ## again), [key, PackedInt32Array x, y, z, …] over a socket (WorldData.cracks_of).
 const CRACKS := "cracks"
+## Built cells that fell and things that fell apart of decay: [[cell, …], PackedInt32Array
+## the material of each, -1 a thing] (Decay.crumbled), for the dust and the sound; the
+## cells themselves come as CELLS, the things as PROP_GONE.
+const CRUMBLED := "crumbled"
 ## The player's fishing line, when it changed: [where its float lies (INF: none in the
 ## water), a fish bites at it] (Character.line, bite; Fishing).
 const LINE := "line"

@@ -17,6 +17,7 @@ func run() -> void:
 	_test_paces()
 	_test_session()
 	_test_sent_and_dug()
+	_test_ruins()
 
 
 ## A world of 4 by 4 chunks with a stone floor and walls of each material far from the
@@ -177,6 +178,67 @@ func _test_sent_and_dug() -> void:
 		if c.r > 0.9 and absf(c.g - ChunkMesher.CRACKED.g) < 0.01:
 			marked += 1
 	_check(marked == 5 * 4, "the cracked cell's five open faces are drawn marked, the other block's not")
+
+## A wall nobody tends loses a row a stage from the top, its lowest row left cracked (the
+## ruin); a roof over air falls; a fence falls apart, a chest stays; a cracked cell dug
+## gives its item about half the time; the clients hear of what fell.
+func _test_ruins() -> void:
+	var w := _world()
+	var planks := Mat.index("materials:planks")
+	for y in range(1, 5):
+		w.set_cell(40, y, 40, planks)
+	w.set_cell(44, 3, 40, planks)
+	var s := Session.new(w, null, Clock.new(), Rules.of({"building_decay_days": 1.0}), Placed.new())
+	s.placed.world = w
+	var fence: Dictionary = s.placed.put("tools:fence", Vector3i(42, 1, 44))
+	var chest: Dictionary = s.placed.put("tools:chest", Vector3i(46, 1, 44))
+	_check(not fence.is_empty() and not chest.is_empty(), "a fence and a chest set down")
+	var fell: Array = []
+	s.decay.crumbled.connect(func(cells: Array[Vector3i], mats: PackedInt32Array) -> void:
+		for k in cells.size():
+			fell.append([cells[k], mats[k]]))
+	var a := _Who.new(1)
+	a.position = Vector3(4.5, 1.0, 4.5) * WorldData.CELL
+	_run(s.decay, [a], 1.1)
+	_check(s.decay.is_cracked(Vector3i(40, 4, 40)) and w.get_cell(40, 4, 40) == planks, "first the wall cracks")
+	_run(s.decay, [a], 1.0)
+	_check(w.get_cell(40, 4, 40) == Mat.AIR and w.get_cell(40, 3, 40) == planks, "then its top row falls")
+	_check(w.get_cell(44, 3, 40) == Mat.AIR, "a roof over air falls")
+	_check(not s.placed.things.has(fence) and s.placed.things.has(chest), "a fence falls apart, a chest stays")
+	_check(fell.has([Vector3i(40, 4, 40), planks]) and fell.has([Vector3i(42, 1, 44), -1]), "what fell is told")
+	_run(s.decay, [a], 5.0)
+	_check(w.get_cell(40, 3, 40) == Mat.AIR and w.get_cell(40, 2, 40) == Mat.AIR and w.get_cell(40, 1, 40) == planks
+		and s.decay.is_cracked(Vector3i(40, 1, 40)), "row by row, the lowest stays, cracked: the ruin")
+	# A long neglect at once (a server long without players near) takes the rows it owes.
+	for y in range(1, 5):
+		w.set_cell(50, y, 40, planks)
+	# (Built with its builder there: the chunk is tended then.)
+	var builder := _Who.new(2)
+	builder.position = Vector3(50.5, 1.0, 40.5) * WorldData.CELL
+	s.decay.step(0.0, [builder], Decay.LOOK_EVERY + 0.01)
+	for i in 200:
+		s.decay.step(4.2 if i == 0 else 0.0, [], Decay.LOOK_EVERY + 0.01)
+	_check(w.get_cell(50, 1, 40) == planks and w.get_cell(50, 2, 40) == Mat.AIR and w.get_cell(50, 4, 40) == Mat.AIR,
+		"a long neglect at once takes every row it owes")
+	# Digging rubble: about half the cells give their plank back.
+	var host := LocalHost.new(s)
+	host.join()
+	var who = host.player
+	who.vitals.fatigue = false
+	who.teleport(Vector3(20.5, 2.0, 21.5) * WorldData.CELL)
+	w.drops.clear()
+	var got := 0
+	for k in 40:
+		var c := Vector3i(k % 8 + 17, 1 + k / 8, 20)
+		w.set_cell(c.x, c.y, c.z, planks)
+		w.crack(c, planks)
+		var one: Array[Vector3i] = [c]
+		s.actions.dig(who, one, 0.1)
+	for key: Vector2i in w.drops:
+		for d: Array in w.drops[key]:
+			if str(d[0]).ends_with("planks"):
+				got += int(d[3]) if d[3] is int else int(d[3].get("n", 1))
+	_check(got >= 8 and got <= 32, "a cracked cell dug gives its item about half the time (%d of 40)" % got)
 
 class _Who:
 	var id := 0

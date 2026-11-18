@@ -153,6 +153,8 @@ func _init(w, g, c: Clock, r, p) -> void:
 	decay.world = world
 	decay.rules = rules
 	decay.territory = territory
+	decay.actions = actions
+	decay.placed = placed
 	# The spring reset (bushes, twigs, cut grass) follows the seasons of this clock, the
 	# server's; a client's copy only shows the season.
 	clock.season_changed.connect(actions.on_season)

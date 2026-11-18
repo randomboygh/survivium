@@ -205,6 +205,17 @@ single player's player is number 0).
   4–8 texels, and a shorter one from its left, by a hash of the cell and face. A cracked cell breaks in
   `CRACKED_SWING` (half) the time (`WorldActions.cell_swing`: digging, the blueprint's removal). Shot `decay-cracks`
   (`places.crack_near`: every other built cell near the walls of every material).
+- Ruins (PR 3, decision 5А): a cracked cell owed a stage more falls (to air, its material lost; `actions.cell_changed`
+  tells the clients) when nothing built that decays stands on it and it does not stand on solid ground that does
+  not decay; a column is worked from the top down and a cell under one falling now falls too with a stage more
+  for each (`run`), so a long neglect takes the rows it owes at once. A wall loses a row a stage from the top, a
+  roof over air falls, the lowest row stays cracked: the ruin. A cracked cell dug gives its item only
+  `CRACKED_YIELD` (half) of the time (`ActionsDig.dig`). The simple things (`Decay.decays_thing`: fences, doors,
+  ladders, hatches, furniture; not chests, stations, fires, signs, crosses) of a chunk go `THING_PACE` (as wood)
+  and fall apart at `THING_STAGES` (2; `Placed.fall_apart`, `Decay.worn` saved). What fell goes out as
+  `Decay.crumbled` → `Protocol.CRUMBLED` [cells, materials (-1 a thing)] to the players whose screen reaches it;
+  `Props.crumbled` raises dust and bits of the material, a knock of its `hit` sound and a thud, felt near.
+  Shot `decay-ruins` (`places.age_near`: the walls left 2.5 game days a stage).
 - Switches: `Rules.building_decay` (the server: `[rules]` of `server.cfg`) and the world's own `Decay.on`,
   set by the row «Building decay» of «New world» (`Settings` `world_decay`, `WorldSetup`), kept in
   `world.json` as `decay` (`to_dict` / `from_dict`: `on`, `time`, `tended`, `cracked`); a world saved before it
@@ -213,7 +224,8 @@ single player's player is number 0).
 **Tests**: `tests/unit/decay_test.gd` (the paces of the materials, the ground and the generator's cells
 untouched, a player near and a claim tend, cracks stay when one comes back and go when the cell changes,
 saving through JSON, both switches, the session's step, `CRACKS` over a socket and the loop, the faster swing,
-the mesher's mark); `tests/unit/territory_test.gd` (`_test_decay` — decay by steps, the client's copy, saving, the
+the mesher's mark; `_test_ruins`: a wall row by row to its cracked lowest row, a roof, a long neglect at once, a
+fence falls apart and a chest stays, what fell is told, rubble gives about half); `tests/unit/territory_test.gd` (`_test_decay` — decay by steps, the client's copy, saving, the
 team's return, the modes `rights` and `radius`; the teams' rules, saving through JSON, the requests of two
 players on one server; plots, the budget, connectivity, the post through `put_from_bag` and `land_paint`; the
 default and given rights, saving, the land's colour and the request `land_color`, digging, a chest, taking a

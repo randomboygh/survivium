@@ -263,6 +263,9 @@ const SHOTS := {
 	# Building decay: the walls of every material, half their cells cracked
 	# (WorldData.cracks, places.crack_near).
 	"decay-cracks": {"time": 0.4, "season": 1, "walls": true, "cracks": true},
+	# The same walls left 2.5 game days a stage (places.age_near): wattle and the hut a
+	# ruin of their lowest row, the wooden walls two rows, brick and cut stone cracked.
+	"decay-ruins": {"time": 0.4, "season": 1, "walls": true, "ruins": 2.5},
 	# A cliff of turf, soil, stone with ore veins, sand, clay and a block of brick
 	# (Places.strata): how materials meet on the sides of cells.
 	"strata": {"time": 0.42, "season": 1, "strata": true},
