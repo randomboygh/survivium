@@ -22,4 +22,5 @@
   tree_chance: 0.027
   bushes: {plants:blueberry: 0.25, plants:shrub: 0.75}
   bush_sparsity: 260
+  tints: {water: "#5aa0a6"}
   color: "#8f948a"

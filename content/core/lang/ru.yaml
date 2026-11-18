@@ -56,6 +56,8 @@
 "[core.skills.farming.about]": "Грядки тяпкой, посев, полив и урожай. Быстрее работает на грядках, иногда собирает на одну больше."
 "[core.skills.hardiness]": "Закалка"
 "[core.skills.hardiness.about]": "Растёт от пережитых ран, голода, жажды, холода и жары. Каждый второй уровень добавляет ячейку здоровья."
+"[core.skills.strength]": "Сила"
+"[core.skills.strength.about]": "Растёт от ходьбы с тяжёлым грузом: от 70% предела, при перегрузе вдвое быстрее. Каждый уровень добавляет 6 кг к переносимому весу."
 
 # content/core/data/starts.yaml
 "[core.starts.default]": "Обычный старт"
@@ -1059,6 +1061,8 @@
 "[field.skills.care.about]": "Шанс, что взмах не износит инструмент"
 "[field.skills.health]": "Здоровье"
 "[field.skills.health.about]": "Сколько здоровья добавляет последний уровень, по ячейке в 10"
+"[field.skills.carry]": "Грузоподъёмность"
+"[field.skills.carry.about]": "Сколько килограммов добавляет к пределу веса последний уровень, поровну на каждый"
 "[field.plants.kind]": "Вид"
 "[field.plants.kind.about]": "Что это за растение"
 "[field.plants.gives]": "Даёт"
@@ -1492,6 +1496,7 @@
 "[level_of_by]": "Уровень %d из %d, %s на %d%%"
 "[swims_faster]": "плывёт быстрее"
 "[works_faster]": "работа быстрее"
+"[level_of_carries]": "Уровень %d из %d, переносит +%.1f кг"
 "[a_new_level]": "%s: новый уровень"
 
 # src/client/ui/map_view.gd
@@ -1629,6 +1634,7 @@
 "[quality_of_what_you_make]": "\nКачество сделанного до %d"
 "[the_tool_does_not_wear]": "\nИнструмент не изнашивается: шанс %d%%"
 "[more_health]": "\nЗдоровье +%d"
+"[carries_more_kg]": "\nПереносит +%.1f кг"
 "[in_hand]": "\nВ руке: «%s»"
 
 # src/client/ui/scroll_column.gd
@@ -1636,12 +1642,6 @@
 "[lower]": "Ниже"
 
 # src/client/ui/settings_menu.gd
-"[update]": "Обновить"
-"[loading]": "Загрузка…"
-"[update_to]": "Обновление %s"
-"[new_since]": "Новое с версии %s"
-"[new_since_last_run]": "Новое с прошлого запуска"
-"[earlier]": "Раньше"
 "[new_n2]": "новое"
 "[improved]": "улучшено"
 "[fixed]": "исправлено"
@@ -1714,6 +1714,7 @@
 "[copy]": "Скопировать"
 "[share]": "Поделиться"
 "[clear_the_log]": "Очистить журнал"
+"[update]": "Обновить"
 "[soon_n2]": "Скоро"
 "[version]": "Версия %s · %s · %s"
 "[freeze_log]": "Журнал фризов"
@@ -1890,6 +1891,11 @@
 "[cheats]": "Читы"
 "[cheats_on_the_server]": "Читы на сервере"
 "[the_list_of_changes_appears]": "Список изменений появится в сборке с сайта."
+"[update_to]": "Обновление %s"
+"[new_since]": "Новое с версии %s"
+"[new_since_last_run]": "Новое с прошлого запуска"
+"[earlier]": "Раньше"
+"[loading]": "Загрузка…"
 "[no_freezes]": "Фризов нет"
 "[no_such_freezes]": "Таких фризов нет"
 "[show_all]": "Показать всё"

@@ -31,6 +31,7 @@ const TestGround := preload("res://src/shared/world/test_ground.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
+const Grass := preload("res://src/shared/world/grass.gd")
 const CELL := 0.5
 const TEST_SAVES := "user://shot_ground"
 
@@ -272,6 +273,14 @@ func _run() -> void:
 			places.clearing(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(40, 0, 0), shot.get("fell", false), shot.get("trees", []),
 				shot.get("bank", false))
 			main.player.position += shot.get("offset", Vector3.ZERO)
+		if shot.has("step"):
+			# A step from the place found, in world units, onto the ground there (into a
+			# puddle, onto the surf's sand).
+			var step: Vector3 = shot.step
+			main.player.position += Vector3(step.x, 0.0, step.z)
+			main.player.position.y = main.world.surface_y(floori(main.player.position.x / CELL), floori(main.player.position.z / CELL)) * CELL
+		if shot.get("puddle", false):
+			main.player.position = _puddle_near(main.player.position)
 		if shot.get("gather", false):
 			_gather()
 		main.controls.set_touch(shot.get("touch", false))
@@ -1994,3 +2003,32 @@ func _fake_updates() -> void:
 	Updates.before_version = "0.3.749"
 	Updates._noted = true
 	Updates._asked = true
+
+
+## The middle of the nearest spot a puddle stands on after a long rain (puddles 1, the
+## patches world.gdshader draws, Grass.ground_patch) over the whole cell, on ground that keeps
+## water, 10 to 40 cells from `at`, standing on it; `at` where there is none.
+func _puddle_near(at: Vector3) -> Vector3:
+	var w = main.world
+	var c := Vector3i((at / CELL).floor())
+	# Away from the spawn's campfire: none stand in its warmth.
+	for r in range(10, 40):
+		for dz in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dz)) != r:
+					continue
+				var x := c.x + dx
+				var z := c.z + dz
+				var y: int = w.surface_y(x, z) - 1
+				var m: int = w.get_cell(x, y, z)
+				if y < 0 or Mat.shader_bits[m] & Mat.DRAINS != 0 or w.water_col(x, z) != 0:
+					continue
+				var wet := true
+				for k in 9:
+					var p := Vector2(x + 0.5 * (k % 3), z + 0.5 * (k / 3)) * CELL
+					if Grass.ground_patch(p * 2.2, 17.0) < 0.8:
+						wet = false
+						break
+				if wet:
+					return Vector3(x + 0.5, y + 1, z + 0.5) * CELL
+	return at

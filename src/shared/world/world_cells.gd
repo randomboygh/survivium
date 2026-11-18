@@ -62,6 +62,9 @@ const SWAMP := 8
 ## On a water cell: the water of the sea, where the plankton glows on warm nights
 ## (water.gdshader).
 const SEA_WATER := 16
+## On a water cell: the water of a river (or a canyon's floor), a shade apart from a
+## lake's and the sea's (RoofMap.water_tint).
+const RIVER_WATER := 32
 
 ## The forms of built blocks that are not whole cubes (the build mode's slopes and
 ## stairs, thread «Сделать отдельный режим строительства»), by cell: FORM_* in bits 0..1,

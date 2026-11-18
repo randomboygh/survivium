@@ -83,6 +83,7 @@ func _masks(x0: int, z0: int, x1: int, z1: int) -> Dictionary:
 	open.resize(wl * hl)
 	var ground := open.duplicate()
 	var low := open.duplicate()
+	var flat := open.duplicate()
 	var all := all_bits
 	var sea := 1 << sea_level if sea_level >= 0 and sea_level < 62 else 0
 	for j in wl * hl:
@@ -91,12 +92,12 @@ func _masks(x0: int, z0: int, x1: int, z1: int) -> Dictionary:
 		var o := a | wt | leaf[j]
 		open[j] = o
 		ground[j] = ~(o | logs[j]) & all
-		# The sea's surface in its top level stands flush with the ground beside it
-		# (water_top): no lower there, so a beach at the sea's level stays flat to the
-		# water instead of sloping down into it.
-		low[j] = (a | wt) & ~(a << 1) & kept[j] & ~(wt & (a >> 1) & sea)
+		low[j] = (a | wt) & ~(a << 1) & kept[j]
+		# `flat`: as `low` but the sea's surface in its top level, flush with the ground
+		# beside it (water_top), not lower: see update_slopes.
+		flat[j] = low[j] & ~(wt & (a >> 1) & sea)
 	return {"wl": wl, "hl": hl, "air": air, "water": water, "open": open, "ground": ground, "wild": cols.wild,
-		"low": low, "sloped": cols.sloped}
+		"low": low, "flat": flat, "sloped": cols.sloped}
 
 
 ## Clears the shapes of the columns x0..x1, z0..z1 (ends exclusive) and works out
@@ -132,6 +133,7 @@ func update_slopes(x0: int, z0: int, x1: int, z1: int) -> void:
 	var open: PackedInt64Array = mk.open
 	var wild: PackedInt64Array = mk.wild
 	var low: PackedInt64Array = mk.low
+	var flat: PackedInt64Array = mk.flat
 	var diag := PackedInt32Array([-wl - 1, -wl + 1, wl + 1, wl - 1])
 	# Inner corners (only the column across lower) of soft slopes, checked once all the
 	# slopes are done.
@@ -164,8 +166,21 @@ func update_slopes(x0: int, z0: int, x1: int, z1: int) -> void:
 					continue
 				var lows := (1 if low_n & bit else 0) | (2 if low_s & bit else 0) | (4 if low_w & bit else 0) \
 					| (8 if low_e & bit else 0)
+				# Land at the sea's level slopes down under its flush water only along a
+				# straight shore (lower on one side, and the columns across that side lower
+				# too): where the shore turns or steps diagonally it stays flat to the
+				# water, whose filled corners and surf make the waterline smooth there
+				# (sloped, they left steps of foam, #761).
+				var lw := low
+				var side := -wl if lows == 1 else (wl if lows == 2 else (-1 if lows == 4 else (1 if lows == 8 else 0)))
+				var across := 1 if lows <= 2 else wl
+				if y == sea_level and (side == 0 or low[j + side - across] & bit == 0
+						or low[j + side + across] & bit == 0):
+					lw = flat
+					lows = (1 if flat[j - wl] & bit else 0) | (2 if flat[j + wl] & bit else 0) \
+						| (4 if flat[j - 1] & bit else 0) | (8 if flat[j + 1] & bit else 0)
 				if old_slopes:
-					var old := _old_slope(lows, j, bit, low, diag, x, y, z)
+					var old := _old_slope(lows, j, bit, lw, diag, x, y, z)
 					if old != 0:
 						shapes[i] = old
 						c.sloped[col] |= bit
@@ -178,7 +193,7 @@ func update_slopes(x0: int, z0: int, x1: int, z1: int) -> void:
 				# A corner with only the column across it lower goes down too, where both
 				# columns beside it may slope (and so go down there as well).
 				for k in 4:
-					if mask & (1 << k) or low[j + diag[k]] & bit == 0:
+					if mask & (1 << k) or lw[j + diag[k]] & bit == 0:
 						continue
 					var o: Vector2i = CORNER_DIRS[k]
 					if _can_slope(x + o.x, y, z) and _can_slope(x, y, z + o.y):
@@ -235,7 +250,7 @@ func update_corners(x0: int, z0: int, x1: int, z1: int) -> void:
 	var ground: PackedInt64Array = mk.ground
 	var wild: PackedInt64Array = mk.wild
 	var sloped: PackedInt64Array = mk.sloped
-	var low: PackedInt64Array = mk.low
+	var low: PackedInt64Array = mk.flat
 	var side_x := PackedInt32Array([-1, 1, 1, -1])
 	var side_z := PackedInt32Array([-wl, -wl, wl, wl])
 	var found := PackedInt64Array([0, 0, 0, 0])
@@ -325,7 +340,7 @@ func _shape(x: int, y: int, z: int) -> int:
 ## triangle under the cut is drawn and walked on; the low corners are kept in the
 ## cell's shape (bits 0..3) and the cell marked in Chunk.corner.
 func _floor_slopes(c: Chunk, col: int, x: int, z: int, j: int, floors: int, mk: Dictionary) -> void:
-	var low: PackedInt64Array = mk.low
+	var low: PackedInt64Array = mk.flat
 	var wl: int = mk.wl
 	var diag := PackedInt32Array([-wl - 1, -wl + 1, wl + 1, wl - 1])
 	while floors != 0:

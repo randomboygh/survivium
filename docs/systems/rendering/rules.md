@@ -19,7 +19,9 @@ Part of [The picture](../rendering.md). The rules a change of the picture keeps.
   savanna) is `biome_tint(mat, xz)` in `common.gdshaderinc`: the column's biome from `biome_map`, the
   multiplier from `biome_tints` (a texel material × biome, in linear colour, divided by 4); at a border of
   biomes the column is taken with a random shift of a texel, so the colours pass by dithering. It is called by
-  `world` (tiles), `grass` (blades) and `water`.
+  `world` (tiles) and `grass` (blades). Water takes its colour from `water_tint` in `water.gdshader` instead: the
+  biome's tint with the body's (sea, river, lake) and a slow shading, a texel per `RoofMap.LOW`² columns in
+  `ground_low`'s g, b, a, filtered, so two waters blend smoothly over a few cells.
 - A bevel (flag 4) lays the tile by the screen's texels (`rest_plane`), and the patterns of soil (patches,
   specks, bald spots, the biome's tint, snow) — by `gp` in `world.gdshader`: a world point shifted up the
   picture by the height above the level line under it. So on a bevel towards the camera the patterns are not

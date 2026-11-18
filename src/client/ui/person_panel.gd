@@ -259,6 +259,9 @@ func _show_skills(inv) -> void:
 		var hardier := floori(sk.get("health", 0.0) * level / sk.levels / Vitals.CELL + 0.0001) * roundi(Vitals.CELL)
 		if hardier > 0:
 			text += Lang.f("[more_health]", [hardier])
+		var stronger: float = snappedf(sk.get("carry", 0.0) * level / sk.levels, 0.1)
+		if stronger > 0.0:
+			text += Lang.f("[carries_more_kg]", [stronger])
 		if _tool.has(sk.role):
 			text += Lang.f("[in_hand]", [Lang.t(Items.title(_tool[sk.role]))])
 		if sk.get("description", "") != "":

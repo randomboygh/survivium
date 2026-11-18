@@ -31,6 +31,13 @@ const SHOTS := {
 	"fx-reflect-turn1": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 1},
 	"fx-reflect-turn2": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 2},
 	"fx-reflect-turn4": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 4},
+	# Mirrored in the sea's surf on a flat beach (its sheet and the wet sand behind a wave),
+	# frames as the waves run; and in the puddles after rain (grass hidden, and with it).
+	"fx-reflect-surf": {"time": 0.42, "season": 1, "weather": "clear", "place": "beach", "hide": ["chunks: grass"],
+		"step": Vector3(1.0, 0.0, 1.0), "frames_every": 6, "frames_ms": 1100},
+	"fx-reflect-surf-turn": {"time": 0.42, "season": 1, "weather": "clear", "place": "beach", "turn": 2, "hide": ["chunks: grass"]},
+	"fx-reflect-puddles": {"time": 0.42, "season": 1, "weather": "clear", "puddles": 1.0, "after_rain": 1.0, "puddle": true, "hide": ["chunks: grass"]},
+	"fx-reflect-puddles-grass": {"time": 0.42, "season": 1, "weather": "clear", "puddles": 1.0, "after_rain": 1.0, "puddle": true},
 	"fx-fire-water": {"time": 0.95, "season": 1, "moon": 0.0, "weather": "clear", "place": "lake", "water": 1, "hands": {"tool": "tools:torch", "facing": "s"}},
 	# Snow glittering in the sun and under a full moon.
 	# Winter on the screen: flakes on the edges, frost from the corners, snow on the
@@ -331,6 +338,13 @@ const SHOTS := {
 	"forest-autumn": {"time": 0.42, "season": 2, "forest": true},
 	"forest-winter": {"time": 0.45, "season": 3, "forest": true},
 	"river": {"time": 0.42, "season": 1, "place": "river"},
+	# The colour of water by body and biome (RoofMap.water_tint): a river's mouth into the
+	# sea, a river, a lake, the tropical sea; the grass hidden to see the water's edges.
+	"water-delta": {"time": 0.42, "season": 1, "place": "delta", "hide": ["chunks: grass"]},
+	"water-river": {"time": 0.42, "season": 1, "place": "river", "hide": ["chunks: grass"]},
+	"water-lake": {"time": 0.42, "season": 1, "place": "lake", "hide": ["chunks: grass"]},
+	"water-beach": {"time": 0.42, "season": 1, "place": "beach", "hide": ["chunks: grass"]},
+	"water-tropical": {"time": 0.42, "season": 1, "place": "tropical_beach", "hide": ["chunks: grass"]},
 	# The biomes of the temperate zone of new worlds: red maples, willows and poplars by water.
 	"maple-wood": {"time": 0.42, "season": 1, "place": "maple_wood"},
 	"floodplain": {"time": 0.42, "season": 1, "place": "floodplain"},
@@ -390,6 +404,8 @@ const SHOTS := {
 	"shore-flat-glow": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "beach", "hide": ["chunks: grass"],
 		"frames_every": 12, "frames_ms": 700},
 	"ground-beach-edge": {"time": 0.42, "season": 1, "at": [-138, 112], "hide": ["chunks: grass"]},
+	"ground-beach-diag": {"time": 0.42, "season": 1, "at": [-150, 116], "turn": 7, "hide": ["chunks: grass"]},
+	"ground-beach-diag-dry": {"time": 0.42, "season": 1, "at": [-150, 116], "turn": 7, "hide": ["chunks: grass", "chunks: water"]},
 	"shore-flat-far": {"time": 0.42, "season": 1, "place": "beach", "settings": {"pixel_scale": 1}, "hide": ["chunks: grass"]},
 	# The tallest slope turned to the camera by a beach: its patterns a pixel a texel,
 	# each level shaded toward its foot (see world.gdshader, `gp`).
@@ -591,6 +607,9 @@ const SHOTS := {
 	# Skills learned in the character window: levels, the way to the next, an axe's power in green.
 	"bag-levels": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "hold": ["", "tools:stone_axe"],
 		"skills": {"gather": 4, "chop": 3, "dig": 6, "craft": 2, "build": 5, "cook": 1, "hunt": 2, "fish": 1, "swim": 3}},
+	# Strength at level 5: the bag carries 70 kg, its weight meter longer, the bar of Strength among the skills.
+	"bag-strong": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "fell": true, "gather": true,
+		"skills": {"carry": 5, "endure": 2, "chop": 3}},
 	# A skill's new level: gold edges, stars rising round the player, the notice in the corner.
 	"level-up": {"time": 0.42, "season": 1, "clearing": true, "level_up": "chop"},
 	# A stone axe made by a skilled hand (decision 164, 4А): its swings to spare shown on

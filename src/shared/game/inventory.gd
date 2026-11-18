@@ -12,7 +12,8 @@ extends RefCounted
 const Items := preload("res://src/shared/content/items.gd")
 const Quality := preload("res://src/shared/game/quality.gd")
 
-## Slots of a bag without a backpack, and the weight carried at full pace (kg).
+## Slots of a bag without a backpack, and the weight carried at full pace (kg) with no
+## strength (Character sets weight_limit from SkillSet.carry_bonus).
 const SLOTS := 16
 ## The first row of slots, shown on the hotbar (taken into a hand from there).
 const HOTBAR := 8

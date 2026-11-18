@@ -56,6 +56,8 @@
 "[core.skills.farming.about]": "Beds with a hoe, sowing, watering and harvest. Works the beds faster, sometimes harvests one more."
 "[core.skills.hardiness]": "Hardiness"
 "[core.skills.hardiness.about]": "Grows from wounds, hunger, thirst, cold and heat lived through. Every second level adds a cell of health."
+"[core.skills.strength]": "Strength"
+"[core.skills.strength.about]": "Grows from walking with a heavy load: from 70% of the limit, twice as fast when overloaded. Each level adds 6 kg to what you carry."
 
 # content/core/data/starts.yaml
 "[core.starts.default]": "Standard start"
@@ -1059,6 +1061,8 @@
 "[field.skills.care.about]": "Chance a swing does not wear the tool"
 "[field.skills.health]": "Health"
 "[field.skills.health.about]": "Most health added at the last level, a cell of 10 at a time"
+"[field.skills.carry]": "Carrying"
+"[field.skills.carry.about]": "Kilograms added to the carrying limit at the last level, an even share at each"
 "[field.plants.kind]": "Kind"
 "[field.plants.kind.about]": "What sort of plant it is"
 "[field.plants.gives]": "Gives"
@@ -1492,6 +1496,7 @@
 "[level_of_by]": "Level %d of %d, %s by %d%%"
 "[swims_faster]": "swims faster"
 "[works_faster]": "works faster"
+"[level_of_carries]": "Level %d of %d, carries +%.1f kg"
 "[a_new_level]": "%s: a new level"
 
 # src/client/ui/map_view.gd
@@ -1629,6 +1634,7 @@
 "[quality_of_what_you_make]": "\nQuality of what you make up to %d"
 "[the_tool_does_not_wear]": "\nThe tool does not wear: %d%% chance"
 "[more_health]": "\nHealth +%d"
+"[carries_more_kg]": "\nCarries +%.1f kg"
 "[in_hand]": "\nIn hand: “%s”"
 
 # src/client/ui/scroll_column.gd
@@ -1636,12 +1642,6 @@
 "[lower]": "Lower"
 
 # src/client/ui/settings_menu.gd
-"[update]": "Update"
-"[loading]": "Loading…"
-"[update_to]": "Update %s"
-"[new_since]": "New since %s"
-"[new_since_last_run]": "New since your last run"
-"[earlier]": "Earlier"
 "[new_n2]": "new"
 "[improved]": "improved"
 "[fixed]": "fixed"
@@ -1714,6 +1714,7 @@
 "[copy]": "Copy"
 "[share]": "Share"
 "[clear_the_log]": "Clear the log"
+"[update]": "Update"
 "[soon_n2]": "Soon"
 "[version]": "Version %s · %s · %s"
 "[freeze_log]": "Freeze log"
@@ -1890,6 +1891,11 @@
 "[cheats]": "Cheats"
 "[cheats_on_the_server]": "Cheats on the server"
 "[the_list_of_changes_appears]": "The list of changes appears in a build from the website."
+"[update_to]": "Update %s"
+"[new_since]": "New since %s"
+"[new_since_last_run]": "New since your last run"
+"[earlier]": "Earlier"
+"[loading]": "Loading…"
 "[no_freezes]": "No freezes"
 "[no_such_freezes]": "No such freezes"
 "[show_all]": "Show all"
