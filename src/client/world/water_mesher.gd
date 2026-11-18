@@ -635,11 +635,18 @@ static func swash_map(w, x0: int, z0: int, x1: int, z1: int) -> PackedFloat32Arr
 ## over the land beside. The distance from the waterline is 0 on the diagonal and grows
 ## to the corner (the bilinear blend of the cell's corners gives the mid-sides of old
 ## slopes, or the corners beside, 0).
-static func swash_fills(buf, base: Vector3, fills: int, foam: int) -> void:
+## A fill whose land beside slopes down under the water (swash_map counts it as the
+## sea's, below 0) lies under the water too: no sheet, the surf starts at the slopes' top.
+static func swash_fills(buf, base: Vector3, fills: int, foam: int, sw: PackedFloat32Array, sw_w: int, gx: int,
+		gz: int) -> void:
 	var tip := 0.35 if old_slopes else 0.7
 	var rest := -0.35 if old_slopes else 0.0
+	var g := gz * sw_w + gx
 	for k in 4:
 		if fills & (1 << k) == 0:
+			continue
+		var o: Vector2i = CORNER_DIRS[k]
+		if sw[g + o.x] < 0.0 or sw[g + o.y * sw_w] < 0.0:
 			continue
 		var corners := PackedColorArray()
 		for n in 4:

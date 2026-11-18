@@ -274,10 +274,13 @@ void fragment() {
 		if (ice > 0.0) {
 			discard;
 		}
+		// A texel of slack at the waterline, so no gap a pixel wide shows between the
+		// water and the sheet.
 		float far = floor((depth_here - 0.5) * CELL_TEXELS) / CELL_TEXELS;
-		if (far < 0.0) {
+		if (far < -1.0 / CELL_TEXELS) {
 			discard;
 		}
+		far = max(far, 0.0);
 		float front, peak, p, left, lace, fizz, wave;
 		surf_wave(tex, TIME, front, peak, p, left, lace, fizz, wave);
 		float edge = front - far;
@@ -468,8 +471,9 @@ void fragment() {
 			shine += FIRE_GLINT * (g * 0.9 + line * 0.5 * k);
 			alpha = max(alpha, 0.9 * g);
 		}
-		// The shore's foam; none on the sea's water where the surf runs on over the shore.
-		if (swash < 1.5) {
+		// The shore's foam; on the sea's water where the surf runs on over the shore only
+		// along walls (ChunkMesher keeps only their sides' bits there).
+		{
 			// Foam along the shore, washing in and out by a texel or two.
 			// An exact whole number in a flat varying: its corner fills reach bit 23, where
 			// `+ 0.5` would round an odd word to even.
@@ -493,7 +497,7 @@ void fragment() {
 			}
 			// Over the slope of a shore: foam where the ground comes up to the surface, a
 			// texel of shore for each eighth of a cell it lies under it.
-			if (shore_under < 1.0) {
+			if (shore_under < 1.0 && swash < 1.5) {
 				float wash = 1.0 + step(0.0, sin(TIME * 1.7 + (tex.x + tex.y) * 0.6))
 					+ step(0.75, hash12(vec2(tex.x + tex.y, floor(TIME * 1.5))));
 				float d = shore_under * CELL_TEXELS;
@@ -508,7 +512,7 @@ void fragment() {
 			}
 			// Along diagonals: the water lies away from a filled corner and on the corner's
 			// side of a cut one.
-			for (int k = 0; k < 4; k++) {
+			for (int k = 0; k < 4 && swash < 1.5; k++) {
 				bool filled = ((foam >> (8 + k)) & 1) != 0;
 				if (!filled && ((foam >> (12 + k)) & 1) == 0) {
 					continue;
