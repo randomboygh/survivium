@@ -406,6 +406,7 @@ const SHOTS := {
 	"ground-beach-edge": {"time": 0.42, "season": 1, "at": [-138, 112], "hide": ["chunks: grass"]},
 	"ground-beach-diag": {"time": 0.42, "season": 1, "at": [-150, 116], "turn": 7, "hide": ["chunks: grass"]},
 	"ground-beach-diag-dry": {"time": 0.42, "season": 1, "at": [-150, 116], "turn": 7, "hide": ["chunks: grass", "chunks: water"]},
+	"shore-flat-dry": {"time": 0.42, "season": 1, "place": "beach", "hide": ["chunks: grass", "chunks: water"]},
 	"shore-flat-far": {"time": 0.42, "season": 1, "place": "beach", "settings": {"pixel_scale": 1}, "hide": ["chunks: grass"]},
 	# The tallest slope turned to the camera by a beach: its patterns a pixel a texel,
 	# each level shaded toward its foot (see world.gdshader, `gp`).

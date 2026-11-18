@@ -532,6 +532,11 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 const SWASH_REACH := 5.0
 ## How far over the ground the sheet lies, in cells.
 const SWASH_LIFT := 0.03
+## swash_map's value of a slope under the sea's flush water by the waterline.
+const SWASH_UNDER := 0.0
+## The sheet's vertex green over such a slope: the water.gdshader draws the sea where
+## it is behind the waterline (shore_water leaves the slope out).
+const SWASH_UNDER_G := 0.5
 
 
 ## How far each column of x0 - 1..x1 + 1, z0 - 1..z1 + 1 (ends exclusive, row by row)
@@ -587,21 +592,22 @@ static func swash_map(w, x0: int, z0: int, x1: int, z1: int) -> PackedFloat32Arr
 					and w.sea(gx0 + x, lv, gz0 + z):
 				d[k] = -0.5
 				any = true
-	# A beach's slope down into the sea lies all under its flush water (shore_water):
-	# the waterline is at its top, so it counts as the sea's water here.
+	# A beach's slope down into the sea (one beside the sea's water, also across a corner)
+	# lies under its flush water: SWASH_UNDER, the waterline running through it, so on a
+	# diagonal shore it runs straight along the diagonal (see swash).
 	var sloped: PackedInt64Array = masks.sloped
 	var under := PackedInt32Array()
 	for z in range(1, gh - 1):
 		for x in range(1, gw - 1):
 			var k := z * gw + x
 			if kind[k] == 1 and sloped[k] & wet != 0:
-				for n: int in [k - 1, k + 1, k - gw, k + gw]:
+				for n: int in [k - 1, k + 1, k - gw, k + gw, k - gw - 1, k - gw + 1, k + gw - 1, k + gw + 1]:
 					if kind[n] == 2 and d[n] < 0.0:
 						under.append(k)
 						break
 	for k in under:
 		kind[k] = 3
-		d[k] = -0.5
+		d[k] = SWASH_UNDER
 		any = true
 	if not any:
 		return PackedFloat32Array()
@@ -646,7 +652,7 @@ static func swash_fills(buf, base: Vector3, fills: int, foam: int, sw: PackedFlo
 		if fills & (1 << k) == 0:
 			continue
 		var o: Vector2i = CORNER_DIRS[k]
-		if sw[g + o.x] < 0.0 or sw[g + o.y * sw_w] < 0.0:
+		if sw[g + o.x] <= SWASH_UNDER or sw[g + o.y * sw_w] <= SWASH_UNDER:
 			continue
 		var corners := PackedColorArray()
 		for n in 4:
@@ -656,16 +662,9 @@ static func swash_fills(buf, base: Vector3, fills: int, foam: int, sw: PackedFlo
 			corners)
 
 
-## The surf's sheet over the top of land cell `i` (see swash), column `gx`, `gz` of the
-## map `sw` (swash_map, `sw_w` columns a row): over the cell's top, its slope's where it
-## slopes, never under the water's surface; each point tells the shader how far from the
-## waterline it is, from the columns that meet at the cell's corners.
-static func swash(buf, sw: PackedFloat32Array, sw_w: int, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int,
-		dz: int, gx: int, gz: int, base: Vector3) -> void:
-	var g := gz * sw_w + gx
-	# Beyond its reach, or a slope under the sea's water (swash_map).
-	if sw[g] > SWASH_REACH or sw[g] < 0.0:
-		return
+## The corners of column `g` of the map `sw` (swash_map, `sw_w` a row): the mean of the
+## columns that meet there, NW, NE, SE, SW.
+static func _swash_corners(sw: PackedFloat32Array, sw_w: int, g: int) -> PackedFloat32Array:
 	var corners := PackedFloat32Array()
 	for k in 4:
 		var o: Vector2i = CORNER_DIRS[k]
@@ -675,9 +674,52 @@ static func swash(buf, sw: PackedFloat32Array, sw_w: int, c: PackedByteArray, sh
 			if sw[n] < INF:
 				sum += sw[n]
 				count += 1
-		# Never behind the waterline: where the sea's water meets the land at a corner
-		# (a diagonal shore), the corner lies on it, and the land's whole top is covered.
-		corners.append(maxf(sum / count, 0.0))
+		corners.append(sum / count)
+	return corners
+
+
+## Over a slope under the sea's flush water by the waterline (SWASH_UNDER), one flat
+## sheet at the water's surface: the sea's water behind the waterline (below 0, drawn
+## as the water there), the surf beyond it, the waterline running through the cell, so
+## along a diagonal shore it is straight, not stepping round the cells.
+static func _swash_under(buf, sw: PackedFloat32Array, sw_w: int, g: int, base: Vector3) -> void:
+	var corners := _swash_corners(sw, sw_w, g)
+	var start: int = buf.verts.size()
+	for k in 4:
+		var x := 1.0 if k == 1 or k == 2 else 0.0
+		var z := 1.0 if k >= 2 else 0.0
+		buf.verts.append(base + Vector3(x, water_top(int(base.y)) + SWASH_LIFT, z))
+		buf.normals.append(Vector3.UP)
+		buf.uvs.append(Vector2(x, z))
+		buf.uv2s.append(Vector2.ZERO)
+		buf.colors.append(Color(clampf((corners[k] + 0.5) / 8.0, 0.0, 1.0), SWASH_UNDER_G, 0.0, SWASH_ALPHA))
+	for j: int in [0, 1, 2, 0, 2, 3]:
+		buf.indices.append(start + j)
+
+
+## Whether column `gx`, `gz` of the map `sw` (see swash_map) is a slope under the sea's
+## water by the waterline, which the surf's sheet covers instead of shore_water.
+static func under_swash(sw: PackedFloat32Array, sw_w: int, gx: int, gz: int) -> bool:
+	return not sw.is_empty() and sw[gz * sw_w + gx] == SWASH_UNDER
+
+
+## The surf's sheet over the top of land cell `i` (see swash), column `gx`, `gz` of the
+## map `sw` (swash_map, `sw_w` columns a row): over the cell's top, its slope's where it
+## slopes, never under the water's surface; each point tells the shader how far from the
+## waterline it is, from the columns that meet at the cell's corners.
+static func swash(buf, sw: PackedFloat32Array, sw_w: int, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int,
+		dz: int, gx: int, gz: int, base: Vector3) -> void:
+	var g := gz * sw_w + gx
+	if sw[g] > SWASH_REACH or sw[g] < 0.0:
+		return
+	if sw[g] == SWASH_UNDER:
+		_swash_under(buf, sw, sw_w, g, base)
+		return
+	var corners := _swash_corners(sw, sw_w, g)
+	# Never behind the waterline: where the sea's water meets the land at a corner
+	# (a diagonal shore), the corner lies on it, and the land's whole top is covered.
+	for k in 4:
+		corners[k] = maxf(corners[k], 0.0)
 	var sloped := sh[i] & 15 != 0
 	var steps := Vector2i(Slopes.PATCH_STEPS, Slopes.PATCH_STEPS) if sloped else Vector2i(1, 1)
 	var hs := PackedFloat32Array()
