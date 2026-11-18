@@ -8,6 +8,8 @@ const WorldStore := preload("res://src/shared/world/world_store.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const GlWatch := preload("res://src/client/ui/gl_watch.gd")
 const LastLog := preload("res://src/client/ui/last_log.gd")
+## A newer build: the dot on «Что нового» (_update_dot).
+const Updates := preload("res://src/client/net/updates.gd")
 ## The menu's own screens are compiled when first opened, not at the game's start
 ## (StartTimes: compiling every script was most of the start).
 const WORLD_SETUP := "res://src/client/ui/world_setup.gd"
@@ -88,6 +90,7 @@ func _fill_page(page: String) -> void:
 			_add_button(_box, "multi", "[multiplayer]", _fill_page.bind("multi"))
 			_add_button(_box, "editor", "[editor]", _open_editor)
 			_add_button(_box, "changes", "[whats_new]", _open_changes)
+			_update_dot()
 			if LastLog.crashed:
 				_add_button(_box, "crash", "[crash_log]", _open_crash_log)
 			_add_button(_box, "settings", "[settings]", _open_settings)
@@ -234,6 +237,30 @@ func _add_button(parent: Node, key: String, text: String, action: Callable, tag 
 		b.add_child(l)
 	parent.add_child(b)
 	_buttons[key] = b
+
+
+## The dot in the top right corner of «Что нового» while a newer build is out (Updates): a round
+## of pixels, DANGER in an EDGE rim.
+func _update_dot() -> void:
+	var b: Button = _buttons.get("changes")
+	if b == null or b.has_node("Dot") or not Updates.newer():
+		return
+	var dot := Control.new()
+	dot.name = "Dot"
+	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	dot.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	dot.offset_left = -4 - 8
+	dot.offset_right = -4
+	dot.offset_top = 4
+	dot.offset_bottom = 4 + 8
+	dot.draw.connect(func() -> void:
+		for y in 8:
+			var w: int = [4, 6, 8, 8, 8, 8, 6, 4][y]
+			dot.draw_rect(Rect2((8 - w) * 0.5, y, w, 1), UiStyle.EDGE)
+			var f: int = [0, 4, 6, 6, 6, 6, 4, 0][y]
+			if f > 0:
+				dot.draw_rect(Rect2((8 - f) * 0.5, y, f, 1), UiStyle.DANGER))
+	b.add_child(dot)
 
 
 ## Shows the menu over the game and hides the game's interface.

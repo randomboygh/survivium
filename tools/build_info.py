@@ -11,7 +11,12 @@ the merged PRs, newest first; a PR may have several, and a line without a kind i
 the n-th line of each language is the n-th change, and the client shows the game's language, else
 English, else Russian ("text" is the Russian one, or the English one when there is none).
 
+"merged" is when the build's PR was merged: a client tells a newer build by it (the number of a
+smaller PR merged later goes down). `--latest` writes the small copy the web build carries beside
+it as latest.json, which every build of main asks for to show an update (src/client/net/updates.gd).
+
     python3 tools/build_info.py [out.json]   (GITHUB_TOKEN, GITHUB_REPOSITORY, HEAD_SHA from CI)
+    python3 tools/build_info.py --latest build_info.json latest.json
 """
 
 import datetime
@@ -23,6 +28,7 @@ import sys
 import urllib.request
 
 ENTRIES = 500  # changes, the newest
+LATEST = 100  # of them in latest.json: what a build that far behind gets by updating
 PAGES = 10  # of 100 closed PRs at most, read until ENTRIES lines are found
 # «Что нового» is Russian, "What's new" is English, "What's new (xx)" is the language xx.
 LINE = re.compile(r"^\s*(?:\*\*)?(?:Что нового|What['’]s new(?:\s*\(([a-z]{2})\))?)\s*(?:\[([^\]]*)\])?\s*:(?:\*\*)?\s*(.+?)\s*$",
@@ -98,7 +104,26 @@ def merged_prs(repo: str, token: str) -> list:
 
 
 
+def write(info: dict, out: str) -> None:
+    with open(out, "w", encoding="utf-8") as f:
+        # One change a line: 500 of them stay small to download.
+        f.write(json.dumps({k: v for k, v in info.items() if k != "changes"}, ensure_ascii=False)[:-1])
+        f.write(', "changes": [\n' + ",\n".join(json.dumps(c, ensure_ascii=False) for c in info["changes"]) + "]}\n")
+
+
+def latest(src: str, out: str) -> None:
+    """The copy of build_info.json `src` beside the web build: its LATEST newest changes."""
+    with open(src, encoding="utf-8") as f:
+        info = json.load(f)
+    info["changes"] = info.get("changes", [])[:LATEST]
+    write(info, out)
+    print("latest %s (merged %s), %d changes" % (info.get("version"), info.get("merged"), len(info["changes"])))
+
+
 def main() -> None:
+    if len(sys.argv) == 4 and sys.argv[1] == "--latest":
+        latest(sys.argv[2], sys.argv[3])
+        return
     out = sys.argv[1] if len(sys.argv) > 1 else "build_info.json"
     # A pull request build checks out a merge commit; HEAD_SHA names the PR's own head.
     commit = os.environ.get("HEAD_SHA", "")[:7] or subprocess.run(
@@ -107,6 +132,7 @@ def main() -> None:
         "version": stage() + ".dev",
         "commit": commit,
         "date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d"),
+        "merged": "",
         "changes": [],
     }
     repo, token = os.environ.get("GITHUB_REPOSITORY"), os.environ.get("GITHUB_TOKEN")
@@ -121,6 +147,7 @@ def main() -> None:
             prs = [p for p in prs if p["merged_at"] <= mine[0]["merged_at"]]
         if prs:
             info["version"] = "%s.%d" % (stage(), prs[0]["number"])
+            info["merged"] = prs[0]["merged_at"]
         for p in prs:
             for c in lines_of(p.get("body")):
                 info["changes"].append({"pr": p["number"], "date": p["merged_at"][:10], "merged": p["merged_at"], **c})
@@ -129,10 +156,7 @@ def main() -> None:
         m = re.match(r"refs/pull/(\d+)/", ref)
         if m:
             info["version"] += "+pr" + m.group(1)
-    with open(out, "w", encoding="utf-8") as f:
-        # One change a line: 500 of them stay small to download.
-        f.write(json.dumps({k: v for k, v in info.items() if k != "changes"}, ensure_ascii=False)[:-1])
-        f.write(', "changes": [\n' + ",\n".join(json.dumps(c, ensure_ascii=False) for c in info["changes"]) + "]}\n")
+    write(info, out)
     print("build %s (%s), %d changes" % (info["version"], commit, len(info["changes"])))
 
 
