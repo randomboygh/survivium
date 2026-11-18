@@ -234,6 +234,14 @@ print_now={
 "type": "float",
 "value": 0.0
 }
+trample_map={
+"type": "sampler2D",
+"value": ""
+}
+trample_now={
+"type": "float",
+"value": 0.0
+}
 biome_map={
 "type": "sampler2D",
 "value": ""

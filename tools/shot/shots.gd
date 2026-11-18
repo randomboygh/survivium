@@ -476,6 +476,10 @@ const SHOTS := {
 	# The same in a strong wind, frames apart: every plant sways, not only the grass tufts.
 	"ferns_wind": {"time": 0.42, "season": 1, "patch": "plants:fern", "gust": 1.8, "frames_every": 8, "frames_ms": 250},
 	"clover_wind": {"time": 0.42, "season": 1, "patch": "plants:clover", "gust": 1.8, "frames_every": 8, "frames_ms": 250},
+	# A walk through a tall meadow, west then south: the grass lies trodden along the
+	# path, then stands up again (frames a second apart).
+	"trample": {"time": 0.42, "season": 1, "find": "meadow", "tread": [[-1.0, 0.0, 30], [1.0, 0.0, 60], [0.0, 1.0, 30]],
+		"frames_every": 10, "frames_ms": 1000},
 	# Moss on stone, a few tops of it picked: the moss left has a ragged edge.
 	# Grass pulled up for fibre in a winter meadow: the snow's edge round the patch.
 	"winter-fiber": {"time": 0.42, "season": 3, "find": "meadow", "pick_fiber": true},

@@ -142,7 +142,10 @@ slice, to free the far meshes.
 - `src/client/world/mesh_buffers.gd` — growing vertex buffers; `drifts.gd` — snowdrifts; `tracks.gd` —
   footprints, kept in a map of the ground round the player (`print_map`, repeating every `Tracks.MAP` texels) that
   the ground's shaders read through `footprint()` before the light and the fog, so a fog hides a print as it hides
-  the ground; `roof_map.gd` — the roof map for shaders (wrapped through `RoofMap.WRAP`) and beside it the map of
+  the ground; every stride that leaves a print (the player's, the other players', the beasts') also treads the grass
+  in `trample.gd` (`trample_map`, a quarter-unit texel: when, which way, how hard, the level), which `grass.gdshader`
+  reads through `trodden()` to lay the tufts and the mods' plants over and lower; they stand up again over
+  `Trample.LIFE` seconds; `roof_map.gd` — the roof map for shaders (wrapped through `RoofMap.WRAP`) and beside it the map of
   the columns' biomes (`biome_map`) with the multipliers of the materials' colour by biomes (`biome_tints`,
   from the biomes' `tints`), and a coarse map of the land's height for the ground fog (`ground_low`: a texel per
   `RoofMap.LOW`² columns, the top three quarters of the way up their tops, so a pit or a trunk does not move it;

@@ -5,7 +5,8 @@
 // mushrooms in the shade of the crowns, glowing mushrooms that shine at night with
 // spores rising from them (single texels carried up, see foliage.gd). Tips
 // sway with the wind in whole pixels and bend away from the player; a tall meadow
-// waves as one. Tufts sink under snow; the ordinary tufts are thinned by the ground
+// waves as one; where someone walked they lie trodden down a while (trample.gd).
+// Tufts sink under snow; the ordinary tufts are thinned by the ground
 // patches (see ground_patch), flowers show on the lush patches, reeds stand at the
 // water, and all of them stand up again around fires.
 // INSTANCE_CUSTOM: x = plant 0..28 (and the mods' after them), y = brightness, z = sway phase and thinning draw.
@@ -66,6 +67,37 @@ varying flat float plant_column;
 // Someone this close (world units) folds a shy plant (Plants `looks`).
 const float SHY_REACH = 0.9;
 
+// Grass trodden down (trample.gd): a map of the ground round the player, TRAMPLE_TEXELS
+// texels a world unit, repeating every TRAMPLE_MAP: r the clock's byte (trample_now)
+// when it was trodden, g the way its tufts were pushed (one of TRAMPLE_DIRS) plus
+// TRAMPLE_DIRS times the strength (1..3), b its level modulo 256, a 1 where trodden.
+global uniform sampler2D trample_map : filter_nearest;
+global uniform float trample_now;
+const float TRAMPLE_TEXELS = 4.0;
+const float TRAMPLE_MAP = 192.0;
+const float TRAMPLE_LIFE = 9.0;
+const int TRAMPLE_DIRS = 16;
+// How long trodden grass lies flat before it starts to stand up, in seconds.
+const float TRAMPLE_HOLD = 1.0;
+
+// Which way and how far (0..1) the plant standing at `p` is trodden down: flat for
+// TRAMPLE_HOLD, then standing up again, slowly at first, until TRAMPLE_LIFE.
+vec2 trodden(vec3 p) {
+	vec4 v = texelFetch(trample_map, ivec2(mod(floor(p.xz * TRAMPLE_TEXELS), TRAMPLE_MAP)), 0);
+	if (v.a < 0.5) {
+		return vec2(0.0);
+	}
+	float d = mod(p.y / CELL - round(v.b * 255.0) + 128.0, 256.0) - 128.0;
+	float age = mod(trample_now - round(v.r * 255.0), 256.0);
+	if (abs(d) > 0.6 || age >= TRAMPLE_LIFE) {
+		return vec2(0.0);
+	}
+	int g = int(round(v.g * 255.0));
+	float angle = float(g % TRAMPLE_DIRS) * 6.2831853 / float(TRAMPLE_DIRS);
+	float up = clamp((age - TRAMPLE_HOLD) / (TRAMPLE_LIFE - TRAMPLE_HOLD), 0.0, 1.0);
+	return vec2(cos(angle), sin(angle)) * float(g / TRAMPLE_DIRS) / 3.0 * (1.0 - up * up);
+}
+
 int kind_of(int plant) {
 	if (plant >= 30) {
 		return CUSTOM;
@@ -108,7 +140,15 @@ void vertex() {
 	if (d < 0.6 && abs(root.y - player_pos.y) < 0.6) {
 		sway += sign(away.x + 0.001) * 2.0 * (1.0 - d / 0.6) + 0.5 * sign(away.x);
 	}
-	VERTEX.x += round(sway) / TEXELS * tip;
+	// Where someone walked the plant lies over the way it was pushed and lower, swaying
+	// less, and stands up again (trodden); a stiff one (tip 0: moss, a cactus) does not.
+	vec2 trod = tip > 0.0 ? trodden(root) : vec2(0.0);
+	float lying = length(trod);
+	sway *= 1.0 - lying;
+	float bend = min(tip, 1.5);
+	VERTEX.x += round(sway) / TEXELS * tip + round(trod.x * 5.0) / TEXELS * bend;
+	VERTEX.z += round(trod.y * 5.0) / TEXELS * bend;
+	VERTEX.y = root.y + (VERTEX.y - root.y) * (1.0 - round(lying * 4.0) * 0.16);
 	// In the heat over sand and the sea a plant sways aside with the air, its foot most (heat_sway).
 	float up = (1.0 - UV.y) * HEIGHT;
 	VERTEX.x += heat_sway(vec3(VERTEX.x, root.y + up, VERTEX.z), root, up, TIME) / TEXELS;
