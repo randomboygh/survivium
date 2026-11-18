@@ -153,6 +153,19 @@ vec3 murky_color(vec2 tex, float depth, float murk) {
 // Where the point is in the picture, for the dither of the light rings (light_texel).
 varying vec2 light_xz;
 
+// The colour of the water at xz as a factor of its own: its biome's tint, its body's
+// (the sea, a river, a lake) and the slow shading of the place, kept a texel per few
+// columns in ground_low's g, b, a by RoofMap and filtered between them, so two waters
+// run into each other over a few cells. Looked up from the pixel's texel nudged a random
+// way by up to half a cell, so the blend keeps to the pixel grid and is dithered a little.
+vec3 water_tint(vec2 xz) {
+	vec2 t = floor(xz * TEXELS);
+	vec2 off = vec2(hash12(t + 5.3), hash12(t + 11.7)) - 0.5;
+	vec3 f = texture(ground_low, ((t + 0.5) / TEXELS + off * CELL) / wrap_size).gba;
+	// Nothing filled there yet (a texture not set reads black): the colour as it is.
+	return f.r + f.g + f.b > 0.0 ? f * 2.0 : vec3(1.0);
+}
+
 void vertex() {
 	// Ice lies where the water stood, so it is never above the shore it is walked on
 	// from (see WorldData.ice_top).
@@ -220,7 +233,8 @@ void fragment() {
 	ivec2 bt = ivec2(mod(tex, 4.0));
 	float bayer = float(BAYER[bt.y * 4 + bt.x]) / 16.0;
 	depth = clamp(floor(depth * DEPTH_STEPS + bayer) / DEPTH_STEPS, 0.0, 1.0);
-	vec3 col = mix(shallow, deep, depth) * biome_tint(WATER_MATERIAL, world_pos.xz);
+	vec3 tint = water_tint(world_pos.xz);
+	vec3 col = mix(shallow, deep, depth) * tint;
 	float alpha = mix(0.45, 1.0, depth);
 	// The ice here (none in an open hole), what of a hole is here, and whether it is clear.
 	float ice = ice_amount;
@@ -270,7 +284,7 @@ void fragment() {
 		if (edge >= 0.0) {
 			// The sheet: the shallows' colour at the waterline, thinning to clear water.
 			float on = clamp(far / max(front, 0.1), 0.0, 1.0);
-			col = mix(shallow, mix(shallow, foam_color, 0.2), on) * biome_tint(WATER_MATERIAL, world_pos.xz);
+			col = mix(shallow, mix(shallow, foam_color, 0.2), on) * tint;
 			alpha = mix(0.45, 0.25, on);
 			if (edge < 3.5 / CELL_TEXELS) {
 				// The foam line round the water's edge (a few texels wide, user 2026-11-18).
@@ -354,7 +368,7 @@ void fragment() {
 		float run = hash12(vec2(tx, floor((ty + TIME * speed) / 3.0)));
 		float above_foot = world_pos.y / CELL - data.y;
 		float below_lip = data.x - world_pos.y / CELL;
-		col = mix(shallow, deep, 0.15) * biome_tint(WATER_MATERIAL, world_pos.xz);
+		col = mix(shallow, deep, 0.15) * tint;
 		alpha = 0.5;
 		if (run > 0.93) {
 			col = mix(col, foam_color, 0.5);
@@ -405,7 +419,7 @@ void fragment() {
 	} else if (world_normal.y < 0.5) {
 		// A side of water open to the air (under a fall's lip, or cut by the layers): as
 		// clear as the surface over shallows, a little darker than it.
-		col = mix(col, shallow * biome_tint(WATER_MATERIAL, world_pos.xz), 0.7 * (1.0 - min(murk * 2.0, 1.0))) * 0.92;
+		col = mix(col, shallow * tint, 0.7 * (1.0 - min(murk * 2.0, 1.0))) * 0.92;
 		alpha = 0.55;
 	} else {
 		// Drifting ripple lines: thin bands of a slowly moving noise.

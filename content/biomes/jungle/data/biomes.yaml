@@ -22,5 +22,5 @@
   groves: 0.32
   bushes: {plants:banana: 0.55, plants:shrub: 0.45}
   bush_sparsity: 45
-  tints: {grass: "#4a8c3e"}
+  tints: {grass: "#4a8c3e", water: "#56a48c"}
   color: "#2f6b2a"

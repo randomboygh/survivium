@@ -17,4 +17,5 @@
   warmth: [0.0, 0.07]
   top: snow
   stone_below: -0.45
+  tints: {water: "#64aab2"}
   color: "#e4ecf0"
