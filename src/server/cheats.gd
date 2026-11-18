@@ -17,6 +17,8 @@ const MOST_SKILL := 200.0
 const MOST_BOOST := 100.0
 ## The air the page may pin, degrees each way («air_temp»; colder than this frees it).
 const MOST_AIR := 60.0
+## The strongest wind the page may pin («wind»; a blizzard is 2.5), and any angle («wind_dir»).
+const MOST_WIND := 3.0
 ## The farthest from the world's middle a teleport («at») goes, in world units on each axis.
 const MOST_FAR := 1.0e6
 ## Switches of the character (vitals and the bag) and of the world's rules.
@@ -67,6 +69,12 @@ static func apply(session, who, d: Variant, day_speed := 1.0) -> bool:
 	var air_t := _number(d, "air_temp", clock.FREE_AIR, MOST_AIR)
 	if is_finite(air_t):
 		clock.air_pin = air_t if air_t >= -MOST_AIR else clock.FREE_AIR
+	var wind_s := _number(d, "wind", -1.0, MOST_WIND)
+	if is_finite(wind_s):
+		clock.wind_pin = wind_s if wind_s >= 0.0 else -1.0
+	var wind_d := _number(d, "wind_dir", clock.FREE_WIND_DIR, PI)
+	if is_finite(wind_d):
+		clock.wind_dir_pin = wind_d if wind_d >= -PI else clock.FREE_WIND_DIR
 	var hour := _number(d, "hour", 0.0, 24.0)
 	if is_finite(hour):
 		clock.time_of_day = fposmod(hour / 24.0, 1.0)

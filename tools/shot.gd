@@ -405,6 +405,24 @@ func _run() -> void:
 			main.player.body.move_input = Vector2.ZERO
 			for i in 10:
 				await process_frame
+		if shot.has("tread"):
+			# A walk where the player stands, in legs [x east, y south, frames], leaving
+			# footprints and trodden grass (tracks.gd, trample.gd), at the game's pace
+			# however slowly the frames are drawn here.
+			var trample = main.tracks.trample
+			trample.set_process(false)
+			for leg: Array in shot.tread:
+				for i in int(leg[2]):
+					main.player.body.move_input = Vector2(leg[0], leg[1])
+					main.player.step(1.0 / 30.0, false)
+					main._leave_footprints()
+					trample.step(1.0 / 30.0)
+					await process_frame
+			trample.set_process(true)
+			main.player.body.move_input = Vector2.ZERO
+			main.player.facing = shot.get("facing", "s")
+			for i in 3:
+				await process_frame
 		if shot.has("hands"):
 			await _hands(shot.hands)
 			if shot.has("burnt"):

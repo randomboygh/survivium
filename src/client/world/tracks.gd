@@ -17,6 +17,7 @@ const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Trample := preload("res://src/client/world/trample.gd")
 
 ## Prints farther than this from `focus` are not kept: nobody sees them.
 const REACH := 24.0
@@ -54,6 +55,8 @@ var _since := 0.0
 ## The prints not yet expired, oldest first: [when it expires (elapsed), its stamp
 ## (the byte of the clock), its texels (x, z in the map, packed)].
 var _living: Array = []
+## The grass trodden down by the same strides (trample.gd).
+var trample: Node
 
 
 func _ready() -> void:
@@ -62,12 +65,17 @@ func _ready() -> void:
 	PixelTextures.set_global("print_map", texture)
 	_window = _corner(focus)
 	RenderingServer.global_shader_parameter_set("print_now", 0.0)
+	trample = Trample.new()
+	trample.focus = focus
+	trample._window = Trample.corner(focus)
+	add_child(trample)
 
 
 func _process(delta: float) -> void:
 	elapsed += delta
 	RenderingServer.global_shader_parameter_set("print_now", fmod(elapsed, WRAP))
 	_follow()
+	trample.focus = focus
 	_since += delta
 	if _since < FLUSH:
 		return
@@ -133,6 +141,7 @@ func _expire() -> void:
 func leave(feet: Vector3, heading: Vector2, left: bool, boot: bool, scale: float) -> void:
 	if absf(feet.x - focus.x) > REACH or absf(feet.z - focus.z) > REACH:
 		return
+	trample.tread(feet, heading, scale)
 	var kind := _kind(feet)
 	if kind == NONE:
 		return

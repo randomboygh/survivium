@@ -17,6 +17,7 @@ const Effects := preload("res://src/client/view/effects.gd")
 const GlowLights := preload("res://src/client/view/glow_lights.gd")
 const WindowGlow := preload("res://src/client/view/window_glow.gd")
 const SunRays := preload("res://src/client/view/sun_rays.gd")
+const Trample := preload("res://src/client/world/trample.gd")
 
 
 ## Ground all of one material (or all sea), for AirEffects.hot_ground.
@@ -358,6 +359,28 @@ func _test_tracks() -> void:
 	for packed: int in t._living[0][2]:
 		any = any or t.image.get_pixel(packed % Tracks.MAP, packed / Tracks.MAP).r > 0.0
 	_check(not any, "the map is cleared where the player has gone far from")
+	# Grass is trodden down by the same strides, on any ground (trample.gd).
+	var tr = t.trample
+	tr.focus = Vector3.ZERO
+	tr._follow()
+	w.set_cell(1, 3, 1, Mat.AIR)
+	t.focus = Vector3.ZERO
+	t._follow()
+	var trodden: int = tr._living.size()
+	var printed: int = t._living.size()
+	t.leave(feet, Vector2(1, 0), true, true, 1.0)
+	_check(tr._living.size() == trodden + 1 and t._living.size() == printed,
+		"a stride treads the grass, though the stone takes no print")
+	var trod: PackedInt32Array = tr._living[-1][2] if not tr._living.is_empty() else PackedInt32Array()
+	_check(trod.size() >= 8, "a person treads a disc of grass (%d texels)" % trod.size())
+	var centre := Vector2i(posmod(floori(feet.x * Trample.TEXELS), Trample.MAP), posmod(floori(feet.z * Trample.TEXELS), Trample.MAP))
+	var push: Color = tr.image.get_pixelv(centre)
+	var g := roundi(push.g * 255.0)
+	_check(push.a > 0.5 and g / Trample.DIRS >= 2 and g % Trample.DIRS in [0, 1, Trample.DIRS - 1],
+		"the middle of the path is laid hard the way it was walked, east (%d)" % g)
+	tr.elapsed += Trample.LIFE + 2.0
+	tr._expire()
+	_check(tr._living.is_empty() and tr.image.get_pixelv(centre).a == 0.0, "trodden grass stands up again")
 	t.free()
 
 
