@@ -29,8 +29,9 @@ const LAYER := CHUNK * CHUNK
 ## A column's biome not known (Biomes.NONE; world/ loads no content but materials and
 ## trees, so the number is kept here too).
 const NO_BIOME := 255
-## Open water lies this far up its top cell (4 px under the ground beside it). Ice
-## fills the cell to the top.
+## Open water lies this far up its top cell (4 px under the ground beside it), but in
+## the sea's top level (sea_level) it fills the cell, flush with a beach at the sea's
+## level (see water_top). Ice fills the cell to the top.
 const WATER_TOP := 0.5
 
 var size_y: int
@@ -403,6 +404,15 @@ func murk(x: int, y: int, z: int) -> int:
 		return 0
 	var n := c.natural[(y << 8) | ((z & MASK) << SHIFT) | (x & MASK)]
 	return 2 if n & BOG else (1 if n & SWAMP else 0)
+
+
+## How far up its cell open water stands when level `y` is the top of its water: to the
+## top in the sea's level, so the sea lies flush with the sand at its level (thread «Сделать
+## воду вровень с песком»), WATER_TOP elsewhere, so lakes and rivers keep a bank. By level
+## rather than by SEA_WATER, so a river's mouth at the sea's level meets the sea without a
+## step.
+func water_top(y: int) -> float:
+	return 1.0 if y == sea_level else WATER_TOP
 
 
 ## Whether the water cell x, y, z is the sea's (SEA_WATER).

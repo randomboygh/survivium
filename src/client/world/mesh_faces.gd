@@ -26,7 +26,8 @@ const CORNERS := [
 	[Vector3(0, 0, 1), Vector3(1, 0, 1), Vector3(1, 1, 1), Vector3(0, 1, 1)],
 	[Vector3(0, 0, 0), Vector3(1, 0, 0), Vector3(1, 1, 0), Vector3(0, 1, 0)],
 ]
-## Water stands half a cell (4 px) below the shore, so the bank shows above it.
+## Water stands half a cell (4 px) below the shore, so the bank shows above it; the
+## sea's top level fills its cells (water_top).
 const WATER_TOP := WorldData.WATER_TOP
 ## Vertex alpha of a waterfall's sheet, of the spray at its foot and of the foam where
 ## it lands (see WaterMesher.fall_faces).
@@ -127,6 +128,9 @@ static var _curves := {}
 ## a cell may be cut at several corners, each quarter on its own (OLD_CUT). Set from
 ## the world when a mesh job starts (ChunkMesher.start_rect, build_cap).
 static var old_slopes := false
+## The sea's top level of the world being drawn (WorldData.sea_level), set with
+## old_slopes: its water stands to the top of the cell (water_top).
+static var sea_level := 12
 
 
 ## Takes the materials of the bundles now loaded (Mods.activate): leaves are a role a
@@ -422,3 +426,9 @@ static func _side_tiles(c: PackedByteArray, cov: PackedByteArray, i: int, dy: in
 	var tw := w if w != m and cov[w] and not cov[c[i - s + f]] else NO_MATERIAL
 	var te := e if e != m and cov[e] and not cov[c[i + s + f]] else NO_MATERIAL
 	return tn | ts << 6 | tw << 12 | te << 18
+
+
+## How far up its cell water stands when level `y` is its top under open air:
+## WorldData.water_top for the world being drawn.
+static func water_top(y: int) -> float:
+	return 1.0 if y == sea_level else WATER_TOP

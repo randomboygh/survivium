@@ -38,9 +38,10 @@ extends "res://src/shared/world/world_gen.gd"
 ##                                      down to the bottom level of the world
 ##   descent45  x -214..-104, z -36..80  the same turned 45°, going down to the south-west
 ##                                      (DESCENT45 its mouth, facing north-east)
-##   beach      x -231..-112, z 88..135  a wide gentle beach of sand going down westward into
-##                                      the sea (BEACH), the water deeper a cell every 4 cells
-##                                      down to the bottom level
+##   beach      x -245..-112, z 88..135  a wide gentle beach of sand going down westward to
+##                                      the sea, flat at the sea's level 24 cells with surf
+##                                      (BEACH), the water deeper a cell every 4 cells down to
+##                                      the bottom level
 ##   relief     x -70..74,  z 44..92    the shapes the mesher rounds and bevels (RELIEF),
 ##                                      a row each of grass, sand, clay and stone
 ##   combos     x -108..203, z -472..-97  every shape of COMBO_SHAPES on every top of COMBO_ROWS
@@ -168,10 +169,13 @@ const DESCENT_WIDE := 10
 const DESCENT_HIGH := 10
 const DESCENT_MOUTH := 10
 ## The beach: its east edge on the meadow, its north edge and width; the sand goes down a
-## level every BEACH_DRY cells to the water's line, then the bottom a level every
-## BEACH_WET cells down to the bottom of the world, then stays there BEACH_FLAT cells.
+## level every BEACH_DRY cells to the sea's level, lies flat there BEACH_LEVEL cells
+## (flush with the sea, the surf washing over it), then the bottom goes down a level every
+## BEACH_WET cells to the bottom of the world, then stays there BEACH_FLAT cells. Its
+## water is the sea's (SEA_WATER).
 const BEACH := Vector3i(-112, 88, 48)
 const BEACH_DRY := 10
+const BEACH_LEVEL := 24
 const BEACH_WET := 4
 const BEACH_FLAT := 10
 ## The shapes of the relief ground, west to east, each on a plot of RELIEF_PLOT cells
@@ -748,13 +752,14 @@ func beach_column(x: int, z: int) -> Array:
 	if w < 0 or z < BEACH.y or z >= BEACH.y + BEACH.z:
 		return []
 	var g := ground
-	var dry := (g - sea + 1) * BEACH_DRY
+	var steps := (g - sea) * BEACH_DRY
+	var dry := steps + BEACH_LEVEL
 	if w < dry:
-		return [g - w / BEACH_DRY, -1, beach, plot_biomes[plot_biomes.size() - 1], false]
+		return [g - w / BEACH_DRY if w < steps else sea, -1, beach, plot_biomes[plot_biomes.size() - 1], false]
 	var h := sea - 1 - (w - dry) / BEACH_WET
 	if h < 0 and w >= dry + sea * BEACH_WET + BEACH_FLAT:
 		return []
-	return [maxi(h, 0), sea, beach, water, false]
+	return [maxi(h, 0), sea, beach, water, false, true]
 
 
 ## The descents in column x, z, written over the plain fill: a floor of stone that keeps
@@ -1004,7 +1009,8 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		lay.biome[j] = c[3]
 		lay.flags[j] = SHEER_TOP if c[4] else 0
 		lay.kind[j] = PLAIN
-		lay.feature[j] = LAKE if c[1] >= 0 else DRY
+		# The beach's water is the sea's (a sixth entry, see beach_column).
+		lay.feature[j] = (OCEAN if c.size() > 5 else LAKE) if c[1] >= 0 else DRY
 		lay.coast[j] = 1000.0
 		lay.river[j] = 1000.0
 		lay.lake[j] = -1000.0
@@ -1040,6 +1046,8 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 			var i := y * layer + col
 			c.cells[i] = m
 			c.natural[i] = WorldData.WILD | WorldData.SHEER if y == height and lay.flags[j] & SHEER_TOP else WorldData.WILD
+			if m == Mat.WATER and lay.feature[j] == OCEAN:
+				c.natural[i] |= WorldData.SEA_WATER
 		for e: Array in extras(key.x * CHUNK + lx, z):
 			for y in range(e[0], e[1] + 1):
 				c.cells[y * layer + col] = e[2]

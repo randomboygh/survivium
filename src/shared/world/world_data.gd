@@ -705,7 +705,7 @@ func blocks_body(x: int, y: int, z: int) -> bool:
 ## Height of frozen water cell (x, y, z) over its floor, in cells: ice lies where the
 ## water stood, so the shore beside is not lower than it, and fills cells under water.
 func ice_top(x: int, y: int, z: int) -> float:
-	return 1.0 if get_cell(x, y + 1, z) == Mat.WATER else WATER_TOP
+	return 1.0 if get_cell(x, y + 1, z) == Mat.WATER else water_top(y)
 
 
 func _cell_blocks(x: int, y: int, z: int) -> bool:

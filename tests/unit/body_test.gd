@@ -49,9 +49,11 @@ func _test_walking_rules() -> void:
 
 ## A pool along x on a stone floor: water in levels 3..4 (open surface at 4.5) over
 ## x 3..8, shallow (level 4 only) at x = 3; a bank one level above the water (top 6)
-## at x >= 9 and one two levels above it (top 7) at x <= 2.
+## at x >= 9 and one two levels above it (top 7) at x <= 2. The sea lies lower, so the pool
+## keeps its water half a level under its top (WorldData.water_top).
 func _pool_world() -> WorldData:
 	var w := WorldData.new(10, Vector2i(16, 6))
+	w.sea_level = 1
 	for z in 16:
 		for x in 16:
 			var top := 6 if x <= 2 else (5 if x >= 9 else (3 if x == 3 else 2))
@@ -692,12 +694,21 @@ func _test_ground_sites(gen) -> void:
 	var b: Vector3i = TestGround.BEACH
 	var bz := b.y + b.z / 2
 	gen.generate_area(WorldData.chunk_key(b.x - 40, bz), WorldData.chunk_key(b.x, bz) + Vector2i.ONE)
-	gen.generate_area(WorldData.chunk_key(b.x - 115, bz), WorldData.chunk_key(b.x - 100, bz) + Vector2i.ONE)
+	gen.generate_area(WorldData.chunk_key(b.x - 60, bz), WorldData.chunk_key(b.x - 40, bz) + Vector2i.ONE)
+	gen.generate_area(WorldData.chunk_key(b.x - 130, bz), WorldData.chunk_key(b.x - 115, bz) + Vector2i.ONE)
 	var sea: int = w.sea_level
-	_check(w.get_cell(b.x - 2, g, bz) == Mat.BEACH and w.get_cell(b.x - 25, sea, bz) == Mat.BEACH
-		and w.get_cell(b.x - 35, sea, bz) == Mat.WATER and w.get_cell(b.x - 35, sea - 1, bz) == Mat.WATER
-		and w.get_cell(b.x - 112, 1, bz) == Mat.WATER and w.get_cell(b.x - 112, 0, bz) == Mat.BEACH,
+	var flat := (g - sea) * TestGround.BEACH_DRY
+	_check(w.get_cell(b.x - 2, g, bz) == Mat.BEACH and w.get_cell(b.x - flat, sea, bz) == Mat.BEACH
+		and w.get_cell(b.x - flat, sea + 1, bz) == Mat.AIR
+		and w.get_cell(b.x - flat - TestGround.BEACH_LEVEL + 1, sea, bz) == Mat.BEACH
+		and w.get_cell(b.x - flat - TestGround.BEACH_LEVEL - 1, sea, bz) == Mat.WATER
+		and w.get_cell(b.x - flat - TestGround.BEACH_LEVEL - 5, sea - 1, bz) == Mat.WATER
+		and w.get_cell(b.x - 126, 1, bz) == Mat.WATER and w.get_cell(b.x - 126, 0, bz) == Mat.BEACH,
 		"the beach of the test world runs gently into water as deep as the world")
+	var shore := b.x - flat - TestGround.BEACH_LEVEL - 1
+	_check(w.sea(shore, sea, bz) and is_equal_approx(w.water_top(sea), 1.0)
+		and is_equal_approx(w.water_top(sea - 1), WorldData.WATER_TOP),
+		"the beach's water is the sea's and stands flush with the sand at the sea's level")
 
 
 ## Presses jump again and again for 5 s at the bottom of a pit four cells deep and one
