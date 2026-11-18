@@ -263,6 +263,9 @@ const SHOTS := {
 	# Building decay: the walls of every material, half their cells cracked
 	# (WorldData.cracks, places.crack_near).
 	"decay-cracks": {"time": 0.4, "season": 1, "walls": true, "cracks": true},
+	# The same walls left 2.5 game days a stage (places.age_near): wattle and the hut a
+	# ruin of their lowest row, the wooden walls two rows, brick and cut stone cracked.
+	"decay-ruins": {"time": 0.4, "season": 1, "walls": true, "ruins": 2.5},
 	# A cliff of turf, soil, stone with ore veins, sand, clay and a block of brick
 	# (Places.strata): how materials meet on the sides of cells.
 	"strata": {"time": 0.42, "season": 1, "strata": true},
@@ -1043,6 +1046,9 @@ const SHOTS := {
 	"ui-main-menu-host-server": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 2},
 	"ui-main-menu-host-new-world": {"time": 0.42, "season": 1, "main_menu": "host", "host_new_world": true},
 	"ui-main-menu-host-world-setup": {"time": 0.42, "season": 1, "main_menu": "host", "host_open_new": true},
+	"decay-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 3, "host_end": true},
+	"decay-test-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "world",
+		"menu_end": true},
 	"ui-main-menu-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 3},
 	"ui-main-menu-host-running": {"time": 0.42, "season": 1, "main_menu": "host-running"},
 	"ui-main-menu-host-running-settings": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 1},

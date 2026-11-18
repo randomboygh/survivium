@@ -890,6 +890,14 @@ func dig_at(cell: Vector3i, normal: Vector3i) -> bool:
 	return r.done and r.value is Dictionary and not r.value.is_empty()
 
 
+## Mends cracked built cell `cell` with a swing of the hand's tool (building decay, see
+## Decay.mend). True if it was mended.
+func mend(cell: Vector3i) -> bool:
+	_wait_reply()
+	var r = game.net.request(Protocol.MEND, [cell]).then(_did)
+	return r.done and r.value is Dictionary and not r.value.is_empty()
+
+
 ## Places the block in the hand in use with the brush around `center`, across face
 ## `normal`, below the cut (see WorldActions.place_at). Returns how many were placed.
 func place_at(center: Vector3i, normal: Vector3i) -> int:

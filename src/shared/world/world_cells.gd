@@ -995,6 +995,16 @@ func crack(cell: Vector3i, m: int) -> void:
 	cracks[key][cell] = m
 
 
+## Cell `cell` is mended (its crack gone); whether it was cracked.
+func mend(cell: Vector3i) -> bool:
+	var key := chunk_key(cell.x, cell.z)
+	if not cracks.has(key) or not cracks[key].erase(cell):
+		return false
+	if cracks[key].is_empty():
+		cracks.erase(key)
+	return true
+
+
 ## The cracked cells of chunk `key` as a flat list x, y, z, ... (Protocol.CRACKS, saves).
 func cracks_of(key: Vector2i) -> PackedInt32Array:
 	var out := PackedInt32Array()

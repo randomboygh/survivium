@@ -154,6 +154,7 @@ func _init(s) -> void:
 	actions.drops_changed.connect(_on_drops)
 	session.ice.changed.connect(_on_holes)
 	session.decay.cracks_changed.connect(_on_cracks)
+	session.decay.crumbled.connect(_on_crumbled)
 	actions.looks_changed.connect(_on_looks)
 	actions.grass_changed.connect(_on_grass)
 	actions.spores.connect(_on_spores)
@@ -183,6 +184,7 @@ func leave() -> void:
 	actions.drops_changed.disconnect(_on_drops)
 	session.ice.changed.disconnect(_on_holes)
 	session.decay.cracks_changed.disconnect(_on_cracks)
+	session.decay.crumbled.disconnect(_on_crumbled)
 	actions.looks_changed.disconnect(_on_looks)
 	actions.grass_changed.disconnect(_on_grass)
 	actions.spores.disconnect(_on_spores)
@@ -661,6 +663,21 @@ func _on_drops(key: Vector2i) -> void:
 
 func _on_holes() -> void:
 	_holes = true
+
+
+## Cells fallen and things fallen apart within the screen's reach of the player are told
+## (Protocol.CRUMBLED), for the dust.
+func _on_crumbled(cells: Array[Vector3i], mats: PackedInt32Array) -> void:
+	var near: Array = []
+	var near_mats := PackedInt32Array()
+	var at: Vector3 = who.position / WorldData.CELL
+	var reach := float((Session.reach_for(who.view_half) + 1) * WorldData.CHUNK)
+	for i in cells.size():
+		if Vector2(cells[i].x - at.x, cells[i].z - at.z).length() <= reach:
+			near.append(cells[i])
+			near_mats.append(mats[i])
+	if not near.is_empty():
+		outbox.append(_event(Protocol.CRUMBLED, [near, near_mats]))
 
 
 func _on_cracks(cells: Array[Vector3i], _on: bool) -> void:

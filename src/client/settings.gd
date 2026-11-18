@@ -25,6 +25,7 @@ const Music := preload("res://src/client/audio/music.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
+const Rules := preload("res://src/shared/game/rules.gd")
 const Playtest := preload("res://src/client/net/playtest.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 
@@ -37,7 +38,7 @@ const PATH := "user://settings.cfg"
 const TEST_SAVED := ["player_speed", "skill_rate", "air_jumps", "revive_at_death", "free_build", "tool_wear",
 	"no_overload", "instant_craft", "free_items", "no_hunger", "no_thirst", "no_fatigue", "no_cold",
 	"no_fall_damage", "invulnerable", "animal_attacks", "time_boost", "shadow_map", "debug_tips", "keys_log",
-	"free_view", "air_temp", "wind_strength", "wind_dir"]
+	"free_view", "air_temp", "wind_strength", "wind_dir", "decay_days"]
 ## The switches of the survival section, each with its value that means «survival on»
 ## (set_survival turns them all at once).
 const SURVIVAL := {"no_hunger": false, "no_thirst": false, "no_fatigue": false, "no_cold": false,
@@ -253,6 +254,9 @@ const FAST_FORWARD := 100.0
 ## Playtest air, degrees (Clock.air_pin): the first, by itself, is the world's own; then
 ## frost and freezing, breath steam (AirEffects.BREATH_MILD), mild, warm, and the heat
 ## the haze over sand and the sea begins at (AirEffects.HAZE_FROM) and beyond.
+## Playtest: the game days a stage of building decay takes (Rules.building_decay_days),
+## 0 the world's or the server's own.
+const DECAY_DAYS := [0.0, 1.0, 0.1]
 const AIR_TEMPS := [Clock.FREE_AIR, -30.0, -15.0, 0.0, 5.0, 15.0, 25.0, 30.0, 35.0, 45.0]
 ## Playtest wind (Clock.wind_pin): the first, by itself, is the weather's own; then calm, a
 ## breeze, a fresh wind, a gale and a blizzard's (the scale of Clock.WEATHERS' "wind").
@@ -278,6 +282,8 @@ static var testing_unlocked := false
 var time_boost := 1.0
 ## Playtest switch: the air everywhere, an index into AIR_TEMPS (0: the world's own).
 var air_temp := 0
+## Playtest switch: an index into DECAY_DAYS (0: the world's own pace of building decay).
+var decay_days := 0
 var wind_strength := 0
 var wind_dir := 0
 ## Playtest switch: the player's speed multiplier. Not saved.
@@ -483,6 +489,8 @@ func _use_test(d: Dictionary) -> void:
 				v = v if TIME_BOOSTS.has(v) else 1.0
 			"shadow_map":
 				v = clampi(v, 0, SHADOW_MAPS.size() - 1)
+			"decay_days":
+				v = clampi(v, 0, DECAY_DAYS.size() - 1)
 			"air_temp":
 				v = clampi(v, 0, AIR_TEMPS.size() - 1)
 			"wind_strength":
@@ -684,6 +692,7 @@ func apply() -> void:
 		game.rules.instant_craft = instant_craft
 		game.rules.free_items = free_items
 		game.rules.animal_attacks = animal_attacks
+		game.rules.building_decay_days = DECAY_DAYS[decay_days] if decay_days > 0 else Rules.new().building_decay_days
 	if game.session != null:
 		game.session.clock.time_speed = time_speed() * time_boost
 		game.session.clock.real_time = values.real_time
@@ -935,6 +944,12 @@ func set_hour(hour: float) -> void:
 	game.session.clock.time_of_day = fposmod(hour / 24.0, 1.0)
 
 
+## Playtest: building decay at pace DECAY_DAYS[i].
+func set_decay_days(i: int) -> void:
+	decay_days = clampi(i, 0, DECAY_DAYS.size() - 1)
+	apply()
+
+
 func set_time_boost(k: float) -> void:
 	time_boost = k
 	apply()
@@ -1008,7 +1023,7 @@ func set_cheats(on: bool) -> void:
 	else:
 		game.net.request(Protocol.CHEATS, [{"speed": 1.0, "air": false, "skill": 1.0, "heavy": true,
 			"hunger": true, "thirst": true, "fatigue": true, "cold": true, "falls": true, "harm": true, "free_build": false, "tool_wear": true,
-			"instant_craft": false, "free_items": false, "animal_attacks": true, "boost": 1.0}])
+			"instant_craft": false, "free_items": false, "animal_attacks": true, "boost": 1.0, "decay_days": 0.0}])
 		_note("[cheats_off]")
 
 
@@ -1030,7 +1045,7 @@ func send_cheats(once := {}) -> bool:
 		"falls": not no_fall_damage, "harm": not invulnerable,
 		"free_build": free_build, "tool_wear": tool_wear, "instant_craft": instant_craft,
 		"free_items": free_items, "animal_attacks": animal_attacks, "boost": time_boost,
-		"air_temp": AIR_TEMPS[air_temp], "wind": WIND_STRENGTHS[wind_strength],
+		"decay_days": DECAY_DAYS[decay_days], "air_temp": AIR_TEMPS[air_temp], "wind": WIND_STRENGTHS[wind_strength],
 		"wind_dir": WIND_DIRS[wind_dir]}
 	d.merge(once, true)
 	game.net.request(Protocol.CHEATS, [d]).then(func(taken: Variant) -> void:

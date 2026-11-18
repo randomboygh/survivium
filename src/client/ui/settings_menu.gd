@@ -111,7 +111,7 @@ const MAP_SIZES := ["[small_map]", "[normal_map]", "[large_map]"]
 const SCALES := ["[volume]", "[nature]", "[interface]", "[how_often]", "[interface_size]", "[controls_size]",
 	"[minimap]", "[scale]", "[quality]", "[fire_shadows]", "[day_length]", "[flow_of_time]", "[player_speed]",
 	"[skill_growth]", "[darkening_per_level]", "[line_height]", "[ahead_first_layers]", "[ahead_stretch]",
-	"[above_first_layers]", "[above_stretch]", "[density_of_the_first]", "[shadow_map]"]
+	"[above_first_layers]", "[above_stretch]", "[density_of_the_first]", "[shadow_map]", "[building_decay_stage]"]
 
 signal closed
 
@@ -481,6 +481,9 @@ func _world_rows() -> Array:
 		["[flow_of_time]", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "[stopped]" if v == 0.0 else ("[normal_ui]" if v == 1.0 else "×%d" % int(v))),
 			func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),
 			func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i]), "", _may_time],
+		["[building_decay_stage]", Settings.DECAY_DAYS.map(func(v: float) -> String: return "[normal_ui]" if v == 0.0 else Lang.f("[n_days]", [str(int(v)) if v == floorf(v) else str(v)])),
+			func() -> int: return s.decay_days,
+			func(i: int) -> void: s.set_decay_days(i), "", _may],
 	]
 
 

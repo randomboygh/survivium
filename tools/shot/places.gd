@@ -686,6 +686,21 @@ func crack_near(w, at: Vector3) -> void:
 		main.chunks.remesh_chunk(key)
 
 
+## The buildings of the world left alone `stages` game days a stage of decay (Decay with
+## Rules.building_decay_days 1, nobody near): they crack and fall as they would.
+func age_near(stages: float) -> void:
+	var s = main.session
+	var each: float = s.rules.building_decay_days
+	s.rules.building_decay_days = 1.0
+	var n := 2000
+	for i in n:
+		s.decay.step(stages / n, [], s.decay.LOOK_EVERY + 0.01)
+	# The last stage's work through every chunk due.
+	for i in 20000:
+		s.decay.step(0.0, [], s.decay.LOOK_EVERY + 0.01)
+	s.rules.building_decay_days = each
+
+
 ## Short walls of every building material in a row on flat grass near `at`, each three
 ## cells long and three high on a floor of its own laid flush with the ground, the
 ## player in front of them (the building stage, materials as cells), and stairs.

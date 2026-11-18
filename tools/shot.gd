@@ -168,6 +168,8 @@ func _run() -> void:
 			main.player.position = places.walls(main.world, main.player.position)
 		if shot.get("cracks", false):
 			places.crack_near(main.world, main.player.position)
+		if shot.has("ruins"):
+			places.age_near(float(shot.ruins))
 		if shot.get("strata", false):
 			main.player.position = places.strata(main.world, main.player.position)
 		if shot.has("openings"):
@@ -1342,6 +1344,10 @@ func _run() -> void:
 				main.menu.open_host()
 				if shot.has("host_tab"):
 					main.menu._setup.show_tab(shot.host_tab)
+				if shot.get("host_end", false):
+					# The bottom of the tab.
+					await process_frame
+					main.menu._setup._scroll.scroll_vertical = 100000
 				if shot.get("host_new_world", false):
 					# A world set up on «Новый мир…», back in the list, chosen.
 					main.settings.values.world_seed = 91234

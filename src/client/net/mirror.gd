@@ -137,6 +137,10 @@ func _on_event(kind: String, args: Variant) -> void:
 				# Whole until its cracks come after it (Protocol.CRACKS).
 				game.world.cracks.erase(args[0])
 				game.world_maker.take_chunk(args[0], args[1], args[2])
+		Protocol.CRUMBLED:
+			if args is Array and args.size() == 2 and args[0] is Array and args[1] is PackedInt32Array \
+					and args[0].size() == args[1].size() and args[0].size() <= 4096 and game.props != null:
+				game.props.crumbled(args[0], args[1])
 		Protocol.CRACKS:
 			if args is Array and args.size() >= 1 and args[0] is Vector2i:
 				if args.size() == 2 and args[1] is PackedInt32Array and game.host == null:
