@@ -907,8 +907,10 @@ func _old_update_corners(x0: int, z0: int, x1: int, z1: int) -> void:
 				if wild4 == 0:
 					continue
 				# Not over an open cell (a cave under a thin roof): the cut would open a hole
-				# into it (2026-11-18).
-				var cut := gr & wild4 & (air[cx] & air[cz] & air[cd] | water[cx] & water[cz] & water[cd]) & (gr << 1)
+				# into it (2026-11-18). Unless the corner is open under it too (the roof of
+				# an overhang over open air, its edge cut as the top above it is).
+				var beside := air[cx] & air[cz] & air[cd] | water[cx] & water[cz] & water[cd]
+				var cut := gr & wild4 & beside & ((gr | beside) << 1)
 				if cut != 0:
 					# A slope is cut only at a corner where it is low, and not where it goes
 					# on down into the cell below.

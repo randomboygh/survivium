@@ -40,7 +40,7 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
   (`surface_patch`, `make_patch`, `patch_height`), a corner may go down two levels into the covered cell below
   (`_update_deep`, `_deep_corner`, kept in that cell's shape bits 0..3; taken out by #743 and brought back by the
   user on 2026-11-18: without it a ramp's foot against a cliff shows a step; the cell going down may be any wild ground, so scree over stone goes down round like sand, not cut sharp, `_deepable`), cut and filled corners take a triangle half a cell along each side and a cell may have several
-  (`_old_update_corners`, `_old_in_corner`, `corner_at`; never over an open cell, a cave under a thin roof, where the cut would open a hole); `ground_height` and `body.gd` `_cell_top` follow the patch. The client draws them with
+  (`_old_update_corners`, `_old_in_corner`, `corner_at`; never over an open cell, a cave under a thin roof, where the cut would open a hole, unless the corner is open under it too: an overhang's roof is cut like its top); `ground_height` and `body.gd` `_cell_top` follow the patch. The client draws them with
   `src/client/world/old_slope_mesher.gd` (the old `slope_mesher.gd`; the ground under a cut corner of a slope that goes down into the cell below follows the slope down, `cut_floor`), `MeshFaces.old_slopes` (curved cut
   pieces `OLD_CUT`, `_old_curve` by `Mat.corner_shape`, `_old_diag_wall`), the water's lips and foam, and the
   shader global `old_slopes` (`corner_distance`, `in_cell_corners`); no rounded edges (EdgeMesher off). An outer
