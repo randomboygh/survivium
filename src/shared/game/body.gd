@@ -12,6 +12,8 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const Grass := preload("res://src/shared/world/grass.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
 
 const CELL := WorldData.CELL
 ## Body and motion in cells: a little narrower than a cell, a little under two tall.
@@ -58,6 +60,15 @@ const SWIM_DEPTH := 0.9
 ## against walking.
 const WADE := 0.65
 const SWIM := 0.45
+## A plant that stops a body (Grass.solid_plant: a cactus) stands as a post this many
+## cells round its root and this many levels over its ground: not jumped over.
+const SOLID_HALF := 0.2
+const SOLID_HIGH := 2
+## How many columns round the body's own its posts are looked for in (a step goes less
+## than a cell, a push back too), and after how many steps they are looked for again
+## where it stands.
+const POST_REACH := 2
+const POSTS_FRESH := 30
 const MIRE := 0.5
 ## Water slows a fall to this many cells a second and lifts a sunk swimmer this fast.
 const SINK_SPEED := 5.0
@@ -192,6 +203,16 @@ var bumped := Vector3.INF
 var _pull_up := 0.0
 ## The column the feet were last in: walking off it leaves a trail in the snow.
 var _col := Vector2i(1 << 30, 0)
+## The root (world point) of the plant that stops a body (solid_near) the body stood in
+## as this step began (it grew there, or the body came down on it): it does not hold the
+## body, which walks out of it; INF for none.
+var _in_plant := Vector3.INF
+## The posts of the plants that stop a body near it (_find_posts), in cells, their ids,
+## the cell they were found round and the steps since.
+var _posts: Array[AABB] = []
+var _post_ids: Array[String] = []
+var _posts_at := Vector3i(1 << 30, 0, 0)
+var _posts_age := 0
 
 
 ## The pace the body at `at` (world units) walks at now, in cells a second: slower in
@@ -237,6 +258,13 @@ func _step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	_let_go = maxf(0.0, _let_go - delta)
 	var rung := ladder_turn(at) if _let_go <= 0.0 else -1
 	climbing = false
+	_in_plant = Vector3.INF
+	if not Plants.SOLID.is_empty():
+		_find_posts(p, true)
+		if not _posts.is_empty():
+			var inside := _post_touched(p, -0.02)
+			if not inside.is_empty():
+				_in_plant = inside[1]
 	if rung >= 0:
 		var held: Variant = _climb(p, delta, rung, jump)
 		if held != null:
@@ -734,6 +762,8 @@ func water_under(at: Vector3, most := 2) -> int:
 
 ## True if the body standing at `at` (world units) would be inside something solid.
 func blocked(at: Vector3) -> bool:
+	if not Plants.SOLID.is_empty():
+		_find_posts(at / CELL, false)
 	return _collides(at / CELL)
 
 
@@ -754,7 +784,84 @@ func _collides(p: Vector3) -> bool:
 				# lie below the cell where the slope goes on down.
 				if p.y + 0.001 < y + _cell_top(x, y, z, p):
 					return true
-	return false
+	if _posts.is_empty():
+		return false
+	var plant := _post_touched(p, 0.0)
+	return not plant.is_empty() and plant[1] != _in_plant
+
+
+## The plant that stops a body (Grass.solid_plant: a cactus) the body with its feet at
+## `at` (world units), wider by `margin` cells each way, touches: [id, the root's world
+## point], [] for none.
+func solid_near(at: Vector3, margin: float) -> Array:
+	if Plants.SOLID.is_empty() or world == null:
+		return []
+	_find_posts(at / CELL, false)
+	return _post_touched(at / CELL, margin)
+
+
+## As solid_near, among the posts found already (_find_posts), `p` in cells.
+func _post_touched(p: Vector3, margin: float) -> Array:
+	var ax := p.x - HALF_WIDTH - margin
+	var bx := p.x + HALF_WIDTH + margin
+	var az := p.z - HALF_DEPTH - margin
+	var bz := p.z + HALF_DEPTH + margin
+	var lo := p.y + 0.001
+	var hi := p.y + HEIGHT + margin
+	var found := []
+	for i in _posts.size():
+		var b: AABB = _posts[i]
+		if ax < b.end.x and bx > b.position.x and az < b.end.z and bz > b.position.z and lo < b.end.y and hi > b.position.y:
+			found = [_post_ids[i], Vector3(b.get_center().x, b.position.y, b.get_center().z) * CELL]
+			# One the body is in already is passed over for another.
+			if found[1] != _in_plant:
+				return found
+	return found
+
+
+## Finds the posts of the plants that stop a body (Grass.solid_plant) within POST_REACH
+## columns of `p` (cells), from SOLID_HIGH levels under its feet to over its head: once
+## the body has gone a cell off where they were last found (`moved`: as the step begins,
+## off its own cell), or POSTS_FRESH steps after. A step asks of these only, so a body
+## far from any (most of them) pays nothing for them; a cactus cut beside a body still
+## stops it until it moves on.
+func _find_posts(p: Vector3, moved: bool) -> void:
+	var c := Vector3i(floori(p.x), floori(p.y), floori(p.z))
+	var off := (c - _posts_at).abs()
+	_posts_age += 1
+	if (off == Vector3i.ZERO or not moved and maxi(off.x, maxi(off.y, off.z)) <= 1) and _posts_age < POSTS_FRESH:
+		return
+	_posts_at = c
+	_posts_age = 0
+	_posts.clear()
+	_post_ids.clear()
+	if Plants.SOLID.is_empty() or world == null:
+		return
+	var y0 := maxi(0, c.y - SOLID_HIGH - 2)
+	var y1 := mini(world.size_y - 2, c.y + 3)
+	if y1 < y0:
+		return
+	var levels: int = ((1 << (y1 + 1)) - 1) & ~((1 << y0) - 1)
+	for z in range(c.z - POST_REACH, c.z + POST_REACH + 1):
+		for x in range(c.x - POST_REACH, c.x + POST_REACH + 1):
+			var ch: WorldData.Chunk = world.chunk_at(x, z)
+			if ch == null:
+				continue
+			var col := WorldData.col_of(x, z)
+			var air: int = ch.air[col]
+			# Ground with air over it, at the levels a post from there would reach.
+			var tops: int = ~(air | ch.water[col] | ch.leaf[col]) & world.all_bits & (air >> 1) & levels
+			while tops != 0:
+				var bit := tops & -tops
+				tops ^= bit
+				var y := WorldData.level_of(bit)
+				var plant := Grass.solid_plant(world, x, y, z)
+				if plant.is_empty():
+					continue
+				var rx: float = x + plant[1]
+				var rz: float = z + plant[2]
+				_posts.append(AABB(Vector3(rx - SOLID_HALF, y + 1, rz - SOLID_HALF), Vector3(SOLID_HALF * 2.0, SOLID_HIGH, SOLID_HALF * 2.0)))
+				_post_ids.append(plant[0])
 
 
 ## Height of the highest ground the feet at `p` would stand on, among surfaces between

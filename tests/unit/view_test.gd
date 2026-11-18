@@ -961,7 +961,7 @@ func _test_small_effects() -> void:
 		_check(part.hidden.is_empty(), "%s: and shows again" % script.resource_path.get_file())
 		if part is Node:
 			part.free()
-	_check(names.size() == all.size() and all.size() == 14, "fourteen parts, each named once: %s" % [all])
+	_check(names.size() == all.size() and all.size() == 15, "fifteen parts, each named once: %s" % [all])
 	_test_rainbow()
 	var low: Dictionary = SettingsScript.QUALITIES[0]
 	var medium: Dictionary = SettingsScript.QUALITIES[1]

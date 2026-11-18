@@ -58,6 +58,9 @@ const LIGHT_SIDE_MARGIN := 7.5
 ## How long the air after rain shows the rays through the breaking clouds, in days.
 const AFTER_RAIN_DAYS := 0.08
 
+## Where the wind blows now and how hard (its length: about 0.3 calm, gusting, up to 3 and
+## more in a storm), as the grass sways by it (the shader global `wind`).
+var wind_now := Vector2.ZERO
 var game
 ## How far a cloud's shadow may move across the land per unit of height at most
 ## (cloud_slant): about a sun 20° up.
@@ -486,6 +489,7 @@ func _update_weather(delta: float) -> void:
 	var dir: Vector2 = clock.wind_dir()
 	var strength := gust * (1.0 + storm_wind * 0.5) + storm_wind
 	var wind := dir * strength + Vector2(-dir.y, dir.x) * 0.15
+	wind_now = dir * strength
 	if clock.rain > 0.2:
 		after_rain = 1.0
 	else:

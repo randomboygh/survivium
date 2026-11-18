@@ -54,7 +54,10 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
   `WOODS_EDGE` cells round it, `_near_crown` —, on banks; a frame `across` cards wide is one kind, its first
   column, which `foliage._column` draws as that many cards by `Plants.ACROSS`; fairy rings of the plant with
   `rings` on the open grass, one in that share of the `RING_GRID` squares, `fairy_ring`, `in_ring`), cloud noise
-  for shadows.
+  for shadows. `solid_plant(w, x, y, z)` — a plant that stops a body (`Plants.SOLID`: its `solid`, a cactus) on
+  the cell's top and its root where `Foliage._column` draws it (the same draws of the cell's random numbers);
+  quick to say no off the ground and the biomes such plants grow in, and what it found is kept per cell while
+  the cell, its shape and its turf stay (`_solid_seen`).
 - `src/shared/world/voxel_raycast.gd` — a ray through the grid of cells (Amanatides & Woo), for choosing a
   cell.
 

@@ -25,3 +25,5 @@
   by_water_reach: 10
   sandstorms: true
   color: "#a8936a"
+  # Tumbleweeds rolling with the wind round the player (a picture only).
+  tumbleweeds: 2
