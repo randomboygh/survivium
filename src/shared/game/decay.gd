@@ -18,10 +18,15 @@ extends RefCounted
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
+const Items := preload("res://src/shared/content/items.gd")
+const Tools := preload("res://src/shared/content/tools.gd")
 
 ## Cells that cracked (true) or were mended (false), for the clients (a cell changed
 ## loses its crack in WorldData.set_cell and is sent as a changed cell).
 signal cracks_changed(cells: Array[Vector3i], on: bool)
+## Cells that fell (the material each was) and things that fell apart (-1), for the dust
+## and the sound on the clients (Protocol.CRUMBLED).
+signal crumbled(cells: Array[Vector3i], mats: PackedInt32Array)
 
 const CELL := WorldData.CELL
 const CHUNK := WorldData.CHUNK
@@ -33,12 +38,24 @@ const LOOK_EVERY := 2.0
 const CHUNKS_PER_LOOK := 32
 ## Columns of a chunk worked through in a step.
 const SCAN_COLUMNS := 32
+## The pace of the simple things set down (fences, doors, ladders, hatches, furniture;
+## not chests, stations, fires, signs, crosses): as wood. At THING_STAGES they fall apart.
+const THING_PACE := 1.0
+const THING_STAGES := 2
+## The seconds a mend takes with no tool's swing known.
+const MEND_SWING := 0.5
 
 ## The world's own switch (a world made with building decay off keeps it off).
 var on := true
 var world
 var rules
 var territory
+## The rules over the cells (WorldActions): a fallen cell is told by its cell_changed.
+var actions
+## The things set down (Placed).
+var placed
+## Thing (its cell, Vector3i) -> the stages of decay it went through.
+var worn := {}
 ## Game days the world has run while decay was on.
 var time := 0.0
 ## Chunk (Vector2i) -> the day (`time`) it was last tended.
@@ -126,6 +143,8 @@ func _look() -> void:
 		for pace in Mat.decays:
 			if pace > 0.0 and not _paces.has(pace):
 				_paces.append(pace)
+		if not _paces.has(THING_PACE):
+			_paces.append(THING_PACE)
 	var stop := mini(_next + CHUNKS_PER_LOOK, _order.size())
 	while _next < stop:
 		var key := _order[_next]
@@ -162,8 +181,12 @@ func stages(pace: float, age: float, prev: float) -> int:
 
 
 ## Works SCAN_COLUMNS columns of the job's chunk through: each built cell of a material
-## that decays goes its stages further (an intact one cracks; a cracked one is due to
-## fall, the step of the ruins).
+## that decays goes its stages further. An intact one cracks; a cracked one falls (to air,
+## its material lost) when nothing built that decays stands on it and it does not stand
+## on solid ground that does not decay: a wall loses a row a stage from the top, a roof
+## falls, the lowest row stays, cracked, the ruin (decision 5A). After the last columns,
+## the chunk's simple things (decays_thing) go their stages too, falling apart at
+## THING_STAGES.
 func _scan() -> void:
 	var key: Vector2i = _job.key
 	var c = world.chunks.get(key)
@@ -177,35 +200,58 @@ func _scan() -> void:
 	var top: int = world.size_y
 	var all_levels := (1 << top) - 1 if top < 63 else -1
 	var cracks: Array[Vector3i] = []
+	var falls: Array[Vector3i] = []
+	var fell := PackedInt32Array()
 	for col in range(from, to):
 		# Built: not air, not water, not left by the generator.
 		var bits: int = ~(c.air[col] | c.water[col] | c.wild[col]) & all_levels
+		# From the top down: a cell under one falling now may fall too with a stage more
+		# for each falling over it (`run`), so a long neglect takes rows at once.
+		var levels := PackedInt32Array()
 		while bits != 0:
 			var low := bits & -bits
 			bits &= ~low
-			var y := _level(low)
+			levels.append(_level(low))
+		var run := 0
+		var above_fell := false
+		for j in range(levels.size() - 1, -1, -1):
+			var y := levels[j]
+			var falls_now := false
 			var m: int = c.cells[(y << 8) | col]
-			if m >= Mat.decays.size():
-				continue
-			if Mat.decays[m] <= 0.0:
-				continue
-			_job.some = true
-			var n := stages(Mat.decays[m], age, prev)
-			if n <= 0:
-				continue
-			var cell := Vector3i(key.x * CHUNK + (col & (CHUNK - 1)), y, key.y * CHUNK + (col >> WorldData.SHIFT))
-			if territory != null and not territory.claim_at(cell).is_empty():
-				continue
-			var was: int = world.cracks.get(key, {}).get(cell, -2)
-			if was != m and was != -1:
-				world.crack(cell, m)
-				cracks.append(cell)
-				n -= 1
-			elif was == -1:
-				world.crack(cell, m)
-			# What is left of `n` is the cell falling to a ruin: the next step of the work.
+			if m < Mat.decays.size() and Mat.decays[m] > 0.0:
+				_job.some = true
+				var n := stages(Mat.decays[m], age, prev)
+				var cell := Vector3i(key.x * CHUNK + (col & (CHUNK - 1)), y, key.y * CHUNK + (col >> WorldData.SHIFT))
+				if n > 0 and (territory == null or territory.claim_at(cell).is_empty()):
+					var was: int = world.cracks.get(key, {}).get(cell, -2)
+					if was != m and was != -1:
+						world.crack(cell, m)
+						cracks.append(cell)
+						n -= 1
+					elif was == -1:
+						world.crack(cell, m)
+					var open_above: bool = (above_fell and j + 1 < levels.size() and levels[j + 1] == y + 1) \
+						or not (y + 1 < world.size_y and _decaying(c, col, y + 1))
+					if not open_above:
+						run = 0
+					if n > run and open_above and _below_lets_fall(c, col, y):
+						falls.append(cell)
+						fell.append(m)
+						falls_now = true
+						run += 1
+			above_fell = falls_now
+			if not falls_now:
+				run = 0
 	if not cracks.is_empty():
 		cracks_changed.emit(cracks, true)
+	for cell in falls:
+		world.set_cell(cell.x, cell.y, cell.z, Mat.AIR)
+		if actions != null:
+			actions.cell_changed.emit(cell)
+	if to >= CHUNK * CHUNK:
+		_wear_things(key, age, prev, falls, fell)
+	if not falls.is_empty():
+		crumbled.emit(falls, fell)
 	if to >= CHUNK * CHUNK:
 		passed[key] = age
 		if not _job.some:
@@ -213,6 +259,57 @@ func _scan() -> void:
 		_job = {}
 	else:
 		_job.col = to
+
+
+## Whether what is under the built cell at level `y` of column `col` of chunk `c` lets it
+## fall: air, water, something not solid, or built that decays (not the ground, nor
+## what does not decay: the lowest row of a wall is left, the ruin).
+func _below_lets_fall(c, col: int, y: int) -> bool:
+	if y == 0:
+		return false
+	var under: int = c.cells[((y - 1) << 8) | col]
+	return not Mat.is_solid(under) or _decaying(c, col, y - 1)
+
+
+## Whether the cell at level `y` of column `col` of chunk `c` is built of a material
+## that decays.
+static func _decaying(c, col: int, y: int) -> bool:
+	if c.wild[col] & (1 << y):
+		return false
+	var m: int = c.cells[(y << 8) | col]
+	return m < Mat.decays.size() and Mat.decays[m] > 0.0
+
+
+## Whether thing `e` decays: a fence, a door, a ladder, a hatch or furniture; not one that
+## stores, burns, serves as a station, holds a text or a grave.
+static func decays_thing(e: Dictionary) -> bool:
+	var it: Dictionary = Items.get_item(e.item)
+	if it.is_empty() or int(it.get("storage", 0)) > 0 or it.get("fire", false) or not it.get("serves", []).is_empty() \
+			or it.get("sign_lines", 0) or it.get("grave", false):
+		return false
+	return it.get("fence", false) or it.get("door", false) or it.get("ladder", false) or it.get("hatch", false) \
+		or it.get("furniture", false)
+
+
+## The simple things of chunk `key` go their stages from neglect `prev` to `age`; one at
+## THING_STAGES falls apart (into `falls`, -1 in `fell`).
+func _wear_things(key: Vector2i, age: float, prev: float, falls: Array[Vector3i], fell: PackedInt32Array) -> void:
+	if placed == null:
+		return
+	var n := stages(THING_PACE, age, prev)
+	for e: Dictionary in placed.things.duplicate():
+		var cell: Vector3i = e.cell
+		if WorldData.chunk_key(cell.x, cell.z) != key or not decays_thing(e):
+			continue
+		_job.some = true
+		if n <= 0 or territory != null and not territory.claim_at(cell).is_empty():
+			continue
+		worn[cell] = int(worn.get(cell, 0)) + n
+		if worn[cell] >= THING_STAGES:
+			worn.erase(cell)
+			placed.fall_apart(e)
+			falls.append(cell)
+			fell.append(-1)
 
 
 ## The level of the one bit set in `bit`.
@@ -238,6 +335,26 @@ static func _level(bit: int) -> int:
 	return y
 
 
+## `who` mends cracked cell `cell` (decision 6A: free, a swing of the tool in the hand)
+## within the reach of building and where they may build; the swing (WorldActions._work)
+## or {} when there is nothing to mend there.
+func mend(who, cell: Vector3i) -> Dictionary:
+	if world == null or actions == null or not world.is_cracked(cell.x, cell.y, cell.z):
+		return {}
+	if actions.too_far(who, cell, Tools.PLACE_REACH):
+		who.nag("far", "[too_far]")
+		return {}
+	if territory != null and not territory.may(who, cell, "build"):
+		return {}
+	var m: int = world.get_cell(cell.x, cell.y, cell.z)
+	if not world.mend(cell):
+		return {}
+	var cells: Array[Vector3i] = [cell]
+	cracks_changed.emit(cells, false)
+	var t: Dictionary = who.tool()
+	return actions._work(float(t.get("swing", MEND_SWING)), "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, m)
+
+
 ## Whether cell `cell` is cracked now.
 func is_cracked(cell: Vector3i) -> bool:
 	return world != null and world.is_cracked(cell.x, cell.y, cell.z)
@@ -251,7 +368,10 @@ func to_dict() -> Dictionary:
 	var cells: Array = []
 	for key: Vector2i in world.cracks:
 		cells.append_array(Array(world.cracks_of(key)))
-	return {"on": on, "time": snappedf(time, 0.001), "tended": t, "cracked": cells}
+	var w: Array = []
+	for cell: Vector3i in worn:
+		w.append_array([cell.x, cell.y, cell.z, worn[cell]])
+	return {"on": on, "time": snappedf(time, 0.001), "tended": t, "cracked": cells, "worn": w}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -270,6 +390,11 @@ func from_dict(d: Dictionary) -> void:
 				var key := Vector2i(int(e[0]), int(e[1]))
 				tended[key] = float(e[2])
 				passed[key] = float(e[3])
+	worn.clear()
+	var w: Variant = d.get("worn")
+	if w is Array:
+		for i in range(0, w.size() - 3, 4):
+			worn[Vector3i(int(w[i]), int(w[i + 1]), int(w[i + 2]))] = int(w[i + 3])
 	var cells: Variant = d.get("cracked")
 	if cells is Array and world != null:
 		world.cracks.clear()

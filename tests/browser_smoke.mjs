@@ -287,7 +287,8 @@ if (runs('upright')) {
   };
   const shown = await waitFor('join screen shown', 'the link to a server opening «Присоединиться»');
   if (shown) {
-    for (const key of ['url', 'name', 'go', 'back']) {
+    // No name kept yet: it opens on «Персонаж» (the name), the address on «Сервер».
+    for (const key of ['name', 'go', 'back']) {
       const r = (rectOf(shown, key).match(/-?[\d.]+/g) || []).map(Number);
       if (r.length !== 4 || r[0] < 0 || r[1] < 0 || (r[0] + r[2]) / dpr > 390 || (r[1] + r[3]) / dpr > 844) {
         errors.push(`upright: «Присоединиться»'s ${key} is not on the screen: ${rectOf(shown, key)}`);
@@ -329,7 +330,7 @@ if (runs('upright')) {
     await page.keyboard.type('Тест');
     await page.waitForTimeout(500);
     // The keyboard's Enter, pressed in its input, reaches the engine (tools/web_patch.py
-    // VK_ENTER): it passes from the name to the password, and from there joins.
+    // VK_ENTER): it passes from the name to the password on «Сервер», and from there joins.
     const before = log.length;
     await page.keyboard.press('Enter');
     await page.waitForTimeout(1000);

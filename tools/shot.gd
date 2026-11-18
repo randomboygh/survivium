@@ -168,6 +168,8 @@ func _run() -> void:
 			main.player.position = places.walls(main.world, main.player.position)
 		if shot.get("cracks", false):
 			places.crack_near(main.world, main.player.position)
+		if shot.has("ruins"):
+			places.age_near(float(shot.ruins))
 		if shot.get("strata", false):
 			main.player.position = places.strata(main.world, main.player.position)
 		if shot.has("openings"):
@@ -1251,9 +1253,11 @@ func _run() -> void:
 			main.settings.values.world_mods_off = shot.get("mods_off", mods_off)
 			setup = load("res://src/client/ui/world_setup.gd").new(main)
 			main.hud.add_child(setup)
-			# A page of the screen other than the first ("mods").
-			if shot.setup is String:
-				setup._show_page(shot.setup)
+			# «Мир» unless the shot is of «Персонаж»; a page of it other than the first ("mods").
+			if not (shot.setup is String and shot.setup == "character"):
+				setup.show_tab(1)
+				if shot.setup is String:
+					setup._show_page(shot.setup)
 			# The map of the setup screen is drawn a few rows a frame.
 			for i in 120:
 				await process_frame
@@ -1340,13 +1344,18 @@ func _run() -> void:
 				main.menu.open_host()
 				if shot.has("host_tab"):
 					main.menu._setup.show_tab(shot.host_tab)
+				if shot.get("host_end", false):
+					# The bottom of the tab.
+					await process_frame
+					main.menu._setup._scroll.scroll_vertical = 100000
 				if shot.get("host_new_world", false):
 					# A world set up on «Новый мир…», back in the list, chosen.
 					main.settings.values.world_seed = 91234
 					main.menu._setup._new_world_made(false)
 				if shot.get("host_open_new", false):
 					main.menu._setup._open_new_world()
-				for i in 3:
+				# The character's sheet is built a little a frame (FigurePreview).
+				for i in 30:
 					await process_frame
 			if shot.main_menu == "join":
 				_fake_servers()

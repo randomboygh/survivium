@@ -1390,6 +1390,11 @@ func destroy(e: Dictionary) -> bool:
 	return true
 
 
+## Thing `e` falls apart of neglect (building decay, Decay): gone, nothing left of it.
+func fall_apart(e: Dictionary) -> void:
+	_remove(e)
+
+
 ## Takes placed thing `e` out of the world.
 func _remove(e: Dictionary) -> void:
 	_forget(e)

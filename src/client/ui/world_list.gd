@@ -38,7 +38,7 @@ func _init(g) -> void:
 
 
 func _ready() -> void:
-	build("[load_a_world]", 8)
+	build("[load_game]", 8)
 	_rows = Kit.column(4)
 	# A finger dragged over the world buttons scrolls them too.
 	_scroll = Kit.scroll(_rows, false)

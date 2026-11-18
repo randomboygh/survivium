@@ -111,7 +111,7 @@ const MAP_SIZES := ["[small_map]", "[normal_map]", "[large_map]"]
 const SCALES := ["[volume]", "[nature]", "[interface]", "[how_often]", "[interface_size]", "[controls_size]",
 	"[minimap]", "[scale]", "[quality]", "[fire_shadows]", "[day_length]", "[flow_of_time]", "[player_speed]",
 	"[skill_growth]", "[darkening_per_level]", "[line_height]", "[ahead_first_layers]", "[ahead_stretch]",
-	"[above_first_layers]", "[above_stretch]", "[density_of_the_first]", "[shadow_map]"]
+	"[above_first_layers]", "[above_stretch]", "[density_of_the_first]", "[shadow_map]", "[building_decay_stage]"]
 
 signal closed
 
@@ -437,35 +437,16 @@ func _section_rows(key: String) -> Array:
 	return []
 
 
-## The `world` tab: the clock, the weather, the moon, the air and the time's flow (playtest
-## switches, faded where they do not work now), and the way to the test world and back.
+## The `world` tab, in three sections (playtest switches, faded where they do not work now):
+## time (season, hour, flow, moon), weather (weather, air, wind) and buildings (decay step).
 func _world_rows() -> Array:
 	var s = game.settings
 	var clock = game.clock
 	return _cheats_note() + [
-		_section("clock", "[time_and_weather]"),
+		_section("clock", "[time]"),
 		["[season]", clock.SEASONS,
 			func() -> int: return clock.season,
 			func(i: int) -> void: s.set_season(i), "", func() -> bool: return _may() and not s.values.real_season],
-		["[weather]", ["[by_itself]"] + clock.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
-			func() -> int: return 0 if clock.weather_auto else clock.weather + 1,
-			func(i: int) -> void: s.set_weather(i - 1), "", func() -> bool: return _may() and not s.values.real_weather],
-		["[moon]", ["[by_phase]"] + MOONS.map(func(m: Array) -> String: return m[0]),
-			func() -> int:
-				for i in MOONS.size():
-					if is_equal_approx(clock.moon_pin, MOONS[i][1]):
-						return i + 1
-				return 0,
-			func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1]), "", _may],
-		["[temperature]", ["[by_itself]"] + Settings.AIR_TEMPS.slice(1).map(func(t: float) -> String: return "%d°" % int(t)),
-			func() -> int: return s.air_temp,
-			func(i: int) -> void: s.set_air_temp(i), "", _may],
-		["[wind_strength]", WIND_NAMES,
-			func() -> int: return s.wind_strength,
-			func(i: int) -> void: s.set_wind_strength(i), "", _may],
-		["[wind_direction]", WIND_DIR_NAMES,
-			func() -> int: return s.wind_dir,
-			func(i: int) -> void: s.set_wind_dir(i), "", _may],
 		["[time_of_day]", HOURS,
 			func() -> int:
 				var h: float = clock.time_of_day * 24.0
@@ -481,6 +462,30 @@ func _world_rows() -> Array:
 		["[flow_of_time]", Settings.TIME_BOOSTS.map(func(v: float) -> String: return "[stopped]" if v == 0.0 else ("[normal_ui]" if v == 1.0 else "×%d" % int(v))),
 			func() -> int: return Settings.TIME_BOOSTS.find(s.time_boost),
 			func(i: int) -> void: s.set_time_boost(Settings.TIME_BOOSTS[i]), "", _may_time],
+		["[moon]", ["[by_phase]"] + MOONS.map(func(m: Array) -> String: return m[0]),
+			func() -> int:
+				for i in MOONS.size():
+					if is_equal_approx(clock.moon_pin, MOONS[i][1]):
+						return i + 1
+				return 0,
+			func(i: int) -> void: s.set_moon(-1.0 if i == 0 else MOONS[i - 1][1]), "", _may],
+		_section("rain", "[weather]"),
+		["[weather]", ["[by_itself]"] + clock.WEATHERS.map(func(w: Dictionary) -> String: return w.name.to_lower()),
+			func() -> int: return 0 if clock.weather_auto else clock.weather + 1,
+			func(i: int) -> void: s.set_weather(i - 1), "", func() -> bool: return _may() and not s.values.real_weather],
+		["[temperature]", ["[by_itself]"] + Settings.AIR_TEMPS.slice(1).map(func(t: float) -> String: return "%d°" % int(t)),
+			func() -> int: return s.air_temp,
+			func(i: int) -> void: s.set_air_temp(i), "", _may],
+		["[wind_strength]", WIND_NAMES,
+			func() -> int: return s.wind_strength,
+			func(i: int) -> void: s.set_wind_strength(i), "", _may],
+		["[wind_direction]", WIND_DIR_NAMES,
+			func() -> int: return s.wind_dir,
+			func(i: int) -> void: s.set_wind_dir(i), "", _may],
+		_section("hammer", "[buildings_n2]"),
+		["[building_decay_stage]", Settings.DECAY_DAYS.map(func(v: float) -> String: return "[normal_ui]" if v == 0.0 else Lang.f("[n_days]", [str(int(v)) if v == floorf(v) else str(v)])),
+			func() -> int: return s.decay_days,
+			func(i: int) -> void: s.set_decay_days(i), "", _may],
 	]
 
 
