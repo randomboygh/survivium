@@ -1,8 +1,11 @@
 extends "res://src/client/ui/kit/window.gd"
-## «Присоединиться» (plan/architecture/server.md, «Меню и экраны»): the address of a
-## server (`wss://…` through a tunnel, `ws://адрес:порт` in the home network; read by
-## ServerList.normalize), the name the player goes by there, the password when the
-## server asks one, and the servers joined lately (a tap puts the address in the field).
+## «Присоединиться» (plan/architecture/server.md, «Меню и экраны»): two tabs joined as one
+## (TabRow.tabs). «Персонаж» (CharacterPage): the character drawn big and the name the
+## player goes by there; the screen opens on it while no name is kept. «Сервер»: the
+## address of a server (`wss://…` through a tunnel, `ws://адрес:порт` in the home
+## network; read by ServerList.normalize), the password when the server asks one, and
+## the servers joined lately (a tap puts the address in the field). Enter in the name
+## goes on to «Сервер» (to the password once an address is in).
 ## «Подключиться» says `chosen` with the address, the name and the password; «Назад» (or
 ## Escape) says `cancelled`. Why the last joining failed shows under the fields. The
 ## fields go one under the other, the panel as wide as the narrowest phone held upright
@@ -13,6 +16,8 @@ extends "res://src/client/ui/kit/window.gd"
 const ServerList := preload("res://src/client/net/server_list.gd")
 const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const TabRow := preload("res://src/client/ui/tab_row.gd")
+const CharacterPage := preload("res://src/client/ui/character_page.gd")
 
 ## How wide the fields are: the column is as wide with their insets, whatever is shown.
 const WIDTH := 240
@@ -40,6 +45,11 @@ var _recent_rows: VBoxContainer
 var _bins := TwoTap.new()
 var _go: Button
 var _back: Button
+## The tabs, «Персонаж» and «Сервер», the tab shown.
+var _tabs: HBoxContainer
+var _character: CharacterPage
+var _server: Control
+var _tab := 1
 ## The address and the words of the failure the screen opens with.
 var _start_url := ""
 var _start_error := ""
@@ -55,20 +65,27 @@ func _ready() -> void:
 	build("[join]", 6, WIDTH + 2 * UiStyle.BAR_GAP)
 	# The fields and the recent servers keep the settings' insets (the kit's rule); the
 	# buttons under them stand flush with the frame's room, as in every window.
+	_tabs = TabRow.tabs([["[character]", "", show_tab.bind(0)], ["[server_name]", "", show_tab.bind(1)]], ROW_H)
+	for b: Button in _tabs.get_children():
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_child(_tabs)
+	_character = CharacterPage.new(WIDTH)
+	_character.vertical = true
+	box.add_child(_character)
+	_name = _character.name_field
+	_name.text_submitted.connect(func(_t: String) -> void: _next_after(_name))
 	var content := Kit.column(6)
-	box.add_child(UiStyle.inset(content))
+	_server = UiStyle.inset(content)
+	box.add_child(_server)
 	var recent := ServerList.recent()
 	_url = _field(content, "[server_address]", "[wss_or_ws_address_port]")
 	_url.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_URL
 	_url.text = _start_url if _start_url != "" else (recent[0].url if not recent.is_empty() else "")
-	_name = _field(content, "[name]", "[how_others_will_see_you]")
-	_name.max_length = ServerList.NAME_MAX
-	_name.text = ServerList.player_name()
 	_password = _field(content, "[password]", "[if_the_server_asks]")
 	_password.secret = true
 	_password.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_PASSWORD
 	_error = Kit.note("", 0.0, UiStyle.DANGER)
-	content.add_child(_error)
+	box.add_child(_error)
 	_say(_start_error)
 	_recent = Kit.column(4)
 	content.add_child(_recent)
@@ -82,6 +99,7 @@ func _ready() -> void:
 	box.add_child(_go)
 	_back = Kit.button("[back]", back, 0.0, ROW_H)
 	box.add_child(_back)
+	show_tab(0 if _name.text.strip_edges() == "" else 1)
 	show_fitted()
 	_announce.call_deferred()
 
@@ -124,8 +142,23 @@ func _field(parent: Control, caption: String, hint: String) -> LineEdit:
 	return f
 
 
+## Shows tab `i`: 0 «Персонаж», 1 «Сервер»; its tab lit.
+func show_tab(i: int) -> void:
+	_tab = i
+	_character.visible = i == 0
+	_server.visible = i == 1
+	for j in _tabs.get_child_count():
+		TabRow.light(_tabs.get_child(j), j == i)
+	if is_inside_tree():
+		fit.call_deferred()
+
+
 func _next_after(f: LineEdit) -> void:
-	var order: Array[LineEdit] = [_url, _name, _password]
+	if f == _name:
+		show_tab(1)
+		(_password if _url.text.strip_edges() != "" else _url).grab_focus()
+		return
+	var order: Array[LineEdit] = [_url, _password]
 	var i := order.find(f)
 	if i < order.size() - 1:
 		order[i + 1].grab_focus()
@@ -184,6 +217,7 @@ func submit() -> void:
 	var name := _name.text.strip_edges()
 	if why == "" and name == "":
 		why = "[enter_a_name]"
+		show_tab(0)
 	if why != "":
 		_say(why)
 		return

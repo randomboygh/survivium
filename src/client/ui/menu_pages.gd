@@ -114,8 +114,8 @@ func _fill_page(page: String) -> void:
 			_caption("[single_player]")
 			_add_button(_box, "play", "[continue]", _play_single)
 			_describe_world(_buttons.play)
-			_add_button(_box, "new", "[new_world]", _new_world)
-			_add_button(_box, "worlds", "[load_a_world]", _open_worlds)
+			_add_button(_box, "new", "[new_game]", _new_world)
+			_add_button(_box, "worlds", "[load_game]", _open_worlds)
 			_add_button(_box, "back", "[back]", _fill_page.bind("top"))
 			lit = "play"
 		"multi":

@@ -1,7 +1,8 @@
 extends "res://src/client/ui/kit/window.gd"
 ## «Создать сервер» (plan/architecture/server.md, «Меню и экраны»; a computer, the Android app): the
 ## window of the server made in the game (ServerLink.hosted, LocalHost.host). Before it runs:
-## three tabs joined as one (TabRow.tabs). «Мир»: «Новый мир…» (WorldSetup over this
+## four tabs joined as one (TabRow.tabs). «Персонаж»: the host's character (CharacterPage:
+## the figure big, turned by a drag or left and right, and its name). «Мир»: «Новый мир…» (WorldSetup over this
 ## window, as in single play: the seed, the kind, the map, the mods; the world set up
 ## there comes first in the list, chosen, and is made when the server starts) over the
 ## saved worlds, a button each (the one played last first; the test world always among
@@ -41,6 +42,7 @@ const TabRow := preload("res://src/client/ui/tab_row.gd")
 const Clock := preload("res://src/shared/game/clock.gd")
 const WorldList := preload("res://src/client/ui/world_list.gd")
 const WorldSetup := preload("res://src/client/ui/world_setup.gd")
+const CharacterPage := preload("res://src/client/ui/character_page.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 
@@ -115,6 +117,8 @@ var _tabs: HBoxContainer
 var _pages: Array[VBoxContainer] = []
 var _rows: Array = []
 var _tab := 0
+## «Персонаж» before it runs: the host's character.
+var _character: CharacterPage = null
 ## The settings as the window has them (LocalHost.server_settings: Config's, `rules`
 ## Rules.to_dict), the switches of «Настройки» by their keys.
 var _set := {}
@@ -203,11 +207,16 @@ func _build_setup() -> void:
 	for i in _worlds.size():
 		if _worlds[i].seed == game.world_seed and _worlds[i].settings == game.world_options:
 			_world = i
-	_make_tabs(["[world_n3]", "[server_name]", "[settings]"])
-	_rows = [_choices, ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW), ChoiceRows.new(SET_NAME, SET_VALUE, ARROW)]
-	_build_worlds(_pages[0])
-	_build_making(_pages[1], _rows[1])
-	_build_settings(_pages[2], _rows[2])
+	_make_tabs(["[character]", "[world_n3]", "[server_name]", "[settings]"])
+	_rows = [ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW), _choices, ChoiceRows.new(NAME_WIDTH, VALUE_WIDTH, ARROW),
+		ChoiceRows.new(SET_NAME, SET_VALUE, ARROW)]
+	# The host's own character (CharacterPage), the figure over its rows.
+	_character = CharacterPage.new(WIDTH, false)
+	_character.vertical = true
+	_pages[0].add_child(_character)
+	_build_worlds(_pages[1])
+	_build_making(_pages[2], _rows[2])
+	_build_settings(_pages[3], _rows[3])
 	_error = Kit.note(game.link.host_error, 0.0, UiStyle.DANGER)
 	_error.visible = game.link.host_error != ""
 	box.add_child(_error)
@@ -262,6 +271,7 @@ func _open_new_world() -> void:
 		return
 	_new_world = WorldSetup.new(game)
 	_new_world.finish = "[choose_this_world]"
+	_new_world.with_character = false
 	_new_world.done.connect(_new_world_made)
 	_new_world.cancelled.connect(_close_new_world)
 	visible = false
@@ -289,7 +299,7 @@ func _new_world_made(fresh: bool) -> void:
 	_world = 0
 	_fill_worlds()
 	_close_new_world()
-	show_tab(0)
+	show_tab(1)
 
 
 ## «Сервер»: the name, the password and the access from the internet.
@@ -448,7 +458,7 @@ func _make_tabs(names: Array) -> void:
 		_box.add_child(_pages[i])
 
 
-## Shows tab `i` (before it runs: 0 «Создание», 1 «Настройки»; while it runs: 0 «Сервер»,
+## Shows tab `i` (before it runs: 0 «Персонаж», 1 «Мир», 2 «Сервер», 3 «Настройки»; while it runs: 0 «Сервер»,
 ## 1 «Настройки», 2 «Доступ»), its tab lit, its rows from the top.
 func show_tab(i: int) -> void:
 	_tab = i
@@ -562,10 +572,10 @@ func _start() -> void:
 	var s := settings()
 	if s.why != "":
 		if not s.port in range(1024, 65536):
-			show_tab(2)
+			show_tab(3)
 			_port.grab_focus()
 		elif s.title == "":
-			show_tab(1)
+			show_tab(2)
 			_title.grab_focus()
 		_error.text = s.why
 		_error.visible = true
@@ -834,10 +844,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _choices.key(event):
 		get_viewport().set_input_as_handled()
 		return
-	if not running() and _tab == 0 and event is InputEventKey and event.pressed \
+	if not running() and _tab == 1 and event is InputEventKey and event.pressed \
 			and event.physical_keycode in [KEY_UP, KEY_DOWN]:
 		# Up and down choose among the worlds.
 		choose_world(clampi(_world + (1 if event.physical_keycode == KEY_DOWN else -1), 0, _worlds.size() - 1))
+		get_viewport().set_input_as_handled()
+		return
+	if not running() and _tab == 0 and event is InputEventKey and event.pressed \
+			and event.physical_keycode in [KEY_LEFT, KEY_RIGHT] and not _character.name_field.has_focus():
+		_character.preview.turn(1 if event.physical_keycode == KEY_RIGHT else -1)
 		get_viewport().set_input_as_handled()
 		return
 	super(event)

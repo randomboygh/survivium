@@ -33,15 +33,16 @@ Part of [Interface and settings](../ui.md). Files of the screens before the game
   over a running world — from the pause or the death screen: closes the menu, lit first), «Single player»,
   «Multiplayer», «Editor», «What's new» (the list of the build's changes, `MainMenu._open_changes`; a red dot in its corner while a
   newer build is out, `_update_dot`, shot `ui-main-menu-update`),
-  «Settings», «Exit» → «Single player» (Play/Continue, New world, Load world, Back) and «Multiplayer» (Join,
+  «Settings», «Exit» → «Single player» (Play/Continue, New game, Load a game, Back) and «Multiplayer» (Join,
   Create a server — PC only, on a phone a touch explains; on a server first «Back to the server»,
   «Disconnect»; while one's own server runs, «Single player», «Join» and «Disconnect» are closed: other
   bundles would load under the server); `main.restart()` reloads the scene; the world of a server one has
-  joined loads at once), `join_screen.gd` («Join»: address, name, password, recent servers from
+  joined loads at once), `join_screen.gd` («Join», two tabs `TabRow.tabs`: «Character» — `character_page.gd`, the name, opened first while no
+  name is kept, Enter in the name goes on to «Server»; «Server» — address, password, recent servers from
   `src/client/net/server_list.gd`; the fields and the recent servers inset as the settings' rows, the buttons flush; fields one under another — fits a phone held upright, with the keyboard up
   the panel goes to the top; the link `?server=` opens it with the address, a failed login — again with the
-  reason), `host_screen.gd` («Create a server» on PC, three tabs `TabRow.tabs`: «World» — «New world…» (opens
-  `world_setup.gd` over it, as in single play, its button «Choose this world»; the world set up comes first in
+  reason), `host_screen.gd` («Create a server» on PC, four tabs `TabRow.tabs`: «Character» — the host's `character_page.gd`; «World» — «New world…» (opens
+  `world_setup.gd` over it without «Character» (`with_character` false, titled «New world»), its button «Choose this world»; the world set up comes first in
   the list and the server makes it with its mods on start, over a save of its seed only after the setup's
   second tap) over the saved worlds, a button each; «Server» — a name, a password, «Access from the internet» (С7, the cloudflared tunnel); «Settings» —
   everything else the server takes (`Config` and its `rules`): the port, players, how often to save, the length
@@ -57,9 +58,14 @@ Part of [Interface and settings](../ui.md). Files of the screens before the game
   «Unban» and the field «Ban» (the same commands `whitelist`, `ban`, `unban`, `Server.access`); under all
   «Play», «Stop the server» (two touches), «Back»; the same window is the «Server» item in the pause menu;
   taller than the screen — it scrolls, the bar does not cover the rows, `UiStyle.bar_room`; the rows inset as the settings', `UiStyle.inset_room`), `world_setup.gd`
-  («New world»: seed, kind of world, generator settings with a map round the middle of the world, the start a dot on it (not round the start: the start moves with the biomes chosen, the land does not; laid out with the biomes of the bundles chosen there: `Biomes.refresh(only)`, the tables swapped in round each frame's rows by `Biomes.tables`/`use`, so the world behind keeps its own), the rows inset as the settings' (`UiStyle.inset`), the page «Mods» and a page per mod, its first row the mod as a whole switching all its bundles, `_whole_mod_row` (a switch keeps its place in the list: the page is made anew at the same scroll): under a dropped bundle the
+  («New game», two tabs: «Character» — `character_page.gd`, taking the room of «World», the figure where the map is;
+  «World» — seed, kind of world, generator settings with a map round the middle of the world, the start a dot on it (not round the start: the start moves with the biomes chosen, the land does not; laid out with the biomes of the bundles chosen there: `Biomes.refresh(only)`, the tables swapped in round each frame's rows by `Biomes.tables`/`use`, so the world behind keeps its own), the rows inset as the settings' (`UiStyle.inset`), the page «Mods» and a page per mod, its first row the mod as a whole switching all its bundles, `_whole_mod_row` (a switch keeps its place in the list: the page is made anew at the same scroll): under a dropped bundle the
   whole chain of the reason, `Mods.why`; when a world of the seed and settings is saved, a red note says
   «Create a world» makes it anew with the mods chosen now on a second tap, `_check_saved`,
-  `SaveGame.replace_world` deletes the save), `world_list.gd` («Load world»; a world has a square trash button:
+  `SaveGame.replace_world` deletes the save), `world_list.gd` («Load a game»; a world has a square trash button:
   the first touch paints it red, the second deletes, for the test world — resets; recent servers on the «Join»
-  screen have the same, `ServerList.forget`), `death_screen.gd`.
+  screen have the same, `ServerList.forget`), `death_screen.gd`. `character_page.gd` («Character», stage 3 of plan/mvp.md: a character belongs
+  to its world): `figure_preview.gd` (the player's sheet, `Figure`, built a part of a row a frame, drawn big,
+  breathing; a drag or a tap on a side turns it through eight directions, the keys left and right too) beside or
+  over its rows: the name (`ServerList.player_name`, kept as typed); the looks to choose come as rows there. Shot
+  `ui-setup-character`.
