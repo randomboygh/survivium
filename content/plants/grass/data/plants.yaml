@@ -34,7 +34,7 @@
   title: "[plants.plants.sedge]"
   sprite: sedge
   frames: 4
-  across: 3
+  across: 2
   tint: grass
   grows: meadow
   cover: 0.02

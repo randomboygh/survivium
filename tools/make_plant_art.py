@@ -646,17 +646,17 @@ NEW_BARKS = [
 
 
 # Sedge (grass bundle, plants `tint: grass`): tussocks of long blades fanning out from one
-# root and arching over, three cards wide. Drawn in greys that the shader multiplies with
+# root and arching over, two cards wide. Drawn in greys that the shader multiplies with
 # the grass colour of the place (twice the grey: 128 is the grass itself), so the sedge
 # takes the tint of the meadow round it; a little bluer and darker at the root than the
 # tall grass. Each look: (seed, blades, the widest lean from upright in degrees, the
 # longest blade in px, how far in degrees the outer blades bend over, the lean of the whole tussock).
-SEDGE_LOOKS = [(5, 14, 50, 19, 100, 0), (6, 11, 32, 21, 60, 0), (7, 12, 42, 18, 105, 12), (8, 16, 58, 15, 120, 0)]
+SEDGE_LOOKS = [(5, 9, 50, 14, 100, 0), (6, 7, 32, 16, 60, 0), (7, 8, 42, 13, 105, 10), (8, 10, 58, 11, 120, 0)]
 
 
 def sedge():
     import math
-    w = 24
+    w = 16
     img = Image.new("RGBA", (w * len(SEDGE_LOOKS), 24), (0, 0, 0, 0))
     for f, (seed, blades, spread, longest, bend, tilt) in enumerate(SEDGE_LOOKS):
         rnd = random.Random(seed)
@@ -667,8 +667,9 @@ def sedge():
             # the outer ones the most, so their tips arch over and hang.
             length = longest * rnd.uniform(0.7, 1.0)
             turn = math.copysign(bend * (0.35 + abs(a) / spread * 0.65), a if a != 0 else 1) * rnd.uniform(0.8, 1.2)
-            x, y = 11.5 + rnd.uniform(-1.0, 1.0), 0.0
+            x, y = 7.5 + rnd.uniform(-0.6, 0.6), 0.0
             steps = int(length * 3)
+            pts = []
             for i in range(steps + 1):
                 t = i / steps
                 rad = math.radians(a + turn * t * t)
@@ -676,9 +677,16 @@ def sedge():
                 y += math.cos(rad) / 3.0
                 if y < 0:
                     break
-                px, py = int(round(x)), 23 - int(round(y))
-                if not (0 <= px < w and 0 <= py < 24):
+                p = (int(round(x)), 23 - int(round(y)))
+                if not (0 <= p[0] < w and 0 <= p[1] < 24):
                     break
+                if pts and pts[-1][0] == p:
+                    continue
+                # One texel thin: a texel at an elbow between two diagonal neighbours goes.
+                if len(pts) > 1 and abs(pts[-2][0][0] - p[0]) == 1 and abs(pts[-2][0][1] - p[1]) == 1:
+                    pts.pop()
+                pts.append((p, t))
+            for (px, py), t in pts:
                 # Dark and a little blue at the root, lit toward the tip (the grass
                 # colour times twice the grey).
                 k = 0.5 + 0.7 * t + rnd.uniform(-0.05, 0.05)
