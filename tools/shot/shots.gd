@@ -591,6 +591,9 @@ const SHOTS := {
 	# Skills learned in the character window: levels, the way to the next, an axe's power in green.
 	"bag-levels": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "hold": ["", "tools:stone_axe"],
 		"skills": {"gather": 4, "chop": 3, "dig": 6, "craft": 2, "build": 5, "cook": 1, "hunt": 2, "fish": 1, "swim": 3}},
+	# Strength at level 5: the bag carries 70 kg, its weight meter longer, the bar of Strength among the skills.
+	"bag-strong": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "fell": true, "gather": true,
+		"skills": {"carry": 5, "endure": 2, "chop": 3}},
 	# A skill's new level: gold edges, stars rising round the player, the notice in the corner.
 	"level-up": {"time": 0.42, "season": 1, "clearing": true, "level_up": "chop"},
 	# A stone axe made by a skilled hand (decision 164, 4А): its swings to spare shown on

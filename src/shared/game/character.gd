@@ -248,6 +248,10 @@ const VITALS_STEP := 0.05
 ## Hardiness (the skill of role `endure`) grows by its `each` points for every health lost,
 ## and by ENDURE_HARDSHIP a second spent hungry, thirsty, cold or hot.
 const ENDURE_HARDSHIP := 0.25
+## Strength (the skill of role `carry`) grows by a point a second of walking with at
+## least CARRY_FROM of the carrying limit on the back, CARRY_OVER points past the limit.
+const CARRY_FROM := 0.7
+const CARRY_OVER := 2.0
 ## Asleep by a fire, the body gets FIRE_SLEEP_GOLD golden health that lasts
 ## FIRE_SLEEP_TIME seconds (Vitals.fortify).
 const FIRE_SLEEP_GOLD := 10.0
@@ -269,10 +273,20 @@ func _init() -> void:
 	# A method, not a lambda: a lambda would keep the character, and the world it
 	# holds, alive through its own bag after the scene is gone.
 	inventory.changed.connect(_on_bag_changed)
+	skills.changed.connect(_on_skills_changed)
 
 
 func _on_bag_changed() -> void:
 	state_changed.emit()
+
+
+## The carrying limit follows strength (SkillSet.carry_bonus), on the server and on a
+## client's copy alike; the bag is told only when the limit really moves (a level).
+func _on_skills_changed() -> void:
+	var limit := Inventory.WEIGHT_LIMIT + skills.carry_bonus()
+	if inventory.weight_limit != limit:
+		inventory.weight_limit = limit
+		inventory.changed.emit()
 
 
 ## Where the body stands, in world units: the owner keeps it.
@@ -353,6 +367,8 @@ func update(delta: float) -> void:
 			vitals.sleep(false)
 			say("[you_slept_well]")
 	_endure(delta)
+	if inventory.heavy and stride > STILL and stride < STRIDE_MAX and share >= CARRY_FROM:
+		skills.gain("carry", delta * (CARRY_OVER if share > 1.0 else 1.0))
 	body.load_scale = inventory.speed_factor() * vitals.speed_factor()
 	body.swim_scale = skills.boost("swim")
 	body.vessel = vessel_pace()

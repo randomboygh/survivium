@@ -142,6 +142,17 @@ func health_bonus() -> float:
 	return minf(n, Vitals.MOST_ADDED)
 
 
+## The kilograms the skills add to the carrying limit (their `carry` at the last level),
+## an even share of it at each level: strength, role `carry`.
+func carry_bonus() -> float:
+	var n := 0.0
+	for s: Dictionary in Skills.ALL:
+		var most: float = s.get("carry", 0.0)
+		if most > 0.0:
+			n += most * level(s.id) / s.levels
+	return snappedf(n, 0.1)
+
+
 ## The sum of the levels of every skill (the land a player may hold, Territory.budget).
 func total() -> int:
 	var n := 0

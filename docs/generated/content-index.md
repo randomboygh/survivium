@@ -693,7 +693,7 @@
 | `tools:mow` | [tools.sounds.mow] |  |  | `tools/scythe` | 0 / 0 | ок |
 | `tools:swish` | [tools.sounds.swish] |  |  | `tools/sword` | 0 / 0 | ок |
 
-## skills (`skills`, 11)
+## skills (`skills`, 12)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
@@ -708,3 +708,4 @@
 | `core:swimming` | [core.skills.swimming] |  | [core.skills.swimming.about] | `core` | 0 / 0 | ок |
 | `core:farming` | [core.skills.farming] |  | [core.skills.farming.about] | `core` | 0 / 0 | ок |
 | `core:hardiness` | [core.skills.hardiness] |  | [core.skills.hardiness.about] | `core` | 0 / 0 | ок |
+| `core:strength` | [core.skills.strength] |  | [core.skills.strength.about] | `core` | 0 / 0 | ок |

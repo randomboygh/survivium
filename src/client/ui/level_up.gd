@@ -37,6 +37,9 @@ func _on_leveled(id: String, level: int) -> void:
 	if faster > 0:
 		line = Lang.line("[level_of_by]", [level, s.levels,
 			"[swims_faster]" if s.role == "swim" else "[works_faster]", faster])
+	var carry: float = snappedf(s.get("carry", 0.0) * level / s.levels, 0.1)
+	if carry > 0.0:
+		line = Lang.line("[level_of_carries]", [level, s.levels, carry])
 	game.hud.notice(Lang.line("[a_new_level]", [s.title]), line)
 	var now := Time.get_ticks_msec() / 1000.0
 	if now - _last < AGAIN:

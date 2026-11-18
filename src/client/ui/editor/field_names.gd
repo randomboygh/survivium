@@ -275,6 +275,7 @@ const NAMES := {
 	"skills.might": ["[field.skills.might]", "[field.skills.might.about]"],
 	"skills.care": ["[field.skills.care]", "[field.skills.care.about]"],
 	"skills.health": ["[field.skills.health]", "[field.skills.health.about]"],
+	"skills.carry": ["[field.skills.carry]", "[field.skills.carry.about]"],
 	"plants.kind": ["[field.plants.kind]", "[field.plants.kind.about]"],
 	"plants.gives": ["[field.plants.gives]", "[field.plants.gives.about]"],
 	"plants.chance": ["[field.plants.chance]", "[field.plants.chance.about]"],
