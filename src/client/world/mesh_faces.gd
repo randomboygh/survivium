@@ -258,8 +258,17 @@ static func _piece(buf, base: Vector3, h: float, q: int, kind: int, n: Vector3, 
 		var hub := Vector2(0.5, 0.5) if kind == OLD_CUT else corner
 		var curve := _old_curve(q, shape)
 		var off := o * (EPS if kind == OLD_CUT else -EPS)
-		for j in curve.size() - 1:
-			pts = [hub, curve[j] + off, curve[j + 1] + off]
+		# The curve stands EPS past its line, which turns its ends off the sides of the
+		# cell: the thin wedges between each end and the middle of its side are drawn
+		# too, or the ground beside showed through there (a crack of single pixels).
+		var last := curve.size() - 1
+		for j in range(-1, last + 1):
+			if j == -1:
+				pts = [hub, curve[0], curve[0] + off]
+			elif j == last:
+				pts = [hub, curve[last] + off, curve[last]]
+			else:
+				pts = [hub, curve[j] + off, curve[j + 1] + off]
 			var tri := []
 			for p: Vector2 in pts:
 				tri.append(base + Vector3(p.x, h, p.y))

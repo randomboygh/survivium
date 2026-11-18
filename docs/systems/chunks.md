@@ -178,6 +178,9 @@ timings are noisy on a busy machine, before blaming the code run it alone.
 - The edges of geometry on the grid of pixel centres need overlapping (`ChunkMesher.EPS`), walls under 1 px
   on screen rasterize as a flickering dotted line; headless will not show it — render with ±eps and compare
   the shots.
+- A curve moved `EPS` past its line turns its ends off the cell's sides: `MeshFaces._piece` draws the thin
+  wedge from each end back to the middle of its side, or the ground below shows through in single pixels
+  (on a magenta background: `tools/shot.gd --magenta`; dark ones where a shaded wall lies below).
 - MultiMesh instance data on GLES3 / web is half float: new instance data goes into COLOR, not into a packed
   int. The vertex COLOR is 8-bit and is clipped above 1. Keep packed float words below 2^23 (otherwise
   `int(x + 0.5)` rounds to even): no flag bits above 256.
