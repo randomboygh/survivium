@@ -43,7 +43,12 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
   (`_old_update_corners`, `_old_in_corner`, `corner_at`); `ground_height` and `body.gd` `_cell_top` follow the patch. The client draws them with
   `src/client/world/old_slope_mesher.gd` (the old `slope_mesher.gd`), `MeshFaces.old_slopes` (curved cut
   pieces `OLD_CUT`, `_old_curve` by `Mat.corner_shape`, `_old_diag_wall`), the water's lips and foam, and the
-  shader global `old_slopes` (`corner_distance`, `in_cell_corners`); no rounded edges (EdgeMesher off).
+  shader global `old_slopes` (`corner_distance`, `in_cell_corners`); no rounded edges (EdgeMesher off). An outer
+  corner whose one high corner has the column across it lower (a ridge two cells wide on the diagonal) stays a
+  cube cut at its corners, a straight diagonal wall as stone is, not a peak per cell (`_old_slope`). A cut or fill
+  that a fill or cut beside goes on from is drawn straight whatever the material's corner shape
+  (`ChunkMesher._diag_shape`, `_cap_shape`; tops and foam by `MeshFaces.DIAG_STRAIGHT` and the foam's shape
+  bits), so diagonal walls and waterlines run straight and only their ends are rounded.
 - `src/shared/world/grass.gd` — what grows on top of a ground cell (tiers of grass, flowers, ears, moss, the
   mods' plants `Plants`: on open grass, in the shade of crowns, in the woods — that shade and the grass
   `WOODS_EDGE` cells round it, `_near_crown` —, on banks; a frame `across` cards wide is one kind, its first

@@ -8,6 +8,7 @@ const OldSlopeMesher := preload("res://src/client/world/old_slope_mesher.gd")
 
 func run() -> void:
 	_test_corners()
+	_test_diagonal_ridge()
 	_test_shapes()
 	# The meshers draw the next world as it says (ChunkMesher.start_rect).
 	ChunkMesher.old_slopes = false
@@ -56,6 +57,35 @@ func _test_corners() -> void:
 	w.set_cell(3, 2, 3, Mat.STONE)
 	_check(not w.corner_cut(3, 2, 3, 0) and not w.corner_cut(3, 1, 3, 0), "placed blocks stay square")
 	player.free()
+
+
+## A ridge of dirt a level high and two cells wide on the diagonal (cells k, k and k,
+## k + 1, k 2..7) on a dirt floor: no slope rising to a peak at each cell, but cubes cut
+## at their corners, drawn straight along the diagonal and round only at the ends.
+func _test_diagonal_ridge() -> void:
+	var w := WorldData.new(6, Vector2i(12, 12))
+	w.old_slopes = true
+	var c: WorldData.Chunk = w.chunks[Vector2i.ZERO]
+	c.natural.fill(WorldData.WILD)
+	for z in 12:
+		for x in 12:
+			c.cells[z * 16 + x] = Mat.DIRT
+	for k in range(2, 8):
+		for z: int in [k, k + 1]:
+			c.cells[(16 + z) * 16 + k] = Mat.DIRT
+	w.rebuild_columns()
+	w.refresh_shapes()
+	var peaks := 0
+	for k in range(3, 7):
+		peaks += int(w._shape(k, 1, k) & 15 != 0) + int(w._shape(k, 1, k + 1) & 15 != 0)
+	_check(peaks == 0, "a ridge two cells wide on the diagonal stays cubes, no peak at each cell")
+	_check(w.corner_cut(4, 1, 4, 1) and w.corner_fill(5, 1, 4, 3) and w.corner_cut(4, 1, 5, 3),
+		"its sides are cut and filled on the diagonal")
+	var round := Mat.corner_shape[Mat.DIRT]
+	_check(round != 0, "dirt has round corners")
+	_check(ChunkMesher._cap_shape(w, 4, 1, 4, 1, round) == 0 and ChunkMesher._cap_shape(w, 5, 1, 4, 3, round) == 0,
+		"a cut and a fill going on along the diagonal are drawn straight")
+	_check(ChunkMesher._cap_shape(w, 2, 1, 2, 0, round) == round, "the end of the ridge keeps its rounding")
 
 
 ## The shapes the world works out a column at a time match the rules written out for
@@ -276,7 +306,13 @@ func _ref_top_slope(w: WorldData, x: int, y: int, z: int) -> int:
 		if _ref_low(w, x + o.x, y, z + o.y):
 			low |= 1 << k
 	if low != 0:
-		return WorldData.RAMPS[low]
+		var high: int = WorldData.RAMPS[low]
+		# One high corner with the column across it lower: a ridge on the diagonal stays a cube.
+		for k in 4:
+			var o: Vector2i = WorldData.CORNER_DIRS[k]
+			if high == 1 << k and _ref_low(w, x + o.x, y, z + o.y):
+				return WorldData.FULL
+		return high
 	var mask := WorldData.FULL
 	for k in 4:
 		var o: Vector2i = WorldData.CORNER_DIRS[k]

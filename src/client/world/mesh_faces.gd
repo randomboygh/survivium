@@ -71,6 +71,11 @@ const OPEN_TOP := 2
 const SLOPE := 4
 const DIAG := 8
 const DIAG_CORNER := 64
+## Its diagonal is straight whatever the material's corner shape (old slopes, see _diag).
+const DIAG_STRAIGHT := 512
+## Corner shapes are kept 2 bits a corner (NW lowest): one shape times this is that shape
+## at every corner.
+const ALL_CORNERS := 0x55
 const CORNER_DIRS := WorldData.CORNER_DIRS
 ## Pieces of a top (see _piece): a whole quarter of the cell, the half of the cell
 ## beyond the diagonal across corner q (a fill), and from CUT_BY on what is left of
@@ -168,9 +173,11 @@ static func pack(tile: int, edges: int, flag: int) -> float:
 
 
 ## Flag of a face with a diagonal across corner k: its corner side (or the other) is
-## the face, and `code` is drawn along the diagonal.
-static func _diag(k: int, corner_side: bool, code: int) -> int:
-	return DIAG | k << 4 | (DIAG_CORNER if corner_side else 0) | code << 7
+## the face, and `code` is drawn along the diagonal. Old slopes: `shape` 0 draws the
+## line straight whatever the material's corner shape (DIAG_STRAIGHT, see
+## ChunkMesher._diag_shape).
+static func _diag(k: int, corner_side: bool, code: int, shape := -1) -> int:
+	return DIAG | k << 4 | (DIAG_CORNER if corner_side else 0) | code << 7 | (DIAG_STRAIGHT if shape == 0 else 0)
 
 
 ## The line of corner k's cut or fill on the top of a cell: the diagonal across it,

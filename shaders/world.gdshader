@@ -17,7 +17,7 @@
 //          diagonal wall (textured in screen texels so it is not stretched), 8 = an
 //          edge along the diagonal of corner k (bits 16..32: NW, NE, SE, SW), the face
 //          lying on the corner's side of it if bit 64, with the edge code in bits
-//          128..256
+//          128..256, drawn straight whatever the material's corner shape if bit 512
 //   UV2.y = top materials of the 4 neighbours N, S, W, E, 6 bits each (63 = none), for
 //          material transitions on top faces; on a wall the materials of the cells
 //          beside it on its plane, above, below, W and E (see ChunkMesher._side_tiles)
@@ -103,7 +103,7 @@ float drift_size() {
 }
 
 bool is_drift(float packed_tile, vec2 uv) {
-	return int(packed_tile + 0.5) % 64 == NO_MATERIAL && uv.x > 2.5;
+	return int(round(packed_tile)) % 64 == NO_MATERIAL && uv.x > 2.5;
 }
 
 // Where the point is in the picture, for the dither of the light rings (light_texel).
@@ -166,7 +166,7 @@ void vertex() {
 	// A thing of voxels (a placed thing, a dropped one: no material, not a drift) sways
 	// aside in the heat over sand and the sea, row by row of the picture, its foot most
 	// (heat_sway); the ground itself trembles by its texels (see fragment).
-	if (heat_ground > 0.0 && int(UV2.x + 0.5) % 64 == NO_MATERIAL && !is_drift(UV2.x, UV)) {
+	if (heat_ground > 0.0 && int(round(UV2.x)) % 64 == NO_MATERIAL && !is_drift(UV2.x, UV)) {
 		vec3 foot = MODEL_MATRIX[3].xyz;
 		float s = heat_sway(VERTEX, foot, VERTEX.y - foot.y, TIME) / TEXELS;
 		VERTEX.xz += vec2(-view_up.y, view_up.x) * s;
@@ -287,7 +287,9 @@ void fragment() {
 			discard;
 		}
 	}
-	int a = int(packed.x + 0.5);
+	// Whole already, up to 2^24 (flag 512 is over 2^23, where adding a half rounds an odd
+	// word up to the next even one, the next material: see packed.y below).
+	int a = int(round(packed.x));
 	int code = a % 64;
 	int flag = a / 16384;
 	int tile = code == NO_MATERIAL ? NONE
@@ -512,7 +514,9 @@ void fragment() {
 		// Texel distance to the diagonal across corner k (see MeshFaces.corner_curve),
 		// counted on the face, positive away from the corner.
 		int k = (flag >> 4) & 3;
-		int dd = corner_distance(t, k, corner_shapes[tile / 3]);
+		// Flag 512: straight whatever the material (a diagonal going on, see
+		// MeshFaces.DIAG_STRAIGHT).
+		int dd = corner_distance(t, k, (flag & 512) != 0 ? 0 : corner_shapes[tile / 3]);
 		dd = (flag & 64) != 0 ? -dd : dd;
 		int code = (flag >> 7) & 3;
 		if (top && (code == 1 || code == 2)) {
