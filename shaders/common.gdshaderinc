@@ -1015,9 +1015,12 @@ float heat_sway(vec3 p, vec3 foot, float h, float time) {
 }
 
 // The surf (WaterMesher.SWASH_REACH): the farthest a wave runs up from the waterline, in
-// cells, and the seconds from one wave to the next.
-const float SWASH_REACH = 5.0;
+// cells, and the seconds from one wave to the next; SWASH_BASE how far up the sand the
+// sea always lies, in cells at most (a ragged band the waves start from and never go
+// back behind, so they never meet the sea's own water in a straight line).
+const float SWASH_REACH = 8.0;
 const float SWASH_PERIOD = 7.0;
+const float SWASH_BASE = 2.0;
 
 // The surf's wave at world texel `tex` at `time` (drawn by water.gdshader over the sheet,
 // mirrored in by sprite_mirror.gdshader): how far from the waterline its front is and
@@ -1030,14 +1033,16 @@ void surf_wave(vec2 tex, float time, out float front, out float peak, out float 
 	float t = time / SWASH_PERIOD + texture(cloud_noise, xz / 18.0).r * 2.3;
 	wave = floor(t);
 	p = fract(t);
-	float reach = SWASH_REACH * (0.35 + 0.65 * texture(cloud_noise, xz / 11.0 + wave * 0.29).r);
+	// The band the sea always covers: ragged along the shore, slowly breathing.
+	float base = SWASH_BASE * (0.45 + 0.55 * texture(cloud_noise, xz / 4.0 + vec2(time * 0.004, 0.0)).r);
+	float reach = (SWASH_REACH - SWASH_BASE - 0.5) * (0.35 + 0.65 * texture(cloud_noise, xz / 11.0 + wave * 0.29).r);
 	// Up fast over the first quarter, easing out; back over the rest, easing in.
 	float run = p < 0.25 ? 1.0 - (1.0 - p / 0.25) * (1.0 - p / 0.25) : 1.0 - smoothstep(0.25, 1.0, p);
 	float rag = (texture(cloud_noise, xz / 2.5 + vec2(wave * 0.41, time * 0.02)).r - 0.5) * 0.9
 		+ (hash12(vec2(floor(tex.x / 2.0) + floor(tex.y / 2.0), wave)) - 0.5) * 0.25;
-	// The front, never behind the waterline; and how far this wave got.
-	front = max(reach * run + rag * run, 0.0);
-	peak = max(reach + rag, 0.0);
+	// The front, never behind the band; and how far this wave got.
+	front = base + max(reach * run + rag * run, 0.0);
+	peak = base + max(reach + rag, 0.0);
 	// How much of the foam the wave leaves behind is still there: all of it as the
 	// wave turns, none by the time the next one comes.
 	left = p > 0.25 ? 1.0 - smoothstep(0.25, 0.95, p) : 0.0;
