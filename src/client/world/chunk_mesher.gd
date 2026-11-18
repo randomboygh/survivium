@@ -10,6 +10,9 @@ extends "res://src/client/world/mesh_faces.gd"
 ## Leaves are not cubes: Foliage draws them as leaf clumps. Meshes are built in cells
 ## and scaled to world units.
 
+## The vertex colour of the faces of a cracked built cell (building decay, WorldData.cracks):
+## green at half marks it, world.gdshader draws the cracks and keeps the tile's colours.
+const CRACKED := Color(1, 0.5, 1)
 const Slopes := preload("res://src/client/world/slope_mesher.gd")
 const OldSlopes := preload("res://src/client/world/old_slope_mesher.gd")
 const Water := preload("res://src/client/world/water_mesher.gd")
@@ -251,6 +254,8 @@ static func _column(job: Job, x: int, z: int) -> bool:
 	var offsets := job.offsets
 	# The stone tops whose moss was picked (WorldData.turf "").
 	var picked: Dictionary = w.turf.get(WorldData.chunk_key(x, z), {})
+	# The built cells cracked by decay (WorldData.cracks).
+	var cracked_here: Dictionary = w.cracks.get(WorldData.chunk_key(x, z), {}) if not w.cracks.is_empty() else {}
 	var j := (z - z0) * (x1 - x0) + (x - x0)
 	var cand := cands[j]
 	var column := (z - z0 + PAD) * dz + PAD + x - x0
@@ -385,9 +390,11 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			# Corner shapes of the cuts, 2 bits a corner (see _diag_shapes).
 			var shapes := _diag_shapes(c, sh, cov, i, dz, cuts, Mat.corner_shape[m]) if cuts != 0 else 0
 			var bare: bool = m == Mat.STONE and not picked.is_empty() and picked.get(Vector3i(x, y, z), null) == ""
+			# Its faces drawn one by one with the crack mark (CRACKED), never merged.
+			var cracked: bool = not cracked_here.is_empty() and cracked_here.has(Vector3i(x, y, z))
 			# Most tops lie under open sky amid the same flat ground: no sides, no
 			# edges, no transitions.
-			if cuts == 0 and not bare and not by_form and not cov[nb[2]] and cov[nb[3]] and nb[0] == m and nb[1] == m and nb[4] == m \
+			if cuts == 0 and not bare and not cracked and not by_form and not cov[nb[2]] and cov[nb[3]] and nb[0] == m and nb[1] == m and nb[4] == m \
 					and nb[5] == m and (sh[i + dx] | sh[i - dx] | sh[i + dz] | sh[i - dz]) < 16 \
 					and (sh[i + dx] | sh[i - dx] | sh[i + dz] | sh[i - dz]) & 15 == 0 \
 					and cov[c[i + dx + dz]] and cov[c[i + dx - dz]] and cov[c[i - dx + dz]] and cov[c[i - dx - dz]] \
@@ -396,7 +403,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				plain.append(((y * 64 + m) * 64 + z - z0) * 64 + x - x0)
 				continue
 			# Natural ground with a rounded or bevelled edge near (EdgeMesher).
-			if sh[i] & 15 == 0 and not bare and not by_form:
+			if sh[i] & 15 == 0 and not bare and not cracked and not by_form:
 				var ready := Edges.prepare(job, i)
 				if not ready.is_empty():
 					Edges.draw(job, solid, i, base, ready, float(_around_tiles(c, cov, i, dy, dz, sh)),
@@ -431,7 +438,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				var edges := 0
 				var flag := 0
 				var around := no_tiles
-				var color := white
+				var color := CRACKED if cracked else white
 				if d == FACE_TOP:
 					edges = _top_edges(c, cov, i, dy, dz, y == sea_level)
 					var halves := _covered_halves(c, sh, cov, i, dy, dz, edges)
@@ -439,7 +446,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 					if cuts != 0 or halves != 0:
 						_top_pieces(solid, base, m, cuts, edges, halves, float(a), shapes)
 						continue
-					if edges == 0 and not bare and _plain_around(a, m):
+					if edges == 0 and not bare and not cracked and _plain_around(a, m):
 						plain.append(((y * 64 + m) * 64 + z - z0) * 64 + x - x0)
 						continue
 					around = float(a)

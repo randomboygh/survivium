@@ -260,6 +260,9 @@ const SHOTS := {
 	# Walls and floors of every building material in a row (stone, planks, brick, log
 	# wall, wattle, cut stone).
 	"build-materials": {"time": 0.4, "season": 1, "walls": true},
+	# Building decay: the walls of every material, half their cells cracked
+	# (WorldData.cracks, places.crack_near).
+	"decay-cracks": {"time": 0.4, "season": 1, "walls": true, "cracks": true},
 	# A cliff of turf, soil, stone with ore veins, sand, clay and a block of brick
 	# (Places.strata): how materials meet on the sides of cells.
 	"strata": {"time": 0.42, "season": 1, "strata": true},

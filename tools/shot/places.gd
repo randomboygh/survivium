@@ -670,6 +670,22 @@ func strata(w, at: Vector3) -> Vector3:
 	return (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
+## Cracks every other built cell of a material that decays within 20 cells of `at`
+## (building decay, WorldData.cracks) and draws their chunks again.
+func crack_near(w, at: Vector3) -> void:
+	var from := Vector3i((at / CELL).floor())
+	var keys := {}
+	for z in range(from.z - 20, from.z + 21):
+		for x in range(from.x - 20, from.x + 21):
+			for y in range(maxi(from.y - 4, 0), mini(from.y + 8, w.size_y)):
+				var m: int = w.get_cell(x, y, z)
+				if Mat.decays[m] > 0.0 and not w.is_natural(x, y, z) and (x + 2 * y + 3 * z) % 2 == 0:
+					w.crack(Vector3i(x, y, z), m)
+					keys[WorldData.chunk_key(x, z)] = true
+	for key: Vector2i in keys:
+		main.chunks.remesh_chunk(key)
+
+
 ## Short walls of every building material in a row on flat grass near `at`, each three
 ## cells long and three high on a floor of its own laid flush with the ground, the
 ## player in front of them (the building stage, materials as cells), and stairs.

@@ -153,6 +153,31 @@ float section_rim(vec3 p, vec3 n, vec2 texel) {
 	return best;
 }
 
+// The cracks of a decayed block's face (building decay; `t` its texel, 8 by 8): one
+// down from a texel of its top edge, a step aside now and then, 4 to 8 texels long, and
+// a shorter one in from its left edge; dark in the crack, a shade darker beside it. Each
+// face of each cell its own (`pos` on the face, `n` its normal).
+float crack_mark(ivec2 t, vec3 pos, vec3 n) {
+	float seed = hash13(floor(pos / CELL - n * 0.1) + n * 3.7);
+	float shade = 1.0;
+	for (int k = 0; k < 2; k++) {
+		float s = hash12(vec2(seed * 131.0, float(k) * 17.0 + 3.0));
+		ivec2 p = k == 0 ? t : ivec2(t.y, t.x);
+		int x = 1 + int(s * 6.0);
+		int len = k == 0 ? 4 + int(hash12(vec2(seed, 5.0)) * 5.0) : 2 + int(hash12(vec2(seed, 9.0)) * 3.0);
+		for (int y = 0; y < 8; y++) {
+			if (y > 0) {
+				float r = hash12(vec2(s * 57.0 + float(y), float(k) + 1.0));
+				x = clamp(x + (r < 0.3 ? -1 : (r > 0.7 ? 1 : 0)), 0, 7);
+			}
+			if (y == p.y && y < len) {
+				shade = min(shade, p.x == x ? 0.42 : (abs(p.x - x) == 1 ? 0.88 : 1.0));
+			}
+		}
+	}
+	return shade;
+}
+
 void vertex() {
 	if (is_drift(UV2.x, UV)) {
 		// The mound stands on the top of its cell and is lower than a cell.
@@ -315,7 +340,10 @@ void fragment() {
 	ivec2 t = clamp(ivec2(floor(UV * CELL_TEXELS)), ivec2(0), ivec2(last));
 	// Texel distance to the N, S, W, E edges of the face.
 	int dist[4] = int[](t.y, last - t.y, t.x, last - t.x);
-	vec3 col = COLOR.rgb;
+	// A cracked built block (building decay, ChunkMesher.CRACKED: green at half on a tile
+	// face) keeps its tile's colours; its cracks are drawn over them (crack_mark).
+	bool cracked = tile != NONE && COLOR.r > 0.9 && COLOR.g > 0.2 && COLOR.g < 0.8;
+	vec3 col = cracked ? vec3(1.0) : COLOR.rgb;
 	// The steep middle of a curved slope still counts as its top.
 	bool top = world_normal.y > 0.5 || (flag == 4 && tile != NONE && tile % 3 == 0);
 	// The dark caps of the cut (see ChunkMesher.build_cap) are cross-sections, not
@@ -560,6 +588,9 @@ void fragment() {
 	// picked (see Grass.stone_moss); a picked top keeps a ragged edge of it, 0..2
 	// texels, along the tops beside that were not picked, so a picked patch is not cut
 	// out in squares.
+	if (cracked) {
+		col *= crack_mark(t, world_pos, world_normal);
+	}
 	bool moss = COLOR.a > 0.97;
 	if (!moss && top && tile == 3 * 3) {
 		int around = int(COLOR.a * 16.0 + 0.5);

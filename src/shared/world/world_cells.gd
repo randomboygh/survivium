@@ -48,6 +48,11 @@ var water_frozen := false
 ## while it is open, -1 once a crust has grown over it. An open hole is open water
 ## (frozen_at), in a frozen world. Not saved: they skin over in a day anyway.
 var ice_holes := {}
+## Cracked built cells (Decay, building decay) by chunk: Vector2i(cx, cz) -> {Vector3i:
+## the material that cracked, -1 not known (a save's, a server's copy)}. A cell set anew
+## (set_cell) is whole. The server's Decay writes them; a client's copy over a socket takes
+## them by Protocol.CRACKS; the mesher draws them (ChunkMesher, COLOR.g CRACK_SHADE).
+var cracks := {}
 ## The chunks kept, by Vector2i(cx, cz) (chunk cx holds the columns cx * CHUNK and on).
 var chunks := {}
 ## WILD for every cell the generator left in place, SHEER besides on loose ground that
@@ -314,6 +319,8 @@ func set_cell(x: int, y: int, z: int, m: int) -> void:
 	c.leaf[col] = c.leaf[col] & ~bit | (bit if m == Mat.LEAVES else 0)
 	c.logs[col] = c.logs[col] & ~bit | (bit if m == Mat.LOG else 0)
 	c.wild[col] &= ~bit
+	if not cracks.is_empty() and cracks.has(c.key) and cracks[c.key].erase(Vector3i(x, y, z)) and cracks[c.key].is_empty():
+		cracks.erase(c.key)
 	if not forms.is_empty() and forms.has(Vector3i(x, y, z)):
 		_drop_form(c.key, Vector3i(x, y, z))
 	if turf.has(c.key):
@@ -970,3 +977,36 @@ func unpack_chunk(d: Dictionary) -> bool:
 							s[0] = Items.canon(s[0])
 		drops[key] = on_ground
 	return true
+
+
+## Whether cell x, y, z is cracked (cracks: building decay).
+func is_cracked(x: int, y: int, z: int) -> bool:
+	if cracks.is_empty():
+		return false
+	var in_chunk: Dictionary = cracks.get(chunk_key(x, z), {})
+	return not in_chunk.is_empty() and in_chunk.has(Vector3i(x, y, z))
+
+
+## Cell `cell` of material `m` (-1 not known) is cracked.
+func crack(cell: Vector3i, m: int) -> void:
+	var key := chunk_key(cell.x, cell.z)
+	if not cracks.has(key):
+		cracks[key] = {}
+	cracks[key][cell] = m
+
+
+## The cracked cells of chunk `key` as a flat list x, y, z, ... (Protocol.CRACKS, saves).
+func cracks_of(key: Vector2i) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	for cell: Vector3i in cracks.get(key, {}):
+		out.append_array([cell.x, cell.y, cell.z])
+	return out
+
+
+## Chunk `key`'s cracked cells are `flat` (cracks_of), materials not known.
+func take_cracks(key: Vector2i, flat: PackedInt32Array) -> void:
+	cracks.erase(key)
+	for i in range(0, flat.size() - 2, 3):
+		var cell := Vector3i(flat[i], flat[i + 1], flat[i + 2])
+		if chunk_key(cell.x, cell.z) == key:
+			crack(cell, -1)

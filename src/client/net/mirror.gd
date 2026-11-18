@@ -6,7 +6,7 @@ extends RefCounted
 ## PROP_LIT, PROP_OPENED, PROP_FUEL, PROP_WATER, CHEST; PLANS, PLAN_CELLS (`game.plans`); CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
 ## players, `game.others`); TEAM, INVITES, MATES (`game.team`); CLAIMS, SQUARES, LAND (`game.land`); FIGHT (`game.team`); HEARD (the chat, `game.hud.chat`, and the line over the
 ## speaker's head); NOTED (the server's notices to its host, `game.hud.server_note`); over a socket the world too:
-## CHUNK, FORGET, CELLS, DROPS with the list, TAKEN, into `game.world_maker` (RemoteGen),
+## CHUNK, FORGET, CELLS, CRACKS, DROPS with the list, TAKEN, into `game.world_maker` (RemoteGen),
 ## the world and `game.actions`' signals), and the client's own event each frame: where
 ## its body is and what the hands do (INPUT), which the rules on the server act from.
 ## `game` is the Main node; the copies are `game.character`, `game.workshop`,
@@ -134,7 +134,14 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.CHUNK:
 			if args is Array and args.size() == 3 and args[0] is Vector2i and args[1] is int and args[2] is PackedByteArray \
 					and game.host == null:
+				# Whole until its cracks come after it (Protocol.CRACKS).
+				game.world.cracks.erase(args[0])
 				game.world_maker.take_chunk(args[0], args[1], args[2])
+		Protocol.CRACKS:
+			if args is Array and args.size() >= 1 and args[0] is Vector2i:
+				if args.size() == 2 and args[1] is PackedInt32Array and game.host == null:
+					game.world.take_cracks(args[0], args[1])
+				game.chunks.remesh_chunk(args[0])
 		Protocol.FORGET:
 			if args is Array and args.size() == 1 and args[0] is Vector2i and game.host == null:
 				game.world_maker.forget(args[0])

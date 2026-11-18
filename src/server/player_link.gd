@@ -71,6 +71,8 @@ var _drops := {}
 var _grass := {}
 ## The holes in the ice changed since they were last sent (Ice.changed).
 var _holes := true
+## Chunks whose cracked cells changed since the last flush (Decay.cracks_changed).
+var _cracks := {}
 
 var _you := true
 var _team := true
@@ -151,6 +153,7 @@ func _init(s) -> void:
 	placed.cell_changed.connect(_on_cell)
 	actions.drops_changed.connect(_on_drops)
 	session.ice.changed.connect(_on_holes)
+	session.decay.cracks_changed.connect(_on_cracks)
 	actions.looks_changed.connect(_on_looks)
 	actions.grass_changed.connect(_on_grass)
 	actions.spores.connect(_on_spores)
@@ -179,6 +182,7 @@ func leave() -> void:
 	actions.cells_set.disconnect(_on_cells)
 	actions.drops_changed.disconnect(_on_drops)
 	session.ice.changed.disconnect(_on_holes)
+	session.decay.cracks_changed.disconnect(_on_cracks)
 	actions.looks_changed.disconnect(_on_looks)
 	actions.grass_changed.disconnect(_on_grass)
 	actions.spores.disconnect(_on_spores)
@@ -353,6 +357,13 @@ func flush() -> Array[PackedByteArray]:
 		_snap_all = true
 	if send_world:
 		_world_events(out)
+	# Over the loop the client's world is the server's: only which chunks to draw again.
+	for key: Vector2i in _cracks:
+		if not send_world:
+			out.append(_event(Protocol.CRACKS, [key]))
+		elif _sent.has(key):
+			out.append(_event(Protocol.CRACKS, [key, session.world.cracks_of(key)]))
+	_cracks.clear()
 	if _holes:
 		_holes = false
 		out.append(_event(Protocol.ICE_HOLES, [session.ice.to_list()] if send_world else []))
@@ -384,6 +395,13 @@ func flush() -> Array[PackedByteArray]:
 	return out
 
 
+## The cracked cells of chunk `key`, after the chunk itself (the client's copy starts it
+## whole).
+func _cracks_after(out: Array[PackedByteArray], key: Vector2i) -> void:
+	if session.world.cracks.has(key):
+		out.append(_event(Protocol.CRACKS, [key, session.world.cracks_of(key)]))
+
+
 ## The client's copy of the world: the cells changed in the chunks it holds, the chunks
 ## within the zone its screen needs (Session.reach_for) of the body it lacks (nearest first, CHUNKS_PER_FLUSH a flush)
 ## or whose looks changed, and the chunks it holds beyond its drop range.
@@ -413,6 +431,7 @@ func _world_events(out: Array[PackedByteArray]) -> void:
 	for key: Vector2i in _again:
 		if _sent.has(key) and gen.stage_of(key) >= WorldGen.SHAPED:
 			out.append(_event(Protocol.CHUNK, _packed(key)))
+			_cracks_after(out, key)
 			n += 1
 	_again.clear()
 	# As far as this player's screen needs (Session.reach_for), not every player's.
@@ -438,6 +457,7 @@ func _world_events(out: Array[PackedByteArray]) -> void:
 					if _sent.has(key) or gen.stage_of(key) < WorldGen.SHAPED:
 						continue
 					out.append(_event(Protocol.CHUNK, _packed(key)))
+					_cracks_after(out, key)
 					_sent[key] = true
 					n += 1
 	for key: Vector2i in _sent.keys():
@@ -641,6 +661,11 @@ func _on_drops(key: Vector2i) -> void:
 
 func _on_holes() -> void:
 	_holes = true
+
+
+func _on_cracks(cells: Array[Vector3i], _on: bool) -> void:
+	for cell in cells:
+		_cracks[WorldData.chunk_key(cell.x, cell.z)] = true
 
 
 func _on_cell(cell: Vector3i) -> void:

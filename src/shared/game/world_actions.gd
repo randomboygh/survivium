@@ -85,7 +85,7 @@ func act_in_front(who, top: int) -> Dictionary:
 		return mow_swing(who, work.mow)
 	if work.has("dig"):
 		var c: Vector3i = work.dig[0]
-		return dig(who, work.dig, Tools.swing_time(t, world.get_cell(c.x, c.y, c.z)))
+		return dig(who, work.dig, cell_swing(t, c))
 	return swing_air(who, Vector3.INF)
 
 

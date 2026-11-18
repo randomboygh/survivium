@@ -2,16 +2,21 @@ extends "res://tests/unit/test_case.gd"
 ## Building decay (Decay, decision 186): built cells nobody tends crack at the pace of
 ## their material, the ground and what the generator left never; a player near or a
 ## claim keeps a chunk tended; a crack stays when someone comes back and goes when the
-## cell changes; the save keeps it all; switched off, nothing decays; the session runs it.
+## cell changes; the save keeps it all; switched off, nothing decays; the session runs it;
+## the clients are told the cracks of their chunks; a cracked cell breaks in half the time
+## and is drawn with the crack mark, never merged.
 
 const Decay := preload("res://src/shared/game/decay.gd")
 const Territory := preload("res://src/shared/game/territory.gd")
 const Teams := preload("res://src/shared/game/teams.gd")
+const Protocol := preload("res://src/shared/net/protocol.gd")
+const LocalHost := preload("res://src/client/net/local_host.gd")
 
 
 func run() -> void:
 	_test_paces()
 	_test_session()
+	_test_sent_and_dug()
 
 
 ## A world of 4 by 4 chunks with a stone floor and walls of each material far from the
@@ -85,15 +90,14 @@ func _test_paces() -> void:
 	_run(d, [a], 0.1)
 	_check(d.passed[WorldData.chunk_key(far_planks.x, far_planks.z)] == 0.0 and d.is_cracked(far_planks),
 		"a player coming back stops the clock, the cracks stay")
-	told.clear()
 	w.set_cell(far_planks.x, 1, far_planks.z, Mat.AIR)
-	d.cell_changed(far_planks)
-	_check(not d.is_cracked(far_planks) and told == [[1, false]], "a cell dug out is not cracked any more, and that is told")
+	_check(not d.is_cracked(far_planks), "a cell dug out is not cracked any more")
 	w.set_cell(far_wattle.x, 1, far_wattle.z, planks)
 	_check(not d.is_cracked(far_wattle), "a cell built anew over a crack is whole")
 	var saved: Dictionary = JSON.parse_string(JSON.stringify(d.to_dict()))
 	var back := Decay.new()
-	back.world = w
+	var w_back := _world()
+	back.world = w_back
 	back.rules = rules
 	back.from_dict(saved)
 	_check(back.time == snappedf(d.time, 0.001) and back.is_cracked(far_brick) and not back.is_cracked(far_planks)
@@ -126,9 +130,53 @@ func _test_session() -> void:
 	for i in 400:
 		s.decay.step(0.001, s.players, Decay.LOOK_EVERY + 0.01)
 	_check(s.decay.is_cracked(Vector3i(40, 1, 40)), "the session's decay cracks a wall nobody tends")
-	s.actions.cell_changed.emit(Vector3i(40, 1, 40))
-	_check(not s.decay.is_cracked(Vector3i(40, 1, 40)), "and hears of a cell changed by the rules")
+	var flat := w.cracks_of(Vector2i(2, 2))
+	_check(flat == PackedInt32Array([40, 1, 40]), "the world lists a chunk's cracks")
+	var copy := _world()
+	copy.take_cracks(Vector2i(2, 2), flat)
+	_check(copy.is_cracked(40, 1, 40) and not copy.is_cracked(41, 1, 40), "a client's copy takes them")
 
+
+## A client is told a chunk's cracks: the list over a socket, which chunk over the loop;
+## a cracked cell is dug in half the time; the mesher marks its faces.
+func _test_sent_and_dug() -> void:
+	var w := _world()
+	var planks := Mat.index("materials:planks")
+	var cell := Vector3i(40, 1, 40)
+	w.set_cell(cell.x, cell.y, cell.z, planks)
+	w.set_cell(cell.x + 2, cell.y, cell.z, planks)
+	var s := Session.new(w, null, Clock.new(), Rules.of({}), Placed.new())
+	var host := LocalHost.new(s)
+	var net := host.join()
+	host.link.send_world = true
+	for cz in 4:
+		for cx in 4:
+			host.link._sent[Vector2i(cx, cz)] = true
+	host.flush(net)
+	var got: Array = []
+	net.event.connect(func(kind: String, args: Variant) -> void:
+		if kind == Protocol.CRACKS:
+			got.append(args))
+	w.crack(cell, planks)
+	var one: Array[Vector3i] = [cell]
+	s.decay.cracks_changed.emit(one, true)
+	host.flush(net)
+	_check(got == [[Vector2i(2, 2), PackedInt32Array([40, 1, 40])]], "over a socket the chunk's cracks are sent")
+	got.clear()
+	host.link.send_world = false
+	s.decay.cracks_changed.emit(one, true)
+	host.flush(net)
+	_check(got == [[Vector2i(2, 2)]], "over the loop only which chunk")
+	var hand := Tools.of("")
+	_check(is_equal_approx(s.actions.cell_swing(hand, cell), s.actions.cell_swing(hand, cell + Vector3i(2, 0, 0)) * 0.5),
+		"a cracked cell breaks in half the time")
+	var meshes: Array = ChunkMesher.build_chunk(w, 32, 32, 16)
+	var cols: PackedColorArray = (meshes[0] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_COLOR]
+	var marked := 0
+	for c in cols:
+		if c.r > 0.9 and absf(c.g - ChunkMesher.CRACKED.g) < 0.01:
+			marked += 1
+	_check(marked == 5 * 4, "the cracked cell's five open faces are drawn marked, the other block's not")
 
 class _Who:
 	var id := 0

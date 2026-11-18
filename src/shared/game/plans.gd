@@ -629,7 +629,7 @@ func _dig_out(actions, who, c: Vector3i) -> Dictionary:
 		return {}
 	if not actions.territory_allows(who, c, "build"):
 		return {}
-	var swing := Tools.swing_time(Tools.of(tool), m)
+	var swing: float = actions.cell_swing(Tools.of(tool), c)
 	var done: Dictionary = actions.dig(who, [c] as Array[Vector3i], swing, tool)
 	if done.is_empty():
 		return {"swing": actions.IDLE_SWING}

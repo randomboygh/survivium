@@ -22,6 +22,8 @@ const CELL := WorldData.CELL
 ## behind the player's (С6, plan/architecture/server.md).
 const HAND_REACH := 5.0
 const REACH_SLACK := 1.5
+## A cracked cell (building decay, WorldData.cracks) takes this share of a swing to break.
+const CRACKED_SWING := 0.5
 ## Cell `cell` changed (dug, filled, cut down to another material, a tree fell through it,
 ## a bush on it went): what is drawn around it is built again.
 signal cell_changed(cell: Vector3i)
@@ -49,6 +51,13 @@ func _init(w, c, r) -> void:
 	world = w
 	clock = c
 	rules = r
+
+
+## Seconds a swing of tool `t` at cell `c` takes (Tools.swing_time): a cracked one
+## (building decay) breaks in CRACKED_SWING of it.
+func cell_swing(t: Dictionary, c: Vector3i) -> float:
+	var swing := Tools.swing_time(t, world.get_cell(c.x, c.y, c.z))
+	return swing * CRACKED_SWING if world.is_cracked(c.x, c.y, c.z) else swing
 
 
 ## What the hands did: they swing again in `seconds`, the body plays work `kind` ("" for
