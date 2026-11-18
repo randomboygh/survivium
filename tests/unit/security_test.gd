@@ -403,6 +403,12 @@ func _test_cheats() -> void:
 	_check(hot == 60.0 and s.clock.air_pin == 60.0, "the pinned air is clamped, a string left: %s" % hot)
 	req.handle(["cheats", 12, [{"air_temp": -5000.0}]])
 	_check(not s.clock.air_pinned(), "an air colder than the page offers frees it")
+	req.handle(["cheats", 13, [{"wind": 99.0, "wind_dir": 99.0}]])
+	_check(s.clock.wind_pin == 3.0 and s.clock.wind_dir_pin == PI, "the pinned wind is clamped: %s %s" % [s.clock.wind_pin, s.clock.wind_dir_pin])
+	req.handle(["cheats", 14, [{"wind": "gale", "wind_dir": null}]])
+	_check(s.clock.wind_pin == 3.0 and s.clock.wind_dir_pin == PI, "a wind of a wrong type leaves it")
+	req.handle(["cheats", 15, [{"wind": -5.0, "wind_dir": -5000.0}]])
+	_check(s.clock.wind_pin == -1.0 and s.clock.wind_dir_pin == s.clock.FREE_WIND_DIR, "a wind below the page's range frees it")
 	a.vitals.harm = true
 	a.teleport(to)
 	var cfg := Config.new()

@@ -36,7 +36,7 @@ const PATH := "user://settings.cfg"
 const TEST_SAVED := ["player_speed", "skill_rate", "air_jumps", "revive_at_death", "free_build", "tool_wear",
 	"no_overload", "instant_craft", "free_items", "no_hunger", "no_thirst", "no_fatigue", "no_cold",
 	"no_fall_damage", "invulnerable", "animal_attacks", "time_boost", "shadow_map", "debug_tips", "keys_log",
-	"free_view", "air_temp"]
+	"free_view", "air_temp", "wind_strength", "wind_dir"]
 ## The switches of the survival section, each with its value that means «survival on»
 ## (set_survival turns them all at once).
 const SURVIVAL := {"no_hunger": false, "no_thirst": false, "no_fatigue": false, "no_cold": false,
@@ -251,6 +251,12 @@ const FAST_FORWARD := 100.0
 ## frost and freezing, breath steam (AirEffects.BREATH_MILD), mild, warm, and the heat
 ## the haze over sand and the sea begins at (AirEffects.HAZE_FROM) and beyond.
 const AIR_TEMPS := [Clock.FREE_AIR, -30.0, -15.0, 0.0, 5.0, 15.0, 25.0, 30.0, 35.0, 45.0]
+## Playtest wind (Clock.wind_pin): the first, by itself, is the weather's own; then calm, a
+## breeze, a fresh wind, a gale and a blizzard's (the scale of Clock.WEATHERS' "wind").
+const WIND_STRENGTHS := [-1.0, 0.0, 0.3, 0.8, 1.5, 2.5]
+## Playtest wind direction (Clock.wind_dir_pin, where it blows to: 0 east, PI / 2 south): by
+## itself, then the eight sides, clockwise from the north.
+const WIND_DIRS := [Clock.FREE_WIND_DIR, -PI / 2, -PI / 4, 0.0, PI / 4, PI / 2, 3 * PI / 4, PI, -3 * PI / 4]
 ## Playtest multipliers of the player's walking speed, for looking around the map.
 const PLAYER_SPEEDS := [1.0, 2.0, 4.0, 8.0]
 ## Playtest multipliers of how fast the skills grow.
@@ -269,6 +275,8 @@ static var testing_unlocked := false
 var time_boost := 1.0
 ## Playtest switch: the air everywhere, an index into AIR_TEMPS (0: the world's own).
 var air_temp := 0
+var wind_strength := 0
+var wind_dir := 0
 ## Playtest switch: the player's speed multiplier. Not saved.
 var player_speed := 1.0
 ## Playtest switch: how many times faster the skills grow (SkillSet.rate). Not saved.
@@ -461,6 +469,10 @@ func _use_test(d: Dictionary) -> void:
 				v = clampi(v, 0, SHADOW_MAPS.size() - 1)
 			"air_temp":
 				v = clampi(v, 0, AIR_TEMPS.size() - 1)
+			"wind_strength":
+				v = clampi(v, 0, WIND_STRENGTHS.size() - 1)
+			"wind_dir":
+				v = clampi(v, 0, WIND_DIRS.size() - 1)
 		set(k, v)
 
 
@@ -662,6 +674,8 @@ func apply() -> void:
 		game.session.clock.real_season = values.real_season
 		if game.link.join_url == "":
 			game.session.clock.air_pin = AIR_TEMPS[air_temp]
+			game.session.clock.wind_pin = WIND_STRENGTHS[wind_strength]
+			game.session.clock.wind_dir_pin = WIND_DIRS[wind_dir]
 	if game.host != null and game.host.real_weather != null:
 		game.host.real_weather.enabled = values.real_weather
 	var sky = game.sky
@@ -917,6 +931,18 @@ func set_air_temp(i: int) -> void:
 	apply()
 
 
+## Pins the wind's strength to WIND_STRENGTHS[`i`] and where it blows to WIND_DIRS[`j`]
+## (index 0: the weather's own), on the server's clock when joined to one with cheats on.
+func set_wind_strength(i: int) -> void:
+	wind_strength = clampi(i, 0, WIND_STRENGTHS.size() - 1)
+	apply()
+
+
+func set_wind_dir(i: int) -> void:
+	wind_dir = clampi(i, 0, WIND_DIRS.size() - 1)
+	apply()
+
+
 func set_skill_rate(k: float) -> void:
 	skill_rate = k
 	apply()
@@ -988,7 +1014,8 @@ func send_cheats(once := {}) -> bool:
 		"falls": not no_fall_damage, "harm": not invulnerable,
 		"free_build": free_build, "tool_wear": tool_wear, "instant_craft": instant_craft,
 		"free_items": free_items, "animal_attacks": animal_attacks, "boost": time_boost,
-		"air_temp": AIR_TEMPS[air_temp]}
+		"air_temp": AIR_TEMPS[air_temp], "wind": WIND_STRENGTHS[wind_strength],
+		"wind_dir": WIND_DIRS[wind_dir]}
 	d.merge(once, true)
 	game.net.request(Protocol.CHEATS, [d]).then(func(taken: Variant) -> void:
 		if taken != true and cheats:

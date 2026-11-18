@@ -123,7 +123,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   `DAY_SWING` degrees apart, less under clouds), rain/snow/wind without a
   roof; «Testing» → «World» → «Temperature» pins `Clock.air_pin` in place of the biome and season, the same
   everywhere, still cooled by night and weather, on the server's
-  clock: `Settings.AIR_TEMPS`, cheat `air_temp`), `fire_heat` (a burning campfire within `FIRE_REACH`, weaker as the fuel runs out), `clothes` (the sum
+  clock: `Settings.AIR_TEMPS`, cheat `air_temp`; «Wind strength» and «Wind direction» next to it pin `Clock.wind_pin` and `Clock.wind_dir_pin` the same way, cheats `wind`, `wind_dir`), `fire_heat` (a burning campfire within `FIRE_REACH`, weaker as the fuel runs out), `clothes` (the sum
   of the `warmth` of what is worn), `feel` (fire, clothes — wet by half, a wet body −`WET_CHILL`, a roof
   +`ROOF`, in water colder than air). Counted by the character's step (`_warm`); the strip with a thermometer
   and a drop in `vitals_panel.gd`.

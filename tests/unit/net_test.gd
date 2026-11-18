@@ -291,6 +291,12 @@ func _test_requests() -> void:
 	_check(pinned.from_snapshot(s.clock.snapshot()) and pinned.air_pin == 35.0 and pinned.air_pinned(),
 		"the air the playtest page pins comes with the clock")
 	s.clock.air_pin = RemoteClock.FREE_AIR
+	s.clock.wind_pin = 1.5
+	s.clock.wind_dir_pin = PI / 2
+	_check(pinned.from_snapshot(s.clock.snapshot()) and pinned.wind_pin == 1.5 and pinned.wind_dir_pin == PI / 2,
+		"the wind the playtest page pins comes with the clock")
+	s.clock.wind_pin = -1.0
+	s.clock.wind_dir_pin = RemoteClock.FREE_WIND_DIR
 	var told: Array[int] = []
 	var fresh := RemoteClock.new()
 	fresh.season_changed.connect(func(season: int) -> void: told.append(season))
