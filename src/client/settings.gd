@@ -30,7 +30,8 @@ const ServerList := preload("res://src/client/net/server_list.gd")
 
 const PATH := "user://settings.cfg"
 ## The playtest switches «Сохранить» of «Тестирование» keeps (save_test), in section
-## "test" of the same file: loaded with the settings, so the next start begins with them;
+## "test" of the same file: loaded with the settings, they are used only in the developer
+## mode (testing_unlocked, set_testing), so a start begins with them once it is on;
 ## «По умолчанию» there puts them back as they come and forgets them (reset_test). The
 ## rest (the clock, the weather, «Читы на сервере») is the world's or the moment's.
 const TEST_SAVED := ["player_speed", "skill_rate", "air_jumps", "revive_at_death", "free_build", "tool_wear",
@@ -370,7 +371,9 @@ func load() -> void:
 		var t: Variant = cfg.get_value("test", k, null)
 		if t != null and typeof(t) == typeof(_test_defaults[k]):
 			_test_saved[k] = t
-	_use_test(_test_saved)
+	# Kept, but the game plays as it comes until the developer mode is on (set_testing).
+	if testing_unlocked:
+		_use_test(_test_saved)
 	var limits := _index_limits()
 	for k in DEFAULTS:
 		var v: Variant = cfg.get_value("game", k, DEFAULTS[k])
@@ -417,6 +420,17 @@ func save() -> void:
 	for k: String in _test_saved:
 		cfg.set_value("test", k, _test_saved[k])
 	cfg.save(path)
+
+
+## The developer mode turned on or off: on, the playtest switches saved (save_test) take
+## their places at once; off, they go back as they come (the saved ones are kept).
+func set_testing(on: bool) -> void:
+	testing_unlocked = on
+	_use_test(_test_defaults)
+	if on:
+		_use_test(_test_saved)
+	if game != null:
+		apply()
 
 
 ## «Сохранить» of «Тестирование»: the playtest switches as they are now are kept
