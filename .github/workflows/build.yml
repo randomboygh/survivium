@@ -218,6 +218,9 @@ jobs:
           # home screen icon drawn at its size rather than the export's smoothed one (tools/make_icon.py).
           cp assets/web/og.png assets/web/keyboard.html build/web/
           cp assets/web/apple-touch-icon.png build/web/index.apple-touch-icon.png
+          # The version and newest changes every build of main asks for, to show an update
+          # in «Что нового» (src/client/net/updates.gd).
+          python3 tools/build_info.py --latest build_info.json build/web/latest.json
           ls -la build/web
 
       - name: Upload web build (download from the run page)
