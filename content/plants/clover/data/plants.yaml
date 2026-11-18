@@ -1,10 +1,11 @@
-# Clover (kind: custom, fields as for the fern): low trefoils, some with a white or a red head, in wide fields on the open
+# Clover (kind: custom, fields as for the fern): low trefoils in eight looks (mats of leaves, white heads, red
+# clover standing tall), each in three greens, in wide fields on the open
 # meadows. Hares and deer come to graze on it (their `likes`).
 - id: clover
   kind: custom
   title: "[plants.plants.clover]"
   sprite: clover
-  frames: 12
+  frames: 24
   across: 2
   grows: meadow
   cover: 0.9

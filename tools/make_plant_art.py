@@ -413,6 +413,51 @@ CLOVER = [
         "..hjh.j.HxHhjhj.",
         "...j..j.hjh.j.j.",
     ),
+    # Then more looks: a wide dense mat of leaves, red clover standing tall among its leaves,
+    # a pair of small trefoils with the ground between them, white clover with three heads.
+    low16(
+        "...H......H.....",
+        "..HxH.H..HxH.H..",
+        ".HhjhHxHHhjhHxH.",
+        "HxHjHhjhxHjHhjhH",
+        "hjhxHjhjhjhxHjhx",
+        ".jhjhjj.jhjhjjh.",
+        "..j.j.j..j.j.j..",
+    ),
+    low16(
+        "....iiI.........",
+        "....iiI...iI....",
+        "....II...iiI....",
+        ".....j...II.....",
+        "..H..j....j.....",
+        ".HxH.j.H..j..H..",
+        ".hjhjjHxH.j.HxH.",
+        "..j..jhjh.jHhjh.",
+        "..j.HxHj..jxHj..",
+        "..j.hjhj.HxHjj..",
+        "...j..j..hjh.j..",
+        "...j..j...j..j..",
+    ),
+    low16(
+        "................",
+        "...H............",
+        "..HxH.......H...",
+        "..hjh......HxH..",
+        "...j.......hjh..",
+        "...j........j...",
+    ),
+    low16(
+        "..yy............",
+        "..yY.......yy...",
+        "..Y.....yy.yY...",
+        "..j.....yY.Y....",
+        "..j..H..Y..j..H.",
+        ".Hj.HxH.j..j.HxH",
+        "HxH.hjh.j.HxHhjh",
+        "hjhj.j..jHhjhjj.",
+        ".j.j.j.HxHjj..j.",
+        ".j.j.j.hjh.j..j.",
+    ),
 ]
 
 CROP_ICONS = {
@@ -600,6 +645,51 @@ NEW_BARKS = [
 ]
 
 
+# Sedge (grass bundle, plants `tint: grass`): tussocks of long blades fanning out from one
+# root and arching over, three cards wide. Drawn in greys that the shader multiplies with
+# the grass colour of the place (twice the grey: 128 is the grass itself), so the sedge
+# takes the tint of the meadow round it; a little bluer and darker at the root than the
+# tall grass. Each look: (seed, blades, the widest lean from upright in degrees, the
+# longest blade in px, how far in degrees the outer blades bend over, the lean of the whole tussock).
+SEDGE_LOOKS = [(5, 14, 50, 19, 100, 0), (6, 11, 32, 21, 60, 0), (7, 12, 42, 18, 105, 12), (8, 16, 58, 15, 120, 0)]
+
+
+def sedge():
+    import math
+    w = 24
+    img = Image.new("RGBA", (w * len(SEDGE_LOOKS), 24), (0, 0, 0, 0))
+    for f, (seed, blades, spread, longest, bend, tilt) in enumerate(SEDGE_LOOKS):
+        rnd = random.Random(seed)
+        # The outer blades first, so the upright ones in the middle are drawn over them.
+        angles = sorted((rnd.uniform(-spread, spread) + tilt for _ in range(blades)), key=lambda a: -abs(a))
+        for a in angles:
+            # A blade leaves the root at its lean and bends further out along its length,
+            # the outer ones the most, so their tips arch over and hang.
+            length = longest * rnd.uniform(0.7, 1.0)
+            turn = math.copysign(bend * (0.35 + abs(a) / spread * 0.65), a if a != 0 else 1) * rnd.uniform(0.8, 1.2)
+            x, y = 11.5 + rnd.uniform(-1.0, 1.0), 0.0
+            steps = int(length * 3)
+            for i in range(steps + 1):
+                t = i / steps
+                rad = math.radians(a + turn * t * t)
+                x += math.sin(rad) / 3.0
+                y += math.cos(rad) / 3.0
+                if y < 0:
+                    break
+                px, py = int(round(x)), 23 - int(round(y))
+                if not (0 <= px < w and 0 <= py < 24):
+                    break
+                # Dark and a little blue at the root, lit toward the tip (the grass
+                # colour times twice the grey).
+                k = 0.5 + 0.7 * t + rnd.uniform(-0.05, 0.05)
+                tone = (k * 0.84, k * 1.0, k * 1.14)
+                img.putpixel((f * w + px, py), tuple(int(min(255, c * 128)) for c in tone) + (255,))
+    path = os.path.join(ROOT, "grass", "sprites", "plants", "sedge.png")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    img.save(path)
+    print(path)
+
+
 def main():
     import sys
     if sys.argv[1:] == ["wheat"]:
@@ -608,6 +698,10 @@ def main():
     if sys.argv[1:] == ["saplings"]:
         sprite("oak_sapling", OAK_SAPLING, "oak", 2)
         sprite("spruce_sapling", SPRUCE_SAPLING, "spruce", 2)
+        return
+    if sys.argv[1:] == ["grass"]:
+        sprite("clover", CLOVER, across=2, shades=CLOVER_SHADES)
+        sedge()
         return
     if sys.argv[1:] == ["crops"]:
         crops()
@@ -621,6 +715,7 @@ def main():
         bark(*args[:3], **args[3])
     sprite("fern", FERN, across=2, shades=FERN_SHADES)
     sprite("clover", CLOVER, across=2, shades=CLOVER_SHADES)
+    sedge()
     sprite("nettle", NETTLE)
     sprite("cranberry", CRANBERRY)
     sprite("flax", FLAX)

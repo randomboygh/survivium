@@ -548,6 +548,10 @@ const SCHEMAS := {
 		# A custom plant grows only within this many cells of water (a sundew round the bog
 		# pools; Grass._near_water); 0 anywhere its `grows` says.
 		"near_water": {"type": "int", "min": 0, "max": 8, "default": 0},
+		# The share of the places within `near_water` cells of water a custom plant grows
+		# on, when it grows there more often than its `cover` (sedge by the water); with it
+		# set, `near_water` no longer keeps the plant from the rest of its ground. -1 unset.
+		"water_cover": {"type": "float", "min": -1.0, "max": 1.0, "default": -1.0},
 		# How a custom plant changes as it stands (grass.gdshader): shy — it folds as someone
 		# passes, night — it opens at dusk; the second half of its frames is the plant so
 		# (the folded, the open one). Texels of its picture with an alpha of 200..240 glint
@@ -561,6 +565,9 @@ const SCHEMAS := {
 		# How far the tips of a custom plant, a crop or a sapling sway in the wind, as a share
 		# of a grass tuft's (grass.gdshader, PixelTextures.sway_texel); 0 stiff (a cactus, a puffball).
 		"sway": {"type": "float", "min": 0.0, "max": 2.0, "default": 1.0},
+		# grass: the picture is greys the shader multiplies with the grass colour of the place
+		# (twice the grey; 128 the grass itself), so the plant takes the meadow's tint (sedge).
+		"tint": {"type": "enum", "values": ["", "grass"], "default": ""},
 		# Stepping on it crushes it (ActionsDig.tread), and its spores make the one who
 		# stepped see the picture swim this many seconds (Vitals.see_visions); 0 never.
 		"crush": {"type": "float", "min": 0.0, "max": 60.0, "default": 0.0},

@@ -249,6 +249,14 @@ void fragment() {
 			discard;
 		}
 		col = m.rgb * custom.y;
+		// A plant tinted like the grass (Plants `tint: grass`, PixelTextures.sway_texel,
+		// sedge): its picture is greys times the grass colour of the place, twice over
+		// (128 the grass itself), so it takes the meadow's hue as tall grass does.
+		if (texelFetch(plant_texture, ivec2(int(custom.x + 0.5) * 8 + 1, 24), 0).g > 0.5) {
+			ivec2 t = tile_mirror(ivec2(floor(fract(root.xz) * TEXELS)), floor(root.xz));
+			vec3 ground = texture(terrain_atlas, atlas_uv(GRASS_TOP, vec2(t))).rgb;
+			col *= 2.0 * ground * grass_tint * biome_tint(GRASS_MATERIAL, root.xz) * grass_variation(root.xz);
+		}
 	} else if (kind == MUSHROOM || kind == GLOW) {
 		// Mushrooms are gone under the snow.
 		if (snow_here > 0.4) {
