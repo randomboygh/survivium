@@ -23,7 +23,9 @@ Part of [Interface and settings](../ui.md). Files of the screens before the game
   «Load world». An Easter egg: 10 touches in a row on the sparrow on the logo — a burst of feathers, a flash,
   the «Testing» buttons (a flask icon and a pause-menu line, `Settings.testing_unlocked`, static: it holds on
   a move to another world, to a server and on creating a server; before that they are not there, and it is not
-  saved: after the game restarts they are gone again), the logo's shudder and a scatter of feathers that then,
+  saved: after the game restarts they are gone again; the switches kept by «Save» of «Testing» are used
+  only in this mode: loaded but not applied before it, applied at once when the egg turns it on,
+  `Settings.set_testing`), the logo's shudder and a scatter of feathers that then,
   swaying and turning, sink down among the fluff (`MainMenu._explode`); each touch is a light vibration, the
   burst a strong one (by the setting «Vibration»); after 12 s the sparrow flies back. In this developer mode
   the build number is written small under the logo, at the right edge (`MainMenu.version_text`, from
