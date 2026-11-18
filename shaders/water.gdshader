@@ -90,11 +90,11 @@ varying float open_sky;
 varying flat float falls;
 // 1 on the sea's water, blended to 0 on other water (see SEA_ALPHA above).
 varying float sea_here;
-// 1 on the surf's sheet (SWASH_ALPHA above), 0 elsewhere.
+// 1 on the surf's sheet (SWASH_ALPHA above), 2 on the sea's water where the surf runs
+// on over the shore (MeshFaces.SURF_ALPHA: it draws no foam along the shore, the surf's
+// front is its outline), 0 elsewhere. One varying for both: phone GPUs have few (the
+// water stayed grey on Android with a varying more).
 varying flat float swash;
-// 1 on the sea's water where the surf runs on over the shore (MeshFaces.SURF_ALPHA): it
-// draws no foam along the shore, the surf's front is its outline.
-varying flat float surf_sea;
 
 // Ice: clear blue-green over the shallows and darker over the deep, milky frost
 // patches, straight white cracks and glints that do not move, and a dusting of snow
@@ -166,9 +166,8 @@ void vertex() {
 	world_normal = NORMAL;
 	data = UV2;
 	falls = COLOR.a < 0.15 ? 2.0 : (COLOR.a < 0.4 ? 3.0 : (COLOR.a < 0.6 ? 1.0 : 0.0));
-	swash = COLOR.a > 0.6 && COLOR.a < 0.75 ? 1.0 : 0.0;
-	surf_sea = COLOR.a > 0.875 && COLOR.a < 0.95 ? 1.0 : 0.0;
-	sea_here = COLOR.a > 0.75 && COLOR.a < 0.95 || swash > 0.5 ? 1.0 : 0.0;
+	swash = COLOR.a > 0.6 && COLOR.a < 0.75 ? 1.0 : (COLOR.a > 0.875 && COLOR.a < 0.95 ? 2.0 : 0.0);
+	sea_here = COLOR.a > 0.6 && COLOR.a < 0.95 ? 1.0 : 0.0;
 	depth_here = COLOR.r * 8.0;
 	shore_under = COLOR.g;
 	if (falls > 2.5) {
@@ -252,7 +251,7 @@ void fragment() {
 	float surf = 0.0;
 	// The sun's path and the lights glittering on the surface: light of their own.
 	vec3 shine = vec3(0.0);
-	if (swash > 0.5) {
+	if (swash > 0.5 && swash < 1.5) {
 		// The surf: the sea itself running on up over the level sand. Each wave goes on
 		// from the water's edge in a thin sheet of the shallows' colour, clearer towards
 		// its front, outlined by the same line of foam the water has along every other
@@ -477,7 +476,7 @@ void fragment() {
 			alpha = max(alpha, 0.9 * g);
 		}
 		// The shore's foam; none on the sea's water where the surf runs on over the shore.
-		if (surf_sea < 0.5) {
+		if (swash < 1.5) {
 			// Foam along the shore, washing in and out by a texel or two.
 			// An exact whole number in a flat varying: its corner fills reach bit 23, where
 			// `+ 0.5` would round an odd word to even.
