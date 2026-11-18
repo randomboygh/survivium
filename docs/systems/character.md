@@ -128,7 +128,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   +`ROOF`, in water colder than air). Counted by the character's step (`_warm`); the strip with a thermometer
   and a drop in `vitals_panel.gd`.
 - `src/shared/game/body.gd` — the body on the grid: `step(at, delta, jump)` (a longer `delta` is walked in
-  steps of `STEP_MOST` 0.05 s, so a fall never passes through a floor), slopes and steps, water and
+  steps of `STEP_MOST` 0.05 s, so a fall never passes through a floor), slopes (the pace is along the ground: the run is shortened by the rise, `SLOPE_MOST`) and steps, water and
   swimming, the bark of a trunk thicker than its cell in the cells beside and across its corners
   (`WorldData._bark_touched`, an octagon as drawn), a leaning ladder (`_climb`: the body in the cell of a link of `WorldData.ladders`, or above the top
   link by less than `CLIMB_OVER`, does not fall; the joystick towards the ladder — up, away from it — down at

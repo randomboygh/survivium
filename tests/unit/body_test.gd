@@ -166,12 +166,21 @@ func _test_slopes() -> void:
 	player.body.on_ground = true
 	player.body.move_input = Vector2(1, 0)
 	var climbed := true
+	var flat := 0.0
+	var steep := 0.0
+	var prev: Vector3 = player.position / WorldData.CELL
 	for i in 60:
 		player.step(1.0 / 60.0, false)
 		var p: Vector3 = player.position / WorldData.CELL
+		if p.x < 3.2:
+			flat = maxf(flat, p.distance_to(prev))
+		if p.x > 4.2 and p.x < 4.8:
+			steep = maxf(steep, p.distance_to(prev))
+		prev = p
 		if p.x > 4.2 and p.x < 4.45:
 			climbed = climbed and p.y > 1.3 and p.y < 1.995
 	_check(climbed and is_equal_approx(player.position.y / WorldData.CELL, 2.0), "walking up a ramp needs no jump")
+	_check(flat > 0.0 and steep <= flat * 1.1, "up a ramp the body goes no faster along the ground than on the flat")
 	_check(player.position.x / WorldData.CELL < 5.6, "a two-cell cliff stops the walker")
 	player.body.move_input = Vector2(-1, 0)
 	var smooth := true
