@@ -73,6 +73,11 @@ const HOURS := ["[night]", "[morning]", "[day_n5]", "[evening]"]
 const HOUR_OF := [0.0, 7.0, 12.0, 19.0]
 ## Moonlight picks of the playtest page: name and light (see Settings.set_moon).
 const MOONS := [["[new_moon]", 0.0], ["[crescent]", 0.4], ["[full_moon]", 1.0]]
+## Wind picks of the playtest page (Settings.WIND_STRENGTHS, WIND_DIRS): the names, the
+## first of each is the weather's own.
+const WIND_NAMES := ["[by_itself]", "[wind_calm]", "[wind_breeze]", "[wind_fresh]", "[wind_gale]", "[wind_blizzard]"]
+const WIND_DIR_NAMES := ["[by_itself]", "[wind_to_n]", "[wind_to_ne]", "[wind_to_e]", "[wind_to_se]", "[wind_to_s]",
+	"[wind_to_sw]", "[wind_to_w]", "[wind_to_nw]"]
 ## The sections of the pages with tabs: key and tab name.
 const PAGES := {
 	"settings": [["game", "[game]"], ["interface", "[interface]"], ["graphics", "[graphics]"], ["sound", "[sound]"], ["other", "[other_tab]"]],
@@ -442,6 +447,12 @@ func _world_rows() -> Array:
 		["[temperature]", ["[by_itself]"] + Settings.AIR_TEMPS.slice(1).map(func(t: float) -> String: return "%d°" % int(t)),
 			func() -> int: return s.air_temp,
 			func(i: int) -> void: s.set_air_temp(i), "", _may],
+		["[wind_strength]", WIND_NAMES,
+			func() -> int: return s.wind_strength,
+			func(i: int) -> void: s.set_wind_strength(i), "", _may],
+		["[wind_direction]", WIND_DIR_NAMES,
+			func() -> int: return s.wind_dir,
+			func(i: int) -> void: s.set_wind_dir(i), "", _may],
 		["[time_of_day]", HOURS,
 			func() -> int:
 				var h: float = clock.time_of_day * 24.0

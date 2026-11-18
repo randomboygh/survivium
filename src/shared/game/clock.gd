@@ -124,6 +124,8 @@ var real_time := false
 var real_season := false
 ## air_pin when the air is not pinned: colder than any air can be.
 const FREE_AIR := -1000.0
+## wind_dir_pin when the wind's direction is not pinned: no angle can be this.
+const FREE_WIND_DIR := -1000.0
 
 var season := 1
 var season_clock := 0.0
@@ -141,6 +143,11 @@ var moon_pin := -1.0
 ## the biome and season, cooler at night and in rain, snow and wind (Warmth.air), or FREE_AIR: the air is the world's own. On the
 ## server's clock, so every player feels and sees the same.
 var air_pin := FREE_AIR
+## The wind's strength the playtest page pins (the scale of WEATHERS' "wind": 0 calm, 2.5 a
+## blizzard), or -1: the weather's own. On the server's clock, so every player sees the same.
+var wind_pin := -1.0
+## Where the playtest page pins the wind to blow (radians, as wind_angle), or FREE_WIND_DIR.
+var wind_dir_pin := FREE_WIND_DIR
 ## The wind's strength of the real weather (see set_real_weather), or -1: the
 ## weather's own.
 var real_wind := -1.0
@@ -432,8 +439,12 @@ func _change_weather(delta: float, at: Vector3) -> void:
 	fog = lerpf(fog, w.get("fog", 0.0), k)
 	fog_depth = lerpf(fog_depth, w.get("fog_depth", fog_depth), k)
 	haze = lerpf(haze, w.get("haze", 0.0), k)
-	storm_wind = lerpf(storm_wind, real_wind if real_wind >= 0.0 else w.get("wind", 0.0), k)
+	var gust: float = real_wind if real_wind >= 0.0 else w.get("wind", 0.0)
+	storm_wind = lerpf(storm_wind, wind_pin if wind_pin >= 0.0 else gust, k)
 	clouds = lerpf(clouds, w.clouds, minf(1.0, delta * 0.3))
+	if wind_dir_pin > FREE_WIND_DIR:
+		wind_to = wind_dir_pin
+		wind_angle = wind_dir_pin
 	wind_angle = move_toward(wind_angle, wind_to, WIND_TURN * delta)
 	if season == AUTUMN and storm_wind > LEAF_WIND:
 		leaf_fall = minf(1.0, leaf_fall + days(delta) * LEAF_FALL_RATE * (storm_wind - LEAF_WIND))
@@ -503,7 +514,7 @@ const SNAPSHOT: Array[StringName] = [&"day", &"time_of_day", &"time_speed", &"re
 	&"season", &"season_clock", &"weather", &"weather_auto", &"real_wind", &"weather_left", &"rain",
 	&"snowing", &"hail", &"sand", &"fog", &"fog_depth", &"haze", &"storm_wind", &"wind_angle", &"wind_to",
 	&"leaf_fall", &"clouds", &"snow", &"wet", &"puddles", &"morning_fog_pin", &"biome", &"moon_pin", &"soak",
-	&"shrooms", &"air_pin"]
+	&"shrooms", &"air_pin", &"wind_pin", &"wind_dir_pin"]
 
 
 ## All the clock shows (the time, the season, the weather and what it leaves on the
