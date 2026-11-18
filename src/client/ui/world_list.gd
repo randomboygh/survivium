@@ -3,9 +3,8 @@ extends "res://src/client/ui/kit/window.gd"
 ## with its seed, kind and day (and when it was saved, in the tooltip). Tapping a row picks that world
 ## (`chosen`); the square trash button beside it turns red on the first tap and deletes
 ## the world from the device on the second. The world being played cannot be deleted
-## (its button is greyed). In developer mode (Settings.testing_unlocked) the two test
-## worlds come last, saved or not: with the new slopes and with the old ones (the world
-## setting slopes); otherwise they are not shown. A test world's trash button resets it
+## (its button is greyed). In developer mode (Settings.testing_unlocked) the test
+## world comes first, saved or not (the one with slopes 1, shores 0); otherwise it is not shown. A test world's trash button resets it
 ## instead: two taps forget its save, so it is laid out anew (played, at once). "Назад" (or Escape) leaves. It covers the whole
 ## screen over a shade of the world behind, the panel in the middle. `game` is the
 ## Main node.
@@ -62,7 +61,7 @@ func _fill() -> void:
 	_bins.disarm()
 	var worlds := WorldStore.list_worlds().filter(func(w: Dictionary) -> bool: return w.seed != WorldStore.TEST_SEED)
 	if game.settings.testing_unlocked:
-		worlds.append_array(test_worlds())
+		worlds = test_worlds() + worlds
 	if worlds.is_empty():
 		var none := Kit.caption("[no_saved_worlds_yet]")
 		none.custom_minimum_size = Vector2(ROW_WIDTH + DELETE_WIDTH + 4, ROW_H)
@@ -78,8 +77,7 @@ func _fill() -> void:
 		var pick := Kit.button(Lang.f("[seed_day]", [w.seed, _kind(w.settings), w.day]),
 			func() -> void: chosen.emit(seed_value, options), ROW_WIDTH, ROW_H)
 		if w.seed == WorldStore.TEST_SEED:
-			var old: bool = int(w.settings.get("slopes", 0)) != 0
-			pick.text = Lang.f("[test_world_old_slopes_day]" if old else "[test_world_grounds_day]", [w.day])
+			pick.text = Lang.f("[test_world_day]", [w.day])
 		if w.saved != "":
 			pick.tooltip_text = Lang.f("[saved_played_min]", [w.saved.replace("T", " "), int(w.played / 60.0)])
 		if not w.mods.is_empty():
@@ -126,13 +124,13 @@ func _reset(options: Dictionary) -> void:
 	fit.call_deferred()
 
 
-## The two test worlds, new slopes then old: their saves where they have one, else a
-## row to make them ("dir" empty, day 1). Their settings are the full set
+## The test world (slopes 1): its save where it has one, else a
+## row to make it ("dir" empty, day 1). Their settings are the full set
 ## (LandLayout.SETTING_KEYS), as the game keeps a world's (SaveGame.choose_world).
 static func test_worlds() -> Array:
 	var saved := WorldStore.list_worlds().filter(func(w: Dictionary) -> bool: return w.seed == WorldStore.TEST_SEED)
 	var out := []
-	for slopes in 2:
+	for slopes in [1]:
 		var options := {}
 		for k: String in LandLayout.SETTING_KEYS:
 			options[k] = LandLayout.DEFAULT_SETTINGS[k]
