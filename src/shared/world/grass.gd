@@ -259,29 +259,38 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 		for k in rng.randi_range(1, 2):
 			out.append(REED + rng.randi_range(0, 1))
 	if not Plants.CUSTOM.is_empty():
-		_custom(w, x, z, m, tier, by_water, out, rng)
+		_custom(w, x, y, z, m, tier, by_water, out, rng)
 	return loaded(out)
 
 
 ## The mods' own plants on the cell (see Plants.CUSTOM): each where it `grows` (open
 ## grass, the shade of a crown, the woods: that shade and the open grass within
 ## WOODS_EDGE cells of a crown, a bank, open ground other than grass), on the share of that ground its `cover` says
-## (within `near_water` cells of water when that is set),
+## (within `near_water` cells of water when that is set; with `water_cover` more often
+## there, its `cover` elsewhere),
 ## and only in clumps `clump_size` cells wide where its own noise is above `clumps` when
 ## that is set, and only in its `biomes` when it names some. A frame `across` cards wide
 ## is one kind, its first column (Foliage draws the rest beside it). `tier` and
 ## `by_water` are the cell's, as kinds found them.
-static func _custom(w, x: int, z: int, m: int, tier: int, by_water: bool, out: Array[int], rng: RandomNumberGenerator) -> void:
+static func _custom(w, x: int, y: int, z: int, m: int, tier: int, by_water: bool, out: Array[int], rng: RandomNumberGenerator) -> void:
 	if not is_same(_rules_of, Plants.CUSTOM) or not is_same(_rules_biomes, Biomes.RECORDS):
 		_compile_custom()
 	var shaded: bool = w.leaf_col(x, z) != 0
 	var grass := m == Mat.GRASS
 	var b := -1
 	for r: Array in _rules:
+		# A plant more common by the water (`water_cover`) grows there also on the bare
+		# ground of a bank (clay, mud), on the sand of a river or a lake above the sea's
+		# beaches and on the bare spots of the grass, as sedge does.
+		var bank_only := false
 		match r[0]:
 			MEADOW:
-				if not grass or shaded or tier == BARE_TIER:
+				if shaded:
 					continue
+				if not grass or tier == BARE_TIER:
+					if r[9] < 0.0 or (not grass and m != Mat.BANK and (m != Mat.BEACH or y <= w.sea_level + 1)):
+						continue
+					bank_only = true
 			SHADE:
 				if not grass or not shaded:
 					continue
@@ -306,8 +315,15 @@ static func _custom(w, x: int, z: int, m: int, tier: int, by_water: bool, out: A
 			continue
 		if r[0] == WOODS and not shaded and not _near_crown(w, x, z):
 			continue
-		if rng.randf() < r[4] and (r[5] == 0 or _near_water(w, x, z, r[5])):
-			out.append(CUSTOM + r[6] + rng.randi_range(0, r[7] - 1) * r[8])
+		var roll := rng.randf()
+		var water_cover: float = r[9]
+		if water_cover >= 0.0:
+			# Its `cover` anywhere, more by the water (the costlier test only past it).
+			if (roll >= r[4] or bank_only) and (roll >= water_cover or not _near_water(w, x, y, z, r[5])):
+				continue
+		elif roll >= r[4] or (r[5] != 0 and not _near_water(w, x, y, z, r[5])):
+			continue
+		out.append(CUSTOM + r[6] + rng.randi_range(0, r[7] - 1) * r[8])
 
 
 ## Where a custom plant grows (its `grows`, see _custom).
@@ -321,7 +337,7 @@ const GROWS := {"meadow": MEADOW, "shade": SHADE, "woods": WOODS, "bank": BANK, 
 ## biomes (_custom runs for every grass cell a chunk's plants are built on): for each
 ## plant that grows wild, [where it grows, a byte per biome index (1 where it grows,
 ## empty for anywhere), its clumps' noise (null for none), the noise's threshold,
-## cover, near_water, first frame, frames, across].
+## cover, near_water, first frame, frames, across, water_cover].
 static var _rules: Array[Array] = []
 static var _rules_of: Array = []
 static var _rules_biomes: Array = []
@@ -347,15 +363,17 @@ static func _compile_custom() -> void:
 				noise = _field_noise(hash(c.id), 1.0 / c.get("clump_size", 10.0))
 				custom_noises[c.id] = noise
 		_rules.append([GROWS.get(c.grows, -1), in_biomes, noise, float(c.clumps), float(c.cover), int(c.get("near_water", 0)),
-			int(c.first), int(c.frames), int(c.get("across", 1))])
+			int(c.first), int(c.frames), int(c.get("across", 1)), float(c.get("water_cover", -1.0))])
 
 
-## Whether water stands within `reach` cells of column x, z (eight ways out from it, a
-## cell at a time): where a plant with `near_water` grows.
-static func _near_water(w, x: int, z: int, reach: int) -> bool:
+## Whether water stands within `reach` cells of ground cell x, y, z (eight ways out from
+## it, a cell at a time), from two levels below it to one above (not water deep under the
+## ground, a cave's): where a plant with `near_water` grows.
+static func _near_water(w, x: int, y: int, z: int, reach: int) -> bool:
+	var bits := (0b1111 << (y - 2)) if y >= 2 else (0b1111 >> (2 - y))
 	for r in range(1, reach + 1):
 		for d: Vector2i in NEAR_WAYS:
-			if w.water_col(x + d.x * r, z + d.y * r) != 0:
+			if w.water_col(x + d.x * r, z + d.y * r) & bits:
 				return true
 	return false
 

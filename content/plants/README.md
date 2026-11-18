@@ -96,8 +96,12 @@ folder lacks, the game looks for in the mod's `common/`.
   grows (`grows`: `meadow` — open grass, `shade` — the shade of crowns, `woods` — that shade and the open grass a few
   cells round the crowns, `bank` — by the water, `bare` — open ground other than grass: the sand and stone of a desert), what share of such land it takes (`cover`), whether it grows in
   patches (`clumps` — a noise threshold, no field — everywhere) and how wide they are (`clump_size`, in cells, 10 if
-  not given), and in which biomes (`biomes`, none — in any);
-  there can be any number of such plants, they grow side by side (fern, nettle, cranberry, clover).
+  not given), and in which biomes (`biomes`, none — in any); `near_water` keeps it within that many cells of
+  water (from two levels below the ground to one above, not over a cave's water), and with `water_cover` it grows
+  anywhere at `cover` but on that share of the ground near water, there also on clay banks, on the sand of rivers
+  and lakes above the sea's beaches and on the bare spots of the grass (sedge); `tint: grass` draws its picture as
+  greys times the grass colour of the place (128 the grass itself), so it takes the meadow's hue as tall grass does;
+  there can be any number of such plants, they grow side by side (fern, nettle, cranberry, clover, sedge).
 - A tree's trunk is drawn with the log of "Wood", and a species with a `bark` field with its own texture
   (`textures/<bark>.png`, 48×16 like a material's: end, bark, bottom); the cell stays the same (a log),
   so it is chopped and yields the same. Bark is not a material: materials together with barks can be no

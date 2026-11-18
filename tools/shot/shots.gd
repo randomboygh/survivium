@@ -494,6 +494,8 @@ const SHOTS := {
 	# Ferns in the shade of a forest's edge, a field of clover on a meadow.
 	"ferns": {"time": 0.42, "season": 1, "patch": "plants:fern"},
 	"clover": {"time": 0.42, "season": 1, "patch": "plants:clover"},
+	"sedge": {"time": 0.42, "season": 1, "place": "river", "patch": "plants:sedge"},
+	"sedge-swamp": {"time": 0.42, "season": 1, "place": "swamp", "patch": "plants:sedge"},
 	# The same in a strong wind, frames apart: every plant sways, not only the grass tufts.
 	"ferns_wind": {"time": 0.42, "season": 1, "patch": "plants:fern", "gust": 1.8, "frames_every": 8, "frames_ms": 250},
 	"clover_wind": {"time": 0.42, "season": 1, "patch": "plants:clover", "gust": 1.8, "frames_every": 8, "frames_ms": 250},

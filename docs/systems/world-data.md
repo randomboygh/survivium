@@ -53,7 +53,8 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
   ground patch, and by the slow `meadow_noise` (`MEADOW_FREQ`, `MEADOW_TALL`) tall meadows and dense lawns of low
   grass two to three chunks wide; rare fields of ears as wide (`EAR_FREQ`, `EAR_FIELD`) on flat lowland; flowers, moss, the
   mods' plants `Plants`: on open grass, in the shade of crowns, in the woods — that shade and the grass
-  `WOODS_EDGE` cells round it, `_near_crown` —, on banks; a frame `across` cards wide is one kind, its first
+  `WOODS_EDGE` cells round it, `_near_crown` —, on banks, near water at the ground's level (`_near_water`,
+  `near_water`, `water_cover`: sedge on the banks); a frame `across` cards wide is one kind, its first
   column, which `foliage._column` draws as that many cards by `Plants.ACROSS`; fairy rings of the plant with
   `rings` on the open grass, one in that share of the `RING_GRID` squares, `fairy_ring`, `in_ring`), cloud noise
   for shadows. `solid_plant(w, x, y, z)` — a plant that stops a body (`Plants.SOLID`: its `solid`, a cactus) on

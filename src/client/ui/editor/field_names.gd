@@ -291,6 +291,8 @@ const NAMES := {
 	"plants.across": ["[field.plants.across]", "[field.plants.across.about]"],
 	"plants.grows": ["[field.plants.grows]", "[field.plants.grows.about]"],
 	"plants.near_water": ["[field.plants.near_water]", "[field.plants.near_water.about]"],
+	"plants.water_cover": ["[field.plants.water_cover]", "[field.plants.water_cover.about]"],
+	"plants.tint": ["[field.plants.tint]", "[field.plants.tint.about]"],
 	"plants.looks": ["[field.plants.looks]", "[field.plants.looks.about]"],
 	"plants.puff": ["[field.plants.puff]", "[field.plants.puff.about]"],
 	"plants.after_rain": ["[field.plants.after_rain]", "[field.plants.after_rain.about]"],

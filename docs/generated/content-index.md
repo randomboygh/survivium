@@ -59,7 +59,7 @@
 | `plants:turnip_seeds` | [plants.items.turnip_seeds] | [planting] | [plants.items.turnip_seeds.about] | `plants/turnip` | 0. [core.eras.foraging] | 1 / 2 | ок |
 | `plants:turnip` | [plants.items.turnip] | [food] | [plants.items.turnip.about] | `plants/turnip` | 0. [core.eras.foraging] | 1 / 2 | ок |
 | `resources:crystal` | [resources.items.crystal] | [blocks] |  | `resources/caves` | 1. [core.eras.primitive] | 1 / 1 | ок |
-| `resources:fiber` | [resources.items.fiber] | [materials] |  | `resources/fiber` | 0. [core.eras.foraging] | 0 / 26 | ок |
+| `resources:fiber` | [resources.items.fiber] | [materials] |  | `resources/fiber` | 0. [core.eras.foraging] | 0 / 27 | ок |
 | `materials:cord` | [materials.items.cord] | [materials] |  | `materials/cord` | 1. [core.eras.primitive] | 1 / 57 | ок |
 | `plants:moss` | [plants.items.moss] | [materials] |  | `plants/moss` | 0. [core.eras.foraging] | 0 / 3 | ок |
 | `plants:bandage` | [plants.items.bandage] | [healing] |  | `plants/moss` | 0. [core.eras.foraging] | 0 / 2 | ок |
@@ -517,7 +517,7 @@
 | `plants:shrub` | [plants.bushes.shrub] |  |  | `plants/shrub` | 2 / 23 | ок |
 | `plants:banana` | [plants.bushes.banana] |  |  | `plants/banana` | 3 / 2 | ок |
 
-## [plants] (`plants`, 28)
+## [plants] (`plants`, 29)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
@@ -530,6 +530,7 @@
 | `plants:tall_grass` | [plants.plants.tall_grass] | tall_grass |  | `plants/grass`; патчи: `plants/turnip` | 2 / 1 | ок |
 | `plants:flowers` | [plants.plants.flowers] | flowers |  | `plants/grass`; патчи: `plants/peas` | 2 / 2 | ок |
 | `plants:herbs` | [plants.plants.herbs] | herbs |  | `plants/grass`; патчи: `plants/carrot` | 2 / 0 | ок |
+| `plants:sedge` | [plants.plants.sedge] | custom |  | `plants/grass` | 1 / 0 | ок |
 | `plants:carrot` | [plants.plants.carrot] | crop |  | `plants/carrot` | 2 / 1 | ок |
 | `plants:mimosa` | [plants.plants.mimosa] | custom |  | `plants/mimosa` | 4 / 0 | ок |
 | `plants:monstera` | [plants.plants.monstera] | custom |  | `plants/monstera` | 3 / 0 | ок |

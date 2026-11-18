@@ -215,7 +215,7 @@ static func build_plants() -> ImageTexture:
 		for k in (shift if shift > 0 else (Plants.columns(c) if after_rain else 0)):
 			img.set_pixel(PLANT_W * (PLANTS + c.first + k), PLANT_H, looks_texel(c.get("looks", ""), shift, after_rain))
 		for k in Plants.columns(c):
-			img.set_pixel(PLANT_W * (PLANTS + c.first + k) + 1, PLANT_H, sway_texel(c.get("sway", 1.0)))
+			img.set_pixel(PLANT_W * (PLANTS + c.first + k) + 1, PLANT_H, sway_texel(c.get("sway", 1.0), c.get("tint", "") == "grass"))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
 	for v in 4:
@@ -294,19 +294,10 @@ static func build_plants() -> ImageTexture:
 			var h := rng.randi_range(2, 4)
 			for i in h:
 				_plant_px(img, 14 + v, x, i, Color(float(i + 1) / h, 0, 0, 1))
-	# Tall grass: five or six long blades that lean more and more toward the tip, so a
-	# meadow of them waves as one; red is still the height for the tip light.
-	for v in 4:
-		var blades := 5 + v % 2
-		for b in blades:
-			var x := 1 + (b * 6) / blades + rng.randi_range(0, 1)
-			var h := rng.randi_range(13, 17 + 2 * (v / 2))
-			var lean := 1 if (x + v) % 2 == 0 else -1
-			for i in h:
-				var px := x + (lean if i >= h * 2 / 3 else 0) + (lean if i >= h * 5 / 6 else 0)
-				px = clampi(px, 0, PLANT_W - 1)
-				var k := float(i + 1) / h
-				_plant_px(img, 18 + v, px, i, Color(k, 0, 0, 1))
+	# Tall grass, each look a shape of its own so a meadow is not of one tuft (its own
+	# numbers, so the plants after it keep theirs); red is still the height for the tip
+	# light, and the blades lean more and more toward the tip, so a meadow waves as one.
+	_tall_grass(img)
 	# Moss: low lumpy cushions, yellow-green and lit on their tops, darker in the
 	# hollows between them, with a few stalks of spore boxes on one.
 	var moss := Color(0.26, 0.42, 0.14)
@@ -358,6 +349,52 @@ static func build_plants() -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 
+## The tall grass looks (Grass.TALL..TALL + 3), masks like the tufts (red the height):
+## an upright tuft of five or six blades, one arching all to a side, one with two stalks
+## of seed spikes standing over the blades, and a low fan spreading out from its root.
+static func _tall_grass(img: Image) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 19
+	var v := Grass.TALL
+	for b in 6:
+		var x := 1 + b + rng.randi_range(0, 1) - (1 if b > 3 else 0)
+		var h := rng.randi_range(13, 17)
+		var lean := 1 if (x + b) % 2 == 0 else -1
+		for i in h:
+			var px := x + (lean if i >= h * 2 / 3 else 0) + (lean if i >= h * 5 / 6 else 0)
+			_plant_px(img, v, clampi(px, 0, PLANT_W - 1), i, Color(float(i + 1) / h, 0, 0, 1))
+	# Arching: every blade bends over the same way, the tallest farthest.
+	for b in 5:
+		var x := b + rng.randi_range(0, 1)
+		var h := rng.randi_range(12, 18)
+		for i in h:
+			var k := float(i) / h
+			_plant_px(img, v + 1, mini(x + int(k * k * (2.0 + h / 6.0)), PLANT_W - 1), i, Color(float(i + 1) / h, 0, 0, 1))
+	# Seed spikes: four blades and two thin stalks over them, each with a spike of
+	# grains on its top (lit, red 1).
+	for b in 4:
+		var x: int = [1, 3, 5, 6][b]
+		var h := rng.randi_range(9, 13)
+		var lean := -1 if x < 4 else 1
+		for i in h:
+			_plant_px(img, v + 2, x + (lean if i >= h * 3 / 4 else 0), i, Color(float(i + 1) / h * 0.85, 0, 0, 1))
+	for x in [2, 5]:
+		var h := rng.randi_range(17, 21)
+		for i in h:
+			_plant_px(img, v + 2, x, i, Color(float(i + 1) / h * 0.8, 0, 0, 1))
+		for i in 4:
+			_plant_px(img, v + 2, x + (1 if i % 2 == 0 else -1), h - 1 - i, Color(1, 0, 0, 1))
+			_plant_px(img, v + 2, x, h + i, Color(1, 0, 0, 1))
+	# A fan: short blades out of one root, the outer ones lying wide.
+	for b in 7:
+		var out := (b - 3) / 3.0
+		var h := rng.randi_range(9, 12) - int(absf(out) * 3.0)
+		for i in h:
+			var k := float(i) / h
+			_plant_px(img, v + 3, clampi(4 + roundi(out * (k * 4.0 + k * k * 2.0)), 0, PLANT_W - 1), i,
+				Color(float(i + 1) / h, 0, 0, 1))
+
+
 ## The texel under a column of a custom plant that `looks` (Plants) some other way at
 ## times: red for shy (it folds as someone passes), green for night (it opens at dusk),
 ## blue the columns past it its other look is (`shift`, at most 255); alpha 1 for a plant
@@ -367,10 +404,11 @@ static func looks_texel(looks: String, shift: int, after_rain := false) -> Color
 		1.0 if after_rain else 0.5)
 
 
-## The second texel of a custom plant's looks row: how far its tips sway in the wind
-## (Plants `sway`, 0..2, as a share of a grass tuft's), read by grass.gdshader.
-static func sway_texel(sway: float) -> Color:
-	return Color(clampf(sway, 0.0, 2.0) / 2.0, 0.0, 0.0, 1.0)
+## The second texel of a custom plant's looks row: in red how far its tips sway in the
+## wind (Plants `sway`, 0..2, as a share of a grass tuft's), green 1 for a plant tinted
+## like the grass (Plants `tint: grass`); read by grass.gdshader.
+static func sway_texel(sway: float, grass_tint := false) -> Color:
+	return Color(clampf(sway, 0.0, 2.0) / 2.0, 1.0 if grass_tint else 0.0, 0.0, 1.0)
 
 
 ## Sets texel (x, row) of plant `v`, rows counted from the bottom; off the plant it is

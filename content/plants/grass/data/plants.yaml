@@ -26,3 +26,21 @@
   title: "[plants.plants.herbs]"
   gives: {resources:fiber: 1}
   chance: 0.5
+# Sedge: tussocks of long blades fanning out from one root and arching over, tinted like
+# the grass round them (`tint: grass`); in small groups, few on the meadows, thick on the
+# banks within a few cells of water, with open ground between the groups.
+- id: sedge
+  kind: custom
+  title: "[plants.plants.sedge]"
+  sprite: sedge
+  frames: 4
+  across: 2
+  tint: grass
+  grows: meadow
+  cover: 0.06
+  clumps: 0.3
+  clump_size: 6
+  near_water: 5
+  water_cover: 0.75
+  gives: {resources:fiber: 2}
+  chance: 0.5
