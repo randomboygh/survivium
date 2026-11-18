@@ -101,6 +101,9 @@ const PROP_MOVE := "prop_move"
 const PROP_FIRE := "prop_fire"
 ## Opens a door or shuts it: [cell] (Placed.swing).
 const PROP_OPEN := "prop_open"
+## Drinks from a rain catcher, or fills the empty vessel in hand there: [cell]
+## (Placed.draw_water).
+const PROP_DRINK := "prop_drink"
 ## Writes on a sign: [cell, text] (lines joined by "\n", Placed.write).
 const SIGN_WRITE := "sign_write"
 ## Turns a sign a quarter: [cell] (Placed.turn_sign).
@@ -280,6 +283,8 @@ const PROP_LIT := "prop_lit"
 const PROP_OPENED := "prop_opened"
 ## What a campfire has left to burn: [cell, seconds] (Placed.fuel_changed).
 const PROP_FUEL := "prop_fuel"
+## What a rain catcher holds: [cell, water] (Placed.water_changed).
+const PROP_WATER := "prop_water"
 ## Every ghost cell of the blueprint, on joining: [list] (as Plans.to_list gives it).
 const PLANS := "plans"
 ## Ghost cells of the blueprint came with a block, or went: [cells, item ("" gone), the

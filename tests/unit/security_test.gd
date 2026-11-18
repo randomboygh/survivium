@@ -167,6 +167,12 @@ func _test_requests() -> void:
 		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), "2"]) == null
 		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), 5, true]) == null
 		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), 1, 1]) == null, "a thing is not set down turned out of bounds")
+	var far_rain: Dictionary = p[0].placed.put("tools:rain_catcher", Vector3i(30, 2, 30))
+	far_rain.water = 100.0
+	a.vitals.water = 10.0
+	_check(req._rule(Protocol.PROP_DRINK, [far_rain.cell]) == false and far_rain.water == 100.0 and req._rule(Protocol.PROP_DRINK, ["x"]) == null
+		and req._rule(Protocol.PROP_DRINK, [sign.cell]) == false and req.PACED.has(Protocol.PROP_DRINK),
+		"no drink from a rain catcher out of reach, of a cell that is none or of a thing that is no catcher; drinking takes the hands' time")
 	_check(req._rule(Protocol.GESTURE, ["dance_forever"]) == false and a.gesture == "" and req._rule(Protocol.GESTURE, [3]) == null,
 		"no gesture of a name that is none, or of no name")
 	var now := Time.get_ticks_msec() / 1000.0

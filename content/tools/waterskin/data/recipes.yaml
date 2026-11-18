@@ -6,3 +6,13 @@
   tools: [needle]
   wear: 1
   time: 6
+# Sea water boiled on the core's campfire right in the waterskin: fresh, but half of it boils off (`boils_off`;
+# in a clay pot less is lost - the "Boiled water" bundle).
+- id: waterskin_full_from_waterskin_sea
+  title: "[tools.recipes.waterskin_full_from_waterskin_sea]"
+  makes: waterskin_full
+  needs: {waterskin_sea: 1}
+  at: core:campfire
+  process: cook
+  boils_off: 0.5
+  time: 6

@@ -706,6 +706,10 @@ const SHOTS := {
 	"fire-close": {"time": 0.42, "season": 1, "touch": true, "fire_close": true},
 	# The spawn campfire opened: the craft tab with its buttons by the cross.
 	"campfire": {"time": 0.42, "season": 1, "touch": true, "campfire": true},
+	# A rain catcher and a rain barrel part full of rain, and the waterskins in the bag with
+	# their water strips.
+	"rain-water": {"time": 0.45, "season": 1, "rain": true, "rain_water": true},
+	"rain-water-bag": {"time": 0.45, "season": 1, "rain_water": true, "bag": true},
 	# The same workbench, kiln and chest with the window closed.
 	"stations": {"time": 0.42, "season": 1, "touch": true, "clearing": true, "fell": true, "craft": true, "closed": true},
 	# A forge set down with the rest, closed; and open, a copper bar being smelted in it.

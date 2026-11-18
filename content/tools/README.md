@@ -6,7 +6,10 @@ Bags for the back (a wicker satchel +8 cells, a leather bag +16, a canvas backpa
 `bag_slots`). Clothes of fiber made by hand (a wicker hat, a grass cape, leg wraps, bast shoes: `wear_on`
 head/body/legs/feet and `warmth`, how many degrees warmer one is in it) and warm clothes of hides and leather, sewn
 with a needle at the workbench (a fur hat, a fur coat, leather trousers, mukluks). A waterskin of leather: an empty one (`fills_to`)
-is filled at fresh water, a full one (`drink`, `empties_to`) is drunk from. Bedding (a grass mat, a fur
+is filled at fresh water, a full one (`drink`, `empties_to`, `holds` 60, drunk in gulps) is drunk from; at the sea it
+fills with sea water (`fills_salty_to`), boiled fresh at a campfire (half boils off; in a clay pot, the `boiled_water`
+bundle, a tenth, and salt is left). Rain catchers set down under the open sky fill with rain (`rain_water`): a hide
+on posts (`rain_catcher`, holds more) and a barrel (`rain_barrel`, one cell). Bedding (a grass mat, a fur
 sleeping bag: placed on the ground like stations, `prop: bed`; a touch lies down in it and sleeps, and then
 `bedding` — in sleep one rests that many times faster). Farming: a hoe (stone, copper, iron;
 `tool: hoe`, `area` cells per swing) digs grass and earth into a bed, a watering can (an empty one is filled at fresh
@@ -26,6 +29,7 @@ content/tools/
   candle/ workbench/ kiln/ forge/ loom/ potters_wheel/ drying_rack/ bloomery/ anvil/ chest/ big_chest/
   wicker_bag/ leather_bag/ canvas_backpack/
   hoe/ sickle/ watering_can/    farming: hoe, sickle, watering can
+  boiled_water/ rain_catcher/ rain_barrel/   water: sea water boiled in a pot, rain catchers
   boats/                        a raft (by hand from logs and rope) and a boat with oars (at the workbench): `vessel`, `oars`
   trap/                         a live trap (by hand from branches and rope): the bait in it calls an animal (`trap`), the caught one is a live item (`alive`)
   stairs/ door/ window/ furniture/ fireplace/   building: a staircase, doors 1×2, 2×2, 2×3, windows 1×1, 1×2, 2×1, 2×2, 3×2,

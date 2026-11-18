@@ -433,7 +433,7 @@ static func _check_renames() -> void:
 
 ## Names against the rules of docs/specifications/BUNDLE_SYSTEM.md (section 3), as
 ## `warnings`: a recipe is named after what it makes, or `<item>_from_<what it needs>`
-## when the item has more recipes; a tool `<material>_<thing>`; ore `<metal>_ore`; a tag
+## (used up or kept, a pot) when the item has more recipes; a tool `<material>_<thing>`; ore `<metal>_ore`; a tag
 ## is a lowercase word, and one only one record has is likely a slip.
 static func _check_names() -> void:
 	var bare := {}
@@ -447,7 +447,7 @@ static func _check_names() -> void:
 			bare[r.makes] = r.id
 		elif not name.begins_with(item + "_from_"):
 			warnings.append("recipes: `%s` makes `%s`: name it `%s`, or `%s_from_<what it needs>`" % [r.id, r.makes, item, item])
-		elif not r.needs.keys().any(func(n: String) -> bool: return n.get_slice(":", 1) == name.trim_prefix(item + "_from_")):
+		elif not (r.needs.keys() + r.keeps.keys()).any(func(n: String) -> bool: return n.get_slice(":", 1) == name.trim_prefix(item + "_from_")):
 			warnings.append("recipes: `%s`: `%s` is not among what it needs" % [r.id, name.trim_prefix(item + "_from_")])
 	for r in records("items"):
 		if r.tool != "none" and not "_" in r.id.get_slice(":", 1):

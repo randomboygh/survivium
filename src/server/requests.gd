@@ -44,7 +44,7 @@ const REVIVE_NEAR := 1.0
 ## player may be ahead of the clock (a quick finger along a stroke, a reply late).
 const PACED := [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.GATHER, Protocol.PLANT,
 	Protocol.PLANT_AT, Protocol.PROP_PUT, Protocol.PROP_PUT_AT, Protocol.PROP_MOVE, Protocol.LIGHT_PUT, Protocol.BUILD,
-	Protocol.FARM_WORK, Protocol.VESSEL_LAUNCH, Protocol.SIGN_WRITE, Protocol.SIGN_TURN]
+	Protocol.FARM_WORK, Protocol.VESSEL_LAUNCH, Protocol.SIGN_WRITE, Protocol.SIGN_TURN, Protocol.PROP_DRINK]
 const WORK_AHEAD := 2.0
 ## The seconds a paced request that tells no swing costs (one set down, one sown).
 const WORK_STEP := 0.25
@@ -237,6 +237,12 @@ func _rule(kind: String, args: Array) -> Variant:
 					return false
 				placed.put_out(e)
 				return true
+		Protocol.PROP_DRINK:
+			if _fit(args, [TYPE_VECTOR3I]):
+				var e: Dictionary = _near(args[0])
+				# Rain water caught in a claim is taken as from its chests.
+				return not e.is_empty() and Placed.is_catcher(e) and session.territory.may(who, e.cell, "chests") \
+					and placed.draw_water(who, e)
 		Protocol.PROP_OPEN:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])

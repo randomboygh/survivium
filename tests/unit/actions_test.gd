@@ -19,6 +19,8 @@ func run() -> void:
 	_test_start_camp()
 	_test_lights()
 	_test_drinking()
+	_test_sea_water()
+	_test_rain_catcher()
 	_test_station_flags()
 	_test_recipe_fields()
 	_test_furniture()
@@ -712,6 +714,118 @@ func _test_drinking() -> void:
 	who.hands = ["", ""]
 	who.vitals.water = 30.0
 	_check(not actions.dig_at(who, Vector3i(10, 1, 11), Vector3i.UP).is_empty() and who.vitals.water > 30.0, "a tap on the water drinks too")
+
+
+## At the sea an empty waterskin fills with sea water, which is not drunk; an empty hand
+## does not drink there, a watering can is not filled; boiled at a campfire with a pot in
+## the bag, the sea water is a full waterskin again.
+func _test_sea_water() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.WATER if z <= 11 else Mat.DIRT)
+	# All this water is the sea's.
+	var sea := GDScript.new()
+	sea.source_code = "extends \"res://src/shared/game/world_actions.gd\"\n\nfunc fresh_water(_water: Vector3) -> bool:\n\treturn false\n"
+	sea.reload()
+	var actions = sea.new(w, {"season": 1, "day": 0}, Rules.new())
+	var who := Survivor.new()
+	who.world = w
+	who.at = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
+	who.vitals.water = 30.0
+	actions.act_in_front(who, 40)
+	_check(who.vitals.water == 30.0, "an empty hand does not drink sea water")
+	who.give("tools:waterskin", 1)
+	who.hands = ["tools:waterskin", ""]
+	_check(actions.front_kind(who) == "fill", "the hint says an empty waterskin is filled at the sea")
+	actions.act_in_front(who, 40)
+	_check(who.inventory.count("tools:waterskin_sea") == 1 and who.inventory.count("tools:waterskin") == 0, "an empty waterskin is filled with sea water")
+	_check(Items.drink("tools:waterskin_sea") == 0.0 and Tools.use_of("tools:waterskin_sea") != "eat", "sea water is not drunk")
+	who.give("tools:watering_can", 1)
+	who.hands = ["tools:watering_can", ""]
+	actions.act_in_front(who, 40)
+	_check(who.inventory.count("tools:watering_can") == 1 and who.inventory.count("tools:watering_can_full") == 0, "a watering can is not filled at the sea")
+	var boil := Crafting.get_recipe("tools:waterskin_full_from_waterskin_sea")
+	var in_pot := Crafting.get_recipe("tools:waterskin_full_from_pot")
+	_check(boil.makes == "tools:waterskin_full" and boil.needs.has("tools:waterskin_sea") and boil.keeps.is_empty() and boil.at == "core:campfire"
+		and in_pot.keeps.has("tools:pot") and in_pot.boils_off < boil.boils_off, "sea water is boiled into fresh at a campfire, less of it lost in a pot")
+	var full := Items.holds("tools:waterskin_sea")
+	_check(Crafting.water_out(boil, [["tools:waterskin_sea", 1, 0, 2]]) == roundi(full * (1.0 - boil.boils_off))
+		and Crafting.water_out(in_pot, [["tools:waterskin_sea", 1, 0, 2]]) == roundi(full * (1.0 - in_pot.boils_off))
+		and Crafting.water_out(boil, [["tools:waterskin_sea", 1, full - 10, 2]]) == 5 and Crafting.water_out(boil, []) == Items.holds("tools:waterskin_full"),
+		"what is boiled holds the water taken less what boiled off; an old job with no stacks kept makes it full")
+	who.inventory.add("tools:waterskin", 1)
+	var i: int = who.inventory.slots.find_custom(func(st) -> bool: return st != null and st[0] == "tools:waterskin_sea")
+	who.inventory.set_water(i, 20)
+	who.hands = ["tools:waterskin_sea", ""]
+	actions.act_in_front(who, 40)
+	_check(Inventory.water_left(who.inventory.slots[i]) == full, "a waterskin of sea water not full is topped up at the sea")
+
+
+## A rain catcher under the open sky fills in the rain (slower in a lighter one, up to its
+## `rain_water`, not under a roof), keeps its water in the save, is drunk from with an
+## empty hand and fills an empty waterskin while it holds enough.
+func _test_rain_catcher() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var e := placed.put("tools:rain_catcher", Vector3i(20, 1, 20))
+	var most: float = Items.get_item("tools:rain_catcher").rain_water
+	_check(Placed.is_catcher(e) and e.water == 0.0 and most > 0.0, "a rain catcher is set down empty")
+	placed.step(10.0, 0.0)
+	_check(e.water == 0.0, "no rain, no water")
+	placed.step(10.0, 1.0)
+	_check(is_equal_approx(e.water, 10.0 * Placed.RAIN_CATCH), "a downpour fills it: %s" % e.water)
+	placed.step(10.0, 0.5)
+	_check(is_equal_approx(e.water, 15.0 * Placed.RAIN_CATCH), "a lighter rain fills it slower: %s" % e.water)
+	placed.step(100000.0, 1.0)
+	_check(e.water == most and Placed.water_share(e) == 1.0, "it holds at most its rain_water")
+	var copy := Placed.new()
+	copy.world = WorldData.new(40, Vector2i(48, 48))
+	copy.read_footprints()
+	copy.from_list(placed.to_list())
+	_check(copy.things[-1].get("water", -1.0) == most, "its water is kept in the save")
+	var who := Survivor.new()
+	who.world = w
+	who.at = Vector3(20.5, 1.0, 19.5) * WorldData.CELL
+	who.vitals.water = 30.0
+	_check(placed.draw_water(who, e) and who.vitals.water == 30.0 + Placed.CATCH_GULP and e.water == most - Placed.CATCH_GULP,
+		"an empty hand drinks a gulp from it")
+	who.give("tools:waterskin", 1)
+	who.hands = ["tools:waterskin", ""]
+	var holds := Items.holds("tools:waterskin_full")
+	_check(placed.draw_water(who, e) and who.inventory.count("tools:waterskin_full") == 1
+		and e.water == most - Placed.CATCH_GULP - holds, "an empty waterskin is filled from it")
+	e.water = 10.0
+	who.give("tools:waterskin", 1)
+	_check(placed.draw_water(who, e) and e.water == 0.0 and who.inventory.count("tools:waterskin_full") == 2
+		and who.inventory.slots.any(func(st) -> bool: return st != null and Inventory.water_left(st) == 10),
+		"with less than a waterskin of water in it, the waterskin takes what there is")
+	_check(not placed.draw_water(who, e), "an empty catcher gives nothing")
+	who.hands = ["tools:waterskin_full", ""]
+	e.water = 100.0
+	placed.draw_water(who, e)
+	_check(e.water == 50.0 and who.inventory.slots.all(func(st) -> bool: return st == null or st[0] != "tools:waterskin_full" or Inventory.water_left(st) == holds),
+		"a waterskin not full is topped up from it")
+	var k: int = who.inventory.slots.find_custom(func(st) -> bool: return st != null and st[0] == "tools:waterskin_full")
+	who.inventory.set_water(k, 30)
+	who.vitals.water = Vitals.MAX - 10.0
+	_check(who.eat(k) and Inventory.water_left(who.inventory.slots[k]) == 20 and who.vitals.water == Vitals.MAX,
+		"a waterskin is drunk as much as the thirst takes, the rest stays in it")
+	who.vitals.water = 0.0
+	_check(who.eat(k) and who.vitals.water == 20.0 and who.inventory.count("tools:waterskin_full") == 1 and who.inventory.count("tools:waterskin") == 1,
+		"drunk dry, it is an empty waterskin")
+	e.water = 0.0
+	for z in range(20, 22):
+		for x in range(20, 22):
+			w.set_cell(x, 6, z, Mat.STONE)
+	placed.step(10.0, 1.0)
+	_check(e.water == 0.0, "under a roof the rain does not fill it")
 
 
 func _test_station_flags() -> void:

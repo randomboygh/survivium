@@ -256,6 +256,10 @@ func refresh_counts() -> void:
 		_slots[i].texture = ItemIcons.of_item(s[0]) if s != null else null
 		_slots[i].number = "×%d" % s[1] if s != null and s[1] > 1 else ""
 		_slots[i].fill = game.character.inventory.freshness(i)
+		var water: float = game.character.inventory.water_share(i)
+		_slots[i].fill_color = HotbarSlot.WATER if water >= 0.0 else Color(0, 0, 0, 0)
+		if water >= 0.0:
+			_slots[i].fill = water
 		_slots[i].grade = Quality.grade(game.character.inventory.quality_at(i)) if s != null else -1
 		# A weapon with nothing in the bag to shoot shows inactive.
 		_slots[i].inactive = s != null and FactChips.unarmed(game.character.inventory, s[0])

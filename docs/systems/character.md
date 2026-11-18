@@ -111,7 +111,13 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   drinks at fresh water with an empty hand (`WorldActions.drink`: the action button facing water within
   `DRINK_REACH` or a tap on water; `fresh_water` — a lake, a river, a swamp, not the sea), an empty vessel in
   the hand (`fills_to`) is filled there too; a full one (`drink`, `empties_to`) is drunk as food
-  (`Character.eat`). Body warmth `warmth` (0..`MAX`, comfortable `COMFORT` 50) and getting wet `wet` (0..1):
+  (`Character.eat`). A vessel of water (`holds`: a waterskin 60) keeps in its slot how much is missing
+  (`Inventory.water_left`, `set_water`, `pour`; a blue strip on the slot, `water_share`): it is drunk in gulps
+  as much as the thirst takes (`_drink_vessel`), emptied it becomes `empties_to`; topped up at water
+  (`Inventory.vessel_for`). At the sea an empty one becomes its `fills_salty_to` (a waterskin of sea water,
+  not drunk), boiled fresh at a campfire (recipes with `boils_off`: right in the waterskin half is lost, in a clay
+  pot a tenth, `Crafting.water_out`). Under the open sky the rain fills the first empty or not full vessel of
+  the bag (`_rain_into_bag`, `BAG_RAIN` a second in a downpour); rain catchers set down: [crafting.md](crafting.md). Body warmth `warmth` (0..`MAX`, comfortable `COMFORT` 50) and getting wet `wet` (0..1):
   `warm(days, feel, …)` pulls the warmth to what follows from the felt temperature (between `COMFY_LOW` and
   `COMFY_HIGH` — comfortable), below `COLD` there is no healing, rest is twice as slow, stamina up to
   `HUNGRY_CAP`; below `FREEZING` frost wounds (`hurt_by` "cold"); above `HOT` stamina up to `HOT_CAP`. Rain and
@@ -264,7 +270,7 @@ Stamina (`Vitals`): work priced from `WORK_COST` makes the body busy for `BUSY` 
 `WORK_REST` of `REST`: strength is spent on work, not on time (a steel axe tires in 15 s in a row, a stone one
 in 88, hands in the ground — never).
 
-**Data.** Items (`food`, `spoils`, `rots_to`, `drink`, `empties_to`, `fills_to`, `bedding`, `warmth`, `heal`,
+**Data.** Items (`food`, `spoils`, `rots_to`, `drink`, `empties_to`, `fills_to`, `fills_salty_to`, `holds`, `bedding`, `warmth`, `heal`,
 `heal_time`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`; for food `heal` and `drink` are on
 top of satiety: roast heals and quenches a little, `Character.eat`); the creature `core:human`; clothes on the
 figure — `Figure.dressed(gear)`: the bare layers of `player.yaml` `naked` (body, loincloth, hair), between

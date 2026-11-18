@@ -3,7 +3,7 @@ extends RefCounted
 ## player's character (the bag, the body's state, death) and workshop, the things placed
 ## on cells, the clock and the animals, fed by the server's events (Protocol.YOU, VITALS,
 ## KNOWLEDGE, SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; PROPS, PROP, PROP_GONE,
-## PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST; PLANS, PLAN_CELLS (`game.plans`); CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
+## PROP_LIT, PROP_OPENED, PROP_FUEL, PROP_WATER, CHEST; PLANS, PLAN_CELLS (`game.plans`); CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
 ## players, `game.others`); TEAM, INVITES, MATES (`game.team`); CLAIMS, SQUARES, LAND (`game.land`); FIGHT (`game.team`); HEARD (the chat, `game.hud.chat`, and the line over the
 ## speaker's head); NOTED (the server's notices to its host, `game.hud.server_note`); over a socket the world too:
 ## CHUNK, FORGET, CELLS, DROPS with the list, TAKEN, into `game.world_maker` (RemoteGen),
@@ -214,6 +214,9 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.PROP_FUEL:
 			if args is Array and args.size() == 2 and args[0] is Vector3i and (args[1] is float or args[1] is int):
 				game.placed.take_fuel(args[0], float(args[1]))
+		Protocol.PROP_WATER:
+			if args is Array and args.size() == 2 and args[0] is Vector3i and (args[1] is float or args[1] is int):
+				game.placed.take_water(args[0], float(args[1]))
 		Protocol.CHEST:
 			if args is Array and args.size() == 2 and args[0] is Vector3i and args[1] is Dictionary:
 				game.placed.take_chest(args[0], args[1])

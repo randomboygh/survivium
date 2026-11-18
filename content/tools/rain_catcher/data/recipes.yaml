@@ -1,0 +1,8 @@
+# Recipe of the "Rain catcher" bundle: posts of branches, a hide ("Materials", the "Leather" bundle) and rope, at
+# the workbench. Fields are in docs/DATA_MODEL.md.
+- id: rain_catcher
+  title: "[tools.recipes.rain_catcher]"
+  makes: rain_catcher
+  needs: {resources:branch: 4, materials:leather: 2, materials:cord: 2}
+  at: workbench
+  time: 8

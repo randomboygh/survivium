@@ -9,6 +9,9 @@
 "[tools.items.waterskin.about]": "A leather bag for water. Take it in hand and touch fresh water to fill it."
 "[tools.items.waterskin_full]": "Waterskin with water"
 "[tools.items.waterskin_full.about]": "A full waterskin. Quenches thirst far from water."
+"[tools.items.waterskin_sea]": "Waterskin with sea water"
+"[tools.items.waterskin_sea.about]": "Salty, not for drinking. Boil it on a campfire: right in the waterskin half boils off, in a clay pot little."
 
 # content/tools/waterskin/data/recipes.yaml
 "[tools.recipes.waterskin]": "Waterskin"
+"[tools.recipes.waterskin_full_from_waterskin_sea]": "Boil sea water"

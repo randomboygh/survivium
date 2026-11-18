@@ -99,6 +99,7 @@ func watch(placed) -> void:
 	placed.fuel_changed.connect(_on_fuel_changed)
 	placed.opened.connect(_on_opened)
 	placed.joined.connect(_on_opened)
+	placed.water_changed.connect(_on_water_changed)
 
 
 ## Puts the placed things into the world as the save had them, or the camp of the start
@@ -179,10 +180,12 @@ func put_light(id: String) -> bool:
 	return r.done and r.value is bool and r.value
 
 
-func _model(kind: String, turn := 0, open := false, join := -1):
-	var key := "%s/%d/%s/%d" % [kind, turn, open, join]
+func _model(kind: String, turn := 0, open := false, join := -1, water := 0):
+	var key := "%s/%d/%s/%d/%d" % [kind, turn, open, join, water]
 	if not _models.has(key):
 		var m = VoxelProps.prop(kind)
+		if water > 0:
+			m = _with_water(m, water)
 		if join >= 0:
 			# A fence: its post, and its model's north rail turned to each side it joins.
 			var joined = m.get_script().new()
@@ -223,7 +226,7 @@ func _on_added(e: Dictionary, still := false) -> void:
 			return
 	var node := MeshInstance3D.new()
 	var kind: String = Items.get_item(e.item).prop
-	var model = _model(kind, e.get("turn", 0), e.get("open", false), e.get("join", -1))
+	var model = _model(kind, e.get("turn", 0), e.get("open", false), e.get("join", -1), _water_step(e))
 	node.mesh = model.build_mesh()
 	node.material_override = game.low_mat if node.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
 	if kind in THIN_PROPS:
@@ -243,6 +246,73 @@ func _on_added(e: Dictionary, still := false) -> void:
 		game.effects.windows.add(e.cell, node, model)
 	if not still:
 		_arrive(e, node)
+
+
+## The water a rain catcher shows: its share of what it holds in WATER_STEPS steps,
+## each step a share of the layers of its basin (_with_water), in WATER_COLOR.
+const WATER_STEPS := 8
+const WATER_COLOR := Color(0.33, 0.52, 0.74)
+## The step each rain catcher drawn shows, by its cell.
+var _water_steps := {}
+
+
+## The step of water rain catcher `e` shows, 0 for none (or for a thing that is no catcher).
+func _water_step(e: Dictionary) -> int:
+	if not Placed.is_catcher(e):
+		return 0
+	var step := ceili(Placed.water_share(e) * WATER_STEPS)
+	_water_steps[e.cell] = step
+	return step
+
+
+## Rain catcher `e` holds more or less water: drawn anew when the step it shows changed.
+func _on_water_changed(e: Dictionary) -> void:
+	if _nodes.has(e.cell) and _water_steps.get(e.cell, 0) != ceili(Placed.water_share(e) * WATER_STEPS):
+		_on_opened(e)
+
+
+## Model `m` with water standing in its basin up to `step` of WATER_STEPS: the basin is
+## each empty voxel that, in its own layer, is shut in by the model's voxels (not reached
+## from outside the model going north, south, east or west), over the lowest such layer;
+## the water fills its layers from the bottom up, at least one when there is any.
+static func _with_water(m, step: int):
+	var lo := Vector3i(1 << 20, 1 << 20, 1 << 20)
+	var hi := -lo
+	for p: Vector3i in m.voxels:
+		lo = Vector3i(mini(lo.x, p.x), mini(lo.y, p.y), mini(lo.z, p.z))
+		hi = Vector3i(maxi(hi.x, p.x), maxi(hi.y, p.y), maxi(hi.z, p.z))
+	var layers := []
+	for y in range(lo.y, hi.y + 1):
+		# What of this layer is reached from outside, one cell round the model.
+		var out := {}
+		var todo: Array[Vector2i] = [Vector2i(lo.x - 1, lo.z - 1)]
+		out[todo[0]] = true
+		while not todo.is_empty():
+			var c: Vector2i = todo.pop_back()
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var n := c + d
+				if n.x < lo.x - 1 or n.x > hi.x + 1 or n.y < lo.z - 1 or n.y > hi.z + 1 or out.has(n) \
+						or m.voxels.has(Vector3i(n.x, y, n.y)):
+					continue
+				out[n] = true
+				todo.append(n)
+		var inside: Array[Vector3i] = []
+		for z in range(lo.z, hi.z + 1):
+			for x in range(lo.x, hi.x + 1):
+				if not out.has(Vector2i(x, z)) and not m.voxels.has(Vector3i(x, y, z)):
+					inside.append(Vector3i(x, y, z))
+		if not inside.is_empty():
+			layers.append(inside)
+	if layers.is_empty():
+		return m
+	var filled = m.get_script().new()
+	for p: Vector3i in m.voxels:
+		filled.set_voxel(p, m.voxels[p], m.foliage.has(p))
+	var n := maxi(1, ceili(float(step) / WATER_STEPS * layers.size()))
+	for i in mini(n, layers.size()):
+		for p: Vector3i in layers[i]:
+			filled.set_voxel(p, WATER_COLOR * (1.08 if i == n - 1 and (p.x + p.z) % 5 == 0 else 1.0))
+	return filled
 
 
 ## Door `e` swung, or fence `e` joins its neighbours anew: drawn anew.

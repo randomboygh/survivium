@@ -129,6 +129,10 @@ func describe(target: Dictionary) -> String:
 			return Lang.f("[lmb]", [title, "[close_n2]" if e.get("open", false) else "[open]"])
 		if e.items != null:
 			return Lang.f("[lmb_open]", [title])
+		if Placed.is_catcher(e):
+			var held: String = game.character.held()
+			return Lang.f("[lmb]", [Lang.f("[catcher_water_share]", [title, roundi(Placed.water_share(e) * 100.0)]),
+				"[fill_n2]" if held != "" and not game.character.inventory.vessel_for(held, true).is_empty() else "[drink_n2]"])
 		if Placed.is_bed(e):
 			var v = game.character.vitals
 			return Lang.f("[lmb]", [title, "[go_to_sleep_n2]" if v.asleep or v.sleepy() else "[not_sleepy_n2]"])
@@ -156,7 +160,7 @@ func describe(target: Dictionary) -> String:
 
 
 ## Gathers `target` (see target_at) with what is in the hand in use: a placed thing
-## opens (a door swings, a sign shows its text, a light is taken up, a bed is lain in to sleep: Protocol.LIE_IN; parts of a house are taken up only in the build mode, BuildMode), the rest is WorldActions.gather through the server. True if anything was done
+## opens (a door swings, a sign shows its text, a light is taken up, a bed is lain in to sleep: Protocol.LIE_IN; a rain catcher is drunk from or a vessel filled there: Protocol.PROP_DRINK; parts of a house are taken up only in the build mode, BuildMode), the rest is WorldActions.gather through the server. True if anything was done
 ## (over the loop the reply is in at once; over a socket it is false until then).
 func gather(target: Dictionary) -> bool:
 	if target.has("prop") and Placed.is_door(target.prop):
@@ -172,6 +176,9 @@ func gather(target: Dictionary) -> bool:
 	if target.has("prop") and Placed.is_light(target.prop):
 		var taken = game.net.request(Protocol.PROP_TAKE, [target.prop.cell])
 		return taken.done and taken.value is bool and taken.value
+	if target.has("prop") and Placed.is_catcher(target.prop):
+		var drawn = game.net.request(Protocol.PROP_DRINK, [target.prop.cell])
+		return drawn.done and drawn.value is bool and drawn.value
 	if target.has("prop") and Placed.is_bed(target.prop):
 		var lain = game.net.request(Protocol.LIE_IN, [target.prop.cell])
 		return lain.done and lain.value is bool and lain.value

@@ -4,7 +4,7 @@ extends RefCounted
 ## to the client's copies: of the player's own state (Protocol.YOU, VITALS, KNOWLEDGE,
 ## SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH, LINE, FLOW; HEARD, the chat; NOTED, the server's notices to a host; TEAM and INVITES, the
 ## team, MATES, where its members are; CLAIMS, SQUARES and LAND, the territory), of the things placed (PROPS, PROP,
-## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST), of the blueprint (PLANS, PLAN_CELLS), of the rafts and boats
+## PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, PROP_WATER, CHEST), of the blueprint (PLANS, PLAN_CELLS), of the rafts and boats
 ## (VESSELS, VESSEL, VESSEL_GONE), of the clock (CLOCK) and of the animals (ANIMAL,
 ## ANIMAL_GONE, SNAP, STEP). What changed is noted from the rules' signals and sent
 ## once per flush: after a request, so the client sees the state before the reply, and
@@ -136,6 +136,7 @@ func _init(s) -> void:
 	placed.removed.connect(_on_removed)
 	placed.lit_changed.connect(_on_lit)
 	placed.fuel_changed.connect(_on_fuel)
+	placed.water_changed.connect(_on_water)
 	placed.opened.connect(_on_opened)
 	for e: Dictionary in placed.things:
 		_watch_chest(e)
@@ -170,6 +171,7 @@ func leave() -> void:
 	placed.removed.disconnect(_on_removed)
 	placed.lit_changed.disconnect(_on_lit)
 	placed.fuel_changed.disconnect(_on_fuel)
+	placed.water_changed.disconnect(_on_water)
 	placed.opened.disconnect(_on_opened)
 	placed.cell_changed.disconnect(_on_cell)
 	var actions = session.actions
@@ -725,6 +727,10 @@ func _on_plan(cells: Array, item: String) -> void:
 
 func _on_fuel(e: Dictionary) -> void:
 	_push(Protocol.PROP_FUEL, [e.cell, e.fuel])
+
+
+func _on_water(e: Dictionary) -> void:
+	_push(Protocol.PROP_WATER, [e.cell, e.water])
 
 
 ## Listens to what thing `e` holds, if it stores; the cell names it (not the record:

@@ -1,6 +1,6 @@
 extends "res://src/shared/game/placed.gd"
 ## The client's copy of the things placed on cells (Placed), fed by the server's events
-## (Protocol.PROPS, PROP, PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, CHEST; Mirror): the same records and the
+## (Protocol.PROPS, PROP, PROP_GONE, PROP_LIT, PROP_OPENED, PROP_FUEL, PROP_WATER, CHEST; Mirror): the same records and the
 ## same signals, so what draws the things (Props), looks for them (Gathering, the
 ## inventory window, the craft panel, the map) and listens to them (sounds, the freeze
 ## log) sees no difference. It changes nothing in the world by itself: a thing is
@@ -56,6 +56,14 @@ func take_fuel(cell: Vector3i, fuel: float) -> void:
 	if not e.is_empty() and e.has("fuel"):
 		e.fuel = fuel
 		fuel_changed.emit(e)
+
+
+## The rain catcher at `cell` holds `water`.
+func take_water(cell: Vector3i, water: float) -> void:
+	var e := at(cell)
+	if not e.is_empty() and e.has("water"):
+		e.water = water
+		water_changed.emit(e)
 
 
 ## What the thing at `cell` holds is now `items` (Inventory.to_dict); the window that

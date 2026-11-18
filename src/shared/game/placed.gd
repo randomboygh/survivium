@@ -80,6 +80,14 @@ const FUEL_ROOM := 30.0
 ## Those who copy the world learn what a fire has left this often, in seconds of it
 ## (fuel_changed), besides when it is fed.
 const FUEL_TELL := 10.0
+## Water (Vitals units) a rain catcher (an item with `rain_water`) under the open sky
+## gathers a second in a downpour (rain 1; less in a lighter rain), and how much more
+## of it runs in before it is told (water_changed). Drawn from it: a gulp of an empty
+## hand (WorldActions.DRINK), a vessel's `drink` (CATCH_FILL for one that is no drink).
+const RAIN_CATCH := 1.0
+const WATER_TELL := 5.0
+const CATCH_GULP := 25.0
+const CATCH_FILL := 60.0
 ## How far (cells) from its own spot a thing of the start's camp is set down when that
 ## spot is taken, and how many levels above or below the spawn it may stand (see camp_spot).
 const CAMP_REACH := 12
@@ -118,6 +126,9 @@ signal lit_changed(e: Dictionary)
 ## What campfire `e` has left to burn (its `fuel`) changed: it was fed, or another
 ## FUEL_TELL seconds of it burned.
 signal fuel_changed(e: Dictionary)
+## The water rain catcher `e` holds (its `water`) changed: it was drawn from, or another
+## WATER_TELL of rain ran in.
+signal water_changed(e: Dictionary)
 ## Door `e` was opened or shut (its `open`).
 signal opened(e: Dictionary)
 ## A cell under a thing was levelled or a bush there taken away: its chunks change.
@@ -136,7 +147,7 @@ var lights: Array = []
 ## Each thing placed: {"item": id, "cell": Vector3i (the north-west of its square of
 ## cells), "turn": quarters it is turned (see sizes), "items": what a thing that stores holds (an Inventory, else null), "lit": false
 ## for a fire put out, and for a fire "fuel": the seconds it has left to burn, "wet": the
-## seconds it has stood in the rain}, and "by": the number of the player who put it
+## seconds it has stood in the rain}, for a rain catcher "water": what it holds, and "by": the number of the player who put it
 ## from their bag (Player.id, 0 in a single game; none for the start's camp), "text": what a
 ## sign says (see write); a fire is a
 ## place its maker and their team come back to after death (Character.find_respawns).
@@ -586,6 +597,8 @@ func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel 
 		e.open = open
 	if by is int:
 		e.by = by
+	if rec.get("rain_water", 0.0) > 0.0:
+		e.water = 0.0
 	if rec.fire:
 		e.fuel = clampf(fuel, 0.0, rec.fuel_max) if fuel >= 0.0 else rec.fuel_start
 		e.wet = 0.0
@@ -630,10 +643,12 @@ func from_list(list: Array) -> void:
 			if is_light_item(id):
 				put_light(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), float(d.get("burnt", 0.0)))
 				continue
-			put(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
+			var e := put(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
 				not d.get("out", false), float(d.get("fuel", -1.0)), int(d.by) if d.get("by") is float or d.get("by") is int else null,
 				int(d.get("turn", 0)), bool(d.get("open", false)), str(d.get("text", "")),
 				d.get("grave") if d.get("grave") is Dictionary else {})
+			if e.has("water") and (d.get("water") is float or d.get("water") is int):
+				e.water = clampf(float(d.water), 0.0, Items.get_item(id).rain_water)
 
 
 ## The placed things as plain data for the save.
@@ -648,7 +663,7 @@ func to_list() -> Array:
 
 ## Thing `e` as plain data (one of to_list): {"item", "cell": [x, y, z], "items" what it
 ## holds (Inventory.to_dict) if it stores, "out" true for a fire put out, "fuel" the
-## seconds a fire has left, "by" who put it from their bag, "turn" when it is turned,
+## seconds a fire has left, "water" a rain catcher holds, "by" who put it from their bag, "turn" when it is turned,
 ## "open" for a door open, "text" for a sign written, "grave" for a cross}.
 static func record(e: Dictionary) -> Dictionary:
 	var c: Vector3i = e.cell
@@ -662,6 +677,8 @@ static func record(e: Dictionary) -> Dictionary:
 		d.out = true
 	if e.has("fuel"):
 		d.fuel = snappedf(e.fuel, 0.1)
+	if e.has("water"):
+		d.water = snappedf(e.water, 0.1)
 	if e.has("by"):
 		d.by = e.by
 	if e.get("turn", 0) != 0:
@@ -1271,7 +1288,9 @@ func move(who, e: Dictionary, corner: Vector3i, turn: int) -> bool:
 		if world.is_solid(c.x, c.y - 1, c.z):
 			_level_ground(c + Vector3i.DOWN)
 		_remove_bush(c)
-	put(e.item, spot, items, e.lit, e.get("fuel", -1.0), e.get("by"), turn, false, e.get("text", ""), e.get("grave", {}))
+	var moved := put(e.item, spot, items, e.lit, e.get("fuel", -1.0), e.get("by"), turn, false, e.get("text", ""), e.get("grave", {}))
+	if e.has("water"):
+		moved.water = e.water
 	world.note_edit(spot.x, spot.z)
 	return true
 
@@ -1350,7 +1369,7 @@ static func fuel_share(e: Dictionary) -> float:
 	return 1.0 if most <= 0.0 else clampf(float(e.get("fuel", 0.0)) / most, 0.0, 1.0)
 
 
-## True when nothing keeps the rain off fire `e`: a column of its cells has no roof above
+## True when nothing keeps the rain off thing `e` (a fire, a rain catcher): a column of its cells has no roof above
 ## it (WorldData.roof_level), its chunk in memory.
 func _in_rain(e: Dictionary) -> bool:
 	var c: Vector3i = e.cell
@@ -1692,6 +1711,8 @@ func step(delta: float, rain := 0.0) -> void:
 	for e: Dictionary in things:
 		if e.lit and e.has("fuel"):
 			_burn_fire(e, delta, rain)
+		elif e.has("water") and rain > 0.0:
+			_catch_rain(e, delta, rain)
 	for e: Dictionary in lights.duplicate():
 		e.burnt += delta
 		var lasts := Items.burns(e.item)
@@ -1734,6 +1755,66 @@ func seat_near(p: Vector3) -> float:
 		if dx <= SEAT_REACH and dz <= SEAT_REACH:
 			best = seat
 	return best
+
+
+## Rain catcher `e` gathers `delta` seconds of a rain of strength `rain` under the open
+## sky (RAIN_CATCH), up to its item's `rain_water`.
+func _catch_rain(e: Dictionary, delta: float, rain: float) -> void:
+	var most: float = Items.get_item(e.item).rain_water
+	var was: float = e.water
+	if was >= most or not _in_rain(e):
+		return
+	e.water = minf(most, was + RAIN_CATCH * rain * delta)
+	if floori(e.water / WATER_TELL) != floori(was / WATER_TELL) or e.water >= most:
+		water_changed.emit(e)
+
+
+## Whether `e` is a rain catcher (its item's `rain_water`).
+static func is_catcher(e: Dictionary) -> bool:
+	return e.has("water")
+
+
+## The share of its `rain_water` rain catcher `e` holds, 0..1.
+static func water_share(e: Dictionary) -> float:
+	var most: float = Items.get_item(e.item).get("rain_water", 0.0)
+	return 0.0 if most <= 0.0 else clampf(float(e.get("water", 0.0)) / most, 0.0, 1.0)
+
+
+## `who` draws from rain catcher `e` with the hand in use: an empty hand drinks a gulp
+## (CATCH_GULP, what it holds if less), an empty vessel or one of fresh water not full is
+## filled with what it holds (Inventory.pour; a vessel that keeps no amount, a watering
+## can, takes CATCH_FILL and only when that much is there). False, told why, when
+## nothing was done.
+func draw_water(who, e: Dictionary) -> bool:
+	if not is_catcher(e) or not "vitals" in who:
+		return false
+	var held: String = who.held()
+	if e.water < 1.0:
+		who.nag("catch", "[too_little_rain_water_here]")
+		return false
+	if held == "":
+		var gulp := minf(CATCH_GULP, e.water)
+		if not who.vitals.drink(gulp):
+			who.nag("not_thirsty", "[not_thirsty]")
+			return false
+		who.note("drunk")
+		e.water = maxf(0.0, e.water - gulp)
+		water_changed.emit(e)
+		return true
+	var to: Array = who.inventory.vessel_for(held, true)
+	if to.is_empty():
+		who.nag("catch", "[empty_hand_or_vessel_for_rain_water]")
+		return false
+	var keeps_amount := Items.holds(to[1]) > 0
+	if not keeps_amount and e.water < CATCH_FILL:
+		who.nag("catch", "[too_little_rain_water_here]")
+		return false
+	var poured: int = who.inventory.pour(to[0], to[1], floori(e.water) if keeps_amount else int(CATCH_FILL))
+	if poured <= 0:
+		return false
+	e.water = maxf(0.0, e.water - poured)
+	water_changed.emit(e)
+	return true
 
 
 func _burn_fire(e: Dictionary, delta: float, rain: float) -> void:

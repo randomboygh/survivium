@@ -9,6 +9,9 @@
 "[tools.items.waterskin.about]": "Кожаный мешок для воды. Возьми в руку и коснись пресной воды, чтобы наполнить."
 "[tools.items.waterskin_full]": "Бурдюк с водой"
 "[tools.items.waterskin_full.about]": "Полный бурдюк. Утоляет жажду вдали от воды."
+"[tools.items.waterskin_sea]": "Бурдюк с морской водой"
+"[tools.items.waterskin_sea.about]": "Солёная, пить нельзя. Вскипяти на костре: прямо в бурдюке половина выкипит, в глиняном горшке почти ничего."
 
 # content/tools/waterskin/data/recipes.yaml
 "[tools.recipes.waterskin]": "Бурдюк"
+"[tools.recipes.waterskin_full_from_waterskin_sea]": "Вскипятить морскую воду"

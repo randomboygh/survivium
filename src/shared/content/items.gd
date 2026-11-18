@@ -216,6 +216,12 @@ static func food(id: String) -> float:
 	return get_item(id).get("food", 0.0)
 
 
+## The water vessel `id` holds full (its `holds`; 0 for no vessel of water): its slot
+## keeps how much of it is missing (Inventory.water_left).
+static func holds(id: String) -> int:
+	return get_item(id).get("holds", 0)
+
+
 ## Water item `id` gives when drunk (Vitals.drink), 0 for what is no drink.
 static func drink(id: String) -> float:
 	return get_item(id).get("drink", 0.0)

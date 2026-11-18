@@ -175,10 +175,20 @@ const SCHEMAS := {
 		"rots_to": {"type": "ref:items", "default": "", "rel": "becomes"},
 		# Drink: `drink` water it gives when drunk (Vitals.drink); a vessel drunk from becomes
 		# `empties_to` (an empty waterskin); an empty one filled at fresh water becomes
-		# `fills_to` (WorldActions.drink).
+		# `fills_to` (WorldActions.drink), at the sea `fills_salty_to` (a waterskin of sea
+		# water, boiled at a campfire into fresh; none: it is not filled at the sea).
 		"drink": {"type": "float", "min": 0.0, "default": 0.0},
 		"empties_to": {"type": "ref:items", "default": "", "rel": "becomes"},
 		"fills_to": {"type": "ref:items", "default": "", "rel": "becomes"},
+		"fills_salty_to": {"type": "ref:items", "default": "", "rel": "becomes"},
+		# A vessel of water (fresh or sea) holds this much full; its slot keeps how much is
+		# missing (Inventory.water_left, the blue strip on it): drunk in gulps, filled up at
+		# water, from a rain catcher or by the rain (Character), boiled down at a campfire.
+		"holds": {"type": "int", "min": 0, "default": 0},
+		# A rain catcher set down: under the open sky the rain fills it up to this much water
+		# (Vitals units; Placed.RAIN_CATCH), drunk from or drawn into an empty vessel there
+		# (Placed.draw_water).
+		"rain_water": {"type": "float", "min": 0.0, "default": 0.0},
 		# A fire (`fire`) burns on fuel: it holds at most `fuel_max` seconds of burning and
 		# a new one is set down with `fuel_start` of them (`fuel_max` 0 burns for ever;
 		# `fuel_start` 0 is set down cold, a fireplace). Fuel (`fuel`) lights a fire and
@@ -443,6 +453,9 @@ const SCHEMAS := {
 		}},
 		"needs": {"type": "amounts", "of": "ref:items", "rel": "consumes"},
 		"keeps": {"type": "amounts", "of": "ref:items", "default": {}, "rel": "requires"},
+		# A vessel of water made from vessels of water (Items.holds: sea water boiled into
+		# fresh) holds what they held less this share, boiled off (Crafting.water_out).
+		"boils_off": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"at": {"type": "ref:items", "default": "", "rel": "requires_station"},
 		"tools": {"type": "list", "of": "word", "default": []},
 		"wear": {"type": "int", "min": 0, "default": 0},
