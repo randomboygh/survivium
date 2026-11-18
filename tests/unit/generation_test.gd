@@ -691,8 +691,8 @@ func _test_curious_plants() -> void:
 	_check(Plants.RING == Plants.MUSHROOMS and Plants.RING_SHARE > 0.0, "the mushrooms grow in fairy rings")
 	var ring := Vector3.ZERO
 	var at := Vector2i.ZERO
-	for i in 400:
-		at = Vector2i(i % 20, i / 20) * Grass.RING_GRID
+	for i in 4900:
+		at = Vector2i(i % 70, i / 70) * Grass.RING_GRID
 		ring = Grass.fairy_ring(at.x, at.y)
 		if ring.z > 0.0:
 			break

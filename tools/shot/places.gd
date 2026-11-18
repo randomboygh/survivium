@@ -64,7 +64,8 @@ func flat_near(w, p: Vector3) -> Vector3:
 	return p
 
 
-## The nearest spot to `p` inside a tall-grass meadow or a field of ears (see Grass):
+## The nearest spot to `p` inside a tall-grass meadow, a lawn of dense low grass or a
+## field of ears (see Grass):
 ## flat grass with the same cover for 2 cells around.
 func find(w, p: Vector3, what: String) -> Vector3:
 	var cx := floori(p.x / CELL)
@@ -93,6 +94,8 @@ func find(w, p: Vector3, what: String) -> Vector3:
 						if w.surface_y(nx, nz) != y or w.get_cell(nx, y - 1, nz) != Mat.GRASS or w.leaf_col(nx, nz) != 0:
 							ok = false
 						elif what == "meadow" and Grass.tier_at(nx, nz) != Grass.TALL_TIER:
+							ok = false
+						elif what == "lawn" and Grass.tier_at(nx, nz) != Grass.LAWN_TIER:
 							ok = false
 						elif what == "ears" and not Grass.ear_field_at(w, nx, y, nz):
 							ok = false
@@ -127,7 +130,7 @@ func find_murk(w, cx: int, cz: int, p: Vector3) -> Vector3:
 ## the ring in front of the player; the spot over cx, cz when there is none.
 func find_ring(w, cx: int, cz: int) -> Vector3:
 	var g := Vector2i(floori(float(cx) / Grass.RING_GRID), floori(float(cz) / Grass.RING_GRID))
-	for r in range(0, 12):
+	for r in range(0, 36):
 		for dz in range(-r, r + 1):
 			for dx in range(-r, r + 1):
 				if maxi(absi(dx), absi(dz)) != r:
