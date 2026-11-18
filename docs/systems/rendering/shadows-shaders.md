@@ -20,7 +20,7 @@ Part of [The picture](../rendering.md). Files: fire and sun shadows, the atlas, 
   a bundle.
 - `src/client/view/player.gd`, `figure.gd`, `hands.gd`, `sprite_sheet.gd` — the player's sprite (see
   [character.md](../character.md)).
-- `src/client/view/shader_warmup.gd` — the shader warm-up; `draw_census.gd` — the count of draw calls; `render_toggles.gd` — «Testing» → «Debug» → «What is drawn»: hides a part of the picture (a census group, everything drawn with one shader, the lights, the sun's shadow, fog, glow) until shown again or the world is left, to find which part draws a fault on a device (parts that come later, new chunks, are hidden as they come).
+- `src/client/view/shader_warmup.gd` — the shader warm-up; `draw_census.gd` — the count of draw calls; `render_toggles.gd` — «Testing» → «Debug» → «What is drawn»: hides a part of the picture (a census group, everything drawn with one shader, the lights, the sun's shadow, fog, glow) until shown again or the world is left, to find which part draws a fault on a device (parts that come later, new chunks, are hidden as they come); its row «environment: background magenta» draws the background magenta (`Sky.magenta`) so a hole in the ground shows bright, also `tools/shot.gd --magenta`.
 - `src/client/view/cave_layers.gd` — the cave view by layers for choosing cells (the same as the shaders
   hide), `src/client/world/solid_map.gd` — the map of solid cells around the player for the slice of rock
   with which the layers fill what is removed; `plan_view.gd` — the blueprint's ghost
