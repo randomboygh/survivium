@@ -291,16 +291,16 @@ void fragment() {
 			float on = clamp(far / max(front, 0.1), 0.0, 1.0);
 			col = mix(shallow, mix(shallow, foam_color, 0.2), on) * biome_tint(WATER_MATERIAL, world_pos.xz);
 			alpha = mix(0.45, 0.25, on);
-			if (edge < 1.5 / CELL_TEXELS) {
-				// The foam line round the water's edge.
+			if (edge < 3.5 / CELL_TEXELS) {
+				// The foam line round the water's edge (a few texels wide, user 2026-11-18).
 				col = foam_c;
 				alpha = 0.95;
 				surf = 1.0;
-			} else if (edge < 3.0 / CELL_TEXELS && hash12(tex + wave * 7.0) > 0.35) {
+			} else if (edge < 7.0 / CELL_TEXELS && hash12(tex + wave * 7.0) > 0.35 + 0.08 * (edge * CELL_TEXELS - 3.5)) {
 				col = mix(col, foam_c, 0.6);
 				alpha = 0.8;
 				surf = 0.5;
-			} else if (left > 0.0 && abs(lace - 0.5) < 0.04 * left) {
+			} else if (left > 0.0 && abs(lace - 0.5) < 0.09 * left) {
 				// The left foam the water slides back over.
 				col = mix(col, foam_c, 0.8);
 				alpha = 0.85;
@@ -312,8 +312,8 @@ void fragment() {
 			// The sand the wave ran over: wet and dark, and the foam it left there, a line
 			// along where it reached and lace between, breaking up into fewer and fewer
 			// bubbles as it dissolves.
-			bool line = peak - far < 2.0 / CELL_TEXELS;
-			bool foamy = line ? fizz < 0.35 + 0.65 * left : abs(lace - 0.5) < 0.05 * left && fizz < 0.4 + 0.6 * left;
+			bool line = peak - far < 5.0 / CELL_TEXELS;
+			bool foamy = line ? fizz < 0.35 + 0.65 * left : abs(lace - 0.5) < 0.1 * left && fizz < 0.4 + 0.6 * left;
 			if (foamy) {
 				col = foam_c;
 				alpha = 0.6 + 0.35 * left;

@@ -84,17 +84,13 @@ func _masks(x0: int, z0: int, x1: int, z1: int) -> Dictionary:
 	var ground := open.duplicate()
 	var low := open.duplicate()
 	var all := all_bits
-	var sea := 1 << sea_level if sea_level >= 0 and sea_level < 62 else 0
 	for j in wl * hl:
 		var a := air[j]
 		var wt := water[j]
 		var o := a | wt | leaf[j]
 		open[j] = o
 		ground[j] = ~(o | logs[j]) & all
-		# The sea's surface in its top level stands flush with the ground beside it
-		# (water_top): no lower there, so a beach at the sea's level stays flat to the
-		# water instead of sloping down into it.
-		low[j] = (a | wt) & ~(a << 1) & kept[j] & ~(wt & (a >> 1) & sea)
+		low[j] = (a | wt) & ~(a << 1) & kept[j]
 	return {"wl": wl, "hl": hl, "air": air, "water": water, "open": open, "ground": ground, "wild": cols.wild,
 		"low": low, "sloped": cols.sloped}
 

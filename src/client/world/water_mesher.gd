@@ -492,6 +492,11 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 	var murks := murk_corners(w, c, i, dz, base)
 	var top := water_top(int(base.y))
 	var sea := sea_near(w, int(base.x), int(base.y), int(base.z))
+	# The sea's top level is flush with the land (water_top): the slope of a beach down
+	# into it lies all under the water, and the surf (swash) outlines it, not a foam line.
+	var surf := surf_here(sea, int(base.y))
+	if surf:
+		foam = 0
 	var steps := Vector2i(Slopes.PATCH_STEPS, Slopes.PATCH_STEPS)
 	var hs: PackedFloat32Array = OldSlopes.patch_grid(OldSlopes.patch(c, sh, i, dy, dz), 0.0, steps)[0] \
 		if old_slopes else Slopes.surface_grid(c, sh, i, dy, dz, steps)
@@ -508,7 +513,7 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 			buf.uvs.append(Vector2(x, z))
 			buf.uv2s.append(data)
 			var murk := lerpf(lerpf(murks[0], murks[1], x), lerpf(murks[3], murks[2], x), z)
-			buf.colors.append(water_color(maxf(under, 0.0), under, kind(true, murk), sea))
+			buf.colors.append(water_color(maxf(under, 0.0), under, kind(true, murk), sea, surf))
 	for b in steps.y:
 		for a in steps.x:
 			var j := start + b * nu + a
@@ -550,7 +555,8 @@ static func swash_map(w, x0: int, z0: int, x1: int, z1: int) -> PackedFloat32Arr
 	var leaf: PackedInt64Array = masks.leaf
 	var wet := 1 << lv
 	var above: int = w.all_bits & ~((1 << (lv + 1)) - 1)
-	# 1 land with its top at the sea's level, 2 water with open air over it there.
+	# 1 land with its top at the sea's level, 2 water with open air over it there, 3 a
+	# slope of that land under the water (below).
 	var kind := PackedByteArray()
 	kind.resize(gw * gh)
 	var lands := false
@@ -581,6 +587,22 @@ static func swash_map(w, x0: int, z0: int, x1: int, z1: int) -> PackedFloat32Arr
 					and w.sea(gx0 + x, lv, gz0 + z):
 				d[k] = -0.5
 				any = true
+	# A beach's slope down into the sea lies all under its flush water (shore_water):
+	# the waterline is at its top, so it counts as the sea's water here.
+	var sloped: PackedInt64Array = masks.sloped
+	var under := PackedInt32Array()
+	for z in range(1, gh - 1):
+		for x in range(1, gw - 1):
+			var k := z * gw + x
+			if kind[k] == 1 and sloped[k] & wet != 0:
+				for n: int in [k - 1, k + 1, k - gw, k + gw]:
+					if kind[n] == 2 and d[n] < 0.0:
+						under.append(k)
+						break
+	for k in under:
+		kind[k] = 3
+		d[k] = -0.5
+		any = true
 	if not any:
 		return PackedFloat32Array()
 	const DIAG := 1.4142
@@ -634,7 +656,8 @@ static func swash_fills(buf, base: Vector3, fills: int, foam: int) -> void:
 static func swash(buf, sw: PackedFloat32Array, sw_w: int, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int,
 		dz: int, gx: int, gz: int, base: Vector3) -> void:
 	var g := gz * sw_w + gx
-	if sw[g] > SWASH_REACH:
+	# Beyond its reach, or a slope under the sea's water (swash_map).
+	if sw[g] > SWASH_REACH or sw[g] < 0.0:
 		return
 	var corners := PackedFloat32Array()
 	for k in 4:
