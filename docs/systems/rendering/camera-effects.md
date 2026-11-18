@@ -88,7 +88,13 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   (priority 2) with no depth test, kept to the water and the half of a shore's cell next to it (`SHORE_WET`) by the roof map's columns; a figure is
   mirrored with open water within `MIRROR_LOOK` cells round its feet, a swimmer too; its box fitted with `PixelView.sheared_box`; the water only tints its hue and the sky's light is taken to the power 1.6, so at night it is never brighter than the figure). NatureEffects: dandelion fluff,
   midges by the water at sunset and over one standing still (faint single pixels pulled back to a slowly wandering middle, `_midge_drift`, so they dart to and fro across it), dragonflies over the water, dust or snow from
-  under the feet.
+  under the feet. `src/client/view/tumbleweeds.gd` (held and stepped by NatureEffects, `tumbleweeds`) — tumbleweeds:
+  in a biome with `tumbleweeds` (desert 3, rocky desert and salt flat 2, red rocks 1) up to that many balls of twigs
+  (a 14 px sprite of 8 turns drawn in code, `sheet()`, lit and casting its shadow by `sprite.gdshader`) come in
+  from upwind past the screen's edge and roll with the wind (`Sky.wind_now`: `PACE` + `PACE_PER_WIND` × its
+  strength), turning as they roll, hopping now and then and up a rise of a cell, resting against a higher one up to
+  `STUCK_MOST` s, gone past the screen, off the kept chunks or over water. A picture of the client only, each player
+  sees their own; the part `effects: tumbleweeds`; the shot `tumbleweeds` (`scatter`).
 - `src/client/view/wisps.gd` (held by `Effects.wisps`, moved by `Sky`) — will-o'-the-wisps: on nights out of winter up
   to `WISPS` pale flickering emitters wander over the murky water of swamps and bogs (`WorldCells.murk`) near
   the view; one the player comes within `SHY` of slips away fading. `Effects.puff` — the spores of a picked

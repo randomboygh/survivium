@@ -554,6 +554,93 @@ static func has_tall(w, cell: Vector3i) -> bool:
 	return false
 
 
+## A plant that stops a body (Plants.SOLID: a cactus) on the top of ground cell x, y, z
+## (with air above), where Foliage._column draws it: [id, root x, root z], the root in
+## 0..1 of the cell, as the same draws of the cell's `rng` put it; [] for none. Whether
+## it shows this season is the caller's (`winter`).
+static func solid_plant(w, x: int, y: int, z: int) -> Array:
+	if Plants.SOLID.is_empty():
+		return []
+	var ch: WorldData.Chunk = w.chunk_at(x, z)
+	if ch == null or y < 0 or y + 1 >= w.size_y:
+		return []
+	var col := WorldData.col_of(x, z)
+	var i := y * WorldData.LAYER + col
+	var m: int = ch.cells[i]
+	if not Mat.can_slope(m) or m == Mat.GRASS and Plants.SOLID_BARE or ch.cells[i + WorldData.LAYER] != Mat.AIR:
+		return []
+	if not is_same(_solid_of, Plants.SOLID) or not is_same(_solid_biomes_of, Biomes.RECORDS):
+		_compile_solid()
+	if not _solid_biomes.is_empty():
+		var b: int = ch.biome[col]
+		if b < 0 or b >= _solid_biomes.size() or _solid_biomes[b] == 0:
+			return []
+	var cell := Vector3i(x, y, z)
+	var beds: Dictionary = w.fields.get(ch.key, {})
+	if beds.has(cell):
+		return []
+	var shape: int = ch.shapes[i]
+	var turf: Variant = w.turf_at(cell)
+	# Bodies ask of the same few cells step after step: what was found is kept while the
+	# cell, its shape and its turf stay as they were.
+	var seen: Variant = _solid_seen.get(cell)
+	if seen != null and seen[0] == w.get_instance_id() and seen[1] == m and seen[2] == shape and seen[3] == turf:
+		return seen[4]
+	var found := _find_solid(w, cell, m, shape, turf)
+	if _solid_seen.size() >= SOLID_SEEN_MOST:
+		_solid_seen.clear()
+	_solid_seen[cell] = [w.get_instance_id(), m, shape, turf, found]
+	return found
+
+
+## How many cells solid_plant keeps what it found on.
+const SOLID_SEEN_MOST := 2048
+static var _solid_seen := {}
+
+
+static func _find_solid(w, cell: Vector3i, m: int, shape: int, turf: Variant) -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(cell)
+	var mask := WorldData.FULL & ~(shape & 15)
+	var cuts := shape >> 4
+	var grown := kinds(w, cell.x, cell.y, cell.z, m, mask == WorldData.FULL and cuts == 0, rng)
+	if turf != null:
+		grown = turf_kinds(grown, turf, rng)
+	# The same draws as Foliage._column: a root, then the card's light and phase.
+	for kind in grown:
+		var fx := rng.randi_range(1, 7) / 8.0
+		var fz := rng.randi_range(1, 7) / 8.0
+		if w.in_cuts(cuts, fx, fz):
+			continue
+		var id := plant_of(kind)
+		if Plants.SOLID.has(id):
+			return [id, fx, fz]
+		rng.randf()
+		rng.randf()
+	return []
+
+
+## The biomes a solid plant grows in (a byte per biome index, 1 where one does; empty
+## when one grows anywhere), made once for each load of the plants and the biomes.
+static var _solid_biomes := PackedByteArray()
+static var _solid_of: Dictionary = {}
+static var _solid_biomes_of: Array = []
+
+
+static func _compile_solid() -> void:
+	_solid_of = Plants.SOLID
+	_solid_biomes_of = Biomes.RECORDS
+	_solid_biomes = PackedByteArray()
+	_solid_biomes.resize(Biomes.IDS.size())
+	for r: Dictionary in Plants.SOLID.values():
+		if r.get("biomes", []).is_empty():
+			_solid_biomes = PackedByteArray()
+			return
+		for k in Biomes.IDS.size():
+			if Biomes.IDS[k] in r.biomes:
+				_solid_biomes[k] = 1
+
+
 ## The plants of a grass cell the player changed (see WorldData.turf): cut short, only
 ## low grass is left of what grew there (`grown` ""); sown, ears stand among it.
 static func turf_kinds(grown_kinds: Array[int], grown: String, rng: RandomNumberGenerator) -> Array[int]:

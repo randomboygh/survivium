@@ -366,6 +366,9 @@ const SCHEMAS := {
 		# The ground that shows where the soil noise is above clay_above.
 		"clay_as": {"type": "enum", "values": ["grass", "dirt", "stone", "sand", "clay", "snow", "peat", "salt", "ice", "scree"], "default": "clay"},
 		"dunes": {"type": "float", "min": 0.0, "default": 0.0},
+		# How many tumbleweeds at most roll with the wind round one who stands here (the
+		# client's Tumbleweeds, a picture only); 0 none.
+		"tumbleweeds": {"type": "int", "min": 0, "max": 8, "default": 0},
 		"trees": {"type": "shares", "of": "ref:trees", "soft": true, "default": {}, "rel": "spawns"},
 		"tree_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"groves": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
@@ -545,6 +548,11 @@ const SCHEMAS := {
 		# Stepping on it crushes it (ActionsDig.tread), and its spores make the one who
 		# stepped see the picture swim this many seconds (Vitals.see_visions); 0 never.
 		"crush": {"type": "float", "min": 0.0, "max": 60.0, "default": 0.0},
+		# A custom plant a body cannot walk through, two cells high round its root, like a
+		# trunk (Grass.solid_plant, Body); one that `pricks` takes that much health from
+		# whoever touches it, now and then (Character._touch_spines; a cactus).
+		"solid": {"type": "bool", "default": false},
+		"pricks": {"type": "float", "min": 0.0, "max": 50.0, "default": 0.0},
 		# The share of the places on the open meadows (Grass.RING_GRID cells apart) where
 		# it grows in a fairy ring (Grass.fairy_ring); 0 never.
 		"rings": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},

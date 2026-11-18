@@ -19,3 +19,5 @@
   top: salt
   clay_above: 0.55
   color: "#e6e2d3"
+  # Tumbleweeds rolling with the wind round the player (a picture only).
+  tumbleweeds: 2

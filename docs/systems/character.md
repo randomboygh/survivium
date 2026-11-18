@@ -41,6 +41,10 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   `forget_fall` (respawn, `Player.teleport`) begin the count anew; on a leaning ladder (`Body.on_ladder`) there
   is no fall, the count goes from it. The test switch «Fall damage» (`Vitals.falls` off) makes every fall harmless; «Invulnerability» (`Vitals.harm` off,
   sent to a playtest server as `harm`, `Cheats.VITALS`) keeps health from going down at all.
+  A plant that pricks (its `pricks`: a cactus, which is also `solid`) pricks a body touching it within
+  `PRICK_REACH` cells or walking into it (`Body.bumped`): its `pricks` of health (`hurt_by` `plant:<id>`, the death
+  screen «Pricked to death» with the plant's name), a push away from its root (`PRICK_KNOCK`, `PRICK_HOP`), and
+  not again before `PRICK_PAUSE` (`_touch_spines`, asked of `Body.solid_near`); not while riding.
 - `src/shared/game/inventory.gd` — the bag: `SLOTS` 16 (`base`), the first `HOTBAR` 8 — the bar below;
   stacks, weight (40 kg with no slowing), sorting, moving into a chest, wear (`wear_tool`, `mend`); the signal
   `changed`. Quality (decision 181): a stack has a number 1–100 (`quality(s)`, `quality_at(i)`; `NORMAL` 50 —
@@ -130,7 +134,10 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
 - `src/shared/game/body.gd` — the body on the grid: `step(at, delta, jump)` (a longer `delta` is walked in
   steps of `STEP_MOST` 0.05 s, so a fall never passes through a floor), slopes (the pace is along the ground: the run is shortened by the rise, `SLOPE_MOST`) and steps, water and
   swimming, the bark of a trunk thicker than its cell in the cells beside and across its corners
-  (`WorldData._bark_touched`, an octagon as drawn), a leaning ladder (`_climb`: the body in the cell of a link of `WorldData.ladders`, or above the top
+  (`WorldData._bark_touched`, an octagon as drawn), a plant that is `solid` (a cactus: a post `SOLID_HALF` cells
+  round its root where Foliage draws it and `SOLID_HIGH` levels high, not jumped over; `Grass.solid_plant` finds
+  it; `_find_posts` gathers those within `POST_REACH` columns once the body has gone a cell or `POSTS_FRESH`
+  steps, so `_collides` asks only of them; one the body stands in already (`_in_plant`) lets it walk out), a leaning ladder (`_climb`: the body in the cell of a link of `WorldData.ladders`, or above the top
   link by less than `CLIMB_OVER`, does not fall; the joystick towards the ladder — up, away from it — down at
   the speed `CLIMB_SPEED`, sideways — along, above the top link towards the ladder — to step off at the edge;
   below on the ground «away from it» leads away by a step, a jump lets go at `LET_GO`; the server sets

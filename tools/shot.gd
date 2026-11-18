@@ -1349,6 +1349,10 @@ func _run() -> void:
 			main.effects._light_lamps(PixelView.screen_plane(main.player.position), main.sky)
 			for i in 30:
 				await process_frame
+		if shot.has("tumbleweeds"):
+			main.effects.nature.tumbleweeds.scatter(shot.tumbleweeds, main.sky.wind_now)
+			await process_frame
+			await process_frame
 		# The trees' light is worked out a few trees a frame in the game: all of it first.
 		if main.sun_rays != null and main.sun_rays.finish():
 			await process_frame

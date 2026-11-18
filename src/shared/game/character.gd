@@ -22,6 +22,7 @@ const AiRules := preload("res://src/shared/content/ai_rules.gd")
 const Quality := preload("res://src/shared/game/quality.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
 
 const CELL := WorldData.CELL
 ## A message for the same reason is not repeated sooner than this, in seconds.
@@ -132,6 +133,13 @@ func burn_left(id: String, k := 0) -> float:
 const BURN_KNOCK := 6.0
 const BURN_HOP := 4.0
 const BURN_PAUSE := 0.4
+## A plant that pricks (its `pricks`: a cactus) touched within this many cells of the
+## body pricks it, throws it back by this much and this hop, and pricks again no sooner
+## than PRICK_PAUSE seconds after.
+const PRICK_REACH := 0.08
+const PRICK_KNOCK := 3.0
+const PRICK_HOP := 2.0
+const PRICK_PAUSE := 0.8
 ## The warmth (air, fires, clothes, roof) and the food in the bag are worked out every
 ## this many seconds of play, with the days gone since: they change slowly, and each
 ## asks about the fires, the roof and every thing in the bag (a few ms a frame in a
@@ -222,6 +230,8 @@ var position: Vector3:
 var _nagged := {}
 ## Seconds until a fire burns the body again (see BURN_PAUSE).
 var _burn_wait := 0.0
+## Seconds until a plant pricks the body again (see PRICK_PAUSE).
+var _prick_wait := 0.0
 ## Seconds and days of play since warmth and spoiling were last worked out (WARM_EVERY).
 var _warm_wait := 0.0
 var _warm_days := 0.0
@@ -359,6 +369,9 @@ func update(delta: float) -> void:
 		_touch_fire(p)
 	if _burn_wait <= 0.0:
 		_touch_hot(p)
+	_prick_wait = maxf(0.0, _prick_wait - delta)
+	if _prick_wait <= 0.0:
+		_touch_spines(p)
 	_burn_light(delta)
 	_fall(p, delta, stride >= STRIDE_MAX)
 	_forget_old_sacks()
@@ -510,6 +523,30 @@ func _touch_hot(p: Vector3) -> void:
 		away = Vector2(0.0, 1.0)
 	body.knock(away, BURN_KNOCK, BURN_HOP)
 	nag("fire", "[hot]")
+
+
+## A plant that pricks (its `pricks`: a cactus, which stops the body, Body.solid_near)
+## the body at `p` touches, or tried to walk into this step (Body.bumped), takes its
+## `pricks` of health and throws the body back, away from its root.
+func _touch_spines(p: Vector3) -> void:
+	if body == null or body.world == null or Plants.SOLID.is_empty() or riding != "":
+		return
+	var plant: Array = body.solid_near(p, PRICK_REACH)
+	if plant.is_empty() and body.bumped.is_finite():
+		plant = body.solid_near(body.bumped, PRICK_REACH)
+	if plant.is_empty():
+		return
+	var hurt: float = Plants.SOLID[plant[0]].get("pricks", 0.0)
+	if hurt <= 0.0:
+		return
+	vitals.wound(hurt, "plant:" + str(plant[0]))
+	_prick_wait = PRICK_PAUSE
+	var root: Vector3 = plant[1]
+	var away := Vector2(p.x - root.x, p.z - root.z)
+	if away.length() < 0.01:
+		away = Vector2(0.0, 1.0)
+	body.knock(away, PRICK_KNOCK, PRICK_HOP)
+	nag("spines", "[ouch_prickly]")
 
 
 ## The health a touch of the cell at `c` takes (Mat.burns), 0 for most.
@@ -886,6 +923,8 @@ static func cause_text(cause: String) -> Array:
 	if cause.begins_with("animal:"):
 		var spec: Dictionary = AiRules.SPECIES.get(cause.substr(7), {})
 		return ["[an_animal_mauled_you]", str(spec.get("title", ""))]
+	if cause.begins_with("plant:"):
+		return ["[you_were_pricked_to_death]", str(Plants.BY_ID.get(cause.substr(6), {}).get("title", ""))]
 	match cause:
 		"hunger":
 			return ["[you_died]", "[of_hunger]"]

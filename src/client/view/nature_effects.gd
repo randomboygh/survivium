@@ -2,9 +2,9 @@ extends Node3D
 ## Small life in the air and on the ground (the user's pick, 2026-11-15): dandelion fluff
 ## drifting on the wind on summer days, flashing white as it turns in the sun; midges
 ## dancing in a cloud by the water on warm evenings, and over the head of one who stands
-## still there; dragonflies hovering and darting over the water on summer days; and dust
-## (or snow) kicked up from under the feet on dry sand, dirt and snow. Held by Effects
-## (`nature`), stepped by Sky. The settings «Жизнь в воздухе» (`on`) and «Дыхание и
+## still there; dragonflies hovering and darting over the water on summer days; tumbleweeds
+## rolling with the wind over the desert (Tumbleweeds); and dust (or snow) kicked up from
+## under the feet on dry sand, dirt and snow. Held by Effects (`nature`), stepped by Sky. The settings «Жизнь в воздухе» (`on`) and «Дыхание и
 ## пыль» (`dust_on`); each part can be hidden on its own in «Что рисуется» (parts).
 ## Cheap: three emitters and a pool of four for the dust, three small quads for the
 ## dragonflies, their spots picked again only when the view has moved.
@@ -15,6 +15,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const Warmth := preload("res://src/shared/game/warmth.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const ParticleShader := preload("res://shaders/particle.gdshader")
+const Tumbleweeds := preload("res://src/client/view/tumbleweeds.gd")
 
 const PX := 1.0 / 16.0
 const CELL := WorldData.CELL
@@ -55,6 +56,7 @@ const FLUFF_PART := "effects: fluff in the sun"
 const MIDGES_PART := "effects: midges"
 const FLIES_PART := "effects: dragonflies"
 const DUST_PART := "effects: dust under the feet"
+const TUMBLE_PART := "effects: tumbleweeds"
 var hidden := {}
 
 var game
@@ -77,6 +79,8 @@ var _fly_shapes: Array[Texture2D] = []
 var _spots: Array[Vector3] = []
 var _spots_home := Vector2.INF
 var _dusts: Array[CPUParticles3D] = []
+## Tumbleweeds rolling with the wind in the desert.
+var tumbleweeds
 var _dust_next := 0
 ## Each one walking (by key): [where it was, world units walked since its last puff].
 var _walkers := {}
@@ -112,6 +116,8 @@ func _ready() -> void:
 	head_midges.emission_sphere_radius = MIDGE_RADIUS * 0.6
 	PixelView.blank_particles(head_midges)
 
+	tumbleweeds = Tumbleweeds.new(game)
+	add_child(tumbleweeds)
 	_fly_shapes = [_shape(FLY_UP), _shape(FLY_DOWN)]
 	for i in DRAGONFLIES:
 		var m := MeshInstance3D.new()
@@ -188,7 +194,7 @@ static func _shape(rows: Array) -> ImageTexture:
 ## The parts of the picture this draws, for «Что рисуется»: [name, Callable(hide)].
 func parts() -> Array:
 	var out := []
-	for name: String in [FLUFF_PART, MIDGES_PART, FLIES_PART, DUST_PART]:
+	for name: String in [FLUFF_PART, MIDGES_PART, FLIES_PART, DUST_PART, TUMBLE_PART]:
 		out.append([name, func(hide: bool) -> void:
 			if hide:
 				hidden[name] = true
@@ -242,6 +248,7 @@ func update(delta: float, sky, clock, indoor: bool) -> void:
 			(e.mesh as QuadMesh).material.set_shader_parameter("light", light)
 	_dragonflies(delta, outside and summer and calm and sky.daylight > 0.6 and not hidden.has(FLIES_PART), light)
 	_dust(clock, dust_on and not hidden.has(DUST_PART), indoor)
+	tumbleweeds.update(delta, outside and not hidden.has(TUMBLE_PART), sky.wind_now)
 
 
 ## How far the middle of a midge cloud has wandered now: slow loops of MIDGE_WANDER.

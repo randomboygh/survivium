@@ -48,6 +48,11 @@ static var ACROSS := PackedByteArray()
 static var RING := ""
 static var RING_INDEX := -1
 static var RING_SHARE := 0.0
+## The custom plants that stop a body (`solid`: a cactus), id -> record; empty when no
+## loaded plant does (Grass.solid_plant, Body), and whether all of them grow on `bare`
+## ground (then none stands on grass).
+static var SOLID := {}
+static var SOLID_BARE := true
 
 
 static func _static_init() -> void:
@@ -62,6 +67,8 @@ static func refresh() -> void:
 	RING = ""
 	RING_INDEX = -1
 	RING_SHARE = 0.0
+	SOLID = {}
+	SOLID_BARE = true
 	var frames := 0
 	for r in Content.records("plants"):
 		if r.get("rings", 0.0) > 0.0:
@@ -75,6 +82,9 @@ static func refresh() -> void:
 			c.first = frames
 			frames += columns(r)
 			CUSTOM.append(c)
+			if r.get("solid", false) and r.kind == KINDS.CUSTOM:
+				SOLID[r.id] = r
+				SOLID_BARE = SOLID_BARE and r.get("grows", "") == "bare"
 			var across: int = r.get("across", 1)
 			for k in columns(r):
 				ACROSS.append(across if k % across == 0 else 0)
