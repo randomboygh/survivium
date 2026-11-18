@@ -8,8 +8,8 @@
   across: 2
   grows: meadow
   cover: 0.9
-  clumps: 0.385
-  clump_size: 18
+  clumps: 0.4
+  clump_size: 50
   gives: {resources:fiber: 1}
   chance: 0.3
   winter: false
