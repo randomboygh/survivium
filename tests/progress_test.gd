@@ -232,7 +232,27 @@ func _order() -> Array:
 				for e: Dictionary in r.also:
 					have[e.item] = true
 				grew = true
+		# An empty vessel had is filled at water: fresh, or the sea's.
+		for id: String in have.keys():
+			for full: String in [_filled(id, "fills_to"), _filled(id, "fills_salty_to")]:
+				if full != "" and not have.has(full):
+					have[full] = true
+					grew = true
 	return out
+
+
+## What empty vessel `id` becomes filled by its `field` (fills_to, fills_salty_to), "" for none.
+func _filled(id: String, field: String) -> String:
+	var full: String = Items.get_item(id).get(field, "")
+	return Items.get_item(full).get("id", full) if full != "" else ""
+
+
+## The empty vessel that becomes `id` filled at water, "" for none.
+func _vessel_of(id: String) -> String:
+	for e: String in Items.IDS:
+		if _filled(e, "fills_to") == id or _filled(e, "fills_salty_to") == id:
+			return e
+	return ""
 
 
 ## Whether item `id` is still wanted: it is being got now, a recipe being made or one
@@ -407,7 +427,16 @@ func _obtain_more(id: String, n: int) -> bool:
 		# Made by a recipe if there is one (planks lie in the world only where someone
 		# built with them), else got from the world.
 		var r := _recipe_for(id)
-		if not r.is_empty():
+		var vessel := _vessel_of(id)
+		if vessel != "":
+			# Filled at water (fresh or the sea's, WorldActions.drink: actions_test walks
+			# to the water for it); here the empty vessel is filled where it lies.
+			if not await _obtain(vessel, 1):
+				return false
+			var at: int = inv.slots.find_custom(func(st) -> bool: return st != null and st[0] == vessel)
+			if at < 0 or inv.pour(at, id, 1 << 20) <= 0:
+				return _fail("%s is not filled" % Items.title(vessel))
+		elif not r.is_empty():
 			if not await _craft(r, ceili(float(n - inv.count(id)) / _yield(r, id))):
 				return false
 		elif raw.has(id):
