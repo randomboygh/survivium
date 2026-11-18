@@ -91,8 +91,11 @@ void vertex() {
 	// The quad is as tall as the tall grass; the other plants fill two thirds of it, so
 	// their tips bend as far as tall tips do.
 	float tip = (1.0 - UV.y) * (kind == TALL ? 1.0 : 1.5);
-	// Moss and mushrooms are too stiff to sway.
-	if (kind >= MOSS) {
+	// Moss and mushrooms are too stiff to sway; the mods' own plants (clover, ferns,
+	// crops on the beds, saplings) sway as far as their `sway` says (PixelTextures.sway_texel).
+	if (kind == CUSTOM) {
+		tip *= texelFetch(plant_texture, ivec2(int(custom.x + 0.5) * 8 + 1, 24), 0).r * 2.0;
+	} else if (kind >= MOSS) {
 		tip = 0.0;
 	}
 	// Tall blades keep nearly the same phase as their neighbours, so the wind runs

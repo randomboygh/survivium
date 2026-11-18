@@ -539,6 +539,9 @@ const SCHEMAS := {
 		# It comes up only after rain (Clock.shrooms; a puffball): grows on a soaked ground
 		# once the rain stops, each place a little sooner or later, and goes after some dry days.
 		"after_rain": {"type": "bool", "default": false},
+		# How far the tips of a custom plant, a crop or a sapling sway in the wind, as a share
+		# of a grass tuft's (grass.gdshader, PixelTextures.sway_texel); 0 stiff (a cactus, a puffball).
+		"sway": {"type": "float", "min": 0.0, "max": 2.0, "default": 1.0},
 		# Stepping on it crushes it (ActionsDig.tread), and its spores make the one who
 		# stepped see the picture swim this many seconds (Vitals.see_visions); 0 never.
 		"crush": {"type": "float", "min": 0.0, "max": 60.0, "default": 0.0},

@@ -13,6 +13,8 @@
   pick: true
   puff: true
   after_rain: true
+  # A ball on the ground: it does not sway in the wind.
+  sway: 0
   crush: 8
   gives: {puffball: 1}
   winter: false

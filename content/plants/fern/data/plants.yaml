@@ -3,7 +3,8 @@
 # (open grass), shade (shade of the crowns), woods (that shade and the open grass round the crowns), bank (by the
 # water); cover — what share of such ground it takes up (0–1); clumps — the noise threshold (−1..1) above which it
 # grows: in patches, not everywhere (no field — everywhere), clump_size — how wide the patches are, in cells;
-# biomes — only there. gives, chance, pick, winter — as for the other plants.
+# biomes — only there; sway — how far its tips sway in the wind, a share of a grass tuft's (1 by default, 0 stiff).
+# gives, chance, pick, winter — as for the other plants.
 - id: fern
   kind: custom
   title: "[plants.plants.fern]"

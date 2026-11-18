@@ -137,6 +137,10 @@ func _run() -> void:
 		if shot.has("weather"):
 			main.session.clock.set_weather(_weather_index(shot.weather))
 		main.session.clock.wind_to = shot.get("wind", 0.0)
+		# A wind of this strength at once (the weathers' `wind` scale), whatever the weather.
+		main.session.clock.real_wind = shot.get("gust", -1.0)
+		if shot.has("gust"):
+			main.session.clock.storm_wind = shot.gust
 		main.session.clock.leaf_fall = shot.get("leaf_fall", 0.0)
 		main.sky.moon_override = shot.get("moon", -1.0)
 		if "sun_steps" in main.sky:
