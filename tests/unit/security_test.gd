@@ -416,6 +416,13 @@ func _test_cheats() -> void:
 	_check(s.clock.wind_pin == 3.0 and s.clock.wind_dir_pin == PI, "a wind of a wrong type leaves it")
 	req.handle(["cheats", 15, [{"wind": -5.0, "wind_dir": -5000.0}]])
 	_check(s.clock.wind_pin == -1.0 and s.clock.wind_dir_pin == s.clock.FREE_WIND_DIR, "a wind below the page's range frees it")
+	var own_decay: float = s.rules.building_decay_days
+	req.handle(["cheats", 16, [{"decay_days": 0.0001}]])
+	_check(s.rules.building_decay_days == Requests.Cheats.LEAST_DECAY_DAYS, "the pace of building decay is clamped")
+	req.handle(["cheats", 17, [{"decay_days": "fast"}]])
+	_check(s.rules.building_decay_days == Requests.Cheats.LEAST_DECAY_DAYS, "a pace of a wrong type leaves it")
+	req.handle(["cheats", 18, [{"decay_days": 0.0}]])
+	_check(s.rules.building_decay_days == own_decay, "and 0 gives the server's own back")
 	a.vitals.harm = true
 	a.teleport(to)
 	var cfg := Config.new()

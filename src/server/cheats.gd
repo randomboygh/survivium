@@ -6,7 +6,7 @@ extends RefCounted
 ## air, the rate of skills, overload, hunger, thirst, fatigue, cold, fall damage, harm
 ## (invulnerability). The world's, for
 ## everyone on it: free building, tool wear, instant crafting, free items, animal
-## attacks, and on the clock the season, the weather, the moon, the air's warmth, the hour and the
+## attacks, the pace of building decay, and on the clock the season, the weather, the moon, the air's warmth, the hour and the
 ## pace of time; once, a teleport of the body to a point («at»: a marker or a respawn point
 ## of the page, the place one died at). Every value is checked for its type and
 ## clamped; a key not known is left.
@@ -19,6 +19,10 @@ const MOST_BOOST := 100.0
 const MOST_AIR := 60.0
 ## The strongest wind the page may pin («wind»; a blizzard is 2.5), and any angle («wind_dir»).
 const MOST_WIND := 3.0
+## The quickest stage of building decay the page may set, game days («decay_days»; 0
+## gives the server's own back).
+const LEAST_DECAY_DAYS := 0.01
+const MOST_DECAY_DAYS := 1000.0
 ## The farthest from the world's middle a teleport («at») goes, in world units on each axis.
 const MOST_FAR := 1.0e6
 ## Switches of the character (vitals and the bag) and of the world's rules.
@@ -48,6 +52,12 @@ static func apply(session, who, d: Variant, day_speed := 1.0) -> bool:
 	for k: String in RULES:
 		if d.get(k) is bool:
 			session.rules.set(k, d[k])
+	var decay_days := _number(d, "decay_days", 0.0, MOST_DECAY_DAYS)
+	if is_finite(decay_days):
+		var rules = session.rules
+		if not rules.has_meta("own_decay_days"):
+			rules.set_meta("own_decay_days", rules.building_decay_days)
+		rules.building_decay_days = maxf(decay_days, LEAST_DECAY_DAYS) if decay_days > 0.0 else float(rules.get_meta("own_decay_days"))
 	var clock = session.clock
 	var boost := _number(d, "boost", 0.0, MOST_BOOST)
 	if is_finite(boost):

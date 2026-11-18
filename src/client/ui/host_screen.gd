@@ -82,13 +82,15 @@ const TERRITORY_RADIUS := [8, 12, 16, 24, 32, 48]
 const TERRITORY_LEVELS := [2, 4, 8, 16]
 const ABANDON_HOURS := [24.0, 48.0, 72.0, 120.0, 168.0]
 const DECAY_HOURS := [6.0, 12.0, 24.0, 48.0]
+## Game days a stage of building decay takes (Rules.building_decay_days).
+const BUILDING_DECAY_DAYS := [3.0, 5.0, 10.0, 20.0, 40.0]
 const DECAY_MODES := ["rights", "radius", "both"]
 const DECAY_TITLES := ["[rights]", "[radius]", "[rights_and_radius]"]
 const DAY_LENGTH := Clock.DAY_LENGTH
 ## The rules (Rules.to_dict keys) the tab «Настройки» sets.
 const WINDOW_RULES := ["animal_attacks", "tool_wear", "pvp", "pvp_damage", "newcomer_minutes", "fight_tag",
 	"territory_start", "territory_per_level", "territory_radius", "territory_levels",
-	"territory_abandon_hours", "territory_decay_hours", "territory_decay"]
+	"territory_abandon_hours", "territory_decay_hours", "territory_decay", "building_decay", "building_decay_days"]
 
 signal cancelled
 signal play
@@ -336,6 +338,8 @@ func _build_settings(page: VBoxContainer, rows: ChoiceRows) -> void:
 	_pick(page, rows, "[decay_step]", "territory_decay_hours", DECAY_HOURS, _hours)
 	_pick(page, rows, "[decay]", "territory_decay", DECAY_MODES, func(m: String) -> String: return DECAY_TITLES[DECAY_MODES.find(m)])
 	page.add_child(Kit.note("[starting_land_is_a_new]"))
+	_check(page, "[building_decay]", "building_decay", "[buildings_nobody_tends_crack]")
+	_pick(page, rows, "[building_decay_stage]", "building_decay_days", BUILDING_DECAY_DAYS, _days)
 	var defaults := Kit.button("[defaults]", Callable(), WIDTH, ROW_H + 4)
 	_resets.guard(defaults, _defaults)
 	page.add_child(defaults)
@@ -475,6 +479,10 @@ static func _minutes(n: Variant) -> String:
 	if m == 0:
 		return "[no_n2]"
 	return Lang.f("[h]", [m / 60]) if m >= 120 and m % 60 == 0 else Lang.f("[min]", [m])
+
+
+static func _days(n: Variant) -> String:
+	return Lang.f("[n_days]", [str(snappedf(float(n), 0.01))])
 
 
 static func _hours(n: Variant) -> String:
