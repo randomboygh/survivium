@@ -1,0 +1,8 @@
+# Recipe of the "Rain barrel" bundle: planks ("Materials") hooped with rope, at the workbench. Fields are in
+# docs/DATA_MODEL.md.
+- id: rain_barrel
+  title: "[tools.recipes.rain_barrel]"
+  makes: rain_barrel
+  needs: {materials:planks: 5, materials:cord: 2}
+  at: workbench
+  time: 6

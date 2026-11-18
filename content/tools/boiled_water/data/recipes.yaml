@@ -1,0 +1,14 @@
+# Recipe of the "Boiled water" bundle: a waterskin of sea water ("Waterskin" bundle) is boiled on the core's campfire
+# in a clay pot (the "Potter's wheel" bundle; the pot must be in the bag and is not used up): the waterskin is
+# fresh water again with little of it boiled off (`boils_off`; boiled right in the waterskin half is lost), and half
+# the time a pinch of salt ("Resources", the "Salt" bundle) is left in the pot. Recipe fields — docs/DATA_MODEL.md.
+- id: waterskin_full_from_pot
+  title: "[tools.recipes.waterskin_full_from_pot]"
+  makes: waterskin_full
+  needs: {waterskin_sea: 1}
+  keeps: {pot: 1}
+  also: [{item: resources:salt, count: 1, chance: 0.5}]
+  at: core:campfire
+  process: cook
+  boils_off: 0.1
+  time: 6

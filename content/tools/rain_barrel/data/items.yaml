@@ -1,0 +1,12 @@
+# Rain barrel (prop: rain_barrel): an open barrel of planks on one cell. Under the open sky it fills with rain like the
+# leather rain catcher (the "Rain catcher" bundle), holding less (`rain_water`; src/shared/game/placed.gd, draw_water)
+# but standing on a single cell. Fields are as for the core items (content/core/data/items.yaml).
+- id: rain_barrel
+  title: "[tools.items.rain_barrel]"
+  description: "[tools.items.rain_barrel.about]"
+  weight: 5.0
+  stack: 1
+  icon: rain_barrel
+  model: rain_barrel
+  prop: rain_barrel
+  rain_water: 120

@@ -357,6 +357,7 @@ func update(delta: float) -> void:
 	if _warm_wait >= WARM_EVERY:
 		_spoil(p, _warm_days)
 		_warm(p, _warm_days)
+		_rain_into_bag(p, _warm_wait)
 		_warm_wait = 0.0
 		_warm_days = 0.0
 	if vitals.asleep:
@@ -484,6 +485,37 @@ func _warm(p: Vector3, days: float) -> void:
 		vitals.fortify(FIRE_SLEEP_GOLD, FIRE_SLEEP_TIME)
 
 
+## Water (Vitals units) the vessels in the bag gather a second under the open sky in a
+## downpour (rain 1; less in a lighter rain), and what is gathered but not yet poured.
+const BAG_RAIN := 0.25
+var _bag_rain := 0.0
+
+
+## The rain falls into the bag's vessels for `seconds` while the body at `p` is under the
+## open sky: into the first empty one (its `fills_to`) or one of fresh water not full
+## (Inventory.pour), a whole unit at a time; not into one that keeps no amount.
+func _rain_into_bag(p: Vector3, seconds: float) -> void:
+	if clock == null or _roofed(p):
+		return
+	var rain: float = clock.WEATHERS[clock.weather].get("rain", 0.0)
+	if rain <= 0.0:
+		return
+	_bag_rain += BAG_RAIN * rain * seconds
+	var n := floori(_bag_rain)
+	if n <= 0:
+		return
+	_bag_rain -= n
+	for i in inventory.slots.size():
+		var s = inventory.slots[i]
+		if s == null:
+			continue
+		var full: String = s[0] if Items.holds(s[0]) > 0 and Items.drink(s[0]) > 0.0 else Items.get_item(s[0]).get("fills_to", "")
+		if full == "" or Items.holds(full) <= 0 or full == s[0] and Inventory.water_left(s) >= Items.holds(full):
+			continue
+		inventory.pour(i, full, n)
+		return
+
+
 ## Whether a roof (a cave, a house: anything over the head that keeps the rain off,
 ## WorldData.roof_level) is over the body at `p`.
 func _roofed(p: Vector3) -> bool:
@@ -602,6 +634,26 @@ func give(id: String, n: int, worn := 0, q := Inventory.NORMAL, text := "") -> i
 	return got
 
 
+## Drinks from the vessel of water in bag slot `i` (Items.holds) as much as the thirst
+## takes, of what it holds: emptied, it becomes its `empties_to`.
+func _drink_vessel(i: int) -> bool:
+	var s: Array = inventory.slots[i]
+	var left := Inventory.water_left(s)
+	var gulp := minf(float(left), Vitals.MAX - vitals.water)
+	if left <= 0 or not vitals.drink(gulp):
+		nag("not_thirsty", "[not_thirsty]")
+		return false
+	note("drunk")
+	if left - roundi(gulp) > 0:
+		inventory.set_water(i, left - roundi(gulp))
+		return true
+	var empty := Items.get_item(s[0]).get("empties_to", "") as String
+	inventory.take_slot(i, 1)
+	if empty != "" and give(empty, 1) == 0:
+		nag("full", "[the_bag_is_full]")
+	return true
+
+
 ## Eats one item from bag slot `i`, drinks it (a full waterskin, which becomes its
 ## `empties_to`), or puts it on the wounds when it heals (a bandage); false if it is
 ## none of these, the character is full, not thirsty or not hurt.
@@ -631,6 +683,8 @@ func eat(i: int) -> bool:
 		note("healed")
 		say(Lang.line("[health]", [roundi(heal)]))
 		return true
+	if Items.holds(s[0]) > 0 and Items.drink(s[0]) > 0.0 and Items.calm(s[0]) <= 0.0 and Items.fortify(s[0]) <= 0.0:
+		return _drink_vessel(i)
 	if Items.drink(s[0]) > 0.0 and Items.food(s[0]) <= 0.0:
 		# A tea that calms is drunk thirsty or not.
 		var calm := Items.calm(s[0])

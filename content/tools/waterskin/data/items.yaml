@@ -1,6 +1,8 @@
 # Items of the "Waterskin" bundle of the "Tools and crafting" mod: a vessel for water. An empty waterskin taken in the hand is
-# filled at fresh water (lake, river, swamp; not the sea) - `fills_to`; a full one is drunk from the bag or
-# the hand - `drink` of water (src/shared/game/vitals.gd), and it is empty again - `empties_to`.
+# filled at fresh water (lake, river, swamp) - `fills_to`; a full one is drunk from the bag or
+# the hand - `drink` of water (src/shared/game/vitals.gd), and it is empty again - `empties_to`. It `holds` 60 of water,
+# its slot keeps how much is left (drunk in gulps, topped up at water, filled by the rain in the bag). At the sea it
+# fills with sea water - `fills_salty_to`, not drunk; boiled at a campfire it is fresh (the "Boiled water" bundle).
 - id: waterskin
   title: "[tools.items.waterskin]"
   description: "[tools.items.waterskin.about]"
@@ -9,6 +11,7 @@
   stack: 1
   icon: waterskin
   fills_to: waterskin_full
+  fills_salty_to: waterskin_sea
 - id: waterskin_full
   title: "[tools.items.waterskin_full]"
   description: "[tools.items.waterskin_full.about]"
@@ -17,4 +20,13 @@
   stack: 1
   icon: waterskin_full
   drink: 60
+  holds: 60
   empties_to: waterskin
+- id: waterskin_sea
+  title: "[tools.items.waterskin_sea]"
+  description: "[tools.items.waterskin_sea.about]"
+  era: core:bone_leather
+  weight: 1.3
+  stack: 1
+  icon: waterskin_sea
+  holds: 60

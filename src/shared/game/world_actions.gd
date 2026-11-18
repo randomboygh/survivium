@@ -60,7 +60,7 @@ func act_in_front(who, top: int) -> Dictionary:
 		return cut_ice(who)
 	if _drinks_with(who):
 		var water := water_ahead(who.position, Vector2(who.facing_step()).normalized(), DRINK_REACH)
-		if water.is_finite() and (who.vitals.water < who.vitals.MAX - DRINK * 0.5 or _fills(who) != ""):
+		if water.is_finite() and (who.vitals.water < who.vitals.MAX - DRINK * 0.5 if who.held() == "" else _fillable(who, water)):
 			return drink(who, water)
 	var tending := tend(who)
 	if not tending.is_empty():
@@ -98,6 +98,11 @@ func _gather_work(who, work: Dictionary) -> Dictionary:
 	var at: Vector3 = Vector3(work.bush) + Vector3(0.5, 0.4, 0.5) if work.has("bush") \
 		else Vector3(trunk_cell(who, work.tree)) + Vector3(0.5, 0.5, 0.5)
 	return _work(skilled(who, _gather_role(t), t.swing), "", at * CELL, Mat.LEAVES)
+
+
+## Whether the vessel in the hand in use of `who` takes the water at world point `water`.
+func _fillable(who, water: Vector3) -> bool:
+	return not vessel_to_fill(who, fresh_water(water)).is_empty()
 
 
 ## A tap or a click on `cell` (on its face `normal`) does what the action button does in
@@ -237,7 +242,7 @@ func front_kind(who) -> String:
 	if _drinks_with(who):
 		var water := water_ahead(who.position, Vector2(who.facing_step()).normalized(), DRINK_REACH)
 		if water.is_finite():
-			if _fills(who) != "":
+			if who.held() != "" and _fillable(who, water):
 				return "fill"
 			if who.vitals.water < who.vitals.MAX - DRINK * 0.5:
 				return "drink"

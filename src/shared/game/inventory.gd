@@ -541,7 +541,73 @@ func worn(i: int) -> int:
 ## True for item `id` whose slot keeps a number of its own: a tool that wears, food that
 ## spoils.
 static func keeps_wear(id: String) -> bool:
-	return Items.get_item(id).get("durability", 0) > 0 or Items.spoils(id) > 0.0
+	return Items.get_item(id).get("durability", 0) > 0 or Items.spoils(id) > 0.0 or Items.holds(id) > 0
+
+
+## The water stack `s` (a slot's array) of a vessel holds (Items.holds less what its slot
+## keeps missing); 0 for anything else.
+static func water_left(s) -> int:
+	return maxi(0, Items.holds(s[0]) - _worn(s)) if s != null else 0
+
+
+## How full of water the vessel in slot `i` is, 0..1; -1 for no vessel of water.
+func water_share(i: int) -> float:
+	var s = slots[i] if i >= 0 and i < slots.size() else null
+	if s == null or Items.holds(s[0]) <= 0:
+		return -1.0
+	return float(water_left(s)) / Items.holds(s[0])
+
+
+## The vessel `held` (in a hand) that takes water, fresh (`fresh`) or of the sea: [its
+## slot, what it becomes] — an empty one (its `fills_to`, at the sea its `fills_salty_to`)
+## or one of the same water not yet full (itself); [] for none. Fresh and sea water do not
+## mix (a vessel of fresh water is one with a `drink`).
+func vessel_for(held: String, fresh: bool) -> Array:
+	if held == "":
+		return []
+	var full: String = Items.get_item(held).get("fills_to" if fresh else "fills_salty_to", "")
+	if full == "" and Items.holds(held) > 0 and (Items.drink(held) > 0.0) == fresh:
+		full = held
+	if full == "":
+		return []
+	for i in slots.size():
+		var s = slots[i]
+		if s != null and s[0] == held and (full != held or water_left(s) < Items.holds(held)):
+			return [i, full]
+	return []
+
+
+## Pours up to `amount` water into the vessel in slot `i`: a vessel of water (Items.holds)
+## takes it up to full; an empty one becomes `full` holding what it took (all of a
+## `full` that keeps no amount, a watering can). What was poured, 0 when nothing was.
+func pour(i: int, full: String, amount: int) -> int:
+	var s = slots[i]
+	if s == null or amount <= 0:
+		return 0
+	if Items.holds(s[0]) > 0:
+		var left := water_left(s)
+		var took := mini(amount, Items.holds(s[0]) - left)
+		if took > 0:
+			set_water(i, left + took)
+		return took
+	var most := Items.holds(full)
+	var into: int = mini(amount, most) if most > 0 else amount
+	var id: String = s[0]
+	take_slot(i, 1)
+	if add(full, 1, most - into if most > 0 else 0) == 0:
+		add(id, 1)
+		return 0
+	return into
+
+
+## The vessel in slot `i` holds `left` water now (at most its Items.holds).
+func set_water(i: int, left: int) -> void:
+	var s: Array = slots[i]
+	var most := Items.holds(s[0])
+	while s.size() < 3:
+		s.append(0)
+	s[2] = most - clampi(left, 0, most)
+	changed.emit()
 
 
 ## How full the bag or chest in slot `i` is, 0..1, by its slots taken (a bag worn on

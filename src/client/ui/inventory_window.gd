@@ -925,6 +925,11 @@ func _show_slots(bag, cells: Array) -> void:
 		cell.fill_color = UiStyle.ACCENT if full >= 0.0 else Color(0, 0, 0, 0)
 		if full >= 0.0:
 			cell.fill = full
+		# A vessel: how much water it holds, a blue strip.
+		var water: float = bag.water_share(i)
+		if water >= 0.0:
+			cell.fill = water
+			cell.fill_color = HotbarSlot.WATER
 		# A weapon with nothing in the player's bag to shoot shows inactive.
 		cell.inactive = s != null and FactChips.unarmed(game.character.inventory, s[0])
 		cell.selected = bag == _from and i == _at

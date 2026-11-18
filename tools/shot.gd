@@ -1003,6 +1003,21 @@ func _run() -> void:
 					main.player.facing = "e"
 			for i in 10:
 				await process_frame
+		if shot.get("rain_water", false):
+			# A rain catcher and a rain barrel by the player, part full; waterskins in the bag:
+			# one part full, one of sea water, one empty.
+			var inv = main.host.player.inventory
+			inv.add("tools:waterskin_full", 1, 30)
+			inv.add("tools:waterskin_sea", 1)
+			inv.add("tools:waterskin", 1)
+			var pl = main.session.placed
+			var here: Vector3 = main.player.position
+			for put: Array in [["tools:rain_catcher", Vector3(1.5, 0.0, -1.5), 150.0], ["tools:rain_barrel", Vector3(-1.5, 0.0, -0.5), 110.0]]:
+				var e: Dictionary = pl.put(put[0], pl.spot_near(here + put[1]))
+				e.water = put[2]
+				pl.water_changed.emit(e)
+			for i in 10:
+				await process_frame
 		if shot.get("campfire", false):
 			# A few branches to feed it with; the window opens at the client's copy of the fire.
 			main.host.player.inventory.add("resources:branch", 6)

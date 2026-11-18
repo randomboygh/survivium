@@ -16,10 +16,10 @@
 
 | Процесс | Рецептов | Где делают |
 |---|---|---|
-| [crafting] (`craft`) | 126 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
+| [crafting] (`craft`) | 128 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
 | Переработка (`refine`) | 12 | руки, [tools.items.workbench], [tools.items.drying_rack], [tools.items.loom] |
 | Плавка и обжиг (`smelt`) | 15 | [tools.items.forge], [tools.items.bloomery], [tools.items.kiln] |
-| Готовка (`cook`) | 14 | [core.items.campfire], [tools.items.kiln] |
+| Готовка (`cook`) | 16 | [core.items.campfire], [tools.items.kiln] |
 
 ## [crafting] (`craft`)
 
@@ -117,6 +117,8 @@
 | [tools.recipes.bronze_pickaxe] `tools:bronze_pickaxe` | [tools.items.bronze_pickaxe] ×1 | [materials.items.bronze_bar] ×3, [materials.items.planks] ×1 | — | [tools.items.workbench] | — | 7 с | 10 | 4. [core.eras.alloy] | — |
 | [tools.recipes.iron_pickaxe] `tools:iron_pickaxe` | [tools.items.iron_pickaxe] ×1 | [materials.items.iron_bar] ×3, [materials.items.planks] ×1 | — | [tools.items.anvil] | — | 7 с | 14 | 5. [core.eras.iron] | — |
 | [tools.recipes.steel_pickaxe] `tools:steel_pickaxe` | [tools.items.steel_pickaxe] ×1 | [materials.items.steel_bar] ×3, [materials.items.planks] ×1 | — | [tools.items.anvil] | — | 7 с | 14 | 6. [core.eras.steel] | — |
+| [tools.recipes.rain_barrel] `tools:rain_barrel` | [tools.items.rain_barrel] ×1 | [materials.items.planks] ×5, [materials.items.cord] ×2 | — | [tools.items.workbench] | — | 6 с | 5 | 1. [core.eras.primitive] | — |
+| [tools.recipes.rain_catcher] `tools:rain_catcher` | [tools.items.rain_catcher] ×1 | [resources.items.branch] ×4, [materials.items.leather] ×2, [materials.items.cord] ×2 | — | [tools.items.workbench] | — | 8 с | 5 | 2. [core.eras.bone_leather] | — |
 | [tools.recipes.stone_scythe] `tools:stone_scythe` | [tools.items.stone_scythe] ×1 | [resources.items.flint] ×2, [resources.items.branch] ×2, [materials.items.cord] ×2 | — | [tools.items.workbench] | — | 6 с | 3 | 1. [core.eras.primitive] | — |
 | [tools.recipes.wooden_scythe] `tools:wooden_scythe` | [tools.items.wooden_scythe] ×1 | [resources.items.branch] ×3, [materials.items.cord] ×2 | — | руки | — | 4 с | 2 | 1. [core.eras.primitive] | — |
 | [tools.recipes.copper_scythe] `tools:copper_scythe` | [tools.items.copper_scythe] ×1 | [materials.items.copper_bar] ×2, [materials.items.planks] ×2 | — | [tools.items.workbench] | — | 7 с | 7 | 3. [core.eras.bronze] | — |
@@ -207,3 +209,5 @@
 | [plants.recipes.primrose_tea] `plants:primrose_tea` | [plants.items.primrose_tea] ×1 | [plants.items.evening_primrose] ×4 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 3 с | 8 | 3. [core.eras.bronze] | — |
 | [plants.recipes.roasted_acorns] `plants:roasted_acorns` | [plants.items.roasted_acorns] ×1 | [plants.items.acorn] ×6 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 5 с | 8 | 3. [core.eras.bronze] | — |
 | [plants.recipes.bone_glue_from_sundew] `plants:bone_glue_from_sundew` | [materials.items.bone_glue] ×1 | [plants.items.sundew] ×6, [resources.items.branch] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | [materials.recipes.bone_glue] `materials:bone_glue` |
+| [tools.recipes.waterskin_full_from_waterskin_sea] `tools:waterskin_full_from_waterskin_sea` | [tools.items.waterskin_full] ×1 | [tools.items.waterskin_sea] ×1 | — | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 6 | 2. [core.eras.bone_leather] | [tools.recipes.waterskin_full_from_pot] `tools:waterskin_full_from_pot` |
+| [tools.recipes.waterskin_full_from_pot] `tools:waterskin_full_from_pot` | [tools.items.waterskin_full] ×1; побочно: [resources.items.salt] ×1 (50%) | [tools.items.waterskin_sea] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | [tools.recipes.waterskin_full_from_waterskin_sea] `tools:waterskin_full_from_waterskin_sea` |

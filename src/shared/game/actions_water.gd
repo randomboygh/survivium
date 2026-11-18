@@ -17,20 +17,21 @@ const DRINK_REACH := 2
 
 ## Drinks from, or fills a vessel at, the water at world point `water`: an empty hand
 ## drinks (Vitals.drink), an empty vessel in the hand (an item with `fills_to`) becomes
-## a full one. Only fresh water (fresh_water): the sea is salty.
+## a full one. Only fresh water (fresh_water) is drunk: the sea is salty, and a vessel
+## filled there becomes its `fills_salty_to` (sea water, boiled at a campfire).
 func drink(who, water: Vector3) -> Dictionary:
-	if not fresh_water(water):
-		who.nag("salty", "[sea_water_is_salty_you]")
-		return {"swing": IDLE_SWING}
-	var full := _fills(who)
-	if full != "":
-		var empty: String = who.held()
-		if who.inventory.remove(empty, 1) != 1:
+	var fresh := fresh_water(water)
+	if who.held() != "":
+		var to := vessel_to_fill(who, fresh)
+		if to.is_empty():
+			who.nag("salty" if not fresh else "full", "[this_cannot_hold_sea_water]" if not fresh else "[the_vessel_is_full]")
 			return {"swing": IDLE_SWING}
-		if who.give(full, 1) == 0:
-			who.give(empty, 1)
+		if who.inventory.pour(to[0], to[1], 1 << 20) <= 0:
 			return {"swing": IDLE_SWING}
 		return _work(DRINK_SWING, "", water, Mat.WATER)
+	if not fresh:
+		who.nag("salty", "[sea_water_is_salty_you]")
+		return {"swing": IDLE_SWING}
 	if not who.vitals.drink(DRINK):
 		who.nag("not_thirsty", "[not_thirsty]")
 		return {"swing": IDLE_SWING}
@@ -48,15 +49,28 @@ func fresh_water(water: Vector3) -> bool:
 	return w.feature[0] == gen.LAKE or w.feature[0] == gen.RIVER or w.flags[0] & (gen.MARSH | gen.MIRE) != 0
 
 
-## Whether the hand in use of `who` drinks or fills at water: empty, or an empty vessel.
+## Whether the hand in use of `who` drinks or fills at water: empty, an empty vessel, or
+## a vessel of water.
 func _drinks_with(who) -> bool:
-	return "vitals" in who and (who.held() == "" or _fills(who) != "")
+	return "vitals" in who and (who.held() == "" or _fills(who) != "" or _fills_salty(who) != "" or Items.holds(who.held()) > 0)
+
+
+## The vessel in the hand in use of `who` that takes water, fresh (`fresh`) or of the sea
+## (Inventory.vessel_for): [its slot, what it becomes], [] for none.
+static func vessel_to_fill(who, fresh: bool) -> Array:
+	return who.inventory.vessel_for(who.held(), fresh)
 
 
 ## What the vessel in the hand in use of `who` becomes filled, "" for none.
 func _fills(who) -> String:
 	var held: String = who.held()
 	return Items.get_item(held).get("fills_to", "") if held != "" else ""
+
+
+## What the vessel in the hand in use of `who` becomes filled at the sea, "" for none.
+func _fills_salty(who) -> String:
+	var held: String = who.held()
+	return Items.get_item(held).get("fills_salty_to", "") if held != "" else ""
 
 
 # --- Fishing ---------------------------------------------------------------------------

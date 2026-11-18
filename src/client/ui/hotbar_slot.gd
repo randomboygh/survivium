@@ -42,6 +42,8 @@ var fill := -1.0:
 		if v != fill:
 			fill = v
 			queue_redraw()
+## The strip's colour of the water in a vessel (set_water).
+const WATER := Color(0.36, 0.62, 0.95)
 ## The strip's colour; transparent for a light's (amber, red when nearly out).
 var fill_color := Color(0, 0, 0, 0):
 	set(v):

@@ -1,0 +1,14 @@
+# Rain catcher (prop: rain_catcher): a hide stretched on four posts into a basin. Set down under the open sky, it
+# fills with rain - faster in a downpour, not under a roof - up to `rain_water` of water (a gulp is 25, a full
+# waterskin 60: src/shared/game/placed.gd, draw_water). A tap with an empty hand drinks from it, with an
+# empty vessel (a waterskin, a watering can) fills it. Fields are as for the core items (content/core/data/items.yaml).
+- id: rain_catcher
+  title: "[tools.items.rain_catcher]"
+  description: "[tools.items.rain_catcher.about]"
+  era: core:bone_leather
+  weight: 3.0
+  stack: 1
+  icon: rain_catcher
+  model: rain_catcher
+  prop: rain_catcher
+  rain_water: 240

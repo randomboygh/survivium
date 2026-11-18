@@ -72,6 +72,12 @@ doors and windows.
   step), and one taken back by a tap carries the burnt part away into `Character.burning`; it goes out and
   vanishes if the cell was occupied or the ground under it was dug. The lights' records are in the same
   `to_list` and the signals `added`/`removed`, marked `light`.
+- Rain catchers (`rain_water`: a hide on posts `tools:rain_catcher` 240, a barrel `tools:rain_barrel` 120): a
+  record's `water`, saved; `Placed.step` fills it under the open sky in the rain (`RAIN_CATCH` a second in a
+  downpour, `_catch_rain`), the copies learn it by `water_changed` (the event `prop_water` each `WATER_TELL`). A tap
+  (`prop_drink`, paced, the land's «chests» right) drinks a gulp with an empty hand or fills the empty vessel in
+  hand or tops one up (`draw_water`); the hint shows how full it is; `Props._with_water` draws the water in the
+  hollow of the model (the voxels each layer shuts in), in `WATER_STEPS` steps.
 - Signs (decision 183, the bundle `tools/signs`: a sign, a pointer, a board for a wall) — things with
   `sign_lines`: the text in the record (`text`, lines through `\n`; `Placed.sign_text` cleans each like
   `Protocol.clean_text` and cuts to `sign_lines` lines by `sign_width` characters), `write` and `turn_sign` (a

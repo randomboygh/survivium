@@ -176,7 +176,11 @@ func update(delta: float) -> void:
 		# and the recipe allow.
 		var q := Quality.made(r, job.took, quality_cap(r))
 		for id: String in got:
-			_receive(id, got[id], 0, q)
+			# A vessel of water holds what the vessels taken held, less what boiled off.
+			var worn := 0
+			if id == r.makes and Items.holds(id) > 0:
+				worn = Items.holds(id) - Crafting.water_out(r, job.get("took", []))
+			_receive(id, got[id], worn, q)
 		_wear_tools(r)
 		who.note("crafted", r.count)
 		if sk != null:

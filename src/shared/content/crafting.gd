@@ -129,6 +129,24 @@ static func take(r: Dictionary, inv, took: Variant = null) -> bool:
 	return true
 
 
+## The water a vessel recipe `r` makes holds (Items.holds of what it makes), from the
+## water in the stacks its job took (`took`, as CraftQueue keeps them: [id, count, worn,
+## quality]) less its `boils_off`, at least one; a job of an older save with no stacks
+## kept makes it full.
+static func water_out(r: Dictionary, took: Array) -> int:
+	var most := Items.holds(r.makes) * int(r.count)
+	var water := 0
+	var any := false
+	for t in took:
+		if t is Array and t.size() > 0 and Items.holds(t[0]) > 0:
+			any = true
+			var worn: int = t[2] if t.size() > 2 else 0
+			water += maxi(0, Items.holds(t[0]) - worn) * int(t[1])
+	if not any:
+		return most
+	return clampi(roundi(water * (1.0 - float(r.get("boils_off", 0.0)))), 1, most)
+
+
 ## What the job of serial `n` (see CraftQueue) of recipe `r` gives: item id -> how many, its
 ## `count` of what it makes and each by-product that comes (see comes).
 static func outputs(r: Dictionary, n: int) -> Dictionary:

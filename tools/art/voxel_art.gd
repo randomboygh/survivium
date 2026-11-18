@@ -54,6 +54,10 @@ static func prop(kind: String, model := "") -> VoxelModel:
 			return anvil()
 		"drying_rack":
 			return drying_rack()
+		"rain_catcher":
+			return rain_catcher()
+		"rain_barrel":
+			return rain_barrel()
 		"post":
 			return post()
 		"stairs":
@@ -1720,6 +1724,60 @@ static func drying_rack() -> VoxelModel:
 	for x in [10, 12]:
 		for y in range(9, 14):
 			m.set_voxel(Vector3i(x, y, 7), meat * (1.15 if y == 13 else 1.0))
+	return m
+
+
+## A rain barrel on one cell: staves round a floor, two hoops, open at the top, so the
+## rain stands in it (Props._with_water draws the water in the hollow).
+static func rain_barrel() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.6, 0.42, 0.24)
+	var hoop := Color(0.3, 0.26, 0.22)
+	for y in 8:
+		var r := 3.5 if y >= 2 and y <= 5 else 3.2
+		for z in 8:
+			for x in 8:
+				var d := Vector2(x + 0.5 - 4.0, z + 0.5 - 4.0).length()
+				if d > r or y > 0 and d < r - 1.0:
+					continue
+				var c := wood * (0.86 if (x + z * 3) % 4 == 0 else 1.0)
+				if y == 1 or y == 6:
+					c = hoop
+				if y == 7:
+					c = wood * (1.12 if (x + z) % 3 != 0 else 0.9)
+				m.set_voxel(Vector3i(x, y, z), c)
+	return m
+
+
+## A rain catcher: four branch posts at the corners and a hide stretched between them,
+## sagging into a basin (stepped in, one voxel a layer) that holds the rain; cords tie its
+## rim to the posts. The water drawn in it is the game's (Props._with_water fills the
+## voxels the basin shuts in), so none is drawn here.
+static func rain_catcher() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.5, 0.35, 0.2)
+	var dark := Color(0.36, 0.24, 0.13)
+	var cord := Color(0.8, 0.74, 0.6)
+	var skin := Color(0.62, 0.43, 0.26)
+	# The posts, a little higher than the rim.
+	for x in [1, 14]:
+		for z in [1, 14]:
+			for y in range(0, 10):
+				m.set_voxel(Vector3i(x, y, z), dark if y % 4 == 0 else wood)
+	# The basin: its floor at y 3 (x, z 6..9), each layer up a ring one wider round it.
+	for x in range(6, 10):
+		for z in range(6, 10):
+			m.set_voxel(Vector3i(x, 3, z), skin * 0.8)
+	for k in range(1, 5):
+		var y := 3 + k
+		var a := 6 - k
+		var b := 9 + k
+		for i in range(a, b + 1):
+			for p: Vector3i in [Vector3i(i, y, a), Vector3i(i, y, b), Vector3i(a, y, i), Vector3i(b, y, i)]:
+				m.set_voxel(p, skin * (0.86 if (p.x + p.z + y) % 4 == 0 else 1.0) * (0.9 + 0.025 * k))
+	# The rim tied to the posts at its corners with cord.
+	for c: Vector3i in [Vector3i(2, 8, 2), Vector3i(13, 8, 2), Vector3i(2, 8, 13), Vector3i(13, 8, 13)]:
+		m.set_voxel(c, cord)
 	return m
 
 
