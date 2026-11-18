@@ -288,9 +288,10 @@ static func _column(job: Job, x: int, z: int) -> bool:
 		if Mat.lit[m] != 0 and (nb[0] == AIR or nb[1] == AIR or nb[2] == AIR or nb[3] == AIR or nb[4] == AIR or nb[5] == AIR):
 			job.glows.append((base + Vector3(0.5, 1.0, 0.5)) * CELL)
 			job.glow_mats.append(m)
-		# The surf over land level with the sea (over a slope, not a flat top's cut corner).
+		# The surf over land level with the sea, over its slope, or over its whole top where
+		# a corner is cut (the water there is as high, water_top).
 		if not job.swash.is_empty() and y == w.sea_level and m != WATER and cov[m] and not cov[nb[2]] \
-				and nb[2] != WATER and (sh[i] >> 4 == 0 or sh[i] & 15 != 0):
+				and nb[2] != WATER:
 			Water.swash(water, job.swash, x1 - x0 + 2, c, sh, i, dy, dz, x - x0 + 1, z - z0 + 1, base)
 		if not forms.is_empty() and forms.has(i):
 			Forms.form_faces(solid, c, cov, forms, offsets, i, base, m, forms[i])
@@ -307,6 +308,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			# Open water has no land beside it, so no foam.
 			if cov[nb[0]] or cov[nb[1]] or cov[nb[4]] or cov[nb[5]]:
 				foam |= Water.foam(c, sh, cov, i, dy, dz)
+			var surf := Water.surf_here(sea, y)
 			var depth := 1
 			while depth < 8 and c[i - depth * dy] == WATER:
 				depth += 1
@@ -319,9 +321,12 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				var murks := Water.murk_corners(w, c, i, dz, base) if murk > 0 else PackedFloat32Array([0, 0, 0, 0])
 				if level or nb[2] != AIR:
 					for k in 4:
-						corners.append(Water.water_color(depth - 1.0 + water_top(y), 1.0, Water.kind(false, murks[k]), sea))
+						corners.append(Water.water_color(depth - 1.0 + water_top(y), 1.0, Water.kind(false, murks[k]), sea,
+							surf))
 				else:
-					corners = Water.water_corners(c, sh, cov, i, dy, dz, depth, murks, sea, water_top(y))
+					corners = Water.water_corners(c, sh, cov, i, dy, dz, depth, murks, sea, water_top(y), surf)
+				if surf and fills != 0:
+					Water.swash_fills(water, base, fills, foam)
 				var lips := Water.lip_cuts(c, i, dy, dz) if nb[2] == AIR else 0
 				Water.water_faces(water, faces, nb, base, depth, foam, corners, lips)
 				Water.falls(job.water_falls, c, nb, side_offsets, i, dy, dz, x - x0, z - z0, y)
@@ -348,7 +353,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			# corner was a hole through the ground, 2026-11-18), going down with the slope.
 			var exposed := sh[i + dy] >> 4 if cov[c[i + dy]] else 0
 			if exposed != 0:
-				var edges := _top_edges(c, cov, i, dy, dz)
+				var edges := _top_edges(c, cov, i, dy, dz, y == sea_level)
 				var halves := _covered_halves(c, sh, cov, i, dy, dz, edges)
 				var tops := []
 				for k in 4:
@@ -383,7 +388,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				var ready := Edges.prepare(job, i)
 				if not ready.is_empty():
 					Edges.draw(job, solid, i, base, ready, float(_around_tiles(c, cov, i, dy, dz, sh)),
-						_top_edges(c, cov, i, dy, dz))
+						_top_edges(c, cov, i, dy, dz, y == sea_level))
 					if not cov[nb[FACE_BOTTOM]]:
 						var under := Vector2(pack(m * 3 + 2, 0, 0), no_tiles)
 						if cuts != 0:
@@ -416,7 +421,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				var around := no_tiles
 				var color := white
 				if d == FACE_TOP:
-					edges = _top_edges(c, cov, i, dy, dz)
+					edges = _top_edges(c, cov, i, dy, dz, y == sea_level)
 					var halves := _covered_halves(c, sh, cov, i, dy, dz, edges)
 					var a := _around_tiles(c, cov, i, dy, dz, sh)
 					if cuts != 0 or halves != 0:
@@ -463,7 +468,7 @@ static func _column(job: Job, x: int, z: int) -> bool:
 				if Water.shore(c, cov, i, dy, dz):
 					Water.shore_water(water, w, c, sh, i, dy, dz, base, Water.foam(c, sh, cov, i, dy, dz))
 			elif exposed != 0:
-				var edges := _top_edges(c, cov, i, dy, dz)
+				var edges := _top_edges(c, cov, i, dy, dz, y == sea_level)
 				_exposed_tops(solid, c, cov, i, dz, base, m, exposed, edges,
 					_covered_halves(c, sh, cov, i, dy, dz, edges), sh[i + dy] & 15 == 0, c[i + dy])
 	return true
@@ -778,23 +783,25 @@ static func _plain_rows(buf, keys: PackedInt32Array, x0: int, z0: int, water := 
 ## Edge codes of the top of padded cell `i`: a wall rising from an edge (contact
 ## shadow) or open ground lower beside it (DARK: the shader draws a light rim where the
 ## wall below faces the camera and an outline where it faces away, see world.gdshader).
-static func _top_edges(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int) -> int:
+## `sea`: the top is at the sea's level, where the water beside stands flush with it
+## (water_top), so no rim shows toward it: the sea's foam and surf outline it there.
+static func _top_edges(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int, sea := false) -> int:
 	var edges := 0
 	if cov[c[i + dy - dz]]:
 		edges |= CONTACT << EDGE_N
-	elif not cov[c[i - dz]]:
+	elif not cov[c[i - dz]] and not (sea and c[i - dz] == WATER and c[i - dz + dy] == AIR):
 		edges |= DARK << EDGE_N
 	if cov[c[i + dy + dz]]:
 		edges |= CONTACT << EDGE_S
-	elif not cov[c[i + dz]]:
+	elif not cov[c[i + dz]] and not (sea and c[i + dz] == WATER and c[i + dz + dy] == AIR):
 		edges |= DARK << EDGE_S
 	if cov[c[i + dy - 1]]:
 		edges |= CONTACT << EDGE_W
-	elif not cov[c[i - 1]]:
+	elif not cov[c[i - 1]] and not (sea and c[i - 1] == WATER and c[i - 1 + dy] == AIR):
 		edges |= DARK << EDGE_W
 	if cov[c[i + dy + 1]]:
 		edges |= CONTACT << EDGE_E
-	elif not cov[c[i + 1]]:
+	elif not cov[c[i + 1]] and not (sea and c[i + 1] == WATER and c[i + 1 + dy] == AIR):
 		edges |= DARK << EDGE_E
 	return edges
 

@@ -381,6 +381,11 @@ const SHOTS := {
 	# over it (thread «Сделать воду вровень с песком»); -edge: where the old beach met the sea.
 	"ground-beach-flat": {"time": 0.42, "season": 1, "at": [-150, 112], "hide": ["chunks: grass"]},
 	"ground-beach-flat-turn": {"time": 0.42, "season": 1, "at": [-150, 112], "turn": 2, "hide": ["chunks: grass"]},
+	"ground-beach-flat-waves": {"time": 0.42, "season": 1, "at": [-150, 112], "turn": 2, "hide": ["chunks: grass"],
+		"frames_every": 12, "frames_ms": 700},
+	# The surf's foam lit by the plankton on a glowing night.
+	"shore-flat-glow": {"time": 0.95, "season": 1, "day": 5, "moon": 0.0, "place": "beach", "hide": ["chunks: grass"],
+		"frames_every": 12, "frames_ms": 700},
 	"ground-beach-edge": {"time": 0.42, "season": 1, "at": [-138, 112], "hide": ["chunks: grass"]},
 	"shore-flat-far": {"time": 0.42, "season": 1, "place": "beach", "settings": {"pixel_scale": 1}, "hide": ["chunks: grass"]},
 	# The tallest slope turned to the camera by a beach: its patterns a pixel a texel,

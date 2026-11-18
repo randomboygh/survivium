@@ -21,8 +21,8 @@ static func cut_water(w, water, c: PackedByteArray, i: int, dy: int, base: Vecto
 			var foam := 1 << (12 + k) | shape << (16 + 2 * k)
 			var murk: int = w.murk(int(base.x) + o.x, int(base.y), int(base.z))
 			var top := water_top(int(base.y))
-			var col := water_color(depth - 1.0 + top, 1.0, kind(false, murk / 2.0),
-				w.sea(int(base.x) + o.x, int(base.y), int(base.z)))
+			var sea: bool = w.sea(int(base.x) + o.x, int(base.y), int(base.z))
+			var col := water_color(depth - 1.0 + top, 1.0, kind(false, murk / 2.0), sea, surf_here(sea, int(base.y)))
 			_piece(water, base, top, k, CORNER, Vector3.UP, col, Vector2(float(foam), float(depth)), shape)
 
 
@@ -356,9 +356,18 @@ static func kind(shore: bool, murk: float) -> float:
 ## Vertex colour of water for water.gdshader: r the depth of the water over the ground
 ## in cells (/ 8), g how far the ground of a shore lies under the surface (1 where the
 ## water goes all the way down), b its kind (see kind), alpha SEA_ALPHA on the sea's
-## (WorldData.SEA_WATER: the plankton glows there), else 1.
-static func water_color(depth: float, shore: float, kind: float, sea := false) -> Color:
-	return Color(clampf(depth / 8.0, 0.0, 1.0), clampf(shore, 0.0, 1.0), kind, SEA_ALPHA if sea else 1.0)
+## (WorldData.SEA_WATER: the plankton glows there), SURF_ALPHA on the sea's in its top
+## level (`surf`, see surf_here), else 1.
+static func water_color(depth: float, shore: float, kind: float, sea := false, surf := false) -> Color:
+	return Color(clampf(depth / 8.0, 0.0, 1.0), clampf(shore, 0.0, 1.0), kind,
+		SURF_ALPHA if surf else (SEA_ALPHA if sea else 1.0))
+
+
+## Whether the sea's water at level `y` (`sea`: it is the sea's) meets its shore through
+## the surf: in the sea's top level, flush with the land beside, which the surf (swash)
+## runs up over with the foam line at its front, so the water draws no foam of its own.
+static func surf_here(sea: bool, y: int) -> bool:
+	return sea and y == sea_level
 
 
 ## Whether water cell `cell` or one beside it is the sea's (see water_color).
@@ -409,7 +418,7 @@ static func _ground_at(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteA
 ## the ground at each corner, from the ground of the four columns that meet there, so
 ## the water darkens smoothly over a sloping bed instead of cell by cell.
 static func water_corners(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int,
-		depth: int, murks: PackedFloat32Array, sea := false, top := WATER_TOP) -> PackedColorArray:
+		depth: int, murks: PackedFloat32Array, sea := false, top := WATER_TOP, surf := false) -> PackedColorArray:
 	var out := PackedColorArray()
 	for k in 4:
 		var o: Vector2i = CORNER_DIRS[k]
@@ -422,7 +431,7 @@ static func water_corners(c: PackedByteArray, sh: PackedByteArray, cov: PackedBy
 			if not is_nan(g):
 				sum += g
 				count += 1
-		out.append(water_color(maxf(0.0, top - sum / count), 1.0, kind(false, murks[k]), sea))
+		out.append(water_color(maxf(0.0, top - sum / count), 1.0, kind(false, murks[k]), sea, surf))
 	return out
 
 
@@ -598,6 +607,26 @@ static func swash_map(w, x0: int, z0: int, x1: int, z1: int) -> PackedFloat32Arr
 	return out if reached else PackedFloat32Array()
 
 
+## The surf's sheet over the filled corners `fills` of the sea's water cell at `base` in
+## its top level (see surf_here; `foam` its foam bits, with the corners' shapes): the land
+## of a fill is level with the water, so the surf runs on over it from the diagonal, as
+## over the land beside. The distance from the waterline is 0 on the diagonal and grows
+## to the corner (the bilinear blend of the cell's corners gives the mid-sides of old
+## slopes, or the corners beside, 0).
+static func swash_fills(buf, base: Vector3, fills: int, foam: int) -> void:
+	var tip := 0.35 if old_slopes else 0.7
+	var rest := -0.35 if old_slopes else 0.0
+	for k in 4:
+		if fills & (1 << k) == 0:
+			continue
+		var corners := PackedColorArray()
+		for n in 4:
+			var far := tip if n == k else rest
+			corners.append(Color(clampf((far + 0.5) / 8.0, 0.0, 1.0), 1.0, 0.0, SWASH_ALPHA))
+		_piece(buf, base, 1.0 + SWASH_LIFT, k, CORNER, Vector3.UP, corners[k], Vector2.ZERO, foam >> (16 + 2 * k) & 3,
+			corners)
+
+
 ## The surf's sheet over the top of land cell `i` (see swash), column `gx`, `gz` of the
 ## map `sw` (swash_map, `sw_w` columns a row): over the cell's top, its slope's where it
 ## slopes, never under the water's surface; each point tells the shader how far from the
@@ -616,7 +645,9 @@ static func swash(buf, sw: PackedFloat32Array, sw_w: int, c: PackedByteArray, sh
 			if sw[n] < INF:
 				sum += sw[n]
 				count += 1
-		corners.append(sum / count)
+		# Never behind the waterline: where the sea's water meets the land at a corner
+		# (a diagonal shore), the corner lies on it, and the land's whole top is covered.
+		corners.append(maxf(sum / count, 0.0))
 	var sloped := sh[i] & 15 != 0
 	var steps := Vector2i(Slopes.PATCH_STEPS, Slopes.PATCH_STEPS) if sloped else Vector2i(1, 1)
 	var hs := PackedFloat32Array()
