@@ -78,6 +78,8 @@ static func world_dir(seed_value: int, options: Dictionary) -> String:
 		digits += "l%d" % int(options.landscape)
 	if int(options.get("slopes", 0)) != 0:
 		digits += "o%d" % int(options.slopes)
+	if int(options.get("shores", 0)) != 0:
+		digits += "h%d" % int(options.shores)
 	return "%s/%d-%s" % [root, seed_value, digits]
 
 

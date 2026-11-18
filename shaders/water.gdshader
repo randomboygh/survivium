@@ -20,7 +20,9 @@
 // water, 1 left, 2 right); FALL_SPRAY the spray and mist over its foot, an upright quad
 // turned to the camera (its corners at its root, UV their offsets in cells, UV2 its
 // height in cells and a number of its own); SEA_ALPHA the sea's water
-// (WorldData.SEA_WATER), the only water the plankton glows in.
+// (WorldData.SEA_WATER), the only water the plankton glows in; SWASH_ALPHA the surf
+// washing over the land level with the sea (WaterMesher.swash: COLOR.r is how far from
+// the waterline, in cells + 0.5, / 8).
 shader_type spatial;
 render_mode world_vertex_coords, blend_mix, cull_back, depth_draw_opaque;
 
@@ -62,6 +64,10 @@ const vec3 FIRE_GLINT = vec3(1.0, 0.62, 0.28);
 // (MeshFaces.SPRAY_HALF, WaterMesher.FOAM_SIDE).
 const float SPRAY_HALF = 0.75;
 const float FOAM_SIDE = 0.5;
+// The surf (WaterMesher.SWASH_REACH): the farthest a wave runs up from the waterline, in
+// cells, and the seconds from one wave to the next.
+const float SWASH_REACH = 5.0;
+const float SWASH_PERIOD = 7.0;
 // Steps of the depth's shading, and the 4x4 ordered dither between them.
 const float DEPTH_STEPS = 6.0;
 const int BAYER[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
@@ -83,6 +89,8 @@ varying float open_sky;
 varying flat float falls;
 // 1 on the sea's water, blended to 0 on other water (see SEA_ALPHA above).
 varying float sea_here;
+// 1 on the surf's sheet (SWASH_ALPHA above), 0 elsewhere.
+varying flat float swash;
 
 // Ice: clear blue-green over the shallows and darker over the deep, milky frost
 // patches, straight white cracks and glints that do not move, and a dusting of snow
@@ -153,8 +161,9 @@ void vertex() {
 	world_pos = VERTEX;
 	world_normal = NORMAL;
 	data = UV2;
-	falls = COLOR.a < 0.15 ? 2.0 : (COLOR.a < 0.4 ? 3.0 : (COLOR.a < 0.75 ? 1.0 : 0.0));
-	sea_here = COLOR.a > 0.75 && COLOR.a < 0.95 ? 1.0 : 0.0;
+	falls = COLOR.a < 0.15 ? 2.0 : (COLOR.a < 0.4 ? 3.0 : (COLOR.a < 0.6 ? 1.0 : 0.0));
+	swash = COLOR.a > 0.6 && COLOR.a < 0.75 ? 1.0 : 0.0;
+	sea_here = COLOR.a > 0.75 && COLOR.a < 0.95 || swash > 0.5 ? 1.0 : 0.0;
 	depth_here = COLOR.r * 8.0;
 	shore_under = COLOR.g;
 	if (falls > 2.5) {
@@ -238,7 +247,64 @@ void fragment() {
 	float surf = 0.0;
 	// The sun's path and the lights glittering on the surface: light of their own.
 	vec3 shine = vec3(0.0);
-	if (falls > 2.5) {
+	if (swash > 0.5) {
+		// The surf: each wave rushes up over the level sand in a thin clear sheet with a
+		// ragged line of foam at its front, then slides back slower, leaving the sand dark
+		// and wet behind it and lace of foam that thins out. Along the shore the waves come
+		// in at their own times and reach as far as a slow noise says, on the texel grid.
+		// None under ice.
+		if (ice > 0.0) {
+			discard;
+		}
+		float far = floor((depth_here - 0.5) * CELL_TEXELS) / CELL_TEXELS;
+		vec2 xz = tex / TEXELS;
+		float t = TIME / SWASH_PERIOD + texture(cloud_noise, xz / 18.0).r * 2.3;
+		float wave = floor(t);
+		float p = fract(t);
+		float reach = SWASH_REACH * (0.35 + 0.65 * texture(cloud_noise, xz / 11.0 + wave * 0.29).r);
+		// Up fast over the first quarter, easing out; back over the rest, easing in.
+		float run = p < 0.25 ? 1.0 - (1.0 - p / 0.25) * (1.0 - p / 0.25) : 1.0 - smoothstep(0.25, 1.0, p);
+		float rag = (texture(cloud_noise, xz / 2.5 + vec2(wave * 0.41, TIME * 0.02)).r - 0.5) * 0.9
+			+ (hash12(vec2(floor(tex.x / 2.0) + floor(tex.y / 2.0), wave)) - 0.5) * 0.25;
+		float front = reach * run + rag * run;
+		float edge = front - far;
+		if (far < 0.0) {
+			discard;
+		}
+		if (edge > 0.0) {
+			// The sheet, thinner and clearer towards its front.
+			col = mix(shallow, foam_color, 0.18) * biome_tint(WATER_MATERIAL, world_pos.xz);
+			alpha = mix(0.3, 0.55, clamp(1.0 - far / max(front, 0.1), 0.0, 1.0));
+			if (edge < 1.5 / CELL_TEXELS) {
+				col = foam_color;
+				alpha = 0.95;
+				surf = 1.0;
+			} else if (edge < 3.0 / CELL_TEXELS && hash12(tex + wave * 7.0) > 0.35) {
+				col = mix(col, foam_color, 0.6);
+				alpha = 0.8;
+				surf = 0.5;
+			} else if (p > 0.25) {
+				// Lace of foam left by the wave going back.
+				float lace = texture(cloud_noise, xz / 1.6 + vec2(wave * 0.37, 0.0)).r;
+				if (abs(lace - 0.5) < 0.035 * (1.0 - p) && edge < reach * 0.6) {
+					col = foam_color;
+					alpha = 0.85;
+					surf = 0.6;
+				}
+			}
+			// Sparkles.
+			col += vec3(0.3) * step(0.992, hash12(tex + floor(TIME * 3.0) * 17.0));
+		} else if (far < reach + rag && p > 0.25) {
+			// Wet sand where the wave ran up, drying as the next one comes.
+			col = vec3(0.12, 0.09, 0.05);
+			alpha = 0.22 * (1.0 - smoothstep(0.4, 1.0, p));
+			if (alpha < 0.02) {
+				discard;
+			}
+		} else {
+			discard;
+		}
+	} else if (falls > 2.5) {
 		// Spray and mist over a fall's foot, on the texels of the quad (x across from its
 		// middle, y up from the water): drops thrown up and falling back, three to a column
 		// each on a clock of its own; a churning white crown where the water lands; mist

@@ -207,6 +207,9 @@ const DEFAULTS := {
 	# New worlds have the old slopes (WorldGen slopes 1) unless the player picks the
 	# blocky relief's (0) on «Новый мир»; worlds made before keep theirs.
 	"world_slopes": 1,
+	# New worlds have flat shores level with the water (WorldGen shores 1); worlds made
+	# before keep theirs (0). Not on «Новый мир».
+	"world_shores": 1,
 	# Saved once the old slopes became the default for new worlds, so a pick of the
 	# blocky ones saved before that is taken back once (see load).
 	"old_slopes_default": true,
@@ -548,7 +551,7 @@ func use_page_quality() -> void:
 
 
 ## The world settings for WorldGen: size, water, mountains, rivers, biomes, caves, relief,
-## climate, cave_shape, landscape, slopes.
+## climate, cave_shape, landscape, slopes, shores.
 func world_options() -> Dictionary:
 	var out := {}
 	for k in LandLayout.SETTING_KEYS:

@@ -70,7 +70,7 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   the coast), its slope a power `CONE_POWER` of the distance, its crater (`crater_share` of the reach) `CRATER_DEPTH`
   under the rim and floored with `crater` (lava); the cuts `CONE` and `CRATER` keep rivers, lakes and cave mouths off
   it. Hot springs lie in the deepest hollows of the low patches, where the soil noise is under `springs_below`: a pool
-  a level or two into the ground, on black sand, its water tinted by the record. `SETTING_KEYS` lists the settings for the saves and menus. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the
+  a level or two into the ground, on black sand, its water tinted by the record. With the setting `shores` 1 (new worlds; 0 — old ones) the low land by the coast lies `SHORE_LOW` levels lower, down to the sea's level, fading out `SHORE_FADE_FROM`..`SHORE_FADE_TO` cells inland, so it lies level with the water for tens of cells (the surf washes over it, see [chunks.md](chunks.md)); the shallows off it run `SHALLOWS_WIDE` cells, and a lake's shore rises a level every `LAKE_SHORE_RUN` cells. `SETTING_KEYS` lists the settings for the saves and menus. `DEFAULT_SETTINGS` — the settings of the «New world» screen. Ground by the
   water above the sea rises to its level (`_banks`), and farther goes down a level per column, up to
   `BANK_SLOPE` columns: the bank of a river above a rapid, going past land laid out lower, is a slope, not a
   wall of one column. Beyond its banks a river digs the land into a valley that rises a level a column; a

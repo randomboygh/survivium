@@ -371,6 +371,13 @@ const SHOTS := {
 	"hot-spring": {"time": 0.42, "season": 1, "place": "hot_spring"},
 	"cliffs": {"time": 0.42, "season": 1, "place": "cliffs"},
 	"beach": {"time": 0.42, "season": 1, "place": "beach"},
+	# Flat sandy shores level with the water, washed by a thin sheet of surf (grass hidden).
+	"shore-flat": {"time": 0.42, "season": 1, "place": "beach", "hide": ["chunks: grass"]},
+	"shore-flat-waves": {"time": 0.42, "season": 1, "place": "beach", "hide": ["chunks: grass"],
+		"frames_every": 12, "frames_ms": 600},
+	"shore-flat-turn": {"time": 0.42, "season": 1, "place": "beach", "turn": 2, "hide": ["chunks: grass"]},
+	"shore-flat-tropic": {"time": 0.42, "season": 1, "place": "tropical_beach", "hide": ["chunks: grass"]},
+	"shore-flat-far": {"time": 0.42, "season": 1, "place": "beach", "settings": {"pixel_scale": 1}, "hide": ["chunks: grass"]},
 	# The tallest slope turned to the camera by a beach: its patterns a pixel a texel,
 	# each level shaded toward its foot (see world.gdshader, `gp`).
 	"steep-beach": {"time": 0.42, "season": 1, "place": "beach", "steep": true},
