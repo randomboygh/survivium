@@ -166,6 +166,8 @@ func _run() -> void:
 			main.player.position = places.hut(main.world, main.player.position)
 		if shot.get("walls", false):
 			main.player.position = places.walls(main.world, main.player.position)
+		if shot.get("cracks", false):
+			places.crack_near(main.world, main.player.position)
 		if shot.get("strata", false):
 			main.player.position = places.strata(main.world, main.player.position)
 		if shot.has("openings"):

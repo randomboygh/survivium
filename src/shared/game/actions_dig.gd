@@ -78,7 +78,7 @@ func dig_at(who, cell: Vector3i, normal: Vector3i) -> Dictionary:
 			return swing_air(who, (Vector3(cell) + Vector3(0.5, 1.0, 0.5)) * CELL)
 		who.nag("tool", Tools.why_not(t, m))
 		return {}
-	return dig(who, dig_targets(who, Tools.area_cells(cell, normal), t), Tools.swing_time(t, m))
+	return dig(who, dig_targets(who, Tools.area_cells(cell, normal), t), cell_swing(t, cell))
 
 
 ## The first cells of `order` the tool `t` of `who` can dig, as many as it takes in a

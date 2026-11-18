@@ -259,6 +259,10 @@ const DROPS := "drops"
 ## The holes in the ice (Ice), on joining and when they change: [] over the loop (the world
 ## is one object), [[[x, z, open], …]] over a socket (Ice.to_list).
 const ICE_HOLES := "ice_holes"
+## The cracked cells of a chunk (building decay, WorldData.cracks), when they changed and
+## after the chunk: [key] over the loop (the world is one object, the chunk is drawn
+## again), [key, PackedInt32Array x, y, z, …] over a socket (WorldData.cracks_of).
+const CRACKS := "cracks"
 ## The player's fishing line, when it changed: [where its float lies (INF: none in the
 ## water), a fish bites at it] (Character.line, bite; Fishing).
 const LINE := "line"

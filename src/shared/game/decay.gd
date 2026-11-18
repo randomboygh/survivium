@@ -7,7 +7,7 @@ extends RefCounted
 ## the player set, not the generator's: not WILD) of a material with `decay` (its YAML
 ## field: wattle faster, wood as is, stone and brick at half the pace; the ground, trees
 ## and ores never) goes a stage further for every Rules.building_decay_days / decay game
-## days of neglect: first it cracks (`cracked`), then it falls to a ruin (`crumble`, a
+## days of neglect: first it cracks (WorldData.cracks), then it falls to a ruin (`crumble`, a
 ## later step of the work). A player coming back stops the clock but leaves the cracks:
 ## those are mended by hand. The cells are worked through a chunk at a time, a few
 ## columns a step (SCAN_COLUMNS), only the edited chunks (WorldData's `edited`, kept in
@@ -19,7 +19,8 @@ extends RefCounted
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 
-## Cells that cracked (true) or were mended or are gone (false), for the clients.
+## Cells that cracked (true) or were mended (false), for the clients (a cell changed
+## loses its crack in WorldData.set_cell and is sent as a changed cell).
 signal cracks_changed(cells: Array[Vector3i], on: bool)
 
 const CELL := WorldData.CELL
@@ -44,9 +45,6 @@ var time := 0.0
 var tended := {}
 ## Chunk -> the neglect (days) it was worked through for last, 0 when tended since.
 var passed := {}
-## Cracked cell (Vector3i) -> its material then, -1 when not known yet (from a save,
-## before its chunk is there): a cell built anew in its place is not cracked.
-var cracked := {}
 var _wait := 0.0
 var _order: Array[Vector2i] = []
 var _next := 0
@@ -198,13 +196,13 @@ func _scan() -> void:
 			var cell := Vector3i(key.x * CHUNK + (col & (CHUNK - 1)), y, key.y * CHUNK + (col >> WorldData.SHIFT))
 			if territory != null and not territory.claim_at(cell).is_empty():
 				continue
-			var was: int = cracked.get(cell, -2)
+			var was: int = world.cracks.get(key, {}).get(cell, -2)
 			if was != m and was != -1:
-				cracked[cell] = m
+				world.crack(cell, m)
 				cracks.append(cell)
 				n -= 1
 			elif was == -1:
-				cracked[cell] = m
+				world.crack(cell, m)
 			# What is left of `n` is the cell falling to a ruin: the next step of the work.
 	if not cracks.is_empty():
 		cracks_changed.emit(cracks, true)
@@ -240,29 +238,9 @@ static func _level(bit: int) -> int:
 	return y
 
 
-## Whether cell `cell` is cracked now (its material the one that cracked).
+## Whether cell `cell` is cracked now.
 func is_cracked(cell: Vector3i) -> bool:
-	var was: int = cracked.get(cell, -2)
-	if was == -2:
-		return false
-	return was == -1 or world == null or world.get_cell(cell.x, cell.y, cell.z) == was
-
-
-## Cell `cell` changed (dug, built over, mended): its crack is gone.
-func cell_changed(cell: Vector3i) -> void:
-	if cracked.erase(cell):
-		var one: Array[Vector3i] = [cell]
-		cracks_changed.emit(one, false)
-
-
-## Cells `cells` changed at once (a blueprint, a felled tree).
-func cells_set(cells: Array[Vector3i]) -> void:
-	var gone: Array[Vector3i] = []
-	for cell in cells:
-		if cracked.erase(cell):
-			gone.append(cell)
-	if not gone.is_empty():
-		cracks_changed.emit(gone, false)
+	return world != null and world.is_cracked(cell.x, cell.y, cell.z)
 
 
 ## What the save keeps (world.json "decay").
@@ -271,9 +249,8 @@ func to_dict() -> Dictionary:
 	for key: Vector2i in tended:
 		t.append([key.x, key.y, snappedf(float(tended[key]), 0.001), snappedf(float(passed.get(key, 0.0)), 0.001)])
 	var cells: Array = []
-	for cell: Vector3i in cracked:
-		if is_cracked(cell):
-			cells.append_array([cell.x, cell.y, cell.z])
+	for key: Vector2i in world.cracks:
+		cells.append_array(Array(world.cracks_of(key)))
 	return {"on": on, "time": snappedf(time, 0.001), "tended": t, "cracked": cells}
 
 
@@ -283,7 +260,6 @@ func from_dict(d: Dictionary) -> void:
 	tended.clear()
 	passed.clear()
 	bare.clear()
-	cracked.clear()
 	_job = {}
 	_order.clear()
 	_next = 0
@@ -295,6 +271,7 @@ func from_dict(d: Dictionary) -> void:
 				tended[key] = float(e[2])
 				passed[key] = float(e[3])
 	var cells: Variant = d.get("cracked")
-	if cells is Array:
+	if cells is Array and world != null:
+		world.cracks.clear()
 		for i in range(0, cells.size() - 2, 3):
-			cracked[Vector3i(int(cells[i]), int(cells[i + 1]), int(cells[i + 2]))] = -1
+			world.crack(Vector3i(int(cells[i]), int(cells[i + 1]), int(cells[i + 2])), -1)

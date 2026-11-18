@@ -190,13 +190,21 @@ single player's player is number 0).
   ran with decay on); a claim gone to no-man's land leaves its chunks to decay from then. In a chunk left
   alone a built cell (not WILD: placed by a player) of a material with `decay` (its YAML field: wattle 2, planks
   and log wall 1, cut stone and brick 0.5; 0 — the ground, trees, ores — never) goes a stage further each
-  `Rules.building_decay_days` (10) / `decay` game days: first it cracks (`cracked`, cell → material; the signal
-  `cracks_changed`), then it falls to a ruin (a later step). A player coming back stops the clock (`passed` = 0),
-  the cracks stay. A cell changed (`WorldActions.cell_changed`, `cells_set`) loses its crack. Every
+  `Rules.building_decay_days` (10) / `decay` game days: first it cracks (`WorldData.cracks`: chunk → {cell →
+  material}; the signal `cracks_changed`), then it falls to a ruin (a later step). A player coming back stops the
+  clock (`passed` = 0), the cracks stay. A cell set anew (`WorldData.set_cell`) loses its crack. Every
   `LOOK_EVERY` (2 s) it looks at `CHUNKS_PER_LOOK` (32) edited chunks for one due, and works it through
   `SCAN_COLUMNS` (32) columns a step (the built cells of a column by the masks `air`, `water`, `wild`); a chunk
   with nothing that decays is `bare` until a player is near again. Edited chunks stay in memory however far,
   so far buildings decay too; a stopped server decays nothing.
+- The cracks shown (PR 2): `PlayerLink` sends `Protocol.CRACKS` — over a socket [chunk, flat x, y, z…]
+  (`WorldData.cracks_of`, `take_cracks`) after the chunk itself and when they change, over the loop only [chunk];
+  `Mirror` takes them and draws the chunk again (a chunk sent anew starts whole). `ChunkMesher` gives a cracked
+  cell's faces the vertex colour `CRACKED` (green at half) and never merges them into plain rows or rounded edges;
+  `world.gdshader` (`crack_mark`) keeps the tile's colours and draws on each face a crack down from its top edge,
+  4–8 texels, and a shorter one from its left, by a hash of the cell and face. A cracked cell breaks in
+  `CRACKED_SWING` (half) the time (`WorldActions.cell_swing`: digging, the blueprint's removal). Shot `decay-cracks`
+  (`places.crack_near`: every other built cell near the walls of every material).
 - Switches: `Rules.building_decay` (the server: `[rules]` of `server.cfg`) and the world's own `Decay.on`,
   set by the row «Building decay» of «New world» (`Settings` `world_decay`, `WorldSetup`), kept in
   `world.json` as `decay` (`to_dict` / `from_dict`: `on`, `time`, `tended`, `cracked`); a world saved before it
@@ -204,7 +212,8 @@ single player's player is number 0).
 
 **Tests**: `tests/unit/decay_test.gd` (the paces of the materials, the ground and the generator's cells
 untouched, a player near and a claim tend, cracks stay when one comes back and go when the cell changes,
-saving through JSON, both switches, the session's step); `tests/unit/territory_test.gd` (`_test_decay` — decay by steps, the client's copy, saving, the
+saving through JSON, both switches, the session's step, `CRACKS` over a socket and the loop, the faster swing,
+the mesher's mark); `tests/unit/territory_test.gd` (`_test_decay` — decay by steps, the client's copy, saving, the
 team's return, the modes `rights` and `radius`; the teams' rules, saving through JSON, the requests of two
 players on one server; plots, the budget, connectivity, the post through `put_from_bag` and `land_paint`; the
 default and given rights, saving, the land's colour and the request `land_color`, digging, a chest, taking a
