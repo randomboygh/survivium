@@ -225,8 +225,8 @@ single player's player is number 0).
   `world.json` as `decay` (`to_dict` / `from_dict`: `on`, `time`, `tended`, `cracked`); a world saved before it
   decays, its clock starting at the first load.
 - Settings: the server window's tab «Settings» (`HostScreen`, section «Land») has the switch «Building decay»
-  and «Decay stage» (`building_decay_days`: 3, 5, 10, 20, 40 game days). The playtest page («Testing», next to
-  «Flow of time») sets «Decay stage» to the world's own, 1 or 0.1 game days (`Settings.DECAY_DAYS`, saved with
+  and «Building decay step» (`building_decay_days`: 3, 5, 10, 20, 40 game days). The playtest page («Testing», next to
+  «Flow of time») sets «Building decay step» to the world's own, 1 or 0.1 game days (`Settings.DECAY_DAYS`, saved with
   the test switches; on a server the cheat `decay_days`, clamped to `Cheats.LEAST_DECAY_DAYS`, 0 gives the
   server's own back).
 

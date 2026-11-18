@@ -482,7 +482,8 @@ static func _minutes(n: Variant) -> String:
 
 
 static func _days(n: Variant) -> String:
-	return Lang.f("[n_days]", [str(snappedf(float(n), 0.01))])
+	var d := snappedf(float(n), 0.01)
+	return Lang.f("[n_days]", [str(int(d)) if d == floorf(d) else str(d)])
 
 
 static func _hours(n: Variant) -> String:
