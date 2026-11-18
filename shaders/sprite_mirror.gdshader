@@ -1,12 +1,15 @@
 // A figure mirrored in the water it stands by (WaterEffects): its sprite turned upside
 // down under the surface, as pale as a reflection, rippling a pixel sideways row by
 // row, fading with the depth. Drawn after the water and over the body's part under it
-// (render priority 2), with no depth test: a pixel shows only where the water's surface
-// that this pixel of the picture falls on is open water at the mirror's level, or the
-// wet edge of the bank beside it (the roof map's columns), so the banks and the land in
-// front keep it off. Unshaded: it takes the sky's light (`light`).
+// (render priority 2), with no depth test: a pixel shows only where the surface that
+// this pixel of the picture falls on mirrors at the mirror's level (mirrors()): open
+// water, the wet edge of the bank beside it, the sea's surf running up the sand and the
+// wet sand it leaves, a puddle after rain (the roof map's columns), so the banks and the
+// land in front keep it off; and not over grass, low plants or crowns (the stencil, as
+// sprite_xray.gdshader). Unshaded: it takes the sky's light (`light`).
 shader_type spatial;
 render_mode world_vertex_coords, unshaded, blend_mix, depth_draw_never, depth_test_disabled, cull_disabled, shadows_disabled;
+stencil_mode read, compare_greater, 2;
 
 #include "res://shaders/common.gdshaderinc"
 
@@ -21,6 +24,12 @@ uniform vec3 water SRGB = vec3(0.3, 0.52, 0.58);
 
 // How far into a shore's cell from the water the mirror shows, in cells.
 const float SHORE_WET = 0.45;
+// How clearly the surf's thin sheet and the wet sand behind a wave mirror, against open
+// water's 1.
+const float SURF_SHEET = 1.0;
+const float SURF_WET = 0.35;
+// The roof map's g bit for a top no puddle stands on (RoofMap.NO_PUDDLE).
+const int NO_PUDDLE = 1;
 
 varying vec3 world_pos;
 // The point as it is drawn (stand_tall), not sheared.
@@ -33,47 +42,122 @@ void vertex() {
 	VERTEX = shear(tall);
 }
 
-// Whether the surface at `xz` shows the mirror: open water at the level, or the ground
-// at the water's edge level with it (the foam on the sand, a bank half under water)
-// with water beside it.
-bool mirrors(vec2 xz) {
+// How far in cells from `xz` the nearest of the sea's water is (the box of a column
+// whose top is water at the sea's level), up to SWASH_REACH + 1: the distance from the
+// waterline the surf's sheet is drawn by (WaterMesher.swash_map, near enough). Looked
+// for ring by ring, done once no farther ring can be nearer.
+float sea_distance(vec2 xz) {
+	vec2 f = xz / CELL;
+	vec2 c = floor(f);
+	float best = 1000.0;
+	for (int r = 1; r <= int(SWASH_REACH) + 1; r++) {
+		if (best <= float(r - 1)) {
+			break;
+		}
+		for (int k = 0; k <= 2 * r; k++) {
+			for (int side = 0; side < 4; side++) {
+				float a = float(k - r);
+				float b = float(side % 2 == 0 ? -r : r);
+				vec2 o = c + (side < 2 ? vec2(a, b) : vec2(b, a));
+				vec4 w = column(o);
+				if (w.a > 0.5 && abs(floor(w.b * 255.0 + 0.5) * CELL - sea_top) < 0.1) {
+					best = min(best, length(max(abs(f - o - 0.5) - 0.5, 0.0)));
+				}
+			}
+		}
+	}
+	return best;
+}
+
+// How clearly the sand level with the sea at `xz` mirrors now, 0..1: under the surf's
+// sheet behind its foam, and, fainter and drying, where the wave ran back from (the
+// same waves as water.gdshader, surf_wave); not under the foam.
+float surf_mirror(vec2 xz) {
+	float d = sea_distance(xz);
+	if (d > SWASH_REACH) {
+		return 0.0;
+	}
+	float far = floor(d * CELL_TEXELS) / CELL_TEXELS;
+	float front, peak, p, left, lace, fizz, wave;
+	surf_wave(floor(xz * TEXELS), TIME, front, peak, p, left, lace, fizz, wave);
+	float edge = front - far;
+	// Past the foam line and its broken edge (water.gdshader, 7 texels).
+	if (edge >= 7.0 / CELL_TEXELS) {
+		return SURF_SHEET;
+	}
+	if (edge < 0.0 && far < peak && left > 0.0 && !surf_left_foam(far, peak, left, lace, fizz)) {
+		return SURF_WET * (1.0 - smoothstep(0.4, 1.0, p));
+	}
+	return 0.0;
+}
+
+// Whether a puddle after rain stands at `xz` on the top `top` of column `col`: the same
+// patches as world.gdshader draws (on open level ground that keeps water, not by a
+// fire, not in snow), but their dark rim.
+bool puddle(vec2 xz, float top, vec4 col) {
+	if (puddles.x <= 0.0 || snow_amount > 0.0 || (int(col.g * 255.0 + 0.5) & NO_PUDDLE) != 0 || roofed(xz, top)) {
+		return false;
+	}
+	vec3 tp = vec3(xz.x, top, xz.y) + vec3(1.0 / (32.0 * TEXELS));
+	vec2 wt = floor(tp.xz * TEXELS);
+	if (warm_spot(vec3(xz.x, top, xz.y), hash12(wt + 41.0)) >= 0.5) {
+		return false;
+	}
+	float h = hash12(wt + floor(tp.y * TEXELS - 0.5) * 17.0);
+	float n = ground_patch(xz * 2.2, 17.0) + (h - 0.5) * 0.02;
+	float around = (ground_top(xz, vec2(1.0, 0.0)) + ground_top(xz, vec2(-1.0, 0.0))
+		+ ground_top(xz, vec2(0.0, 1.0)) + ground_top(xz, vec2(0.0, -1.0))) * 0.25;
+	n += clamp((around - top) / CELL, 0.0, 1.0) * 0.1;
+	return n >= 1.0 - 0.24 * sqrt(puddles.x) + 0.01;
+}
+
+// How clearly the surface at `xz` shows the mirror, 0..1: open water at the level; the
+// ground at the water's edge level with it (the foam on the sand, a bank half under
+// water) with water beside it; the sand the sea's surf runs up (surf_mirror) when the
+// mirror is the sea's; a puddle on the ground at the level (a figure standing on dry
+// land is mirrored at its feet, see WaterEffects).
+float mirrors(vec2 xz) {
 	vec2 c = floor(xz / CELL);
 	vec4 col = column(c);
 	float top = floor(col.b * 255.0 + 0.5) * CELL;
 	if (col.a > 0.5) {
-		return abs(top - level) <= 0.6;
+		return abs(top - level) <= 0.6 ? 1.0 : 0.0;
 	}
-	if (abs(top - CELL * 0.5 - level) > 0.1) {
-		return false;
-	}
-	// The water covers the slope of a shore up to about its middle: only the part of the
-	// cell nearer to a side (or a corner) with water beyond it shows the mirror.
-	vec2 f = xz / CELL - c;
-	float near = 1.0;
-	if (column(c + vec2(1.0, 0.0)).a > 0.5) near = min(near, 1.0 - f.x);
-	if (column(c - vec2(1.0, 0.0)).a > 0.5) near = min(near, f.x);
-	if (column(c + vec2(0.0, 1.0)).a > 0.5) near = min(near, 1.0 - f.y);
-	if (column(c - vec2(0.0, 1.0)).a > 0.5) near = min(near, f.y);
-	if (near > SHORE_WET) {
-		for (int k = 0; k < 4; k++) {
-			vec2 o = vec2(k % 2 == 0 ? 1.0 : -1.0, k < 2 ? 1.0 : -1.0);
-			if (column(c + o).a > 0.5) {
-				near = min(near, length(f - (o * 0.5 + 0.5)) * 0.8);
+	if (abs(top - CELL * 0.5 - level) <= 0.1) {
+		// The water covers the slope of a shore up to about its middle: only the part of
+		// the cell nearer to a side (or a corner) with water beyond it shows the mirror.
+		vec2 f = xz / CELL - c;
+		float near = 1.0;
+		if (column(c + vec2(1.0, 0.0)).a > 0.5) near = min(near, 1.0 - f.x);
+		if (column(c - vec2(1.0, 0.0)).a > 0.5) near = min(near, f.x);
+		if (column(c + vec2(0.0, 1.0)).a > 0.5) near = min(near, 1.0 - f.y);
+		if (column(c - vec2(0.0, 1.0)).a > 0.5) near = min(near, f.y);
+		if (near > SHORE_WET) {
+			for (int k = 0; k < 4; k++) {
+				vec2 o = vec2(k % 2 == 0 ? 1.0 : -1.0, k < 2 ? 1.0 : -1.0);
+				if (column(c + o).a > 0.5) {
+					near = min(near, length(f - (o * 0.5 + 0.5)) * 0.8);
+				}
 			}
 		}
+		if (near <= SHORE_WET) {
+			return 1.0;
+		}
 	}
-	return near <= SHORE_WET;
+	if (abs(top - sea_top) < 0.1 && abs(level - sea_top) < 0.3) {
+		float k = surf_mirror(xz);
+		if (k > 0.0) {
+			return k;
+		}
+	}
+	if (abs(top - level) < 0.1 && puddle(xz, top, col)) {
+		return 1.0;
+	}
+	return 0.0;
 }
 
 void fragment() {
 	if (world_pos.y > level) {
-		discard;
-	}
-	// The surface this pixel of the picture falls on: along the way to the camera from
-	// the drawn point, up to the level.
-	vec3 to = toward_camera();
-	vec3 surface = tall + to * ((level - tall.y) / max(to.y, 0.05));
-	if (!mirrors(surface.xz) || gone_above(surface)) {
 		discard;
 	}
 	float depth = level - world_pos.y;
@@ -86,6 +170,17 @@ void fragment() {
 	if (c.a < 0.5) {
 		discard;
 	}
+	// The surface this pixel of the picture falls on: along the way to the camera from
+	// the drawn point, up to the level.
+	vec3 to = toward_camera();
+	vec3 surface = tall + to * ((level - tall.y) / max(to.y, 0.05));
+	if (gone_above(surface)) {
+		discard;
+	}
+	float clear = mirrors(surface.xz);
+	if (clear <= 0.0) {
+		discard;
+	}
 	// A reflection is never brighter than what it reflects: the water only gives the
 	// figure its hue (the tint is scaled to at most 1), it never adds light, so a dark
 	// pixel (hair, an outline, the night) stays as dark as it is.
@@ -93,7 +188,7 @@ void fragment() {
 	vec3 rgb = source * mix(vec3(1.0), water / max(max(water.r, water.g), water.b), 0.4) * light;
 	ALBEDO = rgb;
 	// Fainter the deeper, dithered in steps so it stays pixel art.
-	float a = 0.45 * (1.0 - smoothstep(0.3, 1.6, depth));
+	float a = 0.45 * clear * (1.0 - smoothstep(0.3, 1.6, depth));
 	ALPHA = a < bayer4(floor(surface.xz * TEXELS)) * 0.3 ? 0.0 : a;
 	COMPAT_ALBEDO
 }

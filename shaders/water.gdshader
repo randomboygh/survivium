@@ -65,10 +65,6 @@ const vec3 FIRE_GLINT = vec3(1.0, 0.62, 0.28);
 // (MeshFaces.SPRAY_HALF, WaterMesher.FOAM_SIDE).
 const float SPRAY_HALF = 0.75;
 const float FOAM_SIDE = 0.5;
-// The surf (WaterMesher.SWASH_REACH): the farthest a wave runs up from the waterline, in
-// cells, and the seconds from one wave to the next.
-const float SWASH_REACH = 5.0;
-const float SWASH_PERIOD = 7.0;
 // Steps of the depth's shading, and the 4x4 ordered dither between them.
 const float DEPTH_STEPS = 6.0;
 const int BAYER[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
@@ -268,24 +264,9 @@ void fragment() {
 		if (far < 0.0) {
 			discard;
 		}
-		vec2 xz = tex / TEXELS;
-		float t = TIME / SWASH_PERIOD + texture(cloud_noise, xz / 18.0).r * 2.3;
-		float wave = floor(t);
-		float p = fract(t);
-		float reach = SWASH_REACH * (0.35 + 0.65 * texture(cloud_noise, xz / 11.0 + wave * 0.29).r);
-		// Up fast over the first quarter, easing out; back over the rest, easing in.
-		float run = p < 0.25 ? 1.0 - (1.0 - p / 0.25) * (1.0 - p / 0.25) : 1.0 - smoothstep(0.25, 1.0, p);
-		float rag = (texture(cloud_noise, xz / 2.5 + vec2(wave * 0.41, TIME * 0.02)).r - 0.5) * 0.9
-			+ (hash12(vec2(floor(tex.x / 2.0) + floor(tex.y / 2.0), wave)) - 0.5) * 0.25;
-		// The front, never behind the waterline; and how far this wave got.
-		float front = max(reach * run + rag * run, 0.0);
-		float peak = max(reach + rag, 0.0);
+		float front, peak, p, left, lace, fizz, wave;
+		surf_wave(tex, TIME, front, peak, p, left, lace, fizz, wave);
 		float edge = front - far;
-		// How much of the foam the wave leaves behind is still there: all of it as the
-		// wave turns, none by the time the next one comes.
-		float left = p > 0.25 ? 1.0 - smoothstep(0.25, 0.95, p) : 0.0;
-		float lace = texture(cloud_noise, xz / 1.6 + vec2(wave * 0.37, 0.0)).r;
-		float fizz = hash12(tex + wave * 13.0);
 		if (edge >= 0.0) {
 			// The sheet: the shallows' colour at the waterline, thinning to clear water.
 			float on = clamp(far / max(front, 0.1), 0.0, 1.0);
@@ -312,9 +293,7 @@ void fragment() {
 			// The sand the wave ran over: wet and dark, and the foam it left there, a line
 			// along where it reached and lace between, breaking up into fewer and fewer
 			// bubbles as it dissolves.
-			bool line = peak - far < 5.0 / CELL_TEXELS;
-			bool foamy = line ? fizz < 0.35 + 0.65 * left : abs(lace - 0.5) < 0.1 * left && fizz < 0.4 + 0.6 * left;
-			if (foamy) {
+			if (surf_left_foam(far, peak, left, lace, fizz)) {
 				col = foam_c;
 				alpha = 0.6 + 0.35 * left;
 				surf = 0.7 * left;

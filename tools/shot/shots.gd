@@ -31,6 +31,13 @@ const SHOTS := {
 	"fx-reflect-turn1": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 1},
 	"fx-reflect-turn2": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 2},
 	"fx-reflect-turn4": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 4},
+	# Mirrored in the sea's surf on a flat beach (its sheet and the wet sand behind a wave),
+	# frames as the waves run; and in the puddles after rain (grass hidden, and with it).
+	"fx-reflect-surf": {"time": 0.42, "season": 1, "weather": "clear", "place": "beach", "hide": ["chunks: grass"],
+		"step": Vector3(1.0, 0.0, 1.0), "frames_every": 6, "frames_ms": 1100},
+	"fx-reflect-surf-turn": {"time": 0.42, "season": 1, "weather": "clear", "place": "beach", "turn": 2, "hide": ["chunks: grass"]},
+	"fx-reflect-puddles": {"time": 0.42, "season": 1, "weather": "clear", "puddles": 1.0, "after_rain": 1.0, "puddle": true, "hide": ["chunks: grass"]},
+	"fx-reflect-puddles-grass": {"time": 0.42, "season": 1, "weather": "clear", "puddles": 1.0, "after_rain": 1.0, "puddle": true},
 	"fx-fire-water": {"time": 0.95, "season": 1, "moon": 0.0, "weather": "clear", "place": "lake", "water": 1, "hands": {"tool": "tools:torch", "facing": "s"}},
 	# Snow glittering in the sun and under a full moon.
 	# Winter on the screen: flakes on the edges, frost from the corners, snow on the
