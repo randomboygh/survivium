@@ -443,7 +443,8 @@ func _mirror(delta: float, sky) -> void:
 				add_child(m)
 				_mirrors[sprite] = m
 			_mirrors[sprite].set_meta("level", want[sprite])
-	var light := _light()
+	# Darker than the rings and the steam at night: the mirror is only a pale copy of a figure.
+	var light := pow(_light(), 1.6)
 	for sprite in _mirrors.keys():
 		var m: MeshInstance3D = _mirrors[sprite]
 		# A sprite freed between the looks (an animal gone) takes its mirror along.

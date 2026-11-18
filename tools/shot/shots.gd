@@ -23,6 +23,9 @@ const SHOTS := {
 	# at sunset; dust behind one walking on a dry beach.
 	"fx-reflect": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1},
 	# Mirrored deep in the water, on the bank's edge and with the camera turned.
+	# At night the mirrored figure must not look brighter than the figure.
+	"fx-reflect-night": {"time": 0.95, "season": 1, "weather": "clear", "place": "beach", "water": 1},
+	"fx-reflect-night-dark": {"time": 0.95, "season": 1, "weather": "clear", "place": "beach", "water": 1, "moon": 0.0},
 	"fx-reflect-deep": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 2},
 	"fx-reflect-shore": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "shore": true},
 	"fx-reflect-turn1": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "turn": 1},

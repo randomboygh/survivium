@@ -86,7 +86,11 @@ void fragment() {
 	if (c.a < 0.5) {
 		discard;
 	}
-	vec3 rgb = mix(c.rgb * tint * 0.9, water, 0.4) * light;
+	// A reflection is never brighter than what it reflects: the water only gives the
+	// figure its hue (the tint is scaled to at most 1), it never adds light, so a dark
+	// pixel (hair, an outline, the night) stays as dark as it is.
+	vec3 source = c.rgb * tint * 0.9;
+	vec3 rgb = source * mix(vec3(1.0), water / max(max(water.r, water.g), water.b), 0.4) * light;
 	ALBEDO = rgb;
 	// Fainter the deeper, dithered in steps so it stays pixel art.
 	float a = 0.45 * (1.0 - smoothstep(0.3, 1.6, depth));
