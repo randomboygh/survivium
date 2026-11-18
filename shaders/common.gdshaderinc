@@ -119,9 +119,9 @@ global uniform sampler2D heat_map : filter_linear, repeat_enable;
 // One texel per column: r = the level of the highest cell that keeps the weather off,
 // plus one, over 255; g = 1 under a tree's crown (see roof_map.gd).
 global uniform sampler2D roof_map : filter_nearest, repeat_enable;
-// The same map filtered between the columns' centres, for what changes smoothly over
-// the land (the fog's low places).
-global uniform sampler2D roof_map_soft : filter_linear, repeat_enable;
+// (roof_map_soft, the same map filtered, is declared in world.gdshader, the one shader
+// that reads it: every sampler here takes a texture unit in each shader including this,
+// see MAX_SAMPLERS in tools/lint.py.)
 // The mean height of the ground over LOW by LOW columns, a texel each (r = the tops'
 // mean plus one, over 255), filtered between texels: where the fog lies low (see
 // RoofMap.LOW, fog_at).

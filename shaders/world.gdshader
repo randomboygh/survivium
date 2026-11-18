@@ -37,6 +37,9 @@ stencil_mode write, compare_always, 1;
 #include "res://shaders/common.gdshaderinc"
 
 global uniform sampler2D terrain_atlas : filter_nearest SRGB_HINT;
+// The roof map (common.gdshaderinc) filtered between the columns' centres, for what
+// changes smoothly over the land (the leaves fallen under the crowns).
+global uniform sampler2D roof_map_soft : filter_linear, repeat_enable;
 // Corner shape of each material (Mat.corner_shape): 0 a straight cut, 1 a little
 // rounded, 2 a quarter circle; the exponent p of the curve is 1, 1.5 or 2.
 uniform int corner_shapes[63];

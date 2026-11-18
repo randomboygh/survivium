@@ -122,3 +122,10 @@ One-line forms of the rules; the detail is above and in the other pages of this 
 - Varyings are few on phone GPUs: `water.gdshader` with one varying more (16) compiled on the desktop
   and in the browser but drew the water plain grey on Android (#752; fixed by packing it into
   `swash`). Pack a new flag into an existing flat varying instead of adding one.
+- Samplers are few in the browser: every sampler a shader declares (its includes' too, used or
+  not) takes a texture unit from 0, and the Compatibility renderer keeps the top ones for its own
+  (`texunit:-3` in Godot's scene.glsl is the sun's shadow atlas). WebGL has 16 units, so
+  `grass.gdshader` with a 14th sampler (`trample_map`, #754) shared unit 13 with the shadow atlas and
+  the browser drew no grass at all, while the desktop (32 units) and Android (Vulkan) were fine.
+  `tools/lint.py` holds every shader to `MAX_SAMPLERS` (13); declare a sampler only one shader reads
+  in that shader, not in `common.gdshaderinc` (`roof_map_soft` is in `world.gdshader`).

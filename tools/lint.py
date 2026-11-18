@@ -6,6 +6,7 @@
 - text files: no trailing spaces, no CRLF, a newline at the end, no merge conflict markers;
 - every literal `load("res://…")` of a script and every resource a scene or a `.tres` names
   is a file of the repo (a `preload` is checked by tools/parse_check.gd, which compiles);
+- no shader declares more than MAX_SAMPLERS samplers, its includes' counted;
 - the Python tools compile, the shell scripts parse (`bash -n`), the browser test parses
   (`node --check`, when node is there), the JSON files and the workflows parse.
 
@@ -28,6 +29,15 @@ LOAD = re.compile(r'\b(?:ResourceLoader\.)?load\("(res://[^"%{}]+)"')
 ## A text measured by the font itself, which sees a key in brackets, not the words shown.
 MEASURE = re.compile(r"\.get_(?:multiline_)?string_size\(")
 RESOURCE = re.compile(r'path="(res://[^"]+)"')
+# The samplers a shader may declare, its includes' (common.gdshaderinc) counted, used or
+# not: Godot gives each declared sampler a texture unit from 0, and the Compatibility
+# renderer keeps the top units for its own (scene.glsl `texunit:-2` the sky, `-3` the
+# sun's shadow atlas, ...). WebGL has 16 units, so a 14th sampler shares unit 13 with the
+# shadow atlas, the browser refuses the draw and the shader's things vanish (the grass
+# after #754); a desktop GL with 32 units and Android's Vulkan do not show it.
+MAX_SAMPLERS = 13
+SAMPLER = re.compile(r"^\s*(?:global\s+|instance\s+)?uniform\s+(?:\w+\s+)?sampler\w*\s+\w+", re.M)
+INCLUDE = re.compile(r'^\s*#include\s+"res://([^"]+)"', re.M)
 
 
 def tracked() -> list[pathlib.Path]:
@@ -74,6 +84,19 @@ def main() -> int:
                 json.loads(text)
             except ValueError as e:
                 bad(path, 1, f"not JSON: {e}")
+
+    def samplers(path: pathlib.Path, seen: set) -> int:
+        if path in seen or not path.is_file():
+            return 0
+        seen.add(path)
+        text = path.read_text()
+        return len(SAMPLER.findall(text)) + sum(samplers(ROOT / m, seen) for m in INCLUDE.findall(text))
+
+    for path in files:
+        if path.suffix == ".gdshader":
+            n = samplers(path, set())
+            if n > MAX_SAMPLERS:
+                bad(path, 1, f"{n} samplers with its includes, at most {MAX_SAMPLERS}: the web build runs out of texture units (MAX_SAMPLERS in tools/lint.py)")
 
     project = (ROOT / "project.godot").read_text()
     if re.search(r"^\[autoload\]", project, re.M):
