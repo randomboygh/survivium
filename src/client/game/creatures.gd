@@ -478,7 +478,7 @@ func _sink(a, look: Look) -> void:
 		var bits: int = world.water_col(floori(a.pos.x / CELL), floori(a.pos.z / CELL))
 		if bits != 0:
 			var top := WorldData.top_level(bits)
-			var surface := float(top) if world.frozen_at(floori(a.pos.x / CELL), floori(a.pos.z / CELL)) else top + WorldData.WATER_TOP
+			var surface: float = float(top) if world.frozen_at(floori(a.pos.x / CELL), floori(a.pos.z / CELL)) else top + world.water_top(top)
 			under = maxf(0.0, surface * CELL - a.pos.y)
 	if absf(under - look.depth) * PixelView.PIXELS_PER_UNIT >= 0.5 or look.depth == 0.0:
 		look.depth = maxf(under, 0.001)

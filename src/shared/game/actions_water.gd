@@ -95,7 +95,7 @@ func fish(who, aim := Vector3.INF) -> Dictionary:
 	who.use_tool()
 	water = _cast_out(at, dir, water, maxi(2, rod.get("range", 0)))
 	# The float lies on the water's surface, not at the top of its cell.
-	water.y -= (1.0 - WorldData.WATER_TOP) * CELL
+	water.y -= (1.0 - world.water_top(floori(water.y / CELL) - 1)) * CELL
 	return _cast_at(who, water)
 
 
@@ -130,7 +130,7 @@ func _fish_hole(who, aim: Vector3) -> Dictionary:
 		return {}
 	who.use_tool()
 	var top := WorldData.top_level(world.water_col(col.x, col.y))
-	return _cast_at(who, Vector3(col.x + 0.5, top + WorldData.WATER_TOP, col.y + 0.5) * CELL)
+	return _cast_at(who, Vector3(col.x + 0.5, top + world.water_top(top), col.y + 0.5) * CELL)
 
 
 ## The open hole in the ice nearest `aim` (else the body of `who`) within HOLE_REACH cells
@@ -200,7 +200,7 @@ func cut_ice(who, aim := Vector3.INF) -> Dictionary:
 	ice.cut(col, int(t.get("power", 1)))
 	who.use_tool()
 	return _work(skilled(who, "fish", t.swing), "",
-		Vector3(col.x + 0.5, top + WorldData.WATER_TOP, col.y + 0.5) * CELL, Mat.WATER)
+		Vector3(col.x + 0.5, top + world.water_top(top), col.y + 0.5) * CELL, Mat.WATER)
 
 
 ## Where a cast from `at` along `dir` lands past `water`, the first open water ahead: up

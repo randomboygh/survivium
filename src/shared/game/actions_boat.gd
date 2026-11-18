@@ -108,7 +108,7 @@ func launch_spot(who, way := Vector2.ZERO) -> Vector3:
 		var top := WorldData.top_level(bits)
 		if world.get_cell(x, top + 1, z) != Mat.AIR:
 			continue
-		var surface := top + WorldData.WATER_TOP
+		var surface: float = top + world.water_top(top)
 		if absf(surface - p.y) > LAUNCH_DROP:
 			continue
 		var at := Vector3(x + 0.5, surface - Body.DECK, z + 0.5) * CELL

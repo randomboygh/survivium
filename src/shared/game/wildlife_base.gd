@@ -411,7 +411,8 @@ func water_top(x: float, z: float) -> float:
 	var cz := floori(z / CELL)
 	if world.surface_y(cx, cz) != -1:
 		return -INF
-	return (WorldData.top_level(world.water_col(cx, cz)) + WorldData.WATER_TOP) * CELL
+	var top := WorldData.top_level(world.water_col(cx, cz))
+	return (top + world.water_top(top)) * CELL
 
 
 ## Where frozen water has open water under its ice, at a world point: the bottom of the
@@ -450,7 +451,7 @@ func water_room(x: float, z: float) -> float:
 		return 0.0
 	var top := WorldData.top_level(bits)
 	var bed := WorldData.top_level(~bits & ((1 << top) - 1))
-	var surface := float(top) if world.frozen_at(floori(x / CELL), floori(z / CELL)) else top + WorldData.WATER_TOP
+	var surface: float = float(top) if world.frozen_at(floori(x / CELL), floori(z / CELL)) else top + world.water_top(top)
 	return maxf(0.0, surface - (bed + 1)) * CELL
 
 

@@ -20,9 +20,10 @@ static func cut_water(w, water, c: PackedByteArray, i: int, dy: int, base: Vecto
 				depth += 1
 			var foam := 1 << (12 + k) | shape << (16 + 2 * k)
 			var murk: int = w.murk(int(base.x) + o.x, int(base.y), int(base.z))
-			var col := water_color(depth - WATER_TOP, 1.0, kind(false, murk / 2.0),
+			var top := water_top(int(base.y))
+			var col := water_color(depth - 1.0 + top, 1.0, kind(false, murk / 2.0),
 				w.sea(int(base.x) + o.x, int(base.y), int(base.z)))
-			_piece(water, base, WATER_TOP, k, CORNER, Vector3.UP, col, Vector2(float(foam), float(depth)), shape)
+			_piece(water, base, top, k, CORNER, Vector3.UP, col, Vector2(float(foam), float(depth)), shape)
 
 
 ## Foam bits of the water in padded cell `i`: the half edges (see HALF_CORNER) that
@@ -181,8 +182,9 @@ static func lip_fill(buf, keys: PackedInt32Array, w, c: PackedByteArray, i: int,
 		var x := int(base.x) + o.x
 		var z := int(base.z) + o.y
 		var murk: int = w.murk(x, int(base.y), z)
-		var col := water_color(depth - WATER_TOP, 1.0, kind(false, murk / 2.0), w.sea(x, int(base.y), z))
-		_piece(buf, base, WATER_TOP, k, CORNER, Vector3.UP, col, Vector2(0.0, float(depth)))
+		var top := water_top(int(base.y))
+		var col := water_color(depth - 1.0 + top, 1.0, kind(false, murk / 2.0), w.sea(x, int(base.y), z))
+		_piece(buf, base, top, k, CORNER, Vector3.UP, col, Vector2(0.0, float(depth)))
 		var drop := _drop(c, i, dy)
 		keys.append(_key(lx, lz, int(base.y), k, drop, c[i - drop * dy] == WATER, 0, 1, true))
 
@@ -207,13 +209,14 @@ static func fall_faces(buf, faces: Array, keys: PackedInt32Array, x0: int, z0: i
 		var spill := key >> 19 & 7
 		var trim := key >> 22 & 3
 		var base := Vector3(x0 + (key & 63), key >> 25, z0 + (key >> 6 & 63))
-		var foot := base.y - k + (WATER_TOP if wet else 1.0)
+		var foot := base.y - k + (water_top(int(base.y) - k) if wet else 1.0)
+		var lip := water_top(int(base.y))
 		if key >> 24 & 1:
 			_diag_fall(buf, base, q, trim == 1, k, wet, foot, float((key & 4095) % 97))
 			continue
 		var d: int = FALL_DIRS[q]
 		var out := Vector3(DIRS[d])
-		var size := Vector3(1.0, WATER_TOP - (foot - base.y), 1.0)
+		var size := Vector3(1.0, lip - (foot - base.y), 1.0)
 		var lift := Vector3(0.0, foot - base.y, 0.0)
 		var face: Dictionary = faces[d]
 		# The part of the side drawn, along it: the halves the diagonal lip leaves out
@@ -233,10 +236,10 @@ static func fall_faces(buf, faces: Array, keys: PackedInt32Array, x0: int, z0: i
 			uvs.append(face_uv(d, v))
 		# UV2: the levels of its lip and of its foot.
 		buf.quad(pts, (face.normal + Vector3.UP * FALL_SPREAD / size.y).normalized(), uvs, Color(0, 1, 0, FALL_SHEET),
-			Vector2(base.y + WATER_TOP, foot))
+			Vector2(base.y + lip, foot))
 		if wet:
 			_fall_foam(buf, faces, base + out + Vector3(0.0, -k, 0.0), out, spill)
-			_fall_spray(buf, base + out + Vector3(0.5, WATER_TOP - k, 0.5) + out * (FALL_SPREAD - 0.4), k,
+			_fall_spray(buf, base + out + Vector3(0.5, foot - base.y, 0.5) + out * (FALL_SPREAD - 0.4), k,
 				float((key & 4095) % 97))
 	return j
 
@@ -255,10 +258,11 @@ static func _diag_fall(buf, base: Vector3, q: int, filled: bool, k: int, wet: bo
 	for p in line:
 		# Along the axis of the side it lies on, outwards.
 		spread.append(Vector3(o.x, 0.0, 0.0) if p.x == 0.0 or p.x == 1.0 else Vector3(0.0, 0.0, o.y))
-	var high := base.y + WATER_TOP
+	var lip := water_top(int(base.y))
+	var high := base.y + lip
 	var tall := high - foot
-	var a := base + Vector3(line[0].x, WATER_TOP, line[0].y)
-	var b := base + Vector3(line[1].x, WATER_TOP, line[1].y)
+	var a := base + Vector3(line[0].x, lip, line[0].y)
+	var b := base + Vector3(line[1].x, lip, line[1].y)
 	var drop := Vector3(0.0, -tall, 0.0)
 	var pts := [a + out * 0.04, b + out * 0.04, b + drop + spread[1] * FALL_SPREAD, a + drop + spread[0] * FALL_SPREAD]
 	var uvs := [Vector2(0.0, 0.0), Vector2(1.0, 0.0), Vector2(1.0, tall), Vector2(0.0, tall)]
@@ -292,7 +296,7 @@ static func _fall_foam(buf, faces: Array, cell: Vector3, out: Vector3, spill: in
 	for corner: Vector3 in faces[FACE_TOP].corners:
 		var x := lerpf(lo.x, hi.x, corner.x)
 		var z := lerpf(lo.y, hi.y, corner.z)
-		pts.append(cell + Vector3(x, WATER_TOP + 0.02, z))
+		pts.append(cell + Vector3(x, water_top(int(cell.y)) + 0.02, z))
 		var a := x if out.x > 0.0 else (1.0 - x if out.x < 0.0 else (z if out.z > 0.0 else 1.0 - z))
 		uvs.append(Vector2(a, z if out.x != 0.0 else x))
 	buf.quad(pts, Vector3.UP, uvs, Color(0, 1, 0, FALL_FOAM), Vector2(far, float(spill >> 1)))
@@ -318,7 +322,7 @@ static func water_faces(buf, faces: Array, nb: PackedByteArray, base: Vector3, d
 		corners: PackedColorArray, cuts := 0) -> void:
 	if nb[0] != AIR and nb[1] != AIR and nb[2] != AIR and nb[4] != AIR and nb[5] != AIR:
 		return
-	var h := WATER_TOP if nb[2] == AIR else 1.0
+	var h := water_top(int(base.y)) if nb[2] == AIR else 1.0
 	var fills := foam >> 8 & 15
 	var data := Vector2(float(foam), float(depth))
 	var mid: Color = corners[0].lerp(corners[1], 0.5).lerp(corners[3].lerp(corners[2], 0.5), 0.5)
@@ -405,7 +409,7 @@ static func _ground_at(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteA
 ## the ground at each corner, from the ground of the four columns that meet there, so
 ## the water darkens smoothly over a sloping bed instead of cell by cell.
 static func water_corners(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz: int,
-		depth: int, murks: PackedFloat32Array, sea := false) -> PackedColorArray:
+		depth: int, murks: PackedFloat32Array, sea := false, top := WATER_TOP) -> PackedColorArray:
 	var out := PackedColorArray()
 	for k in 4:
 		var o: Vector2i = CORNER_DIRS[k]
@@ -418,7 +422,7 @@ static func water_corners(c: PackedByteArray, sh: PackedByteArray, cov: PackedBy
 			if not is_nan(g):
 				sum += g
 				count += 1
-		out.append(water_color(maxf(0.0, WATER_TOP - sum / count), 1.0, kind(false, murks[k]), sea))
+		out.append(water_color(maxf(0.0, top - sum / count), 1.0, kind(false, murks[k]), sea))
 	return out
 
 
@@ -477,6 +481,7 @@ static func shore(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz:
 static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: int,
 		base: Vector3, foam := 0) -> void:
 	var murks := murk_corners(w, c, i, dz, base)
+	var top := water_top(int(base.y))
 	var sea := sea_near(w, int(base.x), int(base.y), int(base.z))
 	var steps := Vector2i(Slopes.PATCH_STEPS, Slopes.PATCH_STEPS)
 	var hs: PackedFloat32Array = OldSlopes.patch_grid(OldSlopes.patch(c, sh, i, dy, dz), 0.0, steps)[0] \
@@ -488,8 +493,8 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 		var z := float(b) / steps.y
 		for a in nu:
 			var x := float(a) / steps.x
-			var under := WATER_TOP - hs[b * nu + a]
-			buf.verts.append(base + Vector3(x, WATER_TOP, z))
+			var under := top - hs[b * nu + a]
+			buf.verts.append(base + Vector3(x, top, z))
 			buf.normals.append(Vector3.UP)
 			buf.uvs.append(Vector2(x, z))
 			buf.uv2s.append(data)
@@ -507,7 +512,7 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 
 
 ## Surf: the sea washes up over the land whose top is level with it (the sea's level,
-## its water half a level under the land's top, see WATER_TOP) in a thin sheet with foam
+## where its water fills the cell, see water_top) in a thin sheet with foam
 ## at its front, up to SWASH_REACH cells from the waterline (water.gdshader draws the
 ## waves). The flat beaches of worlds with the setting shores 1 lie at that level.
 const SWASH_REACH := 5.0
@@ -629,7 +634,7 @@ static func swash(buf, sw: PackedFloat32Array, sw_w: int, c: PackedByteArray, sh
 			var x := float(a) / steps.x
 			# Corners NW, NE, SE, SW at (0, 0), (1, 0), (1, 1), (0, 1).
 			var far := lerpf(lerpf(corners[0], corners[1], x), lerpf(corners[3], corners[2], x), z)
-			buf.verts.append(base + Vector3(x, maxf(hs[b * nu + a], WATER_TOP) + SWASH_LIFT, z))
+			buf.verts.append(base + Vector3(x, maxf(hs[b * nu + a], water_top(int(base.y))) + SWASH_LIFT, z))
 			buf.normals.append(Vector3.UP)
 			buf.uvs.append(Vector2(x, z))
 			buf.uv2s.append(Vector2.ZERO)

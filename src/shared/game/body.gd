@@ -704,7 +704,7 @@ func _water_surface(p: Vector3) -> float:
 		return -INF
 	while world.get_cell(x, y + 1, z) == Mat.WATER:
 		y += 1
-	return y + (WorldData.WATER_TOP if world.get_cell(x, y + 1, z) == Mat.AIR else 1.0)
+	return y + (world.water_top(y) if world.get_cell(x, y + 1, z) == Mat.AIR else 1.0)
 
 
 ## True if the body with its feet at `at` (world units) stands on something: a hair

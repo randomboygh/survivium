@@ -377,6 +377,11 @@ const SHOTS := {
 		"frames_every": 12, "frames_ms": 600},
 	"shore-flat-turn": {"time": 0.42, "season": 1, "place": "beach", "turn": 2, "hide": ["chunks: grass"]},
 	"shore-flat-tropic": {"time": 0.42, "season": 1, "place": "tropical_beach", "hide": ["chunks: grass"]},
+	# The test world's beach: the flat sand at the sea's level, flush with the sea, the surf
+	# over it (thread «Сделать воду вровень с песком»); -edge: where the old beach met the sea.
+	"ground-beach-flat": {"time": 0.42, "season": 1, "at": [-150, 112], "hide": ["chunks: grass"]},
+	"ground-beach-flat-turn": {"time": 0.42, "season": 1, "at": [-150, 112], "turn": 2, "hide": ["chunks: grass"]},
+	"ground-beach-edge": {"time": 0.42, "season": 1, "at": [-138, 112], "hide": ["chunks: grass"]},
 	"shore-flat-far": {"time": 0.42, "season": 1, "place": "beach", "settings": {"pixel_scale": 1}, "hide": ["chunks: grass"]},
 	# The tallest slope turned to the camera by a beach: its patterns a pixel a texel,
 	# each level shaded toward its foot (see world.gdshader, `gp`).

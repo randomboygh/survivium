@@ -163,7 +163,7 @@ func water_top(x: int, z: int, y := 1 << 20) -> float:
 	var top: int = w.top_level(bits)
 	if w.get_cell(x, top + 1, z) != Mat.AIR:
 		return -INF
-	return (top + WorldData.WATER_TOP) * CELL
+	return (top + w.water_top(top)) * CELL
 
 
 ## Rings spreading from world point `at` on the water's surface (its height is found),
