@@ -56,7 +56,7 @@ KINDS = {
 def kind(tag: str) -> str:
     tag = (tag or "").strip().lower()
     if tag and tag not in KINDS:
-        print("unknown kind [%s], shown as new" % tag)
+        print("unknown kind [%s], shown as new" % tag, file=sys.stderr)  # not stdout: release_notes.py pipes that into GITHUB_OUTPUT
     return KINDS.get(tag, "new")
 
 
