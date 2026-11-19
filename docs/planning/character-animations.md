@@ -72,5 +72,5 @@ aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e,
   hand turned by `a`. Drawn whole like the swim, `pose` still takes the hand and the axe from `WORKS`, so
   its `r` has to be where the drawn hand is; the held pictures are regenerated with the player's.
 - To see the axe: `dump.gd` in the library (copy into `tools/`, run with
-  `-- <dir> axe=tools/axe/sprites/held/axe.png:chop`, delete) saves the dressed sheet with the axe held;
+  `-- <dir> axe=<the axe's held picture under content/>:chop`, e.g. `content/tools/axe/sprites/held/axe.png` without `content/`, delete) saves the dressed sheet with the axe held;
   it reads the imported PNGs, so after a code change run `make_sprites.gd -- --all` and `--import` first.
