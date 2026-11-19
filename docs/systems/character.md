@@ -221,6 +221,10 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   feet on the frame's bottom row. A foot lifted has no outline under it either: `player.yaml` `soles` gives,
   by direction, the frame's bottom rows where `SpriteSheet.outline_rect` outlines nothing from above, in
   the walk's frames only (`Figure._put_row`): in the others a hand hanging low keeps its outline under it.
+  The jump's two frames are drawn whole under the head the same way (`tools/art/player_jump_art.gd`,
+  2026-11-19, after the user's note that an arm moves from its shoulder): rising, the shoulders go a row
+  up with the arms and the legs are drawn up; falling, the arms go out to the sides (from the side
+  forward) and the legs are straight. `PlayerArt.whole_frame` gives a column's frame drawn so.
 - Looks (stage 3, PR 3 of the character editor): `src/shared/content/looks.gd` reads `player.yaml` `looks`
   (10 skin tones, 12 hair colours, 6 eye colours by place in their lists; 10 hair styles, 8 face options
   under the hair, 5 on the face, by id) and makes any look sound (`Looks.clean`: the server's check of a
