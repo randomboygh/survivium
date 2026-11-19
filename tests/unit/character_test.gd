@@ -1032,7 +1032,7 @@ func _test_calm() -> void:
 ## save from before the looks has none (the server gives the player's then).
 func _test_looks() -> void:
 	var ch := Survivor.new()
-	ch.looks = {"skin": 6, "hair": "braids", "hair_colour": 4, "eyes": 2, "face": "scar", "on_face": ""}
+	ch.looks = {"build": "stocky", "figure": "curvy", "skin": 6, "hair": "braids", "hair_colour": 4, "eyes": 2, "face": "scar", "on_face": ""}
 	var copy := Survivor.new()
 	copy.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
 	_check(copy.looks == ch.looks, "the looks come back from the save: %s" % [copy.looks])

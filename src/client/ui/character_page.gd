@@ -5,8 +5,8 @@ extends BoxContainer
 ## or a tap) beside its rows in landscape (`vertical` false) or over them upright, the
 ## rows `rows_width` wide (inset as the settings' rows unless the window's page is). The rows: the name the character goes by (ServerList's
 ## player name, kept as it is typed; on a server the others see it), then the looks
-## (Looks: the hair style and colour, the skin, the eyes, the face and what is worn on
-## it), «name ‹ value ›» rows of the kit (ChoiceRows) that show on the figure at once and
+## (Looks: the body's build and figure, the hair style and colour, the skin, the eyes,
+## the face and what is worn on it), «name ‹ value ›» rows of the kit (ChoiceRows) that show on the figure at once and
 ## are kept on the device as the name is (ServerList.player_looks). A new character
 ## takes them; one met again in its world keeps its own.
 
@@ -60,6 +60,8 @@ func _init(rows_width: float, inset := true) -> void:
 	looks = Looks.clean(ServerList.player_looks())
 	choices = ChoiceRows.new(NAME_WIDTH, maxf(rows_width - NAME_WIDTH - 2 * Kit.SQUARE - 6, 60.0))
 	rows.add_child(Kit.gap(4))
+	_style_row("[body_build]", "build")
+	_style_row("[body_figure]", "figure")
 	_style_row("[hairstyle]", "hair")
 	_colour_row("[hair_colour]", "hair_colour")
 	_colour_row("[skin]", "skin")
@@ -70,7 +72,8 @@ func _init(rows_width: float, inset := true) -> void:
 	_show_looks()
 
 
-## A row of the styles of Looks field `field` (hair, face, on_face), by their names.
+## A row of the options of Looks field `field` (build, figure, hair, face, on_face), by
+## their names.
 func _style_row(title: String, field: String) -> void:
 	var ids := Looks.ids(field)
 	var styles: Dictionary = Looks.data().get(field, {})

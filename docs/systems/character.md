@@ -228,6 +228,17 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   blush and scar made of them, `Figure.MADE`). No other picture of the figure, the clothes or the tools held
   may use those colours (`view_test`). The sheet is not recoloured on the CPU: 475 thousand pixels a layer
   take seconds on a phone. The «Персонаж» tab (`character_page.gd`) has a row for each.
+- Body forms (PR 3b; no sex is picked, every form is for everyone): the looks' `build` (thin: arms a pixel
+  wide; normal; stocky: the torso two pixels wider, the arms and the hanging hands a pixel further out) and
+  `figure` (straight; bust: the shade `V` under it from the front, two pixels forward from the side; curvy:
+  the bust and the thighs a pixel wider, the seat a pixel back). `tools/art/player_forms_art.gd` says what
+  each draws otherwise; `make_sprites.gd` draws every layer, the hands' marks and the clothes again in each
+  form and keeps a picture only where it differs from what the game takes instead:
+  `player/forms/<build>_<figure>/<layer>.png`, else the build straight's, else the plain `player/<layer>.png`
+  (`Figure._form_path`); clothes `worn/<look>/<build>_<figure>.png`, else `worn/<look>.png` (a mod's clothes
+  drawn once fit every form roughly). `Figure.dressed(gear, looks)` names the form's layers
+  `forms/<form>/<layer>`; a figure takes its form from them (`Figure.form_of`) for the fists and the hands'
+  places (`Figure.anchors(form)`), so tools are held where its hands are.
 - `src/client/ui/person_panel.gd` — the character in the inventory window (the slots of what is worn and of
   the hands, cells, the skills' strips); `src/client/ui/level_up.gd` — the effect of a skill's new level;
   `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — the death screen,

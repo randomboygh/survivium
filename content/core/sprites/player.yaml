@@ -127,7 +127,9 @@ held:
   grip: [12, 12]
   icon: 5
 # looks — what a player picks for their character (src/shared/content/looks.gd; a character keeps its
-# looks in the world it lives in): the skin, the hair style and its colour, the eyes, what grows or is
+# looks in the world it lives in): the body's build and figure (player/forms/<build>_<figure>/<layer>.png
+# and worn/<look>/<build>_<figure>.png of clothes, else those of the build straight, else the plain
+# normal straight ones), the skin, the hair style and its colour, the eyes, what grows or is
 # painted on the face (face, under the hair) and what is worn on it (on_face, over the hair). Colours go
 # by their place in a list, styles by id: player/hair/<id>.png (none for one with no picture: bald),
 # player/face/<id>.png. The pictures are drawn in the colours of `default`; the game swaps them for the
@@ -166,6 +168,14 @@ looks:
     - {name: "[eyes_green]", colour: "2e8a3e"}
     - {name: "[eyes_blue]", colour: "2a64b8"}
     - {name: "[eyes_grey]", colour: "7a8a9a"}
+  build:
+    thin: "[build_thin]"
+    normal: "[build_normal]"
+    stocky: "[build_stocky]"
+  figure:
+    straight: "[figure_straight]"
+    bust: "[figure_bust]"
+    curvy: "[figure_curvy]"
   hair:
     bald: "[hair_bald]"
     buzz: "[hair_buzz]"
@@ -192,4 +202,4 @@ looks:
     eye_patch: "[face_eye_patch]"
     earrings: "[face_earrings]"
     nose_ring: "[face_nose_ring]"
-  default: {skin: 2, hair: short, hair_colour: 2, eyes: 0}
+  default: {build: normal, figure: straight, skin: 2, hair: short, hair_colour: 2, eyes: 0}

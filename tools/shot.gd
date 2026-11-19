@@ -1523,20 +1523,22 @@ func _fake_team(main: Node, what: String) -> void:
 	var people := []
 	if what == "looks":
 		# Six others in a row before the player, each in looks of their own (PEOPLE field
-		# 18), and the player bald and bearded in dark glasses.
+		# 18) and body forms, and the player stocky, bald and bearded in dark glasses.
 		var looks := [
-			{"skin": 0, "hair": "long", "hair_colour": 6, "eyes": 4, "face": "freckles"},
-			{"skin": 4, "hair": "bun", "hair_colour": 0, "eyes": 1, "on_face": "earrings"},
-			{"skin": 8, "hair": "curls", "hair_colour": 0, "eyes": 0, "face": "beard"},
-			{"skin": 6, "hair": "braids", "hair_colour": 5, "eyes": 3, "face": "war_paint"},
-			{"skin": 1, "hair": "mohawk", "hair_colour": 11, "eyes": 2, "on_face": "glasses"},
-			{"skin": 9, "hair": "ponytail", "hair_colour": 8, "eyes": 5, "face": "scar"},
+			{"build": "thin", "figure": "curvy", "skin": 0, "hair": "long", "hair_colour": 6, "eyes": 4, "face": "freckles"},
+			{"build": "stocky", "figure": "bust", "skin": 4, "hair": "bun", "hair_colour": 0, "eyes": 1, "on_face": "earrings"},
+			{"build": "stocky", "skin": 8, "hair": "curls", "hair_colour": 0, "eyes": 0, "face": "beard"},
+			{"figure": "curvy", "skin": 6, "hair": "braids", "hair_colour": 5, "eyes": 3, "face": "war_paint"},
+			{"build": "thin", "skin": 1, "hair": "mohawk", "hair_colour": 11, "eyes": 2, "on_face": "glasses"},
+			{"figure": "bust", "skin": 9, "hair": "ponytail", "hair_colour": 8, "eyes": 5, "face": "scar"},
 		]
+		# Two in clothes drawn for their forms.
+		var gear := [{}, {"body": "tools:grass_cape"}, {"legs": "tools:leg_wraps", "body": "tools:grass_cape"}, {}, {}, {"body": "tools:grass_cape", "legs": "tools:leg_wraps"}]
 		for i in looks.size():
 			var pos: Vector3 = at + Vector3((i - 2.5) * 1.5, 0.0, 2.5)
 			people.append([10 + i, "", pos, Vector2i(0, 1), ["", ""], 0, false, false, true, "", 0.0, 0, Vector3.INF,
-				{}, false, Vector3.INF, "", "", looks[i]])
-		var mine := {"skin": 5, "hair": "bald", "hair_colour": 1, "eyes": 1, "face": "long_beard", "on_face": "dark_glasses"}
+				gear[i], false, Vector3.INF, "", "", looks[i]])
+		var mine := {"build": "stocky", "skin": 5, "hair": "bald", "hair_colour": 1, "eyes": 1, "face": "long_beard", "on_face": "dark_glasses"}
 		main.host.player.looks = mine
 		main.character.looks = mine
 		main.others.take_people(people)
