@@ -392,10 +392,11 @@ static func slot(selected := false) -> StyleBoxTexture:
 	return _nine_patch(12, 4, "slot", WELL, ACCENT if selected else EDGE, Vector4.ZERO)
 
 
-## The frame of the character drawn big (the «Персонаж» tab): a slot, lighter inside, so
-## the figure's dark outline stands out.
+## The frame of the character drawn big (the «Персонаж» tabs): a window's frame (panel:
+## the dark outline, the lighter band inside it, alike on every side), lighter inside so
+## the figure's dark outline stands out; the figure and its arrows stay within the frame.
 static func stage() -> StyleBoxTexture:
-	return _nine_patch(12, 4, "slot", STAGE, EDGE, Vector4.ZERO)
+	return _nine_patch(12, 4, "panel", STAGE, EDGE, Vector4(4, 4, 4, 4))
 
 
 ## The sunken well around a block of text (a slot's frame with WELL_PAD inside), made

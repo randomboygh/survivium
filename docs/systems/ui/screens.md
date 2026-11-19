@@ -69,9 +69,10 @@ Part of [Interface and settings](../ui.md). Files of the screens before the game
   breathing, in the colours of the looks by `figure_preview.gdshader`, on a round stand that swings round with it
   (a lit mark at its front) with its short shadow to the north-west (`FigurePreview._shadow`: the standing
   frame's pixels slanted, in the stand's pixels, only on its top), holding what `hold` gives (the hands of
-  `Player.held`; the tab «Character» of the inventory window) in a lighter frame (`UiStyle.stage`); a drag or a tap on a side turns it through
-  eight directions, the keys left and right too while no row is picked) beside or over its rows: the name
-  (`ServerList.player_name`, kept as typed), then the looks (`Looks`, `ChoiceRows`: hair style, hair colour,
+  `Player.held`; the tab «Character» of the inventory window) in a lighter frame drawn like a window's
+  (`UiStyle.stage`: the dark outline, then the lighter band, alike on every side, the figure within it); a drag
+  or a tap on a side turns it through eight directions, the keys left and right too while no row is picked)
+  beside or over its rows: the name (`ServerList.player_name`, kept as typed), then the looks (`Looks`, `ChoiceRows`: hair style, hair colour,
   skin, eyes, face, on the face; kept on the device, `ServerList.player_looks`; up and down pick a row,
   `CharacterPage.key`). A new character takes them, one met again keeps its own. Shots `ui-setup-character`,
   `ui-setup-looks`, and the looks in the world `people-looks`.

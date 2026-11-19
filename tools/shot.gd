@@ -932,8 +932,13 @@ func _run() -> void:
 					main.hud.bag._tap_person(shot.person)
 				# The figure turned so many eighths (FigurePreview.turn).
 				main.hud.bag.person.preview.turn(shot.get("person_turn", 0))
-				# The figure's sheet is built over a few frames.
-				for i in 20:
+				# The figure's sheet is built over a few frames (more with things in its hands).
+				var waited := 0
+				while main.hud.bag.person.preview._build != null and waited < 600:
+					await process_frame
+					waited += 1
+				print("person sheet built in %d frames" % waited)
+				for i in 5:
 					await process_frame
 		if shot.get("openings", "") == "storage":
 			# The storage by the player, a few things in each, their strips in the bag's list.
