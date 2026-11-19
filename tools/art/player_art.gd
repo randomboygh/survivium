@@ -263,8 +263,8 @@ const ARMS := {
 		"left": {"out": 1, "skin": ["s", "s"]},
 	},
 	"n": {
-		"right": {"out": 1, "skin": ["S", "s"], "hand": ["s", "s"]},
-		"left": {"out": -1, "skin": ["S", "s"], "hand": ["s", "s"]},
+		"right": {"out": 1, "skin": ["S", "S"], "hand": ["s", "s"]},
+		"left": {"out": -1, "skin": ["S", "S"], "hand": ["s", "s"]},
 	},
 }
 ## The hands when they do not work, by view and animation, a frame each: [right hand,
