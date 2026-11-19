@@ -1,7 +1,8 @@
 extends Control
 ## The character drawn big (the «Персонаж» tab of «Новая игра», «Создать сервер» and
 ## «Присоединиться», CharacterPage): the figure's sheet (Figure) in look `look`
-## (Figure.dressed), breathing (its `idle` frames), `pixels` screen pixels a pixel of it.
+## (Figure.dressed) in the colours of the looks picked (paint), breathing (its `idle`
+## frames), `pixels` screen pixels a pixel of it.
 ## A finger or the mouse dragged across turns it through the eight directions (a step
 ## each TURN_DRAG pixels, the front following the finger); a tap on its left or right
 ## half turns it a step that way; `turn` does it from keys. The sheet is built a few parts of
@@ -9,6 +10,7 @@ extends Control
 
 const Figure := preload("res://src/client/view/figure.gd")
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
+const PreviewShader := preload("res://shaders/figure_preview.gdshader")
 
 ## Pixels of drag that turn it a step.
 const TURN_DRAG := 24.0
@@ -42,8 +44,19 @@ func _init(worn := [], scale_px := 4) -> void:
 
 ## Shows the figure in look `worn`: the sheet is built anew over the next frames.
 func dress(worn: Array) -> void:
+	if worn == look and (sheet != null or _build != null):
+		return
 	look = worn
 	_build = Figure.new(look, {})
+
+
+## Shows the colours of the character's looks `looks` (Looks, Figure.paint): swapped by
+## its shader, the sheet stays.
+func paint(looks: Dictionary) -> void:
+	if material == null:
+		material = ShaderMaterial.new()
+		material.shader = PreviewShader
+	Figure.paint(material, looks)
 
 
 ## The direction it faces (SpriteSheet.COMPASS).

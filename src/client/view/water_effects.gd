@@ -425,6 +425,15 @@ func _glints(sky) -> void:
 		mat.set_shader_parameter("glint_toward", toward)
 
 
+## A player's looks' colours (Figure.paint) from their figure's material to its mirror.
+static func _copy_looks(from: ShaderMaterial, to: ShaderMaterial) -> void:
+	var n = from.get_shader_parameter("swap_count")
+	to.set_shader_parameter("swap_count", n if n != null else 0)
+	if n != null and n > 0:
+		to.set_shader_parameter("swap_from", from.get_shader_parameter("swap_from"))
+		to.set_shader_parameter("swap_to", from.get_shader_parameter("swap_to"))
+
+
 ## The MIRRORS figures nearest the view standing by the water are mirrored in it: the
 ## player, the other players and the beasts but the birds in the air and the fish.
 func _mirror(delta: float, sky) -> void:
@@ -474,9 +483,13 @@ func _mirror(delta: float, sky) -> void:
 			mat.set_shader_parameter("frame_uv", from.get_shader_parameter("frame_uv"))
 			var tint = from.get_shader_parameter("tint")
 			mat.set_shader_parameter("tint", tint if tint != null else Vector3.ONE)
+			_copy_looks(from, mat)
 		elif from != null:
-			# The player's own material changes its frame in place.
+			# The player's own material changes its frame in place, and its looks' colours.
 			mat.set_shader_parameter("frame_uv", from.get_shader_parameter("frame_uv"))
+			if from.get_shader_parameter("swap_count") != mat.get_shader_parameter("swap_count") \
+					or from.get_shader_parameter("swap_to") != mat.get_shader_parameter("swap_to"):
+				_copy_looks(from, mat)
 		mat.set_shader_parameter("level", level_y)
 		mat.set_shader_parameter("light", light)
 		var p: Vector3 = sprite.global_position

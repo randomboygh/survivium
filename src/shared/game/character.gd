@@ -23,6 +23,7 @@ const Quality := preload("res://src/shared/game/quality.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
+const Looks := preload("res://src/shared/content/looks.gd")
 
 const CELL := WorldData.CELL
 ## A message for the same reason is not repeated sooner than this, in seconds.
@@ -213,6 +214,9 @@ var riding := ""
 ## The gesture being made (Gestures.LIST name, "" none) and until when (seconds, Gestures.make).
 var gesture := ""
 var gesture_until := 0.0
+## How the character looks (Looks: the skin, hair, eyes, face), {} until one is given:
+## then the default's. Kept in the save, so it belongs to the world.
+var looks := {}
 var vessel := 0
 var seat := 0
 ## The current of the river where the body is (Currents), in cells a second: set on
@@ -1017,7 +1021,8 @@ func to_dict() -> Dictionary:
 		"best_days": best_days, "sacks": sacks.map(func(p: Vector3) -> Array: return [p.x, p.y, p.z]),
 		"sack_ends": Array(sack_ends).map(func(t: float) -> Variant: return t if is_finite(t) else null),
 		"fell_at": [fell_at.x, fell_at.y, fell_at.z] if fell_at.is_finite() else null,
-		"burning": burning.duplicate(true), "riding": riding, "vessel": vessel, "seat": seat}
+		"burning": burning.duplicate(true), "riding": riding, "vessel": vessel, "seat": seat,
+		"looks": looks.duplicate()}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -1034,6 +1039,7 @@ func from_dict(d: Dictionary) -> void:
 			var id := Items.canon(str(k))
 			if Items.has(id) and lit[k] is Array:
 				burning[Items.get_item(id).id] = Array(lit[k]).map(func(t: Variant) -> float: return float(t))
+	looks = Looks.clean(d.looks) if d.get("looks") is Dictionary and not d.looks.is_empty() else {}
 	riding = str(d.get("riding", ""))
 	if riding != "":
 		riding = Items.canon(riding)

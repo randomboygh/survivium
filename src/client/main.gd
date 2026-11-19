@@ -473,6 +473,7 @@ func start_world() -> void:
 	freeze_log.watch()
 	_build_scene()
 	save.restore_player()
+	host.take_looks()
 	settings.apply()
 	# The server learns where the body is, so the session makes the world around it
 	# behind the loading screen (Session.zones); the copies get the clock, the bag and the

@@ -53,10 +53,11 @@ func open(address: String) -> Error:
 
 ## The first request: who the player is (Protocol.HELLO); the welcome or the refusal
 ## comes as the reply. `mods` names the mods' files the game plays with (its own or a
-## server's, Content.playing, when not given).
-func hello(name: String, key := "", password := "", mods := ""):
+## server's, Content.playing, when not given); `looks` the looks a new character takes
+## (Looks).
+func hello(name: String, key := "", password := "", mods := "", looks := {}):
 	return net.request(Protocol.HELLO, [Protocol.VERSION, Protocol.build_version(), name, key, password,
-		mods if mods != "" else Content.playing()])
+		mods if mods != "" else Content.playing(), looks])
 
 
 ## Takes what came in and sends what waited; call every frame.

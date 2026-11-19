@@ -25,6 +25,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Mods := preload("res://src/shared/content/mods.gd")
 const Content := preload("res://src/shared/content/content.gd")
+const Looks := preload("res://src/shared/content/looks.gd")
 const ContentHost := preload("res://src/server/content_host.gd")
 const ModFiles := preload("res://src/shared/content/mod_files.gd")
 const ModZip := preload("res://src/shared/content/mod_zip.gd")
@@ -904,6 +905,8 @@ func add_bot(name: String) -> Account:
 	a.link.requests.paced = true
 	a.link.requests.chatted.connect(_on_chat.bind(a.key))
 	a.link.requests.team_chatted.connect(_on_team_chat.bind(a.key))
+	# Bots look each their own, so a crowd of them is told apart.
+	a.link.who.looks = Looks.random(RandomNumberGenerator.new())
 	a.link.who.start_bag()
 	a.link.who.teleport(world_info.spawn)
 	a.link.who.find_home(session.placed)
@@ -1004,6 +1007,10 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 			a.link.who.teleport(world_info.spawn)
 		else:
 			ServerStore.restore(a.link, record)
+		# The looks the player comes with go to a new character (or one saved before
+		# there were looks); one met again keeps its own.
+		if a.link.who.looks.is_empty():
+			a.link.who.looks = Looks.clean(args[6] if args.size() == 7 else {})
 		a.link.who.find_home(session.placed)
 		session.teams.seen(a.id, a.name)
 		accounts[a.key] = a
@@ -1033,8 +1040,9 @@ func _hello(peer: Peer, bytes: PackedByteArray) -> void:
 
 ## Why the HELLO with `args` from `address` is refused, "" when it is not.
 func _refusal(args: Array, address := "") -> String:
-	if args.size() != 6 or not args[0] is int or not args[1] is String or not args[2] is String \
-			or not args[3] is String or not args[4] is String or args[3].length() > 64 or not args[5] is String:
+	if not args.size() in [6, 7] or not args[0] is int or not args[1] is String or not args[2] is String \
+			or not args[3] is String or not args[4] is String or args[3].length() > 64 or not args[5] is String \
+			or args.size() == 7 and not args[6] is Dictionary:
 		return Protocol.WHY_VERSION
 	if args[0] != Protocol.VERSION or args[1] != Protocol.build_version():
 		return Protocol.WHY_VERSION

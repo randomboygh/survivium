@@ -4,20 +4,34 @@ extends BoxContainer
 ## always belongs to its world): the figure drawn big (FigurePreview, turned by a drag
 ## or a tap) beside its rows in landscape (`vertical` false) or over them upright, the
 ## rows `rows_width` wide (inset as the settings' rows unless the window's page is). The rows: the name the character goes by (ServerList's
-## player name, kept as it is typed; on a server the others see it). The looks to choose
-## (the build, the hair, the colours) come as rows under it.
+## player name, kept as it is typed; on a server the others see it), then the looks
+## (Looks: the hair style and colour, the skin, the eyes, the face and what is worn on
+## it), «name ‹ value ›» rows of the kit (ChoiceRows) that show on the figure at once and
+## are kept on the device as the name is (ServerList.player_looks). A new character
+## takes them; one met again in its world keeps its own.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Kit := preload("res://src/client/ui/kit/kit.gd")
 const FigurePreview := preload("res://src/client/ui/figure_preview.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
+const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
+const Looks := preload("res://src/shared/content/looks.gd")
+const Figure := preload("res://src/client/view/figure.gd")
+
+## The width of the looks rows' names.
+const NAME_WIDTH := 96.0
 
 signal name_changed(name: String)
+## A look was picked (Looks).
+signal looks_changed(looks: Dictionary)
 
 var preview: FigurePreview
 ## The column of rows; a window adds its own under the name.
 var rows: VBoxContainer
 var name_field: LineEdit
+## The looks picked (Looks.clean) and their rows (`key` steps them).
+var looks := {}
+var choices: ChoiceRows
 
 
 func _init(rows_width: float, inset := true) -> void:
@@ -43,6 +57,67 @@ func _init(rows_width: float, inset := true) -> void:
 		name_changed.emit(t.strip_edges()))
 	name_field.text_submitted.connect(func(_t: String) -> void: name_field.release_focus())
 	rows.add_child(name_field)
+	looks = Looks.clean(ServerList.player_looks())
+	choices = ChoiceRows.new(NAME_WIDTH, maxf(rows_width - NAME_WIDTH - 2 * Kit.SQUARE - 6, 60.0))
+	rows.add_child(Kit.gap(4))
+	_style_row("[hairstyle]", "hair")
+	_colour_row("[hair_colour]", "hair_colour")
+	_colour_row("[skin]", "skin")
+	_colour_row("[eyes]", "eyes")
+	_style_row("[face]", "face")
+	_style_row("[on_face]", "on_face")
+	choices.refresh()
+	_show_looks()
+
+
+## A row of the styles of Looks field `field` (hair, face, on_face), by their names.
+func _style_row(title: String, field: String) -> void:
+	var ids := Looks.ids(field)
+	var styles: Dictionary = Looks.data().get(field, {})
+	var names := ids.map(func(id: String) -> String: return str(styles.get(id, "[look_none]")) if id != "" else "[look_none]")
+	choices.add(rows, title, names, func() -> int: return ids.find(looks[field]), _pick.bind(field, ids))
+
+
+## A row of the colours of Looks field `field` (skin, hair_colour, eyes): their names,
+## or their numbers where they have none (the skin).
+func _colour_row(title: String, field: String) -> void:
+	var all: Array = Looks.data().get(field, [])
+	var names := []
+	for i in all.size():
+		names.append(str(all[i].get("name", i + 1)) if all[i] is Dictionary else str(i + 1))
+	choices.add(rows, title, names, func() -> int: return looks[field], _pick.bind(field, []))
+
+
+## Row `field` stepped to its option `i` (of `ids` for a style, a place for a colour).
+func _pick(i: int, field: String, ids: Array) -> void:
+	looks[field] = ids[i] if not ids.is_empty() else i
+	looks = Looks.clean(looks)
+	ServerList.set_player_looks(looks)
+	_show_looks()
+	looks_changed.emit(looks)
+
+
+## The figure in the looks picked.
+func _show_looks() -> void:
+	preview.dress(Figure.dressed({}, looks))
+	preview.paint(looks)
+
+
+## Up and down pick a looks row, left and right change it; with none picked left and
+## right turn the figure. Whether `event` was taken.
+func key(event: InputEvent) -> bool:
+	if not (event is InputEventKey and event.pressed) or name_field.has_focus():
+		return false
+	if choices.focus < 0 and event.physical_keycode in [KEY_LEFT, KEY_RIGHT]:
+		preview.turn(1 if event.physical_keycode == KEY_RIGHT else -1)
+		return true
+	if choices.focus == 0 and event.physical_keycode in [KEY_UP, KEY_W]:
+		# Above the first row: left and right turn the figure again.
+		choices.focus = -1
+		for r in choices.rows:
+			r.name.add_theme_color_override("font_color", UiStyle.INK)
+		return true
+	return choices.key(event)
 
 
 ## The name typed, its spaces at the ends gone ("" when none).

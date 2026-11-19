@@ -9,6 +9,7 @@ render_mode world_vertex_coords, cull_disabled;
 stencil_mode write, compare_always, 1;
 
 #include "res://shaders/common.gdshaderinc"
+#include "res://shaders/looks.gdshaderinc"
 
 uniform sampler2D sprite_texture : filter_nearest SRGB_HINT;
 // The frame of a sprite sheet to show, as a UV offset and size; a negative width
@@ -105,7 +106,7 @@ void fragment() {
 	}
 	vec2 uv = shown.xy + at * shown.zw;
 	vec4 c = texture(sprite_texture, uv);
-	c.rgb *= tint;
+	c.rgb = looks_swap(c.rgb) * tint;
 	// The player stays whole whatever level is cut; everyone else goes with their level.
 	bool me = length(world_pos.xz - player_pos.xz) < 0.7 && abs(world_pos.y - player_pos.y) < 1.5;
 	// The whole body casts its shadow, under the water too, so the shadow on the bed

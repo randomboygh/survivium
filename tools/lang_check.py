@@ -190,6 +190,14 @@ def content_phrases():
                 owner = rel_base
             elif os.path.basename(base) == "data":
                 owner = os.path.dirname(rel_base)
+            elif rel_base == os.path.join("core", "sprites") and f == "player.yaml":
+                # The names of the looks to pick (Looks): every quoted key in the file.
+                with open(path, encoding="utf-8") as fh:
+                    for n, raw in enumerate(fh, 1):
+                        for lit in LITERAL.findall(raw):
+                            if KEY.match(lit):
+                                out.setdefault("core", {}).setdefault(lit, "%s:%d" % (os.path.relpath(path, ROOT), n))
+                continue
             else:
                 continue
             with open(path, encoding="utf-8") as fh:

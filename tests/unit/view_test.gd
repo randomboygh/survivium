@@ -18,6 +18,7 @@ const GlowLights := preload("res://src/client/view/glow_lights.gd")
 const WindowGlow := preload("res://src/client/view/window_glow.gd")
 const SunRays := preload("res://src/client/view/sun_rays.gd")
 const Trample := preload("res://src/client/world/trample.gd")
+const Looks := preload("res://src/shared/content/looks.gd")
 
 
 ## Ground all of one material (or all sea), for AirEffects.hot_ground.
@@ -227,6 +228,7 @@ func _test_sprite_sheet() -> void:
 	var coat := Figure.sheet(furs).texture.get_image()
 	var bare := Figure.sheet(naked).texture.get_image()
 	_check(coat.get_pixel(fw / 2, fh - 5) != bare.get_pixel(fw / 2, fh - 5), "the coat shows on the body")
+	_test_looks()
 	# The bare figure knows where its hands are; the one in use moves in the works.
 	var anchors: Array = Figure.anchors()
 	var works: Dictionary = Figure.data().works
@@ -324,6 +326,63 @@ func _test_sprite_sheet() -> void:
 	p._animate(Vector2.ZERO, 0.0, 0.1)
 	_check(p.anim == "swim", "in deep water the body swims")
 	p.free()
+
+
+## The looks picked (Looks): their layers in the hair slot, their colours swapped by the
+## shader (Figure.swaps), never found in the clothes or the things held.
+func _test_looks() -> void:
+	var looks := {"skin": 7, "hair": "mohawk", "hair_colour": 9, "eyes": 3, "face": "beard", "on_face": "glasses"}
+	_check(Figure.dressed({}, looks) == ["body", "loincloth", "face/beard", "hair/mohawk", "face/glasses"]
+		and Figure.dressed({"head": "tools:fur_hat"}, {"hair": "bald"})[-1].ends_with("worn/fur_hat.png")
+		and not Figure.dressed({}, {"hair": "bald"}).any(func(l: String) -> bool: return l.begins_with("hair")),
+		"the looks' layers go in the hair slot, the face under and over the hair, a hat over all; bald has none")
+	_check(Figure.swaps({})[0].is_empty() and Figure.swaps(Looks.default_look())[0].is_empty(), "the default look swaps nothing")
+	var s := Figure.swaps(looks)
+	_check(s[0].size() == s[1].size() and s[0].size() >= 7 and s[0].size() <= Figure.SWAPS_MAX, "a look swaps its colours: %d" % s[0].size())
+	# Every colour swapped is in the looks' pictures (the face's made ones too), and in no
+	# other: the clothes and the tools' sheets keep theirs.
+	var keys := {}
+	for c: Vector3 in Figure._colours(Looks.default_look()):
+		keys[Color8(int(c.x), int(c.y), int(c.z))] = true
+	var found := {}
+	var paths: Array = ["body"]
+	for id in Looks.ids("hair") + Looks.ids("face").slice(1) + Looks.ids("on_face").slice(1):
+		paths.append(("hair/" if Looks.data().hair.has(id) else "face/") + id)
+	for name: String in paths:
+		var path := "%s/player/%s.png" % [Figure.SPRITES, name]
+		if Content.exists(path):
+			_colours_in(Content.picture(path), keys, found)
+	_check(found.size() == keys.size(), "each colour swapped is drawn somewhere: %d of %d" % [found.size(), keys.size()])
+	var stray := {}
+	var others: Array = []
+	for name in ["loincloth", "shirt", "trousers", "boots"]:
+		others.append("%s/player/%s.png" % [Figure.SPRITES, name])
+	for item in Items.BY_ID.values():
+		if item.get("look", "") != "":
+			others.append(Content.asset(item, "sprites/worn/%s.png" % item.look))
+		if item.get("sprite", "") != "":
+			others.append(Content.asset(item, "sprites/held/%s.png" % item.sprite))
+	for path: String in others:
+		if Content.exists(path):
+			var before := stray.size()
+			_colours_in(Content.picture(path), keys, stray)
+			if stray.size() > before:
+				_check(false, "%s has a colour of the looks, which the shader would swap" % path)
+
+
+## Adds to `found` the colours of `keys` that `img` has in its first COLOURS_SEEN
+## pixels across (the stand, the walk: every part of the figure shows there; the whole
+## of a sheet is too slow to read here).
+const COLOURS_SEEN := 160
+func _colours_in(img: Image, keys: Dictionary, found: Dictionary) -> void:
+	img = img.get_region(Rect2i(0, 0, mini(img.get_width(), COLOURS_SEEN), img.get_height()))
+	img.convert(Image.FORMAT_RGBA8)
+	var data := img.get_data()
+	for i in range(0, data.size(), 4):
+		if data[i + 3] > 0:
+			var c := Color8(data[i], data[i + 1], data[i + 2])
+			if keys.has(c):
+				found[c] = true
 
 
 ## Footprints: stone takes them only under a roof (the dust of a cave floor); a print is

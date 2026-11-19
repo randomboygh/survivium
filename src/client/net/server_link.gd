@@ -13,6 +13,7 @@ extends RefCounted
 const Socket := preload("res://src/client/net/socket.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 const LocalHost := preload("res://src/client/net/local_host.gd")
+const Looks := preload("res://src/shared/content/looks.gd")
 const ModFetch := preload("res://src/client/net/mod_fetch.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Content := preload("res://src/shared/content/content.gd")
@@ -240,7 +241,11 @@ func open() -> void:
 	if hosted != null and hosted.server != null:
 		hosted.server.content.ready()
 		mods = hosted.server.content.digest
-	socket.hello(sent_name(player_name, key, hosted != null), key, join_password, mods).then(_on_welcome)
+	# The looks picked (the «Персонаж» tab) are taken only by a new character: one met
+	# again keeps the looks saved with the world.
+	# A bot looks its own way at random.
+	var looks := ServerList.player_looks() if game.bot == null else Looks.random(RandomNumberGenerator.new())
+	socket.hello(sent_name(player_name, key, hosted != null), key, join_password, mods, looks).then(_on_welcome)
 
 
 ## The name the hello carries for `name`: a player's own as it is; one the game gave

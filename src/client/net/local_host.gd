@@ -19,6 +19,8 @@ const Runner := preload("res://src/server/runner.gd")
 const RealWeather := preload("res://src/server/real_weather.gd")
 const Connection := preload("res://src/client/net/connection.gd")
 const Rules := preload("res://src/shared/game/rules.gd")
+const Looks := preload("res://src/shared/content/looks.gd")
+const ServerList := preload("res://src/client/net/server_list.gd")
 ## The server made from the menu: compiled only when one is made; its settings.
 const SERVER_MAIN := "res://src/server/server_main.gd"
 const SERVER_CONFIG := "res://src/server/config.gd"
@@ -106,6 +108,13 @@ func join() -> Connection:
 	player = link.who
 	workshop = link.workshop
 	return Connection.new(deliver)
+
+
+## The looks picked on the «Персонаж» tab (ServerList) go to the character when it has
+## none: a new one, or one saved before there were looks. Called after the save is read.
+func take_looks() -> void:
+	if player.looks.is_empty():
+		player.looks = Looks.clean(ServerList.player_looks())
 
 
 ## Takes the message in `bytes` to the server and gives back what the server sends:

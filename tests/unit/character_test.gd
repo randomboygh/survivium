@@ -25,6 +25,7 @@ func run() -> void:
 	_test_poultice()
 	_test_visions()
 	_test_calm()
+	_test_looks()
 
 
 func _test_inventory() -> void:
@@ -1025,3 +1026,16 @@ func _test_calm() -> void:
 	var outside := Vector3(ring.x + ring.z + 3.0, 5.0, ring.y) * WorldData.CELL
 	_check(ch.in_fairy_ring(inside) and not ch.in_fairy_ring(outside)
 		and ch.sleep_rate(inside) > ch.sleep_rate(outside), "asleep inside a fairy ring, sleep rests faster")
+
+
+## The looks go with the character's save, through JSON, made sound on the way back; a
+## save from before the looks has none (the server gives the player's then).
+func _test_looks() -> void:
+	var ch := Survivor.new()
+	ch.looks = {"skin": 6, "hair": "braids", "hair_colour": 4, "eyes": 2, "face": "scar", "on_face": ""}
+	var copy := Survivor.new()
+	copy.from_dict(JSON.parse_string(JSON.stringify(ch.to_dict())))
+	_check(copy.looks == ch.looks, "the looks come back from the save: %s" % [copy.looks])
+	var old := Survivor.new()
+	old.from_dict({"deaths": 1})
+	_check(old.looks.is_empty(), "a save from before the looks has none")

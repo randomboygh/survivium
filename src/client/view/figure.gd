@@ -21,6 +21,7 @@ const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const Yaml := preload("res://src/shared/content/yaml.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Content := preload("res://src/shared/content/content.gd")
+const Looks := preload("res://src/shared/content/looks.gd")
 
 ## The player's pictures (core's sprites/, wherever the mods are read from: Content.ROOT).
 static var SPRITES: String = Content.ROOT + "/core/sprites"
@@ -31,6 +32,8 @@ static var LUMP: String = SPRITES + "/held/lump.png"
 const MARKS := {"right": Color(1, 0, 0), "left": Color(0, 0, 1)}
 ## Frames put together in one step.
 const PART := 10
+## How many colours a look may swap (shaders/looks.gdshaderinc SWAPS_MAX).
+const SWAPS_MAX := 12
 
 static var _data := {}
 static var _layers := {}
@@ -103,11 +106,11 @@ static func prepare(worn: Array) -> void:
 	anchors()
 
 
-## The picture of layer `name` of the figure: a picture of player/, or the path of
-## one (clothes worn, see dressed).
+## The picture of layer `name` of the figure: a picture of player/ (`hair/<style>` in
+## its folder), or the path of one (clothes worn, see dressed).
 static func layer(name: String) -> Image:
 	if not _layers.has(name):
-		_layers[name] = _picture(name if "/" in name else "%s/player/%s.png" % [SPRITES, name])
+		_layers[name] = _picture(name if name.ends_with(".png") else "%s/player/%s.png" % [SPRITES, name])
 	return _layers[name]
 
 
@@ -119,16 +122,104 @@ const OVER := ["head"]
 
 ## The look of a figure wearing `gear` (Inventory.gear): the naked layers with the
 ## clothes between them, each its item's `look` (sprites/worn/<look>.png of its
-## bundle); a thing without a look (a bag) shows nothing on the figure.
-static func dressed(gear: Dictionary) -> Array:
+## bundle); a thing without a look (a bag) shows nothing on the figure. With `looks`
+## (Looks, {} for none picked: the plain layers) the hair slot (the last naked layer)
+## shows its style (player/hair/<style>.png, none for bald), with its `face` under it
+## and its `on_face` over it (player/face/<id>.png); the colours are the shader's
+## (paint).
+static func dressed(gear: Dictionary, looks := {}) -> Array:
 	var naked: Array = data().get("naked", ["body", "hair"])
 	var out: Array = naked.slice(0, naked.size() - 1)
 	for on in UNDER:
 		out += _worn_layer(str(gear.get(on, "")))
-	out.append(naked[-1])
+	if looks.is_empty():
+		out.append(naked[-1])
+	else:
+		var look := Looks.clean(looks)
+		out += _look_layer("face/" + look.face)
+		out += _look_layer("hair/" + look.hair)
+		out += _look_layer("face/" + look.on_face)
 	for on in OVER:
 		out += _worn_layer(str(gear.get(on, "")))
 	return out
+
+
+## [`name`] when the layer has a picture (player/<name>.png), else [].
+static func _look_layer(name: String) -> Array:
+	return [name] if not name.ends_with("/") and Content.exists("%s/player/%s.png" % [SPRITES, name]) else []
+
+
+## The colours swapped to show `looks` (Looks, {} for none): [from, to], both
+## PackedVector3Array of whole sRGB 0..255. The pictures are drawn in the default look's
+## colours (player.yaml `looks`): the skin's three, the hair's three, the iris, and what
+## the face's options make of them (MADE).
+static func swaps(looks: Dictionary) -> Array:
+	var from := PackedVector3Array()
+	var to := PackedVector3Array()
+	if looks.is_empty():
+		return [from, to]
+	var was := _colours(Looks.default_look())
+	var now := _colours(Looks.clean(looks))
+	for i in mini(was.size(), now.size()):
+		if was[i] != now[i] and not from.has(was[i]):
+			from.append(was[i])
+			to.append(now[i])
+	return [from, to]
+
+
+## The face's colours made of the skin's and the hair's (player_art.gd INK O F P X):
+## [which of the look's colours, a colour mixed in (null: another of the look's), how much].
+const MADE := [
+	# Stubble: the skin's shade with the hair's dark.
+	["skin1", "hair2", 0.45],
+	# A freckle: the deep shade, browner.
+	["skin2", Color8(120, 60, 30), 0.35],
+	# Blush: the light skin, redder.
+	["skin0", Color8(232, 96, 112), 0.55],
+	# A scar: the light skin, pinker.
+	["skin0", Color8(236, 150, 150), 0.5],
+]
+
+
+## The colours a look is drawn in, as whole sRGB 0..255 in this order: the skin's light,
+## shade and deep shade, the hair's light, middle and dark, the iris, then MADE.
+static func _colours(look: Dictionary) -> PackedVector3Array:
+	var d := Looks.data()
+	var named := {}
+	var skin: Array = d.get("skin", [])[look.skin] if look.skin < Looks.count("skin") else []
+	var hair: Dictionary = d.get("hair_colour", [])[look.hair_colour] if look.hair_colour < Looks.count("hair_colour") else {}
+	for i in 3:
+		named["skin%d" % i] = Color.html(str(skin[i])) if i < skin.size() else Color.BLACK
+		var tones: Array = hair.get("colours", [])
+		named["hair%d" % i] = Color.html(str(tones[i])) if i < tones.size() else Color.BLACK
+	var eye: Dictionary = d.get("eyes", [])[look.eyes] if look.eyes < Looks.count("eyes") else {}
+	named["iris"] = Color.html(str(eye.get("colour", "000000")))
+	var out := PackedVector3Array()
+	for k in ["skin0", "skin1", "skin2", "hair0", "hair1", "hair2", "iris"]:
+		out.append(_whole(named[k]))
+	for m: Array in MADE:
+		var a: Vector3 = _whole(named[m[0]])
+		var b: Vector3 = _whole(named[m[1]] if m[1] is String else m[1])
+		out.append((a * (1.0 - m[2]) + b * m[2]).round())
+	return out
+
+
+static func _whole(c: Color) -> Vector3:
+	return Vector3(c.r8, c.g8, c.b8)
+
+
+## Sets the colours of `looks` (swaps) on a figure's material (shaders/looks.gdshaderinc).
+static func paint(material: ShaderMaterial, looks: Dictionary) -> void:
+	var s := swaps(looks)
+	var n: int = mini(s[0].size(), SWAPS_MAX)
+	var from: PackedVector3Array = s[0].slice(0, n)
+	var to: PackedVector3Array = s[1].slice(0, n)
+	# The uniform arrays are SWAPS_MAX long whatever is used of them.
+	from.resize(SWAPS_MAX)
+	to.resize(SWAPS_MAX)
+	material.set_shader_parameter("swap_count", n)
+	material.set_shader_parameter("swap_from", from)
+	material.set_shader_parameter("swap_to", to)
 
 
 static func _worn_layer(id: String) -> Array:

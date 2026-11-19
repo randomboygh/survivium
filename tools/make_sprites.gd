@@ -96,6 +96,12 @@ func _init() -> void:
 	var pictures := {}
 	for name in Figure.data().layers + [Figure.data().fists]:
 		pictures["player/" + name] = PlayerArt.layer(name)
+	# The looks to pick (player.yaml `looks`): a picture each but for bald.
+	for style in PlayerArt.LooksArt.HAIRS:
+		if style != "bald":
+			pictures["player/hair/" + style] = PlayerArt.layer("hair/" + style)
+	for option in PlayerArt.LooksArt.FACES:
+		pictures["player/face/" + option] = PlayerArt.layer("face/" + option)
 	for look in WORN:
 		var w: Array = WORN[look]
 		pictures[_worn_path(look)] = PlayerArt.painted(w[0], w.slice(1))

@@ -126,3 +126,70 @@ held:
   cell: [25, 25]
   grip: [12, 12]
   icon: 5
+# looks — what a player picks for their character (src/shared/content/looks.gd; a character keeps its
+# looks in the world it lives in): the skin, the hair style and its colour, the eyes, what grows or is
+# painted on the face (face, under the hair) and what is worn on it (on_face, over the hair). Colours go
+# by their place in a list, styles by id: player/hair/<id>.png (none for one with no picture: bald),
+# player/face/<id>.png. The pictures are drawn in the colours of `default`; the game swaps them for the
+# chosen ones (the skin's light, shade and deep shade, the hair's light, middle and dark, the iris), and
+# makes stubble, freckles, blush and a scar of the skin and the hair chosen. Add to the ends of the lists:
+# a saved look names its colours by place.
+looks:
+  skin:
+    - ["fbe2cf", "ebbc9c", "c99474"]
+    - ["f6ca9f", "e69c69", "bf6f4a"]
+    - ["e8b48a", "c98a62", "a0603e"]
+    - ["dcae84", "b98a60", "93673f"]
+    - ["c48a5c", "a06a40", "7a4a2a"]
+    - ["b07a50", "8c5c38", "6a4226"]
+    - ["8a5a3a", "6e4228", "52301c"]
+    - ["6e4630", "54321f", "3c2214"]
+    - ["54362a", "3e261c", "2a1810"]
+    - ["f2c4b0", "d89a86", "b0705e"]
+  hair_colour:
+    - {name: "[hair_black]", colours: ["3a3a50", "2a2a3c", "1a1a28"]}
+    - {name: "[hair_dark]", colours: ["5a3a26", "432a1a", "2c1a10"]}
+    - {name: "[hair_chestnut]", colours: ["8a5a36", "6b4228", "4a2c1a"]}
+    - {name: "[hair_light_brown]", colours: ["b07e4c", "8e6036", "684226"]}
+    - {name: "[hair_copper]", colours: ["a8482a", "7e3018", "541e0e"]}
+    - {name: "[hair_ginger]", colours: ["e05a2a", "b03e1e", "7a2814"]}
+    - {name: "[hair_blond]", colours: ["ffe36a", "f0c040", "c09028"]}
+    - {name: "[hair_platinum]", colours: ["f4ecc8", "d8c896", "aa9a6a"]}
+    - {name: "[hair_grey]", colours: ["d8d8d8", "a8a8a8", "787878"]}
+    - {name: "[hair_blue]", colours: ["5a9ae0", "2e64b0", "1c3e7a"]}
+    - {name: "[hair_green]", colours: ["4cb05a", "1e7a4a", "134c3c"]}
+    - {name: "[hair_pink]", colours: ["f49ac4", "d0609a", "943a6a"]}
+  eyes:
+    - {name: "[eyes_dark]", colour: "272727"}
+    - {name: "[eyes_brown]", colour: "6a3e22"}
+    - {name: "[eyes_hazel]", colour: "a0762a"}
+    - {name: "[eyes_green]", colour: "2e8a3e"}
+    - {name: "[eyes_blue]", colour: "2a64b8"}
+    - {name: "[eyes_grey]", colour: "7a8a9a"}
+  hair:
+    bald: "[hair_bald]"
+    buzz: "[hair_buzz]"
+    short: "[hair_short]"
+    bob: "[hair_bob]"
+    long: "[hair_long]"
+    ponytail: "[hair_ponytail]"
+    bun: "[hair_bun]"
+    braids: "[hair_braids]"
+    curls: "[hair_curls]"
+    mohawk: "[hair_mohawk]"
+  face:
+    stubble: "[face_stubble]"
+    beard: "[face_beard]"
+    long_beard: "[face_long_beard]"
+    moustache: "[face_moustache]"
+    freckles: "[face_freckles]"
+    scar: "[face_scar]"
+    war_paint: "[face_war_paint]"
+    blush: "[face_blush]"
+  on_face:
+    glasses: "[face_glasses]"
+    dark_glasses: "[face_dark_glasses]"
+    eye_patch: "[face_eye_patch]"
+    earrings: "[face_earrings]"
+    nose_ring: "[face_nose_ring]"
+  default: {skin: 2, hair: short, hair_colour: 2, eyes: 0}

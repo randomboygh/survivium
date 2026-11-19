@@ -29,7 +29,8 @@ const BUILD_INFO := "res://build_info.json"
 ## The first request over a socket: [VERSION, the build's version (build_version), the
 ## player's name, the key the server gave the player before ("" the first time), the
 ## server's password ("" when it asks none), the hash that names the mods' files the game
-## plays with (Content.playing)]. The reply is the welcome: {"ok": true,
+## plays with (Content.playing), the looks a new character takes (Looks; one the server
+## knows keeps its own; may be left out)]. The reply is the welcome: {"ok": true,
 ## "id", "key" (keep it for this server), "name" (as the server took it), "title" (the
 ## server's name), "seed",
 ## "settings", "mods" (the bundles of the world, in order), "materials" (the ids in the
@@ -327,7 +328,8 @@ const STEP := "step"
 ## over a socket): [[id, name, position, facing step, hands, active hand, moving,
 ## swimming, on the ground, work kind, work length, work count, work at, what is worn
 ## (Inventory.gear), in the player's team, where the float of their fishing line lies (INF
-## none), the vessel they sit in ("" none), the gesture they make ("" none, Gestures)], …].
+## none), the vessel they sit in ("" none), the gesture they make ("" none, Gestures),
+## their looks (Character.looks: {} the default's, Looks)], …].
 const PEOPLE := "people"
 ## Another player went out of the zone or the world: [id].
 const PERSON_GONE := "person_gone"

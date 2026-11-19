@@ -17,6 +17,7 @@ const Plans := preload("res://src/shared/game/plans.gd")
 const Requests := preload("res://src/server/requests.gd")
 const Gestures := preload("res://src/shared/game/gestures.gd")
 const ModZip := preload("res://src/shared/content/mod_zip.gd")
+const Looks := preload("res://src/shared/content/looks.gd")
 
 
 func run() -> void:
@@ -281,6 +282,18 @@ func _test_door() -> void:
 	_check(net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна", 5], "10.0.0.9") == Protocol.WHY_VERSION
 		and net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна"], "10.0.0.9") == Protocol.WHY_VERSION,
 		"a hello that does not name its mod files by a word is of another version")
+	# The looks a new character takes (a 7th field) come as a dictionary or not at all, and
+	# whatever is in it is made sound (Looks.clean): unknown styles, colours out of the
+	# lists, numbers as text and other fields go.
+	_check(net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна", "", {"hair": "long"}], "10.0.0.9") == ""
+		and net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна", "", "long"], "10.0.0.9") == Protocol.WHY_VERSION,
+		"a hello's looks are a dictionary")
+	var odd := Looks.clean({"skin": 999, "hair": "../../secret", "hair_colour": "3", "eyes": -1.0, "face": 5,
+		"on_face": "glasses", "extra": "x".repeat(10000)})
+	_check(odd == {"skin": 2, "hair": "short", "hair_colour": 2, "eyes": 0, "face": "", "on_face": "glasses"},
+		"looks sent wrong fall back to the default's, field by field: %s" % [odd])
+	_check(Looks.clean(null) == Looks.default_look() and Looks.clean({"skin": 4.0})["skin"] == 4,
+		"no looks are the default's; a saved whole number read as a float is taken")
 	# The records of wrong passwords and of flags do not pile up (Server._prune).
 	var now := Server._now()
 	net._wrong["10.9.9.9"] = [now - Server.PASSWORD_WINDOW - 1.0]

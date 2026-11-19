@@ -45,6 +45,8 @@ var anim_time := 0.0
 ## Layers of the look, bottom up (see Figure): naked in a loincloth, then what is worn
 ## (dress).
 var look: Array = Figure.dressed({})
+## The colours of the character's looks (Looks; Figure.paint), {} for the default.
+var looks := {}
 ## What the hands hold and which one is in use (see Figure).
 var held := {"left": {}, "right": {}, "active": "right"}
 ## The work playing (one of player.yaml `works`, "" none), how long it lasts and
@@ -162,6 +164,8 @@ func _ready() -> void:
 	underwater.material_override = sprite_material(UnderwaterShader, tex)
 	# After the water, which is drawn at priority 0.
 	underwater.material_override.render_priority = 1
+	Figure.paint(sprite.material_override, looks)
+	Figure.paint(underwater.material_override, looks)
 	underwater.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	underwater.extra_cull_margin = 24.0
 	underwater.top_level = true
@@ -214,6 +218,17 @@ func dress(worn: Array) -> void:
 	if sprite != null:
 		Figure.prepare(look)
 		_redraw()
+
+
+## Shows the colours of `l` (Looks, {} for the default's): the shader swaps them, the
+## sheet stays (its layers come from Figure.dressed with the same looks).
+func paint(l: Dictionary) -> void:
+	if l == looks:
+		return
+	looks = l
+	if sprite != null:
+		Figure.paint(sprite.material_override, looks)
+		Figure.paint(underwater.material_override, looks)
 
 
 ## Builds the sheet of the look and what is held over the next frames (see
