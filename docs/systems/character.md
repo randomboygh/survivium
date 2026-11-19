@@ -230,10 +230,16 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   legs glide, kick apart and draw up; afloat the head is as high in every direction (no stand `drop`), so
   the eyes stay over the water. The chop's four frames too, with the axe (`tools/art/player_chop_art.gd`,
   reviewed with the user 2026-11-19): the axe up beside the head, the top, the strike crouched, upright
-  again; the torso moves in the first two. A work drawn so carries the way the tool points (`a`, `ccw`,
-  `f`) and where the hand holds it, so `PlayerArt.pose` takes them from the frame instead of `WORKS`; its
-  west directions are the east ones mirrored with the tool. `PlayerArt.whole_frame` gives a column's frame
-  drawn so.
+  again; the torso moves in the first two. The dig's four frames too, with the shovel
+  (`tools/art/player_dig_art.gd`, reviewed with the user 2026-11-20): the hand holds the shaft halfway,
+  the blade goes into the earth from the feet's level a pixel deeper in each of three frames (crouched on
+  the third, the chest's row folded away: the legs never move), then the toss; from the front the shovel
+  is at the right side, from the side and behind by the right foot, beside the feet with the outline
+  between. A work drawn so carries the way the tool points (`a`, `ccw`, `f`), where the hand holds it
+  and how far up its length (`slide`: `ToolArt.turned` moves the head nearer the hand, the shaft's end
+  past it, leaving `ToolArt.SLIDE_LEFT` rows beyond it, so a short thing is held as it is), so
+  `PlayerArt.pose` takes them from the frame instead of `WORKS`; its west directions are the east ones
+  mirrored with the tool. `PlayerArt.whole_frame` gives a column's frame drawn so.
 - Looks (stage 3, PR 3 of the character editor): `src/shared/content/looks.gd` reads `player.yaml` `looks`
   (10 skin tones, 12 hair colours, 6 eye colours by place in their lists; 10 hair styles, 8 face options
   under the hair, 5 on the face, by id) and makes any look sound (`Looks.clean`: the server's check of a
@@ -254,7 +260,9 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   wide; normal; stocky: the torso two pixels wider, the arms and the hanging hands a pixel further out) and
   `figure` (straight; bust: the shade `V` under it from the front, two pixels forward from the side; curvy:
   the bust and the thighs a pixel wider, the seat a pixel back). `tools/art/player_forms_art.gd` says what
-  each draws otherwise, of the rows of any body drawn (`FormsArt.body`: the stand's and the walk's frames alike); `make_sprites.gd`
+  each draws otherwise, of the rows of any body drawn (`FormsArt.body`: the stand's and the walk's frames alike;
+  stocky widens a frame drawn whole by the side of the picture each pixel is on, so `PlayerArt.pose` moves a
+  hand's mark there with it, also a hand reaching across the middle); `make_sprites.gd`
   draws every layer, the hands' marks and the clothes again in each form and keeps a picture only where it
   differs from what the game takes instead:
   `player/forms/<build>_<figure>/<layer>.png`, else the build straight's, else the plain `player/<layer>.png`

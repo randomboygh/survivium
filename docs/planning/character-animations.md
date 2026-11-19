@@ -1,9 +1,10 @@
 # Character animations review: state and what is left
 
-Status (2026-11-19): thread «Поправить анимации персонажа» reviewed the default character's
+Status (2026-11-20): thread «Поправить анимации персонажа» reviewed the default character's
 animations one by one on the new chibi body. Done: the walk and the stand (#789), the outline under a
-hand low in the frame (#790), the jump (#791), the swim (#792), the chop. Next, in this order: dig, slash, reach, mow,
-aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e, ne, n, nw, w, sw.
+hand low in the frame (#790), the jump (#791), the swim (#792), the chop (#796), the dig. Next, in this
+order: slash, reach, mow, aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se,
+e, ne, n, nw, w, sw.
 
 ## How the user reviews
 
@@ -25,7 +26,10 @@ aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e,
 - Turned (se), from the side (e) and from behind (ne, n) the head sits a row lower (`BODY` `drop` 1), so
   the figure is as tall standing as walking. The west directions are the east ones mirrored.
 - From behind the hand's lower two pixels are a tone darker (`ARMS` n `hand`).
-- Only the walk's frames leave the soles without an outline (`Figure._put_row`).
+- Only the walk's frames leave the soles without an outline (`Figure._put_row`). The frame's last row
+  never has an outline under it (the feet stand on it): the user checked that it is so in every
+  animation. Anything beside the feet keeps a pixel of outline between.
+- In a work the legs never move: a crouch folds the chest's row away (the dig).
 
 ## How the frames are made
 
@@ -80,11 +84,25 @@ aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e,
   (CC-BY 4.0, opengameart.org/node/190386, in `survivium-builds/character/anim/references/chop/`);
   `chop_j.py` builds frames from a pose, the tool's way and the arm's length, if a later work wants that.
 
-## Next: dig
+## The dig (done)
 
-- Columns 18-21 (`WORKS` dig). Draw it whole the same way: a data module, a generator like
-  `gen_chop_gd.py` (or one module for all the works), a case in `whole_frame` and `frame_letters`.
+- Columns 18-21, drawn whole with the shovel: `tools/art/player_dig_art.gd`, written by
+  `gen_dig_gd.py <module> <out.gd>` from `dig_h.py` (the fourth review, accepted 2026-11-20). A frame
+  has `slide` too: the hand holds the shaft that far up its length (`ToolArt.turned`, capped so
+  `ToolArt.SLIDE_LEFT` rows stay past the hand: the ice pick, auger and winter rod, which dig too, are
+  held less far up; the hoe and the watering can have no sheet and turn their icon). The shovel's blade
+  has a straight base now (`ToolArt.SHAPES` shovel, the user's note).
+- The user's rules from it: three frames of the blade going deeper from the feet's level, then the
+  toss, in every direction; the legs never move; the tool beside the feet, not over them; from the side
+  and behind the tool not far forward of the body. `view.py <module> <attr> <dirs> <out.png>` in the
+  library draws a module's frames big with the ground line.
+
+## Next: slash
+
+- Columns 22-25 (`player.yaml` `works` slash, `WORKS` slash; the swords, knives, spears, sickles,
+  slings, bows and rods play it). Draw it whole the same way: a data
+  module (`work_proto.py` knows the axe and the shovel; copy the sword's shape from `ToolArt.SHAPES`),
+  a generator like `gen_dig_gd.py`, a case in `whole_frame` and `frame_letters`.
 - To see a held tool: `dump.gd` in the library (copy into `tools/`, run with
-  `-- <dir> name=<held picture under content/>:<work>`, the shovel's held picture with `:dig`,
-  delete) saves the dressed sheet with it held; it reads the imported PNGs, so after a code change run
-  `make_sprites.gd -- --all` and `--import` first.
+  `-- <dir> name=<held picture under content/>:<work>`, delete) saves the dressed sheet with it held; it
+  reads the imported PNGs, so after a code change run `make_sprites.gd -- --all` and `--import` first.
