@@ -526,7 +526,21 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 	var strip := _compose(src, c0, c1)
 	var whole := Rect2i(Vector2i.ZERO, strip.get_size())
 	if target.outline:
-		SpriteSheet.outline_rect(strip, whole, int(target.soles.get(target.directions[src], 0)))
+		# The soles stay open only in the walk's frames, where a foot is off the ground: in
+		# any other a hand hanging low in the frame gets its outline under it.
+		var soles := int(target.soles.get(target.directions[src], 0))
+		var walk := {}
+		for f: Variant in data().animations.get("walk", {}).get("frames", []):
+			walk[int(f)] = true
+		var a := c0
+		while a < c1:
+			var walking := walk.has(a)
+			var b := a + 1
+			while b < c1 and walk.has(b) == walking:
+				b += 1
+			var part := Rect2i(Vector2i((a - c0) * size.x, 0), Vector2i((b - a) * size.x, size.y))
+			SpriteSheet.outline_rect(strip, part, soles if walking else 0)
+			a = b
 	if swap:
 		for col in c1 - c0:
 			var r := Rect2i(Vector2i(col * size.x, 0), size)

@@ -219,7 +219,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   arms swinging against the legs, the body a pixel down at each step and a row shorter with both feet off
   the ground as the legs pass; from the side and from behind it stands a row lower than the reference, its
   feet on the frame's bottom row. A foot lifted has no outline under it either: `player.yaml` `soles` gives,
-  by direction, the frame's bottom rows where `SpriteSheet.outline_rect` outlines nothing from above.
+  by direction, the frame's bottom rows where `SpriteSheet.outline_rect` outlines nothing from above, in
+  the walk's frames only (`Figure._put_row`): in the others a hand hanging low keeps its outline under it.
 - Looks (stage 3, PR 3 of the character editor): `src/shared/content/looks.gd` reads `player.yaml` `looks`
   (10 skin tones, 12 hair colours, 6 eye colours by place in their lists; 10 hair styles, 8 face options
   under the hair, 5 on the face, by id) and makes any look sound (`Looks.clean`: the server's check of a

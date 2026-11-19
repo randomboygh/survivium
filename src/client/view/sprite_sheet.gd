@@ -12,7 +12,8 @@ extends RefCounted
 ##   mirror: {direction: drawn direction} for directions shown flipped.
 ##   animations: {name: {"frames": [column, ...], "fps": float}}.
 ##   outline: true when the figure is outlined (see outline_rect).
-##   soles: {direction: the frame's bottom rows where nothing is outlined from above},
+##   soles: {direction: the frame's bottom rows where nothing is outlined from above; Figure
+##     keeps them so in the walk's frames only},
 ##     so a foot lifted off the ground has no outline under its sole either (see
 ##     outline_rect).
 
