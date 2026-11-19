@@ -24,14 +24,7 @@ const FormsArt := preload("res://tools/art/player_forms_art.gd")
 ## body.
 const HANDS := {"4": ["right", "S"], "5": ["right", "s"], "6": ["right", "k"],
 	"7": ["left", "S"], "8": ["left", "s"], "9": ["left", "k"]}
-## Letters of the torso: the shirt and the waistband.
-const TORSO := "LCcVUu"
-## Letters of the trousers: what a body with hips draws wider (not a foot or a hand).
-const THIGHS := "Ttm"
-## Where a bust's shade goes on the row over the waistband, by direction and build (the
-## middle of a stocky body is two pixels wider).
-const BUST := {"s": {"normal": [6, 8], "stocky": [6, 9]}, "se": {"normal": [7, 9], "stocky": [7, 10]}}
-
+## The frames by drawn direction (see frame).
 const FRAMES := {
 	"s": [
 		{"bob": 0, "hips": 14, "hands": [[3, 14], [10, 14]], "rows": [
@@ -354,89 +347,7 @@ static func frame(dir: String, i: int) -> Dictionary:
 
 
 ## The rows of frame `f` for a body of build `build` and figure `figure`
-## (PlayerArt.FormsArt), drawn in direction `dir`: a stocky body two pixels wider from the
-## neck to the waist, its hands further out (from the side its belly a pixel forward);
-## thin hands a pixel narrower; a bust shaded over the waist (from the side a pixel
-## forward); hips with the thighs wider (_hips). The hands stay where they are
-## but for a stocky body's front and back.
+## (FormsArt.body), drawn in direction `dir`. The hands stay where they are but for a
+## stocky body's front and back.
 static func rows(f: Dictionary, dir: String, build: String, figure: String) -> Array:
-	var out: Array = f.rows.duplicate()
-	var side := dir == "e"
-	var neck: int = 1 + f.bob
-	var hips: int = f.hips - 10
-	if build == "stocky":
-		for y in range(neck, out.size()):
-			if side:
-				if y > neck and y <= hips:
-					out[y] = _forward(out[y], "")
-			elif y <= hips:
-				out[y] = out[y].substr(1, 6) + out[y].substr(6, 2) + out[y].substr(7, 6)
-			else:
-				out[y] = _hands_out(out[y])
-	elif build == "thin":
-		out = out.map(_thin)
-	if figure != "straight":
-		if side:
-			out[hips - 2] = _forward(out[hips - 2], "")
-			out[hips - 1] = _forward(out[hips - 1], "V")
-		elif BUST.has(dir):
-			var r: String = out[hips - 1]
-			for x: int in BUST[dir]["stocky" if build == "stocky" else "normal"]:
-				if r[x] in "LCc":
-					r[x] = "V"
-			out[hips - 1] = r
-	if figure == "curvy" and hips + 1 < out.size():
-		out[hips + 1] = _hips(out[hips + 1], dir, side)
-	return out
-
-
-## The top row of the legs `r` with hips (FormsArt.legs): only the thighs drawn wider,
-## into empty pixels, not a foot lifted that high or a hand.
-static func _hips(r: String, dir: String, side: bool) -> String:
-	var thighs := ""
-	for x in r.length():
-		thighs += r[x] if r[x] in THIGHS else "."
-	var wide: String = FormsArt.legs([thighs], dir, side, "curvy")[0]
-	for x in r.length():
-		if r[x] == "." and wide[x] != ".":
-			r[x] = wide[x]
-	return r
-
-
-## Row `r` with a pixel put before the front (east) edge of the torso: a copy of it, or
-## `letter`; not where a hand is.
-static func _forward(r: String, letter: String) -> String:
-	var at := -1
-	for x in r.length():
-		if r[x] in TORSO:
-			at = x
-	if at >= 0 and at + 1 < r.length() and r[at + 1] == ".":
-		r[at + 1] = letter if letter != "" else r[at]
-	return r
-
-
-## Row `r` with the hands' pixels a pixel further out from the middle.
-static func _hands_out(r: String) -> String:
-	var out := ""
-	for x in r.length():
-		out += "." if HANDS.has(r[x]) else r[x]
-	for x in r.length():
-		if HANDS.has(r[x]):
-			var to := x - 1 if x < 7 else x + 1
-			if to >= 0 and to < r.length() and out[to] == ".":
-				out[to] = r[x]
-	return out
-
-
-## Row `r` with each hand a pixel narrower where it is wider than one: the pixel of it
-## farthest from the middle left out.
-static func _thin(r: String) -> String:
-	for hand: String in ["right", "left"]:
-		var xs := []
-		for x in r.length():
-			if HANDS.has(r[x]) and HANDS[r[x]][0] == hand:
-				xs.append(x)
-		if xs.size() > 1:
-			var far: int = xs[0] if absf(xs[0] - 6.5) > absf(xs[-1] - 6.5) else xs[-1]
-			r[far] = "."
-	return r
+	return FormsArt.body(f.rows, dir, build, figure, 1 + f.bob, f.hips - 10)

@@ -207,11 +207,13 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   a part of a row per frame; `hands.gd` — what in the hands is seen on the sprite; `sprite_sheet.gd` — the
   sheet of frames by data. The figure is a chibi (stage 3, the user's pick of 2026-11-19): 14×18 px with its
   outline in the 32×32 frame, a big head (rows 1–10, eyes 2×2: a pupil over the iris beside the eye's white),
-  a neck, 8 px shoulders, arms as the outer columns with the hands split from the hips by the outline, legs
-  as 1 px trouser columns on dark shoes, in the side view one 2 px column on a 3 px shoe; the feet stand on
-  the frame's bottom row with no outline under them. `tools/art/player_art.gd` draws it (`HEAD`, `HAIR`,
-  `TORSO`, `STAND`, `SIDE_LEGS`, the arms `SHOULDER` and `ARMS`, the poses `MOVES` and `WORKS`); the design
-  and its letters are in the library `survivium-builds/character/chibi/`. The walk (six frames, 10 a second,
+  and under it the body in the proportions of the walk's reference (the stand redrawn to them, the user's
+  pick of 2026-11-19): a neck, 8 px shoulders, a 6 px torso, bare arms of 2 px hanging by it, legs of 2 px,
+  each as the reference draws it in the step it stands on; from the side and from behind the head sits a row
+  lower and the body is a row shorter, as in the walk. The feet stand on the frame's bottom row with no
+  outline under them. `tools/art/player_art.gd` draws it (`HEAD`, `HAIR`, the body standing `BODY`,
+  `SIDE_LEGS`, the arms `SHOULDER`, `REST` and `ARMS`, the poses `MOVES` and `WORKS`); the design and its
+  letters are in the library `survivium-builds/character/chibi/`. The walk (six frames, 10 a second,
   the user's pick of 2026-11-19) is the body of a reference copied pixel by pixel under our head
   (`tools/art/player_walk_art.gd`, from `survivium-builds/character/anim/references/`): legs of 2 px, the
   arms swinging against the legs, the body a pixel down at each step and a row shorter with both feet off
@@ -238,7 +240,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   wide; normal; stocky: the torso two pixels wider, the arms and the hanging hands a pixel further out) and
   `figure` (straight; bust: the shade `V` under it from the front, two pixels forward from the side; curvy:
   the bust and the thighs a pixel wider, the seat a pixel back). `tools/art/player_forms_art.gd` says what
-  each draws otherwise (the copied walk makes them of its own frames, `WalkArt.rows`); `make_sprites.gd`
+  each draws otherwise, of the rows of any body drawn (`FormsArt.body`: the stand's and the walk's frames alike); `make_sprites.gd`
   draws every layer, the hands' marks and the clothes again in each form and keeps a picture only where it
   differs from what the game takes instead:
   `player/forms/<build>_<figure>/<layer>.png`, else the build straight's, else the plain `player/<layer>.png`
