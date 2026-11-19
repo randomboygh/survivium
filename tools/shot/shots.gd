@@ -664,6 +664,22 @@ const SHOTS := {
 	# Hide clothes worn, a fur coat chosen in the bag (its warmth).
 	"bag-furs": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,
 		"wear": ["tools:fur_hat", "tools:fur_coat", "tools:leather_trousers", "tools:fur_boots"], "give": "tools:fur_coat"},
+	# The tab «Персонаж»: the figure in fibre clothes and looks of its own, an axe in the
+	# right hand, the skills learned under it (beside it on a wide screen); then the body's
+	# slot tapped (the panel at the bottom: the cape, «Снять»).
+	"bag-person": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": -1, "person": "",
+		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "hold": ["", "tools:stone_axe"],
+		"looks": {"build": "normal", "figure": "bust", "skin": 3, "hair": "ponytail", "hair_colour": 8, "eyes": 2, "face": "freckles"},
+		"skills": {"gather": 4, "chop": 3, "dig": 6, "craft": 2, "build": 5, "cook": 1, "hunt": 2, "fish": 1, "swim": 3}},
+	"bag-person-body": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": -1, "person": "body",
+		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "hold": ["", "tools:stone_axe"],
+		"looks": {"build": "stocky", "skin": 6, "hair": "curls", "hair_colour": 0, "eyes": 0, "face": "beard"}},
+	# The interface «крупный» on a phone on its side: the tab scrolls in the room there is.
+	"bag-person-large": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": -1, "person": "",
+		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "ui_size": 3},
+	"bag-pc-person": {"time": 0.42, "season": 1, "clearing": true, "bag": true, "slot": -1, "person": "",
+		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "hold": ["", "tools:stone_axe"],
+		"skills": {"gather": 4, "chop": 3, "dig": 6, "craft": 2, "build": 5}},
 	"bag-worn": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "touch": true, "bag": true,
 		"wear": "tools:canvas_backpack", "person": "back"},
 	# «Выдать инструменты» pressed (Items.best_kit: the best tool of each class, a light,

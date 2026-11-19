@@ -1632,6 +1632,8 @@
 "[decline]": "Decline"
 
 # src/client/ui/person_panel.gd
+"[turn_the_character_left]": "Turn the character left"
+"[turn_the_character_right]": "Turn the character right"
 "[head]": "Head"
 "[body]": "Body"
 "[legs]": "Legs"

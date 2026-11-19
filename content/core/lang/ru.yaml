@@ -1632,6 +1632,8 @@
 "[decline]": "Отказаться"
 
 # src/client/ui/person_panel.gd
+"[turn_the_character_left]": "Повернуть персонажа влево"
+"[turn_the_character_right]": "Повернуть персонажа вправо"
 "[head]": "Голова"
 "[body]": "Тело"
 "[legs]": "Ноги"

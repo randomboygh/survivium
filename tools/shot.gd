@@ -870,6 +870,10 @@ func _run() -> void:
 				for i in 6:
 					await process_frame
 		if shot.get("bag", false):
+			if shot.has("looks"):
+				# The character in looks of their own (as hello gives them).
+				main.host.player.looks = shot.looks
+				main.character.looks = shot.looks
 			main.hud.toggle_bag()
 			# The window opens on the tab it was closed on; an earlier shot may have left the craft tab.
 			main.hud.bag.show_tab("bag")
@@ -922,7 +926,13 @@ func _run() -> void:
 			if shot.get("destroy", false):
 				main.hud.bag._destroy.pressed.emit()
 			if shot.has("person"):
-				main.hud.bag._tap_person(shot.person)
+				# The tab «Персонаж», slot `person` of the figure tapped ("" for none).
+				main.hud.bag.show_tab("person")
+				if shot.person != "":
+					main.hud.bag._tap_person(shot.person)
+				# The figure's sheet is built over a few frames.
+				for i in 20:
+					await process_frame
 		if shot.get("openings", "") == "storage":
 			# The storage by the player, a few things in each, their strips in the bag's list.
 			for e: Dictionary in main.session.placed.things:

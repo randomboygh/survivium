@@ -239,8 +239,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   drawn once fit every form roughly). `Figure.dressed(gear, looks)` names the form's layers
   `forms/<form>/<layer>`; a figure takes its form from them (`Figure.form_of`) for the fists and the hands'
   places (`Figure.anchors(form)`), so tools are held where its hands are.
-- `src/client/ui/person_panel.gd` — the character in the inventory window (the slots of what is worn and of
-  the hands, cells, the skills' strips); `src/client/ui/level_up.gd` — the effect of a skill's new level;
+- `src/client/ui/person_panel.gd` — the tab «Character» of the inventory window (the figure drawn big and turned,
+  the slots of what is worn and of the hands round it, the skills' strips under it); `src/client/ui/level_up.gd` — the effect of a skill's new level;
   `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — the death screen,
   the strengths' strips, the screen's response to damage (and an icy blue frame growing while the body is cold, from
   `Vitals.COLD` to `CHILL_FULL` below `FREEZING`, breathing while it freezes; and below `LOW_HEALTH` a crimson vignette, heavy in the corners, and a red wash beating
@@ -294,7 +294,7 @@ of blows of a skilled hand (negative wear) stays at the things of old saves, new
 of levels gives the reserve of territory cells (`Territory.skilled`, `docs/systems/territory.md`). It is stored
 as the part `skills` of the player's save; the server sends the client `Protocol.SKILLS` no more often than
 `PlayerLink.SKILLS_EVERY` and at once on a new level, the copy on the client (`SkillSet.take`) says `leveled`.
-The character window (`person_panel.gd`) draws a strip per skill: a division per level (only the skill: a
+The tab «Character» of the inventory window (`person_panel.gd`) draws a strip per skill: a division per level (only the skill: a
 tool's strength is in the item's chips, not on the scale), a thin line shows the way to the next; the hint —
 the level, what it gives now (faster, cheaper in strength, an extra piece, a blow, the durability of things,
 care), the tool in the hand that the skill leads, the description. The time in the crafting window is with the

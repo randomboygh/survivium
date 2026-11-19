@@ -114,7 +114,7 @@ single player's player is number 0).
   `set_color`, the request `land_color` [number]; stored with the land, comes to the client as the sixth field
   of `claims`. The colours themselves are `UiStyle.LAND_COLORS`; the «can» buttons are painted by them too
   (`UiStyle.tint`).
-- The rights are the third tab «Land» of the inventory window (`src/client/ui/land_page.gd`,
+- The rights are the tab «Land» of the inventory window (`src/client/ui/land_page.gd`,
   `InventoryWindow`), seen only while the player stands on marked land (`Land.changed`). On one's own (no
   title): a row per action with «can» / «cannot» for the team and the others, at the bottom a row of colours;
   «Take the post» — a button in the window's head by the cross (`head_buttons`, as at a chest; `prop_take` of
