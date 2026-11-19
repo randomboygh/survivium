@@ -224,7 +224,11 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   The jump's two frames are drawn whole under the head the same way (`tools/art/player_jump_art.gd`,
   2026-11-19, after the user's note that an arm moves from its shoulder): rising, the shoulders go a row
   up with the arms and the legs are drawn up; falling, the arms go out to the sides (from the side
-  forward) and the legs are straight. `PlayerArt.whole_frame` gives a column's frame drawn so.
+  forward) and the legs are straight. The swim's four frames too (`tools/art/player_swim_art.gd`, a
+  breaststroke the user picked): the water is at the chin, so the whole stroke is under it, tinted; the hands
+  come together in front of the chest, the arms sweep out from the shoulders, pull down and come back, the
+  legs glide, kick apart and draw up; afloat the head is as high in every direction (no stand `drop`), so
+  the eyes stay over the water. `PlayerArt.whole_frame` gives a column's frame drawn so.
 - Looks (stage 3, PR 3 of the character editor): `src/shared/content/looks.gd` reads `player.yaml` `looks`
   (10 skin tones, 12 hair colours, 6 eye colours by place in their lists; 10 hair styles, 8 face options
   under the hair, 5 on the face, by id) and makes any look sound (`Looks.clean`: the server's check of a

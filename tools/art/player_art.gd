@@ -19,7 +19,8 @@ extends RefCounted
 ## with the hands swapped. Arms go from the shoulder to the hand (ARMS). Light comes from
 ## the upper left. The feet stand on the frame's last row with no outline under them. The
 ## walk's body under the head is copied pixel by pixel from the reference (WalkArt): the
-## arms swinging, the body bobbing; the jump's is drawn whole the same way (JumpArt).
+## arms swinging, the body bobbing; the jump's and the swim's are drawn whole the same way
+## (JumpArt, SwimArt).
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -31,6 +32,7 @@ const LooksArt := preload("res://tools/art/player_looks_art.gd")
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 const WalkArt := preload("res://tools/art/player_walk_art.gd")
 const JumpArt := preload("res://tools/art/player_jump_art.gd")
+const SwimArt := preload("res://tools/art/player_swim_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -266,8 +268,7 @@ const ARMS := {
 ## The hands when they do not work, by view and animation, a frame each: [right hand,
 ## left hand] in the box (moved with the body when it bobs), and the legs and how far
 ## the body bobs down. The walk is copied from a reference instead (WalkArt), the jump
-## drawn whole (JumpArt). A swimmer's strokes go over the water, which comes up to its
-## neck (Body.SWIM_DEPTH), the arms reaching out and pulling back in turn. Afloat in a
+## and the swim drawn whole (JumpArt, SwimArt). Afloat in a
 ## vessel the body sits low, its legs forward ("sit"), and rows: both hands reach out
 ## and pull the oars in (Boats swings the oars in time, ROW_PERIOD). The gestures
 ## (Gestures): a wave over the head, a nod ("bob"), a shake of the body side to side
@@ -276,12 +277,6 @@ const ARMS := {
 const MOVES := {
 	"front": {
 		"idle": [{"hands": [[3, 14], [10, 14]]}],
-		"swim": [
-			{"hands": [[0, 9], [13, 12]], "legs": "left"},
-			{"hands": [[0, 11], [13, 10]]},
-			{"hands": [[0, 12], [13, 9]], "legs": "right"},
-			{"hands": [[0, 10], [13, 11]]},
-		],
 		"wave": [
 			{"hands": [[0, 9], [10, 14]]},
 			{"hands": [[-1, 10], [10, 14]]},
@@ -314,12 +309,6 @@ const MOVES := {
 	},
 	"side": {
 		"idle": [{"hands": [[7, 14], [6, 14]]}],
-		"swim": [
-			{"hands": [[11, 11], [4, 13]], "legs": "near"},
-			{"hands": [[9, 13], [9, 10]]},
-			{"hands": [[4, 13], [11, 11]], "legs": "far"},
-			{"hands": [[9, 10], [9, 13]]},
-		],
 		"wave": [
 			{"hands": [[12, 10], [6, 14]]},
 			{"hands": [[12, 8], [6, 14]]},
@@ -352,12 +341,6 @@ const MOVES := {
 	},
 	"back": {
 		"idle": [{"hands": [[10, 14], [3, 14]]}],
-		"swim": [
-			{"hands": [[13, 9], [0, 12]], "legs": "left"},
-			{"hands": [[13, 11], [0, 10]]},
-			{"hands": [[13, 12], [0, 9]], "legs": "right"},
-			{"hands": [[13, 10], [0, 11]]},
-		],
 		"wave": [
 			{"hands": [[13, 9], [3, 14]]},
 			{"hands": [[14, 10], [3, 14]]},
@@ -669,7 +652,8 @@ static func column(col: int) -> Array:
 
 
 ## The frame of column `c` ([name, i], see column) drawn whole under the head in
-## direction `dir`, its hands with it: the walk's (WalkArt) or the jump's (JumpArt); {}
+## direction `dir`, its hands with it: the walk's (WalkArt), the jump's (JumpArt) or the
+## swim's (SwimArt); {}
 ## for any other, made of the body standing and a pose.
 static func whole_frame(dir: String, c: Array) -> Dictionary:
 	match c[0]:
@@ -677,6 +661,8 @@ static func whole_frame(dir: String, c: Array) -> Dictionary:
 			return WalkArt.frame(dir, c[1])
 		"jump":
 			return JumpArt.frame(dir, c[1])
+		"swim":
+			return SwimArt.frame(dir, c[1])
 	return {}
 
 
@@ -826,7 +812,14 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 		_stamp(parts, low, b.hips + 1, Vector2i.ZERO)
 		_stamp(parts, rows.slice(0, hips + 1), 11, up)
 	else:
-		var rows: Array = JumpArt.rows(whole, dir, build, figure) if c[0] == "jump" else WalkArt.rows(whole, dir, build, figure)
+		var rows: Array
+		match c[0]:
+			"jump":
+				rows = JumpArt.rows(whole, dir, build, figure)
+			"swim":
+				rows = SwimArt.rows(whole, dir, build, figure)
+			_:
+				rows = WalkArt.rows(whole, dir, build, figure)
 		_stamp(parts, rows, 10, Vector2i.ZERO)
 	var head: Array = HEAD[dir]
 	if p.eyes == "shut":
