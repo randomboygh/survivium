@@ -67,7 +67,9 @@ Part of [Interface and settings](../ui.md). Files of the screens before the game
   screen have the same, `ServerList.forget`), `death_screen.gd`. `character_page.gd` («Character», stage 3 of plan/mvp.md: a character belongs
   to its world): `figure_preview.gd` (the player's sheet, `Figure`, built a part of a row a frame, drawn big,
   breathing, in the colours of the looks by `figure_preview.gdshader`, on a round stand that swings round with it
-  (a lit mark at its front) in a lighter frame (`UiStyle.stage`); a drag or a tap on a side turns it through
+  (a lit mark at its front) with its short shadow to the north-west (`FigurePreview._shadow`: the standing
+  frame's pixels slanted, in the stand's pixels, only on its top), holding what `hold` gives (the hands of
+  `Player.held`; the tab «Character» of the inventory window) in a lighter frame (`UiStyle.stage`); a drag or a tap on a side turns it through
   eight directions, the keys left and right too while no row is picked) beside or over its rows: the name
   (`ServerList.player_name`, kept as typed), then the looks (`Looks`, `ChoiceRows`: hair style, hair colour,
   skin, eyes, face, on the face; kept on the device, `ServerList.player_looks`; up and down pick a row,

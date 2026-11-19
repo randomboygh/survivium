@@ -930,6 +930,8 @@ func _run() -> void:
 				main.hud.bag.show_tab("person")
 				if shot.person != "":
 					main.hud.bag._tap_person(shot.person)
+				# The figure turned so many eighths (FigurePreview.turn).
+				main.hud.bag.person.preview.turn(shot.get("person_turn", 0))
 				# The figure's sheet is built over a few frames.
 				for i in 20:
 					await process_frame

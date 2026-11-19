@@ -29,8 +29,10 @@ Part of [Interface and settings](../ui.md). The HUD and the windows opened in th
   cursor, keys do not move the character; in detail — [crafting.md](../crafting.md)), `inventory_window.gd` and
   `craft_panel.gd` (the inventory window: character, bag, chest, station, crafting), `person_panel.gd` (the
   tab «Character» of the window: the figure drawn big in the middle, `FigurePreview` on its stand in what it
-  wears and its looks, `Figure.dressed`; turned through eight directions by a drag across it, a tap on a half
-  or the arrows at its feet; the slots of what is worn down the left — head, body, legs, feet, as high as on
+  wears and its looks, `Figure.dressed`, with what its hands hold as in the world (`FigurePreview.hold`, the
+  whole frame's width shown so a scythe fits) and a short shadow to the north-west on the stand; turned through
+  eight directions by a drag across it, a tap on a half or the arrows in the stage's bottom corners (no thing
+  held reaches there); the slots of what is worn down the left — head, body, legs, feet, as high as on
   the figure — and the bag on the back and the two hands down the right; at the bottom of the bag's slot a
   loading bar by weight, like the torch's (`HotbarSlot.fill`, `fill_color`: green, amber at the limit, red
   when overloaded); under the figure (beside it in landscape, `PersonPanel.set_wide`) the skills in a
