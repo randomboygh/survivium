@@ -38,8 +38,11 @@ func _init() -> void:
 			"[turn_the_character_left]" if d < 0 else "[turn_the_character_right]", preview.turn.bind(d), ARROW)
 		b.focus_mode = Control.FOCUS_NONE
 		preview.add_child(b)
-		b.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT if d < 0 else Control.PRESET_BOTTOM_RIGHT,
-			Control.PRESET_MODE_MINSIZE)
+		# Pinned to its corner and growing from it into the frame, as large as it asks:
+		# what it asks is known only in the tree (the theme), after this.
+		b.set_anchors_preset(Control.PRESET_BOTTOM_LEFT if d < 0 else Control.PRESET_BOTTOM_RIGHT, true)
+		b.grow_horizontal = Control.GROW_DIRECTION_END if d < 0 else Control.GROW_DIRECTION_BEGIN
+		b.grow_vertical = Control.GROW_DIRECTION_BEGIN
 
 
 ## Drawn for a wide screen (a phone on its side, a PC) or an upright one.
