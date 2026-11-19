@@ -3,7 +3,8 @@ extends SceneTree
 ## the mods' sprites, which the game reads: content/core/sprites/player/<layer>.png,
 ## player/hands.png and held/lump.png (what a hand shows of a thing without a sheet or an
 ## icon) in core, held/<tool>.png in the bundle of the item that names the sprite,
-## worn/<look>.png (clothes on the figure) in the bundle of the item of that look. A picture painted over by hand is overwritten, so name
+## worn/<look>.png (clothes on the figure) in the bundle of the item of that look, and
+## for the body's forms player/forms/<build>_<figure>/<layer>.png and worn/<look>/<build>_<figure>.png. A picture painted over by hand is overwritten, so name
 ## the pictures to make:
 ## godot --headless --path . --script res://tools/make_sprites.gd -- <picture ...> | --all
 
@@ -11,6 +12,7 @@ const Figure := preload("res://src/client/view/figure.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const PlayerArt := preload("res://tools/art/player_art.gd")
+const FormsArt := preload("res://tools/art/player_forms_art.gd")
 const ToolArt := preload("res://tools/art/tool_art.gd")
 
 ## Clothes as worn on the figure, by the items' `look`: the shape (PlayerArt.SHAPES)
@@ -106,6 +108,7 @@ func _init() -> void:
 		var w: Array = WORN[look]
 		pictures[_worn_path(look)] = PlayerArt.painted(w[0], w.slice(1))
 	pictures["player/" + Figure.data().hands] = PlayerArt.marks()
+	_forms(pictures)
 	for name in HELD:
 		pictures[_held_path(name)] = ToolArt.sheet(name, HELD[name])
 	var lump := Image.create_empty(LUMP[0].length(), LUMP.size(), false, Image.FORMAT_RGBA8)
@@ -122,6 +125,31 @@ func _init() -> void:
 			pictures[path].save_png(file)
 			print("saved ", file)
 	quit()
+
+
+## The body's forms (FormsArt, player.yaml `looks` build and figure): the layers and the
+## clothes worn drawn again in each, kept only where they differ from what the game
+## takes instead (Figure._form_path: the build straight, else the plain picture).
+func _forms(pictures: Dictionary) -> void:
+	var names: Array = Figure.data().layers + [Figure.data().fists, Figure.data().hands]
+	for form: String in FormsArt.all().slice(1):
+		var parts := form.split("_")
+		PlayerArt.use_form(parts[0], parts[1])
+		var straight := parts[0] + "_straight"
+		for name: String in names:
+			var img: Image = PlayerArt.marks() if name == Figure.data().hands else PlayerArt.layer(name)
+			var instead: Image = pictures.get("player/forms/%s/%s" % [straight, name], pictures["player/" + name])
+			if img.get_data() != instead.get_data():
+				pictures["player/forms/%s/%s" % [form, name]] = img
+		for look: String in WORN:
+			var w: Array = WORN[look]
+			var img := PlayerArt.painted(w[0], w.slice(1))
+			var base := _worn_path(look)
+			var at := "%s/%s.png" % [base.get_basename(), form]
+			var instead: Image = pictures.get("%s/%s.png" % [base.get_basename(), straight], pictures[base])
+			if img.get_data() != instead.get_data():
+				pictures[at] = img
+	PlayerArt.use_form("normal", "straight")
 
 
 ## Where the sheet of `sprite` goes: beside the item that holds it, or core's held/ when none does.

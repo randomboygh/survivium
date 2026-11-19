@@ -337,6 +337,7 @@ func _test_looks() -> void:
 		and not Figure.dressed({}, {"hair": "bald"}).any(func(l: String) -> bool: return l.begins_with("hair")),
 		"the looks' layers go in the hair slot, the face under and over the hair, a hat over all; bald has none")
 	_check(Figure.swaps({})[0].is_empty() and Figure.swaps(Looks.default_look())[0].is_empty(), "the default look swaps nothing")
+	_test_forms()
 	var s := Figure.swaps(looks)
 	_check(s[0].size() == s[1].size() and s[0].size() >= 7 and s[0].size() <= Figure.SWAPS_MAX, "a look swaps its colours: %d" % s[0].size())
 	# Every colour swapped is in the looks' pictures (the face's made ones too), and in no
@@ -357,6 +358,8 @@ func _test_looks() -> void:
 	var others: Array = []
 	for name in ["loincloth", "shirt", "trousers", "boots"]:
 		others.append("%s/player/%s.png" % [Figure.SPRITES, name])
+		for form: String in ["stocky_straight", "thin_bust", "normal_curvy"]:
+			others.append("%s/player/forms/%s/%s.png" % [Figure.SPRITES, form, name])
 	for item in Items.BY_ID.values():
 		if item.get("look", "") != "":
 			others.append(Content.asset(item, "sprites/worn/%s.png" % item.look))
@@ -368,6 +371,30 @@ func _test_looks() -> void:
 			_colours_in(Content.picture(path), keys, stray)
 			if stray.size() > before:
 				_check(false, "%s has a colour of the looks, which the shader would swap" % path)
+
+
+## The body's forms (Looks build, figure): their own pictures where drawn, else the
+## build straight's, else the plain ones; the hands of a wider build hang further out.
+func _test_forms() -> void:
+	_check(Figure.dressed({}, Looks.default_look())[0] == "body" and Figure.form_for({"build": "thin", "figure": "bust"}) == "thin_bust",
+		"the plain form draws the plain layers")
+	var stocky := Figure.dressed({"body": "tools:fur_coat", "legs": "tools:leg_wraps"}, {"build": "stocky"})
+	_check(stocky[0] == "forms/stocky_straight/body" and stocky.any(func(l: String) -> bool: return l.ends_with("worn/fur_coat/stocky_straight.png"))
+		and stocky.any(func(l: String) -> bool: return l.ends_with("worn/leg_wraps.png")),
+		"a form's clothes are drawn for it, else the plain ones: %s" % [stocky])
+	_check(Figure.form_of(stocky) == "stocky_straight" and Figure.form_of(["body"]) == "", "a look knows its form")
+	var size := Figure.layer("body").get_size()
+	for name: String in ["forms/thin_bust/body", "forms/thin_bust/fists", "forms/normal_bust/hands", "forms/stocky_curvy/hands"]:
+		_check(Figure.layer(name) != null and Figure.layer(name).get_size() == size, "a form's layer is found: " + name)
+	_check(Figure.layer("forms/thin_bust/fists").get_data() == Figure.layer("forms/thin_straight/fists").get_data()
+		and Figure.layer("forms/thin_bust/body").get_data() != Figure.layer("forms/thin_straight/body").get_data(),
+		"a figure draws its own body, its build's arms")
+	var plain: Array = Figure.anchors()
+	var wide: Array = Figure.anchors("stocky_straight")
+	_check(wide[0][0].right.at.x == plain[0][0].right.at.x - 1 and wide[0][0].left.at.x == plain[0][0].left.at.x + 1,
+		"a stocky build's hands hang a pixel further out")
+	var bust := Figure.sheet(Figure.dressed({}, {"figure": "bust"})).texture.get_image()
+	_check(bust.get_data() != Figure.sheet(Figure.dressed({})).texture.get_image().get_data(), "a bust shows")
 
 
 ## Adds to `found` the colours of `keys` that `img` has in its first COLOURS_SEEN

@@ -27,6 +27,7 @@ extends RefCounted
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const Figure := preload("res://src/client/view/figure.gd")
 const LooksArt := preload("res://tools/art/player_looks_art.gd")
+const FormsArt := preload("res://tools/art/player_forms_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -42,6 +43,8 @@ const INK := {
 	"E": ["1f1a14", "body"], "I": ["272727", "body"], "w": ["b4b4b4", "body"], "W": ["ffffff", "body"],
 	"J": ["8a5a36", "hair"], "H": ["6b4228", "hair"], "D": ["4a2c1a", "hair"],
 	"L": ["ea323c", "shirt"], "C": ["c42430", "shirt"], "c": ["891e2b", "shirt"],
+	# The shade under a bust (FormsArt): the shirt's dark over the skin's deepest.
+	"V": ["891e2b", "shirt"],
 	# The trousers' waistband (U, u) and legs (T, t).
 	"U": ["2c5288", "trousers"], "u": ["1e3a62", "trousers"],
 	"T": ["3f6fb0", "trousers"], "t": ["2c5288", "trousers"],
@@ -60,7 +63,7 @@ const INK := {
 	"Q": ["c42430", ""], "Y": ["f0c040", ""], "Z": ["2a2a33", ""], "G": ["2a2a33", ""], "R": ["9fd3e6", ""],
 }
 ## Skin under each letter of the clothes, in the body layer.
-const SKIN := {"L": "S", "C": "S", "c": "s", "U": "S", "u": "s", "T": "S", "t": "s", "B": "s", "b": "k"}
+const SKIN := {"L": "S", "C": "S", "c": "s", "V": "k", "U": "S", "u": "s", "T": "S", "t": "s", "B": "s", "b": "k"}
 ## The darker skin under an arm held out flat.
 const DARKER := {"S": "s", "s": "k", "k": "k"}
 ## The shapes clothes are worn in (see painted), in three greys: what the shirt,
@@ -69,7 +72,7 @@ const DARKER := {"S": "s", "s": "k", "k": "k"}
 ## and a pixel of leg above.
 const SHAPES := ["shirt", "coat", "hat", "trousers", "wraps", "boots", "tall_boots"]
 ## The tone of each letter of the clothes in a shape.
-const TONE := {"L": "1", "C": "2", "c": "3", "U": "2", "u": "3", "T": "1", "t": "2", "B": "2", "b": "3",
+const TONE := {"L": "1", "C": "2", "c": "3", "V": "3", "U": "2", "u": "3", "T": "1", "t": "2", "B": "2", "b": "3",
 	"J": "1", "H": "2", "D": "3"}
 
 ## How each drawn direction shows the body.
@@ -578,6 +581,18 @@ const WAYS := [Vector2i(0, -1), Vector2i(1, -1), Vector2i(1, 0), Vector2i(1, 1),
 ## Layer images already drawn, by name, and the hands' places (see anchors).
 static var _drawn := {}
 static var _anchors := []
+## The body's form drawn (FormsArt: the build and the figure); use_form changes it.
+static var build := "normal"
+static var figure := "straight"
+
+
+## Draws the body in another form from now on (FormsArt).
+static func use_form(b: String, f: String) -> void:
+	if b != build or f != figure:
+		build = b
+		figure = f
+		_drawn = {}
+		_anchors = []
 
 
 ## The image of layer `name` (player.yaml `layers` or `fists`), drawn the first time.
@@ -756,8 +771,13 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 	var shift: Vector2i = SHIFT.get(dir, Vector2i.ZERO)
 	for hand in ["right", "left"]:
 		var s: Vector2i = SHOULDER[view][hand]
-		p[hand].shoulder = s + Vector2i(p.lean, p.bob) + shift
-		p[hand].at += shift
+		# A wider build hangs its arms further out (FormsArt.OUT), and the hands that
+		# do not work with them.
+		var out := Vector2i.ZERO
+		if view != "side":
+			out.x = FormsArt.OUT.get(build, 0) * (1 if s.x > 6 else -1)
+		p[hand].shoulder = s + out + Vector2i(p.lean, p.bob) + shift
+		p[hand].at += shift + (Vector2i.ZERO if p[hand].worked else out)
 	return p
 
 
@@ -795,8 +815,8 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 	var out := {"body": {}, "shirt": {}, "trousers": {}, "boots": {}, "hair": {}, "fists": {}, "loincloth": {}}
 	var up := Vector2i(p.lean, p.bob)
 	var parts := []
-	_stamp(parts, legs(dir, p.legs), 15, Vector2i.ZERO)
-	_stamp(parts, TORSO[dir], 11, up)
+	_stamp(parts, FormsArt.legs(legs(dir, p.legs), dir, VIEW[dir] == "side", figure), 15, Vector2i.ZERO)
+	_stamp(parts, FormsArt.torso(TORSO[dir], dir, build, figure), 11, up)
 	var head: Array = HEAD[dir]
 	if p.eyes == "shut":
 		# Shut, an eye is a dark line where the iris and the white were.
@@ -902,6 +922,9 @@ static func _put(out: Dictionary, at: Vector2i, letter: String) -> void:
 ## behind it the arm shows only where the body leaves it.
 static func _arm(out: Dictionary, h: Dictionary, dir: String, hand: String, solid: Dictionary, front: bool) -> void:
 	var spec: Dictionary = ARMS[dir][hand]
+	if build in FormsArt.NARROW:
+		spec = spec.duplicate()
+		spec.out = 0
 	var line := _line(h.shoulder, h.at)
 	var sleeve := maxi(1, line.size() / 2) if line.size() > 1 else 0
 	var d: Vector2i = h.at - h.shoulder

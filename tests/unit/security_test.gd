@@ -289,8 +289,8 @@ func _test_door() -> void:
 		and net._refusal([Protocol.VERSION, Protocol.build_version(), "Аня", "k1", "тайна", "", "long"], "10.0.0.9") == Protocol.WHY_VERSION,
 		"a hello's looks are a dictionary")
 	var odd := Looks.clean({"skin": 999, "hair": "../../secret", "hair_colour": "3", "eyes": -1.0, "face": 5,
-		"on_face": "glasses", "extra": "x".repeat(10000)})
-	_check(odd == {"skin": 2, "hair": "short", "hair_colour": 2, "eyes": 0, "face": "", "on_face": "glasses"},
+		"on_face": "glasses", "extra": "x".repeat(10000), "build": "giant", "figure": 3})
+	_check(odd == {"build": "normal", "figure": "straight", "skin": 2, "hair": "short", "hair_colour": 2, "eyes": 0, "face": "", "on_face": "glasses"},
 		"looks sent wrong fall back to the default's, field by field: %s" % [odd])
 	_check(Looks.clean(null) == Looks.default_look() and Looks.clean({"skin": 4.0})["skin"] == 4,
 		"no looks are the default's; a saved whole number read as a float is taken")

@@ -961,7 +961,7 @@ const SHOTS := {
 	# The first screen (the world to make) and the whole map of what is explored.
 	"ui-setup-character": {"time": 0.45, "season": 1, "touch": true, "setup": "character"},
 	"ui-setup-looks": {"time": 0.45, "season": 1, "touch": true, "setup": "character",
-		"looks": {"skin": 6, "hair": "braids", "hair_colour": 5, "eyes": 3, "face": "freckles", "on_face": "earrings"}},
+		"looks": {"build": "thin", "figure": "curvy", "skin": 6, "hair": "braids", "hair_colour": 5, "eyes": 3, "face": "freckles", "on_face": "earrings"}},
 	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
 	"ui-setup-mods": {"time": 0.45, "season": 1, "touch": true, "setup": "mods"},
 	# The page of one mod: a row per bundle (its animals), each switched on its own.

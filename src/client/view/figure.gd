@@ -37,7 +37,8 @@ const SWAPS_MAX := 12
 
 static var _data := {}
 static var _layers := {}
-static var _anchors := []
+## The hands' places (see anchors), by form.
+static var _anchors := {}
 static var _held := {}
 static var _icons := {}
 ## The brightest pixel of each frame of a sheet held, by "path|column|row|flipped"
@@ -47,6 +48,8 @@ static var _bright := {}
 var target: SpriteSheet
 var look: Array
 var held: Dictionary
+## The body's form the look is drawn in (form_of).
+var _form: String
 var _img: Image
 ## The next part to put together, PART frames of a row; -1 before the sheets of the
 ## things are loaded.
@@ -68,6 +71,7 @@ static var _far := {}
 func _init(worn: Array, hands: Dictionary) -> void:
 	look = worn
 	held = hands
+	_form = form_of(worn)
 	target = SpriteSheet.new(data())
 
 
@@ -84,7 +88,7 @@ static func sheet(worn: Array, hands := {}) -> SpriteSheet:
 static func forget() -> void:
 	_data = {}
 	_layers = {}
-	_anchors = []
+	_anchors = {}
 	_held = {}
 	_icons = {}
 	_bright = {}
@@ -100,18 +104,66 @@ static func data() -> Dictionary:
 
 ## Loads the figure's pictures ahead, so a sheet later only puts them together.
 static func prepare(worn: Array) -> void:
+	var f := form_of(worn)
 	for name in worn:
 		layer(name)
-	layer(data().fists)
-	anchors()
+	layer(in_form(data().fists, f))
+	anchors(f)
 
 
 ## The picture of layer `name` of the figure: a picture of player/ (`hair/<style>` in
-## its folder), or the path of one (clothes worn, see dressed).
+## its folder; `forms/<form>/<layer>` a layer of a form, see in_form), or the path of
+## one (clothes worn, see dressed).
 static func layer(name: String) -> Image:
 	if not _layers.has(name):
-		_layers[name] = _picture(name if name.ends_with(".png") else "%s/player/%s.png" % [SPRITES, name])
+		var path := name if name.ends_with(".png") else "%s/player/%s.png" % [SPRITES, name]
+		if name.begins_with("forms/"):
+			var parts := name.split("/")
+			path = _form_path("%s/player/" % SPRITES, parts[2], parts[1], ".png")
+		_layers[name] = _picture(path)
 	return _layers[name]
+
+
+## The body's form of `looks` (Looks: its build and figure), "" for the plain one the
+## layers of player/ are drawn in.
+static func form_for(looks: Dictionary) -> String:
+	if looks.is_empty():
+		return ""
+	var look := Looks.clean(looks)
+	var out := "%s_%s" % [look.build, look.figure]
+	return "" if out == PLAIN else out
+
+
+## The form of the plain layers (player/<layer>.png).
+const PLAIN := "normal_straight"
+
+
+## The name of layer `name` (player.yaml `layers`, `fists`, `hands`) drawn in form
+## `form` (form_for; "": the plain one).
+static func in_form(name: String, form: String) -> String:
+	return name if form == "" else "forms/%s/%s" % [form, name]
+
+
+## The form a look (dressed) is drawn in: that of its layers in forms/, else "".
+static func form_of(worn: Array) -> String:
+	for name: String in worn:
+		if name.begins_with("forms/"):
+			return name.get_slice("/", 1)
+	return ""
+
+
+## The picture of `name` in form `form` (<build>_<figure>): <dir>forms/<form>/<name>,
+## else the form's build straight (what a figure does not change: the arms, the hands),
+## else the plain <dir><name>. `ext` ends each; clothes keep theirs as <dir><name>/<form>.
+static func _form_path(dir: String, name: String, form: String, ext: String, worn := false) -> String:
+	var straight := form.get_slice("_", 0) + "_straight"
+	for f: String in [form, straight]:
+		if f == PLAIN:
+			continue
+		var path := "%s%s/%s%s" % [dir, name, f, ext] if worn else "%sforms/%s/%s%s" % [dir, f, name, ext]
+		if Content.exists(path):
+			return path
+	return dir + name + ext
 
 
 ## Where clothes go among the naked layers (player.yaml `naked`): the legs, feet and
@@ -129,9 +181,10 @@ const OVER := ["head"]
 ## (paint).
 static func dressed(gear: Dictionary, looks := {}) -> Array:
 	var naked: Array = data().get("naked", ["body", "hair"])
-	var out: Array = naked.slice(0, naked.size() - 1)
+	var f := form_for(looks)
+	var out: Array = naked.slice(0, naked.size() - 1).map(func(n: String) -> String: return in_form(n, f))
 	for on in UNDER:
-		out += _worn_layer(str(gear.get(on, "")))
+		out += _worn_layer(str(gear.get(on, "")), f)
 	if looks.is_empty():
 		out.append(naked[-1])
 	else:
@@ -140,7 +193,7 @@ static func dressed(gear: Dictionary, looks := {}) -> Array:
 		out += _look_layer("hair/" + look.hair)
 		out += _look_layer("face/" + look.on_face)
 	for on in OVER:
-		out += _worn_layer(str(gear.get(on, "")))
+		out += _worn_layer(str(gear.get(on, "")), f)
 	return out
 
 
@@ -222,11 +275,13 @@ static func paint(material: ShaderMaterial, looks: Dictionary) -> void:
 	material.set_shader_parameter("swap_to", to)
 
 
-static func _worn_layer(id: String) -> Array:
+static func _worn_layer(id: String, form := "") -> Array:
 	var item := Items.get_item(id) if id != "" else {}
 	if item.get("look", "") == "":
 		return []
 	var path := Content.asset(item, "sprites/worn/%s.png" % item.look)
+	if form != "":
+		path = _form_path(path.get_base_dir() + "/", item.look, form, ".png", true)
 	return [path] if Content.exists(path) else []
 
 
@@ -234,10 +289,11 @@ static func _worn_layer(id: String) -> Array:
 ## a hand being {"at": its pixel in the frame, "front": over the body or not, "angle":
 ## the way what it holds points, 0 up and clockwise by eighths, -1 as carried}, or {}
 ## where it holds the same thing as the other one (or is not marked).
-static func anchors() -> Array:
-	if _anchors.is_empty():
+static func anchors(form := "") -> Array:
+	if not _anchors.has(form):
+		var all := []
 		var s := SpriteSheet.new(data())
-		var marks := layer(data().hands)
+		var marks := layer(in_form(data().hands, form))
 		for row in s.directions.size():
 			var cols := []
 			for col in s.columns:
@@ -257,8 +313,9 @@ static func anchors() -> Array:
 						var angle := roundi(c.g * 8.0) - 1 if c.g > 0.06 else -1
 						both[hand] = {"at": Vector2i(x, y), "front": maxf(c.r, c.b) > 0.75, "angle": angle}
 				cols.append(both)
-			_anchors.append(cols)
-	return _anchors
+			all.append(cols)
+		_anchors[form] = all
+	return _anchors[form]
 
 
 ## The sheet of a tool held: its picture at `path`.
@@ -492,7 +549,7 @@ func _compose(src: int, c0: int, c1: int) -> Image:
 	for name: String in look:
 		strip.blend_rect(layer(name), from, Vector2i.ZERO)
 	_put_things(strip, src, true, c0, c1)
-	strip.blend_rect(layer(data().fists), from, Vector2i.ZERO)
+	strip.blend_rect(layer(in_form(data().fists, _form)), from, Vector2i.ZERO)
 	return strip
 
 
@@ -504,7 +561,7 @@ func _compose(src: int, c0: int, c1: int) -> Image:
 func _put_things(strip: Image, src: int, front: bool, c0: int, c1: int) -> void:
 	var size := target.frame_size
 	var dir: String = target.directions[src]
-	var marks: Array = anchors()[src]
+	var marks: Array = anchors(_form)[src]
 	var cell := Vector2i(data().held.cell[0], data().held.cell[1])
 	var grip := Vector2i(data().held.grip[0], data().held.grip[1])
 	for col in range(c0, c1):
