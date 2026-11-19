@@ -19,8 +19,8 @@ extends RefCounted
 ## with the hands swapped. Arms go from the shoulder to the hand (ARMS). Light comes from
 ## the upper left. The feet stand on the frame's last row with no outline under them. The
 ## walk's body under the head is copied pixel by pixel from the reference (WalkArt): the
-## arms swinging, the body bobbing; the jump's and the swim's are drawn whole the same way
-## (JumpArt, SwimArt).
+## arms swinging, the body bobbing; the jump's, the swim's and the chop's are drawn whole
+## the same way (JumpArt, SwimArt, ChopArt).
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -33,6 +33,7 @@ const FormsArt := preload("res://tools/art/player_forms_art.gd")
 const WalkArt := preload("res://tools/art/player_walk_art.gd")
 const JumpArt := preload("res://tools/art/player_jump_art.gd")
 const SwimArt := preload("res://tools/art/player_swim_art.gd")
+const ChopArt := preload("res://tools/art/player_chop_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -378,15 +379,10 @@ const MOVES := {
 ## edge leads the other way), "f" in front of the body or not (by default as the view
 ## has it), "o" where the other hand holds a two-handed thing, "bob" and "lean" how far
 ## the body bends down and forward, "eyes" "shut". A thing swung up over the head goes
-## behind it, the hand hidden, so it does not cover the face.
+## behind it, the hand hidden, so it does not cover the face. The chop is drawn whole
+## with the axe's ways in its frames (ChopArt).
 const WORKS := {
 	"front": {
-		"chop": [
-			{"r": [1, 9], "a": 0, "f": false},
-			{"r": [4, 4], "a": 0, "f": false},
-			{"r": [5, 12], "a": TOWARD},
-			{"r": [5, 13], "a": TOWARD, "bob": 1},
-		],
 		"dig": [
 			{"r": [4, 12], "a": TOWARD},
 			{"r": [4, 13], "a": TOWARD, "bob": 1},
@@ -425,12 +421,6 @@ const WORKS := {
 		],
 	},
 	"side": {
-		"chop": [
-			{"r": [4, 9], "a": 7, "f": false},
-			{"r": [5, 5], "a": 6, "f": false},
-			{"r": [10, 12], "a": 3, "lean": 1},
-			{"r": [10, 14], "a": 3, "bob": 1, "lean": 1},
-		],
 		"dig": [
 			{"r": [9, 12], "a": 3},
 			{"r": [10, 13], "a": 3, "bob": 1},
@@ -469,12 +459,6 @@ const WORKS := {
 		],
 	},
 	"back": {
-		"chop": [
-			{"r": [11, 9], "a": 0, "f": true},
-			{"r": [9, 4], "a": 0, "f": true},
-			{"r": [8, 13], "a": 0},
-			{"r": [8, 14], "a": 0, "bob": 1},
-		],
 		"dig": [
 			{"r": [9, 13], "a": 0},
 			{"r": [9, 14], "a": 0, "bob": 1},
@@ -652,9 +636,9 @@ static func column(col: int) -> Array:
 
 
 ## The frame of column `c` ([name, i], see column) drawn whole under the head in
-## direction `dir`, its hands with it: the walk's (WalkArt), the jump's (JumpArt) or the
-## swim's (SwimArt); {}
-## for any other, made of the body standing and a pose.
+## direction `dir`, its hands with it: the walk's (WalkArt), the jump's (JumpArt), the
+## swim's (SwimArt) or the chop's (ChopArt, with the way the axe points: `a`); {} for any
+## other, made of the body standing and a pose.
 static func whole_frame(dir: String, c: Array) -> Dictionary:
 	match c[0]:
 		"walk":
@@ -663,6 +647,8 @@ static func whole_frame(dir: String, c: Array) -> Dictionary:
 			return JumpArt.frame(dir, c[1])
 		"swim":
 			return SwimArt.frame(dir, c[1])
+		"chop":
+			return ChopArt.frame(dir, c[1])
 	return {}
 
 
@@ -731,6 +717,16 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 		else:
 			# The other hand hangs as it does standing.
 			p[other].at = _rest(dir, other) + Vector2i(0, p.bob)
+	elif whole.has("a"):
+		# A work drawn whole: the hand drawn holding the tool holds it whichever hand works
+		# (a west direction is the east one mirrored, the tool with it); the other hangs as
+		# drawn.
+		p.eyes = whole.get("eyes", "open")
+		var other := _other(active)
+		p[active] = {"at": Vector2i(whole.hands[0][0], whole.hands[0][1] + p.bob), "front": whole.f, "holds": true,
+			"worked": true, "angle": whole.a, "ccw": whole.get("ccw", false)}
+		p[other].at = Vector2i(whole.hands[1][0], whole.hands[1][1] + p.bob)
+		p[other].front = _front(view, "left")
 	# A frame drawn whole has its hands where it draws them.
 	var shift: Vector2i = SHIFT.get(dir, Vector2i.ZERO) if whole.is_empty() else Vector2i.ZERO
 	for hand in ["right", "left"]:
@@ -741,7 +737,9 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 		if view != "side":
 			out.x = FormsArt.OUT.get(build, 0) * (1 if s.x > 6 else -1)
 		p[hand].shoulder = s + out + Vector2i(p.lean, p.bob) + SHIFT.get(dir, Vector2i.ZERO)
-		p[hand].at += shift + (Vector2i.ZERO if p[hand].worked else out)
+		# A hand raised over the neck of a frame drawn whole stays where it is in every form.
+		var raised: bool = whole.has("neck") and p[hand].at.y < whole.neck
+		p[hand].at += shift + (Vector2i.ZERO if (p[hand].worked and whole.is_empty()) or raised else out)
 	return p
 
 
@@ -818,9 +816,11 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 				rows = JumpArt.rows(whole, dir, build, figure)
 			"swim":
 				rows = SwimArt.rows(whole, dir, build, figure)
+			"chop":
+				rows = ChopArt.rows(whole, dir, build, figure)
 			_:
 				rows = WalkArt.rows(whole, dir, build, figure)
-		_stamp(parts, rows, 10, Vector2i.ZERO)
+		_stamp(parts, rows, whole.get("top", 10), Vector2i.ZERO)
 	var head: Array = HEAD[dir]
 	if p.eyes == "shut":
 		# Shut, an eye is a dark line where the iris and the white were.
@@ -838,7 +838,11 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 		if WalkArt.HANDS.has(e[1]):
 			# A hand of a frame drawn whole: with the fists in front of the body, else with it.
 			var h: Array = WalkArt.HANDS[e[1]]
-			out["fists" if p[h[0]].front else "body"][e[0]] = h[1]
+			var hand: String = h[0]
+			if whole.has("a"):
+				# A work's frame draws the hand holding the tool as the right one.
+				hand = active if hand == "right" else _other(active)
+			out["fists" if p[hand].front else "body"][e[0]] = h[1]
 		else:
 			_put(out, e[0], e[1])
 	for hand in ["left", "right"]:

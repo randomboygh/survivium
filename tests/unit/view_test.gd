@@ -257,7 +257,9 @@ func _test_sprite_sheet() -> void:
 	var works: Dictionary = Figure.data().works
 	var chop: Array = works.chop.columns
 	_check(anchors[0][chop[0]].right.at != anchors[0][chop[1]].right.at, "the hand in use winds up and strikes")
-	_check(anchors[0][chop[0]].left.at == anchors[0][0].left.at, "the other hand stays put")
+	# The torso turns a pixel toward the swing (ChopArt), the other hand with it.
+	var still: Vector2i = anchors[0][chop[0]].left.at - anchors[0][0].left.at
+	_check(absi(still.x) <= 1 and still.y == 0, "the other hand stays put but for the torso's turn: %s" % [still])
 	_check(anchors[2][0].right.front and not anchors[2][0].left.front, "facing east the right hand is near, the left far")
 	_check(not anchors[4][0].right.front, "with the back turned a hand is behind the body")
 	_check(anchors[0][works.mow.columns[1]].left.is_empty(), "in a two-handed work the left hand holds the same thing")
