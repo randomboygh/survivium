@@ -67,4 +67,10 @@ aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e,
 
 ## Next: chop
 
-- Columns 14-17 (`WORKS` chop by view): a work with a held tool, so the hands' places (`r`, `a`) matter.
+- Columns 14-17 (`WORKS` chop by view, 1 frame a second): a work with a held tool. Now the arm is drawn by
+  `PlayerArt._arm` from `SHOULDER` to the hand at `WORKS` `r`, the axe (`ToolArt`, `held/axe.png`) at that
+  hand turned by `a`. Drawn whole like the swim, `pose` still takes the hand and the axe from `WORKS`, so
+  its `r` has to be where the drawn hand is; the held pictures are regenerated with the player's.
+- To see the axe: `dump.gd` in the library (copy into `tools/`, run with
+  `-- <dir> axe=tools/axe/sprites/held/axe.png:chop`, delete) saves the dressed sheet with the axe held;
+  it reads the imported PNGs, so after a code change run `make_sprites.gd -- --all` and `--import` first.
