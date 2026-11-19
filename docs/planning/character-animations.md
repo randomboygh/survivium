@@ -2,7 +2,7 @@
 
 Status (2026-11-19): thread «Поправить анимации персонажа» reviewed the default character's
 animations one by one on the new chibi body. Done: the walk and the stand (#789), the outline under a
-hand low in the frame (#790), the jump (#791). Next, in this order: swim, chop, dig, slash, reach, mow,
+hand low in the frame (#790), the jump (#791), the swim (a breaststroke). Next, in this order: chop, dig, slash, reach, mow,
 aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e, ne, n, nw, w, sw.
 
 ## How the user reviews
@@ -33,7 +33,7 @@ aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e,
   (`SHOULDER`, `REST`, `ARMS`), the hands of each pose by view (`MOVES`), the works (`WORKS`), the side
   legs (`SIDE_LEGS`). `pose` and `frame_letters` build a frame from these.
 - Frames drawn whole under the head: the walk (`tools/art/player_walk_art.gd`, copied from the reference)
-  and the jump (`tools/art/player_jump_art.gd`); `PlayerArt.whole_frame` picks them by column. A frame is
+  the jump (`tools/art/player_jump_art.gd`) and the swim (`tools/art/player_swim_art.gd`); `PlayerArt.whole_frame` picks them by column. A frame is
   `bob` (the head's place, the stand's `drop` in it), `hips` (the waistband's row), `hands` (right, left:
   the hand's lowest pixel next to the body, less the bob; where what it holds goes) and `rows` (box rows
   10-17 in the letters of `PlayerArt.INK`, the hands' skin in the digits of `WalkArt.HANDS`: 4, 5, 6 the
@@ -56,11 +56,15 @@ aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e,
   sheet, to try frames before writing them in the code; `jump_sheet.py` puts such frames into a sheet.
 - `jump_review.py <q dir> <out.gif> <old q dir>`: the review GIF (the frames from `layout.json`).
 
-## Next: the swim
+## The swim (done)
 
-- Columns 10-13, `MOVES` swim by view: the arms reach out and pull back in turn, the legs kick.
-- In the game the water comes up to the eyes (`tools/shot.gd` shot `fx-reflect-deep`, under xvfb); the
-  body under it shows tinted in clear water and not at all in a bog, so the review GIF should draw the
-  water line and the tint.
-- To settle with the user: strokes moving from the shoulders as in the jump, and how much of the arms
-  shows over the water.
+- The water is 0.9 cell (7.2 px) over the soles: the rows over the eyes show, the chin's row is the ripple,
+  the rest tinted (a bog hides it). So the stroke is all under water; a hand raised to the chin merges
+  with the face. Afloat the head has no stand `drop` in any direction, so the eyes stay over the water.
+- `swim_review.py <data module> <q dir> <out.gif> <old q dir> [dirs] [title]` draws the water as the
+  game does (`swim_a.py` the frames, `proto.render(..., head_up=1)` lifts a dropped head);
+  `gen_swim_gd.py <module> <out.gd>` writes `player_swim_art.gd` from them.
+
+## Next: chop
+
+- Columns 14-17 (`WORKS` chop by view): a work with a held tool, so the hands' places (`r`, `a`) matter.
