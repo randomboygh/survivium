@@ -228,7 +228,12 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   breaststroke the user picked): the water is at the chin, so the whole stroke is under it, tinted; the hands
   come together in front of the chest, the arms sweep out from the shoulders, pull down and come back, the
   legs glide, kick apart and draw up; afloat the head is as high in every direction (no stand `drop`), so
-  the eyes stay over the water. `PlayerArt.whole_frame` gives a column's frame drawn so.
+  the eyes stay over the water. The chop's four frames too, with the axe (`tools/art/player_chop_art.gd`,
+  reviewed with the user 2026-11-19): the axe up beside the head, the top, the strike crouched, upright
+  again; the torso moves in the first two. A work drawn so carries the way the tool points (`a`, `ccw`,
+  `f`) and where the hand holds it, so `PlayerArt.pose` takes them from the frame instead of `WORKS`; its
+  west directions are the east ones mirrored with the tool. `PlayerArt.whole_frame` gives a column's frame
+  drawn so.
 - Looks (stage 3, PR 3 of the character editor): `src/shared/content/looks.gd` reads `player.yaml` `looks`
   (10 skin tones, 12 hair colours, 6 eye colours by place in their lists; 10 hair styles, 8 face options
   under the hair, 5 on the face, by id) and makes any look sound (`Looks.clean`: the server's check of a

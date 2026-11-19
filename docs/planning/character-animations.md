@@ -2,7 +2,7 @@
 
 Status (2026-11-19): thread «Поправить анимации персонажа» reviewed the default character's
 animations one by one on the new chibi body. Done: the walk and the stand (#789), the outline under a
-hand low in the frame (#790), the jump (#791), the swim (a breaststroke). Next, in this order: chop, dig, slash, reach, mow,
+hand low in the frame (#790), the jump (#791), the swim (#792), the chop. Next, in this order: dig, slash, reach, mow,
 aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e, ne, n, nw, w, sw.
 
 ## How the user reviews
@@ -33,7 +33,7 @@ aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e,
   (`SHOULDER`, `REST`, `ARMS`), the hands of each pose by view (`MOVES`), the works (`WORKS`), the side
   legs (`SIDE_LEGS`). `pose` and `frame_letters` build a frame from these.
 - Frames drawn whole under the head: the walk (`tools/art/player_walk_art.gd`, copied from the reference)
-  the jump (`tools/art/player_jump_art.gd`) and the swim (`tools/art/player_swim_art.gd`); `PlayerArt.whole_frame` picks them by column. A frame is
+  the jump (`tools/art/player_jump_art.gd`), the swim (`tools/art/player_swim_art.gd`) and the chop (`tools/art/player_chop_art.gd`); `PlayerArt.whole_frame` picks them by column. A frame is
   `bob` (the head's place, the stand's `drop` in it), `hips` (the waistband's row), `hands` (right, left:
   the hand's lowest pixel next to the body, less the bob; where what it holds goes) and `rows` (box rows
   10-17 in the letters of `PlayerArt.INK`, the hands' skin in the digits of `WalkArt.HANDS`: 4, 5, 6 the
@@ -65,12 +65,26 @@ aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e,
   game does (`swim_a.py` the frames, `proto.render(..., head_up=1)` lifts a dropped head);
   `gen_swim_gd.py <module> <out.gd>` writes `player_swim_art.gd` from them.
 
-## Next: chop
+## The chop (done)
 
-- Columns 14-17 (`WORKS` chop by view, 1 frame a second): a work with a held tool. Now the arm is drawn by
-  `PlayerArt._arm` from `SHOULDER` to the hand at `WORKS` `r`, the axe (`ToolArt`, `held/axe.png`) at that
-  hand turned by `a`. Drawn whole like the swim, `pose` still takes the hand and the axe from `WORKS`, so
-  its `r` has to be where the drawn hand is; the held pictures are regenerated with the player's.
-- To see the axe: `dump.gd` in the library (copy into `tools/`, run with
-  `-- <dir> axe=<the axe's held picture under content/>:chop`, e.g. `content/tools/axe/sprites/held/axe.png` without `content/`, delete) saves the dressed sheet with the axe held;
-  it reads the imported PNGs, so after a code change run `make_sprites.gd -- --all` and `--import` first.
+- Columns 14-17, drawn whole with the axe: `tools/art/player_chop_art.gd`, written by
+  `gen_chop_gd.py <module> <out.gd>` from a data module (the last: `chop_k.py`, built on `chop_e.py`, the
+  third review the user went back to). A frame: `rows` from box row `top` (a raised arm beside the head),
+  `bob`, the hand's grip `r`, the axe's way `a`, `ccw`, `f`. `PlayerArt.pose` takes the hand and the axe
+  from the frame (`WORKS` has no chop); the west is the east mirrored, the axe in the left hand there.
+- Tools: `work_proto.py` renders a frame with the axe as the game does (checked pixel for pixel against
+  `dump.gd`), `sheet.py` a still sheet, `work_review.py` the GIF; `OLDMOD=<module>:CHOP` shows the
+  previous iteration as «было», which the user asked for. `chop_d.py` has `turn` and `stretch`.
+- The user's rules from it: crouch on the strike (frame 3), upright on 4; the torso moves on frames 1-2;
+  the edge toward the chop; the arm goes along the tool. A reference that helped: Irog's Axeman
+  (CC-BY 4.0, opengameart.org/node/190386, in `survivium-builds/character/anim/references/chop/`);
+  `chop_j.py` builds frames from a pose, the tool's way and the arm's length, if a later work wants that.
+
+## Next: dig
+
+- Columns 18-21 (`WORKS` dig). Draw it whole the same way: a data module, a generator like
+  `gen_chop_gd.py` (or one module for all the works), a case in `whole_frame` and `frame_letters`.
+- To see a held tool: `dump.gd` in the library (copy into `tools/`, run with
+  `-- <dir> name=<held picture under content/>:<work>`, the shovel's held picture with `:dig`,
+  delete) saves the dressed sheet with it held; it reads the imported PNGs, so after a code change run
+  `make_sprites.gd -- --all` and `--import` first.
