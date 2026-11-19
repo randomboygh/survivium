@@ -37,7 +37,7 @@ var choices: ChoiceRows
 func _init(rows_width: float, inset := true) -> void:
 	add_theme_constant_override("separation", 10)
 	var frame := PanelContainer.new()
-	frame.add_theme_stylebox_override("panel", UiStyle.slot())
+	frame.add_theme_stylebox_override("panel", UiStyle.stage())
 	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	add_child(frame)
