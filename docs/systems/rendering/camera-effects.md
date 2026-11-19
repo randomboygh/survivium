@@ -67,6 +67,16 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   sideways farther than they fall), and the strokes of drops are tilted along the fall (`lean` in
   `particle.gdshader`). Under snow the grass at the joint with a torn-out cell spreads into it by separate
   texels (`GRASS_FRAY` in `world.gdshader`), with no white squares.
+- `src/client/view/tree_hits.gd` (held by `Effects.trees`, made by `Main`) — a tree answers a blow of the axe:
+  `hit(at, delay, from)` from `Controls._did` (one's own blow, a `Mat.LOG` hit) and from `Others` (another
+  player's `chop` work with its point, so nothing new goes over the net); at `STRIKE` of the swing (frame 3 of
+  the chop) the crown of the tree whose trunk is there shudders (`leaves.gdshader` `shakes`, `shake_count`: up to
+  four trees, the foot of the trunk and the lean in pixels, a damped to-and-fro along the screen, first away
+  from the axe; a card leans by its distance from the trunk and its height, the trunk stays) and a few leaves of
+  the crown's colour drift down from its edge toward the camera (by the season's `leaf_amount`, more in
+  autumn, a few needles off a conifer, none off a dead or bare tree; a pool of three emitters, off with the
+  effects). A tree gone by then (the blow that felled it) is left alone. Shots `chop-tree`, `chop-tree-autumn`,
+  `chop-spruce`.
 - `src/client/view/air_effects.gd`, `water_effects.gd`, `nature_effects.gd` (held by `Effects.air`, `.water`,
   `.nature`, made by `Main`, stepped by `Sky`) — the small effects, each by its setting in «Эффекты» (`effects`
   weather and fire, `water_fx` 0/1/2, `nature_fx`, `body_fx`, `heat_fx`, `drops_fx`; off on «низкое», mirroring

@@ -156,6 +156,8 @@ var windows := WindowGlow.new()
 var air
 var water
 var nature
+## A tree's crown shaking and dropping leaves under the axe (TreeHits).
+var trees
 ## The spores of a puffball picked (puff), made on first use.
 var _puff: CPUParticles3D
 var rng := RandomNumberGenerator.new()

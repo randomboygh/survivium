@@ -62,6 +62,15 @@ global uniform float berry_amount;
 // the trees blossom in spring.
 uniform vec3 blossom_colors[8];
 global uniform float blossom_amount;
+// Trees shaken by a blow of the axe (TreeHits): the foot of the trunk (xyz) and how far
+// the top of its crown leans along the screen now, in pixels (w); the first shake_count.
+uniform vec4 shakes[4];
+uniform int shake_count = 0;
+// How far round a shaken trunk its crown leans (from SHAKE_NEAR fully to SHAKE_FAR not at
+// all), and over what height above its foot it leans in full.
+const float SHAKE_NEAR = 1.5;
+const float SHAKE_FAR = 3.5;
+const float SHAKE_RISE = 4.0;
 
 varying vec3 center;
 varying flat vec4 custom;
@@ -77,6 +86,8 @@ void vertex() {
 	center = VERTEX - vec3((UV.x - 0.5) * clump_size, (0.5 - UV.y) * clump_size, 0.0);
 	custom = INSTANCE_CUSTOM;
 	tint = COLOR;
+	// Where the card is at rest, for a shake (see shakes).
+	vec3 rest = center;
 	// The card cut down to what its row draws (a bare tree's deep layer may show the
 	// branches instead).
 	float row_in = mod(floor(abs(custom.w)), 32.0);
@@ -129,6 +140,15 @@ void vertex() {
 	} else {
 		VERTEX = shear(stand_tall(face_view(VERTEX, center), center));
 	}
+	// A shaken crown leans along the screen in whole pixels, the more the higher and
+	// nearer its trunk; `center` is left as it was, so the leaves of the card do not flicker.
+	float lean = 0.0;
+	for (int i = 0; i < shake_count; i++) {
+		vec4 s = shakes[i];
+		float near = 1.0 - smoothstep(SHAKE_NEAR, SHAKE_FAR, length(rest.xz - s.xz));
+		lean += s.w * near * clamp((rest.y - s.y) / SHAKE_RISE, 0.2, 1.0);
+	}
+	VERTEX.xz += vec2(-view_up.y, view_up.x) * round(lean) / TEXELS;
 	light_xz = VERTEX.xz;
 }
 
