@@ -48,6 +48,10 @@ static var _bright := {}
 var target: SpriteSheet
 var look: Array
 var held: Dictionary
+## Whether the picture of the sheet is kept once it is built (`image`), for whoever reads
+## its pixels (FigurePreview's shadow); the sheet's texture alone is kept otherwise.
+var keep_image := false
+var image: Image
 ## The body's form the look is drawn in (form_of).
 var _form: String
 var _img: Image
@@ -441,6 +445,8 @@ func step() -> bool:
 		return false
 	_lay_down()
 	target.show(_img)
+	if keep_image:
+		image = _img
 	_img = null
 	return true
 

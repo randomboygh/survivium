@@ -1,9 +1,10 @@
 extends PanelContainer
 ## The tab «Персонаж» of the inventory window (plan/mvp.md stage 3, «Решения по
 ## персонажу»; plan/design/ui.md, «Инвентарь»): the character drawn big in the middle
-## (FigurePreview on its stand, in what it wears and its looks, Figure.dressed), turned
-## through the eight directions by a finger or the mouse dragged across it, a tap on a
-## half of it or the arrows at its sides; round it the slots of what is worn (the head,
+## (FigurePreview on its stand, in what it wears and its looks, Figure.dressed, with what
+## its hands hold, Hands.look, its short shadow to the north-west), turned through the
+## eight directions by a finger or the mouse dragged across it, a tap on a half of it or
+## the arrows at the stand's sides; round it the slots of what is worn (the head,
 ## body, legs and feet down the left, as high as they are on the figure) and of the bag
 ## on the back and the two hands down the right, a strip of the bag's load along the
 ## bottom of the back's slot. Under it the skills (Skills, the character's SkillSet), in
@@ -45,18 +46,18 @@ const TITLES := {
 ## TARGET_SIDE tall), and between the columns and the figure.
 const GAP_Y := 3
 const GAP_X := 6
-## The part of the figure's frame drawn (FigurePreview.crop): the rows over the head and
-## the columns by the sides are the room of the things held, not drawn here (no frame
-## of the body, its clothes or hair reaches above row 15 or out of columns 7..24); the
-## stand under the feet fits in its width.
-const CROP := Rect2i(2, 12, 28, 20)
-## Screen pixels a pixel of the figure with the skills under it and beside it, and the
-## fewest where the window is short of room (shrink).
+## The part of the figure's frame drawn (FigurePreview.crop): its whole width (a scythe
+## carried reaches both edges), the rows over the head left out (nothing standing, the
+## things held neither, reaches above row 15: the room of the works' swings).
+const CROP := Rect2i(0, 12, 32, 20)
+## Screen pixels a pixel of the figure with the skills under it and beside it (so they
+## keep room for their names in the window's width), and the fewest where the window is
+## short of room (shrink).
 const PIXELS := 7
-const PIXELS_WIDE := 6
+const PIXELS_WIDE := 5
 const PIXELS_LEAST := 3
-## The side of the arrows that turn the figure, at the middle of its frame's sides (the
-## room the crop keeps by the body).
+## The side of the arrows that turn the figure, at the bottom corners of its frame, by the
+## stand (nothing held hangs below the feet).
 const ARROW := 22
 ## The columns of skills under the figure and beside it.
 const COLUMNS_UNDER := 3
@@ -88,6 +89,8 @@ var _grid: GridContainer
 var _bars := []
 ## The tool held of each skill's work: role -> the thing's id (named in the tooltip).
 var _tool := {}
+## The hands the figure was last given, "left|right|hand in use" (see _hold).
+var _held := ""
 
 
 func _init(g) -> void:
@@ -121,7 +124,7 @@ func _ready() -> void:
 			"[turn_the_character_left]" if d < 0 else "[turn_the_character_right]", preview.turn.bind(d), ARROW)
 		b.focus_mode = Control.FOCUS_NONE
 		preview.add_child(b)
-		b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT if d < 0 else Control.PRESET_CENTER_RIGHT,
+		b.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT if d < 0 else Control.PRESET_BOTTOM_RIGHT,
 			Control.PRESET_MODE_MINSIZE)
 	figure.add_child(_column(RIGHT))
 	# The skills in a panel of their own, columns of bars.
@@ -237,14 +240,34 @@ func shrink() -> bool:
 	return true
 
 
+## The hands followed while the tab shows, as Hands.update follows them for the world's
+## figure: the hand in use changed, or a hand emptied as its last thing is used up,
+## refreshes no bag.
+func _process(_delta: float) -> void:
+	if is_visible_in_tree():
+		_hold()
+
+
+## The figure given what the hands hold (Controls.hands, Hands.look) when they change.
+func _hold() -> void:
+	var c = game.controls
+	var key := "%s|%s|%d" % [c.hands[0], c.hands[1], c.active]
+	if key == _held:
+		return
+	_held = key
+	preview.hold(game.hands.look(c.hands[0]), game.hands.look(c.hands[1]), "left" if c.active == 0 else "right")
+
+
 ## What is worn and held now, the chosen slot lit; the bag's slots on its tooltip.
 func refresh() -> void:
 	if _layout == null or not is_inside_tree():
 		return
 	var inv = game.character.inventory
-	# The figure in what it wears and its looks, as in the world (Hands.update).
+	# The figure in what it wears and its looks, with what its hands hold, as in the world
+	# (Hands.update).
 	var looks: Dictionary = game.character.looks
 	preview.dress(Figure.dressed(inv.gear, looks))
+	_hold()
 	preview.paint(looks)
 	for k: String in TITLES:
 		var c = _cells[k]
