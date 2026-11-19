@@ -506,6 +506,9 @@ vec3 toward_camera() {
 // The most cells the view in layers looks through behind a face it leaves out (from
 // the top of solid_map at most: about two a level down to the player and on).
 const int LAYER_FILL_STEPS = 48;
+// Shorter than this (world units, about half a pixel) the line through an open cell
+// only grazes its corner (see layer_fills).
+const float LAYER_GRAZE = 0.03;
 
 // In the view in layers, whether the texel `texel` of a face the layers leave out, at
 // `p` a hair inside its solid cell, is to be drawn as the rock's section instead: the
@@ -528,6 +531,8 @@ bool layer_fills(vec3 p, vec2 texel) {
 	vec3 next = ((c + max(step_by, vec3(0.0))) * CELL - p) / safe;
 	next = vec3(abs(way.x) < 1e-5 ? 1e9 : next.x, abs(way.y) < 1e-5 ? 1e9 : next.y, abs(way.z) < 1e-5 ? 1e9 : next.z);
 	for (int i = 0; i < LAYER_FILL_STEPS; i++) {
+		// Where the line comes into this cell.
+		float in_at = min(next.x, min(next.y, next.z));
 		if (next.x < next.y && next.x < next.z) {
 			next.x += delta.x;
 			c.x += step_by.x;
@@ -539,7 +544,13 @@ bool layer_fills(vec3 p, vec2 texel) {
 			c.z += step_by.z;
 		}
 		if (!solid_at((c + 0.5) * CELL)) {
-			return false;
+			// Only grazing an open cell's corner (in a diagonal view the lines of a row
+			// of pixels run within a hair of the corners of a diagonal rock face): what
+			// lies beyond has no face on this line either, so it goes on.
+			if (min(next.x, min(next.y, next.z)) - in_at > LAYER_GRAZE) {
+				return false;
+			}
+			continue;
 		}
 		if (dither < layer_alpha(c)) {
 			return true;
