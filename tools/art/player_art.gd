@@ -11,14 +11,15 @@ extends RefCounted
 ## what they hold has sheets of its own (ToolArt), turned the way the poses here say.
 ##
 ## The figure is a chibi: 12 pixels wide and 17 tall inside its outline, the head
-## half of it with 2x2 eyes, arms of two pixels, legs a pixel wide on dark soles. It is
-## put together from parts written as letters standing for colours (INK): the head
-## (rows 2-10 of its 14x18 box), the hair over it (from row 1), the neck and torso
-## (11-14) and the legs (15-17), for five directions; the west ones are the east ones
-## mirrored with the hands swapped. Arms go from the shoulder to the hand (ARMS). Light
-## comes from the upper left. The feet stand on the frame's last row with no outline
-## under them, so each foot rests on three dark pixels: its sole and the outline either
-## side.
+## half of it with 2x2 eyes, the body under it in the proportions of the walk copied from
+## a reference (WalkArt): bare arms of two pixels, legs two pixels wide. It is put together
+## from parts written as letters standing for colours (INK): the head (rows 2-10 of its
+## 14x18 box), the hair over it (from row 1) and the body standing (BODY: the neck, the
+## torso and the legs), for five directions; the west ones are the east ones mirrored
+## with the hands swapped. Arms go from the shoulder to the hand (ARMS). Light comes from
+## the upper left. The feet stand on the frame's last row with no outline under them. The
+## walk's body under the head is copied pixel by pixel from the reference (WalkArt): the
+## arms swinging, the body bobbing.
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -28,6 +29,7 @@ const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const Figure := preload("res://src/client/view/figure.gd")
 const LooksArt := preload("res://tools/art/player_looks_art.gd")
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
+const WalkArt := preload("res://tools/art/player_walk_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -49,9 +51,12 @@ const INK := {
 	"U": ["2c5288", "trousers"], "u": ["1e3a62", "trousers"],
 	"T": ["3f6fb0", "trousers"], "t": ["2c5288", "trousers"],
 	"B": ["3d3436", "boots"], "b": ["2b2527", "boots"],
+	# Drawn over the skin's light (shoes) and its deepest (trousers) where the reference's
+	# body has it (WalkArt, BODY).
+	"K": ["3d3436", "boots"], "m": ["1e3a62", "trousers"],
 	"N": ["c9a66e", "loincloth"], "n": ["9c7c4c", "loincloth"],
-	# The dark edge of an arm in front of the body (see ARMS `inner`).
-	"#": ["1f1a14", "fists"],
+	# A dark line in a hair style (LooksArt): a ponytail's tie, a bun's band.
+	"#": ["1f1a14", "hair"],
 	# The shapes of clothes (see SHAPES): the light, middle and dark tone, painted in
 	# the colours of the thing worn (see painted).
 	"1": ["c0c0c0", ""], "2": ["808080", ""], "3": ["404040", ""],
@@ -63,7 +68,8 @@ const INK := {
 	"Q": ["c42430", ""], "Y": ["f0c040", ""], "Z": ["2a2a33", ""], "G": ["2a2a33", ""], "R": ["9fd3e6", ""],
 }
 ## Skin under each letter of the clothes, in the body layer.
-const SKIN := {"L": "S", "C": "S", "c": "s", "V": "k", "U": "S", "u": "s", "T": "S", "t": "s", "B": "s", "b": "k"}
+const SKIN := {"L": "S", "C": "S", "c": "s", "V": "k", "U": "S", "u": "s", "T": "S", "t": "s", "m": "k",
+	"K": "S", "B": "s", "b": "k"}
 ## The darker skin under an arm held out flat.
 const DARKER := {"S": "s", "s": "k", "k": "k"}
 ## The shapes clothes are worn in (see painted), in three greys: what the shirt,
@@ -72,7 +78,8 @@ const DARKER := {"S": "s", "s": "k", "k": "k"}
 ## and a pixel of leg above.
 const SHAPES := ["shirt", "coat", "hat", "trousers", "wraps", "boots", "tall_boots"]
 ## The tone of each letter of the clothes in a shape.
-const TONE := {"L": "1", "C": "2", "c": "3", "V": "3", "U": "2", "u": "3", "T": "1", "t": "2", "B": "2", "b": "3",
+const TONE := {"L": "1", "C": "2", "c": "3", "V": "3", "U": "2", "u": "3", "T": "1", "t": "2", "m": "3",
+	"K": "1", "B": "2", "b": "3",
 	"J": "1", "H": "2", "D": "3"}
 
 ## How each drawn direction shows the body.
@@ -144,77 +151,60 @@ const HEAD := {
 ## The hair drawn in the plain layer `hair` (the hair slot of player.yaml `naked`): the
 ## default look's style (player.yaml `looks`).
 const HAIR_STYLE := "short"
-## The neck and torso, rows 11-14: the neck, the shoulders, the shirt between the arms
-## and the trousers' waistband.
-const TORSO := {
-	"s": [
-		".....kkkk.....",
-		"...LCCCCCCc...",
-		".....CCCc.....",
+## The body standing under the head, in the walk's proportions (WalkArt, copied from the
+## reference): the neck, the torso down to the trousers' waistband (row `hips`) and the
+## legs two pixels wide, their feet on the frame's last row; `rows` from row 11 + `drop`
+## down to row 17 of the box. Turned (se), from the side and from behind the head sits a
+## row lower (`drop`, the body's bob when it stands): the legs are as short as the walk's.
+## Each leg is drawn as the reference has it in the step it stands on; the arms hang over
+## it (ARMS).
+const BODY := {
+	"s": {"drop": 0, "hips": 14, "rows": [
+		"....cVkkVc....",
+		"...ccCCCCcc...",
+		"....cCCCCc....",
+		"....UUuuUU....",
+		"....TT..TT....",
+		"....tt..TT....",
+		"....BB..BB....",
+	]},
+	"se": {"drop": 1, "hips": 15, "rows": [
+		".....VkkVc....",
+		"....ccCCC.....",
+		".....cCCC.....",
+		".....UUuUU....",
+		".....TT.Tt....",
+		".....KB.KB....",
+	]},
+	"e": {"drop": 1, "hips": 14, "rows": [
+		"......CVk.....",
+		".....cCCc.....",
 		".....UUUu.....",
-	],
-	"se": [
-		"....C.kkkk....",
-		"...LCCCCCCc...",
-		"......CCCc....",
-		"......UUUu....",
-	],
-	"e": [
-		"......kkk.....",
-		".....LCCCc....",
-		".....cCCCc....",
-		".....UUUUu....",
-	],
-	"ne": [
-		"....C.kkkk....",
-		"...LCCCCCCc...",
-		".....CCCC.....",
-		".....UUUu.....",
-	],
-	"n": [
-		".....kkkk.....",
-		"...LCCCCCCc...",
-		".....CCCc.....",
-		".....UUUu.....",
-	],
-}
-## The legs standing, rows 15-17: a pixel wide, the feet on the frame's last row.
-const STAND := {
-	"s": [
-		".....T..t.....",
-		".....T..t.....",
-		".....B..b.....",
-	],
-	"se": [
-		"......T..t....",
-		"......T..t....",
-		"......B..b....",
-	],
-	"e": [
-		"......tt......",
-		"......Tt......",
+		".....ttt......",
+		"......tTt.....",
 		"......BBb.....",
-	],
-	"ne": [
-		".....T..t.....",
-		".....T..t.....",
-		".....B..b.....",
-	],
-	"n": [
-		".....T..t.....",
-		".....T..t.....",
-		".....B..b.....",
-	],
+	]},
+	"ne": {"drop": 1, "hips": 15, "rows": [
+		".....VVVC.....",
+		"....ccccCCC...",
+		".....VcccC....",
+		".....uuuuu....",
+		".....mm.tt....",
+		".....bb.BB....",
+	]},
+	"n": {"drop": 1, "hips": 15, "rows": [
+		"...CCVVVVCC...",
+		"...CCccccCC...",
+		"....CccccC....",
+		"....uuuuuu....",
+		"....mm..mm....",
+		"....bb..bb....",
+	]},
 }
-## The legs seen from the side by pose: "stand", "near" or "far" (that leg in front,
-## striding), "pass", "tuck" (drawn up, jumping), "sit" (forward, afloat). The front and
-## back views raise a leg from STAND instead (see legs).
+## The legs seen from the side, rows 15-17, by pose: "near" or "far" (that leg in front,
+## striding), "tuck" (drawn up, jumping), "sit" (forward, afloat); standing they are
+## BODY's. The front and back views raise a leg from BODY instead (see legs).
 const SIDE_LEGS := {
-	"stand": [
-		"......tt......",
-		"......Tt......",
-		"......BBb.....",
-	],
 	"near": [
 		"......tT......",
 		".....t..T.....",
@@ -224,11 +214,6 @@ const SIDE_LEGS := {
 		"......Tt......",
 		".....T..t.....",
 		"....BB..bbb...",
-	],
-	"pass": [
-		"......tT......",
-		"......tT......",
-		"......bBB.....",
 	],
 	"tuck": [
 		"......tT......",
@@ -242,43 +227,49 @@ const SIDE_LEGS := {
 	],
 }
 
-## Shoulders by view: where the right arm and the left one hang from (side view: the
-## near one and the far one).
+## Shoulders by direction: where the right arm and the left one hang from (side view: the
+## near one and the far one), in the box as the view places them (moved by SHIFT and with
+## the body's bob). Turned a little (se) the far arm hangs short and high by the body's
+## side.
 const SHOULDER := {
-	"front": {"right": Vector2i(3, 13), "left": Vector2i(10, 13)},
-	"side": {"right": Vector2i(7, 13), "left": Vector2i(7, 13)},
-	"back": {"right": Vector2i(10, 13), "left": Vector2i(3, 13)},
+	"s": {"right": Vector2i(3, 13), "left": Vector2i(10, 13)},
+	"se": {"right": Vector2i(3, 13), "left": Vector2i(9, 12)},
+	"e": {"right": Vector2i(7, 13), "left": Vector2i(7, 13)},
+	"ne": {"right": Vector2i(10, 13), "left": Vector2i(3, 13)},
+	"n": {"right": Vector2i(10, 13), "left": Vector2i(3, 13)},
 }
-## How each arm is drawn, by direction and hand: the letters of the sleeve and of the
-## skin [on the line from the shoulder, beside it], the side the second pixel is on
-## (`out`; 0: the arm is a pixel wide, the far one), and for an arm over the body seen
-## from the side, the side of its dark edge against the body (`inner`).
+## Where a hand hangs at rest where its direction has it elsewhere than its view's idle
+## (MOVES), in the same places as SHOULDER: turned a little (se) the far one is short.
+const REST := {"se": {"left": Vector2i(9, 13)}}
+## How each arm is drawn, by direction and hand: the skin's tones [on the line from the
+## shoulder, beside it], those of the hand if they differ (`hand`: the line's second
+## half) and the side the second pixel is on (`out`; 0: the arm is a pixel wide). The
+## arms are bare, as the reference's are: what is worn covers the torso.
 const ARMS := {
 	"s": {
-		"right": {"out": -1, "sleeve": ["C", "L"], "hand": ["S", "S"]},
-		"left": {"out": 1, "sleeve": ["C", "c"], "hand": ["S", "s"]},
+		"right": {"out": -1, "skin": ["s", "S"]},
+		"left": {"out": 1, "skin": ["s", "S"]},
 	},
 	"se": {
-		"right": {"out": -1, "sleeve": ["C", "L"], "hand": ["S", "S"]},
-		"left": {"out": 0, "sleeve": ["c", "c"], "hand": ["s", "s"]},
+		"right": {"out": -1, "skin": ["S", "S"]},
+		"left": {"out": -1, "skin": ["s", "s"]},
 	},
 	"e": {
-		"right": {"out": -1, "sleeve": ["C", "L"], "hand": ["S", "S"], "inner": 1},
-		"left": {"out": 0, "sleeve": ["c", "c"], "hand": ["s", "s"]},
+		"right": {"out": 1, "skin": ["S", "S"]},
+		"left": {"out": 0, "skin": ["s", "s"]},
 	},
-	# From behind the hands are in shade, so they do not read as held behind the back.
 	"ne": {
-		"right": {"out": 1, "sleeve": ["C", "c"], "hand": ["s", "k"]},
-		"left": {"out": 0, "sleeve": ["C", "C"], "hand": ["s", "s"]},
+		"right": {"out": 1, "skin": ["S", "S"]},
+		"left": {"out": 1, "skin": ["s", "s"]},
 	},
 	"n": {
-		"right": {"out": 1, "sleeve": ["C", "c"], "hand": ["s", "k"]},
-		"left": {"out": -1, "sleeve": ["C", "L"], "hand": ["s", "s"]},
+		"right": {"out": 1, "skin": ["S", "S"], "hand": ["s", "s"]},
+		"left": {"out": -1, "skin": ["S", "S"], "hand": ["s", "s"]},
 	},
 }
 ## The hands when they do not work, by view and animation, a frame each: [right hand,
 ## left hand] in the box (moved with the body when it bobs), and the legs and how far
-## the body bobs down. A swimmer's strokes go over the water, which comes up to its
+## the body bobs down. The walk is copied from a reference instead (WalkArt). A swimmer's strokes go over the water, which comes up to its
 ## neck (Body.SWIM_DEPTH), the arms reaching out and pulling back in turn. Afloat in a
 ## vessel the body sits low, its legs forward ("sit"), and rows: both hands reach out
 ## and pull the oars in (Boats swings the oars in time, ROW_PERIOD). The gestures
@@ -288,12 +279,6 @@ const ARMS := {
 const MOVES := {
 	"front": {
 		"idle": [{"hands": [[3, 14], [10, 14]]}],
-		"walk": [
-			{"hands": [[3, 14], [10, 14]], "legs": "left"},
-			{"hands": [[3, 14], [10, 14]]},
-			{"hands": [[3, 14], [10, 14]], "legs": "right"},
-			{"hands": [[3, 14], [10, 14]]},
-		],
 		"jump": [
 			{"hands": [[1, 12], [12, 12]], "legs": "tuck"},
 			{"hands": [[2, 14], [11, 14]]},
@@ -336,12 +321,6 @@ const MOVES := {
 	},
 	"side": {
 		"idle": [{"hands": [[7, 14], [6, 14]]}],
-		"walk": [
-			{"hands": [[6, 14], [10, 14]], "legs": "near"},
-			{"hands": [[7, 14], [6, 14]], "legs": "pass"},
-			{"hands": [[8, 14], [4, 14]], "legs": "far"},
-			{"hands": [[7, 14], [6, 14]], "legs": "pass"},
-		],
 		"jump": [
 			{"hands": [[9, 11], [5, 12]], "legs": "tuck"},
 			{"hands": [[9, 13], [5, 13]]},
@@ -384,12 +363,6 @@ const MOVES := {
 	},
 	"back": {
 		"idle": [{"hands": [[10, 14], [3, 14]]}],
-		"walk": [
-			{"hands": [[10, 14], [3, 14]], "legs": "left"},
-			{"hands": [[10, 14], [3, 14]]},
-			{"hands": [[10, 14], [3, 14]], "legs": "right"},
-			{"hands": [[10, 14], [3, 14]]},
-		],
 		"jump": [
 			{"hands": [[12, 12], [1, 12]], "legs": "tuck"},
 			{"hands": [[11, 14], [2, 14]]},
@@ -727,25 +700,33 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 	var move: Dictionary = moves.idle[0]
 	if moves.has(c[0]):
 		move = moves[c[0]][mini(c[1], moves[c[0]].size() - 1)]
-	var p := {"bob": move.get("bob", 0), "lean": move.get("lean", 0), "legs": move.get("legs", "stand"), "eyes": "open"}
+	var copied: Dictionary = WalkArt.frame(dir, c[1]) if c[0] == "walk" else {}
+	# Standing from the side or behind the body is a row lower (BODY `drop`); the walk's
+	# copied frames have it in their bob already.
+	var drop: int = BODY[dir].drop
+	if not copied.is_empty():
+		move = {"hands": copied.hands, "bob": copied.bob - drop}
+	var p := {"bob": move.get("bob", 0) + drop, "lean": move.get("lean", 0), "legs": move.get("legs", "stand"), "eyes": "open"}
 	# The blink, which the sleep frame is made from too (Figure._lay_down).
 	if col == int(Figure.data().get("blink", -1)):
 		p.eyes = "shut"
 	for i in 2:
 		var hand: String = ["right", "left"][i]
-		var at: Array = move.hands[i]
-		p[hand] = {"at": Vector2i(at[0], at[1] + p.bob), "front": _front(view, hand), "holds": true, "worked": false, "angle": -1, "ccw": false}
+		var at := Vector2i(move.hands[i][0], move.hands[i][1])
+		if copied.is_empty() and at == _idle(view, hand):
+			at = _rest(dir, hand)
+		p[hand] = {"at": at + Vector2i(0, p.bob), "front": _front(view, hand), "holds": true, "worked": false, "angle": -1, "ccw": false}
 	if WORKS[view].has(c[0]):
 		var w: Dictionary = WORKS[view][c[0]][c[1]]
-		p.bob = w.get("bob", 0)
+		p.bob = w.get("bob", 0) + drop
 		p.lean = w.get("lean", 0)
 		p.eyes = w.get("eyes", "open")
 		var other := _other(active)
-		var at := Vector2i(w.r[0], w.r[1])
+		var at := Vector2i(w.r[0], w.r[1] + drop)
 		var angle: int = w.a
 		var ccw: bool = w.get("ccw", false)
 		var front: bool = w.get("f", _front(view, "right"))
-		var off: Vector2i = Vector2i(w.o[0], w.o[1]) if w.has("o") else Vector2i(-1, -1)
+		var off: Vector2i = Vector2i(w.o[0], w.o[1] + drop) if w.has("o") else Vector2i(-1, -1)
 		if active == "left":
 			if view == "side":
 				# The far hand does the same a pixel further back, behind the body.
@@ -766,19 +747,30 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 			p[other] = {"at": off, "front": front if view != "side" else active == "left", "holds": false, "worked": true, "angle": -1, "ccw": false}
 		else:
 			# The other hand hangs as it does standing.
-			var still: Array = moves.idle[0].hands[1 if other == "left" else 0]
-			p[other].at = Vector2i(still[0], still[1] + p.bob)
-	var shift: Vector2i = SHIFT.get(dir, Vector2i.ZERO)
+			p[other].at = _rest(dir, other) + Vector2i(0, p.bob)
+	# The walk copied from the reference has its hands where it draws them.
+	var shift: Vector2i = SHIFT.get(dir, Vector2i.ZERO) if copied.is_empty() else Vector2i.ZERO
 	for hand in ["right", "left"]:
-		var s: Vector2i = SHOULDER[view][hand]
+		var s: Vector2i = SHOULDER[dir][hand]
 		# A wider build hangs its arms further out (FormsArt.OUT), and the hands that
 		# do not work with them.
 		var out := Vector2i.ZERO
 		if view != "side":
 			out.x = FormsArt.OUT.get(build, 0) * (1 if s.x > 6 else -1)
-		p[hand].shoulder = s + out + Vector2i(p.lean, p.bob) + shift
+		p[hand].shoulder = s + out + Vector2i(p.lean, p.bob) + SHIFT.get(dir, Vector2i.ZERO)
 		p[hand].at += shift + (Vector2i.ZERO if p[hand].worked else out)
 	return p
+
+
+## Where hand `hand` hangs standing in view `view` (MOVES idle), in the view's places.
+static func _idle(view: String, hand: String) -> Vector2i:
+	var at: Array = MOVES[view].idle[0].hands[0 if hand == "right" else 1]
+	return Vector2i(at[0], at[1])
+
+
+## Where hand `hand` hangs at rest in direction `dir` (REST, else as its view stands).
+static func _rest(dir: String, hand: String) -> Vector2i:
+	return REST.get(dir, {}).get(hand, _idle(VIEW[dir], hand))
 
 
 ## Whether a hand of a view is in front of the body by default.
@@ -791,22 +783,30 @@ static func _front(view: String, hand: String) -> bool:
 	return false
 
 
-## The legs of direction `dir` in pose `kind`, rows 15-17 of the box. Seen from the front
-## or the back a step raises a leg a pixel ("right": the one on the west of the picture,
-## "left": the other, "tuck": both), its foot where its shin was.
-static func legs(dir: String, kind: String) -> Array:
+## The legs of direction `dir` in pose `kind`: `rows`, BODY's legs standing (under the
+## waistband down to the feet), as the pose has them. Seen from the side the other poses
+## are SIDE_LEGS'. Seen from the front or the back a step raises a leg a pixel ("right":
+## the one on the west of the picture, "left": the other, "tuck": both), its foot where
+## its shin was; sitting ("sit") only the feet show, under the body.
+static func legs(dir: String, kind: String, rows: Array) -> Array:
+	if kind == "stand":
+		return rows
 	if VIEW[dir] == "side":
 		return SIDE_LEGS[kind]
-	var rows: Array = STAND[dir]
-	if kind == "sit":
-		return [EMPTY, EMPTY, rows[2]]
-	var shin := ""
-	var foot := ""
-	for x in EMPTY.length():
-		var up: bool = kind == "tuck" or (kind == "right" and x < 7) or (kind == "left" and x >= 7)
-		shin += rows[2][x] if up else rows[1][x]
-		foot += "." if up else rows[2][x]
-	return [rows[0], shin, foot]
+	var n := rows.size()
+	var out := []
+	for y in n:
+		var r := ""
+		for x in EMPTY.length():
+			var up: bool = kind == "sit" or kind == "tuck" or (kind == "right" and x < 7) or (kind == "left" and x >= 7)
+			if not up:
+				r += rows[y][x]
+			elif kind == "sit":
+				r += rows[y][x] if y == n - 1 else "."
+			else:
+				r += rows[y + 1][x] if y + 1 < n else "."
+		out.append(r)
+	return out
 
 
 ## The letters of every layer in one frame: {layer: {pixel in the box: letter}}.
@@ -815,8 +815,21 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 	var out := {"body": {}, "shirt": {}, "trousers": {}, "boots": {}, "hair": {}, "fists": {}, "loincloth": {}}
 	var up := Vector2i(p.lean, p.bob)
 	var parts := []
-	_stamp(parts, FormsArt.legs(legs(dir, p.legs), dir, VIEW[dir] == "side", figure), 15, Vector2i.ZERO)
-	_stamp(parts, FormsArt.torso(TORSO[dir], dir, build, figure), 11, up)
+	var c := column(col)
+	# A frame of the walk copied from the reference has its whole body under the head.
+	var copied: Dictionary = WalkArt.frame(dir, c[1]) if c[0] == "walk" else {}
+	if copied.is_empty():
+		# The body standing in its form, the legs as the pose has them, the torso bobbing.
+		var b: Dictionary = BODY[dir]
+		var hips: int = b.hips - 11 - b.drop
+		var rows := FormsArt.body(b.rows, dir, build, figure, 0, hips)
+		var low: Array = legs(dir, p.legs, rows.slice(hips + 1)).duplicate()
+		if p.legs != "stand" and VIEW[dir] == "side" and figure == "curvy":
+			low[0] = FormsArt.hipped(low[0], dir)
+		_stamp(parts, low, b.hips + 1, Vector2i.ZERO)
+		_stamp(parts, rows.slice(0, hips + 1), 11, up)
+	else:
+		_stamp(parts, WalkArt.rows(copied, dir, build, figure), 10, Vector2i.ZERO)
 	var head: Array = HEAD[dir]
 	if p.eyes == "shut":
 		# Shut, an eye is a dark line where the iris and the white were.
@@ -828,12 +841,17 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 		solid[e[0]] = true
 	# Arms behind the body show only where the body leaves them.
 	for hand in ["left", "right"]:
-		if not p[hand].front:
+		if not p[hand].front and copied.is_empty():
 			_arm(out, p[hand], dir, hand, solid, false)
 	for e: Array in parts:
-		_put(out, e[0], e[1])
+		if WalkArt.HANDS.has(e[1]):
+			# A hand of the copied walk: with the fists in front of the body, else with it.
+			var h: Array = WalkArt.HANDS[e[1]]
+			out["fists" if p[h[0]].front else "body"][e[0]] = h[1]
+		else:
+			_put(out, e[0], e[1])
 	for hand in ["left", "right"]:
-		if p[hand].front:
+		if p[hand].front and copied.is_empty():
 			_arm(out, p[hand], dir, hand, solid, true)
 	_loincloth(out)
 	_shapes(out, up)
@@ -887,9 +905,9 @@ static func _shapes(out: Dictionary, up: Vector2i) -> void:
 		shapes.trousers[at] = tone
 		if at.y <= 15 + up.y:
 			shapes.coat[at] = tone
-		if t[at] in ["T", "t"]:
-			shapes.wraps[at] = "3" if t[at] == "t" else ("1" if at.y % 2 == 0 else "2")
-		if b.has(at + Vector2i.DOWN) and t[at] in ["T", "t"]:
+		if t[at] in ["T", "t", "m"]:
+			shapes.wraps[at] = "1" if t[at] == "T" and at.y % 2 == 0 else ("2" if t[at] == "T" else "3")
+		if b.has(at + Vector2i.DOWN) and t[at] in ["T", "t", "m"]:
 			shapes.tall_boots[at] = tone
 	for at: Vector2i in b:
 		shapes.boots[at] = TONE[b[at]]
@@ -916,46 +934,39 @@ static func _put(out: Dictionary, at: Vector2i, letter: String) -> void:
 		out.body[at] = SKIN[letter]
 
 
-## An arm from the shoulder to the hand, drawn as ARMS says: the sleeve the first half,
-## then the skin; a second pixel beside the line (under it when the arm is held out
-## flat). In front of the body the skin goes to the fists, over what the hand holds;
-## behind it the arm shows only where the body leaves it.
+## An arm from the shoulder to the hand, drawn as ARMS says: a second pixel beside the
+## line (under it, darker, when the arm is held out flat). In front of the body the skin
+## goes to the fists, over what the hand holds; behind it the arm shows only where the
+## body leaves it.
 static func _arm(out: Dictionary, h: Dictionary, dir: String, hand: String, solid: Dictionary, front: bool) -> void:
 	var spec: Dictionary = ARMS[dir][hand]
-	if build in FormsArt.NARROW:
-		spec = spec.duplicate()
-		spec.out = 0
+	var side: int = 0 if build in FormsArt.NARROW else spec.out
 	var line := _line(h.shoulder, h.at)
-	var sleeve := maxi(1, line.size() / 2) if line.size() > 1 else 0
 	var d: Vector2i = h.at - h.shoulder
 	var flat := absi(d.x) > absi(d.y)
+	# The hand: the line's second half.
+	var from := maxi(1, line.size() / 2) if line.size() > 1 else 0
 	var arm := {}
 	for i in line.size():
-		arm[line[i]] = spec.sleeve[0] if i < sleeve else spec.hand[0]
-	if spec.out != 0:
+		arm[line[i]] = _tones(spec, i >= from)[0]
+	if side != 0:
 		for i in line.size():
-			var beside: Vector2i = line[i] + (Vector2i.DOWN if flat else Vector2i(spec.out, 0))
+			var beside: Vector2i = line[i] + (Vector2i.DOWN if flat else Vector2i(side, 0))
 			if not arm.has(beside):
-				if flat:
-					arm[beside] = "c" if i < sleeve else DARKER[spec.hand[0]]
-				else:
-					arm[beside] = spec.sleeve[1] if i < sleeve else spec.hand[1]
+				var tones: Array = _tones(spec, i >= from)
+				arm[beside] = DARKER[tones[0]] if flat else tones[1]
 	for at: Vector2i in arm:
 		if not front and solid.has(at):
 			continue
-		var letter: String = arm[at]
-		if INK[letter][1] == "shirt":
-			_put(out, at, letter)
-		elif front:
-			out.fists[at] = letter
+		if front:
+			out.fists[at] = arm[at]
 		else:
-			out.body[at] = letter
-	if front and spec.has("inner") and d.x == 0:
-		# Only along an arm hanging straight down from the shoulder.
-		for at: Vector2i in line:
-			var edge: Vector2i = at + Vector2i(spec.inner, 0)
-			if solid.has(edge) and not arm.has(edge):
-				out.fists[edge] = "#"
+			out.body[at] = arm[at]
+
+
+## The skin's tones of an arm drawn as `spec` (ARMS) says, of its hand or not.
+static func _tones(spec: Dictionary, hand: bool) -> Array:
+	return spec.hand if hand and spec.has("hand") else spec.skin
 
 
 ## The pixels of a line from `a` to `b`, both ends included.

@@ -526,7 +526,7 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 	var strip := _compose(src, c0, c1)
 	var whole := Rect2i(Vector2i.ZERO, strip.get_size())
 	if target.outline:
-		SpriteSheet.outline_rect(strip, whole)
+		SpriteSheet.outline_rect(strip, whole, int(target.soles.get(target.directions[src], 0)))
 	if swap:
 		for col in c1 - c0:
 			var r := Rect2i(Vector2i(col * size.x, 0), size)

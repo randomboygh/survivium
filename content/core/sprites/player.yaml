@@ -29,98 +29,102 @@ naked: [body, loincloth, hair]
 fists: fists
 hands: hands
 outline: true
+# soles — by direction, the bottom rows of a frame where nothing is outlined from above: a foot
+# lifted off the ground (the walk) has no outline under its sole either. From the side and from
+# behind the legs are a row shorter and the hands hang a row lower, outlined under them.
+soles: {s: 2, se: 2, sw: 2, e: 1, w: 1, ne: 1, nw: 1, n: 1}
 animations:
   idle:
     frames: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
     fps: 4.0
   walk:
-    frames: [2, 3, 4, 5]
-    fps: 8.0
+    frames: [2, 3, 4, 5, 6, 7]
+    fps: 10.0
   jump:
-    frames: [6, 7]
+    frames: [8, 9]
     fps: 1.0
   swim:
-    frames: [8, 9, 10, 11]
+    frames: [10, 11, 12, 13]
     fps: 5.0
   chop:
-    frames: [12, 13, 14, 15]
+    frames: [14, 15, 16, 17]
     fps: 1.0
   dig:
-    frames: [16, 17, 18, 19]
+    frames: [18, 19, 20, 21]
     fps: 1.0
   slash:
-    frames: [20, 21, 22, 23]
+    frames: [22, 23, 24, 25]
     fps: 1.0
   reach:
-    frames: [24, 25, 26, 27]
+    frames: [26, 27, 28, 29]
     fps: 1.0
   mow:
-    frames: [28, 29, 30, 31]
+    frames: [30, 31, 32, 33]
     fps: 1.0
   aim:
-    frames: [32, 33, 34, 35]
+    frames: [34, 35, 36, 37]
     fps: 1.0
   eat:
-    frames: [36, 37, 38, 39]
+    frames: [38, 39, 40, 41]
     fps: 1.0
   # Sleep: the frame is not drawn, Figure builds it from the blink frame (`blink`, the eyes shut)
   # standing facing south, turned on its side.
   sleep:
-    frames: [40]
+    frames: [42]
     fps: 1.0
   # Sitting on a raft or in a boat (legs forward, body lower) and rowing: the hands pull the oars away from and toward oneself.
   sit:
-    frames: [41]
+    frames: [43]
     fps: 1.0
   row:
-    frames: [42, 43, 44, 45]
+    frames: [44, 45, 46, 47]
     fps: 4.0
   # Gestures (decision 183, src/shared/game/gestures.gd): wave, nod "yes", shake "no",
   # point, beckon "come here", bow, clap; "sit" is the sit frame. They loop while the gesture goes on.
   wave:
-    frames: [46, 47]
+    frames: [48, 49]
     fps: 4.0
   nod:
-    frames: [0, 48]
+    frames: [0, 50]
     fps: 3.0
   shake:
-    frames: [49, 50]
+    frames: [51, 52]
     fps: 4.0
   point:
-    frames: [51]
+    frames: [53]
     fps: 1.0
   beckon:
-    frames: [52, 53]
+    frames: [54, 55]
     fps: 3.0
   bow:
-    frames: [54, 55, 55, 55, 54, 0, 0, 0]
+    frames: [56, 57, 57, 57, 56, 0, 0, 0]
     fps: 3.0
   clap:
-    frames: [56, 57]
+    frames: [58, 59]
     fps: 6.0
 # blink — the column of the idle animation with the eyes shut; the sleep frame is made from it.
 blink: 1
 works:
   chop:
-    columns: [12, 13, 14, 15]
+    columns: [14, 15, 16, 17]
     hands: 1
   dig:
-    columns: [16, 17, 18, 19]
+    columns: [18, 19, 20, 21]
     hands: 1
   slash:
-    columns: [20, 21, 22, 23]
+    columns: [22, 23, 24, 25]
     hands: 1
   reach:
-    columns: [24, 25, 26, 27]
+    columns: [26, 27, 28, 29]
     hands: 1
   mow:
-    columns: [28, 29, 30, 31]
+    columns: [30, 31, 32, 33]
     hands: 2
   aim:
-    columns: [32, 33, 34, 35]
+    columns: [34, 35, 36, 37]
     hands: 2
   eat:
-    columns: [36, 37, 38, 39]
+    columns: [38, 39, 40, 41]
     hands: 1
 held:
   cell: [25, 25]
