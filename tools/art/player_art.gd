@@ -19,7 +19,7 @@ extends RefCounted
 ## with the hands swapped. Arms go from the shoulder to the hand (ARMS). Light comes from
 ## the upper left. The feet stand on the frame's last row with no outline under them. The
 ## walk's body under the head is copied pixel by pixel from the reference (WalkArt): the
-## arms swinging, the body bobbing.
+## arms swinging, the body bobbing; the jump's is drawn whole the same way (JumpArt).
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -30,6 +30,7 @@ const Figure := preload("res://src/client/view/figure.gd")
 const LooksArt := preload("res://tools/art/player_looks_art.gd")
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 const WalkArt := preload("res://tools/art/player_walk_art.gd")
+const JumpArt := preload("res://tools/art/player_jump_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -202,8 +203,8 @@ const BODY := {
 	]},
 }
 ## The legs seen from the side, rows 15-17, by pose: "near" or "far" (that leg in front,
-## striding), "tuck" (drawn up, jumping), "sit" (forward, afloat); standing they are
-## BODY's. The front and back views raise a leg from BODY instead (see legs).
+## striding), "sit" (forward, afloat); standing they are BODY's. The front and back views
+## raise a leg from BODY instead (see legs).
 const SIDE_LEGS := {
 	"near": [
 		"......tT......",
@@ -214,11 +215,6 @@ const SIDE_LEGS := {
 		"......Tt......",
 		".....T..t.....",
 		"....BB..bbb...",
-	],
-	"tuck": [
-		"......tT......",
-		"......bBB.....",
-		EMPTY,
 	],
 	"sit": [
 		EMPTY,
@@ -269,7 +265,8 @@ const ARMS := {
 }
 ## The hands when they do not work, by view and animation, a frame each: [right hand,
 ## left hand] in the box (moved with the body when it bobs), and the legs and how far
-## the body bobs down. The walk is copied from a reference instead (WalkArt). A swimmer's strokes go over the water, which comes up to its
+## the body bobs down. The walk is copied from a reference instead (WalkArt), the jump
+## drawn whole (JumpArt). A swimmer's strokes go over the water, which comes up to its
 ## neck (Body.SWIM_DEPTH), the arms reaching out and pulling back in turn. Afloat in a
 ## vessel the body sits low, its legs forward ("sit"), and rows: both hands reach out
 ## and pull the oars in (Boats swings the oars in time, ROW_PERIOD). The gestures
@@ -279,10 +276,6 @@ const ARMS := {
 const MOVES := {
 	"front": {
 		"idle": [{"hands": [[3, 14], [10, 14]]}],
-		"jump": [
-			{"hands": [[1, 12], [12, 12]], "legs": "tuck"},
-			{"hands": [[2, 14], [11, 14]]},
-		],
 		"swim": [
 			{"hands": [[0, 9], [13, 12]], "legs": "left"},
 			{"hands": [[0, 11], [13, 10]]},
@@ -321,10 +314,6 @@ const MOVES := {
 	},
 	"side": {
 		"idle": [{"hands": [[7, 14], [6, 14]]}],
-		"jump": [
-			{"hands": [[9, 11], [5, 12]], "legs": "tuck"},
-			{"hands": [[9, 13], [5, 13]]},
-		],
 		"swim": [
 			{"hands": [[11, 11], [4, 13]], "legs": "near"},
 			{"hands": [[9, 13], [9, 10]]},
@@ -363,10 +352,6 @@ const MOVES := {
 	},
 	"back": {
 		"idle": [{"hands": [[10, 14], [3, 14]]}],
-		"jump": [
-			{"hands": [[12, 12], [1, 12]], "legs": "tuck"},
-			{"hands": [[11, 14], [2, 14]]},
-		],
 		"swim": [
 			{"hands": [[13, 9], [0, 12]], "legs": "left"},
 			{"hands": [[13, 11], [0, 10]]},
@@ -683,6 +668,18 @@ static func column(col: int) -> Array:
 	return ["idle", 0]
 
 
+## The frame of column `c` ([name, i], see column) drawn whole under the head in
+## direction `dir`, its hands with it: the walk's (WalkArt) or the jump's (JumpArt); {}
+## for any other, made of the body standing and a pose.
+static func whole_frame(dir: String, c: Array) -> Dictionary:
+	match c[0]:
+		"walk":
+			return WalkArt.frame(dir, c[1])
+		"jump":
+			return JumpArt.frame(dir, c[1])
+	return {}
+
+
 ## Way `a` mirrored left to right.
 static func mirrored(a: int) -> int:
 	return a if a == TOWARD else (8 - a) % 8
@@ -700,12 +697,12 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 	var move: Dictionary = moves.idle[0]
 	if moves.has(c[0]):
 		move = moves[c[0]][mini(c[1], moves[c[0]].size() - 1)]
-	var copied: Dictionary = WalkArt.frame(dir, c[1]) if c[0] == "walk" else {}
-	# Standing from the side or behind the body is a row lower (BODY `drop`); the walk's
-	# copied frames have it in their bob already.
+	var whole := whole_frame(dir, c)
+	# Standing from the side or behind the body is a row lower (BODY `drop`); the frames
+	# drawn whole have it in their bob already.
 	var drop: int = BODY[dir].drop
-	if not copied.is_empty():
-		move = {"hands": copied.hands, "bob": copied.bob - drop}
+	if not whole.is_empty():
+		move = {"hands": whole.hands, "bob": whole.bob - drop}
 	var p := {"bob": move.get("bob", 0) + drop, "lean": move.get("lean", 0), "legs": move.get("legs", "stand"), "eyes": "open"}
 	# The blink, which the sleep frame is made from too (Figure._lay_down).
 	if col == int(Figure.data().get("blink", -1)):
@@ -713,7 +710,7 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 	for i in 2:
 		var hand: String = ["right", "left"][i]
 		var at := Vector2i(move.hands[i][0], move.hands[i][1])
-		if copied.is_empty() and at == _idle(view, hand):
+		if whole.is_empty() and at == _idle(view, hand):
 			at = _rest(dir, hand)
 		p[hand] = {"at": at + Vector2i(0, p.bob), "front": _front(view, hand), "holds": true, "worked": false, "angle": -1, "ccw": false}
 	if WORKS[view].has(c[0]):
@@ -748,8 +745,8 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 		else:
 			# The other hand hangs as it does standing.
 			p[other].at = _rest(dir, other) + Vector2i(0, p.bob)
-	# The walk copied from the reference has its hands where it draws them.
-	var shift: Vector2i = SHIFT.get(dir, Vector2i.ZERO) if copied.is_empty() else Vector2i.ZERO
+	# A frame drawn whole has its hands where it draws them.
+	var shift: Vector2i = SHIFT.get(dir, Vector2i.ZERO) if whole.is_empty() else Vector2i.ZERO
 	for hand in ["right", "left"]:
 		var s: Vector2i = SHOULDER[dir][hand]
 		# A wider build hangs its arms further out (FormsArt.OUT), and the hands that
@@ -786,8 +783,8 @@ static func _front(view: String, hand: String) -> bool:
 ## The legs of direction `dir` in pose `kind`: `rows`, BODY's legs standing (under the
 ## waistband down to the feet), as the pose has them. Seen from the side the other poses
 ## are SIDE_LEGS'. Seen from the front or the back a step raises a leg a pixel ("right":
-## the one on the west of the picture, "left": the other, "tuck": both), its foot where
-## its shin was; sitting ("sit") only the feet show, under the body.
+## the one on the west of the picture, "left": the other), its foot where its shin was;
+## sitting ("sit") only the feet show, under the body.
 static func legs(dir: String, kind: String, rows: Array) -> Array:
 	if kind == "stand":
 		return rows
@@ -798,7 +795,7 @@ static func legs(dir: String, kind: String, rows: Array) -> Array:
 	for y in n:
 		var r := ""
 		for x in EMPTY.length():
-			var up: bool = kind == "sit" or kind == "tuck" or (kind == "right" and x < 7) or (kind == "left" and x >= 7)
+			var up: bool = kind == "sit" or (kind == "right" and x < 7) or (kind == "left" and x >= 7)
 			if not up:
 				r += rows[y][x]
 			elif kind == "sit":
@@ -816,9 +813,9 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 	var up := Vector2i(p.lean, p.bob)
 	var parts := []
 	var c := column(col)
-	# A frame of the walk copied from the reference has its whole body under the head.
-	var copied: Dictionary = WalkArt.frame(dir, c[1]) if c[0] == "walk" else {}
-	if copied.is_empty():
+	# A frame of the walk or the jump has its whole body under the head drawn.
+	var whole := whole_frame(dir, c)
+	if whole.is_empty():
 		# The body standing in its form, the legs as the pose has them, the torso bobbing.
 		var b: Dictionary = BODY[dir]
 		var hips: int = b.hips - 11 - b.drop
@@ -829,7 +826,8 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 		_stamp(parts, low, b.hips + 1, Vector2i.ZERO)
 		_stamp(parts, rows.slice(0, hips + 1), 11, up)
 	else:
-		_stamp(parts, WalkArt.rows(copied, dir, build, figure), 10, Vector2i.ZERO)
+		var rows: Array = JumpArt.rows(whole, dir, build, figure) if c[0] == "jump" else WalkArt.rows(whole, dir, build, figure)
+		_stamp(parts, rows, 10, Vector2i.ZERO)
 	var head: Array = HEAD[dir]
 	if p.eyes == "shut":
 		# Shut, an eye is a dark line where the iris and the white were.
@@ -841,17 +839,17 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 		solid[e[0]] = true
 	# Arms behind the body show only where the body leaves them.
 	for hand in ["left", "right"]:
-		if not p[hand].front and copied.is_empty():
+		if not p[hand].front and whole.is_empty():
 			_arm(out, p[hand], dir, hand, solid, false)
 	for e: Array in parts:
 		if WalkArt.HANDS.has(e[1]):
-			# A hand of the copied walk: with the fists in front of the body, else with it.
+			# A hand of a frame drawn whole: with the fists in front of the body, else with it.
 			var h: Array = WalkArt.HANDS[e[1]]
 			out["fists" if p[h[0]].front else "body"][e[0]] = h[1]
 		else:
 			_put(out, e[0], e[1])
 	for hand in ["left", "right"]:
-		if p[hand].front and copied.is_empty():
+		if p[hand].front and whole.is_empty():
 			_arm(out, p[hand], dir, hand, solid, true)
 	_loincloth(out)
 	_shapes(out, up)

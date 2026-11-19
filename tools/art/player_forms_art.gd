@@ -8,9 +8,10 @@ extends RefCounted
 ## worn/<look>/<build>_<figure>.png).
 ##
 ## Each form is made of the rows of the body drawn (body): the stand (PlayerArt.BODY) and
-## every frame of the walk (WalkArt). Builds: thin has arms a pixel wide; stocky has a
-## torso two pixels wider from the neck to the waist, its arms hanging a pixel further out
-## each side (in the front and back views; from the side its belly a pixel forward).
+## every frame of the walk (WalkArt) and of the jump (JumpArt). Builds: thin has arms a
+## pixel wide; stocky has a torso two pixels wider from the neck to the waist, its arms
+## hanging a pixel further out each side (in the front and back views; from the side its
+## belly a pixel forward).
 ## Figures (no sex is picked: every form is for everyone): a bust (the shade under it on
 ## the row over the waist from the front, a pixel forward from the side, in the letter V:
 ## the shirt's dark over the skin's deepest) and a bust with hips (the thighs a pixel
@@ -33,7 +34,8 @@ const NARROW := ["thin"]
 const TORSO := "LCcVUu"
 ## Letters of the trousers: what a body with hips draws wider (not a foot or a hand).
 const THIGHS := "Ttm"
-## The hands' pixels in the rows of a body (WalkArt's copied frames), by hand: digits.
+## The hands' pixels in the rows of a body (the frames drawn whole: WalkArt, JumpArt), by
+## hand: digits.
 const HANDS := {"right": "456", "left": "789"}
 ## Where a bust's shade goes on the row over the waistband, by direction and build (the
 ## middle of a stocky body is two pixels wider).
