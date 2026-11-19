@@ -50,16 +50,13 @@ KINDS = {
     # Their first names, still read in older PRs.
     "быстрее": "fast",
     "внутри": "inside",
-    # A word for the core used in some lines.
-    "основа": "inside",
 }
 
 
 def kind(tag: str) -> str:
     tag = (tag or "").strip().lower()
     if tag and tag not in KINDS:
-        # On stderr: the release workflow pipes stdout into $GITHUB_OUTPUT.
-        print("unknown kind [%s], shown as new" % tag, file=sys.stderr)
+        print("unknown kind [%s], shown as new" % tag, file=sys.stderr)  # not stdout: release_notes.py pipes that into GITHUB_OUTPUT
     return KINDS.get(tag, "new")
 
 
