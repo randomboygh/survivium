@@ -343,7 +343,7 @@ func _sweep(what: String) -> void:
 func _every_window(main: Node) -> void:
 	var hud = main.hud
 	hud.toggle_bag()
-	for tab: String in ["bag", "craft", "team", "land"]:
+	for tab: String in ["person", "bag", "craft", "team", "land"]:
 		hud.bag.show_tab(tab)
 		await _sweep("the bag's tab " + tab)
 	hud.toggle_bag()

@@ -1,11 +1,12 @@
 extends PanelContainer
-## The inventory window (plan/design/ui.md, section 5): the character (PersonPanel: what
-## is worn and held, the skills) beside the bag on a wide screen, over it on a tall one,
-## and only on the bag's tab (the others take its room); the tabs «Инвентарь»,
+## The inventory window (plan/design/ui.md, section 5): the tabs «Персонаж» (PersonPanel:
+## the character drawn big, what is worn and held round it, the skills), «Сумка»,
 ## «Крафт», «Земля» (LandPage, only on land claimed) and «Команда» (TeamPage, only on
 ## a server) are joined as one, a button tall (TabRow.tabs). A tap on a slot of the figure
 ## works as a tap on a hand of the hotbar (the next tool) or takes off and puts on what
-## is worn there (see _tap_person). The bag part is as wide whatever it shows: the bag's
+## is worn there (see _tap_person); a thing to wear chosen in the bag first goes on at
+## the tap. The panel at the bottom is shared by the character's tab and the bag's. The
+## window is as wide whatever it shows (wider on the craft tab of a wide screen): the bag's
 ## slots, ROWS rows of them showing (they scroll), with a column of tabs by kind of
 ## item on the left (the other slots dim; as many as fit beside the slots, the rest
 ## scroll). The chests within reach stand under the bag
@@ -70,8 +71,6 @@ const SLOT_SMALL := 36
 ## The width of the craft tab's column of the recipe and the queue beside the cells on
 ## a wide screen, in UI pixels.
 const CRAFT_SIDE := 300
-## The gap between the character and the bag or craft tab.
-const GAP_MAIN := 6
 ## The width of the wide button of the panel at the bottom (as three small ones joined).
 const USE_WIDTH := TabRow.WIDE
 ## What the wide button does: its picture and tooltip.
@@ -85,6 +84,7 @@ const USES := {
 var game
 ## The side of a slot now (see fit).
 var slot := SLOT
+var _person_tab: Button
 var _bag_tab: Button
 var _craft_tab: Button
 ## The tab «Земля», shown while the player stands on land claimed (LandPage).
@@ -95,11 +95,14 @@ var _team_tab: Button
 var team_page: TeamPage
 var _tab := "bag"
 var _bag_page: VBoxContainer
-## The character, and the box that holds it beside (or over) the bag and craft tabs.
+## The tab «Персонаж», in a list that scrolls only where the window is short of room for
+## it (a short screen on its side, a large interface), and the drag that scrolls it.
 var person: PersonPanel
-var _main: BoxContainer
-## Whether the character stands over the bag (a tall screen) rather than beside it.
-var _stacked := false
+var _person_scroll: ScrollContainer
+var _person_drag: DragScroll
+## The panel at the bottom (the chosen stack or slot of the figure), under the bag and
+## the character.
+var _bottom: PanelContainer
 ## The slot of the figure chosen (a slot of Inventory.WEAR_SLOTS, "hand0", "hand1"), "" for none.
 var _worn := ""
 ## The bag's slots scroll when there are more than the screen has room for.
@@ -190,14 +193,16 @@ func _ready() -> void:
 	var head := HBoxContainer.new()
 	box.add_child(head)
 	# The tabs joined as one, a button tall, the one shown lit amber (TabRow.tabs).
-	var tabs_row := TabRow.tabs([["[inventory]", "", show_tab.bind("bag")], ["[craft]", "", show_tab.bind("craft")],
-		["[land]", "", show_tab.bind("land")], ["[team_n3]", "", show_tab.bind("team")]], 30)
+	var tabs_row := TabRow.tabs([["[character]", "", show_tab.bind("person")], ["[bag]", "", show_tab.bind("bag")],
+		["[craft]", "", show_tab.bind("craft")], ["[land]", "", show_tab.bind("land")],
+		["[team_n3]", "", show_tab.bind("team")]], 30)
 	head.add_child(tabs_row)
-	_bag_tab = tabs_row.get_child(0)
-	_craft_tab = tabs_row.get_child(1)
-	_land_tab = tabs_row.get_child(2)
+	_person_tab = tabs_row.get_child(0)
+	_bag_tab = tabs_row.get_child(1)
+	_craft_tab = tabs_row.get_child(2)
+	_land_tab = tabs_row.get_child(3)
 	_land_tab.visible = false
-	_team_tab = tabs_row.get_child(3)
+	_team_tab = tabs_row.get_child(4)
 	_team_tab.visible = false
 	game.land.changed.connect(_show_land_tab)
 	# The free room of the head keeps the cross on the right.
@@ -213,16 +218,18 @@ func _ready() -> void:
 		_let_go()
 		game.net.request(Protocol.PROP_TAKE, [e.cell]).then(func(_v: Variant) -> void: refresh())))
 	_chest_buttons.get_child(0).custom_minimum_size = Vector2(30, 30)
-	_main = BoxContainer.new()
-	_main.add_theme_constant_override("separation", GAP_MAIN)
-	box.add_child(_main)
-	person = PersonPanel.new(game)
-	person.picked.connect(_tap_person)
-	person.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	_main.add_child(person)
 	var tabs := VBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 6)
-	_main.add_child(tabs)
+	box.add_child(tabs)
+	_person_scroll = ScrollContainer.new()
+	_person_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	tabs.add_child(_person_scroll)
+	_person_drag = DragScroll.new()
+	_person_scroll.add_child(_person_drag)
+	person = PersonPanel.new(game)
+	person.picked.connect(_tap_person)
+	person.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_person_scroll.add_child(person)
 	craft = CraftPanel.new(game)
 	craft.on_layout = _place
 	craft.visible = false
@@ -266,7 +273,8 @@ func _ready() -> void:
 	# The panel at the bottom: the chosen stack and what can be done with it.
 	var bottom := PanelContainer.new()
 	bottom.add_theme_stylebox_override("panel", UiStyle.well())
-	_bag_page.add_child(bottom)
+	tabs.add_child(bottom)
+	_bottom = bottom
 	var info := VBoxContainer.new()
 	info.add_theme_constant_override("separation", 4)
 	bottom.add_child(info)
@@ -466,6 +474,9 @@ func _grow_grid(grid: GridContainer, n: int, cells: Array, tap: Callable) -> voi
 ## tap puts that on at once. A hand becomes the hand in use, and a tap on the hand in
 ## use gives it the next tool (or brush).
 func _tap_person(k: String) -> void:
+	# A touch that scrolled the tab picks nothing.
+	if not _person_drag.take_tap():
+		return
 	_confirming = false
 	var inv = game.character.inventory
 	var chosen: int = _at if _from == inv and _from.slots[_at] != null and Items.wear_on(_from.slots[_at][0]) == k else -1
@@ -525,17 +536,20 @@ func _use_worn() -> void:
 	refresh()
 
 
-## Shows the bag ("bag"), the craft tab ("craft"), the land's ("land") or the team's
-## ("team").
+## Shows the character ("person"), the bag ("bag"), the craft tab ("craft"), the land's
+## ("land") or the team's ("team").
 func show_tab(tab: String) -> void:
 	_show_team_tab()
 	if (tab == "land" and not _land_tab.visible) or (tab == "team" and not _team_tab.visible):
 		tab = "bag"
 	_tab = tab
 	_bag_page.visible = tab == "bag"
-	# The character only by the bag: the other tabs need the room it takes.
-	person.visible = tab == "bag"
-	# Off the bag tab the label stays, empty, to keep the cross on the right.
+	_person_scroll.visible = tab == "person"
+	_bottom.visible = tab == "bag" or tab == "person"
+	# Sorting is the bag's; the chest's buttons too (a stack chosen in a chest stays
+	# chosen, the character's tab shows it).
+	_sorts.visible = tab == "bag"
+	_into.visible = false
 	if tab != "bag":
 		_chest_buttons.visible = false
 	craft.visible = tab == "craft"
@@ -543,6 +557,7 @@ func show_tab(tab: String) -> void:
 	land_page.visible = tab == "land"
 	land_page.head_buttons.visible = false
 	team_page.visible = tab == "team"
+	TabRow.light(_person_tab, tab == "person")
 	TabRow.light(_bag_tab, tab == "bag")
 	TabRow.light(_craft_tab, tab == "craft")
 	TabRow.light(_land_tab, tab == "land")
@@ -616,25 +631,19 @@ func toggle() -> void:
 
 ## Lays the window out for a screen `screen` UI pixels large: eight slots across with
 ## a column of tabs on each side, the slots smaller when the larger do not fit; the
-## window keeps that width on both tabs.
+## window keeps that width on every tab but the craft tab of a wide screen.
 func fit(screen: Vector2) -> void:
 	var room := screen.x - 2 * EDGE - 2 * FRAME
 	slot = SLOT if room >= _width(SLOT) else SLOT_SMALL
-	# The character beside the bag on a wide screen (with the smaller slots if need be),
-	# over it on a tall one.
-	_stacked = true
-	if screen.x > screen.y:
-		for side: int in [SLOT, SLOT_SMALL]:
-			if room >= PersonPanel.width(side) + GAP_MAIN + _width(side):
-				slot = side
-				_stacked = false
-				room -= PersonPanel.width(side) + GAP_MAIN
-				break
 	for s in _slots + _chest_cells():
 		s.custom_minimum_size = Vector2(slot, slot)
+	# The character's skills beside the figure on a wide screen, under it on a tall one.
 	person.set_slot(slot)
-	_main.vertical = _stacked
-	person.visible = _bag_page.visible
+	person.set_wide(screen.x > screen.y)
+	# As wide as the bag's page with the room of the bar the tab shows when it scrolls
+	# (taken from the panel then, not added to the window).
+	_person_scroll.custom_minimum_size.x = _width(slot)
+	person.custom_minimum_size.x = _width(slot) - GAP - UiStyle.SCROLL_BAR
 	_bag_page.custom_minimum_size.x = _width(slot)
 	land_page.custom_minimum_size.x = _width(slot)
 	team_page.custom_minimum_size.x = _width(slot)
@@ -644,7 +653,6 @@ func fit(screen: Vector2) -> void:
 	craft.slot = slot
 	# On a wide screen the craft tab's recipe and queue go right of the cells, so the
 	# window is not too tall for it; the window is that much wider on the craft tab.
-	# The character is not shown there, so the craft tab has the whole width.
 	var whole := screen.x - 2 * EDGE - 2 * FRAME
 	var side := screen.x > screen.y and whole >= _width(slot) + 6 + CRAFT_SIDE
 	craft.custom_minimum_size.x = _width(slot) + (6 + CRAFT_SIDE if side else 0)
@@ -679,6 +687,8 @@ func _place() -> void:
 	var page: ScrollContainer = land_page if land_page.visible else (team_page if team_page.visible else null)
 	if page != null:
 		page.custom_minimum_size.y = page.full_height()
+	if _person_scroll.visible:
+		_person_scroll.custom_minimum_size.y = person.get_combined_minimum_size().y
 	reset_size()
 	var over := size.y - (room.y - 2 * EDGE)
 	if page != null and over > 0.0:
@@ -688,6 +698,16 @@ func _place() -> void:
 	elif craft.visible and over > 0.0:
 		craft.shrink_list(over)
 		reset_size()
+	elif _person_scroll.visible and over > 0.0:
+		# The figure a step smaller while it is what makes the tab tall (fit draws it at its
+		# size again); past that the tab scrolls in the room there is.
+		while over > 0.0 and person.shrink():
+			_person_scroll.custom_minimum_size.y = person.get_combined_minimum_size().y
+			reset_size()
+			over = size.y - (room.y - 2 * EDGE)
+		if over > 0.0:
+			_person_scroll.custom_minimum_size.y = maxf(slot, person.get_combined_minimum_size().y - over)
+			reset_size()
 	elif _bag_page.visible and over > 0.0:
 		# Less room on the screen: fewer rows, whole ones.
 		var rows := clampi(floori((_scroll.custom_minimum_size.y + 4 - over) / row), 1, ROWS)
@@ -845,18 +865,37 @@ func refresh() -> void:
 	if not visible:
 		return
 	refresh_state()
-	person.refresh()
 	# The craft tab refreshes itself (see CraftPanel.refresh).
-	if not _bag_page.visible:
+	if not _bottom.visible:
 		return
 	var inv = game.character.inventory
 	var chest = _chest_entry.get("items")
 	if _slots.size() != inv.slots.size():
 		_grow_grid(_grid, inv.slots.size(), _slots, _tap.bind(-1))
-	person.chosen = _worn
 	if _from != null and (_from.slots[_at] == null or (_from != inv and not _chests.any(
 			func(e: Dictionary) -> bool: return e.items == _from))):
 		_let_go()
+	# Sets the chosen slot of the figure and shows it (PersonPanel.refresh).
+	person.chosen = _worn
+	if _bag_page.visible:
+		_show_bag(inv, chest)
+	_show_info(inv)
+	# The wide button (with a light's «поставить» joined) narrower on a narrow window
+	# with a chest's buttons too.
+	var room := _width(slot) - 2 * UiStyle.WELL_PAD - 4 - _right.get_combined_minimum_size().x
+	var wide := clampf(room, 56, USE_WIDTH)
+	if _set_down.visible:
+		# «взять» two thirds of it, «поставить» the rest (they overlap by their frames).
+		_use.custom_minimum_size.x = roundf(wide * 2.0 / 3.0)
+		_set_down.custom_minimum_size.x = wide - _use.custom_minimum_size.x + 2
+	else:
+		_use.custom_minimum_size.x = wide
+	_place()
+
+
+## The bag's tab as it is now: the kinds, the slots of the bag and of chest `chest`
+## (null for none) and the chest's buttons.
+func _show_bag(inv, chest) -> void:
 	# Tabs of the kinds of things in the bag and the chest; the rest is dimmed.
 	var have := {}
 	var all: Array = inv.slots.duplicate()
@@ -890,18 +929,6 @@ func refresh() -> void:
 		_show_slots(_chests[i].items, g.cells)
 		g.grid.tooltip_text = Lang.f("[kg_n2]", [Lang.t(Items.title(_chests[i].item)), _chests[i].items.weight()])
 	TabRow.light(_manual_button, _manual)
-	_show_info(inv)
-	# The wide button (with a light's «поставить» joined) narrower on a narrow window
-	# with a chest's buttons too.
-	var room := _width(slot) - 2 * UiStyle.WELL_PAD - 4 - _right.get_combined_minimum_size().x
-	var wide := clampf(room, 56, USE_WIDTH)
-	if _set_down.visible:
-		# «взять» two thirds of it, «поставить» the rest (they overlap by their frames).
-		_use.custom_minimum_size.x = roundf(wide * 2.0 / 3.0)
-		_set_down.custom_minimum_size.x = wide - _use.custom_minimum_size.x + 2
-	else:
-		_use.custom_minimum_size.x = wide
-	_place()
 
 
 ## The stacks of bag `bag` in cells `cells`, the chosen one lit and, with a kind of item
@@ -1033,7 +1060,8 @@ func _show_use(what: String) -> void:
 
 ## The name wraps in what the sorting by it leaves.
 func _fit_name() -> void:
-	var room := _width(slot) - 2 * UiStyle.WELL_PAD - 24 - 6 - int(_sorts.get_combined_minimum_size().x) - 6
+	var sorts := int(_sorts.get_combined_minimum_size().x) + 6 if _sorts.visible else 0
+	var room := _width(slot) - 2 * UiStyle.WELL_PAD - 24 - 6 - sorts
 	_info.custom_minimum_size.x = maxi(room, 40)
 
 

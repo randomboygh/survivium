@@ -1,20 +1,29 @@
 extends PanelContainer
-## The character in the inventory window (plan/design/ui.md, «Инвентарь»): the slots of
-## what is worn where it is worn (body, legs, feet down the middle, the head's slot at the
-## top left as the bag on the back is at the top right) and of the two hands under them,
-## close together, a strip of the bag's load along the bottom of the back's slot; beside
-## them the skills (Skills, the character's SkillSet), two columns of bars of a division
-## per level in a panel of their own, a thin line along the bottom for the way to the next
-## level. The bar shows the skill alone: what the tool in hand does is its own power
-## (the item's chips, FactChips), not divisions of the skill, so the two are never mixed
+## The tab «Персонаж» of the inventory window (plan/mvp.md stage 3, «Решения по
+## персонажу»; plan/design/ui.md, «Инвентарь»): the character drawn big in the middle
+## (FigurePreview on its stand, in what it wears and its looks, Figure.dressed), turned
+## through the eight directions by a finger or the mouse dragged across it, a tap on a
+## half of it or the arrows at its sides; round it the slots of what is worn (the head,
+## body, legs and feet down the left, as high as they are on the figure) and of the bag
+## on the back and the two hands down the right, a strip of the bag's load along the
+## bottom of the back's slot. Under it the skills (Skills, the character's SkillSet), in
+## three columns; on a wide screen (`set_wide`) beside it in one, the figure a little
+## smaller (the window's height is short there): bars of a division per level in a panel of their
+## own, a thin line along the bottom for the way to the next level. The bar shows the
+## skill alone: what the tool in hand does is its own power (the item's chips,
+## FactChips), not divisions of the skill, so the two are never mixed
 ## (docs/balance/GAME_BALANCE_DESIGN.md, «Отображение»); the tooltip tells what the level
 ## does to the work (faster, cheaper in stamina, one more now and then, a harder blow,
 ## longer-lasting things) and which held tool the skill paces. A tap on a slot says which
-## with `picked`: a slot of Inventory.WEAR_SLOTS, or "hand0" / "hand1".
+## with `picked` as the finger lifts (the tab may scroll, InventoryWindow): a slot of
+## Inventory.WEAR_SLOTS, or "hand0" / "hand1".
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
+const Kit := preload("res://src/client/ui/kit/kit.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
+const FigurePreview := preload("res://src/client/ui/figure_preview.gd")
+const Figure := preload("res://src/client/view/figure.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Skills := preload("res://src/shared/content/skills.gd")
@@ -25,29 +34,41 @@ const Vitals := preload("res://src/shared/game/vitals.gd")
 
 signal picked(slot: String)
 
-## Where each slot stands on the figure, in slots across and down (columns 0..2, rows
-## 0..2): the body, legs and feet down the middle, the head's slot at the top left as
-## the bag on the back is at the top right, the hands under them.
-const PLACES := {
-	"head": Vector2(0, 0), "body": Vector2(1, 0), "legs": Vector2(1, 1), "feet": Vector2(1, 2),
-	"back": Vector2(2, 0), "hand0": Vector2(0, 1.5), "hand1": Vector2(2, 1.5),
-}
-const ROWS := 3
+## The slots left of the figure, from the top (as high as they are on it), and right of it.
+const LEFT := ["head", "body", "legs", "feet"]
+const RIGHT := ["back", "hand0", "hand1"]
 const TITLES := {
 	"head": "[head]", "body": "[body]", "legs": "[legs]", "feet": "[feet]", "back": "[bag_on_the_back]",
 	"hand0": "[left_hand]", "hand1": "[right_hand]",
 }
-## Room between the columns of slots and between the rows.
-const GAP_X := 4
-const GAP_Y := 4
-## The width of the panel of skills (two columns of them).
-const SIDE := 132
-## The room inside the panel's frame, and between the figure and the column.
+## Room between the slots of a column (the column fits the window of a phone on its side,
+## TARGET_SIDE tall), and between the columns and the figure.
+const GAP_Y := 3
+const GAP_X := 6
+## The part of the figure's frame drawn (FigurePreview.crop): the rows over the head and
+## the columns by the sides are the room of the things held, not drawn here (no frame
+## of the body, its clothes or hair reaches above row 15 or out of columns 7..24); the
+## stand under the feet fits in its width.
+const CROP := Rect2i(2, 12, 28, 20)
+## Screen pixels a pixel of the figure with the skills under it and beside it, and the
+## fewest where the window is short of room (shrink).
+const PIXELS := 7
+const PIXELS_WIDE := 6
+const PIXELS_LEAST := 3
+## The side of the arrows that turn the figure, at the middle of its frame's sides (the
+## room the crop keeps by the body).
+const ARROW := 22
+## The columns of skills under the figure and beside it.
+const COLUMNS_UNDER := 3
+const COLUMNS_BESIDE := 1
+## The room inside the panel's frame, and between the figure and the skills.
 const PAD := 4
 const SEP := 6
-## A skill bar's height, the fill of the skill's own levels, of what the things held and
+## A skill bar's height (under the figure, and lower beside it: the column as tall as the
+## figure's), the fill of the skill's own levels, of what the things held and
 ## worn add, and of the line of the way to the next level.
 const BAR := 14
+const BAR_BESIDE := 12
 const BAR_FILL := Color("#6b4a2f")
 const NEXT_FILL := Color("#d9b45a")
 var game
@@ -57,8 +78,13 @@ var chosen := "":
 	set(v):
 		chosen = v
 		refresh()
-var _figure: Control
+var preview: FigurePreview
+var _stage: PanelContainer
+var _layout: BoxContainer
+var _columns: Array[VBoxContainer] = []
 var _cells := {}
+var _skills: PanelContainer
+var _grid: GridContainer
 var _bars := []
 ## The tool held of each skill's work: role -> the thing's id (named in the tooltip).
 var _tool := {}
@@ -70,43 +96,79 @@ func _init(g) -> void:
 
 func _ready() -> void:
 	var frame := UiStyle.well()
-	frame.set_content_margin_all(PAD)
-	add_theme_stylebox_override("panel", frame)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", SEP)
-	add_child(row)
-	_figure = Control.new()
-	row.add_child(_figure)
-	for k: String in PLACES:
-		var s = HotbarSlot.new(slot)
-		s.pressed.connect(func() -> void: picked.emit(k))
-		s.tooltip_text = TITLES[k]
-		_figure.add_child(s)
-		_cells[k] = s
-	# The skills in a panel of their own, two columns of bars.
-	var skills := PanelContainer.new()
+	add_theme_stylebox_override("panel", _padded(frame, PAD))
+	_layout = BoxContainer.new()
+	_layout.vertical = true
+	_layout.add_theme_constant_override("separation", SEP)
+	add_child(_layout)
+	# The figure in the middle, the slots in a column on each side of it.
+	var figure := HBoxContainer.new()
+	figure.alignment = BoxContainer.ALIGNMENT_CENTER
+	figure.add_theme_constant_override("separation", GAP_X)
+	_layout.add_child(figure)
+	var left := _column(LEFT)
+	figure.add_child(left)
+	var stage := PanelContainer.new()
+	stage.add_theme_stylebox_override("panel", UiStyle.stage())
+	stage.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	figure.add_child(stage)
+	_stage = stage
+	preview = FigurePreview.new([], PIXELS, CROP)
+	preview.tooltip_text = "[drag_to_turn_the_character]"
+	stage.add_child(preview)
+	for d: int in [-1, 1]:
+		var b := Kit.icon_button("prev" if d < 0 else "next",
+			"[turn_the_character_left]" if d < 0 else "[turn_the_character_right]", preview.turn.bind(d), ARROW)
+		b.focus_mode = Control.FOCUS_NONE
+		preview.add_child(b)
+		b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT if d < 0 else Control.PRESET_CENTER_RIGHT,
+			Control.PRESET_MODE_MINSIZE)
+	figure.add_child(_column(RIGHT))
+	# The skills in a panel of their own, columns of bars.
+	_skills = PanelContainer.new()
 	var well := UiStyle.well()
-	well.set_content_margin_all(3)
-	skills.add_theme_stylebox_override("panel", well)
-	skills.custom_minimum_size.x = SIDE
-	row.add_child(skills)
-	var bars := GridContainer.new()
-	bars.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	bars.columns = 2
-	bars.add_theme_constant_override("h_separation", 2)
-	bars.add_theme_constant_override("v_separation", 2)
-	bars.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	skills.add_child(bars)
+	_skills.add_theme_stylebox_override("panel", _padded(well, 3))
+	_layout.add_child(_skills)
+	_grid = GridContainer.new()
+	_grid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_grid.add_theme_constant_override("h_separation", 2)
+	_grid.add_theme_constant_override("v_separation", 2)
+	_grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_skills.add_child(_grid)
 	for sk: Dictionary in Skills.ALL:
 		var bar := Control.new()
 		bar.custom_minimum_size = Vector2(0, BAR)
 		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		bar.mouse_filter = Control.MOUSE_FILTER_PASS
 		bar.draw.connect(_draw_bar.bind(bar, sk))
-		bars.add_child(bar)
+		_grid.add_child(bar)
 		_bars.append(bar)
 	game.character.skills.changed.connect(_on_skills)
+	set_wide(false)
 	set_slot(slot)
+
+
+## A copy of `box` (shared, UiStyle.well) with `pad` inside.
+static func _padded(box: StyleBox, pad: int) -> StyleBox:
+	var b: StyleBox = box.duplicate()
+	b.set_content_margin_all(pad)
+	return b
+
+
+## A column of the slots `keys`, top down.
+func _column(keys: Array) -> VBoxContainer:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", GAP_Y)
+	col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	for k: String in keys:
+		var s = HotbarSlot.new(slot)
+		s.on_release = true
+		s.pressed.connect(func() -> void: picked.emit(k))
+		s.tooltip_text = TITLES[k]
+		col.add_child(s)
+		_cells[k] = s
+	_columns.append(col)
+	return col
 
 
 ## Skill bar `bar` of skill `sk`: its name inside, a division of its `levels` filled for
@@ -146,27 +208,45 @@ func _draw_bar(bar: Control, sk: Dictionary) -> void:
 ## Lays the figure out for slots `side` UI pixels large.
 func set_slot(side: int) -> void:
 	slot = side
-	if _figure == null:
-		return
-	_figure.custom_minimum_size = Vector2(3 * slot + 2 * GAP_X, ROWS * slot + (ROWS - 1) * GAP_Y)
-	for k: String in PLACES:
-		var c: Control = _cells[k]
+	for c: Control in _cells.values():
 		c.custom_minimum_size = Vector2(slot, slot)
-		c.size = c.custom_minimum_size
-		c.position = (PLACES[k] * Vector2(slot + GAP_X, slot + GAP_Y)).floor()
 
 
-## The width the panel takes with slots `side` UI pixels large.
-static func width(side: int) -> int:
-	return 3 * side + 2 * GAP_X + SEP + SIDE + 2 * PAD
+## The skills beside the figure (`wide`, a screen wider than tall), or under it; the
+## figure as large as it is drawn there.
+func set_wide(wide: bool) -> void:
+	if _layout == null:
+		return
+	_layout.vertical = not wide
+	_grid.columns = COLUMNS_BESIDE if wide else COLUMNS_UNDER
+	_grid.add_theme_constant_override("v_separation", 1 if wide else 2)
+	for bar: Control in _bars:
+		bar.custom_minimum_size.y = BAR_BESIDE if wide else BAR
+	_skills.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_skills.size_flags_vertical = Control.SIZE_SHRINK_CENTER if wide else Control.SIZE_FILL
+	preview.set_pixels(PIXELS_WIDE if wide else PIXELS)
+
+
+## The figure drawn a step smaller, the window having no room for it; whether it could be
+## (not when the slots beside it are as tall: a smaller figure saves no room then).
+func shrink() -> bool:
+	if preview == null or preview.pixels <= PIXELS_LEAST \
+			or _stage.get_combined_minimum_size().y <= _columns[0].get_combined_minimum_size().y:
+		return false
+	preview.set_pixels(preview.pixels - 1)
+	return true
 
 
 ## What is worn and held now, the chosen slot lit; the bag's slots on its tooltip.
 func refresh() -> void:
-	if _figure == null or not is_inside_tree():
+	if _layout == null or not is_inside_tree():
 		return
 	var inv = game.character.inventory
-	for k: String in PLACES:
+	# The figure in what it wears and its looks, as in the world (Hands.update).
+	var looks: Dictionary = game.character.looks
+	preview.dress(Figure.dressed(inv.gear, looks))
+	preview.paint(looks)
+	for k: String in TITLES:
 		var c = _cells[k]
 		c.selected = k == chosen
 		c.icon_size = Vector2(24, 24)
@@ -214,7 +294,7 @@ func refresh() -> void:
 
 ## The skills changed: the bars drawn again with their tooltips.
 func _on_skills() -> void:
-	if _figure != null and is_inside_tree():
+	if _layout != null and is_inside_tree():
 		_show_skills(game.character.inventory)
 
 

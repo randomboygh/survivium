@@ -41,6 +41,10 @@ const WAYS := {"s": Vector2(0, 1), "sw": Vector2(-1, 1), "w": Vector2(-1, 0), "n
 
 var look: Array = []
 var pixels := 4
+## The part of the frame drawn, in its pixels (the figure's frame, Figure.data: the room
+## round the body that only the things held reach can be left out to draw it bigger);
+## empty: the whole frame. Its bottom is the frame's: the stand stays under the feet.
+var crop := Rect2i()
 ## The sheet shown; null until built.
 var sheet: SpriteSheet = null
 ## The figure being built (Figure), null when done.
@@ -55,13 +59,28 @@ var _dragged := false
 var _stand := WAYS[FIRST].angle()
 
 
-func _init(worn := [], scale_px := 4) -> void:
-	pixels = scale_px
+func _init(worn := [], scale_px := 4, part := Rect2i()) -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	var frame: Array = Figure.data().frame
-	custom_minimum_size = Vector2(frame[0], frame[1] + STAND_BELOW) * pixels
+	crop = part
+	set_pixels(scale_px)
 	dress(worn if not worn.is_empty() else Figure.dressed({}))
+
+
+## Draws it `scale_px` screen pixels a pixel of it.
+func set_pixels(scale_px: int) -> void:
+	pixels = scale_px
+	var part := shown()
+	custom_minimum_size = Vector2(part.size.x, part.size.y + STAND_BELOW) * pixels
+	queue_redraw()
+
+
+## The part of the frame drawn (crop, else the whole frame), in its pixels.
+func shown() -> Rect2i:
+	if crop.has_area():
+		return crop
+	var frame: Array = Figure.data().frame
+	return Rect2i(0, 0, frame[0], frame[1])
 
 
 ## Shows the figure in look `worn`: the sheet is built anew over the next frames.
@@ -95,6 +114,9 @@ func turn(steps: int) -> void:
 
 
 func _process(delta: float) -> void:
+	# Hidden (a tab or a window not shown) it neither builds nor breathes.
+	if not is_visible_in_tree():
+		return
 	var t0 := Time.get_ticks_usec()
 	while _build != null and Time.get_ticks_usec() - t0 < BUILD_BUDGET_US:
 		if _build.step():
@@ -132,12 +154,15 @@ func _draw() -> void:
 		return
 	var f := sheet.frame_at(facing(), "idle", _time)
 	var fs := Vector2(sheet.frame_size)
-	var src := Rect2(Vector2(f.x, f.y) * fs, fs)
-	var drawn := fs * pixels
-	# The frame and the stand under it, centred together.
-	var whole := Vector2(fs.x, fs.y + STAND_BELOW) * pixels
+	var part := shown()
+	# A frame drawn mirrored shows the other side of its picture.
+	var left: float = part.position.x if f.z != 1 else fs.x - part.end.x
+	var src := Rect2(Vector2(f.x, f.y) * fs + Vector2(left, part.position.y), Vector2(part.size))
+	var drawn := Vector2(part.size) * pixels
+	# The part drawn and the stand under it, centred together.
+	var whole := Vector2(part.size.x, part.size.y + STAND_BELOW) * pixels
 	var at := ((size - whole) * 0.5).floor()
-	_draw_stand(at + Vector2(fs.x * 0.5, fs.y - 1.0) * pixels)
+	_draw_stand(at + (Vector2(fs.x * 0.5, fs.y - 1.0) - Vector2(part.position)) * pixels)
 	if f.z == 1:
 		draw_set_transform(at + Vector2(drawn.x, 0.0), 0.0, Vector2(-1.0, 1.0))
 	else:

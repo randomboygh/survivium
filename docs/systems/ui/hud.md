@@ -28,19 +28,22 @@ Part of [Interface and settings](../ui.md). The HUD and the windows opened in th
   (the sign's window on a touch, decision 183: line fields, «Save», «Turn», «Close»; while a field has the
   cursor, keys do not move the character; in detail — [crafting.md](../crafting.md)), `inventory_window.gd` and
   `craft_panel.gd` (the inventory window: character, bag, chest, station, crafting), `person_panel.gd` (the
-  character in the window: slots in their places on the body — body, legs, shoes in the middle, a headdress at
-  the top left, a bag on the back at the right, hands under them — tight, with no body lines; at the bottom of
-  the bag's slot a loading bar by weight, like the torch's (`HotbarSlot.fill`, `fill_color`: green, amber at
-  the limit, red when overloaded), «+24» in the top corner; beside it the ten skills in two columns in a
-  separate subpanel: the name inside a scale of 10 divisions (by level, the skill only: a tool's strength is
-  in the item's chips, `FactChips.power_hint` explains it by an example), with no heading; a thin line is the
-  way to the next level; the hint — what the level gives and which tool in the hand the skill leads
-  (`Tools.ROLE_OF`; in detail — [character.md](../character.md), «Skills», the model —
+  tab «Character» of the window: the figure drawn big in the middle, `FigurePreview` on its stand in what it
+  wears and its looks, `Figure.dressed`; turned through eight directions by a drag across it, a tap on a half
+  or the arrows at its feet; the slots of what is worn down the left — head, body, legs, feet, as high as on
+  the figure — and the bag on the back and the two hands down the right; at the bottom of the bag's slot a
+  loading bar by weight, like the torch's (`HotbarSlot.fill`, `fill_color`: green, amber at the limit, red
+  when overloaded); under the figure (beside it in landscape, `PersonPanel.set_wide`) the skills in a
+  separate subpanel, three columns (two beside): the name inside a scale of divisions by level (the skill
+  only: a tool's strength is in the item's chips, `FactChips.power_hint` explains it by an example), with no
+  heading; a thin line is the way to the next level; the hint — what the level gives and which tool in the
+  hand the skill leads (`Tools.ROLE_OF`; in detail — [character.md](../character.md), «Skills», the model —
   `docs/balance/GAME_BALANCE_DESIGN.md`); a touch of a hand is like a touch of a hand on the panel
   (`Hud.tap_hand`: the active hand, then the next tool), a touch of a clothes or bag slot takes off what is
-  worn or puts on a fitting one from the bag, `InventoryWindow._tap_person`; in landscape it stands to the left
-  of the bag, in portrait above it, and shows only on the «Inventory» tab). The window's tabs —
-  «Inventory» and «Crafting», «Land» (only on marked land, `land_page.gd`) and «Team» (only on a server,
+  worn or puts on a fitting one from the bag (the one chosen on «Bag» first), `InventoryWindow._tap_person`;
+  the panel at the bottom with the chosen slot or stack is shared by «Character» and «Bag»; a window too
+  short draws the figure smaller, `PersonPanel.shrink`, and past that the tab scrolls). The window's tabs —
+  «Character», «Bag» and «Crafting», «Land» (only on marked land, `land_page.gd`) and «Team» (only on a server,
   `team_page.gd`), see `docs/systems/territory.md`. All rows of tabs (window, settings, «Testing») are one
   joined group one window button tall (`TabRow.tabs`, the chosen one amber, `light`); new tabs are made the
   same way. The scrolled rows of a window keep off the edges and the bar by `UiStyle.BAR_GAP` (`UiStyle.inset`:
