@@ -154,9 +154,10 @@ const HAIR_STYLE := "short"
 ## The body standing under the head, in the walk's proportions (WalkArt, copied from the
 ## reference): the neck, the torso down to the trousers' waistband (row `hips`) and the
 ## legs two pixels wide, their feet on the frame's last row; `rows` from row 11 + `drop`
-## down to row 17 of the box. From the side and from behind the head sits a row lower
-## (`drop`, the body's bob when it stands), as in the walk. Each leg is drawn as the
-## reference has it in the step it stands on; the arms hang over it (ARMS).
+## down to row 17 of the box. Turned (se), from the side and from behind the head sits a
+## row lower (`drop`, the body's bob when it stands): the legs are as short as the walk's.
+## Each leg is drawn as the reference has it in the step it stands on; the arms hang over
+## it (ARMS).
 const BODY := {
 	"s": {"drop": 0, "hips": 14, "rows": [
 		"....cVkkVc....",
@@ -167,12 +168,11 @@ const BODY := {
 		"....tt..TT....",
 		"....BB..BB....",
 	]},
-	"se": {"drop": 0, "hips": 14, "rows": [
+	"se": {"drop": 1, "hips": 15, "rows": [
 		".....VkkVc....",
 		"....ccCCC.....",
 		".....cCCC.....",
 		".....UUuUU....",
-		".....TT.Tt....",
 		".....TT.Tt....",
 		".....KB.KB....",
 	]},
@@ -263,8 +263,8 @@ const ARMS := {
 		"left": {"out": 1, "skin": ["s", "s"]},
 	},
 	"n": {
-		"right": {"out": 1, "skin": ["S", "S"], "hand": ["s", "s"]},
-		"left": {"out": -1, "skin": ["S", "S"], "hand": ["s", "s"]},
+		"right": {"out": 1, "skin": ["S", "s"], "hand": ["s", "s"]},
+		"left": {"out": -1, "skin": ["S", "s"], "hand": ["s", "s"]},
 	},
 }
 ## The hands when they do not work, by view and animation, a frame each: [right hand,
