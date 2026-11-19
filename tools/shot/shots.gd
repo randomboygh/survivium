@@ -725,6 +725,14 @@ const SHOTS := {
 	"hands-sword": {"time": 0.42, "season": 1, "hands": {"tool": "tools:wooden_sword", "facing": "se", "right": false}},
 	"hands-sword-nw": {"time": 0.42, "season": 1, "hands": {"tool": "tools:wooden_sword", "facing": "nw"}},
 	# Bits of a trunk chopped flying off it.
+	# A tree struck with the axe (TreeHits): its crown shudders and leaves fall, frame by
+	# frame at a quarter of the game's pace (a frame per 40 ms of the game); an oak in summer and in autumn, a spruce.
+	"chop-tree": {"time": 0.42, "season": 1, "weather": "clear", "clearing": true, "hands": {"tool": "tools:stone_axe", "facing": "e", "stay": true},
+		"chop_tree": -1, "slow": 0.25, "frames_every": 80, "frames_ms": 160},
+	"chop-tree-autumn": {"time": 0.42, "season": 2, "weather": "clear", "clearing": true, "hands": {"tool": "tools:stone_axe", "facing": "e", "stay": true},
+		"chop_tree": -1, "slow": 0.25, "frames_every": 80, "frames_ms": 160},
+	"chop-spruce": {"time": 0.42, "season": 1, "weather": "clear", "clearing": true, "hands": {"tool": "tools:stone_axe", "facing": "e", "stay": true},
+		"chop_tree": 1, "slow": 0.25, "frames_every": 80, "frames_ms": 160},
 	"burst-chop": {"time": 0.42, "season": 1, "hands": {"tool": "tools:stone_axe", "facing": "e", "work": "chop", "strike": true}, "burst": "plants:log"},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},

@@ -443,6 +443,8 @@ func _run() -> void:
 				var held: String = main.character.light_held()
 				for who in [main.character, main.host.player]:
 					who.burning[held] = [Items.burns(held) * float(shot.burnt)]
+		if shot.has("chop_tree"):
+			await _chop_tree(int(shot.chop_tree), float(shot.get("slow", 1.0)))
 		if shot.has("cast"):
 			await _cast(shot.cast == "bite")
 		if shot.has("pit"):
@@ -1441,6 +1443,9 @@ func _run() -> void:
 			while Time.get_ticks_msec() - since < int(shot.get("frames_ms", 500)):
 				await process_frame
 			root.get_texture().get_image().save_png(out_dir.path_join("%s-b%02d.png" % [shot_name, i + 1]))
+		if shot.has("chop_tree"):
+			Engine.time_scale = 1.0
+			main.render_toggles.set_hidden("chunks: grass", false)
 		main.creatures.set_process(true)
 		if shot.has("keys"):
 			_hold(shot.keys, false)
@@ -1679,6 +1684,36 @@ func _hands(h: Dictionary) -> void:
 		if h.get("strike", false):
 			main.player._work_time = 600.0
 	await process_frame
+	await process_frame
+
+
+## The player beside the nearest tree on side `side` of them (-1 west, 1 east), south of
+## its trunk, strikes it with the axe in hand (TreeHits: the crown shudders, leaves
+## fall); the game runs at `slow` of its pace so the frames that follow (`frames_every`)
+## catch the shake.
+func _chop_tree(side: int, slow: float) -> void:
+	var w = main.world
+	var from := Vector2i(floori(main.player.position.x / CELL), floori(main.player.position.z / CELL))
+	var best := Vector2i.ZERO
+	var best_d := 1 << 30
+	for col: Vector2i in w.trees:
+		var d := (col - from).length_squared()
+		if d < best_d and w.log_col(col.x, col.y) != 0 and signi(col.x - from.x) == side:
+			best_d = d
+			best = col
+	var logs: int = w.log_col(best.x, best.y)
+	var foot := WorldData.level_of(logs & -logs)
+	main.player.position = Vector3(best.x + 0.5, foot, best.y + 2 + 0.5) * CELL
+	main.player.position.y = w.surface_y(best.x, best.y + 2) * CELL
+	main.host.player.position = main.player.position
+	# The grass hidden, so the leaves show where they fall.
+	main.render_toggles.set_hidden("chunks: grass", true)
+	for i in 20:
+		await process_frame
+	main.player.facing = "n"
+	Engine.time_scale = slow
+	main.controls._cooldown = 0.0
+	main.controls.dig_at(Vector3i(best.x, foot + 1, best.y), Vector3i(0, 0, 1))
 	await process_frame
 
 

@@ -27,6 +27,7 @@ const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const SkyView := preload("res://src/client/view/sky.gd")
+const TreeHits := preload("res://src/client/view/tree_hits.gd")
 
 const CELL := WorldData.CELL
 ## Seconds behind the server's snapshots the figures are drawn.
@@ -333,6 +334,9 @@ func _process(delta: float) -> void:
 			one.work_n = e[11]
 			if str(e[9]) != "":
 				f.work(str(e[9]), float(e[10]), e[12] if e[12] is Vector3 else Vector3.INF)
+				# Their axe on a tree: it shudders and drops leaves as the blade meets it.
+				if str(e[9]) == "chop" and e[12] is Vector3 and game.effects != null and game.effects.trees != null:
+					game.effects.trees.hit(e[12], float(e[10]) * TreeHits.STRIKE, at)
 		# The figure walks the way it went, else faces the step told; swims, jumps or
 		# stands as the server says.
 		f.body.swimming = bool(e[7])
