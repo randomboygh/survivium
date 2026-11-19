@@ -513,7 +513,8 @@ func _process(_delta: float) -> void:
 
 
 ## On «Мир» up and down pick a row, left and right change it (right opens the mods from
-## «Моды»); on «Персонаж» left and right turn the figure. Enter makes the world, Escape leaves the mods page or the screen.
+## «Моды»); on «Персонаж» the same with the looks' rows, and left and right turn the
+## figure while none is picked (CharacterPage.key). Enter makes the world, Escape leaves the mods page or the screen.
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey and event.pressed):
 		return
@@ -524,12 +525,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_ESCAPE:
 			if not event.echo:
 				back()
-		KEY_LEFT, KEY_RIGHT:
-			if tab == 0:
-				_character.preview.turn(1 if event.physical_keycode == KEY_RIGHT else -1)
-			elif not _choices.key(event):
-				return
 		_:
-			if tab == 0 or not _choices.key(event):
+			if not (_character.key(event) if tab == 0 else _choices.key(event)):
 				return
 	get_viewport().set_input_as_handled()

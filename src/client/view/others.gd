@@ -67,7 +67,7 @@ var perf
 ## balloon of what they said, its Label "said", "until" it goes), "head": the point over the
 ## head (world), "snaps": [[time, entry], …],
 ## "work_n": the last work count shown, "hands": the hands shown, "left|right|active",
-## "gear": what is worn shown, "light": the brightest light in their hands ("" none),
+## "gear": what is worn and the looks shown, "light": the brightest light in their hands ("" none),
 ## "two": a light in each hand, "flames": the flames of the lights in their hands,
 ## made the first time they hold one, "flicker": their light's flicker now,
 ## "print_at": where their last boot print is, "left": the foot that made it,
@@ -86,7 +86,7 @@ var _own := {}
 func take_people(list: Array) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	for e in list:
-		if not e is Array or not e.size() in [13, 14, 15, 16, 17, 18] or not e[0] is int or not e[2] is Vector3 or not e[3] is Vector2i \
+		if not e is Array or not e.size() in [13, 14, 15, 16, 17, 18, 19] or not e[0] is int or not e[2] is Vector3 or not e[3] is Vector2i \
 				or not e[4] is Array or e[4].size() != 2:
 			continue
 		var id: int = e[0]
@@ -316,10 +316,12 @@ func _process(delta: float) -> void:
 			one.hands = hands_key
 			f.hold(game.hands.look(str(e[4][0])), game.hands.look(str(e[4][1])), "left" if e[5] == 0 else "right")
 			_take_lights(one, e[4])
-		# What they wear shows on them.
-		if e.size() > 13 and e[13] is Dictionary and str(e[13]) != one.gear:
-			one.gear = str(e[13])
-			f.dress(Figure.dressed(e[13]))
+		# What they wear shows on them, over their looks (Looks, made sound by Figure).
+		var looks: Dictionary = e[18] if e.size() > 18 and e[18] is Dictionary else {}
+		if e.size() > 13 and e[13] is Dictionary and str(e[13]) + str(looks) != one.gear:
+			one.gear = str(e[13]) + str(looks)
+			f.dress(Figure.dressed(e[13], looks))
+			f.paint(looks)
 		# Their fishing line in the water, its float where the server says.
 		f.line_at = e[15] if e.size() > 15 and e[15] is Vector3 else Vector3.INF
 		# The vessel they sit in, afloat.

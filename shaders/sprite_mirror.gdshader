@@ -12,6 +12,7 @@ render_mode world_vertex_coords, unshaded, blend_mix, depth_draw_never, depth_te
 stencil_mode read, compare_greater, 2;
 
 #include "res://shaders/common.gdshaderinc"
+#include "res://shaders/looks.gdshaderinc"
 
 uniform sampler2D sprite_texture : filter_nearest SRGB_HINT;
 // The frame of a sprite sheet to show, as in sprite.gdshader, and the animal's tint.
@@ -184,7 +185,7 @@ void fragment() {
 	// A reflection is never brighter than what it reflects: the water only gives the
 	// figure its hue (the tint is scaled to at most 1), it never adds light, so a dark
 	// pixel (hair, an outline, the night) stays as dark as it is.
-	vec3 source = c.rgb * tint * 0.9;
+	vec3 source = looks_swap(c.rgb) * tint * 0.9;
 	vec3 rgb = source * mix(vec3(1.0), water / max(max(water.r, water.g), water.b), 0.4) * light;
 	ALBEDO = rgb;
 	// Fainter the deeper, dithered in steps so it stays pixel art.

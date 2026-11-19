@@ -212,6 +212,22 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   the frame's bottom row with no outline under them. `tools/art/player_art.gd` draws it (`HEAD`, `HAIR`,
   `TORSO`, `STAND`, `SIDE_LEGS`, the arms `SHOULDER` and `ARMS`, the poses `MOVES` and `WORKS`); the design
   and its letters are in the library `survivium-builds/character/chibi/`.
+- Looks (stage 3, PR 3 of the character editor): `src/shared/content/looks.gd` reads `player.yaml` `looks`
+  (10 skin tones, 12 hair colours, 6 eye colours by place in their lists; 10 hair styles, 8 face options
+  under the hair, 5 on the face, by id) and makes any look sound (`Looks.clean`: the server's check of a
+  hello, a save). The character keeps it in `Character.looks` (saved in `character`, {} until given): the
+  server gives a new character the looks of its hello (7th field, `ServerList.player_looks` from the
+  «Персонаж» tab), single player `LocalHost.take_looks` after the save is read; a character met again keeps
+  its own (it belongs to its world); bots look random. It reaches the own client in `YOU` (the state) and the
+  others as field 18 of `PEOPLE`. `Figure.dressed(gear, looks)` puts `player/face/<face>.png`,
+  `player/hair/<hair>.png` (none for bald) and `player/face/<on_face>.png` in the hair slot, drawn by
+  `tools/art/player_looks_art.gd` (`HAIRS`, `FACES`, from the design `chibi_v7.py`). The colours are the
+  shader's (`shaders/looks.gdshaderinc`, in `sprite`, `sprite_water`, `sprite_mirror` and the preview's
+  `figure_preview.gdshader`): the pictures are drawn in the default look's colours, and `Figure.paint` sets
+  pairs of whole sRGB colours to swap (the skin's three, the hair's three, the iris, and stubble, freckle,
+  blush and scar made of them, `Figure.MADE`). No other picture of the figure, the clothes or the tools held
+  may use those colours (`view_test`). The sheet is not recoloured on the CPU: 475 thousand pixels a layer
+  take seconds on a phone. The «Персонаж» tab (`character_page.gd`) has a row for each.
 - `src/client/ui/person_panel.gd` — the character in the inventory window (the slots of what is worn and of
   the hands, cells, the skills' strips); `src/client/ui/level_up.gd` — the effect of a skill's new level;
   `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — the death screen,
@@ -295,7 +311,8 @@ top of satiety: roast heals and quenches a little, `Character.eat`); the creatur
 figure — `Figure.dressed(gear)`: the bare layers of `player.yaml` `naked` (body, loincloth, hair), between
 them the pictures of what is worn `sprites/worn/<look>.png` of the thing's bundle (the field `look`): legs,
 feet, the body under the hair, the head on top; they are drawn by `tools/make_sprites.gd` (`WORN`: the shape
-`PlayerArt.SHAPES` and three colours). What other players wear comes as the 14th field of `PEOPLE`. The
+`PlayerArt.SHAPES` and three colours). What other players wear comes as the 14th field of `PEOPLE`, their
+looks as the 19th (index 18). The
 figure's layers and works — `content/core/sprites/player.yaml`, the tools' sheets in the hand —
 `sprites/held/` of the tool's bundle. The parts `inventory`, `vitals`, `character` (from the server's
 character, `game.host.player`), `hands` (from the client) are saved.

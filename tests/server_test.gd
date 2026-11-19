@@ -10,6 +10,7 @@ extends SceneTree
 ## then the server is started again over the world it saved (С4).
 ## Run: godot --headless --path . --script res://tests/server_test.gd
 
+const Looks := preload("res://src/shared/content/looks.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const SettingsFile := preload("res://src/client/settings.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
@@ -107,12 +108,12 @@ func _until(cond: Callable, timeout := WAIT) -> bool:
 	return false
 
 
-func _bot(name: String, key := "", password := PASSWORD, port := PORT) -> Bot:
+func _bot(name: String, key := "", password := PASSWORD, port := PORT, looks := {}) -> Bot:
 	var s = Socket.new()
 	sockets.append(s)
 	var b := Bot.new(s, name)
 	s.open("ws://127.0.0.1:%d" % port)
-	b.reply = s.hello(name, key, password)
+	b.reply = s.hello(name, key, password, "", looks)
 	return b
 
 
@@ -198,7 +199,7 @@ func _run() -> void:
 	var wrong := _bot("Боря", "", "не тот")
 	_check(await _until(func() -> bool: return wrong.reply.done and wrong.socket.ended)
 		and wrong.reply.value.get("why") == Protocol.WHY_PASSWORD, "the wrong password is refused")
-	var borya := _bot("Боря")
+	var borya := _bot("Боря", "", PASSWORD, PORT, {"hair": "mohawk", "skin": 7, "face": "nope"})
 	_check(await _until(func() -> bool: return borya.reply.done) and borya.reply.value.get("ok") == true
 		and borya.reply.value.get("id") == 2, "the right password lets the second player in")
 	var third := _bot("Вася")
@@ -333,6 +334,11 @@ func _run() -> void:
 			and not main.others.people.has(3), "with his name over his head; the game itself is not among the others (%s)" % [main.others.people.keys()])
 		_check(back.of(Protocol.PEOPLE).any(func(e: Array) -> bool: return e[1].any(func(p: Array) -> bool: return p[0] == 3 and p[1] == "Клиент")),
 			"the game's player is told to the others")
+		# His looks (the hello's, made sound) go to the others, and his figure wears them.
+		var borya_looks: Dictionary = main.others.people[2].figure.looks if main.others.people.has(2) else {}
+		_check(borya_looks.get("hair") == "mohawk" and borya_looks.get("skin") == 7 and borya_looks.get("face") == ""
+			and main.others.people[2].figure.look.has("hair/mohawk"),
+			"another player shows in the looks they came with (%s)" % [borya_looks])
 		# Walking on, he leaves boot prints on the game's screen and, in deep snow, his
 		# trail in the game's copy of the world, which eases the game's own walking there.
 		var snow_was: float = server.session.clock.snow
@@ -442,6 +448,9 @@ func _run() -> void:
 	var anya_file := ServerStore.player_file(w.key)
 	_check(server.store.read_json(anya_file).get("name") == "Аня" and not FileAccess.get_file_as_string(server.store.dir + "/" + anya_file).contains(w.key),
 		"a player who leaves is saved, in a file that does not hold the key")
+	var anya_looks: Variant = server.store.read_json(anya_file).get("character", {}).get("looks")
+	_check(anya_looks is Dictionary and Looks.clean(anya_looks) == Looks.default_look(),
+		"their looks are saved with them, the default's when they came with none (%s)" % [anya_looks])
 	var dug_at: int = server.session.world.get_cell(ground.x, ground.y, ground.z)
 	var things: int = server.session.placed.things.size()
 	var dir: String = server.store.dir

@@ -52,7 +52,8 @@ length up to `CHAT_MAX` 160.
   Loads only `content/`. Through a socket each message is one binary frame; the first request on it is
   `hello` ([protocol version, the build's version `build_version()` — from `build_info.json`, «dev» without
   it; a name, the key from last time or "", a password, the hash of the mods' files the game plays with —
-  `Content.playing()`]), the reply is a welcome `{"ok": true, "id", "key",
+  `Content.playing()`, the looks a new character takes — `Looks`, may be left out; a character the world
+  knows keeps its own]), the reply is a welcome `{"ok": true, "id", "key",
   "name", "seed", "settings", "mods", "materials", "spawn", "at"}` or a refusal `{"ok": false, "why": version |
   password | full | name | banned | list | taken | wait}` (`taken` — the name is taken by another in the world
   or it is the server's name or a translation key — so a name the game gave when the player set none (`[host]`, `[player_n2]`) goes in words, a player's with four figures from the key, `ServerLink.sent_name`; `wait` — many wrong passwords or new players in a row), after which the server
@@ -68,7 +69,8 @@ length up to `CHAT_MAX` 160.
   `var_to_bytes` and zstd (the same as in the save), `forget` [key], `cells` [[cell, material]…], `drops`
   [key, list] (through the loop — only [key]: the world is one), `taken` [id, from where]. Other players:
   `people` [[number, name, place, gaze step, hands, the hand at work, walking, swimming, on the ground, work:
-  kind, length, count, where to, what is worn, in the team, the line's float, the raft or boat under them]…] —
+  kind, length, count, where to, what is worn, in the team, the line's float, the raft or boat under them, the gesture, the looks
+  (`Character.looks`)]…] —
   those who changed since last time, in the zone of `Session.ZONE` chunks, through a socket 20 times a second;
   `person_gone` [number] — left the zone or the world. The client's `input` carries both «on the ground» and
   the hands' work (kind, length, count — one more with each swing, where turned).

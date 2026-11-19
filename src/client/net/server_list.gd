@@ -74,6 +74,19 @@ static func set_player_name(name: String) -> void:
 	cfg.save(path)
 
 
+## The looks picked last time on the «Персонаж» tab (Looks), {} before the first: a new
+## character takes them (a character met again keeps its own, saved with the world).
+static func player_looks() -> Dictionary:
+	var v: Variant = _read().get_value("player", "looks", {})
+	return v if v is Dictionary else {}
+
+
+static func set_player_looks(looks: Dictionary) -> void:
+	var cfg := _read()
+	cfg.set_value("player", "looks", looks)
+	cfg.save(path)
+
+
 ## The address `text` as the socket takes it: spaces gone, `https://` read as `wss://`
 ## and `http://` as `ws://`, none at all as `wss://` for a name (a tunnel's) and `ws://`
 ## for numbers or `localhost` (the home network); `ws://` without a port gets the

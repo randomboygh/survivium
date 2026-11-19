@@ -4,7 +4,8 @@ extends RefCounted
 ## saves them as the core mod's pictures (content/core/sprites/player/), which the game
 ## reads (Figure) and which can be painted over by hand from there. Layers: the body
 ## (skin, face, the arms behind the body, skin under the clothes), the loincloth,
-## shirt, trousers (with the waistband), shoes, hair, the shapes clothes are worn in
+## shirt, trousers (with the waistband), shoes, hair, the hair styles and the face's
+## options to pick (LooksArt: `hair/<style>`, `face/<option>`), the shapes clothes are worn in
 ## (SHAPES), the fists (the forearms and hands in front of the body, drawn over what the
 ## hands hold) and the hands picture marking where each hand is. The hands are empty:
 ## what they hold has sheets of its own (ToolArt), turned the way the poses here say.
@@ -25,6 +26,7 @@ extends RefCounted
 
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const Figure := preload("res://src/client/view/figure.gd")
+const LooksArt := preload("res://tools/art/player_looks_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -50,6 +52,12 @@ const INK := {
 	# The shapes of clothes (see SHAPES): the light, middle and dark tone, painted in
 	# the colours of the thing worn (see painted).
 	"1": ["c0c0c0", ""], "2": ["808080", ""], "3": ["404040", ""],
+	# The face's options (LooksArt.FACES), in their own layers: stubble (the skin's shade
+	# and the hair's), a freckle, blush, a scar (the game makes these of the chosen skin
+	# and hair, Looks.swaps), war paint, gold, a dark lens, the frame of glasses or a
+	# patch and a clear lens.
+	"O": ["906042", ""], "F": ["925333", ""], "P": ["e8867c", ""], "X": ["eaa590", ""],
+	"Q": ["c42430", ""], "Y": ["f0c040", ""], "Z": ["2a2a33", ""], "G": ["2a2a33", ""], "R": ["9fd3e6", ""],
 }
 ## Skin under each letter of the clothes, in the body layer.
 const SKIN := {"L": "S", "C": "S", "c": "s", "U": "S", "u": "s", "T": "S", "t": "s", "B": "s", "b": "k"}
@@ -130,65 +138,9 @@ const HEAD := {
 		"....ssssss....",
 	],
 }
-## The hair, from row 1 of the box.
-const HAIR := {
-	"s": [
-		"..............",
-		"....HHHHHH....",
-		"...HHHHHHHD...",
-		"..HJJJJJHHHD..",
-		"..HHHHHHHHDD..",
-		"..HHD.HHD.DD..",
-		"..H........D..",
-		"..D........D..",
-	],
-	"se": [
-		"..............",
-		"....HHHHHH....",
-		"...HHHHHHHH...",
-		"..HJJJJJHHHD..",
-		"..DHHHHHHHHD..",
-		"..HHHHD.HD.D..",
-		"..HHH......D..",
-		"..DHH......D..",
-		"...DD.........",
-	],
-	"e": [
-		"..............",
-		"....HHHHHH....",
-		"...HHHHHHHH...",
-		"..HHJJJJJHHH..",
-		"..DHHHHHHHHH..",
-		"..HHHHHHHD.D..",
-		"..HHHH........",
-		"..DHHH........",
-		"...DD.........",
-	],
-	"ne": [
-		"..............",
-		"....HHHHHH....",
-		"...HHHHHHHH...",
-		"..HJJJJJHHHD..",
-		"..HHHHHHHHHD..",
-		"..HHHHHHHHHD..",
-		"..HHHHHHHH.D..",
-		"..DHHHHHHH....",
-		"...DDHHHD.....",
-		".....DDD......",
-	],
-	"n": [
-		"..............",
-		"....HHHHHH....",
-		"...HHHHHHHD...",
-		"..HJJJJJHHHD..",
-		"..HHHHHHHHHD..",
-		"..HHHHHHHHHD..",
-		"..HHHHHHHHHD..",
-		"..DHHHHHHHDD..",
-		"...DHHHHHDD...",
-		"....DDDDDD....",
-	],
-}
+## The hair drawn in the plain layer `hair` (the hair slot of player.yaml `naked`): the
+## default look's style (player.yaml `looks`).
+const HAIR_STYLE := "short"
 ## The neck and torso, rows 11-14: the neck, the shoulders, the shirt between the arms
 ## and the trousers' waistband.
 const TORSO := {
@@ -850,7 +802,7 @@ static func frame_letters(dir: String, active: String, col: int) -> Dictionary:
 		# Shut, an eye is a dark line where the iris and the white were.
 		head = head.map(func(r: String) -> String: return r.replace("E", "S").replace("w", "S").replace("I", "E").replace("W", "E"))
 	_stamp(parts, head, 2, up)
-	_stamp(parts, HAIR[dir], 1, up)
+	_stamp(parts, LooksArt.HAIRS[HAIR_STYLE][dir], 1, up)
 	var solid := {}
 	for e: Array in parts:
 		solid[e[0]] = true
@@ -865,7 +817,24 @@ static func frame_letters(dir: String, active: String, col: int) -> Dictionary:
 			_arm(out, p[hand], dir, hand, solid, true)
 	_loincloth(out)
 	_shapes(out, up)
+	_looks(out, dir, up)
 	return out
+
+
+## The layers of the looks to pick (LooksArt): `hair/<style>` and `face/<option>`, over
+## the head as it bobs and leans.
+static func _looks(out: Dictionary, dir: String, up: Vector2i) -> void:
+	for kind: String in ["hair", "face"]:
+		var all: Dictionary = LooksArt.HAIRS if kind == "hair" else LooksArt.FACES
+		for id: String in all:
+			var drawn := {}
+			var rows: Array = all[id].get(dir, [])
+			for y in rows.size():
+				var r: String = rows[y]
+				for x in r.length():
+					if r[x] != ".":
+						drawn[Vector2i(x, 1 + y) + up] = r[x]
+			out[kind + "/" + id] = drawn
 
 
 ## The loincloth the character is born in: the trousers' waistband, in cloth.

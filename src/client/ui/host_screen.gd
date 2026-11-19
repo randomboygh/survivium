@@ -850,6 +850,9 @@ func layout(screen: Vector2) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not running() and _tab == 0 and _character.key(event):
+		get_viewport().set_input_as_handled()
+		return
 	if _choices.key(event):
 		get_viewport().set_input_as_handled()
 		return
@@ -857,11 +860,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			and event.physical_keycode in [KEY_UP, KEY_DOWN]:
 		# Up and down choose among the worlds.
 		choose_world(clampi(_world + (1 if event.physical_keycode == KEY_DOWN else -1), 0, _worlds.size() - 1))
-		get_viewport().set_input_as_handled()
-		return
-	if not running() and _tab == 0 and event is InputEventKey and event.pressed \
-			and event.physical_keycode in [KEY_LEFT, KEY_RIGHT] and not _character.name_field.has_focus():
-		_character.preview.turn(1 if event.physical_keycode == KEY_RIGHT else -1)
 		get_viewport().set_input_as_handled()
 		return
 	super(event)

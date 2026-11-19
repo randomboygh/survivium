@@ -824,6 +824,10 @@ func _run() -> void:
 			# The figures take a few frames to come in.
 			for i in 10:
 				await process_frame
+			if shot.team == "looks":
+				# Their sheets in their looks are built a part a frame.
+				for i in 80:
+					await process_frame
 			if shot.team == "person":
 				var screen: Vector2 = main.view.camera.unproject_position(main.others.people[3].figure.global_position)
 				main.hud.person.show_person(3, "Вова", screen * main.view.view_scale + main.view.container.global_position)
@@ -1254,6 +1258,11 @@ func _run() -> void:
 			setup = load("res://src/client/ui/world_setup.gd").new(main)
 			main.hud.add_child(setup)
 			# «Мир» unless the shot is of «Персонаж»; a page of it other than the first ("mods").
+			if shot.has("looks"):
+				# Looks picked on «Персонаж» (not kept on the device).
+				setup._character.looks = setup._character.Looks.clean(shot.looks)
+				setup._character._show_looks()
+				setup._character.choices.refresh()
 			if not (shot.setup is String and shot.setup == "character"):
 				setup.show_tab(1)
 				if shot.setup is String:
@@ -1501,7 +1510,8 @@ func _run() -> void:
 ## A team for the shots of teams: the player (number 1) leads «Лесные» with Боря,
 ## who stands by them with Вова, not in it; `what` is "invite" (Гена's invitation),
 ## "person" (Вова's card, tapped), "chat" (Боря says a line, the player answers), "map" (Гена in the team
-## too, far away, both on the map), "torches" (both hold a torch) or "" (the figures alone).
+## too, far away, both on the map), "torches" (both hold a torch), "looks" (six others in looks
+## of their own, the player in one too) or "" (the figures alone).
 func _fake_team(main: Node, what: String) -> void:
 	main.link.welcome["id"] = 1
 	main.link.welcome["name"] = "Аня"
@@ -1511,6 +1521,26 @@ func _fake_team(main: Node, what: String) -> void:
 		var cell := Vector2i(floori(at.x / main.CELL), floori(at.z / main.CELL))
 		main.team.take_mates([[2, "Боря", cell + Vector2i(4, 11)], [4, "Гена", cell + Vector2i(70, -50)]])
 	var people := []
+	if what == "looks":
+		# Six others in a row before the player, each in looks of their own (PEOPLE field
+		# 18), and the player bald and bearded in dark glasses.
+		var looks := [
+			{"skin": 0, "hair": "long", "hair_colour": 6, "eyes": 4, "face": "freckles"},
+			{"skin": 4, "hair": "bun", "hair_colour": 0, "eyes": 1, "on_face": "earrings"},
+			{"skin": 8, "hair": "curls", "hair_colour": 0, "eyes": 0, "face": "beard"},
+			{"skin": 6, "hair": "braids", "hair_colour": 5, "eyes": 3, "face": "war_paint"},
+			{"skin": 1, "hair": "mohawk", "hair_colour": 11, "eyes": 2, "on_face": "glasses"},
+			{"skin": 9, "hair": "ponytail", "hair_colour": 8, "eyes": 5, "face": "scar"},
+		]
+		for i in looks.size():
+			var pos: Vector3 = at + Vector3((i - 2.5) * 1.5, 0.0, 2.5)
+			people.append([10 + i, "", pos, Vector2i(0, 1), ["", ""], 0, false, false, true, "", 0.0, 0, Vector3.INF,
+				{}, false, Vector3.INF, "", "", looks[i]])
+		var mine := {"skin": 5, "hair": "bald", "hair_colour": 1, "eyes": 1, "face": "long_beard", "on_face": "dark_glasses"}
+		main.host.player.looks = mine
+		main.character.looks = mine
+		main.others.take_people(people)
+		return
 	for p: Array in [[2, "Боря", Vector3(2.0, 0.0, 5.5), true], [3, "Вова", Vector3(-2.5, 0.0, 6.0), false]]:
 		# With torches they stand apart, each in a light of their own.
 		var pos: Vector3 = at + (p[2] * Vector3(2.5, 0.0, 0.4) if what == "torches" else p[2])

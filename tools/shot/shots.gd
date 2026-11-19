@@ -860,6 +860,7 @@ const SHOTS := {
 	# Teams (decision 50): a member's name in the team's colour, a tapped player's card,
 	# an invitation, the pause's window «Команда».
 	"team-person": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "person"},
+	"people-looks": {"time": 0.45, "season": 1, "find": "meadow", "team": "looks", "hide": ["chunks: grass", "chunks: crowns", "chunks: crown shadows"]},
 	"team-torches": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "team": "torches"},
 	"team-chat": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "chat"},
 	"chat-lines": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "chat", "toast": true, "chat_lines": true},
@@ -959,6 +960,8 @@ const SHOTS := {
 	"ui-corner-hidden": {"time": 0.45, "season": 1, "touch": true, "settings": {"level_buttons": false, "camera_buttons": false}},
 	# The first screen (the world to make) and the whole map of what is explored.
 	"ui-setup-character": {"time": 0.45, "season": 1, "touch": true, "setup": "character"},
+	"ui-setup-looks": {"time": 0.45, "season": 1, "touch": true, "setup": "character",
+		"looks": {"skin": 6, "hair": "braids", "hair_colour": 5, "eyes": 3, "face": "freckles", "on_face": "earrings"}},
 	"ui-setup": {"time": 0.45, "season": 1, "touch": true, "setup": true},
 	"ui-setup-mods": {"time": 0.45, "season": 1, "touch": true, "setup": "mods"},
 	# The page of one mod: a row per bundle (its animals), each switched on its own.

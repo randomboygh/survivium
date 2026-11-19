@@ -7,6 +7,7 @@ shader_type spatial;
 render_mode world_vertex_coords, blend_mix, depth_draw_never, cull_disabled, shadows_disabled;
 
 #include "res://shaders/common.gdshaderinc"
+#include "res://shaders/looks.gdshaderinc"
 #include "res://shaders/ice.gdshaderinc"
 
 uniform sampler2D sprite_texture : filter_nearest SRGB_HINT;
@@ -65,7 +66,7 @@ void vertex() {
 void fragment() {
 	vec2 uv = frame_uv.xy + UV * frame_uv.zw;
 	vec4 c = texture(sprite_texture, uv);
-	c.rgb *= tint;
+	c.rgb = looks_swap(c.rgb) * tint;
 	// The texel row along the surface is the ripple line of sprite.gdshader.
 	if (c.a < 0.5 || (swim_depth < 0.0 && world_pos.y >= surface)) {
 		discard;
