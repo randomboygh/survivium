@@ -113,6 +113,8 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 	var q := _got(who, "dig")
 	for c in cells:
 		var was: int = world.get_cell(c.x, c.y, c.z)
+		# A cracked cell (building decay) is rubble: its item only now and then.
+		var rubble: bool = world.is_cracked(c.x, c.y, c.z) and randf() >= CRACKED_YIELD
 		var grown := not _built.has(c)
 		if not grown:
 			_built.erase(c)
@@ -123,7 +125,7 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 		_changed(c)
 		var at := floor_under(c)
 		var rec: Dictionary = Mat.RECORDS[was]
-		for id in [Items.dug[was], rec.bonus if randf() < rec.bonus_chance else ""]:
+		for id in ["" if rubble else Items.dug[was], rec.bonus if randf() < rec.bonus_chance else ""]:
 			if id != "":
 				world.heap_drop(id, at, 1, randf() * TAU, q)
 				keys[WorldData.chunk_key(c.x, c.z)] = true

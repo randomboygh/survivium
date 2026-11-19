@@ -78,7 +78,9 @@ Part of [The picture](../rendering.md). The rules a change of the picture keeps.
   material of the cut cell, melting by dithering for `SECTION_RIM` texels, `section_rim`: a cell's edge is
   counted the edge of the slice if the neighbouring cell is open, left by the layers or the gaze's ray from it
   goes out into the void, `layer_fills`). If the ray goes out into the void earlier, the face is removed and
-  one sees what is behind it. The background under any slice is the dark colour of the slice of rock
+  one sees what is behind it; an open cell the ray only grazes at a corner (shorter than `LAYER_GRAZE`, in a
+  diagonal view the rays of a row of pixels run along the corners of a diagonal rock face) does not count,
+  or a line of single pixels showed the background there. The background under any slice is the dark colour of the slice of rock
   (`sky.gd`). The «first layers» can be less than zero too (`CaveLayers.FIRSTS` from −4): then the layers
   begin to melt earlier than the first. The choice of cells passes through the cells drawn at less than
   `Controls.PICK_SHARE` (`CaveLayers.share`, `VoxelRaycast.cast(..., skip)`).

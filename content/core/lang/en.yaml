@@ -2436,3 +2436,7 @@
 "[descent]": "Descent"
 "[descent_at_45]": "Descent at 45°"
 "[beach]": "Beach"
+"[buildings_n2]": "Buildings"
+"[building_decay_stage]": "Building decay step"
+"[n_days]": "%s d"
+"[buildings_nobody_tends_crack]": "Buildings outside claimed land that nobody comes near crack, then crumble into ruins, a stage at a time"

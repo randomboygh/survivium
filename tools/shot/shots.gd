@@ -263,6 +263,9 @@ const SHOTS := {
 	# Building decay: the walls of every material, half their cells cracked
 	# (WorldData.cracks, places.crack_near).
 	"decay-cracks": {"time": 0.4, "season": 1, "walls": true, "cracks": true},
+	# The same walls left 2.5 game days a stage (places.age_near): wattle and the hut a
+	# ruin of their lowest row, the wooden walls two rows, brick and cut stone cracked.
+	"decay-ruins": {"time": 0.4, "season": 1, "walls": true, "ruins": 2.5},
 	# A cliff of turf, soil, stone with ore veins, sand, clay and a block of brick
 	# (Places.strata): how materials meet on the sides of cells.
 	"strata": {"time": 0.42, "season": 1, "strata": true},
@@ -1043,6 +1046,9 @@ const SHOTS := {
 	"ui-main-menu-host-server": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 2},
 	"ui-main-menu-host-new-world": {"time": 0.42, "season": 1, "main_menu": "host", "host_new_world": true},
 	"ui-main-menu-host-world-setup": {"time": 0.42, "season": 1, "main_menu": "host", "host_open_new": true},
+	"decay-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 3, "host_end": true},
+	"decay-test-settings": {"time": 0.45, "season": 1, "touch": true, "menu": true, "page": "test", "section": "world",
+		"menu_end": true},
 	"ui-main-menu-host-settings": {"time": 0.42, "season": 1, "main_menu": "host", "host_tab": 3},
 	"ui-main-menu-host-running": {"time": 0.42, "season": 1, "main_menu": "host-running"},
 	"ui-main-menu-host-running-settings": {"time": 0.42, "season": 1, "main_menu": "host-running", "host_tab": 1},
@@ -1204,6 +1210,10 @@ const SHOTS := {
 	"ground-holes-turn": {"time": 0.42, "season": 1, "at": [196, -171], "turn": 4, "hide": ["chunks: grass", "environment: background magenta"], "settings": {"pixel_scale": 3}},
 	"ground-round-corners": {"time": 0.42, "season": 1, "at": [185, -159], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
 	"ground-holes-phone": {"time": 0.42, "season": 1, "at": [196, -171], "y": 24, "hide": ["environment: background magenta"]},
+	# Thin cracks where a cut corner's curve ends at its side (old slopes, magenta background, 45° view).
+	"ground-slope-cracks": {"time": 0.42, "season": 1, "at": [173, -158], "turn": 1, "hide": ["chunks: grass", "environment: background magenta"], "settings": {"pixel_scale": 3}},
+	# A layer cut in a diagonal view: no line of single pixels along the star cave's rock (layer_fills grazing a corner).
+	"ground-cut-diagonal": {"time": 0.42, "season": 1, "at": [28, -72], "turn": 1, "hide": ["chunks: grass", "environment: background magenta"], "settings": {"pixel_scale": 3}},
 	# The user's note 2026-11-18: the edge of the overhang's roof cut round like its top (x 92 z -276).
 	"ground-hole-check": {"time": 0.42, "season": 1, "at": [-144, 11], "y": 27, "turn": 1, "hide": ["chunks: grass", "environment: background magenta"], "settings": {"pixel_scale": 3}},
 	"ground-overhang-edge": {"time": 0.42, "season": 1, "at": [92, -276], "y": 25, "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},

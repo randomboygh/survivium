@@ -394,6 +394,38 @@ func _stop_fall(node: Node3D) -> void:
 	node.remove_meta("fall")
 
 
+## Built cells fell and things fell apart of decay (Protocol.CRUMBLED; `mats` the material
+## of each cell, -1 a thing): dust and bits of the material where each was, and one dull
+## knock of the nearest, felt beside the player.
+func crumbled(cells: Array, mats: PackedInt32Array) -> void:
+	var nearest := INF
+	var near := Vector3.INF
+	var stuff := -1
+	for i in cells.size():
+		if not cells[i] is Vector3i:
+			continue
+		var c: Vector3i = cells[i]
+		var m: int = mats[i]
+		var under: int = game.world.get_cell(c.x, c.y - 1, c.z) if game.world != null else -1
+		var dust_of := m if m >= 0 and m < Mat.COUNT else under
+		if game.effects != null:
+			game.effects.dust(Vector3(c) * CELL, 1.0, dust_of if dust_of != Mat.AIR else -1)
+			if m >= 0 and m < Mat.COUNT:
+				game.effects.burst((Vector3(c) + Vector3(0.5, 0.5, 0.5)) * CELL, m, randf() * 0.3)
+		var at := (Vector3(c) + Vector3(0.5, 0.0, 0.5)) * CELL
+		var d := at.distance_to(game.player.position) if game.player != null else 0.0
+		if d < nearest:
+			nearest = d
+			near = at
+			stuff = m
+	if near.is_finite() and game.sound != null:
+		var hit: String = Mat.RECORDS[stuff].hit if stuff >= 0 and stuff < Mat.COUNT else ""
+		game.sound.play(hit if hit != "" else "place", near, 1.0, 0.7)
+		game.sound.play("place", near, 0.8, 0.6)
+	if nearest < THUD_NEAR:
+		Vibration.play(game, "thud", 0.0, 1.4)
+
+
 ## Thing `e` touched the ground: dust of the ground under it from its edges, and a thud,
 ## lower for a bigger thing.
 func _land(e: Dictionary) -> void:

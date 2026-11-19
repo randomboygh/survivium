@@ -24,6 +24,8 @@ const HAND_REACH := 5.0
 const REACH_SLACK := 1.5
 ## A cracked cell (building decay, WorldData.cracks) takes this share of a swing to break.
 const CRACKED_SWING := 0.5
+## The share of the time a cracked cell dug gives its item back (decision 5A: about half).
+const CRACKED_YIELD := 0.5
 ## Cell `cell` changed (dug, filled, cut down to another material, a tree fell through it,
 ## a bush on it went): what is drawn around it is built again.
 signal cell_changed(cell: Vector3i)
