@@ -1,18 +1,22 @@
 extends BoxContainer
 ## The tab «Персонаж» of «Новая игра» (WorldSetup), «Создать сервер» (HostScreen) and
 ## «Присоединиться» (JoinScreen), first of their tabs (plan/mvp.md, stage 3: a character
-## always belongs to its world): the figure drawn big (FigurePreview, turned by a drag
-## or a tap) beside its rows in landscape (`vertical` false) or over them upright, the
-## rows `rows_width` wide (inset as the settings' rows unless the window's page is). The rows: the name the character goes by (ServerList's
-## player name, kept as it is typed; on a server the others see it), then the looks
-## (Looks: the body's build and figure, the hair style and colour, the skin, the eyes,
-## the face and what is worn on it), «name ‹ value ›» rows of the kit (ChoiceRows) that show on the figure at once and
-## are kept on the device as the name is (ServerList.player_looks). A new character
-## takes them; one met again in its world keeps its own.
+## always belongs to its world): the figure drawn big (FigureStage, as on the inventory's
+## «Персонаж»: turned by a drag, a tap or its arrows, `set_wide` on a wide screen) beside
+## its rows in landscape (`vertical` false) or over them upright, the rows `rows_width`
+## wide (inset as the settings' rows unless the window's page is; in a scroll of their
+## own with `scrolls`, the window sizing it, `scroll`). The rows: the name the
+## character goes by (ServerList's player name, kept as it is typed; on a server the
+## others see it), then the looks (Looks: the body's build and figure, the hair style and
+## colour, the skin, the eyes, the face and what is worn on it), «name ‹ value ›» rows of
+## the kit (ChoiceRows) that show on the figure at once and are kept on the device as the
+## name is (ServerList.player_looks). A new character takes them; one met again in its
+## world keeps its own.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Kit := preload("res://src/client/ui/kit/kit.gd")
 const FigurePreview := preload("res://src/client/ui/figure_preview.gd")
+const FigureStage := preload("res://src/client/ui/figure_stage.gd")
 const ServerList := preload("res://src/client/net/server_list.gd")
 const ChoiceRows := preload("res://src/client/ui/kit/choice_rows.gd")
 const Looks := preload("res://src/shared/content/looks.gd")
@@ -25,29 +29,33 @@ signal name_changed(name: String)
 ## A look was picked (Looks).
 signal looks_changed(looks: Dictionary)
 
+var stage: FigureStage
 var preview: FigurePreview
 ## The column of rows; a window adds its own under the name.
 var rows: VBoxContainer
+## The rows' own scroll (`scrolls`, «Новая игра»: they scroll in less on a short screen,
+## WorldSetup.layout), else null.
+var scroll: ScrollContainer = null
 var name_field: LineEdit
 ## The looks picked (Looks.clean) and their rows (`key` steps them).
 var looks := {}
 var choices: ChoiceRows
 
 
-func _init(rows_width: float, inset := true) -> void:
+func _init(rows_width: float, inset := true, scrolls := false) -> void:
 	add_theme_constant_override("separation", 10)
-	var frame := PanelContainer.new()
-	frame.add_theme_stylebox_override("panel", UiStyle.stage())
-	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	add_child(frame)
-	preview = FigurePreview.new()
-	preview.tooltip_text = "[drag_to_turn_the_character]"
-	frame.add_child(preview)
+	stage = FigureStage.new()
+	add_child(stage)
+	preview = stage.preview
 	rows = Kit.column(4)
 	rows.custom_minimum_size.x = rows_width
 	rows.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	add_child(UiStyle.inset(rows) if inset else rows)
+	if scrolls:
+		# Inset as the settings' rows (Kit.scroll), the bar's room beside them.
+		scroll = Kit.scroll(rows)
+		add_child(scroll)
+	else:
+		add_child(UiStyle.inset(rows) if inset else rows)
 	rows.add_child(Kit.caption("[name]"))
 	name_field = Kit.field("[how_others_will_see_you]", 0.0, 0, Kit.FIELD_H)
 	name_field.max_length = ServerList.NAME_MAX
@@ -59,6 +67,7 @@ func _init(rows_width: float, inset := true) -> void:
 	rows.add_child(name_field)
 	looks = Looks.clean(ServerList.player_looks())
 	choices = ChoiceRows.new(NAME_WIDTH, maxf(rows_width - NAME_WIDTH - 2 * Kit.SQUARE - 6, 60.0))
+	choices.scroll = scroll
 	rows.add_child(Kit.gap(4))
 	_style_row("[body_build]", "build")
 	_style_row("[body_figure]", "figure")
@@ -98,6 +107,12 @@ func _pick(i: int, field: String, ids: Array) -> void:
 	ServerList.set_player_looks(looks)
 	_show_looks()
 	looks_changed.emit(looks)
+
+
+## The figure drawn for a wide screen (`wide`: a phone on its side, a PC) or an upright
+## one, as big as the inventory draws it there.
+func set_wide(wide: bool) -> void:
+	stage.set_wide(wide)
 
 
 ## The figure in the looks picked.

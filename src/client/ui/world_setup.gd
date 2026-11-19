@@ -64,6 +64,8 @@ var _list: VBoxContainer
 ## The rows scroll when the panel is taller than the screen (a phone in landscape).
 var _scroll: ScrollContainer
 var _seed: LineEdit
+## The map, in the middle of a room as wide as the figure of «Персонаж» (layout).
+var _map_room: CenterContainer
 var _map: TextureRect
 var _image: Image
 var _texture: ImageTexture
@@ -111,16 +113,16 @@ func _ready() -> void:
 		for b: Button in _tabs.get_children():
 			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		outer.add_child(_tabs)
-		_character = CharacterPage.new(_choices.width())
+		_character = CharacterPage.new(_choices.width(), true, true)
 		outer.add_child(_character)
 	_box = BoxContainer.new()
 	_box.add_theme_constant_override("separation", 10)
 	outer.add_child(_box)
+	_map_room = CenterContainer.new()
+	_box.add_child(_map_room)
 	var frame := PanelContainer.new()
 	frame.add_theme_stylebox_override("panel", UiStyle.slot())
-	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_box.add_child(frame)
+	_map_room.add_child(frame)
 	_image = Image.create_empty(MAP, MAP, false, Image.FORMAT_RGB8)
 	_image.fill(Color(0.1, 0.1, 0.12))
 	_texture = ImageTexture.create_from_image(_image)
@@ -395,8 +397,9 @@ func _keep_scroll(at: int) -> void:
 ## Side by side on a wide screen, the map over the rows on a tall one; centred. Every
 ## page has the same room, as wide as a row with a scroll bar beside it and as tall as
 ## the world's rows: a longer page (the mods) scrolls in it, and the panel never jumps.
-## When the panel is taller than the screen the rows scroll in less, so the buttons stay
-## in sight.
+## «Персонаж» is as large as «Мир», the figure where the map is: the map in a room as
+## wide as the figure, both tabs as tall as the taller. When the panel is taller than
+## the screen the rows of either tab scroll in less, so the buttons stay in sight.
 func layout(screen: Vector2) -> void:
 	_box.vertical = screen.x < screen.y
 	if _rows_height <= 0.0 or _page == "world":
@@ -408,16 +411,34 @@ func layout(screen: Vector2) -> void:
 	_scroll.custom_minimum_size = Vector2(_choices.width() + bar, _rows_height)
 	# The note wraps as wide as the rows, never wider.
 	_saved_note.custom_minimum_size.x = _scroll.custom_minimum_size.x
-	panel.reset_size()
-	var over := panel.size.y + 2 * MARGIN - screen.y
-	if over > 0.0:
-		_scroll.custom_minimum_size.y = maxf(_rows_height - over, ARROW * 2)
+	_box.custom_minimum_size.y = 0.0
+	var tall := 0.0
 	if _character != null:
-		# «Персонаж» takes the room of «Мир», the figure where the map is: the panel
-		# keeps its size from tab to tab.
+		# The figure as big as the inventory draws it on this screen, the map in a room
+		# as wide: side by side, the rows stand in one place on either tab.
+		_character.set_wide(not _box.vertical)
 		_character.vertical = _box.vertical
-		_character.rows.custom_minimum_size.x = _scroll.custom_minimum_size.x - 2 * UiStyle.BAR_GAP
-		_character.custom_minimum_size.y = _box.get_combined_minimum_size().y
+		_character.custom_minimum_size.y = 0.0
+		# The rows as wide as the world's, their bar's room given always; all of them
+		# shown unless the screen is short (below).
+		_character.scroll.custom_minimum_size = Vector2(_scroll.custom_minimum_size.x,
+			_character.rows.get_combined_minimum_size().y)
+		_map_room.custom_minimum_size.x = _character.stage.get_combined_minimum_size().x
+		tall = _character.get_combined_minimum_size().y
+	var world := _box.get_combined_minimum_size().y
+	# The room a tab has: the screen's, less the panel round the tab shown.
+	panel.reset_size()
+	var shown: Control = _character if _character != null and _character.visible else _box
+	var room := screen.y - 2 * MARGIN - panel.size.y + shown.get_combined_minimum_size().y
+	tall = minf(maxf(tall, world), room)
+	if world > tall:
+		_scroll.custom_minimum_size.y = maxf(_rows_height - (world - tall), ARROW * 2)
+	_box.custom_minimum_size.y = tall
+	if _character != null:
+		var over := _character.get_combined_minimum_size().y - tall
+		if over > 0.0:
+			_character.scroll.custom_minimum_size.y = maxf(_character.scroll.custom_minimum_size.y - over, ARROW * 2)
+		_character.custom_minimum_size.y = tall
 
 
 func _start() -> void:

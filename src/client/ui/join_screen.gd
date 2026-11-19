@@ -107,6 +107,9 @@ func _ready() -> void:
 ## On a screen too short for the panel (a phone on its side) the recent servers give up
 ## their rows, down to one, and scroll, so «Подключиться» and «Назад» stay on it.
 func layout(screen: Vector2) -> void:
+	if _character != null:
+		# The figure as big as the inventory draws it on this screen.
+		_character.set_wide(screen.x > screen.y)
 	if _recent_scroll == null:
 		return
 	_recent_scroll.custom_minimum_size.y = _recent_tall

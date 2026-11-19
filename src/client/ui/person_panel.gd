@@ -4,26 +4,27 @@ extends PanelContainer
 ## (FigurePreview on its stand, in what it wears and its looks, Figure.dressed, with what
 ## its hands hold, Hands.look, its short shadow to the north-west), turned through the
 ## eight directions by a finger or the mouse dragged across it, a tap on a half of it or
-## the arrows at the stand's sides; round it the slots of what is worn (the head,
-## body, legs and feet down the left, as high as they are on the figure) and of the bag
-## on the back and the two hands down the right, a strip of the bag's load along the
-## bottom of the back's slot. Under it the skills (Skills, the character's SkillSet), in
-## three columns; on a wide screen (`set_wide`) beside it in one, the figure a little
-## smaller (the window's height is short there): bars of a division per level in a panel of their
-## own, a thin line along the bottom for the way to the next level. The bar shows the
-## skill alone: what the tool in hand does is its own power (the item's chips,
-## FactChips), not divisions of the skill, so the two are never mixed
-## (docs/balance/GAME_BALANCE_DESIGN.md, «Отображение»); the tooltip tells what the level
-## does to the work (faster, cheaper in stamina, one more now and then, a harder blow,
-## longer-lasting things) and which held tool the skill paces. A tap on a slot says which
-## with `picked` as the finger lifts (the tab may scroll, InventoryWindow): a slot of
-## Inventory.WEAR_SLOTS, or "hand0" / "hand1".
+## the arrows by the stand, as big as on the «Персонаж» tab of a new game (FigureStage);
+## round it the slots of what is worn (the head, body, legs and feet down the left, as
+## high as they are on the figure) and of the bag on the back and the two hands down the
+## right, a strip of the bag's load along the bottom of the back's slot. Under it the
+## skills (Skills, the character's SkillSet), in three columns; on a wide screen
+## (`set_wide`) beside it in one, the figure a little smaller (the window's height is
+## short there): bars of a division per level in a panel of their own, a thin line along
+## the bottom for the way to the next level. The bar shows the skill alone: what the tool
+## in hand does is its own power (the item's chips, FactChips), not divisions of the
+## skill, so the two are never mixed (docs/balance/GAME_BALANCE_DESIGN.md,
+## «Отображение»); the tooltip tells what the level does to the work (faster, cheaper in
+## stamina, one more now and then, a harder blow, longer-lasting things) and which held
+## tool the skill paces. A tap on a slot says which with `picked` as the finger lifts
+## (the tab may scroll, InventoryWindow): a slot of Inventory.WEAR_SLOTS, or "hand0" /
+## "hand1".
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
-const Kit := preload("res://src/client/ui/kit/kit.gd")
 const HotbarSlot := preload("res://src/client/ui/hotbar_slot.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
 const FigurePreview := preload("res://src/client/ui/figure_preview.gd")
+const FigureStage := preload("res://src/client/ui/figure_stage.gd")
 const Figure := preload("res://src/client/view/figure.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
@@ -46,19 +47,6 @@ const TITLES := {
 ## TARGET_SIDE tall), and between the columns and the figure.
 const GAP_Y := 3
 const GAP_X := 6
-## The part of the figure's frame drawn (FigurePreview.crop): its whole width (a scythe
-## carried reaches both edges), the rows over the head left out (nothing standing, the
-## things held neither, reaches above row 15: the room of the works' swings).
-const CROP := Rect2i(0, 12, 32, 20)
-## Screen pixels a pixel of the figure with the skills under it and beside it (so they
-## keep room for their names in the window's width), and the fewest where the window is
-## short of room (shrink).
-const PIXELS := 7
-const PIXELS_WIDE := 5
-const PIXELS_LEAST := 3
-## The side of the arrows that turn the figure, at the bottom corners of its frame, by the
-## stand (nothing held hangs below the feet).
-const ARROW := 22
 ## The columns of skills under the figure and beside it.
 const COLUMNS_UNDER := 3
 const COLUMNS_BESIDE := 1
@@ -80,7 +68,7 @@ var chosen := "":
 		chosen = v
 		refresh()
 var preview: FigurePreview
-var _stage: PanelContainer
+var _stage: FigureStage
 var _layout: BoxContainer
 var _columns: Array[VBoxContainer] = []
 var _cells := {}
@@ -111,21 +99,10 @@ func _ready() -> void:
 	_layout.add_child(figure)
 	var left := _column(LEFT)
 	figure.add_child(left)
-	var stage := PanelContainer.new()
-	stage.add_theme_stylebox_override("panel", UiStyle.stage())
-	stage.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	figure.add_child(stage)
-	_stage = stage
-	preview = FigurePreview.new([], PIXELS, CROP)
-	preview.tooltip_text = "[drag_to_turn_the_character]"
-	stage.add_child(preview)
-	for d: int in [-1, 1]:
-		var b := Kit.icon_button("prev" if d < 0 else "next",
-			"[turn_the_character_left]" if d < 0 else "[turn_the_character_right]", preview.turn.bind(d), ARROW)
-		b.focus_mode = Control.FOCUS_NONE
-		preview.add_child(b)
-		b.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT if d < 0 else Control.PRESET_BOTTOM_RIGHT,
-			Control.PRESET_MODE_MINSIZE)
+	# The figure as big as on the «Персонаж» tab of a new game (FigureStage).
+	_stage = FigureStage.new()
+	figure.add_child(_stage)
+	preview = _stage.preview
 	figure.add_child(_column(RIGHT))
 	# The skills in a panel of their own, columns of bars.
 	_skills = PanelContainer.new()
@@ -227,17 +204,15 @@ func set_wide(wide: bool) -> void:
 		bar.custom_minimum_size.y = BAR_BESIDE if wide else BAR
 	_skills.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_skills.size_flags_vertical = Control.SIZE_SHRINK_CENTER if wide else Control.SIZE_FILL
-	preview.set_pixels(PIXELS_WIDE if wide else PIXELS)
+	_stage.set_wide(wide)
 
 
 ## The figure drawn a step smaller, the window having no room for it; whether it could be
 ## (not when the slots beside it are as tall: a smaller figure saves no room then).
 func shrink() -> bool:
-	if preview == null or preview.pixels <= PIXELS_LEAST \
-			or _stage.get_combined_minimum_size().y <= _columns[0].get_combined_minimum_size().y:
+	if _stage == null or _stage.get_combined_minimum_size().y <= _columns[0].get_combined_minimum_size().y:
 		return false
-	preview.set_pixels(preview.pixels - 1)
-	return true
+	return _stage.shrink()
 
 
 ## The hands followed while the tab shows, as Hands.update follows them for the world's

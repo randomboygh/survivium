@@ -28,7 +28,8 @@ Part of [Interface and settings](../ui.md). The HUD and the windows opened in th
   (the sign's window on a touch, decision 183: line fields, «Save», «Turn», «Close»; while a field has the
   cursor, keys do not move the character; in detail — [crafting.md](../crafting.md)), `inventory_window.gd` and
   `craft_panel.gd` (the inventory window: character, bag, chest, station, crafting), `person_panel.gd` (the
-  tab «Character» of the window: the figure drawn big in the middle, `FigurePreview` on its stand in what it
+  tab «Character» of the window: the figure drawn big in the middle, `figure_stage.gd` (`FigureStage`, the same frame,
+  size and arrows as on the «Character» tab of a new game), `FigurePreview` on its stand in what it
   wears and its looks, `Figure.dressed`, with what its hands hold as in the world (`FigurePreview.hold`, the
   whole frame's width shown so a scythe fits) and a short shadow to the north-west on the stand; turned through
   eight directions by a drag across it, a tap on a half or the arrows in the stage's bottom corners (no thing
