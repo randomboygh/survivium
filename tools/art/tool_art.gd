@@ -16,6 +16,9 @@ extends RefCounted
 const PlayerArt := preload("res://tools/art/player_art.gd")
 const Figure := preload("res://src/client/view/figure.gd")
 
+## Rows of a thing held up its length (a frame's `slide`, PlayerArt.pose) that still reach
+## past the hand: the head of a long tool, all of a short one.
+const SLIDE_LEFT := 3
 ## Colours of the letters of SHAPES.
 const INK := {
 	"d": "5a3b22", "w": "84593a", "W": "a77850", "g": "5a3b22",
@@ -97,7 +100,7 @@ const SHAPES := {
 			"mpPPp",
 			"mppPp",
 			"mpppp",
-			".mpm.",
+			"mmmmm",
 			"..w..",
 			"..W..",
 			"..w..",
@@ -108,11 +111,11 @@ const SHAPES := {
 			"..g..",
 		],
 		"diagonal": [
-			".......pP.",
-			"......pPPp",
+			"......pPp.",
+			".....mpPPp",
 			"......mpPp",
-			"......wmm.",
-			".....W....",
+			"......wmpp",
+			".....W..m.",
 			"....w.....",
 			"...w......",
 			"..W.......",
@@ -503,16 +506,18 @@ static func sheet(sprite: String, anim: String) -> Image:
 		for i in cols.size():
 			var angle := -1
 			var ccw := false
+			var slide := 0
 			if cols[i] >= 0:
 				var h: Dictionary = PlayerArt.pose(drawn, hand, cols[i])[hand]
 				angle = h.angle
 				ccw = h.ccw
+				slide = h.get("slide", 0)
 			if angle < 0:
 				angle = shape.carry[view]
 				if hand == "left" and view != "side":
 					angle = PlayerArt.mirrored(angle)
 			var r := Rect2i(Vector2i(i, row) * cell, cell)
-			var pixels := turned(shape, angle, ccw)
+			var pixels := turned(shape, angle, ccw, slide)
 			for p: Vector2i in pixels:
 				var at: Vector2i = r.position + grip + p
 				if r.has_point(at):
@@ -526,26 +531,38 @@ static func sheet(sprite: String, anim: String) -> Image:
 
 ## The pixels of a tool pointing way `angle` (0 up, clockwise by eighths, or
 ## PlayerArt.TOWARD: at the ground in front, towards the viewer, foreshortened),
-## mirrored along its length when `ccw`: {offset from the grip: letter}.
-static func turned(shape: Dictionary, angle: int, ccw: bool) -> Dictionary:
+## mirrored along its length when `ccw`, held `slide` pixels up its length from the grip
+## (its head nearer the hand, the end of its shaft past it; at most as far as leaves
+## SLIDE_LEFT of it beyond the hand, none for a short thing): {offset from the grip: letter}.
+static func turned(shape: Dictionary, angle: int, ccw: bool, slide := 0) -> Dictionary:
 	if angle == PlayerArt.TOWARD:
-		return _pixels(shape.toward, ccw, 0, false)
-	return _pixels(shape.up if angle % 2 == 0 else shape.diagonal, ccw, angle / 2, angle % 2 == 1)
+		return _pixels(shape.toward, ccw, 0, false, slide, true)
+	return _pixels(shape.up if angle % 2 == 0 else shape.diagonal, ccw, angle / 2, angle % 2 == 1, slide, false)
 
 
-static func _pixels(rows: Array, ccw: bool, turns: int, diagonal: bool) -> Dictionary:
+static func _pixels(rows: Array, ccw: bool, turns: int, diagonal: bool, slide: int, toward: bool) -> Dictionary:
 	var grip := Vector2i.ZERO
 	for y in rows.size():
 		var x: int = rows[y].find("g")
 		if x >= 0:
 			grip = Vector2i(x, y)
+	# How far the thing reaches past the hand, in rows: the most a hold up it may take.
+	var reach := 0
+	for y in rows.size():
+		if rows[y].replace(".", "") != "":
+			reach = maxi(reach, absi(y - grip.y))
+	slide = clampi(slide, 0, maxi(0, reach - SLIDE_LEFT))
+	# Up its length: towards its head, the first rows (the last ones pointing at the viewer).
+	var up := Vector2i(0, slide if toward else -slide)
+	if diagonal:
+		up = Vector2i(slide, -slide)
 	var out := {}
 	for y in rows.size():
 		for x in rows[y].length():
 			var c: String = rows[y][x]
 			if c == ".":
 				continue
-			var p := Vector2i(x, y) - grip
+			var p := Vector2i(x, y) - grip - up
 			if ccw:
 				p = Vector2i(-p.y, -p.x) if diagonal else Vector2i(-p.x, p.y)
 			for k in turns:

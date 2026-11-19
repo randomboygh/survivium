@@ -19,8 +19,8 @@ extends RefCounted
 ## with the hands swapped. Arms go from the shoulder to the hand (ARMS). Light comes from
 ## the upper left. The feet stand on the frame's last row with no outline under them. The
 ## walk's body under the head is copied pixel by pixel from the reference (WalkArt): the
-## arms swinging, the body bobbing; the jump's, the swim's and the chop's are drawn whole
-## the same way (JumpArt, SwimArt, ChopArt).
+## arms swinging, the body bobbing; the jump's, the swim's, the chop's and the dig's are
+## drawn whole the same way (JumpArt, SwimArt, ChopArt, DigArt).
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -34,6 +34,7 @@ const WalkArt := preload("res://tools/art/player_walk_art.gd")
 const JumpArt := preload("res://tools/art/player_jump_art.gd")
 const SwimArt := preload("res://tools/art/player_swim_art.gd")
 const ChopArt := preload("res://tools/art/player_chop_art.gd")
+const DigArt := preload("res://tools/art/player_dig_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -379,16 +380,10 @@ const MOVES := {
 ## edge leads the other way), "f" in front of the body or not (by default as the view
 ## has it), "o" where the other hand holds a two-handed thing, "bob" and "lean" how far
 ## the body bends down and forward, "eyes" "shut". A thing swung up over the head goes
-## behind it, the hand hidden, so it does not cover the face. The chop is drawn whole
-## with the axe's ways in its frames (ChopArt).
+## behind it, the hand hidden, so it does not cover the face. The chop and the dig are
+## drawn whole with the tool's ways in their frames (ChopArt, DigArt).
 const WORKS := {
 	"front": {
-		"dig": [
-			{"r": [4, 12], "a": TOWARD},
-			{"r": [4, 13], "a": TOWARD, "bob": 1},
-			{"r": [5, 14], "a": TOWARD, "bob": 1},
-			{"r": [3, 12], "a": 7},
-		],
 		"slash": [
 			{"r": [1, 11], "a": 7},
 			{"r": [0, 8], "a": 6, "f": false},
@@ -421,12 +416,6 @@ const WORKS := {
 		],
 	},
 	"side": {
-		"dig": [
-			{"r": [9, 12], "a": 3},
-			{"r": [10, 13], "a": 3, "bob": 1},
-			{"r": [10, 14], "a": 3, "bob": 1, "lean": 1},
-			{"r": [9, 12], "a": 2},
-		],
 		"slash": [
 			{"r": [6, 7], "a": 0, "f": false},
 			{"r": [5, 6], "a": 7, "f": false},
@@ -459,12 +448,6 @@ const WORKS := {
 		],
 	},
 	"back": {
-		"dig": [
-			{"r": [9, 13], "a": 0},
-			{"r": [9, 14], "a": 0, "bob": 1},
-			{"r": [8, 15], "a": 0, "bob": 1},
-			{"r": [9, 13], "a": 1},
-		],
 		"slash": [
 			{"r": [12, 11], "a": 1, "f": true},
 			{"r": [12, 9], "a": 2, "f": true},
@@ -637,8 +620,9 @@ static func column(col: int) -> Array:
 
 ## The frame of column `c` ([name, i], see column) drawn whole under the head in
 ## direction `dir`, its hands with it: the walk's (WalkArt), the jump's (JumpArt), the
-## swim's (SwimArt) or the chop's (ChopArt, with the way the axe points: `a`); {} for any
-## other, made of the body standing and a pose.
+## swim's (SwimArt), the chop's (ChopArt, with the way the axe points: `a`) or the dig's
+## (DigArt, the shovel held up its shaft: `slide`); {} for any other, made of the body
+## standing and a pose.
 static func whole_frame(dir: String, c: Array) -> Dictionary:
 	match c[0]:
 		"walk":
@@ -649,6 +633,8 @@ static func whole_frame(dir: String, c: Array) -> Dictionary:
 			return SwimArt.frame(dir, c[1])
 		"chop":
 			return ChopArt.frame(dir, c[1])
+		"dig":
+			return DigArt.frame(dir, c[1])
 	return {}
 
 
@@ -661,7 +647,8 @@ static func mirrored(a: int) -> int:
 ## hand `active` in use: {"bob", "lean", "legs", "eyes", "right": hand, "left": hand}, a
 ## hand being {"at": where it is in the box, "shoulder", "front": in front of the body,
 ## "holds": false for the other hand of a two-handed work, "worked", "angle": the way
-## what it holds points (-1: as carried), "ccw"}.
+## what it holds points (-1: as carried), "ccw", and for a frame drawn whole "slide": how
+## far up its length it is held, ToolArt.turned}.
 static func pose(dir: String, active: String, col: int) -> Dictionary:
 	var view: String = VIEW[dir]
 	var c := column(col)
@@ -724,7 +711,7 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 		p.eyes = whole.get("eyes", "open")
 		var other := _other(active)
 		p[active] = {"at": Vector2i(whole.hands[0][0], whole.hands[0][1] + p.bob), "front": whole.f, "holds": true,
-			"worked": true, "angle": whole.a, "ccw": whole.get("ccw", false)}
+			"worked": true, "angle": whole.a, "ccw": whole.get("ccw", false), "slide": whole.get("slide", 0)}
 		p[other].at = Vector2i(whole.hands[1][0], whole.hands[1][1] + p.bob)
 		p[other].front = _front(view, "left")
 	# A frame drawn whole has its hands where it draws them.
@@ -739,7 +726,12 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 		p[hand].shoulder = s + out + Vector2i(p.lean, p.bob) + SHIFT.get(dir, Vector2i.ZERO)
 		# A hand raised over the neck of a frame drawn whole stays where it is in every form.
 		var raised: bool = whole.has("neck") and p[hand].at.y < whole.neck
-		p[hand].at += shift + (Vector2i.ZERO if (p[hand].worked and whole.is_empty()) or raised else out)
+		var moved := out
+		if not whole.is_empty() and view != "side":
+			# A frame drawn whole is made wider by the side of the picture each pixel is on
+			# (FormsArt.body), so a hand reaching across the middle goes with that side.
+			moved.x = FormsArt.OUT.get(build, 0) * (1 if p[hand].at.x >= 7 else -1)
+		p[hand].at += shift + (Vector2i.ZERO if (p[hand].worked and whole.is_empty()) or raised else moved)
 	return p
 
 
@@ -818,6 +810,8 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 				rows = SwimArt.rows(whole, dir, build, figure)
 			"chop":
 				rows = ChopArt.rows(whole, dir, build, figure)
+			"dig":
+				rows = DigArt.rows(whole, dir, build, figure)
 			_:
 				rows = WalkArt.rows(whole, dir, build, figure)
 		_stamp(parts, rows, whole.get("top", 10), Vector2i.ZERO)
