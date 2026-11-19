@@ -219,6 +219,29 @@ func _test_sprite_sheet() -> void:
 				if img.get_pixel([0, sleep.x][i] * fw + x, y).is_equal_approx(Color.WHITE):
 					whites[i] += 1
 	_check(whites[0] > 0 and whites[1] == 0 and s.frame_at("n", "sleep", 0.0).x == sleep.x, "asleep its eyes are closed, whichever way it faced")
+	# The soles stay open only in the walk, where a foot is off the ground: off it whatever
+	# hangs low in a frame (a hand by the hips, a foot tucked up) has its outline under it.
+	var mark := Image.create_empty(1, 1, false, Image.FORMAT_RGBA8)
+	mark.fill(SpriteSheet.OUTLINE)
+	var dark := mark.get_pixel(0, 0)
+	var walking := {}
+	for f: Variant in Figure.data().animations.walk.frames:
+		walking[int(f)] = true
+	var unlined := 0
+	var open_soles := 0
+	for r in 8:
+		for col in cols:
+			if col == sleep.x:
+				continue
+			for y in range(fh - 3, fh - 1):
+				for x in fw:
+					var p := img.get_pixel(col * fw + x, r * fh + y)
+					if p.a > 0.5 and p != dark and img.get_pixel(col * fw + x, r * fh + y + 1).a < 0.5:
+						if walking.has(col):
+							open_soles += 1
+						else:
+							unlined += 1
+	_check(unlined == 0 and open_soles > 0, "off the walk all that hangs low is outlined under it, a foot lifted in the walk is not: %d, %d" % [unlined, open_soles])
 	# Naked in a loincloth; clothes worn show between the naked layers, a bag does not.
 	var naked := Figure.dressed({})
 	_check(naked == ["body", "loincloth", "hair"], "the figure is naked in a loincloth with nothing worn")
