@@ -27,6 +27,8 @@ const HIGHLIGHT := Color("#5b4630")
 const PANEL := Color(42 / 255.0, 32 / 255.0, 25 / 255.0, 0.92)
 const WELL := Color(20 / 255.0, 14 / 255.0, 10 / 255.0, 0.82)
 const WELL_SHADE := Color("#1a120c")
+## Inside the character's frame (stage).
+const STAGE := Color("#7a6a55")
 const BUTTON := Color("#3a2c20")
 const BUTTON_HOVER := Color("#4a3828")
 const BUTTON_SHADE := Color("#2a1f16")
@@ -388,6 +390,12 @@ static func field(focused := false) -> StyleBoxTexture:
 ## Item slot: a sunken well with a shadow along the top and left edges.
 static func slot(selected := false) -> StyleBoxTexture:
 	return _nine_patch(12, 4, "slot", WELL, ACCENT if selected else EDGE, Vector4.ZERO)
+
+
+## The frame of the character drawn big (the «Персонаж» tab): a slot, lighter inside, so
+## the figure's dark outline stands out.
+static func stage() -> StyleBoxTexture:
+	return _nine_patch(12, 4, "slot", STAGE, EDGE, Vector4.ZERO)
 
 
 ## The sunken well around a block of text (a slot's frame with WELL_PAD inside), made

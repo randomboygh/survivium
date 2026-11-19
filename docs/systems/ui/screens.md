@@ -66,7 +66,8 @@ Part of [Interface and settings](../ui.md). Files of the screens before the game
   the first touch paints it red, the second deletes, for the test world — resets; recent servers on the «Join»
   screen have the same, `ServerList.forget`), `death_screen.gd`. `character_page.gd` («Character», stage 3 of plan/mvp.md: a character belongs
   to its world): `figure_preview.gd` (the player's sheet, `Figure`, built a part of a row a frame, drawn big,
-  breathing, in the colours of the looks by `figure_preview.gdshader`; a drag or a tap on a side turns it through
+  breathing, in the colours of the looks by `figure_preview.gdshader`, on a round stand that swings round with it
+  (a lit mark at its front) in a lighter frame (`UiStyle.stage`); a drag or a tap on a side turns it through
   eight directions, the keys left and right too while no row is picked) beside or over its rows: the name
   (`ServerList.player_name`, kept as typed), then the looks (`Looks`, `ChoiceRows`: hair style, hair colour,
   skin, eyes, face, on the face; kept on the device, `ServerList.player_looks`; up and down pick a row,

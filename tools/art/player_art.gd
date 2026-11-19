@@ -592,7 +592,7 @@ static func layer(name: String) -> Image:
 			var flipped := MIRROR.has(dir)
 			for col in s.columns:
 				var frame := Rect2i(Vector2i(col * s.frame_size.x, row * s.frame_size.y), s.frame_size)
-				var letters: Dictionary = frame_letters(drawn, "left" if flipped else "right", col)[name]
+				var letters: Dictionary = frame_letters(drawn, "left" if flipped else "right", col, dir)[name]
 				for p: Vector2i in letters:
 					var at := ORIGIN + p
 					if flipped:
@@ -790,7 +790,7 @@ static func legs(dir: String, kind: String) -> Array:
 
 
 ## The letters of every layer in one frame: {layer: {pixel in the box: letter}}.
-static func frame_letters(dir: String, active: String, col: int) -> Dictionary:
+static func frame_letters(dir: String, active: String, col: int, real := "") -> Dictionary:
 	var p := pose(dir, active, col)
 	var out := {"body": {}, "shirt": {}, "trousers": {}, "boots": {}, "hair": {}, "fists": {}, "loincloth": {}}
 	var up := Vector2i(p.lean, p.bob)
@@ -817,18 +817,23 @@ static func frame_letters(dir: String, active: String, col: int) -> Dictionary:
 			_arm(out, p[hand], dir, hand, solid, true)
 	_loincloth(out)
 	_shapes(out, up)
-	_looks(out, dir, up)
+	_looks(out, dir, up, real)
 	return out
 
 
 ## The layers of the looks to pick (LooksArt): `hair/<style>` and `face/<option>`, over
-## the head as it bobs and leans.
-static func _looks(out: Dictionary, dir: String, up: Vector2i) -> void:
+## the head as it bobs and leans. `real` is the direction the frame shows when `dir` is
+## drawn for it flipped (sw, w, nw): a look that is not the same on both sides (an eye
+## patch) has its own rows for it, written as seen, so they are flipped here to come out
+## right.
+static func _looks(out: Dictionary, dir: String, up: Vector2i, real := "") -> void:
 	for kind: String in ["hair", "face"]:
 		var all: Dictionary = LooksArt.HAIRS if kind == "hair" else LooksArt.FACES
 		for id: String in all:
 			var drawn := {}
 			var rows: Array = all[id].get(dir, [])
+			if real != "" and real != dir and all[id].has(real):
+				rows = all[id][real].map(func(r: String) -> String: return r.reverse())
 			for y in rows.size():
 				var r: String = rows[y]
 				for x in r.length():

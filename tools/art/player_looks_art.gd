@@ -4,7 +4,8 @@ extends RefCounted
 ## box, over the head) and the face options (FACES: what grows or is painted on the face
 ## goes under the hair, what is worn on it over the hair). Each maps a drawn direction
 ## (s, se, e, ne, n) to its rows; a direction left out shows nothing (the face from
-## behind). The head bobs and leans with the body, and these with it. The hair and the
+## behind). A look not alike on both sides also has rows for sw, w, nw as seen (else those
+## are the east ones flipped). The head bobs and leans with the body, and these with it. The hair and the
 ## skin under it are drawn in the default look's colours, which the game swaps for the
 ## chosen ones (Looks.swaps).
 ##
@@ -991,6 +992,9 @@ const FACES := {
 			"........GGGG..",
 			".........GG...",
 		],
+		# Facing east the right side shows: the patch is on the far eye, only its strap
+		# is seen; facing west (its own rows, as seen, not the east ones flipped) the
+		# patch shows, and south-west it is on the eye nearer the screen's right.
 		"e": [
 			"..............",
 			"..............",
@@ -998,9 +1002,29 @@ const FACES := {
 			"..............",
 			".....G........",
 			"......G.......",
-			".......G.GG...",
-			"........GGGG..",
-			".........GG...",
+			".......GGGGG..",
+		],
+		"w": [
+			"..............",
+			"..............",
+			"..............",
+			"..............",
+			"........G.....",
+			".......G......",
+			"...GG.G.......",
+			"..GGGG........",
+			"...GG.........",
+		],
+		"sw": [
+			"..............",
+			"..............",
+			"..............",
+			"..............",
+			"...........G..",
+			"..........G...",
+			"......GG.G....",
+			".....GGGG.....",
+			"......GG......",
 		],
 	},
 	"earrings": {

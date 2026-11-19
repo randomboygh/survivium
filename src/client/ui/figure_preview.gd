@@ -5,7 +5,8 @@ extends Control
 ## frames), `pixels` screen pixels a pixel of it.
 ## A finger or the mouse dragged across turns it through the eight directions (a step
 ## each TURN_DRAG pixels, the front following the finger); a tap on its left or right
-## half turns it a step that way; `turn` does it from keys. The sheet is built a few parts of
+## half turns it a step that way; `turn` does it from keys. It stands on a round stand
+## (_draw_stand) that swings round with it, a lit mark at its front. The sheet is built a few parts of
 ## a row a frame (Figure.step, BUILD_BUDGET_US), so opening the tab never stops the menu for a frame of its own.
 
 const Figure := preload("res://src/client/view/figure.gd")
@@ -18,6 +19,25 @@ const TURN_DRAG := 24.0
 const BUILD_BUDGET_US := 3000
 ## The direction it faces at first: three quarters, as the camera sees the world.
 const FIRST := "se"
+## The round stand it turns on, in the figure's pixels: half its width and depth across
+## the top, how deep its side is, and how far under the frame's bottom row it reaches
+## (room kept for it below the frame).
+const STAND_RX := 11
+const STAND_RY := 4
+const STAND_SIDE := 2
+const STAND_BELOW := STAND_RY + STAND_SIDE + 1
+## Its colours: the top, its rim, the side, the marks that show it turn, and the one at
+## the front.
+const STAND_TOP := Color("#c9b896")
+const STAND_RIM := Color("#a8956f")
+const STAND_SIDE_COLOR := Color("#5b4630")
+const STAND_MARK := Color("#8a7756")
+const STAND_FRONT := Color("#e9b44c")
+## How fast the stand swings to the way the figure faces (the figure turns at once).
+const STAND_SPEED := 14.0
+## The way each direction faces on the screen (x right, y down: south towards the viewer).
+const WAYS := {"s": Vector2(0, 1), "sw": Vector2(-1, 1), "w": Vector2(-1, 0), "nw": Vector2(-1, -1),
+	"n": Vector2(0, -1), "ne": Vector2(1, -1), "e": Vector2(1, 0), "se": Vector2(1, 1)}
 
 var look: Array = []
 var pixels := 4
@@ -31,6 +51,8 @@ var _time := 0.0
 var _from := 0.0
 var _down := false
 var _dragged := false
+## The angle the stand shows (radians on the screen), swinging to the facing's.
+var _stand := WAYS[FIRST].angle()
 
 
 func _init(worn := [], scale_px := 4) -> void:
@@ -38,7 +60,7 @@ func _init(worn := [], scale_px := 4) -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var frame: Array = Figure.data().frame
-	custom_minimum_size = Vector2(frame[0], frame[1]) * pixels
+	custom_minimum_size = Vector2(frame[0], frame[1] + STAND_BELOW) * pixels
 	dress(worn if not worn.is_empty() else Figure.dressed({}))
 
 
@@ -79,6 +101,7 @@ func _process(delta: float) -> void:
 			sheet = _build.target
 			_build = null
 	_time += delta
+	_stand = lerp_angle(_stand, WAYS[facing()].angle(), minf(delta * STAND_SPEED, 1.0))
 	queue_redraw()
 
 
@@ -111,10 +134,51 @@ func _draw() -> void:
 	var fs := Vector2(sheet.frame_size)
 	var src := Rect2(Vector2(f.x, f.y) * fs, fs)
 	var drawn := fs * pixels
-	var at := ((size - drawn) * 0.5).floor()
+	# The frame and the stand under it, centred together.
+	var whole := Vector2(fs.x, fs.y + STAND_BELOW) * pixels
+	var at := ((size - whole) * 0.5).floor()
+	_draw_stand(at + Vector2(fs.x * 0.5, fs.y - 1.0) * pixels)
 	if f.z == 1:
 		draw_set_transform(at + Vector2(drawn.x, 0.0), 0.0, Vector2(-1.0, 1.0))
 	else:
 		draw_set_transform(at)
 	draw_texture_rect_region(sheet.texture, Rect2(Vector2.ZERO, drawn), src)
 	draw_set_transform(Vector2.ZERO)
+
+
+## The round stand under the feet (its top's centre at `centre`), drawn in the figure's
+## pixels: a top with a rim, a side under it, and eight marks round it, the front one
+## lit, turned by `_stand` so the stand turns with the figure.
+func _draw_stand(centre: Vector2) -> void:
+	var marks := {}
+	for k in 8:
+		var a := _stand + k * TAU / 8.0
+		var p := Vector2i(roundi(cos(a) * (STAND_RX - 2)), roundi(sin(a) * (STAND_RY - 1)))
+		# The front's mark wins a pixel two share.
+		if k == 0 or not marks.has(p):
+			marks[p] = STAND_FRONT if k == 0 else STAND_MARK
+	for y in range(-STAND_RY, STAND_RY + STAND_SIDE + 1):
+		for x in range(-STAND_RX, STAND_RX + 1):
+			var c := _stand_pixel(x, y, marks)
+			if c.a > 0.0:
+				draw_rect(Rect2(centre + Vector2(x - 0.5, y) * pixels, Vector2.ONE * pixels), c)
+
+
+## The colour of the stand's pixel (x, y) from its top's centre (none: clear).
+func _stand_pixel(x: int, y: int, marks: Dictionary) -> Color:
+	var on_top := _inside(x, y)
+	if on_top:
+		if not _inside(x, y + 1) or not _inside(x - 1, y) or not _inside(x + 1, y) or not _inside(x, y - 1):
+			return STAND_RIM
+		return marks.get(Vector2i(x, y), STAND_TOP)
+	for d in range(1, STAND_SIDE + 1):
+		if _inside(x, y - d) and y > 0:
+			return STAND_SIDE_COLOR
+	return Color(0, 0, 0, 0)
+
+
+## Whether (x, y) is on the stand's top, an ellipse STAND_RX by STAND_RY.
+func _inside(x: int, y: int) -> bool:
+	var fx := float(x) / (STAND_RX + 0.5)
+	var fy := float(y) / (STAND_RY + 0.5)
+	return fx * fx + fy * fy <= 1.0
