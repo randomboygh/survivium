@@ -837,6 +837,9 @@ func _to_newest() -> void:
 ## As tall as its rows, or as the screen lets it: then the rows scroll, the bar's room
 ## beside them (none, and no bar, unless the rows need it).
 func layout(screen: Vector2) -> void:
+	if _character != null:
+		# The figure as big as the inventory draws it on this screen.
+		_character.set_wide(screen.x > screen.y)
 	UiStyle.bar_room(_room, false)
 	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.custom_minimum_size.y = 0.0

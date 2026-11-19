@@ -58,20 +58,24 @@ Part of [Interface and settings](../ui.md). Files of the screens before the game
   «Unban» and the field «Ban» (the same commands `whitelist`, `ban`, `unban`, `Server.access`); under all
   «Play», «Stop the server» (two touches), «Back»; the same window is the «Server» item in the pause menu;
   taller than the screen — it scrolls, the bar does not cover the rows, `UiStyle.bar_room`; the rows inset as the settings', `UiStyle.inset_room`), `world_setup.gd`
-  («New game», two tabs: «Character» — `character_page.gd`, taking the room of «World», the figure where the map is;
+  («New game», two tabs: «Character» — `character_page.gd`, as large as «World», the figure where the map is: the map in a room as wide as
+  the figure, both tabs as tall as the taller, on a short screen (a phone on its side) the rows of either
+  scrolling in less so the buttons stay on it;
   «World» — seed, kind of world, generator settings with a map round the middle of the world, the start a dot on it (not round the start: the start moves with the biomes chosen, the land does not; laid out with the biomes of the bundles chosen there: `Biomes.refresh(only)`, the tables swapped in round each frame's rows by `Biomes.tables`/`use`, so the world behind keeps its own), the rows inset as the settings' (`UiStyle.inset`), the page «Mods» and a page per mod, its first row the mod as a whole switching all its bundles, `_whole_mod_row` (a switch keeps its place in the list: the page is made anew at the same scroll): under a dropped bundle the
   whole chain of the reason, `Mods.why`; when a world of the seed and settings is saved, a red note says
   «Create a world» makes it anew with the mods chosen now on a second tap, `_check_saved`,
   `SaveGame.replace_world` deletes the save), `world_list.gd` («Load a game»; a world has a square trash button:
   the first touch paints it red, the second deletes, for the test world — resets; recent servers on the «Join»
   screen have the same, `ServerList.forget`), `death_screen.gd`. `character_page.gd` («Character», stage 3 of plan/mvp.md: a character belongs
-  to its world): `figure_preview.gd` (the player's sheet, `Figure`, built a part of a row a frame, drawn big,
+  to its world): `figure_stage.gd` (`FigureStage`, the same on the inventory's «Character»: the figure's frame,
+  its size, 7 pixels a pixel upright and 5 on a wide screen, `set_wide`, and the arrows that turn it in the
+  frame's bottom corners) holding `figure_preview.gd` (the player's sheet, `Figure`, built a part of a row a frame, drawn big,
   breathing, in the colours of the looks by `figure_preview.gdshader`, on a round stand that swings round with it
   (a lit mark at its front) with its short shadow to the north-west (`FigurePreview._shadow`: the standing
   frame's pixels slanted, in the stand's pixels, only on its top), holding what `hold` gives (the hands of
   `Player.held`; the tab «Character» of the inventory window) in a lighter frame drawn like a window's
-  (`UiStyle.stage`: the dark outline, then the lighter band, alike on every side, the figure within it); a drag
-  or a tap on a side turns it through eight directions, the keys left and right too while no row is picked)
+  (`UiStyle.stage`: the dark outline, then the lighter band, alike on every side, the figure within it); a drag,
+  a tap on a side or an arrow turns it through eight directions, the keys left and right too while no row is picked)
   beside or over its rows: the name (`ServerList.player_name`, kept as typed), then the looks (`Looks`, `ChoiceRows`: hair style, hair colour,
   skin, eyes, face, on the face; kept on the device, `ServerList.player_looks`; up and down pick a row,
   `CharacterPage.key`). A new character takes them, one met again keeps its own. Shots `ui-setup-character`,
