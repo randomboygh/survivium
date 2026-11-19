@@ -204,18 +204,20 @@ func _test_sprite_sheet() -> void:
 	var east := img.get_region(Rect2i(0, 2 * fh, fw, fh))
 	east.flip_x()
 	_check(east.get_data() == img.get_region(Rect2i(0, 6 * fh, fw, fh)).get_data(), "west is east mirrored when the hands are empty")
-	_check(Figure.sheet(["body"]).texture.get_image().get_pixel(fw / 2, fh - 2) != img.get_pixel(fw / 2, fh - 2), "without boots the feet are bare")
+	_check(Figure.sheet(["body"]).texture.get_image().get_pixel(fw / 2 + 1, fh - 1) != img.get_pixel(fw / 2 + 1, fh - 1), "without boots the feet are bare")
 	var sleep := s.frame_at("s", "sleep", 0.0)
 	var lain: Rect2i = img.get_region(Rect2i(sleep.x * fw, sleep.y * fh, fw, fh)).get_used_rect()
 	var standing: Rect2i = img.get_region(Rect2i(0, 0, fw, fh)).get_used_rect()
-	_check(lain.size == Vector2i(standing.size.y, standing.size.x) and lain.end.y == standing.end.y,
+	# Standing, the feet have no outline under them; lying, the soles get theirs.
+	_check(lain.size == Vector2i(standing.size.y + 1, standing.size.x) and lain.end.y == standing.end.y,
 		"asleep the figure lies on its side on the frame's bottom: %s, %s" % [lain, standing])
-	var eyes := 0
+	var whites := [0, 0]
 	for y in fh:
 		for x in fw:
-			if img.get_pixel(sleep.x * fw + x, y).is_equal_approx(Color("2c2226")):
-				eyes += 1
-	_check(eyes == 0 and s.frame_at("n", "sleep", 0.0).x == sleep.x, "asleep its eyes are closed, whichever way it faced")
+			for i in 2:
+				if img.get_pixel([0, sleep.x][i] * fw + x, y).is_equal_approx(Color.WHITE):
+					whites[i] += 1
+	_check(whites[0] > 0 and whites[1] == 0 and s.frame_at("n", "sleep", 0.0).x == sleep.x, "asleep its eyes are closed, whichever way it faced")
 	# Naked in a loincloth; clothes worn show between the naked layers, a bag does not.
 	var naked := Figure.dressed({})
 	_check(naked == ["body", "loincloth", "hair"], "the figure is naked in a loincloth with nothing worn")
@@ -224,7 +226,7 @@ func _test_sprite_sheet() -> void:
 		"a coat goes under the hair, a hat over it, a bag is not drawn: %s" % [furs])
 	var coat := Figure.sheet(furs).texture.get_image()
 	var bare := Figure.sheet(naked).texture.get_image()
-	_check(coat.get_pixel(fw / 2, fh - 8) != bare.get_pixel(fw / 2, fh - 8), "the coat shows on the body")
+	_check(coat.get_pixel(fw / 2, fh - 5) != bare.get_pixel(fw / 2, fh - 5), "the coat shows on the body")
 	# The bare figure knows where its hands are; the one in use moves in the works.
 	var anchors: Array = Figure.anchors()
 	var works: Dictionary = Figure.data().works

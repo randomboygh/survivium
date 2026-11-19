@@ -297,35 +297,32 @@ func step() -> bool:
 	return true
 
 
-## Puts the frame of the `sleep` animation (player.yaml) into every row: the first idle
-## frame facing south turned on its side, the head to the west, its eyes (the pixels of
-## colour `sleep_eyes` in the body's picture) closed with `sleep_lid`, lying on the
-## frame's bottom and as much in the middle of it as the figure stood.
+## Puts the frame of the `sleep` animation (player.yaml) into every row: the blink frame
+## (`blink`, its eyes shut) facing south turned on its side, the head to the west, lying
+## on the frame's bottom and as much in the middle of it as the figure stood. It is
+## outlined after turning, so the soles, which stand on the frame's edge without an
+## outline, get theirs.
 func _lay_down() -> void:
 	var d := data()
 	if not d.animations.has("sleep"):
 		return
 	var size := target.frame_size
 	var col: int = d.animations.sleep.frames[0]
-	var row := maxi(0, target.directions.find("s"))
-	var standing: Image = _img.get_region(Rect2i(Vector2i(0, row * size.y), size))
-	var eye := Color(str(d.get("sleep_eyes", "2c2226")))
-	var lid := Color(str(d.get("sleep_lid", "c08a69")))
-	var body: Image = layer(d.layers[0]).get_region(Rect2i(Vector2i(0, row * size.y), size))
-	var swap: bool = held.get("active", "right") == "left"
-	for y in size.y:
-		for x in size.x:
-			if body.get_pixel(x, y).is_equal_approx(eye):
-				var at := Vector2i(size.x - 1 - x if swap else x, y)
-				if standing.get_pixelv(at).is_equal_approx(eye):
-					standing.set_pixelv(at, lid)
+	var blink := int(d.get("blink", 0))
+	var standing := _compose(maxi(0, target.directions.find("s")), blink, blink + 1)
+	if held.get("active", "right") == "left":
+		standing.flip_x()
 	var was: Rect2i = standing.get_used_rect()
 	var lying: Image = standing.duplicate()
 	lying.rotate_90(COUNTERCLOCKWISE)
 	var now: Rect2i = lying.get_used_rect()
 	var out := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
-	var to := Vector2i(was.get_center().x - now.size.x / 2, was.end.y - now.size.y)
+	out.fill(Color(0, 0, 0, 0))
+	# A pixel up from where the feet stood, for the outline under the body.
+	var to := Vector2i(was.get_center().x - now.size.x / 2, was.end.y - 1 - now.size.y)
 	out.blit_rect(lying, now, to)
+	if target.outline:
+		SpriteSheet.outline_rect(out, Rect2i(Vector2i.ZERO, size))
 	for r in target.directions.size():
 		_img.blit_rect(out, Rect2i(Vector2i.ZERO, size), Vector2i(col * size.x, r * size.y))
 
@@ -370,16 +367,9 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 	var dir: String = target.directions[row]
 	var src := target.directions.find(opposite(dir) if swap else dir)
 	var size := target.frame_size
-	var strip := Image.create_empty(size.x * (c1 - c0), size.y, false, Image.FORMAT_RGBA8)
-	strip.fill(Color(0, 0, 0, 0))
-	var from := Rect2i(c0 * size.x, src * size.y, strip.get_width(), size.y)
 	_row_spots = {}
 	_row_tips = {}
-	_put_things(strip, src, false, c0, c1)
-	for name: String in look:
-		strip.blend_rect(layer(name), from, Vector2i.ZERO)
-	_put_things(strip, src, true, c0, c1)
-	strip.blend_rect(layer(data().fists), from, Vector2i.ZERO)
+	var strip := _compose(src, c0, c1)
 	var whole := Rect2i(Vector2i.ZERO, strip.get_size())
 	if target.outline:
 		SpriteSheet.outline_rect(strip, whole)
@@ -398,6 +388,21 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 		var tip: Vector2i = _row_tips[col]
 		target.tips[Vector2i(col, row)] = Vector2i(size.x - 1 - tip.x, tip.y) if swap else tip
 	_img.blit_rect(strip, whole, Vector2i(c0 * size.x, row * size.y))
+
+
+## Columns c0..c1 (not included) of row `src` of the figure, drawn for the right hand in
+## use, with the things at the hands, not outlined yet.
+func _compose(src: int, c0: int, c1: int) -> Image:
+	var size := target.frame_size
+	var strip := Image.create_empty(size.x * (c1 - c0), size.y, false, Image.FORMAT_RGBA8)
+	strip.fill(Color(0, 0, 0, 0))
+	var from := Rect2i(c0 * size.x, src * size.y, strip.get_width(), size.y)
+	_put_things(strip, src, false, c0, c1)
+	for name: String in look:
+		strip.blend_rect(layer(name), from, Vector2i.ZERO)
+	_put_things(strip, src, true, c0, c1)
+	strip.blend_rect(layer(data().fists), from, Vector2i.ZERO)
+	return strip
 
 
 ## The things held in columns c0..c1 of row `src` of the figure, those in front of the

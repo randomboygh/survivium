@@ -1,8 +1,8 @@
 # The character's frame sheet. The pictures lie alongside in player/ and held/; they were drawn by
 # tools/make_sprites.gd, and can be redrawn in any editor, keeping the sizes
 # of the frames and the hand marks.
-# frame — the frame size in pixels: the feet stand on the bottom row, the outermost pixels of the frame
-# are empty (the outline is drawn there). directions — the rows of the sheet from top to bottom. layers — the layers
+# frame — the frame size in pixels: the feet stand on the bottom row with no outline under them, the
+# other outermost pixels of the frame are empty (the outline is drawn there). directions — the rows of the sheet from top to bottom. layers — the layers
 # player/<name>.png from bottom to top; what is in the hands goes over them, and behind the body, under
 # them. fists — forearms and hands in front of the body, over what is in them. hands —
 # player/<name>.png, where in each frame one pixel marks the hand: red —
@@ -63,8 +63,8 @@ animations:
   eat:
     frames: [36, 37, 38, 39]
     fps: 1.0
-  # Sleep: the frame is not drawn, Figure builds it from the first frame standing facing south —
-  # turned on its side, with closed eyes (sleep_eyes — the eye colour in body.png, lid — the eyelid).
+  # Sleep: the frame is not drawn, Figure builds it from the blink frame (`blink`, the eyes shut)
+  # standing facing south, turned on its side.
   sleep:
     frames: [40]
     fps: 1.0
@@ -98,8 +98,8 @@ animations:
   clap:
     frames: [56, 57]
     fps: 6.0
-sleep_eyes: "2c2226"
-sleep_lid: "c08a69"
+# blink — the column of the idle animation with the eyes shut; the sleep frame is made from it.
+blink: 1
 works:
   chop:
     columns: [12, 13, 14, 15]

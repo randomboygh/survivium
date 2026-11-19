@@ -4,16 +4,20 @@ extends RefCounted
 ## saves them as the core mod's pictures (content/core/sprites/player/), which the game
 ## reads (Figure) and which can be painted over by hand from there. Layers: the body
 ## (skin, face, the arms behind the body, skin under the clothes), the loincloth,
-## shirt, trousers (with the belt), boots, hair, the shapes clothes are worn in (SHAPES), the fists (the forearms and hands in front of the body, drawn
-## over what the hands hold) and the hands picture marking where each hand is. The hands
-## are empty: what they hold has sheets of its own (ToolArt), turned the way the poses
-## here say.
+## shirt, trousers (with the waistband), shoes, hair, the shapes clothes are worn in
+## (SHAPES), the fists (the forearms and hands in front of the body, drawn over what the
+## hands hold) and the hands picture marking where each hand is. The hands are empty:
+## what they hold has sheets of its own (ToolArt), turned the way the poses here say.
 ##
-## The figure is 8 pixels wide and 14 tall inside its outline, two cells tall on screen.
-## It is put together from parts written as letters standing for colours (INK): the
-## head (rows 1-6 of its 10x16 box), the torso (7-10) and the legs (11-14), for five
-## directions; the west ones are the east ones mirrored with the hands swapped. Arms go
-## from the shoulder to the hand. Light comes from the upper left.
+## The figure is a chibi: 12 pixels wide and 17 tall inside its outline, the head
+## half of it with 2x2 eyes, arms of two pixels, legs a pixel wide on dark soles. It is
+## put together from parts written as letters standing for colours (INK): the head
+## (rows 2-10 of its 14x18 box), the hair over it (from row 1), the neck and torso
+## (11-14) and the legs (15-17), for five directions; the west ones are the east ones
+## mirrored with the hands swapped. Arms go from the shoulder to the hand (ARMS). Light
+## comes from the upper left. The feet stand on the frame's last row with no outline
+## under them, so each foot rests on three dark pixels: its sole and the outline either
+## side.
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -24,196 +28,298 @@ const Figure := preload("res://src/client/view/figure.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
-## Where the figure's 10x16 box (outline included) sits in a frame: room on each side
-## and above for a tool swung out or overhead, its bottom row on the frame's last row.
-const ORIGIN := Vector2i(11, 16)
+## Where the figure's 14x18 box (its outline on the top and the sides) sits in a frame:
+## room on each side and above for a tool swung out or overhead, its feet on the frame's
+## last row.
+const ORIGIN := Vector2i(9, 14)
 
 ## Colour and layer of each letter of the parts.
 const INK := {
-	"J": ["936c48", "hair"], "H": ["6e4a30", "hair"], "D": ["4a301f", "hair"],
-	"S": ["e6b690", "body"], "s": ["c08a69", "body"], "E": ["2c2226", "body"],
-	"L": ["7f9dbb", "shirt"], "C": ["5b7a9b", "shirt"], "c": ["445c78", "shirt"],
-	"K": ["3e2d21", "trousers"], "k": ["c9a65e", "trousers"],
-	"T": ["716049", "trousers"], "t": ["514538", "trousers"],
-	"B": ["5c402c", "boots"], "b": ["3b291d", "boots"], "O": ["7d5d42", "boots"],
-	"W": ["b39a72", "loincloth"], "w": ["8c7552", "loincloth"], "V": ["5e4a33", "loincloth"],
+	"S": ["e8b48a", "body"], "s": ["c98a62", "body"], "k": ["a0603e", "body"],
+	# The eyes: the pupil above, the iris under it, the white beside them (shaded above).
+	"E": ["1f1a14", "body"], "I": ["272727", "body"], "w": ["b4b4b4", "body"], "W": ["ffffff", "body"],
+	"J": ["8a5a36", "hair"], "H": ["6b4228", "hair"], "D": ["4a2c1a", "hair"],
+	"L": ["ea323c", "shirt"], "C": ["c42430", "shirt"], "c": ["891e2b", "shirt"],
+	# The trousers' waistband (U, u) and legs (T, t).
+	"U": ["2c5288", "trousers"], "u": ["1e3a62", "trousers"],
+	"T": ["3f6fb0", "trousers"], "t": ["2c5288", "trousers"],
+	"B": ["3d3436", "boots"], "b": ["2b2527", "boots"],
+	"N": ["c9a66e", "loincloth"], "n": ["9c7c4c", "loincloth"],
+	# The dark edge of an arm in front of the body (see ARMS `inner`).
+	"#": ["1f1a14", "fists"],
 	# The shapes of clothes (see SHAPES): the light, middle and dark tone, painted in
 	# the colours of the thing worn (see painted).
 	"1": ["c0c0c0", ""], "2": ["808080", ""], "3": ["404040", ""],
 }
+## Skin under each letter of the clothes, in the body layer.
+const SKIN := {"L": "S", "C": "S", "c": "s", "U": "S", "u": "s", "T": "S", "t": "s", "B": "s", "b": "k"}
+## The darker skin under an arm held out flat.
+const DARKER := {"S": "s", "s": "k", "k": "k"}
 ## The shapes clothes are worn in (see painted), in three greys: what the shirt,
-## trousers, boots and hair are drawn with, cut and joined. A coat goes down over the
-## hips, a hat is the top of the hair, wraps the lower legs, tall boots the boots and a
-## pixel of leg above.
+## trousers, shoes and hair are drawn with, cut and joined. A coat goes down over the
+## hips and thighs, a hat is the top of the hair, wraps the legs, tall boots the shoes
+## and a pixel of leg above.
 const SHAPES := ["shirt", "coat", "hat", "trousers", "wraps", "boots", "tall_boots"]
 ## The tone of each letter of the clothes in a shape.
-const TONE := {"L": "1", "C": "2", "c": "3", "K": "3", "k": "1", "T": "2", "t": "3", "B": "2", "b": "3", "O": "1",
+const TONE := {"L": "1", "C": "2", "c": "3", "U": "2", "u": "3", "T": "1", "t": "2", "B": "2", "b": "3",
 	"J": "1", "H": "2", "D": "3"}
-## Letters drawn darker skin under them in the body layer (the rest lighter skin).
-const SHADED := "cKtb"
 
 ## How each drawn direction shows the body.
 const VIEW := {"s": "front", "se": "front", "e": "side", "ne": "back", "n": "back"}
+## Directions drawn a pixel aside from the places their view gives (SHOULDER, MOVES,
+## WORKS): south-east is south turned a little.
+const SHIFT := {"se": Vector2i(1, 0)}
+## A row of the box with nothing in it.
+const EMPTY := ".............."
 
-## The head, rows 1-6 of the box.
+## The head, rows 2-10 of the box: skin and eyes, the hair goes over it.
 const HEAD := {
 	"s": [
-		"...JJHH...",
-		"..JHHHHD..",
-		"..HHHHHHD.",
-		"..HSSSSHD.",
-		"..SESSES..",
-		"...sSSs...",
+		"....SSSSSS....",
+		"...SSSSSSSS...",
+		"..SSSSSSSSSs..",
+		"..SSSSSSSSSs..",
+		"..SSSSSSSSSs..",
+		"..SSSSSSSSSs..",
+		"..sSwESSEwSs..",
+		"...SWISSIWs...",
+		"....sSSSSs....",
 	],
 	"se": [
-		"...JJHH...",
-		"..JHHHHHD.",
-		"..HHHHHHH.",
-		"..HHSSSSH.",
-		"..DSESSES.",
-		"...DsSSs..",
+		"....SSSSSS....",
+		"...SSSSSSSS...",
+		"..SSSSSSSSSS..",
+		"..SSSSSSSSSs..",
+		"..SSSSSSSSSs..",
+		"..SSsSSSSSSs..",
+		"..SSsSwESwES..",
+		"...SsSWISWI...",
+		".....sSSSSs...",
 	],
 	"e": [
-		"...JJHH...",
-		"..JHHHHHH.",
-		"..HHHHHHHH",
-		"..DHHSSSS.",
-		"..DDSSSES.",
-		"...DsSSs..",
+		"....SSSSSS....",
+		"...SSSSSSSS...",
+		"..SSSSSSSSSS..",
+		"..SSSSSSSSSS..",
+		"..SSSSSSSSSS..",
+		"..SSSSsSSSSS..",
+		"..sSSSsSSwES..",
+		"...sSSSSSWIS..",
+		".....sSSSSs...",
 	],
 	"ne": [
-		"...JJHH...",
-		"..JHHHHHH.",
-		"..HHHHHHHD",
-		"..HHHHHHs.",
-		"..DHHHHDs.",
-		"...DDss...",
+		"....SSSSSS....",
+		"...SSSSSSSS...",
+		"..SSSSSSSSSs..",
+		"..SSSSSSSSSs..",
+		"..SSSSSSSSSs..",
+		"..SSSSSSSSsS..",
+		"..SSSSSSSSsS..",
+		"...sSSSSSSs...",
+		".....ssssss...",
 	],
 	"n": [
-		"...JJHH...",
-		"..JHHHHD..",
-		"..HHHHHHD.",
-		"..HHHHHHD.",
-		"..DHHHHDD.",
-		"...sssS...",
+		"....SSSSSS....",
+		"...SSSSSSSS...",
+		"..SSSSSSSSSs..",
+		"..SSSSSSSSSs..",
+		"..SSSSSSSSSs..",
+		"..sSSSSSSSSs..",
+		"..sSSSSSSSss..",
+		"..ssSSSSSssk..",
+		"....ssssss....",
 	],
 }
-## The torso, rows 7-10: the shirt and the belt.
+## The hair, from row 1 of the box.
+const HAIR := {
+	"s": [
+		"..............",
+		"....HHHHHH....",
+		"...HHHHHHHD...",
+		"..HJJJJJHHHD..",
+		"..HHHHHHHHDD..",
+		"..HHD.HHD.DD..",
+		"..H........D..",
+		"..D........D..",
+	],
+	"se": [
+		"..............",
+		"....HHHHHH....",
+		"...HHHHHHHH...",
+		"..HJJJJJHHHD..",
+		"..DHHHHHHHHD..",
+		"..HHHHD.HD.D..",
+		"..HHH......D..",
+		"..DHH......D..",
+		"...DD.........",
+	],
+	"e": [
+		"..............",
+		"....HHHHHH....",
+		"...HHHHHHHH...",
+		"..HHJJJJJHHH..",
+		"..DHHHHHHHHH..",
+		"..HHHHHHHD.D..",
+		"..HHHH........",
+		"..DHHH........",
+		"...DD.........",
+	],
+	"ne": [
+		"..............",
+		"....HHHHHH....",
+		"...HHHHHHHH...",
+		"..HJJJJJHHHD..",
+		"..HHHHHHHHHD..",
+		"..HHHHHHHHHD..",
+		"..HHHHHHHH.D..",
+		"..DHHHHHHH....",
+		"...DDHHHD.....",
+		".....DDD......",
+	],
+	"n": [
+		"..............",
+		"....HHHHHH....",
+		"...HHHHHHHD...",
+		"..HJJJJJHHHD..",
+		"..HHHHHHHHHD..",
+		"..HHHHHHHHHD..",
+		"..HHHHHHHHHD..",
+		"..DHHHHHHHDD..",
+		"...DHHHHHDD...",
+		"....DDDDDD....",
+	],
+}
+## The neck and torso, rows 11-14: the neck, the shoulders, the shirt between the arms
+## and the trousers' waistband.
 const TORSO := {
 	"s": [
-		"..LCCCCc..",
-		"..LCCCCc..",
-		"..CCCCcc..",
-		"..KKkKKK..",
+		".....kkkk.....",
+		"...LCCCCCCc...",
+		".....CCCc.....",
+		".....UUUu.....",
 	],
 	"se": [
-		"..LCCCCc..",
-		"..LCCCCc..",
-		"..CCCCcc..",
-		"..KKKkKK..",
+		"....C.kkkk....",
+		"...LCCCCCCc...",
+		"......CCCc....",
+		"......UUUu....",
 	],
 	"e": [
-		"...LCCc...",
-		"...LCCc...",
-		"...CCCc...",
-		"...KKKk...",
+		"......kkk.....",
+		".....LCCCc....",
+		".....cCCCc....",
+		".....UUUUu....",
 	],
 	"ne": [
-		"..LCCCCc..",
-		"..LCCCCc..",
-		"..CCCCcc..",
-		"..KKKKKK..",
+		"....C.kkkk....",
+		"...LCCCCCCc...",
+		".....CCCC.....",
+		".....UUUu.....",
 	],
 	"n": [
-		"..LCCCCc..",
-		"..LCCCCc..",
-		"..CCCCcc..",
-		"..KKKKKK..",
+		".....kkkk.....",
+		"...LCCCCCCc...",
+		".....CCCc.....",
+		".....UUUu.....",
 	],
 }
-## The legs, rows 11-14, by view and pose. Front and back: "stand", "right" or "left"
-## (that foot a step behind, a pixel up), "tuck" (both drawn up, jumping). Side: "stand",
-## "near" or "far" (that leg in front, striding), "pass" (the near knee coming
-## forward), "tuck".
-const LEGS := {
-	"front": {
-		"stand": [
-			"..TTTTTt..",
-			"..TTtTTt..",
-			"..TTtTTt..",
-			"..BBbBBb..",
-		],
-		"right": [
-			"..TTTTTt..",
-			"..TTtTTt..",
-			"..BBbTTt..",
-			".....BBb..",
-		],
-		"left": [
-			"..TTTTTt..",
-			"..TTtTTt..",
-			"..TTtBBb..",
-			"..BBb.....",
-		],
-		"tuck": [
-			"..TTTTTt..",
-			"..TTtTTt..",
-			"..BBbBBb..",
-			"..........",
-		],
-		"sit": [
-			"..........",
-			"..........",
-			"..........",
-			"..TTtTTt..",
-		],
-	},
-	"side": {
-		"stand": [
-			"...tTTT...",
-			"...tTTt...",
-			"...tTTt...",
-			"...bBBO...",
-		],
-		"near": [
-			"...tTTT...",
-			"..tt.TTt..",
-			".tt...TT..",
-			".bb...BBO.",
-		],
-		"far": [
-			"...TTTt...",
-			"..TT.tt...",
-			".TT...tt..",
-			".BBO..bbb.",
-		],
-		"pass": [
-			"...tTTTT..",
-			"...tTTTt..",
-			"...t.TT...",
-			"...b.BBO..",
-		],
-		"tuck": [
-			"...tTTT...",
-			"..tTTTTt..",
-			"..bbBBO...",
-			"..........",
-		],
-		"sit": [
-			"..........",
-			"..........",
-			"..........",
-			"...tTTTTB.",
-		],
-	},
+## The legs standing, rows 15-17: a pixel wide, the feet on the frame's last row.
+const STAND := {
+	"s": [
+		".....T..t.....",
+		".....T..t.....",
+		".....B..b.....",
+	],
+	"se": [
+		"......T..t....",
+		"......T..t....",
+		"......B..b....",
+	],
+	"e": [
+		"......tt......",
+		"......Tt......",
+		"......BBb.....",
+	],
+	"ne": [
+		".....T..t.....",
+		".....T..t.....",
+		".....B..b.....",
+	],
+	"n": [
+		".....T..t.....",
+		".....T..t.....",
+		".....B..b.....",
+	],
+}
+## The legs seen from the side by pose: "stand", "near" or "far" (that leg in front,
+## striding), "pass", "tuck" (drawn up, jumping), "sit" (forward, afloat). The front and
+## back views raise a leg from STAND instead (see legs).
+const SIDE_LEGS := {
+	"stand": [
+		"......tt......",
+		"......Tt......",
+		"......BBb.....",
+	],
+	"near": [
+		"......tT......",
+		".....t..T.....",
+		"....bb..BBb...",
+	],
+	"far": [
+		"......Tt......",
+		".....T..t.....",
+		"....BB..bbb...",
+	],
+	"pass": [
+		"......tT......",
+		"......tT......",
+		"......bBB.....",
+	],
+	"tuck": [
+		"......tT......",
+		"......bBB.....",
+		EMPTY,
+	],
+	"sit": [
+		EMPTY,
+		EMPTY,
+		"......tTTTB...",
+	],
 }
 
-## Shoulders by view: where the right arm and the left one start (side view: the near
-## one and the far one).
+## Shoulders by view: where the right arm and the left one hang from (side view: the
+## near one and the far one).
 const SHOULDER := {
-	"front": {"right": Vector2i(1, 7), "left": Vector2i(8, 7)},
-	"side": {"right": Vector2i(4, 7), "left": Vector2i(4, 7)},
-	"back": {"right": Vector2i(8, 7), "left": Vector2i(1, 7)},
+	"front": {"right": Vector2i(3, 13), "left": Vector2i(10, 13)},
+	"side": {"right": Vector2i(7, 13), "left": Vector2i(7, 13)},
+	"back": {"right": Vector2i(10, 13), "left": Vector2i(3, 13)},
+}
+## How each arm is drawn, by direction and hand: the letters of the sleeve and of the
+## skin [on the line from the shoulder, beside it], the side the second pixel is on
+## (`out`; 0: the arm is a pixel wide, the far one), and for an arm over the body seen
+## from the side, the side of its dark edge against the body (`inner`).
+const ARMS := {
+	"s": {
+		"right": {"out": -1, "sleeve": ["C", "L"], "hand": ["S", "S"]},
+		"left": {"out": 1, "sleeve": ["C", "c"], "hand": ["S", "s"]},
+	},
+	"se": {
+		"right": {"out": -1, "sleeve": ["C", "L"], "hand": ["S", "S"]},
+		"left": {"out": 0, "sleeve": ["c", "c"], "hand": ["s", "s"]},
+	},
+	"e": {
+		"right": {"out": -1, "sleeve": ["C", "L"], "hand": ["S", "S"], "inner": 1},
+		"left": {"out": 0, "sleeve": ["c", "c"], "hand": ["s", "s"]},
+	},
+	# From behind the hands are in shade, so they do not read as held behind the back.
+	"ne": {
+		"right": {"out": 1, "sleeve": ["C", "c"], "hand": ["s", "k"]},
+		"left": {"out": 0, "sleeve": ["C", "C"], "hand": ["s", "s"]},
+	},
+	"n": {
+		"right": {"out": 1, "sleeve": ["C", "c"], "hand": ["s", "k"]},
+		"left": {"out": -1, "sleeve": ["C", "L"], "hand": ["s", "s"]},
+	},
 }
 ## The hands when they do not work, by view and animation, a frame each: [right hand,
 ## left hand] in the box (moved with the body when it bobs), and the legs and how far
@@ -222,150 +328,151 @@ const SHOULDER := {
 ## vessel the body sits low, its legs forward ("sit"), and rows: both hands reach out
 ## and pull the oars in (Boats swings the oars in time, ROW_PERIOD). The gestures
 ## (Gestures): a wave over the head, a nod ("bob"), a shake of the body side to side
-## ("lean"), a hand pointing out, beckoning, a bow, clapping in front.
+## ("lean"), a hand pointing out, beckoning, a bow, clapping in front. The arms are
+## short: a hand reaches a few pixels from its shoulder.
 const MOVES := {
 	"front": {
-		"idle": [{"hands": [[1, 10], [8, 10]]}],
+		"idle": [{"hands": [[3, 14], [10, 14]]}],
 		"walk": [
-			{"hands": [[1, 9], [8, 10]], "legs": "left", "bob": 1},
-			{"hands": [[1, 10], [8, 10]]},
-			{"hands": [[1, 10], [8, 9]], "legs": "right", "bob": 1},
-			{"hands": [[1, 10], [8, 10]]},
+			{"hands": [[3, 14], [10, 14]], "legs": "left"},
+			{"hands": [[3, 14], [10, 14]]},
+			{"hands": [[3, 14], [10, 14]], "legs": "right"},
+			{"hands": [[3, 14], [10, 14]]},
 		],
 		"jump": [
-			{"hands": [[0, 6], [9, 6]], "legs": "tuck"},
-			{"hands": [[0, 8], [9, 8]]},
+			{"hands": [[1, 12], [12, 12]], "legs": "tuck"},
+			{"hands": [[2, 14], [11, 14]]},
 		],
 		"swim": [
-			{"hands": [[0, 3], [9, 7]], "legs": "left"},
-			{"hands": [[0, 6], [9, 5]]},
-			{"hands": [[0, 7], [9, 3]], "legs": "right"},
-			{"hands": [[0, 5], [9, 6]]},
+			{"hands": [[0, 9], [13, 12]], "legs": "left"},
+			{"hands": [[0, 11], [13, 10]]},
+			{"hands": [[0, 12], [13, 9]], "legs": "right"},
+			{"hands": [[0, 10], [13, 11]]},
 		],
 		"wave": [
-			{"hands": [[0, 2], [8, 10]]},
-			{"hands": [[-1, 3], [8, 10]]},
+			{"hands": [[0, 9], [10, 14]]},
+			{"hands": [[-1, 10], [10, 14]]},
 		],
-		"nod": [{"hands": [[1, 10], [8, 10]], "bob": 1}],
+		"nod": [{"hands": [[3, 14], [10, 14]], "bob": 1}],
 		"shake": [
-			{"hands": [[1, 10], [8, 10]], "lean": -1},
-			{"hands": [[1, 10], [8, 10]], "lean": 1},
+			{"hands": [[3, 14], [10, 14]], "lean": -1},
+			{"hands": [[3, 14], [10, 14]], "lean": 1},
 		],
-		"point": [{"hands": [[-2, 7], [8, 10]]}],
+		"point": [{"hands": [[0, 12], [10, 14]]}],
 		"beckon": [
-			{"hands": [[-1, 6], [8, 10]]},
-			{"hands": [[1, 8], [8, 10]]},
+			{"hands": [[1, 11], [10, 14]]},
+			{"hands": [[2, 13], [10, 14]]},
 		],
 		"bow": [
-			{"hands": [[1, 10], [8, 10]], "bob": 1},
-			{"hands": [[2, 10], [7, 10]], "bob": 2},
+			{"hands": [[3, 14], [10, 14]], "bob": 1},
+			{"hands": [[4, 14], [9, 14]], "bob": 2},
 		],
 		"clap": [
-			{"hands": [[3, 7], [6, 7]]},
-			{"hands": [[4, 7], [5, 7]]},
+			{"hands": [[5, 13], [8, 13]]},
+			{"hands": [[6, 13], [7, 13]]},
 		],
-		"sit": [{"hands": [[1, 9], [8, 9]], "legs": "sit", "bob": 3}],
+		"sit": [{"hands": [[3, 14], [10, 14]], "legs": "sit", "bob": 2}],
 		"row": [
-			{"hands": [[0, 6], [9, 6]], "legs": "sit", "bob": 3},
-			{"hands": [[0, 8], [9, 8]], "legs": "sit", "bob": 3},
-			{"hands": [[1, 9], [8, 9]], "legs": "sit", "bob": 3},
-			{"hands": [[0, 8], [9, 8]], "legs": "sit", "bob": 3},
+			{"hands": [[2, 11], [11, 11]], "legs": "sit", "bob": 2},
+			{"hands": [[2, 13], [11, 13]], "legs": "sit", "bob": 2},
+			{"hands": [[3, 14], [10, 14]], "legs": "sit", "bob": 2},
+			{"hands": [[2, 13], [11, 13]], "legs": "sit", "bob": 2},
 		],
 	},
 	"side": {
-		"idle": [{"hands": [[4, 10], [3, 10]]}],
+		"idle": [{"hands": [[7, 14], [6, 14]]}],
 		"walk": [
-			{"hands": [[2, 9], [7, 9]], "legs": "near", "bob": 1},
-			{"hands": [[4, 10], [3, 10]], "legs": "pass"},
-			{"hands": [[6, 9], [2, 9]], "legs": "far", "bob": 1},
-			{"hands": [[4, 10], [3, 10]], "legs": "pass"},
+			{"hands": [[6, 14], [10, 14]], "legs": "near"},
+			{"hands": [[7, 14], [6, 14]], "legs": "pass"},
+			{"hands": [[8, 14], [4, 14]], "legs": "far"},
+			{"hands": [[7, 14], [6, 14]], "legs": "pass"},
 		],
 		"jump": [
-			{"hands": [[6, 5], [2, 6]], "legs": "tuck"},
-			{"hands": [[6, 8], [2, 8]]},
+			{"hands": [[9, 11], [5, 12]], "legs": "tuck"},
+			{"hands": [[9, 13], [5, 13]]},
 		],
 		"swim": [
-			{"hands": [[9, 4], [2, 6]], "legs": "near"},
-			{"hands": [[7, 7], [5, 3]]},
-			{"hands": [[2, 6], [9, 4]], "legs": "far"},
-			{"hands": [[5, 3], [7, 7]]},
+			{"hands": [[11, 11], [4, 13]], "legs": "near"},
+			{"hands": [[9, 13], [9, 10]]},
+			{"hands": [[4, 13], [11, 11]], "legs": "far"},
+			{"hands": [[9, 10], [9, 13]]},
 		],
 		"wave": [
-			{"hands": [[6, 2], [3, 10]]},
-			{"hands": [[7, 3], [3, 10]]},
+			{"hands": [[12, 10], [6, 14]]},
+			{"hands": [[12, 8], [6, 14]]},
 		],
-		"nod": [{"hands": [[4, 10], [3, 10]], "bob": 1}],
+		"nod": [{"hands": [[7, 14], [6, 14]], "bob": 1}],
 		"shake": [
-			{"hands": [[4, 10], [3, 10]], "lean": -1},
-			{"hands": [[4, 10], [3, 10]], "lean": 1},
+			{"hands": [[7, 14], [6, 14]], "lean": -1},
+			{"hands": [[7, 14], [6, 14]], "lean": 1},
 		],
-		"point": [{"hands": [[9, 7], [3, 10]]}],
+		"point": [{"hands": [[11, 12], [6, 14]]}],
 		"beckon": [
-			{"hands": [[8, 6], [3, 10]]},
-			{"hands": [[6, 8], [3, 10]]},
+			{"hands": [[10, 11], [6, 14]]},
+			{"hands": [[9, 13], [6, 14]]},
 		],
 		"bow": [
-			{"hands": [[5, 10], [4, 10]], "lean": 1, "bob": 1},
-			{"hands": [[6, 10], [5, 10]], "lean": 2, "bob": 1},
+			{"hands": [[8, 14], [7, 14]], "lean": 1, "bob": 1},
+			{"hands": [[9, 14], [8, 14]], "lean": 2, "bob": 1},
 		],
 		"clap": [
-			{"hands": [[8, 7], [6, 7]]},
-			{"hands": [[7, 7], [6, 8]]},
+			{"hands": [[11, 12], [11, 11]]},
+			{"hands": [[10, 12], [10, 11]]},
 		],
-		"sit": [{"hands": [[6, 8], [5, 8]], "legs": "sit", "bob": 3}],
+		"sit": [{"hands": [[9, 14], [8, 14]], "legs": "sit", "bob": 2}],
 		"row": [
-			{"hands": [[8, 7], [7, 7]], "legs": "sit", "bob": 3},
-			{"hands": [[6, 8], [5, 8]], "legs": "sit", "bob": 3},
-			{"hands": [[3, 7], [2, 7]], "legs": "sit", "bob": 3},
-			{"hands": [[5, 7], [4, 7]], "legs": "sit", "bob": 3},
+			{"hands": [[10, 12], [9, 12]], "legs": "sit", "bob": 2},
+			{"hands": [[9, 14], [8, 14]], "legs": "sit", "bob": 2},
+			{"hands": [[5, 13], [4, 13]], "legs": "sit", "bob": 2},
+			{"hands": [[7, 13], [6, 13]], "legs": "sit", "bob": 2},
 		],
 	},
 	"back": {
-		"idle": [{"hands": [[8, 10], [1, 10]]}],
+		"idle": [{"hands": [[10, 14], [3, 14]]}],
 		"walk": [
-			{"hands": [[8, 9], [1, 10]], "legs": "left", "bob": 1},
-			{"hands": [[8, 10], [1, 10]]},
-			{"hands": [[8, 10], [1, 9]], "legs": "right", "bob": 1},
-			{"hands": [[8, 10], [1, 10]]},
+			{"hands": [[10, 14], [3, 14]], "legs": "left"},
+			{"hands": [[10, 14], [3, 14]]},
+			{"hands": [[10, 14], [3, 14]], "legs": "right"},
+			{"hands": [[10, 14], [3, 14]]},
 		],
 		"jump": [
-			{"hands": [[9, 6], [0, 6]], "legs": "tuck"},
-			{"hands": [[9, 8], [0, 8]]},
+			{"hands": [[12, 12], [1, 12]], "legs": "tuck"},
+			{"hands": [[11, 14], [2, 14]]},
 		],
 		"swim": [
-			{"hands": [[9, 3], [0, 7]], "legs": "left"},
-			{"hands": [[9, 6], [0, 5]]},
-			{"hands": [[9, 7], [0, 3]], "legs": "right"},
-			{"hands": [[9, 5], [0, 6]]},
+			{"hands": [[13, 9], [0, 12]], "legs": "left"},
+			{"hands": [[13, 11], [0, 10]]},
+			{"hands": [[13, 12], [0, 9]], "legs": "right"},
+			{"hands": [[13, 10], [0, 11]]},
 		],
 		"wave": [
-			{"hands": [[9, 2], [1, 10]]},
-			{"hands": [[10, 3], [1, 10]]},
+			{"hands": [[13, 9], [3, 14]]},
+			{"hands": [[14, 10], [3, 14]]},
 		],
-		"nod": [{"hands": [[8, 10], [1, 10]], "bob": 1}],
+		"nod": [{"hands": [[10, 14], [3, 14]], "bob": 1}],
 		"shake": [
-			{"hands": [[8, 10], [1, 10]], "lean": -1},
-			{"hands": [[8, 10], [1, 10]], "lean": 1},
+			{"hands": [[10, 14], [3, 14]], "lean": -1},
+			{"hands": [[10, 14], [3, 14]], "lean": 1},
 		],
-		"point": [{"hands": [[11, 7], [1, 10]]}],
+		"point": [{"hands": [[13, 12], [3, 14]]}],
 		"beckon": [
-			{"hands": [[10, 6], [1, 10]]},
-			{"hands": [[8, 8], [1, 10]]},
+			{"hands": [[12, 11], [3, 14]]},
+			{"hands": [[11, 13], [3, 14]]},
 		],
 		"bow": [
-			{"hands": [[8, 10], [1, 10]], "bob": 1},
-			{"hands": [[7, 10], [2, 10]], "bob": 2},
+			{"hands": [[10, 14], [3, 14]], "bob": 1},
+			{"hands": [[9, 14], [4, 14]], "bob": 2},
 		],
 		"clap": [
-			{"hands": [[6, 7], [3, 7]]},
-			{"hands": [[5, 7], [4, 7]]},
+			{"hands": [[8, 13], [5, 13]]},
+			{"hands": [[7, 13], [6, 13]]},
 		],
-		"sit": [{"hands": [[8, 9], [1, 9]], "legs": "sit", "bob": 3}],
+		"sit": [{"hands": [[10, 14], [3, 14]], "legs": "sit", "bob": 2}],
 		"row": [
-			{"hands": [[9, 6], [0, 6]], "legs": "sit", "bob": 3},
-			{"hands": [[9, 8], [0, 8]], "legs": "sit", "bob": 3},
-			{"hands": [[8, 9], [1, 9]], "legs": "sit", "bob": 3},
-			{"hands": [[9, 8], [0, 8]], "legs": "sit", "bob": 3},
+			{"hands": [[11, 11], [2, 11]], "legs": "sit", "bob": 2},
+			{"hands": [[11, 13], [2, 13]], "legs": "sit", "bob": 2},
+			{"hands": [[10, 14], [3, 14]], "legs": "sit", "bob": 2},
+			{"hands": [[11, 13], [2, 13]], "legs": "sit", "bob": 2},
 		],
 	},
 }
@@ -374,138 +481,139 @@ const MOVES := {
 ## clockwise by eighths; -1: as carried), "ccw" when the thing turns anticlockwise (its
 ## edge leads the other way), "f" in front of the body or not (by default as the view
 ## has it), "o" where the other hand holds a two-handed thing, "bob" and "lean" how far
-## the body bends down and forward, "eyes" "shut".
+## the body bends down and forward, "eyes" "shut". A thing swung up over the head goes
+## behind it, the hand hidden, so it does not cover the face.
 const WORKS := {
 	"front": {
 		"chop": [
-			{"r": [1, 5], "a": 0, "f": false},
-			{"r": [2, 1], "a": 0, "f": false},
-			{"r": [3, 8], "a": TOWARD},
-			{"r": [3, 9], "a": TOWARD, "bob": 1},
+			{"r": [1, 9], "a": 0, "f": false},
+			{"r": [4, 4], "a": 0, "f": false},
+			{"r": [5, 12], "a": TOWARD},
+			{"r": [5, 13], "a": TOWARD, "bob": 1},
 		],
 		"dig": [
-			{"r": [2, 8], "a": TOWARD},
-			{"r": [2, 9], "a": TOWARD, "bob": 1},
-			{"r": [3, 10], "a": TOWARD, "bob": 1},
-			{"r": [1, 7], "a": 7},
+			{"r": [4, 12], "a": TOWARD},
+			{"r": [4, 13], "a": TOWARD, "bob": 1},
+			{"r": [5, 14], "a": TOWARD, "bob": 1},
+			{"r": [3, 12], "a": 7},
 		],
 		"slash": [
-			{"r": [0, 6], "a": 7},
-			{"r": [0, 3], "a": 6, "f": false},
-			{"r": [5, 8], "a": 2},
-			{"r": [6, 8], "a": 3},
+			{"r": [1, 11], "a": 7},
+			{"r": [0, 8], "a": 6, "f": false},
+			{"r": [7, 13], "a": 2},
+			{"r": [8, 13], "a": 3},
 		],
 		"reach": [
-			{"r": [1, 9], "a": -1},
-			{"r": [2, 10], "a": -1},
-			{"r": [3, 11], "a": -1, "bob": 1},
-			{"r": [2, 10], "a": -1},
+			{"r": [3, 13], "a": -1},
+			{"r": [4, 14], "a": -1},
+			{"r": [5, 15], "a": -1, "bob": 1},
+			{"r": [4, 14], "a": -1},
 		],
 		"mow": [
-			{"r": [1, 8], "a": 6, "o": [3, 8], "ccw": true},
-			{"r": [2, 9], "a": TOWARD, "o": [3, 8], "ccw": true, "bob": 1},
-			{"r": [4, 9], "a": TOWARD, "o": [5, 8], "ccw": true, "bob": 1},
-			{"r": [6, 8], "a": 2, "o": [8, 8], "ccw": true},
+			{"r": [3, 13], "a": 6, "o": [5, 13], "ccw": true},
+			{"r": [4, 13], "a": TOWARD, "o": [6, 13], "ccw": true, "bob": 1},
+			{"r": [6, 13], "a": TOWARD, "o": [8, 13], "ccw": true, "bob": 1},
+			{"r": [8, 13], "a": 2, "o": [10, 13], "ccw": true},
 		],
 		"aim": [
-			{"r": [2, 9], "a": TOWARD, "o": [5, 9]},
-			{"r": [3, 8], "a": TOWARD, "o": [6, 8]},
-			{"r": [3, 7], "a": TOWARD, "o": [6, 7]},
-			{"r": [3, 8], "a": TOWARD, "o": [6, 8]},
+			{"r": [4, 13], "a": TOWARD, "o": [7, 13]},
+			{"r": [5, 12], "a": TOWARD, "o": [8, 12]},
+			{"r": [5, 11], "a": TOWARD, "o": [8, 11]},
+			{"r": [5, 12], "a": TOWARD, "o": [8, 12]},
 		],
 		"eat": [
-			{"r": [2, 9], "a": -1},
-			{"r": [3, 8], "a": -1},
-			{"r": [4, 6], "a": -1, "eyes": "shut"},
-			{"r": [3, 7], "a": -1},
+			{"r": [4, 14], "a": -1},
+			{"r": [5, 12], "a": -1},
+			{"r": [6, 10], "a": -1, "eyes": "shut"},
+			{"r": [5, 11], "a": -1},
 		],
 	},
 	"side": {
 		"chop": [
-			{"r": [3, 5], "a": 7},
-			{"r": [3, 1], "a": 6},
-			{"r": [7, 7], "a": 3, "lean": 1},
-			{"r": [7, 9], "a": 3, "bob": 1, "lean": 1},
+			{"r": [4, 9], "a": 7, "f": false},
+			{"r": [5, 5], "a": 6, "f": false},
+			{"r": [10, 12], "a": 3, "lean": 1},
+			{"r": [10, 14], "a": 3, "bob": 1, "lean": 1},
 		],
 		"dig": [
-			{"r": [6, 6], "a": 3},
-			{"r": [7, 7], "a": 3, "bob": 1},
-			{"r": [7, 8], "a": 3, "bob": 1, "lean": 1},
-			{"r": [6, 6], "a": 2},
+			{"r": [9, 12], "a": 3},
+			{"r": [10, 13], "a": 3, "bob": 1},
+			{"r": [10, 14], "a": 3, "bob": 1, "lean": 1},
+			{"r": [9, 12], "a": 2},
 		],
 		"slash": [
-			{"r": [4, 4], "a": 0},
-			{"r": [3, 3], "a": 7},
-			{"r": [8, 7], "a": 2, "lean": 1},
-			{"r": [7, 9], "a": 3},
+			{"r": [6, 7], "a": 0, "f": false},
+			{"r": [5, 6], "a": 7, "f": false},
+			{"r": [11, 12], "a": 2, "lean": 1},
+			{"r": [10, 14], "a": 3},
 		],
 		"reach": [
-			{"r": [5, 9], "a": -1},
-			{"r": [7, 9], "a": -1},
-			{"r": [8, 9], "a": -1, "lean": 1},
-			{"r": [6, 9], "a": -1},
+			{"r": [8, 13], "a": -1},
+			{"r": [10, 13], "a": -1},
+			{"r": [11, 13], "a": -1, "lean": 1},
+			{"r": [9, 14], "a": -1},
 		],
 		"mow": [
-			{"r": [4, 7], "a": 6, "o": [3, 8], "ccw": true},
-			{"r": [5, 7], "a": 5, "o": [4, 8], "ccw": true, "bob": 1},
-			{"r": [7, 7], "a": 3, "o": [8, 8], "ccw": true, "bob": 1, "lean": 1},
-			{"r": [7, 7], "a": 2, "o": [9, 7], "ccw": true},
+			{"r": [7, 12], "a": 6, "o": [6, 13], "ccw": true},
+			{"r": [8, 13], "a": 5, "o": [7, 14], "ccw": true, "bob": 1},
+			{"r": [10, 13], "a": 3, "o": [11, 14], "ccw": true, "bob": 1, "lean": 1},
+			{"r": [10, 12], "a": 2, "o": [12, 12], "ccw": true},
 		],
 		"aim": [
-			{"r": [6, 9], "a": 2, "o": [8, 9]},
-			{"r": [6, 8], "a": 2, "o": [8, 8]},
-			{"r": [5, 8], "a": 2, "o": [7, 8]},
-			{"r": [6, 8], "a": 2, "o": [8, 8]},
+			{"r": [9, 14], "a": 2, "o": [11, 14]},
+			{"r": [9, 13], "a": 2, "o": [11, 13]},
+			{"r": [8, 13], "a": 2, "o": [10, 13]},
+			{"r": [9, 13], "a": 2, "o": [11, 13]},
 		],
 		"eat": [
-			{"r": [5, 9], "a": -1},
-			{"r": [6, 7], "a": -1},
-			{"r": [7, 6], "a": -1, "eyes": "shut"},
-			{"r": [6, 8], "a": -1},
+			{"r": [8, 13], "a": -1},
+			{"r": [9, 12], "a": -1},
+			{"r": [10, 10], "a": -1, "eyes": "shut"},
+			{"r": [9, 11], "a": -1},
 		],
 	},
 	"back": {
 		"chop": [
-			{"r": [8, 5], "a": 0, "f": true},
-			{"r": [7, 1], "a": 0, "f": true},
-			{"r": [6, 8], "a": 0},
-			{"r": [6, 9], "a": 0, "bob": 1},
+			{"r": [11, 9], "a": 0, "f": true},
+			{"r": [9, 4], "a": 0, "f": true},
+			{"r": [8, 13], "a": 0},
+			{"r": [8, 14], "a": 0, "bob": 1},
 		],
 		"dig": [
-			{"r": [7, 8], "a": 0},
-			{"r": [7, 9], "a": 0, "bob": 1},
-			{"r": [6, 10], "a": 0, "bob": 1},
-			{"r": [7, 8], "a": 1},
+			{"r": [9, 13], "a": 0},
+			{"r": [9, 14], "a": 0, "bob": 1},
+			{"r": [8, 15], "a": 0, "bob": 1},
+			{"r": [9, 13], "a": 1},
 		],
 		"slash": [
-			{"r": [9, 6], "a": 1, "f": true},
-			{"r": [9, 3], "a": 2, "f": true},
-			{"r": [4, 8], "a": 7},
-			{"r": [3, 9], "a": 0},
+			{"r": [12, 11], "a": 1, "f": true},
+			{"r": [12, 9], "a": 2, "f": true},
+			{"r": [6, 13], "a": 7},
+			{"r": [5, 14], "a": 0},
 		],
 		"reach": [
-			{"r": [8, 9], "a": -1},
-			{"r": [7, 9], "a": -1},
-			{"r": [6, 9], "a": -1, "bob": 1},
-			{"r": [7, 9], "a": -1},
+			{"r": [10, 13], "a": -1},
+			{"r": [9, 14], "a": -1},
+			{"r": [8, 15], "a": -1, "bob": 1},
+			{"r": [9, 14], "a": -1},
 		],
 		"mow": [
-			{"r": [8, 9], "a": 2, "o": [6, 9], "ccw": true, "f": true},
-			{"r": [7, 10], "a": 1, "o": [5, 10], "ccw": true, "bob": 1},
-			{"r": [5, 10], "a": 0, "o": [3, 10], "ccw": true, "bob": 1},
-			{"r": [3, 9], "a": 7, "o": [1, 9], "ccw": true},
+			{"r": [10, 14], "a": 2, "o": [8, 14], "ccw": true, "f": true},
+			{"r": [9, 15], "a": 1, "o": [7, 15], "ccw": true, "bob": 1},
+			{"r": [7, 15], "a": 0, "o": [5, 15], "ccw": true, "bob": 1},
+			{"r": [5, 14], "a": 7, "o": [3, 14], "ccw": true},
 		],
 		"aim": [
-			{"r": [7, 9], "a": 0, "o": [4, 9]},
-			{"r": [7, 8], "a": 0, "o": [4, 8]},
-			{"r": [7, 7], "a": 0, "o": [4, 7]},
-			{"r": [7, 8], "a": 0, "o": [4, 8]},
+			{"r": [9, 14], "a": 0, "o": [6, 14]},
+			{"r": [9, 13], "a": 0, "o": [6, 13]},
+			{"r": [9, 12], "a": 0, "o": [6, 12]},
+			{"r": [9, 13], "a": 0, "o": [6, 13]},
 		],
 		"eat": [
-			{"r": [8, 9], "a": -1},
-			{"r": [7, 7], "a": -1},
-			{"r": [6, 6], "a": -1},
-			{"r": [7, 8], "a": -1},
+			{"r": [10, 14], "a": -1},
+			{"r": [9, 12], "a": -1},
+			{"r": [8, 11], "a": -1},
+			{"r": [9, 13], "a": -1},
 		],
 	},
 }
@@ -537,8 +645,9 @@ static func layer(name: String) -> Image:
 					var at := ORIGIN + p
 					if flipped:
 						at.x = s.frame_size.x - 1 - at.x
-					# The frame's edge stays clear for the outline.
-					if at.x > 0 and at.y > 0 and at.x < s.frame_size.x - 1 and at.y < s.frame_size.y - 1:
+					# The frame's top and sides stay clear for the outline; the feet stand
+					# on its bottom row.
+					if at.x > 0 and at.y > 0 and at.x < s.frame_size.x - 1 and at.y < s.frame_size.y:
 						img.set_pixelv(frame.position + at, Color.html(INK[letters[p]][0]))
 		_drawn[name] = img
 	return _drawn[name]
@@ -652,7 +761,8 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 	if moves.has(c[0]):
 		move = moves[c[0]][mini(c[1], moves[c[0]].size() - 1)]
 	var p := {"bob": move.get("bob", 0), "lean": move.get("lean", 0), "legs": move.get("legs", "stand"), "eyes": "open"}
-	if c[0] == "idle" and c[1] == 1:
+	# The blink, which the sleep frame is made from too (Figure._lay_down).
+	if col == int(Figure.data().get("blink", -1)):
 		p.eyes = "shut"
 	for i in 2:
 		var hand: String = ["right", "left"][i]
@@ -676,8 +786,8 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 				front = false
 			else:
 				# The left hand does it on the other side of the body.
-				at.x = 9 - at.x
-				off.x = 9 - off.x
+				at.x = 13 - at.x
+				off.x = 13 - off.x
 				if angle >= 0:
 					angle = mirrored(angle)
 				ccw = not ccw
@@ -691,9 +801,11 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 			# The other hand hangs as it does standing.
 			var still: Array = moves.idle[0].hands[1 if other == "left" else 0]
 			p[other].at = Vector2i(still[0], still[1] + p.bob)
+	var shift: Vector2i = SHIFT.get(dir, Vector2i.ZERO)
 	for hand in ["right", "left"]:
 		var s: Vector2i = SHOULDER[view][hand]
-		p[hand].shoulder = s + Vector2i(p.lean, p.bob)
+		p[hand].shoulder = s + Vector2i(p.lean, p.bob) + shift
+		p[hand].at += shift
 	return p
 
 
@@ -707,50 +819,63 @@ static func _front(view: String, hand: String) -> bool:
 	return false
 
 
+## The legs of direction `dir` in pose `kind`, rows 15-17 of the box. Seen from the front
+## or the back a step raises a leg a pixel ("right": the one on the west of the picture,
+## "left": the other, "tuck": both), its foot where its shin was.
+static func legs(dir: String, kind: String) -> Array:
+	if VIEW[dir] == "side":
+		return SIDE_LEGS[kind]
+	var rows: Array = STAND[dir]
+	if kind == "sit":
+		return [EMPTY, EMPTY, rows[2]]
+	var shin := ""
+	var foot := ""
+	for x in EMPTY.length():
+		var up: bool = kind == "tuck" or (kind == "right" and x < 7) or (kind == "left" and x >= 7)
+		shin += rows[2][x] if up else rows[1][x]
+		foot += "." if up else rows[2][x]
+	return [rows[0], shin, foot]
+
+
 ## The letters of every layer in one frame: {layer: {pixel in the box: letter}}.
 static func frame_letters(dir: String, active: String, col: int) -> Dictionary:
 	var p := pose(dir, active, col)
-	var view: String = VIEW[dir]
 	var out := {"body": {}, "shirt": {}, "trousers": {}, "boots": {}, "hair": {}, "fists": {}, "loincloth": {}}
 	var up := Vector2i(p.lean, p.bob)
 	var parts := []
-	var legs: Dictionary = LEGS["side" if view == "side" else "front"]
-	_stamp(parts, legs[p.legs], 11, Vector2i.ZERO)
-	_stamp(parts, TORSO[dir], 7, up)
+	_stamp(parts, legs(dir, p.legs), 15, Vector2i.ZERO)
+	_stamp(parts, TORSO[dir], 11, up)
 	var head: Array = HEAD[dir]
 	if p.eyes == "shut":
-		head = head.map(func(r: String) -> String: return r.replace("E", "s"))
-	_stamp(parts, head, 1, up)
+		# Shut, an eye is a dark line where the iris and the white were.
+		head = head.map(func(r: String) -> String: return r.replace("E", "S").replace("w", "S").replace("I", "E").replace("W", "E"))
+	_stamp(parts, head, 2, up)
+	_stamp(parts, HAIR[dir], 1, up)
 	var solid := {}
 	for e: Array in parts:
 		solid[e[0]] = true
 	# Arms behind the body show only where the body leaves them.
 	for hand in ["left", "right"]:
 		if not p[hand].front:
-			_arm(out, p[hand], view, hand, solid, false)
+			_arm(out, p[hand], dir, hand, solid, false)
 	for e: Array in parts:
 		_put(out, e[0], e[1])
 	for hand in ["left", "right"]:
 		if p[hand].front:
-			_arm(out, p[hand], view, hand, {}, true)
-	_loincloth(out, view)
+			_arm(out, p[hand], dir, hand, solid, true)
+	_loincloth(out)
 	_shapes(out, up)
 	return out
 
 
-## The loincloth the character is born in: the belt a cord, the hips cloth, and a flap
-## hanging in front between the legs (or at the side seen from the side).
-static func _loincloth(out: Dictionary, view: String) -> void:
+## The loincloth the character is born in: the trousers' waistband, in cloth.
+static func _loincloth(out: Dictionary) -> void:
 	var t: Dictionary = out.trousers
-	var flap := [4, 5] if view != "side" else [4]
 	for at: Vector2i in t:
-		var l: String = t[at]
-		if l in ["K", "k"]:
-			out.loincloth[at] = "V"
-		elif at.y == 11:
-			out.loincloth[at] = "W" if l == "T" else "w"
-		elif at.y == 12 and at.x in flap:
-			out.loincloth[at] = "w"
+		if t[at] == "U":
+			out.loincloth[at] = "N"
+		elif t[at] == "u":
+			out.loincloth[at] = "n"
 
 
 ## The shapes of clothes (SHAPES) of the frame, out of the letters of the clothes drawn.
@@ -766,9 +891,9 @@ static func _shapes(out: Dictionary, up: Vector2i) -> void:
 	for at: Vector2i in t:
 		var tone: String = TONE[t[at]]
 		shapes.trousers[at] = tone
-		if at.y <= 12:
-			shapes.coat[at] = tone if t[at] != "k" else "2"
-		if at.y >= 12 and t[at] in ["T", "t"]:
+		if at.y <= 15 + up.y:
+			shapes.coat[at] = tone
+		if t[at] in ["T", "t"]:
 			shapes.wraps[at] = "3" if t[at] == "t" else ("1" if at.y % 2 == 0 else "2")
 		if b.has(at + Vector2i.DOWN) and t[at] in ["T", "t"]:
 			shapes.tall_boots[at] = tone
@@ -776,7 +901,7 @@ static func _shapes(out: Dictionary, up: Vector2i) -> void:
 		shapes.boots[at] = TONE[b[at]]
 		shapes.tall_boots[at] = TONE[b[at]]
 	for at: Vector2i in out.hair:
-		if at.y - up.y <= 3:
+		if at.y - up.y <= 5:
 			shapes.hat[at] = TONE[out.hair[at]]
 	for name: String in SHAPES:
 		out["shapes/" + name] = shapes[name]
@@ -792,29 +917,48 @@ static func _stamp(parts: Array, rows: Array, y0: int, shift: Vector2i) -> void:
 
 ## A letter in its layer, with skin under it in the body layer where it is clothes.
 static func _put(out: Dictionary, at: Vector2i, letter: String) -> void:
-	var layer: String = INK[letter][1]
-	out[layer][at] = letter
-	if layer in ["shirt", "trousers", "boots"] and not out.body.has(at):
-		out.body[at] = "s" if SHADED.contains(letter) else "S"
+	out[INK[letter][1]][at] = letter
+	if SKIN.has(letter) and not out.body.has(at):
+		out.body[at] = SKIN[letter]
 
 
-## An arm from the shoulder to the hand: the sleeve the first half, then the skin; in
-## front of the body the skin goes to the fists, over what the hand holds.
-static func _arm(out: Dictionary, h: Dictionary, view: String, hand: String, solid: Dictionary, front: bool) -> void:
+## An arm from the shoulder to the hand, drawn as ARMS says: the sleeve the first half,
+## then the skin; a second pixel beside the line (under it when the arm is held out
+## flat). In front of the body the skin goes to the fists, over what the hand holds;
+## behind it the arm shows only where the body leaves it.
+static func _arm(out: Dictionary, h: Dictionary, dir: String, hand: String, solid: Dictionary, front: bool) -> void:
+	var spec: Dictionary = ARMS[dir][hand]
 	var line := _line(h.shoulder, h.at)
-	var sleeve := maxi(1, line.size() / 2)
-	# The arm on the lit side is lighter.
-	var lit: bool = (view == "front" and hand == "right") or (view == "back" and hand == "left") or (view == "side" and hand == "right")
+	var sleeve := maxi(1, line.size() / 2) if line.size() > 1 else 0
+	var d: Vector2i = h.at - h.shoulder
+	var flat := absi(d.x) > absi(d.y)
+	var arm := {}
 	for i in line.size():
-		var at: Vector2i = line[i]
-		if solid.has(at):
+		arm[line[i]] = spec.sleeve[0] if i < sleeve else spec.hand[0]
+	if spec.out != 0:
+		for i in line.size():
+			var beside: Vector2i = line[i] + (Vector2i.DOWN if flat else Vector2i(spec.out, 0))
+			if not arm.has(beside):
+				if flat:
+					arm[beside] = "c" if i < sleeve else DARKER[spec.hand[0]]
+				else:
+					arm[beside] = spec.sleeve[1] if i < sleeve else spec.hand[1]
+	for at: Vector2i in arm:
+		if not front and solid.has(at):
 			continue
-		if i < sleeve and line.size() > 1:
-			_put(out, at, "L" if lit else "c")
+		var letter: String = arm[at]
+		if INK[letter][1] == "shirt":
+			_put(out, at, letter)
 		elif front:
-			out.fists[at] = "S" if lit or i == line.size() - 1 else "s"
+			out.fists[at] = letter
 		else:
-			out.body[at] = "s"
+			out.body[at] = letter
+	if front and spec.has("inner") and d.x == 0:
+		# Only along an arm hanging straight down from the shoulder.
+		for at: Vector2i in line:
+			var edge: Vector2i = at + Vector2i(spec.inner, 0)
+			if solid.has(edge) and not arm.has(edge):
+				out.fists[edge] = "#"
 
 
 ## The pixels of a line from `a` to `b`, both ends included.

@@ -87,8 +87,9 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   request `lie_in` (`Character.lie_in`: fall asleep and lie on it, `Placed.lying_spot`, to the client —
   `TELEPORT`; one who does not want to sleep, `Vitals.sleepy`, takes it into the bag, `Placed.take_up`); in
   the bag it does not work. On screen the sleeper lies on their side with closed eyes (the sheet's frame
-  `sleep`, `Figure._lay_down`), above them small letters «z» rise, grow and melt in turn (`player.gd` `snore`,
-  `_snore`); one wakes up by oneself when rested by day, from a wound or in water. While all sleep, the night
+  `sleep`, `Figure._lay_down`: the idle column `blink` of `player.yaml` turned on its side), above them
+  small letters «z» rise, grow and melt in turn (`player.gd` `snore`, `_snore`); one wakes up by oneself
+  when rested by day, from a wound or in water. While all sleep, the night
   goes `Session.SLEEP_SPEED` times faster. `fatigue` off — the test switch «Fatigue»: energy does not fall,
   work and swimming spend no strength (`spend`, `can`), one cannot drown. A poultice (`heal` with `heal_time`,
   the «Plants» bundle `plants/moss`: moss and a bandage by a campfire): `Vitals.mend` returns its health
@@ -204,7 +205,13 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
 - `src/client/view/figure.gd` — the sheet of the player's frames from `content/core/sprites/` by `player.yaml`
   (layers, the marks of the hands `hands.png`, a sheet for each tool in the hand or the item's icon), built by
   a part of a row per frame; `hands.gd` — what in the hands is seen on the sprite; `sprite_sheet.gd` — the
-  sheet of frames by data.
+  sheet of frames by data. The figure is a chibi (stage 3, the user's pick of 2026-11-19): 14×18 px with its
+  outline in the 32×32 frame, a big head (rows 1–10, eyes 2×2: a pupil over the iris beside the eye's white),
+  a neck, 8 px shoulders, arms as the outer columns with the hands split from the hips by the outline, legs
+  as 1 px trouser columns on dark shoes, in the side view one 2 px column on a 3 px shoe; the feet stand on
+  the frame's bottom row with no outline under them. `tools/art/player_art.gd` draws it (`HEAD`, `HAIR`,
+  `TORSO`, `STAND`, `SIDE_LEGS`, the arms `SHOULDER` and `ARMS`, the poses `MOVES` and `WORKS`); the design
+  and its letters are in the library `survivium-builds/character/chibi/`.
 - `src/client/ui/person_panel.gd` — the character in the inventory window (the slots of what is worn and of
   the hands, cells, the skills' strips); `src/client/ui/level_up.gd` — the effect of a skill's new level;
   `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — the death screen,
