@@ -242,8 +242,9 @@ const SHOULDER := {
 ## (MOVES), in the same places as SHOULDER: turned a little (se) the far one is short.
 const REST := {"se": {"left": Vector2i(9, 13)}}
 ## How each arm is drawn, by direction and hand: the skin's tones [on the line from the
-## shoulder, beside it] and the side the second pixel is on (`out`; 0: the arm is a pixel
-## wide). The arms are bare, as the reference's are: what is worn covers the torso.
+## shoulder, beside it], those of the hand if they differ (`hand`: the line's second
+## half) and the side the second pixel is on (`out`; 0: the arm is a pixel wide). The
+## arms are bare, as the reference's are: what is worn covers the torso.
 const ARMS := {
 	"s": {
 		"right": {"out": -1, "skin": ["s", "S"]},
@@ -262,8 +263,8 @@ const ARMS := {
 		"left": {"out": 1, "skin": ["s", "s"]},
 	},
 	"n": {
-		"right": {"out": 1, "skin": ["S", "S"]},
-		"left": {"out": -1, "skin": ["S", "S"]},
+		"right": {"out": 1, "skin": ["S", "S"], "hand": ["s", "s"]},
+		"left": {"out": -1, "skin": ["S", "S"], "hand": ["s", "s"]},
 	},
 }
 ## The hands when they do not work, by view and animation, a frame each: [right hand,
@@ -943,14 +944,17 @@ static func _arm(out: Dictionary, h: Dictionary, dir: String, hand: String, soli
 	var line := _line(h.shoulder, h.at)
 	var d: Vector2i = h.at - h.shoulder
 	var flat := absi(d.x) > absi(d.y)
+	# The hand: the line's second half.
+	var from := maxi(1, line.size() / 2) if line.size() > 1 else 0
 	var arm := {}
-	for at: Vector2i in line:
-		arm[at] = spec.skin[0]
+	for i in line.size():
+		arm[line[i]] = _tones(spec, i >= from)[0]
 	if side != 0:
-		for at: Vector2i in line:
-			var beside: Vector2i = at + (Vector2i.DOWN if flat else Vector2i(side, 0))
+		for i in line.size():
+			var beside: Vector2i = line[i] + (Vector2i.DOWN if flat else Vector2i(side, 0))
 			if not arm.has(beside):
-				arm[beside] = DARKER[spec.skin[0]] if flat else spec.skin[1]
+				var tones: Array = _tones(spec, i >= from)
+				arm[beside] = DARKER[tones[0]] if flat else tones[1]
 	for at: Vector2i in arm:
 		if not front and solid.has(at):
 			continue
@@ -958,6 +962,11 @@ static func _arm(out: Dictionary, h: Dictionary, dir: String, hand: String, soli
 			out.fists[at] = arm[at]
 		else:
 			out.body[at] = arm[at]
+
+
+## The skin's tones of an arm drawn as `spec` (ARMS) says, of its hand or not.
+static func _tones(spec: Dictionary, hand: bool) -> Array:
+	return spec.hand if hand and spec.has("hand") else spec.skin
 
 
 ## The pixels of a line from `a` to `b`, both ends included.
