@@ -110,9 +110,9 @@ static var _snore_textures: Array[Texture2D] = []
 var gesture := ""
 var _gesture_from := 0.0
 var gesture_icon: Sprite3D
-## How high over the head the icon of a gesture hangs, world units: just over it, over
-## the name of another player (Others).
-var gesture_icon_high := 0.3
+## How high over the body's height (Body.HEIGHT) the icon of a gesture hangs, world
+## units: just over the head, over the name of another player (Others).
+var gesture_icon_high := 0.425
 ## The float of the figure's fishing line on the water (Character.line; INF none):
 ## while it is out, the figure stands with the rod held out towards it (the strike of
 ## its `slash`, ROD_OUT) and the line is drawn (FishingLine); `line_bite` while a fish

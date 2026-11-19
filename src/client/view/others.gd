@@ -34,9 +34,10 @@ const DELAY := 0.1
 ## Snapshots kept of each: the two round the time drawn, and a couple after.
 const KEPT := 4
 ## The name's height in world pixels (for the gesture's icon over it), and how high over
-## the head its bottom stands (world units).
+## the body's height (Body.HEIGHT) its bottom stands, world units: two pixels over the
+## top of the figure's head.
 const NAME_SIZE := 8
-const NAME_OVER := 0.15
+const NAME_OVER := 0.275
 ## How near a tap's ray passes a figure to pick it, in world units.
 const PICK_REACH := 0.4
 ## Seconds a line said shows over the head, and how wide its balloon wraps (UI px).

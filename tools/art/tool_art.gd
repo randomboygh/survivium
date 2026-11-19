@@ -128,7 +128,7 @@ const SHAPES := {
 			"mpPP",
 			".mp.",
 		],
-		"carry": {"front": 0, "side": 0, "back": 0},
+		"carry": {"front": 7, "side": 0, "back": 1},
 	},
 	"sword": {
 		"up": [
@@ -407,7 +407,7 @@ const SHAPES := {
 			"daaAA.",
 			"...aAA",
 		],
-		"carry": {"front": 0, "side": 1, "back": 0},
+		"carry": {"front": 7, "side": 1, "back": 1},
 	},
 	# Carried upright, the flame on top; its brightest pixel is where the game lights it.
 	"torch": {
@@ -438,7 +438,7 @@ const SHAPES := {
 			"efe",
 			".F.",
 		],
-		"carry": {"front": 0, "side": 0, "back": 0},
+		"carry": {"front": 7, "side": 0, "back": 1},
 	},
 }
 
