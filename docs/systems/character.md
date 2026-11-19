@@ -197,7 +197,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   movement, in water, in a boat, in sleep). The character stores `gesture`, `gesture_until`; the server sends
   the gesture in the `people` record (field 17). The figure (`player.gd`, `set_gesture`) plays its animation
   standing, above the head — the icon `UiStyle.icon("g_<name>")` for the first `Gestures.ICON_TIME` 2.5 s
-  (for others — above the name); movement or work interrupt it. The gestures' frames are columns 46–57 of the
+  (for others — above the name); movement or work interrupt it. The gestures' frames are columns 48–59 of the
   sheet (`tools/art/player_art.gd`, `MOVES`, with `lean` — the body's tilt; `tools/make_sprites.gd` draws the
   layers, the marks of the hands and what is worn anew). The wheel of gestures —
   `src/client/ui/gesture_wheel.gd` (a button beside the chat in the top row, the key C, digits 1–8 in the
@@ -211,7 +211,13 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   as 1 px trouser columns on dark shoes, in the side view one 2 px column on a 3 px shoe; the feet stand on
   the frame's bottom row with no outline under them. `tools/art/player_art.gd` draws it (`HEAD`, `HAIR`,
   `TORSO`, `STAND`, `SIDE_LEGS`, the arms `SHOULDER` and `ARMS`, the poses `MOVES` and `WORKS`); the design
-  and its letters are in the library `survivium-builds/character/chibi/`.
+  and its letters are in the library `survivium-builds/character/chibi/`. The walk (six frames, 10 a second,
+  the user's pick of 2026-11-19) is the body of a reference copied pixel by pixel under our head
+  (`tools/art/player_walk_art.gd`, from `survivium-builds/character/anim/references/`): legs of 2 px, the
+  arms swinging against the legs, the body a pixel down at each step and a row shorter with both feet off
+  the ground as the legs pass; from the side and from behind it stands a row lower than the reference, its
+  feet on the frame's bottom row. A foot lifted has no outline under it either: `player.yaml` `soles` gives,
+  by direction, the frame's bottom rows where `SpriteSheet.outline_rect` outlines nothing from above.
 - Looks (stage 3, PR 3 of the character editor): `src/shared/content/looks.gd` reads `player.yaml` `looks`
   (10 skin tones, 12 hair colours, 6 eye colours by place in their lists; 10 hair styles, 8 face options
   under the hair, 5 on the face, by id) and makes any look sound (`Looks.clean`: the server's check of a
@@ -232,8 +238,9 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   wide; normal; stocky: the torso two pixels wider, the arms and the hanging hands a pixel further out) and
   `figure` (straight; bust: the shade `V` under it from the front, two pixels forward from the side; curvy:
   the bust and the thighs a pixel wider, the seat a pixel back). `tools/art/player_forms_art.gd` says what
-  each draws otherwise; `make_sprites.gd` draws every layer, the hands' marks and the clothes again in each
-  form and keeps a picture only where it differs from what the game takes instead:
+  each draws otherwise (the copied walk makes them of its own frames, `WalkArt.rows`); `make_sprites.gd`
+  draws every layer, the hands' marks and the clothes again in each form and keeps a picture only where it
+  differs from what the game takes instead:
   `player/forms/<build>_<figure>/<layer>.png`, else the build straight's, else the plain `player/<layer>.png`
   (`Figure._form_path`); clothes `worn/<look>/<build>_<figure>.png`, else `worn/<look>.png` (a mod's clothes
   drawn once fit every form roughly). `Figure.dressed(gear, looks)` names the form's layers

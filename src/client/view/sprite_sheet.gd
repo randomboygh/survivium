@@ -12,6 +12,9 @@ extends RefCounted
 ##   mirror: {direction: drawn direction} for directions shown flipped.
 ##   animations: {name: {"frames": [column, ...], "fps": float}}.
 ##   outline: true when the figure is outlined (see outline_rect).
+##   soles: {direction: the frame's bottom rows where nothing is outlined from above},
+##     so a foot lifted off the ground has no outline under its sole either (see
+##     outline_rect).
 
 const OUTLINE := Color(0.12, 0.1, 0.08)
 ## All eight directions in order of the compass turned clockwise from south, so
@@ -23,6 +26,7 @@ var directions: Array
 var mirror: Dictionary
 var animations: Dictionary
 var outline: bool
+var soles: Dictionary
 var texture: ImageTexture
 var columns := 1
 ## Where the lights held burn in each frame they show in: {Vector2i(column, row): their
@@ -41,6 +45,7 @@ func _init(description: Dictionary) -> void:
 	mirror = description.get("mirror", {})
 	animations = description.animations
 	outline = description.get("outline", false)
+	soles = description.get("soles", {})
 	for anim in animations.values():
 		for col in anim.frames:
 			columns = maxi(columns, col + 1)
@@ -92,8 +97,9 @@ func frame_at(dir: String, anim: String, t: float) -> Vector3i:
 ## Draws OUTLINE on every clear pixel of `r` next to a drawn one (4 neighbours), the
 ## way the first animal sprites outlined themselves: the figure is stamped dark
 ## one pixel each way under itself. The outermost pixels of a frame have to stay clear,
-## or the outline would spill into the next frame.
-static func outline_rect(img: Image, r: Rect2i) -> void:
+## or the outline would spill into the next frame. In the bottom `soles` rows nothing is
+## outlined from the pixel above it: the soles of the feet stay open.
+static func outline_rect(img: Image, r: Rect2i, soles := 0) -> void:
 	var part := img.get_region(r)
 	var whole := Rect2i(Vector2i.ZERO, r.size)
 	if not _dark.has(r.size):
@@ -103,6 +109,11 @@ static func outline_rect(img: Image, r: Rect2i) -> void:
 	var out := Image.create_empty(r.size.x, r.size.y, false, Image.FORMAT_RGBA8)
 	out.fill(Color(0, 0, 0, 0))
 	for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-		out.blit_rect_mask(_dark[r.size], part, whole, d)
+		var from := whole
+		if d.y == 1:
+			# Stamped a pixel down: only the rows that land above the soles' rows (the
+			# last row has none under it anyway).
+			from.size.y -= soles + 1
+		out.blit_rect_mask(_dark[r.size], part, from, d)
 	out.blend_rect(part, whole, Vector2i.ZERO)
 	img.blit_rect(out, whole, r.position)
