@@ -564,21 +564,35 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 
 
 ## The trail of what the hand in use swings, in its work's frames of columns c0..c1 (not
-## included) of row `src` of the figure: player.yaml `trail` over the outline, for a thing
-## that leaves one (an item's `trail`: a blade). Drawn for the right hand, as the strip.
+## included) of row `src` of the figure: player.yaml `trail`, for a thing that leaves one
+## (an item's `trail`: a blade). Drawn for the right hand, as the strip: over the outlined
+## figure where the hand holds the thing in front of the body, behind it (only where the
+## frame is still empty) where the thing is behind the body, as seen from behind.
 func _put_trail(strip: Image, src: int, c0: int, c1: int) -> void:
 	var thing: Dictionary = _things.get("right", {})
 	if not thing.get("trail", false) or data().get("trail", "") == "":
 		return
 	var pic := layer(data().trail)
 	var size := target.frame_size
+	var marks: Array = anchors(_form)[src]
 	for col in range(c0, c1):
 		var work := work_at(col)
 		if work[0] == "" or work[0] != thing.get("anim", ""):
 			continue
 		var from := Rect2i(Vector2i(col, src) * size, size)
-		if Rect2i(Vector2i.ZERO, pic.get_size()).encloses(from):
-			strip.blend_rect(pic, from, Vector2i((col - c0) * size.x, 0))
+		if not Rect2i(Vector2i.ZERO, pic.get_size()).encloses(from):
+			continue
+		var to := Vector2i((col - c0) * size.x, 0)
+		var mark: Dictionary = marks[col]["right"]
+		if mark.is_empty() or mark.front:
+			strip.blend_rect(pic, from, to)
+			continue
+		var used := pic.get_region(from).get_used_rect()
+		for y in range(used.position.y, used.end.y):
+			for x in range(used.position.x, used.end.x):
+				var c := pic.get_pixel(from.position.x + x, from.position.y + y)
+				if c.a > 0.0 and strip.get_pixel(to.x + x, to.y + y).a == 0.0:
+					strip.set_pixel(to.x + x, to.y + y, c)
 
 
 ## Columns c0..c1 (not included) of row `src` of the figure, drawn for the right hand in

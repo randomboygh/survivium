@@ -6,9 +6,11 @@ extends RefCounted
 ## the swing along an arc down that side and under to the other (crouched: the chest's row
 ## folds away, the legs never move), the blade about 30 degrees to the ground, its trail
 ## along the whole arc; then standing up again, the blade where it stopped. The hand
-## holding it stays on its own side of the body. The blow lands on the third frame, as in
-## the other works. The swords, knives, spears, sickles, slings, bows and rods play it; a
-## rod out fishing is held as in the last frame (Player.ROD_OUT).
+## holding it stays on its own side of the body. From the side it is the front's swing
+## too (behind the head, down behind and under to the blade in front); from behind the
+## front mirrored, the blade and its trail hidden behind the body. The blow lands on the
+## third frame, as in the other works. The swords, knives, spears, sickles, slings, bows
+## and rods play it; a rod out fishing is held as in the last frame (Player.ROD_OUT).
 ##
 ## A frame: the head's place `bob` (the stand's drop in it), `rows` from box row `top` in
 ## the letters of PlayerArt.INK with the hands' skin in the digits of WalkArt.HANDS (`neck`
@@ -18,9 +20,10 @@ extends RefCounted
 ## PlayerArt.TOWARD, at the viewer, 9 and 10 PlayerArt.LOW and LOW_LEFT, about 30 degrees
 ## down), `ccw` its edge the other way, `f` in front of the body, `of` false: the other hand
 ## behind the blade, which comes across in front of it; `trail` the trail a blade leaves
-## (PlayerArt.INK o, +, -: rows of the frame's pixels from `at`), which the game draws over
-## the figure and its outline for an item with `trail` (Figure). Made with the review tools
-## in the project library (survivium-builds/character/anim/src/gen_slash_gd.py).
+## (PlayerArt.INK o, +, -: rows of the frame's pixels from `at`), which the game draws for an
+## item with `trail` over the figure and its outline, or behind them where the blade is
+## behind the body (`f` false) (Figure). Made with the review tools in the project library
+## (survivium-builds/character/anim/src/gen_slash_gd.py).
 
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 
@@ -149,11 +152,13 @@ const FRAMES := {
 			".....KB.KB....",
 		]},
 	],
-	# From the side the sword is up behind the head, at the shoulders, then higher; the swing
-	# goes over in front of the face, its trail a crescent there, the blade forward and down.
+	# From the side as from the front: the sword up behind the head, at the shoulders (the hand
+	# by the chin), then higher; the swing goes down behind and under to the blade forward and
+	# down, its trail the front's crescent from the raised sword's tip.
 	"e": [
-		{"bob": 1, "top": 12, "neck": 12, "hips": 14, "hands": [[0, 11], [6, 14]], "a": 0, "f": true, "ccw": true, "rows": [
-			"444455CVk.....",
+		{"bob": 1, "top": 11, "neck": 12, "hips": 14, "hands": [[0, 10], [6, 14]], "a": 0, "f": true, "ccw": true, "rows": [
+			"44............",
+			".45555CVk.....",
 			".....cCCc.....",
 			".....UUUu.....",
 			".....ttt......",
@@ -172,35 +177,36 @@ const FRAMES := {
 			"......tTt.....",
 			"......BBb.....",
 		]},
-		{"bob": 2, "top": 13, "neck": 13, "hips": 14, "hands": [[10, 11], [6, 14]], "a": 9, "f": true, "trail": {"at": [19, 12], "rows": [
-			"--........",
-			"..--......",
-			"....-+....",
-			".....++...",
-			"......++..",
-			".......++.",
-			".......+o.",
-			"........oo",
-			"........oo",
-			"........oo",
-			"........oo",
-			"........oo",
-			"........oo",
-			".......ooo",
-			".......oo.",
-			"......ooo.",
-			".....ooo..",
-			"...oooo...",
+		{"bob": 2, "top": 13, "neck": 13, "hips": 14, "hands": [[8, 11], [6, 14]], "a": 9, "f": true, "trail": {"at": [7, 12], "rows": [
+			"....-......",
+			"...--......",
+			"..--.......",
+			".-+........",
+			".++........",
+			"++.........",
+			"++.........",
+			"+o.........",
+			"oo.........",
+			"oo.........",
+			"oo.........",
+			".oo........",
+			".oo........",
+			"..oo.......",
+			"..ooo......",
+			"...ooo.....",
+			"....ooo....",
+			".....oooo..",
+			"......ooooo",
 		]}, "rows": [
-			"......CV445...",
+			"......C45.....",
 			".....UUUu.....",
 			".....ttt......",
 			"......tTt.....",
 			"......BBb.....",
 		]},
-		{"bob": 1, "top": 12, "neck": 12, "hips": 14, "hands": [[10, 12], [6, 14]], "a": 9, "f": true, "rows": [
+		{"bob": 1, "top": 12, "neck": 12, "hips": 14, "hands": [[8, 12], [6, 14]], "a": 9, "f": true, "rows": [
 			"......CVk.....",
-			".....cC445....",
+			".....cC45.....",
 			".....UUUu.....",
 			".....ttt......",
 			"......tTt.....",
@@ -208,7 +214,8 @@ const FRAMES := {
 		]},
 	],
 	# From behind it is the front mirrored: up beside the head at the right side, the swing down
-	# it and on in front of the body, hidden but for the tip past the left side.
+	# it and on in front of the body, hidden but for the tip past the left side; its trail goes
+	# behind the body too.
 	"ne": [
 		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[13, 11], [4, 13]], "a": 0, "f": true, "rows": [
 			".....VVVC...44",

@@ -243,14 +243,16 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   (`PlayerArt.LOW`, `LOW_LEFT`: `ToolArt.turned` lays any tool's upright shape along a line two pixels
   across for each one down); then standing again with the blade where it stopped. From the front the
   sword is at the right side (the picture's left) and the hand stays left of the belly's middle, so the
-  blade never seems to be in the other hand; from the side it is up behind the head and swings over in
-  front of the face, forward and down; from behind the front is mirrored, the blade in front of the body
-  hidden but for its tip past the left side. A frame may put the other hand behind the blade (`of`). A
-  blade swung leaves a trail: the swing's frame draws one along the whole arc (`trail` of the frame, the
+  blade never seems to be in the other hand; from the side it is the front's swing too: up behind the
+  head (the hand by the chin), down behind and under to the blade forward and down, the same crescent of
+  a trail; from behind the front is mirrored, the blade in front of the body hidden but for its tip past
+  the left side. A frame may put the other hand behind the blade (`of`). A blade swung leaves a trail:
+  the swing's frame draws one along the whole arc from the raised blade's tip (`trail` of the frame, the
   letters `o`, `+`, `-` of `PlayerArt.INK`, into the layer `player/trail.png`, `player.yaml` `trail`),
-  and `Figure` puts it over the figure and its outline in the columns of the work the right hand's thing
-  plays, for things with `trail` (swords, knives, sickles, also when held as an icon; `Hands.look`);
-  without it the tan wooden blade is lost over the skin. The slash strikes on its third frame as every
+  and `Figure` puts it in the columns of the work the right hand's thing plays, for things with `trail`
+  (swords, knives, sickles, also when held as an icon; `Hands.look`): over the figure and its outline
+  where the hand holds the thing in front of the body, behind them (only where the frame is still empty)
+  where the thing is behind it, as from behind; without it the tan wooden blade is lost over the skin. The slash strikes on its third frame as every
   work does (half the swing, `Controls`); a rod out fishing is held as in the last frame
   (`Player.ROD_OUT`). A
   work drawn so carries the way the tool points (`a`, `ccw`, `f`), where the hand holds it

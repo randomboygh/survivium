@@ -104,33 +104,36 @@ e, ne, n, nw, w, sw.
 
 - Columns 22-25 (`player.yaml` `works` slash; the swords, knives, spears, sickles, slings, bows and rods
   play it), drawn whole: `tools/art/player_slash_art.gd` (SlashArt), written by `gen_slash_gd.py <module>
-  <out.gd>` (run with `python3 -I`) from a data module in the library, now `slash_n.py` (`SLASH`).
+  <out.gd>` (run with `python3 -I`) from a data module in the library, now `slash_o.py` (`SLASH`).
 - The user's rules: front view first, the others after it is approved. Their latest (2026-11-20 11:41
   and 11:45 MSK): 1 the sword up at the shoulders; 2 higher; 3 the swing with its trail to halfway
   between the 7th and 8th GIFs' third frames (done as `PlayerArt.LOW`, crouched); 4 the sword not
   moving, the trail gone, the figure standing again (the hand keeps its pixel: the crouch only folds
   the chest's row). Earlier: the hand holding the sword never crosses to the right half of the picture
-  (it looked as if the other hand held it); the trail only on frame 3; legs never move.
+  (it looked as if the other hand held it); the trail only on frame 3; legs never move. On every
+  direction (12:17 MSK): from the side the trail is the front's crescent at the side, not over the head
+  (up behind the head, down behind and under to the blade in front), the arm with the sword not so far
+  back, the raised sword's tip in the trail; from behind the trail hides behind the body.
 - The reference: Puny Characters (Shade, CC0, opengameart.org), `Character-Base/Warrior-Blue.png`, row 0
   is the front, columns 4-7: raised, raised, the smear (a white crescent), stopped. `cmp_ref.py` puts
   its frames beside ours.
 - GIFs in the library: `slash-front-8.gif` (reference beside ours), `slash-front-9.gif`,
   `slash-front-10.gif` (the front, accepted 2026-11-20 12:02 MSK); `slash-all-11.gif`, every direction
-  in this logic («было» the 4th iteration, `slash_e`, the last time the user saw them all: turned as
-  the front; from the side up behind the head, over in front of the face, forward and down with a
-  crescent of a trail; from behind the front mirrored, the blade hidden in front of the body but for
-  its tip past the left side); `slash-tools-11.gif` (`tools_gif.py <dump dir> slash <out.gif>
-  name=Подпись,...`: a row per held thing, a column per direction, as the game draws them). The game
-  has `slash_n` (vsgame `bad 0`).
+  in this logic («было» the 4th iteration, `slash_e`, the last time the user saw them all; from the side
+  then up behind the head and over in front of the face); `slash-all-12.gif` (`slash_o`: the side as the
+  front, the trail behind the body from behind; «было» `slash_n`); `slash-tools-11.gif` (`tools_gif.py
+  <dump dir> slash <out.gif> name=Подпись,...`: a row per held thing, a column per direction, as the
+  game draws them).
 - The trail (the user's pick: white, no outline, over the figure, only on frame 3): a frame's `trail`
   (`at` and rows in image pixels; in the data module `smear`), the letters `o`, `+`, `-` of
   `PlayerArt.INK`, drawn into the layer `player/trail.png` (`player.yaml` `trail`); `Figure._put_trail`
   draws it after the outline in the columns of the work the right hand's thing plays, for items with
-  `trail: true` (swords, knives, sickles; the editor names the field). `work_proto.py` draws it with
+  `trail: true` (swords, knives, sickles; the editor names the field): over the figure, or only into the
+  frame's empty pixels where the thing is behind the body (`f` false). `work_proto.py` draws it so with
   `SMEAR=free` (or `outlined`, `none`).
 - Checking: after `make_sprites.gd -- --all` and `--import`, `dump.gd` with the sword held
   (`content/tools/sword/sprites/held/sword.png`, given as `sword=` its path under `content/` and
-  `:slash:trail`) and `SMEAR=free python3 vsgame.py slash_n SLASH <dump dir> sword slash` must print
+  `:slash:trail`) and `SMEAR=free python3 vsgame.py slash_o SLASH <dump dir> sword slash` must print
   `bad 0` (without `:trail` and with `SMEAR=none` too). `variants_gif.py` makes the front's GIF,
   `work_review.py` every direction's, `igrid.py` and `asc.py` a frame's pixels.
 - A rod out fishing is held as in the last frame (`Player.ROD_OUT` 3). A sickle in the hand is its
