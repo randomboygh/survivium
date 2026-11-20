@@ -381,7 +381,9 @@ func settle_weather() -> void:
 	fog = w.get("fog", 0.0)
 	fog_depth = w.get("fog_depth", 0.0)
 	haze = w.get("haze", 0.0)
-	storm_wind = w.get("wind", 0.0)
+	# The wind the playtest pins or the real weather brings, as step would blow it.
+	var gust: float = real_wind if real_wind >= 0.0 else w.get("wind", 0.0)
+	storm_wind = wind_pin if wind_pin >= 0.0 else gust
 	wind_angle = wind_to
 	clouds = w.clouds
 

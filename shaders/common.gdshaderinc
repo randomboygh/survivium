@@ -1025,6 +1025,13 @@ float heat_sway(vec3 p, vec3 foot, float h, float time) {
 	return floor(w * heat_ground * 1.1 * clamp(1.0 - h * 0.3, 0.25, 1.0) + 0.5);
 }
 
+// How rough the wind makes the water, 0 still .. 1 a gale (from the length of `wind`:
+// about 0.3 calm, gusting, past 2.5 in a storm): ripples in a breeze, waves breaking
+// white in a gale, the surf running up farther and its foam wider.
+float wind_rough() {
+	return clamp((length(wind) - 0.45) / 1.6, 0.0, 1.0);
+}
+
 // The surf (WaterMesher.SWASH_REACH): the farthest a wave runs up from the waterline, in
 // cells, and the seconds from one wave to the next; SWASH_BASE how far up the sand the
 // sea always lies, in cells at most (a ragged band the waves start from and never go
@@ -1046,7 +1053,9 @@ void surf_wave(vec2 tex, float time, out float front, out float peak, out float 
 	p = fract(t);
 	// The band the sea always covers: ragged along the shore, slowly breathing.
 	float base = SWASH_BASE * (0.45 + 0.55 * texture(cloud_noise, xz / 4.0 + vec2(time * 0.004, 0.0)).r);
-	float reach = (SWASH_REACH - SWASH_BASE - 0.5) * (0.35 + 0.65 * texture(cloud_noise, xz / 11.0 + wave * 0.29).r);
+	// A strong wind drives every wave far up the sand (never past the sheet, SWASH_REACH).
+	float far = texture(cloud_noise, xz / 11.0 + wave * 0.29).r;
+	float reach = (SWASH_REACH - SWASH_BASE - 0.5) * mix(0.35 + 0.65 * far, 0.8 + 0.2 * far, wind_rough() * 0.85);
 	// Up fast over the first quarter, easing out; back over the rest, easing in.
 	float run = p < 0.25 ? 1.0 - (1.0 - p / 0.25) * (1.0 - p / 0.25) : 1.0 - smoothstep(0.25, 1.0, p);
 	float rag = (texture(cloud_noise, xz / 2.5 + vec2(wave * 0.41, time * 0.02)).r - 0.5) * 0.9

@@ -102,7 +102,18 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   behind its foam (`SURF_SHEET`) and fainter on the wet sand a wave ran back from (`SURF_WET`), by the same waves as the water
   (`surf_wave`, `surf_left_foam` in `common.gdshaderinc`) and the distance to the sea's columns (`sea_distance`, rings up to
   `SWASH_REACH + 1`); and in the puddles world.gdshader draws (the same patches, open level ground; the roof map's g bit
-  `RoofMap.NO_PUDDLE` marks tops that drain or slope). Its box fitted with `PixelView.sheared_box`; the water only tints its hue and the sky's light is taken to the power 1.6, so at night it is never brighter than the figure). NatureEffects: dandelion fluff,
+  `RoofMap.NO_PUDDLE` marks tops that drain or slope). Its box fitted with `PixelView.sheared_box`; the water only tints its hue and the sky's light is taken to the power 1.6, so at night it is never brighter than the figure). The wind on the water
+  (`water.gdshader` `wind_waves`; how rough from the global `wind`'s length, `wind_rough` in `common.gdshaderinc`: about 0 calm,
+  1 a gale; nothing drawn under 0.03): in a breeze patches of fine ripples sweep downwind; a stronger wind raises rows of waves
+  across it, each crest cut into stretches holding a short bow of light (its middle ahead of its ends) with a darker trough
+  behind, more bows the stronger it blows (longer and faster waves on the sea than on a lake, fainter over the shallows and on
+  murky water, none under ice, and the calm water's drifting ripple lines fade out); whitecaps break in the middles of some bows
+  from rough 0.45 on the sea (0.65 on a lake), each on a clock of its own, leaving fizzing foam behind; from 0.75 foam streaks
+  run along the wind. The crests run one of 8 fixed ways (`waves` uniform from `WaterEffects._waves`: the nearest way to
+  `Sky.wind_now` once it is `WAVE_OFF` off, turned to over `WAVE_TURN` s, dithered texel by texel), so they never swing round
+  the world's origin as the wind turns. The wind also widens the shore's foam by up to two texels and the surf's foam line, and
+  drives every surf wave far up the sand (`surf_wave`; the sheet's length `SWASH_REACH` stays the limit). Hidden with the part
+  «effects: waves on water» and on `water_fx` 0 (the surf still follows the wind). NatureEffects: dandelion fluff,
   midges by the water at sunset and over one standing still (faint single pixels pulled back to a slowly wandering middle, `_midge_drift`, so they dart to and fro across it), dragonflies over the water, dust or snow from
   under the feet. `src/client/view/tumbleweeds.gd` (held and stepped by NatureEffects, `tumbleweeds`) — tumbleweeds:
   in a biome with `tumbleweeds` (desert 3, rocky desert and salt flat 2, red rocks 1) up to that many balls of twigs

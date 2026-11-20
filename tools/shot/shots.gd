@@ -35,6 +35,16 @@ const SHOTS := {
 	# frames as the waves run; and in the puddles after rain (grass hidden, and with it).
 	"fx-reflect-surf": {"time": 0.42, "season": 1, "weather": "clear", "place": "beach", "hide": ["chunks: grass"],
 		"step": Vector3(1.0, 0.0, 1.0), "frames_every": 6, "frames_ms": 1100},
+	# The wind on the water (water.gdshader wind_waves): still, a breeze, a fresh wind and a
+	# gale on the sea's beach and on a lake, frames about 0.2 s apart for a GIF.
+	"water-wind-calm": {"time": 0.42, "season": 1, "weather": "clear", "place": "beach", "gust": 0.0, "wind": PI / 4, "hide": ["chunks: grass"], "frames_every": 12, "frames_ms": 100},
+	"water-wind-breeze": {"time": 0.42, "season": 1, "weather": "clear", "place": "beach", "gust": 0.3, "wind": PI / 4, "hide": ["chunks: grass"], "frames_every": 12, "frames_ms": 100},
+	"water-wind-fresh": {"time": 0.42, "season": 1, "weather": "clear", "place": "beach", "gust": 0.8, "wind": PI / 4, "hide": ["chunks: grass"], "frames_every": 12, "frames_ms": 100},
+	"water-wind-gale": {"time": 0.42, "season": 1, "weather": "clear", "place": "beach", "gust": 1.5, "wind": PI / 4, "hide": ["chunks: grass"], "frames_every": 12, "frames_ms": 100},
+	"water-wind-storm": {"time": 0.42, "season": 1, "weather": "clear", "place": "beach", "gust": 2.5, "wind": PI / 4, "hide": ["chunks: grass"], "frames_every": 12, "frames_ms": 100},
+	"water-wind-lake-calm": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "gust": 0.0, "wind": PI / 2, "hide": ["chunks: grass"], "frames_every": 12, "frames_ms": 100},
+	"water-wind-lake-fresh": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "gust": 0.8, "wind": PI / 2, "hide": ["chunks: grass"], "frames_every": 12, "frames_ms": 100},
+	"water-wind-lake-gale": {"time": 0.42, "season": 1, "weather": "clear", "place": "lake", "water": 1, "gust": 1.5, "wind": PI / 2, "hide": ["chunks: grass"], "frames_every": 12, "frames_ms": 100},
 	"fx-reflect-surf-turn": {"time": 0.42, "season": 1, "weather": "clear", "place": "beach", "turn": 2, "hide": ["chunks: grass"]},
 	"fx-reflect-puddles": {"time": 0.42, "season": 1, "weather": "clear", "puddles": 1.0, "after_rain": 1.0, "puddle": true, "hide": ["chunks: grass"]},
 	"fx-reflect-puddles-grass": {"time": 0.42, "season": 1, "weather": "clear", "puddles": 1.0, "after_rain": 1.0, "puddle": true},

@@ -5,7 +5,9 @@ extends Node3D
 ## and in frost; fires, torches and lamps glittering on the water in a path towards the
 ## viewer (water.gdshader `fire_glints`); and the people and the beasts by the water
 ## mirrored in it (sprite_mirror.gdshader), and on the beach in the sea's surf and the wet
-## sand it leaves, and in the puddles after rain. Held by Effects (`water`), stepped by Sky.
+## sand it leaves, and in the puddles after rain; and the way the wind's ripples and waves
+## run (water.gdshader `waves`, wind_waves; how rough they are is the wind's own). Held
+## by Effects (`water`), stepped by Sky.
 ## The setting «Вода» (Settings `water_fx`): 0 none, 1 all but the mirroring, 2 all; each
 ## can be hidden on its own in «Что рисуется» (parts). Cheap: rings and splashes come
 ## from a small pool of emitters used in turn, the steam is one emitter whose spots are
@@ -68,12 +70,18 @@ const SURF_LOOK := 7
 ## Seconds between two looks at the steam and the glints (every frame while a torch is
 ## carried, see _torch_lit).
 const SLOW_LOOK := 0.2
+## The waves run one of 8 ways; they turn to the wind's way once it is this far off (in
+## radians, past halfway to the next way, so a wind between two does not flip them), over
+## WAVE_TURN seconds.
+const WAVE_OFF := deg_to_rad(30.0)
+const WAVE_TURN := 3.0
 
 ## The parts as «Что рисуется» names them (RenderToggles).
 const RINGS_PART := "effects: rings and splashes"
 const STEAM_PART := "effects: steam over water"
 const GLINTS_PART := "effects: lights glittering on water"
 const MIRRORS_PART := "effects: reflections in water"
+const WAVES_PART := "effects: waves on water"
 var hidden := {}
 
 var game
@@ -103,6 +111,11 @@ var _look := 0.0
 var _puddles := 0.0
 var _slow := 0.0
 var _set := {}
+## The waves' way now and the one before (0..7, 0 east, 2 south), and how far they have
+## turned from the one to the other (0..1; -1 before the first look).
+var _wave_way := 0
+var _wave_was := 0
+var _wave_turn := -1.0
 
 
 func _init(g, effects) -> void:
@@ -129,7 +142,7 @@ func _ready() -> void:
 ## The parts of the picture this draws, for «Что рисуется»: [name, Callable(hide)].
 func parts() -> Array:
 	var out := []
-	for name: String in [RINGS_PART, STEAM_PART, GLINTS_PART, MIRRORS_PART]:
+	for name: String in [RINGS_PART, STEAM_PART, GLINTS_PART, MIRRORS_PART, WAVES_PART]:
 		out.append([name, func(hide: bool) -> void:
 			if hide:
 				hidden[name] = true
@@ -156,7 +169,36 @@ func update(delta: float, sky, clock, indoor: bool) -> void:
 	elif _torch_lit():
 		# A torch carried moves every frame: its glint on the water keeps up with it.
 		_glints(sky)
+	_waves(delta, sky)
 	_mirror(delta, sky)
+
+
+## Which way the wind's waves run on the water (water.gdshader `waves`): the nearest of 8
+## ways to the wind's, turned to over WAVE_TURN seconds, dithered.
+func _waves(delta: float, sky) -> void:
+	var mat: ShaderMaterial = game.water_mat
+	if mat == null:
+		return
+	var w: Vector2 = sky.wind_now
+	if w.length() > 0.05:
+		var a := w.angle()
+		var way := posmod(roundi(a / (PI / 4.0)), 8)
+		if _wave_turn < 0.0:
+			_wave_way = way
+			_wave_was = way
+			_wave_turn = 1.0
+		elif way != _wave_way and _wave_turn >= 1.0 and absf(angle_difference(a, _wave_way * PI / 4.0)) > WAVE_OFF:
+			_wave_was = _wave_way
+			_wave_way = way
+			_wave_turn = 0.0
+	var turn := 1.0
+	if _wave_turn >= 0.0:
+		_wave_turn = minf(1.0, _wave_turn + delta / WAVE_TURN)
+		turn = snappedf(_wave_turn, 0.05)
+	var v := Vector4(_wave_was, _wave_way, turn, 1.0 if _on(WAVES_PART) else 0.0)
+	if _set.get("waves") != v:
+		_set["waves"] = v
+		mat.set_shader_parameter("waves", v)
 
 
 ## The top of the open water of column (x, z) of cells at or under level `y` + 2, world

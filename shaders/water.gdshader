@@ -61,6 +61,13 @@ uniform vec4 fire_glints[4];
 uniform vec2 glint_toward = vec2(0.0, 1.0);
 const vec3 FIRE_GLINT = vec3(1.0, 0.62, 0.28);
 
+// The waves the wind raises on open water (WaterEffects._waves): x the way they ran
+// before, y the way they run now (one of 8, 0 to the east, 2 to the south), z how far
+// they have turned from the one to the other (0..1, dithered texel by texel), w 0 when
+// they are hidden. The ways are fixed so the crests never swing round the world's
+// origin as the wind turns; how rough they are is the wind's own (wind_rough).
+uniform vec4 waves = vec4(0.0, 0.0, 1.0, 1.0);
+
 // Half the width of a fall's spray and how far its foam spills to each side, in cells
 // (MeshFaces.SPRAY_HALF, WaterMesher.FOAM_SIDE).
 const float SPRAY_HALF = 0.75;
@@ -148,6 +155,72 @@ vec3 murky_color(vec2 tex, float depth, float murk) {
 		c = mix(c, m, b);
 	}
 	return c;
+}
+
+// The wind on open water at world texel `tex`, `rough` 0..1 (wind_rough), `sea` true on
+// the sea, `bayer` the texel's dither. A breeze ruffles patches of it into fine ripples,
+// short lines across the wind sweeping along with the gusts (`ripple`); a stronger wind
+// raises rows of waves across it running with the wind, each crest broken into short
+// bows of a texel or two of light, their middles ahead of their ends, with a darker
+// trough behind, more of them the stronger it blows (`lit`, `dark`); a gale breaks the
+// middles of the bows white now and then, the foam left behind each cap fizzing away
+// (`cap`); a storm draws streaks of foam along the wind (`streak`). Longer, faster waves
+// on the sea than on a lake. The bows, the caps and the streaks go with the waves.
+void wind_waves(vec2 tex, float rough, bool sea, float bayer, out float ripple, out float lit, out float dark, out float cap, out float streak) {
+	float way = bayer < waves.z ? waves.y : waves.x;
+	vec2 d = round(vec2(cos(way * PI / 4.0), sin(way * PI / 4.0)));
+	float dl = length(d);
+	// Texels along the wind and across it.
+	float u = dot(tex, d) / dl;
+	float v = dot(tex, vec2(-d.y, d.x)) / dl;
+	float len = sea ? 16.0 : 10.0;
+	float speed = sea ? 12.0 : 8.0;
+	// Ripples: patches of the gusts' noise sweeping downwind, lines a texel thin and a
+	// few long in them.
+	float paw = texture(cloud_noise, tex / TEXELS / 8.0 - d / dl * TIME * 0.12).r;
+	float ruffled = step(0.6 - 0.35 * rough, paw) * min(rough * 5.0, 1.0);
+	float ru = u - TIME * speed * 0.5;
+	ripple = ruffled * step(mod(ru, 2.0), 1.0) * step(0.78, hash12(vec2(floor(v / 3.0), floor(ru / 2.0))));
+	// The rows of waves, bent a little along their length by a slow noise.
+	float bend = texture(cloud_noise, vec2(v / 400.0, u / 800.0) + 0.31).r;
+	float ph = (u - TIME * speed) / len + bend * 1.5;
+	float k = floor(ph);
+	float f = fract(ph) * len;
+	// Each crest cut into stretches of `run` texels, shifted row by row; a stretch holds
+	// one bow or none, more of them the stronger the wind. `n` is 1 at a bow's middle and
+	// 0 at its ends, which lie `back` texels behind it.
+	float run = sea ? 10.0 : 7.0;
+	float sv = v / run + k * 0.37;
+	float which = hash12(vec2(floor(sv), k));
+	float t = fract(sv) / mix(0.55, 0.9, hash12(vec2(floor(sv), k + 0.5)));
+	float on = step(which, min(rough * 1.4, 1.0) * 0.7) * step(t, 1.0);
+	float n = 1.0 - (2.0 * t - 1.0) * (2.0 * t - 1.0);
+	float back = floor((1.0 - n) * (sea ? 2.5 : 1.5) + 0.5);
+	// Two texels thick in the middle of a bow in a stronger wind, one at its ends.
+	float front = 1.0 + step(0.5, n) * step(0.35, rough);
+	lit = on * step(len - front - back, f) * step(f, len - back);
+	float trough = len * 0.4 - back;
+	dark = on * step(trough, f) * step(f, trough + 1.0 + rough);
+	// The whitecaps, in the middles of some bows: each breaks at once on a clock of its
+	// own, white along the crest's front, and thins away to the next, the foam it leaves
+	// behind fizzing out.
+	float caps = clamp((rough - (sea ? 0.45 : 0.65)) * 2.5, 0.0, 1.0);
+	cap = 0.0;
+	if (on > 0.0 && which < caps * 0.45 && n > 0.25) {
+		float life = fract(TIME * 0.3 + which * 7.0);
+		float fizz = hash12(tex + k * 7.0);
+		float edge = step(len - front - 1.0 - back, f) * step(f, len - back);
+		cap = edge * step(fizz, (n + 0.3) * (1.0 - life) * 1.6)
+			+ (1.0 - edge) * step(len - 7.0 - back, f) * step(f, len - back) * step(fizz, 0.35 * caps * n * (1.0 - life * 0.6));
+	}
+	// Foam blown into streaks along the wind in a storm: thin broken lines of a noise
+	// stretched far downwind, running with the waves.
+	streak = 0.0;
+	float storm = clamp((rough - 0.75) * 4.0, 0.0, 1.0);
+	if (storm > 0.0) {
+		float sn = texture(cloud_noise, vec2(v / 70.0, (u - TIME * speed) / 1400.0) + 0.7).r;
+		streak = step(abs(sn - 0.5), 0.005 + 0.003 * storm) * step(hash12(vec2(floor(v), floor((u - TIME * speed) / 3.0))), 0.2 + 0.3 * storm);
+	}
 }
 
 // Where the point is in the picture, for the dither of the light rings (light_texel).
@@ -295,7 +368,7 @@ void fragment() {
 			float on = clamp(far / max(front, 0.1), 0.0, 1.0);
 			col = mix(shallow, mix(shallow, foam_color, 0.2), on) * tint;
 			alpha = mix(0.45, 0.25, on);
-			if (edge < 3.5 / CELL_TEXELS) {
+			if (edge < (3.5 + 2.5 * wind_rough()) / CELL_TEXELS) {
 				// The foam line round the water's edge (a few texels wide, user 2026-11-18).
 				col = foam_c;
 				alpha = 0.95;
@@ -435,8 +508,26 @@ void fragment() {
 		// Drifting ripple lines: thin bands of a slowly moving noise.
 		float n = texture(cloud_noise, (tex / TEXELS + vec2(TIME * 0.05, TIME * 0.02)) / 6.0).r;
 		float n2 = texture(cloud_noise, (tex / TEXELS - vec2(TIME * 0.03, -TIME * 0.04)) / 9.0 + 0.5).r;
-		float line = step(abs(n - 0.55), 0.012) + step(abs(n2 - 0.45), 0.01);
+		// The wind's ripples and waves take their place as it gets up (wind_waves; none
+		// under ice, few on a bog), the crests catching the sun's path like the lines.
+		float rough = waves.w > 0.5 && ice <= 0.0 && murk < 0.9 ? wind_rough() : 0.0;
+		float line = (step(abs(n - 0.55), 0.012) + step(abs(n2 - 0.45), 0.01)) * step(bayer, 1.0 - rough * 1.5);
 		col = mix(col, col * 1.35 + 0.05, clamp(line, 0.0, 1.0) * 0.8 * (1.0 - 0.6 * murk));
+		if (rough > 0.03) {
+			float ripple, lit, dark, cap, streak;
+			wind_waves(tex, rough, sea_here > 0.5, bayer, ripple, lit, dark, cap, streak);
+			float amp = (0.6 + 0.4 * rough) * (0.6 + 0.4 * depth) * (1.0 - 0.6 * murk);
+			col = mix(col, col * 0.82, dark * amp);
+			col = mix(col, col * 1.4 + 0.07, max(lit, ripple * 0.8) * amp);
+			line = max(line, lit);
+			if (cap > 0.0 && murk < 0.5) {
+				col = foam_c;
+				alpha = max(alpha, 0.9);
+			} else if (streak > 0.0 && murk < 0.5) {
+				col = mix(col, foam_c, 0.5);
+				alpha = max(alpha, 0.8);
+			}
+		}
 		// Sparkles, none on a bog.
 		float s = step(0.993, hash12(tex + floor(TIME * 3.0) * 17.0)) * step(murk, 0.75);
 		col += vec3(0.35) * s * (1.0 - ice);
@@ -481,7 +572,9 @@ void fragment() {
 		// The shore's foam; on the sea's water where the surf runs on over the shore only
 		// along walls (ChunkMesher keeps only their sides' bits there).
 		{
-			// Foam along the shore, washing in and out by a texel or two.
+			// Foam along the shore, washing in and out by a texel or two, a couple more in a
+			// strong wind.
+			float shore_wind = floor(wind_rough() * 2.5 + bayer * 0.99);
 			// An exact whole number in a flat varying: its corner fills reach bit 23, where
 			// `+ 0.5` would round an odd word to even.
 			int foam = int(data.x);
@@ -492,7 +585,7 @@ void fragment() {
 					continue;
 				}
 				float along = e < 2 ? tex.x : tex.y;
-				float wash = 1.0 + step(0.0, sin(TIME * 1.7 + along * 0.6)) + step(0.75, hash12(vec2(along, floor(TIME * 1.5))));
+				float wash = 1.0 + shore_wind + step(0.0, sin(TIME * 1.7 + along * 0.6)) + step(0.75, hash12(vec2(along, floor(TIME * 1.5))));
 				if (float(dist[e]) < wash) {
 					col = foam_c;
 					alpha = 0.95;
@@ -505,7 +598,7 @@ void fragment() {
 			// Over the slope of a shore: foam where the ground comes up to the surface, a
 			// texel of shore for each eighth of a cell it lies under it.
 			if (shore_under < 1.0 && sw < 1.5) {
-				float wash = 1.0 + step(0.0, sin(TIME * 1.7 + (tex.x + tex.y) * 0.6))
+				float wash = 1.0 + shore_wind + step(0.0, sin(TIME * 1.7 + (tex.x + tex.y) * 0.6))
 					+ step(0.75, hash12(vec2(tex.x + tex.y, floor(TIME * 1.5))));
 				float d = shore_under * CELL_TEXELS;
 				if (d < wash) {
@@ -526,7 +619,7 @@ void fragment() {
 				}
 				int sd = corner_distance(t, k, (foam >> (16 + 2 * k)) & 3);
 				float d = float(filled ? sd : -sd);
-				float wash = 1.0 + step(0.0, sin(TIME * 1.7 + tex.x * 0.6)) + step(0.75, hash12(vec2(tex.x, floor(TIME * 1.5))));
+				float wash = 1.0 + shore_wind + step(0.0, sin(TIME * 1.7 + tex.x * 0.6)) + step(0.75, hash12(vec2(tex.x, floor(TIME * 1.5))));
 				if (d < wash) {
 					col = foam_c;
 					alpha = 0.95;
