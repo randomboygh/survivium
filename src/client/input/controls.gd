@@ -863,10 +863,22 @@ func _did(done: Variant) -> bool:
 	if not done is Dictionary or done.is_empty():
 		return false
 	_cooldown = done.swing
+	# An arrow leaves the bow as it is loosed, on the third frame of the shot (STRIKE); a
+	# thing thrown or a fish pulled out flies at once.
+	var loosed := 0.0
+	if done.has("work") and game.player.work_kind_for(done.work) == "aim":
+		loosed = done.time * STRIKE
 	if done.has("shot"):
-		game.props.fly_shot(done.shot)
+		game.props.fly_shot(done.shot, loosed)
 		if done.get("hit", false) and done.shot.size() > 3:
-			Vibration.play(game, "shot", float(done.shot[3]))
+			Vibration.play(game, "shot", loosed + float(done.shot[3]))
+	# The animal struck flinches as the blow meets it, or as the shot reaches it (an arrow
+	# leaves the bow `loosed` later).
+	if done.has("animal") and game.creatures != null and game.wildlife != null:
+		var a = game.wildlife.by_id(int(done.animal))
+		if a != null:
+			var lands := _blow_lands(done) + (loosed if done.has("shot") else 0.0)
+			game.creatures.flinch(a, lands, game.player.position)
 	if done.has("work"):
 		game.player.work(done.work, done.time, done.at)
 		game.sound.work(done, game.player.work_kind, STRIKE)
@@ -883,6 +895,17 @@ func _did(done: Variant) -> bool:
 		if done.get("caught", false) or done.get("reaped", false):
 			Vibration.play(game, "catch", done.time * STRIKE)
 	return true
+
+
+## Seconds until blow `done` (a reply of WorldActions.strike or shoot) meets the animal:
+## at STRIKE of the swing, or, for a shot, when it flies past it on its way to where it
+## lands (Props.fly_shot).
+static func _blow_lands(done: Dictionary) -> float:
+	if not done.has("shot") or done.shot.size() < 4 or not done.at.is_finite():
+		return done.time * STRIKE
+	var from: Vector3 = done.shot[1]
+	var whole: float = from.distance_to(done.shot[2])
+	return float(done.shot[3]) * (from.distance_to(done.at) / whole if whole > 0.001 else 1.0)
 
 
 ## Works at `cell`, tapped on its face `normal`, with the hand in use (see

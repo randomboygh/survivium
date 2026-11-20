@@ -459,6 +459,8 @@ func _run() -> void:
 					who.burning[held] = [Items.burns(held) * float(shot.burnt)]
 		if shot.has("chop_tree"):
 			await _chop_tree(int(shot.chop_tree), float(shot.get("slow", 1.0)))
+		if shot.has("strike_animal"):
+			await _strike_animal(str(shot.strike_animal), float(shot.get("slow", 1.0)))
 		if shot.has("cast"):
 			await _cast(shot.cast == "bite")
 		if shot.has("pit"):
@@ -1457,7 +1459,7 @@ func _run() -> void:
 			while Time.get_ticks_msec() - since < int(shot.get("frames_ms", 500)):
 				await process_frame
 			root.get_texture().get_image().save_png(out_dir.path_join("%s-b%02d.png" % [shot_name, i + 1]))
-		if shot.has("chop_tree"):
+		if shot.has("chop_tree") or shot.has("strike_animal"):
 			Engine.time_scale = 1.0
 			main.render_toggles.set_hidden("chunks: grass", false)
 		main.creatures.set_process(true)
@@ -1728,6 +1730,33 @@ func _chop_tree(side: int, slow: float) -> void:
 	Engine.time_scale = slow
 	main.controls._cooldown = 0.0
 	main.controls.dig_at(Vector3i(best.x, foot + 1, best.y), Vector3i(0, 0, 1))
+	await process_frame
+
+
+## An animal of `kind` put a step east of the player, standing still, the others sent
+## away; the player, facing it, strikes it with the thing in hand (Creatures.flinch: it
+## flinches as the blow lands); the game runs at `slow` of its pace so the frames that
+## follow (`frames_every`) catch it.
+func _strike_animal(kind: String, slow: float) -> void:
+	var life = main.session.wildlife
+	var p: Vector3 = main.player.position
+	for c in life.animals:
+		c.pos = p + Vector3(60.0, 0.0, 60.0)
+		c.target = c.pos
+		c.think = 100.0
+	var at := p + Vector3(0.45 + life.radius(AiRules.SPECIES[kind]), 0.0, 0.0)
+	var a = life._add(kind, Vector3(at.x, life.ground(at.x, at.z), at.z))
+	a.think = 100.0
+	a.target = a.pos
+	a.facing = -1.0
+	# The grass hidden, so the animal shows whole.
+	main.render_toggles.set_hidden("chunks: grass", true)
+	for i in 20:
+		await process_frame
+	main.player.facing = "e"
+	Engine.time_scale = slow
+	main.controls._cooldown = 0.0
+	main.controls.act_in_front()
 	await process_frame
 
 

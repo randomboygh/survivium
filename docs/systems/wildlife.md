@@ -34,18 +34,22 @@ water, a kind with `biomes` appears only on its own land.
   its own to it (`_cares`), by the lists of beasts by kinds (`_kin`: led by `_add` and `_remove`, rebuilt
   when the number of beasts is not the one they were collected for).
 - Hunting: `in_front(at, dir)` — the beast on which a blow falls (the nearest on the ground within
-  `STRIKE_REACH` ahead, point-blank — from any side, with `health` above 0), `hurt(a, power, from)` — a blow:
-  the beast loses `power` (a weapon's blow with the addition of the Hunting skill, `SkillSet.blow`) of health
-  and flees `HURT_FLEE` seconds from the place of the blow (even one that does not fear people), without
-  health it is removed (`gone`). The blow is dealt by `WorldActions.strike` (the action button: a sword and a
+  `STRIKE_REACH` ahead, point-blank — from any side, with `health` above 0), `hurt(a, power, from, by,
+  lands)` — a blow: the beast loses `power` (a weapon's blow with the addition of the Hunting skill,
+  `SkillSet.blow`) of health and flees `HURT_FLEE` seconds from the place of the blow (even one that does not
+  fear people), taking fright only when the blow meets it, `lands` seconds on (half the swing, `BLOW_AT` in
+  `actions_fight.gd`, frame 3 of the slash; a shot's flight; at most `LANDS_MOST`): till then it goes on as it
+  went, so it does not bolt before the blade reaches it; without health it is removed (`gone`) at once. The blow is dealt by `WorldActions.strike` (the action button: a sword and a
   knife hit the beast ahead first, anything else in the hand — first only a beast point-blank,
   `STRIKE_CLOSE`, and a far one — when there is nothing else to do), it also puts the kind's carcass
   (`carcass`) on the ground. `WorldActions.shoot` shoots a weapon with `range` (a spear, a sling, a bow): one
   `ammo` from the bag at a time (a spear is thrown itself), where the player looks (by a tap on the ground —
   where it was tapped), at the first beast on the way within `range` cells and the angle `AIM_CONE` if a solid
   cell has not stood earlier; what was shot lies at once on the ground where it fell, and the client draws its
-  flight from the answer (`shot`, `Props.fly_shot`). Other players see only the wounded beast and the fallen
-  arrow.
+  flight from the answer (`shot`, `Props.fly_shot`; an arrow leaves as the bow is loosed, on the third frame of
+  the shot, half the swing later). Other players see only the wounded beast and the fallen arrow. A blow or a
+  shot that hits names the beast in the answer (`animal`, its id), and the client draws it flinching as the
+  blow meets it, an arrow as it arrives (`Creatures.flinch`, see below).
 - Climbers (`roost: trees`, the squirrel): at the trunk of the tree it ran to it notes the foot `foot` and its
   spot on the crown `crown` and goes up the trunk at `CLIMB_SPEED` 2 units/s (`_climb`, its paws going: the
   client shows its back going up and its front coming down); up there a person is as near to it as to its
@@ -156,7 +160,15 @@ water, a kind with `biomes` appears only on its own land.
   taken as is.
 - `src/client/game/creatures.gd` — draws the copy's beasts: frame 0 at rest, the steps' frames by steps, the
   wings' frames in the air; it sets the picture anew when the server moved the beast (`Animal.fresh`); a beast off every screen (`near`
-  off) changes its picture only then.
+  off) changes its picture only then. A beast struck flinches as the blow meets it (frames 3–4 of the swing):
+  its picture jerks `FLINCH_UP` pixels up, down again over `FLINCH_JERK`, and `FLINCH_PX` pixels along the
+  screen away from the one who struck, then shakes back (`FLINCH_HZ`, `FLINCH_DAMP`) and stands still after
+  `FLINCH_TIME`. One's own blow: `flinch` from `Controls._did` (the answer's `animal`, at `STRIKE` of the
+  swing or when the shot flies past it); another player's: `struck_at` from `Others`, by the point of their
+  work, as the trees' `TreeHits` (nothing new over the net): the beast drawn within `FLINCH_SLACK` of the
+  point where blows land on it (`BLOW_HEIGHT` over its feet) whose striker stood within `STRIKE_REACH` of
+  it; a point in a solid cell (a trunk, the ground dug) is no blow. Only the flinching ones are walked each
+  frame. Shots `strike-deer`, `strike-boar`.
 - `src/client/audio/voices.gd` — the voices (`calls`) and the cry of fright (`alarm`);
   `src/client/world/tracks.gd` — tracks.
 

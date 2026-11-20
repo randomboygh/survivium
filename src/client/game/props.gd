@@ -699,8 +699,9 @@ func _fold_taken(key: Vector2i) -> bool:
 
 ## Draws a shot in flight (WorldActions.shoot, its `shot`: [kind, from, to, seconds]):
 ## the model of the thing shot flies from `from` to `to` (world units) in a low arc,
-## turned along its way, and is gone where it lands (it lies there as a drop).
-func fly_shot(shot: Array) -> void:
+## turned along its way, and is gone where it lands (it lies there as a drop); it leaves
+## `later` seconds from now.
+func fly_shot(shot: Array, later := 0.0) -> void:
 	var node := MeshInstance3D.new()
 	node.mesh = _drop_mesh(shot[0])
 	node.material_override = game.low_mat
@@ -714,6 +715,11 @@ func fly_shot(shot: Array) -> void:
 	game.world_root.add_child(node)
 	var arc := flat.length() * 0.12
 	var tween := node.create_tween()
+	if later > 0.0:
+		# Shown only once it leaves the hand (an arrow loosed on the shot's third frame).
+		node.visible = false
+		tween.tween_interval(later)
+		tween.tween_callback(node.show)
 	tween.tween_method(func(k: float) -> void:
 		node.position = from.lerp(to, k) + Vector3(0.0, sin(k * PI) * arc, 0.0), 0.0, 1.0, maxf(0.05, float(shot[3])))
 	tween.tween_callback(node.queue_free)

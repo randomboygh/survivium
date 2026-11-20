@@ -4,8 +4,31 @@ Status (2026-11-20): thread «Поправить анимации персона
 animations one by one on the new chibi body. Done: the walk and the stand (#789), the outline under a
 hand low in the frame (#790), the jump (#791), the swim (#792), the chop (#796), the dig (#797), the
 slash (accepted 2026-11-20 12:56 MSK, the PR after #799; then from the side the arm a pixel nearer and
-a sheet for the sickle, 13:13 MSK). Next: the bow (the aim, the user's pick 2026-11-20 13:13 MSK: the
-Bow Attack of Puny Characters), then reach, mow, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e, ne, n, nw, w, sw.
+a sheet for the sickle, 13:13 MSK; #801). The bow's shot (the work `aim`, the user's pick 2026-11-20 13:13
+MSK: the Bow Attack of Puny Characters) is drawn in every direction and in the game, accepted
+2026-11-20 17:56 MSK (PR #803). The animations left (reach, mow, eat, sleep and sit, row, gestures) went to threads of
+their own on 2026-11-20 17:45 MSK: see «Threads working side by side». Directions are shown in the order
+s, se, e, ne, n, nw, w, sw.
+
+## Threads working side by side (from 2026-11-20 17:45 MSK)
+
+The user asked for a thread for each animation left, each starting with a preview (the review GIF of its
+first drawing): reach, mow, eat, sleep and sit (one thread), row, gestures. The bow stayed in the first
+thread (PR #803, columns 34-37). What follows from several threads drawing at once:
+
+- Every such PR changes the same pictures (the sheets in `content/core/sprites/player/` hold every
+  column, a held thing's sheet every work), and git cannot merge pictures. After another animation's PR
+  is merged: rebase on main, take either side of each picture in conflict, then draw them all again
+  (`make_sprites.gd -- --all`, `--import`) and check that against main only your columns differ
+  (`python3 colcheck.py origin/main` from the repo's root, in the library: the columns changed in each
+  picture). The pictures are made only from the art's text, which git merges.
+- A new animation's frames are a file of their own (`tools/art/player_<name>_art.gd`); in `PlayerArt` it
+  adds only a case to `whole_frame` and to `frame_letters`. Its checks in `view_test.gd` are a block of
+  their own, and in this doc it writes only its own section.
+- In the library keep your files under the animation's name (`reach-all.gif`, the data module
+  `reach_a.py`). The shared tools there are read again before a change: the last write wins.
+- What the reviews of the works found holds for every animation: the rules below, and for a thing drawn
+  with the figure «The bow» (no dark edge of its own beside the outline, a gap of one pixel or none).
 
 ## How the user reviews
 
@@ -145,6 +168,108 @@ outline, its tip in the trail's first pixels).
   не видно»).
 - Accepted by the user 2026-11-20 12:56 MSK on the 12th GIF; the side's arm and the sickle after it.
   Bows and slings play the slash until the aim is drawn.
+
+## The bow (done)
+
+- Columns 34-37 (`player.yaml` `works` aim; the wooden and the composite bow play it), drawn whole:
+  `tools/art/player_aim_art.gd` (AimArt), written by `gen_aim_gd.py <module> <out.gd>` (run with
+  `python3 -I`) from a data module in the library, now `aim_e.py` (`AIM`; `aim_a.py` has the frames, `aim_b`
+  the back-turned view as the reference draws it, `aim_c` the grey arrowhead from the front, `aim_d` the
+  back-turned bow as an arc and the pass that takes the doubled outline off, `aim_e` the turned view's
+  string without its tail over the legs). A frame draws the bow too (`bow`: rows of `ToolArt.INK`
+  letters from their corner's offset from the grip; in the data module `F(...)` builds it from the bow's
+  rows at box row `btop`, its `g` or `grip` at the hand), since the string and the arrow change in each
+  frame; `ToolArt.sheet` draws it for a shape with `bow` (the composite bow recoloured: `P` `Z`, `p` `z`).
+  `two`: the other hand draws the string and shows no thing of its own; the bows have `hands: 2` (the
+  validator wants an item's hands to be its work's).
+- The reference: Puny Characters (Shade, CC0), `Character-Base/Archer-Green.png`, rows s, se, e, ne, n,
+  columns 8-11: drawn (the arrow at the viewer from the front), loosed (the string still bent, the hand
+  back), the string straight, the bow lowered (the body a row up). In the library
+  `references/puny-archer-bow-attack.png`; `aim_ref.py`, `aim_zoom.py <module> <dirs> <out.png> [Z]` (ours
+  over the reference), `aim_variants.py` (the front's GIF of the two orders).
+- Two orders were offered (a decision card, 2026-11-20): A as in Puny (drawn, loosed, straight, lowered;
+  the arrow would leave on the second frame) and B, recommended and drawn: nocked at the hips, drawn,
+  loosed, down again, so the arrow leaves on the third frame as every work strikes (`Controls._did` flies
+  it half the swing later for the aim). Our bow is light wood (`P`, `p`) with a dark inner edge (`K`): the
+  icon's brown is lost over the bare skin.
+- The user's review, 2026-11-20 (MSK): 16:39 «На кадрах 1 и 2 "северо-восток" нужно скруглить лук (там где
+  у персонажа лицо), стрелу сделать линией (сейчас там какой-то черный полукруг в воздухе). На всех кадрах
+  вида спереди сделать наконечник стрелы серым, как в виде сбоку»; 16:42 the order B picked on the card;
+  16:55, on the arc drawn round the head (`aim_c`, `bow-all-3.gif`): «было нормально, верни. Просто закругли
+  видимую часть лука (она там была прямой)» (they wrote «юго-запад», the view meant is the back-turned one);
+  16:56 «А стрела в этом виде хорошо получилась»; 16:57 «А еще убери двойную линию обводки на некоторых
+  видах»; 17:43, on `bow-all-4.gif`: «Тетива на виде "Юго-Восток" заходит на ноги - убери лишние 3
+  пикселя»; 17:56, on `bow-all-5.gif`: «Все хорошо».
+- The string never runs over the legs. Turned to the viewer (se) the crescent's lower end is under the
+  frame's edge (box row 17 is never drawn), and the string went on to it across the hips and the left
+  leg. `aim_e` takes three pixels off each frame: at rest the string ends beside the limb on the hips' row
+  (box 9, 15); drawn, its lower half (from the hand down the belly and the leg) is gone, it goes from the
+  bow's upper end to the hand. `aim_try5.py` has the variants looked at, `aim_closeup.py <new> <old> <dir>
+  <out.png> <title>` draws one direction big, «стало» over «было», for a change too small for the GIF.
+- So the rules for a thing drawn whole with the figure: no dark edge of its own (`K`, the arrowhead's `x`)
+  where the figure's outline goes, or the outline reads two pixels thick; a dark letter stays only inside,
+  between the wood and the skin or the string. `aim_d.peeled` takes such pixels off each frame as it is
+  drawn (the default body), `dbl.py <module>` counts the 2x2 dark blocks left (70 in `aim_c`, none of the
+  bow's in `aim_d`: the four left are the gap between the legs from behind), `lay.py <module> AIM <dir>`
+  prints a frame as text in box coordinates with `!` for a doubled pixel. Two outlines side by side are
+  the same fault: a gap of two empty pixels between the body and the thing turns dark whole, so the gap is
+  one pixel or filled (turned away, the string runs between the body and the limb; drawn from the side the
+  limb is a pixel thicker beside the arrow; drawn turned, the upper limb is two pixels wide).
+- Turned away the bow stays where the reference has it, by the body's right side under the cheek, the
+  hands as in `aim_b`; only its visible part is an arc (rows 10-16, the ends in by a pixel), and the arrow
+  is a line two pixels a row from the near hand up and right through the bow, its head grey with a grey
+  point. Drawn, the bow is a pixel higher and the light pixel of its upper end, which would touch the ear,
+  is left out.
+- From the front the bow's mark (`hands[0]`) is above the frame's neck, which `PlayerArt.pose` moves in no
+  build: with the mark at the grip (x 6) the stocky build took the whole bow a pixel left.
+- GIFs in the library: `bow-front-1.gif` (the front, A and B beside the reference), `bow-all-2.gif`
+  (every direction, B; «было» the slash the bows played), `bow-all-3.gif` (`aim_c`), `bow-all-4.gif`
+  (`aim_d`), `bow-tools-4.gif` (both bows as the game draws them), `bow-all-5.gif` and
+  `bow-se-string-5.png` (`aim_e`, accepted).
+- Checking: after `make_sprites.gd -- --all` and `--import`, `dump.gd` with the wooden bow
+  (`content/tools/bow/sprites/held/wooden_bow.png`, given as `wooden_bow=` its path under `content/` and
+  `:aim`) and `python3 vsgame.py aim_e AIM <dump dir> wooden_bow aim` must print `bad 0` (it does for
+  `aim_e`); `tools_gif.py` shows both bows; `dump_forms.gd <out dir> <held png under content/> <work>`
+  saves the sheet in every build (the bow was looked at in the thin, the normal and the stocky one).
+  `view_test.gd` checks two of the review's rules on the wooden bow's sheet: no block of two by two dark
+  pixels that the figure does not have without the bow, and no pixel of the string over the legs.
+
+## The eat (under review)
+
+- Columns 38-41 (`player.yaml` `works` eat; what is eaten or drunk plays it: an item's `anim: eat`), drawn
+  whole: `tools/art/player_eat_art.gd` (EatArt), written by `gen_eat_gd.py <module> <out.gd>` (run with
+  `python3 -I`) from a data module in the library, now `eat_b.py` (`EAT`; `eat_a.py` has the front's two
+  variants).
+- The user's pick (2026-11-20, a decision card on the front's GIF): A, the bite is a nod. The food raised
+  to the chin on frame 2 stays where it is and the head comes a row down onto it on frame 3, the eyes shut
+  (the chest's row folds away, the legs never move, the other arm hangs where it does standing). B was the
+  head still and the food a row higher.
+- The frames: 1 the food lifted to the belly, the elbow by the side (the arm a row shorter); 2 raised to
+  the chin, the hand beside it; 3 the bite; 4 as 1 with the eyes shut, chewing. A frame's `eyes` "shut" is
+  read by `PlayerArt.pose` for any work drawn whole.
+- The food has no sheet: it is the item's icon cut down to 5 pixels (`Figure._small`), its middle at the
+  hand's mark (`hands[0]`; `a` -1: as carried), in front of the body or behind it (`f`), the hand's digits
+  (the fists' layer) over it. So the mark is where the food's middle goes, not where the hand is, and the
+  hand is drawn beside the food, not across it. A 5 by 5 food is as tall as the torso.
+- An icon is not mirrored with the figure, and `hold = size / 2` puts the middle of one of an even width a
+  pixel left: in a west direction a 4-pixel icon (the apple, a mushroom) sits a pixel further from the body
+  than in its east one, its stalk on the other side. The frames are drawn for both: from the side the hand
+  reaches a pixel into the food (no gap in the west twin), turned the food's mark is between the two
+  places. Mirroring the icons of the west rows in `Figure._put_things` would make them exact; not done,
+  it would move every icon held in every animation.
+- A pixel enclosed between the body, the hand and the food is outlined, a dark dot: keep the food against
+  the body or the hand (from the side the hand goes under the chin).
+- From behind (ne, n) the food is behind the body (`f` false): its mark is where the body hides it (n) or
+  lets its edge show past the neck (ne); the elbow goes up to the shoulder's height and the nod shows.
+- Light food (a flatbread, roasted meat) reads poorly over the bare skin: an icon has no outline of its own
+  over the body. Not solved.
+- Tools in the library: `eat_proto.py` (a frame with the icon as the game draws it, the west twin with the
+  icon not mirrored; `icon_small.py` is `Figure._small` with Godot's rounding), `eat_sheet.py` (still
+  frames, big), `eat_review.py` and `eat_all.sh` (the GIFs), `eat_vsgame.py <module> <attr> <dump dir>
+  <sheet>=<icon's content path> ...` against `dump.gd` sheets made with `<sheet>=icon:<icon's content
+  path>:eat`: it prints `bad 0` for the bare hands, the apple, the roasted meat and the flatbread.
+- GIFs in the library: `eat-front-1.gif` and `eat-front-1-frames.png` (the front, A and B), `eat-all-2.gif`
+  and `eat-all-2-meat.gif` (every direction; «было» is main's poses with the same food).
 
 ## The sleep and the sit (done)
 

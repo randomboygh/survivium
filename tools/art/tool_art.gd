@@ -10,8 +10,9 @@ extends RefCounted
 ## A tool is drawn twice (SHAPES): pointing up, and pointing up and right; turning
 ## those by quarter turns gives the eight ways. Its edge is on the clockwise side, and
 ## a tool swung anticlockwise is mirrored along its length. "g" is the pixel in the
-## hand. Small things (blocks, food, seeds) have no sheet: the game turns their icon
-## (Figure).
+## hand. A bow (`bow`) is drawn in the bow's shot as each frame draws it instead (AimArt
+## `bow`: the string drawn back, the arrow on it). Small things (blocks, food, seeds) have
+## no sheet: the game turns their icon (Figure).
 
 const PlayerArt := preload("res://tools/art/player_art.gd")
 const Figure := preload("res://src/client/view/figure.gd")
@@ -30,6 +31,8 @@ const INK := {
 	"x": "2e3136", "j": "54595f", "J": "8e949b",
 	"X": "506070", "y": "9aaabb", "Y": "e0e8f0",
 	"k": "3e2a1c", "e": "d8602a", "f": "ffb43c", "F": "fff2b0",
+	# A bow's string and the dark edge inside its drawn shape (AimArt `bow`).
+	"s": "e2dfc8", "K": "1e1914",
 }
 const SHAPES := {
 	"axe": {
@@ -402,6 +405,8 @@ const SHAPES := {
 			".r.",
 		],
 		"carry": {"front": 0, "side": 0, "back": 0},
+		# Shot, it is drawn as the aim's frames draw it, in light wood (AimArt `bow`).
+		"bow": true,
 	},
 	"scythe": {
 		"up": [
@@ -480,7 +485,7 @@ const RECOLOURED := {
 	"stone_sword": ["sword", {"P": "A", "p": "a"}],
 	"copper_knife": ["flint_knife", {"A": "N", "a": "n"}],
 	"leather_sling": ["cord_sling", {"r": "n", "R": "o"}],
-	"composite_bow": ["wooden_bow", {"w": "k", "g": "P"}],
+	"composite_bow": ["wooden_bow", {"w": "k", "g": "P", "P": "Z", "p": "z"}],
 	"bronze_spear": ["flint_spear", {"A": "Z", "a": "z"}],
 	"iron_spear": ["flint_spear", {"A": "J", "a": "j"}],
 	"bronze_knife": ["flint_knife", {"A": "Z", "a": "z"}],
@@ -537,17 +542,19 @@ static func sheet(sprite: String, anim: String) -> Image:
 			var angle := -1
 			var ccw := false
 			var slide := 0
+			var bow := {}
 			if cols[i] >= 0:
 				var h: Dictionary = PlayerArt.pose(drawn, hand, cols[i])[hand]
 				angle = h.angle
 				ccw = h.ccw
 				slide = h.get("slide", 0)
+				bow = h.get("bow", {})
 			if angle < 0:
 				angle = shape.carry[view]
 				if hand == "left" and view != "side":
 					angle = PlayerArt.mirrored(angle)
 			var r := Rect2i(Vector2i(i, row) * cell, cell)
-			var pixels := turned(shape, angle, ccw, slide)
+			var pixels := drawn_bow(bow) if shape.get("bow", false) and bow.has("rows") else turned(shape, angle, ccw, slide)
 			for p: Vector2i in pixels:
 				var at: Vector2i = r.position + grip + p
 				if r.has_point(at):
@@ -557,6 +564,18 @@ static func sheet(sprite: String, anim: String) -> Image:
 				part.flip_x()
 				img.blit_rect(part, Rect2i(Vector2i.ZERO, cell), r.position)
 	return img
+
+
+## The pixels of a bow as a frame of the aim draws it (AimArt `bow`: rows of letters from
+## `at`, the offset of their corner from the grip): {offset from the grip: letter}.
+static func drawn_bow(bow: Dictionary) -> Dictionary:
+	var out := {}
+	for y in bow.rows.size():
+		var r: String = bow.rows[y]
+		for x in r.length():
+			if r[x] != ".":
+				out[Vector2i(bow.at[0] + x, bow.at[1] + y)] = r[x]
+	return out
 
 
 ## The pixels of a tool pointing way `angle` (0 up, clockwise by eighths, or

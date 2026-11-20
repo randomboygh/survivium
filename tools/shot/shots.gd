@@ -747,6 +747,13 @@ const SHOTS := {
 		"chop_tree": -1, "slow": 0.25, "frames_every": 80, "frames_ms": 160},
 	"chop-spruce": {"time": 0.42, "season": 1, "weather": "clear", "clearing": true, "hands": {"tool": "tools:stone_axe", "facing": "e", "stay": true},
 		"chop_tree": 1, "slow": 0.25, "frames_every": 80, "frames_ms": 160},
+	# An animal struck with the sword (Creatures.flinch): it flinches as the blade meets it,
+	# frame by frame at an eighth of the game's pace (a frame per 20 ms of the game); a deer,
+	# a boar.
+	"strike-deer": {"time": 0.42, "season": 1, "weather": "clear", "hands": {"tool": "tools:wooden_sword", "facing": "e"},
+		"strike_animal": "animals:deer", "slow": 0.125, "frames_every": 40, "frames_ms": 160},
+	"strike-boar": {"time": 0.42, "season": 1, "weather": "clear", "hands": {"tool": "tools:wooden_sword", "facing": "e"},
+		"strike_animal": "animals:boar", "slow": 0.125, "frames_every": 40, "frames_ms": 160},
 	"burst-chop": {"time": 0.42, "season": 1, "hands": {"tool": "tools:stone_axe", "facing": "e", "work": "chop", "strike": true}, "burst": "plants:log"},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
