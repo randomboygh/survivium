@@ -101,7 +101,7 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   `SURF_LOOK` cells) and, after rain, on dry ground, it is mirrored at its feet instead: the shader shows it under the surf's sheet
   behind its foam (`SURF_SHEET`) and fainter on the wet sand a wave ran back from (`SURF_WET`), by the same waves as the water
   (`surf_wave`, `surf_left_foam` in `common.gdshaderinc`) and the distance to the sea's columns (`sea_distance`, rings up to
-  `SWASH_REACH + 1`); and in the puddles world.gdshader draws (the same patches, open level ground; the roof map's g bit
+  `SWASH_REACH + 1`), only when the water it is mirrored in is the sea's (uniform `sea`, `WorldCells.sea`: a lake or pond as high as the sea has no surf, so the sand by it mirrors nothing); and in the puddles world.gdshader draws (the same patches, open level ground; the roof map's g bit
   `RoofMap.NO_PUDDLE` marks tops that drain or slope). Its box fitted with `PixelView.sheared_box`; the water only tints its hue and the sky's light is taken to the power 1.6, so at night it is never brighter than the figure). The wind on the water
   (`water.gdshader` `wind_waves`; how rough from the global `wind`'s length, `wind_rough` in `common.gdshaderinc`: about 0 calm,
   1 a gale; nothing drawn under 0.03): in a breeze patches of fine ripples sweep downwind; a stronger wind raises rows of waves
