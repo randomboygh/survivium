@@ -66,6 +66,7 @@ class FakeGame:
 func run() -> void:
 	_test_pixel_view()
 	_test_sprite_sheet()
+	_test_eat()
 	_test_tracks()
 	_test_hidden()
 	_test_cave_layers()
@@ -513,6 +514,51 @@ func _test_forms() -> void:
 		"a stocky build's hands hang a pixel further out")
 	var bust := Figure.sheet(Figure.dressed({}, {"figure": "bust"})).texture.get_image()
 	_check(bust.get_data() != Figure.sheet(Figure.dressed({})).texture.get_image().get_data(), "a bust shows")
+
+
+## The eat (EatArt): the food goes up to the chin and stays there while the head nods
+## onto it with the eyes shut, the legs still; seen from the back the body hides it.
+func _test_eat() -> void:
+	var look := Figure.dressed({}, Looks.default_look())
+	var eat: Array = Figure.data().works.eat.columns
+	var marks: Array = Figure.anchors()
+	_check(marks[0][eat[1]].right.at.y < marks[0][eat[0]].right.at.y and marks[0][eat[2]].right.at == marks[0][eat[1]].right.at
+		and marks[0][eat[3]].right.at == marks[0][eat[0]].right.at, "eating, the food goes up to the chin, stays for the bite and comes down")
+	_check(marks[0][eat[1]].right.front and not marks[4][eat[1]].right.front, "the food is before the face, behind the body seen from the back")
+	var s := Figure.sheet(look)
+	var fw := s.frame_size.x
+	var fh := s.frame_size.y
+	var bare := s.texture.get_image()
+	var tops := []
+	var whites := []
+	var feet := []
+	for c: int in eat:
+		var frame := bare.get_region(Rect2i(c * fw, 0, fw, fh))
+		tops.append(frame.get_used_rect().position.y)
+		var white := 0
+		for y in fh:
+			for x in fw:
+				white += 1 if frame.get_pixel(x, y).is_equal_approx(Color.WHITE) else 0
+		whites.append(white)
+		feet.append(frame.get_region(Rect2i(0, fh - 3, fw, 3)).get_data())
+	_check(tops[1] == tops[0] and tops[2] == tops[0] + 1 and tops[3] == tops[0], "the bite is a nod, the head a row down and up again: %s" % [tops])
+	_check(whites[0] > 0 and whites[1] > 0 and whites[2] == 0 and whites[3] == 0, "the eyes shut on the bite and while chewing: %s" % [whites])
+	_check(feet[1] == feet[0] and feet[2] == feet[0] and feet[3] == feet[0], "eating, the legs do not move")
+	var food := Image.create_empty(12, 12, false, Image.FORMAT_RGBA8)
+	food.fill(Color(0, 0, 0, 0))
+	food.fill_rect(Rect2i(1, 1, 10, 10), Color.RED)
+	var fed := Figure.sheet(look, {"right": {"icon": "test:food", "picture": food, "anim": "eat"}, "active": "right"}).texture.get_image()
+	var shown := 0
+	var hidden := 0
+	for c: int in eat:
+		for row in 8:
+			var r := Rect2i(c * fw, row * fh, fw, fh)
+			var same: bool = fed.get_region(r).get_data() == bare.get_region(r).get_data()
+			if row == 4:
+				hidden += 1 if same else 0
+			elif row < 3 or row > 5:
+				shown += 0 if same else 1
+	_check(shown == 5 * eat.size() and hidden == eat.size(), "food shows from the front and the sides, the back hides it: %d shown, %d hidden" % [shown, hidden])
 
 
 ## Adds to `found` the colours of `keys` that `img` has in its first COLOURS_SEEN

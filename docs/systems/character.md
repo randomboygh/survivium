@@ -272,7 +272,16 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   From the front the bow's mark is above the frame's neck, which no build moves (`PlayerArt.pose`), so
   the bow held across the body stays in the middle of the stocky body too. The arrow leaves on the third frame:
   `Controls._did` flies the shot (`Props.fly_shot`) half the swing after the reply for the aim (a spear
-  thrown or a fish pulled out still flies at once). A
+  thrown or a fish pulled out still flies at once).
+  The eat's four frames too (`tools/art/player_eat_art.gd`, reviewed with the user
+  2026-11-20; what is eaten or drunk plays it): the food lifted to the belly, the elbow by the side;
+  raised to the chin, the hand beside it; the bite, a nod (the head a row down onto the food, which stays
+  where it was, the eyes shut: the frame's `eyes`; the chest's row folded away, the legs never move);
+  lowered again, chewing with the eyes shut. The food is the icon in the hand as it is carried (`a` -1),
+  its middle at the hand's mark and the hand's skin over it, so the frames draw the hand beside the food,
+  not across it; turned and from the side it is before the face, from behind the body hides it (`f`
+  false) and the elbow and the nod show the bite. An icon is not mirrored with the figure, so in a west
+  direction one of an even width sits a pixel further from the body than in its east one. A
   work drawn so carries the way the tool points (`a`, `ccw`, `f`), where the hand holds it
   and how far up its length (`slide`: `ToolArt.turned` moves the head nearer the hand, the shaft's end
   past it, leaving `ToolArt.SLIDE_LEFT` rows beyond it, so a short thing is held as it is), so
