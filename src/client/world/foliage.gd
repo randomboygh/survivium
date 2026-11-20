@@ -61,9 +61,9 @@ const BUSH_CLUMP := 12
 ## Where the plants of a crop stand across its bed, in parts of the cell (two rows of two).
 const CROP_ROWS := [0.3, 0.72]
 const BUSH_DISC := 0.9
-## The disc of a cactus's shadow: its width, and how high its middle stands (cells).
+## The disc of a cactus's shadow: its width, and how high its middle stands (half the disc: the shadow starts at the foot).
 const SOLID_DISC := 0.7
-const SOLID_RISE := 0.6
+const SOLID_RISE := SOLID_DISC * 0.5
 const SHADOW_DISC := 1.6
 ## One pixel and one cell in world units.
 const PX := 1.0 / 16.0
