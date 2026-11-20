@@ -32,6 +32,14 @@ const MIN_WORK := 0.2
 ## How many sheets of looks and things held are kept, so changing hands back and forth
 ## takes no building.
 const SHEETS_KEPT := 6
+## Seconds the walk's pace takes to follow the speed the body really goes at (see gait).
+const GAIT_EASE := 0.12
+## The slowest the legs go while pushed on, a share of the walk at Body.SPEED: pushing
+## against a wall still marches in place, slowly.
+const GAIT_LEAST := 0.25
+## The fastest, a share of the walk at Body.SPEED: a jump of the position (the server
+## setting it right, a teleport) does not spin the legs.
+const GAIT_MOST := 2.0
 
 ## How the body moves (its `world` is set when the world is made).
 var body := Body.new()
@@ -42,6 +50,11 @@ var facing := "s"
 ## The animation playing and how long it has, in seconds of animation time.
 var anim := "idle"
 var anim_time := 0.0
+## The pace the walk or swim plays at, in cells a second: the ground the body really
+## covered (a slope, snow, the wind, a load, the stick half pushed, a wall in the way, a
+## remote player's steps between updates), smoothed over GAIT_EASE so a jolt of the
+## network or of one long frame does not jerk the legs.
+var gait := 0.0
 ## Layers of the look, bottom up (see Figure): naked in a loincloth, then what is worn
 ## (dress).
 var look: Array = Figure.dressed({})
@@ -283,9 +296,12 @@ func work_kind_for(kind: String) -> String:
 
 
 ## Picks the direction and animation for this step: the body turns the way it is
-## pushed and walks, jumps, swims or stands, unless a work is playing; the walk goes as fast
-## as the feet.
+## pushed and walks, jumps, swims or stands, unless a work is playing; the walk and the
+## swim go as fast as the body really went, `speed` cells a second (see gait).
 func _animate(dir: Vector2, speed: float, delta: float) -> void:
+	if dir.length() > 0.1:
+		speed = clampf(speed, GAIT_LEAST * Body.SPEED, GAIT_MOST * Body.SPEED)
+	gait = lerpf(gait, speed, 1.0 - exp(-delta / GAIT_EASE))
 	if asleep:
 		work_kind = ""
 		if anim != "sleep":
@@ -340,6 +356,9 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 	elif dir.length() > 0.1:
 		next = "walk"
 	if next != anim:
+		if anim == "idle" or anim == "jump":
+			# Setting off: the legs start at once at the pace the body goes.
+			gait = speed
 		anim = next
 		anim_time = 0.0
 	if anim == "jump":
@@ -348,14 +367,16 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 	elif anim == "idle":
 		anim_time += delta
 	else:
-		anim_time += delta * speed / Body.SPEED
+		anim_time += delta * gait / Body.SPEED
 
 
 ## Moves the body for `delta` seconds (see Body.step), jumping when `jump` is held, and
-## picks its animation for the pace it walks at.
+## picks its animation for the pace it went at.
 func step(delta: float, jump: bool) -> void:
-	_animate(body.move_input.limit_length(1.0), body.speed_at(position), delta)
+	var from := position
 	position = body.step(position, delta, jump)
+	var went := Vector2(position.x - from.x, position.z - from.z) / CELL
+	_animate(body.move_input.limit_length(1.0), went.length() / maxf(delta, 0.001), delta)
 
 
 ## Puts the sprite on the body, snapped to whole pixels, and the torch in its hand (lights

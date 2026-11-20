@@ -549,6 +549,23 @@ func _test_sprite_sheet() -> void:
 	p.body.swimming = true
 	p._animate(Vector2.ZERO, 0.0, 0.1)
 	_check(p.anim == "swim", "in deep water the body swims")
+	# The walk goes as fast as the body really goes: half the pace, half the frames; a
+	# body held by a wall still marches in place, slowly; a jolt of the position is eased.
+	p.body.swimming = false
+	p.body.on_ground = true
+	var walked := []
+	for pace in [Body.SPEED, Body.SPEED * 0.5, 0.0]:
+		p.anim = "idle"
+		p._animate(Vector2(1.0, 0.0), pace, 0.05)
+		var t0: float = p.anim_time
+		for i in 10:
+			p._animate(Vector2(1.0, 0.0), pace, 0.05)
+		walked.append(p.anim_time - t0)
+	_check(p.anim == "walk" and is_equal_approx(walked[1] * 2.0, walked[0]), "the walk plays at the pace the body goes")
+	_check(walked[2] > 0.0 and walked[2] < walked[1], "pushing against a wall the legs march slowly")
+	var before: float = p.gait
+	p._animate(Vector2(1.0, 0.0), Body.SPEED * 50.0, 0.016)
+	_check(p.gait < before + Body.SPEED, "a jump of the position does not spin the legs")
 	p.free()
 
 
