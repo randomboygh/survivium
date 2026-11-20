@@ -297,8 +297,9 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   the user 2026-11-20; the scythes play it): the snath rises from the hands to its far end and the blade
   hangs from there with its point at the ground (the user's note: the blade down, not up); the hands hold
   the snath at its middle, not at its end (the user's note), so its near end comes out two pixels past
-  them: from the side over the waistband and then on the hip under the arm, from the front behind the
-  forearm that crosses the chest, from behind behind the body. The scythe is held out to one side, its
+  them and always shows past the far fist (the user's note): from the side over the waistband and then on
+  the hip under the arm, from the front and turned past the fist's outline, from behind a pixel under the
+  fists. The scythe is held out to one side, its
   far end goes a pixel up as the torso leans after it, then it is swung past the feet to the other side
   (crouched, the chest's row folded away) and the body stands again with the scythe where it stopped: the
   mower's right to their left in every view, so from the front and the side from the picture's left to

@@ -365,9 +365,9 @@ outline, its tip in the trail's first pixels).
 
 - Columns 30-33 (`player.yaml` `works` mow; the six scythes play it), drawn whole in the thread
   «Нарисовать анимацию косьбы»: `tools/art/player_mow_art.gd` (MowArt), written by `gen_mow_gd.py <module>
-  <out.gd>` (run with `python3 -I`) from the data module `mow_c.py` (`MOW`) in the library (`mow_a.py`
+  <out.gd>` (run with `python3 -I`) from the data module `mow_d.py` (`MOW`) in the library (`mow_a.py`
   the first drawing and the bodies without arms, `mow_b.py` the blade down and the trail in front,
-  `mow_c.py` the scythe two pixels nearer). A frame there is one picture: `mow_canvas.F(bob, top, canvas,
+  `mow_c.py` the scythe two pixels nearer, `mow_d.py` the snath's end past the far fist). A frame there is one picture: `mow_canvas.F(bob, top, canvas,
   grip, a, f, base, smear)`, the canvas rows of 30 letters (box x -8..21 from box row `top`: the scythe
   in `ToolArt.INK` letters, the hands' digits, `$` `%` `&` `*` a hand's 4, 5, 7, 8 over the snath) over
   `base`, the body's rows without the arms; `moved(rows, which, dx)` leans the torso, `smear(top,
@@ -391,6 +391,10 @@ outline, its tip in the trail's first pixels).
   belly: `mow_c_try.py`), from behind behind the body. Lifted, the snath is steeper (a pixel a row) so
   that it still meets the fists; from the side on the strike it leaves the fists level for a pixel, or it
   would touch the lowered chin with no outline between.
+- The snath's end past the far fist (`mow_d`, the user 2026-11-20 19:35 MSK on `mow-all-2.gif`: «Все
+  хорошо, но с другой стороны кулака должна торчать часть ручки косы»): from the front and turned two
+  pixels of it past the far fist, out over the body's outline; from behind, where the body hides it, a
+  pixel or two under the fists. `mow-all-3.gif` («было» `mow_c`).
 - The frames: the scythe out to one side; its far end a pixel up, the torso leaning after it with the
   hands; the strike, crouched (the chest's row folded away), the scythe at the other side, the trail;
   standing, the scythe where it stopped. The mower swings from their right to their left in every view:
@@ -418,7 +422,7 @@ outline, its tip in the trail's first pixels).
   from the north-east on the strike, where the lowered head's outline meets the fist's.
 - Checking: after `make_sprites.gd -- --all` and `--import`, `dump.gd` with the stone scythe
   (`content/tools/scythe/sprites/held/scythe.png`, given as `scythe=` its path under `content/` and
-  `:mow:trail`), then `SMEAR=free python3 -I vsgame.py mow_c MOW <dump dir> scythe mow` prints `bad 0`
+  `:mow:trail`), then `SMEAR=free python3 -I vsgame.py mow_d MOW <dump dir> scythe mow` prints `bad 0`
   (eight directions, the trail too). The thin and the stocky build and the clothes were looked at
   (`dump_forms.gd` with `"trail": true` added to the thing held, `mow_forms_view.py <dir> <out.png>
   [zoom] [dirs]`). `view_test.gd`: the blade hangs down to the ground in every frame and is whole in
