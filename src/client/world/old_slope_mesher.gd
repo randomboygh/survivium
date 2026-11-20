@@ -20,7 +20,20 @@ static func patch(c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: 
 			_patch_far(c, sh, diag, dy, d, 3 - k, h[k]), h[k])
 		far[2 * k + 1] = WorldData.far_corner(_patch_far(c, sh, i + o.y * dz, dy, 3 - k, k, h[k]),
 			_patch_far(c, sh, diag, dy, d, k ^ 1, h[k]), h[k])
-	return WorldData.make_patch(h, far)
+	return WorldData.make_patch(h, far, shore_top(c, i, dy, dz))
+
+
+## True when the top of padded ground cell `i` lies at the shore of water on its level
+## (see WorldData.shore_top, which tells the same from the world).
+static func shore_top(c: PackedByteArray, i: int, dy: int, dz: int) -> bool:
+	var wet := false
+	for o: int in [1, -1, dz, -dz, dz + 1, dz - 1, 1 - dz, -1 - dz]:
+		var n := c[i + o]
+		if n == WATER:
+			wet = wet or c[i + o + dy] == AIR
+		elif n == AIR or n == LEAVES:
+			return false
+	return wet
 
 
 ## Heights of the corners of the top of padded ground cell `i` (see WorldData.corner_heights).
@@ -115,6 +128,8 @@ static func _patch_steps(p: PackedFloat32Array, cuts: int) -> Vector2i:
 ## Heights and normals of patch `p` raised by `lift` at the points of a grid of
 ## `steps` (x, z) squares, row by row from the north-west.
 static func patch_grid(p: PackedFloat32Array, lift: float, steps: Vector2i) -> Array:
+	if p.size() > WorldData.PATCH_DIAG:
+		return _diag_grid(p, lift, steps)
 	var hwu := _hermite_steps(steps.x)
 	var hwv := _hermite_steps(steps.y)
 	var nu := steps.x + 1
@@ -141,6 +156,30 @@ static func patch_grid(p: PackedFloat32Array, lift: float, steps: Vector2i) -> A
 			var gx := r[0] * wu[4] + r[1] * wu[5] + r[2] * wu[6] + r[3] * wu[7]
 			var gz := r[4] * wu[0] + r[5] * wu[1] + r[6] * wu[2] + r[7] * wu[3]
 			hs[b * nu + a] = h
+			ns[b * nu + a] = Vector3(-gx, 1.0, -gz).normalized()
+	return [hs, ns]
+
+
+## patch_grid of a shore's corner on the diagonal (see WorldData.PATCH_DIAG): its
+## heights from WorldData.patch_height, its normals from the heights beside on the grid.
+static func _diag_grid(p: PackedFloat32Array, lift: float, steps: Vector2i) -> Array:
+	var nu := steps.x + 1
+	var nv := steps.y + 1
+	var hs := PackedFloat32Array()
+	var ns := PackedVector3Array()
+	hs.resize(nu * nv)
+	ns.resize(nu * nv)
+	for b in nv:
+		for a in nu:
+			hs[b * nu + a] = lift + WorldData.patch_height(p, float(a) / steps.x, float(b) / steps.y)
+	for b in nv:
+		for a in nu:
+			var a0 := maxi(a - 1, 0)
+			var a1 := mini(a + 1, steps.x)
+			var b0 := maxi(b - 1, 0)
+			var b1 := mini(b + 1, steps.y)
+			var gx := (hs[b * nu + a1] - hs[b * nu + a0]) * steps.x / (a1 - a0)
+			var gz := (hs[b1 * nu + a] - hs[b0 * nu + a]) * steps.y / (b1 - b0)
 			ns[b * nu + a] = Vector3(-gx, 1.0, -gz).normalized()
 	return [hs, ns]
 
