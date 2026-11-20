@@ -22,6 +22,9 @@ const HURT_FLEE := 8.0
 const STRIKE_REACH := 1.4
 const STRIKE_CLOSE := 0.5
 const STRIKE_CONE := 0.35
+## The longest a struck animal waits to take fright till the blow meets it (seconds, see
+## hurt).
+const LANDS_MOST := 0.5
 
 ## The share of its sight within which one that does not fear people warns them off,
 ## and the seconds it warns before it goes for them.
@@ -77,8 +80,10 @@ func in_front(at: Vector3, dir: Vector2, reach := STRIKE_REACH, cone := STRIKE_C
 ## Animal `a` is hit with `power` from world point `from` (by `by`, one of the people,
 ## or null): it loses that much health and flees (its flock with it), or, when it fights
 ## back (see _fights_back), goes for `by`; at none it dies and is taken out of the world.
-## Whether it died.
-func hurt(a: Animal, power: int, from: Vector3, by = null) -> bool:
+## The blow meets it in `lands` seconds (the swing's strike, a shot's flight): one that
+## flees takes fright only then, as the client draws it flinching (Creatures.flinch), and
+## goes on as it went till then. Whether it died.
+func hurt(a: Animal, power: int, from: Vector3, by = null, lands := 0.0) -> bool:
 	if a.gone or a.health <= 0:
 		return false
 	a.health -= maxi(1, power)
@@ -104,7 +109,7 @@ func hurt(a: Animal, power: int, from: Vector3, by = null) -> bool:
 	a.hurt = HURT_FLEE
 	a.hurt_from = from
 	a.idle = 0.0
-	a.think = 0.0
+	a.think = clampf(lands, 0.0, LANDS_MOST)
 	return false
 
 

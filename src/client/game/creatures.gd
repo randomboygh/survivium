@@ -21,6 +21,8 @@ extends Node3D
 ## the water's colour, the more the deeper it swims (sprite_water.gdshader `whole`, its
 ## sprite's material_overlay); its own picture only casts its shadow on the bed. Under
 ## ice it shows faint, clearer under clear ice (IceView gives its materials the ice).
+## An animal struck flinches as the blow meets it (flinch, struck_at): its picture jerks
+## up and away from the one who struck and shakes back, in whole pixels.
 
 const Content := preload("res://src/shared/content/content.gd")
 const AiRules := preload("res://src/shared/content/ai_rules.gd")
@@ -70,6 +72,25 @@ const BACK := 2
 const HOP_STEP := 0.36
 ## Seconds each attack frame of a bite shows (Wildlife.BITE_TIME over three frames).
 const BITE_FRAME := 0.13
+## An animal struck flinches (the user's ask, 2026-11-20) as the weapon meets it, frames 3
+## and 4 of the swing: its picture jerks FLINCH_UP pixels up, down again over FLINCH_JERK
+## seconds (seen on one that bolts at once, Wildlife.hurt), and FLINCH_PX pixels along the
+## screen away from the one who struck, then shakes to and fro, FLINCH_HZ times a second,
+## dying away by FLINCH_DAMP, still after FLINCH_TIME seconds. A blow at a point (another
+## player's, struck_at) is taken by the animal drawn within FLINCH_SLACK of where blows
+## land on it (BLOW_HEIGHT over its feet; the copy lags the server a little) whose striker
+## stood within STRIKE_REACH of its body, with FLINCH_SLACK to spare.
+const FLINCH_PX := 2.0
+const FLINCH_UP := 2.0
+const FLINCH_JERK := 0.1
+const FLINCH_HZ := 7.0
+const FLINCH_DAMP := 7.0
+const FLINCH_TIME := 0.25
+const FLINCH_SLACK := 0.75
+const BLOW_HEIGHT := 0.3
+const STRIKE_REACH := 1.4
+## Blows waiting to land at once, at most.
+const BLOWS_MOST := 16
 
 
 ## How an animal is drawn now: its view, which way it goes, how far it has walked (for
@@ -93,6 +114,10 @@ class Look:
 	## A fish: how deep under the surface it was last drawn (world units, see _sink;
 	## -1 for the others).
 	var depth := -1.0
+	## Seconds since it flinched at a blow (while in Creatures._flinching), and which way
+	## along the screen it jolted first (1 right, -1 left).
+	var flinch := 0.0
+	var flinch_side := 1.0
 
 
 var wildlife
@@ -116,6 +141,10 @@ var _shown: Array[Look] = []
 var _fitted := {}
 var _views: Array = []
 var _rng := RandomNumberGenerator.new()
+## [seconds left, Look, the striker's position] of blows not yet landed, and the Looks
+## flinching now (walked every frame while there are any).
+var _blows := []
+var _flinching: Array[Look] = []
 
 
 ## Draws the animals of `w` (RemoteWildlife) from now on, those there already and those to come.
@@ -242,6 +271,8 @@ func _process(delta: float) -> void:
 		if sx != look.flip:
 			look.flip = sx
 			look.sprite.scale.x = sx
+	if not _blows.is_empty() or not _flinching.is_empty():
+		_flinch_step(delta)
 	if perf != null:
 		perf.note("animals", t)
 
@@ -441,6 +472,87 @@ func muzzle(a) -> Array:
 	return [at + Vector3(ahead.x, 0.0, ahead.y) * body.x * 0.45, ahead]
 
 
+## Animal `a` (of the copy) is struck by one standing at `from` (world units): it flinches
+## in `delay` seconds, as the blow lands (Controls._did: one's own blow, the server's reply
+## names the animal).
+func flinch(a, delay: float, from: Vector3) -> void:
+	var look: Look = _looks.get(a)
+	if look == null or _blows.size() >= BLOWS_MOST:
+		return
+	_blows.append([delay, look, from])
+
+
+## A blow aimed at world point `at` by one standing at `from` lands in `delay` seconds
+## (Others: another player's work, so nothing new goes over the net): the animal drawn
+## there flinches, if one is (see FLINCH_SLACK). A point inside a solid cell (a trunk
+## chopped, the ground dug) is no blow at an animal.
+func struck_at(at: Vector3, delay: float, from: Vector3) -> void:
+	if not at.is_finite() or _blows.size() >= BLOWS_MOST:
+		return
+	if world != null and world.is_solid(floori(at.x / CELL), floori(at.y / CELL), floori(at.z / CELL)):
+		return
+	var best: Look = null
+	var best_d := FLINCH_SLACK
+	for look in _shown:
+		var a = look.animal
+		if not a.near or a.aloft():
+			continue
+		var d: float = (a.pos + Vector3(0.0, BLOW_HEIGHT, 0.0)).distance_to(at)
+		if d > best_d:
+			continue
+		var reach: float = STRIKE_REACH + Wildlife.radius(AiRules.SPECIES[a.kind]) + FLINCH_SLACK
+		if Vector2(a.pos.x - from.x, a.pos.z - from.z).length() > reach:
+			continue
+		best = look
+		best_d = d
+	if best != null:
+		_blows.append([delay, best, from])
+
+
+## The blows landing and the animals flinching this frame: a flinching one's picture is
+## put where it stands and moved by its jerk and shake; put back when done.
+func _flinch_step(delta: float) -> void:
+	for i in range(_blows.size() - 1, -1, -1):
+		var b: Array = _blows[i]
+		b[0] -= delta
+		if b[0] > 0.0:
+			continue
+		_blows.remove_at(i)
+		var look: Look = b[1]
+		if not _looks.has(look.animal):
+			# Gone by then (the blow that killed it).
+			continue
+		var from: Vector3 = b[2]
+		var a = look.animal
+		var s: Vector2 = PixelView.screen_dir(Vector2(a.pos.x - from.x, a.pos.z - from.z))
+		look.flinch_side = 1.0 if s.x >= 0.0 else -1.0
+		if not _flinching.has(look):
+			_flinching.append(look)
+		# The time since it landed, once this frame's is added below.
+		look.flinch = -b[0] - delta
+	var right := Vector3(PixelView.right.x, 0.0, PixelView.right.y) / PixelView.PIXELS_PER_UNIT
+	for i in range(_flinching.size() - 1, -1, -1):
+		var look := _flinching[i]
+		var a = look.animal
+		look.flinch += delta
+		var px := Vector2.ZERO
+		if look.flinch < FLINCH_TIME:
+			px = flinch_px(look.flinch)
+			px.x *= look.flinch_side
+		else:
+			_flinching.remove_at(i)
+		look.sprite.position = PixelView.snap(a.pos + Vector3(0.0, a.lift, 0.0)) + right * px.x \
+			+ Vector3(0.0, px.y / PixelView.PIXELS_PER_UNIT, 0.0)
+
+
+## How far an animal that flinched `t` seconds ago is moved, in whole pixels: x along the
+## screen away from the blow (less than 0: back toward it), a jolt at once, then a
+## to-and-fro dying away; y up, a jerk at once, down again over FLINCH_JERK.
+static func flinch_px(t: float) -> Vector2:
+	return Vector2(roundf(FLINCH_PX * exp(-t * FLINCH_DAMP) * cos(t * FLINCH_HZ * TAU)),
+		roundf(FLINCH_UP * maxf(0.0, 1.0 - t / FLINCH_JERK)))
+
+
 func _on_born(a) -> void:
 	if not looks.has(a.kind):
 		# A species the client's data does not have (a server with other data).
@@ -489,6 +601,7 @@ func _on_gone(a) -> void:
 	if not _sprites.has(a):
 		return
 	_fitted.erase(_sprites[a])
+	_flinching.erase(_looks[a])
 	_sprites[a].queue_free()
 	_sprites.erase(a)
 	_shown.erase(_looks[a])
