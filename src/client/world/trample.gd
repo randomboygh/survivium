@@ -23,8 +23,12 @@ const RADIUS := 0.45
 const LIFE := 9.0
 ## Directions a push is kept in (TRAMPLE_DIRS in grass.gdshader).
 const DIRS := 16
-## The map is sent to the renderer at most this often, in seconds.
+## The map is sent to the renderer at most this often, in seconds, for what nobody
+## waits to see (the window moving on, grass standing up again).
 const FLUSH := 0.15
+## Grass newly trodden is sent at once, unless the map went less than this long ago
+## (seconds; as Tracks.SOON), so it bends under the foot, not after it.
+const SOON := 0.05
 ## The clock the stamps are made with wraps here (a byte of the map).
 const WRAP := 256.0
 
@@ -37,7 +41,11 @@ var elapsed := 0.0
 ## The world texel at the north-west corner of the window the map covers now.
 var _window := Vector2i.ZERO
 var _dirty := false
+## Grass was trodden since the map was last sent (it goes within SOON).
+var _fresh := false
 var _since := 0.0
+## Seconds since the map was last sent.
+var _sent := 0.0
 ## The stamps not yet expired, oldest first: [when it expires (elapsed), its stamp
 ## (the byte of the clock), its texels (x, z in the map, packed)].
 var _living: Array = []
@@ -61,12 +69,14 @@ func step(delta: float) -> void:
 	RenderingServer.global_shader_parameter_set("trample_now", fmod(elapsed, WRAP))
 	_follow()
 	_since += delta
-	if _since < FLUSH:
-		return
-	_since = 0.0
-	_expire()
-	if _dirty:
+	_sent += delta
+	if _since >= FLUSH:
+		_since = 0.0
+		_expire()
+	if _dirty and (_sent >= FLUSH or (_fresh and _sent >= SOON)):
 		_dirty = false
+		_fresh = false
+		_sent = 0.0
 		texture.update(image)
 
 
@@ -150,3 +160,4 @@ func tread(feet: Vector3, heading: Vector2, scale: float) -> void:
 		return
 	_living.append([elapsed + LIFE + 1.0, stamp, texels])
 	_dirty = true
+	_fresh = true
