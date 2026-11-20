@@ -47,8 +47,13 @@ thread (PR #803, columns 34-37). What follows from several threads drawing at on
   and legs two pixels wide.
 - An arm moves from its shoulder, and the shoulder starts right under the head: move those parts, not a
   hand alone. Recolouring pixels that are there is often enough; a move does not have to add pixels.
-- Turned (se), from the side (e) and from behind (ne, n) the head sits a row lower (`BODY` `drop` 1), so
-  the figure is as tall standing as walking. The west directions are the east ones mirrored.
+- In every direction the head sits a row lower than the reference's (`BODY` `drop` 1) on legs of two rows,
+  so the figure is as tall standing as walking. The front had legs a row longer until the user's note of
+  2026-11-20: `PlayerArt.shortened` takes the row under the waistband off each leg of every front frame
+  drawn whole (the swim's and the jump's are written so in their modules). The west directions are the
+  east ones mirrored.
+- Every jump frame is off the ground, with the outline under the feet (the user's note of 2026-11-20):
+  falling, the figure is a row up.
 - From behind the hand's lower two pixels are a tone darker (`ARMS` n `hand`).
 - Only the walk's frames leave the soles without an outline (`Figure._put_row`). The frame's last row
   never has an outline under it (the feet stand on it): the user checked that it is so in every

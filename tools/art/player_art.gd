@@ -171,17 +171,17 @@ const HAIR_STYLE := "short"
 ## The body standing under the head, in the walk's proportions (WalkArt, copied from the
 ## reference): the neck, the torso down to the trousers' waistband (row `hips`) and the
 ## legs two pixels wide, their feet on the frame's last row; `rows` from row 11 + `drop`
-## down to row 17 of the box. Turned (se), from the side and from behind the head sits a
-## row lower (`drop`, the body's bob when it stands): the legs are as short as the walk's.
+## down to row 17 of the box. In every direction the head sits a row lower than the
+## reference has it (`drop`, the body's bob when it stands), on legs of two rows: from the
+## front too since the user's note of 2026-11-20 (shortened makes its frames drawn whole so).
 ## Each leg is drawn as the reference has it in the step it stands on; the arms hang over
 ## it (ARMS).
 const BODY := {
-	"s": {"drop": 0, "hips": 14, "rows": [
+	"s": {"drop": 1, "hips": 15, "rows": [
 		"....cVkkVc....",
 		"...ccCCCCcc...",
 		"....cCCCCc....",
 		"....UUuuUU....",
-		"....TT..TT....",
 		"....tt..TT....",
 		"....BB..BB....",
 	]},
@@ -540,6 +540,14 @@ static func column(col: int) -> Array:
 ## from column `x0`) or the rowing's (RowArt); {} for any other, made of the body standing
 ## and a pose.
 static func whole_frame(dir: String, c: Array) -> Dictionary:
+	var f := _whole_drawn(dir, c)
+	if dir == "s" and not f.is_empty() and not c[0] in ["swim", "jump"]:
+		return shortened(f)
+	return f
+
+
+## The frame of column `c` in direction `dir` as its module draws it (see whole_frame).
+static func _whole_drawn(dir: String, c: Array) -> Dictionary:
 	if GestureArt.FRAMES.has(c[0]):
 		return GestureArt.frame(c[0], dir, c[1])
 	match c[0]:
@@ -566,6 +574,98 @@ static func whole_frame(dir: String, c: Array) -> Dictionary:
 		"row":
 			return RowArt.frame(dir, c[1])
 	return {}
+
+
+## A frame drawn whole for the front (south) with legs a pixel shorter (the user's note
+## of 2026-11-20: the front's legs were a row longer than every other view's): the body
+## over the waistband a row lower (`bob`, `top`, `neck`, `hips`, a blade's `trail`; the
+## hands' places are less the bob), each leg a pixel shorter under it. A leg standing on
+## the frame's last row loses the pixel under the waistband, its foot stays; a leg drawn
+## up off the ground the same, a leg of one pixel goes down with the body. The hands'
+## skin under the waistband stays where it is (the arm a row shorter, the hand as high over
+## the ground as turned and from the side), and so do a scythe's blade and a bow lowered
+## to the feet.
+static func shortened(f: Dictionary) -> Dictionary:
+	var out := f.duplicate()
+	var top: int = f.get("top", 10)
+	var rows: Array = f.rows
+	var hips: int = f.hips - top
+	# The rows under the waistband: `size` of them, a row fewer drawn from one lower.
+	var size: int = rows.size() - hips - 1
+	var low := []
+	for j in size - 1:
+		low.append(".".repeat((rows[0] as String).length()))
+	var width := (rows[0] as String).length()
+	var hands: Array = f.hands.duplicate(true)
+	var low_hands := {}
+	# What goes up to the waistband's row, which the row over it fills when it goes down.
+	var up := {}
+	for x in width:
+		for j in size:
+			var ch: String = (rows[hips + 1 + j] as String)[x]
+			if WalkArt.HANDS.has(ch):
+				# A hand under the waistband stays where it is, its arm a row shorter (as
+				# turned, from the side and from behind: as high over the ground).
+				low_hands[WalkArt.HANDS[ch][0]] = true
+				if j > 0:
+					low[j - 1][x] = ch
+				else:
+					up[x] = ch
+	for i in 2:
+		if low_hands.has(["right", "left"][i]):
+			hands[i] = [hands[i][0], hands[i][1] - 1]
+	out.hands = hands
+	# Each leg (the west half of the picture, the east one, as legs splits them; a gesture's
+	# rows start `x0` aside).
+	var mid: int = 7 - int(f.get("x0", 0))
+	for half: Array in [[0, mid], [mid, width]]:
+		var leg := []
+		for j in size:
+			if _leg_part(rows[hips + 1 + j], half) != "":
+				leg.append(j)
+		var to := {}
+		if leg.size() == 1:
+			# A foot right under the waistband goes down with it.
+			to[leg[0]] = mini(leg[0], size - 2)
+		else:
+			# The row under the waistband goes; the rest stays where it is.
+			for j: int in leg.slice(1):
+				to[j] = j - 1
+		for j: int in to:
+			var r: String = rows[hips + 1 + j]
+			for x in range(half[0], half[1]):
+				if r[x] != "." and not WalkArt.HANDS.has(r[x]):
+					low[to[j]][x] = r[x]
+	out.rows = rows.slice(0, hips + 1) + low
+	var waist: String = out.rows[hips]
+	for x: int in up:
+		waist[x] = up[x]
+	out.rows[hips] = waist
+	if f.has("top"):
+		out.top = top + 1
+	else:
+		# The walk's rows are from row 10 always (WalkArt.rows): a row empty over them.
+		out.rows = [".".repeat((rows[0] as String).length())] + out.rows
+	out.bob = f.bob + 1
+	out.hips = f.hips + 1
+	if f.has("neck"):
+		out.neck = f.neck + 1
+	if f.has("scythe"):
+		# The scythe's blade hangs to the ground: it stays where it was.
+		var sc: Dictionary = f.scythe.duplicate()
+		sc.at = [sc.at[0], sc.at[1] - 1]
+		out.scythe = sc
+	if f.has("bow"):
+		# A bow lowered to the feet stays where it was, over the ground's row.
+		var bw: Dictionary = f.bow.duplicate()
+		if hands[0][1] + out.bob + bw.at[1] + bw.rows.size() - 1 >= 17:
+			bw.at = [bw.at[0], bw.at[1] - 1]
+		out.bow = bw
+	if f.has("trail"):
+		var t: Dictionary = f.trail.duplicate()
+		t.at = [t.at[0], t.at[1] + 1]
+		out.trail = t
+	return out
 
 
 ## Way `a` mirrored left to right.
@@ -603,7 +703,7 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 	if moves.has(c[0]):
 		move = moves[c[0]][mini(c[1], moves[c[0]].size() - 1)]
 	var whole := whole_frame(dir, c)
-	# Standing from the side or behind the body is a row lower (BODY `drop`); the frames
+	# Standing the body is a row lower (BODY `drop`); the frames
 	# drawn whole have it in their bob already.
 	var drop: int = BODY[dir].drop
 	if not whole.is_empty():
@@ -738,6 +838,15 @@ static func legs(dir: String, kind: String, rows: Array) -> Array:
 			else:
 				r += rows[y + 1][x] if y + 1 < n else "."
 		out.append(r)
+	return out
+
+
+## Row `r`'s pixels of a leg in columns `half` ([from, to)), the hands' skin left out.
+static func _leg_part(r: String, half: Array) -> String:
+	var out := ""
+	for x in range(half[0], half[1]):
+		if r[x] != "." and not WalkArt.HANDS.has(r[x]):
+			out += r[x]
 	return out
 
 

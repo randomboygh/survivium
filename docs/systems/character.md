@@ -223,8 +223,9 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   outline in the 32×32 frame, a big head (rows 1–10, eyes 2×2: a pupil over the iris beside the eye's white),
   and under it the body in the proportions of the walk's reference (the stand redrawn to them, the user's
   pick of 2026-11-19): a neck, 8 px shoulders, a 6 px torso, bare arms of 2 px hanging by it, legs of 2 px,
-  each as the reference draws it in the step it stands on; turned (south-east), from the side and from behind
-  the head sits a row lower and the body is a row shorter, as in the walk. The feet stand on the frame's
+  each as the reference draws it in the step it stands on; the head sits a row lower than the reference's and
+  the legs are two rows, as in the walk (the front's were a row longer until the user's note of 2026-11-20:
+  `PlayerArt.shortened` takes the row under the waistband off each leg of the front's frames drawn whole). The feet stand on the frame's
   bottom row with no outline under them. What is worn never shows over the head (`frame_letters` takes it off
   where the head is: a nod's chin over the collar). `tools/art/player_art.gd` draws it (`HEAD`, `HAIR`, the body standing `BODY`,
   `SIDE_LEGS`, the arms `SHOULDER`, `REST` and `ARMS`, the poses `MOVES` and `WORKS`); the design and its
@@ -242,7 +243,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   The jump's two frames are drawn whole under the head the same way (`tools/art/player_jump_art.gd`,
   2026-11-19, after the user's note that an arm moves from its shoulder): rising, the shoulders go a row
   up with the arms and the legs are drawn up; falling, the arms go out to the sides (from the side
-  forward) and the legs are straight. The swim's four frames too (`tools/art/player_swim_art.gd`, a
+  forward) and the legs are straight, the figure a row up: every jump frame has the outline under its feet
+  (the user's note of 2026-11-20). The swim's four frames too (`tools/art/player_swim_art.gd`, a
   breaststroke the user picked): the water is at the chin, so the whole stroke is under it, tinted; the hands
   come together in front of the chest, the arms sweep out from the shoulders, pull down and come back, the
   legs glide, kick apart and draw up; afloat the head is as high in every direction (no stand `drop`), so
