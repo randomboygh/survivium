@@ -68,6 +68,7 @@ func run() -> void:
 	_test_sprite_sheet()
 	_test_eat()
 	_test_reach()
+	_test_gestures()
 	_test_tracks()
 	_test_hidden()
 	_test_cave_layers()
@@ -540,6 +541,57 @@ func _dark_block(img: Image, x: int, y: int) -> bool:
 		if p.a < 0.5 or p.v > 0.25:
 			return false
 	return true
+
+
+## The gestures' frames (GestureArt): waving, one hand is up by the head in every
+## direction and goes a pixel out and back, the other stays where it is standing, so what
+## it holds does not move; nodding, the head goes a pixel down over the collar and the body
+## stands.
+func _test_gestures() -> void:
+	var s := Figure.sheet(["body", "hair"])
+	var img := s.texture.get_image()
+	var fw := s.frame_size.x
+	var fh := s.frame_size.y
+	var wave: Array = Figure.data().animations.wave.frames
+	var anchors: Array = Figure.anchors()
+	var bad := []
+	for row in 8:
+		var stand: Dictionary = anchors[row][0]
+		var frames := [anchors[row][int(wave[0])], anchors[row][int(wave[1])]]
+		var up := ""
+		for hand: String in ["right", "left"]:
+			if stand[hand].at.y - frames[0][hand].at.y >= 3 and stand[hand].at.y - frames[1][hand].at.y >= 3:
+				up = hand
+		var other := "left" if up == "right" else "right"
+		var swung: bool = up != "" and frames[0][up].at != frames[1][up].at
+		var kept: bool = up != "" and frames[0][other].at == stand[other].at and frames[1][other].at == stand[other].at
+		var drawn := img.get_region(Rect2i(int(wave[0]) * fw, row * fh, fw, fh)).get_data() != img.get_region(Rect2i(int(wave[1]) * fw, row * fh, fw, fh)).get_data()
+		if not (swung and kept and drawn):
+			bad.append(row)
+	_check(bad.is_empty(), "waving, a hand is up by the head and moves, the other stays put, in every direction: wrong in rows %s" % [bad])
+	var nod := int(Figure.data().animations.nod.frames[1])
+	var moved := []
+	for row in 8:
+		var standing := img.get_region(Rect2i(0, row * fh, fw, fh))
+		var nodding := img.get_region(Rect2i(nod * fw, row * fh, fw, fh))
+		var lower := nodding.get_used_rect().position.y == standing.get_used_rect().position.y + 1
+		var legs := Rect2i(0, fh - 3, fw, 3)
+		var still: bool = standing.get_region(legs).get_data() == nodding.get_region(legs).get_data() \
+			and anchors[row][nod] == anchors[row][0]
+		if not (lower and still):
+			moved.append(row)
+	_check(moved.is_empty(), "nodding, the head goes a pixel down and the body stands, in every direction: wrong in rows %s" % [moved])
+	# What the body wears does not show over the head: the chin, a pixel down, over the collar.
+	var shirt := Figure.layer("shirt")
+	var body := Figure.layer("body")
+	var covered := []
+	for row in 8:
+		var collar := row * fh + shirt.get_region(Rect2i(0, row * fh, fw, fh)).get_used_rect().position.y
+		for x in fw:
+			if body.get_pixel(x, collar - 1).a > 0.5 and shirt.get_pixel(nod * fw + x, collar).a > 0.5:
+				covered.append(row)
+				break
+	_check(covered.is_empty(), "nodding, no shirt shows over the chin: wrong in rows %s" % [covered])
 
 
 ## The looks picked (Looks): their layers in the hair slot, their colours swapped by the
