@@ -58,10 +58,9 @@ func act_in_front(who, top: int) -> Dictionary:
 		return fish(who)
 	if Tools.cuts_ice(t):
 		return cut_ice(who)
-	if _drinks_with(who):
-		var water := water_ahead(who.position, Vector2(who.facing_step()).normalized(), DRINK_REACH)
-		if water.is_finite() and (who.vitals.water < who.vitals.MAX - DRINK * 0.5 if who.held() == "" else _fillable(who, water)):
-			return drink(who, water)
+	var water := water_first(who)
+	if water.is_finite():
+		return drink(who, water)
 	var tending := tend(who)
 	if not tending.is_empty():
 		return tending
@@ -81,6 +80,9 @@ func act_in_front(who, top: int) -> Dictionary:
 		return chop(who, work.trunk)
 	if work.has("tree") or work.has("bush"):
 		return _gather_work(who, work)
+	var salty := salty_ahead(who)
+	if salty.is_finite():
+		return drink(who, salty)
 	if work.has("mow"):
 		return mow_swing(who, work.mow)
 	if work.has("dig"):
@@ -98,6 +100,60 @@ func _gather_work(who, work: Dictionary) -> Dictionary:
 	var at: Vector3 = Vector3(work.bush) + Vector3(0.5, 0.4, 0.5) if work.has("bush") \
 		else Vector3(trunk_cell(who, work.tree)) + Vector3(0.5, 0.5, 0.5)
 	return _work(skilled(who, _gather_role(t), t.swing), "", at * CELL, Mat.LEAVES)
+
+
+## The water in front of `who` the action button drinks from, or fills the vessel in hand
+## at, before anything else (see act_in_front), INF for none: fresh water for an empty
+## hand that is thirsty, water the vessel in hand takes. A tree or a bush in front that
+## the hand gathers from, no farther than that water, comes first (a berry bush on the
+## shore, the user's report 2026-11-20). The sea is not drunk: an empty hand only hears
+## it is salty, after the gathering (salty_ahead).
+func water_first(who) -> Vector3:
+	if not _drinks_with(who):
+		return Vector3.INF
+	var water := water_ahead(who.position, Vector2(who.facing_step()).normalized(), DRINK_REACH)
+	if not water.is_finite():
+		return Vector3.INF
+	if who.held() == "":
+		if who.vitals.water >= who.vitals.MAX - DRINK * 0.5 or not fresh_water(water):
+			return Vector3.INF
+	elif not _fillable(who, water):
+		return Vector3.INF
+	return Vector3.INF if _gathers_before(who, water) else water
+
+
+## The sea water in front of a thirsty `who` with an empty hand, INF for none: the
+## action button only tells it is salty (drink), once there is nothing to gather.
+func salty_ahead(who) -> Vector3:
+	if not "vitals" in who or who.held() != "" or who.vitals.water >= who.vitals.MAX - DRINK * 0.5:
+		return Vector3.INF
+	var water := water_ahead(who.position, Vector2(who.facing_step()).normalized(), DRINK_REACH)
+	return water if water.is_finite() and not fresh_water(water) else Vector3.INF
+
+
+## How much farther than the water a tree or a bush in front may be and still come first
+## (see water_first), in cells: the one it faces, right before the water, wins.
+const GATHER_BEFORE_WATER := 0.25
+
+
+## Whether a tree or a bush the hand of `who` gathers from (front_targets) stands in front
+## of the body no farther than world point `water` (see water_first).
+func _gathers_before(who, water: Vector3) -> bool:
+	var from := Vector2(who.position.x, who.position.z) / CELL
+	var dir := Vector2(who.facing_step()).normalized()
+	var far := (Vector2(water.x, water.z) / CELL).distance_to(from) + GATHER_BEFORE_WATER
+	for target in front_targets(who):
+		var col := Vector2i.ZERO
+		if target.has("bush"):
+			col = Vector2i(target.bush.x, target.bush.z)
+		elif target.has("tree"):
+			col = target.tree
+		else:
+			continue
+		var off := Vector2(col.x + 0.5, col.y + 0.5) - from
+		if off.dot(dir) > 0.0 and off.length() <= far:
+			return true
+	return false
 
 
 ## Whether the vessel in the hand in use of `who` takes the water at world point `water`.
@@ -239,13 +295,8 @@ func front_kind(who) -> String:
 		return "fish"
 	if Tools.cuts_ice(t):
 		return "ice"
-	if _drinks_with(who):
-		var water := water_ahead(who.position, Vector2(who.facing_step()).normalized(), DRINK_REACH)
-		if water.is_finite():
-			if who.held() != "" and _fillable(who, water):
-				return "fill"
-			if who.vitals.water < who.vitals.MAX - DRINK * 0.5:
-				return "drink"
+	if water_first(who).is_finite():
+		return "drink" if who.held() == "" else "fill"
 	var tending := tend_kind(who)
 	if tending != "":
 		return tending
@@ -257,11 +308,15 @@ func front_kind(who) -> String:
 	var farm: Variant = front_farm(who)
 	if farm != null:
 		return farm[0]
-	match _choice_kind(who):
+	var choice := _choice_kind(who)
+	match choice:
 		"trunk":
 			return "chop"
 		"tree", "bush":
 			return "gather"
+	if salty_ahead(who).is_finite():
+		return "drink"
+	match choice:
 		"mow":
 			return "mow"
 		"dig":

@@ -937,6 +937,10 @@ const SHOTS := {
 	# The boundary post close, its shadow on the grass in the afternoon sun.
 	# The action button's label by what is in front: water to drink with bare hands.
 	"label-drink": {"time": 0.45, "season": 1, "touch": true, "place": "lake", "face_water": true},
+	# The user's spot: a berry bush in front over a cave lake, the button gathers, not drinks.
+	"label-over-cave-water": {"time": 0.45, "season": 1, "touch": true, "at": [-1396, -260], "face": "e", "thirst": 20.0,
+		"hide": ["chunks: grass"], "world": [524537521, {"biomes": 1, "cave_shape": 1, "caves": 1, "climate": 1, "landscape": 1,
+		"mountains": 1, "relief": 1, "rivers": 1, "shores": 1, "size": 1, "slopes": 0, "water": 1}]},
 	"post-close": {"time": 0.6, "season": 1, "find": "meadow", "land": false},
 	"post-snow": {"time": 0.36, "season": 3, "find": "meadow", "land": false},
 	"land-paint": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "land": true},
