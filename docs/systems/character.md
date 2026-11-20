@@ -235,7 +235,12 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   the blade goes into the earth from the feet's level a pixel deeper in each of three frames (crouched on
   the third, the chest's row folded away: the legs never move), then the toss; from the front the shovel
   is at the right side, from the side and behind by the right foot, beside the feet with the outline
-  between. A work drawn so carries the way the tool points (`a`, `ccw`, `f`), where the hand holds it
+  between. The slash's four frames too, with a blade in one hand (`tools/art/player_slash_art.gd`,
+  reviewed with the user 2026-11-20; the swords, knives, spears, sickles, slings, bows and rods play it):
+  a sweep from the side, the arm out to the working side, drawn back and up, the strike swept across the
+  front (crouched, the legs never moving), then through and up on the other side; from behind it is
+  mirrored and the blade passes behind the body. A frame may put the other hand behind the body (`of`)
+  where the blade sweeps across in front of it. A work drawn so carries the way the tool points (`a`, `ccw`, `f`), where the hand holds it
   and how far up its length (`slide`: `ToolArt.turned` moves the head nearer the hand, the shaft's end
   past it, leaving `ToolArt.SLIDE_LEFT` rows beyond it, so a short thing is held as it is), so
   `PlayerArt.pose` takes them from the frame instead of `WORKS`; its west directions are the east ones
