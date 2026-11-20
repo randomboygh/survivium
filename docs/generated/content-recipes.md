@@ -16,7 +16,7 @@
 
 | Процесс | Рецептов | Где делают |
 |---|---|---|
-| [crafting] (`craft`) | 137 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
+| [crafting] (`craft`) | 142 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
 | Переработка (`refine`) | 12 | руки, [tools.items.workbench], [tools.items.drying_rack], [tools.items.loom] |
 | Плавка и обжиг (`smelt`) | 15 | [tools.items.forge], [tools.items.bloomery], [tools.items.kiln] |
 | Готовка (`cook`) | 16 | [core.items.campfire], [tools.items.kiln] |
@@ -55,6 +55,8 @@
 | [tools.recipes.bandana] `tools:bandana` | [tools.items.bandana] ×1 | [materials.items.cloth] ×1 | — | [tools.items.workbench] | [tool.needle] (износ 1) | 3 с | 7 | 2. [core.eras.bone_leather] | — |
 | [tools.recipes.hood] `tools:hood` | [tools.items.hood] ×1 | [materials.items.cloth] ×2, [materials.items.cord] ×1 | — | [tools.items.workbench] | [tool.needle] (износ 1) | 6 с | 7 | 2. [core.eras.bone_leather] | — |
 | [tools.recipes.linen_shirt] `tools:linen_shirt` | [tools.items.linen_shirt] ×1 | [materials.items.cloth] ×3, [materials.items.cord] ×1 | — | [tools.items.workbench] | [tool.needle] (износ 2) | 10 с | 7 | 2. [core.eras.bone_leather] | — |
+| [tools.recipes.kilt] `tools:kilt` | [tools.items.kilt] ×1 | [materials.items.cloth] ×3, [materials.items.cord] ×1 | — | [tools.items.workbench] | [tool.needle] (износ 1) | 8 с | 7 | 2. [core.eras.bone_leather] | — |
+| [tools.recipes.linen_trousers] `tools:linen_trousers` | [tools.items.linen_trousers] ×1 | [materials.items.cloth] ×3, [materials.items.cord] ×1 | — | [tools.items.workbench] | [tool.needle] (износ 2) | 10 с | 7 | 2. [core.eras.bone_leather] | — |
 | [tools.recipes.door] `tools:door` | [tools.items.door] ×1 | [materials.items.planks] ×4 | — | [tools.items.workbench] | — | 5 с | 5 | 1. [core.eras.primitive] | — |
 | [tools.recipes.door_2x2] `tools:door_2x2` | [tools.items.door_2x2] ×1 | [materials.items.planks] ×8 | — | [tools.items.workbench] | — | 8 с | 5 | 1. [core.eras.primitive] | — |
 | [tools.recipes.door_2x3] `tools:door_2x3` | [tools.items.door_2x3] ×1 | [materials.items.planks] ×12 | — | [tools.items.workbench] | — | 10 с | 5 | 1. [core.eras.primitive] | — |
@@ -81,6 +83,9 @@
 | [tools.recipes.leather_hat] `tools:leather_hat` | [tools.items.leather_hat] ×1 | [materials.items.leather] ×1, [materials.items.cord] ×1 | — | [tools.items.workbench] | [tool.needle] (износ 1) | 6 с | 5 | 2. [core.eras.bone_leather] | — |
 | [tools.recipes.leather_vest] `tools:leather_vest` | [tools.items.leather_vest] ×1 | [materials.items.leather] ×2, [materials.items.cord] ×2 | — | [tools.items.workbench] | [tool.needle] (износ 2) | 10 с | 5 | 2. [core.eras.bone_leather] | — |
 | [tools.recipes.apron] `tools:apron` | [tools.items.apron] ×1 | [materials.items.leather] ×2, [materials.items.cord] ×1 | — | [tools.items.workbench] | [tool.needle] (износ 1) | 6 с | 5 | 2. [core.eras.bone_leather] | — |
+| [tools.recipes.sandals] `tools:sandals` | [tools.items.sandals] ×1 | [materials.items.leather] ×1, [materials.items.cord] ×2 | — | [tools.items.workbench] | [tool.needle] (износ 1) | 5 с | 5 | 2. [core.eras.bone_leather] | — |
+| [tools.recipes.moccasins] `tools:moccasins` | [tools.items.moccasins] ×1 | [materials.items.leather] ×2, [materials.items.cord] ×1 | — | [tools.items.workbench] | [tool.needle] (износ 1) | 7 с | 5 | 2. [core.eras.bone_leather] | — |
+| [tools.recipes.high_boots] `tools:high_boots` | [tools.items.high_boots] ×1 | [materials.items.leather] ×3, [materials.items.cord] ×1 | — | [tools.items.workbench] | [tool.needle] (износ 2) | 12 с | 5 | 2. [core.eras.bone_leather] | — |
 | [tools.recipes.stone_hoe] `tools:stone_hoe` | [tools.items.stone_hoe] ×1 | [resources.items.flint] ×1, [resources.items.branch] ×1, [materials.items.cord] ×1 | — | руки | — | 4 с | 2 | 1. [core.eras.primitive] | — |
 | [tools.recipes.copper_hoe] `tools:copper_hoe` | [tools.items.copper_hoe] ×1 | [materials.items.copper_bar] ×1, [materials.items.planks] ×1 | — | [tools.items.workbench] | — | 5 с | 7 | 3. [core.eras.bronze] | — |
 | [tools.recipes.iron_hoe] `tools:iron_hoe` | [tools.items.iron_hoe] ×1 | [materials.items.iron_bar] ×1, [materials.items.planks] ×1 | — | [tools.items.anvil] | — | 5 с | 14 | 5. [core.eras.iron] | — |
