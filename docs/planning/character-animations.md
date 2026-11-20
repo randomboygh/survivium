@@ -361,7 +361,7 @@ outline, its tip in the trail's first pixels).
   variants, `gestures_vsgame.py <module>:<attr> <anim> <quick dir>` compares them with a quick sheet drawn
   with the code (`bad 0`, and only the gesture's columns changed).
 
-## The row (under review)
+## The row (done)
 
 - Thread «Нарисовать анимацию гребли», 2026-11-20. Columns 44-47 (`player.yaml` `row`, 4 a second: the
   stroke is `Boats.ROW_PERIOD`, a second, and the frame follows `Boats.stroke`), drawn whole:
@@ -389,4 +389,4 @@ outline, its tip in the trail's first pixels).
   with the game's light), `row_gif2.py` (the review GIF from the game's own captures and quick sheets),
   `form_letters.gd` (a frame's letters in a build).
 - GIFs in the library: `row-front-1.gif` (the front and the side, draft E), `row-all-3.gif` (every
-  direction, draft F on main's sit of #806: «в лодке» the game's captures, «без лодки» the sheets).
+  direction, draft F on main's sit of #806: «в лодке» the game's captures, «без лодки» the sheets), accepted by the user 2026-11-20 19:39 MSK.
