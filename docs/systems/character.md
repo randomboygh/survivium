@@ -214,7 +214,10 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   the head sits a row lower and the body is a row shorter, as in the walk. The feet stand on the frame's
   bottom row with no outline under them. `tools/art/player_art.gd` draws it (`HEAD`, `HAIR`, the body standing `BODY`,
   `SIDE_LEGS`, the arms `SHOULDER`, `REST` and `ARMS`, the poses `MOVES` and `WORKS`); the design and its
-  letters are in the library `survivium-builds/character/chibi/`. The walk (six frames, 10 a second,
+  letters are in the library `survivium-builds/character/chibi/`. Seated (`sit`: afloat and the gesture,
+  and the rowing on the same legs) the body is two rows lower, only the feet under it; from the side the
+  legs go forward (`SIDE_LEGS` `sit`), turned a little a knee shows past the waistband (`SIT_KNEE`; the
+  user's notes of 2026-11-20). The walk (six frames, 10 a second,
   the user's pick of 2026-11-19) is the body of a reference copied pixel by pixel under our head
   (`tools/art/player_walk_art.gd`, from `survivium-builds/character/anim/references/`): legs of 2 px, the
   arms swinging against the legs, the body a pixel down at each step and a row shorter with both feet off

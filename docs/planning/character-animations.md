@@ -148,10 +148,17 @@ outline, its tip in the trail's first pixels).
 
 ## The sleep and the sit (done)
 
-- Thread «Поправить позу сна», 2026-11-20. The front view was shown first with variants (sitting
+- Thread «Поправить позы сна и сидения», 2026-11-20. The front view was shown first with variants (sitting
   cross-legged or with the legs forward, sleeping curled up or straight on the side;
   `sleep-sit-front-1.png` in the library). The user's pick (18:12 MSK): «Сидит оставь как был. Спит тоже
-  оставь как было, только левую ногу прижми к правой на пиксель». The sit (column 43) is unchanged.
+  оставь как было, только левую ногу прижми к правой на пиксель».
+- The sit (column 43) stays MOVES' pose; after seeing it from every side (`sit-all-1.png`) the user
+  asked (18:25 MSK) «На юговосток ноги удлинить вправо на пиксель, на восток - сократить на пиксель»:
+  `SIT_KNEE` puts a knee a pixel east of the waistband on the last row in se (in every build: past its
+  own waistband), `SIDE_LEGS` `sit` is a pixel shorter forward; the west ones mirror them. The rowing
+  frames (44-47) sit on the same legs and change with them. «было/стало»: `sit-2.png` (se, e, w, sw),
+  `sit-2-all.png` (every direction), `sit-2-forms.png` (the builds); `sit_sheet_dump.gd` and
+  `sit_review.py` in `src/`.
 - The sleep (column 42) is drawn standing, as the blink was (the eyes shut), with the legs pressed
   together: `MOVES` front `sleep`, legs `together` (`PlayerArt.legs`: the leg on the east of the picture a
   pixel nearer the other where two pixels part them). `Figure._lay_down` turns that column of the south

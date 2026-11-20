@@ -211,8 +211,8 @@ const BODY := {
 	]},
 }
 ## The legs seen from the side, rows 15-17, by pose: "near" or "far" (that leg in front,
-## striding), "sit" (forward, afloat); standing they are BODY's. The front and back views
-## raise a leg from BODY instead (see legs).
+## striding), "sit" (forward, afloat; as long as the user asked on 2026-11-20); standing
+## they are BODY's. The front and back views raise a leg from BODY instead (see legs).
 const SIDE_LEGS := {
 	"near": [
 		"......tT......",
@@ -227,9 +227,13 @@ const SIDE_LEGS := {
 	"sit": [
 		EMPTY,
 		EMPTY,
-		"......tTTTB...",
+		"......tTTB....",
 	],
 }
+## Sitting, the knee that shows a pixel east of the waistband (on the frame's last row),
+## by direction: its letter. Turned a little (se) the legs reach that far (the user's note
+## of 2026-11-20), in every build.
+const SIT_KNEE := {"se": "t"}
 
 ## Shoulders by direction: where the right arm and the left one hang from (side view: the
 ## near one and the far one), in the box as the view places them (moved by SHIFT and with
@@ -770,9 +774,9 @@ static func _front(view: String, hand: String) -> bool:
 ## waistband down to the feet), as the pose has them. Seen from the side the other poses
 ## are SIDE_LEGS'. Seen from the front or the back a step raises a leg a pixel ("right":
 ## the one on the west of the picture, "left": the other), its foot where its shin was;
-## sitting ("sit") only the feet show, under the body. Pressed together ("together", the
-## sleep's) the leg on the east of the picture is a pixel nearer the other where two
-## pixels part them; from the side they stand as they are.
+## sitting ("sit") only the feet show, under the body (and a knee, SIT_KNEE).
+## Pressed together ("together", the sleep's) the leg on the east of the picture is a
+## pixel nearer the other where two pixels part them; from the side they stand as they are.
 static func legs(dir: String, kind: String, rows: Array) -> Array:
 	if kind == "stand":
 		return rows
@@ -815,6 +819,11 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 		var low: Array = legs(dir, p.legs, rows.slice(hips + 1)).duplicate()
 		if p.legs != "stand" and VIEW[dir] == "side" and figure == "curvy":
 			low[0] = FormsArt.hipped(low[0], dir)
+		if p.legs == "sit" and SIT_KNEE.has(dir):
+			# Seated the waistband is on the last row: the knee goes past its east end.
+			var last: String = low[-1]
+			last[(rows[hips] as String).rstrip(".").length()] = SIT_KNEE[dir]
+			low[-1] = last
 		_stamp(parts, low, b.hips + 1, Vector2i.ZERO)
 		_stamp(parts, rows.slice(0, hips + 1), 11, up)
 	else:

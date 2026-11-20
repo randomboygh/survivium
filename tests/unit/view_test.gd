@@ -450,9 +450,9 @@ func _test_looks() -> void:
 func _test_forms() -> void:
 	_check(Figure.dressed({}, Looks.default_look())[0] == "body" and Figure.form_for({"build": "thin", "figure": "bust"}) == "thin_bust",
 		"the plain form draws the plain layers")
-	var stocky := Figure.dressed({"body": "tools:fur_coat", "legs": "tools:leg_wraps"}, {"build": "stocky"})
+	var stocky := Figure.dressed({"body": "tools:fur_coat", "feet": "tools:fur_boots"}, {"build": "stocky"})
 	_check(stocky[0] == "forms/stocky_straight/body" and stocky.any(func(l: String) -> bool: return l.ends_with("worn/fur_coat/stocky_straight.png"))
-		and stocky.any(func(l: String) -> bool: return l.ends_with("worn/leg_wraps.png")),
+		and stocky.any(func(l: String) -> bool: return l.ends_with("worn/fur_boots.png")),
 		"a form's clothes are drawn for it, else the plain ones: %s" % [stocky])
 	_check(Figure.form_of(stocky) == "stocky_straight" and Figure.form_of(["body"]) == "", "a look knows its form")
 	var size := Figure.layer("body").get_size()
