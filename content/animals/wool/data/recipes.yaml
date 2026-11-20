@@ -14,3 +14,11 @@
   at: tools:loom
   process: refine
   time: 6
+- id: poncho
+  title: "[animals.recipes.poncho]"
+  makes: poncho
+  needs: {wool_yarn: 8}
+  at: tools:workbench
+  tools: [needle]
+  wear: 2
+  time: 12

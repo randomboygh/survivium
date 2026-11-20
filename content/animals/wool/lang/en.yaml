@@ -9,7 +9,10 @@
 "[animals.items.rabbit_fluff.about]": "Soft fluff of a tame hare. It's cut with a knife and spun into yarn."
 "[animals.items.wool_yarn]": "Fluffy yarn"
 "[animals.items.wool_yarn.about]": "Warm yarn of hare fluff. Cloth is woven from it on a loom."
+"[animals.items.poncho]": "Poncho"
+"[animals.items.poncho.about]": "A warm striped poncho of fluffy yarn, pulled over the head."
 
 # content/animals/wool/data/recipes.yaml
 "[animals.recipes.wool_yarn]": "Fluffy yarn"
 "[animals.recipes.cloth_from_wool_yarn]": "Cloth from yarn"
+"[animals.recipes.poncho]": "Poncho"

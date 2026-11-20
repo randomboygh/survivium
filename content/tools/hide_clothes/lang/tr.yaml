@@ -13,9 +13,18 @@
 "[tools.items.leather_trousers.about]": "Tabaklanmış deriden pantolon. Rüzgâr içinden geçmez."
 "[tools.items.fur_boots]": "Kürk çizme"
 "[tools.items.fur_boots.about]": "Deri tabanlı, posttan yüksek çizmeler."
+"[tools.items.leather_hat]": ""
+"[tools.items.leather_hat.about]": ""
+"[tools.items.leather_vest]": ""
+"[tools.items.leather_vest.about]": ""
+"[tools.items.apron]": ""
+"[tools.items.apron.about]": ""
 
 # content/tools/hide_clothes/data/recipes.yaml
 "[tools.recipes.fur_hat]": "Kürk başlık"
 "[tools.recipes.fur_coat]": "Kürk palto"
 "[tools.recipes.leather_trousers]": "Deri pantolon"
 "[tools.recipes.fur_boots]": "Kürk çizme"
+"[tools.recipes.leather_hat]": ""
+"[tools.recipes.leather_vest]": ""
+"[tools.recipes.apron]": ""

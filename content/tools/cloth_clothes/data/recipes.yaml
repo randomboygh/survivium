@@ -1,0 +1,26 @@
+# Recipes of the "Cloth clothes" bundle: cloth and rope ("Materials") sewn with a needle (class needle, the
+# "Needle" bundle) at the workbench.
+- id: bandana
+  title: "[tools.recipes.bandana]"
+  makes: bandana
+  needs: {materials:cloth: 1}
+  at: tools:workbench
+  tools: [needle]
+  wear: 1
+  time: 3
+- id: hood
+  title: "[tools.recipes.hood]"
+  makes: hood
+  needs: {materials:cloth: 2, materials:cord: 1}
+  at: tools:workbench
+  tools: [needle]
+  wear: 1
+  time: 6
+- id: linen_shirt
+  title: "[tools.recipes.linen_shirt]"
+  makes: linen_shirt
+  needs: {materials:cloth: 3, materials:cord: 1}
+  at: tools:workbench
+  tools: [needle]
+  wear: 2
+  time: 10

@@ -13,9 +13,18 @@
 "[tools.items.leather_trousers.about]": "Pantaloni di cuoio conciato. Il vento non li attraversa."
 "[tools.items.fur_boots]": "Stivali di pelliccia"
 "[tools.items.fur_boots.about]": "Stivali alti di pelle con suola di cuoio."
+"[tools.items.leather_hat]": ""
+"[tools.items.leather_hat.about]": ""
+"[tools.items.leather_vest]": ""
+"[tools.items.leather_vest.about]": ""
+"[tools.items.apron]": ""
+"[tools.items.apron.about]": ""
 
 # content/tools/hide_clothes/data/recipes.yaml
 "[tools.recipes.fur_hat]": "Berretto di pelliccia"
 "[tools.recipes.fur_coat]": "Pelliccia"
 "[tools.recipes.leather_trousers]": "Pantaloni di cuoio"
 "[tools.recipes.fur_boots]": "Stivali di pelliccia"
+"[tools.recipes.leather_hat]": ""
+"[tools.recipes.leather_vest]": ""
+"[tools.recipes.apron]": ""

@@ -9,7 +9,10 @@
 "[animals.items.rabbit_fluff.about]": "Miękki puch oswojonego zająca. Ścina się go nożem i przędzie na przędzę."
 "[animals.items.wool_yarn]": "Puszysta przędza"
 "[animals.items.wool_yarn.about]": "Ciepła przędza z zajęczego puchu. Na krośnie tka się z niej tkaninę."
+"[animals.items.poncho]": ""
+"[animals.items.poncho.about]": ""
 
 # content/animals/wool/data/recipes.yaml
 "[animals.recipes.wool_yarn]": "Puszysta przędza"
 "[animals.recipes.cloth_from_wool_yarn]": "Tkanina z przędzy"
+"[animals.recipes.poncho]": ""

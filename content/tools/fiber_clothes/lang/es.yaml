@@ -13,9 +13,12 @@
 "[tools.items.leg_wraps.about]": "Tiras de fibra enrolladas en las piernas y atadas con cuerda."
 "[tools.items.bast_shoes]": "Alpargatas"
 "[tools.items.bast_shoes.about]": "Calzado trenzado de fibra con cordones de cuerda."
+"[tools.items.fiber_tunic]": ""
+"[tools.items.fiber_tunic.about]": ""
 
 # content/tools/fiber_clothes/data/recipes.yaml
 "[tools.recipes.fiber_hat]": "Sombrero trenzado"
 "[tools.recipes.grass_cape]": "Capa de hierba"
 "[tools.recipes.leg_wraps]": "Polainas"
 "[tools.recipes.bast_shoes]": "Alpargatas"
+"[tools.recipes.fiber_tunic]": ""

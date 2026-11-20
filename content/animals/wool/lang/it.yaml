@@ -9,7 +9,10 @@
 "[animals.items.rabbit_fluff.about]": "Morbida peluria di una lepre domestica. Si taglia col coltello e si fila."
 "[animals.items.wool_yarn]": "Filato soffice"
 "[animals.items.wool_yarn.about]": "Filato caldo di peluria di lepre. Al telaio se ne tesse stoffa."
+"[animals.items.poncho]": ""
+"[animals.items.poncho.about]": ""
 
 # content/animals/wool/data/recipes.yaml
 "[animals.recipes.wool_yarn]": "Filato soffice"
 "[animals.recipes.cloth_from_wool_yarn]": "Stoffa di filato"
+"[animals.recipes.poncho]": ""

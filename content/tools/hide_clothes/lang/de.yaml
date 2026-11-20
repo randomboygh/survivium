@@ -13,9 +13,18 @@
 "[tools.items.leather_trousers.about]": "Eine Hose aus gegerbtem Leder. Der Wind bläst nicht hindurch."
 "[tools.items.fur_boots]": "Fellstiefel"
 "[tools.items.fur_boots.about]": "Hohe Stiefel aus Fell mit Ledersohle."
+"[tools.items.leather_hat]": ""
+"[tools.items.leather_hat.about]": ""
+"[tools.items.leather_vest]": ""
+"[tools.items.leather_vest.about]": ""
+"[tools.items.apron]": ""
+"[tools.items.apron.about]": ""
 
 # content/tools/hide_clothes/data/recipes.yaml
 "[tools.recipes.fur_hat]": "Fellmütze"
 "[tools.recipes.fur_coat]": "Fellmantel"
 "[tools.recipes.leather_trousers]": "Lederhose"
 "[tools.recipes.fur_boots]": "Fellstiefel"
+"[tools.recipes.leather_hat]": ""
+"[tools.recipes.leather_vest]": ""
+"[tools.recipes.apron]": ""

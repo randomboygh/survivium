@@ -13,9 +13,12 @@
 "[tools.items.leg_wraps.about]": "Strisce di fibra avvolte intorno alle gambe e legate con una corda."
 "[tools.items.bast_shoes]": "Calzari di fibra"
 "[tools.items.bast_shoes.about]": "Calzature intrecciate di fibra con lacci di corda."
+"[tools.items.fiber_tunic]": ""
+"[tools.items.fiber_tunic.about]": ""
 
 # content/tools/fiber_clothes/data/recipes.yaml
 "[tools.recipes.fiber_hat]": "Cappello intrecciato"
 "[tools.recipes.grass_cape]": "Mantella d'erba"
 "[tools.recipes.leg_wraps]": "Fasce per le gambe"
 "[tools.recipes.bast_shoes]": "Calzari di fibra"
+"[tools.recipes.fiber_tunic]": ""

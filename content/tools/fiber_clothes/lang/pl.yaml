@@ -13,9 +13,12 @@
 "[tools.items.leg_wraps.about]": "Pasy włókna owinięte wokół nóg i związane sznurkiem."
 "[tools.items.bast_shoes]": "Łapcie"
 "[tools.items.bast_shoes.about]": "Plecione buty z włókna wiązane sznurkiem."
+"[tools.items.fiber_tunic]": ""
+"[tools.items.fiber_tunic.about]": ""
 
 # content/tools/fiber_clothes/data/recipes.yaml
 "[tools.recipes.fiber_hat]": "Pleciony kapelusz"
 "[tools.recipes.grass_cape]": "Peleryna z trawy"
 "[tools.recipes.leg_wraps]": "Owijacze"
 "[tools.recipes.bast_shoes]": "Łapcie"
+"[tools.recipes.fiber_tunic]": ""

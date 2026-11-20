@@ -9,7 +9,10 @@
 "[animals.items.rabbit_fluff.about]": "Penugem macia de uma lebre mansa. Corta-se com faca e fia-se."
 "[animals.items.wool_yarn]": "Fio felpudo"
 "[animals.items.wool_yarn.about]": "Fio quente de penugem de lebre. No tear tece-se pano com ele."
+"[animals.items.poncho]": ""
+"[animals.items.poncho.about]": ""
 
 # content/animals/wool/data/recipes.yaml
 "[animals.recipes.wool_yarn]": "Fio felpudo"
 "[animals.recipes.cloth_from_wool_yarn]": "Pano de fio"
+"[animals.recipes.poncho]": ""

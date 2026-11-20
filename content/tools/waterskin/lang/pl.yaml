@@ -9,6 +9,9 @@
 "[tools.items.waterskin.about]": "Skórzany worek na wodę. Weź go do ręki i dotknij słodkiej wody, by go napełnić."
 "[tools.items.waterskin_full]": "Bukłak z wodą"
 "[tools.items.waterskin_full.about]": "Pełny bukłak. Gasi pragnienie z dala od wody."
+"[tools.items.waterskin_sea]": ""
+"[tools.items.waterskin_sea.about]": ""
 
 # content/tools/waterskin/data/recipes.yaml
 "[tools.recipes.waterskin]": "Bukłak"
+"[tools.recipes.waterskin_full_from_waterskin_sea]": ""

@@ -13,9 +13,12 @@
 "[tools.items.leg_wraps.about]": "Des bandes de fibre enroulées autour des jambes et liées par une corde."
 "[tools.items.bast_shoes]": "Chaussons tressés"
 "[tools.items.bast_shoes.about]": "Des chaussures tressées en fibre avec des lacets de corde."
+"[tools.items.fiber_tunic]": ""
+"[tools.items.fiber_tunic.about]": ""
 
 # content/tools/fiber_clothes/data/recipes.yaml
 "[tools.recipes.fiber_hat]": "Chapeau tressé"
 "[tools.recipes.grass_cape]": "Cape d'herbe"
 "[tools.recipes.leg_wraps]": "Molletières"
 "[tools.recipes.bast_shoes]": "Chaussons tressés"
+"[tools.recipes.fiber_tunic]": ""

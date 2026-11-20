@@ -13,9 +13,12 @@
 "[tools.items.leg_wraps.about]": "Tiras de fibra enroladas nas pernas e amarradas com corda."
 "[tools.items.bast_shoes]": "Alpercatas"
 "[tools.items.bast_shoes.about]": "Calçado trançado de fibra com cordões de corda."
+"[tools.items.fiber_tunic]": ""
+"[tools.items.fiber_tunic.about]": ""
 
 # content/tools/fiber_clothes/data/recipes.yaml
 "[tools.recipes.fiber_hat]": "Chapéu trançado"
 "[tools.recipes.grass_cape]": "Capa de capim"
 "[tools.recipes.leg_wraps]": "Perneiras"
 "[tools.recipes.bast_shoes]": "Alpercatas"
+"[tools.recipes.fiber_tunic]": ""

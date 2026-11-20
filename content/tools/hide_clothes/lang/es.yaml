@@ -13,9 +13,18 @@
 "[tools.items.leather_trousers.about]": "Pantalones de cuero curtido. El viento no los atraviesa."
 "[tools.items.fur_boots]": "Botas de piel"
 "[tools.items.fur_boots.about]": "Botas altas de piel con suela de cuero."
+"[tools.items.leather_hat]": ""
+"[tools.items.leather_hat.about]": ""
+"[tools.items.leather_vest]": ""
+"[tools.items.leather_vest.about]": ""
+"[tools.items.apron]": ""
+"[tools.items.apron.about]": ""
 
 # content/tools/hide_clothes/data/recipes.yaml
 "[tools.recipes.fur_hat]": "Gorro de piel"
 "[tools.recipes.fur_coat]": "Abrigo de piel"
 "[tools.recipes.leather_trousers]": "Pantalones de cuero"
 "[tools.recipes.fur_boots]": "Botas de piel"
+"[tools.recipes.leather_hat]": ""
+"[tools.recipes.leather_vest]": ""
+"[tools.recipes.apron]": ""

@@ -16,9 +16,18 @@ const FormsArt := preload("res://tools/art/player_forms_art.gd")
 const ToolArt := preload("res://tools/art/tool_art.gd")
 
 ## Clothes as worn on the figure, by the items' `look`: the shape (PlayerArt.SHAPES)
-## and its light, middle and dark colour.
+## and its light, middle and dark colour, then the trim's light and dark (PlayerArt.painted).
 const WORN := {
-	"fiber_hat": ["hat", "c4ac72", "94783e", "6e5a2c"],
+	"fiber_hat": ["brim_hat", "e0c878", "c4ac72", "94783e", "8a5a30", "5a3a20"],
+	"fiber_tunic": ["tunic", "c4ac72", "94783e", "6e5a2c", "8a6a40", "5a4428"],
+	"flower_wreath": ["wreath", "78a048", "557a38", "3a5a28", "f2d24a", "f4f0e8"],
+	"bandana": ["bandana", "e8e0cc", "c8bca0", "9a8e74", "b8a888", "7a6e58"],
+	"hood": ["hood", "d8cfba", "b0a68e", "847a64", "9a8e74", "6e6450"],
+	"linen_shirt": ["shirt", "e8e0cc", "c8bca0", "9a8e74"],
+	"leather_hat": ["dome_hat", "b07a48", "8a5a30", "5e3c20", "4a3020", "2e1c10"],
+	"leather_vest": ["vest", "b07a48", "8a5a30", "5e3c20", "d8c9a8", "9a8e74"],
+	"apron": ["apron", "c08a58", "9a6a3e", "6e4828", "5e3c20", "3a2414"],
+	"poncho": ["poncho", "d9cfba", "b5aa92", "857a64", "7a5a3a", "4a3422"],
 	"grass_cape": ["shirt", "8fb558", "78a048", "557a38"],
 	"leg_wraps": ["wraps", "c4ac72", "94783e", "6e5a2c"],
 	"bast_shoes": ["boots", "c4ac72", "94783e", "6e5a2c"],

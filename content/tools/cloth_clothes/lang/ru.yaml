@@ -1,0 +1,18 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/cloth_clothes/bundle.yaml
+"[tools.cloth_clothes.bundle]": "Одежда из ткани"
+
+# content/tools/cloth_clothes/data/items.yaml
+"[tools.items.bandana]": "Бандана"
+"[tools.items.bandana.about]": "Платок, повязанный на голову."
+"[tools.items.hood]": "Капюшон"
+"[tools.items.hood.about]": "Капюшон из ткани, закрывает голову и шею от ветра."
+"[tools.items.linen_shirt]": "Льняная рубаха"
+"[tools.items.linen_shirt.about]": "Лёгкая рубаха из тканого полотна."
+
+# content/tools/cloth_clothes/data/recipes.yaml
+"[tools.recipes.bandana]": "Бандана"
+"[tools.recipes.hood]": "Капюшон"
+"[tools.recipes.linen_shirt]": "Льняная рубаха"

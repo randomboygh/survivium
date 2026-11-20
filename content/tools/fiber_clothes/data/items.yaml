@@ -37,3 +37,12 @@
   wear_on: feet
   look: bast_shoes
   warmth: 2
+- id: fiber_tunic
+  title: "[tools.items.fiber_tunic]"
+  description: "[tools.items.fiber_tunic.about]"
+  weight: 0.5
+  stack: 1
+  icon: fiber_tunic
+  wear_on: body
+  look: fiber_tunic
+  warmth: 4

@@ -1,0 +1,33 @@
+# Items of the "Cloth clothes" bundle of the "Tools and crafting" mod: light clothes sewn with a needle at the
+# workbench from cloth ("Materials", woven of linen or fluffy yarn) and rope. wear_on - the body slot, warmth - how
+# many degrees warmer you are in it (src/shared/game/warmth.gd; wet clothes warm by half).
+- id: bandana
+  title: "[tools.items.bandana]"
+  description: "[tools.items.bandana.about]"
+  era: core:bone_leather
+  weight: 0.1
+  stack: 1
+  icon: bandana
+  wear_on: head
+  look: bandana
+  warmth: 1
+- id: hood
+  title: "[tools.items.hood]"
+  description: "[tools.items.hood.about]"
+  era: core:bone_leather
+  weight: 0.4
+  stack: 1
+  icon: hood
+  wear_on: head
+  look: hood
+  warmth: 4
+- id: linen_shirt
+  title: "[tools.items.linen_shirt]"
+  description: "[tools.items.linen_shirt.about]"
+  era: core:bone_leather
+  weight: 0.4
+  stack: 1
+  icon: linen_shirt
+  wear_on: body
+  look: linen_shirt
+  warmth: 4
