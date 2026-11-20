@@ -142,7 +142,11 @@ not sand. A relief record (`beach`, `swamp`…) with its own warmth or moisture 
 shore, mangroves), an open sea — the sea's variant (a tropical sea; lakes and rivers stay the sea). A chunk
 stores the biome of each column (`Chunk.biome`, `WorldData.biome_at`): `_fill_row` writes it from the layout,
 it is saved and goes to the client with the chunk; a chunk saved earlier has it laid out again by a row per
-step (`_biome_row`). By it the client paints the soil and water (the biome's `tints`), and plants with a list
+step (`_biome_row`). Beside it the chunk keeps each column's frost (`Chunk.frost`, 0..255): how much of the
+snow of the heights over `WorldData.SNOW_LINE` lies there by the column's warmth at the sea, none from the warmth
+of a biome with `snowless_peaks` (a desert, `Biomes.SNOWLESS_FROM`) and up, thinning out over
+`LandLayout.SNOWLESS_FADE` (so the hills of a hot land, of whatever biome their height cools them into, stay bare);
+`WorldData.peak_snow(y, x, z)` and the world shader (`biome_map`'s g) read it. By the biome the client paints the soil and water (the biome's `tints`), and plants with a list
 `biomes` grow only there. The rules ask for the biome through `WorldGen.biome_of(x, z)`: from the chunk, and
 without it — by the layout of one column (the same, generation_test checks it). Trees grow on grass and on
 the soils from the biome's `trees_on` (`Biomes.tree_grounds`: palms on sand; a palm's crown is one flat round

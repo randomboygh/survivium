@@ -379,7 +379,7 @@ func _leave_prints(one: Dictionary, at: Vector3, walking: bool) -> void:
 		return
 	var world = game.world
 	var clock = game.clock
-	if world != null and clock != null and maxf(clock.snow, world.peak_snow(at.y / CELL)) > Body.SNOW_DEEP.x:
+	if world != null and clock != null and maxf(clock.snow, world.peak_snow(at.y / CELL, col.x, col.y)) > Body.SNOW_DEEP.x:
 		world.tread(one.col.x, one.col.y, clock.now())
 	one.col = col
 

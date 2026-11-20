@@ -66,7 +66,8 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
 
 **Interface.** `get_cell` / `set_cell` / `set_material`, `is_natural`, `in_bounds`, `add_tree`, `remove_tree`,
 `add_bush`, `add_drop` / `heap_drop` / `take_drop`, `tread` / `trail`, `column_masks`, `padded`, `biome_at`
-(the column's biome from `Chunk.biome`, `NO_BIOME` without it); `is_solid`, `blocks_body`, `ground_height`,
+(the column's biome from `Chunk.biome`, `NO_BIOME` without it), `peak_snow(y, x, z)` (the snow lying all year at
+height `y` in a column: over `SNOW_LINE`, times the column's `Chunk.frost`, none in a desert's hills); `is_solid`, `blocks_body`, `ground_height`,
 `surface_height`, `corner_cuts`; `Grass.kinds`, `plants_on`, `has_tall`; `VoxelRaycast.cast`. Constants:
 `CELL` (0.5 of a world unit, 8 px), `CHUNK` (16), `SNOW_LINE` (18).
 

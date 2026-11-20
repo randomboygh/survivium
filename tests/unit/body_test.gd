@@ -616,7 +616,7 @@ func _test_ground() -> void:
 	_check(lying == gen.plan_drops().size() and sacks >= 10 and gen.plan_things().size() >= 15,
 		"the camp of the test world has its things on the ground (%d), sacks (%d) and placed things" % [lying, sacks])
 	_check(w.surface_y(TestGround.PEAK.x, TestGround.PEAK.y) == g + TestGround.PEAK_RISE + 1
-		and w.peak_snow(g + TestGround.PEAK_RISE + 1) == 1.0, "the mountain of the test world rises into the snow")
+		and w.peak_snow(g + TestGround.PEAK_RISE + 1, TestGround.PEAK.x, TestGround.PEAK.y) == 1.0, "the mountain of the test world rises into the snow")
 	# The star cave: hollow round its middle and down to its lower point, open from the
 	# top of its mound down through its upper point, walled with brick where the upward
 	# tetrahedron bounds it and with stone under the downward one's upper face.
@@ -673,7 +673,7 @@ func _test_ground() -> void:
 		and w.surface_y(cxo + 24 * st + 7, dry + 4) == g + 3 and w.slope_mask(cxo + 24 * st + 5, g + 1, dry + 4) != WorldData.FULL,
 		"the combinations ground has a cone three high and a ramp up two levels a cell each")
 	var snowy: int = gen.snow_base
-	_check(w.get_cell(cxo + 4, snowy + 1, czo + 4) == Mat.GRASS and w.peak_snow(snowy) == 1.0
+	_check(w.get_cell(cxo + 4, snowy + 1, czo + 4) == Mat.GRASS and w.peak_snow(snowy, cxo + 4, czo + 4) == 1.0
 		and w.surface_y(cxo - 3, czo + TestGround.COMBO_RAMP.x) == snowy and w.surface_y(cxo - 10, czo + TestGround.COMBO_RAMP.x) == snowy - 7,
 		"the snow band of the combinations ground lies in the snow, a ramp up to it")
 	# The biome plots: the forest plot grows the forest's trees as thick as a forest, the

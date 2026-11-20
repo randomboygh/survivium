@@ -575,6 +575,10 @@ void fragment() {
 	vec3 probe = top ? open_probe(world_pos, world_normal, flag, true) : world_pos;
 	bool roof = roofed(probe.xz, probe.y);
 	float peak = clamp((world_pos.y - snow_line) / (2.0 * CELL), 0.0, 1.0);
+	if (peak > 0.0) {
+		// None in a hot land, thinning out towards it (Chunk.frost).
+		peak *= texture(biome_map, (floor(world_pos.xz / CELL) + 0.5) * CELL / wrap_size).g;
+	}
 	// No snow on the top of a trunk inside its crown (a dark cap, see TrunkMesher).
 	bool crowned = cap && (material_bits[tile / 3] & TRUNK) != 0;
 	float snow_here = roof || crowned ? 0.0 : max(snow_amount, peak) * (1.0 - warm);

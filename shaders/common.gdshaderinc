@@ -127,7 +127,8 @@ global uniform sampler2D roof_map : filter_nearest, repeat_enable;
 // RoofMap.LOW, fog_at).
 global uniform sampler2D ground_low : filter_linear, repeat_enable;
 // One texel per column like the roof map: r = the column's biome (an index of Biomes,
-// 255 not known), see roof_map.gd.
+// 255 not known), g = how much of the snow of the heights lies on it (Chunk.frost: none
+// in a desert's hills), see roof_map.gd.
 global uniform sampler2D biome_map : filter_nearest, repeat_enable;
 // What each biome does to the colour of each material: texel (material, biome) holds
 // the factor over 4, 0.25 none (see roof_map.gd, Biomes.tints).

@@ -182,6 +182,11 @@ const MOUNT_WOODS := 7
 ## With climate 1 the slopes this many levels under a mountain's rock line that no
 ## woods cover are the alpine biome's (Biomes.ALPINE), when its warmth window holds them.
 const ALPINE_BELOW := 6
+## The snow of the high mountains thins out from the warmth of the snowless heights
+## (Biomes.SNOWLESS_FROM, a desert's) over this much warmth more, so it has no edge on
+## the land (the climate changes over hundreds of cells); a desert's own heights are
+## warmer still (it is the desert's warmth at their height, cooled by the levels).
+const SNOWLESS_FADE := 0.02
 ## Relief 1 (see _ranges_and_mesas). Ranges: the rise of their feet and of their
 ## highest crests, the crags on the crests and the low ranges where plateaus were;
 ## gorges with a floor GORGE_FLOOR cells either way of the gorge noise's zero line
@@ -493,7 +498,7 @@ func _window(x0: int, z0: int, w: int, h: int, step := 1) -> Dictionary:
 		a.resize(count)
 		lay[k] = a
 	lay.water.fill(-1)
-	for k: String in ["tops", "flags", "biome", "kind", "feature", "falls", "adit", "pit", "cut", "descent", "pile"]:
+	for k: String in ["tops", "flags", "biome", "frost", "kind", "feature", "falls", "adit", "pit", "cut", "descent", "pile"]:
 		var a := PackedByteArray()
 		a.resize(count)
 		lay[k] = a
@@ -1170,7 +1175,11 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 			fresh = minf(fresh, river[j] - 2.0)
 		var wet := clampi(int(near / 16.0), 0, 15)
 		# Climate: warmth from the slow noise, colder up the hills; wetter near water.
-		var t := clampf(0.5 + (temp[j] / 255.0 - 0.5) * 1.6, 0.0, 1.0) - (height - sea) * cooling
+		var warmth := clampf(0.5 + (temp[j] / 255.0 - 0.5) * 1.6, 0.0, 1.0)
+		var t := warmth - (height - sea) * cooling
+		# The snow of the heights lies where the land is cold enough, none where it is
+		# as warm as a desert (see Chunk.frost), thinning out over SNOWLESS_FADE.
+		lay.frost[j] = 255 - int(smoothstep(Biomes.SNOWLESS_FROM, Biomes.SNOWLESS_FROM + SNOWLESS_FADE, warmth) * 255.0)
 		var m := (moist[j] / 255.0) * 0.6 + 0.4 - mini(wet, 5) * wet_fade
 		# Ravines: narrow winding cuts along a noise's zero line, RAVINE_DEPTH cells
 		# deep, through the dry hot lowland and the rolling hills only (see _ravine).
@@ -1841,7 +1850,7 @@ func _is_place(what: String, lay: Dictionary, j: int) -> bool:
 		"mountain":
 			return b == Biomes.ROCK and kind == MOUNTAIN
 		"peak":
-			return kind == MOUNTAIN and lay.heights[j] >= sea + WorldData.SNOW_LINE + 3
+			return kind == MOUNTAIN and lay.heights[j] >= sea + WorldData.SNOW_LINE + 3 and lay.frost[j] > 200
 		"waterfall":
 			return lay.falls[j] == 2
 		"rapids":

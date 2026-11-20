@@ -44,6 +44,10 @@ static var VARIANTS: Dictionary = {}
 ## order, and the sum of their `cave_share` (see cave).
 static var CAVES: Array = [[], []]
 static var CAVE_SHARES := PackedFloat32Array([0.0, 0.0])
+## The warmth (of a column's climate at the sea, see LandLayout) from which no snow lies
+## on the heights all year: the lowest warmth of a biome that says `snowless_peaks` (a
+## desert), above 1 when none does.
+static var SNOWLESS_FROM := 2.0
 
 
 static func _static_init() -> void:
@@ -67,6 +71,7 @@ static func refresh(only: Variant = null) -> void:
 	VARIANTS = {}
 	CAVES = [[], []]
 	CAVE_SHARES = PackedFloat32Array([0.0, 0.0])
+	SNOWLESS_FROM = 2.0
 	for r in Content.records_of("biomes", only) if only is Array else Content.records("biomes"):
 		var b: Dictionary = r.duplicate()
 		b.tree_shares = _shares(b.trees, Trees.SPECIES)
@@ -75,6 +80,8 @@ static func refresh(only: Variant = null) -> void:
 		# The mods' grounds by index (-1 where the field is empty or its bundle not loaded).
 		for f: String in ["ground", "ground_below", "ground_above", "crater"]:
 			b[f + "_mat"] = Mat.index(b[f]) if b[f] != "" else -1
+		if b.snowless_peaks:
+			SNOWLESS_FROM = minf(SNOWLESS_FROM, b.warmth[0])
 		var i := RECORDS.size()
 		RECORDS.append(b)
 		IDS.append(b.id)
@@ -125,7 +132,7 @@ static func refresh(only: Variant = null) -> void:
 ## the land of the bundles chosen there (refresh with `only`) while the world behind it
 ## plays with its own, swapping the tables round the layout of each frame.
 static func tables() -> Array:
-	return [RECORDS, IDS, SEA, BEACH, ROCK, PLATEAU, SWAMP, ALPINE, GLACIER, CLIMATE, VARIANTS, CAVES, CAVE_SHARES, VOLCANIC]
+	return [RECORDS, IDS, SEA, BEACH, ROCK, PLATEAU, SWAMP, ALPINE, GLACIER, CLIMATE, VARIANTS, CAVES, CAVE_SHARES, VOLCANIC, SNOWLESS_FROM]
 
 
 ## Puts back tables `t` (see tables).
@@ -144,6 +151,7 @@ static func use(t: Array) -> void:
 	CAVES = t[11]
 	CAVE_SHARES = t[12]
 	VOLCANIC = t[13]
+	SNOWLESS_FROM = t[14]
 
 
 ## Whether biome `a` comes before `c`: the smaller window first, the first loaded on a tie.

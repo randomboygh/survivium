@@ -97,7 +97,9 @@ content/biomes/
   biomes of one zone lie in patches side by side, and tundra does not neighbour desert; the zone itself is a label of where
   the biome lies, its `warmth` window decides.
 - `spawn: true` — the game can be started here (if no biome has it, any
-  climatic one fits); `sandstorms: true` — sandstorms instead of rain (the weather of `clock.gd`); `color` —
+  climatic one fits); `sandstorms: true` — sandstorms instead of rain (the weather of `clock.gd`);
+  `snowless_peaks: true` — no snow lies all year on the heights where the land is as warm as this biome or warmer
+  (the desert: its hills stay bare whatever biome their height cools them into); `color` —
   the colour on the map and the minimap; `tints` — the colours of the biome's ground and water instead of their own, by the names of the
   `top` and `water` fields (`{sand: "#e6dcbe", water: "#4cc6bc"}` for the tropical beach, `{grass: "#a39a4a"}` for the savanna):
   the client tints the texture toward them, and at the border of biomes the colours change by pixels.

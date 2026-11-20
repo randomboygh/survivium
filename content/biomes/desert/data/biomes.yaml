@@ -6,7 +6,7 @@
 # trees — shares of species on the tree grid (the rest is empty), tree_chance — the chance of a tree at a grid node,
 # groves — the chance in groves (where forest noise is high); bushes — shares of bushes, bush_sparsity — one attempt
 # of a bush per that many cells (0 — none). spawn — the game can start here; sandstorms — instead of rain
-# sandstorms. tumbleweeds — how many roll with the wind round the player. zone — the climate zone (polar, north, temperate, steppe, hot, tropic, mountain), a label
+# sandstorms; snowless_peaks — no snow on the heights all year where the land is this warm or warmer. tumbleweeds — how many roll with the wind round the player. zone — the climate zone (polar, north, temperate, steppe, hot, tropic, mountain), a label
 # for the map and reports. color — the colour on the map. tints — the biome's ground and water colours instead of their own (by
 # the names of the top field and water: {sand: "#e6dcbe", water: "#4cc6bc"}). References to species and bushes are soft: without their bundle the share is empty.
 # Desert: dunes of sand; in new worlds (the setting landscape 1) an oasis by its lakes and rivers (by_water).
@@ -20,6 +20,8 @@
   bushes: {plants:shrub: 1.0}
   bush_sparsity: 900
   sandstorms: true
+  # No snow on the heights all year where the land is as warm as a desert (its hills and mountains).
+  snowless_peaks: true
   by_water: oasis
   by_water_reach: 14
   tints: {water: "#5eaaa2"}
