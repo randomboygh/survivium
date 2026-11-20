@@ -258,9 +258,12 @@ func _pull(who) -> Dictionary:
 
 
 ## The top of the nearest open water from `at` along `dir` (x, z), from a cell out to
-## `reach` cells, as a world point; INF when there is none.
+## `reach` cells, as a world point; INF when there is none. Open means air over it up to
+## the level of the body: water in a cave under the ground in front is not reached (the
+## user's report 2026-11-20: the button drank "sea water" in a forest over a cave lake).
 func water_ahead(at: Vector3, dir: Vector2, reach: int) -> Vector3:
 	var from := Vector2(at.x, at.z) / CELL
+	var feet := floori(at.y / CELL)
 	for i in range(2, reach * 2 + 1):
 		var p := from + dir * (i * 0.5)
 		var x := floori(p.x)
@@ -269,7 +272,12 @@ func water_ahead(at: Vector3, dir: Vector2, reach: int) -> Vector3:
 		if bits == 0:
 			continue
 		var top := WorldData.top_level(bits)
-		if world.get_cell(x, top + 1, z) == Mat.AIR:
+		var open := true
+		for y in range(top + 1, maxi(top + 2, feet + 1)):
+			if world.get_cell(x, y, z) != Mat.AIR:
+				open = false
+				break
+		if open:
 			return Vector3(p.x, top + 1.0, p.y) * CELL
 	return Vector3.INF
 

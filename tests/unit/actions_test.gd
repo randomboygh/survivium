@@ -20,6 +20,7 @@ func run() -> void:
 	_test_lights()
 	_test_drinking()
 	_test_sea_water()
+	_test_bush_by_water()
 	_test_rain_catcher()
 	_test_station_flags()
 	_test_recipe_fields()
@@ -714,6 +715,60 @@ func _test_drinking() -> void:
 	who.hands = ["", ""]
 	who.vitals.water = 30.0
 	_check(not actions.dig_at(who, Vector3i(10, 1, 11), Vector3i.UP).is_empty() and who.vitals.water > 30.0, "a tap on the water drinks too")
+
+
+## A berry bush in front on the shore is gathered before the water beyond it is drunk,
+## at the sea and at fresh water alike (the user's report 2026-11-20); with the bush gone, the
+## fresh water is drunk and the sea is only called salty.
+func _test_bush_by_water() -> void:
+	for fresh in [false, true]:
+		var w := WorldData.new(40, Vector2i(48, 48))
+		for z in 48:
+			for x in 48:
+				w.set_cell(x, 0, z, Mat.STONE)
+				w.set_cell(x, 1, z, Mat.WATER if z <= 10 else Mat.DIRT)
+		var src := GDScript.new()
+		src.source_code = "extends \"res://src/shared/game/world_actions.gd\"\n\nfunc fresh_water(_water: Vector3) -> bool:\n\treturn %s\n" % ("true" if fresh else "false")
+		src.reload()
+		var actions = src.new(w, {"season": 1, "day": 0}, Rules.new())
+		var who := Survivor.new()
+		who.world = w
+		who.at = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
+		who.vitals.water = 30.0
+		var bush := Vector3i(10, 2, 11)
+		w.add_bush(bush, Bushes.first(true))
+		var b: Dictionary = Bushes.TYPES[Bushes.first(true)]
+		var where := "fresh water" if fresh else "the sea"
+		_check(actions.ripe(bush, b) and actions.front_kind(who) == "gather", "a ripe berry bush before %s: the button says it gathers" % where)
+		actions.act_in_front(who, 40)
+		_check(who.vitals.water == 30.0 and who.inventory.count(b.fruit) > 0, "and gathers the berries, not drinking at %s" % where)
+		w.remove_bush(bush)
+		_check(actions.front_kind(who) == "drink", "with no bush the button says it drinks at %s" % where)
+		actions.act_in_front(who, 40)
+		_check(who.vitals.water == (30.0 + WorldActions.DRINK if fresh else 30.0), "and drinks only fresh water (%s)" % where)
+	# Water in a cave under the ground in front is not reached from above.
+	var w2 := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			for y in 6:
+				w2.set_cell(x, y, z, Mat.STONE)
+	for z in range(5, 11):
+		for x in range(5, 16):
+			w2.set_cell(x, 1, z, Mat.WATER)
+			w2.set_cell(x, 2, z, Mat.AIR)
+	var a2 := WorldActions.new(w2, {"season": 1, "day": 0}, Rules.new())
+	var dry := Survivor.new()
+	dry.world = w2
+	dry.at = Vector3(10.5, 6.0, 12.5) * WorldData.CELL
+	dry.vitals.water = 30.0
+	_check(not a2.water_ahead(dry.position, Vector2(0, -1), WorldActions.DRINK_REACH).is_finite() and a2.front_kind(dry) != "drink",
+		"water in a cave under the ground in front is not drunk from above")
+	dry.at = Vector3(10.5, 2.0, 12.5) * WorldData.CELL
+	for x in range(5, 16):
+		for y in range(2, 4):
+			w2.set_cell(x, y, 12, Mat.AIR)
+			w2.set_cell(x, y, 11, Mat.AIR)
+	_check(a2.water_ahead(dry.position, Vector2(0, -1), WorldActions.DRINK_REACH).is_finite(), "but it is from beside it in the cave")
 
 
 ## At the sea an empty waterskin fills with sea water, which is not drunk; an empty hand

@@ -347,6 +347,8 @@ func _run() -> void:
 					Vector2(main.character.facing_step()).normalized(), main.actions.DRINK_REACH)
 				if ahead.is_finite():
 					break
+		if shot.has("face"):
+			main.player.facing = shot.face
 		if shot.has("wisps"):
 			# Will-o'-the-wisps hung by the player (east, north-west...) as Wisps would hang them
 			# over a swamp's pool, for a look at them.

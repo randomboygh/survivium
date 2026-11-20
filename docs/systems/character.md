@@ -115,7 +115,9 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   `THIRSTY` — like hunger (no healing, rest twice as slow, stamina up to `HUNGRY_CAP`), at zero it wounds
   (`hurt_by` "thirst", «You died of thirst»). `drink(amount)`; `thirst` off — the test switch «Thirst». One
   drinks at fresh water with an empty hand (`WorldActions.drink`: the action button facing water within
-  `DRINK_REACH` or a tap on water; `fresh_water` — a lake, a river, a swamp, not the sea), an empty vessel in
+  `DRINK_REACH` with air over it up to the body's level, so not a cave lake under the ground, `water_ahead`, or a tap on water; `fresh_water` — a lake, a river, a swamp, not the sea; `water_first`: a tree or a
+  bush to gather in front, no farther than the water, comes first, and the sea is only called salty, `salty_ahead`,
+  once there is nothing to gather), an empty vessel in
   the hand (`fills_to`) is filled there too; a full one (`drink`, `empties_to`) is drunk as food
   (`Character.eat`). A vessel of water (`holds`: a waterskin 60) keeps in its slot how much is missing
   (`Inventory.water_left`, `set_water`, `pour`; a blue strip on the slot, `water_share`): it is drunk in gulps
