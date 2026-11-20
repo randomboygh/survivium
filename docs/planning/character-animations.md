@@ -328,7 +328,7 @@ outline, its tip in the trail's first pixels).
 
 - Columns 48-59 (`player.yaml`: wave 48-49, nod 0 and 50, shake 51-52, point 53, beckon 54-55, bow 56-57,
   clap 58-59). A gesture is drawn whole in `tools/art/player_gesture_art.gd` (GestureArt), written by
-  `gen_gesture_gd.py <out.gd> wave=gestures_i:WAVE nod=gestures_nod_a:ALL_B:0,50` from data modules in the
+  `gen_gesture_gd.py <out.gd> wave=gestures_i:WAVE nod=gestures_nod_a:ALL_B:0,50 shake=gestures_shake_a:ALL_D` from data modules in the
   library; the others are still `PlayerArt.MOVES` poses until drawn. A frame's rows start at column
   `GestureArt.X0` (-2): a hand goes out past the box beside the head; the box's part is made in the body's
   forms (`FormsArt.body`), the hands past it thinned with it (`GestureArt.rows`).
@@ -351,11 +351,19 @@ outline, its tip in the trail's first pixels).
   `:0,50` writes `{}` for it. Dressed, the chin lies over the collar's row and the shirt's layer (over the
   body's) drew the collar over it: `PlayerArt.frame_letters` takes what is worn off where the head is (the
   review GIFs show the bare look; the library's `dressed_quick.gd <out.png> <cols>` shows it dressed).
+- The shake (variant В of three looked at from the front, 2026-11-20 19:30 MSK: the head turned, moved
+  aside, both; then «не так сильно сдвигать голову, всего на 1 пиксель»): the body stands and the head turns
+  an eighth to each side (`head`: s to se and sw, se to s and e, e to se and ne, ne to e and n, n to ne and
+  nw; a west way is its east one flipped, `PlayerArt._turned`), a pixel aside the way the face turns in the
+  first frame and in its place in the second (`head_shift` in the data, `lean` in GestureArt, which
+  `PlayerArt.pose` takes from a frame drawn whole: only the head, hair and looks move, the body's rows stay).
+  From the side (e) the head only turns: aside it would leave the neck.
 - A raised hand's place (`hands`, where a thing held is drawn) is its lowest pixel under its middle, the
   one nearer the body on a tie, so a hand that moves moves its place; a hand drawn where the stand has it
   keeps the stand's place. `view_test.gd` (`_test_gestures`) checks the wave in every direction (one hand
   up by the head and moving, the other where it stands) and the nod (the head a pixel lower, the legs and
-  the hands' marks as standing, no shirt over the chin).
+  the hands' marks as standing, no shirt over the chin) and the shake (the legs and the hands' marks as
+  standing, the two frames differ, the figure's edges a pixel apart at most).
 - Tools in the library: `gestures_proto.py` renders a frame as the game does (the front hands over the
   head), `gestures_wide.py` builds wide frames from a stand (`seg`, `frame`), `gestures_view.py` sheets of
   variants, `gestures_vsgame.py <module>:<attr> <anim> <quick dir>` compares them with a quick sheet drawn
