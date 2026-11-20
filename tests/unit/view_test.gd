@@ -1055,6 +1055,46 @@ func _test_rainbow() -> void:
 	air.free()
 
 
+## A game with only the water's material and a player, and a sky with only its wind, for
+## WaterEffects._waves.
+class WaveGame:
+	var water_mat := ShaderMaterial.new()
+	var player = 1
+
+
+class WindSky:
+	var wind_now := Vector2.ZERO
+
+
+## The wind's waves run the nearest of 8 ways to the wind at once at first; later they
+## turn only once it is well off their way (not back and forth for a wind between two),
+## dithered over WAVE_TURN seconds; hidden with their part.
+func _test_wave_ways() -> void:
+	var water = WaterEffects.new(WaveGame.new(), null)
+	var sky := WindSky.new()
+	sky.wind_now = Vector2(0.0, 2.0)
+	water._waves(0.1, sky)
+	var v: Vector4 = water.game.water_mat.get_shader_parameter("waves")
+	_check(v == Vector4(2.0, 2.0, 1.0, 1.0), "a wind to the south runs the waves south at once (%s)" % v)
+	sky.wind_now = Vector2(1.0, 1.4)
+	water._waves(0.1, sky)
+	v = water.game.water_mat.get_shader_parameter("waves")
+	_check(v.x == 2.0 and v.y == 1.0 and v.z < 0.1, "a wind turned well to the south-east starts turning them (%s)" % v)
+	for i in 40:
+		water._waves(0.1, sky)
+	v = water.game.water_mat.get_shader_parameter("waves")
+	_check(v.y == 1.0 and v.z == 1.0, "and they have turned after WAVE_TURN seconds (%s)" % v)
+	sky.wind_now = Vector2(cos(deg_to_rad(70.0)), sin(deg_to_rad(70.0))) * 2.0
+	water._waves(0.1, sky)
+	v = water.game.water_mat.get_shader_parameter("waves")
+	_check(v.y == 1.0 and v.z == 1.0, "a wind nearer south but not well off keeps them (%s)" % v)
+	water.hidden[WaterEffects.WAVES_PART] = true
+	water._waves(0.1, sky)
+	v = water.game.water_mat.get_shader_parameter("waves")
+	_check(v.w == 0.0, "hidden, the shader is told so (%s)" % v)
+	water.free()
+
+
 ## The small effects (AirEffects, WaterEffects, NatureEffects): each part can be hidden
 ## in «Что рисуется» on its own by a name of its own, the low preset turns them all off
 ## and the medium one the costliest (the mirroring and the heat), and a dragonfly's
@@ -1074,8 +1114,9 @@ func _test_small_effects() -> void:
 		_check(part.hidden.is_empty(), "%s: and shows again" % script.resource_path.get_file())
 		if part is Node:
 			part.free()
-	_check(names.size() == all.size() and all.size() == 15, "fifteen parts, each named once: %s" % [all])
+	_check(names.size() == all.size() and all.size() == 16, "sixteen parts, each named once: %s" % [all])
 	_test_rainbow()
+	_test_wave_ways()
 	var low: Dictionary = SettingsScript.QUALITIES[0]
 	var medium: Dictionary = SettingsScript.QUALITIES[1]
 	_check(low.water_fx == 0 and not low.nature_fx and not low.body_fx and not low.heat_fx and not low.drops_fx,
