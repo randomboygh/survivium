@@ -503,7 +503,8 @@ func _mirror(delta: float, sky) -> void:
 				m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				add_child(m)
 				_mirrors[sprite] = m
-			_mirrors[sprite].set_meta("level", want[sprite])
+			_mirrors[sprite].set_meta("level", want[sprite].x)
+			_mirrors[sprite].set_meta("sea", want[sprite].y)
 	# Darker than the rings and the steam at night: the mirror is only a pale copy of a figure.
 	var light := pow(_light(), 1.6)
 	for sprite in _mirrors.keys():
@@ -533,6 +534,7 @@ func _mirror(delta: float, sky) -> void:
 					or from.get_shader_parameter("swap_to") != mat.get_shader_parameter("swap_to"):
 				_copy_looks(from, mat)
 		mat.set_shader_parameter("level", level_y)
+		mat.set_shader_parameter("sea", m.get_meta("sea", 0.0))
 		mat.set_shader_parameter("light", light)
 		var p: Vector3 = sprite.global_position
 		var at := Vector3(p.x, 2.0 * level_y - p.y, p.z)
@@ -548,7 +550,9 @@ func _mirror(delta: float, sky) -> void:
 			m.custom_aabb = m.transform.affine_inverse() * world_box
 
 
-## The sprites to mirror now: sprite -> the level of the water it stands by.
+## The sprites to mirror now: sprite -> Vector2(the level of the water it stands by, 1
+## when that water is the sea's, so its surf may mirror on the sand, else 0). A lake or
+## a pond as high as the sea is not the sea: no surf runs up its shore.
 func _mirrored() -> Dictionary:
 	var view: Vector2 = game.view.cam_target
 	var found := []
@@ -583,18 +587,18 @@ func _mirrored() -> Dictionary:
 		var land := _land_top(c.x, c.z, c.y)
 		var on_land := land != -INF and absf(land - p.y) < 0.3
 		if on_land and _by_surf(c, land):
-			out[one[1]] = land
+			out[one[1]] = Vector2(land, 1.0)
 			continue
 		# The nearest open water round the feet, any way the camera looks: from a swimmer
 		# (the feet deep under it) to one a cell or two up the bank.
 		for r in range(0, MIRROR_LOOK + 1):
 			var top := _water_ring(c, r, p.y)
-			if top != -INF:
+			if top.x != -INF:
 				out[one[1]] = top
 				break
 		# Puddles after rain: mirrored at the feet, where the ground keeps a puddle.
 		if not out.has(one[1]) and on_land and _puddles > 0.0:
-			out[one[1]] = land
+			out[one[1]] = Vector2(land, 0.0)
 	return out
 
 
@@ -629,13 +633,16 @@ func _by_surf(c: Vector3i, land: float) -> bool:
 
 
 ## The top of open water among the cells `r` from cell `c` (a square ring), within
-## reach of feet at height `feet`; -INF when there is none.
-func _water_ring(c: Vector3i, r: int, feet: float) -> float:
+## reach of feet at height `feet`, and 1 when it is the sea's (else 0); x -INF when there
+## is none.
+func _water_ring(c: Vector3i, r: int, feet: float) -> Vector2:
 	for dz in range(-r, r + 1):
 		for dx in range(-r, r + 1):
 			if maxi(absi(dx), absi(dz)) != r:
 				continue
 			var top := water_top(c.x + dx, c.z + dz, c.y + 2)
 			if top != -INF and top <= feet + MIRROR_DEEP and top > feet - MIRROR_HIGH:
-				return top
-	return -INF
+				var w = game.world
+				var y := floori(top / CELL - 0.01)
+				return Vector2(top, 1.0 if w.sea(c.x + dx, y, c.z + dz) else 0.0)
+	return Vector2(-INF, 0.0)

@@ -20,6 +20,9 @@ uniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);
 uniform vec3 tint = vec3(1.0);
 // The water's surface the figure is mirrored in, world units.
 uniform float level = -1000.0;
+// 1 when the water the figure is mirrored in is the sea's (WaterEffects): only then does
+// the sand its surf runs up mirror. A lake as high as the sea has no surf.
+uniform float sea = 0.0;
 uniform float light = 1.0;
 uniform vec3 water SRGB = vec3(0.3, 0.52, 0.58);
 
@@ -115,7 +118,7 @@ bool puddle(vec2 xz, float top, vec4 col) {
 // How clearly the surface at `xz` shows the mirror, 0..1: open water at the level; the
 // ground at the water's edge level with it (the foam on the sand, a bank half under
 // water) with water beside it; the sand the sea's surf runs up (surf_mirror) when the
-// mirror is the sea's; a puddle on the ground at the level (a figure standing on dry
+// mirror is the sea's (`sea`); a puddle on the ground at the level (a figure standing on dry
 // land is mirrored at its feet, see WaterEffects).
 float mirrors(vec2 xz) {
 	vec2 c = floor(xz / CELL);
@@ -145,7 +148,7 @@ float mirrors(vec2 xz) {
 			return 1.0;
 		}
 	}
-	if (abs(top - sea_top) < 0.1 && abs(level - sea_top) < 0.3) {
+	if (sea > 0.5 && abs(top - sea_top) < 0.1 && abs(level - sea_top) < 0.3) {
 		float k = surf_mirror(xz);
 		if (k > 0.0) {
 			return k;
