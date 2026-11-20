@@ -400,6 +400,8 @@ const SHOTS := {
 	# and cattails.
 	"desert": {"time": 0.42, "season": 1, "place": "desert"},
 	"oasis": {"time": 0.42, "season": 1, "place": "oasis"},
+	# The biggest group of cacti near the desert spot: an oasis of 5..10 (Grass.in_group).
+	"desert-cacti": {"time": 0.42, "season": 1, "place": "desert", "grove_of": "plants:cactus"},
 	"rocky-desert": {"time": 0.42, "season": 1, "place": "rocky_desert"},
 	# Tumbleweeds rolling with a strong wind over the desert (frames to see them roll).
 	"tumbleweeds": {"time": 0.42, "season": 1, "place": "desert", "gust": 1.5, "wind": 0.4, "tumbleweeds": 3,

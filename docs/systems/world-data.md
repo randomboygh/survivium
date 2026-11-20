@@ -56,7 +56,9 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
   `WOODS_EDGE` cells round it, `_near_crown` —, on banks, near water at the ground's level (`_near_water`,
   `near_water`, `water_cover`: sedge on the banks); a frame `across` cards wide is one kind, its first
   column, which `foliage._column` draws as that many cards by `Plants.ACROSS`; fairy rings of the plant with
-  `rings` on the open grass, one in that share of the `RING_GRID` squares, `fairy_ring`, `in_ring`), cloud noise
+  `rings` on the open grass, one in that share of the `RING_GRID` squares, `fairy_ring`, `in_ring`; a plant with
+  `group_grid` only in groups, one at most per square that wide: big ones in a share `groves`, small ones in `groups`,
+  `in_group`, from the square alone so server and clients agree: cacti in oases of 5–10 and twos, threes), cloud noise
   for shadows. `solid_plant(w, x, y, z)` — a plant that stops a body (`Plants.SOLID`: its `solid`, a cactus) on
   the cell's top and its root where `Foliage._column` draws it (the same draws of the cell's random numbers);
   quick to say no off the ground and the biomes such plants grow in, and what it found is kept per cell while

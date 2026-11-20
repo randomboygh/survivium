@@ -16,8 +16,9 @@ const Biomes := preload("res://src/shared/content/biomes.gd")
 
 const CELL := WorldData.CELL
 ## The picture: SIZE px square, FRAMES turns of it side by side (a turn of the ball is
-## FRAMES frames), drawn from TWIGS arcs of a twig.
-const SIZE := 14
+## FRAMES frames), drawn from TWIGS arcs of a twig (smaller since the user's ask,
+## 2026-11-20: 11 px, was 14; the arcs drawn as for 14 px and scaled down).
+const SIZE := 11
 const FRAMES := 8
 const TWIGS := 14
 ## Speed along the wind, world units a second: at the calmest and per unit of the wind's
@@ -70,9 +71,10 @@ static func sheet() -> Image:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7151
 	var twigs := []
+	var shrink := SIZE / 14.0
 	for i in TWIGS:
 		# Middle of the arc (from the ball's middle), its radius, start, length (radians).
-		twigs.append([rng.randf() * TAU, rng.randf_range(0.5, 3.0), rng.randf_range(3.0, 5.5),
+		twigs.append([rng.randf() * TAU, rng.randf_range(0.5, 3.0) * shrink, rng.randf_range(3.0, 5.5) * shrink,
 			rng.randf() * TAU, rng.randf_range(0.9, 1.9), i % 3])
 	var tones := [Color(0.58, 0.44, 0.27), Color(0.42, 0.31, 0.19), Color(0.72, 0.59, 0.38)]
 	var mid := (SIZE - 1) * 0.5
@@ -90,7 +92,7 @@ static func sheet() -> Image:
 				if Vector2(px - mid, py - mid).length() > radius - 0.2 or px < 0 or py < 0 or px >= SIZE or py >= SIZE:
 					continue
 				# The lower right of the ball is in its own shade.
-				var shade: bool = (px - mid) + (py - mid) > 6.0
+				var shade: bool = (px - mid) + (py - mid) > 6.0 * shrink
 				img.set_pixel(f * SIZE + px, py, tones[1] if shade else tones[t[5]])
 	return img
 

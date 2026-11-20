@@ -269,7 +269,8 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 ## (within `near_water` cells of water when that is set; with `water_cover` more often
 ## there, its `cover` elsewhere),
 ## and only in clumps `clump_size` cells wide where its own noise is above `clumps` when
-## that is set, and only in its `biomes` when it names some. A frame `across` cards wide
+## that is set, or only on the spots of its groups when it has `group_grid` (in_group;
+## its `cover` and `near_water` unused then), and only in its `biomes` when it names some. A frame `across` cards wide
 ## is one kind, its first column (Foliage draws the rest beside it). `tier` and
 ## `by_water` are the cell's, as kinds found them.
 static func _custom(w, x: int, y: int, z: int, m: int, tier: int, by_water: bool, out: Array[int], rng: RandomNumberGenerator) -> void:
@@ -317,7 +318,12 @@ static func _custom(w, x: int, y: int, z: int, m: int, tier: int, by_water: bool
 			continue
 		var roll := rng.randf()
 		var water_cover: float = r[9]
-		if water_cover >= 0.0:
+		var grouped: Dictionary = r[10]
+		if not grouped.is_empty():
+			# Only on the spots of its groups (`group_grid`), whatever the roll.
+			if not in_group(grouped, x, z):
+				continue
+		elif water_cover >= 0.0:
 			# Its `cover` anywhere, more by the water (the costlier test only past it).
 			if (roll >= r[4] or bank_only) and (roll >= water_cover or not _near_water(w, x, y, z, r[5])):
 				continue
@@ -337,7 +343,8 @@ const GROWS := {"meadow": MEADOW, "shade": SHADE, "woods": WOODS, "bank": BANK, 
 ## biomes (_custom runs for every grass cell a chunk's plants are built on): for each
 ## plant that grows wild, [where it grows, a byte per biome index (1 where it grows,
 ## empty for anywhere), its clumps' noise (null for none), the noise's threshold,
-## cover, near_water, first frame, frames, across, water_cover].
+## cover, near_water, first frame, frames, across, water_cover, its groups (in_group;
+## empty for none)].
 static var _rules: Array[Array] = []
 static var _rules_of: Array = []
 static var _rules_biomes: Array = []
@@ -363,7 +370,93 @@ static func _compile_custom() -> void:
 				noise = _field_noise(hash(c.id), 1.0 / c.get("clump_size", 10.0))
 				custom_noises[c.id] = noise
 		_rules.append([GROWS.get(c.grows, -1), in_biomes, noise, float(c.clumps), float(c.cover), int(c.get("near_water", 0)),
-			int(c.first), int(c.frames), int(c.get("across", 1)), float(c.get("water_cover", -1.0))])
+			int(c.first), int(c.frames), int(c.get("across", 1)), float(c.get("water_cover", -1.0)), _groups_of(c)])
+
+
+## Groups (the user's ask, 2026-11-20: cacti in oases of 5 to 10, the loose ones by twos
+## and threes): a custom plant with `group_grid` grows only in groups, at most one in each
+## square `group_grid` cells across. A share `groves` of the squares holds a big group of
+## `grove_size` plants (the least and the most), a share `groups` a small one of
+## `group_size`; its plants stand `group_gap` cells apart at least (on both axes), in a
+## disc round a middle anywhere in the square, the more plants the wider (GROUP_SPREAD).
+## A spot on ground the plant does not grow on stays empty. Worked out from the square
+## and the plant's id alone, so the server and every client grow the same groups.
+const GROUP_SPREAD := Vector2(0.5, 0.4)
+## The spots of the squares looked at, per plant, at most GROUPS_KEPT before they are
+## worked out again.
+const GROUPS_KEPT := 4096
+
+
+## The groups of custom plant record `c` as in_group reads them, {} when it has none.
+static func _groups_of(c: Dictionary) -> Dictionary:
+	var grid := int(c.get("group_grid", 0))
+	if grid <= 0:
+		return {}
+	var gap := int(c.get("group_gap", 2))
+	var grove: Array = c.get("grove_size", [5, 10])
+	var group: Array = c.get("group_size", [2, 3])
+	var most := maxi(int(grove[1]), int(group[1]))
+	return {"id": c.id, "grid": grid, "gap": gap, "groves": float(c.get("groves", 0.0)), "grove": grove,
+		"groups": float(c.get("groups", 0.0)), "group": group, "reach": ceili(_group_spread(gap, most)) + 1,
+		"kept": {}}
+
+
+## How far from its middle a group of `n` plants `gap` cells apart spreads, in cells.
+static func _group_spread(gap: int, n: int) -> float:
+	return gap * (GROUP_SPREAD.x * sqrt(n) + GROUP_SPREAD.y)
+
+
+## Whether column x, z is a spot of a group of the plant with groups `g` (see _groups_of).
+static func in_group(g: Dictionary, x: int, z: int) -> bool:
+	var grid: int = g.grid
+	var reach: int = g.reach
+	var at := Vector2i(x, z)
+	for sx in range(floori(float(x - reach) / grid), floori(float(x + reach) / grid) + 1):
+		for sz in range(floori(float(z - reach) / grid), floori(float(z + reach) / grid) + 1):
+			if _group_spots(g, Vector2i(sx, sz)).has(at):
+				return true
+	return false
+
+
+## The spots (columns, a set) of the group of square `sq` of the plant with groups `g`.
+static func _group_spots(g: Dictionary, sq: Vector2i) -> Dictionary:
+	var kept: Dictionary = g.kept
+	var spots: Variant = kept.get(sq)
+	if spots != null:
+		return spots
+	var out := {}
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([sq, g.id, "group"])
+	var roll := rng.randf()
+	var n := 0
+	if roll < g.groves:
+		n = rng.randi_range(g.grove[0], g.grove[1])
+	elif roll < g.groves + g.groups:
+		n = rng.randi_range(g.group[0], g.group[1])
+	if n > 0:
+		var grid: int = g.grid
+		var gap: int = g.gap
+		var mid := Vector2(sq.x * grid + rng.randf() * grid, sq.y * grid + rng.randf() * grid)
+		var spread := _group_spread(gap, n)
+		var placed: Array[Vector2i] = []
+		for i in n * 12:
+			if placed.size() >= n:
+				break
+			var a := rng.randf() * TAU
+			var d := sqrt(rng.randf()) * spread
+			var c := Vector2i(floori(mid.x + cos(a) * d), floori(mid.y + sin(a) * d))
+			var free := true
+			for p in placed:
+				if maxi(absi(p.x - c.x), absi(p.y - c.y)) < gap:
+					free = false
+					break
+			if free:
+				placed.append(c)
+				out[c] = true
+	if kept.size() >= GROUPS_KEPT:
+		kept.clear()
+	kept[sq] = out
+	return out
 
 
 ## Whether water stands within `reach` cells of ground cell x, y, z (eight ways out from

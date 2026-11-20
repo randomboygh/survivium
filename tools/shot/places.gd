@@ -17,6 +17,7 @@ const Foliage := preload("res://src/client/world/foliage.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Biomes := preload("res://src/shared/content/biomes.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
 const CELL := 0.5
 ## How far around the player (in cells) the shore, water and lone tree searches look:
 ## the world has no edge, only the chunks generated around.
@@ -165,6 +166,39 @@ func find_plant(w, cx: int, cz: int, id: String) -> Vector3:
 						and not w.trees.has(Vector2i(x, z + 2)):
 					return (Vector3(x, y, z + 2) + Vector3(0.5, 0.0, 0.5)) * CELL
 	return Vector3(cx + 0.5, w.surface_y(cx, cz), cz + 0.5) * CELL
+
+
+## A spot eight cells south of the middle of the biggest group of plant `id` (one with
+## `group_grid`: an oasis of cacti) within a few of its squares of `p`, counting only the
+## spots it grows on; `p` when none is near.
+func find_grove(w, p: Vector3, id: String) -> Vector3:
+	var rec := {}
+	for c in Plants.CUSTOM:
+		if c.id == id:
+			rec = c
+	var g := Grass._groups_of(rec) if not rec.is_empty() else {}
+	if g.is_empty():
+		return p
+	var grid: int = g.grid
+	var sq := Vector2i(floori(p.x / CELL / grid), floori(p.z / CELL / grid))
+	var best := 0
+	var best_at := p
+	for dz in range(-4, 5):
+		for dx in range(-4, 5):
+			var spots: Dictionary = Grass._group_spots(g, sq + Vector2i(dx, dz))
+			var grown := 0
+			var mid := Vector2.ZERO
+			for s: Vector2i in spots:
+				var y: int = w.surface_y(s.x, s.y)
+				if Grass.plants_on(w, s.x, y - 1, s.y).has(id):
+					grown += 1
+					mid += Vector2(s)
+			if grown > best:
+				best = grown
+				mid /= grown
+				var at := Vector2i(roundi(mid.x), roundi(mid.y) + 8)
+				best_at = Vector3(at.x + 0.5, w.surface_y(at.x, at.y), at.y + 0.5) * CELL
+	return best_at
 
 
 ## A spot two cells south of the patch round `p` where plant `id` grows most thickly in
