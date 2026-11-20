@@ -582,7 +582,9 @@ static func _whole_drawn(dir: String, c: Array) -> Dictionary:
 ## hands' places are less the bob), each leg a pixel shorter under it. A leg standing on
 ## the frame's last row loses the pixel under the waistband, its foot stays; a leg drawn
 ## up off the ground the same, a leg of one pixel goes down with the body. The hands'
-## skin under the waistband goes down with the body.
+## skin under the waistband stays where it is (the arm a row shorter, the hand as high over
+## the ground as turned and from the side), and so do a scythe's blade and a bow lowered
+## to the feet.
 static func shortened(f: Dictionary) -> Dictionary:
 	var out := f.duplicate()
 	var top: int = f.get("top", 10)
@@ -594,12 +596,25 @@ static func shortened(f: Dictionary) -> Dictionary:
 	for j in size - 1:
 		low.append(".".repeat((rows[0] as String).length()))
 	var width := (rows[0] as String).length()
+	var hands: Array = f.hands.duplicate(true)
+	var low_hands := {}
+	# What goes up to the waistband's row, which the row over it fills when it goes down.
+	var up := {}
 	for x in width:
 		for j in size:
 			var ch: String = (rows[hips + 1 + j] as String)[x]
 			if WalkArt.HANDS.has(ch):
-				# A hand goes down with the body.
-				low[mini(j, size - 2)][x] = ch
+				# A hand under the waistband stays where it is, its arm a row shorter (as
+				# turned, from the side and from behind: as high over the ground).
+				low_hands[WalkArt.HANDS[ch][0]] = true
+				if j > 0:
+					low[j - 1][x] = ch
+				else:
+					up[x] = ch
+	for i in 2:
+		if low_hands.has(["right", "left"][i]):
+			hands[i] = [hands[i][0], hands[i][1] - 1]
+	out.hands = hands
 	# Each leg (the west half of the picture, the east one, as legs splits them; a gesture's
 	# rows start `x0` aside).
 	var mid: int = 7 - int(f.get("x0", 0))
@@ -622,6 +637,10 @@ static func shortened(f: Dictionary) -> Dictionary:
 				if r[x] != "." and not WalkArt.HANDS.has(r[x]):
 					low[to[j]][x] = r[x]
 	out.rows = rows.slice(0, hips + 1) + low
+	var waist: String = out.rows[hips]
+	for x: int in up:
+		waist[x] = up[x]
+	out.rows[hips] = waist
 	if f.has("top"):
 		out.top = top + 1
 	else:
@@ -631,6 +650,17 @@ static func shortened(f: Dictionary) -> Dictionary:
 	out.hips = f.hips + 1
 	if f.has("neck"):
 		out.neck = f.neck + 1
+	if f.has("scythe"):
+		# The scythe's blade hangs to the ground: it stays where it was.
+		var sc: Dictionary = f.scythe.duplicate()
+		sc.at = [sc.at[0], sc.at[1] - 1]
+		out.scythe = sc
+	if f.has("bow"):
+		# A bow lowered to the feet stays where it was, over the ground's row.
+		var bw: Dictionary = f.bow.duplicate()
+		if hands[0][1] + out.bob + bw.at[1] + bw.rows.size() - 1 >= 17:
+			bw.at = [bw.at[0], bw.at[1] - 1]
+		out.bow = bw
 	if f.has("trail"):
 		var t: Dictionary = f.trail.duplicate()
 		t.at = [t.at[0], t.at[1] + 1]
