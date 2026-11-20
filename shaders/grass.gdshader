@@ -60,12 +60,23 @@ varying flat int kind;
 varying float clouds;
 // How much brighter a torch or a fire lights this than sea_bright left its colour (sea_undo).
 varying vec3 lamp_gain;
-// How far a spore is through its rise, 0..1.
+// How far a spore is through its rise, 0..1; for a plant that stops a body (a cactus)
+// 1 while it stands just behind the player, hidden by their figure (see GHOST_BEHIND).
 varying flat float life;
 // The plant's column in the texture: its own, or its other look's (looks_texel).
 varying flat float plant_column;
 // Someone this close (world units) folds a shy plant (Plants `looks`).
 const float SHY_REACH = 0.9;
+// A plant that stops a body (Plants `solid`: a cactus, PixelTextures.sway_texel blue)
+// standing this far (world units, along the view) behind the player, on their level and
+// within GHOST_NEAR of their figure on the screen, would be hidden whole by it (a low
+// barrel cactus): the player walks into what they cannot see. It is drawn over the
+// figure every other texel instead, the player showing through the rest.
+const float GHOST_BEHIND = 1.5;
+const float GHOST_NEAR = 1.2;
+// How far the depth of such a plant is brought forward (after shear the height is only
+// the depth), over the player's figure.
+const float GHOST_LIFT = 3.0;
 
 // Grass trodden down (trample.gd): a map of the ground round the player, TRAMPLE_TEXELS
 // texels a world unit, repeating every TRAMPLE_MAP: r the clock's byte (trample_now)
@@ -188,6 +199,15 @@ void vertex() {
 		}
 	}
 	VERTEX = shear(stand_tall(face_view(VERTEX, root), root));
+	if (kind == CUSTOM && texelFetch(plant_texture, ivec2(int(custom.x + 0.5) * 8 + 1, 24), 0).b > 0.5) {
+		float toward = view_slope / view_squash;
+		float before = root.y - dot(root.xz, view_up) * toward - (player_pos.y - dot(player_pos.xz, view_up) * toward);
+		float near = length(screen_plane(root) - screen_plane(player_pos + vec3(0.0, 0.5, 0.0)));
+		if (before < 0.0 && before > -GHOST_BEHIND && near < GHOST_NEAR && abs(root.y - player_pos.y) < 0.6) {
+			life = 1.0;
+			VERTEX.y += GHOST_LIFT;
+		}
+	}
 	light_xz = VERTEX.xz;
 	drawn = VERTEX;
 	NORMAL = vec3(0.0, 1.0, 0.0);
@@ -247,6 +267,15 @@ void fragment() {
 	} else if (kind == CUSTOM) {
 		if (snow_here > 0.6) {
 			discard;
+		}
+		// Brought over the player's figure (GHOST_BEHIND): every other texel of it where
+		// it lies over the figure, whole beside it.
+		if (life > 0.5) {
+			vec2 at = vec2(dot(drawn.xz, vec2(-view_up.y, view_up.x)), -dot(drawn.xz, view_up));
+			vec2 body = screen_plane(player_pos + vec3(0.0, 0.5, 0.0));
+			if (length(at - body) < SEE_FIGURE + SEE_RIM && bayer4(floor(UV * vec2(8.0, 24.0))) > 0.5) {
+				discard;
+			}
 		}
 		col = m.rgb * custom.y;
 		// A plant tinted like the grass (Plants `tint: grass`, PixelTextures.sway_texel,
