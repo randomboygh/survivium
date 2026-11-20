@@ -413,6 +413,11 @@ const SHOTS := {
 	"cliffs": {"time": 0.42, "season": 1, "place": "cliffs"},
 	"beach": {"time": 0.42, "season": 1, "place": "beach"},
 	# Flat sandy shores level with the water, washed by a thin sheet of surf (grass hidden).
+	# A lake's sandy shore on the diagonal, level with the sea, in the default world: cut
+	# straight along it, not in stairs (thread «Скосить ступенчатый берег по диагонали»).
+	"shore-diag-lake": {"time": 0.42, "season": 1, "at": [265, -1247], "y": 21, "hide": ["chunks: grass"]},
+	"shore-diag-lake-near": {"time": 0.42, "season": 1, "at": [265, -1247], "y": 21, "settings": {"pixel_scale": 4},
+		"hide": ["chunks: grass"]},
 	"shore-flat": {"time": 0.42, "season": 1, "place": "beach", "hide": ["chunks: grass"]},
 	"shore-flat-waves": {"time": 0.42, "season": 1, "place": "beach", "hide": ["chunks: grass"],
 		"frames_every": 12, "frames_ms": 600},

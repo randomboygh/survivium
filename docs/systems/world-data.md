@@ -37,7 +37,7 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
 - Old slopes, a world setting and the default of «Новый мир» (`slopes` 1 in `LandLayout.DEFAULT_SETTINGS`, the
   row «Склоны: Старые», `WorldData.old_slopes` set by `WorldGen`; the world's folder gets `o1`; checked by
   `old_shapes_test`): the shapes of before the blocky relief (#722). A slope is a smooth bicubic patch
-  (`surface_patch`, `make_patch`, `patch_height`), a corner may go down two levels into the covered cell below
+  (`surface_patch`, `make_patch`, `patch_height`); at a shore of water on its level (`shore_top`) an outer corner (one corner high) or an inner one (one corner low) rises along the diagonal across that corner instead of on a square (`PATCH_DIAG`, a 13th number, `diag_corner`, `_diag_height`: its sides keep their curves), so the water's line runs straight along a diagonal shore, not in stairs; a corner may go down two levels into the covered cell below
   (`_update_deep`, `_deep_corner`, kept in that cell's shape bits 0..3; taken out by #743 and brought back by the
   user on 2026-11-18: without it a ramp's foot against a cliff shows a step; the cell going down may be any wild ground, so scree over stone goes down round like sand, not cut sharp, `_deepable`), cut and filled corners take a triangle half a cell along each side and a cell may have several
   (`_old_update_corners`, `_old_in_corner`, `corner_at`; never over an open cell, a cave under a thin roof, where the cut would open a hole, unless the three columns beside are open from the level under it up to the sky: an overhang's roof is cut like its top, the inside of a cave is not); `ground_height` and `body.gd` `_cell_top` follow the patch. The client draws them with

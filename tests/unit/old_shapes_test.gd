@@ -9,6 +9,7 @@ const OldSlopeMesher := preload("res://src/client/world/old_slope_mesher.gd")
 func run() -> void:
 	_test_corners()
 	_test_diagonal_ridge()
+	_test_diagonal_shore()
 	_test_shapes()
 	# The meshers draw the next world as it says (ChunkMesher.start_rect).
 	ChunkMesher.old_slopes = false
@@ -90,6 +91,72 @@ func _test_diagonal_ridge() -> void:
 
 ## The shapes the world works out a column at a time match the rules written out for
 ## one cell at a time (below), on a generated world and after digging and building.
+## A dirt shore on the diagonal (land where x + z >= 12 on level 1, water below that
+## line, a dirt floor under it all): its outer and inner corners rise along the diagonal
+## (WorldData.PATCH_DIAG), so the water's line runs straight through the middles of the
+## cells' sides instead of in stairs; the same staircase on dry ground keeps its curves.
+func _test_diagonal_shore() -> void:
+	var worlds := []
+	for wet in [true, false]:
+		var w := WorldData.new(6, Vector2i(16, 16))
+		w.old_slopes = true
+		var c: WorldData.Chunk = w.chunks[Vector2i.ZERO]
+		c.natural.fill(WorldData.WILD)
+		for z in 16:
+			for x in 16:
+				c.cells[z * 16 + x] = Mat.DIRT
+				c.cells[(16 + z) * 16 + x] = Mat.DIRT if x + z >= 12 else (Mat.WATER if wet else Mat.AIR)
+		w.rebuild_columns()
+		w.refresh_shapes()
+		worlds.append(w)
+	var w: WorldData = worlds[0]
+	# (6, 6) has water west, north and north-west: an outer corner, high in the south-east;
+	# (7, 6) only the water north-west of it: an inner corner, low in the north-west.
+	var outer := w.surface_patch(6, 1, 6)
+	var inner := w.surface_patch(7, 1, 6)
+	_check(outer.size() == WorldData.PATCH_DIAG + 1 and int(outer[WorldData.PATCH_DIAG]) == 2
+		and inner.size() == WorldData.PATCH_DIAG + 1 and int(inner[WorldData.PATCH_DIAG]) == 4,
+		"the corners of a shore on the diagonal rise along it")
+	var straight := true
+	for t in 5:
+		var f := t / 4.0
+		# The line half a cell from the odd corner: x + z = 1.5 on the outer, 0.5 on the inner.
+		straight = straight and absf(WorldData.patch_height(outer, 0.5 + f * 0.5, 1.0 - f * 0.5) - 0.5) < 0.06
+		straight = straight and absf(WorldData.patch_height(inner, f * 0.5, 0.5 - f * 0.5) - 0.5) < 0.06
+	_check(straight, "the water meets a shore's corners on the diagonal")
+	_check(WorldData.patch_height(outer, 0.4, 0.4) < 0.01 and WorldData.patch_height(inner, 0.9, 0.9) > 0.99,
+		"past the diagonal a shore's corner is level with the corners beside")
+	_check((worlds[1] as WorldData).surface_patch(6, 1, 6).size() == 12, "dry ground keeps its curved corners")
+	var sides := true
+	for z in range(3, 10):
+		for x in range(3, 10):
+			if w.slope_mask(x, 1, z) == WorldData.FULL:
+				continue
+			var p := w.surface_patch(x, 1, z)
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(0, 1)]:
+				if w.slope_mask(x + d.x, 1, z + d.y) == WorldData.FULL or w.get_cell(x + d.x, 1, z + d.y) != Mat.DIRT:
+					continue
+				var q := w.surface_patch(x + d.x, 1, z + d.y)
+				for t in 5:
+					var f := t / 4.0
+					var a := WorldData.patch_height(p, 1.0, f) if d.x == 1 else WorldData.patch_height(p, f, 1.0)
+					var b := WorldData.patch_height(q, 0.0, f) if d.x == 1 else WorldData.patch_height(q, f, 0.0)
+					sides = sides and absf(a - b) < 0.001
+	_check(sides, "a shore's corners meet the slopes beside them along the whole side")
+	var c := w.padded(false, Mat.STONE, -2, -2, 18, 18)
+	var sh := w.padded(true, 0, -2, -2, 18, 18)
+	var dz := 16 + 4
+	var dy := dz * (16 + 4)
+	var same := true
+	for z in range(3, 10):
+		for x in range(3, 10):
+			if w.slope_mask(x, 1, z) == WorldData.FULL:
+				continue
+			var a: PackedFloat32Array = OldSlopeMesher.patch(c, sh, 2 * dy + (z + 2) * dz + x + 2, dy, dz)
+			same = same and a == w.surface_patch(x, 1, z)
+	_check(same, "the mesher draws a shore's corners as the walkers stand on them")
+
+
 func _test_shapes() -> void:
 	var land := _land(7, {"slopes": 1})
 	var g: WorldData = land.world
@@ -188,7 +255,10 @@ func _patches_match(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
 				var i := (y + 1) * dy + (z - from.y + 2) * dz + x - from.x + 2
 				var a: PackedFloat32Array = OldSlopeMesher.patch(c, sh, i, dy, dz)
 				var b: PackedFloat32Array = w.surface_patch(x, y, z)
-				for k in 12:
+				if a.size() != b.size():
+					printerr("patch differs at %s: %s / %s" % [Vector3i(x, y, z), a, b])
+					return false
+				for k in a.size():
 					if not is_equal_approx(a[k], b[k]):
 						printerr("patch differs at %s: %s / %s" % [Vector3i(x, y, z), a, b])
 						return false
