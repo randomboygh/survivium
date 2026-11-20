@@ -3,8 +3,9 @@
 Status (2026-11-20): thread «Поправить анимации персонажа» reviewed the default character's
 animations one by one on the new chibi body. Done: the walk and the stand (#789), the outline under a
 hand low in the frame (#790), the jump (#791), the swim (#792), the chop (#796), the dig (#797), the
-slash (accepted 2026-11-20 12:56 MSK, the PR after #799). Next, in this order: reach, mow, aim, eat,
-sleep, sit, row, gestures. Directions are shown in the order s, se, e, ne, n, nw, w, sw.
+slash (accepted 2026-11-20 12:56 MSK, the PR after #799; then from the side the arm a pixel nearer and
+a sheet for the sickle, 13:13 MSK). Next: the bow (the aim, the user's pick 2026-11-20 13:13 MSK: the
+Bow Attack of Puny Characters), then reach, mow, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e, ne, n, nw, w, sw.
 
 ## How the user reviews
 
@@ -104,7 +105,7 @@ sleep, sit, row, gestures. Directions are shown in the order s, se, e, ne, n, nw
 
 - Columns 22-25 (`player.yaml` `works` slash; the swords, knives, spears, sickles, slings, bows and rods
   play it), drawn whole: `tools/art/player_slash_art.gd` (SlashArt), written by `gen_slash_gd.py <module>
-  <out.gd>` (run with `python3 -I`) from a data module in the library, now `slash_o.py` (`SLASH`).
+  <out.gd>` (run with `python3 -I`) from a data module in the library, now `slash_p.py` (`SLASH`).
 - The user's rules: front view first, the others after it is approved. Their latest (2026-11-20 11:41
   and 11:45 MSK): 1 the sword up at the shoulders; 2 higher; 3 the swing with its trail to halfway
   between the 7th and 8th GIFs' third frames (done as `PlayerArt.LOW`, crouched); 4 the sword not
@@ -113,7 +114,9 @@ sleep, sit, row, gestures. Directions are shown in the order s, se, e, ne, n, nw
   (it looked as if the other hand held it); the trail only on frame 3; legs never move. On every
   direction (12:17 MSK): from the side the trail is the front's crescent at the side, not over the head
   (up behind the head, down behind and under to the blade in front), the arm with the sword not so far
-  back, the raised sword's tip in the trail; from behind the trail hides behind the body.
+  back, the raised sword's tip in the trail; from behind the trail hides behind the body. From the side
+(13:13 MSK) on frames 1 and 2 the arm a pixel nearer the body (the sword over the back of the head's
+outline, its tip in the trail's first pixels).
 - The reference: Puny Characters (Shade, CC0, opengameart.org), `Character-Base/Warrior-Blue.png`, row 0
   is the front, columns 4-7: raised, raised, the smear (a white crescent), stopped. `cmp_ref.py` puts
   its frames beside ours.
@@ -133,10 +136,12 @@ sleep, sit, row, gestures. Directions are shown in the order s, se, e, ne, n, nw
   `SMEAR=free` (or `outlined`, `none`).
 - Checking: after `make_sprites.gd -- --all` and `--import`, `dump.gd` with the sword held
   (`content/tools/sword/sprites/held/sword.png`, given as `sword=` its path under `content/` and
-  `:slash:trail`) and `SMEAR=free python3 vsgame.py slash_o SLASH <dump dir> sword slash` must print
+  `:slash:trail`) and `SMEAR=free python3 vsgame.py slash_p SLASH <dump dir> sword slash` must print
   `bad 0` (without `:trail` and with `SMEAR=none` too). `variants_gif.py` makes the front's GIF,
   `work_review.py` every direction's, `igrid.py` and `asc.py` a frame's pixels.
-- A rod out fishing is held as in the last frame (`Player.ROD_OUT` 3). A sickle in the hand is its
-  icon cut to 5 pixels (`held` `icon`): barely seen, its trail shows the swing.
-- Accepted by the user 2026-11-20 12:56 MSK on the 12th GIF. A sickle is still barely seen in the hand
-  (its icon cut to 5 pixels); bows and slings play the slash until the aim is drawn.
+- A rod out fishing is held as in the last frame (`Player.ROD_OUT` 3). The sickles have sheets
+  (`ToolArt` `sickle`, a flint blade hooked over to the tip; copper and iron recoloured): their icon cut
+  to 5 pixels (`held` `icon`) left a single pixel of the handle (the user, 13:13 MSK: «серп практически
+  не видно»).
+- Accepted by the user 2026-11-20 12:56 MSK on the 12th GIF; the side's arm and the sickle after it.
+  Bows and slings play the slash until the aim is drawn.

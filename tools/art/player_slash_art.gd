@@ -156,20 +156,20 @@ const FRAMES := {
 	# by the chin), then higher; the swing goes down behind and under to the blade forward and
 	# down, its trail the front's crescent from the raised sword's tip.
 	"e": [
-		{"bob": 1, "top": 11, "neck": 12, "hips": 14, "hands": [[0, 10], [6, 14]], "a": 0, "f": true, "ccw": true, "rows": [
-			"44............",
-			".45555CVk.....",
+		{"bob": 1, "top": 11, "neck": 12, "hips": 14, "hands": [[1, 10], [6, 14]], "a": 0, "f": true, "ccw": true, "rows": [
+			".44...........",
+			"..4555CVk.....",
 			".....cCCc.....",
 			".....UUUu.....",
 			".....ttt......",
 			"......tTt.....",
 			"......BBb.....",
 		]},
-		{"bob": 0, "top": 8, "neck": 11, "hips": 14, "hands": [[0, 8], [6, 14]], "a": 0, "f": true, "ccw": true, "rows": [
-			"44............",
-			"45............",
+		{"bob": 0, "top": 8, "neck": 11, "hips": 14, "hands": [[1, 8], [6, 14]], "a": 0, "f": true, "ccw": true, "rows": [
+			".44...........",
 			".45...........",
-			"..4455CVk.....",
+			"..45..........",
+			"...455CVk.....",
 			".....cCCc.....",
 			".....cCCc.....",
 			".....UUUu.....",

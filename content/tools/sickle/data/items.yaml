@@ -8,6 +8,7 @@
   stack: 1
   icon: sickle
   tool: sickle
+  sprite: sickle
   anim: slash
   trail: true
   mows: tall
@@ -24,6 +25,7 @@
   stack: 1
   icon: copper_sickle
   tool: sickle
+  sprite: copper_sickle
   anim: slash
   trail: true
   mows: tall
@@ -40,6 +42,7 @@
   stack: 1
   icon: iron_sickle
   tool: sickle
+  sprite: iron_sickle
   anim: slash
   trail: true
   mows: tall

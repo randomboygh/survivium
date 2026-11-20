@@ -188,6 +188,34 @@ const SHAPES := {
 		],
 		"carry": {"front": 0, "side": 0, "back": 0},
 	},
+	# A sickle: a short handle and a flint blade hooked over to the tip, wider at the heel.
+	"sickle": {
+		"up": [
+			".aAA.",
+			"a..aA",
+			"....A",
+			"...aA",
+			"..d..",
+			"..w..",
+			"..g..",
+		],
+		"diagonal": [
+			"..aAA.",
+			".a..aA",
+			".....A",
+			"...aA.",
+			"..d...",
+			".w....",
+			"g.....",
+		],
+		"toward": [
+			".g.",
+			".d.",
+			"aAA",
+			"..A",
+		],
+		"carry": {"front": 0, "side": 0, "back": 0},
+	},
 	"flint_spear": {
 		"up": [
 			".A.",
@@ -458,6 +486,8 @@ const RECOLOURED := {
 	"bronze_knife": ["flint_knife", {"A": "Z", "a": "z"}],
 	"iron_knife": ["flint_knife", {"A": "J", "a": "j"}],
 	"steel_knife": ["flint_knife", {"A": "Y", "a": "y"}],
+	"copper_sickle": ["sickle", {"A": "N", "a": "n"}],
+	"iron_sickle": ["sickle", {"A": "J", "a": "j"}],
 	"wooden_pickaxe": ["pickaxe", {"q": "R", "a": "m", "A": "p"}],
 	"wooden_scythe": ["scythe", {"q": "R", "a": "m", "A": "p"}],
 	"copper_axe": ["axe", {"q": "o", "a": "n", "A": "N"}],
