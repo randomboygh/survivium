@@ -124,6 +124,39 @@ thread (PR #803, columns 34-37). What follows from several threads drawing at on
   and behind the tool not far forward of the body. `view.py <module> <attr> <dirs> <out.png>` in the
   library draws a module's frames big with the ground line.
 
+## The reach (done)
+
+- Columns 26-29 (`player.yaml` `works` reach: bare hands and every thing with no work of its own, the
+  default `anim`: gathering, placing, building), drawn whole: `tools/art/player_reach_art.gd` (ReachArt),
+  written by `gen_reach_gd.py <module> <out.gd>` (run with `python3 -I`) from the data module
+  `reach_f.py` (`REACH`) in the library. Thread «Нарисовать анимацию «взять рукой»»; the user accepted
+  the front on its third drawing and every direction on `reach-all.gif` (2026-11-20).
+- The frames: 1 standing, the hand lifted to the waist; 2 a crouch with the arm stretched down along
+  the leg, the hand a row over the ground; 3 still crouched, the arm short again, the hand a row
+  higher; 4 standing, the hand brought up to the shoulder. The other arm hangs.
+- The user's rules from it: the arm is pressed to the body in every frame, with no outline between
+  them («Прижми руку к телу, убери между ним и рукой обводку»: the first drawing held the arm a pixel
+  away); the arm stretches together with the crouch and is short again while crouched («Тянем руку
+  вместе с приседанием, присев руку сокращаем»: the second drawing stretched it standing and kept it
+  long crouched).
+- Turned, from the side and from behind the body stands a row lower (`drop` 1) on legs of two rows, so
+  a crouched arm has a row less: the hands are kept as high over the ground as from the front (a
+  stretched arm of two rows, a short one of one, the other arm of one), not the arms as long, which
+  would put the hand on the ground's row beside the foot. From the side the arm goes down and forward
+  in front of the body (in frame 4 the hand is at the chest: under the chin it merged with the face);
+  from behind the working arm is at the picture's right, behind the body.
+- A frame has `a` -1, nothing turns: what the hand holds is drawn as carried at the hand's mark (a
+  torch, a log, a stone). The old `WORKS` reach turned a torch the other way in the south-west and
+  north-west rows of its sheet; now its `reach` frames are its carried picture in every direction.
+- Checking: after `make_sprites.gd -- --all`, `--import` and `dump.gd`, `python3 vsgame.py reach_f
+  REACH <dump dir> bare reach` prints `bad 0` in all eight directions. `reach_view.py`, `reach_zoom.py`
+  and `reach_cmp.py` in the library draw a module's frames big, `reach_held.py` the game's frames with
+  things held on one sheet. `view_test.gd` `_test_reach` keeps the crouch, the hand's way down and up,
+  the arm against the body and the still legs.
+- GIFs in the library: `reach-front-1.gif` to `reach-front-3.gif` (the front's three drawings),
+  `reach-all.gif` (every direction, «было» main), `reach-tools.gif` (`tools_gif.py`: things held, as
+  the game draws them).
+
 ## The slash (done)
 
 - Columns 22-25 (`player.yaml` `works` slash; the swords, knives, spears, sickles, slings, bows and rods

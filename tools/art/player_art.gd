@@ -20,8 +20,8 @@ extends RefCounted
 ## the upper left. The feet stand on the frame's last row with no outline under them. The
 ## walk's body under the head is copied pixel by pixel from the reference (WalkArt): the
 ## arms swinging, the body bobbing; the jump's, the swim's, the chop's, the dig's, the
-## slash's, the bow's shot and the eat's are drawn whole the same way (JumpArt, SwimArt,
-## ChopArt, DigArt, SlashArt, AimArt, EatArt).
+## slash's, the bow's shot, the eat's and the reach's are drawn whole the same way (JumpArt,
+## SwimArt, ChopArt, DigArt, SlashArt, AimArt, EatArt, ReachArt).
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -39,6 +39,7 @@ const DigArt := preload("res://tools/art/player_dig_art.gd")
 const SlashArt := preload("res://tools/art/player_slash_art.gd")
 const AimArt := preload("res://tools/art/player_aim_art.gd")
 const EatArt := preload("res://tools/art/player_eat_art.gd")
+const ReachArt := preload("res://tools/art/player_reach_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -395,16 +396,10 @@ const MOVES := {
 ## has it), "o" where the other hand holds a two-handed thing, "bob" and "lean" how far
 ## the body bends down and forward, "eyes" "shut". A thing swung up over the head goes
 ## behind it, the hand hidden, so it does not cover the face. The chop, the dig, the
-## slash, the aim and the eat are drawn whole with the thing's ways in their frames
-## (ChopArt, DigArt, SlashArt, AimArt, EatArt).
+## slash, the aim, the eat and the reach are drawn whole with the thing's ways in their
+## frames (ChopArt, DigArt, SlashArt, AimArt, EatArt, ReachArt).
 const WORKS := {
 	"front": {
-		"reach": [
-			{"r": [3, 13], "a": -1},
-			{"r": [4, 14], "a": -1},
-			{"r": [5, 15], "a": -1, "bob": 1},
-			{"r": [4, 14], "a": -1},
-		],
 		"mow": [
 			{"r": [3, 13], "a": 6, "o": [5, 13], "ccw": true},
 			{"r": [4, 13], "a": TOWARD, "o": [6, 13], "ccw": true, "bob": 1},
@@ -413,12 +408,6 @@ const WORKS := {
 		],
 	},
 	"side": {
-		"reach": [
-			{"r": [8, 13], "a": -1},
-			{"r": [10, 13], "a": -1},
-			{"r": [11, 13], "a": -1, "lean": 1},
-			{"r": [9, 14], "a": -1},
-		],
 		"mow": [
 			{"r": [7, 12], "a": 6, "o": [6, 13], "ccw": true},
 			{"r": [8, 13], "a": 5, "o": [7, 14], "ccw": true, "bob": 1},
@@ -427,12 +416,6 @@ const WORKS := {
 		],
 	},
 	"back": {
-		"reach": [
-			{"r": [10, 13], "a": -1},
-			{"r": [9, 14], "a": -1},
-			{"r": [8, 15], "a": -1, "bob": 1},
-			{"r": [9, 14], "a": -1},
-		],
 		"mow": [
 			{"r": [10, 14], "a": 2, "o": [8, 14], "ccw": true, "f": true},
 			{"r": [9, 15], "a": 1, "o": [7, 15], "ccw": true, "bob": 1},
@@ -585,9 +568,9 @@ static func column(col: int) -> Array:
 ## direction `dir`, its hands with it: the walk's (WalkArt), the jump's (JumpArt), the
 ## swim's (SwimArt), the chop's (ChopArt, with the way the axe points: `a`), the dig's
 ## (DigArt, the shovel held up its shaft: `slide`), the slash's (SlashArt), the aim's
-## (AimArt, the bow drawn for the frame: `bow`) or the eat's (EatArt, the food as it is
-## carried: `a` -1, the eyes shut on the bite: `eyes`); {} for any other, made of the body
-## standing and a pose.
+## (AimArt, the bow drawn for the frame: `bow`), the eat's (EatArt, the food as it is
+## carried: `a` -1, the eyes shut on the bite: `eyes`) or the reach's (ReachArt); {} for
+## any other, made of the body standing and a pose.
 static func whole_frame(dir: String, c: Array) -> Dictionary:
 	match c[0]:
 		"walk":
@@ -606,6 +589,8 @@ static func whole_frame(dir: String, c: Array) -> Dictionary:
 			return AimArt.frame(dir, c[1])
 		"eat":
 			return EatArt.frame(dir, c[1])
+		"reach":
+			return ReachArt.frame(dir, c[1])
 	return {}
 
 
@@ -820,6 +805,8 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 				rows = AimArt.rows(whole, dir, build, figure)
 			"eat":
 				rows = EatArt.rows(whole, dir, build, figure)
+			"reach":
+				rows = ReachArt.rows(whole, dir, build, figure)
 			_:
 				rows = WalkArt.rows(whole, dir, build, figure)
 		_stamp(parts, rows, whole.get("top", 10), Vector2i.ZERO)
