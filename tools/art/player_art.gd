@@ -20,8 +20,8 @@ extends RefCounted
 ## the upper left. The feet stand on the frame's last row with no outline under them. The
 ## walk's body under the head is copied pixel by pixel from the reference (WalkArt): the
 ## arms swinging, the body bobbing; the jump's, the swim's, the chop's, the dig's, the
-## slash's, the bow's shot, the eat's and the reach's are drawn whole the same way (JumpArt,
-## SwimArt, ChopArt, DigArt, SlashArt, AimArt, EatArt, ReachArt).
+## slash's, the bow's shot, the eat's, the reach's and the gestures' are drawn whole the same
+## way (JumpArt, SwimArt, ChopArt, DigArt, SlashArt, AimArt, EatArt, ReachArt, GestureArt).
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -40,6 +40,7 @@ const SlashArt := preload("res://tools/art/player_slash_art.gd")
 const AimArt := preload("res://tools/art/player_aim_art.gd")
 const EatArt := preload("res://tools/art/player_eat_art.gd")
 const ReachArt := preload("res://tools/art/player_reach_art.gd")
+const GestureArt := preload("res://tools/art/player_gesture_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -569,9 +570,12 @@ static func column(col: int) -> Array:
 ## swim's (SwimArt), the chop's (ChopArt, with the way the axe points: `a`), the dig's
 ## (DigArt, the shovel held up its shaft: `slide`), the slash's (SlashArt), the aim's
 ## (AimArt, the bow drawn for the frame: `bow`), the eat's (EatArt, the food as it is
-## carried: `a` -1, the eyes shut on the bite: `eyes`) or the reach's (ReachArt); {} for
-## any other, made of the body standing and a pose.
+## carried: `a` -1, the eyes shut on the bite: `eyes`), the reach's (ReachArt) or a gesture's
+## (GestureArt, its rows from column `x0`); {} for any other, made of the body standing and a
+## pose.
 static func whole_frame(dir: String, c: Array) -> Dictionary:
+	if GestureArt.FRAMES.has(c[0]):
+		return GestureArt.frame(c[0], dir, c[1])
 	match c[0]:
 		"walk":
 			return WalkArt.frame(dir, c[1])
@@ -808,8 +812,11 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 			"reach":
 				rows = ReachArt.rows(whole, dir, build, figure)
 			_:
-				rows = WalkArt.rows(whole, dir, build, figure)
-		_stamp(parts, rows, whole.get("top", 10), Vector2i.ZERO)
+				if GestureArt.FRAMES.has(c[0]):
+					rows = GestureArt.rows(whole, dir, build, figure)
+				else:
+					rows = WalkArt.rows(whole, dir, build, figure)
+		_stamp(parts, rows, whole.get("top", 10), Vector2i(whole.get("x0", 0), 0))
 		if whole.has("trail"):
 			# A blade's trail (SlashArt), its rows in the frame's pixels from `at`.
 			var t: Dictionary = whole.trail

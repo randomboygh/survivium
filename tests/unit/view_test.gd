@@ -68,6 +68,7 @@ func run() -> void:
 	_test_sprite_sheet()
 	_test_eat()
 	_test_reach()
+	_test_gestures()
 	_test_tracks()
 	_test_hidden()
 	_test_cave_layers()
@@ -463,6 +464,33 @@ func _dark_block(img: Image, x: int, y: int) -> bool:
 		if p.a < 0.5 or p.v > 0.25:
 			return false
 	return true
+
+
+## The gestures' frames (GestureArt): waving, one hand is up by the head in every
+## direction and goes a pixel out and back, the other stays where it is standing, so what
+## it holds does not move.
+func _test_gestures() -> void:
+	var s := Figure.sheet(["body", "hair"])
+	var img := s.texture.get_image()
+	var fw := s.frame_size.x
+	var fh := s.frame_size.y
+	var wave: Array = Figure.data().animations.wave.frames
+	var anchors: Array = Figure.anchors()
+	var bad := []
+	for row in 8:
+		var stand: Dictionary = anchors[row][0]
+		var frames := [anchors[row][int(wave[0])], anchors[row][int(wave[1])]]
+		var up := ""
+		for hand: String in ["right", "left"]:
+			if stand[hand].at.y - frames[0][hand].at.y >= 3 and stand[hand].at.y - frames[1][hand].at.y >= 3:
+				up = hand
+		var other := "left" if up == "right" else "right"
+		var swung: bool = up != "" and frames[0][up].at != frames[1][up].at
+		var kept: bool = up != "" and frames[0][other].at == stand[other].at and frames[1][other].at == stand[other].at
+		var drawn := img.get_region(Rect2i(int(wave[0]) * fw, row * fh, fw, fh)).get_data() != img.get_region(Rect2i(int(wave[1]) * fw, row * fh, fw, fh)).get_data()
+		if not (swung and kept and drawn):
+			bad.append(row)
+	_check(bad.is_empty(), "waving, a hand is up by the head and moves, the other stays put, in every direction: wrong in rows %s" % [bad])
 
 
 ## The looks picked (Looks): their layers in the hair slot, their colours swapped by the

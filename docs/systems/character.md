@@ -200,7 +200,12 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   standing, above the head — the icon `UiStyle.icon("g_<name>")` for the first `Gestures.ICON_TIME` 2.5 s
   (for others — above the name); movement or work interrupt it. The gestures' frames are columns 48–59 of the
   sheet (`tools/art/player_art.gd`, `MOVES`, with `lean` — the body's tilt; `tools/make_sprites.gd` draws the
-  layers, the marks of the hands and what is worn anew). The wheel of gestures —
+  layers, the marks of the hands and what is worn anew). A gesture with frames in
+  `tools/art/player_gesture_art.gd` (GestureArt) is drawn whole instead, its rows reaching two columns past
+  the box for a hand out beside the head: the wave (reviewed with the user 2026-11-20) raises the right hand
+  by the face at the eyes' rows, two pixels square on a short shoulder, and moves it a pixel out and back;
+  from the side the near hand is over the head by the ear (a hand in front of the body is drawn with the
+  fists, over the head). The wheel of gestures —
   `src/client/ui/gesture_wheel.gd` (a button beside the chat in the top row, the key C, digits 1–8 in the
   wheel).
 - `src/client/view/figure.gd` — the sheet of the player's frames from `content/core/sprites/` by `player.yaml`
