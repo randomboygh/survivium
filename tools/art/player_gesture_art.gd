@@ -33,7 +33,8 @@ extends RefCounted
 ## (PlayerArt.frame_letters), `rows` from box row `top` and from box
 ## column X0 (a hand goes out beside the head past the box's edge) in the letters of
 ## PlayerArt.INK with the hands' skin in the digits of WalkArt.HANDS, the body's first row
-## `neck` (rows over it hold only a raised arm, which stays where it is in every form), the
+## `neck` (no higher than the frame's first: a bow's chest folds; rows over it hold only a
+## raised arm, which stays where it is in every form), the
 ## waistband's row `hips` and the hands' places `hands` ([right, left]: the hand's lowest
 ## pixel under its middle, the one nearer the body on a tie, less the bob; so a hand that
 ## moves moves its place). Made with the review tools in the project library
@@ -483,7 +484,7 @@ const FRAMES := {
 				"......tt..TT......",
 				"......BB..BB......",
 			]},
-			{"bob": 2, "eyes": "shut", "top": 12, "neck": 11, "hips": 14, "hands": [[3, 12], [10, 12]], "rows": [
+			{"bob": 2, "eyes": "shut", "top": 12, "neck": 12, "hips": 14, "hands": [[3, 12], [10, 12]], "rows": [
 				"......cVkkVc......",
 				"....45cCCCCc87....",
 				"....45UUuuUU87....",
@@ -501,7 +502,7 @@ const FRAMES := {
 				".......TT.Tt......",
 				".......KB.KB......",
 			]},
-			{"bob": 3, "lean": 1, "eyes": "shut", "top": 13, "neck": 12, "hips": 15, "hands": [[4, 12], [10, 11]], "rows": [
+			{"bob": 3, "lean": 1, "eyes": "shut", "top": 13, "neck": 13, "hips": 15, "hands": [[4, 12], [10, 11]], "rows": [
 				"......cVkkV88.....",
 				".....44cCCC88.....",
 				".....44UUuUU......",
@@ -518,7 +519,7 @@ const FRAMES := {
 				"........tTt.......",
 				"........BBb.......",
 			]},
-			{"bob": 3, "lean": 1, "eyes": "shut", "top": 13, "neck": 12, "hips": 14, "hands": [[7, 12], [6, 12]], "rows": [
+			{"bob": 3, "lean": 1, "eyes": "shut", "top": 13, "neck": 13, "hips": 14, "hands": [[7, 12], [6, 12]], "rows": [
 				".......cCVk.......",
 				".......UU44.......",
 				".......tt44.......",
@@ -535,7 +536,7 @@ const FRAMES := {
 				".......mm.tt......",
 				".......bb.BB......",
 			]},
-			{"bob": 3, "lean": 1, "eyes": "shut", "top": 13, "neck": 12, "hips": 15, "hands": [[10, 12], [3, 12]], "rows": [
+			{"bob": 3, "lean": 1, "eyes": "shut", "top": 13, "neck": 13, "hips": 15, "hands": [[10, 12], [3, 12]], "rows": [
 				"......cVVVCCC.....",
 				".....88VcccC44....",
 				".....88uuuuu44....",
@@ -552,7 +553,7 @@ const FRAMES := {
 				"......mm..mm......",
 				"......bb..bb......",
 			]},
-			{"bob": 3, "eyes": "shut", "top": 13, "neck": 12, "hips": 15, "hands": [[10, 12], [3, 12]], "rows": [
+			{"bob": 3, "eyes": "shut", "top": 13, "neck": 13, "hips": 15, "hands": [[10, 12], [3, 12]], "rows": [
 				".....CCVVVVCC.....",
 				"....77CccccC44....",
 				"....88uuuuuu55....",
