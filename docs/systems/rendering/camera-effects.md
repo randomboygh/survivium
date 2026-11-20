@@ -107,9 +107,9 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   1 a gale; nothing drawn under 0.03): in a breeze patches of fine ripples sweep downwind; a stronger wind raises rows of waves
   across it, each crest cut into stretches holding a short bow of light (its middle ahead of its ends) with a darker trough
   behind, more bows the stronger it blows (longer and faster waves on the sea than on a lake, fainter over the shallows and on
-  murky water, none under ice, and the calm water's drifting ripple lines fade out); whitecaps break in the middles of some bows
-  from rough 0.45 on the sea (0.65 on a lake), each on a clock of its own, leaving fizzing foam behind; from 0.75 foam streaks
-  run along the wind. The crests run one of 8 fixed ways (`waves` uniform from `WaterEffects._waves`: the nearest way to
+  murky water, none under ice, and the calm water's drifting ripple lines fade out); whitecaps from rough 0.45 on the sea (0.65
+  on a lake): a few stretches of a crest (`CAP_RUN` texels each) hold a white bow two or three cells long, three texels thick in
+  its middle, each breaking on a clock of its own and fizzing away; from 0.85 short faint dashes of foam run along the wind. The crests run one of 8 fixed ways (`waves` uniform from `WaterEffects._waves`: the nearest way to
   `Sky.wind_now` once it is `WAVE_OFF` off, turned to over `WAVE_TURN` s, dithered texel by texel), so they never swing round
   the world's origin as the wind turns. The wind also widens the shore's foam by up to two texels and the surf's foam line, and
   drives every surf wave far up the sand (`surf_wave`; the sheet's length `SWASH_REACH` stays the limit). Hidden with the part
