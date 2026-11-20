@@ -33,8 +33,13 @@ const CELL := WorldData.CELL
 ## lasts in seconds (PRINT_LIFE there, the same).
 enum { NONE, SNOW, ICE, GRASS_DRY, GRASS_WET, SOIL_DRY, SOIL_WET, DUST }
 const LIFE := [0.0, 120.0, 90.0, 20.0, 40.0, 45.0, 45.0, 60.0]
-## The map is sent to the renderer at most this often, in seconds.
+## The map is sent to the renderer at most this often, in seconds, for what nobody
+## waits to see (the window moving on, old prints cleared).
 const FLUSH := 0.2
+## A new print is sent at once, the frame it is laid, unless the map went less than
+## this long ago (seconds): about two frames, so a print never lags the foot that made
+## it, while a herd stepping together still sends the map at most 20 times a second.
+const SOON := 0.05
 ## The clock the prints are stamped with wraps here (a byte of the map).
 const WRAP := 256.0
 
@@ -51,7 +56,11 @@ var elapsed := 0.0
 ## The world texel at the north-west corner of the window the map covers now.
 var _window := Vector2i.ZERO
 var _dirty := false
+## A print was laid since the map was last sent (it goes within SOON).
+var _fresh := false
 var _since := 0.0
+## Seconds since the map was last sent.
+var _sent := 0.0
 ## The prints not yet expired, oldest first: [when it expires (elapsed), its stamp
 ## (the byte of the clock), its texels (x, z in the map, packed)].
 var _living: Array = []
@@ -77,12 +86,14 @@ func _process(delta: float) -> void:
 	_follow()
 	trample.focus = focus
 	_since += delta
-	if _since < FLUSH:
-		return
-	_since = 0.0
-	_expire()
-	if _dirty:
+	_sent += delta
+	if _since >= FLUSH:
+		_since = 0.0
+		_expire()
+	if _dirty and (_sent >= FLUSH or (_fresh and _sent >= SOON)):
 		_dirty = false
+		_fresh = false
+		_sent = 0.0
 		texture.update(image)
 
 
@@ -182,6 +193,7 @@ func leave(feet: Vector3, heading: Vector2, left: bool, boot: bool, scale: float
 		return
 	_living.append([elapsed + LIFE[kind], stamp, texels])
 	_dirty = true
+	_fresh = true
 
 
 ## Whether texel `x`, `y` of a print's four by four square is part of the print: the

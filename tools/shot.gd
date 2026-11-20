@@ -418,6 +418,20 @@ func _run() -> void:
 			main.player.body.move_input = Vector2.ZERO
 			for i in 10:
 				await process_frame
+		if shot.has("stride_frames"):
+			# A walk east over a flat open spot at the game's pace, a picture each frame
+			# (<name>-s01.png and on): when each new footprint shows (tracks.gd).
+			main.player.position = places.flat_near(main.world, main.player.position + Vector3(-4.0, 0.0, -6.0))
+			for i in 10:
+				await process_frame
+			for i in int(shot.stride_frames):
+				main.player.body.move_input = Vector2(1.0, 0.0)
+				main.player.step(1.0 / 30.0, false)
+				main._leave_footprints()
+				await process_frame
+				if not keys_only:
+					root.get_texture().get_image().save_png(out_dir.path_join("%s-s%02d.png" % [shot_name, i + 1]))
+			main.player.body.move_input = Vector2.ZERO
 		if shot.has("tread"):
 			# A walk where the player stands, in legs [x east, y south, frames], leaving
 			# footprints and trodden grass (tracks.gd, trample.gd), at the game's pace

@@ -533,6 +533,10 @@ const SHOTS := {
 	"pit": {"time": 0.42, "season": 1, "place": "canyon", "cut": -3},
 	"pit-winter": {"time": 0.45, "season": 3, "place": "canyon", "cut": -3},
 	"tracks-winter": {"time": 0.45, "season": 3, "walk": true},
+	# Walking east over snow, a picture each frame (run with --fixed-fps 30 for the
+	# game's pace): when each new print shows up behind the feet (tracks.gd), for a GIF.
+	"tracks-step": {"time": 0.45, "season": 3, "weather": "clear", "hide": ["chunks: grass"],
+		"stride_frames": 40},
 	# The character walking in a direction, caught mid-stride.
 	"walk-s": {"time": 0.42, "season": 1, "keys": [KEY_S]},
 	"walk-e": {"time": 0.42, "season": 1, "keys": [KEY_D]},
