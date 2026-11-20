@@ -72,6 +72,8 @@ uniform vec4 waves = vec4(0.0, 0.0, 1.0, 1.0);
 // (MeshFaces.SPRAY_HALF, WaterMesher.FOAM_SIDE).
 const float SPRAY_HALF = 0.75;
 const float FOAM_SIDE = 0.5;
+// The stretches of a crest that hold one whitecap or none, in texels (3.25 cells).
+const float CAP_RUN = 26.0;
 // Steps of the depth's shading, and the 4x4 ordered dither between them.
 const float DEPTH_STEPS = 6.0;
 const int BAYER[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
@@ -162,10 +164,11 @@ vec3 murky_color(vec2 tex, float depth, float murk) {
 // short lines across the wind sweeping along with the gusts (`ripple`); a stronger wind
 // raises rows of waves across it running with the wind, each crest broken into short
 // bows of a texel or two of light, their middles ahead of their ends, with a darker
-// trough behind, more of them the stronger it blows (`lit`, `dark`); a gale breaks the
-// middles of the bows white now and then, the foam left behind each cap fizzing away
-// (`cap`); a storm draws streaks of foam along the wind (`streak`). Longer, faster waves
-// on the sea than on a lake. The bows, the caps and the streaks go with the waves.
+// trough behind, more of them the stronger it blows (`lit`, `dark`); a gale breaks
+// stretches of the crests two or three cells long white now and then, the foam left
+// behind each cap fizzing away (`cap`); a storm draws short dashes of foam along the wind
+// (`streak`). Longer, faster waves on the sea than on a lake. The bows, the caps and the
+// streaks go with the waves.
 void wind_waves(vec2 tex, float rough, bool sea, float bayer, out float ripple, out float lit, out float dark, out float cap, out float streak) {
 	float way = bayer < waves.z ? waves.y : waves.x;
 	vec2 d = round(vec2(cos(way * PI / 4.0), sin(way * PI / 4.0)));
@@ -201,25 +204,38 @@ void wind_waves(vec2 tex, float rough, bool sea, float bayer, out float ripple, 
 	lit = on * step(len - front - back, f) * step(f, len - back);
 	float trough = len * 0.4 - back;
 	dark = on * step(trough, f) * step(f, trough + 1.0 + rough);
-	// The whitecaps, in the middles of some bows: each breaks at once on a clock of its
-	// own, white along the crest's front, and thins away to the next, the foam it leaves
-	// behind fizzing out.
+	// The whitecaps (user 2026-11-20: 2 to 3 cells wide, a little rarer): stretches of
+	// `CAP_RUN` texels along a crest, a few of them holding a cap two thirds to all of it
+	// long, a bow white along the crest's front, three texels thick in its middle and one
+	// at its ends, with foam fizzing behind it. Each breaks at once on a clock of its own
+	// and thins away to the next.
 	float caps = clamp((rough - (sea ? 0.45 : 0.65)) * 2.5, 0.0, 1.0);
 	cap = 0.0;
-	if (on > 0.0 && which < caps * 0.45 && n > 0.25) {
-		float life = fract(TIME * 0.3 + which * 7.0);
-		float fizz = hash12(tex + k * 7.0);
-		float edge = step(len - front - 1.0 - back, f) * step(f, len - back);
-		cap = edge * step(fizz, (n + 0.3) * (1.0 - life) * 1.6)
-			+ (1.0 - edge) * step(len - 7.0 - back, f) * step(f, len - back) * step(fizz, 0.35 * caps * n * (1.0 - life * 0.6));
+	if (caps > 0.0) {
+		float cv = v / CAP_RUN + k * 0.61;
+		float which_cap = hash12(vec2(floor(cv), k + 3.7));
+		float ct = fract(cv) / mix(0.62, 0.92, hash12(vec2(floor(cv), k + 9.1)));
+		if (which_cap < caps * 0.3 && ct <= 1.0) {
+			float cn = 1.0 - (2.0 * ct - 1.0) * (2.0 * ct - 1.0);
+			float cback = floor((1.0 - cn) * (sea ? 3.0 : 2.0) + 0.5);
+			float thick = 1.0 + step(0.3, cn) + step(0.75, cn);
+			float life = fract(TIME * 0.25 + which_cap * 13.0);
+			float fizz = hash12(tex + k * 7.0);
+			float lip = len - cback;
+			float edge = step(lip - thick, f) * step(f, lip);
+			float behind = step(lip - thick - 1.0 - 4.0 * cn, f) * step(f, lip - thick);
+			cap = edge * step(fizz, (0.45 + cn) * (1.3 - life)) + behind * step(fizz, 0.4 * cn * (1.0 - life * 0.7));
+		}
 	}
-	// Foam blown into streaks along the wind in a storm: thin broken lines of a noise
+	// Foam blown into streaks along the wind in a storm: short broken dashes of a noise
 	// stretched far downwind, running with the waves.
 	streak = 0.0;
-	float storm = clamp((rough - 0.75) * 4.0, 0.0, 1.0);
+	float storm = clamp((rough - 0.85) * 6.67, 0.0, 1.0);
 	if (storm > 0.0) {
-		float sn = texture(cloud_noise, vec2(v / 70.0, (u - TIME * speed) / 1400.0) + 0.7).r;
-		streak = step(abs(sn - 0.5), 0.005 + 0.003 * storm) * step(hash12(vec2(floor(v), floor((u - TIME * speed) / 3.0))), 0.2 + 0.3 * storm);
+		float su = u - TIME * speed;
+		float sn = texture(cloud_noise, vec2(v / 70.0, su / 1400.0) + 0.7).r;
+		float dash = step(fract(su / 40.0 + hash12(vec2(floor(v / 6.0), 5.3))), 0.3);
+		streak = step(abs(sn - 0.5), 0.006) * dash * step(hash12(vec2(floor(v), floor(su / 3.0))), 0.35 + 0.3 * storm);
 	}
 }
 
@@ -524,8 +540,7 @@ void fragment() {
 				col = foam_c;
 				alpha = max(alpha, 0.9);
 			} else if (streak > 0.0 && murk < 0.5) {
-				col = mix(col, foam_c, 0.5);
-				alpha = max(alpha, 0.8);
+				col = mix(col, foam_c, 0.3);
 			}
 		}
 		// Sparkles, none on a bog.
