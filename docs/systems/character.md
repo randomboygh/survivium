@@ -208,7 +208,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   fists, over the head); the nod drops the head a pixel over the neck with the eyes shut (a frame's `eyes`,
   as in the blink), the body standing; the shake turns the head an eighth one way and the other (a frame's
   `head`, a west way the east one flipped), a pixel aside the way the face turns in the first frame (a
-  frame's `lean` moves only the head), only turning from the side. The wheel of gestures —
+  frame's `lean` moves only the head), only turning from the side; the point holds the right hand out level by the body's first row, the
+  finger a pixel past it (forward from the side). The wheel of gestures —
   `src/client/ui/gesture_wheel.gd` (a button beside the chat in the top row, the key C, digits 1–8 in the
   wheel).
 - `src/client/view/figure.gd` — the sheet of the player's frames from `content/core/sprites/` by `player.yaml`

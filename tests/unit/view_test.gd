@@ -609,6 +609,25 @@ func _test_gestures() -> void:
 		if not (still and turned and aside <= 2):
 			shaken.append(row)
 	_check(shaken.is_empty(), "shaking the head, the body stands and the head turns, a pixel aside at most, in every direction: wrong in rows %s" % [shaken])
+	# Pointing: one hand out from the body and up from where it hangs, the other where it stands,
+	# the legs as standing.
+	var point := int(Figure.data().animations.point.frames[0])
+	var pointing := []
+	for row in 8:
+		var stand: Dictionary = anchors[row][0]
+		var at: Dictionary = anchors[row][point]
+		var out := ""
+		for hand: String in ["right", "left"]:
+			if at[hand].at.y < stand[hand].at.y and at[hand].at != stand[hand].at:
+				out = hand
+		var other := "left" if out == "right" else "right"
+		# The feet's row: a hand hanging reaches the rows over it.
+		var legs := Rect2i(0, fh - 1, fw, 1)
+		var still: bool = img.get_region(Rect2i(point * fw, row * fh, fw, fh)).get_region(legs).get_data() \
+			== img.get_region(Rect2i(0, row * fh, fw, fh)).get_region(legs).get_data()
+		if out == "" or at[other].at != stand[other].at or not still:
+			pointing.append(row)
+	_check(pointing.is_empty(), "pointing, one hand is up and out, the other and the legs as standing, in every direction: wrong in rows %s" % [pointing])
 
 
 ## The looks picked (Looks): their layers in the hair slot, their colours swapped by the
