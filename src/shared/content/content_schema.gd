@@ -606,6 +606,17 @@ const SCHEMAS := {
 		# How wide its clumps are, in cells about (the scale of their noise): fields of it
 		# want wide ones.
 		"clump_size": {"type": "float", "min": 2.0, "max": 64.0, "default": 10.0},
+		# Groups (Grass.in_group): a custom plant with `group_grid` above 0 grows only in
+		# groups, at most one in each square this many cells across (its `cover` and
+		# `near_water` unused then): a share `groves` of the squares holds a big group of
+		# `grove_size` plants (the least and the most), a share `groups` a small one of
+		# `group_size`, the plants `group_gap` cells apart at least (cacti: oases and twos, threes).
+		"group_grid": {"type": "int", "min": 0, "max": 128, "default": 0},
+		"groves": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		"grove_size": {"type": "list", "of": "int", "len": 2, "min": 1, "max": 40, "default": [5, 10]},
+		"groups": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		"group_size": {"type": "list", "of": "int", "len": 2, "min": 1, "max": 40, "default": [2, 3]},
+		"group_gap": {"type": "int", "min": 1, "max": 8, "default": 2},
 		# Only in these biomes (none: anywhere its `grows` says).
 		"biomes": {"type": "list", "of": "ref:biomes", "soft": true, "default": [], "rel": "lives_in"},
 	},

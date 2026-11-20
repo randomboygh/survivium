@@ -17,6 +17,7 @@ func run() -> void:
 	_test_bushes()
 	_test_custom_plants()
 	_test_curious_plants()
+	_test_plant_groups()
 	_test_mountain_zone()
 	_test_tropics()
 	_test_biome_bytes()
@@ -702,6 +703,49 @@ func _test_curious_plants() -> void:
 	var on := Vector2i(floori(ring.x + ring.z), floori(ring.y))
 	_check(Grass._on_ring(on.x, on.y) and Grass.in_ring(floori(ring.x), floori(ring.y)) < 0.5,
 		"its line is on the ring, its middle inside")
+
+
+## Cacti grow in groups (Grass.in_group): oases of 5 to 10 and twos, threes, never
+## two closer than their gap, the same spots when worked out again.
+func _test_plant_groups() -> void:
+	var cactus := {}
+	for c in Plants.CUSTOM:
+		if c.id == "plants:cactus":
+			cactus = c
+	var g := Grass._groups_of(cactus) if not cactus.is_empty() else {}
+	_check(not g.is_empty(), "cacti grow in groups")
+	if g.is_empty():
+		return
+	var sizes := {}
+	var apart := true
+	var fit := true
+	var first := []
+	for i in 400:
+		var spots: Dictionary = Grass._group_spots(g, Vector2i(i % 20 - 10, i / 20 - 10))
+		first.append(spots.keys())
+		var n := spots.size()
+		sizes[n] = sizes.get(n, 0) + 1
+		fit = fit and (n == 0 or n >= g.group[0] and n <= g.group[1] or n >= g.grove[0] and n <= g.grove[1])
+		for a: Vector2i in spots:
+			fit = fit and Grass.in_group(g, a.x, a.y)
+			for b: Vector2i in spots:
+				if a != b and maxi(absi(a.x - b.x), absi(a.y - b.y)) < g.gap:
+					apart = false
+	var big := 0
+	var small := 0
+	for n: int in sizes:
+		if n >= g.grove[0]:
+			big += sizes[n]
+		elif n > 0:
+			small += sizes[n]
+	_check(fit and big > 0 and small > big, "groups are oases of %d..%d and fewer than the small ones of %d..%d (%s)"
+		% [g.grove[0], g.grove[1], g.group[0], g.group[1], sizes])
+	_check(apart, "the plants of a group stand their gap apart")
+	var again := Grass._groups_of(cactus)
+	var same := true
+	for i in 400:
+		same = same and Grass._group_spots(again, Vector2i(i % 20 - 10, i / 20 - 10)).keys() == first[i]
+	_check(same, "the same groups when worked out again")
 
 
 func _test_custom_plants() -> void:

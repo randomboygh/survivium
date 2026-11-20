@@ -221,6 +221,9 @@ func _run() -> void:
 			main.player.position = places.forest(main.world, main.player.position)
 		if shot.has("place"):
 			main.player.position = places.place(main.world, shot.place)
+		if shot.has("grove_of"):
+			main.chunks.build_around()
+			main.player.position = places.find_grove(main.world, main.player.position, shot.grove_of)
 		if shot.has("steep"):
 			main.player.position = places.steep(main.world, main.player.position)
 		if shot.has("at"):

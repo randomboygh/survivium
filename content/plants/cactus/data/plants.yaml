@@ -1,7 +1,9 @@
 # Cacti (kind: custom, fields as for the fern): a tall cactus with arms, a prickly pear with its red fruit, a
 # round barrel cactus in flower: one of the three on a cell (frames). They grow on the bare sand and stone of the
-# dry hot land (grows: bare — open ground other than grass), alone, far apart; cut, a cactus gives a fibre and now
-# and then a fruit (finds). It stands in the way like a trunk and pricks whoever touches it.
+# dry hot land (grows: bare — open ground other than grass), in groups (the user's ask, 2026-11-20): here and there
+# an oasis of 5–10 cacti (groves, grove_size), more often two or three together (groups, group_size), at most one
+# group in each square group_grid cells across, the cacti group_gap cells apart at least; cut, a cactus gives a
+# fibre and now and then a fruit (finds). It stands in the way like a trunk and pricks whoever touches it.
 - id: cactus
   kind: custom
   title: "[plants.plants.cactus]"
@@ -14,7 +16,12 @@
   solid: true
   pricks: 2
   grows: bare
-  cover: 0.012
+  group_grid: 14
+  groves: 0.08
+  grove_size: [5, 10]
+  groups: 0.5
+  group_size: [2, 3]
+  group_gap: 2
   gives: {resources:fiber: 1}
   finds: {cactus_fruit: 0.4}
   winter: false
