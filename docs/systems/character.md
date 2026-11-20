@@ -287,6 +287,16 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   past it, leaving `ToolArt.SLIDE_LEFT` rows beyond it, so a short thing is held as it is), so
   `PlayerArt.pose` takes them from the frame instead of `WORKS`; its west directions are the east ones
   mirrored with the tool. `PlayerArt.whole_frame` gives a column's frame drawn so.
+  The reach's four frames are drawn whole too (`tools/art/player_reach_art.gd`, reviewed with the user
+  2026-11-20; bare hands play it, and every thing with no work of its own: gathering, placing, building):
+  the hand lifted to the waist; a crouch (the chest's row folded away: the legs never move) with the arm
+  stretched down along the leg, the hand a row over the ground; still crouched, the arm short again;
+  standing, the hand brought up to the shoulder. The arm lies against the body in every frame, with no
+  outline between them, and stretches only together with the crouch (the user's rules). Turned, from the
+  side and from behind the body stands a row lower, so the crouched arms are a row shorter and the hands
+  are as high over the ground as from the front; from the side the arm goes down and forward in front of
+  the body, from behind it is at the picture's right, behind the body. The frames turn nothing (`a` -1):
+  what the hand holds is drawn as carried, at the hand's mark.
 - Looks (stage 3, PR 3 of the character editor): `src/shared/content/looks.gd` reads `player.yaml` `looks`
   (10 skin tones, 12 hair colours, 6 eye colours by place in their lists; 10 hair styles, 8 face options
   under the hair, 5 on the face, by id) and makes any look sound (`Looks.clean`: the server's check of a

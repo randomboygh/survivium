@@ -67,6 +67,7 @@ func run() -> void:
 	_test_pixel_view()
 	_test_sprite_sheet()
 	_test_eat()
+	_test_reach()
 	_test_tracks()
 	_test_hidden()
 	_test_cave_layers()
@@ -574,6 +575,64 @@ func _colours_in(img: Image, keys: Dictionary, found: Dictionary) -> void:
 			var c := Color8(data[i], data[i + 1], data[i + 2])
 			if keys.has(c):
 				found[c] = true
+
+
+## Bare hands reach (ReachArt): the body crouches in the two middle frames and the hand goes
+## down with it, to a row over the ground; still crouched the arm is short again, and
+## standing the hand comes up to the shoulder. The arm lies against the body all the way,
+## with no outline between them, and the legs stand as they stood.
+func _test_reach() -> void:
+	var s := Figure.sheet(["body"])
+	var img := s.texture.get_image()
+	var fw := s.frame_size.x
+	var fh := s.frame_size.y
+	var reach: Array = Figure.data().works.reach.columns
+	var anchors: Array = Figure.anchors()
+	var trousers := Figure.layer("trousers")
+	var mark := Image.create_empty(1, 1, false, Image.FORMAT_RGBA8)
+	mark.fill(SpriteSheet.OUTLINE)
+	var dark := mark.get_pixel(0, 0)
+	var crouched := 0
+	var reached := 0
+	var apart := 0
+	var stepped := 0
+	for row in 8:
+		var stand := Rect2i(0, row * fh, fw, fh)
+		var top := img.get_region(stand).get_used_rect().position.y
+		# Seen from the side the near hand hides a part of the hips when it hangs.
+		var side: bool = s.directions[row] in ["e", "w"]
+		var tops := []
+		var hands := []
+		for c: int in reach:
+			var r := Rect2i(c * fw, row * fh, fw, fh)
+			tops.append(img.get_region(r).get_used_rect().position.y)
+			hands.append(anchors[row][c].right.at.y)
+			apart += absi(_gaps(img, r, dark) - _gaps(img, stand, dark))
+			if not side and trousers.get_region(r).get_data() != trousers.get_region(stand).get_data():
+				stepped += 1
+		crouched += 1 if tops == [top, top + 1, top + 1, top] else 0
+		reached += 1 if hands[1] == fh - 2 and hands[2] == hands[1] - 1 and hands[0] < hands[2] and hands[3] < hands[0] else 0
+	_check(crouched == 8, "reaching, the body crouches in the two middle frames: in %d directions of 8" % crouched)
+	_check(reached == 8, "the hand goes down with the crouch to a row over the ground, back up short, then to the shoulder: in %d directions of 8" % reached)
+	_check(apart == 0, "the reaching arm lies against the body, the legs alone stand apart: %d gaps more or fewer than standing" % apart)
+	_check(stepped == 0, "the legs stand as they stood while a hand reaches: they differ in %d frames" % stepped)
+
+
+# How many times the rows of frame `r` of `img` are broken: empty pixels or ones of the
+# outline, `dark`, with the figure's own on both sides of them (standing, only between the
+# legs).
+func _gaps(img: Image, r: Rect2i, dark: Color) -> int:
+	var found := 0
+	for y in range(r.position.y, r.end.y):
+		var last := -1
+		for x in range(r.position.x, r.end.x):
+			var p := img.get_pixel(x, y)
+			if p.a < 0.5 or p == dark:
+				continue
+			if last >= 0 and x - last > 1:
+				found += 1
+			last = x
+	return found
 
 
 ## Footprints: stone takes them only under a roof (the dust of a cave floor); a print is
