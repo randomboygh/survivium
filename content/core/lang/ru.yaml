@@ -953,6 +953,8 @@
 "[field.biomes.grass_back.about]": "Шанс в год, что голая земля зарастёт"
 "[field.biomes.sandstorms]": "Песчаные бури"
 "[field.biomes.sandstorms.about]": "Здесь бывают бури"
+"[field.biomes.snowless_peaks]": "Высоты без снега"
+"[field.biomes.snowless_peaks.about]": "Где так тепло, на холмах не лежит снег круглый год"
 "[field.biomes.by_water]": "У воды"
 "[field.biomes.by_water.about]": "Каким биомом становится земля у озера или реки (оазис)"
 "[field.biomes.by_water_reach]": "Даль от воды"

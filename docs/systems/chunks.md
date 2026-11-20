@@ -147,7 +147,7 @@ slice, to free the far meshes.
   reads through `trodden()` to lay the tufts and the mods' plants over and lower; they stand up again over
   `Trample.LIFE` seconds. Both maps go to the renderer the frame a new print or trodden patch is laid (at most every
   `Tracks.SOON` seconds), so a print never lags the foot; clearing old ones waits for `FLUSH`; `roof_map.gd` — the roof map for shaders (wrapped through `RoofMap.WRAP`; g is `CROWN` under a crown plus `NO_PUDDLE` on a top that drains or slopes) and beside it the map of
-  the columns' biomes (`biome_map`) with the multipliers of the materials' colour by biomes (`biome_tints`,
+  the columns' biomes (`biome_map`: r the biome, g the column's `Chunk.frost`, the snow of the heights it lets lie) with the multipliers of the materials' colour by biomes (`biome_tints`,
   from the biomes' `tints`), and a coarse map of the land's height for the ground fog (`ground_low`: a texel per
   `RoofMap.LOW`² columns, the top three quarters of the way up their tops, so a pit or a trunk does not move it;
   `fog_at` in `common.gdshaderinc` measures low places by it and lays the fog's layer over the higher of it and the

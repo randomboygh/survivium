@@ -97,7 +97,7 @@ func _draw_cells(gen: WorldGen, img: Image, x0: int, z0: int, n: int) -> void:
 					c = c.darkened(0.35)
 				if w.leaf_col(wx, wz) != 0:
 					c = c.lerp(CROWN, 0.7)
-				elif w.peak_snow(y + 1) > 0.5:
+				elif w.peak_snow(y + 1, wx, wz) > 0.5:
 					c = c.lerp(Color(0.95, 0.96, 1.0), 0.75)
 				if w.air_col(wx, wz) & ((1 << y) - 1) != 0:
 					c = c.lerp(Color(0.8, 0.2, 0.2), 0.3)

@@ -192,8 +192,9 @@ func _test_mountains() -> void:
 	_check(peak != near and highest >= gen.size_y - 8, "high mountains reach near the top of the world (%d)" % highest)
 	_check(bare > 0, "their high slopes are bare scree and stone")
 	var w: WorldData = gen.world
-	_check(w.peak_snow(w.sea_level + WorldData.SNOW_LINE + 2) == 1.0 and w.peak_snow(w.sea_level + 10) == 0.0,
-		"snow lies all year above the snow line only")
+	_check(w.peak_snow(w.sea_level + WorldData.SNOW_LINE + 2, peak.x, peak.y) == 1.0 and w.peak_snow(w.sea_level + 10, peak.x, peak.y) == 0.0
+		and top.frost[32 * 64 + 32] == 255, "snow lies all year above the snow line only")
+	_test_snowless_desert()
 	# A waterfall: river water beside air over water two levels or more below, the
 	# same whichever order its chunks are made in, and nothing leaks.
 	var fall := gen.find_place("waterfall", near)
@@ -929,3 +930,23 @@ func _test_sea_water() -> void:
 		counts.append([water, sea])
 	_check(counts[0][1] > counts[0][0] / 2 and counts[1][1] == 0 and counts[2][1] == 0 and counts[1][0] > 0
 		and counts[2][0] > 0, "the sea's water is marked, a lake's and a river's are not (%s)" % [counts])
+
+
+## No snow lies all year on the hills of a hot land (a desert's), even where they rise
+## over the snow line and are of another biome (the user's spot of 2026-11-20).
+func _test_snowless_desert() -> void:
+	var gen := WorldGen.new(9777280, 48, {"biomes": 1, "cave_shape": 1, "caves": 0, "climate": 1, "landscape": 1,
+		"mountains": 1, "relief": 1, "rivers": 1, "shores": 1, "size": 1, "slopes": 1, "water": 1}, false)
+	var lay := gen.lay_out(-2857 - 24, -1815 - 24, 48, 48)
+	var high := 0
+	var snowy := 0
+	for j in lay.heights.size():
+		if lay.heights[j] >= gen.sea + WorldData.SNOW_LINE:
+			high += 1
+			snowy += 1 if lay.frost[j] > 0 else 0
+	var key := Vector2i(floori(-2857 / float(WorldGen.CHUNK)), floori(-1815 / float(WorldGen.CHUNK)))
+	gen.run(key, WorldGen.TERRAIN)
+	var w: WorldData = gen.world
+	var y := w.surface_y(-2857, -1815)
+	_check(high > 100 and snowy == 0 and y >= w.sea_level + WorldData.SNOW_LINE and w.peak_snow(y + 1, -2857, -1815) == 0.0,
+		"no snow lies on the hills of a desert over the snow line (%d high, %d snowy)" % [high, snowy])

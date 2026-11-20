@@ -277,9 +277,9 @@ func start(key: Vector2i, stage: int) -> Job:
 			job.restore = d
 			job.trees = d.get("planted", [])
 			job.rows = 1 + job.trees.size()
-			if not d.get("biome") is PackedByteArray:
-				# Saved before chunks kept their columns' biomes: laid out again, a row
-				# a step.
+			if not d.get("biome") is PackedByteArray or not d.get("frost") is PackedByteArray:
+				# Saved before chunks kept their columns' biomes (or frost): laid out
+				# again, a row a step.
 				job.rows += CHUNK
 			return job
 		push_error("saved chunk %s is broken or of another world: made anew" % key)
@@ -390,14 +390,16 @@ func _terrain_step(job: Job, row: int) -> void:
 	_plant(job, job.trees[row], true)
 
 
-## Writes the biomes of one row of chunk `key` from the layout (a chunk saved before
-## chunks kept them, see Chunk.biome).
+## Writes the biomes and the frost of one row of chunk `key` from the layout (a chunk
+## saved before chunks kept them, see Chunk.biome, Chunk.frost).
 func _biome_row(key: Vector2i, row: int) -> void:
 	var c: WorldData.Chunk = world.chunks[key]
 	var lay := lay_out(key.x * CHUNK, key.y * CHUNK + row, CHUNK, 1)
 	var biome: PackedByteArray = lay.biome
+	var frost: PackedByteArray = lay.frost
 	for lx in CHUNK:
 		c.biome[(row << WorldData.SHIFT) | lx] = biome[lx]
+		c.frost[(row << WorldData.SHIFT) | lx] = frost[lx]
 
 
 # --- Cells of a chunk ------------------------------------------------------------
@@ -458,6 +460,7 @@ func _fill_row(key: Vector2i, lay: Dictionary, row: int) -> void:
 		var j := (row + MARGIN) * WINDOW + lx + MARGIN
 		var col := (row << WorldData.SHIFT) | lx
 		c.biome[col] = lay.biome[j]
+		c.frost[col] = lay.frost[j]
 		var height := heights[j]
 		var wt := water[j]
 		var top: int = tops[j]

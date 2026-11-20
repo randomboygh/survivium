@@ -1007,6 +1007,7 @@ func _layout_row(lay: Dictionary, lz: int) -> void:
 		lay.water[j] = c[1]
 		lay.tops[j] = c[2]
 		lay.biome[j] = c[3]
+		lay.frost[j] = 255
 		lay.flags[j] = SHEER_TOP if c[4] else 0
 		lay.kind[j] = PLAIN
 		# The beach's water is the sea's (a sixth entry, see beach_column).

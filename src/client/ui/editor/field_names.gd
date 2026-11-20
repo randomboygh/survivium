@@ -218,6 +218,7 @@ const NAMES := {
 	"biomes.spawn": ["[field.biomes.spawn]", "[field.biomes.spawn.about]"],
 	"biomes.grass_back": ["[field.biomes.grass_back]", "[field.biomes.grass_back.about]"],
 	"biomes.sandstorms": ["[field.biomes.sandstorms]", "[field.biomes.sandstorms.about]"],
+	"biomes.snowless_peaks": ["[field.biomes.snowless_peaks]", "[field.biomes.snowless_peaks.about]"],
 	"biomes.by_water": ["[field.biomes.by_water]", "[field.biomes.by_water.about]"],
 	"biomes.by_water_reach": ["[field.biomes.by_water_reach]", "[field.biomes.by_water_reach.about]"],
 	"biomes.hummocks": ["[field.biomes.hummocks]", "[field.biomes.hummocks.about]"],

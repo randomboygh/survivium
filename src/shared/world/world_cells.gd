@@ -191,6 +191,11 @@ class Chunk extends RefCounted:
 	## a chunk of the test world, or one saved before biomes were kept), written by the
 	## generator: what tints its ground and water and which plants grow on it.
 	var biome := PackedByteArray()
+	## How much of the snow lying all year over SNOW_LINE lies on each column, 0..255
+	## (see peak_snow): by its climate, none where the land is as warm as a desert
+	## (Biomes.SNOWLESS_FROM); 255 where it is not known (the test world, a chunk saved
+	## before it was kept, till the generator lays it out again).
+	var frost := PackedByteArray()
 	## Changed by the player: kept when the player goes far away.
 	var edited := false
 	## Done by the generator: its later stages of the chunks around write nothing here
@@ -252,6 +257,8 @@ func add_chunk(key: Vector2i) -> Chunk:
 	c.air.fill(all_bits)
 	c.biome.resize(LAYER)
 	c.biome.fill(NO_BIOME)
+	c.frost.resize(LAYER)
+	c.frost.fill(255)
 	chunks[key] = c
 	if key == _last_key:
 		_last = c
@@ -803,10 +810,15 @@ static func top_level(bits: int) -> int:
 	return level
 
 
-## How much snow lies all year at height `y` (in cells, a top or the feet on it), 0..1:
-## none below the snow line, full two levels above it.
-func peak_snow(y: float) -> float:
-	return clampf((y - sea_level - SNOW_LINE) / 2.0, 0.0, 1.0)
+## How much snow lies all year at height `y` (in cells, a top or the feet on it) in
+## column x, z, 0..1: none below the snow line, full two levels above it, as much as the
+## column's climate lets lie (Chunk.frost: none in a desert's hills).
+func peak_snow(y: float, x: int, z: int) -> float:
+	var high := clampf((y - sea_level - SNOW_LINE) / 2.0, 0.0, 1.0)
+	if high <= 0.0:
+		return 0.0
+	var c: Chunk = chunk_at(x, z)
+	return high if c == null else high * c.frost[col_of(x, z)] / 255.0
 
 
 ## The level just above the highest cell of column (x, z) that is not air or leaves, 0
@@ -872,7 +884,7 @@ func pack_chunk(key: Vector2i) -> Dictionary:
 		bush_lists[name] = list
 	return {"key": key, "levels": size_y, "cells": c.cells, "natural": c.natural, "shapes": c.shapes,
 		"air": c.air, "water": c.water, "leaf": c.leaf, "logs": c.logs, "wild": c.wild, "sloped": c.sloped,
-		"corner": c.corner, "biome": c.biome, "trees": tree_list, "tree_records": tree_lists, "bushes": bush_lists, "turf": turf.get(key, {}).duplicate(),
+		"corner": c.corner, "biome": c.biome, "frost": c.frost, "trees": tree_list, "tree_records": tree_lists, "bushes": bush_lists, "turf": turf.get(key, {}).duplicate(),
 		"fields": fields.get(key, {}).duplicate(true), "drops": drops.get(key, []).duplicate(true),
 		"forms": _forms_of(key), "grown": c.grown}
 
@@ -915,6 +927,12 @@ func unpack_chunk(d: Dictionary) -> bool:
 	else:
 		c.biome.resize(LAYER)
 		c.biome.fill(NO_BIOME)
+	var frost: Variant = d.get("frost")
+	if frost is PackedByteArray and frost.size() == LAYER:
+		c.frost = frost
+	else:
+		c.frost.resize(LAYER)
+		c.frost.fill(255)
 	c.edited = true
 	c.final = true
 	var warm: Variant = d.get("grown", -1)

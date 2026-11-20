@@ -214,7 +214,7 @@ func _kind(feet: Vector3) -> int:
 	if world.water_frozen and world.get_cell(cell.x, cell.y + 1, cell.z) == Mat.WATER:
 		cell.y += 1
 	var ground: int = world.get_cell(cell.x, cell.y, cell.z)
-	if maxf(snow, world.peak_snow(cell.y + 1)) > 0.6 and ground != Mat.WATER and world.roof_level(cell.x, cell.z) == cell.y:
+	if maxf(snow, world.peak_snow(cell.y + 1, cell.x, cell.z)) > 0.6 and ground != Mat.WATER and world.roof_level(cell.x, cell.z) == cell.y:
 		return SNOW
 	if ground == Mat.WATER and world.water_frozen:
 		return ICE

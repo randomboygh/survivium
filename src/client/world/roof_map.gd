@@ -11,7 +11,8 @@ extends RefCounted
 ## is sent to the renderer once a frame at most (flush).
 
 ##
-## Beside it, the biome map: a texel per column the same way holding its biome (Chunk.biome),
+## Beside it, the biome map: a texel per column the same way holding its biome (Chunk.biome)
+## in r and how much of the snow of the heights lies on it (Chunk.frost) in g,
 ## and the factors each biome's tints multiply each material by (biome_tints, a texel
 ## for material m and biome b at m, b), for biome_tint in common.gdshaderinc.
 
@@ -79,7 +80,7 @@ func prepare(_w = null) -> void:
 	low_image = Image.create_empty(LOW_SIZE, LOW_SIZE, false, Image.FORMAT_RGBA8)
 	low_texture = ImageTexture.create_from_image(low_image)
 	PixelTextures.set_global("ground_low", low_texture)
-	biome_image = Image.create_empty(WRAP, WRAP, false, Image.FORMAT_R8)
+	biome_image = Image.create_empty(WRAP, WRAP, false, Image.FORMAT_RG8)
 	biome_image.fill(Color(1, 1, 1))
 	biome_texture = ImageTexture.create_from_image(biome_image)
 	PixelTextures.set_global("biome_map", biome_texture)
@@ -165,7 +166,12 @@ func fill_chunk(w, key: Vector2i) -> void:
 	low_image.blit_rect(Image.create_from_data(m, m, false, Image.FORMAT_RGBA8, lows),
 		Rect2i(0, 0, m, m), Vector2i(((key.x * n) & MASK) / LOW, ((key.y * n) & MASK) / LOW))
 	if c != null:
-		biome_image.blit_rect(Image.create_from_data(n, n, false, Image.FORMAT_R8, c.biome),
+		var pairs := PackedByteArray()
+		pairs.resize(2 * n * n)
+		for i in n * n:
+			pairs[2 * i] = c.biome[i]
+			pairs[2 * i + 1] = c.frost[i]
+		biome_image.blit_rect(Image.create_from_data(n, n, false, Image.FORMAT_RG8, pairs),
 			Rect2i(0, 0, n, n), Vector2i((key.x * n) & MASK, (key.y * n) & MASK))
 		biomes_dirty = true
 

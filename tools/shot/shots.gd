@@ -371,6 +371,14 @@ const SHOTS := {
 	"salt-flat": {"time": 0.42, "season": 1, "place": "salt_flat"},
 	# The savanna in the heart of its biggest plain near the spawn of the default world (climate 1).
 	"savanna": {"time": 0.42, "season": 1, "at": [-1268, -364]},
+	# Hills of a desert's warmth over the snow line, bare of snow (the user's spot, 2026-11-20).
+	"desert-hills": {"time": 0.55, "season": 1, "at": [-2857, -1815], "hide": ["chunks: grass"], "world": [9777280, {"biomes": 1,
+		"cave_shape": 1, "caves": 0, "climate": 1, "landscape": 1, "mountains": 1, "relief": 1, "rivers": 1, "shores": 1, "size": 1,
+		"slopes": 1, "water": 1}]},
+	# Where a hot land's hills thin out of the snow of the heights, in the same world.
+	"desert-hills-edge": {"time": 0.55, "season": 1, "at": [-5405, -1303], "hide": ["chunks: grass"], "world": [9777280, {"biomes": 1,
+		"cave_shape": 1, "caves": 0, "climate": 1, "landscape": 1, "mountains": 1, "relief": 1, "rivers": 1, "shores": 1, "size": 1,
+		"slopes": 1, "water": 1}]},
 	"red-rocks": {"time": 0.42, "season": 1, "place": "red_rocks"},
 	"alpine-meadow": {"time": 0.42, "season": 1, "place": "alpine_meadow"},
 	"glacier": {"time": 0.42, "season": 1, "place": "glacier"},

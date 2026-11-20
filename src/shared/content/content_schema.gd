@@ -398,6 +398,10 @@ const SCHEMAS := {
 		# biome lays grass on top (ActionsNature).
 		"grass_back": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.6},
 		"sandstorms": {"type": "bool", "default": false},
+		# No snow lies all year on the heights (over WorldData.SNOW_LINE) where the climate
+		# is as warm as this biome's or warmer (a desert's hills): it thins out from the
+		# lowest warmth of the biome over LandLayout.SNOWLESS_FADE.
+		"snowless_peaks": {"type": "bool", "default": false},
 		# With the setting landscape 1: land of this biome within `by_water_reach` cells of a
 		# lake or a river is the biome named here instead (an oasis, green banks in a desert).
 		"by_water": {"type": "ref:biomes", "soft": true, "default": "", "rel": "spawns"},

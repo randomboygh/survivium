@@ -953,6 +953,8 @@
 "[field.biomes.grass_back.about]": "Chance a year bare ground grows over"
 "[field.biomes.sandstorms]": "Sandstorms"
 "[field.biomes.sandstorms.about]": "Sandstorms blow here"
+"[field.biomes.snowless_peaks]": "Snowless heights"
+"[field.biomes.snowless_peaks.about]": "No snow on the hills all year where it is this warm"
 "[field.biomes.by_water]": "By water"
 "[field.biomes.by_water.about]": "The biome its land becomes by a lake or a river (an oasis)"
 "[field.biomes.by_water_reach]": "Reach of water"

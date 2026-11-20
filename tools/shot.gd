@@ -34,6 +34,9 @@ const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const CELL := 0.5
 const TEST_SAVES := "user://shot_ground"
+## Saves of the world a shot names by `world` ([seed, settings]: a user's spot from
+## «Данные для теста»), made anew each run.
+const WORLD_SAVES := "user://shot_world"
 
 var main: Node
 var out_dir := "user://shots"
@@ -72,10 +75,15 @@ func _initialize() -> void:
 	var ground: bool = names.any(func(n: String) -> bool: return n.begins_with("ground-"))
 	if ground:
 		_test_world()
+	var own: Array = names.map(func(n: String) -> Variant: return Shots.SHOTS.get(n, {}).get("world")).filter(func(w: Variant) -> bool: return w is Array)
+	if not ground and not own.is_empty():
+		_own_world(own[0])
 	main = load("res://scenes/main.tscn").instantiate()
 	places.main = main
 	if ground:
 		main.save_root = TEST_SAVES
+	elif not own.is_empty():
+		main.save_root = WORLD_SAVES
 	main.skip_setup = true
 	root.add_child(main)
 	_run()
@@ -88,6 +96,15 @@ func _test_world() -> void:
 	store.root = TEST_SAVES
 	DirAccess.make_dir_recursive_absolute(TEST_SAVES)
 	store.write_current(-1, {"slopes": 1} if old_slopes else {})
+
+
+## Starts the run in world `w` ([seed, settings]), in a folder of saves of its own made anew.
+func _own_world(w: Array) -> void:
+	var store := load("res://src/shared/world/world_store.gd")
+	store.erase_dir(WORLD_SAVES)
+	store.root = WORLD_SAVES
+	DirAccess.make_dir_recursive_absolute(WORLD_SAVES)
+	store.write_current(w[0], w[1])
 
 
 ## Saved worlds made up for the world list, in a folder of their own.
