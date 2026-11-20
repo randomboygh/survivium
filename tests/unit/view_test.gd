@@ -592,6 +592,23 @@ func _test_gestures() -> void:
 				covered.append(row)
 				break
 	_check(covered.is_empty(), "nodding, no shirt shows over the chin: wrong in rows %s" % [covered])
+	# Shaking the head: the body stands (the legs and the hands' marks as standing), the head
+	# turns one way and the other and goes at most a pixel aside between the two frames.
+	var shake: Array = Figure.data().animations.shake.frames
+	var shaken := []
+	for row in 8:
+		var standing := img.get_region(Rect2i(0, row * fh, fw, fh))
+		var a := img.get_region(Rect2i(int(shake[0]) * fw, row * fh, fw, fh))
+		var b := img.get_region(Rect2i(int(shake[1]) * fw, row * fh, fw, fh))
+		var legs := Rect2i(0, fh - 3, fw, 3)
+		var still: bool = a.get_region(legs).get_data() == standing.get_region(legs).get_data() \
+			and b.get_region(legs).get_data() == standing.get_region(legs).get_data() \
+			and anchors[row][int(shake[0])] == anchors[row][0] and anchors[row][int(shake[1])] == anchors[row][0]
+		var turned := a.get_data() != b.get_data()
+		var aside := absi(a.get_used_rect().position.x - b.get_used_rect().position.x) + absi(a.get_used_rect().end.x - b.get_used_rect().end.x)
+		if not (still and turned and aside <= 2):
+			shaken.append(row)
+	_check(shaken.is_empty(), "shaking the head, the body stands and the head turns, a pixel aside at most, in every direction: wrong in rows %s" % [shaken])
 
 
 ## The looks picked (Looks): their layers in the hair slot, their colours swapped by the

@@ -291,8 +291,9 @@ const ARMS := {
 ## stands facing south with its eyes shut and its legs pressed together ("together"),
 ## and Figure lays that frame on its side (Figure._lay_down). The gestures
 ## (Gestures): a wave over the head, a nod ("bob"), a shake of the body side to side
-## ("lean"), a hand pointing out, beckoning, a bow, clapping in front. The arms are
-## short: a hand reaches a few pixels from its shoulder.
+## ("lean"), a hand pointing out, beckoning, a bow, clapping in front, where a gesture
+## has no frames drawn whole (GestureArt). The arms are short: a hand reaches a few
+## pixels from its shoulder.
 const MOVES := {
 	"front": {
 		"idle": [{"hands": [[3, 14], [10, 14]]}],
@@ -621,7 +622,8 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 	# drawn whole have it in their bob already.
 	var drop: int = BODY[dir].drop
 	if not whole.is_empty():
-		move = {"hands": whole.hands, "bob": whole.bob - drop}
+		# Its `lean` moves only the head (a shake): the body's rows are drawn where they are.
+		move = {"hands": whole.hands, "bob": whole.bob - drop, "lean": whole.get("lean", 0)}
 	var p := {"bob": move.get("bob", 0) + drop, "lean": move.get("lean", 0), "legs": move.get("legs", "stand"), "eyes": whole.get("eyes", "open")}
 	# The blink, and the sleep (Figure._lay_down lays its frame down).
 	if col == int(Figure.data().get("blink", -1)) or c[0] == "sleep":
@@ -809,14 +811,18 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 			# A blade's trail (SlashArt, MowArt), its rows in the frame's pixels from `at`.
 			var t: Dictionary = whole.trail
 			_stamp(parts, t.rows, t.at[1] - ORIGIN.y, Vector2i(t.at[0] - ORIGIN.x, 0))
-	var head: Array = HEAD[dir]
+	# A frame drawn whole can turn the head another way (`head`: a shake), as drawn here
+	# before a west frame is flipped; `seen` is the way it shows in the sheet.
+	var turned: String = whole.get("head", dir)
+	var seen := _mirrored(turned) if real != "" and real != dir else turned
+	var head: Array = _turned(HEAD, turned, seen)
 	if p.eyes == "shut":
 		# Shut, an eye is a dark line where the iris and the white were.
 		head = head.map(func(r: String) -> String: return r.replace("E", "S").replace("w", "S").replace("I", "E").replace("W", "E"))
 	var head_from := parts.size()
 	_stamp(parts, head, 2, up)
 	var head_to := parts.size()
-	_stamp(parts, LooksArt.HAIRS[HAIR_STYLE][dir], 1, up)
+	_stamp(parts, _turned(LooksArt.HAIRS[HAIR_STYLE], turned, seen), 1, up)
 	var solid := {}
 	for e: Array in parts:
 		solid[e[0]] = true
@@ -845,29 +851,49 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 			_arm(out, p[hand], dir, hand, solid, true)
 	_loincloth(out)
 	_shapes(out, up)
-	_looks(out, dir, up, real)
+	_looks(out, turned, seen, up)
 	return out
 
 
 ## The layers of the looks to pick (LooksArt): `hair/<style>` and `face/<option>`, over
-## the head as it bobs and leans. `real` is the direction the frame shows when `dir` is
-## drawn for it flipped (sw, w, nw): a look that is not the same on both sides (an eye
-## patch) has its own rows for it, written as seen, so they are flipped here to come out
-## right.
-static func _looks(out: Dictionary, dir: String, up: Vector2i, real := "") -> void:
+## the head as it bobs and leans, turned `turned` (see _turned: `seen` is the way the frame
+## shows it; a look that is not the same on both sides, an eye patch, has its own rows for
+## a west way, written as seen).
+static func _looks(out: Dictionary, turned: String, seen: String, up: Vector2i) -> void:
 	for kind: String in ["hair", "face"]:
 		var all: Dictionary = LooksArt.HAIRS if kind == "hair" else LooksArt.FACES
 		for id: String in all:
 			var drawn := {}
-			var rows: Array = all[id].get(dir, [])
-			if real != "" and real != dir and all[id].has(real):
-				rows = all[id][real].map(func(r: String) -> String: return r.reverse())
+			var rows := _turned(all[id], turned, seen)
 			for y in rows.size():
 				var r: String = rows[y]
 				for x in r.length():
 					if r[x] != ".":
 						drawn[Vector2i(x, 1 + y) + up] = r[x]
 			out[kind + "/" + id] = drawn
+
+
+## The rows of a head's part (`table`: by way, s, se, e, ne and n, and a look's own west
+## ways) turned `turned` as drawn, `seen` the way it shows: a frame drawn to be flipped
+## into a west one takes a look's own rows for that way flipped, so they come out right;
+## a head turned west in a frame not flipped (a shake from the front or behind) is its
+## east one flipped, unless the look has rows of its own for it.
+static func _turned(table: Dictionary, turned: String, seen: String) -> Array:
+	if seen != turned and table.has(seen):
+		return table[seen].map(func(r: String) -> String: return r.reverse())
+	if table.has(turned):
+		return table[turned]
+	if MIRROR.has(turned) and table.has(MIRROR[turned]):
+		return table[MIRROR[turned]].map(func(r: String) -> String: return r.reverse())
+	return []
+
+
+## Way `d` as a mirror shows it.
+static func _mirrored(d: String) -> String:
+	for west: String in MIRROR:
+		if MIRROR[west] == d:
+			return west
+	return MIRROR.get(d, d)
 
 
 ## The loincloth the character is born in: the trousers' waistband, in cloth.
