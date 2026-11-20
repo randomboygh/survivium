@@ -618,8 +618,9 @@ static func eighth(a: int) -> int:
 
 
 ## The pose of column `col` drawn in direction `dir` (a drawn one: s, se, e, ne, n) with
-## hand `active` in use: {"bob", "lean", "legs", "eyes", "right": hand, "left": hand}, a
-## hand being {"at": where it is in the box, "shoulder", "front": in front of the body,
+## hand `active` in use: {"bob", "lean", "legs", "eyes" ("open", or "shut" in the blink, the
+## sleep and where a frame drawn whole has them so), "right": hand, "left": hand}, a hand
+## being {"at": where it is in the box, "shoulder", "front": in front of the body,
 ## "holds": false for the other hand of a two-handed work, "worked", "angle": the way
 ## what it holds points (-1: as carried), "ccw", and for a frame drawn whole "slide": how
 ## far up its length it is held, ToolArt.turned, and "bow": a bow as the frame draws it}.
@@ -636,7 +637,7 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 	var drop: int = BODY[dir].drop
 	if not whole.is_empty():
 		move = {"hands": whole.hands, "bob": whole.bob - drop}
-	var p := {"bob": move.get("bob", 0) + drop, "lean": move.get("lean", 0), "legs": move.get("legs", "stand"), "eyes": "open"}
+	var p := {"bob": move.get("bob", 0) + drop, "lean": move.get("lean", 0), "legs": move.get("legs", "stand"), "eyes": whole.get("eyes", "open")}
 	# The blink, and the sleep (Figure._lay_down lays its frame down).
 	if col == int(Figure.data().get("blink", -1)) or c[0] == "sleep":
 		p.eyes = "shut"
@@ -825,7 +826,9 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 	if p.eyes == "shut":
 		# Shut, an eye is a dark line where the iris and the white were.
 		head = head.map(func(r: String) -> String: return r.replace("E", "S").replace("w", "S").replace("I", "E").replace("W", "E"))
+	var head_from := parts.size()
 	_stamp(parts, head, 2, up)
+	var head_to := parts.size()
 	_stamp(parts, LooksArt.HAIRS[HAIR_STYLE][dir], 1, up)
 	var solid := {}
 	for e: Array in parts:
@@ -845,6 +848,11 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 			out["fists" if p[hand].front else "body"][e[0]] = h[1]
 		else:
 			_put(out, e[0], e[1])
+	# The head is in front of the body: what the body wears does not show over it (the chin
+	# of a nod over the collar).
+	for i in range(head_from, head_to):
+		for worn: String in ["shirt", "trousers", "boots"]:
+			out[worn].erase(parts[i][0])
 	for hand in ["left", "right"]:
 		if p[hand].front and whole.is_empty():
 			_arm(out, p[hand], dir, hand, solid, true)

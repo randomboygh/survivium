@@ -1,7 +1,7 @@
 extends RefCounted
 ## The gestures (Gestures, decision 183), drawn whole under the head as the walk is
 ## (WalkArt), frames for each drawn direction (PlayerArt.VIEW), the west ones mirrored, in
-## the order of their animation's own columns (player.yaml). After the user's review
+## the order of their animation's columns (player.yaml). After the user's review
 ## (2026-11-20):
 ## - the wave: the right hand up by the face at the eyes' rows, two pixels square, on a
 ##   short shoulder (two pixels on the diagonal, a pixel and a half wide: the light over its
@@ -12,9 +12,12 @@ extends RefCounted
 ##   the hand over its side by the ear (its lower row, on the skin, in the shade), the forearm
 ##   up across the jaw. Turned away the hand is by the jaw, clear of the cheek; from behind by
 ##   the head at the ear's row.
+## - the nod: the body stands and the head goes a pixel down over the neck, the eyes shut as
+##   in the blink.
 ##
-## A frame: the head's place `bob` (the stand's drop in it), `rows` from box row `top` and
-## from box column X0 (a hand goes out beside the head past the box's edge) in the letters of
+## A frame: the head's place `bob` (the stand's drop in it), its eyes `eyes` where they are
+## not open ("shut" as in the blink, PlayerArt.pose), `rows` from box row `top` and from box
+## column X0 (a hand goes out beside the head past the box's edge) in the letters of
 ## PlayerArt.INK with the hands' skin in the digits of WalkArt.HANDS, the body's first row
 ## `neck` (rows over it hold only a raised arm, which stays where it is in every form), the
 ## waistband's row `hips` and the hands' places `hands` ([right, left]: the hand's lowest
@@ -26,7 +29,8 @@ const FormsArt := preload("res://tools/art/player_forms_art.gd")
 
 ## The rows' first column in the box: they reach as far past its other edge.
 const X0 := -2
-## The frames by gesture and drawn direction.
+## The frames by gesture and drawn direction, in the order of the gesture's columns
+## (PlayerArt.column); {} where it shows the stand (column 0), which is drawn as it is.
 const FRAMES := {
 	"wave": {
 		"s": [
@@ -150,6 +154,64 @@ const FRAMES := {
 			]},
 		],
 	},
+	"nod": {
+		"s": [
+			{},
+			{"bob": 1, "eyes": "shut", "top": 11, "neck": 11, "hips": 14, "hands": [[3, 13], [10, 13]], "rows": [
+				"......cVkkVc......",
+				".....ccCCCCcc.....",
+				"....45cCCCCc87....",
+				"....45UUuuUU87....",
+				"......TT..TT......",
+				"......tt..TT......",
+				"......BB..BB......",
+			]},
+		],
+		"se": [
+			{},
+			{"bob": 2, "eyes": "shut", "top": 12, "neck": 12, "hips": 15, "hands": [[4, 13], [10, 12]], "rows": [
+				".......VkkVc......",
+				"......ccCCC88.....",
+				".....44cCCC88.....",
+				".....44UUuUU......",
+				".......TT.Tt......",
+				".......KB.KB......",
+			]},
+		],
+		"e": [
+			{},
+			{"bob": 2, "eyes": "shut", "top": 12, "neck": 12, "hips": 14, "hands": [[7, 13], [6, 13]], "rows": [
+				"........CVk.......",
+				".......cCCc.......",
+				".......UU44.......",
+				".......tt44.......",
+				"........tTt.......",
+				"........BBb.......",
+			]},
+		],
+		"ne": [
+			{},
+			{"bob": 2, "eyes": "shut", "top": 12, "neck": 12, "hips": 15, "hands": [[10, 13], [3, 13]], "rows": [
+				".......VVVC.......",
+				"......ccccCCC.....",
+				".....88VcccC44....",
+				".....88uuuuu44....",
+				".......mm.tt......",
+				".......bb.BB......",
+			]},
+		],
+		"n": [
+			{},
+			{"bob": 2, "eyes": "shut", "top": 12, "neck": 12, "hips": 15, "hands": [[10, 13], [3, 13]], "rows": [
+				".....CCVVVVCC.....",
+				".....CCccccCC.....",
+				"....77CccccC44....",
+				"....88uuuuuu55....",
+				"......mm..mm......",
+				"......bb..bb......",
+			]},
+		],
+	},
 }
 
 
@@ -157,7 +219,7 @@ const FRAMES := {
 ## for none.
 static func frame(gesture: String, dir: String, i: int) -> Dictionary:
 	var frames: Array = FRAMES.get(gesture, {}).get(dir, [])
-	if i < 0 or i >= frames.size():
+	if i < 0 or i >= frames.size() or frames[i].is_empty():
 		return {}
 	var f: Dictionary = frames[i].duplicate()
 	f.x0 = X0

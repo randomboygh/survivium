@@ -328,8 +328,8 @@ outline, its tip in the trail's first pixels).
 
 - Columns 48-59 (`player.yaml`: wave 48-49, nod 0 and 50, shake 51-52, point 53, beckon 54-55, bow 56-57,
   clap 58-59). A gesture is drawn whole in `tools/art/player_gesture_art.gd` (GestureArt), written by
-  `gen_gesture_gd.py <out.gd> wave=<module>:WAVE ...` from data modules in the library (`gestures_i.py` for
-  the wave); the others are still `PlayerArt.MOVES` poses until drawn. A frame's rows start at column
+  `gen_gesture_gd.py <out.gd> wave=gestures_i:WAVE nod=gestures_nod_a:ALL_B:0,50` from data modules in the
+  library; the others are still `PlayerArt.MOVES` poses until drawn. A frame's rows start at column
   `GestureArt.X0` (-2): a hand goes out past the box beside the head; the box's part is made in the body's
   forms (`FormsArt.body`), the hands past it thinned with it (`GestureArt.rows`).
 - The user's review, one gesture at a time, the front first (`gestures_front_gif.py`), then every direction
@@ -343,10 +343,19 @@ outline, its tip in the trail's first pixels).
   hand over its side by the ear, its lower row in the shade (a light hand on the skin does not show), the
   forearm up across the jaw. Turned away the hand is by the jaw, clear of the cheek's skin; from behind by
   the head at the ear's row.
+- The nod (variant Б of three looked at from the front, 2026-11-20 19:08 MSK: the head down alone, with the
+  eyes shut, with the lids lowered): the body stands, the head goes a pixel down over the neck (`bob` one
+  more than the stand's; `body` 0, so `neck`, `hips` and the hands stay the stand's) with the eyes shut as
+  in the blink (a frame's `eyes`, which `PlayerArt.pose` takes from any frame drawn whole). It plays the
+  stand's column 0 and its own 50, and `PlayerArt.column` counts the stand's first: the generator's
+  `:0,50` writes `{}` for it. Dressed, the chin lies over the collar's row and the shirt's layer (over the
+  body's) drew the collar over it: `PlayerArt.frame_letters` takes what is worn off where the head is (the
+  review GIFs show the bare look; the library's `dressed_quick.gd <out.png> <cols>` shows it dressed).
 - A raised hand's place (`hands`, where a thing held is drawn) is its lowest pixel under its middle, the
   one nearer the body on a tie, so a hand that moves moves its place; a hand drawn where the stand has it
-  keeps the stand's place. `view_test.gd` (`_test_gestures`) checks the wave in every direction: one hand
-  up by the head and moving, the other where it stands.
+  keeps the stand's place. `view_test.gd` (`_test_gestures`) checks the wave in every direction (one hand
+  up by the head and moving, the other where it stands) and the nod (the head a pixel lower, the legs and
+  the hands' marks as standing, no shirt over the chin).
 - Tools in the library: `gestures_proto.py` renders a frame as the game does (the front hands over the
   head), `gestures_wide.py` builds wide frames from a stand (`seg`, `frame`), `gestures_view.py` sheets of
   variants, `gestures_vsgame.py <module>:<attr> <anim> <quick dir>` compares them with a quick sheet drawn

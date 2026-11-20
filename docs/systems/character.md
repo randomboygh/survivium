@@ -205,7 +205,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   the box for a hand out beside the head: the wave (reviewed with the user 2026-11-20) raises the right hand
   by the face at the eyes' rows, two pixels square on a short shoulder, and moves it a pixel out and back;
   from the side the near hand is over the head by the ear (a hand in front of the body is drawn with the
-  fists, over the head). The wheel of gestures —
+  fists, over the head); the nod drops the head a pixel over the neck with the eyes shut (a frame's `eyes`,
+  as in the blink), the body standing. The wheel of gestures —
   `src/client/ui/gesture_wheel.gd` (a button beside the chat in the top row, the key C, digits 1–8 in the
   wheel).
 - `src/client/view/figure.gd` — the sheet of the player's frames from `content/core/sprites/` by `player.yaml`
@@ -217,7 +218,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   pick of 2026-11-19): a neck, 8 px shoulders, a 6 px torso, bare arms of 2 px hanging by it, legs of 2 px,
   each as the reference draws it in the step it stands on; turned (south-east), from the side and from behind
   the head sits a row lower and the body is a row shorter, as in the walk. The feet stand on the frame's
-  bottom row with no outline under them. `tools/art/player_art.gd` draws it (`HEAD`, `HAIR`, the body standing `BODY`,
+  bottom row with no outline under them. What is worn never shows over the head (`frame_letters` takes it off
+  where the head is: a nod's chin over the collar). `tools/art/player_art.gd` draws it (`HEAD`, `HAIR`, the body standing `BODY`,
   `SIDE_LEGS`, the arms `SHOULDER`, `REST` and `ARMS`, the poses `MOVES` and `WORKS`); the design and its
   letters are in the library `survivium-builds/character/chibi/`. Seated (`sit`: afloat and the gesture,
   and the rowing on the same legs) the body is two rows lower, only the feet under it; from the side the
