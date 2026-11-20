@@ -236,22 +236,23 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   the third, the chest's row folded away: the legs never move), then the toss; from the front the shovel
   is at the right side, from the side and behind by the right foot, beside the feet with the outline
   between. The slash's four frames too, with a blade in one hand (`tools/art/player_slash_art.gd`,
-  reviewed with the user 2026-11-20 after the sword's swing of Puny Characters (Shade, CC0); the swords,
-  knives, spears, sickles, slings, bows and rods play it): the blade goes along an arc, fast at first, then
-  slowing; from the front it is raised beside the head at its right side (the picture's left), swept down
-  that side (`PlayerArt.LOW_LEFT`), at the viewer between the legs on the strike (crouched, the chest's row
-  folded away: the legs never move), then stopped at the other side about 30 degrees to the ground
-  (`PlayerArt.LOW`: `ToolArt.turned` lays any tool's upright shape along a line two pixels across for each
-  one down); the hand stays left of the belly's middle, so the blade never seems to be in the other hand.
-  From the side and behind the arm is out to the working side, drawn back and up, the swing up and over,
-  the strike down at the other side, from behind mirrored with the blade passing in front of the body. A
-  frame may put the other hand behind the blade (`of`). A blade swung leaves a trail: the strike's frame
-  draws one along the arc (`trail` of the frame, the letters `o`, `+`, `-` of `PlayerArt.INK`, into the
-  layer `player/trail.png`, `player.yaml` `trail`), and `Figure` puts it over the figure and its outline in
-  the columns of the work the right hand's thing plays, for things with `trail` (swords, knives, sickles,
-  also when held as an icon; `Hands.look`); without it the tan wooden blade is lost over the skin. The slash
-  strikes on its third frame as every work does (half the swing, `Controls`); a rod out fishing is held as
-  in the second frame, swept out, where it shows from every side (`Player.ROD_OUT`). A
+  reviewed with the user 2026-11-20, first after the sword's swing of Puny Characters (Shade, CC0); the
+  swords, knives, spears, sickles, slings, bows and rods play it): the sword up beside the head at the
+  shoulders, then raised higher; the swing (crouched, the chest's row folded away: the legs never move)
+  along an arc down that side and under to the other, the blade about 30 degrees to the ground
+  (`PlayerArt.LOW`, `LOW_LEFT`: `ToolArt.turned` lays any tool's upright shape along a line two pixels
+  across for each one down); then standing again with the blade where it stopped. From the front the
+  sword is at the right side (the picture's left) and the hand stays left of the belly's middle, so the
+  blade never seems to be in the other hand; from the side it is up behind the head and swings over in
+  front of the face, forward and down; from behind the front is mirrored, the blade in front of the body
+  hidden but for its tip past the left side. A frame may put the other hand behind the blade (`of`). A
+  blade swung leaves a trail: the swing's frame draws one along the whole arc (`trail` of the frame, the
+  letters `o`, `+`, `-` of `PlayerArt.INK`, into the layer `player/trail.png`, `player.yaml` `trail`),
+  and `Figure` puts it over the figure and its outline in the columns of the work the right hand's thing
+  plays, for things with `trail` (swords, knives, sickles, also when held as an icon; `Hands.look`);
+  without it the tan wooden blade is lost over the skin. The slash strikes on its third frame as every
+  work does (half the swing, `Controls`); a rod out fishing is held as in the last frame
+  (`Player.ROD_OUT`). A
   work drawn so carries the way the tool points (`a`, `ccw`, `f`), where the hand holds it
   and how far up its length (`slide`: `ToolArt.turned` moves the head nearer the hand, the shaft's end
   past it, leaving `ToolArt.SLIDE_LEFT` rows beyond it, so a short thing is held as it is), so
