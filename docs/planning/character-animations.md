@@ -4,8 +4,9 @@ Status (2026-11-20): thread «Поправить анимации персона
 animations one by one on the new chibi body. Done: the walk and the stand (#789), the outline under a
 hand low in the frame (#790), the jump (#791), the swim (#792), the chop (#796), the dig (#797), the
 slash (accepted 2026-11-20 12:56 MSK, the PR after #799; then from the side the arm a pixel nearer and
-a sheet for the sickle, 13:13 MSK). Next: the bow (the aim, the user's pick 2026-11-20 13:13 MSK: the
-Bow Attack of Puny Characters), then reach, mow, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e, ne, n, nw, w, sw.
+a sheet for the sickle, 13:13 MSK; #801). The bow's shot (the work `aim`, the user's pick 2026-11-20 13:13
+MSK: the Bow Attack of Puny Characters) is drawn in every direction and in the game, under review. Next:
+reach, mow, eat, sleep, sit, row, gestures. Directions are shown in the order s, se, e, ne, n, nw, w, sw.
 
 ## How the user reviews
 
@@ -145,3 +146,31 @@ outline, its tip in the trail's first pixels).
   не видно»).
 - Accepted by the user 2026-11-20 12:56 MSK on the 12th GIF; the side's arm and the sickle after it.
   Bows and slings play the slash until the aim is drawn.
+
+## The bow (under review)
+
+- Columns 34-37 (`player.yaml` `works` aim; the wooden and the composite bow play it), drawn whole:
+  `tools/art/player_aim_art.gd` (AimArt), written by `gen_aim_gd.py <module> <out.gd>` (run with
+  `python3 -I`) from a data module in the library, now `aim_b.py` (`AIM`; `aim_a.py` has the frames, `aim_b`
+  the back-turned view as the reference draws it). A frame draws the bow too (`bow`: rows of `ToolArt.INK`
+  letters from their corner's offset from the grip; in the data module `F(...)` builds it from the bow's
+  rows at box row `btop`, its `g` or `grip` at the hand), since the string and the arrow change in each
+  frame; `ToolArt.sheet` draws it for a shape with `bow` (the composite bow recoloured: `P` `Z`, `p` `z`).
+  `two`: the other hand draws the string and shows no thing of its own; the bows have `hands: 2` (the
+  validator wants an item's hands to be its work's).
+- The reference: Puny Characters (Shade, CC0), `Character-Base/Archer-Green.png`, rows s, se, e, ne, n,
+  columns 8-11: drawn (the arrow at the viewer from the front), loosed (the string still bent, the hand
+  back), the string straight, the bow lowered (the body a row up). In the library
+  `references/puny-archer-bow-attack.png`; `aim_ref.py`, `aim_zoom.py <module> <dirs> <out.png> [Z]` (ours
+  over the reference), `aim_variants.py` (the front's GIF of the two orders).
+- Two orders were offered (a decision card, 2026-11-20): A as in Puny (drawn, loosed, straight, lowered;
+  the arrow would leave on the second frame) and B, recommended and drawn: nocked at the hips, drawn,
+  loosed, down again, so the arrow leaves on the third frame as every work strikes (`Controls._did` flies
+  it half the swing later for the aim). Our bow is light wood (`P`, `p`) with a dark inner edge (`K`): the
+  icon's brown is lost over the bare skin.
+- GIFs in the library: `bow-front-1.gif` (the front, A and B beside the reference), `bow-all-2.gif`
+  (every direction, B; «было» the slash the bows played).
+- Checking: after `make_sprites.gd -- --all` and `--import`, `dump.gd` with the wooden bow
+  (`content/tools/bow/sprites/held/wooden_bow.png`, given as `wooden_bow=` its path under `content/` and
+  `:aim`) and `python3 vsgame.py aim_b AIM <dump dir> wooden_bow aim` must print `bad 0` (it does for
+  `aim_b`); `tools_gif.py` shows both bows (`bow-tools-2.gif`).

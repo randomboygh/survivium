@@ -11,7 +11,8 @@
   icon: wooden_bow
   tool: bow
   sprite: wooden_bow
-  anim: slash
+  anim: aim
+  hands: 2
   power: 5
   swing: 0.6
   reach: 4

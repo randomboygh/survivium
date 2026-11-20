@@ -333,6 +333,23 @@ func _test_sprite_sheet() -> void:
 		"a blade's trail shows over the figure, or behind it as seen from behind: %d of %d pixels wrong" % [wrong, streaked])
 	_check(trailed.get_region(Rect2i(0, 0, fw, fh)).get_data() == untrailed.get_region(Rect2i(0, 0, fw, fh)).get_data()
 		and trailed.get_data() != untrailed.get_data(), "a trail shows only in the work, only of a thing that leaves one")
+	# A bow is drawn as each frame of its shot draws it (AimArt `bow`: nocked, drawn back,
+	# loosed), and the other hand, which draws the string, shows nothing of its own.
+	var bow := {"sprite": "res://content/tools/bow/sprites/held/wooden_bow.png", "anim": "aim"}
+	var aim: Array = works.aim.columns
+	_check(anchors[0][aim[1]].left.is_empty() and not anchors[0][0].left.is_empty(), "shooting a bow, the other hand draws the string")
+	var shooting := Figure.sheet(look, {"right": bow, "active": "right"}).texture.get_image()
+	_check(shooting.get_region(Rect2i(aim[0] * fw, 2 * fh, fw, fh)).get_data() != shooting.get_region(Rect2i(aim[1] * fw, 2 * fh, fw, fh)).get_data()
+		and shooting.get_region(Rect2i(aim[1] * fw, 2 * fh, fw, fh)).get_data() != shooting.get_region(Rect2i(aim[2] * fw, 2 * fh, fw, fh)).get_data(),
+		"a bow is drawn back, then loosed")
+	var two := Figure.sheet(look, {"left": axe, "right": bow, "active": "right"}).texture.get_image()
+	var shown := 0
+	for row in 8:
+		for c: int in aim:
+			var r := Rect2i(c * fw, row * fh, fw, fh)
+			shown += 0 if two.get_region(r).get_data() == shooting.get_region(r).get_data() else 1
+	_check(shown == 0 and two.get_region(Rect2i(0, 0, fw, fh)).get_data() != shooting.get_region(Rect2i(0, 0, fw, fh)).get_data(),
+		"shooting a bow, the other hand's thing is put away: in %d frames it shows" % shown)
 	# Nothing spills over a frame's edge: what is on it is outline next to the figure.
 	var spilled := 0
 	for row in 8:
@@ -364,6 +381,9 @@ func _test_sprite_sheet() -> void:
 	p.held.active = "right"
 	p.work("", 0.4)
 	_check(p.work_kind == "chop", "an axe chops")
+	p.held.right = bow
+	_check(p.work_kind_for("") == "aim" and p.work_kind_for("dig") == "dig", "a bow shoots (its arrow leaves on the third frame, Controls)")
+	p.held.right = axe
 	p.held.active = "left"
 	p.held.left = {}
 	p.work_kind = ""

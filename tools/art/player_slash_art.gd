@@ -9,8 +9,9 @@ extends RefCounted
 ## holding it stays on its own side of the body. From the side it is the front's swing
 ## too (behind the head, down behind and under to the blade in front); from behind the
 ## front mirrored, the blade and its trail hidden behind the body. The blow lands on the
-## third frame, as in the other works. The swords, knives, spears, sickles, slings, bows
-## and rods play it; a rod out fishing is held as in the last frame (Player.ROD_OUT).
+## third frame, as in the other works. The swords, knives, spears, sickles, slings and
+## rods play it (the bows their shot, AimArt); a rod out fishing is held as in the last
+## frame (Player.ROD_OUT).
 ##
 ## A frame: the head's place `bob` (the stand's drop in it), `rows` from box row `top` in
 ## the letters of PlayerArt.INK with the hands' skin in the digits of WalkArt.HANDS (`neck`

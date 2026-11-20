@@ -237,7 +237,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   is at the right side, from the side and behind by the right foot, beside the feet with the outline
   between. The slash's four frames too, with a blade in one hand (`tools/art/player_slash_art.gd`,
   reviewed with the user 2026-11-20, first after the sword's swing of Puny Characters (Shade, CC0); the
-  swords, knives, spears, sickles, slings, bows and rods play it): the sword up beside the head at the
+  swords, knives, spears, sickles, slings and rods play it): the sword up beside the head at the
   shoulders, then raised higher; the swing (crouched, the chest's row folded away: the legs never move)
   along an arc down that side and under to the other, the blade about 30 degrees to the ground
   (`PlayerArt.LOW`, `LOW_LEFT`: `ToolArt.turned` lays any tool's upright shape along a line two pixels
@@ -254,7 +254,18 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   where the hand holds the thing in front of the body, behind them (only where the frame is still empty)
   where the thing is behind it, as from behind; without it the tan wooden blade is lost over the skin. The slash strikes on its third frame as every
   work does (half the swing, `Controls`); a rod out fishing is held as in the last frame
-  (`Player.ROD_OUT`). A
+  (`Player.ROD_OUT`). The bow's shot, the work `aim`, too (`tools/art/player_aim_art.gd`, reviewed with
+  the user 2026-11-20 after the Bow Attack of Puny Characters; the bows play it): an arrow nocked, the
+  string drawn back, loosed (the string straight, the drawing hand thrown back), the bow down again; from
+  the front the bow is held across the body with its arrow at the viewer, from the side up in front of
+  the face, turned away a stick past the body's right side, from behind hidden by the body. The bow
+  changes with the string and the arrow in each frame, so a frame draws it whole (`bow`: rows of
+  `ToolArt.INK` letters from their corner's offset from the grip), and `ToolArt.sheet` draws that for a
+  shape with `bow` (the wooden bow, the composite one recoloured) instead of turning it; the other hand
+  draws the string (`two`: it shows no thing of its own; the bows take two hands, `hands: 2`, as the work
+  does in `player.yaml`). The arrow leaves on the third frame:
+  `Controls._did` flies the shot (`Props.fly_shot`) half the swing after the reply for the aim (a spear
+  thrown or a fish pulled out still flies at once). A
   work drawn so carries the way the tool points (`a`, `ccw`, `f`), where the hand holds it
   and how far up its length (`slide`: `ToolArt.turned` moves the head nearer the hand, the shaft's end
   past it, leaving `ToolArt.SLIDE_LEFT` rows beyond it, so a short thing is held as it is), so
