@@ -364,6 +364,22 @@ func _test_sprite_sheet() -> void:
 						thick += 1
 	_check(thick == 0 and _dark_block(lined, 0, 0) and not _dark_block(lined, 1, 0),
 		"a bow's own edge does not double the figure's outline: %d places two pixels thick" % thick)
+	# The bow's string (ToolArt.INK `s`) never runs over the legs, the frame's last two rows:
+	# turned, the bow's lower end is under the frame's edge and the string ends at the limb.
+	var string := Color("e2dfc8").to_rgba32()
+	var strung := 0
+	var on_legs := 0
+	for row in 8:
+		for c: int in aim:
+			for y in range(row * fh, row * fh + fh):
+				for x in range(c * fw, c * fw + fw):
+					var under := img.get_pixel(x, y)
+					if shooting.get_pixel(x, y).to_rgba32() != string or under.to_rgba32() == string:
+						continue
+					strung += 1
+					if y >= row * fh + fh - 2 and under.a > 0.5 and under != dark:
+						on_legs += 1
+	_check(strung > 0 and on_legs == 0, "a bow's string never runs over the legs: %d of its %d pixels do" % [on_legs, strung])
 	# Nothing spills over a frame's edge: what is on it is outline next to the figure.
 	var spilled := 0
 	for row in 8:

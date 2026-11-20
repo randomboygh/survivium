@@ -267,6 +267,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   draws the string (`two`: it shows no thing of its own; the bows take two hands, `hands: 2`, as the work
   does in `player.yaml`). The bow has no dark edge of its own where the figure's outline goes (the two
   made a line two pixels thick): its dark letters only part its wood from the skin and from its string.
+  Its string never runs over the legs: turned to the viewer the bow's lower end is under the frame's edge,
+  and the string ends where it meets the limb on the hips' row (drawn, it goes from the upper end to the hand).
   From the front the bow's mark is above the frame's neck, which no build moves (`PlayerArt.pose`), so
   the bow held across the body stays in the middle of the stocky body too. The arrow leaves on the third frame:
   `Controls._did` flies the shot (`Props.fly_shot`) half the swing after the reply for the aim (a spear
