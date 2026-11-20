@@ -524,7 +524,7 @@ const SHOTS := {
 	"winter-fiber": {"time": 0.42, "season": 3, "find": "meadow", "pick_fiber": true},
 	"winter-fiber-early": {"time": 0.42, "season": 3, "find": "meadow", "pick_fiber": true, "snow": 0.5},
 	"winter-meadow-early": {"time": 0.42, "season": 3, "find": "meadow", "snow": 0.5},
-	"moss-picked": {"time": 0.42, "season": 1, "place": "mountain", "pick_moss": true},
+	"moss-picked": {"time": 0.42, "season": 1, "place": "mountain", "pick_moss": true, "hide": ["chunks: grass", "chunks: crowns", "chunks: crown shadows"]},
 	# A patch of copper ore amid stone moss: the copper has a ragged edge, no moss on it.
 	"copper-moss": {"time": 0.42, "season": 1, "place": "mountain", "copper_moss": true},
 	"hidden": {"time": 0.42, "season": 1, "wall": true},
