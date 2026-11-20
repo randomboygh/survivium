@@ -251,7 +251,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   the columns of the work the right hand's thing plays, for things with `trail` (swords, knives, sickles,
   also when held as an icon; `Hands.look`); without it the tan wooden blade is lost over the skin. The slash
   strikes on its third frame as every work does (half the swing, `Controls`); a rod out fishing is held as
-  in that frame (`Player.ROD_OUT`). A
+  in the second frame, swept out, where it shows from every side (`Player.ROD_OUT`). A
   work drawn so carries the way the tool points (`a`, `ccw`, `f`), where the hand holds it
   and how far up its length (`slide`: `ToolArt.turned` moves the head nearer the hand, the shaft's end
   past it, leaving `ToolArt.SLIDE_LEFT` rows beyond it, so a short thing is held as it is), so

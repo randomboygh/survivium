@@ -116,15 +116,16 @@ var gesture_icon: Sprite3D
 ## units: just over the head, over the name of another player (Others).
 var gesture_icon_high := 0.425
 ## The float of the figure's fishing line on the water (Character.line; INF none):
-## while it is out, the figure stands with the rod held out towards it (the strike of
-## its `slash`, ROD_OUT) and the line is drawn (FishingLine); `line_bite` while a fish
+## while it is out, the figure stands turned to it with the rod held out (a frame of its
+## `slash`, ROD_OUT) and the line is drawn (FishingLine); `line_bite` while a fish
 ## bites, the float pulled under.
 var line_at := Vector3.INF
 var line_bite := false
 var fishing_line: MeshInstance3D
-## The column of the `slash` work the rod is held out in, and where its tip is from the
-## feet: so far ahead towards the float and so high, in world units.
-const ROD_OUT := 2
+## The column of the `slash` work the rod is held out in (the second, swept out: there
+## the rod shows from every side, at the strike it points at the viewer), and where its
+## tip is from the feet: so far ahead towards the float and so high, in world units.
+const ROD_OUT := 1
 const ROD_AHEAD := 0.75
 const ROD_HIGH := 1.05
 ## Where the flames of the lights held burn, in world units, one a hand that holds

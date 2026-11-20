@@ -116,7 +116,7 @@ e, ne, n, nw, w, sw.
 - Iteration 8 (`slash-front-8.gif`, front only, waiting for the user): 1 blade upright beside the head
   (box 0,7, bob -1), 2 blade `LOW_LEFT` from the chin, 3 crouched, the hand at box (6,13), the blade at
   the viewer (TOWARD) between the legs, a trail along the arc, 4 the same hand, the blade `LOW` right.
-  The other directions are still iteration 4's (`slash_e.py` via `slash_f.py`).
+  The code now has iteration 11 (below), the front unchanged.
 - The trail (the user's pick: white, no outline, over the figure, only on frame 3): a frame's `trail`
   (`at` and rows in image pixels; in the data module `smear`), the letters `o`, `+`, `-` of
   `PlayerArt.INK`, drawn into the layer `player/trail.png` (`player.yaml` `trail`); `Figure._put_trail`
@@ -125,9 +125,16 @@ e, ne, n, nw, w, sw.
   `none`).
 - Checking: after `make_sprites.gd -- --all` and `--import`, `dump.gd` with the sword held
   (`content/tools/sword/sprites/held/sword.png`, given as `sword=` its path under `content/` and
-  `:slash:trail`) and `SMEAR=free python3 vsgame.py slash_j SLASH
+  `:slash:trail`) and `SMEAR=free python3 vsgame.py slash_k SLASH
   <dump dir> sword slash` must print `bad 0` (without `:trail` and with `SMEAR=none` too).
   `variants_gif.py` makes the review GIF, `igrid.py` a frame's pixel grid.
-- Left: the user's review of the front; the other directions in the same way with their trails; the
-  other things held (knife, spear, rod, a sickle as an icon); `Player.ROD_OUT` (2, the strike's frame: a
-  rod at the viewer from the front, check it); then the PR (the WIP commit on the branch is reworded).
+- Iteration 11 (`slash_k.py`, the draft `slash-all-9-draft.gif`, not shown yet: the user wants the
+  front first): every direction in the front's logic. Turned (se) as the front; from the side (e) the
+  arc edge on: upright behind the head, up forward in front of the face, straight forward on the strike
+  (its trail a crescent in front of the head), down forward; from behind (ne, n) the front mirrored, the
+  blade hidden in front of the body on the strike, only its tip past the left side at the stop. A rod
+  out fishing is held as in the second frame (`Player.ROD_OUT` 1): at the strike it points at the
+  viewer from the front and does not show. A sickle in the hand is its icon cut to 5 pixels (`held`
+  `icon`): barely seen, its trail shows the swing.
+- Left: the user's review of the front, then of every direction; then the PR (the WIP commits on the
+  branch are squashed by the merge).
