@@ -18,6 +18,9 @@ extends RefCounted
 ##   going a pixel the way the face turns (from the front to the south-east and the
 ##   south-west); from the side it turns toward and away without going aside, which would
 ##   take it off the neck.
+## - the point: the right hand out level beside the body's first row, a pixel of arm from the
+##   shoulder, the finger a pixel past the hand; from the side forward, from behind to the
+##   side; the hand against the body where the arm would show only outline.
 ##
 ## A frame: the head's place `bob` (the stand's drop in it), how far it goes aside `lean`
 ## where it does, its eyes `eyes` where they are not open ("shut" as in the blink,
@@ -307,6 +310,59 @@ const FRAMES := {
 				".....CCccccCC.....",
 				"....77CccccC44....",
 				"....88uuuuuu55....",
+				"......mm..mm......",
+				"......bb..bb......",
+			]},
+		],
+	},
+	"point": {
+		"s": [
+			{"bob": 0, "top": 11, "neck": 11, "hips": 14, "hands": [[1, 12], [10, 14]], "rows": [
+				"..444CcVkkVc......",
+				"...45ccCCCCcc.....",
+				"......cCCCCc87....",
+				"......UUuuUU87....",
+				"......TT..TT......",
+				"......tt..TT......",
+				"......BB..BB......",
+			]},
+		],
+		"se": [
+			{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[2, 12], [10, 13]], "rows": [
+				"...444CVkkVc......",
+				"....45ccCCC88.....",
+				".......cCCC88.....",
+				".......UUuUU......",
+				".......TT.Tt......",
+				".......KB.KB......",
+			]},
+		],
+		"e": [
+			{"bob": 1, "top": 12, "neck": 12, "hips": 14, "hands": [[10, 12], [6, 14]], "rows": [
+				"........CVk444....",
+				".......cCCc45.....",
+				".......UUUu.......",
+				".......ttt........",
+				"........tTt.......",
+				"........BBb.......",
+			]},
+		],
+		"ne": [
+			{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[11, 12], [3, 14]], "rows": [
+				".......VVVCC444...",
+				"......ccccCC54....",
+				".....88VcccC......",
+				".....88uuuuu......",
+				".......mm.tt......",
+				".......bb.BB......",
+			]},
+		],
+		"n": [
+			{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[12, 12], [3, 14]], "rows": [
+				".....CCVVVVCC444..",
+				".....CCccccCC54...",
+				"....77CccccC......",
+				"....88uuuuuu......",
 				"......mm..mm......",
 				"......bb..bb......",
 			]},
