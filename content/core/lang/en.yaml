@@ -1928,6 +1928,8 @@
 "[what_is_drawn_note]": "Hide a part, close the menu and look whether the fault is gone. Parts stay hidden until shown again or the world is left."
 "[copied]": "Copied"
 "[teleport_to_a_marker]": "Teleport to a marker"
+"[teleport_to_coordinates]": "Teleport to the typed coordinates"
+"[enter_the_coordinates]": "Type X and Y, two numbers"
 "[go]": "Go"
 
 # src/client/ui/sign_window.gd

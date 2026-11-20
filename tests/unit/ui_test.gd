@@ -21,6 +21,7 @@ const Settings := preload("res://src/client/settings.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
 const DragScroll := preload("res://src/client/ui/drag_scroll.gd")
 const Updates := preload("res://src/client/net/updates.gd")
+const SettingsMenu := preload("res://src/client/ui/settings_menu.gd")
 
 
 func run() -> void:
@@ -40,6 +41,7 @@ func run() -> void:
 	_test_vibration()
 	_test_fling()
 	_test_updates()
+	_test_typed_coords()
 
 
 func _test_two_tap() -> void:
@@ -655,3 +657,11 @@ func _test_updates() -> void:
 	Updates.before = keep[2]
 	Updates.before_version = keep[3]
 	Updates._noted = false
+
+
+func _test_typed_coords() -> void:
+	_check(SettingsMenu.parse_coords("-2627", "-1974") == Vector2i(-2627, -1974), "typed coordinates are read")
+	_check(SettingsMenu.parse_coords("x -2627, y -1974", "") == Vector2i(-2627, -1974), "a pasted line fills both")
+	_check(SettingsMenu.parse_coords("5", "") == null, "one number is not a place")
+	_check(SettingsMenu.parse_coords("", "abc") == null, "letters are not a place")
+	_check(SettingsMenu.parse_coords("99999999", "1") == null, "too far is refused")
