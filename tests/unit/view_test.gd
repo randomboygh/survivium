@@ -628,6 +628,22 @@ func _test_gestures() -> void:
 		if out == "" or at[other].at != stand[other].at or not still:
 			pointing.append(row)
 	_check(pointing.is_empty(), "pointing, one hand is up and out, the other and the legs as standing, in every direction: wrong in rows %s" % [pointing])
+	# Beckoning: the same hand out in both frames and a pixel higher in the second, the other where
+	# it stands.
+	var beckon: Array = Figure.data().animations.beckon.frames
+	var beckoning := []
+	for row in 8:
+		var stand: Dictionary = anchors[row][0]
+		var a: Dictionary = anchors[row][int(beckon[0])]
+		var b: Dictionary = anchors[row][int(beckon[1])]
+		var out := ""
+		for hand: String in ["right", "left"]:
+			if a[hand].at.y < stand[hand].at.y and b[hand].at == a[hand].at + Vector2i.UP:
+				out = hand
+		var other := "left" if out == "right" else "right"
+		if out == "" or a[other].at != stand[other].at or b[other].at != stand[other].at:
+			beckoning.append(row)
+	_check(beckoning.is_empty(), "beckoning, one hand is out and lifts a pixel, the other stays, in every direction: wrong in rows %s" % [beckoning])
 
 
 ## The looks picked (Looks): their layers in the hair slot, their colours swapped by the
