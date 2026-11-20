@@ -592,7 +592,9 @@ func _run() -> void:
 		"the teleport puts the player near the column (%d frames, at %s)" % [frames, at])
 	_check(absf(at.y - main.world.surface_y(floori(at.x), floori(at.z))) < 1.5 or main.player.body.swimming,
 		"the teleport puts the player on the ground (y %.1f, ground %d)" % [at.y, main.world.surface_y(floori(at.x), floori(at.z))])
-	var place: Dictionary = main.hud.settings_menu()._section_rows("marks")[0]
+	# The typed-coordinates row comes first (it has no «place»); the first place is the respawn point.
+	var place: Dictionary = main.hud.settings_menu()._section_rows("marks").filter(
+		func(r: Variant) -> bool: return r is Dictionary and r.has("place"))[0]
 	main.player.position += Vector3(40.0, 0.0, 40.0)
 	main.character.go_to_column(place.cell)
 	_check(place.get("place") == ch.respawn_points()[0][0]
