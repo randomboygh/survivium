@@ -151,8 +151,9 @@ outline, its tip in the trail's first pixels).
 
 - Columns 34-37 (`player.yaml` `works` aim; the wooden and the composite bow play it), drawn whole:
   `tools/art/player_aim_art.gd` (AimArt), written by `gen_aim_gd.py <module> <out.gd>` (run with
-  `python3 -I`) from a data module in the library, now `aim_b.py` (`AIM`; `aim_a.py` has the frames, `aim_b`
-  the back-turned view as the reference draws it). A frame draws the bow too (`bow`: rows of `ToolArt.INK`
+  `python3 -I`) from a data module in the library, now `aim_d.py` (`AIM`; `aim_a.py` has the frames, `aim_b`
+  the back-turned view as the reference draws it, `aim_c` the grey arrowhead from the front, `aim_d` the
+  back-turned bow as an arc and the pass that takes the doubled outline off). A frame draws the bow too (`bow`: rows of `ToolArt.INK`
   letters from their corner's offset from the grip; in the data module `F(...)` builds it from the bow's
   rows at box row `btop`, its `g` or `grip` at the hand), since the string and the arrow change in each
   frame; `ToolArt.sheet` draws it for a shape with `bow` (the composite bow recoloured: `P` `Z`, `p` `z`).
@@ -168,9 +169,34 @@ outline, its tip in the trail's first pixels).
   loosed, down again, so the arrow leaves on the third frame as every work strikes (`Controls._did` flies
   it half the swing later for the aim). Our bow is light wood (`P`, `p`) with a dark inner edge (`K`): the
   icon's brown is lost over the bare skin.
+- The user's review, 2026-11-20 (MSK): 16:39 «На кадрах 1 и 2 "северо-восток" нужно скруглить лук (там где
+  у персонажа лицо), стрелу сделать линией (сейчас там какой-то черный полукруг в воздухе). На всех кадрах
+  вида спереди сделать наконечник стрелы серым, как в виде сбоку»; 16:42 the order B picked on the card;
+  16:55, on the arc drawn round the head (`aim_c`, `bow-all-3.gif`): «было нормально, верни. Просто закругли
+  видимую часть лука (она там была прямой)» (they wrote «юго-запад», the view meant is the back-turned one);
+  16:56 «А стрела в этом виде хорошо получилась»; 16:57 «А еще убери двойную линию обводки на некоторых
+  видах».
+- So the rules for a thing drawn whole with the figure: no dark edge of its own (`K`, the arrowhead's `x`)
+  where the figure's outline goes, or the outline reads two pixels thick; a dark letter stays only inside,
+  between the wood and the skin or the string. `aim_d.peeled` takes such pixels off each frame as it is
+  drawn (the default body), `dbl.py <module>` counts the 2x2 dark blocks left (70 in `aim_c`, none of the
+  bow's in `aim_d`: the four left are the gap between the legs from behind), `lay.py <module> AIM <dir>`
+  prints a frame as text in box coordinates with `!` for a doubled pixel. Two outlines side by side are
+  the same fault: a gap of two empty pixels between the body and the thing turns dark whole, so the gap is
+  one pixel or filled (turned away, the string runs between the body and the limb; drawn from the side the
+  limb is a pixel thicker beside the arrow; drawn turned, the upper limb is two pixels wide).
+- Turned away the bow stays where the reference has it, by the body's right side under the cheek, the
+  hands as in `aim_b`; only its visible part is an arc (rows 10-16, the ends in by a pixel), and the arrow
+  is a line two pixels a row from the near hand up and right through the bow, its head grey with a grey
+  point. Drawn, the bow is a pixel higher and the light pixel of its upper end, which would touch the ear,
+  is left out.
+- From the front the bow's mark (`hands[0]`) is above the frame's neck, which `PlayerArt.pose` moves in no
+  build: with the mark at the grip (x 6) the stocky build took the whole bow a pixel left.
 - GIFs in the library: `bow-front-1.gif` (the front, A and B beside the reference), `bow-all-2.gif`
-  (every direction, B; «было» the slash the bows played).
+  (every direction, B; «было» the slash the bows played), `bow-all-3.gif` (`aim_c`), `bow-all-4.gif`
+  (`aim_d`), `bow-tools-4.gif` (both bows as the game draws them).
 - Checking: after `make_sprites.gd -- --all` and `--import`, `dump.gd` with the wooden bow
   (`content/tools/bow/sprites/held/wooden_bow.png`, given as `wooden_bow=` its path under `content/` and
-  `:aim`) and `python3 vsgame.py aim_b AIM <dump dir> wooden_bow aim` must print `bad 0` (it does for
-  `aim_b`); `tools_gif.py` shows both bows (`bow-tools-2.gif`).
+  `:aim`) and `python3 vsgame.py aim_d AIM <dump dir> wooden_bow aim` must print `bad 0` (it does for
+  `aim_d`); `tools_gif.py` shows both bows; `dump_forms.gd <out dir> <held png under content/> <work>`
+  saves the sheet in every build (the bow was looked at in the thin, the normal and the stocky one).

@@ -8,12 +8,16 @@ extends RefCounted
 ##
 ## A frame: the head's place `bob` (the stand's drop in it), `rows` from box row `top` in the
 ## letters of PlayerArt.INK with the hands' skin in the digits of WalkArt.HANDS (`neck` the first
-## row of the body), the waistband's row `hips`, the hands' places `hands` ([the hand holding the
-## bow: its grip, the other: its lowest pixel next to the body], less the bob), `a` the way a thing
+## row of the body), the waistband's row `hips`, the hands' places `hands` ([the bow's mark: the
+## hand at its grip, but from the front a place above the neck, which no build moves
+## (PlayerArt.pose), so that the bow held across the body stays in the middle; the other hand: its
+## lowest pixel next to the body], less the bob), `a` the way a thing
 ## other than a bow would point (PlayerArt.WORKS; 8 is PlayerArt.TOWARD, at the viewer), `f` the
 ## bow in front of the body, `two`: the other hand draws the string, so it shows no thing of its
 ## own, and `bow` the bow as the frame draws it (ToolArt.INK letters: rows from `at`, the offset of
 ## their corner from the grip), which ToolArt draws for a shape with `bow` instead of turning it.
+## The bow has no dark edge of its own where the figure's outline goes (the two made a line two
+## pixels thick): its dark letters (K, x) only part its wood from the skin and from its string.
 ## Made with the review tools in the project library
 ## (survivium-builds/character/anim/src/gen_aim_gd.py).
 
@@ -21,16 +25,17 @@ const FormsArt := preload("res://tools/art/player_forms_art.gd")
 
 ## The frames by drawn direction: nocked, drawn, loosed, down again.
 const FRAMES := {
-	# From the front the bow is held across the body, its arrow at the viewer: nocked at the
-	# hips, drawn up to the chin, loosed (the string straight, the hand thrown back), down again.
+	# From the front the bow is held across the body, its arrow at the viewer, the grey head
+	# over the bow's belly: nocked at the hips, drawn up to the chin, loosed (the string straight,
+	# the hand thrown back), down again. Its mark is above the neck: the bow stays in the middle
+	# in every build.
 	"s": [
-		{"bob": 0, "top": 11, "neck": 11, "hips": 14, "hands": [[6, 15], [10, 14]], "a": 8, "f": true, "two": true, "bow": {"at": [-5, -3], "rows": [
-			"KssssnossssK",
-			"KPK..no..KPK",
-			"KpPKKnoKKPpK",
-			".KpPPgoPPpK.",
-			"..KppnoppK..",
-			"...KKAaKK...",
+		{"bob": 0, "top": 11, "neck": 11, "hips": 14, "hands": [[6, 10], [10, 14]], "a": 8, "f": true, "two": true, "bow": {"at": [-4, 2], "rows": [
+			"ssssnossss",
+			"PK..no..KP",
+			"pPKKnoKKPp",
+			".pPxAaxPp.",
+			"..pxAaxp..",
 		]}, "rows": [
 			"....cVkkVc....",
 			"...ccCCCCcc...",
@@ -40,15 +45,14 @@ const FRAMES := {
 			"....tt..TT....",
 			"....BB..BB....",
 		]},
-		{"bob": 0, "top": 11, "neck": 11, "hips": 14, "hands": [[6, 16], [10, 14]], "a": 8, "f": true, "two": true, "bow": {"at": [-5, -6], "rows": [
-			".....ss.....",
-			"...ssnoss...",
-			".ss..no..ssK",
-			"KPK..no..KPK",
-			"KpPKKnoKKPpK",
-			".KpPPnoPPpK.",
-			"..KppgappK..",
-			"...KxAaxK...",
+		{"bob": 0, "top": 11, "neck": 11, "hips": 14, "hands": [[6, 10], [10, 14]], "a": 8, "f": true, "two": true, "bow": {"at": [-4, 0], "rows": [
+			"....ss....",
+			"..ssnoss..",
+			"ss..no..ss",
+			"PK..no..KP",
+			"pPKKnoKKPp",
+			".pPxAaxPp.",
+			"..pxAaxp..",
 		]}, "rows": [
 			"....cVkkVc....",
 			"...ccCCCCcc...",
@@ -58,12 +62,11 @@ const FRAMES := {
 			"....tt..TT....",
 			"....BB..BB....",
 		]},
-		{"bob": 0, "top": 11, "neck": 11, "hips": 14, "hands": [[6, 16], [10, 14]], "a": 8, "f": true, "two": true, "bow": {"at": [-5, -3], "rows": [
-			"Kss......ssK",
-			"KPKssssssKPK",
-			"KpPKKKKKKPpK",
-			".KpPPgPPPpK.",
-			"..KppppppK..",
+		{"bob": 0, "top": 11, "neck": 11, "hips": 14, "hands": [[6, 10], [10, 14]], "a": 8, "f": true, "two": true, "bow": {"at": [-4, 3], "rows": [
+			"ss......ss",
+			"PKssssssKP",
+			"pPKKKKKKPp",
+			".pPPgPPPp.",
 		]}, "rows": [
 			".4..cVkkVc....",
 			".45ccCCCCcc...",
@@ -73,13 +76,12 @@ const FRAMES := {
 			"....tt..TT....",
 			"....BB..BB....",
 		]},
-		{"bob": 0, "top": 11, "neck": 11, "hips": 14, "hands": [[6, 15], [10, 14]], "a": 8, "f": true, "two": true, "bow": {"at": [-5, -3], "rows": [
-			"KssssssssssK",
-			"KPK......KPK",
-			"KpPKKKKKKPpK",
-			".KpPPgPPPpK.",
-			"..KppppppK..",
-			"...KKKKKK...",
+		{"bob": 0, "top": 11, "neck": 11, "hips": 14, "hands": [[6, 10], [10, 14]], "a": 8, "f": true, "two": true, "bow": {"at": [-4, 2], "rows": [
+			"ssssssssss",
+			"PK......KP",
+			"pPKKKKKKPp",
+			".pPPgPPPp.",
+			"..pppppp..",
 		]}, "rows": [
 			"....cVkkVc....",
 			"...ccCCCCcc...",
@@ -90,17 +92,17 @@ const FRAMES := {
 			"....BB..BB....",
 		]},
 	],
-	# Turned: the bow down the right side and round under, the arrow along it.
+	# Turned: the bow down the right side and round under, the arrow along it; drawn, its upper
+	# limb is two pixels wide, the string back at the chin.
 	"se": [
 		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[12, 13], [9, 13]], "a": 3, "f": true, "two": true, "bow": {"at": [-6, -4], "rows": [
-			".......sK.",
-			"......sKPK",
-			"......sKPK",
-			"....onKPPK",
-			"....sonPpK",
-			".sssKPonK.",
-			"sKKKPPpAA.",
-			"KPPPPpKxA.",
+			".......s.",
+			"......sKP",
+			"......sKP",
+			"....onKPP",
+			"....sonPp",
+			".sssKPon.",
+			"s..KPPpAA",
 		]}, "rows": [
 			".....VkkVc....",
 			"....ccCCC44...",
@@ -110,14 +112,13 @@ const FRAMES := {
 			".....KB.KB....",
 		]},
 		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[12, 13], [9, 13]], "a": 3, "f": true, "two": true, "bow": {"at": [-6, -4], "rows": [
-			"....ssssK.",
-			"..ss..KPK.",
-			"..son.KPK.",
-			".s..onPPK.",
-			".s..KonpK.",
+			"....ssss..",
+			"..ss..Pp..",
+			"..son.Pp..",
+			".s..onPP..",
+			".s...onp..",
 			".s.KPPpAA.",
-			"sKKKPPpKxA",
-			"KPPPPpK...",
+			"s..KPPp..A",
 		]}, "rows": [
 			".....VkkVc....",
 			"....ccC44.....",
@@ -127,16 +128,15 @@ const FRAMES := {
 			".....KB.KB....",
 		]},
 		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[12, 13], [9, 13]], "a": 3, "f": true, "two": true, "bow": {"at": [-6, -4], "rows": [
-			".......sK.",
-			"......sKPK",
-			"......sKPK",
-			".....sKPPK",
-			"....sKPPpK",
-			".sssKPPpK.",
-			"sKKKPPpK..",
-			"KPPPPpK...",
+			".......s.",
+			"......sKP",
+			"......sKP",
+			".....sKPP",
+			"....sKPPp",
+			".sssKPPp.",
+			"s..KPPp..",
 		]}, "rows": [
-			".....VkkVc....",
+			"....cVkkVc....",
 			".44ccCCC......",
 			".45..cCCC.....",
 			".....UUuUU....",
@@ -144,14 +144,13 @@ const FRAMES := {
 			".....KB.KB....",
 		]},
 		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[12, 13], [9, 13]], "a": 3, "f": true, "two": true, "bow": {"at": [-6, -4], "rows": [
-			".......sK.",
-			"......sKPK",
-			"......sKPK",
-			".....sKPPK",
-			"....sKPPpK",
-			".sssKPPpK.",
-			"sKKKPPpK..",
-			"KPPPPpK...",
+			".......s.",
+			"......sKP",
+			"......sKP",
+			".....sKPP",
+			"....sKPPp",
+			".sssKPPp.",
+			"s..KPPp..",
 		]}, "rows": [
 			".....VkkVc....",
 			"....ccCCC44...",
@@ -161,22 +160,20 @@ const FRAMES := {
 			".....KB.KB....",
 		]},
 	],
-	# From the side the bow is up in front of the face, the arrow along the eyes; loosed, the
-	# near hand is thrown back down.
+	# From the side the bow is up in front of the face, the arrow along the eyes; drawn, the limb
+	# is a pixel thicker beside the arrow (its grip); loosed, the near hand is thrown back down.
 	"e": [
-		{"bob": 1, "top": 11, "neck": 12, "hips": 14, "hands": [[13, 11], [6, 14]], "a": 2, "f": true, "two": true, "bow": {"at": [-2, -6], "rows": [
-			".KK.......",
-			"sPpK......",
-			"sKPpK.....",
-			".sKPpK....",
-			".sKPpK....",
-			".snnnnnAAx",
-			".sooooaaax",
-			".sKPpK....",
-			".sKPpK....",
-			"sKPpK.....",
-			"sPpK......",
-			".KK.......",
+		{"bob": 1, "top": 11, "neck": 12, "hips": 14, "hands": [[13, 11], [6, 14]], "a": 2, "f": true, "two": true, "bow": {"at": [-2, -5], "rows": [
+			"sPp......",
+			"sKPp.....",
+			".sKPp....",
+			".sKPp....",
+			".snnnnnAA",
+			".sooooaaa",
+			".sKPp....",
+			".sKPp....",
+			"sKPp.....",
+			"sPp......",
 		]}, "rows": [
 			"..........44..",
 			"......CVk45...",
@@ -186,19 +183,17 @@ const FRAMES := {
 			"......tTt.....",
 			"......BBb.....",
 		]},
-		{"bob": 1, "top": 11, "neck": 12, "hips": 14, "hands": [[13, 11], [6, 14]], "a": 2, "f": true, "two": true, "bow": {"at": [-4, -6], "rows": [
-			"...KK....",
-			"..sPpK...",
-			"..sKPpK..",
-			".s..KPpK.",
-			".s..KPxx.",
-			"snnnnnAAx",
-			"soooooaax",
-			".s..KPxx.",
-			".s..KPpK.",
-			"..sKPpK..",
-			"..sPpK...",
-			"...KK....",
+		{"bob": 1, "top": 11, "neck": 12, "hips": 14, "hands": [[13, 11], [6, 14]], "a": 2, "f": true, "two": true, "bow": {"at": [-4, -5], "rows": [
+			"..sPp...",
+			"..s.Pp..",
+			".s...Pp.",
+			".s..PPp.",
+			"snnnnnAA",
+			"soooooaa",
+			".s..PPp.",
+			".s...Pp.",
+			"..s.Pp..",
+			"..sPp...",
 		]}, "rows": [
 			".......44.....",
 			"......CV45....",
@@ -208,19 +203,17 @@ const FRAMES := {
 			"......tTt.....",
 			"......BBb.....",
 		]},
-		{"bob": 1, "top": 12, "neck": 12, "hips": 14, "hands": [[13, 11], [6, 14]], "a": 2, "f": true, "two": true, "bow": {"at": [-2, -6], "rows": [
-			".KK...",
-			"sPpK..",
-			"sKPpK.",
-			".sKPpK",
-			".sKPpK",
-			".sKPpK",
-			".sKPpK",
-			".sKPpK",
-			".sKPpK",
-			"sKPpK.",
-			"sPpK..",
-			".KK...",
+		{"bob": 1, "top": 12, "neck": 12, "hips": 14, "hands": [[13, 11], [6, 14]], "a": 2, "f": true, "two": true, "bow": {"at": [-2, -5], "rows": [
+			"sPp..",
+			"sKPp.",
+			".sKPp",
+			".sKPp",
+			".sKPp",
+			".sKPp",
+			".sKPp",
+			".sKPp",
+			"sKPp.",
+			"sPp..",
 		]}, "rows": [
 			"......CVk.....",
 			"....5cCCc.....",
@@ -229,19 +222,17 @@ const FRAMES := {
 			"......tTt.....",
 			"......BBb.....",
 		]},
-		{"bob": 1, "top": 11, "neck": 12, "hips": 14, "hands": [[13, 11], [6, 14]], "a": 2, "f": true, "two": true, "bow": {"at": [-2, -6], "rows": [
-			".KK...",
-			"sPpK..",
-			"sKPpK.",
-			".sKPpK",
-			".sKPpK",
-			".sKPpK",
-			".sKPpK",
-			".sKPpK",
-			".sKPpK",
-			"sKPpK.",
-			"sPpK..",
-			".KK...",
+		{"bob": 1, "top": 11, "neck": 12, "hips": 14, "hands": [[13, 11], [6, 14]], "a": 2, "f": true, "two": true, "bow": {"at": [-2, -5], "rows": [
+			"sPp..",
+			"sKPp.",
+			".sKPp",
+			".sKPp",
+			".sKPp",
+			".sKPp",
+			".sKPp",
+			".sKPp",
+			"sKPp.",
+			"sPp..",
 		]}, "rows": [
 			"..........44..",
 			"......CVk45...",
@@ -252,25 +243,21 @@ const FRAMES := {
 			"......BBb.....",
 		]},
 	],
-	# Turned away the bow is a stick past the body's right side; drawn, the arrow's head shows
-	# past the head.
+	# Turned away the bow is by the body's right side, from under the cheek to the knee: the
+	# limb's arc and its string, straight between the limb's ends, next to the body. The arrow is
+	# a line from the near hand up and right through the bow, its grey head past the bow (nocked)
+	# or at it (drawn, the bow a pixel higher).
 	"ne": [
-		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[12, 11], [3, 14]], "a": 1, "f": false, "two": true, "bow": {"at": [0, -11], "rows": [
-			"..xxx",
-			"...Ax",
-			"....x",
-			".....",
-			".....",
-			".....",
-			".....",
-			".....",
-			".p...",
-			"Pp...",
-			"Pp...",
-			"Pp...",
-			"Pp...",
-			"Pp...",
-			"sp...",
+		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[13, 11], [3, 14]], "a": 1, "f": false, "two": true, "bow": {"at": [-2, -4], "rows": [
+			"......a",
+			".....Aa",
+			".Pp.Aa.",
+			"s.Pno..",
+			"s.no...",
+			"snop...",
+			"s.Pp...",
+			"sPp....",
+			"sp.....",
 		]}, "rows": [
 			".....VVVC.....",
 			"....ccccCC44..",
@@ -279,20 +266,15 @@ const FRAMES := {
 			".....mm.tt....",
 			".....bb.BB....",
 		]},
-		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[12, 10], [3, 14]], "a": 1, "f": false, "two": true, "bow": {"at": [0, -9], "rows": [
-			".xxx",
-			"..Ax",
-			"...x",
-			"....",
-			"....",
-			"....",
-			".p..",
-			"Pp..",
-			"Pp..",
-			"Pp..",
-			"Pp..",
-			"Pp..",
-			"sp..",
+		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[13, 11], [3, 14]], "a": 1, "f": false, "two": true, "bow": {"at": [-2, -4], "rows": [
+			"....a",
+			"..pAa",
+			"s.Aa.",
+			"snop.",
+			"noPp.",
+			"s.Pp.",
+			"sPp..",
+			"sp...",
 		]}, "rows": [
 			".....VVVC55...",
 			"....ccccCCC...",
@@ -301,14 +283,14 @@ const FRAMES := {
 			".....mm.tt....",
 			".....bb.BB....",
 		]},
-		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[12, 11], [3, 14]], "a": 1, "f": false, "two": true, "bow": {"at": [0, -3], "rows": [
-			".p",
-			"Pp",
-			"Pp",
-			"Pp",
-			"Pp",
-			"Pp",
-			"sp",
+		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[13, 11], [3, 14]], "a": 1, "f": false, "two": true, "bow": {"at": [-2, -2], "rows": [
+			".Pp.",
+			"s.Pp",
+			"s.Pp",
+			"s.Pp",
+			"s.Pp",
+			"sPp.",
+			"sp..",
 		]}, "rows": [
 			".....VVVC.....",
 			"....ccccCCC...",
@@ -317,14 +299,14 @@ const FRAMES := {
 			".....mm.tt....",
 			".....bb.BB....",
 		]},
-		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[12, 11], [3, 14]], "a": 1, "f": false, "two": true, "bow": {"at": [0, -3], "rows": [
-			".p",
-			"Pp",
-			"Pp",
-			"Pp",
-			"Pp",
-			"Pp",
-			"sp",
+		{"bob": 1, "top": 12, "neck": 12, "hips": 15, "hands": [[13, 11], [3, 14]], "a": 1, "f": false, "two": true, "bow": {"at": [-2, -2], "rows": [
+			".Pp.",
+			"s.Pp",
+			"s.Pp",
+			"s.Pp",
+			"s.Pp",
+			"sPp.",
+			"sp..",
 		]}, "rows": [
 			".....VVVC.....",
 			"....ccccCC45..",

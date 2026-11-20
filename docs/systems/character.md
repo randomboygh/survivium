@@ -258,12 +258,17 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   the user 2026-11-20 after the Bow Attack of Puny Characters; the bows play it): an arrow nocked, the
   string drawn back, loosed (the string straight, the drawing hand thrown back), the bow down again; from
   the front the bow is held across the body with its arrow at the viewer, from the side up in front of
-  the face, turned away a stick past the body's right side, from behind hidden by the body. The bow
+  the face, turned away by the body's right side from under the cheek to the knee (the limb's arc, the
+  string straight between its ends next to the body, the arrow a line from the near hand up through the
+  bow), from behind hidden by the body. The bow
   changes with the string and the arrow in each frame, so a frame draws it whole (`bow`: rows of
   `ToolArt.INK` letters from their corner's offset from the grip), and `ToolArt.sheet` draws that for a
   shape with `bow` (the wooden bow, the composite one recoloured) instead of turning it; the other hand
   draws the string (`two`: it shows no thing of its own; the bows take two hands, `hands: 2`, as the work
-  does in `player.yaml`). The arrow leaves on the third frame:
+  does in `player.yaml`). The bow has no dark edge of its own where the figure's outline goes (the two
+  made a line two pixels thick): its dark letters only part its wood from the skin and from its string.
+  From the front the bow's mark is above the frame's neck, which no build moves (`PlayerArt.pose`), so
+  the bow held across the body stays in the middle of the stocky body too. The arrow leaves on the third frame:
   `Controls._did` flies the shot (`Props.fly_shot`) half the swing after the reply for the aim (a spear
   thrown or a fish pulled out still flies at once). A
   work drawn so carries the way the tool points (`a`, `ccw`, `f`), where the hand holds it

@@ -350,6 +350,20 @@ func _test_sprite_sheet() -> void:
 			shown += 0 if two.get_region(r).get_data() == shooting.get_region(r).get_data() else 1
 	_check(shown == 0 and two.get_region(Rect2i(0, 0, fw, fh)).get_data() != shooting.get_region(Rect2i(0, 0, fw, fh)).get_data(),
 		"shooting a bow, the other hand's thing is put away: in %d frames it shows" % shown)
+	# A bow has no dark edge of its own where the figure's outline goes, which made a line two
+	# pixels thick: shooting, a block of two by two dark pixels is only where the figure has
+	# one without the bow.
+	var lined := Image.create_empty(3, 2, false, Image.FORMAT_RGBA8)
+	lined.fill_rect(Rect2i(0, 0, 2, 2), dark)
+	var thick := 0
+	for row in 8:
+		for c: int in aim:
+			for y in range(row * fh, row * fh + fh - 1):
+				for x in range(c * fw, c * fw + fw - 1):
+					if _dark_block(shooting, x, y) and not _dark_block(img, x, y):
+						thick += 1
+	_check(thick == 0 and _dark_block(lined, 0, 0) and not _dark_block(lined, 1, 0),
+		"a bow's own edge does not double the figure's outline: %d places two pixels thick" % thick)
 	# Nothing spills over a frame's edge: what is on it is outline next to the figure.
 	var spilled := 0
 	for row in 8:
@@ -401,6 +415,16 @@ func _test_sprite_sheet() -> void:
 	p._animate(Vector2.ZERO, 0.0, 0.1)
 	_check(p.anim == "swim", "in deep water the body swims")
 	p.free()
+
+
+# Whether the four pixels from (x, y) right and down are all as dark as the outline or the
+# darkest ink of a held thing: a line two pixels thick.
+func _dark_block(img: Image, x: int, y: int) -> bool:
+	for at: Vector2i in [Vector2i(x, y), Vector2i(x + 1, y), Vector2i(x, y + 1), Vector2i(x + 1, y + 1)]:
+		var p := img.get_pixelv(at)
+		if p.a < 0.5 or p.v > 0.25:
+			return false
+	return true
 
 
 ## The looks picked (Looks): their layers in the hair slot, their colours swapped by the
