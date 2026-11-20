@@ -336,6 +336,53 @@ func _test_sprite_sheet() -> void:
 		"a blade's trail shows over the figure, or behind it as seen from behind: %d of %d pixels wrong" % [wrong, streaked])
 	_check(trailed.get_region(Rect2i(0, 0, fw, fh)).get_data() == untrailed.get_region(Rect2i(0, 0, fw, fh)).get_data()
 		and trailed.get_data() != untrailed.get_data(), "a trail shows only in the work, only of a thing that leaves one")
+	# A bow is drawn as each frame of its shot draws it (AimArt `bow`: nocked, drawn back,
+	# loosed), and the other hand, which draws the string, shows nothing of its own.
+	var bow := {"sprite": "res://content/tools/bow/sprites/held/wooden_bow.png", "anim": "aim"}
+	var aim: Array = works.aim.columns
+	_check(anchors[0][aim[1]].left.is_empty() and not anchors[0][0].left.is_empty(), "shooting a bow, the other hand draws the string")
+	var shooting := Figure.sheet(look, {"right": bow, "active": "right"}).texture.get_image()
+	_check(shooting.get_region(Rect2i(aim[0] * fw, 2 * fh, fw, fh)).get_data() != shooting.get_region(Rect2i(aim[1] * fw, 2 * fh, fw, fh)).get_data()
+		and shooting.get_region(Rect2i(aim[1] * fw, 2 * fh, fw, fh)).get_data() != shooting.get_region(Rect2i(aim[2] * fw, 2 * fh, fw, fh)).get_data(),
+		"a bow is drawn back, then loosed")
+	var two := Figure.sheet(look, {"left": axe, "right": bow, "active": "right"}).texture.get_image()
+	var shown := 0
+	for row in 8:
+		for c: int in aim:
+			var r := Rect2i(c * fw, row * fh, fw, fh)
+			shown += 0 if two.get_region(r).get_data() == shooting.get_region(r).get_data() else 1
+	_check(shown == 0 and two.get_region(Rect2i(0, 0, fw, fh)).get_data() != shooting.get_region(Rect2i(0, 0, fw, fh)).get_data(),
+		"shooting a bow, the other hand's thing is put away: in %d frames it shows" % shown)
+	# A bow has no dark edge of its own where the figure's outline goes, which made a line two
+	# pixels thick: shooting, a block of two by two dark pixels is only where the figure has
+	# one without the bow.
+	var lined := Image.create_empty(3, 2, false, Image.FORMAT_RGBA8)
+	lined.fill_rect(Rect2i(0, 0, 2, 2), dark)
+	var thick := 0
+	for row in 8:
+		for c: int in aim:
+			for y in range(row * fh, row * fh + fh - 1):
+				for x in range(c * fw, c * fw + fw - 1):
+					if _dark_block(shooting, x, y) and not _dark_block(img, x, y):
+						thick += 1
+	_check(thick == 0 and _dark_block(lined, 0, 0) and not _dark_block(lined, 1, 0),
+		"a bow's own edge does not double the figure's outline: %d places two pixels thick" % thick)
+	# The bow's string (ToolArt.INK `s`) never runs over the legs, the frame's last two rows:
+	# turned, the bow's lower end is under the frame's edge and the string ends at the limb.
+	var string := Color("e2dfc8").to_rgba32()
+	var strung := 0
+	var on_legs := 0
+	for row in 8:
+		for c: int in aim:
+			for y in range(row * fh, row * fh + fh):
+				for x in range(c * fw, c * fw + fw):
+					var under := img.get_pixel(x, y)
+					if shooting.get_pixel(x, y).to_rgba32() != string or under.to_rgba32() == string:
+						continue
+					strung += 1
+					if y >= row * fh + fh - 2 and under.a > 0.5 and under != dark:
+						on_legs += 1
+	_check(strung > 0 and on_legs == 0, "a bow's string never runs over the legs: %d of its %d pixels do" % [on_legs, strung])
 	# Nothing spills over a frame's edge: what is on it is outline next to the figure.
 	var spilled := 0
 	for row in 8:
@@ -367,6 +414,9 @@ func _test_sprite_sheet() -> void:
 	p.held.active = "right"
 	p.work("", 0.4)
 	_check(p.work_kind == "chop", "an axe chops")
+	p.held.right = bow
+	_check(p.work_kind_for("") == "aim" and p.work_kind_for("dig") == "dig", "a bow shoots (its arrow leaves on the third frame, Controls)")
+	p.held.right = axe
 	p.held.active = "left"
 	p.held.left = {}
 	p.work_kind = ""
@@ -384,6 +434,16 @@ func _test_sprite_sheet() -> void:
 	p._animate(Vector2.ZERO, 0.0, 0.1)
 	_check(p.anim == "swim", "in deep water the body swims")
 	p.free()
+
+
+# Whether the four pixels from (x, y) right and down are all as dark as the outline or the
+# darkest ink of a held thing: a line two pixels thick.
+func _dark_block(img: Image, x: int, y: int) -> bool:
+	for at: Vector2i in [Vector2i(x, y), Vector2i(x + 1, y), Vector2i(x, y + 1), Vector2i(x + 1, y + 1)]:
+		var p := img.get_pixelv(at)
+		if p.a < 0.5 or p.v > 0.25:
+			return false
+	return true
 
 
 ## The looks picked (Looks): their layers in the hair slot, their colours swapped by the

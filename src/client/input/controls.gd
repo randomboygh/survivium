@@ -863,15 +863,22 @@ func _did(done: Variant) -> bool:
 	if not done is Dictionary or done.is_empty():
 		return false
 	_cooldown = done.swing
+	# An arrow leaves the bow as it is loosed, on the third frame of the shot (STRIKE); a
+	# thing thrown or a fish pulled out flies at once.
+	var loosed := 0.0
+	if done.has("work") and game.player.work_kind_for(done.work) == "aim":
+		loosed = done.time * STRIKE
 	if done.has("shot"):
-		game.props.fly_shot(done.shot)
+		game.props.fly_shot(done.shot, loosed)
 		if done.get("hit", false) and done.shot.size() > 3:
-			Vibration.play(game, "shot", float(done.shot[3]))
-	# The animal struck flinches as the blow meets it, or as the shot reaches it.
+			Vibration.play(game, "shot", loosed + float(done.shot[3]))
+	# The animal struck flinches as the blow meets it, or as the shot reaches it (an arrow
+	# leaves the bow `loosed` later).
 	if done.has("animal") and game.creatures != null and game.wildlife != null:
 		var a = game.wildlife.by_id(int(done.animal))
 		if a != null:
-			game.creatures.flinch(a, _blow_lands(done), game.player.position)
+			var lands := _blow_lands(done) + (loosed if done.has("shot") else 0.0)
+			game.creatures.flinch(a, lands, game.player.position)
 	if done.has("work"):
 		game.player.work(done.work, done.time, done.at)
 		game.sound.work(done, game.player.work_kind, STRIKE)

@@ -46,9 +46,10 @@ water, a kind with `biomes` appears only on its own land.
   `ammo` from the bag at a time (a spear is thrown itself), where the player looks (by a tap on the ground —
   where it was tapped), at the first beast on the way within `range` cells and the angle `AIM_CONE` if a solid
   cell has not stood earlier; what was shot lies at once on the ground where it fell, and the client draws its
-  flight from the answer (`shot`, `Props.fly_shot`). Other players see only the wounded beast and the fallen
-  arrow. A blow or a shot that hits names the beast in the answer (`animal`, its id), and the client draws it
-  flinching as the blow meets it (`Creatures.flinch`, see below).
+  flight from the answer (`shot`, `Props.fly_shot`; an arrow leaves as the bow is loosed, on the third frame of
+  the shot, half the swing later). Other players see only the wounded beast and the fallen arrow. A blow or a
+  shot that hits names the beast in the answer (`animal`, its id), and the client draws it flinching as the
+  blow meets it, an arrow as it arrives (`Creatures.flinch`, see below).
 - Climbers (`roost: trees`, the squirrel): at the trunk of the tree it ran to it notes the foot `foot` and its
   spot on the crown `crown` and goes up the trunk at `CLIMB_SPEED` 2 units/s (`_climb`, its paws going: the
   client shows its back going up and its front coming down); up there a person is as near to it as to its

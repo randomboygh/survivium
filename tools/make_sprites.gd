@@ -74,9 +74,9 @@ const HELD := {
 	"winter_rod": "slash",
 	"ice_pick": "dig",
 	"ice_auger": "dig",
-	"wooden_bow": "slash",
+	"wooden_bow": "aim",
 	"leather_sling": "slash",
-	"composite_bow": "slash",
+	"composite_bow": "aim",
 	"torch": "reach",
 }
 const LUMP := [

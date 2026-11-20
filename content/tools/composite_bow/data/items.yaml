@@ -10,7 +10,8 @@
   icon: composite_bow
   tool: bow
   sprite: composite_bow
-  anim: slash
+  anim: aim
+  hands: 2
   power: 7
   swing: 0.6
   reach: 4

@@ -255,11 +255,7 @@ func _use(s: SpriteSheet) -> void:
 ## tool in that hand. A swing that comes while one is past its strike starts anew, so
 ## work held down keeps swinging.
 func work(kind: String, seconds: float, at := Vector3.INF) -> void:
-	if kind == "":
-		var thing: Dictionary = held.get(held.active, {})
-		kind = thing.get("anim", "")
-		if not Figure.data().works.has(kind):
-			kind = "reach"
+	kind = work_kind_for(kind)
 	if work_kind != "" and _work_time < work_length * 0.5:
 		return
 	# Working ends a gesture.
@@ -273,6 +269,17 @@ func work(kind: String, seconds: float, at := Vector3.INF) -> void:
 		var to := Vector2(at.x - position.x, at.z - position.z)
 		if to.length() > 0.1 * CELL:
 			facing = SpriteSheet.direction_of(to)
+
+
+## The work `kind` plays (see work): itself, or for "" the one of the tool in the hand in
+## use, "reach" when it has none.
+func work_kind_for(kind: String) -> String:
+	if kind == "":
+		var thing: Dictionary = held.get(held.active, {})
+		kind = thing.get("anim", "")
+		if not Figure.data().works.has(kind):
+			kind = "reach"
+	return kind
 
 
 ## Picks the direction and animation for this step: the body turns the way it is
