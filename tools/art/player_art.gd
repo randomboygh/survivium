@@ -589,13 +589,13 @@ static func _whole_drawn(dir: String, c: Array) -> Dictionary:
 
 ## A frame drawn whole for the front (south) with legs a pixel shorter (the user's note
 ## of 2026-11-20: the front's legs were a row longer than every other view's): the body
-## over the waistband a row lower (`bob`, `top`, `neck`, `hips`, a blade's `trail`; the
+## over the waistband a row lower (`bob`, `top`, `neck`, `hips`, a sword's `trail`; the
 ## hands' places are less the bob), each leg a pixel shorter under it. A leg standing on
 ## the frame's last row loses the pixel under the waistband, its foot stays; a leg drawn
 ## up off the ground the same, a leg of one pixel goes down with the body. The hands'
 ## skin under the waistband stays where it is (the arm a row shorter, the hand as high over
 ## the ground as turned and from the side), and so do a scythe's blade (its snath goes
-## down with the hands) and a bow lowered to the feet.
+## down with the hands, its trail stays in front of the feet) and a bow lowered to the feet.
 static func shortened(f: Dictionary) -> Dictionary:
 	var out := f.duplicate()
 	var top: int = f.get("top", 10)
@@ -683,7 +683,9 @@ static func shortened(f: Dictionary) -> Dictionary:
 		if hands[0][1] + out.bob + bw.at[1] + bw.rows.size() - 1 >= 17:
 			bw.at = [bw.at[0], bw.at[1] - 1]
 		out.bow = bw
-	if f.has("trail"):
+	if f.has("trail") and not f.has("scythe"):
+		# A sword's trail goes with the arm; a scythe's stays on the ground in front of the
+		# feet, with its blade.
 		var t: Dictionary = f.trail.duplicate()
 		t.at = [t.at[0], t.at[1] + 1]
 		out.trail = t
