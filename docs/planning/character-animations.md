@@ -2,9 +2,9 @@
 
 Status (2026-11-20): thread «Поправить анимации персонажа» reviewed the default character's
 animations one by one on the new chibi body. Done: the walk and the stand (#789), the outline under a
-hand low in the frame (#790), the jump (#791), the swim (#792), the chop (#796), the dig (#797). In
-review: the slash (the front first). Next, in this order: reach, mow, aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se,
-e, ne, n, nw, w, sw.
+hand low in the frame (#790), the jump (#791), the swim (#792), the chop (#796), the dig (#797), the
+slash (accepted 2026-11-20 12:56 MSK, the PR after #799). Next, in this order: reach, mow, aim, eat,
+sleep, sit, row, gestures. Directions are shown in the order s, se, e, ne, n, nw, w, sw.
 
 ## How the user reviews
 
@@ -100,7 +100,7 @@ e, ne, n, nw, w, sw.
   and behind the tool not far forward of the body. `view.py <module> <attr> <dirs> <out.png>` in the
   library draws a module's frames big with the ground line.
 
-## The slash (in review, 2026-11-20)
+## The slash (done)
 
 - Columns 22-25 (`player.yaml` `works` slash; the swords, knives, spears, sickles, slings, bows and rods
   play it), drawn whole: `tools/art/player_slash_art.gd` (SlashArt), written by `gen_slash_gd.py <module>
@@ -121,7 +121,7 @@ e, ne, n, nw, w, sw.
   `slash-front-10.gif` (the front, accepted 2026-11-20 12:02 MSK); `slash-all-11.gif`, every direction
   in this logic («было» the 4th iteration, `slash_e`, the last time the user saw them all; from the side
   then up behind the head and over in front of the face); `slash-all-12.gif` (`slash_o`: the side as the
-  front, the trail behind the body from behind; «было» `slash_n`); `slash-tools-11.gif` (`tools_gif.py
+  front, the trail behind the body from behind; «было» `slash_n`); `slash-tools-12.gif` (`tools_gif.py
   <dump dir> slash <out.gif> name=Подпись,...`: a row per held thing, a column per direction, as the
   game draws them).
 - The trail (the user's pick: white, no outline, over the figure, only on frame 3): a frame's `trail`
@@ -138,5 +138,5 @@ e, ne, n, nw, w, sw.
   `work_review.py` every direction's, `igrid.py` and `asc.py` a frame's pixels.
 - A rod out fishing is held as in the last frame (`Player.ROD_OUT` 3). A sickle in the hand is its
   icon cut to 5 pixels (`held` `icon`): barely seen, its trail shows the swing.
-- Left: the user's word on every direction, then the PR (the WIP commits on the branch are squashed
-  by the merge).
+- Accepted by the user 2026-11-20 12:56 MSK on the 12th GIF. A sickle is still barely seen in the hand
+  (its icon cut to 5 pixels); bows and slings play the slash until the aim is drawn.
