@@ -23,6 +23,9 @@ extends RefCounted
 ##   side; the hand against the body where the arm would show only outline.
 ## - the beckon: the hand where the point holds it, without the finger, lifted a pixel and
 ##   back.
+## - the bow: the body stands, the head a pixel down and then two, the chest's second row
+##   folding away at the bottom with the eyes shut; turned and from the side the head goes a
+##   pixel forward there.
 ##
 ## A frame: the head's place `bob` (the stand's drop in it), how far it goes aside `lean`
 ## where it does, its eyes `eyes` where they are not open ("shut" as in the blink,
@@ -464,6 +467,95 @@ const FRAMES := {
 				".....CCccccCC.....",
 				"....77CccccC......",
 				"....88uuuuuu......",
+				"......mm..mm......",
+				"......bb..bb......",
+			]},
+		],
+	},
+	"bow": {
+		"s": [
+			{"bob": 1, "top": 11, "neck": 11, "hips": 14, "hands": [[3, 13], [10, 13]], "rows": [
+				"......cVkkVc......",
+				".....ccCCCCcc.....",
+				"....45cCCCCc87....",
+				"....45UUuuUU87....",
+				"......TT..TT......",
+				"......tt..TT......",
+				"......BB..BB......",
+			]},
+			{"bob": 2, "eyes": "shut", "top": 12, "neck": 11, "hips": 14, "hands": [[3, 12], [10, 12]], "rows": [
+				"......cVkkVc......",
+				"....45cCCCCc87....",
+				"....45UUuuUU87....",
+				"......TT..TT......",
+				"......tt..TT......",
+				"......BB..BB......",
+			]},
+		],
+		"se": [
+			{"bob": 2, "top": 12, "neck": 12, "hips": 15, "hands": [[4, 13], [10, 12]], "rows": [
+				".......VkkVc......",
+				"......ccCCC88.....",
+				".....44cCCC88.....",
+				".....44UUuUU......",
+				".......TT.Tt......",
+				".......KB.KB......",
+			]},
+			{"bob": 3, "lean": 1, "eyes": "shut", "top": 13, "neck": 12, "hips": 15, "hands": [[4, 12], [10, 11]], "rows": [
+				"......cVkkV88.....",
+				".....44cCCC88.....",
+				".....44UUuUU......",
+				".......TT.Tt......",
+				".......KB.KB......",
+			]},
+		],
+		"e": [
+			{"bob": 2, "top": 12, "neck": 12, "hips": 14, "hands": [[7, 13], [6, 13]], "rows": [
+				"........CVk.......",
+				".......cCCc.......",
+				".......UU44.......",
+				".......tt44.......",
+				"........tTt.......",
+				"........BBb.......",
+			]},
+			{"bob": 3, "lean": 1, "eyes": "shut", "top": 13, "neck": 12, "hips": 14, "hands": [[7, 12], [6, 12]], "rows": [
+				".......cCVk.......",
+				".......UU44.......",
+				".......tt44.......",
+				"........tTt.......",
+				"........BBb.......",
+			]},
+		],
+		"ne": [
+			{"bob": 2, "top": 12, "neck": 12, "hips": 15, "hands": [[10, 13], [3, 13]], "rows": [
+				".......VVVC.......",
+				"......ccccCCC.....",
+				".....88VcccC44....",
+				".....88uuuuu44....",
+				".......mm.tt......",
+				".......bb.BB......",
+			]},
+			{"bob": 3, "lean": 1, "eyes": "shut", "top": 13, "neck": 12, "hips": 15, "hands": [[10, 12], [3, 12]], "rows": [
+				"......cVVVCCC.....",
+				".....88VcccC44....",
+				".....88uuuuu44....",
+				".......mm.tt......",
+				".......bb.BB......",
+			]},
+		],
+		"n": [
+			{"bob": 2, "top": 12, "neck": 12, "hips": 15, "hands": [[10, 13], [3, 13]], "rows": [
+				".....CCVVVVCC.....",
+				".....CCccccCC.....",
+				"....77CccccC44....",
+				"....88uuuuuu55....",
+				"......mm..mm......",
+				"......bb..bb......",
+			]},
+			{"bob": 3, "eyes": "shut", "top": 13, "neck": 12, "hips": 15, "hands": [[10, 12], [3, 12]], "rows": [
+				".....CCVVVVCC.....",
+				"....77CccccC44....",
+				"....88uuuuuu55....",
 				"......mm..mm......",
 				"......bb..bb......",
 			]},
