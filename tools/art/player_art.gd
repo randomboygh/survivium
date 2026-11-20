@@ -20,8 +20,8 @@ extends RefCounted
 ## the upper left. The feet stand on the frame's last row with no outline under them. The
 ## walk's body under the head is copied pixel by pixel from the reference (WalkArt): the
 ## arms swinging, the body bobbing; the jump's, the swim's, the chop's, the dig's, the
-## slash's and the bow's shot are drawn whole the same way (JumpArt, SwimArt, ChopArt,
-## DigArt, SlashArt, AimArt).
+## slash's, the bow's shot and the eat's are drawn whole the same way (JumpArt, SwimArt,
+## ChopArt, DigArt, SlashArt, AimArt, EatArt).
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -38,6 +38,7 @@ const ChopArt := preload("res://tools/art/player_chop_art.gd")
 const DigArt := preload("res://tools/art/player_dig_art.gd")
 const SlashArt := preload("res://tools/art/player_slash_art.gd")
 const AimArt := preload("res://tools/art/player_aim_art.gd")
+const EatArt := preload("res://tools/art/player_eat_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -387,8 +388,8 @@ const MOVES := {
 ## has it), "o" where the other hand holds a two-handed thing, "bob" and "lean" how far
 ## the body bends down and forward, "eyes" "shut". A thing swung up over the head goes
 ## behind it, the hand hidden, so it does not cover the face. The chop, the dig, the
-## slash and the aim are drawn whole with the tool's ways in their frames (ChopArt, DigArt,
-## SlashArt, AimArt).
+## slash, the aim and the eat are drawn whole with the thing's ways in their frames
+## (ChopArt, DigArt, SlashArt, AimArt, EatArt).
 const WORKS := {
 	"front": {
 		"reach": [
@@ -402,12 +403,6 @@ const WORKS := {
 			{"r": [4, 13], "a": TOWARD, "o": [6, 13], "ccw": true, "bob": 1},
 			{"r": [6, 13], "a": TOWARD, "o": [8, 13], "ccw": true, "bob": 1},
 			{"r": [8, 13], "a": 2, "o": [10, 13], "ccw": true},
-		],
-		"eat": [
-			{"r": [4, 14], "a": -1},
-			{"r": [5, 12], "a": -1},
-			{"r": [6, 10], "a": -1, "eyes": "shut"},
-			{"r": [5, 11], "a": -1},
 		],
 	},
 	"side": {
@@ -423,12 +418,6 @@ const WORKS := {
 			{"r": [10, 13], "a": 3, "o": [11, 14], "ccw": true, "bob": 1, "lean": 1},
 			{"r": [10, 12], "a": 2, "o": [12, 12], "ccw": true},
 		],
-		"eat": [
-			{"r": [8, 13], "a": -1},
-			{"r": [9, 12], "a": -1},
-			{"r": [10, 10], "a": -1, "eyes": "shut"},
-			{"r": [9, 11], "a": -1},
-		],
 	},
 	"back": {
 		"reach": [
@@ -442,12 +431,6 @@ const WORKS := {
 			{"r": [9, 15], "a": 1, "o": [7, 15], "ccw": true, "bob": 1},
 			{"r": [7, 15], "a": 0, "o": [5, 15], "ccw": true, "bob": 1},
 			{"r": [5, 14], "a": 7, "o": [3, 14], "ccw": true},
-		],
-		"eat": [
-			{"r": [10, 14], "a": -1},
-			{"r": [9, 12], "a": -1},
-			{"r": [8, 11], "a": -1},
-			{"r": [9, 13], "a": -1},
 		],
 	},
 }
@@ -594,8 +577,9 @@ static func column(col: int) -> Array:
 ## The frame of column `c` ([name, i], see column) drawn whole under the head in
 ## direction `dir`, its hands with it: the walk's (WalkArt), the jump's (JumpArt), the
 ## swim's (SwimArt), the chop's (ChopArt, with the way the axe points: `a`), the dig's
-## (DigArt, the shovel held up its shaft: `slide`), the slash's (SlashArt) or the aim's
-## (AimArt, the bow drawn for the frame: `bow`); {} for any other, made of the body
+## (DigArt, the shovel held up its shaft: `slide`), the slash's (SlashArt), the aim's
+## (AimArt, the bow drawn for the frame: `bow`) or the eat's (EatArt, the food as it is
+## carried: `a` -1, the eyes shut on the bite: `eyes`); {} for any other, made of the body
 ## standing and a pose.
 static func whole_frame(dir: String, c: Array) -> Dictionary:
 	match c[0]:
@@ -613,6 +597,8 @@ static func whole_frame(dir: String, c: Array) -> Dictionary:
 			return SlashArt.frame(dir, c[1])
 		"aim":
 			return AimArt.frame(dir, c[1])
+		"eat":
+			return EatArt.frame(dir, c[1])
 	return {}
 
 
@@ -814,6 +800,8 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 				rows = SlashArt.rows(whole, dir, build, figure)
 			"aim":
 				rows = AimArt.rows(whole, dir, build, figure)
+			"eat":
+				rows = EatArt.rows(whole, dir, build, figure)
 			_:
 				rows = WalkArt.rows(whole, dir, build, figure)
 		_stamp(parts, rows, whole.get("top", 10), Vector2i.ZERO)

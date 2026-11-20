@@ -233,3 +233,40 @@ outline, its tip in the trail's first pixels).
   saves the sheet in every build (the bow was looked at in the thin, the normal and the stocky one).
   `view_test.gd` checks two of the review's rules on the wooden bow's sheet: no block of two by two dark
   pixels that the figure does not have without the bow, and no pixel of the string over the legs.
+
+## The eat (under review)
+
+- Columns 38-41 (`player.yaml` `works` eat; what is eaten or drunk plays it: an item's `anim: eat`), drawn
+  whole: `tools/art/player_eat_art.gd` (EatArt), written by `gen_eat_gd.py <module> <out.gd>` (run with
+  `python3 -I`) from a data module in the library, now `eat_b.py` (`EAT`; `eat_a.py` has the front's two
+  variants).
+- The user's pick (2026-11-20, a decision card on the front's GIF): A, the bite is a nod. The food raised
+  to the chin on frame 2 stays where it is and the head comes a row down onto it on frame 3, the eyes shut
+  (the chest's row folds away, the legs never move, the other arm hangs where it does standing). B was the
+  head still and the food a row higher.
+- The frames: 1 the food lifted to the belly, the elbow by the side (the arm a row shorter); 2 raised to
+  the chin, the hand beside it; 3 the bite; 4 as 1 with the eyes shut, chewing. A frame's `eyes` "shut" is
+  read by `PlayerArt.pose` for any work drawn whole.
+- The food has no sheet: it is the item's icon cut down to 5 pixels (`Figure._small`), its middle at the
+  hand's mark (`hands[0]`; `a` -1: as carried), in front of the body or behind it (`f`), the hand's digits
+  (the fists' layer) over it. So the mark is where the food's middle goes, not where the hand is, and the
+  hand is drawn beside the food, not across it. A 5 by 5 food is as tall as the torso.
+- An icon is not mirrored with the figure, and `hold = size / 2` puts the middle of one of an even width a
+  pixel left: in a west direction a 4-pixel icon (the apple, a mushroom) sits a pixel further from the body
+  than in its east one, its stalk on the other side. The frames are drawn for both: from the side the hand
+  reaches a pixel into the food (no gap in the west twin), turned the food's mark is between the two
+  places. Mirroring the icons of the west rows in `Figure._put_things` would make them exact; not done,
+  it would move every icon held in every animation.
+- A pixel enclosed between the body, the hand and the food is outlined, a dark dot: keep the food against
+  the body or the hand (from the side the hand goes under the chin).
+- From behind (ne, n) the food is behind the body (`f` false): its mark is where the body hides it (n) or
+  lets its edge show past the neck (ne); the elbow goes up to the shoulder's height and the nod shows.
+- Light food (a flatbread, roasted meat) reads poorly over the bare skin: an icon has no outline of its own
+  over the body. Not solved.
+- Tools in the library: `eat_proto.py` (a frame with the icon as the game draws it, the west twin with the
+  icon not mirrored; `icon_small.py` is `Figure._small` with Godot's rounding), `eat_sheet.py` (still
+  frames, big), `eat_review.py` and `eat_all.sh` (the GIFs), `eat_vsgame.py <module> <attr> <dump dir>
+  <sheet>=<icon's content path> ...` against `dump.gd` sheets made with `<sheet>=icon:<icon's content
+  path>:eat`: it prints `bad 0` for the bare hands, the apple, the roasted meat and the flatbread.
+- GIFs in the library: `eat-front-1.gif` and `eat-front-1-frames.png` (the front, A and B), `eat-all-2.gif`
+  and `eat-all-2-meat.gif` (every direction; «было» is main's poses with the same food).
