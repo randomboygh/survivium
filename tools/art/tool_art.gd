@@ -11,8 +11,9 @@ extends RefCounted
 ## those by quarter turns gives the eight ways. Its edge is on the clockwise side, and
 ## a tool swung anticlockwise is mirrored along its length. "g" is the pixel in the
 ## hand. A bow (`bow`) is drawn in the bow's shot as each frame draws it instead (AimArt
-## `bow`: the string drawn back, the arrow on it). Small things (blocks, food, seeds) have
-## no sheet: the game turns their icon (Figure).
+## `bow`: the string drawn back, the arrow on it), and a scythe (`scythe`) in the mow
+## (MowArt `scythe`: its blade hanging down from the snath's end). Small things (blocks,
+## food, seeds) have no sheet: the game turns their icon (Figure).
 
 const PlayerArt := preload("res://tools/art/player_art.gd")
 const Figure := preload("res://src/client/view/figure.gd")
@@ -444,6 +445,8 @@ const SHAPES := {
 			"...aAA",
 		],
 		"carry": {"front": 7, "side": 1, "back": 1},
+		# Mowing, it is drawn as the mow's frames draw it (MowArt `scythe`).
+		"scythe": true,
 	},
 	# Carried upright, the flame on top; its brightest pixel is where the game lights it.
 	"torch": {
@@ -518,6 +521,11 @@ const RECOLOURED := {
 }
 
 
+## A shape's flags for a thing that the frames of its work draw themselves, each the name of
+## the frame's drawing of it too (AimArt `bow`, MowArt `scythe`).
+const DRAWN := ["bow", "scythe"]
+
+
 ## The sheet of tool `sprite` (a key of SHAPES or RECOLOURED) with the frames of work `anim` (a key
 ## of player.yaml `works`).
 static func sheet(sprite: String, anim: String) -> Image:
@@ -542,19 +550,21 @@ static func sheet(sprite: String, anim: String) -> Image:
 			var angle := -1
 			var ccw := false
 			var slide := 0
-			var bow := {}
+			var own := {}
 			if cols[i] >= 0:
 				var h: Dictionary = PlayerArt.pose(drawn, hand, cols[i])[hand]
 				angle = h.angle
 				ccw = h.ccw
 				slide = h.get("slide", 0)
-				bow = h.get("bow", {})
+				for kind: String in DRAWN:
+					if shape.get(kind, false):
+						own = h.get(kind, {})
 			if angle < 0:
 				angle = shape.carry[view]
 				if hand == "left" and view != "side":
 					angle = PlayerArt.mirrored(angle)
 			var r := Rect2i(Vector2i(i, row) * cell, cell)
-			var pixels := drawn_bow(bow) if shape.get("bow", false) and bow.has("rows") else turned(shape, angle, ccw, slide)
+			var pixels := drawn_by_frame(own) if own.has("rows") else turned(shape, angle, ccw, slide)
 			for p: Vector2i in pixels:
 				var at: Vector2i = r.position + grip + p
 				if r.has_point(at):
@@ -566,15 +576,16 @@ static func sheet(sprite: String, anim: String) -> Image:
 	return img
 
 
-## The pixels of a bow as a frame of the aim draws it (AimArt `bow`: rows of letters from
-## `at`, the offset of their corner from the grip): {offset from the grip: letter}.
-static func drawn_bow(bow: Dictionary) -> Dictionary:
+## The pixels of a thing as a frame of its work draws it (`own`: AimArt `bow`, MowArt
+## `scythe`: rows of letters from `at`, the offset of their corner from the grip): {offset
+## from the grip: letter}.
+static func drawn_by_frame(own: Dictionary) -> Dictionary:
 	var out := {}
-	for y in bow.rows.size():
-		var r: String = bow.rows[y]
+	for y in own.rows.size():
+		var r: String = own.rows[y]
 		for x in r.length():
 			if r[x] != ".":
-				out[Vector2i(bow.at[0] + x, bow.at[1] + y)] = r[x]
+				out[Vector2i(own.at[0] + x, own.at[1] + y)] = r[x]
 	return out
 
 

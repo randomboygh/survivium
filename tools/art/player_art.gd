@@ -20,8 +20,8 @@ extends RefCounted
 ## the upper left. The feet stand on the frame's last row with no outline under them. The
 ## walk's body under the head is copied pixel by pixel from the reference (WalkArt): the
 ## arms swinging, the body bobbing; the jump's, the swim's, the chop's, the dig's, the
-## slash's, the bow's shot, the eat's and the reach's are drawn whole the same way (JumpArt,
-## SwimArt, ChopArt, DigArt, SlashArt, AimArt, EatArt, ReachArt).
+## slash's, the bow's shot, the eat's, the reach's and the mow's are drawn whole the same way
+## (JumpArt, SwimArt, ChopArt, DigArt, SlashArt, AimArt, EatArt, ReachArt, MowArt).
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -40,6 +40,7 @@ const SlashArt := preload("res://tools/art/player_slash_art.gd")
 const AimArt := preload("res://tools/art/player_aim_art.gd")
 const EatArt := preload("res://tools/art/player_eat_art.gd")
 const ReachArt := preload("res://tools/art/player_reach_art.gd")
+const MowArt := preload("res://tools/art/player_mow_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -65,7 +66,7 @@ const INK := {
 	# body has it (WalkArt, BODY).
 	"K": ["3d3436", "boots"], "m": ["1e3a62", "trousers"],
 	"N": ["c9a66e", "loincloth"], "n": ["9c7c4c", "loincloth"],
-	# A blade's trail as it is swung (SlashArt `trail`), drawn over the figure and its
+	# A blade's trail as it is swung (SlashArt, MowArt `trail`), drawn over the figure and its
 	# outline (Figure, player.yaml `trail`): its bright middle, its shade, its fading end.
 	"o": ["f7f1e6", "trail"], "+": ["e2d8c6", "trail"], "-": ["c9bda9", "trail"],
 	# A dark line in a hair style (LooksArt): a ponytail's tie, a bun's band.
@@ -396,33 +397,13 @@ const MOVES := {
 ## has it), "o" where the other hand holds a two-handed thing, "bob" and "lean" how far
 ## the body bends down and forward, "eyes" "shut". A thing swung up over the head goes
 ## behind it, the hand hidden, so it does not cover the face. The chop, the dig, the
-## slash, the aim, the eat and the reach are drawn whole with the thing's ways in their
-## frames (ChopArt, DigArt, SlashArt, AimArt, EatArt, ReachArt).
+## slash, the aim, the eat, the reach and the mow are drawn whole with the thing's ways in
+## their frames (ChopArt, DigArt, SlashArt, AimArt, EatArt, ReachArt, MowArt): every work
+## now, so the table is left for one without frames of its own.
 const WORKS := {
-	"front": {
-		"mow": [
-			{"r": [3, 13], "a": 6, "o": [5, 13], "ccw": true},
-			{"r": [4, 13], "a": TOWARD, "o": [6, 13], "ccw": true, "bob": 1},
-			{"r": [6, 13], "a": TOWARD, "o": [8, 13], "ccw": true, "bob": 1},
-			{"r": [8, 13], "a": 2, "o": [10, 13], "ccw": true},
-		],
-	},
-	"side": {
-		"mow": [
-			{"r": [7, 12], "a": 6, "o": [6, 13], "ccw": true},
-			{"r": [8, 13], "a": 5, "o": [7, 14], "ccw": true, "bob": 1},
-			{"r": [10, 13], "a": 3, "o": [11, 14], "ccw": true, "bob": 1, "lean": 1},
-			{"r": [10, 12], "a": 2, "o": [12, 12], "ccw": true},
-		],
-	},
-	"back": {
-		"mow": [
-			{"r": [10, 14], "a": 2, "o": [8, 14], "ccw": true, "f": true},
-			{"r": [9, 15], "a": 1, "o": [7, 15], "ccw": true, "bob": 1},
-			{"r": [7, 15], "a": 0, "o": [5, 15], "ccw": true, "bob": 1},
-			{"r": [5, 14], "a": 7, "o": [3, 14], "ccw": true},
-		],
-	},
+	"front": {},
+	"side": {},
+	"back": {},
 }
 ## A thing held pointing at the ground in front of a body facing the viewer, drawn
 ## foreshortened (one more way after the eight).
@@ -569,8 +550,9 @@ static func column(col: int) -> Array:
 ## swim's (SwimArt), the chop's (ChopArt, with the way the axe points: `a`), the dig's
 ## (DigArt, the shovel held up its shaft: `slide`), the slash's (SlashArt), the aim's
 ## (AimArt, the bow drawn for the frame: `bow`), the eat's (EatArt, the food as it is
-## carried: `a` -1, the eyes shut on the bite: `eyes`) or the reach's (ReachArt); {} for
-## any other, made of the body standing and a pose.
+## carried: `a` -1, the eyes shut on the bite: `eyes`), the reach's (ReachArt) or the mow's
+## (MowArt, the scythe drawn for the frame: `scythe`); {} for any other, made of the body
+## standing and a pose.
 static func whole_frame(dir: String, c: Array) -> Dictionary:
 	match c[0]:
 		"walk":
@@ -591,6 +573,8 @@ static func whole_frame(dir: String, c: Array) -> Dictionary:
 			return EatArt.frame(dir, c[1])
 		"reach":
 			return ReachArt.frame(dir, c[1])
+		"mow":
+			return MowArt.frame(dir, c[1])
 	return {}
 
 
@@ -618,7 +602,8 @@ static func eighth(a: int) -> int:
 ## hand being {"at": where it is in the box, "shoulder", "front": in front of the body,
 ## "holds": false for the other hand of a two-handed work, "worked", "angle": the way
 ## what it holds points (-1: as carried), "ccw", and for a frame drawn whole "slide": how
-## far up its length it is held, ToolArt.turned, and "bow": a bow as the frame draws it}.
+## far up its length it is held, ToolArt.turned, and "bow", "scythe": a bow, a scythe as
+## the frame draws it (ToolArt.DRAWN)}.
 static func pose(dir: String, active: String, col: int) -> Dictionary:
 	var view: String = VIEW[dir]
 	var c := column(col)
@@ -682,10 +667,10 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 		var other := _other(active)
 		p[active] = {"at": Vector2i(whole.hands[0][0], whole.hands[0][1] + p.bob), "front": whole.f, "holds": true,
 			"worked": true, "angle": whole.a, "ccw": whole.get("ccw", false), "slide": whole.get("slide", 0),
-			"bow": whole.get("bow", {})}
+			"bow": whole.get("bow", {}), "scythe": whole.get("scythe", {})}
 		p[other].at = Vector2i(whole.hands[1][0], whole.hands[1][1] + p.bob)
-		# A two-handed work (the aim: the other hand draws the string) shows nothing of the
-		# other hand's own.
+		# A two-handed work (the aim: the other hand draws the string; the mow: both hands
+		# on the snath) shows nothing of the other hand's own.
 		p[other].holds = not whole.get("two", false)
 		# The other hand is in front of the body as its view has it, unless the frame puts it
 		# behind (`of`: a blade swept across in front of it).
@@ -807,11 +792,13 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 				rows = EatArt.rows(whole, dir, build, figure)
 			"reach":
 				rows = ReachArt.rows(whole, dir, build, figure)
+			"mow":
+				rows = MowArt.rows(whole, dir, build, figure)
 			_:
 				rows = WalkArt.rows(whole, dir, build, figure)
 		_stamp(parts, rows, whole.get("top", 10), Vector2i.ZERO)
 		if whole.has("trail"):
-			# A blade's trail (SlashArt), its rows in the frame's pixels from `at`.
+			# A blade's trail (SlashArt, MowArt), its rows in the frame's pixels from `at`.
 			var t: Dictionary = whole.trail
 			_stamp(parts, t.rows, t.at[1] - ORIGIN.y, Vector2i(t.at[0] - ORIGIN.x, 0))
 	var head: Array = HEAD[dir]

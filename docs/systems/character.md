@@ -285,7 +285,25 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   its middle at the hand's mark and the hand's skin over it, so the frames draw the hand beside the food,
   not across it; turned and from the side it is before the face, from behind the body hides it (`f`
   false) and the elbow and the nod show the bite. An icon is not mirrored with the figure, so in a west
-  direction one of an even width sits a pixel further from the body than in its east one. A
+  direction one of an even width sits a pixel further from the body than in its east one.
+  The mow's four frames too, with the scythe in both hands (`tools/art/player_mow_art.gd`, reviewed with
+  the user 2026-11-20; the scythes play it): the snath rises from the hands to its far end and the blade
+  hangs from there with its point at the ground (the user's note: the blade down, not up); the hands hold
+  the snath at its middle, not at its end (the user's note), so its near end comes out two pixels past
+  them: from the side over the waistband and then on the hip under the arm, from the front behind the
+  forearm that crosses the chest, from behind behind the body. The scythe is held out to one side, its
+  far end goes a pixel up as the torso leans after it, then it is swung past the feet to the other side
+  (crouched, the chest's row folded away) and the body stands again with the scythe where it stopped: the
+  mower's right to their left in every view, so from the front and the side from the picture's left to
+  its right (from the side from behind the back forward), from behind from the right to the left, where
+  it ends behind the body with the left hand on it (`f` false). A scythe keeps its blade down wherever it
+  is, which turning its shape does not give, so the frames draw it whole as the bow's do (`scythe`;
+  `ToolArt.DRAWN` lists the shapes a frame draws, `ToolArt.drawn_by_frame`), and both hands hold it
+  (`two`). The scythes leave a trail (`trail: true`): on the strike a shallow arc from where the blade
+  was, over the feet's row and up to the blade, in front of the character (the user's note); from behind,
+  pieces low on the ground behind the figure. In every view but the side one the scythe's mark is above
+  the frame's neck, which no build moves: a stocky body's hands go a pixel out along the snath and the
+  blade stays where it is drawn, whole in the frame. A
   work drawn so carries the way the tool points (`a`, `ccw`, `f`), where the hand holds it
   and how far up its length (`slide`: `ToolArt.turned` moves the head nearer the hand, the shaft's end
   past it, leaving `ToolArt.SLIDE_LEFT` rows beyond it, so a short thing is held as it is), so
