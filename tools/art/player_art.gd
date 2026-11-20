@@ -215,8 +215,8 @@ const BODY := {
 	]},
 }
 ## The legs seen from the side, rows 15-17, by pose: "near" or "far" (that leg in front,
-## striding), "sit" (forward, afloat); standing they are BODY's. The front and back views
-## raise a leg from BODY instead (see legs).
+## striding), "sit" (forward, afloat; as long as the user asked on 2026-11-20); standing
+## they are BODY's. The front and back views raise a leg from BODY instead (see legs).
 const SIDE_LEGS := {
 	"near": [
 		"......tT......",
@@ -231,9 +231,13 @@ const SIDE_LEGS := {
 	"sit": [
 		EMPTY,
 		EMPTY,
-		"......tTTTB...",
+		"......tTTB....",
 	],
 }
+## Sitting, the knee that shows a pixel east of the waistband (on the frame's last row),
+## by direction: its letter. Turned a little (se) the legs reach that far (the user's note
+## of 2026-11-20), in every build.
+const SIT_KNEE := {"se": "t"}
 
 ## Shoulders by direction: where the right arm and the left one hang from (side view: the
 ## near one and the far one), in the box as the view places them (moved by SHIFT and with
@@ -280,7 +284,9 @@ const ARMS := {
 ## the body bobs down. The walk is copied from a reference instead (WalkArt), the jump
 ## and the swim drawn whole (JumpArt, SwimArt). Afloat in a
 ## vessel the body sits low, its legs forward ("sit"), and rows: both hands reach out
-## and pull the oars in (Boats swings the oars in time, ROW_PERIOD). The gestures
+## and pull the oars in (Boats swings the oars in time, ROW_PERIOD). Asleep the body
+## stands facing south with its eyes shut and its legs pressed together ("together"),
+## and Figure lays that frame on its side (Figure._lay_down). The gestures
 ## (Gestures): a wave over the head, a nod ("bob"), a shake of the body side to side
 ## ("lean"), a hand pointing out, beckoning, a bow, clapping in front. The arms are
 ## short: a hand reaches a few pixels from its shoulder.
@@ -316,6 +322,7 @@ const MOVES := {
 			{"hands": [[3, 14], [10, 14]], "legs": "sit", "bob": 2},
 			{"hands": [[2, 13], [11, 13]], "legs": "sit", "bob": 2},
 		],
+		"sleep": [{"hands": [[3, 14], [10, 14]], "legs": "together"}],
 	},
 	"side": {
 		"idle": [{"hands": [[7, 14], [6, 14]]}],
@@ -626,8 +633,8 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 	if not whole.is_empty():
 		move = {"hands": whole.hands, "bob": whole.bob - drop}
 	var p := {"bob": move.get("bob", 0) + drop, "lean": move.get("lean", 0), "legs": move.get("legs", "stand"), "eyes": "open"}
-	# The blink, which the sleep frame is made from too (Figure._lay_down).
-	if col == int(Figure.data().get("blink", -1)):
+	# The blink, and the sleep (Figure._lay_down lays its frame down).
+	if col == int(Figure.data().get("blink", -1)) or c[0] == "sleep":
 		p.eyes = "shut"
 	for i in 2:
 		var hand: String = ["right", "left"][i]
@@ -729,10 +736,16 @@ static func _front(view: String, hand: String) -> bool:
 ## waistband down to the feet), as the pose has them. Seen from the side the other poses
 ## are SIDE_LEGS'. Seen from the front or the back a step raises a leg a pixel ("right":
 ## the one on the west of the picture, "left": the other), its foot where its shin was;
-## sitting ("sit") only the feet show, under the body.
+## sitting ("sit") only the feet show, under the body (and a knee, SIT_KNEE).
+## Pressed together ("together", the sleep's) the leg on the east of the picture is a
+## pixel nearer the other where two pixels part them; from the side they stand as they are.
 static func legs(dir: String, kind: String, rows: Array) -> Array:
 	if kind == "stand":
 		return rows
+	if kind == "together":
+		if VIEW[dir] == "side":
+			return rows
+		return rows.map(func(r: String) -> String: return (r.substr(0, 6) + r.substr(7) + ".") if r.substr(6, 2) == ".." else r)
 	if VIEW[dir] == "side":
 		return SIDE_LEGS[kind]
 	var n := rows.size()
@@ -768,6 +781,11 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 		var low: Array = legs(dir, p.legs, rows.slice(hips + 1)).duplicate()
 		if p.legs != "stand" and VIEW[dir] == "side" and figure == "curvy":
 			low[0] = FormsArt.hipped(low[0], dir)
+		if p.legs == "sit" and SIT_KNEE.has(dir):
+			# Seated the waistband is on the last row: the knee goes past its east end.
+			var last: String = low[-1]
+			last[(rows[hips] as String).rstrip(".").length()] = SIT_KNEE[dir]
+			low[-1] = last
 		_stamp(parts, low, b.hips + 1, Vector2i.ZERO)
 		_stamp(parts, rows.slice(0, hips + 1), 11, up)
 	else:

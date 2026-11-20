@@ -87,7 +87,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   request `lie_in` (`Character.lie_in`: fall asleep and lie on it, `Placed.lying_spot`, to the client —
   `TELEPORT`; one who does not want to sleep, `Vitals.sleepy`, takes it into the bag, `Placed.take_up`); in
   the bag it does not work. On screen the sleeper lies on their side with closed eyes (the sheet's frame
-  `sleep`, `Figure._lay_down`: the idle column `blink` of `player.yaml` turned on its side), above them
+  `sleep`, `Figure._lay_down`: its own column, drawn standing with the eyes shut and the legs pressed
+  together, turned on its side), above them
   small letters «z» rise, grow and melt in turn (`player.gd` `snore`, `_snore`); one wakes up by oneself
   when rested by day, from a wound or in water. While all sleep, the night
   goes `Session.SLEEP_SPEED` times faster. `fatigue` off — the test switch «Fatigue»: energy does not fall,
@@ -213,7 +214,10 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   the head sits a row lower and the body is a row shorter, as in the walk. The feet stand on the frame's
   bottom row with no outline under them. `tools/art/player_art.gd` draws it (`HEAD`, `HAIR`, the body standing `BODY`,
   `SIDE_LEGS`, the arms `SHOULDER`, `REST` and `ARMS`, the poses `MOVES` and `WORKS`); the design and its
-  letters are in the library `survivium-builds/character/chibi/`. The walk (six frames, 10 a second,
+  letters are in the library `survivium-builds/character/chibi/`. Seated (`sit`: afloat and the gesture,
+  and the rowing on the same legs) the body is two rows lower, only the feet under it; from the side the
+  legs go forward (`SIDE_LEGS` `sit`), turned a little a knee shows past the waistband (`SIT_KNEE`; the
+  user's notes of 2026-11-20). The walk (six frames, 10 a second,
   the user's pick of 2026-11-19) is the body of a reference copied pixel by pixel under our head
   (`tools/art/player_walk_art.gd`, from `survivium-builds/character/anim/references/`): legs of 2 px, the
   arms swinging against the legs, the body a pixel down at each step and a row shorter with both feet off

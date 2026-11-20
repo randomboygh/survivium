@@ -70,8 +70,8 @@ animations:
   eat:
     frames: [38, 39, 40, 41]
     fps: 1.0
-  # Sleep: the frame is not drawn, Figure builds it from the blink frame (`blink`, the eyes shut)
-  # standing facing south, turned on its side.
+  # Sleep: the frame is drawn standing (the eyes shut, the legs pressed together); Figure takes
+  # it as it faces south and turns it on its side.
   sleep:
     frames: [42]
     fps: 1.0
@@ -105,7 +105,7 @@ animations:
   clap:
     frames: [58, 59]
     fps: 6.0
-# blink — the column of the idle animation with the eyes shut; the sleep frame is made from it.
+# blink — the column of the idle animation with the eyes shut.
 blink: 1
 works:
   chop:
