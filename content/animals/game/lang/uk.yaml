@@ -19,9 +19,16 @@
 "[animals.items.fat]": "Жир"
 "[animals.items.jerky]": "В'ялене м'ясо"
 "[animals.items.jerky.about]": "М'ясо, провялене на сушарці. Легке й ситне, вогню не треба."
+"[animals.items.bird_carcass]": ""
+"[animals.items.bird_carcass.about]": ""
+"[animals.items.tooth]": ""
+"[animals.items.tooth.about]": ""
+"[animals.items.feather]": ""
+"[animals.items.feather.about]": ""
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Розібрати тушку"
+"[animals.recipes.raw_meat_from_bird_carcass]": ""
 "[animals.recipes.raw_meat_from_carcass]": "Розібрати тушу"
 "[animals.recipes.roasted_meat]": "Смажене м'ясо"
 "[animals.recipes.jerky]": "В'ялене м'ясо"

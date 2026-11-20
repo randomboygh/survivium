@@ -71,3 +71,22 @@
   model: jerky
   icon: jerky
   anim: eat
+- id: bird_carcass
+  title: "[animals.items.bird_carcass]"
+  description: "[animals.items.bird_carcass.about]"
+  weight: 0.8
+  stack: 5
+  model: small_carcass
+  icon: bird_carcass
+- id: tooth
+  title: "[animals.items.tooth]"
+  description: "[animals.items.tooth.about]"
+  weight: 0.01
+  stack: 30
+  icon: tooth
+- id: feather
+  title: "[animals.items.feather]"
+  description: "[animals.items.feather.about]"
+  weight: 0.005
+  stack: 30
+  icon: feather

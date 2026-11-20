@@ -691,12 +691,12 @@ const SHOTS := {
 	# Hide clothes worn, a fur coat chosen in the bag (its warmth).
 	"bag-furs": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,
 		"wear": ["tools:fur_hat", "tools:fur_coat", "tools:leather_trousers", "tools:fur_boots"], "give": "tools:fur_coat"},
-	# The tab «Персонаж»: the figure in fibre clothes and looks of its own, a torch and an
+	# The tab «Персонаж»: the figure in fibre clothes, beads, a bracelet and a feather and looks of its own, a torch and an
 	# axe in its hands, its short shadow to the north-west, the skills learned under it
 	# (beside it on a wide screen); then a scythe held, the body's slot tapped (the panel
 	# at the bottom: the cape, «Снять»); then a spear held, the figure turned to the east.
 	"bag-person": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": -1, "person": "",
-		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "hold": ["tools:torch", "tools:stone_axe"],
+		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes", "tools:shell_beads", "tools:bracelet", "tools:hair_feather"], "hold": ["tools:torch", "tools:stone_axe"],
 		"looks": {"build": "normal", "figure": "bust", "skin": 3, "hair": "ponytail", "hair_colour": 8, "eyes": 2, "face": "freckles"},
 		"skills": {"gather": 4, "chop": 3, "dig": 6, "craft": 2, "build": 5, "cook": 1, "hunt": 2, "fish": 1, "swim": 3}},
 	"bag-person-body": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": -1, "person": "body",

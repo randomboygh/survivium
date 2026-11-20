@@ -24,4 +24,4 @@
   calls: crow
   alarm: crow
   health: 3
-  carcass: small_carcass
+  carcass: bird_carcass

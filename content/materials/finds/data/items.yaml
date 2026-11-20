@@ -28,3 +28,9 @@
   icon: amber
   prop: amber
   furniture: true
+- id: seashell
+  title: "[materials.items.seashell]"
+  description: "[materials.items.seashell.about]"
+  weight: 0.02
+  stack: 30
+  icon: seashell

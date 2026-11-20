@@ -100,9 +100,13 @@ const DARKER := {"S": "s", "s": "k", "k": "k"}
 ## are drawn by way over the head (WearArt). A kilt is the waistband and two rows of the
 ## legs filled across, pleated and hemmed; sandals the soles and straps over the skin,
 ## moccasins the shoes with a stitched edge, high boots the shoes and two rows of leg.
+## On the neck a string of beads, of teeth or with an amulet across the top of the chest
+## (_neckwear); on the wrists a bracelet a pixel up the arm from each hand, a ring on the
+## hand itself, drawn over the fists (Figure.AFTER_FISTS, _wristwear); a feather stuck in
+## the hair (WearArt).
 const SHAPES := ["shirt", "coat", "hat", "trousers", "wraps", "boots", "tall_boots",
 	"tunic", "vest", "poncho", "apron", "brim_hat", "dome_hat", "wreath", "bandana", "hood",
-	"kilt", "sandals", "moccasins", "high_boots"]
+	"kilt", "sandals", "moccasins", "high_boots", "beads", "fangs", "amulet", "bracelet", "ring", "feather"]
 ## The tone of each letter of the clothes in a shape.
 const TONE := {"L": "1", "C": "2", "c": "3", "V": "3", "U": "2", "u": "3", "T": "1", "t": "2", "m": "3",
 	"K": "1", "B": "2", "b": "3",
@@ -991,6 +995,7 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 			_arm(out, p[hand], dir, hand, solid, true)
 	_loincloth(out)
 	_shapes(out, up, dir)
+	_wristwear(out, p)
 	_looks(out, turned, seen, up)
 	_wear(out, turned, seen, up)
 	return out
@@ -1088,9 +1093,81 @@ static func _shapes(out: Dictionary, up: Vector2i, dir: String) -> void:
 			shapes.hat[at] = TONE[out.hair[at]]
 	_garments(shapes, out, dir)
 	_legwear(shapes, out)
+	_neckwear(shapes, out, dir)
 	for name: String in SHAPES:
-		if not WearArt.SHAPES.has(name):
+		if not WearArt.SHAPES.has(name) and not name in WRISTS:
 			out["shapes/" + name] = shapes[name]
+
+
+## What is worn on the wrists (_wristwear), drawn over the fists.
+const WRISTS := ["bracelet", "ring"]
+
+
+## A bracelet and a ring of a frame (pose `p`): the bracelet a pixel up the arm from each
+## hand, the ring on the hand, where the skin shows: a hand in front of the body is in
+## the fists, one behind it shows only where no clothes cover it.
+static func _wristwear(out: Dictionary, p: Dictionary) -> void:
+	var bracelet := {}
+	var ring := {}
+	for hand in ["left", "right"]:
+		var h: Dictionary = p[hand]
+		if not h.has("at"):
+			continue
+		var at: Vector2i = h.at
+		var wrist := at + Vector2i.UP
+		var skin: Dictionary = out.fists if h.front else out.body
+		var covered := func(q: Vector2i) -> bool:
+			return not h.front and (out.shirt.has(q) or out.trousers.has(q) or out.boots.has(q) or out.fists.has(q))
+		if skin.has(wrist) and not covered.call(wrist):
+			bracelet[wrist] = "1" if h.front else "2"
+			if skin.has(wrist + Vector2i.UP) and not covered.call(wrist + Vector2i.UP) and h.front:
+				bracelet[wrist] = "2"
+				bracelet[wrist + Vector2i.UP] = "1"
+		if h.front and skin.has(at):
+			ring[at] = "4"
+	out["shapes/bracelet"] = bracelet
+	out["shapes/ring"] = ring
+
+
+## The beads, teeth and amulet worn on the neck of a frame: a string across the top of the
+## chest under the neck, what hangs on it a row lower; from behind only the string.
+static func _neckwear(shapes: Dictionary, out: Dictionary, dir: String) -> void:
+	var rows := {}
+	var top := 1000
+	for at: Vector2i in out.shirt:
+		var r: Vector2i = rows.get(at.y, Vector2i(at.x, at.x))
+		rows[at.y] = Vector2i(mini(r.x, at.x), maxi(r.y, at.x))
+		top = mini(top, at.y)
+	if not rows.has(top + 1):
+		return
+	var r: Vector2i = rows[top + 1]
+	var view: String = VIEW[dir]
+	var mid := int(floor((r.x + r.y) / 2.0))
+	match view:
+		"front":
+			for x in range(mid - 1, mid + 3):
+				var at := Vector2i(x, top + 1)
+				shapes.beads[at] = "1" if x % 2 == 0 else "4"
+				shapes.fangs[at] = "3"
+				shapes.amulet[at] = "3"
+			shapes.fangs[Vector2i(mid, top + 2)] = "4"
+			shapes.fangs[Vector2i(mid + 1, top + 2)] = "4"
+			shapes.amulet[Vector2i(mid, top + 2)] = "1"
+			shapes.amulet[Vector2i(mid + 1, top + 2)] = "2"
+		"side":
+			var at := Vector2i(r.y, top + 1)
+			shapes.beads[at] = "1"
+			shapes.fangs[at] = "3"
+			shapes.fangs[at + Vector2i.DOWN] = "4"
+			shapes.amulet[at] = "3"
+			shapes.amulet[at + Vector2i.DOWN] = "1"
+		_:
+			var nape: Vector2i = rows[top]
+			var m := int(floor((nape.x + nape.y) / 2.0))
+			for x in [m, m + 1]:
+				shapes.beads[Vector2i(x, top)] = "3"
+				shapes.fangs[Vector2i(x, top)] = "3"
+				shapes.amulet[Vector2i(x, top)] = "3"
 
 
 ## The kilt, sandals, moccasins and high boots of a frame, out of its trousers and shoes.

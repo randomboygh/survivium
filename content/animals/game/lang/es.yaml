@@ -19,9 +19,16 @@
 "[animals.items.fat]": "Grasa"
 "[animals.items.jerky]": "Cecina"
 "[animals.items.jerky.about]": "Carne secada en un secadero. Ligera y nutritiva, sin necesidad de fuego."
+"[animals.items.bird_carcass]": ""
+"[animals.items.bird_carcass.about]": ""
+"[animals.items.tooth]": ""
+"[animals.items.tooth.about]": ""
+"[animals.items.feather]": ""
+"[animals.items.feather.about]": ""
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Despiezar una presa pequeña"
+"[animals.recipes.raw_meat_from_bird_carcass]": ""
 "[animals.recipes.raw_meat_from_carcass]": "Despiezar una res"
 "[animals.recipes.roasted_meat]": "Carne asada"
 "[animals.recipes.jerky]": "Cecina"

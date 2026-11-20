@@ -19,9 +19,16 @@
 "[animals.items.fat]": "Graisse"
 "[animals.items.jerky]": "Viande séchée"
 "[animals.items.jerky.about]": "Viande séchée sur un séchoir. Légère et nourrissante, sans feu."
+"[animals.items.bird_carcass]": ""
+"[animals.items.bird_carcass.about]": ""
+"[animals.items.tooth]": ""
+"[animals.items.tooth.about]": ""
+"[animals.items.feather]": ""
+"[animals.items.feather.about]": ""
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Dépecer une petite carcasse"
+"[animals.recipes.raw_meat_from_bird_carcass]": ""
 "[animals.recipes.raw_meat_from_carcass]": "Dépecer une carcasse"
 "[animals.recipes.roasted_meat]": "Viande grillée"
 "[animals.recipes.jerky]": "Viande séchée"

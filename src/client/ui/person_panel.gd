@@ -5,9 +5,9 @@ extends PanelContainer
 ## its hands hold, Hands.look, its short shadow to the north-west), turned through the
 ## eight directions by a finger or the mouse dragged across it, a tap on a half of it or
 ## the arrows by the stand, as big as on the «Персонаж» tab of a new game (FigureStage);
-## round it the slots of what is worn (the head, body, legs and feet down the left, as
-## high as they are on the figure) and of the bag on the back and the two hands down the
-## right, a strip of the bag's load along the bottom of the back's slot. Under it the
+## round it the slots of what is worn (the head, neck, body, legs and feet down the left,
+## as high as they are on the figure) and of the head's ornament, the wrists, the bag on
+## the back and the two hands down the right, a strip of the bag's load along the bottom of the back's slot. Under it the
 ## skills (Skills, the character's SkillSet), in three columns; on a wide screen
 ## (`set_wide`) beside it in one, the figure a little smaller (the window's height is
 ## short there): bars of a division per level in a panel of their own, a thin line along
@@ -37,10 +37,11 @@ const Vitals := preload("res://src/shared/game/vitals.gd")
 signal picked(slot: String)
 
 ## The slots left of the figure, from the top (as high as they are on it), and right of it.
-const LEFT := ["head", "body", "legs", "feet"]
-const RIGHT := ["back", "hand0", "hand1"]
+const LEFT := ["head", "neck", "body", "legs", "feet"]
+const RIGHT := ["ornament", "wrists", "back", "hand0", "hand1"]
 const TITLES := {
 	"head": "[head]", "body": "[body]", "legs": "[legs]", "feet": "[feet]", "back": "[bag_on_the_back]",
+	"neck": "[neck]", "wrists": "[wrists]", "ornament": "[head_ornament]",
 	"hand0": "[left_hand]", "hand1": "[right_hand]",
 }
 ## Room between the slots of a column (the column fits the window of a phone on its side,
