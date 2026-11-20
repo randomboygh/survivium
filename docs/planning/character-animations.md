@@ -2,8 +2,8 @@
 
 Status (2026-11-20): thread «Поправить анимации персонажа» reviewed the default character's
 animations one by one on the new chibi body. Done: the walk and the stand (#789), the outline under a
-hand low in the frame (#790), the jump (#791), the swim (#792), the chop (#796), the dig. Next, in this
-order: slash, reach, mow, aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se,
+hand low in the frame (#790), the jump (#791), the swim (#792), the chop (#796), the dig (#797). In
+review: the slash (the front first). Next, in this order: reach, mow, aim, eat, sleep, sit, row, gestures. Directions are shown in the order s, se,
 e, ne, n, nw, w, sw.
 
 ## How the user reviews
@@ -59,6 +59,9 @@ e, ne, n, nw, w, sw.
 - `proto.py` with `stands_data.py` and `jump_data.py`: draws rows of letters under the head of a quick
   sheet, to try frames before writing them in the code; `jump_sheet.py` puts such frames into a sheet.
 - `jump_review.py <q dir> <out.gif> <old q dir>`: the review GIF (the frames from `layout.json`).
+- `dump.gd` (copy into `tools/`, run with `-- <dir> name=<held picture under content/>:<work>[:trail]`,
+  delete) saves the dressed sheet with the thing held (`:trail` for a blade's trail); it reads the
+  imported PNGs, so after a code change run `make_sprites.gd -- --all` and `--import` first.
 
 ## The swim (done)
 
@@ -97,12 +100,34 @@ e, ne, n, nw, w, sw.
   and behind the tool not far forward of the body. `view.py <module> <attr> <dirs> <out.png>` in the
   library draws a module's frames big with the ground line.
 
-## Next: slash
+## The slash (in review, 2026-11-20)
 
-- Columns 22-25 (`player.yaml` `works` slash, `WORKS` slash; the swords, knives, spears, sickles,
-  slings, bows and rods play it). Draw it whole the same way: a data
-  module (`work_proto.py` knows the axe and the shovel; copy the sword's shape from `ToolArt.SHAPES`),
-  a generator like `gen_dig_gd.py`, a case in `whole_frame` and `frame_letters`.
-- To see a held tool: `dump.gd` in the library (copy into `tools/`, run with
-  `-- <dir> name=<held picture under content/>:<work>`, delete) saves the dressed sheet with it held; it
-  reads the imported PNGs, so after a code change run `make_sprites.gd -- --all` and `--import` first.
+- Columns 22-25 (`player.yaml` `works` slash; the swords, knives, spears, sickles, slings, bows and rods
+  play it), drawn whole: `tools/art/player_slash_art.gd` (SlashArt), written by `gen_slash_gd.py <module>
+  <out.gd>` (run with `python3 -I`) from a data module in the library, now `slash_j.py` (`SLASH`).
+- The user's rules: front view first, the others after it is approved. The blade goes along the user's
+  pink arc (uploads `b041d53b…`, `f40d7e5b…`): from above the head's left side in the picture, down beside
+  it, across the belly to the right hip; fast at first, slowing; NOT over the top; the last frame's blade
+  30-45 degrees down (30 is `PlayerArt.LOW`); crouched on the strike; the hand never crosses to the
+  right half of the picture (it looked as if the other hand held the sword); frames 3 and 4 must differ.
+- The reference: Puny Characters (Shade, CC0, opengameart.org), `Character-Base/Warrior-Blue.png`, row 0
+  is the front, columns 4-7: raised, raised, the smear (a white crescent), stopped; the hilt stays left
+  of the belly's middle in the last two. `cmp_ref.py` puts its frames beside ours.
+- Iteration 8 (`slash-front-8.gif`, front only, waiting for the user): 1 blade upright beside the head
+  (box 0,7, bob -1), 2 blade `LOW_LEFT` from the chin, 3 crouched, the hand at box (6,13), the blade at
+  the viewer (TOWARD) between the legs, a trail along the arc, 4 the same hand, the blade `LOW` right.
+  The other directions are still iteration 4's (`slash_e.py` via `slash_f.py`).
+- The trail (the user's pick: white, no outline, over the figure, only on frame 3): a frame's `trail`
+  (`at` and rows in image pixels; in the data module `smear`), the letters `o`, `+`, `-` of
+  `PlayerArt.INK`, drawn into the layer `player/trail.png` (`player.yaml` `trail`); `Figure._put_trail`
+  draws it after the outline in the columns of the work the right hand's thing plays, for items with
+  `trail: true` (swords, knives, sickles). `work_proto.py` draws it with `SMEAR=free` (or `outlined`,
+  `none`).
+- Checking: after `make_sprites.gd -- --all` and `--import`, `dump.gd` with the sword held
+  (`content/tools/sword/sprites/held/sword.png`, given as `sword=` its path under `content/` and
+  `:slash:trail`) and `SMEAR=free python3 vsgame.py slash_j SLASH
+  <dump dir> sword slash` must print `bad 0` (without `:trail` and with `SMEAR=none` too).
+  `variants_gif.py` makes the review GIF, `igrid.py` a frame's pixel grid.
+- Left: the user's review of the front; the other directions in the same way with their trails; the
+  other things held (knife, spear, rod, a sickle as an icon); `Player.ROD_OUT` (2, the strike's frame: a
+  rod at the viewer from the front, check it); then the PR (the WIP commit on the branch is reworded).

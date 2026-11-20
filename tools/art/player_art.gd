@@ -61,6 +61,9 @@ const INK := {
 	# body has it (WalkArt, BODY).
 	"K": ["3d3436", "boots"], "m": ["1e3a62", "trousers"],
 	"N": ["c9a66e", "loincloth"], "n": ["9c7c4c", "loincloth"],
+	# A blade's trail as it is swung (SlashArt `trail`), drawn over the figure and its
+	# outline (Figure, player.yaml `trail`): its bright middle, its shade, its fading end.
+	"o": ["f7f1e6", "trail"], "+": ["e2d8c6", "trail"], "-": ["c9bda9", "trail"],
 	# A dark line in a hair style (LooksArt): a ponytail's tie, a bun's band.
 	"#": ["1f1a14", "hair"],
 	# The shapes of clothes (see SHAPES): the light, middle and dark tone, painted in
@@ -491,7 +494,7 @@ static func use_form(b: String, f: String) -> void:
 		_anchors = []
 
 
-## The image of layer `name` (player.yaml `layers` or `fists`), drawn the first time.
+## The image of layer `name` (player.yaml `layers`, `fists` or `trail`), drawn the first time.
 static func layer(name: String) -> Image:
 	if not _drawn.has(name):
 		var s := SpriteSheet.new(Figure.data())
@@ -789,7 +792,7 @@ static func legs(dir: String, kind: String, rows: Array) -> Array:
 ## The letters of every layer in one frame: {layer: {pixel in the box: letter}}.
 static func frame_letters(dir: String, active: String, col: int, real := "") -> Dictionary:
 	var p := pose(dir, active, col)
-	var out := {"body": {}, "shirt": {}, "trousers": {}, "boots": {}, "hair": {}, "fists": {}, "loincloth": {}}
+	var out := {"body": {}, "shirt": {}, "trousers": {}, "boots": {}, "hair": {}, "fists": {}, "loincloth": {}, "trail": {}}
 	var up := Vector2i(p.lean, p.bob)
 	var parts := []
 	var c := column(col)
@@ -821,6 +824,10 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 			_:
 				rows = WalkArt.rows(whole, dir, build, figure)
 		_stamp(parts, rows, whole.get("top", 10), Vector2i.ZERO)
+		if whole.has("trail"):
+			# A blade's trail (SlashArt), its rows in the frame's pixels from `at`.
+			var t: Dictionary = whole.trail
+			_stamp(parts, t.rows, t.at[1] - ORIGIN.y, Vector2i(t.at[0] - ORIGIN.x, 0))
 	var head: Array = HEAD[dir]
 	if p.eyes == "shut":
 		# Shut, an eye is a dark line where the iris and the white were.

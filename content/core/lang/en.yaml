@@ -715,6 +715,8 @@
 "[field.items.anim.about]": "How it is used in a hand"
 "[field.items.hands]": "Hands"
 "[field.items.hands.about]": "Hands it takes, 1 or 2"
+"[field.items.trail]": "Trail"
+"[field.items.trail.about]": "Leaves a trail over the figure when swung"
 "[field.items.light]": "Light"
 "[field.items.light.about]": "How far its light reaches"
 "[field.items.scares]": "Scares"

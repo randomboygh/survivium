@@ -303,6 +303,22 @@ func _test_sprite_sheet() -> void:
 	var swung := Figure.sheet(look, {"right": stick, "active": "right"}).texture.get_image()
 	_check(swung.get_region(Rect2i(chop[0] * fw, 2 * fh, fw, fh)).get_data() != swung.get_region(Rect2i(chop[2] * fw, 2 * fh, fw, fh)).get_data(),
 		"an icon swings with the hand in its work")
+	# A blade leaves a trail in its work's frames, over the figure and its outline.
+	var sword := {"sprite": "res://content/tools/sword/sprites/held/sword.png", "anim": "slash", "trail": true}
+	var trailed := Figure.sheet(look, {"right": sword, "active": "right"}).texture.get_image()
+	var untrailed := Figure.sheet(look, {"right": {"sprite": sword.sprite, "anim": "slash"}, "active": "right"}).texture.get_image()
+	var trail := Figure.layer(Figure.data().trail)
+	var streaked := 0
+	var hidden := 0
+	for c: int in works.slash.columns:
+		for y in 8 * fh:
+			for x in range(c * fw, c * fw + fw):
+				if trail.get_pixel(x, y).a > 0.5:
+					streaked += 1
+					hidden += 1 if trailed.get_pixel(x, y) != trail.get_pixel(x, y) else 0
+	_check(streaked > 0 and hidden == 0, "a blade's trail shows whole over the figure: %d of %d pixels hidden" % [hidden, streaked])
+	_check(trailed.get_region(Rect2i(0, 0, fw, fh)).get_data() == untrailed.get_region(Rect2i(0, 0, fw, fh)).get_data()
+		and trailed.get_data() != untrailed.get_data(), "a trail shows only in the work, only of a thing that leaves one")
 	# Nothing spills over a frame's edge: what is on it is outline next to the figure.
 	var spilled := 0
 	for row in 8:

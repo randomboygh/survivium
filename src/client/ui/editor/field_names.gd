@@ -99,6 +99,7 @@ const NAMES := {
 	"items.sprite": ["[field.items.sprite]", "[field.items.sprite.about]"],
 	"items.anim": ["[field.items.anim]", "[field.items.anim.about]"],
 	"items.hands": ["[field.items.hands]", "[field.items.hands.about]"],
+	"items.trail": ["[field.items.trail]", "[field.items.trail.about]"],
 	"items.light": ["[field.items.light]", "[field.items.light.about]"],
 	"items.scares": ["[field.items.scares]", "[field.items.scares.about]"],
 	"items.vessel": ["[field.items.vessel]", "[field.items.vessel.about]"],

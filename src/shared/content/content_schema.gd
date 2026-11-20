@@ -204,6 +204,9 @@ const SCHEMAS := {
 		"sprite": {"type": "string", "default": ""},
 		"anim": {"type": "string", "default": "reach"},
 		"hands": {"type": "int", "min": 1, "max": 2, "default": 1},
+		# A blade: swung in its work, it leaves a trail over the figure (Figure, player.yaml
+		# `trail`).
+		"trail": {"type": "bool", "default": false},
 		"light": {"type": "float", "min": 0.0, "default": 0.0},
 		# Burning (a fire, a light set down or in a hand), it keeps the animals that fear fire
 		# this many world units off (Wildlife._find_fires).

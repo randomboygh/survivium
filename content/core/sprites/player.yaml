@@ -28,6 +28,9 @@ layers: [body, loincloth, shirt, trousers, boots, hair]
 naked: [body, loincloth, hair]
 fists: fists
 hands: hands
+# trail — player/<name>.png: the trail a blade leaves as its work swings it (an item's `trail`), drawn
+# over the figure and its outline in that work's frames.
+trail: trail
 outline: true
 # soles — by direction, the bottom rows of a walk's frame where nothing is outlined from above: a
 # foot lifted off the ground has no outline under its sole either. Only the walk's frames keep
