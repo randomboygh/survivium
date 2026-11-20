@@ -498,8 +498,12 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 	if surf:
 		foam = 0
 	var steps := Vector2i(Slopes.PATCH_STEPS, Slopes.PATCH_STEPS)
-	var hs: PackedFloat32Array = OldSlopes.patch_grid(OldSlopes.patch(c, sh, i, dy, dz), 0.0, steps)[0] \
-		if old_slopes else Slopes.surface_grid(c, sh, i, dy, dz, steps)
+	var p := OldSlopes.patch(c, sh, i, dy, dz) if old_slopes else PackedFloat32Array()
+	if p.size() > WorldData.PATCH_DIAG and top >= 1.0 and not surf:
+		_flush_diag(buf, base, int(p[WorldData.PATCH_DIAG]), foam, murks)
+		return
+	var hs: PackedFloat32Array = OldSlopes.patch_grid(p, 0.0, steps)[0] if old_slopes \
+		else Slopes.surface_grid(c, sh, i, dy, dz, steps)
 	var start: int = buf.verts.size()
 	var nu := steps.x + 1
 	var data := Vector2(float(foam), 1.0)
@@ -523,6 +527,27 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 			buf.indices.append(j)
 			buf.indices.append(j + nu + 1)
 			buf.indices.append(j + nu)
+
+
+## The water flush with the land (water_top 1, a lake or river at the sea's level,
+## without the sea's surf) over a shore's corner on the diagonal (`diag`, see
+## WorldData.PATCH_DIAG): the ground never rises over that water, so the whole cell's
+## surface showed, its outline in stairs along a diagonal shore. Cut on the diagonal
+## through the middles of its sides instead, as a filled corner (an outer corner: the
+## water away from its high corner) or a cut one (an inner corner: the water only in its
+## low corner), with the foam along the diagonal (see water.gdshader).
+static func _flush_diag(buf, base: Vector3, diag: int, foam: int, murks: PackedFloat32Array) -> void:
+	var k := diag & 3
+	var corners := PackedColorArray()
+	for n in 4:
+		corners.append(water_color(0.5, 1.0, kind(true, murks[n])))
+	if diag < 4:
+		var data := Vector2(float(foam | 1 << (8 + k)), 1.0)
+		var mid: Color = corners[0].lerp(corners[1], 0.5).lerp(corners[3].lerp(corners[2], 0.5), 0.5)
+		for q in 4:
+			_piece(buf, base, 1.0, q, OLD_CUT if q == k else QUARTER, Vector3.UP, mid, data, 0, corners)
+	else:
+		_piece(buf, base, 1.0, k, CORNER, Vector3.UP, corners[k], Vector2(float(1 << (12 + k)), 1.0), 0, corners)
 
 
 ## Surf: the sea washes up over the land whose top is level with it (the sea's level,

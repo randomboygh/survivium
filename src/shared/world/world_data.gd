@@ -1034,6 +1034,13 @@ const PATCH_CJ := [0, 0, 1, 1]
 
 ## Height above the cell's level of patch `p` at (u, v) inside the cell, 0..1.
 static func patch_height(p: PackedFloat32Array, u: float, v: float) -> float:
+	if p.size() > PATCH_DIAG:
+		return _diag_height(p, u, v)
+	return _cubic_height(p, u, v)
+
+
+## The bicubic patch `p` at (u, v), whatever its PATCH_DIAG (see patch_height).
+static func _cubic_height(p: PackedFloat32Array, u: float, v: float) -> float:
 	# The corners k = 0..3 lie at (i, j) = PATCH_CI/CJ[k]: (0,0), (1,0), (1,1), (0,1),
 	# summed in that order (locals, not arrays: this runs for every body step on a slope).
 	var au0 := 1.0 - u * u * (3.0 - 2.0 * u)
@@ -1063,9 +1070,14 @@ static func patch_tangent(d1: float, d2: float) -> float:
 
 ## The patch from the heights of the corners `h` and those one step on along x and
 ## along z from each, `far` (two per corner; see far_corner), above the cell's level.
-static func make_patch(h: PackedInt32Array, far: PackedInt32Array) -> PackedFloat32Array:
+## `shore`: the top lies at the shore of water on its level (see shore_top), where a
+## corner is cut on the diagonal (see diag_corner).
+static func make_patch(h: PackedInt32Array, far: PackedInt32Array, shore := false) -> PackedFloat32Array:
 	var p := PackedFloat32Array()
-	p.resize(12)
+	var diag := diag_corner(h) if shore else -1
+	p.resize(12 if diag < 0 else PATCH_DIAG + 1)
+	if diag >= 0:
+		p[PATCH_DIAG] = diag
 	for k in 4:
 		p[k] = h[k]
 		var kx := k ^ 1
@@ -1075,6 +1087,73 @@ static func make_patch(h: PackedInt32Array, far: PackedInt32Array) -> PackedFloa
 		p[8 + k] = patch_tangent(h[k] - far[2 * k + 1], h[kz] - h[k]) if PATCH_CJ[k] == 0 \
 			else patch_tangent(h[k] - h[kz], far[2 * k + 1] - h[k])
 	return p
+
+
+## A shore's corner on the diagonal: the bicubic patch of an outer corner (one corner
+## high) or an inner one (one corner low) rises on a square, so where the water meets
+## a shore running on the diagonal (outer and inner corners by turns) its line went in
+## stairs, a cell each (the user, 2026-11-21). On a shore such a top rises along the
+## diagonal across the odd corner instead: at distance s = a + b from it (a, b its
+## distances along x and z), the height is the curves of its two sides through that
+## corner at s, blended by how near each side is; past s = 1 it is the level of the
+## other three. Its sides keep their curves, so it meets the tops beside as before. The
+## 13th number of the patch (PATCH_DIAG) holds the corner, + 4 for an inner one.
+const PATCH_DIAG := 12
+
+
+## The odd corner of a top with corner heights `h` (see corner_heights): k for an outer
+## corner (k alone high), 4 + k for an inner one (k alone low), -1 for any other top.
+static func diag_corner(h: PackedInt32Array) -> int:
+	var high := 0
+	var low := 0
+	for k in 4:
+		if h[k] == 1:
+			high |= 1 << k
+		elif h[k] == 0:
+			low |= 1 << k
+		else:
+			return -1
+	if high != 0 and high & (high - 1) == 0:
+		return ODD_CORNER[high]
+	if low != 0 and low & (low - 1) == 0:
+		return 4 + ODD_CORNER[low]
+	return -1
+
+
+## The height of a shore's corner on the diagonal (see PATCH_DIAG) at (u, v).
+static func _diag_height(p: PackedFloat32Array, u: float, v: float) -> float:
+	var code := int(p[PATCH_DIAG])
+	var k := code & 3
+	var ci: int = PATCH_CI[k]
+	var cj: int = PATCH_CJ[k]
+	# Distances from the odd corner along x and along z.
+	var a := absf(u - ci)
+	var b := absf(v - cj)
+	var s := a + b
+	if s >= 1.0:
+		return p[(k + 2) & 3]
+	if s <= 0.0:
+		return p[k]
+	# The side along x through the corner (v = cj) and the one along z (u = ci), at s.
+	var along_x := _cubic_height(p, absf(ci - s), cj)
+	var along_z := _cubic_height(p, ci, absf(cj - s))
+	var t := a / s
+	return along_x * t + along_z * (1.0 - t)
+
+
+## True when the top of ground cell (x, y, z) lies at the shore of water on its level:
+## water with open air above beside it (also across a corner), nothing else open around
+## it on its level (see WaterMesher.shore, OldSlopeMesher.shore_top).
+func shore_top(x: int, y: int, z: int) -> bool:
+	var wet := false
+	for o: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1),
+			Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
+		var m := get_cell(x + o.x, y, z + o.y)
+		if m == Mat.WATER:
+			wet = wet or get_cell(x + o.x, y + 1, z + o.y) == Mat.AIR
+		elif m == Mat.AIR or m == Mat.LEAVES:
+			return false
+	return wet
 
 
 ## The surface of the sloping top of cell (x, y, z) above its level (see make_patch). A
@@ -1102,7 +1181,7 @@ func surface_patch(x: int, y: int, z: int) -> PackedFloat32Array:
 				_patch_far(x + o.x, y, z + o.y, d, 3 - k, h[k]), h[k])
 			far[2 * k + 1] = far_corner(_patch_far(x, y, z + o.y, 3 - k, k, h[k]),
 				_patch_far(x + o.x, y, z + o.y, d, k ^ 1, h[k]), h[k])
-		p = make_patch(h, far)
+		p = make_patch(h, far, shore_top(x, y, z))
 	if _patches.size() > 4096:
 		_patches.clear()
 	_patches[key] = p
