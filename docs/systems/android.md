@@ -16,7 +16,10 @@ the build of `main` into its GitHub release `v<stage>.<PR>` (and the rolling `an
 - `project.godot`: `display/window/handheld/orientation=6` (the screen turns with the phone, as in the browser),
   `application/config/quit_on_go_back=false`, `rendering/textures/vram_compression/import_etc2_astc=true` (the
   Android export requires it).
-- `src/client/main.gd` `_notification`: the back button (`NOTIFICATION_WM_GO_BACK_REQUEST`) is the Escape key.
+- `src/client/main.gd` `_notification`: the back button (`NOTIFICATION_WM_GO_BACK_REQUEST`) is the Escape key,
+  marked `back`: it closes any open window at once, but in the world with nothing open the pause menu waits for a
+  second back within 2 s (`Hud._back_waits`, a toast asks), since a thumb on the stick by the screen's edge starts
+  the back swipe by chance. Each back is logged (`back: …`), for «Данные для теста».
 - `src/client/view/camera_rig.gd` `_safe_rect`: the HUD keeps off the camera cutout
   (`DisplayServer.get_display_safe_area`) and above the keyboard (`DisplayServer.virtual_keyboard_get_height`,
   read ten times a second by `poll_safe_rect`): the app's window keeps its size under the keyboard, so the

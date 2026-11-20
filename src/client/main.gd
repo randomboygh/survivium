@@ -904,8 +904,8 @@ func _process(delta: float) -> void:
 
 ## The game is saved when the window closes or loses focus (a phone app sent to the
 ## background, a hidden browser tab). Android's back button is the Escape key: it closes
-## what is open or opens the menu (application/config/quit_on_go_back is off, so it never
-## quits the game by itself).
+## what is open or, given twice, opens the menu (Hud; application/config/quit_on_go_back
+## is off, so it never quits the game by itself).
 func _notification(what: int) -> void:
 	if save != null and what in [NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_APPLICATION_FOCUS_OUT,
 			NOTIFICATION_APPLICATION_PAUSED]:
@@ -915,11 +915,15 @@ func _notification(what: int) -> void:
 	elif what in [NOTIFICATION_APPLICATION_FOCUS_IN, NOTIFICATION_APPLICATION_RESUMED]:
 		LastLog.running(true)
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		# Marked: in the world with nothing open the menu waits for a second back (Hud),
+		# an edge swipe of a thumb on the stick is no ask for it (2026-11-20).
+		print("back: the system's back gesture or button")
 		for down in [true, false]:
 			var key := InputEventKey.new()
 			key.keycode = KEY_ESCAPE
 			key.physical_keycode = KEY_ESCAPE
 			key.pressed = down
+			key.set_meta("back", true)
 			Input.parse_input_event(key)
 
 
