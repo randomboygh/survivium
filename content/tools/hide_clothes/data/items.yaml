@@ -72,3 +72,33 @@
   wear_on: body
   look: apron
   warmth: 1
+- id: sandals
+  title: "[tools.items.sandals]"
+  description: "[tools.items.sandals.about]"
+  era: core:bone_leather
+  weight: 0.3
+  stack: 1
+  icon: sandals
+  wear_on: feet
+  look: sandals
+  warmth: 1
+- id: moccasins
+  title: "[tools.items.moccasins]"
+  description: "[tools.items.moccasins.about]"
+  era: core:bone_leather
+  weight: 0.4
+  stack: 1
+  icon: moccasins
+  wear_on: feet
+  look: moccasins
+  warmth: 3
+- id: high_boots
+  title: "[tools.items.high_boots]"
+  description: "[tools.items.high_boots.about]"
+  era: core:bone_leather
+  weight: 0.9
+  stack: 1
+  icon: high_boots
+  wear_on: feet
+  look: high_boots
+  warmth: 4

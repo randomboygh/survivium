@@ -11,8 +11,14 @@
 "[tools.items.hood.about]": ""
 "[tools.items.linen_shirt]": ""
 "[tools.items.linen_shirt.about]": ""
+"[tools.items.kilt]": ""
+"[tools.items.kilt.about]": ""
+"[tools.items.linen_trousers]": ""
+"[tools.items.linen_trousers.about]": ""
 
 # content/tools/cloth_clothes/data/recipes.yaml
 "[tools.recipes.bandana]": ""
 "[tools.recipes.hood]": ""
 "[tools.recipes.linen_shirt]": ""
+"[tools.recipes.kilt]": ""
+"[tools.recipes.linen_trousers]": ""

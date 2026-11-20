@@ -24,3 +24,19 @@
   tools: [needle]
   wear: 2
   time: 10
+- id: kilt
+  title: "[tools.recipes.kilt]"
+  makes: kilt
+  needs: {materials:cloth: 3, materials:cord: 1}
+  at: tools:workbench
+  tools: [needle]
+  wear: 1
+  time: 8
+- id: linen_trousers
+  title: "[tools.recipes.linen_trousers]"
+  makes: linen_trousers
+  needs: {materials:cloth: 3, materials:cord: 1}
+  at: tools:workbench
+  tools: [needle]
+  wear: 2
+  time: 10

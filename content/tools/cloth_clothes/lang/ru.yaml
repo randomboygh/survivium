@@ -11,8 +11,14 @@
 "[tools.items.hood.about]": "Капюшон из ткани, закрывает голову и шею от ветра."
 "[tools.items.linen_shirt]": "Льняная рубаха"
 "[tools.items.linen_shirt.about]": "Лёгкая рубаха из тканого полотна."
+"[tools.items.kilt]": "Килт"
+"[tools.items.kilt.about]": "Юбка из ткани в складку до колена, подпоясанная на талии."
+"[tools.items.linen_trousers]": "Льняные штаны"
+"[tools.items.linen_trousers.about]": "Лёгкие штаны из тканого полотна."
 
 # content/tools/cloth_clothes/data/recipes.yaml
 "[tools.recipes.bandana]": "Бандана"
 "[tools.recipes.hood]": "Капюшон"
 "[tools.recipes.linen_shirt]": "Льняная рубаха"
+"[tools.recipes.kilt]": "Килт"
+"[tools.recipes.linen_trousers]": "Льняные штаны"

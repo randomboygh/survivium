@@ -19,6 +19,12 @@
 "[tools.items.leather_vest.about]": ""
 "[tools.items.apron]": ""
 "[tools.items.apron.about]": ""
+"[tools.items.sandals]": ""
+"[tools.items.sandals.about]": ""
+"[tools.items.moccasins]": ""
+"[tools.items.moccasins.about]": ""
+"[tools.items.high_boots]": ""
+"[tools.items.high_boots.about]": ""
 
 # content/tools/hide_clothes/data/recipes.yaml
 "[tools.recipes.fur_hat]": "Bonnet de fourrure"
@@ -28,3 +34,6 @@
 "[tools.recipes.leather_hat]": ""
 "[tools.recipes.leather_vest]": ""
 "[tools.recipes.apron]": ""
+"[tools.recipes.sandals]": ""
+"[tools.recipes.moccasins]": ""
+"[tools.recipes.high_boots]": ""

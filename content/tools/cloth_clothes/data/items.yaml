@@ -31,3 +31,23 @@
   wear_on: body
   look: linen_shirt
   warmth: 4
+- id: kilt
+  title: "[tools.items.kilt]"
+  description: "[tools.items.kilt.about]"
+  era: core:bone_leather
+  weight: 0.5
+  stack: 1
+  icon: kilt
+  wear_on: legs
+  look: kilt
+  warmth: 3
+- id: linen_trousers
+  title: "[tools.items.linen_trousers]"
+  description: "[tools.items.linen_trousers.about]"
+  era: core:bone_leather
+  weight: 0.4
+  stack: 1
+  icon: linen_trousers
+  wear_on: legs
+  look: linen_trousers
+  warmth: 3
