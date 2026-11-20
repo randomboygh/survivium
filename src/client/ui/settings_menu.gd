@@ -382,6 +382,8 @@ func _fill() -> void:
 				_add_marker(r.marker)
 			elif r is Dictionary and r.has("place"):
 				_add_place(r.color, r.place, r.cell, r.tip)
+			elif r is Dictionary and r.has("coords"):
+				_add_coords()
 			elif r is Dictionary and r.has("section"):
 				_list.add_child(Kit.section(r.section, r.title, r.title))
 			elif r is Dictionary and r.has("note"):
@@ -595,6 +597,7 @@ func _cave_rows() -> Array:
 ## the player there.
 func _marks_rows() -> Array:
 	var marks := _cheats_note()
+	marks.append({"coords": true})
 	for p: Array in game.character.respawn_points():
 		var at: Vector3 = p[1] / game.character.CELL
 		marks.append({"place": p[0], "cell": Vector2i(floori(at.x), floori(at.z)),
@@ -1507,6 +1510,57 @@ func _add_action(text: String, action: Callable, confirm := false) -> Button:
 func _add_marker(i: int) -> void:
 	var m: Dictionary = game.markers.list[i]
 	_add_place(Markers.color_of(m), Markers.COLORS[m.color][0], m.cell, "[teleport_to_a_marker]")
+
+
+## The row of the typed place: "X [..] Y [..]" and a button that takes the player to that
+## column, at the height of its ground (Character.travel_to_column), as a marker's does.
+## Pasting "x -2627, y -1974" (as «Данные для теста» shows it) into either field fills both.
+func _add_coords() -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	row.custom_minimum_size = Vector2(ROW_WIDTH, ARROW)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_grid().add_child(row)
+	var fields: Array[LineEdit] = []
+	for axis: String in ["X", "Y"]:
+		var l := UiStyle.label(axis)
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(l)
+		var f := Kit.field("", 0.0, 24, ARROW)
+		f.virtual_keyboard_type = LineEdit.KEYBOARD_TYPE_NUMBER_DECIMAL
+		row.add_child(f)
+		fields.append(f)
+	var b := Kit.button("[go]", Callable(), 0, ARROW)
+	b.tooltip_text = "[teleport_to_coordinates]"
+	b.disabled = not game.settings.may_cheat()
+	b.modulate.a = 0.4 if b.disabled else 1.0
+	b.pressed.connect(func() -> void:
+		var cell: Variant = parse_coords(fields[0].text, fields[1].text)
+		if cell == null:
+			game.hud.toast("[enter_the_coordinates]")
+			return
+		game.character.travel_to_column(cell)
+		close()
+		if get_tree().paused:
+			game.hud.toggle_menu())
+	row.add_child(b)
+
+
+## The column typed as `x` and `y`: whole numbers, or the two numbers of a line like
+## "x -2627, y -1974" in `x`; null when there are not two numbers.
+static func parse_coords(x: String, y: String) -> Variant:
+	var found := []
+	var re := RegEx.create_from_string("-?\\d+")
+	for text: String in [x, y]:
+		for m in re.search_all(text):
+			found.append(int(m.get_string()))
+	var most := 1000000
+	if found.size() < 2:
+		return null
+	var cell := Vector2i(found[0], found[1])
+	if absi(cell.x) > most or absi(cell.y) > most:
+		return null
+	return cell
 
 
 ## A place as a row: a swatch of `color`, `name` and the column `cell`, and a button
