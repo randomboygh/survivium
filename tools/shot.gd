@@ -259,7 +259,7 @@ func _run() -> void:
 			var mossy := places.stone_moss_near(main.world, Vector3i((main.player.position / CELL).floor()))
 			if mossy != Vector3i.MIN:
 				main.player.position = (Vector3(mossy + Vector3i(0, 1, 3)) + Vector3(0.5, 0.0, 0.5)) * CELL
-				places.pick_moss(main.world, mossy)
+				await places.pick_moss(main.world, mossy)
 		if shot.get("pick_fiber", false):
 			places.pick_fiber(main.world, Vector3i((main.player.position / CELL).floor()) + Vector3i(0, 0, -3))
 		if shot.get("grove", false):

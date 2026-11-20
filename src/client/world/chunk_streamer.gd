@@ -1335,19 +1335,31 @@ func on_cell_changed(cell: Vector3i) -> void:
 ## Draws the grass of cell `cell` again (cut short, a plant picked or crushed): only the
 ## column of the cell, its chunk first in the queue as an edit (see on_cell_changed), so
 ## the plant is gone within a frame or two, not after the chunk is rebuilt whole.
+## A stone top whose moss was picked also redraws the four tops beside it, which may be
+## in the chunks beside: their ragged edge of moss towards it goes (ChunkMesher
+## _picked_around). Kept, it drew a grid of moss lines between the tops picked one by one.
 func regrow_cell(cell: Vector3i) -> void:
 	var key := WorldData.chunk_key(cell.x, cell.z)
 	if not chunk_nodes.has(key):
 		return
-	if job_mesh != null and job_key == key and not job_edit:
-		if not job_keep:
-			has_target = true
-		_drop_job()
-	_unstash(key)
-	var part := Rect2i(cell.x, cell.z, 1, 1)
-	dirty_rects[key] = dirty_rects[key].merge(part) if dirty_rects.has(key) else part
-	edited[key] = true
-	var queue := {key: true}
+	var parts := {key: Rect2i(cell.x, cell.z, 1, 1)}
+	if world.get_cell(cell.x, cell.y, cell.z) == Mat.STONE:
+		for o: Vector2i in [Vector2i(0, -1), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(1, 0)]:
+			var k := WorldData.chunk_key(cell.x + o.x, cell.z + o.y)
+			if chunk_nodes.has(k):
+				var one := Rect2i(cell.x + o.x, cell.z + o.y, 1, 1)
+				parts[k] = parts[k].merge(one) if parts.has(k) else one
+	var queue := {}
+	for k: Vector2i in parts:
+		if job_mesh != null and job_key == k and not job_edit:
+			if not job_keep:
+				has_target = true
+			_drop_job()
+		_unstash(k)
+		var part: Rect2i = parts[k]
+		dirty_rects[k] = dirty_rects[k].merge(part) if dirty_rects.has(k) else part
+		edited[k] = true
+		queue[k] = true
 	for k in dirty_chunks:
 		queue[k] = true
 	dirty_chunks = queue

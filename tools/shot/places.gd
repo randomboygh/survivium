@@ -192,7 +192,7 @@ func find_patch(w, p: Vector3, id: String) -> Vector3:
 	return best
 
 
-## The nearest stone top with moss all round it (see Grass.stone_moss) and open
+## The nearest stone top with moss nearly all round it (see Grass.stone_moss) and open
 ## ground to the south of it to stand on, or Vector3i.MIN.
 func stone_moss_near(w, at: Vector3i) -> Vector3i:
 	for r in range(0, 120):
@@ -203,11 +203,13 @@ func stone_moss_near(w, at: Vector3i) -> Vector3i:
 				var x := at.x + dx
 				var z := at.z + dz
 				var y: int = w.surface_y(x, z) - 1
-				var ok: bool = w.surface_y(x, z + 3) - 1 == y
-				for oz in range(-3, 2):
-					for ox in range(-2, 4):
-						ok = ok and Grass.stone_moss(w, x + ox, y, z + oz)
-				if ok:
+				var ok: bool = w.surface_y(x, z + 3) - 1 == y and Grass.stone_moss(w, x, y, z)
+				var mossy := 0
+				for oz in range(-4, 2):
+					for ox in range(-3, 4):
+						if Grass.stone_moss(w, x + ox, y, z + oz):
+							mossy += 1
+				if ok and mossy >= 30:
 					return Vector3i(x, y, z)
 	return Vector3i.MIN
 
@@ -223,15 +225,23 @@ func copper_patch(w, at: Vector3i) -> void:
 		main.actions.cell_changed.emit(c)
 
 
-## Picks the moss off the stone tops in an L of cells from `at` (see Grass.stone_moss),
-## as hands would.
+## Picks the moss off the stone tops round `at` (see Grass.stone_moss) one top at a
+## time, the ground drawn again between, as hands would: a round patch of them, as a
+## player clearing a mossy rock leaves it, with a top left here and there inside.
 func pick_moss(w, at: Vector3i) -> void:
-	var cells: Array[Vector3i] = []
-	for o: Vector2i in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(0, -1), Vector2i(0, -2), Vector2i(-1, 0)]:
-		var c := at + Vector3i(o.x, 0, o.y)
-		if Grass.stone_moss(w, c.x, c.y, c.z):
-			cells.append(c)
-	main.actions.mow(main.host.player, cells)
+	for dz in range(-4, 2):
+		for dx in range(-3, 4):
+			if dx * dx + (dz + 1) * (dz + 1) > 11 or Vector2i(dx, dz) in [Vector2i(1, -2), Vector2i(-1, 0)]:
+				continue
+			var c := at + Vector3i(dx, 0, dz)
+			if Grass.stone_moss(w, c.x, c.y, c.z):
+				var one: Array[Vector3i] = [c]
+				main.actions.mow(main.host.player, one)
+				await main.get_tree().create_timer(0.4).timeout
+	# The moss picked is cleared off the ground, so the stone shows.
+	for key: Vector2i in w.drops.keys():
+		w.drops.erase(key)
+		main.actions.drops_changed.emit(key)
 
 
 ## Pulls the grass up with bare hands for fibre in an L of cells round `at` (its
