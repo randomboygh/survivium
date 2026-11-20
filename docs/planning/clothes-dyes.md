@@ -1,0 +1,50 @@
+# Clothes, jewellery and dyes (character editor PR 5): handoff
+
+The user's decisions are in the library `plan/mvp.md`, stage 3, «Решения по персонажу» (the dyes plan with the
+user's picks 1А 2А 3А 4А 5А, 2026-11-21). Screenshots: library `survivium-builds/character/clothes/`.
+
+## Done
+
+- #821: hats (straw/brim, wreath, bandana, hood, leather dome hat) and body clothes (fiber tunic, linen shirt,
+  leather vest, poncho, apron). Hats are drawn by way in `tools/art/player_wear_art.gd`; body shapes are cut out
+  of the frame's shirt/trousers in `PlayerArt._garments`.
+- #831: kilt, linen trousers, sandals, moccasins, high boots (`PlayerArt._legwear`).
+- Jewellery commit (the PR after #831): `Inventory.WEAR_SLOTS` + neck, wrists, ornament (looks only, no warmth);
+  `Figure.UNDER` neck, `OVER` ornament, `LAST` wrists drawn over the fists (`Figure.AFTER_FISTS` prefix in the
+  look); `PlayerArt._neckwear` (beads, fangs, amulet), `_wristwear` (bracelet a pixel up the arm, ring on the
+  hand); `tools/jewellery` bundle; seashell (sand find), tooth (big carcass), feather (new `bird_carcass` of
+  crow, duck, owl).
+
+Every shape has tones 1-3 (the cloth: what a dye will recolour) and 4-5 (the trim: keeps the material's colour);
+`PlayerArt.painted` maps them; `make_sprites.gd` `WORN` gives five colours per look.
+
+## Left: dyes (PR 3 core, PR 4 sources and vat)
+
+- **Data**: a content kind of dyes (id, title, three shades) or items with `dye: <colour>`; `dyeable: true` on
+  clothes/jewellery of cloth, linen, wool, fiber, straw, leather, beads, bracelets (not fur, bone, metal).
+  12 colours, no mixing: white chalk, grey ash, black charcoal, yellow evening primrose, green nettle, pink
+  cranberry/raspberry, violet blueberry, brown acorns, ochre, red madder, blue woad, purple murex snail.
+- **Making a dye**: 3 raw + water in a clay pot on the campfire → 2 portions (like `boiled_water`, `keeps: pot`).
+- **Storage**: the 6th field of a bag cell `[id, n, wear, things, quality, dye]`, only when dyed; stacks of other
+  dyes do not merge; chests, drops (`drop_data`), death heaps keep it.
+- **Network**: own bag goes as is; others get a new `PEOPLE` field slot → dye. Server checks dye in bag, item
+  dyeable, colour known; a test in `security_test.gd`.
+- **Sprite**: the looks shader already uses 11 of 12 swaps (`shaders/looks.gdshaderinc`). Plan: `make_sprites`
+  draws a dyeable look's tones 1-3 in key colours encoding slot + shade; the shader maps a key in O(1) to
+  `dye_to[slot*3+shade]` (7 slots × 3), filled by `Figure.paint` with the item's own colours when undyed. No new
+  textures (web limit 13). `view_test` checks the key colours appear nowhere else. A mod's hand-drawn worn
+  picture needs the keys too (document in docs/systems/character.md).
+- **Icons**: recolour 12×12 on the CPU (exact match of the item's three colours), cached per (icon, dye).
+- **UX**: in the craft window a recipe of a dyeable thing gets a «Краситель» row (none or a dye in the bag), the
+  request carries it. A dye vat (new station: planks + cord, filled with water) has «Перекрасить» (a thing from the
+  bag + a dye) and «Отмыть» with ash (back to the material's colour).
+- **New things for PR 4**: madder (meadow/forest steppe, root dug with a shovel), woad (floodplain/meadow, leaves),
+  chalk (find in stone on plateau/cliffs/coast), ochre (find in clay, red rocks, savanna, desert), ash (from a
+  burnt-out campfire/fireplace), murex snail (rare on tropical beach/shallows, 1 portion each).
+
+## How to check
+
+`tools/make_sprites.gd -- --all` (~1.5 min), `--import`, `tools/make_icons.gd -- <names>`; a figure sheet dump
+like `Figure.new(Figure.dressed(gear, {}), {})` with `keep_image` and `step()` until done; shot `bag-person` with
+`--phone` for the inventory tab. Content changes: content_report, balance_report, `content_test` counts the tools
+bundles and lists the later additive ones.
