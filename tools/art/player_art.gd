@@ -20,8 +20,8 @@ extends RefCounted
 ## the upper left. The feet stand on the frame's last row with no outline under them. The
 ## walk's body under the head is copied pixel by pixel from the reference (WalkArt): the
 ## arms swinging, the body bobbing; the jump's, the swim's, the chop's, the dig's, the
-## slash's, the bow's shot, the eat's and the reach's are drawn whole the same way (JumpArt,
-## SwimArt, ChopArt, DigArt, SlashArt, AimArt, EatArt, ReachArt).
+## slash's, the bow's shot, the eat's, the reach's and the gestures' are drawn whole the same
+## way (JumpArt, SwimArt, ChopArt, DigArt, SlashArt, AimArt, EatArt, ReachArt, GestureArt).
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -40,6 +40,7 @@ const SlashArt := preload("res://tools/art/player_slash_art.gd")
 const AimArt := preload("res://tools/art/player_aim_art.gd")
 const EatArt := preload("res://tools/art/player_eat_art.gd")
 const ReachArt := preload("res://tools/art/player_reach_art.gd")
+const GestureArt := preload("res://tools/art/player_gesture_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -569,9 +570,12 @@ static func column(col: int) -> Array:
 ## swim's (SwimArt), the chop's (ChopArt, with the way the axe points: `a`), the dig's
 ## (DigArt, the shovel held up its shaft: `slide`), the slash's (SlashArt), the aim's
 ## (AimArt, the bow drawn for the frame: `bow`), the eat's (EatArt, the food as it is
-## carried: `a` -1, the eyes shut on the bite: `eyes`) or the reach's (ReachArt); {} for
-## any other, made of the body standing and a pose.
+## carried: `a` -1, the eyes shut on the bite: `eyes`), the reach's (ReachArt) or a gesture's
+## (GestureArt, its rows from column `x0`); {} for any other, made of the body standing and a
+## pose.
 static func whole_frame(dir: String, c: Array) -> Dictionary:
+	if GestureArt.FRAMES.has(c[0]):
+		return GestureArt.frame(c[0], dir, c[1])
 	match c[0]:
 		"walk":
 			return WalkArt.frame(dir, c[1])
@@ -614,8 +618,9 @@ static func eighth(a: int) -> int:
 
 
 ## The pose of column `col` drawn in direction `dir` (a drawn one: s, se, e, ne, n) with
-## hand `active` in use: {"bob", "lean", "legs", "eyes", "right": hand, "left": hand}, a
-## hand being {"at": where it is in the box, "shoulder", "front": in front of the body,
+## hand `active` in use: {"bob", "lean", "legs", "eyes" ("open", or "shut" in the blink, the
+## sleep and where a frame drawn whole has them so), "right": hand, "left": hand}, a hand
+## being {"at": where it is in the box, "shoulder", "front": in front of the body,
 ## "holds": false for the other hand of a two-handed work, "worked", "angle": the way
 ## what it holds points (-1: as carried), "ccw", and for a frame drawn whole "slide": how
 ## far up its length it is held, ToolArt.turned, and "bow": a bow as the frame draws it}.
@@ -632,7 +637,7 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 	var drop: int = BODY[dir].drop
 	if not whole.is_empty():
 		move = {"hands": whole.hands, "bob": whole.bob - drop}
-	var p := {"bob": move.get("bob", 0) + drop, "lean": move.get("lean", 0), "legs": move.get("legs", "stand"), "eyes": "open"}
+	var p := {"bob": move.get("bob", 0) + drop, "lean": move.get("lean", 0), "legs": move.get("legs", "stand"), "eyes": whole.get("eyes", "open")}
 	# The blink, and the sleep (Figure._lay_down lays its frame down).
 	if col == int(Figure.data().get("blink", -1)) or c[0] == "sleep":
 		p.eyes = "shut"
@@ -808,8 +813,11 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 			"reach":
 				rows = ReachArt.rows(whole, dir, build, figure)
 			_:
-				rows = WalkArt.rows(whole, dir, build, figure)
-		_stamp(parts, rows, whole.get("top", 10), Vector2i.ZERO)
+				if GestureArt.FRAMES.has(c[0]):
+					rows = GestureArt.rows(whole, dir, build, figure)
+				else:
+					rows = WalkArt.rows(whole, dir, build, figure)
+		_stamp(parts, rows, whole.get("top", 10), Vector2i(whole.get("x0", 0), 0))
 		if whole.has("trail"):
 			# A blade's trail (SlashArt), its rows in the frame's pixels from `at`.
 			var t: Dictionary = whole.trail
@@ -818,7 +826,9 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 	if p.eyes == "shut":
 		# Shut, an eye is a dark line where the iris and the white were.
 		head = head.map(func(r: String) -> String: return r.replace("E", "S").replace("w", "S").replace("I", "E").replace("W", "E"))
+	var head_from := parts.size()
 	_stamp(parts, head, 2, up)
+	var head_to := parts.size()
 	_stamp(parts, LooksArt.HAIRS[HAIR_STYLE][dir], 1, up)
 	var solid := {}
 	for e: Array in parts:
@@ -838,6 +848,11 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 			out["fists" if p[hand].front else "body"][e[0]] = h[1]
 		else:
 			_put(out, e[0], e[1])
+	# The head is in front of the body: what the body wears does not show over it (the chin
+	# of a nod over the collar).
+	for i in range(head_from, head_to):
+		for worn: String in ["shirt", "trousers", "boots"]:
+			out[worn].erase(parts[i][0])
 	for hand in ["left", "right"]:
 		if p[hand].front and whole.is_empty():
 			_arm(out, p[hand], dir, hand, solid, true)
