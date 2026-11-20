@@ -232,8 +232,10 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   letters are in the library `survivium-builds/character/chibi/`. Seated (`sit`: afloat and the gesture,
   and the rowing on the same legs) the body is two rows lower, only the feet under it; from the side the
   legs go forward (`SIDE_LEGS` `sit`), turned a little a knee shows past the waistband (`SIT_KNEE`; the
-  user's notes of 2026-11-20). The walk (six frames, 10 a second,
-  the user's pick of 2026-11-19) is the body of a reference copied pixel by pixel under our head
+  user's notes of 2026-11-20). The walk (six frames, 10 a second at
+  `Body.SPEED`, the user's pick of 2026-11-19; it and the swim play as fast as the body really goes: the
+  ground covered each frame, the player's and the others', eased over `GAIT_EASE` and kept between
+  `GAIT_LEAST` and `GAIT_MOST`, `player.gd` `gait`) is the body of a reference copied pixel by pixel under our head
   (`tools/art/player_walk_art.gd`, from `survivium-builds/character/anim/references/`): legs of 2 px, the
   arms swinging against the legs, the body a pixel down at each step and a row shorter with both feet off
   the ground as the legs pass; from the side and from behind it stands a row lower than the reference, its
