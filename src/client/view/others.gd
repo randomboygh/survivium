@@ -337,6 +337,9 @@ func _process(delta: float) -> void:
 				# Their axe on a tree: it shudders and drops leaves as the blade meets it.
 				if str(e[9]) == "chop" and e[12] is Vector3 and game.effects != null and game.effects.trees != null:
 					game.effects.trees.hit(e[12], float(e[10]) * TreeHits.STRIKE, at)
+				# Their blow at an animal: it flinches as the weapon meets it.
+				if e[12] is Vector3 and game.creatures != null:
+					game.creatures.struck_at(e[12], float(e[10]) * TreeHits.STRIKE, at)
 		# The figure walks the way it went, else faces the step told; swims, jumps or
 		# stands as the server says.
 		f.body.swimming = bool(e[7])

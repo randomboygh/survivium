@@ -29,8 +29,9 @@ func swing_air(who, at: Vector3) -> Dictionary:
 ## `who` whom they may hit (Fights), else at the animal in front (Wildlife.in_front; only one right by the body
 ## unless `far`), with the hand's power: the player is wounded (Fights.strike); the animal
 ## flees, or dies and leaves its carcass (its species' `carcass`) on the ground where it
-## fell. {} with no one there. `dir` turns the blow another way than the body faces (a
-## tap on an animal, see WorldActions.dig_at).
+## fell. {} with no one there; a blow at an animal names it (`animal`, its id). `dir`
+## turns the blow another way than the body faces (a tap on an animal, see
+## WorldActions.dig_at).
 func strike(who, far := true, dir := Vector2.ZERO) -> Dictionary:
 	var way: Vector2 = Vector2(who.facing_step()) if dir == Vector2.ZERO else dir
 	var at: Vector3 = who.position
@@ -60,17 +61,22 @@ func strike(who, far := true, dir := Vector2.ZERO) -> Dictionary:
 	# The weapon decides the blow; the skill of hunting adds its `might` to it (SkillSet.blow),
 	# paces the swing and spares the stamina. A blow at a player (strike above) is the
 	# weapon's alone: Fights.strike.
-	_wound(who, a, _blow(who, "hunt", t.power))
+	var sk = who.get("skills")
+	var lands: float = t.swing * (sk.pace("hunt") if sk != null else 1.0) * BLOW_AT
+	_wound(who, a, _blow(who, "hunt", t.power), lands)
 	if t.tool != "hand":
 		who.use_tool()
 	var done := _work(skilled(who, "hunt", t.swing), "", where + Vector3(0.0, 0.3, 0.0))
 	done.hit = true
+	# The animal struck, so the client draws it flinching (Creatures.flinch).
+	done.animal = a.id
 	return done
 
 
-## Animal `a` takes a blow of `power` from `who`; if it dies, its carcass (its species'
-## `carcass`) is left on the ground where it fell.
-func _wound(who, a, power: int) -> void:
+## Animal `a` takes a blow of `power` from `who`, meeting it in `lands` seconds (see
+## Wildlife.hurt); if it dies, its carcass (its species' `carcass`) is left on the ground
+## where it fell.
+func _wound(who, a, power: int, lands := 0.0) -> void:
 	var where: Vector3 = a.pos
 	if not _may(who, _cell_at(where), "hit_animals"):
 		return
@@ -78,7 +84,7 @@ func _wound(who, a, power: int) -> void:
 		# Another's tame animal (ActionsTame).
 		return
 	var spec: Dictionary = AiRules.SPECIES[a.kind]
-	if wildlife.hurt(a, power, who.position, who) and spec.carcass != "" and Items.has(spec.carcass):
+	if wildlife.hurt(a, power, who.position, who, lands) and spec.carcass != "" and Items.has(spec.carcass):
 		var cell := _cell_at(where)
 		world.heap_drop(spec.carcass, floor_under(cell), 1, randf() * TAU, _got(who, "hunt"))
 		drops_changed.emit(WorldData.chunk_key(cell.x, cell.z))
@@ -89,6 +95,9 @@ func _wound(who, a, power: int) -> void:
 ## How near another player counts as right by the body for a blow of a hand that does not
 ## hunt (world units past their body).
 const STRIKE_CLOSE := 0.5
+## The share of a swing at which the blow meets the animal (frame 3 of the slash, as the
+## client's Controls.STRIKE): it takes fright then (Wildlife.hurt).
+const BLOW_AT := 0.5
 
 
 ## The other player in front of `who` (Fights.in_front along `dir`) whom `who` may hit; a
@@ -172,7 +181,7 @@ func shoot(who, aim := Vector3.INF) -> Dictionary:
 		who.inventory.remove(ammo, 1)
 		who.use_tool()
 	if a != null:
-		_wound(who, a, _blow(who, "hunt", item.power))
+		_wound(who, a, _blow(who, "hunt", item.power), from.distance_to(end) / SHOT_SPEED)
 	var struck: bool = foe != null and fights.strike(who, foe, item.power, at)
 	var land := floor_under(_cell_at(end))
 	world.add_drop(ammo, land, randf() * TAU, data)
@@ -180,6 +189,8 @@ func shoot(who, aim := Vector3.INF) -> Dictionary:
 	var done := _work(item.swing, "", end)
 	done.hit = a != null or struck
 	done.shot = [ammo, from, land, from.distance_to(land) / SHOT_SPEED]
+	if a != null:
+		done.animal = a.id
 	return done
 
 

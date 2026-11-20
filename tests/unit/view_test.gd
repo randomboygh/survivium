@@ -19,6 +19,8 @@ const WindowGlow := preload("res://src/client/view/window_glow.gd")
 const SunRays := preload("res://src/client/view/sun_rays.gd")
 const Trample := preload("res://src/client/world/trample.gd")
 const Looks := preload("res://src/shared/content/looks.gd")
+const CreaturesView := preload("res://src/client/game/creatures.gd")
+const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 
 
 ## Ground all of one material (or all sea), for AirEffects.hot_ground.
@@ -82,6 +84,7 @@ func run() -> void:
 	_test_small_effects()
 	_test_hot_ground()
 	_test_rays_dissolve()
+	_test_animal_flinch()
 
 
 func _test_pixel_view() -> void:
@@ -1273,3 +1276,45 @@ func _test_rays_dissolve() -> void:
 	_check(r._front == now and r._fade == 1.0 and r.shafts[now].multimesh.visible_instance_count == 1,
 		"a screenshot's light is shown at once")
 	r.free()
+
+
+## An animal struck flinches as the blow lands, not before: its picture jerks up and away
+## from the one who struck, shakes back and stands where it was again; another player's
+## blow is found by its point, only on an animal there within the striker's reach.
+func _test_animal_flinch() -> void:
+	var c := CreaturesView.new()
+	c._build_looks()
+	var w := RemoteWildlife.new()
+	c.wildlife = w
+	var a := RemoteWildlife.Animal.new()
+	a.kind = "animals:deer"
+	a.pos = Vector3(10.0, 3.0, 10.0)
+	w.animals.append(a)
+	c._on_born(a)
+	var sprite := c.sprite_of(a)
+	var rest := PixelView.snap(a.pos)
+	var west := a.pos - Vector3(1.0, 0.0, 0.0)
+	c.flinch(a, 0.1, west)
+	c._process(0.05)
+	_check(sprite != null and sprite.position == rest, "a struck animal stands still till the blow lands")
+	c._process(0.051)
+	var off := (sprite.position - rest) * PixelView.PIXELS_PER_UNIT
+	var away := signf(PixelView.screen_dir(Vector2(1.0, 0.0)).x)
+	var along := Vector2(off.x, off.z).dot(PixelView.right) * away
+	_check(roundf(off.y) == CreaturesView.FLINCH_UP and roundf(along) == CreaturesView.FLINCH_PX,
+		"as the blow lands it jerks up and away from the blow (%s)" % off)
+	for i in 10:
+		c._process(0.05)
+	_check(sprite.position == rest and c._flinching.is_empty(), "the flinch is over: it stands where it was")
+	# Another player's blow, by its point.
+	var other := a.pos + Vector3(0.6, 0.0, 0.0)
+	c.struck_at(a.pos + Vector3(0.0, CreaturesView.BLOW_HEIGHT, 0.0), 0.0, other)
+	c.struck_at(a.pos + Vector3(2.0, CreaturesView.BLOW_HEIGHT, 0.0), 0.0, other)
+	c.struck_at(a.pos + Vector3(0.0, CreaturesView.BLOW_HEIGHT, 0.0), 0.0, a.pos + Vector3(6.0, 0.0, 0.0))
+	_check(c._blows.size() == 1, "another's blow lands on the animal at its point, within their reach (%d)" % c._blows.size())
+	c._process(0.01)
+	_check(c._flinching.size() == 1, "and it flinches")
+	c._on_gone(a)
+	c._process(0.05)
+	_check(c._flinching.is_empty(), "one gone flinches no more")
+	c.free()
