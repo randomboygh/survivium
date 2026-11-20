@@ -8,7 +8,6 @@ extends RefCounted
 
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Crt := preload("res://src/client/view/crt.gd")
-const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
@@ -109,10 +108,6 @@ const DEFAULTS := {
 	# it was off by default under the key `edge_haze`, which saved files still hold and
 	# load ignores, so every player gets it on once.
 	"edge_mist": true,
-	# Natural ground drawn with rounded and bevelled edges and bent slopes (ChunkMesher.rounded,
-	# EdgeMesher); off, sharp like the built blocks and quicker to build. Not part of the
-	# quality presets.
-	"rounded_ground": true,
 	# The retro palette of the world (Crt.PALETTES: none, NES, 1 bit, CGA) and the size of
 	# its pixels (Crt.PIXELS: 1×, 2×, 4×). Not part of the quality presets.
 	"palette": 0,
@@ -206,15 +201,16 @@ const DEFAULTS := {
 	# New worlds have the stage 2 landscape, wide biomes and big rivers (WorldGen
 	# landscape 1); worlds made before keep theirs (0). Not on «Новый мир».
 	"world_landscape": 1,
-	# New worlds have the old slopes (WorldGen slopes 1) unless the player picks the
-	# blocky relief's (0) on «Новый мир»; worlds made before keep theirs.
+	# The slopes setting no longer counts (every world has the curved slopes, see
+	# LandLayout.DEFAULT_SETTINGS); new worlds keep 1 so their folders are named as
+	# before (WorldStore.world_dir). Not on «Новый мир».
 	"world_slopes": 1,
 	# New worlds have flat shores level with the water (WorldGen shores 1); worlds made
 	# before keep theirs (0). Not on «Новый мир».
 	"world_shores": 1,
 	# Buildings outside anyone's land decay in a new world (Decay.on); kept by the world.
 	"world_decay": 1,
-	# Saved once the old slopes became the default for new worlds, so a pick of the
+	# Saved once the curved slopes became the default for new worlds, so a pick of the
 	# blocky ones saved before that is taken back once (see load).
 	"old_slopes_default": true,
 	## The bundles (or whole mods) a new world is made without, comma-separated ids
@@ -711,9 +707,6 @@ func apply() -> void:
 		sky.fog_on = values.fog
 	if game.chunks != null:
 		game.chunks.set_haze(values.edge_mist)
-		game.chunks.set_rounded(values.rounded_ground)
-	else:
-		ChunkMesher.rounded = values.rounded_ground
 	if game.view != null and game.view.grade_mat != null:
 		Crt.apply(game.view.grade_mat, values.crt, values.palette, values.retro_pixel, game.view.viewport.get_texture())
 	if game.effects != null:

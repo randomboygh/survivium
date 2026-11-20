@@ -1,6 +1,7 @@
 # The new relief mesher: blocks, corners, rounding — state and what is left
 
-Status: ACTIVE (2026-11-17). Design agreed in the thread «Переделать мешер на несколько видов блоков»;
+Status: DROPPED (2026-11-20): the blocky relief, its EdgeMesher, SlopeMesher and the setting «rounded terrain»
+were taken out; every world has the curved («old») slopes. History only. Earlier: ACTIVE (2026-11-17). Design agreed in the thread «Переделать мешер на несколько видов блоков»;
 implemented in the thread «Сделать новый мешер рельефа». Architecture picked by the user: shapes computed in
 shared `WorldData` (server and client agree, no save conversion), rounding and bevels client-only.
 
@@ -18,7 +19,7 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   so steep diagonal hills meet without walls.
 
 - PR 2 part 1 (edges by material, branch `claude/project-thread-2ppwze`): material fields `edge`
-  (sharp | round | bevel) and `edge_size` (the radii table), `src/client/world/edge_mesher.gd`: per level one
+  (sharp | round | bevel) and `edge_size` (the radii table), `edge_mesher.gd` (removed): per level one
   height function over the plan of pieces (whole cell / diagonal half): brows drop by the material's curve, feet
   heap up by the wall's curve, each cell draws its top on a grid (`GRID`, lines at 0, 1/8, 1/4, 3/4, 7/8, 1) and
   its walls to that height, so cells meet without seams; round edges get the curve's normals (smooth), bevels
@@ -100,7 +101,7 @@ shared `WorldData` (server and client agree, no save conversion), rounding and b
   (a corner may drop two levels), shape byte per cell (NW 1, NE 2, SE 4, SW 8 = lowered corners), `make_patch`
   / `surface_patch` (curved surface over corner heights), `ground_height` (every step of every body), `form_top`
   for build forms. Users: `body.gd`, `placed.gd`, `growth.gd`, `world_gen.gd`, `materials.gd`, `drifts.gd`.
-- Meshes: `src/client/world/slope_mesher.gd` (the curved patches), `chunk_mesher.gd` (40 KB, cubes and sides,
+- Meshes: `slope_mesher.gd` (removed) (the curved patches), `chunk_mesher.gd` (40 KB, cubes and sides,
   `_side_tiles`), `form_mesher.gd` (build forms), `water_mesher.gd` (diagonal water edges, #706), shader
   `world.gdshader` (slopes use `screen_plane` texels and the foot shade of #449).
 - Tests: `tests/unit/shapes_test.gd`, `body_test.gd` (`slopes`, `ground`), test world ground «Сочетания»

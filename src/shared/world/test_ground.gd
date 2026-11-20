@@ -262,10 +262,9 @@ var star_mid := 24
 var star_r := 21.0
 
 
-func _init(_seed_value := SEED, sy := 48, options := {}) -> void:
-	# The land is laid out by hand: of the world settings only the slopes count
-	# (WorldData.old_slopes).
-	super(SEED, sy, {"slopes": options.get("slopes", 0)})
+func _init(_seed_value := SEED, sy := 48, _options := {}) -> void:
+	# The land is laid out by hand: no world setting counts.
+	super(SEED, sy)
 	ground = sea + 2
 	star_mid = size_y / 2
 	star_r = float(size_y / 2 - 3)

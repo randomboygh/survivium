@@ -91,7 +91,8 @@ static var flags: PackedByteArray = []
 static var corner_shape: PackedByteArray = []
 ## How the edges of natural ground of each material are drawn (the `edge` field): EDGE_SHARP,
 ## EDGE_ROUND or EDGE_BEVEL, and how far in from the edge they reach, in blocks (`edge_size`;
-## 0 for sharp). Only the client's meshes go by them (EdgeMesher).
+## 0 for sharp). Nothing draws them since the rounded terrain was taken out with the
+## blocky slopes (2026-11-20); the mods' data keeps them.
 const EDGE_SHARP := 0
 const EDGE_ROUND := 1
 const EDGE_BEVEL := 2

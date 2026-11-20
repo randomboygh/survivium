@@ -43,7 +43,6 @@ var out_dir := "user://shots"
 var names: Array = []
 var phone := false
 var keys_only := false
-var old_slopes := false
 var magenta := false
 ## The spots and scenes of the shots (see tools/shot/places.gd).
 var places := Places.new()
@@ -55,8 +54,7 @@ func _initialize() -> void:
 	args.erase("--phone")
 	keys_only = "--keys" in args
 	args.erase("--keys")
-	# `--old-slopes`: the test world with the world setting slopes 1 (WorldData.old_slopes).
-	old_slopes = "--old-slopes" in args
+	# `--old-slopes` is taken and ignored: every world has those slopes now.
 	args.erase("--old-slopes")
 	# `--magenta`: the background drawn magenta in every shot, to find holes in the ground.
 	magenta = "--magenta" in args
@@ -95,7 +93,7 @@ func _test_world() -> void:
 	store.erase_dir(TEST_SAVES)
 	store.root = TEST_SAVES
 	DirAccess.make_dir_recursive_absolute(TEST_SAVES)
-	store.write_current(-1, {"slopes": 1} if old_slopes else {})
+	store.write_current(-1, {})
 
 
 ## Starts the run in world `w` ([seed, settings]), in a folder of saves of its own made anew.
@@ -578,7 +576,7 @@ func _run() -> void:
 		main.settings.set_value("ui_size", shot.get("ui_size", 2))
 		main.settings.set_value("control_size", shot.get("control_size", 2))
 		for k in ["minimap_size", "level_buttons", "camera_buttons", "layer_front_from",
-				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "cut_depth", "solo_social", "crt", "palette", "retro_pixel", "second_hand", "pixel_scale", "rounded_ground"]:
+				"layer_front_stretch", "layer_above_from", "layer_above_stretch", "layer_density", "layer_line", "cut_depth", "solo_social", "crt", "palette", "retro_pixel", "second_hand", "pixel_scale"]:
 			main.settings.set_value(k, shot.get("settings", {}).get(k, main.settings.DEFAULTS[k]))
 		await process_frame
 		await process_frame

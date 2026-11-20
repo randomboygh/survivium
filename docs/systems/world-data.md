@@ -3,7 +3,7 @@
 Status: ACTIVE. A Russian copy: [world-data_RU.md](world-data_RU.md).
 
 **Purpose.** To keep the world's cells by chunks and everything that stands and lies on them; to compute the
-shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answer what meets a body.
+shapes of natural ground (curved slopes, corners cut along a curve) and to answer what meets a body.
 
 **Files**
 - `src/shared/world/world_cells.gd` — the cells in a `Chunk` by key (`chunk_at`, `chunk_key`; `>>` and `&`
@@ -13,42 +13,27 @@ shapes of natural ground (slopes, half-blocks cut along a diagonal) and to answe
   — the kind of tree; `field_at` / `set_field`; `set_cell` removes the entry, they are saved in `pack_chunk`
   «fields»), trails; `track_edits` / `note_edit`, `pack_chunk` / `unpack_chunk` for saving.
 - `src/shared/world/world_data.gd` (inherits) — shapes: `update_shapes` (slopes and corners by column), the
-  surfaces of slopes (`top_height`, `split_ne_sw`, `ground_height`), what meets a body (`blocks_body`,
-  `blocks_part`, `ground_part`). Natural ground is built of a few shapes (the user's design, decision of
-  2026-11-16, `docs/planning/mesher.md`): a cube; a sloping top whose corners are at full height or one level
-  down (`slope_mask`: both corners of a side one level lower go down, a corner with only the column across it
-  lower too where both columns beside may slope; all four down stays a cube), drawn as two flat triangles split
-  along one diagonal — a hip or a valley where a ramp goes on beside the odd corner, a chamfer across it
-  where the outline runs diagonally (`split_ne_sw`, computed from the shapes beside, not stored); and
-  half-blocks: a cell cut (`corner_cuts`) or an open cell filled (`corner_fills`) at one corner at most, the
-  whole half beyond the diagonal across it, so several in a row make one straight 45° face. A fill gives way
-  where the ground beside is open round its own corner facing it (it is cut there), else the two would make a
-  saw. A slope is cut only at a low corner where the ground drops more than a level beside; the ground under the lowest cut cell then slopes on down in the cut as an open top would (`_floor_slopes`, its low corners kept in its shape), so a steep diagonal slope has no step at the cut. `ground_height` is
-  asked at every step of a beast and a body: it reads the cells and shapes of the column straight from the
-  chunk (the rules `corner_fills`, `corner_cuts`, `slope_mask` are the same) and looks at the neighbouring
-  columns only when the column has cut or filled corners.
-- Soft slopes (`WorldData.soft_slopes`, set by nothing now: the combined mesher was parked by the user on
-  2026-11-18, `docs/planning/mesher-merge.md`; checked by `shapes_test`): the blocky relief's shapes with the old
-  slopes' look. No slope is steeper than 45°: a corner whose diagonal column drops two levels stays up, a top left
-  with two opposite corners down is a cube (its corner cut instead, a straight wall on the diagonal), an inner
-  corner goes down only where the tops beside go down there too; the tip of a ridge a cell wide ramps down to its
-  end (`TIP_END`) instead of standing as a post. The client draws them without EdgeMesher (`Job.soft`): every
-  natural slope bends level at its brow and foot by `SlopeMesher.SOFT_RADIUS`, cliffs stay sharp.
-- Old slopes, a world setting and the default of «Новый мир» (`slopes` 1 in `LandLayout.DEFAULT_SETTINGS`, the
-  row «Склоны: Старые», `WorldData.old_slopes` set by `WorldGen`; the world's folder gets `o1`; checked by
-  `old_shapes_test`): the shapes of before the blocky relief (#722). A slope is a smooth bicubic patch
+  surfaces of slopes (`surface_patch`, `ground_height`), what meets a body (`blocks_body`, `blocks_part`,
+  `ground_part`). Natural ground has the curved slopes of #722 (once called «old slopes»; the blocky relief of
+  2026-11-16 with flat triangles, half-blocks, rounded edges and the soft slopes of the parked combined mesher
+  was taken out on 2026-11-20, every world, old saves and servers included, is drawn and walked with these; the
+  world setting `slopes` no longer counts and is kept only for the saves' folders, `o1`). A slope's top has its
+  low sides' corners down (`_old_slope`, `RAMPS`; an inner corner where only a diagonal neighbour is lower; two
+  opposite low sides or none stay a cube) and is a smooth bicubic patch
   (`surface_patch`, `make_patch`, `patch_height`); at a shore of water on its level (`shore_top`) an outer corner (one corner high) or an inner one (one corner low) rises along the diagonal across that corner instead of on a square (`PATCH_DIAG`, a 13th number, `diag_corner`, `_diag_height`: its sides keep their curves), so the water's line runs straight along a diagonal shore, not in stairs; a corner may go down two levels into the covered cell below
-  (`_update_deep`, `_deep_corner`, kept in that cell's shape bits 0..3; taken out by #743 and brought back by the
-  user on 2026-11-18: without it a ramp's foot against a cliff shows a step; the cell going down may be any wild ground, so scree over stone goes down round like sand, not cut sharp, `_deepable`), cut and filled corners take a triangle half a cell along each side and a cell may have several
-  (`_old_update_corners`, `_old_in_corner`, `corner_at`; never over an open cell, a cave under a thin roof, where the cut would open a hole, unless the three columns beside are open from the level under it up to the sky: an overhang's roof is cut like its top, the inside of a cave is not); `ground_height` and `body.gd` `_cell_top` follow the patch. The client draws them with
-  `src/client/world/old_slope_mesher.gd` (the old `slope_mesher.gd`; the ground under a cut corner of a slope that goes down into the cell below follows the slope down, `cut_floor`), `MeshFaces.old_slopes` (curved cut
-  pieces `OLD_CUT`, `_old_curve` by `Mat.corner_shape`, `_old_diag_wall`), the water's lips and foam, and the
-  shader global `old_slopes` (`corner_distance`, `in_cell_corners`); no rounded edges (EdgeMesher off). An outer
-  corner whose one high corner has the column across it lower (a ridge two cells wide on the diagonal) stays a
-  cube cut at its corners, a straight diagonal wall as stone is, not a peak per cell (`_old_slope`). A cut or fill
-  that a fill or cut beside goes on from is drawn straight whatever the material's corner shape
-  (`ChunkMesher._diag_shape`, `_cap_shape`; tops and foam by `MeshFaces.DIAG_STRAIGHT` and the foam's shape
-  bits), so diagonal walls and waterlines run straight and only their ends are rounded.
+  (`_update_deep`, `_deep_corner`, kept in that cell's shape bits 0..3; without it a ramp's foot against a cliff shows a step; the cell going down may be any wild ground, so scree over stone goes down round like sand, not cut sharp, `_deepable`), cut and filled corners take a triangle half a cell along each side and a cell may have several
+  (`update_corners`, `in_corner`, `touches_corner`, `corner_at`; never over an open cell, a cave under a thin roof, where the cut would open a hole, unless the three columns beside are open from the level under it up to the sky: an overhang's roof is cut like its top, the inside of a cave is not); `ground_height` and `body.gd` `_cell_top` follow the patch. `ground_height` is
+  asked at every step of a beast and a body: it reads the cells and shapes of the column straight from the
+  chunk and looks at the neighbouring columns only when the point is in a corner's triangle. The client draws
+  slopes with `src/client/world/old_slope_mesher.gd` (the ground under a cut corner of a slope that goes down
+  into the cell below follows the slope down, `cut_floor`), `MeshFaces` (curved cut pieces `OLD_CUT`,
+  `corner_curve` by `Mat.corner_shape`, `_diag_wall`), the water's lips and foam, and the shaders
+  (`corner_distance`, `in_cell_corners`). An outer corner whose one high corner has the column across it lower
+  (a ridge two cells wide on the diagonal) stays a cube cut at its corners, a straight diagonal wall as stone
+  is, not a peak per cell (`_old_slope`). A cut or fill that a fill or cut beside goes on from is drawn
+  straight whatever the material's corner shape (`ChunkMesher._diag_shape`, `_cap_shape`; tops and foam by
+  `MeshFaces.DIAG_STRAIGHT` and the foam's shape bits), so diagonal walls and waterlines run straight and only
+  their ends are rounded.
 - `src/shared/world/grass.gd` — what grows on top of a ground cell (tiers of grass: bare, low, ordinary by the
   ground patch, and by the slow `meadow_noise` (`MEADOW_FREQ`, `MEADOW_TALL`) tall meadows and dense lawns of low
   grass two to three chunks wide; rare fields of ears as wide (`EAR_FREQ`, `EAR_FIELD`) on flat lowland; flowers, moss, the
@@ -84,8 +69,8 @@ height `y` in a column: over `SNOW_LINE`, times the column's `Chunk.frost`, none
   `form_at`, any `set_cell` returns a cube; they are saved in `pack_chunk` («forms»), over the network — in
   `CELLS` (`material | shape << 8`). The body and `ground_height` go by them through `form_top`.
 
-**Tests.** `tests/unit/shapes_test.gd` (`corners`, `shapes`), `tests/unit/old_shapes_test.gd` (the same for old
-slopes, with the mesher's patches), `tests/unit/body_test.gd` (`raycast`, `slopes`,
+**Tests.** `tests/unit/shapes_test.gd` (`corners`, `shapes`, diagonal ridges and shores, with the mesher's
+patches), `tests/unit/body_test.gd` (`raycast`, `slopes`,
 `steps`, `ground`), `tests/unit/generation_test.gd`.
 
 **In more detail.** `plan/architecture/simulation.md` (the section «Storing the world»),

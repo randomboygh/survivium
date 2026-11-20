@@ -1242,23 +1242,20 @@ const SHOTS := {
 	"ground-bushes": {"time": 0.42, "season": 1, "at": [78, 9]},
 	"ground-relief-west": {"time": 0.42, "season": 1, "at": [-46, 64]},
 	"ground-relief-middle": {"time": 0.42, "season": 1, "at": [2, 64]},
-	# Edges by material (EdgeMesher) on the combinations ground's dry band: grass kept
-	# sheer (rounded), stone (bevelled), grass beside stone; west and the diagonal shapes.
+	# The combinations ground's dry band: grass kept sheer, stone, grass beside stone; west
+	# and the diagonal shapes.
 	"ground-edges-sheer": {"time": 0.42, "season": 1, "at": [-62, -106]},
 	"ground-edges-sheer-diag": {"time": 0.42, "season": 1, "at": [140, -106]},
 	"ground-edges-stone": {"time": 0.42, "season": 1, "at": [-62, -154]},
 	"ground-edges-stone-diag": {"time": 0.42, "season": 1, "at": [140, -154]},
 	"ground-edges-halves": {"time": 0.42, "season": 1, "at": [-62, -130]},
-	# The same with the setting «rounded terrain» off: drawn sharp.
-	"ground-edges-sheer-sharp": {"time": 0.42, "season": 1, "at": [-62, -106], "settings": {"rounded_ground": false}},
-	"ground-edges-stone-sharp": {"time": 0.42, "season": 1, "at": [-62, -154], "settings": {"rounded_ground": false}},
 	"ground-relief-east": {"time": 0.42, "season": 1, "at": [50, 64]},
 	"ground-relief-winter": {"time": 0.42, "season": 3, "at": [2, 64]},
 	# The stream down its terraces, from the meadow south of it and from its top.
 	# The combinations ground (TestGround.COMBO_*): its west (the shapes of the relief
 	# ground) and its east (bowl, diagonal, notch, shafts, overhang, tunnel), the rows of
 	# one material to the north of each band and the mixed ones to the south.
-	# The places of the user's notes on old slopes (2026-11-17), with `--old-slopes`.
+	# The places of the user's notes on the slopes (2026-11-17).
 	# Old slopes going down two levels in a cell (before they were taken out) and now.
 	"ground-deep-stair": {"time": 0.42, "season": 1, "at": [-26, -207], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
 	"ground-deep-diagonal": {"time": 0.42, "season": 1, "at": [53, -207], "hide": ["chunks: grass"], "settings": {"pixel_scale": 3}},
