@@ -768,7 +768,13 @@ func _test_hunting(w: WorldData) -> void:
 	var was := deer.health
 	var done := actions.strike(person)
 	_check(done.get("hit", false) and deer.health == was - 1 and not deer.gone, "bare hands hit the deer once (%d of %d)" % [deer.health, was])
+	_check(done.has("animal") and done.animal == deer.id, "the reply names the animal struck, for the client to draw it flinching")
+	# It takes fright as the blow meets it (Wildlife.hurt), half the swing on, not before.
+	var stood := deer.pos
 	life.update(0.05)
+	_check(deer.state != "flee" and deer.pos.distance_to(stood) < 0.001, "the hit deer stays till the blow meets it (%s)" % deer.state)
+	for i in 10:
+		life.update(0.05)
 	_check(deer.state == "flee" and deer.target.z < north.z, "the hit deer flees away from the blow")
 	# The hedgehog fears nobody, yet a hit one runs off.
 	life.animals.erase(deer)
