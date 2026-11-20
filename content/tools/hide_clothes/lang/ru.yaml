@@ -19,6 +19,12 @@
 "[tools.items.leather_vest.about]": "Кожаный жилет без рукавов со шнуровкой спереди."
 "[tools.items.apron]": "Кожаный фартук"
 "[tools.items.apron.about]": "Кожаный фартук, завязанный на поясе: для кузницы, верстака и кухни."
+"[tools.items.sandals]": "Сандалии"
+"[tools.items.sandals.about]": "Кожаные подошвы, привязанные к ногам ремешками."
+"[tools.items.moccasins]": "Мокасины"
+"[tools.items.moccasins.about]": "Мягкая кожаная обувь, сшитая из одного куска."
+"[tools.items.high_boots]": "Высокие сапоги"
+"[tools.items.high_boots.about]": "Высокие кожаные сапоги до середины голени."
 
 # content/tools/hide_clothes/data/recipes.yaml
 "[tools.recipes.fur_hat]": "Меховая шапка"
@@ -28,3 +34,6 @@
 "[tools.recipes.leather_hat]": "Кожаная шляпа"
 "[tools.recipes.leather_vest]": "Кожаный жилет"
 "[tools.recipes.apron]": "Кожаный фартук"
+"[tools.recipes.sandals]": "Сандалии"
+"[tools.recipes.moccasins]": "Мокасины"
+"[tools.recipes.high_boots]": "Высокие сапоги"

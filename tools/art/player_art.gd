@@ -97,9 +97,12 @@ const DARKER := {"S": "s", "s": "k", "k": "k"}
 ## and a pixel of leg above. A tunic is the shirt with the waistband and a hemmed edge, a
 ## vest the shirt open down the front, a poncho the coat striped, an apron a panel over
 ## the front tied at the waist; the hats with a brim, the wreath, the bandana and the hood
-## are drawn by way over the head (WearArt).
+## are drawn by way over the head (WearArt). A kilt is the waistband and two rows of the
+## legs filled across, pleated and hemmed; sandals the soles and straps over the skin,
+## moccasins the shoes with a stitched edge, high boots the shoes and two rows of leg.
 const SHAPES := ["shirt", "coat", "hat", "trousers", "wraps", "boots", "tall_boots",
-	"tunic", "vest", "poncho", "apron", "brim_hat", "dome_hat", "wreath", "bandana", "hood"]
+	"tunic", "vest", "poncho", "apron", "brim_hat", "dome_hat", "wreath", "bandana", "hood",
+	"kilt", "sandals", "moccasins", "high_boots"]
 ## The tone of each letter of the clothes in a shape.
 const TONE := {"L": "1", "C": "2", "c": "3", "V": "3", "U": "2", "u": "3", "T": "1", "t": "2", "m": "3",
 	"K": "1", "B": "2", "b": "3",
@@ -1084,9 +1087,49 @@ static func _shapes(out: Dictionary, up: Vector2i, dir: String) -> void:
 		if at.y - up.y <= 5:
 			shapes.hat[at] = TONE[out.hair[at]]
 	_garments(shapes, out, dir)
+	_legwear(shapes, out)
 	for name: String in SHAPES:
 		if not WearArt.SHAPES.has(name):
 			out["shapes/" + name] = shapes[name]
+
+
+## The kilt, sandals, moccasins and high boots of a frame, out of its trousers and shoes.
+static func _legwear(shapes: Dictionary, out: Dictionary) -> void:
+	var t: Dictionary = out.trousers
+	var b: Dictionary = out.boots
+	var waist := -1000
+	for at: Vector2i in t:
+		if t[at] in ["U", "u"]:
+			waist = maxi(waist, at.y)
+	if waist > -1000:
+		var rows := {}
+		for at: Vector2i in t:
+			if at.y <= waist + 2:
+				var r: Vector2i = rows.get(at.y, Vector2i(at.x, at.x))
+				rows[at.y] = Vector2i(mini(r.x, at.x), maxi(r.y, at.x))
+		for y: int in rows:
+			var r: Vector2i = rows[y]
+			for x in range(r.x, r.y + 1):
+				var tone := "2" if x == r.y else ("1" if (x - r.x) % 2 == 0 else "2")
+				if y == waist + 2:
+					tone = "4" if x % 2 == 0 else "5"
+				elif y == waist and t.has(Vector2i(x, y)) and t[Vector2i(x, y)] == "u":
+					tone = "3"
+				shapes.kilt[Vector2i(x, y)] = tone
+	for at: Vector2i in b:
+		var sole := not b.has(at + Vector2i.DOWN)
+		var top := not b.has(at + Vector2i.UP)
+		if sole:
+			shapes.sandals[at] = "3"
+		elif (at.x + at.y) % 2 == 0:
+			shapes.sandals[at] = "4"
+		shapes.moccasins[at] = "4" if top and at.x % 2 == 0 else TONE[b[at]]
+		shapes.high_boots[at] = TONE[b[at]]
+	for at: Vector2i in t:
+		if t[at] in ["T", "t", "m"] and (b.has(at + Vector2i.DOWN) or b.has(at + Vector2i(0, 2))):
+			# The cuff on the upper of the two rows.
+			var cuff := b.has(at + Vector2i(0, 2)) and not b.has(at + Vector2i.DOWN)
+			shapes.high_boots[at] = "4" if cuff else TONE[t[at]]
 
 
 ## The tunic, vest, poncho and apron of a frame, out of its shirt and coat (_shapes).

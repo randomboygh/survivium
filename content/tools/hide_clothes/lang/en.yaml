@@ -19,6 +19,12 @@
 "[tools.items.leather_vest.about]": "A sleeveless leather vest laced down the front."
 "[tools.items.apron]": "Leather apron"
 "[tools.items.apron.about]": "A leather apron tied at the waist: for the forge, the workbench and the kitchen."
+"[tools.items.sandals]": "Sandals"
+"[tools.items.sandals.about]": "Leather soles tied to the feet with straps."
+"[tools.items.moccasins]": "Moccasins"
+"[tools.items.moccasins.about]": "Soft leather shoes sewn in one piece."
+"[tools.items.high_boots]": "High boots"
+"[tools.items.high_boots.about]": "Tall leather boots up the shin."
 
 # content/tools/hide_clothes/data/recipes.yaml
 "[tools.recipes.fur_hat]": "Fur hat"
@@ -28,3 +34,6 @@
 "[tools.recipes.leather_hat]": "Leather hat"
 "[tools.recipes.leather_vest]": "Leather vest"
 "[tools.recipes.apron]": "Leather apron"
+"[tools.recipes.sandals]": "Sandals"
+"[tools.recipes.moccasins]": "Moccasins"
+"[tools.recipes.high_boots]": "High boots"
