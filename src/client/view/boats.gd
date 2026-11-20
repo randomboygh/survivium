@@ -50,8 +50,8 @@ var _oar_mesh: Mesh
 
 
 ## Where the stroke of the oars is now, 0 to 1: caught forward at 0, pulled through the
-## water to 0.5, carried forward over it to 1 (the `row` frames: hands out, pulling,
-## pulled in, coming back).
+## water to 0.5, carried forward over it to 1 (the `row` frames, drawn in
+## tools/art/player_row_art.gd: the catch, pushed, the blades lifted, back).
 static func stroke() -> float:
 	return fmod(Time.get_ticks_msec() / 1000.0, ROW_PERIOD) / ROW_PERIOD
 
@@ -211,13 +211,14 @@ func _swing(oars: Array, going: bool) -> void:
 
 
 ## An oar along +x from its oarlock (the voxel at the origin): the handle inside, the
-## shaft out over the water and the blade at its end.
+## shaft out over the water and the blade at its end. The handle has no grip of its own:
+## the rower's fists are drawn at its end, over it (the `row` frames).
 static func _oar() -> VoxelModel:
 	var m := VoxelModel.new()
 	var wood := Color(0.66, 0.5, 0.31)
 	var blade := Color(0.56, 0.41, 0.24)
-	for x in range(-4, 10):
-		m.set_voxel(Vector3i(x, 0, 0), wood * (0.85 if x < -2 else 1.0))
+	for x in range(-2, 10):
+		m.set_voxel(Vector3i(x, 0, 0), wood)
 	for x in range(10, 14):
 		for z in range(-1, 2):
 			m.set_voxel(Vector3i(x, 0, z), blade)

@@ -285,6 +285,25 @@ func _test_sprite_sheet() -> void:
 	_check(absi(still.x) <= 1 and still.y == 0, "the other hand stays put but for the torso's turn: %s" % [still])
 	_check(anchors[2][0].right.front and not anchors[2][0].left.front, "facing east the right hand is near, the left far")
 	_check(not anchors[4][0].right.front, "with the back turned a hand is behind the body")
+	# Rowing (RowArt) the body sits as in the sit, its feet where they were, so the two follow
+	# each other without a jump; its fists are up on the oars' handles, the stroke moving them.
+	var seated := s.frame_at("s", "sit", 0.0).x
+	var rowed: Array = Figure.data().animations.row.frames
+	var boots := Figure.layer("boots")
+	var moved := 0
+	var raised := 0
+	for r in 8:
+		var sat := boots.get_region(Rect2i(seated * fw, r * fh, fw, fh)).get_data()
+		for f: Variant in rowed:
+			if boots.get_region(Rect2i(int(f) * fw, r * fh, fw, fh)).get_data() != sat:
+				moved += 1
+			for hand in ["right", "left"]:
+				if r in [0, 4] and anchors[r][int(f)][hand].at.y < anchors[r][seated][hand].at.y:
+					raised += 1
+	_check(moved == 0, "rowing, the feet stay where they sit: %d frames moved them" % moved)
+	_check(raised == 4 * rowed.size(), "rowing, from the front and from behind both fists are up on the oars: %d of %d" % [raised, 4 * rowed.size()])
+	_check(img.get_region(Rect2i(int(rowed[0]) * fw, 0, fw, fh)).get_data() != img.get_region(Rect2i(int(rowed[1]) * fw, 0, fw, fh)).get_data(),
+		"the stroke moves the rower")
 	_check(anchors[0][works.mow.columns[1]].left.is_empty(), "in a two-handed work the left hand holds the same thing")
 	_check(Figure.opposite("se") == "sw" and Figure.opposite("w") == "e" and Figure.opposite("n") == "n", "opposite directions")
 	# Things held have sheets of their own, put at the hands.
