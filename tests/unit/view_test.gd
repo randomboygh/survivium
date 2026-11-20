@@ -242,6 +242,23 @@ func _test_sprite_sheet() -> void:
 						else:
 							unlined += 1
 	_check(unlined == 0 and open_soles > 0, "off the walk all that hangs low is outlined under it, a foot lifted in the walk is not: %d, %d" % [unlined, open_soles])
+	# Asleep the legs lie pressed together (the user's note of 2026-11-20): across the soles,
+	# the frame's last column of the body, a single pixel of outline parts the feet.
+	var parted := 0
+	var gap := 0
+	var seen := false
+	for y in fh:
+		var p := img.get_pixel(sleep.x * fw + lain.end.x - 2, sleep.y * fh + y)
+		if p.a < 0.5:
+			continue
+		if p == dark:
+			gap += 1 if seen else 0
+		else:
+			if gap > 0:
+				parted = gap
+			seen = true
+			gap = 0
+	_check(parted == 1, "asleep the legs lie together, a pixel of outline between the soles: %d" % parted)
 	# Naked in a loincloth; clothes worn show between the naked layers, a bag does not.
 	var naked := Figure.dressed({})
 	_check(naked == ["body", "loincloth", "hair"], "the figure is naked in a loincloth with nothing worn")

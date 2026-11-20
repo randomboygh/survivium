@@ -306,7 +306,7 @@ static func anchors(form := "") -> Array:
 			var cols := []
 			for col in s.columns:
 				if (col + 1) * s.frame_size.x > marks.get_width():
-					# A frame not drawn (the sleep one, see _lay_down) holds nothing.
+					# A frame the hands picture does not reach holds nothing.
 					cols.append({"right": {}, "left": {}})
 					continue
 				var frame := marks.get_region(Rect2i(Vector2i(col, row) * s.frame_size, s.frame_size))
@@ -455,19 +455,18 @@ func step() -> bool:
 	return true
 
 
-## Puts the frame of the `sleep` animation (player.yaml) into every row: the blink frame
-## (`blink`, its eyes shut) facing south turned on its side, the head to the west, lying
-## on the frame's bottom and as much in the middle of it as the figure stood. It is
-## outlined after turning, so the soles, which stand on the frame's edge without an
-## outline, get theirs.
+## Puts the frame of the `sleep` animation (player.yaml) into every row: that column as
+## drawn facing south (standing, its eyes shut and its legs pressed together, PlayerArt)
+## turned on its side, the head to the west, lying on the frame's bottom and as much in
+## the middle of it as the figure stood. It is outlined after turning, so the soles, which
+## stand on the frame's edge without an outline, get theirs.
 func _lay_down() -> void:
 	var d := data()
 	if not d.animations.has("sleep"):
 		return
 	var size := target.frame_size
 	var col: int = d.animations.sleep.frames[0]
-	var blink := int(d.get("blink", 0))
-	var standing := _compose(maxi(0, target.directions.find("s")), blink, blink + 1)
+	var standing := _compose(maxi(0, target.directions.find("s")), col, col + 1)
 	if held.get("active", "right") == "left":
 		standing.flip_x()
 	var was: Rect2i = standing.get_used_rect()

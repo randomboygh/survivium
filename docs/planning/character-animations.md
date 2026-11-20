@@ -145,3 +145,16 @@ outline, its tip in the trail's first pixels).
   не видно»).
 - Accepted by the user 2026-11-20 12:56 MSK on the 12th GIF; the side's arm and the sickle after it.
   Bows and slings play the slash until the aim is drawn.
+
+## The sleep and the sit (done)
+
+- Thread «Поправить позу сна», 2026-11-20. The front view was shown first with variants (sitting
+  cross-legged or with the legs forward, sleeping curled up or straight on the side;
+  `sleep-sit-front-1.png` in the library). The user's pick (18:12 MSK): «Сидит оставь как был. Спит тоже
+  оставь как было, только левую ногу прижми к правой на пиксель». The sit (column 43) is unchanged.
+- The sleep (column 42) is drawn standing, as the blink was (the eyes shut), with the legs pressed
+  together: `MOVES` front `sleep`, legs `together` (`PlayerArt.legs`: the leg on the east of the picture a
+  pixel nearer the other where two pixels part them). `Figure._lay_down` turns that column of the south
+  row on its side (not the blink column any more), so the lying figure keeps one pixel of outline
+  between the legs in every look and form; `view_test` checks it at the soles. «было/стало» in every
+  look: `sleep-2.png`; `ss_dump.gd` and `sleep_review.py` in `src/` make it.

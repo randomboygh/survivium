@@ -87,7 +87,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   request `lie_in` (`Character.lie_in`: fall asleep and lie on it, `Placed.lying_spot`, to the client —
   `TELEPORT`; one who does not want to sleep, `Vitals.sleepy`, takes it into the bag, `Placed.take_up`); in
   the bag it does not work. On screen the sleeper lies on their side with closed eyes (the sheet's frame
-  `sleep`, `Figure._lay_down`: the idle column `blink` of `player.yaml` turned on its side), above them
+  `sleep`, `Figure._lay_down`: its own column, drawn standing with the eyes shut and the legs pressed
+  together, turned on its side), above them
   small letters «z» rise, grow and melt in turn (`player.gd` `snore`, `_snore`); one wakes up by oneself
   when rested by day, from a wound or in water. While all sleep, the night
   goes `Session.SLEEP_SPEED` times faster. `fatigue` off — the test switch «Fatigue»: energy does not fall,
