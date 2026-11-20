@@ -4,7 +4,9 @@ extends RefCounted
 ## jump column), the shoulders go a row up and the arms with them, the hands a row
 ## higher by the body's sides, and the legs are drawn up: the feet where the shins were.
 ## Falling (the second), the shoulders are back down and the arms go out to the sides
-## (from the side forward), the hands a pixel out and a row up, the legs straight. An
+## (from the side forward), the hands a pixel out and a row up, the legs straight and the
+## figure a row up: every jump frame has the outline under its feet, and the front's legs
+## are as short as the other views' (the user's notes of 2026-11-20). An
 ## arm moves from its shoulder, right under the head: what it leaves is the torso's
 ## again (the user's notes of 2026-11-19, variant 3 of the review).
 ##
@@ -19,13 +21,13 @@ const FormsArt := preload("res://tools/art/player_forms_art.gd")
 ## The frames by drawn direction: rising, falling.
 const FRAMES := {
 	"s": [
-		{"bob": 0, "hips": 14, "hands": [[3, 13], [10, 13]], "rows": [
+		{"bob": 1, "hips": 15, "hands": [[3, 13], [10, 13]], "rows": [
+			"..............",
 			"..............",
 			"...ccVkkVcc...",
 			"..45CCCCCC87..",
 			"..45cCCCCc87..",
 			"....UUuuUU....",
-			"....TT..TT....",
 			"....BB..BB....",
 			"..............",
 		]},
@@ -35,9 +37,9 @@ const FRAMES := {
 			".45ccCCCCcc87.",
 			".45.cCCCCc.87.",
 			"....UUuuUU....",
-			"....TT..TT....",
 			"....tt..TT....",
 			"....BB..BB....",
+			"..............",
 		]},
 	],
 	# Turned a little the far hand is short and high by the body's side, at the neck
@@ -53,8 +55,7 @@ const FRAMES := {
 			".....KB.KB....",
 			"..............",
 		]},
-		{"bob": 1, "hips": 15, "hands": [[3, 13], [10, 12]], "rows": [
-			"..............",
+		{"bob": 0, "hips": 14, "hands": [[3, 13], [10, 12]], "rows": [
 			"..............",
 			".....VkkVc88..",
 			"..44ccCCC.88..",
@@ -62,6 +63,7 @@ const FRAMES := {
 			".....UUuUU....",
 			".....TT.Tt....",
 			".....KB.KB....",
+			"..............",
 		]},
 	],
 	# From the side the shoulder is under the head: the near arm goes up along the body,
@@ -77,8 +79,7 @@ const FRAMES := {
 			"......BBb.....",
 			"..............",
 		]},
-		{"bob": 1, "hips": 14, "hands": [[8, 13], [7, 13]], "rows": [
-			"..............",
+		{"bob": 0, "hips": 13, "hands": [[8, 13], [7, 13]], "rows": [
 			"..............",
 			"......CVk.....",
 			".....cCC44....",
@@ -86,6 +87,7 @@ const FRAMES := {
 			".....ttt......",
 			"......tTt.....",
 			"......BBb.....",
+			"..............",
 		]},
 	],
 	"ne": [
@@ -99,8 +101,7 @@ const FRAMES := {
 			".....bb.BB....",
 			"..............",
 		]},
-		{"bob": 1, "hips": 15, "hands": [[11, 13], [3, 13]], "rows": [
-			"..............",
+		{"bob": 0, "hips": 14, "hands": [[11, 13], [3, 13]], "rows": [
 			"..............",
 			".....VVVC.....",
 			"..88ccccCCC44.",
@@ -108,6 +109,7 @@ const FRAMES := {
 			".....uuuuu....",
 			".....mm.tt....",
 			".....bb.BB....",
+			"..............",
 		]},
 	],
 	# From behind the shoulders go up beside the head (only there: the head is over the
@@ -123,8 +125,7 @@ const FRAMES := {
 			"....bb..bb....",
 			"..............",
 		]},
-		{"bob": 1, "hips": 15, "hands": [[11, 13], [2, 13]], "rows": [
-			"..............",
+		{"bob": 0, "hips": 14, "hands": [[11, 13], [2, 13]], "rows": [
 			"..............",
 			"...CCVVVVCC...",
 			".77CCccccCC44.",
@@ -132,6 +133,7 @@ const FRAMES := {
 			"....uuuuuu....",
 			"....mm..mm....",
 			"....bb..bb....",
+			"..............",
 		]},
 	],
 }

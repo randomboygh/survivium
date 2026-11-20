@@ -9,7 +9,8 @@ extends RefCounted
 ## head: `rows`, rows 10-17 of the box in the letters of PlayerArt.INK and the hands'
 ## skin (HANDS), empty where the head is or nothing; the outline is drawn round it as
 ## on every frame. From the side and from behind the figure stands a row lower than
-## the reference has it, its feet on the frame's last row.
+## the reference has it, its feet on the frame's last row; the front's frames are made
+## so by PlayerArt.shortened.
 ##
 ## The legs are two pixels wide and a foot lifted has no outline under it (player.yaml
 ## `soles`). A step: the feet apart, the arms down; the body down a pixel, the back heel
