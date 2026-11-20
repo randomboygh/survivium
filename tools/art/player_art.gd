@@ -44,6 +44,7 @@ const ReachArt := preload("res://tools/art/player_reach_art.gd")
 const MowArt := preload("res://tools/art/player_mow_art.gd")
 const GestureArt := preload("res://tools/art/player_gesture_art.gd")
 const RowArt := preload("res://tools/art/player_row_art.gd")
+const WearArt := preload("res://tools/art/player_wear_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -75,8 +76,9 @@ const INK := {
 	# A dark line in a hair style (LooksArt): a ponytail's tie, a bun's band.
 	"#": ["1f1a14", "hair"],
 	# The shapes of clothes (see SHAPES): the light, middle and dark tone, painted in
-	# the colours of the thing worn (see painted).
-	"1": ["c0c0c0", ""], "2": ["808080", ""], "3": ["404040", ""],
+	# the colours of the thing worn (see painted), then the trim's light and dark: a band, a
+	# hem, laces, which keep the thing's own colours whatever it is dyed.
+	"1": ["c0c0c0", ""], "2": ["808080", ""], "3": ["404040", ""], "4": ["f0f0f0", ""], "5": ["202020", ""],
 	# The face's options (LooksArt.FACES), in their own layers: stubble (the skin's shade
 	# and the hair's), a freckle, blush, a scar (the game makes these of the chosen skin
 	# and hair, Looks.swaps), war paint, gold, a dark lens, the frame of glasses or a
@@ -92,8 +94,12 @@ const DARKER := {"S": "s", "s": "k", "k": "k"}
 ## The shapes clothes are worn in (see painted), in three greys: what the shirt,
 ## trousers, shoes and hair are drawn with, cut and joined. A coat goes down over the
 ## hips and thighs, a hat is the top of the hair, wraps the legs, tall boots the shoes
-## and a pixel of leg above.
-const SHAPES := ["shirt", "coat", "hat", "trousers", "wraps", "boots", "tall_boots"]
+## and a pixel of leg above. A tunic is the shirt with the waistband and a hemmed edge, a
+## vest the shirt open down the front, a poncho the coat striped, an apron a panel over
+## the front tied at the waist; the hats with a brim, the wreath, the bandana and the hood
+## are drawn by way over the head (WearArt).
+const SHAPES := ["shirt", "coat", "hat", "trousers", "wraps", "boots", "tall_boots",
+	"tunic", "vest", "poncho", "apron", "brim_hat", "dome_hat", "wreath", "bandana", "hood"]
 ## The tone of each letter of the clothes in a shape.
 const TONE := {"L": "1", "C": "2", "c": "3", "V": "3", "U": "2", "u": "3", "T": "1", "t": "2", "m": "3",
 	"K": "1", "B": "2", "b": "3",
@@ -476,13 +482,18 @@ static func anchors() -> Array:
 
 ## The picture of clothes worn in shape `shape` (SHAPES): its light, middle and dark
 ## tones in `colors` (html colours), as the game lays it over the figure (Figure.dressed).
+## tones in `colors` (html colours), then the trim's light and dark (the middle and dark
+## tones when not given), as the game lays it over the figure (Figure.dressed).
 static func painted(shape: String, colors: Array) -> Image:
 	var img: Image = layer("shapes/" + shape).duplicate()
+	var tones := {}
+	for i in 5:
+		tones[INK[str(i + 1)][0]] = colors[i] if i < colors.size() else colors[i - 2]
 	for y in img.get_height():
 		for x in img.get_width():
 			var p := img.get_pixel(x, y)
 			if p.a > 0.0:
-				img.set_pixel(x, y, Color.html(colors[0 if p.r > 0.6 else (1 if p.r > 0.4 else 2)]))
+				img.set_pixel(x, y, Color.html(tones[p.to_html(false)]))
 	return img
 
 
@@ -963,8 +974,9 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 		if p[hand].front and whole.is_empty():
 			_arm(out, p[hand], dir, hand, solid, true)
 	_loincloth(out)
-	_shapes(out, up)
+	_shapes(out, up, dir)
 	_looks(out, turned, seen, up)
+	_wear(out, turned, seen, up)
 	return out
 
 
@@ -1019,8 +1031,22 @@ static func _loincloth(out: Dictionary) -> void:
 			out.loincloth[at] = "n"
 
 
-## The shapes of clothes (SHAPES) of the frame, out of the letters of the clothes drawn.
-static func _shapes(out: Dictionary, up: Vector2i) -> void:
+## The shapes of the hats drawn by way (WearArt), over the head as it bobs and leans.
+static func _wear(out: Dictionary, turned: String, seen: String, up: Vector2i) -> void:
+	for id: String in WearArt.SHAPES:
+		var drawn := {}
+		var rows := _turned(WearArt.SHAPES[id], turned, seen)
+		for y in rows.size():
+			var r: String = rows[y]
+			for x in r.length():
+				if r[x] != ".":
+					drawn[Vector2i(x, y) + up] = r[x]
+		out["shapes/" + id] = drawn
+
+
+## The shapes of clothes (SHAPES) of the frame, out of the letters of the clothes drawn
+## (the hats of WearArt are _wear's).
+static func _shapes(out: Dictionary, up: Vector2i, dir: String) -> void:
 	var t: Dictionary = out.trousers
 	var b: Dictionary = out.boots
 	var shapes := {}
@@ -1044,8 +1070,64 @@ static func _shapes(out: Dictionary, up: Vector2i) -> void:
 	for at: Vector2i in out.hair:
 		if at.y - up.y <= 5:
 			shapes.hat[at] = TONE[out.hair[at]]
+	_garments(shapes, out, dir)
 	for name: String in SHAPES:
-		out["shapes/" + name] = shapes[name]
+		if not WearArt.SHAPES.has(name):
+			out["shapes/" + name] = shapes[name]
+
+
+## The tunic, vest, poncho and apron of a frame, out of its shirt and coat (_shapes).
+static func _garments(shapes: Dictionary, out: Dictionary, dir: String) -> void:
+	var view: String = VIEW[dir]
+	var shirt: Dictionary = shapes.shirt
+	var coat: Dictionary = shapes.coat
+	if coat.is_empty():
+		return
+	# Each row's ends and the coat's lowest row.
+	var rows := {}
+	var top := 1000
+	var bottom := -1000
+	for at: Vector2i in coat:
+		var r: Vector2i = rows.get(at.y, Vector2i(at.x, at.x))
+		rows[at.y] = Vector2i(mini(r.x, at.x), maxi(r.y, at.x))
+		top = mini(top, at.y)
+		bottom = maxi(bottom, at.y)
+	var waist := -1000
+	for at: Vector2i in out.trousers:
+		if out.trousers[at] in ["U", "u"]:
+			waist = maxi(waist, at.y)
+	for at: Vector2i in coat:
+		var tone: String = coat[at]
+		var r: Vector2i = rows[at.y]
+		var middle := (r.x + r.y) / 2.0
+		# The tunic: the shirt and the waistband, the last row hemmed.
+		if shirt.has(at) or at.y <= waist:
+			shapes.tunic[at] = "4" if at.y == mini(waist, bottom) and waist > -1000 else tone
+		# The vest: the shirt, open down the middle in front, laced at the edges.
+		if shirt.has(at):
+			var open := view == "front" and at.y > top and absf(at.x - middle) < 1.0
+			if not open:
+				var edge := view == "front" and at.y > top and absf(at.x - middle) < 2.0
+				shapes.vest[at] = "4" if edge and at.y % 2 == 0 else tone
+		# The poncho: the coat striped every third row, its hem fringed.
+		if at.y == bottom:
+			if at.x % 2 == 0:
+				shapes.poncho[at] = "5"
+		else:
+			shapes.poncho[at] = "4" if (at.y - top) % 3 == 2 else tone
+		# The apron: a panel over the front from below the chest, the strings round the waist.
+		var string := at.y == waist
+		var panel := false
+		if at.y > top + 1:
+			match view:
+				"front":
+					panel = absf(at.x - middle) < 2.0
+				"side":
+					panel = at.x == r.y
+		if string:
+			shapes.apron[at] = "5"
+		elif panel:
+			shapes.apron[at] = tone
 
 
 static func _stamp(parts: Array, rows: Array, y0: int, shift: Vector2i) -> void:

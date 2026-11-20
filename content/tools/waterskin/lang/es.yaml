@@ -9,6 +9,9 @@
 "[tools.items.waterskin.about]": "Un saco de cuero para agua. Tómalo en la mano y toca agua dulce para llenarlo."
 "[tools.items.waterskin_full]": "Odre con agua"
 "[tools.items.waterskin_full.about]": "Un odre lleno. Quita la sed lejos del agua."
+"[tools.items.waterskin_sea]": ""
+"[tools.items.waterskin_sea.about]": ""
 
 # content/tools/waterskin/data/recipes.yaml
 "[tools.recipes.waterskin]": "Odre"
+"[tools.recipes.waterskin_full_from_waterskin_sea]": ""

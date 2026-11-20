@@ -42,3 +42,33 @@
   wear_on: feet
   look: fur_boots
   warmth: 5
+- id: leather_hat
+  title: "[tools.items.leather_hat]"
+  description: "[tools.items.leather_hat.about]"
+  era: core:bone_leather
+  weight: 0.3
+  stack: 1
+  icon: leather_hat
+  wear_on: head
+  look: leather_hat
+  warmth: 3
+- id: leather_vest
+  title: "[tools.items.leather_vest]"
+  description: "[tools.items.leather_vest.about]"
+  era: core:bone_leather
+  weight: 0.9
+  stack: 1
+  icon: leather_vest
+  wear_on: body
+  look: leather_vest
+  warmth: 5
+- id: apron
+  title: "[tools.items.apron]"
+  description: "[tools.items.apron.about]"
+  era: core:bone_leather
+  weight: 0.6
+  stack: 1
+  icon: apron
+  wear_on: body
+  look: apron
+  warmth: 1

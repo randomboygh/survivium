@@ -9,6 +9,9 @@
 "[tools.items.waterskin.about]": "Un sacco di cuoio per l'acqua. Prendilo in mano e tocca l'acqua dolce per riempirlo."
 "[tools.items.waterskin_full]": "Otre pieno"
 "[tools.items.waterskin_full.about]": "Un otre pieno. Toglie la sete lontano dall'acqua."
+"[tools.items.waterskin_sea]": ""
+"[tools.items.waterskin_sea.about]": ""
 
 # content/tools/waterskin/data/recipes.yaml
 "[tools.recipes.waterskin]": "Otre"
+"[tools.recipes.waterskin_full_from_waterskin_sea]": ""

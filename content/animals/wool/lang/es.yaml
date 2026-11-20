@@ -9,7 +9,10 @@
 "[animals.items.rabbit_fluff.about]": "Pelusa suave de una liebre mansa. Se corta con cuchillo y se hila."
 "[animals.items.wool_yarn]": "Hilo esponjoso"
 "[animals.items.wool_yarn.about]": "Hilo cálido de pelusa de liebre. En el telar se teje tela con él."
+"[animals.items.poncho]": ""
+"[animals.items.poncho.about]": ""
 
 # content/animals/wool/data/recipes.yaml
 "[animals.recipes.wool_yarn]": "Hilo esponjoso"
 "[animals.recipes.cloth_from_wool_yarn]": "Tela de hilo"
+"[animals.recipes.poncho]": ""

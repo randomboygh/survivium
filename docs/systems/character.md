@@ -461,7 +461,10 @@ top of satiety: roast heals and quenches a little, `Character.eat`); the creatur
 figure — `Figure.dressed(gear)`: the bare layers of `player.yaml` `naked` (body, loincloth, hair), between
 them the pictures of what is worn `sprites/worn/<look>.png` of the thing's bundle (the field `look`): legs,
 feet, the body under the hair, the head on top; they are drawn by `tools/make_sprites.gd` (`WORN`: the shape
-`PlayerArt.SHAPES` and three colours). What other players wear comes as the 14th field of `PEOPLE`, their
+`PlayerArt.SHAPES` and three colours, then two of a trim: a band, a hem, laces, which a dye will leave as
+they are). The shapes of the body's clothes are cut out of the frame's shirt and trousers (`PlayerArt._garments`:
+shirt, coat, tunic, vest, poncho, apron); the hats that are more than the top of the hair (a brim, a dome, a
+wreath, a bandana, a hood) are drawn by way in `tools/art/player_wear_art.gd` and laid over the head as it bobs. What other players wear comes as the 14th field of `PEOPLE`, their
 looks as the 19th (index 18). The
 figure's layers and works — `content/core/sprites/player.yaml`, the tools' sheets in the hand —
 `sprites/held/` of the tool's bundle. The parts `inventory`, `vitals`, `character` (from the server's

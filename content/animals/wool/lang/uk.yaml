@@ -9,7 +9,10 @@
 "[animals.items.rabbit_fluff.about]": "М'який пух ручного зайця. Його зрізають ножем і прядуть у пряжу."
 "[animals.items.wool_yarn]": "Пухнаста пряжа"
 "[animals.items.wool_yarn.about]": "Тепла пряжа із заячого пуху. На ткацькому верстаті з неї тчуть тканину."
+"[animals.items.poncho]": ""
+"[animals.items.poncho.about]": ""
 
 # content/animals/wool/data/recipes.yaml
 "[animals.recipes.wool_yarn]": "Пухнаста пряжа"
 "[animals.recipes.cloth_from_wool_yarn]": "Тканина з пряжі"
+"[animals.recipes.poncho]": ""

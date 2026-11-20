@@ -3,9 +3,10 @@
 A Russian copy: [README_RU.md](README_RU.md).
 
 Bags for the back (a wicker satchel +8 cells, a leather bag +16, a canvas backpack +24: `wear_on: back`,
-`bag_slots`). Clothes of fiber made by hand (a wicker hat, a grass cape, leg wraps, bast shoes: `wear_on`
+`bag_slots`). Clothes of fiber made by hand (a straw hat, a grass cape, a fiber tunic, leg wraps, bast shoes: `wear_on`
 head/body/legs/feet and `warmth`, how many degrees warmer one is in it) and warm clothes of hides and leather, sewn
-with a needle at the workbench (a fur hat, a fur coat, leather trousers, mukluks). A waterskin of leather: an empty one (`fills_to`)
+with a needle at the workbench (a fur hat, a fur coat, leather trousers, mukluks, a leather hat, a leather vest, a
+leather apron); light clothes of cloth sewn the same way (`cloth_clothes`: a bandana, a hood, a linen shirt). A waterskin of leather: an empty one (`fills_to`)
 is filled at fresh water, a full one (`drink`, `empties_to`, `holds` 60, drunk in gulps) is drunk from; at the sea it
 fills with sea water (`fills_salty_to`), boiled fresh at a campfire (half boils off; in a clay pot, the `boiled_water`
 bundle, a tenth, and salt is left). Rain catchers set down under the open sky fill with rain (`rain_water`): a hide

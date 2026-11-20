@@ -13,9 +13,12 @@
 "[tools.items.leg_wraps.about]": "Faserstreifen, um die Beine gewickelt und mit Schnur gebunden."
 "[tools.items.bast_shoes]": "Bastschuhe"
 "[tools.items.bast_shoes.about]": "Geflochtene Faserschuhe mit Schnurbändern."
+"[tools.items.fiber_tunic]": ""
+"[tools.items.fiber_tunic.about]": ""
 
 # content/tools/fiber_clothes/data/recipes.yaml
 "[tools.recipes.fiber_hat]": "Geflochtener Hut"
 "[tools.recipes.grass_cape]": "Grasumhang"
 "[tools.recipes.leg_wraps]": "Beinwickel"
 "[tools.recipes.bast_shoes]": "Bastschuhe"
+"[tools.recipes.fiber_tunic]": ""

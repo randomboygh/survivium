@@ -9,6 +9,9 @@
 "[tools.items.waterskin.about]": "Su için deri bir torba. Eline al ve doldurmak için tatlı suya dokun."
 "[tools.items.waterskin_full]": "Dolu su tulumu"
 "[tools.items.waterskin_full.about]": "Dolu bir su tulumu. Sudan uzakta susuzluğu giderir."
+"[tools.items.waterskin_sea]": ""
+"[tools.items.waterskin_sea.about]": ""
 
 # content/tools/waterskin/data/recipes.yaml
 "[tools.recipes.waterskin]": "Su tulumu"
+"[tools.recipes.waterskin_full_from_waterskin_sea]": ""

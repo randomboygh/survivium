@@ -32,3 +32,27 @@
   tools: [needle]
   wear: 2
   time: 8
+- id: leather_hat
+  title: "[tools.recipes.leather_hat]"
+  makes: leather_hat
+  needs: {materials:leather: 1, materials:cord: 1}
+  at: tools:workbench
+  tools: [needle]
+  wear: 1
+  time: 6
+- id: leather_vest
+  title: "[tools.recipes.leather_vest]"
+  makes: leather_vest
+  needs: {materials:leather: 2, materials:cord: 2}
+  at: tools:workbench
+  tools: [needle]
+  wear: 2
+  time: 10
+- id: apron
+  title: "[tools.recipes.apron]"
+  makes: apron
+  needs: {materials:leather: 2, materials:cord: 1}
+  at: tools:workbench
+  tools: [needle]
+  wear: 1
+  time: 6

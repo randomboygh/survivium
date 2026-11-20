@@ -9,7 +9,10 @@
 "[animals.items.rabbit_fluff.about]": "Evcil tavşanın yumuşak tüyü. Bıçakla kesilir ve ipliğe eğrilir."
 "[animals.items.wool_yarn]": "Kabarık iplik"
 "[animals.items.wool_yarn.about]": "Tavşan tüyünden sıcak iplik. Dokuma tezgâhında ondan kumaş dokunur."
+"[animals.items.poncho]": ""
+"[animals.items.poncho.about]": ""
 
 # content/animals/wool/data/recipes.yaml
 "[animals.recipes.wool_yarn]": "Kabarık iplik"
 "[animals.recipes.cloth_from_wool_yarn]": "İplikten kumaş"
+"[animals.recipes.poncho]": ""

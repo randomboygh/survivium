@@ -9,6 +9,9 @@
 "[tools.items.waterskin.about]": "Un sac de cuir pour l'eau. Prenez-la en main et touchez de l'eau douce pour la remplir."
 "[tools.items.waterskin_full]": "Outre pleine"
 "[tools.items.waterskin_full.about]": "Une outre pleine. Étanche la soif loin de l'eau."
+"[tools.items.waterskin_sea]": ""
+"[tools.items.waterskin_sea.about]": ""
 
 # content/tools/waterskin/data/recipes.yaml
 "[tools.recipes.waterskin]": "Outre"
+"[tools.recipes.waterskin_full_from_waterskin_sea]": ""

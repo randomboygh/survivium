@@ -8,3 +8,8 @@
   at: core:campfire
   process: cook
   time: 3
+- id: flower_wreath
+  title: "[plants.recipes.flower_wreath]"
+  makes: flower_wreath
+  needs: {evening_primrose: 6, resources:fiber: 1}
+  time: 4

@@ -13,9 +13,18 @@
 "[tools.items.leather_trousers.about]": "Calças de couro curtido. O vento não as atravessa."
 "[tools.items.fur_boots]": "Botas de pele"
 "[tools.items.fur_boots.about]": "Botas altas de pele com sola de couro."
+"[tools.items.leather_hat]": ""
+"[tools.items.leather_hat.about]": ""
+"[tools.items.leather_vest]": ""
+"[tools.items.leather_vest.about]": ""
+"[tools.items.apron]": ""
+"[tools.items.apron.about]": ""
 
 # content/tools/hide_clothes/data/recipes.yaml
 "[tools.recipes.fur_hat]": "Gorro de pele"
 "[tools.recipes.fur_coat]": "Casaco de pele"
 "[tools.recipes.leather_trousers]": "Calças de couro"
 "[tools.recipes.fur_boots]": "Botas de pele"
+"[tools.recipes.leather_hat]": ""
+"[tools.recipes.leather_vest]": ""
+"[tools.recipes.apron]": ""

@@ -13,9 +13,18 @@
 "[tools.items.leather_trousers.about]": "Штаны из выделанной кожи. Не продуваются ветром."
 "[tools.items.fur_boots]": "Унты"
 "[tools.items.fur_boots.about]": "Высокие сапоги из шкуры на кожаной подошве."
+"[tools.items.leather_hat]": "Кожаная шляпа"
+"[tools.items.leather_hat.about]": "Круглая кожаная шляпа с ремешком и короткими полями."
+"[tools.items.leather_vest]": "Кожаный жилет"
+"[tools.items.leather_vest.about]": "Кожаный жилет без рукавов со шнуровкой спереди."
+"[tools.items.apron]": "Кожаный фартук"
+"[tools.items.apron.about]": "Кожаный фартук, завязанный на поясе: для кузницы, верстака и кухни."
 
 # content/tools/hide_clothes/data/recipes.yaml
 "[tools.recipes.fur_hat]": "Меховая шапка"
 "[tools.recipes.fur_coat]": "Шуба"
 "[tools.recipes.leather_trousers]": "Кожаные штаны"
 "[tools.recipes.fur_boots]": "Унты"
+"[tools.recipes.leather_hat]": "Кожаная шляпа"
+"[tools.recipes.leather_vest]": "Кожаный жилет"
+"[tools.recipes.apron]": "Кожаный фартук"

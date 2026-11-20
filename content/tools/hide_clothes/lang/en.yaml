@@ -13,9 +13,18 @@
 "[tools.items.leather_trousers.about]": "Trousers of tanned leather. The wind doesn't blow through them."
 "[tools.items.fur_boots]": "Fur boots"
 "[tools.items.fur_boots.about]": "High boots of hide on a leather sole."
+"[tools.items.leather_hat]": "Leather hat"
+"[tools.items.leather_hat.about]": "A round leather hat with a band and a short brim."
+"[tools.items.leather_vest]": "Leather vest"
+"[tools.items.leather_vest.about]": "A sleeveless leather vest laced down the front."
+"[tools.items.apron]": "Leather apron"
+"[tools.items.apron.about]": "A leather apron tied at the waist: for the forge, the workbench and the kitchen."
 
 # content/tools/hide_clothes/data/recipes.yaml
 "[tools.recipes.fur_hat]": "Fur hat"
 "[tools.recipes.fur_coat]": "Fur coat"
 "[tools.recipes.leather_trousers]": "Leather trousers"
 "[tools.recipes.fur_boots]": "Fur boots"
+"[tools.recipes.leather_hat]": "Leather hat"
+"[tools.recipes.leather_vest]": "Leather vest"
+"[tools.recipes.apron]": "Leather apron"

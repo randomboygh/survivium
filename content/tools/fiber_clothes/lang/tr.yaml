@@ -13,9 +13,12 @@
 "[tools.items.leg_wraps.about]": "Bacaklara sarılıp iple bağlanmış lif şeritleri."
 "[tools.items.bast_shoes]": "Örgü çarık"
 "[tools.items.bast_shoes.about]": "İp bağcıklı, liften örülmüş ayakkabı."
+"[tools.items.fiber_tunic]": ""
+"[tools.items.fiber_tunic.about]": ""
 
 # content/tools/fiber_clothes/data/recipes.yaml
 "[tools.recipes.fiber_hat]": "Örgü şapka"
 "[tools.recipes.grass_cape]": "Ot pelerin"
 "[tools.recipes.leg_wraps]": "Bacak sargıları"
 "[tools.recipes.bast_shoes]": "Örgü çarık"
+"[tools.recipes.fiber_tunic]": ""

@@ -5,17 +5,20 @@
 "[tools.fiber_clothes.bundle]": "Одежда из волокна"
 
 # content/tools/fiber_clothes/data/items.yaml
-"[tools.items.fiber_hat]": "Плетёная шапка"
-"[tools.items.fiber_hat.about]": "Шапка из сухой травы. Немного греет голову."
+"[tools.items.fiber_hat]": "Соломенная шляпа"
+"[tools.items.fiber_hat.about]": "Широкополая шляпа из сухой травы. Прикрывает глаза и немного греет голову."
 "[tools.items.grass_cape]": "Травяная накидка"
 "[tools.items.grass_cape.about]": "Накидка из плотно сплетённого волокна на верёвке. Греет лучше всего из травяной одежды."
 "[tools.items.leg_wraps]": "Обмотки"
 "[tools.items.leg_wraps.about]": "Полосы волокна, обмотанные вокруг ног и подвязанные верёвкой."
 "[tools.items.bast_shoes]": "Лапти"
 "[tools.items.bast_shoes.about]": "Плетёная обувь из волокна на верёвочных завязках."
+"[tools.items.fiber_tunic]": "Туника из волокна"
+"[tools.items.fiber_tunic.about]": "Длинная рубаха из плетёного волокна, подпоясанная верёвкой."
 
 # content/tools/fiber_clothes/data/recipes.yaml
-"[tools.recipes.fiber_hat]": "Плетёная шапка"
+"[tools.recipes.fiber_hat]": "Соломенная шляпа"
 "[tools.recipes.grass_cape]": "Травяная накидка"
 "[tools.recipes.leg_wraps]": "Обмотки"
 "[tools.recipes.bast_shoes]": "Лапти"
+"[tools.recipes.fiber_tunic]": "Туника из волокна"

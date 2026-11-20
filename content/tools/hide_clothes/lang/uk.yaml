@@ -13,9 +13,18 @@
 "[tools.items.leather_trousers.about]": "Штани з вичиненої шкіри. Вітер їх не продуває."
 "[tools.items.fur_boots]": "Хутряні чоботи"
 "[tools.items.fur_boots.about]": "Високі чоботи зі шкури на шкіряній підошві."
+"[tools.items.leather_hat]": ""
+"[tools.items.leather_hat.about]": ""
+"[tools.items.leather_vest]": ""
+"[tools.items.leather_vest.about]": ""
+"[tools.items.apron]": ""
+"[tools.items.apron.about]": ""
 
 # content/tools/hide_clothes/data/recipes.yaml
 "[tools.recipes.fur_hat]": "Хутряна шапка"
 "[tools.recipes.fur_coat]": "Кожух"
 "[tools.recipes.leather_trousers]": "Шкіряні штани"
 "[tools.recipes.fur_boots]": "Хутряні чоботи"
+"[tools.recipes.leather_hat]": ""
+"[tools.recipes.leather_vest]": ""
+"[tools.recipes.apron]": ""

@@ -9,6 +9,9 @@
 "[tools.items.waterskin.about]": "Шкіряний мішок для води. Візьміть його в руку й торкніться прісної води, щоб наповнити."
 "[tools.items.waterskin_full]": "Бурдюк з водою"
 "[tools.items.waterskin_full.about]": "Повний бурдюк. Тамує спрагу далеко від води."
+"[tools.items.waterskin_sea]": ""
+"[tools.items.waterskin_sea.about]": ""
 
 # content/tools/waterskin/data/recipes.yaml
 "[tools.recipes.waterskin]": "Бурдюк"
+"[tools.recipes.waterskin_full_from_waterskin_sea]": ""

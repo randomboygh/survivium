@@ -16,3 +16,13 @@
   stack: 50
   model: wool_yarn
   icon: wool_yarn
+- id: poncho
+  title: "[animals.items.poncho]"
+  description: "[animals.items.poncho.about]"
+  era: core:bone_leather
+  weight: 0.9
+  stack: 1
+  icon: poncho
+  wear_on: body
+  look: poncho
+  warmth: 8

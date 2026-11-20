@@ -9,6 +9,9 @@
 "[tools.items.waterskin.about]": "Ein Lederbeutel für Wasser. Nimm ihn in die Hand und berühre Süßwasser, um ihn zu füllen."
 "[tools.items.waterskin_full]": "Wasserschlauch mit Wasser"
 "[tools.items.waterskin_full.about]": "Ein voller Wasserschlauch. Stillt den Durst fern vom Wasser."
+"[tools.items.waterskin_sea]": ""
+"[tools.items.waterskin_sea.about]": ""
 
 # content/tools/waterskin/data/recipes.yaml
 "[tools.recipes.waterskin]": "Wasserschlauch"
+"[tools.recipes.waterskin_full_from_waterskin_sea]": ""

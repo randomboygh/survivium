@@ -19,3 +19,8 @@
   makes: bast_shoes
   needs: {resources:fiber: 4, materials:cord: 2}
   time: 5
+- id: fiber_tunic
+  title: "[tools.recipes.fiber_tunic]"
+  makes: fiber_tunic
+  needs: {resources:fiber: 10, materials:cord: 1}
+  time: 8

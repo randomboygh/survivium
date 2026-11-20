@@ -9,7 +9,10 @@
 "[animals.items.rabbit_fluff.about]": "Weicher Flaum eines zahmen Hasen. Er wird mit dem Messer geschnitten und zu Garn gesponnen."
 "[animals.items.wool_yarn]": "Flauschiges Garn"
 "[animals.items.wool_yarn.about]": "Warmes Garn aus Hasenflaum. Am Webstuhl wird daraus Stoff gewebt."
+"[animals.items.poncho]": ""
+"[animals.items.poncho.about]": ""
 
 # content/animals/wool/data/recipes.yaml
 "[animals.recipes.wool_yarn]": "Flauschiges Garn"
 "[animals.recipes.cloth_from_wool_yarn]": "Stoff aus Garn"
+"[animals.recipes.poncho]": ""

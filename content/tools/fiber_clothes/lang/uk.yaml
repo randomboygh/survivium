@@ -13,9 +13,12 @@
 "[tools.items.leg_wraps.about]": "Смуги волокна, намотані на ноги й перев'язані мотузкою."
 "[tools.items.bast_shoes]": "Постоли"
 "[tools.items.bast_shoes.about]": "Плетене взуття з волокна із зав'язками з мотузки."
+"[tools.items.fiber_tunic]": ""
+"[tools.items.fiber_tunic.about]": ""
 
 # content/tools/fiber_clothes/data/recipes.yaml
 "[tools.recipes.fiber_hat]": "Плетений капелюх"
 "[tools.recipes.grass_cape]": "Трав'яна накидка"
 "[tools.recipes.leg_wraps]": "Обмотки"
 "[tools.recipes.bast_shoes]": "Постоли"
+"[tools.recipes.fiber_tunic]": ""

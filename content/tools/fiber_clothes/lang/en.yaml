@@ -5,17 +5,20 @@
 "[tools.fiber_clothes.bundle]": "Fiber clothes"
 
 # content/tools/fiber_clothes/data/items.yaml
-"[tools.items.fiber_hat]": "Woven hat"
-"[tools.items.fiber_hat.about]": "A hat of dry grass. Warms the head a little."
+"[tools.items.fiber_hat]": "Straw hat"
+"[tools.items.fiber_hat.about]": "A wide-brimmed hat of dry grass. Shades the eyes and warms the head a little."
 "[tools.items.grass_cape]": "Grass cape"
 "[tools.items.grass_cape.about]": "A cape of tightly woven fiber on a cord. The warmest of the grass clothes."
 "[tools.items.leg_wraps]": "Leg wraps"
 "[tools.items.leg_wraps.about]": "Strips of fiber wound round the legs and tied with cord."
 "[tools.items.bast_shoes]": "Bast shoes"
 "[tools.items.bast_shoes.about]": "Woven fiber shoes with cord ties."
+"[tools.items.fiber_tunic]": "Fiber tunic"
+"[tools.items.fiber_tunic.about]": "A long shirt of woven fiber, belted with cord."
 
 # content/tools/fiber_clothes/data/recipes.yaml
-"[tools.recipes.fiber_hat]": "Woven hat"
+"[tools.recipes.fiber_hat]": "Straw hat"
 "[tools.recipes.grass_cape]": "Grass cape"
 "[tools.recipes.leg_wraps]": "Leg wraps"
 "[tools.recipes.bast_shoes]": "Bast shoes"
+"[tools.recipes.fiber_tunic]": "Fiber tunic"

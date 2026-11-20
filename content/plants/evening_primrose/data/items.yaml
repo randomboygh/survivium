@@ -22,3 +22,12 @@
   model: primrose_tea
   icon: primrose_tea
   anim: eat
+- id: flower_wreath
+  title: "[plants.items.flower_wreath]"
+  description: "[plants.items.flower_wreath.about]"
+  weight: 0.05
+  stack: 1
+  icon: flower_wreath
+  wear_on: head
+  look: flower_wreath
+  warmth: 0
