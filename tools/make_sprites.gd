@@ -63,6 +63,9 @@ const HELD := {
 	"bronze_knife": "slash",
 	"iron_knife": "slash",
 	"steel_knife": "slash",
+	"sickle": "slash",
+	"copper_sickle": "slash",
+	"iron_sickle": "slash",
 	"flint_spear": "slash",
 	"bronze_spear": "slash",
 	"iron_spear": "slash",
@@ -96,7 +99,7 @@ func _init() -> void:
 		only = PackedStringArray()
 	var dir := Figure.SPRITES
 	var pictures := {}
-	for name in Figure.data().layers + [Figure.data().fists]:
+	for name in Figure.data().layers + [Figure.data().fists, Figure.data().trail]:
 		pictures["player/" + name] = PlayerArt.layer(name)
 	# The looks to pick (player.yaml `looks`): a picture each but for bald.
 	for style in PlayerArt.LooksArt.HAIRS:

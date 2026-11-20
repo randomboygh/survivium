@@ -235,7 +235,27 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   the blade goes into the earth from the feet's level a pixel deeper in each of three frames (crouched on
   the third, the chest's row folded away: the legs never move), then the toss; from the front the shovel
   is at the right side, from the side and behind by the right foot, beside the feet with the outline
-  between. A work drawn so carries the way the tool points (`a`, `ccw`, `f`), where the hand holds it
+  between. The slash's four frames too, with a blade in one hand (`tools/art/player_slash_art.gd`,
+  reviewed with the user 2026-11-20, first after the sword's swing of Puny Characters (Shade, CC0); the
+  swords, knives, spears, sickles, slings, bows and rods play it): the sword up beside the head at the
+  shoulders, then raised higher; the swing (crouched, the chest's row folded away: the legs never move)
+  along an arc down that side and under to the other, the blade about 30 degrees to the ground
+  (`PlayerArt.LOW`, `LOW_LEFT`: `ToolArt.turned` lays any tool's upright shape along a line two pixels
+  across for each one down); then standing again with the blade where it stopped. From the front the
+  sword is at the right side (the picture's left) and the hand stays left of the belly's middle, so the
+  blade never seems to be in the other hand; from the side it is the front's swing too: up behind the
+  head (the hand by the chin), down behind and under to the blade forward and down, the same crescent of
+  a trail; from behind the front is mirrored, the blade in front of the body hidden but for its tip past
+  the left side. A frame may put the other hand behind the blade (`of`). A blade swung leaves a trail:
+  the swing's frame draws one along the whole arc from the raised blade's tip (`trail` of the frame, the
+  letters `o`, `+`, `-` of `PlayerArt.INK`, into the layer `player/trail.png`, `player.yaml` `trail`),
+  and `Figure` puts it in the columns of the work the right hand's thing plays, for things with `trail`
+  (swords, knives, sickles, also when held as an icon; `Hands.look`): over the figure and its outline
+  where the hand holds the thing in front of the body, behind them (only where the frame is still empty)
+  where the thing is behind it, as from behind; without it the tan wooden blade is lost over the skin. The slash strikes on its third frame as every
+  work does (half the swing, `Controls`); a rod out fishing is held as in the last frame
+  (`Player.ROD_OUT`). A
+  work drawn so carries the way the tool points (`a`, `ccw`, `f`), where the hand holds it
   and how far up its length (`slide`: `ToolArt.turned` moves the head nearer the hand, the shaft's end
   past it, leaving `ToolArt.SLIDE_LEFT` rows beyond it, so a short thing is held as it is), so
   `PlayerArt.pose` takes them from the frame instead of `WORKS`; its west directions are the east ones
@@ -349,7 +369,7 @@ Stamina (`Vitals`): work priced from `WORK_COST` makes the body busy for `BUSY` 
 in 88, hands in the ground — never).
 
 **Data.** Items (`food`, `spoils`, `rots_to`, `drink`, `empties_to`, `fills_to`, `fills_salty_to`, `holds`, `bedding`, `warmth`, `heal`,
-`heal_time`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`; for food `heal` and `drink` are on
+`heal_time`, `weight`, `stack`, `light`, `burns`, `sprite`, `anim`, `hands`, `trail`; for food `heal` and `drink` are on
 top of satiety: roast heals and quenches a little, `Character.eat`); the creature `core:human`; clothes on the
 figure — `Figure.dressed(gear)`: the bare layers of `player.yaml` `naked` (body, loincloth, hair), between
 them the pictures of what is worn `sprites/worn/<look>.png` of the thing's bundle (the field `look`): legs,

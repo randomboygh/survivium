@@ -19,8 +19,8 @@ extends RefCounted
 ## with the hands swapped. Arms go from the shoulder to the hand (ARMS). Light comes from
 ## the upper left. The feet stand on the frame's last row with no outline under them. The
 ## walk's body under the head is copied pixel by pixel from the reference (WalkArt): the
-## arms swinging, the body bobbing; the jump's, the swim's, the chop's and the dig's are
-## drawn whole the same way (JumpArt, SwimArt, ChopArt, DigArt).
+## arms swinging, the body bobbing; the jump's, the swim's, the chop's, the dig's and the
+## slash's are drawn whole the same way (JumpArt, SwimArt, ChopArt, DigArt, SlashArt).
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -35,6 +35,7 @@ const JumpArt := preload("res://tools/art/player_jump_art.gd")
 const SwimArt := preload("res://tools/art/player_swim_art.gd")
 const ChopArt := preload("res://tools/art/player_chop_art.gd")
 const DigArt := preload("res://tools/art/player_dig_art.gd")
+const SlashArt := preload("res://tools/art/player_slash_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -60,6 +61,9 @@ const INK := {
 	# body has it (WalkArt, BODY).
 	"K": ["3d3436", "boots"], "m": ["1e3a62", "trousers"],
 	"N": ["c9a66e", "loincloth"], "n": ["9c7c4c", "loincloth"],
+	# A blade's trail as it is swung (SlashArt `trail`), drawn over the figure and its
+	# outline (Figure, player.yaml `trail`): its bright middle, its shade, its fading end.
+	"o": ["f7f1e6", "trail"], "+": ["e2d8c6", "trail"], "-": ["c9bda9", "trail"],
 	# A dark line in a hair style (LooksArt): a ponytail's tie, a bun's band.
 	"#": ["1f1a14", "hair"],
 	# The shapes of clothes (see SHAPES): the light, middle and dark tone, painted in
@@ -380,16 +384,11 @@ const MOVES := {
 ## edge leads the other way), "f" in front of the body or not (by default as the view
 ## has it), "o" where the other hand holds a two-handed thing, "bob" and "lean" how far
 ## the body bends down and forward, "eyes" "shut". A thing swung up over the head goes
-## behind it, the hand hidden, so it does not cover the face. The chop and the dig are
-## drawn whole with the tool's ways in their frames (ChopArt, DigArt).
+## behind it, the hand hidden, so it does not cover the face. The chop, the dig and
+## the slash are drawn whole with the tool's ways in their frames (ChopArt, DigArt,
+## SlashArt).
 const WORKS := {
 	"front": {
-		"slash": [
-			{"r": [1, 11], "a": 7},
-			{"r": [0, 8], "a": 6, "f": false},
-			{"r": [7, 13], "a": 2},
-			{"r": [8, 13], "a": 3},
-		],
 		"reach": [
 			{"r": [3, 13], "a": -1},
 			{"r": [4, 14], "a": -1},
@@ -416,12 +415,6 @@ const WORKS := {
 		],
 	},
 	"side": {
-		"slash": [
-			{"r": [6, 7], "a": 0, "f": false},
-			{"r": [5, 6], "a": 7, "f": false},
-			{"r": [11, 12], "a": 2, "lean": 1},
-			{"r": [10, 14], "a": 3},
-		],
 		"reach": [
 			{"r": [8, 13], "a": -1},
 			{"r": [10, 13], "a": -1},
@@ -448,12 +441,6 @@ const WORKS := {
 		],
 	},
 	"back": {
-		"slash": [
-			{"r": [12, 11], "a": 1, "f": true},
-			{"r": [12, 9], "a": 2, "f": true},
-			{"r": [6, 13], "a": 7},
-			{"r": [5, 14], "a": 0},
-		],
 		"reach": [
 			{"r": [10, 13], "a": -1},
 			{"r": [9, 14], "a": -1},
@@ -483,6 +470,10 @@ const WORKS := {
 ## A thing held pointing at the ground in front of a body facing the viewer, drawn
 ## foreshortened (one more way after the eight).
 const TOWARD := 8
+## A thing held pointing right and down about 30 degrees, as a blade swept through and
+## down to the ground (two more ways: LOW, and LOW_LEFT its mirror, ToolArt.turned).
+const LOW := 9
+const LOW_LEFT := 10
 ## The eight ways a thing held can point, clockwise from up.
 const WAYS := [Vector2i(0, -1), Vector2i(1, -1), Vector2i(1, 0), Vector2i(1, 1), Vector2i(0, 1), Vector2i(-1, 1), Vector2i(-1, 0), Vector2i(-1, -1)]
 
@@ -503,7 +494,7 @@ static func use_form(b: String, f: String) -> void:
 		_anchors = []
 
 
-## The image of layer `name` (player.yaml `layers` or `fists`), drawn the first time.
+## The image of layer `name` (player.yaml `layers`, `fists` or `trail`), drawn the first time.
 static func layer(name: String) -> Image:
 	if not _drawn.has(name):
 		var s := SpriteSheet.new(Figure.data())
@@ -551,9 +542,7 @@ static func anchors() -> Array:
 					var at: Vector2i = ORIGIN + h.at
 					if flipped:
 						at.x = s.frame_size.x - 1 - at.x
-					var angle: int = h.angle
-					if angle == TOWARD:
-						angle = 4
+					var angle: int = eighth(h.angle)
 					if flipped and angle >= 0:
 						angle = mirrored(angle)
 					both[hand] = {"at": at, "front": h.front, "angle": angle}
@@ -620,9 +609,9 @@ static func column(col: int) -> Array:
 
 ## The frame of column `c` ([name, i], see column) drawn whole under the head in
 ## direction `dir`, its hands with it: the walk's (WalkArt), the jump's (JumpArt), the
-## swim's (SwimArt), the chop's (ChopArt, with the way the axe points: `a`) or the dig's
-## (DigArt, the shovel held up its shaft: `slide`); {} for any other, made of the body
-## standing and a pose.
+## swim's (SwimArt), the chop's (ChopArt, with the way the axe points: `a`), the dig's
+## (DigArt, the shovel held up its shaft: `slide`) or the slash's (SlashArt); {} for any
+## other, made of the body standing and a pose.
 static func whole_frame(dir: String, c: Array) -> Dictionary:
 	match c[0]:
 		"walk":
@@ -635,12 +624,28 @@ static func whole_frame(dir: String, c: Array) -> Dictionary:
 			return ChopArt.frame(dir, c[1])
 		"dig":
 			return DigArt.frame(dir, c[1])
+		"slash":
+			return SlashArt.frame(dir, c[1])
 	return {}
 
 
 ## Way `a` mirrored left to right.
 static func mirrored(a: int) -> int:
+	if a == LOW or a == LOW_LEFT:
+		return LOW + LOW_LEFT - a
 	return a if a == TOWARD else (8 - a) % 8
+
+
+## The eighth nearest to way `a`, for the hands' marks (an icon held turns by it).
+static func eighth(a: int) -> int:
+	match a:
+		TOWARD:
+			return 4
+		LOW:
+			return 3
+		LOW_LEFT:
+			return 5
+	return a
 
 
 ## The pose of column `col` drawn in direction `dir` (a drawn one: s, se, e, ne, n) with
@@ -713,7 +718,9 @@ static func pose(dir: String, active: String, col: int) -> Dictionary:
 		p[active] = {"at": Vector2i(whole.hands[0][0], whole.hands[0][1] + p.bob), "front": whole.f, "holds": true,
 			"worked": true, "angle": whole.a, "ccw": whole.get("ccw", false), "slide": whole.get("slide", 0)}
 		p[other].at = Vector2i(whole.hands[1][0], whole.hands[1][1] + p.bob)
-		p[other].front = _front(view, "left")
+		# The other hand is in front of the body as its view has it, unless the frame puts it
+		# behind (`of`: a blade swept across in front of it).
+		p[other].front = whole.get("of", _front(view, "left"))
 	# A frame drawn whole has its hands where it draws them.
 	var shift: Vector2i = SHIFT.get(dir, Vector2i.ZERO) if whole.is_empty() else Vector2i.ZERO
 	for hand in ["right", "left"]:
@@ -785,7 +792,7 @@ static func legs(dir: String, kind: String, rows: Array) -> Array:
 ## The letters of every layer in one frame: {layer: {pixel in the box: letter}}.
 static func frame_letters(dir: String, active: String, col: int, real := "") -> Dictionary:
 	var p := pose(dir, active, col)
-	var out := {"body": {}, "shirt": {}, "trousers": {}, "boots": {}, "hair": {}, "fists": {}, "loincloth": {}}
+	var out := {"body": {}, "shirt": {}, "trousers": {}, "boots": {}, "hair": {}, "fists": {}, "loincloth": {}, "trail": {}}
 	var up := Vector2i(p.lean, p.bob)
 	var parts := []
 	var c := column(col)
@@ -812,9 +819,15 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 				rows = ChopArt.rows(whole, dir, build, figure)
 			"dig":
 				rows = DigArt.rows(whole, dir, build, figure)
+			"slash":
+				rows = SlashArt.rows(whole, dir, build, figure)
 			_:
 				rows = WalkArt.rows(whole, dir, build, figure)
 		_stamp(parts, rows, whole.get("top", 10), Vector2i.ZERO)
+		if whole.has("trail"):
+			# A blade's trail (SlashArt), its rows in the frame's pixels from `at`.
+			var t: Dictionary = whole.trail
+			_stamp(parts, t.rows, t.at[1] - ORIGIN.y, Vector2i(t.at[0] - ORIGIN.x, 0))
 	var head: Array = HEAD[dir]
 	if p.eyes == "shut":
 		# Shut, an eye is a dark line where the iris and the white were.

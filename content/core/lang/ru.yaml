@@ -715,6 +715,8 @@
 "[field.items.anim.about]": "Как им работают в руке"
 "[field.items.hands]": "Руки"
 "[field.items.hands.about]": "Сколько рук занимает, 1 или 2"
+"[field.items.trail]": "Шлейф"
+"[field.items.trail.about]": "Оставляет шлейф поверх фигуры при взмахе"
 "[field.items.light]": "Свет"
 "[field.items.light.about]": "Насколько далеко светит"
 "[field.items.scares]": "Отпугивает"

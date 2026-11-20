@@ -8,7 +8,9 @@
   stack: 1
   icon: sickle
   tool: sickle
+  sprite: sickle
   anim: slash
+  trail: true
   mows: tall
   power: 1
   area: 3
@@ -23,7 +25,9 @@
   stack: 1
   icon: copper_sickle
   tool: sickle
+  sprite: copper_sickle
   anim: slash
+  trail: true
   mows: tall
   power: 2
   area: 4
@@ -38,7 +42,9 @@
   stack: 1
   icon: iron_sickle
   tool: sickle
+  sprite: iron_sickle
   anim: slash
+  trail: true
   mows: tall
   power: 3
   area: 5

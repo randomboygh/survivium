@@ -11,6 +11,7 @@
   tool: knife
   sprite: flint_knife
   anim: slash
+  trail: true
   power: 1
   swing: 0.3
   reach: 4
@@ -25,6 +26,7 @@
   tool: knife
   sprite: copper_knife
   anim: slash
+  trail: true
   power: 2
   swing: 0.3
   reach: 4
@@ -39,6 +41,7 @@
   tool: knife
   sprite: bronze_knife
   anim: slash
+  trail: true
   power: 3
   swing: 0.3
   reach: 4
@@ -53,6 +56,7 @@
   tool: knife
   sprite: iron_knife
   anim: slash
+  trail: true
   power: 4
   swing: 0.3
   reach: 4
@@ -67,6 +71,7 @@
   tool: knife
   sprite: steel_knife
   anim: slash
+  trail: true
   power: 5
   swing: 0.3
   reach: 4

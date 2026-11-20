@@ -188,6 +188,34 @@ const SHAPES := {
 		],
 		"carry": {"front": 0, "side": 0, "back": 0},
 	},
+	# A sickle: a short handle and a flint blade hooked over to the tip, wider at the heel.
+	"sickle": {
+		"up": [
+			".aAA.",
+			"a..aA",
+			"....A",
+			"...aA",
+			"..d..",
+			"..w..",
+			"..g..",
+		],
+		"diagonal": [
+			"..aAA.",
+			".a..aA",
+			".....A",
+			"...aA.",
+			"..d...",
+			".w....",
+			"g.....",
+		],
+		"toward": [
+			".g.",
+			".d.",
+			"aAA",
+			"..A",
+		],
+		"carry": {"front": 0, "side": 0, "back": 0},
+	},
 	"flint_spear": {
 		"up": [
 			".A.",
@@ -458,6 +486,8 @@ const RECOLOURED := {
 	"bronze_knife": ["flint_knife", {"A": "Z", "a": "z"}],
 	"iron_knife": ["flint_knife", {"A": "J", "a": "j"}],
 	"steel_knife": ["flint_knife", {"A": "Y", "a": "y"}],
+	"copper_sickle": ["sickle", {"A": "N", "a": "n"}],
+	"iron_sickle": ["sickle", {"A": "J", "a": "j"}],
 	"wooden_pickaxe": ["pickaxe", {"q": "R", "a": "m", "A": "p"}],
 	"wooden_scythe": ["scythe", {"q": "R", "a": "m", "A": "p"}],
 	"copper_axe": ["axe", {"q": "o", "a": "n", "A": "N"}],
@@ -530,14 +560,48 @@ static func sheet(sprite: String, anim: String) -> Image:
 
 
 ## The pixels of a tool pointing way `angle` (0 up, clockwise by eighths, or
-## PlayerArt.TOWARD: at the ground in front, towards the viewer, foreshortened),
+## PlayerArt.TOWARD: at the ground in front, towards the viewer, foreshortened, or
+## PlayerArt.LOW, LOW_LEFT: right or left and down about 30 degrees),
 ## mirrored along its length when `ccw`, held `slide` pixels up its length from the grip
 ## (its head nearer the hand, the end of its shaft past it; at most as far as leaves
 ## SLIDE_LEFT of it beyond the hand, none for a short thing): {offset from the grip: letter}.
 static func turned(shape: Dictionary, angle: int, ccw: bool, slide := 0) -> Dictionary:
 	if angle == PlayerArt.TOWARD:
 		return _pixels(shape.toward, ccw, 0, false, slide, true)
+	if angle == PlayerArt.LOW or angle == PlayerArt.LOW_LEFT:
+		return _low(shape.up, ccw, angle == PlayerArt.LOW_LEFT, slide)
 	return _pixels(shape.up if angle % 2 == 0 else shape.diagonal, ccw, angle / 2, angle % 2 == 1, slide, false)
+
+
+## The thing drawn up (`rows`) laid pointing right and down about 30 degrees (left and
+## down when `left`): along a line two pixels across for each one down, flat at the hand,
+## its edge below (above when `ccw`), held `slide` pixels up its length as _pixels holds it.
+static func _low(rows: Array, ccw: bool, left: bool, slide: int) -> Dictionary:
+	var grip := Vector2i.ZERO
+	var reach := 0
+	for y in rows.size():
+		var x: int = rows[y].find("g")
+		if x >= 0:
+			grip = Vector2i(x, y)
+	for y in rows.size():
+		if rows[y].replace(".", "") != "":
+			reach = maxi(reach, absi(y - grip.y))
+	slide = clampi(slide, 0, maxi(0, reach - SLIDE_LEFT))
+	var out := {}
+	for y in rows.size():
+		for x in rows[y].length():
+			var c: String = rows[y][x]
+			if c == ".":
+				continue
+			# Along the length from the hand (towards the head) and across it (the edge's side).
+			var along: int = grip.y - y - slide
+			var across: int = (grip.x - x) if ccw else (x - grip.x)
+			var drop: int = signi(along) * ((absi(along) - 1) / 2) if along != 0 else 0
+			var p := Vector2i(along, drop + across)
+			if left:
+				p.x = -p.x
+			out[p] = c
+	return out
 
 
 static func _pixels(rows: Array, ccw: bool, turns: int, diagonal: bool, slide: int, toward: bool) -> Dictionary:

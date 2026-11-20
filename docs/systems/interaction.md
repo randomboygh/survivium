@@ -247,7 +247,7 @@ only twigs: `young_tree`, `Felling.fell(…, young)`), a grown one becomes a tre
 is removed by `Felling.clear`, then `Growth.place`) if there is room above it; a hoe (`tools/hoe`, class
 `hoe`), a sickle (`tools/sickle`, class `sickle`), a watering can (`tools/watering_can`, class `can`); beds —
 `WorldData.fields`. Items with `tool`, `power`, `area`, `reach`, `swing`, `mows`, `durability`, `repair`,
-`anim`, `hands` (kind `items`); materials with `dig`, `hardness`, `item`, `bonus`, `mow`, `mow_gives` (kind
+`anim`, `hands`, `trail` (kind `items`); materials with `dig`, `hardness`, `item`, `bonus`, `mow`, `mow_gives` (kind
 `materials`); trees and bushes — what they give (`log`, `twig`, `seed`, `fruit`). Building takes blocks from the
 bag (free — a switch of «Testing»; digging, mowing and reaping give their own even then).
 

@@ -9,13 +9,15 @@ extends RefCounted
 ## with the left one in use each direction is the opposite one with the hands swapped,
 ## mirrored, so neither the figure nor a thing is drawn twice. The sheet is built a
 ## part of a row at a time (step), so taking another thing in hand never takes a frame
-## of its own.
+## of its own. A blade swung leaves a trail: player.yaml `trail`, drawn over the outline
+## in the frames of its work.
 ##
 ## `look` lists the layers drawn, bottom up: names of player.yaml `layers`, or the
 ## paths of the pictures of clothes worn (see dressed). `held` is {"left": thing, "right": thing, "active":
 ## "left" or "right"}, a thing being {} for an empty hand, {"sprite": the path of its
 ## sheet, "anim": the work it is used with} or {"icon": the name it is kept by,
-## "picture": its Image (null: a lump), "anim"}.
+## "picture": its Image (null: a lump), "anim"}, and `"trail": true` for one that leaves
+## a trail as its work swings it (an item's `trail`).
 
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const Yaml := preload("res://src/shared/content/yaml.gd")
@@ -112,6 +114,8 @@ static func prepare(worn: Array) -> void:
 	for name in worn:
 		layer(name)
 	layer(in_form(data().fists, f))
+	if data().get("trail", "") != "":
+		layer(data().trail)
 	anchors(f)
 
 
@@ -541,6 +545,7 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 			var part := Rect2i(Vector2i((a - c0) * size.x, 0), Vector2i((b - a) * size.x, size.y))
 			SpriteSheet.outline_rect(strip, part, soles if walking else 0)
 			a = b
+	_put_trail(strip, src, c0, c1)
 	if swap:
 		for col in c1 - c0:
 			var r := Rect2i(Vector2i(col * size.x, 0), size)
@@ -556,6 +561,38 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 		var tip: Vector2i = _row_tips[col]
 		target.tips[Vector2i(col, row)] = Vector2i(size.x - 1 - tip.x, tip.y) if swap else tip
 	_img.blit_rect(strip, whole, Vector2i(c0 * size.x, row * size.y))
+
+
+## The trail of what the hand in use swings, in its work's frames of columns c0..c1 (not
+## included) of row `src` of the figure: player.yaml `trail`, for a thing that leaves one
+## (an item's `trail`: a blade). Drawn for the right hand, as the strip: over the outlined
+## figure where the hand holds the thing in front of the body, behind it (only where the
+## frame is still empty) where the thing is behind the body, as seen from behind.
+func _put_trail(strip: Image, src: int, c0: int, c1: int) -> void:
+	var thing: Dictionary = _things.get("right", {})
+	if not thing.get("trail", false) or data().get("trail", "") == "":
+		return
+	var pic := layer(data().trail)
+	var size := target.frame_size
+	var marks: Array = anchors(_form)[src]
+	for col in range(c0, c1):
+		var work := work_at(col)
+		if work[0] == "" or work[0] != thing.get("anim", ""):
+			continue
+		var from := Rect2i(Vector2i(col, src) * size, size)
+		if not Rect2i(Vector2i.ZERO, pic.get_size()).encloses(from):
+			continue
+		var to := Vector2i((col - c0) * size.x, 0)
+		var mark: Dictionary = marks[col]["right"]
+		if mark.is_empty() or mark.front:
+			strip.blend_rect(pic, from, to)
+			continue
+		var used := pic.get_region(from).get_used_rect()
+		for y in range(used.position.y, used.end.y):
+			for x in range(used.position.x, used.end.x):
+				var c := pic.get_pixel(from.position.x + x, from.position.y + y)
+				if c.a > 0.0 and strip.get_pixel(to.x + x, to.y + y).a == 0.0:
+					strip.set_pixel(to.x + x, to.y + y, c)
 
 
 ## Columns c0..c1 (not included) of row `src` of the figure, drawn for the right hand in

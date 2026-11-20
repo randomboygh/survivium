@@ -29,7 +29,8 @@
 # it is used for: chop (chop from above), dig (dig down in front), slash (strike
 # from the side), reach (stretch out: place, gather; also the default), mow (mow with both hands),
 # aim (hold in front with both hands), eat (bring to the mouth); hands — how many hands it
-# takes (mow and aim — two). light — the item in hand shines in the dark (a torch): by how many world
+# takes (mow and aim — two); trail: true — a blade, swung it leaves a trail over the figure (the sprites/player.yaml
+# `trail` picture). light — the item in hand shines in the dark (a torch): by how many world
 # units its light reaches; its durability is how many seconds it burns in hand, in water it goes out;
 # the fire burns at the brightest point of its sheet in hand. Without such an item there is only a faint glow around the player.
 # source: special — the item is obtained in a way the content graph does not see (a quest, a trade): then it is not

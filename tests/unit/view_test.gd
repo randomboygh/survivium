@@ -303,6 +303,36 @@ func _test_sprite_sheet() -> void:
 	var swung := Figure.sheet(look, {"right": stick, "active": "right"}).texture.get_image()
 	_check(swung.get_region(Rect2i(chop[0] * fw, 2 * fh, fw, fh)).get_data() != swung.get_region(Rect2i(chop[2] * fw, 2 * fh, fw, fh)).get_data(),
 		"an icon swings with the hand in its work")
+	# A blade leaves a trail in its work's frames: over the figure and its outline where the
+	# blade is in front of the body, behind them (only where the frame is empty) where the
+	# blade is behind it, as seen from behind.
+	var sword := {"sprite": "res://content/tools/sword/sprites/held/sword.png", "anim": "slash", "trail": true}
+	var trailed := Figure.sheet(look, {"right": sword, "active": "right"}).texture.get_image()
+	var untrailed := Figure.sheet(look, {"right": {"sprite": sword.sprite, "anim": "slash"}, "active": "right"}).texture.get_image()
+	var trail := Figure.layer(Figure.data().trail)
+	var streaked := 0
+	var behind := 0
+	var wrong := 0
+	for row in 8:
+		var marks: Array = Figure.anchors()[row]
+		for c: int in works.slash.columns:
+			var back: bool = not marks[c].right.is_empty() and not marks[c].right.front
+			for y in range(row * fh, row * fh + fh):
+				for x in range(c * fw, c * fw + fw):
+					if trail.get_pixel(x, y).a < 0.5:
+						continue
+					streaked += 1
+					var shows: bool = trailed.get_pixel(x, y) == trail.get_pixel(x, y)
+					var empty: bool = untrailed.get_pixel(x, y).a == 0.0
+					if back:
+						behind += 0 if empty else 1
+						wrong += 1 if shows != empty else 0
+					else:
+						wrong += 0 if shows else 1
+	_check(streaked > 0 and behind > 0 and wrong == 0,
+		"a blade's trail shows over the figure, or behind it as seen from behind: %d of %d pixels wrong" % [wrong, streaked])
+	_check(trailed.get_region(Rect2i(0, 0, fw, fh)).get_data() == untrailed.get_region(Rect2i(0, 0, fw, fh)).get_data()
+		and trailed.get_data() != untrailed.get_data(), "a trail shows only in the work, only of a thing that leaves one")
 	# Nothing spills over a frame's edge: what is on it is outline next to the figure.
 	var spilled := 0
 	for row in 8:
