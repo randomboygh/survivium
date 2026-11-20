@@ -14,6 +14,7 @@
   tool: scythe
   sprite: scythe
   anim: mow
+  trail: true
   hands: 2
   mows: all
   power: 1
@@ -31,6 +32,7 @@
   tool: scythe
   sprite: wooden_scythe
   anim: mow
+  trail: true
   hands: 2
   mows: all
   power: 1
@@ -48,6 +50,7 @@
   tool: scythe
   sprite: copper_scythe
   anim: mow
+  trail: true
   hands: 2
   mows: all
   power: 2
@@ -65,6 +68,7 @@
   tool: scythe
   sprite: bronze_scythe
   anim: mow
+  trail: true
   hands: 2
   mows: all
   power: 2
@@ -82,6 +86,7 @@
   tool: scythe
   sprite: iron_scythe
   anim: mow
+  trail: true
   hands: 2
   mows: all
   power: 3
@@ -99,6 +104,7 @@
   tool: scythe
   sprite: steel_scythe
   anim: mow
+  trail: true
   hands: 2
   mows: all
   power: 4
