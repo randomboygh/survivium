@@ -663,6 +663,19 @@ func _test_gestures() -> void:
 		if out == "" or a[other].at != stand[other].at or b[other].at != stand[other].at:
 			beckoning.append(row)
 	_check(beckoning.is_empty(), "beckoning, one hand is out and lifts a pixel, the other stays, in every direction: wrong in rows %s" % [beckoning])
+	# Bowing: the head lower halfway and lower again at the bottom, the feet as standing.
+	var bow: Array = Figure.data().animations.bow.frames
+	var bowed := []
+	for row in 8:
+		var top := []
+		for col: int in [0, int(bow[0]), int(bow[1])]:
+			top.append(img.get_region(Rect2i(col * fw, row * fh, fw, fh)).get_used_rect().position.y)
+		var feet := Rect2i(0, fh - 1, fw, 1)
+		var still: bool = img.get_region(Rect2i(int(bow[1]) * fw, row * fh, fw, fh)).get_region(feet).get_data() \
+			== img.get_region(Rect2i(0, row * fh, fw, fh)).get_region(feet).get_data()
+		if not (top[1] == top[0] + 1 and top[2] == top[0] + 2 and still):
+			bowed.append(row)
+	_check(bowed.is_empty(), "bowing, the head goes a pixel and two down, the feet stay, in every direction: wrong in rows %s" % [bowed])
 
 
 ## The looks picked (Looks): their layers in the hair slot, their colours swapped by the
