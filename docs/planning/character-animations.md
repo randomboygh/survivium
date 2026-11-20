@@ -461,3 +461,33 @@ outline, its tip in the trail's first pixels).
   «было» `mow_b`); the tools `mow_view.py`, `mow_grid.py`, `mow_t0.py`, `mow_variants_gif.py`,
   `mow_sheet.py`, `mow_review.py` (the review GIF with the frame shown whole from side to side),
   `mow_cmp.py` (a direction's frames, the old row over the new), `mow_asc.py` (frames as text).
+
+## The row (done)
+
+- Thread «Нарисовать анимацию гребли», 2026-11-20. Columns 44-47 (`player.yaml` `row`, 4 a second: the
+  stroke is `Boats.ROW_PERIOD`, a second, and the frame follows `Boats.stroke`), drawn whole:
+  `tools/art/player_row_art.gd` (RowArt), written by `gen_row_gd.py <module> <out.gd>` from a data module
+  in the library, now `row_f.py` (`ROW`).
+- A push stroke, as the oars swing for a body facing the bow: 0 the catch (the fists near the body, the
+  blades in the water), 1 pushed (the body a row down), 2 the blades lifted (the fists low), 3 back.
+- The legs are the sit's: `PlayerArt._seated` (through `_low`, which the stand and the sit draw theirs
+  with) stamps them under the body drawn whole, so the sit and the row follow each other without a jump in
+  every build, and a change of the sit's legs (`SIDE_LEGS` `sit`, `SIT_KNEE`) changes the rowing's too. A
+  frame's last row keeps only the hands and, where the waistband is on it (se, ne, n), the waistband the
+  feet go over; `view_test` checks that the feet (the boots layer) never move from the sit's.
+- The user's review of the front and the side (`row-front-1.gif`, 18:34 MSK): «Все хорошо, но пара пикселей
+  кисти должна быть видна поверх рукоятки весел». The oars are meshes drawn over the sprite, so they lost
+  their grips (the two dark voxels at the handle's end, `Boats._oar`) and the fists are drawn where the
+  grips were, outside the hull: from the front by the chin with an outline between, from the side the
+  near one in front of the bench and clear of the chin, turned (se) the far one out from behind the head
+  on its oar, with the back turned (ne) the far one behind the head, from behind both by the head on arms
+  raised from the shoulders. A frame's `hands`: the fist's lowest pixel next to the body (a fist is two
+  pixels wide, an arm under it one), or where it is behind the head or the body.
+- Checking in the boat (tools in the library's `src/`): `rowcap.patch` (a temporary capture of the rower
+  in the boat: the figure as PlayerArt draws it, its quad in magenta, the oars alone; apply, run, revert),
+  `row_cap.py` (the captures in game pixels), `row_ends.py` (where the handles' ends are, in front of or
+  behind the figure, under the hull), `row_proto.py` and `row_zoom.py` (frames drawn into the captures
+  with the game's light), `row_gif2.py` (the review GIF from the game's own captures and quick sheets),
+  `form_letters.gd` (a frame's letters in a build).
+- GIFs in the library: `row-front-1.gif` (the front and the side, draft E), `row-all-3.gif` (every
+  direction, draft F on main's sit of #806: «в лодке» the game's captures, «без лодки» the sheets), accepted by the user 2026-11-20 19:39 MSK.

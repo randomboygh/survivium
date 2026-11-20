@@ -72,7 +72,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   for water facing, then in eight directions (`launch_near`; the client greys the button out by its own copy
   when there is no water); every change of seat (sat down, got out, moved) at once sends the client
   `state_changed` (`_told`), otherwise the client for a moment still drew the character in the vessel on the
-  shore; on screen one sitting in a vessel is the frame `sit`, a rower on the move — `row` (`player.gd`), the
+  shore; on screen one sitting in a vessel is the frame `sit`, a rower on the move — `row` (`player.gd`; its
+  frames drawn whole, the fists on the oars' handles: `tools/art/player_row_art.gd`), the
   boat's oars (`oars` of the item) swing in time in `boats.gd` (`stroke`, `ROW_PERIOD`), at each stroke
   splashes at the blades and a plash (`_dip`), behind the stern of a moving vessel a wake (`Effects.wake`);
   currents, answer 5А: `_feel_flow` in `step_boats` gives a body in water or on a vessel the river's current

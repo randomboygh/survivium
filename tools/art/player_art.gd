@@ -20,9 +20,9 @@ extends RefCounted
 ## the upper left. The feet stand on the frame's last row with no outline under them. The
 ## walk's body under the head is copied pixel by pixel from the reference (WalkArt): the
 ## arms swinging, the body bobbing; the jump's, the swim's, the chop's, the dig's, the
-## slash's, the bow's shot, the eat's, the reach's, the mow's and the gestures' are drawn
-## whole the same way (JumpArt, SwimArt, ChopArt, DigArt, SlashArt, AimArt, EatArt, ReachArt,
-## MowArt, GestureArt).
+## slash's, the bow's shot, the eat's, the reach's, the mow's, the gestures' and the rowing's
+## are drawn whole the same way (JumpArt, SwimArt, ChopArt, DigArt, SlashArt, AimArt, EatArt,
+## ReachArt, MowArt, GestureArt, RowArt).
 ##
 ## The sheet is drawn for the right hand in use. In the work columns (player.yaml
 ## `works`) that hand winds up, strikes and follows through (WORKS), and in a
@@ -43,6 +43,7 @@ const EatArt := preload("res://tools/art/player_eat_art.gd")
 const ReachArt := preload("res://tools/art/player_reach_art.gd")
 const MowArt := preload("res://tools/art/player_mow_art.gd")
 const GestureArt := preload("res://tools/art/player_gesture_art.gd")
+const RowArt := preload("res://tools/art/player_row_art.gd")
 
 ## Directions drawn as another one flipped, with the hands swapped.
 const MIRROR := {"sw": "se", "w": "e", "nw": "ne"}
@@ -284,12 +285,11 @@ const ARMS := {
 }
 ## The hands when they do not work, by view and animation, a frame each: [right hand,
 ## left hand] in the box (moved with the body when it bobs), and the legs and how far
-## the body bobs down. The walk is copied from a reference instead (WalkArt), the jump
-## and the swim drawn whole (JumpArt, SwimArt). Afloat in a
-## vessel the body sits low, its legs forward ("sit"), and rows: both hands reach out
-## and pull the oars in (Boats swings the oars in time, ROW_PERIOD). Asleep the body
-## stands facing south with its eyes shut and its legs pressed together ("together"),
-## and Figure lays that frame on its side (Figure._lay_down). The gestures
+## the body bobs down. The walk is copied from a reference instead (WalkArt), the jump,
+## the swim and the rowing drawn whole (JumpArt, SwimArt, RowArt). Afloat in a vessel
+## the body sits low, its legs forward ("sit"). Asleep the body stands facing south with
+## its eyes shut and its legs pressed together ("together"), and Figure lays that frame
+## on its side (Figure._lay_down). The gestures
 ## (Gestures): a wave over the head, a nod ("bob"), a shake of the body side to side
 ## ("lean"), a hand pointing out, beckoning, a bow, clapping in front, where a gesture
 ## has no frames drawn whole (GestureArt). The arms are short: a hand reaches a few
@@ -320,12 +320,6 @@ const MOVES := {
 			{"hands": [[6, 13], [7, 13]]},
 		],
 		"sit": [{"hands": [[3, 14], [10, 14]], "legs": "sit", "bob": 2}],
-		"row": [
-			{"hands": [[2, 11], [11, 11]], "legs": "sit", "bob": 2},
-			{"hands": [[2, 13], [11, 13]], "legs": "sit", "bob": 2},
-			{"hands": [[3, 14], [10, 14]], "legs": "sit", "bob": 2},
-			{"hands": [[2, 13], [11, 13]], "legs": "sit", "bob": 2},
-		],
 		"sleep": [{"hands": [[3, 14], [10, 14]], "legs": "together"}],
 	},
 	"side": {
@@ -353,12 +347,6 @@ const MOVES := {
 			{"hands": [[10, 12], [10, 11]]},
 		],
 		"sit": [{"hands": [[9, 14], [8, 14]], "legs": "sit", "bob": 2}],
-		"row": [
-			{"hands": [[10, 12], [9, 12]], "legs": "sit", "bob": 2},
-			{"hands": [[9, 14], [8, 14]], "legs": "sit", "bob": 2},
-			{"hands": [[5, 13], [4, 13]], "legs": "sit", "bob": 2},
-			{"hands": [[7, 13], [6, 13]], "legs": "sit", "bob": 2},
-		],
 	},
 	"back": {
 		"idle": [{"hands": [[10, 14], [3, 14]]}],
@@ -385,12 +373,6 @@ const MOVES := {
 			{"hands": [[7, 13], [6, 13]]},
 		],
 		"sit": [{"hands": [[10, 14], [3, 14]], "legs": "sit", "bob": 2}],
-		"row": [
-			{"hands": [[11, 11], [2, 11]], "legs": "sit", "bob": 2},
-			{"hands": [[11, 13], [2, 13]], "legs": "sit", "bob": 2},
-			{"hands": [[10, 14], [3, 14]], "legs": "sit", "bob": 2},
-			{"hands": [[11, 13], [2, 13]], "legs": "sit", "bob": 2},
-		],
 	},
 }
 ## The hand in use in each frame of the works, by view, for the right hand (side view:
@@ -554,8 +536,9 @@ static func column(col: int) -> Array:
 ## (DigArt, the shovel held up its shaft: `slide`), the slash's (SlashArt), the aim's
 ## (AimArt, the bow drawn for the frame: `bow`), the eat's (EatArt, the food as it is
 ## carried: `a` -1, the eyes shut on the bite: `eyes`), the reach's (ReachArt), the mow's
-## (MowArt, the scythe drawn for the frame: `scythe`) or a gesture's (GestureArt, its rows
-## from column `x0`); {} for any other, made of the body standing and a pose.
+## (MowArt, the scythe drawn for the frame: `scythe`), a gesture's (GestureArt, its rows
+## from column `x0`) or the rowing's (RowArt); {} for any other, made of the body standing
+## and a pose.
 static func whole_frame(dir: String, c: Array) -> Dictionary:
 	if GestureArt.FRAMES.has(c[0]):
 		return GestureArt.frame(c[0], dir, c[1])
@@ -580,6 +563,8 @@ static func whole_frame(dir: String, c: Array) -> Dictionary:
 			return ReachArt.frame(dir, c[1])
 		"mow":
 			return MowArt.frame(dir, c[1])
+		"row":
+			return RowArt.frame(dir, c[1])
 	return {}
 
 
@@ -756,6 +741,28 @@ static func legs(dir: String, kind: String, rows: Array) -> Array:
 	return out
 
 
+## The legs of direction `dir` sitting (legs "sit", the build's) as rows of the box from
+## under BODY's waistband, as the sit draws them (frame_letters).
+static func _seated(dir: String) -> Array:
+	var b: Dictionary = BODY[dir]
+	var hips: int = b.hips - 11 - b.drop
+	return _low(dir, "sit", FormsArt.body(b.rows, dir, build, figure, 0, hips), hips)
+
+
+## The legs `kind` (legs) under the waistband, row `hips` of `rows` (BODY's rows in the
+## build's form), as frame_letters draws them: the side's hips curved, a knee seated.
+static func _low(dir: String, kind: String, rows: Array, hips: int) -> Array:
+	var low: Array = legs(dir, kind, rows.slice(hips + 1)).duplicate()
+	if kind != "stand" and VIEW[dir] == "side" and figure == "curvy":
+		low[0] = FormsArt.hipped(low[0], dir)
+	if kind == "sit" and SIT_KNEE.has(dir):
+		# Seated the waistband is on the last row: the knee goes past its east end.
+		var last: String = low[-1]
+		last[(rows[hips] as String).rstrip(".").length()] = SIT_KNEE[dir]
+		low[-1] = last
+	return low
+
+
 ## The letters of every layer in one frame: {layer: {pixel in the box: letter}}.
 static func frame_letters(dir: String, active: String, col: int, real := "") -> Dictionary:
 	var p := pose(dir, active, col)
@@ -770,15 +777,7 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 		var b: Dictionary = BODY[dir]
 		var hips: int = b.hips - 11 - b.drop
 		var rows := FormsArt.body(b.rows, dir, build, figure, 0, hips)
-		var low: Array = legs(dir, p.legs, rows.slice(hips + 1)).duplicate()
-		if p.legs != "stand" and VIEW[dir] == "side" and figure == "curvy":
-			low[0] = FormsArt.hipped(low[0], dir)
-		if p.legs == "sit" and SIT_KNEE.has(dir):
-			# Seated the waistband is on the last row: the knee goes past its east end.
-			var last: String = low[-1]
-			last[(rows[hips] as String).rstrip(".").length()] = SIT_KNEE[dir]
-			low[-1] = last
-		_stamp(parts, low, b.hips + 1, Vector2i.ZERO)
+		_stamp(parts, _low(dir, p.legs, rows, hips), b.hips + 1, Vector2i.ZERO)
 		_stamp(parts, rows.slice(0, hips + 1), 11, up)
 	else:
 		var rows: Array
@@ -801,6 +800,11 @@ static func frame_letters(dir: String, active: String, col: int, real := "") -> 
 				rows = ReachArt.rows(whole, dir, build, figure)
 			"mow":
 				rows = MowArt.rows(whole, dir, build, figure)
+			"row":
+				rows = RowArt.rows(whole, dir, build, figure)
+				# The legs are the sit's, so the two follow each other without a jump in
+				# every form; the body drawn whole goes over them.
+				_stamp(parts, _seated(dir), BODY[dir].hips + 1, Vector2i.ZERO)
 			_:
 				if GestureArt.FRAMES.has(c[0]):
 					rows = GestureArt.rows(whole, dir, build, figure)

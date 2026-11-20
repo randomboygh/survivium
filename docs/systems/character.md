@@ -332,6 +332,15 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   are as high over the ground as from the front; from the side the arm goes down and forward in front of
   the body, from behind it is at the picture's right, behind the body. The frames turn nothing (`a` -1):
   what the hand holds is drawn as carried, at the hand's mark.
+  The rowing's four frames are drawn whole too (`tools/art/player_row_art.gd`, reviewed with the user
+  2026-11-20), played in time with the oars (`Boats.stroke`): a push stroke for a body facing the bow,
+  the catch (the fists near the body), pushed (the body leaning a row down), the blades lifted (the fists
+  low), back. The legs are the sit's (`PlayerArt._seated`), so sitting and rowing follow each other
+  without a jump in every build. The fists stay on the handles' ends, where the oars have no grip of
+  their own (`Boats._oar`), so a couple of pixels of each hand show over the handles wherever the hull
+  and the bench leave them (the user's note): from the front by the chin, an outline between; from the
+  side the near one in front of the bench; turned the far one out from behind the head on its oar (with
+  the back turned, behind the head); from behind both by the head, the arms up from the shoulders.
 - Looks (stage 3, PR 3 of the character editor): `src/shared/content/looks.gd` reads `player.yaml` `looks`
   (10 skin tones, 12 hair colours, 6 eye colours by place in their lists; 10 hair styles, 8 face options
   under the hair, 5 on the face, by id) and makes any look sound (`Looks.clean`: the server's check of a
