@@ -1402,6 +1402,7 @@
 "[previous_slots]": "Previous slots"
 "[next_slots]": "Next slots"
 "[jump]": "Jump"
+"[back_again_for_the_menu]": "Back again for the menu"
 "[d_n2]": "%s · %d° · d. %d · %02d:%02d"
 "[cut]": "Cut\n%d"
 "[lv]": "Lv.\n%d"

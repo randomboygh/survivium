@@ -346,6 +346,27 @@ func _build_windows() -> void:
 	game.character.state_changed.connect(_counts_later)
 
 
+## The system's back (main.gd marks its Escape) opens the pause menu only when given
+## again within BACK_AGAIN ms: a thumb steering by the screen's edge starts Android's back
+## swipe by chance (the menu opened by itself, 2026-11-20). Closing the menu or a page
+## of it, and every other window, takes one back.
+const BACK_AGAIN := 2000
+var _back_at := -BACK_AGAIN
+
+
+func _back_waits(event: InputEvent) -> bool:
+	if not event.has_meta("back") or _menu.visible or (_settings != null and _settings.visible):
+		return false
+	var now := Time.get_ticks_msec()
+	if now - _back_at <= BACK_AGAIN:
+		print("back: given again, the menu opens")
+		_back_at = -BACK_AGAIN
+		return false
+	_back_at = now
+	print("back: the menu waits for a second back")
+	return true
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if game.world == null:
 		return
@@ -354,6 +375,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			KEY_ESCAPE:
 				if bag.visible:
 					toggle_bag()
+				elif _back_waits(event):
+					toast("[back_again_for_the_menu]")
 				else:
 					toggle_menu()
 				get_viewport().set_input_as_handled()
