@@ -688,6 +688,13 @@ func _test_curious_plants() -> void:
 	var under := tex.get_pixel(PixelTextures.PLANT_W * (PixelTextures.PLANTS + c.first), PixelTextures.PLANT_H)
 	_check(tex.get_height() == PixelTextures.PLANT_H + 1 and under.r > 0.5 and under.g < 0.5
 		and roundi(under.b * 255.0) == Plants.looks_shift(c), "the plant texture tells the shader a mimosa folds, and where to")
+	var sway_of := func(id: String) -> Color:
+		for k in Plants.CUSTOM:
+			if k.id == id:
+				return tex.get_pixel(PixelTextures.PLANT_W * (PixelTextures.PLANTS + k.first) + 1, PixelTextures.PLANT_H)
+		return Color(0, 0, 0, 0)
+	_check(sway_of.call("plants:cactus").b > 0.5 and sway_of.call("plants:mimosa").b < 0.5,
+		"the plant texture marks a cactus as stopping a body, shown over the player's figure behind it")
 	_check(Plants.RING == Plants.MUSHROOMS and Plants.RING_SHARE > 0.0, "the mushrooms grow in fairy rings")
 	var ring := Vector3.ZERO
 	var at := Vector2i.ZERO
