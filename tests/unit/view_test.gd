@@ -375,6 +375,83 @@ func _test_sprite_sheet() -> void:
 		"a blade's trail shows over the figure, or behind it as seen from behind: %d of %d pixels wrong" % [wrong, streaked])
 	_check(trailed.get_region(Rect2i(0, 0, fw, fh)).get_data() == untrailed.get_region(Rect2i(0, 0, fw, fh)).get_data()
 		and trailed.get_data() != untrailed.get_data(), "a trail shows only in the work, only of a thing that leaves one")
+	# A scythe is drawn as each frame of the mow draws it (MowArt `scythe`), in both hands:
+	# its blade hangs from the snath's end down to the ground, whole in every frame (the
+	# frame's edge cuts nothing off it, with a wider body too: its place does not follow that
+	# body's hands).
+	var scythe := {"sprite": "res://content/tools/scythe/sprites/held/scythe.png", "anim": "mow", "trail": true}
+	var mow: Array = works.mow.columns
+	var mowing := Figure.sheet(look, {"right": scythe, "active": "right"}).texture.get_image()
+	var wide := Figure.sheet(Figure.dressed({}, {"build": "stocky"}), {"right": scythe, "active": "right"}).texture.get_image()
+	var steel := Color("c3c8cc").to_rgba32()
+	var blades := {}
+	var hung := 0
+	var both := 0
+	for row in 8:
+		for c: int in mow:
+			both += 1 if anchors[row][c].left.is_empty() else 0
+			var top := fh
+			var low := -1
+			var whole := [0, 0]
+			for y in fh:
+				for x in fw:
+					if mowing.get_pixel(c * fw + x, row * fh + y).to_rgba32() == steel:
+						top = mini(top, y)
+						low = maxi(low, y)
+						whole[0] += 1
+					if wide.get_pixel(c * fw + x, row * fh + y).to_rgba32() == steel:
+						whole[1] += 1
+			blades[whole[0]] = true
+			blades[whole[1]] = true
+			hung += 1 if top >= fh - 7 and low >= fh - 3 else 0
+	_check(hung == 8 * mow.size(), "a scythe's blade hangs down to the ground all through the mow: in %d frames of %d" % [hung, 8 * mow.size()])
+	_check(blades.size() == 1 and not blades.has(0), "a scythe's blade is whole in every frame, with a wider body too: %s of its pixels show" % [blades.keys()])
+	_check(both == 8 * mow.size(), "mowing, both hands hold the scythe: in %d frames of %d" % [both, 8 * mow.size()])
+	# The hands hold the snath at its middle, not at its end: seen from the side its wood
+	# (ToolArt.INK `w`) shows on both sides of the hand, toward the blade and past the fists.
+	var wood := Color("84593a").to_rgba32()
+	var middle := 0
+	for c: int in mow:
+		var hand: Vector2i = anchors[2][c].right.at
+		var before := false
+		var past := false
+		for y in fh:
+			for x in fw:
+				if mowing.get_pixel(c * fw + x, 2 * fh + y).to_rgba32() == wood and img.get_pixel(c * fw + x, 2 * fh + y).to_rgba32() != wood:
+					before = before or x < hand.x
+					past = past or x > hand.x
+		middle += 1 if before and past else 0
+	_check(middle == mow.size(), "a scythe is held at the middle of its snath: from the side in %d frames of %d" % [middle, mow.size()])
+	# Its trail shows on the strike alone (the mow's third frame): from the front and the
+	# side over the figure (the blade passes in front of the feet), behind it as seen from
+	# behind.
+	var unswept := Figure.sheet(look, {"right": {"sprite": scythe.sprite, "anim": "mow"}, "active": "right"}).texture.get_image()
+	var swept := 0
+	var early := 0
+	var over_feet := 0
+	var amiss := 0
+	for row in 8:
+		for i in mow.size():
+			var c: int = mow[i]
+			var back: bool = not anchors[row][c].right.is_empty() and not anchors[row][c].right.front
+			for y in range(row * fh, row * fh + fh):
+				for x in range(c * fw, c * fw + fw):
+					if trail.get_pixel(x, y).a < 0.5:
+						continue
+					if i != 2:
+						early += 1
+						continue
+					swept += 1
+					var shows: bool = mowing.get_pixel(x, y) == trail.get_pixel(x, y)
+					var empty: bool = unswept.get_pixel(x, y).a == 0.0
+					if back:
+						amiss += 1 if shows != empty else 0
+					else:
+						amiss += 0 if shows else 1
+						over_feet += 0 if empty else 1
+	_check(swept > 0 and early == 0, "a scythe leaves its trail on the strike alone: %d of its pixels in other frames" % early)
+	_check(over_feet > 0 and amiss == 0,
+		"a scythe's trail passes in front of the figure, or behind it as seen from behind: %d of %d pixels wrong, %d over the figure" % [amiss, swept, over_feet])
 	# A bow is drawn as each frame of its shot draws it (AimArt `bow`: nocked, drawn back,
 	# loosed), and the other hand, which draws the string, shows nothing of its own.
 	var bow := {"sprite": "res://content/tools/bow/sprites/held/wooden_bow.png", "anim": "aim"}
@@ -534,6 +611,58 @@ func _test_gestures() -> void:
 				covered.append(row)
 				break
 	_check(covered.is_empty(), "nodding, no shirt shows over the chin: wrong in rows %s" % [covered])
+	# Shaking the head: the body stands (the legs and the hands' marks as standing), the head
+	# turns one way and the other and goes at most a pixel aside between the two frames.
+	var shake: Array = Figure.data().animations.shake.frames
+	var shaken := []
+	for row in 8:
+		var standing := img.get_region(Rect2i(0, row * fh, fw, fh))
+		var a := img.get_region(Rect2i(int(shake[0]) * fw, row * fh, fw, fh))
+		var b := img.get_region(Rect2i(int(shake[1]) * fw, row * fh, fw, fh))
+		var legs := Rect2i(0, fh - 3, fw, 3)
+		var still: bool = a.get_region(legs).get_data() == standing.get_region(legs).get_data() \
+			and b.get_region(legs).get_data() == standing.get_region(legs).get_data() \
+			and anchors[row][int(shake[0])] == anchors[row][0] and anchors[row][int(shake[1])] == anchors[row][0]
+		var turned := a.get_data() != b.get_data()
+		var aside := absi(a.get_used_rect().position.x - b.get_used_rect().position.x) + absi(a.get_used_rect().end.x - b.get_used_rect().end.x)
+		if not (still and turned and aside <= 2):
+			shaken.append(row)
+	_check(shaken.is_empty(), "shaking the head, the body stands and the head turns, a pixel aside at most, in every direction: wrong in rows %s" % [shaken])
+	# Pointing: one hand out from the body and up from where it hangs, the other where it stands,
+	# the legs as standing.
+	var point := int(Figure.data().animations.point.frames[0])
+	var pointing := []
+	for row in 8:
+		var stand: Dictionary = anchors[row][0]
+		var at: Dictionary = anchors[row][point]
+		var out := ""
+		for hand: String in ["right", "left"]:
+			if at[hand].at.y < stand[hand].at.y and at[hand].at != stand[hand].at:
+				out = hand
+		var other := "left" if out == "right" else "right"
+		# The feet's row: a hand hanging reaches the rows over it.
+		var legs := Rect2i(0, fh - 1, fw, 1)
+		var still: bool = img.get_region(Rect2i(point * fw, row * fh, fw, fh)).get_region(legs).get_data() \
+			== img.get_region(Rect2i(0, row * fh, fw, fh)).get_region(legs).get_data()
+		if out == "" or at[other].at != stand[other].at or not still:
+			pointing.append(row)
+	_check(pointing.is_empty(), "pointing, one hand is up and out, the other and the legs as standing, in every direction: wrong in rows %s" % [pointing])
+	# Beckoning: the same hand out in both frames and a pixel higher in the second, the other where
+	# it stands.
+	var beckon: Array = Figure.data().animations.beckon.frames
+	var beckoning := []
+	for row in 8:
+		var stand: Dictionary = anchors[row][0]
+		var a: Dictionary = anchors[row][int(beckon[0])]
+		var b: Dictionary = anchors[row][int(beckon[1])]
+		var out := ""
+		for hand: String in ["right", "left"]:
+			if a[hand].at.y < stand[hand].at.y and b[hand].at == a[hand].at + Vector2i.UP:
+				out = hand
+		var other := "left" if out == "right" else "right"
+		if out == "" or a[other].at != stand[other].at or b[other].at != stand[other].at:
+			beckoning.append(row)
+	_check(beckoning.is_empty(), "beckoning, one hand is out and lifts a pixel, the other stays, in every direction: wrong in rows %s" % [beckoning])
 
 
 ## The looks picked (Looks): their layers in the hair slot, their colours swapped by the

@@ -328,7 +328,7 @@ outline, its tip in the trail's first pixels).
 
 - Columns 48-59 (`player.yaml`: wave 48-49, nod 0 and 50, shake 51-52, point 53, beckon 54-55, bow 56-57,
   clap 58-59). A gesture is drawn whole in `tools/art/player_gesture_art.gd` (GestureArt), written by
-  `gen_gesture_gd.py <out.gd> wave=gestures_i:WAVE nod=gestures_nod_a:ALL_B:0,50` from data modules in the
+  `gen_gesture_gd.py <out.gd> wave=gestures_i:WAVE nod=gestures_nod_a:ALL_B:0,50 shake=gestures_shake_a:ALL_D point=gestures_point_a:ALL_B beckon=gestures_beckon_a:ALL` from data modules in the
   library; the others are still `PlayerArt.MOVES` poses until drawn. A frame's rows start at column
   `GestureArt.X0` (-2): a hand goes out past the box beside the head; the box's part is made in the body's
   forms (`FormsArt.body`), the hands past it thinned with it (`GestureArt.rows`).
@@ -351,15 +351,107 @@ outline, its tip in the trail's first pixels).
   `:0,50` writes `{}` for it. Dressed, the chin lies over the collar's row and the shirt's layer (over the
   body's) drew the collar over it: `PlayerArt.frame_letters` takes what is worn off where the head is (the
   review GIFs show the bare look; the library's `dressed_quick.gd <out.png> <cols>` shows it dressed).
+- The shake (variant В of three looked at from the front, 2026-11-20 19:30 MSK: the head turned, moved
+  aside, both; then «не так сильно сдвигать голову, всего на 1 пиксель»): the body stands and the head turns
+  an eighth to each side (`head`: s to se and sw, se to s and e, e to se and ne, ne to e and n, n to ne and
+  nw; a west way is its east one flipped, `PlayerArt._turned`), a pixel aside the way the face turns in the
+  first frame and in its place in the second (`head_shift` in the data, `lean` in GestureArt, which
+  `PlayerArt.pose` takes from a frame drawn whole: only the head, hair and looks move, the body's rows stay).
+  From the side (e) the head only turns: aside it would leave the neck.
+- The point (variant A of two looked at from the front, 2026-11-20 20:35 MSK: the arm out level, the arm
+  down and out; «А, но руку (плечо) на два пикселя короче»; then north and east the hand a pixel nearer the
+  body, no outline pixel between them): the right hand two pixels square on the body's first row, a pixel
+  of arm from the shoulder, the finger a pixel past the hand on its top row; from the side forward, from
+  behind to the right. The hand that hung is taken off.
+- The beckon (variant A of three looked at from the front, 2026-11-20 21:14 MSK: the hand lifted, the hand
+  drawn in to the body, the forearm swung up to the shoulder): the right hand where the point holds it,
+  without the finger, then a pixel higher; turned and from the side the lifted hand lies on the head's edge.
 - A raised hand's place (`hands`, where a thing held is drawn) is its lowest pixel under its middle, the
   one nearer the body on a tie, so a hand that moves moves its place; a hand drawn where the stand has it
   keeps the stand's place. `view_test.gd` (`_test_gestures`) checks the wave in every direction (one hand
   up by the head and moving, the other where it stands) and the nod (the head a pixel lower, the legs and
-  the hands' marks as standing, no shirt over the chin).
+  the hands' marks as standing, no shirt over the chin) and the shake (the legs and the hands' marks as
+  standing, the two frames differ, the figure's edges a pixel apart at most) and the point (one hand up
+  and out, the other and the feet as standing) and the beckon (the hand out and a pixel higher in the
+  second frame, the other where it stands).
 - Tools in the library: `gestures_proto.py` renders a frame as the game does (the front hands over the
   head), `gestures_wide.py` builds wide frames from a stand (`seg`, `frame`), `gestures_view.py` sheets of
   variants, `gestures_vsgame.py <module>:<attr> <anim> <quick dir>` compares them with a quick sheet drawn
   with the code (`bad 0`, and only the gesture's columns changed).
+
+## The mow
+
+- Columns 30-33 (`player.yaml` `works` mow; the six scythes play it), drawn whole in the thread
+  «Нарисовать анимацию косьбы»: `tools/art/player_mow_art.gd` (MowArt), written by `gen_mow_gd.py <module>
+  <out.gd>` (run with `python3 -I`) from the data module `mow_d.py` (`MOW`) in the library (`mow_a.py`
+  the first drawing and the bodies without arms, `mow_b.py` the blade down and the trail in front,
+  `mow_c.py` the scythe two pixels nearer, `mow_d.py` the snath's end past the far fist). A frame there is one picture: `mow_canvas.F(bob, top, canvas,
+  grip, a, f, base, smear)`, the canvas rows of 30 letters (box x -8..21 from box row `top`: the scythe
+  in `ToolArt.INK` letters, the hands' digits, `$` `%` `&` `*` a hand's 4, 5, 7, 8 over the snath) over
+  `base`, the body's rows without the arms; `moved(rows, which, dx)` leans the torso, `smear(top,
+  canvas)` writes the trail on the same canvas.
+- The user's review, 2026-11-20 (MSK). On the first drawing of the front (`mow-front-1.gif`: the blade up
+  at the wind-up, the trail behind the figure): 18:17 «Шлейф рисовать перед персонажем»; 18:18 «Лезвие
+  косы направить не вверх, а вниз»; 18:38, on `mow-front-2.gif`: «Все хорошо». On every direction
+  (`mow-all-1.gif`), 19:06-19:07: «Во всех видах выносить косу за персонажа на 2 пикселя меньше», «То
+  есть персонаж должен держать косу не за кончик ручки, а за середину», «В виде спереди и сзади тоже»
+  (`mow-all-2.gif`).
+- The scythe: the snath rises from the hands to its far end (the heel `d`, box row 11), the blade a thin
+  wedge hanging from it with its point turned in at the ground (rows 12-16). The frame has no room under
+  the feet, so «down» is the far end raised and the blade hanging from it. A level snath with a blade
+  two pixels thick read as a pickaxe (`mow_b1.py`; `mow_shapes.py` and `mow_b2.py`-`mow_b4.py` have the
+  shapes tried).
+- Held at its middle: `mow_c` is `mow_b` with the scythe slid two pixels through the hands toward the
+  body (the hands and the body's rows are the same), so the blade is two pixels nearer and the snath's
+  near end comes out past the hands. From the side it shows: over the waistband in front of the fists
+  while the scythe is behind the back, on the hip under the arm once it is in front. From the front it
+  is behind the forearm that crosses the chest (drawn over the chest it read as a brown patch on the
+  belly: `mow_c_try.py`), from behind behind the body. Lifted, the snath is steeper (a pixel a row) so
+  that it still meets the fists; from the side on the strike it leaves the fists level for a pixel, or it
+  would touch the lowered chin with no outline between.
+- The snath's end past the far fist (`mow_d`, the user 2026-11-20 19:35 MSK on `mow-all-2.gif`: «Все
+  хорошо, но с другой стороны кулака должна торчать часть ручки косы»): from the front and turned two
+  pixels of it past the far fist, out over the body's outline; from behind, where the body hides it, a
+  pixel or two under the fists. `mow-all-3.gif` («было» `mow_c`).
+- The frames: the scythe out to one side; its far end a pixel up, the torso leaning after it with the
+  hands; the strike, crouched (the chest's row folded away), the scythe at the other side, the trail;
+  standing, the scythe where it stopped. The mower swings from their right to their left in every view:
+  s, se and e from the picture's left to its right through the near side (e from behind the back
+  forward), ne and n from the right to the left through the far side, ending behind the body with the
+  left hand on the snath (`f` false, the hand's digits 7 and 8).
+- The trail (the scythes have `trail: true`): from the front and the side a shallow arc from where the
+  blade was, down over the feet's row and up to the blade, so it passes in front of the character (a
+  straight bar on the feet's row read as a platform; its bottom covers the feet and their outline);
+  from behind, low pieces on the ground behind the figure, faint at the start and bright by the blade
+  (a diagonal read as a rope from the body). It uses the frame's last row (`PlayerArt.layer` keeps only
+  the top row and the side columns of a trail clear).
+- From the side the snath right behind the head read as a ponytail in the first two frames, so the
+  scythe is lower there than the head's back; two pixels nearer it is still a pixel clear of the head's
+  outline.
+- The scythe is drawn by the frame, as the bow (`scythe`: rows from their corner's offset from the
+  working hand's mark; `ToolArt.DRAWN` lists the shapes a frame draws, `ToolArt.drawn_by_frame`). A held
+  thing's cell is 25 px with the grip in its middle, so every pixel is within 12 of the mark: with the
+  mark at the hand the stocky build moved the whole scythe a pixel out. `gen_mow_gd.py` (`mark_of`) puts
+  the mark above the frame's neck in every view but the side one (no build moves a raised mark,
+  `PlayerArt.pose`; from the side no mark moves) and asserts the reach. A stocky body's hands still go
+  a pixel out along the snath; in the second frame from the front its fist at box x 0 keeps one pixel
+  of two (`FormsArt.body` drops that column), left so.
+- `mow_dbl.py` (the 2x2 dark blocks, see «The bow») finds only the gaps between the legs and one block
+  from the north-east on the strike, where the lowered head's outline meets the fist's.
+- Checking: after `make_sprites.gd -- --all` and `--import`, `dump.gd` with the stone scythe
+  (`content/tools/scythe/sprites/held/scythe.png`, given as `scythe=` its path under `content/` and
+  `:mow:trail`), then `SMEAR=free python3 -I vsgame.py mow_d MOW <dump dir> scythe mow` prints `bad 0`
+  (eight directions, the trail too). The thin and the stocky build and the clothes were looked at
+  (`dump_forms.gd` with `"trail": true` added to the thing held, `mow_forms_view.py <dir> <out.png>
+  [zoom] [dirs]`). `view_test.gd`: the blade hangs down to the ground in every frame and is whole in
+  every frame, in the stocky build too; both hands hold the scythe, at the middle of its snath (from the
+  side its wood shows on both sides of the hand); the trail shows on the strike alone, over the figure
+  from the front and behind it from behind.
+- In the library: `mow-front-1.gif`, `mow-front-2.gif` (the front, accepted) with their sheets,
+  `mow-all-1.gif` (every direction; «было» the game's frames before), `mow-all-2.gif` (two pixels nearer;
+  «было» `mow_b`); the tools `mow_view.py`, `mow_grid.py`, `mow_t0.py`, `mow_variants_gif.py`,
+  `mow_sheet.py`, `mow_review.py` (the review GIF with the frame shown whole from side to side),
+  `mow_cmp.py` (a direction's frames, the old row over the new), `mow_asc.py` (frames as text).
 
 ## The row (done)
 
