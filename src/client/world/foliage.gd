@@ -61,6 +61,9 @@ const BUSH_CLUMP := 12
 ## Where the plants of a crop stand across its bed, in parts of the cell (two rows of two).
 const CROP_ROWS := [0.3, 0.72]
 const BUSH_DISC := 0.9
+## The disc of a cactus's shadow: its width, and how high its middle stands (half the disc: the shadow starts at the foot).
+const SOLID_DISC := 0.7
+const SOLID_RISE := SOLID_DISC * 0.5
 const SHADOW_DISC := 1.6
 ## One pixel and one cell in world units.
 const PX := 1.0 / 16.0
@@ -339,6 +342,10 @@ static func _column(job: Job, x: int, z: int) -> void:
 					put(grass, Vector3(x + fx, y + h, z + fz) * CELL)
 					grass.append_array([float(kind + k), light, phase, (k - (across - 1) * 0.5) * PLANT_W])
 				job.ng += across
+				# A plant that stands in the way (a cactus) casts a shadow like a bush does.
+				if Plants.SOLID.has(Plants.custom_of(kind - Grass.CUSTOM)):
+					_solid_shadow(shadows, Vector3(x + fx, y + h, z + fz) * CELL)
+					job.ns += 1
 				continue
 			put(grass, Vector3(x + fx, y + h, z + fz) * CELL)
 			grass.append_array([float(kind), rng.randf_range(0.88, 1.1), rng.randf(), 0.0])
@@ -1239,6 +1246,15 @@ static func _tier_normal(c: Vector3, axis: Vector3, lean: float) -> Vector3:
 
 
 ## Appends a translation-only transform in MultiMesh buffer order.
+## Appends the shadow disc of a solid plant (a cactus) rooted at `foot` (world units): an
+## upright disc as high as its middle that faces the light, as a bush's does
+## (leaf_shadow.gdshader), kept whole all year (kind 0.6, evergreen).
+static func _solid_shadow(buf: PackedFloat32Array, foot: Vector3) -> void:
+	var s := SOLID_DISC / SHADOW_DISC
+	buf.append_array([s, 0.0, 0.0, foot.x, 0.0, 1.0, 0.0, foot.y + SOLID_RISE, 0.0, 0.0, s, foot.z])
+	buf.append_array([0.6, 1.0, 0.0, 0.0])
+
+
 static func put(buf: PackedFloat32Array, p: Vector3) -> void:
 	# Written in place: a literal Array per instance costs twice as much.
 	var at := buf.size()

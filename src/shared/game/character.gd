@@ -551,7 +551,6 @@ func _touch_fire(p: Vector3) -> void:
 	if away.length() < 0.01:
 		away = Vector2(0.0, 1.0)
 	body.knock(away, BURN_KNOCK, BURN_HOP)
-	nag("fire", "[hot]")
 
 
 ## Ground that burns (Mat.burns: lava) the body at `p` (world units) stands on, or tried
@@ -574,7 +573,6 @@ func _touch_hot(p: Vector3) -> void:
 	if away.length() < 0.01:
 		away = Vector2(0.0, 1.0)
 	body.knock(away, BURN_KNOCK, BURN_HOP)
-	nag("fire", "[hot]")
 
 
 ## A plant that pricks (its `pricks`: a cactus, which stops the body, Body.solid_near)
@@ -598,7 +596,6 @@ func _touch_spines(p: Vector3) -> void:
 	if away.length() < 0.01:
 		away = Vector2(0.0, 1.0)
 	body.knock(away, PRICK_KNOCK, PRICK_HOP)
-	nag("spines", "[ouch_prickly]")
 
 
 ## The health a touch of the cell at `c` takes (Mat.burns), 0 for most.
