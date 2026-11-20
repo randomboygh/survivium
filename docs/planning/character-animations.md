@@ -115,10 +115,13 @@ e, ne, n, nw, w, sw.
   is the front, columns 4-7: raised, raised, the smear (a white crescent), stopped. `cmp_ref.py` puts
   its frames beside ours.
 - GIFs in the library: `slash-front-8.gif` (reference beside ours), `slash-front-9.gif`,
-  `slash-front-10.gif` (the front, waiting for the user's word); the draft of every direction in this
-  logic `slash-all-10.gif` (turned as the front; from the side up behind the head, over in front of the
-  face, forward and down with a crescent of a trail; from behind the front mirrored, the blade hidden in
-  front of the body but for its tip past the left side). The game has `slash_n` (vsgame `bad 0`).
+  `slash-front-10.gif` (the front, accepted 2026-11-20 12:02 MSK); `slash-all-11.gif`, every direction
+  in this logic («было» the 4th iteration, `slash_e`, the last time the user saw them all: turned as
+  the front; from the side up behind the head, over in front of the face, forward and down with a
+  crescent of a trail; from behind the front mirrored, the blade hidden in front of the body but for
+  its tip past the left side); `slash-tools-11.gif` (`tools_gif.py <dump dir> slash <out.gif>
+  name=Подпись,...`: a row per held thing, a column per direction, as the game draws them). The game
+  has `slash_n` (vsgame `bad 0`).
 - The trail (the user's pick: white, no outline, over the figure, only on frame 3): a frame's `trail`
   (`at` and rows in image pixels; in the data module `smear`), the letters `o`, `+`, `-` of
   `PlayerArt.INK`, drawn into the layer `player/trail.png` (`player.yaml` `trail`); `Figure._put_trail`
@@ -132,5 +135,5 @@ e, ne, n, nw, w, sw.
   `work_review.py` every direction's, `igrid.py` and `asc.py` a frame's pixels.
 - A rod out fishing is held as in the last frame (`Player.ROD_OUT` 3). A sickle in the hand is its
   icon cut to 5 pixels (`held` `icon`): barely seen, its trail shows the swing.
-- Left: the user's word on the front, then on every direction; then the PR (the WIP commits on the
-  branch are squashed by the merge).
+- Left: the user's word on every direction, then the PR (the WIP commits on the branch are squashed
+  by the merge).
