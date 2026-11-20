@@ -524,6 +524,18 @@ func _test_tracks() -> void:
 	tr.elapsed += Trample.LIFE + 2.0
 	tr._expire()
 	_check(tr._living.is_empty() and tr.image.get_pixelv(centre).a == 0.0, "trodden grass stands up again")
+	# A new print and its trodden grass go to the renderer within SOON, not with the next
+	# FLUSH: the print shows the moment the foot comes down.
+	w.set_cell(1, 3, 1, Mat.STONE)
+	t._process(Tracks.FLUSH)
+	tr.step(Trample.FLUSH)
+	t.leave(feet, Vector2(1, 0), true, true, 1.0)
+	t._process(Tracks.SOON * 0.5)
+	tr.step(Trample.SOON * 0.5)
+	_check(t._dirty and tr._dirty, "maps just sent wait a moment for the next print")
+	t._process(Tracks.SOON * 0.5)
+	tr.step(Trample.SOON * 0.5)
+	_check(not t._dirty and not tr._dirty, "a new print and its grass are sent within SOON (%s, %s)" % [t._dirty, tr._dirty])
 	t.free()
 
 
