@@ -676,6 +676,23 @@ func _test_gestures() -> void:
 		if not (top[1] == top[0] + 1 and top[2] == top[0] + 2 and still):
 			bowed.append(row)
 	_check(bowed.is_empty(), "bowing, the head goes a pixel and two down, the feet stay, in every direction: wrong in rows %s" % [bowed])
+	# Clapping: the hands out apart, then no farther apart (from the front met in the middle,
+	# three pixels nearer each), the feet as standing.
+	var clap: Array = Figure.data().animations.clap.frames
+	var clapped := []
+	for row in 8:
+		var apart: Dictionary = anchors[row][int(clap[0])]
+		var met: Dictionary = anchors[row][int(clap[1])]
+		var wide := absi(apart.right.at.x - apart.left.at.x)
+		var near := absi(met.right.at.x - met.left.at.x)
+		var feet := Rect2i(0, fh - 1, fw, 1)
+		var still := true
+		for col: int in [int(clap[0]), int(clap[1])]:
+			still = still and img.get_region(Rect2i(col * fw, row * fh, fw, fh)).get_region(feet).get_data() \
+				== img.get_region(Rect2i(0, row * fh, fw, fh)).get_region(feet).get_data()
+		if near > wide or not still or (row == 0 and wide - near != 6):
+			clapped.append(row)
+	_check(clapped.is_empty(), "clapping, the hands come together, from the front three pixels each, the feet stay, in every direction: wrong in rows %s" % [clapped])
 
 
 ## The looks picked (Looks): their layers in the hair slot, their colours swapped by the

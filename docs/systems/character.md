@@ -211,7 +211,9 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   frame's `lean` moves only the head), only turning from the side; the point holds the right hand out level by the body's first row, the
   finger a pixel past it (forward from the side); the beckon holds the hand there without the finger and
   lifts it a pixel; the bow lowers the head a pixel and two with the body standing, the chest's second
-  row folding at the bottom with the eyes shut, the head a pixel forward there when turned. The wheel of gestures —
+  row folding at the bottom with the eyes shut, the head a pixel forward there when turned. The clap holds
+  the hands, two pixels square, out beside the chest, then three pixels in each, met in its middle and
+  edged with the skin's deepest shade; turned away only the forearms show. The wheel of gestures —
   `src/client/ui/gesture_wheel.gd` (a button beside the chat in the top row, the key C, digits 1–8 in the
   wheel).
 - `src/client/view/figure.gd` — the sheet of the player's frames from `content/core/sprites/` by `player.yaml`

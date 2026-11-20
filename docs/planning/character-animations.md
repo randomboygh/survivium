@@ -328,8 +328,8 @@ outline, its tip in the trail's first pixels).
 
 - Columns 48-59 (`player.yaml`: wave 48-49, nod 0 and 50, shake 51-52, point 53, beckon 54-55, bow 56-57,
   clap 58-59). A gesture is drawn whole in `tools/art/player_gesture_art.gd` (GestureArt), written by
-  `gen_gesture_gd.py <out.gd> wave=gestures_i:WAVE nod=gestures_nod_a:ALL_B:0,50 shake=gestures_shake_a:ALL_D point=gestures_point_a:ALL_B beckon=gestures_beckon_a:ALL bow=gestures_bow_a:ALL_B` from data modules in the
-  library; the others are still `PlayerArt.MOVES` poses until drawn. A frame's rows start at column
+  `gen_gesture_gd.py <out.gd> wave=gestures_i:WAVE nod=gestures_nod_a:ALL_B:0,50 shake=gestures_shake_a:ALL_D point=gestures_point_a:ALL_B beckon=gestures_beckon_a:ALL bow=gestures_bow_a:ALL_B clap=gestures_clap_a:ALL_D` from data modules in
+  the library; every gesture is drawn. A frame's rows start at column
   `GestureArt.X0` (-2): a hand goes out past the box beside the head; the box's part is made in the body's
   forms (`FormsArt.body`), the hands past it thinned with it (`GestureArt.rows`).
 - The user's review, one gesture at a time, the front first (`gestures_front_gif.py`), then every direction
@@ -373,7 +373,19 @@ outline, its tip in the trail's first pixels).
   head goes a pixel forward at the bottom (`lean`, gestures-bow-all-3.gif). The user asked for the head
   turned forward about the neck instead; a shear of the head's rows and a true turn of 15-30 degrees
   (sampled 4×4 a pixel, majority) were drawn (library `gestures_proto.py` `tilt`, `rot`), and the user
-  kept the pixel forward: at 12 pixels a turn breaks the head's shape.
+  kept the pixel forward: at 12 pixels a turn breaks the head's shape. The bow's folded frame keeps
+  its `neck` no higher than its first row (#815): a neck above it gave `FormsArt.body` a negative row and
+  the stocky forms' feet changed.
+- The clap (2026-11-20/21 MSK, after several rounds from the front: hands at the chest a pixel apart
+  rejected; «каждая кисть 2×2, в первом кадре снаружи туловища, во втором сдвинуть внутрь на 3 пикселя,
+  чтобы сомкнулись»; outline variant 2, brown): the hands two pixels square out beside the chest a pixel
+  from the shoulder, then three pixels in each, met in the middle, edged with the skin's deepest (`k`) all
+  round (the outline's near-black cut the chest). Then: south-east the met hands a pixel right and the arm
+  on the picture's left two pixels shorter (the hand against the body); north-east no shoulder pixels in
+  the second frame and the arms a pixel shorter; north the arms a pixel higher and a pixel shorter
+  (gestures-clap-all-4.gif). From the side the near hand is out in front, then against the chest with a
+  brown line; turned away and from behind the hands are hidden before the body in the second frame, only
+  the forearms show.
 - A raised hand's place (`hands`, where a thing held is drawn) is its lowest pixel under its middle, the
   one nearer the body on a tie, so a hand that moves moves its place; a hand drawn where the stand has it
   keeps the stand's place. `view_test.gd` (`_test_gestures`) checks the wave in every direction (one hand
@@ -382,7 +394,8 @@ outline, its tip in the trail's first pixels).
   standing, the two frames differ, the figure's edges a pixel apart at most) and the point (one hand up
   and out, the other and the feet as standing) and the beckon (the hand out and a pixel higher in the
   second frame, the other where it stands) and the bow (the figure's top a pixel and two lower, the feet
-  as standing).
+  as standing) and the clap (the hands' marks no farther apart in the second frame, from the front six
+  pixels nearer, the feet as standing).
 - Tools in the library: `gestures_proto.py` renders a frame as the game does (the front hands over the
   head), `gestures_wide.py` builds wide frames from a stand (`seg`, `frame`), `gestures_view.py` sheets of
   variants, `gestures_vsgame.py <module>:<attr> <anim> <quick dir>` compares them with a quick sheet drawn
