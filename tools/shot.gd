@@ -1136,6 +1136,34 @@ func _run() -> void:
 				if main.placed.is_fire(e):
 					main.hud.open_prop(e)
 					break
+		if shot.get("vat", false):
+			# A dye vat by the player, opened: things of the bag to dye anew (the tunic dyed
+			# pink), dyes and ash.
+			var inv = main.host.player.inventory
+			for id: String in ["tools:fiber_tunic", "tools:linen_shirt", "tools:shell_beads", "tools:bandana"]:
+				inv.add(id, 1)
+			for i in inv.slots.size():
+				if inv.slots[i] != null and inv.slots[i][0] == "tools:fiber_tunic":
+					inv.set_dye(i, "plants:dye_pink")
+			for dye: String in ["plants:dye_red", "plants:dye_blue", "plants:dye_green", "plants:dye_white", "plants:dye_purple"]:
+				inv.add(dye, 2)
+			inv.add("plants:ash", 3)
+			var pl = main.session.placed
+			pl.put("plants:dye_vat", pl.spot_near(main.player.position + Vector3(1.5, 0.0, -0.5)))
+			for i in 10:
+				await process_frame
+			for e in main.placed.things:
+				if e.item == "plants:dye_vat" and not shot.get("shut", false):
+					main.hud.open_prop(e)
+					break
+			if shot.get("shut", false) and main.hud.bag.visible:
+				main.hud.toggle_bag()
+			if shot.get("shut", false):
+				main.render_toggles.set_hidden("chunks: grass", true)
+				for i in 10:
+					await process_frame
+			for i in 10:
+				await process_frame
 		if shot.get("give_all", false):
 			# The playtest's free items turned on: one of every thing, the bag wider for them.
 			main.settings.set_free_items(true)

@@ -246,6 +246,9 @@ const SCHEMAS := {
 		# A find (a material's `finds`) that comes out only where the column's biome is one
 		# of these (chalk on the plateau and the shore); none: wherever the material is.
 		"found_in": {"type": "list", "of": "ref:biomes", "soft": true, "default": [], "rel": "lives_in"},
+		# A dye vat: set down, a thing from the bag is dyed anew at it with a dye, or washed
+		# back to its own colours with one of this item (Workshop.redye).
+		"washes": {"type": "ref:items", "soft": true, "default": "", "rel": "requires"},
 		# A fire (`fuel_max`) that burns down to the end leaves these on its cell (ash;
 		# WorldActions.leave_ashes); one put out by rain or a hand leaves none.
 		"ashes": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "burn"},

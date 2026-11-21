@@ -13,6 +13,9 @@ extends VBoxContainer
 ## over the first job's progress, the pause and «отменить | отменить все». Opened at a
 ## station, buttons in the window's head (by the cross, see station_buttons) take it
 ## back into the bag; at a campfire, put it out or light it again for a branch, feed it one piece of fuel (its charge drawn on that button) and destroy it once it is out. Works through Workshop.
+## Opened at a dye vat (an item with `washes`), the cells are the things of the bag that
+## can be dyed, and the panel under them dyes the one chosen anew («Перекрасить» with the
+## dye picked in its «Краситель» row) or washes its dye out («Отмыть», with ash).
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const ItemIcons := preload("res://src/client/ui/item_icons.gd")
@@ -28,6 +31,7 @@ const CraftQueue := preload("res://src/shared/game/craft_queue.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const Inventory := preload("res://src/shared/game/inventory.gd")
 
 const COLUMNS := 8
 ## The most cells of recipes made in one refresh (see refresh_now).
@@ -83,6 +87,13 @@ var _facts: FactChips
 var _dye_row: HBoxContainer
 var _dye_cells: HBoxContainer
 var _dye := ""
+## At a dye vat: the cells of the things of the bag that can be dyed (reused, by
+## order), the bag slot of the one chosen, and the line of «Перекрасить | Отмыть».
+var _vat_cells := []
+var _vat_slot := -1
+var _vat_line: HBoxContainer
+var _redye: Button
+var _wash: Button
 ## The width the recipe's name may take beside its picture (see fit_width).
 var _title_room := 100
 var _make: HBoxContainer
@@ -253,6 +264,19 @@ func _ready() -> void:
 	_stations.add_theme_constant_override("separation", 2)
 	_stations.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_make.add_child(_stations)
+	# At a dye vat, in place of «сделать»: «Перекрасить» (amber, the dye picked) joined to
+	# «Отмыть» (the vat's `washes`).
+	_vat_line = TabRow.split([
+		[UiStyle.icon("hammer"), "[dye_anew]", func() -> void: _redye_chosen(_dye)],
+		[UiStyle.icon("hammer"), "[wash_the_dye_out]", func() -> void: _redye_chosen("")],
+	])
+	_redye = _vat_line.get_child(0)
+	_wash = _vat_line.get_child(1)
+	_redye.custom_minimum_size = Vector2(roundf(TabRow.WIDE * 2.0 / 3.0), 30)
+	_wash.custom_minimum_size = Vector2(TabRow.WIDE - _redye.custom_minimum_size.x + 2, 30)
+	UiStyle.accent(_redye)
+	_redye.add_theme_color_override("icon_disabled_color", Color(UiStyle.DARK_INK, 0.5))
+	box.add_child(_vat_line)
 
 	var queue := _panel(bottom)
 	_queue_panel = queue
@@ -355,6 +379,23 @@ func refresh_now() -> void:
 	if not _station.is_empty() and not game.placed.things.has(_station):
 		_station = {}
 	_show_head()
+	var vat := _at_vat()
+	_tabs.visible = not vat
+	_make.visible = not vat
+	_vat_line.visible = vat
+	for cell in _vat_cells:
+		cell.visible = false
+	if vat:
+		for id in _cells:
+			_cells[id].visible = false
+		_show_vat()
+		_show_queue()
+		_cap = list_height
+		_fit_list()
+		if on_layout.is_valid():
+			on_layout.call()
+		return
+	_empty.text = "[no_recipes_yet_gather_fiber]"
 	_show_stations(known, stations)
 	# Tabs of the kinds of things the recipes known make.
 	var have := {}
@@ -464,18 +505,20 @@ func _start(n: int) -> void:
 
 
 ## The «Краситель» row of recipe `r`: shown for a thing that can be dyed, a cell of its
-## own colours and one of each dye in the bag, each the thing's picture in those colours.
-func _show_dyes(r: Dictionary) -> void:
+## own colours and one of each dye in the bag, each the thing's picture in those colours;
+## at a vat, for a thing dyed `had`, one of each other dye of the bag.
+func _show_dyes(r: Dictionary, had := "-") -> void:
 	var inv = game.character.inventory
 	_dye_row.visible = Items.dyeable(r.makes)
 	if not _dye_row.visible:
 		return
-	var dyes := [""]
+	# At a vat (`had` the dye the thing is in now): only the dyes it is not in.
+	var dyes := [""] if had == "-" else []
 	for id: String in Items.IDS:
-		if Items.is_dye(id) and inv.count(id) > 0:
+		if Items.is_dye(id) and inv.count(id) > 0 and id != had:
 			dyes.append(id)
 	if not dyes.has(_dye):
-		_dye = ""
+		_dye = "" if had == "-" or dyes.is_empty() else dyes[0]
 	var cells := _dye_cells.get_children()
 	for i in maxi(cells.size(), dyes.size()):
 		var cell = cells[i] if i < cells.size() else null
@@ -499,6 +542,76 @@ func _show_dyes(r: Dictionary) -> void:
 func _pick_dye(cell: Control) -> void:
 	_dye = str(cell.get_meta("dye", ""))
 	refresh_now()
+
+
+## Whether the tab was opened at a dye vat (an item with `washes`).
+func _at_vat() -> bool:
+	return not _station.is_empty() and Items.get_item(_station.item).get("washes", "") != ""
+
+
+## At a dye vat: a cell for each thing of the bag that can be dyed (in its colours now),
+## the one chosen in the panel with its «Краситель» row (the dyes of the bag but its own)
+## and the buttons, each lit only when it can be done.
+func _show_vat() -> void:
+	var inv = game.character.inventory
+	var slots := []
+	for i in inv.slots.size():
+		if inv.slots[i] != null and Items.dyeable(inv.slots[i][0]):
+			slots.append(i)
+	_empty.text = "[nothing_in_the_bag_can_be]"
+	_empty.visible = slots.is_empty()
+	_scroll.visible = not slots.is_empty()
+	if not slots.has(_vat_slot):
+		_vat_slot = slots[0] if not slots.is_empty() else -1
+	while _vat_cells.size() < slots.size():
+		var cell = HotbarSlot.new(slot)
+		cell.on_release = true
+		cell.pressed.connect(func() -> void:
+			if _drag.take_tap():
+				_vat_slot = int(cell.get_meta("slot", -1))
+				refresh_now())
+		_grid.add_child(cell)
+		_vat_cells.append(cell)
+	for k in slots.size():
+		var i: int = slots[k]
+		var cell = _vat_cells[k]
+		var id: String = inv.slots[i][0]
+		var had := Inventory.dye_of(inv.slots[i])
+		cell.visible = true
+		cell.custom_minimum_size = Vector2(slot, slot)
+		cell.set_meta("slot", i)
+		cell.texture = ItemIcons.dyed(id, had) if had != "" else ItemIcons.of_item(id)
+		cell.tooltip_text = Lang.t(Items.title(id)) + (Lang.f("[dyed_with_s]", [Items.title(had)]) if had != "" else "")
+		cell.selected = i == _vat_slot
+		cell.modulate = Color.WHITE
+	_details.visible = _vat_slot >= 0
+	if _vat_slot < 0:
+		return
+	var s: Array = inv.slots[_vat_slot]
+	var thing: String = s[0]
+	var dyed := Inventory.dye_of(s)
+	_icon.texture = ItemIcons.dyed(thing, dyed) if dyed != "" else ItemIcons.of_item(thing)
+	_title.text = Lang.t(Items.title(thing)) + (Lang.f("[dyed_with_s]", [Items.title(dyed)]) if dyed != "" else "")
+	_get.visible = false
+	_fit_title()
+	var washes: String = Items.get_item(Items.get_item(_station.item).washes).id
+	var has_wash: int = inv.count(washes)
+	_facts.show_groups([["[where]", [[ItemIcons.of_item(_station.item), "", false, Lang.t(Items.title(_station.item))]]],
+		["[wash_with]", [[ItemIcons.of_item(washes), "%d/%d" % [int(s[1]), has_wash], has_wash < int(s[1]), Lang.t(Items.title(washes))]]]])
+	_show_dyes({"makes": thing}, dyed)
+	var shop = game.workshop
+	_redye.disabled = _dye == "" or shop.why_not_redye(_vat_slot, _dye) != ""
+	_redye.icon = UiStyle.centred(ItemIcons.of_item(_dye)) if _dye != "" else UiStyle.centred(UiStyle.icon("hammer"))
+	_redye.tooltip_text = Lang.f("[dye_it_s]", [Items.title(_dye)]) if _dye != "" else "[pick_a_dye_in_the_bag]"
+	_wash.disabled = shop.why_not_redye(_vat_slot, "") != ""
+	_wash.icon = UiStyle.centred(ItemIcons.of_item(washes))
+	_wash.tooltip_text = Lang.f("[wash_the_dye_out_with_s]", [Items.title(washes)])
+
+
+## Dyes the thing chosen at the vat with dye `dye` ("" washes it).
+func _redye_chosen(dye: String) -> void:
+	if _vat_slot >= 0:
+		game.net.request(Protocol.REDYE, [_vat_slot, dye]).then(func(_v: Variant) -> void: refresh())
 
 
 ## The station the tab was opened at was taken up or destroyed (`done` true).

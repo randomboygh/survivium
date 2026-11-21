@@ -482,7 +482,11 @@ in, so a dyed thing stacks only with its own dye and keeps it in chests, on the 
 the save); what is worn keeps the dye of the one worn (`Inventory.gear_dye`, saved as `gear_dyes`; of two
 things of one item `worn_slot` finds the one of that dye). A thing is made dyed in the craft window («Краситель»
 row: `CRAFT` with a third argument; `Workshop.start` checks the dye is in the bag, is a dye and the thing can be
-dyed, and one portion of it goes with the job's materials, a cancel gives it back). On the figure
+dyed, and one portion of it goes with the job's materials, a cancel gives it back), or dyed anew at a dye vat
+(an item with `washes`, `plants:dye_vat`; the craft tab opened at it lists the bag's things that can be dyed,
+`CraftPanel._show_vat`): `REDYE [slot, dye]` → `Workshop.redye` (a vat near, a dye of the bag other than the
+thing's, a portion a thing; dye "" washes it back to its own colours with the vat's `washes`, ash) →
+`Inventory.set_dye`, which keeps a worn thing worn in its new colour (`gear_dye`). On the figure
 `make_sprites.gd` draws the cloth of a dyeable look (its `WORN` colours must be its `cloth`) in key colours
 (`Figure.dye_key`: red 254, blue 1, green the slot's number in `Figure.DYE_SLOTS` × 3 + the shade; a look of
 three colours has no trim, so all of it takes the dye), and the shader shows `dye_to` at that number

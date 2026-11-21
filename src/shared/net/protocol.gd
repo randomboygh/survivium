@@ -149,6 +149,9 @@ const CRAFT_CANCEL_ALL := "craft_cancel_all"
 const CRAFT_PAUSE := "craft_pause"
 ## Mends the tool in a slot of the bag: [slot] (Workshop.repair).
 const REPAIR := "repair"
+## Dyes a thing in a slot of the bag anew at a dye vat near, or washes it back to its
+## own colours ("" for the dye): [slot, dye] (Workshop.redye).
+const REDYE := "redye"
 ## Puts a stack into a slot of the bag or a chest: [from, i, to, j] (Inventory.put_into);
 ## a bag or chest is null for the player's bag, the cell of the chest, or (an int) the slot of
 ## the player's bag a bag or chest with things lies in (Inventory.open); so for the requests below.

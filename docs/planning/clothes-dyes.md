@@ -36,7 +36,14 @@ blue woad leaves, purple murex), boiled like the first five. Chalk, ochre, murex
 `found_in` (biomes; `ActionsDig.found_here`). Ash: a fire's `ashes` (patched on the campfire and the fireplace),
 dropped by `WorldActions.leave_ashes` on `Placed.burnt_down`. Nettle gives `nettle_leaves`; new bundles
 `plants/madder` (a plant's `root`, given when the cell under it is dug) and `plants/woad`. Pictures:
-`tools/make_dye_art.py`. Left: the dye vat (PR 4b).
+`tools/make_dye_art.py`.
+
+## Dye vat (PR 4b)
+
+`plants:dye_vat` (planks, cord, a full waterskin at the workbench; item field `washes: ash`); the craft tab at it
+lists the bag's dyeable things (`CraftPanel._show_vat`), `REDYE [slot, dye]` → `Workshop.redye` →
+`Inventory.set_dye` (keeps `gear_dye`). Test `security_test._test_redye`, shots `vat`, `vat-world`. The dyes plan
+is done with it.
 
 ## Left: dyes (PR 3 core, PR 4 sources and vat)
 

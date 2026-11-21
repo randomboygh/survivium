@@ -329,6 +329,9 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.REPAIR:
 			if _fit(args, [TYPE_INT]) and _slot(who.inventory, args[0]):
 				return workshop.repair(args[0])
+		Protocol.REDYE:
+			if _fit(args, [TYPE_INT, TYPE_STRING]) and _slot(who.inventory, args[0]) and (args[1] == "" or Items.has(args[1])):
+				return workshop.redye(args[0], Items.get_item(args[1]).id if args[1] != "" else "")
 		Protocol.BAG_PUT:
 			if args.size() == 4 and args[1] is int and args[3] is int:
 				var from = _bag(args[0])

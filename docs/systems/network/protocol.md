@@ -48,7 +48,7 @@ length up to `CHAT_MAX` 160.
 
 - `src/shared/net/protocol.gd` — the protocol version, the kinds of requests with their args (dig, place,
   the action in front, gather, pick up, plant, eat, drop, place/take/put out/destroy a thing, crafting and its
-  queue, repair, move/pour/sort/destroy in the bag and chests, revive), `request`, `reply`, `encode`, `decode`.
+  queue, repair, dyeing anew at a vat (`REDYE`), move/pour/sort/destroy in the bag and chests, revive), `request`, `reply`, `encode`, `decode`.
   Loads only `content/`. Through a socket each message is one binary frame; the first request on it is
   `hello` ([protocol version, the build's version `build_version()` — from `build_info.json`, «dev» without
   it; a name, the key from last time or "", a password, the hash of the mods' files the game plays with —

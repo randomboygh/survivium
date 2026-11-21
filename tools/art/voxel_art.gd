@@ -58,6 +58,8 @@ static func prop(kind: String, model := "") -> VoxelModel:
 			return rain_catcher()
 		"rain_barrel":
 			return rain_barrel()
+		"dye_vat":
+			return dye_vat()
 		"post":
 			return post()
 		"stairs":
@@ -1746,6 +1748,34 @@ static func rain_barrel() -> VoxelModel:
 				if y == 7:
 					c = wood * (1.12 if (x + z) % 3 != 0 else 0.9)
 				m.set_voxel(Vector3i(x, y, z), c)
+	return m
+
+
+## A dye vat: a wide tub of staves on one cell, two cord hoops, indigo dye in it a voxel
+## under the rim and a stirring stick leaning out of it.
+static func dye_vat() -> VoxelModel:
+	var m := VoxelModel.new()
+	var wood := Color(0.6, 0.42, 0.24)
+	var hoop := Color(0.8, 0.74, 0.6)
+	var dye := Color(0.25, 0.3, 0.62)
+	var stick := Color(0.72, 0.6, 0.42)
+	for y in 6:
+		for z in 8:
+			for x in 8:
+				var d := Vector2(x + 0.5 - 4.0, z + 0.5 - 4.0).length()
+				if d > 3.9:
+					continue
+				var wall := d >= 2.9
+				if y == 4 and not wall:
+					m.set_voxel(Vector3i(x, y, z), dye * (1.15 if (x + z) % 3 == 0 else 1.0))
+				if y > 0 and not wall:
+					continue
+				var c := wood * (0.86 if (x + z * 3) % 4 == 0 else 1.0)
+				if wall and (y == 1 or y == 4):
+					c = hoop
+				m.set_voxel(Vector3i(x, y, z), c)
+	for k in 5:
+		m.set_voxel(Vector3i(5 + k / 2, 4 + k, 4), stick)
 	return m
 
 

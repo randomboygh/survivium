@@ -130,3 +130,11 @@
   at: core:campfire
   process: cook
   time: 6
+# The dye vat: planks ("Materials") hooped with cord, filled from a full waterskin, at the workbench ("Tools").
+- id: dye_vat
+  title: "[plants.recipes.dye_vat]"
+  makes: dye_vat
+  needs: {materials:planks: 6, materials:cord: 2, tools:waterskin_full: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: tools:workbench
+  time: 8

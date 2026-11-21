@@ -347,6 +347,52 @@ func why_not_repair(i: int) -> String:
 	return ""
 
 
+## The dye vats (items with `washes`) there are.
+static func vats() -> Array:
+	return Array(Items.IDS).filter(func(id: String) -> bool: return Items.get_item(id).get("washes", "") != "")
+
+
+## Why the thing in bag slot `i` cannot be dyed with dye `dye` at a vat near, or washed
+## back to its own colours (`dye` ""); "" when it can.
+func why_not_redye(i: int, dye: String) -> String:
+	var inv = who.inventory
+	var s = inv.slots[i] if i >= 0 and i < inv.slots.size() else null
+	if s == null or not Items.dyeable(s[0]) or dye != "" and not Items.is_dye(dye):
+		return "[cannot_be_dyed]"
+	var near := stations()
+	var at: Array = vats().filter(func(id: String) -> bool: return near.has(id))
+	if at.is_empty():
+		var all := vats()
+		return Lang.line("[dyed_at_a_station]", [Items.title(all[0])]) if not all.is_empty() else "[cannot_be_dyed]"
+	var had: String = Inventory.dye_of(s)
+	if dye == had:
+		return "[already_this_colour]"
+	var needs: String = dye if dye != "" else Items.get_item(Items.get_item(at[0]).washes).id
+	if inv.count(needs) < int(s[1]):
+		return Lang.line("[missing]", [Crafting.amounts_text({needs: int(s[1]) - inv.count(needs)})])
+	return ""
+
+
+## Dyes the thing in bag slot `i` with dye `dye` at a vat near, a portion for each in the
+## stack, or washes it back to its own colours (`dye` "") with the vat's `washes`; true if
+## done.
+func redye(i: int, dye: String) -> bool:
+	var why := why_not_redye(i, dye)
+	if why != "":
+		who.nag("craft", why)
+		return false
+	var inv = who.inventory
+	var s: Array = inv.slots[i]
+	var near := stations()
+	var vat: String = vats().filter(func(id: String) -> bool: return near.has(id))[0]
+	var needs: String = dye if dye != "" else Items.get_item(Items.get_item(vat).washes).id
+	var id: String = s[0]
+	inv.remove(needs, int(s[1]))
+	inv.set_dye(i, dye)
+	who.say(Lang.line("[dyed_s]" if dye != "" else "[washed_s]", [Items.title(id)]))
+	return true
+
+
 ## Repairs the tool in bag slot `i` with the materials of its `repair`; true if done.
 func repair(i: int) -> bool:
 	var why := why_not_repair(i)
