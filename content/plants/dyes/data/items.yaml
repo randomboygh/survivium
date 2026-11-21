@@ -1,7 +1,9 @@
 # Dyes (the user's plan, decision of 2026-11-21): a dye is an item with `dye` — its three shades, light, middle
 # and dark — that a thing with `cloth` (clothes and jewellery of cloth, linen, wool, fiber, straw, leather, beads) is
 # dyed with: picked in the craft window as the thing is made, one portion a thing (Workshop.start). Twelve colours,
-# not mixed; the sources of the rest (chalk, ash, ochre, madder, woad, nettle, murex) come with the dye vat.
+# not mixed. Their sources: charcoal, evening primrose, cranberries or raspberries, blueberries, acorns, ash (below),
+# nettle leaves (the nettle bundle), madder root (madder), woad leaves (woad), and chalk, ochre and murex snails (finds
+# of the materials mod).
 - id: dye_black
   title: "[plants.items.dye_black]"
   description: "[plants.items.dye_black.about]"
@@ -37,3 +39,66 @@
   stack: 10
   icon: dye_brown
   dye: ["#a07850", "#7a5838", "#543c24"]
+- id: dye_white
+  title: "[plants.items.dye_white]"
+  description: "[plants.items.dye_white.about]"
+  weight: 0.1
+  stack: 10
+  icon: dye_white
+  dye: ["#f0ece4", "#d0c8bc", "#a09888"]
+- id: dye_grey
+  title: "[plants.items.dye_grey]"
+  description: "[plants.items.dye_grey.about]"
+  weight: 0.1
+  stack: 10
+  icon: dye_grey
+  dye: ["#a8a8a4", "#84847f", "#5c5c58"]
+- id: dye_green
+  title: "[plants.items.dye_green]"
+  description: "[plants.items.dye_green.about]"
+  weight: 0.1
+  stack: 10
+  icon: dye_green
+  dye: ["#7aa050", "#587a38", "#3c5426"]
+- id: dye_ochre
+  title: "[plants.items.dye_ochre]"
+  description: "[plants.items.dye_ochre.about]"
+  weight: 0.1
+  stack: 10
+  icon: dye_ochre
+  dye: ["#d8a048", "#b07c30", "#7c5420"]
+- id: dye_red
+  title: "[plants.items.dye_red]"
+  description: "[plants.items.dye_red.about]"
+  weight: 0.1
+  stack: 10
+  icon: dye_red
+  dye: ["#c84838", "#a03028", "#702020"]
+- id: dye_blue
+  title: "[plants.items.dye_blue]"
+  description: "[plants.items.dye_blue.about]"
+  weight: 0.1
+  stack: 10
+  icon: dye_blue
+  dye: ["#5878b8", "#405c98", "#2c406c"]
+- id: dye_purple
+  title: "[plants.items.dye_purple]"
+  description: "[plants.items.dye_purple.about]"
+  weight: 0.1
+  stack: 10
+  icon: dye_purple
+  dye: ["#a04888", "#7c3068", "#54204a"]
+# Ash, the grey dye's source.
+- id: ash
+  title: "[plants.items.ash]"
+  description: "[plants.items.ash.about]"
+  weight: 0.05
+  stack: 30
+  icon: ash
+# A campfire or a fireplace ("Tools") that burns down to its end leaves two portions of ash beside it.
+- id: core:campfire
+  patch: true
+  ashes: {plants:ash: 2}
+- id: tools:fireplace
+  patch: true
+  ashes: {plants:ash: 2}

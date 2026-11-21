@@ -1,0 +1,7 @@
+# Madder root, dug up from under the plant (its `root`): boiled into the red dye (the dyes bundle). Fields as for the
+# core's items.
+- id: madder_root
+  title: "[plants.items.madder_root]"
+  weight: 0.05
+  stack: 30
+  icon: madder_root

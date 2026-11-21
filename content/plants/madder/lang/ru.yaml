@@ -1,0 +1,11 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/madder/bundle.yaml
+"[plants.madder.bundle]": "Марена"
+
+# content/plants/madder/data/items.yaml
+"[plants.items.madder_root]": "Корень марены"
+
+# content/plants/madder/data/plants.yaml
+"[plants.plants.madder]": "Марена"

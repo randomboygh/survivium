@@ -39,7 +39,9 @@ content/materials/
   leather/                 "Leather": an item and a recipe: a hide with fat from "Animals" on the drying rack of "Tools"
   bone_glue/               "Bone glue": an item and a recipe: bones from "Animals" on a campfire, in a clay pot
   finds/                   "Finds": an ammonite and a geode now and then in dug stone, amber in sand, clay and peat
-                           (patches of the materials' `finds`; never in a block a player put there); set down as curios
+                           (patches of the materials' `finds`; never in a block a player put there); set down as curios.
+                           Sources of dyes: chalk in stone, ochre in clay and sand, murex snails in sand, each only in
+                           the biomes of its `found_in` (plateau, rocks, shore; red rocks, savanna, desert; tropical beach)
   steel/                   "Steel": a steel ingot from iron with charcoal in a crucible, in the bloomery
   silver/, gold/,          "Silver", "Gold", "Platinum": rare ores as cells (role: ore; veins 0.3, 0.2, 0.12;
   platinum/                all three are taken by a bronze pickaxe), ingots (all smelted in

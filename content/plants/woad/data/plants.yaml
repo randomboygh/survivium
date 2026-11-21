@@ -1,0 +1,15 @@
+# Woad (kind: custom, fields as for the fern): a tall stalk of blue-green leaves under a cloud of small yellow flowers,
+# on the meadows and the floodplains; picked for its leaves.
+- id: woad
+  kind: custom
+  title: "[plants.plants.woad]"
+  sprite: woad
+  frames: 2
+  grows: meadow
+  cover: 0.08
+  clumps: 0.4
+  pick: true
+  gives: {woad_leaves: 2}
+  chance: 0.8
+  winter: false
+  biomes: [biomes:meadow, biomes:floodplain]

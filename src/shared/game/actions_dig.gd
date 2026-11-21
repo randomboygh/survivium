@@ -4,6 +4,7 @@ extends "res://src/shared/game/actions_water.gd"
 
 const Grass := preload("res://src/shared/world/grass.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
+const PlacedData := preload("res://src/shared/game/placed.gd")
 const ClockScript := preload("res://src/shared/game/clock.gd")
 
 ## The grass cell each one last stood on (tread), by their instance id, so a plant
@@ -121,9 +122,18 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 			_undone[c] = true
 		else:
 			fresh += 1
+		# What grows on the cell with a root to dig up (madder) gives it too.
+		var roots := {}
+		for id: String in in_season(Grass.plants_on(world, c.x, c.y, c.z), c):
+			var root: Dictionary = Plants.BY_ID.get(id, {}).get("root", {})
+			for item: String in root:
+				roots[item] = roots.get(item, 0) + root[item]
 		world.set_cell(c.x, c.y, c.z, Mat.AIR)
 		_changed(c)
 		var at := floor_under(c)
+		for id: String in roots:
+			world.heap_drop(Items.get_item(id).get("id", id), at, roots[id], randf() * TAU, q)
+			keys[WorldData.chunk_key(c.x, c.z)] = true
 		var rec: Dictionary = Mat.RECORDS[was]
 		for id in ["" if rubble else Items.dug[was], rec.bonus if randf() < rec.bonus_chance else ""]:
 			if id != "":
@@ -131,9 +141,10 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 				keys[WorldData.chunk_key(c.x, c.z)] = true
 		# A find now and then in a cell the world grew (an ammonite in stone), never in
 		# one a player put there this session (_built).
+		# A find with `found_in` comes out only in those biomes (chalk on the shore).
 		var finds: Dictionary = rec.get("finds", {}) if grown else {}
 		for id: String in finds:
-			if randf() < finds[id]:
+			if randf() < finds[id] and found_here(id, c):
 				world.heap_drop(Items.get_item(id).get("id", id), at, 1, randf() * TAU, q)
 				keys[WorldData.chunk_key(c.x, c.z)] = true
 	for key in keys:
@@ -146,6 +157,32 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 			and who.inventory.wear_tool(wear, Items.get_item(wear).get("durability", 0)):
 		who.say(Lang.line("[broke]", [Items.title(wear)]))
 	return done
+
+
+## Fire `e` (a record of Placed) burnt down: its item's `ashes` are left beside it, on
+## the cell south of it if that is open ground, else on its own (Placed.burnt_down).
+func leave_ashes(e: Dictionary) -> void:
+	var ashes: Dictionary = Items.get_item(e.item).get("ashes", {})
+	if ashes.is_empty():
+		return
+	var n: int = PlacedData.size_of(e.item)
+	var c: Vector3i = e.cell + Vector3i(0, 0, n)
+	if world.get_cell(c.x, c.y, c.z) != Mat.AIR or world.blockers.has(c) or not world.is_solid(c.x, c.y - 1, c.z):
+		c = e.cell
+	var at := floor_under(c)
+	for id: String in ashes:
+		world.heap_drop(Items.get_item(id).get("id", id), at, ashes[id], randf() * TAU)
+	drops_changed.emit(WorldData.chunk_key(c.x, c.z))
+
+
+## Whether find `id` (a material's `finds`) may come out of `cell`: anywhere, or only in
+## the biomes of its `found_in`.
+func found_here(id: String, cell: Vector3i) -> bool:
+	var only: Array = Items.get_item(id).get("found_in", [])
+	if only.is_empty():
+		return true
+	var b: int = world.biome_at(cell.x, cell.z)
+	return b < Biomes.IDS.size() and Biomes.IDS[b] in only
 
 
 ## Whether the grass on top of `cell` can be cut: a material with a top to cut (see

@@ -243,6 +243,12 @@ const SCHEMAS := {
 		"cloth": {"type": "list", "of": "color", "len": 3, "default": []},
 		# A dye: the three shades, light, middle and dark, a thing dyed with it is in.
 		"dye": {"type": "list", "of": "color", "len": 3, "default": []},
+		# A find (a material's `finds`) that comes out only where the column's biome is one
+		# of these (chalk on the plateau and the shore); none: wherever the material is.
+		"found_in": {"type": "list", "of": "ref:biomes", "soft": true, "default": [], "rel": "lives_in"},
+		# A fire (`fuel_max`) that burns down to the end leaves these on its cell (ash;
+		# WorldActions.leave_ashes); one put out by rain or a hand leaves none.
+		"ashes": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "burn"},
 		"bag_slots": {"type": "int", "min": 0, "default": 0},
 		# Bedding: kept in the bag, sleep rests this many times faster (the best one counts,
 		# Character.sleep_rate); 1 is none.
@@ -554,6 +560,9 @@ const SCHEMAS := {
 		# (0..1) one of it drops with each plant cut, rolled apart from `chance`.
 		"finds": {"type": "shares", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "mow"},
 		"pick": {"type": "bool", "default": false},
+		# What digging the cell it grows on gives besides the cell's own (madder root,
+		# ActionsDig.dig): item -> how many.
+		"root": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "dig_out"},
 		"winter": {"type": "bool", "default": true},
 		"sprite": {"type": "string", "default": ""},
 		"frames": {"type": "int", "min": 1, "default": 1},
@@ -654,7 +663,7 @@ const RELATIONS := {
 }
 ## The actions a link comes about by (`via`): the rules of the hands
 ## (src/shared/game/world_actions.gd, tools.gd) decide what each one takes.
-const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "place", "plant", "sow", "repair", "hunt", "fish", "shear", "trap"]
+const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "burn", "place", "plant", "sow", "repair", "hunt", "fish", "shear", "trap"]
 ## Fields every record may have besides its kind's: a text for the player, tags for
 ## reports and search (they decide nothing in the engine), which of the record's numbers
 ## are provisional, still to be balanced, and the ids it had before (`was`), so a save

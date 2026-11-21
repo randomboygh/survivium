@@ -4,5 +4,8 @@
 # content/plants/nettle/bundle.yaml
 "[plants.nettle.bundle]": "Nettle"
 
+# content/plants/nettle/data/items.yaml
+"[plants.items.nettle_leaves]": "Nettle leaves"
+
 # content/plants/nettle/data/plants.yaml
 "[plants.plants.nettle]": "Nettle"

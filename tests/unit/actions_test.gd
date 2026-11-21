@@ -26,6 +26,7 @@ func run() -> void:
 	_test_recipe_fields()
 	_test_furniture()
 	_test_openings()
+	_test_dye_sources()
 
 
 func _test_felling() -> void:
@@ -1174,3 +1175,49 @@ func _walks_north(w: WorldData, from: Vector3, past: float) -> bool:
 func _with(who, id: String):
 	who.inventory.add(id, 1)
 	return who
+
+
+## The sources of the dyes: a fire that burns down leaves ash beside it (one the rain puts
+## out leaves none), a find with `found_in` comes out only in its biomes, and each of the
+## twelve dyes is boiled of a source that comes about in the world.
+func _test_dye_sources() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	placed.burnt_down.connect(actions.leave_ashes)
+	var ash := func() -> int:
+		var n := 0
+		for key in w.drops:
+			for d: Array in w.drops[key]:
+				n += WorldActions.count(d) if d[0] == "plants:ash" else 0
+		return n
+	var fire := placed.put(Placed.CAMPFIRE, Vector3i(20, 2, 20))
+	fire.fuel = 5.0
+	placed.step(10.0)
+	_check(not fire.lit and ash.call() == 2, "a campfire burnt down to its end leaves two portions of ash")
+	var wet := placed.put(Placed.CAMPFIRE, Vector3i(30, 2, 30))
+	for i in 7:
+		placed.step(10.0, 1.0)
+	_check(not wet.lit and wet.fuel > 0.0 and ash.call() == 2, "one the rain put out leaves none")
+	var cell := Vector3i(5, 0, 5)
+	w.chunk_at(5, 5).biome[WorldData.col_of(5, 5)] = Biomes.index("biomes:plateau")
+	_check(actions.found_here("materials:chalk", cell) and actions.found_here("materials:ammonite", cell),
+		"chalk is found in the stone of the plateau, an ammonite anywhere")
+	w.chunk_at(5, 5).biome[WorldData.col_of(5, 5)] = Biomes.index("biomes:meadow")
+	_check(not actions.found_here("materials:chalk", cell) and actions.found_here("materials:ammonite", cell),
+		"but not in a meadow's")
+	_check(Mat.RECORDS[Mat.STONE].finds.has("materials:chalk") and Mat.RECORDS[Mat.STONE].finds.has("materials:ammonite"),
+		"the stone keeps the finds of both bundles")
+	_check(Plants.BY_ID["plants:madder"].root.has("plants:madder_root")
+		and Plants.BY_ID["plants:nettle"].gives.has("plants:nettle_leaves"), "madder has a root to dig, nettle gives leaves")
+	var dyes := {}
+	for r: Dictionary in Crafting.RECIPES:
+		if Items.is_dye(r.makes):
+			dyes[r.makes] = true
+	_check(dyes.size() == 12, "all twelve dyes are boiled of something: %d" % dyes.size())

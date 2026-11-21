@@ -29,6 +29,15 @@ white `f0ece4 d0c8bc a09888`, grey `a8a8a4 84847f 5c5c58`, green `7aa050 587a38 
 Green needs a nettle source (nettle gives fiber only). Re-dyeing a worn thing in the vat must update
 `gear_dye` (worn_slot matches by item and dye).
 
+## Dye sources (PR 4a, this commit)
+
+The seven other dyes in `content/plants/dyes` (white chalk, grey ash, green nettle leaves, ochre, red madder root,
+blue woad leaves, purple murex), boiled like the first five. Chalk, ochre, murex: `materials/finds` items with
+`found_in` (biomes; `ActionsDig.found_here`). Ash: a fire's `ashes` (patched on the campfire and the fireplace),
+dropped by `WorldActions.leave_ashes` on `Placed.burnt_down`. Nettle gives `nettle_leaves`; new bundles
+`plants/madder` (a plant's `root`, given when the cell under it is dug) and `plants/woad`. Pictures:
+`tools/make_dye_art.py`. Left: the dye vat (PR 4b).
+
 ## Left: dyes (PR 3 core, PR 4 sources and vat)
 
 - **Data**: a content kind of dyes (id, title, three shades) or items with `dye: <colour>`; `dyeable: true` on

@@ -51,7 +51,7 @@ doors and windows.
   on fuel: a record's `fuel` is the seconds of burning (no more than the item's `fuel_max`, a new one is
   placed with `fuel_start`, 0 — burns for ever), `feed` and `light` put one fuel from the bag (`fuel_for`: the
   shortest — a twig before a log; the seconds — the fuel's `fuel_time`), `step(delta, rain)` in the session's
-  step burns it and puts out a burnt-down one, and under the open sky (`WorldData.roof_level`) — after
+  step burns it and puts out a burnt-down one (the signal `burnt_down`: the session's `WorldActions.leave_ashes` drops the fire item's `ashes` on the cell south of it, ash for the grey dye; a fire put out by rain or a hand leaves none), and under the open sky (`WorldData.roof_level`) — after
   `RAIN_OUT` seconds of a downpour or storm (`RAIN_HEAVY`, the count `wet`); an extinguished one keeps the
   remainder. The copies learn the remainder by the signal `fuel_changed` (the request `prop_fire` with `true`
   lights or adds, the event `prop_fuel` once per `FUEL_TELL` seconds of burning). A tap on a campfire opens it

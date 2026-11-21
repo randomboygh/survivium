@@ -150,6 +150,7 @@ func _init(w, g, c: Clock, r, p) -> void:
 	actions.fights = fights
 	actions.people = players
 	actions.plans = plans
+	placed.burnt_down.connect(actions.leave_ashes)
 	decay.world = world
 	decay.rules = rules
 	decay.territory = territory

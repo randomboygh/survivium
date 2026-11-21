@@ -4,5 +4,8 @@
 # content/plants/nettle/bundle.yaml
 "[plants.nettle.bundle]": "Крапива"
 
+# content/plants/nettle/data/items.yaml
+"[plants.items.nettle_leaves]": "Листья крапивы"
+
 # content/plants/nettle/data/plants.yaml
 "[plants.plants.nettle]": "Крапива"
