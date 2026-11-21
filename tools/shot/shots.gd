@@ -860,6 +860,21 @@ const SHOTS := {
 			["animals:grouse", 9, 0.0, 1, Vector2(1.2, 4.4)], ["animals:grouse", 14, 0.0, 1, Vector2(3.6, 4.4)], ["animals:grouse", 19, 0.0, 1, Vector2(6.0, 4.4)],
 			["animals:grouse", 0, 0.0, 2, Vector2(-6.0, 6.8)], ["animals:grouse", 1, 0.8, 2, Vector2(-3.6, 6.8)], ["animals:grouse", 3, 0.8, 2, Vector2(-1.2, 6.8)],
 			["animals:grouse", 9, 0.0, 2, Vector2(1.2, 6.8)], ["animals:grouse", 14, 0.0, 2, Vector2(3.6, 6.8)], ["animals:grouse", 19, 0.0, 2, Vector2(6.0, 6.8)]]},
+	# The sparrow, the squirrel, the crow, the duck and the owl drawn by hand (tools/art/<animal>_art.gd):
+	# a row each, sitting, flying (the squirrel bounding), on the ground from the side, sitting and flying
+	# from the front, sitting from the back, dead.
+	"wild-states": {"time": 0.42, "season": 1, "weather": "clear", "clearing": true, "hide": ["chunks: grass"],
+		"shadow_zoo": [
+			["animals:sparrow", 0, 0.0, 0, Vector2(-6.0, 1.6)], ["animals:sparrow", 2, 0.6, 0, Vector2(-4.0, 1.6)], ["animals:sparrow", 9, 0.0, 0, Vector2(-2.0, 1.6)], ["animals:sparrow", 0, 0.0, 1, Vector2(0.0, 1.6)],
+			["animals:sparrow", 2, 0.6, 1, Vector2(2.0, 1.6)], ["animals:sparrow", 0, 0.0, 2, Vector2(4.0, 1.6)], ["animals:sparrow", 12, 0.0, 0, Vector2(6.0, 1.6)],
+			["animals:squirrel", 0, 0.0, 0, Vector2(-6.0, 3.6)], ["animals:squirrel", 10, 0.0, 0, Vector2(-4.0, 3.6)], ["animals:squirrel", 2, 0.0, 0, Vector2(-2.0, 3.6)], ["animals:squirrel", 0, 0.0, 1, Vector2(0.0, 3.6)],
+			["animals:squirrel", 10, 0.0, 1, Vector2(2.0, 3.6)], ["animals:squirrel", 0, 0.0, 2, Vector2(4.0, 3.6)], ["animals:squirrel", 12, 0.0, 0, Vector2(6.0, 3.6)],
+			["animals:crow", 0, 0.0, 0, Vector2(-6.0, 5.6)], ["animals:crow", 2, 0.8, 0, Vector2(-4.0, 5.6)], ["animals:crow", 9, 0.0, 0, Vector2(-2.0, 5.6)], ["animals:crow", 0, 0.0, 1, Vector2(0.0, 5.6)],
+			["animals:crow", 2, 0.8, 1, Vector2(2.0, 5.6)], ["animals:crow", 0, 0.0, 2, Vector2(4.0, 5.6)], ["animals:crow", 12, 0.0, 0, Vector2(6.0, 5.6)],
+			["animals:duck", 0, 0.0, 0, Vector2(-6.0, 7.6)], ["animals:duck", 2, 0.8, 0, Vector2(-4.0, 7.6)], ["animals:duck", 9, 0.0, 0, Vector2(-2.0, 7.6)], ["animals:duck", 0, 0.0, 1, Vector2(0.0, 7.6)],
+			["animals:duck", 2, 0.8, 1, Vector2(2.0, 7.6)], ["animals:duck", 0, 0.0, 2, Vector2(4.0, 7.6)], ["animals:duck", 12, 0.0, 0, Vector2(6.0, 7.6)],
+			["animals:owl", 0, 0.0, 0, Vector2(-6.0, 9.6)], ["animals:owl", 2, 0.8, 0, Vector2(-4.0, 9.6)], ["animals:owl", 9, 0.0, 0, Vector2(-2.0, 9.6)], ["animals:owl", 0, 0.0, 1, Vector2(0.0, 9.6)],
+			["animals:owl", 2, 0.8, 1, Vector2(2.0, 9.6)], ["animals:owl", 0, 0.0, 2, Vector2(4.0, 9.6)], ["animals:owl", 12, 0.0, 0, Vector2(6.0, 9.6)]]},
 	# The deer drawn from the user's reference (tools/art/deer_art.gd): a row for the side, the
 	# front and the back, each standing, stepping, galloping, flinching, dead.
 	"deer-states": {"time": 0.42, "season": 1, "weather": "clear", "clearing": true, "hide": ["chunks: grass"],
