@@ -42,7 +42,7 @@ water, a kind with `biomes` appears only on its own land.
   went, so it does not bolt before the blade reaches it; without health it is removed (`gone`) at once. The blow is dealt by `WorldActions.strike` (the action button: a sword and a
   knife hit the beast ahead first, anything else in the hand — first only a beast point-blank,
   `STRIKE_CLOSE`, and a far one — when there is nothing else to do), it also puts the kind's carcass
-  (`carcass`) on the ground; a kind with frames of death (`death`, the boar) lies there itself until the carcass is
+  (`carcass`) on the ground; a kind with frames of death (`death`, the boar, the fox) lies there itself until the carcass is
   taken (the user's rule, 2026-11-20) by a hand: a tap on it (`pick_up`, hit round its middle) or the action button
   before it («Pick up», `body_ahead`, `take_body`; the user's pick, 2026-11-21), which waits while it falls and takes it
   by a press, not held on from the blow that killed it (`Controls._front_body`); the pickup by the feet,
@@ -201,14 +201,14 @@ dash to a bite, the first — while the beast warns), then `run`, `hurt` and `de
 rest (drawn by `tools/make_creatures.py`
 with `tools/creature_kit.py`, the sparrow — `tools/make_sparrow.py`, the crow, owl and duck —
 `tools/make_birds.py`, the frog — `tools/make_frog.py`, fish — `tools/make_fish.py`, the hare —
-`tools/make_rabbit.py`, the squirrel — `tools/make_squirrel.py`, the fox — `tools/make_fox.py`, the deer —
-`tools/make_deer.py`, the boar — `tools/make_sprites.gd` from `tools/art/boar_art.gd` (the user's reference, the
-way the player is drawn), the bear — `tools/make_bear.py`, the wolf —
+`tools/make_rabbit.py`, the squirrel — `tools/make_squirrel.py`, the deer — `tools/make_deer.py`, the boar and
+the fox — `tools/make_sprites.gd` from `tools/art/boar_art.gd` and `tools/art/fox_art.gd` (the user's references,
+the way the player is drawn), the bear — `tools/make_bear.py`, the wolf —
 `tools/make_wolf.py`, the wild cat — `tools/make_cat.py`, the hedgehog — `tools/make_hedgehog.py`).
 `creatures.gd` chooses the side by the movement on screen (`TURN_BIAS`), a step — by the path walked (a
 flyer's hops — `HOP_STEP`), the frames of rest — now and then (`IDLE_GAP`, `IDLE_HOLD`, the last —
 `IDLE_LONG`; with `idle_anim` they play through in order, `IDLE_FRAME` each). After the attack frames come, for a
-kind drawn with them (the boar), `run` frames of a gallop, by the path walked (a round of them is `RUN_ROUND` rounds
+kind drawn with them (the boar, the fox; the fox has no attack frames), `run` frames of a gallop, by the path walked (a round of them is `RUN_ROUND` rounds
 of the walk) while it flees, hunts or charges (`RUNS`), `hurt` frames played as a blow lands (`HURT_FRAME` each,
 with the flinch) and `death` frames. A killed one (its carcass naming it, see Hunting) is a `Body`: `Props.show_drops`
 hands the chunk's drops to `show_bodies`, which draws each body instead of its item's model; the carcass comes
@@ -231,7 +231,7 @@ table in `tools/make_sounds.gd`).
 **Tests.** `tests/unit/wildlife_test.gd` (`ai_relations`, `wildlife`, `climbers`, `biomes`, `swimmers`,
 `fishing`, `birds`, `shore`, `jostle`, `hunting`, `fire`, `taming`, `attacks`; a pack waits for the ticks of
 thinking, not for the order of random numbers); the drawn ones: `tests/unit/view_test.gd` (`animal_flinch`,
-`boar_states`: the boar's frames and its body).
+`boar_states`: the boar's frames and its body, `fox_states`: the fox's).
 
 **In more detail.** `plan/design/creatures-ai.md`; `plan/architecture/ai.md` — the idea of the behaviour
 engine (the formulas are marked as a draft, in the code it is simpler).

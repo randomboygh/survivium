@@ -28,7 +28,7 @@ content/animals/
     sprites/creatures/rabbit.png  the picture: three rows (side, front, back) of 7 frames
     sounds/rabbit_1.wav ...       the voice files
   sparrow/                        the "Sparrow" bundle with a README on how to make a creature (the former "Birds" mod)
-  fox/, boar/, bear/, hedgehog/   likewise; the boar is drawn by tools/make_sprites.gd from the user's reference
+  fox/, boar/, bear/, hedgehog/   likewise; the boar and the fox are drawn by tools/make_sprites.gd from the user's references
   crow/, owl/, duck/, butterfly/  flyers (flies); the sparrow, crow, owl and duck have frames: sitting, four flaps, two rests, a hop (the duck waddles); the duck also swims
   perch/, frog/                   swimmers (swims): live in open water; the frames are tail or paw strokes
   game/                           the "Game" bundle: small carcass, carcass, raw, roast and dried meat, hide, bone, fat, butchering, roasting and drying
@@ -71,10 +71,10 @@ content/animals/
   animation played through); for a flyer with `hop` the last `hop` frames are hops on the ground (crouched, in the air);
   after them `attack` frames of its attack, then `run` frames of a gallop (as it flees, hunts or charges), `hurt` frames of
   its flinch at a blow and `death` frames: a beast with them, killed, lies where it fell on its last frame of death until
-  its carcass is taken (the boar); with one frame the beast is not animated.
+  its carcass is taken (the boar, the fox); with one frame the beast is not animated.
   They can be redrawn in any editor; any size. The sparrow is drawn by `tools/make_sparrow.py`, the crow, owl and duck by `tools/make_birds.py`,
   the frog by `tools/make_frog.py`, the fish by `tools/make_fish.py`
-  (a dark outline around the whole beast; the duck waddles), the rabbit by `tools/make_rabbit.py`, the squirrel by `tools/make_squirrel.py`, the fox by `tools/make_fox.py`, the deer by `tools/make_deer.py`, the boar by `tools/make_sprites.gd` (`tools/art/boar_art.gd`, its letters from the user's reference), the bear by `tools/make_bear.py`, the wolf by `tools/make_wolf.py`, the wildcat by `tools/make_cat.py`, the hedgehog by `tools/make_hedgehog.py`, the other beasts by
+  (a dark outline around the whole beast; the duck waddles), the rabbit by `tools/make_rabbit.py`, the squirrel by `tools/make_squirrel.py`, the deer by `tools/make_deer.py`, the boar and the fox by `tools/make_sprites.gd` (`tools/art/boar_art.gd`, `tools/art/fox_art.gd`, their letters from the user's references), the bear by `tools/make_bear.py`, the wolf by `tools/make_wolf.py`, the wildcat by `tools/make_cat.py`, the hedgehog by `tools/make_hedgehog.py`, the other beasts by
   `tools/make_creatures.py`: the picture is written there as text, a pixel is a letter, and the shadows, light and outline
   in a dark shade of its colour are laid by `tools/creature_kit.py`.
   What the bundle's folder lacks, the game looks for in the mod's `common/`.

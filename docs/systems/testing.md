@@ -54,7 +54,7 @@ checks; the warnings about RID leaks at the exit of `save_test` and `progress_te
   `bench_mesh.gd`, `bench_edit.gd`, `bench_turn.gd` — measurements; `bench_content.gd [bundles]` — reading and
   loading the mods' data, the registries and the graph, now and with an invented mod added.
 - Assets: `make_sprites.gd` (the player, the tools held, and the beasts drawn from the user's references: the boar,
-  `art/boar_art.gd`), `make_models.gd`, `make_icons.gd`, `make_textures.gd` (the drawing tools in
+  `art/boar_art.gd`, and the fox, `art/fox_art.gd`), `make_models.gd`, `make_icons.gd`, `make_textures.gd` (the drawing tools in
   `art/*.gd`), `make_sounds.gd` (the bricks in `sound/synth.gd`) — make only the named ones (`-- <name> …`),
   everything at once only with `-- --all`: what was drawn by hand is overwritten too; `sheet.gd` (the player's
   sheet to PNG); Python with Pillow: `make_icon.py` (the icon and `assets/web/`; the `og:` tags of the link
@@ -62,7 +62,7 @@ checks; the warnings about RID leaks at the exit of `save_test` and `progress_te
   write the game's name from `project.godot`; `rename.py "Name"` — rename the game
   ([RENAMING.md](../RENAMING.md)), `make_creatures.py` with `creature_kit.py` (the beasts' sheets),
   `make_sparrow.py` (the sparrow), `make_birds.py` (crow, owl, duck), `make_frog.py`, `make_fish.py`,
-  `make_rabbit.py`, `make_squirrel.py`, `make_fox.py`, `make_deer.py`, `make_bear.py`,
+  `make_rabbit.py`, `make_squirrel.py`, `make_deer.py`, `make_bear.py`,
   `make_wolf.py`, `make_cat.py`, `make_hedgehog.py`, `make_plant_art.py` (bark, plants, fruit of the new
   plants). What is drawn can be corrected by hand.
 - `build_info.py` — the version and «What's new» for the build (CI); `web_patch.py` — the patch of the web
