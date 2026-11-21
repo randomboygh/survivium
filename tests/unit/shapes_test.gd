@@ -1,16 +1,15 @@
 extends "res://tests/unit/test_case.gd"
-## The shapes of natural ground (slopes, their split, cut and filled corners) against
-## the rules written out one cell at a time.
+## The slopes of natural ground (curved patches, corners going down two levels, corners
+## cut half a cell along each side) against the rules written out one cell at a time.
 
-
-## The reference cuts worked out lately (see _ref_cut), emptied before each look.
-var _cuts := {}
+const OldSlopeMesher := preload("res://src/client/world/old_slope_mesher.gd")
 
 
 func run() -> void:
 	_test_corners()
+	_test_diagonal_ridge()
+	_test_diagonal_shore()
 	_test_shapes()
-	_test_soft()
 
 
 ## Wild stone floor with a two-level wild stone block at x, z 3..6 missing its
@@ -35,16 +34,14 @@ func _test_corners() -> void:
 	_check(not w.corner_cut(4, 2, 3, 0) and not w.corner_cut(3, 2, 3, 2), "straight edges and inner sides are not cut")
 	_check(w.corner_fill(5, 1, 4, 3) and w.corner_fill(5, 2, 4, 3), "an inner corner is filled on every level")
 	_check(w.corner_fills(5, 3, 4) == 0, "nothing is filled above the cliff")
-	_check(w.corner_cut(4, 2, 3, 1) and w.corner_cut(6, 2, 5, 1) and not w.corner_fill(6, 2, 4, 2),
-		"the corners round a notch are cut along one diagonal, not cut and filled into a saw")
-	_check(is_equal_approx(w.ground_height(3.05, 3.05), 1.0) and is_equal_approx(w.ground_height(3.4, 3.4), 1.0)
-		and is_equal_approx(w.ground_height(3.6, 3.6), 3.0), "a cut corner leaves the half of the cell beyond its diagonal open")
+	_check(is_equal_approx(w.ground_height(3.05, 3.05), 1.0) and is_equal_approx(w.ground_height(3.4, 3.4), 3.0),
+		"a cut corner leaves the ground below it open")
 	_check(is_equal_approx(w.ground_height(5.1, 4.9), 3.0), "a filled corner is ground up to the cliff top")
 	var player = PlayerScript.new()
 	player.body.world = w
-	_check(not player.body._collides(Vector3(2.6, 1.0, 2.6)) and player.body._collides(Vector3(3.3, 1.0, 3.3)),
+	_check(not player.body._collides(Vector3(2.6, 1.0, 2.6)) and player.body._collides(Vector3(3.05, 1.0, 3.05)),
 		"a walker fits into a cut corner but not into the cliff")
-	_check(player.body._collides(Vector3(5.6, 1.0, 4.55)) and not player.body._collides(Vector3(5.9, 1.0, 3.8)),
+	_check(player.body._collides(Vector3(5.6, 1.0, 4.55)) and not player.body._collides(Vector3(5.9, 1.0, 4.0)),
 		"a filled corner blocks a walker")
 	var meshes: Array = ChunkMesher.build_chunk(w, 0, 0, 16)
 	var normals: PackedVector3Array = (meshes[0] as ArrayMesh).surface_get_arrays(0)[Mesh.ARRAY_NORMAL]
@@ -58,40 +55,113 @@ func _test_corners() -> void:
 	player.free()
 
 
-## Soft slopes (world setting slopes 1): no slope steeper than 45 degrees and no post
-## at the tip of a ridge a cell wide. Dirt on a stone floor: a ridge a cell high along x
-## 2..6 at z 1, a block two high at x, z 4..9.
-func _test_soft() -> void:
+## A ridge of dirt a level high and two cells wide on the diagonal (cells k, k and k,
+## k + 1, k 2..7) on a dirt floor: no slope rising to a peak at each cell, but cubes cut
+## at their corners, drawn straight along the diagonal and round only at the ends.
+func _test_diagonal_ridge() -> void:
 	var w := WorldData.new(6, Vector2i(12, 12))
-	w.soft_slopes = true
 	var c: WorldData.Chunk = w.chunks[Vector2i.ZERO]
 	c.natural.fill(WorldData.WILD)
 	for z in 12:
 		for x in 12:
-			c.cells[z * 16 + x] = Mat.STONE
-			var h := 1 if z == 1 and x >= 2 and x <= 6 else (2 if x >= 4 and x <= 9 and z >= 4 and z <= 9 else 0)
-			for y in range(1, h + 1):
-				c.cells[(y * 16 + z) * 16 + x] = Mat.DIRT
+			c.cells[z * 16 + x] = Mat.DIRT
+	for k in range(2, 8):
+		for z: int in [k, k + 1]:
+			c.cells[(16 + z) * 16 + k] = Mat.DIRT
 	w.rebuild_columns()
 	w.refresh_shapes()
-	_check(w._shape(6, 1, 1) & 15 == WorldData.NE | WorldData.SE and w._shape(2, 1, 1) & 15 == WorldData.NW | WorldData.SW,
-		"soft slopes: the tips of a ridge a cell wide ramp down to their ends")
-	_check(w._shape(4, 1, 1) & 15 == 0, "soft slopes: the ridge between its tips stays level")
-	_check(w._shape(6, 2, 4) & 15 == 0 and w._shape(4, 2, 6) & 15 == 0,
-		"soft slopes: no slope over a drop of two levels (it would be steeper than 45 degrees)")
-	_check(w.corner_cut(4, 2, 4, 0), "soft slopes: the corner of a cliff two high is cut on the diagonal")
+	var peaks := 0
+	for k in range(3, 7):
+		peaks += int(w._shape(k, 1, k) & 15 != 0) + int(w._shape(k, 1, k + 1) & 15 != 0)
+	_check(peaks == 0, "a ridge two cells wide on the diagonal stays cubes, no peak at each cell")
+	_check(w.corner_cut(4, 1, 4, 1) and w.corner_fill(5, 1, 4, 3) and w.corner_cut(4, 1, 5, 3),
+		"its sides are cut and filled on the diagonal")
+	var round := Mat.corner_shape[Mat.DIRT]
+	_check(round != 0, "dirt has round corners")
+	_check(ChunkMesher._cap_shape(w, 4, 1, 4, 1, round) == 0 and ChunkMesher._cap_shape(w, 5, 1, 4, 3, round) == 0,
+		"a cut and a fill going on along the diagonal are drawn straight")
+	_check(ChunkMesher._cap_shape(w, 2, 1, 2, 0, round) == round, "the end of the ridge keeps its rounding")
 
 
 ## The shapes the world works out a column at a time match the rules written out for
 ## one cell at a time (below), on a generated world and after digging and building.
+## A dirt shore on the diagonal (land where x + z >= 12 on level 1, water below that
+## line, a dirt floor under it all): its outer and inner corners rise along the diagonal
+## (WorldData.PATCH_DIAG), so the water's line runs straight through the middles of the
+## cells' sides instead of in stairs; the same staircase on dry ground keeps its curves.
+func _test_diagonal_shore() -> void:
+	var worlds := []
+	for wet in [true, false]:
+		var w := WorldData.new(6, Vector2i(16, 16))
+		var c: WorldData.Chunk = w.chunks[Vector2i.ZERO]
+		c.natural.fill(WorldData.WILD)
+		for z in 16:
+			for x in 16:
+				c.cells[z * 16 + x] = Mat.DIRT
+				c.cells[(16 + z) * 16 + x] = Mat.DIRT if x + z >= 12 else (Mat.WATER if wet else Mat.AIR)
+		w.rebuild_columns()
+		w.refresh_shapes()
+		worlds.append(w)
+	var w: WorldData = worlds[0]
+	# (6, 6) has water west, north and north-west: an outer corner, high in the south-east;
+	# (7, 6) only the water north-west of it: an inner corner, low in the north-west.
+	var outer := w.surface_patch(6, 1, 6)
+	var inner := w.surface_patch(7, 1, 6)
+	_check(outer.size() == WorldData.PATCH_DIAG + 1 and int(outer[WorldData.PATCH_DIAG]) == 2
+		and inner.size() == WorldData.PATCH_DIAG + 1 and int(inner[WorldData.PATCH_DIAG]) == 4,
+		"the corners of a shore on the diagonal rise along it")
+	var straight := true
+	for t in 5:
+		var f := t / 4.0
+		# The line half a cell from the odd corner: x + z = 1.5 on the outer, 0.5 on the inner.
+		straight = straight and absf(WorldData.patch_height(outer, 0.5 + f * 0.5, 1.0 - f * 0.5) - 0.5) < 0.06
+		straight = straight and absf(WorldData.patch_height(inner, f * 0.5, 0.5 - f * 0.5) - 0.5) < 0.06
+	_check(straight, "the water meets a shore's corners on the diagonal")
+	_check(WorldData.patch_height(outer, 0.4, 0.4) < 0.01 and WorldData.patch_height(inner, 0.9, 0.9) > 0.99,
+		"past the diagonal a shore's corner is level with the corners beside")
+	_check((worlds[1] as WorldData).surface_patch(6, 1, 6).size() == 12, "dry ground keeps its curved corners")
+	var sides := true
+	for z in range(3, 10):
+		for x in range(3, 10):
+			if w.slope_mask(x, 1, z) == WorldData.FULL:
+				continue
+			var p := w.surface_patch(x, 1, z)
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(0, 1)]:
+				if w.slope_mask(x + d.x, 1, z + d.y) == WorldData.FULL or w.get_cell(x + d.x, 1, z + d.y) != Mat.DIRT:
+					continue
+				var q := w.surface_patch(x + d.x, 1, z + d.y)
+				for t in 5:
+					var f := t / 4.0
+					var a := WorldData.patch_height(p, 1.0, f) if d.x == 1 else WorldData.patch_height(p, f, 1.0)
+					var b := WorldData.patch_height(q, 0.0, f) if d.x == 1 else WorldData.patch_height(q, f, 0.0)
+					sides = sides and absf(a - b) < 0.001
+	_check(sides, "a shore's corners meet the slopes beside them along the whole side")
+	var c := w.padded(false, Mat.STONE, -2, -2, 18, 18)
+	var sh := w.padded(true, 0, -2, -2, 18, 18)
+	var dz := 16 + 4
+	var dy := dz * (16 + 4)
+	var same := true
+	for z in range(3, 10):
+		for x in range(3, 10):
+			if w.slope_mask(x, 1, z) == WorldData.FULL:
+				continue
+			var a: PackedFloat32Array = OldSlopeMesher.patch(c, sh, 2 * dy + (z + 2) * dz + x + 2, dy, dz)
+			same = same and a == w.surface_patch(x, 1, z)
+	_check(same, "the mesher draws a shore's corners as the walkers stand on them")
+
+
 func _test_shapes() -> void:
-	var land := _land(7)
+	var land := _land(7, {})
 	var g: WorldData = land.world
 	var keys: Array = land.area
 	var from: Vector2i = keys[0] * 16
 	var to: Vector2i = keys[keys.size() - 1] * 16 + Vector2i(16, 16)
+	var store := preload("res://src/shared/world/world_store.gd")
+	_check(store.world_dir(7, {"slopes": 1}) != store.world_dir(7, {}),
+		"worlds of the slopes setting 0 and 1 keep their own folders (the setting no longer counts)")
 	_check(_shapes_match(g, from, to), "shapes of a generated world follow the rules")
 	_check(_patches_match(g, from, to), "the mesher's slope surfaces are those the walkers stand on")
+	_check(_sides_meet(g, from, to), "slopes that share their corners meet along the whole side")
 	var slopes := 0
 	var cuts := 0
 	var fills := 0
@@ -119,7 +189,6 @@ func _test_shapes() -> void:
 ## finds the same ground as a look down every level of the column from the top, at
 ## points all over the columns from..to, with the water open and frozen.
 func _ground_matches(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
-	_cuts.clear()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
 	var ok := true
@@ -139,116 +208,87 @@ func _ground_from_sky(w: WorldData, x: float, z: float) -> float:
 	var cz := floori(z)
 	var fx := x - cx
 	var fz := z - cz
-	var inside := WorldData.corners_at(fx, fz)
+	var k := WorldData.corner_at(fx, fz)
+	var inside := WorldData.in_corner(k, fx, fx, fz, fz)
 	for y in range(w.size_y - 1, -1, -1):
 		var m := w.get_cell(cx, y, cz)
 		if m == Mat.AIR or m == Mat.LEAVES or m == Mat.WATER:
-			if m != Mat.LEAVES and w.corner_fills(cx, y, cz) & inside:
+			if inside and w.corner_fill(cx, y, cz, k):
 				return y + 1.0
 			if m == Mat.WATER:
 				return y + 1.0 if w.water_frozen else -1.0
 			continue
-		var cut := w.corner_cuts(cx, y, cz) & inside
-		if cut:
-			var o: Vector2i = WorldData.CORNER_DIRS[WorldData.level_of(cut)]
+		if inside and w.corner_cut(cx, y, cz, k):
+			var o: Vector2i = WorldData.CORNER_DIRS[k]
 			if w.get_cell(cx + o.x, y, cz) == Mat.WATER and not w.water_frozen:
 				return -1.0
 			continue
-		var mask := w.slope_mask(cx, y, cz)
-		if mask == WorldData.FULL:
+		if w.slope_mask(cx, y, cz) == WorldData.FULL:
 			return y + 1.0
-		return y + _ref_height(WorldData.FULL & ~mask, _ref_split(w, cx, y, cz), fx, fz)
+		return y + w.surface_height(cx, y, cz, fx, fz)
 	return 0.0
 
 
-## Height of a top with low corners `lows` split as `ne_sw` says at (fx, fz): on the
-## plane through the three corners of the triangle the point is in.
-func _ref_height(lows: int, ne_sw: bool, fx: float, fz: float) -> float:
-	var corners: Array = [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]
-	var tri: Array
-	if ne_sw:
-		tri = [0, 1, 3] if fx + fz <= 1.0 else [1, 2, 3]
-	else:
-		tri = [0, 1, 2] if fx >= fz else [0, 2, 3]
-	var pts := []
-	for k: int in tri:
-		pts.append(Vector3(corners[k].x, 0.0 if lows & (1 << k) else 1.0, corners[k].y))
-	var n: Vector3 = (pts[1] - pts[0]).cross(pts[2] - pts[0])
-	return pts[0].y - (n.x * (fx - pts[0].x) + n.z * (fz - pts[0].z)) / n.y
-
-
-## The diagonal a top is split along (see WorldData.split_ne_sw), from its corners and
-## the slopes beside it.
-func _ref_split(w: WorldData, x: int, y: int, z: int) -> bool:
-	var cut := w.corner_cuts(x, y, z)
-	if cut == 0:
-		cut = w.corner_cuts(x, y + 1, z)
-	if cut != 0:
-		return cut & (WorldData.NW | WorldData.SE) != 0
-	var lows := WorldData.FULL & ~w.slope_mask(x, y, z)
-	var odd := -1
-	for k in 4:
-		var others := 0
-		for j in 4:
-			if j != k and (lows & (1 << j) != 0) != (lows & (1 << k) != 0):
-				others += 1
-		if others == 3:
-			odd = k
-	if odd < 0:
-		return lows == WorldData.NW | WorldData.SE
-	var o: Vector2i = WorldData.CORNER_DIRS[odd]
-	var ramp := false
-	for n: Vector2i in [Vector2i(o.x, 0), Vector2i(0, o.y)]:
-		var nl := WorldData.FULL & ~w.slope_mask(x + n.x, y, z + n.y)
-		if w.corner_cuts(x + n.x, y, z + n.y) == 0 and w.corner_fills(x + n.x, y, z + n.y) == 0 \
-				and nl in [WorldData.NW | WorldData.NE, WorldData.SE | WorldData.SW, WorldData.NW | WorldData.SW,
-				WorldData.NE | WorldData.SE]:
-			ramp = true
-	# A hip or valley creases through the odd corner, a chamfer across it.
-	return ramp != (odd == 0 or odd == 2)
-
-
 ## True when the mesher builds the same surface for every sloping top of the columns
-## from..to as the walkers stand on, and some tops are hips or valleys and some
-## chamfers.
+## from..to as the world does, and some slopes go down two levels.
 func _patches_match(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
 	var c := w.padded(false, Mat.STONE, from.x - 2, from.y - 2, to.x + 2, to.y + 2)
 	var sh := w.padded(true, 0, from.x - 2, from.y - 2, to.x + 2, to.y + 2)
 	var dz := to.x - from.x + 4
 	var dy := dz * (to.y - from.y + 4)
-	var steps := Vector2i(4, 4)
-	var odd := [0, 0]
+	var deep := 0
 	for y in w.size_y:
 		for z in range(from.y, to.y):
 			for x in range(from.x, to.x):
 				if w.slope_mask(x, y, z) == WorldData.FULL or not w.get_cell(x, y + 1, z) in [Mat.AIR, Mat.WATER]:
 					continue
 				var i := (y + 1) * dy + (z - from.y + 2) * dz + x - from.x + 2
-				var hs := SlopeMesher.surface_grid(c, sh, i, dy, dz, steps)
-				var lows := WorldData.FULL & ~w.slope_mask(x, y, z)
-				var ne_sw := _ref_split(w, x, y, z)
-				if SlopeMesher.split(sh, i, dz) != ne_sw or w.split_at(x, y, z) != ne_sw:
-					printerr("split differs at %s" % Vector3i(x, y, z))
+				var a: PackedFloat32Array = OldSlopeMesher.patch(c, sh, i, dy, dz)
+				var b: PackedFloat32Array = w.surface_patch(x, y, z)
+				if a.size() != b.size():
+					printerr("patch differs at %s: %s / %s" % [Vector3i(x, y, z), a, b])
 					return false
-				for b in 5:
-					for a in 5:
-						var want := _ref_height(lows, ne_sw, a / 4.0, b / 4.0)
-						if not is_equal_approx(hs[b * 5 + a], want) \
-								or not is_equal_approx(w.surface_height(x, y, z, a / 4.0, b / 4.0), want):
-							printerr("surface differs at %s: %s / %s" % [Vector3i(x, y, z), hs[b * 5 + a], want])
-							return false
-				if lows in [1, 2, 4, 8, 7, 11, 13, 14] and w.corner_cuts(x, y, z) == 0:
-					var hip := ne_sw != (lows in [WorldData.NW, WorldData.SE, WorldData.FULL & ~WorldData.NW,
-						WorldData.FULL & ~WorldData.SE])
-					odd[0 if hip else 1] += 1
-	if odd[0] == 0 or odd[1] == 0:
-		printerr("hips or valleys, chamfers: %s" % [odd])
-	return odd[0] > 0 and odd[1] > 0
+				for k in a.size():
+					if not is_equal_approx(a[k], b[k]):
+						printerr("patch differs at %s: %s / %s" % [Vector3i(x, y, z), a, b])
+						return false
+				deep += int(w.corner_heights(x, y, z).has(-1))
+	return deep > 0
+
+
+## True when every two sloping tops side by side whose corners meet at both ends of
+## the side they share have the same curve along it (no gap to see through).
+func _sides_meet(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
+	var shared := 0
+	for z in range(from.y, to.y - 1):
+		for x in range(from.x, to.x - 1):
+			var y := w.surface_y(x, z) - 1
+			if not _ref_can_slope(w, x, y, z) or w.slope_mask(x, y, z) == WorldData.FULL:
+				continue
+			var p := w.surface_patch(x, y, z)
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(0, 1)]:
+				for dl in [0, -1, 1]:
+					if not _ref_can_slope(w, x + d.x, y + dl, z + d.y):
+						continue
+					var q := w.surface_patch(x + d.x, y + dl, z + d.y)
+					var a := PackedFloat32Array()
+					var b := PackedFloat32Array()
+					for t in 5:
+						var f := t / 4.0
+						a.append(WorldData.patch_height(p, 1.0, f) if d.x == 1 else WorldData.patch_height(p, f, 1.0))
+						b.append((WorldData.patch_height(q, 0.0, f) if d.x == 1 else WorldData.patch_height(q, f, 0.0)) + dl)
+					if absf(a[0] - b[0]) < 0.01 and absf(a[4] - b[4]) < 0.01:
+						shared += 1
+						for t in 5:
+							if absf(a[t] - b[t]) > 0.01:
+								printerr("sides differ at %s toward %s: %s / %s" % [Vector3i(x, y, z), d, a, b])
+								return false
+					break
+	return shared > 0
 
 
 ## True when the shapes of the columns from..to follow the rules.
 func _shapes_match(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
-	_cuts.clear()
 	for y in w.size_y:
 		for z in range(from.y, to.y):
 			for x in range(from.x, to.x):
@@ -265,43 +305,82 @@ func _shapes_match(w: WorldData, from: Vector2i, to: Vector2i) -> bool:
 	return true
 
 
-## Slope mask of a cell (corners at full height): loose wild ground with open air or
-## water above loses both corners of each side where the ground is a level lower, and
-## a corner where only the column across it is lower and both beside it may slope; a
-## top with every corner down stays whole.
+## Slope mask of a cell: its sloping top's, or for a covered cell the corners the
+## slope above goes down into.
 func _ref_slope(w: WorldData, x: int, y: int, z: int) -> int:
-	if not _ref_can_slope(w, x, y, z) and not _ref_floor(w, x, y, z):
+	var top := _ref_top_slope(w, x, y, z)
+	return top if top != WorldData.FULL else WorldData.FULL & ~_ref_deep(w, x, y, z)
+
+
+## Corners of the slope above covered cell (x, y, z) that go down into it: low there,
+## and every other column around meets it a level lower, is a slope on its level low
+## there and going down too, is open further down, or (east or west only) stands as
+## high or higher (at least one meets it lower); the cells going down are wild ground
+## of any material.
+func _ref_deep(w: WorldData, x: int, y: int, z: int) -> int:
+	var mask := _ref_top_slope(w, x, y + 1, z)
+	if mask == WorldData.FULL or not _ref_deepable(w, x, y, z):
+		return 0
+	var out := 0
+	for k in 4:
+		if mask & (1 << k):
+			continue
+		var o: Vector2i = WorldData.CORNER_DIRS[k]
+		var ok := true
+		var lower := false
+		for n: Vector2i in [Vector2i(o.x, 0), Vector2i(0, o.y), o]:
+			var kk := k
+			if n.x != 0:
+				kk ^= 1
+			if n.y != 0:
+				kk = 3 - kk
+			var nx := x + n.x
+			var nz := z + n.y
+			if w.get_cell(nx, y + 1, nz) in [Mat.AIR, Mat.WATER]:
+				if w.get_cell(nx, y, nz) in [Mat.AIR, Mat.WATER]:
+					# Open further down than the corner: no part in it unless its top is high.
+					lower = lower or _ref_ground(w, nx, y - 1, nz) and _ref_top_slope(w, nx, y - 1, nz) & (1 << kk) != 0
+				else:
+					ok = ok and _ref_ground(w, nx, y, nz) and _ref_top_slope(w, nx, y, nz) & (1 << kk) == 0
+					lower = true
+			elif n.y != 0:
+				# A column east or west as high or higher has no part in it.
+				ok = ok and _ref_ground(w, nx, y + 1, nz) and _ref_top_slope(w, nx, y + 1, nz) & (1 << kk) == 0 \
+					and _ref_deepable(w, nx, y, nz)
+		if ok and lower:
+			out |= 1 << k
+	return out
+
+
+func _ref_deepable(w: WorldData, x: int, y: int, z: int) -> bool:
+	return w.in_bounds(x, y, z) and w.chunk_at(x, z).natural[y * WorldData.LAYER + WorldData.col_of(x, z)] == WorldData.WILD \
+		and _ref_ground(w, x, y, z)
+
+
+func _ref_top_slope(w: WorldData, x: int, y: int, z: int) -> int:
+	if not _ref_can_slope(w, x, y, z):
 		return WorldData.FULL
-	return _ref_lows(w, x, y, z)
-
-
-## The slope of an open top (not the ground under a cut): what cuts and fills look at.
-func _ref_top(w: WorldData, x: int, y: int, z: int) -> int:
-	return _ref_lows(w, x, y, z) if _ref_can_slope(w, x, y, z) else WorldData.FULL
-
-
-func _ref_lows(w: WorldData, x: int, y: int, z: int) -> int:
 	var low := 0
 	for k in 4:
-		var o: Vector2i = WorldData.CORNER_DIRS[k]
-		if _ref_low(w, x + o.x, y, z) or _ref_low(w, x, y, z + o.y) or _ref_low(w, x + o.x, y, z + o.y) \
-				and _ref_can_slope(w, x + o.x, y, z) and _ref_can_slope(w, x, y, z + o.y):
+		var o: Vector2i = WorldData.SIDES[k]
+		if _ref_low(w, x + o.x, y, z + o.y):
 			low |= 1 << k
-	return WorldData.FULL if low == WorldData.FULL else WorldData.FULL & ~low
-
-
-## Loose wild ground under the lowest of a run of cut cells, not cut itself: its top
-## shows in the cut and slopes as an open top would.
-func _ref_floor(w: WorldData, x: int, y: int, z: int) -> bool:
-	if not (w.in_bounds(x, y, z) and w.is_natural(x, y, z) and Mat.can_slope(w.get_cell(x, y, z))) \
-			or y + 1 >= w.size_y:
-		return false
-	var above := false
+	if low != 0:
+		var high: int = WorldData.RAMPS[low]
+		# One high corner with the column across it lower: a ridge on the diagonal stays a cube.
+		for k in 4:
+			var o: Vector2i = WorldData.CORNER_DIRS[k]
+			if high == 1 << k and _ref_low(w, x + o.x, y, z + o.y):
+				return WorldData.FULL
+		return high
+	var mask := WorldData.FULL
 	for k in 4:
-		above = above or _ref_cut(w, x, y + 1, z, k)
-		if _ref_cut(w, x, y, z, k):
-			return false
-	return above
+		var o: Vector2i = WorldData.CORNER_DIRS[k]
+		if _ref_low(w, x + o.x, y, z + o.y) and _ref_can_slope(w, x + o.x, y, z) and _ref_can_slope(w, x, y, z + o.y):
+			if mask != WorldData.FULL:
+				return WorldData.FULL
+			mask = WorldData.FULL & ~(1 << k)
+	return mask
 
 
 func _ref_can_slope(w: WorldData, x: int, y: int, z: int) -> bool:
@@ -321,29 +400,30 @@ func _ref_ground(w: WorldData, x: int, y: int, z: int) -> bool:
 	return m != Mat.AIR and m != Mat.WATER and m != Mat.LEAVES and m != Mat.LOG
 
 
-func _ref_open(w: WorldData, x: int, y: int, z: int) -> bool:
-	return w.chunk_at(x, z) != null and w.get_cell(x, y, z) in [Mat.AIR, Mat.WATER]
-
-
 func _ref_cut_here(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 	var o: Vector2i = WorldData.CORNER_DIRS[k]
 	var a := w.get_cell(x + o.x, y, z)
 	if a != Mat.AIR and a != Mat.WATER or w.get_cell(x, y, z + o.y) != a or w.get_cell(x + o.x, y, z + o.y) != a:
 		return false
+	# Not over an open cell (a cave under a thin roof), unless the three columns beside
+	# are open from the level under it up to the sky (an overhang's roof).
+	if not _ref_ground(w, x, y - 1, z):
+		var b := w.get_cell(x + o.x, y - 1, z)
+		if b != Mat.AIR and b != Mat.WATER or w.get_cell(x, y - 1, z + o.y) != b \
+				or w.get_cell(x + o.x, y - 1, z + o.y) != b:
+			return false
+		for p: Vector2i in [Vector2i(o.x, 0), Vector2i(0, o.y), o]:
+			for yy in range(y - 1, w.size_y):
+				if _ref_ground(w, x + p.x, yy, z + p.y):
+					return false
 	if not (_ref_ground(w, x, y, z) and w.is_natural(x, y, z) and w.is_natural(x + o.x, y, z) \
 			and w.is_natural(x, y, z + o.y) and w.is_natural(x + o.x, y, z + o.y)):
 		return false
-	var mask := _ref_top(w, x, y, z)
-	if mask == WorldData.FULL:
-		return true
-	# A slope: only at a low corner, where the ground drops further than a level beside.
-	var drop := false
-	for n: Vector2i in [Vector2i(o.x, 0), Vector2i(0, o.y), o]:
-		drop = drop or not _ref_low(w, x + n.x, y, z + n.y)
-	return mask & (1 << k) == 0 and drop
+	var mask := _ref_top_slope(w, x, y, z)
+	return mask == WorldData.FULL or mask & (1 << k) == 0 and _ref_deep(w, x, y - 1, z) & (1 << k) == 0
 
 
-func _ref_cut_any(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
+func _ref_cut(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 	while _ref_cut_here(w, x, y, z, k):
 		var above := w.get_cell(x, y + 1, z)
 		if above == Mat.AIR or above == Mat.WATER or above == Mat.LEAVES:
@@ -352,51 +432,21 @@ func _ref_cut_any(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 	return false
 
 
-## Cut at corner k and at no other corner (remembered in _cuts until the world changes).
-func _ref_cut(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
-	var key := Vector4i(x, y, z, k)
-	if _cuts.has(key):
-		return _cuts[key]
-	var out := _ref_cut_any(w, x, y, z, k)
-	for j in 4:
-		if out and j != k and _ref_cut_any(w, x, y, z, j):
-			out = false
-	_cuts[key] = out
-	return out
-
-
 func _ref_fill_here(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 	var o: Vector2i = WorldData.CORNER_DIRS[k]
 	var m := w.get_cell(x, y, z)
 	if m != Mat.AIR and m != Mat.WATER:
 		return false
-	# A side open round its corner facing this cell.
-	for n: Vector2i in [Vector2i(-o.x, 0), Vector2i(0, -o.y)]:
-		var b := Vector2i(x, z) + n
-		var e := b + (Vector2i(0, o.y) if n.x != 0 else Vector2i(o.x, 0))
-		if w.get_cell(b.x, y, b.y) == m and w.get_cell(e.x, y, e.y) == m and _ref_open(w, b.x, y, b.y) \
-				and _ref_open(w, e.x, y, e.y):
-			return false
 	return _ref_ground(w, x + o.x, y, z) and _ref_ground(w, x, y, z + o.y) and _ref_ground(w, x + o.x, y, z + o.y) \
 		and w.is_natural(x, y, z) and w.is_natural(x + o.x, y, z) and w.is_natural(x, y, z + o.y) \
-		and w.is_natural(x + o.x, y, z + o.y) and _ref_top(w, x + o.x, y, z) == WorldData.FULL \
-		and _ref_top(w, x, y, z + o.y) == WorldData.FULL
+		and w.is_natural(x + o.x, y, z + o.y) and _ref_top_slope(w, x + o.x, y, z) == WorldData.FULL \
+		and _ref_top_slope(w, x, y, z + o.y) == WorldData.FULL
 
 
-func _ref_fill_any(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
+func _ref_fill(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
 	while _ref_fill_here(w, x, y, z, k):
 		var below := w.get_cell(x, y - 1, z)
 		if below != Mat.AIR and below != Mat.WATER and below != Mat.LEAVES:
 			return true
 		y -= 1
 	return false
-
-
-## Filled at corner k and at no other corner.
-func _ref_fill(w: WorldData, x: int, y: int, z: int, k: int) -> bool:
-	if not _ref_fill_any(w, x, y, z, k):
-		return false
-	for j in 4:
-		if j != k and _ref_fill_any(w, x, y, z, j):
-			return false
-	return true

@@ -1,9 +1,9 @@
 extends "res://src/client/world/mesh_faces.gd"
-## The old slopes of natural ground (a world with WorldData.old_slopes, the slopes of
-## before the blocky relief): a smooth curved surface over the corner heights WorldData
-## shaped (`patch`), shared with the slopes beside it, its sides and the cuts where the
-## surface meets a wall; the deep faces under a slope. Called by ChunkMesher a column
-## at a time; SlopeMesher draws the slopes of the other worlds.
+## The slopes of natural ground (the "old" slopes, every world's since the blocky
+## relief was taken out, 2026-11-20): a smooth curved surface over the corner heights
+## WorldData shaped (`patch`), shared with the slopes beside it, its sides and the cuts
+## where the surface meets a wall; the deep faces under a slope. Called by ChunkMesher a
+## column at a time.
 
 
 ## The surface of the sloping top of padded cell `i` (see WorldData.make_patch, which

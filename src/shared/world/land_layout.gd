@@ -58,16 +58,16 @@ const CANYON := 4
 ## next to any other, 1 in zones (see ZONE_SPREAD); cave_shape: 0 hollows of 3D noise
 ## with mouths as pits and slits, 1 halls joined by galleries with funnels for mouths
 ## (see WorldGen._halls); landscape: 0 as before, 1 the stage 2 landscape: biomes
-## BIG_BIOMES times wider, rivers longer, wider and deeper (see RIVER_*_WIDE); slopes: 0
-## the blocky relief (flat slopes, one-level corners, half-blocks, rounded edges), 1 the
-## old curved slopes of before it, a level a cell (WorldData.old_slopes; it shapes the
-## ground, not how it is laid out); shores: 0 as before, 1 shores level with the water:
+## BIG_BIOMES times wider, rivers longer, wider and deeper (see RIVER_*_WIDE); slopes:
+## no longer counts (once 0 the blocky relief, 1 the curved slopes every world has now),
+## kept only so the saves keep their folders (WorldStore.world_dir); shores: 0 as before,
+## 1 shores level with the water:
 ## the low land by the coast lies at the sea's level for tens of cells (SHORE_LOW; the
 ## water's surface half a level under its top, where the surf washes over it, see
 ## WaterMesher.swash), the shallows off it are wider (SHALLOWS_WIDE) and a lake's shore
 ## rises a level every LAKE_SHORE_RUN cells. Here caves is 1, relief, climate,
 ## cave_shape, landscape, slopes and shores 0, what worlds made before those settings have;
-## «Новый мир» makes caves 0, the others 1, and slopes what the player picks.
+## «Новый мир» makes caves 0, the others 1.
 const DEFAULT_SETTINGS := {"size": 1, "water": 1, "mountains": 1, "rivers": 1, "biomes": 1, "caves": 1, "relief": 0,
 	"climate": 0, "cave_shape": 0, "landscape": 0, "slopes": 0, "shores": 0}
 ## Every world setting, in the order the saves and the menus list them.

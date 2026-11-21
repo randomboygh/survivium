@@ -4,7 +4,6 @@ extends "res://src/client/world/mesh_faces.gd"
 ## shore that follows the slope under it, and the surf washing up over the land level
 ## with the sea (swash). Called by ChunkMesher a column at a time.
 
-const Slopes := preload("res://src/client/world/slope_mesher.gd")
 const OldSlopes := preload("res://src/client/world/old_slope_mesher.gd")
 
 
@@ -39,7 +38,7 @@ static func foam(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteArray, 
 	for h in 8:
 		var e := h >> 1
 		var n: int = i + (-dz if e == 0 else (dz if e == 1 else (-1 if e == 2 else 1)))
-		var bits: int = 1 << HALF_CORNER[h] | (0 if old_slopes else 1 << HALF_CORNER[h ^ 1])
+		var bits: int = 1 << HALF_CORNER[h]
 		if cov[c[n]] and sh[n] >> 4 & bits == 0 and shores & (1 << e) == 0:
 			foam |= 1 << h
 	return foam
@@ -127,8 +126,7 @@ static func lip_cuts(c: PackedByteArray, i: int, dy: int, dz: int) -> int:
 		var z := i + o.y * dz
 		if c[x] == AIR and c[z] == AIR and c[x + o.y * dz] == AIR:
 			cuts |= 1 << k
-	# One corner at most, as the land's (old slopes: any).
-	return cuts if old_slopes or cuts & (cuts - 1) == 0 else 0
+	return cuts
 
 
 ## The corners of air cell `i` that the water of a step's lip fills (see lip_cuts): the
@@ -142,12 +140,8 @@ static func lip_fills(c: PackedByteArray, i: int, dy: int, dz: int) -> int:
 		var d := x + o.y * dz
 		if c[x] == WATER and c[z] == WATER and c[d] == WATER and c[x + dy] == AIR and c[z + dy] == AIR \
 				and c[d + dy] == AIR:
-			# Not where a side's own corner facing this cell is cut (see lip_cuts).
-			var bx := i - o.x
-			var bz := i - o.y * dz
-			if old_slopes or not (c[bx] == AIR and c[bx + o.y * dz] == AIR or c[bz] == AIR and c[bz + o.x] == AIR):
-				fills |= 1 << k
-	return fills if old_slopes or fills & (fills - 1) == 0 else 0
+			fills |= 1 << k
+	return fills
 
 
 ## The halves of side `d` (`off` the way to the cell beside) of water cell `i` that its
@@ -403,7 +397,7 @@ static func _ground_at(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteA
 	if m != WATER:
 		if not cov[m] or cov[c[n + dy]]:
 			return NAN
-		var h := OldSlopes.corner_height(sh, n, dy, k) if old_slopes else Slopes.corner_height(sh, n, dy, k)
+		var h := OldSlopes.corner_height(sh, n, dy, k)
 		return float(h) if h < 1 else NAN
 	var d := 1
 	while d < 8 and c[n - d * dy] == WATER:
@@ -411,7 +405,7 @@ static func _ground_at(c: PackedByteArray, sh: PackedByteArray, cov: PackedByteA
 	var b := n - d * dy
 	if not cov[c[b]]:
 		return 1.0 - d
-	return float((OldSlopes.corner_height(sh, b, dy, k) if old_slopes else Slopes.corner_height(sh, b, dy, k)) - d)
+	return float(OldSlopes.corner_height(sh, b, dy, k) - d)
 
 
 ## Colours at the corners NW, NE, SE, SW of the top of water cell `i`: the depth over
@@ -497,13 +491,12 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 	var surf := surf_here(sea, int(base.y))
 	if surf:
 		foam = 0
-	var steps := Vector2i(Slopes.PATCH_STEPS, Slopes.PATCH_STEPS)
-	var p := OldSlopes.patch(c, sh, i, dy, dz) if old_slopes else PackedFloat32Array()
+	var steps := Vector2i(OldSlopes.PATCH_STEPS, OldSlopes.PATCH_STEPS)
+	var p := OldSlopes.patch(c, sh, i, dy, dz)
 	if p.size() > WorldData.PATCH_DIAG and top >= 1.0 and not surf:
 		_flush_diag(buf, base, int(p[WorldData.PATCH_DIAG]), foam, murks)
 		return
-	var hs: PackedFloat32Array = OldSlopes.patch_grid(p, 0.0, steps)[0] if old_slopes \
-		else Slopes.surface_grid(c, sh, i, dy, dz, steps)
+	var hs: PackedFloat32Array = OldSlopes.patch_grid(p, 0.0, steps)[0]
 	var start: int = buf.verts.size()
 	var nu := steps.x + 1
 	var data := Vector2(float(foam), 1.0)
@@ -664,14 +657,13 @@ static func swash_map(w, x0: int, z0: int, x1: int, z1: int) -> PackedFloat32Arr
 ## its top level (see surf_here; `foam` its foam bits, with the corners' shapes): the land
 ## of a fill is level with the water, so the surf runs on over it from the diagonal, as
 ## over the land beside. The distance from the waterline is 0 on the diagonal and grows
-## to the corner (the bilinear blend of the cell's corners gives the mid-sides of old
-## slopes, or the corners beside, 0).
+## to the corner (the bilinear blend of the cell's corners gives the mid-sides, 0).
 ## A fill whose land beside slopes down under the water (swash_map counts it as the
 ## sea's, below 0) lies under the water too: no sheet, the surf starts at the slopes' top.
 static func swash_fills(buf, base: Vector3, fills: int, foam: int, sw: PackedFloat32Array, sw_w: int, gx: int,
 		gz: int) -> void:
-	var tip := 0.35 if old_slopes else 0.7
-	var rest := -0.35 if old_slopes else 0.0
+	var tip := 0.35
+	var rest := -0.35
 	var g := gz * sw_w + gx
 	for k in 4:
 		if fills & (1 << k) == 0:
@@ -746,14 +738,10 @@ static func swash(buf, sw: PackedFloat32Array, sw_w: int, c: PackedByteArray, sh
 	for k in 4:
 		corners[k] = maxf(corners[k], 0.0)
 	var sloped := sh[i] & 15 != 0
-	var steps := Vector2i(Slopes.PATCH_STEPS, Slopes.PATCH_STEPS) if sloped else Vector2i(1, 1)
-	var hs := PackedFloat32Array()
-	if not sloped:
-		hs = PackedFloat32Array([1.0, 1.0, 1.0, 1.0])
-	elif old_slopes:
+	var steps := Vector2i(OldSlopes.PATCH_STEPS, OldSlopes.PATCH_STEPS) if sloped else Vector2i(1, 1)
+	var hs := PackedFloat32Array([1.0, 1.0, 1.0, 1.0])
+	if sloped:
 		hs = OldSlopes.patch_grid(OldSlopes.patch(c, sh, i, dy, dz), 0.0, steps)[0]
-	else:
-		hs = Slopes.surface_grid(c, sh, i, dy, dz, steps)
 	var start: int = buf.verts.size()
 	var nu := steps.x + 1
 	for b in steps.y + 1:

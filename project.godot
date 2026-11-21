@@ -126,10 +126,6 @@ sea_top={
 "type": "float",
 "value": 13.0
 }
-old_slopes={
-"type": "bool",
-"value": false
-}
 fog={
 "type": "float",
 "value": 0.0

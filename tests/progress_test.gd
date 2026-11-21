@@ -89,12 +89,6 @@ func _initialize() -> void:
 	# Every text shown to the player must have its English (Lang.seen).
 	Lang.watching = true
 	DirAccess.remove_absolute(SettingsFile.path)
-	# Recipes, not looks: natural ground drawn sharp (the setting «rounded terrain» off,
-	# ChunkMesher.rounded), about three times quicker to build, so the walks between the
-	# trips stay within CI's time (the rounded meshes took the part «other» past 1200 s).
-	var cfg := ConfigFile.new()
-	cfg.set_value("game", "rounded_ground", false)
-	cfg.save(SettingsFile.path)
 	main = load("res://scenes/main.tscn").instantiate()
 	main.skip_setup = true
 	root.add_child(main)

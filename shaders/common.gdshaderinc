@@ -66,9 +66,6 @@ global uniform float cut_height;
 global uniform vec4 depth_steps;
 // The height of the sea's surface: the top of its highest water cells.
 global uniform float sea_top;
-// The world has old slopes (WorldData.old_slopes): cut and filled corners take a
-// triangle half a cell along each side, curved by the material's corner shape.
-global uniform bool old_slopes;
 // The view in layers (see ChunkStreamer.update_cut):
 // x 1 while it is on (under a roof, in a ravine, behind a hill), yzw the cell of the
 // player's feet in whole cells.
@@ -411,26 +408,19 @@ float warm_spot(vec3 p, float jitter) {
 	return step(0.45 + (jitter - 0.5) * 0.2, heat_at(p));
 }
 
-// Texel distance from texel t of a cell's top to the diagonal across corner k (the
-// edge of its cut or fill, see MeshFaces.corner_curve), positive toward the far side
-// of the cell: the row of texels on the diagonal is 0 on the far side and -1 on the
-// corner's. `shape` is kept for the materials' rounding (Mat.corner_shape).
+// Texel distance from texel t of a cell's top to the curve of corner k with corner
+// shape `shape` (the edge of its cut or fill, see MeshFaces.corner_curve,
+// Mat.corner_shape), positive toward the middle of the cell.
 int corner_distance(ivec2 t, int k, int shape) {
-	if (old_slopes) {
-		// The curve of corner k with corner shape `shape` (MeshFaces._old_curve),
-		// positive toward the middle of the cell.
-		int mid = int(CELL_TEXELS) / 2;
-		if (shape == 0) {
-			return k == 0 ? t.x + t.y + 1 - mid : (k == 1 ? mid - t.x + t.y : (k == 2 ? 3 * mid - 1 - t.x - t.y : mid + t.x - t.y));
-		}
-		vec2 o = vec2(k == 1 || k == 2 ? 1.0 : -1.0, k >= 2 ? 1.0 : -1.0);
-		vec2 uv = max((vec2(t) + 0.5 - float(mid)) * o, vec2(0.0));
-		float p = shape == 1 ? 1.5 : 2.0;
-		float r = pow(pow(uv.x, p) + pow(uv.y, p), 1.0 / p);
-		return int(floor(float(mid) - r + 0.5));
+	int mid = int(CELL_TEXELS) / 2;
+	if (shape == 0) {
+		return k == 0 ? t.x + t.y + 1 - mid : (k == 1 ? mid - t.x + t.y : (k == 2 ? 3 * mid - 1 - t.x - t.y : mid + t.x - t.y));
 	}
-	int n = int(CELL_TEXELS);
-	return k == 0 ? t.x + t.y + 1 - n : (k == 1 ? t.y - t.x : (k == 2 ? n - 1 - t.x - t.y : t.x - t.y));
+	vec2 o = vec2(k == 1 || k == 2 ? 1.0 : -1.0, k >= 2 ? 1.0 : -1.0);
+	vec2 uv = max((vec2(t) + 0.5 - float(mid)) * o, vec2(0.0));
+	float p = shape == 1 ? 1.5 : 2.0;
+	float r = pow(pow(uv.x, p) + pow(uv.y, p), 1.0 / p);
+	return int(floor(float(mid) - r + 0.5));
 }
 
 // The clear window round the player in the ghost over the cut: whole within WINDOW_IN
@@ -896,16 +886,10 @@ int light_spot(vec3 at, vec3 dir) {
 }
 
 // True when (x, z) inside a cell (0..1) is in the triangle of one of the corners in
-// mask k (NW, NE, SE, SW; the half of the cell beyond the diagonal across it, see
-// WorldData.in_corner).
+// mask k (NW, NE, SE, SW; half a cell along each side, see WorldData.in_corner).
 bool in_cell_corners(int k, vec2 q) {
-	if (old_slopes) {
-		// Half a cell along each side.
-		return ((k & 1) != 0 && q.x + q.y < 0.5) || ((k & 2) != 0 && q.x - q.y > 0.5)
-			|| ((k & 4) != 0 && q.x + q.y > 1.5) || ((k & 8) != 0 && q.y - q.x > 0.5);
-	}
-	return ((k & 1) != 0 && q.x + q.y < 1.0) || ((k & 2) != 0 && q.x > q.y)
-		|| ((k & 4) != 0 && q.x + q.y > 1.0) || ((k & 8) != 0 && q.y > q.x);
+	return ((k & 1) != 0 && q.x + q.y < 0.5) || ((k & 2) != 0 && q.x - q.y > 0.5)
+		|| ((k & 4) != 0 && q.x + q.y > 1.5) || ((k & 8) != 0 && q.y - q.x > 0.5);
 }
 
 // True when the way from p0 to p1 (in cells from the map's corner) through `cell` of
@@ -935,11 +919,9 @@ bool light_cell_blocks(int i, ivec3 cell, vec3 p0, vec3 p1) {
 			}
 			continue;
 		}
-		// The sloping top between its corners, high or low (near enough the two
-		// triangles it is drawn as).
-		vec2 f = clamp(q.xz, 0.0, 1.0);
-		// Old slopes: a curved top, level at each corner.
-		f = old_slopes ? smoothstep(0.0, 1.0, f) : f;
+		// The sloping top between its corners, high or low: a curved top, level at
+		// each corner (near enough the patch it is drawn as).
+		vec2 f = smoothstep(0.0, 1.0, clamp(q.xz, 0.0, 1.0));
 		float top = mix(mix(float(high & 1), float((high >> 1) & 1), f.x),
 			mix(float((high >> 3) & 1), float((high >> 2) & 1), f.x), f.y);
 		if (!cut && q.y < top) {

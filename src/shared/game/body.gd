@@ -911,10 +911,8 @@ func _cell_top(x: int, y: int, z: int, p: Vector3) -> float:
 	var mask: int = world.slope_mask(x, y, z)
 	if mask == WorldData.FULL:
 		return 1.0
-	var lows := WorldData.FULL & ~mask
-	# Old slopes (WorldData.old_slopes): the curved patch of the top.
-	var patch: PackedFloat32Array = world.surface_patch(x, y, z) if world.old_slopes else PackedFloat32Array()
-	var ne_sw: bool = false if world.old_slopes else world.split_at(x, y, z)
+	# The curved patch of the top (WorldData.surface_patch).
+	var patch: PackedFloat32Array = world.surface_patch(x, y, z)
 	var ax := clampf(p.x - HALF_WIDTH - x, 0.0, 1.0)
 	var bx := clampf(p.x + HALF_WIDTH - x, 0.0, 1.0)
 	var az := clampf(p.z - HALF_DEPTH - z, 0.0, 1.0)
@@ -924,5 +922,5 @@ func _cell_top(x: int, y: int, z: int, p: Vector3) -> float:
 		for k in 3:
 			var u := lerpf(ax, bx, i * 0.5)
 			var v := lerpf(az, bz, k * 0.5)
-			top = maxf(top, WorldData.patch_height(patch, u, v) if not patch.is_empty() else WorldData.top_height(lows, ne_sw, u, v))
+			top = maxf(top, WorldData.patch_height(patch, u, v))
 	return top
