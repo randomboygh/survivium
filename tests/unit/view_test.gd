@@ -90,6 +90,7 @@ func run() -> void:
 	_test_animal_flinch()
 	_test_boar_states()
 	_test_fox_states()
+	_test_deer_states()
 
 
 func _test_pixel_view() -> void:
@@ -1926,6 +1927,75 @@ func _test_fox_states() -> void:
 	c._on_gone(a)
 	c._bodies_step(b.dies_at + CreaturesView.DEATH_FRAME * 1.5)
 	_check(b.sprite == sprite and b.frame == 1 and c._dying.has(b), "killed, the fox falls through its frames of death")
+	c._bodies_step(b.dies_at + CreaturesView.DEATH_FRAME * 10.0)
+	_check(b.frame == 3 and c._dying.is_empty() and sprite.material_override == c.looks[kind][1][0][b.view * 20 + 19],
+		"and lies on its last")
+	c.hide_bodies(key)
+	c.free()
+
+
+## The deer (tools/art/deer_art.gd, from the user's reference): a row of 20 frames, the walk,
+## run, hurt and death four each and no attack (so the run follows the idle); it gallops as
+## it flees, walks about, plays its hurt frames as a blow lands and its idle as one
+## animation; killed, it falls through its frames of death and lies on the last.
+func _test_deer_states() -> void:
+	var c := CreaturesView.new()
+	c._build_looks()
+	var kind := "animals:deer"
+	var k: Array = c.looks.get(kind, [])
+	_check(k.size() > 12 and k[3] == 20 and k[4] == 4 and k[7] == 0 and k[9] == 4 and k[10] == 4 and k[11] == 4 and k[12],
+		"the deer's row: 20 frames, the walk, run, hurt and death four each, no attack, the idle one animation")
+	if k.size() <= 12:
+		c.free()
+		return
+	var w := RemoteWildlife.new()
+	c.wildlife = w
+	var a := RemoteWildlife.Animal.new()
+	a.kind = kind
+	a.pos = Vector3(10.0, 3.0, 10.0)
+	w.animals.append(a)
+	c._on_born(a)
+	var look = c._looks[a]
+	var now := Time.get_ticks_msec() * 0.001
+	var seen := {}
+	a.moving = true
+	a.state = "flee"
+	for i in 12:
+		look.walked = i * 0.25
+		seen[c._frame(a, look, 0.0, now)] = true
+	_check(seen.size() == 4 and seen.keys().all(func(f: int) -> bool: return f >= 8 and f < 12),
+		"the deer gallops through its run frames as it flees (%s)" % [seen.keys()])
+	seen.clear()
+	a.state = "wander"
+	for i in 12:
+		look.walked = i * 0.15
+		seen[c._frame(a, look, 0.0, now)] = true
+	_check(seen.size() == 4 and seen.keys().all(func(f: int) -> bool: return f >= 1 and f < 5),
+		"the deer walks about in its walk frames (%s)" % [seen.keys()])
+	a.moving = false
+	look.hurt_at = now
+	_check(c._frame(a, look, 0.0, now) == 12 and c._frame(a, look, 0.0, now + CreaturesView.HURT_FRAME * 2.5) == 14,
+		"a blow landed: the deer's hurt frames one after another")
+	_check(c._frame(a, look, 0.0, now + CreaturesView.HURT_FRAME * 4.5) == 0 and look.hurt_at < 0.0, "then the deer stands again")
+	var idle: Array[int] = []
+	var t: float = look.change_at
+	for i in 4:
+		idle.append(c._frame(a, look, 0.0, t + i * (CreaturesView.IDLE_FRAME + 0.01) + 0.01))
+	_check(idle == [5, 6, 7, 0], "the deer's idle plays through and it stands again (%s)" % [idle])
+	var key := Vector2i(0, 0)
+	var drop := ["animals:carcass", a.pos + Vector3(0.2, 0.0, 0.0), 0.0, {"n": 1, "body": kind}]
+	c._lay_bodies(key, [drop], false, now)
+	var lying: Array = c._bodies.get(key, {}).values()
+	_check(lying.size() == 1 and look.body == lying[0], "the deer's body waits for it to go")
+	if lying.size() != 1:
+		c.free()
+		return
+	var b = lying[0]
+	c.flinch(a, 0.3, a.pos - Vector3(1.0, 0.0, 0.0))
+	var sprite: MeshInstance3D = look.sprite
+	c._on_gone(a)
+	c._bodies_step(b.dies_at + CreaturesView.DEATH_FRAME * 1.5)
+	_check(b.sprite == sprite and b.frame == 1 and c._dying.has(b), "killed, the deer falls through its frames of death")
 	c._bodies_step(b.dies_at + CreaturesView.DEATH_FRAME * 10.0)
 	_check(b.frame == 3 and c._dying.is_empty() and sprite.material_override == c.looks[kind][1][0][b.view * 20 + 19],
 		"and lies on its last")
