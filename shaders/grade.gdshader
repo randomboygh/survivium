@@ -29,8 +29,8 @@ uniform float trip = 0.0;
 // and harsher for the moment of the beat.
 uniform float heart = 0.0;
 // Asleep (CameraRig.dream), 0..1: bright things glow out round themselves, the colours
-// sink halfway into a pale blue of one hue, and the edges blur and darken, the middle
-// (the sleeper) staying sharp.
+// sink halfway into a pale blue of one hue, the picture darkens towards a deep blue, and
+// the edges blur and darken, the middle (the sleeper) staying sharp.
 uniform float dream = 0.0;
 // The air trembling over the fires nearest the view (AirEffects): each spot is the
 // flames' base in pixels of the picture, how far the trembling reaches to each side and
@@ -620,6 +620,8 @@ void fragment() {
 		float dl = dot(c, vec3(0.299, 0.587, 0.114));
 		vec3 blue = vec3(0.55, 0.7, 1.0) * dl * 0.9 + vec3(0.01, 0.02, 0.05);
 		c = mix(c, blue, 0.5 * dream);
+		// The whole picture sinks towards a deep night blue.
+		c = mix(c, vec3(0.02, 0.04, 0.12), 0.4 * dream);
 		c *= 1.0 - dream * 0.4 * smoothstep(0.25, 1.05, d);
 	}
 	if (heart > 0.0) {
