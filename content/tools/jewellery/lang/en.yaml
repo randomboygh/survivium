@@ -1,0 +1,27 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/jewellery/bundle.yaml
+"[tools.jewellery.bundle]": "Jewellery"
+
+# content/tools/jewellery/data/items.yaml
+"[tools.items.shell_beads]": "Shell beads"
+"[tools.items.shell_beads.about]": "Seashells strung on a cord. Worn on the neck for beauty."
+"[tools.items.tooth_necklace]": "Tooth necklace"
+"[tools.items.tooth_necklace.about]": "A string of beasts' teeth: a hunter's pride."
+"[tools.items.bone_amulet]": "Bone amulet"
+"[tools.items.bone_amulet.about]": "A carved bone on a cord."
+"[tools.items.bracelet]": "Braided bracelet"
+"[tools.items.bracelet.about]": "A bracelet braided of cord, worn on both wrists."
+"[tools.items.copper_ring]": "Copper ring"
+"[tools.items.copper_ring.about]": "A ring beaten out of copper."
+"[tools.items.hair_feather]": "Feather ornament"
+"[tools.items.hair_feather.about]": "A bird's feather tied to a cord, worn stuck in the hair."
+
+# content/tools/jewellery/data/recipes.yaml
+"[tools.recipes.shell_beads]": "Shell beads"
+"[tools.recipes.tooth_necklace]": "Tooth necklace"
+"[tools.recipes.bone_amulet]": "Bone amulet"
+"[tools.recipes.bracelet]": "Braided bracelet"
+"[tools.recipes.copper_ring]": "Copper ring"
+"[tools.recipes.hair_feather]": "Feather ornament"

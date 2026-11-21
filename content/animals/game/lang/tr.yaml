@@ -19,6 +19,8 @@
 "[animals.items.fat]": "Yağ"
 "[animals.items.jerky]": "Kurutulmuş et"
 "[animals.items.jerky.about]": "Kurutma rafında kurutulmuş et. Hafif ve doyurucu, ateş gerekmez."
+"[animals.items.tooth]": ""
+"[animals.items.tooth.about]": ""
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Küçük leşi parçala"

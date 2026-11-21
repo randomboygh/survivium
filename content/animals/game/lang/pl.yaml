@@ -19,6 +19,8 @@
 "[animals.items.fat]": "Tłuszcz"
 "[animals.items.jerky]": "Suszone mięso"
 "[animals.items.jerky.about]": "Mięso wysuszone na suszarni. Lekkie i sycące, bez ognia."
+"[animals.items.tooth]": ""
+"[animals.items.tooth.about]": ""
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Oprawić małą tuszę"

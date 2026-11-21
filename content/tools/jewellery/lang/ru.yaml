@@ -1,0 +1,27 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/jewellery/bundle.yaml
+"[tools.jewellery.bundle]": "Украшения"
+
+# content/tools/jewellery/data/items.yaml
+"[tools.items.shell_beads]": "Бусы из ракушек"
+"[tools.items.shell_beads.about]": "Ракушки на верёвке. Носятся на шее для красоты."
+"[tools.items.tooth_necklace]": "Ожерелье из зубов"
+"[tools.items.tooth_necklace.about]": "Связка звериных зубов: гордость охотника."
+"[tools.items.bone_amulet]": "Костяной амулет"
+"[tools.items.bone_amulet.about]": "Резная кость на шнурке."
+"[tools.items.bracelet]": "Плетёный браслет"
+"[tools.items.bracelet.about]": "Браслет, сплетённый из верёвки, носится на обоих запястьях."
+"[tools.items.copper_ring]": "Медное кольцо"
+"[tools.items.copper_ring.about]": "Кольцо, выкованное из меди."
+"[tools.items.hair_feather]": "Перо в волосы"
+"[tools.items.hair_feather.about]": "Птичье перо на шнурке, его втыкают в волосы."
+
+# content/tools/jewellery/data/recipes.yaml
+"[tools.recipes.shell_beads]": "Бусы из ракушек"
+"[tools.recipes.tooth_necklace]": "Ожерелье из зубов"
+"[tools.recipes.bone_amulet]": "Костяной амулет"
+"[tools.recipes.bracelet]": "Плетёный браслет"
+"[tools.recipes.copper_ring]": "Медное кольцо"
+"[tools.recipes.hair_feather]": "Перо в волосы"

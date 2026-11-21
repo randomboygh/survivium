@@ -19,6 +19,8 @@
 "[animals.items.fat]": "Жир"
 "[animals.items.jerky]": "Вяленое мясо"
 "[animals.items.jerky.about]": "Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно."
+"[animals.items.tooth]": "Зуб"
+"[animals.items.tooth.about]": "Зуб крупного зверя. Просверленный и нанизанный, идёт на ожерелье."
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Разделать тушку"

@@ -19,6 +19,8 @@
 "[animals.items.fat]": "Жир"
 "[animals.items.jerky]": "В'ялене м'ясо"
 "[animals.items.jerky.about]": "М'ясо, провялене на сушарці. Легке й ситне, вогню не треба."
+"[animals.items.tooth]": ""
+"[animals.items.tooth.about]": ""
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Розібрати тушку"

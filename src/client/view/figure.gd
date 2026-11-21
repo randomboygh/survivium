@@ -123,6 +123,7 @@ static func prepare(worn: Array) -> void:
 ## its folder; `forms/<form>/<layer>` a layer of a form, see in_form), or the path of
 ## one (clothes worn, see dressed).
 static func layer(name: String) -> Image:
+	name = name.trim_prefix(AFTER_FISTS)
 	if not _layers.has(name):
 		var path := name if name.ends_with(".png") else "%s/player/%s.png" % [SPRITES, name]
 		if name.begins_with("forms/"):
@@ -174,10 +175,14 @@ static func _form_path(dir: String, name: String, form: String, ext: String, wor
 	return dir + name + ext
 
 
-## Where clothes go among the naked layers (player.yaml `naked`): the legs, feet and
-## body under the last of them (the hair), the head over it.
-const UNDER := ["legs", "feet", "body"]
-const OVER := ["head"]
+## Where clothes go among the naked layers (player.yaml `naked`): the legs, feet, body
+## and neck under the last of them (the hair), the head and its ornament over it; the
+## wrists over the fists too (AFTER_FISTS).
+const UNDER := ["legs", "feet", "body", "neck"]
+const OVER := ["head", "ornament"]
+const LAST := ["wrists"]
+## The mark of a layer of a look drawn over the fists (a bracelet on a hand in front).
+const AFTER_FISTS := "+"
 
 
 ## The look of a figure wearing `gear` (Inventory.gear): the naked layers with the
@@ -202,6 +207,8 @@ static func dressed(gear: Dictionary, looks := {}) -> Array:
 		out += _look_layer("face/" + look.on_face)
 	for on in OVER:
 		out += _worn_layer(str(gear.get(on, "")), f)
+	for on in LAST:
+		out += _worn_layer(str(gear.get(on, "")), f).map(func(p: String) -> String: return AFTER_FISTS + p)
 	return out
 
 
@@ -603,9 +610,13 @@ func _compose(src: int, c0: int, c1: int) -> Image:
 	var from := Rect2i(c0 * size.x, src * size.y, strip.get_width(), size.y)
 	_put_things(strip, src, false, c0, c1)
 	for name: String in look:
-		strip.blend_rect(layer(name), from, Vector2i.ZERO)
+		if not name.begins_with(AFTER_FISTS):
+			strip.blend_rect(layer(name), from, Vector2i.ZERO)
 	_put_things(strip, src, true, c0, c1)
 	strip.blend_rect(layer(in_form(data().fists, _form)), from, Vector2i.ZERO)
+	for name: String in look:
+		if name.begins_with(AFTER_FISTS):
+			strip.blend_rect(layer(name), from, Vector2i.ZERO)
 	return strip
 
 

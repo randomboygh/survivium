@@ -1,0 +1,27 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/tools/jewellery/bundle.yaml
+"[tools.jewellery.bundle]": ""
+
+# content/tools/jewellery/data/items.yaml
+"[tools.items.shell_beads]": ""
+"[tools.items.shell_beads.about]": ""
+"[tools.items.tooth_necklace]": ""
+"[tools.items.tooth_necklace.about]": ""
+"[tools.items.bone_amulet]": ""
+"[tools.items.bone_amulet.about]": ""
+"[tools.items.bracelet]": ""
+"[tools.items.bracelet.about]": ""
+"[tools.items.copper_ring]": ""
+"[tools.items.copper_ring.about]": ""
+"[tools.items.hair_feather]": ""
+"[tools.items.hair_feather.about]": ""
+
+# content/tools/jewellery/data/recipes.yaml
+"[tools.recipes.shell_beads]": ""
+"[tools.recipes.tooth_necklace]": ""
+"[tools.recipes.bone_amulet]": ""
+"[tools.recipes.bracelet]": ""
+"[tools.recipes.copper_ring]": ""
+"[tools.recipes.hair_feather]": ""

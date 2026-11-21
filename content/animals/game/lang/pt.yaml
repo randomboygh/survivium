@@ -19,6 +19,8 @@
 "[animals.items.fat]": "Gordura"
 "[animals.items.jerky]": "Charque"
 "[animals.items.jerky.about]": "Carne seca no secador. Leve e nutritiva, sem precisar de fogo."
+"[animals.items.tooth]": ""
+"[animals.items.tooth.about]": ""
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Desmanchar presa pequena"

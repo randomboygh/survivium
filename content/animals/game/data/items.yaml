@@ -71,3 +71,9 @@
   model: jerky
   icon: jerky
   anim: eat
+- id: tooth
+  title: "[animals.items.tooth]"
+  description: "[animals.items.tooth.about]"
+  weight: 0.01
+  stack: 30
+  icon: tooth

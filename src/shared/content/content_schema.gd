@@ -231,7 +231,7 @@ const SCHEMAS := {
 		"burns": {"type": "float", "min": 0.0, "default": 0.0},
 		# Worn on the body (Inventory.wear): the slot it goes in; a bag on the back adds
 		# `bag_slots` to the slots of the bag the character always has.
-		"wear_on": {"type": "enum", "values": ["", "head", "body", "legs", "feet", "back"], "default": ""},
+		"wear_on": {"type": "enum", "values": ["", "head", "body", "legs", "feet", "back", "neck", "wrists", "ornament"], "default": ""},
 		# Clothes: how many degrees warmer the body is in it (Warmth.clothes; half when wet).
 		"warmth": {"type": "float", "min": 0.0, "default": 0.0},
 		# Clothes on the figure: the picture sprites/worn/<look>.png of the bundle, laid
