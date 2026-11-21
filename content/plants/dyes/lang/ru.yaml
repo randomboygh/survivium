@@ -30,6 +30,8 @@
 "[plants.items.dye_purple]": "Пурпурная краска"
 "[plants.items.dye_purple.about]": "Сварена из иглянок: красит одежду и бусы в пурпурный."
 "[plants.items.ash]": "Зола"
+"[plants.items.dye_vat]": "Чан для краски"
+"[plants.items.dye_vat.about]": "Кадка с водой, чтобы перекрашивать вещи: выбери вещь из сумки и краску или отмой краску золой."
 "[plants.items.ash.about]": "Остаётся от костра или очага, прогоревшего до конца. Из неё варят серую краску."
 
 # content/plants/dyes/data/recipes.yaml
@@ -46,3 +48,4 @@
 "[plants.recipes.dye_red]": "Красная краска"
 "[plants.recipes.dye_blue]": "Синяя краска"
 "[plants.recipes.dye_purple]": "Пурпурная краска"
+"[plants.recipes.dye_vat]": "Чан для краски"

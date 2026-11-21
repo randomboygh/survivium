@@ -30,6 +30,8 @@
 "[plants.items.dye_purple]": "Purple dye"
 "[plants.items.dye_purple.about]": "Boiled of murex snails: dyes clothes and beads purple."
 "[plants.items.ash]": "Ash"
+"[plants.items.dye_vat]": "Dye vat"
+"[plants.items.dye_vat.about]": "A tub of water to dye things anew: pick a thing of the bag and a dye, or wash a dye out with ash."
 "[plants.items.ash.about]": "Left by a campfire or a fireplace that burns down to its end. Boiled into the grey dye."
 
 # content/plants/dyes/data/recipes.yaml
@@ -46,3 +48,4 @@
 "[plants.recipes.dye_red]": "Red dye"
 "[plants.recipes.dye_blue]": "Blue dye"
 "[plants.recipes.dye_purple]": "Purple dye"
+"[plants.recipes.dye_vat]": "Dye vat"

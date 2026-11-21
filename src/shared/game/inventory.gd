@@ -802,6 +802,19 @@ func tool_quality(id: String) -> int:
 	return NORMAL if at.is_empty() else quality(slots[at[0]])
 
 
+## The thing in slot `i` (one that can be dyed, Items.dyeable) dyed with dye `dye` ("":
+## its own colours again), kept worn if it was (see gear_dye).
+func set_dye(i: int, dye: String) -> void:
+	var s = slots[i]
+	if s == null or not Items.dyeable(s[0]):
+		return
+	var on := worn_on(i)
+	slots[i] = stack(s[0], s[1], _worn(s), held(s), quality(s), dye)
+	if on != "":
+		_set_dye(on, dye)
+	changed.emit()
+
+
 ## The tool in slot `i` is as good as new.
 func mend(i: int) -> void:
 	var s = slots[i]

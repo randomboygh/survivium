@@ -102,3 +102,15 @@
 - id: tools:fireplace
   patch: true
   ashes: {plants:ash: 2}
+# The dye vat (prop: dye_vat): a low tub of planks hooped with cord, filled with water as it is made. At it a thing
+# from the bag is dyed anew with a dye, or washed back to its own colours with a portion of ash (`washes`;
+# Workshop.redye).
+- id: dye_vat
+  title: "[plants.items.dye_vat]"
+  description: "[plants.items.dye_vat.about]"
+  weight: 6.0
+  stack: 1
+  icon: dye_vat
+  model: dye_vat
+  prop: dye_vat
+  washes: ash

@@ -34,6 +34,7 @@ func run() -> void:
 	_test_mod_put()
 	_test_mend()
 	_test_dye()
+	_test_redye()
 
 
 ## A flat world of 32 by 32 cells with a player over the socket (check_moves, paced) and
@@ -630,3 +631,45 @@ func _test_dye() -> void:
 	shop.update(0.1)
 	var at: int = a.inventory.slots.find(a.inventory.slots.filter(func(s) -> bool: return s != null and s[0] == "tools:fiber_tunic").front())
 	_check(at >= 0 and Inventory.dye_of(a.inventory.slots[at]) == dye, "the tunic made is dyed black")
+
+
+## A thing dyed anew or washed at a dye vat over the socket: only near a vat, a thing
+## that can be dyed, a dye of the bag (one a thing), a slot and a dye of the right type,
+## washing only what is dyed and with ash; what is worn stays worn in its new colour.
+func _test_redye() -> void:
+	var p := _socket_player()
+	var a = p[2]
+	var req = p[1].link.requests
+	var inv = a.inventory
+	var dye := "plants:dye_red"
+	a.teleport(Vector3(8.5, 2.0, 8.5) * WorldData.CELL)
+	inv.add("tools:fiber_tunic", 1)
+	var at: int = inv.slots.find(inv.slots.filter(func(s) -> bool: return s != null and s[0] == "tools:fiber_tunic").front())
+	inv.add(dye, 2)
+	_check(req.handle(Protocol.request(Protocol.REDYE, 300, [at, dye]))[1] == false and inv.count(dye) == 2,
+		"no dyeing anew far from a vat")
+	var vat: Dictionary = p[0].placed.put("plants:dye_vat", Vector3i(9, 2, 9))
+	var far: Dictionary = p[0].placed.put("plants:dye_vat", Vector3i(30, 2, 30))
+	_check(not vat.is_empty() and not far.is_empty(), "two vats stand, one by the player")
+	_check(req.handle(Protocol.request(Protocol.REDYE, 301, [at, "plants:dye_blue"]))[1] == false, "nor with a dye not in the bag")
+	inv.add("tools:torch", 1)
+	_check(req.handle(Protocol.request(Protocol.REDYE, 302, [at, "tools:torch"]))[1] == false, "nor with a thing that is no dye")
+	_check(req.handle(Protocol.request(Protocol.REDYE, 303, [at, "nothing:at_all"]))[1] == null, "nor with an item there is not")
+	_check(req.handle(Protocol.request(Protocol.REDYE, 304, [at, 3]))[1] == null
+		and req.handle(Protocol.request(Protocol.REDYE, 305, ["0", dye]))[1] == null
+		and req.handle(Protocol.request(Protocol.REDYE, 306, [9999, dye]))[1] == null, "nor with a slot or dye of the wrong type or out of the bag")
+	var torch: int = inv.slots.find(inv.slots.filter(func(s) -> bool: return s != null and s[0] == "tools:torch").front())
+	_check(req.handle(Protocol.request(Protocol.REDYE, 307, [torch, dye]))[1] == false and inv.count(dye) == 2,
+		"a thing that cannot be dyed is not")
+	_check(req.handle(Protocol.request(Protocol.REDYE, 308, [at, ""]))[1] == false, "a thing in its own colours is not washed")
+	_check(a.wear(at), "the tunic is worn")
+	_check(req.handle(Protocol.request(Protocol.REDYE, 309, [at, dye]))[1] == true and inv.count(dye) == 1
+		and Inventory.dye_of(inv.slots[at]) == dye and inv.worn_on(at) == "body" and inv.gear_dyes().get("body", "") == dye,
+		"near the vat the tunic is dyed red for one dye, and stays worn in it")
+	_check(req.handle(Protocol.request(Protocol.REDYE, 310, [at, dye]))[1] == false and inv.count(dye) == 1,
+		"dyeing it the colour it is takes nothing")
+	_check(req.handle(Protocol.request(Protocol.REDYE, 311, [at, ""]))[1] == false, "washing it needs ash")
+	inv.add("plants:ash", 1)
+	_check(req.handle(Protocol.request(Protocol.REDYE, 312, [at, ""]))[1] == true and inv.count("plants:ash") == 0
+		and Inventory.dye_of(inv.slots[at]) == "" and inv.worn_on(at) == "body" and not inv.gear_dyes().has("body"),
+		"with ash it is washed back to its own colours, still worn")

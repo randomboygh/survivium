@@ -16,7 +16,7 @@
 
 | Процесс | Рецептов | Где делают |
 |---|---|---|
-| [crafting] (`craft`) | 148 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
+| [crafting] (`craft`) | 149 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
 | Переработка (`refine`) | 12 | руки, [tools.items.workbench], [tools.items.drying_rack], [tools.items.loom] |
 | Плавка и обжиг (`smelt`) | 15 | [tools.items.forge], [tools.items.bloomery], [tools.items.kiln] |
 | Готовка (`cook`) | 29 | [core.items.campfire], [tools.items.kiln] |
@@ -168,6 +168,7 @@
 | [tools.recipes.tar_torch] `tools:tar_torch` | [tools.items.tar_torch] ×1 | [resources.items.branch] ×1, [materials.items.cloth] ×1, [materials.items.tar] ×1 | — | руки | — | 3 с | 9 | 3. [core.eras.bronze] | — |
 | [tools.recipes.watering_can] `tools:watering_can` | [tools.items.watering_can] ×1 | [materials.items.planks] ×3, [materials.items.cord] ×1 | — | [tools.items.workbench] | — | 5 с | 5 | 1. [core.eras.primitive] | — |
 | [tools.recipes.waterskin] `tools:waterskin` | [tools.items.waterskin] ×1 | [materials.items.leather] ×1, [materials.items.cord] ×1 | — | руки | [tool.needle] (износ 1) | 6 с | 5 | 2. [core.eras.bone_leather] | — |
+| [plants.recipes.dye_vat] `plants:dye_vat` | [plants.items.dye_vat] ×1; побочно: [tools.items.waterskin] ×1 | [materials.items.planks] ×6, [materials.items.cord] ×2, [tools.items.waterskin_full] ×1 | — | [tools.items.workbench] | — | 8 с | 6 | 2. [core.eras.bone_leather] | — |
 | [tools.recipes.window] `tools:window` | [tools.items.window] ×1 | [materials.items.planks] ×1, [materials.items.glass] ×2 | — | [tools.items.workbench] | — | 4 с | 7 | 3. [core.eras.bronze] | — |
 | [tools.recipes.window_1x2] `tools:window_1x2` | [tools.items.window_1x2] ×1 | [materials.items.planks] ×2, [materials.items.glass] ×4 | — | [tools.items.workbench] | — | 5 с | 7 | 3. [core.eras.bronze] | — |
 | [tools.recipes.window_2x1] `tools:window_2x1` | [tools.items.window_2x1] ×1 | [materials.items.planks] ×2, [materials.items.glass] ×4 | — | [tools.items.workbench] | — | 5 с | 7 | 3. [core.eras.bronze] | — |

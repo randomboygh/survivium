@@ -8,7 +8,7 @@ doors and windows.
 
 **Files**
 - `src/shared/game/workshop.gd` — one character's crafting (`game.workshop`): `stations()`, `recipes()`,
-  `why_not(r)`, `start(r, times, dye)` (a dye picked in the «Краситель» row: `dye_why_not` — in the bag, a
+  `why_not(r)`, `redye(i, dye)` (a thing of the bag dyed anew or washed at a dye vat near, see character.md), `start(r, times, dye)` (a dye picked in the «Краситель» row: `dye_why_not` — in the bag, a
   dye, the thing has `cloth`; one portion goes with each job's materials, `CraftQueue` job `dye`, and what is
   made is dyed, `Inventory.dye_of`), `cancel`, `update(delta)` (the finished and the by-product — into the bag,
   the wear of the recipe's tools by `wear`), `waits_for(r)` (what the work waits for: a station, a tool, a
