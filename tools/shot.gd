@@ -777,15 +777,30 @@ func _run() -> void:
 				if e.item == shot.tap_prop and (near.is_empty() or main.player.position.distance_to(main.placed.center(e))
 						< main.player.position.distance_to(main.placed.center(near))):
 					near = e
+			if not near.is_empty() and shot.has("prop_turn"):
+				# Turned first (a bed's head another way, a stool facing elsewhere).
+				var turned: Dictionary = main.session.placed.at(near.cell)
+				main.session.placed._renew(turned, shot.prop_turn, "")
+				for i in 5:
+					await process_frame
+				near = main.placed.at(near.cell)
 			if not near.is_empty():
 				main.player.position = main.placed.center(near) + Vector3(0.0, 0.0, 1.5 * CELL)
 				main.player.facing = shot.get("facing", "s")
-				for i in 3:
+				# Until the server has the body there too.
+				var since_walk := Time.get_ticks_msec()
+				while Time.get_ticks_msec() - since_walk < 1500 \
+						and main.host.player.position.distance_to(main.player.position) > 0.05:
 					await process_frame
 				print("shot: tapped %s: %s (%.2f away, energy %.0f)" % [near.item, main.gathering.gather({"prop": near}),
 					main.host.player.position.distance_to(main.placed.center(near)), main.host.player.vitals.energy])
-			for i in 20:
+			# Long enough for the dream to come on whole (CameraRig.DREAM_RATE).
+			var since_tap := Time.get_ticks_msec()
+			while Time.get_ticks_msec() - since_tap < 2000:
+				main.view.idle = 0.0
 				await process_frame
+			print("shot: lies on %s, head %s, at %s" % [main.placed.bed_under(main.player.position), main.player.bed_head,
+				main.player.position / CELL])
 		if shot.has("skills"):
 			# Skills learned: {role: level}, a little on the way to the next.
 			var reg = load("res://src/shared/content/skills.gd")

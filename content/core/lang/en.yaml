@@ -1953,7 +1953,6 @@
 "[turn]": "Turn"
 
 # src/client/ui/sleep_screen.gd
-"[sleeping_touch_the_screen_to]": "Sleeping… Touch the screen to wake up"
 
 # src/client/ui/team_page.gd
 "[by_territory_rights]": "by territory rights"

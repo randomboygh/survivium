@@ -1121,7 +1121,6 @@
 "[turn]": "Ruota"
 
 # src/client/ui/sleep_screen.gd
-"[sleeping_touch_the_screen_to]": "Sonno… Tocca lo schermo per svegliarti"
 
 # src/client/ui/team_page.gd
 "[by_territory_rights]": "secondo i diritti dei territori"

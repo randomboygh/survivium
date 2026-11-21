@@ -90,7 +90,9 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   wooden bed, is a bed before a part of the house, `Gathering.gather`); in
   the bag it does not work. On screen the sleeper lies on their side with closed eyes (the sheet's frame
   `sleep`, `Figure._lay_down`: its own column, drawn standing with the eyes shut and the legs pressed
-  together, turned on its side), above them
+  together, turned on its side; in a bed it lies along it, its head to the bed's head, `Placed.head_of`, a row
+  of the column for each way: on its side head west or east, upright head north, upside down head south;
+  `Player.bed_head`, set by Main from `Placed.bed_under`; on the ground head to the screen's left), above them
   small letters «z» rise, grow and melt in turn (`player.gd` `snore`, `_snore`); one wakes up by oneself
   when rested by day, from a wound or in water. While all sleep, the night
   goes `Session.SLEEP_SPEED` times faster. `fatigue` off — the test switch «Fatigue»: energy does not fall,
@@ -202,7 +204,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   movement, in water, in a boat, in sleep). The character stores `gesture`, `gesture_until`; the server sends
   the gesture in the `people` record (field 17). A tap on a seat (`Placed.is_seat`, an item with `seat`: the
   stool) is the request `sit_on` (`Character.sit_on`: the body put on it, `Placed.lying_spot`, and the gesture
-  «sit» until it moves; drawn `SITTING_FORWARD` towards the viewer so it shows in front of the seat). Other
+  «sit» until it moves, facing the way the seat faces, `Placed.front_of`, its back to the seat's back; drawn
+  `SITTING_FORWARD` towards the viewer so it shows in front of the seat). Other
   furniture that stores nothing does nothing at a tap; it is taken up in the build mode. The figure (`player.gd`, `set_gesture`) plays its animation
   standing, above the head — the icon `UiStyle.icon("g_<name>")` for the first `Gestures.ICON_TIME` 2.5 s
   (for others — above the name); movement or work interrupt it. The gestures' frames are columns 48–59 of the

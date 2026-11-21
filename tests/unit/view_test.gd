@@ -212,12 +212,22 @@ func _test_sprite_sheet() -> void:
 	east.flip_x()
 	_check(east.get_data() == img.get_region(Rect2i(0, 6 * fh, fw, fh)).get_data(), "west is east mirrored when the hands are empty")
 	_check(Figure.sheet(["body"]).texture.get_image().get_pixel(fw / 2 + 1, fh - 1) != img.get_pixel(fw / 2 + 1, fh - 1), "without boots the feet are bare")
-	var sleep := s.frame_at("s", "sleep", 0.0)
+	# The row of the west: lying on its side, the head to the west (in a bed its rows lie
+	# its head the bed's way, Figure._lay_down).
+	var sleep := s.frame_at("w", "sleep", 0.0)
 	var lain: Rect2i = img.get_region(Rect2i(sleep.x * fw, sleep.y * fh, fw, fh)).get_used_rect()
 	var standing: Rect2i = img.get_region(Rect2i(0, 0, fw, fh)).get_used_rect()
 	# Standing, the feet have no outline under them; lying, the soles get theirs.
 	_check(lain.size == Vector2i(standing.size.y + 1, standing.size.x) and lain.end.y == standing.end.y,
 		"asleep the figure lies on its side on the frame's bottom: %s, %s" % [lain, standing])
+	var head_up := s.frame_at("n", "sleep", 0.0)
+	var head_down := s.frame_at("s", "sleep", 0.0)
+	var up: Image = img.get_region(Rect2i(head_up.x * fw, head_up.y * fh, fw, fh))
+	var down: Image = img.get_region(Rect2i(head_down.x * fw, head_down.y * fh, fw, fh))
+	down.flip_y()
+	_check(up.get_used_rect().size == Vector2i(standing.size.x, standing.size.y + 1)
+		and down.get_used_rect().size == up.get_used_rect().size,
+		"in a bed along the screen it lies head up (north) or upside down (south): %s, %s" % [up.get_used_rect(), down.get_used_rect()])
 	var whites := [0, 0]
 	for y in fh:
 		for x in fw:

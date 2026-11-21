@@ -306,6 +306,10 @@ const SHOTS := {
 	# The same, a stool tapped: sat on (the gesture "sit"); the bed tapped: lain in asleep.
 	"sit-stool": {"time": 0.4, "season": 1, "furniture": true, "tap_prop": "tools:stool"},
 	"sleep-bed": {"time": 0.4, "season": 1, "furniture": true, "tap_prop": "tools:wooden_bed"},
+	"sleep-bed-1": {"time": 0.4, "season": 1, "furniture": true, "tap_prop": "tools:wooden_bed", "prop_turn": 1},
+	"sleep-bed-2": {"time": 0.4, "season": 1, "furniture": true, "tap_prop": "tools:wooden_bed", "prop_turn": 2},
+	"sleep-bed-3": {"time": 0.4, "season": 1, "furniture": true, "tap_prop": "tools:wooden_bed", "prop_turn": 3},
+	"sit-stool-0": {"time": 0.4, "season": 1, "furniture": true, "tap_prop": "tools:stool", "prop_turn": 0},
 	# Doors and windows of every size in a brick wall, a fireplace burning, a wide cupboard
 	# (places.openings): by day, at dusk, and the bag by the cupboards and the barrel.
 	"build-openings": {"time": 0.4, "season": 1, "openings": "wall"},

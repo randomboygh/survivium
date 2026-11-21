@@ -28,6 +28,10 @@ uniform float trip = 0.0;
 // A heartbeat at low health (BodyFeedback._dark_picture), 0..1: the picture goes darker
 // and harsher for the moment of the beat.
 uniform float heart = 0.0;
+// Asleep (CameraRig.dream), 0..1: bright things glow out round themselves, the colours
+// sink halfway into a pale blue of one hue, and the edges blur and darken, the middle
+// (the sleeper) staying sharp.
+uniform float dream = 0.0;
 // The air trembling over the fires nearest the view (AirEffects): each spot is the
 // flames' base in pixels of the picture, how far the trembling reaches to each side and
 // how high over them, in pixels; heat_power how strongly each fire burns (0 none).
@@ -596,6 +600,27 @@ void fragment() {
 		c = mix(vec3(cl), c, 1.0 + 0.45 * trip);
 		vec3 glow = mix(vec3(0.25, 0.95, 0.8), vec3(0.75, 0.35, 1.0), 0.5 + 0.5 * sin(TIME * 0.7));
 		c = mix(c, glow, trip * (0.28 + 0.1 * sin(TIME * 1.7)) * smoothstep(0.5, 1.1, d));
+	}
+	if (dream > 0.0) {
+		vec2 shape = vec2(crt_screen.x / crt_screen.y, 1.0);
+		float d = length((sp - 0.5) * shape) / length(shape * 0.5);
+		float soft = dream * smoothstep(0.3, 0.95, d);
+		vec3 glow = vec3(0.0);
+		vec3 blur = vec3(0.0);
+		for (int i = 0; i < 8; i++) {
+			float a = float(i) * 0.785398 + (i >= 4 ? 0.392699 : 0.0);
+			vec2 way = vec2(cos(a), sin(a)) * TEXTURE_PIXEL_SIZE;
+			vec3 s = texture(TEXTURE, uv + way * (i >= 4 ? 5.0 : 2.5)).rgb * exposure;
+			glow += s * smoothstep(0.6, 1.0, max(s.r, max(s.g, s.b)));
+			blur += texture(TEXTURE, uv + way * (i >= 4 ? 3.0 : 1.5) * (0.5 + 2.0 * soft)).rgb;
+		}
+		// The blur shifts the graded colour by how the picture round differs from the pixel.
+		c += (blur / 8.0 - src) * exposure * soft;
+		c += glow / 8.0 * 0.45 * dream;
+		float dl = dot(c, vec3(0.299, 0.587, 0.114));
+		vec3 blue = vec3(0.55, 0.7, 1.0) * dl * 0.9 + vec3(0.01, 0.02, 0.05);
+		c = mix(c, blue, 0.5 * dream);
+		c *= 1.0 - dream * 0.4 * smoothstep(0.25, 1.05, d);
 	}
 	if (heart > 0.0) {
 		c = (c - 0.45) * (1.0 + 0.6 * heart) + 0.45;

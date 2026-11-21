@@ -1953,7 +1953,6 @@
 "[turn]": "Повернуть"
 
 # src/client/ui/sleep_screen.gd
-"[sleeping_touch_the_screen_to]": "Сон… Коснитесь экрана, чтобы проснуться"
 
 # src/client/ui/team_page.gd
 "[by_territory_rights]": "по правам территорий"

@@ -15,6 +15,7 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 
 const CELL := WorldData.CELL
 ## How far from the player a thing on the ground or a placed thing can be taken or used,
@@ -178,6 +179,8 @@ func gather(target: Dictionary) -> bool:
 		var sat = game.net.request(Protocol.SIT_ON, [target.prop.cell])
 		if sat.done and sat.value is bool and sat.value:
 			game.player.set_gesture("sit")
+			# Facing the way the seat does, its back behind.
+			game.player.facing = SpriteSheet.direction_of(Vector2(Placed.front_of(target.prop)))
 			return true
 		return false
 	if target.has("prop") and Placed.is_part(target.prop):

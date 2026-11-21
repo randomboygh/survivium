@@ -1121,7 +1121,6 @@
 "[turn]": "Повернути"
 
 # src/client/ui/sleep_screen.gd
-"[sleeping_touch_the_screen_to]": "Сон… Торкніться екрана, щоб прокинутися"
 
 # src/client/ui/team_page.gd
 "[by_territory_rights]": "за правами територій"

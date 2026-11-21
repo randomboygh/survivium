@@ -110,8 +110,14 @@ var asleep := false
 ## The letters "z" over a sleeper: each rises from the head, drifting aside, small, then
 ## larger, then a capital, and fades, one after another (as 💤).
 var snore: Array[Sprite3D] = []
-## How far towards the viewer a sleeping body is drawn, in cells.
+## The way the head of the bed the body sleeps in lies (Placed.head_of, set by Main),
+## zero when it sleeps on the ground: in a bed it lies along it, the head to its head;
+## on the ground on its side, the head to the screen's left.
+var bed_head := Vector2i.ZERO
+## How far towards the viewer a sleeping body is drawn, in cells: lying across the
+## screen, and lying along it (head up or down, its frame taller).
 const LYING_FORWARD := 0.8
+const LYING_ALONG_FORWARD := 1.0
 ## How far towards the viewer a sitting body is drawn, in cells: on a stool it shows in
 ## front of the seat, not behind it.
 const SITTING_FORWARD := 0.5
@@ -403,7 +409,10 @@ func place_sprite() -> void:
 		_build = null
 	var drawn_at := position
 	if anim == "sleep" or anim == "sit":
-		var forward := LYING_FORWARD if anim == "sleep" else SITTING_FORWARD
+		var forward := SITTING_FORWARD
+		if anim == "sleep":
+			var way := drawn_facing()
+			forward = LYING_ALONG_FORWARD if way == "n" or way == "s" else LYING_FORWARD
 		drawn_at -= Vector3(PixelView.up.x, 0.0, PixelView.up.y) * forward * CELL
 	sprite.global_position = PixelView.snap(drawn_at)
 	if body.swimming and fmod(Time.get_ticks_msec() / 1000.0, 1.2) < 0.6:
@@ -521,9 +530,14 @@ func _find_flame() -> void:
 ## The way the body faces on the screen: `facing` is a way of the world, the camera
 ## may be turned.
 func drawn_facing() -> String:
+	var way := facing
+	if anim == "sleep":
+		if bed_head == Vector2i.ZERO:
+			return "w"
+		way = SpriteSheet.direction_of(Vector2(bed_head))
 	if PixelView.up == Vector2(0.0, -1.0):
-		return facing
-	var turn := SpriteSheet.COMPASS.find(facing) / 8.0 * TAU
+		return way
+	var turn := SpriteSheet.COMPASS.find(way) / 8.0 * TAU
 	return SpriteSheet.direction_of(PixelView.screen_dir(Vector2(-sin(turn), cos(turn))))
 
 

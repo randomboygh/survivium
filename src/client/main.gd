@@ -819,6 +819,7 @@ func _process(delta: float) -> void:
 		player.rowing = character.seat == 0
 		_set_off()
 		player.asleep = character.vitals.asleep and not character.is_dead()
+		player.bed_head = Placed.head_of(placed.bed_under(player.position)) if player.asleep else Vector2i.ZERO
 		player.line_at = character.line
 		player.line_bite = character.bite
 		if character.vessel != 0 and character.seat == 1 and boats.vessels.has(character.vessel):

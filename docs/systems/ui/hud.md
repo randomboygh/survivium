@@ -122,5 +122,7 @@ Part of [Interface and settings](../ui.md). The HUD and the windows opened in th
   water, warmth and sleep, each only while it is low (`VitalsPanel.critical`; all of them while the bag is
   open), and a column of what hinders the body — wet, out of breath, overloaded, `VitalsPanel.debuffs_of`;
   the panel is as wide as what it shows), `sleep_screen.gd`
-  (darkening in sleep: a tap, a step or a jump wakes, `Protocol.SLEEP`; the moon «Go to sleep» — on the HUD's
-  clock), `body_feedback.gd`, `hotbar_snow.gd` (snow settling on the hotbar's top edge, `AirEffects.hotbar_snow`), `sound_marks.gd` (marks of sounds' directions), `vibration.gd`, `haptics.gd` (what the phone buzzes for: `docs/systems/character.md`).
+  (clear, over the whole screen in sleep: a tap, a step or a jump wakes, `Protocol.SLEEP`; the picture
+  dreams meanwhile, `CameraRig.dream`: grade.gdshader `dream` makes bright things glow, sinks the colours
+  halfway into a pale blue, blurs and darkens the edges, the middle sharp; the moon «Go to sleep» —
+  on the HUD's clock), `body_feedback.gd`, `hotbar_snow.gd` (snow settling on the hotbar's top edge, `AirEffects.hotbar_snow`), `sound_marks.gd` (marks of sounds' directions), `vibration.gd`, `haptics.gd` (what the phone buzzes for: `docs/systems/character.md`).

@@ -980,6 +980,25 @@ static func is_seat(e: Dictionary) -> bool:
 	return not is_light(e) and Items.get_item(e.item).get("seat", 1.0) > 1.0
 
 
+## The way thing `e` faces across the ground (a column step): its front, towards the
+## one who set it down (turn_facing); a seat is sat on facing so, its back behind.
+static func front_of(e: Dictionary) -> Vector2i:
+	return _turned(Vector2i(0, 1), e.get("turn", 0))
+
+
+## The way the head of bed `e` lies across the ground (a column step): west as its
+## model is drawn (turn 0), turned with it.
+static func head_of(e: Dictionary) -> Vector2i:
+	return _turned(Vector2i(-1, 0), e.get("turn", 0))
+
+
+## Step `v` turned `turn` quarters clockwise seen from above, as turn_voxels turns.
+static func _turned(v: Vector2i, turn: int) -> Vector2i:
+	for i in posmod(turn, 4):
+		v = Vector2i(-v.y, v.x)
+	return v
+
+
 ## The bed a body with its feet at `p` (world units) lies on, {} for none: its feet over
 ## the bed's square of cells, no higher than a level above them.
 func bed_under(p: Vector3) -> Dictionary:
@@ -1011,12 +1030,17 @@ func nearest_bed(p: Vector3, reach: float) -> Dictionary:
 	return best
 
 
-## Where a body lies in bed `e` (world units): over its middle, on top of it.
+## Where a body lies in bed `e` (or sits on a seat, world units): over its middle, on
+## the top of its widest box (the mattress, not the posts of a headboard).
 func lying_spot(e: Dictionary) -> Vector3:
 	var top := 0.0
+	var widest := -1.0
 	for box in boxes_of(e):
 		for b: AABB in (box if box is Array else [box]):
-			top = maxf(top, b.end.y)
+			var area := b.size.x * b.size.z
+			if area > widest + 0.0001 or absf(area - widest) <= 0.0001 and b.end.y > top:
+				widest = area
+				top = b.end.y
 	var half := size_of(e.item) * 0.5
 	return (Vector3(e.cell) + Vector3(half, top, half)) * CELL
 
