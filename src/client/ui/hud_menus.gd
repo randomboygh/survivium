@@ -232,10 +232,9 @@ func _to_main_menu() -> void:
 
 func _build_menu() -> void:
 	# Over the whole window, the camera cutout too; taps stop at it.
-	# Lighter than a window's: the world under it is darkened too (system_menu_open). It
-	# comes and goes with the blur (Shade.world_blur), so «Графика» shows the world clear.
+	# Only stops taps: the world under it is blurred and darkened (system_menu_open), and
+	# one darkening is enough.
 	_shade = Shade.new(Color(0, 0, 0, 0))
-	_shade.over_blur = Color(0, 0, 0, 0.3)
 	_shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	_shade.visible = false
 	add_child(_shade)

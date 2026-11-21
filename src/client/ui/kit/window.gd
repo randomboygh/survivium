@@ -12,8 +12,9 @@ const Shade := preload("res://src/client/ui/kit/shade.gd")
 
 ## The shade over what is behind.
 const BACKDROP := Color(0.03, 0.03, 0.04, 0.55)
-## The shade when the world behind is already blurred and darkened (Shade.over_blur).
-const BACKDROP_OVER_BLUR := Color(0.03, 0.03, 0.04, 0.3)
+## The shade when the world behind is already blurred and darkened (Shade.over_blur):
+## none, one darkening is enough (user 2026-11-21).
+const BACKDROP_OVER_BLUR := Color(0.03, 0.03, 0.04, 0.0)
 ## The room kept round the panel.
 const MARGIN := 8
 
@@ -34,7 +35,7 @@ func build(heading := "", gap := 6, width := 0.0) -> VBoxContainer:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	# Over the whole window, the camera cutout too.
 	var shade := Shade.new(BACKDROP)
-	# Over a blurred and darkened world (a system window behind) it darkens less.
+	# Over a blurred and darkened world (a system window behind) it fades away.
 	shade.over_blur = BACKDROP_OVER_BLUR
 	add_child(shade)
 	panel = PanelContainer.new()
