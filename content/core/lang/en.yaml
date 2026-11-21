@@ -807,6 +807,8 @@
 "[field.creatures.ashore.about]": "A swimmer that goes on land too"
 "[field.creatures.hops]": "Hops"
 "[field.creatures.hops.about]": "It moves by hops"
+"[field.creatures.walks]": "Walks"
+"[field.creatures.walks.about]": "A flyer that walks on the ground: its hop frames are steps"
 "[field.creatures.after_rain]": "After rain"
 "[field.creatures.after_rain.about]": "Comes out after rain"
 "[field.creatures.flight]": "Flight"

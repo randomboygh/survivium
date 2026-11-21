@@ -454,6 +454,11 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 		# Hopping about on the ground: crouched, up (the last frames), sitting.
 		look.idle = 0
 		look.change_at = now + _rng.randf_range(IDLE_GAP.x, IDLE_GAP.y)
+		if spec.get("walks", false):
+			# A flyer that walks on the ground (the grouse): its hop frames are steps, two a
+			# round of the walk, as a walker's.
+			var stride := 0.25 + 0.3 * clampf(0.5 + spec.mass / 80.0, 0.5, 1.0)
+			return frames - tail - attack - hop + int(look.walked / stride * maxf(hop / 2.0, 1.0)) % hop
 		var at := int(look.walked / HOP_STEP * (hop + 1)) % (hop + 1)
 		return 0 if at == hop else frames - tail - attack - hop + at
 	if a.moving and walk > 0 and not spec.flies:

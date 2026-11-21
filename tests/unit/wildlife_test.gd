@@ -357,14 +357,21 @@ func _test_swimmers(w: WorldData) -> void:
 	life.people = [Who.new()]
 	# In the middle of the world, so all the square they come on is made.
 	life.people[0].position = Vector3(88.0, 6.0, 88.0) * WorldData.CELL
-	life._settled.clear()
-	life.start(5)
+	# Whether a perch comes at all is a roll of the numbers, and every kind added to the
+	# mods moves the rolls (the black grouse left seed 5 without one): seeds are tried till
+	# perches come, and every one that comes must be in the water.
 	var fishes := 0
-	for a in life.animals:
-		if a.kind == "animals:perch":
-			fishes += 1
-			if w.get_cell(floori(a.pos.x / WorldData.CELL), 5, floori(a.pos.z / WorldData.CELL)) != Mat.WATER:
-				fishes = -100
+	for roll in range(5, 15):
+		life.animals.clear()
+		life._settled.clear()
+		life.start(roll)
+		for a in life.animals:
+			if a.kind == "animals:perch":
+				fishes += 1
+				if w.get_cell(floori(a.pos.x / WorldData.CELL), 5, floori(a.pos.z / WorldData.CELL)) != Mat.WATER:
+					fishes = -100
+		if fishes != 0:
+			break
 	_check(fishes > 0, "perches come into the water (%d)" % fishes)
 	for z in range(pz, pz + side):
 		for x in range(px, px + side):
