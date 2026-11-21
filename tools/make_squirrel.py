@@ -1,6 +1,6 @@
 """Draws the squirrel's sheet, content/animals/squirrel/sprites/creatures/squirrel.png.
 
-Drawn by hand (2026-11-07) in the hare's style (tools/make_rabbit.py): a dark brown outline
+Drawn by hand (2026-11-07) in the style of the hare as it was then (its tool, tools/make_rabbit.py, is gone): a dark brown outline
 round the whole squirrel, russet fur lighter on the head, a cream belly, a big bushy tail
 curled up over the back, ear tufts, a round head with a large eye and its glint. Frames 14x15.
 
