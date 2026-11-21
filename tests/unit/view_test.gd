@@ -88,6 +88,7 @@ func run() -> void:
 	_test_hot_ground()
 	_test_rays_dissolve()
 	_test_animal_flinch()
+	_test_boar_states()
 
 
 func _test_pixel_view() -> void:
@@ -1745,4 +1746,114 @@ func _test_animal_flinch() -> void:
 	c._on_gone(a)
 	c._process(0.05)
 	_check(c._flinching.is_empty(), "one gone flinches no more")
+	c.free()
+
+
+## The boar (tools/art/boar_art.gd, from the user's reference): a row of 24 frames, the
+## walk, attack, run, hurt and death four each; it gallops as it flees, walks about,
+## plays its hurt frames as a blow lands and its idle as one animation. Killed, its carcass
+## comes before its going and waits for it, takes its sprite and falls as the blow lands,
+## then lies on its last frame of death till taken; one in a chunk coming in view lies dead
+## at once.
+func _test_boar_states() -> void:
+	var c := CreaturesView.new()
+	c._build_looks()
+	var kind := "animals:boar"
+	var k: Array = c.looks.get(kind, [])
+	_check(k.size() > 12 and k[3] == 24 and k[4] == 4 and k[7] == 4 and k[9] == 4 and k[10] == 4 and k[11] == 4 and k[12],
+		"the boar's row: 24 frames, the walk, attack, run, hurt and death four each, the idle one animation")
+	if k.size() <= 12:
+		c.free()
+		return
+	var w := RemoteWildlife.new()
+	c.wildlife = w
+	var a := RemoteWildlife.Animal.new()
+	a.kind = kind
+	a.pos = Vector3(10.0, 3.0, 10.0)
+	w.animals.append(a)
+	c._on_born(a)
+	var look = c._looks[a]
+	var now := Time.get_ticks_msec() * 0.001
+	var seen := {}
+	a.moving = true
+	a.state = "flee"
+	for i in 12:
+		look.walked = i * 0.25
+		seen[c._frame(a, look, 0.0, now)] = true
+	_check(seen.size() == 4 and seen.keys().all(func(f: int) -> bool: return f >= 12 and f < 16),
+		"it gallops through its run frames as it flees (%s)" % [seen.keys()])
+	seen.clear()
+	a.state = "wander"
+	for i in 12:
+		look.walked = i * 0.15
+		seen[c._frame(a, look, 0.0, now)] = true
+	_check(seen.size() == 4 and seen.keys().all(func(f: int) -> bool: return f >= 1 and f < 5),
+		"it walks about in its walk frames (%s)" % [seen.keys()])
+	a.moving = false
+	a.state = "bite"
+	var bite: Array[int] = []
+	look.bite_at = now
+	for i in 4:
+		bite.append(c._frame(a, look, 0.0, now + (i + 0.5) * Wildlife.BITE_TIME / 4.0))
+	_check(bite == [8, 9, 10, 11], "it leaps to bite through its four attack frames (%s)" % [bite])
+	a.state = "warn"
+	_check(c._frame(a, look, 0.0, now) == 8, "warning one off, it shows the first")
+	a.state = "wander"
+	look.hurt_at = now
+	_check(c._frame(a, look, 0.0, now) == 16 and c._frame(a, look, 0.0, now + CreaturesView.HURT_FRAME * 2.5) == 18,
+		"a blow landed: its hurt frames one after another")
+	_check(c._frame(a, look, 0.0, now + CreaturesView.HURT_FRAME * 4.5) == 0 and look.hurt_at < 0.0, "then it stands again")
+	var idle: Array[int] = []
+	var t: float = look.change_at
+	for i in 4:
+		idle.append(c._frame(a, look, 0.0, t + i * CreaturesView.IDLE_FRAME + 0.01))
+	_check(idle == [5, 6, 7, 0], "its idle plays through and it stands again (%s)" % [idle])
+	# Killed: the carcass, naming it, comes first (with the things on the ground).
+	var key := Vector2i(0, 0)
+	var drop := ["animals:carcass", a.pos + Vector3(0.2, 0.0, 0.0), 0.0, {"n": 1, "body": kind}]
+	c._lay_bodies(key, [drop], false, now)
+	var lying: Array = c._bodies.get(key, {}).values()
+	_check(lying.size() == 1 and lying[0].dies_at == INF and lying[0].sprite == null and look.body == lying[0],
+		"its body waits for the beast drawn there to go")
+	var b = lying[0]
+	c.flinch(a, 0.3, a.pos - Vector3(1.0, 0.0, 0.0))
+	var sprite: MeshInstance3D = look.sprite
+	c._on_gone(a)
+	_check(b.sprite == sprite and b.dies_at > now + 0.2 and c._dying.has(b), "it takes the beast's sprite, to fall as the blow lands")
+	c._bodies_step(b.dies_at + CreaturesView.FLASH_HOLD * 0.5)
+	_check(b.frame == 0 and PixelView.sprite_flash(sprite) == PixelView.FLASH_STEPS,
+		"it flashes red as the blow that kills it lands, as a flinch does")
+	c._bodies_step(b.dies_at + CreaturesView.DEATH_FRAME * 1.5)
+	_check(b.frame == 1 and c._dying.has(b) and PixelView.sprite_flash(sprite) == 0, "it falls through its frames of death, the red gone")
+	c._bodies_step(b.dies_at + CreaturesView.DEATH_FRAME * 10.0)
+	_check(b.frame == 3 and c._dying.is_empty() and sprite.material_override == c.looks[kind][1][0][b.view * 24 + 23],
+		"and lies on its last")
+	c._lay_bodies(key, [drop], false, now + 5.0)
+	_check(c._bodies[key].values()[0] == b, "it lies on while the carcass does")
+	c._lay_bodies(key, [], false, now + 6.0)
+	_check(not c._bodies.has(key) and b.sprite == null, "taken up, it is gone")
+	c._lay_bodies(key, [drop], true, now + 7.0)
+	var old = c._bodies[key].values()[0]
+	_check(old.frame == 3 and old.sprite != null and c._dying.is_empty(), "one that lay there before its chunk came in view lies dead at once")
+	c.hide_bodies(key)
+	_check(not c._bodies.has(key), "out of view, it is put away")
+	# Killed by one's own blow, the beast goes before the reply naming the blow comes
+	# (Controls._did): its body waits a moment, then falls as the reply says the blade lands.
+	var other := RemoteWildlife.Animal.new()
+	other.kind = kind
+	other.id = 7
+	other.pos = Vector3(20.0, 3.0, 10.0)
+	w.animals.append(other)
+	c._on_born(other)
+	var there := Vector2i(1, 0)
+	c._lay_bodies(there, [["animals:carcass", other.pos, 0.0, {"n": 1, "body": kind}]], false, now)
+	var felled = c._bodies[there].values()[0]
+	var gone_at := Time.get_ticks_msec() * 0.001
+	c._on_gone(other)
+	_check(felled.beast == 7 and felled.dies_at >= gone_at and felled.dies_at <= Time.get_ticks_msec() * 0.001 + CreaturesView.BLOW_WAIT,
+		"gone with no blow on it known, its body waits a moment for the reply")
+	c.felled(7, 0.25)
+	_check(felled.dies_at >= Time.get_ticks_msec() * 0.001 + 0.2, "the reply tells when the blade meets it, and it falls then")
+	c.hide_bodies(there)
+	_check(c._dying.is_empty(), "put away, it dies no more")
 	c.free()

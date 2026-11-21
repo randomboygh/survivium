@@ -799,6 +799,33 @@ func _test_hunting(w: WorldData) -> void:
 	var carcass: Array = w.drops.get(key, []).filter(func(d: Array) -> bool: return d[0] == "animals:carcass")
 	_check(deer.gone and blows == ceili(float(left) / Tools.of("tools:steel_sword").power) and carcass.size() == 1
 		and w.drops[key].size() == lying + 1, "a steel sword kills the deer in %d blows and its carcass lies there" % blows)
+	# A boar has frames of death: killed, it lies where it stood, turned the way it went,
+	# its carcass naming it for the clients to draw (Creatures.show_bodies), apart from any
+	# heap.
+	var boar := _animal(life, "animals:boar", north + Vector3(0.1, 0.0, 0.0))
+	boar.health = 1
+	boar.vel = Vector2(0.0, -2.0)
+	var fell := boar.pos
+	actions.strike(person)
+	var bodies: Array = w.drops.get(key, []).filter(func(d: Array) -> bool:
+		return d[3] is Dictionary and d[3].get("body", "") == "animals:boar")
+	_check(boar.gone and bodies.size() == 1 and bodies[0][0] == "animals:carcass" and bodies[0][1] == fell
+		and is_equal_approx(bodies[0][2], Vector2(0.0, -2.0).angle()),
+		"a boar killed lies where it stood, the way it went, its carcass naming it (%s)" % [bodies])
+	w.heap_drop("animals:carcass", fell, 1)
+	_check(bodies[0][3] is Dictionary and bodies[0][3].get("body", "") == "animals:boar" and int(bodies[0][3].n) == 1,
+		"a carcass dropped by it does not heap onto the body (%s)" % [bodies[0]])
+	# It lies till a hand takes it: the pickup by the feet, which takes the carcass beside
+	# it, leaves the body (a kill in melee falls right by them); a tap takes it as a carcass.
+	var had := person.inventory.count("animals:carcass")
+	actions.pick_up_near(person, WorldActions.PICKUP_ALL, true)
+	var lies: Array = w.drops.get(key, []).filter(func(d: Array) -> bool: return WorldActions.is_body(d))
+	_check(person.inventory.count("animals:carcass") > had and lies.size() == 1 and lies[0][1] == fell,
+		"the pickup by the feet takes the carcass beside it, not the boar's body (%s)" % [lies])
+	had = person.inventory.count("animals:carcass")
+	_check(actions.pick_up(person, key, w.drops[key].find(lies[0])) and person.inventory.count("animals:carcass") == had + 1
+		and not w.drops.get(key, []).any(func(d: Array) -> bool: return WorldActions.is_body(d)),
+		"a hand takes the body into the bag, a carcass as any")
 	var fly := _animal(life, "animals:butterfly", north)
 	_check(fly.health == 0 and life.in_front(person.position, Vector2(0, -1)) != fly and actions.strike(person).is_empty(),
 		"a butterfly cannot be hit: the swing finds nothing")

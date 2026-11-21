@@ -227,7 +227,7 @@ func useful(who, target: Dictionary) -> bool:
 ## (the setting); what it threw away waits until it has walked off. They are taken only
 ## as far as the bag's weight limit goes unless `past_limit` (a setting), so digging with the button held does not overload the body
 ## (which then cannot jump out of the pit it dug); the sack of a death is taken whole. The dead take nothing: their sack
-## lies at their feet.
+## lies at their feet. A beast's body (a carcass naming it, ActionsFight._wound) lies till a hand takes it (pick_up).
 func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 	if who.is_dead():
 		return
@@ -246,7 +246,7 @@ func pick_up_near(who, mode := PICKUP_ALL, past_limit := false) -> void:
 			var took := false
 			for i in range(list.size() - 1, -1, -1):
 				var d: Array = list[i]
-				if d[1].distance_to(feet) > PICKUP or _is_held_back(held_back, d[1]):
+				if d[1].distance_to(feet) > PICKUP or _is_held_back(held_back, d[1]) or is_body(d):
 					continue
 				var most := -1
 				if d[0] == Items.SACK:
@@ -408,7 +408,16 @@ func _take(who, d: Array, most := -1, tap := true) -> Array:
 	var got: int = who.give(id, n if most < 0 else mini(n, most), worn, q, text)
 	if got >= n:
 		return []
+	if got <= 0:
+		# Nothing taken: it lies as it lay (a beast's body stays one, ActionsFight._wound).
+		return d
 	return [d[0], d[1], d[2], Inventory.drop_data(Inventory.stack(id, n - got, worn, null, q, text))]
+
+
+## Whether drop `d` is a beast's body: a carcass naming the beast that lies there
+## (ActionsFight._wound), drawn as the beast fallen (Creatures.show_bodies).
+static func is_body(d: Array) -> bool:
+	return d.size() > 3 and d[3] is Dictionary and d[3].has("body")
 
 
 ## How many items drop `d` is (see WorldData.drops): its count, or its "n" for a worn tool.

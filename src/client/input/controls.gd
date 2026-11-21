@@ -876,9 +876,12 @@ func _did(done: Variant) -> bool:
 	# leaves the bow `loosed` later).
 	if done.has("animal") and game.creatures != null and game.wildlife != null:
 		var a = game.wildlife.by_id(int(done.animal))
+		var lands := _blow_lands(done) + (loosed if done.has("shot") else 0.0)
 		if a != null:
-			var lands := _blow_lands(done) + (loosed if done.has("shot") else 0.0)
 			game.creatures.flinch(a, lands, game.player.position)
+		else:
+			# Gone already: the blow killed it, and its body falls as the blow lands.
+			game.creatures.felled(int(done.animal), lands)
 	if done.has("work"):
 		game.player.work(done.work, done.time, done.at)
 		game.sound.work(done, game.player.work_kind, STRIKE)

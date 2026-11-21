@@ -480,7 +480,7 @@ func _run() -> void:
 		if shot.has("chop_tree"):
 			await _chop_tree(int(shot.chop_tree), float(shot.get("slow", 1.0)))
 		if shot.has("strike_animal"):
-			await _strike_animal(str(shot.strike_animal), float(shot.get("slow", 1.0)))
+			await _strike_animal(str(shot.strike_animal), shot.get("kill", false))
 		if shot.has("cast"):
 			await _cast(shot.cast == "bite")
 		if shot.has("pit"):
@@ -1566,12 +1566,22 @@ func _run() -> void:
 			await process_frame
 			root.get_texture().get_image().save_png(out_dir.path_join("%s-%02d.png" % [shot_name, i + 1]))
 		# Frames as time goes on, `frames_ms` apart, to see what moves (the surf's waves):
-		# <name>-b01.png and on.
+		# <name>-b01.png and on, saved once the last is taken, so that saving them does not
+		# hold the frames farther apart. An animal to strike is struck now, so they follow
+		# the blow from the swing on (the shot itself shows it before).
+		if shot.has("strike_animal"):
+			await _strike(float(shot.get("slow", 1.0)))
+		var taken: Array[Image] = []
+		var next := Time.get_ticks_msec()
 		for i in (0 if keys_only else shot.get("frames_every", 0)):
-			var since := Time.get_ticks_msec()
-			while Time.get_ticks_msec() - since < int(shot.get("frames_ms", 500)):
+			next += int(shot.get("frames_ms", 500))
+			await process_frame
+			while Time.get_ticks_msec() < next:
 				await process_frame
-			root.get_texture().get_image().save_png(out_dir.path_join("%s-b%02d.png" % [shot_name, i + 1]))
+			taken.append(root.get_texture().get_image())
+			print("frame b%02d at %d ms" % [i + 1, Time.get_ticks_msec()])
+		for i in taken.size():
+			taken[i].save_png(out_dir.path_join("%s-b%02d.png" % [shot_name, i + 1]))
 		if shot.has("chop_tree") or shot.has("strike_animal"):
 			Engine.time_scale = 1.0
 			main.render_toggles.set_hidden("chunks: grass", false)
@@ -1846,22 +1856,23 @@ func _chop_tree(side: int, slow: float) -> void:
 	await process_frame
 
 
-## An animal of `kind` put a step east of the player, standing still, the others sent
-## away; the player, facing it, strikes it with the thing in hand (Creatures.flinch: it
-## flinches as the blow lands); the game runs at `slow` of its pace so the frames that
-## follow (`frames_every`) catch it.
-func _strike_animal(kind: String, slow: float) -> void:
+## An animal of `kind` put a step west of the player, standing still and facing them (one
+## come into the world faces east till it moves: Protocol.ANIMAL carries no facing), the
+## others sent away, to be struck (_strike; `kill`: one blow kills it).
+func _strike_animal(kind: String, kill := false) -> void:
 	var life = main.session.wildlife
 	var p: Vector3 = main.player.position
 	for c in life.animals:
 		c.pos = p + Vector3(60.0, 0.0, 60.0)
 		c.target = c.pos
 		c.think = 100.0
-	var at := p + Vector3(0.45 + life.radius(AiRules.SPECIES[kind]), 0.0, 0.0)
+	var at := p - Vector3(0.45 + life.radius(AiRules.SPECIES[kind]), 0.0, 0.0)
 	var a = life._add(kind, Vector3(at.x, life.ground(at.x, at.z), at.z))
 	a.think = 100.0
 	a.target = a.pos
-	a.facing = -1.0
+	a.facing = 1.0
+	if kill:
+		a.health = 1
 	# The grass hidden, so the animal shows whole. The client's copy draws the animal a
 	# moment later (by time, not frames: under software GL it was still unseen as the
 	# blow landed, and its flash went unseen).
@@ -1869,7 +1880,14 @@ func _strike_animal(kind: String, slow: float) -> void:
 	var since := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - since < 2500:
 		await process_frame
-	main.player.facing = "e"
+	main.player.facing = "w"
+
+
+## The player strikes the animal put before them (_strike_animal) with the thing in hand
+## (Creatures.flinch: it flinches as the blow lands; one killed falls, Creatures.show_bodies);
+## the game runs at `slow` of its pace so the frames that follow (`frames_every`) catch it.
+func _strike(slow: float) -> void:
+	main.player.facing = "w"
 	Engine.time_scale = slow
 	main.controls._cooldown = 0.0
 	main.controls.act_in_front()
@@ -2131,7 +2149,8 @@ func _place_ice_holes() -> Array:
 
 ## Animals `kinds` ([species, frame, height above the ground, view]) in a row before
 ## the player, far enough apart for their sun shadows, each held in that frame (a flyer
-## in the air when its height is above 0), for checking the shadows match the drawings.
+## in the air when its height is above 0), for checking the shadows match the drawings;
+## a fifth, Vector2(east, south) in world units from the player, puts one there instead.
 func _place_shadow_zoo(kinds: Array) -> void:
 	var life = main.session.wildlife
 	var p: Vector3 = main.player.position
@@ -2143,6 +2162,8 @@ func _place_shadow_zoo(kinds: Array) -> void:
 	for i in kinds.size():
 		var k: Array = kinds[i]
 		var at := p + Vector3(-5.0 + (i % 5) * 2.5, 0.0, -2.0 + (i / 5) * 3.0)
+		if k.size() > 4:
+			at = p + Vector3(k[4].x, 0.0, k[4].y)
 		at.y = life.ground(at.x, at.z) + k[2]
 		var c = life._add(k[0], at)
 		c.think = 100.0

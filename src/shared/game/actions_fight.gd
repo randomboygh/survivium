@@ -75,7 +75,9 @@ func strike(who, far := true, dir := Vector2.ZERO) -> Dictionary:
 
 ## Animal `a` takes a blow of `power` from `who`, meeting it in `lands` seconds (see
 ## Wildlife.hurt); if it dies, its carcass (its species' `carcass`) is left on the ground
-## where it fell.
+## where it fell. One with frames of death (its species' `death`) lies there itself till
+## the carcass is taken: the carcass names its species and tint (`body`, `tint`) and lies
+## where it stood, turned the way it went, apart from any heap (Creatures.show_bodies).
 func _wound(who, a, power: int, lands := 0.0) -> void:
 	var where: Vector3 = a.pos
 	if not _may(who, _cell_at(where), "hit_animals"):
@@ -84,9 +86,18 @@ func _wound(who, a, power: int, lands := 0.0) -> void:
 		# Another's tame animal (ActionsTame).
 		return
 	var spec: Dictionary = AiRules.SPECIES[a.kind]
+	var way: Vector2 = a.vel if a.vel.length() > 0.1 else Vector2(a.facing, 0.0)
+	var aloft: bool = a.aloft()
 	if wildlife.hurt(a, power, who.position, who, lands) and spec.carcass != "" and Items.has(spec.carcass):
 		var cell := _cell_at(where)
-		world.heap_drop(spec.carcass, floor_under(cell), 1, randf() * TAU, _got(who, "hunt"))
+		var q := _got(who, "hunt")
+		if int(spec.get("death", 0)) > 0:
+			var body := {"n": 1, "q": q, "body": a.kind}
+			if a.tint != 0:
+				body.tint = a.tint
+			world.add_drop(spec.carcass, floor_under(cell) if aloft else where, way.angle(), body)
+		else:
+			world.heap_drop(spec.carcass, floor_under(cell), 1, randf() * TAU, q)
 		drops_changed.emit(WorldData.chunk_key(cell.x, cell.z))
 		who.note("hunted")
 		_learn_each(who, "hunt")
