@@ -8,6 +8,10 @@ extends "res://src/client/ui/hud_layout.gd"
 const SETTINGS_MENU := "res://src/client/ui/settings_menu.gd"
 ## The content editor, compiled and made when opened.
 const CONTENT_EDITOR := "res://src/client/ui/editor/content_editor.gd"
+## The group of the system windows (the pause menu, the settings and «Тестирование», the
+## editor, the interface gallery): while one is shown the world behind is blurred and
+## darkened (system_menu_open). The game's own windows (the bag, a chest, the map) are not in it.
+const SYSTEM_MENU := "system_menu"
 
 
 ## Opens the bag with the chest by the spawn beside it.
@@ -84,6 +88,23 @@ func toggle_stats() -> void:
 		perf.refresh()
 	_place_top()
 	_update_menu()
+
+
+## Whether a system window is open over the world (SYSTEM_MENU, or the main menu).
+func system_menu_open() -> bool:
+	var menu = game.get("menu")
+	if menu != null and menu.is_open:
+		return true
+	for n: Node in get_tree().get_nodes_in_group(SYSTEM_MENU):
+		if n is CanvasItem and n.is_visible_in_tree():
+			return true
+	return false
+
+
+func _process(delta: float) -> void:
+	var view = game.get("view") if game != null else null
+	if view != null:
+		view.ease_menu_blur(system_menu_open(), delta)
 
 
 func toggle_menu() -> void:
@@ -163,6 +184,7 @@ func open_settings(page: String) -> void:
 func open_editor() -> Control:
 	_menu.visible = false
 	var editor: Control = load(CONTENT_EDITOR).new(game)
+	editor.add_to_group(SYSTEM_MENU)
 	editor.closed.connect(func() -> void:
 		if get_tree().paused:
 			_menu.visible = true
@@ -200,12 +222,14 @@ func _to_main_menu() -> void:
 
 func _build_menu() -> void:
 	# Over the whole window, the camera cutout too; taps stop at it.
-	_shade = Shade.new(Color(0, 0, 0, 0.4))
+	# Lighter than a window's: the world under it is darkened too (system_menu_open).
+	_shade = Shade.new(Color(0, 0, 0, 0.3))
 	_shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	_shade.visible = false
 	add_child(_shade)
 	_menu = _panel(self)
 	_menu.visible = false
+	_menu.add_to_group(SYSTEM_MENU)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	_menu.add_child(box)
@@ -222,6 +246,7 @@ func _build_menu() -> void:
 func settings_menu() -> Control:
 	if _settings == null:
 		_settings = load(SETTINGS_MENU).new(game)
+		_settings.add_to_group(SYSTEM_MENU)
 		_settings.closed.connect(func() -> void:
 			if get_tree().paused:
 				_menu.visible = true

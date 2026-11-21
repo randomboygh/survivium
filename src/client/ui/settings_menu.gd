@@ -263,6 +263,8 @@ func _bottom(row: Node, text: String, action: Callable) -> Button:
 ## Returns the gallery.
 func open_gallery() -> Control:
 	var gallery: Control = load(GALLERY).new(game)
+	# A system window: the world behind blurs (Hud.SYSTEM_MENU).
+	gallery.add_to_group("system_menu")
 	gallery.closed.connect(func() -> void: visible = true)
 	visible = false
 	get_parent().add_child(gallery)

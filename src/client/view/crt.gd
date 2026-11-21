@@ -41,7 +41,7 @@ const PARAMS := ["scan", "lines", "interlace", "glow", "threshold", "rgb", "curv
 
 ## Sets look `i` (an index into LOOKS), palette `palette` (into PALETTES) and the
 ## pixel's size `pixel` (into PIXELS) on the grade material `mat`, whose `crt_view` is the
-## linear-filtered world picture the glow and the big pixels read (`tex`).
+## linear-filtered world picture the glow, the big pixels and the menu's blur read (`tex`).
 static func apply(mat: ShaderMaterial, i: int, palette: int, pixel: int, tex: Texture2D) -> void:
 	var look: Dictionary = LOOKS[clampi(i, 0, LOOKS.size() - 1)]
 	var retro := clampi(palette, 0, PALETTES.size() - 1)
@@ -51,7 +51,8 @@ static func apply(mat: ShaderMaterial, i: int, palette: int, pixel: int, tex: Te
 	mat.set_shader_parameter("retro_lut", NES_LUT if retro == RETRO_NES else null)
 	var tube := not look.is_empty()
 	mat.set_shader_parameter("crt_on", tube)
-	mat.set_shader_parameter("crt_view", tex if tube or px > 1 else null)
+	# Always bound: the blur behind a system menu reads it too (CameraRig.ease_menu_blur).
+	mat.set_shader_parameter("crt_view", tex)
 	if not tube:
 		return
 	for k in PARAMS:
