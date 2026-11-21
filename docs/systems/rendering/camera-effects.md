@@ -22,9 +22,12 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
 - Behind a system window (the pause menu, the settings and «Тестирование», the editor, the interface gallery —
   the group `Hud.SYSTEM_MENU` — or the main menu over the world; not the bag, chests or the map) the picture
   blurs and darkens: `Hud._process` (it runs while the game is paused) calls `CameraRig.ease_menu_blur`, which
-  eases `menu_blur` of `grade.gdshader` in `1 / MENU_BLUR_RATE` s. The blur reads `crt_view` (the low-res
-  picture, linear; `Crt.apply` always binds it) in 13 taps (two rings), so it costs next to nothing even on a
-  phone; `MENU_DARK` darkens it, and the pause's own shade is lighter for it (0.3).
+  eases `menu_blur` of `grade.gdshader` in over `MENU_BLUR_IN` (0.5 s) and out over `MENU_BLUR_OUT` (0.2 s).
+  Not on the settings' «Графика» (`SettingsMenu.shows_world`: a change there is looked at in the world) and not
+  under the main menu's painted landscape. The blur reads `crt_view` (the low-res picture, linear; `Crt.apply`
+  always binds it) in 13 taps (two rings, `MENU_REACH`), so it costs next to nothing even on a phone;
+  `MENU_DARK` darkens it. The shades over it follow (`Shade.world_blur`, `over_blur`): the pause's comes and goes
+  with it (0.3), a kit window's is lighter over a blurred world (0.55 → 0.3).
 - Culling boxes (`PixelView.sheared_box`, `box_views`): a node's `custom_aabb` holds what it draws once
   sheared in every view of `box_views`. At rest that is the view shown; on a step's glide the views on the way
   (`BOX_STEP` apart); while the turn is held or the view drifts, only `SPIN_AHEAD` (45°) ahead, fitted again

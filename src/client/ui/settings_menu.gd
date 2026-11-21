@@ -185,6 +185,8 @@ var _columns := 1
 
 
 func _init(g) -> void:
+	# A system window: the world behind blurs (Hud.SYSTEM_MENU), but not on «Графика».
+	add_to_group("system_menu")
 	game = g
 
 
@@ -278,6 +280,12 @@ func open(which: String, back := "test") -> void:
 	if which in ["changes", "freezes", "report", "crash", "probe", "parts"]:
 		_back_to = back
 	_fill()
+
+
+## Whether the world behind should be seen sharp: the settings on «Графика», where a
+## change is looked at in the world (Hud.system_menu_open).
+func shows_world() -> bool:
+	return visible and page == "settings" and sections.get("settings", "") == "graphics"
 
 
 ## Shows section `key` of the page shown (see PAGES).

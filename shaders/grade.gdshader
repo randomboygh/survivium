@@ -55,6 +55,8 @@ const float GLASS_LANES = 2.0;
 // hundred thousand reads a frame even on a phone.
 uniform float menu_blur = 0.0;
 const float MENU_DARK = 0.3;
+// How far the inner ring of the blur reaches, in picture pixels (the outer one twice as far).
+const float MENU_REACH = 2.8;
 // The pixels of the picture round its edges left off the screen (PixelView.MARGIN).
 uniform float view_margin = 0.0;
 // How far the picture is moved on the screen, in its pixels (CameraRig: the margin and
@@ -550,7 +552,7 @@ void fragment() {
 		src = mix(src, hue_turn(texture(TEXTURE, uv - off).rgb, 2.1), trip * (0.18 + 0.07 * sin(TIME * 1.1)));
 	}
 	if (menu_blur > 0.0) {
-		src = mix(src, menu_blurred(uv, TEXTURE_PIXEL_SIZE, 1.7 * menu_blur), menu_blur);
+		src = mix(src, menu_blurred(uv, TEXTURE_PIXEL_SIZE, MENU_REACH * menu_blur), menu_blur);
 	}
 	src = clamp(src + drop.z, 0.0, 1.0);
 	vec3 c = src * exposure;

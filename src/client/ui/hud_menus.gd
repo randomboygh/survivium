@@ -90,12 +90,18 @@ func toggle_stats() -> void:
 	_update_menu()
 
 
-## Whether a system window is open over the world (SYSTEM_MENU, or the main menu).
+## Whether a system window is open over the world (SYSTEM_MENU, or the main menu), so the
+## world behind is blurred and darkened; not while the settings show «Графика» (a change
+## there is looked at in the world).
 func system_menu_open() -> bool:
+	var nodes := get_tree().get_nodes_in_group(SYSTEM_MENU)
+	for n: Node in nodes:
+		if n.has_method("shows_world") and n.shows_world():
+			return false
 	var menu = game.get("menu")
 	if menu != null and menu.is_open:
 		return true
-	for n: Node in get_tree().get_nodes_in_group(SYSTEM_MENU):
+	for n: Node in nodes:
 		if n is CanvasItem and n.is_visible_in_tree():
 			return true
 	return false
@@ -103,8 +109,12 @@ func system_menu_open() -> bool:
 
 func _process(delta: float) -> void:
 	var view = game.get("view") if game != null else null
-	if view != null:
-		view.ease_menu_blur(system_menu_open(), delta)
+	if view == null:
+		return
+	# Not under the main menu's painted landscape: nothing of the world shows there.
+	var menu = game.get("menu")
+	# The shades over the world (the pause's, a window's) follow it.
+	Shade.world_blur = view.ease_menu_blur(system_menu_open() and not (menu != null and menu.hides_world()), delta)
 
 
 func toggle_menu() -> void:
@@ -222,8 +232,10 @@ func _to_main_menu() -> void:
 
 func _build_menu() -> void:
 	# Over the whole window, the camera cutout too; taps stop at it.
-	# Lighter than a window's: the world under it is darkened too (system_menu_open).
-	_shade = Shade.new(Color(0, 0, 0, 0.3))
+	# Lighter than a window's: the world under it is darkened too (system_menu_open). It
+	# comes and goes with the blur (Shade.world_blur), so «Графика» shows the world clear.
+	_shade = Shade.new(Color(0, 0, 0, 0))
+	_shade.over_blur = Color(0, 0, 0, 0.3)
 	_shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	_shade.visible = false
 	add_child(_shade)
@@ -246,7 +258,6 @@ func _build_menu() -> void:
 func settings_menu() -> Control:
 	if _settings == null:
 		_settings = load(SETTINGS_MENU).new(game)
-		_settings.add_to_group(SYSTEM_MENU)
 		_settings.closed.connect(func() -> void:
 			if get_tree().paused:
 				_menu.visible = true
