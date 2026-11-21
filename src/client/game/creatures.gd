@@ -87,6 +87,11 @@ const FLINCH_HZ := 7.0
 const FLINCH_DAMP := 7.0
 const FLINCH_TIME := 0.25
 const FLINCH_SLACK := 0.75
+## As it flinches it flashes red (the user's ask, 2026-11-21: drawn by sprite.gdshader,
+## not into its frames): wholly for FLASH_HOLD seconds, then fading by
+## PixelView.FLASH_STEPS steps, gone after FLASH_TIME (no longer than FLINCH_TIME).
+const FLASH_HOLD := 0.08
+const FLASH_TIME := 0.22
 const BLOW_HEIGHT := 0.3
 const STRIKE_REACH := 1.4
 ## Blows waiting to land at once, at most.
@@ -510,7 +515,7 @@ func struck_at(at: Vector3, delay: float, from: Vector3) -> void:
 
 
 ## The blows landing and the animals flinching this frame: a flinching one's picture is
-## put where it stands and moved by its jerk and shake; put back when done.
+## put where it stands, moved by its jerk and shake and flashed red; put back when done.
 func _flinch_step(delta: float) -> void:
 	for i in range(_blows.size() - 1, -1, -1):
 		var b: Array = _blows[i]
@@ -536,11 +541,15 @@ func _flinch_step(delta: float) -> void:
 		var a = look.animal
 		look.flinch += delta
 		var px := Vector2.ZERO
+		var red := 0
 		if look.flinch < FLINCH_TIME:
 			px = flinch_px(look.flinch)
 			px.x *= look.flinch_side
+			red = flash_step(look.flinch)
 		else:
 			_flinching.remove_at(i)
+		if red != PixelView.sprite_flash(look.sprite):
+			PixelView.flash_sprite(look.sprite, red)
 		look.sprite.position = PixelView.snap(a.pos + Vector3(0.0, a.lift, 0.0)) + right * px.x \
 			+ Vector3(0.0, px.y / PixelView.PIXELS_PER_UNIT, 0.0)
 
@@ -551,6 +560,14 @@ func _flinch_step(delta: float) -> void:
 static func flinch_px(t: float) -> Vector2:
 	return Vector2(roundf(FLINCH_PX * exp(-t * FLINCH_DAMP) * cos(t * FLINCH_HZ * TAU)),
 		roundf(FLINCH_UP * maxf(0.0, 1.0 - t / FLINCH_JERK)))
+
+
+## How red an animal that flinched `t` seconds ago flashes, in PixelView.FLASH_STEPS-ths.
+static func flash_step(t: float) -> int:
+	if t < 0.0 or t >= FLASH_TIME:
+		return 0
+	var left := clampf((FLASH_TIME - t) / (FLASH_TIME - FLASH_HOLD), 0.0, 1.0)
+	return ceili(PixelView.FLASH_STEPS * left)
 
 
 func _on_born(a) -> void:

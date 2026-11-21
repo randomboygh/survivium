@@ -81,6 +81,29 @@ static var _box_shears: Array[Transform3D] = []
 static var _shears_of: Array = []
 
 
+## A sprite's scale along z, which its flat quad does not use, carries to sprite.gdshader
+## (an instance uniform reads 0 in the web build) two things: in its fraction the shade
+## a drawn shadow of a fire or the torch leaves (FireShadows, 0.01 to 1), in twice its
+## whole part the red flash of a blow on an animal (Creatures, 0 to FLASH_STEPS).
+const FLASH_STEPS := 4
+
+
+## Draws `sprite` `shade` dark (1: as it is), its flash kept.
+static func shade_sprite(sprite: Node3D, shade: float) -> void:
+	sprite.scale.z = clampf(shade, 0.01, 1.0) + 2.0 * sprite_flash(sprite)
+
+
+## Flashes `sprite` red `step` FLASH_STEPS-ths (0: not at all), its shade kept.
+static func flash_sprite(sprite: Node3D, step: int) -> void:
+	var z := sprite.scale.z
+	sprite.scale.z = z - 2.0 * floorf(z * 0.5) + 2.0 * clampi(step, 0, FLASH_STEPS)
+
+
+## How many FLASH_STEPS-ths `sprite` is flashed red (see flash_sprite).
+static func sprite_flash(sprite: Node3D) -> int:
+	return floori(sprite.scale.z * 0.5)
+
+
 ## Draws none of emitter `p`'s particles till it first emits. A CPUParticles3D made with
 ## emitting off draws every one of its `amount` instances from a buffer nothing wrote
 ## (Godot sets the instances drawn to none only when an emission ends): fresh memory
