@@ -604,6 +604,9 @@ func _gather(id: String) -> bool:
 	for s: Dictionary in Trees.SPECIES:
 		if id == s.seed:
 			return await _tree_seed(id)
+	for b: Dictionary in Bushes.TYPES:
+		if b.fruit != "" and Items.get_item(b.fruit).get("id", b.fruit) == id:
+			return await _berries(id)
 	for s: Dictionary in Trees.SPECIES:
 		if id == s.twig:
 			return await _branch()
@@ -909,6 +912,57 @@ func _branch() -> bool:
 		if not await _trip():
 			break
 	return _fail("no bush or tree with branches found")
+
+
+## Berries `id` picked by hand off the nearest bush that bears them ripe; when none is near,
+## a trip to the biomes such bushes grow in, the one where they grow most first.
+func _berries(id: String) -> bool:
+	main.controls.put_in_hand("", -1, false)
+	var w = main.world
+	var kinds: Array[int] = []
+	for i in Bushes.TYPES.size():
+		var f: String = Bushes.TYPES[i].fruit
+		if f != "" and Items.get_item(f).get("id", f) == id:
+			kinds.append(i)
+	var shares := {}
+	for rec: Dictionary in Biomes.RECORDS:
+		for pair: Array in rec.get("bush_shares", []):
+			if pair[0] in kinds:
+				shares[rec.id] = maxf(shares.get(rec.id, 0.0), float(pair[1]))
+	var biomes: Array = shares.keys()
+	biomes.sort_custom(func(a: String, b: String) -> bool: return shares[a] > shares[b])
+	var inv = main.host.player.inventory
+	for attempt in MAX_TRIPS:
+		var best := Vector3i.MAX
+		var best_d := INF
+		var feet: Vector3i = main.controls.feet()
+		for cell: Vector3i in w.bushes:
+			var d := Vector2(cell.x - feet.x, cell.z - feet.z).length()
+			if d < best_d and d < SEARCH * 3 and int(w.bushes[cell]) in kinds and main.actions.ripe(cell, Bushes.TYPES[w.bushes[cell]]):
+				best = cell
+				best_d = d
+		if best != Vector3i.MAX:
+			var before: int = inv.count(id)
+			await _stand_by(best)
+			_rest()
+			swings += 1
+			if not main.gathering.gather({"bush": best}):
+				_tidy()
+				if not main.gathering.gather({"bush": best}):
+					return _fail("hands pick nothing off the bush at %s for %s" % [best, Items.title(id)])
+			await process_frame
+			_found["bush " + id] = (Vector3(best) + Vector3(0.5, 1.0, 0.5)) * CELL
+			if inv.count(id) > before:
+				return true
+			continue
+		if await _back_to("bush " + id):
+			continue
+		if await _trip_to_biome(biomes, _biome_trips.get(id, 0)):
+			_biome_trips[id] = _biome_trips.get(id, 0) + 1
+			continue
+		if not await _trip():
+			break
+	return _fail("no bush found with ripe %s" % Items.title(id))
 
 
 ## Gathers by hand from the nearest tree whose seed is `id` (an acorn off an oak) while
