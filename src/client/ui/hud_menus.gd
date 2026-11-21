@@ -8,6 +8,14 @@ extends "res://src/client/ui/hud_layout.gd"
 const SETTINGS_MENU := "res://src/client/ui/settings_menu.gd"
 ## The content editor, compiled and made when opened.
 const CONTENT_EDITOR := "res://src/client/ui/editor/content_editor.gd"
+## The group of the system windows (the pause menu, the settings and «Тестирование», the
+## editor, the interface gallery): while one is shown the world behind is blurred and
+## darkened (system_menu_open). The game's own windows (the bag, a chest, the map) are not in it.
+const SYSTEM_MENU := "system_menu"
+## Seconds between two looks for a system window while nothing is blurred.
+const MENU_LOOK_EVERY := 0.1
+var _menu_look_left := 0.0
+var _menu_seen := false
 
 
 ## Opens the bag with the chest by the spawn beside it.
@@ -84,6 +92,41 @@ func toggle_stats() -> void:
 		perf.refresh()
 	_place_top()
 	_update_menu()
+
+
+## Whether a system window is open over the world (SYSTEM_MENU, or the main menu), so the
+## world behind is blurred and darkened; not while the settings show «Графика» (a change
+## there is looked at in the world).
+func system_menu_open() -> bool:
+	var menu = game.get("menu")
+	var nodes := get_tree().get_nodes_in_group(SYSTEM_MENU)
+	for n: Node in nodes:
+		if n.has_method("shows_world") and n.shows_world():
+			return false
+	if menu != null and menu.is_open:
+		return true
+	for n: Node in nodes:
+		if n is CanvasItem and n.is_visible_in_tree():
+			return true
+	return false
+
+
+func _process(delta: float) -> void:
+	var view = game.get("view") if game != null else null
+	if view == null:
+		return
+	# Not under the main menu's painted landscape: nothing of the world shows there.
+	var menu = game.get("menu")
+	# With nothing blurred, the windows are looked for only every MENU_LOOK_EVERY seconds:
+	# an idle frame keeps its budget, and a blur starting that late is not seen.
+	_menu_look_left -= delta
+	if view.menu_blur > 0.0 or _menu_look_left <= 0.0:
+		_menu_look_left = MENU_LOOK_EVERY
+		_menu_seen = system_menu_open() and not (menu != null and menu.hides_world())
+	if view.menu_blur == 0.0 and not _menu_seen:
+		return
+	# The shades over the world (the pause's, a window's) follow it.
+	Shade.world_blur = view.ease_menu_blur(_menu_seen, delta)
 
 
 func toggle_menu() -> void:
@@ -163,6 +206,7 @@ func open_settings(page: String) -> void:
 func open_editor() -> Control:
 	_menu.visible = false
 	var editor: Control = load(CONTENT_EDITOR).new(game)
+	editor.add_to_group(SYSTEM_MENU)
 	editor.closed.connect(func() -> void:
 		if get_tree().paused:
 			_menu.visible = true
@@ -200,12 +244,15 @@ func _to_main_menu() -> void:
 
 func _build_menu() -> void:
 	# Over the whole window, the camera cutout too; taps stop at it.
-	_shade = Shade.new(Color(0, 0, 0, 0.4))
+	# Only stops taps: the world under it is blurred and darkened (system_menu_open), and
+	# one darkening is enough.
+	_shade = Shade.new(Color(0, 0, 0, 0))
 	_shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	_shade.visible = false
 	add_child(_shade)
 	_menu = _panel(self)
 	_menu.visible = false
+	_menu.add_to_group(SYSTEM_MENU)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
 	_menu.add_child(box)

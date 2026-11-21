@@ -937,6 +937,9 @@ const SHOTS := {
 	"turn-forest": {"time": 0.45, "season": 1, "forest": true, "turn": 4},
 	"ui-touch": {"time": 0.45, "season": 1, "touch": true, "toast": true},
 	"ui-menu": {"time": 0.45, "season": 1, "touch": true, "menu": true},
+	# The world behind the pause blurred and darkened, and the same view without it.
+	"menu-blur": {"time": 0.45, "season": 1, "menu": true, "hide": ["chunks: grass"]},
+	"menu-blur-off": {"time": 0.45, "season": 1, "hide": ["chunks: grass"]},
 	# Teams (decision 50): a member's name in the team's colour, a tapped player's card,
 	# an invitation, the pause's window «Команда».
 	"team-person": {"time": 0.45, "season": 1, "touch": true, "find": "meadow", "team": "person"},

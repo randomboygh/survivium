@@ -49,6 +49,14 @@ uniform float glass_wind = 0.0;
 // away from the sun (x right, y down), where the bow stands.
 uniform vec4 rainbow = vec4(0.0);
 const float GLASS_LANES = 2.0;
+// Behind a system menu (the pause, the settings, «Тестирование», the editor, the main menu
+// over the world; CameraRig.ease_menu_blur), 0..1: the picture blurred and darkened by MENU_DARK.
+// The blur is two rings of linear taps of crt_view on the low-res picture: a few
+// hundred thousand reads a frame even on a phone.
+uniform float menu_blur = 0.0;
+const float MENU_DARK = 0.3;
+// How far the inner ring of the blur reaches, in picture pixels (the outer one twice as far).
+const float MENU_REACH = 2.8;
 // The pixels of the picture round its edges left off the screen (PixelView.MARGIN).
 uniform float view_margin = 0.0;
 // How far the picture is moved on the screen, in its pixels (CameraRig: the margin and
@@ -102,6 +110,21 @@ uniform sampler2D retro_lut : filter_nearest;
 // (Sky._update_grade: lower the darker the sky), 1 by day.
 uniform float retro_lift = 1.0;
 const vec3 CGA[4] = vec3[](vec3(0.0), vec3(0.333, 1.0, 1.0), vec3(1.0, 0.333, 1.0), vec3(1.0));
+
+// The picture around `uv` blurred (crt_view: linear, so each tap averages four pixels):
+// the middle, a ring of six taps `reach` picture pixels away and one of six twice as far,
+// turned by 30°, weighted like a bell.
+vec3 menu_blurred(vec2 uv, vec2 texel, float reach) {
+	vec3 sum = texture(crt_view, uv).rgb * 0.16;
+	for (int i = 0; i < 6; i++) {
+		float a = float(i) * 1.0471976;
+		vec2 d = vec2(cos(a), sin(a));
+		sum += texture(crt_view, uv + d * reach * texel).rgb * 0.09;
+		vec2 e = vec2(d.x * 0.8660254 - d.y * 0.5, d.x * 0.5 + d.y * 0.8660254);
+		sum += texture(crt_view, uv + e * reach * 2.1 * texel).rgb * 0.05;
+	}
+	return sum;
+}
 
 // How far, in picture pixels, the waves of a sleepy eye move the pixel at screen point
 // `sp` (0..1): slow sines across and along, crossing, so nothing moves in step.
@@ -528,6 +551,9 @@ void fragment() {
 		vec2 off = vec2(sin(TIME * 0.45 + 2.0), cos(TIME * 0.61)) * 5.0 * trip * TEXTURE_PIXEL_SIZE;
 		src = mix(src, hue_turn(texture(TEXTURE, uv - off).rgb, 2.1), trip * (0.18 + 0.07 * sin(TIME * 1.1)));
 	}
+	if (menu_blur > 0.0) {
+		src = mix(src, menu_blurred(uv, TEXTURE_PIXEL_SIZE, MENU_REACH * menu_blur), menu_blur);
+	}
 	src = clamp(src + drop.z, 0.0, 1.0);
 	vec3 c = src * exposure;
 	float l = dot(c, vec3(0.299, 0.587, 0.114));
@@ -618,5 +644,6 @@ void fragment() {
 		c += grain * (crt_noise + band * 0.5);
 		c *= edge;
 	}
+	c *= 1.0 - MENU_DARK * menu_blur;
 	COLOR = vec4(clamp(c, 0.0, 1.0), 1.0);
 }

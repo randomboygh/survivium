@@ -56,6 +56,10 @@ const SWAY_RATE := 0.25
 ## over the last TRIP_FADE seconds of the visions.
 const TRIP_RATE := 0.4
 const TRIP_FADE := 20.0
+## Behind a system menu the picture blurs and darkens (grade.gdshader `menu_blur`) in
+## MENU_BLUR_IN seconds, and clears again in MENU_BLUR_OUT.
+const MENU_BLUR_IN := 0.5
+const MENU_BLUR_OUT := 0.2
 ## Seconds a shake lasts.
 const SHAKE_TIME := 0.3
 
@@ -104,6 +108,10 @@ var _sway_set := -1.0
 ## How strong the visions are now, 0..1 (see visions), and the value the shader has.
 var trip := 0.0
 var _trip_set := -1.0
+## How blurred and dark the picture is behind a system menu now, 0..1 (see
+## ease_menu_blur), and the value the shader has.
+var menu_blur := 0.0
+var _menu_blur_set := 0.0
 ## A shake of the picture (see shake): how far, in low-res pixels, and its seconds left.
 var _shake := 0.0
 var _shake_left := 0.0
@@ -512,6 +520,23 @@ func update(delta: float) -> void:
 			Engine.get_process_frames())
 	player.place_sprite()
 	RenderingServer.global_shader_parameter_set("player_pos", player.position)
+
+
+## Eases the blur and the dark behind a system menu towards on (`open`) or off over
+## `delta` seconds; returns how far it is, eased (0..1). Called by the HUD, which keeps
+## running while the game is paused.
+func ease_menu_blur(open: bool, delta: float) -> float:
+	menu_blur = move_toward(menu_blur, 1.0 if open else 0.0, delta / (MENU_BLUR_IN if open else MENU_BLUR_OUT))
+	# Eased, so it starts and ends softly.
+	var k := smoothstep(0.0, 1.0, menu_blur)
+	if grade_mat == null or menu_blur == _menu_blur_set:
+		return k
+	if _menu_blur_set == 0.0:
+		# The linear-filtered picture the blur reads (Crt.apply binds it too).
+		grade_mat.set_shader_parameter("crt_view", viewport.get_texture())
+	_menu_blur_set = menu_blur
+	grade_mat.set_shader_parameter("menu_blur", k)
+	return k
 
 
 ## Shakes the picture by up to `pixels` low-res pixels for a moment, fading.

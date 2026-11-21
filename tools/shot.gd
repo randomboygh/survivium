@@ -1263,6 +1263,11 @@ func _run() -> void:
 			# The window settles its height a frame after it opens (see InventoryWindow.refresh).
 			for i in 3:
 				await process_frame
+		if main.hud.system_menu_open():
+			# The world behind a system window blurs in over a few frames (CameraRig.ease_menu_blur).
+			var since := Time.get_ticks_msec()
+			while main.view.menu_blur < 1.0 and Time.get_ticks_msec() - since < 3000:
+				await process_frame
 		if shot.get("death", false):
 			for st in [["resources:branch", 12], ["resources:fiber", 9], ["plants:raspberry", 23], ["tools:stone_axe", 1], ["resources:flint", 3]]:
 				main.host.player.inventory.add(st[0], st[1])

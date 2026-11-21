@@ -6,6 +6,13 @@ extends Control
 
 ## How dark, and in what colour.
 var color: Color
+## The colour once the world behind is blurred and darkened by a system window
+## (world_blur 1): a window over it need not darken as much. Its alpha < 0: unused.
+var over_blur := Color(0, 0, 0, -1)
+var _blur_drawn := -1.0
+
+## How far the world behind is blurred and darkened now, 0..1 (CameraRig.ease_menu_blur).
+static var world_blur := 0.0
 
 
 func _init(c: Color) -> void:
@@ -16,6 +23,15 @@ func _init(c: Color) -> void:
 	set_notify_transform(true)
 
 
+func _ready() -> void:
+	set_process(over_blur.a >= 0.0 and is_visible_in_tree())
+
+
+func _process(_delta: float) -> void:
+	if world_blur != _blur_drawn:
+		queue_redraw()
+
+
 ## The whole window in the local coordinates of `c`, a pixel past each edge.
 static func window_rect(c: CanvasItem) -> Rect2:
 	return (c.get_global_transform().affine_inverse() * c.get_viewport_rect()).grow(2)
@@ -24,7 +40,14 @@ static func window_rect(c: CanvasItem) -> Rect2:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_TRANSFORM_CHANGED:
 		queue_redraw()
+	elif what == NOTIFICATION_VISIBILITY_CHANGED:
+		# Follows the blur only while shown.
+		set_process(over_blur.a >= 0.0 and is_visible_in_tree())
 
 
 func _draw() -> void:
-	draw_rect(window_rect(self), color)
+	var c := color
+	if over_blur.a >= 0.0:
+		_blur_drawn = world_blur
+		c = color.lerp(over_blur, world_blur)
+	draw_rect(window_rect(self), c)
