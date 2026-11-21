@@ -12,6 +12,10 @@ const CONTENT_EDITOR := "res://src/client/ui/editor/content_editor.gd"
 ## editor, the interface gallery): while one is shown the world behind is blurred and
 ## darkened (system_menu_open). The game's own windows (the bag, a chest, the map) are not in it.
 const SYSTEM_MENU := "system_menu"
+## Seconds between two looks for a system window while nothing is blurred.
+const MENU_LOOK_EVERY := 0.1
+var _menu_look_left := 0.0
+var _menu_seen := false
 
 
 ## Opens the bag with the chest by the spawn beside it.
@@ -113,8 +117,16 @@ func _process(delta: float) -> void:
 		return
 	# Not under the main menu's painted landscape: nothing of the world shows there.
 	var menu = game.get("menu")
+	# With nothing blurred, the windows are looked for only every MENU_LOOK_EVERY seconds:
+	# an idle frame keeps its budget, and a blur starting that late is not seen.
+	_menu_look_left -= delta
+	if view.menu_blur > 0.0 or _menu_look_left <= 0.0:
+		_menu_look_left = MENU_LOOK_EVERY
+		_menu_seen = system_menu_open() and not (menu != null and menu.hides_world())
+	if view.menu_blur == 0.0 and not _menu_seen:
+		return
 	# The shades over the world (the pause's, a window's) follow it.
-	Shade.world_blur = view.ease_menu_blur(system_menu_open() and not (menu != null and menu.hides_world()), delta)
+	Shade.world_blur = view.ease_menu_blur(_menu_seen, delta)
 
 
 func toggle_menu() -> void:
