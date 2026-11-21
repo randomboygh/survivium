@@ -483,7 +483,7 @@ func floats(at: Vector3) -> bool:
 ## The water surface under the whole hull of a vessel at `p` (cells), INF where some of
 ## it is not on open water at the level of its middle's.
 func _hull_surface(p: Vector3) -> float:
-	if world.water_frozen:
+	if world.frozen_at(floori(p.x), floori(p.z)):
 		return INF
 	# The surface is looked for from a little over the feet: a vessel's are under it.
 	var probe := Vector3(p.x, p.y + 0.05, p.z)
@@ -492,7 +492,7 @@ func _hull_surface(p: Vector3) -> float:
 		return INF
 	for c: Vector2 in [Vector2(-HULL, -HULL), Vector2(HULL, -HULL), Vector2(-HULL, HULL), Vector2(HULL, HULL)]:
 		var s := _water_surface(probe + Vector3(c.x, 0.0, c.y))
-		if absf(s - surface) > 0.01:
+		if absf(s - surface) > 0.01 or world.frozen_at(floori(p.x + c.x), floori(p.z + c.y)):
 			return INF
 	return surface
 

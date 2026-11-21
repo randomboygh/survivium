@@ -419,10 +419,10 @@ func water_top(x: float, z: float) -> float:
 ## ice (the top cell of the water frozen), in world units, where the water is two cells
 ## deep at least; -INF elsewhere, and where the water is not frozen.
 func under_ice(x: float, z: float) -> float:
-	if not world.water_frozen:
-		return -INF
 	var cx := floori(x / CELL)
 	var cz := floori(z / CELL)
+	if not world.frozen_at(cx, cz):
+		return -INF
 	var bits: int = world.water_col(cx, cz)
 	if bits == 0:
 		return -INF

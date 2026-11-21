@@ -143,6 +143,49 @@ vec3 ice_color(vec2 tex, float depth, bool side, float clear, float hole) {
 	return c;
 }
 
+// While the water freezes (ice_amount under ICE_WHOLE): the ice creeps out from the
+// shore over the shallows towards the deep and comes in patches on deeper water, as
+// WorldCells.ice_margin decides per column for walking on it (keep the two alike; the
+// constants are its ICE_*). Here it is per texel, from the depth at the vertices and with
+// a ragged edge, so a column's middle is ice where it holds a walker and its edge wanders
+// a few texels about. Returns 0 or 1.
+const float ICE_WHOLE = 0.8;
+const float ICE_REACH = 9.0;
+const vec2 ICE_SPOTS = vec2(1.3, 4.0);
+const vec2 ICE_LATTICE = vec2(10.0, 4.0);
+const float ICE_RAG = 2.5;
+float ice_hash(int x, int z) {
+	uint h = (uint(x) * 1597334677u) ^ (uint(z) * 1640531513u);
+	h ^= h >> 16u;
+	h *= 1103515245u;
+	h ^= h >> 15u;
+	return float(h & 1023u) / 1023.0;
+}
+float ice_value_noise(vec2 q, int salt) {
+	vec2 i = floor(q);
+	vec2 f = q - i;
+	f = f * f * (3.0 - 2.0 * f);
+	int ix = int(i.x) + salt;
+	int iz = int(i.y);
+	float a = mix(ice_hash(ix, iz), ice_hash(ix + 1, iz), f.x);
+	float b = mix(ice_hash(ix, iz + 1), ice_hash(ix + 1, iz + 1), f.x);
+	return mix(a, b, f.y);
+}
+float ice_here(vec2 tex, vec2 xz, float depth_cells) {
+	float t = ice_amount / ICE_WHOLE;
+	if (t >= 1.0) {
+		return 1.0;
+	}
+	vec2 p = xz / CELL;
+	float n = 0.65 * ice_value_noise(p / ICE_LATTICE.x, 0) + 0.35 * ice_value_noise(p / ICE_LATTICE.y, 7919);
+	float shore = t * ICE_REACH - depth_cells + (ice_value_noise(p / 3.0, 3571) - 0.5) * ICE_RAG;
+	float spot = (n - 1.0 + t * ICE_SPOTS.x) * ICE_SPOTS.y;
+	// The ragged edge: a small noise of a cell or two and a dither of single texels.
+	float rag = (texture(cloud_noise, xz / 1.3 + 0.17).r - 0.5) * 0.8 + (hash12(tex + 71.0) - 0.5) * 0.08;
+	rag *= 0.6;
+	return step(0.0, max(shore, spot) + rag);
+}
+
 // Murky water, `murk` from 0.5 (a swamp's) to 1 (a bog's): green-brown, darker in
 // the deep; a bog's in patches of scum and darker mud and a few bubbles.
 vec3 murky_color(vec2 tex, float depth, float murk) {
@@ -331,7 +374,7 @@ void fragment() {
 	float clear_ice = 0.0;
 	if (ice_amount > 0.0) {
 		hole = ice_hole(world_pos.xz);
-		ice = hole >= 1.0 ? 0.0 : ice_amount;
+		ice = hole >= 1.0 ? 0.0 : ice_here(tex, world_pos.xz, depth_here);
 		clear_ice = ice_clear(world_pos.xz);
 	}
 	// Murky water: the murk blended over the cells, broken up by a still patch noise

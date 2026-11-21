@@ -10,7 +10,13 @@ device's time, the season by the calendar and real weather.
 **Files**
 - `src/shared/game/clock.gd` — the world's clock: `step(delta, at)`, `daylight()`, `day_share()`,
   `sun_time()`, `sunrise()` / `sunset()`, `moon_phase_light`, `wind_dir()`, `set_weather`, `settle_weather`,
-  `set_real_weather`, `ground_fog`, `ice`; the table `WEATHERS` (13 kinds, new ones at the end: the index is
+  `set_real_weather`, `ground_fog`, `ice`; snow on the ground (`snow`) grows only while snow falls harder than
+  `SNOW_FALLS`, by `SNOW_LAYS` × snowfall² a day (a snowfall whitens the ground in a quarter of a day, a blizzard
+  in about a tenth), stays in winter between snowfalls and melts out of winter; `ice()` follows it: below `WorldCells.ICE_WHOLE`
+  (0.8, `water_frozen`, all water ice) the water freezes column by column (`ice_spread`, `ice_margin`, `frozen_at`):
+  from the shallows towards the deep with an edge wandering by a noise (`ICE_RAG`), and in patches on deep water
+  (`ice_noise`, a 32-bit hash value noise); a frozen column is walked on, a boat, the current, fishing and the ice
+  tool ask `frozen_at`; `water.gdshader` `ice_here` draws the same rule per texel with a ragged edge; the table `WEATHERS` (13 kinds, new ones at the end: the index is
   stored by saves and the server; what each brings and how often by season); the signal `season_changed` (the
   session connects the spring reset `WorldActions.on_season` to it: shrubs, twigs, mown grass — only on the
   world's clock, not on a copy); `warm_days` — how many days of non-winter have begun (nature grows by them,

@@ -545,6 +545,15 @@ const SHOTS := {
 	"snow-patches-30": {"time": 0.42, "season": 3, "find": "meadow", "snow": 0.3, "hide": ["chunks: grass"]},
 	"snow-patches-45": {"time": 0.42, "season": 3, "find": "meadow", "snow": 0.45, "hide": ["chunks: grass"]},
 	"snow-patches-60": {"time": 0.42, "season": 3, "find": "meadow", "snow": 0.6, "hide": ["chunks: grass"]},
+	# Water freezing from the shore and in patches (ice_here in water.gdshader).
+	"ice-forming-10": {"time": 0.42, "season": 3, "at": [1309, -161], "y": 21, "snow": 0.35, "hide": ["chunks: grass"]},
+	"ice-forming-30": {"time": 0.42, "season": 3, "at": [1309, -161], "y": 21, "snow": 0.45, "hide": ["chunks: grass"]},
+	"ice-forming-50": {"time": 0.42, "season": 3, "at": [1309, -161], "y": 21, "snow": 0.55, "hide": ["chunks: grass"]},
+	"ice-forming-70": {"time": 0.42, "season": 3, "at": [1309, -161], "y": 21, "snow": 0.65, "hide": ["chunks: grass"]},
+	"ice-lake-10": {"time": 0.42, "season": 3, "at": [992, -895], "y": 21, "snow": 0.35, "hide": ["chunks: grass"]},
+	"ice-lake-30": {"time": 0.42, "season": 3, "at": [992, -895], "y": 21, "snow": 0.45, "hide": ["chunks: grass"]},
+	"ice-lake-50": {"time": 0.42, "season": 3, "at": [992, -895], "y": 21, "snow": 0.55, "hide": ["chunks: grass"]},
+	"ice-lake-70": {"time": 0.42, "season": 3, "at": [992, -895], "y": 21, "snow": 0.65, "hide": ["chunks: grass"]},
 	"snow-patches-grass": {"time": 0.42, "season": 3, "find": "meadow", "snow": 0.25},
 	"moss-picked": {"time": 0.42, "season": 1, "place": "mountain", "pick_moss": true, "hide": ["chunks: grass", "chunks: crowns", "chunks: crown shadows"]},
 	# A patch of copper ore amid stone moss: the copper has a ragged edge, no moss on it.

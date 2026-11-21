@@ -205,7 +205,7 @@ func _waves(delta: float, sky) -> void:
 ## units; -INF when there is none.
 func water_top(x: int, z: int, y := 1 << 20) -> float:
 	var w = game.world
-	if w == null or w.water_frozen:
+	if w == null or w.frozen_at(x, z):
 		return -INF
 	var bits: int = w.water_col(x, z)
 	if y < (1 << 20):

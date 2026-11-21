@@ -4,6 +4,7 @@ extends "res://tests/unit/test_case.gd"
 
 func run() -> void:
 	_test_clock()
+	_test_freezing()
 	_test_weather()
 	_test_shrooms()
 
@@ -26,9 +27,19 @@ func _test_clock() -> void:
 	_check(seasons == [2] and clock.season == 2 and clock.season_clock < 0.01, "the season changes after its days")
 	clock.season = Clock.WINTER
 	clock.set_weather(Clock.WEATHERS.map(func(d: Dictionary) -> String: return d.id).find("snow"))
-	for i in 60:
+	for i in 30:
+		clock.step(1.0)
+	var early := clock.snow
+	_check(early > 0.05 and early < 0.6, "falling snow covers the ground bit by bit: " + str(early))
+	for i in 90:
 		clock.step(1.0)
 	_check(clock.snow > 0.9 and w.water_frozen and clock.weather_icon() == "snow", "snow in winter lies and freezes the water")
+	clock.set_weather(Clock.CLEAR)
+	clock.snowing = 0.0
+	clock.snow = 0.4
+	for i in 60:
+		clock.step(1.0)
+	_check(is_equal_approx(clock.snow, 0.4), "in winter snow lies only while it falls and stays between snowfalls")
 	clock.season = 1
 	clock.set_weather(Clock.CLEAR)
 	for i in 60:
@@ -102,6 +113,40 @@ func _test_clock() -> void:
 ## blizzard slow walking in the open but not under a roof, a trail in the snow is
 ## easier, the autumn wind strips the leaves, and a storm breaks branches off the
 ## trees and knocks the berries off the bushes.
+
+## While the water freezes the ice creeps from the shallows towards the deep, column by
+## column (WorldCells.ice_margin), and what is ice holds a walker before all of it is.
+func _test_freezing() -> void:
+	var w := WorldData.new(16, Vector2i(32, 16))
+	# A shore deepening to the east: column x has water x / 3 + 1 cells deep, 8 at most.
+	for z in 16:
+		for x in 32:
+			var depth := mini(x / 3 + 1, 8)
+			for y in 10:
+				w.set_cell(x, y, z, Mat.STONE if y < 10 - depth else Mat.WATER)
+	var frozen := func() -> int:
+		var n := 0
+		for x in 32:
+			if w.frozen_at(x, 8):
+				n += 1
+		return n
+	_check(not w.frozen_at(0, 8), "no ice before the freezing")
+	w.ice_spread = 0.2
+	_check(w.frozen_at(0, 8) and not w.frozen_at(31, 8) and not w.water_frozen,
+		"the shallows freeze first, not the deep")
+	var some: int = frozen.call()
+	w.ice_spread = 0.6
+	var more: int = frozen.call()
+	_check(more > some and more < 32, "the ice spreads towards the deep: " + str(some) + " -> " + str(more))
+	w.ice_spread = 0.99
+	_check(frozen.call() >= 30, "and has nearly all of it just before the water is all ice")
+	_check(w.surface_y(0, 8) == 10 and w.blocks_body(0, 9, 8), "frozen shallows are walked on")
+	w.ice_spread = 0.2
+	_check(w.surface_y(31, 8) == -1, "the open deep is swum in")
+	# Values of the 32-bit unsigned hash worked out by hand (uint maths as in water.gdshader).
+	_check(is_equal_approx(WorldData.ice_hash(3, -7), 64.0 / 1023.0) and is_equal_approx(WorldData.ice_hash(-1, 0), 533.0 / 1023.0),
+		"the ice's noise hashes the lattice in 32-bit unsigned maths, as the shader does")
+
 func _test_weather() -> void:
 	var w := WorldData.new(40, Vector2i(48, 48))
 	for z in 48:
