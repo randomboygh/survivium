@@ -52,15 +52,13 @@ content/animals/sparrow/
      in a row, how many of them are wing flaps, how many of the last ones are hops on the ground, and how many rows-of-sides.
    - `calls: sparrow`, `alarm: sparrow` — chirping: the entry of the bundle's `data/sounds.yaml` and the files
      `sounds/sparrow_1.wav` ... (the code asks for a sound by name without the prefix).
-4. **The picture.** `sprites/creatures/sparrow.png`: frames of 14×11 (the sparrow itself is about 11×8), a row per
-   side — from the side (the bird looks right), from the front (flying or walking toward the camera), and from behind;
-   the game mirrors it to the left by itself, so there are four sides. Frame 0 sits, frames 1–4 are a flap of broad wings (up,
-   spread, down, rising), which the game alternates in flight, frames 5 and 6 peck (tail up,
-   head to the ground), which the game shows now and then while the sparrow sits, frames 7 and 8 are a hop on the
-   ground (crouched, in the air), with which it hops when it walks. It is drawn by
-   `tools/make_sparrow.py` after the 16×16 sparrow the author sent: a dark outline
-   around the whole bird, a chestnut back, a peach breast, a yellow stripe on the wing. It can be
-   redrawn in any editor, keeping the size 126×33.
+4. **The picture.** `sprites/creatures/sparrow.png`: 13 frames a row, a row per side — from the side (the bird
+   looks right), from the front (flying or walking toward the camera), and from behind; the game mirrors it to the
+   left by itself, so there are four sides. Frame 0 sits, frames 1–4 are the wing beat (up, level, down, level),
+   which the game alternates in flight, frames 5–7 the rest of the idle (a blink, fluffed up), played now and then
+   while it sits, frames 8–11 a hop on the ground (crouched, pushing off, in the air, landed), frame 12 lies dead.
+   It is a house sparrow drawn by hand (`tools/art/sparrow_art.gd`, saved by `tools/make_sprites.gd`): grey cap,
+   white cheeks, black bib, a streaked chestnut back.
 5. **Check.** `godot --headless --path . --script res://tools/validate.gd` checks
    the fields against the schema (type, range, references such as `plants:ears`), that the picture exists and divides into
    frames, and that the bundle loads alone, with one base. The test `tests/unit/wildlife_test.gd` (`_test_birds`) checks that sparrows come in flocks,

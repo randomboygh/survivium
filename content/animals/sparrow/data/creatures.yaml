@@ -3,6 +3,11 @@
 # by day it feeds in a flock in the ear fields, flits and lands on the ground and on trees,
 # at night it sleeps in trees. The likes reference is soft: without "Plants" the sparrow lives, it just looks for nothing,
 # and without trees (roost: trees) it sleeps on the ground.
+# The picture, sprites/creatures/<sprite>.png of this bundle, is drawn by hand by tools/make_sprites.gd
+# (tools/art/sparrow_art.gd): rows for the side, the front and the back, in each sitting, the wing beat (walk:
+# the frames a flyer plays in the air), the idle's other frames (one animation), the hop on the ground
+# (hop: hops), four frames each, and one frame of death (no hurt frames: a struck one flashes red); killed,
+# it lies on its death frame till its carcass is taken.
 - id: sparrow
   title: "[animals.creatures.sparrow]"
   mass: 0.03
@@ -13,9 +18,11 @@
   active: day
   count: 18
   sprite: sparrow
-  frames: 9
+  frames: 13
   walk: 4
-  hop: 2
+  hop: 4
+  death: 1
+  idle_anim: true
   views: 3
   flies: true
   menu: true

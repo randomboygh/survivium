@@ -1,6 +1,6 @@
 """Draws the frog's sheet, content/animals/frog/sprites/creatures/frog.png.
 
-Drawn by hand in the sparrow's style (tools/make_sparrow.py, 2026-11-07): a dark outline
+Drawn by hand in the old sparrow's style (2026-11-07): a dark outline
 round the whole frog, a lime back, a cream belly, gold eyes. Frames 14x10.
 
 Rows (creatures.yaml `views: 3`): the side (E, facing right; the game mirrors it for

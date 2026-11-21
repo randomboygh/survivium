@@ -25,6 +25,11 @@ const ANIMALS := {
 	"fox": preload("res://tools/art/fox_art.gd"),
 	"rabbit": preload("res://tools/art/rabbit_art.gd"),
 	"grouse": preload("res://tools/art/grouse_art.gd"),
+	"sparrow": preload("res://tools/art/sparrow_art.gd"),
+	"crow": preload("res://tools/art/crow_art.gd"),
+	"duck": preload("res://tools/art/duck_art.gd"),
+	"owl": preload("res://tools/art/owl_art.gd"),
+	"squirrel": preload("res://tools/art/squirrel_art.gd"),
 }
 
 ## Clothes as worn on the figure, by the items' `look`: the shape (PlayerArt.SHAPES)

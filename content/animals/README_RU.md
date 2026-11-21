@@ -69,9 +69,9 @@ content/animals/
   шага за круг), у летающего — взмахи крыльев в воздухе; оставшиеся — кадры покоя (хвост, голова к
   траве, клюёт), игра показывает их изредка, пока зверь стоит; у летающего с `hop` последние `hop`
   кадров — прыжки по земле (присел, в воздухе); с одним кадром зверь не анимирован.
-  Их можно перерисовать в любом редакторе; размер любой. Воробей нарисован `tools/make_sparrow.py`, ворона, сова и утка — `tools/make_birds.py`,
+  Их можно перерисовать в любом редакторе; размер любой. Воробей, ворона, сова, утка и белка нарисованы вручную `tools/make_sprites.gd` (`tools/art/sparrow_art.gd`, `tools/art/crow_art.gd`, `tools/art/owl_art.gd`, `tools/art/duck_art.gd`, `tools/art/squirrel_art.gd`),
   лягушка — `tools/make_frog.py`, рыбы — `tools/make_fish.py`
-  (тёмный контур вокруг всего зверя; утка прыгает вперевалку), белка — `tools/make_squirrel.py`, кабан, лиса, олень и заяц — `tools/make_sprites.gd` (`tools/art/boar_art.gd`, `tools/art/fox_art.gd`, `tools/art/deer_art.gd`, `tools/art/rabbit_art.gd`), медведь — `tools/make_bear.py`, волк — `tools/make_wolf.py`, дикая кошка — `tools/make_cat.py`, ёж — `tools/make_hedgehog.py`, остальные звери —
+  (тёмный контур вокруг всего зверя), кабан, лиса, олень и заяц — `tools/make_sprites.gd` (`tools/art/boar_art.gd`, `tools/art/fox_art.gd`, `tools/art/deer_art.gd`, `tools/art/rabbit_art.gd`), медведь — `tools/make_bear.py`, волк — `tools/make_wolf.py`, дикая кошка — `tools/make_cat.py`, ёж — `tools/make_hedgehog.py`, остальные звери —
   `tools/make_creatures.py`: картинка записана там текстом, пиксель — буква, а тени, свет и контур
   в тёмном оттенке своего цвета кладёт `tools/creature_kit.py`.
   Чего в папке бандла нет, игра ищет в `common/` мода.

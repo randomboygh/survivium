@@ -1,8 +1,11 @@
 # The fields are the same as for all creatures (content/core/data/creatures.yaml): who is food or a threat to whom
-# is derived from mass and diet by general rules, not written down. The species' picture —
-# sprites/creatures/<sprite>.png of this bundle (drawn by tools/make_birds.py):
-# three species, frames: sitting, wing flap ×4, two rest frames, hop ×2; voices (calls, alarm) — its sounds.yaml.
+# is derived from mass and diet by general rules, not written down.
 # An omnivorous bird in a flock: eats both small fry (sparrows, frogs, butterflies) and ears; roosts in trees.
+# The picture, sprites/creatures/<sprite>.png of this bundle, is drawn by hand by tools/make_sprites.gd
+# (tools/art/crow_art.gd): rows for the side, the front and the back, in each sitting, the wing beat (walk:
+# the frames a flyer plays in the air), the idle's other frames (one animation), the walk on the ground
+# (hop with walks: steps, not hops), four frames each, and one frame of death (no hurt frames: a struck one flashes red); killed,
+# it lies on its death frame till its carcass is taken.
 - id: crow
   title: "[animals.creatures.crow]"
   mass: 0.5
@@ -13,9 +16,12 @@
   active: day
   count: 7
   sprite: crow
-  frames: 9
+  frames: 13
   walk: 4
-  hop: 2
+  hop: 4
+  walks: true
+  death: 1
+  idle_anim: true
   views: 3
   flies: true
   flock: [3, 6]

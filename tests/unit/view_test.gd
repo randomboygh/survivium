@@ -93,6 +93,10 @@ func run() -> void:
 	_test_drawn_states("animals:fox", "the fox")
 	_test_drawn_states("animals:rabbit", "the hare")
 	_test_grouse_states()
+	for bird: Array in [["animals:sparrow", "the sparrow", false], ["animals:crow", "the crow", true],
+			["animals:duck", "the duck", true], ["animals:owl", "the owl", false]]:
+		_test_hand_bird_states(bird[0], bird[1], bird[2])
+	_test_squirrel_states()
 	_test_deer_states()
 
 
@@ -2015,6 +2019,95 @@ func _test_grouse_states() -> void:
 	a.moving = false
 	look.hurt_at = now
 	_check(c._frame(a, look, 0.0, now) == 12, "a blow landed: the grouse flinches")
+	c.free()
+
+
+## The birds drawn by hand (tools/art/<bird>_art.gd): a row of 13 frames, the wing beat and the
+## steps or hops on the ground four each, no hurt (a struck one flashes red on its own frame) and
+## one frame of death; the wing beats play in the air, the ground frames as it goes about.
+func _test_hand_bird_states(kind: String, name: String, walks: bool) -> void:
+	var c := CreaturesView.new()
+	c._build_looks()
+	var k: Array = c.looks.get(kind, [])
+	_check(k.size() > 12 and k[3] == 13 and k[4] == 4 and k[6] == 4 and k[7] == 0 and k[9] == 0 and k[10] == 0 and k[11] == 1 and k[12],
+		"%s's row: 13 frames, the wing beat and the ground frames four each, no hurt, one of death, the idle one animation" % name)
+	if k.size() <= 12:
+		c.free()
+		return
+	var w := RemoteWildlife.new()
+	c.wildlife = w
+	var a := RemoteWildlife.Animal.new()
+	a.kind = kind
+	a.pos = Vector3(10.0, 3.0, 10.0)
+	w.animals.append(a)
+	c._on_born(a)
+	var look = c._looks[a]
+	var now := Time.get_ticks_msec() * 0.001
+	var seen := {}
+	a.flying = true
+	for i in 8:
+		seen[c._frame(a, look, float(i), now)] = true
+	_check(seen.size() == 4 and seen.keys().all(func(f: int) -> bool: return f >= 1 and f < 5),
+		"%s beats its wings in the air (%s)" % [name, seen.keys()])
+	seen.clear()
+	a.flying = false
+	a.moving = true
+	for i in 24:
+		look.walked = i * 0.06
+		seen[c._frame(a, look, 0.0, now)] = true
+	var ground: Array = seen.keys().filter(func(f: int) -> bool: return f >= 8 and f < 12)
+	_check(ground.size() == 4 and seen.size() == (4 if walks else 5) and seen.keys().all(func(f: int) -> bool: return f == 0 or f >= 8 and f < 12),
+		"%s goes about on the ground in its %s (%s)" % [name, "steps" if walks else "hops", seen.keys()])
+	a.moving = false
+	look.hurt_at = now
+	_check(c._frame(a, look, 0.0, now) < 8, "a blow landed: %s keeps its own frame (no hurt frames)" % name)
+	c.free()
+
+
+## The squirrel (tools/art/squirrel_art.gd, drawn by hand): a row of 13 frames, the walk and the
+## run four each, no hurt and one frame of death; it bounds through its run as it flees, hops
+## about in its walk, plays its idle as one animation.
+func _test_squirrel_states() -> void:
+	var c := CreaturesView.new()
+	c._build_looks()
+	var kind := "animals:squirrel"
+	var k: Array = c.looks.get(kind, [])
+	_check(k.size() > 12 and k[3] == 13 and k[4] == 4 and k[7] == 0 and k[9] == 4 and k[10] == 0 and k[11] == 1 and k[12],
+		"the squirrel's row: 13 frames, the walk and the run four each, no hurt, one of death, the idle one animation")
+	if k.size() <= 12:
+		c.free()
+		return
+	var w := RemoteWildlife.new()
+	c.wildlife = w
+	var a := RemoteWildlife.Animal.new()
+	a.kind = kind
+	a.pos = Vector3(10.0, 3.0, 10.0)
+	w.animals.append(a)
+	c._on_born(a)
+	var look = c._looks[a]
+	var now := Time.get_ticks_msec() * 0.001
+	var seen := {}
+	a.moving = true
+	a.state = "flee"
+	for i in 12:
+		look.walked = i * 0.25
+		seen[c._frame(a, look, 0.0, now)] = true
+	_check(seen.size() == 4 and seen.keys().all(func(f: int) -> bool: return f >= 8 and f < 12),
+		"the squirrel bounds through its run frames as it flees (%s)" % [seen.keys()])
+	seen.clear()
+	a.state = "wander"
+	for i in 12:
+		look.walked = i * 0.15
+		seen[c._frame(a, look, 0.0, now)] = true
+	_check(seen.size() == 4 and seen.keys().all(func(f: int) -> bool: return f >= 1 and f < 5),
+		"the squirrel hops about in its walk frames (%s)" % [seen.keys()])
+	a.moving = false
+	var idle: Array[int] = []
+	look.change_at = now
+	var t: float = now
+	for i in 4:
+		idle.append(c._frame(a, look, 0.0, t + i * (CreaturesView.IDLE_FRAME + 0.01) + 0.01))
+	_check(idle == [5, 6, 7, 0], "the squirrel's idle plays through and it sits again (%s)" % [idle])
 	c.free()
 
 
