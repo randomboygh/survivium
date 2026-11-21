@@ -23,6 +23,7 @@ const ANIMALS := {
 	"boar": preload("res://tools/art/boar_art.gd"),
 	"deer": preload("res://tools/art/deer_art.gd"),
 	"fox": preload("res://tools/art/fox_art.gd"),
+	"rabbit": preload("res://tools/art/rabbit_art.gd"),
 	"grouse": preload("res://tools/art/grouse_art.gd"),
 }
 

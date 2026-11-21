@@ -200,9 +200,9 @@ its own time, flaps them (`SIT_GAP`, `SIT_FLUTTER`, `SIT_FLAP_RATE`)), after the
 dash to a bite, the first — while the beast warns), then `run`, `hurt` and `death`, the others (after the step) — of
 rest (drawn by `tools/make_creatures.py`
 with `tools/creature_kit.py`, the sparrow — `tools/make_sparrow.py`, the crow, owl and duck —
-`tools/make_birds.py`, the frog — `tools/make_frog.py`, fish — `tools/make_fish.py`, the hare —
-`tools/make_rabbit.py`, the squirrel — `tools/make_squirrel.py`, the boar,
-the fox, the black grouse and the deer — `tools/make_sprites.gd` from `tools/art/boar_art.gd`, `tools/art/fox_art.gd`, `tools/art/grouse_art.gd` and `tools/art/deer_art.gd` (the user's references,
+`tools/make_birds.py`, the frog — `tools/make_frog.py`, fish — `tools/make_fish.py`, the squirrel — `tools/make_squirrel.py`, the boar,
+the fox, the black grouse, the deer and the hare — `tools/make_sprites.gd` from `tools/art/boar_art.gd`, `tools/art/fox_art.gd`,
+`tools/art/grouse_art.gd`, `tools/art/deer_art.gd` and `tools/art/rabbit_art.gd` (the user's references,
 the way the player is drawn), the bear — `tools/make_bear.py`, the wolf —
 `tools/make_wolf.py`, the wild cat — `tools/make_cat.py`, the hedgehog — `tools/make_hedgehog.py`).
 `creatures.gd` chooses the side by the movement on screen (`TURN_BIAS`), a step — by the path walked (a

@@ -89,7 +89,8 @@ func run() -> void:
 	_test_rays_dissolve()
 	_test_animal_flinch()
 	_test_boar_states()
-	_test_fox_states()
+	_test_drawn_states("animals:fox", "the fox")
+	_test_drawn_states("animals:rabbit", "the hare")
 	_test_grouse_states()
 	_test_deer_states()
 
@@ -1866,17 +1867,17 @@ func _test_boar_states() -> void:
 	c.free()
 
 
-## The fox (tools/art/fox_art.gd, from the user's reference): a row of 20 frames, the walk,
-## run, hurt and death four each and no attack (so the run follows the idle); it gallops as
-## it flees, walks about, plays its hurt frames as a blow lands and its idle as one
-## animation; killed, it falls through its frames of death and lies on the last.
-func _test_fox_states() -> void:
+## A beast drawn from the user's reference with no attack (the fox, tools/art/fox_art.gd; the hare,
+## tools/art/rabbit_art.gd): a row of 20 frames, the walk, run, hurt and death four each and no
+## attack (so the run follows the idle); it gallops as it flees, walks about, plays its hurt frames
+## as a blow lands and its idle as one animation; killed, it falls through its frames of death and
+## lies on the last.
+func _test_drawn_states(kind: String, name: String) -> void:
 	var c := CreaturesView.new()
 	c._build_looks()
-	var kind := "animals:fox"
 	var k: Array = c.looks.get(kind, [])
 	_check(k.size() > 12 and k[3] == 20 and k[4] == 4 and k[7] == 0 and k[9] == 4 and k[10] == 4 and k[11] == 4 and k[12],
-		"the fox's row: 20 frames, the walk, run, hurt and death four each, no attack, the idle one animation")
+		"%s's row: 20 frames, the walk, run, hurt and death four each, no attack, the idle one animation" % name)
 	if k.size() <= 12:
 		c.free()
 		return
@@ -1896,29 +1897,29 @@ func _test_fox_states() -> void:
 		look.walked = i * 0.25
 		seen[c._frame(a, look, 0.0, now)] = true
 	_check(seen.size() == 4 and seen.keys().all(func(f: int) -> bool: return f >= 8 and f < 12),
-		"the fox gallops through its run frames as it flees (%s)" % [seen.keys()])
+		"%s gallops through its run frames as it flees (%s)" % [name, seen.keys()])
 	seen.clear()
 	a.state = "wander"
 	for i in 12:
 		look.walked = i * 0.15
 		seen[c._frame(a, look, 0.0, now)] = true
 	_check(seen.size() == 4 and seen.keys().all(func(f: int) -> bool: return f >= 1 and f < 5),
-		"the fox walks about in its walk frames (%s)" % [seen.keys()])
+		"%s walks about in its walk frames (%s)" % [name, seen.keys()])
 	a.moving = false
 	look.hurt_at = now
 	_check(c._frame(a, look, 0.0, now) == 12 and c._frame(a, look, 0.0, now + CreaturesView.HURT_FRAME * 2.5) == 14,
-		"a blow landed: the fox's hurt frames one after another")
-	_check(c._frame(a, look, 0.0, now + CreaturesView.HURT_FRAME * 4.5) == 0 and look.hurt_at < 0.0, "then the fox stands again")
+		"a blow landed: %s's hurt frames one after another" % name)
+	_check(c._frame(a, look, 0.0, now + CreaturesView.HURT_FRAME * 4.5) == 0 and look.hurt_at < 0.0, "then %s stands again" % name)
 	var idle: Array[int] = []
 	var t: float = look.change_at
 	for i in 4:
 		idle.append(c._frame(a, look, 0.0, t + i * (CreaturesView.IDLE_FRAME + 0.01) + 0.01))
-	_check(idle == [5, 6, 7, 0], "the fox's idle plays through and it stands again (%s)" % [idle])
+	_check(idle == [5, 6, 7, 0], "%s's idle plays through and it stands again (%s)" % [name, idle])
 	var key := Vector2i(0, 0)
 	var drop := ["animals:small_carcass", a.pos + Vector3(0.2, 0.0, 0.0), 0.0, {"n": 1, "body": kind}]
 	c._lay_bodies(key, [drop], false, now)
 	var lying: Array = c._bodies.get(key, {}).values()
-	_check(lying.size() == 1 and look.body == lying[0], "the fox's body waits for it to go")
+	_check(lying.size() == 1 and look.body == lying[0], "%s's body waits for it to go" % name)
 	if lying.size() != 1:
 		c.free()
 		return
@@ -1927,7 +1928,7 @@ func _test_fox_states() -> void:
 	var sprite: MeshInstance3D = look.sprite
 	c._on_gone(a)
 	c._bodies_step(b.dies_at + CreaturesView.DEATH_FRAME * 1.5)
-	_check(b.sprite == sprite and b.frame == 1 and c._dying.has(b), "killed, the fox falls through its frames of death")
+	_check(b.sprite == sprite and b.frame == 1 and c._dying.has(b), "killed, %s falls through its frames of death" % name)
 	c._bodies_step(b.dies_at + CreaturesView.DEATH_FRAME * 10.0)
 	_check(b.frame == 3 and c._dying.is_empty() and sprite.material_override == c.looks[kind][1][0][b.view * 20 + 19],
 		"and lies on its last")
