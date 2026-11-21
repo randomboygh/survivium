@@ -80,6 +80,10 @@ var raw := {}
 ## What only luck gives while digging (a cell's `finds`, actions_dig.gd; see _raw): put
 ## in the bag rather than dug for, a seashell in 30 cells of sand is no test of the walk.
 var lucky := {}
+## What the world gives in a way this run does not play out, with how (`_raw`): the ash a
+## fire leaves when it burns down, the root dug up under a plant (tests/unit/actions_test.gd
+## plays both); given when needed.
+var given := {}
 ## The part of the recipes made, "" for all (see _part).
 var part := ""
 
@@ -191,6 +195,11 @@ func _raw() -> Dictionary:
 	for p: Dictionary in Plants.BY_ID.values():
 		for id in p.gives:
 			have[Items.get_item(id).get("id", id)] = true
+		for id in p.get("root", {}):
+			given[Items.get_item(id).get("id", id)] = "dug up under %s" % p.get("title", p.id)
+	for it: String in Items.IDS:
+		for id in Items.get_item(it).get("ashes", {}):
+			given[Items.get_item(id).get("id", id)] = "left by a burnt-down %s" % Items.title(it)
 	for s: Dictionary in Trees.SPECIES:
 		for id in [s.seed, s.log, s.twig]:
 			if id != "":
@@ -212,6 +221,11 @@ func _raw() -> Dictionary:
 	for id: String in lucky.keys():
 		if have.has(id):
 			lucky.erase(id)
+		else:
+			have[id] = true
+	for id: String in given.keys():
+		if have.has(id):
+			given.erase(id)
 		else:
 			have[id] = true
 	return have
@@ -444,6 +458,9 @@ func _obtain_more(id: String, n: int) -> bool:
 			if not await _craft(r, ceili(float(n - inv.count(id)) / _yield(r, id))):
 				return false
 		elif lucky.has(id):
+			inv.add(id, n - inv.count(id))
+		elif given.has(id):
+			print("given %s ×%d (%s)" % [Items.title(id), n - inv.count(id), given[id]])
 			inv.add(id, n - inv.count(id))
 		elif raw.has(id):
 			if not await _gather(id):
