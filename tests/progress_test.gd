@@ -84,6 +84,8 @@ var lucky := {}
 ## fire leaves when it burns down, the root dug up under a plant (tests/unit/actions_test.gd
 ## plays both); given when needed.
 var given := {}
+## The empty vessel of each filled one (see _vessel_of).
+var vessels := {}
 ## The part of the recipes made, "" for all (see _part).
 var part := ""
 
@@ -267,10 +269,13 @@ func _filled(id: String, field: String) -> String:
 
 ## The empty vessel that becomes `id` filled at water, "" for none.
 func _vessel_of(id: String) -> String:
-	for e: String in Items.IDS:
-		if _filled(e, "fills_to") == id or _filled(e, "fills_salty_to") == id:
-			return e
-	return ""
+	if vessels.is_empty():
+		vessels[""] = ""
+		for e: String in Items.IDS:
+			for full: String in [_filled(e, "fills_to"), _filled(e, "fills_salty_to")]:
+				if full != "" and not vessels.has(full):
+					vessels[full] = e
+	return vessels.get(id, "")
 
 
 ## Whether item `id` is still wanted: it is being got now, a recipe being made or one
@@ -293,6 +298,10 @@ func _wanted(id: String) -> bool:
 			_needs_of(r, needed)
 			ahead += 1
 	if needed.has(id):
+		return true
+	# The empty vessel of what is filled (a waterskin, for the dyes boiled with water): it
+	# comes back empty and is filled again, rather than made anew from a carcass each time.
+	if needed.keys().any(func(n: String) -> bool: return _vessel_of(n) == id):
 		return true
 	var item := Items.get_item(id)
 	if item.get("prop", "none") != "none":
