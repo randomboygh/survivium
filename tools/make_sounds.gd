@@ -417,9 +417,12 @@ func _jump(_v: int) -> PackedFloat32Array:
 	return Synth.normalize(w, 0.3)
 
 
+## A landing on the ground: a low, rounded thud with a soft swell instead of a knock, and
+## a muffled step under it; everything above ~900 Hz is taken off so it is never sharp.
 func _land(_v: int) -> PackedFloat32Array:
-	var thud := Synth.env(Synth.lowpass(Synth.white(0.2, rng), 180.0), 0.003, 0.05)
-	return Synth.normalize(Synth.mix(Synth.normalize(thud, 1.0), _step_dirt(0), 0.6), 0.7)
+	var thud := Synth.env(Synth.lowpass(Synth.white(0.22, rng), 150.0), 0.012, 0.07)
+	var b := Synth.mix(Synth.normalize(thud, 1.0), _step_dirt(0), 0.4)
+	return Synth.normalize(Synth.lowpass(Synth.lowpass(b, 900.0), 900.0), 0.5)
 
 
 ## A landing in snow: a deep, soft whump that swells rather than knocks, and the snow
