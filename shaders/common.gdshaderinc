@@ -335,6 +335,22 @@ float ground_patch(vec2 xz, float salt) {
 	return clamp((a - 0.5) + (b - 0.5) * 0.45 + 0.5, 0.0, 1.0);
 }
 
+// How much snow lies at this spot, 0..1, by the snow cover `amount` (snow_amount): the
+// first snow of winter lies in patches on the high spots of a patch noise of its own,
+// and as the cover grows they spread and run together until the whole ground is white
+// (at about 0.6); in spring they shrink back the same way. The edge of a patch is a
+// soft rise that the shaders dither texel by texel.
+// SNOW_SPREAD: how fast the patches grow with the cover; SNOW_EDGE: how sharp their
+// edge is (4: a quarter of the noise's range from bare to whole).
+const float SNOW_SPREAD = 1.8;
+const float SNOW_EDGE = 4.0;
+float snow_cover(vec2 xz, float amount) {
+	if (amount <= 0.0) {
+		return 0.0;
+	}
+	return clamp((ground_patch(xz, 17.0) - 1.0 + amount * SNOW_SPREAD) * SNOW_EDGE, 0.0, 1.0);
+}
+
 // 1 where a texel of grass ground is bare dirt: the low spots of the patch noise,
 // with a dithered rim.
 float bare_ground(vec2 xz) {

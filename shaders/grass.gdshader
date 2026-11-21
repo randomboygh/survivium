@@ -156,7 +156,7 @@ void vertex() {
 	VERTEX.z += round(wind.y * 1.2 * reach) / TEXELS * tip;
 	// Plants under a roof or an overhang see no snow and no rain.
 	sky = roofed(root.xz, root.y) ? 0.0 : 1.0;
-	snow_here = sky * snow_amount * (1.0 - warm_spot(root, custom.z));
+	snow_here = sky * snow_cover(root.xz, snow_amount) * (1.0 - warm_spot(root, custom.z));
 	// Tufts and herbs sink under the snow, reeds and ears poke out of it.
 	float sink = kind == REED ? 0.3 : (kind == EAR ? 0.5 : 0.9);
 	VERTEX.y = root.y + (VERTEX.y - root.y) * (1.0 - snow_here * sink);
