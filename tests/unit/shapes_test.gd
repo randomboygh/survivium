@@ -3,6 +3,7 @@ extends "res://tests/unit/test_case.gd"
 ## cut half a cell along each side) against the rules written out one cell at a time.
 
 const OldSlopeMesher := preload("res://src/client/world/old_slope_mesher.gd")
+const RoofMap := preload("res://src/client/world/roof_map.gd")
 
 
 func run() -> void:
@@ -163,10 +164,14 @@ func _test_flush_shore() -> void:
 	w.sea_level = 1
 	var c: WorldData.Chunk = w.chunks[Vector2i.ZERO]
 	c.natural.fill(WorldData.WILD)
+	# Dry cubes level with the water: an islet, and a bank that keeps a sheer wall.
+	var cubes: Array[Vector2i] = [Vector2i(4, 4), Vector2i(8, 4)]
 	for z in 16:
 		for x in 16:
 			c.cells[z * 16 + x] = Mat.DIRT
-			c.cells[(16 + z) * 16 + x] = Mat.DIRT if x + z >= 12 or Vector2i(x, z) == Vector2i(6, 5) else Mat.WATER
+			var land := x + z >= 12 or Vector2i(x, z) == Vector2i(6, 5) or Vector2i(x, z) in cubes
+			c.cells[(16 + z) * 16 + x] = Mat.DIRT if land else Mat.WATER
+	c.natural[(16 + 4) * 16 + 8] = WorldData.WILD | WorldData.SHEER
 	w.rebuild_columns()
 	w.refresh_shapes()
 	var meshes: Array = ChunkMesher.build_chunk(w, 0, 0, 16)
@@ -175,10 +180,27 @@ func _test_flush_shore() -> void:
 	var kinds := {}
 	var wet := true
 	var bent := true
+	# The figures' mirrors show over the water flush with the land only where the roof
+	# map marks the top sloped (sprite_mirror.gdshader, flush_shore).
+	var marked := true
+	var dry := true
+	for q in cubes:
+		marked = marked and w.slope_mask(q.x, 1, q.y) == WorldData.FULL \
+				and RoofMap.top_bits(Mat.DIRT, c.sloped[q.y * 16 + q.x], 1) & RoofMap.SLOPED == 0
+		for b in 7:
+			for a in 7:
+				var u := (a + 0.5) / 7.0
+				var v := (b + 0.5) / 7.0
+				# Not in a corner cut off the cube, which its water fills.
+				if minf(u, 1.0 - u) + minf(v, 1.0 - v) < 0.6:
+					continue
+				for t: PackedVector2Array in tris:
+					dry = dry and not _inside(Vector2(q.x + u, q.y + v), t)
 	for z in range(2, 11):
 		for x in range(2, 11):
 			if w.get_cell(x, 1, z) != Mat.DIRT or w.slope_mask(x, 1, z) == WorldData.FULL:
 				continue
+			marked = marked and RoofMap.top_bits(Mat.DIRT, c.sloped[z * 16 + x], 1) & RoofMap.SLOPED != 0
 			var p := w.surface_patch(x, 1, z)
 			kinds[int(p[WorldData.PATCH_DIAG]) if p.size() > WorldData.PATCH_DIAG else -1] = true
 			for b in 7:
@@ -210,6 +232,7 @@ func _test_flush_shore() -> void:
 	_check(kinds.has(2) and kinds.has(4) and kinds.has(-1), "a lake's shore has outer, inner and straight bits")
 	_check(wet, "water flush with the land lies wherever a shore's ground is under it, and only there")
 	_check(bent, "the ground of a shore's inner corner bends along its diagonal")
+	_check(dry and marked, "an islet and a sheer bank level with the water stay dry and unmarked, a shore's slopes marked")
 
 
 ## True when point `q` lies in triangle `t` or on its edges.

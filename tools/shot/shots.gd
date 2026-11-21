@@ -434,6 +434,11 @@ const SHOTS := {
 	# «Исправить диагональный берег»).
 	"shore-diag-lake-turn": {"time": 0.42, "season": 1, "at": [265, -1247], "y": 21, "turn": 6, "settings": {"pixel_scale": 4},
 		"hide": ["chunks: grass"]},
+	# A lake at the sea's level whose bank keeps a sheer wall, in a user's world: no mirror on the dry
+	# ground beside the water (thread «Исправить диагональный берег»).
+	"reflect-dry": {"time": 0.615, "season": 1, "weather": "clear", "at": [1332, 1128], "y": 21, "hide": ["chunks: grass"],
+		"world": [403722506, {"biomes": 1, "cave_shape": 1, "caves": 0, "climate": 1, "landscape": 1, "mountains": 1,
+		"relief": 1, "rivers": 1, "shores": 1, "size": 1, "slopes": 1, "water": 1}]},
 	"shore-flat": {"time": 0.42, "season": 1, "place": "beach", "hide": ["chunks: grass"]},
 	"shore-flat-waves": {"time": 0.42, "season": 1, "place": "beach", "hide": ["chunks: grass"],
 		"frames_every": 12, "frames_ms": 600},
