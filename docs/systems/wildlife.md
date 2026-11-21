@@ -43,8 +43,10 @@ water, a kind with `biomes` appears only on its own land.
   knife hit the beast ahead first, anything else in the hand — first only a beast point-blank,
   `STRIKE_CLOSE`, and a far one — when there is nothing else to do), it also puts the kind's carcass
   (`carcass`) on the ground; a kind with frames of death (`death`, the boar) lies there itself until the carcass is
-  taken (the user's rule, 2026-11-20) by a hand (a tap, `pick_up`; the pickup by the feet, `pick_up_near`, leaves a
-  body, `is_body`, which a kill in melee would else take at once): its carcass is a drop of its own where the beast stood, turned the way it went,
+  taken (the user's rule, 2026-11-20) by a hand: a tap on it (`pick_up`, hit round its middle) or the action button
+  before it («Pick up», `body_ahead`, `take_body`; the user's pick, 2026-11-21), which waits while it falls and takes it
+  by a press, not held on from the blow that killed it (`Controls._front_body`); the pickup by the feet,
+  `pick_up_near`, leaves a body, `is_body`, which a kill in melee would else take at once: its carcass is a drop of its own where the beast stood, turned the way it went,
   naming the kind (`body`, and `tint`), which no heap joins, and the client draws it as the beast on its last frame of
   death (`Creatures.show_bodies`, below). `WorldActions.shoot` shoots a weapon with `range` (a spear, a sling, a bow): one
   `ammo` from the bag at a time (a spear is thrown itself), where the player looks (by a tap on the ground —

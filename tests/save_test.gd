@@ -15,6 +15,7 @@ const Mods := preload("res://src/shared/content/mods.gd")
 const TestGround := preload("res://src/shared/world/test_ground.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const WorldStore := preload("res://src/shared/world/world_store.gd")
+const WorldData := preload("res://src/shared/world/world_data.gd")
 const ROOT := "user://test_saves/game"
 
 var checks := 0
@@ -420,6 +421,36 @@ func _every_window(main: Node) -> void:
 	await _frames(2)
 
 
+## A beast's body lying before the player is taken by a press of the action button, not
+## by the button held on from what it did (the user's pick of 2026-11-21: Controls._front_body).
+func _body_by_button(main: Node) -> void:
+	main.build.leave()
+	main.controls.hands[0] = ""
+	main.controls.hands[1] = ""
+	main.player.facing = "w"
+	await _frames(3)
+	var at: Vector3 = main.player.position + Vector3(-1.0, 0.0, 0.0)
+	var key := WorldData.chunk_key(floori(at.x / main.CELL), floori(at.z / main.CELL))
+	main.world.add_drop("animals:carcass", at, 0.0, {"n": 1, "body": "animals:boar"})
+	main.actions.drops_changed.emit(key)
+	await _frames(3)
+	var inv = main.host.player.inventory
+	var had: int = inv.count("animals:carcass")
+	_check(main.controls._front_body() == "lies" and main.controls.action_name() == "[pick_up]",
+		"a boar's body before the player is for the action button to pick up (%s)" % main.actions.front_kind(main.character))
+	main.controls._held_on = true
+	main.controls.action_held = true
+	await _wait_ms(400)
+	_check(inv.count("animals:carcass") == had, "the button held on from what it did does not take it")
+	main.controls.action_held = false
+	await _frames(2)
+	main.controls.action_held = true
+	await _wait_ms(400)
+	main.controls.action_held = false
+	_check(inv.count("animals:carcass") == had + 1 and main.actions.body_ahead(main.character).is_empty(),
+		"a press of the action button takes it into the bag")
+
+
 func _run() -> void:
 	WorldStore.new(ROOT).erase()
 	var main: Node = await _start()
@@ -640,6 +671,7 @@ func _run() -> void:
 	await _sign_window(main)
 	await _every_window(main)
 	await _held_props(main)
+	await _body_by_button(main)
 	main.queue_free()
 	await process_frame
 	WorldStore.new(ROOT).erase()

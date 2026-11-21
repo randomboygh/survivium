@@ -18,7 +18,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
   outside, only `world_actions.gd` is known:
   `actions_base.gd` (state, the signal `cell_changed`, reach, `skilled`, `build_cell`, what the land's owner
   allows) ← `actions_gather.gd` (trees: `chop`, `fell`; gathering from bushes and trees, picking up from the
-  ground, the signals `looks_changed`, `grass_changed` (one grass cell cut short: the client redraws only it, first), `spores` (a puffball's puff), `drops_changed`, `taken`) ← `actions_fight.gd` (`swing_air`, `strike`,
+  ground (a beast's body before the feet by the action button: `body_ahead`, `take_body`), the signals `looks_changed`, `grass_changed` (one grass cell cut short: the client redraws only it, first), `spores` (a puffball's puff), `drops_changed`, `taken`) ← `actions_fight.gd` (`swing_air`, `strike`,
   `shoot`) ← `actions_water.gd` (`drink`, `fish`, `water_ahead`) ← `actions_dig.gd` (`dig_at`, `dig` — a dug cell also gives the `root` of a plant on it (madder) and its material's `finds`, a find with `found_in` only in those biomes (`found_here`); `leave_ashes` — what a burnt-down fire leaves; `mow`; `in_season(ids, cell)` — the plants there now: none with `winter` off in winter, none with `after_rain` where `Clock.shroom_size` is 0; `tread(who)`, called by `Session.step_players` — a plant with `crush` on the grass cell a player steps onto is crushed: spores, `crush` seconds of visions, the hint `[spores_in_the_eyes]`; `water_holds`: until water has physics, the ground under water and in the one-cell strip beside it at its level or lower is not dug, by hand, the button or a blueprint, with the hint `[water_holds_this_ground]`) ←
   `actions_build.gd` (`place_at`, `can_place`, `plant`) ← `actions_farm.gd` (farming: `farm_at` — a touch with
   a hoe turns grass or earth into a bed `Mat.BED`, a touch with a full watering can waters the bed
@@ -80,7 +80,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   there (the water looked up where the player is, `Body.depth_at`: the host's own body is never stepped on the server; `Character.flow`, `Body.flow`, `currents` — the session's `Currents`; to the client by the event
   `flow`); `step_drift` once per `DRIFT_EVERY` carries piles on a river's bed within `DRIFT_CHUNKS` chunks of
   the players while the water ahead is of the same level, ice holds)
-  ← `world_actions.gd` (the action button `act_in_front` / `front_kind` / `front_choice`, `on_season`; a touch
+  ← `world_actions.gd` (the action button `act_in_front` / `front_kind` / `front_choice`, `on_season`; a beast's
+  body lying before the feet is taken, «take», «Pick up», after an animal to strike and before a shot; a touch
   or click on a cell — `dig_at` in the same order as the button, only at the cell and not in front of the
   body (2026-11-11): a shot, the rod, drinking; an animal on the cell (`_tap_animal`: `tend` / `strike` with
   the direction to the cell); a bed (`farm_at`); with hands and a sword — `tap_choice`: food, including from a
@@ -216,7 +217,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   work and a sign inside (furrows, a sprout, a drop, a cross). The blueprint is seen only in build mode, the
   marking only in farm mode.
 
-- `src/client/game/gathering.gd` — what a touch gathers and the hint for it, picking up near the player.
+- `src/client/game/gathering.gd` — what a touch gathers and the hint for it, picking up near the player (a
+  beast's body lying is hit round its middle, `BODY_UP`, `BODY_GROW` px farther).
 - `src/client/game/character.gd` — the character's copy on the client; `who` for what the client reads from the
   rules itself (the cursor frame, hints). The rules over the world go on the server, where `who` is
   `src/server/player.gd`.

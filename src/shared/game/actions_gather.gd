@@ -13,6 +13,14 @@ const Felling := preload("res://src/shared/game/felling.gd")
 const PILE := 0.8
 ## Things lying this close to the feet (world units) are taken by themselves.
 const PICKUP := 1.6
+## A beast's body lying this close to the feet (world units) is taken by the action
+## button (body_ahead): as far as one struck in melee falls (Wildlife.STRIKE_REACH and
+## the beast's half), in the way it faces (BODY_CONE) unless it is right by them
+## (BODY_CLOSE); the hands reach for it TAKE_SWING seconds.
+const BODY_AHEAD := 2.0
+const BODY_CLOSE := 0.5
+const BODY_CONE := 0.35
+const TAKE_SWING := 0.25
 ## Cells a crown spreads round its trunk at most, with the slack (gathering from a tree).
 const TREE_SPREAD := 6
 ## What is taken by themselves (the setting «Автоподбор»): everything, only things the
@@ -418,6 +426,42 @@ func _take(who, d: Array, most := -1, tap := true) -> Array:
 ## (ActionsFight._wound), drawn as the beast fallen (Creatures.show_bodies).
 static func is_body(d: Array) -> bool:
 	return d.size() > 3 and d[3] is Dictionary and d[3].has("body")
+
+
+## The beast's body lying before `who` that the action button takes (take_body), as
+## [chunk key, index] of WorldData.drops, [] for none: the nearest within BODY_AHEAD of
+## the feet, the way it faces unless right by them.
+func body_ahead(who) -> Array:
+	var feet: Vector3 = who.position
+	var way := Vector2(who.facing_step()).normalized()
+	var home := WorldData.chunk_key(floori(feet.x / CELL), floori(feet.z / CELL))
+	var best := []
+	var best_d := BODY_AHEAD
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			var key := home + Vector2i(dx, dz)
+			var list: Array = world.drops.get(key, [])
+			for i in list.size():
+				var d: Array = list[i]
+				if not is_body(d) or absf(d[1].y - feet.y) > 1.5:
+					continue
+				var off := Vector2(d[1].x - feet.x, d[1].z - feet.z)
+				var far := off.length()
+				if far > best_d or far > BODY_CLOSE and off.normalized().dot(way) < BODY_CONE:
+					continue
+				best = [key, i]
+				best_d = far
+	return best
+
+
+## The action button takes beast's body `body` (body_ahead) into the bag of `who`, as a
+## tap on it does (pick_up): the hands reach for it; when it stays (the bag full, the
+## hands too tired) only a short swing at nothing.
+func take_body(who, body: Array) -> Dictionary:
+	var at: Vector3 = world.drops[body[0]][body[1]][1]
+	if not pick_up(who, body[0], body[1]):
+		return {"swing": TAKE_SWING}
+	return _work(TAKE_SWING, "reach", at)
 
 
 ## How many items drop `d` is (see WorldData.drops): its count, or its "n" for a worn tool.

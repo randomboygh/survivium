@@ -67,6 +67,9 @@ var brush := 0
 ## acts once a press (a cast, then a pull), not again and again while held.
 var action_held := false
 var _action_was := false
+## Whether the action button, held, has done something since it was pressed: held on so
+## it does not take a beast's body (_front_body), which wants a press of its own.
+var _held_on := false
 ## A button or finger held on the world: {"button", "hand", "dig", "pos", "held", "pending"
 ## (not worked yet), "normal", "first", "last" (the plane and the first and last cells
 ## of a placing stroke) and "axis" (the way a line goes, -1 until it has moved)}; a
@@ -79,6 +82,12 @@ var _cursor_clock := 0.0
 ## What the frame of the action button was worked out for (feet, facing, hand): it is
 ## worked out again only when that changes or the button acts, not every frame.
 var _preview_for := []
+## That the action button would take the beast's body ahead (front_kind «take»), as
+## looked for the feet, the facing, the hand and the body of `_body_for`, kept LABEL_TIME
+## (till `_body_until`, msec) while it waits for the body: front_kind is too much for
+## every frame on a phone.
+var _body_for := []
+var _body_until := 0
 var _touch_tip_clock := 0.0
 
 
@@ -331,10 +340,17 @@ func update(delta: float) -> void:
 		if down and not _action_was:
 			mode().toggle_auto()
 		_action_was = down
+		_held_on = down
 	elif not covered and (action_held or (Input.is_physical_key_pressed(KEY_F) and not _typing())):
+		# A beast's body before the feet is taken only once it lies, and by a press, not by
+		# the button held on from what it did (the blow that killed it): a press made while
+		# it still falls waits for it (Creatures.falling).
 		var acted := _cooldown <= 0.0 and not (_action_was and Tools.can_fish(tool_record()))
+		var body := _front_body() if acted else ""
+		acted = acted and body != "falls" and not (_held_on and body == "lies")
 		_action_was = true
 		if acted:
+			_held_on = true
 			act_in_front()
 		var key := [game.character.feet(), game.character.facing_step(), held()]
 		if acted or key != _preview_for or _cursor_clock <= 0.0:
@@ -344,6 +360,7 @@ func update(delta: float) -> void:
 	else:
 		_preview_for = []
 		_action_was = false
+		_held_on = false
 	if touch and _cursor_clock <= 0.0:
 		game.cursor.show_cells([], true)
 
@@ -499,6 +516,8 @@ func action_name() -> String:
 			return "[fill_with_water]"
 		"hit":
 			return "[hit]"
+		"take":
+			return "[pick_up]"
 		"chop":
 			return "[chop]"
 		"gather":
@@ -967,6 +986,29 @@ func act_in_front() -> void:
 	game.net.request(Protocol.FRONT, [game.chunks.cut_level]).then(_did_front)
 
 
+## What the action button would do to a beast's body before the feet (WorldActions.take_body):
+## "lies" it takes it, "falls" it waits for it (its death still drawn, Creatures.falling),
+## "" it does something else.
+func _front_body() -> String:
+	if game.actions == null or game.character == null:
+		return ""
+	var who = game.character
+	var body: Array = game.actions.body_ahead(who)
+	if body.is_empty():
+		return ""
+	var key := [who.feet(), who.facing_step(), held(), body]
+	var now := Time.get_ticks_msec()
+	if key != _body_for or now >= _body_until:
+		if game.actions.front_kind(who) != "take":
+			_body_for = []
+			return ""
+		_body_for = key
+		_body_until = now + int(LABEL_TIME * 1000.0)
+	if game.creatures != null and game.creatures.falling(body[0], game.world.drops[body[0]][body[1]]):
+		return "falls"
+	return "lies"
+
+
 ## What the action button did (see act_in_front).
 func _did_front(done: Variant) -> void:
 	if not _did(done):
@@ -1001,6 +1043,9 @@ func _front_preview() -> Array[Vector3i]:
 			return cells
 		"prop", "eat", "heal":
 			return []
+	if _front_body() != "":
+		# A beast's body before the feet is taken up (WorldActions.take_body), no cell worked.
+		return []
 	var work: Dictionary = actions.front_choice(who)
 	if work.has("trunk"):
 		return [work.trunk]

@@ -1815,11 +1815,13 @@ func _test_boar_states() -> void:
 	var lying: Array = c._bodies.get(key, {}).values()
 	_check(lying.size() == 1 and lying[0].dies_at == INF and lying[0].sprite == null and look.body == lying[0],
 		"its body waits for the beast drawn there to go")
+	var waits_falling := c.falling(key, drop)
 	var b = lying[0]
 	c.flinch(a, 0.3, a.pos - Vector3(1.0, 0.0, 0.0))
 	var sprite: MeshInstance3D = look.sprite
 	c._on_gone(a)
 	_check(b.sprite == sprite and b.dies_at > now + 0.2 and c._dying.has(b), "it takes the beast's sprite, to fall as the blow lands")
+	var was_falling := waits_falling and c.falling(key, drop)
 	c._bodies_step(b.dies_at + CreaturesView.FLASH_HOLD * 0.5)
 	_check(b.frame == 0 and PixelView.sprite_flash(sprite) == PixelView.FLASH_STEPS,
 		"it flashes red as the blow that kills it lands, as a flinch does")
@@ -1828,6 +1830,8 @@ func _test_boar_states() -> void:
 	c._bodies_step(b.dies_at + CreaturesView.DEATH_FRAME * 10.0)
 	_check(b.frame == 3 and c._dying.is_empty() and sprite.material_override == c.looks[kind][1][0][b.view * 24 + 23],
 		"and lies on its last")
+	_check(was_falling and not c.falling(key, drop) and not c.falling(key, ["animals:carcass", drop[1], 0.0, 1]),
+		"the action button waits while it is to fall or falls, and takes it lying (Controls._front_body)")
 	c._lay_bodies(key, [drop], false, now + 5.0)
 	_check(c._bodies[key].values()[0] == b, "it lies on while the carcass does")
 	c._lay_bodies(key, [], false, now + 6.0)

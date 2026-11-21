@@ -826,6 +826,27 @@ func _test_hunting(w: WorldData) -> void:
 	_check(actions.pick_up(person, key, w.drops[key].find(lies[0])) and person.inventory.count("animals:carcass") == had + 1
 		and not w.drops.get(key, []).any(func(d: Array) -> bool: return WorldActions.is_body(d)),
 		"a hand takes the body into the bag, a carcass as any")
+	# The action button takes a body lying before the feet as a tap does (body_ahead,
+	# take_body), not one behind them; an animal in front is struck first.
+	var second := _animal(life, "animals:boar", north + Vector3(0.1, 0.0, 0.0))
+	second.health = 1
+	actions.strike(person)
+	var ahead: Array = actions.body_ahead(person)
+	person.facing = Vector2i(0, 1)
+	var turned: Array = actions.body_ahead(person)
+	person.facing = Vector2i(0, -1)
+	_check(second.gone and ahead.size() == 2 and WorldActions.is_body(w.drops[ahead[0]][ahead[1]]) and turned.is_empty()
+		and actions.front_kind(person) == "take",
+		"the action button would take the body before the feet, not turned away from it (%s, %s)" % [ahead, actions.front_kind(person)])
+	var third := _animal(life, "animals:boar", north + Vector3(-0.1, 0.0, 0.0))
+	third.health = 50
+	_check(actions.front_kind(person) == "hit" and actions.act_in_front(person, 40).get("hit", false) and not third.gone,
+		"with a living boar in front the action button strikes it, not the body")
+	life.animals.erase(third)
+	had = person.inventory.count("animals:carcass")
+	done = actions.act_in_front(person, 40)
+	_check(done.get("work", "") == "reach" and person.inventory.count("animals:carcass") == had + 1
+		and actions.body_ahead(person).is_empty(), "the action button takes the body into the bag (%s)" % [done])
 	var fly := _animal(life, "animals:butterfly", north)
 	_check(fly.health == 0 and life.in_front(person.position, Vector2(0, -1)) != fly and actions.strike(person).is_empty(),
 		"a butterfly cannot be hit: the swing finds nothing")

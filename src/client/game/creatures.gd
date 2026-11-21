@@ -820,6 +820,15 @@ func _lay_bodies(key: Vector2i, list: Array, came: bool, now: float) -> void:
 		_bodies[key] = lying
 
 
+## Whether the body of drop `d` in chunk `key` is still falling (its death drawn, or its
+## beast not gone yet): the action button waits till it lies (Controls._front_body).
+func falling(key: Vector2i, d: Array) -> bool:
+	if not is_body(d):
+		return false
+	var b: Body = _bodies.get(key, {}).get([str(d[3].body), d[1]])
+	return b != null and _dying.has(b)
+
+
 ## Takes away the bodies of chunk `key`, gone out of view (Props.hide_drops).
 func hide_bodies(key: Vector2i) -> void:
 	for b: Body in _bodies.get(key, {}).values():
