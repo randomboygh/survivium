@@ -15,6 +15,7 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 
 const CELL := WorldData.CELL
 ## How far from the player a thing on the ground or a placed thing can be taken or used,
@@ -123,8 +124,13 @@ func describe(target: Dictionary) -> String:
 			return Lang.f("[lmb_take]", [title])
 		if Placed.is_sign(e):
 			return Lang.f("[lmb_read]", [title])
+		if Placed.is_bed(e):
+			var v = game.character.vitals
+			return Lang.f("[lmb]", [title, "[go_to_sleep_n2]" if v.asleep or v.sleepy() else "[not_sleepy_n2]"])
+		if Placed.is_seat(e):
+			return Lang.f("[lmb]", [title, "[sit_down_n2]"])
 		if Placed.is_part(e):
-			return Lang.f("[take_it_in_build_mode]", [title])
+			return title
 		if Placed.is_door(e):
 			return Lang.f("[lmb]", [title, "[close_n2]" if e.get("open", false) else "[open]"])
 		if e.items != null:
@@ -133,9 +139,6 @@ func describe(target: Dictionary) -> String:
 			var held: String = game.character.held()
 			return Lang.f("[lmb]", [Lang.f("[catcher_water_share]", [title, roundi(Placed.water_share(e) * 100.0)]),
 				"[fill_n2]" if held != "" and not game.character.inventory.vessel_for(held, true).is_empty() else "[drink_n2]"])
-		if Placed.is_bed(e):
-			var v = game.character.vitals
-			return Lang.f("[lmb]", [title, "[go_to_sleep_n2]" if v.asleep or v.sleepy() else "[not_sleepy_n2]"])
 		return Lang.f("[lmb_craft]", [title])
 	if target.has("vessel"):
 		return Lang.f("[lmb_pick_up_into_bag]", [Lang.t(Items.title(game.boats.vessels[target.vessel].item))])
@@ -160,7 +163,7 @@ func describe(target: Dictionary) -> String:
 
 
 ## Gathers `target` (see target_at) with what is in the hand in use: a placed thing
-## opens (a door swings, a sign shows its text, a light is taken up, a bed is lain in to sleep: Protocol.LIE_IN; a rain catcher is drunk from or a vessel filled there: Protocol.PROP_DRINK; parts of a house are taken up only in the build mode, BuildMode), the rest is WorldActions.gather through the server. True if anything was done
+## opens (a door swings, a sign shows its text, a light is taken up, a bed is lain in to sleep: Protocol.LIE_IN; a stool is sat on: Protocol.SIT_ON; a rain catcher is drunk from or a vessel filled there: Protocol.PROP_DRINK; parts of a house are taken up only in the build mode, BuildMode), the rest is WorldActions.gather through the server. True if anything was done
 ## (over the loop the reply is in at once; over a socket it is false until then).
 func gather(target: Dictionary) -> bool:
 	if target.has("prop") and Placed.is_door(target.prop):
@@ -169,9 +172,19 @@ func gather(target: Dictionary) -> bool:
 	if target.has("prop") and Placed.is_sign(target.prop):
 		game.hud.open_sign(target.prop)
 		return true
+	if target.has("prop") and Placed.is_bed(target.prop):
+		var lain = game.net.request(Protocol.LIE_IN, [target.prop.cell])
+		return lain.done and lain.value is bool and lain.value
+	if target.has("prop") and Placed.is_seat(target.prop):
+		var sat = game.net.request(Protocol.SIT_ON, [target.prop.cell])
+		if sat.done and sat.value is bool and sat.value:
+			game.player.set_gesture("sit")
+			# Facing the way the seat does, its back behind.
+			game.player.facing = SpriteSheet.direction_of(Vector2(Placed.front_of(target.prop)))
+			return true
+		return false
 	if target.has("prop") and Placed.is_part(target.prop):
-		# Parts of a house are taken up only in the build mode.
-		game.character.nag("take", "[you_can_take_it_in]")
+		# Parts of a house are taken up only in the build mode: a tap does nothing.
 		return false
 	if target.has("prop") and Placed.is_light(target.prop):
 		var taken = game.net.request(Protocol.PROP_TAKE, [target.prop.cell])
@@ -179,9 +192,6 @@ func gather(target: Dictionary) -> bool:
 	if target.has("prop") and Placed.is_catcher(target.prop):
 		var drawn = game.net.request(Protocol.PROP_DRINK, [target.prop.cell])
 		return drawn.done and drawn.value is bool and drawn.value
-	if target.has("prop") and Placed.is_bed(target.prop):
-		var lain = game.net.request(Protocol.LIE_IN, [target.prop.cell])
-		return lain.done and lain.value is bool and lain.value
 	if target.has("prop"):
 		game.hud.open_prop(target.prop)
 		return true

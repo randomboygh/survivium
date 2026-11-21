@@ -111,12 +111,12 @@
 "[lmb_take_drag_double_turn]": "%s\nSol tık al, taşımak için sürükle, döndürmek için çift tık"
 "[lmb_take]": "%s\nSol tık al"
 "[lmb_read]": "%s\nSol tık oku"
-"[take_it_in_build_mode]": "%s\ninşa kipinde alınır"
 "[lmb]": "%s\nSol tık %s"
 "[close_n2]": "kapat"
 "[open]": "aç"
 "[lmb_open]": "%s\nSol tık aç"
 "[go_to_sleep_n2]": "uyu"
+"[sit_down_n2]": "otur"
 "[not_sleepy_n2]": "uykun yok"
 "[lmb_craft]": "%s\nSol tık üret"
 "[lmb_pick_up_into_bag]": "%s\nSol tık çantaya al"
@@ -129,7 +129,6 @@
 "[pick]": "topla"
 "[lmb_break_off_branches]": "%s\nSol tık dal kır"
 "[empty_until_spring]": "%s\nbahara kadar boş"
-"[you_can_take_it_in]": "İnşa kipinde alınabilir"
 
 # src/client/game/markers.gd
 "[red]": "kırmızı"
@@ -1122,7 +1121,6 @@
 "[turn]": "Döndür"
 
 # src/client/ui/sleep_screen.gd
-"[sleeping_touch_the_screen_to]": "Uyku… Uyanmak için ekrana dokun"
 
 # src/client/ui/team_page.gd
 "[by_territory_rights]": "bölge haklarına göre"

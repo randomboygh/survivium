@@ -111,12 +111,12 @@
 "[lmb_take_drag_double_turn]": "%s\nBE pegar, arrastar para mover, clique duplo para girar"
 "[lmb_take]": "%s\nBE pegar"
 "[lmb_read]": "%s\nBE ler"
-"[take_it_in_build_mode]": "%s\npega-se no modo construção"
 "[lmb]": "%s\nBE %s"
 "[close_n2]": "fechar"
 "[open]": "abrir"
 "[lmb_open]": "%s\nBE abrir"
 "[go_to_sleep_n2]": "dormir"
+"[sit_down_n2]": "sentar"
 "[not_sleepy_n2]": "sem sono"
 "[lmb_craft]": "%s\nBE fabricar"
 "[lmb_pick_up_into_bag]": "%s\nBE pôr na bolsa"
@@ -129,7 +129,6 @@
 "[pick]": "colher"
 "[lmb_break_off_branches]": "%s\nBE quebrar galhos"
 "[empty_until_spring]": "%s\nvazio até a primavera"
-"[you_can_take_it_in]": "Dá para pegar no modo construção"
 
 # src/client/game/markers.gd
 "[red]": "vermelho"
@@ -1122,7 +1121,6 @@
 "[turn]": "Girar"
 
 # src/client/ui/sleep_screen.gd
-"[sleeping_touch_the_screen_to]": "Dormindo… Toque na tela para acordar"
 
 # src/client/ui/team_page.gd
 "[by_territory_rights]": "pelos direitos de território"

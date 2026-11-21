@@ -501,9 +501,11 @@ func step() -> bool:
 
 ## Puts the frame of the `sleep` animation (player.yaml) into every row: that column as
 ## drawn facing south (standing, its eyes shut and its legs pressed together, PlayerArt)
-## turned on its side, the head to the west, lying on the frame's bottom and as much in
-## the middle of it as the figure stood. It is outlined after turning, so the soles, which
-## stand on the frame's edge without an outline, get theirs.
+## lying with its head the way of the row (a bed's head, Placed.head_of): turned on its
+## side, the head to the west (w, sw, nw) or the east (e, se, ne), lying on the frame's
+## bottom and as much in the middle of it as the figure stood; head up (n) as it stood,
+## head down (s) upside down. It is outlined after turning, so the soles, which stand on
+## the frame's edge without an outline, get theirs.
 func _lay_down() -> void:
 	var d := data()
 	if not d.animations.has("sleep"):
@@ -514,18 +516,30 @@ func _lay_down() -> void:
 	if held.get("active", "right") == "left":
 		standing.flip_x()
 	var was: Rect2i = standing.get_used_rect()
-	var lying: Image = standing.duplicate()
-	lying.rotate_90(COUNTERCLOCKWISE)
-	var now: Rect2i = lying.get_used_rect()
-	var out := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
-	out.fill(Color(0, 0, 0, 0))
-	# A pixel up from where the feet stood, for the outline under the body.
-	var to := Vector2i(was.get_center().x - now.size.x / 2, was.end.y - 1 - now.size.y)
-	out.blit_rect(lying, now, to)
-	if target.outline:
-		SpriteSheet.outline_rect(out, Rect2i(Vector2i.ZERO, size))
+	var ways := {}
+	for way: String in ["w", "e", "n", "s"]:
+		var lying: Image = standing.duplicate()
+		match way:
+			"w":
+				lying.rotate_90(COUNTERCLOCKWISE)
+			"e":
+				lying.rotate_90(COUNTERCLOCKWISE)
+				lying.flip_x()
+			"s":
+				lying.flip_y()
+		var now: Rect2i = lying.get_used_rect()
+		var out := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
+		out.fill(Color(0, 0, 0, 0))
+		# A pixel up from where the feet stood, for the outline under the body.
+		var to := Vector2i(was.get_center().x - now.size.x / 2, was.end.y - 1 - now.size.y)
+		out.blit_rect(lying, now, to)
+		if target.outline:
+			SpriteSheet.outline_rect(out, Rect2i(Vector2i.ZERO, size))
+		ways[way] = out
 	for r in target.directions.size():
-		_img.blit_rect(out, Rect2i(Vector2i.ZERO, size), Vector2i(col * size.x, r * size.y))
+		var dir: String = target.directions[r]
+		var way := dir if dir == "n" or dir == "s" else ("e" if dir.contains("e") else "w")
+		_img.blit_rect(ways[way], Rect2i(Vector2i.ZERO, size), Vector2i(col * size.x, r * size.y))
 
 
 ## The brightest pixel of `picture`, the highest of equals.

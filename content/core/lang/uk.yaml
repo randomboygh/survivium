@@ -111,12 +111,12 @@
 "[lmb_take_drag_double_turn]": "%s\nЛКМ забрати, тягнути — переставити, подвійний клік — повернути"
 "[lmb_take]": "%s\nЛКМ забрати"
 "[lmb_read]": "%s\nЛКМ прочитати"
-"[take_it_in_build_mode]": "%s\nзабрати — в режимі будування"
 "[lmb]": "%s\nЛКМ %s"
 "[close_n2]": "закрити"
 "[open]": "відчинити"
 "[lmb_open]": "%s\nЛКМ відчинити"
 "[go_to_sleep_n2]": "лягти спати"
+"[sit_down_n2]": "сісти"
 "[not_sleepy_n2]": "спати не хочеться"
 "[lmb_craft]": "%s\nЛКМ крафт"
 "[lmb_pick_up_into_bag]": "%s\nЛКМ підняти в сумку"
@@ -129,7 +129,6 @@
 "[pick]": "зібрати"
 "[lmb_break_off_branches]": "%s\nЛКМ наламати гілок"
 "[empty_until_spring]": "%s\nпорожньо до весни"
-"[you_can_take_it_in]": "Забрати можна в режимі будування"
 
 # src/client/game/markers.gd
 "[red]": "червоний"
@@ -1122,7 +1121,6 @@
 "[turn]": "Повернути"
 
 # src/client/ui/sleep_screen.gd
-"[sleeping_touch_the_screen_to]": "Сон… Торкніться екрана, щоб прокинутися"
 
 # src/client/ui/team_page.gd
 "[by_territory_rights]": "за правами територій"

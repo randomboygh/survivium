@@ -115,7 +115,6 @@
 "[lmb_take_drag_double_turn]": "%s\nLMB take, drag to move, double-click to turn"
 "[lmb_take]": "%s\nLMB take"
 "[lmb_read]": "%s\nLMB read"
-"[take_it_in_build_mode]": "%s\ntake it in build mode"
 "[lmb]": "%s\nLMB %s"
 "[close_n2]": "close"
 "[open]": "open"
@@ -124,6 +123,7 @@
 "[fill_n2]": "fill"
 "[drink_n2]": "drink"
 "[go_to_sleep_n2]": "go to sleep"
+"[sit_down_n2]": "sit down"
 "[not_sleepy_n2]": "not sleepy"
 "[lmb_craft]": "%s\nLMB craft"
 "[lmb_pick_up_into_bag]": "%s\nLMB pick up into bag"
@@ -136,7 +136,6 @@
 "[pick]": "pick"
 "[lmb_break_off_branches]": "%s\nLMB break off branches"
 "[empty_until_spring]": "%s\nempty until spring"
-"[you_can_take_it_in]": "You can take it in build mode"
 
 # src/client/game/markers.gd
 "[red]": "red"
@@ -1954,7 +1953,6 @@
 "[turn]": "Turn"
 
 # src/client/ui/sleep_screen.gd
-"[sleeping_touch_the_screen_to]": "Sleeping… Touch the screen to wake up"
 
 # src/client/ui/team_page.gd
 "[by_territory_rights]": "by territory rights"

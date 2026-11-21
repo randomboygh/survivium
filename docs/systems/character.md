@@ -86,10 +86,13 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   `Character.sleep_rate` (a roof `ROOF_SLEEP`, × the `bedding` of the bed one lies on: `Placed.bed_under`).
   A bed (`prop: bed`, an item with `bedding`) is placed on the ground, like a station; a tap on it is the
   request `lie_in` (`Character.lie_in`: fall asleep and lie on it, `Placed.lying_spot`, to the client —
-  `TELEPORT`; one who does not want to sleep, `Vitals.sleepy`, takes it into the bag, `Placed.take_up`); in
+  `TELEPORT`; one who does not want to sleep, `Vitals.sleepy`, is told so; a bed that is furniture, the
+  wooden bed, is a bed before a part of the house, `Gathering.gather`); in
   the bag it does not work. On screen the sleeper lies on their side with closed eyes (the sheet's frame
   `sleep`, `Figure._lay_down`: its own column, drawn standing with the eyes shut and the legs pressed
-  together, turned on its side), above them
+  together, turned on its side; in a bed it lies along it, its head to the bed's head, `Placed.head_of`, a row
+  of the column for each way: on its side head west or east, upright head north, upside down head south;
+  `Player.bed_head`, set by Main from `Placed.bed_under`; on the ground head to the screen's left), above them
   small letters «z» rise, grow and melt in turn (`player.gd` `snore`, `_snore`); one wakes up by oneself
   when rested by day, from a wound or in water. While all sleep, the night
   goes `Session.SLEEP_SPEED` times faster. `fatigue` off — the test switch «Fatigue»: energy does not fall,
@@ -196,10 +199,15 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   (`WorldData.tread`), so their trail eases one's own walking as on the server; a move over `LEAP` (2 units:
   a teleport, a respawn) leaves none; `server_test` checks.
 - Gestures (decision 183): `src/shared/game/gestures.gd` — the list `LIST` (wave, yes, no, point, here, bow,
-  clap, sit: the wheel's words, the animation of `player.yaml`, seconds; «sit» — until movement), `make` (the
+  clap, sit: the wheel's words, the animation of `player.yaml`, seconds; «sit» — until movement and with no icon
+  over the head, `icon: false`), `make` (the
   request `gesture`, the name is checked against the list, "" — stop), `now_of` (a gesture ends by time, on
   movement, in water, in a boat, in sleep). The character stores `gesture`, `gesture_until`; the server sends
-  the gesture in the `people` record (field 17). The figure (`player.gd`, `set_gesture`) plays its animation
+  the gesture in the `people` record (field 17). A tap on a seat (`Placed.is_seat`, an item with `seat`: the
+  stool) is the request `sit_on` (`Character.sit_on`: the body put on it, `Placed.lying_spot`, and the gesture
+  «sit» until it moves, facing the way the seat faces, `Placed.front_of`, its back to the seat's back; drawn
+  `SITTING_FORWARD` towards the viewer so it shows in front of the seat). Other
+  furniture that stores nothing does nothing at a tap; it is taken up in the build mode. The figure (`player.gd`, `set_gesture`) plays its animation
   standing, above the head — the icon `UiStyle.icon("g_<name>")` for the first `Gestures.ICON_TIME` 2.5 s
   (for others — above the name); movement or work interrupt it. The gestures' frames are columns 48–59 of the
   sheet (`tools/art/player_art.gd`, `MOVES`, with `lean` — the body's tilt; `tools/make_sprites.gd` draws the

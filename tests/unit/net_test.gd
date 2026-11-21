@@ -477,6 +477,26 @@ func _test_requests() -> void:
 	a.teleport(stood)
 	placed._remove(bed)
 	events.clear()
+	# A stool (a seat) is sat on at a tap: the body put on it, sitting until it moves.
+	var stool := placed.put("tools:stool", bed_cell)
+	_check(net.request(Protocol.SIT_ON, [Vector3i(bed_cell.x + 5, bed_cell.y, bed_cell.z)]).value == false
+		and a.gesture == "", "no one sits on a stool that is not there")
+	_check(net.request(Protocol.SIT_ON, [bed_cell]).value == true and a.position == placed.lying_spot(stool)
+		and a.gesture == "sit" and placed.things.has(stool),
+		"a player tapping a stool sits on it, and leaves it where it stands")
+	_check(Placed.front_of({"turn": 0}) == Vector2i(0, 1) and Placed.front_of({"turn": 1}) == Vector2i(-1, 0)
+		and Placed.front_of({"turn": Placed.turn_facing(Vector2i(0, 1))}) == Vector2i(0, -1)
+		and Placed.head_of({"turn": 0}) == Vector2i(-1, 0) and Placed.head_of({"turn": 1}) == Vector2i(0, -1)
+		and Placed.head_of({"turn": 2}) == Vector2i(1, 0),
+		"a seat faces back at the one who set it down, a bed's head turns with it")
+	a.gesture = ""
+	a.teleport(stood)
+	placed._remove(stool)
+	var table := placed.put("tools:table", bed_cell)
+	_check(net.request(Protocol.SIT_ON, [bed_cell]).value == false and a.gesture == "" and a.position == stood,
+		"no one sits on a table")
+	placed._remove(table)
+	events.clear()
 	var fire_cell := Vector3i(12, 2, 12)
 	var fire := placed.put(Placed.CAMPFIRE, fire_cell)
 	placed.put_out(fire)

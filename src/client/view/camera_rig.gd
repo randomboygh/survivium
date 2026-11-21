@@ -105,6 +105,13 @@ var _idle_at := Vector3.INF
 ## How much the picture swims now, 0..1 (see drowsiness), and the value the shader has.
 var sway := 0.0
 var _sway_set := -1.0
+## How deep in sleep the picture is, 0..1 (grade.gdshader `dream`: glow, a pale blue,
+## the edges blurred and darker, given eased in and out), and the value last given.
+var dream := 0.0
+var _dream_set := -1.0
+## Seconds the dream takes to come on falling asleep, and to go waking.
+const DREAM_IN := 3.0
+const DREAM_OUT := 2.0
 ## How strong the visions are now, 0..1 (see visions), and the value the shader has.
 var trip := 0.0
 var _trip_set := -1.0
@@ -345,6 +352,11 @@ func _tire(delta: float) -> void:
 	if grade_mat != null and (absf(sway - _sway_set) > 0.002 or (sway == 0.0 and _sway_set > 0.0)):
 		_sway_set = sway
 		grade_mat.set_shader_parameter("sway", sway)
+	var asleep: bool = game.character != null and game.character.vitals.asleep and not game.character.is_dead()
+	dream = move_toward(dream, 1.0 if asleep else 0.0, delta / (DREAM_IN if asleep else DREAM_OUT))
+	if grade_mat != null and (absf(dream - _dream_set) > 0.002 or (dream == 0.0 and _dream_set > 0.0)):
+		_dream_set = dream
+		grade_mat.set_shader_parameter("dream", smoothstep(0.0, 1.0, dream))
 	trip = move_toward(trip, visions(), delta * TRIP_RATE)
 	if grade_mat != null and (absf(trip - _trip_set) > 0.002 or (trip == 0.0 and _trip_set > 0.0)):
 		_trip_set = trip
@@ -515,7 +527,7 @@ func update(delta: float) -> void:
 	container.position = container.position.round()
 	# The drops and snow on the screen keep to the screen, not to the gliding picture.
 	grade_mat.set_shader_parameter("screen_shift", container.position / view_scale + Vector2.ONE * PixelView.MARGIN)
-	if game.settings.values.crt != 0 or sway > 0.0 or trip > 0.0:
+	if game.settings.values.crt != 0 or sway > 0.0 or trip > 0.0 or dream > 0.0:
 		Crt.frame(grade_mat, game.get_viewport().get_visible_rect().size, container.position, view_scale,
 			Engine.get_process_frames())
 	player.place_sprite()
