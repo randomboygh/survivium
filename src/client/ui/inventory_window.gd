@@ -169,6 +169,9 @@ var _chest_entry := {}
 var _chests_seen := ""
 ## A _place waits for the end of the frame.
 var _place_queued := false
+## The chest (a record of Props.placed) the bag's list glides to once it is laid out
+## (show_chest), {} for none.
+var _glide_chest := {}
 
 
 func _init(g) -> void:
@@ -597,6 +600,7 @@ func open() -> void:
 
 func close() -> void:
 	visible = false
+	_glide_chest = {}
 	_let_go()
 	# Sorting by hand is for one look into the bag.
 	_manual = false
@@ -604,11 +608,35 @@ func close() -> void:
 	craft.at_station({})
 
 
-## Shows the chest of placed thing `e` (see Props.placed) under the bag, on the bag tab.
+## Shows the chest of placed thing `e` (see Props.placed) under the bag, on the bag tab,
+## and glides the list down to it.
 func show_chest(e: Dictionary) -> void:
 	_chests_seen = "-"
 	_show_chest(e)
 	show_tab("bag")
+	_glide_chest = e
+	_glide_to_chest()
+
+
+## Once the list is laid out with chest _glide_chest in it, glides it so that the chest's
+## strip stands at the top (as far as the list scrolls). Waits a few frames at most: the
+## chests' grids are made, and the window sized, at the end of the frame they are seen.
+func _glide_to_chest() -> void:
+	var e := _glide_chest
+	for wait in 4:
+		await get_tree().process_frame
+		if _glide_chest != e or not visible or not _bag_page.visible:
+			return
+		var i := _chests.find(e)
+		if i < 0 or i >= _chest_grids.size():
+			continue
+		var line: Control = _chest_grids[i].line
+		if not line.is_visible_in_tree() or _list.size.y < line.position.y:
+			continue
+		_glide_chest = {}
+		_drag.glide_to(line.position.y)
+		return
+	_glide_chest = {}
 
 
 func _show_chest(e: Dictionary) -> void:

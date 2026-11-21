@@ -608,6 +608,25 @@ func _test_fling() -> void:
 	for i in 120:
 		drag.step(1.0 / 60.0)
 	_check(absi(list.scroll_vertical - 25) <= 2, "a notch of the wheel glides an eighth of the list (%d)" % list.scroll_vertical)
+	# glide_to: smoothly to the row, slowing as it comes, never past it; a touch stops it.
+	list.scroll_vertical = 0
+	drag.glide_to(500.0)
+	var path := []
+	for i in 90:
+		drag.step(1.0 / 60.0)
+		path.append(list.scroll_vertical)
+	_check(int(path[2]) > 0 and int(path[2]) < 500 and int(path[9]) < 500, "glide_to moves on over several frames (%s)" % [path.slice(0, 10)])
+	_check(path.max() == 500 and list.scroll_vertical == 500 and drag.stretch() == 0 and not drag.moving(), "and rests at its row (%d)" % list.scroll_vertical)
+	drag.glide_to(5000.0)
+	for i in 120:
+		drag.step(1.0 / 60.0)
+	_check(list.scroll_vertical == 800 and not drag.moving(), "a row past the end glides only to the end (%d)" % list.scroll_vertical)
+	drag.glide_to(0.0)
+	drag.step(1.0 / 60.0)
+	drag._stop()
+	var held := list.scroll_vertical
+	drag.step(1.0 / 60.0)
+	_check(held > 0 and held < 800 and list.scroll_vertical == held and not drag.moving(), "a touch stops the glide where it is (%d)" % held)
 	# Rows that fit: no scroll, no stretch.
 	bar.max_value = 200
 	list.scroll_vertical = 0

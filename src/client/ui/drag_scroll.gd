@@ -40,6 +40,9 @@ const BOUNCE := 0.12
 ## before the lift cancels the flick, in ms.
 const SPEED_WINDOW := 80
 const STILL := 60
+## How fast glide_to closes in on its row: the way left falls e times in 1 / GLIDE s
+## (about half a second to arrive, slowing as it comes).
+const GLIDE := 9.0
 
 ## Whether the last touch scrolled the list (or stopped it flying).
 var dragged := false
@@ -56,6 +59,9 @@ var _scroll_from := 0.0
 var _pos := 0.0
 var _speed := 0.0
 var _friction := FRICTION
+## The scroll glide_to heads for while _aiming.
+var _aim := 0.0
+var _aiming := false
 ## The stretch past an end (+ past the end, - past the top, in scroll pixels) and how
 ## fast it changes.
 var _over := 0.0
@@ -116,8 +122,8 @@ func _input(event: InputEvent) -> void:
 		if _finger == -1 and _on(list, pos) and not _held_by_control(list, pos):
 			_finger = index
 			_from = _y(list, pos)
-			# A list caught flying stops where it is, and the touch is no tap.
-			_caught = _moving and absf(_speed) > MIN_SPEED
+			# A list caught flying (or gliding) stops where it is, and the touch is no tap.
+			_caught = _moving and (absf(_speed) > MIN_SPEED or _aiming)
 			_scroll_from = float(list.scroll_vertical) + _unpull(_over)
 			_stop()
 			_track = [[_now(), _scroll_from]]
@@ -170,6 +176,19 @@ func _process(delta: float) -> void:
 	step(minf(delta, 0.1))
 
 
+## Glides the list to the scroll `to` (kept within its bounds), slowing as it comes; a
+## touch stops it as it stops a flick.
+func glide_to(to: float) -> void:
+	if _list == null or _finger != -1:
+		return
+	_pos = float(_list.scroll_vertical)
+	_speed = 0.0
+	_aim = clampf(to, 0.0, _end())
+	_aiming = absf(_aim - _pos) >= 0.5
+	if _aiming:
+		_go()
+
+
 ## Moves a flying or springing list on by `delta` seconds.
 func step(delta: float) -> void:
 	var list := _list
@@ -178,8 +197,15 @@ func step(delta: float) -> void:
 		return
 	var end := _end()
 	# Moved from outside (a page reset to its top, a row kept in sight): that wins.
-	if absf(_speed) > 0.0 and list.scroll_vertical != roundi(_pos):
+	if (absf(_speed) > 0.0 or _aiming) and list.scroll_vertical != roundi(_pos):
 		_speed = 0.0
+		_aiming = false
+	if _aiming:
+		_aim = clampf(_aim, 0.0, end)
+		_pos += (_aim - _pos) * (1.0 - exp(-GLIDE * delta))
+		if absf(_aim - _pos) < 0.5:
+			_pos = _aim
+			_aiming = false
 	_pos = clampf(_pos, 0.0, end) if _speed == 0.0 else _pos
 	# Short steps keep the spring steady on a slow frame.
 	var left := delta
@@ -207,7 +233,7 @@ func step(delta: float) -> void:
 				_over_speed = 0.0
 	list.scroll_vertical = roundi(_pos)
 	_show_over()
-	if _speed == 0.0 and _over == 0.0 and _over_speed == 0.0:
+	if _speed == 0.0 and _over == 0.0 and _over_speed == 0.0 and not _aiming:
 		_stop()
 
 
@@ -278,6 +304,7 @@ func _go() -> void:
 func _stop() -> void:
 	_moving = false
 	_speed = 0.0
+	_aiming = false
 	_over_speed = 0.0
 	set_process(false)
 	if _over != 0.0 and _finger == -1:

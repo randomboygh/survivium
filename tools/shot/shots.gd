@@ -324,6 +324,8 @@ const SHOTS := {
 	"build-openings-bag": {"time": 0.4, "season": 1, "openings": "storage", "bag": true},
 	"build-openings-bag-barrel": {"time": 0.4, "season": 1, "openings": "storage", "bag": true, "storage_at": 2},
 	"build-openings-bag-cupboard": {"time": 0.4, "season": 1, "openings": "storage", "bag": true, "storage_at": 3},
+	# A tap on the barrel with the bag open: the list glides down to its strip.
+	"build-openings-bag-tap": {"time": 0.4, "season": 1, "openings": "storage", "bag": true, "storage_at": 2, "storage_tap": true},
 	# A shut brick room, a door and two windows in its east wall (places.lit_room): the
 	# morning sun and lanterns outside at night shine in through the windows always and
 	# through the door only open.

@@ -991,7 +991,20 @@ func _run() -> void:
 			var grids: Array = main.hud.bag._chest_grids
 			print("storage shown: ", main.hud.bag._chests.map(func(e: Dictionary) -> String: return e.item))
 			# From the strip of the `storage_at`th (the second: the camp's chest by the spawn may come first).
-			if not grids.is_empty():
+			if not grids.is_empty() and shot.get("storage_tap", false):
+				# The list at its top, then the storage tapped (HudMenus.open_prop): the list
+				# glides to its strip, a frame saved every `frames_ms` as <name>-g01.png and on.
+				var k: int = mini(shot.get("storage_at", 1), grids.size() - 1)
+				main.hud.bag._scroll.scroll_vertical = 0
+				for i in 4:
+					await process_frame
+				main.hud.open_prop(main.hud.bag._chests[k])
+				for i in (0 if keys_only else 12):
+					var since := Time.get_ticks_msec()
+					while Time.get_ticks_msec() - since < int(shot.get("frames_ms", 60)):
+						await process_frame
+					root.get_texture().get_image().save_png(out_dir.path_join("%s-g%02d.png" % [shot_name, i + 1]))
+			elif not grids.is_empty():
 				var k: int = mini(shot.get("storage_at", 1), grids.size() - 1)
 				main.hud.bag._scroll.scroll_vertical = int(grids[k].line.position.y) - 4
 			for i in 4:
