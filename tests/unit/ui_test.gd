@@ -38,6 +38,7 @@ func run() -> void:
 	_test_kept_test_switches()
 	_test_menu_sparrow()
 	_test_map_fit()
+	_test_map_crowns()
 	_test_vibration()
 	_test_fling()
 	_test_updates()
@@ -386,6 +387,39 @@ func _test_kept_test_switches() -> void:
 	Settings.testing_unlocked = unlocked
 	DirAccess.remove_absolute(Settings.path)
 	Settings.path = was
+
+
+## A chunk painted on the map takes the crowns grown into it later (`leaves_only`):
+## its columns under a crown are drawn again, the others keep what they showed.
+func _test_map_crowns() -> void:
+	var w := WorldGen.generate(20261018, Vector2i(3, 3))
+	var mm := Minimap.new()
+	mm.sea = w.sea_level
+	mm.top = w.size_y
+	var key := Vector2i(1, 1)
+	mm.paint_chunk(w, key)
+	var img: Image = mm.regions[Vector2i.ZERO].image
+	var leafy := Vector2i(-1, -1)
+	var bare := Vector2i(-1, -1)
+	var ch = w.chunk_at(key.x * WorldData.CHUNK, key.y * WorldData.CHUNK)
+	for z in range(0, WorldData.CHUNK, Minimap.STEP):
+		for x in range(0, WorldData.CHUNK, Minimap.STEP):
+			var px := Vector2i(key.x * Minimap.CHUNK_PX + x / Minimap.STEP, key.y * Minimap.CHUNK_PX + z / Minimap.STEP)
+			if ch.leaf[WorldData.col_of(key.x * WorldData.CHUNK + x, key.y * WorldData.CHUNK + z)] != 0:
+				leafy = px
+			else:
+				bare = px
+	var crown := img.get_pixelv(leafy) if leafy.x >= 0 else Color.BLACK
+	img.set_pixelv(bare, Color.RED)
+	if leafy.x >= 0:
+		img.set_pixelv(leafy, Color.BLUE)
+	mm.paint_chunk(w, key, true)
+	_check(leafy.x >= 0 and bare.x >= 0, "the chunk has columns under a crown and in the open")
+	var drawn := img.get_pixelv(leafy)
+	_check(Vector3(drawn.r - crown.r, drawn.g - crown.g, drawn.b - crown.b).length() < 0.02,
+		"a crown grown in is drawn on the map: %s, %s" % [drawn, crown])
+	_check(img.get_pixelv(bare) == Color.RED, "a column in the open keeps what the map showed")
+	mm.free()
 
 
 ## The whole map fills a phone held upright, whatever size it was laid out at before,
