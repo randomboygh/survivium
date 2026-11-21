@@ -32,7 +32,7 @@
 - id: land
   title: "[sounds.sounds.land]"
   variants: 2
-  volume: 0.6
+  volume: 0.45
 - id: land_snow
   title: "[sounds.sounds.land_snow]"
   variants: 2
