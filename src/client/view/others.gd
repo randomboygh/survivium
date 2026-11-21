@@ -87,7 +87,7 @@ var _own := {}
 func take_people(list: Array) -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	for e in list:
-		if not e is Array or not e.size() in [13, 14, 15, 16, 17, 18, 19] or not e[0] is int or not e[2] is Vector3 or not e[3] is Vector2i \
+		if not e is Array or not e.size() in [13, 14, 15, 16, 17, 18, 19, 20] or not e[0] is int or not e[2] is Vector3 or not e[3] is Vector2i \
 				or not e[4] is Array or e[4].size() != 2:
 			continue
 		var id: int = e[0]
