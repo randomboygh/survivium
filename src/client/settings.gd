@@ -171,7 +171,7 @@ const DEFAULTS := {
 	# The camera shakes when the body is hurt (see BodyFeedback).
 	"shake": true,
 	# How much the phone buzzes (Vibration): off, only the important, the usual, all.
-	"vibration": 2,
+	"vibration": 3,
 	# Volumes in steps of Sound.STEPS (0 is off): the music, all the sounds, nature
 	# (wind, rain, water, birds) and the interface among them.
 	"music_volume": 3,
