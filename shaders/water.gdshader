@@ -5,7 +5,8 @@
 // UV2.x: foam bits for the half edges that touch land (2 per edge N, S, W, E: the
 // west or north half, then the other), then for the diagonals of corners NW, NE, SE,
 // SW filled with land, then for those of cut-off corners of the land beside, then
-// the shape of each of those four corners' curves (2 bits each, see corner_distance);
+// the shape of each of those four corners' curves (2 bits each, see corner_distance;
+// 3, a straight diagonal half a cell further toward the land, see the foam loop);
 // UV2.y: depth of the water column in cells (half a world unit each).
 // COLOR.r: depth of the water over the ground at the vertex, in cells / 8, blended
 // across a top so the water darkens smoothly over a sloping bed; COLOR.g: on water
@@ -669,13 +670,17 @@ void fragment() {
 				}
 			}
 			// Along diagonals: the water lies away from a filled corner and on the corner's
-			// side of a cut one.
+			// side of a cut one. Shape 3: a straight line half a cell on toward the land,
+			// the corner itself (filled) or the diagonal through the corners beside (cut),
+			// where water flush with the land meets a shore's corner on the diagonal
+			// (WaterMesher.shore_water).
 			for (int k = 0; k < 4 && sw < 1.5; k++) {
 				bool filled = ((foam >> (8 + k)) & 1) != 0;
 				if (!filled && ((foam >> (12 + k)) & 1) == 0) {
 					continue;
 				}
-				int sd = corner_distance(t, k, (foam >> (16 + 2 * k)) & 3);
+				int shape = (foam >> (16 + 2 * k)) & 3;
+				int sd = shape == 3 ? corner_distance(t, k, 0) + (filled ? mid : -mid) : corner_distance(t, k, shape);
 				float d = float(filled ? sd : -sd);
 				float wash = 1.0 + shore_wind + step(0.0, sin(TIME * 1.7 + tex.x * 0.6)) + step(0.75, hash12(vec2(tex.x, floor(TIME * 1.5))));
 				if (d < wash) {

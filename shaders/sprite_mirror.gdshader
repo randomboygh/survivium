@@ -115,11 +115,45 @@ bool puddle(vec2 xz, float top, vec4 col) {
 	return n >= 1.0 - 0.24 * sqrt(puddles.x) + 0.01;
 }
 
+// Whether the water lies over the point `f` (0..1 each way) of column `c`, ground whose
+// top is level with the water it stands by (a lake or a river at the sea's level, which
+// fills its cells): over the whole slope of a shore up to the land's top
+// (WaterMesher.shore_water), but on an inner corner on the diagonal, the one kind of
+// shore with a single corner by the water, only on that corner's side of the diagonal
+// through the two corners beside it, past which its ground lies level with the water
+// (WorldData.PATCH_DIAG). Not where open ground lower lies beside: the water does not
+// go up such a slope (WaterMesher.shore).
+bool flush_shore(vec2 c, vec2 f) {
+	// The corners NW, NE, SE, SW (bits 0..3) that water at the level beside touches.
+	int wet = 0;
+	for (int dz = -1; dz <= 1; dz++) {
+		for (int dx = -1; dx <= 1; dx++) {
+			if (dx == 0 && dz == 0) {
+				continue;
+			}
+			vec4 n = column(c + vec2(float(dx), float(dz)));
+			float top = floor(n.b * 255.0 + 0.5) * CELL;
+			if (n.a > 0.5 && abs(top - level) < 0.1) {
+				wet |= (dx <= 0 && dz <= 0 ? 1 : 0) | (dx >= 0 && dz <= 0 ? 2 : 0)
+					| (dx >= 0 && dz >= 0 ? 4 : 0) | (dx <= 0 && dz >= 0 ? 8 : 0);
+			} else if (top < level - 0.1) {
+				return false;
+			}
+		}
+	}
+	if (wet == 1 || wet == 2 || wet == 4 || wet == 8) {
+		vec2 corner = vec2(wet == 2 || wet == 4 ? 1.0 : 0.0, wet >= 4 ? 1.0 : 0.0);
+		return abs(f.x - corner.x) + abs(f.y - corner.y) < 1.0;
+	}
+	return wet != 0;
+}
+
 // How clearly the surface at `xz` shows the mirror, 0..1: open water at the level; the
 // ground at the water's edge level with it (the foam on the sand, a bank half under
-// water) with water beside it; the sand the sea's surf runs up (surf_mirror) when the
-// mirror is the sea's (`sea`); a puddle on the ground at the level (a figure standing on dry
-// land is mirrored at its feet, see WaterEffects).
+// water) with water beside it; the water over a shore flush with the land
+// (flush_shore) when the mirror is not the sea's; the sand the sea's surf runs up
+// (surf_mirror) when it is (`sea`); a puddle on the ground at the level (a figure
+// standing on dry land is mirrored at its feet, see WaterEffects).
 float mirrors(vec2 xz) {
 	vec2 c = floor(xz / CELL);
 	vec4 col = column(c);
@@ -147,6 +181,10 @@ float mirrors(vec2 xz) {
 		if (near <= SHORE_WET) {
 			return 1.0;
 		}
+	}
+	// The surf outlines the sea's own shores (below); a lake as high as the sea has none.
+	if (sea < 0.5 && abs(top - level) < 0.1 && flush_shore(c, xz / CELL - c)) {
+		return 1.0;
 	}
 	if (sea > 0.5 && abs(top - sea_top) < 0.1 && abs(level - sea_top) < 0.3) {
 		float k = surf_mirror(xz);

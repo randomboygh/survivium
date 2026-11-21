@@ -429,6 +429,11 @@ const SHOTS := {
 	"shore-diag-lake": {"time": 0.42, "season": 1, "at": [265, -1247], "y": 21, "hide": ["chunks: grass"]},
 	"shore-diag-lake-near": {"time": 0.42, "season": 1, "at": [265, -1247], "y": 21, "settings": {"pixel_scale": 4},
 		"hide": ["chunks: grass"]},
+	# Seen from the other side, the water near: the shore's straight and diagonal bits
+	# meet in one line of land and foam, and the player is mirrored all along it (thread
+	# «Исправить диагональный берег»).
+	"shore-diag-lake-turn": {"time": 0.42, "season": 1, "at": [265, -1247], "y": 21, "turn": 6, "settings": {"pixel_scale": 4},
+		"hide": ["chunks: grass"]},
 	"shore-flat": {"time": 0.42, "season": 1, "place": "beach", "hide": ["chunks: grass"]},
 	"shore-flat-waves": {"time": 0.42, "season": 1, "place": "beach", "hide": ["chunks: grass"],
 		"frames_every": 12, "frames_ms": 600},

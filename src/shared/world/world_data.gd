@@ -832,6 +832,14 @@ static func _diag_height(p: PackedFloat32Array, u: float, v: float) -> float:
 	return along_x * t + along_z * (1.0 - t)
 
 
+## How far (u, v) inside a shore's corner on the diagonal (see PATCH_DIAG) lies from its
+## odd corner, along x plus along z: from 1 on (its diagonal through the two corners
+## beside) the top is level, at the level of the other three corners (_diag_height).
+static func diag_reach(p: PackedFloat32Array, u: float, v: float) -> float:
+	var k := int(p[PATCH_DIAG]) & 3
+	return absf(u - PATCH_CI[k]) + absf(v - PATCH_CJ[k])
+
+
 ## True when the top of ground cell (x, y, z) lies at the shore of water on its level:
 ## water with open air above beside it (also across a corner), nothing else open around
 ## it on its level (see WaterMesher.shore, OldSlopeMesher.shore_top).

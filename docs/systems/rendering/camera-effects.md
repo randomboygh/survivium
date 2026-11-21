@@ -104,7 +104,7 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   a shot landing, wading, a fall into the water), steam over open water on cold mornings, fires and torches
   glittering on the water towards the viewer (`fire_glints`, looked at 5 times a second, every frame while a torch is carried), and the figures by the water mirrored in it
   (`sprite_mirror.gdshader`: the sprite upside down, drawn after the water and over the body's part under it
-  (priority 2) with no depth test, kept to the water and the half of a shore's cell next to it (`SHORE_WET`) by the roof map's columns, and off
+  (priority 2) with no depth test, kept to the water and the half of a shore's cell next to it (`SHORE_WET`) by the roof map's columns (by a lake or river flush with the land, the whole slope its water covers, `flush_shore`), and off
   grass, low plants and crowns by the stencil (`compare_greater 2`, as the x-ray); a figure is
   mirrored with open water within `MIRROR_LOOK` cells round its feet, a swimmer too. On the sand level with the sea (the sea within
   `SURF_LOOK` cells) and, after rain, on dry ground, it is mirrored at its feet instead: the shader shows it under the surf's sheet
