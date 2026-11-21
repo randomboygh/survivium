@@ -1806,7 +1806,7 @@ func _test_boar_states() -> void:
 	var idle: Array[int] = []
 	var t: float = look.change_at
 	for i in 4:
-		idle.append(c._frame(a, look, 0.0, t + i * CreaturesView.IDLE_FRAME + 0.01))
+		idle.append(c._frame(a, look, 0.0, t + i * (CreaturesView.IDLE_FRAME + 0.01) + 0.01))
 	_check(idle == [5, 6, 7, 0], "its idle plays through and it stands again (%s)" % [idle])
 	# Killed: the carcass, naming it, comes first (with the things on the ground).
 	var key := Vector2i(0, 0)
