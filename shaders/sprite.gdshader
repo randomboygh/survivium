@@ -38,20 +38,20 @@ uniform vec3 tint = vec3(1.0);
 // scale along y past 1 is how deep it swims, undone here.
 uniform float shadow_only = 0.0;
 // What a drawn shadow of a fire or the torch leaves of the light where the sprite
-// stands (FireShadows): 1 out of them. It comes as the fraction of the sprite's scale
-// along z, which the flat quad does not use: an instance uniform read as 0 in the web
-// build, and the animals were drawn black (PixelView.shade_sprite).
+// stands (FireShadows): 1 out of them. It comes as the sprite's scale along z past 1
+// (2 minus it, before the flash), which the flat quad does not use: an instance uniform
+// read as 0 in the web build, and the animals were drawn black (PixelView.shade_sprite).
 varying float shade;
 // How red an animal flashes at a blow (Creatures, the user's ask 2026-11-21: the red is
-// not drawn into its frames): 0 to 1, from twice the whole part of that scale
+// not drawn into its frames): 0 to 1, from the whole part of half that scale past 1
 // (PixelView.flash_sprite, FLASH_STEPS).
 varying float flash;
 const float FLASH_STEPS = 4.0;
 // The red of the flash, how much of the picture's colour it takes at most, and how
 // much it glows of itself so it shows at night too.
 const vec3 FLASH_RED = vec3(1.0, 0.12, 0.08);
-const float FLASH_MIX = 0.7;
-const float FLASH_GLOW = 0.25;
+const float FLASH_MIX = 0.6;
+const float FLASH_GLOW = 0.15;
 
 varying vec3 world_pos;
 varying float clouds;
@@ -96,8 +96,8 @@ void vertex() {
 		VERTEX = face_view(VERTEX, MODEL_MATRIX[3].xyz);
 	}
 	float marks = length(MODEL_MATRIX[2].xyz);
-	float steps = floor(marks * 0.5);
-	shade = marks - 2.0 * steps;
+	float steps = max(floor((marks - 1.0) * 0.5 + 0.001), 0.0);
+	shade = clamp(2.0 - (marks - 2.0 * steps), 0.0, 1.0);
 	flash = min(steps / FLASH_STEPS, 1.0);
 	world_pos = VERTEX;
 	VERTEX = shear(IN_SHADOW_PASS ? VERTEX : stand_tall(VERTEX, MODEL_MATRIX[3].xyz));

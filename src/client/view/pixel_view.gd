@@ -82,26 +82,33 @@ static var _shears_of: Array = []
 
 
 ## A sprite's scale along z, which its flat quad does not use, carries to sprite.gdshader
-## (an instance uniform reads 0 in the web build) two things: in its fraction the shade
-## a drawn shadow of a fire or the torch leaves (FireShadows, 0.01 to 1), in twice its
-## whole part the red flash of a blow on an animal (Creatures, 0 to FLASH_STEPS).
+## (an instance uniform reads 0 in the web build) two things: past 1, in its fraction,
+## how much a drawn shadow of a fire or the torch darkens it (FireShadows: shade 1 is
+## 1, shade 0.01 is 1.99), and in twice its whole part past that the red flash of a blow
+## on an animal (Creatures, 0 to FLASH_STEPS). It never goes under 1: the culling box
+## grows with it and an animal's (Creatures._fit, even about z) holds the picture;
+## one squeezed to a hundredth along z, or stretched off its foot, hid the animal.
 const FLASH_STEPS := 4
 
 
 ## Draws `sprite` `shade` dark (1: as it is), its flash kept.
 static func shade_sprite(sprite: Node3D, shade: float) -> void:
-	sprite.scale.z = clampf(shade, 0.01, 1.0) + 2.0 * sprite_flash(sprite)
+	sprite.scale.z = 1.0 + 2.0 * sprite_flash(sprite) + (1.0 - clampf(shade, 0.01, 1.0))
 
 
 ## Flashes `sprite` red `step` FLASH_STEPS-ths (0: not at all), its shade kept.
 static func flash_sprite(sprite: Node3D, step: int) -> void:
-	var z := sprite.scale.z
-	sprite.scale.z = z - 2.0 * floorf(z * 0.5) + 2.0 * clampi(step, 0, FLASH_STEPS)
+	sprite.scale.z = 2.0 - sprite_shade(sprite) + 2.0 * clampi(step, 0, FLASH_STEPS)
 
 
 ## How many FLASH_STEPS-ths `sprite` is flashed red (see flash_sprite).
 static func sprite_flash(sprite: Node3D) -> int:
-	return floori(sprite.scale.z * 0.5)
+	return maxi(0, floori((sprite.scale.z - 1.0) * 0.5 + 0.001))
+
+
+## How dark a drawn shadow leaves `sprite` (see shade_sprite).
+static func sprite_shade(sprite: Node3D) -> float:
+	return clampf(2.0 - (sprite.scale.z - 2.0 * sprite_flash(sprite)), 0.0, 1.0)
 
 
 ## Draws none of emitter `p`'s particles till it first emits. A CPUParticles3D made with

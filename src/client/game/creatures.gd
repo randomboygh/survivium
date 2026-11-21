@@ -627,14 +627,16 @@ func _on_gone(a) -> void:
 
 ## Fits the culling box of animal `a`'s sprite to where the shaders draw it (sheared by
 ## its height), so a sprite off the screen is not drawn; even about x, as the sprite
-## is mirrored to face the other way.
+## is mirrored to face the other way, and about z (PixelView.shade_sprite).
 func _fit(a, sprite: MeshInstance3D) -> void:
 	var at := sprite.position
 	var mesh_box: AABB = looks[a.kind][0].get_aabb()
 	var box := PixelView.sheared_box(AABB(at + mesh_box.position, mesh_box.size), CULL_MARGIN + FIT_GROW + mesh_box.size.x * 0.5)
 	box.position -= at
 	var half := maxf(-box.position.x, box.end.x)
-	sprite.custom_aabb = AABB(Vector3(-half, box.position.y, box.position.z), Vector3(2.0 * half, box.size.y, box.size.z))
+	# Even about z too: the sprite's scale along z (a shade, a red flash) only grows it then.
+	var deep := maxf(-box.position.z, box.end.z)
+	sprite.custom_aabb = AABB(Vector3(-half, box.position.y, -deep), Vector3(2.0 * half, box.size.y, 2.0 * deep))
 	_fitted[sprite] = at.y
 
 
