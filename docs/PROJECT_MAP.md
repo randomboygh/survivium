@@ -80,7 +80,7 @@ New top-level folders are not created without need.
 
 - `.godot/`, `*.import`, `*.uid`, `build/`, `build_info.json`: caches and the build, not in git.
 - `content/**/sounds/*.wav`, `content/**/*.png`, `assets/`: binary assets; `tools/make_*` make them.
-- `tools/art/*.gd`, `tools/make_plant_art.py`, `tools/make_creatures.py` (+ `creature_kit.py`), `tools/make_sparrow.py`, `tools/make_birds.py`, `tools/make_frog.py`, `tools/make_fish.py`, `tools/make_rabbit.py`, `tools/make_squirrel.py`, `tools/make_fox.py`, `tools/make_deer.py`, `tools/make_bear.py`, `tools/make_wolf.py`, `tools/make_cat.py`, `tools/make_hedgehog.py`: asset drawing tools, big tables of pixels (the boar, drawn from the user's reference, is `tools/art/boar_art.gd`, made by `tools/make_sprites.gd`).
+- `tools/art/*.gd`, `tools/make_plant_art.py`, `tools/make_creatures.py` (+ `creature_kit.py`), `tools/make_sparrow.py`, `tools/make_birds.py`, `tools/make_frog.py`, `tools/make_fish.py`, `tools/make_rabbit.py`, `tools/make_squirrel.py`, `tools/make_deer.py`, `tools/make_bear.py`, `tools/make_wolf.py`, `tools/make_cat.py`, `tools/make_hedgehog.py`: asset drawing tools, big tables of pixels (the boar and the fox, drawn from the user's references, are `tools/art/boar_art.gd` and `tools/art/fox_art.gd`, made by `tools/make_sprites.gd`).
 - `src/shared/world/test_ground.gd`: the test world's sites, needed only for them.
 - `tools/shot/places.gd`, `tools/shot/shots.gd`: the places and the table of screenshots.
 - `assets/fonts/PressStart2P.ttf`, `assets/fonts/OFL.txt`: the font and its licence.

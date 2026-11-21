@@ -21,6 +21,7 @@ const AiRules := preload("res://src/shared/content/ai_rules.gd")
 ## The animals drawn here, by their species' `sprite`: the art module of each (a `sheet()`).
 const ANIMALS := {
 	"boar": preload("res://tools/art/boar_art.gd"),
+	"fox": preload("res://tools/art/fox_art.gd"),
 }
 
 ## Clothes as worn on the figure, by the items' `look`: the shape (PlayerArt.SHAPES)
