@@ -38,9 +38,11 @@ const TINT_BIOMES := 256
 ## No tint: the factor 1, kept over 4 (factors up to 4 whiten dark sand).
 const NO_TINT := 0.25
 ## The roof map's g: CROWN under a tree's crown (over half, so the filtered map gives
-## the crowns' cover as before), plus NO_PUDDLE where the top keeps no puddle (_dry_top).
-const CROWN := 254
+## the crowns' cover as before), plus NO_PUDDLE where the top keeps no puddle and SLOPED
+## where it slopes (top_bits).
+const CROWN := 252
 const NO_PUDDLE := 1
+const SLOPED := 2
 ## Water's own colour where shallow (`shallow` in water.gdshader), which its tint is
 ## taken against.
 const WATER_SHALLOW := Color(0.36, 0.62, 0.6)
@@ -147,7 +149,7 @@ func fill_chunk(w, key: Vector2i) -> void:
 		for col in n * n:
 			var top: int = w.top_level(~(air[col] | leaf[col]) & all)
 			data[col * 4] = w.top_level(~(air[col] | water[col] | leaf[col]) & all) + 1
-			data[col * 4 + 1] = (CROWN if leaf[col] != 0 else 0) | (_dry_top(cells[(top << 8) | col], sloped[col], top) if top >= 0 else 0)
+			data[col * 4 + 1] = (CROWN if leaf[col] != 0 else 0) | (top_bits(cells[(top << 8) | col], sloped[col], top) if top >= 0 else 0)
 			data[col * 4 + 2] = top + 1
 			data[col * 4 + 3] = 255 if top >= 0 and water[col] & (1 << top) else 0
 	image.blit_rect(Image.create_from_data(n, n, false, Image.FORMAT_RGBA8, data),
@@ -179,11 +181,17 @@ func fill_chunk(w, key: Vector2i) -> void:
 ## The bits of the roof map's g under the crown's (CROWN) for the column whose top is
 ## material `m` at level `top`, `sloped` its slope mask: NO_PUDDLE where no puddle
 ## stands on it after rain (a material that drains, a sloping top), as world.gdshader
-## leaves it dry; the figures' mirrors (sprite_mirror.gdshader) look it up.
-static func _dry_top(m: int, sloped: int, top: int) -> int:
+## leaves it dry; SLOPED where the top slopes, as a shore's does down under water flush
+## with the land (WaterMesher.shore_water), while a bank that keeps a sheer wall
+## (WorldData.SHEER) or an islet stays a dry cube level with that water. The figures'
+## mirrors (sprite_mirror.gdshader) look both up: they showed on such dry ground beside
+## the water (thread «Исправить диагональный берег»).
+static func top_bits(m: int, sloped: int, top: int) -> int:
+	if sloped & (1 << top) != 0:
+		return NO_PUDDLE | SLOPED
 	if m < Mat.shader_bits.size() and Mat.shader_bits[m] & Mat.DRAINS != 0:
 		return NO_PUDDLE
-	return NO_PUDDLE if sloped & (1 << top) != 0 else 0
+	return 0
 
 
 ## Refreshes the column of a changed cell.
@@ -194,7 +202,7 @@ func touch(w, cell: Vector3i) -> void:
 	var bits := CROWN if w.leaf_col(cell.x, cell.z) != 0 else 0
 	var c = w.chunk_at(cell.x, cell.z)
 	if top >= 0 and c != null:
-		bits |= _dry_top(w.get_cell(cell.x, top, cell.z), c.sloped[((cell.z & w.MASK) << w.SHIFT) | (cell.x & w.MASK)], top)
+		bits |= top_bits(w.get_cell(cell.x, top, cell.z), c.sloped[((cell.z & w.MASK) << w.SHIFT) | (cell.x & w.MASK)], top)
 	var crown := bits / 255.0
 	var water := 1.0 if top >= 0 and w.water_col(cell.x, cell.z) & (1 << top) else 0.0
 	image.set_pixel(cell.x & MASK, cell.z & MASK, Color((w.roof_level(cell.x, cell.z) + 1) / 255.0, crown,

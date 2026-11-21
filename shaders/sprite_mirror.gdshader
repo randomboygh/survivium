@@ -32,8 +32,10 @@ const float SHORE_WET = 0.45;
 // water's 1.
 const float SURF_SHEET = 1.0;
 const float SURF_WET = 0.35;
-// The roof map's g bit for a top no puddle stands on (RoofMap.NO_PUDDLE).
+// The roof map's g bits for a top no puddle stands on and for a sloping top
+// (RoofMap.NO_PUDDLE, SLOPED).
 const int NO_PUDDLE = 1;
+const int SLOPED = 2;
 
 varying vec3 world_pos;
 // The point as it is drawn (stand_tall), not sheared.
@@ -115,9 +117,9 @@ bool puddle(vec2 xz, float top, vec4 col) {
 	return n >= 1.0 - 0.24 * sqrt(puddles.x) + 0.01;
 }
 
-// Whether the water lies over the point `f` (0..1 each way) of column `c`, ground whose
-// top is level with the water it stands by (a lake or a river at the sea's level, which
-// fills its cells): over the whole slope of a shore up to the land's top
+// Whether the water lies over the point `f` (0..1 each way) of column `c`, sloping
+// ground whose top is level with the water it stands by (a lake or a river at the sea's
+// level, which fills its cells): over the whole slope of a shore up to the land's top
 // (WaterMesher.shore_water), but on an inner corner on the diagonal, the one kind of
 // shore with a single corner by the water, only on that corner's side of the diagonal
 // through the two corners beside it, past which its ground lies level with the water
@@ -183,7 +185,10 @@ float mirrors(vec2 xz) {
 		}
 	}
 	// The surf outlines the sea's own shores (below); a lake as high as the sea has none.
-	if (sea < 0.5 && abs(top - level) < 0.1 && flush_shore(c, xz / CELL - c)) {
+	// Only over a sloping top: a bank that keeps a sheer wall, or an islet, is dry ground
+	// level with that water (RoofMap.SLOPED).
+	if (sea < 0.5 && abs(top - level) < 0.1 && (int(col.g * 255.0 + 0.5) & SLOPED) != 0
+			&& flush_shore(c, xz / CELL - c)) {
 		return 1.0;
 	}
 	if (sea > 0.5 && abs(top - sea_top) < 0.1 && abs(level - sea_top) < 0.3) {
