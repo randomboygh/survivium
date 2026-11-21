@@ -806,6 +806,8 @@ const SHOTS := {
 		"strike_animal": "animals:boar", "slow": 0.125, "frames_every": 40, "frames_ms": 160},
 	"strike-fox": {"time": 0.42, "season": 1, "weather": "clear", "hands": {"tool": "tools:wooden_sword", "facing": "w"},
 		"strike_animal": "animals:fox", "slow": 0.125, "frames_every": 40, "frames_ms": 160},
+	"strike-hare": {"time": 0.42, "season": 1, "weather": "clear", "hands": {"tool": "tools:wooden_sword", "facing": "w"},
+		"strike_animal": "animals:rabbit", "slow": 0.125, "frames_every": 40, "frames_ms": 160},
 	# A boar killed with the sword (`kill`: one blow is enough): it flashes red and falls as
 	# the blade meets it, and lies on its last frame of death (Creatures.show_bodies), at the
 	# game's pace.
@@ -813,6 +815,8 @@ const SHOTS := {
 		"strike_animal": "animals:boar", "kill": true, "frames_every": 20, "frames_ms": 100},
 	"kill-fox": {"time": 0.42, "season": 1, "weather": "clear", "hands": {"tool": "tools:wooden_sword", "facing": "w"},
 		"strike_animal": "animals:fox", "kill": true, "frames_every": 20, "frames_ms": 100},
+	"kill-hare": {"time": 0.42, "season": 1, "weather": "clear", "hands": {"tool": "tools:wooden_sword", "facing": "w"},
+		"strike_animal": "animals:rabbit", "kill": true, "frames_every": 20, "frames_ms": 100},
 	# The boar drawn from the user's reference (tools/art/boar_art.gd) in the world: a row for
 	# the side, the front and the back, each standing, galloping, leaping, flinching, dead.
 	"boar-states": {"time": 0.42, "season": 1, "weather": "clear", "clearing": true, "hide": ["chunks: grass"],
@@ -831,6 +835,15 @@ const SHOTS := {
 			["animals:fox", 2, 0.0, 1, Vector2(-2.5, 4.2)], ["animals:fox", 10, 0.0, 1, Vector2(0.0, 4.2)], ["animals:fox", 14, 0.0, 1, Vector2(2.5, 4.2)],
 			["animals:fox", 19, 0.0, 1, Vector2(5.0, 4.2)], ["animals:fox", 0, 0.0, 2, Vector2(-5.0, 6.4)], ["animals:fox", 2, 0.0, 2, Vector2(-2.5, 6.4)],
 			["animals:fox", 10, 0.0, 2, Vector2(0.0, 6.4)], ["animals:fox", 14, 0.0, 2, Vector2(2.5, 6.4)], ["animals:fox", 19, 0.0, 2, Vector2(5.0, 6.4)]]},
+	# The hare drawn from the user's reference (tools/art/rabbit_art.gd): a row for the side, the
+	# front and the back, each sitting, hopping, leaping, flinching, dead.
+	"hare-states": {"time": 0.42, "season": 1, "weather": "clear", "clearing": true, "hide": ["chunks: grass"],
+		"shadow_zoo": [
+			["animals:rabbit", 0, 0.0, 0, Vector2(-4.0, 2.0)], ["animals:rabbit", 2, 0.0, 0, Vector2(-2.0, 2.0)], ["animals:rabbit", 10, 0.0, 0, Vector2(0.0, 2.0)],
+			["animals:rabbit", 14, 0.0, 0, Vector2(2.0, 2.0)], ["animals:rabbit", 19, 0.0, 0, Vector2(4.0, 2.0)], ["animals:rabbit", 0, 0.0, 1, Vector2(-4.0, 4.2)],
+			["animals:rabbit", 2, 0.0, 1, Vector2(-2.0, 4.2)], ["animals:rabbit", 10, 0.0, 1, Vector2(0.0, 4.2)], ["animals:rabbit", 14, 0.0, 1, Vector2(2.0, 4.2)],
+			["animals:rabbit", 19, 0.0, 1, Vector2(4.0, 4.2)], ["animals:rabbit", 0, 0.0, 2, Vector2(-4.0, 6.4)], ["animals:rabbit", 2, 0.0, 2, Vector2(-2.0, 6.4)],
+			["animals:rabbit", 10, 0.0, 2, Vector2(0.0, 6.4)], ["animals:rabbit", 14, 0.0, 2, Vector2(2.0, 6.4)], ["animals:rabbit", 19, 0.0, 2, Vector2(4.0, 6.4)]]},
 	"burst-chop": {"time": 0.42, "season": 1, "hands": {"tool": "tools:stone_axe", "facing": "e", "work": "chop", "strike": true}, "burst": "plants:log"},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
