@@ -389,7 +389,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   picture darkens and hardens for that moment, grade `heart`), the phone's vibration: `Vibration.PATTERNS` holds each event's pulses,
   pauses and strength (the strength only in the Android build; the browser's Vibration API takes the pattern
   without it, Safari has none) and the step of the setting «Vibration» it needs (off, important only, usual,
-  all); `haptics.gd` (a child of the HUD) watches the character (a bite on the line, death, low health's heart,
+  all; the default is all, and a saved choice is kept); `haptics.gd` (a child of the HUD) watches the character (a bite on the line, death, low health's heart,
   waking up), the season, team invitations, things made, picked up and fires lit near; the rest buzz where
   they happen (a strike, a felled tree, a shot that hits, a catch in `Controls._did`, a landing and water in
   `Steps`, thunder in `Nature` (the one heard is felt as a sharp pulse and a fading boom, at most once in 8 s, by its envelope in
