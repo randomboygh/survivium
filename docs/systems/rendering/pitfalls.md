@@ -91,6 +91,10 @@ Part of [The picture](../rendering.md). What goes wrong on the GPUs, the web and
   of materials: `main._ready` after `Mods.activate` calls `PixelTextures.forget()` and `MeshFaces.forget()`,
   and the atlas is built before `RoofMap.prepare` and the maps (the biomes' tones and the map's colours are
   taken from the atlas's mean colours; with the old ones the sand came out violet).
+- Global shader parameters survive a scene's restart too: a module that sends one only when its own state
+  changes must send its starting value when made. `ChunkStreamer._init` turns `layer_view` off; left on from
+  the last world (the player under a roof there), the new one drew the crowns in front of the player cut away
+  and the trunks as the dark rock section (the empty solid map counts as solid, 2026-11-21).
 
 ## Gotchas moved from CLAUDE.md
 

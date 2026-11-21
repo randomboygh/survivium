@@ -284,6 +284,12 @@ var _hidden_view := Vector3.ZERO
 
 func _init(g) -> void:
 	game = g
+	# The shaders' globals outlive the scene: a world made anew (the main menu, a server
+	# joined) would otherwise keep the view in layers of the last one, on round a cell of
+	# its own, with an empty solid map that draws whatever it leaves out as dark rock (tree
+	# crowns gone and trunks black, 2026-11-21). The state here starts off, so must they.
+	RenderingServer.global_shader_parameter_set("layer_view", Vector4.ZERO)
+	RenderingServer.global_shader_parameter_set("depth_steps", _depth_steps)
 
 
 ## Takes the generator (and its world) and counts the near chunks that must be
