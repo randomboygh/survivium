@@ -118,7 +118,7 @@ server_test frame_test]` runs the Godot checks side by side (`GODOT=path`). Outs
 one line per check, failures with context, full logs in `logs/` (`LOGS=dir`; `VERBOSE=1` prints them whole). One
 by hand: `timeout 300 godot --headless --path . --script res://tests/save_test.gd 2>&1 | tail -30` (always
 `timeout`: a runtime error in an awaiting script leaves Godot running; `progress_test -- --part hunting|other`
-1200 s; `--check-only --script res://x.gd` parses one script; `git config core.hooksPath tools/hooks` runs lint
+1500 s; `--check-only --script res://x.gd` parses one script; `git config core.hooksPath tools/hooks` runs lint
 and doc_index before each commit). Tests, CI, flaky checks: `docs/testing/`.
 
 ## Gotchas
