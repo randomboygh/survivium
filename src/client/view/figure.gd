@@ -276,6 +276,10 @@ static func _whole(c: Color) -> Vector3:
 	return Vector3(c.r8, c.g8, c.b8)
 
 
+## How many times a figure's colours were set (paint).
+static var _painted := 0
+
+
 ## The body slots whose clothes can be dyed, in the order of their key colours (dye_key).
 const DYE_SLOTS := ["head", "body", "legs", "feet", "neck", "wrists", "ornament"]
 
@@ -306,6 +310,10 @@ static func dye_colours(gear: Dictionary, dyes := {}) -> PackedVector3Array:
 ## Sets the colours of `looks` (swaps) on a figure's material (shaders/looks.gdshaderinc),
 ## and those of the clothes of `gear` dyed `dyes` (dye_colours).
 static func paint(material: ShaderMaterial, looks: Dictionary, gear := {}, dyes := {}) -> void:
+	# A mark of each painting, so a copy (a figure's mirror, WaterEffects) knows to take it
+	# again without comparing the colours every frame.
+	_painted += 1
+	material.set_meta("painted", _painted)
 	material.set_shader_parameter("dye_to", dye_colours(gear, dyes))
 	var s := swaps(looks)
 	var n: int = mini(s[0].size(), SWAPS_MAX)
