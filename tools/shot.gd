@@ -309,6 +309,13 @@ func _run() -> void:
 		main.settings.values.camera_turn = shot.get("turn", 0)
 		main.settings.values.camera_tilt = shot.get("tilt", 0)
 		main.view.look_at_player()
+		# `fp`: the first-person view, [yaw, pitch] in degrees (yaw to the left of north).
+		main.settings.first_person = shot.has("fp")
+		main.view.set_first_person(shot.has("fp"))
+		if shot.has("fp"):
+			main.view.look_yaw = deg_to_rad(shot.fp[0])
+			main.view.look_pitch = deg_to_rad(shot.fp[1])
+			main.view.look_by(Vector2.ZERO)
 		if shot.has("spin"):
 			# Caught in a smooth turn (a turn button held), `spin` degrees round, held still.
 			main.view.hold_turn(1)

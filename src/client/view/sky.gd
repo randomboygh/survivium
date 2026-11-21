@@ -135,6 +135,11 @@ var light_side := 0
 var magenta := false
 
 
+## Where the first-person view's fog begins and is whole, in world units (see
+## _first_person_sky).
+const FIRST_PERSON_FOG := Vector2(14.0, 30.0)
+
+
 func _init(g) -> void:
 	game = g
 
@@ -226,6 +231,7 @@ func _update_light(delta: float) -> void:
 	# which flickered in stripes on a walk through a cave.
 	if cut_on:
 		env.background_color = Color(0.09, 0.085, 0.1)
+	_first_person_sky(night, cut_on)
 	if magenta:
 		env.background_color = Color.MAGENTA
 	if game.player != null:
@@ -571,3 +577,21 @@ static func glowing_night(day: int, time_of_day: float) -> bool:
 	var night := day + floori(time_of_day + 0.5)
 	var h := (((night * 1103515245 + 12345) & 0x7fffffff) >> 16) ^ (night * 2654435761 & 0xffff)
 	return h % SEA_GLOW_NIGHTS == 0
+
+
+## In the first-person view (CameraRig.first_person) the background is the sky over the
+## horizon, and the world fades into it with the distance, hiding the edge of the chunks
+## built (FIRST_PERSON_FOG world units from the eyes).
+func _first_person_sky(night: float, cut_on: bool) -> void:
+	var on: bool = game.view != null and game.view.first_person and not cut_on
+	if env.fog_enabled != on:
+		env.fog_enabled = on
+		env.fog_mode = Environment.FOG_MODE_DEPTH
+		env.fog_depth_begin = FIRST_PERSON_FOG.x
+		env.fog_depth_end = FIRST_PERSON_FOG.y
+		env.fog_depth_curve = 1.0
+		env.fog_sky_affect = 0.0
+	if not on:
+		return
+	env.background_color = Color(0.56, 0.72, 0.86).lerp(env.background_color, night)
+	env.fog_light_color = env.background_color

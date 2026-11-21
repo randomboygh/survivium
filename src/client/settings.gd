@@ -37,7 +37,7 @@ const PATH := "user://settings.cfg"
 const TEST_SAVED := ["player_speed", "skill_rate", "air_jumps", "revive_at_death", "free_build", "tool_wear",
 	"no_overload", "instant_craft", "free_items", "no_hunger", "no_thirst", "no_fatigue", "no_cold",
 	"no_fall_damage", "invulnerable", "animal_attacks", "time_boost", "shadow_map", "debug_tips", "keys_log",
-	"free_view", "air_temp", "wind_strength", "wind_dir", "decay_days"]
+	"free_view", "first_person", "air_temp", "wind_strength", "wind_dir", "decay_days"]
 ## The switches of the survival section, each with its value that means «survival on»
 ## (set_survival turns them all at once).
 const SURVIVAL := {"no_hunger": false, "no_thirst": false, "no_fatigue": false, "no_cold": false,
@@ -308,6 +308,9 @@ var keys_log := false
 ## Playtest switch: the level buttons look at any level, not only a few around the
 ## player (see ChunkStreamer.view_range). Not saved.
 var free_view := false
+## Playtest switch: the first-person view, turned by swipes (CameraRig.first_person,
+## LookSwipe). Not saved.
+var first_person := false
 ## Playtest switch: weight past the bag's limit does not slow the character, stop
 ## their jumps or their recovery (Inventory.heavy off). Not saved.
 var no_overload := false
@@ -706,7 +709,7 @@ func apply() -> void:
 		sky.rays_on = values.sun_rays
 		sky.fog_on = values.fog
 	if game.chunks != null:
-		game.chunks.set_haze(values.edge_mist)
+		game.chunks.set_haze(values.edge_mist and not first_person)
 	if game.view != null and game.view.grade_mat != null:
 		Crt.apply(game.view.grade_mat, values.crt, values.palette, values.retro_pixel, game.view.viewport.get_texture())
 	if game.effects != null:

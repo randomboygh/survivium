@@ -82,6 +82,10 @@ varying vec3 lamp_gain;
 // Where the point is in the picture, for the dither of the light rings (light_texel).
 varying vec2 light_xz;
 
+// How near the camera of the first-person view a flat bundle of a crown stays lying
+// (over the head), in world units; farther it stands up.
+const float FP_FLAT_NEAR = 2.0;
+
 void vertex() {
 	center = VERTEX - vec3((UV.x - 0.5) * clump_size, (0.5 - UV.y) * clump_size, 0.0);
 	custom = INSTANCE_CUSTOM;
@@ -132,11 +136,19 @@ void vertex() {
 		vec2 r = vec2(-view_up.y, view_up.x);
 		vec2 o = r * (UV.x - 0.5) * clump_size + view_up * (0.5 - UV.y) * clump_size / view_squash;
 		float swayed = VERTEX.x - center.x - (UV.x - 0.5) * clump_size;
-		VERTEX = shear(vec3(center.x + o.x + swayed, center.y, center.z + o.y));
-		// Drawn nearer the camera than they lie (which leaves the picture as it is), so
-		// the trunk running up through the layers never shows over them; and bundles of
-		// one layer, in one plane, each a hair nearer or farther by its own number.
-		VERTEX.y += FLAT_AHEAD + fract(custom.w) * 0.04;
+		if (view_slope < 0.01 && length(center.xz - CAMERA_POSITION_WORLD.xz) > FP_FLAT_NEAR) {
+			// The first-person view (no shear): the bundle stands up facing the camera,
+			// a hair nearer by its own number so the bundles of a layer do not fight;
+			// over the head (within FP_FLAT_NEAR) it lies flat, a roof of leaves.
+			vec2 across = r * (UV.x - 0.5) * clump_size - view_up * fract(custom.w) * 0.04;
+			VERTEX = vec3(center.x + across.x + swayed, center.y + (0.5 - UV.y) * clump_size, center.z + across.y);
+		} else {
+			VERTEX = shear(vec3(center.x + o.x + swayed, center.y, center.z + o.y));
+			// Drawn nearer the camera than they lie (which leaves the picture as it is), so
+			// the trunk running up through the layers never shows over them; and bundles of
+			// one layer, in one plane, each a hair nearer or farther by its own number.
+			VERTEX.y += FLAT_AHEAD + fract(custom.w) * 0.04;
+		}
 	} else {
 		VERTEX = shear(stand_tall(face_view(VERTEX, center), center));
 	}

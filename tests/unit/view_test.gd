@@ -74,6 +74,7 @@ func run() -> void:
 	_test_cave_layers()
 	_test_sound()
 	_test_camera_spin()
+	_test_first_person()
 	_test_camera_drift()
 	_test_other_bundles()
 	_test_light_maps()
@@ -1170,6 +1171,46 @@ class _FakeGame:
 	var chunks = null
 	var effects = null
 	var character := _FakeCharacter.new()
+
+
+class _FakeFigure:
+	extends Node3D
+	var drawn := true
+	var look_way := Vector2.ZERO
+
+	func set_drawn(on: bool) -> void:
+		drawn = on
+
+
+## The first-person view: a perspective camera with no shear, turned by swipes (look_by)
+## within PITCH_MAX, the figure not drawn; off, the view from above as it was set.
+func _test_first_person() -> void:
+	var game := _FakeGame.new()
+	game.player.free()
+	game.player = _FakeFigure.new()
+	var rig = CameraRig.new(game)
+	rig.camera = Camera3D.new()
+	rig.look_at_player()
+	rig.set_first_person(true)
+	_check(rig.camera.projection == Camera3D.PROJECTION_PERSPECTIVE and PixelView.slope == 0.0
+		and PixelView.squash == 1.0, "first person: a perspective camera and no shear")
+	_check(PixelView.shear(Vector3(1.0, 3.0, 2.0)).is_equal_approx(Vector3(1.0, 3.0, 2.0)), "nothing is moved by its height")
+	_check(not game.player.drawn and game.player.look_way.is_equal_approx(PixelView.up), "the figure is not drawn and faces the look")
+	rig.look_by(Vector2(PI / 2.0, 0.0))
+	_check(PixelView.up.is_equal_approx(Vector2(1.0, 0.0)), "a swipe to the left of a quarter turn looks east: %s" % PixelView.up)
+	rig.look_by(Vector2(0.0, -10.0))
+	_check(is_equal_approx(rig.look_pitch, CameraRig.PITCH_MAX), "looking up stops at PITCH_MAX")
+	rig.turn_by(2)
+	_check(PixelView.up.is_equal_approx(Vector2(0.0, -1.0)), "the turn buttons turn the look: %s" % PixelView.up)
+	var ahead: Vector2 = PixelView.world_dir(Vector2(0.0, -1.0))
+	_check(ahead.is_equal_approx(PixelView.up), "the stick pushed up walks the way the eyes look")
+	rig.set_first_person(false)
+	_check(rig.camera.projection == Camera3D.PROJECTION_ORTHOGONAL and PixelView.slope == 1.0 and game.player.drawn,
+		"off, the view from above again")
+	rig.camera.free()
+	game.player.free()
+	PixelView.set_view(0.0, 0.0)
+	PixelView.box_views = [PixelView.view_of(0.0, 0.0)]
 
 
 ## Left alone a minute the view drifts round the player by itself; any input stops it

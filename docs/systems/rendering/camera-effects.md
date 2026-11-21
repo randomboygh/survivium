@@ -19,6 +19,18 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   (`visions` → `trip`: stronger waves and rings from the middle, the picture breathing, red and blue split
   apart, a colour-turned second image, colours running round the wheel, teal and violet edges; fades over
   the last `TRIP_FADE` seconds).
+- The first-person view (the test setting «Вид от первого лица» in «Тестирование → Отладка»,
+  `Settings.first_person`, acted on in `CameraRig.update` → `set_first_person`): a perspective camera at the
+  eyes (`EYE` 1.6 above the feet, `FOV` 70°, `FAR` 60), turned by `look_by` (yaw `look_yaw`, pitch `look_pitch`
+  within `PITCH_MAX` 80°; the camera cross turns it by 45° and tilts it by `TILT_STEP`). `PixelView.set_first_person(yaw)`
+  sets no shear (`view_slope` 0, `squash` 1) and `view_up` along the look, so the sprites face the camera and the
+  culling boxes are fitted once; `stand_tall` keeps a quad as it is at slope 0; a crown's flat bundle
+  (`leaves.gdshader`) stands up facing the camera, but within `FP_FLAT_NEAR` (2 units) over the head it stays
+  flat, a roof of leaves. The figure draws only its shadow (`Player.set_drawn`) and faces the look
+  (`Player.look_way`); a small cross marks the middle (`crosshair`). `Sky._first_person_sky`: the background is
+  the sky's colour and a depth fog of it from `FIRST_PERSON_FOG` (14..30 units) hides the edge of the chunks
+  built; the edge fog over unbuilt chunks (`EdgeHaze`) and the level cut are off. Picking uses the camera's own
+  rays (`first_person_ray`, `image_of`, `screen_of`). The swipes: `src/client/input/look_swipe.gd`.
 - Behind a system window (the pause menu, the settings and «Тестирование», the editor, the interface gallery —
   the group `Hud.SYSTEM_MENU` — or the main menu over the world; not the bag, chests or the map) the picture
   blurs and darkens: `Hud._process` (it runs while the game is paused) calls `CameraRig.ease_menu_blur`, which

@@ -11,7 +11,6 @@ const Items := preload("res://src/shared/content/items.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
-const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
@@ -113,10 +112,7 @@ func _sat_in(id: int) -> bool:
 
 ## Distance on the world image between world point `p` and image point `vp_pos`.
 func _screen_distance(p: Vector3, vp_pos: Vector2) -> float:
-	var view = game.view
-	var center := PixelView.plane_of(Vector2(view.camera.global_position.x, view.camera.global_position.z))
-	var on_image := (PixelView.screen_plane(p) - center) * PixelView.PIXELS_PER_UNIT + Vector2(view.image_size) * 0.5
-	return on_image.distance_to(vp_pos)
+	return game.view.image_of(p).distance_to(vp_pos)
 
 
 ## What a tap on `target` would do, for the hint under the pointer.

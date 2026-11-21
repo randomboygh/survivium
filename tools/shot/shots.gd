@@ -1012,6 +1012,14 @@ const SHOTS := {
 	"pixel-size-4": {"time": 0.45, "season": 1, "settings": {"pixel_scale": 4}},
 	# The camera turned (steps of 45 degrees to the left) and tilted (steps of a wall
 	# 2 px shorter): by day among trees, and the camera buttons under the minimap.
+	"fp-trees": {"time": 0.45, "season": 1, "touch": true, "trees": true, "fp": [0, -10]},
+	"fp-trees-side": {"time": 0.45, "season": 1, "touch": true, "trees": true, "fp": [90, -5]},
+	"fp-forest": {"time": 0.45, "season": 1, "touch": true, "forest": true, "fp": [0, -5]},
+	"fp-hut": {"time": 0.45, "season": 1, "touch": true, "hut": true, "fp": [180, -10]},
+	"fp-down": {"time": 0.45, "season": 1, "touch": true, "trees": true, "fp": [0, -60]},
+	"fp-evening": {"time": 0.8, "season": 1, "touch": true, "forest": true, "fp": [180, 0]},
+	"fp-lake": {"time": 0.42, "season": 1, "touch": true, "place": "lake", "fp": [0, -8]},
+	"fp-meadow": {"time": 0.42, "season": 1, "touch": true, "find": "meadow", "fp": [45, -5]},
 	"turn-45": {"time": 0.45, "season": 1, "trees": true, "turn": 1},
 	"turn-90": {"time": 0.45, "season": 1, "trees": true, "turn": 2},
 	"turn-180": {"time": 0.45, "season": 1, "trees": true, "turn": 4},

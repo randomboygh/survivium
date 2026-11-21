@@ -148,6 +148,10 @@ lies around. The rules are shared (the server checks them), input and hints are 
   (hands gather from trees and bushes), `mows`: both the hands' rules and the content graph ask them, so the
   check and the game do not diverge; the order of cells (around the touch, in front of the body outward, under
   the feet last), the brush shapes for blocks.
+- `src/client/input/look_swipe.gd` — in the first-person view (`CameraRig.first_person`) a finger or the mouse's
+  left button pressed on the world and moved past `SLOP` turns the view (`CameraRig.look_by`, `SPEED` radians a
+  short side of the screen); let go before moving, it is a tap where it was pressed; held still `HOLD` (0.35 s),
+  a held tap. `Controls.unhandled_input` gives it the events first; `Controls._ray` takes the camera's rays.
 - `src/client/input/controls.gd` — keys, mouse, touches; `hands` (the item in each hand, `active` — the hand
   at work), the panel (the first `Inventory.HOTBAR` cells of the bag), brushes and strokes, the action button.
   One cannot build in the normal mode: a block or thing taken from the panel or the bag turns build mode on.

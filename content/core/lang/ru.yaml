@@ -1839,6 +1839,7 @@
 "[animal_ai_debug]": "Отладка ИИ зверей"
 "[key_log]": "Журнал клавиш"
 "[level_overview]": "Обзор уровней"
+"[first_person_view]": "Вид от первого лица"
 "[all_n2]": "все"
 "[break_down_draw_calls]": "Разобрать вызовы отрисовки"
 "[reload_mod_data]": "Перечитать данные модов"
