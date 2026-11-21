@@ -581,7 +581,8 @@ void fragment() {
 	}
 	// No snow on the top of a trunk inside its crown (a dark cap, see TrunkMesher).
 	bool crowned = cap && (material_bits[tile / 3] & TRUNK) != 0;
-	float snow_here = roof || crowned ? 0.0 : max(snow_amount, peak) * (1.0 - warm);
+	// The season's snow lies in patches that grow with the cover (snow_cover).
+	float snow_here = roof || crowned ? 0.0 : max(snow_cover(gp.xz, snow_amount), peak) * (1.0 - warm);
 	vec3 texel = floor(tp * TEXELS - world_normal * 0.5);
 	if (slanted) {
 		// On a slope the specks go by the texels of its patterns (gp) and its level.

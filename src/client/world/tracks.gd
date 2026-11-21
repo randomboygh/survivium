@@ -211,12 +211,12 @@ static func _on(x: int, y: int, boot: bool, left: bool) -> bool:
 func _kind(feet: Vector3) -> int:
 	var cell := Vector3i(floori(feet.x / CELL), floori(feet.y / CELL + 0.01) - 1, floori(feet.z / CELL))
 	# Ice lies at the water's surface, inside its cell (see WorldData.ice_top).
-	if world.water_frozen and world.get_cell(cell.x, cell.y + 1, cell.z) == Mat.WATER:
+	if world.frozen_at(cell.x, cell.z) and world.get_cell(cell.x, cell.y + 1, cell.z) == Mat.WATER:
 		cell.y += 1
 	var ground: int = world.get_cell(cell.x, cell.y, cell.z)
 	if maxf(snow, world.peak_snow(cell.y + 1, cell.x, cell.z)) > 0.6 and ground != Mat.WATER and world.roof_level(cell.x, cell.z) == cell.y:
 		return SNOW
-	if ground == Mat.WATER and world.water_frozen:
+	if ground == Mat.WATER and world.frozen_at(cell.x, cell.z):
 		return ICE
 	if ground == Mat.GRASS:
 		return GRASS_DRY if wet < 0.5 else GRASS_WET

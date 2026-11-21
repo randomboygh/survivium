@@ -392,7 +392,8 @@ func _shore_near(at: Vector3) -> Vector3:
 func _feel_flow(who) -> void:
 	var f := Vector2.ZERO
 	var body = who.get("body")
-	if currents != null and body != null and not who.is_dead() and not world.water_frozen \
+	if currents != null and body != null and not who.is_dead() \
+			and not world.frozen_at(floori(who.position.x / CELL), floori(who.position.z / CELL)) \
 			and (vessel_id(who) != 0 or body.afloat or body.water_depth > 0.0 \
 				or (body.world != null and body.depth_at(who.position) > 0.0)):
 		f = currents.at_point(who.position, CELL)
@@ -428,7 +429,7 @@ func step_drift(seconds: float, players: Array) -> void:
 			var p: Vector3 = d[1]
 			var x := floori(p.x / CELL)
 			var z := floori(p.z / CELL)
-			if world.water_col(x, z) == 0:
+			if world.water_col(x, z) == 0 or world.frozen_at(x, z):
 				continue
 			var v: Vector2 = currents.at(x, z)
 			if v == Vector2.ZERO:
@@ -436,7 +437,7 @@ func step_drift(seconds: float, players: Array) -> void:
 			var to := p + Vector3(v.x, 0.0, v.y) * DRIFT_EVERY * CELL
 			var nx := floori(to.x / CELL)
 			var nz := floori(to.z / CELL)
-			if world.water_col(nx, nz) == 0:
+			if world.water_col(nx, nz) == 0 or world.frozen_at(nx, nz):
 				continue
 			var lie := floor_under(Vector3i(nx, floori(p.y / CELL + 0.01) + 1, nz))
 			if absf(lie.y - p.y) > CELL * 1.01:

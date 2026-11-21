@@ -16,6 +16,12 @@ const DAY_LENGTH := 240.0
 const REAL_DAY := 86400.0
 ## Days in a season (the user's pick, 2026-11-07: two weeks; a crop ripens within one).
 const DAYS_PER_SEASON := 14.0
+## Snow falling harder than this lies on the ground (`snow`).
+const SNOW_FALLS := 0.15
+## How fast falling snow covers the ground: `snow` a day grows by this times the snowfall
+## squared, so a snowfall (0.6) whitens the ground (about 0.6, see snow_cover in
+## common.gdshaderinc) in a quarter of a day and a blizzard (1.0) in about a tenth.
+const SNOW_LAYS := 6.7
 const SEASONS := ["[spring]", "[summer]", "[autumn]", "[winter]"]
 ## The seasons in plain English, for logs and «Data for the test» (internal texts are not translated).
 const SEASON_IDS := ["spring", "summer", "autumn", "winter"]
@@ -450,9 +456,11 @@ func _change_weather(delta: float, at: Vector3) -> void:
 	wind_angle = move_toward(wind_angle, wind_to, WIND_TURN * delta)
 	if season == AUTUMN and storm_wind > LEAF_WIND:
 		leaf_fall = minf(1.0, leaf_fall + days(delta) * LEAF_FALL_RATE * (storm_wind - LEAF_WIND))
-	if winter or snowing > 0.3:
-		snow = move_toward(snow, 1.0, delta * (0.02 + 0.06 * snowing))
-	else:
+	# Snow lies only while it falls, faster the harder it snows (a blizzard about three
+	# times a snowfall); in winter it stays between snowfalls, out of winter it melts.
+	if snowing > SNOW_FALLS:
+		snow = minf(1.0, snow + days(delta) * SNOW_LAYS * snowing * snowing)
+	elif not winter:
 		snow = move_toward(snow, 0.0, delta * 0.03)
 	wet = move_toward(wet, 1.0 if rain > 0.2 else 0.0, delta * (0.15 * rain if rain > 0.2 else 0.03))
 	if rain > 0.2:
@@ -461,7 +469,9 @@ func _change_weather(delta: float, at: Vector3) -> void:
 		var sun: float = [1.0, 1.6, 0.7, 0.4][season] * (0.5 + daylight())
 		puddles = maxf(0.0, puddles - days(delta) / PUDDLE_DAYS * sun)
 	_grow_shrooms(days(delta), winter)
-	world.water_frozen = ice() > 0.8
+	var ice_now := ice()
+	world.water_frozen = ice_now >= world.ICE_WHOLE
+	world.ice_spread = 0.0 if world.water_frozen else ice_now / world.ICE_WHOLE
 
 
 ## The ground soaks in rain; the mushrooms that come up after it grow once it stops, on

@@ -17,7 +17,7 @@ const STROKE := 0.75
 ## Falling this fast (cells a second) lands with a thud; MAX_FALL is the loudest.
 const LAND_SPEED := 9.0
 ## Snow lying this deep sounds under the feet on the open ground.
-const SNOW_UNDERFOOT := 0.35
+const SNOW_UNDERFOOT := 0.5
 ## Open ground snow lies on: the core's, and the materials of the landscape roles.
 static func _snowy(m: int) -> bool:
 	return m in [Mat.GRASS, Mat.DIRT, Mat.STONE, Mat.BEACH, Mat.BANK, Mat.SCREE]
