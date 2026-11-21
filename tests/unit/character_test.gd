@@ -26,6 +26,7 @@ func run() -> void:
 	_test_visions()
 	_test_calm()
 	_test_looks()
+	_test_dyed()
 
 
 func _test_inventory() -> void:
@@ -1039,3 +1040,28 @@ func _test_looks() -> void:
 	var old := Survivor.new()
 	old.from_dict({"deaths": 1})
 	_check(old.looks.is_empty(), "a save from before the looks has none")
+
+
+## A thing dyed keeps its dye in its slot (the 6th field) as it moves, is worn, comes
+## off, is saved and lies on the ground; of two of one item the one put on is worn.
+func _test_dyed() -> void:
+	var inv := Inventory.new(6)
+	var shirt := "tools:linen_shirt"
+	var dye := "plants:dye_black"
+	_check(Items.dyeable(shirt) and Items.is_dye(dye) and not Items.dyeable("tools:copper_ring"),
+		"a linen shirt can be dyed, black dye is a dye, a copper ring is not dyed")
+	inv.add(shirt, 1)
+	inv.add(shirt, 1, 0, null, Inventory.NORMAL, dye)
+	_check(Inventory.dye_of(inv.slots[0]) == "" and Inventory.dye_of(inv.slots[1]) == dye, "a plain shirt and a dyed one lie apart")
+	_check(inv.wear(1) == "" and inv.worn_slot("body") == 1 and inv.gear_dye.body == dye, "the dyed one put on is the one worn")
+	inv.put_into(1, inv, 4)
+	_check(inv.worn_slot("body") == 4 and Inventory.dye_of(inv.slots[4]) == dye, "moved in the bag, it is still worn and dyed")
+	var again := Inventory.new(6)
+	again.from_dict(inv.to_dict())
+	_check(again.worn_slot("body") == 4 and again.gear_dyes() == {"body": dye}, "a save keeps the dye of what is worn")
+	_check(inv.take_off("body") == "" and Inventory.dye_of(inv.slots[4]) == dye and inv.gear_dye.is_empty(), "taken off, it stays dyed")
+	var d: Variant = Inventory.drop_data(inv.slots[4])
+	_check(d is Dictionary and d.get("text", "") == dye, "on the ground it keeps its dye")
+	var old := Inventory.new(2)
+	old.from_dict({"slots": [[shirt, 1, 0, null, 0, "plants:no_such_dye"], ["resources:branch", 1, 0, null, 0, dye]]})
+	_check(Inventory.dye_of(old.slots[0]) == "" and Inventory.dye_of(old.slots[1]) == "", "a dye there is not, or a thing not dyed, shows no dye")

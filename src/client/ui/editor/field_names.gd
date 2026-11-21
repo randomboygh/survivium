@@ -113,6 +113,8 @@ const NAMES := {
 	"items.wear_on": ["[field.items.wear_on]", "[field.items.wear_on.about]"],
 	"items.warmth": ["[field.items.warmth]", "[field.items.warmth.about]"],
 	"items.look": ["[field.items.look]", "[field.items.look.about]"],
+	"items.cloth": ["[field.items.cloth]", "[field.items.cloth.about]"],
+	"items.dye": ["[field.items.dye]", "[field.items.dye.about]"],
 	"items.bag_slots": ["[field.items.bag_slots]", "[field.items.bag_slots.about]"],
 	"items.bedding": ["[field.items.bedding]", "[field.items.bedding.about]"],
 	"items.source": ["[field.items.source]", "[field.items.source.about]"],

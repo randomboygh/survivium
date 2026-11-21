@@ -132,15 +132,32 @@ func why_not(r: Dictionary) -> String:
 	return Crafting.why_not(r, who.inventory, stations())
 
 
-## Queues recipe `r` `times` times, as many as the materials allow; returns how many.
-func start(r: Dictionary, times := 1) -> int:
+## Queues recipe `r` `times` times, as many as the materials allow, what it makes dyed
+## with dye `dye` (one of it each time; "" none); returns how many.
+func start(r: Dictionary, times := 1, dye := "") -> int:
+	var why_dye := dye_why_not(r, dye)
+	if why_dye != "":
+		who.nag("craft", why_dye)
+		return 0
 	var n := 0
-	while n < times and why_not(r) == "" and queue.add(r, who.inventory):
+	while n < times and why_not(r) == "" and queue.add(r, who.inventory, dye):
 		n += 1
 	if n == 0:
-		var why := why_not(r)
+		var why := why_not(r) if why_not(r) != "" or dye == "" else "[no_dye_left]"
 		who.nag("craft", why if why != "" else "[the_queue_is_full]")
 	return n
+
+
+## Why what recipe `r` makes cannot be dyed with dye `dye` ("" none: it can); "" when it
+## can.
+func dye_why_not(r: Dictionary, dye: String) -> String:
+	if dye == "":
+		return ""
+	if not Items.is_dye(dye) or not Items.dyeable(r.get("makes", "")):
+		return "[cannot_be_dyed]"
+	if who.inventory.count(dye) < 1:
+		return "[no_dye_left]"
+	return ""
 
 
 ## Cancels job `i` of the queue; its materials go back into the bag (or on the ground).
@@ -180,7 +197,7 @@ func update(delta: float) -> void:
 			var worn := 0
 			if id == r.makes and Items.holds(id) > 0:
 				worn = Items.holds(id) - Crafting.water_out(r, job.get("took", []))
-			_receive(id, got[id], worn, q)
+			_receive(id, got[id], worn, q, job.get("dye", "") if id == r.makes else "")
 		_wear_tools(r)
 		who.note("crafted", r.count)
 		if sk != null:
@@ -266,12 +283,12 @@ func waiting() -> bool:
 	return not queue.jobs.is_empty() and not _can_work(Crafting.get_recipe(queue.jobs[0].recipe))
 
 
-## Puts `n` of item `id` worn by `worn` of quality `q` into the bag; what does not fit
-## goes on the ground at the feet.
-func _receive(id: String, n: int, worn := 0, q := Quality.NORMAL) -> void:
-	var got: int = who.give(id, n, worn, q)
+## Puts `n` of item `id` worn by `worn` of quality `q` (dyed with `dye`, "" none) into the
+## bag; what does not fit goes on the ground at the feet.
+func _receive(id: String, n: int, worn := 0, q := Quality.NORMAL, dye := "") -> void:
+	var got: int = who.give(id, n, worn, q, dye)
 	if got < n:
-		who.lay(id, Inventory.drop_data(Inventory.stack(id, n - got, worn, null, q)))
+		who.lay(id, Inventory.drop_data(Inventory.stack(id, n - got, worn, null, q, dye)))
 
 
 # --- Wear -------------------------------------------------------------------------

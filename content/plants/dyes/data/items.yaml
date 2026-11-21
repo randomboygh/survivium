@@ -1,0 +1,39 @@
+# Dyes (the user's plan, decision of 2026-11-21): a dye is an item with `dye` — its three shades, light, middle
+# and dark — that a thing with `cloth` (clothes and jewellery of cloth, linen, wool, fiber, straw, leather, beads) is
+# dyed with: picked in the craft window as the thing is made, one portion a thing (Workshop.start). Twelve colours,
+# not mixed; the sources of the rest (chalk, ash, ochre, madder, woad, nettle, murex) come with the dye vat.
+- id: dye_black
+  title: "[plants.items.dye_black]"
+  description: "[plants.items.dye_black.about]"
+  weight: 0.1
+  stack: 10
+  icon: dye_black
+  dye: ["#4a4648", "#343034", "#201c20"]
+- id: dye_yellow
+  title: "[plants.items.dye_yellow]"
+  description: "[plants.items.dye_yellow.about]"
+  weight: 0.1
+  stack: 10
+  icon: dye_yellow
+  dye: ["#f0d050", "#c8a830", "#907820"]
+- id: dye_pink
+  title: "[plants.items.dye_pink]"
+  description: "[plants.items.dye_pink.about]"
+  weight: 0.1
+  stack: 10
+  icon: dye_pink
+  dye: ["#e890a8", "#c86c88", "#984c64"]
+- id: dye_violet
+  title: "[plants.items.dye_violet]"
+  description: "[plants.items.dye_violet.about]"
+  weight: 0.1
+  stack: 10
+  icon: dye_violet
+  dye: ["#9a80c0", "#7660a0", "#524478"]
+- id: dye_brown
+  title: "[plants.items.dye_brown]"
+  description: "[plants.items.dye_brown.about]"
+  weight: 0.1
+  stack: 10
+  icon: dye_brown
+  dye: ["#a07850", "#7a5838", "#543c24"]

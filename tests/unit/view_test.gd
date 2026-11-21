@@ -755,6 +755,41 @@ func _test_looks() -> void:
 			_colours_in(Content.picture(path), keys, stray)
 			if stray.size() > before:
 				_check(false, "%s has a colour of the looks, which the shader would swap" % path)
+	_test_dye_keys(paths.map(func(n: String) -> String: return "%s/player/%s.png" % [Figure.SPRITES, n]) + others)
+
+
+## The key colours of the clothes that can be dyed (Figure.dye_key): each such picture
+## is drawn in its own slot's, every other picture in none; the colours shown for them
+## are the cloth's, or the dye's.
+func _test_dye_keys(paths: Array) -> void:
+	var keys := {}
+	for on: String in Figure.DYE_SLOTS:
+		for i in 3:
+			keys[Figure.dye_key(on, i)] = on
+	var mine := {}
+	for item in Items.BY_ID.values():
+		if Items.dyeable(item.id):
+			mine[Content.asset(item, "sprites/worn/%s.png" % item.look)] = item.wear_on
+	_check(mine.size() >= 15, "clothes and beads can be dyed: %d" % mine.size())
+	for path: String in paths:
+		if not Content.exists(path):
+			continue
+		var found := {}
+		_colours_in(Content.picture(path), keys, found)
+		var slots := {}
+		for c: Color in found:
+			slots[keys[c]] = true
+		if mine.has(path):
+			_check(slots.keys() == [mine[path]], "%s is drawn in the key colours of its slot %s: %s" % [path, mine[path], slots.keys()])
+		elif not found.is_empty():
+			_check(false, "%s has key colours of clothes dyed, which the shader would swap" % path)
+	var plain := Figure.dye_colours({"body": "tools:linen_shirt"})
+	var black := Figure.dye_colours({"body": "tools:linen_shirt"}, {"body": "plants:dye_black"})
+	var ring := Figure.dye_colours({"wrists": "tools:copper_ring"}, {"wrists": "plants:dye_black"})
+	var at := Figure.DYE_SLOTS.find("body") * 3
+	_check(plain.size() == 21 and plain[at] == Vector3(0xe8, 0xe0, 0xcc) and black[at + 2] == Vector3(0x20, 0x1c, 0x20)
+		and ring[Figure.DYE_SLOTS.find("wrists") * 3] == Vector3.ZERO,
+		"a shirt shows its own linen, dyed the dye's shades; a ring is not dyed")
 
 
 ## The body's forms (Looks build, figure): their own pictures where drawn, else the

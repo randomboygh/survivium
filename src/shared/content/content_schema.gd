@@ -237,6 +237,12 @@ const SCHEMAS := {
 		# Clothes on the figure: the picture sprites/worn/<look>.png of the bundle, laid
 		# over the body by where it is worn (Figure.dressed); none: not seen on it.
 		"look": {"type": "string", "default": ""},
+		# A thing that can be dyed (clothes, jewellery of cloth, leather, straw, beads): the
+		# three colours of its cloth, light, middle and dark, as its icon and its `look` are
+		# drawn in (the trim keeps its own); a dye takes their place (Inventory.dye_of).
+		"cloth": {"type": "list", "of": "color", "len": 3, "default": []},
+		# A dye: the three shades, light, middle and dark, a thing dyed with it is in.
+		"dye": {"type": "list", "of": "color", "len": 3, "default": []},
 		"bag_slots": {"type": "int", "min": 0, "default": 0},
 		# Bedding: kept in the bag, sleep rests this many times faster (the best one counts,
 		# Character.sleep_rate); 1 is none.

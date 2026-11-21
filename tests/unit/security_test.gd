@@ -33,6 +33,7 @@ func run() -> void:
 	_test_prepare()
 	_test_mod_put()
 	_test_mend()
+	_test_dye()
 
 
 ## A flat world of 32 by 32 cells with a player over the socket (check_moves, paced) and
@@ -598,3 +599,34 @@ func _test_mend() -> void:
 		if r is Dictionary and not r.is_empty():
 			many += 1
 	_check(many < 40, "mends asked at once are paced (%d of 40)" % many)
+
+
+## A thing is made dyed only with a dye in the bag, only a dye, only a thing that can be
+## dyed; one portion of it is taken, and a cancel gives it back.
+func _test_dye() -> void:
+	var p := _socket_player()
+	var a = p[2]
+	var req = p[1].link.requests
+	var shop = req.workshop
+	var r := "tools:fiber_tunic"
+	var dye := "plants:dye_black"
+	a.inventory.add("resources:fiber", 40)
+	a.inventory.add("materials:cord", 4)
+	_check(req.handle(Protocol.request(Protocol.CRAFT, 200, [r, 1, dye]))[1] == 0 and shop.queue.jobs.is_empty(),
+		"no thing is made dyed with a dye not in the bag")
+	a.inventory.add(dye, 1)
+	a.inventory.add("tools:torch", 1)
+	_check(req.handle(Protocol.request(Protocol.CRAFT, 201, [r, 1, "tools:torch"]))[1] == 0, "nor with a thing that is no dye")
+	_check(req.handle(Protocol.request(Protocol.CRAFT, 202, [r, 1, "nothing:at_all"]))[1] == null, "nor with an item there is not")
+	_check(req.handle(Protocol.request(Protocol.CRAFT, 203, [r, 1, 7]))[1] == null, "nor with a dye that is no text")
+	_check(req.handle(Protocol.request(Protocol.CRAFT, 204, ["materials:cord", 1, dye]))[1] == 0 and a.inventory.count(dye) == 1,
+		"nor is a thing that cannot be dyed")
+	_check(req.handle(Protocol.request(Protocol.CRAFT, 205, [r, 3, dye]))[1] == 1 and a.inventory.count(dye) == 0,
+		"one dye dyes one thing: of three asked one is queued, the dye taken")
+	shop.cancel(0)
+	_check(a.inventory.count(dye) == 1, "a cancel gives the dye back")
+	p[0].rules.instant_craft = true
+	_check(req.handle(Protocol.request(Protocol.CRAFT, 206, [r, 1, dye]))[1] == 1, "queued again")
+	shop.update(0.1)
+	var at: int = a.inventory.slots.find(a.inventory.slots.filter(func(s) -> bool: return s != null and s[0] == "tools:fiber_tunic").front())
+	_check(at >= 0 and Inventory.dye_of(a.inventory.slots[at]) == dye, "the tunic made is dyed black")

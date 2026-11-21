@@ -500,7 +500,8 @@ func _people_events(out: Array[PackedByteArray]) -> void:
 			continue
 		var e := [p.id, p.player_name, pp, p.facing, p.hands.duplicate(), p.active, p.is_moving, p.body.swimming,
 			p.on_ground, p.work[0], p.work[1], p.work[2], p.work[3], p.inventory.gear.duplicate(),
-			session.teams.together(who.id, p.id), p.line, p.riding, Gestures.now_of(p, now), p.looks.duplicate()]
+			session.teams.together(who.id, p.id), p.line, p.riding, Gestures.now_of(p, now), p.looks.duplicate(),
+			p.inventory.gear_dye.duplicate()]
 		here[p.id] = true
 		if _people.get(p.id) != e:
 			_people[p.id] = e

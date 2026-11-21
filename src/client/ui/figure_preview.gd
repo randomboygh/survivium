@@ -121,13 +121,14 @@ func _rebuild() -> void:
 	_build.keep_image = true
 
 
-## Shows the colours of the character's looks `looks` (Looks, Figure.paint): swapped by
-## its shader, the sheet stays.
-func paint(looks: Dictionary) -> void:
+## Shows the colours of the character's looks `looks` (Looks, Figure.paint) and of the
+## clothes of `gear` dyed `dyes` (Figure.dye_colours): swapped by its shader, the sheet
+## stays.
+func paint(looks: Dictionary, gear := {}, dyes := {}) -> void:
 	if material == null:
 		material = ShaderMaterial.new()
 		material.shader = PreviewShader
-	Figure.paint(material, looks)
+	Figure.paint(material, looks, gear, dyes)
 
 
 ## The direction it faces (SpriteSheet.COMPASS).

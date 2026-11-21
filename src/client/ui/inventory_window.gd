@@ -969,7 +969,7 @@ func _show_slots(bag, cells: Array) -> void:
 			continue
 		var s = bag.slots[i]
 		var cell = cells[i]
-		cell.texture = ItemIcons.of_item(s[0]) if s != null else null
+		cell.texture = ItemIcons.of_stack(s)
 		# What is worn stays in the bag, marked.
 		cell.tag = "[w]" if bag == game.character.inventory and bag.worn_on(i) != "" else ""
 		cell.number = "×%d" % s[1] if s != null and s[1] > 1 else ""
@@ -1009,14 +1009,16 @@ func _show_info(inv) -> void:
 		var id: String = s[0]
 		# The count only for more than one.
 		# Where it lies the window shows by itself: no «в сундуке» after the name.
+		var dye := Inventory.dye_of(s)
 		_info.text = "%s%s%s" % [Lang.t(Items.title(id)), " ×%d" % s[1] if s[1] > 1 else "",
-			Lang.t("[with_things]") if _from.contents(_at) != null else Lang.t("[with_writing]") if Inventory.text_of(s) != "" else ""]
+			Lang.t("[with_things]") if _from.contents(_at) != null else Lang.f("[dyed_with_s]", [Lang.t(Items.title(dye))]) if dye != "" \
+				else Lang.t("[with_writing]") if Inventory.text_of(s) != "" else ""]
 		var shoots: String = Items.get_item(id).get("ammo", "")
 		_facts.show_groups(FactChips.item_groups(id, s[1], _from.worn(_at), Inventory.stack_weight(s),
 			game.character.burn_left(id) if mine else 1.0, _from.freshness(_at), inv.count(shoots) if shoots != "" else -1,
 			_from.quality_at(_at)))
 	_info.add_theme_color_override("font_color", UiStyle.INK if s != null else UiStyle.MUTED)
-	_icon.texture = ItemIcons.of_item(s[0]) if s != null else null
+	_icon.texture = ItemIcons.of_stack(s)
 	_icon.visible = _icon.texture != null
 	_repair.visible = mine and inv.worn(_at) > 0
 	_set_down.visible = mine and Placed.is_light_item(s[0])

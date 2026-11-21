@@ -25,4 +25,5 @@
   icon: poncho
   wear_on: body
   look: poncho
+  cloth: ["#d9cfba", "#b5aa92", "#857a64"]
   warmth: 8

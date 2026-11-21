@@ -207,6 +207,27 @@ static func wear_on(id: String) -> String:
 	return get_item(id).get("wear_on", "")
 
 
+## The three colours of the cloth of item `id` (light, middle, dark), what a dye takes
+## the place of; [] for a thing that is not dyed.
+static func cloth(id: String) -> Array:
+	return get_item(id).get("cloth", [])
+
+
+## Whether item `id` can be dyed.
+static func dyeable(id: String) -> bool:
+	return cloth(id).size() == 3
+
+
+## The three shades of dye `id` (light, middle, dark); [] for an item that is no dye.
+static func dye_shades(id: String) -> Array:
+	return get_item(id).get("dye", [])
+
+
+## Whether item `id` is a dye.
+static func is_dye(id: String) -> bool:
+	return dye_shades(id).size() == 3
+
+
 ## The slots a bag worn on the back adds to the bag the character always has.
 static func bag_slots(id: String) -> int:
 	return get_item(id).get("bag_slots", 0)

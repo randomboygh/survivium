@@ -8,6 +8,7 @@ extends RefCounted
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Items := preload("res://src/shared/content/items.gd")
+const Inventory := preload("res://src/shared/game/inventory.gd")
 const Content := preload("res://src/shared/content/content.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
@@ -108,6 +109,43 @@ static func of_item(id: String) -> Texture2D:
 		return _read(icon_path(item))
 	var m := Mat.index(item.place)
 	return tile(m) if m >= 0 else null
+
+
+## The picture of stack `s` (a bag slot's array, Inventory.slots; null: none): its item's,
+## in the colours of its dye when it is dyed (dyed).
+static func of_stack(s) -> Texture2D:
+	if s == null:
+		return null
+	var dye := Inventory.dye_of(s)
+	return dyed(s[0], dye) if dye != "" else of_item(s[0])
+
+
+## The picture of item `id` dyed with dye `dye` (Items.cloth, Items.dye_shades): the
+## pixels of its cloth's three colours in the dye's three shades; made once.
+static func dyed(id: String, dye: String) -> Texture2D:
+	var key := "dye:%s:%s" % [id, dye]
+	if _cache.has(key):
+		return _cache[key]
+	var img := image_of(id)
+	var cloth := Items.cloth(id)
+	var shades := Items.dye_shades(dye)
+	if img == null or cloth.size() != 3 or shades.size() != 3:
+		return of_item(id)
+	img = img.duplicate()
+	var to := {}
+	for i in 3:
+		to[(cloth[i] as Color).to_rgba32() | 0xff] = shades[i]
+	for y in img.get_height():
+		for x in img.get_width():
+			var p := img.get_pixel(x, y)
+			var k := Color(p.r, p.g, p.b).to_rgba32() | 0xff
+			if p.a > 0.0 and to.has(k):
+				var c: Color = to[k]
+				img.set_pixel(x, y, Color(c.r, c.g, c.b, p.a))
+	var tex := ImageTexture.create_from_image(img)
+	UiStyle.remember(tex, img)
+	_cache[key] = tex
+	return tex
 
 
 ## The average colour of item `id`'s picture, `fallback` without one.

@@ -467,8 +467,12 @@ func _glints(sky) -> void:
 		mat.set_shader_parameter("glint_toward", toward)
 
 
-## A player's looks' colours (Figure.paint) from their figure's material to its mirror.
+## A player's looks' colours and their clothes' (Figure.paint) from their figure's
+## material to its mirror.
 static func _copy_looks(from: ShaderMaterial, to: ShaderMaterial) -> void:
+	var dyes = from.get_shader_parameter("dye_to")
+	if dyes != null:
+		to.set_shader_parameter("dye_to", dyes)
 	var n = from.get_shader_parameter("swap_count")
 	to.set_shader_parameter("swap_count", n if n != null else 0)
 	if n != null and n > 0:
@@ -531,7 +535,8 @@ func _mirror(delta: float, sky) -> void:
 			# The player's own material changes its frame in place, and its looks' colours.
 			mat.set_shader_parameter("frame_uv", from.get_shader_parameter("frame_uv"))
 			if from.get_shader_parameter("swap_count") != mat.get_shader_parameter("swap_count") \
-					or from.get_shader_parameter("swap_to") != mat.get_shader_parameter("swap_to"):
+					or from.get_shader_parameter("swap_to") != mat.get_shader_parameter("swap_to") \
+					or from.get_shader_parameter("dye_to") != mat.get_shader_parameter("dye_to"):
 				_copy_looks(from, mat)
 		mat.set_shader_parameter("level", level_y)
 		mat.set_shader_parameter("sea", m.get_meta("sea", 0.0))

@@ -9,6 +9,7 @@
   icon: fiber_hat
   wear_on: head
   look: fiber_hat
+  cloth: ["#e0c878", "#c4ac72", "#94783e"]
   warmth: 2
 - id: grass_cape
   title: "[tools.items.grass_cape]"
@@ -18,6 +19,7 @@
   icon: grass_cape
   wear_on: body
   look: grass_cape
+  cloth: ["#8fb558", "#78a048", "#557a38"]
   warmth: 5
 - id: leg_wraps
   title: "[tools.items.leg_wraps]"
@@ -27,6 +29,7 @@
   icon: leg_wraps
   wear_on: legs
   look: leg_wraps
+  cloth: ["#c4ac72", "#94783e", "#6e5a2c"]
   warmth: 2
 - id: bast_shoes
   title: "[tools.items.bast_shoes]"
@@ -36,6 +39,7 @@
   icon: bast_shoes
   wear_on: feet
   look: bast_shoes
+  cloth: ["#c4ac72", "#94783e", "#6e5a2c"]
   warmth: 2
 - id: fiber_tunic
   title: "[tools.items.fiber_tunic]"
@@ -45,4 +49,5 @@
   icon: fiber_tunic
   wear_on: body
   look: fiber_tunic
+  cloth: ["#c4ac72", "#94783e", "#6e5a2c"]
   warmth: 4

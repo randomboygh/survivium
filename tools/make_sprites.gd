@@ -22,20 +22,20 @@ const WORN := {
 	"fiber_tunic": ["tunic", "c4ac72", "94783e", "6e5a2c", "8a6a40", "5a4428"],
 	"flower_wreath": ["wreath", "78a048", "557a38", "3a5a28", "f2d24a", "f4f0e8"],
 	"bandana": ["bandana", "e8e0cc", "c8bca0", "9a8e74", "b8a888", "7a6e58"],
-	"hood": ["hood", "d8cfba", "b0a68e", "847a64", "9a8e74", "6e6450"],
+	"hood": ["hood", "d9cfba", "b5aa92", "857a64", "9a8e74", "6e6450"],
 	"linen_shirt": ["shirt", "e8e0cc", "c8bca0", "9a8e74"],
 	"leather_hat": ["dome_hat", "b07a48", "8a5a30", "5e3c20", "4a3020", "2e1c10"],
 	"leather_vest": ["vest", "b07a48", "8a5a30", "5e3c20", "d8c9a8", "9a8e74"],
-	"apron": ["apron", "c08a58", "9a6a3e", "6e4828", "5e3c20", "3a2414"],
-	"kilt": ["kilt", "a08a5c", "806c44", "5a4a2e", "6e4828", "4a3018"],
-	"linen_trousers": ["trousers", "e0d8c2", "c0b496", "908468"],
-	"sandals": ["sandals", "c08a58", "9a6a3e", "6e4828", "9a6a3e", "6e4828"],
-	"moccasins": ["moccasins", "c8986a", "a0764a", "70502e", "e8dcc0", "b8a888"],
-	"high_boots": ["high_boots", "8a5a30", "6a4424", "4a2e18", "a07040", "6a4424"],
-	"shell_beads": ["beads", "f4ece0", "d8ccb8", "a89880", "8a6a40", "5a4428"],
+	"apron": ["apron", "b07a48", "8a5a30", "5e3c20", "5e3c20", "3a2414"],
+	"kilt": ["kilt", "b8946c", "8c6a48", "5a4a2e", "6e4828", "4a3018"],
+	"linen_trousers": ["trousers", "e8e0cc", "c8bca0", "9a8e74"],
+	"sandals": ["sandals", "b07a48", "8a5a30", "5e3c20", "9a6a3e", "6e4828"],
+	"moccasins": ["moccasins", "b8946c", "8c6a48", "70502e", "e8dcc0", "b8a888"],
+	"high_boots": ["high_boots", "8a5a30", "6a4424", "5e3c20", "a07040", "6a4424"],
+	"shell_beads": ["beads", "f4ece0", "d8c9a8", "a89880", "8a6a40", "5a4428"],
 	"tooth_necklace": ["fangs", "e8e0cc", "c8bca0", "4a3020", "f0ead8", "c8bca0"],
 	"bone_amulet": ["amulet", "e8dcc0", "b8a888", "4a3020"],
-	"bracelet": ["bracelet", "8a5030", "6e3a20", "4a2818"],
+	"bracelet": ["bracelet", "b8946c", "8c6a48", "6e3a20"],
 	"copper_ring": ["ring", "e09a5a", "c0703a", "8a4e28", "c86a30", "8a4e28"],
 	"hair_feather": ["feather", "f0f0f0", "a0a8b0", "606870", "c8b890", "8a7a50"],
 	"poncho": ["poncho", "d9cfba", "b5aa92", "857a64", "7a5a3a", "4a3422"],
@@ -129,7 +129,7 @@ func _init() -> void:
 		pictures["player/face/" + option] = PlayerArt.layer("face/" + option)
 	for look in WORN:
 		var w: Array = WORN[look]
-		pictures[_worn_path(look)] = PlayerArt.painted(w[0], w.slice(1))
+		pictures[_worn_path(look)] = PlayerArt.painted(w[0], _tones(look))
 	pictures["player/" + Figure.data().hands] = PlayerArt.marks()
 	_forms(pictures)
 	for name in HELD:
@@ -166,7 +166,7 @@ func _forms(pictures: Dictionary) -> void:
 				pictures["player/forms/%s/%s" % [form, name]] = img
 		for look: String in WORN:
 			var w: Array = WORN[look]
-			var img := PlayerArt.painted(w[0], w.slice(1))
+			var img := PlayerArt.painted(w[0], _tones(look))
 			var base := _worn_path(look)
 			var at := "%s/%s.png" % [base.get_basename(), form]
 			var instead: Image = pictures.get("%s/%s.png" % [base.get_basename(), straight], pictures[base])
@@ -184,6 +184,26 @@ func _worn_path(look: String) -> String:
 			return Content.asset(item, "sprites/worn/%s.png" % look)
 	push_error("no item looks %s" % look)
 	return "res://%s.png" % look
+
+
+## The five colours clothes `look` are drawn in (WORN): those of a thing that can be dyed
+## (Items.cloth, which its WORN colours must be) with its cloth in the key colours of its
+## slot (Figure.dye_key), so the shader shows its own colours or a dye's; a look of three
+## colours has no trim of its own, so all of it takes the dye.
+func _tones(look: String) -> Array:
+	var w: Array = WORN[look]
+	var tones: Array = w.slice(1)
+	for item in Items.BY_ID.values():
+		if item.get("look", "") != look or not Items.dyeable(item.id):
+			continue
+		for i in 3:
+			if (item.cloth[i] as Color).to_html(false) != tones[i]:
+				push_error("%s: WORN colour %s is not its cloth %s" % [look, tones[i], (item.cloth[i] as Color).to_html(false)])
+		var keys := []
+		for i in 3:
+			keys.append(Figure.dye_key(item.wear_on, i).to_html(false))
+		return keys + (tones.slice(3, 5) if tones.size() >= 5 else [keys[1], keys[2]])
+	return tones
 
 
 func _held_path(sprite: String) -> String:

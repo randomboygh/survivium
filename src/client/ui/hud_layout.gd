@@ -253,7 +253,7 @@ func refresh_counts() -> void:
 	var slots: Array = game.character.inventory.slots
 	for i in _slots.size():
 		var s = slots[i]
-		_slots[i].texture = ItemIcons.of_item(s[0]) if s != null else null
+		_slots[i].texture = ItemIcons.of_stack(s)
 		_slots[i].number = "×%d" % s[1] if s != null and s[1] > 1 else ""
 		_slots[i].fill = game.character.inventory.freshness(i)
 		var water: float = game.character.inventory.water_share(i)

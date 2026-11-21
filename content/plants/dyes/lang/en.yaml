@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/dyes/bundle.yaml
+"[plants.dyes.bundle]": "Dyes"
+
+# content/plants/dyes/data/items.yaml
+"[plants.items.dye_black]": "Black dye"
+"[plants.items.dye_black.about]": "Boiled of charcoal: dyes clothes and beads black."
+"[plants.items.dye_yellow]": "Yellow dye"
+"[plants.items.dye_yellow.about]": "Boiled of evening primrose flowers: dyes clothes and beads yellow."
+"[plants.items.dye_pink]": "Pink dye"
+"[plants.items.dye_pink.about]": "Boiled of cranberries or raspberries: dyes clothes and beads pink."
+"[plants.items.dye_violet]": "Violet dye"
+"[plants.items.dye_violet.about]": "Boiled of blueberries: dyes clothes and beads violet."
+"[plants.items.dye_brown]": "Brown dye"
+"[plants.items.dye_brown.about]": "Boiled of acorns: dyes clothes and beads brown."
+
+# content/plants/dyes/data/recipes.yaml
+"[plants.recipes.dye_black]": "Black dye"
+"[plants.recipes.dye_yellow]": "Yellow dye"
+"[plants.recipes.dye_pink]": "Pink dye"
+"[plants.recipes.dye_pink_from_raspberry]": "Pink dye of raspberries"
+"[plants.recipes.dye_violet]": "Violet dye"
+"[plants.recipes.dye_brown]": "Brown dye"
