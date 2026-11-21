@@ -31,6 +31,7 @@
   icon: leather_trousers
   wear_on: legs
   look: leather_trousers
+  cloth: ["#e09a5a", "#c0703a", "#8a4e28"]
   warmth: 5
 - id: fur_boots
   title: "[tools.items.fur_boots]"
@@ -51,6 +52,7 @@
   icon: leather_hat
   wear_on: head
   look: leather_hat
+  cloth: ["#b07a48", "#8a5a30", "#5e3c20"]
   warmth: 3
 - id: leather_vest
   title: "[tools.items.leather_vest]"
@@ -61,6 +63,7 @@
   icon: leather_vest
   wear_on: body
   look: leather_vest
+  cloth: ["#b07a48", "#8a5a30", "#5e3c20"]
   warmth: 5
 - id: apron
   title: "[tools.items.apron]"
@@ -71,6 +74,7 @@
   icon: apron
   wear_on: body
   look: apron
+  cloth: ["#b07a48", "#8a5a30", "#5e3c20"]
   warmth: 1
 - id: sandals
   title: "[tools.items.sandals]"
@@ -81,6 +85,7 @@
   icon: sandals
   wear_on: feet
   look: sandals
+  cloth: ["#b07a48", "#8a5a30", "#5e3c20"]
   warmth: 1
 - id: moccasins
   title: "[tools.items.moccasins]"
@@ -91,6 +96,7 @@
   icon: moccasins
   wear_on: feet
   look: moccasins
+  cloth: ["#b8946c", "#8c6a48", "#70502e"]
   warmth: 3
 - id: high_boots
   title: "[tools.items.high_boots]"
@@ -101,4 +107,5 @@
   icon: high_boots
   wear_on: feet
   look: high_boots
+  cloth: ["#8a5a30", "#6a4424", "#5e3c20"]
   warmth: 4

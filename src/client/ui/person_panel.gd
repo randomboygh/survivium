@@ -244,7 +244,7 @@ func refresh() -> void:
 	var looks: Dictionary = game.character.looks
 	preview.dress(Figure.dressed(inv.gear, looks))
 	_hold()
-	preview.paint(looks)
+	preview.paint(looks, inv.gear, inv.gear_dye)
 	for k: String in TITLES:
 		var c = _cells[k]
 		c.selected = k == chosen
@@ -264,7 +264,7 @@ func refresh() -> void:
 		c.tag = ""
 		c.key = ""
 		if worn != "":
-			c.texture = ItemIcons.of_item(worn)
+			c.texture = ItemIcons.dyed(worn, inv.gear_dye[k]) if inv.gear_dye.has(k) else ItemIcons.of_item(worn)
 		elif k == "back":
 			# The bag the character always has.
 			c.texture = UiStyle.icon("bag")

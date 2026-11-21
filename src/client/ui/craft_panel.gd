@@ -78,6 +78,11 @@ var _title: Label
 ## предметы» is on (Rules.free_items): what the recipe makes, for nothing.
 var _get: Button
 var _facts: FactChips
+## «Краситель»: a thing that can be dyed is made in its own colours or a dye's of the bag
+## (the picture of each shows it so); the dye picked, "" none.
+var _dye_row: HBoxContainer
+var _dye_cells: HBoxContainer
+var _dye := ""
 ## The width the recipe's name may take beside its picture (see fit_width).
 var _title_room := 100
 var _make: HBoxContainer
@@ -208,6 +213,15 @@ func _ready() -> void:
 	_facts = FactChips.new()
 	_facts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_child(_facts)
+	_dye_row = HBoxContainer.new()
+	_dye_row.add_theme_constant_override("separation", 4)
+	box.add_child(_dye_row)
+	var dye_title := UiStyle.label("[dye]", UiStyle.MUTED)
+	dye_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_dye_row.add_child(dye_title)
+	_dye_cells = HBoxContainer.new()
+	_dye_cells.add_theme_constant_override("separation", 2)
+	_dye_row.add_child(_dye_cells)
 	# One line: «сделать» (amber, as wide as the inventory's action button) on the left,
 	# joined to «×5» when five can be made and «MAX» when more than one can (then
 	# «сделать» takes two thirds of its width and each of them a third); the stations on
@@ -442,7 +456,49 @@ func _choose(id: String) -> void:
 
 
 func _start(n: int) -> void:
-	game.net.request(Protocol.CRAFT, [_chosen, n])
+	var r := Crafting.get_recipe(_chosen)
+	if _dye != "" and not r.is_empty() and Items.dyeable(r.makes):
+		game.net.request(Protocol.CRAFT, [_chosen, n, _dye])
+	else:
+		game.net.request(Protocol.CRAFT, [_chosen, n])
+
+
+## The «Краситель» row of recipe `r`: shown for a thing that can be dyed, a cell of its
+## own colours and one of each dye in the bag, each the thing's picture in those colours.
+func _show_dyes(r: Dictionary) -> void:
+	var inv = game.character.inventory
+	_dye_row.visible = Items.dyeable(r.makes)
+	if not _dye_row.visible:
+		return
+	var dyes := [""]
+	for id: String in Items.IDS:
+		if Items.is_dye(id) and inv.count(id) > 0:
+			dyes.append(id)
+	if not dyes.has(_dye):
+		_dye = ""
+	var cells := _dye_cells.get_children()
+	for i in maxi(cells.size(), dyes.size()):
+		var cell = cells[i] if i < cells.size() else null
+		if cell == null:
+			cell = HotbarSlot.new(28)
+			cell.custom_minimum_size = Vector2(28, 28)
+			cell.icon_size = Vector2(20, 20)
+			cell.pressed.connect(_pick_dye.bind(cell))
+			_dye_cells.add_child(cell)
+		cell.visible = i < dyes.size()
+		if not cell.visible:
+			continue
+		var dye: String = dyes[i]
+		cell.set_meta("dye", dye)
+		cell.texture = ItemIcons.dyed(r.makes, dye) if dye != "" else ItemIcons.of_item(r.makes)
+		cell.tooltip_text = Lang.t(Items.title(dye)) if dye != "" else Lang.t("[own_colours]")
+		cell.number = str(inv.count(dye)) if dye != "" else ""
+		cell.selected = dye == _dye
+
+
+func _pick_dye(cell: Control) -> void:
+	_dye = str(cell.get_meta("dye", ""))
+	refresh_now()
 
 
 ## The station the tab was opened at was taken up or destroyed (`done` true).
@@ -569,6 +625,7 @@ func _show_details(near: Dictionary) -> void:
 	var made := []
 	for g: Array in FactChips.item_groups(r.makes, r.count):
 		made.append_array(g[1])
+	_show_dyes(r)
 	_facts.show_groups([["[materials]", needs], ["[not_used_up_n2]", keeps], ["[where]", at],
 		["[with]", tools], ["[time]", time], ["[product]", made], ["[byproduct_n2]", also]])
 	var can := Crafting.can_make(r, inv, near)

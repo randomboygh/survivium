@@ -19,19 +19,25 @@ signal changed
 ## stacks its materials were taken as, [id, count, worn, quality] each, so a cancel gives
 ## back a worn tool worn and food as old as it was, not new ones, and what is made gets
 ## the quality of its materials (a job of an older save has none: its recipe's materials
-## come back, of the normal quality)}.
+## come back, of the normal quality)}, and "dye": the dye what it makes is dyed with (one
+## of it is among `took`), only when one was picked.
 var jobs: Array = []
 ## The serial of the next job queued.
 var serial := 0
 
 
-## Queues recipe `r`, taking its materials from bag `inv`; false when they are missing
-## or the queue is full.
-func add(r: Dictionary, inv) -> bool:
+## Queues recipe `r`, taking its materials from bag `inv`, and one of dye `dye` ("" none)
+## for what it makes to be dyed with; false when they are missing or the queue is full.
+func add(r: Dictionary, inv, dye := "") -> bool:
 	var took := []
-	if jobs.size() >= MAX_JOBS or not Crafting.take(r, inv, took):
+	if jobs.size() >= MAX_JOBS or dye != "" and inv.count(dye) < 1 + int(r.get("needs", {}).get(dye, 0)) \
+			or not Crafting.take(r, inv, took):
 		return false
-	jobs.append({"recipe": r.id, "left": float(r.time), "n": serial, "took": took})
+	var job := {"recipe": r.id, "left": float(r.time), "n": serial, "took": took}
+	if dye != "":
+		inv.remove(dye, 1, took)
+		job.dye = dye
+	jobs.append(job)
 	serial += 1
 	changed.emit()
 	return true
@@ -55,9 +61,9 @@ func cancel(i: int) -> Array:
 
 
 ## Works `delta` seconds on the first job if `can_work` (a Callable taking the recipe)
-## allows; returns the jobs finished, {"recipe": the recipe, "n": the job's serial} each
-## and "took" (its materials as taken, see jobs; [] for none known) each (usually none,
-## at most one a call).
+## allows; returns the jobs finished, {"recipe": the recipe, "n": the job's serial} each,
+## "took" (its materials as taken, see jobs; [] for none known) and "dye" ("" none) each
+## (usually none, at most one a call).
 func step(delta: float, can_work: Callable) -> Array:
 	if jobs.is_empty():
 		return []
@@ -73,7 +79,7 @@ func step(delta: float, can_work: Callable) -> Array:
 		return []
 	var job: Dictionary = jobs.pop_front()
 	changed.emit()
-	return [{"recipe": r, "n": job.n, "took": job.get("took", [])}]
+	return [{"recipe": r, "n": job.n, "took": job.get("took", []), "dye": job.get("dye", "")}]
 
 
 ## How far the first job has come, 0..1.
@@ -104,6 +110,9 @@ func from_dict(d: Dictionary) -> void:
 			var took: Variant = _stacks(j.get("took"))
 			if took != null:
 				job.took = took
+			var dye := Items.canon(str(j.get("dye", "")))
+			if took != null and Items.is_dye(dye):
+				job.dye = Items.get_item(dye).id
 			jobs.append(job)
 	changed.emit()
 

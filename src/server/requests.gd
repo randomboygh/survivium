@@ -21,6 +21,7 @@ extends RefCounted
 
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Crafting := preload("res://src/shared/content/crafting.gd")
+const Items := preload("res://src/shared/content/items.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
@@ -287,6 +288,10 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.CRAFT:
 			if _fit(args, [TYPE_STRING, TYPE_INT]) and Crafting.BY_ID.has(args[0]):
 				return workshop.start(Crafting.get_recipe(args[0]), args[1])
+			# What it makes dyed: the dye is checked by the workshop (in the bag, a dye, the
+			# thing dyeable).
+			if _fit(args, [TYPE_STRING, TYPE_INT, TYPE_STRING]) and Crafting.BY_ID.has(args[0]) and Items.has(args[2]):
+				return workshop.start(Crafting.get_recipe(args[0]), args[1], Items.get_item(args[2]).id)
 		Protocol.CRAFT_FREE:
 			if _fit(args, [TYPE_STRING]) and Crafting.BY_ID.has(args[0]):
 				return workshop.give_free(Crafting.get_recipe(args[0]))

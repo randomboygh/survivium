@@ -44,9 +44,10 @@ signal changed
 ## food that has gone off by `worn` (of ROTTEN), [id, 1, 0, contents] for a chest with
 ## things in it, [id, count, worn, contents or null, quality] for things of a quality
 ## other than NORMAL (see quality, held), [id, count, worn, null, quality, text] for a
-## sign with words on it, taken up from where it stood (see text_of), or null for an
-## empty one. Stacks of one item join whatever their quality, at the quality of the two
-## together; signs only with the same words.
+## sign with words on it, taken up from where it stood (see text_of), or for a thing
+## dyed, the id of its dye as the text (see dye_of), or null for an empty one. Stacks of
+## one item join whatever their quality, at the quality of the two together; signs only
+## with the same words, dyed things only of the same dye.
 var slots: Array = []
 var weight_limit := WEIGHT_LIMIT
 ## Whether a chest with things in it may go in (not into another chest).
@@ -59,6 +60,9 @@ var nests := true
 ## an old save wore apart from the slots, with no free slot for it, stays worn apart
 ## (see apart) until it is taken off.
 var gear := {}
+## The dye of what is worn, by slot (Inventory.dye_of), only for what is dyed: of two
+## things of one item the one of this dye is the one worn (see worn_slot).
+var gear_dye := {}
 ## The slots of the bag without anything on the back.
 var base := SLOTS
 ## Slots a playtest added to `base` (see grow; «Бесплатные предметы» makes room for one
@@ -90,6 +94,13 @@ static func held(s) -> Variant:
 ## up with (Placed.take_up), set down again with it; "" for anything else.
 static func text_of(s) -> String:
 	return s[5] if s != null and s.size() > 5 and s[5] is String else ""
+
+
+## The dye of stack `s` (a slot's array, or null): the id of the dye item a thing that
+## can be dyed (Items.dyeable) was dyed with, kept as its text; "" for its own colours.
+static func dye_of(s) -> String:
+	var d := text_of(s)
+	return d if d != "" and Items.dyeable(s[0]) else ""
 
 
 ## The shortest slot array for `n` of item `id` worn by `worn`, holding `contents` (or
@@ -143,6 +154,7 @@ func wear(i: int) -> String:
 	if held(s) != null:
 		slots[i] = stack(s[0], s[1], 0, null, quality(s))
 	gear[on] = s[0]
+	_set_dye(on, dye_of(s))
 	if on == "back":
 		_unpack_back(packed)
 	changed.emit()
@@ -164,7 +176,8 @@ func take_off(on: String) -> String:
 			return "full"
 	var packed: Variant = _pack_back() if on == "back" else null
 	gear.erase(on)
-	slots[at] = _packed(id, packed, quality(slots[at]))
+	gear_dye.erase(on)
+	slots[at] = stack(id, 1, 0, packed, quality(slots[at]), text_of(slots[at]))
 	changed.emit()
 	return ""
 
@@ -178,9 +191,21 @@ func worn_slot(on: String) -> int:
 		return -1
 	for i in (base if on == "back" else slots.size()):
 		var s = slots[i]
-		if s != null and s[0] == id and held(s) == null:
+		if s != null and s[0] == id and held(s) == null and dye_of(s) == gear_dye.get(on, ""):
 			return i
 	return -1
+
+
+func _set_dye(on: String, dye: String) -> void:
+	if dye == "":
+		gear_dye.erase(on)
+	else:
+		gear_dye[on] = dye
+
+
+## The dyes of what is worn, by body slot (see dye_of): only those dyed.
+func gear_dyes() -> Dictionary:
+	return gear_dye.duplicate()
 
 
 ## The quality of what is worn, by body slot (normal for a thing worn apart).
@@ -228,6 +253,7 @@ func _left(was: Dictionary) -> void:
 		# A bag on the back comes off by _leave, with its things; here only an empty one.
 		if gear.has(on) and worn_slot(on) < 0 and (on != "back" or slots.slice(base).all(func(h) -> bool: return h == null)):
 			gear.erase(on)
+			gear_dye.erase(on)
 
 
 ## The body slots worn from a slot of the bag, as worn_slot gives them.
@@ -888,16 +914,24 @@ static func _read(id: String, s: Array) -> Array:
 	var inside: Variant = s[3] if s.size() >= 4 and s[3] is Dictionary else null
 	var q: int = int(s[4]) if s.size() >= 5 and (s[4] is int or s[4] is float) else NORMAL
 	var text: String = text_of(s).left(TEXT_MOST)
+	# A dyed thing keeps a dye there is; a dye gone from the game leaves its own colours.
+	if text != "" and Items.dyeable(id) and not Items.is_dye(Items.canon(text)):
+		text = ""
+	elif text != "" and Items.dyeable(id):
+		text = Items.get_item(Items.canon(text)).id
 	return stack(id, 1 if inside != null else int(s[1]), w, inside, q, text)
 
 
 ## The bag as plain data for a save or the network: {"slots": [[id, count] or null...]},
-## "gear" ({slot: id}) when something is worn, and "grown" (see grow) when a playtest
+## "gear" ({slot: id}) when something is worn, "gear_dyes" ({slot: dye id}) when what is
+## worn is dyed, and "grown" (see grow) when a playtest
 ## made it wider.
 func to_dict() -> Dictionary:
 	var d := {"slots": slots.duplicate(true)}
 	if not gear.is_empty():
 		d.gear = gear.duplicate()
+	if not gear_dye.is_empty():
+		d.gear_dyes = gear_dye.duplicate()
 	if grown > 0:
 		d.grown = grown
 	return d
@@ -906,12 +940,16 @@ func to_dict() -> Dictionary:
 ## Fills the bag from to_dict() data; unknown items are left out.
 func from_dict(d: Dictionary) -> void:
 	gear = {}
+	gear_dye = {}
 	var worn: Variant = d.get("gear")
 	if worn is Dictionary:
 		for on: Variant in worn:
 			var id := Items.canon(str(worn[on]))
 			if str(on) in WEAR_SLOTS and Items.has(id) and Items.wear_on(id) == str(on):
 				gear[str(on)] = Items.get_item(id).id
+				var dye := str((d.get("gear_dyes") if d.get("gear_dyes") is Dictionary else {}).get(on, ""))
+				if Items.dyeable(id) and Items.is_dye(Items.canon(dye)):
+					_set_dye(str(on), Items.get_item(Items.canon(dye)).id)
 	var g: Variant = d.get("grown", 0)
 	var n: int = clampi(int(g), 0, MOST_GROWN) if (g is int or g is float) and is_finite(float(g)) else 0
 	base += n - grown
@@ -927,5 +965,5 @@ func from_dict(d: Dictionary) -> void:
 	for on: String in apart():
 		var free := slots.slice(0, base).find(null)
 		if free >= 0:
-			slots[free] = [gear[on], 1]
+			slots[free] = stack(gear[on], 1, 0, null, NORMAL, gear_dye.get(on, ""))
 	changed.emit()

@@ -1,0 +1,62 @@
+# Each dye is boiled of three portions of its source with a full waterskin in a clay pot ("Tools", the potter's
+# wheel; it stays in the bag) on the core's campfire: two portions of dye, and the waterskin back empty.
+- id: dye_black
+  title: "[plants.recipes.dye_black]"
+  makes: dye_black
+  count: 2
+  needs: {materials:charcoal: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6
+- id: dye_yellow
+  title: "[plants.recipes.dye_yellow]"
+  makes: dye_yellow
+  count: 2
+  needs: {evening_primrose: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6
+- id: dye_pink
+  title: "[plants.recipes.dye_pink]"
+  makes: dye_pink
+  count: 2
+  needs: {cranberry: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6
+- id: dye_pink_from_raspberry
+  title: "[plants.recipes.dye_pink_from_raspberry]"
+  makes: dye_pink
+  count: 2
+  needs: {raspberry: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6
+- id: dye_violet
+  title: "[plants.recipes.dye_violet]"
+  makes: dye_violet
+  count: 2
+  needs: {blueberry: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6
+- id: dye_brown
+  title: "[plants.recipes.dye_brown]"
+  makes: dye_brown
+  count: 2
+  needs: {acorn: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6

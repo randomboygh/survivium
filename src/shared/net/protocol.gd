@@ -131,7 +131,8 @@ const FARM_WORK := "farm_work"
 const FARM_CLEAR := "farm_clear"
 ## Destroys a campfire put out: [cell] (Placed.destroy).
 const PROP_DESTROY := "prop_destroy"
-## Starts a recipe some times at the workshop: [recipe id, n] (Workshop.start).
+## Starts a recipe some times at the workshop: [recipe id, n] or [recipe id, n, dye id]
+## for what it makes dyed (Workshop.start).
 const CRAFT := "craft"
 ## Gives what a recipe makes for nothing, while the rules allow it (playtest
 ## «Бесплатные предметы»): [recipe id] (Workshop.give_free).
@@ -329,7 +330,8 @@ const STEP := "step"
 ## swimming, on the ground, work kind, work length, work count, work at, what is worn
 ## (Inventory.gear), in the player's team, where the float of their fishing line lies (INF
 ## none), the vessel they sit in ("" none), the gesture they make ("" none, Gestures),
-## their looks (Character.looks: {} the default's, Looks)], …].
+## their looks (Character.looks: {} the default's, Looks), the dyes of what is worn
+## (Inventory.gear_dye: {slot: dye id})], …].
 const PEOPLE := "people"
 ## Another player went out of the zone or the world: [id].
 const PERSON_GONE := "person_gone"

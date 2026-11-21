@@ -27,14 +27,15 @@ func update() -> void:
 	var right: String = c.hands[1]
 	var active := "left" if c.active == 0 else "right"
 	var gear: Dictionary = game.character.inventory.gear
+	var dyes: Dictionary = game.character.inventory.gear_dye
 	var looks: Dictionary = game.character.looks
-	var key := "%s|%s|%s|%s|%s" % [left, right, active, gear, looks]
+	var key := "%s|%s|%s|%s|%s|%s" % [left, right, active, gear, looks, dyes]
 	if key == _shown:
 		return
 	_shown = key
 	# What is worn shows on the figure, over the character's looks.
 	game.player.dress(Figure.dressed(gear, looks))
-	game.player.paint(looks)
+	game.player.paint(looks, gear, dyes)
 	game.player.hold(look(left), look(right), active)
 
 

@@ -1112,7 +1112,16 @@ func _run() -> void:
 			_craft(shot.get("forge", false), shot.get("weave", false), shot.get("smith", false), shot.get("dry", false))
 			if shot.has("recipe"):
 				main.host.player.inventory.add("materials:cord", 2)
+				# Dyes in the bag, one picked in the «Краситель» row (a thing that can be dyed).
+				for dye: String in shot.get("dyes", []):
+					main.host.player.inventory.add(dye, 3)
+					main.host.workshop.knowledge._known[shot.recipe] = true
+					main.workshop.knowledge._known[shot.recipe] = true
 				main.hud.bag.craft._choose(shot.recipe)
+				if shot.has("dye"):
+					await process_frame
+					main.hud.bag.craft._dye = shot.dye
+					main.hud.bag.craft.refresh_now()
 			if shot.get("unknown", false) or shot.get("idle", false):
 				while not main.host.workshop.queue.jobs.is_empty():
 					main.host.workshop.queue.cancel(0)

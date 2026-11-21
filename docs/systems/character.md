@@ -466,7 +466,24 @@ them the pictures of what is worn `sprites/worn/<look>.png` of the thing's bundl
 feet, the body and the neck under the hair, the head and its ornament on top, the wrists over the fists
 (`Figure.LAST`, marked `Figure.AFTER_FISTS` in the look: a bracelet on a hand in front of the body); they are drawn by `tools/make_sprites.gd` (`WORN`: the shape
 `PlayerArt.SHAPES` and three colours, then two of a trim: a band, a hem, laces, which a dye will leave as
-they are). The shapes of the body's clothes are cut out of the frame's shirt and trousers (`PlayerArt._garments`:
+they are). Dyes (character editor PR 5, the user's plan 1А–5А of 2026-11-21): a thing with `cloth` (its three
+colours, light, middle, dark: clothes and jewellery of cloth, linen, wool, fiber, straw, leather, beads; not fur,
+bone, metal) can be dyed with an item with `dye` (its three shades; `content/plants/dyes`, boiled in a pot on the
+campfire). The dye's id is the 6th field of the bag cell (`Inventory.dye_of`; the field a sign keeps its words
+in, so a dyed thing stacks only with its own dye and keeps it in chests, on the ground, in a death sack and in
+the save); what is worn keeps the dye of the one worn (`Inventory.gear_dye`, saved as `gear_dyes`; of two
+things of one item `worn_slot` finds the one of that dye). A thing is made dyed in the craft window («Краситель»
+row: `CRAFT` with a third argument; `Workshop.start` checks the dye is in the bag, is a dye and the thing can be
+dyed, and one portion of it goes with the job's materials, a cancel gives it back). On the figure
+`make_sprites.gd` draws the cloth of a dyeable look (its `WORN` colours must be its `cloth`) in key colours
+(`Figure.dye_key`: red 254, blue 1, green the slot's number in `Figure.DYE_SLOTS` × 3 + the shade; a look of
+three colours has no trim, so all of it takes the dye), and the shader shows `dye_to` at that number
+(`Figure.dye_colours`: the dye's shades, else the cloth's own; one array of 21, no texture). A mod's hand-drawn
+worn picture of a thing with `cloth` must use those key colours for its cloth (`view_test` checks each such
+picture uses only its slot's keys and no other picture uses any). Icons are recoloured on the CPU
+(`ItemIcons.dyed`: the icon's pixels of the cloth's three colours to the dye's, made once per thing and dye),
+so an icon of a dyeable thing is drawn in its `cloth` colours. The dyes of what others wear come as the 20th
+field of `PEOPLE` (index 19). The shapes of the body's clothes are cut out of the frame's shirt and trousers (`PlayerArt._garments`:
 shirt, coat, tunic, vest, poncho, apron); the hats that are more than the top of the hair (a brim, a dome, a
 wreath, a bandana, a hood) are drawn by way in `tools/art/player_wear_art.gd` and laid over the head as it bobs. What other players wear comes as the 14th field of `PEOPLE`, their
 looks as the 19th (index 18). The

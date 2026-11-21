@@ -17,6 +17,18 @@ user's picks 1А 2А 3А 4А 5А, 2026-11-21). Screenshots: library `survivium-b
 Every shape has tones 1-3 (the cloth: what a dye will recolour) and 4-5 (the trim: keeps the material's colour);
 `PlayerArt.painted` maps them; `make_sprites.gd` `WORN` gives five colours per look.
 
+## Dyes core (PR 3, this commit)
+
+Done as in docs/systems/character.md (Dyes): `cloth`/`dye` item fields, the dye id in the bag cell's 6th field
+(shared with a sign's words), `Inventory.gear_dye`, the «Краситель» craft row, `CRAFT` with a dye, `PEOPLE`
+field 19, key colours in `shaders/looks.gdshaderinc` (`Figure.dye_key`, `dye_to[21]`), `ItemIcons.dyed`, and
+`content/plants/dyes` (black, yellow, pink, violet, brown). Shades the user approved (2026-11-21, preview
+`survivium-builds/character/dyes/dyes-preview-1.png`), light/middle/dark, for the seven still to add in PR 4:
+white `f0ece4 d0c8bc a09888`, grey `a8a8a4 84847f 5c5c58`, green `7aa050 587a38 3c5426`, ochre
+`d8a048 b07c30 7c5420`, red `c84838 a03028 702020`, blue `5878b8 405c98 2c406c`, purple `a04888 7c3068 54204a`.
+Green needs a nettle source (nettle gives fiber only). Re-dyeing a worn thing in the vat must update
+`gear_dye` (worn_slot matches by item and dye).
+
 ## Left: dyes (PR 3 core, PR 4 sources and vat)
 
 - **Data**: a content kind of dyes (id, title, three shades) or items with `dye: <colour>`; `dyeable: true` on

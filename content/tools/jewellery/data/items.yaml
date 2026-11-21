@@ -9,6 +9,7 @@
   icon: shell_beads
   wear_on: neck
   look: shell_beads
+  cloth: ["#f4ece0", "#d8c9a8", "#a89880"]
 - id: tooth_necklace
   title: "[tools.items.tooth_necklace]"
   description: "[tools.items.tooth_necklace.about]"
@@ -33,6 +34,7 @@
   icon: bracelet
   wear_on: wrists
   look: bracelet
+  cloth: ["#b8946c", "#8c6a48", "#6e3a20"]
 - id: copper_ring
   title: "[tools.items.copper_ring]"
   description: "[tools.items.copper_ring.about]"

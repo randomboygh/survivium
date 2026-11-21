@@ -21,17 +21,21 @@ func _init() -> void:
 	if only == PackedStringArray(["--all"]):
 		only = PackedStringArray()
 	var paths := {}
+	# A dye's picture is a bowl of its shades (IconArt.dye_picture).
+	var dyes := {}
 	for id in Items.IDS:
 		var item := Items.get_item(id)
 		if item.icon != "":
 			paths[ItemIcons.icon_path(item)] = item.icon
+			if Items.is_dye(id):
+				dyes[item.icon] = Items.dye_shades(id)
 	for name in ItemIcons.UI:
 		paths[ItemIcons.ui_path(name)] = name
 	for path in paths:
 		var name: String = paths[path]
 		if not only.is_empty() and not name in only:
 			continue
-		var img := IconArt.picture(name)
+		var img := IconArt.dye_picture(dyes[name]) if dyes.has(name) else IconArt.picture(name)
 		if img == null:
 			print("no drawing for %s" % path)
 			continue

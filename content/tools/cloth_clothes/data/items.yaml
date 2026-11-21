@@ -10,6 +10,7 @@
   icon: bandana
   wear_on: head
   look: bandana
+  cloth: ["#e8e0cc", "#c8bca0", "#9a8e74"]
   warmth: 1
 - id: hood
   title: "[tools.items.hood]"
@@ -20,6 +21,7 @@
   icon: hood
   wear_on: head
   look: hood
+  cloth: ["#d9cfba", "#b5aa92", "#857a64"]
   warmth: 4
 - id: linen_shirt
   title: "[tools.items.linen_shirt]"
@@ -30,6 +32,7 @@
   icon: linen_shirt
   wear_on: body
   look: linen_shirt
+  cloth: ["#e8e0cc", "#c8bca0", "#9a8e74"]
   warmth: 4
 - id: kilt
   title: "[tools.items.kilt]"
@@ -40,6 +43,7 @@
   icon: kilt
   wear_on: legs
   look: kilt
+  cloth: ["#b8946c", "#8c6a48", "#5a4a2e"]
   warmth: 3
 - id: linen_trousers
   title: "[tools.items.linen_trousers]"
@@ -50,4 +54,5 @@
   icon: linen_trousers
   wear_on: legs
   look: linen_trousers
+  cloth: ["#e8e0cc", "#c8bca0", "#9a8e74"]
   warmth: 3

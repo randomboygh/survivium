@@ -1,0 +1,25 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/dyes/bundle.yaml
+"[plants.dyes.bundle]": "Красители"
+
+# content/plants/dyes/data/items.yaml
+"[plants.items.dye_black]": "Чёрная краска"
+"[plants.items.dye_black.about]": "Сварена из угля: красит одежду и бусы в чёрный."
+"[plants.items.dye_yellow]": "Жёлтая краска"
+"[plants.items.dye_yellow.about]": "Сварена из цветов энотеры: красит одежду и бусы в жёлтый."
+"[plants.items.dye_pink]": "Розовая краска"
+"[plants.items.dye_pink.about]": "Сварена из клюквы или малины: красит одежду и бусы в розовый."
+"[plants.items.dye_violet]": "Лиловая краска"
+"[plants.items.dye_violet.about]": "Сварена из голубики: красит одежду и бусы в лиловый."
+"[plants.items.dye_brown]": "Коричневая краска"
+"[plants.items.dye_brown.about]": "Сварена из желудей: красит одежду и бусы в коричневый."
+
+# content/plants/dyes/data/recipes.yaml
+"[plants.recipes.dye_black]": "Чёрная краска"
+"[plants.recipes.dye_yellow]": "Жёлтая краска"
+"[plants.recipes.dye_pink]": "Розовая краска"
+"[plants.recipes.dye_pink_from_raspberry]": "Розовая краска из малины"
+"[plants.recipes.dye_violet]": "Лиловая краска"
+"[plants.recipes.dye_brown]": "Коричневая краска"

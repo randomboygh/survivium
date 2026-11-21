@@ -74,6 +74,8 @@ content/plants/
   juniper/              "Juniper": a low blue-green bush (`small`) of the plateaus and alpine meadows
   evening_primrose/     "Evening primrose": yellow buds by day that open at night (`looks: night`), the flowers brewed into
                         a calming tea (`calm`: asleep in it, sleep rests faster)
+  dyes/                 "Dyes": black (charcoal), yellow (evening primrose), pink (cranberry, raspberry), violet
+                        (blueberry), brown (acorns) boiled in a pot on the campfire; a thing with `cloth` is made dyed
   common/models/        models shared by bundles (for now the bush)
   common/textures/      textures shared by bundles (grey bark)
 ```

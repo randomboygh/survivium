@@ -2441,6 +2441,38 @@ const PICTURES := {
 	],
 }
 
+## A dye (an item with `dye`, Items.dye_shades): a clay bowl of it, 1 2 3 its light,
+## middle and dark shades (see dye_picture).
+const DYE := [
+	"............",
+	"............",
+	"............",
+	"...oooooo...",
+	"..o112211o..",
+	".o12222221o.",
+	".o32222223o.",
+	".bo333333ob.",
+	"..boooooob..",
+	"...bbbbbb...",
+	"............",
+	"............",
+]
+
+
+## The picture of a dye of shades `shades` (three colours, light, middle, dark).
+static func dye_picture(shades: Array) -> Image:
+	var img := Image.create_empty(DYE[0].length(), DYE.size(), false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	for y in DYE.size():
+		for x in DYE[y].length():
+			var letter: String = DYE[y][x]
+			if letter in ["1", "2", "3"]:
+				img.set_pixel(x, y, shades[int(letter) - 1])
+			elif PALETTE.has(letter):
+				img.set_pixel(x, y, PALETTE[letter])
+	return img
+
+
 ## Pictures drawn as another one with some colours swapped: name -> [the picture,
 ## {letter: letter}] (a stone sword, wooden heads of a pickaxe and a scythe).
 const RECOLOURED := {

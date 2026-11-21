@@ -19,7 +19,7 @@
 | [crafting] (`craft`) | 148 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
 | Переработка (`refine`) | 12 | руки, [tools.items.workbench], [tools.items.drying_rack], [tools.items.loom] |
 | Плавка и обжиг (`smelt`) | 15 | [tools.items.forge], [tools.items.bloomery], [tools.items.kiln] |
-| Готовка (`cook`) | 16 | [core.items.campfire], [tools.items.kiln] |
+| Готовка (`cook`) | 22 | [core.items.campfire], [tools.items.kiln] |
 
 ## [crafting] (`craft`)
 
@@ -230,4 +230,10 @@
 | [plants.recipes.roasted_acorns] `plants:roasted_acorns` | [plants.items.roasted_acorns] ×1 | [plants.items.acorn] ×6 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 5 с | 8 | 3. [core.eras.bronze] | — |
 | [plants.recipes.bone_glue_from_sundew] `plants:bone_glue_from_sundew` | [materials.items.bone_glue] ×1 | [plants.items.sundew] ×6, [resources.items.branch] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | [materials.recipes.bone_glue] `materials:bone_glue` |
 | [tools.recipes.waterskin_full_from_waterskin_sea] `tools:waterskin_full_from_waterskin_sea` | [tools.items.waterskin_full] ×1 | [tools.items.waterskin_sea] ×1 | — | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 6 | 2. [core.eras.bone_leather] | [tools.recipes.waterskin_full_from_pot] `tools:waterskin_full_from_pot` |
+| [plants.recipes.dye_black] `plants:dye_black` | [plants.items.dye_black] ×2; побочно: [tools.items.waterskin] ×1 | [materials.items.charcoal] ×3, [tools.items.waterskin_full] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | — |
+| [plants.recipes.dye_yellow] `plants:dye_yellow` | [plants.items.dye_yellow] ×2; побочно: [tools.items.waterskin] ×1 | [plants.items.evening_primrose] ×3, [tools.items.waterskin_full] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | — |
+| [plants.recipes.dye_pink] `plants:dye_pink` | [plants.items.dye_pink] ×2; побочно: [tools.items.waterskin] ×1 | [plants.items.cranberry] ×3, [tools.items.waterskin_full] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | [plants.recipes.dye_pink_from_raspberry] `plants:dye_pink_from_raspberry` |
+| [plants.recipes.dye_pink_from_raspberry] `plants:dye_pink_from_raspberry` | [plants.items.dye_pink] ×2; побочно: [tools.items.waterskin] ×1 | [plants.items.raspberry] ×3, [tools.items.waterskin_full] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | [plants.recipes.dye_pink] `plants:dye_pink` |
+| [plants.recipes.dye_violet] `plants:dye_violet` | [plants.items.dye_violet] ×2; побочно: [tools.items.waterskin] ×1 | [plants.items.blueberry] ×3, [tools.items.waterskin_full] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | — |
+| [plants.recipes.dye_brown] `plants:dye_brown` | [plants.items.dye_brown] ×2; побочно: [tools.items.waterskin] ×1 | [plants.items.acorn] ×3, [tools.items.waterskin_full] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | — |
 | [tools.recipes.waterskin_full_from_pot] `tools:waterskin_full_from_pot` | [tools.items.waterskin_full] ×1; побочно: [resources.items.salt] ×1 (50%) | [tools.items.waterskin_sea] ×1 | [tools.items.pot] ×1 | [core.items.campfire] (или [tools.items.fireplace]) | — | 6 с | 8 | 3. [core.eras.bronze] | [tools.recipes.waterskin_full_from_waterskin_sea] `tools:waterskin_full_from_waterskin_sea` |

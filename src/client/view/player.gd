@@ -60,6 +60,10 @@ var gait := 0.0
 var look: Array = Figure.dressed({})
 ## The colours of the character's looks (Looks; Figure.paint), {} for the default.
 var looks := {}
+## What is worn (Inventory.gear) and its dyes (Inventory.gear_dye), for the colours of
+## the clothes (Figure.paint).
+var _gear := {}
+var _dyes := {}
 ## What the hands hold and which one is in use (see Figure).
 var held := {"left": {}, "right": {}, "active": "right"}
 ## The work playing (one of player.yaml `works`, "" none), how long it lasts and
@@ -178,8 +182,8 @@ func _ready() -> void:
 	underwater.material_override = sprite_material(UnderwaterShader, tex)
 	# After the water, which is drawn at priority 0.
 	underwater.material_override.render_priority = 1
-	Figure.paint(sprite.material_override, looks)
-	Figure.paint(underwater.material_override, looks)
+	Figure.paint(sprite.material_override, looks, _gear, _dyes)
+	Figure.paint(underwater.material_override, looks, _gear, _dyes)
 	underwater.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	underwater.extra_cull_margin = 24.0
 	underwater.top_level = true
@@ -234,15 +238,18 @@ func dress(worn: Array) -> void:
 		_redraw()
 
 
-## Shows the colours of `l` (Looks, {} for the default's): the shader swaps them, the
+## Shows the colours of `l` (Looks, {} for the default's) and of the clothes of `gear`
+## dyed `dyes` (Inventory.gear, gear_dye; Figure.dye_colours): the shader swaps them, the
 ## sheet stays (its layers come from Figure.dressed with the same looks).
-func paint(l: Dictionary) -> void:
-	if l == looks:
+func paint(l: Dictionary, gear := {}, dyes := {}) -> void:
+	if l == looks and gear == _gear and dyes == _dyes:
 		return
 	looks = l
+	_gear = gear.duplicate()
+	_dyes = dyes.duplicate()
 	if sprite != null:
-		Figure.paint(sprite.material_override, looks)
-		Figure.paint(underwater.material_override, looks)
+		Figure.paint(sprite.material_override, looks, _gear, _dyes)
+		Figure.paint(underwater.material_override, looks, _gear, _dyes)
 
 
 ## Builds the sheet of the look and what is held over the next frames (see

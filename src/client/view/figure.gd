@@ -276,8 +276,45 @@ static func _whole(c: Color) -> Vector3:
 	return Vector3(c.r8, c.g8, c.b8)
 
 
-## Sets the colours of `looks` (swaps) on a figure's material (shaders/looks.gdshaderinc).
-static func paint(material: ShaderMaterial, looks: Dictionary) -> void:
+## How many times a figure's colours were set (paint).
+static var _painted := 0
+
+
+## The body slots whose clothes can be dyed, in the order of their key colours (dye_key).
+const DYE_SLOTS := ["head", "body", "legs", "feet", "neck", "wrists", "ornament"]
+
+
+## The key colour the picture of a thing that can be dyed, worn in slot `on`, is drawn in
+## for shade `shade` of its cloth (0 light, 1 middle, 2 dark; Items.cloth): the shader
+## shows the dye's shade there, or the cloth's own (shaders/looks.gdshaderinc).
+static func dye_key(on: String, shade: int) -> Color:
+	return Color8(254, DYE_SLOTS.find(on) * 3 + shade, 1)
+
+
+## What each key colour (dye_key) shows on a figure wearing `gear` (Inventory.gear) dyed
+## `dyes` (Inventory.gear_dye): the shades of the dye of a thing dyed, else the colours of
+## its cloth, as whole sRGB 0..255, DYE_SLOTS times three.
+static func dye_colours(gear: Dictionary, dyes := {}) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	out.resize(DYE_SLOTS.size() * 3)
+	for i in DYE_SLOTS.size():
+		var on: String = DYE_SLOTS[i]
+		var id := str(gear.get(on, ""))
+		var shades := Items.dye_shades(str(dyes.get(on, "")))
+		var tones: Array = shades if shades.size() == 3 and Items.dyeable(id) else Items.cloth(id)
+		for j in tones.size():
+			out[i * 3 + j] = _whole(tones[j])
+	return out
+
+
+## Sets the colours of `looks` (swaps) on a figure's material (shaders/looks.gdshaderinc),
+## and those of the clothes of `gear` dyed `dyes` (dye_colours).
+static func paint(material: ShaderMaterial, looks: Dictionary, gear := {}, dyes := {}) -> void:
+	# A mark of each painting, so a copy (a figure's mirror, WaterEffects) knows to take it
+	# again without comparing the colours every frame.
+	_painted += 1
+	material.set_meta("painted", _painted)
+	material.set_shader_parameter("dye_to", dye_colours(gear, dyes))
 	var s := swaps(looks)
 	var n: int = mini(s[0].size(), SWAPS_MAX)
 	var from: PackedVector3Array = s[0].slice(0, n)
