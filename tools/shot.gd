@@ -1343,6 +1343,11 @@ func _run() -> void:
 			# The map of the setup screen is drawn a few rows a frame.
 			for i in 120:
 				await process_frame
+			# The map moved by its arrows ([x, y] each, x east, y south), each move drawn.
+			for m: Array in shot.get("map_moves", []):
+				setup._move_map(Vector2i(m[0], m[1]))
+				for i in 90:
+					await process_frame
 		if shot.has("main_menu"):
 			# The painted landscape at the hour asked (the device's clock otherwise).
 			main.MainMenu.hour_override = shot.get("menu_hour", -1.0)
