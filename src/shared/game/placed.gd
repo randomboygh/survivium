@@ -129,6 +129,9 @@ signal fuel_changed(e: Dictionary)
 ## The water rain catcher `e` holds (its `water`) changed: it was drawn from, or another
 ## WATER_TELL of rain ran in.
 signal water_changed(e: Dictionary)
+## Campfire `e` burnt down to its end (not put out): it leaves its `ashes`
+## (WorldActions.leave_ashes).
+signal burnt_down(e: Dictionary)
 ## Door `e` was opened or shut (its `open`).
 signal opened(e: Dictionary)
 ## A cell under a thing was levelled or a bush there taken away: its chunks change.
@@ -1864,5 +1867,7 @@ func _burn_fire(e: Dictionary, delta: float, rain: float) -> void:
 		e.wet = 0.0
 		put_out(e)
 		fuel_changed.emit(e)
+		if e.fuel <= 0.0:
+			burnt_down.emit(e)
 	elif floori(e.fuel / FUEL_TELL) != floori(was / FUEL_TELL):
 		fuel_changed.emit(e)

@@ -1,5 +1,6 @@
 # Finds: things found now and then while digging (a material's `finds`): an ammonite and a geode in stone, amber in
-# sand, clay and peat; seashells in sand, feathers in the grass (jewellery, "Tools"). Kept, or set down as a curio
+# sand, clay and peat; seashells in sand, feathers in the grass (jewellery, "Tools"); chalk,
+# ochre and murex snails for the dyes. Kept, or set down as a curio
 # (prop, furniture: on the floor, a table, a shelf). Fields as for the core's items (content/core/data/items.yaml).
 - id: ammonite
   title: "[materials.items.ammonite]"
@@ -40,3 +41,26 @@
   weight: 0.005
   stack: 30
   icon: feather
+# The sources of three dyes (the dyes bundle of "Plants"), each found only in the biomes of its `found_in`: chalk in
+# stone, ochre in clay and sand, a murex snail in sand (content/materials/finds/data/materials.yaml).
+- id: chalk
+  title: "[materials.items.chalk]"
+  description: "[materials.items.chalk.about]"
+  weight: 0.2
+  stack: 30
+  icon: chalk
+  found_in: [biomes:plateau, biomes:rock, biomes:beach]
+- id: ochre
+  title: "[materials.items.ochre]"
+  description: "[materials.items.ochre.about]"
+  weight: 0.2
+  stack: 30
+  icon: ochre
+  found_in: [biomes:red_rocks, biomes:savanna, biomes:desert]
+- id: murex
+  title: "[materials.items.murex]"
+  description: "[materials.items.murex.about]"
+  weight: 0.05
+  stack: 30
+  icon: murex
+  found_in: [biomes:tropical_beach]

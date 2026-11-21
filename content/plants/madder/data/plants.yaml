@@ -1,0 +1,16 @@
+# Madder (kind: custom, fields as for the fern): a low sprawl of whorled narrow leaves with small yellow flowers on the
+# meadows and in the forest steppe. Cut, it gives a little fiber; its red root (`root`) comes up when the cell under it
+# is dug.
+- id: madder
+  kind: custom
+  title: "[plants.plants.madder]"
+  sprite: madder
+  frames: 2
+  grows: meadow
+  cover: 0.08
+  clumps: 0.4
+  gives: {resources:fiber: 1}
+  chance: 0.5
+  root: {madder_root: 2}
+  winter: false
+  biomes: [biomes:meadow, biomes:forest_steppe]

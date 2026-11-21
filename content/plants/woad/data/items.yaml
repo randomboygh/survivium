@@ -1,0 +1,8 @@
+# Woad leaves, picked from the plant: boiled into the blue dye (the dyes bundle). Fields as for the core's items.
+- id: woad_leaves
+  title: "[plants.items.woad_leaves]"
+  weight: 0.02
+  stack: 30
+  spoils: 4
+  rots_to: core:rot
+  icon: woad_leaves

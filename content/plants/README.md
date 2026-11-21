@@ -75,7 +75,14 @@ content/plants/
   evening_primrose/     "Evening primrose": yellow buds by day that open at night (`looks: night`), the flowers brewed into
                         a calming tea (`calm`: asleep in it, sleep rests faster)
   dyes/                 "Dyes": black (charcoal), yellow (evening primrose), pink (cranberry, raspberry), violet
-                        (blueberry), brown (acorns) boiled in a pot on the campfire; a thing with `cloth` is made dyed
+                        (blueberry), brown (acorns), white (chalk), grey (ash), green (nettle leaves), ochre (ochre), red
+                        (madder root), blue (woad leaves), purple (murex snails) boiled in a pot on the campfire; a thing
+                        with `cloth` is made dyed. Ash: a campfire or a fireplace that burns down leaves it (`ashes`
+                        patched on them); chalk, ochre and murex are finds of "Materials"
+  madder/               "Madder": low whorled leaves with small yellow flowers on meadows and in the forest steppe;
+                        cut, a little fibre; digging the cell under it gives its red root (`root`)
+  woad/                 "Woad": a stalk of blue-green leaves under yellow flowers on meadows and floodplains; picked
+                        for its leaves
   common/models/        models shared by bundles (for now the bush)
   common/textures/      textures shared by bundles (grey bark)
 ```
@@ -129,7 +136,8 @@ folder lacks, the game looks for in the mod's `common/`.
   a small tree (chopped into twigs), and when grown it becomes a tree. A frame can be wider than a cell: `across: 2`
   — the picture is two cards side by side (frames of 16 px, the oak and spruce sprouts), drawn as one picture.
   A plant's `finds` are items that are found now and then when it is cut (the item and the probability of one per
-  plant, separate from `chance`): this is how turnip seeds turn up in tall grass.
+  plant, separate from `chance`): this is how turnip seeds turn up in tall grass. Its `root` is what digging the cell
+  it grows on gives besides the cell's own (madder root).
 - What a tree leaves when it is felled (`seed: acorn`), what a bush gives (`fruit`, `item`) and a grass
   (`gives`) are items of the same bundle, so they are written without a prefix (the namespace is the mod's:
   `acorn` is `plants:acorn`). Such references are soft: without their bundle they are simply dropped.

@@ -1,0 +1,8 @@
+# Nettle leaves, cut with the nettle: boiled into the green dye (the dyes bundle). Fields as for the core's items.
+- id: nettle_leaves
+  title: "[plants.items.nettle_leaves]"
+  weight: 0.02
+  stack: 30
+  spoils: 4
+  rots_to: core:rot
+  icon: nettle_leaves

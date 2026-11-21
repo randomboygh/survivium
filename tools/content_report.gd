@@ -37,7 +37,7 @@ const KINDS := {"items": "Предметы", "recipes": "Рецепты", "mater
 ## How the ways of the graph are said (ContentGraph.ways: the `via` of each).
 const VIA := {"world": "[world_n2]", "start": "старт", "special": "особый источник", "recipe": "рецепт", "also": "побочно", "craft": "сделать",
 	"spawns": "растёт в биоме", "lives": "живёт в биоме", "is": "это", "place": "[place_n2]", "plant": "[plant_n2]",
-	"sow": "посеять", "dig": "копать", "mow": "[mow_n2]", "fell": "[chop_n2]", "gather": "собирать", "dig_out": "выкопать"}
+	"sow": "посеять", "dig": "копать", "mow": "[mow_n2]", "fell": "[chop_n2]", "gather": "собирать", "dig_out": "выкопать", "burn": "остаётся от огня"}
 ## The kinds of work of recipes (`process`), in the order of the register of recipes.
 const PROCESS := {"craft": "[crafting]", "refine": "Переработка", "smelt": "Плавка и обжиг", "cook": "Готовка"}
 ## The checks of the graph (ContentGraph.CHECKS): name, what they find, how to fix it.

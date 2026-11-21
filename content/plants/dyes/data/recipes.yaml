@@ -60,3 +60,73 @@
   at: core:campfire
   process: cook
   time: 6
+- id: dye_white
+  title: "[plants.recipes.dye_white]"
+  makes: dye_white
+  count: 2
+  needs: {materials:chalk: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6
+- id: dye_grey
+  title: "[plants.recipes.dye_grey]"
+  makes: dye_grey
+  count: 2
+  needs: {ash: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6
+- id: dye_green
+  title: "[plants.recipes.dye_green]"
+  makes: dye_green
+  count: 2
+  needs: {nettle_leaves: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6
+- id: dye_ochre
+  title: "[plants.recipes.dye_ochre]"
+  makes: dye_ochre
+  count: 2
+  needs: {materials:ochre: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6
+- id: dye_red
+  title: "[plants.recipes.dye_red]"
+  makes: dye_red
+  count: 2
+  needs: {madder_root: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6
+- id: dye_blue
+  title: "[plants.recipes.dye_blue]"
+  makes: dye_blue
+  count: 2
+  needs: {woad_leaves: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6
+- id: dye_purple
+  title: "[plants.recipes.dye_purple]"
+  makes: dye_purple
+  count: 2
+  needs: {materials:murex: 3, tools:waterskin_full: 1}
+  keeps: {tools:pot: 1}
+  also: [{item: tools:waterskin, count: 1}]
+  at: core:campfire
+  process: cook
+  time: 6

@@ -41,7 +41,7 @@ const Eras := preload("res://src/shared/content/eras.gd")
 ## here fails graph_test: the graph must know every link.
 const LINKS := {
 	"materials.item": "gives", "materials.bonus": "gives", "materials.finds": "gives", "materials.mow": "gives", "materials.mow_gives": "gives",
-	"items.place": "makes", "items.plant": "makes", "items.sow": "makes", "items.crop": "makes", "items.repair": "use", "items.ammo": "use", "items.oars": "use",
+	"items.place": "makes", "items.plant": "makes", "items.sow": "makes", "items.crop": "makes", "items.repair": "use", "items.found_in": "use", "items.ashes": "gives", "items.ammo": "use", "items.oars": "use",
 	"items.serves": "serves", "items.rots_to": "rots", "items.empties_to": "empties", "items.fills_to": "fills", "items.fills_salty_to": "fills",
 	"creatures.likes": "use", "creatures.loves": "use", "creatures.biomes": "lives", "plants.biomes": "lives", "creatures.carcass": "gives", "creatures.catch": "gives", "creatures.wool": "gives", "creatures.trapped": "gives", "creatures.tame_food": "use",
 	"trees.seed": "gives", "trees.log": "gives", "trees.twig": "gives",
@@ -50,7 +50,7 @@ const LINKS := {
 	"recipes.makes": "made", "recipes.also.item": "also", "recipes.needs": "needs", "recipes.keeps": "needs",
 	"recipes.at": "station",
 	"starts.bag": "start", "starts.camp.item": "camp",
-	"plants.gives": "gives", "plants.finds": "gives", "plants.tree": "grows",
+	"plants.gives": "gives", "plants.finds": "gives", "plants.root": "gives", "plants.tree": "grows",
 	"items.era": "era",
 }
 ## The links by which a record uses an item (see uses).
@@ -72,7 +72,7 @@ const TOLD := {"world": "the world", "start": "the start", "special": "a special
 	"recipe": "made by", "also": "a by-product of", "spawns": "grown by", "lives": "living in", "is": "being", "place": "set down from",
 	"plant": "planted from", "sow": "sown from", "dig": "dug from", "mow": "mown from", "fell": "felled from",
 	"gather": "gathered from", "dig_out": "dug out of", "hunt": "hunted", "fish": "fished from", "shear": "shorn from", "trap": "trapped from", "serves": "stood in for by", "spoil": "spoiled from",
-	"empty": "emptied from", "fill": "filled from"}
+	"empty": "emptied from", "fill": "filled from", "burn": "left by the fire of"}
 
 ## Every way a thing comes about: {"to": key, "via": how ("world", "start", "special", an
 ## action of Content.ACTIONS, "craft" for a recipe made, "recipe" for its product, "also"

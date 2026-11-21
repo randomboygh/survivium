@@ -425,6 +425,7 @@ sentence of its own description. Who loads a script: `python3 tools/doc_index.py
 - `tools/make_creatures.py`: Draws the animals' pictures: content/animals/<bundle>/sprites/creatures/<sprite>.png.
 - `tools/make_curio_art.py`: Draws the pictures of the curiosities: the ground plants mimosa (open, and folded as someone passes), giant puffball, sundew (its dew glints: texels of alpha DEW, see grass.gdshader) and evening…
 - `tools/make_deer.py`: Draws the deer's sheet, content/animals/deer/sprites/creatures/deer.png.
+- `tools/make_dye_art.py`: Draws the pictures of the dyes' sources (the dye vat PR): the ground plants madder (whorls of narrow leaves, small yellow flowers; its root is dug up) and woad (a stalk of blue-green leaves under a…
 - `tools/make_fish.py`: Draws the fish's sheets: content/animals/perch/sprites/creatures/perch.png and the fish of the bundle «Рыба», content/animals/fish/sprites/creatures/<fish>.png.
 - `tools/make_fox.py`: Draws the fox's sheet, content/animals/fox/sprites/creatures/fox.png.
 - `tools/make_frog.py`: Draws the frog's sheet, content/animals/frog/sprites/creatures/frog.png.
