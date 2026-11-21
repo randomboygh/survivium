@@ -38,10 +38,20 @@ uniform vec3 tint = vec3(1.0);
 // scale along y past 1 is how deep it swims, undone here.
 uniform float shadow_only = 0.0;
 // What a drawn shadow of a fire or the torch leaves of the light where the sprite
-// stands (FireShadows): 1 out of them. It comes as the sprite's scale along z, which
-// the flat quad does not use: an instance uniform read as 0 in the web build, and the
-// animals were drawn black.
+// stands (FireShadows): 1 out of them. It comes as the sprite's scale along z past 1
+// (2 minus it, before the flash), which the flat quad does not use: an instance uniform
+// read as 0 in the web build, and the animals were drawn black (PixelView.shade_sprite).
 varying float shade;
+// How red an animal flashes at a blow (Creatures, the user's ask 2026-11-21: the red is
+// not drawn into its frames): 0 to 1, from the whole part of half that scale past 1
+// (PixelView.flash_sprite, FLASH_STEPS).
+varying float flash;
+const float FLASH_STEPS = 4.0;
+// The red of the flash, how much of the picture's colour it takes at most, and how
+// much it glows of itself so it shows at night too.
+const vec3 FLASH_RED = vec3(1.0, 0.12, 0.08);
+const float FLASH_MIX = 0.6;
+const float FLASH_GLOW = 0.15;
 
 varying vec3 world_pos;
 varying float clouds;
@@ -85,7 +95,10 @@ void vertex() {
 		// Upright: turned to the camera about its origin.
 		VERTEX = face_view(VERTEX, MODEL_MATRIX[3].xyz);
 	}
-	shade = length(MODEL_MATRIX[2].xyz);
+	float marks = length(MODEL_MATRIX[2].xyz);
+	float steps = max(floor((marks - 1.0) * 0.5 + 0.001), 0.0);
+	shade = clamp(2.0 - (marks - 2.0 * steps), 0.0, 1.0);
+	flash = min(steps / FLASH_STEPS, 1.0);
 	world_pos = VERTEX;
 	VERTEX = shear(IN_SHADOW_PASS ? VERTEX : stand_tall(VERTEX, MODEL_MATRIX[3].xyz));
 	light_xz = VERTEX.xz;
@@ -106,7 +119,7 @@ void fragment() {
 	}
 	vec2 uv = shown.xy + at * shown.zw;
 	vec4 c = texture(sprite_texture, uv);
-	c.rgb = looks_swap(c.rgb) * tint;
+	c.rgb = mix(looks_swap(c.rgb) * tint, FLASH_RED, flash * FLASH_MIX);
 	// The player stays whole whatever level is cut; everyone else goes with their level.
 	bool me = length(world_pos.xz - player_pos.xz) < 0.7 && abs(world_pos.y - player_pos.y) < 1.5;
 	// The whole body casts its shadow, under the water too, so the shadow on the bed
@@ -141,7 +154,7 @@ void fragment() {
 	vec3 lit_col = c.rgb * vec3(shade, mix(shade, 1.0, 0.06), mix(shade, 1.0, 0.2)) * (1.0 - veiled.a);
 	ALBEDO = lit_col * sun_part;
 	lamp_gain = sea_undo(lit_col, sun_part);
-	EMISSION = veiled.rgb;
+	EMISSION = veiled.rgb + FLASH_RED * (flash * FLASH_GLOW * (1.0 - veiled.a));
 	// Lit as if facing up and toward the viewer, on both sides (mirrored sprites
 	// show their back face).
 	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.6, 0.0)).xyz);

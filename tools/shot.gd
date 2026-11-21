@@ -1792,9 +1792,12 @@ func _strike_animal(kind: String, slow: float) -> void:
 	a.think = 100.0
 	a.target = a.pos
 	a.facing = -1.0
-	# The grass hidden, so the animal shows whole.
+	# The grass hidden, so the animal shows whole. The client's copy draws the animal a
+	# moment later (by time, not frames: under software GL it was still unseen as the
+	# blow landed, and its flash went unseen).
 	main.render_toggles.set_hidden("chunks: grass", true)
-	for i in 20:
+	var since := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - since < 2500:
 		await process_frame
 	main.player.facing = "e"
 	Engine.time_scale = slow

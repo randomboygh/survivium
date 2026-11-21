@@ -811,17 +811,17 @@ func _in_shadow(l: Dictionary, p: Vector3, who) -> bool:
 
 
 ## Draws the sprites in `shades` that dark, and the rest as they are (sprite.gdshader
-## reads the shade from the sprite's scale along z).
+## reads the shade from the sprite's scale along z, PixelView.shade_sprite).
 func _shade(shades: Dictionary) -> void:
 	for sprite in _shaded.keys():
 		if not shades.has(sprite):
 			if is_instance_valid(sprite):
-				sprite.scale.z = 1.0
+				PixelView.shade_sprite(sprite, 1.0)
 			_shaded.erase(sprite)
 	for sprite in shades:
 		# Shades are kept a few frames, and an animal may be gone meanwhile.
 		if not is_instance_valid(sprite):
 			continue
 		if absf(_shaded.get(sprite, 1.0) - shades[sprite]) > 0.01:
-			sprite.scale.z = maxf(shades[sprite], 0.01)
+			PixelView.shade_sprite(sprite, shades[sprite])
 			_shaded[sprite] = shades[sprite]

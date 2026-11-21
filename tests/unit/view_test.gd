@@ -1648,7 +1648,7 @@ func _test_rays_dissolve() -> void:
 
 
 ## An animal struck flinches as the blow lands, not before: its picture jerks up and away
-## from the one who struck, shakes back and stands where it was again; another player's
+## from the one who struck, flashes red, shakes back and stands where it was again; another player's
 ## blow is found by its point, only on an animal there within the striker's reach.
 func _test_animal_flinch() -> void:
 	var c := CreaturesView.new()
@@ -1672,9 +1672,23 @@ func _test_animal_flinch() -> void:
 	var along := Vector2(off.x, off.z).dot(PixelView.right) * away
 	_check(roundf(off.y) == CreaturesView.FLINCH_UP and roundf(along) == CreaturesView.FLINCH_PX,
 		"as the blow lands it jerks up and away from the blow (%s)" % off)
+	_check(PixelView.sprite_flash(sprite) == PixelView.FLASH_STEPS, "and flashes wholly red")
+	# A fire's shadow on it meanwhile keeps the flash, and the flash the shade.
+	PixelView.shade_sprite(sprite, 0.3)
+	_check(PixelView.sprite_flash(sprite) == PixelView.FLASH_STEPS and absf(PixelView.sprite_shade(sprite) - 0.3) < 1e-4,
+		"a fire's shadow on a flashing animal keeps the flash")
+	c._process(0.15)
+	var fading := PixelView.sprite_flash(sprite)
+	_check(fading > 0 and fading < PixelView.FLASH_STEPS, "the red fades (%d)" % fading)
 	for i in 10:
 		c._process(0.05)
 	_check(sprite.position == rest and c._flinching.is_empty(), "the flinch is over: it stands where it was")
+	_check(PixelView.sprite_flash(sprite) == 0 and absf(PixelView.sprite_shade(sprite) - 0.3) < 1e-4, "red no more, the shade kept (%s)" % sprite.scale.z)
+	PixelView.shade_sprite(sprite, 1.0)
+	_check(sprite.scale.z == 1.0, "a sprite out of shadow and flash has its scale along z 1 (%s)" % sprite.scale.z)
+	var cull := sprite.custom_aabb
+	_check(cull.position.z <= 0.0 and is_equal_approx(cull.end.z, -cull.position.z),
+		"its culling box is even about z, so a shade or a flash only grows it (%s)" % cull)
 	# Another player's blow, by its point.
 	var other := a.pos + Vector3(0.6, 0.0, 0.0)
 	c.struck_at(a.pos + Vector3(0.0, CreaturesView.BLOW_HEIGHT, 0.0), 0.0, other)
