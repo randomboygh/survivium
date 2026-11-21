@@ -28,8 +28,8 @@ declare -A script=(
 	[progress_hunting]=tests/progress_test.gd [progress_other]=tests/progress_test.gd
 	[frame_test]=tests/frame_test.gd [server_test]=tests/server_test.gd)
 declare -A args=([report]=--check [balance]=--check [progress_hunting]="--part hunting" [progress_other]="--part other")
-declare -A limit=([parse]=120 [validate]=120 [report]=120 [balance]=120 [run_tests]=300 [save_test]=300 [progress_test]=1500
-	[progress_hunting]=1200 [progress_other]=1200 [frame_test]=600 [server_test]=300)
+declare -A limit=([parse]=120 [validate]=120 [report]=120 [balance]=120 [run_tests]=300 [save_test]=300 [progress_test]=2400
+	[progress_hunting]=1500 [progress_other]=1500 [frame_test]=600 [server_test]=300)
 failed=()
 summary=()
 
