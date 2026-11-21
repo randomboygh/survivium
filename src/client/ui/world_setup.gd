@@ -5,7 +5,9 @@ extends "res://src/client/ui/kit/window.gd"
 ## a kind of world that sets the rest at once, and the settings of WorldGen one by one
 ## as rows "name ‹ value ›" like the settings window, with a map of the land round the
 ## middle of the world drawn a few rows a frame as the choice changes, the start a dot on
-## it once found. The map stays put whatever the mods: the land of a seed is the same
+## it once found. The map is in a frame as large as the character's on «Персонаж»
+## (FigureStage), with four arrows at its sides that move it 2/3 of its size that way:
+## the part still in sight is moved, only the new strip is drawn. The map stays put whatever the mods: the land of a seed is the same
 ## with any biomes, only where the start is (in a biome a player may start in) moves. The mods of the new world
 ## are a page of their own, opened from the row «Моды», with a page per mod of several
 ## bundles, each left with "Назад" (or Escape). "Создать мир" (or Enter) keeps the choice in Settings and starts the world,
@@ -24,15 +26,25 @@ const Biomes := preload("res://src/shared/content/biomes.gd")
 const TwoTap := preload("res://src/client/ui/kit/two_tap.gd")
 const TabRow := preload("res://src/client/ui/tab_row.gd")
 const CharacterPage := preload("res://src/client/ui/character_page.gd")
+const FigureStage := preload("res://src/client/ui/figure_stage.gd")
+const FigurePreview := preload("res://src/client/ui/figure_preview.gd")
 
 ## The names of the rows, as wide on every page (the mods' are the longest), so the
 ## panel keeps its size from page to page.
 const NAME_WIDTH := 168
 const VALUE_WIDTH := 84
 const ARROW := 32
-## The map: pixels each way and cells per pixel.
-const MAP := 128
+## The map: cells per pixel of it, and screen pixels a pixel of it where its frame is
+## wide enough (MAP_WIDE_FROM), else one.
 const MAP_STEP := 32
+const MAP_PIXELS := 2
+const MAP_WIDE_FROM := 200
+## The side of the arrows that move the map, at the middles of its frame's sides.
+const MAP_ARROW := 22
+## The part of the map an arrow moves it by.
+const MAP_MOVE := 2.0 / 3.0
+## The map where it is not drawn yet.
+const MAP_BLANK := Color(0.1, 0.1, 0.12)
 ## Time the map may take a frame, in microseconds.
 const MAP_BUDGET_US := 4000
 const LEVELS := ["[few]", "[medium_amount]", "[many]"]
@@ -64,16 +76,24 @@ var _list: VBoxContainer
 ## The rows scroll when the panel is taller than the screen (a phone in landscape).
 var _scroll: ScrollContainer
 var _seed: LineEdit
-## The map, in the middle of a room as wide as the figure of «Персонаж» (layout).
+## The map, in a frame as large as the figure's of «Персонаж» (layout), centred in its room.
 var _map_room: CenterContainer
+var _map_frame: PanelContainer
 var _map: TextureRect
 var _image: Image
 var _texture: ImageTexture
-## The world the map is drawn from and the next row to draw.
+## The map's size in its pixels, and screen pixels a pixel of it.
+var _map_size := Vector2i(112, 112)
+var _map_pixels := MAP_PIXELS
+## The cell at the middle of the map (the middle of the world until an arrow moves it).
+var _map_mid := Vector2i.ZERO
+## The world the map is drawn from, and the parts of the map (in its pixels) still to draw,
+## the first drawn first.
 var _gen: WorldGen
-var _map_row := 0
-## The start on the map, in its pixels (clamped to its edge), once it is found.
-var _spawn_px := Vector2(-1, -1)
+var _todo: Array[Rect2i] = []
+## The start, in cells, once it is found.
+var _spawn_at := Vector2i.ZERO
+var _spawn_found := false
 var _marker: Control
 ## The biomes of the bundles chosen (Biomes.tables), which the map is laid out with, and
 ## the bundles they are of.
@@ -120,22 +140,36 @@ func _ready() -> void:
 	outer.add_child(_box)
 	_map_room = CenterContainer.new()
 	_box.add_child(_map_room)
-	var frame := PanelContainer.new()
-	frame.add_theme_stylebox_override("panel", UiStyle.slot())
-	_map_room.add_child(frame)
-	_image = Image.create_empty(MAP, MAP, false, Image.FORMAT_RGB8)
-	_image.fill(Color(0.1, 0.1, 0.12))
-	_texture = ImageTexture.create_from_image(_image)
+	# The frame of the character's figure (UiStyle.stage), the map in its middle.
+	_map_frame = PanelContainer.new()
+	_map_frame.add_theme_stylebox_override("panel", UiStyle.stage())
+	_map_room.add_child(_map_frame)
+	var middle := CenterContainer.new()
+	_map_frame.add_child(middle)
 	_map = TextureRect.new()
-	_map.texture = _texture
-	_map.custom_minimum_size = Vector2(MAP, MAP)
-	_map.stretch_mode = TextureRect.STRETCH_KEEP
-	_map.tooltip_text = Lang.f("[the_land_round_the_middle]", [(MAP * MAP_STEP)])
-	frame.add_child(_map)
+	_map.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_map.stretch_mode = TextureRect.STRETCH_SCALE
+	_map.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	middle.add_child(_map)
+	_size_map(_map_size, _map_pixels)
 	_marker = Control.new()
 	_marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_marker.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_marker.draw.connect(_draw_marker)
 	_map.add_child(_marker)
+	# The arrows at the middles of the frame's sides, pinned there with zero offsets and
+	# growing inward (sized by the theme only in the tree).
+	for a: Array in [["up", "[move_the_map_north]", Vector2i(0, -1), Control.PRESET_CENTER_TOP],
+			["down", "[move_the_map_south]", Vector2i(0, 1), Control.PRESET_CENTER_BOTTOM],
+			["prev", "[move_the_map_west]", Vector2i(-1, 0), Control.PRESET_CENTER_LEFT],
+			["next", "[move_the_map_east]", Vector2i(1, 0), Control.PRESET_CENTER_RIGHT]]:
+		var b := Kit.icon_button(a[0], a[1], _move_map.bind(a[2]), MAP_ARROW)
+		b.focus_mode = Control.FOCUS_NONE
+		_map.add_child(b)
+		b.set_anchors_preset(a[3], true)
+		var d: Vector2i = a[2]
+		b.grow_horizontal = Control.GROW_DIRECTION_BOTH if d.x == 0 else (Control.GROW_DIRECTION_END if d.x < 0 else Control.GROW_DIRECTION_BEGIN)
+		b.grow_vertical = Control.GROW_DIRECTION_BOTH if d.y == 0 else (Control.GROW_DIRECTION_END if d.y < 0 else Control.GROW_DIRECTION_BEGIN)
 	_list = Kit.column(4)
 	# Inset as the settings' rows (the kit's rule): BAR_GAP from the frame's sides.
 	_scroll = Kit.scroll(_list)
@@ -324,7 +358,7 @@ func _seed_row() -> void:
 		if not digits.is_empty():
 			game.settings.values.world_seed = int(digits)
 			game.settings.save()
-			_restart_map())
+			_restart_map(true))
 	_seed.text_submitted.connect(func(_t: String) -> void: _seed.release_focus())
 	row.add_child(_seed)
 	row.add_child(Kit.icon_button("dice", "[random_seed]", func() -> void:
@@ -332,7 +366,7 @@ func _seed_row() -> void:
 		_seed.text = str(v)
 		game.settings.values.world_seed = v
 		game.settings.save()
-		_restart_map(), ARROW))
+		_restart_map(true), ARROW))
 	_choices.add_custom(label)
 
 
@@ -395,8 +429,8 @@ func _keep_scroll(at: int) -> void:
 ## Side by side on a wide screen, the map over the rows on a tall one; centred. Every
 ## page has the same room, as wide as a row with a scroll bar beside it and as tall as
 ## the world's rows: a longer page (the mods) scrolls in it, and the panel never jumps.
-## «Персонаж» is as large as «Мир», the figure where the map is: the map in a room as
-## wide as the figure, both tabs as tall as the taller. When the panel is taller than
+## «Персонаж» is as large as «Мир», the figure where the map is: the map in a frame as
+## large as the figure's, both tabs as tall as the taller. When the panel is taller than
 ## the screen the rows of either tab scroll in less, so the buttons stay in sight.
 func layout(screen: Vector2) -> void:
 	_box.vertical = screen.x < screen.y
@@ -421,8 +455,8 @@ func layout(screen: Vector2) -> void:
 		# shown unless the screen is short (below).
 		_character.scroll.custom_minimum_size = Vector2(_scroll.custom_minimum_size.x,
 			_character.rows.get_combined_minimum_size().y)
-		_map_room.custom_minimum_size.x = _character.stage.get_combined_minimum_size().x
 		tall = _character.get_combined_minimum_size().y
+	_fit_map()
 	var world := _box.get_combined_minimum_size().y
 	# The room a tab has: the screen's, less the panel round the tab shown.
 	panel.reset_size()
@@ -474,20 +508,94 @@ func _check_saved() -> void:
 
 # --- The map ----------------------------------------------------------------------
 
-func _restart_map() -> void:
+## The map's frame as large as the character's (FigureStage, as large on either tab; as
+## drawn for an upright or a wide screen without «Персонаж»), the map filling it in whole
+## pixels of MAP_PIXELS screen pixels (one in a narrow frame): drawn anew when its size changes.
+func _fit_map() -> void:
+	var outer: Vector2
+	if _character != null:
+		outer = _character.stage.get_combined_minimum_size()
+	else:
+		var px: int = FigureStage.PIXELS if _box.vertical else FigureStage.PIXELS_WIDE
+		outer = Vector2(FigureStage.CROP.size.x, FigureStage.CROP.size.y + FigurePreview.STAND_BELOW) * px \
+			+ UiStyle.stage().get_minimum_size()
+	_map_frame.custom_minimum_size = outer
+	var inner := outer - _map_frame.get_theme_stylebox("panel").get_minimum_size()
+	var pixels := MAP_PIXELS if inner.x >= MAP_WIDE_FROM else 1
+	var size := Vector2i(inner / pixels)
+	if size != _map_size or pixels != _map_pixels:
+		_size_map(size, pixels)
+		_restart_map()
+
+
+## A map `size` of its pixels, each `pixels` screen pixels, blank.
+func _size_map(size: Vector2i, pixels: int) -> void:
+	_map_size = size
+	_map_pixels = pixels
+	_image = Image.create_empty(size.x, size.y, false, Image.FORMAT_RGB8)
+	_image.fill(MAP_BLANK)
+	_texture = ImageTexture.create_from_image(_image)
+	_map.texture = _texture
+	_map.custom_minimum_size = Vector2(size * pixels)
+	_map.tooltip_text = Lang.f("[the_land_round_the_middle]", [size.x * MAP_STEP])
+
+
+## The map drawn anew round its middle (another seed takes it back to the world's middle).
+func _restart_map(to_middle := false) -> void:
 	_gen = null
-	_map_row = 0
-	_spawn_px = Vector2(-1, -1)
+	_todo.clear()
+	if to_middle:
+		_map_mid = Vector2i.ZERO
+	_spawn_found = false
 	if _marker != null:
 		_marker.queue_redraw()
 	_check_saved()
 
 
+## The map moved MAP_MOVE of its size towards `dir` (x east, y south): what stays in sight
+## is moved over, the strip come into sight is drawn (and the parts not drawn yet go along).
+func _move_map(dir: Vector2i) -> void:
+	var by := Vector2i(roundi(_map_size.x * MAP_MOVE) * dir.x, roundi(_map_size.y * MAP_MOVE) * dir.y)
+	_map_mid += by * MAP_STEP
+	var old := _image.duplicate() as Image
+	_image.fill(MAP_BLANK)
+	_image.blit_rect(old, Rect2i(Vector2i.ZERO, _map_size), -by)
+	_texture.update(_image)
+	var whole := Rect2i(Vector2i.ZERO, _map_size)
+	var todo: Array[Rect2i] = []
+	for r in _todo:
+		var moved := Rect2i(r.position - by, r.size).intersection(whole)
+		if moved.has_area():
+			todo.append(moved)
+	# The strip come into sight, on the side moved towards.
+	var strip := whole
+	if dir.x > 0:
+		strip = Rect2i(_map_size.x - by.x, 0, by.x, _map_size.y)
+	elif dir.x < 0:
+		strip = Rect2i(0, 0, -by.x, _map_size.y)
+	elif dir.y > 0:
+		strip = Rect2i(0, _map_size.y - by.y, _map_size.x, by.y)
+	elif dir.y < 0:
+		strip = Rect2i(0, 0, _map_size.x, -by.y)
+	todo.push_front(strip)
+	_todo = todo
+	_marker.queue_redraw()
+
+
+## The cell at the map's top left corner.
+func _map_corner() -> Vector2i:
+	return _map_mid - _map_size / 2 * MAP_STEP
+
+
+## The start, clamped to the map's edge when it is out of sight (it shows which way it is).
 func _draw_marker() -> void:
-	if _spawn_px.x < 0.0:
+	if not _spawn_found:
 		return
-	_marker.draw_rect(Rect2(_spawn_px - Vector2(2, 2), Vector2(5, 5)), UiStyle.DARK_INK)
-	_marker.draw_rect(Rect2(_spawn_px - Vector2(1, 1), Vector2(3, 3)), UiStyle.ACCENT)
+	var px := Vector2(_spawn_at - _map_corner()) / MAP_STEP
+	px = px.clamp(Vector2(1, 1), Vector2(_map_size) - Vector2(2, 2)).floor()
+	var at := (px + Vector2(0.5, 0.5)) * _map_pixels
+	_marker.draw_rect(Rect2(at - Vector2(3, 3), Vector2(6, 6)), UiStyle.DARK_INK)
+	_marker.draw_rect(Rect2(at - Vector2(2, 2), Vector2(4, 4)), UiStyle.ACCENT)
 
 
 func _process(_delta: float) -> void:
@@ -496,7 +604,7 @@ func _process(_delta: float) -> void:
 		_shown = true
 		print("world setup shown: start %s" % _start_button.get_global_rect())
 	var t0 := Time.get_ticks_usec()
-	if _gen != null and _map_row >= MAP and not _gen.seeking:
+	if _gen != null and _todo.is_empty() and not _gen.seeking:
 		return
 	# The land of the bundles chosen: their biomes in place of those the world behind
 	# plays with, for this frame's rows only.
@@ -512,21 +620,33 @@ func _process(_delta: float) -> void:
 		# Its spawn is looked for a little each frame once the map is drawn (a seed far
 		# from good land took seconds on a phone).
 		_gen = WorldGen.new(game.settings.values.world_seed, 48, game.settings.world_options(), false)
-		_map_row = 0
+		_todo = [Rect2i(Vector2i.ZERO, _map_size)]
 	# Round the middle of the world, where the search for the start begins, not round the
 	# start: the start moves with the biomes chosen (a meadow nearer or farther), the land
-	# does not, and a map round it seemed to move the world.
-	var x0 := -MAP / 2 * MAP_STEP
-	while _map_row < MAP and Time.get_ticks_usec() - t0 < MAP_BUDGET_US:
-		var lay := _gen.lay_out(x0, (_map_row - MAP / 2) * MAP_STEP, MAP, 1, MAP_STEP)
-		for i in MAP:
-			_image.set_pixel(i, _map_row, _gen.column_color(lay, i))
-		_map_row += 1
-	_texture.update(_image)
-	if _map_row >= MAP and _gen.seek_spawn(maxi(MAP_BUDGET_US - (Time.get_ticks_usec() - t0), 0)):
+	# does not, and a map round it seemed to move the world. The arrows move it on.
+	var corner := _map_corner()
+	var drew := false
+	while not _todo.is_empty() and Time.get_ticks_usec() - t0 < MAP_BUDGET_US:
+		# A few rows of the first part at once, about a map's width of columns (a narrow
+		# strip of a move sideways would take many small windows).
+		var r: Rect2i = _todo[0]
+		var rows := clampi(_map_size.x / r.size.x, 1, r.size.y)
+		var lay := _gen.lay_out(corner.x + r.position.x * MAP_STEP, corner.y + r.position.y * MAP_STEP,
+			r.size.x, rows, MAP_STEP)
+		for j in rows:
+			for i in r.size.x:
+				_image.set_pixel(r.position.x + i, r.position.y + j, _gen.column_color(lay, j * r.size.x + i))
+		drew = true
+		if rows < r.size.y:
+			_todo[0] = Rect2i(r.position.x, r.position.y + rows, r.size.x, r.size.y - rows)
+		else:
+			_todo.pop_front()
+	if drew:
+		_texture.update(_image)
+	if _todo.is_empty() and _gen.seeking and _gen.seek_spawn(maxi(MAP_BUDGET_US - (Time.get_ticks_usec() - t0), 0)):
 		var at: Vector3i = _gen.spawn_guess
-		var px := Vector2(at.x - x0, at.z - x0) / MAP_STEP
-		_spawn_px = px.clamp(Vector2(2, 2), Vector2(MAP - 3, MAP - 3)).floor()
+		_spawn_at = Vector2i(at.x, at.z)
+		_spawn_found = true
 		_marker.queue_redraw()
 	Biomes.use(own)
 
