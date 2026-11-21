@@ -62,6 +62,15 @@ const MENU_BLUR_IN := 0.5
 const MENU_BLUR_OUT := 0.2
 ## Seconds a shake lasts.
 const SHAKE_TIME := 0.3
+## The first-person view (the test setting «Вид от первого лица», Settings.first_person):
+## a perspective camera at the eyes, EYE above the feet, FOV degrees tall, turned by
+## swipes (look_by) and looking at most PITCH_MAX up or down; the player's figure is not
+## drawn.
+const EYE := 1.6
+const FOV := 70.0
+const PITCH_MAX := deg_to_rad(80.0)
+const FAR := 60.0
+const CROSS_ARM := 3.0
 
 var game
 var container: SubViewportContainer
@@ -123,6 +132,14 @@ var _menu_blur_set := 0.0
 var _shake := 0.0
 var _shake_left := 0.0
 
+var first_person := false
+## The small cross in the middle of the screen in the first-person view.
+var crosshair: Control
+## Where the first-person view looks: radians to the left of north (as `turn`), and up
+## (positive) or down.
+var look_yaw := 0.0
+var look_pitch := 0.0
+
 
 func _init(g) -> void:
 	game = g
@@ -144,6 +161,11 @@ func build(parent: Node) -> void:
 	container.add_child(viewport)
 	world_root = Node3D.new()
 	viewport.add_child(world_root)
+	crosshair = Control.new()
+	crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	crosshair.visible = false
+	crosshair.draw.connect(_draw_crosshair)
+	parent.add_child(crosshair)
 
 
 func build_camera() -> void:
@@ -156,8 +178,79 @@ func build_camera() -> void:
 	camera.current = true
 
 
+## Turns the first-person view on or off. On, it looks the way the camera was turned,
+## a little down; off, the camera is over the player again as it was set.
+func set_first_person(on: bool) -> void:
+	if on == first_person:
+		return
+	first_person = on
+	if camera == null:
+		return
+	if on:
+		_hold = 0
+		_spinning = false
+		_drifting = false
+		look_yaw = turn
+		look_pitch = -0.2
+		camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+		camera.fov = FOV
+		camera.near = 0.05
+		camera.far = FAR
+		PixelView.set_first_person(look_yaw)
+		# Without the shear every view's box is the same: fitted once.
+		PixelView.box_views = [[PixelView.up, 1.0, 0.0]]
+		if game.chunks != null:
+			game.chunks.refit_boxes()
+		if game.effects != null:
+			game.effects.reanchor()
+	else:
+		camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+		camera.size = PixelView.camera_size(image_size.y)
+		camera.near = 1.0
+		camera.far = CAMERA_HEIGHT + 10.0
+		look_at_player()
+		PixelView.box_views = [PixelView.view_of(turn, tilt)]
+		if game.chunks != null:
+			game.chunks.refit_boxes()
+	game.player.set_drawn(not on)
+	if game.chunks != null:
+		# The fog over chunks not built lies on the ground as seen from above; the
+		# first-person view has its own fog with the distance (Sky).
+		game.chunks.set_haze(not on and game.settings.values.edge_mist)
+	game.player.look_way = PixelView.up if on else Vector2.ZERO
+	if crosshair != null:
+		crosshair.visible = on
+
+
+## Turns the first-person view by `d` radians: x to the right, y down.
+func look_by(d: Vector2) -> void:
+	if not first_person:
+		return
+	look_yaw = wrapf(look_yaw - d.x, -PI, PI)
+	look_pitch = clampf(look_pitch - d.y, -PITCH_MAX, PITCH_MAX)
+	PixelView.set_first_person(look_yaw)
+	game.player.look_way = PixelView.up
+
+
+## The cross in the middle of the picture: arms CROSS_ARM pixels of the world long, light
+## with a dark rim, so it shows on the sky and on the ground.
+func _draw_crosshair() -> void:
+	var c: Vector2 = (game.get_viewport().get_visible_rect().size / 2.0).round()
+	var px := maxf(1.0, roundf(view_scale))
+	for pass_i in 2:
+		var color := Color(0.0, 0.0, 0.0, 0.5) if pass_i == 0 else Color(1.0, 1.0, 1.0, 0.85)
+		var grow := px if pass_i == 0 else 0.0
+		var arm := CROSS_ARM * px + grow
+		var half := px * 0.5 + grow
+		crosshair.draw_rect(Rect2(c.x - arm, c.y - half, arm * 2.0, half * 2.0), color)
+		crosshair.draw_rect(Rect2(c.x - half, c.y - arm, half * 2.0, arm * 2.0), color)
+
+
 ## Starts the camera over the player, turned and tilted as last set.
 func look_at_player() -> void:
+	if first_person:
+		PixelView.set_first_person(look_yaw)
+		return
 	turn_steps = posmod(int(game.settings.values.camera_turn), TURNS)
 	tilt_steps = clampi(int(game.settings.values.camera_tilt), -LOWER, STEEPER)
 	turn = turn_steps * TURN_STEP
@@ -171,6 +264,9 @@ func look_at_player() -> void:
 
 ## Turns the camera `steps` steps of TURN_STEP to the left (negative: right).
 func turn_by(steps: int) -> void:
+	if first_person:
+		look_by(Vector2(-steps * TURN_STEP, 0.0))
+		return
 	turn_steps += steps
 	_aim()
 
@@ -179,6 +275,8 @@ func turn_by(steps: int) -> void:
 ## held (see HOLD_TIME).
 func hold_turn(dir: int) -> void:
 	turn_by(dir)
+	if first_person:
+		return
 	if _spinning and dir != _hold:
 		_spinning = false
 	_hold = dir
@@ -208,12 +306,18 @@ func is_drifting() -> bool:
 ## Tilts the camera `steps` steps of TILT_STEP steeper (negative: lower), within
 ## STEEPER and LOWER.
 func tilt_by(steps: int) -> void:
+	if first_person:
+		look_by(Vector2(0.0, -steps * TILT_STEP))
+		return
 	tilt_steps = clampi(tilt_steps + steps, -LOWER, STEEPER)
 	_aim()
 
 
 ## Back to the default view, turning the short way.
 func reset_turn() -> void:
+	if first_person:
+		look_by(Vector2(look_yaw, look_pitch + 0.2))
+		return
 	_hold = 0
 	_spinning = false
 	turn_steps = roundi(turn_steps / float(TURNS)) * TURNS
@@ -222,12 +326,16 @@ func reset_turn() -> void:
 
 
 func is_default() -> bool:
+	if first_person:
+		return false
 	return posmod(turn_steps, TURNS) == 0 and tilt_steps == 0
 
 
 ## The turn set, in whole degrees to the left of north, 0..315 (any while it turns
 ## smoothly or drifts).
 func turn_degrees() -> int:
+	if first_person:
+		return posmod(roundi(rad_to_deg(look_yaw)), 360)
 	if _spinning or _drifting:
 		return posmod(roundi(rad_to_deg(turn)), 360)
 	return posmod(turn_steps, TURNS) * 45
@@ -497,8 +605,27 @@ func poll_safe_rect(delta: float) -> void:
 		layout_ui(r)
 
 
+## Where world point `p` is on the low-res image, in its pixels (far off it when it is
+## behind the first-person camera).
+func image_of(p: Vector3) -> Vector2:
+	if first_person:
+		if camera.is_position_behind(p):
+			return Vector2(-100000.0, -100000.0)
+		return camera.unproject_position(p)
+	var center := PixelView.plane_of(Vector2(camera.global_position.x, camera.global_position.z))
+	return (PixelView.screen_plane(p) - center) * PixelView.PIXELS_PER_UNIT + Vector2(image_size) * 0.5
+
+
+## The view ray through low-res image point `at` of the first-person camera, in world
+## units: [origin, direction].
+func first_person_ray(at: Vector2) -> Array:
+	return [camera.project_ray_origin(at), camera.project_ray_normal(at)]
+
+
 ## Where world point `p` is on the screen, in screen pixels (as drawn this frame).
 func screen_of(p: Vector3) -> Vector2:
+	if first_person:
+		return container.position + image_of(p) * view_scale
 	var offset := (PixelView.screen_plane(p) - cam_target) * PixelView.PIXELS_PER_UNIT
 	return (Vector2(image_size) / 2.0 - Vector2.ONE * PixelView.MARGIN + offset) * view_scale
 
@@ -510,6 +637,11 @@ func update(delta: float) -> void:
 		return
 	var player = game.player
 	_tire(delta)
+	if game.settings.first_person != first_person:
+		set_first_person(game.settings.first_person)
+	if first_person:
+		_first_person_frame(player)
+		return
 	_glide(delta)
 	var target: Vector2 = PixelView.screen_plane(player.position + Vector3(0.0, 0.5, 0.0))
 	cam_target = cam_target.lerp(target, minf(1.0, delta * 6.0))
@@ -526,6 +658,24 @@ func update(delta: float) -> void:
 	container.position = (-Vector2.ONE * PixelView.MARGIN - frac) * view_scale
 	container.position = container.position.round()
 	# The drops and snow on the screen keep to the screen, not to the gliding picture.
+	grade_mat.set_shader_parameter("screen_shift", container.position / view_scale + Vector2.ONE * PixelView.MARGIN)
+	if game.settings.values.crt != 0 or sway > 0.0 or trip > 0.0 or dream > 0.0:
+		Crt.frame(grade_mat, game.get_viewport().get_visible_rect().size, container.position, view_scale,
+			Engine.get_process_frames())
+	player.place_sprite()
+	RenderingServer.global_shader_parameter_set("player_pos", player.position)
+
+
+## A frame of the first-person view: the camera at the eyes, the picture not shifted.
+func _first_person_frame(player) -> void:
+	var eye: Vector3 = player.position + Vector3(0.0, EYE, 0.0)
+	camera.global_transform = Transform3D(Basis.from_euler(Vector3(look_pitch, look_yaw, 0.0)), eye)
+	cam_target = PixelView.screen_plane(player.position + Vector3(0.0, 0.5, 0.0))
+	grade_mat.set_shader_parameter("view_origin", Vector2.ZERO)
+	container.position = (-Vector2.ONE * PixelView.MARGIN * view_scale).round()
+	if crosshair.size != game.get_viewport().get_visible_rect().size:
+		crosshair.size = game.get_viewport().get_visible_rect().size
+		crosshair.queue_redraw()
 	grade_mat.set_shader_parameter("screen_shift", container.position / view_scale + Vector2.ONE * PixelView.MARGIN)
 	if game.settings.values.crt != 0 or sway > 0.0 or trip > 0.0 or dream > 0.0:
 		Crt.frame(grade_mat, game.get_viewport().get_visible_rect().size, container.position, view_scale,

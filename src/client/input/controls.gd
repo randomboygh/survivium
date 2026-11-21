@@ -32,6 +32,7 @@ const FarmMode := preload("res://src/client/input/farm_mode.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const LookSwipe := preload("res://src/client/input/look_swipe.gd")
 
 const CELL := WorldData.CELL
 ## In the view in layers, a cell drawn by less than this share is picked through.
@@ -89,10 +90,13 @@ var _preview_for := []
 var _body_for := []
 var _body_until := 0
 var _touch_tip_clock := 0.0
+## Swipes that turn the first-person view (CameraRig.first_person), and its taps.
+var look: LookSwipe
 
 
 func _init(g) -> void:
 	game = g
+	look = LookSwipe.new(g)
 	touch = DisplayServer.is_touchscreen_available()
 	show_help = not touch
 
@@ -141,6 +145,8 @@ func input(event: InputEvent) -> void:
 
 
 func unhandled_input(event: InputEvent) -> void:
+	if game.view.first_person and look.input(event):
+		return
 	# The turn keys, like the buttons, turn the camera on smoothly while held.
 	if event is InputEventKey and not event.pressed:
 		match event.physical_keycode:
@@ -301,6 +307,8 @@ func update(delta: float) -> void:
 	_cooldown = maxf(0.0, _cooldown - delta)
 	_cursor_clock = maxf(0.0, _cursor_clock - delta)
 	_check_hands()
+	if game.view.first_person:
+		look.update()
 	game.build.update(delta)
 	game.farm.update(delta)
 	_label_clock -= delta
@@ -644,6 +652,9 @@ func step() -> Vector2i:
 func _ray(screen_pos: Vector2) -> Array:
 	var view = game.view
 	var vp_pos: Vector2 = (screen_pos - view.container.global_position) / view.view_scale
+	if view.first_person:
+		var through: Array = view.first_person_ray(vp_pos)
+		return [through[0] / CELL, through[1]]
 	var center: Vector2 = PixelView.plane_of(Vector2(view.camera.global_position.x, view.camera.global_position.z))
 	var ray: Array = PixelView.view_ray(center, vp_pos - Vector2(view.image_size) * 0.5, game.world.size_y * CELL + 1.0)
 	return [ray[0] / CELL, ray[1]]

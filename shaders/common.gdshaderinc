@@ -243,7 +243,8 @@ vec3 face_view(vec3 p, vec3 o) {
 // unit of height view_slope tall it keeps its height in pixels at any tilt. Only for
 // what is drawn: tests of where the point is (the cut, roofs, water) take it as it is.
 vec3 stand_tall(vec3 p, vec3 o) {
-	return vec3(p.x, o.y + (p.y - o.y) / view_slope, p.z);
+	// The first-person view draws no shear (slope 0): the quad as it is.
+	return vec3(p.x, o.y + (p.y - o.y) / (view_slope > 0.01 ? view_slope : 1.0), p.z);
 }
 
 float hash12(vec2 p) {

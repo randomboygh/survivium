@@ -1436,7 +1436,10 @@ func update_cut(_delta: float) -> void:
 			manual_level = -1
 		else:
 			manual_level = maxi(manual_level, reach.x)
-	if manual_level >= 0:
+	if game.view.first_person:
+		# The eyes see what is round them: nothing cut away, no layers.
+		manual_level = -1
+	elif manual_level >= 0:
 		target = manual_level
 	elif indoor:
 		# Over the head.
@@ -1450,7 +1453,7 @@ func update_cut(_delta: float) -> void:
 		# nothing (a ravine running along the view) open nothing either.
 		target = hidden_by - 1
 	_update_depth()
-	var opened := manual_level < 0 and target < world.size_y
+	var opened: bool = manual_level < 0 and target < world.size_y and not game.view.first_person
 	# Where the automatic cut would cut the view, the layers open it instead and fill
 	# what they leave out with the rock's section, by the solid cells round the player.
 	_update_layers(opened, at)

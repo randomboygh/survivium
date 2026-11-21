@@ -85,6 +85,11 @@ var sprite: MeshInstance3D
 var xray: MeshInstance3D
 ## The part of the sprite under the water, tinted, drawn over the water.
 var underwater: MeshInstance3D
+## Whether the figure is drawn (set_drawn): not in the first-person view.
+var drawn := true
+## The way the first-person view looks over the ground (CameraRig.look_by), which the
+## body faces whichever way it walks; ZERO out of it.
+var look_way := Vector2.ZERO
 ## The light round the player in the dark: a faint glow of their own, or a torch's
 ## when they hold one (see sky.gd).
 var torch: OmniLight3D
@@ -163,6 +168,16 @@ var flames_at: Array = []
 var riding := ""
 ## Whether it sits at the oars (the rower, ActionsBoat seat 0), not carried behind.
 var rowing := true
+
+
+## Shows the figure, or (the first-person view, CameraRig.first_person) leaves only its
+## shadow.
+func set_drawn(on: bool) -> void:
+	drawn = on
+	sprite.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if on \
+		else GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	xray.visible = on
+	underwater.visible = underwater.visible and on
 
 
 func _ready() -> void:
@@ -325,7 +340,9 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 			anim_time = 0.0
 		anim_time += delta
 		return
-	if dir.length() > 0.1:
+	if look_way != Vector2.ZERO:
+		facing = SpriteSheet.direction_of(look_way)
+	elif dir.length() > 0.1:
 		facing = SpriteSheet.direction_of(dir)
 	if work_kind != "":
 		# A work plays once over its length, then the body walks or stands again.
@@ -430,7 +447,7 @@ func place_sprite() -> void:
 	var tint: Array = SWAMP_TINT if body.murk > 0 else CLEAR_TINT
 	underwater.material_override.set_shader_parameter("shallow", tint[0])
 	underwater.material_override.set_shader_parameter("deep", tint[1])
-	underwater.visible = line > -1000.0 and not body.in_bog
+	underwater.visible = drawn and line > -1000.0 and not body.in_bog
 	_find_flame()
 	# The torch is held a little towards the viewer, at the flame: as high and as far to
 	# the side as the hand that holds it (two lights, between them), not in the middle of

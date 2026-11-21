@@ -185,6 +185,23 @@ static func set_view(turn: float, tilt: float) -> void:
 	RenderingServer.global_shader_parameter_set("light_reach", light_reach)
 
 
+## Sets the first-person view (CameraRig.first_person): the camera, a perspective one at
+## the eyes, looks along `yaw` (radians to the left of north, as a turn), and the shaders
+## draw the world as it is: no shear (slope 0, squash 1), and the upright pictures
+## (sprites, crowns) turned to face along `yaw`.
+static func set_first_person(yaw: float) -> void:
+	up = Vector2(-sin(yaw), -cos(yaw))
+	right = Vector2(-up.y, up.x)
+	squash = 1.0
+	slope = 0.0
+	RenderingServer.global_shader_parameter_set("view_up", up)
+	RenderingServer.global_shader_parameter_set("view_squash", squash)
+	RenderingServer.global_shader_parameter_set("view_slope", slope)
+	RenderingServer.global_shader_parameter_set("rest_view", Vector3(up.x, up.y, 0.0))
+	light_reach = reach_of(slope)
+	RenderingServer.global_shader_parameter_set("light_reach", light_reach)
+
+
 ## The most the shear with `s` (see set_view) stretches a way: its larger singular value.
 static func reach_of(s: float) -> float:
 	return (sqrt(s * s + 4.0) + absf(s)) * 0.5

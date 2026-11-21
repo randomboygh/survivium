@@ -664,6 +664,9 @@ func _debug_rows() -> Array:
 		["[level_overview]", ["±%d" % game.chunks.VIEW_REACH, "[all_n2]"],
 			func() -> int: return int(s.free_view),
 			func(i: int) -> void: s.free_view = i == 1],
+		["[first_person_view]", ["[off]", "[on]"],
+			func() -> int: return int(s.first_person),
+			func(i: int) -> void: s.first_person = i == 1],
 		_section("hammer", "[tools]"),
 		{"action": "[break_down_draw_calls]", "do": func() -> void:
 			close()
