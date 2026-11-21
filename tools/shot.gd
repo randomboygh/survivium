@@ -768,6 +768,24 @@ func _run() -> void:
 			var since := Time.get_ticks_msec()
 			while Time.get_ticks_msec() - since < 3500:
 				await process_frame
+		if shot.has("tap_prop"):
+			# A thing of the furniture tapped out of the build mode (a stool sat on, a bed
+			# lain in, sleepy).
+			main.host.player.vitals.energy = 10.0
+			var near := {}
+			for e in main.placed.things:
+				if e.item == shot.tap_prop and (near.is_empty() or main.player.position.distance_to(main.placed.center(e))
+						< main.player.position.distance_to(main.placed.center(near))):
+					near = e
+			if not near.is_empty():
+				main.player.position = main.placed.center(near) + Vector3(0.0, 0.0, 1.5 * CELL)
+				main.player.facing = shot.get("facing", "s")
+				for i in 3:
+					await process_frame
+				print("shot: tapped %s: %s (%.2f away, energy %.0f)" % [near.item, main.gathering.gather({"prop": near}),
+					main.host.player.position.distance_to(main.placed.center(near)), main.host.player.vitals.energy])
+			for i in 20:
+				await process_frame
 		if shot.has("skills"):
 			# Skills learned: {role: level}, a little on the way to the next.
 			var reg = load("res://src/shared/content/skills.gd")

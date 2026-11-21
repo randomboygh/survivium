@@ -111,12 +111,12 @@
 "[lmb_take_drag_double_turn]": "%s\nLMT nehmen, ziehen zum Verschieben, Doppelklick zum Drehen"
 "[lmb_take]": "%s\nLMT nehmen"
 "[lmb_read]": "%s\nLMT lesen"
-"[take_it_in_build_mode]": "%s\nnehmen im Baumodus"
 "[lmb]": "%s\nLMT %s"
 "[close_n2]": "schließen"
 "[open]": "öffnen"
 "[lmb_open]": "%s\nLMT öffnen"
 "[go_to_sleep_n2]": "schlafen gehen"
+"[sit_down_n2]": "hinsetzen"
 "[not_sleepy_n2]": "nicht müde"
 "[lmb_craft]": "%s\nLMT herstellen"
 "[lmb_pick_up_into_bag]": "%s\nLMT in die Tasche"
@@ -129,7 +129,6 @@
 "[pick]": "pflücken"
 "[lmb_break_off_branches]": "%s\nLMT Äste abbrechen"
 "[empty_until_spring]": "%s\nleer bis zum Frühling"
-"[you_can_take_it_in]": "Im Baumodus kann man es nehmen"
 
 # src/client/game/markers.gd
 "[red]": "rot"

@@ -111,12 +111,12 @@
 "[lmb_take_drag_double_turn]": "%s\nClic G prendre, glisser pour déplacer, double-clic pour tourner"
 "[lmb_take]": "%s\nClic G prendre"
 "[lmb_read]": "%s\nClic G lire"
-"[take_it_in_build_mode]": "%s\nà prendre en mode construction"
 "[lmb]": "%s\nClic G %s"
 "[close_n2]": "fermer"
 "[open]": "ouvrir"
 "[lmb_open]": "%s\nClic G ouvrir"
 "[go_to_sleep_n2]": "dormir"
+"[sit_down_n2]": "s'asseoir"
 "[not_sleepy_n2]": "pas sommeil"
 "[lmb_craft]": "%s\nClic G fabriquer"
 "[lmb_pick_up_into_bag]": "%s\nClic G mettre dans le sac"
@@ -129,7 +129,6 @@
 "[pick]": "cueillir"
 "[lmb_break_off_branches]": "%s\nClic G casser des branches"
 "[empty_until_spring]": "%s\nvide jusqu'au printemps"
-"[you_can_take_it_in]": "On peut le prendre en mode construction"
 
 # src/client/game/markers.gd
 "[red]": "rouge"

@@ -112,6 +112,9 @@ var asleep := false
 var snore: Array[Sprite3D] = []
 ## How far towards the viewer a sleeping body is drawn, in cells.
 const LYING_FORWARD := 0.8
+## How far towards the viewer a sitting body is drawn, in cells: on a stool it shows in
+## front of the seat, not behind it.
+const SITTING_FORWARD := 0.5
 ## The seconds a letter "z" takes to rise and fade; SNORE_LETTERS are in the air at once.
 const SNORE_TIME := 2.7
 const SNORE_LETTERS := 3
@@ -399,8 +402,9 @@ func place_sprite() -> void:
 		_use(_build.target)
 		_build = null
 	var drawn_at := position
-	if anim == "sleep":
-		drawn_at -= Vector3(PixelView.up.x, 0.0, PixelView.up.y) * LYING_FORWARD * CELL
+	if anim == "sleep" or anim == "sit":
+		var forward := LYING_FORWARD if anim == "sleep" else SITTING_FORWARD
+		drawn_at -= Vector3(PixelView.up.x, 0.0, PixelView.up.y) * forward * CELL
 	sprite.global_position = PixelView.snap(drawn_at)
 	if body.swimming and fmod(Time.get_ticks_msec() / 1000.0, 1.2) < 0.6:
 		# A swimmer bobs on the water by a pixel.

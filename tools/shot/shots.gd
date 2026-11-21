@@ -303,6 +303,9 @@ const SHOTS := {
 	"build-mode-plane": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "plane", "height": 2},
 	# Furniture on a floor of planks: a table with stools, a bed, a cupboard, a barrel, a rug.
 	"build-furniture": {"time": 0.4, "season": 1, "furniture": true},
+	# The same, a stool tapped: sat on (the gesture "sit"); the bed tapped: lain in asleep.
+	"sit-stool": {"time": 0.4, "season": 1, "furniture": true, "tap_prop": "tools:stool"},
+	"sleep-bed": {"time": 0.4, "season": 1, "furniture": true, "tap_prop": "tools:wooden_bed"},
 	# Doors and windows of every size in a brick wall, a fireplace burning, a wide cupboard
 	# (places.openings): by day, at dusk, and the bag by the cupboards and the barrel.
 	"build-openings": {"time": 0.4, "season": 1, "openings": "wall"},

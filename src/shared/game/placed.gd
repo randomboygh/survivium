@@ -975,6 +975,11 @@ static func is_bed(e: Dictionary) -> bool:
 	return not is_light(e) and Items.get_item(e.item).get("bedding", 1.0) > 1.0
 
 
+## True for a seat (its item's `seat` over 1: a stool, sat on at a tap, Character.sit_on).
+static func is_seat(e: Dictionary) -> bool:
+	return not is_light(e) and Items.get_item(e.item).get("seat", 1.0) > 1.0
+
+
 ## The bed a body with its feet at `p` (world units) lies on, {} for none: its feet over
 ## the bed's square of cells, no higher than a level above them.
 func bed_under(p: Vector3) -> Dictionary:

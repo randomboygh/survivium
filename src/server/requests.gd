@@ -322,6 +322,10 @@ func _rule(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_VECTOR3I]):
 				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and Placed.is_bed(e) and who.lie_in(e)
+		Protocol.SIT_ON:
+			if _fit(args, [TYPE_VECTOR3I]):
+				var e: Dictionary = _near(args[0])
+				return not e.is_empty() and Placed.is_seat(e) and who.sit_on(e, _now())
 		Protocol.REPAIR:
 			if _fit(args, [TYPE_INT]) and _slot(who.inventory, args[0]):
 				return workshop.repair(args[0])

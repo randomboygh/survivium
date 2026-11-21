@@ -111,12 +111,12 @@
 "[lmb_take_drag_double_turn]": "%s\nLPM weź, przeciągnij, by przestawić, dwuklik, by obrócić"
 "[lmb_take]": "%s\nLPM weź"
 "[lmb_read]": "%s\nLPM czytaj"
-"[take_it_in_build_mode]": "%s\nweź w trybie budowy"
 "[lmb]": "%s\nLPM %s"
 "[close_n2]": "zamknij"
 "[open]": "otwórz"
 "[lmb_open]": "%s\nLPM otwórz"
 "[go_to_sleep_n2]": "idź spać"
+"[sit_down_n2]": "usiądź"
 "[not_sleepy_n2]": "nie chce się spać"
 "[lmb_craft]": "%s\nLPM wytwórz"
 "[lmb_pick_up_into_bag]": "%s\nLPM do torby"
@@ -129,7 +129,6 @@
 "[pick]": "zbierz"
 "[lmb_break_off_branches]": "%s\nLPM nałam gałęzi"
 "[empty_until_spring]": "%s\npusto do wiosny"
-"[you_can_take_it_in]": "Można to wziąć w trybie budowy"
 
 # src/client/game/markers.gd
 "[red]": "czerwony"

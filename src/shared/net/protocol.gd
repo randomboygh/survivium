@@ -171,6 +171,9 @@ const SLEEP := "sleep"
 ## Lies down in a bed set down (a mat, a bedroll) to sleep in it: [cell] (Character.lie_in);
 ## true when asleep there.
 const LIE_IN := "lie_in"
+## Sits down on a seat set down (a stool: an item with `seat`): [cell] (Character.sit_on);
+## true when sitting there.
+const SIT_ON := "sit_on"
 ## Comes back to life at a point: [at] (Character.revive).
 const REVIVE := "revive"
 ## Has the world made ready where the player is about to go (Character.going): [at],

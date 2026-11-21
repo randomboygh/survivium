@@ -24,6 +24,7 @@ const Lang := preload("res://src/shared/content/lang.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 const Looks := preload("res://src/shared/content/looks.gd")
+const Gestures := preload("res://src/shared/game/gestures.gd")
 
 const CELL := WorldData.CELL
 ## A message for the same reason is not repeated sooner than this, in seconds.
@@ -772,6 +773,16 @@ func lie_in(e: Dictionary) -> bool:
 		return false
 	_came_back(placed.lying_spot(e))
 	return true
+
+
+## Sits down on seat `e` (Placed: a thing with `seat`, a stool) at `now` (seconds): the
+## body is put on it (_came_back) and makes the gesture "sit" (Gestures) until it moves.
+## False if it did not sit down (asleep, afloat).
+func sit_on(e: Dictionary, now: float) -> bool:
+	if vitals.asleep or riding != "":
+		return false
+	_came_back(placed.lying_spot(e))
+	return Gestures.make(self, "sit", now)
 
 
 ## Puts on what lies in bag slot `i` (see Inventory.wear); false, and says why, if not.
