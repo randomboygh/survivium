@@ -23,8 +23,12 @@ func _init(c: Color) -> void:
 	set_notify_transform(true)
 
 
+func _ready() -> void:
+	set_process(over_blur.a >= 0.0 and is_visible_in_tree())
+
+
 func _process(_delta: float) -> void:
-	if over_blur.a >= 0.0 and world_blur != _blur_drawn and is_visible_in_tree():
+	if world_blur != _blur_drawn:
 		queue_redraw()
 
 
@@ -36,6 +40,9 @@ static func window_rect(c: CanvasItem) -> Rect2:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_TRANSFORM_CHANGED:
 		queue_redraw()
+	elif what == NOTIFICATION_VISIBILITY_CHANGED:
+		# Follows the blur only while shown.
+		set_process(over_blur.a >= 0.0 and is_visible_in_tree())
 
 
 func _draw() -> void:

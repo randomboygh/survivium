@@ -94,11 +94,11 @@ func toggle_stats() -> void:
 ## world behind is blurred and darkened; not while the settings show «Графика» (a change
 ## there is looked at in the world).
 func system_menu_open() -> bool:
+	var menu = game.get("menu")
 	var nodes := get_tree().get_nodes_in_group(SYSTEM_MENU)
 	for n: Node in nodes:
 		if n.has_method("shows_world") and n.shows_world():
 			return false
-	var menu = game.get("menu")
 	if menu != null and menu.is_open:
 		return true
 	for n: Node in nodes:
