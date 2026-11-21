@@ -100,7 +100,10 @@ func fish(who, aim := Vector3.INF) -> Dictionary:
 		dir = Vector2(aim.x - at.x, aim.z - at.z).normalized()
 	if world.water_frozen:
 		return _fish_hole(who, aim)
-	var water := water_ahead(at, dir, maxi(2, rod.get("range", 0)))
+	var water := water_ahead(at, dir, maxi(2, rod.get("range", 0)), true)
+	if water == Vector3.INF and world.icy():
+		# Ice ahead while the water freezes: an open hole is fished as in a frozen world.
+		return _fish_hole(who, aim)
 	if water == Vector3.INF:
 		who.nag("fish", "[a_rod_is_cast_into]")
 		return {"swing": IDLE_SWING}
@@ -173,7 +176,7 @@ func hole_near(who, aim := Vector3.INF) -> Variant:
 ## world units) or else ahead of the body, one or two cells off, frozen water within
 ## HOLE_REACH; null for none.
 func ice_ahead(who, aim := Vector3.INF) -> Variant:
-	if not world.water_frozen:
+	if not world.icy():
 		return null
 	var from: Vector3 = who.position / CELL
 	var cols: Array[Vector2i] = []
@@ -188,7 +191,7 @@ func ice_ahead(who, aim := Vector3.INF) -> Variant:
 	for col in cols:
 		if col == feet or Vector2(col.x + 0.5, col.y + 0.5).distance_to(Vector2(from.x, from.z)) > HOLE_REACH:
 			continue
-		if world.water_col(col.x, col.y) != 0:
+		if world.water_col(col.x, col.y) != 0 and (world.frozen_at(col.x, col.y) or world.ice_holes.has(col)):
 			return col
 	return null
 
@@ -261,7 +264,8 @@ func _pull(who) -> Dictionary:
 ## `reach` cells, as a world point; INF when there is none. Open means air over it up to
 ## the level of the body: water in a cave under the ground in front is not reached (the
 ## user's report 2026-11-20: the button drank "sea water" in a forest over a cave lake).
-func water_ahead(at: Vector3, dir: Vector2, reach: int) -> Vector3:
+## `no_ice`: frozen columns are passed over (a rod is cast past the ice).
+func water_ahead(at: Vector3, dir: Vector2, reach: int, no_ice := false) -> Vector3:
 	var from := Vector2(at.x, at.z) / CELL
 	var feet := floori(at.y / CELL)
 	for i in range(2, reach * 2 + 1):
@@ -269,7 +273,7 @@ func water_ahead(at: Vector3, dir: Vector2, reach: int) -> Vector3:
 		var x := floori(p.x)
 		var z := floori(p.y)
 		var bits: int = world.water_col(x, z)
-		if bits == 0:
+		if bits == 0 or no_ice and world.frozen_at(x, z):
 			continue
 		var top := WorldData.top_level(bits)
 		var open := true

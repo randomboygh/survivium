@@ -42,8 +42,23 @@ var sea_level := 12
 const SNOW_LINE := 18
 
 ## In winter water freezes and is walked on like ground; otherwise it is waded and
-## swum through.
+## swum through. True once all of it is ice (Clock.ice() from ICE_WHOLE).
 var water_frozen := false
+## How far the freezing has come while the water is not all ice yet, 0..1 (Clock sets it
+## from Clock.ice() / ICE_WHOLE): the ice creeps out from the shallows towards the deep
+## and comes in patches on deep water (ice_margin); 0 none, 1 all (water_frozen).
+var ice_spread := 0.0
+## Clock.ice() from which all the water is ice.
+const ICE_WHOLE := 0.8
+## The depth of water (cells) the ice from the shore has reached when all is frozen.
+const ICE_REACH := 9.0
+## How fast the patches of ice on deep water spread with ice_spread, and how sharp they are.
+const ICE_SPOTS := Vector2(1.3, 4.0)
+## How far (cells of depth) the edge of the ice from the shore wanders, by a noise of
+## 3 cells, so it is not the shape of the shore's steps.
+const ICE_RAG := 2.5
+## The two sizes (cells) of the patch noise of the ice (ice_noise).
+const ICE_LATTICE := Vector2i(10, 4)
 ## Holes cut in the ice (Ice): column (Vector2i x, z) -> the day (Clock.now) it was cut
 ## while it is open, -1 once a crust has grown over it. An open hole is open water
 ## (frozen_at), in a frozen world. Not saved: they skin over in a day anyway.
@@ -836,10 +851,65 @@ func surface_y(x: int, z: int) -> int:
 	return y + 1
 
 
-## Whether the water of column (x, z) is ice: all water is in a frozen world, but for the
-## open holes cut in it (ice_holes).
+## Whether the water of column (x, z) is ice: all water is in a frozen world, while it
+## freezes the columns ice_margin says, but for the open holes cut in it (ice_holes).
 func frozen_at(x: int, z: int) -> bool:
-	return water_frozen and (ice_holes.is_empty() or ice_holes.get(Vector2i(x, z), -1.0) < 0.0)
+	if not water_frozen and (ice_spread <= 0.0 or ice_margin(x, z) <= 0.0):
+		return false
+	return ice_holes.is_empty() or ice_holes.get(Vector2i(x, z), -1.0) < 0.0
+
+
+## Whether any water is ice now (all of it or the freezing begun).
+func icy() -> bool:
+	return water_frozen or ice_spread > 0.0
+
+
+## How far into the ice column (x, z) is while the water freezes: over 0 is ice. The ice
+## comes out from the shore over water shallower than ice_spread × ICE_REACH cells and in
+## patches of ice_noise on deeper water. water.gdshader (ice_here) draws the same rule
+## per texel from the depth at the vertices, with a ragged edge: keep the two alike.
+func ice_margin(x: int, z: int) -> float:
+	var bits := water_col(x, z)
+	if bits == 0:
+		return -1.0
+	var top := top_level(bits)
+	var depth := 0
+	# As deep as the water's mesh tells the shader, 8 cells at most (WaterMesher.water_color).
+	while depth < 8 and top - depth >= 0 and bits & (1 << (top - depth)):
+		depth += 1
+	# The ice's edge from the shore wanders by a noise of a few cells, ICE_RAG cells of depth.
+	var shore := ice_spread * ICE_REACH - depth + (_value_noise((x + 0.5) / 3.0, (z + 0.5) / 3.0, 3571) - 0.5) * ICE_RAG
+	var spot := (ice_noise(x + 0.5, z + 0.5) - 1.0 + ice_spread * ICE_SPOTS.x) * ICE_SPOTS.y
+	return maxf(shore, spot)
+
+
+## A smooth noise 0..1 at a point (cells), the same in water.gdshader: two value noises on
+## lattices of ICE_LATTICE cells over a hash of the lattice's corners (ice_hash).
+static func ice_noise(px: float, pz: float) -> float:
+	return 0.65 * _value_noise(px / ICE_LATTICE.x, pz / ICE_LATTICE.x, 0) \
+		+ 0.35 * _value_noise(px / ICE_LATTICE.y, pz / ICE_LATTICE.y, 7919)
+
+
+static func _value_noise(qx: float, qz: float, salt: int) -> float:
+	var ix := floori(qx)
+	var iz := floori(qz)
+	var fx := qx - ix
+	var fz := qz - iz
+	fx = fx * fx * (3.0 - 2.0 * fx)
+	fz = fz * fz * (3.0 - 2.0 * fz)
+	var a := lerpf(ice_hash(ix + salt, iz), ice_hash(ix + 1 + salt, iz), fx)
+	var b := lerpf(ice_hash(ix + salt, iz + 1), ice_hash(ix + 1 + salt, iz + 1), fx)
+	return lerpf(a, b, fz)
+
+
+## A hash of a lattice point, 0..1, in 32-bit unsigned maths like the shader's.
+static func ice_hash(x: int, z: int) -> float:
+	const M := 0xFFFFFFFF
+	var h := (((x & M) * 1597334677) & M) ^ (((z & M) * 1640531513) & M)
+	h ^= h >> 16
+	h = (h * 1103515245) & M
+	h ^= h >> 15
+	return (h & 1023) / 1023.0
 
 
 ## Notes a change by the player to the chunk of column (x, z) that is not a cell (a

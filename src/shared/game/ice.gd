@@ -37,7 +37,7 @@ var _wait := CHECK_EVERY
 
 ## Why the ice of column `col` cannot be cut ("" when it can): a key for the player.
 func why_not(col: Vector2i) -> String:
-	if not world.water_frozen:
+	if not world.frozen_at(col.x, col.y) and not world.ice_holes.has(col):
 		return "[the_water_is_not_frozen]"
 	var bits: int = world.water_col(col.x, col.y)
 	if bits == 0:
@@ -102,7 +102,7 @@ func step(delta: float) -> void:
 	if world.ice_holes.is_empty():
 		_blows.clear()
 		return
-	if not world.water_frozen:
+	if not world.icy():
 		world.ice_holes.clear()
 		_blows.clear()
 		changed.emit()
