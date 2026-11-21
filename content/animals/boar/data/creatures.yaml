@@ -1,7 +1,10 @@
 # The fields are the same as for all creatures (content/core/data/creatures.yaml): who is food or a threat to whom
 # is derived from mass and diet by general rules, not written down. The species' picture —
-# sprites/creatures/<sprite>.png of this bundle, three frames: standing and two steps; biomes — where it lives
-# (soft references to "Biomes"; without them — everywhere); voices (calls, alarm) — its sounds.yaml.
+# sprites/creatures/<sprite>.png of this bundle, drawn from the user's reference by tools/make_sprites.gd
+# (tools/art/boar_art.gd): rows for the side, the front and the back, in each standing, the walk, the idle's
+# other frames (one animation), the attack, the run, the hurt and the death, four frames each; killed, it lies
+# on its last frame of death till its carcass is taken. Biomes — where it lives (soft references to "Biomes";
+# without them — everywhere); voices (calls, alarm) — its sounds.yaml.
 # A herd of boars: a leader and the others behind it (flock); hardly fears people.
 # Does not fear people: warns one who comes right up and strikes with its tusks (bite), fights back when wounded.
 - id: boar
@@ -15,9 +18,13 @@
   count: 4
   sprite: boar
   biomes: [biomes:forest, biomes:swamp]
-  frames: 10
+  frames: 24
   walk: 4
-  attack: 3
+  attack: 4
+  run: 4
+  hurt: 4
+  death: 4
+  idle_anim: true
   views: 3
   flock: [2, 4]
   likes: [plants:mushrooms]

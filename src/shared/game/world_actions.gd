@@ -31,7 +31,8 @@ var plans
 ## The action button: works in front of `who` with the hand in use (placing nothing higher
 ## than level `top`). With a block in hand it builds the blueprint's ghost cells within
 ## reach (Plans.build), else the block is placed in front (filling a hole first), seeds and bushes
-## planted. A tool or bare hands first work the nearest tree or bush in front that they
+## planted. A weapon strikes an animal in front, or shoots; a beast's body lying before the
+## feet is taken up (take_body). A tool or bare hands first work the nearest tree or bush in front that they
 ## can do something to (see useful: an axe chops, hands gather, a sword knocks berries
 ## off, a shovel digs a bush out) after the farming work in front (a hoe tills, a can
 ## waters, a ripe crop is reaped: front_farm), then cut the grass in front (hands, sword, scythe),
@@ -66,12 +67,16 @@ func act_in_front(who, top: int) -> Dictionary:
 		return tending
 	var arm := Tools.weapon(who.held())
 	# A spear, a sling or a bow shoots ahead; a sword or a knife goes for an animal in
-	# front first, any other hand for one right by the body.
+	# front first, any other hand for one right by the body. A beast's body lying before
+	# it is taken up (as a tap on it takes it): after an animal to strike, before a shot.
+	var body := body_ahead(who)
 	if Tools.shoots(arm):
-		return shoot(who)
+		return take_body(who, body) if not body.is_empty() else shoot(who)
 	var blow := strike(who, Tools.hunts(arm))
 	if not blow.is_empty():
 		return blow
+	if not body.is_empty():
+		return take_body(who, body)
 	var farm := farm_in_front(who)
 	if not farm.is_empty():
 		return farm
@@ -276,7 +281,7 @@ func _tree_in_reach(who, col: Vector2i) -> bool:
 
 ## What the action button would do in front of `who` now (see act_in_front), changing
 ## nothing, for its label: "build" (the blueprint), "place", "plant", "fish", "ice" (a hole cut), "drink", "fill" (a vessel at the
-## water), "shoot", "hit" (a player or an animal there), "till", "water", "reap" (farming,
+## water), "shoot", "hit" (a player or an animal there), "take" (a beast's body, body_ahead), "till", "water", "reap" (farming,
 ## front_farm), "chop", "gather" (a tree or a bush), "mow", "dig", or "" for a swing at
 ## the air.
 func front_kind(who) -> String:
@@ -301,10 +306,13 @@ func front_kind(who) -> String:
 	if tending != "":
 		return tending
 	var arm := Tools.weapon(who.held())
+	var body := not body_ahead(who).is_empty()
 	if Tools.shoots(arm):
-		return "shoot"
+		return "take" if body else "shoot"
 	if _someone_in_front(who, Tools.hunts(arm)):
 		return "hit"
+	if body:
+		return "take"
 	var farm: Variant = front_farm(who)
 	if farm != null:
 		return farm[0]

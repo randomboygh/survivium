@@ -278,14 +278,21 @@ const SCHEMAS := {
 		# Of the frames after the first, how many are its walk, swim or wing beat (-1: all);
 		# the last `hop` ones a flyer's hop on the ground (crouched, in the air; a flyer with
 		# none, a butterfly, never goes about on the ground: Wildlife.sits_still); the rest
-		# are idle ones played now and then as it stands; the last `attack` ones (after the
-		# hop) its attack (shown as it leaps to bite, Wildlife._fight_step), kept out of
-		# the idles. Rows of the picture: 1 the side alone, 3 the side, the front (coming at the
-		# camera) and the back.
+		# are idle ones played now and then as it stands (`idle_anim`: one animation played
+		# through, else a pose at random); the last `attack` ones (after the hop) its attack
+		# (shown as it leaps to bite, Wildlife._fight_step), kept out of the idles; after
+		# those `run` ones of its gallop (as it flees, hunts or charges), `hurt` ones of its
+		# flinch at a blow and `death` ones (the last kept on its carcass till it is taken,
+		# Creatures.show_bodies). Rows of the picture: 1 the side alone, 3 the side, the front
+		# (coming at the camera) and the back.
 		"walk": {"type": "int", "min": -1, "default": -1},
 		"views": {"type": "int", "min": 1, "max": 3, "default": 1},
 		"hop": {"type": "int", "min": 0, "default": 0},
 		"attack": {"type": "int", "min": 0, "default": 0},
+		"run": {"type": "int", "min": 0, "default": 0},
+		"hurt": {"type": "int", "min": 0, "default": 0},
+		"death": {"type": "int", "min": 0, "default": 0},
+		"idle_anim": {"type": "bool", "default": false},
 		"flies": {"type": "bool", "default": false},
 		# The creature the main menu shows sitting on the game's name (the first one marked).
 		"menu": {"type": "bool", "default": false},

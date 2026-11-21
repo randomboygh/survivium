@@ -42,7 +42,13 @@ water, a kind with `biomes` appears only on its own land.
   went, so it does not bolt before the blade reaches it; without health it is removed (`gone`) at once. The blow is dealt by `WorldActions.strike` (the action button: a sword and a
   knife hit the beast ahead first, anything else in the hand — first only a beast point-blank,
   `STRIKE_CLOSE`, and a far one — when there is nothing else to do), it also puts the kind's carcass
-  (`carcass`) on the ground. `WorldActions.shoot` shoots a weapon with `range` (a spear, a sling, a bow): one
+  (`carcass`) on the ground; a kind with frames of death (`death`, the boar) lies there itself until the carcass is
+  taken (the user's rule, 2026-11-20) by a hand: a tap on it (`pick_up`, hit round its middle) or the action button
+  before it («Pick up», `body_ahead`, `take_body`; the user's pick, 2026-11-21), which waits while it falls and takes it
+  by a press, not held on from the blow that killed it (`Controls._front_body`); the pickup by the feet,
+  `pick_up_near`, leaves a body, `is_body`, which a kill in melee would else take at once: its carcass is a drop of its own where the beast stood, turned the way it went,
+  naming the kind (`body`, and `tint`), which no heap joins, and the client draws it as the beast on its last frame of
+  death (`Creatures.show_bodies`, below). `WorldActions.shoot` shoots a weapon with `range` (a spear, a sling, a bow): one
   `ammo` from the bag at a time (a spear is thrown itself), where the player looks (by a tap on the ground —
   where it was tapped), at the first beast on the way within `range` cells and the angle `AIM_CONE` if a solid
   cell has not stood earlier; what was shot lies at once on the ground where it fell, and the client draws its
@@ -181,7 +187,8 @@ water, a kind with `biomes` appears only on its own land.
 `main.session.wildlife`.
 
 **Data.** The kind `creatures` (`health`, `carcass`, `bite`, `mass`, `diet`, `speed`, `sight`,
-`human_wariness`, `fire_wariness`, `active`, `count`, `sprite`, `frames`, `walk`, `hop`, `attack`, `views`,
+`human_wariness`, `fire_wariness`, `active`, `count`, `sprite`, `frames`, `walk`, `hop`, `attack`, `run`, `hurt`,
+`death`, `idle_anim`, `views`,
 `flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`, `likes`, `loves` (of those, the ones it goes for first, oftener (`LOVE_CHANCE`) and farther (`LOVE_REACH`), standing on them `LOVE_LINGER` times longer: a rabbit on clover), `biomes`,
 `calls`, `alarm`, taming: `tame_food`, `tame_feeds`, `tend_swing`, `wool`, `wool_days`, `breed_days`, `herd`, `trapped` — a
 live item from a live trap) in the bundles `content/animals/<beast>/`; the picture is the bundle's
@@ -190,15 +197,27 @@ row `frames` frames — standing, `walk` frames of a step or wing strokes, the l
 the ground (crouched, in the air; a flyer without `hop` is a butterfly, `Wildlife.sits_still` — does not walk
 on the ground and is not pushed: it either flies or sits in place with folded wings and now and then, each at
 its own time, flaps them (`SIT_GAP`, `SIT_FLUTTER`, `SIT_FLAP_RATE`)), after them `attack` — an attack (a
-dash to a bite, the first — while the beast warns), the others — of rest (drawn by `tools/make_creatures.py`
+dash to a bite, the first — while the beast warns), then `run`, `hurt` and `death`, the others (after the step) — of
+rest (drawn by `tools/make_creatures.py`
 with `tools/creature_kit.py`, the sparrow — `tools/make_sparrow.py`, the crow, owl and duck —
 `tools/make_birds.py`, the frog — `tools/make_frog.py`, fish — `tools/make_fish.py`, the hare —
 `tools/make_rabbit.py`, the squirrel — `tools/make_squirrel.py`, the fox — `tools/make_fox.py`, the deer —
-`tools/make_deer.py`, the boar — `tools/make_boar.py`, the bear — `tools/make_bear.py`, the wolf —
+`tools/make_deer.py`, the boar — `tools/make_sprites.gd` from `tools/art/boar_art.gd` (the user's reference, the
+way the player is drawn), the bear — `tools/make_bear.py`, the wolf —
 `tools/make_wolf.py`, the wild cat — `tools/make_cat.py`, the hedgehog — `tools/make_hedgehog.py`).
 `creatures.gd` chooses the side by the movement on screen (`TURN_BIAS`), a step — by the path walked (a
 flyer's hops — `HOP_STEP`), the frames of rest — now and then (`IDLE_GAP`, `IDLE_HOLD`, the last —
-`IDLE_LONG`). The sun's shadow is cast by the sprite with its own frame, turned to the light
+`IDLE_LONG`; with `idle_anim` they play through in order, `IDLE_FRAME` each). After the attack frames come, for a
+kind drawn with them (the boar), `run` frames of a gallop, by the path walked (a round of them is `RUN_ROUND` rounds
+of the walk) while it flees, hunts or charges (`RUNS`), `hurt` frames played as a blow lands (`HURT_FRAME` each,
+with the flinch) and `death` frames. A killed one (its carcass naming it, see Hunting) is a `Body`: `Props.show_drops`
+hands the chunk's drops to `show_bodies`, which draws each body instead of its item's model; the carcass comes
+before the beast's going (the drops are sent first), so a new body waits for the nearest beast of its kind within
+`BODY_REACH` to go (`BODY_WAIT` at most, the beast gone first waits as long for its body in `_fallen`), takes its
+sprite, holds its frame till the blow that killed it lands (a blow still in `_blows`; else it waits `BLOW_WAIT`
+for the reply naming the blow, which comes after the going: `felled`, from `Controls._did`) and plays its death
+(`DEATH_FRAME` each), flashed red as that blow lands as a flinch is (`flash_step`); then it lies on the last frame, turned to the camera by the way it went, till the carcass is
+taken. One in a chunk coming in view (`came`) lay there before: dead at once. The sun's shadow is cast by the sprite with its own frame, turned to the light
 (`sprite.gdshader`); for a flying one (the frames of a flyer's strokes) the shadow is the frame of the same
 stroke from the row «from the front», laid flat at mid-height, with the wings across the path (`flat_shadow`,
 `shadow_uv`): the bird from above, not a profile stretched by the sun. The check is the shot `animal-shadows`.
@@ -211,7 +230,8 @@ table in `tools/make_sounds.gd`).
 
 **Tests.** `tests/unit/wildlife_test.gd` (`ai_relations`, `wildlife`, `climbers`, `biomes`, `swimmers`,
 `fishing`, `birds`, `shore`, `jostle`, `hunting`, `fire`, `taming`, `attacks`; a pack waits for the ticks of
-thinking, not for the order of random numbers).
+thinking, not for the order of random numbers); the drawn ones: `tests/unit/view_test.gd` (`animal_flinch`,
+`boar_states`: the boar's frames and its body).
 
 **In more detail.** `plan/design/creatures-ai.md`; `plan/architecture/ai.md` — the idea of the behaviour
 engine (the formulas are marked as a draft, in the code it is simpler).

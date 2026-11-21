@@ -1223,9 +1223,9 @@ func _chunk_nodes(key: Vector2i) -> void:
 				game.world_root.add_child(n)
 		chunk_nodes[key] = parts
 		nodes_changes += 1
-		# What lies on the ground of a chunk from the save.
+		# What lies on the ground of a chunk from the save (a beast's body lay there before).
 		if world.drops.has(key) and not game.props.drop_nodes.has(key):
-			game.props.show_drops(key)
+			game.props.show_drops(key, false, true)
 
 
 ## Shows the ground and the water of chunk `key`.

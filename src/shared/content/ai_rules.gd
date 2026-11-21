@@ -9,8 +9,8 @@ const Content := preload("res://src/shared/content/content.gd")
 const HUMAN := "core:human"
 
 ## id -> record from `content/*/data/creatures.yaml` (see Content): title, mass,
-## diet, speed, sight, human_wariness, active, count, sprite, frames, walk, hop, views, flies, swims,
-## flock, roost, likes, biomes.
+## diet, speed, sight, human_wariness, active, count, sprite, frames, walk, hop, attack, run, hurt,
+## death, idle_anim, views, flies, swims, flock, roost, likes, biomes.
 static var SPECIES := {}
 ## The items some species leaves as its carcass when killed (id -> true): what cutting up
 ## a beast takes (Workshop.yield_role).
@@ -53,6 +53,9 @@ static func check() -> PackedStringArray:
 			out.append("creatures: `%s` hops in %d frames, after its walk, of %d" % [id, SPECIES[id].hop, SPECIES[id].frames])
 		if id != HUMAN and SPECIES[id].attack > 0 and maxi(SPECIES[id].walk, 0) + SPECIES[id].hop + SPECIES[id].attack >= SPECIES[id].frames:
 			out.append("creatures: `%s` has %d attack frames, after its walk and hop, of %d" % [id, SPECIES[id].attack, SPECIES[id].frames])
+		var tail: int = SPECIES[id].run + SPECIES[id].hurt + SPECIES[id].death
+		if id != HUMAN and tail > 0 and maxi(SPECIES[id].walk, 0) + SPECIES[id].hop + SPECIES[id].attack + tail >= SPECIES[id].frames:
+			out.append("creatures: `%s` has %d frames of run, hurt and death, after its walk, hop and attack, of %d" % [id, tail, SPECIES[id].frames])
 		if SPECIES[id].flock[0] > SPECIES[id].flock[1]:
 			out.append("creatures: `%s`: flock [from, to] has from above to" % id)
 	return out

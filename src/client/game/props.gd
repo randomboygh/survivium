@@ -2,8 +2,9 @@ extends RefCounted
 ## What stands and lies on the ground besides the cells, drawn: the things placed on two
 ## by two cells (Placed, src/shared: chests, workbenches, kilns, campfires), their
 ## models and fires and the warmth of the fires, and the items lying on the ground
-## (WorldData.drops: what a felled tree leaves, a death sack) and those flying to the
-## player when taken. Bushes and snowdrifts are grown by the world generator and drawn
+## (WorldData.drops: what a felled tree leaves, a death sack; a beast's carcass that
+## names its species is the beast fallen, drawn by Creatures.show_bodies) and those
+## flying to the player when taken. Bushes and snowdrifts are grown by the world generator and drawn
 ## with the chunk they stand in (see ChunkStreamer, Foliage.finish). `game` is the Main
 ## node that owns the scene.
 
@@ -19,6 +20,7 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
+const Creatures := preload("res://src/client/game/creatures.gd")
 
 const CELL := WorldData.CELL
 ## World units the bounding box of a thing flying to the player grows by, so the shear
@@ -594,8 +596,10 @@ func _update_heat() -> void:
 ## shadow, some 600 calls round a busy camp on the phone (2026-10-24). A death's sack
 ## glows (Effects.sack_glow). Things only taken up are folded away in the mesh drawn
 ## (`_fold_taken`) unless `whole`: a busy chunk's mesh took 16-52 ms to make on the phone
-## at every pickup (2026-11-15).
-func show_drops(key: Vector2i, whole := false) -> void:
+## at every pickup (2026-11-15). The bodies of beasts killed are Creatures' (one new
+## falls there, unless the chunk `came` in view just now, ChunkStreamer).
+func show_drops(key: Vector2i, whole := false, came := false) -> void:
+	_show_bodies(key, came)
 	var count: int = game.world.drops.get(key, []).size()
 	if not whole and _fold_taken(key):
 		_drops_shown[key] = count
@@ -620,7 +624,7 @@ func show_drops(key: Vector2i, whole := false) -> void:
 		PackedVector2Array(), PackedColorArray()]
 	for d: Array in game.world.drops.get(key, []):
 		var arrays := _arrays_of(d[0])
-		if arrays.is_empty():
+		if arrays.is_empty() or Creatures.is_body(d):
 			continue
 		var span := [d[0], parts[0].size(), (arrays[0] as PackedVector3Array).size(), null]
 		if not spans.has(d[1]):
@@ -669,7 +673,7 @@ func _fold_taken(key: Vector2i) -> bool:
 	for at: Vector3 in spans:
 		left[at] = (spans[at] as Array).duplicate()
 	for d: Array in game.world.drops.get(key, []):
-		if _arrays_of(d[0]).is_empty():
+		if _arrays_of(d[0]).is_empty() or Creatures.is_body(d):
 			continue
 		var here: Array = left.get(d[1], [])
 		var found := -1
@@ -735,6 +739,19 @@ func hide_drops(key: Vector2i) -> void:
 	drop_nodes.erase(key)
 	_drops_shown.erase(key)
 	_drop_spans.erase(key)
+	if game.creatures != null and not game.chunks.chunk_nodes.has(key):
+		game.creatures.hide_bodies(key)
+
+
+## The bodies of the beasts killed lying in chunk `key` (Creatures.show_bodies), drawn
+## while the chunk is.
+func _show_bodies(key: Vector2i, came: bool) -> void:
+	if game.creatures == null:
+		return
+	if game.chunks.chunk_nodes.has(key):
+		game.creatures.show_bodies(key, game.world.drops.get(key, []), came)
+	else:
+		game.creatures.hide_bodies(key)
 
 
 ## A chunk's new mesh is shown (ChunkStreamer): the things that waited for it are drawn.

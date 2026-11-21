@@ -14,7 +14,13 @@ extends Node3D
 ## ground (one with none, a butterfly, sits still, slowly beating its wings), and `attack` frames after those its attack
 ## (as it leaps to bite, the first while it warns one off, see Wildlife._fights);
 ## the frames left are idle ones (a tail flicked, the head bent down) shown now
-## and then while it stands. Which
+## and then while it stands, or with `idle_anim` one idle animation played through
+## now and then; after the attack `run` frames of its gallop, played by the way it
+## covers while it flees, hunts or charges (RUNS), `hurt` ones of its flinch at a blow,
+## and `death` ones. One with frames of death lies where it fell on the last of them
+## till its carcass is taken: the carcass on the ground names the species (`body`,
+## ActionsFight._wound), and this draws it (show_bodies, asked by Props), playing the
+## death first when it fell in view, as the blow that killed it lands. Which
 ## view and which way is worked out here from how it moved on the screen: the server
 ## sends only where it is. A species with `tints` has its picture multiplied by one of
 ## them for each animal. A fish (Wildlife.dives) is drawn after the water, all of it in
@@ -70,8 +76,28 @@ const FRONT := 1
 const BACK := 2
 ## World units a flyer goes on the ground a round of its hop (crouched, up, sitting).
 const HOP_STEP := 0.36
-## Seconds each attack frame of a bite shows (Wildlife.BITE_TIME over three frames).
-const BITE_FRAME := 0.13
+## Seconds each frame of an idle animation shows (a species with `idle_anim`).
+const IDLE_FRAME := 0.35
+## The states in which one with `run` frames gallops: at its full speed, as it flees,
+## hunts or charges (it goes about at a third of it, Wildlife._move).
+const RUNS := ["flee", "hunt", "charge"]
+## The way a round of the run covers, in rounds of the walk's way (two steps): the
+## boar's four frames of gallop a stride of 2.4 world units, 0.12 s each at its full speed.
+const RUN_ROUND := 2.2
+## Seconds each frame of its flinch at a blow shows, and each frame of its death (the
+## last stays).
+const HURT_FRAME := 0.15
+const DEATH_FRAME := 0.2
+## A body (a carcass naming the species, see show_bodies) and the beast it was come in
+## either order, the carcass with the chunk's things on the ground and the beast's going
+## with the animals: each waits BODY_WAIT seconds for the other, taken for it within
+## BODY_REACH world units.
+const BODY_REACH := 1.5
+const BODY_WAIT := 1.0
+## Seconds a body that took its beast's sprite with no blow on it known waits before it
+## falls: the reply naming the blow that killed it comes after the beast's going (its
+## kill is done at once, Wildlife.hurt) and tells when the blade meets it (felled).
+const BLOW_WAIT := 0.15
 ## An animal struck flinches (the user's ask, 2026-11-20) as the weapon meets it, frames 3
 ## and 4 of the swing: its picture jerks FLINCH_UP pixels up, down again over FLINCH_JERK
 ## seconds (seen on one that bolts at once, Wildlife.hurt), and FLINCH_PX pixels along the
@@ -123,6 +149,34 @@ class Look:
 	## along the screen it jolted first (1 right, -1 left).
 	var flinch := 0.0
 	var flinch_side := 1.0
+	## When its hurt frames began (-1: it is not hurt now, see _flinch_step).
+	var hurt_at := -1.0
+	## The body lying where it fell (show_bodies), waiting for it to go; null.
+	var body: Body = null
+
+
+## A beast killed lying where it fell till its carcass is taken (show_bodies).
+class Body:
+	var kind := ""
+	var tint := 0
+	## Where the carcass lies, and the way the beast went (world xz).
+	var at := Vector3.ZERO
+	var way := Vector2.RIGHT
+	## Its sprite: none while it waits for the beast it was (`look`) to go, whose own it
+	## takes then.
+	var sprite: MeshInstance3D = null
+	var look: Look = null
+	var view := SIDE
+	## 1 facing right on the screen, -1 left.
+	var side := 1.0
+	## When its death begins to be drawn: INF while it waits for the beast (till
+	## `wait_until`), -INF for one that lay there before it came in view.
+	var dies_at := -INF
+	var wait_until := 0.0
+	## The id of the beast it was, once it took its sprite (-1 before; see felled).
+	var beast := -1
+	## Its frame of death drawn (-1: none yet).
+	var frame := -1
 
 
 var wildlife
@@ -136,7 +190,8 @@ var perf
 ## frame (view * frames + frame), the size of the body its first frame shows (world
 ## units, see body_size), frames a row, frames of its walk, views, hop frames, attack
 ## frames, a fish's materials drawn over those after the water (as the materials; empty
-## for the others)]
+## for the others), run frames, hurt frames, death frames, whether its idle frames are
+## one animation]
 var looks := {}
 var _sprites := {}
 var _looks := {}
@@ -150,6 +205,13 @@ var _rng := RandomNumberGenerator.new()
 ## flinching now (walked every frame while there are any).
 var _blows := []
 var _flinching: Array[Look] = []
+## chunk -> {[species, where] -> Body}: the bodies lying in the chunks drawn (show_bodies).
+var _bodies := {}
+## The bodies dying or waiting for their beasts now (walked every frame while there are
+## any), and the Looks of beasts with frames of death gone a moment ago, waiting for
+## their bodies with their sprites as they were: [Look, till when].
+var _dying: Array[Body] = []
+var _fallen := []
 
 
 ## Draws the animals of `w` (RemoteWildlife) from now on, those there already and those to come.
@@ -180,6 +242,19 @@ func relook() -> void:
 		a.frame = 0
 		_show(a, look.sprite, 0)
 		_fit(a, look.sprite)
+	var now := Time.get_ticks_msec() * 0.001
+	for key: Vector2i in _bodies:
+		var lying: Dictionary = _bodies[key]
+		for id: Array in lying.keys():
+			var b: Body = lying[id]
+			if not looks.has(b.kind):
+				_lift(b)
+				lying.erase(id)
+			elif b.sprite != null:
+				b.sprite.mesh = looks[b.kind][0]
+				b.frame = -1
+				_draw_body(b, now)
+				_fit_sprite(b.sprite, looks[b.kind][0])
 
 
 func _build_looks() -> void:
@@ -223,9 +298,11 @@ func _build_looks() -> void:
 					mats.append(m)
 			variants.append(mats)
 			overs.append(over)
+		var after := frames - 1 - walk_frames(spec)
 		looks[kind] = [PixelView.sprite_mesh(tex.get_width() / frames, tex.get_height() / views), variants,
-			body_size(tex, frames, views), frames, walk_frames(spec), views, mini(spec.get("hop", 0), frames - 1 - walk_frames(spec)),
-			mini(spec.get("attack", 0), frames - 1 - walk_frames(spec)), overs if fish else []]
+			body_size(tex, frames, views), frames, walk_frames(spec), views, mini(spec.get("hop", 0), after),
+			mini(spec.get("attack", 0), after), overs if fish else [], mini(spec.get("run", 0), after),
+			mini(spec.get("hurt", 0), after), mini(spec.get("death", 0), after), spec.get("idle_anim", false) == true]
 
 
 ## How many frames of species `spec`'s picture are its walk (or wing beat).
@@ -245,11 +322,12 @@ func _process(delta: float) -> void:
 	var beat := now * FLAP_RATE
 	var flip := 1.0 if PixelView.right.x >= 0.0 else -1.0
 	if not is_same(_views, PixelView.box_views):
-		# The camera turns: every box again, for the views it may show.
+		# The camera turns: every box again, for the views it may show; the bodies turned.
 		_views = PixelView.box_views
 		_fitted.clear()
 		for look in _shown:
 			_fit(look.animal, look.sprite)
+		_turn_bodies(now)
 	for look in _shown:
 		var a = look.animal
 		if a.fresh:
@@ -278,6 +356,8 @@ func _process(delta: float) -> void:
 			look.sprite.scale.x = sx
 	if not _blows.is_empty() or not _flinching.is_empty():
 		_flinch_step(delta)
+	if not _dying.is_empty() or not _fallen.is_empty():
+		_bodies_step(now)
 	if perf != null:
 		perf.note("animals", t)
 
@@ -314,9 +394,23 @@ func _went(a, look: Look, flip: float) -> void:
 
 ## The frame of its row animal `a` shows now.
 func _frame(a, look: Look, beat: float, now: float) -> int:
-	var frames: int = looks[a.kind][3]
-	var walk: int = looks[a.kind][4]
+	var k: Array = looks[a.kind]
+	var frames: int = k[3]
+	var walk: int = k[4]
 	var spec: Dictionary = AiRules.SPECIES[a.kind]
+	# The run, the hurt and the death come last in the row (see looks).
+	var run: int = k[9]
+	var hurt: int = k[10]
+	var tail: int = run + hurt + k[11]
+	if look.hurt_at >= 0.0 and hurt > 0:
+		# Flinching at a blow (_flinch_step): its hurt frames one after another.
+		var at := int((now - look.hurt_at) / HURT_FRAME)
+		if at < hurt:
+			look.idle = 0
+			look.change_at = look.hurt_at + (at + 1) * HURT_FRAME
+			return frames - hurt - k[11] + at
+		look.hurt_at = -1.0
+		look.change_at = now + _rng.randf_range(IDLE_GAP.x, IDLE_GAP.y)
 	if a.flying and walk > 0:
 		look.idle = 0
 		# posmod: an instance id may be negative, and % of a negative number is negative,
@@ -326,7 +420,7 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 	if a.hop > 0.0 and walk > 1:
 		look.idle = 0
 		return 1 if a.hop > 0.2 and a.hop < 0.8 else 2
-	var hop: int = looks[a.kind][6]
+	var hop: int = k[6]
 	if spec.flies and spec.get("hop", 0) <= 0 and walk > 0:
 		# A flyer that does not hop (a butterfly) sits still with its wings still, and now
 		# and then opens and shuts them a few times (at rest, then the first beat).
@@ -341,7 +435,7 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 		look.flutter_end = 0.0
 		look.change_at = now + _rng.randf_range(SIT_GAP.x, SIT_GAP.y)
 		return 0
-	var attack: int = looks[a.kind][7]
+	var attack: int = k[7]
 	if attack > 0 and a.state == "bite":
 		# The leap to bite: its attack frames one after another, the
 		# last held till it is done (Wildlife.BITE_TIME).
@@ -349,28 +443,43 @@ func _frame(a, look: Look, beat: float, now: float) -> int:
 		if look.bite_at < 0.0:
 			look.bite_at = now
 		look.change_at = now
-		return frames - attack + mini(int((now - look.bite_at) / BITE_FRAME), attack - 1)
+		return frames - tail - attack + mini(int((now - look.bite_at) / (Wildlife.BITE_TIME / attack)), attack - 1)
 	look.bite_at = -1.0
 	if attack > 0 and a.state == "warn":
 		# Warning one off: crouched, its first attack frame.
 		look.idle = 0
 		look.change_at = now
-		return frames - attack
+		return frames - tail - attack
 	if a.moving and hop > 0 and spec.flies:
 		# Hopping about on the ground: crouched, up (the last frames), sitting.
 		look.idle = 0
 		look.change_at = now + _rng.randf_range(IDLE_GAP.x, IDLE_GAP.y)
 		var at := int(look.walked / HOP_STEP * (hop + 1)) % (hop + 1)
-		return 0 if at == hop else frames - attack - hop + at
+		return 0 if at == hop else frames - tail - attack - hop + at
 	if a.moving and walk > 0 and not spec.flies:
-		# Two steps a round of the walk, however many frames it has.
+		# Two steps a round of the walk, however many frames it has; a round of the run
+		# RUN_ROUND of those.
 		look.idle = 0
 		look.change_at = now + _rng.randf_range(IDLE_GAP.x, IDLE_GAP.y)
 		var size: float = clampf(0.5 + spec.mass / 80.0, 0.5, 1.0)
 		var step := 0.25 + 0.3 * size
+		if run > 0 and a.state in RUNS:
+			return frames - tail + int(look.walked / (step * 2.0 * RUN_ROUND) * run) % run
 		return 1 + int(look.walked / step * maxf(walk / 2.0, 1.0)) % walk
-	var idles := frames - 1 - walk - hop - attack
+	var idles := frames - 1 - walk - hop - attack - tail
 	if idles <= 0 or now < look.change_at:
+		return look.idle
+	if k[12]:
+		# One idle animation: played through now and then, back to standing.
+		if look.idle == 0:
+			look.idle = 1 + walk
+		elif look.idle < walk + idles:
+			look.idle += 1
+		else:
+			look.idle = 0
+			look.change_at = now + _rng.randf_range(IDLE_GAP.x, IDLE_GAP.y)
+			return 0
+		look.change_at = now + IDLE_FRAME
 		return look.idle
 	if look.idle != 0:
 		look.idle = 0
@@ -487,6 +596,16 @@ func flinch(a, delay: float, from: Vector3) -> void:
 	_blows.append([delay, look, from])
 
 
+## The animal with `id`, gone from the copy before the reply naming one's own blow came
+## (Controls._did: the blow killed it), is struck in `delay` seconds: its body, still
+## waiting to fall, falls as the blow lands.
+func felled(id: int, delay: float) -> void:
+	var now := Time.get_ticks_msec() * 0.001
+	for b in _dying:
+		if b.beast == id and now < b.dies_at and b.dies_at != INF:
+			b.dies_at = now + maxf(delay, 0.0)
+
+
 ## A blow aimed at world point `at` by one standing at `from` lands in `delay` seconds
 ## (Others: another player's work, so nothing new goes over the net): the animal drawn
 ## there flinches, if one is (see FLINCH_SLACK). A point inside a solid cell (a trunk
@@ -535,6 +654,10 @@ func _flinch_step(delta: float) -> void:
 			_flinching.append(look)
 		# The time since it landed, once this frame's is added below.
 		look.flinch = -b[0] - delta
+		if looks[a.kind][10] > 0:
+			# Its hurt frames from now on (_frame).
+			look.hurt_at = Time.get_ticks_msec() * 0.001
+			look.change_at = 0.0
 	var right := Vector3(PixelView.right.x, 0.0, PixelView.right.y) / PixelView.PIXELS_PER_UNIT
 	for i in range(_flinching.size() - 1, -1, -1):
 		var look := _flinching[i]
@@ -617,27 +740,277 @@ func _sink(a, look: Look) -> void:
 func _on_gone(a) -> void:
 	if not _sprites.has(a):
 		return
-	_fitted.erase(_sprites[a])
-	_flinching.erase(_looks[a])
-	_sprites[a].queue_free()
+	var look: Look = _looks[a]
+	var sprite: MeshInstance3D = _sprites[a]
+	_fitted.erase(sprite)
+	_flinching.erase(look)
 	_sprites.erase(a)
-	_shown.erase(_looks[a])
+	_shown.erase(look)
 	_looks.erase(a)
+	var now := Time.get_ticks_msec() * 0.001
+	if look.body == null:
+		look.body = _waiting(look)
+	if look.body != null:
+		# It fell, and its body lies there already: it takes the sprite.
+		_adopt(look.body, look, now)
+	elif looks.has(a.kind) and looks[a.kind][11] > 0 and a.near:
+		# It may have fallen: its body comes with the things on the ground (show_bodies),
+		# drawn as it is till then.
+		_fallen.append([look, now + BODY_WAIT])
+	else:
+		sprite.queue_free()
 
 
 ## Fits the culling box of animal `a`'s sprite to where the shaders draw it (sheared by
 ## its height), so a sprite off the screen is not drawn; even about x, as the sprite
 ## is mirrored to face the other way, and about z (PixelView.shade_sprite).
 func _fit(a, sprite: MeshInstance3D) -> void:
+	_fit_sprite(sprite, looks[a.kind][0])
+	_fitted[sprite] = sprite.position.y
+
+
+## Fits the culling box of `sprite` drawing `mesh` where it stands (see _fit).
+static func _fit_sprite(sprite: MeshInstance3D, mesh: Mesh) -> void:
 	var at := sprite.position
-	var mesh_box: AABB = looks[a.kind][0].get_aabb()
+	var mesh_box: AABB = mesh.get_aabb()
 	var box := PixelView.sheared_box(AABB(at + mesh_box.position, mesh_box.size), CULL_MARGIN + FIT_GROW + mesh_box.size.x * 0.5)
 	box.position -= at
 	var half := maxf(-box.position.x, box.end.x)
 	# Even about z too: the sprite's scale along z (a shade, a red flash) only grows it then.
 	var deep := maxf(-box.position.z, box.end.z)
 	sprite.custom_aabb = AABB(Vector3(-half, box.position.y, -deep), Vector3(2.0 * half, box.size.y, 2.0 * deep))
-	_fitted[sprite] = at.y
+
+
+## Whether thing `d` lying on the ground (WorldData.drops) is a body drawn here rather than
+## its item's model (Props): a carcass naming a species with frames of death.
+static func is_body(d: Array) -> bool:
+	if d.size() < 4 or not d[3] is Dictionary or not d[3].has("body"):
+		return false
+	var spec: Dictionary = AiRules.SPECIES.get(str(d[3].body), {})
+	return int(spec.get("death", 0)) > 0
+
+
+## Draws the bodies among the things lying in chunk `key` (`list`, its WorldData.drops) as
+## they are now; one no longer there was taken. One new fell just now (its beast goes
+## with it, see _on_gone) and plays its death, unless the chunk `came` in view just now
+## with it lying there.
+func show_bodies(key: Vector2i, list: Array, came := false) -> void:
+	_lay_bodies(key, list, came, Time.get_ticks_msec() * 0.001)
+
+
+func _lay_bodies(key: Vector2i, list: Array, came: bool, now: float) -> void:
+	if looks.is_empty():
+		_build_looks()
+	var was: Dictionary = _bodies.get(key, {})
+	var lying := {}
+	for d: Array in list:
+		if not is_body(d) or not looks.has(str(d[3].body)):
+			continue
+		var id := [str(d[3].body), d[1]]
+		if was.has(id):
+			lying[id] = was[id]
+			was.erase(id)
+		elif not lying.has(id):
+			lying[id] = _lay(d, not came, now)
+	for b: Body in was.values():
+		_lift(b)
+	if lying.is_empty():
+		_bodies.erase(key)
+	else:
+		_bodies[key] = lying
+
+
+## Whether the body of drop `d` in chunk `key` is still falling (its death drawn, or its
+## beast not gone yet): the action button waits till it lies (Controls._front_body).
+func falling(key: Vector2i, d: Array) -> bool:
+	if not is_body(d):
+		return false
+	var b: Body = _bodies.get(key, {}).get([str(d[3].body), d[1]])
+	return b != null and _dying.has(b)
+
+
+## Takes away the bodies of chunk `key`, gone out of view (Props.hide_drops).
+func hide_bodies(key: Vector2i) -> void:
+	for b: Body in _bodies.get(key, {}).values():
+		_lift(b)
+	_bodies.erase(key)
+
+
+## A body for carcass `d` (see show_bodies); `fresh`: it fell just now.
+func _lay(d: Array, fresh: bool, now: float) -> Body:
+	var b := Body.new()
+	b.kind = str(d[3].body)
+	b.tint = int(d[3].get("tint", 0))
+	b.at = d[1]
+	b.way = Vector2.from_angle(float(d[2]))
+	_face(b)
+	if fresh:
+		var look := _beast_of(b)
+		if look != null and _looks.has(look.animal):
+			# Its beast is drawn still: it falls as it goes (_on_gone).
+			look.body = b
+			b.look = look
+			b.dies_at = INF
+			b.wait_until = now + BODY_WAIT
+			_dying.append(b)
+			return b
+		if look != null:
+			_adopt(b, look, now)
+			return b
+	# One whose beast was not drawn (killed out of view, or the carcass moved) lies dead.
+	_own_sprite(b, now)
+	return b
+
+
+## The Look of the beast body `b` was: the nearest of its kind within BODY_REACH, drawn
+## (without a body yet) or gone a moment ago (_fallen); null for none.
+func _beast_of(b: Body) -> Look:
+	var best: Look = null
+	var best_d := BODY_REACH
+	var near: Array[Look] = []
+	for look in _shown:
+		if look.body == null:
+			near.append(look)
+	for f: Array in _fallen:
+		near.append(f[0])
+	for look in near:
+		var a = look.animal
+		var d: float = Vector2(a.pos.x - b.at.x, a.pos.z - b.at.z).length()
+		if a.kind == b.kind and d < best_d:
+			best = look
+			best_d = d
+	return best
+
+
+## A body waiting for another beast of `look`'s kind (show_bodies took the nearest drawn
+## for it) that `look`, gone now, was: within BODY_REACH of it; null for none.
+func _waiting(look: Look) -> Body:
+	for b in _dying:
+		var a = look.animal
+		if b.dies_at == INF and b.kind == a.kind and Vector2(a.pos.x - b.at.x, a.pos.z - b.at.z).length() < BODY_REACH:
+			if b.look != null:
+				b.look.body = null
+			b.look = look
+			return b
+	return null
+
+
+## Body `b` takes the sprite of its beast (`look`, gone): drawn as it was till the blow
+## that killed it lands (a blow on it still in _blows, else BLOW_WAIT for the reply that
+## tells it, felled), then its death.
+func _adopt(b: Body, look: Look, now: float) -> void:
+	for i in range(_fallen.size() - 1, -1, -1):
+		if _fallen[i][0] == look:
+			_fallen.remove_at(i)
+	look.body = null
+	b.look = null
+	if b.sprite != null and b.sprite != look.sprite:
+		b.sprite.queue_free()
+	b.sprite = look.sprite
+	# Put back from a flinch it was in (_on_gone ended it): where it stands, not red.
+	b.sprite.position = PixelView.snap(look.animal.pos + Vector3(0.0, look.animal.lift, 0.0))
+	PixelView.flash_sprite(b.sprite, 0)
+	b.view = look.view
+	b.side = look.side if look.view == SIDE else 1.0
+	b.frame = -1
+	var lands := -1.0
+	for blow: Array in _blows:
+		if blow[1] == look:
+			lands = maxf(lands, blow[0])
+	b.dies_at = now + (lands if lands >= 0.0 else BLOW_WAIT)
+	b.beast = look.animal.id
+	if not _dying.has(b):
+		_dying.append(b)
+	_fit_sprite(b.sprite, looks[b.kind][0])
+
+
+## Body `b` on a sprite of its own, where its carcass lies.
+func _own_sprite(b: Body, now: float) -> void:
+	b.sprite = MeshInstance3D.new()
+	b.sprite.mesh = looks[b.kind][0]
+	b.sprite.layers = PixelView.LAYER_THINGS
+	b.sprite.position = PixelView.snap(b.at)
+	add_child(b.sprite)
+	b.frame = -1
+	_draw_body(b, now)
+	_fit_sprite(b.sprite, looks[b.kind][0])
+
+
+## Body `b`'s view and side from the way its beast went, as the camera looks now.
+func _face(b: Body) -> void:
+	var s := PixelView.screen_dir(b.way)
+	var views: int = looks[b.kind][5]
+	if views >= 2 and absf(s.y) > absf(s.x):
+		b.view = FRONT if s.y > 0.0 or views < 3 else BACK
+	else:
+		b.view = SIDE
+	b.side = 1.0 if s.x >= 0.0 else -1.0
+
+
+## Draws body `b`'s frame of death at time `now`, the last once it is over (nothing before
+## it begins), flashed red as the blow that killed it lands, as a flinch is (_flinch_step);
+## whether it is over.
+func _draw_body(b: Body, now: float) -> bool:
+	if b.sprite == null or now < b.dies_at:
+		return false
+	var k: Array = looks[b.kind]
+	var death: int = k[11]
+	var f := death - 1 if b.dies_at == -INF else mini(int((now - b.dies_at) / DEATH_FRAME), death - 1)
+	var red := 0 if b.dies_at == -INF else flash_step(now - b.dies_at)
+	if red != PixelView.sprite_flash(b.sprite):
+		PixelView.flash_sprite(b.sprite, red)
+	if f != b.frame:
+		b.frame = f
+		var variants: Array = k[1]
+		b.sprite.material_override = variants[b.tint % variants.size()][b.view * k[3] + k[3] - death + f]
+		b.sprite.material_overlay = null
+		b.sprite.scale.x = b.side if b.view == SIDE else 1.0
+	return f == death - 1 and red == 0
+
+
+## The bodies dying or waiting for their beasts at time `now`, and the beasts gone that
+## waited for their bodies in vain (not killed, or no carcass came).
+func _bodies_step(now: float) -> void:
+	for i in range(_dying.size() - 1, -1, -1):
+		var b := _dying[i]
+		if b.dies_at == INF:
+			if now < b.wait_until:
+				continue
+			# Its beast did not go (another of its kind stood there): it falls on its own.
+			if b.look != null:
+				b.look.body = null
+				b.look = null
+			b.dies_at = now
+			_own_sprite(b, now)
+		if _draw_body(b, now):
+			_dying.remove_at(i)
+	for i in range(_fallen.size() - 1, -1, -1):
+		if now >= _fallen[i][1]:
+			(_fallen[i][0] as Look).sprite.queue_free()
+			_fallen.remove_at(i)
+
+
+## Every body turned to the camera as it looks now.
+func _turn_bodies(now: float) -> void:
+	for key: Vector2i in _bodies:
+		for b: Body in _bodies[key].values():
+			if b.sprite == null:
+				continue
+			_face(b)
+			b.frame = -1
+			_draw_body(b, now)
+			_fit_sprite(b.sprite, looks[b.kind][0])
+
+
+## Body `b` is gone: taken up, or out of view.
+func _lift(b: Body) -> void:
+	_dying.erase(b)
+	if b.look != null:
+		b.look.body = null
+		b.look = null
+	if b.sprite != null:
+		b.sprite.queue_free()
+		b.sprite = null
 
 
 func _on_stepped(_a, at: Vector3, dir: Vector2, left: bool, size: float) -> void:

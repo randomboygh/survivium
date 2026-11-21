@@ -4,8 +4,10 @@ extends SceneTree
 ## player/hands.png and held/lump.png (what a hand shows of a thing without a sheet or an
 ## icon) in core, held/<tool>.png in the bundle of the item that names the sprite,
 ## worn/<look>.png (clothes on the figure) in the bundle of the item of that look, and
-## for the body's forms player/forms/<build>_<figure>/<layer>.png and worn/<look>/<build>_<figure>.png. A picture painted over by hand is overwritten, so name
-## the pictures to make:
+## for the body's forms player/forms/<build>_<figure>/<layer>.png and worn/<look>/<build>_<figure>.png;
+## and the animals drawn from the user's references (ANIMALS) as their species' pictures,
+## sprites/creatures/<sprite>.png in the bundle of the species. A picture painted over by hand
+## is overwritten, so name the pictures to make (an animal by its file, boar.png):
 ## godot --headless --path . --script res://tools/make_sprites.gd -- <picture ...> | --all
 
 const Figure := preload("res://src/client/view/figure.gd")
@@ -14,6 +16,12 @@ const Items := preload("res://src/shared/content/items.gd")
 const PlayerArt := preload("res://tools/art/player_art.gd")
 const FormsArt := preload("res://tools/art/player_forms_art.gd")
 const ToolArt := preload("res://tools/art/tool_art.gd")
+const AiRules := preload("res://src/shared/content/ai_rules.gd")
+
+## The animals drawn here, by their species' `sprite`: the art module of each (a `sheet()`).
+const ANIMALS := {
+	"boar": preload("res://tools/art/boar_art.gd"),
+}
 
 ## Clothes as worn on the figure, by the items' `look`: the shape (PlayerArt.SHAPES)
 ## and its light, middle and dark colour, then the trim's light and dark (PlayerArt.painted).
@@ -141,6 +149,8 @@ func _init() -> void:
 			if LUMP[y][x] != ".":
 				lump.set_pixel(x, y, Color.html(ToolArt.INK[LUMP[y][x]]))
 	pictures["held/lump"] = lump
+	for sprite: String in ANIMALS:
+		pictures[_creature_path(sprite)] = ANIMALS[sprite].sheet()
 	for path in pictures:
 		if only.is_empty() or only.has(path.get_file()) or only.has(path):
 			var file: String = ProjectSettings.globalize_path(path if path.begins_with("res://") else "%s/%s.png" % [dir, path])
@@ -175,7 +185,6 @@ func _forms(pictures: Dictionary) -> void:
 	PlayerArt.use_form("normal", "straight")
 
 
-## Where the sheet of `sprite` goes: beside the item that holds it, or core's held/ when none does.
 ## Where the picture of clothes `look` goes: sprites/worn/ of the bundle of the item
 ## with that look.
 func _worn_path(look: String) -> String:
@@ -206,6 +215,17 @@ func _tones(look: String) -> Array:
 	return tones
 
 
+## Where the picture of the animals with `sprite` goes: sprites/creatures/ of the bundle of the
+## species that names it.
+func _creature_path(sprite: String) -> String:
+	for spec: Dictionary in AiRules.SPECIES.values():
+		if spec.get("sprite", "") == sprite:
+			return Content.asset(spec, "sprites/creatures/%s.png" % sprite)
+	push_error("no species draws %s" % sprite)
+	return "res://%s.png" % sprite
+
+
+## Where the sheet of `sprite` goes: beside the item that holds it, or core's held/ when none does.
 func _held_path(sprite: String) -> String:
 	for item in Items.BY_ID.values():
 		if item.sprite == sprite:

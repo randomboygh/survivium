@@ -25,6 +25,10 @@ const REACH := WorldActions.HAND_REACH
 ## finger is wider than a mouse pointer.
 const FINGER := 14.0
 const POINTER := 7.0
+## A beast's body lying on the ground is hit round its middle, BODY_UP world units over
+## its feet, and BODY_GROW px farther than the radius (a lying boar is some 23 px wide).
+const BODY_UP := 0.4
+const BODY_GROW := 6.0
 ## How often the things lying near the player are taken by themselves, in seconds.
 const PICKUP_INTERVAL := 0.15
 
@@ -79,7 +83,11 @@ func target_at(screen_pos: Vector2) -> Dictionary:
 			var list: Array = world.drops.get(key, [])
 			for i in list.size():
 				var at: Vector3 = list[i][1]
-				var d := _screen_distance(at + Vector3(0.0, 0.1, 0.0), vp_pos)
+				# A beast's body lying there (Creatures.show_bodies) is hit about its middle,
+				# BODY_GROW px farther: it is as big as the beast.
+				var body := WorldActions.is_body(list[i])
+				var d := _screen_distance(at + Vector3(0.0, BODY_UP if body else 0.1, 0.0), vp_pos) \
+					- (BODY_GROW if body else 0.0)
 				if d < best_d and at.distance_to(player_pos) <= REACH:
 					best_d = d
 					best = {"drop": [key, i], "at": at}

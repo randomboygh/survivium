@@ -84,7 +84,7 @@ Part of [Interface and settings](../ui.md). The HUD and the windows opened in th
   (`Controls.action_name`, once per `LABEL_TIME` by `WorldActions.front_kind`, and when the hand's thing or the mode changes; a change of the bag alone leaves it for `Hud.ACTION_NAME_MS`, since a look ahead costs ~0.5 ms on a PC; `front_kind` takes the kind by `_choice_kind`, which stops at the first grass worth more than the best tree or bush where `front_choice` ranks every cell ahead — the same choice that
   `act_in_front` makes, with no change of the world): «Drink» at water with an empty hand, «Fill with water»
   with an empty vessel, «Gather» at berries with a torch in the hand, «Dig» when everything around is
-  gathered, «Chop», «Mow» (grass with hands — «Gather»), «Hit»; for a building item, food and healing — «Place»,
+  gathered, «Chop», «Mow» (grass with hands — «Gather»), «Hit», «Pick up» (a beast's body before the feet); for a building item, food and healing — «Place»,
   «Plant», «Put», «Eat», «Bandage»; if there is nothing in front — by the tool in the hand («Fish», «Throw»,
   «Shoot»…), otherwise «Gather», and shows its picture (a hand with no item); the label over the hotbar is in
   the same frame as the clock and of the same height (`Hud.SLEEP_SIZE`): the bag's gauge, a division per cell,

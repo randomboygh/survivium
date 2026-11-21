@@ -673,12 +673,14 @@ func add_drop(kind: String, pos: Vector3, angle: float, data: Variant = 1, until
 
 ## Lays `n` items `kind` of quality `q` at `pos` like add_drop, onto a heap of the same
 ## kind lying within HEAP of it if there is one (what a swing digs out piles up, not one
-## per cell), at the quality of the two together.
+## per cell), at the quality of the two together; a beast's body (a carcass that names
+## it, ActionsFight._wound) is no heap.
 func heap_drop(kind: String, pos: Vector3, n: int, angle := 0.0, q := Items.NORMAL_QUALITY) -> void:
 	var key := Vector2i(floori(pos.x / CELL) >> SHIFT, floori(pos.z / CELL) >> SHIFT)
 	for d: Array in drops.get(key, []):
 		if d[0] == kind and d.size() == 4 and d[1].distance_to(pos) <= HEAP \
-				and (d[3] is int or d[3] is Dictionary and int(d[3].get("worn", 0)) == 0 and not d[3].has("text")):
+				and (d[3] is int or d[3] is Dictionary and int(d[3].get("worn", 0)) == 0 and not d[3].has("text") \
+					and not d[3].has("body")):
 			var had: int = d[3] if d[3] is int else int(d[3].get("n", 1))
 			var was: int = Items.NORMAL_QUALITY if d[3] is int else int(d[3].get("q", Items.NORMAL_QUALITY))
 			d[3] = heap_data(had + n, roundi(float(was * had + q * n) / float(had + n)))
