@@ -1038,9 +1038,11 @@ func _mow(id: String, plant: String) -> bool:
 		var feet: Vector3i = main.controls.feet()
 		var best := Vector3i.MAX
 		var best_d := INF
-		# A plant of some biomes only (a sundew in clumps by the bog pools) is looked for
-		# farther, in the chunks held.
-		var reach := SEARCH * (3 if not Plants.BY_ID.get(plant, {}).get("biomes", []).is_empty() else 1)
+		# A plant of some biomes only (a sundew in clumps by the bog pools) or of the banks
+		# (cranberries in clumps by the water) is looked for farther, in the chunks held.
+		var rec: Dictionary = Plants.BY_ID.get(plant, {})
+		var far: bool = not rec.get("biomes", []).is_empty() or rec.get("grows", "") == "bank"
+		var reach := SEARCH * (3 if far else 1)
 		for dz in range(-reach, reach + 1):
 			for dx in range(-reach, reach + 1):
 				var d := Vector2(dx, dz).length()
