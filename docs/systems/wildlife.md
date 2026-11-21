@@ -189,7 +189,7 @@ water, a kind with `biomes` appears only on its own land.
 **Data.** The kind `creatures` (`health`, `carcass`, `bite`, `mass`, `diet`, `speed`, `sight`,
 `human_wariness`, `fire_wariness`, `active`, `count`, `sprite`, `frames`, `walk`, `hop`, `attack`, `run`, `hurt`,
 `death`, `idle_anim`, `views`,
-`flies`, `swims`, `ashore`, `hops`, `after_rain`, `flight`, `tints`, `flock`, `roost`, `likes`, `loves` (of those, the ones it goes for first, oftener (`LOVE_CHANCE`) and farther (`LOVE_REACH`), standing on them `LOVE_LINGER` times longer: a rabbit on clover), `biomes`,
+`flies`, `swims`, `ashore`, `hops`, `walks`, `after_rain`, `flight`, `tints`, `flock`, `roost`, `likes`, `loves` (of those, the ones it goes for first, oftener (`LOVE_CHANCE`) and farther (`LOVE_REACH`), standing on them `LOVE_LINGER` times longer: a rabbit on clover), `biomes`,
 `calls`, `alarm`, taming: `tame_food`, `tame_feeds`, `tend_swing`, `wool`, `wool_days`, `breed_days`, `herd`, `trapped` — a
 live item from a live trap) in the bundles `content/animals/<beast>/`; the picture is the bundle's
 `sprites/creatures/<sprite>.png`: a row per side (`views`: 1 — from the side; 3 — side, front, back), in a
@@ -202,11 +202,12 @@ rest (drawn by `tools/make_creatures.py`
 with `tools/creature_kit.py`, the sparrow — `tools/make_sparrow.py`, the crow, owl and duck —
 `tools/make_birds.py`, the frog — `tools/make_frog.py`, fish — `tools/make_fish.py`, the hare —
 `tools/make_rabbit.py`, the squirrel — `tools/make_squirrel.py`, the deer — `tools/make_deer.py`, the boar and
-the fox — `tools/make_sprites.gd` from `tools/art/boar_art.gd` and `tools/art/fox_art.gd` (the user's references,
+the fox and the black grouse — `tools/make_sprites.gd` from `tools/art/boar_art.gd`, `tools/art/fox_art.gd` and `tools/art/grouse_art.gd` (the user's references,
 the way the player is drawn), the bear — `tools/make_bear.py`, the wolf —
 `tools/make_wolf.py`, the wild cat — `tools/make_cat.py`, the hedgehog — `tools/make_hedgehog.py`).
 `creatures.gd` chooses the side by the movement on screen (`TURN_BIAS`), a step — by the path walked (a
-flyer's hops — `HOP_STEP`), the frames of rest — now and then (`IDLE_GAP`, `IDLE_HOLD`, the last —
+flyer's hops — `HOP_STEP`; a flyer with `walks`, the black grouse, steps on the ground through its `hop` frames by the
+path walked as a walker does, with no sitting frame between), the frames of rest — now and then (`IDLE_GAP`, `IDLE_HOLD`, the last —
 `IDLE_LONG`; with `idle_anim` they play through in order, `IDLE_FRAME` each). After the attack frames come, for a
 kind drawn with them (the boar, the fox; the fox has no attack frames), `run` frames of a gallop, by the path walked (a round of them is `RUN_ROUND` rounds
 of the walk) while it flees, hunts or charges (`RUNS`), `hurt` frames played as a blow lands (`HURT_FRAME` each,
@@ -231,7 +232,7 @@ table in `tools/make_sounds.gd`).
 **Tests.** `tests/unit/wildlife_test.gd` (`ai_relations`, `wildlife`, `climbers`, `biomes`, `swimmers`,
 `fishing`, `birds`, `shore`, `jostle`, `hunting`, `fire`, `taming`, `attacks`; a pack waits for the ticks of
 thinking, not for the order of random numbers); the drawn ones: `tests/unit/view_test.gd` (`animal_flinch`,
-`boar_states`: the boar's frames and its body, `fox_states`: the fox's).
+`boar_states`: the boar's frames and its body, `fox_states`: the fox's, `grouse_states`: the grouse's wing beats and steps).
 
 **In more detail.** `plan/design/creatures-ai.md`; `plan/architecture/ai.md` — the idea of the behaviour
 engine (the formulas are marked as a draft, in the code it is simpler).

@@ -90,6 +90,7 @@ func run() -> void:
 	_test_animal_flinch()
 	_test_boar_states()
 	_test_fox_states()
+	_test_grouse_states()
 
 
 func _test_pixel_view() -> void:
@@ -1930,4 +1931,45 @@ func _test_fox_states() -> void:
 	_check(b.frame == 3 and c._dying.is_empty() and sprite.material_override == c.looks[kind][1][0][b.view * 20 + 19],
 		"and lies on its last")
 	c.hide_bodies(key)
+	c.free()
+
+
+## The black grouse (tools/art/grouse_art.gd): a flyer whose wing beats are its walk frames and
+## whose steps on the ground are its hop frames (`walks`), played by the path as a walker's.
+func _test_grouse_states() -> void:
+	var c := CreaturesView.new()
+	c._build_looks()
+	var kind := "animals:grouse"
+	var k: Array = c.looks.get(kind, [])
+	_check(k.size() > 12 and k[3] == 20 and k[4] == 4 and k[6] == 4 and k[7] == 0 and k[9] == 0 and k[10] == 4 and k[11] == 4 and k[12],
+		"the grouse's row: 20 frames, the wing beat, the steps, hurt and death four each, the idle one animation")
+	if k.size() <= 12:
+		c.free()
+		return
+	var w := RemoteWildlife.new()
+	c.wildlife = w
+	var a := RemoteWildlife.Animal.new()
+	a.kind = kind
+	a.pos = Vector3(10.0, 3.0, 10.0)
+	w.animals.append(a)
+	c._on_born(a)
+	var look = c._looks[a]
+	var now := Time.get_ticks_msec() * 0.001
+	var seen := {}
+	a.flying = true
+	for i in 8:
+		seen[c._frame(a, look, float(i), now)] = true
+	_check(seen.size() == 4 and seen.keys().all(func(f: int) -> bool: return f >= 1 and f < 5),
+		"the grouse beats its wings in the air (%s)" % [seen.keys()])
+	seen.clear()
+	a.flying = false
+	a.moving = true
+	for i in 12:
+		look.walked = i * 0.12
+		seen[c._frame(a, look, 0.0, now)] = true
+	_check(seen.size() == 4 and seen.keys().all(func(f: int) -> bool: return f >= 8 and f < 12),
+		"the grouse walks on the ground in its steps, never sitting between them (%s)" % [seen.keys()])
+	a.moving = false
+	look.hurt_at = now
+	_check(c._frame(a, look, 0.0, now) == 12, "a blow landed: the grouse flinches")
 	c.free()
