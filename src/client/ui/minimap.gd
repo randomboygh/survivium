@@ -209,27 +209,43 @@ func _region(key: Vector2i) -> Dictionary:
 	return regions[key]
 
 
-## Draws the columns of a chunk (every STEP cells) once they are final.
-func paint_chunk(w: WorldData, key: Vector2i) -> void:
-	var data := PackedByteArray()
-	data.resize(CHUNK_PX * CHUNK_PX * 4)
+## Draws the columns of a chunk (every STEP cells): once it is planted, and again once
+## its columns are final (see ChunkStreamer._on_generated). With `leaves_only` only the
+## columns under a crown are drawn again: the crowns a neighbour planted later grew
+## into a chunk painted before (the rest keeps what it showed, which may hold crowns of
+## neighbours not planted again after the chunk was forgotten).
+func paint_chunk(w: WorldData, key: Vector2i, leaves_only := false) -> void:
+	var rk := Vector2i(key.x >> REGION_SHIFT, key.y >> REGION_SHIFT)
+	var r := _region(rk)
+	var img: Image = r.image
 	var x0: int = key.x * WorldData.CHUNK
 	var z0: int = key.y * WorldData.CHUNK
-	var i := 0
-	for z in range(z0, z0 + WorldData.CHUNK, STEP):
-		for x in range(x0, x0 + WorldData.CHUNK, STEP):
-			var c := _color(w, x, z)
-			data[i] = c.r8
-			data[i + 1] = c.g8
-			data[i + 2] = c.b8
-			data[i + 3] = 255
-			i += 4
-	var r := _region(Vector2i(key.x >> REGION_SHIFT, key.y >> REGION_SHIFT))
-	var img: Image = r.image
-	img.blit_rect(Image.create_from_data(CHUNK_PX, CHUNK_PX, false, Image.FORMAT_RGBA8, data),
-		Rect2i(0, 0, CHUNK_PX, CHUNK_PX), Vector2i((key.x & (REGION - 1)) * CHUNK_PX, (key.y & (REGION - 1)) * CHUNK_PX))
+	var px0: int = (key.x & (REGION - 1)) * CHUNK_PX
+	var pz0: int = (key.y & (REGION - 1)) * CHUNK_PX
+	if leaves_only:
+		var ch: WorldData.Chunk = w.chunk_at(x0, z0)
+		if ch == null:
+			return
+		for z in range(z0, z0 + WorldData.CHUNK, STEP):
+			for x in range(x0, x0 + WorldData.CHUNK, STEP):
+				if ch.leaf[WorldData.col_of(x, z)] != 0:
+					img.set_pixel(px0 + (x - x0) / STEP, pz0 + (z - z0) / STEP, _color(w, x, z))
+	else:
+		var data := PackedByteArray()
+		data.resize(CHUNK_PX * CHUNK_PX * 4)
+		var i := 0
+		for z in range(z0, z0 + WorldData.CHUNK, STEP):
+			for x in range(x0, x0 + WorldData.CHUNK, STEP):
+				var c := _color(w, x, z)
+				data[i] = c.r8
+				data[i + 1] = c.g8
+				data[i + 2] = c.b8
+				data[i + 3] = 255
+				i += 4
+		img.blit_rect(Image.create_from_data(CHUNK_PX, CHUNK_PX, false, Image.FORMAT_RGBA8, data),
+			Rect2i(0, 0, CHUNK_PX, CHUNK_PX), Vector2i(px0, pz0))
 	r.dirty = true
-	unsaved[Vector2i(key.x >> REGION_SHIFT, key.y >> REGION_SHIFT)] = true
+	unsaved[rk] = true
 
 
 ## Whether chunk `key` has been painted (see paint_chunk): its first pixel is opaque.

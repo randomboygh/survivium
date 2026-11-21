@@ -232,8 +232,9 @@ var haze: EdgeHaze
 var haze_on := false
 var job_meshes := []
 var job_plant_parts := {}
-## Chunks just made whose columns the roof map (part 0) and the minimap (part 1)
-## still have to take, one a frame: Vector3i(key.x, key.y, part).
+## Chunks just made whose columns the roof map (part 0) and the minimap (part 1, its new
+## crowns only: 2) still have to take, one a frame, nearest to the player first (see
+## _next_paint): Vector3i(key.x, key.y, part).
 var paint_queue: Array[Vector3i] = []
 ## True once every chunk within reach of the player is built.
 var map_done := false
@@ -635,7 +636,7 @@ func build_around() -> void:
 	stashed = []
 	_drop_job()
 	while not paint_queue.is_empty():
-		_paint(paint_queue.pop_front())
+		_paint(_next_paint())
 	game.mirror.send_input()
 	_list_pending()
 	while not pending_chunks.is_empty():
@@ -711,27 +712,58 @@ func focus_built() -> float:
 ## A chunk reached a stage (WorldGen.made): once it is SHAPED its columns are final,
 ## so the roof map and the minimap take them, at once while a chunk is built whole
 ## (the loading screen and tools, see build_chunk), else one a frame (see run_jobs).
-## The minimap paints its ground already at TERRAIN, two chunks ahead of the meshes,
-## so the world is not seen being made at its edge; the trees come in with SHAPED. A
-## chunk the map already shows (from the save, or made again after it was forgotten)
-## is not painted bare at TERRAIN: its trees would go from the map until it is SHAPED
-## again.
+## The minimap paints a chunk already at PLANTED, a chunk ahead of the meshes, so the
+## world is not seen being made at its edge, with its trees (user 2026-11-21: painted
+## bare at TERRAIN, two rings at the map's edge had no trees until they were SHAPED);
+## the crowns a chunk planted later grows into a painted neighbour are added to it
+## (part 2, Minimap.paint_chunk `leaves_only`). A chunk the map already shows (from the
+## save, or made again after it was forgotten) is not painted at PLANTED: the crowns of
+## its neighbours not planted again would go from the map until it is SHAPED.
 func _on_generated(key: Vector2i, stage: int) -> void:
 	waiting.clear()
 	var parts: Array
 	if stage == WorldGen.SHAPED:
 		parts = [0, 1]
-	elif stage == WorldGen.TERRAIN and not (game.hud != null and game.hud.minimap != null
-			and game.hud.minimap.has_chunk(key)):
-		parts = [1]
+	elif stage == WorldGen.PLANTED and game.hud != null and game.hud.minimap != null:
+		var mm = game.hud.minimap
+		if not mm.has_chunk(key):
+			parts = [1]
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				var n := key + Vector2i(dx, dz)
+				if (dx != 0 or dz != 0) and mm.has_chunk(n) and gen.stage_of(n) < WorldGen.SHAPED:
+					_queue_paint(Vector3i(n.x, n.y, 2))
 	for part: int in parts:
-		if _whole:
-			_paint(Vector3i(key.x, key.y, part))
-		else:
-			paint_queue.append(Vector3i(key.x, key.y, part))
+		_queue_paint(Vector3i(key.x, key.y, part))
 
 
-## Paints chunk (item.x, item.y) into the roof map (item.z 0) or the minimap (1).
+## Paints `item` at once while a chunk is built whole, else queues it (once).
+func _queue_paint(item: Vector3i) -> void:
+	if _whole:
+		_paint(item)
+	elif not item in paint_queue:
+		paint_queue.append(item)
+
+
+## The queued paint nearest to the player first, so the map fills from the player
+## outwards (user 2026-11-21).
+func _next_paint() -> Vector3i:
+	var home := _player_chunk()
+	var best := 0
+	var best_d := 1 << 30
+	for i in paint_queue.size():
+		var it := paint_queue[i]
+		var d := maxi(absi(it.x - home.x), absi(it.y - home.y))
+		if d < best_d:
+			best_d = d
+			best = i
+	var item := paint_queue[best]
+	paint_queue.remove_at(best)
+	return item
+
+
+## Paints chunk (item.x, item.y) into the roof map (item.z 0) or the minimap (1), or
+## adds to the minimap the crowns grown into it since it was painted (2).
 func _paint(item: Vector3i) -> void:
 	var key := Vector2i(item.x, item.y)
 	if not world.has_chunk(key):
@@ -739,7 +771,7 @@ func _paint(item: Vector3i) -> void:
 	if item.z == 0:
 		game.roof.fill_chunk(world, key)
 	elif game.hud != null and game.hud.minimap != null:
-		game.hud.minimap.paint_chunk(world, key)
+		game.hud.minimap.paint_chunk(world, key, item.z == 2)
 
 
 ## Does part `job_part` of finishing the chunk being built (the meshes, the plants,
@@ -899,7 +931,7 @@ func run_jobs(spent := 0) -> void:
 	var worked := false
 	if not paint_queue.is_empty() and not lagging:
 		var tp := Time.get_ticks_usec()
-		_paint(paint_queue.pop_front())
+		_paint(_next_paint())
 		budget_us += Time.get_ticks_usec() - tp
 		worked = true
 	while true:
@@ -1037,7 +1069,7 @@ func run_jobs(spent := 0) -> void:
 		# frame: first, a chunk a frame, they held the screen's ground back (a paint and a
 		# part of a mesh a frame; after a teleport some 240 frames, 4 s at 60 a second).
 		var tp := Time.get_ticks_usec()
-		_paint(paint_queue.pop_front())
+		_paint(_next_paint())
 		budget_us += Time.get_ticks_usec() - tp
 	mesh_us += Time.get_ticks_usec() - t0 - spent
 	_unload_some()

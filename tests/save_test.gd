@@ -528,8 +528,10 @@ func _run() -> void:
 	_check(explored.all(func(k: Vector2i) -> bool: return mm.regions.has(k)), "the explored map comes back")
 	_check(mm.regions.has(far) and mm.regions[far].image.get_pixel(3, 5).is_equal_approx(Color.RED),
 		"a region explored far away comes back as it was painted")
-	# A chunk the map already shows is not painted bare when its terrain is made again
-	# (its trees would go from the map until it is shaped); one not shown yet is.
+	# A chunk the map already shows is not painted again when it is planted again (the
+	# crowns of its neighbours not planted again would go from the map until it is
+	# shaped); one not shown yet is painted once planted, with its trees, not bare with
+	# its terrain (user 2026-11-21: the rings at the map's edge had no trees).
 	var gen = main.gen
 	var seen := Vector2i(main.chunks.load_home.x + 20, main.chunks.load_home.y)
 	var unseen := seen + Vector2i(0, 3)
@@ -539,11 +541,17 @@ func _run() -> void:
 	# Made whole, as the loading screen does: the maps take the chunk at once.
 	main.chunks._whole = true
 	for key: Vector2i in [seen, unseen]:
-		gen.run(key, WorldGen.TERRAIN)
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				if gen.stage_of(key + Vector2i(dx, dz)) < WorldGen.TERRAIN:
+					gen.run(key + Vector2i(dx, dz), WorldGen.TERRAIN)
+	var bare_painted: bool = mm.has_chunk(unseen)
+	for key: Vector2i in [seen, unseen]:
+		gen.run(key, WorldGen.PLANTED)
 	main.chunks._whole = false
 	_check(mm.regions[seen_region].image.get_pixel(seen_px.x, seen_px.y).is_equal_approx(Color.RED),
-		"a chunk already on the map keeps its picture when its terrain is made again")
-	_check(mm.has_chunk(unseen), "a chunk not on the map yet is painted with its terrain")
+		"a chunk already on the map keeps its picture when it is planted again")
+	_check(not bare_painted and mm.has_chunk(unseen), "a chunk not on the map yet is painted once planted, not bare")
 
 	# Death: the bag goes into a sack, the character lies dead until brought back, and a
 	# world left dead is entered dead.

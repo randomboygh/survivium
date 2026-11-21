@@ -2,7 +2,9 @@
 
 Part of [Interface and settings](../ui.md). The maps, the settings, the performance panel and the shared drawing.
 
-- Maps: `minimap.gd` (the map is painted a chunk at a time into regions of 32 chunks, kept in the save; marks
+- Maps: `minimap.gd` (the map is painted a chunk at a time into regions of 32 chunks, kept in the save: a chunk
+  with its trees once it is PLANTED, the crowns its neighbours plant later added, again once SHAPED; the queue
+  nearest to the player first — `ChunkStreamer._on_generated`, `_next_paint`; marks
   of what was placed, of sacks and of rafts and boats on water, except the one one sits in — `set_marks`, from
   `hud.gd`; teammates — `draw_mates` by `Team.mates`, see [territory.md](../territory.md);
   `shaders/map_ground.gdshader`), `map_view.gd` (full screen; a pinch moves the map after the middle of the
