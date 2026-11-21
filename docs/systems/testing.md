@@ -62,7 +62,7 @@ checks; the warnings about RID leaks at the exit of `save_test` and `progress_te
   write the game's name from `project.godot`; `rename.py "Name"` — rename the game
   ([RENAMING.md](../RENAMING.md)), `make_creatures.py` with `creature_kit.py` (the beasts' sheets),
   `make_sparrow.py` (the sparrow), `make_birds.py` (crow, owl, duck), `make_frog.py`, `make_fish.py`,
-  `make_squirrel.py`, `make_deer.py`, `make_bear.py`,
+  `make_squirrel.py`, `make_bear.py`,
   `make_wolf.py`, `make_cat.py`, `make_hedgehog.py`, `make_plant_art.py` (bark, plants, fruit of the new
   plants). What is drawn can be corrected by hand.
 - `build_info.py` — the version and «What's new» for the build (CI); `web_patch.py` — the patch of the web

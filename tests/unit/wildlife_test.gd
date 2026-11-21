@@ -806,6 +806,10 @@ func _test_hunting(w: WorldData) -> void:
 	var carcass: Array = w.drops.get(key, []).filter(func(d: Array) -> bool: return d[0] == "animals:carcass")
 	_check(deer.gone and blows == ceili(float(left) / Tools.of("tools:steel_sword").power) and carcass.size() == 1
 		and w.drops[key].size() == lying + 1, "a steel sword kills the deer in %d blows and its carcass lies there" % blows)
+	# The deer has frames of death too, so its carcass lies as its body: put away, so that the
+	# boar's below is the only body there.
+	w.drops[key] = w.drops[key].filter(func(d: Array) -> bool:
+		return not (d[3] is Dictionary and d[3].get("body", "") == "animals:deer"))
 	# A boar has frames of death: killed, it lies where it stood, turned the way it went,
 	# its carcass naming it for the clients to draw (Creatures.show_bodies), apart from any
 	# heap.
