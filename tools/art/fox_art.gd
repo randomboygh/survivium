@@ -16,6 +16,9 @@ extends RefCounted
 ## pick A): struck, sinking, dropped, lying dead; the game keeps the last until its carcass is
 ## taken (the user's rule). Hurt and death are in the fox's own colours, though the reference
 ## paints them red: the game flashes a struck animal red with a shader (the user, 2026-11-21).
+## The pixels the user corrected on the review (2026-11-21: the standing far front paw, walk's
+## outline, run's leg, the tail's tip, the shadow by the tail seen from the back) are
+## anim/src/fox_gen.py's EDITS, applied to the frames it reduces from the reference.
 ##
 ## A frame is rows of letters of INK ("." empty), the outline drawn as letters too. The frames of
 ## a view share one canvas, so the body does not jump between states; its last row is the ground:
@@ -127,7 +130,7 @@ const FLINCH_N := [
 	"......KnWEWVN.....",
 	".....nwwwnN.......",
 	".....NNNN.........",
-	"....n.............",
+	"..................",
 ]
 ## The west's frame 1 of `hurt`, again as hurt 3.
 const FLINCH_W := [
@@ -148,7 +151,7 @@ const FLINCH_W := [
 	"....nVDDMLMMLHLMDHFON.....",
 	"....kngDMMDDMMMMDLFFWnn...",
 	"....ODNOMMokMMMDODLVWEWNNN",
-	"....KkKOMO.KkODOOowVVWWWN.",
+	"....Kk.OMO.KkODOOowVVWWWN.",
 	".......kK....kK....NNN....",
 ]
 ## state -> the south (s), the north (n), the west (w) -> its frames.
@@ -345,7 +348,7 @@ const FRAMES := {
 				"....ongoMMDDMMMMDLHhWN....",
 				"....oDNoMMONDMMDOMLVWEN...",
 				"....ODOOMO.oOMDOOOMwVWWnNn",
-				"....KkKOMO.KkoDO..OwwVVVn.",
+				"....Kk.OMO.KkoDO..OwwVVVn.",
 				".......Kk....KK...........",
 			],
 			[
@@ -361,12 +364,12 @@ const FRAMES := {
 				"..NWWVMDDOO...............",
 				"...NGGDDDMLOOOo...........",
 				"....NwDMLHLHHHHLOOO.......",
-				"....NVDDMLMMLHLMDHFON....N",
+				"....NVDDMLMMLHLMDHFON.....",
 				"....oGgoMMDDMMMMDLFFWNNnn.",
 				"....ODNoMMoNDMMDOMVWWEEWN.",
 				"....ODOOMO.oOMDOoDwVVEVN..",
 				"....KkKOMO.KkODO.oMwwVN...",
-				"....KkKKnK.KkKnK..ONNn....",
+				"....Kk.KnK.KkKnK..ONNn....",
 				".......Kk....KK...........",
 			],
 			[
@@ -387,7 +390,7 @@ const FRAMES := {
 				"....ODNoMMoNDMMDOOLwwVVn..",
 				"....ODOOMO.oOMDOo.MMwwn...",
 				"....KkKOMO.KkODO..oOoN....",
-				"....KkKKnK.KkKnK..........",
+				"....Kk.KnK.KkKnK..........",
 				".......Kk....KK...........",
 			],
 			[
@@ -403,12 +406,12 @@ const FRAMES := {
 				".NEWhLLMMDo...............",
 				"..NWWVMDDOO...............",
 				"...NGGDDDMLOOOo...........",
-				"....NwDMLHLHHHHLOFFON....N",
+				"....NwDMLHLHHHHLOFFON.....",
 				"....nVDDMLMMLHLMDHFFWNNnn.",
 				"....ongoMMDDMMMMDLVWWEEWN.",
 				"....oDNoMMONDMMDOMwVVWVN..",
 				"....ODOOMO.oOMDOODMwwnN...",
-				"....KkKOMO.KkoDO.oONN.....",
+				"....Kk.OMO.KkoDO.oONN.....",
 				".......Kk....KK...........",
 			],
 		],
@@ -620,10 +623,10 @@ const FRAMES := {
 				".OhLkhLLLMM...............",
 				".NEWhhLMMDO...............",
 				"..NWWVMDDMLOOOo...........",
-				"....NwDMLHLHHHhMOLHhOO....",
+				"....NwDMLHLHHHhMOOOOOO....",
 				"....NVDDMLMLHHLMOMLFFhN...",
-				"....ongoMMMMLHLMOODHhEE...",
-				"....OonOMDODLLLDo.oLVWE...",
+				"....ongoMMMMLHLMOODHhEEN..",
+				"....OonOMDODLLLDo.oLVWEN..",
 				"....oDoOMDOOMLMO...MwVWn..",
 				"....oO..oMOoOMO....onwVN..",
 				"....ko..KMOkOMO......nNN..",
@@ -664,7 +667,7 @@ const FRAMES := {
 				"..NWWVMDDMLOOOo...........",
 				"....NwDMLHLHHHhMo.........",
 				"....NVDDMLMMDHLMMOo.......",
-				".....ngoMMDDHLMMMhFoN....N",
+				".....ngoMMDDHLMMMhFoN.....",
 				".....oOMMMooLMMOMLFFVNNNN.",
 				".....oOMDO.DMMOODMVWWEEWN.",
 				"......OMO..DOMO.ODwVVWVn..",
@@ -924,10 +927,10 @@ const FRAMES := {
 				"..nWWVMDDLLOOo............",
 				"....kgLHFHLHHFHo..........",
 				"....onLHHLLLHHHLOOO.......",
-				"....DoMLDMwDLHLMOHFON....N",
-				"....DoDMDoNNoLMMOLFFWnNnN.",
-				"...KO.ODO....OOMDOVWWEEWn.",
-				"...N..ODO....kKKDOwVVWVn..",
+				"...oDoMLDMwDLHLMOHFON.....",
+				"...ODoDMDoNNoLMMOLFFWnNnN.",
+				"..KMO.ODO....OOMDOVWWEEWn.",
+				"..KN..ODO....kKKDOwVVWVn..",
 				"...k...ODK....kKnKMwwVn...",
 				"........K.................",
 			],
@@ -1020,8 +1023,8 @@ const FRAMES := {
 				".....OoOOHLLO.....",
 				".....onNWWLMO.....",
 				".....NWEWVwn......",
-				"...nNnNNN.........",
-				"...n..............",
+				"....NnNNN.........",
+				"..................",
 				"..................",
 			],
 			FLINCH_N,
@@ -1041,11 +1044,11 @@ const FRAMES := {
 				".NEWhhLMMDO...............",
 				"..NWWVMDDMLOOOO...........",
 				"....NwDMLHLHHHHLOOO.......",
-				"....NVDDMLMMLHLMDhFon....N",
+				"....NVDDMLMMLHLMDhFon.....",
 				"....ongDMMDDMMMMOLFFVnNNN.",
 				"....ODNDMMoNDMMDOMVWWEEWn.",
 				"....ODoOMo.OOMDOoDwVVWVn..",
-				"....KNKOMO.KkODO.oMwwVN...",
+				"....KN.OMO.KkODO.oMwwVN...",
 				".......kK....kK...........",
 			],
 			FLINCH_W,
@@ -1067,7 +1070,7 @@ const FRAMES := {
 				"...nGgDMLHLHHHHMOo........",
 				"....ongDMMDDMMMMDHFhn.....",
 				"....ODnOMMOoMMMDDLHWEN....",
-				"....kkKOMO.kkODDoMTVWEnnn.",
+				"....kk.OMO.kkODDoMTVWEnnn.",
 				".......Nk....Nk..OoNNNNN..",
 			],
 			FLINCH_W,
@@ -1174,7 +1177,7 @@ const FRAMES := {
 				"......KnWEWVN.....",
 				".....nwwwNN.......",
 				".....NNNN.........",
-				"....n.............",
+				"..................",
 			],
 			[
 				"..................",
@@ -1195,8 +1198,8 @@ const FRAMES := {
 				".....OoOOHLMO.....",
 				".....knnEWLMO.....",
 				".....NWEWVwn......",
-				"...NNNNNN.........",
-				"...n..............",
+				"....NNNNN.........",
+				"..................",
 				"..................",
 			],
 			[
@@ -1265,7 +1268,7 @@ const FRAMES := {
 				"....NVDDMLMMLHLMDHFOn.....",
 				"....OngoMMDDMMMMoLFFVNN...",
 				"....OonOMMoNDMMDODLVEEWNNN",
-				"....KkKOMO.KkODOOowVVWWWn.",
+				"....Kk.OMO.KkODOOowVVWWWn.",
 				".......KK....Kk....nNN....",
 			],
 			[
@@ -1286,7 +1289,7 @@ const FRAMES := {
 				"...NGGDMLHLHHHHLOo........",
 				"....OngOMMDDMMMMDHFhn.....",
 				"....ODNDMMOkDMMDOLHWEN....",
-				"....KkkOMo.KKODOoMwVEWnNN.",
+				"....Kk.OMo.KKODOoMwVEWnNN.",
 				".......Kk....Kk..oONNNNn..",
 			],
 			[
