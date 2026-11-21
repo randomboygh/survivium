@@ -59,7 +59,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   `rots_to` (`core:rot`, «Rot»). In winter and under a roof slower (`spoil_rate`: `WINTER_RATE`, `ROOF_RATE`);
   the bag is spoiled by the character's step, chests — by `Placed.spoil` in the session's step.
   `freshness(i)` — the strip on a cell and «Freshness» in the description; `worn(i)` of food is 0 (it is not
-  repaired). What is worn (`gear`: a body slot → an item, `WEAR_SLOTS` head, body, legs, feet, back) stays in
+  repaired). What is worn (`gear`: a body slot → an item, `WEAR_SLOTS` head, body, legs, feet, back, and for looks only neck, wrists and
+  ornament: a feather in the hair) stays in
   its own cell, like a tool in the hand (`worn_slot(on)` — the first stack of this thing without things
   inside, `worn_on(i)` — what a cell is worn as; in the window and the hotbar the mark «W»): `wear(i)` puts it
   on, the former in this slot is taken off; `take_off(slot)` takes it off, the thing lies where it lay. A
@@ -389,7 +390,7 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   picture darkens and hardens for that moment, grade `heart`), the phone's vibration: `Vibration.PATTERNS` holds each event's pulses,
   pauses and strength (the strength only in the Android build; the browser's Vibration API takes the pattern
   without it, Safari has none) and the step of the setting «Vibration» it needs (off, important only, usual,
-  all); `haptics.gd` (a child of the HUD) watches the character (a bite on the line, death, low health's heart,
+  all; the default is all, and a saved choice is kept); `haptics.gd` (a child of the HUD) watches the character (a bite on the line, death, low health's heart,
   waking up), the season, team invitations, things made, picked up and fires lit near; the rest buzz where
   they happen (a strike, a felled tree, a shot that hits, a catch in `Controls._did`, a landing and water in
   `Steps`, thunder in `Nature` (the one heard is felt as a sharp pulse and a fading boom, at most once in 8 s, by its envelope in
@@ -462,7 +463,8 @@ in 88, hands in the ground — never).
 top of satiety: roast heals and quenches a little, `Character.eat`); the creature `core:human`; clothes on the
 figure — `Figure.dressed(gear)`: the bare layers of `player.yaml` `naked` (body, loincloth, hair), between
 them the pictures of what is worn `sprites/worn/<look>.png` of the thing's bundle (the field `look`): legs,
-feet, the body under the hair, the head on top; they are drawn by `tools/make_sprites.gd` (`WORN`: the shape
+feet, the body and the neck under the hair, the head and its ornament on top, the wrists over the fists
+(`Figure.LAST`, marked `Figure.AFTER_FISTS` in the look: a bracelet on a hand in front of the body); they are drawn by `tools/make_sprites.gd` (`WORN`: the shape
 `PlayerArt.SHAPES` and three colours, then two of a trim: a band, a hem, laces, which a dye will leave as
 they are). The shapes of the body's clothes are cut out of the frame's shirt and trousers (`PlayerArt._garments`:
 shirt, coat, tunic, vest, poncho, apron); the hats that are more than the top of the hair (a brim, a dome, a

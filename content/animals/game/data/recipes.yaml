@@ -18,6 +18,7 @@
     - {item: hide, count: 1}
     - {item: bone, count: 3}
     - {item: fat, count: 2}
+    - {item: tooth, count: 2}
   tools: [knife]
   wear: 2
   time: 10

@@ -1,0 +1,36 @@
+# Recipes of the "Jewellery" bundle: shells and teeth bored with a knife and strung on a cord, bone carved with it;
+# a bracelet braided by hand, a ring of a copper bar at the workbench.
+- id: shell_beads
+  title: "[tools.recipes.shell_beads]"
+  makes: shell_beads
+  needs: {materials:seashell: 6, materials:cord: 1}
+  tools: [knife]
+  time: 6
+- id: tooth_necklace
+  title: "[tools.recipes.tooth_necklace]"
+  makes: tooth_necklace
+  needs: {animals:tooth: 4, materials:cord: 1}
+  tools: [knife]
+  time: 6
+- id: bone_amulet
+  title: "[tools.recipes.bone_amulet]"
+  makes: bone_amulet
+  needs: {animals:bone: 1, materials:cord: 1}
+  tools: [knife]
+  time: 8
+- id: bracelet
+  title: "[tools.recipes.bracelet]"
+  makes: bracelet
+  needs: {materials:cord: 2}
+  time: 3
+- id: copper_ring
+  title: "[tools.recipes.copper_ring]"
+  makes: copper_ring
+  needs: {materials:copper_bar: 1}
+  at: workbench
+  time: 5
+- id: hair_feather
+  title: "[tools.recipes.hair_feather]"
+  makes: hair_feather
+  needs: {materials:feather: 1, materials:cord: 1}
+  time: 2

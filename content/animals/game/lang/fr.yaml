@@ -19,6 +19,8 @@
 "[animals.items.fat]": "Graisse"
 "[animals.items.jerky]": "Viande séchée"
 "[animals.items.jerky.about]": "Viande séchée sur un séchoir. Légère et nourrissante, sans feu."
+"[animals.items.tooth]": ""
+"[animals.items.tooth.about]": ""
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Dépecer une petite carcasse"

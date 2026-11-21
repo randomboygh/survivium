@@ -19,6 +19,8 @@
 "[animals.items.fat]": "Fat"
 "[animals.items.jerky]": "Jerky"
 "[animals.items.jerky.about]": "Meat dried on a drying rack. Light and filling, no fire needed."
+"[animals.items.tooth]": "Tooth"
+"[animals.items.tooth.about]": "A big beast's tooth. Bored and strung, it makes a necklace."
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Butcher a small carcass"

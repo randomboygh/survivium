@@ -38,7 +38,22 @@ const WREATH := [
 	"..3........3..",
 ]
 
+## A feather stuck upright in the hair over the right ear, its quill in the hair.
+const FEATHER := [
+	"...........1..",
+	"..........12..",
+	"..........2...",
+	"..........4...",
+]
+const FEATHER_SIDE := [
+	"..1...........",
+	"..21..........",
+	"...2..........",
+	"...4..........",
+]
+
 const SHAPES := {
+	"feather": {"s": FEATHER, "se": FEATHER, "e": FEATHER_SIDE, "ne": FEATHER, "n": FEATHER},
 	"brim_hat": {"s": BRIM, "se": BRIM, "e": BRIM, "ne": BRIM, "n": BRIM},
 	"dome_hat": {"s": DOME, "se": DOME, "e": DOME, "ne": DOME, "n": DOME},
 	"wreath": {"s": WREATH, "se": WREATH, "e": WREATH, "ne": WREATH, "n": WREATH},

@@ -116,7 +116,7 @@ static func blend(a: int, n: int, b: int, k: int) -> int:
 
 
 ## The body's slots things are worn in, in the order the window shows them.
-const WEAR_SLOTS := ["head", "body", "legs", "feet", "back"]
+const WEAR_SLOTS := ["head", "body", "legs", "feet", "back", "neck", "wrists", "ornament"]
 
 
 ## Puts on what lies in slot `i` (an item with Items.wear_on); it stays in its slot,

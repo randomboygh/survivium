@@ -19,6 +19,8 @@
 "[animals.items.fat]": "Grasso"
 "[animals.items.jerky]": "Carne secca"
 "[animals.items.jerky.about]": "Carne essiccata sull'essiccatoio. Leggera e saziante, senza bisogno di fuoco."
+"[animals.items.tooth]": ""
+"[animals.items.tooth.about]": ""
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Macellare una carcassa piccola"

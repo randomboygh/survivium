@@ -19,6 +19,8 @@
 "[animals.items.fat]": "Fett"
 "[animals.items.jerky]": "Dörrfleisch"
 "[animals.items.jerky.about]": "Auf dem Trockengestell gedörrtes Fleisch. Leicht und sättigend, ohne Feuer."
+"[animals.items.tooth]": ""
+"[animals.items.tooth.about]": ""
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Kleinen Kadaver zerlegen"
