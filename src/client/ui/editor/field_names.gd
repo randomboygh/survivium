@@ -145,6 +145,7 @@ const NAMES := {
 	"creatures.swims": ["[field.creatures.swims]", "[field.creatures.swims.about]"],
 	"creatures.ashore": ["[field.creatures.ashore]", "[field.creatures.ashore.about]"],
 	"creatures.hops": ["[field.creatures.hops]", "[field.creatures.hops.about]"],
+	"creatures.walks": ["[field.creatures.walks]", "[field.creatures.walks.about]"],
 	"creatures.after_rain": ["[field.creatures.after_rain]", "[field.creatures.after_rain.about]"],
 	"creatures.flight": ["[field.creatures.flight]", "[field.creatures.flight.about]"],
 	"creatures.tints": ["[field.creatures.tints]", "[field.creatures.tints.about]"],

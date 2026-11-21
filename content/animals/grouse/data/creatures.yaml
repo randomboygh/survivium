@@ -1,0 +1,35 @@
+# The fields are the same as for all creatures (content/core/data/creatures.yaml): who is food or a threat to whom
+# is derived from mass and diet by general rules, not written down. The species' picture —
+# sprites/creatures/<sprite>.png of this bundle, drawn from the user's reference by tools/make_sprites.gd
+# (tools/art/grouse_art.gd): rows for the side, the front and the back, in each sitting, the wing beat (walk:
+# the frames a flyer plays in the air), the idle's other frames (one animation), the walk on the ground (hop
+# with walks: steps, not hops), the hurt and the death, four frames each; killed, it lies on its last frame of
+# death till its carcass is taken.
+# A heavy grain and berry eater of forest edges and bogs: walks on the ground in small flocks, flies off low
+# and not far from a threat and roosts in the crowns.
+- id: grouse
+  title: "[animals.creatures.grouse]"
+  mass: 1.2
+  diet: [plants]
+  speed: 6.0
+  sight: 12
+  human_wariness: 0.8
+  active: day
+  count: 4
+  sprite: grouse
+  biomes: [biomes:forest, biomes:taiga, biomes:birch_grove, biomes:forest_steppe, biomes:peat_bog]
+  frames: 20
+  walk: 4
+  hop: 4
+  walks: true
+  hurt: 4
+  death: 4
+  idle_anim: true
+  views: 3
+  flies: true
+  flight: 16
+  flock: [2, 4]
+  roost: trees
+  likes: [plants:cranberry]
+  health: 2
+  carcass: small_carcass

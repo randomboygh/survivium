@@ -807,6 +807,8 @@
 "[field.creatures.ashore.about]": "Водный, но выходит на сушу"
 "[field.creatures.hops]": "Прыгает"
 "[field.creatures.hops.about]": "Передвигается прыжками"
+"[field.creatures.walks]": "Ходит"
+"[field.creatures.walks.about]": "Птица, что ходит по земле: её кадры прыжка — шаги"
 "[field.creatures.after_rain]": "После дождя"
 "[field.creatures.after_rain.about]": "Выходит после дождя"
 "[field.creatures.flight]": "Полёт"

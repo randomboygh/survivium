@@ -299,6 +299,9 @@ const SCHEMAS := {
 		"swims": {"type": "bool", "default": false},
 		"ashore": {"type": "bool", "default": false},
 		"hops": {"type": "bool", "default": false},
+		# A flyer whose `hop` frames are a walk on the ground, not a hop (the black grouse): played
+		# by the path walked as a walker's steps, with no sitting frame between them.
+		"walks": {"type": "bool", "default": false},
 		"after_rain": {"type": "bool", "default": false},
 		"flight": {"type": "float", "min": 1.0, "default": 28.0},
 		"tints": {"type": "list", "of": "color", "default": []},

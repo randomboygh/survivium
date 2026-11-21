@@ -23,6 +23,7 @@ const ANIMALS := {
 	"boar": preload("res://tools/art/boar_art.gd"),
 	"fox": preload("res://tools/art/fox_art.gd"),
 	"rabbit": preload("res://tools/art/rabbit_art.gd"),
+	"grouse": preload("res://tools/art/grouse_art.gd"),
 }
 
 ## Clothes as worn on the figure, by the items' `look`: the shape (PlayerArt.SHAPES)

@@ -14,7 +14,7 @@
 ## Моды и бандлы
 
 - `core` [core.mod]
-- `animals` [animals.mod]: `animals/bear` [animals.bear.bundle], `animals/boar` [animals.boar.bundle], `animals/butterfly` [animals.butterfly.bundle], `animals/cat` [animals.cat.bundle], `animals/crow` [animals.crow.bundle], `animals/deer` [animals.deer.bundle], `animals/duck` [animals.duck.bundle], `animals/fish` [animals.fish.bundle], `animals/fox` [animals.fox.bundle], `animals/frog` [animals.frog.bundle], `animals/game` [animals.game.bundle], `animals/hedgehog` [animals.hedgehog.bundle], `animals/owl` [animals.owl.bundle], `animals/perch` [animals.perch.bundle], `animals/rabbit` [animals.rabbit.bundle], `animals/sparrow` [animals.sparrow.bundle], `animals/squirrel` [animals.squirrel.bundle], `animals/wolf` [animals.wolf.bundle], `animals/wool` [animals.wool.bundle]
+- `animals` [animals.mod]: `animals/bear` [animals.bear.bundle], `animals/boar` [animals.boar.bundle], `animals/butterfly` [animals.butterfly.bundle], `animals/cat` [animals.cat.bundle], `animals/crow` [animals.crow.bundle], `animals/deer` [animals.deer.bundle], `animals/duck` [animals.duck.bundle], `animals/fish` [animals.fish.bundle], `animals/fox` [animals.fox.bundle], `animals/frog` [animals.frog.bundle], `animals/game` [animals.game.bundle], `animals/grouse` [animals.grouse.bundle], `animals/hedgehog` [animals.hedgehog.bundle], `animals/owl` [animals.owl.bundle], `animals/perch` [animals.perch.bundle], `animals/rabbit` [animals.rabbit.bundle], `animals/sparrow` [animals.sparrow.bundle], `animals/squirrel` [animals.squirrel.bundle], `animals/wolf` [animals.wolf.bundle], `animals/wool` [animals.wool.bundle]
 - `biomes` [biomes.mod]: `biomes/alpine_meadow` [biomes.alpine_meadow.bundle], `biomes/beach` [biomes.beach.bundle], `biomes/birch_grove` [biomes.birch_grove.bundle], `biomes/cave` [biomes.cave.bundle], `biomes/crystal_cave` [biomes.crystal_cave.bundle], `biomes/deep_cave` [biomes.deep_cave.bundle], `biomes/desert` [biomes.desert.bundle], `biomes/flooded_cave` [biomes.flooded_cave.bundle], `biomes/floodplain` [biomes.floodplain.bundle], `biomes/forest` [biomes.forest.bundle], `biomes/forest_steppe` [biomes.forest_steppe.bundle], `biomes/glacier` [biomes.glacier.bundle], `biomes/ice_waste` [biomes.ice_waste.bundle], `biomes/jungle` [biomes.jungle.bundle], `biomes/lava_cave` [biomes.lava_cave.bundle], `biomes/mangrove` [biomes.mangrove.bundle], `biomes/maple_wood` [biomes.maple_wood.bundle], `biomes/meadow` [biomes.meadow.bundle], `biomes/mushroom_cave` [biomes.mushroom_cave.bundle], `biomes/oasis` [biomes.oasis.bundle], `biomes/peat_bog` [biomes.peat_bog.bundle], `biomes/pine_wood` [biomes.pine_wood.bundle], `biomes/plateau` [biomes.plateau.bundle], `biomes/red_rocks` [biomes.red_rocks.bundle], `biomes/rock` [biomes.rock.bundle], `biomes/rocky_desert` [biomes.rocky_desert.bundle], `biomes/salt_flat` [biomes.salt_flat.bundle], `biomes/savanna` [biomes.savanna.bundle], `biomes/sea` [biomes.sea.bundle], `biomes/steppe` [biomes.steppe.bundle], `biomes/stony_tundra` [biomes.stony_tundra.bundle], `biomes/swamp` [biomes.swamp.bundle], `biomes/taiga` [biomes.taiga.bundle], `biomes/tropical_beach` [biomes.tropical_beach.bundle], `biomes/tropical_sea` [biomes.tropical_sea.bundle], `biomes/tundra` [biomes.tundra.bundle], `biomes/volcanic` [biomes.volcanic.bundle]
 - `materials` [materials.mod]: `materials/bone_glue` [materials.bone_glue.bundle], `materials/brick` [materials.brick.bundle], `materials/bronze` [materials.bronze.bundle], `materials/charcoal` [materials.charcoal.bundle], `materials/cloth` [materials.cloth.bundle], `materials/copper` [materials.copper.bundle], `materials/cord` [materials.cord.bundle], `materials/cut_stone` [materials.cut_stone.bundle], `materials/finds` [materials.finds.bundle], `materials/glass` [materials.glass.bundle], `materials/gold` [materials.gold.bundle], `materials/iron` [materials.iron.bundle], `materials/leather` [materials.leather.bundle], `materials/log_wall` [materials.log_wall.bundle], `materials/planks` [materials.planks.bundle], `materials/platinum` [materials.platinum.bundle], `materials/silver` [materials.silver.bundle], `materials/steel` [materials.steel.bundle], `materials/tar` [materials.tar.bundle], `materials/tin` [materials.tin.bundle], `materials/wattle` [materials.wattle.bundle]
 - `music` [music.mod]
@@ -139,7 +139,7 @@
 | `tools:door_2x3` | [tools.items.door_2x3] | [stations] | [tools.items.door_2x3.about] | `tools/door` | 1. [core.eras.primitive] | 0 / 1 | ок |
 | `tools:door_3x3` | [tools.items.door_3x3] | [stations] | [tools.items.door_3x3.about] | `tools/door` | 1. [core.eras.primitive] | 0 / 1 | ок |
 | `tools:drying_rack` | [tools.items.drying_rack] | [stations] | [tools.items.drying_rack.about] | `tools/drying_rack` | 2. [core.eras.bone_leather] | 1 / 3 | ок |
-| `animals:small_carcass` | [animals.items.small_carcass] | [materials] | [animals.items.small_carcass.about] | `animals/game` | 0. [core.eras.foraging] | 0 / 9 | ок |
+| `animals:small_carcass` | [animals.items.small_carcass] | [materials] | [animals.items.small_carcass.about] | `animals/game` | 0. [core.eras.foraging] | 0 / 10 | ок |
 | `animals:carcass` | [animals.items.carcass] | [materials] | [animals.items.carcass.about] | `animals/game` | 0. [core.eras.foraging] | 0 / 5 | ок |
 | `animals:raw_meat` | [animals.items.raw_meat] | [food] | [animals.items.raw_meat.about] | `animals/game` | 0. [core.eras.foraging] | 1 / 4 | ок |
 | `animals:roasted_meat` | [animals.items.roasted_meat] | [food] | [animals.items.roasted_meat.about] | `animals/game` | 0. [core.eras.foraging] | 1 / 1 | ок |
@@ -601,7 +601,7 @@
 | `plants:cactus` | [plants.plants.cactus] | custom |  | `plants/cactus` | 6 / 0 | ок |
 | `plants:cattail` | [plants.plants.cattail] | custom |  | `plants/cattail` | 6 / 0 | ок |
 | `plants:clover` | [plants.plants.clover] | custom |  | `plants/clover` | 8 / 3 | ок |
-| `plants:cranberry` | [plants.plants.cranberry] | custom |  | `plants/cranberry` | 1 / 0 | ок |
+| `plants:cranberry` | [plants.plants.cranberry] | custom |  | `plants/cranberry` | 1 / 1 | ок |
 | `plants:fern` | [plants.plants.fern] | custom |  | `plants/fern` | 9 / 0 | ок |
 | `plants:tuft` | [plants.plants.tuft] | tuft |  | `plants/grass` | 1 / 2 | ок |
 | `plants:tall_grass` | [plants.plants.tall_grass] | tall_grass |  | `plants/grass`; патчи: `plants/turnip` | 2 / 1 | ок |
@@ -630,7 +630,7 @@
 | `plants:evening_primrose` | [plants.plants.evening_primrose] | custom |  | `plants/evening_primrose` | 6 / 0 | ок |
 | `plants:sundew` | [plants.plants.sundew] | custom |  | `plants/sundew` | 6 / 0 | ок |
 
-## Существа (`creatures`, 23)
+## Существа (`creatures`, 24)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
@@ -644,6 +644,7 @@
 | `animals:duck` | [animals.creatures.duck] |  |  | `animals/duck` | 1 / 0 | ок |
 | `animals:fox` | [animals.creatures.fox] |  |  | `animals/fox`; патчи: `biomes/birch_grove`, `biomes/steppe` | 6 / 0 | ок |
 | `animals:frog` | [animals.creatures.frog] |  |  | `animals/frog` | 0 / 0 | ок |
+| `animals:grouse` | [animals.creatures.grouse] |  |  | `animals/grouse` | 7 / 0 | ок |
 | `animals:hedgehog` | [animals.creatures.hedgehog] |  |  | `animals/hedgehog`; патчи: `biomes/birch_grove` | 4 / 0 | ок |
 | `animals:owl` | [animals.creatures.owl] |  |  | `animals/owl`; патчи: `biomes/birch_grove`, `biomes/pine_wood` | 5 / 0 | ок |
 | `animals:perch` | [animals.creatures.perch] |  |  | `animals/perch` | 1 / 0 | ок |
@@ -664,15 +665,15 @@
 |---|---|---|---|---|---|---|
 | `biomes:alpine_meadow` | [biomes.biomes.alpine_meadow] | alpine |  | `biomes/alpine_meadow` | 4 / 4 | ок |
 | `biomes:beach` | [biomes.biomes.beach] | beach |  | `biomes/beach` | 0 / 3 | ок |
-| `biomes:birch_grove` | [biomes.biomes.birch_grove] | climate |  | `biomes/birch_grove` | 8 / 11 | ок |
+| `biomes:birch_grove` | [biomes.biomes.birch_grove] | climate |  | `biomes/birch_grove` | 8 / 12 | ок |
 | `biomes:cave` | [biomes.biomes.cave] | cave |  | `biomes/cave` | 0 / 0 | ок |
 | `biomes:crystal_cave` | [biomes.biomes.crystal_cave] | cave |  | `biomes/crystal_cave` | 1 / 0 | ок |
 | `biomes:deep_cave` | [biomes.biomes.deep_cave] | cave |  | `biomes/deep_cave` | 2 / 0 | ок |
 | `biomes:desert` | [biomes.biomes.desert] | climate |  | `biomes/desert` | 2 / 4 | ок |
 | `biomes:flooded_cave` | [biomes.biomes.flooded_cave] | cave |  | `biomes/flooded_cave` | 0 / 0 | ок |
 | `biomes:floodplain` | [biomes.biomes.floodplain] | climate |  | `biomes/floodplain` | 6 / 10 | ок |
-| `biomes:forest` | [biomes.biomes.forest] | climate |  | `biomes/forest` | 10 / 15 | ок |
-| `biomes:forest_steppe` | [biomes.biomes.forest_steppe] | climate |  | `biomes/forest_steppe` | 6 / 8 | ок |
+| `biomes:forest` | [biomes.biomes.forest] | climate |  | `biomes/forest` | 10 / 16 | ок |
+| `biomes:forest_steppe` | [biomes.biomes.forest_steppe] | climate |  | `biomes/forest_steppe` | 6 / 9 | ок |
 | `biomes:glacier` | [biomes.biomes.glacier] | glacier |  | `biomes/glacier` | 0 / 2 | ок |
 | `biomes:ice_waste` | [biomes.biomes.ice_waste] | climate |  | `biomes/ice_waste` | 0 / 2 | ок |
 | `biomes:jungle` | [biomes.biomes.jungle] | climate |  | `biomes/jungle` | 5 / 5 | ок |
@@ -682,7 +683,7 @@
 | `biomes:meadow` | [biomes.biomes.meadow] | climate |  | `biomes/meadow` | 9 / 15 | ок |
 | `biomes:mushroom_cave` | [biomes.biomes.mushroom_cave] | cave |  | `biomes/mushroom_cave` | 1 / 0 | ок |
 | `biomes:oasis` | [biomes.biomes.oasis] | by_water |  | `biomes/oasis` | 3 / 5 | ок |
-| `biomes:peat_bog` | [biomes.biomes.peat_bog] | climate |  | `biomes/peat_bog` | 5 / 6 | ок |
+| `biomes:peat_bog` | [biomes.biomes.peat_bog] | climate |  | `biomes/peat_bog` | 5 / 7 | ок |
 | `biomes:pine_wood` | [biomes.biomes.pine_wood] | climate |  | `biomes/pine_wood` | 5 / 9 | ок |
 | `biomes:plateau` | [biomes.biomes.plateau] | plateau |  | `biomes/plateau` | 2 / 4 | ок |
 | `biomes:red_rocks` | [biomes.biomes.red_rocks] | climate |  | `biomes/red_rocks` | 2 / 4 | ок |
@@ -694,7 +695,7 @@
 | `biomes:steppe` | [biomes.biomes.steppe] | climate |  | `biomes/steppe` | 2 / 8 | ок |
 | `biomes:stony_tundra` | [biomes.biomes.stony_tundra] | climate |  | `biomes/stony_tundra` | 3 / 2 | ок |
 | `biomes:swamp` | [biomes.biomes.swamp] | swamp |  | `biomes/swamp` | 5 / 7 | ок |
-| `biomes:taiga` | [biomes.biomes.taiga] | climate |  | `biomes/taiga` | 7 / 11 | ок |
+| `biomes:taiga` | [biomes.biomes.taiga] | climate |  | `biomes/taiga` | 7 / 12 | ок |
 | `biomes:tropical_beach` | [biomes.biomes.tropical_beach] | beach |  | `biomes/tropical_beach` | 1 / 2 | ок |
 | `biomes:tropical_sea` | [biomes.biomes.tropical_sea] | sea |  | `biomes/tropical_sea` | 0 / 2 | ок |
 | `biomes:tundra` | [biomes.biomes.tundra] | climate |  | `biomes/tundra` | 4 / 4 | ок |

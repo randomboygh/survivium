@@ -808,6 +808,8 @@ const SHOTS := {
 		"strike_animal": "animals:fox", "slow": 0.125, "frames_every": 40, "frames_ms": 160},
 	"strike-hare": {"time": 0.42, "season": 1, "weather": "clear", "hands": {"tool": "tools:wooden_sword", "facing": "w"},
 		"strike_animal": "animals:rabbit", "slow": 0.125, "frames_every": 40, "frames_ms": 160},
+	"strike-grouse": {"time": 0.42, "season": 1, "weather": "clear", "hands": {"tool": "tools:wooden_sword", "facing": "w"},
+		"strike_animal": "animals:grouse", "slow": 0.125, "frames_every": 40, "frames_ms": 160},
 	# A boar killed with the sword (`kill`: one blow is enough): it flashes red and falls as
 	# the blade meets it, and lies on its last frame of death (Creatures.show_bodies), at the
 	# game's pace.
@@ -817,6 +819,8 @@ const SHOTS := {
 		"strike_animal": "animals:fox", "kill": true, "frames_every": 20, "frames_ms": 100},
 	"kill-hare": {"time": 0.42, "season": 1, "weather": "clear", "hands": {"tool": "tools:wooden_sword", "facing": "w"},
 		"strike_animal": "animals:rabbit", "kill": true, "frames_every": 20, "frames_ms": 100},
+	"kill-grouse": {"time": 0.42, "season": 1, "weather": "clear", "hands": {"tool": "tools:wooden_sword", "facing": "w"},
+		"strike_animal": "animals:grouse", "kill": true, "frames_every": 20, "frames_ms": 100},
 	# The boar drawn from the user's reference (tools/art/boar_art.gd) in the world: a row for
 	# the side, the front and the back, each standing, galloping, leaping, flinching, dead.
 	"boar-states": {"time": 0.42, "season": 1, "weather": "clear", "clearing": true, "hide": ["chunks: grass"],
@@ -844,6 +848,16 @@ const SHOTS := {
 			["animals:rabbit", 2, 0.0, 1, Vector2(-2.0, 4.2)], ["animals:rabbit", 10, 0.0, 1, Vector2(0.0, 4.2)], ["animals:rabbit", 14, 0.0, 1, Vector2(2.0, 4.2)],
 			["animals:rabbit", 19, 0.0, 1, Vector2(4.0, 4.2)], ["animals:rabbit", 0, 0.0, 2, Vector2(-4.0, 6.4)], ["animals:rabbit", 2, 0.0, 2, Vector2(-2.0, 6.4)],
 			["animals:rabbit", 10, 0.0, 2, Vector2(0.0, 6.4)], ["animals:rabbit", 14, 0.0, 2, Vector2(2.0, 6.4)], ["animals:rabbit", 19, 0.0, 2, Vector2(4.0, 6.4)]]},
+	# The black grouse drawn from the user's reference (tools/art/grouse_art.gd): a row for the
+	# side, the front and the back, each sitting, two wing beats in the air, a step, flinching, dead.
+	"grouse-states": {"time": 0.42, "season": 1, "weather": "clear", "clearing": true, "hide": ["chunks: grass"],
+		"shadow_zoo": [
+			["animals:grouse", 0, 0.0, 0, Vector2(-6.0, 2.0)], ["animals:grouse", 1, 0.8, 0, Vector2(-3.6, 2.0)], ["animals:grouse", 3, 0.8, 0, Vector2(-1.2, 2.0)],
+			["animals:grouse", 9, 0.0, 0, Vector2(1.2, 2.0)], ["animals:grouse", 14, 0.0, 0, Vector2(3.6, 2.0)], ["animals:grouse", 19, 0.0, 0, Vector2(6.0, 2.0)],
+			["animals:grouse", 0, 0.0, 1, Vector2(-6.0, 4.4)], ["animals:grouse", 1, 0.8, 1, Vector2(-3.6, 4.4)], ["animals:grouse", 3, 0.8, 1, Vector2(-1.2, 4.4)],
+			["animals:grouse", 9, 0.0, 1, Vector2(1.2, 4.4)], ["animals:grouse", 14, 0.0, 1, Vector2(3.6, 4.4)], ["animals:grouse", 19, 0.0, 1, Vector2(6.0, 4.4)],
+			["animals:grouse", 0, 0.0, 2, Vector2(-6.0, 6.8)], ["animals:grouse", 1, 0.8, 2, Vector2(-3.6, 6.8)], ["animals:grouse", 3, 0.8, 2, Vector2(-1.2, 6.8)],
+			["animals:grouse", 9, 0.0, 2, Vector2(1.2, 6.8)], ["animals:grouse", 14, 0.0, 2, Vector2(3.6, 6.8)], ["animals:grouse", 19, 0.0, 2, Vector2(6.0, 6.8)]]},
 	"burst-chop": {"time": 0.42, "season": 1, "hands": {"tool": "tools:stone_axe", "facing": "e", "work": "chop", "strike": true}, "burst": "plants:log"},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
