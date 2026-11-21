@@ -26,4 +26,4 @@
   calls: duck
   alarm: duck
   health: 3
-  carcass: bird_carcass
+  carcass: small_carcass

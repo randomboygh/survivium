@@ -23,4 +23,4 @@
   roost: trees
   calls: owl
   health: 3
-  carcass: bird_carcass
+  carcass: small_carcass

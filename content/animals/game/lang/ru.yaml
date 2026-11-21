@@ -19,16 +19,11 @@
 "[animals.items.fat]": "Жир"
 "[animals.items.jerky]": "Вяленое мясо"
 "[animals.items.jerky.about]": "Мясо, провяленное на сушилке. Лёгкое и сытное, огня не нужно."
-"[animals.items.bird_carcass]": "Тушка птицы"
-"[animals.items.bird_carcass.about]": "Подстреленная птица. Её ощипывают на перья и разделывают на мясо."
 "[animals.items.tooth]": "Зуб"
 "[animals.items.tooth.about]": "Зуб крупного зверя. Просверленный и нанизанный, идёт на ожерелье."
-"[animals.items.feather]": "Перо"
-"[animals.items.feather.about]": "Птичье перо. Привязанное к шнурку, его носят в волосах."
 
 # content/animals/game/data/recipes.yaml
 "[animals.recipes.raw_meat_from_small_carcass]": "Разделать тушку"
-"[animals.recipes.raw_meat_from_bird_carcass]": "Ощипать и разделать птицу"
 "[animals.recipes.raw_meat_from_carcass]": "Разделать тушу"
 "[animals.recipes.roasted_meat]": "Жареное мясо"
 "[animals.recipes.jerky]": "Вяленое мясо"

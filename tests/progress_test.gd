@@ -77,6 +77,9 @@ var seeking := {}
 var crafting: Array[Dictionary] = []
 ## What the world gives (see _raw).
 var raw := {}
+## What only luck gives while digging (a cell's `finds`, actions_dig.gd; see _raw): put
+## in the bag rather than dug for, a seashell in 30 cells of sand is no test of the walk.
+var lucky := {}
 ## The part of the recipes made, "" for all (see _part).
 var part := ""
 
@@ -182,13 +185,15 @@ func _part(all: Array) -> Array:
 
 ## What the world gives a player (the content graph, src/shared/content/content_graph.gd,
 ## finds the same and which tool each takes): what cells, the plants on them, trees and
-## bushes give.
+## bushes give, and what luck finds in a cell dug (`lucky`).
 func _raw() -> Dictionary:
 	var have := {}
 	for rec: Dictionary in Mat.RECORDS:
 		for id in [rec.item, rec.bonus] + rec.mow_gives.keys():
 			if id != "":
 				have[Items.get_item(id).get("id", id)] = true
+		for id in rec.get("finds", {}):
+			lucky[Items.get_item(id).get("id", id)] = true
 	for p: Dictionary in Plants.BY_ID.values():
 		for id in p.gives:
 			have[Items.get_item(id).get("id", id)] = true
@@ -210,6 +215,11 @@ func _raw() -> Dictionary:
 			have[spec.wool] = true
 		if kind != AiRules.HUMAN and spec.get("trapped", "") != "" and Items.has(spec.trapped):
 			have[spec.trapped] = true
+	for id: String in lucky.keys():
+		if have.has(id):
+			lucky.erase(id)
+		else:
+			have[id] = true
 	return have
 
 
@@ -439,6 +449,8 @@ func _obtain_more(id: String, n: int) -> bool:
 		elif not r.is_empty():
 			if not await _craft(r, ceili(float(n - inv.count(id)) / _yield(r, id))):
 				return false
+		elif lucky.has(id):
+			inv.add(id, n - inv.count(id))
 		elif raw.has(id):
 			if not await _gather(id):
 				return false

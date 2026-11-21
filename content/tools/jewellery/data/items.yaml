@@ -1,6 +1,6 @@
 # Items of the "Jewellery" bundle of the "Tools and crafting" mod: worn only for their looks (no warmth): on the neck
 # beads of seashells ("Materials", found in sand), a string of teeth and a bone amulet ("Animals", the "Game animals"
-# bundle), on the wrists a braided bracelet or a copper ring; in the hair a feather (of a bird, "Game animals") tied to a cord.
+# bundle), on the wrists a braided bracelet or a copper ring; in the hair a feather (found in the grass, "Finds") tied to a cord.
 - id: shell_beads
   title: "[tools.items.shell_beads]"
   description: "[tools.items.shell_beads.about]"

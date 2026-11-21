@@ -24,8 +24,8 @@
 
 | Глубина | Предметы |
 |---|---|
-| 0 | [core.items.rot], [core.items.grave], [plants.items.blueberry], [plants.items.cactus_fruit], [plants.items.cranberry], [plants.items.currant], [plants.items.grass_seeds], [plants.items.carrot_seeds], [plants.items.carrot], [plants.items.mushroom], [plants.items.glow_mushroom], [plants.items.peas], [plants.items.puffball], [plants.items.raspberry], [plants.items.rosehip], [plants.items.turnip_seeds], [plants.items.turnip], [resources.items.fiber], [plants.items.moss], [resources.items.peat], [resources.items.salt], [resources.items.snow], [resources.items.dirt], [resources.items.sand], [resources.items.clay], [materials.items.amber], [materials.items.seashell], [resources.items.stone], [resources.items.flint], [resources.items.branch], [plants.items.apple], [plants.items.banana], [plants.items.acorn], [plants.items.coconut], [plants.items.rowan], [plants.items.cone], [tools.items.stairs], [tools.items.live_rabbit], [animals.items.small_carcass], [animals.items.carcass], [animals.items.bird_carcass], [plants.items.grain], [animals.items.rabbit_fluff], [plants.items.flax_seeds], [plants.items.flax_stalks], [plants.items.evening_primrose], [plants.items.sundew] |
-| 1 | [core.items.campfire], [plants.items.fried_mushrooms], [materials.items.cord], [plants.items.bandage], [materials.items.wattle], [tools.items.fiber_hat], [tools.items.bait], [tools.items.sling_stone], [tools.items.torch], [animals.items.raw_meat], [animals.items.hide], [animals.items.bone], [animals.items.feather], [plants.items.flour], [animals.items.wool_yarn], [plants.items.linen_thread], [plants.items.flower_wreath] |
+| 0 | [core.items.rot], [core.items.grave], [plants.items.blueberry], [plants.items.cactus_fruit], [plants.items.cranberry], [plants.items.currant], [plants.items.grass_seeds], [plants.items.carrot_seeds], [plants.items.carrot], [plants.items.mushroom], [plants.items.glow_mushroom], [plants.items.peas], [plants.items.puffball], [plants.items.raspberry], [plants.items.rosehip], [plants.items.turnip_seeds], [plants.items.turnip], [resources.items.fiber], [plants.items.moss], [resources.items.peat], [resources.items.salt], [resources.items.snow], [resources.items.dirt], [resources.items.sand], [resources.items.clay], [materials.items.amber], [materials.items.seashell], [materials.items.feather], [resources.items.stone], [resources.items.flint], [resources.items.branch], [plants.items.apple], [plants.items.banana], [plants.items.acorn], [plants.items.coconut], [plants.items.rowan], [plants.items.cone], [tools.items.stairs], [tools.items.live_rabbit], [animals.items.small_carcass], [animals.items.carcass], [plants.items.grain], [animals.items.rabbit_fluff], [plants.items.flax_seeds], [plants.items.flax_stalks], [plants.items.evening_primrose], [plants.items.sundew] |
+| 1 | [core.items.campfire], [plants.items.fried_mushrooms], [materials.items.cord], [plants.items.bandage], [materials.items.wattle], [tools.items.fiber_hat], [tools.items.bait], [tools.items.sling_stone], [tools.items.torch], [animals.items.raw_meat], [animals.items.hide], [animals.items.bone], [plants.items.flour], [animals.items.wool_yarn], [plants.items.linen_thread], [plants.items.flower_wreath] |
 | 2 | [materials.items.copper_ore], [resources.items.crystal], [plants.items.poultice], [resources.items.ice], [materials.items.ammonite], [materials.items.geode], [animals.items.roach], [animals.items.pike], [animals.items.salmon], [animals.items.cod], [animals.items.parrotfish], [animals.items.catfish], [animals.items.perch], [tools.items.fence], [tools.items.wicket], [tools.items.gate], [tools.items.grass_cape], [tools.items.leg_wraps], [tools.items.bast_shoes], [tools.items.fiber_tunic], [tools.items.fishing_rod], [tools.items.ladder], [tools.items.cord_sling], [tools.items.trap], [tools.items.wicker_bag], [tools.items.workbench], [animals.items.roasted_meat], [tools.items.grass_mat], [tools.items.stone_hoe], [tools.items.ice_pick], [tools.items.winter_rod], [tools.items.bracelet], [tools.items.hair_feather], [tools.items.flint_knife], [tools.items.wooden_pickaxe], [tools.items.wooden_scythe], [tools.items.stone_sickle], [tools.items.flint_spear], [tools.items.wooden_sword] |
 | 3 | [resources.items.log], [animals.items.roasted_fish], [materials.items.cut_stone], [tools.items.arrow], [tools.items.drying_rack], [animals.items.fat], [animals.items.tooth], [tools.items.shell_beads], [tools.items.bone_amulet], [tools.items.kiln], [tools.items.bone_needle], [tools.items.stone_axe], [tools.items.stone_pickaxe], [tools.items.stone_scythe], [tools.items.stone_sword] |
 | 4 | [materials.items.brick], [materials.items.charcoal], [materials.items.planks], [materials.items.log_wall], [tools.items.boundary_post], [animals.items.jerky], [materials.items.leather], [tools.items.fur_bedroll], [tools.items.tallow_candle], [tools.items.fur_hat], [tools.items.tooth_necklace], [plants.items.flatbread], [animals.items.poncho], [tools.items.raft] |
@@ -95,6 +95,7 @@
 | [materials.items.geode] `materials:geode` | 2 | копать: [core.materials.stone] | станок |
 | [materials.items.amber] `materials:amber` | 0 | копать: [resources.materials.peat], [resources.materials.sand], [resources.materials.clay] | станок |
 | [materials.items.seashell] `materials:seashell` | 0 | копать: [resources.materials.sand] | в рецепты: [tools.recipes.shell_beads] |
+| [materials.items.feather] `materials:feather` | 0 | копать: [core.materials.grass] | в рецепты: [tools.recipes.hair_feather] |
 | [resources.items.stone] `resources:stone` | 0 | копать: [resources.materials.scree], [core.materials.stone], [resources.materials.deepstone], [resources.materials.basalt] | чинит: [tools.items.ice_pick]; в рецепты: [tools.recipes.sling_stone], [materials.recipes.cut_stone], [tools.recipes.bloomery], [tools.recipes.fireplace], [tools.recipes.forge], [tools.recipes.ice_pick], [tools.recipes.kiln], [tools.recipes.potters_wheel]; [block]: [core.materials.stone] |
 | [resources.items.flint] `resources:flint` | 0 | копать: [core.materials.dirt], [resources.materials.sand], [resources.materials.scree] | чинит: [tools.items.stone_hoe], [tools.items.stone_axe], [tools.items.flint_knife], [tools.items.stone_pickaxe], [tools.items.stone_scythe], [tools.items.stone_sickle], [tools.items.flint_spear], [tools.items.stone_sword]; в рецепты: [tools.recipes.fishing_rod], [tools.recipes.arrow], [tools.recipes.stone_hoe], [tools.recipes.winter_rod], [tools.recipes.stone_axe], [tools.recipes.flint_knife], [tools.recipes.stone_pickaxe], [tools.recipes.stone_scythe], [tools.recipes.stone_sickle], [tools.recipes.flint_spear], [tools.recipes.stone_sword] |
 | [resources.items.branch] `resources:branch` | 0 | собирать: [plants.trees.acacia], [plants.trees.apple], [plants.trees.birch], [plants.trees.bird_cherry], [plants.trees.ceiba], [plants.trees.cherry], [plants.trees.deadwood], [plants.trees.fir], [plants.trees.larch], [plants.trees.linden], [plants.trees.mangrove], [plants.trees.maple], [plants.trees.oak], [plants.trees.palm], [plants.trees.pine], [plants.trees.poplar], [plants.trees.red_maple], [plants.trees.rowan], [plants.trees.spruce], [plants.trees.willow], [plants.bushes.blueberry], [plants.bushes.currant], [plants.bushes.juniper], [plants.bushes.raspberry], [plants.bushes.rosehip], [plants.bushes.shrub], [plants.bushes.banana] | чинит: [tools.items.wooden_pickaxe], [tools.items.wooden_scythe], [tools.items.wooden_sword]; в рецепты: [resources.recipes.campfire], [animals.recipes.roasted_fish_from_roach], [animals.recipes.roasted_fish_from_pike], [animals.recipes.roasted_fish_from_salmon], [animals.recipes.roasted_fish_from_cod], [animals.recipes.roasted_fish_from_parrotfish], [animals.recipes.roasted_fish_from_catfish], [animals.recipes.roasted_fish_from_perch], [materials.recipes.wattle], [tools.recipes.boundary_post], [tools.recipes.fence], [tools.recipes.wicket], [tools.recipes.gate], [tools.recipes.fishing_rod], [tools.recipes.ladder], [tools.recipes.torch], [tools.recipes.trap], [tools.recipes.workbench], [tools.recipes.arrow], [tools.recipes.drying_rack], [animals.recipes.roasted_meat], [tools.recipes.stone_hoe], [tools.recipes.ice_pick], [tools.recipes.winter_rod], [tools.recipes.loom], [tools.recipes.potters_wheel], [materials.recipes.bone_glue], [plants.recipes.bone_glue_from_sundew], [tools.recipes.stone_axe], [tools.recipes.arrow_from_bone], [tools.recipes.flint_knife], [tools.recipes.stone_pickaxe], [tools.recipes.wooden_pickaxe], [tools.recipes.rain_catcher], [tools.recipes.stone_scythe], [tools.recipes.wooden_scythe], [tools.recipes.wooden_shovel], [tools.recipes.stone_sickle], [tools.recipes.copper_sickle], [tools.recipes.iron_sickle], [tools.recipes.sign], [tools.recipes.signpost], [tools.recipes.flint_spear], [tools.recipes.wooden_sword], [tools.recipes.stone_sword], [tools.recipes.tar_torch]; топливо |
@@ -152,17 +153,15 @@
 | [tools.items.door_2x3] `tools:door_2x3` | 5 | рецепт: [tools.recipes.door_2x3] | станок |
 | [tools.items.door_3x3] `tools:door_3x3` | 5 | рецепт: [tools.recipes.door_3x3] | станок |
 | [tools.items.drying_rack] `tools:drying_rack` | 3 | рецепт: [tools.recipes.drying_rack] | станок рецептов: [animals.recipes.jerky], [materials.recipes.leather] |
-| [animals.items.small_carcass] `animals:small_carcass` | 0 | hunt: [animals.creatures.cat], [animals.creatures.fox], [animals.creatures.hedgehog], [animals.creatures.rabbit], [animals.creatures.squirrel] | в рецепты: [animals.recipes.raw_meat_from_small_carcass] |
+| [animals.items.small_carcass] `animals:small_carcass` | 0 | hunt: [animals.creatures.cat], [animals.creatures.crow], [animals.creatures.duck], [animals.creatures.fox], [animals.creatures.hedgehog], [animals.creatures.owl], [animals.creatures.rabbit], [animals.creatures.squirrel] | в рецепты: [animals.recipes.raw_meat_from_small_carcass] |
 | [animals.items.carcass] `animals:carcass` | 0 | hunt: [animals.creatures.bear], [animals.creatures.boar], [animals.creatures.deer], [animals.creatures.wolf] | в рецепты: [animals.recipes.raw_meat_from_carcass] |
-| [animals.items.raw_meat] `animals:raw_meat` | 1 | рецепт: [animals.recipes.raw_meat_from_small_carcass], [animals.recipes.raw_meat_from_bird_carcass], [animals.recipes.raw_meat_from_carcass] | в рецепты: [animals.recipes.roasted_meat], [animals.recipes.jerky]; еда |
+| [animals.items.raw_meat] `animals:raw_meat` | 1 | рецепт: [animals.recipes.raw_meat_from_small_carcass], [animals.recipes.raw_meat_from_carcass] | в рецепты: [animals.recipes.roasted_meat], [animals.recipes.jerky]; еда |
 | [animals.items.roasted_meat] `animals:roasted_meat` | 2 | рецепт: [animals.recipes.roasted_meat] | еда; лечит |
 | [animals.items.hide] `animals:hide` | 1 | побочно: [animals.recipes.raw_meat_from_small_carcass], [animals.recipes.raw_meat_from_carcass] | в рецепты: [materials.recipes.leather], [tools.recipes.fur_bedroll], [tools.recipes.fur_hat], [tools.recipes.fur_coat], [tools.recipes.fur_boots] |
-| [animals.items.bone] `animals:bone` | 1 | побочно: [animals.recipes.raw_meat_from_small_carcass], [animals.recipes.raw_meat_from_bird_carcass], [animals.recipes.raw_meat_from_carcass] | в рецепты: [tools.recipes.bone_amulet], [tools.recipes.bone_needle], [materials.recipes.bone_glue], [tools.recipes.composite_bow], [tools.recipes.arrow_from_bone] |
+| [animals.items.bone] `animals:bone` | 1 | побочно: [animals.recipes.raw_meat_from_small_carcass], [animals.recipes.raw_meat_from_carcass] | в рецепты: [tools.recipes.bone_amulet], [tools.recipes.bone_needle], [materials.recipes.bone_glue], [tools.recipes.composite_bow], [tools.recipes.arrow_from_bone] |
 | [animals.items.fat] `animals:fat` | 3 | побочно: [animals.recipes.raw_meat_from_carcass] | в рецепты: [materials.recipes.leather], [tools.recipes.tallow_candle] |
 | [animals.items.jerky] `animals:jerky` | 4 | рецепт: [animals.recipes.jerky] | еда; лечит |
-| [animals.items.bird_carcass] `animals:bird_carcass` | 0 | hunt: [animals.creatures.crow], [animals.creatures.duck], [animals.creatures.owl] | в рецепты: [animals.recipes.raw_meat_from_bird_carcass] |
 | [animals.items.tooth] `animals:tooth` | 3 | побочно: [animals.recipes.raw_meat_from_carcass] | в рецепты: [tools.recipes.tooth_necklace] |
-| [animals.items.feather] `animals:feather` | 1 | побочно: [animals.recipes.raw_meat_from_bird_carcass] | в рецепты: [tools.recipes.hair_feather] |
 | [materials.items.leather] `materials:leather` | 4 | рецепт: [materials.recipes.leather] | чинит: [tools.items.leather_sling]; в рецепты: [tools.recipes.canvas_backpack], [tools.recipes.fur_coat], [tools.recipes.leather_trousers], [tools.recipes.fur_boots], [tools.recipes.leather_hat], [tools.recipes.leather_vest], [tools.recipes.apron], [tools.recipes.sandals], [tools.recipes.moccasins], [tools.recipes.high_boots], [tools.recipes.leather_bag], [tools.recipes.leather_sling], [tools.recipes.composite_bow], [tools.recipes.rain_catcher], [tools.recipes.waterskin] |
 | [tools.items.grass_mat] `tools:grass_mat` | 2 | рецепт: [tools.recipes.grass_mat] | станок |
 | [tools.items.fur_bedroll] `tools:fur_bedroll` | 4 | рецепт: [tools.recipes.fur_bedroll] | станок |
@@ -354,7 +353,7 @@
 | Что | Действие | Даёт | Чем |
 |---|---|---|---|
 | [core.materials.dirt] | копать | [resources.items.dirt], [resources.items.flint] | руки, [tools.items.stone_pickaxe], [tools.items.wooden_pickaxe], [tools.items.copper_pickaxe], [tools.items.bronze_pickaxe], [tools.items.iron_pickaxe], [tools.items.steel_pickaxe], [tools.items.wooden_shovel], [tools.items.copper_shovel], [tools.items.bronze_shovel], [tools.items.iron_shovel], [tools.items.steel_shovel] |
-| [core.materials.grass] | копать | [resources.items.dirt], [resources.items.fiber] | руки, [tools.items.stone_pickaxe], [tools.items.wooden_pickaxe], [tools.items.copper_pickaxe], [tools.items.bronze_pickaxe], [tools.items.iron_pickaxe], [tools.items.steel_pickaxe], [tools.items.wooden_shovel], [tools.items.copper_shovel], [tools.items.bronze_shovel], [tools.items.iron_shovel], [tools.items.steel_shovel] |
+| [core.materials.grass] | копать | [resources.items.dirt], [resources.items.fiber], [materials.items.feather] | руки, [tools.items.stone_pickaxe], [tools.items.wooden_pickaxe], [tools.items.copper_pickaxe], [tools.items.bronze_pickaxe], [tools.items.iron_pickaxe], [tools.items.steel_pickaxe], [tools.items.wooden_shovel], [tools.items.copper_shovel], [tools.items.bronze_shovel], [tools.items.iron_shovel], [tools.items.steel_shovel] |
 | [core.materials.grass] | [mow_n2] | [core.materials.dirt], [resources.items.fiber] | руки, [tools.items.stone_scythe], [tools.items.wooden_scythe], [tools.items.copper_scythe], [tools.items.bronze_scythe], [tools.items.iron_scythe], [tools.items.steel_scythe] |
 | [core.materials.stone] | копать | [resources.items.stone], [materials.items.ammonite], [materials.items.geode] | [tools.items.stone_pickaxe], [tools.items.wooden_pickaxe], [tools.items.copper_pickaxe], [tools.items.bronze_pickaxe], [tools.items.iron_pickaxe], [tools.items.steel_pickaxe] |
 | [materials.materials.brick] | копать | [materials.items.brick] | [tools.items.stone_pickaxe], [tools.items.wooden_pickaxe], [tools.items.copper_pickaxe], [tools.items.bronze_pickaxe], [tools.items.iron_pickaxe], [tools.items.steel_pickaxe] |
@@ -443,7 +442,7 @@
 
 | Станок | Класс | Глубина | Рецепты | Ещё |
 |---|---|---|---|---|
-| Руки, без станка | — | 0 | [materials.recipes.cord], [plants.recipes.bandage], [resources.recipes.campfire], [materials.recipes.log_wall], [materials.recipes.wattle], [tools.recipes.boundary_post], [tools.recipes.fence], [tools.recipes.wicket], [tools.recipes.gate], [tools.recipes.fiber_hat], [tools.recipes.grass_cape], [tools.recipes.leg_wraps], [tools.recipes.bast_shoes], [tools.recipes.fiber_tunic], [tools.recipes.fishing_rod], [tools.recipes.bait], [tools.recipes.ladder], [tools.recipes.cord_sling], [tools.recipes.sling_stone], [tools.recipes.torch], [tools.recipes.trap], [tools.recipes.wicker_bag], [tools.recipes.workbench], [animals.recipes.raw_meat_from_small_carcass], [animals.recipes.raw_meat_from_bird_carcass], [animals.recipes.raw_meat_from_carcass], [tools.recipes.grass_mat], [tools.recipes.fur_bedroll], [tools.recipes.tallow_candle], [tools.recipes.canvas_backpack], [tools.recipes.stone_hoe], [tools.recipes.ice_pick], [tools.recipes.winter_rod], [tools.recipes.shell_beads], [tools.recipes.tooth_necklace], [tools.recipes.bone_amulet], [tools.recipes.bracelet], [tools.recipes.hair_feather], [plants.recipes.flour], [tools.recipes.leather_bag], [tools.recipes.leather_sling], [animals.recipes.wool_yarn], [plants.recipes.linen_thread], [tools.recipes.bone_needle], [plants.recipes.flower_wreath], [tools.recipes.raft], [tools.recipes.flint_knife], [tools.recipes.wooden_pickaxe], [tools.recipes.wooden_scythe], [tools.recipes.stone_sickle], [tools.recipes.sign], [tools.recipes.signpost], [tools.recipes.flint_spear], [tools.recipes.wooden_sword], [tools.recipes.tar_torch], [tools.recipes.waterskin] | — |
+| Руки, без станка | — | 0 | [materials.recipes.cord], [plants.recipes.bandage], [resources.recipes.campfire], [materials.recipes.log_wall], [materials.recipes.wattle], [tools.recipes.boundary_post], [tools.recipes.fence], [tools.recipes.wicket], [tools.recipes.gate], [tools.recipes.fiber_hat], [tools.recipes.grass_cape], [tools.recipes.leg_wraps], [tools.recipes.bast_shoes], [tools.recipes.fiber_tunic], [tools.recipes.fishing_rod], [tools.recipes.bait], [tools.recipes.ladder], [tools.recipes.cord_sling], [tools.recipes.sling_stone], [tools.recipes.torch], [tools.recipes.trap], [tools.recipes.wicker_bag], [tools.recipes.workbench], [animals.recipes.raw_meat_from_small_carcass], [animals.recipes.raw_meat_from_carcass], [tools.recipes.grass_mat], [tools.recipes.fur_bedroll], [tools.recipes.tallow_candle], [tools.recipes.canvas_backpack], [tools.recipes.stone_hoe], [tools.recipes.ice_pick], [tools.recipes.winter_rod], [tools.recipes.shell_beads], [tools.recipes.tooth_necklace], [tools.recipes.bone_amulet], [tools.recipes.bracelet], [tools.recipes.hair_feather], [plants.recipes.flour], [tools.recipes.leather_bag], [tools.recipes.leather_sling], [animals.recipes.wool_yarn], [plants.recipes.linen_thread], [tools.recipes.bone_needle], [plants.recipes.flower_wreath], [tools.recipes.raft], [tools.recipes.flint_knife], [tools.recipes.wooden_pickaxe], [tools.recipes.wooden_scythe], [tools.recipes.stone_sickle], [tools.recipes.sign], [tools.recipes.signpost], [tools.recipes.flint_spear], [tools.recipes.wooden_sword], [tools.recipes.tar_torch], [tools.recipes.waterskin] | — |
 | [core.items.campfire] `core:campfire` | `campfire` | 0 | [plants.recipes.fried_mushrooms], [plants.recipes.poultice], [animals.recipes.roasted_fish_from_roach], [animals.recipes.roasted_fish_from_pike], [animals.recipes.roasted_fish_from_salmon], [animals.recipes.roasted_fish_from_cod], [animals.recipes.roasted_fish_from_parrotfish], [animals.recipes.roasted_fish_from_catfish], [animals.recipes.roasted_fish_from_perch], [animals.recipes.roasted_meat], [materials.recipes.bone_glue], [plants.recipes.primrose_tea], [plants.recipes.roasted_acorns], [plants.recipes.bone_glue_from_sundew], [tools.recipes.waterskin_full_from_waterskin_sea], [tools.recipes.waterskin_full_from_pot] | горит: тушится и разжигается топливом |
 | [tools.items.workbench] `tools:workbench` | `workbench` | 2 | [materials.recipes.cut_stone], [tools.recipes.big_chest], [tools.recipes.bloomery], [tools.recipes.wooden_bow], [tools.recipes.arrow], [tools.recipes.chest], [tools.recipes.bandana], [tools.recipes.hood], [tools.recipes.linen_shirt], [tools.recipes.kilt], [tools.recipes.linen_trousers], [tools.recipes.door], [tools.recipes.door_2x2], [tools.recipes.door_2x3], [tools.recipes.door_3x3], [tools.recipes.drying_rack], [tools.recipes.fireplace], [tools.recipes.forge], [tools.recipes.anvil], [tools.recipes.hatch], [tools.recipes.hatch_2x2], [tools.recipes.fur_hat], [tools.recipes.fur_coat], [tools.recipes.leather_trousers], [tools.recipes.fur_boots], [tools.recipes.leather_hat], [tools.recipes.leather_vest], [tools.recipes.apron], [tools.recipes.sandals], [tools.recipes.moccasins], [tools.recipes.high_boots], [tools.recipes.copper_hoe], [tools.recipes.ice_auger], [tools.recipes.copper_ring], [tools.recipes.kiln], [tools.recipes.loom], [animals.recipes.poncho], [tools.recipes.table], [tools.recipes.stool], [tools.recipes.wooden_bed], [tools.recipes.cupboard], [tools.recipes.wide_cupboard], [tools.recipes.barrel], [tools.recipes.potters_wheel], [tools.recipes.stone_axe], [tools.recipes.planks], [tools.recipes.copper_axe], [tools.recipes.bronze_axe], [tools.recipes.boat], [tools.recipes.oars], [tools.recipes.composite_bow], [tools.recipes.arrow_from_bone], [tools.recipes.copper_knife], [tools.recipes.bronze_knife], [tools.recipes.lantern], [tools.recipes.stone_pickaxe], [tools.recipes.copper_pickaxe], [tools.recipes.bronze_pickaxe], [tools.recipes.rain_barrel], [tools.recipes.rain_catcher], [tools.recipes.stone_scythe], [tools.recipes.copper_scythe], [tools.recipes.bronze_scythe], [tools.recipes.wooden_shovel], [tools.recipes.copper_shovel], [tools.recipes.bronze_shovel], [tools.recipes.copper_sickle], [tools.recipes.notice_board], [tools.recipes.bronze_spear], [tools.recipes.stone_sword], [tools.recipes.copper_sword], [tools.recipes.bronze_sword], [tools.recipes.watering_can], [tools.recipes.window], [tools.recipes.window_1x2], [tools.recipes.window_2x1], [tools.recipes.window_2x2], [tools.recipes.window_3x2] | здесь чинят инструменты |
 | [tools.items.bloomery] `tools:bloomery` | `bloomery` | 5 | [materials.recipes.iron_bloom], [materials.recipes.steel_bar] | — |
@@ -465,7 +464,6 @@
 | Изделие | Глубина | Сырьё | Промежуточное | Станки | Инструменты |
 |---|---|---|---|---|---|
 | [animals.items.bone] `animals:bone` | 1 | [animals.items.small_carcass] | — | — | — |
-| [animals.items.feather] `animals:feather` | 1 | [animals.items.bird_carcass] | — | — | — |
 | [animals.items.hide] `animals:hide` | 1 | [animals.items.small_carcass] | — | — | — |
 | [animals.items.raw_meat] `animals:raw_meat` | 1 | [animals.items.small_carcass] | — | — | — |
 | [animals.items.wool_yarn] `animals:wool_yarn` | 1 | [animals.items.rabbit_fluff] | — | — | — |
@@ -494,7 +492,7 @@
 | [tools.items.gate] `tools:gate` | 2 | [resources.items.branch], [resources.items.fiber] | [materials.items.cord] | — | — |
 | [tools.items.grass_cape] `tools:grass_cape` | 2 | [resources.items.fiber] | [materials.items.cord] | — | — |
 | [tools.items.grass_mat] `tools:grass_mat` | 2 | [resources.items.fiber] | [materials.items.cord] | — | — |
-| [tools.items.hair_feather] `tools:hair_feather` | 2 | [animals.items.bird_carcass], [resources.items.fiber] | [animals.items.feather], [materials.items.cord] | — | — |
+| [tools.items.hair_feather] `tools:hair_feather` | 2 | [materials.items.feather], [resources.items.fiber] | [materials.items.cord] | — | — |
 | [tools.items.ice_pick] `tools:ice_pick` | 2 | [resources.items.branch], [resources.items.stone], [resources.items.fiber] | [materials.items.cord] | — | — |
 | [tools.items.ladder] `tools:ladder` | 2 | [resources.items.branch], [resources.items.fiber] | [materials.items.cord] | — | — |
 | [tools.items.leg_wraps] `tools:leg_wraps` | 2 | [resources.items.fiber] | [materials.items.cord] | — | — |
@@ -663,7 +661,7 @@
 
 - [stations]: [core.items.grave], [materials.items.amber], [tools.items.stairs].
 - [clothes_and_bags]: [tools.items.fiber_hat], [plants.items.flower_wreath].
-- [materials]: [core.items.rot], [resources.items.fiber], [plants.items.moss], [materials.items.seashell], [resources.items.flint], [resources.items.branch], [animals.items.small_carcass], [animals.items.carcass], [animals.items.bird_carcass], [animals.items.rabbit_fluff], [plants.items.flax_stalks], [plants.items.evening_primrose], [plants.items.sundew], [tools.items.bait], [tools.items.sling_stone], [animals.items.hide], [animals.items.bone], [animals.items.feather], [plants.items.flour], [animals.items.wool_yarn], [plants.items.linen_thread].
+- [materials]: [core.items.rot], [resources.items.fiber], [plants.items.moss], [materials.items.seashell], [materials.items.feather], [resources.items.flint], [resources.items.branch], [animals.items.small_carcass], [animals.items.carcass], [animals.items.rabbit_fluff], [plants.items.flax_stalks], [plants.items.evening_primrose], [plants.items.sundew], [tools.items.bait], [tools.items.sling_stone], [animals.items.hide], [animals.items.bone], [plants.items.flour], [animals.items.wool_yarn], [plants.items.linen_thread].
 - [blocks]: [resources.items.peat], [resources.items.salt], [resources.items.snow], [resources.items.dirt], [resources.items.sand], [resources.items.clay], [resources.items.stone], [materials.items.wattle].
 - [food]: [plants.items.blueberry], [plants.items.cactus_fruit], [plants.items.cranberry], [plants.items.currant], [plants.items.carrot], [plants.items.mushroom], [plants.items.glow_mushroom], [plants.items.peas], [plants.items.puffball], [plants.items.raspberry], [plants.items.rosehip], [plants.items.turnip], [plants.items.apple], [plants.items.banana], [plants.items.coconut], [plants.items.rowan], [plants.items.fried_mushrooms], [animals.items.raw_meat], [animals.items.roasted_meat].
 - [healing]: [plants.items.bandage], [plants.items.poultice].
@@ -1196,581 +1194,577 @@ flowchart LR
   n65 --> n66
   n67["[animals.items.hide]"]
   n65 --> n67
-  n68(["[animals.items.bird_carcass]"])
+  n68(["[animals.items.carcass]"])
   n68 --> n64
-  n69["[animals.items.feather]"]
-  n68 --> n69
+  n68 --> n67
   n68 --> n66
-  n70(["[animals.items.carcass]"])
-  n70 --> n64
-  n70 --> n67
-  n70 --> n66
-  n71["[animals.items.fat]"]
-  n70 --> n71
-  n72["[animals.items.tooth]"]
-  n70 --> n72
-  n73{{"[tool.knife] (любой)"}}
-  n73 -.-> n64
-  n74["[animals.items.roasted_meat]"]
-  n64 --> n74
-  n8 --> n74
-  n2 -.-> n74
-  n75["[animals.items.jerky]"]
-  n64 --> n75
-  n63 -.-> n75
-  n76["[materials.items.leather]"]
+  n69["[animals.items.fat]"]
+  n68 --> n69
+  n70["[animals.items.tooth]"]
+  n68 --> n70
+  n71{{"[tool.knife] (любой)"}}
+  n71 -.-> n64
+  n72["[animals.items.roasted_meat]"]
+  n64 --> n72
+  n8 --> n72
+  n2 -.-> n72
+  n73["[animals.items.jerky]"]
+  n64 --> n73
+  n63 -.-> n73
+  n74["[materials.items.leather]"]
+  n67 --> n74
+  n69 --> n74
+  n63 -.-> n74
+  n75[["[tools.items.grass_mat]"]]
+  n4 --> n75
+  n3 --> n75
+  n76[["[tools.items.fur_bedroll]"]]
   n67 --> n76
-  n71 --> n76
-  n63 -.-> n76
-  n77[["[tools.items.grass_mat]"]]
+  n3 --> n76
+  n54 -.-> n76
+  n77["[tools.items.tallow_candle]"]
+  n69 --> n77
   n4 --> n77
-  n3 --> n77
-  n78[["[tools.items.fur_bedroll]"]]
-  n67 --> n78
+  n78["[tools.items.canvas_backpack]"]
+  n53 --> n78
+  n74 --> n78
   n3 --> n78
   n54 -.-> n78
-  n79["[tools.items.tallow_candle]"]
-  n71 --> n79
-  n4 --> n79
-  n80["[tools.items.canvas_backpack]"]
-  n53 --> n80
-  n76 --> n80
-  n3 --> n80
-  n54 -.-> n80
-  n81[["[tools.items.fireplace]"]]
-  n48 --> n81
-  n37 --> n81
-  n47 --> n81
-  n41 -.-> n81
-  n82[["[tools.items.forge]"]]
-  n48 --> n82
-  n37 --> n82
-  n47 --> n82
-  n41 -.-> n82
-  n83["[materials.items.copper_bar]"]
-  n84(["[materials.items.copper_ore]"])
-  n84 --> n83
-  n85["[materials.items.charcoal]"]
-  n85 --> n83
-  n82 -.-> n83
-  n86["[materials.items.glass]"]
-  n87(["[resources.items.sand]"])
+  n79[["[tools.items.fireplace]"]]
+  n48 --> n79
+  n37 --> n79
+  n47 --> n79
+  n41 -.-> n79
+  n80[["[tools.items.forge]"]]
+  n48 --> n80
+  n37 --> n80
+  n47 --> n80
+  n41 -.-> n80
+  n81["[materials.items.copper_bar]"]
+  n82(["[materials.items.copper_ore]"])
+  n82 --> n81
+  n83["[materials.items.charcoal]"]
+  n83 --> n81
+  n80 -.-> n81
+  n84["[materials.items.glass]"]
+  n85(["[resources.items.sand]"])
+  n85 --> n84
+  n83 --> n84
+  n80 -.-> n84
+  n86["[materials.items.iron_bloom]"]
+  n87(["[materials.items.iron_ore]"])
   n87 --> n86
-  n85 --> n86
-  n82 -.-> n86
-  n88["[materials.items.iron_bloom]"]
-  n89(["[materials.items.iron_ore]"])
-  n89 --> n88
-  n85 --> n88
-  n46 -.-> n88
-  n90["[materials.items.iron_bar]"]
-  n88 --> n90
-  n85 --> n90
-  n82 -.-> n90
-  n91["[materials.items.tin_bar]"]
-  n92(["[materials.items.tin_ore]"])
-  n92 --> n91
-  n85 --> n91
-  n82 -.-> n91
-  n93[["[tools.items.anvil]"]]
-  n90 --> n93
-  n18 --> n93
-  n41 -.-> n93
-  n94["[materials.items.gold_bar]"]
-  n95(["[materials.items.gold_ore]"])
-  n95 --> n94
-  n85 --> n94
-  n82 -.-> n94
-  n96["[materials.items.gold_block]"]
-  n94 --> n96
-  n93 -.-> n96
-  n97["[materials.items.platinum_bar]"]
-  n98(["[materials.items.platinum_ore]"])
-  n98 --> n97
-  n85 --> n97
-  n82 -.-> n97
-  n99["[materials.items.platinum_block]"]
-  n97 --> n99
-  n93 -.-> n99
-  n100["[materials.items.silver_bar]"]
-  n101(["[materials.items.silver_ore]"])
-  n101 --> n100
-  n85 --> n100
-  n82 -.-> n100
-  n102["[materials.items.silver_block]"]
-  n100 --> n102
-  n93 -.-> n102
-  n103[["[tools.items.hatch]"]]
-  n45 --> n103
+  n83 --> n86
+  n46 -.-> n86
+  n88["[materials.items.iron_bar]"]
+  n86 --> n88
+  n83 --> n88
+  n80 -.-> n88
+  n89["[materials.items.tin_bar]"]
+  n90(["[materials.items.tin_ore]"])
+  n90 --> n89
+  n83 --> n89
+  n80 -.-> n89
+  n91[["[tools.items.anvil]"]]
+  n88 --> n91
+  n18 --> n91
+  n41 -.-> n91
+  n92["[materials.items.gold_bar]"]
+  n93(["[materials.items.gold_ore]"])
+  n93 --> n92
+  n83 --> n92
+  n80 -.-> n92
+  n94["[materials.items.gold_block]"]
+  n92 --> n94
+  n91 -.-> n94
+  n95["[materials.items.platinum_bar]"]
+  n96(["[materials.items.platinum_ore]"])
+  n96 --> n95
+  n83 --> n95
+  n80 -.-> n95
+  n97["[materials.items.platinum_block]"]
+  n95 --> n97
+  n91 -.-> n97
+  n98["[materials.items.silver_bar]"]
+  n99(["[materials.items.silver_ore]"])
+  n99 --> n98
+  n83 --> n98
+  n80 -.-> n98
+  n100["[materials.items.silver_block]"]
+  n98 --> n100
+  n91 -.-> n100
+  n101[["[tools.items.hatch]"]]
+  n45 --> n101
+  n41 -.-> n101
+  n102[["[tools.items.hatch_2x2]"]]
+  n45 --> n102
+  n41 -.-> n102
+  n103["[tools.items.fur_hat]"]
+  n67 --> n103
+  n3 --> n103
   n41 -.-> n103
-  n104[["[tools.items.hatch_2x2]"]]
-  n45 --> n104
+  n54 -.-> n103
+  n104["[tools.items.fur_coat]"]
+  n67 --> n104
+  n74 --> n104
+  n3 --> n104
   n41 -.-> n104
-  n105["[tools.items.fur_hat]"]
-  n67 --> n105
+  n54 -.-> n104
+  n105["[tools.items.leather_trousers]"]
+  n74 --> n105
   n3 --> n105
   n41 -.-> n105
   n54 -.-> n105
-  n106["[tools.items.fur_coat]"]
+  n106["[tools.items.fur_boots]"]
   n67 --> n106
-  n76 --> n106
+  n74 --> n106
   n3 --> n106
   n41 -.-> n106
   n54 -.-> n106
-  n107["[tools.items.leather_trousers]"]
-  n76 --> n107
+  n107["[tools.items.leather_hat]"]
+  n74 --> n107
   n3 --> n107
   n41 -.-> n107
   n54 -.-> n107
-  n108["[tools.items.fur_boots]"]
-  n67 --> n108
-  n76 --> n108
+  n108["[tools.items.leather_vest]"]
+  n74 --> n108
   n3 --> n108
   n41 -.-> n108
   n54 -.-> n108
-  n109["[tools.items.leather_hat]"]
-  n76 --> n109
+  n109["[tools.items.apron]"]
+  n74 --> n109
   n3 --> n109
   n41 -.-> n109
   n54 -.-> n109
-  n110["[tools.items.leather_vest]"]
-  n76 --> n110
+  n110["[tools.items.sandals]"]
+  n74 --> n110
   n3 --> n110
   n41 -.-> n110
   n54 -.-> n110
-  n111["[tools.items.apron]"]
-  n76 --> n111
+  n111["[tools.items.moccasins]"]
+  n74 --> n111
   n3 --> n111
   n41 -.-> n111
   n54 -.-> n111
-  n112["[tools.items.sandals]"]
-  n76 --> n112
+  n112["[tools.items.high_boots]"]
+  n74 --> n112
   n3 --> n112
   n41 -.-> n112
   n54 -.-> n112
-  n113["[tools.items.moccasins]"]
-  n76 --> n113
+  n113["[tools.items.stone_hoe]"]
+  n31 --> n113
+  n8 --> n113
   n3 --> n113
-  n41 -.-> n113
-  n54 -.-> n113
-  n114["[tools.items.high_boots]"]
-  n76 --> n114
-  n3 --> n114
+  n114["[tools.items.copper_hoe]"]
+  n81 --> n114
+  n45 --> n114
   n41 -.-> n114
-  n54 -.-> n114
-  n115["[tools.items.stone_hoe]"]
-  n31 --> n115
-  n8 --> n115
-  n3 --> n115
-  n116["[tools.items.copper_hoe]"]
-  n83 --> n116
-  n45 --> n116
-  n41 -.-> n116
-  n117["[tools.items.iron_hoe]"]
-  n90 --> n117
+  n115["[tools.items.iron_hoe]"]
+  n88 --> n115
+  n45 --> n115
+  n91 -.-> n115
+  n116["[tools.items.ice_pick]"]
+  n8 --> n116
+  n37 --> n116
+  n3 --> n116
+  n117["[tools.items.ice_auger]"]
+  n81 --> n117
   n45 --> n117
-  n93 -.-> n117
-  n118["[tools.items.ice_pick]"]
+  n41 -.-> n117
+  n118["[tools.items.winter_rod]"]
   n8 --> n118
-  n37 --> n118
   n3 --> n118
-  n119["[tools.items.ice_auger]"]
-  n83 --> n119
-  n45 --> n119
-  n41 -.-> n119
-  n120["[tools.items.winter_rod]"]
-  n8 --> n120
-  n3 --> n120
-  n31 --> n120
-  n121["[tools.items.shell_beads]"]
-  n122(["[materials.items.seashell]"])
-  n122 --> n121
+  n31 --> n118
+  n119["[tools.items.shell_beads]"]
+  n120(["[materials.items.seashell]"])
+  n120 --> n119
+  n3 --> n119
+  n71 -.-> n119
+  n121["[tools.items.tooth_necklace]"]
+  n70 --> n121
   n3 --> n121
-  n73 -.-> n121
-  n123["[tools.items.tooth_necklace]"]
-  n72 --> n123
+  n71 -.-> n121
+  n122["[tools.items.bone_amulet]"]
+  n66 --> n122
+  n3 --> n122
+  n71 -.-> n122
+  n123["[tools.items.bracelet]"]
   n3 --> n123
-  n73 -.-> n123
-  n124["[tools.items.bone_amulet]"]
-  n66 --> n124
-  n3 --> n124
-  n73 -.-> n124
-  n125["[tools.items.bracelet]"]
+  n124["[tools.items.copper_ring]"]
+  n81 --> n124
+  n41 -.-> n124
+  n125["[tools.items.hair_feather]"]
+  n126(["[materials.items.feather]"])
+  n126 --> n125
   n3 --> n125
-  n126["[tools.items.copper_ring]"]
-  n83 --> n126
-  n41 -.-> n126
-  n127["[tools.items.hair_feather]"]
-  n69 --> n127
-  n3 --> n127
-  n128[["[tools.items.kiln]"]]
-  n37 --> n128
-  n47 --> n128
-  n41 -.-> n128
+  n127[["[tools.items.kiln]"]]
+  n37 --> n127
+  n47 --> n127
+  n41 -.-> n127
   n47 --> n48
-  n128 -.-> n48
-  n18 --> n85
-  n128 -.-> n85
-  n129["[plants.items.flour]"]
-  n130(["[plants.items.grain]"])
-  n130 --> n129
-  n131["[plants.items.flatbread]"]
-  n129 --> n131
-  n128 -.-> n131
-  n132["[tools.items.leather_bag]"]
-  n76 --> n132
+  n127 -.-> n48
+  n18 --> n83
+  n127 -.-> n83
+  n128["[plants.items.flour]"]
+  n129(["[plants.items.grain]"])
+  n129 --> n128
+  n130["[plants.items.flatbread]"]
+  n128 --> n130
+  n127 -.-> n130
+  n131["[tools.items.leather_bag]"]
+  n74 --> n131
+  n3 --> n131
+  n54 -.-> n131
+  n132["[tools.items.leather_sling]"]
+  n74 --> n132
   n3 --> n132
   n54 -.-> n132
-  n133["[tools.items.leather_sling]"]
-  n76 --> n133
+  n133[["[tools.items.loom]"]]
+  n45 --> n133
+  n8 --> n133
   n3 --> n133
-  n54 -.-> n133
-  n134[["[tools.items.loom]"]]
-  n45 --> n134
-  n8 --> n134
-  n3 --> n134
-  n41 -.-> n134
+  n41 -.-> n133
   n3 --> n53
-  n134 -.-> n53
-  n135["[animals.items.wool_yarn]"]
-  n136(["[animals.items.rabbit_fluff]"])
-  n136 --> n135
-  n135 --> n53
-  n134 -.-> n53
-  n137["[animals.items.poncho]"]
-  n135 --> n137
-  n41 -.-> n137
-  n54 -.-> n137
-  n138["[plants.items.linen_thread]"]
-  n139(["[plants.items.flax_stalks]"])
-  n139 --> n138
-  n138 --> n53
-  n134 -.-> n53
-  n140[["[tools.items.table]"]]
+  n133 -.-> n53
+  n134["[animals.items.wool_yarn]"]
+  n135(["[animals.items.rabbit_fluff]"])
+  n135 --> n134
+  n134 --> n53
+  n133 -.-> n53
+  n136["[animals.items.poncho]"]
+  n134 --> n136
+  n41 -.-> n136
+  n54 -.-> n136
+  n137["[plants.items.linen_thread]"]
+  n138(["[plants.items.flax_stalks]"])
+  n138 --> n137
+  n137 --> n53
+  n133 -.-> n53
+  n139[["[tools.items.table]"]]
+  n45 --> n139
+  n41 -.-> n139
+  n140[["[tools.items.stool]"]]
   n45 --> n140
   n41 -.-> n140
-  n141[["[tools.items.stool]"]]
+  n141[["[tools.items.wooden_bed]"]]
   n45 --> n141
+  n53 --> n141
   n41 -.-> n141
-  n142[["[tools.items.wooden_bed]"]]
+  n142[["[tools.items.cupboard]"]]
   n45 --> n142
-  n53 --> n142
   n41 -.-> n142
-  n143[["[tools.items.cupboard]"]]
+  n143[["[tools.items.wide_cupboard]"]]
   n45 --> n143
   n41 -.-> n143
-  n144[["[tools.items.wide_cupboard]"]]
+  n144[["[tools.items.barrel]"]]
   n45 --> n144
+  n3 --> n144
   n41 -.-> n144
-  n145[["[tools.items.barrel]"]]
-  n45 --> n145
-  n3 --> n145
-  n41 -.-> n145
-  n146[["[tools.items.rug]"]]
-  n53 --> n146
-  n134 -.-> n146
-  n147["[tools.items.bone_needle]"]
-  n66 --> n147
-  n73 -.-> n147
-  n148[["[tools.items.potters_wheel]"]]
-  n45 --> n148
-  n37 --> n148
-  n8 --> n148
-  n41 -.-> n148
-  n149["[tools.items.raw_pot]"]
-  n47 --> n149
-  n148 -.-> n149
-  n150["[tools.items.pot]"]
-  n149 --> n150
-  n128 -.-> n150
-  n151["[materials.items.bone_glue]"]
-  n66 --> n151
-  n8 --> n151
-  n2 -.-> n151
-  n150 -.-> n151
-  n152["[materials.items.raw_crucible]"]
-  n47 --> n152
-  n87 --> n152
-  n148 -.-> n152
-  n153["[materials.items.crucible]"]
-  n152 --> n153
-  n128 -.-> n153
-  n154["[materials.items.bronze_bar]"]
+  n145[["[tools.items.rug]"]]
+  n53 --> n145
+  n133 -.-> n145
+  n146["[tools.items.bone_needle]"]
+  n66 --> n146
+  n71 -.-> n146
+  n147[["[tools.items.potters_wheel]"]]
+  n45 --> n147
+  n37 --> n147
+  n8 --> n147
+  n41 -.-> n147
+  n148["[tools.items.raw_pot]"]
+  n47 --> n148
+  n147 -.-> n148
+  n149["[tools.items.pot]"]
+  n148 --> n149
+  n127 -.-> n149
+  n150["[materials.items.bone_glue]"]
+  n66 --> n150
+  n8 --> n150
+  n2 -.-> n150
+  n149 -.-> n150
+  n151["[materials.items.raw_crucible]"]
+  n47 --> n151
+  n85 --> n151
+  n147 -.-> n151
+  n152["[materials.items.crucible]"]
+  n151 --> n152
+  n127 -.-> n152
+  n153["[materials.items.bronze_bar]"]
+  n81 --> n153
+  n89 --> n153
+  n83 --> n153
+  n80 -.-> n153
+  n152 -.-> n153
+  n154["[materials.items.steel_bar]"]
+  n88 --> n154
   n83 --> n154
-  n91 --> n154
-  n85 --> n154
-  n82 -.-> n154
-  n153 -.-> n154
-  n155["[materials.items.steel_bar]"]
-  n90 --> n155
-  n85 --> n155
-  n46 -.-> n155
-  n153 -.-> n155
-  n156["[materials.items.tar]"]
-  n18 --> n156
-  n18 --> n85
-  n128 -.-> n156
-  n150 -.-> n156
-  n157["[plants.items.primrose_tea]"]
-  n158(["[plants.items.evening_primrose]"])
-  n158 --> n157
-  n2 -.-> n157
-  n150 -.-> n157
-  n159["[plants.items.flower_wreath]"]
-  n158 --> n159
-  n4 --> n159
-  n160["[plants.items.roasted_acorns]"]
-  n161(["[plants.items.acorn]"])
-  n161 --> n160
-  n2 -.-> n160
-  n150 -.-> n160
-  n162(["[plants.items.sundew]"])
-  n162 --> n151
-  n8 --> n151
-  n2 -.-> n151
-  n150 -.-> n151
-  n163["[tools.items.stone_axe]"]
-  n31 --> n163
-  n8 --> n163
-  n3 --> n163
-  n41 -.-> n163
+  n46 -.-> n154
+  n152 -.-> n154
+  n155["[materials.items.tar]"]
+  n18 --> n155
+  n18 --> n83
+  n127 -.-> n155
+  n149 -.-> n155
+  n156["[plants.items.primrose_tea]"]
+  n157(["[plants.items.evening_primrose]"])
+  n157 --> n156
+  n2 -.-> n156
+  n149 -.-> n156
+  n158["[plants.items.flower_wreath]"]
+  n157 --> n158
+  n4 --> n158
+  n159["[plants.items.roasted_acorns]"]
+  n160(["[plants.items.acorn]"])
+  n160 --> n159
+  n2 -.-> n159
+  n149 -.-> n159
+  n161(["[plants.items.sundew]"])
+  n161 --> n150
+  n8 --> n150
+  n2 -.-> n150
+  n149 -.-> n150
+  n162["[tools.items.stone_axe]"]
+  n31 --> n162
+  n8 --> n162
+  n3 --> n162
+  n41 -.-> n162
   n18 --> n45
   n41 -.-> n45
   n19 -.-> n45
-  n164["[tools.items.copper_axe]"]
-  n83 --> n164
+  n163["[tools.items.copper_axe]"]
+  n81 --> n163
+  n45 --> n163
+  n41 -.-> n163
+  n164["[tools.items.bronze_axe]"]
+  n153 --> n164
   n45 --> n164
   n41 -.-> n164
-  n165["[tools.items.bronze_axe]"]
-  n154 --> n165
+  n165["[tools.items.iron_axe]"]
+  n88 --> n165
   n45 --> n165
-  n41 -.-> n165
-  n166["[tools.items.iron_axe]"]
-  n90 --> n166
+  n91 -.-> n165
+  n166["[tools.items.steel_axe]"]
+  n154 --> n166
   n45 --> n166
-  n93 -.-> n166
-  n167["[tools.items.steel_axe]"]
-  n155 --> n167
-  n45 --> n167
-  n93 -.-> n167
-  n168["[tools.items.raft]"]
-  n18 --> n168
-  n3 --> n168
-  n169["[tools.items.boat]"]
+  n91 -.-> n166
+  n167["[tools.items.raft]"]
+  n18 --> n167
+  n3 --> n167
+  n168["[tools.items.boat]"]
+  n45 --> n168
+  n155 --> n168
+  n41 -.-> n168
+  n169["[tools.items.oars]"]
   n45 --> n169
-  n156 --> n169
   n41 -.-> n169
-  n170["[tools.items.oars]"]
-  n45 --> n170
+  n170["[tools.items.composite_bow]"]
+  n49 --> n170
+  n66 --> n170
+  n150 --> n170
+  n74 --> n170
   n41 -.-> n170
-  n171["[tools.items.composite_bow]"]
-  n49 --> n171
-  n66 --> n171
-  n151 --> n171
-  n76 --> n171
-  n41 -.-> n171
   n8 --> n50
   n66 --> n50
   n4 --> n50
   n41 -.-> n50
-  n172["[tools.items.flint_knife]"]
-  n31 --> n172
-  n8 --> n172
-  n3 --> n172
-  n173["[tools.items.copper_knife]"]
-  n83 --> n173
+  n171["[tools.items.flint_knife]"]
+  n31 --> n171
+  n8 --> n171
+  n3 --> n171
+  n172["[tools.items.copper_knife]"]
+  n81 --> n172
+  n45 --> n172
+  n41 -.-> n172
+  n173["[tools.items.bronze_knife]"]
+  n153 --> n173
   n45 --> n173
   n41 -.-> n173
-  n174["[tools.items.bronze_knife]"]
-  n154 --> n174
+  n174["[tools.items.iron_knife]"]
+  n88 --> n174
   n45 --> n174
-  n41 -.-> n174
-  n175["[tools.items.iron_knife]"]
-  n90 --> n175
+  n91 -.-> n174
+  n175["[tools.items.steel_knife]"]
+  n154 --> n175
   n45 --> n175
-  n93 -.-> n175
-  n176["[tools.items.steel_knife]"]
+  n91 -.-> n175
+  n176["[tools.items.lantern]"]
+  n84 --> n176
+  n81 --> n176
   n155 --> n176
-  n45 --> n176
-  n93 -.-> n176
-  n177["[tools.items.lantern]"]
-  n86 --> n177
-  n83 --> n177
-  n156 --> n177
+  n41 -.-> n176
+  n177["[tools.items.stone_pickaxe]"]
+  n31 --> n177
+  n8 --> n177
+  n3 --> n177
   n41 -.-> n177
-  n178["[tools.items.stone_pickaxe]"]
-  n31 --> n178
+  n178["[tools.items.wooden_pickaxe]"]
   n8 --> n178
   n3 --> n178
-  n41 -.-> n178
-  n179["[tools.items.wooden_pickaxe]"]
-  n8 --> n179
-  n3 --> n179
-  n180["[tools.items.copper_pickaxe]"]
-  n83 --> n180
+  n179["[tools.items.copper_pickaxe]"]
+  n81 --> n179
+  n45 --> n179
+  n41 -.-> n179
+  n180["[tools.items.bronze_pickaxe]"]
+  n153 --> n180
   n45 --> n180
   n41 -.-> n180
-  n181["[tools.items.bronze_pickaxe]"]
-  n154 --> n181
+  n181["[tools.items.iron_pickaxe]"]
+  n88 --> n181
   n45 --> n181
-  n41 -.-> n181
-  n182["[tools.items.iron_pickaxe]"]
-  n90 --> n182
+  n91 -.-> n181
+  n182["[tools.items.steel_pickaxe]"]
+  n154 --> n182
   n45 --> n182
-  n93 -.-> n182
-  n183["[tools.items.steel_pickaxe]"]
-  n155 --> n183
+  n91 -.-> n182
+  n183[["[tools.items.rain_barrel]"]]
   n45 --> n183
-  n93 -.-> n183
-  n184[["[tools.items.rain_barrel]"]]
-  n45 --> n184
+  n3 --> n183
+  n41 -.-> n183
+  n184[["[tools.items.rain_catcher]"]]
+  n8 --> n184
+  n74 --> n184
   n3 --> n184
   n41 -.-> n184
-  n185[["[tools.items.rain_catcher]"]]
+  n185["[tools.items.stone_scythe]"]
+  n31 --> n185
   n8 --> n185
-  n76 --> n185
   n3 --> n185
   n41 -.-> n185
-  n186["[tools.items.stone_scythe]"]
-  n31 --> n186
+  n186["[tools.items.wooden_scythe]"]
   n8 --> n186
   n3 --> n186
-  n41 -.-> n186
-  n187["[tools.items.wooden_scythe]"]
-  n8 --> n187
-  n3 --> n187
-  n188["[tools.items.copper_scythe]"]
-  n83 --> n188
+  n187["[tools.items.copper_scythe]"]
+  n81 --> n187
+  n45 --> n187
+  n41 -.-> n187
+  n188["[tools.items.bronze_scythe]"]
+  n153 --> n188
   n45 --> n188
   n41 -.-> n188
-  n189["[tools.items.bronze_scythe]"]
-  n154 --> n189
+  n189["[tools.items.iron_scythe]"]
+  n88 --> n189
   n45 --> n189
-  n41 -.-> n189
-  n190["[tools.items.iron_scythe]"]
-  n90 --> n190
+  n91 -.-> n189
+  n190["[tools.items.steel_scythe]"]
+  n154 --> n190
   n45 --> n190
-  n93 -.-> n190
-  n191["[tools.items.steel_scythe]"]
-  n155 --> n191
+  n91 -.-> n190
+  n191["[tools.items.wooden_shovel]"]
   n45 --> n191
-  n93 -.-> n191
-  n192["[tools.items.wooden_shovel]"]
+  n8 --> n191
+  n41 -.-> n191
+  n192["[tools.items.copper_shovel]"]
+  n81 --> n192
   n45 --> n192
-  n8 --> n192
   n41 -.-> n192
-  n193["[tools.items.copper_shovel]"]
-  n83 --> n193
+  n193["[tools.items.bronze_shovel]"]
+  n153 --> n193
   n45 --> n193
   n41 -.-> n193
-  n194["[tools.items.bronze_shovel]"]
-  n154 --> n194
+  n194["[tools.items.iron_shovel]"]
+  n88 --> n194
   n45 --> n194
-  n41 -.-> n194
-  n195["[tools.items.iron_shovel]"]
-  n90 --> n195
+  n91 -.-> n194
+  n195["[tools.items.steel_shovel]"]
+  n154 --> n195
   n45 --> n195
-  n93 -.-> n195
-  n196["[tools.items.steel_shovel]"]
-  n155 --> n196
-  n45 --> n196
-  n93 -.-> n196
-  n197["[tools.items.stone_sickle]"]
-  n31 --> n197
+  n91 -.-> n195
+  n196["[tools.items.stone_sickle]"]
+  n31 --> n196
+  n8 --> n196
+  n3 --> n196
+  n197["[tools.items.copper_sickle]"]
+  n81 --> n197
   n8 --> n197
-  n3 --> n197
-  n198["[tools.items.copper_sickle]"]
-  n83 --> n198
+  n41 -.-> n197
+  n198["[tools.items.iron_sickle]"]
+  n88 --> n198
   n8 --> n198
-  n41 -.-> n198
-  n199["[tools.items.iron_sickle]"]
-  n90 --> n199
+  n91 -.-> n198
+  n199[["[tools.items.sign]"]]
+  n45 --> n199
   n8 --> n199
-  n93 -.-> n199
-  n200[["[tools.items.sign]"]]
+  n200[["[tools.items.signpost]"]]
   n45 --> n200
   n8 --> n200
-  n201[["[tools.items.signpost]"]]
+  n201[["[tools.items.notice_board]"]]
   n45 --> n201
-  n8 --> n201
-  n202[["[tools.items.notice_board]"]]
-  n45 --> n202
-  n41 -.-> n202
-  n203["[tools.items.flint_spear]"]
-  n8 --> n203
-  n31 --> n203
-  n3 --> n203
-  n204["[tools.items.bronze_spear]"]
-  n154 --> n204
+  n41 -.-> n201
+  n202["[tools.items.flint_spear]"]
+  n8 --> n202
+  n31 --> n202
+  n3 --> n202
+  n203["[tools.items.bronze_spear]"]
+  n153 --> n203
+  n45 --> n203
+  n41 -.-> n203
+  n204["[tools.items.iron_spear]"]
+  n88 --> n204
   n45 --> n204
-  n41 -.-> n204
-  n205["[tools.items.iron_spear]"]
-  n90 --> n205
-  n45 --> n205
-  n93 -.-> n205
-  n206["[tools.items.wooden_sword]"]
+  n91 -.-> n204
+  n205["[tools.items.wooden_sword]"]
+  n8 --> n205
+  n3 --> n205
+  n206["[tools.items.stone_sword]"]
+  n31 --> n206
   n8 --> n206
   n3 --> n206
-  n207["[tools.items.stone_sword]"]
-  n31 --> n207
-  n8 --> n207
-  n3 --> n207
+  n41 -.-> n206
+  n207["[tools.items.copper_sword]"]
+  n81 --> n207
+  n45 --> n207
   n41 -.-> n207
-  n208["[tools.items.copper_sword]"]
-  n83 --> n208
+  n208["[tools.items.bronze_sword]"]
+  n153 --> n208
   n45 --> n208
   n41 -.-> n208
-  n209["[tools.items.bronze_sword]"]
-  n154 --> n209
+  n209["[tools.items.iron_sword]"]
+  n88 --> n209
   n45 --> n209
-  n41 -.-> n209
-  n210["[tools.items.iron_sword]"]
-  n90 --> n210
+  n91 -.-> n209
+  n210["[tools.items.steel_sword]"]
+  n154 --> n210
   n45 --> n210
-  n93 -.-> n210
-  n211["[tools.items.steel_sword]"]
+  n91 -.-> n210
+  n211["[tools.items.tar_torch]"]
+  n8 --> n211
+  n53 --> n211
   n155 --> n211
-  n45 --> n211
-  n93 -.-> n211
-  n212["[tools.items.tar_torch]"]
-  n8 --> n212
-  n53 --> n212
-  n156 --> n212
-  n213["[tools.items.watering_can]"]
-  n45 --> n213
+  n212["[tools.items.watering_can]"]
+  n45 --> n212
+  n3 --> n212
+  n41 -.-> n212
+  n213["[tools.items.waterskin]"]
+  n74 --> n213
   n3 --> n213
-  n41 -.-> n213
-  n214["[tools.items.waterskin]"]
-  n76 --> n214
-  n3 --> n214
-  n54 -.-> n214
-  n215["[tools.items.waterskin_full]"]
-  n216(["[tools.items.waterskin_sea]"])
-  n216 --> n215
-  n2 -.-> n215
-  n216 --> n215
-  n217["[resources.items.salt]"]
-  n216 --> n217
-  n2 -.-> n215
-  n150 -.-> n215
-  n218[["[tools.items.window]"]]
+  n54 -.-> n213
+  n214["[tools.items.waterskin_full]"]
+  n215(["[tools.items.waterskin_sea]"])
+  n215 --> n214
+  n2 -.-> n214
+  n215 --> n214
+  n216["[resources.items.salt]"]
+  n215 --> n216
+  n2 -.-> n214
+  n149 -.-> n214
+  n217[["[tools.items.window]"]]
+  n45 --> n217
+  n84 --> n217
+  n41 -.-> n217
+  n218[["[tools.items.window_1x2]"]]
   n45 --> n218
-  n86 --> n218
+  n84 --> n218
   n41 -.-> n218
-  n219[["[tools.items.window_1x2]"]]
+  n219[["[tools.items.window_2x1]"]]
   n45 --> n219
-  n86 --> n219
+  n84 --> n219
   n41 -.-> n219
-  n220[["[tools.items.window_2x1]"]]
+  n220[["[tools.items.window_2x2]"]]
   n45 --> n220
-  n86 --> n220
+  n84 --> n220
   n41 -.-> n220
-  n221[["[tools.items.window_2x2]"]]
+  n221[["[tools.items.window_3x2]"]]
   n45 --> n221
-  n86 --> n221
+  n84 --> n221
   n41 -.-> n221
-  n222[["[tools.items.window_3x2]"]]
-  n45 --> n222
-  n86 --> n222
-  n41 -.-> n222
 ```

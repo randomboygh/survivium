@@ -1,5 +1,5 @@
 # Where the finds are dug up (patches: `finds` — item -> the chance one of it comes out with each cell dug): fossils
-# and geodes in the core's stone, amber in sand and clay ("Resources", soil) and peat (peat), seashells in sand.
+# and geodes in the core's stone, amber in sand and clay ("Resources", soil) and peat (peat), seashells in sand, feathers birds dropped in the grass.
 - id: core:stone
   patch: true
   finds: {materials:ammonite: 0.012, materials:geode: 0.008}
@@ -12,3 +12,6 @@
 - id: resources:peat
   patch: true
   finds: {materials:amber: 0.02}
+- id: core:grass
+  patch: true
+  finds: {materials:feather: 0.02}

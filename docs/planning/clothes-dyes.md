@@ -12,8 +12,7 @@ user's picks 1А 2А 3А 4А 5А, 2026-11-21). Screenshots: library `survivium-b
 - Jewellery commit (the PR after #831): `Inventory.WEAR_SLOTS` + neck, wrists, ornament (looks only, no warmth);
   `Figure.UNDER` neck, `OVER` ornament, `LAST` wrists drawn over the fists (`Figure.AFTER_FISTS` prefix in the
   look); `PlayerArt._neckwear` (beads, fangs, amulet), `_wristwear` (bracelet a pixel up the arm, ring on the
-  hand); `tools/jewellery` bundle; seashell (sand find), tooth (big carcass), feather (new `bird_carcass` of
-  crow, duck, owl).
+  hand); `tools/jewellery` bundle; seashell (sand find), tooth (big carcass), feather (a find in grass cells, `materials/finds`).
 
 Every shape has tones 1-3 (the cloth: what a dye will recolour) and 4-5 (the trim: keeps the material's colour);
 `PlayerArt.painted` maps them; `make_sprites.gd` `WORN` gives five colours per look.

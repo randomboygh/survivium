@@ -9,14 +9,6 @@
     - {item: bone, chance: 0.5}
     - {item: hide, chance: 0.3}
   time: 3
-- id: raw_meat_from_bird_carcass
-  title: "[animals.recipes.raw_meat_from_bird_carcass]"
-  makes: raw_meat
-  needs: {bird_carcass: 1}
-  also:
-    - {item: feather, count: 2}
-    - {item: bone, chance: 0.3}
-  time: 3
 - id: raw_meat_from_carcass
   title: "[animals.recipes.raw_meat_from_carcass]"
   makes: raw_meat

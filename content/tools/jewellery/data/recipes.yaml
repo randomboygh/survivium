@@ -32,5 +32,5 @@
 - id: hair_feather
   title: "[tools.recipes.hair_feather]"
   makes: hair_feather
-  needs: {animals:feather: 1, materials:cord: 1}
+  needs: {materials:feather: 1, materials:cord: 1}
   time: 2
