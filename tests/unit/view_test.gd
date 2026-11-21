@@ -90,6 +90,7 @@ func run() -> void:
 	_test_rays_dissolve()
 	_test_animal_flinch()
 	_test_boar_states()
+	_test_bear_states()
 	_test_drawn_states("animals:fox", "the fox")
 	_test_drawn_states("animals:rabbit", "the hare")
 	_test_grouse_states()
@@ -1909,6 +1910,56 @@ func _test_boar_states() -> void:
 	_check(felled.dies_at >= Time.get_ticks_msec() * 0.001 + 0.2, "the reply tells when the blade meets it, and it falls then")
 	c.hide_bodies(there)
 	_check(c._dying.is_empty(), "put away, it dies no more")
+	c.free()
+
+
+## The bear (tools/art/bear_art.gd, the user's reference at x1): a row of 24 frames as the boar's, the
+## walk (the reference's run played slower), attack, run, hurt and death four each; it strikes
+## through its four attack frames and, killed, lies on its last frame of death.
+func _test_bear_states() -> void:
+	var c := CreaturesView.new()
+	c._build_looks()
+	var kind := "animals:bear"
+	var k: Array = c.looks.get(kind, [])
+	_check(k.size() > 12 and k[3] == 24 and k[4] == 4 and k[7] == 4 and k[9] == 4 and k[10] == 4 and k[11] == 4 and k[12],
+		"the bear's row: 24 frames, the walk, attack, run, hurt and death four each, the idle one animation")
+	if k.size() <= 12:
+		c.free()
+		return
+	var w := RemoteWildlife.new()
+	c.wildlife = w
+	var a := RemoteWildlife.Animal.new()
+	a.kind = kind
+	a.pos = Vector3(10.0, 3.0, 10.0)
+	w.animals.append(a)
+	c._on_born(a)
+	var look = c._looks[a]
+	var now := Time.get_ticks_msec() * 0.001
+	a.state = "bite"
+	var bite: Array[int] = []
+	look.bite_at = now
+	for i in 4:
+		bite.append(c._frame(a, look, 0.0, now + (i + 0.5) * Wildlife.BITE_TIME / 4.0))
+	_check(bite == [8, 9, 10, 11], "the bear strikes through its four attack frames (%s)" % [bite])
+	a.state = "wander"
+	look.hurt_at = now
+	_check(c._frame(a, look, 0.0, now) == 16, "a blow landed: the bear flinches")
+	var key := Vector2i(0, 0)
+	var drop := ["animals:carcass", a.pos + Vector3(0.2, 0.0, 0.0), 0.0, {"n": 1, "body": kind}]
+	c._lay_bodies(key, [drop], false, now)
+	var lying: Array = c._bodies.get(key, {}).values()
+	_check(lying.size() == 1, "the bear's body waits for it to go")
+	if lying.size() != 1:
+		c.free()
+		return
+	var b = lying[0]
+	c.flinch(a, 0.3, a.pos - Vector3(1.0, 0.0, 0.0))
+	var sprite: MeshInstance3D = look.sprite
+	c._on_gone(a)
+	c._bodies_step(b.dies_at + CreaturesView.DEATH_FRAME * 10.0)
+	_check(b.frame == 3 and c._dying.is_empty() and sprite.material_override == c.looks[kind][1][0][b.view * 24 + 23],
+		"killed, the bear lies on its last frame of death")
+	c.hide_bodies(key)
 	c.free()
 
 
