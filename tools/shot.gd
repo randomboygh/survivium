@@ -794,9 +794,9 @@ func _run() -> void:
 					await process_frame
 				print("shot: tapped %s: %s (%.2f away, energy %.0f)" % [near.item, main.gathering.gather({"prop": near}),
 					main.host.player.position.distance_to(main.placed.center(near)), main.host.player.vitals.energy])
-			# Long enough for the dream to come on whole (CameraRig.DREAM_RATE).
+			# Long enough for the dream to come on whole (CameraRig.DREAM_IN).
 			var since_tap := Time.get_ticks_msec()
-			while Time.get_ticks_msec() - since_tap < 2000:
+			while Time.get_ticks_msec() - since_tap < 3500:
 				main.view.idle = 0.0
 				await process_frame
 			print("shot: lies on %s, head %s, at %s" % [main.placed.bed_under(main.player.position), main.player.bed_head,

@@ -464,7 +464,7 @@ func set_gesture(name: String) -> void:
 ## Gestures.ICON_TIME seconds, fading out at the end.
 func _show_gesture(at: Vector3) -> void:
 	var t := Time.get_ticks_msec() / 1000.0 - _gesture_from
-	gesture_icon.visible = gesture != "" and t < Gestures.ICON_TIME
+	gesture_icon.visible = gesture != "" and t < Gestures.ICON_TIME and Gestures.of(gesture).get("icon", true)
 	if not gesture_icon.visible:
 		return
 	gesture_icon.texture = UiStyle.icon("g_" + gesture)

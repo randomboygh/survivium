@@ -6,7 +6,8 @@ extends RefCounted
 ## in their PEOPLE entry while it lasts (now); it stops when they move, swim or work, or
 ## after its `time` (0: until then, sitting). Each is
 ## {"name", "title" (the wheel's words), "anim" (the figure's animation, player.yaml),
-## "time" (seconds), "key" (its number on the wheel)}.
+## "time" (seconds), "key" (its number on the wheel), "icon" (false: none over the head,
+## the pose says it: sitting)}.
 
 const LIST: Array[Dictionary] = [
 	{"name": "wave", "title": "[wave]", "anim": "wave", "time": 3.0},
@@ -16,7 +17,7 @@ const LIST: Array[Dictionary] = [
 	{"name": "beckon", "title": "[come_here]", "anim": "beckon", "time": 3.0},
 	{"name": "bow", "title": "[bow_down]", "anim": "bow", "time": 2.6},
 	{"name": "clap", "title": "[clap]", "anim": "clap", "time": 3.0},
-	{"name": "sit", "title": "[sit]", "anim": "sit", "time": 0.0},
+	{"name": "sit", "title": "[sit]", "anim": "sit", "time": 0.0, "icon": false},
 ]
 ## Seconds the icon of a gesture shows over the head.
 const ICON_TIME := 2.5

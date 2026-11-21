@@ -199,7 +199,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   (`WorldData.tread`), so their trail eases one's own walking as on the server; a move over `LEAP` (2 units:
   a teleport, a respawn) leaves none; `server_test` checks.
 - Gestures (decision 183): `src/shared/game/gestures.gd` — the list `LIST` (wave, yes, no, point, here, bow,
-  clap, sit: the wheel's words, the animation of `player.yaml`, seconds; «sit» — until movement), `make` (the
+  clap, sit: the wheel's words, the animation of `player.yaml`, seconds; «sit» — until movement and with no icon
+  over the head, `icon: false`), `make` (the
   request `gesture`, the name is checked against the list, "" — stop), `now_of` (a gesture ends by time, on
   movement, in water, in a boat, in sleep). The character stores `gesture`, `gesture_until`; the server sends
   the gesture in the `people` record (field 17). A tap on a seat (`Placed.is_seat`, an item with `seat`: the

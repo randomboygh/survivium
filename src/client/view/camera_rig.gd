@@ -106,10 +106,12 @@ var _idle_at := Vector3.INF
 var sway := 0.0
 var _sway_set := -1.0
 ## How deep in sleep the picture is, 0..1 (grade.gdshader `dream`: glow, a pale blue,
-## the edges blurred and darker), eased in and out at DREAM_RATE a second, and the shader's value.
+## the edges blurred and darker, given eased in and out), and the value last given.
 var dream := 0.0
 var _dream_set := -1.0
-const DREAM_RATE := 0.8
+## Seconds the dream takes to come on falling asleep, and to go waking.
+const DREAM_IN := 3.0
+const DREAM_OUT := 2.0
 ## How strong the visions are now, 0..1 (see visions), and the value the shader has.
 var trip := 0.0
 var _trip_set := -1.0
@@ -351,10 +353,10 @@ func _tire(delta: float) -> void:
 		_sway_set = sway
 		grade_mat.set_shader_parameter("sway", sway)
 	var asleep: bool = game.character != null and game.character.vitals.asleep and not game.character.is_dead()
-	dream = move_toward(dream, 1.0 if asleep else 0.0, delta * DREAM_RATE)
+	dream = move_toward(dream, 1.0 if asleep else 0.0, delta / (DREAM_IN if asleep else DREAM_OUT))
 	if grade_mat != null and (absf(dream - _dream_set) > 0.002 or (dream == 0.0 and _dream_set > 0.0)):
 		_dream_set = dream
-		grade_mat.set_shader_parameter("dream", dream)
+		grade_mat.set_shader_parameter("dream", smoothstep(0.0, 1.0, dream))
 	trip = move_toward(trip, visions(), delta * TRIP_RATE)
 	if grade_mat != null and (absf(trip - _trip_set) > 0.002 or (trip == 0.0 and _trip_set > 0.0)):
 		_trip_set = trip

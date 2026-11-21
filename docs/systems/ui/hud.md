@@ -124,5 +124,6 @@ Part of [Interface and settings](../ui.md). The HUD and the windows opened in th
   the panel is as wide as what it shows), `sleep_screen.gd`
   (clear, over the whole screen in sleep: a tap, a step or a jump wakes, `Protocol.SLEEP`; the picture
   dreams meanwhile, `CameraRig.dream`: grade.gdshader `dream` makes bright things glow, sinks the colours
-  halfway into a pale blue, blurs and darkens the edges, the middle sharp; the moon «Go to sleep» —
+  halfway into a pale blue, blurs and darkens the edges, the middle sharp; it eases in over `DREAM_IN` seconds
+  and out over `DREAM_OUT`; the moon «Go to sleep» —
   on the HUD's clock), `body_feedback.gd`, `hotbar_snow.gd` (snow settling on the hotbar's top edge, `AirEffects.hotbar_snow`), `sound_marks.gd` (marks of sounds' directions), `vibration.gd`, `haptics.gd` (what the phone buzzes for: `docs/systems/character.md`).
