@@ -651,7 +651,12 @@ void fragment() {
 	if (slanted) {
 		// The height of a slope shows as levels: each one shades darker toward its foot
 		// in an ordered dither, so a tall slope reads as steps, not one smooth smear.
-		float foot = 1.0 - band / CELL;
+		// Ground on a level line is the top of the level under it, not the foot of the
+		// next: the level half of a shore's inner corner on the diagonal (WorldData.
+		// PATCH_DIAG) lies there, and took the darkest dither, dark corners all along a
+		// diagonal shore (thread «Исправить диагональный берег»).
+		float rise = world_pos.y - (ceil(world_pos.y / CELL - 0.002) - 1.0) * CELL;
+		float foot = 1.0 - rise / CELL;
 		col *= bayer4(floor(rest_plane(world_pos) * TEXELS)) < foot * 0.9 - 0.15 ? snow_shade(0.88 + 0.06 * snow_lit, snow_lit) : vec3(1.0);
 	}
 	if (tile == NONE) {

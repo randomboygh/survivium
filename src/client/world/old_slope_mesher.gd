@@ -161,7 +161,10 @@ static func patch_grid(p: PackedFloat32Array, lift: float, steps: Vector2i) -> A
 
 
 ## patch_grid of a shore's corner on the diagonal (see WorldData.PATCH_DIAG): its
-## heights from WorldData.patch_height, its normals from the heights beside on the grid.
+## heights from WorldData.patch_height, its normals from the heights beside on the grid,
+## straight up where it lies level (from its diagonal on, WorldData.diag_reach): taken
+## across the diagonal they leaned the level ground beside it, a band of other shade
+## along the water's line.
 static func _diag_grid(p: PackedFloat32Array, lift: float, steps: Vector2i) -> Array:
 	var nu := steps.x + 1
 	var nv := steps.y + 1
@@ -174,6 +177,9 @@ static func _diag_grid(p: PackedFloat32Array, lift: float, steps: Vector2i) -> A
 			hs[b * nu + a] = lift + WorldData.patch_height(p, float(a) / steps.x, float(b) / steps.y)
 	for b in nv:
 		for a in nu:
+			if WorldData.diag_reach(p, float(a) / steps.x, float(b) / steps.y) >= 1.0 - DIAG_EPS:
+				ns[b * nu + a] = Vector3.UP
+				continue
 			var a0 := maxi(a - 1, 0)
 			var a1 := mini(a + 1, steps.x)
 			var b0 := maxi(b - 1, 0)
@@ -182,6 +188,20 @@ static func _diag_grid(p: PackedFloat32Array, lift: float, steps: Vector2i) -> A
 			var gz := (hs[b1 * nu + a] - hs[b0 * nu + a]) * steps.y / (b1 - b0)
 			ns[b * nu + a] = Vector3(-gx, 1.0, -gz).normalized()
 	return [hs, ns]
+
+
+## Slack in the grid's distances from a diagonal corner (see WorldData.diag_reach).
+const DIAG_EPS := 0.001
+
+
+## True when the grid of patch `p` is split along its squares' diagonals from north-east
+## to south-west, not from north-west to south-east: a shore's corner on the diagonal
+## (WorldData.PATCH_DIAG) at the north-west or south-east bends along such a line, which
+## squares split the other way drew in teeth (the level ground dipped into each
+## square's lower triangle), and the flush water's edge along it (WaterMesher.shore_water)
+## did not lie on the ground's.
+static func crease_flip(p: PackedFloat32Array) -> bool:
+	return p.size() > WorldData.PATCH_DIAG and int(p[WorldData.PATCH_DIAG]) & 1 == 0
 
 
 ## A cell with a sloping top: the smooth surface of its patch, cut where its corners
@@ -197,7 +217,7 @@ static func slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 	var white := Color(1, 1, 1)
 	var top := Vector2(pack(m * 3, 0, SLOPE), around)
 	if cuts == 0:
-		_surface(buf, base, hs, ns, steps, top)
+		_surface(buf, base, hs, ns, steps, top, crease_flip(p))
 	else:
 		_cut_surface(buf, base, hs, ns, cuts, top, Vector2(pack(m * 3 + 1, 0, SLOPE), float(NO_TILES)))
 	var own := _corner_heights(sh, i, dy)
@@ -213,9 +233,10 @@ static func slope_faces(buf, faces: Array, c: PackedByteArray, sh: PackedByteArr
 		_patch_side(buf, faces, c, sh, i, dy, side_offsets[d], d, base, m, hs, steps, own, cuts)
 
 
-## The grid of a surface as triangles sharing its points (they are many on a slope).
+## The grid of a surface as triangles sharing its points (they are many on a slope),
+## its squares split as `flip` says (see crease_flip).
 static func _surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedVector3Array, steps: Vector2i,
-		packed: Vector2) -> void:
+		packed: Vector2, flip := false) -> void:
 	var start: int = buf.verts.size()
 	var nu := steps.x + 1
 	var white := Color(1, 1, 1)
@@ -232,6 +253,14 @@ static func _surface(buf, base: Vector3, hs: PackedFloat32Array, ns: PackedVecto
 		for a in steps.x:
 			var j := start + b * nu + a
 			# Clockwise from above (Godot front faces).
+			if flip:
+				buf.indices.append(j)
+				buf.indices.append(j + 1)
+				buf.indices.append(j + nu)
+				buf.indices.append(j + 1)
+				buf.indices.append(j + nu + 1)
+				buf.indices.append(j + nu)
+				continue
 			buf.indices.append(j)
 			buf.indices.append(j + 1)
 			buf.indices.append(j + nu + 1)

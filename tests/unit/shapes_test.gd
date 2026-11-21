@@ -148,6 +148,92 @@ func _test_diagonal_shore() -> void:
 			var a: PackedFloat32Array = OldSlopeMesher.patch(c, sh, 2 * dy + (z + 2) * dz + x + 2, dy, dz)
 			same = same and a == w.surface_patch(x, 1, z)
 	_check(same, "the mesher draws a shore's corners as the walkers stand on them")
+	_test_flush_shore()
+
+
+## A lake at the sea's level, whose water fills its cells flush with the land, on the same
+## diagonal shore with one step two cells long ((6, 5) is land too, a straight bit of
+## shore between two diagonals): its water lies wherever the ground of a shore is under
+## its surface and nowhere the ground comes up to it, so the water's line is the same on
+## a straight shore, on the diagonal and where one turns into the other (cut half a cell
+## short on the diagonal, it went into sharp corners there, thread «Исправить
+## диагональный берег»). The ground's grid bends along an inner corner's diagonal.
+func _test_flush_shore() -> void:
+	var w := WorldData.new(6, Vector2i(16, 16))
+	w.sea_level = 1
+	var c: WorldData.Chunk = w.chunks[Vector2i.ZERO]
+	c.natural.fill(WorldData.WILD)
+	for z in 16:
+		for x in 16:
+			c.cells[z * 16 + x] = Mat.DIRT
+			c.cells[(16 + z) * 16 + x] = Mat.DIRT if x + z >= 12 or Vector2i(x, z) == Vector2i(6, 5) else Mat.WATER
+	w.rebuild_columns()
+	w.refresh_shapes()
+	var meshes: Array = ChunkMesher.build_chunk(w, 0, 0, 16)
+	var tris := _triangles(meshes[1])
+	var ground := _triangles(meshes[0])
+	var kinds := {}
+	var wet := true
+	var bent := true
+	for z in range(2, 11):
+		for x in range(2, 11):
+			if w.get_cell(x, 1, z) != Mat.DIRT or w.slope_mask(x, 1, z) == WorldData.FULL:
+				continue
+			var p := w.surface_patch(x, 1, z)
+			kinds[int(p[WorldData.PATCH_DIAG]) if p.size() > WorldData.PATCH_DIAG else -1] = true
+			for b in 7:
+				for a in 7:
+					var u := (a + 0.5) / 7.0
+					var v := (b + 0.5) / 7.0
+					var h := WorldData.patch_height(p, u, v)
+					if absf(h - 1.0) < 0.02:
+						continue
+					var q := Vector2(x + u, z + v)
+					var drawn := false
+					for t: PackedVector2Array in tris:
+						drawn = drawn or _inside(q, t)
+					if drawn != (h < 1.0):
+						wet = false
+			# No triangle of an inner corner's ground reaches across its diagonal.
+			if p.size() > WorldData.PATCH_DIAG and int(p[WorldData.PATCH_DIAG]) >= 4:
+				for t: PackedVector2Array in ground:
+					var mid := (t[0] + t[1] + t[2]) / 3.0
+					if floori(mid.x) != x or floori(mid.y) != z:
+						continue
+					var near := false
+					var far := false
+					for n in 3:
+						var s := WorldData.diag_reach(p, t[n].x - x, t[n].y - z)
+						near = near or s < 1.0 - 0.01
+						far = far or s > 1.0 + 0.01
+					bent = bent and not (near and far)
+	_check(kinds.has(2) and kinds.has(4) and kinds.has(-1), "a lake's shore has outer, inner and straight bits")
+	_check(wet, "water flush with the land lies wherever a shore's ground is under it, and only there")
+	_check(bent, "the ground of a shore's inner corner bends along its diagonal")
+
+
+## True when point `q` lies in triangle `t` or on its edges.
+func _inside(q: Vector2, t: PackedVector2Array) -> bool:
+	var d1 := (t[1] - t[0]).cross(q - t[0])
+	var d2 := (t[2] - t[1]).cross(q - t[1])
+	var d3 := (t[0] - t[2]).cross(q - t[2])
+	var e := 1e-6
+	return (d1 >= -e and d2 >= -e and d3 >= -e) or (d1 <= e and d2 <= e and d3 <= e)
+
+
+## The triangles of a mesh's first surface seen from above, in cells.
+func _triangles(mesh: ArrayMesh) -> Array:
+	var out := []
+	var arrays := mesh.surface_get_arrays(0)
+	var vs: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	for i in range(0, idx.size(), 3):
+		var t := PackedVector2Array()
+		for n in 3:
+			var v: Vector3 = vs[idx[i + n]] / WorldData.CELL
+			t.append(Vector2(v.x, v.z))
+		out.append(t)
+	return out
 
 
 func _test_shapes() -> void:

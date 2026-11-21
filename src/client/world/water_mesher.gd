@@ -481,6 +481,16 @@ static func shore(c: PackedByteArray, cov: PackedByteArray, i: int, dy: int, dz:
 ## `foam`: its foam bits (see foam), for where it comes up to the side of land beside
 ## instead of to its own slope; without them the land showed bare teeth between the foam
 ## of the slopes down a shore.
+## Under water flush with the land (water_top 1: a lake or a river at the sea's level,
+## without the sea's surf) the ground of a shore comes up to the surface only where it is
+## level with the land: along the land's side of a straight slope, at the high corner
+## of an outer corner on the diagonal, and past the diagonal of an inner one
+## (WorldData.PATCH_DIAG), where it lies level at the surface over half the cell. There
+## the water stops on that diagonal, so the two never fight over one height, and its foam
+## runs along it from the straight shores' on into the next diagonal: the line the water
+## meets the land on is the same on every kind of shore (cut half a cell short of it
+## on the diagonal, it went into sharp corners where a shore turned from straight to
+## diagonal, thread «Исправить диагональный берег»).
 static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int, dy: int, dz: int,
 		base: Vector3, foam := 0) -> void:
 	var murks := murk_corners(w, c, i, dz, base)
@@ -493,12 +503,20 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 		foam = 0
 	var steps := Vector2i(OldSlopes.PATCH_STEPS, OldSlopes.PATCH_STEPS)
 	var p := OldSlopes.patch(c, sh, i, dy, dz)
-	if p.size() > WorldData.PATCH_DIAG and top >= 1.0 and not surf:
-		_flush_diag(buf, base, int(p[WorldData.PATCH_DIAG]), foam, murks)
-		return
 	var hs: PackedFloat32Array = OldSlopes.patch_grid(p, 0.0, steps)[0]
 	var start: int = buf.verts.size()
 	var nu := steps.x + 1
+	# The points past the diagonal of an inner corner flush with the water (see above).
+	var level := PackedByteArray()
+	var diag := int(p[WorldData.PATCH_DIAG]) if top >= 1.0 and not surf and p.size() > WorldData.PATCH_DIAG else -1
+	if diag >= 4:
+		level.resize(nu * (steps.y + 1))
+	if diag >= 0:
+		# Foam as wide as along a straight shore's land (the half edges' foam): along the
+		# diagonal, and at the high corner of an outer corner, where the foam of the two
+		# diagonals beside meets (water.gdshader, corner shape 3).
+		var k := diag & 3
+		foam |= (1 << (12 + k) if diag >= 4 else 1 << (8 + k)) | 3 << (16 + 2 * k)
 	var data := Vector2(float(foam), 1.0)
 	for b in steps.y + 1:
 		var z := float(b) / steps.y
@@ -511,36 +529,24 @@ static func shore_water(buf, w, c: PackedByteArray, sh: PackedByteArray, i: int,
 			buf.uv2s.append(data)
 			var murk := lerpf(lerpf(murks[0], murks[1], x), lerpf(murks[3], murks[2], x), z)
 			buf.colors.append(water_color(maxf(under, 0.0), under, kind(true, murk), sea, surf))
+			if not level.is_empty():
+				level[b * nu + a] = 1 if WorldData.diag_reach(p, x, z) > 1.0 + OldSlopes.DIAG_EPS else 0
+	# A square's two triangles, split as the ground's grid is (OldSlopes.crease_flip), so
+	# the water's edge on an inner corner's diagonal is the ground's.
+	var tris := PackedInt32Array([0, 1, nu, 1, nu + 1, nu]) if OldSlopes.crease_flip(p) \
+		else PackedInt32Array([0, 1, nu + 1, 0, nu + 1, nu])
 	for b in steps.y:
 		for a in steps.x:
-			var j := start + b * nu + a
-			buf.indices.append(j)
-			buf.indices.append(j + 1)
-			buf.indices.append(j + nu + 1)
-			buf.indices.append(j)
-			buf.indices.append(j + nu + 1)
-			buf.indices.append(j + nu)
-
-
-## The water flush with the land (water_top 1, a lake or river at the sea's level,
-## without the sea's surf) over a shore's corner on the diagonal (`diag`, see
-## WorldData.PATCH_DIAG): the ground never rises over that water, so the whole cell's
-## surface showed, its outline in stairs along a diagonal shore. Cut on the diagonal
-## through the middles of its sides instead, as a filled corner (an outer corner: the
-## water away from its high corner) or a cut one (an inner corner: the water only in its
-## low corner), with the foam along the diagonal (see water.gdshader).
-static func _flush_diag(buf, base: Vector3, diag: int, foam: int, murks: PackedFloat32Array) -> void:
-	var k := diag & 3
-	var corners := PackedColorArray()
-	for n in 4:
-		corners.append(water_color(0.5, 1.0, kind(true, murks[n])))
-	if diag < 4:
-		var data := Vector2(float(foam | 1 << (8 + k)), 1.0)
-		var mid: Color = corners[0].lerp(corners[1], 0.5).lerp(corners[3].lerp(corners[2], 0.5), 0.5)
-		for q in 4:
-			_piece(buf, base, 1.0, q, OLD_CUT if q == k else QUARTER, Vector3.UP, mid, data, 0, corners)
-	else:
-		_piece(buf, base, 1.0, k, CORNER, Vector3.UP, corners[k], Vector2(float(1 << (12 + k)), 1.0), 0, corners)
+			var j := b * nu + a
+			for t in 2:
+				var q0: int = j + tris[3 * t]
+				var q1: int = j + tris[3 * t + 1]
+				var q2: int = j + tris[3 * t + 2]
+				if not level.is_empty() and level[q0] + level[q1] + level[q2] > 0:
+					continue
+				buf.indices.append(start + q0)
+				buf.indices.append(start + q1)
+				buf.indices.append(start + q2)
 
 
 ## Surf: the sea washes up over the land whose top is level with it (the sea's level,
