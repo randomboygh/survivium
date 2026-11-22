@@ -293,8 +293,6 @@ const SHOTS := {
 		"hide": ["chunks: grass"]},
 	"build-ghost-turned": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "stroke": false, "hud": false,
 		"hide": ["chunks: grass"], "turn": 1},
-	# A wall's stroke as the whiter, less see-through body (Cursor.style 1).
-	"build-mode-white": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "cursor_style": 1},
 	"build-mode-erase": {"time": 0.4, "season": 1, "plan": true, "build_mode": "erase"},
 	"build-mode-cube": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "cube"},
 	"build-mode-interior": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "filter": "interior"},

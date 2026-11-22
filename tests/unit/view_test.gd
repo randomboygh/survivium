@@ -21,6 +21,7 @@ const Trample := preload("res://src/client/world/trample.gd")
 const Looks := preload("res://src/shared/content/looks.gd")
 const CreaturesView := preload("res://src/client/game/creatures.gd")
 const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
+const PlanGhost := preload("res://src/client/view/plan_ghost.gd")
 
 
 ## Ground all of one material (or all sea), for AirEffects.hot_ground.
@@ -64,6 +65,7 @@ class FakeGame:
 
 
 func run() -> void:
+	_test_plan_bodies()
 	_test_pixel_view()
 	_test_sprite_sheet()
 	_test_eat()
@@ -2229,3 +2231,35 @@ func _test_deer_states() -> void:
 		"and lies on its last")
 	c.hide_bodies(key)
 	c.free()
+
+
+## The build mode's strokes (PlanGhost.bodies): a wall of five cells is one body, no
+## faces between its cells and a rim only along its outer edges.
+func _test_plan_bodies() -> void:
+	var wall: Array = []
+	for x in 5:
+		wall.append(Vector3i(x, 1, 0))
+	var mesh := PlanGhost.bodies([[wall, Color.WHITE]], StandardMaterial3D.new())
+	var arrays := mesh.surface_get_arrays(0)
+	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	# Two long sides, the top and the bottom five faces each, and the two ends: 22 quads.
+	_check(verts.size() == 22 * 6, "a wall of five cells is one body with no faces inside: %d" % verts.size())
+	var marks: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV2]
+	var middle_top := -1
+	for i in verts.size() / 6:
+		var mid := Vector3.ZERO
+		for k in 6:
+			mid += verts[i * 6 + k] / 6.0
+		if is_equal_approx(mid.y, 2.0 * WorldData.CELL) and is_equal_approx(mid.x, 2.5 * WorldData.CELL):
+			middle_top = int(marks[i * 6].x)
+	# The top of the middle cell: rims only toward north and south, the long edges.
+	_check(middle_top >= 0 and _bits(middle_top) == 2, "the middle cell's top has a rim on its two long edges only: %d" % middle_top)
+	_check(PlanGhost.bodies([[[], Color.WHITE]], StandardMaterial3D.new()) == null, "no cells, no body")
+
+
+static func _bits(v: int) -> int:
+	var n := 0
+	while v > 0:
+		n += v & 1
+		v >>= 1
+	return n

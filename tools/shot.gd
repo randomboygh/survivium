@@ -1265,7 +1265,6 @@ func _run() -> void:
 					await process_frame
 			for i in 3:
 				await process_frame
-			main.cursor.get_script().style = shot.get("cursor_style", 0)
 			if not shot.has("flights") and shot.get("stroke", true):
 				main.build.show_stroke(s)
 		if shot.has("sapling_tree"):
@@ -1556,6 +1555,11 @@ func _run() -> void:
 			main.effects.nature.tumbleweeds.scatter(shot.tumbleweeds, main.sky.wind_now)
 			await process_frame
 			await process_frame
+		# The blueprint's blocks are meshed a few columns a frame in the game: all first.
+		for n in main.world_root.get_children():
+			if n.has_method("finish_blueprint"):
+				n.finish_blueprint()
+				await process_frame
 		# The trees' light is worked out a few trees a frame in the game: all of it first.
 		if main.sun_rays != null and main.sun_rays.finish():
 			await process_frame

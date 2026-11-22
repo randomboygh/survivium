@@ -23,6 +23,8 @@ const SHADE := [0.8, 0.8, 1.0, 0.6, 0.9, 0.9]
 ## A fence's half thickness round the middle of its cell and its height, in cells.
 const FENCE_HALF := 0.125
 const FENCE_HIGH := 0.75
+## A quad's corners on its face, for the rim (see _face).
+const QUAD_UV := [Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]
 ## The six faces of a cube cell in DIRS order, corners 0..1 per axis.
 const CUBE := [
 	[Vector3(1, 0, 0), Vector3(1, 1, 0), Vector3(1, 1, 1), Vector3(1, 0, 1)],
@@ -73,10 +75,14 @@ static func build(cells: Dictionary, forms: Dictionary, world, pick: Callable, b
 
 
 ## The plain bodies of cubes `parts` ([cells, tint] each, a body per part) in material
-## `mat`; null when there are no cells.
+## `mat`, a light rim along the edges of each body (user 2026-11-23: as the ground's
+## edges are lit), none where two of its cells' faces meet flat; null when there are no
+## cells.
 static func bodies(parts: Array, mat: Material) -> ArrayMesh:
 	var verts := PackedVector3Array()
 	var colors := PackedColorArray()
+	var uvs := PackedVector2Array()
+	var marks := PackedVector2Array()
 	for part: Array in parts:
 		var cells := {}
 		for c: Vector3i in part[0]:
@@ -84,17 +90,36 @@ static func bodies(parts: Array, mat: Material) -> ArrayMesh:
 		for c: Vector3i in cells:
 			for d in 6:
 				if not cells.has(c + DIRS[d]):
-					_face(verts, colors, c, CUBE[d], DIRS[d], part[1], d)
+					_face(verts, colors, c, CUBE[d], DIRS[d], part[1], d, uvs, marks, _rims(cells, c, d))
 	if verts.is_empty():
 		return null
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = verts
 	arrays[Mesh.ARRAY_COLOR] = colors
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_TEX_UV2] = marks
 	var mesh := ArrayMesh.new()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	mesh.surface_set_material(0, mat)
 	return mesh
+
+
+## The edges of the face of cell `c` on side `d` (CUBE's corners) that are edges of the
+## body (bit k: from corner k to the next): the face goes on flat into the cell beside
+## across it only when that cell is there and open on side `d` too.
+static func _rims(cells: Dictionary, c: Vector3i, d: int) -> int:
+	var pts: Array = CUBE[d]
+	var mid := Vector3.ZERO
+	for p: Vector3 in pts:
+		mid += p / 4.0
+	var rims := 0
+	for k in 4:
+		var e: Vector3 = (pts[k] + pts[(k + 1) % 4]) / 2.0 - mid
+		var across := c + Vector3i(roundi(e.x * 2.0), roundi(e.y * 2.0), roundi(e.z * 2.0))
+		if not cells.has(across) or cells.has(across + DIRS[d]):
+			rims |= 1 << k
+	return rims
 
 
 ## A block to build at `c` of form `form`.
@@ -181,8 +206,11 @@ static func _box(verts: PackedVector3Array, colors: PackedColorArray, c: Vector3
 ## Adds the face with corners `pts` (0..1 in cell `c`, 3 or 4) facing `n` (zero: worked
 ## out from the corners, away from the middle of the cell), as triangles wound so that
 ## it faces out, in tint `tint` lit as side `d` (DIRS; -1 inside the cell: by its normal).
+## With `rims` 0 or more (a quad), each vertex also gets its place on the face (0..1, corner 0 at
+## 0, 0, corner 1 at 1, 0) there and the face's open edges `rims` (bit k: from corner k
+## to the next) in `marks`, for the light rim of plan_through.gdshader.
 static func _face(verts: PackedVector3Array, colors: PackedColorArray, c: Vector3i, pts: Array, n: Vector3, tint: Color,
-		d: int) -> void:
+		d: int, uvs := PackedVector2Array(), marks := PackedVector2Array(), rims := -1) -> void:
 	var a: Vector3 = pts[0]
 	var b: Vector3 = pts[1]
 	var e: Vector3 = pts[2]
@@ -204,7 +232,10 @@ static func _face(verts: PackedVector3Array, colors: PackedColorArray, c: Vector
 	var flip: bool = cross.dot(n) > 0.0
 	var base := Vector3(c)
 	for i in range(1, pts.size() - 1):
-		var tri := [pts[0], pts[i + 1], pts[i]] if flip else [pts[0], pts[i], pts[i + 1]]
-		for p: Vector3 in tri:
-			verts.append((base + p) * CELL)
+		var tri := [0, i + 1, i] if flip else [0, i, i + 1]
+		for k: int in tri:
+			verts.append((base + pts[k]) * CELL)
 			colors.append(col)
+			if rims >= 0:
+				uvs.append(QUAD_UV[k])
+				marks.append(Vector2(rims, 0))

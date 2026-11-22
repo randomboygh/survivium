@@ -4,8 +4,9 @@ extends Node3D
 ## see-through and tinted cold blue. The blueprint's blocks are kept in a world of their own
 ## (`ghost`, chunks only where there are some), so the mesher merges them as it merges
 ## the world's: a wall of five blocks is one wall. A chunk is meshed again when a cell of
-## it (or on its rim) changes, one chunk a frame, and only the chunks round the player
-## are drawn. Drawn twice: first only into depth, then its colour over that, so only the
+## it (or on its rim) changes, the nearest first, a column at a time for at most BUDGET
+## a frame (a phone is 4–5 times slower: a chunk at once took ~10 ms on a desktop), and
+## only the chunks round the player are drawn. Drawn twice: first only into depth, then its colour over that, so only the
 ## nearest faces show and none is tinted twice. PlanView shows it in the build mode.
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -19,6 +20,8 @@ const CELL := WorldData.CELL
 const CHUNK := WorldData.CHUNK
 ## Chunks round the player's whose blueprint is drawn (2 a 5 × 5 square).
 const RADIUS := 2
+## How long a frame meshes for at most (µs), as the world's chunks (ChunkStreamer).
+const BUDGET := 1500
 ## The tint over the blocks' own colours (rgb, how much of it) and how much they hide
 ## what is behind (alpha).
 const TINT := Color(0.5, 0.75, 1.0)
@@ -31,6 +34,9 @@ var ghost: WorldData
 ## The drawn chunks by key (Vector2i), and those to mesh again.
 var _meshes := {}
 var _dirty := {}
+## The chunk being meshed and its key.
+var _job: ChunkMesher.Job
+var _job_key := Vector2i.ZERO
 var _depth: ShaderMaterial
 var _colour: ShaderMaterial
 
@@ -96,6 +102,7 @@ func _reset() -> void:
 		_meshes[key].queue_free()
 	_meshes.clear()
 	_dirty.clear()
+	_job = null
 	_put(game.plans.cells.keys())
 
 
@@ -129,7 +136,29 @@ func _process(_delta: float) -> void:
 	var at := WorldData.chunk_key(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL))
 	for key: Vector2i in _meshes:
 		_meshes[key].visible = absi(key.x - at.x) <= RADIUS and absi(key.y - at.y) <= RADIUS
-	# The nearest chunk to mesh again, one a frame.
+	var t0 := Time.get_ticks_usec()
+	while Time.get_ticks_usec() - t0 < BUDGET and _work(at):
+		pass
+
+
+## All the chunks round the player meshed now (tools/shot.gd before a picture).
+func finish() -> void:
+	if game.player == null or not _materials():
+		return
+	var at := WorldData.chunk_key(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL))
+	while _work(at):
+		pass
+
+
+## Meshes a column of the chunk being meshed, or starts the nearest chunk round chunk
+## `at` to mesh again; false when there is none.
+func _work(at: Vector2i) -> bool:
+	if _job != null:
+		if ChunkMesher.step(_job, 1):
+			_show(_job_key, ChunkMesher.finish(_job)[0])
+			_job = null
+		return true
+	# The nearest chunk to mesh again.
 	var best: Variant = null
 	for key: Vector2i in _dirty:
 		if absi(key.x - at.x) <= RADIUS and absi(key.y - at.y) <= RADIUS \
@@ -137,14 +166,17 @@ func _process(_delta: float) -> void:
 			best = key
 	if best != null:
 		_dirty.erase(best)
-		_mesh(best)
+		if ghost.has_chunk(best):
+			_job = ChunkMesher.start(ghost, best.x * CHUNK, best.y * CHUNK, CHUNK)
+			_job_key = best
+		else:
+			_show(best, null)
+		return true
+	return false
 
 
-## Meshes chunk `key` of the ghost world (drops it when it has no blocks).
-func _mesh(key: Vector2i) -> void:
-	var mesh: ArrayMesh = null
-	if ghost.has_chunk(key):
-		mesh = ChunkMesher.build_chunk(ghost, key.x * CHUNK, key.y * CHUNK, CHUNK)[0]
+## Shows `mesh` for chunk `key` of the ghost world (drops it when null: no blocks).
+func _show(key: Vector2i, mesh: ArrayMesh) -> void:
 	if mesh == null:
 		if _meshes.has(key):
 			_meshes[key].queue_free()

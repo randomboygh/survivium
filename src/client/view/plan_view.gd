@@ -129,6 +129,11 @@ func _build(at: Vector3i) -> void:
 	visible = started or building
 
 
+## The blueprint's blocks round the player all meshed now (tools/shot.gd).
+func finish_blueprint() -> void:
+	_blocks.finish()
+
+
 ## Whether blueprint cell value `v` is drawn by PlanGhost: ground to dig, a fence.
 static func _plain(v: String) -> bool:
 	return v == Plans.CUT or not Plans.is_mark(v) and Plans.is_fence(v)

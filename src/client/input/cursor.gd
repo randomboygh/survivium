@@ -31,10 +31,8 @@ var _ok := true
 ## frame (its parent's child, so hiding the frame leaves them).
 var _bodies := MeshInstance3D.new()
 var _boxes_shown: Array = []
-## How a stroke's cells that fit look: 0 see-through cold blue, 1 whiter and less
-## see-through (the user is choosing, 2026-11-22; tools/shot.gd sets it).
-static var style := 0
-const FIT_TINTS := [Color(0.45, 0.72, 1.0, 0.5), Color(1.0, 1.0, 1.0, 0.62)]
+## A stroke's cells that fit: white, less see-through than the blueprint (user 2026-11-23).
+const FIT_TINT := Color(1.0, 1.0, 1.0, 0.55)
 const BAD_TINT := Color(1.0, 0.22, 0.18, 0.5)
 const BOX_TINT := Color(1.0, 0.3, 0.25, 0.22)
 
@@ -117,16 +115,16 @@ static func _side() -> Vector2i:
 
 
 ## Shows whole cells as see-through bodies over everything, each group merged (no faces
-## between its cells): `good` cold blue or white (`style`), `bad` red, the box `box` faint
-## red (what a stroke takes the ghost off). The build mode's strokes (user 2026-11-22,
-## until then frames).
+## between its cells, a light rim along its edges): `good` white, `bad` red, the box `box`
+## faint red (what a stroke takes the ghost off). The build mode's strokes (user
+## 2026-11-23, until then frames).
 func show_boxes(good: Array, bad: Array, box: Array = []) -> void:
-	var key := [good, bad, box, style]
+	var key := [good, bad, box]
 	if _boxes_shown == key:
 		return
 	_boxes_shown = key
 	var material := ShaderMaterial.new()
 	material.shader = ThroughShader
 	material.render_priority = 1
-	_bodies.mesh = PlanGhost.bodies([[box, BOX_TINT], [bad, BAD_TINT], [good, FIT_TINTS[style]]], material)
+	_bodies.mesh = PlanGhost.bodies([[box, BOX_TINT], [bad, BAD_TINT], [good, FIT_TINT]], material)
 	_bodies.visible = _bodies.mesh != null
