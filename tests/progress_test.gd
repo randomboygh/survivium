@@ -710,7 +710,13 @@ func _hunt(id: String) -> bool:
 			if prey == null or best > 40.0:
 				var at: Vector3 = main.player.position + Vector3(2.0, 0.0, 0.0)
 				at.y = life.ground(at.x, at.z)
-				prey = life._add(kinds[0], at)
+				# The weakest kind: animals are rare now, so one is let in nearly every time,
+				# and a bear each time makes the run last for ever.
+				var weakest: String = kinds[0]
+				for k: String in kinds:
+					if AiRules.SPECIES[k].health < AiRules.SPECIES[weakest].health:
+						weakest = k
+				prey = life._add(weakest, at)
 		# Close by, it is struck whichever way the player faces.
 		await _go(prey.pos + Vector3(0.0, 0.0, 0.15))
 		_rest()
