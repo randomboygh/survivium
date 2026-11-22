@@ -52,6 +52,7 @@ func _test_wildlife() -> void:
 		life.people = [person]
 		var born := [0]
 		life.born.connect(func(_a: Wildlife.Animal) -> void: born[0] += 1)
+		life.density = 1.0
 		life.start(7)
 		made.append(life.animals.map(func(a: Wildlife.Animal) -> String: return "%s %v" % [a.kind, a.pos]))
 		# The swimmers find no water here (see _test_swimmers). Each chunk made has its
@@ -135,6 +136,7 @@ func _test_spread(w: WorldData, person: Who) -> void:
 	life.world = w
 	life.clock = Clock.new()
 	life.people = [person]
+	life.density = 1.0
 	life.start(3)
 	var nearest := INF
 	for a in life.animals:
@@ -162,7 +164,7 @@ func _test_spread(w: WorldData, person: Who) -> void:
 	life._refill()
 	var close := 0
 	for a in life.animals:
-		if Vector2(a.pos.x - person.position.x, a.pos.z - person.position.z).length() < Wildlife.NEAR:
+		if Vector2(a.pos.x - person.position.x, a.pos.z - person.position.z).length() < Wildlife.NEAR - Wildlife.FLOCK_REACH * 1.5:
 			close += 1
 	_check(life.animals.size() > 20 and close == 0, "the eaten are made up for out of sight (%d, %d close)"
 		% [life.animals.size(), close])
@@ -293,6 +295,7 @@ func _test_biomes(w: WorldData) -> void:
 	var lay := OneBiome.new()
 	life.gen = lay
 	lay.biome = Biomes.index("biomes:forest")
+	life.density = 1.0
 	life.start(2)
 	var wolves := life.count("animals:wolf")
 	lay.biome = Biomes.index("biomes:meadow")
@@ -682,7 +685,7 @@ func _test_shore(w: WorldData) -> void:
 		"a duck paddles, walks the bank near its pond and flies seldom (%d of %d aloft, %d ashore, %.1f cells out)" % [aloft, steps, ashore, far])
 	_check(life.wanted("animals:frog") == 0, "no frogs while it is dry")
 	life.clock.puddles = 1.0
-	_check(life.wanted("animals:frog") == AiRules.SPECIES["animals:frog"].count, "frogs come out after rain")
+	_check(is_equal_approx(life.wanted("animals:frog"), AiRules.SPECIES["animals:frog"].count * life.density), "frogs come out after rain")
 	life.animals.clear()
 	var bank := Vector3(px - 2.0, 0.0, pz + 2.0) * WorldData.CELL
 	bank.y = life.ground(bank.x, bank.z)

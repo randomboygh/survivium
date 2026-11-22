@@ -145,10 +145,13 @@ func _refill_some(most: int) -> void:
 		var cells: Rect2i = job[3]
 		var want: float = wanted(kind) * job[1]
 		var have := _count_near(kind, around)
-		if have > want + REFILL_SLACK:
+		# A flock comes whole (_populate_chunk rolls it by the fraction), so the slack
+		# is at least its size: a herd of five is no surplus where one is wanted.
+		var slack := maxf(REFILL_SLACK, float(AiRules.SPECIES[kind].flock[1]))
+		if have > want + slack:
 			_thin(kind, have - ceili(want), around)
 			continue
-		for i in floori(want - REFILL_SLACK) - have:
+		for i in floori(want - slack) - have:
 			var n := animals.size()
 			_spawn_group(kind, floori(want) - have, cells, NEAR)
 			have += animals.size() - n
