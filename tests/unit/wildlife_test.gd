@@ -686,6 +686,12 @@ func _test_shore(w: WorldData) -> void:
 	_check(life.wanted("animals:frog") == 0, "no frogs while it is dry")
 	life.clock.puddles = 1.0
 	_check(is_equal_approx(life.wanted("animals:frog"), AiRules.SPECIES["animals:frog"].count * life.density), "frogs come out after rain")
+	var season: int = life.clock.season
+	life.clock.season = life.clock.WINTER
+	_check(life.wanted("animals:duck") == 0 and life.wanted("animals:butterfly") == 0,
+		"no ducks and no butterflies in winter")
+	_check(is_equal_approx(life.wanted("animals:rabbit"), AiRules.SPECIES["animals:rabbit"].count * life.density), "rabbits stay in winter")
+	life.clock.season = season
 	life.animals.clear()
 	var bank := Vector3(px - 2.0, 0.0, pz + 2.0) * WorldData.CELL
 	bank.y = life.ground(bank.x, bank.z)

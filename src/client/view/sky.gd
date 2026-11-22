@@ -14,6 +14,11 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 
 const FOLIAGE := [Vector3(0.95, 1.1, 0.8), Vector3(1.0, 1.0, 1.0), Vector3(2.2, 1.05, 0.55), Vector3(1.3, 0.9, 0.7)]
 const GRASS := [Vector3(0.95, 1.08, 0.85), Vector3(1.0, 1.0, 1.0), Vector3(1.1, 0.9, 0.66), Vector3(0.9, 0.85, 0.72)]
+## How withered the grass is at the end of autumn; the share of winter it takes to wither
+## all the way; the share of spring it takes to green again (wither_target).
+const WITHER_AUTUMN := 0.45
+const WITHER_WINTER := 0.15
+const WITHER_SPRING := 0.4
 const LEAF_AMOUNT := [1.0, 1.0, 0.8, 0.55]
 ## Share of the berries ripe on bushes.
 const BERRY_AMOUNT := Bushes.BERRY_AMOUNT
@@ -92,6 +97,8 @@ var _flicker := 1.0
 var _flicker_clock := 0.0
 var foliage := Vector3.ONE
 var grass := Vector3.ONE
+## How withered the grass is, 0 green .. 1 pale straw (see wither_target).
+var grass_wither := 0.0
 var leaf_amount := 1.0
 var berry_amount := 1.0
 ## How much of the trees' blossom is out: all of it in spring, none after.
@@ -461,6 +468,21 @@ func on_season(season: int) -> void:
 	game.hud.toast(["[spring_has_come]", "[summer_has_come]", "[autumn_has_come]", "[winter_has_come]"][season])
 
 
+## How withered the grass is by the season and how far it has gone: green all summer,
+## yellowing through the autumn, pale straw in the first days of winter and all winter
+## long, green again over the first weeks of spring.
+static func wither_target(clock) -> float:
+	var part: float = clock.season_part()
+	match clock.season:
+		Clock.SPRING:
+			return 1.0 - smoothstep(0.0, WITHER_SPRING, part)
+		Clock.AUTUMN:
+			return WITHER_AUTUMN * smoothstep(0.15, 1.0, part)
+		Clock.WINTER:
+			return lerpf(WITHER_AUTUMN, 1.0, smoothstep(0.0, WITHER_WINTER, part))
+	return 0.0
+
+
 ## Name of the HUD icon for the sky now: the weather, or the moon by its phase at
 ## night when the sky is clear.
 func icon() -> String:
@@ -482,6 +504,7 @@ func _update_weather(delta: float) -> void:
 	var k2 := minf(1.0, delta * 0.4)
 	foliage = foliage.lerp(FOLIAGE[season], k2)
 	grass = grass.lerp(GRASS[season], k2)
+	grass_wither = lerpf(grass_wither, wither_target(clock), k2)
 	# The autumn wind strips the leaves early, down to what winter leaves.
 	var leaves: float = LEAF_AMOUNT[season]
 	if season == Clock.AUTUMN:
@@ -512,6 +535,7 @@ func _update_weather(delta: float) -> void:
 	g.global_shader_parameter_set("puddles", Vector2(0.0 if clock.season == Clock.WINTER else clock.puddles, clock.rain))
 	g.global_shader_parameter_set("foliage_tint", foliage)
 	g.global_shader_parameter_set("grass_tint", grass)
+	g.global_shader_parameter_set("grass_wither", grass_wither)
 	g.global_shader_parameter_set("leaf_amount", leaf_amount)
 	# Fallen leaves lie under the crowns as the trees lose them, under the snow in
 	# winter, and are gone as the trees leaf out again.

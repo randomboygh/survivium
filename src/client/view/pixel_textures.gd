@@ -215,7 +215,8 @@ static func build_plants() -> ImageTexture:
 		for k in (shift if shift > 0 else (Plants.columns(c) if after_rain else 0)):
 			img.set_pixel(PLANT_W * (PLANTS + c.first + k), PLANT_H, looks_texel(c.get("looks", ""), shift, after_rain))
 		for k in Plants.columns(c):
-			img.set_pixel(PLANT_W * (PLANTS + c.first + k) + 1, PLANT_H, sway_texel(c.get("sway", 1.0), c.get("tint", "") == "grass"))
+			img.set_pixel(PLANT_W * (PLANTS + c.first + k) + 1, PLANT_H, sway_texel(c.get("sway", 1.0), c.get("tint", "") == "grass",
+				not c.get("winter", true)))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 11
 	for v in 4:
@@ -393,9 +394,10 @@ static func looks_texel(looks: String, shift: int, after_rain := false) -> Color
 
 ## The second texel of a custom plant's looks row: in red how far its tips sway in the
 ## wind (Plants `sway`, 0..2, as a share of a grass tuft's), green 1 for a plant tinted
-## like the grass (Plants `tint: grass`); read by grass.gdshader.
-static func sway_texel(sway: float, grass_tint := false) -> Color:
-	return Color(clampf(sway, 0.0, 2.0) / 2.0, 1.0 if grass_tint else 0.0, 0.0, 1.0)
+## like the grass (Plants `tint: grass`), blue 1 for one gone in winter (Plants
+## `winter: false`: it fades out as the grass withers); read by grass.gdshader.
+static func sway_texel(sway: float, grass_tint := false, no_winter := false) -> Color:
+	return Color(clampf(sway, 0.0, 2.0) / 2.0, 1.0 if grass_tint else 0.0, 1.0 if no_winter else 0.0, 1.0)
 
 
 ## Sets texel (x, row) of plant `v`, rows counted from the bottom; off the plant it is

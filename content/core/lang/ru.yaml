@@ -811,6 +811,8 @@
 "[field.creatures.walks.about]": "Птица, что ходит по земле: её кадры прыжка — шаги"
 "[field.creatures.after_rain]": "После дождя"
 "[field.creatures.after_rain.about]": "Выходит после дождя"
+"[field.creatures.winter]": "Зимой"
+"[field.creatures.winter.about]": "Встречается зимой"
 "[field.creatures.flight]": "Полёт"
 "[field.creatures.flight.about]": "Высота полёта"
 "[field.creatures.tints]": "Окраски"

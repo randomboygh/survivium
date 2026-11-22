@@ -254,6 +254,15 @@ static func calendar_season() -> int:
 	return (month / 3 + 3) % 4
 
 
+## How far the season has gone, 0 at its first day .. 1 at its end (by the device's date
+## with real_season: a season is three months).
+func season_part() -> float:
+	if real_season:
+		var d := Time.get_date_dict_from_system()
+		return clampf((d.month % 3 + (d.day - 1) / 31.0) / 3.0, 0.0, 1.0)
+	return clampf(season_clock / DAYS_PER_SEASON, 0.0, 1.0)
+
+
 ## How much of the day's light there is now, 0 at night and 1 by day (dawn and dusk
 ## between).
 func daylight() -> float:

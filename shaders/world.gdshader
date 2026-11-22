@@ -500,7 +500,7 @@ void fragment() {
 			col *= biome_tint(pick / 3, gp.xz);
 		}
 		if (pick == GRASS * 3) {
-			col *= grass_tint * grass_variation(gp.xz);
+			col = wither(col * grass_tint * grass_variation(gp.xz));
 		} else if (top && pick % 3 == 0 && !cap) {
 			col *= ground_variety(pick / 3, gp.xz, wt);
 		}

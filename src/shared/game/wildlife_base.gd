@@ -345,9 +345,12 @@ func count(kind: String) -> int:
 
 
 ## How many of `kind` live around the people now: its `count`, or for one that comes
-## after rain that share of it as there is water in the puddles (none in winter).
+## after rain that share of it as there is water in the puddles (none in winter); none
+## of one not about in winter (`winter`) then.
 func wanted(kind: String) -> float:
 	var spec: Dictionary = AiRules.SPECIES[kind]
+	if not spec.get("winter", true) and clock != null and clock.season == clock.WINTER:
+		return 0.0
 	if not spec.after_rain:
 		return spec.count * density
 	if clock == null or clock.season == clock.WINTER:

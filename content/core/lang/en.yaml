@@ -811,6 +811,8 @@
 "[field.creatures.walks.about]": "A flyer that walks on the ground: its hop frames are steps"
 "[field.creatures.after_rain]": "After rain"
 "[field.creatures.after_rain.about]": "Comes out after rain"
+"[field.creatures.winter]": "In winter"
+"[field.creatures.winter.about]": "About in winter"
 "[field.creatures.flight]": "Flight"
 "[field.creatures.flight.about]": "Height a flyer keeps"
 "[field.creatures.tints]": "Tints"

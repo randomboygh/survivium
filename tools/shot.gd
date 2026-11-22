@@ -386,6 +386,7 @@ func _run() -> void:
 			main.session.clock.soak = main.session.clock.SOAK_DAYS if main.session.clock.shrooms > 0.0 else 0.0
 			main.sky.foliage = main.sky.FOLIAGE[main.session.clock.season]
 			main.sky.grass = main.sky.GRASS[main.session.clock.season]
+			main.sky.grass_wither = main.sky.wither_target(main.session.clock)
 			main.sky.berry_amount = main.sky.BERRY_AMOUNT[main.session.clock.season]
 			main.sky.blossom_amount = main.sky.BLOSSOM_AMOUNT[main.session.clock.season]
 			main.sky.leaf_amount = lerpf(main.sky.LEAF_AMOUNT[main.session.clock.season], main.sky.LEAF_AMOUNT[3], main.session.clock.leaf_fall)

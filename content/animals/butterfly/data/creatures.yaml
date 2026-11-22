@@ -21,3 +21,4 @@
   tints: ["#ffffff", "#f6d64a", "#f2984a", "#86a8f4", "#d49ae6"]
   flock: [2, 4]
   likes: [plants:flowers]
+  winter: false
