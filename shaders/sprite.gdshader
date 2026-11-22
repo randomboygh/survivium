@@ -63,6 +63,30 @@ varying vec2 light_xz;
 // Where the point is drawn (sheared), to tell which light shines on it (light_spot).
 varying vec3 drawn;
 
+// How far a row `high` above the foot of a picture `tall` high leans, along view_up,
+// in the shadow pass of the sun or the moon (`to_light`, the light's way, sheared),
+// so the shadow on the ground is never thinner across the view than LEAN_DEPTH of the
+// height: lit along its width (the sun east or west of a picture facing south) the
+// card would throw a line. The body is as deep: the band lies behind the feet while
+// the shadow falls away from the camera, and slides in front of them as it turns
+// towards the camera, the feet's shadow under the feet again once it falls LEAN_DEPTH
+// of the height that way.
+const float LEAN_DEPTH = 0.4;
+
+float lean_shadow(float high, float tall, vec3 to_light) {
+	if (to_light.y < 0.01) {
+		return 0.0;
+	}
+	// How far the shadow of a unit of height falls along view_up, the shear's own
+	// lean of the height in.
+	float falls = view_slope - dot(to_light.xz, view_up) / to_light.y;
+	if (falls >= 0.0) {
+		return (max(falls, LEAN_DEPTH) - falls) * high;
+	}
+	float front = max(LEAN_DEPTH + falls, 0.0);
+	return front * (tall - high);
+}
+
 void vertex() {
 	if (shadow_only > 0.5) {
 		VERTEX.y = MODEL_MATRIX[3].y + (VERTEX.y - MODEL_MATRIX[3].y) / length(MODEL_MATRIX[1].xyz);
@@ -80,12 +104,18 @@ void vertex() {
 			vec2 off = flat_shadow > 1.5 ? view_up * across + right * sign(MODEL_MATRIX[0].x) * along
 				: right * across + view_up * along;
 			VERTEX = vec3(foot.x + off.x, foot.y + mid, foot.z + off.y);
+		} else if (PROJECTION_MATRIX[3][3] > 0.5) {
+			// Under the sun or the moon the picture casts its shadow as it is drawn,
+			// turned to the camera, so the light lays it on the ground skewed: each row
+			// shifted away from the light by its height, the body lying or standing as
+			// it is seen (a lying bear turned to the light threw a strip across itself),
+			// and the shadow falls on slopes and walls as any other (lean_shadow).
+			VERTEX = face_view(VERTEX, foot);
 		} else {
-			// A flat sprite seen from the side throws a strip of a shadow: for the shadow
-			// it turns about its middle to face the light (the light's camera), as if the
-			// body were as wide every way. In the sheared space the shadow is cast in.
-			vec2 to = PROJECTION_MATRIX[3][3] > 0.5 ? INV_VIEW_MATRIX[2].xz
-				: INV_VIEW_MATRIX[3].xz - shear(foot + vec3(0.0, 0.5, 0.0)).xz;
+			// A fire's or the torch's light: the picture turns about its middle to face
+			// it, as if the body were as wide every way (seen from the side, a flat
+			// sprite threw a strip). In the sheared space the shadow is cast in.
+			vec2 to = INV_VIEW_MATRIX[3].xz - shear(foot + vec3(0.0, 0.5, 0.0)).xz;
 			if (dot(to, to) > 1e-6) {
 				vec2 side = normalize(vec2(to.y, -to.x));
 				VERTEX.xz = foot.xz + side * (VERTEX.x - foot.x);
@@ -101,6 +131,10 @@ void vertex() {
 	flash = min(steps / FLASH_STEPS, 1.0);
 	world_pos = VERTEX;
 	VERTEX = shear(IN_SHADOW_PASS ? VERTEX : stand_tall(VERTEX, MODEL_MATRIX[3].xyz));
+	if (IN_SHADOW_PASS && flat_shadow < 0.5 && PROJECTION_MATRIX[3][3] > 0.5) {
+		float tall = float(textureSize(sprite_texture, 0).y) * frame_uv.w / TEXELS;
+		VERTEX.xz += view_up * lean_shadow(world_pos.y - MODEL_MATRIX[3].y, tall, INV_VIEW_MATRIX[2].xyz);
+	}
 	light_xz = VERTEX.xz;
 	drawn = VERTEX;
 }
