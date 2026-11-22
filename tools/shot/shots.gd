@@ -897,6 +897,35 @@ const SHOTS := {
 			["animals:deer", 2, 0.0, 1, Vector2(-2.5, 4.2)], ["animals:deer", 10, 0.0, 1, Vector2(0.0, 4.2)], ["animals:deer", 14, 0.0, 1, Vector2(2.5, 4.2)],
 			["animals:deer", 19, 0.0, 1, Vector2(5.0, 4.2)], ["animals:deer", 0, 0.0, 2, Vector2(-5.0, 6.4)], ["animals:deer", 2, 0.0, 2, Vector2(-2.5, 6.4)],
 			["animals:deer", 10, 0.0, 2, Vector2(0.0, 6.4)], ["animals:deer", 14, 0.0, 2, Vector2(2.5, 6.4)], ["animals:deer", 19, 0.0, 2, Vector2(5.0, 6.4)]]},
+	# Sprite shadows cast by the sun (sprite.gdshader lean_shadow): standing and dead animals and the player at
+	# sunrise, in the morning, at noon and in the evening, the camera turned to face the sun, and by a wall they climb.
+	"sprite-shadow-morning": {"time": 0.32, "season": 1, "weather": "clear", "clouds": 0.0, "place": "beach", "hide": ["chunks: grass"],
+		"shadow_zoo": [
+			["animals:bear", 0, 0.0, 0, Vector2(-16.0, 0.9)], ["animals:bear", 23, 0.0, 0, Vector2(-12.0, 0.9)], ["animals:bear", 23, 0.0, 1, Vector2(-8.0, 0.9)],
+			["animals:boar", 23, 0.0, 0, Vector2(-4.5, 0.9)], ["animals:deer", 0, 0.0, 0, Vector2(-15.0, 3.5)], ["animals:deer", 19, 0.0, 0, Vector2(-12.0, 3.5)],
+			["animals:fox", 19, 0.0, 0, Vector2(-9.0, 3.5)], ["animals:rabbit", 0, 0.0, 0, Vector2(-7.0, 3.5)], ["animals:deer", 0, 0.0, 1, Vector2(-5.0, 3.5)]]},
+	"sprite-shadow-noon": {"time": 0.5, "season": 1, "weather": "clear", "clouds": 0.0, "place": "beach", "hide": ["chunks: grass"],
+		"shadow_zoo": [
+			["animals:bear", 0, 0.0, 0, Vector2(-16.0, 0.9)], ["animals:bear", 23, 0.0, 0, Vector2(-12.0, 0.9)], ["animals:bear", 23, 0.0, 1, Vector2(-8.0, 0.9)],
+			["animals:boar", 23, 0.0, 0, Vector2(-4.5, 0.9)], ["animals:deer", 0, 0.0, 0, Vector2(-15.0, 3.5)], ["animals:deer", 19, 0.0, 0, Vector2(-12.0, 3.5)],
+			["animals:fox", 19, 0.0, 0, Vector2(-9.0, 3.5)], ["animals:rabbit", 0, 0.0, 0, Vector2(-7.0, 3.5)], ["animals:deer", 0, 0.0, 1, Vector2(-5.0, 3.5)]]},
+	"sprite-shadow-evening": {"time": 0.68, "season": 1, "weather": "clear", "clouds": 0.0, "place": "beach", "hide": ["chunks: grass"],
+		"shadow_zoo": [
+			["animals:bear", 0, 0.0, 0, Vector2(-16.0, 0.9)], ["animals:bear", 23, 0.0, 0, Vector2(-12.0, 0.9)], ["animals:bear", 23, 0.0, 1, Vector2(-8.0, 0.9)],
+			["animals:boar", 23, 0.0, 0, Vector2(-4.5, 0.9)], ["animals:deer", 0, 0.0, 0, Vector2(-15.0, 3.5)], ["animals:deer", 19, 0.0, 0, Vector2(-12.0, 3.5)],
+			["animals:fox", 19, 0.0, 0, Vector2(-9.0, 3.5)], ["animals:rabbit", 0, 0.0, 0, Vector2(-7.0, 3.5)], ["animals:deer", 0, 0.0, 1, Vector2(-5.0, 3.5)]]},
+	"sprite-shadow-sunrise": {"time": 0.27, "season": 1, "weather": "clear", "clouds": 0.0, "place": "beach", "hide": ["chunks: grass"],
+		"shadow_zoo": [
+			["animals:bear", 0, 0.0, 0, Vector2(-16.0, 0.9)], ["animals:bear", 23, 0.0, 0, Vector2(-12.0, 0.9)], ["animals:bear", 23, 0.0, 1, Vector2(-8.0, 0.9)],
+			["animals:boar", 23, 0.0, 0, Vector2(-4.5, 0.9)], ["animals:deer", 0, 0.0, 0, Vector2(-15.0, 3.5)], ["animals:deer", 19, 0.0, 0, Vector2(-12.0, 3.5)],
+			["animals:fox", 19, 0.0, 0, Vector2(-9.0, 3.5)], ["animals:rabbit", 0, 0.0, 0, Vector2(-7.0, 3.5)], ["animals:deer", 0, 0.0, 1, Vector2(-5.0, 3.5)]]},
+	"sprite-shadow-noon-turn": {"time": 0.5, "season": 1, "weather": "clear", "clouds": 0.0, "place": "beach", "turn": 4, "hide": ["chunks: grass"],
+		"shadow_zoo": [
+			["animals:bear", 0, 0.0, 0, Vector2(-16.0, 0.9)], ["animals:bear", 23, 0.0, 0, Vector2(-12.0, 0.9)], ["animals:bear", 23, 0.0, 1, Vector2(-8.0, 0.9)],
+			["animals:boar", 23, 0.0, 0, Vector2(-4.5, 0.9)], ["animals:deer", 0, 0.0, 0, Vector2(-15.0, 3.5)], ["animals:deer", 19, 0.0, 0, Vector2(-12.0, 3.5)],
+			["animals:fox", 19, 0.0, 0, Vector2(-9.0, 3.5)], ["animals:rabbit", 0, 0.0, 0, Vector2(-7.0, 3.5)], ["animals:deer", 0, 0.0, 1, Vector2(-5.0, 3.5)]]},
+	"sprite-shadow-wall": {"time": 0.4, "season": 1, "weather": "clear", "clouds": 0.0, "place": "beach", "wall": "north", "hide": ["chunks: grass"],
+		"shadow_zoo": [["animals:bear", 0, 0.0, 0, Vector2(-1.7, 0.9)], ["animals:deer", 0, 0.0, 1, Vector2(1.4, 0.7)], ["animals:bear", 23, 0.0, 0, Vector2(1.2, 2.6)]]},
 	"burst-chop": {"time": 0.42, "season": 1, "hands": {"tool": "tools:stone_axe", "facing": "e", "work": "chop", "strike": true}, "burst": "plants:log"},
 	# The chest by the spawn opened beside the bag.
 	"chest": {"time": 0.42, "season": 1, "touch": true, "work": true, "chest": true},
