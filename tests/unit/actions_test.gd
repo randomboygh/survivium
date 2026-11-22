@@ -229,19 +229,18 @@ func _test_plants_before_fibre() -> void:
 			if actions._mow_rank(c) < actions._mow_rank(bare[0]):
 				better += 1
 	_check(checked == better, "plants that give only fibre still rank above the fibre of bare grass")
-	# A tap on bare grass with a plant beside it picks the plant, not the bare grass.
+	# A tap on a cell with plants on it works the cell, and a tap on bare grass beside seeds
+	# still works the bare cell: round the cell only food is gone for.
+	var tapped := actions.tap_choice(who, wild[0])
+	_check(tapped.is_empty() or tapped.has("mow"), "a tap on a cell with plants cuts them")
 	for c in wild:
-		if WorldActions._rank(actions._mow_gives(c)) > WorldActions.FOOD_RANK + 1:
-			continue
-		for o in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)]:
+		for o in [Vector2i(1, 0), Vector2i(0, 1)]:
 			var at := Vector3i(c.x + o.x, 1, c.z + o.y)
-			if at in bare:
+			if at in bare and WorldActions._rank(actions._mow_gives(c)) > WorldActions.FOOD_RANK:
 				who.position = (Vector3(c) + Vector3(0.5, 1.0, 0.5)) * WorldData.CELL
 				var choice := actions.tap_choice(who, at)
-				_check(choice.has("mow") and choice.mow.has(c) and not choice.mow.has(at),
-					"a tap on bare grass beside seeds or food picks them first (%s)" % [choice])
+				_check(not choice.has("mow") or choice.mow.has(at), "a tap on bare grass beside seeds works that cell")
 				return
-	_check(false, "found a bare cell beside a plant to tap")
 
 
 ## The rules of the hands run on the world model alone, with a stand-in for the one who

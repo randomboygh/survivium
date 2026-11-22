@@ -248,7 +248,7 @@ func tap_choice(who, cell: Vector3i) -> Dictionary:
 		if best_rank == FOOD_RANK:
 			break
 		# Round the cell only food is worth going past the cell for.
-		var top := float(DIG_RANK) if o == Vector2i.ZERO else FOOD_RANK + 1.0
+		var top := float(DIG_RANK) if o == Vector2i.ZERO else FOOD_RANK + 0.25
 		var col := Vector2i(ground.x + o.x, ground.z + o.y)
 		if col != own and world.trees.has(col) and world.log_col(col.x, col.y) != 0 \
 				and absi(trunk_cell(who, col).y - ground.y) <= 3 and _tree_in_reach(who, col) and useful(who, {"tree": col}):
