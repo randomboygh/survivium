@@ -12,13 +12,13 @@ water, a kind with `biomes` appears only on its own land.
   `people` — all the players. Beasts belong to the ground: each chunk made to the end (`_made`: the stage
   `SHAPED`) in the square `SPAWN_REACH` of 80 cells around a player gets its own (`_settle_new` once per
   `SETTLE_EVERY` 1 s → `_populate_chunk`, nearest first, at most `SETTLE_MOST` 6 chunks a frame: after a
-  teleport or a respawn the rest come in the next frames, not in one long one): of a kind — its `count` per square `ROAM` (`ROAM_CHUNKS` chunks),
+  teleport or a respawn the rest come in the next frames, not in one long one): of a kind — its `count` × `DENSITY` 0.1 (animals are ten times rarer than the data's counts say; `Wildlife.density`, the tests raise it) per square `ROAM` (`ROAM_CHUNKS` chunks),
   multiplied by the share of the kind's biomes in the chunk (2×2 points of the layout), the fractional part is
   rolled, in packs; no nearer than `START_AWAY` 8 units to people. While a chunk's ground is kept, its beasts
   live; with forgotten ground (`Session.DROP`) those that nobody sees leave too (`_leave`), and a chunk made
   again gets them again. The eaten, once per `RESPAWN_EVERY` 15 s, are refilled (`_plan_refill` notes each kind round each player, `_refill_some` does
   `REFILL_MOST` 2 of them a frame; `_refill` does all at once, for the tests): if a kind is
-  fewer than the shares of the chunks around a player give, by more than `REFILL_SLACK` — new ones come
+  fewer than the shares of the chunks around a player give, by more than the slack (`REFILL_SLACK`, at least the kind's flock size) — new ones come
   farther than `NEAR` on made ground; if more — the extra invisible ones leave (`_thin`, frogs thin out like
   that after rain); a beast with no viewer (`near` off: not on the screen of any player — the rectangle that
   the client sent with its input, turned with the camera, no more than `NEAR` 28 units in each direction,

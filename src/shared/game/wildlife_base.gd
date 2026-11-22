@@ -47,6 +47,10 @@ const START_AWAY := 8.0
 const BIOME_SAMPLES := 2
 ## The eaten are made up for only while a kind is short by more than this.
 const REFILL_SLACK := 1.0
+## How many animals there are, as a fraction of what the kinds' `count`s say (user,
+## 2026-11-22: ten times rarer; a world of sparse wildlife). `Wildlife.density` starts
+## here; the tests that want a crowd raise it.
+const DENSITY := 0.1
 ## Animals no one looks at (`near` off) move and think in steps of FAR_STEP seconds
 ## instead of every frame: most of them are far away, and each step looks up the
 ## ground under them.
@@ -285,6 +289,8 @@ var rules
 ## with a `position` in world units. The chunks around them get their animals (see _settle_new).
 var people := []
 var animals: Array[Animal] = []
+## See DENSITY.
+var density := DENSITY
 var rng := RandomNumberGenerator.new()
 var respawn_timer := 0.0
 var _settle_timer := 0.0
@@ -340,13 +346,13 @@ func count(kind: String) -> int:
 
 ## How many of `kind` live around the people now: its `count`, or for one that comes
 ## after rain that share of it as there is water in the puddles (none in winter).
-func wanted(kind: String) -> int:
+func wanted(kind: String) -> float:
 	var spec: Dictionary = AiRules.SPECIES[kind]
 	if not spec.after_rain:
-		return spec.count
+		return spec.count * density
 	if clock == null or clock.season == clock.WINTER:
-		return 0
-	return floori(spec.count * maxf(clock.wet, clock.puddles) + 0.5)
+		return 0.0
+	return spec.count * density * maxf(clock.wet, clock.puddles)
 
 
 ## The one of the people who owns tamed animal `a` (their `id`), null when they are not
