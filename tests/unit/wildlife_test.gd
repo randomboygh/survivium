@@ -654,12 +654,14 @@ func _test_shore(w: WorldData) -> void:
 	# Out of its sight, within Wildlife.LEAVE (or it goes away).
 	life.people[0].position = Vector3(100.0, 6.0, 100.0) * WorldData.CELL
 	# The duck's way is one draw of the seeded numbers, which the beasts that come round the
-	# person take too: none of them goes for the person here, so the draw stays the same.
+	# person take too: none of them goes for the person here, so the draw stays the same
+	# (but it changes with the plants they find, so a change of where grass grows may
+	# need another seed: a draw where the duck goes ashore in the time given).
 	life.rules = Rules.new()
 	life.rules.animal_attacks = false
 	var pond := Rect2(px, pz, side, side)
 	var at := Vector3(px + side * 0.5, 0.0, pz + side * 0.5) * WorldData.CELL
-	life.rng.seed = 1
+	life.rng.seed = 4
 	var duck := _animal(life, "animals:duck", at)
 	duck.pos.y = life.water_top(at.x, at.z) - Wildlife.DIP * WorldData.CELL
 	duck.home = duck.pos

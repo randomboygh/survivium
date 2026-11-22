@@ -349,50 +349,37 @@ static func build_plants() -> ImageTexture:
 	return ImageTexture.create_from_image(img)
 
 
-## The tall grass looks (Grass.TALL..TALL + 3), masks like the tufts (red the height):
-## an upright tuft of five or six blades, one arching all to a side, one with two stalks
-## of seed spikes standing over the blades, and a low fan spreading out from its root.
+## The tall grass looks (Grass.TALL..TALL + 3), masks like the tufts (red the height,
+## green the blade's own shade, which grass.gdshader turns lighter and yellower or darker):
+## straight upright blades a texel wide, each of its own height and shade, so a meadow
+## reads as fine vertical lines; a tuft of five, one with a single blade leaning aside
+## (the only leaning one, so few lean), one with two blades standing over the rest, and
+## a lower, younger tuft of six. No seed spikes: lone grains stuck out of the meadow.
 static func _tall_grass(img: Image) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 19
 	var v := Grass.TALL
-	for b in 6:
-		var x := 1 + b + rng.randi_range(0, 1) - (1 if b > 3 else 0)
-		var h := rng.randi_range(13, 17)
-		var lean := 1 if (x + b) % 2 == 0 else -1
+	var blade := func(look: int, x: int, h: int, top := 1.0) -> void:
+		var shade := rng.randf()
 		for i in h:
-			var px := x + (lean if i >= h * 2 / 3 else 0) + (lean if i >= h * 5 / 6 else 0)
-			_plant_px(img, v, clampi(px, 0, PLANT_W - 1), i, Color(float(i + 1) / h, 0, 0, 1))
-	# Arching: every blade bends over the same way, the tallest farthest.
-	for b in 5:
-		var x := b + rng.randi_range(0, 1)
-		var h := rng.randi_range(12, 18)
-		for i in h:
-			var k := float(i) / h
-			_plant_px(img, v + 1, mini(x + int(k * k * (2.0 + h / 6.0)), PLANT_W - 1), i, Color(float(i + 1) / h, 0, 0, 1))
-	# Seed spikes: four blades and two thin stalks over them, each with a spike of
-	# grains on its top (lit, red 1).
-	for b in 4:
-		var x: int = [1, 3, 5, 6][b]
-		var h := rng.randi_range(9, 13)
-		var lean := -1 if x < 4 else 1
-		for i in h:
-			_plant_px(img, v + 2, x + (lean if i >= h * 3 / 4 else 0), i, Color(float(i + 1) / h * 0.85, 0, 0, 1))
+			_plant_px(img, look, x, i, Color(float(i + 1) / h * top, shade, 0, 1))
+	for x in [0, 2, 3, 5, 7]:
+		blade.call(v, x, rng.randi_range(13, 18))
+	# One blade leaning aside, a straight slant from its root a texel over every three rows.
+	for x in [1, 2, 5, 7]:
+		blade.call(v + 1, x, rng.randi_range(12, 17))
+	var lean_shade := rng.randf()
+	var lean := 10
+	for i in lean:
+		_plant_px(img, v + 1, 4 - (i + 1) / 3, i, Color(float(i + 1) / lean, lean_shade, 0, 1))
+	# Six blades, two of them the tallest of all.
+	for x in [0, 3, 4, 7]:
+		blade.call(v + 2, x, rng.randi_range(10, 14))
 	for x in [2, 5]:
-		var h := rng.randi_range(17, 21)
-		for i in h:
-			_plant_px(img, v + 2, x, i, Color(float(i + 1) / h * 0.8, 0, 0, 1))
-		for i in 4:
-			_plant_px(img, v + 2, x + (1 if i % 2 == 0 else -1), h - 1 - i, Color(1, 0, 0, 1))
-			_plant_px(img, v + 2, x, h + i, Color(1, 0, 0, 1))
-	# A fan: short blades out of one root, the outer ones lying wide.
-	for b in 7:
-		var out := (b - 3) / 3.0
-		var h := rng.randi_range(9, 12) - int(absf(out) * 3.0)
-		for i in h:
-			var k := float(i) / h
-			_plant_px(img, v + 3, clampi(4 + roundi(out * (k * 4.0 + k * k * 2.0)), 0, PLANT_W - 1), i,
-				Color(float(i + 1) / h, 0, 0, 1))
+		blade.call(v + 2, x, rng.randi_range(17, 20))
+	# Young: six shorter blades, close.
+	for x in [0, 1, 3, 4, 6, 7]:
+		blade.call(v + 3, x, rng.randi_range(8, 13))
 
 
 ## The texel under a column of a custom plant that `looks` (Plants) some other way at
