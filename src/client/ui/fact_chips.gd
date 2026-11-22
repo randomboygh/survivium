@@ -29,6 +29,7 @@ var _line_height := 0.0
 func _init() -> void:
 	add_theme_constant_override("h_separation", GROUP_GAP)
 	add_theme_constant_override("v_separation", GAP)
+	sort_children.connect(_fit)
 
 
 func _ready() -> void:
@@ -54,12 +55,30 @@ func show_groups(groups: Array) -> void:
 			_fill(group, shown[i])
 
 
+## Keeps each group as wide as its wells need but no wider than this container, so a
+## group with more wells than fit in one line wraps them onto the next line (a flow
+## container asks for the width of its widest child only, and would stack them all).
+func _fit() -> void:
+	for group: VBoxContainer in get_children():
+		if not group.visible:
+			continue
+		var row: HFlowContainer = group.get_child(1)
+		var need := 0.0
+		for well: Control in row.get_children():
+			if well.visible:
+				need += well.get_combined_minimum_size().x + GAP
+		need = maxf(maxf(need - GAP, 0.0), group.get_child(0).get_combined_minimum_size().x)
+		var want := minf(need, size.x) if size.x > 0.0 else 0.0
+		if absf(group.custom_minimum_size.x - want) > 0.5:
+			group.custom_minimum_size.x = want
+
+
 ## Group `group` (see _group) showing `g`: [caption, wells].
 static func _fill(group: VBoxContainer, g: Array) -> void:
 	var caption: Label = group.get_child(0)
 	caption.text = g[0]
 	caption.visible = g[0] != ""
-	var row: HBoxContainer = group.get_child(1)
+	var row: HFlowContainer = group.get_child(1)
 	var wells: Array = g[1]
 	while row.get_child_count() < wells.size():
 		row.add_child(_well())
@@ -77,14 +96,15 @@ static func _fill(group: VBoxContainer, g: Array) -> void:
 			well.tooltip_text = w[3]
 
 
-## A group: its caption over a row of wells.
+## A group: its caption over wells that wrap into lines.
 static func _group() -> VBoxContainer:
 	var group := VBoxContainer.new()
 	group.add_theme_constant_override("separation", 1)
 	group.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	group.add_child(UiStyle.label("", UiStyle.MUTED))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", GAP)
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", GAP)
+	row.add_theme_constant_override("v_separation", GAP)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	group.add_child(row)
 	return group
