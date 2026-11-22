@@ -237,7 +237,7 @@ func tap_choice(who, cell: Vector3i) -> Dictionary:
 	# A tap on a bush or on the air over the ground counts from the ground under it.
 	var ground := cell if world.get_cell(cell.x, cell.y, cell.z) != Mat.AIR else cell + Vector3i.DOWN
 	var best := {}
-	var best_rank := DIG_RANK
+	var best_rank := float(DIG_RANK)
 	var own: Variant = tree_of(cell)
 	if own != null and _tree_in_reach(who, own) and useful(who, {"tree": own}):
 		var r := _rank(_gives(who, {"tree": own}))
@@ -248,7 +248,7 @@ func tap_choice(who, cell: Vector3i) -> Dictionary:
 		if best_rank == FOOD_RANK:
 			break
 		# Round the cell only food is worth going past the cell for.
-		var top := DIG_RANK if o == Vector2i.ZERO else FOOD_RANK + 1
+		var top := float(DIG_RANK) if o == Vector2i.ZERO else FOOD_RANK + 0.25
 		var col := Vector2i(ground.x + o.x, ground.z + o.y)
 		if col != own and world.trees.has(col) and world.log_col(col.x, col.y) != 0 \
 				and absi(trunk_cell(who, col).y - ground.y) <= 3 and _tree_in_reach(who, col) and useful(who, {"tree": col}):
@@ -265,7 +265,7 @@ func tap_choice(who, cell: Vector3i) -> Dictionary:
 					best = {"bush": bush}
 					best_rank = r
 			if Tools.mows(t) and can_mow(c, t) and not too_far(who, c, t.reach):
-				var r := _rank(_mow_gives(c))
+				var r := _mow_rank(c)
 				if r < best_rank and r < top:
 					best = {"mow": mow_targets(who, [c] as Array[Vector3i], t)}
 					best_rank = r
@@ -429,7 +429,7 @@ func front_choice(who) -> Dictionary:
 	if not t.tool in ["hand", "sword"]:
 		return targets[0] if not targets.is_empty() else front_work(who, t)
 	var best := {}
-	var best_rank := DIG_RANK
+	var best_rank := float(DIG_RANK)
 	for target in targets:
 		var r := _rank(_gives(who, target))
 		if r < best_rank:
@@ -437,17 +437,14 @@ func front_choice(who) -> Dictionary:
 			best_rank = r
 	var order := front_order(who)
 	if Tools.mows(t):
-		var ranks := {}
 		for c in order:
 			if best_rank == FOOD_RANK:
 				break
 			if can_mow(c, t) and not too_far(who, c, t.reach):
-				var gives := _mow_gives(c)
-				if not ranks.has(gives):
-					ranks[gives] = _rank(gives)
-				if ranks[gives] < best_rank:
+				var r := _mow_rank(c)
+				if r < best_rank:
 					best = {"mow": mow_targets(who, [c], t)}
-					best_rank = ranks[gives]
+					best_rank = r
 	if not best.is_empty():
 		return best
 	var cells := dig_targets(who, order, t, 1)
@@ -464,7 +461,7 @@ func _choice_kind(who) -> String:
 		var work := front_choice(who)
 		return "" if work.is_empty() else str(work.keys()[0])
 	var best := ""
-	var best_rank := DIG_RANK
+	var best_rank := float(DIG_RANK)
 	for target in front_targets(who):
 		var r := _rank(_gives(who, target))
 		if r < best_rank:
@@ -472,13 +469,9 @@ func _choice_kind(who) -> String:
 			best_rank = r
 	var order := front_order(who)
 	if Tools.mows(t) and best_rank != FOOD_RANK:
-		var ranks := {}
 		for c in order:
 			if can_mow(c, t) and not too_far(who, c, t.reach):
-				var gives := _mow_gives(c)
-				if not ranks.has(gives):
-					ranks[gives] = _rank(gives)
-				if ranks[gives] < best_rank and not mow_targets(who, [c], t).is_empty():
+				if _mow_rank(c) < best_rank and not mow_targets(who, [c], t).is_empty():
 					return "mow"
 	if best != "":
 		return best
@@ -504,7 +497,21 @@ func _gives(who, target: Dictionary) -> Array:
 ## it first, else the low grass and the material's own; a plant's only when it gives
 ## them at least every other time.
 func _mow_gives(cell: Vector3i) -> Array:
+	return _mow_gives_of(cell, in_season(Grass.plants_on(world, cell.x, cell.y, cell.z), cell))
+
+
+## How much cutting the grass on `cell` is worth (see _rank), the least first: what the
+## plants on it give, half a step better when it has plants on it (flowers, herbs, a
+## mushroom) than when it is bare grass whose fibre is all there is, so that plants are
+## picked before the fibre of the ground.
+func _mow_rank(cell: Vector3i) -> float:
 	var plants := in_season(Grass.plants_on(world, cell.x, cell.y, cell.z), cell)
+	var wild := plants.any(func(id: String) -> bool: return id != Plants.TUFT)
+	return float(_rank(_mow_gives_of(cell, plants))) - (0.5 if wild else 0.0)
+
+
+## _mow_gives of `cell` with its plants of the season `plants` already known.
+func _mow_gives_of(cell: Vector3i, plants: Array) -> Array:
 	var tall := plants.filter(func(id: String) -> bool: return id != Plants.TUFT)
 	var out := []
 	for id in (tall if not tall.is_empty() else plants):

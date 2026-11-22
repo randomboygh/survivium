@@ -86,7 +86,9 @@ lies around. The rules are shared (the server checks them), input and hints are 
   body (2026-11-11): a shot, the rod, drinking; an animal on the cell (`_tap_animal`: `tend` / `strike` with
   the direction to the cell); a bed (`farm_at`); with hands and a sword — `tap_choice`: food, including from a
   bush, tree or grass next to the cell (`TAP_RING`), otherwise the most valuable on the cell itself (seeds,
-  then the rest); then the cell itself — a tree, grass, dig. A click with hands or a sword on a bush
+  then the rest); grass with plants on it (flowers, herbs, nettles, mushrooms) ranks half a step above bare
+  grass (`_mow_rank`), so plants are picked before the fibre of the ground, by a tap and by the action button;
+  then the cell itself — a tree, grass, dig. A click with hands or a sword on a bush
   (`gathering.target_at`) goes the same way: `controls.tap` sends `DIG` to the bush's cell). A new rule of
   the hands goes into the part of its topic; if it calls a later part — into that part or lower down the
   chain.

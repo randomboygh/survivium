@@ -10,6 +10,7 @@ func run() -> void:
 	_test_front_choice()
 	_test_choice_kind()
 	_test_tap_choice()
+	_test_plants_before_fibre()
 	_test_world_actions()
 	_test_water_holds()
 	_test_puffballs()
@@ -192,6 +193,54 @@ func _test_tap_choice() -> void:
 		and not actions.ripe(berries, Bushes.TYPES[Bushes.first(true)]), "and the click gathers them, not digs")
 	who.item = "tools:wooden_shovel"
 	_check(actions.tap_choice(who, Vector3i(31, 1, 31)).is_empty(), "a shovel digs where it is aimed")
+
+
+## Plants (flowers, herbs, nettles) are picked before the fibre of bare grass, by the action
+## button and by a tap (the user's ask, 2026-11-22).
+func _test_plants_before_fibre() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.GRASS)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var who := Who.new()
+	who.position = Vector3(30.5, 2.0, 30.5) * WorldData.CELL
+	who.item = ""
+	var bare: Array[Vector3i] = []
+	var wild: Array[Vector3i] = []
+	for z in range(0, 48):
+		for x in range(0, 48):
+			var c := Vector3i(x, 1, z)
+			var plants := actions.in_season(Grass.plants_on(w, x, 1, z), c)
+			if plants.any(func(id: String) -> bool: return id != Plants.TUFT):
+				wild.append(c)
+			elif actions._mow_gives(c) == ["resources:fiber"]:
+				bare.append(c)
+	_check(not wild.is_empty() and not bare.is_empty(), "the test meadow has plants and bare grass")
+	_check(actions._mow_rank(wild[0]) < actions._mow_rank(bare[0]) or actions._mow_gives(wild[0]).size() > 0,
+		"a cell with plants ranks above bare grass")
+	var better := 0
+	var checked := 0
+	for c in wild:
+		var gives := actions._mow_gives(c)
+		if WorldActions._rank(gives) == WorldActions._rank(["resources:fiber"]):
+			checked += 1
+			if actions._mow_rank(c) < actions._mow_rank(bare[0]):
+				better += 1
+	_check(checked == better, "plants that give only fibre still rank above the fibre of bare grass")
+	# A tap on a cell with plants on it works the cell, and a tap on bare grass beside seeds
+	# still works the bare cell: round the cell only food is gone for.
+	var tapped := actions.tap_choice(who, wild[0])
+	_check(tapped.is_empty() or tapped.has("mow"), "a tap on a cell with plants cuts them")
+	for c in wild:
+		for o in [Vector2i(1, 0), Vector2i(0, 1)]:
+			var at := Vector3i(c.x + o.x, 1, c.z + o.y)
+			if at in bare and WorldActions._rank(actions._mow_gives(c)) > WorldActions.FOOD_RANK:
+				who.position = (Vector3(c) + Vector3(0.5, 1.0, 0.5)) * WorldData.CELL
+				var choice := actions.tap_choice(who, at)
+				_check(not choice.has("mow") or choice.mow.has(at), "a tap on bare grass beside seeds works that cell")
+				return
 
 
 ## The rules of the hands run on the world model alone, with a stand-in for the one who
