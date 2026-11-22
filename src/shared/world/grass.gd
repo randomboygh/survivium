@@ -74,13 +74,13 @@ const FERTILE_LEVELS := 10
 const MEADOW_FREQ := 0.007
 const MEADOW_TALL := 0.35
 ## The rim of a tall meadow, in steps of the meadow noise across MEADOW_TALL (a step of
-## 0.01 is about a cell): tall grass more and more mixed with thick ordinary tufts, cell
+## 0.017 is about a cell): tall grass more and more mixed with thick ordinary tufts, cell
 ## by cell (MEADOW_MIX), then thick tufts alone (MEADOW_THICK), then thick tufts giving way
 ## to the ground's own sparser ones (MEADOW_SPARSE), so a meadow fades out instead of
 ## ending at a line.
-const MEADOW_MIX := 0.07
-const MEADOW_THICK := 0.035
-const MEADOW_SPARSE := 0.05
+const MEADOW_MIX := 0.2
+const MEADOW_THICK := 0.04
+const MEADOW_SPARSE := 0.06
 ## Fields of ears: large (two to three chunks of the noise, broken up by what is not flat
 ## fertile lowland) and rare, a few in a square of a thousand cells.
 const EAR_FREQ := 0.005
