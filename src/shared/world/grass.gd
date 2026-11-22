@@ -81,6 +81,11 @@ const MEADOW_TALL := 0.35
 const MEADOW_MIX := 0.2
 const MEADOW_THICK := 0.04
 const MEADOW_SPARSE := 0.06
+## Tall grass grows taller toward a meadow's heart, like a height map of the meadow
+## noise: TALL_LOWEST of its full height at the outer line of the rim, all of it where
+## the noise is MEADOW_FULL above MEADOW_TALL (about a tenth of the meadows' ground).
+const MEADOW_FULL := 0.15
+const TALL_LOWEST := 0.45
 ## Fields of ears: large (two to three chunks of the noise, broken up by what is not flat
 ## fertile lowland) and rare, a few in a square of a thousand cells.
 const EAR_FREQ := 0.005
@@ -186,7 +191,7 @@ static func tier_at(x: int, z: int) -> int:
 		return TALL_TIER
 	var dither := posmod(hash(Vector2i(x, z)), 1024) / 1024.0
 	if out < MEADOW_MIX:
-		return TALL_TIER if dither >= out / MEADOW_MIX else THICK_TIER
+		return TALL_TIER if dither >= smoothstep(0.0, 1.0, out / MEADOW_MIX) else THICK_TIER
 	if out < MEADOW_MIX + MEADOW_THICK:
 		return THICK_TIER
 	var patch := ground_patch(Vector2(x + 0.5, z + 0.5) * CELL)
@@ -197,6 +202,14 @@ static func tier_at(x: int, z: int) -> int:
 	if meadow < -MEADOW_TALL:
 		return LAWN_TIER
 	return LOW_TIER if patch < 0.38 else MID_TIER
+
+
+## How tall the tall grass of column x, z grows, as a share of its full height (see
+## MEADOW_FULL): lowest at the outer line of a meadow's rim, highest at its heart.
+static func tall_height(x: int, z: int) -> float:
+	_fields()
+	var meadow := meadow_noise.get_noise_2d(x, z)
+	return lerpf(TALL_LOWEST, 1.0, smoothstep(MEADOW_TALL - MEADOW_MIX / 2.0, MEADOW_TALL + MEADOW_FULL, meadow))
 
 
 ## How far into a clump of flowers column x, z lies: 0 outside, a little above 0 at its

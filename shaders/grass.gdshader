@@ -9,7 +9,8 @@
 // Tufts sink under snow; the ordinary tufts are thinned by the ground
 // patches (see ground_patch), flowers show on the lush patches, reeds stand at the
 // water, and all of them stand up again around fires.
-// INSTANCE_CUSTOM: x = plant 0..28 (and the mods' after them), y = brightness, z = sway phase and thinning draw.
+// INSTANCE_CUSTOM: x = plant 0..28 (and the mods' after them), y = brightness, z = sway phase and thinning draw,
+// w = the shift aside of a card of a wide plant, or the height of tall grass (foliage.gd).
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled;
 // Grass, flowers and ears are low: the player's silhouette does not show behind them
@@ -119,7 +120,14 @@ void vertex() {
 	root = VERTEX - vec3((UV.x - 0.5) * WIDTH, (1.0 - UV.y) * HEIGHT, 0.0) * (kind == HALO ? HALO_SCALE : 1.0);
 	// A plant drawn as cards side by side (a sapling, Plants `across`): each stands on the
 	// plant's root, shifted aside, so all face the view and sway as one picture.
-	VERTEX.x += INSTANCE_CUSTOM.w;
+	// Tall grass takes the 4th float as its height instead (foliage.gd): lower toward a
+	// meadow's rim, in whole texels of the card.
+	if (kind == TALL) {
+		float tall_h = INSTANCE_CUSTOM.w > 0.0 ? round(INSTANCE_CUSTOM.w * 24.0) / 24.0 : 1.0;
+		VERTEX.y = root.y + (VERTEX.y - root.y) * tall_h;
+	} else {
+		VERTEX.x += INSTANCE_CUSTOM.w;
+	}
 	// The quad is as tall as the tall grass; the other plants fill two thirds of it, so
 	// their tips bend as far as tall tips do.
 	float tip = (1.0 - UV.y) * (kind == TALL ? 1.0 : 1.5);

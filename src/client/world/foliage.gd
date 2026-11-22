@@ -325,6 +325,7 @@ static func _column(job: Job, x: int, z: int) -> void:
 		var mask := WorldData.FULL & ~(shapes[i] & 15)
 		var cuts := shapes[i] >> 4
 		var kinds := Grass.kinds(w, x, y, z, m, mask == WorldData.FULL and cuts == 0, rng)
+		var tall_h := -1.0
 		if not turf.is_empty() and turf.has(Vector3i(x, y, z)):
 			kinds = Grass.turf_kinds(kinds, turf[Vector3i(x, y, z)], rng)
 		for kind in kinds:
@@ -348,7 +349,11 @@ static func _column(job: Job, x: int, z: int) -> void:
 					job.ns += 1
 				continue
 			put(grass, Vector3(x + fx, y + h, z + fz) * CELL)
-			grass.append_array([float(kind), rng.randf_range(0.88, 1.1), rng.randf(), 0.0])
+			# Tall grass: the 4th float is its height, lower toward a meadow's rim (grass.gdshader).
+			var tall := kind >= Grass.TALL and kind < Grass.TALL + 4
+			if tall and tall_h < 0.0:
+				tall_h = 1.0 if w.grows.is_valid() and w.grows.call(x, z) != 0 else Grass.tall_height(x, z)
+			grass.append_array([float(kind), rng.randf_range(0.88, 1.1), rng.randf(), tall_h if tall else 0.0])
 			job.ng += 1
 			if kind >= Grass.GLOW and kind < Grass.SPORE:
 				# Spores rise from the glowing mushrooms at night, in a glow of their
