@@ -221,6 +221,11 @@ void fragment() {
 		// Tall blades run from a shaded base to a lit tip.
 		float light = kind == TALL ? mix(0.7, 1.22, m.r) : mix(0.8, 1.18, m.r);
 		col = ground * grass_tint * biome_tint(GRASS_MATERIAL, root.xz) * grass_variation(root.xz) * light * custom.y;
+		// Each tall blade has a shade of its own (green of the mask): darker and bluer, or
+		// lighter and yellower, so the blades of a tuft read apart.
+		if (kind == TALL) {
+			col *= mix(vec3(0.84, 0.88, 0.92), vec3(1.12, 1.1, 0.9), m.g);
+		}
 	} else if (kind == FLOWER) {
 		// Flowers bloom on the lush patches and are gone under the first snow.
 		if (bare || patch < 0.5 || snow_here > 0.3) {

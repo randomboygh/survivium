@@ -18,7 +18,7 @@ const TEXELS := 4
 ## Texels of the map each way: twice Tracks.REACH (TRAMPLE_MAP in grass.gdshader).
 const MAP := 192
 ## How far round the feet a person treads the grass, in world units, at scale 1.
-const RADIUS := 0.45
+const RADIUS := 0.6
 ## Seconds until trodden grass stands up again (TRAMPLE_LIFE in grass.gdshader).
 const LIFE := 9.0
 ## Directions a push is kept in (TRAMPLE_DIRS in grass.gdshader).

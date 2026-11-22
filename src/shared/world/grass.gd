@@ -43,6 +43,8 @@ const MID_TIER := 2
 const TALL_TIER := 3
 ## A dense lawn of low grass, two or three tufts a cell (see MEADOW_TALL).
 const LAWN_TIER := 4
+## Thick ordinary tufts, two or three a cell: the rim of a tall meadow (see MEADOW_MIX).
+const THICK_TIER := 5
 ## What a world laid out by hand (WorldData.grows) makes grow on a column whatever the
 ## noises say: a field of ears, moss, moss with mushrooms, moss with glowing mushrooms,
 ## nothing; from GROW_PLANT on one plant alone, the plant of that place in the load
@@ -71,6 +73,14 @@ const FERTILE_LEVELS := 10
 ## ground each, in patches two to three chunks wide.
 const MEADOW_FREQ := 0.007
 const MEADOW_TALL := 0.35
+## The rim of a tall meadow, in steps of the meadow noise across MEADOW_TALL (a step of
+## 0.01 is about a cell): tall grass more and more mixed with thick ordinary tufts, cell
+## by cell (MEADOW_MIX), then thick tufts alone (MEADOW_THICK), then thick tufts giving way
+## to the ground's own sparser ones (MEADOW_SPARSE), so a meadow fades out instead of
+## ending at a line.
+const MEADOW_MIX := 0.07
+const MEADOW_THICK := 0.035
+const MEADOW_SPARSE := 0.05
 ## Fields of ears: large (two to three chunks of the noise, broken up by what is not flat
 ## fertile lowland) and rare, a few in a square of a thousand cells.
 const EAR_FREQ := 0.005
@@ -164,16 +174,26 @@ static func ground_patch(xz: Vector2, salt := 0.0) -> float:
 
 ## Grass tier of a column: tall meadows and dense lawns by a slow noise of their own, so
 ## they come as whole fields that the small patches do not break up and never repeat the
-## way the tiled patches do; bare and low by the patch noise at the middle of the cell
-## (the same noise that tints the ground), bare spots also inside a lawn.
+## way the tiled patches do, a tall meadow fading out over its rim (MEADOW_MIX); bare and
+## low by the patch noise at the middle of the cell (the same noise that tints the
+## ground), bare spots also inside a lawn.
 static func tier_at(x: int, z: int) -> int:
 	_fields()
 	var meadow := meadow_noise.get_noise_2d(x, z)
-	if meadow > MEADOW_TALL:
+	# The mixed rim lies half inside the line MEADOW_TALL, half out, so a meadow keeps its size.
+	var out := MEADOW_TALL + MEADOW_MIX / 2.0 - meadow
+	if out <= 0.0:
 		return TALL_TIER
+	var dither := posmod(hash(Vector2i(x, z)), 1024) / 1024.0
+	if out < MEADOW_MIX:
+		return TALL_TIER if dither >= out / MEADOW_MIX else THICK_TIER
+	if out < MEADOW_MIX + MEADOW_THICK:
+		return THICK_TIER
 	var patch := ground_patch(Vector2(x + 0.5, z + 0.5) * CELL)
 	if patch < 0.2:
 		return BARE_TIER
+	if out < MEADOW_MIX + MEADOW_THICK + MEADOW_SPARSE and dither >= (out - MEADOW_MIX - MEADOW_THICK) / MEADOW_SPARSE:
+		return THICK_TIER
 	if meadow < -MEADOW_TALL:
 		return LAWN_TIER
 	return LOW_TIER if patch < 0.38 else MID_TIER
@@ -225,6 +245,9 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 		elif tier == LAWN_TIER:
 			for k in (2 if rng.randf() < 0.6 else 3):
 				out.append(LOW + rng.randi_range(0, 3))
+		elif tier == THICK_TIER:
+			for k in (2 if rng.randf() < 0.5 else 3):
+				out.append(rng.randi_range(0, 3))
 		elif tier == MID_TIER:
 			# No tuft on a quarter of the cells and two on another quarter, so
 			# the ground shows between them before the shader thins the meadows.
@@ -247,7 +270,7 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 			# A field of ears, with a lone ear here and there outside it.
 			for k in rng.randi_range(1, 2):
 				out.append(EAR + rng.randi_range(0, 1))
-		elif tier == MID_TIER and flat and rng.randf() < 0.01:
+		elif (tier == MID_TIER or tier == THICK_TIER) and flat and rng.randf() < 0.01:
 			out.append(EAR + rng.randi_range(0, 1))
 		if Plants.RING_INDEX >= 0 and _on_ring(x, z):
 			_one_plant(Plants.RING_INDEX, out, rng)
