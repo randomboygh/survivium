@@ -204,7 +204,8 @@ the fox, the black grouse, the deer and the hare — `tools/make_sprites.gd` fro
 `tools/art/grouse_art.gd`, `tools/art/deer_art.gd` and `tools/art/rabbit_art.gd` (the user's references,
 the way the player is drawn), the sparrow, the crow, the owl, the duck and the squirrel — also `tools/make_sprites.gd`,
 from `tools/art/sparrow_art.gd`, `tools/art/crow_art.gd`, `tools/art/owl_art.gd`, `tools/art/duck_art.gd` and
-`tools/art/squirrel_art.gd` (drawn by hand in the same style), the bear — `tools/make_bear.py`, the wolf —
+`tools/art/squirrel_art.gd` (drawn by hand in the same style), the bear — also `tools/make_sprites.gd`, from `tools/art/bear_art.gd`
+(the user's reference at x1), the wolf —
 `tools/make_wolf.py`, the wild cat — `tools/make_cat.py`, the hedgehog — `tools/make_hedgehog.py`).
 `creatures.gd` chooses the side by the movement on screen (`TURN_BIAS`), a step — by the path walked (a
 flyer's hops — `HOP_STEP`; a flyer with `walks`, the black grouse, steps on the ground through its `hop` frames by the
