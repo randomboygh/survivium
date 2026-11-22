@@ -98,6 +98,8 @@ global uniform float heat_ground;
 global uniform float wetness;
 global uniform vec3 foliage_tint;
 global uniform vec3 grass_tint;
+// How withered the grass is by the season, 0 green .. 1 pale straw (Sky.wither_target).
+global uniform float grass_wither;
 global uniform vec2 wind;
 global uniform vec2 cloud_offset;
 global uniform float cloud_cover;
@@ -364,6 +366,13 @@ float bare_ground(vec2 xz) {
 }
 
 // Colour of grass at this spot: darker lush islands and drier yellowish meadows.
+// The grass of the season: as it withers, its green drains to a pale straw of about
+// its own lightness, a little lighter; a hint of the green stays.
+vec3 wither(vec3 col) {
+	float l = dot(col, vec3(0.3, 0.55, 0.15));
+	return mix(col, l * vec3(1.32, 1.12, 0.74), grass_wither * 0.88);
+}
+
 vec3 grass_variation(vec2 xz) {
 	float lush = ground_patch(xz, 0.0);
 	float dry = ground_patch(xz, 3.0);

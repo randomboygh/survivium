@@ -228,15 +228,16 @@ void fragment() {
 		vec3 ground = texture(terrain_atlas, atlas_uv(GRASS_TOP, vec2(t))).rgb;
 		// Tall blades run from a shaded base to a lit tip.
 		float light = kind == TALL ? mix(0.7, 1.22, m.r) : mix(0.8, 1.18, m.r);
-		col = ground * grass_tint * biome_tint(GRASS_MATERIAL, root.xz) * grass_variation(root.xz) * light * custom.y;
+		col = wither(ground * grass_tint * biome_tint(GRASS_MATERIAL, root.xz) * grass_variation(root.xz)) * light * custom.y;
 		// Each tall blade has a shade of its own (green of the mask): darker and bluer, or
 		// lighter and yellower, so the blades of a tuft read apart.
 		if (kind == TALL) {
 			col *= mix(vec3(0.84, 0.88, 0.92), vec3(1.12, 1.1, 0.9), m.g);
 		}
 	} else if (kind == FLOWER) {
-		// Flowers bloom on the lush patches and are gone under the first snow.
-		if (bare || patch < 0.5 || snow_here > 0.3) {
+		// Flowers bloom on the lush patches and are gone under the first snow, and
+		// one by one as the grass withers (none in the withered winter grass).
+		if (bare || patch < 0.5 || snow_here > 0.3 || grass_wither > 0.5 + 0.45 * hash12(floor(root.xz * 4.0))) {
 			discard;
 		}
 		col = m.rgb * custom.y;
@@ -251,7 +252,7 @@ void fragment() {
 		if (snow_here > 0.95) {
 			discard;
 		}
-		col = m.rgb * mix(vec3(1.0), grass_tint, 0.5) * custom.y;
+		col = mix(m.rgb, wither(m.rgb), 0.7) * mix(vec3(1.0), grass_tint, 0.5) * custom.y;
 	} else if (kind == MOSS) {
 		if (snow_here > 0.6) {
 			discard;
@@ -262,13 +263,19 @@ void fragment() {
 			discard;
 		}
 		col = m.rgb * custom.y;
+		vec4 look = texelFetch(plant_texture, ivec2(int(custom.x + 0.5) * 8 + 1, 24), 0);
+		// A plant gone in winter (Plants `winter: false`, PixelTextures.sway_texel) is
+		// gone one by one as the grass withers.
+		if (look.b > 0.5 && grass_wither > 0.5 + 0.45 * hash12(floor(root.xz * 4.0))) {
+			discard;
+		}
 		// A plant tinted like the grass (Plants `tint: grass`, PixelTextures.sway_texel,
 		// sedge): its picture is greys times the grass colour of the place, twice over
 		// (128 the grass itself), so it takes the meadow's hue as tall grass does.
-		if (texelFetch(plant_texture, ivec2(int(custom.x + 0.5) * 8 + 1, 24), 0).g > 0.5) {
+		if (look.g > 0.5) {
 			ivec2 t = tile_mirror(ivec2(floor(fract(root.xz) * TEXELS)), floor(root.xz));
 			vec3 ground = texture(terrain_atlas, atlas_uv(GRASS_TOP, vec2(t))).rgb;
-			col *= 2.0 * ground * grass_tint * biome_tint(GRASS_MATERIAL, root.xz) * grass_variation(root.xz);
+			col = wither(col * 2.0 * ground * grass_tint * biome_tint(GRASS_MATERIAL, root.xz) * grass_variation(root.xz));
 		}
 	} else if (kind == MUSHROOM || kind == GLOW) {
 		// Mushrooms are gone under the snow.
@@ -298,7 +305,7 @@ void fragment() {
 		if (bare || snow_here > 0.85) {
 			discard;
 		}
-		col = m.rgb * grass_tint * custom.y;
+		col = wither(m.rgb * grass_tint) * custom.y;
 		if (kind == GRASS) {
 			// Grass trodden down where a print lies under it (tracks.gd), darkened like
 			// the ground before the fog falls on it.

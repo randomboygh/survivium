@@ -28,6 +28,7 @@
   swims: true
   ashore: true
   flight: 12
+  winter: false
   flock: [3, 5]
   calls: duck
   alarm: duck

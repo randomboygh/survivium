@@ -491,6 +491,10 @@ const SHOTS := {
 	"tracks-fog": {"time": 0.27, "season": 1, "walk": true, "morning_fog": 2},
 	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
+	"meadow-winter": {"time": 0.42, "season": 3, "snow": 0.0, "find": "meadow"},
+	"meadow-winter-snow": {"time": 0.42, "season": 3, "snow": 0.3, "find": "meadow"},
+	"lawn-autumn": {"time": 0.42, "season": 2, "find": "lawn"},
+	"lawn-winter": {"time": 0.42, "season": 3, "snow": 0.0, "find": "lawn"},
 	"ears": {"time": 0.42, "season": 1, "find": "ears"},
 	"lawn": {"time": 0.42, "season": 1, "find": "lawn"},
 	# A flock of sparrows (the animals mod) about the player: on the ground, in the air

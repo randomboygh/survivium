@@ -78,6 +78,10 @@ grass_tint={
 "type": "vec3",
 "value": Vector3(1, 1, 1)
 }
+grass_wither={
+"type": "float",
+"value": 0.0
+}
 wind={
 "type": "vec2",
 "value": Vector2(0.3, 0)

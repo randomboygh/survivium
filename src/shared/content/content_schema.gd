@@ -303,6 +303,9 @@ const SCHEMAS := {
 		# by the path walked as a walker's steps, with no sitting frame between them.
 		"walks": {"type": "bool", "default": false},
 		"after_rain": {"type": "bool", "default": false},
+		# Whether it is about in winter: a butterfly or a duck (gone south) is not
+		# (Wildlife.wanted); those about at the first snow leave out of sight.
+		"winter": {"type": "bool", "default": true},
 		"flight": {"type": "float", "min": 1.0, "default": 28.0},
 		"tints": {"type": "list", "of": "color", "default": []},
 		"flock": {"type": "list", "of": "int", "len": 2, "min": 1, "default": [1, 1]},
