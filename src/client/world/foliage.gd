@@ -325,7 +325,9 @@ static func _column(job: Job, x: int, z: int) -> void:
 		var mask := WorldData.FULL & ~(shapes[i] & 15)
 		var cuts := shapes[i] >> 4
 		var kinds := Grass.kinds(w, x, y, z, m, mask == WorldData.FULL and cuts == 0, rng)
-		var tall_h := -1.0
+		# The tall meadow's level here (Grass.meadow_level), looked up for the first tall tuft.
+		var level := -1.0
+		var tufts := 0
 		if not turf.is_empty() and turf.has(Vector3i(x, y, z)):
 			kinds = Grass.turf_kinds(kinds, turf[Vector3i(x, y, z)], rng)
 		for kind in kinds:
@@ -350,10 +352,13 @@ static func _column(job: Job, x: int, z: int) -> void:
 				continue
 			put(grass, Vector3(x + fx, y + h, z + fz) * CELL)
 			# Tall grass: the 4th float is its height, lower toward a meadow's rim (grass.gdshader).
-			var tall := kind >= Grass.TALL and kind < Grass.TALL + 4
-			if tall and tall_h < 0.0:
-				tall_h = 1.0 if w.grows.is_valid() and w.grows.call(x, z) != 0 else Grass.tall_height(x, z)
-			grass.append_array([float(kind), rng.randf_range(0.88, 1.1), rng.randf(), tall_h if tall else 0.0])
+			var tall_h := 0.0
+			if kind >= Grass.TALL and kind < Grass.TALL + 4:
+				if level < 0.0:
+					level = 1.0 if w.grows.is_valid() and w.grows.call(x, z) != 0 else Grass.meadow_level(x, z)
+				tall_h = Grass.tall_height(level, x, z, tufts)
+				tufts += 1
+			grass.append_array([float(kind), rng.randf_range(0.88, 1.1), rng.randf(), tall_h])
 			job.ng += 1
 			if kind >= Grass.GLOW and kind < Grass.SPORE:
 				# Spores rise from the glowing mushrooms at night, in a glow of their

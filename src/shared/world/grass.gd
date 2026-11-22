@@ -43,8 +43,6 @@ const MID_TIER := 2
 const TALL_TIER := 3
 ## A dense lawn of low grass, two or three tufts a cell (see MEADOW_TALL).
 const LAWN_TIER := 4
-## Thick ordinary tufts, two or three a cell: the rim of a tall meadow (see MEADOW_MIX).
-const THICK_TIER := 5
 ## What a world laid out by hand (WorldData.grows) makes grow on a column whatever the
 ## noises say: a field of ears, moss, moss with mushrooms, moss with glowing mushrooms,
 ## nothing; from GROW_PLANT on one plant alone, the plant of that place in the load
@@ -73,19 +71,19 @@ const FERTILE_LEVELS := 10
 ## ground each, in patches two to three chunks wide.
 const MEADOW_FREQ := 0.007
 const MEADOW_TALL := 0.35
-## The rim of a tall meadow, in steps of the meadow noise across MEADOW_TALL (a step of
-## 0.017 is about a cell): tall grass more and more mixed with thick ordinary tufts, cell
-## by cell (MEADOW_MIX), then thick tufts alone (MEADOW_THICK), then thick tufts giving way
-## to the ground's own sparser ones (MEADOW_SPARSE), so a meadow fades out instead of
-## ending at a line.
-const MEADOW_MIX := 0.2
-const MEADOW_THICK := 0.04
-const MEADOW_SPARSE := 0.06
-## Tall grass grows taller toward a meadow's heart, like a height map of the meadow
-## noise: TALL_LOWEST of its full height at the outer line of the rim, all of it where
-## the noise is MEADOW_FULL above MEADOW_TALL (about a tenth of the meadows' ground).
-const MEADOW_FULL := 0.15
-const TALL_LOWEST := 0.45
+## A tall meadow is a height map of the meadow noise (meadow_level): 0 where the noise is
+## MEADOW_EDGE, 1 where it is MEADOW_FULL (about a tenth of the meadows' ground): only
+## tall tufts at 1, tall and middling half and half at 0.8, only middling at 0.6,
+## middling and low half and half at 0.4, only low at 0.2 (TALL_HEIGHTS, shares of the
+## full height), and below MEADOW_SPARSE low tufts on fewer and fewer cells, down to
+## none but the ground's own tufts at 0; a meadow rises smoothly from its rim to its
+## heart.
+const MEADOW_EDGE := 0.27
+const MEADOW_FULL := 0.5
+const MEADOW_SPARSE := 0.2
+## The level where a meadow is all middling tufts (see MEADOW_EDGE).
+const MEADOW_MIDDLE := 0.6
+const TALL_HEIGHTS: Array[float] = [0.45, 0.7, 1.0]
 ## Fields of ears: large (two to three chunks of the noise, broken up by what is not flat
 ## fertile lowland) and rare, a few in a square of a thousand cells.
 const EAR_FREQ := 0.005
@@ -179,37 +177,42 @@ static func ground_patch(xz: Vector2, salt := 0.0) -> float:
 
 ## Grass tier of a column: tall meadows and dense lawns by a slow noise of their own, so
 ## they come as whole fields that the small patches do not break up and never repeat the
-## way the tiled patches do, a tall meadow fading out over its rim (MEADOW_MIX); bare and
-## low by the patch noise at the middle of the cell (the same noise that tints the
-## ground), bare spots also inside a lawn.
+## way the tiled patches do, a tall meadow thinning out at its rim (MEADOW_SPARSE); bare and low by the patch noise at the middle of the cell
+## (the same noise that tints the ground), bare spots also inside a lawn.
 static func tier_at(x: int, z: int) -> int:
 	_fields()
 	var meadow := meadow_noise.get_noise_2d(x, z)
-	# The mixed rim lies half inside the line MEADOW_TALL, half out, so a meadow keeps its size.
-	var out := MEADOW_TALL + MEADOW_MIX / 2.0 - meadow
-	if out <= 0.0:
+	var level := _level(meadow)
+	if level > 0.0 and (level >= MEADOW_SPARSE or posmod(hash(Vector2i(x, z)), 1024) / 1024.0 < level / MEADOW_SPARSE):
 		return TALL_TIER
-	var dither := posmod(hash(Vector2i(x, z)), 1024) / 1024.0
-	if out < MEADOW_MIX:
-		return TALL_TIER if dither >= smoothstep(0.0, 1.0, out / MEADOW_MIX) else THICK_TIER
-	if out < MEADOW_MIX + MEADOW_THICK:
-		return THICK_TIER
 	var patch := ground_patch(Vector2(x + 0.5, z + 0.5) * CELL)
 	if patch < 0.2:
 		return BARE_TIER
-	if out < MEADOW_MIX + MEADOW_THICK + MEADOW_SPARSE and dither >= (out - MEADOW_MIX - MEADOW_THICK) / MEADOW_SPARSE:
-		return THICK_TIER
 	if meadow < -MEADOW_TALL:
 		return LAWN_TIER
 	return LOW_TIER if patch < 0.38 else MID_TIER
 
 
-## How tall the tall grass of column x, z grows, as a share of its full height (see
-## MEADOW_FULL): lowest at the outer line of a meadow's rim, highest at its heart.
-static func tall_height(x: int, z: int) -> float:
+## How far into a tall meadow column x, z lies, 0..1 (see MEADOW_EDGE).
+static func meadow_level(x: int, z: int) -> float:
 	_fields()
-	var meadow := meadow_noise.get_noise_2d(x, z)
-	return lerpf(TALL_LOWEST, 1.0, smoothstep(MEADOW_TALL - MEADOW_MIX / 2.0, MEADOW_TALL + MEADOW_FULL, meadow))
+	return _level(meadow_noise.get_noise_2d(x, z))
+
+
+static func _level(meadow: float) -> float:
+	return clampf((meadow - MEADOW_EDGE) / (MEADOW_FULL - MEADOW_EDGE), 0.0, 1.0)
+
+
+## The height of the `k`th tall tuft of column x, z at meadow `level`, as a share of
+## its full height: one of TALL_HEIGHTS, the two nearest the level mixed by a hash, the
+## nearer the likelier (see MEADOW_EDGE).
+static func tall_height(level: float, x: int, z: int, k: int) -> float:
+	if level <= MEADOW_SPARSE:
+		return TALL_HEIGHTS[0]
+	var d := posmod(hash(Vector3i(x, z, k)), 1024) / 1024.0
+	if level < MEADOW_MIDDLE:
+		return TALL_HEIGHTS[1] if d < (level - MEADOW_SPARSE) / (MEADOW_MIDDLE - MEADOW_SPARSE) else TALL_HEIGHTS[0]
+	return TALL_HEIGHTS[2] if d < (level - MEADOW_MIDDLE) / (1.0 - MEADOW_MIDDLE) else TALL_HEIGHTS[1]
 
 
 ## How far into a clump of flowers column x, z lies: 0 outside, a little above 0 at its
@@ -258,9 +261,6 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 		elif tier == LAWN_TIER:
 			for k in (2 if rng.randf() < 0.6 else 3):
 				out.append(LOW + rng.randi_range(0, 3))
-		elif tier == THICK_TIER:
-			for k in (2 if rng.randf() < 0.5 else 3):
-				out.append(rng.randi_range(0, 3))
 		elif tier == MID_TIER:
 			# No tuft on a quarter of the cells and two on another quarter, so
 			# the ground shows between them before the shader thins the meadows.
@@ -283,7 +283,7 @@ static func kinds(w, x: int, y: int, z: int, m: int, flat: bool, rng: RandomNumb
 			# A field of ears, with a lone ear here and there outside it.
 			for k in rng.randi_range(1, 2):
 				out.append(EAR + rng.randi_range(0, 1))
-		elif (tier == MID_TIER or tier == THICK_TIER) and flat and rng.randf() < 0.01:
+		elif tier == MID_TIER and flat and rng.randf() < 0.01:
 			out.append(EAR + rng.randi_range(0, 1))
 		if Plants.RING_INDEX >= 0 and _on_ring(x, z):
 			_one_plant(Plants.RING_INDEX, out, rng)
