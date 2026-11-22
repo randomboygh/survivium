@@ -1265,6 +1265,7 @@ func _run() -> void:
 					await process_frame
 			for i in 3:
 				await process_frame
+			main.cursor.get_script().style = shot.get("cursor_style", 0)
 			if not shot.has("flights") and shot.get("stroke", true):
 				main.build.show_stroke(s)
 		if shot.has("sapling_tree"):

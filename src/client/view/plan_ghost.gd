@@ -1,12 +1,12 @@
 extends RefCounted
-## The blueprint's ghost as the shape it will make (PlanView, user 2026-11-22): the faces
-## of the ghost cells merged into one see-through body per kind of work, no face between
-## two cells of the same work, so a wall of five blocks is one wall. Blocks to build are
-## tinted cold blue, ground to dig out (Plans.CUT) red. A block's form (Plans.forms: a
-## ramp, an upturned ramp, stairs) is drawn as FormMesher lays it out; a fence is a post
-## with rails to the fence cells beside it. A face to build against a solid block of the
-## world is left out (it would only flicker against it). The ground to dig is a surface
-## of its own, drawn through the ground over it.
+## Plain see-through bodies of cells (user 2026-11-22): the faces of the cells merged into
+## one body per kind, no face between two cells of the same kind, so a wall of five
+## blocks is one wall. For the blueprint (PlanView: `build`) the ground to dig out
+## (Plans.CUT), red, drawn through the ground over it, and fences, cold blue, a post with
+## rails to the fence cells beside it (its blocks are PlanBlocks'); blocks to build here
+## are cold blue, a form (Plans.forms: a ramp, an upturned ramp, stairs) as FormMesher lays
+## it out, a face against a solid block of the world left out (it would only flicker
+## against it). For the build mode's strokes (Cursor.show_boxes: `bodies`) whole cubes.
 
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const Forms := preload("res://src/client/world/form_mesher.gd")
@@ -69,6 +69,31 @@ static func build(cells: Dictionary, forms: Dictionary, world, pick: Callable, b
 		arrays[Mesh.ARRAY_COLOR] = part[1]
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 		mesh.surface_set_material(mesh.get_surface_count() - 1, part[2])
+	return mesh
+
+
+## The plain bodies of cubes `parts` ([cells, tint] each, a body per part) in material
+## `mat`; null when there are no cells.
+static func bodies(parts: Array, mat: Material) -> ArrayMesh:
+	var verts := PackedVector3Array()
+	var colors := PackedColorArray()
+	for part: Array in parts:
+		var cells := {}
+		for c: Vector3i in part[0]:
+			cells[c] = true
+		for c: Vector3i in cells:
+			for d in 6:
+				if not cells.has(c + DIRS[d]):
+					_face(verts, colors, c, CUBE[d], DIRS[d], part[1], d)
+	if verts.is_empty():
+		return null
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = verts
+	arrays[Mesh.ARRAY_COLOR] = colors
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh.surface_set_material(0, mat)
 	return mesh
 
 
