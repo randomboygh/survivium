@@ -36,7 +36,9 @@ shapes of natural ground (curved slopes, corners cut along a curve) and to answe
   their ends are rounded.
 - `src/shared/world/grass.gd` — what grows on top of a ground cell (tiers of grass: bare, low, ordinary by the
   ground patch, and by the slow `meadow_noise` (`MEADOW_FREQ`, `MEADOW_TALL`) tall meadows and dense lawns of low
-  grass two to three chunks wide; rare fields of ears as wide (`EAR_FREQ`, `EAR_FIELD`) on flat lowland; flowers, moss, the
+  grass two to three chunks wide; a tall meadow is a height map of that noise, `meadow_level` 0 at `MEADOW_EDGE` to 1
+  at `MEADOW_FULL`: its tufts low, middling or tall (`tall_height`, `TALL_HEIGHTS`, the height the client's
+  `foliage.gd` sends grass.gdshader), mixed by the level, thinning out to the ground's own grass at its rim; rare fields of ears as wide (`EAR_FREQ`, `EAR_FIELD`) on flat lowland; flowers, moss, the
   mods' plants `Plants`: on open grass, in the shade of crowns, in the woods — that shade and the grass
   `WOODS_EDGE` cells round it, `_near_crown` —, on banks, near water at the ground's level (`_near_water`,
   `near_water`, `water_cover`: sedge on the banks); a frame `across` cards wide is one kind, its first
