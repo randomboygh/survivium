@@ -217,11 +217,17 @@ lies around. The rules are shared (the server checks them), input and hints are 
   in portrait up to 6: its 4 + 2 hands); the clock under its right edge (`right_edge`). There are no filters
   yet: on entering the mode `filter` = «all».
 - `src/client/input/cursor.gd` — the frame around the cells over which work will happen; `show_boxes` — whole
-  cells (light and red), above the blueprint's ghost.
-- `src/client/view/plan_view.gd` — the blueprint's ghost: blue lines along the edges of the cells near the
-  player (the cursor frame's shader); the farm marking — a square on the cell's top face in the colour of the
-  work and a sign inside (furrows, a sprout, a drop, a cross). The blueprint is seen only in build mode, the
-  marking only in farm mode.
+  cells as see-through bodies over everything (light: white, red), merged with no faces between their cells and a
+  light rim one pixel wide along their edges (`PlanGhost.bodies`, `plan_through.gdshader`), above the blueprint's
+  ghost.
+- `src/client/view/plan_view.gd` — the blueprint's ghost near the player (2026-11-22, until then frames round
+  its cells): its blocks as they will stand built (`plan_blocks.gd`: the blocks in a world of their own,
+  `ChunkMesher` meshing it a chunk at a time, `COLUMNS` columns a frame, the chunks round the player drawn by a copy
+  of `world.gdshader` made see-through and tinted cold blue, first only into depth so only the nearest faces show);
+  the ground to dig out a red body seen through the ground (its green taken out by `plan_cut_mul.gdshader`, then
+  `plan_through.gdshader`) and a fence a plain blue body (`plan_ghost.gd`, `plan_ghost.gdshader`); the farm
+  marking — a square on the cell's top face in the colour of the work and a sign inside (furrows, a sprout, a drop,
+  a cross). The blueprint is seen only in build mode, the marking only in farm mode.
 
 - `src/client/game/gathering.gd` — what a touch gathers and the hint for it, picking up near the player (a
   beast's body lying is hit round its middle, `BODY_UP`, `BODY_GROW` px farther).

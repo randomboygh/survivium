@@ -10,7 +10,8 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const CursorShader := preload("res://shaders/cursor.gdshader")
-const PlanView := preload("res://src/client/view/plan_view.gd")
+const PlanGhost := preload("res://src/client/view/plan_ghost.gd")
+const ThroughShader := preload("res://shaders/plan_through.gdshader")
 
 const CELL := WorldData.CELL
 ## Lines run half a pixel inside the cell's edges, through the middle of its border
@@ -26,17 +27,32 @@ var _lines := ImmediateMesh.new()
 var _material := ShaderMaterial.new()
 var _shown: Array = []
 var _ok := true
+## The build mode's strokes (show_boxes): see-through bodies over everything, beside the
+## frame (its parent's child, so hiding the frame leaves them).
+var _bodies := MeshInstance3D.new()
+var _boxes_shown: Array = []
+## A stroke's cells that fit: white, less see-through than the blueprint (user 2026-11-23).
+const FIT_TINT := Color(1.0, 1.0, 1.0, 0.55)
+const BAD_TINT := Color(1.0, 0.22, 0.18, 0.5)
+const BOX_TINT := Color(1.0, 0.3, 0.25, 0.22)
 
 
 func _init() -> void:
 	mesh = _lines
 	_material.shader = CursorShader
-	# Over the blueprint's ghost (PlanView), which uses the same shader.
+	# Over the blueprint's ghost (PlanView).
 	_material.render_priority = 1
 	material_override = _material
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	extra_cull_margin = 16.0
 	visible = false
+	_bodies.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_bodies.extra_cull_margin = 16.0
+	_bodies.visible = false
+
+
+func _ready() -> void:
+	get_parent().add_child.call_deferred(_bodies)
 
 
 ## Frames `cells` (none hides the frame); `ok` false draws them red.
@@ -98,29 +114,17 @@ static func _side() -> Vector2i:
 	return Vector2i(1 if toward.x > 0.0 else -1, 0)
 
 
-## Frames whole cells, every edge of them that shows (those deep inside a group left
-## out, as the blueprint's ghost is drawn): `good` light, `bad` red, and the outline of
-## the box `box` red (what a stroke takes the ghost off). The build mode's strokes.
+## Shows whole cells as see-through bodies over everything, each group merged (no faces
+## between its cells, a light rim along its edges): `good` white, `bad` red, the box `box`
+## faint red (what a stroke takes the ghost off). The build mode's strokes (user
+## 2026-11-23, until then frames).
 func show_boxes(good: Array, bad: Array, box: Array = []) -> void:
 	var key := [good, bad, box]
-	if _shown == key:
+	if _boxes_shown == key:
 		return
-	_shown = key
-	_lines.clear_surfaces()
-	visible = not (good.is_empty() and bad.is_empty() and box.is_empty())
-	if not visible:
-		return
-	_material.set_shader_parameter("color", Color(1, 1, 1, 0.9))
-	_lines.surface_begin(Mesh.PRIMITIVE_LINES)
-	for part: Array in [[good, UiStyle.INK], [bad, UiStyle.DANGER], [box, UiStyle.DANGER]]:
-		var cells := {}
-		for c: Vector3i in part[0]:
-			cells[c] = true
-		_lines.surface_set_color(part[1])
-		for c: Vector3i in cells:
-			for e: Array in PlanView.EDGES:
-				if PlanView.hidden_edge(cells, c, e[0], e[1]):
-					continue
-				_lines.surface_add_vertex(PlanView.corner(c, e[0]))
-				_lines.surface_add_vertex(PlanView.corner(c, e[1]))
-	_lines.surface_end()
+	_boxes_shown = key
+	var material := ShaderMaterial.new()
+	material.shader = ThroughShader
+	material.render_priority = 1
+	_bodies.mesh = PlanGhost.bodies([[box, BOX_TINT], [bad, BAD_TINT], [good, FIT_TINT]], material)
+	_bodies.visible = _bodies.mesh != null
