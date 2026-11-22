@@ -1,8 +1,8 @@
 extends MeshInstance3D
-## The blueprint's ghost (Plans, decision 163): one-pixel lines in the cold blueprint
-## colour round each ghost cell near the player, a grid of cells with the edges deep
-## inside the ghost left out. Drawn
-## with the cursor's shader (over everything, hidden above the level cut). Built again
+## The blueprint's ghost (Plans, decision 163) near the player: the shape it will make,
+## see-through, blue to build and red to dig out, merged with no seams between its cells
+## (PlanGhost, user 2026-11-22; until then a frame round each cell), in a child, hidden
+## behind what stands in front and above the level cut. Built again
 ## when the ghost changes or the player walks REBUILD cells off. `game` is the Main node,
 ## its `plans` the client's copy. The farming mode's marks (Plans.is_mark) are drawn
 ## flat on the ground they mark, a square round its top in the colour of the work and
@@ -13,8 +13,11 @@ extends MeshInstance3D
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const CursorShader := preload("res://shaders/cursor.gdshader")
-const Forms := preload("res://src/client/world/form_mesher.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
+const PlanGhost := preload("res://src/client/view/plan_ghost.gd")
+const GhostShader := preload("res://shaders/plan_ghost.gdshader")
+const CutShader := preload("res://shaders/plan_cut.gdshader")
+const CutMulShader := preload("res://shaders/plan_cut_mul.gdshader")
 
 const CELL := WorldData.CELL
 ## Cells round the player whose ghost is drawn, and how far they walk before it is
@@ -32,17 +35,6 @@ const EDGES := [
 	[Vector3i(0, 0, 0), Vector3i(0, 0, 1)], [Vector3i(1, 0, 0), Vector3i(1, 0, 1)],
 	[Vector3i(0, 1, 0), Vector3i(0, 1, 1)], [Vector3i(1, 1, 0), Vector3i(1, 1, 1)],
 ]
-
-## The lines that show the form of a ghost cell that is not a cube (Plans.forms), for
-## the form rising north (see Forms.turn): a ramp's diagonal on both sides, an upturned
-## ramp's, the steps of stairs.
-const FORM_LINES := {
-	WorldData.FORM_RAMP: [[Vector3(0, 1, 0), Vector3(0, 0, 1)], [Vector3(1, 1, 0), Vector3(1, 0, 1)]],
-	WorldData.FORM_UPPER: [[Vector3(0, 0, 0), Vector3(0, 1, 1)], [Vector3(1, 0, 0), Vector3(1, 1, 1)]],
-	WorldData.FORM_STAIRS: [[Vector3(0, 0.5, 1), Vector3(0, 0.5, 0.5)], [Vector3(0, 0.5, 0.5), Vector3(0, 1, 0.5)],
-		[Vector3(1, 0.5, 1), Vector3(1, 0.5, 0.5)], [Vector3(1, 0.5, 0.5), Vector3(1, 1, 0.5)],
-		[Vector3(0, 1, 0.5), Vector3(1, 1, 0.5)], [Vector3(0, 0.5, 0.5), Vector3(1, 0.5, 0.5)]],
-}
 
 ## The colours of the farming marks by work (a mark to sow is any other value).
 const MARK_COLORS := {Plans.TILL: Color("#d9a866"), Plans.WATER: Color("#5fb4ff"), Plans.REAP: Color("#f6d27a")}
@@ -62,6 +54,9 @@ const MARK_SQUARE := [Vector2(0.1, 0.1), Vector2(0.9, 0.1), Vector2(0.9, 0.9), V
 var game
 var _lines := ImmediateMesh.new()
 var _material := ShaderMaterial.new()
+var _ghost := MeshInstance3D.new()
+var _built := ShaderMaterial.new()
+var _dug := ShaderMaterial.new()
 var _dirty := true
 var _built_at := Vector3i(1 << 30, 0, 0)
 ## Which of the two modes were on when it was built (bit 0 building, bit 1 farming).
@@ -76,6 +71,20 @@ func _init(g) -> void:
 	material_override = _material
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	extra_cull_margin = 16.0
+	# Its depth first, then its colour over it (plan_ghost.gdshader).
+	_built.shader = GhostShader
+	_built.set_shader_parameter("strength", 0.0)
+	var colour := ShaderMaterial.new()
+	colour.shader = GhostShader
+	_built.next_pass = colour
+	# The ground to dig: its green taken out, then the red over it.
+	_dug.shader = CutMulShader
+	var red := ShaderMaterial.new()
+	red.shader = CutShader
+	_dug.next_pass = red
+	_ghost.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_ghost.extra_cull_margin = 16.0
+	add_child(_ghost)
 
 
 func _ready() -> void:
@@ -104,51 +113,28 @@ func _process(_delta: float) -> void:
 func _build(at: Vector3i) -> void:
 	_lines.clear_surfaces()
 	var cells: Dictionary = game.plans.cells
-	var started := false
-	var blueprint := {}
-	for c: Vector3i in cells:
-		if not Plans.is_mark(cells[c]):
-			blueprint[c] = true
 	var building := _modes & 1 != 0
-	var farming := _modes & 2 != 0
-	for c: Vector3i in cells:
-		if not (building if blueprint.has(c) else farming):
-			continue
-		if maxi(maxi(absi(c.x - at.x), absi(c.z - at.z)), absi(c.y - at.y)) > REACH:
-			continue
-		if not started:
-			_lines.surface_begin(Mesh.PRIMITIVE_LINES)
-			started = true
-		if not blueprint.has(c):
-			_mark(c, cells[c])
-			continue
-		_lines.surface_set_color(UiStyle.COLD)
-		for e: Array in EDGES:
-			if hidden_edge(blueprint, c, e[0], e[1]):
+	var started := false
+	if _modes & 2 != 0:
+		for c: Vector3i in cells:
+			if not Plans.is_mark(cells[c]) or not _near(c, at):
 				continue
 			if not started:
 				_lines.surface_begin(Mesh.PRIMITIVE_LINES)
 				started = true
-			_lines.surface_add_vertex(corner(c, e[0]))
-			_lines.surface_add_vertex(corner(c, e[1]))
-		if cells[c] == "-":
-			# Ground to dig out (Plans.CUT): a cross over its top.
-			if not started:
-				_lines.surface_begin(Mesh.PRIMITIVE_LINES)
-				started = true
-			for e: Array in [[Vector3(0, 1, 0), Vector3(1, 1, 1)], [Vector3(1, 1, 0), Vector3(0, 1, 1)]]:
-				_lines.surface_add_vertex(point(c, e[0]))
-				_lines.surface_add_vertex(point(c, e[1]))
-		var form: int = game.plans.forms.get(c, 0)
-		for e: Array in FORM_LINES.get(form & 3, []):
-			if not started:
-				_lines.surface_begin(Mesh.PRIMITIVE_LINES)
-				started = true
-			_lines.surface_add_vertex(point(c, Forms.turn(e[0], form >> 2 & 3)))
-			_lines.surface_add_vertex(point(c, Forms.turn(e[1], form >> 2 & 3)))
+			_mark(c, cells[c])
 	if started:
 		_lines.surface_end()
-	visible = started
+	_ghost.mesh = null
+	if building:
+		_ghost.mesh = PlanGhost.build(cells, game.plans.forms, game.world,
+			func(c: Vector3i) -> bool: return not Plans.is_mark(cells[c]) and _near(c, at), _built, _dug)
+	visible = started or _ghost.mesh != null
+
+
+## Whether cell `c` is near enough cell `at` to be drawn.
+static func _near(c: Vector3i, at: Vector3i) -> bool:
+	return maxi(maxi(absi(c.x - at.x), absi(c.z - at.z)), absi(c.y - at.y)) <= REACH
 
 
 ## Draws farming mark `v` on ground cell `c`: its square round the top and its sign.
@@ -179,14 +165,6 @@ static func hidden_edge(cells: Dictionary, c: Vector3i, a: Vector3i, b: Vector3i
 		if not cells.has(c + d):
 			return false
 	return true
-
-
-## Point `v` (0..1 per axis) of cell `c`, kept a line's inset inside it, in world units.
-static func point(c: Vector3i, v: Vector3) -> Vector3:
-	var p := Vector3(c) * CELL
-	for axis in 3:
-		p[axis] += lerpf(INSET, CELL - INSET, v[axis])
-	return p
 
 
 ## The corner `k` (0/1 per axis) of cell `c`, a line's inset inside it, in world units.

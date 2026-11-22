@@ -287,6 +287,12 @@ const SHOTS := {
 	# wall's stroke over the ghost (red where it would go inside blocks), taking the ghost
 	# off, a box on the ground, the interior filter.
 	"build-mode": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw"},
+	# The blueprint's ghost alone in the build mode (PlanView), grass hidden: walls, a floor,
+	# ramps and a fence to build, a trench to dig; then turned.
+	"build-ghost": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "stroke": false, "hud": false, "pixel_scale": 3,
+		"hide": ["chunks: grass"]},
+	"build-ghost-turned": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "stroke": false, "hud": false, "pixel_scale": 3,
+		"hide": ["chunks: grass"], "turn": 1},
 	"build-mode-erase": {"time": 0.4, "season": 1, "plan": true, "build_mode": "erase"},
 	"build-mode-cube": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "cube"},
 	"build-mode-interior": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "filter": "interior"},

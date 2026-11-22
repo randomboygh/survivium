@@ -1031,7 +1031,8 @@ func furniture(w, at: Vector3) -> Vector3:
 
 
 ## The blueprint on flat ground near `at` (Plans): a room of planks 7×6 three levels high
-## with its lowest level built, a floor's ghost inside, a brick wall's ghost to the east.
+## with its lowest level built, a floor's ghost inside, a brick wall's ghost to the east,
+## a trench to dig south-east and a fence south-west.
 ## Returns where the player stands, south of the room.
 func plan(w, at: Vector3) -> Vector3:
 	var spot := Vector3i((flat_near(w, at) / CELL).floor())
@@ -1081,6 +1082,22 @@ func plan(w, at: Vector3) -> Vector3:
 		plans.cells[c] = "materials:planks"
 		plans.forms[c] = WorldData.FORM_RAMP | 2 << 2
 	plans.changed.emit(ramps, "materials:planks")
+	# Ground to dig out (Plans.CUT) south-east of the room, a trench two deep, and the
+	# ghost of a fence south-west of it.
+	var trench: Array = []
+	for x in range(2, 6):
+		for z in range(-3, -1):
+			for y in range(1, 3):
+				var c := spot + Vector3i(x, -y, z)
+				trench.append(c)
+				plans.cells[c] = Plans.CUT
+	plans.changed.emit(trench, Plans.CUT)
+	var fence: Array = []
+	for i in 4:
+		for c: Vector3i in [spot + Vector3i(-9 + i, 0, -2), spot + Vector3i(-9, 0, -2 + i)]:
+			fence.append(c)
+			plans.cells[c] = "tools:fence"
+	plans.changed.emit(fence, "tools:fence")
 	for c: Vector3i in w.bushes.keys():
 		if c.x - spot.x >= -20 and c.x - spot.x <= 16 and absi(c.z - spot.z + 6) <= 10:
 			w.remove_bush(c)

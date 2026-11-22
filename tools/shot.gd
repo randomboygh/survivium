@@ -1265,7 +1265,7 @@ func _run() -> void:
 					await process_frame
 			for i in 3:
 				await process_frame
-			if not shot.has("flights"):
+			if not shot.has("flights") and shot.get("stroke", true):
 				main.build.show_stroke(s)
 		if shot.has("sapling_tree"):
 			# The oak sapling at its last stage east of the farm (TestGround.SAPLINGS) grown
