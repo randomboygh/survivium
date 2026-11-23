@@ -644,7 +644,7 @@ func from_list(list: Array) -> void:
 		if d is Dictionary and Items.has(Items.canon(d.get("item", ""))) and d.get("cell") is Array and d.cell.size() == 3:
 			var id: String = Items.get_item(Items.canon(d.item)).id
 			if is_light_item(id):
-				put_light(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), float(d.get("burnt", 0.0)))
+				put_light(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), float(d.get("burnt", 0.0)), posmod(int(d.get("turn", 0)), 4))
 				continue
 			var e := put(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
 				not d.get("out", false), float(d.get("fuel", -1.0)), int(d.by) if d.get("by") is float or d.get("by") is int else null,
@@ -673,6 +673,8 @@ static func record(e: Dictionary) -> Dictionary:
 	var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
 	if is_light(e):
 		d.burnt = e.burnt
+		if e.get("turn", 0) != 0:
+			d.turn = e.turn
 		return d
 	if e.items != null:
 		d.items = e.items.to_dict()
@@ -1247,11 +1249,13 @@ func take_up(who, e: Dictionary) -> bool:
 
 
 ## True for a thing moved and turned where it stands in the build mode (move): a station,
-## a chest, furniture, a sign, a fireplace; not what is set into a building (a door, a
+## a chest, furniture, a sign, a fireplace, a light set down; not what is set into a building (a door, a
 ## window, a hatch, stairs, a fence, a ladder), a campfire, a cross or a boundary post.
 static func movable(e: Dictionary) -> bool:
-	if e.is_empty() or is_light(e) or is_grave(e) or is_fire(e) and not is_hearth(e):
+	if e.is_empty() or is_grave(e) or is_fire(e) and not is_hearth(e):
 		return false
+	if is_light(e):
+		return true
 	var item := Items.get_item(e.item)
 	for flag in ["door", "window", "steps", "fence", "ladder", "claims"]:
 		if item.get(flag, false):
@@ -1295,6 +1299,8 @@ func move_spot(who, e: Dictionary, corner: Vector3i, turn: int) -> Variant:
 ## lets them build at both ends; what it holds, burns or says goes with it, and every copy
 ## hears of it as of a thing taken and placed (removed, added). True if it moved.
 func move(who, e: Dictionary, corner: Vector3i, turn: int) -> bool:
+	if is_light(e):
+		return _move_light(who, e, corner, posmod(turn, 4))
 	if not movable(e) or territory != null and not territory.may(who, e.cell, "build"):
 		return false
 	turn = posmod(turn, 4)
@@ -1652,9 +1658,11 @@ static func is_light(e: Dictionary) -> bool:
 	return e.get("light", false)
 
 
-## Sets light `item` down on `cell`, burned `burnt` seconds already.
-func put_light(item: String, cell: Vector3i, burnt := 0.0) -> Dictionary:
+## Sets light `item` down on `cell`, burned `burnt` seconds already, turned `turn` quarters.
+func put_light(item: String, cell: Vector3i, burnt := 0.0, turn := 0) -> Dictionary:
 	var e := {"item": item, "cell": cell, "burnt": burnt, "light": true, "items": null, "lit": true}
+	if turn != 0:
+		e.turn = turn
 	lights.append(e)
 	_note_scarer(e)
 	added.emit(e)
@@ -1689,11 +1697,50 @@ func light_spot(who, top: int) -> Variant:
 
 ## Whether a light can stand in `cell`: air over solid ground, no higher than `top`,
 ## clear of `who`, of the things and of the other lights.
-func _light_fits(who, cell: Vector3i, top: int) -> bool:
+func _light_fits(who, cell: Vector3i, top: int, own := {}) -> bool:
 	if cell.y > top or world.get_cell(cell.x, cell.y, cell.z) != Mat.AIR or not world.is_solid(cell.x, cell.y - 1, cell.z):
 		return false
-	if who.overlaps_cell(cell) or world.blockers.has(cell) or world.ladders.has(cell) or not light_at(cell).is_empty():
+	var there := light_at(cell)
+	if who.overlaps_cell(cell) or world.blockers.has(cell) or world.ladders.has(cell) or not there.is_empty() and not is_same(there, own):
 		return false
+	return true
+
+
+## The cell light `e` would stand in moved to `cell`: that cell, or the one below or above
+## it that fits (its own cell counted free); null when there is none.
+func light_move_spot(who, e: Dictionary, cell: Vector3i) -> Variant:
+	for dy: int in [0, -1, 1]:
+		var c := cell + Vector3i(0, dy, 0)
+		if _light_fits(who, c, c.y, e):
+			return c
+	return null
+
+
+## `who` moves light `e` to `cell` (see light_move_spot), within their reach of placing and
+## where the land lets them build at both ends; what it has burned goes with it, and every
+## copy hears of it as of a light taken and set down (removed, added); the same cell with
+## another `turn` turns it. True if it moved.
+func _move_light(who, e: Dictionary, cell: Vector3i, turn: int) -> bool:
+	if territory != null and not territory.may(who, e.cell, "build"):
+		return false
+	var spot: Variant = light_move_spot(who, e, cell)
+	if spot == null:
+		who.nag("put", "[nowhere_to_place_it_needs]")
+		return false
+	var p: Vector3 = who.position / CELL
+	var to := center({"item": e.item, "cell": spot, "light": true}) / CELL
+	if Vector2(to.x - p.x, to.z - p.z).length() > Tools.PLACE_REACH or absf(to.y - 0.5 - p.y) > Tools.PLACE_REACH:
+		who.nag("put", "[too_far]")
+		return false
+	if territory != null and not territory.may(who, spot, "build"):
+		return false
+	if spot == e.cell and turn == int(e.get("turn", 0)):
+		return true
+	if not who.act("place"):
+		return false
+	_remove(e)
+	put_light(e.item, spot, float(e.burnt), turn)
+	world.note_edit(spot.x, spot.z)
 	return true
 
 

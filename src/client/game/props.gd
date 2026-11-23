@@ -441,6 +441,39 @@ func _land(e: Dictionary) -> void:
 		Vibration.play(game, "thud", 0.0, 1.0 if n < 2.0 else 1.4)
 
 
+## The standing model of light `id` turned `turn` quarters about its middle.
+func _standing_turned(id: String, turn: int) -> Mesh:
+	var key := "%s/%d" % [id, turn]
+	if not _standing.has(key):
+		var m = VoxelProps.standing(Items.get_item(id))
+		if turn != 0:
+			var turned = m.get_script().new()
+			for p: Vector3i in m.voxels:
+				var q := p
+				for i in turn:
+					q = Vector3i(-q.z, q.y, q.x)
+				turned.set_voxel(q, m.voxels[p], false)
+			m = turned
+		_standing[key] = m.build_mesh()
+	return _standing[key]
+
+
+## The model of light `e` in `node` turned `turn` quarters (as _turn_model does a thing's).
+func _turn_light(node: MeshInstance3D, e: Dictionary, turn: int) -> void:
+	if node.get_meta("turn", int(e.get("turn", 0))) == turn:
+		return
+	node.mesh = _standing_turned(e.item, turn)
+	node.set_meta("turn", turn)
+
+
+## Where the model of thing `e` stands: its north-west cell's corner, a light's in the middle
+## of its cell.
+func _rest(e: Dictionary) -> Vector3:
+	if Placed.is_light(e):
+		return (Vector3(e.cell) + Vector3(0.5, 0.0, 0.5)) * CELL
+	return Vector3(e.cell) * CELL
+
+
 ## Holds the model of thing `e` up over the north-west cell `corner`, turned `turn` (its own
 ## when -1), while the build mode drags it (BuildMode); false when it has no model of its own.
 func hold_at(e: Dictionary, corner: Vector3i, turn := -1) -> bool:
@@ -448,12 +481,20 @@ func hold_at(e: Dictionary, corner: Vector3i, turn := -1) -> bool:
 	if node == null or not is_instance_valid(node) or not node is MeshInstance3D:
 		return false
 	_stop_fall(node)
-	_turn_model(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
+	var light := Placed.is_light(e)
+	if light:
+		_turn_light(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
+	else:
+		_turn_model(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
 	node.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
+	if light:
+		node.position += Vector3(0.5, 0.0, 0.5) * CELL
 	node.extra_cull_margin = CULL_MARGIN
+	# Its flames go with it, as far as it is carried from where it stands.
 	if _fires.has(e.cell):
-		# Its fire goes with it, as far as it is carried from where it stands.
-		game.effects.shift_fire(_fires[e.cell], node.position - Vector3(e.cell) * CELL)
+		game.effects.shift_fire(_fires[e.cell], node.position - _rest(e))
+	if _lamps.has(e.cell):
+		game.effects.shift_lamp(_lamps[e.cell], node.position - _rest(e))
 	return true
 
 
@@ -510,13 +551,18 @@ func holding_new() -> bool:
 func settle(e: Dictionary) -> void:
 	if _fires.has(e.cell):
 		game.effects.shift_fire(_fires[e.cell], Vector3.ZERO)
+	if _lamps.has(e.cell):
+		game.effects.shift_lamp(_lamps[e.cell], Vector3.ZERO)
 	var node: Node3D = _nodes.get(e.cell)
 	if node == null or not is_instance_valid(node):
 		return
 	if node is MeshInstance3D:
-		_turn_model(node, e, int(e.get("turn", 0)))
+		if Placed.is_light(e):
+			_turn_light(node, e, int(e.get("turn", 0)))
+		else:
+			_turn_model(node, e, int(e.get("turn", 0)))
 	var from := node.position
-	var to := Vector3(e.cell) * CELL
+	var to := _rest(e)
 	if from.is_equal_approx(to):
 		return
 	_stop_fall(node)
@@ -533,18 +579,18 @@ func standing(e: Dictionary) -> bool:
 	var node: Node3D = _nodes.get(e.cell)
 	if node == null or not is_instance_valid(node):
 		return true
-	return node.position.is_equal_approx(Vector3(e.cell) * CELL)
+	return node.position.is_equal_approx(_rest(e))
 
 
 ## Light `e` set down: its model standing in the middle of its cell and its flame on top
 ## (Effects.add_lamp), lighting as far as the item's `light`.
 func _add_lamp(e: Dictionary) -> void:
 	var item := Items.get_item(e.item)
-	if not _standing.has(e.item):
-		_standing[e.item] = VoxelProps.standing(item).build_mesh()
-	var mesh: Mesh = _standing[e.item]
+	var turn := int(e.get("turn", 0))
+	var mesh: Mesh = _standing_turned(e.item, turn)
 	var node := MeshInstance3D.new()
 	node.mesh = mesh
+	node.set_meta("turn", turn)
 	node.material_override = game.low_mat
 	node.scale = Vector3.ONE / 16.0
 	node.position = (Vector3(e.cell) + Vector3(0.5, 0.0, 0.5)) * CELL
