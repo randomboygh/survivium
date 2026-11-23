@@ -447,6 +447,8 @@ func hold_at(e: Dictionary, corner: Vector3i, turn := -1) -> bool:
 	var node: Node3D = _nodes.get(e.cell)
 	if node == null or not is_instance_valid(node) or not node is MeshInstance3D:
 		return false
+	if _fires.has(e.cell):
+		game.effects.hide_fire(_fires[e.cell], true)
 	_stop_fall(node)
 	_turn_model(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
 	node.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
@@ -505,6 +507,8 @@ func holding_new() -> bool:
 
 ## The model of thing `e` dragged and not moved (BuildMode): it drops back where it stands.
 func settle(e: Dictionary) -> void:
+	if _fires.has(e.cell):
+		game.effects.hide_fire(_fires[e.cell], false, Placed.fuel_share(e))
 	var node: Node3D = _nodes.get(e.cell)
 	if node == null or not is_instance_valid(node):
 		return

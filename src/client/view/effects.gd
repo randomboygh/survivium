@@ -498,6 +498,19 @@ func put_out(rec: Dictionary) -> void:
 		(rec.model as MeshInstance3D).mesh = _campfire_model(false).build_mesh()
 
 
+## Hides the flames, sparks, smoke and light of campfire `rec` (see add_campfire) while its
+## owner is dragged about (BuildMode), or shows them again; `share` is what it has left to
+## burn (Placed.fuel_share), to burn as it did.
+func hide_fire(rec: Dictionary, hide: bool, share := 1.0) -> void:
+	for part: Node in rec.parts:
+		if part is CPUParticles3D:
+			(part as CPUParticles3D).emitting = not hide
+		elif part is Light3D:
+			(part as Light3D).visible = not hide
+	if not hide:
+		fire_strength(rec, share)
+
+
 ## Takes campfire `rec` (see add_campfire) out of the world.
 func remove_campfire(rec: Dictionary) -> void:
 	put_out(rec)
