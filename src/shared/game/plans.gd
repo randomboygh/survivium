@@ -156,8 +156,9 @@ static func shape(kind: String, a: Vector3i, b: Vector3i, height: int, near := V
 ## last goes down to the ground, and the lowest cell of each column that reaches lower
 ## than the one before it is the upturned slope. With BAND a column holds only the cells
 ## from its top down to the level of the one before it, and the lowest of them, where the
-## column rises, is the slope turned the other way (an upturned one under a slope or
-## stairs, a slope over an upturned one): a band one block thick that hangs by its shape.
+## column rises, is the slope turned the other way (an upturned one under a slope, a
+## slope over an upturned one; stairs stand on nothing, so steps go underneath too): a
+## band one block thick that hangs by its shape.
 static func flight(kind: String, a: Vector3i, b: Vector3i, height: int, near := Vector2.INF, thick := 1,
 		form := 0) -> Dictionary:
 	var out := {}
@@ -200,7 +201,8 @@ static func flight(kind: String, a: Vector3i, b: Vector3i, height: int, near := 
 			out[edge + Vector3i(0, y * up, 0)] = 0
 		if formed:
 			out[edge] = f | side << 2
-			if band and cells > 1:
+			# Stairs keep their steps underneath too: a band of them hangs by whole steps.
+			if band and cells > 1 and f != WorldData.FORM_STAIRS:
 				var under := WorldData.FORM_RAMP if f == WorldData.FORM_UPPER else WorldData.FORM_UPPER
 				out[edge + Vector3i(0, (cells - 1) * up, 0)] = under | ((side + 2) % 4) << 2
 	return out

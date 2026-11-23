@@ -1042,9 +1042,9 @@ const ICONS := {
 		"....wmmw",
 		"wwwwwmmw",
 		"wmmmmmmw",
-		"wmmmmww.",
-		"wmmww...",
-		"www.....",
+		"wmmmmwww",
+		"wmmw....",
+		"wwww....",
 	],
 	# Drawing the blueprint (a pencil) and taking it off (an eraser).
 	"build_draw": [
