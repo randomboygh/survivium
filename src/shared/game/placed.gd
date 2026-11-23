@@ -589,7 +589,7 @@ func stand_by(e: Dictionary) -> Vector3:
 ## `items` is what a thing that stores holds, as Inventory.to_dict() gave it; `lit` false
 ## puts a fire there cold; `fuel` is the seconds a fire has left (below 0: a new one's
 ## `fuel_start`); `grave` who died there for a cross (see put_grave).
-func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null, turn := 0, open := false, text := "", grave := {}) -> Dictionary:
+func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel := -1.0, by: Variant = null, turn := 0, open := false, text := "", grave := {}, wreath := "") -> Dictionary:
 	var rec := Items.get_item(item)
 	var e := {"item": item, "cell": cell, "items": null, "lit": lit or not rec.fire, "turn": posmod(turn, 4)}
 	if rec.get("sign_lines", 0) > 0:
@@ -598,6 +598,8 @@ func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel 
 		e.grave = grave_record(grave)
 	if rec.get("door", false):
 		e.open = open
+		if wreath != "" and Items.has(wreath) and Items.get_item(wreath).get("wreath", false):
+			e.wreath = Items.get_item(wreath).id
 	if by is int:
 		e.by = by
 	if rec.get("rain_water", 0.0) > 0.0:
@@ -649,7 +651,7 @@ func from_list(list: Array) -> void:
 			var e := put(id, Vector3i(int(d.cell[0]), int(d.cell[1]), int(d.cell[2])), d.get("items"),
 				not d.get("out", false), float(d.get("fuel", -1.0)), int(d.by) if d.get("by") is float or d.get("by") is int else null,
 				int(d.get("turn", 0)), bool(d.get("open", false)), str(d.get("text", "")),
-				d.get("grave") if d.get("grave") is Dictionary else {})
+				d.get("grave") if d.get("grave") is Dictionary else {}, str(d.get("wreath", "")))
 			if e.has("water") and (d.get("water") is float or d.get("water") is int):
 				e.water = clampf(float(d.water), 0.0, Items.get_item(id).rain_water)
 
@@ -667,7 +669,7 @@ func to_list() -> Array:
 ## Thing `e` as plain data (one of to_list): {"item", "cell": [x, y, z], "items" what it
 ## holds (Inventory.to_dict) if it stores, "out" true for a fire put out, "fuel" the
 ## seconds a fire has left, "water" a rain catcher holds, "by" who put it from their bag, "turn" when it is turned,
-## "open" for a door open, "text" for a sign written, "grave" for a cross}.
+## "open" for a door open, "wreath" the wreath hung on a door, "text" for a sign written, "grave" for a cross}.
 static func record(e: Dictionary) -> Dictionary:
 	var c: Vector3i = e.cell
 	var d := {"item": e.item, "cell": [c.x, c.y, c.z]}
@@ -690,6 +692,8 @@ static func record(e: Dictionary) -> Dictionary:
 		d.turn = e.turn
 	if e.get("open", false):
 		d.open = true
+	if e.get("wreath", "") != "":
+		d.wreath = e.wreath
 	if e.get("text", "") != "":
 		d.text = e.text
 	if e.has("grave"):
@@ -820,6 +824,8 @@ static func is_door(e: Dictionary) -> bool:
 ## `who` opens door `e` or shuts it, where the land lets them open doors (Territory); a
 ## door is not shut on a body in its way. True if it swung.
 func swing(who, e: Dictionary) -> bool:
+	if is_door(e) and e.get("wreath", "") == "" and who != null and who.has_method("held") and Items.get_item(who.held()).get("wreath", false):
+		return hang_wreath(who, e)
 	if not is_door(e) or territory != null and not territory.may(who, e.cell, "doors"):
 		return false
 	var closing: bool = e.open
@@ -835,6 +841,20 @@ func swing(who, e: Dictionary) -> bool:
 		return false
 	opened.emit(e)
 	world.note_edit(e.cell.x, e.cell.z)
+	return true
+
+
+## `who` hangs the wreath in the hand in use (an item with `wreath`) on door `e`, where the
+## land lets them build: a door holds one, drawn on its front and swinging with it (Props),
+## given back with the door when it is taken up. True if it was hung.
+func hang_wreath(who, e: Dictionary) -> bool:
+	if not is_door(e) or e.get("wreath", "") != "" or territory != null and not territory.may(who, e.cell, "build"):
+		return false
+	var held: String = who.held()
+	if held == "" or not Items.get_item(held).get("wreath", false) or who.inventory.remove(held, 1) < 1:
+		return false
+	e.wreath = held
+	_renew(e, e.turn, e.get("text", ""))
 	return true
 
 
@@ -971,7 +991,7 @@ func turn_sign(who, e: Dictionary) -> bool:
 ## Sets thing `e` down anew where it stands, turned `turn`, saying `text` (a sign changed).
 func _renew(e: Dictionary, turn: int, text: String) -> void:
 	_forget(e)
-	put(e.item, e.cell, null, e.lit, e.get("fuel", -1.0), e.get("by"), turn, e.get("open", false), text)
+	put(e.item, e.cell, null, e.lit, e.get("fuel", -1.0), e.get("by"), turn, e.get("open", false), text, {}, e.get("wreath", ""))
 	world.note_edit(e.cell.x, e.cell.z)
 
 
@@ -1244,6 +1264,8 @@ func take_up(who, e: Dictionary) -> bool:
 		return false
 	if full:
 		who.say(Lang.line("[1_with_things]", [Items.title(e.item)]))
+	if e.get("wreath", "") != "":
+		who.give(e.wreath, 1)
 	_remove(e)
 	return true
 

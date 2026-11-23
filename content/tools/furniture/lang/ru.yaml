@@ -43,6 +43,8 @@
 "[tools.items.brine_tub.about]": "Низкая кадка с рассолом под камнем-гнётом. Еда в ней хранится в пять раз дольше."
 "[tools.items.brick_stove]": "Печка-голландка"
 "[tools.items.brick_stove.about]": "Высокая кирпичная печь с железной дверцей. Греет комнату как очаг, огонь спрятан внутри."
+"[tools.items.door_wreath]": "Венок на дверь"
+"[tools.items.door_wreath.about]": "Венок из веток с ягодами и бантом. Возьми в руку и нажми на дверь, чтобы повесить."
 
 # content/tools/furniture/data/recipes.yaml
 "[tools.recipes.table]": "Стол"
@@ -64,3 +66,4 @@
 "[tools.recipes.wall_hide]": "Шкура на стену"
 "[tools.recipes.brine_tub]": "Кадка для солений"
 "[tools.recipes.brick_stove]": "Печка-голландка"
+"[tools.recipes.door_wreath]": "Венок на дверь"

@@ -173,6 +173,7 @@
   model: wall_hide
   prop: wall_hide
   furniture: true
+  wall: true
 - id: brine_tub
   title: "[tools.items.brine_tub]"
   description: "[tools.items.brine_tub.about]"
@@ -198,3 +199,13 @@
   scares: 3.0
   fuel_max: 3600
   fuel_start: 0
+# A wreath of fir twigs with red berries and a bow (2026-11-23): held in the hand, a tap on a door hangs it on the
+# door (wreath, Placed.hang_wreath); it swings with the door and comes back with the door taken up.
+- id: door_wreath
+  title: "[tools.items.door_wreath]"
+  description: "[tools.items.door_wreath.about]"
+  weight: 0.3
+  stack: 4
+  icon: door_wreath
+  model: door_wreath
+  wreath: true

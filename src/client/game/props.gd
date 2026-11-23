@@ -188,12 +188,14 @@ func put_light(id: String) -> bool:
 	return r.done and r.value is bool and r.value
 
 
-func _model(kind: String, turn := 0, open := false, join := -1, water := 0):
-	var key := "%s/%d/%s/%d/%d" % [kind, turn, open, join, water]
+func _model(kind: String, turn := 0, open := false, join := -1, water := 0, wreath := ""):
+	var key := "%s/%d/%s/%d/%d/%s" % [kind, turn, open, join, water, wreath]
 	if not _models.has(key):
 		var m = VoxelProps.prop(kind)
 		if water > 0:
 			m = _with_water(m, water)
+		if wreath != "":
+			m = _with_wreath(m, wreath)
 		if join >= 0:
 			# A fence: its post, and its model's north rail turned to each side it joins.
 			var joined = m.get_script().new()
@@ -234,7 +236,7 @@ func _on_added(e: Dictionary, still := false) -> void:
 			return
 	var node := MeshInstance3D.new()
 	var kind: String = Items.get_item(e.item).prop
-	var model = _model(kind, e.get("turn", 0), e.get("open", false), e.get("join", -1), _water_step(e))
+	var model = _model(kind, e.get("turn", 0), e.get("open", false), e.get("join", -1), _water_step(e), e.get("wreath", ""))
 	node.mesh = model.build_mesh()
 	node.material_override = game.low_mat if node.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
 	if kind in THIN_PROPS:
@@ -254,6 +256,30 @@ func _on_added(e: Dictionary, still := false) -> void:
 		game.effects.windows.add(e.cell, node, model)
 	if not still:
 		_arrive(e, node)
+
+
+## Door model `m` with the wreath `wreath` (an item's, Placed.hang_wreath) on its front: the
+## wreath's model (drawn upright, a voxel before its own north edge) set on the door's
+## first leaf before its face, its top at two thirds of the door's height; it swings with the door.
+static func _with_wreath(m, wreath: String):
+	var w = VoxelProps.drop(Items.get_item(wreath))
+	if w == null:
+		return m
+	var top := 0
+	for p: Vector3i in m.voxels:
+		top = maxi(top, p.y)
+	var hung = m.get_script().new()
+	for p: Vector3i in m.voxels:
+		hung.set_voxel(p, m.voxels[p], m.foliage.has(p))
+	var wtop := 0
+	for p: Vector3i in w.voxels:
+		wtop = maxi(wtop, p.y)
+	# The door's face is its first two layers (z 0, 1) and its handle a voxel before them: the
+	# wreath hangs before both, its top at two thirds of the door, under the wall over a doorway
+	# that hides the door's top from the view.
+	for p: Vector3i in w.voxels:
+		hung.set_voxel(p + Vector3i(0, (top + 1) * 2 / 3 - 1 - wtop, 2), w.voxels[p], w.foliage.has(p))
+	return hung
 
 
 ## The water a rain catcher shows: its share of what it holds in WATER_STEPS steps,

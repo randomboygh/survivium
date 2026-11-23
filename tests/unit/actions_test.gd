@@ -472,6 +472,18 @@ func _test_stairs_placed() -> void:
 		"from the doorway and from before it, a body walks through")
 	who.position = Vector3(30.5, 1.0, 20.5) * WorldData.CELL
 	_check(placed.swing(who, door) and not door.open, "and shuts it again")
+	# A wreath held in the hand is hung on the door at a tap, not swung (Placed.hang_wreath); the door
+	# keeps it in the save, holds one, and gives it back with itself when taken up.
+	who.inventory.add("tools:door_wreath", 1)
+	who.item = "tools:door_wreath"
+	_check(placed.swing(who, door) and who.inventory.count("tools:door_wreath") == 0, "a tap with a wreath in the hand hangs it on the door")
+	door = placed.things.filter(func(t: Dictionary) -> bool: return t.cell == Vector3i(30, 1, 20))[0]
+	_check(door.get("wreath", "") == "tools:door_wreath" and not door.open and Placed.record(door).get("wreath", "") == "tools:door_wreath",
+		"the door is still shut, and its record keeps the wreath: %s" % [Placed.record(door)])
+	who.inventory.add("tools:door_wreath", 1)
+	_check(placed.swing(who, door) and door.open and who.inventory.count("tools:door_wreath") == 1, "with a wreath on it, a second one is not hung: the door opens")
+	_check(placed.swing(who, door) and not door.open, "and shuts")
+	who.item = ""
 	who.inventory.add("tools:window", 1)
 	who.position = Vector3(30.5, 1.0, 22.5) * WorldData.CELL
 	_check(placed.put_from_bag(who, "tools:window", -1, 40) and placed.things[-1].cell != door.cell and Placed.is_part(placed.things[-1]),

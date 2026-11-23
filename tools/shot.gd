@@ -419,6 +419,16 @@ func _run() -> void:
 			var spot: Vector3i = main.session.placed.spot_near(main.player.position + Vector3(shot.put_fire[0], 0.0, shot.put_fire[1]) * main.CELL)
 			if spot.y >= 0:
 				added_fires.append(main.session.placed.put(main.session.placed.CAMPFIRE, spot, null))
+		# Things hung on a wall at the cells named ([item, x, z], on the player's level), and a
+		# wreath hung on every door within 12 cells (Placed.hang_wreath's record).
+		for hang: Array in shot.get("hang", []):
+			var at := Vector3i(hang[1], floori(main.player.position.y / main.CELL), hang[2])
+			main.session.placed.put(hang[0], at, null, true, -1.0, null, main.session.placed.wall_turn(at, 0))
+		if shot.has("wreath"):
+			for e: Dictionary in main.session.placed.things.duplicate():
+				if Placed.is_door(e) and Vector3(e.cell).distance_to(main.player.position / main.CELL) < 12.0:
+					e.wreath = shot.wreath
+					main.session.placed._renew(e, e.turn, "")
 		# Things set down round the player: [item, offset in cells].
 		for put: Array in shot.get("put", []):
 			var spot: Vector3i = main.session.placed.spot_near(main.player.position + Vector3(put[1][0], 0.0, put[1][1]) * main.CELL)
