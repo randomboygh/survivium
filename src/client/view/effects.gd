@@ -498,17 +498,21 @@ func put_out(rec: Dictionary) -> void:
 		(rec.model as MeshInstance3D).mesh = _campfire_model(false).build_mesh()
 
 
-## Hides the flames, sparks, smoke and light of campfire `rec` (see add_campfire) while its
-## owner is dragged about (BuildMode), or shows them again; `share` is what it has left to
-## burn (Placed.fuel_share), to burn as it did.
-func hide_fire(rec: Dictionary, hide: bool, share := 1.0) -> void:
-	for part: Node in rec.parts:
-		if part is CPUParticles3D:
-			(part as CPUParticles3D).emitting = not hide
-		elif part is Light3D:
-			(part as Light3D).visible = not hide
-	if not hide:
-		fire_strength(rec, share)
+## Carries the flames, sparks, smoke and light of campfire `rec` (see add_campfire) by `by`
+## from where they burn, while its owner is dragged about (BuildMode); a zero `by` puts them
+## back. Only the drawing moves: the warmth (heat_map) stays until the thing is set down.
+func shift_fire(rec: Dictionary, by: Vector3) -> void:
+	if rec.fire == null:
+		return
+	if not rec.has("home"):
+		rec["home"] = {}
+		for part: Node in rec.parts:
+			if part is Node3D and not part is Light3D:
+				rec.home[part] = (part as Node3D).position
+	for part: Node in rec.home:
+		if is_instance_valid(part):
+			(part as Node3D).position = rec.home[part] + by
+	move_anchor(rec.fire.light, rec.fire.at + Vector3(0.0, 0.6, 0.0) + by)
 
 
 ## Takes campfire `rec` (see add_campfire) out of the world.
@@ -1031,6 +1035,14 @@ func anchor(light: OmniLight3D, p: Vector3) -> void:
 	_anchored.append([light, p, light.omni_range])
 	light.position = PixelView.shear(p)
 	light.omni_range = PixelView.light_range(light.omni_range)
+
+
+## Moves anchored `light` to the place `p` (see anchor), the view's shear applied.
+func move_anchor(light: OmniLight3D, p: Vector3) -> void:
+	for a: Array in _anchored:
+		if a[0] == light:
+			a[1] = p
+	light.position = PixelView.shear(p)
 
 
 ## Changes how far round its place anchored `light` lights (world units before
