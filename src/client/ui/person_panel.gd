@@ -254,7 +254,7 @@ func refresh() -> void:
 		if k.begins_with("hand"):
 			var h := int(k.right(1))
 			var id: String = game.controls.hands[h]
-			c.texture = ItemIcons.of_item(id) if id != "" else ItemIcons.picture("hand")
+			c.texture = ItemIcons.of_item(id) if id != "" else ItemIcons.picture("hand_left" if h == 0 else "hand")
 			c.inactive = FactChips.unarmed(inv, id)
 			c.tag = "[l]" if h == 0 else "[r]"
 			c.key = "•" if game.controls.active == h else ""
@@ -265,15 +265,10 @@ func refresh() -> void:
 		c.key = ""
 		if worn != "":
 			c.texture = ItemIcons.dyed(worn, inv.gear_dye[k]) if inv.gear_dye.has(k) else ItemIcons.of_item(worn)
-		elif k == "back":
-			# The bag the character always has.
-			c.texture = UiStyle.icon("bag")
-			c.icon_size = c.texture.get_size() * 2
-			c.modulate = Color(1, 1, 1, 0.6)
 		else:
-			# The picture of what goes there, faint, at a whole scale (it is not square).
-			c.texture = UiStyle.icon("wear_" + k)
-			c.icon_size = c.texture.get_size() * 2
+			# The picture of what goes there (on the back, the bag the character always has),
+			# grey and faint.
+			c.texture = ItemIcons.picture("slot_" + k)
 			c.modulate = Color(1, 1, 1, 0.6)
 	# Under the bag, a strip of its load, as a light's in a slot: green, amber near the
 	# limit, red past it.

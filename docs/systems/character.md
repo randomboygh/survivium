@@ -390,7 +390,8 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   places (`Figure.anchors(form)`), so tools are held where its hands are.
 - `src/client/ui/person_panel.gd` — the tab «Character» of the inventory window (the figure drawn big and turned, `figure_stage.gd` as on the
   «Character» tab of a new game,
-  with what it holds and its shadow, the slots of what is worn and of the hands round it, the skills' strips under it); `src/client/ui/level_up.gd` — the effect of a skill's new level;
+  with what it holds and its shadow, the slots of what is worn and of the hands round it, an empty one with a faint grey
+  picture of what goes there, `slot_<place>`, an empty hand bare, `hand_left` / `hand`, the skills' strips under it); `src/client/ui/level_up.gd` — the effect of a skill's new level;
   `src/client/ui/death_screen.gd`, `vitals_panel.gd`, `body_feedback.gd`, `vibration.gd` — the death screen,
   the strengths' strips, the screen's response to damage (and an icy blue frame growing while the body is cold, from
   `Vitals.COLD` to `CHILL_FULL` below `FREEZING`, breathing while it freezes; and below `LOW_HEALTH` a crimson vignette, heavy in the corners, and a red wash beating

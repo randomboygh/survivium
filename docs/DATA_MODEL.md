@@ -130,7 +130,7 @@ with the crop `crop`), `materials.role` (10), `biomes.where` (climate and 7 reli
 |---|---|---|---|
 | A material's texture | `textures/<id>.png` (bark — `textures/<bark>.png`) | 48×16: top, sides, bottom | `PixelTextures`, `Mat.texture_path` |
 | A thing's model | `models/<model>.png` | a row of square slices by level, alpha 128 — a sheet | `VoxelModel.from_image` |
-| An item's icon | `icons/<icon>.png` | 12×12 | `ItemIcons` |
+| An item's icon | `icons/<icon>.png` (drawn by `tools/make_icons.gd` from `tools/art/icon_*_art.gd`; a block item without one shows a cube of its texture) | 12×12 | `ItemIcons` |
 | A creature's sprite | `sprites/creatures/<sprite>.png` | a row per side (`views`: 1 or 3), `frames` frames in a row (`walk` of them — a step, the last `hop` — hops of a flyer on the ground, after them `attack` — an attack) | `creatures.gd` |
 | A plant's sprite | `sprites/plants/<sprite>.png` | frames 8×24 | `Foliage`, `Plants` |
 | An item in the hand | `sprites/held/<sprite>.png` | a carrying frame + a frame of work each | `Figure` |

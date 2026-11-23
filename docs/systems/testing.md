@@ -54,7 +54,10 @@ checks; the warnings about RID leaks at the exit of `save_test` and `progress_te
   `bench_mesh.gd`, `bench_edit.gd`, `bench_turn.gd` — measurements; `bench_content.gd [bundles]` — reading and
   loading the mods' data, the registries and the graph, now and with an invented mod added.
 - Assets: `make_sprites.gd` (the player, the tools held, and the beasts drawn from the user's references: the boar,
-  `art/boar_art.gd`, the fox, `art/fox_art.gd`, and the black grouse, `art/grouse_art.gd`), `make_models.gd`, `make_icons.gd`, `make_textures.gd` (the drawing tools in
+  `art/boar_art.gd`, the fox, `art/fox_art.gd`, and the black grouse, `art/grouse_art.gd`), `make_models.gd`, `make_icons.gd` (the items' icons in the style of the user's reference sheets:
+  `art/icon_art.gd` holds the ramps, the outline and the interface's pictures, its parts `art/icon_nature_art.gd`,
+  `icon_material_art.gd`, `icon_tool_art.gd`, `icon_wear_art.gd` (also the bare hands and the empty slots of the character),
+  `icon_build_art.gd` the pictures), `make_textures.gd` (the drawing tools in
   `art/*.gd`), `make_sounds.gd` (the bricks in `sound/synth.gd`) — make only the named ones (`-- <name> …`),
   everything at once only with `-- --all`: what was drawn by hand is overwritten too; `sheet.gd` (the player's
   sheet to PNG); Python with Pillow: `make_icon.py` (the icon and `assets/web/`; the `og:` tags of the link

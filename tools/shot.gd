@@ -981,6 +981,18 @@ func _run() -> void:
 				slot = 0
 				await process_frame
 				await process_frame
+			if shot.has("fill"):
+				# The bag emptied and filled with these stacks in order ([id, count]): the
+				# items' pictures side by side for a review of their drawing.
+				var inv = main.host.player.inventory
+				inv.take_all()
+				var things: Array = shot.fill
+				for i in mini(things.size(), inv.slots.size()):
+					inv.slots[i] = Inventory.stack(things[i][0], things[i][1])
+				inv.changed.emit()
+				slot = shot.get("slot", 0)
+				await process_frame
+				await process_frame
 			if shot.has("give"):
 				main.host.player.give(shot.give, 1)
 				for i in main.host.player.inventory.slots.size():

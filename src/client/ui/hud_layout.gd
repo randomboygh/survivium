@@ -388,7 +388,7 @@ func _update_hands(name_now := true) -> void:
 		var slot = _hand_left if h == 0 else _hand_right
 		var id: String = c.hands[h]
 		slot.selected = c.active == h
-		slot.texture = ItemIcons.of_item(id) if id != "" else ItemIcons.picture("hand")
+		slot.texture = ItemIcons.of_item(id) if id != "" else ItemIcons.picture("hand_left" if h == 0 else "hand")
 		var n: int = game.character.inventory.count(id) if id != "" else 0
 		slot.modulate = Color(1, 1, 1, 0.5) if id != "" and n == 0 and not (free and c.use_of(h) == "place") else Color.WHITE
 		slot.number = "×%d" % n if n > 1 else ""
@@ -408,7 +408,7 @@ func _update_hands(name_now := true) -> void:
 	# The picture of what the hand in use holds, bare hands for nothing.
 	var held: String = c.held()
 	var pic: Texture2D = ItemIcons.of_item(held) if held != "" else null
-	_action.icon = pic if pic != null else ItemIcons.picture("hand")
+	_action.icon = pic if pic != null else ItemIcons.picture("hand_left" if c.active == 0 else "hand")
 
 
 ## Whether the action button stays pressed down: the fishing line is in the water, or

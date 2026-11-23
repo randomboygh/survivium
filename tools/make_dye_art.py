@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Draws the pictures of the dyes' sources (the dye vat PR): the ground plants madder
 (whorls of narrow leaves, small yellow flowers; its root is dug up) and woad (a stalk of
-blue-green leaves under a cloud of yellow flowers), and the icons (12x12) of what is
-gathered for the dyes: chalk, ochre, ash, nettle leaves, madder root, woad leaves, a murex
-snail. The dyes' own icons are bowls drawn by tools/make_icons.gd (IconArt.dye_picture).
+blue-green leaves under a cloud of yellow flowers). The icons of what is gathered for the
+dyes (chalk, ochre, ash, nettle leaves, madder root, woad leaves, a murex snail) and the dyes'
+own bowls are drawn by tools/make_icons.gd (tools/art/icon_*_art.gd, IconArt.dye_picture); the
+old icon tables (icons) are kept but no longer written.
 Run from the repo:
     python3 tools/make_dye_art.py
 Everything is written again.
@@ -88,7 +89,6 @@ def icons():
 
 def main():
     plants()
-    icons()
 
 
 if __name__ == "__main__":
