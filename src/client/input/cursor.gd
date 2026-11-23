@@ -55,8 +55,11 @@ func _ready() -> void:
 	get_parent().add_child.call_deferred(_bodies)
 
 
-## Frames `cells` (none hides the frame); `ok` false draws them red.
+## Frames `cells` (none hides the frame); `ok` false draws them red. A stroke's bodies
+## (show_boxes) go: the frame takes their place, as when both were the same lines (a
+## stroke let go ends with show_cells([]), user 2026-11-23).
 func show_cells(cells: Array, ok: bool) -> void:
+	show_boxes([], [])
 	var faces := []
 	for c: Vector3i in cells:
 		var side := _side()

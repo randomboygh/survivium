@@ -22,6 +22,7 @@ const Looks := preload("res://src/shared/content/looks.gd")
 const CreaturesView := preload("res://src/client/game/creatures.gd")
 const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 const PlanGhost := preload("res://src/client/view/plan_ghost.gd")
+const CursorScript := preload("res://src/client/input/cursor.gd")
 
 
 ## Ground all of one material (or all sea), for AirEffects.hot_ground.
@@ -2255,6 +2256,14 @@ func _test_plan_bodies() -> void:
 	# The top of the middle cell: rims only toward north and south, the long edges.
 	_check(middle_top >= 0 and _bits(middle_top) == 2, "the middle cell's top has a rim on its two long edges only: %d" % middle_top)
 	_check(PlanGhost.bodies([[[], Color.WHITE]], StandardMaterial3D.new()) == null, "no cells, no body")
+	# A stroke let go ends with the frame cleared (BuildMode.end_stroke): its body goes too.
+	var cursor := CursorScript.new()
+	cursor.show_boxes(wall, [])
+	_check(cursor._bodies.visible, "a stroke's cells show as a body")
+	cursor.show_cells([], true)
+	_check(not cursor._bodies.visible, "the stroke's body goes once the frame is cleared (user 2026-11-23)")
+	cursor._bodies.free()
+	cursor.free()
 
 
 static func _bits(v: int) -> int:
