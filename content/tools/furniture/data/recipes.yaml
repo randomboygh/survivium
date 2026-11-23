@@ -117,3 +117,8 @@
   needs: {materials:brick: 12, materials:iron_bar: 1, resources:clay: 2}
   at: workbench
   time: 12
+- id: door_wreath
+  title: "[tools.recipes.door_wreath]"
+  makes: door_wreath
+  needs: {resources:branch: 3, materials:cord: 1}
+  time: 3

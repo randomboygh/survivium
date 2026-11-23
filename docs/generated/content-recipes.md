@@ -16,7 +16,7 @@
 
 | Процесс | Рецептов | Где делают |
 |---|---|---|
-| [crafting] (`craft`) | 162 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
+| [crafting] (`craft`) | 163 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
 | Переработка (`refine`) | 12 | руки, [tools.items.workbench], [tools.items.drying_rack], [tools.items.loom] |
 | Плавка и обжиг (`smelt`) | 15 | [tools.items.forge], [tools.items.bloomery], [tools.items.kiln] |
 | Готовка (`cook`) | 29 | [core.items.campfire], [tools.items.kiln] |
@@ -122,6 +122,7 @@
 | [tools.recipes.iron_bed] `tools:iron_bed` | [tools.items.iron_bed] ×1 | [materials.items.iron_bar] ×6, [materials.items.cloth] ×2 | — | [tools.items.anvil] | — | 14 с | 14 | 5. [core.eras.iron] | — |
 | [tools.recipes.iron_safe] `tools:iron_safe` | [tools.items.iron_safe] ×1 | [materials.items.iron_bar] ×10 | — | [tools.items.anvil] | — | 16 с | 14 | 5. [core.eras.iron] | — |
 | [tools.recipes.brick_stove] `tools:brick_stove` | [tools.items.brick_stove] ×1 | [materials.items.brick] ×12, [materials.items.iron_bar] ×1, [resources.items.clay] ×2 | — | [tools.items.workbench] | — | 12 с | 13 | 5. [core.eras.iron] | — |
+| [tools.recipes.door_wreath] `tools:door_wreath` | [tools.items.door_wreath] ×1 | [resources.items.branch] ×3, [materials.items.cord] ×1 | — | руки | — | 3 с | 2 | 1. [core.eras.primitive] | — |
 | [tools.recipes.bone_needle] `tools:bone_needle` | [tools.items.bone_needle] ×1 | [animals.items.bone] ×1 | — | руки | [tool.knife] (износ 1) | 3 с | 3 | 1. [core.eras.primitive] | — |
 | [tools.recipes.potters_wheel] `tools:potters_wheel` | [tools.items.potters_wheel] ×1 | [materials.items.planks] ×4, [resources.items.stone] ×4, [resources.items.branch] ×2 | — | [tools.items.workbench] | — | 8 с | 5 | 1. [core.eras.primitive] | — |
 | [tools.recipes.raw_pot] `tools:raw_pot` | [tools.items.raw_pot] ×1 | [resources.items.clay] ×3 | — | [tools.items.potters_wheel] | — | 5 с | 6 | 1. [core.eras.primitive] | — |

@@ -136,6 +136,8 @@ func describe(target: Dictionary) -> String:
 		if Placed.is_part(e):
 			return title
 		if Placed.is_door(e):
+			if e.get("wreath", "") == "" and Items.get_item(game.character.held()).get("wreath", false):
+				return Lang.f("[lmb]", [title, "[hang_the_wreath_n2]"])
 			return Lang.f("[lmb]", [title, "[close_n2]" if e.get("open", false) else "[open]"])
 		if e.items != null:
 			return Lang.f("[lmb_open]", [title])

@@ -125,6 +125,8 @@ static func _prop(kind: String, model := "") -> VoxelModel:
 ## on it, by model name (an item's `model`), null for a name not drawn here.
 static func drop(model: String) -> VoxelModel:
 	match model:
+		"door_wreath":
+			return FurnitureArt.door_wreath()
 		"log":
 			return _log()
 		"branch":

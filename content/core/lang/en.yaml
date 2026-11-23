@@ -117,6 +117,7 @@
 "[lmb_read]": "%s\nLMB read"
 "[lmb]": "%s\nLMB %s"
 "[close_n2]": "close"
+"[hang_the_wreath_n2]": "hang the wreath"
 "[open]": "open"
 "[lmb_open]": "%s\nLMB open"
 "[catcher_water_share]": "%s: water %d%%"

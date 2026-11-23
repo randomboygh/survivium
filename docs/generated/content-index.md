@@ -23,7 +23,7 @@
 - `sounds` [sounds.mod]: `sounds/nature` [sounds.nature.bundle], `sounds/player` [sounds.player.bundle], `sounds/ui` [sounds.ui.bundle]
 - `tools` [tools.mod]: `tools/anvil` [tools.anvil.bundle], `tools/axe` [tools.axe.bundle], `tools/bedding` [tools.bedding.bundle], `tools/big_chest` [tools.big_chest.bundle], `tools/bloomery` [tools.bloomery.bundle], `tools/boats` [tools.boats.bundle], `tools/boiled_water` [tools.boiled_water.bundle], `tools/boundary_post` [tools.boundary_post.bundle], `tools/bow` [tools.bow.bundle], `tools/candle` [tools.candle.bundle], `tools/canvas_backpack` [tools.canvas_backpack.bundle], `tools/chest` [tools.chest.bundle], `tools/cloth_clothes` [tools.cloth_clothes.bundle], `tools/composite_bow` [tools.composite_bow.bundle], `tools/door` [tools.door.bundle], `tools/drying_rack` [tools.drying_rack.bundle], `tools/fence` [tools.fence.bundle], `tools/fiber_clothes` [tools.fiber_clothes.bundle], `tools/fireplace` [tools.fireplace.bundle], `tools/fishing_rod` [tools.fishing_rod.bundle], `tools/forge` [tools.forge.bundle], `tools/furniture` [tools.furniture.bundle], `tools/hatch` [tools.hatch.bundle], `tools/hide_clothes` [tools.hide_clothes.bundle], `tools/hoe` [tools.hoe.bundle], `tools/ice_fishing` [tools.ice_fishing.bundle], `tools/jewellery` [tools.jewellery.bundle], `tools/kiln` [tools.kiln.bundle], `tools/knife` [tools.knife.bundle], `tools/ladder` [tools.ladder.bundle], `tools/lantern` [tools.lantern.bundle], `tools/leather_bag` [tools.leather_bag.bundle], `tools/leather_sling` [tools.leather_sling.bundle], `tools/loom` [tools.loom.bundle], `tools/needle` [tools.needle.bundle], `tools/pickaxe` [tools.pickaxe.bundle], `tools/potters_wheel` [tools.potters_wheel.bundle], `tools/rain_barrel` [tools.rain_barrel.bundle], `tools/rain_catcher` [tools.rain_catcher.bundle], `tools/scythe` [tools.scythe.bundle], `tools/shovel` [tools.shovel.bundle], `tools/sickle` [tools.sickle.bundle], `tools/signs` [tools.signs.bundle], `tools/sling` [tools.sling.bundle], `tools/spear` [tools.spear.bundle], `tools/stairs` [tools.stairs.bundle], `tools/sword` [tools.sword.bundle], `tools/tar_torch` [tools.tar_torch.bundle], `tools/torch` [tools.torch.bundle], `tools/trap` [tools.trap.bundle], `tools/watering_can` [tools.watering_can.bundle], `tools/waterskin` [tools.waterskin.bundle], `tools/wicker_bag` [tools.wicker_bag.bundle], `tools/window` [tools.window.bundle], `tools/workbench` [tools.workbench.bundle]
 
-## Предметы (`items`, 290)
+## Предметы (`items`, 291)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
@@ -63,7 +63,7 @@
 | `plants:woad_leaves` | [plants.items.woad_leaves] | [materials] |  | `plants/woad` | 0. [core.eras.foraging] | 1 / 2 | ок |
 | `resources:crystal` | [resources.items.crystal] | [blocks] |  | `resources/caves` | 1. [core.eras.primitive] | 1 / 1 | ок |
 | `resources:fiber` | [resources.items.fiber] | [materials] |  | `resources/fiber` | 0. [core.eras.foraging] | 0 / 30 | ок |
-| `materials:cord` | [materials.items.cord] | [materials] |  | `materials/cord` | 1. [core.eras.primitive] | 1 / 76 | ок |
+| `materials:cord` | [materials.items.cord] | [materials] |  | `materials/cord` | 1. [core.eras.primitive] | 1 / 77 | ок |
 | `plants:moss` | [plants.items.moss] | [materials] |  | `plants/moss` | 0. [core.eras.foraging] | 0 / 3 | ок |
 | `plants:bandage` | [plants.items.bandage] | [healing] |  | `plants/moss` | 0. [core.eras.foraging] | 0 / 2 | ок |
 | `plants:poultice` | [plants.items.poultice] | [healing] | [plants.items.poultice.about] | `plants/moss` | 0. [core.eras.foraging] | 0 / 1 | ок |
@@ -84,7 +84,7 @@
 | `materials:murex` | [materials.items.murex] | [materials] | [materials.items.murex.about] | `materials/finds` | 0. [core.eras.foraging] | 1 / 2 | ок |
 | `resources:stone` | [resources.items.stone] | [blocks] |  | `resources/stone` | 0. [core.eras.foraging] | 1 / 14 | ок |
 | `resources:flint` | [resources.items.flint] | [materials] |  | `resources/stone` | 0. [core.eras.foraging] | 0 / 22 | ок |
-| `resources:branch` | [resources.items.branch] | [materials] |  | `resources/wood` | 0. [core.eras.foraging] | 0 / 77 | ок |
+| `resources:branch` | [resources.items.branch] | [materials] |  | `resources/wood` | 0. [core.eras.foraging] | 0 / 78 | ок |
 | `resources:log` | [resources.items.log] | [blocks] |  | `resources/wood`; патчи: `plants/wood` | 1. [core.eras.primitive] | 1 / 28 | ок |
 | `animals:roach` | [animals.items.roach] | [food] | [animals.items.roach.about] | `animals/fish` | 1. [core.eras.primitive] | 1 / 2 | ок |
 | `animals:pike` | [animals.items.pike] | [food] | [animals.items.pike.about] | `animals/fish` | 1. [core.eras.primitive] | 1 / 2 | ок |
@@ -227,6 +227,7 @@
 | `tools:wall_hide` | [tools.items.wall_hide] | [stations] | [tools.items.wall_hide.about] | `tools/furniture` | 1. [core.eras.primitive] | 0 / 1 | ок |
 | `tools:brine_tub` | [tools.items.brine_tub] | [stations] | [tools.items.brine_tub.about] | `tools/furniture` | 1. [core.eras.primitive] | 0 / 1 | ок |
 | `tools:brick_stove` | [tools.items.brick_stove] | [stations] | [tools.items.brick_stove.about] | `tools/furniture` | 5. [core.eras.iron] | 0 / 1 | предупреждения: 1 |
+| `tools:door_wreath` | [tools.items.door_wreath] | [materials] | [tools.items.door_wreath.about] | `tools/furniture` | 1. [core.eras.primitive] | 0 / 1 | предупреждения: 1 |
 | `tools:bone_needle` | [tools.items.bone_needle] | [tools] | [tools.items.bone_needle.about] | `tools/needle` | 1. [core.eras.primitive] | 0 / 1 | ок |
 | `tools:potters_wheel` | [tools.items.potters_wheel] | [stations] |  | `tools/potters_wheel` | 1. [core.eras.primitive] | 0 / 3 | ок |
 | `tools:raw_pot` | [tools.items.raw_pot] | [materials] | [tools.items.raw_pot.about] | `tools/potters_wheel` | 1. [core.eras.primitive] | 0 / 2 | ок |
@@ -318,7 +319,7 @@
 | `tools:window_2x2` | [tools.items.window_2x2] | [stations] | [tools.items.window_2x2.about] | `tools/window` | 3. [core.eras.bronze] | 0 / 1 | ок |
 | `tools:window_3x2` | [tools.items.window_3x2] | [stations] | [tools.items.window_3x2.about] | `tools/window` | 3. [core.eras.bronze] | 0 / 1 | ок |
 
-## Рецепты (`recipes`, 218)
+## Рецепты (`recipes`, 219)
 
 | Id | Название | Категория | Описание | Бандл | Эпоха | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|---|
@@ -450,6 +451,7 @@
 | `tools:iron_bed` | [tools.recipes.iron_bed] | [stations] |  | `tools/furniture` | 5. [core.eras.iron] | 4 / 0 | ок |
 | `tools:iron_safe` | [tools.recipes.iron_safe] | [stations] |  | `tools/furniture` | 5. [core.eras.iron] | 3 / 0 | ок |
 | `tools:brick_stove` | [tools.recipes.brick_stove] | [stations] |  | `tools/furniture` | 5. [core.eras.iron] | 5 / 0 | ок |
+| `tools:door_wreath` | [tools.recipes.door_wreath] | [materials] |  | `tools/furniture` | 1. [core.eras.primitive] | 3 / 0 | ок |
 | `tools:bone_needle` | [tools.recipes.bone_needle] | [tools] |  | `tools/needle` | 1. [core.eras.primitive] | 2 / 0 | ок |
 | `tools:potters_wheel` | [tools.recipes.potters_wheel] | [stations] |  | `tools/potters_wheel` | 1. [core.eras.primitive] | 5 / 0 | ок |
 | `tools:raw_pot` | [tools.recipes.raw_pot] | [materials] |  | `tools/potters_wheel` | 1. [core.eras.primitive] | 3 / 0 | ок |

@@ -43,6 +43,8 @@
 "[tools.items.brine_tub.about]": "A low tub of salt water under a stone weight. Food in it keeps five times longer."
 "[tools.items.brick_stove]": "Dutch stove"
 "[tools.items.brick_stove.about]": "A tall brick stove with an iron door. Warms the room like a fireplace; the fire stays hidden inside."
+"[tools.items.door_wreath]": "Door wreath"
+"[tools.items.door_wreath.about]": "A wreath of twigs with berries and a bow. Hold it and tap a door to hang it there."
 
 # content/tools/furniture/data/recipes.yaml
 "[tools.recipes.table]": "Table"
@@ -64,3 +66,4 @@
 "[tools.recipes.wall_hide]": "Hide on the wall"
 "[tools.recipes.brine_tub]": "Brine tub"
 "[tools.recipes.brick_stove]": "Dutch stove"
+"[tools.recipes.door_wreath]": "Door wreath"

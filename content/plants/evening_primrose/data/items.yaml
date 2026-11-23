@@ -42,3 +42,4 @@
   model: flower_frame
   prop: flower_frame
   furniture: true
+  wall: true

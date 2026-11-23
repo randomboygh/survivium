@@ -170,6 +170,8 @@ const SCHEMAS := {
 		"sign_lines": {"type": "int", "min": 0, "max": 8, "default": 0},
 		"sign_width": {"type": "int", "min": 1, "max": 32, "default": 20},
 		"wall": {"type": "bool", "default": false},
+		# A wreath: held in the hand at a tap on a door it is hung on the door (Placed.hang_wreath).
+		"wreath": {"type": "bool", "default": false},
 		# A cross (core): set down by the world where a death's sack was once its days are up,
 		# telling who died there to those near, like a sign (Placed.put_grave); never in a bag.
 		"grave": {"type": "bool", "default": false},

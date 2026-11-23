@@ -190,7 +190,7 @@ static func brick_stove() -> VoxelModel:
 
 
 ## A hide stretched on a frame of sticks for a wall: a thin sheet on the cell's north edge, tied with cords at
-## the corners.
+## the corners, from three voxels over the floor to two cells up.
 static func wall_hide() -> VoxelModel:
 	var m := VoxelModel.new()
 	var fur := Color(0.55, 0.4, 0.25)
@@ -203,29 +203,30 @@ static func wall_hide() -> VoxelModel:
 			var c := fur
 			if (x + y * 2) % 5 == 0:
 				c = pale
-			m.set_voxel(Vector3i(x, y, 1), c)
+			m.set_voxel(Vector3i(x, y + 3, 1), c)
 	for x in range(0, 8):
-		m.set_voxel(Vector3i(x, 12, 0), WOOD_DARK)
-		m.set_voxel(Vector3i(x, 0, 0), WOOD_DARK)
+		m.set_voxel(Vector3i(x, 15, 0), WOOD_DARK)
+		m.set_voxel(Vector3i(x, 3, 0), WOOD_DARK)
 	for p: Vector2i in [Vector2i(1, 11), Vector2i(6, 11), Vector2i(1, 1), Vector2i(6, 1)]:
-		m.set_voxel(Vector3i(p.x, p.y, 0), Color(0.82, 0.72, 0.5))
+		m.set_voxel(Vector3i(p.x, p.y + 3, 0), Color(0.82, 0.72, 0.5))
 	return m
 
 
-## A framed dried flower on the cell's north edge: a plank frame, a pale sheet, a flower with a stem.
+## A framed dried flower on the cell's north edge, at the height of the eyes: a plank frame, a pale sheet, a flower
+## with a stem.
 static func flower_frame() -> VoxelModel:
 	var m := VoxelModel.new()
 	var paper := Color(0.9, 0.86, 0.74)
-	for y in range(3, 11):
+	for y in range(6, 14):
 		for x in range(1, 7):
-			var rim := x == 1 or x == 6 or y == 3 or y == 10
+			var rim := x == 1 or x == 6 or y == 6 or y == 13
 			m.set_voxel(Vector3i(x, y, 1), WOOD_DARK * 1.2 if rim else paper)
-	for y in range(4, 8):
+	for y in range(7, 11):
 		m.set_voxel(Vector3i(3, y, 1), Color(0.35, 0.55, 0.28))
-	m.set_voxel(Vector3i(2, 5, 1), Color(0.3, 0.5, 0.25))
-	for p: Vector2i in [Vector2i(3, 8), Vector2i(2, 8), Vector2i(4, 8), Vector2i(3, 9)]:
+	m.set_voxel(Vector3i(2, 8, 1), Color(0.3, 0.5, 0.25))
+	for p: Vector2i in [Vector2i(3, 11), Vector2i(2, 11), Vector2i(4, 11), Vector2i(3, 12)]:
 		m.set_voxel(Vector3i(p.x, p.y, 1), Color(0.55, 0.3, 0.6))
-	m.set_voxel(Vector3i(3, 8, 1), Color(0.95, 0.8, 0.25))
+	m.set_voxel(Vector3i(3, 11, 1), Color(0.95, 0.8, 0.25))
 	return m
 
 

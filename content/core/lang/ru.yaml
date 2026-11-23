@@ -117,6 +117,7 @@
 "[lmb_read]": "%s\nЛКМ прочитать"
 "[lmb]": "%s\nЛКМ %s"
 "[close_n2]": "закрыть"
+"[hang_the_wreath_n2]": "повесить венок"
 "[open]": "открыть"
 "[lmb_open]": "%s\nЛКМ открыть"
 "[catcher_water_share]": "%s: воды %d%%"
