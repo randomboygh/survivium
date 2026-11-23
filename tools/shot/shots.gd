@@ -293,6 +293,12 @@ const SHOTS := {
 		"hide": ["chunks: grass"]},
 	"build-ghost-turned": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "stroke": false, "hud": false,
 		"hide": ["chunks: grass"], "turn": 1},
+	# A table new from the bag held up in the build mode where it fits (its model only) and
+	# where it does not (its cells red).
+	"build-hold": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "stroke": false,
+		"hold_new": ["tools:table", Vector3i(2, 0, 2), true]},
+	"build-hold-bad": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "stroke": false,
+		"hold_new": ["tools:table", Vector3i(2, 0, 2), false]},
 	"build-mode-erase": {"time": 0.4, "season": 1, "plan": true, "build_mode": "erase"},
 	"build-mode-cube": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "cube"},
 	"build-mode-interior": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "filter": "interior"},

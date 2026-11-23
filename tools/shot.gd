@@ -1279,6 +1279,17 @@ func _run() -> void:
 				await process_frame
 			if not shot.has("flights") and shot.get("stroke", true):
 				main.build.show_stroke(s)
+			if shot.has("hold_new"):
+				# A thing new from the bag held up where it goes (a stroke with "put", its finger
+				# off the screen): [item, from the feet, fits]; not fitting, its cells shown red.
+				var at: Vector3i = feet + shot.hold_new[1]
+				main.controls._stroke = {"button": MOUSE_BUTTON_LEFT, "dig": false, "pos": Vector2(-100, -100),
+					"held": true, "pending": false, "put": shot.hold_new[0], "from": Vector2(-100, -100), "ms": 0,
+					"up": true, "aim": at, "turn": 0, "kept": false, "spot": null, "shown": null}
+				for i in 3:
+					await process_frame
+				if not shot.hold_new[2]:
+					main.build._frame(shot.hold_new[0], at, 0, false)
 		if shot.has("sapling_tree"):
 			# The oak sapling at its last stage east of the farm (TestGround.SAPLINGS) grown
 			# by the server into a young tree ("young") or a tree ("grown", "felled"), and
@@ -1569,7 +1580,7 @@ func _run() -> void:
 			await process_frame
 		# The blueprint's blocks are meshed a few columns a frame in the game: all first.
 		for n in main.world_root.get_children():
-			if n.has_method("finish_blueprint"):
+			if is_instance_valid(n) and n.has_method("finish_blueprint"):
 				n.finish_blueprint()
 				await process_frame
 		# The trees' light is worked out a few trees a frame in the game: all of it first.

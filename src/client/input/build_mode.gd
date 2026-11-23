@@ -523,16 +523,17 @@ func _drag_new(s: Dictionary) -> void:
 	_frame(s.put, at, found[1], s.spot != null)
 
 
-## Frames the cells thing `id` turned `turn` takes from the north-west cell `at`: light
-## where it fits, red where not.
+## Shows where thing `id` turned `turn` would go from the north-west cell `at`: where it
+## fits only its own model held there (user 2026-11-23: no see-through body over a
+## thing, it is set down as it is), where not its cells red.
 func _frame(id: String, at: Vector3i, turn: int, fits: bool) -> void:
+	if fits:
+		game.cursor.show_boxes([], [])
+		return
 	var cells: Array = []
 	for o: Vector3i in game.placed.cells_of({"item": id, "cell": Vector3i.ZERO, "turn": turn}):
 		cells.append(at + o)
-	if fits:
-		game.cursor.show_boxes(cells, [])
-	else:
-		game.cursor.show_boxes([], cells)
+	game.cursor.show_boxes([], cells)
 
 
 ## The finger or the mouse let go (stroke `s`). A thing new from the bag is set down where
