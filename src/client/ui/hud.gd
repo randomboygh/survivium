@@ -133,7 +133,7 @@ func _build_top() -> void:
 	game.land.changed.connect(_show_land)
 	game.land.entered.connect(_on_land_entered)
 	game.land.painting_toggled.connect(_on_painting_toggled)
-	_bag_button = _icon_button(_top, "person", "[character_bag_and_crafting]", toggle_bag)
+	_bag_button = _icon_button(_top, "backpack", "[character_bag_and_crafting]", toggle_bag)
 	_menu_button = _icon_button(_top, "menu", "[menu]", toggle_menu)
 
 
