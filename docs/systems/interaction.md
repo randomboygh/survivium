@@ -88,6 +88,9 @@ lies around. The rules are shared (the server checks them), input and hints are 
   bush, tree or grass next to the cell (`TAP_RING`), otherwise the most valuable on the cell itself (seeds,
   then the rest); grass with plants on it (flowers, herbs, nettles, mushrooms) ranks half a step above bare
   grass (`_mow_rank`), so plants are picked before the fibre of the ground, by a tap and by the action button;
+  where snow lies `SNOW_GATHER` deep (`Clock.snow`, `WorldCells.peak_snow`) or the ground is snow, bare hands
+  gather a handful of it instead of the fibre (`snow_gathered`: the item of the material with the role `snow`,
+  open sky, nothing standing there; the grass stays, the snow is not used up);
   then the cell itself — a tree, grass, dig. A click with hands or a sword on a bush
   (`gathering.target_at`) goes the same way: `controls.tap` sends `DIG` to the bush's cell). A new rule of
   the hands goes into the part of its topic; if it calls a later part — into that part or lower down the
@@ -279,7 +282,7 @@ follow their own touch index so that two fingers work.
 **Tests.** `tests/unit/boat_test.gd` (launching, moving on water, two in a boat, the shore, a vessel at the
 shore and into the bag, oars, saving, ice, death),
 `tests/unit/farming_test.gd` (a bed, sowing, watering, rain, growth, winter, harvest, saving),
-`tests/unit/actions_test.gd` (`felling`, `front_choice`, `world_actions`, `stairs_placed`, `placed`,
+`tests/unit/actions_test.gd` (`felling`, `front_choice`, `snow_gathered`, `world_actions`, `stairs_placed`, `placed`,
 `start_camp`, `lights`, `drinking`, `furniture`, `openings`),
 `tests/unit/plans_test.gd` (the blueprint's shapes, building by cells from the bag, erasing, saving),
 `tests/unit/content_test.gd` (`tools`), `tests/progress_test.gd` (the whole way of the game from bare hands to

@@ -189,15 +189,21 @@ func _check_textures() -> PackedStringArray:
 
 
 ## Each item's model is there, in its bundle, a row of square slices (see VoxelModel.from_image);
-## a thing placed on cells has one.
+## a thing placed on cells has one (or a flat `picture`).
 func _check_models() -> PackedStringArray:
 	var out: PackedStringArray = []
 	for id in Items.IDS:
 		var item := Items.get_item(id)
 		var name: String = item.get("model", "")
+		var picture: String = item.get("picture", "")
+		if picture != "":
+			# Drawn flat (Props._add_sprite): views by rows, melting stages by columns.
+			if not Content.exists(Content.asset(item, "sprites/things/%s.png" % picture)):
+				out.append("items: `%s`: no picture sprites/things/%s.png" % [id, picture])
+			continue
 		if name == "":
 			if item.get("prop", "none") != "none" and not item.fire:
-				out.append("items: `%s`: a thing placed on cells needs a `model`" % id)
+				out.append("items: `%s`: a thing placed on cells needs a `model` or a `picture`" % id)
 			continue
 		var path := VoxelProps.model_path(item, name)
 		if not ResourceLoader.exists(path):

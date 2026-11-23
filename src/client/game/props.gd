@@ -9,6 +9,7 @@ extends RefCounted
 ## node that owns the scene.
 
 const Mat := preload("res://src/shared/content/materials.gd")
+const Content := preload("res://src/shared/content/content.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const VoxelProps := preload("res://src/client/view/voxel_props.gd")
 const RoofMap := preload("res://src/client/world/roof_map.gd")
@@ -36,6 +37,12 @@ const LOW_HEIGHT := 0.75
 ## Kinds of things placed (an item's `prop`) too thin for the sun's shadow map: a
 ## boundary post's pole.
 const THIN_PROPS := ["post"]
+## The rows of a thing's picture (an item's `picture`, see _add_sprite).
+const SPRITE_FRONT := 0
+const SPRITE_BACK := 1
+const SPRITE_LEFT := 2
+const SPRITE_RIGHT := 3
+const SPRITE_VIEWS := 4
 ## Seconds a thing taken from the ground takes to fly to the player.
 const FLY_TIME := 0.2
 ## A thing set down drops into place from this many cells up, in DROP_TIME seconds,
@@ -73,6 +80,13 @@ var _standing := {}
 var _heat_queued := false
 ## The things just gone, by cell: [item, turn, when (ms)] (see RENEW_MS).
 var _gone := {}
+## The things drawn as a picture (an item's `picture`) by cell, and the view the camera
+## had when their views were last picked (update); their pictures and materials by
+## [sprite, view, stage] (sprite_look).
+var _sprite_things := {}
+var _sprite_up := Vector2.ZERO
+var _sprite_textures := {}
+var _sprite_materials := {}
 ## The model of a thing new from the bag held up in the build mode (hold_new), null for none.
 var _held_new: MeshInstance3D = null
 ## Things newly fallen in a chunk wait to be drawn while the ground they came from is
@@ -102,6 +116,7 @@ func watch(placed) -> void:
 	placed.opened.connect(_on_opened)
 	placed.joined.connect(_on_opened)
 	placed.water_changed.connect(_on_water_changed)
+	placed.melt_changed.connect(_on_opened)
 
 
 ## Puts the placed things into the world as the save had them, or the camp of the start
@@ -234,6 +249,9 @@ func _on_added(e: Dictionary, still := false) -> void:
 		if not Placed.is_hearth(e):
 			_arrive(e, null)
 			return
+	if Items.get_item(e.item).get("picture", "") != "":
+		_add_sprite(e, still)
+		return
 	var node := MeshInstance3D.new()
 	var kind: String = Items.get_item(e.item).prop
 	var model = _model(kind, e.get("turn", 0), e.get("open", false), e.get("join", -1), _water_step(e), e.get("wreath", ""))
@@ -291,6 +309,81 @@ var _water_steps := {}
 
 
 ## The step of water rain catcher `e` shows, 0 for none (or for a thing that is no catcher).
+## Thing `e` drawn as its item's picture (`picture`: sprites/things/<picture>.png of its
+## bundle, a row a view — the front, the back, facing left, facing right on the screen —
+## and a column a stage of its melting, Placed.melt_stage), standing up on its cell like
+## an animal, the view picked by how it is turned against the camera (sprite_view).
+func _add_sprite(e: Dictionary, still: bool) -> void:
+	var item := Items.get_item(e.item)
+	var tex := _sprite_texture(item)
+	if tex == null:
+		return
+	var w := tex.get_width() / Placed.MELT_STAGES
+	var h := tex.get_height() / SPRITE_VIEWS
+	var node := MeshInstance3D.new()
+	node.mesh = PixelView.sprite_mesh(w, h)
+	var n: int = Placed.size_of(e.item)
+	node.position = (Vector3(e.cell) + Vector3(n * 0.5, 0.0, n * 0.5)) * CELL
+	node.layers = PixelView.LAYER_THINGS
+	# The quad turns to the camera and to the sun in its shader: boxed as a column as wide
+	# as the picture each way.
+	var half := w / PixelView.PIXELS_PER_UNIT * 0.5
+	node.set_meta("box", AABB(Vector3(-half, 0.0, -half), Vector3(half * 2.0, h / PixelView.PIXELS_PER_UNIT, half * 2.0)))
+	node.material_override = _sprite_look(item, tex, sprite_view(e.get("turn", 0)), Placed.melt_stage(e))
+	_fit(node)
+	game.world_root.add_child(node)
+	_nodes[e.cell] = node
+	_sprite_things[e.cell] = e
+	if not still:
+		_arrive(e, node)
+
+
+## The picture of item `item`'s `picture`, read once.
+func _sprite_texture(item: Dictionary) -> Texture2D:
+	var path := Content.asset(item, "sprites/things/%s.png" % item.picture)
+	if not _sprite_textures.has(path):
+		var img := Content.picture(path)
+		_sprite_textures[path] = ImageTexture.create_from_image(img) if img != null else null
+	return _sprite_textures[path]
+
+
+## The material that shows view `view` of stage `stage` of picture `tex`.
+func _sprite_look(item: Dictionary, tex: Texture2D, view: int, stage: int) -> ShaderMaterial:
+	var key := "%s/%d/%d" % [item.id, view, stage]
+	if not _sprite_materials.has(key):
+		var m := Creatures.PlayerScript.sprite_material(Creatures.SpriteShader, tex)
+		m.set_shader_parameter("frame_uv", Vector4(float(stage) / Placed.MELT_STAGES, float(view) / SPRITE_VIEWS,
+			1.0 / Placed.MELT_STAGES, 1.0 / SPRITE_VIEWS))
+		m.set_shader_parameter("sun_shadow_free", 1.0)
+		_sprite_materials[key] = m
+	return _sprite_materials[key]
+
+
+## The row of a thing's picture the camera sees it by, the thing turned `turn` (Placed:
+## 0 its front to the south): SPRITE_FRONT when it faces the camera, SPRITE_BACK when it
+## faces away, else SPRITE_LEFT or SPRITE_RIGHT by the side of the screen it looks to.
+static func sprite_view(turn: int) -> int:
+	var facing: Vector2 = [Vector2(0, 1), Vector2(-1, 0), Vector2(0, -1), Vector2(1, 0)][posmod(turn, 4)]
+	var to_camera := facing.dot(-PixelView.up)
+	var to_right := facing.dot(PixelView.right)
+	if absf(to_camera) >= absf(to_right) - 0.01:
+		return SPRITE_FRONT if to_camera > 0.0 else SPRITE_BACK
+	return SPRITE_RIGHT if to_right > 0.0 else SPRITE_LEFT
+
+
+## Each frame: once the camera has turned, the things drawn as pictures show the view
+## of them it looks at now.
+func update() -> void:
+	if _sprite_things.is_empty() or PixelView.up == _sprite_up:
+		return
+	_sprite_up = PixelView.up
+	for cell: Vector3i in _sprite_things:
+		var e: Dictionary = _sprite_things[cell]
+		if _nodes.has(cell):
+			var item := Items.get_item(e.item)
+			_nodes[cell].material_override = _sprite_look(item, _sprite_texture(item), sprite_view(e.get("turn", 0)), Placed.melt_stage(e))
+
+
 func _water_step(e: Dictionary) -> int:
 	if not Placed.is_catcher(e):
 		return 0
@@ -358,6 +451,7 @@ func _on_opened(e: Dictionary) -> void:
 
 
 func _on_removed(e: Dictionary) -> void:
+	_sprite_things.erase(e.cell)
 	var now := Time.get_ticks_msec()
 	if _gone.size() > 32:
 		for c: Vector3i in _gone.keys():
@@ -874,7 +968,8 @@ func _arrays_of(kind: String) -> Array:
 ## the views the camera shows or turns to (PixelView.sheared_box).
 func _fit(node: MeshInstance3D) -> void:
 	var to_world := node.transform
-	var box := PixelView.sheared_box(to_world * node.mesh.get_aabb(), FIT_MARGIN)
+	var own: AABB = node.get_meta("box", node.mesh.get_aabb())
+	var box := PixelView.sheared_box(to_world * own, FIT_MARGIN)
 	node.custom_aabb = to_world.affine_inverse() * box
 	# A window's glass lit from inside (WindowGlow) is culled with it.
 	for child in node.get_children():

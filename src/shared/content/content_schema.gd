@@ -124,6 +124,10 @@ const SCHEMAS := {
 		# recipes are made at it, tools mended if they mend them), `place_tool` the class of
 		# tool it is set down with (one in the bag), `claims` it is a territory's centre.
 		"prop": {"type": "word", "default": "none"},
+		# A thing placed (`prop`) drawn as a picture instead of a model: sprites/things/<picture>.png
+		# of its bundle, a row a view (front, back, facing left, facing right), a column a stage
+		# of melting (`melts`); it stands on one cell (Props._add_sprite).
+		"picture": {"type": "word", "default": ""},
 		"storage": {"type": "int", "min": 0, "default": 0},
 		"fire": {"type": "bool", "default": false},
 		"repairs": {"type": "bool", "default": false},
@@ -254,6 +258,12 @@ const SCHEMAS := {
 		# A fire (`fuel_max`) that burns down to the end leaves these on its cell (ash;
 		# WorldActions.leave_ashes); one put out by rain or a hand leaves none.
 		"ashes": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "burn"},
+		# A thing of snow set down (a snowman): it melts these many days in air of
+		# Placed.MELT_WARM degrees (faster when warmer, not at all in frost), drawn sinking
+		# stage by stage, and when it has melted through it is gone and leaves `melts_to`
+		# on its cell (WorldActions.leave_melted); 0 never melts. Taken up only whole.
+		"melts": {"type": "float", "min": 0.0, "default": 0.0},
+		"melts_to": {"type": "amounts", "of": "ref:items", "soft": true, "default": {}, "rel": "drops", "via": "melt"},
 		"bag_slots": {"type": "int", "min": 0, "default": 0},
 		# Bedding: kept in the bag, sleep rests this many times faster (the best one counts,
 		# Character.sleep_rate); 1 is none.
@@ -681,7 +691,7 @@ const RELATIONS := {
 }
 ## The actions a link comes about by (`via`): the rules of the hands
 ## (src/shared/game/world_actions.gd, tools.gd) decide what each one takes.
-const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "burn", "place", "plant", "sow", "repair", "hunt", "fish", "shear", "trap"]
+const ACTIONS := ["dig", "mow", "fell", "gather", "dig_out", "burn", "melt", "place", "plant", "sow", "repair", "hunt", "fish", "shear", "trap"]
 ## Fields every record may have besides its kind's: a text for the player, tags for
 ## reports and search (they decide nothing in the engine), which of the record's numbers
 ## are provisional, still to be balanced, and the ids it had before (`was`), so a save

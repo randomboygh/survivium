@@ -207,11 +207,23 @@ the door, and the door taken up gives it back. Their models are drawn by
 `tools/art/voxel_furniture_art.gd` (called by `VoxelArt.prop`), the stone and iron pictures are VARIANTS of the
 wooden ones in `icon_build_art.gd`.
 
+**Snowman** (2026-11-23; the bundle `plants/snowman`) — furniture on one cell rolled by hand from snow (6),
+branches (2), charcoal and a carrot. It is not a voxel model but a flat picture (the item's `picture`:
+`sprites/things/<picture>.png`, drawn by `tools/art/snowman_sprite.py` from pixel circles): rows are the views
+(front, back, facing left, facing right), columns the melting stages. `Props._add_sprite` stands it upright facing the
+camera (the creatures' sprite shader, `sun_shadow_free`: the sun's shadow does not fall on it, its shading is drawn),
+`Props.sprite_view` picks the row by the camera's turn, and a pictured thing is solid in `Placed.SPRITE_BOX`. A thing with `melts` (days of melting at `Placed.MELT_WARM` degrees) melts by
+`Placed.melt`, a step of the session: by `Warmth.air` with the fires near (`Warmth.fire_heat`), not at all at 0° and
+below. Its `melt` (0..1) is in its record and save; `Placed.melt_stage` (of `MELT_STAGES`) changes are told
+(`melt_changed`, `Protocol.PROP_MELT`), and the client shows the stage's column. Melted through it is
+gone (`melted`: `WorldActions.leave_melted` drops its `melts_to`). It is taken up only whole (`melt_stage` 0).
+
 **Limits.** The solid parts of a thing `Placed.read_footprints` reads from its voxel model (the bundle's PNG)
 at loading the mods, without the client; a thing without a model is solid as a crate (`CRATE_BOX`).
 
 **Tests.** `tests/unit/content_test.gd` (`crafting`: the queue and the works' numbers),
 `tests/unit/actions_test.gd` (`placed`, `stairs_placed`, `furniture` — furniture, a seat and keeping,
+`snowman_melts` — melting, a save, what a snowman leaves,
 `openings` — windows, doors 2×2 and 2×3, and `tests/unit/fences_test.gd` — a fence, a wicket and gates, a
 hatch, a ladder; a fireplace, `station_flags` — a station of another class that replaces a workbench and is
 placed with a knife, a crate of 4 places, repair by a flag; `recipe_fields` — a mould in the bag is not spent

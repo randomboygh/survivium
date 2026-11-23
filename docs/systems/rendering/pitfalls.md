@@ -133,3 +133,6 @@ One-line forms of the rules; the detail is above and in the other pages of this 
   the browser drew no grass at all, while the desktop (32 units) and Android (Vulkan) were fine.
   `tools/lint.py` holds every shader to `MAX_SAMPLERS` (13); declare a sampler only one shader reads
   in that shader, not in `common.gdshaderinc` (`roof_map_soft` is in `world.gdshader`).
+- A wide sprite lit from behind takes its own sun shadow as a dither over its face: the shadow pass leans
+  the card (`lean_shadow`) in front of the upright one. Things drawn as pictures (`Props._add_sprite`, the
+  snowman) set `sun_shadow_free` in `sprite.gdshader`; the player's head shows the same at some turns.

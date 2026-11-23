@@ -433,7 +433,12 @@ func _run() -> void:
 		for put: Array in shot.get("put", []):
 			var spot: Vector3i = main.session.placed.spot_near(main.player.position + Vector3(put[1][0], 0.0, put[1][1]) * main.CELL)
 			if spot.y >= 0:
-				added_fires.append(main.session.placed.put(put[0], spot, null))
+				var e: Dictionary = main.session.placed.put(put[0], spot, null)
+				added_fires.append(e)
+				# [item, offset, melt]: a thing of snow shown that far melted (Placed.melt_stage).
+				if put.size() > 2 and e.has("melt"):
+					e.melt = float(put[2])
+					main.session.placed.melt_changed.emit(e)
 		for i in 3:
 			await process_frame
 		main.effects.pick_shadow_fires(PixelView.screen_plane(main.player.position))

@@ -42,6 +42,7 @@ const RAMPS := {
 	"wood": ["#4a2014", "#7c3e24", "#a8643a", "#d0924f", "#f2c47c"],
 	"stone": ["#34323e", "#5a5868", "#86848f", "#b4b2b6", "#e2e0da"],
 	"flint": ["#23283a", "#384058", "#56627e", "#8290ae", "#cfdcf0"],
+	"snow": ["#3c4a72", "#8ea0c8", "#c8d4ea", "#eef3fb", "#ffffff"],
 	"chalk": ["#5a5a62", "#a4a4ac", "#cacaca", "#ecece6", "#ffffff"],
 	"rock": ["#2e2a30", "#4c4650", "#6e6872", "#948e94", "#bcb6b8"],
 	"copper": ["#5a1c10", "#923622", "#c85e30", "#ec914c", "#fdd08e"],

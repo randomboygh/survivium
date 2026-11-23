@@ -1,0 +1,12 @@
+# Phrases of the game in this language (src/shared/content/lang.gd); written by
+# tools/lang_check.py --write: fill the empty ones, keep %s %d in their order.
+
+# content/plants/snowman/bundle.yaml
+"[plants.snowman.bundle]": "Snowman"
+
+# content/plants/snowman/data/items.yaml
+"[plants.items.snowman]": "Snowman"
+"[plants.items.snowman.about]": "Three balls of snow with twig arms, coal eyes and a carrot nose. It melts in the warmth and leaves its twigs, coal and carrot."
+
+# content/plants/snowman/data/recipes.yaml
+"[plants.recipes.snowman]": "Snowman"

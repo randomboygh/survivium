@@ -7,6 +7,10 @@ const Plants := preload("res://src/shared/content/plants.gd")
 const PlacedData := preload("res://src/shared/game/placed.gd")
 const ClockScript := preload("res://src/shared/game/clock.gd")
 
+## Snow lying at least this deep (Clock.snow, or WorldCells.peak_snow on the heights) is
+## gathered by hand off the top of any open ground, as the fibre is off the grass.
+const SNOW_GATHER := 0.3
+
 ## The grass cell each one last stood on (tread), by their instance id, so a plant
 ## underfoot is crushed once.
 var _trod := {}
@@ -159,10 +163,17 @@ func dig(who, cells: Array[Vector3i], swing: float, wear: Variant = null) -> Dic
 	return done
 
 
-## Fire `e` (a record of Placed) burnt down: its item's `ashes` are left beside it, on
-## the cell south of it if that is open ground, else on its own (Placed.burnt_down).
-func leave_ashes(e: Dictionary) -> void:
-	var ashes: Dictionary = Items.get_item(e.item).get("ashes", {})
+## Thing of snow `e` (a record of Placed) melted away: its item's `melts_to` (a snowman's
+## twigs, coal and carrot) are left where it stood (Placed.melted).
+func leave_melted(e: Dictionary) -> void:
+	leave_ashes(e, "melts_to")
+
+
+## Fire `e` (a record of Placed) burnt down: its item's `ashes` (or the items of its
+## field `field`) are left beside it, on the cell south of it if that is open ground,
+## else on its own (Placed.burnt_down).
+func leave_ashes(e: Dictionary, field := "ashes") -> void:
+	var ashes: Dictionary = Items.get_item(e.item).get(field, {})
 	if ashes.is_empty():
 		return
 	var n: int = PlacedData.size_of(e.item)
@@ -190,12 +201,39 @@ func found_here(id: String, cell: Vector3i) -> bool:
 ## no bush on it; by tool `t` when given, which may cut only what grows tall on it (see
 ## Tools.mows_low).
 func can_mow(cell: Vector3i, t := {}) -> bool:
+	if snow_gathered(cell, t) != "":
+		return true
 	var up := cell + Vector3i.UP
 	var m: int = world.get_cell(cell.x, cell.y, cell.z)
 	if Tools.mown(m) < 0 and not Grass.stone_moss(world, cell.x, cell.y, cell.z) or world.get_cell(up.x, up.y, up.z) != Mat.AIR \
 			or world.bushes.has(up) or world.blocker_top(up.x, up.y, up.z) > 0.0:
 		return false
 	return t.is_empty() or Tools.mows_low(t) or Grass.has_tall(world, cell)
+
+
+## The item bare hands (tool `t`, any when not given) gather off the top of `cell`
+## instead of its grass, "" for none: snow (the item of the material with the role
+## "snow") where snow lies SNOW_GATHER deep or the ground is snow itself, the cell open
+## to the sky with nothing standing on it. The snow lying is not used up, like the
+## ground's fibre in a meadow.
+func snow_gathered(cell: Vector3i, t := {}) -> String:
+	if not t.is_empty() and t.get("tool", "") != "hand":
+		return ""
+	var snow := Mat.of_role("snow", -1)
+	if snow < 0 or Mat.RECORDS[snow].item == "":
+		return ""
+	var up := cell + Vector3i.UP
+	var m: int = world.get_cell(cell.x, cell.y, cell.z)
+	if m == Mat.AIR or world.get_cell(up.x, up.y, up.z) != Mat.AIR or world.bushes.has(up) \
+			or world.blocker_top(up.x, up.y, up.z) > 0.0 or world.surface_y(cell.x, cell.z) != up.y:
+		return ""
+	if m != snow:
+		# (A test's clock may be a Dictionary or missing.)
+		var lying = clock.get("snow") if clock != null else null
+		var deep := maxf(float(lying) if lying != null else 0.0, world.peak_snow(up.y, cell.x, cell.z))
+		if deep < SNOW_GATHER:
+			return ""
+	return Mat.RECORDS[snow].item
 
 
 ## Plants `ids` of grass cell `cell` without those that are not there now: gone in
@@ -245,10 +283,12 @@ func mow_swing(who, cells: Array[Vector3i]) -> Dictionary:
 	if cells.is_empty():
 		return {}
 	var was: int = world.get_cell(cells[0].x, cells[0].y, cells[0].z)
+	var stuff := Mat.GRASS if was != Mat.STONE else Mat.LEAVES
+	if snow_gathered(cells[0], t) != "":
+		stuff = Mat.of_role("snow", stuff)
 	if not mow(who, cells, arc):
 		return {}
-	var done := _work(skilled(who, "gather", t.swing), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL,
-		Mat.GRASS if was != Mat.STONE else Mat.LEAVES)
+	var done := _work(skilled(who, "gather", t.swing), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL, stuff)
 	who.use_tool()
 	return done
 
@@ -267,7 +307,17 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 		return false
 	var keys := {}
 	var q := _got(who, "gather")
+	var t: Dictionary = who.tool()
 	for c in cells:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash([c, clock.day])
+		# Where snow lies the hands take a handful of it and leave the grass under it.
+		var snow := snow_gathered(c, t)
+		if snow != "":
+			var handful := 2 if _extra(who, "gather") else 1
+			world.heap_drop(Items.get_item(snow).get("id", snow), floor_under(c + Vector3i.UP), handful, rng.randf() * TAU, q)
+			keys[WorldData.chunk_key(c.x, c.z)] = true
+			continue
 		var m: int = world.get_cell(c.x, c.y, c.z)
 		var to := Tools.mown(m)
 		if to < 0 and not Grass.stone_moss(world, c.x, c.y, c.z):
@@ -276,8 +326,6 @@ func mow(who, cells: Array[Vector3i], knock: Array[Vector3i] = []) -> bool:
 		var tall := plants.filter(func(id: String) -> bool: return id != Plants.TUFT)
 		if tall.is_empty() and to < 0:
 			continue
-		var rng := RandomNumberGenerator.new()
-		rng.seed = hash([c, clock.day])
 		var gives := {}
 		if not tall.is_empty():
 			gives = Plants.harvest(tall, rng)

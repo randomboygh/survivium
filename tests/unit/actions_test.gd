@@ -11,6 +11,7 @@ func run() -> void:
 	_test_choice_kind()
 	_test_tap_choice()
 	_test_plants_before_fibre()
+	_test_snow_gathered()
 	_test_world_actions()
 	_test_water_holds()
 	_test_puffballs()
@@ -26,6 +27,7 @@ func run() -> void:
 	_test_station_flags()
 	_test_recipe_fields()
 	_test_furniture()
+	_test_snowman_melts()
 	_test_openings()
 	_test_dye_sources()
 
@@ -241,6 +243,37 @@ func _test_plants_before_fibre() -> void:
 				var choice := actions.tap_choice(who, at)
 				_check(not choice.has("mow") or choice.mow.has(at), "a tap on bare grass beside seeds works that cell")
 				return
+
+
+## Where snow lies (Clock.snow from SNOW_GATHER) bare hands gather a handful of it off
+## any open ground instead of the grass's fibre, the grass left as it was; not under a
+## roof, not with a tool, and not where too little snow lies.
+func _test_snow_gathered() -> void:
+	var w := WorldData.new(40, Vector2i(24, 24))
+	for z in 24:
+		for x in 24:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.GRASS)
+	w.set_cell(4, 4, 4, Mat.STONE)
+	var clock := {"season": 3, "day": 0, "snow": 0.1}
+	var actions := WorldActions.new(w, clock, Rules.new())
+	var who := Who.new()
+	who.position = Vector3(8.5, 2.0, 9.5) * WorldData.CELL
+	who.item = ""
+	var cell := Vector3i(8, 1, 8)
+	var snow: String = Mat.RECORDS[Mat.of_role("snow", Mat.STONE)].item
+	_check(snow != "" and actions.snow_gathered(cell) == "", "too little snow lies to gather")
+	clock.snow = 0.6
+	_check(actions.snow_gathered(cell) == snow and actions._mow_gives(cell) == [snow], "hands gather the snow lying")
+	_check(actions.snow_gathered(Vector3i(4, 1, 4)) == "", "no snow lies under a roof")
+	_check(actions.snow_gathered(cell, Tools.of("tools:wooden_shovel")) == "", "a tool does not gather it")
+	var swing := actions.dig_at(who, cell, Vector3i.UP)
+	var got := 0
+	for key in w.drops:
+		for d: Array in w.drops[key]:
+			got += WorldActions.count(d) if d[0] == snow else 0
+	_check(not swing.is_empty() and got >= 1 and w.get_cell(8, 1, 8) == Mat.GRASS, "a tap on snowy grass gives snow and leaves the grass")
+	_check(actions.front_choice(who).has("mow") and actions.front_kind(who) == "mow", "the action button gathers snow too")
 
 
 ## The rules of the hands run on the world model alone, with a stand-in for the one who
@@ -1098,6 +1131,47 @@ func _test_recipe_fields() -> void:
 
 ## Furniture (decision 163, 7А): its size by its model, turned, no station; a stool rests
 ## a body by it, a barrel keeps food longer, a cupboard stores, a rug is walked over.
+## A snowman (an item with `melts`) stands in frost as it is, melts in warm air stage
+## by stage, is taken up only whole, keeps how far it has melted in a save, and once it
+## has melted through it is gone and leaves its twigs, coal and carrot on its cell.
+func _test_snowman_melts() -> void:
+	var w := WorldData.new(40, Vector2i(24, 24))
+	for z in 24:
+		for x in 24:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var actions := WorldActions.new(w, {"season": 0, "day": 0}, Rules.new())
+	placed.melted.connect(actions.leave_melted)
+	var clock := Clock.new()
+	var stages: Array[int] = []
+	placed.melt_changed.connect(func(e: Dictionary) -> void: stages.append(Placed.melt_stage(e)))
+	var e := placed.put("plants:snowman", Vector3i(8, 1, 8))
+	_check(e.get("melt", -1.0) == 0.0 and Placed.size_of("plants:snowman") == 1, "a snowman stands whole on one cell")
+	clock.air_pin = -5.0
+	placed.melt(1.0, clock)
+	_check(e.melt == 0.0 and stages.is_empty(), "in frost it does not melt")
+	clock.air_pin = 25.0
+	placed.melt(0.2, clock)
+	_check(e.melt > 0.0 and e.melt < 1.0 and Placed.melt_stage(e) >= 1 and stages == [Placed.melt_stage(e)], "in warm air it melts a stage")
+	var who := Who.new()
+	who.position = Vector3(9.0, 1.0, 10.5) * WorldData.CELL
+	_check(not placed.take_up(who, e) and placed.things.has(e), "one that has begun to melt is not taken up")
+	var saved := Placed.record(e)
+	var copy := Placed.new()
+	copy.world = WorldData.new(40, Vector2i(24, 24))
+	copy.from_list([saved])
+	_check(copy.things.size() == 1 and absf(copy.things[0].melt - e.melt) < 0.002, "a save keeps how far it has melted")
+	placed.melt(5.0, clock)
+	var left := {}
+	for key in w.drops:
+		for d: Array in w.drops[key]:
+			left[d[0]] = left.get(d[0], 0) + WorldActions.count(d)
+	_check(not placed.things.has(e) and left.get("plants:carrot", 0) == 1 and left.get("resources:branch", 0) == 2
+		and left.get("materials:charcoal", 0) == 1, "melted through it is gone, its twigs, coal and carrot left")
+
+
 func _test_furniture() -> void:
 	var w := WorldData.new(40, Vector2i(48, 48))
 	for z in 48:
