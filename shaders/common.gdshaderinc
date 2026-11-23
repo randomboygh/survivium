@@ -233,6 +233,14 @@ vec2 rest_plane(vec3 p) {
 	return vec2(dot(s, vec2(-up.y, up.x)), -dot(s, up));
 }
 
+// World point p carried down along the view the camera rests at nearest (rest_view) to
+// the ground's plane, in world x and z: rest_plane turned back to the world's axes, so
+// texels counted on it are pixels on the screen and lie along the world's sides, as on
+// a flat top, whichever way the camera looks.
+vec2 rest_ground(vec3 p) {
+	return p.xz + rest_view.xy * (rest_view.z * p.y);
+}
+
 // An upright quad drawn at origin o turned to face the camera, which looks along -z
 // in the default view.
 vec3 face_view(vec3 p, vec3 o) {

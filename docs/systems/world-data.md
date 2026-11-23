@@ -69,7 +69,8 @@ height `y` in a column: over `SNOW_LINE`, times the column's `Chunk.frost`, none
   `unpack_chunk`, the format changes only with a conversion of old saves.
 - The shapes are recomputed by columns and only for natural ground (`set_natural`). A placed block is a cube,
   or a shape of build mode (`forms`, `form_chunks`: `FORM_RAMP` a bevel from below, `FORM_UPPER` a bevel from
-  above, `FORM_STAIRS` steps in two half-levels; bits 2..3 — the side of the rise N, E, S, W): `set_form` /
+  above, `FORM_STAIRS` steps in two half-levels, `FORM_NOTCH` (bit 4) the upper quarter under a step of a band
+  of stairs; `form_kind`; bits 2..3 — the side of the rise N, E, S, W): `set_form` /
   `form_at`, any `set_cell` returns a cube; they are saved in `pack_chunk` («forms»), over the network — in
   `CELLS` (`material | shape << 8`). The body and `ground_height` go by them through `form_top`.
 

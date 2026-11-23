@@ -293,11 +293,24 @@ func ground_height(x: float, z: float) -> float:
 ## Height above its level of the top of a built block of form `f` (see forms) under the
 ## part ax..bx, az..bz (0..1) of its cell, the highest point there: a ramp rises
 ## straight from its low side to the side it faces, stairs are two steps half a level
-## each, a cube and an upturned ramp are flat on top.
+## each, a cube and an upturned ramp are flat on top, a notch only over its half.
 static func form_top(f: int, ax: float, bx: float, az: float, bz: float) -> float:
-	var kind := f & 3
+	var kind := form_kind(f)
 	if kind == FORM_CUBE or kind == FORM_UPPER:
 		return 1.0
+	if kind == FORM_NOTCH:
+		# Flat at the top over the half away from the side it faces, open over the rest.
+		var low := 0.0
+		match f >> 2 & 3:
+			0:
+				low = 1.0 - bz
+			1:
+				low = ax
+			2:
+				low = az
+			_:
+				low = 1.0 - bx
+		return 1.0 if low < 0.5 else 0.0
 	# How far toward the high side the part reaches, 0..1.
 	var t := 0.0
 	match f >> 2 & 3:

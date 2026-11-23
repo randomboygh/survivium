@@ -154,7 +154,7 @@ static func take_cell(w, cell: Vector3i, v: int) -> void:
 	w.set_cell(cell.x, cell.y, cell.z, v & 255)
 	if bed != null and Mat.is_bed(v & 255):
 		w.set_field(cell, bed)
-	w.set_form(cell.x, cell.y, cell.z, v >> 8 & 15)
+	w.set_form(cell.x, cell.y, cell.z, v >> 8 & 31)
 
 
 # --- What the session does over the loop (Main.world_maker) -------------------------

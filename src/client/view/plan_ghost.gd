@@ -125,7 +125,7 @@ static func _rims(cells: Dictionary, c: Vector3i, d: int) -> int:
 ## A block to build at `c` of form `form`.
 static func _block(verts: PackedVector3Array, colors: PackedColorArray, c: Vector3i, form: int, work: Dictionary,
 		forms: Dictionary, world) -> void:
-	var kind := form & 3
+	var kind := WorldData.form_kind(form)
 	if kind == WorldData.FORM_CUBE:
 		for d in 6:
 			if not _hidden(c, d, -1, work, forms, world):

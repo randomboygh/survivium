@@ -34,6 +34,8 @@ const FILTERS := ["all", "blocks", "interior"]
 const SHAPES := ["line", "plane", "square", "cube"]
 ## The heights the shapes begin with.
 const DEFAULT_HEIGHTS := {"line": 3, "plane": 1, "square": 3, "cube": 5}
+## How many forms the form button goes round (form_index).
+const FORM_COUNT := 7
 ## A second tap on the same thing within this many ms turns it (a double tap); a single
 ## tap takes it after them.
 const DOUBLE_TAP_MS := 180
@@ -59,8 +61,10 @@ var heights := DEFAULT_HEIGHTS.duplicate()
 ## The form of the blocks drawn (WorldData.FORM_*: a cube, a ramp, an upturned ramp,
 ## stairs), and the quarter turns from the way they rise by themselves: away from the
 ## player, so a ramp or stairs drawn ahead go up from where they stand. Kept with the
-## player.
+## player. `band`: the slopes and stairs drawn as a band one block thick along the
+## flight, not filled down to the ground (Plans.BAND).
 var form := 0
+var band := false
 var turns := 0
 ## A tap on a thing that moves waiting to see whether a second one comes: {"cell", "ms"},
 ## {} for none (see DOUBLE_TAP_MS).
@@ -73,7 +77,7 @@ var _dragged := {}
 
 
 func to_dict() -> Dictionary:
-	return {"kind": kind, "heights": heights.duplicate(), "thick": thick, "filter": filter, "form": form, "turns": turns}
+	return {"kind": kind, "heights": heights.duplicate(), "thick": thick, "filter": filter, "form": form, "band": band, "turns": turns}
 
 
 func from_dict(d: Dictionary) -> void:
@@ -92,6 +96,7 @@ func from_dict(d: Dictionary) -> void:
 	var f: Variant = d.get("filter")
 	filter = f if f is String and f in FILTERS else "all"
 	form = clampi(int(d.get("form", 0)), 0, 3)
+	band = form != 0 and bool(d.get("band", false))
 	turns = clampi(int(d.get("turns", 0)), 0, 3)
 
 
@@ -170,14 +175,23 @@ func next_kind() -> void:
 	set_kind(shape if kind not in SHAPES else SHAPES[(SHAPES.find(kind) + 1) % SHAPES.size()])
 
 
-## The form button: the next form round (a cube, a ramp, an upturned ramp, stairs).
+## The form button: the next form round (a cube, a ramp, an upturned ramp, stairs, each
+## of the three filled and then as a band).
 func next_form() -> void:
-	set_form((form + 1) % 4)
+	var i := (form_index() + 1) % FORM_COUNT
+	set_form(0 if i == 0 else (i - 1) % 3 + 1, i > 3)
 
 
-## The form of the blocks drawn (a WorldData.FORM_*).
-func set_form(f: int) -> void:
+## The place of the form chosen in the form button's round: a cube 0, the filled ones
+## 1..3, the bands 4..6.
+func form_index() -> int:
+	return 0 if form == 0 else form + (3 if band else 0)
+
+
+## The form of the blocks drawn (a WorldData.FORM_*), as a band (`as_band`) or filled.
+func set_form(f: int, as_band := false) -> void:
 	form = clampi(f, 0, 3)
+	band = form != 0 and as_band
 	changed.emit()
 
 
@@ -187,8 +201,8 @@ func turn() -> void:
 	changed.emit()
 
 
-## Whether the shape drawn now takes slopes and stairs (a line or a square, drawn as a
-## flight of them: Plans.flight); a plane and a room are of cubes.
+## Whether the shape drawn now takes slopes and stairs (a line, a plane or a square,
+## drawn as a flight of them: Plans.flight); a room is of cubes.
 func forms_drawn() -> bool:
 	return kind in Plans.FLIGHTS
 
@@ -205,7 +219,7 @@ func form_of(first: Vector3i, last: Vector3i) -> int:
 	var d := mid - Vector2(p.x, p.z)
 	# North (-z) 0, east 1, south 2, west 3.
 	var side := (1 if d.x > 0.0 else 3) if absf(d.x) > absf(d.y) else (2 if d.y > 0.0 else 0)
-	return form | ((side + turns) % 4) << 2
+	return form | ((side + turns) % 4) << 2 | (Plans.BAND if band else 0)
 
 
 ## The shape one level higher, round from the highest to the lowest; kept for the shape.
@@ -541,16 +555,17 @@ func _drag_new(s: Dictionary) -> void:
 	_frame(s.put, at, found[1], s.spot != null)
 
 
-## Frames the cells thing `id` turned `turn` takes from the north-west cell `at`: light
-## where it fits, red where not.
+## Shows where thing `id` turned `turn` would go from the north-west cell `at`: where it
+## fits only its own model held there (user 2026-11-23: no see-through body over a
+## thing, it is set down as it is), where not its cells red.
 func _frame(id: String, at: Vector3i, turn: int, fits: bool) -> void:
+	if fits:
+		game.cursor.show_boxes([], [])
+		return
 	var cells: Array = []
 	for o: Vector3i in game.placed.cells_of({"item": id, "cell": Vector3i.ZERO, "turn": turn}):
 		cells.append(at + o)
-	if fits:
-		game.cursor.show_boxes(cells, [])
-	else:
-		game.cursor.show_boxes([], cells)
+	game.cursor.show_boxes([], cells)
 
 
 ## The finger or the mouse let go (stroke `s`). A thing new from the bag is set down where
@@ -657,4 +672,4 @@ func end_stroke(s: Dictionary) -> void:
 func _sorted(s: Dictionary, cells: Array[Vector3i]) -> Dictionary:
 	var block := Mat.index(Items.get_item(chosen()).get("place", ""))
 	return game.plans.sort(game.actions, game.character, s.plan, s.first, cells, block,
-		form_of(s.first, s.last) & 3 == WorldData.FORM_UPPER)
+		Plans.hangs_by_shape(form_of(s.first, s.last)))
