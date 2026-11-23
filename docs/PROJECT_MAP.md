@@ -80,6 +80,7 @@ New top-level folders are not created without need.
 
 - `.godot/`, `*.import`, `*.uid`, `build/`, `build_info.json`: caches and the build, not in git.
 - `content/**/sounds/*.wav`, `content/**/*.png`, `assets/`: binary assets; `tools/make_*` make them.
+- `tools/art/icon_art.gd` with its parts `tools/art/icon_*_art.gd` (nature, materials, tools, wear, build): the items' icons, drawn by `tools/make_icons.gd`.
 - `tools/art/*.gd`, `tools/make_plant_art.py`, `tools/make_creatures.py` (+ `creature_kit.py`), `tools/make_frog.py`, `tools/make_fish.py`, `tools/make_wolf.py`, `tools/make_cat.py`, `tools/make_hedgehog.py`: asset drawing tools, big tables of pixels (the boar, the fox, the black grouse, the deer, the hare and the bear, drawn from the user's references, are `tools/art/boar_art.gd`, `tools/art/fox_art.gd`, `tools/art/grouse_art.gd`, `tools/art/deer_art.gd`, `tools/art/rabbit_art.gd` and `tools/art/bear_art.gd`, the sparrow, the crow, the owl, the duck and the squirrel, drawn by hand in their style, `tools/art/sparrow_art.gd`, `tools/art/crow_art.gd`, `tools/art/owl_art.gd`, `tools/art/duck_art.gd` and `tools/art/squirrel_art.gd`, all made by `tools/make_sprites.gd`).
 - `src/shared/world/test_ground.gd`: the test world's sites, needed only for them.
 - `tools/shot/places.gd`, `tools/shot/shots.gd`: the places and the table of screenshots.

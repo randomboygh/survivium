@@ -3,8 +3,9 @@
 currant, rose hip, fern, clover, nettle, cranberry, flax, monstera): the barks of the trees as textures like a
 material's (48x16: the end grain, the bark, the underside; recoloured from the log's
 texture of the wood bundle, with marks of their own), the ground plants' sprites (8x24 a
-frame, two frames each, 16x24 for the ones two cards wide, in sprites/plants/ of the bundle), the icons (12x12) and the
-voxel models (a row of 16x16 slices) of their berries and fruit. Run from the repo:
+frame, two frames each, 16x24 for the ones two cards wide, in sprites/plants/ of the bundle) and the
+voxel models (a row of 16x16 slices) of their berries and fruit. The icons are drawn in the items' style by
+tools/art/icon_*_art.gd (tools/make_icons.gd): the icon tables here are kept but no longer written. Run from the repo:
     python3 tools/make_plant_art.py
 Everything is written again; a picture painted over by hand goes under another name.
 """
@@ -471,8 +472,9 @@ CROP_ICONS = {
 
 
 def seeds(name, bundle, colour):
-    """The seeds of a crop: the grass bundle's seeds icon and model in colour `colour`."""
-    for kind in ("icons", "models"):
+    """The seeds of a crop: the grass bundle's seeds model in colour `colour` (the icon is
+    tools/make_icons.gd's)."""
+    for kind in ("models",):
         src = Image.open(os.path.join(ROOT, "grass", kind, "seeds.png")).convert("RGBA")
         out = Image.new("RGBA", src.size, (0, 0, 0, 0))
         for y in range(src.height):
@@ -556,15 +558,8 @@ CRANBERRY = [
 
 
 def icon(name, bundle, rows, pal):
-    img = Image.new("RGBA", (12, 12), (0, 0, 0, 0))
-    for y, row in enumerate(rows):
-        for x, ch in enumerate(row):
-            if ch != ".":
-                img.putpixel((x, y), pal[ch])
-    path = os.path.join(ROOT, bundle, "icons", "%s.png" % name)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    img.save(path)
-    print(path)
+    """Writes nothing: the icons are drawn by tools/make_icons.gd (tools/art/icon_*_art.gd)."""
+    return
 
 
 def berry_icon(name, bundle, colour, shine, leaf=(70, 110, 50, 255), cluster=True):

@@ -3,8 +3,9 @@ extends RefCounted
 ## (the hand, the sack, the vitals' heart, food and bolt, the weight). An item's `icon`
 ## names `content/<mod>/icons/<icon>.png` of its mod (12×12, drawn once by
 ## `tools/art/icon_art.gd` and written by `tools/make_icons.gd`, so a mod paints its own);
-## an item without one shows the terrain tile of the material it places, cut from the
-## atlas the HUD is given (see use_atlas). The interface's pictures are `assets/ui/<name>.png`.
+## an item without one shows the material it places as a small block, drawn from its
+## tiles in the atlas the HUD is given (see use_atlas, block_image). The interface's
+## pictures are `assets/ui/<name>.png`.
 
 const UiStyle := preload("res://src/client/ui/ui_style.gd")
 const Items := preload("res://src/shared/content/items.gd")
@@ -13,8 +14,14 @@ const Content := preload("res://src/shared/content/content.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 
-## The interface's own pictures (see picture).
-const UI := ["hand", "sack", "heart", "heart_big", "heart_gold", "food", "bolt", "weight", "thermo", "drop", "water", "sleep"]
+## The interface's own pictures (see picture), among them the bare hands (`hand` the right one,
+## `hand_left`) and the empty slots of the character (`slot_<place>`, Inventory's places).
+const UI := ["hand", "hand_left", "sack", "heart", "heart_big", "heart_gold", "food", "bolt", "weight", "thermo",
+	"drop", "water", "sleep", "slot_head", "slot_body", "slot_legs", "slot_feet", "slot_back", "slot_neck",
+	"slot_wrists", "slot_ornament"]
+## The warm light and the cool shade a block's picture is lit with (see block_image).
+const BLOCK_LIGHT := Color("#fff4d6")
+const BLOCK_SHADE := Color("#141028")
 
 static var _cache := {}
 ## Where each item's picture lies, by its bundle, mod and icon (see icon_path): looking
@@ -22,6 +29,8 @@ static var _cache := {}
 static var _paths := {}
 ## The images the pictures were made from, by their file (see image_of).
 static var _images := {}
+## The pictures of the blocks, by material (see block_image).
+static var _blocks := {}
 static var _atlas: Texture2D
 static var _tile := 16
 static var _tiles := 1
@@ -33,6 +42,7 @@ static func use_atlas(atlas: Texture2D, tile: int, tiles: int) -> void:
 	_tile = tile
 	_tiles = tiles
 	_cache.clear()
+	_blocks.clear()
 
 
 ## Where item `item` keeps its picture `icon`: in its bundle (see Content.asset).
@@ -54,6 +64,7 @@ static func forget() -> void:
 	_cache = {}
 	_paths = {}
 	_images = {}
+	_blocks = {}
 	UiStyle.forget()
 
 
@@ -93,14 +104,10 @@ static func image_of(id: String) -> Image:
 		_read(path)
 		return _images.get(path)
 	var m := Mat.index(item.place)
-	if m < 0 or _atlas == null:
-		return null
-	var at: Rect2 = (tile(m) as AtlasTexture).region
-	var atlas_img: Image = PixelTextures.atlas_image if PixelTextures.atlas_image != null else _atlas.get_image()
-	return atlas_img.get_region(Rect2i(at))
+	return block_image(m) if m >= 0 else null
 
 
-## The picture of item `id`: its icon, or the tile of the material it places.
+## The picture of item `id`: its icon, or the block of the material it places.
 static func of_item(id: String) -> Texture2D:
 	var item := Items.get_item(id)
 	if item.is_empty():
@@ -108,7 +115,7 @@ static func of_item(id: String) -> Texture2D:
 	if item.icon != "":
 		return _read(icon_path(item))
 	var m := Mat.index(item.place)
-	return tile(m) if m >= 0 else null
+	return block(m) if m >= 0 else null
 
 
 ## The picture of stack `s` (a bag slot's array, Inventory.slots; null: none): its item's,
@@ -161,18 +168,76 @@ static func colour_of(id: String, fallback: Color) -> Color:
 	return Color(sum.r / sum.a, sum.g / sum.a, sum.b / sum.a) if sum.a > 0.0 else fallback
 
 
-## The middle 12x12 of the terrain tile of material `m`.
-static func tile(m: int) -> Texture2D:
-	var key := "tile:%d" % m
+## The picture of material `m` as a block (see block_image), null without the atlas.
+static func block(m: int) -> Texture2D:
+	var key := "block:%d" % m
 	if _cache.has(key):
 		return _cache[key]
+	var img := block_image(m)
+	if img == null:
+		return null
+	var tex := ImageTexture.create_from_image(img)
+	UiStyle.remember(tex, img)
+	_cache[key] = tex
+	return tex
+
+
+## Material `m` as a small cube in the items' style (tools/art/icon_art.gd), the way the
+## items' metal bars lie: 12x12, its front a square of its side tile, shaded towards the
+## bottom, under a lid of two rows of its top tile going back up to the right, lit, with
+## a pixel of shine, and its right side two columns of the side tile in shade; an outline
+## round it in a dark tone of its colour. Made once from the atlas, null without it.
+static func block_image(m: int) -> Image:
+	if _blocks.has(m):
+		return _blocks[m]
 	if _atlas == null:
 		return null
-	var t := m * 3
-	var icon := AtlasTexture.new()
-	icon.atlas = _atlas
-	icon.region = Rect2((t % _tiles) * _tile + 2, floori(t / float(_tiles)) * _tile + 2, 12, 12)
-	_cache[key] = icon
-	if PixelTextures.atlas_image != null:
-		UiStyle.remember(icon, PixelTextures.atlas_image.get_region(Rect2i(icon.region)))
-	return icon
+	var atlas_img: Image = PixelTextures.atlas_image if PixelTextures.atlas_image != null else _atlas.get_image()
+	var top := _tile_at(m * 3)
+	var side := _tile_at(m * 3 + 1)
+	# The pieces are cut from the middle of the tiles.
+	var o := int((_tile - 8) / 2.0)
+	var img := Image.create_empty(12, 12, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	for y in 8:
+		for x in 8:
+			var c := atlas_img.get_pixelv(side + Vector2i(x + o, y + o)).lerp(BLOCK_SHADE, 0.04 * y)
+			if y == 0:
+				c = c.lerp(BLOCK_LIGHT, 0.18)
+			img.set_pixel(1 + x, 3 + y, c)
+	for x in 8:
+		img.set_pixel(2 + x, 2, atlas_img.get_pixelv(top + Vector2i(x + o, o + 5)).lerp(BLOCK_LIGHT, 0.3))
+		img.set_pixel(3 + x, 1, atlas_img.get_pixelv(top + Vector2i(x + o, o + 3)).lerp(BLOCK_LIGHT, 0.42))
+	for y in 7:
+		img.set_pixel(9, 3 + y, atlas_img.get_pixelv(side + Vector2i(o + 8, y + o)).lerp(BLOCK_SHADE, 0.35))
+		img.set_pixel(10, 2 + y, atlas_img.get_pixelv(side + Vector2i(o + 9, y + o)).lerp(BLOCK_SHADE, 0.45))
+	img.set_pixel(3, 1, img.get_pixel(3, 1).lerp(BLOCK_LIGHT, 0.6))
+	var line := _block_outline(atlas_img, top)
+	var filled := img.duplicate()
+	for y in 12:
+		for x in 12:
+			if filled.get_pixel(x, y).a > 0.0:
+				continue
+			for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var n := Vector2i(x, y) + d
+				if n.x >= 0 and n.y >= 0 and n.x < 12 and n.y < 12 and filled.get_pixelv(n).a > 0.0:
+					img.set_pixel(x, y, line)
+					break
+	_blocks[m] = img
+	return img
+
+
+## The outline of a block's picture: the mean colour of its top tile (at `top` in the atlas
+## `atlas_img`), darker and a little more saturated, like the outlines of the items' ramps.
+static func _block_outline(atlas_img: Image, top: Vector2i) -> Color:
+	var sum := Color(0, 0, 0, 0)
+	for y in _tile:
+		for x in _tile:
+			sum += atlas_img.get_pixelv(top + Vector2i(x, y))
+	var mean := sum / float(_tile * _tile)
+	return Color.from_hsv(mean.h, minf(1.0, mean.s * 1.25), mean.v * 0.4)
+
+
+## The corner of tile `t` of the atlas.
+static func _tile_at(t: int) -> Vector2i:
+	return Vector2i((t % _tiles) * _tile, floori(t / float(_tiles)) * _tile)

@@ -700,6 +700,49 @@ const SHOTS := {
 	"bag-skilled": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true,
 		"give": "tools:stone_axe", "worn": -30},
 	"bag-pc": {"time": 0.42, "season": 1, "clearing": true, "fell": true, "gather": true, "bag": true},
+	# Items of each kind in the bag (the drawing of their pictures, 2026-11 icon style).
+	"bag-icons": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": 0,
+		"fill": [["resources:log", 6], ["resources:flint", 3], ["materials:copper_ore", 4], ["materials:iron_bar", 2],
+			["materials:copper_bar", 2], ["tools:stone_axe", 1], ["tools:iron_sword", 1], ["plants:apple", 5],
+			["plants:raspberry", 9], ["animals:raw_meat", 3], ["tools:linen_shirt", 1], ["tools:torch", 1],
+			["animals:perch", 2], ["resources:fiber", 12], ["resources:stone", 14], ["tools:wooden_pickaxe", 1]]},
+	# More of the redrawn items side by side: food, ores and metals, tools, clothes, finds.
+	"bag-icons2": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": 0,
+		"fill": [["materials:gold_ore", 3], ["materials:steel_bar", 2], ["tools:copper_pickaxe", 1], ["tools:bronze_sword", 1],
+			["plants:banana", 4], ["plants:carrot", 6], ["animals:salmon", 2], ["animals:roasted_meat", 3],
+			["tools:fur_coat", 1], ["tools:high_boots", 1], ["tools:canvas_backpack", 1], ["plants:dye_blue", 2],
+			["materials:amber", 1], ["materials:glass", 4], ["core:campfire", 1], ["tools:tooth_necklace", 1]]},
+	# The things that are built and placed: stations, furniture, doors and windows, boats, signs.
+	"bag-icons3": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": 0,
+		"fill": [["tools:chest", 1], ["tools:big_chest", 1], ["tools:barrel", 1], ["tools:workbench", 1],
+			["tools:anvil", 1], ["tools:forge", 1], ["tools:kiln", 1], ["tools:bloomery", 1],
+			["tools:loom", 1], ["tools:potters_wheel", 1], ["tools:door", 2], ["tools:window_2x2", 2],
+			["tools:wooden_bed", 1], ["tools:table", 1], ["tools:boat", 1], ["tools:signpost", 1]]},
+	# Bows and arrows, fishing, lights, water and the small tools.
+	"bag-icons4": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": 0,
+		"fill": [["tools:wooden_bow", 1], ["tools:composite_bow", 1], ["tools:arrow", 12], ["tools:fishing_rod", 1],
+			["tools:bait", 6], ["tools:lantern", 1], ["tools:tallow_candle", 3], ["tools:tar_torch", 2],
+			["tools:waterskin_full", 1], ["tools:watering_can", 1], ["tools:trap", 1], ["tools:live_rabbit", 1],
+			["tools:ice_auger", 1], ["tools:bone_needle", 1], ["tools:leather_sling", 1], ["tools:sling_stone", 9]]},
+	# Swords, boots and the vest drawn after the second reference sheet, the fence with its side section.
+	"bag-icons5": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": 0,
+		"fill": [["tools:wooden_sword", 1], ["tools:stone_sword", 1], ["tools:copper_sword", 1], ["tools:bronze_sword", 1],
+			["tools:iron_sword", 1], ["tools:steel_sword", 1], ["tools:fence", 4], ["tools:flint_knife", 1],
+			["tools:high_boots", 1], ["tools:fur_boots", 1], ["tools:leather_vest", 1], ["tools:hood", 1],
+			["tools:moccasins", 1], ["tools:stone_axe", 1], ["tools:copper_pickaxe", 1], ["tools:flint_spear", 1]]},
+	# Axes shaped after the second reference sheet, boots in overlapping pairs, the other footwear.
+	"bag-icons6": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": 0,
+		"fill": [["tools:stone_axe", 1], ["tools:copper_axe", 1], ["tools:bronze_axe", 1], ["tools:iron_axe", 1],
+			["tools:steel_axe", 1], ["tools:high_boots", 1], ["tools:fur_boots", 1], ["tools:moccasins", 1],
+			["tools:sandals", 1], ["tools:bast_shoes", 1], ["tools:iron_sword", 1], ["tools:fence", 4],
+			["tools:leather_vest", 1], ["tools:hood", 1], ["tools:copper_pickaxe", 1], ["tools:flint_spear", 1]]},
+	# The block items, each drawn as a small block from its material's tiles (ItemIcons.block_image).
+	"bag-blocks": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": 0,
+		"fill": [["resources:stone", 20], ["resources:dirt", 20], ["resources:sand", 20], ["resources:clay", 20],
+			["resources:peat", 20], ["resources:snow", 20], ["resources:ice", 20], ["resources:salt", 20],
+			["resources:crystal", 20], ["materials:planks", 20], ["materials:log_wall", 20], ["materials:wattle", 20],
+			["materials:brick", 20], ["materials:cut_stone", 20], ["materials:gold_block", 20],
+			["materials:silver_block", 20], ["materials:platinum_block", 20], ["resources:log", 6]]},
 	# A canvas backpack worn (24 more slots, scrolled where they do not fit), a wicker bag
 	# chosen in the bag: its wide button puts it on; then a tap on the backpack on the figure
 	# takes it off (into the first free slot, with the things of its slots).
@@ -746,6 +789,8 @@ const SHOTS := {
 		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes", "tools:shell_beads", "tools:bracelet", "tools:hair_feather"], "hold": ["tools:torch", "tools:stone_axe"],
 		"looks": {"build": "normal", "figure": "bust", "skin": 3, "hair": "ponytail", "hair_colour": 8, "eyes": 2, "face": "freckles"},
 		"skills": {"gather": 4, "chop": 3, "dig": 6, "craft": 2, "build": 5, "cook": 1, "hunt": 2, "fish": 1, "swim": 3}},
+	# The tab «Персонаж» with nothing worn or held: the pictures of the empty slots and hands.
+	"bag-person-empty": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": -1, "person": ""},
 	"bag-person-body": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": -1, "person": "body",
 		"wear": ["tools:fiber_hat", "tools:grass_cape", "tools:leg_wraps", "tools:bast_shoes"], "hold": ["", "tools:stone_scythe"],
 		"looks": {"build": "stocky", "skin": 6, "hair": "curls", "hair_colour": 0, "eyes": 0, "face": "beard"}},

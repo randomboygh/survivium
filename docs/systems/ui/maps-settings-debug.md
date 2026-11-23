@@ -56,8 +56,12 @@ Part of [Interface and settings](../ui.md). The maps, the settings, the performa
   added here too. The shots `ui-gallery-<tab>` in `tools/shot/shots.gd`.
 - Shared: `ui_style.gd` (it extends `ui_icons.gd`, the drawings of the icons, `ICONS`; panels, frames, buttons, the font; `accent(b)` — the amber «press» button, `arm` /
   `succeed` — red and green, `well()` — the shared sunken frame of text), `item_icons.gd` (item pictures
-  `icons/<icon>.png` 12×12 and the icons of `assets/ui/`; the path of an item's picture is looked up on disk
-  once, `ItemIcons._paths`), `hotbar_slot.gd`, `icon_tabs.gd`, `tab_row.gd`, `fact_chips.gd`,
+  `icons/<icon>.png` 12×12 and the icons of `assets/ui/`, among them the bare hands, `hand` (the right one) and
+  `hand_left`, and the grey pictures of the character's empty slots, `slot_<place>`, shown faint; the path of an item's picture is looked up on disk
+  once, `ItemIcons._paths`; an item that places a block and has no icon shows its material as a small cube
+  in the items' style, cut from the terrain atlas once, `block_image`: the front from its side tile, a lid
+  of two rows of its top tile going back up to the right, the right side in shade, an outline in a dark
+  tone of the tile's mean colour), `hotbar_slot.gd`, `icon_tabs.gd`, `tab_row.gd`, `fact_chips.gd`,
   `scroll_column.gd` (a column of buttons: more than six or than fit in height beside the cells, `fit_height` —
   arrows at the top and bottom and a finger drag, like the hotbar's; the tabs of kinds `icon_tabs.gd` are on
   it), `drag_scroll.gd` (a drag over a ScrollContainer's list scrolls it, including one started on a button: as

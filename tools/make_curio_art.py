@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Draws the pictures of the curiosities: the ground plants mimosa (open, and folded as
 someone passes), giant puffball, sundew (its dew glints: texels of alpha DEW, see
-grass.gdshader) and evening primrose (buds by day, open flowers at night), their
-items' icons (12x12) and models (a row of 16x16 slices), and the finds in stone
-(ammonite, geode, amber) of the materials mod. Run from the repo:
+grass.gdshader) and evening primrose (buds by day, open flowers at night) and their
+items' models (a row of 16x16 slices); their icons and those of the finds in stone (ammonite,
+geode, amber) are drawn by tools/make_icons.gd (tools/art/icon_*_art.gd). Run from the repo:
     python3 tools/make_curio_art.py
 Everything is written again.
 """
@@ -82,12 +82,8 @@ def save(img, *path):
 
 
 def icon(name, mod, bundle, rows, pal):
-    img = Image.new("RGBA", (12, 12), (0, 0, 0, 0))
-    for y, row in enumerate(rows):
-        for x, ch in enumerate(row):
-            if ch != ".":
-                img.putpixel((x, y), pal[ch])
-    save(img, mod, bundle, "icons", "%s.png" % name)
+    """Writes nothing: the icons are drawn by tools/make_icons.gd (tools/art/icon_*_art.gd)."""
+    return
 
 
 def model(name, mod, bundle, levels, paint):
