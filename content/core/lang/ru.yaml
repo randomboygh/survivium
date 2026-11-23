@@ -687,6 +687,8 @@
 "[field.items.sign_width.about]": "Букв в строке"
 "[field.items.wall]": "На стену"
 "[field.items.wall.about]": "Вешается на стену"
+"[field.items.wreath]": "Венок на дверь"
+"[field.items.wreath.about]": "В руке: нажатие на дверь вешает его на дверь."
 "[field.items.grave]": "Могила"
 "[field.items.grave.about]": "Крест на месте смерти"
 "[field.items.spoils]": "Портится"

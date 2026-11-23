@@ -687,6 +687,8 @@
 "[field.items.sign_width.about]": "Letters in a line"
 "[field.items.wall]": "On a wall"
 "[field.items.wall.about]": "Hung on a wall"
+"[field.items.wreath]": "Door wreath"
+"[field.items.wreath.about]": "Held in the hand, a tap on a door hangs it on the door."
 "[field.items.grave]": "Grave"
 "[field.items.grave.about]": "A cross where someone died"
 "[field.items.spoils]": "Spoils"

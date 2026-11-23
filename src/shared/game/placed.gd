@@ -824,7 +824,7 @@ static func is_door(e: Dictionary) -> bool:
 ## `who` opens door `e` or shuts it, where the land lets them open doors (Territory); a
 ## door is not shut on a body in its way. True if it swung.
 func swing(who, e: Dictionary) -> bool:
-	if is_door(e) and e.get("wreath", "") == "" and who.has_method("held") and Items.get_item(who.held()).get("wreath", false):
+	if is_door(e) and e.get("wreath", "") == "" and who != null and who.has_method("held") and Items.get_item(who.held()).get("wreath", false):
 		return hang_wreath(who, e)
 	if not is_door(e) or territory != null and not territory.may(who, e.cell, "doors"):
 		return false

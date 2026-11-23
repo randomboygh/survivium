@@ -83,6 +83,7 @@ const NAMES := {
 	"items.sign_lines": ["[field.items.sign_lines]", "[field.items.sign_lines.about]"],
 	"items.sign_width": ["[field.items.sign_width]", "[field.items.sign_width.about]"],
 	"items.wall": ["[field.items.wall]", "[field.items.wall.about]"],
+	"items.wreath": ["[field.items.wreath]", "[field.items.wreath.about]"],
 	"items.grave": ["[field.items.grave]", "[field.items.grave.about]"],
 	"items.spoils": ["[field.items.spoils]", "[field.items.spoils.about]"],
 	"items.rots_to": ["[field.items.rots_to]", "[field.items.rots_to.about]"],
