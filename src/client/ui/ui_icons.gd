@@ -343,6 +343,20 @@ const ICONS := {
 		"..w.w......",
 		".ww.ww.....",
 	],
+	# A backpack, its flap amber: the button of the character, the bag and crafting (the top row).
+	"backpack": [
+		"....www....",
+		"...w...w...",
+		".wwwwwwwww.",
+		"wwaaaaaaaww",
+		"w.aaaaaaa.w",
+		"w.waaaaaw.w",
+		"w.wwwawww.w",
+		"w.wwwwwww.w",
+		"w.wwwwwww.w",
+		"w.wwwwwww.w",
+		"wwwwwwwwwww",
+	],
 	"cells": [
 		"www.www",
 		"w.w.w.w",
