@@ -57,7 +57,7 @@ const KINDS := ["line", "plane", "square", "cube", "flatten"]
 const FLIGHTS := ["line", "plane", "square"]
 ## In the form of a stroke (draw, flight), beside WorldData's form in bits 0..3: the
 ## flight is a band one block thick along its slope, not filled down to the ground.
-const BAND := 16
+const BAND := 32
 ## The ghost of a cell to dig out (flattening): in `cells` in place of a block's item.
 const CUT := "-"
 ## How far over and under the level a flattening reaches, in levels, and how many
@@ -157,8 +157,8 @@ static func shape(kind: String, a: Vector3i, b: Vector3i, height: int, near := V
 ## than the one before it is the upturned slope. With BAND a column holds only the cells
 ## from its top down to the level of the one before it, and the lowest of them, where the
 ## column rises, is the slope turned the other way (an upturned one under a slope, a
-## slope over an upturned one; stairs stand on nothing, so steps go underneath too): a
-## band one block thick that hangs by its shape.
+## slope over an upturned one) or, under stairs, a notch (WorldData.FORM_NOTCH), so the
+## underside steps as the top does: a band one block thick that hangs by its shape.
 static func flight(kind: String, a: Vector3i, b: Vector3i, height: int, near := Vector2.INF, thick := 1,
 		form := 0) -> Dictionary:
 	var out := {}
@@ -201,10 +201,14 @@ static func flight(kind: String, a: Vector3i, b: Vector3i, height: int, near := 
 			out[edge + Vector3i(0, y * up, 0)] = 0
 		if formed:
 			out[edge] = f | side << 2
-			# Stairs keep their steps underneath too: a band of them hangs by whole steps.
-			if band and cells > 1 and f != WorldData.FORM_STAIRS:
-				var under := WorldData.FORM_RAMP if f == WorldData.FORM_UPPER else WorldData.FORM_UPPER
-				out[edge + Vector3i(0, (cells - 1) * up, 0)] = under | ((side + 2) % 4) << 2
+			if band and cells > 1:
+				var low := edge + Vector3i(0, (cells - 1) * up, 0)
+				if f == WorldData.FORM_STAIRS:
+					# Under stairs a notch, so the underside steps as the top does.
+					out[low] = WorldData.FORM_NOTCH | side << 2
+				else:
+					var under := WorldData.FORM_RAMP if f == WorldData.FORM_UPPER else WorldData.FORM_UPPER
+					out[low] = under | ((side + 2) % 4) << 2
 	return out
 
 
@@ -984,8 +988,9 @@ func from_list(list: Array) -> void:
 		if item == CUT or is_mark(item) or Mat.index(Items.get_item(item).get("place", "")) >= 0:
 			cells[c] = item
 			var form: int = int(e[2]) if e.size() == 3 and (e[2] is int or e[2] is float and is_finite(e[2])) else 0
-			if form & 3 != 0:
-				forms[c] = form & 15
+			form &= 15 | WorldData.FORM_NOTCH
+			if WorldData.form_kind(form) != WorldData.FORM_CUBE:
+				forms[c] = form
 	changed.emit([], "")
 
 
@@ -1029,8 +1034,8 @@ func take(list: Array, item: String, of := []) -> void:
 			else:
 				cells[c] = item
 				var f: Variant = of[k] if k < of.size() else 0
-				if f is int and f & 3 != 0:
-					forms[c] = f & 15
+				if f is int and WorldData.form_kind(f) != WorldData.FORM_CUBE:
+					forms[c] = f & (15 | WorldData.FORM_NOTCH)
 			got.append(c)
 	changed.emit(got, item)
 

@@ -87,9 +87,9 @@ const SEA_WATER := 16
 const RIVER_WATER := 32
 
 ## The forms of built blocks that are not whole cubes (the build mode's slopes and
-## stairs, thread «Сделать отдельный режим строительства»), by cell: FORM_* in bits 0..1,
-## the side the block rises toward (0 north -z, 1 east +x, 2 south +z, 3 west -x) in
-## bits 2..3. A cube has no entry; any change of the cell (set_cell) makes it a cube
+## stairs, thread «Сделать отдельный режим строительства»), by cell: FORM_* in bits 0..1
+## and 4 (form_kind), the side the block rises toward (0 north -z, 1 east +x, 2 south +z,
+## 3 west -x) in bits 2..3. A cube has no entry; any change of the cell (set_cell) makes it a cube
 ## again. Kept by chunk in `form_chunks` too, so a dropped chunk forgets its own.
 var forms := {}
 var form_chunks := {}
@@ -99,6 +99,15 @@ const FORM_CUBE := 0
 const FORM_RAMP := 1
 const FORM_UPPER := 2
 const FORM_STAIRS := 3
+## The quarter under a step of a band of stairs (Plans.BAND): the upper half of the half
+## of the cell away from the side it faces, so the band's underside steps as its top does.
+const FORM_NOTCH := 16
+
+
+## The kind of form `f` (see forms): FORM_CUBE, FORM_RAMP, FORM_UPPER, FORM_STAIRS or
+## FORM_NOTCH.
+static func form_kind(f: int) -> int:
+	return f & 3 | f & FORM_NOTCH
 
 ## Trees grown in the world: species (see Trees) by the trunk's column, Vector2i(x, z),
 ## and the trunks by chunk, so a dropped chunk forgets its trees without a search.
@@ -381,9 +390,9 @@ func set_form(x: int, y: int, z: int, f: int) -> void:
 	if c == null or y < 0 or y >= size_y:
 		return
 	var cell := Vector3i(x, y, z)
-	f &= 15
+	f &= 15 | FORM_NOTCH
 	var m := get_cell(x, y, z)
-	if f & 3 == FORM_CUBE or m == Mat.AIR or m == Mat.WATER or m == Mat.LEAVES:
+	if form_kind(f) == FORM_CUBE or m == Mat.AIR or m == Mat.WATER or m == Mat.LEAVES:
 		if forms.has(cell):
 			_drop_form(c.key, cell)
 			_touch(c, x, z)

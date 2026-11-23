@@ -1,6 +1,6 @@
 extends "res://src/client/world/mesh_faces.gd"
 ## Draws the built blocks that are not whole cubes (WorldData.forms: the build mode's
-## ramps, upturned ramps and stairs) for ChunkMesher: each form is laid out rising
+## ramps, upturned ramps, stairs and the notches under a band of stairs) for ChunkMesher: each form is laid out rising
 ## toward the north and turned to the side it faces. A face on the side of the cell is
 ## left out where a cell that hides what is behind it lies beside, unless that one is a
 ## form too that leaves its side open (`covers_side`); the sloping and inner faces are
@@ -9,6 +9,7 @@ extends "res://src/client/world/mesh_faces.gd"
 const RAMP := WorldData.FORM_RAMP
 const UPPER := WorldData.FORM_UPPER
 const STAIRS := WorldData.FORM_STAIRS
+const NOTCH := WorldData.FORM_NOTCH
 ## The faces of each form rising north: [direction (DIRS) of the side of the cell the
 ## face lies on, -1 inside the cell; the normal; the corners]. The normal of a slope is
 ## worked out from its corners.
@@ -39,6 +40,14 @@ const SHAPES := {
 		[0, Vector3.RIGHT, [Vector3(1, 0, 0), Vector3(1, 0.5, 0), Vector3(1, 0.5, 1), Vector3(1, 0, 1)]],
 		[0, Vector3.RIGHT, [Vector3(1, 0.5, 0), Vector3(1, 1, 0), Vector3(1, 1, 0.5), Vector3(1, 0.5, 0.5)]],
 	],
+	NOTCH: [
+		[2, Vector3.UP, [Vector3(0, 1, 0.5), Vector3(1, 1, 0.5), Vector3(1, 1, 1), Vector3(0, 1, 1)]],
+		[-1, Vector3.DOWN, [Vector3(0, 0.5, 0.5), Vector3(1, 0.5, 0.5), Vector3(1, 0.5, 1), Vector3(0, 0.5, 1)]],
+		[-1, Vector3.FORWARD, [Vector3(0, 0.5, 0.5), Vector3(1, 0.5, 0.5), Vector3(1, 1, 0.5), Vector3(0, 1, 0.5)]],
+		[4, Vector3.BACK, [Vector3(0, 0.5, 1), Vector3(1, 0.5, 1), Vector3(1, 1, 1), Vector3(0, 1, 1)]],
+		[1, Vector3.LEFT, [Vector3(0, 0.5, 0.5), Vector3(0, 1, 0.5), Vector3(0, 1, 1), Vector3(0, 0.5, 1)]],
+		[0, Vector3.RIGHT, [Vector3(1, 0.5, 0.5), Vector3(1, 1, 0.5), Vector3(1, 1, 1), Vector3(1, 0.5, 1)]],
+	],
 }
 
 
@@ -62,9 +71,11 @@ static func turn_dir(d: int, turns: int) -> int:
 ## Whether a block of form `form` has its side `d` (DIRS) wholly closed: then a cube
 ## beside it there hides its face, as beside a cube.
 static func covers_side(form: int, d: int) -> bool:
-	var kind := form & 3
+	var kind := WorldData.form_kind(form)
 	if kind == WorldData.FORM_CUBE:
 		return true
+	if kind == NOTCH:
+		return false
 	var turns := form >> 2 & 3
 	if d == turn_dir(5, turns):
 		return true
@@ -78,7 +89,7 @@ static func form_faces(buf, c: PackedByteArray, cov: PackedByteArray, forms: Dic
 		i: int, base: Vector3, m: int, form: int) -> void:
 	var turns := form >> 2 & 3
 	var none := float(NO_TILES)
-	for f: Array in SHAPES.get(form & 3, []):
+	for f: Array in SHAPES.get(WorldData.form_kind(form), []):
 		var d := turn_dir(f[0], turns)
 		if d >= 0:
 			var j := i + offsets[d]

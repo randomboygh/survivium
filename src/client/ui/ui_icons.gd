@@ -1037,14 +1037,15 @@ const ICONS := {
 		".......w",
 	],
 	"form_stairs_band": [
-		"....wwww",
-		"....wmmw",
-		"....wmmw",
-		"wwwwwmmw",
-		"wmmmmmmw",
-		"wmmmmwww",
-		"wmmw....",
-		"wwww....",
+		"......www",
+		"......wmw",
+		"......wmw",
+		"...wwwmmw",
+		"...wmmmmw",
+		"...wmmwww",
+		"wwwmmw...",
+		"wmmmmw...",
+		"wwwwww...",
 	],
 	# Drawing the blueprint (a pencil) and taking it off (an eraser).
 	"build_draw": [

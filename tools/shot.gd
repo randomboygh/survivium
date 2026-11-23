@@ -1271,7 +1271,7 @@ func _run() -> void:
 					for c: Vector3i in main.session.plans.cells.keys():
 						main.session.actions.build_cell(c, block, main.session.plans.forms.get(c, 0))
 					main.session.plans.erase(main.session.actions, hp, main.session.plans.cells.keys())
-				main.build.set_form(shot.flights[-1][0] & 3, shot.flights[-1][0] & 16 != 0)
+				main.build.set_form(shot.flights[-1][0] & 3, shot.flights[-1][0] & 32 != 0)
 				main.build.set_kind(shot.flights[-1][1])
 				main.build.set_height(shot.flights[-1][4])
 				for i in 30:
