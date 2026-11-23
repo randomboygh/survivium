@@ -1267,10 +1267,11 @@ func _run() -> void:
 				var block := Mat.index(Items.get_item("materials:planks").get("place", ""))
 				for fl: Array in shot.flights:
 					main.session.plans.draw(main.session.actions, hp, fl[1], feet + fl[2], feet + fl[3], fl[4], 1, false, fl[0])
-				for c: Vector3i in main.session.plans.cells.keys():
-					main.session.actions.build_cell(c, block, main.session.plans.forms.get(c, 0))
-				main.session.plans.erase(main.session.actions, hp, main.session.plans.cells.keys())
-				main.build.form = shot.flights[-1][0] & 3
+				if not shot.get("ghost", false):
+					for c: Vector3i in main.session.plans.cells.keys():
+						main.session.actions.build_cell(c, block, main.session.plans.forms.get(c, 0))
+					main.session.plans.erase(main.session.actions, hp, main.session.plans.cells.keys())
+				main.build.set_form(shot.flights[-1][0] & 3, shot.flights[-1][0] & 32 != 0)
 				main.build.set_kind(shot.flights[-1][1])
 				main.build.set_height(shot.flights[-1][4])
 				for i in 30:

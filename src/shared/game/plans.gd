@@ -54,7 +54,10 @@ var forms := {}
 const KINDS := ["line", "plane", "square", "cube", "flatten"]
 ## The shapes drawn as a flight of slopes or stairs when a form is chosen (flight); the
 ## others are drawn of cubes whatever the form.
-const FLIGHTS := ["line", "square"]
+const FLIGHTS := ["line", "plane", "square"]
+## In the form of a stroke (draw, flight), beside WorldData's form in bits 0..3: the
+## flight is a band one block thick along its slope, not filled down to the ground.
+const BAND := 32
 ## The ghost of a cell to dig out (flattening): in `cells` in place of a block's item.
 const CUT := "-"
 ## How far over and under the level a flattening reaches, in levels, and how many
@@ -142,15 +145,20 @@ static func shape(kind: String, a: Vector3i, b: Vector3i, height: int, near := V
 
 
 ## The cells of a flight of slopes or stairs (`form`, WorldData.forms: its kind in bits
-## 0..1, the side a lone column rises to in bits 2..3) drawn as shape `kind` (a line or a
-## square, FLIGHTS) from `a` to `b`, by cell → its form (0 a cube). It climbs from the
-## first corner, one level high, to the last, `height` levels high: a line along the way
-## the stroke went, a square along both its sides to the far corner (each row of a thick
-## wall the same). A column is filled with cubes under its top, which is a slope or a step
-## rising toward `b` where the column is higher than the one before it. An upturned slope
-## mirrors that from the top: every column reaches `height` levels, the first hangs one
-## level high at the top, the last goes down to the ground, and the lowest cell of each
-## column that reaches lower than the one before it is the upturned slope.
+## 0..1, the side a lone column rises to in bits 2..3, BAND) drawn as shape `kind` (a
+## line, a plane or a square, FLIGHTS) from `a` to `b`, by cell → its form (0 a cube). It
+## climbs from the first corner, one level high, to the last, `height` levels high: a line
+## and a plane along the way the stroke went (a plane all across its width), a square
+## along both its sides to the far corner (each row of a thick wall the same). A column is
+## filled with cubes under its top, which is a slope or a step rising toward `b` where the
+## column is higher than the one before it. An upturned slope mirrors that from the top:
+## every column reaches `height` levels, the first hangs one level high at the top, the
+## last goes down to the ground, and the lowest cell of each column that reaches lower
+## than the one before it is the upturned slope. With BAND a column holds only the cells
+## from its top down to the level of the one before it, and the lowest of them, where the
+## column rises, is the slope turned the other way (an upturned one under a slope, a
+## slope over an upturned one) or, under stairs, a notch (WorldData.FORM_NOTCH), so the
+## underside steps as the top does: a band one block thick that hangs by its shape.
 static func flight(kind: String, a: Vector3i, b: Vector3i, height: int, near := Vector2.INF, thick := 1,
 		form := 0) -> Dictionary:
 	var out := {}
@@ -159,16 +167,18 @@ static func flight(kind: String, a: Vector3i, b: Vector3i, height: int, near := 
 	height = clampi(height, MIN_HEIGHT, MAX_HEIGHT)
 	thick = clampi(thick, MIN_THICK, MAX_THICK)
 	var f := form & 3
+	var band := form & BAND != 0
 	var d := b - a
 	var along_x := absi(d.x) >= absi(d.z)
 	var lo := Vector2i(mini(a.x, b.x), mini(a.z, b.z))
 	var hi := Vector2i(maxi(a.x, b.x), maxi(a.z, b.z))
+	var straight := kind != "square"
 	# How many steps along the way from the first corner to the last.
-	var span := (absi(d.x) if along_x else absi(d.z)) if kind == "line" else absi(d.x) + absi(d.z)
+	var span := (absi(d.x) if along_x else absi(d.z)) if straight else absi(d.x) + absi(d.z)
 	for c in shape(kind, a, b, 1, near, thick):
 		var t := absi(c.x - a.x) + absi(c.z - a.z)
 		var by_x := along_x
-		if kind == "line":
+		if straight:
 			t = absi(c.x - a.x) if along_x else absi(c.z - a.z)
 		elif d.x == 0 or d.z == 0:
 			by_x = d.x != 0
@@ -181,15 +191,31 @@ static func flight(kind: String, a: Vector3i, b: Vector3i, height: int, near := 
 		if span > 0:
 			side = (1 if d.x > 0 else 3) if by_x else (2 if d.z > 0 else 0)
 		var h := _rise(t, span, height)
-		var formed := t == 0 or h > _rise(t - 1, span, height)
+		var before := _rise(t - 1, span, height) if t > 0 else h
+		var formed := t == 0 or h > before
 		# The cell that takes the form: the top, or the bottom of an upturned flight.
 		var edge := Vector3i(c.x, a.y + height - h, c.z) if f == WorldData.FORM_UPPER else Vector3i(c.x, a.y + h - 1, c.z)
 		var up := 1 if f == WorldData.FORM_UPPER else -1
-		for y in h:
+		var cells := h - before + 1 if band else h
+		for y in cells:
 			out[edge + Vector3i(0, y * up, 0)] = 0
 		if formed:
 			out[edge] = f | side << 2
+			if band and cells > 1:
+				var low := edge + Vector3i(0, (cells - 1) * up, 0)
+				if f == WorldData.FORM_STAIRS:
+					# Under stairs a notch, so the underside steps as the top does.
+					out[low] = WorldData.FORM_NOTCH | side << 2
+				else:
+					var under := WorldData.FORM_RAMP if f == WorldData.FORM_UPPER else WorldData.FORM_UPPER
+					out[low] = under | ((side + 2) % 4) << 2
 	return out
+
+
+## Whether a flight of form `form` (see flight) hangs by its shape, so its cells over a
+## void are not told as hanging (sort): an upturned one, or a band.
+static func hangs_by_shape(form: int) -> bool:
+	return form & 3 == WorldData.FORM_UPPER or form & BAND != 0
 
 
 ## How many levels high the column `t` steps along a flight `span` steps long is: one at
@@ -293,12 +319,12 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 	elif block < 0:
 		who.nag("plan_block", "[choose_a_block_for_the]")
 		return 0
-	form &= 15
+	form &= 15 | BAND
 	if form & 3 == 0 or kind not in FLIGHTS:
 		form = 0
 	var steps := flight(kind, a, b, height, Vector2(p.x, p.z), thick, form)
 	var sorted := sort(actions, who, kind, a, shape(kind, a, b, height, Vector2(p.x, p.z), thick, form), block,
-		form & 3 == WorldData.FORM_UPPER)
+		hangs_by_shape(form))
 	var added: Array = []
 	for c: Vector3i in sorted.fit:
 		if cells.size() + added.size() >= MAX_CELLS:
@@ -962,8 +988,9 @@ func from_list(list: Array) -> void:
 		if item == CUT or is_mark(item) or Mat.index(Items.get_item(item).get("place", "")) >= 0:
 			cells[c] = item
 			var form: int = int(e[2]) if e.size() == 3 and (e[2] is int or e[2] is float and is_finite(e[2])) else 0
-			if form & 3 != 0:
-				forms[c] = form & 15
+			form &= 15 | WorldData.FORM_NOTCH
+			if WorldData.form_kind(form) != WorldData.FORM_CUBE:
+				forms[c] = form
 	changed.emit([], "")
 
 
@@ -1007,8 +1034,8 @@ func take(list: Array, item: String, of := []) -> void:
 			else:
 				cells[c] = item
 				var f: Variant = of[k] if k < of.size() else 0
-				if f is int and f & 3 != 0:
-					forms[c] = f & 15
+				if f is int and WorldData.form_kind(f) != WorldData.FORM_CUBE:
+					forms[c] = f & (15 | WorldData.FORM_NOTCH)
 			got.append(c)
 	changed.emit(got, item)
 

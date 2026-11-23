@@ -34,8 +34,11 @@ const BUTTON := 30
 const CONFIRM_WAIT := 3.0
 const SHAPES := {"line": ["build_line", "[line_wall]"], "plane": ["build_plane", "[plane_floor]"],
 	"square": ["build_square", "[square_walls_around]"], "cube": ["build_cube", "[cube_floor_walls_and_ceiling]"]}
+## The forms round the form button (BuildMode.form_index): a block, the filled slopes and
+## stairs, then the same as bands one block thick.
 const FORMS := [["form_cube", "[block_whole]"], ["form_ramp", "[slope_below]"], ["form_upper", "[slope_above]"],
-	["form_stairs", "[steps]"]]
+	["form_stairs", "[steps]"], ["form_ramp_band", "[slope_below_band]"], ["form_upper_band", "[slope_above_band]"],
+	["form_stairs_band", "[steps_band]"]]
 
 var game
 var mode
@@ -277,10 +280,10 @@ func _show_panel() -> void:
 	_shape.tooltip_text = Lang.f("[press_for_the_next_shape]", [shape[1]])
 	TabRow.light(_shape, b.kind != "flatten")
 	TabRow.light(_flatten, b.kind == "flatten")
-	# A plane and a room are of cubes: no slopes or stairs for them.
+	# A room is of cubes: no slopes or stairs for it.
 	var formed: bool = b.forms_drawn()
-	_form.icon = UiStyle.centred(UiStyle.icon(FORMS[b.form if formed else 0][0]))
-	_form.tooltip_text = Lang.f("[press_for_the_next_form]", [FORMS[b.form][1]]) if formed \
+	_form.icon = UiStyle.centred(UiStyle.icon(FORMS[b.form_index() if formed else 0][0]))
+	_form.tooltip_text = Lang.f("[press_for_the_next_form]", [FORMS[b.form_index()][1]]) if formed \
 		else "[slopes_and_stairs_are_drawn_by]"
 	_form.disabled = not formed
 	_turn.disabled = b.form == 0 or not formed

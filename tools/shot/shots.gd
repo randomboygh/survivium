@@ -311,6 +311,18 @@ const SHOTS := {
 	"build-mode-flights": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "flights": [
 		[1, "line", Vector3i(-16, 0, 8), Vector3i(-16, 0, 3), 6], [3, "line", Vector3i(-13, 0, 8), Vector3i(-13, 0, 3), 6],
 		[2, "line", Vector3i(-10, 0, 8), Vector3i(-10, 0, 3), 6], [3, "square", Vector3i(-7, 0, 8), Vector3i(-2, 0, 3), 5]]},
+	# Bands one block thick (Plans.BAND) along lines rising east, seen from the side: a
+	# ramp, stairs, an upturned ramp; built, then as a ghost. Then flights drawn as planes:
+	# filled stairs, a band of ramps, a band of stairs.
+	"build-mode-bands": {"time": 0.4, "season": 1, "build_mode": "draw", "hide": ["chunks: grass"],
+		"flights": [[33, "line", Vector3i(-4, 0, -3), Vector3i(3, 0, -3), 5], [35, "line", Vector3i(-4, 0, -7), Vector3i(3, 0, -7), 5],
+		[34, "line", Vector3i(-4, 0, -11), Vector3i(3, 0, -11), 5]]},
+	"build-mode-bands-ghost": {"time": 0.4, "season": 1, "build_mode": "draw", "ghost": true,
+		"hide": ["chunks: grass"], "flights": [[33, "line", Vector3i(-4, 0, -3), Vector3i(3, 0, -3), 5], [35, "line", Vector3i(-4, 0, -7), Vector3i(3, 0, -7), 5],
+		[34, "line", Vector3i(-4, 0, -11), Vector3i(3, 0, -11), 5]]},
+	"build-mode-planes": {"time": 0.4, "season": 1, "build_mode": "draw", "hide": ["chunks: grass"], "turn": 1,
+		"flights": [[3, "plane", Vector3i(-6, 0, -2), Vector3i(-4, 0, -7), 5], [33, "plane", Vector3i(-1, 0, -2), Vector3i(1, 0, -7), 5],
+		[35, "plane", Vector3i(4, 0, -2), Vector3i(6, 0, -7), 5]]},
 	"build-mode-touch": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "touch": true},
 	"build-mode-plane": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "plane", "height": 2},
 	# Furniture on a floor of planks: a table with stools, a bed, a cupboard, a barrel, a rug.
