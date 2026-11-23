@@ -1015,6 +1015,37 @@ const ICONS := {
 		"wmmmmmmw",
 		"wwwwwwww",
 	],
+	# The same three as bands one block thick along the flight, not filled down.
+	"form_ramp_band": [
+		".......w",
+		"......ww",
+		".....wmw",
+		"....wmmw",
+		"...wmmw.",
+		"..wmmw..",
+		".wmmw...",
+		"wwww....",
+	],
+	"form_upper_band": [
+		"wwww....",
+		".wmmw...",
+		"..wmmw..",
+		"...wmmw.",
+		"....wmmw",
+		".....wmw",
+		"......ww",
+		".......w",
+	],
+	"form_stairs_band": [
+		"....wwww",
+		"....wmmw",
+		"....wmmw",
+		"wwwwwmmw",
+		"wmmmmmmw",
+		"wmmmmww.",
+		"wmmww...",
+		"www.....",
+	],
 	# Drawing the blueprint (a pencil) and taking it off (an eraser).
 	"build_draw": [
 		"......ww",
