@@ -449,9 +449,11 @@ func _fit() -> void:
 	queue_redraw()
 
 
-## The darkened world, over the whole window past the safe rect.
+## The darkened world, over the whole window past the safe rect, when no death's look shows.
 func _draw() -> void:
-	draw_rect(Shade.window_rect(self), SHADE)
+	# A death's look (DeathFx) sets the mood itself; the shade only without one.
+	if game.death_fx == null or game.death_fx.look == "":
+		draw_rect(Shade.window_rect(self), SHADE)
 
 
 ## Enter comes back at the first respawn point, Escape opens the main menu; every other

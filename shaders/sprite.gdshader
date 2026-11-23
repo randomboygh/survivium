@@ -41,6 +41,10 @@ uniform float shadow_only = 0.0;
 // shadows do not fall on it. A wide picture lit from behind threw its own leaning shadow
 // (lean_shadow) over its face as a dither; its shading is drawn into the picture.
 uniform float sun_shadow_free = 0.0;
+// How much of the body is gone (DeathFx, a death's dust and flowers), 0..1: a texel
+// goes when this passes its turn, 0.6 by its column (head first) and 0.4 by the 4x4
+// matrix (DeathFx.turn_of counts the same, to send the dust off it).
+uniform float dissolve = 0.0;
 // What a drawn shadow of a fire or the torch leaves of the light where the sprite
 // stands (FireShadows): 1 out of them. It comes as the sprite's scale along z past 1
 // (2 minus it, before the flash), which the flat quad does not use: an instance uniform
@@ -157,6 +161,15 @@ void fragment() {
 	}
 	vec2 uv = shown.xy + at * shown.zw;
 	vec4 c = texture(sprite_texture, uv);
+	if (dissolve > 0.0) {
+		vec2 cells = abs(shown.zw) * vec2(textureSize(sprite_texture, 0));
+		ivec2 lt = ivec2(floor(at * cells));
+		int bm[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
+		float turn = 0.6 * float(lt.x) / cells.x + 0.4 * (float(bm[(lt.y % 4) * 4 + lt.x % 4]) + 0.5) / 16.0;
+		if (turn < dissolve) {
+			discard;
+		}
+	}
 	c.rgb = mix(looks_swap(c.rgb) * tint, FLASH_RED, flash * FLASH_MIX);
 	// The player stays whole whatever level is cut; everyone else goes with their level.
 	bool me = length(world_pos.xz - player_pos.xz) < 0.7 && abs(world_pos.y - player_pos.y) < 1.5;

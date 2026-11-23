@@ -92,6 +92,7 @@ const TracksScript := preload("res://src/client/world/tracks.gd")
 const RoofMap := preload("res://src/client/world/roof_map.gd")
 const MainMenu := preload("res://src/client/ui/main_menu.gd")
 const DeathScreen := preload("res://src/client/ui/death_screen.gd")
+const DeathFx := preload("res://src/client/view/death_fx.gd")
 const ButtonTips := preload("res://src/client/ui/button_tips.gd")
 const SaveGame := preload("res://src/client/save_game.gd")
 const SoundScript := preload("res://src/client/audio/sound.gd")
@@ -223,6 +224,7 @@ var sound: SoundScript
 var save: SaveGame
 var menu: MainMenu
 var death_screen: DeathScreen
+var death_fx: DeathFx
 ## Counts the frame's draw calls by what is drawn (the playtest page, «Отладка»).
 var draw_census: DrawCensus
 ## Parts of the picture hidden from «Тестирование» to find a fault (RenderToggles).
@@ -373,6 +375,8 @@ func _ready() -> void:
 	team.changed.connect(land._changed)
 	view.build(self)
 	world_root = view.world_root
+	death_fx = DeathFx.new(self)
+	add_child(death_fx)
 	_build_ui()
 	get_viewport().size_changed.connect(view.on_screen_resized)
 	view.on_screen_resized()
@@ -779,7 +783,6 @@ func _process(delta: float) -> void:
 				mirror.send_input()
 				host.flush(net)
 				host.runner.playing = true
-			player.visible = not character.is_dead()
 			ready_to_play = true
 			shaders = ShaderWarmup.new(self)
 			shaders.start()
@@ -819,6 +822,7 @@ func _process(delta: float) -> void:
 		player.rowing = character.seat == 0
 		_set_off()
 		player.asleep = character.vitals.asleep and not character.is_dead()
+		player.dead = character.is_dead()
 		player.bed_head = Placed.head_of(placed.bed_under(player.position)) if player.asleep else Vector2i.ZERO
 		player.line_at = character.line
 		player.line_bite = character.bite
@@ -897,6 +901,7 @@ func _process(delta: float) -> void:
 	if ready_to_play:
 		hud.update_state()
 		death_screen.update()
+		death_fx.update(delta)
 		controls.update_tip(delta)
 		auto_quality.update()
 		_report_fps(delta)

@@ -54,6 +54,20 @@ const SOUNDS := {
 	"craft": ["sounds/player", 1, false],
 	"eat": ["sounds/player", 2, false],
 	"ignite": ["sounds/player", 1, false],
+	# A death (DeathFx): its moment, and each look's own sound.
+	"death": ["sounds/player", 1, false],
+	"death_light": ["sounds/player", 1, false],
+	"death_dust": ["sounds/player", 1, false],
+	"death_sepia": ["sounds/player", 1, false],
+	"death_flowers": ["sounds/player", 1, false],
+	"death_ghost": ["sounds/player", 1, false],
+	"death_rings": ["sounds/player", 1, false],
+	"death_night": ["sounds/player", 1, false],
+	"death_moths": ["sounds/player", 1, false],
+	"death_leaves": ["sounds/player", 1, false],
+	"death_snow": ["sounds/player", 1, false],
+	"death_stars": ["sounds/player", 1, false],
+	"death_fog": ["sounds/player", 1, false],
 	# The interface.
 	"click": ["sounds/ui", 1, false],
 	"tab": ["sounds/ui", 1, false],
@@ -565,6 +579,136 @@ func _level_up(_v: int) -> PackedFloat32Array:
 		n = Synth.env(n, 0.004, 0.45 if i < notes.size() - 1 else 1.0)
 		b = Synth.mix(b, n, 0.8 if i < notes.size() - 1 else 1.0, i * 0.09)
 	return Synth.fade(Synth.normalize(b, 0.5), 0.002, 0.2)
+
+
+# --- A death ------------------------------------------------------------------
+
+## The moment of death: a soft low thump and a falling breath.
+func _death(_v: int) -> PackedFloat32Array:
+	var thump := Synth.env(Synth.tone(1.2, func(t: float) -> float: return 90.0 - 35.0 * minf(t / 0.8, 1.0),
+		[[1.0, 1.0, 0.5], [2.0, 0.3, 0.2]]), 0.01, 0.35)
+	var breath := Synth.lowpass(Synth.bandpass(Synth.white(1.6, rng), func(t: float) -> float: return 900.0 - 500.0 * t / 1.6, 0.7), 2500.0)
+	breath = Synth.shape(breath, func(t: float, l: float) -> float: return minf(t / 0.25, 1.0) * pow(1.0 - t / l, 2.0))
+	var b := Synth.mix(Synth.normalize(thump, 1.0), Synth.normalize(breath, 0.35), 1.0, 0.05)
+	return Synth.fade(Synth.normalize(b, 0.55), 0.002, 0.3)
+
+
+## A small light rising: two soft bells, the second higher, and a shimmer.
+func _death_light(_v: int) -> PackedFloat32Array:
+	var b := Synth.mix(_bell(659.26, 0.6), _bell(987.77, 0.7), 0.7, 0.35)
+	b = Synth.mix(b, _bell(1318.5, 0.5), 0.35, 0.8)
+	var shimmer := Synth.shape(Synth.grains(2.5, 30.0, 0.01, 6000.0, 2.0, rng, 3.0),
+		func(t: float, l: float) -> float: return minf(t / 0.5, 1.0) * (1.0 - t / l))
+	b = Synth.mix(b, Synth.normalize(shimmer, 0.15), 1.0, 0.2)
+	return Synth.fade(Synth.normalize(b, 0.45), 0.002, 0.5)
+
+
+## Dust blown away: an airy rising hiss and fine sparkles.
+func _death_dust(_v: int) -> PackedFloat32Array:
+	var air := Synth.bandpass(Synth.white(2.6, rng), func(t: float) -> float: return 1500.0 + 2500.0 * t / 2.6, 1.2)
+	air = Synth.shape(air, func(t: float, l: float) -> float: return sin(PI * t / l) * 0.8)
+	var sparks := Synth.shape(Synth.grains(2.6, 45.0, 0.008, 7000.0, 2.5, rng, 3.0),
+		func(t: float, l: float) -> float: return 1.0 - t / l)
+	var b := Synth.mix(Synth.normalize(air, 0.6), Synth.normalize(sparks, 0.35))
+	return Synth.fade(Synth.normalize(b, 0.35), 0.01, 0.4)
+
+
+## An old photograph: three music-box notes falling, with the crackle of an old record.
+func _death_sepia(_v: int) -> PackedFloat32Array:
+	var b := Synth.silence(2.8)
+	var notes := [880.0, 698.46, 587.33]
+	for i in notes.size():
+		var n := Synth.tone(1.8, notes[i], [[1.0, 1.0, 0.7], [3.0, 0.25, 0.2], [5.2, 0.08, 0.1]])
+		b = _add(b, Synth.env(n, 0.002, 0.5), 0.7, i * 0.5)
+	var crackle := Synth.grains(2.8, 25.0, 0.003, 3000.0, 1.0, rng, 4.0)
+	b = Synth.mix(Synth.normalize(b, 1.0), Synth.normalize(Synth.lowpass(crackle, 5000.0), 0.15))
+	return Synth.fade(Synth.normalize(b, 0.4), 0.002, 0.4)
+
+
+## Flowers coming up: soft plucks rising in a pentatonic run.
+func _death_flowers(_v: int) -> PackedFloat32Array:
+	var b := Synth.silence(3.0)
+	var notes := [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5]
+	for i in notes.size():
+		var n := Synth.lowpass(Synth.pluck(notes[i], 1.4, 0.5, rng), 3500.0)
+		b = _add(b, Synth.env(n, 0.003, 0.5), 0.8 - i * 0.07, i * 0.28 + rng.randf_range(0.0, 0.05))
+	return Synth.fade(Synth.normalize(b, 0.4), 0.002, 0.4)
+
+
+## A ghost rising: a breathy tone sliding up with a slow tremble.
+func _death_ghost(_v: int) -> PackedFloat32Array:
+	var tone := Synth.tone(3.0, func(t: float) -> float: return 330.0 + 160.0 * t / 3.0 + 6.0 * sin(TAU * 5.0 * t),
+		[[1.0, 1.0, 0.0], [2.0, 0.2, 0.0], [3.0, 0.05, 0.0]])
+	var breath := Synth.bandpass(Synth.white(3.0, rng), func(t: float) -> float: return 700.0 + 300.0 * t, 1.5)
+	var b := Synth.mix(Synth.normalize(tone, 1.0), Synth.normalize(breath, 0.6))
+	b = Synth.shape(b, func(t: float, l: float) -> float: return sin(PI * t / l) * (0.7 + 0.3 * sin(TAU * 0.8 * t)))
+	return Synth.fade(Synth.normalize(b, 0.3), 0.01, 0.4)
+
+
+## Rings on water: a singing bowl struck once, its two close tones beating.
+func _death_rings(_v: int) -> PackedFloat32Array:
+	var a := Synth.tone(4.0, 220.0, [[1.0, 1.0, 2.2], [2.76, 0.4, 1.2], [5.4, 0.15, 0.6]])
+	var b := Synth.tone(4.0, 221.6, [[1.0, 0.8, 2.0], [2.76, 0.3, 1.0]])
+	var bowl := Synth.env(Synth.mix(a, b), 0.004, 1.6)
+	return Synth.fade(Synth.normalize(bowl, 0.45), 0.002, 0.6)
+
+
+## Night falling: a low soft chord swelling and dying away.
+func _death_night(_v: int) -> PackedFloat32Array:
+	var b := Synth.silence(3.5)
+	for f: float in [98.0, 146.83, 196.0, 293.66]:
+		b = Synth.mix(b, Synth.tone(3.5, f + rng.randf_range(-0.4, 0.4), [[1.0, 1.0, 0.0], [2.0, 0.15, 0.0]]), 0.5)
+	b = Synth.lowpass(b, 1200.0)
+	b = Synth.shape(b, func(t: float, l: float) -> float: return minf(t / 1.0, 1.0) * pow(1.0 - t / l, 1.5))
+	return Synth.fade(Synth.normalize(b, 0.35), 0.01, 0.5)
+
+
+## Moths: soft flutters of wings and a high twinkle.
+func _death_moths(_v: int) -> PackedFloat32Array:
+	var b := Synth.silence(2.8)
+	for i in 6:
+		var flap := Synth.bandpass(Synth.white(0.35, rng), rng.randf_range(1800.0, 2600.0), 1.0)
+		var rate := rng.randf_range(18.0, 26.0)
+		flap = Synth.shape(flap, func(t: float, l: float) -> float: return absf(sin(PI * rate * t)) * sin(PI * t / l))
+		b = _add(b, flap, rng.randf_range(0.5, 1.0), 0.2 + i * 0.35)
+	b = Synth.mix(Synth.normalize(b, 1.0), _bell(1567.98, 0.4), 0.25, 0.4)
+	return Synth.fade(Synth.normalize(b, 0.3), 0.002, 0.4)
+
+
+## Leaves falling: dry rustles here and there.
+func _death_leaves(_v: int) -> PackedFloat32Array:
+	var b := Synth.silence(3.0)
+	for i in 9:
+		var r := Synth.bandpass(Synth.white(0.25, rng), rng.randf_range(2500.0, 4500.0), 0.8)
+		r = Synth.env(r, 0.02, 0.07)
+		b = _add(b, r, rng.randf_range(0.3, 1.0), rng.randf_range(0.1, 2.6))
+	return Synth.fade(Synth.normalize(b, 0.3), 0.002, 0.3)
+
+
+## Snow: a hush of wind and a few tiny bells far off.
+func _death_snow(_v: int) -> PackedFloat32Array:
+	var air := Synth.lowpass(Synth.highpass(Synth.white(3.5, rng), 600.0), 3000.0)
+	air = Synth.shape(air, func(t: float, l: float) -> float: return sin(PI * t / l))
+	var b := Synth.normalize(air, 0.35)
+	for i in 4:
+		b = Synth.mix(b, _bell([1760.0, 2093.0, 2349.3, 2637.0][i], 0.35), 0.12, 0.4 + i * 0.6 + rng.randf_range(0.0, 0.2))
+	return Synth.fade(Synth.normalize(b, 0.3), 0.01, 0.5)
+
+
+## Stars coming out: high bells one by one, as the stars light.
+func _death_stars(_v: int) -> PackedFloat32Array:
+	var b := Synth.silence(3.2)
+	var notes := [1318.5, 1567.98, 1760.0, 2093.0, 1760.0, 2349.3, 2637.0, 3135.96]
+	for i in notes.size():
+		b = _add(b, _bell(notes[i], 0.45), 0.6, 0.3 + i * 0.18)
+	return Synth.fade(Synth.normalize(b, 0.3), 0.002, 0.6)
+
+
+## Fog: a low slow whoosh, falling.
+func _death_fog(_v: int) -> PackedFloat32Array:
+	var b := Synth.bandpass(Synth.brown(3.5, rng), func(t: float) -> float: return 500.0 - 300.0 * t / 3.5, 0.6)
+	b = Synth.shape(b, func(t: float, l: float) -> float: return sin(PI * t / l))
+	return Synth.fade(Synth.normalize(b, 0.4), 0.01, 0.5)
 
 
 # --- Animals -----------------------------------------------------------------

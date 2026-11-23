@@ -89,7 +89,6 @@ func take_vitals(v: Array) -> void:
 
 
 func _fell() -> void:
-	game.player.visible = false
 	if game.hud.bag.visible:
 		game.hud.toggle_bag()
 

@@ -28,6 +28,14 @@ uniform float trip = 0.0;
 // A heartbeat at low health (BodyFeedback._dark_picture), 0..1: the picture goes darker
 // and harsher for the moment of the beat.
 uniform float heart = 0.0;
+// A death (DeathFx): which look of DeathFx.LOOKS (1-based, 0 none), how far it has come
+// in, 0..1, its seconds, the body's middle in world pixels, and a light over it (x, y in
+// world pixels, z how strong) for the looks that have one.
+uniform int death_look = 0;
+uniform float death_mix = 0.0;
+uniform float death_time = 0.0;
+uniform vec2 death_at = vec2(0.0);
+uniform vec3 death_light = vec3(0.0);
 // Asleep (CameraRig.dream), 0..1: bright things glow out round themselves, the colours
 // sink halfway into a pale blue of one hue, the picture darkens towards a deep blue, and
 // the edges blur and darken, the middle (the sleeper) staying sharp.
@@ -454,6 +462,75 @@ vec3 crt_bloom(vec2 uv, vec2 texel) {
 	return sum / 8.0 * 0.5;
 }
 
+// A death's look over the graded picture (see death_look): the world fades, cools,
+// darkens or goes sepia round the body, rings run out from it, night or fog closes in.
+// Everything goes by world pixels, `dither` is the 4x4 matrix's (-0.5..0.5).
+vec3 death_grade(vec3 c, vec2 px, float dither) {
+	float k = death_mix;
+	float l = dot(c, vec3(0.299, 0.587, 0.114));
+	vec2 rel = px + 0.5 - death_at;
+	float d = length(vec2(rel.x, rel.y / 0.8));
+	if (death_look == 1) {
+		// A small light over the body: dusk all round, its glow in bands on the ground.
+		c = mix(c, vec3(l) * vec3(0.85, 0.92, 1.08), 0.75 * k) * (1.0 - 0.35 * k);
+		float g = length(px + 0.5 - death_light.xy);
+		c += floor(clamp(1.0 - g / 24.0, 0.0, 1.0) * 3.0) / 3.0 * vec3(0.43, 0.33, 0.16) * 0.6 * death_light.z;
+		if (g < 4.5 && dither < 0.0) {
+			c = mix(c, vec3(1.0, 0.86, 0.55), 0.4 * death_light.z);
+		}
+	} else if (death_look == 2 || death_look == 4 || death_look == 8 || death_look == 9) {
+		// Dust, flowers, moths, leaves: the world a little paler and dimmer.
+		float sat = death_look == 2 ? 0.5 : death_look == 8 ? 0.45 : 0.3;
+		vec3 hue = death_look == 9 ? vec3(1.1, 0.95, 0.8) : death_look == 4 ? vec3(0.92, 0.9, 1.05) : vec3(1.0);
+		c = mix(c, vec3(l) * hue, sat * k) * (1.0 - (death_look == 4 ? 0.3 : 0.22) * k);
+	} else if (death_look == 3) {
+		// Sepia, the body left in colour, and a dark dithered ring closing in on it.
+		// Near it only what is not green (the grass round it goes sepia with the rest).
+		float keep = step(length(rel / vec2(11.0, 7.0)), 1.0) * step(c.g, max(c.r, c.b) + 0.02);
+		c = mix(c, vec3(l) * vec3(1.07, 0.9, 0.68), 0.85 * k * (1.0 - keep));
+		float r = 150.0 - 90.0 * k;
+		float dark = clamp((d - r) / 40.0, 0.0, 1.0);
+		float dk = (0.25 + 0.45 * step(dither + 0.5, dark)) * k * clamp((d - r) / 10.0, 0.0, 1.0);
+		c = mix(c, vec3(0.12, 0.086, 0.055), dk);
+	} else if (death_look == 5 || death_look == 10) {
+		// A ghost, snow: the world cold and pale; round the ghost a faint blue glow.
+		c = mix(c, vec3(l) * vec3(0.9, 0.96, 1.1), 0.58 * k) * (1.0 - 0.22 * k);
+		float g = length(px + 0.5 - death_light.xy);
+		c += floor(clamp(1.0 - g / 16.0, 0.0, 1.0) * 3.0) / 3.0 * vec3(0.16, 0.22, 0.31) * 0.6 * death_light.z;
+	} else if (death_look == 6) {
+		// Rings run out from the body every 1.1 s; behind the first the world is grey.
+		float dr = length(vec2(rel.x, rel.y / 0.75));
+		float reach = max(0.0, (death_time - 0.5) * 30.0);
+		float passed = clamp((reach - dr) / 30.0, 0.0, 1.0) * k;
+		c = mix(c, vec3(l) * vec3(0.95, 0.97, 1.05), 0.7 * passed) * (1.0 - 0.25 * passed);
+		float wave = reach - dr;
+		float at = mod(wave, 33.0);
+		if (wave > 0.0 && wave < 33.0 * 5.0 && at < 1.4 && dither + 0.5 < (1.0 - dr / 120.0) * k) {
+			c = mix(c, vec3(0.92, 0.94, 1.0), 0.65);
+		}
+	} else if (death_look == 7) {
+		// Night falls at once; only a warm patch round the body stays lit.
+		vec3 night = c * 0.35 + vec3(l) * vec3(0.25, 0.32, 0.55) * 0.4;
+		float lit = clamp((22.0 - d) / 10.0, 0.0, 1.0);
+		lit = step(dither + 0.5, lit) * 0.6 + floor(lit * 2.0) / 2.0 * 0.4;
+		vec3 warm = mix(vec3(l) * vec3(1.0, 0.72, 0.42), c, 0.3);
+		c = mix(c, mix(night, warm, lit), k);
+	} else if (death_look == 11) {
+		// The stars: a deep night blue.
+		c = mix(c, vec3(l) * vec3(0.35, 0.42, 0.7), 0.7 * k);
+	} else if (death_look == 12) {
+		// Fog creeps in from the edges in four dithered steps till the body's glade is left.
+		float t = death_time;
+		float n = (sin(px.x * 0.09 + t * 0.6) + sin(px.y * 0.07 - t * 0.4) + sin((px.x + px.y) * 0.05 + t * 0.3)) / 3.0;
+		c = mix(c, vec3(l), 0.4 * k) * (1.0 - 0.1 * k);
+		float r = 160.0 - 130.0 * k;
+		float dens = clamp((d - r) / 40.0 + n * 0.35, 0.0, 0.9);
+		float f = clamp(floor(dens * 4.0 + dither + 0.5) / 4.0, 0.0, 0.9) * step(0.001, k);
+		c = mix(c, vec3(0.8, 0.83, 0.86) * clamp(exposure, 0.3, 1.0) * tint, f);
+	}
+	return c;
+}
+
 void fragment() {
 	vec2 uv = UV;
 	// Where this pixel is on the screen, 0..1.
@@ -623,6 +700,9 @@ void fragment() {
 		// The whole picture sinks towards a deep night blue.
 		c = mix(c, vec3(0.02, 0.04, 0.12), 0.4 * dream);
 		c *= 1.0 - dream * 0.4 * smoothstep(0.25, 1.05, d);
+	}
+	if (death_look > 0) {
+		c = death_grade(c, px, dither);
 	}
 	if (heart > 0.0) {
 		c = (c - 0.45) * (1.0 + 0.6 * heart) + 0.45;

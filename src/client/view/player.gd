@@ -112,6 +112,13 @@ const TORCH_AHEAD := 0.3
 ## sleeps on rather than over its back half, with little letters "z" rising over it
 ## (`snore`, see _snore).
 var asleep := false
+## The body lies dead (Character.is_dead, set by Main each frame): it lies as asleep,
+## without the letters "z", until the player comes back (DeathScreen).
+var dead := false
+## How much of the dead body is gone, 0..1 (DeathFx: the dust and the flowers take it;
+## sprite.gdshader `dissolve`).
+var dissolve := 0.0
+var _dissolve_set := 0.0
 ## The letters "z" over a sleeper: each rises from the head, drifting aside, small, then
 ## larger, then a capital, and fades, one after another (as 💤).
 var snore: Array[Sprite3D] = []
@@ -333,7 +340,7 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 	if dir.length() > 0.1:
 		speed = clampf(speed, GAIT_LEAST * Body.SPEED, GAIT_MOST * Body.SPEED)
 	gait = lerpf(gait, speed, 1.0 - exp(-delta / GAIT_EASE))
-	if asleep:
+	if asleep or dead:
 		work_kind = ""
 		if anim != "sleep":
 			anim = "sleep"
@@ -437,6 +444,10 @@ func place_sprite() -> void:
 		sprite.global_position.y += 1.0 / PixelView.PIXELS_PER_UNIT
 	var line: float = body.water_level * CELL if body.water_level > -INF and riding == "" else -1000.0
 	var frame := sheet.frame_uv(drawn_facing(), anim, anim_time)
+	if dissolve != _dissolve_set:
+		_dissolve_set = dissolve
+		sprite.material_override.set_shader_parameter("dissolve", dissolve)
+		xray.visible = drawn and dissolve <= 0.0
 	for layer in [sprite, xray, underwater]:
 		layer.global_position = sprite.global_position
 		layer.material_override.set_shader_parameter("water_line", line)
@@ -610,7 +621,7 @@ static func snore_textures() -> Array[Texture2D]:
 ## from the head over SNORE_TIME, swaying aside, growing from a small "z" to a capital,
 ## fading in and out.
 func _snore(at: Vector3) -> void:
-	var on := anim == "sleep"
+	var on := anim == "sleep" and not dead
 	var side := Vector3(PixelView.right.x, 0.0, PixelView.right.y)
 	var shapes := snore_textures()
 	for i in snore.size():

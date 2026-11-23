@@ -31,6 +31,9 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   the sky's colour and a depth fog of it from `FIRST_PERSON_FOG` (14..30 units) hides the edge of the chunks
   built; the edge fog over unbuilt chunks (`EdgeHaze`) and the level cut are off. Picking uses the camera's own
   rays (`first_person_ray`, `image_of`, `screen_of`). The swipes: `src/client/input/look_swipe.gd`.
+- While the character lies dead the grade also draws a death's look round the body (`death_*` of
+  `grade.gdshader`, led by `DeathFx`, [character.md](../character.md)): dusk, sepia with a dithered vignette,
+  rings, night with a warm patch, fog in four dithered steps and so on, all by world pixels.
 - Behind a system window (the pause menu, the settings and «Тестирование», the editor, the interface gallery —
   the group `Hud.SYSTEM_MENU` — or the main menu over the world; not the bag, chests or the map) the picture
   blurs and darkens: `Hud._process` (it runs while the game is paused) calls `CameraRig.ease_menu_blur`, which

@@ -92,6 +92,8 @@ var safe_clock := 0.0
 var _web := OS.has_feature("web")
 ## Screen-plane point the camera follows smoothly (see PixelView.screen_plane).
 var cam_target := Vector2.ZERO
+## The world pixel at the image's top left this frame (grade.gdshader `view_origin`).
+var origin_px := Vector2.ZERO
 ## The view set, in steps (the turn counts on past a whole turn, so it always glides
 ## the short way), and the one drawn now, gliding to it, in radians.
 var turn_steps := 0
@@ -654,7 +656,8 @@ func update(delta: float) -> void:
 		var k := _shake * _shake_left / SHAKE_TIME
 		snapped += Vector2(randf_range(-k, k), randf_range(-k, k)).round() / PixelView.PIXELS_PER_UNIT
 	camera.global_transform = PixelView.camera_transform(snapped)
-	grade_mat.set_shader_parameter("view_origin", snapped * PixelView.PIXELS_PER_UNIT - Vector2(image_size) / 2.0)
+	origin_px = snapped * PixelView.PIXELS_PER_UNIT - Vector2(image_size) / 2.0
+	grade_mat.set_shader_parameter("view_origin", origin_px)
 	container.position = (-Vector2.ONE * PixelView.MARGIN - frac) * view_scale
 	container.position = container.position.round()
 	# The drops and snow on the screen keep to the screen, not to the gliding picture.

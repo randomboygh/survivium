@@ -1428,6 +1428,9 @@ func _run() -> void:
 				var at: Vector3i = beds.spot_near(main.player.position + Vector3(-6.0, 0.0, -4.0))
 				if at.y >= 0:
 					beds.put("tools:fur_bedroll", at, null, true, -1.0, 0)
+			# A death's look (DeathFx.LOOKS) named, and its clock taken on by `death_step` a frame.
+			main.death_fx.force = shot.get("death_look", "")
+			main.death_fx.fixed_step = float(shot.get("death_step", 0.0))
 			main.host.player.vitals.health = 0.0
 			main.host.player.vitals.satiety = 0.0
 			main.host.player.vitals.hurt_by = "hunger"

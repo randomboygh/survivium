@@ -749,7 +749,7 @@
 | `core:iron` | [core.eras.iron] | порядок 5 | [core.eras.iron.about] | `core` | 0 / 4 | ок |
 | `core:steel` | [core.eras.steel] | порядок 6 | [core.eras.steel.about] | `core` | 0 / 1 | ок |
 
-## Звуки (`sounds`, 57)
+## Звуки (`sounds`, 70)
 
 | Id | Название | Категория | Описание | Бандл | Связи из / в | Проверка |
 |---|---|---|---|---|---|---|
@@ -803,6 +803,19 @@
 | `sounds:craft` | [sounds.sounds.craft] |  |  | `sounds/player` | 0 / 0 | ок |
 | `sounds:eat` | [sounds.sounds.eat] |  |  | `sounds/player` | 0 / 0 | ок |
 | `sounds:ignite` | [sounds.sounds.ignite] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death` | [sounds.sounds.death] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death_light` | [sounds.sounds.death_light] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death_dust` | [sounds.sounds.death_dust] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death_sepia` | [sounds.sounds.death_sepia] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death_flowers` | [sounds.sounds.death_flowers] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death_ghost` | [sounds.sounds.death_ghost] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death_rings` | [sounds.sounds.death_rings] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death_night` | [sounds.sounds.death_night] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death_moths` | [sounds.sounds.death_moths] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death_leaves` | [sounds.sounds.death_leaves] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death_snow` | [sounds.sounds.death_snow] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death_stars` | [sounds.sounds.death_stars] |  |  | `sounds/player` | 0 / 0 | ок |
+| `sounds:death_fog` | [sounds.sounds.death_fog] |  |  | `sounds/player` | 0 / 0 | ок |
 | `sounds:click` | [sounds.sounds.click] |  |  | `sounds/ui` | 0 / 0 | ок |
 | `sounds:tab` | [sounds.sounds.tab] |  |  | `sounds/ui` | 0 / 0 | ок |
 | `sounds:open` | [sounds.sounds.open] |  |  | `sounds/ui` | 0 / 0 | ок |
