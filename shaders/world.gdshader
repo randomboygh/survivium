@@ -486,8 +486,10 @@ void fragment() {
 		if ((flag & ~1) == 4) {
 			// A slope covers more or fewer screen rows than a flat top: take texels
 			// where they show on screen, one texel per pixel, in the view the camera
-			// rests at (rest_plane), so they hold still on the slope while it turns.
-			tm = ivec2(mod(floor(rest_plane(world_pos) * TEXELS), TEXELS));
+			// rests at, so they hold still on the slope while it turns; along the
+			// world's sides (rest_ground), so a turned camera sees the planks of a slope
+			// run as those of the tops beside it.
+			tm = ivec2(mod(floor(rest_ground(world_pos) * TEXELS), TEXELS));
 		}
 		// A cap of the cut shows the inside of the cells it cuts: soil, not turf.
 		if (top && pick == GRASS * 3 && (cap || bare_ground(gp.xz) > 0.5)) {
