@@ -1,0 +1,15 @@
+# A snowman (2026-11-23): three balls of snow ("Resources", gathered by hand where snow lies), twig arms, coal eyes
+# and buttons ("Materials") and a carrot nose. Furniture ("Tools"): a picture in four views (sprites/things/snowman.png)
+# set down on one cell facing the player, taken up whole in the build mode. It melts in warm air (`melts` days at Placed.MELT_WARM degrees, faster near a
+# fire), sinking stage by stage, and leaves its twigs, coal and carrot (`melts_to`).
+- id: snowman
+  title: "[plants.items.snowman]"
+  description: "[plants.items.snowman.about]"
+  weight: 3.0
+  stack: 1
+  icon: snowman
+  picture: snowman
+  prop: snowman
+  furniture: true
+  melts: 1.0
+  melts_to: {resources:branch: 2, materials:charcoal: 1, carrot: 1}

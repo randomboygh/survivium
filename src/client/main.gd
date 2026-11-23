@@ -844,6 +844,7 @@ func _process(delta: float) -> void:
 		hands.update()
 		t = perf.note("hands", t)
 		land.update()
+		props.update()
 		t = perf.note("land", t)
 		_leave_footprints()
 		t = perf.note("wind and tracks", t)

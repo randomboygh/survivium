@@ -159,7 +159,7 @@ func _test_mods() -> void:
 		and Content.mod_of("animals/wolf") == "animals" and Content.mod_of("music") == "music" and not "sounds" in all,
 		"a mod's bundles are its folders with a bundle.yaml, a mod without them is one bundle: %s" % [all])
 	_check(Lang.t(Mods.title("animals/wolf")) == "Wolf" and Lang.t(Mods.title("plants/oak")) == "Oak" and Lang.t(Mods.title("music")) == "Music" and Lang.t(Mods.title("tools/kiln")) == "Kiln"
-		and Lang.t(Mods.mod_title("plants")) == "Plants" and Mods.bundles("animals").size() == 20 and Mods.bundles("plants").size() == 52
+		and Lang.t(Mods.mod_title("plants")) == "Plants" and Mods.bundles("animals").size() == 20 and Mods.bundles("plants").size() == 53
 		and Mods.bundles("resources") == ["resources/caves", "resources/fiber", "resources/peat", "resources/salt", "resources/snow", "resources/soil", "resources/stone", "resources/volcanic", "resources/wood"]
 		and Mods.bundles("materials").size() == 21 and Mods.bundles("tools").size() == 55 and Mods.bundles("sounds") == ["sounds/nature", "sounds/player", "sounds/ui"], "bundles have titles")
 	var after_needs := Content.loaded.size() == all.size()
@@ -179,7 +179,7 @@ func _test_mods() -> void:
 	_check(Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"]) == ["core", "animals/sparrow", "animals/wolf"] + Mods.bundles("plants"),
 		"a list of mods and bundles expands to bundles, a renamed mod to what it became: %s" % [Mods.expand(["core", "birds", "plants", "animals/wolf", "nobody"])])
 	_check(Lang.t(Mods.summary(["core", "animals/wolf"] + Mods.bundles("plants"))) == "Animals (1 of 20), Plants" and Lang.t(Mods.summary(["core"])) == "core only"
-		and Lang.t(Mods.summary(["core", "plants/oak"])) == "Plants (1 of 52)", "a set is summed up by mods")
+		and Lang.t(Mods.summary(["core", "plants/oak"])) == "Plants (1 of 53)", "a set is summed up by mods")
 	var before := Content.BUNDLES.duplicate()
 	for m in ["_a", "_b", "_c", "_d"]:
 		DirAccess.make_dir_recursive_absolute("res://content/%s/data" % m)
@@ -323,7 +323,7 @@ func _test_old_worlds() -> void:
 	var since := ["animals/game", "animals/wool", "materials/bone_glue", "materials/bronze", "materials/cloth", "materials/glass", "materials/leather", "materials/steel", "materials/tar",
 		"plants/roasted_acorns", "tools/anvil", "tools/bloomery", "tools/bow", "tools/candle", "tools/composite_bow", "tools/drying_rack", "tools/fishing_rod", "tools/knife", "tools/leather_sling", "tools/needle", "tools/lantern", "tools/sling", "tools/spear", "tools/loom", "tools/potters_wheel", "tools/tar_torch",
 		"tools/wicker_bag", "tools/leather_bag", "tools/canvas_backpack", "tools/fiber_clothes", "tools/hide_clothes", "tools/waterskin", "tools/bedding", "tools/big_chest", "tools/boundary_post", "tools/stairs", "tools/door", "tools/window", "tools/furniture", "tools/fireplace",
-		"tools/hoe", "tools/sickle", "tools/watering_can", "tools/boats", "tools/trap", "tools/fence", "tools/hatch", "tools/ladder", "tools/signs", "tools/ice_fishing", "tools/boiled_water", "tools/rain_catcher", "tools/rain_barrel", "tools/cloth_clothes", "tools/jewellery", "plants/dyes"]
+		"tools/hoe", "tools/sickle", "tools/watering_can", "tools/boats", "tools/trap", "tools/fence", "tools/hatch", "tools/ladder", "tools/signs", "tools/ice_fishing", "tools/boiled_water", "tools/rain_catcher", "tools/rain_barrel", "tools/cloth_clothes", "tools/jewellery", "plants/dyes", "plants/snowman"]
 	var adds := all.filter(func(b: String) -> bool: return Mods.additive(b) and not b in since)
 	_check(adds == Mods.OLD_ADDITIVE and since.all(func(b: String) -> bool: return Mods.additive(b)),
 		"OLD_ADDITIVE lists the bundles that only add things to make, but those that came later: %s" % [adds])

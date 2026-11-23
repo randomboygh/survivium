@@ -74,6 +74,8 @@ content/plants/
   juniper/              "Juniper": a low blue-green bush (`small`) of the plateaus and alpine meadows
   evening_primrose/     "Evening primrose": yellow buds by day that open at night (`looks: night`), the flowers brewed into
                         a calming tea (`calm`: asleep in it, sleep rests faster)
+  snowman/              "Snowman": rolled by hand from snow (gathered where it lies), twigs, charcoal and a carrot; furniture
+                        on one cell, a picture in 4 views (`picture`) that melts in warm air (`melts`) stage by stage and leaves its twigs, coal and carrot
   dyes/                 "Dyes": black (charcoal), yellow (evening primrose), pink (cranberry, raspberry), violet
                         (blueberry), brown (acorns), white (chalk), grey (ash), green (nettle leaves), ochre (ochre), red
                         (madder root), blue (woad leaves), purple (murex snails) boiled in a pot on the campfire; a thing

@@ -16,7 +16,7 @@
 
 | Процесс | Рецептов | Где делают |
 |---|---|---|
-| [crafting] (`craft`) | 163 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
+| [crafting] (`craft`) | 164 | руки, [core.items.campfire], [tools.items.workbench], [tools.items.anvil], [tools.items.loom], [tools.items.potters_wheel] |
 | Переработка (`refine`) | 12 | руки, [tools.items.workbench], [tools.items.drying_rack], [tools.items.loom] |
 | Плавка и обжиг (`smelt`) | 15 | [tools.items.forge], [tools.items.bloomery], [tools.items.kiln] |
 | Готовка (`cook`) | 29 | [core.items.campfire], [tools.items.kiln] |
@@ -29,6 +29,7 @@
 | [plants.recipes.poultice] `plants:poultice` | [plants.items.poultice] ×1 | [plants.items.moss] ×3, [plants.items.bandage] ×1 | — | [core.items.campfire] (или [tools.items.fireplace]) | — | 4 с | 2 | 0. [core.eras.foraging] | — |
 | [resources.recipes.campfire] `resources:campfire` | [core.items.campfire] ×1 | [resources.items.branch] ×5, [resources.items.fiber] ×5 | — | руки | — | 4 с | 1 | 0. [core.eras.foraging] | — |
 | [materials.recipes.wattle] `materials:wattle` | [materials.items.wattle] ×1 | [resources.items.branch] ×4 | — | руки | — | 3 с | 1 | 0. [core.eras.foraging] | — |
+| [plants.recipes.snowman] `plants:snowman` | [plants.items.snowman] ×1 | [resources.items.snow] ×6, [resources.items.branch] ×2, [materials.items.charcoal] ×1, [plants.items.carrot] ×1 | — | руки | — | 6 с | 5 | 3. [core.eras.bronze] | — |
 | [tools.recipes.boundary_post] `tools:boundary_post` | [tools.items.boundary_post] ×1 | [resources.items.log] ×1, [resources.items.branch] ×2, [materials.items.cord] ×2 | — | руки | — | 6 с | 4 | 1. [core.eras.primitive] | — |
 | [tools.recipes.fence] `tools:fence` | [tools.items.fence] ×2 | [resources.items.branch] ×3, [materials.items.cord] ×1 | — | руки | — | 3 с | 2 | 1. [core.eras.primitive] | — |
 | [tools.recipes.wicket] `tools:wicket` | [tools.items.wicket] ×1 | [resources.items.branch] ×4, [materials.items.cord] ×1 | — | руки | — | 4 с | 2 | 1. [core.eras.primitive] | — |

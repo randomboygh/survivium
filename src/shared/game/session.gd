@@ -151,6 +151,7 @@ func _init(w, g, c: Clock, r, p) -> void:
 	actions.people = players
 	actions.plans = plans
 	placed.burnt_down.connect(actions.leave_ashes)
+	placed.melted.connect(actions.leave_melted)
 	decay.world = world
 	decay.rules = rules
 	decay.territory = territory
@@ -274,6 +275,7 @@ func step_things(delta: float) -> void:
 	territory.step(clock.days(d), players, d)
 	decay.step(clock.days(d), players, d)
 	placed.spoil(clock.days(d), clock.season == clock.WINTER)
+	placed.melt(clock.days(d), clock)
 	_sack_wait -= d
 	if _sack_wait <= 0.0:
 		_sack_wait = SACK_CHECK

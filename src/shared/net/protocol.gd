@@ -305,6 +305,8 @@ const PROP_OPENED := "prop_opened"
 const PROP_FUEL := "prop_fuel"
 ## What a rain catcher holds: [cell, water] (Placed.water_changed).
 const PROP_WATER := "prop_water"
+## How far a thing of snow has melted: [cell, melt 0..1], at each new stage (Placed.melt_changed).
+const PROP_MELT := "prop_melt"
 ## Every ghost cell of the blueprint, on joining: [list] (as Plans.to_list gives it).
 const PLANS := "plans"
 ## Ghost cells of the blueprint came with a block, or went: [cells, item ("" gone), the

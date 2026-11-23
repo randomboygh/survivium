@@ -1,0 +1,6 @@
+# A snowman is rolled by hand from snow with twigs, a piece of charcoal and a carrot.
+- id: snowman
+  title: "[plants.recipes.snowman]"
+  makes: snowman
+  needs: {resources:snow: 6, resources:branch: 2, materials:charcoal: 1, carrot: 1}
+  time: 6

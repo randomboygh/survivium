@@ -196,9 +196,15 @@ func _raw() -> Dictionary:
 			lucky[Items.get_item(id).get("id", id)] = true
 	for p: Dictionary in Plants.BY_ID.values():
 		for id in p.gives:
-			have[Items.get_item(id).get("id", id)] = true
+			if p.kind != "crop":
+				have[Items.get_item(id).get("id", id)] = true
 		for id in p.get("root", {}):
 			given[Items.get_item(id).get("id", id)] = "dug up under %s" % p.get("title", p.id)
+		# A crop grows only on a garden bed (tests/unit/farming_test.gd sows and reaps one):
+		# given, unless the world gives it some other way too.
+		if p.kind == "crop":
+			for id in p.gives:
+				given[Items.get_item(id).get("id", id)] = "reaped on a garden bed"
 	for it: String in Items.IDS:
 		for id in Items.get_item(it).get("ashes", {}):
 			given[Items.get_item(id).get("id", id)] = "left by a burnt-down %s" % Items.title(it)
@@ -650,6 +656,14 @@ func _gather(id: String) -> bool:
 		var rec: Dictionary = Mat.RECORDS[m]
 		if rec.mow_gives.has(id) or rec.mow_gives.has(id.get_slice(":", 1)):
 			return await _mow(id, "")
+	var snow := Mat.of_role("snow", -1)
+	if snow >= 0 and Items.get_item(Mat.RECORDS[snow].item).get("id", "") == id:
+		# Gathered by hand where snow lies (WorldActions.snow_gathered): a snowfall has
+		# covered the land, on the server's clock and the copy's.
+		main.session.clock.snow = 1.0
+		if main.actions.clock != null and main.actions.clock != main.session.clock:
+			main.actions.clock.snow = 1.0
+		return await _mow(id, "")
 	var mats: Array[int] = []
 	for m in Mat.RECORDS.size():
 		var rec: Dictionary = Mat.RECORDS[m]

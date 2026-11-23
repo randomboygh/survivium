@@ -54,6 +54,7 @@ const Body := preload("res://src/shared/game/body.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
+const Warmth := preload("res://src/shared/game/warmth.gd")
 
 const CELL := WorldData.CELL
 ## No level is cut from (`_open`): the thing goes on air only.
@@ -88,6 +89,12 @@ const RAIN_CATCH := 1.0
 const WATER_TELL := 5.0
 const CATCH_GULP := 25.0
 const CATCH_FILL := 60.0
+## A thing of snow (an item with `melts`, a snowman) melts its `melts` days in air this
+## warm (Warmth.air with the fires near, degrees), faster in warmer, not at all at 0 and
+## below; it is drawn in MELT_STAGES stages (melt_stage), the first whole, and those who
+## copy the world learn of each new stage (melt_changed).
+const MELT_WARM := 10.0
+const MELT_STAGES := 4
 ## How far (cells) from its own spot a thing of the start's camp is set down when that
 ## spot is taken, and how many levels above or below the spawn it may stand (see camp_spot).
 const CAMP_REACH := 12
@@ -129,6 +136,11 @@ signal fuel_changed(e: Dictionary)
 ## The water rain catcher `e` holds (its `water`) changed: it was drawn from, or another
 ## WATER_TELL of rain ran in.
 signal water_changed(e: Dictionary)
+## Thing of snow `e` melted down to a new stage (melt_stage; see melt).
+signal melt_changed(e: Dictionary)
+## Thing of snow `e` melted away: gone (removed), its item's `melts_to` left on its cell
+## (WorldActions.leave_melted).
+signal melted(e: Dictionary)
 ## Campfire `e` burnt down to its end (not put out): it leaves its `ashes`
 ## (WorldActions.leave_ashes).
 signal burnt_down(e: Dictionary)
@@ -191,6 +203,8 @@ static var middles := {}
 static var seats := {}
 ## The boxes of a kind whose item has no model: the plain crate VoxelProps draws for
 ## it, its walls a voxel in from the edges of its cells.
+## What a thing drawn as a picture (an item's `picture`) takes of its one cell.
+const SPRITE_BOX := AABB(Vector3(0.125, 0.0, 0.125), Vector3(0.75, 2.0, 0.75))
 const CRATE_BOX := AABB(Vector3(0.125, 0.0, 0.125), Vector3(0.75, 1.0, 0.75))
 ## The boxes of a fire: only the logs in its middle, a cell square across its four
 ## cells, a cell high so no step climbs it; the ring of stones round them is walked
@@ -230,6 +244,13 @@ func read_footprints() -> void:
 			footprints[kind] = FIRE_BOXES
 			turned[kind] = [FIRE_BOXES, FIRE_BOXES, FIRE_BOXES, FIRE_BOXES]
 			sizes[kind] = 2
+			continue
+		if rec.get("picture", "") != "":
+			# Drawn as a picture standing on one cell (Props._add_sprite): solid as a post.
+			footprints[kind] = [SPRITE_BOX]
+			turned[kind] = [[SPRITE_BOX], [SPRITE_BOX], [SPRITE_BOX], [SPRITE_BOX]]
+			sizes[kind] = 1
+			middles[kind] = [Vector2(0.5, 0.5), Vector2(0.5, 0.5), Vector2(0.5, 0.5), Vector2(0.5, 0.5)]
 			continue
 		var name: String = rec.get("model", "")
 		var path := Content.asset(rec, "models/%s.png" % name) if name != "" else ""
@@ -604,6 +625,8 @@ func put(item: String, cell: Vector3i, items: Variant = null, lit := true, fuel 
 		e.by = by
 	if rec.get("rain_water", 0.0) > 0.0:
 		e.water = 0.0
+	if rec.get("melts", 0.0) > 0.0:
+		e.melt = 0.0
 	if rec.fire:
 		e.fuel = clampf(fuel, 0.0, rec.fuel_max) if fuel >= 0.0 else rec.fuel_start
 		e.wet = 0.0
@@ -654,6 +677,8 @@ func from_list(list: Array) -> void:
 				d.get("grave") if d.get("grave") is Dictionary else {}, str(d.get("wreath", "")))
 			if e.has("water") and (d.get("water") is float or d.get("water") is int):
 				e.water = clampf(float(d.water), 0.0, Items.get_item(id).rain_water)
+			if e.has("melt") and (d.get("melt") is float or d.get("melt") is int):
+				e.melt = clampf(float(d.melt), 0.0, 1.0)
 
 
 ## The placed things as plain data for the save.
@@ -668,7 +693,7 @@ func to_list() -> Array:
 
 ## Thing `e` as plain data (one of to_list): {"item", "cell": [x, y, z], "items" what it
 ## holds (Inventory.to_dict) if it stores, "out" true for a fire put out, "fuel" the
-## seconds a fire has left, "water" a rain catcher holds, "by" who put it from their bag, "turn" when it is turned,
+## seconds a fire has left, "water" a rain catcher holds, "melt" how far a thing of snow has melted (0..1), "by" who put it from their bag, "turn" when it is turned,
 ## "open" for a door open, "wreath" the wreath hung on a door, "text" for a sign written, "grave" for a cross}.
 static func record(e: Dictionary) -> Dictionary:
 	var c: Vector3i = e.cell
@@ -686,6 +711,8 @@ static func record(e: Dictionary) -> Dictionary:
 		d.fuel = snappedf(e.fuel, 0.1)
 	if e.has("water"):
 		d.water = snappedf(e.water, 0.1)
+	if e.has("melt"):
+		d.melt = snappedf(e.melt, 0.001)
 	if e.has("by"):
 		d.by = e.by
 	if e.get("turn", 0) != 0:
@@ -1255,6 +1282,10 @@ func take_up(who, e: Dictionary) -> bool:
 		return false
 	if is_fire(e) and e.lit:
 		who.nag("take", Lang.line("[is_burning_put_it_out]", [Items.title(e.item)]))
+		return false
+	# A thing of snow is taken up only whole (the user's pick, 2026-11-23).
+	if melt_stage(e) > 0:
+		who.nag("take", Lang.line("[1_is_melting_it_cant_be_taken]", [Items.title(e.item)]))
 		return false
 	var inv = who.inventory
 	var full: bool = e.items != null and not e.items.is_empty()
@@ -1830,6 +1861,34 @@ func step(delta: float, rain := 0.0) -> void:
 		var chunk = world.chunk_at(c.x, c.z)
 		if chunk != null and chunk.final and (world.get_cell(c.x, c.y, c.z) != Mat.AIR or not world.is_solid(c.x, c.y - 1, c.z)):
 			_remove(e)
+
+
+## The things of snow (`melt`) melt `days` of game time in the air round them as warm
+## as Warmth.air says with the fires near (MELT_WARM): a new stage is told (melt_changed),
+## one melted through is gone (melted, then removed). The session's step.
+func melt(days: float, clock) -> void:
+	for e: Dictionary in things.duplicate():
+		if not e.has("melt"):
+			continue
+		var c: Vector3i = e.cell
+		var p := center(e)
+		var roofed: bool = world.chunk_at(c.x, c.z) != null and world.roof_level(c.x, c.z) > c.y
+		var warm := Warmth.air(world, clock, p, roofed) + Warmth.fire_heat(self, p)
+		if warm <= 0.0:
+			continue
+		var was := melt_stage(e)
+		e.melt = minf(1.0, e.melt + days * warm / MELT_WARM / Items.get_item(e.item).melts)
+		if e.melt >= 1.0:
+			melted.emit(e)
+			_remove(e)
+		elif melt_stage(e) != was:
+			melt_changed.emit(e)
+
+
+## The stage thing of snow `e` is drawn in, 0 (whole) to MELT_STAGES - 1; 0 for a thing
+## that does not melt.
+static func melt_stage(e: Dictionary) -> int:
+	return mini(MELT_STAGES - 1, floori(clampf(float(e.get("melt", 0.0)), 0.0, 1.0) * MELT_STAGES))
 
 
 ## What the things that store hold spoils `days` of game time (Inventory.spoil), slower

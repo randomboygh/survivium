@@ -505,6 +505,8 @@ func _mow_gives(cell: Vector3i) -> Array:
 ## mushroom) than when it is bare grass whose fibre is all there is, so that plants are
 ## picked before the fibre of the ground.
 func _mow_rank(cell: Vector3i) -> float:
+	if snow_gathered(cell) != "":
+		return float(_rank(_mow_gives_of(cell, [])))
 	var plants := in_season(Grass.plants_on(world, cell.x, cell.y, cell.z), cell)
 	var wild := plants.any(func(id: String) -> bool: return id != Plants.TUFT)
 	return float(_rank(_mow_gives_of(cell, plants))) - (0.5 if wild else 0.0)
@@ -512,6 +514,9 @@ func _mow_rank(cell: Vector3i) -> float:
 
 ## _mow_gives of `cell` with its plants of the season `plants` already known.
 func _mow_gives_of(cell: Vector3i, plants: Array) -> Array:
+	var snow := snow_gathered(cell)
+	if snow != "":
+		return [snow]
 	var tall := plants.filter(func(id: String) -> bool: return id != Plants.TUFT)
 	var out := []
 	for id in (tall if not tall.is_empty() else plants):
