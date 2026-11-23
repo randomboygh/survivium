@@ -19,6 +19,20 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   it will lie (`death.sack_days`). A cross at the sack's place: the sixth field of the sack's record is who
   died (`grave_of`: the player's name, the cause, the day, how long they lived, the `life` counters above 0).
   `going` — where the character is about to go (`Session.zones` makes the world there; request `prepare`).
+- `src/client/view/death_fx.gd` — a death's look behind the death screen (user's picks 2026-11-23): the body
+  lies where it fell as asleep (`Player.dead`, no letters «z»), and one look of `DeathFx.LOOKS` is picked at
+  random at each death, never the one before: a light rising over the body, dust blown off it (the body goes,
+  `Player.dissolve` → `sprite.gdshader` `dissolve`), sepia with a closing vignette, flowers coming up round it,
+  a ghost rising, rings running out over the ground, night falling but for a warm patch, moths, falling leaves,
+  snow, a constellation of a figure over it, fog creeping in. The grade does the world's part
+  (`grade.gdshader` `death_*`: `death_look` 1-based, `death_mix`, `death_time`, `death_at` the body in world
+  pixels, `death_light`), the control draws the small things over the picture, a pixel of the low-res image
+  each (`CameraRig.origin_px`, `view_scale`). At the moment of death the world slows (`SLOWEST` → 1 over
+  `SLOW_FOR`, only in one's own world with no one else in it: `Engine.time_scale`), the world's sounds and the
+  music are muffled while it lies dead (`Sound.hush`), the sound `death` plays and the look's own
+  `death_<look>` after `LOOK_SOUND_AT`; the clock is the real one. On coming back it fades out (`FADE_OUT`).
+  The death screen's red shade is drawn only without a look. Shots `death-<look>` (`death_look`, `death_step`
+  a frame).
 - `src/client/game/trip.gd` — going far (user's pick 2026-11-16): `go(at, then)` asks the server to make the
   place ready (`prepare`), Main builds the chunks round it (`ChunkStreamer.set_focus`) and `then` runs once
   the chunks on its screen are built (`focus_built`) or after `MOST_MS` (20 s). The death screen's respawn

@@ -29,6 +29,10 @@ wood, `swish` — at a sword, `bird` — at a sparrow); the game's own sounds ar
 (bundles nature, player, ui), the notes — `content/music/`; a material's `step` and `hit`, a creature's
 `calls` and `alarm` say who sounds. A reference to a sound does not link bundles.
 
+- `Sound.hush(level)` turns the buses Sounds and Music down (a death, `DeathFx`) in steps of `HUSH_STEP_DB`;
+  UI, which is under Sounds, is lifted by as much, so the interface's own sounds stay as loud. A death's
+  sounds (`death`, `death_<look>`, bundle `sounds/player`) are the interface's.
+
 **Rules**
 - Nothing sounds before the first tap or key (`Sound.unlocked`, the browser's autoplay rule); the files load
   a few per frame after that.

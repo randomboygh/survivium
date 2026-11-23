@@ -151,7 +151,43 @@ static func set_volume(bus: String, step: int) -> void:
 	if i < 0:
 		return
 	AudioServer.set_bus_mute(i, step <= 0)
-	AudioServer.set_bus_volume_db(i, linear_to_db(float(maxi(step, 1)) / STEPS))
+	_bus_db[bus] = linear_to_db(float(maxi(step, 1)) / STEPS)
+	_set_bus(bus)
+
+
+## The volume of each bus the settings ask for, in dB, and how much of the world is heard
+## (hush): a death muffles the world's sounds and the music (DeathFx), while the
+## interface, which is under Sounds, is lifted back by as much (its own sounds, a death's
+## among them, stay as loud).
+static var _bus_db := {}
+static var _hush_db := 0.0
+const HUSHED := ["Sounds", "Music"]
+
+
+## Turns the world's sounds and the music down to `level` (linear, 1 as set), in steps of
+## HUSH_STEP_DB so a browser is not told of every small change.
+static func hush(level: float) -> void:
+	var db := snappedf(linear_to_db(clampf(level, 0.01, 1.0)), HUSH_STEP_DB)
+	if db == _hush_db:
+		return
+	_hush_db = db
+	for bus: String in ["Sounds", "Music", "UI"]:
+		_set_bus(bus)
+
+
+const HUSH_STEP_DB := 1.0
+
+
+static func _set_bus(bus: String) -> void:
+	var i := AudioServer.get_bus_index(bus)
+	if i < 0 or not _bus_db.has(bus):
+		return
+	var db: float = _bus_db[bus]
+	if bus in HUSHED:
+		db += _hush_db
+	elif bus == "UI":
+		db -= _hush_db
+	AudioServer.set_bus_volume_db(i, db)
 
 
 ## Puts the ear and the voices into the 3D scene inside the view's SubViewport, the

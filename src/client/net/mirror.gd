@@ -184,7 +184,6 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.TELEPORT:
 			if args is Array and args.size() == 1 and args[0] is Vector3:
 				who.teleport(args[0])
-				game.player.visible = not who.is_dead()
 		Protocol.LINE:
 			if args is Array and args.size() == 2 and args[0] is Vector3:
 				who.line = args[0]

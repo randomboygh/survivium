@@ -592,7 +592,10 @@ func _run() -> void:
 	main.host.player.vitals.hurt_by = "hunger"
 	await process_frame
 	await process_frame
-	_check(ch.is_dead() and ch.inventory.is_empty() and not main.player.visible, "a death empties the bag and hides the player")
+	_check(ch.is_dead() and ch.inventory.is_empty() and main.player.dead and main.player.anim == "sleep",
+		"a death empties the bag and lays the body down")
+	_check(main.death_fx.look != "" and main.view.grade_mat.get_shader_parameter("death_look") > 0,
+		"a death's look is shown over the world")
 	_check(main.death_screen.visible and not main.hud.visible, "the death screen is shown")
 	_check(ch.death.lost.any(func(st: Array) -> bool: return st[0] == "resources:branch" and st[1] == 7),
 		"the death screen knows what was lost")
@@ -605,7 +608,7 @@ func _run() -> void:
 	ch = main.character
 	await process_frame
 	_check(ch.is_dead() and ch.death.get("cause") == "hunger" and main.death_screen.visible, "a world left dead is entered dead")
-	_check(main.player.position.distance_to(fell) < 0.01 and not main.player.visible, "the dead lie where they fell")
+	_check(main.player.position.distance_to(fell) < 0.01 and main.player.dead, "the dead lie where they fell")
 	main.settings.revive_at_death = true
 	main.death_screen._fill()
 	_check(main.death_screen._respawn.get_child_count() == ch.respawn_points().size() + 1,
@@ -613,7 +616,9 @@ func _run() -> void:
 	main.settings.revive_at_death = false
 	main.death_screen._revive(ch.respawn_points()[0][1])
 	await process_frame
-	_check(not ch.is_dead() and not main.death_screen.visible and main.hud.visible and main.player.visible,
+	# Main lays the body down or stands it up in its frame, the next one after the word.
+	await process_frame
+	_check(not ch.is_dead() and not main.death_screen.visible and main.hud.visible and not main.player.dead,
 		"the character comes back at the campfire")
 	_check(ch.vitals.health > 0.0 and main.player.position.distance_to(ch.home) < 0.01, "brought back with health, at home")
 	# The playtest page's teleport: held over the column until its chunk is made, then
