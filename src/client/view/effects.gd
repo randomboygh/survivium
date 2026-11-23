@@ -448,6 +448,14 @@ func add_lamp(at: Vector3, reach: float, placed := {}) -> Dictionary:
 	return rec
 
 
+## Carries the flame and light of lamp `rec` (see add_lamp) by `by` from where it stands,
+## while it is dragged about (BuildMode); a zero `by` puts them back.
+func shift_lamp(rec: Dictionary, by: Vector3) -> void:
+	var flame: CPUParticles3D = rec.flame
+	flame.position = rec.at + by
+	move_anchor(rec.light, rec.at + by)
+
+
 ## Takes light `rec` (see add_lamp) out of the world.
 func remove_lamp(rec: Dictionary) -> void:
 	rec.flame.queue_free()

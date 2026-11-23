@@ -182,7 +182,7 @@ cross, a boundary post); `Placed.move(who, e, corner, turn)` — the request `PR
 (in `PACED`): the free place nearest to `corner` (`move_spot`: `_spot_at` with the thing's own cells free),
 within `Tools.PLACE_REACH`, land rights at both ends, the hands' stamina (`act("place")`); the thing is taken
 and placed anew with what it holds, burns and says, so the copies and the save get it as an ordinary thing
-(`removed`, `added`); the same cell with a quarter more turns it. The build mode drags and turns it
+(`removed`, `added`); the same cell with a quarter more turns it. A light set down (a torch, a candle) moves by the same request: `Placed.move` hands it to `_move_light` (the cell `light_move_spot` finds: that one or one below/above, its own cell free; the same reach, land rights and stamina; it keeps what it burned). While a thing is dragged its flames (`Effects.shift_fire`, `shift_lamp`) go with it; the heat map is remade only when it is set down. The build mode drags and turns it
 ([interaction.md](interaction.md)). On screen (`Props._arrive`) a thing set down while playing drops into
 place from `DROP_HEIGHT` with dust of the ground under it (`Effects.dust`) and the sound `place` on landing
 (lower for a 2×2 one); a thing gone and back on its cell within `RENEW_MS` was changed where it stands (a

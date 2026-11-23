@@ -333,6 +333,13 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 			"from": pos, "ms": Time.get_ticks_msec(), "up": false, "aim": _beside(near, pos),
 			"turn": kept_turns.get(chosen(), game.props.view_turn()), "kept": kept_turns.has(chosen()),
 			"spot": null, "shown": null}
+	if target.has("prop") and Placed.is_light(target.prop) and not erasing:
+		# A light (a torch, a candle) set down: held, it is carried to another cell with its
+		# flame; only tapped, it goes back into the bag.
+		_take_waiting()
+		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "prop": target.prop,
+			"from": pos, "ms": Time.get_ticks_msec(), "moved": false, "to": null, "corner": null,
+			"turn": 0, "shown": null, "grab": Vector3i.ZERO}
 	if target.has("prop") and not Placed.is_light(target.prop) and Items.is_interior(target.prop.item):
 		var e: Dictionary = target.prop
 		if not Placed.movable(e):
@@ -495,6 +502,12 @@ func drag(s: Dictionary) -> void:
 		return
 	s.shown = shown
 	var turn: int = s.turn
+	if Placed.is_light(e):
+		s.to = game.placed.light_move_spot(game.character, e, corner)
+		var cell: Vector3i = s.to if s.to != null else corner
+		game.props.hold_at(e, cell)
+		game.cursor.show_boxes([cell] if s.to != null else [], [] if s.to != null else [cell])
+		return
 	s.to = game.placed.move_spot(game.character, e, corner, turn)
 	var at: Vector3i = s.to if s.to != null else corner
 	game.props.hold_at(e, at, turn)
@@ -554,6 +567,9 @@ func release(s: Dictionary) -> void:
 	var e: Dictionary = s.prop
 	_dragged = {}
 	if not s.moved:
+		if Placed.is_light(e):
+			_take(e.cell)
+			return
 		_tap_wait = {"cell": e.cell, "ms": Time.get_ticks_msec()}
 		return
 	changed.emit()

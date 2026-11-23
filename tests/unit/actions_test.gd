@@ -728,6 +728,16 @@ func _test_lights() -> void:
 	_check(placed.at(e.cell) == e and placed.light_spot(who, 40) == Vector3i(10, 2, 10), "found by its cell; the next goes farther")
 	placed.step(10.0)
 	_check(is_equal_approx(e.burnt, 110.0), "it burns where it stands")
+	var from_cell: Vector3i = e.cell
+	_check(placed.move(who, e, Vector3i(11, 2, 11), 0) and placed.lights.size() == 1 and placed.lights[0].cell == Vector3i(11, 2, 11)
+		and is_equal_approx(placed.lights[0].burnt, 110.0) and placed.light_at(from_cell).is_empty(),
+		"a light is moved a cell over, with what it burned")
+	e = placed.lights[0]
+	_check(not placed.move(who, e, Vector3i(40, 2, 11), 0) and placed.lights[0].cell == Vector3i(11, 2, 11),
+		"not out of reach")
+	_check(placed.move(who, e, e.cell, 0) and placed.lights[0].cell == Vector3i(11, 2, 11), "moved where it stands, it stays")
+	_check(placed.move(who, e, from_cell, 0) and placed.lights[0].cell == from_cell, "and back")
+	e = placed.lights[0]
 	var copy := Placed.new()
 	copy.world = w
 	copy.from_list(JSON.parse_string(JSON.stringify(placed.to_list())))

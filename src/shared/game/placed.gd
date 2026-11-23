@@ -1295,6 +1295,8 @@ func move_spot(who, e: Dictionary, corner: Vector3i, turn: int) -> Variant:
 ## lets them build at both ends; what it holds, burns or says goes with it, and every copy
 ## hears of it as of a thing taken and placed (removed, added). True if it moved.
 func move(who, e: Dictionary, corner: Vector3i, turn: int) -> bool:
+	if is_light(e):
+		return _move_light(who, e, corner)
 	if not movable(e) or territory != null and not territory.may(who, e.cell, "build"):
 		return false
 	turn = posmod(turn, 4)
@@ -1689,11 +1691,49 @@ func light_spot(who, top: int) -> Variant:
 
 ## Whether a light can stand in `cell`: air over solid ground, no higher than `top`,
 ## clear of `who`, of the things and of the other lights.
-func _light_fits(who, cell: Vector3i, top: int) -> bool:
+func _light_fits(who, cell: Vector3i, top: int, own := {}) -> bool:
 	if cell.y > top or world.get_cell(cell.x, cell.y, cell.z) != Mat.AIR or not world.is_solid(cell.x, cell.y - 1, cell.z):
 		return false
-	if who.overlaps_cell(cell) or world.blockers.has(cell) or world.ladders.has(cell) or not light_at(cell).is_empty():
+	var there := light_at(cell)
+	if who.overlaps_cell(cell) or world.blockers.has(cell) or world.ladders.has(cell) or not there.is_empty() and not is_same(there, own):
 		return false
+	return true
+
+
+## The cell light `e` would stand in moved to `cell`: that cell, or the one below or above
+## it that fits (its own cell counted free); null when there is none.
+func light_move_spot(who, e: Dictionary, cell: Vector3i) -> Variant:
+	for dy: int in [0, -1, 1]:
+		var c := cell + Vector3i(0, dy, 0)
+		if _light_fits(who, c, c.y, e):
+			return c
+	return null
+
+
+## `who` moves light `e` to `cell` (see light_move_spot), within their reach of placing and
+## where the land lets them build at both ends; what it has burned goes with it, and every
+## copy hears of it as of a light taken and set down (removed, added). True if it moved.
+func _move_light(who, e: Dictionary, cell: Vector3i) -> bool:
+	if territory != null and not territory.may(who, e.cell, "build"):
+		return false
+	var spot: Variant = light_move_spot(who, e, cell)
+	if spot == null:
+		who.nag("put", "[nowhere_to_place_it_needs]")
+		return false
+	var p: Vector3 = who.position / CELL
+	var to := center({"item": e.item, "cell": spot, "light": true}) / CELL
+	if Vector2(to.x - p.x, to.z - p.z).length() > Tools.PLACE_REACH or absf(to.y - 0.5 - p.y) > Tools.PLACE_REACH:
+		who.nag("put", "[too_far]")
+		return false
+	if territory != null and not territory.may(who, spot, "build"):
+		return false
+	if spot == e.cell:
+		return true
+	if not who.act("place"):
+		return false
+	_remove(e)
+	put_light(e.item, spot, float(e.burnt))
+	world.note_edit(spot.x, spot.z)
 	return true
 
 

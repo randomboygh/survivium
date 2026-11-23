@@ -441,6 +441,14 @@ func _land(e: Dictionary) -> void:
 		Vibration.play(game, "thud", 0.0, 1.0 if n < 2.0 else 1.4)
 
 
+## Where the model of thing `e` stands: its north-west cell's corner, a light's in the middle
+## of its cell.
+func _rest(e: Dictionary) -> Vector3:
+	if Placed.is_light(e):
+		return (Vector3(e.cell) + Vector3(0.5, 0.0, 0.5)) * CELL
+	return Vector3(e.cell) * CELL
+
+
 ## Holds the model of thing `e` up over the north-west cell `corner`, turned `turn` (its own
 ## when -1), while the build mode drags it (BuildMode); false when it has no model of its own.
 func hold_at(e: Dictionary, corner: Vector3i, turn := -1) -> bool:
@@ -448,12 +456,18 @@ func hold_at(e: Dictionary, corner: Vector3i, turn := -1) -> bool:
 	if node == null or not is_instance_valid(node) or not node is MeshInstance3D:
 		return false
 	_stop_fall(node)
-	_turn_model(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
+	var light := Placed.is_light(e)
+	if not light:
+		_turn_model(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
 	node.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
+	if light:
+		node.position += Vector3(0.5, 0.0, 0.5) * CELL
 	node.extra_cull_margin = CULL_MARGIN
+	# Its flames go with it, as far as it is carried from where it stands.
 	if _fires.has(e.cell):
-		# Its fire goes with it, as far as it is carried from where it stands.
-		game.effects.shift_fire(_fires[e.cell], node.position - Vector3(e.cell) * CELL)
+		game.effects.shift_fire(_fires[e.cell], node.position - _rest(e))
+	if _lamps.has(e.cell):
+		game.effects.shift_lamp(_lamps[e.cell], node.position - _rest(e))
 	return true
 
 
@@ -510,13 +524,15 @@ func holding_new() -> bool:
 func settle(e: Dictionary) -> void:
 	if _fires.has(e.cell):
 		game.effects.shift_fire(_fires[e.cell], Vector3.ZERO)
+	if _lamps.has(e.cell):
+		game.effects.shift_lamp(_lamps[e.cell], Vector3.ZERO)
 	var node: Node3D = _nodes.get(e.cell)
 	if node == null or not is_instance_valid(node):
 		return
-	if node is MeshInstance3D:
+	if node is MeshInstance3D and not Placed.is_light(e):
 		_turn_model(node, e, int(e.get("turn", 0)))
 	var from := node.position
-	var to := Vector3(e.cell) * CELL
+	var to := _rest(e)
 	if from.is_equal_approx(to):
 		return
 	_stop_fall(node)
@@ -533,7 +549,7 @@ func standing(e: Dictionary) -> bool:
 	var node: Node3D = _nodes.get(e.cell)
 	if node == null or not is_instance_valid(node):
 		return true
-	return node.position.is_equal_approx(Vector3(e.cell) * CELL)
+	return node.position.is_equal_approx(_rest(e))
 
 
 ## Light `e` set down: its model standing in the middle of its cell and its flame on top
