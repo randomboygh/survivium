@@ -19,10 +19,25 @@ const GOLD := Color(0.92, 0.72, 0.22)
 const PLATINUM := Color(0.66, 0.68, 0.71)
 
 
+## The furniture is drawn this much darker than its wood: in its own colours a plank table
+## on a plank floor was hardly told apart from it (user's pick, 2026-11-23).
+const FURNITURE := ["table", "stool", "wooden_bed", "cupboard", "wide_cupboard", "barrel", "rug"]
+const FURNITURE_SHADE := 0.9
+
+
 ## The model of a thing placed on two by two cells by its item's `prop` (16 voxels a
 ## world unit, the front to the south), null for none; `model` (the item's) tells apart
 ## the things of one kind (the beds).
 static func prop(kind: String, model := "") -> VoxelModel:
+	var m := _prop(kind, model)
+	if m != null and kind in FURNITURE:
+		for p: Vector3i in m.voxels:
+			var c: Color = m.voxels[p]
+			m.voxels[p] = Color(c.r * FURNITURE_SHADE, c.g * FURNITURE_SHADE, c.b * FURNITURE_SHADE, c.a)
+	return m
+
+
+static func _prop(kind: String, model := "") -> VoxelModel:
 	# Doors and windows of other sizes: `door_2x3` is two cells wide, three tall.
 	var sized := kind.split("_")
 	if sized.size() == 2 and sized[0] in ["door", "window", "hatch"] and sized[1].contains("x"):

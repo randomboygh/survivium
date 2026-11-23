@@ -661,7 +661,9 @@ void fragment() {
 		float foot = 1.0 - rise / CELL;
 		col *= bayer4(floor(rest_plane(world_pos) * TEXELS)) < foot * 0.9 - 0.15 ? snow_shade(0.88 + 0.06 * snow_lit, snow_lit) : vec3(1.0);
 	}
-	if (tile == NONE) {
+	// Only a drift: the foot's shade below fell on every thing of voxels too (their UV is
+	// zero, far off a drift's middle), dithering a placed or held thing turquoise in sun.
+	if (is_drift(packed.x, UV)) {
 		// A snowdrift's relief is a soft shade baked into its vertex alpha, halved.
 		// In clear sun its shaded side goes turquoise blue like the snow's other shades.
 		// In clear sun its foot is shaded a little on its east and west sides, so white on
