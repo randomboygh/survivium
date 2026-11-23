@@ -125,7 +125,7 @@ func describe(target: Dictionary) -> String:
 		if game.build.on and Items.is_interior(e.item):
 			return Lang.f("[lmb_take]", [title])
 		if Placed.is_light(e):
-			return Lang.f("[lmb_take]", [title])
+			return title
 		if Placed.is_sign(e):
 			return Lang.f("[lmb_read]", [title])
 		if Placed.is_bed(e):
@@ -191,8 +191,8 @@ func gather(target: Dictionary) -> bool:
 		# Parts of a house are taken up only in the build mode: a tap does nothing.
 		return false
 	if target.has("prop") and Placed.is_light(target.prop):
-		var taken = game.net.request(Protocol.PROP_TAKE, [target.prop.cell])
-		return taken.done and taken.value is bool and taken.value
+		# A light set down is taken, moved and turned only in the build mode, like furniture.
+		return false
 	if target.has("prop") and Placed.is_catcher(target.prop):
 		var drawn = game.net.request(Protocol.PROP_DRINK, [target.prop.cell])
 		return drawn.done and drawn.value is bool and drawn.value

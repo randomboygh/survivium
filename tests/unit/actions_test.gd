@@ -738,6 +738,10 @@ func _test_lights() -> void:
 	_check(placed.move(who, e, e.cell, 0) and placed.lights[0].cell == Vector3i(11, 2, 11), "moved where it stands, it stays")
 	_check(placed.move(who, e, from_cell, 0) and placed.lights[0].cell == from_cell, "and back")
 	e = placed.lights[0]
+	_check(placed.move(who, e, e.cell, 1) and placed.lights.size() == 1 and placed.lights[0].get("turn", 0) == 1
+		and placed.lights[0].cell == from_cell and is_equal_approx(placed.lights[0].burnt, 110.0), "turned a quarter where it stands")
+	_check(Placed.record(placed.lights[0]).get("turn", 0) == 1, "the turn is saved")
+	e = placed.lights[0]
 	var copy := Placed.new()
 	copy.world = w
 	copy.from_list(JSON.parse_string(JSON.stringify(placed.to_list())))
