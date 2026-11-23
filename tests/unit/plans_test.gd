@@ -11,6 +11,7 @@ func run() -> void:
 	_test_build()
 	_test_forms()
 	_test_flights()
+	_test_bands()
 	_test_flatten()
 
 
@@ -109,9 +110,9 @@ func _test_build() -> void:
 		"and the blocked cells are not drawn")
 
 
-## A line or a square drawn with slopes or stairs is a flight (Plans.flight): from the
-## first corner one level high to the last `height` levels high, an upturned one hanging
-## from the top; a plane and a room stay cubes.
+## A line, a plane or a square drawn with slopes or stairs is a flight (Plans.flight):
+## from the first corner one level high to the last `height` levels high, an upturned one
+## hanging from the top; a room stays cubes.
 func _test_flights() -> void:
 	var ramp := WorldData.FORM_RAMP
 	var east := ramp | 1 << 2
@@ -147,11 +148,17 @@ func _test_flights() -> void:
 		and not square.has(Vector3i(1, 1, 1)), "a square climbs along both sides from the first corner to the far one: %s" % [square])
 	var lone := Plans.flight("line", Vector3i(2, 1, 2), Vector3i(2, 1, 2), 2, Vector2.INF, 1, ramp | 3 << 2)
 	_check(lone == {Vector3i(2, 1, 2): 0, Vector3i(2, 2, 2): ramp | 3 << 2}, "a lone column rises to the side given: %s" % [lone])
-	_check(Plans.shape("plane", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 2, Vector2.INF, 1, east).size() == 32
-		and Plans.shape("cube", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 4, Vector2.INF, 1, east)
+	var plane := Plans.flight("plane", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 2, Vector2.INF, 1, ramp)
+	right = plane.size() == 24
+	for z in 4:
+		right = right and plane.get(Vector3i(0, 1, z)) == east and plane.get(Vector3i(2, 2, z)) == east \
+			and plane.get(Vector3i(3, 2, z)) == 0 and plane.get(Vector3i(3, 1, z)) == 0 and not plane.has(Vector3i(1, 2, z))
+	_check(right and Plans.shape("plane", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 2, Vector2.INF, 1, east).size() == 24,
+		"a plane climbs along the way the stroke went, all across its width: %s" % [plane])
+	_check(Plans.shape("cube", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 4, Vector2.INF, 1, east)
 			== Plans.shape("cube", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 4)
-		and Plans.flight("plane", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 2, Vector2.INF, 1, east).is_empty(),
-		"a plane and a room take no slopes or stairs")
+		and Plans.flight("cube", Vector3i(0, 1, 0), Vector3i(3, 1, 3), 2, Vector2.INF, 1, east).is_empty(),
+		"a room takes no slopes or stairs")
 	var w := WorldData.new(40, Vector2i(32, 32))
 	for z in 32:
 		for x in 32:
@@ -163,7 +170,9 @@ func _test_flights() -> void:
 	who.position = Vector3(10.5, 1.0, 10.5) * WorldData.CELL
 	who.item = PLANKS
 	_check(plans.draw(actions, who, "plane", Vector3i(12, 1, 9), Vector3i(13, 1, 10), 1, 1, false, east) == 4
-		and plans.forms.is_empty(), "a plane drawn with a ramp chosen is of cubes")
+		and plans.forms == {Vector3i(12, 1, 9): east, Vector3i(12, 1, 10): east},
+		"a plane drawn with a ramp chosen is a flight of them")
+	plans.erase(actions, who, plans.cells.keys())
 	_check(plans.draw(actions, who, "line", Vector3i(14, 1, 9), Vector3i(17, 1, 9), 4, 1, false, WorldData.FORM_UPPER) == 10
 		and plans.forms.get(Vector3i(14, 4, 9)) == upper and plans.forms.get(Vector3i(17, 1, 9)) == upper
 		and plans.forms.size() == 4, "an upturned flight is drawn with its forms")
@@ -171,6 +180,54 @@ func _test_flights() -> void:
 		Plans.shape("line", Vector3i(14, 1, 12), Vector3i(17, 1, 12), 4, Vector2.INF, 1, WorldData.FORM_UPPER),
 		Mat.index(Plans.Items.get_item(PLANKS).get("place", "")), true)
 	_check(sorted.fit.size() == 10 and sorted.hanging.is_empty(), "and its hanging cells are not told as uneven ground")
+
+
+## A flight drawn as a band (Plans.BAND): one block thick along its slope, the underside
+## a slope turned the other way, or notches under stairs, so it steps as the top does.
+func _test_bands() -> void:
+	var east := 1 << 2
+	var west := 3 << 2
+	var ramps := Plans.flight("line", Vector3i(0, 1, 0), Vector3i(5, 1, 0), 6, Vector2.INF, 1,
+		WorldData.FORM_RAMP | Plans.BAND)
+	var right := ramps.size() == 11
+	for x in 6:
+		right = right and ramps.get(Vector3i(x, 1 + x, 0)) == WorldData.FORM_RAMP | east \
+			and (x == 0 or ramps.get(Vector3i(x, x, 0)) == WorldData.FORM_UPPER | west) \
+			and not ramps.has(Vector3i(x, x - 1, 0))
+	_check(right, "a band of ramps is a ramp over an upturned one turned back, a column each: %s" % [ramps])
+	var stairs := Plans.flight("line", Vector3i(0, 1, 0), Vector3i(5, 1, 0), 6, Vector2.INF, 1,
+		WorldData.FORM_STAIRS | Plans.BAND)
+	right = stairs.size() == 11
+	for x in range(1, 6):
+		right = right and stairs.get(Vector3i(x, 1 + x, 0)) == WorldData.FORM_STAIRS | east \
+			and stairs.get(Vector3i(x, x, 0)) == WorldData.FORM_NOTCH | east
+	_check(right, "a band of stairs has a notch under each step: %s" % [stairs])
+	var under := Plans.flight("line", Vector3i(0, 1, 0), Vector3i(5, 1, 0), 6, Vector2.INF, 1,
+		WorldData.FORM_UPPER | Plans.BAND)
+	right = under.size() == 11
+	for x in 6:
+		right = right and under.get(Vector3i(x, 6 - x, 0)) == WorldData.FORM_UPPER | east \
+			and (x == 0 or under.get(Vector3i(x, 7 - x, 0)) == WorldData.FORM_RAMP | west) \
+			and not under.has(Vector3i(x, 8 - x, 0))
+	_check(right, "an upturned band hangs from the height with a ramp over each column: %s" % [under])
+	var flat := Plans.flight("line", Vector3i(0, 1, 0), Vector3i(8, 1, 0), 3, Vector2.INF, 1,
+		WorldData.FORM_RAMP | Plans.BAND)
+	_check(flat.size() == 11 and flat.get(Vector3i(8, 3, 0)) == 0 and not flat.has(Vector3i(8, 2, 0)),
+		"a long band goes one block thick between its steps: %s" % [flat])
+	_check(Plans.hangs_by_shape(WorldData.FORM_RAMP | Plans.BAND) and not Plans.hangs_by_shape(WorldData.FORM_RAMP),
+		"a band hangs by its shape")
+	var notch := WorldData.FORM_NOTCH
+	_check(WorldData.form_kind(notch | east) == notch and WorldData.form_kind(WorldData.FORM_STAIRS | east) == WorldData.FORM_STAIRS
+		and is_equal_approx(WorldData.form_top(notch, 0.0, 1.0, 0.6, 1.0), 1.0)
+		and is_equal_approx(WorldData.form_top(notch, 0.0, 1.0, 0.0, 0.4), 0.0),
+		"a notch is flat on top over the half away from the side it faces")
+	var w := WorldData.new(40, Vector2i(16, 16))
+	w.set_cell(3, 2, 3, Mat.STONE)
+	w.set_form(3, 2, 3, notch | east)
+	var copy := Plans.new()
+	copy.from_list([[Vector3i(1, 1, 1), PLANKS, notch | west]])
+	_check(w.form_at(3, 2, 3) == notch | east and copy.forms.get(Vector3i(1, 1, 1)) == notch | west,
+		"a notch is kept by the world and by a saved blueprint")
 
 
 ## Slopes and stairs (WorldData.forms): drawn as a form of the ghost, built so, saved

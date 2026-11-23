@@ -92,7 +92,7 @@ slice, to free the far meshes.
   stump left by felling, gets a cut top, not a block of wood; the cut's UV is cells from its middle, by which
   `world.gdshader` centres the rings of the end grain on it),
   `form_mesher.gd` (built blocks that are not a cube — `WorldData.forms`: a bevel from below, a bevel from
-  above, steps; a shape is described as rising to the north and turned; a face on a cell's side is not drawn
+  above, steps, the notch under a step of a band of stairs; a shape is described as rising to the north and turned; a face on a cell's side is not drawn
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not
   whole, `covers_side`; the cells at the shapes are candidates, `_take_forms`).
 - `src/client/world/foliage.gd` — the chunk's grass, plants and crowns as a MultiMesh, also by column.

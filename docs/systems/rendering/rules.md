@@ -22,14 +22,16 @@ Part of [The picture](../rendering.md). The rules a change of the picture keeps.
   `world` (tiles) and `grass` (blades). Water takes its colour from `water_tint` in `water.gdshader` instead: the
   biome's tint with the body's (sea, river, lake) and a slow shading, a texel per `RoofMap.LOW`² columns in
   `ground_low`'s g, b, a, filtered, so two waters blend smoothly over a few cells.
-- A bevel (flag 4) lays the tile by the screen's texels (`rest_plane`), and the patterns of soil (patches,
+- A bevel (flag 4) lays the tile by the screen's texels turned back to the world's sides (`rest_ground`: the
+  point carried down the view to the ground's plane, so on a turned camera a bevel's planks run as the tops'
+  beside it), and the patterns of soil (patches,
   specks, bald spots, the biome's tint, snow) — by `gp` in `world.gdshader`: a world point shifted up the
   picture by the height above the level line under it. So on a bevel towards the camera the patterns are not
   stretched into stripes and stay a pixel to a texel; on every level line they jump, and the seam is hidden
   by a shadow by dithering towards the foot of each level — by it one also sees how many levels there are in a
   bevel. The shots: `steep-beach`, `steep-tropical`. «The screen» here is the view of the step at which the
-  camera stands or to which it is nearest (the global `rest_view`, set by `PixelView.set_view`; `rest_plane`
-  in `common.gdshaderinc`), not the shown one: while the camera turns or tilts between steps, the tile, the
+  camera stands or to which it is nearest (the global `rest_view`, set by `PixelView.set_view`; `rest_ground`,
+  `rest_plane` in `common.gdshaderinc`), not the shown one: while the camera turns or tilts between steps, the tile, the
   patterns and the shadow at the foot of the levels hold on the slope and do not crawl over it (before, they
   crawled); in the middle between steps the pattern jumps once to the view of the next step.
 - Depth darkens from the sea's surface (the globals `sea_top` and `depth_steps.x`, «Darkening per level» on

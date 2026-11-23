@@ -102,10 +102,14 @@ lies around. The rules are shared (the server checks them), input and hints are 
   or a fence link in each (`cells`; a fence is `is_fence`, drawn only by a line and a square of one link in
   height and thickness, `build` puts the link as a thing `Placed.put` facing the player, `_put_fence`) and the
   block's shape, if not a cube (`forms`: slope, steps — `WorldData.forms`; `PlanView` draws them with profile
-  lines; a line or a square drawn with a form is a flight, `flight`: from the first corner one level high to the
-  last at the height chosen — a square along both sides to the far corner — each column cubes under a slope or a
+  lines; a line, a plane or a square drawn with a form is a flight, `flight`: from the first corner one level high to the
+  last at the height chosen — a line and a plane along the stroke (a plane all across its width), a square along both sides to the far corner — each column cubes under a slope or a
   step on top where it rises; an upturned slope mirrors it from the top, the first column hanging at the height,
-  and its cells are not told as hanging, `sort` `hangs`; a plane and a room are of cubes, `FLIGHTS`), the figures `shape` (`KINDS`: «line» — a wall along the main direction of the stroke, «plane» — a
+  and its cells are not told as hanging, `sort` `hangs` (`hangs_by_shape`); with `BAND` in the form (32) the
+  flight is a band one block thick: a column holds its top down to the level of the one before, the lowest
+  cell where it rises the slope turned back (an upturned one under a slope, a slope over an upturned one) or,
+  under stairs, a notch (`WorldData.FORM_NOTCH`), so the underside steps as the top does; a band hangs by its
+  shape too; a room is of cubes, `FLIGHTS`), the figures `shape` (`KINDS`: «line» — a wall along the main direction of the stroke, «plane» — a
   floor in place of the top ground cell, «square» — walls along a rectangle with no opening, «cube» — floor,
   walls and ceiling, «flatten» — level the ground: natural ground above the level of the first cell (up to
   `FLAT_UP`) becomes a «dig out» ghost (`CUT`), pits under it (up to `FLAT_DOWN`) — a ghost of earth from the
@@ -167,8 +171,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
 - `src/client/input/build_mode.gd` — build mode (`game.build`): entry from the bag («Build») or from a panel
   cell with a block or thing, exit (the hands return what they held), the palette (`palette`; the filters
   «All» / «Materials» / «Interior» are in the code but not shown yet), the shape, the kind of block (`form`:
-  block, slope from below, slope from above, steps; only for a line and a square, `forms_drawn` — the button is
-  off for a plane and a room; a flight rises along the stroke, a stroke of one column away from the player,
+  block, slope from below, slope from above, steps, then the three as a band, `band`, `form_index`,
+  `FORM_COUNT`; only for a line, a plane and a square, `forms_drawn` — the button is off for a room; a flight rises along the stroke, a stroke of one column away from the player,
   `turns` — «turn», the key Y; `form_of` goes into `PLAN`), the height (its own for each figure, `heights`: floor 1, line and square 3,
   cube 5 — floor, 3 rows of walls, ceiling), the thickness, draw/erase, clear; on the action button «Build» or,
   when levelling, «Level»;
