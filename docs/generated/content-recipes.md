@@ -114,7 +114,7 @@
 | [tools.recipes.wooden_bench] `tools:wooden_bench` | [tools.items.wooden_bench] ×1 | [materials.items.planks] ×4 | — | [tools.items.workbench] | — | 5 с | 5 | 1. [core.eras.primitive] | — |
 | [tools.recipes.hide_rug] `tools:hide_rug` | [tools.items.hide_rug] ×1 | [animals.items.hide] ×2 | — | [tools.items.workbench] | — | 4 с | 3 | 1. [core.eras.primitive] | — |
 | [tools.recipes.wall_hide] `tools:wall_hide` | [tools.items.wall_hide] ×1 | [animals.items.hide] ×1, [resources.items.branch] ×2, [materials.items.cord] ×1 | — | [tools.items.workbench] | — | 4 с | 3 | 1. [core.eras.primitive] | — |
-| [tools.recipes.brine_tub] `tools:brine_tub` | [tools.items.brine_tub] ×1 | [materials.items.planks] ×4, [materials.items.cord] ×2, [resources.items.salt] ×4 | — | [tools.items.workbench] | — | 7 с | 5 | 1. [core.eras.primitive] | — |
+| [tools.recipes.brine_tub] `tools:brine_tub` | [tools.items.brine_tub] ×1 | [materials.items.planks] ×4, [materials.items.cord] ×2, [resources.items.stone] ×1 | — | [tools.items.workbench] | — | 7 с | 5 | 1. [core.eras.primitive] | — |
 | [tools.recipes.stone_bench] `tools:stone_bench` | [tools.items.stone_bench] ×1 | [materials.items.cut_stone] ×6 | — | [tools.items.workbench] | — | 8 с | 4 | 1. [core.eras.primitive] | — |
 | [tools.recipes.stone_table] `tools:stone_table` | [tools.items.stone_table] ×1 | [materials.items.cut_stone] ×10 | — | [tools.items.workbench] | — | 12 с | 4 | 1. [core.eras.primitive] | — |
 | [tools.recipes.stone_bed] `tools:stone_bed` | [tools.items.stone_bed] ×1 | [materials.items.cut_stone] ×10, [materials.items.cloth] ×2 | — | [tools.items.workbench] | — | 12 с | 7 | 2. [core.eras.bone_leather] | — |

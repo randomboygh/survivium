@@ -43,7 +43,7 @@
   at: loom
   time: 5
 # Chairs and benches from planks, the stone things from cut stone at the workbench, the iron ones from iron bars at
-# the anvil; the hides from hides, the brine tub hooped with rope and filled with salt, the stove of brick with an
+# the anvil; the hides from hides, the brine tub hooped with rope with a stone for its weight, the stove of brick with an
 # iron door.
 - id: wooden_chair
   title: "[tools.recipes.wooden_chair]"
@@ -72,7 +72,7 @@
 - id: brine_tub
   title: "[tools.recipes.brine_tub]"
   makes: brine_tub
-  needs: {materials:planks: 4, materials:cord: 2, resources:salt: 4}
+  needs: {materials:planks: 4, materials:cord: 2, resources:stone: 1}
   at: workbench
   time: 7
 - id: stone_bench

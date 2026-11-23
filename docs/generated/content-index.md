@@ -68,7 +68,7 @@
 | `plants:bandage` | [plants.items.bandage] | [healing] |  | `plants/moss` | 0. [core.eras.foraging] | 0 / 2 | ок |
 | `plants:poultice` | [plants.items.poultice] | [healing] | [plants.items.poultice.about] | `plants/moss` | 0. [core.eras.foraging] | 0 / 1 | ок |
 | `resources:peat` | [resources.items.peat] | [blocks] |  | `resources/peat` | 0. [core.eras.foraging] | 1 / 1 | ок |
-| `resources:salt` | [resources.items.salt] | [blocks] |  | `resources/salt` | 0. [core.eras.foraging] | 1 / 3 | ок |
+| `resources:salt` | [resources.items.salt] | [blocks] |  | `resources/salt` | 0. [core.eras.foraging] | 1 / 2 | ок |
 | `resources:snow` | [resources.items.snow] | [blocks] |  | `resources/snow` | 0. [core.eras.foraging] | 1 / 1 | ок |
 | `resources:ice` | [resources.items.ice] | [blocks] |  | `resources/snow` | 1. [core.eras.primitive] | 1 / 1 | ок |
 | `resources:dirt` | [resources.items.dirt] | [blocks] |  | `resources/soil` | 0. [core.eras.foraging] | 1 / 7 | ок |
@@ -82,7 +82,7 @@
 | `materials:chalk` | [materials.items.chalk] | [materials] | [materials.items.chalk.about] | `materials/finds` | 1. [core.eras.primitive] | 3 / 2 | ок |
 | `materials:ochre` | [materials.items.ochre] | [materials] | [materials.items.ochre.about] | `materials/finds` | 0. [core.eras.foraging] | 3 / 3 | ок |
 | `materials:murex` | [materials.items.murex] | [materials] | [materials.items.murex.about] | `materials/finds` | 0. [core.eras.foraging] | 1 / 2 | ок |
-| `resources:stone` | [resources.items.stone] | [blocks] |  | `resources/stone` | 0. [core.eras.foraging] | 1 / 13 | ок |
+| `resources:stone` | [resources.items.stone] | [blocks] |  | `resources/stone` | 0. [core.eras.foraging] | 1 / 14 | ок |
 | `resources:flint` | [resources.items.flint] | [materials] |  | `resources/stone` | 0. [core.eras.foraging] | 0 / 22 | ок |
 | `resources:branch` | [resources.items.branch] | [materials] |  | `resources/wood` | 0. [core.eras.foraging] | 0 / 77 | ок |
 | `resources:log` | [resources.items.log] | [blocks] |  | `resources/wood`; патчи: `plants/wood` | 1. [core.eras.primitive] | 1 / 28 | ок |

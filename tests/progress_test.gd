@@ -935,7 +935,7 @@ func _branch() -> bool:
 				_tidy()
 				if not main.gathering.gather(best):
 					return _fail("hands take nothing from %s at %s, the bag: %s" % ["a bush" if best.has("bush") else "a tree", at,
-						main.host.player.inventory.slots.filter(func(sl) -> bool: return sl != null).map(func(sl) -> String: return "%s ×%d" % sl)])
+						main.host.player.inventory.slots.filter(func(sl) -> bool: return sl != null).map(func(sl) -> String: return str(sl))])
 			await process_frame
 			_found["branch"] = (Vector3(at) + Vector3(0.5, 1.0, 0.5)) * CELL
 			return true
