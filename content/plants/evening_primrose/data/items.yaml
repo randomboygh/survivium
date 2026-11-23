@@ -31,3 +31,14 @@
   wear_on: head
   look: flower_wreath
   warmth: 0
+# A dried evening primrose under a plank frame for a wall (2026-11-23): furniture ("Tools"), it hangs flat on a
+# wall from the cell beside it.
+- id: flower_frame
+  title: "[plants.items.flower_frame]"
+  description: "[plants.items.flower_frame.about]"
+  weight: 0.5
+  stack: 4
+  icon: flower_frame
+  model: flower_frame
+  prop: flower_frame
+  furniture: true

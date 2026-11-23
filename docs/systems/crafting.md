@@ -196,7 +196,13 @@ keeps draws a scheme by its `prop` if `UiStyle.ICONS` knows it (a cupboard, a wi
 otherwise a chest. A tap takes what keeps nothing (`Placed.is_part`). `seat`: one standing still on the thing
 or near it (`Placed.SEAT_REACH`) gets stamina `seat` times faster (`Placed.seat_near` → `Vitals.rest_rate`,
 set by `Character.update`). A cupboard and a barrel keep (`storage`); `keeps` — how many times slower food
-spoils inside (`Placed.spoil`).
+spoils inside (`Placed.spoil`). Since 2026-11-23 the bundle also has a chair (planks and iron), a bench (planks and stone,
+two cells long), a stone table, a stone and an iron bed (`bedding` 2.0 and 2.5), an iron safe (keeps like a
+cupboard), a hide rug, a brine tub (`keeps` 0.2) and a Dutch stove (`brick_stove`: a hearth one cell square, two
+high, its fire hidden inside, no `serves`); the hide for a wall and the framed flower (`plants:flower_frame`) are
+flat furniture set by a wall (their models one voxel thick on the cell's north edge). Their models are drawn by
+`tools/art/voxel_furniture_art.gd` (called by `VoxelArt.prop`), the stone and iron pictures are VARIANTS of the
+wooden ones in `icon_build_art.gd`.
 
 **Limits.** The solid parts of a thing `Placed.read_footprints` reads from its voxel model (the bundle's PNG)
 at loading the mods, without the client; a thing without a model is solid as a crate (`CRATE_BOX`).
