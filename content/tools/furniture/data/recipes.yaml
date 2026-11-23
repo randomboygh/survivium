@@ -42,3 +42,78 @@
   needs: {materials:cloth: 2}
   at: loom
   time: 5
+# Chairs and benches from planks, the stone things from cut stone at the workbench, the iron ones from iron bars at
+# the anvil; the hides from hides, the brine tub hooped with rope with a stone for its weight, the stove of brick with an
+# iron door.
+- id: wooden_chair
+  title: "[tools.recipes.wooden_chair]"
+  makes: wooden_chair
+  needs: {materials:planks: 3}
+  at: workbench
+  time: 4
+- id: wooden_bench
+  title: "[tools.recipes.wooden_bench]"
+  makes: wooden_bench
+  needs: {materials:planks: 4}
+  at: workbench
+  time: 5
+- id: hide_rug
+  title: "[tools.recipes.hide_rug]"
+  makes: hide_rug
+  needs: {animals:hide: 2}
+  at: workbench
+  time: 4
+- id: wall_hide
+  title: "[tools.recipes.wall_hide]"
+  makes: wall_hide
+  needs: {animals:hide: 1, resources:branch: 2, materials:cord: 1}
+  at: workbench
+  time: 4
+- id: brine_tub
+  title: "[tools.recipes.brine_tub]"
+  makes: brine_tub
+  needs: {materials:planks: 4, materials:cord: 2, resources:stone: 1}
+  at: workbench
+  time: 7
+- id: stone_bench
+  title: "[tools.recipes.stone_bench]"
+  makes: stone_bench
+  needs: {materials:cut_stone: 6}
+  at: workbench
+  time: 8
+- id: stone_table
+  title: "[tools.recipes.stone_table]"
+  makes: stone_table
+  needs: {materials:cut_stone: 10}
+  at: workbench
+  time: 12
+- id: stone_bed
+  title: "[tools.recipes.stone_bed]"
+  makes: stone_bed
+  needs: {materials:cut_stone: 10, materials:cloth: 2}
+  at: workbench
+  time: 12
+- id: iron_chair
+  title: "[tools.recipes.iron_chair]"
+  makes: iron_chair
+  needs: {materials:iron_bar: 3, materials:cloth: 1}
+  at: anvil
+  time: 8
+- id: iron_bed
+  title: "[tools.recipes.iron_bed]"
+  makes: iron_bed
+  needs: {materials:iron_bar: 6, materials:cloth: 2}
+  at: anvil
+  time: 14
+- id: iron_safe
+  title: "[tools.recipes.iron_safe]"
+  makes: iron_safe
+  needs: {materials:iron_bar: 10}
+  at: anvil
+  time: 16
+- id: brick_stove
+  title: "[tools.recipes.brick_stove]"
+  makes: brick_stove
+  needs: {materials:brick: 12, materials:iron_bar: 1, resources:clay: 2}
+  at: workbench
+  time: 12

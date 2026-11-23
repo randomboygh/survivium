@@ -4,6 +4,7 @@ extends RefCounted
 ## can be painted over by hand. Not loaded by the game.
 
 const VoxelModel := preload("res://src/client/view/voxel_model.gd")
+const FurnitureArt := preload("res://tools/art/voxel_furniture_art.gd")
 
 ## The colour of copper heads, blades and bars.
 const COPPER := Color(0.78, 0.46, 0.25)
@@ -117,7 +118,7 @@ static func _prop(kind: String, model := "") -> VoxelModel:
 			return notice_board()
 		"grave":
 			return grave_cross()
-	return null
+	return FurnitureArt.prop(kind)
 
 
 ## Things lying on the ground (see WorldData.drops), centred on the origin and lying

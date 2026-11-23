@@ -513,6 +513,8 @@ const SHOTS := {
 	"tracks": {"time": 0.42, "season": 1, "walk": true},
 	# Footprints in a thick morning fog: the far ones hidden by it (blend_mul on Android).
 	"tracks-fog": {"time": 0.27, "season": 1, "walk": true, "morning_fog": 2},
+	# The furniture of 2026-11-23 set down on a meadow round the player, grass hidden; at night the stove burns.
+	"furniture-new": {"time": 0.42, "season": 1, "find": "meadow", "hide": ["chunks: grass"], "put": [["tools:wooden_chair", [-6.0, -3.0]], ["tools:iron_chair", [-4.0, -3.0]], ["tools:wooden_bench", [-1.0, -3.0]], ["tools:stone_bench", [3.0, -3.0]], ["tools:brine_tub", [6.0, -3.0]], ["tools:brick_stove", [8.0, -3.0]], ["tools:stone_table", [-7.0, 2.0]], ["tools:stone_bed", [-4.0, 2.0]], ["tools:iron_bed", [3.0, 2.0]], ["tools:iron_safe", [6.0, 2.0]], ["tools:hide_rug", [-6.0, 6.0]], ["tools:wall_hide", [-2.0, 6.0]], ["plants:flower_frame", [0.0, 6.0]]]},
 	"meadow": {"time": 0.42, "season": 1, "find": "meadow"},
 	"meadow-autumn": {"time": 0.42, "season": 2, "find": "meadow"},
 	"meadow-winter": {"time": 0.42, "season": 3, "snow": 0.0, "find": "meadow"},

@@ -13,3 +13,9 @@
   makes: flower_wreath
   needs: {evening_primrose: 6, resources:fiber: 1}
   time: 4
+- id: flower_frame
+  title: "[plants.recipes.flower_frame]"
+  makes: flower_frame
+  needs: {evening_primrose: 1, materials:planks: 1}
+  at: tools:workbench
+  time: 3
