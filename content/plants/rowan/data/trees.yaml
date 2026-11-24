@@ -13,6 +13,7 @@
   roots: [0, 2]
   crown: [1.5, 1.4, 1.4]
   tints: ["#5c8f3c", "#649644", "#56893a"]
+  picture: tree/look.yaml
   bare: 1.0
   bark: rowan_bark
   seed: rowan

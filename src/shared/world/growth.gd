@@ -56,13 +56,14 @@ static func trunk_box(species: int, col: Vector2i, k: int, young := false) -> Re
 static func height(species: int, scale := 1.0) -> int:
 	var s: Dictionary = Trees.SPECIES[species]
 	if not s.pictures.is_empty():
-		# Its largest look the scale allows, the crown's top level filled a cell over.
+		# Its largest look the scale allows, the crown's top level filled a cell over (a
+		# crown of no point gets one over the trunk, see _offsets).
 		var top := 0
 		var size := _size_of(scale)
 		var looks: Array = s.pictures.looks
 		for i in looks.size():
 			if i / TreeLooks.VARIANTS == size:
-				top = maxi(top, maxi(looks[i].trunk, looks[i].crown[3]) + 1)
+				top = maxi(top, maxi(looks[i].trunk + 2, looks[i].crown[3] + 1))
 		return top
 	if s.tiers:
 		return hidden_trunk(ceili((s.crown[0] + 0.2) * scale)) + s.trunk[1] + 2 * maxi(3, roundi(s.crown[2] * scale)) + 7
@@ -176,12 +177,25 @@ static func standing_look(w, col: Vector2i, foot: Array = []) -> int:
 	var v := variant_of(col)
 	var looks: Array = s.pictures.looks
 	for i in looks.size():
-		if looks[i].variant == v and looks[i].trunk == k:
-			if foot.size() == 0:
-				foot.append(y0)
-			else:
-				foot[0] = y0
-			return i
+		if looks[i].variant != v or looks[i].trunk != k:
+			continue
+		# A stump cut as high as this look's trunk lost the crown over it (Felling takes
+		# the leaves nearest its trunk from the cut up): the leaves over the trunk's top
+		# round a few points of the look's crown nearest the trunk tell (see _probes).
+		var probes := _probes(looks[i], turn_of(col), y0 & 1)
+		var crowned := probes.is_empty()
+		var over: int = ~((1 << (y0 + k)) - 1)
+		for p in probes:
+			if w.leaf_col(col.x + p.x, col.y + p.z) & (7 << maxi(y0 + p.y - 1, 0)) & over != 0:
+				crowned = true
+				break
+		if not crowned:
+			return -1
+		if foot.size() == 0:
+			foot.append(y0)
+		else:
+			foot[0] = y0
+		return i
 	return -1
 
 
@@ -213,13 +227,7 @@ static func regrow(w, col: Vector2i, species: int, size_y: int) -> Array[Vector3
 	var k := 0
 	while bits & (low << k) != 0:
 		k += 1
-	# A stump keeps no crown at its top (Felling takes the crown with the trunk).
-	var top: int = ((low << k) * 255) | (low << maxi(k - 2, 0)) * 3
-	var crowned := false
-	for dz in range(-1, 2):
-		for dx in range(-1, 2):
-			crowned = crowned or w.leaf_col(col.x + dx, col.y + dz) & top != 0
-	if young_at(w, col.x, y0, col.y) or not crowned:
+	if young_at(w, col.x, y0, col.y) or not _crowned(w, col, low, k):
 		return none
 	for i in k:
 		w.set_cell(col.x, y0 + i, col.y, Mat.AIR)
@@ -256,6 +264,19 @@ static func _nearest(c: Vector2i, at: Vector2i, others: Array[Vector2i]) -> bool
 	return true
 
 
+## Whether the trunk in column `col` whose lowest log is the bit `low` of its column and
+## which is `k` logs high has leaves round its top (two levels under it to eight over it,
+## in its column and the eight around): a standing tree's crown, which a stump has not
+## (Felling takes the crown with the trunk).
+static func _crowned(w, col: Vector2i, low: int, k: int) -> bool:
+	var top: int = ((low << k) * 255) | (low << maxi(k - 2, 0)) * 3
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			if w.leaf_col(col.x + dx, col.y + dz) & top != 0:
+				return true
+	return false
+
+
 ## A tree drawn as pictures: the trunk of its look's cells of logs, and the points of its
 ## crown (filled 3x3x3 as any crown's) on the crowns' lattice where its look has crown,
 ## its own frame turned as the tree stands (turn_of).
@@ -265,18 +286,63 @@ static func _pictured(w, x: int, y: int, z: int, s: Dictionary, scale: float) ->
 	for i in look.trunk:
 		w.set_cell(x, y + i, z, Mat.LOG)
 	var points: Array[Vector3i] = []
-	var c: Array = look.crown
-	if c[2] == 0:
-		return points
-	var reach := ceili(maxf(maxf(absf(c[0]), absf(c[0] + c[2])), maxf(absf(c[1]), absf(c[1] + c[4]))) * 1.42) + 1
-	var turn := turn_of(col)
-	for level in range(y + (y & 1), y + int(c[3]), 2):
-		for dz in range(-reach - (reach & 1), reach + 1, 2):
-			for dx in range(-reach - (reach & 1), reach + 1, 2):
-				var own := TreeLooks.to_own(dx, dz, turn)
-				if TreeLooks.crown_has(look, roundi(own.x), level - y, roundi(own.y)):
-					points.append(Vector3i(x + dx, level, z + dz))
+	for p in _offsets(look, turn_of(col), y & 1):
+		points.append(Vector3i(x + p.x, y + p.y, z + p.z))
 	return points
+
+
+## The points of the crown of `look` as offsets from its trunk's foot, the tree standing
+## turned `turn` eighths (TreeLooks.to_own) on a foot of parity `odd` (the points sit on
+## even levels): worked out once for each and kept in the look ("points").
+static func _offsets(look: Dictionary, turn: int, odd: int) -> Array[Vector3i]:
+	var kept: Dictionary = look.get_or_add("points", {})
+	var key := turn * 2 + odd
+	if kept.has(key):
+		return kept[key]
+	var out: Array[Vector3i] = []
+	var c: Array = look.crown
+	if c[2] > 0:
+		var reach := ceili(maxf(maxf(absf(c[0]), absf(c[0] + c[2])), maxf(absf(c[1]), absf(c[1] + c[4]))) * 1.42) + 1
+		for dy in range(odd, int(c[3]), 2):
+			for dz in range(-reach - (reach & 1), reach + 1, 2):
+				for dx in range(-reach - (reach & 1), reach + 1, 2):
+					var own := TreeLooks.to_own(dx, dz, turn)
+					if TreeLooks.crown_has(look, roundi(own.x), dy, roundi(own.y)):
+						out.append(Vector3i(dx, dy, dz))
+	if out.is_empty():
+		# A crown too small for the points' lattice: one point over the trunk, as a young
+		# tree's (place_young).
+		var t: int = look.trunk
+		out.append(Vector3i(0, t - 1 if (t - 1) & 1 == odd else t, 0))
+	kept[key] = out
+	return out
+
+
+## How many points of a crown standing_look looks at.
+const PROBES := 4
+
+## The points of the crown of `look` (offsets, see _offsets) that tell a standing tree from
+## a stump: the PROBES nearest its trunk whose leaves reach over its top.
+static func _probes(look: Dictionary, turn: int, odd: int) -> Array[Vector3i]:
+	var kept: Dictionary = look.get_or_add("probes", {})
+	var key := turn * 2 + odd
+	if kept.has(key):
+		return kept[key]
+	var over: Array[Vector3i] = []
+	for p in _offsets(look, turn, odd):
+		if p.y + 1 >= look.trunk:
+			over.append(p)
+	over.sort_custom(_nearer)
+	var out: Array[Vector3i] = []
+	for i in mini(PROBES, over.size()):
+		out.append(over[i])
+	kept[key] = out
+	return out
+
+
+## Whether crown point `a` is nearer its trunk than `b` (across first, then up).
+static func _nearer(a: Vector3i, b: Vector3i) -> bool:
+	return (a.x * a.x + a.z * a.z) * 256 + a.y < (b.x * b.x + b.z * b.z) * 256 + b.y
 
 
 ## A trunk and a crown of points in a low, wide ellipsoid: in the oblique view the top

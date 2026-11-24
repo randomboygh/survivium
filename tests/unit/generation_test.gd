@@ -15,6 +15,7 @@ func run() -> void:
 	_test_relief()
 	_test_trees()
 	_test_regrow()
+	_test_pictured()
 	_test_bushes()
 	_test_custom_plants()
 	_test_curious_plants()
@@ -506,6 +507,44 @@ func _test_relief() -> void:
 		_ensure_stage(other, keys[i], WorldGen.SHAPED)
 	_check(_same(other.world, w, keys), "made in another order the mesas are the same")
 	_check(_leaks(w, keys) == 0, "and water does not leak there")
+
+
+func _test_pictured() -> void:
+	# Every look of every species drawn as pictures grows standing as that look, and its
+	# stump cut as high as a smaller look's trunk is no tree of that look.
+	var bad := []
+	for species in Trees.SPECIES.size():
+		var s: Dictionary = Trees.SPECIES[species]
+		if s.pictures.is_empty():
+			continue
+		var looks: Array = s.pictures.looks
+		for i in looks.size():
+			var col := Vector2i(25, 25)
+			while Growth.look_index(s, col, 1.0) != i:
+				col.x += 2
+			var w := _pictured_ground(col)
+			Growth.place(w, col.x, 1, col.y, species, null, 1.0)
+			if Growth.standing_look(w, col) != i:
+				bad.append([s.id, i, "grown"])
+				continue
+			for j in looks.size():
+				if looks[j].variant != looks[i].variant or looks[j].trunk >= looks[i].trunk:
+					continue
+				w = _pictured_ground(col)
+				Growth.place(w, col.x, 1, col.y, species, null, 1.0)
+				Felling.clear(w, Vector3i(col.x, 1 + looks[j].trunk, col.y))
+				if Growth.standing_look(w, col) >= 0:
+					bad.append([s.id, i, "stump %d" % looks[j].trunk])
+	_check(bad.is_empty(), "every look grows standing, a stump is no smaller tree: %s" % [bad])
+
+
+## A world of grass round column `col`, for one tree.
+func _pictured_ground(col: Vector2i) -> WorldData:
+	var w := WorldData.new(48, Vector2i(col.x + 32, 64))
+	for z in range(col.y - 14, col.y + 15):
+		for x in range(col.x - 14, col.x + 15):
+			w.set_cell(x, 0, z, Mat.GRASS)
+	return w
 
 
 func _test_regrow() -> void:

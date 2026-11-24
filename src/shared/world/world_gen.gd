@@ -325,12 +325,14 @@ func step(job: Job, n: int) -> bool:
 			elif job.row < job.rows - job.regrow.size():
 				_biome_row(job.key, job.row - 1 - job.trees.size())
 			else:
-				var t: Array = job.regrow[job.row - job.rows + job.regrow.size()]
-				job.crown = Growth.regrow(world, t[0], t[1], size_y)
-				job.crown_at = 0
 				if opened == null:
 					opened = world.chunks[job.key]
 					opened.final = false
+				# Saved again with its trees as they grow now.
+				world.unsaved[job.key] = true
+				var t: Array = job.regrow[job.row - job.rows + job.regrow.size()]
+				job.crown = Growth.regrow(world, t[0], t[1], size_y)
+				job.crown_at = 0
 			job.row += 1
 		else:
 			match job.stage:

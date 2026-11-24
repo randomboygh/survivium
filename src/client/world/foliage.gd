@@ -1190,9 +1190,8 @@ static func _cone_shadow(at: Vector2i, looks: Dictionary, levels: Dictionary, lo
 
 
 ## What a tree of species `looks` (index `species`, its column's hash `h`) does over the
-## year: the alpha of its cards' colour.
-## What the tree of `species` record `looks` on a column of hash `h` does over the year:
-## the alpha of its cards (KEEPS_LEAVES, GOES_BARE, EVERGREEN, DEAD).
+## year: the alpha of its cards' colour (KEEPS_LEAVES, GOES_BARE, EVERGREEN, DEAD), also
+## for the trees drawn as pictures (TreeSprites).
 static func year_kind(looks: Dictionary, h: int, species: int) -> float:
 	return _year_kind(looks, h, species)
 

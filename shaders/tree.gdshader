@@ -40,9 +40,20 @@ const vec3 SUNS[8] = vec3[](
 	vec3(0.3154, 0.8061, 0.5008), vec3(0.1809, 0.8061, 0.5635), vec3(0.0427, 0.6932, 0.7194),
 	vec3(-0.1705, 0.4488, 0.8772), vec3(-0.4263, 0.1100, 0.8978));
 
+// Trees shaken by a blow of the axe (TreeHits, as leaves.gdshader's): the foot of the
+// trunk (xyz) and how far the top of its crown leans along the screen now, in pixels (w).
+uniform vec4 shakes[4];
+uniform int shake_count = 0;
+// Over what height above its foot a shaken tree leans in full (world units), and the
+// pixels the picture is widened by while it shakes, so the crown may lean past its cell.
+const float SHAKE_RISE = 4.0;
+const float SHAKE_ROOM = 4.0;
+
 varying vec2 px;
 varying flat vec4 cell;
 varying flat vec2 info;
+// How far this tree's top leans now (pixels), and its foot's row in the picture.
+varying flat vec2 shake;
 varying vec3 world_pos;
 varying vec3 foot_pos;
 varying vec2 light_xz;
@@ -65,15 +76,24 @@ void vertex() {
 	float side = mod(step_at + own + 16.0, 8.0);
 	cell = vec4(c.x + side * c.z, c.y, c.z, c.w);
 	info = vec2(row, COLOR.a);
+	float lean = 0.0;
+	for (int i = 0; i < shake_count; i++) {
+		if (length(shakes[i].xz - foot.xz) < 0.1) {
+			lean += shakes[i].w;
+		}
+	}
+	shake = vec2(lean, ay + 0.5);
+	float room = lean != 0.0 ? SHAKE_ROOM : 0.0;
 	// The foot on the middle of a pixel, so the picture's texels are the screen's.
 	vec2 right = vec2(-view_up.y, view_up.x);
 	vec2 sp = screen_plane(foot) * TEXELS;
 	vec2 fix = (floor(sp) + 0.5 - sp) / TEXELS;
 	foot.xz += right * fix.x - view_up * fix.y;
 	foot_pos = foot;
-	float across = q.x * c.z - ax - 0.5;
+	float wide = q.x * (c.z + 2.0 * room) - room;
+	float across = wide - ax - 0.5;
 	float rise = q.y >= 0.0 ? q.y * (ay + 0.5) : q.y * (c.w - ay - 0.5);
-	px = vec2(q.x * c.z, ay + 0.5 - rise);
+	px = vec2(wide, ay + 0.5 - rise);
 	vec3 p = foot + vec3(right.x, 0.0, right.y) * (across / TEXELS);
 	if (q.y > 0.0) {
 		// Upright, kept its height in pixels at any tilt.
@@ -163,10 +183,15 @@ vec3 wood_colour(float k, vec4 g, vec3 L) {
 }
 
 void fragment() {
-	if (px.x < 0.0 || px.y < 0.0 || px.x >= cell.z || px.y >= cell.w) {
+	vec2 at = px;
+	if (shake.x != 0.0) {
+		// A shaken tree leans in whole pixels, the more the higher (as leaves.gdshader's crowns).
+		at.x -= round(shake.x * clamp((shake.y - px.y) / (SHAKE_RISE * TEXELS), 0.0, 1.0));
+	}
+	if (at.x < 0.0 || at.y < 0.0 || at.x >= cell.z || at.y >= cell.w) {
 		discard;
 	}
-	ivec2 t = ivec2(cell.xy + floor(px));
+	ivec2 t = ivec2(cell.xy + floor(at));
 	vec4 g = texelFetch(frames, t, 0);
 	int a = int(round(g.a * 255.0));
 	vec2 texel = light_texel(light_xz);

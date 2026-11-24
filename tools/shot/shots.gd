@@ -1632,7 +1632,7 @@ static func pictured(name: String) -> Dictionary:
 		return {}
 	var parts := name.substr(5).split("-")
 	var shot := {"time": 0.42, "season": 1, "pictured": "plants:" + parts[0], "weather": "clear", "clouds": 0.0,
-		"rays": false, "fog": false, "hud": false, "hide": ["chunks: grass"]}
+		"rays": false, "fog": false, "hud": false, "hide": ["chunks: grass"], "xray": false}
 	for p in parts.slice(1):
 		var n := int(p.substr(1))
 		match p[0]:

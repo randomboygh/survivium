@@ -4,6 +4,7 @@ extends "res://tests/unit/test_case.gd"
 
 func run() -> void:
 	_test_save()
+	_test_regrow_saved()
 
 
 func _test_save() -> void:
@@ -125,3 +126,49 @@ func _within(d: Dictionary, area: Array, by_chunk := false) -> Dictionary:
 		if key in area:
 			out[k] = d[k]
 	return out
+
+
+## A chunk saved before its trees' species were drawn as pictures (no "looks" in its
+## record) grows its old trees again as their looks when it comes back, and waits to be
+## saved so.
+func _test_regrow_saved() -> void:
+	var a := WorldGen.new(42)
+	var at := a.find_place("forest", Vector2i(a.spawn_guess.x, a.spawn_guess.z))
+	var home := WorldData.chunk_key(at.x, at.y)
+	var area: Array[Vector2i] = []
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			area.append(home + Vector2i(dx, dz))
+	for k in area:
+		_ensure_stage(a, k, WorldGen.SHAPED)
+	var w := a.world
+	var col := Vector2i.ZERO
+	var found := false
+	var foot := [0]
+	for c: Vector2i in w.tree_chunks.get(home, {}):
+		if not found and Growth.standing_look(w, c, foot) >= 0:
+			col = c
+			found = true
+	_check(found, "the forest chunk has a tree drawn as pictures")
+	if not found:
+		return
+	# The tree as it grew before: taken away and grown in the old shape.
+	var species: int = w.trees[col]
+	Felling.clear(w, Vector3i(col.x, foot[0], col.y))
+	var rng := RandomNumberGenerator.new()
+	var old: Array[Vector3i] = Growth._broadleaf(w, col.x, foot[0], col.y, Trees.SPECIES[species], rng, 1.0)
+	Growth.fill(w, old, 0, old.size())
+	var was := Growth.standing_look(w, col)
+	var d: Dictionary = a.pack(home)
+	d.erase("looks")
+	var store := WorldStore.new("user://test_saves/regrow")
+	store.erase()
+	store = WorldStore.new("user://test_saves/regrow")
+	store.write_chunk(home, d)
+	var b := WorldGen.new(42)
+	b.saved = WorldStore.new("user://test_saves/regrow")
+	for k in area:
+		_ensure_stage(b, k, WorldGen.SHAPED)
+	_check(was < 0 and Growth.standing_look(b.world, col) >= 0 and b.world.unsaved.has(home),
+		"an old tree of a saved chunk grows again as its look, and the chunk waits to be saved")
+	store.erase()
