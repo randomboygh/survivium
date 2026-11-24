@@ -96,6 +96,13 @@ slice, to free the far meshes.
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not
   whole, `covers_side`; the cells at the shapes are candidates, `_take_forms`).
 - `src/client/world/foliage.gd` — the chunk's grass, plants and crowns as a MultiMesh, also by column.
+- `src/client/world/tree_sprites.gd`, `shaders/tree.gdshader` — standing trees of species drawn as pictures
+  (`Growth.standing_look`): one upright picture per tree in the chunk's `trees` MultiMesh (the last of the
+  plant parts), the frame of the side the camera rests at plus the tree's own turn, from one atlas of all
+  such species (`setup` at the start; frames RGBA8 hold the leaf's normal, angle and bits or the bark's
+  step under 8 suns of the day, the bare tree LA8 for autumn and winter); lit by the sun in the shader as the
+  approved drawing (bundles by normal, leaves by facing). Foliage and the trunk mesher leave such trees out;
+  young trees and stumps stay theirs.
 - `src/client/world/edge_haze.gd`, `shaders/edge_fog.gdshader` — the fog above unbuilt chunks (see above).
 - `src/client/world/mesh_buffers.gd` — growing vertex buffers; `drifts.gd` — snowdrifts; `tracks.gd` —
   footprints, kept in a map of the ground round the player (`print_map`, repeating every `Tracks.MAP` texels) that

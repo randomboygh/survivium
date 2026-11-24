@@ -374,6 +374,10 @@ const SCHEMAS := {
 		"crown": {"type": "list", "of": "float", "len": 3, "min": 0.0},
 		"tints": {"type": "list", "of": "color", "least": 1},
 		"bark": {"type": "string", "default": ""},
+		# The tree drawn from the 8 sides the camera turns to: the bundle's file of its looks
+		# (tree/look.yaml, made from the approved drawings, see TreeLooks); "" none, drawn
+		# in leaf clusters.
+		"picture": {"type": "string", "default": ""},
 		"bare": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"seed": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "gather"},
 		"log": {"type": "ref:items", "soft": true, "default": "", "rel": "drops", "via": "fell"},

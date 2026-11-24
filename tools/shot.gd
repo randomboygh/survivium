@@ -140,7 +140,7 @@ func _run() -> void:
 	var added_fires := []
 	for shot_name in names:
 		main.player.position = spawn
-		var shot: Dictionary = Shots.SHOTS[shot_name]
+		var shot: Dictionary = Shots.SHOTS[shot_name] if Shots.SHOTS.has(shot_name) else Shots.pictured(shot_name)
 		main.session.clock.time_speed = 0.0
 		main.session.clock.season = shot.season
 		# The day, where it matters (the sea glows on some nights only, Sky.glowing_night).
@@ -288,6 +288,10 @@ func _run() -> void:
 			places.orchard(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, 48))
 			# A long row is shot in parts: the player steps `pan` cells east along it.
 			main.player.position.x += shot.get("pan", 0) * CELL
+		if shot.has("pictured"):
+			# North-west of the spawn, away from the others.
+			main.player.position = places.pictured(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 10),
+				shot.pictured, shot.get("variant", 0), shot.get("own_turn", 0))
 		if shot.has("specimen"):
 			# West of the spawn, away from the grove, the orchard and the clearing.
 			places.specimen(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 0), shot.specimen)

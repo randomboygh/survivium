@@ -15,6 +15,7 @@ extends "res://src/client/world/mesh_faces.gd"
 const CRACKED := Color(1, 0.5, 1)
 const OldSlopes := preload("res://src/client/world/old_slope_mesher.gd")
 const Water := preload("res://src/client/world/water_mesher.gd")
+const Growth := preload("res://src/shared/world/growth.gd")
 const Trunks := preload("res://src/client/world/trunk_mesher.gd")
 const Forms := preload("res://src/client/world/form_mesher.gd")
 
@@ -316,7 +317,9 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			if fills != 0:
 				_fill_faces(solid, c, sh, cov, i, dy, dz, base)
 		elif m == Mat.LOG and Trunks.is_trunk(nb, w.trees.has(Vector2i(x, z))):
-			Trunks.trunk_faces(solid, w, x, y, z, nb, base, m)
+			# A tree drawn as a picture (TreeSprites) draws its trunk itself.
+			if Growth.standing_look(w, Vector2i(x, z)) < 0:
+				Trunks.trunk_faces(solid, w, x, y, z, nb, base, m)
 		elif sh[i] & 15 != 0 and not cov[nb[2]]:
 			var cuts := sh[i] >> 4
 			OldSlopes.slope_faces(solid, faces, c, sh, nb, side_offsets, i, dy, base, m,

@@ -13,6 +13,7 @@ const Plans := preload("res://src/shared/game/plans.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
+const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Biomes := preload("res://src/shared/content/biomes.gd")
@@ -1387,6 +1388,47 @@ func specimen(w, at: Vector3i, species: Array) -> void:
 	# The player stands behind, in a gap between the crowns (none turns see-through),
 	# so the row is in the middle of the picture.
 	main.player.position = (Vector3(at.x + 11 * (species.size() % 2), h, at.z - 15) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
+## Trees of a species drawn as pictures (TreeLooks) on flat bare ground at `at`: its
+## thick, middle and thin look of `variant` one behind another north to south, each in
+## a column where it stands turned `turn` eighths (Growth.turn_of), so the camera at
+## turn 0 shows the drawing of side `turn`: for comparing them with the approved sheets.
+## Gives where the player stands, south of the middle one.
+func pictured(w, at: Vector3i, species: String, variant := 0, turn := 0) -> Vector3:
+	var h: int = w.surface_y(at.x, at.z)
+	for z in range(at.z - 40, at.z + 24):
+		for x in range(at.x - 24, at.x + 24):
+			for y in w.size_y:
+				w.set_cell(x, y, z, (Mat.GRASS if y == h - 1 else Mat.DIRT) if y < h else Mat.AIR)
+				w.set_natural(x, y, z, true)
+	for key: Vector2i in w.trees.keys():
+		if absi(key.x - at.x) < 34 and key.y - at.z > -50 and key.y - at.z < 34:
+			w.remove_tree(key.x, key.y)
+	for b: Vector3i in w.bushes.keys():
+		if absi(b.x - at.x) <= 24 and b.z - at.z >= -40 and b.z - at.z <= 24:
+			w.remove_bush(b)
+	var kind := Trees.index(species)
+	var rng := RandomNumberGenerator.new()
+	# Thick to the north, thin to the south (scales that let each size, see Growth.look_index).
+	for k in 3:
+		var want := Vector2i(at.x | 1, (at.z - [28, 14, 4][k]) | 1)
+		var scale: float = [1.0, 0.8, 0.6][k]
+		var col := want
+		var found := false
+		var s: Dictionary = Trees.SPECIES[kind]
+		for dz in range(0, 9, 2):
+			for dx in [0, 2, -2, 4, -4, 6, -6, 8, -8, 10, -10]:
+				var c := want + Vector2i(dx, -dz)
+				if not found and Growth.turn_of(c) == turn and Growth.variant_of(c) == variant \
+						and Growth.look_index(s, c, scale) == (2 - k) * TreeLooks.VARIANTS + variant:
+					col = c
+					found = true
+		Growth.place(w, col.x, h, col.y, kind, rng, scale)
+	for z in range(at.z - 44, at.z + 28, 8):
+		for x in range(at.x - 28, at.x + 28, 8):
+			main.chunks.on_cell_changed(Vector3i(x, h, z))
+	return (Vector3(at.x, h, at.z - 18) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
 ## A flat clearing at `at` (level of the ground there) with an oak west of the player

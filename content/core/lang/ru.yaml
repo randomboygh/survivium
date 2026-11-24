@@ -875,6 +875,8 @@
 "[field.trees.leaf.about]": "Вид листа"
 "[field.trees.blossom]": "Цветение"
 "[field.trees.blossom.about]": "Цвет весенних цветов"
+"[field.trees.picture]": "Рисунки"
+"[field.trees.picture.about]": "Файл нарисованных видов дерева (look.yaml рядом с frames.png и bare.png); пусто: рисуется кистями листьев"
 "[field.trees.dead]": "Сухое"
 "[field.trees.dead.about]": "Сухое дерево без листвы"
 "[field.trees.trunk]": "Ствол"

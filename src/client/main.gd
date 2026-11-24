@@ -115,6 +115,8 @@ const WaterShader := preload("res://shaders/water.gdshader")
 const GrassShader := preload("res://shaders/grass.gdshader")
 const LeavesShader := preload("res://shaders/leaves.gdshader")
 const LeafShadowShader := preload("res://shaders/leaf_shadow.gdshader")
+const TreeShader := preload("res://shaders/tree.gdshader")
+const TreeSprites := preload("res://src/client/world/tree_sprites.gd")
 
 const CELL := WorldData.CELL
 ## While the land around is built, the loading screens name, each once, the kinds of work
@@ -250,6 +252,9 @@ var clump_mesh: ArrayMesh
 var disc_mesh: ArrayMesh
 var bush_mesh: ArrayMesh
 var drift_mesh: ArrayMesh
+## The trees drawn as pictures (TreeSprites, tree.gdshader).
+var tree_mat: ShaderMaterial
+var tree_mesh: ArrayMesh
 var ready_to_play := false
 ## Where the player's last footprint was left, and which foot made it.
 var last_print := Vector3.ZERO
@@ -1103,6 +1108,10 @@ func _build_materials() -> void:
 	disc_mesh = Foliage.disc_mesh(Foliage.SHADOW_DISC)
 	bush_mesh = Foliage.quad_mesh(Foliage.BUSH_CLUMP / 16.0, true)
 	drift_mesh = Drifts.mound_mesh()
+	TreeSprites.setup()
+	tree_mat = _material(TreeShader)
+	TreeSprites.dress(tree_mat)
+	tree_mesh = TreeSprites.quad_mesh()
 
 
 ## A copy of `shader` (world or leaves, which mark what they draw as solid or as a

@@ -14,6 +14,7 @@
   stilts: 7
   crown: [1.9, 1.0, 1.6]
   tints: ["#4b7a3c", "#537f37", "#46733f"]
+  picture: tree/look.yaml
   bare: 0.0
   log: resources:log
   twig: resources:branch

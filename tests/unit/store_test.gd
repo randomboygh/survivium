@@ -22,6 +22,10 @@ func _test_save() -> void:
 	_check(not trunks.is_empty(), "the forest chunk has trees")
 	if trunks.is_empty():
 		return
+	# The one nearest the middle, so the crown felled stays in the chunk (a restored chunk
+	# does not shape its neighbours' edges again).
+	var mid := home * WorldData.CHUNK + Vector2i(8, 8)
+	trunks.sort_custom(func(p: Vector2i, q: Vector2i) -> bool: return (p - mid).length_squared() < (q - mid).length_squared())
 	var trunk: Vector2i = trunks[0]
 	var foot := w.surface_y(trunk.x, trunk.y)
 	for y in range(w.size_y - 1, 0, -1):

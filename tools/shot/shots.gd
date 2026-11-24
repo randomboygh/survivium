@@ -1621,3 +1621,29 @@ const SHOTS := {
 	"ground-camp-night": {"time": 0.95, "season": 1, "moon": 0.0, "at": [76, -12]},
 	"ground-mountain-top": {"time": 0.42, "season": 1, "at": [121, 64]},
 }
+
+
+## A shot of a species drawn as pictures (places.pictured) named
+## `pics-<tree>[-v<variant>][-t<its own turn>][-c<camera turn>][-h<time x 100>][-s<season>]`,
+## on bare ground, the grass hidden, no interface: `pics-oak-t2-h30` is the oaks' side 2
+## by the morning sun. {} for another name.
+static func pictured(name: String) -> Dictionary:
+	if not name.begins_with("pics-"):
+		return {}
+	var parts := name.substr(5).split("-")
+	var shot := {"time": 0.42, "season": 1, "pictured": "plants:" + parts[0], "weather": "clear", "clouds": 0.0,
+		"rays": false, "fog": false, "hud": false, "hide": ["chunks: grass"]}
+	for p in parts.slice(1):
+		var n := int(p.substr(1))
+		match p[0]:
+			"v":
+				shot.variant = n
+			"t":
+				shot.own_turn = n
+			"c":
+				shot.turn = n
+			"h":
+				shot.time = n / 100.0
+			"s":
+				shot.season = n
+	return shot

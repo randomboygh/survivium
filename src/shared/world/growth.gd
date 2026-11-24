@@ -10,6 +10,7 @@ extends RefCounted
 const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
+const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 
 ## Tiers of lobes of an umbrella crown (pine), see _lobed.
 const UMBRELLA_TIERS := 3
@@ -54,6 +55,15 @@ static func trunk_box(species: int, col: Vector2i, k: int, young := false) -> Re
 ## Most cells a tree of `species` grown at `scale` takes above the ground it stands on.
 static func height(species: int, scale := 1.0) -> int:
 	var s: Dictionary = Trees.SPECIES[species]
+	if not s.pictures.is_empty():
+		# Its largest look the scale allows, the crown's top level filled a cell over.
+		var top := 0
+		var size := _size_of(scale)
+		var looks: Array = s.pictures.looks
+		for i in looks.size():
+			if i / TreeLooks.VARIANTS == size:
+				top = maxi(top, maxi(looks[i].trunk, looks[i].crown[3]) + 1)
+		return top
 	if s.tiers:
 		return hidden_trunk(ceili((s.crown[0] + 0.2) * scale)) + s.trunk[1] + 2 * maxi(3, roundi(s.crown[2] * scale)) + 7
 	if s.shape == "palm":
@@ -105,6 +115,8 @@ static func place_young(w, x: int, y: int, z: int, species: int) -> int:
 static func grow(w, x: int, y: int, z: int, species: int, rng: RandomNumberGenerator, scale := 1.0) -> Array[Vector3i]:
 	var s: Dictionary = Trees.SPECIES[species]
 	w.add_tree(x, z, species)
+	if not s.pictures.is_empty():
+		return _pictured(w, x, y, z, s, scale)
 	match s.shape:
 		"cone":
 			return _conifer(w, x, y, z, s, rng, scale)
@@ -113,6 +125,158 @@ static func grow(w, x: int, y: int, z: int, species: int, rng: RandomNumberGener
 		"palm":
 			return _palm(w, x, y, z, s, rng, scale)
 	return _broadleaf(w, x, y, z, s, rng, scale)
+
+
+## A species drawn as pictures (Trees: `pictures`): the index of the look (TreeLooks) a tree
+## in column `col` grown at `scale` (see fit) takes: its variant and its turn in the world
+## by the column, its size the largest the scale lets it reach, and smaller for some, so a
+## wood has trees of three ages.
+static func look_index(s: Dictionary, col: Vector2i, scale: float) -> int:
+	var roll := posmod(hash(Vector3i(col.x, 17, col.y)), 100)
+	var size := mini(_size_of(scale), 0 if roll < 20 else (1 if roll < 55 else 2))
+	return size * TreeLooks.VARIANTS + variant_of(col)
+
+
+## Which of its sizes (0 thin, 1 middle, 2 thick) a pictured tree grown at `scale` may reach.
+static func _size_of(scale: float) -> int:
+	return 2 if scale > 0.95 else (1 if scale > 0.75 else 0)
+
+
+## The variant of a pictured tree in column `col`.
+static func variant_of(col: Vector2i) -> int:
+	return posmod(hash(Vector3i(col.x, 23, col.y)), TreeLooks.VARIANTS)
+
+
+## How many eighths of a turn a pictured tree in column `col` stands turned in the world
+## (TreeLooks.to_own).
+static func turn_of(col: Vector2i) -> int:
+	return posmod(hash(Vector3i(col.x, 29, col.y)), 8)
+
+
+## The look a standing pictured tree in column `col` has, -1 for none: a species drawn as
+## pictures, its trunk of logs from its foot as many cells high as its look's (a felled
+## tree's stump is lower, a young tree's is no look), and the foot's level in `foot`.
+static func standing_look(w, col: Vector2i, foot: Array = []) -> int:
+	var species: int = w.trees.get(col, -1)
+	if species < 0 or species >= Trees.SPECIES.size():
+		return -1
+	var s: Dictionary = Trees.SPECIES[species]
+	if s.pictures.is_empty():
+		return -1
+	var bits: int = w.log_col(col.x, col.y)
+	if bits == 0:
+		return -1
+	var low := bits & -bits
+	var y0: int = w.level_of(low)
+	var k := 0
+	while bits & (low << k) != 0:
+		k += 1
+	if young_at(w, col.x, y0, col.y):
+		return -1
+	var v := variant_of(col)
+	var looks: Array = s.pictures.looks
+	for i in looks.size():
+		if looks[i].variant == v and looks[i].trunk == k:
+			if foot.size() == 0:
+				foot.append(y0)
+			else:
+				foot[0] = y0
+			return i
+	return -1
+
+
+## Of a saved chunk's trees ([column, species], WorldCells.pack_chunk) those of species
+## drawn as pictures, which may have grown before they were (see regrow).
+static func outgrown(trees: Array) -> Array:
+	var out := []
+	for t in trees:
+		if t is Array and t.size() == 2 and t[0] is Vector2i and t[1] is int \
+				and t[1] >= 0 and t[1] < Trees.SPECIES.size() and not Trees.SPECIES[t[1]].pictures.is_empty():
+			out.append(t)
+	return out
+
+
+## Grows again, as it grows now, a standing tree of a species drawn as pictures in column
+## `col` that grew before its species was (its trunk and crown of the old shapes, in a
+## world `size_y` high): takes away its trunk and the leaves nearer it than any other
+## trunk, grows its trunk and gives the points of its crown for `fill`. Leaves a tree
+## already of its look, a stump, a young tree and a column of another species alone.
+static func regrow(w, col: Vector2i, species: int, size_y: int) -> Array[Vector3i]:
+	var none: Array[Vector3i] = []
+	if w.trees.get(col, -1) != species or Trees.SPECIES[species].pictures.is_empty() or standing_look(w, col) >= 0:
+		return none
+	var bits: int = w.log_col(col.x, col.y)
+	if bits == 0:
+		return none
+	var low := bits & -bits
+	var y0: int = w.level_of(low)
+	var k := 0
+	while bits & (low << k) != 0:
+		k += 1
+	# A stump keeps no crown at its top (Felling takes the crown with the trunk).
+	var top: int = ((low << k) * 255) | (low << maxi(k - 2, 0)) * 3
+	var crowned := false
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			crowned = crowned or w.leaf_col(col.x + dx, col.y + dz) & top != 0
+	if young_at(w, col.x, y0, col.y) or not crowned:
+		return none
+	for i in k:
+		w.set_cell(col.x, y0 + i, col.y, Mat.AIR)
+	var others: Array[Vector2i] = []
+	var reach := TREE_REACH + 1
+	for tz in range((col.y - 2 * reach) | 1, col.y + 2 * reach + 1, 2):
+		for tx in range((col.x - 2 * reach) | 1, col.x + 2 * reach + 1, 2):
+			if w.trees.has(Vector2i(tx, tz)) and Vector2i(tx, tz) != col:
+				others.append(Vector2i(tx, tz))
+	var above: int = w.all_bits & ~(low - 1)
+	for z in range(col.y - reach, col.y + reach + 1):
+		for x in range(col.x - reach, col.x + reach + 1):
+			var leaf: int = w.leaf_col(x, z) & above
+			if leaf == 0 or not _nearest(Vector2i(x, z), col, others):
+				continue
+			while leaf != 0:
+				var bit := leaf & -leaf
+				leaf ^= bit
+				w.set_cell(x, w.level_of(bit), z, Mat.AIR)
+	var scale := fit(species, size_y - y0)
+	if scale <= 0.0:
+		return none
+	return grow(w, col.x, y0, col.y, species, null, scale)
+
+
+## Whether column `c` is no nearer any of `others` than to trunk `at`, within TREE_REACH.
+static func _nearest(c: Vector2i, at: Vector2i, others: Array[Vector2i]) -> bool:
+	var d := (c - at).length_squared()
+	if d > TREE_REACH * TREE_REACH * 2:
+		return false
+	for o in others:
+		if (c - o).length_squared() < d:
+			return false
+	return true
+
+
+## A tree drawn as pictures: the trunk of its look's cells of logs, and the points of its
+## crown (filled 3x3x3 as any crown's) on the crowns' lattice where its look has crown,
+## its own frame turned as the tree stands (turn_of).
+static func _pictured(w, x: int, y: int, z: int, s: Dictionary, scale: float) -> Array[Vector3i]:
+	var col := Vector2i(x, z)
+	var look: Dictionary = s.pictures.looks[look_index(s, col, scale)]
+	for i in look.trunk:
+		w.set_cell(x, y + i, z, Mat.LOG)
+	var points: Array[Vector3i] = []
+	var c: Array = look.crown
+	if c[2] == 0:
+		return points
+	var reach := ceili(maxf(maxf(absf(c[0]), absf(c[0] + c[2])), maxf(absf(c[1]), absf(c[1] + c[4]))) * 1.42) + 1
+	var turn := turn_of(col)
+	for level in range(y + (y & 1), y + int(c[3]), 2):
+		for dz in range(-reach - (reach & 1), reach + 1, 2):
+			for dx in range(-reach - (reach & 1), reach + 1, 2):
+				var own := TreeLooks.to_own(dx, dz, turn)
+				if TreeLooks.crown_has(look, roundi(own.x), level - y, roundi(own.y)):
+					points.append(Vector3i(x + dx, level, z + dz))
+	return points
 
 
 ## A trunk and a crown of points in a low, wide ellipsoid: in the oblique view the top
