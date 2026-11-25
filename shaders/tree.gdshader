@@ -23,9 +23,12 @@
 // steps as wood's red and green, both 1 where no wood), shown where autumn and winter have
 // taken its leaves.
 // Lit as the sprites are, as a whole; the steps of light inside are drawn by the rules of
-// the approved drawing (bundles by their normal, leaves by their facing, bark by sun).
+// the approved drawing (bundles by their normal, leaves by their facing, bark by sun) under
+// the sun where it stands in the world, seen from the side shown: looking toward it, the
+// crown and the bark are in their shade. The bark takes the sun's shadow (the ground's: of
+// the other trees' crowns, of hills) a step darker; the leaves keep their own light.
 shader_type spatial;
-render_mode world_vertex_coords, cull_disabled, shadows_disabled;
+render_mode world_vertex_coords, cull_disabled;
 // Like a crown's for the player's silhouette (sprite_xray).
 stencil_mode write, compare_always, 3;
 
@@ -76,6 +79,9 @@ varying vec3 foot_pos;
 varying vec2 light_xz;
 varying float clouds;
 varying vec3 lamp_gain;
+// The bark's albedo a step darker (see in_shade), as ALBEDO is written, for light() to show
+// it where the sun's shadow falls; negative where nothing changes in a shadow (leaves).
+varying vec3 bark_shade;
 
 void vertex() {
 	vec3 foot = MODEL_MATRIX[3].xyz;
@@ -197,10 +203,27 @@ float frond_step(vec4 g, int a, vec3 L) {
 	return clamp(min(t, d < FRONDS_PALE ? 5.0 : 6.0), 0.0, 6.0);
 }
 
+// The bark's step in shade: a step under its step where no crown shades it (`open`, the
+// bare tree's), but no lower than a step under the step drawn (`s`): where the drawing has
+// it in its own crown's shade already, a shadow takes nothing more (one shade, not two).
+int in_shade(int s, int open) {
+	return clamp(open - 1, max(s - 1, 0), s);
+}
+
+// How far the sun is behind the side shown (0 in front of it .. 1 behind it), round the
+// edge of the picture's plane: SIDE_BLEND of L.z on either side.
+const float SIDE_BLEND = 0.08;
+
 // The bark's colour of wood texel `g` (red, green: 2 bits a sun) under the light L: the
-// two drawn suns nearest it, crossfaded only round the middle between them.
-vec3 wood_colour(float k, vec4 g, vec3 L) {
+// two drawn suns nearest it, crossfaded only round the middle between them. The suns were
+// drawn on the viewer's side of the tree: a sun behind it is taken as its mirror image in
+// front, and the bark is then in its shade. `open`: the bark's steps where no crown shades
+// it (the bare tree's, see in_shade). `shade`: its colour a step darker, in a shadow.
+vec3 wood_colour(float k, vec4 g, vec4 open, vec3 L, out vec3 shade) {
+	float back = smoothstep(SIDE_BLEND, -SIDE_BLEND, L.z);
+	L.z = abs(L.z);
 	int bits = int(round(g.r * 255.0)) | (int(round(g.g * 255.0)) << 8);
+	int opens = int(round(open.r * 255.0)) | (int(round(open.g * 255.0)) << 8);
 	int best = 0;
 	float bd = -2.0;
 	for (int i = 0; i < 8; i++) {
@@ -214,9 +237,33 @@ vec3 wood_colour(float k, vec4 g, vec3 L) {
 	float a0 = acos(clamp(bd, -1.0, 1.0));
 	float a1 = acos(clamp(dot(SUNS[next], L), -1.0, 1.0));
 	float f = 0.5 * smoothstep(0.3, 0.5, a0 / max(a0 + a1, 1e-4));
-	vec3 c0 = ramp(k, 7.0 + float((bits >> (2 * best)) & 3));
-	vec3 c1 = ramp(k, 7.0 + float((bits >> (2 * next)) & 3));
-	return mix(c0, c1, f);
+	int s0 = (bits >> (2 * best)) & 3;
+	int s1 = (bits >> (2 * next)) & 3;
+	shade = mix(ramp(k, 7.0 + float(in_shade(s0, (opens >> (2 * best)) & 3))),
+		ramp(k, 7.0 + float(in_shade(s1, (opens >> (2 * next)) & 3))), f);
+	return mix(mix(ramp(k, 7.0 + float(s0)), ramp(k, 7.0 + float(s1)), f), shade, back);
+}
+
+// What the sun's light must be for the albedo `albedo` (linear, as light() has it) to show
+// as `shade` (as ALBEDO is written) would under the light `lit`: the base pass has drawn
+// albedo * ambient_light already. Compatibility adds the sun's pass to it in sRGB (see
+// compat_sun), Mobile in linear light.
+vec3 sun_as(vec3 lit, vec3 albedo, vec3 shade) {
+	vec3 s = shade * (shade * (shade * 0.305306011 + 0.682171111) + 0.012522878);
+	vec3 base = albedo * ambient_light;
+	vec3 sum = max(1.055 * pow(s * ambient_light, vec3(0.416666667)) - 0.055, vec3(0.0))
+		+ max(1.055 * pow(s * lit, vec3(0.416666667)) - 0.055, vec3(0.0));
+	vec3 inv = 1.0 / max(albedo, vec3(1e-4));
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+	vec3 add = max(sum - max(1.055 * pow(base, vec3(0.416666667)) - 0.055, vec3(0.0)), vec3(0.0));
+	return pow((add + 0.055) / 1.055, vec3(2.4)) * inv;
+#else
+	if (sun_shadowed < 0.5) {
+		return max(s * (ambient_light + lit) - base, vec3(0.0)) * inv;
+	}
+	sum = min(sum, vec3(1.0));
+	return max(sum * (sum * (sum * 0.305306011 + 0.682171111) + 0.012522878) - base, vec3(0.0)) * inv;
+#endif
 }
 
 void fragment() {
@@ -236,14 +283,15 @@ void fragment() {
 		discard;
 	}
 	float k = info.x;
-	// The sun (or the moon) as in the default view, in the drawing's frame (x right, y
-	// up, z toward the camera): the light turns with the view as the shadows do (Sky), so
-	// a tree's lit side and its shadow stay where they are on the screen at every turn, as
-	// the approved drawings have it. sun_view is the sun in the view's frame (x right,
-	// y up the screen, z up in the world), turned back to the world's.
+	// The sun (or the moon) where it stands in the world, in the frame of the drawing shown
+	// (x right, y up, z toward the camera, of the step the camera rests at): turning the
+	// camera, a tree shows the side the sun lights or the one in its shade, as the shadows
+	// on the ground stay where they fall. sun_view is the sun in the view's frame (x right,
+	// y up the screen, z up in the world).
 	vec2 right = vec2(-view_up.y, view_up.x);
-	vec2 sxz = right * sun_view.x + view_up * sun_view.y;
-	vec3 L = normalize(vec3(sxz.x, sun_view.z, sxz.y));
+	vec2 sun_xz = right * sun_view.x + view_up * sun_view.y;
+	vec2 rest_up = rest_view.xy;
+	vec3 L = normalize(vec3(dot(sun_xz, vec2(-rest_up.y, rest_up.x)), sun_view.z, -dot(sun_xz, rest_up)));
 	// Autumn and winter take the leaves bundle by bundle from the crown's edge in, the outer
 	// ranks first and each rank's bundles in their own order: the bare tree shows through
 	// where they are gone; the dark mass inside goes a little ahead of the bundles over it.
@@ -257,8 +305,11 @@ void fragment() {
 		a = 0;
 	}
 	vec3 col;
+	vec3 shade = vec3(-1.0);
 	// Once most leaves are gone the bark shows as the bare tree has it, without the
-	// crown's shade over the trunk.
+	// crown's shade over the trunk. The bare tree's steps are the bark's where no crown
+	// shades it (`open`, see wood_colour).
+	vec4 open = g;
 	if (a == 0 || a == 2 && amount < 0.5) {
 		vec4 b = texelFetch(bare_frames, t, 0);
 		if (b.r > 0.998 && b.a > 0.998) {
@@ -268,13 +319,19 @@ void fragment() {
 		} else {
 			g = vec4(b.r, b.a, 0.0, 1.0);
 		}
+		open = g;
 		a = 2;
+	} else if (a == 2) {
+		vec4 b = texelFetch(bare_frames, t, 0);
+		if (b.r < 0.998 || b.a < 0.998) {
+			open = vec4(b.r, b.a, 0.0, 1.0);
+		}
 	}
 	if (a == 2) {
 		if (bayer4(texel) < trunk_through(texel, world_pos)) {
 			discard;
 		}
-		col = wood_colour(k, g, L);
+		col = wood_colour(k, g, open, L, shade);
 	} else {
 		if (bayer4(texel) < see_through(texel, world_pos)) {
 			discard;
@@ -299,6 +356,7 @@ void fragment() {
 	vec3 lit_col = col * TONE * (1.0 - veiled.a);
 	ALBEDO = lit_col * sun_part;
 	lamp_gain = sea_undo(lit_col, sun_part);
+	bark_shade = shade.r >= 0.0 && shade != col ? shade * TONE * (1.0 - veiled.a) * sun_part : vec3(-1.0);
 	EMISSION = veiled.rgb;
 	// Lit as a sprite: as if facing up and toward the viewer.
 	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.6, 0.0)).xyz);
@@ -312,5 +370,14 @@ void light() {
 	float stretch = light_reach;
 	vec3 lit = toon_light(LIGHT_IS_DIRECTIONAL ? NORMAL : LIGHT, LIGHT, LIGHT_COLOR,
 		LIGHT_IS_DIRECTIONAL ? 1.0 : ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz), stretch);
-	DIFFUSE_LIGHT += LIGHT_IS_DIRECTIONAL ? compat_sun(lit, ALBEDO) : lit * lamp_gain;
+	if (!LIGHT_IS_DIRECTIONAL) {
+		DIFFUSE_LIGHT += lit * lamp_gain;
+	} else if (bark_shade.r >= 0.0 && ATTENUATION < 0.5) {
+		// Bark in the sun's shadow (as the ground takes it: of another tree's crown, a hill,
+		// its own crown where the drawing has it lit) shows its shade's colour under the
+		// same light.
+		DIFFUSE_LIGHT += sun_as(lit, ALBEDO, bark_shade);
+	} else {
+		DIFFUSE_LIGHT += compat_sun(lit, ALBEDO);
+	}
 }

@@ -141,6 +141,8 @@ func _run() -> void:
 	for shot_name in names:
 		main.player.position = spawn
 		var shot: Dictionary = Shots.SHOTS[shot_name] if Shots.SHOTS.has(shot_name) else Shots.pictured(shot_name)
+		if shot.is_empty():
+			shot = Shots.wood(shot_name)
 		main.session.clock.time_speed = 0.0
 		main.session.clock.season = shot.season
 		# The day, where it matters (the sea glows on some nights only, Sky.glowing_night).

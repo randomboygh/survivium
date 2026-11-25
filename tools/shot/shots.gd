@@ -1656,3 +1656,27 @@ static func pictured(name: String) -> Dictionary:
 			"n":
 				shot.step = Vector3(0.0, 0.0, -0.5 * n)
 	return shot
+
+
+## A shot in a wood (the heart of a biome, places.place) named
+## `wood-<biome>[-h<time x 100>][-c<camera turn>][-s<season>][-f<autumn's leaf fall x 100>]`,
+## under a clear sky, the grass hidden, no interface: `wood-pine_wood-h30` a pine wood by the
+## morning sun, for the light and the shadows on the trees. {} for another name.
+static func wood(name: String) -> Dictionary:
+	if not name.begins_with("wood-"):
+		return {}
+	var parts := name.substr(5).split("-")
+	var shot := {"time": 0.42, "season": 1, "place": parts[0], "weather": "clear", "clouds": 0.0,
+		"fog": false, "hud": false, "hide": ["chunks: grass"]}
+	for p in parts.slice(1):
+		var n := int(p.substr(1))
+		match p[0]:
+			"c":
+				shot.turn = n
+			"h":
+				shot.time = n / 100.0
+			"s":
+				shot.season = n
+			"f":
+				shot.leaf_fall = n / 100.0
+	return shot
