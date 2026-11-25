@@ -14,6 +14,8 @@ func run() -> void:
 	_test_volcanic()
 	_test_relief()
 	_test_trees()
+	_test_regrow()
+	_test_pictured()
 	_test_bushes()
 	_test_custom_plants()
 	_test_curious_plants()
@@ -507,6 +509,88 @@ func _test_relief() -> void:
 	_check(_leaks(w, keys) == 0, "and water does not leak there")
 
 
+func _test_pictured() -> void:
+	# Every look of every species drawn as pictures grows standing as that look, and its
+	# stump cut as high as a smaller look's trunk is no tree of that look.
+	var bad := []
+	for species in Trees.SPECIES.size():
+		var s: Dictionary = Trees.SPECIES[species]
+		if s.pictures.is_empty():
+			continue
+		var looks: Array = s.pictures.looks
+		for i in looks.size():
+			var col := Vector2i(25, 25)
+			while Growth.look_index(s, col, 1.0) != i:
+				col.x += 2
+			var w := _pictured_ground(col)
+			Growth.place(w, col.x, 1, col.y, species, null, 1.0)
+			if Growth.standing_look(w, col) != i:
+				bad.append([s.id, i, "grown"])
+				continue
+			for j in looks.size():
+				if looks[j].variant != looks[i].variant or looks[j].trunk >= looks[i].trunk:
+					continue
+				w = _pictured_ground(col)
+				Growth.place(w, col.x, 1, col.y, species, null, 1.0)
+				Felling.clear(w, Vector3i(col.x, 1 + looks[j].trunk, col.y))
+				if Growth.standing_look(w, col) >= 0:
+					bad.append([s.id, i, "stump %d" % looks[j].trunk])
+	_check(bad.is_empty(), "every look grows standing, a stump is no smaller tree: %s" % [bad])
+
+
+## A world of grass round column `col`, for one tree.
+func _pictured_ground(col: Vector2i) -> WorldData:
+	var w := WorldData.new(48, Vector2i(col.x + 32, 64))
+	for z in range(col.y - 14, col.y + 15):
+		for x in range(col.x - 14, col.x + 15):
+			w.set_cell(x, 0, z, Mat.GRASS)
+	return w
+
+
+func _test_regrow() -> void:
+	# A tree of a species drawn as pictures grown before it was (an old save's crown) is
+	# grown again as its look; a stump stays as it is; only the trees of a chunk saved
+	# before the species' pictures are grown again.
+	var oak := Trees.index("plants:oak")
+	if Trees.SPECIES[oak].pictures.is_empty():
+		return
+	var w := WorldData.new(40, Vector2i(32, 32))
+	for z in 32:
+		for x in 32:
+			w.set_cell(x, 0, z, Mat.GRASS)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var col := Vector2i(15, 15)
+	w.add_tree(col.x, col.y, oak)
+	var old: Array[Vector3i] = Growth._broadleaf(w, col.x, 1, col.y, Trees.SPECIES[oak], rng, 1.0)
+	Growth.fill(w, old, 0, old.size())
+	var was := _leaf_cols(w, Rect2i(0, 0, 32, 32))
+	var crown := Growth.regrow(w, col, oak, 40)
+	Growth.fill(w, crown, 0, crown.size())
+	_check(not crown.is_empty() and _leaf_cols(w, Rect2i(0, 0, 32, 32)) != was and Growth.standing_look(w, col) >= 0,
+		"an old oak is grown again as its look")
+	var since: int = Trees.SPECIES[oak].pictures.since
+	_check(Growth.outgrown([[col, oak]], since).is_empty() and Growth.outgrown([[col, oak]], since - 1).size() == 1,
+		"the trees of a chunk saved at their species' looks are not grown again, of one saved before they are")
+	var stump := Vector2i(7, 7)
+	w.add_tree(stump.x, stump.y, oak)
+	w.set_cell(stump.x, 1, stump.y, Mat.LOG)
+	w.set_cell(stump.x, 2, stump.y, Mat.LOG)
+	_check(Growth.regrow(w, stump, oak, 40).is_empty() and w.get_cell(stump.x, 1, stump.y) == Mat.LOG,
+		"a stump is not grown again")
+	_check(Growth.outgrown([[col, oak], [stump, Trees.index("plants:spruce")]], 0).size() == 1,
+		"only trees of species drawn as pictures are grown again")
+
+
+## The leaves of the columns of `r`, a column after another.
+static func _leaf_cols(w: WorldData, r: Rect2i) -> PackedInt64Array:
+	var out := PackedInt64Array()
+	for z in range(r.position.y, r.end.y):
+		for x in range(r.position.x, r.end.x):
+			out.append(w.leaf_col(x, z))
+	return out
+
+
 func _test_trees() -> void:
 	# Every species at every scale stays within the height it promises, so the
 	# generator can tell whether a tree fits under the top of the world.
@@ -527,9 +611,10 @@ func _test_trees() -> void:
 						top = maxi(top, WorldData.top_level(c.leaf[col] | c.logs[col]))
 				fits = fits and top + 1 - foot <= Growth.height(species, scale)
 				# The trunk goes up into its crown, with no air over its top log (seen as a
-				# stump under a hanging crown, 2026-11-15).
+				# stump under a hanging crown, 2026-11-15). A tree drawn as pictures draws its
+				# trunk in its picture, its logs only as high as its look's trunk.
 				var trunk_top := WorldData.top_level(w.log_col(15, 15))
-				if w.get_cell(15, trunk_top + 1, 15) == Mat.AIR:
+				if w.get_cell(15, trunk_top + 1, 15) == Mat.AIR and Trees.SPECIES[species].pictures.is_empty():
 					reached.append([Trees.SPECIES[species].id, scale, k])
 	_check(fits, "trees stay within Growth.height")
 	_check(reached.is_empty(), "every trunk reaches up into its crown: %s" % [reached])

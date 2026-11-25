@@ -4,7 +4,8 @@ extends Node
 ## down, as the axe meets the trunk (frame 3 of the chop, STRIKE of the swing). Seen for
 ## one's own blows (Controls._did) and for other players' (Others, from the work their
 ## snapshots carry), so nothing new goes over the net.
-## The shake is drawn by leaves.gdshader: `shakes` holds up to SHAKES trees, each the
+## The shake is drawn by leaves.gdshader (and tree.gdshader for the trees drawn as
+## pictures, the picture leaning the more the higher): `shakes` holds up to SHAKES trees, each the
 ## foot of its trunk (xyz) and how far its crown leans now in pixels (w); a card leans by
 ## its distance from the trunk and its height. The trunk itself stays put. Cheap: one
 ## array set on one material while a tree shakes, a pool of LEAF_EMITTERS small emitters.
@@ -91,9 +92,11 @@ func _process(delta: float) -> void:
 		var lean: float = s[1] * SHAKE_PX * exp(-t * SHAKE_DAMP) * sin(t * SHAKE_HZ * TAU)
 		shakes[i] = Vector4(s[0].x, s[0].y, s[0].z, lean)
 	_set = not _shaking.is_empty()
-	if game.leaves_mat != null:
-		game.leaves_mat.set_shader_parameter("shakes", shakes)
-		game.leaves_mat.set_shader_parameter("shake_count", _shaking.size())
+	# The crowns of cards and the trees drawn as pictures (tree.gdshader) alike.
+	for mat: ShaderMaterial in [game.leaves_mat, game.tree_mat]:
+		if mat != null:
+			mat.set_shader_parameter("shakes", shakes)
+			mat.set_shader_parameter("shake_count", _shaking.size())
 
 
 ## The tree whose trunk holds `cell`, as [its column, species], or [] for none.

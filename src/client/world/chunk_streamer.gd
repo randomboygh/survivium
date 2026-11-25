@@ -12,6 +12,7 @@ extends RefCounted
 
 const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
+const TreeSprites := preload("res://src/client/world/tree_sprites.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const SolidMap := preload("res://src/client/world/solid_map.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
@@ -1215,7 +1216,10 @@ func _chunk_nodes(key: Vector2i) -> void:
 		var bushes := Foliage.multimesh(game.bush_mesh, game.bush_mat, true, true)
 		bushes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var drifts := Foliage.multimesh(game.drift_mesh, game.low_mat, false, false)
-		var parts: Array = [solid, water, tufts, crowns, shade, bushes, drifts]
+		# The trees drawn as pictures (TreeSprites), after the parts of PARTS.
+		var trees := Foliage.multimesh(game.tree_mesh, game.tree_mat, true, true)
+		trees.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var parts: Array = [solid, water, tufts, crowns, shade, bushes, drifts, trees]
 		for n in parts:
 			if n == drifts:
 				game.drifts_root.add_child(n)
@@ -1250,6 +1254,11 @@ func _apply_plants(key: Vector2i, plants: Dictionary) -> void:
 		mm.instance_count = part[0]
 		if part[0] > 0:
 			mm.buffer = part[1]
+	var pics := TreeSprites.build(world, key.x * CHUNK, key.y * CHUNK)
+	var tm: MultiMesh = nodes[PARTS.size()].multimesh
+	tm.instance_count = pics[0]
+	if pics[0] > 0:
+		tm.buffer = pics[1]
 	for i in range(2, nodes.size()):
 		_fit_box(nodes[i])
 	var fx = game.get("effects")
@@ -1304,8 +1313,8 @@ func on_cell_changed(cell: Vector3i) -> void:
 	# rebuilt yet (the other columns of a felled tree), the neighbours after (see
 	# run_jobs): a tree near a chunk's corner goes as soon as its own chunks are drawn,
 	# not after the three around too.
-	# A cell up in the air (a crown's) changes only the columns beside it
-	# (ChunkMesher.reach).
+	# A cell up in the air (a crown's) changes only the columns beside it, unless its
+	# column lost its last leaf or got its first (ChunkMesher.reach).
 	var home := WorldData.chunk_key(cell.x, cell.z)
 	var r := ChunkMesher.reach(world, cell)
 	var keys := {}

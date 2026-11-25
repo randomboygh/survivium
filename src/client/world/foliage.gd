@@ -390,6 +390,9 @@ static func _column(job: Job, x: int, z: int) -> void:
 	var tree := _tree_at(trunks, x, z)
 	if tree.is_empty():
 		return
+	# A tree drawn as a picture (TreeSprites) draws its crown and trunk itself.
+	if Growth.standing_look(w, tree[0]) >= 0:
+		return
 	# Crowns of noted trees cast their shadow as a whole (see _tree_shadows),
 	# others one disc per point.
 	var grown: bool = w.trees.has(tree[0])
@@ -1187,7 +1190,12 @@ static func _cone_shadow(at: Vector2i, looks: Dictionary, levels: Dictionary, lo
 
 
 ## What a tree of species `looks` (index `species`, its column's hash `h`) does over the
-## year: the alpha of its cards' colour.
+## year: the alpha of its cards' colour (KEEPS_LEAVES, GOES_BARE, EVERGREEN, DEAD), also
+## for the trees drawn as pictures (TreeSprites).
+static func year_kind(looks: Dictionary, h: int, species: int) -> float:
+	return _year_kind(looks, h, species)
+
+
 static func _year_kind(looks: Dictionary, h: int, species: int) -> float:
 	if looks.dead:
 		return DEAD

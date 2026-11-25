@@ -10,6 +10,7 @@
   roots: [0, 2]
   crown: [1.2, 3.2, 1.1]
   tints: ["#4d8a46", "#56914a", "#478242"]
+  picture: tree/look.yaml
   bare: 1.0
   bark: grey_bark
   log: resources:log

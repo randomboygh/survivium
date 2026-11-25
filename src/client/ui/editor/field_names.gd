@@ -177,6 +177,7 @@ const NAMES := {
 	"trees.shape": ["[field.trees.shape]", "[field.trees.shape.about]"],
 	"trees.leaf": ["[field.trees.leaf]", "[field.trees.leaf.about]"],
 	"trees.blossom": ["[field.trees.blossom]", "[field.trees.blossom.about]"],
+	"trees.picture": ["[field.trees.picture]", "[field.trees.picture.about]"],
 	"trees.dead": ["[field.trees.dead]", "[field.trees.dead.about]"],
 	"trees.trunk": ["[field.trees.trunk]", "[field.trees.trunk.about]"],
 	"trees.girth": ["[field.trees.girth]", "[field.trees.girth.about]"],

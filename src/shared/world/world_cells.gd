@@ -20,6 +20,11 @@ const Items := preload("res://src/shared/content/items.gd")
 const Content := preload("res://src/shared/content/content.gd")
 ## Size of a cell in world units; a world unit is 16 px on screen.
 const CELL := 0.5
+## The trees' looks a packed chunk's trees are grown at: a saved chunk of an earlier one
+## grows its trees of the species drawn as pictures since a later one again (WorldGen,
+## Growth.outgrown, regrow). One up with each group of species brought to pictures, whose
+## look.yaml then says `since` (TreeLooks).
+const TREE_LOOKS := 1
 ## Chunk size in cells: the unit the world is generated, kept, meshed and streamed in.
 const CHUNK := 16
 const SHIFT := 4
@@ -967,7 +972,7 @@ func pack_chunk(key: Vector2i) -> Dictionary:
 		"air": c.air, "water": c.water, "leaf": c.leaf, "logs": c.logs, "wild": c.wild, "sloped": c.sloped,
 		"corner": c.corner, "biome": c.biome, "frost": c.frost, "trees": tree_list, "tree_records": tree_lists, "bushes": bush_lists, "turf": turf.get(key, {}).duplicate(),
 		"fields": fields.get(key, {}).duplicate(true), "drops": drops.get(key, []).duplicate(true),
-		"forms": _forms_of(key), "grown": c.grown}
+		"forms": _forms_of(key), "grown": c.grown, "looks": TREE_LOOKS}
 
 
 ## The forms of the blocks of chunk `key` (see forms): [[cell, form], …].

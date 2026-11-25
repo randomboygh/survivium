@@ -140,7 +140,7 @@ func _run() -> void:
 	var added_fires := []
 	for shot_name in names:
 		main.player.position = spawn
-		var shot: Dictionary = Shots.SHOTS[shot_name]
+		var shot: Dictionary = Shots.SHOTS[shot_name] if Shots.SHOTS.has(shot_name) else Shots.pictured(shot_name)
 		main.session.clock.time_speed = 0.0
 		main.session.clock.season = shot.season
 		# The day, where it matters (the sea glows on some nights only, Sky.glowing_night).
@@ -288,6 +288,10 @@ func _run() -> void:
 			places.orchard(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(0, 0, 48))
 			# A long row is shot in parts: the player steps `pan` cells east along it.
 			main.player.position.x += shot.get("pan", 0) * CELL
+		if shot.has("pictured"):
+			# North-west of the spawn, away from the others.
+			main.player.position = places.pictured(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 10),
+				shot.pictured, shot.get("variant", -1), shot.get("own_turn", -1))
 		if shot.has("specimen"):
 			# West of the spawn, away from the grove, the orchard and the clearing.
 			places.specimen(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 0), shot.specimen)
@@ -309,6 +313,9 @@ func _run() -> void:
 		main.settings.values.camera_turn = shot.get("turn", 0)
 		main.settings.values.camera_tilt = shot.get("tilt", 0)
 		main.view.look_at_player()
+		# Not left alone from the shots before: a run of shots at one place would have the
+		# view drifting round (CameraRig.drift_rate) from the second minute on.
+		main.view.wake()
 		# `fp`: the first-person view, [yaw, pitch] in degrees (yaw to the left of north).
 		main.settings.first_person = shot.has("fp")
 		main.view.set_first_person(shot.has("fp"))
@@ -1605,12 +1612,22 @@ func _run() -> void:
 		# The trees' light is worked out a few trees a frame in the game: all of it first.
 		if main.sun_rays != null and main.sun_rays.finish():
 			await process_frame
+		# `xray` false: no window opens round the player in the crowns and trunks in front
+		# of them (the player taken far under the ground for the shaders, after the camera).
+		var no_xray := func() -> void:
+			RenderingServer.global_shader_parameter_set("player_pos", Vector3(0.0, -1000.0, 0.0))
+		if not shot.get("xray", true):
+			RenderingServer.frame_pre_draw.connect(no_xray)
+			await process_frame
+			await process_frame
 		if keys_only:
 			for k in Lang.keys_shown(root):
 				print("KEYS %s: %s" % [shot_name, k])
 		else:
 			var img := root.get_texture().get_image()
 			img.save_png(out_dir.path_join(shot_name + ".png"))
+		if RenderingServer.frame_pre_draw.is_connected(no_xray):
+			RenderingServer.frame_pre_draw.disconnect(no_xray)
 		main.hud.visible = true
 		print("player at ", main.player.position)
 		# Frames of the sun moving at the game's speed, 60 a second, to see how the

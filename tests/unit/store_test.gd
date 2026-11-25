@@ -4,6 +4,7 @@ extends "res://tests/unit/test_case.gd"
 
 func run() -> void:
 	_test_save()
+	_test_regrow_saved()
 
 
 func _test_save() -> void:
@@ -22,6 +23,10 @@ func _test_save() -> void:
 	_check(not trunks.is_empty(), "the forest chunk has trees")
 	if trunks.is_empty():
 		return
+	# The one nearest the middle, so the crown felled stays in the chunk (a restored chunk
+	# does not shape its neighbours' edges again).
+	var mid := home * WorldData.CHUNK + Vector2i(8, 8)
+	trunks.sort_custom(func(p: Vector2i, q: Vector2i) -> bool: return (p - mid).length_squared() < (q - mid).length_squared())
 	var trunk: Vector2i = trunks[0]
 	var foot := w.surface_y(trunk.x, trunk.y)
 	for y in range(w.size_y - 1, 0, -1):
@@ -120,4 +125,63 @@ func _within(d: Dictionary, area: Array, by_chunk := false) -> Dictionary:
 		var key: Vector2i = k if by_chunk else WorldData.chunk_key(k.x, k.z if k is Vector3i else k.y)
 		if key in area:
 			out[k] = d[k]
+	return out
+
+
+## A chunk saved before its trees' species were drawn as pictures (no "looks" in its
+## record) grows its old trees again as their looks when it comes back, and waits to be
+## saved so.
+func _test_regrow_saved() -> void:
+	var a := WorldGen.new(42)
+	var at := a.find_place("forest", Vector2i(a.spawn_guess.x, a.spawn_guess.z))
+	var home := WorldData.chunk_key(at.x, at.y)
+	var area: Array[Vector2i] = []
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			area.append(home + Vector2i(dx, dz))
+	for k in area:
+		_ensure_stage(a, k, WorldGen.SHAPED)
+	var w := a.world
+	var col := Vector2i.ZERO
+	var found := false
+	var foot := [0]
+	for c: Vector2i in w.tree_chunks.get(home, {}):
+		if not found and Growth.standing_look(w, c, foot) >= 0:
+			col = c
+			found = true
+	_check(found, "the forest chunk has a tree drawn as pictures")
+	if not found:
+		return
+	# The tree as it grew before: taken away and grown in the old shape.
+	var species: int = w.trees[col]
+	Felling.clear(w, Vector3i(col.x, foot[0], col.y))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var old: Array[Vector3i] = Growth._broadleaf(w, col.x, foot[0], col.y, Trees.SPECIES[species], rng, 1.0)
+	Growth.fill(w, old, 0, old.size())
+	# Its trunk may be as high as a look's, its crown over it (standing_look would take it
+	# for one): what tells it was grown again is its crown.
+	var chunk := Rect2i(home * WorldData.CHUNK, Vector2i(WorldData.CHUNK, WorldData.CHUNK))
+	var was := _leaf_cols(w, chunk)
+	var d: Dictionary = a.pack(home)
+	d.erase("looks")
+	var store := WorldStore.new("user://test_saves/regrow")
+	store.erase()
+	store = WorldStore.new("user://test_saves/regrow")
+	store.write_chunk(home, d)
+	var b := WorldGen.new(42)
+	b.saved = WorldStore.new("user://test_saves/regrow")
+	for k in area:
+		_ensure_stage(b, k, WorldGen.SHAPED)
+	_check(_leaf_cols(b.world, chunk) != was and Growth.standing_look(b.world, col) >= 0 and b.world.unsaved.has(home),
+		"an old tree of a saved chunk grows again as its look, and the chunk waits to be saved")
+	store.erase()
+
+
+## The leaves of the columns of `r`, a column after another.
+static func _leaf_cols(w: WorldData, r: Rect2i) -> PackedInt64Array:
+	var out := PackedInt64Array()
+	for z in range(r.position.y, r.end.y):
+		for x in range(r.position.x, r.end.x):
+			out.append(w.leaf_col(x, z))
 	return out

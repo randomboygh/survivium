@@ -119,6 +119,9 @@ class Job extends RefCounted:
 	var crown: Array[Vector3i] = []
 	var crown_at := 0
 	var done := false
+	## The trees of a saved chunk grown before their species were drawn as they are now
+	## (WorldCells.TREE_LOOKS, see pack_chunk), grown again its last steps: [column, species].
+	var regrow: Array = []
 
 
 ## A world made at once over the chunks 0..area (all SHAPED), for tests and tools.
@@ -280,6 +283,9 @@ func start(key: Vector2i, stage: int) -> Job:
 				# Saved before chunks kept their columns' biomes (or frost): laid out
 				# again, a row a step.
 				job.rows += CHUNK
+			if int(d.get("looks", 0)) < world.TREE_LOOKS:
+				job.regrow = Growth.outgrown(d.get("trees", []), int(d.get("looks", 0)))
+				job.rows += job.regrow.size()
 			return job
 		push_error("saved chunk %s is broken or of another world: made anew" % key)
 	match stage:
@@ -303,6 +309,11 @@ const CROWN_STEP := 8
 ## Does the next `n` steps of the job; true when the stage is done.
 func step(job: Job, n: int) -> bool:
 	world.track_edits = false
+	# A saved chunk is final: it takes only the trees grown again in it (see Job.regrow).
+	var opened = null
+	if not job.regrow.is_empty() and job.row >= job.rows - job.regrow.size() and world.chunks.has(job.key):
+		opened = world.chunks[job.key]
+		opened.final = false
 	while n > 0 and (job.row < job.rows or job.crown_at < job.crown.size()):
 		if job.crown_at < job.crown.size():
 			job.crown_at = Growth.fill(world, job.crown, job.crown_at, CROWN_STEP)
@@ -311,8 +322,17 @@ func step(job: Job, n: int) -> bool:
 				world.unpack_chunk(job.restore)
 			elif job.row <= job.trees.size():
 				_plant(job, job.trees[job.row - 1], true)
-			else:
+			elif job.row < job.rows - job.regrow.size():
 				_biome_row(job.key, job.row - 1 - job.trees.size())
+			else:
+				if opened == null:
+					opened = world.chunks[job.key]
+					opened.final = false
+				# Saved again with its trees as they grow now.
+				world.unsaved[job.key] = true
+				var t: Array = job.regrow[job.row - job.rows + job.regrow.size()]
+				job.crown = Growth.regrow(world, t[0], t[1], size_y)
+				job.crown_at = 0
 			job.row += 1
 		else:
 			match job.stage:
@@ -324,6 +344,8 @@ func step(job: Job, n: int) -> bool:
 					_shape_step(job.key, job.row)
 			job.row += 1
 		n -= 1
+	if opened != null:
+		opened.final = true
 	world.track_edits = true
 	if job.row >= job.rows and job.crown_at >= job.crown.size() and not job.done:
 		job.done = true

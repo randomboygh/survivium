@@ -7,6 +7,7 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const Content := preload("res://src/shared/content/content.gd")
+const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 
 ## Leaves of a species.
 const BROAD := 0
@@ -53,6 +54,9 @@ static func refresh() -> void:
 		if s.leaf == "":
 			s.leaf = "needles" if s.leaves == NEEDLES else "pointed"
 		s.tiers = s.shape == "cone"
+		# A species drawn as pictures from 8 sides (TreeLooks), {} for one drawn in leaf
+		# clusters (Foliage).
+		s.pictures = TreeLooks.read(s)
 		# The slot of its blossom colour, from 1; 0 for none.
 		s.blossom_slot = 0
 		if s.blossom != null and blossoms < BLOSSOMS:

@@ -65,7 +65,9 @@ slice, to free the far meshes.
   the player leaves; the chunks within `REFILL_CHUNKS` (1) that have none — built while the player was far —
   are rebuilt in idle, `keep_queue`, within the stream's budget and yielding to edits); an edit in such a
   chunk builds only the columns around the changed cells (`dirty_rects`; by how much around —
-  `ChunkMesher.reach`: 3 at the ground, 1 for cells in the air, of a crown and a trunk above the ground) and
+  `ChunkMesher.reach`: 3 at the ground, 1 for cells in the air, of a crown and a trunk above the ground, but
+  `Grass.WOODS_EDGE` where a column lost its last leaf or got its first: the plants of the woods follow the crowns,
+  also in the chunk beside) and
   glues them into the saved (`ChunkMesher.patch`, then a step later `Foliage.patch` — the plants also build
   the trunks of trees whose crown can reach the plot, `Foliage.part_columns`), the shadows of the chunk's
   trees are counted anew; `remesh_chunk` builds the chunk whole. The result equals a full rebuild buffer to
@@ -96,6 +98,15 @@ slice, to free the far meshes.
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not
   whole, `covers_side`; the cells at the shapes are candidates, `_take_forms`).
 - `src/client/world/foliage.gd` — the chunk's grass, plants and crowns as a MultiMesh, also by column.
+- `src/client/world/tree_sprites.gd`, `shaders/tree.gdshader` — standing trees of species drawn as pictures
+  (`Growth.standing_look`): one upright picture per tree in the chunk's `trees` MultiMesh (the last of the
+  plant parts), the frame of the side the camera rests at plus the tree's own turn, from one atlas of all
+  such species (`setup` at the start; frames RGBA8 hold the leaf's normal, angle and bits or the bark's
+  step under 8 suns of the day, the bare tree LA8 for autumn and winter); lit by the sun in the shader as the
+  approved drawing (bundles by normal, leaves by facing). Autumn takes the leaf bundles from the crown's edge
+  inward (each bundle's rank from the edge is in its frame); under half of them left, the bark is drawn from the
+  bare tree, without the crown's shade. Foliage and the trunk mesher leave such trees out;
+  young trees and stumps stay theirs.
 - `src/client/world/edge_haze.gd`, `shaders/edge_fog.gdshader` — the fog above unbuilt chunks (see above).
 - `src/client/world/mesh_buffers.gd` — growing vertex buffers; `drifts.gd` — snowdrifts; `tracks.gd` —
   footprints, kept in a map of the ground round the player (`print_map`, repeating every `Tracks.MAP` texels) that

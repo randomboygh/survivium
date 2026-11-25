@@ -875,6 +875,8 @@
 "[field.trees.leaf.about]": "The leaf's look"
 "[field.trees.blossom]": "Blossom"
 "[field.trees.blossom.about]": "The colour of its flowers in spring"
+"[field.trees.picture]": "Pictures"
+"[field.trees.picture.about]": "The file of its drawn looks (look.yaml beside frames.png and bare.png); empty: drawn in leaf clusters"
 "[field.trees.dead]": "Dead"
 "[field.trees.dead.about]": "A dry tree with no leaves"
 "[field.trees.trunk]": "Trunk"
