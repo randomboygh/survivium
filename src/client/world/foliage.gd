@@ -255,13 +255,15 @@ static func step(job: Job, columns: int) -> bool:
 		if job.x >= job.x1:
 			job.x = job.x0
 			job.z += 1
-	# Trees whose trunks stand in this chunk cast one shadow per level of their crown.
+	# Trees whose trunks stand in this chunk cast one shadow per level of their crown; a
+	# tree drawn as a picture casts its picture's (tree_shadow.gdshader).
 	while columns > 0 and job.z >= job.z1 and job.tree < job.trunks.size():
 		var t: Array = job.trunks[job.tree]
 		job.tree += 1
 		columns -= 1
 		var at: Vector2i = t[0]
-		if at.x >= job.x0 and at.x < job.x1 and at.y >= job.z0 and at.y < job.z1:
+		if at.x >= job.x0 and at.x < job.x1 and at.y >= job.z0 and at.y < job.z1 \
+				and Growth.standing_look(job.w, at) < 0:
 			job.ns += _tree_shadows(job.w, t, job.wide, job.shadows)
 	return job.z >= job.z1 and job.tree >= job.trunks.size()
 

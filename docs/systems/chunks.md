@@ -114,7 +114,14 @@ slice, to free the far meshes.
   lit as the approved conifers (`frond_step`); evergreens take a little of autumn's tint, as their leaf cards do. Autumn takes the leaf bundles from the crown's edge
   inward (each bundle's rank from the edge is in its frame); under half of them left, the bark is drawn from the
   bare tree, without the crown's shade. Foliage and the trunk mesher leave such trees out;
-  young trees and stumps stay theirs.
+  young trees and stumps stay theirs. Their ground shadows are the same instances drawn a second time
+  (`shaders/tree_shadow.gdshader`, a node sharing the `trees` MultiMesh, shadows only, on
+  `PixelView.LAYER_SUN_CASTER`) instead of Foliage's crown discs: each picture stands at its foot turned across
+  the way the shadow falls (the shadow of a unit of height lands where `PixelView.light_dir` lays it, the same
+  at every camera turn), the frame of the side the light looks at, so the shadow is the tree's own outline:
+  the crown (thinning from its edge in autumn by the picture's rule), the trunk from the foot, a bare or dead
+  tree's limbs. It sinks a little along the light's ray (`SINK`): its shadow stays where it falls, but the
+  tree's own bark, a little behind it, does not take it (its shade is drawn in the picture).
 - `src/client/world/edge_haze.gd`, `shaders/edge_fog.gdshader` — the fog above unbuilt chunks (see above).
 - `src/client/world/mesh_buffers.gd` — growing vertex buffers; `drifts.gd` — snowdrifts; `tracks.gd` —
   footprints, kept in a map of the ground round the player (`print_map`, repeating every `Tracks.MAP` texels) that
