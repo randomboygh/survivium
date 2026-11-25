@@ -157,7 +157,9 @@ func _test_regrow_saved() -> void:
 	Felling.clear(w, Vector3i(col.x, foot[0], col.y))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
-	var old: Array[Vector3i] = Growth._broadleaf(w, col.x, foot[0], col.y, Trees.SPECIES[species], rng, 1.0)
+	var s: Dictionary = Trees.SPECIES[species]
+	var old: Array[Vector3i] = Growth._conifer(w, col.x, foot[0], col.y, s, rng, 1.0) if s.shape == "cone" \
+		else Growth._broadleaf(w, col.x, foot[0], col.y, s, rng, 1.0)
 	Growth.fill(w, old, 0, old.size())
 	# Its trunk may be as high as a look's, its crown over it (standing_look would take it
 	# for one): what tells it was grown again is its crown.

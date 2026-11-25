@@ -578,8 +578,53 @@ func _test_regrow() -> void:
 	w.set_cell(stump.x, 2, stump.y, Mat.LOG)
 	_check(Growth.regrow(w, stump, oak, 40).is_empty() and w.get_cell(stump.x, 1, stump.y) == Mat.LOG,
 		"a stump is not grown again")
-	_check(Growth.outgrown([[col, oak], [stump, Trees.index("plants:spruce")]], 0).size() == 1,
-		"only trees of species drawn as pictures are grown again")
+	var plain := -1
+	for i in Trees.SPECIES.size():
+		if plain < 0 and Trees.SPECIES[i].pictures.is_empty():
+			plain = i
+	if plain >= 0:
+		_check(Growth.outgrown([[col, oak], [stump, plain]], 0).size() == 1,
+			"only trees of species drawn as pictures are grown again")
+	_test_regrow_conifer()
+
+
+func _test_regrow_conifer() -> void:
+	# An old conifer (the tiers or lobes of the leaf clusters) is grown again as its look,
+	# a cone's trunk up inside its crown as the old one's; a chunk saved at the broadleaf
+	# trees' looks grows its conifers again, not its broadleaf trees.
+	var oak := Trees.index("plants:oak")
+	for key in ["plants:spruce", "plants:fir", "plants:larch", "plants:pine"]:
+		var species := Trees.index(key)
+		if species < 0 or Trees.SPECIES[species].pictures.is_empty():
+			continue
+		var s: Dictionary = Trees.SPECIES[species]
+		var w := WorldData.new(48, Vector2i(32, 32))
+		for z in 32:
+			for x in 32:
+				w.set_cell(x, 0, z, Mat.GRASS)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 7
+		var col := Vector2i(15, 15)
+		w.add_tree(col.x, col.y, species)
+		var old: Array[Vector3i] = Growth._conifer(w, col.x, 1, col.y, s, rng, 1.0) if s.shape == "cone" \
+			else Growth._lobed(w, col.x, 1, col.y, s, rng, 1.0)
+		Growth.fill(w, old, 0, old.size())
+		var was := _leaf_cols(w, Rect2i(0, 0, 32, 32))
+		var crown := Growth.regrow(w, col, species, 48)
+		Growth.fill(w, crown, 0, crown.size())
+		var look := Growth.standing_look(w, col)
+		_check(not crown.is_empty() and _leaf_cols(w, Rect2i(0, 0, 32, 32)) != was and look >= 0,
+			"an old %s is grown again as its look" % key)
+		if look >= 0 and s.shape == "cone":
+			var trunk: int = s.pictures.looks[look].trunk
+			var top := 0
+			for p in crown:
+				top = maxi(top, p.y)
+			_check(trunk > top / 2, "a %s's trunk goes up inside its crown (%d logs, crown to %d)" % [key, trunk, top])
+		var since: int = s.pictures.since
+		var broad: int = Trees.SPECIES[oak].pictures.since
+		_check(since > broad and Growth.outgrown([[col, species], [Vector2i(5, 5), oak]], broad) == [[col, species]],
+			"a chunk saved at the broadleaf trees' looks grows its %s again, not its broadleaf trees" % key)
 
 
 ## The leaves of the columns of `r`, a column after another.
@@ -630,15 +675,17 @@ func _test_trees() -> void:
 	_check(_named("trees", Trees.SPECIES, ["biomes:taiga", "biomes:forest"], 0.1).all(func(k: int) -> bool: return kinds.has(k))
 		and kinds.keys().all(func(k: int) -> bool: return k in _named("trees", Trees.SPECIES, Biomes.IDS)),
 		"the generator grows every species the taiga and the forest name by a tenth or more, and only species some biome names: %s" % [kinds.keys()])
-	# Crowns of spruces take needle cards, of oaks leaf cards.
-	var rows := {}
-	for key: Vector2i in strips.keys:
-		var chunk: Dictionary = Foliage.build_chunk(w, key.x * 16, key.y * 16, 16)
-		var buf: PackedFloat32Array = chunk.clumps[1]
-		for i in chunk.clumps[0]:
-			var row := int(buf[i * 20 + 19]) % Foliage.DEEP_ROW
-			rows[row >= 3] = true
-	_check(rows.size() == 2, "crowns have both broad leaves and needles")
+	# The grown trees of the taiga and the forest, conifers and broadleaf, are drawn as
+	# their looks (TreeSprites): each stands as one (Growth.standing_look) but the young.
+	var drawn := 0
+	var pictured := 0
+	for at: Vector2i in w.trees:
+		if not Trees.SPECIES[w.trees[at]].pictures.is_empty():
+			pictured += 1
+			if Growth.standing_look(w, at) >= 0:
+				drawn += 1
+	_check(pictured > 0 and drawn * 10 >= pictured * 9,
+		"the strips' trees of species drawn as pictures stand as their looks (%d of %d)" % [drawn, pictured])
 
 
 ## Strips of chunks across a taiga and a forest near the spawn, where both species of

@@ -12,6 +12,7 @@
   branches: 0.6
   crown: [2.6, 4, 5]
   tints: ["#7aa04a", "#84a852", "#729846"]
+  picture: tree/look.yaml
   bare: 1.0
   log: resources:log
   twig: resources:branch
