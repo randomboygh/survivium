@@ -21,11 +21,13 @@ const FRONDS := 1
 ## trunk is drawn round but flat, a foot `front` pixels deep under a bark `half width`
 ## pixels to each side (look.yaml `foot`, measured by tools/tree_feet.py), the same from
 ## every side the camera turns to. So a body is held off an oval lying across the view:
-## its feet come up to the foot's front (and behind it, to as far back) with FEET_FRONT
-## pixels of their own, and beside it the sprite keeps FEET_SIDE pixels from the bark's
-## middle line. Without a view (the server) the oval's narrow way all round.
+## its feet come up to the foot's front with FEET_FRONT pixels of their own, beside it the
+## sprite keeps FEET_SIDE pixels from the bark's middle line, and the oval reaches back
+## away from the camera DEPTH of its width (behind the trunk a body stands off it, not in
+## its picture). Without a view (the server) a circle round the axis inside the oval.
 const FEET_FRONT := 2.0
 const FEET_SIDE := 3.0
+const DEPTH := 0.5
 ## Pixels of the pictures a cell (16 a world unit, a cell half a unit).
 const TEXELS_CELL := 8.0
 ## The widest hold of any look (cells), so a body looks for trunks only this far round.
@@ -71,15 +73,19 @@ static func read(s: Dictionary) -> Dictionary:
 		var foot: Array = l.get("foot", [4.0, 1.0])
 		look.foot = Vector2(float(foot[0]), float(foot[1]))
 		look.hold = hold_of(look.foot)
-		hold_most = maxf(hold_most, look.hold.x)
+		hold_most = maxf(hold_most, maxf(look.hold.x, look.hold.y + look.hold.z))
 		out.looks.append(look)
 	return out
 
 
 ## The hold (cells, see FEET_FRONT) of a look whose foot is `foot` (half width, front:
-## pixels): the oval's half across the view and half along it.
-static func hold_of(foot: Vector2) -> Vector2:
-	return Vector2(foot.x + FEET_SIDE, foot.y + FEET_FRONT) / TEXELS_CELL
+## pixels): the oval's half across the view, its half along it, and how far its middle
+## lies behind the axis, away from the camera (its front edge FEET_FRONT before the foot's).
+static func hold_of(foot: Vector2) -> Vector3:
+	var across := (foot.x + FEET_SIDE) / TEXELS_CELL
+	var front := (foot.y + FEET_FRONT) / TEXELS_CELL
+	var half := maxf(front, DEPTH * across)
+	return Vector3(across, half, half - front)
 
 
 ## Whether the crown of `look` has a cell at x, y, z of the tree's own frame (cells east,

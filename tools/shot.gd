@@ -2118,15 +2118,15 @@ func _draw_collision() -> void:
 	# (WorldData.trunk_hold, Body._trunk_touched).
 	for z in range(floori(p.z) - 40, floori(p.z) + 8):
 		for x in range(floori(p.x) - 6, floori(p.x) + 7):
-			var hold: Vector2 = w.trunk_hold(Vector2i(x, z)) if w.has_method("trunk_hold") else Vector2.ZERO
-			if hold == Vector2.ZERO:
+			var hold: Vector3 = w.trunk_hold(Vector2i(x, z)) if w.has_method("trunk_hold") else Vector3.ZERO
+			if hold == Vector3.ZERO:
 				continue
 			var up: Vector2 = body.view_up if body.view_up != Vector2.ZERO else Vector2(0.0, -1.0)
 			var right := Vector2(-up.y, up.x)
 			var steps := maxi(16, ceili(hold.x * TAU * 8.0))
 			for k in steps:
 				var a := TAU * k / steps
-				var d := right * cos(a) * hold.x + up * sin(a) * hold.y
+				var d := right * cos(a) * hold.x + up * (sin(a) * hold.y + hold.z)
 				var o := Vector3(x + 0.5 + d.x - 0.5 / n, 0.0, z + 0.5 + d.y - 0.5 / n) * CELL
 				_quad(st, o + Vector3(0.0, lift, 0.0), CELL / n, CELL / n, Color(1.0, 0.1, 0.1, 0.9))
 	# The middle of the feet.

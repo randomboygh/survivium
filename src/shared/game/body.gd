@@ -807,8 +807,8 @@ func _collides(p: Vector3) -> bool:
 
 
 ## Whether the middle of the feet at `p` (cells) is in the oval a pictured tree's trunk
-## holds a body off (WorldData.trunk_hold, across and along view_up; the narrow way all
-## round without a view), at a level of the body's the trunk's cells are at: the trunk as
+## holds a body off (WorldData.trunk_hold: across view_up, reaching back away from the
+## camera; a circle round the axis without a view), at a level of the body's the trunk's cells are at: the trunk as
 ## it is drawn, not the cells it takes. A body in an oval already (the camera turned the
 ## oval onto it) is only kept from going deeper in.
 func _trunk_touched(p: Vector3) -> bool:
@@ -822,8 +822,8 @@ func _trunk_touched(p: Vector3) -> bool:
 		for x in range(floori(p.x - r - 0.5), floori(p.x + r - 0.5) + 1):
 			if world.log_col(x, z) & levels == 0:
 				continue
-			var hold: Vector2 = world.trunk_hold(Vector2i(x, z))
-			if hold == Vector2.ZERO:
+			var hold: Vector3 = world.trunk_hold(Vector2i(x, z))
+			if hold == Vector3.ZERO:
 				continue
 			var depth := _in_oval(Vector2(p.x - x - 0.5, p.z - z - 0.5), hold)
 			if depth < 1.0 and (not _from.is_finite() or depth < _in_oval(Vector2(_from.x - x - 0.5, _from.z - z - 0.5), hold) - 0.0001):
@@ -831,13 +831,15 @@ func _trunk_touched(p: Vector3) -> bool:
 	return false
 
 
-## How far in the oval `hold` (TreeLooks.hold_of) offset `d` from its middle lies: under
-## 1 inside, 0 at the middle.
-func _in_oval(d: Vector2, hold: Vector2) -> float:
+## How far in the oval `hold` (TreeLooks.hold_of) offset `d` from the trunk's axis lies:
+## under 1 inside, 0 at its middle. Without a view, in a circle round the axis as far as
+## the oval's front (the server lets through all a client's view does).
+func _in_oval(d: Vector2, hold: Vector3) -> float:
 	if view_up == Vector2.ZERO:
-		return d.length_squared() / (hold.y * hold.y)
+		var r := minf(hold.x, hold.y - hold.z)
+		return d.length_squared() / (r * r)
 	var across := d.dot(Vector2(-view_up.y, view_up.x)) / hold.x
-	var along := d.dot(view_up) / hold.y
+	var along := (d.dot(view_up) - hold.z) / hold.y
 	return across * across + along * along
 
 

@@ -426,21 +426,21 @@ func _cell_blocks(x: int, y: int, z: int) -> bool:
 	var m := get_cell(x, y, z)
 	if m == Mat.WATER:
 		return frozen_at(x, z)
-	if m == Mat.LOG and trunk_hold(Vector2i(x, z)) != Vector2.ZERO:
+	if m == Mat.LOG and trunk_hold(Vector2i(x, z)) != Vector3.ZERO:
 		return false
 	return m != Mat.LEAVES and Mat.is_solid(m)
 
 
 ## How far from the axis of the trunk in column `col` the middle of a body's feet is held
-## (cells, across and along the view: TreeLooks.hold_of) when a standing tree drawn as
-## pictures has it; ZERO for any other (a stump, a young tree, a species drawn in cells:
-## their cells stop a body).
-func trunk_hold(col: Vector2i) -> Vector2:
+## (cells: the oval's half across the view, half along it and its middle's lie behind the
+## axis, TreeLooks.hold_of) when a standing tree drawn as pictures has it; ZERO for any
+## other (a stump, a young tree, a species drawn in cells: their cells stop a body).
+func trunk_hold(col: Vector2i) -> Vector3:
 	var species: int = trees.get(col, -1)
 	if species < 0 or species >= Trees.SPECIES.size() or Trees.SPECIES[species].pictures.is_empty():
-		return Vector2.ZERO
+		return Vector3.ZERO
 	var i := Growth.standing_look(self, col)
-	return Vector2.ZERO if i < 0 else Trees.SPECIES[species].pictures.looks[i].hold
+	return Vector3.ZERO if i < 0 else Trees.SPECIES[species].pictures.looks[i].hold
 
 
 ## True when a body taking the part ax..bx, az..bz (0..1) of the cell at (x, y, z) is
@@ -477,7 +477,7 @@ func _bark_touched(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: 
 		var col := Vector2i(x + o.x, z + o.y)
 		var species: int = trees.get(col, -1)
 		if species < 0 or species >= Trees.SPECIES.size() or get_cell(col.x, y, col.y) != Mat.LOG \
-				or trunk_hold(col) != Vector2.ZERO:
+				or trunk_hold(col) != Vector3.ZERO:
 			continue
 		var k := 0
 		while k < 64 and get_cell(col.x, y - k - 1, col.y) == Mat.LOG:
@@ -537,7 +537,7 @@ func ground_part(x: int, y: int, z: int, ax: float, bx: float, az: float, bz: fl
 				return false
 		return true
 	var m := get_cell(x, y, z)
-	if m == Mat.LOG and trunk_hold(Vector2i(x, z)) != Vector2.ZERO:
+	if m == Mat.LOG and trunk_hold(Vector2i(x, z)) != Vector3.ZERO:
 		return false
 	return m != Mat.LEAVES and Mat.is_solid(m) or m == Mat.WATER and frozen_at(x, z) \
 		or _fill_touched(x, y, z, ax, bx, az, bz) or not blockers.is_empty() and blocker_part(x, y, z, ax, bx, az, bz) > 0.0

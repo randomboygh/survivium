@@ -462,9 +462,10 @@ func _test_wide_trunk() -> void:
 
 
 ## The trunk of a tree drawn as pictures holds a body off as it is drawn (TreeLooks.hold_of):
-## an oval across the view, as wide as the bark beside it and as deep as its foot in front
-## and behind; its cells stop nothing; without a view (the server) the oval's narrow way all
-## round; a body the camera's turn put in the oval walks out of it.
+## an oval across the view, as wide as the bark beside it, its front at the foot's front,
+## reaching back away from the camera; its cells stop nothing; without a view (the server)
+## a circle round the axis as far as the front; a body the camera's turn put in the oval
+## walks out of it.
 func _test_pictured_trunk() -> void:
 	var species := -1
 	var look := -1
@@ -488,28 +489,33 @@ func _test_pictured_trunk() -> void:
 		for x in range(col.x - 14, col.x + 15):
 			w.set_cell(x, 0, z, Mat.STONE)
 	Growth.place(w, col.x, 1, col.y, species, null, 1.0)
-	var hold: Vector2 = w.trunk_hold(col)
-	_check(hold == s.pictures.looks[look].hold and hold.x > hold.y, "a standing pictured tree holds a body off its look's oval: %s" % hold)
+	var hold: Vector3 = w.trunk_hold(col)
+	_check(hold == s.pictures.looks[look].hold and hold.x > hold.y and hold.z > 0.0,
+		"a standing pictured tree holds a body off its look's oval: %s" % hold)
 	var cell := WorldData.CELL
 	var axis := Vector3(col.x + 0.5, 1.0, col.y + 0.5)
+	var front := hold.y - hold.z
+	var back := hold.y + hold.z
 	var body := Body.new()
 	body.world = w
 	body.view_up = Vector2(0.0, -1.0)
-	_check(not body.blocked((axis + Vector3(0.0, 0.0, hold.y * 1.05)) * cell), "feet come up to the trunk's foot in front, its cell stops nothing")
-	_check(body.blocked((axis + Vector3(0.0, 0.0, hold.y * 0.9)) * cell), "feet do not go into the foot in front")
-	_check(not body.blocked((axis + Vector3(0.0, 0.0, -hold.y * 1.05)) * cell), "nor behind it further than its front")
-	_check(body.blocked((axis + Vector3(hold.x * 0.9, 0.0, 0.0)) * cell), "beside the trunk feet keep off its bark")
-	_check(not body.blocked((axis + Vector3(hold.x * 1.05, 0.0, 0.0)) * cell), "beside the trunk feet come up to its bark")
+	_check(not body.blocked((axis + Vector3(0.0, 0.0, front * 1.05)) * cell), "feet come up to the trunk's foot in front, its cell stops nothing")
+	_check(body.blocked((axis + Vector3(0.0, 0.0, front * 0.9)) * cell), "feet do not go into the foot in front")
+	_check(body.blocked((axis + Vector3(0.0, 0.0, -back * 0.95)) * cell), "behind the trunk the oval reaches further back")
+	_check(not body.blocked((axis + Vector3(0.0, 0.0, -back * 1.05)) * cell), "and no further")
+	_check(body.blocked((axis + Vector3(hold.x * 0.9, 0.0, -hold.z)) * cell), "beside the trunk feet keep off its bark")
+	_check(not body.blocked((axis + Vector3(hold.x * 1.05, 0.0, -hold.z)) * cell), "beside the trunk feet come up to its bark")
 	body.view_up = Vector2(-1.0, 0.0)
-	_check(not body.blocked((axis + Vector3(hold.y * 1.05, 0.0, 0.0)) * cell), "the oval turns with the view")
+	_check(not body.blocked((axis + Vector3(front * 1.05, 0.0, 0.0)) * cell) and body.blocked((axis + Vector3(-back * 0.95, 0.0, 0.0)) * cell),
+		"the oval turns with the view")
 	body.view_up = Vector2.ZERO
-	var r := minf(hold.x, hold.y)
-	_check(body.blocked((axis + Vector3(r * 0.9, 0.0, 0.0)) * cell) and not body.blocked((axis + Vector3(0.0, 0.0, r * 1.05)) * cell),
-		"without a view a body is held off the oval's narrow way all round")
+	var r := minf(hold.x, front)
+	_check(body.blocked((axis + Vector3(r * 0.9, 0.0, 0.0)) * cell) and not body.blocked((axis + Vector3(0.0, 0.0, -r * 1.05)) * cell),
+		"without a view a body is held off a circle round the axis as far as the oval's front")
 	# The camera turned: a body in front of the trunk is beside it now, in its oval.
 	body.view_up = Vector2(-1.0, 0.0)
 	body.on_ground = true
-	var at := (axis + Vector3(0.0, 0.0, hold.y * 1.05)) * cell
+	var at := (axis + Vector3(0.0, 0.0, front * 1.05)) * cell
 	body.move_input = Vector2(0.0, -1.0)
 	var deeper := body.step(at, 1.0 / 60.0, false)
 	_check(deeper.z >= at.z - 0.0001, "a body in the oval does not go deeper in")
