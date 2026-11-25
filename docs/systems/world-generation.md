@@ -97,7 +97,8 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
 - `src/shared/content/trees.gd`, `bushes.gd` — the registries of species of trees and kinds of shrubs (the
   mods' data). `src/shared/content/tree_looks.gd` — a species drawn as pictures (`picture: tree/look.yaml` in
   its `trees.yaml`, the approved drawings of `survivium-builds/trees-redraw`, made by `integration/pr1/src/`
-  `export_pr1.py` + `pack_pr1.py`): its looks (3 sizes × 2 variants), each with its frames for 8 sides, its
+  `export_pr1.py` + `pack_pr1.py`, then `python3 tools/tree_feet.py` writes each look's `foot`: the bark's half
+  width and the foot's front in pixels, what a body is held off by, see character.md): its looks (3 sizes × 2 variants), each with its frames for 8 sides, its
   trunk's height in cells and its crown's cells (`crown_has`, `to_own` for the tree's own turn).
 - `src/shared/world/growth.gd` — how a tree and a shrub grow into the world's cells: the shape of the trunk
   and crown (`trunk_box`, `height`, `fit`; a trunk always goes up into its crown, `LOWEST_POINT`), `place` / `grow` / `fill`, `bush_fits` / `place_bush`; the

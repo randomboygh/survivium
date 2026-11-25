@@ -58,7 +58,9 @@ func _test_felling() -> void:
 	_check(Growth.trunk_box(Trees.first(Trees.BROAD), Vector2i(15, 23), 6).size.x < Growth.trunk_box(Trees.first(Trees.BROAD), Vector2i(15, 23), 0).size.x,
 		"a trunk thins going up")
 	var box := Growth.trunk_box(Trees.first(Trees.BROAD), Vector2i(15, 23), 1)
-	_check(w.blocks_part(16, 2, 23, 0.0, 0.1, 0.4, 0.6) == (box.end.x > 8), "thick bark east of a trunk is solid")
+	# (A standing tree drawn as pictures holds a body off its drawn trunk instead: Body._trunk_touched.)
+	_check(w.blocks_part(16, 2, 23, 0.0, 0.1, 0.4, 0.6) == (box.end.x > 8 and w.trunk_hold(Vector2i(15, 23)) == Vector3.ZERO),
+		"thick bark east of a trunk is solid")
 	var past := box.end.x + 1
 	_check(not w.blocks_part(15 + past / 8, 2, 23, (past % 8) / 8.0, (past % 8 + 0.8) / 8.0, 0.4, 0.6),
 		"a body further from the trunk is not stopped")
