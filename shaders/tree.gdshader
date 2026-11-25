@@ -12,6 +12,13 @@
 //     out in the crown it is (0..1, as the bundles' rank);
 //   wood (alpha 2): the bark's ramp step under each of 8 suns of the day path, 2 bits a
 //     sun (red the first four, green the last).
+// A conifer's frames (its ramp row's rule FRONDS, TreeLooks; export_pr2.py) hold fronds
+// instead of leaf bundles: red, green the crown's normal where the frond lies (a pine
+// cap's texel: its own on the cap's ball), blue the angle of the frond's side axis in the
+// ground's plane (the axis across the frond, turned from its direction), alpha's bits: the
+// texel on the axis's side (else the other half), stroke (outline, needles), the edge
+// rank 0..3 (bits 2..3), root (its root third under the tier above), tip (its tip's body),
+// deep (a frond of an inner ring).
 // bare_frames: the tree without its crown in the same places (grey and alpha the bark's
 // steps as wood's red and green, both 1 where no wood), shown where autumn and winter have
 // taken its leaves.
@@ -26,7 +33,8 @@ stencil_mode write, compare_always, 3;
 
 uniform sampler2D frames : filter_nearest;
 uniform sampler2D bare_frames : filter_nearest;
-// A row a species: the leaves' 7 steps, then the bark's 4, as drawn (sRGB).
+// A row a species: the leaves' 7 steps, then the bark's 4, as drawn (sRGB), then the rule
+// its leaves are lit by in red (0 bundles, 1 fronds).
 uniform sampler2D ramps : filter_nearest;
 
 // The rules of the approved drawing (render7.Tree, trees22.tree): a bundle is light
@@ -35,6 +43,12 @@ uniform sampler2D ramps : filter_nearest;
 const float D1 = 0.64;
 const float D2 = 0.36;
 const float DP = 0.8;
+// A conifer's frond (conifer21.Conifer): its step by its crown normal against the sun,
+// 5 / 4 / 3 / 2 over these, else 1; the palest only over FRONDS_PALE; its halves parted
+// only when the sun is off its side axis by more than FRONDS_SIDE.
+const vec4 FRONDS_BANDS = vec4(0.8, 0.5, 0.2, -0.15);
+const float FRONDS_PALE = 0.92;
+const float FRONDS_SIDE = 0.12;
 const float TONE = 0.8;
 // The 8 suns the bark was drawn under, in the drawing's frame (to the sun: x east, y up,
 // z south): Sky's day path at t = 0.22 + k * 0.08.
@@ -164,6 +178,25 @@ float leaf_step(vec4 g, int a, vec3 L) {
 	return clamp(c, 0.0, 6.0);
 }
 
+// The leaves' step (0..6) of a conifer's frond texel `g` (alpha bits `a`) under the light
+// L: the band of its crown normal (an inner ring's a step darker), the half of the frond
+// turned from the sun, its strokes and its root third a step darker each, a lit tip a
+// step lighter where the band is light.
+float frond_step(vec4 g, int a, vec3 L) {
+	float d = dot(unocta(g.rg), L);
+	float b = d > FRONDS_BANDS.x ? 5.0 : (d > FRONDS_BANDS.y ? 4.0 : (d > FRONDS_BANDS.z ? 3.0
+		: (d > FRONDS_BANDS.w ? 2.0 : 1.0)));
+	b -= float((a >> 6) & 1);
+	float ang = g.b * 255.0 / 256.0 * TAU;
+	float side = cos(ang) * L.x + sin(ang) * L.z;
+	bool lit = abs(side) <= FRONDS_SIDE || (side > 0.0) == ((a & 1) != 0);
+	float t = (lit ? b : b - 1.0) - float((a >> 1) & 1) - float((a >> 4) & 1);
+	if ((a & 32) != 0 && lit && b > 3.5) {
+		t += 1.0;
+	}
+	return clamp(min(t, d < FRONDS_PALE ? 5.0 : 6.0), 0.0, 6.0);
+}
+
 // The bark's colour of wood texel `g` (red, green: 2 bits a sun) under the light L: the
 // two drawn suns nearest it, crossfaded only round the middle between them.
 vec3 wood_colour(float k, vec4 g, vec3 L) {
@@ -246,9 +279,17 @@ void fragment() {
 		if (bayer4(texel) < see_through(texel, world_pos)) {
 			discard;
 		}
-		col = a == 1 ? ramp(k, 1.0) : leaf_colour(k, leaf_step(g, a, L));
-		// Autumn colours differ from tree to tree (as leaves.gdshader's).
+		if (a == 1) {
+			col = ramp(k, 1.0);
+		} else if (ramp(k, 11.0).r > 0.5) {
+			col = ramp(k, frond_step(g, a, L));
+		} else {
+			col = leaf_colour(k, leaf_step(g, a, L));
+		}
+		// Autumn colours differ from tree to tree; evergreens hardly change (as
+		// leaves.gdshader's).
 		vec3 season = foliage_tint * (1.0 + (hash12(floor(foot_pos.xz / 3.0) + 5.0) - 0.5) * (foliage_tint - 1.0) * vec3(0.5, 0.8, 1.0));
+		season = info.y > 0.5 && info.y < 0.7 ? mix(vec3(1.0), season, 0.15) : season;
 		col *= season * (1.0 - 0.25 * wetness);
 	}
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));

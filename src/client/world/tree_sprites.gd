@@ -22,8 +22,9 @@ const CELL := WorldCells.CELL
 ## The atlas is at most this wide, its places even (the instance data goes as half floats
 ## on some GPUs: whole even numbers up to 4096 come through exactly).
 const ATLAS_W := 4096
-## Texels of a ramp row: the leaves' 7 steps, then the bark's 4.
-const RAMP_W := 11
+## Texels of a ramp row: the leaves' 7 steps, then the bark's 4, then the rule its leaves
+## are lit by (TreeLooks.MODULES or FRONDS, in red).
+const RAMP_W := 12
 
 ## Species index -> the place of its frames in the atlas (Vector2i), for species drawn so.
 static var places := {}
@@ -92,6 +93,7 @@ static func setup() -> bool:
 			r.set_pixel(j, k, s.leaves[mini(j, s.leaves.size() - 1)])
 		for j in 4:
 			r.set_pixel(7 + j, k, s.bark[mini(j, s.bark.size() - 1)])
+		r.set_pixel(11, k, Color(float(s.get("rule", 0)), 0.0, 0.0, 1.0))
 	frames = ImageTexture.create_from_image(a)
 	bare = ImageTexture.create_from_image(b)
 	ramps = ImageTexture.create_from_image(r)

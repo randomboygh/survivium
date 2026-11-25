@@ -12,11 +12,17 @@ const Yaml := preload("res://src/shared/content/yaml.gd")
 ## How many variants each size has (the looks are size by size, a variant each in turn).
 const VARIANTS := 2
 
+## How the leaves in a species' frames are lit (look.yaml `rule`, tree.gdshader): the
+## broadleaf trees' leaf bundles (MODULES) or the conifers' fronds (FRONDS).
+const MODULES := 0
+const FRONDS := 1
+
 
 ## The looks of species record `s`, from its `picture` file (a path in its bundle): a
-## Dictionary {since, leaves: [Color], bark: [Color], looks: [look], frames, bare (paths)},
-## `since` the trees' looks (WorldCells.TREE_LOOKS) its pictures came with, 1 unless the
-## file says (a chunk saved at an earlier one grows the species' trees again), each
+## Dictionary {since, rule, leaves: [Color], bark: [Color], looks: [look], frames, bare
+## (paths)}, `since` the trees' looks (WorldCells.TREE_LOOKS) its pictures came with, 1
+## unless the file says (a chunk saved at an earlier one grows the species' trees again),
+## `rule` how its leaves are lit (MODULES, or FRONDS when the file says `rule: fronds`), each
 ## look {size, variant, x, y, w, h, ax, ay, trunk, crown: [x0, z0, nx, ny, nz],
 ## cells: PackedByteArray of nx * ny * nz bits, x fastest, then y, then z}; empty when it
 ## has none or it cannot be read.
@@ -30,7 +36,8 @@ static func read(s: Dictionary) -> Dictionary:
 	if yaml.error != "" or not data is Dictionary or not data.get("looks") is Array:
 		push_warning("tree pictures: cannot read %s %s" % [path, yaml.error])
 		return {}
-	var out := {"since": int(data.get("since", 1)), "leaves": [], "bark": [], "looks": [],
+	var out := {"since": int(data.get("since", 1)),
+		"rule": FRONDS if str(data.get("rule", "")) == "fronds" else MODULES, "leaves": [], "bark": [], "looks": [],
 		"frames": path.get_base_dir().path_join("frames.png"), "bare": path.get_base_dir().path_join("bare.png")}
 	for c in data.get("leaves", []):
 		out.leaves.append(Color(str(c)))

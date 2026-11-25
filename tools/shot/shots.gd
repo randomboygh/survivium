@@ -401,6 +401,9 @@ const SHOTS := {
 	"stony-tundra": {"time": 0.42, "season": 1, "place": "stony_tundra"},
 	"peat-bog": {"time": 0.42, "season": 1, "place": "peat_bog"},
 	"forest-steppe": {"time": 0.42, "season": 1, "place": "forest_steppe"},
+	# The conifers' woods, the grass hidden (the trees drawn as pictures, see `pics-`).
+	"taiga": {"time": 0.42, "season": 1, "place": "taiga", "hide": ["chunks: grass"]},
+	"pine-wood": {"time": 0.42, "season": 1, "place": "pine_wood", "hide": ["chunks: grass"]},
 	"salt-flat": {"time": 0.42, "season": 1, "place": "salt_flat"},
 	# The savanna in the heart of its biggest plain near the spawn of the default world (climate 1).
 	"savanna": {"time": 0.42, "season": 1, "at": [-1268, -364]},
