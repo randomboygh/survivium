@@ -156,9 +156,13 @@ func _test_regrow_saved() -> void:
 	var species: int = w.trees[col]
 	Felling.clear(w, Vector3i(col.x, foot[0], col.y))
 	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
 	var old: Array[Vector3i] = Growth._broadleaf(w, col.x, foot[0], col.y, Trees.SPECIES[species], rng, 1.0)
 	Growth.fill(w, old, 0, old.size())
-	var was := Growth.standing_look(w, col)
+	# Its trunk may be as high as a look's, its crown over it (standing_look would take it
+	# for one): what tells it was grown again is its crown.
+	var chunk := Rect2i(home * WorldData.CHUNK, Vector2i(WorldData.CHUNK, WorldData.CHUNK))
+	var was := _leaf_cols(w, chunk)
 	var d: Dictionary = a.pack(home)
 	d.erase("looks")
 	var store := WorldStore.new("user://test_saves/regrow")
@@ -169,6 +173,15 @@ func _test_regrow_saved() -> void:
 	b.saved = WorldStore.new("user://test_saves/regrow")
 	for k in area:
 		_ensure_stage(b, k, WorldGen.SHAPED)
-	_check(was < 0 and Growth.standing_look(b.world, col) >= 0 and b.world.unsaved.has(home),
+	_check(_leaf_cols(b.world, chunk) != was and Growth.standing_look(b.world, col) >= 0 and b.world.unsaved.has(home),
 		"an old tree of a saved chunk grows again as its look, and the chunk waits to be saved")
 	store.erase()
+
+
+## The leaves of the columns of `r`, a column after another.
+static func _leaf_cols(w: WorldData, r: Rect2i) -> PackedInt64Array:
+	var out := PackedInt64Array()
+	for z in range(r.position.y, r.end.y):
+		for x in range(r.position.x, r.end.x):
+			out.append(w.leaf_col(x, z))
+	return out

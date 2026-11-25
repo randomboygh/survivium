@@ -4,9 +4,12 @@
 // integration/pr1/src/export_pr1.py):
 //   leaf (alpha 128 and up): red, green the leaf bundle's normal (octahedral, in the frame
 //     of the drawing: x right, y up, z toward the camera), blue the leaf's angle on the
-//     picture, alpha's bits: body (else rim), heart, a leaf on top, no leaf (the bundle's
-//     disc), the leaf's light share in 7ths (bits 4..6);
-//   core (alpha 1): the dark mass inside the crown, the leaves' ramp step 1;
+//     picture, alpha's bits: body (else rim), heart (no leaf, the bundle's disc, when
+//     without body), the bundle's edge rank 0..3 (bits 2..3: how far out in the crown it
+//     shows), bits 4..6 the leaf's light share in 7ths (1, 4..7), 0 a leaf on top (share
+//     whole), 2 / 3 a maple leaf's outline, half a step darker (3: on top);
+//   core (alpha 1): the dark mass inside the crown, the leaves' ramp step 1, red how far
+//     out in the crown it is (0..1, as the bundles' rank);
 //   wood (alpha 2): the bark's ramp step under each of 8 suns of the day path, 2 bits a
 //     sun (red the first four, green the last).
 // bare_frames: the tree without its crown in the same places (grey and alpha the bark's
@@ -136,14 +139,15 @@ float leaf_step(vec4 g, int a, vec3 L) {
 	float d = dot(n, L);
 	float base = d > D1 ? 4.0 : (d > D2 ? 3.0 : 2.0);
 	float c;
-	if ((a & 8) != 0) {
+	if ((a & 3) == 2) {
 		c = base - 1.0;
 	} else {
 		vec2 light2 = normalize(vec2(L.x, L.z - L.y) + vec2(1e-5, 0.0));
-		float t0 = (a & 1) != 0 ? 0.0 : -1.0;
+		int code = (a >> 4) & 7;
+		float t0 = (a & 1) != 0 ? 0.0 : (code == 2 || code == 3 ? -1.5 : -1.0);
 		float ang = g.b * 255.0 / 256.0 * TAU;
-		float f = (cos(ang) * light2.x + sin(ang) * light2.y) * float((a >> 4) & 7) / 7.0;
-		if ((a & 4) != 0) {
+		float f = (cos(ang) * light2.x + sin(ang) * light2.y) * (code == 1 || code > 3 ? float(code) / 7.0 : 1.0);
+		if (code == 0 || code == 3) {
 			f = max(f, 0.5);
 		}
 		float s = f > 0.2 ? 1.0 : (f > -0.5 ? 0.0 : -1.0);
@@ -207,19 +211,30 @@ void fragment() {
 	vec2 right = vec2(-view_up.y, view_up.x);
 	vec2 sxz = right * sun_view.x + view_up * sun_view.y;
 	vec3 L = normalize(vec3(sxz.x, sun_view.z, sxz.y));
-	// Autumn and winter take the leaves bundle by bundle (as Foliage's clusters): the bare
-	// tree shows through where they are gone; the dark mass inside goes once most are.
+	// Autumn and winter take the leaves bundle by bundle from the crown's edge in, the outer
+	// ranks first and each rank's bundles in their own order: the bare tree shows through
+	// where they are gone; the dark mass inside goes a little ahead of the bundles over it.
 	float amount = leaves_left(info.y);
-	if (a >= 128 && hash12(g.rg * 255.0 + foot_pos.xz * 3.1) > amount || a == 1 && amount <= 0.6) {
+	if (a >= 128) {
+		float rank = float((a >> 2) & 3);
+		if ((rank + hash12(g.rg * 255.0 + foot_pos.xz * 3.1)) / 4.0 > amount) {
+			a = 0;
+		}
+	} else if (a == 1 && g.r > amount - 0.08) {
 		a = 0;
 	}
 	vec3 col;
-	if (a == 0) {
+	// Once most leaves are gone the bark shows as the bare tree has it, without the
+	// crown's shade over the trunk.
+	if (a == 0 || a == 2 && amount < 0.5) {
 		vec4 b = texelFetch(bare_frames, t, 0);
 		if (b.r > 0.998 && b.a > 0.998) {
-			discard;
+			if (a == 0) {
+				discard;
+			}
+		} else {
+			g = vec4(b.r, b.a, 0.0, 1.0);
 		}
-		g = vec4(b.r, b.a, 0.0, 1.0);
 		a = 2;
 	}
 	if (a == 2) {

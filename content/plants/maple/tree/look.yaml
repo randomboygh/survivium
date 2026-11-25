@@ -5,9 +5,9 @@
 leaves: ["#0f2425", "#1b3836", "#375739", "#496f4e", "#659268", "#97c46f", "#bdf07b"]
 bark: ["#1b130f", "#3d2a1e", "#62452f", "#946b4b"]
 looks:
-  - {size: 0.42, variant: 0, x: 0, y: 0, w: 72, h: 80, ax: 35, ay: 78, trunk: 5, crown: [-1, -2, 4, 6, 4, "AAAgAAAwAADwAAAE"]}
-  - {size: 0.42, variant: 1, x: 0, y: 80, w: 72, h: 79, ax: 35, ay: 77, trunk: 5, crown: [0, -1, 3, 6, 3, "AIAAAAgAAg=="]}
-  - {size: 0.68, variant: 0, x: 0, y: 159, w: 91, h: 104, ax: 44, ay: 102, trunk: 7, crown: [-1, -3, 5, 10, 5, "AAAAABAAAAAAAEAABAAAAAAwAAAAAADgAQAAAACAAAA="]}
-  - {size: 0.68, variant: 1, x: 0, y: 263, w: 90, h: 104, ax: 44, ay: 102, trunk: 7, crown: [-2, -2, 6, 10, 5, "AAAAAAAYAAQAAAAAAGgAAAAAAACABgAAAAAAAgAAAAAAAHAAAAA="]}
-  - {size: 1.00, variant: 0, x: 0, y: 367, w: 107, h: 129, ax: 54, ay: 125, trunk: 9, crown: [-4, -4, 10, 11, 7, "AAAAAAAAAAAAAABgAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAAAAADwAAAAAAAAAAAAAAAAQDwAAAAAAAAAAAAAABM4DAAAAAAAAAAAAAAAAYQAAAAAAAAAAAAAABAAAAA=="]}
-  - {size: 1.00, variant: 1, x: 0, y: 496, w: 107, h: 130, ax: 52, ay: 126, trunk: 9, crown: [-4, -3, 9, 11, 7, "AAAAAAAAAAAAADAAAAAAAAAAAAAAAIABAwAAAAAAAAAAAIDAPAAAAAAAAAAAAAAE5gEAAAAAAAAAAAAAAA4AAAAAAAAAAAAGAAAAAAAAAAAAAAAwAAAA"]}
+  - {size: 0.42, variant: 0, x: 0, y: 0, w: 72, h: 77, ax: 35, ay: 75, trunk: 4, crown: [-2, -1, 4, 6, 3, "AABgAADhAAAI"]}
+  - {size: 0.42, variant: 1, x: 0, y: 77, w: 72, h: 76, ax: 35, ay: 74, trunk: 4, crown: [-1, -1, 4, 6, 3, "AAAoAAA4AAAB"]}
+  - {size: 0.68, variant: 0, x: 0, y: 153, w: 91, h: 94, ax: 44, ay: 92, trunk: 5, crown: [-3, -3, 7, 8, 4, "AAAAAAAgAAAAAAAAIAAAAAAACHAQAAAAAAhwEQ=="]}
+  - {size: 0.68, variant: 1, x: 0, y: 247, w: 90, h: 94, ax: 44, ay: 92, trunk: 5, crown: [-1, -1, 6, 8, 4, "AAAAAH4IAAAAAH4IAAAAACAAAAAAQAAA"]}
+  - {size: 1.00, variant: 0, x: 0, y: 341, w: 107, h: 111, ax: 54, ay: 107, trunk: 6, crown: [-4, -4, 9, 9, 8, "AAAAAAAAAAAMAAAAAAAAAAAAGAAAAAAAAAAAAABgAAAAAAAAAAYA5AEAAAAAAAAMAIgDAAAAAAAAAQAQAQAAAAAAMAcAAAAAAAAAAGAEAAAA"]}
+  - {size: 1.00, variant: 1, x: 0, y: 452, w: 107, h: 112, ax: 52, ay: 108, trunk: 6, crown: [-2, -3, 7, 10, 7, "AAAAAAAADAAYAAAAAAAAgwEGAAAAAAAA7AAAAAAAAAAAOwAAAAAAgAAABAAAAAAAIAMAAAAAAAAAwAAAAAA="]}

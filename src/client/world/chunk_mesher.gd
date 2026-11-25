@@ -16,6 +16,7 @@ const CRACKED := Color(1, 0.5, 1)
 const OldSlopes := preload("res://src/client/world/old_slope_mesher.gd")
 const Water := preload("res://src/client/world/water_mesher.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
+const Grass := preload("res://src/shared/world/grass.gd")
 const Trunks := preload("res://src/client/world/trunk_mesher.gd")
 const Forms := preload("res://src/client/world/form_mesher.gd")
 
@@ -567,7 +568,10 @@ static func _merged_keys(keys: PackedInt32Array, more: PackedInt32Array, old: Jo
 ## How many columns around a changed `cell` the meshes and plants may change: three
 ## where ground is near it (shapes of ground follow their neighbours, slopes the shapes
 ## beside them), one for a cell up in the air (leaves and logs of a crown): its faces
-## and the edges and tops beside it.
+## and the edges and tops beside it. But a column that lost its last leaf (a felled
+## crown) or got its first one changes the plants of the woods WOODS_EDGE columns round
+## it (Grass._near_crown), also in the chunk beside: Foliage.part_columns takes them
+## from a rect that reaches into the chunk.
 static func reach(w, cell: Vector3i) -> int:
 	for dy in range(-1, 2):
 		for dz in range(-1, 2):
@@ -575,6 +579,8 @@ static func reach(w, cell: Vector3i) -> int:
 				var m: int = w.get_cell(cell.x + dx, cell.y + dy, cell.z + dz)
 				if m != AIR and m != WATER and m != LEAVES and m != Mat.LOG:
 					return 3
+	if (w.leaf_col(cell.x, cell.z) & ~(1 << cell.y)) == 0:
+		return Grass.WOODS_EDGE
 	return 1
 
 

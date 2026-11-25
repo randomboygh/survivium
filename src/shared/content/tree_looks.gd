@@ -14,7 +14,9 @@ const VARIANTS := 2
 
 
 ## The looks of species record `s`, from its `picture` file (a path in its bundle): a
-## Dictionary {leaves: [Color], bark: [Color], looks: [look], frames, bare (paths)}, each
+## Dictionary {since, leaves: [Color], bark: [Color], looks: [look], frames, bare (paths)},
+## `since` the trees' looks (WorldCells.TREE_LOOKS) its pictures came with, 1 unless the
+## file says (a chunk saved at an earlier one grows the species' trees again), each
 ## look {size, variant, x, y, w, h, ax, ay, trunk, crown: [x0, z0, nx, ny, nz],
 ## cells: PackedByteArray of nx * ny * nz bits, x fastest, then y, then z}; empty when it
 ## has none or it cannot be read.
@@ -28,7 +30,7 @@ static func read(s: Dictionary) -> Dictionary:
 	if yaml.error != "" or not data is Dictionary or not data.get("looks") is Array:
 		push_warning("tree pictures: cannot read %s %s" % [path, yaml.error])
 		return {}
-	var out := {"leaves": [], "bark": [], "looks": [],
+	var out := {"since": int(data.get("since", 1)), "leaves": [], "bark": [], "looks": [],
 		"frames": path.get_base_dir().path_join("frames.png"), "bare": path.get_base_dir().path_join("bare.png")}
 	for c in data.get("leaves", []):
 		out.leaves.append(Color(str(c)))

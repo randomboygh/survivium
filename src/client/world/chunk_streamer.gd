@@ -1313,8 +1313,8 @@ func on_cell_changed(cell: Vector3i) -> void:
 	# rebuilt yet (the other columns of a felled tree), the neighbours after (see
 	# run_jobs): a tree near a chunk's corner goes as soon as its own chunks are drawn,
 	# not after the three around too.
-	# A cell up in the air (a crown's) changes only the columns beside it
-	# (ChunkMesher.reach).
+	# A cell up in the air (a crown's) changes only the columns beside it, unless its
+	# column lost its last leaf or got its first (ChunkMesher.reach).
 	var home := WorldData.chunk_key(cell.x, cell.z)
 	var r := ChunkMesher.reach(world, cell)
 	var keys := {}

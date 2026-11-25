@@ -110,9 +110,10 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   crown points where the look's crown cells are (`_offsets`, kept in the look; a crown too small for the lattice
   gets one point over the trunk). `standing_look` tells a standing tree from a young one (its sapling's record)
   and from a stump by the trunk's height and the leaves over its top round the crown points nearest the trunk
-  (`_probes`): a stump cut as high as a smaller look's trunk lost them to Felling. A saved chunk packed before (`WorldCells.TREE_LOOKS`, «looks» in `pack_chunk`) grows
-  its old trees of such species again as their looks in its last restore steps (`Growth.outgrown` / `regrow`,
-  `WorldGen.Job.regrow`); stumps and young trees stay.
+  (`_probes`): a stump cut as high as a smaller look's trunk lost them to Felling. A saved chunk packed at earlier trees' looks (`WorldCells.TREE_LOOKS`, «looks» in
+  `pack_chunk`) grows its old trees of the species drawn as pictures since (TreeLooks `since`, 1 unless look.yaml
+  says) again as their looks in its last restore steps (`Growth.outgrown` / `regrow`, `WorldGen.Job.regrow`); stumps
+  and young trees stay. Not by `standing_look`: an old tree's trunk may be as high as a look's, its crown over it.
 - `src/shared/world/test_ground.gd` — the test world, two of them (the world setting `slopes` 0 and 1, folders `test` and `test-o1`), listed last on «Load a world» in the developer mode (`WorldList.test_worlds`): sites of relief,
   biomes, plants (a garden — pens of trees of 15 cells, east of it fields of ears), «Camp», «Star cave»
   (`TestGround.STAR_*`), a two-storey brick «House» (`HOUSE_*`: walls and floors — cells from `extras`, the

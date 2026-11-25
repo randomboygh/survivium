@@ -5,9 +5,9 @@
 leaves: ["#451b1c", "#6e2428", "#92322c", "#b1553d", "#c27044", "#d78a4b", "#e8a152"]
 bark: ["#1b130f", "#3d2a1e", "#62452f", "#946b4b"]
 looks:
-  - {size: 0.42, variant: 0, x: 0, y: 0, w: 70, h: 69, ax: 34, ay: 67, trunk: 5, crown: [-1, -2, 3, 6, 5, "AAABAAQAAAAcAHAA"]}
+  - {size: 0.42, variant: 0, x: 0, y: 0, w: 70, h: 69, ax: 34, ay: 67, trunk: 4, crown: [-1, -2, 3, 6, 5, "AAABAAQAAAAcAHAA"]}
   - {size: 0.42, variant: 1, x: 0, y: 69, w: 70, h: 66, ax: 34, ay: 64, trunk: 5, crown: [-2, -2, 5, 6, 5, "AAAACAAAAAIAAIABAMBmAACwAQ=="]}
-  - {size: 0.68, variant: 0, x: 0, y: 135, w: 91, h: 91, ax: 46, ay: 89, trunk: 7, crown: [-3, -3, 7, 9, 7, "AAAAAAAAMAAAAAAAAA4cDAAAAAAAZwEGAAAAAICzCAMAAAAAAB0AAAAAAADAAwAAAAAAAEAAAAA="]}
-  - {size: 0.68, variant: 1, x: 0, y: 226, w: 87, h: 89, ax: 43, ay: 87, trunk: 7, crown: [-3, -4, 7, 9, 8, "AAAAAAAgAAAAAAAAADgIAAAAAAAAfgAAAAAAAIC7CAAAAAAAwB2AAQAAAADADsAAAAAAAGAHAAAAAAAAMAEA"]}
-  - {size: 1.00, variant: 0, x: 0, y: 315, w: 107, h: 116, ax: 54, ay: 112, trunk: 8, crown: [-4, -5, 9, 12, 10, "AAAAAAAAAAAAMAAAAAAAAAAAAAAAAIADBgAAAAAAAAAAAAAAfnAAAAAAAAAAAAAAAPDfFx4AAAAAAAAAAAAA343jAQEAAAAAAAAAAPDcMB4AAAAAAAAAAABwygHAAQAAAAAAAAAAgMcHAAAAAAAAAAAAAAA4bAAAAAAAAAAAAAAAAEMAAAAA"]}
-  - {size: 1.00, variant: 1, x: 0, y: 431, w: 106, h: 110, ax: 53, ay: 106, trunk: 9, crown: [-4, -5, 9, 11, 9, "AAAAAAAAAAAAEAAAAAAAAAAAAAAAwAEBAAAAAAAAAAAAAD4cAAAAAAAAAAAAAP4bAwAAAAAAAAAAAPDeOB4AAAAAAAAAAID3xvAAAAAAAAAAAAAYA4AHAAAAAAAAAADAPQAIAAAAAAAAAAAA7gAAAA=="]}
+  - {size: 0.68, variant: 0, x: 0, y: 135, w: 91, h: 82, ax: 46, ay: 80, trunk: 5, crown: [-3, -4, 7, 8, 8, "AAAAAEAAAAAAAADgIAAAAAAA+OAAAAAAAHjjMAAAAAA44zAAAACAI0MAAAAAgCMAAAAAAAADAAA="]}
+  - {size: 0.68, variant: 1, x: 0, y: 217, w: 87, h: 80, ax: 43, ay: 78, trunk: 6, crown: [-3, -4, 7, 8, 7, "AAAAAEAAAAAAAADgAAAAAAAA8AMAAAAAALhzAAAAAAC4czAAAAAAoGEAAAAAALADAA=="]}
+  - {size: 1.00, variant: 0, x: 0, y: 297, w: 107, h: 100, ax: 54, ay: 96, trunk: 6, crown: [-4, -5, 9, 10, 10, "AAAAAAAAAAwAAAAAAAAAAAAAOGAAAAAAAAAAAAD4wQEAAAAAAAAAAPDfFx4AAAAAAAAAwHfDeEAAAAAAAAAAzw3hAQAAAAAAAPgJBwAHAAAAAAAA8McEAAAAAAAAAADADwMAAAAAAAAAAAA+AAAAAAA="]}
+  - {size: 1.00, variant: 1, x: 0, y: 397, w: 106, h: 94, ax: 53, ay: 90, trunk: 7, crown: [-4, -5, 9, 9, 9, "AAAAAAAAAAQAAAAAAAAAAAAcEAAAAAAAAAAA+CAAAAAAAAAAAP4bAwAAAAAAAAC8N4YHAAAAAAAAeG8MDwAAAAAAAEAMAB4AAAAAAADAPQAAAAAAAAAAgDsAAAA="]}

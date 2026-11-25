@@ -5,9 +5,9 @@
 leaves: ["#112626", "#1d3b37", "#3c5b3b", "#4f7450", "#6e9a6b", "#a6cf72", "#d1fc82"]
 bark: ["#1d1a1a", "#48413a", "#716759", "#a89f8c"]
 looks:
-  - {size: 0.42, variant: 0, x: 0, y: 0, w: 59, h: 88, ax: 29, ay: 86, trunk: 6, crown: [-2, -2, 5, 9, 5, "AAAAAAMAAACA8w4AAADw3zMAAADuOwAAAAAYAAA="]}
-  - {size: 0.42, variant: 1, x: 0, y: 88, w: 61, h: 86, ax: 29, ay: 84, trunk: 6, crown: [-2, -2, 5, 9, 5, "AAAAAAMAAACA8w4AAADw3zMAAADOOwAAAIA4AgA="]}
-  - {size: 0.68, variant: 0, x: 0, y: 174, w: 77, h: 114, ax: 38, ay: 112, trunk: 8, crown: [-3, -3, 7, 12, 7, "AAAAAAAAABgAAAAAAAAAAIDj8/EAAAAAAAAAfH6fjwMAAAAAAMD39/s4AAAAAAAAfH+/jwMAAAAAAIDj83kAAAAAAAAAAAQCAAA="]}
-  - {size: 0.68, variant: 1, x: 0, y: 288, w: 75, h: 115, ax: 37, ay: 113, trunk: 8, crown: [-3, -3, 7, 12, 7, "AAAAAAAAABgAAAAAAAAAAADD43EAAAAAAAAAfH6fjwMAAAAAAMD3//s4AAAAAAAAfD6fDwMAAAAAAIDj43EAAAAAAAAAABwOAAA="]}
-  - {size: 1.00, variant: 0, x: 0, y: 403, w: 93, h: 144, ax: 46, ay: 140, trunk: 10, crown: [-4, -3, 9, 16, 8, "AAAAAAAAAAAAAADw4ccHDwAAAAAAAAAAAAAAAPD48+ePDx4AAAAAAAAAAAAAAPj48+fPHx8AAAAAAAAAAAAAAPj4/+/PHx8IAAAAAAAAAAAAAPj4/+/PHx8AAAAAAAAAAAAAAPj48+fPHw8AAAAAAAAAAAAAAAD48eOHAwAAAAAAAAAAAAAAAAAgYAAAAAAA"]}
-  - {size: 1.00, variant: 1, x: 0, y: 547, w: 92, h: 145, ax: 45, ay: 141, trunk: 10, crown: [-4, -3, 9, 15, 8, "AAAAAAAAAAAAAADgwYMHBgAAAAAAAAAAAAAAOPz588cHBwAAAAAAAAAAAAA+/vz588cHAAAAAAAAAAAAAJ////354wMAAAAAAAAAAACAjz9//vzxAQAAAAAAAAAAAIDDnz8+fHAAAAAAAAAAAAAAgMCHDx8cAAAAAAAAAAAAAAAAwIEDBwAA"]}
+  - {size: 0.42, variant: 0, x: 0, y: 0, w: 59, h: 74, ax: 29, ay: 72, trunk: 4, crown: [-2, -2, 5, 7, 5, "AADAEAAAgO8ZAIB97wAA5HsHAADGAA=="]}
+  - {size: 0.42, variant: 1, x: 0, y: 74, w: 61, h: 73, ax: 29, ay: 71, trunk: 4, crown: [-2, -2, 5, 7, 5, "AADACAAAAO8YAID97wAAxDsCAACOAA=="]}
+  - {size: 0.68, variant: 0, x: 0, y: 147, w: 77, h: 92, ax: 38, ay: 90, trunk: 5, crown: [-3, -3, 7, 9, 7, "AAAAAMAAAAAAAAAA+Hw8AAAAAHD8Ph8HAAAAeH+/jwcAAAC8v9/HAQAAAIbP5wMAAAAAgEAAAAA="]}
+  - {size: 0.68, variant: 1, x: 0, y: 239, w: 75, h: 92, ax: 37, ay: 90, trunk: 5, crown: [-3, -3, 7, 9, 7, "AAAAAMAAAAAAAABA8HgcAAAAAHD8Ph8HAAAAfP+/jwMAAAAcn8/HAQAAAIzPx0EAAAAAgMMBAAA="]}
+  - {size: 1.00, variant: 0, x: 0, y: 331, w: 93, h: 116, ax: 46, ay: 112, trunk: 6, crown: [-4, -3, 9, 12, 8, "AAAAAAAAAB9+fPgAAAAAAAAAAAD48+fPHx8AAAAAAAAAgD9//vzxwQEAAAAAACD4++/PHz88AAAAAAAAgL///v3xwwEAAAAAAAD48+fPHx8AAAAAAAAAAA8/fnggAAAAAAAAAAAAYAAAAAAA"]}
+  - {size: 1.00, variant: 1, x: 0, y: 447, w: 92, h: 117, ax: 45, ay: 113, trunk: 6, crown: [-4, -3, 9, 12, 8, "AAAAAAAAAA4+ePAAAAAAAAAAAADw8eePHx4AAAAAAAAAgL///vzxwQEAAAAAACD4+//fnz8cAAAAAAAAgD9//vzxwQEAAAAAAADw8eePDw4AAAAAAAAAAB8+fHDAAAAAAAAAAABAwIEDAgAA"]}

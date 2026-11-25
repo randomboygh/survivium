@@ -284,7 +284,7 @@ func start(key: Vector2i, stage: int) -> Job:
 				# again, a row a step.
 				job.rows += CHUNK
 			if int(d.get("looks", 0)) < world.TREE_LOOKS:
-				job.regrow = Growth.outgrown(d.get("trees", []))
+				job.regrow = Growth.outgrown(d.get("trees", []), int(d.get("looks", 0)))
 				job.rows += job.regrow.size()
 			return job
 		push_error("saved chunk %s is broken or of another world: made anew" % key)

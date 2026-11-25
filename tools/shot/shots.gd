@@ -1624,9 +1624,10 @@ const SHOTS := {
 
 
 ## A shot of a species drawn as pictures (places.pictured) named
-## `pics-<tree>[-v<variant>][-t<its own turn>][-c<camera turn>][-h<time x 100>][-s<season>]`,
-## on bare ground, the grass hidden, no interface: `pics-oak-t2-h30` is the oaks' side 2
-## by the morning sun. {} for another name.
+## `pics-<tree>[-v<variant>][-t<its own turn>][-c<camera turn>][-h<time x 100>][-s<season>]
+## [-f<autumn's leaf fall x 100>]`, on bare ground, the grass hidden, no interface:
+## `pics-oak-t2-h30` is the oaks' side 2 by the morning sun, `pics-maple-s2-f60` the maples
+## late in autumn. {} for another name.
 static func pictured(name: String) -> Dictionary:
 	if not name.begins_with("pics-"):
 		return {}
@@ -1646,4 +1647,6 @@ static func pictured(name: String) -> Dictionary:
 				shot.time = n / 100.0
 			"s":
 				shot.season = n
+			"f":
+				shot.leaf_fall = n / 100.0
 	return shot

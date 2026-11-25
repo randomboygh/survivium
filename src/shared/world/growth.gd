@@ -199,13 +199,15 @@ static func standing_look(w, col: Vector2i, foot: Array = []) -> int:
 	return -1
 
 
-## Of a saved chunk's trees ([column, species], WorldCells.pack_chunk) those of species
-## drawn as pictures, which may have grown before they were (see regrow).
-static func outgrown(trees: Array) -> Array:
+## Of the trees ([column, species], WorldCells.pack_chunk) of a chunk saved at trees' looks
+## `looks` (WorldCells.TREE_LOOKS) those of species drawn as pictures since later looks
+## (TreeLooks `since`): they grew before their species was drawn so (see regrow).
+static func outgrown(trees: Array, looks: int) -> Array:
 	var out := []
 	for t in trees:
 		if t is Array and t.size() == 2 and t[0] is Vector2i and t[1] is int \
-				and t[1] >= 0 and t[1] < Trees.SPECIES.size() and not Trees.SPECIES[t[1]].pictures.is_empty():
+				and t[1] >= 0 and t[1] < Trees.SPECIES.size() and not Trees.SPECIES[t[1]].pictures.is_empty() \
+				and int(Trees.SPECIES[t[1]].pictures.since) > looks:
 			out.append(t)
 	return out
 
@@ -213,11 +215,13 @@ static func outgrown(trees: Array) -> Array:
 ## Grows again, as it grows now, a standing tree of a species drawn as pictures in column
 ## `col` that grew before its species was (its trunk and crown of the old shapes, in a
 ## world `size_y` high): takes away its trunk and the leaves nearer it than any other
-## trunk, grows its trunk and gives the points of its crown for `fill`. Leaves a tree
-## already of its look, a stump, a young tree and a column of another species alone.
+## trunk, grows its trunk and gives the points of its crown for `fill`. Leaves a stump, a
+## young tree and a column of another species alone. Only for the trees `outgrown` gives:
+## an old tree's trunk may be as high as a look's, with its crown over it, so standing_look
+## cannot tell it from a tree grown as its look, which this would grow again.
 static func regrow(w, col: Vector2i, species: int, size_y: int) -> Array[Vector3i]:
 	var none: Array[Vector3i] = []
-	if w.trees.get(col, -1) != species or Trees.SPECIES[species].pictures.is_empty() or standing_look(w, col) >= 0:
+	if w.trees.get(col, -1) != species or Trees.SPECIES[species].pictures.is_empty():
 		return none
 	var bits: int = w.log_col(col.x, col.y)
 	if bits == 0:
