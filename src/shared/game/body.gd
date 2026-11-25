@@ -12,6 +12,7 @@ extends RefCounted
 
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
+const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 
@@ -209,6 +210,12 @@ var _col := Vector2i(1 << 30, 0)
 var _in_plant := Vector3.INF
 ## The posts of the plants that stop a body near it (_find_posts), in cells, their ids,
 ## the cell they were found round and the steps since.
+## Which way the screen's up lies in the world (x, z) for the one who sees this body move
+## (the client's camera, PixelView.up), ZERO where none looks (the server): a trunk drawn
+## as pictures holds the body off an oval across the view (_trunk_touched).
+var view_up := Vector2.ZERO
+## Where the step being taken began (cells), INF out of a step.
+var _from := Vector3.INF
 var _posts: Array[AABB] = []
 var _post_ids: Array[String] = []
 var _posts_at := Vector3i(1 << 30, 0, 0)
@@ -252,6 +259,13 @@ func step(at: Vector3, delta: float, jump: bool) -> Vector3:
 
 func _step(at: Vector3, delta: float, jump: bool) -> Vector3:
 	var p := at / CELL
+	_from = p
+	var out := _step_cells(at, p, delta, jump)
+	_from = Vector3.INF
+	return out
+
+
+func _step_cells(at: Vector3, p: Vector3, delta: float, jump: bool) -> Vector3:
 	afloat = vessel > 0.0 and floats(at)
 	if afloat:
 		return _sail(p, delta) * CELL
@@ -784,10 +798,47 @@ func _collides(p: Vector3) -> bool:
 				# lie below the cell where the slope goes on down.
 				if p.y + 0.001 < y + _cell_top(x, y, z, p):
 					return true
+	if TreeLooks.hold_most > 0.0 and not world.trees.is_empty() and _trunk_touched(p):
+		return true
 	if _posts.is_empty():
 		return false
 	var plant := _post_touched(p, 0.0)
 	return not plant.is_empty() and plant[1] != _in_plant
+
+
+## Whether the middle of the feet at `p` (cells) is in the oval a pictured tree's trunk
+## holds a body off (WorldData.trunk_hold, across and along view_up; the narrow way all
+## round without a view), at a level of the body's the trunk's cells are at: the trunk as
+## it is drawn, not the cells it takes. A body in an oval already (the camera turned the
+## oval onto it) is only kept from going deeper in.
+func _trunk_touched(p: Vector3) -> bool:
+	var r := TreeLooks.hold_most
+	var lo := maxi(0, floori(p.y + 0.001))
+	var hi := mini(world.size_y - 1, floori(p.y + HEIGHT))
+	if hi < lo:
+		return false
+	var levels: int = (-1 << lo) & ~(-2 << hi)
+	for z in range(floori(p.z - r - 0.5), floori(p.z + r - 0.5) + 1):
+		for x in range(floori(p.x - r - 0.5), floori(p.x + r - 0.5) + 1):
+			if world.log_col(x, z) & levels == 0:
+				continue
+			var hold: Vector2 = world.trunk_hold(Vector2i(x, z))
+			if hold == Vector2.ZERO:
+				continue
+			var depth := _in_oval(Vector2(p.x - x - 0.5, p.z - z - 0.5), hold)
+			if depth < 1.0 and (not _from.is_finite() or depth < _in_oval(Vector2(_from.x - x - 0.5, _from.z - z - 0.5), hold) - 0.0001):
+				return true
+	return false
+
+
+## How far in the oval `hold` (TreeLooks.hold_of) offset `d` from its middle lies: under
+## 1 inside, 0 at the middle.
+func _in_oval(d: Vector2, hold: Vector2) -> float:
+	if view_up == Vector2.ZERO:
+		return d.length_squared() / (hold.y * hold.y)
+	var across := d.dot(Vector2(-view_up.y, view_up.x)) / hold.x
+	var along := d.dot(view_up) / hold.y
+	return across * across + along * along
 
 
 ## The plant that stops a body (Grass.solid_plant: a cactus) the body with its feet at

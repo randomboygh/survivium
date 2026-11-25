@@ -39,6 +39,8 @@ const TEST_SAVES := "user://shot_ground"
 const WORLD_SAVES := "user://shot_world"
 
 var main: Node
+## What stops a body, drawn for the shot (`collide`, _draw_collision).
+var _collision: MeshInstance3D
 var out_dir := "user://shots"
 var names: Array = []
 var phone := false
@@ -294,6 +296,13 @@ func _run() -> void:
 			# North-west of the spawn, away from the others.
 			main.player.position = places.pictured(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 10),
 				shot.pictured, shot.get("variant", -1), shot.get("own_turn", -1))
+			if shot.has("approach"):
+				# Three cells off the thick trunk that way, walking up to it until it stops them.
+				var a: float = shot.approach * PI / 4.0
+				var foot: Vector3 = main.player.position - Vector3(0.0, 0.0, 5.0 * CELL)
+				main.player.position = foot + Vector3(sin(a), 0.0, cos(a)) * 3.0 * CELL
+				shot.walk_into = [-sin(a), -cos(a)]
+				shot.facing = ["n", "nw", "w", "sw", "s", "se", "e", "ne"][posmod(shot.approach, 8)]
 		if shot.has("specimen"):
 			# West of the spawn, away from the grove, the orchard and the clearing.
 			places.specimen(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 0), shot.specimen)
@@ -350,11 +359,17 @@ func _run() -> void:
 		if shot.has("walk_into"):
 			# The player walks into what stands that way (x east, y south) until it stops them.
 			var body = main.player.body
+			# As the camera the shot turns to sees it (Body.view_up).
+			var t: float = shot.get("turn", 0) * main.view.TURN_STEP
+			if "view_up" in body:
+				body.view_up = Vector2(-sin(t), -cos(t))
 			body.move_input = Vector2(shot.walk_into[0], shot.walk_into[1])
 			for i in 90:
 				main.player.position = body.step(main.player.position, 1.0 / 60.0, false)
 			body.move_input = Vector2.ZERO
 			main.player.facing = shot.get("facing", "s")
+		if shot.get("collide", false):
+			_draw_collision()
 		if shot.get("face_water", false):
 			# Thirsty and turned to the water beside: the action button says «Попить».
 			main.host.player.vitals.water = 20.0
@@ -2071,6 +2086,88 @@ func _work() -> void:
 
 ## On the felled clearing: berry bushes by the player, the things lying nearest picked
 ## up, a bush picked, some blocks dug, and the character a little tired and hungry.
+## Draws what stops a body round the player on the ground over everything (`collide`): the
+## parts of cells at the feet's level that stop a body red (a texel of the pictures each),
+## the player's body (Body.HALF_WIDTH, HALF_DEPTH) blue.
+func _draw_collision() -> void:
+	if is_instance_valid(_collision):
+		_collision.queue_free()
+	var w = main.world
+	var body = main.player.body
+	var p: Vector3 = main.player.position / CELL
+	var y := floori(p.y + 0.001)
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var n := 8
+	var lift := y * CELL + 0.03
+	for z in range(floori(p.z) - 40, floori(p.z) + 8):
+		for x in range(floori(p.x) - 6, floori(p.x) + 7):
+			for j in n:
+				for i in n:
+					var u := float(i) / n
+					var v := float(j) / n
+					if not _stops(w, x, y, z, i, j, n):
+						continue
+					# Only the edge of what stops: the drawing shows through.
+					if _stops(w, x, y, z, i - 1, j, n) and _stops(w, x, y, z, i + 1, j, n) \
+							and _stops(w, x, y, z, i, j - 1, n) and _stops(w, x, y, z, i, j + 1, n):
+						continue
+					var o := Vector3(x + u, 0.0, z + v) * CELL + Vector3(0.0, lift, 0.0)
+					_quad(st, o, CELL / n, CELL / n, Color(1.0, 0.1, 0.1, 0.9))
+	# The trunks drawn as pictures hold the middle of the feet off an oval round their axis
+	# (WorldData.trunk_hold, Body._trunk_touched).
+	for z in range(floori(p.z) - 40, floori(p.z) + 8):
+		for x in range(floori(p.x) - 6, floori(p.x) + 7):
+			var hold: Vector2 = w.trunk_hold(Vector2i(x, z)) if w.has_method("trunk_hold") else Vector2.ZERO
+			if hold == Vector2.ZERO:
+				continue
+			var up: Vector2 = body.view_up if body.view_up != Vector2.ZERO else Vector2(0.0, -1.0)
+			var right := Vector2(-up.y, up.x)
+			var steps := maxi(16, ceili(hold.x * TAU * 8.0))
+			for k in steps:
+				var a := TAU * k / steps
+				var d := right * cos(a) * hold.x + up * sin(a) * hold.y
+				var o := Vector3(x + 0.5 + d.x - 0.5 / n, 0.0, z + 0.5 + d.y - 0.5 / n) * CELL
+				_quad(st, o + Vector3(0.0, lift, 0.0), CELL / n, CELL / n, Color(1.0, 0.1, 0.1, 0.9))
+	# The middle of the feet.
+	_quad(st, Vector3(main.player.position.x - 0.5 * CELL / n, lift + 0.01, main.player.position.z - 0.5 * CELL / n),
+		CELL / n, CELL / n, Color(0.2, 0.5, 1.0, 1.0))
+	var hw: float = body.HALF_WIDTH * CELL
+	var hd: float = body.HALF_DEPTH * CELL
+	var c := Vector3(main.player.position.x, lift + 0.01, main.player.position.z)
+	var t := CELL / 8.0
+	_quad(st, c + Vector3(-hw, 0, -hd), 2.0 * hw, t, Color(0.2, 0.5, 1.0, 0.9))
+	_quad(st, c + Vector3(-hw, 0, hd - t), 2.0 * hw, t, Color(0.2, 0.5, 1.0, 0.9))
+	_quad(st, c + Vector3(-hw, 0, -hd), t, 2.0 * hd, Color(0.2, 0.5, 1.0, 0.9))
+	_quad(st, c + Vector3(hw - t, 0, -hd), t, 2.0 * hd, Color(0.2, 0.5, 1.0, 0.9))
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	# The cursor's shader: sheared as the world is, over everything, its colours from the vertices.
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://shaders/cursor.gdshader")
+	mat.render_priority = 100
+	mi.material_override = mat
+	# Sheared in the shader: never culled where its box is not.
+	mi.extra_cull_margin = 16384.0
+	main.world_root.add_child(mi)
+	_collision = mi
+
+
+## Whether texel i, j (of n a cell's side, may lie in the cells beside) of cell x, y, z stops a body.
+func _stops(w, x: int, y: int, z: int, i: int, j: int, n: int) -> bool:
+	x += floori(float(i) / n)
+	z += floori(float(j) / n)
+	var u := float(posmod(i, n)) / n
+	var v := float(posmod(j, n)) / n
+	return w.blocks_part(x, y, z, u + 0.01, u + 1.0 / n - 0.01, v + 0.01, v + 1.0 / n - 0.01)
+
+
+func _quad(st: SurfaceTool, o: Vector3, sx: float, sz: float, c: Color) -> void:
+	st.set_color(c)
+	for q: Vector3 in [o, o + Vector3(sx, 0, 0), o + Vector3(0, 0, sz), o + Vector3(sx, 0, 0), o + Vector3(sx, 0, sz), o + Vector3(0, 0, sz)]:
+		st.add_vertex(q)
+
+
 func _gather() -> void:
 	var w = main.world
 	var at := Vector3i((main.player.position / CELL).floor())

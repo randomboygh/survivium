@@ -11,6 +11,7 @@ func run() -> void:
 	_test_steps()
 	_test_long_step()
 	_test_wide_trunk()
+	_test_pictured_trunk()
 	_test_cactus()
 	_test_ground()
 	_test_people()
@@ -458,6 +459,65 @@ func _test_wide_trunk() -> void:
 	_check(body.blocked(corner), "a body cannot stand inside a thick trunk across its corner")
 	_check(not body.blocked(Vector3(col.x - 1.5, 2.0, col.y - 1.5) * WorldData.CELL),
 		"a body stands two cells off a thick trunk")
+
+
+## The trunk of a tree drawn as pictures holds a body off as it is drawn (TreeLooks.hold_of):
+## an oval across the view, as wide as the bark beside it and as deep as its foot in front
+## and behind; its cells stop nothing; without a view (the server) the oval's narrow way all
+## round; a body the camera's turn put in the oval walks out of it.
+func _test_pictured_trunk() -> void:
+	var species := -1
+	var look := -1
+	for i in Trees.SPECIES.size():
+		var s: Dictionary = Trees.SPECIES[i]
+		if s.pictures.is_empty():
+			continue
+		for j in s.pictures.looks.size():
+			if look < 0 or s.pictures.looks[j].hold.x > Trees.SPECIES[species].pictures.looks[look].hold.x:
+				species = i
+				look = j
+	if species < 0:
+		_check(false, "a tree species drawn as pictures")
+		return
+	var s: Dictionary = Trees.SPECIES[species]
+	var col := Vector2i(31, 31)
+	while Growth.look_index(s, col, 1.0) != look:
+		col.x += 2
+	var w := WorldData.new(48, Vector2i(col.x + 32, 64))
+	for z in range(col.y - 14, col.y + 15):
+		for x in range(col.x - 14, col.x + 15):
+			w.set_cell(x, 0, z, Mat.STONE)
+	Growth.place(w, col.x, 1, col.y, species, null, 1.0)
+	var hold: Vector2 = w.trunk_hold(col)
+	_check(hold == s.pictures.looks[look].hold and hold.x > hold.y, "a standing pictured tree holds a body off its look's oval: %s" % hold)
+	var cell := WorldData.CELL
+	var axis := Vector3(col.x + 0.5, 1.0, col.y + 0.5)
+	var body := Body.new()
+	body.world = w
+	body.view_up = Vector2(0.0, -1.0)
+	_check(not body.blocked((axis + Vector3(0.0, 0.0, hold.y * 1.05)) * cell), "feet come up to the trunk's foot in front, its cell stops nothing")
+	_check(body.blocked((axis + Vector3(0.0, 0.0, hold.y * 0.9)) * cell), "feet do not go into the foot in front")
+	_check(not body.blocked((axis + Vector3(0.0, 0.0, -hold.y * 1.05)) * cell), "nor behind it further than its front")
+	_check(body.blocked((axis + Vector3(hold.x * 0.9, 0.0, 0.0)) * cell), "beside the trunk feet keep off its bark")
+	_check(not body.blocked((axis + Vector3(hold.x * 1.05, 0.0, 0.0)) * cell), "beside the trunk feet come up to its bark")
+	body.view_up = Vector2(-1.0, 0.0)
+	_check(not body.blocked((axis + Vector3(hold.y * 1.05, 0.0, 0.0)) * cell), "the oval turns with the view")
+	body.view_up = Vector2.ZERO
+	var r := minf(hold.x, hold.y)
+	_check(body.blocked((axis + Vector3(r * 0.9, 0.0, 0.0)) * cell) and not body.blocked((axis + Vector3(0.0, 0.0, r * 1.05)) * cell),
+		"without a view a body is held off the oval's narrow way all round")
+	# The camera turned: a body in front of the trunk is beside it now, in its oval.
+	body.view_up = Vector2(-1.0, 0.0)
+	body.on_ground = true
+	var at := (axis + Vector3(0.0, 0.0, hold.y * 1.05)) * cell
+	body.move_input = Vector2(0.0, -1.0)
+	var deeper := body.step(at, 1.0 / 60.0, false)
+	_check(deeper.z >= at.z - 0.0001, "a body in the oval does not go deeper in")
+	body.move_input = Vector2(0.0, 1.0)
+	var out := at
+	for i in 30:
+		out = body.step(out, 1.0 / 60.0, false)
+	_check(out.z > at.z + 0.5 * cell, "a body in the oval walks out of it")
 
 
 ## A cactus (a plant with `solid` and `pricks`) on the desert's sand stops a body round
