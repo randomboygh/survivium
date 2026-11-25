@@ -1628,9 +1628,10 @@ const SHOTS := {
 
 ## A shot of a species drawn as pictures (places.pictured) named
 ## `pics-<tree>[-v<variant>][-t<its own turn>][-c<camera turn>][-h<time x 100>][-s<season>]
-## [-f<autumn's leaf fall x 100>]`, on bare ground, the grass hidden, no interface:
-## `pics-oak-t2-h30` is the oaks' side 2 by the morning sun, `pics-maple-s2-f60` the maples
-## late in autumn. {} for another name.
+## [-f<autumn's leaf fall x 100>][-n<cells the player stands further north>]`, on bare ground, the
+## grass hidden, no interface: `pics-oak-t2-h30` is the oaks' side 2 by the morning sun,
+## `pics-maple-s2-f60` the maples late in autumn, `pics-pine-n8` the pines with the thick one's
+## top in a phone's frame. {} for another name.
 static func pictured(name: String) -> Dictionary:
 	if not name.begins_with("pics-"):
 		return {}
@@ -1652,4 +1653,6 @@ static func pictured(name: String) -> Dictionary:
 				shot.season = n
 			"f":
 				shot.leaf_fall = n / 100.0
+			"n":
+				shot.step = Vector3(0.0, 0.0, -0.5 * n)
 	return shot
