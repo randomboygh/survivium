@@ -17,13 +17,14 @@ const Trees := preload("res://src/shared/content/trees.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
 const WorldCells := preload("res://src/shared/world/world_cells.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
+const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 
 const CELL := WorldCells.CELL
 ## The atlas is at most this wide, its places even (the instance data goes as half floats
 ## on some GPUs: whole even numbers up to 4096 come through exactly).
 const ATLAS_W := 4096
 ## Texels of a ramp row: the leaves' 7 steps, then the bark's 4, then the rule its leaves
-## are lit by (TreeLooks.MODULES or FRONDS, in red).
+## are lit by (TreeLooks.MODULES, FRONDS, HANGING or PALMS, in red: a third a rule).
 const RAMP_W := 12
 ## Texels of the pictures a world unit (tree.gdshader's TEXELS).
 const TEXELS := 16.0
@@ -101,7 +102,7 @@ static func setup() -> bool:
 			r.set_pixel(j, k, s.leaves[mini(j, s.leaves.size() - 1)])
 		for j in 4:
 			r.set_pixel(7 + j, k, s.bark[mini(j, s.bark.size() - 1)])
-		r.set_pixel(11, k, Color(float(s.get("rule", 0)), 0.0, 0.0, 1.0))
+		r.set_pixel(11, k, Color(float(s.get("rule", 0)) / 3.0, 0.0, 0.0, 1.0))
 	frames = ImageTexture.create_from_image(a)
 	bare = ImageTexture.create_from_image(b)
 	ramps = ImageTexture.create_from_image(r)
@@ -156,7 +157,16 @@ static func build(w, x0: int, z0: int) -> Array:
 		var place: Vector2i = places[species]
 		buf.append_array([1.0, 0.0, 0.0, p.x, 0.0, 1.0, 0.0, p.y, 0.0, 0.0, 1.0, p.z])
 		buf.append_array([float(look.ax), float(look.ay), float(Growth.turn_of(col) + 8 * ramp_rows[species]),
-			Foliage.year_kind(s, hash(col), species)])
+			_year_kind(s, col, species)])
 		buf.append_array([float(place.x + look.x), float(place.y + look.y), float(look.w), float(look.h)])
 		count += 1
 	return [count, buf]
+
+
+## What the tree on column `col` does over the year (Foliage.year_kind), but a palm drawn
+## so keeps all its leaves (TreeLooks.PALMS: its frames hold the leaves' light where the
+## others keep the bare tree, see tree.gdshader).
+static func _year_kind(s: Dictionary, col: Vector2i, species: int) -> float:
+	if int(s.pictures.get("rule", 0)) == TreeLooks.PALMS and not s.dead:
+		return Foliage.EVERGREEN
+	return Foliage.year_kind(s, hash(col), species)

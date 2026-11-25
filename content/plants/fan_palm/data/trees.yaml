@@ -1,0 +1,22 @@
+# Fan palm: a short stout palm of the oases (and here and there in the jungle) with a round tuft of broad
+# fan leaves on stalks (fields as for the oak, content/plants/oak/data/trees.yaml). Drawn as pictures
+# (picture: the approved drawing from 8 sides, TreeLooks); the shape's fields are the young tree's, drawn
+# in leaf clusters as the palm's. Keeps its leaves; gives logs and twigs, no fruit.
+- id: fan_palm
+  title: "[plants.trees.fan_palm]"
+  shape: palm
+  leaf: pointed
+  leaves: broad
+  trunk: [3, 5]
+  girth: [10, 12]
+  taper: 0.05
+  crook: 1
+  roots: [1, 2]
+  crown: [2, 7, 10]
+  tints: ["#5a8a3d", "#62903f", "#557f3a"]
+  picture: tree/look.yaml
+  bare: 0.0
+  log: resources:log
+  twig: resources:branch
+  hits: 14
+  twigs: 3

@@ -35,8 +35,9 @@ content/plants/
   red_maple/            "Red maple": a maple with a crimson crown all year round (the "Maple wood" biome)
   acacia/               "Acacia": a flat umbrella crown on a thin crooked trunk (the "Savanna" biome)
   palm/, ceiba/,        "Palm" (shape: palm — a tuft of hanging leaves on a tall bare trunk, drops
-  mangrove/             coconuts), "Ceiba" (a jungle giant with buttress roots), "Mangrove" (stilt roots,
-                        the `stilts` field): the tropical zone
+  mangrove/,            coconuts), "Ceiba" (a jungle giant with buttress roots), "Mangrove" (stilt roots,
+  fan_palm/             the `stilts` field), "Fan palm" (a short stout palm with broad fan leaves, no fruit: the
+                        oases and a few in the jungle): the tropical zone
   shrub/, raspberry/,   "Shrub", "Raspberry", "Blueberry", "Currant", "Rosehip", "Banana": a bush (data/bushes.yaml), its
   blueberry/, currant/, berries and a bush for planting; the bush model is shared — common/models/bush.png
   rosehip/, banana/

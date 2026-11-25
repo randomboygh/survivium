@@ -97,7 +97,7 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
 - `src/shared/content/trees.gd`, `bushes.gd` — the registries of species of trees and kinds of shrubs (the
   mods' data). `src/shared/content/tree_looks.gd` — a species drawn as pictures (`picture: tree/look.yaml` in
   its `trees.yaml`, the approved drawings of `survivium-builds/trees-redraw`, made by `integration/pr1/src/`
-  `export_pr1.py` + `pack_pr1.py`, then `python3 tools/tree_feet.py` writes each look's `foot`: the bark's half
+  `export_pr1.py` + `pack_pr1.py` (the conifers `pr2/src/*_pr2.py`, the willow and the palms `pr3/src/*_pr3.py`), then `python3 tools/tree_feet.py` writes each look's `foot`: the bark's half
   width and the foot's front in pixels, what a body is held off by, see character.md): its looks (3 sizes × 2 variants), each with its frames for 8 sides, its
   trunk's height in cells and its crown's cells (`crown_has`, `to_own` for the tree's own turn).
 - `src/shared/world/growth.gd` — how a tree and a shrub grow into the world's cells: the shape of the trunk
@@ -110,11 +110,13 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   `variant_of`, `turn_of` — the tree stands turned in the world), a trunk of logs exactly the look's height and
   crown points where the look's crown cells are (`_offsets`, kept in the look; a crown too small for the lattice
   gets one point over the trunk). A broadleaf look's trunk ends a cell into its crown; a conifer's goes up inside
-  its crown as far as its drawn trunk (as the old conifers' did), so felled it gives logs for all of it. `standing_look` tells a standing tree from a young one (its sapling's record)
+  its crown as far as its drawn trunk (as the old conifers' did), so felled it gives logs for all of it; the
+  willow's up to its dome's rim, its hanging strands' cells beginning two cells over the foot (one walks in under
+  them); a palm's its drawn trunk's height, its crown the cells its leaves pass through. `standing_look` tells a standing tree from a young one (its sapling's record)
   and from a stump by the trunk's height and the leaves over its top round the crown points nearest the trunk
   (`_probes`): a stump cut as high as a smaller look's trunk lost them to Felling. A saved chunk packed at earlier trees' looks (`WorldCells.TREE_LOOKS`, «looks» in
   `pack_chunk`) grows its old trees of the species drawn as pictures since (TreeLooks `since`, 1 unless look.yaml
-  says: the broadleaf trees 1, the conifers 2) again as their looks in its last restore steps (`Growth.outgrown` / `regrow`, `WorldGen.Job.regrow`); stumps
+  says: the broadleaf trees 1, the conifers 2, the willow and the palms 3) again as their looks in its last restore steps (`Growth.outgrown` / `regrow`, `WorldGen.Job.regrow`); stumps
   and young trees stay. Not by `standing_look`: an old tree's trunk may be as high as a look's, its crown over it.
 - `src/shared/world/test_ground.gd` — the test world, two of them (the world setting `slopes` 0 and 1, folders `test` and `test-o1`), listed last on «Load a world» in the developer mode (`WorldList.test_worlds`): sites of relief,
   biomes, plants (a garden — pens of trees of 15 cells, east of it fields of ears), «Camp», «Star cave»
