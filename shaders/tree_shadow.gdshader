@@ -1,11 +1,12 @@
-// The ground shadows of the trees drawn as pictures (TreeSprites): the trees' own instances
-// (the chunk's `trees` MultiMesh, shared) drawn into the sun's and the moon's shadow map
-// only (PixelView.LAYER_SUN_CASTER). Each tree's picture stands at its foot turned across
-// the way its shadow falls, the side of it the light looks at, so the shadow is the tree's
-// own outline: the crown as it is drawn (thinning from its edge in autumn as the picture
-// does), the trunk from the foot, the limbs of a bare or dead tree. The shadow falls where
-// every other one does (PixelView.light_dir: a unit of height to `w` over the ground, the
-// same at every turn of the camera), so it lies still while the camera turns.
+// The shadows of the trees drawn as pictures (TreeSprites), on the ground and on the other
+// trees' bark and leaves: the trees' own instances (the chunk's `trees` MultiMesh, shared)
+// drawn into the sun's and the moon's shadow map only (PixelView.LAYER_SUN_CASTER). Each
+// tree's picture stands at its foot turned across the way its shadow falls, the side of it
+// the light looks at, so the shadow is the tree's own outline: the crown as it is drawn
+// (thinning from its edge in autumn as the picture does), the trunk from the foot, the limbs
+// of a bare or dead tree. The shadow falls where every other one does (PixelView.light_dir:
+// a unit of height to `w` over the ground, the same at every turn of the camera), so it
+// lies still while the camera turns.
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled, unshaded;
 
@@ -14,11 +15,13 @@ render_mode world_vertex_coords, cull_disabled, unshaded;
 uniform sampler2D frames : filter_nearest;
 uniform sampler2D bare_frames : filter_nearest;
 
-// How far the picture sinks along the light's ray (world units of height, at most a share
-// of its own height, so it stays over the ground): its shadow on the ground stays where it
-// is, but the tree's own picture, which stands a little behind it on the side away from the
-// light (the far half of the trunk), no longer takes it. Its shade is drawn in the picture
-// (tree.gdshader takes the sun's shadow on the bark a step darker: twice it would be two).
+// How far the picture sinks along the light's ray (world units of height): its shadow on
+// the ground stays where it is, but the tree's own picture as shown, standing across the
+// camera's way and so partly behind this one on the side away from the light, no longer
+// takes it (its shade is drawn in it: tree.gdshader takes the sun's shadow on the bark and
+// the leaves, and the far half of its crown would be parted from the near one down the
+// trunk). SINK over the farthest the picture shown reaches behind; at most SINK_SHARE of a
+// point's height, so it stays over the ground.
 const float SINK = 0.4;
 const float SINK_SHARE = 0.75;
 
@@ -51,17 +54,24 @@ void vertex() {
 	float side = mod(step_at + own + 16.0, 8.0);
 	cell = vec4(c.x + side * c.z, c.y, c.z, c.w);
 	vec2 across = vec2(-along.y, along.x);
-	// Only the upright part: the rows under the foot's lie on the ground (the roots in front).
+	// The picture shown stands across view_up (tree.gdshader): how far behind this one, in
+	// height along the light, its farthest texel is.
+	float half_w = max(ax + 0.5, c.z - ax - 0.5) / TEXELS;
+	float deep = SINK + half_w * abs(dot(right, along)) / max(length(falls), 0.05);
+	// Only the upright part (the rows under the foot's lie on the ground: the roots in
+	// front), in two: the quad's rows (TreeSprites.quad_mesh) -1, 0, 1 are its foot, its knee,
+	// where the sink reaches `deep` (SINK_SHARE of the height), and its top.
+	float top = ay + 0.5;
+	float rise = q.y < -0.5 ? 0.0 : (q.y < 0.5 ? min(deep / SINK_SHARE * TEXELS, top) : top);
 	float wide = q.x * c.z;
-	float rise = max(q.y, 0.0) * (ay + 0.5);
-	px = vec2(wide, ay + 0.5 - rise);
+	px = vec2(wide, top - rise);
 	float high = rise / TEXELS;
 	vec3 p = foot + vec3(across.x, 0.0, across.y) * ((wide - ax - 0.5) / TEXELS);
 	p.y += high;
 	VERTEX = shear(p);
 	if (IN_SHADOW_PASS) {
 		vec3 to_light = normalize(INV_VIEW_MATRIX[2].xyz);
-		VERTEX -= to_light * (min(SINK, SINK_SHARE * high) / max(to_light.y, 0.05));
+		VERTEX -= to_light * (min(deep, SINK_SHARE * high) / max(to_light.y, 0.05));
 	}
 }
 

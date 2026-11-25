@@ -117,7 +117,8 @@ static func dress(mat: ShaderMaterial) -> void:
 
 ## The quad a picture is drawn on: x across 0..1, y -1 (the lowest row, lying on the
 ## ground toward the camera), 0 (the ground under the trunk) and 1 (the top row);
-## tree.gdshader sizes it to the look's cell.
+## tree.gdshader sizes it to the look's cell. tree_shadow.gdshader stands only the upright
+## part, its rows the foot, a knee and the top.
 static func quad_mesh() -> ArrayMesh:
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
