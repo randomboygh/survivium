@@ -79,7 +79,8 @@ var flips := 0
 var taken := 0
 var clock := 0.0
 ## Each scenario's name, frame times and the budgeted part of each, judged once the
-## idle frame of the finished map is known.
+## idle frame of the finished map is known; which frames came just after a jump while
+## the screen lagged (see _jump_budget).
 var runs: Array = []
 ## The chunk cost measured just before each idle scenario, by its name (see _chunk_cost).
 var unit := {}
@@ -908,11 +909,13 @@ func _run() -> void:
 	for r in runs:
 		if r[0] == IDLE:
 			idle_ms = _mean(r[1])
-	# A chunk on the screen with no ground yet raises the budget (ChunkStreamer.lagging).
+	# A chunk on the screen with no ground yet raises the budget (ChunkStreamer.lagging),
+	# and more so for a few seconds after a jump (see _jump_budget).
 	var step_limit: float = (maxi(ChunkStreamer.EDIT_BUDGET_US, ChunkStreamer.LAG_BUDGET_US) + ChunkStreamer.CAP_BUDGET_US) / 1000.0 + 0.25 * chunk_ms
+	var jump_limit: float = (ChunkStreamer.JUMP_BUDGET_US + ChunkStreamer.CAP_BUDGET_US) / 1000.0 + 0.25 * chunk_ms
 	var free_limit: float = idle_ms + 2.0 + 0.25 * chunk_ms
-	print("a frame may spend %.1f ms in the budgeted loops and %.1f ms outside them (an idle frame is %.1f ms)" % [
-		step_limit, free_limit, idle_ms])
+	print("a frame may spend %.1f ms in the budgeted loops (%.1f just after a jump while the screen lags) and %.1f ms outside them (an idle frame is %.1f ms)" % [
+		step_limit, jump_limit, free_limit, idle_ms])
 	for r in runs:
 		if r[0] == IDLE or r[0] == NIGHT:
 			# At night the fire's light, its sparks and the night sounds come on top of an
@@ -928,25 +931,30 @@ func _run() -> void:
 	for r in runs:
 		var frames: PackedFloat32Array = r[1]
 		var steps: PackedFloat32Array = r[2]
+		var jumped: PackedByteArray = r[5]
 		var worst := 0.0
 		var worst_in := 0.0
 		var worst_free := 0.0
 		var over_step := 0
 		var over_free := 0
+		var after_jump := 0
 		for i in frames.size():
 			worst = maxf(worst, frames[i])
 			worst_in = maxf(worst_in, steps[i])
 			worst_free = maxf(worst_free, frames[i] - steps[i])
-			if steps[i] > step_limit:
+			after_jump += jumped[i]
+			if steps[i] > (jump_limit if jumped[i] == 1 else step_limit):
 				over_step += 1
 			if frames[i] - steps[i] > free_limit:
 				over_free += 1
 				print("%s: frame %d took %.1f ms past the budgets; the game's parts: %s" % [
 					r[0], i, frames[i] - steps[i], r[4].get(i, "?")])
-		print("%s: %d frames, average %.1f ms, worst %.1f ms; worst budgeted %.1f ms (%d over), worst outside %.1f ms (%d over)" % [
-			r[0], frames.size(), _mean(frames), worst, worst_in, over_step, worst_free, over_free])
+		print("%s: %d frames, average %.1f ms, worst %.1f ms; worst budgeted %.1f ms (%d over%s), worst outside %.1f ms (%d over)" % [
+			r[0], frames.size(), _mean(frames), worst, worst_in, over_step,
+			", %d just after a jump" % after_jump if after_jump > 0 else "", worst_free, over_free])
 		var stalls: int = 1 + frames.size() / STALLS_PER_FRAMES + r[3]
-		_check(over_step <= stalls, "%s keeps the budgeted loops under %.1f ms" % [r[0], step_limit])
+		_check(over_step <= stalls, "%s keeps the budgeted loops under %.1f ms%s" % [r[0], step_limit,
+			" (%.1f just after a jump)" % jump_limit if after_jump > 0 else ""])
 		_check(over_free <= stalls, "%s keeps the rest of a frame under %.1f ms" % [r[0], free_limit])
 		if r[0] == LANDING or r[0] == MOWING or r[0] == DIGGING:
 			# Their one-off frames (events) pass the limit, but never by a chunk.
@@ -966,6 +974,7 @@ func _scenario(what: String, frames: int, act: Callable, events := 0) -> void:
 	# message of a frame over the limit (cheap: only those frames).
 	var long := {}
 	var steps := PackedFloat32Array()
+	var jumped := PackedByteArray()
 	clock = 0.0
 	for i in frames:
 		if act.call(i):
@@ -973,11 +982,15 @@ func _scenario(what: String, frames: int, act: Callable, events := 0) -> void:
 		var t := Time.get_ticks_usec()
 		var b: int = main.chunks.budget_us
 		var swept: int = main.hud.swept_us
+		# The session's generation takes its budget by the lag of the frame before
+		# (ChunkStreamer.gen_budgets), the chunk's building by this frame's.
+		var jump_before := _jump_budget()
 		await process_frame
 		clock += root.get_process_delta_time()
 		# Less the test's own search of the screen for untranslated texts (Hud.swept_us).
 		times.append((Time.get_ticks_usec() - t - (main.hud.swept_us - swept)) / 1000.0)
 		steps.append((main.chunks.budget_us - b) / 1000.0)
+		jumped.append(1 if jump_before or _jump_budget() else 0)
 		if times[-1] - steps[-1] > 4.0:
 			long[times.size() - 1] = _parts_text(main.hud.perf._work, 1)
 		if what == IDLE or what == NIGHT:
@@ -987,7 +1000,17 @@ func _scenario(what: String, frames: int, act: Callable, events := 0) -> void:
 			var work: Dictionary = main.hud.perf._work
 			for part: String in work:
 				parts[part] = parts.get(part, 0) + work[part]
-	runs.append([what, times, steps, events, long])
+	runs.append([what, times, steps, events, long, jumped])
+
+
+## Whether the streamer may take JUMP_BUDGET_US of a frame now (ChunkStreamer.lag_budget):
+## the screen lags, or the world is built ahead (focus), within JUMP_SECONDS of a jump.
+## Putting the player back where the chunks were unloaded meanwhile does it ("back to the
+## surface" from a cave more than reach + UNLOAD_EXTRA chunks away: the start's chunks are
+## built again at some 30 frames a second, as after a teleport in the game).
+func _jump_budget() -> bool:
+	var s = main.chunks
+	return (s.lagging or s.focus.is_finite()) and s.lag_budget() == ChunkStreamer.JUMP_BUDGET_US
 
 
 func _on_taken(_id: String, _from: Vector3, _by: Object = null) -> void:

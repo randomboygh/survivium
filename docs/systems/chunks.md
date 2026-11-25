@@ -179,7 +179,7 @@ timings are noisy on a busy machine, before blaming the code run it alone.
 
 **Tests.** `tests/unit/mesher_test.gd` (`mesher`, `cap`, `patch`: trees in a forest, taiga and jungle felled
 one by one, a dug cell — the glue equals a full rebuild), `tests/unit/view_test.gd` (`edge_haze`: the fog is whole
-over a missing chunk at once, dissolves over a built one, and its quad), `tests/frame_test.gd` (the step's limit — with `LAG_BUDGET_US`), `tools/bench_mesh.gd`,
+over a missing chunk at once, dissolves over a built one, and its quad), `tests/frame_test.gd` (the step's limit — with `LAG_BUDGET_US`, and `JUMP_BUDGET_US` for the frames just after a jump while the screen lags), `tools/bench_mesh.gd`,
 `tools/bench_edit.gd`, `tools/bench_turn.gd`, `tools/profile.gd`.
 
 **In more detail.** `plan/architecture/performance.md`, `plan/architecture/rendering.md`.
