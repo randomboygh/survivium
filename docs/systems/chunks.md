@@ -103,7 +103,12 @@ slice, to free the far meshes.
   plant parts), the frame of the side the camera rests at plus the tree's own turn, from one atlas of all
   such species (`setup` at the start; frames RGBA8 hold the leaf's normal, angle and bits or the bark's
   step under 8 suns of the day, the bare tree LA8 for autumn and winter); lit by the sun in the shader as the
-  approved drawing (bundles by normal, leaves by facing). A species' ramp row says the rule its leaves are lit by
+  approved drawing (bundles by normal, leaves by facing), the sun where it stands in the world seen from the side
+  shown (turning the camera turns the lit side; looking toward the sun, the crown is in its shade and the bark is
+  drawn a step darker, `wood_colour`). The bark also takes the sun's shadow (the shadow map, as the ground: other
+  crowns, hills) a bark step darker, never two under its own crown's drawn shade (the bare frame holds the step
+  without it, `in_shade`; `sun_as` gives the sun's pass the colour the shaded step would get); the leaves keep their
+  own light. A species' ramp row says the rule its leaves are lit by
   (`TreeLooks.rule`): the conifers' frames hold fronds instead of bundles (the crown's normal where the frond lies,
   its side axis, its halves, strokes, root third and tip; a pine cap's texels a normal each on the cap's ball),
   lit as the approved conifers (`frond_step`); evergreens take a little of autumn's tint, as their leaf cards do. Autumn takes the leaf bundles from the crown's edge
