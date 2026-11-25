@@ -25,6 +25,8 @@ const ATLAS_W := 4096
 ## Texels of a ramp row: the leaves' 7 steps, then the bark's 4, then the rule its leaves
 ## are lit by (TreeLooks.MODULES or FRONDS, in red).
 const RAMP_W := 12
+## Texels of the pictures a world unit (tree.gdshader's TEXELS).
+const TEXELS := 16.0
 
 ## Species index -> the place of its frames in the atlas (Vector2i), for species drawn so.
 static var places := {}
@@ -35,12 +37,16 @@ static var bare: ImageTexture
 static var ramps: ImageTexture
 ## Species index -> its row in ramps.
 static var ramp_rows := {}
+## How high over its foot the tallest look of the species drawn reaches (world units, at
+## least the 12 of the first pictures): the height of quad_mesh's box.
+static var tallest := 12.0
 
 
 ## Packs the pictured species' frames into the atlases; false when no species has any.
 static func setup() -> bool:
 	places.clear()
 	ramp_rows.clear()
+	tallest = 12.0
 	var pics := []
 	for i in Trees.SPECIES.size():
 		var p: Dictionary = Trees.SPECIES[i].pictures
@@ -54,6 +60,8 @@ static func setup() -> bool:
 		top.convert(Image.FORMAT_RGBA8)
 		under.convert(Image.FORMAT_LA8)
 		pics.append([i, top, under])
+		for look: Dictionary in p.looks:
+			tallest = maxf(tallest, (float(look.ay) + 1.0) / TEXELS)
 	if pics.is_empty():
 		frames = null
 		return false
@@ -122,7 +130,7 @@ static func quad_mesh() -> ArrayMesh:
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	# The picture reaches far past the unit quad (tree.gdshader): a box as big as the
 	# tallest look, so a chunk's trees are culled by what they draw.
-	m.custom_aabb = AABB(Vector3(-6.0, -1.0, -6.0), Vector3(12.0, 13.0, 12.0))
+	m.custom_aabb = AABB(Vector3(-6.0, -1.0, -6.0), Vector3(12.0, tallest + 1.0, 12.0))
 	return m
 
 
