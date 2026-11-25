@@ -13,9 +13,14 @@ const Yaml := preload("res://src/shared/content/yaml.gd")
 const VARIANTS := 2
 
 ## How the leaves in a species' frames are lit (look.yaml `rule`, tree.gdshader): the
-## broadleaf trees' leaf bundles (MODULES) or the conifers' fronds (FRONDS).
+## broadleaf trees' leaf bundles (MODULES), the conifers' fronds (FRONDS), the willow's
+## hanging strands (HANGING) or the palms' leaves, whose light is drawn at 8 suns of the
+## day as the bark's (PALMS: they keep their leaves all year, see TreeSprites).
 const MODULES := 0
 const FRONDS := 1
+const HANGING := 2
+const PALMS := 3
+const RULES := {"fronds": FRONDS, "hanging": HANGING, "palms": PALMS}
 
 ## How far from a trunk's axis the middle of a body's feet is held (`hold`, Body): the
 ## trunk is drawn round but flat, a foot `front` pixels deep under a bark `half width`
@@ -38,7 +43,7 @@ static var hold_most := 0.0
 ## Dictionary {since, rule, leaves: [Color], bark: [Color], looks: [look], frames, bare
 ## (paths)}, `since` the trees' looks (WorldCells.TREE_LOOKS) its pictures came with, 1
 ## unless the file says (a chunk saved at an earlier one grows the species' trees again),
-## `rule` how its leaves are lit (MODULES, or FRONDS when the file says `rule: fronds`), each
+## `rule` how its leaves are lit (MODULES, or as the file's `rule` says: RULES), each
 ## look {size, variant, x, y, w, h, ax, ay, trunk, crown: [x0, z0, nx, ny, nz],
 ## cells: PackedByteArray of nx * ny * nz bits, x fastest, then y, then z, hold: cells
 ## from the trunk's axis a body's feet are held across and along the view (see
@@ -56,7 +61,7 @@ static func read(s: Dictionary) -> Dictionary:
 		push_warning("tree pictures: cannot read %s %s" % [path, yaml.error])
 		return {}
 	var out := {"since": int(data.get("since", 1)),
-		"rule": FRONDS if str(data.get("rule", "")) == "fronds" else MODULES, "leaves": [], "bark": [], "looks": [],
+		"rule": int(RULES.get(str(data.get("rule", "")), MODULES)), "leaves": [], "bark": [], "looks": [],
 		"frames": path.get_base_dir().path_join("frames.png"), "bare": path.get_base_dir().path_join("bare.png")}
 	for c in data.get("leaves", []):
 		out.leaves.append(Color(str(c)))

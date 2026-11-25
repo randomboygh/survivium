@@ -112,7 +112,12 @@ slice, to free the far meshes.
   ramp row says the rule its leaves are lit by
   (`TreeLooks.rule`): the conifers' frames hold fronds instead of bundles (the crown's normal where the frond lies,
   its side axis, its halves, strokes, root third and tip; a pine cap's texels a normal each on the cap's ball),
-  lit as the approved conifers (`frond_steps`); evergreens take a little of autumn's tint, as their leaf cards do. Autumn takes the leaf bundles from the crown's edge
+  lit as the approved conifers (`frond_steps`); the willow's hold the leaves of its hanging strands (the module's
+  normal, a strand's place across the module and down the strand, the cap's leaves, the far curtain seen through
+  the gaps low in the crown), lit as the approved willow (`hanging_steps`); the palms' hold their leaves' steps
+  drawn at the 8 suns, as the bark's (`palm_colour`, half steps, the soft outline half way to the darkest; a palm
+  keeps its leaves, so its bare frame under a leaf holds the last two suns, and `TreeSprites` gives it the
+  evergreens' year), their trunks' soft outline alpha 3; evergreens take a little of autumn's tint, as their leaf cards do. Autumn takes the leaf bundles from the crown's edge
   inward (each bundle's rank from the edge is in its frame); under half of them left, the bark is drawn from the
   bare tree, without the crown's shade. Foliage and the trunk mesher leave such trees out;
   young trees and stumps stay theirs. Their ground shadows are the same instances drawn a second time

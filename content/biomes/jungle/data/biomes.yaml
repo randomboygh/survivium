@@ -11,13 +11,14 @@
 # for the map and reports. color — the colour on the map. tints — the biome's ground and water colours instead of their own (by
 # the names of the top field and water: {sand: "#e6dcbe", water: "#4cc6bc"}). References to species and bushes are soft: without their bundle the share is empty.
 # Jungle: the hottest and wettest window — the tropic zone. A dense forest of giant ceibas with palms
-# between them and an understory of bananas and bushes. Ceiba, palm and banana are bundles of "Plants", references are soft.
+# between them (a few fan palms among them) and an understory of bananas and bushes. Ceiba, palm, fan palm and banana
+# are bundles of "Plants", references are soft.
 - id: jungle
   title: "[biomes.biomes.jungle]"
   zone: tropic
   warmth: [0.74, 1.0]
   moisture: [0.7, 1.0]
-  trees: {plants:ceiba: 0.6, plants:palm: 0.3, plants:oak: 0.1}
+  trees: {plants:ceiba: 0.6, plants:palm: 0.22, plants:fan_palm: 0.08, plants:oak: 0.1}
   tree_chance: 0.2
   groves: 0.32
   bushes: {plants:banana: 0.55, plants:shrub: 0.45}

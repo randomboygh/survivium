@@ -8,7 +8,7 @@ the foot's lowest bark reaches. The game holds a body's feet off the trunk by th
     python3 tools/tree_feet.py --check  exit 1 when a look.yaml's `foot` is missing or differs
 
 Run it after the pictures are packed again (survivium-builds/trees-redraw/integration/*/src/pack_*.py).
-The bark is a frame pixel of alpha 2 (tree.gdshader). The width is the bark run through the axis 4..12 rows over the anchor, in
+The bark is a frame pixel of alpha 2 (a palm trunk's soft outline: 3; tree.gdshader). The width is the bark run through the axis 4..12 rows over the anchor, in
 each row the narrowest of the 8 turns (the round foot without the roots that turn round it), the median of the
 rows; the front the median over the turns of the lowest bark row in the axis' three columns.
 """
@@ -31,7 +31,7 @@ def measure(alpha, x0, y0, w, h, ax, ay):
         left = x0 + turn * w
 
         def bark(x, y):
-            return 0 <= x < w and 0 <= y < h and alpha[left + x, y0 + y] == 2
+            return 0 <= x < w and 0 <= y < h and alpha[left + x, y0 + y] in (2, 3)
 
         for k in range(4, 13):
             y = ay - k

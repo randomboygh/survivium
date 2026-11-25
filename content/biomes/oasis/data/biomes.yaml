@@ -10,15 +10,15 @@
 # for the map and reports. color — the colour on the map. tints — the biome's ground and water colours instead of their own (by
 # the names of the top field and water: {sand: "#e6dcbe", water: "#4cc6bc"}). References to species and bushes are soft: without their bundle the share is empty.
 # Oasis (where: by_water): the land of a desert within its `by_water_reach` of a lake or a river, in new worlds
-# (the setting landscape 1): grass and palms by the water, sand under the palms, reeds and cattails on the
-# banks. Palm is a bundle of "Plants", the reference is soft.
+# (the setting landscape 1): grass and palms (feather and fan palms, half and half) by the water, sand under
+# the palms, reeds and cattails on the banks. Palm and fan palm are bundles of "Plants", the references are soft.
 - id: oasis
   title: "[biomes.biomes.oasis]"
   where: by_water
   zone: hot
   clay_above: 0.35
   clay_as: sand
-  trees: {plants:palm: 0.6, plants:acacia: 0.1}
+  trees: {plants:palm: 0.3, plants:fan_palm: 0.3, plants:acacia: 0.1}
   tree_chance: 0.1
   groves: 0.2
   trees_on: [sand]
