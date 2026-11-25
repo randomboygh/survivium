@@ -5,9 +5,9 @@
 leaves: ["#0f2427", "#1b3838", "#36573c", "#486f51", "#64926c", "#95c372", "#b9ef7e"]
 bark: ["#231d1c", "#493d35", "#6f5e4e", "#a6907b"]
 looks:
-  - {size: 0.42, variant: 0, x: 0, y: 0, w: 65, h: 61, ax: 32, ay: 59, trunk: 5, crown: [-1, -1, 4, 5, 3, "AAAHAPAAAAc="]}
-  - {size: 0.42, variant: 1, x: 0, y: 61, w: 65, h: 61, ax: 32, ay: 59, trunk: 5, crown: [-1, -1, 4, 5, 4, "AAAHAPAAAAcAIA=="]}
-  - {size: 0.68, variant: 0, x: 0, y: 122, w: 79, h: 72, ax: 39, ay: 70, trunk: 6, crown: [-2, -2, 5, 6, 5, "AAAAPAAAgA8AAOADAAD4AAAAPg=="]}
-  - {size: 0.68, variant: 1, x: 0, y: 194, w: 81, h: 72, ax: 41, ay: 70, trunk: 6, crown: [-2, -2, 5, 6, 6, "AAAAHAAAgA8AAOADAAD4AAAAHAAAAAI="]}
-  - {size: 1.00, variant: 0, x: 0, y: 266, w: 101, h: 90, ax: 50, ay: 86, trunk: 7, crown: [-3, -3, 7, 8, 7, "AAAAAAD4AAAAAAAA/AEAAAAAAPw5AAAAAAD8eQAAAAAA/HkAAAAAAPwBAAAAAAD8AA=="]}
-  - {size: 1.00, variant: 1, x: 0, y: 356, w: 99, h: 87, ax: 48, ay: 83, trunk: 7, crown: [-3, -3, 8, 8, 8, "AAAAAAAAPAAAAAAAAAB/AAAAAAAAAH8cAAAAAAAA/zwAAAAAAAB/HAAAAAAAAH8IAAAAAAAAPgAAAAAAAAAcAA=="]}
+  - {size: 0.42, variant: 0, x: 0, y: 0, w: 65, h: 61, ax: 32, ay: 59, foot: [1.5, 1.5], trunk: 5, crown: [-1, -1, 4, 5, 3, "AAAHAPAAAAc="]}
+  - {size: 0.42, variant: 1, x: 0, y: 61, w: 65, h: 61, ax: 32, ay: 59, foot: [2, 1.5], trunk: 5, crown: [-1, -1, 4, 5, 4, "AAAHAPAAAAcAIA=="]}
+  - {size: 0.68, variant: 0, x: 0, y: 122, w: 79, h: 72, ax: 39, ay: 70, foot: [3.5, 2], trunk: 6, crown: [-2, -2, 5, 6, 5, "AAAAPAAAgA8AAOADAAD4AAAAPg=="]}
+  - {size: 0.68, variant: 1, x: 0, y: 194, w: 81, h: 72, ax: 41, ay: 70, foot: [3.5, 2], trunk: 6, crown: [-2, -2, 5, 6, 6, "AAAAHAAAgA8AAOADAAD4AAAAHAAAAAI="]}
+  - {size: 1.00, variant: 0, x: 0, y: 266, w: 101, h: 90, ax: 50, ay: 86, foot: [9, 1], trunk: 7, crown: [-3, -3, 7, 8, 7, "AAAAAAD4AAAAAAAA/AEAAAAAAPw5AAAAAAD8eQAAAAAA/HkAAAAAAPwBAAAAAAD8AA=="]}
+  - {size: 1.00, variant: 1, x: 0, y: 356, w: 99, h: 87, ax: 48, ay: 83, foot: [9, 1], trunk: 7, crown: [-3, -3, 8, 8, 8, "AAAAAAAAPAAAAAAAAAB/AAAAAAAAAH8cAAAAAAAA/zwAAAAAAAB/HAAAAAAAAH8IAAAAAAAAPgAAAAAAAAAcAA=="]}

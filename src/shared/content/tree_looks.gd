@@ -17,6 +17,22 @@ const VARIANTS := 2
 const MODULES := 0
 const FRONDS := 1
 
+## How far from a trunk's axis the middle of a body's feet is held (`hold`, Body): the
+## trunk is drawn round but flat, a foot `front` pixels deep under a bark `half width`
+## pixels to each side (look.yaml `foot`, measured by tools/tree_feet.py), the same from
+## every side the camera turns to. So a body is held off an oval lying across the view:
+## its feet come up to the foot's front with FEET_FRONT pixels of their own, beside it the
+## sprite keeps FEET_SIDE pixels from the bark's middle line, and the oval reaches back
+## away from the camera DEPTH of its width (behind the trunk a body stands off it, not in
+## its picture). Without a view (the server) a circle round the axis inside the oval.
+const FEET_FRONT := 2.0
+const FEET_SIDE := 3.0
+const DEPTH := 0.5
+## Pixels of the pictures a cell (16 a world unit, a cell half a unit).
+const TEXELS_CELL := 8.0
+## The widest hold of any look (cells), so a body looks for trunks only this far round.
+static var hold_most := 0.0
+
 
 ## The looks of species record `s`, from its `picture` file (a path in its bundle): a
 ## Dictionary {since, rule, leaves: [Color], bark: [Color], looks: [look], frames, bare
@@ -24,7 +40,10 @@ const FRONDS := 1
 ## unless the file says (a chunk saved at an earlier one grows the species' trees again),
 ## `rule` how its leaves are lit (MODULES, or FRONDS when the file says `rule: fronds`), each
 ## look {size, variant, x, y, w, h, ax, ay, trunk, crown: [x0, z0, nx, ny, nz],
-## cells: PackedByteArray of nx * ny * nz bits, x fastest, then y, then z}; empty when it
+## cells: PackedByteArray of nx * ny * nz bits, x fastest, then y, then z, hold: cells
+## from the trunk's axis a body's feet are held across and along the view (see
+## FEET_FRONT), foot: Vector2 (look.yaml
+## `foot`: the bark's half width and the foot's front, pixels)}; empty when it
 ## has none or it cannot be read.
 static func read(s: Dictionary) -> Dictionary:
 	var file: String = s.get("picture", "")
@@ -51,8 +70,22 @@ static func read(s: Dictionary) -> Dictionary:
 		look.size = float(l.size)
 		look.crown = [int(c[0]), int(c[1]), int(c[2]), int(c[3]), int(c[4])]
 		look.cells = Marshalls.base64_to_raw(str(c[5]))
+		var foot: Array = l.get("foot", [4.0, 1.0])
+		look.foot = Vector2(float(foot[0]), float(foot[1]))
+		look.hold = hold_of(look.foot)
+		hold_most = maxf(hold_most, maxf(look.hold.x, look.hold.y + look.hold.z))
 		out.looks.append(look)
 	return out
+
+
+## The hold (cells, see FEET_FRONT) of a look whose foot is `foot` (half width, front:
+## pixels): the oval's half across the view, its half along it, and how far its middle
+## lies behind the axis, away from the camera (its front edge FEET_FRONT before the foot's).
+static func hold_of(foot: Vector2) -> Vector3:
+	var across := (foot.x + FEET_SIDE) / TEXELS_CELL
+	var front := (foot.y + FEET_FRONT) / TEXELS_CELL
+	var half := maxf(front, DEPTH * across)
+	return Vector3(across, half, half - front)
 
 
 ## Whether the crown of `look` has a cell at x, y, z of the tree's own frame (cells east,
