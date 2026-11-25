@@ -108,7 +108,7 @@ static func setup() -> bool:
 	return true
 
 
-## Sets the atlases on `mat` (tree.gdshader).
+## Sets the atlases on `mat` (tree.gdshader, tree_shadow.gdshader).
 static func dress(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("frames", frames)
 	mat.set_shader_parameter("bare_frames", bare)

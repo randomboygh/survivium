@@ -16,6 +16,7 @@ func run() -> void:
 	_test_trees()
 	_test_regrow()
 	_test_pictured()
+	_test_pictured_shadow()
 	_test_bushes()
 	_test_custom_plants()
 	_test_curious_plants()
@@ -536,6 +537,27 @@ func _test_pictured() -> void:
 				if Growth.standing_look(w, col) >= 0:
 					bad.append([s.id, i, "stump %d" % looks[j].trunk])
 	_check(bad.is_empty(), "every look grows standing, a stump is no smaller tree: %s" % [bad])
+
+
+func _test_pictured_shadow() -> void:
+	# A tree drawn as a picture casts its picture's shadow (tree_shadow.gdshader), not
+	# Foliage's discs round its crown; a tree drawn in leaf clusters still casts those.
+	var col := Vector2i(25, 25)
+	var key := Vector2i(col.x / 16, col.y / 16) * 16
+	var cast := {}
+	for species in Trees.SPECIES.size():
+		var s: Dictionary = Trees.SPECIES[species]
+		var pictured: bool = not s.pictures.is_empty()
+		if s.dead or cast.has(pictured):
+			continue
+		var w := _pictured_ground(col)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 7
+		Growth.place(w, col.x, 1, col.y, species, rng, 1.0)
+		var shadows: Array = Foliage.build_chunk(w, key.x, key.y, 16).shadows
+		cast[pictured] = [s.id, shadows[0]]
+	_check(not cast.has(true) or cast[true][1] == 0, "a tree drawn as a picture casts no crown discs: %s" % [cast.get(true)])
+	_check(not cast.has(false) or cast[false][1] > 0, "a tree of leaf clusters casts its crown discs: %s" % [cast.get(false)])
 
 
 ## A world of grass round column `col`, for one tree.

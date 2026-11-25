@@ -116,6 +116,7 @@ const GrassShader := preload("res://shaders/grass.gdshader")
 const LeavesShader := preload("res://shaders/leaves.gdshader")
 const LeafShadowShader := preload("res://shaders/leaf_shadow.gdshader")
 const TreeShader := preload("res://shaders/tree.gdshader")
+const TreeShadowShader := preload("res://shaders/tree_shadow.gdshader")
 const TreeSprites := preload("res://src/client/world/tree_sprites.gd")
 
 const CELL := WorldData.CELL
@@ -252,8 +253,10 @@ var clump_mesh: ArrayMesh
 var disc_mesh: ArrayMesh
 var bush_mesh: ArrayMesh
 var drift_mesh: ArrayMesh
-## The trees drawn as pictures (TreeSprites, tree.gdshader).
+## The trees drawn as pictures (TreeSprites, tree.gdshader), and their shadows
+## (tree_shadow.gdshader).
 var tree_mat: ShaderMaterial
+var tree_shadow_mat: ShaderMaterial
 var tree_mesh: ArrayMesh
 var ready_to_play := false
 ## Where the player's last footprint was left, and which foot made it.
@@ -1111,6 +1114,8 @@ func _build_materials() -> void:
 	TreeSprites.setup()
 	tree_mat = _material(TreeShader)
 	TreeSprites.dress(tree_mat)
+	tree_shadow_mat = _material(TreeShadowShader)
+	TreeSprites.dress(tree_shadow_mat)
 	tree_mesh = TreeSprites.quad_mesh()
 
 

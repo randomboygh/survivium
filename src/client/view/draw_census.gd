@@ -84,7 +84,8 @@ func start() -> void:
 ## `panel`, the census's own list over the screen, is left out.
 static func groups_of(game, panel: Control) -> Array:
 	var groups := []
-	var parts := ["ground", "water", "grass", "crowns", "crown shadows", "bushes", "snowdrifts"]
+	var parts := ["ground", "water", "grass", "crowns", "crown shadows", "bushes", "snowdrifts", "trees",
+		"tree shadows"]
 	var known := {}
 	for i in parts.size():
 		var nodes := []

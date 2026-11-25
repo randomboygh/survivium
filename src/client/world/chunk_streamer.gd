@@ -1219,7 +1219,14 @@ func _chunk_nodes(key: Vector2i) -> void:
 		# The trees drawn as pictures (TreeSprites), after the parts of PARTS.
 		var trees := Foliage.multimesh(game.tree_mesh, game.tree_mat, true, true)
 		trees.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		var parts: Array = [solid, water, tufts, crowns, shade, bushes, drifts, trees]
+		# Their shadows: the same instances drawn by tree_shadow.gdshader into the sun's
+		# and the moon's shadow map only (as the crown discs, `shade`).
+		var tree_shade := MultiMeshInstance3D.new()
+		tree_shade.multimesh = trees.multimesh
+		tree_shade.material_override = game.tree_shadow_mat
+		tree_shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		tree_shade.layers = PixelView.LAYER_SUN_CASTER
+		var parts: Array = [solid, water, tufts, crowns, shade, bushes, drifts, trees, tree_shade]
 		for n in parts:
 			if n == drifts:
 				game.drifts_root.add_child(n)

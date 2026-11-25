@@ -29,7 +29,8 @@ Part of [The picture](../rendering.md). Files: fire and sun shadows, the atlas, 
   `world`, `water`, `grass`, `leaves`, `leaf_shadow` (the discs of crowns' shadow lie flat, a shrub's disc
   stands, turned to the light, like a sprite's shadow, so that its shadow at sunset begins at the shrub; a
   shrub drops its leaves and the shadow whole, by the world's column, and its back tufts are not moved back
-  as in a crown, otherwise the shrub hangs over its shadow), `sprite` (people, animals, tumbleweeds; under
+  as in a crown, otherwise the shrub hangs over its shadow), `tree` and `tree_shadow` (the trees drawn as
+  pictures and their ground shadows, see [chunks.md](../chunks.md)), `sprite` (people, animals, tumbleweeds; under
   the sun and the moon it casts its shadow as it is drawn, facing the camera, so the light lays the picture
   on the ground skewed, each row moved away from the light by its height, and it falls on slopes and walls
   like any real shadow; lit along the picture's width it leans back, `lean_shadow`, so the shadow is never
