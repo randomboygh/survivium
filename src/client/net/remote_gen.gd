@@ -147,12 +147,14 @@ func step(job: Job, n: int) -> bool:
 
 
 ## Cell `cell` of the copy of the world `w` as the server sent it (`v`: material, form
-## << 8). A bed watered or dried keeps its crop: set_cell would forget it, and the
-## crop would vanish here until its chunk came again.
+## << 8). A bed watered or dried keeps its crop, and so does grass or bare ground under a
+## wild sowing or a sapling: set_cell would forget it, and the crop would vanish here
+## until its chunk came again.
 static func take_cell(w, cell: Vector3i, v: int) -> void:
 	var bed: Variant = w.field_at(cell)
 	w.set_cell(cell.x, cell.y, cell.z, v & 255)
-	if bed != null and Mat.is_bed(v & 255):
+	var m := v & 255
+	if bed != null and (Mat.is_bed(m) or m == Mat.GRASS or m == Mat.DIRT):
 		w.set_field(cell, bed)
 	w.set_form(cell.x, cell.y, cell.z, v >> 8 & 31)
 

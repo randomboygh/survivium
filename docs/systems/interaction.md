@@ -25,7 +25,11 @@ lies around. The rules are shared (the server checks them), input and hints are 
   (`Mat.BED_WET` for `WET_DAYS`; the can is a tool of the class `can`, its waterings are its `durability`,
   when empty it becomes `empties_to`, a watering takes its `water_swing` seconds), a ripe crop is reaped by hands and a sickle (`area` cells), a scythe
   only takes `mown`; hands do not dig a bed, a shovel does, and the crop is lost; `plant_at` for an item with
-  `crop` sows on an empty bed, not in winter (its `sow_swing` seconds); `front_farm` / `farm_in_front` — the same with the action
+  `crop` sows on an empty bed, not in winter (its `sow_swing` seconds), or wild on grass or bare earth a hoe
+  would till (`wild_crop`; `plant_spot` takes a free bed in front first): the ground stays, the record lives
+  on it, a can and rain wet it like a bed, the crop keeps `WILD_QUALITY` (0.5) of its seed's quality, and when
+  its sprout first grows on only `WILD_SPROUTS` (0.3) come up (`wild_sprouts`), the rest are lost; reaped or
+  in winter its record goes; `front_farm` / `farm_in_front` — the same with the action
   button, `front_kind` «till», «water», «reap»; `step_fields` / `grow_fields` — a step of the session once per
   `FIELD_TICK`: rain `Clock.rain` ≥ `RAIN_WETS` wets beds under the open sky, a wet one dries after a day, a
   crop on a wet bed grows in the warm seasons (`grow_days` days to ripe), in winter and under a block it
@@ -137,7 +141,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
   whole rectangle (`MAX_LINE`, `MAX_FLAT`), `mark_fits` / `farm_sort` — where the work is possible, `mark`
   (draws, replaces other marking, with `erase` erases it in the columns), `farm` — the mode's action button:
   the work of one mark nearby with a tool from the bag (the best hoe, a can with water, a sickle or hands — by
-  `area`), on as many marked cells around as the tool takes; a «sow» mark on grass is dug first; done and
+  `area`), on as many marked cells around as the tool takes; a «sow» mark on grass is dug first when the bag holds a hoe, else sown wild; done and
   impossible marks go, waiting ones (green crop, winter, no tool or seeds) stay, and the answer `{"idle"}`
   with a reason releases the button. The blueprint (`near`, `build`, `clear`, erasing by a box) does not
   touch the marking, and vice versa. Requests: `FARM` [work, from, to, square, erase], `FARM_WORK` (in
@@ -208,7 +212,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   («Garden» for seeds, a bush, a hoe, a can with water, a sickle) or from a panel cell with seeds or a bush;
   the work (`Plans.WORKS`: till, sow, water, reap — the hand takes what it is done with), the figure (line or
   square), draw/erase (the palette filters «All» / «Seeds» / «Bushes» are not shown yet), clear; a stroke on
-  the ground — `FARM`; the action button (`auto`, «Work») does the marking nearby with the requests
+  the ground — `FARM`; the action button (`auto`; its word `button_name`: the work of the nearest mark — «Till», «Sow»,
+  «Water», «Reap» — or the chosen work, «Stop» while it works) does the marking nearby with the requests
   `FARM_WORK` and releases when there is nothing to do now. The settings are kept with the player
   (`"farm"`).
 - `src/client/ui/farm_bar.gd` — the farm mode's panel: inherits `build_bar.gd` (the same palette, `mode` — whose

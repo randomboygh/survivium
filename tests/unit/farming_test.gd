@@ -2,7 +2,8 @@ extends "res://tests/unit/test_case.gd"
 ## Farming (WorldActions part actions_farm.gd): a hoe tills a bed, grain is sown on it,
 ## a can waters it, rain wets the open beds, wheat grows only wet and in the warm
 ## seasons, dies in winter, is reaped ripe by hands, a sickle or a scythe; the beds'
-## records survive a chunk's save; the farming mode's marks (Plans.mark, Plans.farm) are
+## records survive a chunk's save; grain sown on grass without tilling (a wild sowing)
+## comes up less often and gives a worse crop; the farming mode's marks (Plans.mark, Plans.farm) are
 ## drawn on the ground and worked with the tools of the bag.
 
 const Plans := preload("res://src/shared/game/plans.gd")
@@ -21,6 +22,7 @@ func run() -> void:
 	_test_water_keeps()
 	_test_save()
 	_test_marks()
+	_test_wild()
 
 
 ## A small flat world of grass on stone, its clock in summer, and one standing in it.
@@ -63,7 +65,7 @@ func _test_till_sow_water() -> void:
 	who.item = GRAIN
 	_check(not actions.plant_at(who, GRAIN, bed), "nothing is sown without grain in the bag")
 	who.inventory.add(GRAIN, 5)
-	_check(not actions.plant_at(who, GRAIN, Vector3i(14, 1, 14)), "grain is not sown on grass")
+	_check(not actions.plant_at(who, GRAIN, Vector3i(10, 0, 8)), "grain is not sown on stone")
 	_check(actions.plant_at(who, GRAIN, bed) and actions.crop_on(bed) == WHEAT and who.inventory.count(GRAIN) == 4,
 		"grain is sown on a bed, and wheat grows there")
 	_check(not actions.plant_at(who, GRAIN, bed), "nothing more is sown where wheat grows")
@@ -487,3 +489,72 @@ func _test_nature() -> void:
 	days.season = 1
 	days._pass_time(Clock.DAY_LENGTH)
 	_check(days.warm_days == 1, "a summer day is")
+
+
+## A wild sowing (grain on grass, not tilled): the grass stays, the crop keeps half its
+## seed's quality, a can waters it and rain wets it like a bed, only about WILD_SPROUTS
+## of the sprouts come up, a ripe one is reaped and leaves the grass, winter kills it;
+## the marks to sow sow it wild with no hoe in the bag.
+func _test_wild() -> void:
+	var setup := _world()
+	var w: WorldData = setup[0]
+	var clock: Clock = setup[1]
+	var actions: WorldActions = setup[2]
+	var who: Who = setup[3]
+	var c := Vector3i(10, 1, 8)
+	who.inventory.add(GRAIN, 5, 0, null, 80)
+	who.item = GRAIN
+	_check(actions.plant_at(who, GRAIN, c) and actions.crop_on(c) == WHEAT and w.get_cell(c.x, c.y, c.z) == Mat.GRASS
+		and actions.wild_crop(c), "grain is sown on grass without tilling, the grass stays")
+	_check(w.field_at(c).size() == 5 and w.field_at(c)[4] == 40, "a wild sowing keeps half its seed's quality: %s" % [w.field_at(c)])
+	_check(not actions.can_till(c) and not actions.plant_at(who, GRAIN, c), "nothing tills or sows over it")
+	var days: float = Plants.BY_ID[WHEAT].grow_days
+	actions.grow_fields(days, 0.0)
+	_check(actions.growth(c) == 0.0 and actions.crop_on(c) == WHEAT, "dry, it does not grow")
+	_check(actions.can_water(c), "a can waters it")
+	actions.wet(c, clock.now() + 100.0)
+	_check(w.get_cell(c.x, c.y, c.z) == Mat.GRASS and actions.wet_at(c), "wet, the grass under it keeps its look")
+	# Many sown at once: about WILD_SPROUTS of them come up.
+	var cells: Array[Vector3i] = []
+	for z in range(2, 30):
+		for x in range(2, 30):
+			if Vector2i(x, z) != Vector2i(c.x, c.z):
+				cells.append(Vector3i(x, 1, z))
+	who.inventory.add(GRAIN, cells.size())
+	for x in cells:
+		actions.sow(who, Items.get_item(GRAIN), x)
+		actions.wet(x, clock.now() + 100.0)
+	actions.grow_fields(days * 1.5, 0.0)
+	var up := 0
+	for x in cells:
+		up += 1 if actions.crop_on(x) == WHEAT else 0
+	var share := float(up) / cells.size()
+	_check(absf(share - actions.WILD_SPROUTS) < 0.08, "about %.0f%% of a wild sowing comes up: %.2f" % [actions.WILD_SPROUTS * 100.0, share])
+	var ripe: Vector3i = c
+	for x in cells:
+		if actions.crop_on(x) == WHEAT:
+			ripe = x
+			break
+	_check(actions.ripe_at(ripe), "what came up ripens")
+	_check(WorldActions.crop_quality(Who.new(), w.field_at(ripe), 0.0) == 25,
+		"a wild crop of normal seed is of half the normal quality")
+	actions.reap(who, [ripe], "")
+	_check(actions.crop_on(ripe) == "" and w.field_at(ripe) == null and w.get_cell(ripe.x, ripe.y, ripe.z) == Mat.GRASS,
+		"reaped, the grass is left with no record")
+	clock.season = Clock.WINTER
+	actions.grow_fields(0.1, 0.0)
+	var left := 0
+	for x in cells:
+		left += 1 if w.field_at(x) != null else 0
+	_check(left == 0, "winter kills a wild sowing, nothing is left")
+	clock.season = 1
+	# The marks to sow sow wild with no hoe in the bag.
+	var plans := Plans.new()
+	who.inventory.add(GRAIN, 4)
+	_check(plans.mark(actions, who, "sow", Vector3i(8, 1, 12), Vector3i(9, 1, 12), false) == 2, "marks to sow on grass")
+	_work_marks(plans, actions, who, 10)
+	_check(actions.wild_crop(Vector3i(8, 1, 12)) and actions.wild_crop(Vector3i(9, 1, 12)) and plans.cells.is_empty(),
+		"with no hoe in the bag the marks are sown wild")
+	_check(plans.mark(actions, who, "water", Vector3i(8, 1, 12), Vector3i(9, 1, 12), false) == 2
+		and plans.mark(actions, who, "reap", Vector3i(8, 1, 12), Vector3i(9, 1, 12), false) == 2,
+		"a wild sowing is marked to water and to reap")

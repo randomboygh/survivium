@@ -10,7 +10,10 @@ extends "res://src/shared/game/actions_build.gd"
 ## teaches the skill of farming (role "farm"). A tree's seed (an item whose `crop` is a
 ## plant of kind sapling) is planted on open ground on the trees' lattice (odd x and z,
 ## away from other trees); the sapling grows in the warm seasons, wet or dry, and grown
-## becomes its tree (Growth.place) where there is room for one.
+## becomes its tree (Growth.place) where there is room for one. A crop's seeds may be
+## sown on grass or bare ground without tilling (a wild sowing, thread «Улучшить посадку
+## и кнопку в земледелии», 2026-11-25): it is watered and grows like one on a bed, but
+## only WILD_SPROUTS of them come up and its crop is of WILD_QUALITY of its seed's.
 
 ## How long a bed stays wet after watering or rain, in days.
 
@@ -24,6 +27,11 @@ const FIELD_TICK := 1.0
 const SAPLING_GAP := 2
 ## Cells of air a young tree (Growth.place_young) needs over its ground.
 const YOUNG_HEIGHT := 8
+## A crop sown on ground not tilled (grass, bare ground: a wild sowing, `wild_crop`):
+## the share of the seeds that come up (rolled when the sprout first grows on, the
+## others are lost), and its quality against its seed's.
+const WILD_SPROUTS := 0.3
+const WILD_QUALITY := 0.5
 
 var _field_clock := 0.0
 
@@ -45,7 +53,7 @@ func farm_at(who, cell: Vector3i) -> Variant:
 		return null
 	var t: Dictionary = who.tool()
 	var m: int = world.get_cell(cell.x, cell.y, cell.z)
-	if Mat.is_bed(m):
+	if Mat.is_bed(m) or wild_crop(cell):
 		if too_far(who, cell, t.reach):
 			who.nag("far", "[too_far]")
 			return {}
@@ -64,9 +72,9 @@ func farm_at(who, cell: Vector3i) -> Variant:
 				who.nag("ripe", Lang.line("[not_ripe_yet]", [c.title, roundi(growth(cell) * 100.0)]))
 				return {}
 		if Tools.can_till(t):
-			who.nag("tilled", "[there_is_a_bed_here]")
+			who.nag("tilled", "[there_is_a_bed_here]" if Mat.is_bed(m) else "[something_is_sown_here]")
 			return {}
-		if t.tool == "hand":
+		if t.tool == "hand" and Mat.is_bed(m):
 			# Hands do not scrape a bed away by a slip of a tap: a shovel digs it.
 			who.nag("bed", "[a_bed_is_removed_with]")
 			return {}
@@ -113,7 +121,7 @@ func front_farm(who) -> Variant:
 				if can_till(c):
 					return ["till", c]
 			elif waters:
-				if world.get_cell(c.x, c.y, c.z) == Mat.BED:
+				if world.get_cell(c.x, c.y, c.z) == Mat.BED or wild_crop(c) and not wet_at(c):
 					return ["water", c]
 			elif can_reap(c, t):
 				return ["reap", c]
@@ -145,7 +153,7 @@ func can_till(cell: Vector3i) -> bool:
 	var up := cell + Vector3i.UP
 	return (m == Mat.GRASS or m == Mat.DIRT) and world.get_cell(up.x, up.y, up.z) == Mat.AIR \
 		and not world.bushes.has(up) and world.blocker_top(up.x, up.y, up.z) <= 0.0 \
-		and world.blocker_top(cell.x, cell.y, cell.z) <= 0.0 and tree_of(cell) == null
+		and world.blocker_top(cell.x, cell.y, cell.z) <= 0.0 and tree_of(cell) == null and world.field_at(cell) == null
 
 
 ## Tills `cells` into beds in one swing of the hoe in hand (or hoe item `tool` of the
@@ -191,6 +199,20 @@ func crop_on(cell: Vector3i) -> String:
 	return f[0] if f != null else ""
 
 
+## Whether a crop sown without tilling grows on `cell` (on grass or bare ground, not a
+## bed; not a sapling).
+func wild_crop(cell: Vector3i) -> bool:
+	var f: Variant = world.field_at(cell)
+	return f != null and f[0] != "" and not Plants.is_sapling(f[0]) \
+		and not Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z))
+
+
+## Whether the bed or wild crop on `cell` is wet now.
+func wet_at(cell: Vector3i) -> bool:
+	var f: Variant = world.field_at(cell)
+	return f != null and f[2] > clock.now()
+
+
 ## How far the crop on bed `cell` has grown, 0..1 (1 ripe).
 func growth(cell: Vector3i) -> float:
 	var f: Variant = world.field_at(cell)
@@ -207,12 +229,14 @@ func ripe_at(cell: Vector3i) -> bool:
 
 
 ## Whether crop item `item` (a record with `crop`) can be sown on `cell`: a bed with no
-## crop and air over it, not in winter.
+## crop and air over it, or ground a hoe would till (a wild sowing), not in winter.
 func can_sow(item: Dictionary, cell: Vector3i) -> bool:
 	if Plants.is_sapling(item.get("crop", "")):
 		return can_root(cell) and clock.season != WINTER
-	if not Plants.is_crop(item.get("crop", "")) or not Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)):
+	if not Plants.is_crop(item.get("crop", "")):
 		return false
+	if not Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)):
+		return can_till(cell) and clock.season != WINTER
 	var up := cell + Vector3i.UP
 	return crop_on(cell) == "" and world.field_at(cell) != null and world.get_cell(up.x, up.y, up.z) == Mat.AIR \
 		and clock.season != WINTER
@@ -238,7 +262,7 @@ func plant_at(who, id: String, cell: Vector3i) -> bool:
 		if sapling:
 			who.nag("plant", "[cant_plant_here_a_tree]")
 		else:
-			who.nag("plant", "[sow_on_an_empty_bed]")
+			who.nag("plant", "[sow_on_a_bed_or_ground]")
 		return false
 	if not _may(who, cell, "build") or not who.act("gather", "farm"):
 		return false
@@ -247,11 +271,14 @@ func plant_at(who, id: String, cell: Vector3i) -> bool:
 
 
 ## Sows crop item `item` from the bag of `who` on bed `cell` (can_sow holds): the bed
-## keeps the seed's quality, the crop's comes of it (Quality.crop).
+## keeps the seed's quality, the crop's comes of it (Quality.crop); sown on ground not
+## tilled it keeps WILD_QUALITY of it.
 func sow(who, item: Dictionary, cell: Vector3i) -> void:
 	var took := []
 	who.inventory.remove(item.id, 1, took)
 	var q := Quality.of_materials(took)
+	if not Plants.is_sapling(item.crop) and not Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)):
+		q = maxi(Quality.MIN, roundi(q * WILD_QUALITY))
 	var f: Variant = world.field_at(cell)
 	var record := [item.crop, 0.0, f[2] if f != null else 0.0]
 	if q != Quality.NORMAL and not Plants.is_sapling(item.crop):
@@ -261,7 +288,26 @@ func sow(who, item: Dictionary, cell: Vector3i) -> void:
 	looks_changed.emit(WorldData.chunk_key(cell.x, cell.z))
 
 
-## Whether a crop of `id` sown in front of `who` would go on a bed there (see plant_spot).
+## The ground in front of `who` that item `id` is planted on (see ActionsBuild.plant_spot):
+## a crop's seeds go on a bed there first, on ground not tilled only when no bed is free.
+func plant_spot(who, id: String) -> Variant:
+	if not Plants.is_crop(Items.get_item(id).get("crop", "")):
+		return super(who, id)
+	var feet: Vector3i = who.feet()
+	var wild: Variant = null
+	for o in Tools.sector(who.facing_step()):
+		for dy in [-1, 0, -2]:
+			var cell: Vector3i = feet + Vector3i(o.x, dy, o.y)
+			if _can_plant(who, id, cell):
+				if Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)):
+					return cell
+				if wild == null:
+					wild = cell
+	return wild
+
+
+## Whether a crop of `id` sown in front of `who` would go on `cell` (a bed, or ground
+## not tilled: see plant_spot).
 func _can_plant(who, id: String, cell: Vector3i) -> bool:
 	var item := Items.get_item(id)
 	if Plants.is_sapling(item.get("crop", "")):
@@ -274,8 +320,8 @@ func _can_plant(who, id: String, cell: Vector3i) -> bool:
 
 ## Whether item `id` could be planted on ground cell `cell` some day, wherever the one
 ## planting stands (the farming mode's marks): a crop's seeds on an empty bed or on
-## ground a hoe tills first, a bush on ground it fits, seeds of grass on the bare ground
-## they grow on.
+## ground a hoe tills (tilled first, or sown wild), a bush on ground it fits, seeds of
+## grass on the bare ground they grow on.
 func plantable(id: String, cell: Vector3i) -> bool:
 	var item := Items.get_item(id)
 	if item.is_empty() or not world.in_bounds(cell.x, cell.y, cell.z):
@@ -455,7 +501,8 @@ func felled_young(cell: Vector3i) -> void:
 ## Whether bed `cell` can be watered: any bed but one a sapling grows on (a sapling needs
 ## no water, and the third field of its record is the young tree's flag, not wetness).
 func can_water(cell: Vector3i) -> bool:
-	return Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)) and not Plants.is_sapling(crop_on(cell))
+	return Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)) and not Plants.is_sapling(crop_on(cell)) \
+		or wild_crop(cell)
 
 
 ## Waters beds `cells` with the can in hand (or can item `with` of the bag): each stays
@@ -480,7 +527,8 @@ func water(who, cells: Array[Vector3i], with := "") -> Dictionary:
 	return _work(skilled(who, "farm", item.water_swing), "", (Vector3(cells[0]) + Vector3(0.5, 1.0, 0.5)) * CELL, Mat.WATER)
 
 
-## Makes bed `cell` wet until time `until` (Clock.now), wet to look at (Mat.BED_WET).
+## Makes bed `cell` wet until time `until` (Clock.now), wet to look at (Mat.BED_WET); a
+## wild crop's ground keeps its look.
 func wet(cell: Vector3i, until: float) -> void:
 	var f: Variant = world.field_at(cell)
 	if f == null:
@@ -490,7 +538,8 @@ func wet(cell: Vector3i, until: float) -> void:
 	var g: Array = f.duplicate()
 	g[2] = maxf(f[2], until)
 	world.set_field(cell, g)
-	_look_wet(cell, true)
+	if Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)):
+		_look_wet(cell, true)
 
 
 ## Gives bed `cell` the material of its wetness.
@@ -499,6 +548,14 @@ func _look_wet(cell: Vector3i, wet_now: bool) -> void:
 	if want >= 0 and world.get_cell(cell.x, cell.y, cell.z) != want:
 		world.set_material(cell.x, cell.y, cell.z, want)
 		cell_changed.emit(cell)
+
+
+## Whether the wild sowing of crop `crop` on `cell` comes up (WILD_SPROUTS of them, by
+## the cell, the crop and the day).
+func wild_sprouts(cell: Vector3i, crop: String) -> bool:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([cell, crop, clock.day, "sprout"])
+	return rng.randf() < WILD_SPROUTS
 
 
 # --- Reaping ------------------------------------------------------------------------------
@@ -534,7 +591,7 @@ func reap(who, cells: Array[Vector3i], tool: Variant = null) -> Dictionary:
 		rng.seed = hash([c, clock.day])
 		var gives := Plants.harvest([f[0]], rng)
 		var q := crop_quality(who, f, rng.randf_range(-1.0, 1.0))
-		world.set_field(c, ["", 0.0, f[2]])
+		world.set_field(c, ["", 0.0, f[2]] if Mat.is_bed(world.get_cell(c.x, c.y, c.z)) else null)
 		keys[WorldData.chunk_key(c.x, c.z)] = true
 		if gives.is_empty():
 			continue
@@ -604,20 +661,27 @@ func grow_fields(days: float, rain: float) -> void:
 					f[1] += days
 					looks = looks or (not young and Plants.stage(f[0], f[1]) != was)
 				continue
-			if not Mat.is_bed(world.get_cell(cell.x, cell.y, cell.z)):
+			var m: int = world.get_cell(cell.x, cell.y, cell.z)
+			var bed := Mat.is_bed(m)
+			# A wild sowing lives on grass or bare ground; a bed's record goes with the bed.
+			if not bed and (f[0] == "" or not (m == Mat.GRASS or m == Mat.DIRT)):
 				world.set_field(cell, null)
 				looks = looks or f[0] != ""
 				continue
 			if rain >= RAIN_WETS and world.roof_level(cell.x, cell.z) <= cell.y:
 				f[2] = maxf(f[2], now + WET_DAYS)
 			var is_wet: bool = f[2] > now
-			_look_wet(cell, is_wet)
+			if bed:
+				_look_wet(cell, is_wet)
 			if f[0] == "":
 				continue
 			var up := cell + Vector3i.UP
 			if winter or world.get_cell(up.x, up.y, up.z) != Mat.AIR or not Plants.BY_ID.has(f[0]):
-				f[0] = ""
-				f[1] = 0.0
+				if bed:
+					f[0] = ""
+					f[1] = 0.0
+				else:
+					world.set_field(cell, null)
 				looks = true
 				continue
 			if not is_wet or Plants.ripe(f[0], f[1]):
@@ -626,6 +690,9 @@ func grow_fields(days: float, rain: float) -> void:
 			f[1] += days
 			if Plants.stage(f[0], f[1]) != before:
 				looks = true
+				# A wild sowing comes up or is lost when its sprout first grows on.
+				if not bed and before == 0 and not wild_sprouts(cell, f[0]):
+					world.set_field(cell, null)
 		world.note_edit(key.x << WorldData.SHIFT, key.y << WorldData.SHIFT)
 		if looks:
 			looks_changed.emit(key)
