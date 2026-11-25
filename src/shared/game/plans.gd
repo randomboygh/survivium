@@ -731,8 +731,8 @@ static func mark_of(work: String, item: String) -> String:
 
 ## Whether work `work` (sowing `item`) could be done some day on ground cell `c`, by the
 ## rules over the world `actions`: «till» ground a hoe tills, «sow» where `item` grows
-## (a crop's seeds on a bed or on ground tilled first), «water» a bed, «reap» a bed with
-## a crop.
+## (a crop's seeds on a bed, or on ground tilled first or sown wild), «water» a bed or a
+## wild sowing, «reap» a crop (not a sapling).
 static func mark_fits(actions, work: String, item: String, c: Vector3i) -> bool:
 	match work:
 		"till":
@@ -742,8 +742,8 @@ static func mark_fits(actions, work: String, item: String, c: Vector3i) -> bool:
 		"water":
 			return actions.can_water(c)
 		"reap":
-			var m: int = actions.world.get_cell(c.x, c.y, c.z)
-			return Mat.is_bed(m) and actions.crop_on(c) != ""
+			var crop: String = actions.crop_on(c)
+			return crop != "" and not Plants.is_sapling(crop)
 	return false
 
 
@@ -863,7 +863,7 @@ func _farm_cell(actions, who, c: Vector3i, v: String, mine: Dictionary) -> Varia
 			var cs := _around(c, v, Tools.of(can), mine, func(x: Vector3i) -> bool: return actions.can_water(x))
 			return _done(actions, actions.water(who, cs, can), cs)
 		REAP:
-			if not bed or actions.crop_on(c) == "":
+			if actions.crop_on(c) == "" or Plants.is_sapling(actions.crop_on(c)):
 				_drop([c])
 				return null
 			if not actions.ripe_at(c):
@@ -882,7 +882,8 @@ func _farm_cell(actions, who, c: Vector3i, v: String, mine: Dictionary) -> Varia
 	if Plants.is_crop(Items.get_item(v).get("crop", "")):
 		if actions.clock.season == actions.WINTER:
 			return "[no_sowing_in_winter_wait]"
-		if not bed:
+		# Ground not tilled is tilled first with a hoe of the bag, else sown wild.
+		if not bed and _best(who, func(t: Dictionary) -> bool: return Tools.can_till(t)) != "":
 			return _till(actions, who, c, v, mine)
 	if not actions._can_plant(who, v, c):
 		return null
