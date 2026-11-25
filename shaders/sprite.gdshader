@@ -39,7 +39,7 @@ uniform vec3 tint = vec3(1.0);
 uniform float shadow_only = 0.0;
 // 1 for a thing standing still (Props._add_sprite, a snowman): the sun's and the moon's
 // shadows do not fall on it. A wide picture lit from behind threw its own leaning shadow
-// (lean_shadow) over its face as a dither; its shading is drawn into the picture.
+// over its face as a dither; its shading is drawn into the picture.
 uniform float sun_shadow_free = 0.0;
 // How much of the body is gone (DeathFx, a death's dust and flowers), 0..1: a texel
 // goes when this passes its turn, 0.6 by its column (head first) and 0.4 by the 4x4
@@ -71,31 +71,61 @@ varying vec2 light_xz;
 // Where the point is drawn (sheared), to tell which light shines on it (light_spot).
 varying vec3 drawn;
 
-// How far a row `high` above the foot of a picture `tall` high leans, along view_up,
-// in the shadow pass of the sun or the moon (`to_light`, the light's way, sheared),
-// so the shadow on the ground is never thinner across the view than LEAN_DEPTH of the
-// height: lit along its width (the sun east or west of a picture facing south) the
-// card would throw a line. The body is as deep: the band lies behind the feet while
-// the shadow falls away from the camera, and slides in front of them as it turns
-// towards the camera, the feet's shadow under the feet again once it falls LEAN_DEPTH
-// of the height that way.
-const float LEAN_DEPTH = 0.4;
+// The least share of a picture's width its shadow from the sun or the moon keeps across
+// the way the shadow of its height falls (the sine of the angle between them). The
+// picture casts as it is drawn, a card facing the camera; lit along its width (the
+// camera turned east or west with the sun about south) every column's shadow fell on
+// one line, a streak. Each row's shadow stays where the light lays it, so the shadow
+// always starts at the feet: an earlier fix leaned the rows along view_up instead, which
+// tilted the streak and, as the sun crossed the camera's side, lifted the feet's shadow
+// to the shoulders (2026-11-26).
+const float SIDE_SPREAD = 0.6;
 
-float lean_shadow(float high, float tall, vec3 to_light) {
+// How far each unit of a picture's width moves in the shadow pass of the sun or the moon
+// (`to_light`, the light's way, sheared) so its width is turned off the way the shadow
+// of its height falls by at least SIDE_SPREAD, about its middle column, which stays put,
+// the shorter way round (no jump as it starts turning); none while the shadow keeps
+// that much of its width.
+vec2 side_spread(vec3 to_light) {
 	if (to_light.y < 0.01) {
-		return 0.0;
+		return vec2(0.0);
 	}
-	// How far the shadow of a unit of height falls along view_up, the shear's own
-	// lean of the height in.
-	float falls = view_slope - dot(to_light.xz, view_up) / to_light.y;
-	if (falls >= 0.0) {
-		return (max(falls, LEAN_DEPTH) - falls) * high;
+	vec2 right = vec2(-view_up.y, view_up.x);
+	// Where the shadow of a unit of height lies from the foot: the shear's lean of the
+	// height, then along the light down to the ground.
+	vec2 falls = view_up * view_slope - to_light.xz / to_light.y;
+	if (dot(falls, falls) < 1e-6) {
+		return vec2(0.0);
 	}
-	float front = max(LEAN_DEPTH + falls, 0.0);
-	return front * (tall - high);
+	vec2 g = normalize(falls);
+	float c = dot(right, g);
+	float most = sqrt(1.0 - SIDE_SPREAD * SIDE_SPREAD);
+	if (abs(c) <= most) {
+		return vec2(0.0);
+	}
+	vec2 n = vec2(-g.y, g.x);
+	n *= dot(n, right) < 0.0 ? -1.0 : 1.0;
+	return sign(c) * most * g + SIDE_SPREAD * n - right;
+}
+
+// How high over the foot a turned card is laid (side_spread): a pixel, above the ground
+// by more than the shadow's bias, so it shades the ground right from the feet, and under
+// all of the picture drawn but its lowest pixel (at two pixels its feet were in its own
+// shadow).
+const float CARD_LIFT = 0.0625;
+
+// The turned card stands off the drawn one, and points of it a little nearer the light
+// than the drawn picture shaded its far half in a dither. Each point slides along the
+// light down (or up) to CARD_LIFT over the foot: the card lies flat under the picture,
+// its shadow on the ground just where the light laid it, and the picture above its feet
+// takes none of it. Only while the card is turned; then the body's shadow no longer
+// climbs a wall or a step beside it.
+vec3 lay_flat(vec3 p, float foot_y, vec3 to_light) {
+	return p - to_light * ((p.y - foot_y - CARD_LIFT) / to_light.y);
 }
 
 void vertex() {
+	float card_x = 0.0;
 	if (shadow_only > 0.5) {
 		VERTEX.y = MODEL_MATRIX[3].y + (VERTEX.y - MODEL_MATRIX[3].y) / length(MODEL_MATRIX[1].xyz);
 	}
@@ -117,7 +147,8 @@ void vertex() {
 			// turned to the camera, so the light lays it on the ground skewed: each row
 			// shifted away from the light by its height, the body lying or standing as
 			// it is seen (a lying bear turned to the light threw a strip across itself),
-			// and the shadow falls on slopes and walls as any other (lean_shadow).
+			// and the shadow falls on slopes and walls as any other (side_spread).
+			card_x = VERTEX.x - foot.x;
 			VERTEX = face_view(VERTEX, foot);
 		} else {
 			// A fire's or the torch's light: the picture turns about its middle to face
@@ -140,8 +171,12 @@ void vertex() {
 	world_pos = VERTEX;
 	VERTEX = shear(IN_SHADOW_PASS ? VERTEX : stand_tall(VERTEX, MODEL_MATRIX[3].xyz));
 	if (IN_SHADOW_PASS && flat_shadow < 0.5 && PROJECTION_MATRIX[3][3] > 0.5) {
-		float tall = float(textureSize(sprite_texture, 0).y) * frame_uv.w / TEXELS;
-		VERTEX.xz += view_up * lean_shadow(world_pos.y - MODEL_MATRIX[3].y, tall, INV_VIEW_MATRIX[2].xyz);
+		vec3 to_light = INV_VIEW_MATRIX[2].xyz;
+		vec2 spread = side_spread(to_light);
+		if (dot(spread, spread) > 0.0) {
+			VERTEX.xz += spread * card_x;
+			VERTEX = lay_flat(VERTEX, MODEL_MATRIX[3].y, to_light);
+		}
 	}
 	light_xz = VERTEX.xz;
 	drawn = VERTEX;

@@ -133,6 +133,10 @@ One-line forms of the rules; the detail is above and in the other pages of this 
   the browser drew no grass at all, while the desktop (32 units) and Android (Vulkan) were fine.
   `tools/lint.py` holds every shader to `MAX_SAMPLERS` (13); declare a sampler only one shader reads
   in that shader, not in `common.gdshaderinc` (`roof_map_soft` is in `world.gdshader`).
-- A wide sprite lit from behind takes its own sun shadow as a dither over its face: the shadow pass leans
-  the card (`lean_shadow`) in front of the upright one. Things drawn as pictures (`Props._add_sprite`, the
-  snowman) set `sun_shadow_free` in `sprite.gdshader`; the player's head shows the same at some turns.
+- A sprite's sun shadow cast by a card that stands off the drawn one shades the picture itself: grazed by the
+  light, points of it a little nearer the light lay a dither over the far half (a wide picture lit from behind
+  over its face). Move such a card only along the light (that keeps its shadow on the ground) and below the
+  picture: `sprite.gdshader` `lay_flat` lays the card turned by `side_spread` a pixel over the foot. The rows
+  once leaned along `view_up` (`lean_shadow`, removed 2026-11-26) lifted the feet's shadow to the shoulders with
+  the camera turned east or west. Things drawn as pictures (`Props._add_sprite`, the snowman) set
+  `sun_shadow_free`.
