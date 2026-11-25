@@ -25,8 +25,9 @@
 // Lit as the sprites are, as a whole; the steps of light inside are drawn by the rules of
 // the approved drawing (bundles by their normal, leaves by their facing, bark by sun) under
 // the sun where it stands in the world, seen from the side shown: looking toward it, the
-// crown and the bark are in their shade. The bark takes the sun's shadow (the ground's: of
-// the other trees' crowns, of hills) a step darker; the leaves keep their own light.
+// crown and the bark are in their shade. The bark and the leaves take the sun's shadow (the
+// ground's: of the other trees, of hills) a step darker; where the drawing has them in shade
+// already, nothing more.
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled;
 // Like a crown's for the player's silhouette (sprite_xray).
@@ -79,9 +80,10 @@ varying vec3 foot_pos;
 varying vec2 light_xz;
 varying float clouds;
 varying vec3 lamp_gain;
-// The bark's albedo a step darker (see in_shade), as ALBEDO is written, for light() to show
-// it where the sun's shadow falls; negative where nothing changes in a shadow (leaves).
-varying vec3 bark_shade;
+// The albedo in the sun's shadow (a step darker: the bark's in_shade, the leaves'
+// leaf_steps and frond_steps), as ALBEDO is written, for light() to show it where the
+// shadow falls; negative where a shadow changes nothing.
+varying vec3 shaded;
 
 void vertex() {
 	vec3 foot = MODEL_MATRIX[3].xyz;
@@ -153,14 +155,15 @@ vec3 leaf_colour(float k, float c) {
 	return mix(ramp(k, lo), ramp(k, min(lo + 1.0, 6.0)), c - lo);
 }
 
-// The leaves' step (0..6) of a leaf texel `g` (alpha bits `a`) under the light L.
-float leaf_step(vec4 g, int a, vec3 L) {
-	vec3 n = unocta(g.rg);
-	float d = dot(n, L);
+// The leaves' steps (0..6) of a leaf texel `g` (alpha bits `a`) under the light L: x in
+// the sun, y in a shadow: a step darker, but no darker than on the crown's shaded side (its
+// bundle in shade whatever way it faces), one shade, not two, as the bark's.
+vec2 leaf_steps(vec4 g, int a, vec3 L) {
+	float d = dot(unocta(g.rg), L);
 	float base = d > D1 ? 4.0 : (d > D2 ? 3.0 : 2.0);
-	float c;
+	vec2 c;
 	if ((a & 3) == 2) {
-		c = base - 1.0;
+		c = vec2(base, 2.0) - 1.0;
 	} else {
 		vec2 light2 = normalize(vec2(L.x, L.z - L.y) + vec2(1e-5, 0.0));
 		int code = (a >> 4) & 7;
@@ -173,34 +176,32 @@ float leaf_step(vec4 g, int a, vec3 L) {
 		float s = f > 0.2 ? 1.0 : (f > -0.5 ? 0.0 : -1.0);
 		float t = t0 + s + ((s > 0.5 && (a & 2) != 0 && f > 0.45) ? 1.0 : 0.0);
 		// In the shade the leaves turned away keep a quarter of a step of their light.
-		if (base < 2.5 && t < t0) {
-			t = t0 + 0.75 * (t - t0);
-		}
-		c = base + t;
+		float t_shade = t < t0 ? t0 + 0.75 * (t - t0) : t;
+		c = vec2(base + (base < 2.5 ? t_shade : t), 2.0 + t_shade);
 	}
-	if (d < DP) {
-		c = min(c, 5.0);
-	}
-	return clamp(c, 0.0, 6.0);
+	c = clamp(min(c, vec2(d < DP ? 5.0 : 6.0, 5.0)), 0.0, 6.0);
+	return vec2(c.x, max(c.x - 1.0, c.y));
 }
 
-// The leaves' step (0..6) of a conifer's frond texel `g` (alpha bits `a`) under the light
+// The leaves' steps (0..6) of a conifer's frond texel `g` (alpha bits `a`) under the light
 // L: the band of its crown normal (an inner ring's a step darker), the half of the frond
 // turned from the sun, its strokes and its root third a step darker each, a lit tip a
-// step lighter where the band is light.
-float frond_step(vec4 g, int a, vec3 L) {
+// step lighter where the band is light. x in the sun, y in a shadow: a step darker, but no
+// darker than with the band of the crown's side away from the sun.
+vec2 frond_steps(vec4 g, int a, vec3 L) {
 	float d = dot(unocta(g.rg), L);
 	float b = d > FRONDS_BANDS.x ? 5.0 : (d > FRONDS_BANDS.y ? 4.0 : (d > FRONDS_BANDS.z ? 3.0
 		: (d > FRONDS_BANDS.w ? 2.0 : 1.0)));
-	b -= float((a >> 6) & 1);
+	vec2 bands = vec2(b, min(b, 2.0)) - float((a >> 6) & 1);
 	float ang = g.b * 255.0 / 256.0 * TAU;
 	float side = cos(ang) * L.x + sin(ang) * L.z;
 	bool lit = abs(side) <= FRONDS_SIDE || (side > 0.0) == ((a & 1) != 0);
-	float t = (lit ? b : b - 1.0) - float((a >> 1) & 1) - float((a >> 4) & 1);
-	if ((a & 32) != 0 && lit && b > 3.5) {
-		t += 1.0;
+	vec2 t = (lit ? bands : bands - 1.0) - float((a >> 1) & 1) - float((a >> 4) & 1);
+	if ((a & 32) != 0 && lit && bands.x > 3.5) {
+		t.x += 1.0;
 	}
-	return clamp(min(t, d < FRONDS_PALE ? 5.0 : 6.0), 0.0, 6.0);
+	t = clamp(min(t, vec2(d < FRONDS_PALE ? 5.0 : 6.0)), 0.0, 6.0);
+	return vec2(t.x, max(t.x - 1.0, t.y));
 }
 
 // The bark's step in shade: a step under its step where no crown shades it (`open`, the
@@ -339,15 +340,21 @@ void fragment() {
 		if (a == 1) {
 			col = ramp(k, 1.0);
 		} else if (ramp(k, 11.0).r > 0.5) {
-			col = ramp(k, frond_step(g, a, L));
+			vec2 steps = frond_steps(g, a, L);
+			col = ramp(k, steps.x);
+			shade = ramp(k, steps.y);
 		} else {
-			col = leaf_colour(k, leaf_step(g, a, L));
+			vec2 steps = leaf_steps(g, a, L);
+			col = leaf_colour(k, steps.x);
+			shade = leaf_colour(k, steps.y);
 		}
 		// Autumn colours differ from tree to tree; evergreens hardly change (as
 		// leaves.gdshader's).
 		vec3 season = foliage_tint * (1.0 + (hash12(floor(foot_pos.xz / 3.0) + 5.0) - 0.5) * (foliage_tint - 1.0) * vec3(0.5, 0.8, 1.0));
 		season = info.y > 0.5 && info.y < 0.7 ? mix(vec3(1.0), season, 0.15) : season;
-		col *= season * (1.0 - 0.25 * wetness);
+		vec3 tint = season * (1.0 - 0.25 * wetness);
+		col *= tint;
+		shade = shade.r >= 0.0 ? shade * tint : shade;
 	}
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
 	float sun_part = sea_bright(world_pos.y);
@@ -356,7 +363,7 @@ void fragment() {
 	vec3 lit_col = col * TONE * (1.0 - veiled.a);
 	ALBEDO = lit_col * sun_part;
 	lamp_gain = sea_undo(lit_col, sun_part);
-	bark_shade = shade.r >= 0.0 && shade != col ? shade * TONE * (1.0 - veiled.a) * sun_part : vec3(-1.0);
+	shaded = shade.r >= 0.0 && shade != col ? shade * TONE * (1.0 - veiled.a) * sun_part : vec3(-1.0);
 	EMISSION = veiled.rgb;
 	// Lit as a sprite: as if facing up and toward the viewer.
 	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.6, 0.0)).xyz);
@@ -372,11 +379,11 @@ void light() {
 		LIGHT_IS_DIRECTIONAL ? 1.0 : ATTENUATION, LIGHT_IS_DIRECTIONAL, clouds, light_texel(light_xz), stretch);
 	if (!LIGHT_IS_DIRECTIONAL) {
 		DIFFUSE_LIGHT += lit * lamp_gain;
-	} else if (bark_shade.r >= 0.0 && ATTENUATION < 0.5) {
-		// Bark in the sun's shadow (as the ground takes it: of another tree's crown, a hill,
-		// its own crown where the drawing has it lit) shows its shade's colour under the
-		// same light.
-		DIFFUSE_LIGHT += sun_as(lit, ALBEDO, bark_shade);
+	} else if (shaded.r >= 0.0 && ATTENUATION < 0.5) {
+		// Bark and leaves in the sun's shadow (as the ground takes it: of another tree, a
+		// hill, the tree's own crown over its bark where the drawing has it lit) show their
+		// shade's colour under the same light.
+		DIFFUSE_LIGHT += sun_as(lit, ALBEDO, shaded);
 	} else {
 		DIFFUSE_LIGHT += compat_sun(lit, ALBEDO);
 	}

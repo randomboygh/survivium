@@ -107,11 +107,12 @@ slice, to free the far meshes.
   shown (turning the camera turns the lit side; looking toward the sun, the crown is in its shade and the bark is
   drawn a step darker, `wood_colour`). The bark also takes the sun's shadow (the shadow map, as the ground: other
   crowns, hills) a bark step darker, never two under its own crown's drawn shade (the bare frame holds the step
-  without it, `in_shade`; `sun_as` gives the sun's pass the colour the shaded step would get); the leaves keep their
-  own light. A species' ramp row says the rule its leaves are lit by
+  without it, `in_shade`; `sun_as` gives the sun's pass the colour the shaded step would get); the leaves and fronds
+  too, a step darker but never darker than on the crown's shaded side (`leaf_steps`, `frond_steps`). A species'
+  ramp row says the rule its leaves are lit by
   (`TreeLooks.rule`): the conifers' frames hold fronds instead of bundles (the crown's normal where the frond lies,
   its side axis, its halves, strokes, root third and tip; a pine cap's texels a normal each on the cap's ball),
-  lit as the approved conifers (`frond_step`); evergreens take a little of autumn's tint, as their leaf cards do. Autumn takes the leaf bundles from the crown's edge
+  lit as the approved conifers (`frond_steps`); evergreens take a little of autumn's tint, as their leaf cards do. Autumn takes the leaf bundles from the crown's edge
   inward (each bundle's rank from the edge is in its frame); under half of them left, the bark is drawn from the
   bare tree, without the crown's shade. Foliage and the trunk mesher leave such trees out;
   young trees and stumps stay theirs. Their ground shadows are the same instances drawn a second time
@@ -120,8 +121,10 @@ slice, to free the far meshes.
   the way the shadow falls (the shadow of a unit of height lands where `PixelView.light_dir` lays it, the same
   at every camera turn), the frame of the side the light looks at, so the shadow is the tree's own outline:
   the crown (thinning from its edge in autumn by the picture's rule), the trunk from the foot, a bare or dead
-  tree's limbs. It sinks a little along the light's ray (`SINK`): its shadow stays where it falls, but the
-  tree's own bark, a little behind it, does not take it (its shade is drawn in the picture).
+  tree's limbs. In the shadow pass it sinks along the light's ray by `SINK` and the most the picture reaches
+  behind it across the camera's view (full from a knee row up, never more than `SINK_SHARE` of a point's height):
+  its shadow on the ground stays where it falls, but the tree's own picture, standing behind it at any camera turn,
+  does not take it (its shade is drawn), while the other trees' bark and leaves do.
 - `src/client/world/edge_haze.gd`, `shaders/edge_fog.gdshader` — the fog above unbuilt chunks (see above).
 - `src/client/world/mesh_buffers.gd` — growing vertex buffers; `drifts.gd` — snowdrifts; `tracks.gd` —
   footprints, kept in a map of the ground round the player (`print_map`, repeating every `Tracks.MAP` texels) that
