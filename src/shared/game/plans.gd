@@ -477,6 +477,54 @@ func erase(actions, who, of: Array) -> int:
 	return gone.size()
 
 
+## The blueprint's ghost cells of the column at `c` joined to it up and down (no gap
+## between), `c` first; none when `c` is no ghost of a block (a mark, nothing).
+func column_of(c: Vector3i) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
+	if not cells.has(c) or is_mark(cells[c]):
+		return out
+	out.append(c)
+	for dir: Vector3i in [Vector3i.UP, Vector3i.DOWN]:
+		var at: Vector3i = c + dir
+		while cells.has(at) and not is_mark(cells[at]) and out.size() < 2 * PLAN_REACH:
+			out.append(at)
+			at += dir
+	return out
+
+
+## Whether the ghost column at `c` (column_of) holds a slope or stairs: a double tap on it
+## in the build mode turns them (turn_form).
+func formed_at(c: Vector3i) -> bool:
+	for at in column_of(c):
+		if forms.has(at):
+			return true
+	return false
+
+
+## Turns the slopes and stairs of the ghost column at `c` (column_of) a quarter clockwise
+## seen from above, each formed cell of it alike, so a band's underside turns with its top
+## (the build mode's double tap on a ghost; the user's pick, 2026-11-26: the turn button is
+## gone, a lone column rises away from the player and a double tap turns it), within reach
+## of `who` (PLAN_REACH) and where they may build. How many cells turned.
+func turn_form(actions, who, c: Vector3i) -> int:
+	if not within_reach(who, c):
+		return 0
+	var turned := {}
+	for at in column_of(c):
+		if not forms.has(at) or actions != null and not actions.territory_allows(who, at, "build"):
+			continue
+		var f: int = forms[at]
+		forms[at] = (f & ~12) | (((f >> 2 & 3) + 1) % 4) << 2
+		if not turned.has(cells[at]):
+			turned[cells[at]] = []
+		turned[cells[at]].append(at)
+	var count := 0
+	for item: String in turned:
+		count += turned[item].size()
+		changed.emit(turned[item], item)
+	return count
+
+
 ## Whether `block` could go in cell `c` some day: in the world, not that block already, and
 ## open (air, water), or a floor's ground (a cell the hands or a shovel dig).
 func fits(actions, c: Vector3i, block: int, floor: bool) -> bool:

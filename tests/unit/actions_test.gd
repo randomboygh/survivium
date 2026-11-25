@@ -29,6 +29,7 @@ func run() -> void:
 	_test_furniture()
 	_test_snowman_melts()
 	_test_openings()
+	_test_best_turn()
 	_test_dye_sources()
 
 
@@ -1307,6 +1308,65 @@ func _test_openings() -> void:
 	_check(not placed.put_at(_with(who, "tools:stool"), "tools:stool", Vector3i(40, 1, 40), 40), "nothing is set down out of reach")
 	_check(placed.put_at(who, "tools:stool", Vector3i(12, 1, 23), 40) and placed.things[-1].item == "tools:stool"
 		and placed.cells_of(placed.things[-1]).has(Vector3i(12, 1, 23)), "a stool is set down where tapped")
+
+
+## The build mode turns a thing set down by itself where there is a best turn (the user's
+## pick, 2026-11-26): a door or a window into a wall, or into a doorway left in it, in the
+## wall's plane however the player stands; at a corner across the face tapped; furniture
+## and a ladder by a wall with their backs to it, a long thing along it; in the open as the
+## view or the player faces.
+func _test_best_turn() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	# A wall along x at z 20, three high, from x 10 to 23, a doorway at x 14; a wall along
+	# z at x 10 from z 20 to 30 (a corner at 10, 20).
+	for y in range(1, 4):
+		for x in range(10, 24):
+			if x != 14:
+				w.set_cell(x, y, 20, Mat.STONE)
+		for z in range(20, 31):
+			w.set_cell(10, y, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var who := Who.new()
+	# Off to the side: facing it, the step to the wall goes more along x than along z.
+	who.position = Vector3(11.5, 1.0, 22.5) * WorldData.CELL
+	_check(Placed.turn_facing(Tools.step_of(Vector2(17.5 - 11.5, 20.5 - 22.5))) % 2 == 1,
+		"(the player stands so that facing alone would turn a door across the wall)")
+	who.inventory.add("tools:door", 2)
+	_check(placed.put_at(who, "tools:door", Vector3i(17, 1, 20), 40), "a door is tapped into the wall from the side")
+	var door: Dictionary = placed.things[-1]
+	_check(door.turn == 0 and door.cell.z == 20 and w.get_cell(17, 1, 20) == Mat.AIR and w.get_cell(17, 1, 21) == Mat.AIR
+		and w.get_cell(16, 1, 20) == Mat.STONE and w.get_cell(18, 1, 20) == Mat.STONE,
+		"it goes in the wall's plane, its front to the player, the wall cut only where it stands: %s" % [door])
+	_check(placed.put_at(who, "tools:door", Vector3i(14, 1, 20), 40) and placed.things[-1].turn == 0
+		and placed.things[-1].cell == Vector3i(14, 1, 20), "a door set in a doorway fills it along the wall: %s" % [placed.things[-1]])
+	var corner := Vector3i(10, 2, 20)
+	_check(placed.plane_turn(corner, 1, 2, Vector3(12.5, 2.0, 22.5)) == 0 and placed.plane_turn(corner, 0, 1, Vector3(12.5, 2.0, 22.5)) == 3,
+		"at a corner a window goes across the face tapped")
+	_check(placed.plane_turn(Vector3i(30, 1, 30), 3, -1, Vector3(30.5, 1.0, 33.5)) == 3, "in the open it is turned as the player faces")
+	# A bed set down by the wall's south side, the view turned the other way: its back to the
+	# wall, so it lies along it (its head west, Placed.head_of).
+	who.position = Vector3(20.5, 1.0, 25.5) * WorldData.CELL
+	who.inventory.add("tools:wooden_bed", 1)
+	_check(placed.put_at(who, "tools:wooden_bed", Vector3i(20, 1, 21), 40, 1), "a bed is set down by the wall")
+	var bed: Dictionary = placed.things[-1]
+	_check(bed.turn == 0 and bed.cell.z == 21 and Placed.head_of(bed).y == 0,
+		"its back to the wall, along it: %s %s" % [bed, placed.cells_of(bed)])
+	who.inventory.add("tools:stool", 1)
+	_check(placed.put_at(who, "tools:stool", Vector3i(11, 1, 26), 40, 0) and placed.things[-1].turn == 3,
+		"a stool by the wall to its west turns its back to it: %s" % [placed.things[-1]])
+	who.inventory.add("tools:stool", 1)
+	_check(placed.put_at(who, "tools:stool", Vector3i(18, 1, 27), 40, 2) and placed.things[-1].turn == 2,
+		"in the open it faces the view as before: %s" % [placed.things[-1]])
+	who.inventory.add("tools:ladder", 1)
+	who.position = Vector3(18.5, 1.0, 22.5) * WorldData.CELL
+	_check(Placed.turn_facing(Tools.step_of(Vector2(13.5 - 18.5, 21.5 - 22.5))) == 3
+		and placed.put_at(who, "tools:ladder", Vector3i(13, 1, 21), 40) and w.ladders.get(Vector3i(13, 1, 21)) == 0,
+		"a ladder by the wall leans on it whatever side the player stands: %s" % [w.ladders])
 
 
 ## True when a body standing at `from` (in cells) walking north for two seconds gets north

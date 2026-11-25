@@ -91,7 +91,8 @@ const LIGHT_PUT := "light_put"
 const PROP_TAKE := "prop_take"
 ## The build mode sets a thing from the bag down at the cell tapped: [item id, cell, (the
 ## camera's turn 0..3, as for PROP_PUT), (true: the turn is the one kept for its kind,
-## taken by any thing)]
+## taken by any thing), (the side of the wall's face tapped, Placed.SIDES index, -1 for
+## none: a door or a window goes in the plane of that wall, Placed.plane_turn)]
 ## (Placed.put_at; a door or a window cuts its opening into a wall).
 const PROP_PUT_AT := "prop_put_at"
 ## The build mode moves a thing placed, or turns it where it stands: [its cell, the
@@ -118,6 +119,9 @@ const GESTURE := "gesture"
 const PLAN := "plan"
 ## Takes the blueprint's ghost off every cell near the player: [] (Plans.clear).
 const PLAN_CLEAR := "plan_clear"
+## Turns the slopes and stairs of the ghost column at a cell a quarter (the build mode's
+## double tap on a ghost slope): [cell] (Plans.turn_form).
+const PLAN_TURN := "plan_turn"
 ## The build mode's action button: builds one ghost cell of the blueprint near the player,
 ## whatever the hand holds: [] (Plans.build).
 const BUILD := "build"

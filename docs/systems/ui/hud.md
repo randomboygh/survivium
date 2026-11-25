@@ -101,8 +101,8 @@ Part of [Interface and settings](../ui.md). The HUD and the windows opened in th
   the bag's blocks and things in one row, made as a hotbar without hands (the same cells, arrows, finger
   scrolling and width: up to 10 cells, in portrait up to 6; no filters yet; the same for farm mode), above it a
   panel in one row, buttons the size of ordinary ones: the figure in a circle (line → plane → square → cube) |
-  «level the ground»; the kind of block in a circle (block → slope from below → slope from above → steps) |
-  «turn»; the figure's height (1–6, its own for each: floor 1, walls 3, cube 5) | the walls' thickness (1–4,
+  «level the ground»; the kind of block in a circle (block → slope from below → slope from above → steps; no
+  «turn» button since 2026-11-26: a double tap turns a lone slope's ghost, Y on PC); the figure's height (1–6, its own for each: floor 1, walls 3, cube 5) | the walls' thickness (1–4,
   a floor has none); draw/erase (erasing is red) | «clear blueprints» (a second touch within 3 s: the button
   turns red, a notification); exit (B) separately. On a narrow screen the kind of block goes in a separate row
   above the panel. Hands are not shown, the chosen cell is the hand at work; the bag's label is hidden (the
@@ -126,4 +126,5 @@ Part of [Interface and settings](../ui.md). The HUD and the windows opened in th
   dreams meanwhile, `CameraRig.dream`: grade.gdshader `dream` makes bright things glow, sinks the colours
   halfway into a pale blue, darkens it towards a deep blue, blurs and darkens the edges, the middle sharp; it eases in over `DREAM_IN` seconds
   and out over `DREAM_OUT`; the moon «Go to sleep» —
-  on the HUD's clock), `body_feedback.gd`, `hotbar_snow.gd` (snow settling on the hotbar's top edge, `AirEffects.hotbar_snow`), `sound_marks.gd` (marks of sounds' directions), `vibration.gd`, `haptics.gd` (what the phone buzzes for: `docs/systems/character.md`).
+  on the HUD's clock), `body_feedback.gd`, `hotbar_snow.gd` (snow settling on the hotbar's top edge, `AirEffects.hotbar_snow`), `sound_marks.gd` (marks of sounds' directions), `vibration.gd`, `haptics.gd` (what the phone buzzes for: `docs/systems/character.md`). `lift_line.gd`: the thin pixel line from the finger up to a thing the build mode holds over it on a touch
+  screen (`BuildMode.FINGER_LIFT`), under the rest of the interface.

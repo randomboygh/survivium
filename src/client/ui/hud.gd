@@ -41,6 +41,8 @@ func _ready() -> void:
 	add_child(feedback)
 	add_child(LevelUp.new(game))
 	add_child(Haptics.new(game))
+	lift_line = LiftLine.new()
+	add_child(lift_line)
 	_build_left()
 	_build_top()
 	_build_level()

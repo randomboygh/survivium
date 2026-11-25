@@ -12,6 +12,7 @@ func run() -> void:
 	_test_forms()
 	_test_flights()
 	_test_bands()
+	_test_turn_form()
 	_test_flatten()
 
 
@@ -180,6 +181,55 @@ func _test_flights() -> void:
 		Plans.shape("line", Vector3i(14, 1, 12), Vector3i(17, 1, 12), 4, Vector2.INF, 1, WorldData.FORM_UPPER),
 		Mat.index(Plans.Items.get_item(PLANKS).get("place", "")), true)
 	_check(sorted.fit.size() == 10 and sorted.hanging.is_empty(), "and its hanging cells are not told as uneven ground")
+
+
+## A double tap on the ghost of a slope turns it (Plans.turn_form, the user's pick of
+## 2026-11-26 in place of the turn button): every formed cell of the column joined to the
+## cell tapped turns a quarter, the copies hear of it; a column of cubes, one out of reach
+## and one apart over a gap do not.
+func _test_turn_form() -> void:
+	var w := WorldData.new(40, Vector2i(32, 32))
+	for z in 32:
+		for x in 32:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var plans := Plans.new()
+	actions.plans = plans
+	var who := Who.new()
+	who.position = Vector3(10.5, 1.0, 10.5) * WorldData.CELL
+	who.item = PLANKS
+	var east := WorldData.FORM_RAMP | 1 << 2
+	_check(plans.draw(actions, who, "line", Vector3i(12, 1, 9), Vector3i(12, 1, 9), 3, 1, false, east) == 3
+		and plans.forms == {Vector3i(12, 3, 9): east}, "a lone column of a ramp three high: %s" % [plans.forms])
+	# A second column apart, over a gap of air in the same column.
+	plans.cells[Vector3i(12, 5, 9)] = PLANKS
+	plans.forms[Vector3i(12, 5, 9)] = east
+	var heard := []
+	plans.changed.connect(func(cells: Array, item: String) -> void: heard.append([cells, item]))
+	_check(plans.formed_at(Vector3i(12, 1, 9)) and plans.column_of(Vector3i(12, 1, 9)).size() == 3,
+		"the column of the cell tapped holds the ramp, the cells over the gap apart")
+	_check(plans.turn_form(actions, who, Vector3i(12, 1, 9)) == 1
+		and plans.forms[Vector3i(12, 3, 9)] == WorldData.FORM_RAMP | 2 << 2 and plans.forms[Vector3i(12, 5, 9)] == east
+		and heard.size() == 1 and heard[0][0] == [Vector3i(12, 3, 9)] and heard[0][1] == PLANKS,
+		"a tap twice on its foot turns its top a quarter, the column over the gap stays: %s" % [plans.forms])
+	for i in 3:
+		plans.turn_form(actions, who, Vector3i(12, 3, 9))
+	_check(plans.forms[Vector3i(12, 3, 9)] == east, "four quarters bring it back")
+	var band := WorldData.FORM_RAMP | 1 << 2
+	var under := WorldData.FORM_UPPER | 3 << 2
+	plans.cells[Vector3i(20, 1, 9)] = PLANKS
+	plans.cells[Vector3i(20, 2, 9)] = PLANKS
+	plans.forms[Vector3i(20, 2, 9)] = band
+	plans.forms[Vector3i(20, 1, 9)] = under
+	plans.turn_form(actions, who, Vector3i(20, 2, 9))
+	_check(plans.forms[Vector3i(20, 2, 9)] == WorldData.FORM_RAMP | 2 << 2 and plans.forms[Vector3i(20, 1, 9)] == WorldData.FORM_UPPER,
+		"a band's underside turns with its top, still the other way: %s" % [plans.forms])
+	plans.draw(actions, who, "line", Vector3i(14, 1, 12), Vector3i(14, 1, 12), 2, 1, false, 0)
+	_check(not plans.formed_at(Vector3i(14, 1, 12)) and plans.turn_form(actions, who, Vector3i(14, 1, 12)) == 0,
+		"a column of cubes has nothing to turn")
+	who.position = Vector3(100.5, 1.0, 100.5) * WorldData.CELL
+	_check(plans.turn_form(actions, who, Vector3i(12, 3, 9)) == 0 and plans.forms[Vector3i(12, 3, 9)] == east,
+		"nor is a ghost out of reach turned")
 
 
 ## A flight drawn as a band (Plans.BAND): one block thick along its slope, the underside

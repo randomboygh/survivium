@@ -1,8 +1,8 @@
 extends VBoxContainer
 ## The build mode's bar (BuildMode), in the hotbar's place while the mode is on: on top
 ## the panel of the mode in one row, one button each going round its choices: the shape
-## (line, plane, square, cube) with flattening beside it, the form (a block, the slopes, stairs) with
-## its turn, how high and how thick the walls are (1–4), drawing or taking off the
+## (line, plane, square, cube) with flattening beside it, the form (a block, the slopes, stairs; a
+## double tap on the ghost of a lone slope turns it, BuildMode), how high and how thick the walls are (1–4), drawing or taking off the
 ## blueprint joined with taking all of it off near (a second tap to confirm), on a PC the
 ## action button's work (building the blueprint, F; on a touch screen the big action button
 ## does it), and leaving the mode; under it the palette: the bag's blocks and things in one row made as the
@@ -48,7 +48,6 @@ var _forms: HBoxContainer
 var _shape: Button
 var _flatten: Button
 var _form: Button
-var _turn: Button
 var _height: Button
 var _thick: Button
 var _mode: Button
@@ -110,12 +109,12 @@ func _make_panel(panel: HBoxContainer) -> void:
 	_shape = shapes.get_child(0)
 	_flatten = shapes.get_child(1)
 	panel.add_child(shapes)
+	# No turn button (the user's pick, 2026-11-26): a lone slope rises away from the
+	# player, a double tap on its ghost turns it, the key Y the next ones.
 	_forms = TabRow.split([
 		[UiStyle.icon("form_cube"), "", func() -> void: game.build.next_form()],
-		[UiStyle.icon("turn_right"), "[turn_the_slope_or_stairs]", func() -> void: game.build.turn()],
 	])
 	_form = _forms.get_child(0)
-	_turn = _forms.get_child(1)
 	panel.add_child(_forms)
 	_height = _cycle("build_height", "[height]", func() -> void: game.build.next_height())
 	_thick = _cycle("build_thick", "[wall_thickness]", func() -> void: game.build.next_thick())
@@ -133,7 +132,7 @@ func _make_panel(panel: HBoxContainer) -> void:
 	_add_go(panel)
 	var leave := TabRow.icon_button(UiStyle.icon("close"), "[leave_build_mode_b]", func() -> void: game.build.leave())
 	panel.add_child(leave)
-	for b: Button in [_shape, _flatten, _form, _turn, _mode, _clear, leave]:
+	for b: Button in [_shape, _flatten, _form, _mode, _clear, leave]:
 		b.custom_minimum_size = Vector2(BUTTON, BUTTON)
 
 
@@ -283,10 +282,10 @@ func _show_panel() -> void:
 	# A room is of cubes: no slopes or stairs for it.
 	var formed: bool = b.forms_drawn()
 	_form.icon = UiStyle.centred(UiStyle.icon(FORMS[b.form_index() if formed else 0][0]))
-	_form.tooltip_text = Lang.f("[press_for_the_next_form]", [FORMS[b.form_index()][1]]) if formed \
+	_form.tooltip_text = Lang.f("[press_for_the_next_form]", [FORMS[b.form_index()][1]]) \
+		+ ("\n" + Lang.t("[double_tap_a_slopes_blueprint_to]") if b.form != 0 else "") if formed \
 		else "[slopes_and_stairs_are_drawn_by]"
 	_form.disabled = not formed
-	_turn.disabled = b.form == 0 or not formed
 	# A plane is as many levels as its height and has no walls to thicken.
 	_number(_height, b.height, b.kind == "flatten")
 	_number(_thick, b.thick, b.kind in ["plane", "flatten"])

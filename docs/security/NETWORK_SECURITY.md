@@ -57,6 +57,8 @@ one stack will not double it.
 | `mend` | a `Vector3i` cell that is cracked (`WorldData.is_cracked`), within `Tools.PLACE_REACH`, the right «build» (`Decay.mend`); free, nothing is taken or given; **pace** — like the hands' work (`PACED`) |
 | `prop_fire` | within reach; to put out — only by the right «build» on another's land |
 | `plan` | the kind of figure, the size by the corners before building (`Plans.too_big`), the corners within `PLAN_REACH` 64 cells of the player |
+| `plan_turn` | a `Vector3i` cell within `PLAN_REACH` of the player; only the ghost's forms of the lone column there are turned (`Plans.turn_form`), each cell by the right «build»; nothing is built or taken |
+| `prop_put_at` | the id a string, a `Vector3i` aim; the long form: a turn 0..3, `kept` a bool, the face -1..3; the thing in the bag, the place within `Tools.PLACE_REACH`, free, land rights; **pace** — `paced` |
 | `craft`, `craft_cancel`, `craft_pause` | the recipe is known, the station is near, the materials are there; the debit and the issue — whole; a cancel returns what was taken, as it was |
 | `craft_free` | only with the rule `free_items` (off by default, on a server — from its settings); the recipe's id is a string from the registry |
 | `give_all` | a bool; `true` only with the rule `free_items`, the bag at most `Inventory.MOST_GROWN` slots wider; `false` only narrows one's own bag |
