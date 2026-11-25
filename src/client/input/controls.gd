@@ -501,7 +501,7 @@ func action_name() -> String:
 	if game.build.on:
 		return "[stop]" if game.build.auto else ("[level]" if game.build.kind == "flatten" else "[build]")
 	if game.farm.on:
-		return "[stop]" if game.farm.auto else "[work]"
+		return game.farm.button_name()
 	match use_of():
 		"place":
 			return "[build]"

@@ -1462,6 +1462,14 @@ const SHOTS := {
 	# every work, a square stroke to sow held.
 	"ground-farm-mode": {"time": 0.42, "season": 1, "at": [69, 29], "farm_mode": "draw"},
 	"ground-farm-mode-touch": {"time": 0.42, "season": 1, "at": [69, 29], "farm_mode": "draw", "touch": true, "work": "till"},
+	# The action button's word in the farming mode: the work of the marks by the player.
+	"ground-farm-button-till": {"time": 0.42, "season": 1, "at": [69, 29], "farm_mode": "draw", "touch": true, "farm_button": "till"},
+	"ground-farm-button-sow": {"time": 0.42, "season": 1, "at": [69, 29], "farm_mode": "draw", "touch": true, "farm_button": "sow"},
+	"ground-farm-button-water": {"time": 0.42, "season": 1, "at": [69, 29], "farm_mode": "draw", "touch": true, "farm_button": "water"},
+	"ground-farm-button-reap": {"time": 0.42, "season": 1, "at": [69, 29], "farm_mode": "draw", "touch": true, "farm_button": "reap"},
+	# Crops sown wild on grass (no tilling), their stages west to east, a row on beds north.
+	"ground-farm-wild": {"time": 0.42, "season": 1, "at": [69, 29], "farm_wild": true, "touch": true},
+	"ground-farm-wild-green": {"time": 0.42, "season": 1, "at": [69, 29], "farm_wild": true, "grown": 0.6, "touch": true},
 	# In the trench between the loose and the stone ledges of 3 and 5 cells: the cut hides
 	# them, their rounded corners cut.
 	# A torch at night among the steps: the drawn shadows of the slopes and cut corners.

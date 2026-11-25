@@ -14,6 +14,7 @@
   roots: [0, 1]
   crown: [2, 6, 8]
   tints: ["#6e9a3a", "#78a242", "#679236"]
+  picture: tree/look.yaml
   bare: 0.0
   seed: coconut
   log: resources:log

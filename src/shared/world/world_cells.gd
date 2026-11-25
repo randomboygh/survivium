@@ -23,8 +23,9 @@ const CELL := 0.5
 ## The trees' looks a packed chunk's trees are grown at: a saved chunk of an earlier one
 ## grows its trees of the species drawn as pictures since a later one again (WorldGen,
 ## Growth.outgrown, regrow). One up with each group of species brought to pictures, whose
-## look.yaml then says `since` (TreeLooks): 1 the broadleaf trees, 2 the conifers.
-const TREE_LOOKS := 2
+## look.yaml then says `since` (TreeLooks): 1 the broadleaf trees, 2 the conifers, 3 the
+## willow and the palms.
+const TREE_LOOKS := 3
 ## Chunk size in cells: the unit the world is generated, kept, meshed and streamed in.
 const CHUNK := 16
 const SHIFT := 4

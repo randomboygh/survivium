@@ -16,6 +16,8 @@ extends "res://src/client/input/work_mode.gd"
 const Items := preload("res://src/shared/content/items.gd")
 const Tools := preload("res://src/shared/content/tools.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
+const Plants := preload("res://src/shared/content/plants.gd")
+const Mat := preload("res://src/shared/content/materials.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 
 ## The palette's filters: everything, seeds (sown: a crop, grass), bushes (planted).
@@ -185,6 +187,37 @@ func marks() -> int:
 		if Plans.is_mark(game.plans.cells[c]):
 			n += 1
 	return n
+
+
+## The words of the action button for each work (Plans.WORKS).
+const WORK_NAMES := {"till": "[till]", "sow": "[sow]", "water": "[water_plants]", "reap": "[reap]"}
+
+
+## The action button's label (Controls.action_name): «Стоп» while it works, else the work
+## it would do first (Plans.farm: the nearest of the lowest marks within reach; a mark to
+## sow on ground not tilled is tilled first when the bag holds a hoe), the work chosen on
+## the bar when no mark is near; a bush or a tree's seed is planted.
+func button_name() -> String:
+	if auto:
+		return "[stop]"
+	var w := work
+	var item := seed
+	var near: Array[Vector3i] = game.plans.near(game.character, true)
+	if not near.is_empty():
+		var c: Vector3i = near[0]
+		var v: String = game.plans.cells[c]
+		w = "sow"
+		item = v
+		for k: String in Plans.WORK_MARKS:
+			if Plans.WORK_MARKS[k] == v:
+				w = k
+		if w == "sow" and Plants.is_crop(Items.get_item(v).get("crop", "")) and game.actions != null \
+				and not Mat.is_bed(game.actions.world.get_cell(c.x, c.y, c.z)) \
+				and _best(func(t: Dictionary) -> bool: return Tools.can_till(t)) != "":
+			w = "till"
+	if w == "sow" and Tools.use_of(item) == "plant":
+		return "[plant]"
+	return WORK_NAMES.get(w, "[work]")
 
 
 ## The action button: down works the marks near until none can be, a second press stops.

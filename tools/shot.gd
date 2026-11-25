@@ -1460,6 +1460,64 @@ func _run() -> void:
 			for i in 3:
 				await process_frame
 			main.farm.show_stroke({"plan": "farm", "first": feet + Vector3i(-3, 0, 3), "last": feet + Vector3i(-1, 0, 6)})
+			if shot.has("farm_button"):
+				# Only marks of one work right by the player, for the action button's word
+				# (FarmMode.button_name); «sow» with no hoe in the bag sows wild.
+				main.farm.show_stroke({"plan": "farm", "first": feet, "last": feet})
+				plans.clear(sa, who, true)
+				match shot.farm_button:
+					"till":
+						plans.mark(sa, who, "till", feet + Vector3i(-3, 0, 1), feet + Vector3i(-1, 0, 1), false)
+					"sow":
+						inv.remove("tools:stone_hoe", inv.count("tools:stone_hoe"))
+						who.hands = ["plants:grain", ""]
+						plans.mark(sa, who, "sow", feet + Vector3i(-3, 0, 1), feet + Vector3i(-1, 0, 2), true)
+						who.hands = ["", ""]
+					"water":
+						plans.mark(sa, who, "water", Vector3i(64, feet.y, 26), Vector3i(75, feet.y, 26), false)
+					"reap":
+						plans.mark(sa, who, "reap", Vector3i(64, feet.y, 26), Vector3i(75, feet.y, 26), false)
+				main.farm.auto = false
+				for i in 3:
+					await process_frame
+				main.hud.refresh_action()
+		if shot.has("farm_wild"):
+			# Crops sown wild on the grass south-west of the player (a row each, its stages
+			# west to east), beside a row of the same on beds.
+			var who = main.host.player
+			var sa = main.session.actions
+			var col := Vector2i((main.player.position / CELL).floor().x, (main.player.position / CELL).floor().z)
+			for i in 60:
+				if main.world.surface_y(col.x, col.y) > 0:
+					break
+				await process_frame
+			var feet := Vector3i(col.x, main.world.surface_y(col.x, col.y) - 1, col.y)
+			# A 4x3 patch of wheat on beds west, the same sown wild on the grass east; both
+			# watered and grown by the rules (FarmActions.grow_fields): of the wild one only
+			# about WILD_SPROUTS come up.
+			var item: Dictionary = Items.get_item("plants:grain")
+			var c: Dictionary = Plants.BY_ID.get(item.get("crop", ""), {})
+			who.inventory.add("plants:grain", 30)
+			for dz in 3:
+				for dx in 4:
+					for wild in [false, true]:
+						var cell := feet + Vector3i(dx + (1 if wild else -5), 0, 2 + dz)
+						cell.y = main.world.surface_y(cell.x, cell.z) - 1
+						if not wild:
+							sa.till(who, [cell] as Array[Vector3i], "tools:stone_hoe")
+						if sa.can_sow(item, cell):
+							sa.sow(who, item, cell)
+							sa.wet(cell, sa.clock.now() + 100.0)
+			sa.grow_fields(c.get("grow_days", 1.0) * shot.get("grown", 1.0), 0.0)
+			var up := 0
+			for dz in 3:
+				for dx in 4:
+					var cell := feet + Vector3i(dx + 1, 0, 2 + dz)
+					cell.y = main.world.surface_y(cell.x, cell.z) - 1
+					up += 1 if sa.crop_on(cell) != "" else 0
+			print("farm_wild: %d of 12 wild came up" % up)
+			for i in 30:
+				await process_frame
 		if shot.has("gesture"):
 			main.hud.make_gesture(shot.gesture)
 			for i in 6:

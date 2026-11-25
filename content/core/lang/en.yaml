@@ -159,6 +159,7 @@
 "[build]": "Build"
 "[work]": "Work"
 "[plant]": "Plant"
+"[sow]": "Sow"
 "[place]": "Place"
 "[eat]": "Eat"
 "[bandage_up]": "Bandage up"
@@ -2254,12 +2255,13 @@
 "[cant_be_cut_with_a]": "%s can't be cut with a scythe: gather it by hand or with a sickle"
 "[not_ripe_yet]": "Not ripe yet: %s, %d%%"
 "[there_is_a_bed_here]": "There is a bed here already"
+"[something_is_sown_here]": "Something is sown here already"
 "[a_bed_is_removed_with]": "A bed is removed with a shovel"
 "[a_bed_can_be_tilled]": "A bed can be tilled on grass or earth open to the sky"
 "[water_the_beds]": "Water the beds"
 "[no_sowing_in_winter_wait]": "No sowing in winter: wait for spring"
 "[cant_plant_here_a_tree]": "Can't plant here: a tree needs open ground away from other trees"
-"[sow_on_an_empty_bed]": "Sow on an empty bed: till it with a hoe"
+"[sow_on_a_bed_or_ground]": "Sow on an empty bed, grass or bare earth"
 "[the_watering_can_is_empty]": "The watering can is empty: fill it with water"
 
 # src/shared/game/actions_fight.gd
