@@ -988,7 +988,7 @@ const SHOTS := {
 			["animals:deer", 2, 0.0, 1, Vector2(-2.5, 4.2)], ["animals:deer", 10, 0.0, 1, Vector2(0.0, 4.2)], ["animals:deer", 14, 0.0, 1, Vector2(2.5, 4.2)],
 			["animals:deer", 19, 0.0, 1, Vector2(5.0, 4.2)], ["animals:deer", 0, 0.0, 2, Vector2(-5.0, 6.4)], ["animals:deer", 2, 0.0, 2, Vector2(-2.5, 6.4)],
 			["animals:deer", 10, 0.0, 2, Vector2(0.0, 6.4)], ["animals:deer", 14, 0.0, 2, Vector2(2.5, 6.4)], ["animals:deer", 19, 0.0, 2, Vector2(5.0, 6.4)]]},
-	# Sprite shadows cast by the sun (sprite.gdshader lean_shadow): standing and dead animals and the player at
+	# Sprite shadows cast by the sun (sprite.gdshader side_spread): standing and dead animals and the player at
 	# sunrise, in the morning, at noon and in the evening, the camera turned to face the sun, and by a wall they climb.
 	"sprite-shadow-morning": {"time": 0.32, "season": 1, "weather": "clear", "clouds": 0.0, "place": "beach", "hide": ["chunks: grass"],
 		"shadow_zoo": [
