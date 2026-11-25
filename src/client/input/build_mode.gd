@@ -60,6 +60,9 @@ const FINGER_LIFT := 60.0
 ## A second tap on the ghost of a slope or stairs within this many ms of the first turns
 ## them (Plans.turn_form); a single tap there draws nothing.
 const GHOST_TAP_MS := 400
+## How many cells a door or a window held up into a wall is drawn out of it, toward its
+## front (out_of_wall): in the wall the blocks it will cut would hide it.
+const WALL_OUT := 1.15
 
 ## The shape drawn (one of Plans.KINDS), how high its walls are (levels) and how thick
 ## (cells). Kept with the player.
@@ -406,7 +409,10 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 	if not Plans.drawn_with(chosen()) and not erasing:
 		# A thing shows at once over the place pressed (on a touch screen over the finger,
 		# _aimed), follows the finger while held, and is set down where it is let go (drag,
-		# release); a tap sets it down there at once.
+		# release); a tap sets it down there at once. An empty hand (the last one set down)
+		# does nothing.
+		if item.get("prop", "none") == "none":
+			return {}
 		var aimed := _aimed(pos)
 		if aimed.is_empty():
 			return {}
@@ -445,9 +451,11 @@ func _second_ghost_tap(cell: Vector3i) -> bool:
 
 
 ## Whether stroke `s` is still a tap on the ghost of a slope or stairs (start_stroke): it
-## began on one and has not gone a cell nor a little way.
+## began on one and the finger has not gone a little way (its first and last cells may
+## still differ by one: the cell tapped and the one on the plane under it are found
+## apart, Controls._run_stroke).
 func _ghost_tap(s: Dictionary) -> bool:
-	return s.has("ghost") and s.first == s.last and s.pos.distance_to(s.get("from", s.pos)) < _slop()
+	return s.has("ghost") and s.pos.distance_to(s.get("from", s.pos)) < _slop()
 
 
 ## What a thing new from the bag is aimed at for a finger or the mouse at screen point
@@ -657,8 +665,24 @@ func _drag_new(s: Dictionary) -> void:
 	var found: Array = game.placed.put_spot(game.character, s.put, s.aim, game.world.size_y, s.turn, s.kept, s.get("face", -1))
 	s.spot = found[0]
 	var at: Vector3i = s.spot if s.spot != null else s.aim
-	game.props.hold_new(s.put, at, found[1])
+	game.props.hold_new(s.put, at, found[1], out_of_wall(s.put, at, found[1]) if s.spot != null else Vector3.ZERO)
 	_frame(s.put, at, found[1], s.spot != null)
+
+
+## Where a door or a window `id` held up at north-west cell `at` turned `turn` is drawn
+## from there, in cells: where it goes into blocks (an opening to cut into a wall) they
+## would hide it, so it hangs WALL_OUT before them, toward its front (Placed.front_of: the
+## side it was pressed from); else where it goes (Props.hold_new).
+func out_of_wall(id: String, at: Vector3i, turn: int) -> Vector3:
+	var item := Items.get_item(id)
+	if not (item.get("door", false) or item.get("window", false)) or item.get("hatch", false):
+		return Vector3.ZERO
+	for o: Vector3i in game.placed.cells_of({"item": id, "cell": Vector3i.ZERO, "turn": turn}):
+		var c: Vector3i = at + o
+		if game.world.is_solid(c.x, c.y, c.z):
+			var f := Placed.front_of({"turn": turn})
+			return Vector3(f.x, 0.0, f.y) * WALL_OUT
+	return Vector3.ZERO
 
 
 ## Shows where thing `id` turned `turn` would go from the north-west cell `at`: where it

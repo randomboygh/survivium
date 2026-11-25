@@ -33,6 +33,9 @@ var main: Node
 var wall_cells: Array = []
 ## The campfire a shot put out, to be lit again after it.
 var out_fire := {}
+## Where build_room stands its room, found by the first shot that wants it.
+var _room_spot := Vector3i.ZERO
+var _room_found := false
 ## The cell of the sign written in front of the player (signs).
 var sign_cell := Vector3i.ZERO
 
@@ -1029,6 +1032,40 @@ func furniture(w, at: Vector3) -> Vector3:
 	for dx in range(-16, 17, 8):
 		main.chunks.on_cell_changed(a + Vector3i(dx, 0, 2))
 	return (Vector3(spot) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
+## A room's corner for the build mode's touch shots (2026-11-26) on flat ground near `at`:
+## a floor of planks 9×7 with the air over it cleared, a brick wall three high along its
+## north side and another along its west side, no trees or bushes round. Returns where
+## the player stands: in the room's south-east corner, so a thing pressed by either wall
+## is pressed from aside.
+func build_room(w, at: Vector3) -> Vector3:
+	# Found once a run: built over, the ground there is no longer the flat found first.
+	if not _room_found:
+		_room_spot = Vector3i((flat_near(w, at) / CELL).floor())
+		_room_found = true
+	var spot := _room_spot
+	var planks: int = maxi(Mat.index("materials:planks"), Mat.STONE)
+	var brick: int = maxi(Mat.index("materials:brick"), Mat.STONE)
+	var a := spot + Vector3i(-6, 0, -7)
+	for x in range(a.x - 1, a.x + 10):
+		for z in range(a.z - 1, a.z + 8):
+			w.set_cell(x, a.y - 1, z, planks)
+			for y in range(a.y, a.y + 5):
+				if (z == a.z - 1 or x == a.x - 1) and y < a.y + 3:
+					w.set_cell(x, y, z, brick)
+				elif w.get_cell(x, y, z) != Mat.AIR:
+					w.set_cell(x, y, z, Mat.AIR)
+	for key: Vector2i in w.trees.keys():
+		if absi(key.x - a.x - 4) < 24 and key.y - a.z > -30 and key.y - a.z < 24:
+			w.remove_tree(key.x, key.y)
+	for c: Vector3i in w.bushes.keys():
+		if absi(c.x - a.x - 4) <= 16 and c.z - a.z >= -12 and c.z - a.z <= 14:
+			w.remove_bush(c)
+	for dx in range(-24, 25, 8):
+		for dz in range(-24, 17, 8):
+			main.chunks.on_cell_changed(a + Vector3i(4 + dx, 0, 3 + dz))
+	return (Vector3(a + Vector3i(7, 0, 6)) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
 ## The blueprint on flat ground near `at` (Plans): a room of planks 7×6 three levels high

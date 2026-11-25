@@ -189,7 +189,9 @@ lies around. The rules are shared (the server checks them), input and hints are 
   mouse presses over a surface (2026-11-26), hanging in the air (`Props.hold_new`, `_drag_new`) over the place
   aimed at (`Placed.put_spot`, as the server will look for it, turned best: a door or window in the plane of
   its wall by the face pressed, `face_of`, furniture with its back to a wall), its cells shown red only where
-  it does not fit (2026-11-23: no body over a thing that fits); it follows the finger and is set down where it
+  it does not fit (2026-11-23: no body over a thing that fits; a door or a window held into a wall hangs
+  `WALL_OUT` before its face, toward its front, `out_of_wall`: in the wall the blocks it will cut would hide
+  it); it follows the finger and is set down where it
   is let go (a stroke with `put`; `PROP_PUT_AT` with the face, `Placed.put_at`: a door or window pressed on the
   side of a wall with no opening knocks the blocks out, they fall as if dug; blocks below the level of the
   player's feet are not knocked out, so a door on the floor stands on the floor); on a touch screen the place

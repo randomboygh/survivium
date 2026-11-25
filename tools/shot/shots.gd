@@ -299,6 +299,29 @@ const SHOTS := {
 		"hold_new": ["tools:table", Vector3i(2, 0, 2), true]},
 	"build-hold-bad": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "stroke": false,
 		"hold_new": ["tools:table", Vector3i(2, 0, 2), false]},
+	# A finger pressed on a phone in a room's corner (places.build_room) with a thing of the
+	# bag chosen (2026-11-26): the thing shows at once, held BuildMode.FINGER_LIFT over the
+	# finger with a thin line down to it; a door and a window pressed on a wall from aside
+	# stand in its plane, a bed and a chair pressed by a wall have their backs to it.
+	"build-lift-table": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:table", Vector3(-2.5, 0.0, -2.5)]},
+	"build-lift-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:door", Vector3(-5.5, 0.6, -5.98)]},
+	"build-lift-window": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:window", Vector3(-3.5, 1.5, -5.98)]},
+	# A door pressed on the west wall's face, the view turned to see it (a step to the left).
+	"build-lift-door-west": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "turn": 1, "press": ["tools:door", Vector3(-6.98, 0.6, -4.5)]},
+	"build-lift-bed": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:wooden_bed", Vector3(-1.5, 0.0, -5.5)]},
+	"build-lift-chair": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "press": ["tools:wooden_chair", Vector3(-6.5, 0.0, -1.5)]},
+	# The ghost of lone stairs rising away from the player (north), then tapped twice: turned
+	# a quarter (Plans.turn_form); the panel has no turn button (2026-11-26).
+	"build-lone-stairs": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2]},
+	"build-lone-stairs-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2], "double_tap": true},
 	"build-mode-erase": {"time": 0.4, "season": 1, "plan": true, "build_mode": "erase"},
 	"build-mode-cube": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "cube"},
 	"build-mode-interior": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "filter": "interior"},
