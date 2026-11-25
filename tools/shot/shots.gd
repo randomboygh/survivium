@@ -301,7 +301,7 @@ const SHOTS := {
 		"hold_new": ["tools:table", Vector3i(2, 0, 2), false]},
 	# A finger pressed on a phone in a room's corner (places.build_room) with a thing of the
 	# bag chosen (2026-11-26): the thing shows at once, held BuildMode.FINGER_LIFT over the
-	# finger with a thin line down to it; a door and a window pressed on a wall from aside
+	# finger; a door and a window pressed on a wall from aside
 	# stand in its plane, a bed and a chair pressed by a wall have their backs to it.
 	"build-lift-table": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "press": ["tools:table", Vector3(-2.5, 0.0, -2.5)]},

@@ -126,5 +126,4 @@ Part of [Interface and settings](../ui.md). The HUD and the windows opened in th
   dreams meanwhile, `CameraRig.dream`: grade.gdshader `dream` makes bright things glow, sinks the colours
   halfway into a pale blue, darkens it towards a deep blue, blurs and darkens the edges, the middle sharp; it eases in over `DREAM_IN` seconds
   and out over `DREAM_OUT`; the moon «Go to sleep» —
-  on the HUD's clock), `body_feedback.gd`, `hotbar_snow.gd` (snow settling on the hotbar's top edge, `AirEffects.hotbar_snow`), `sound_marks.gd` (marks of sounds' directions), `vibration.gd`, `haptics.gd` (what the phone buzzes for: `docs/systems/character.md`). `lift_line.gd`: the thin pixel line from the finger up to a thing the build mode holds over it on a touch
-  screen (`BuildMode.FINGER_LIFT`), under the rest of the interface.
+  on the HUD's clock), `body_feedback.gd`, `hotbar_snow.gd` (snow settling on the hotbar's top edge, `AirEffects.hotbar_snow`), `sound_marks.gd` (marks of sounds' directions), `vibration.gd`, `haptics.gd` (what the phone buzzes for: `docs/systems/character.md`).

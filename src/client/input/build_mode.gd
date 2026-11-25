@@ -18,8 +18,9 @@ extends "res://src/client/input/work_mode.gd"
 ## shows at once where the finger or the mouse presses, follows it while held, and is set
 ## down where it is let go (the user's picks, 2026-11-26), turned as Placed.put_spot finds
 ## best (a door in the plane of its wall, furniture with its back to one). On a touch
-## screen a thing is held FINGER_LIFT over the finger, a thin line down to it (LiftLine),
-## so the finger does not hide it; a short buzz tells it is taken up (Vibration "lift").
+## screen a thing is held FINGER_LIFT over the finger, so the finger does not hide it (no
+## line drawn to it: the user's pick, 2026-11-26); a short buzz tells it is taken up
+## (Vibration "lift").
 ## A slope or stairs drawn in one column rise away from the player; a double tap on the
 ## ghost of one turns it (Plans.turn_form; the panel has no turn button since 2026-11-26,
 ## the key Y still turns the next ones). Leaving gives the hands back what they held before.
@@ -53,10 +54,10 @@ const HOLD_MS := 280
 ## share of the screen's shorter side.
 const DRAG_SHARE := 0.025
 ## How far over the finger a thing is held on a touch screen, in UI pixels at the size of
-## the touch controls (HudLayout.touch_px: a phone's shorter side is 400 of them, so 60 are
-## about a centimetre; the user's pick, 2026-11-26: a little under 1.3 cm). A mouse points
-## at the place itself.
-const FINGER_LIFT := 60.0
+## the touch controls (HudLayout.touch_px: a phone's shorter side is 400 of them, so 40 are
+## about 0.7 cm; the user's picks, 2026-11-26: a little under 1.3 cm, then less than 1 cm).
+## A mouse points at the place itself.
+const FINGER_LIFT := 40.0
 ## A second tap on the ghost of a slope or stairs within this many ms of the first turns
 ## them (Plans.turn_form); a single tap there draws nothing.
 const GHOST_TAP_MS := 400
@@ -152,7 +153,6 @@ func _show(shown: bool) -> void:
 func _left() -> void:
 	_take_waiting()
 	_ghost_wait = {}
-	_hide_lift()
 	game.props.drop_new()
 	if not _dragged.is_empty():
 		game.props.settle(_dragged)
@@ -297,14 +297,12 @@ func update(delta: float) -> void:
 		# A thing new from the bag held up with no stroke on it any more goes.
 		game.cursor.show_boxes([], [])
 		game.props.drop_new()
-		_hide_lift()
 	if not _dragged.is_empty() and not is_same(game.controls.dragging().get("prop"), _dragged):
 		# Held up with no finger or button on it any more (its stroke went another way):
 		# it drops back where it stands, never left hanging in the air.
 		game.cursor.show_boxes([], [])
 		game.props.settle(_dragged)
 		_dragged = {}
-		_hide_lift()
 	if not on or not auto:
 		return
 	_check_clock -= delta
@@ -478,18 +476,6 @@ func _lifted(pos: Vector2) -> Vector2:
 	return Vector2(pos.x, maxf(0.0, pos.y - game.hud.touch_px(FINGER_LIFT)))
 
 
-## The thin line from the finger at screen point `pos` up to where the thing it holds is
-## aimed (LiftLine), on a touch screen only.
-func _show_lift(pos: Vector2) -> void:
-	if game.controls.touch and game.hud.lift_line != null:
-		game.hud.lift_line.show_line(pos, _lifted(pos))
-
-
-func _hide_lift() -> void:
-	if game.hud != null and game.hud.lift_line != null:
-		game.hud.lift_line.hide_line()
-
-
 ## The side (Placed.SIDES index) the face of hit `hit` (VoxelRaycast.cast) looks toward: a
 ## wall's face, which a door or a window set into it lies along (Placed.plane_turn); -1 for
 ## a top or a bottom.
@@ -618,7 +604,6 @@ func drag(s: Dictionary) -> void:
 		# A short buzz: it is taken up (the user's pick, 2026-11-26).
 		Vibration.play(game, "lift")
 		changed.emit()
-	_show_lift(s.pos)
 	var on_it: Variant = game.controls.on_plane(_lifted(s.pos), e.cell, Vector3i.UP)
 	if on_it == null:
 		return
@@ -651,7 +636,6 @@ func _drag_new(s: Dictionary) -> void:
 	if not s.get("lifted", false) and _lift_due(s):
 		s.lifted = true
 		Vibration.play(game, "lift")
-	_show_lift(s.pos)
 	if not s.get("led", false) and s.pos.distance_to(s.from) >= _slop():
 		s.led = true
 	var hit: Dictionary = _aimed(s.pos) if s.get("led", false) and game.get_viewport().get_visible_rect().has_point(s.pos) else {}
@@ -709,7 +693,6 @@ func release(s: Dictionary) -> void:
 		s.up = false
 		game.props.drop_new()
 		game.cursor.show_boxes([], [])
-		_hide_lift()
 		game.land.expect_post(s.put)
 		game.net.request(Protocol.PROP_PUT_AT, [s.put, s.aim, s.turn, s.kept, int(s.get("face", -1))])
 		if was_up:
@@ -717,7 +700,6 @@ func release(s: Dictionary) -> void:
 		return
 	var e: Dictionary = s.prop
 	_dragged = {}
-	_hide_lift()
 	if not s.moved:
 		_tap_wait = {"cell": e.cell, "ms": Time.get_ticks_msec()}
 		return

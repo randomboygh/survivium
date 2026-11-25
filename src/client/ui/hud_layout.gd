@@ -60,7 +60,7 @@ func fit(rect: Rect2, turning := false, screen := Vector2.ZERO) -> void:
 
 ## Screen pixels of `ui` UI pixels at the size of the touch controls: the screen's shorter
 ## side over TARGET_SIDE on a phone or a tablet, whatever the interface size setting, so a
-## finger's breadth (BuildMode.FINGER_LIFT) is about the same on every phone.
+## lift over the finger (BuildMode.FINGER_LIFT) is about the same on every phone.
 func touch_px(ui: float) -> float:
 	return ui * _screen_scale
 

@@ -1365,8 +1365,8 @@ func _run() -> void:
 				# A finger pressed on a touch screen with a thing of the bag chosen (2026-11-26):
 				# [item, the world point aimed at from the feet, in cells]. The finger goes
 				# BuildMode.FINGER_LIFT under that point, so the thing shows there as in the
-				# game, over the finger with the line down to it (BuildMode.start_stroke,
-				# _drag_new); it is let go after the shot without setting it down.
+				# game, over the finger (BuildMode.start_stroke, _drag_new); it is let go after
+				# the shot without setting it down.
 				if inv.count(shot.press[0]) == 0:
 					if inv.room_for(shot.press[0]) == 0:
 						# A slot for it: the bag of a run of shots is full by now.
@@ -2280,7 +2280,6 @@ func _lift_finger() -> void:
 	main.controls._stroke = {}
 	main.props.drop_new()
 	main.cursor.show_boxes([], [])
-	main.build._hide_lift()
 	_finger(false, _finger_at)
 	for i in 3:
 		await process_frame

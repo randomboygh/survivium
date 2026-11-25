@@ -195,13 +195,13 @@ lies around. The rules are shared (the server checks them), input and hints are 
   is let go (a stroke with `put`; `PROP_PUT_AT` with the face, `Placed.put_at`: a door or window pressed on the
   side of a wall with no opening knocks the blocks out, they fall as if dug; blocks below the level of the
   player's feet are not knocked out, so a door on the floor stands on the floor); on a touch screen the place
-  aimed at is `FINGER_LIFT` over the finger (`_lifted`, `HudLayout.touch_px`: about a centimetre), a thin line
-  from the finger up to it (`lift_line.gd`, `_show_lift`), and once held `HOLD_MS` (or moved `_slop`, a
+  aimed at is `FINGER_LIFT` over the finger (`_lifted`, `HudLayout.touch_px`: about 0.7 cm; no line is drawn
+  to it, the user's pick of 2026-11-26), and once held `HOLD_MS` (or moved `_slop`, a
   `DRAG_SHARE` of the screen) a short buzz tells it is taken up (`Vibration` «lift»); a touch of a placed thing
   takes it back after `DOUBLE_TAP_MS` (`_tap_wait`; a second tap within that time turns it a quarter where it stands; only in this mode); a thing that moves (`Placed.movable`: a station, a chest,
   furniture, a sign, a fireplace) held the same way hangs in the air (a stroke with `prop`: `drag` each frame
   — the model is held up `Props.LIFT` over the free place nearest the place aimed at, on a touch screen
-  `FINGER_LIFT` over the finger with the line and the «lift» buzz as for a new thing, `Placed.move_spot` as the
+  `FINGER_LIFT` over the finger with the «lift» buzz as for a new thing, `Placed.move_spot` as the
   server looks for it, its cells red where it does not fit; `release` — `PROP_MOVE`, `Placed.move`, or the model
   drops back, `Props.settle`); a double tap turns a thing (`turn_thing`) and keeps that turn for its kind
   (`kept_turns`): the next ones are set down turned so (`PROP_PUT_AT` with `true`, `Placed.put_spot` `kept`)
