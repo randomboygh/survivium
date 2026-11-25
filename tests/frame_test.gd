@@ -161,6 +161,7 @@ func _run() -> void:
 		return main.chunks.map_done)
 	_key(KEY_D, false)
 	_key(KEY_A, false)
+	print("DBG after walk ", main.player.position, " start ", start)
 	_check(main.chunks.map_done, "the chunks around stream in")
 	_check(moved > 4.0, "the player walked while the map streamed (%.1f units away at most)" % moved)
 
@@ -254,6 +255,7 @@ func _run() -> void:
 	# They are let past the frame limit as events, but must stay under a chunk.
 	main.player.position = ShotPlaces.cave(w, main.player.position)
 	main.player.body.on_ground = false
+	print("DBG cave ", main.player.position, " chunks ", main.chunks.chunk_nodes.size())
 	await _scenario(LANDING, 100000, func(_i: int) -> bool:
 		return main.player.body.on_ground and clock >= 1.0, LANDING_EVENTS)
 	# Cut, or in layers (the default «Вид в пещере»).
@@ -394,6 +396,7 @@ func _run() -> void:
 	_check(all_dug, "the pickaxe digs the stone placed")
 	_check(inv.count("resources:stone") >= stone_before - placed + laid.size() - 2, "what is dug beside the player flies into the bag")
 	# Back on the surface, where the ground in front is soil.
+	print("DBG before surface ", main.player.position, " chunks ", main.chunks.chunk_nodes.size(), " home ", main.chunks._player_chunk())
 	main.player.position = start
 	await _scenario("back to the surface", 100000, func(_i: int) -> bool: return main.player.body.on_ground and clock >= 0.5)
 	# Grass in front cut with the scythe held in the right hand: fibre falls and flies
