@@ -138,7 +138,7 @@ func _make_panel(panel: HBoxContainer) -> void:
 	# The eyedropper beside the eraser (the user's pick, 2026-11-26, 1А).
 	var marks := TabRow.split([
 		[UiStyle.icon("build_pick"), "", func() -> void: game.build.set_picking(not game.build.picking)],
-		[UiStyle.icon("build_draw"), "", func() -> void: game.build.set_erasing(not game.build.erasing)],
+		[UiStyle.icon("build_draw"), "", func() -> void: game.build.next_mode()],
 		[UiStyle.icon("trash"), "[remove_all_blueprints_nearby_press]", _tap_clear],
 	])
 	_pick = marks.get_child(0)
@@ -309,9 +309,12 @@ func _show_panel() -> void:
 	_number(_thick, b.thick, b.kind in ["plane", "flatten"])
 	_height.tooltip_text = Lang.f("[height_floor_walls_cube_with]", [
 		b.heights.plane, b.heights.line, b.heights.cube])
-	_mode.icon = UiStyle.centred(UiStyle.icon("build_erase" if b.erasing else "build_draw"))
-	_mode.tooltip_text = "[erasing_the_blueprint_press_to]" if b.erasing else "[drawing_the_blueprint_press_to]"
-	TabRow.light(_mode, b.erasing, b.erasing)
+	# Drawing → erasing → replacing the material (the user's pick, 2026-11-26).
+	_mode.icon = UiStyle.centred(UiStyle.icon("build_replace" if b.replacing else "build_erase" if b.erasing
+		else "build_draw"))
+	_mode.tooltip_text = "[replacing_the_material_press_to]" if b.replacing else "[erasing_the_blueprint_press_to]" \
+		if b.erasing else "[drawing_the_blueprint_press_to]"
+	TabRow.light(_mode, b.erasing or b.replacing, b.erasing)
 	_pick.tooltip_text = "[tap_a_block_or_a_thing_to]" if b.picking else "[eyedropper_takes_a_block_or_a]"
 	TabRow.light(_pick, b.picking)
 	_light_clear(_clear, _asks.armed == _clear)

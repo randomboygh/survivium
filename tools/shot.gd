@@ -1298,10 +1298,17 @@ func _run() -> void:
 			main.build.form = shot.get("form", 0)
 			main.build.enter("materials:planks")
 			main.build.set_erasing(shot.build_mode == "erase")
+			if shot.build_mode == "replace":
+				# Drawing → erasing → replacing (the panel's button pressed twice).
+				main.build.next_mode()
+				main.build.next_mode()
 			var feet := Vector3i((main.player.position / CELL).floor())
 			var s := {"plan": main.build.kind, "first": feet + Vector3i(-6, 0, -9), "last": feet + Vector3i(-6, 0, -1)}
 			if shot.build_mode == "erase":
 				s = {"plan": "line", "first": feet + Vector3i(-5, 0, -9), "last": feet + Vector3i(0, 0, -9)}
+			elif shot.build_mode == "replace":
+				# Along the brick wall north of the room's corner (places.build_room).
+				s = {"plan": "line", "first": feet + Vector3i(-8, 0, -7), "last": feet + Vector3i(-2, 0, -7)}
 			elif main.build.kind in ["plane", "cube", "flatten"]:
 				# On the ground (a floor or a room stand on it), or the ground itself flattened.
 				var y := -1 if main.build.kind == "flatten" else 0
@@ -1328,6 +1335,9 @@ func _run() -> void:
 				await process_frame
 			if not shot.has("flights") and shot.get("stroke", true):
 				main.build.show_stroke(s)
+				# On a touch screen the cursor goes CURSOR_TIME after the last touch: kept here,
+				# as a finger held on would.
+				main.controls._cursor_clock = 1e9
 			if shot.has("hold_new"):
 				# A thing new from the bag held up where it goes (a stroke with "put", its finger
 				# off the screen): [item, from the feet, fits]; not fitting, its cells shown red.
@@ -1383,6 +1393,8 @@ func _run() -> void:
 					for f in 30:
 						await process_frame
 					print("pick: chosen %s, picking %s" % [main.build.chosen(), main.build.picking])
+			if shot.has("replace"):
+				await _replace_wall(shot.replace, s)
 			if shot.has("press"):
 				# A finger pressed on a touch screen with a thing of the bag chosen (2026-11-26):
 				# [item, the world point aimed at from the feet, in cells]. The finger goes
@@ -1410,7 +1422,7 @@ func _run() -> void:
 			if shot.has("opening"):
 				await _move_opening(shot.opening, feet)
 			if shot.has("press") or shot.has("lone") or shot.has("opening") or shot.has("ghosts") or shot.has("undo") or shot.has("need") \
-					or shot.has("pick"):
+					or shot.has("pick") or shot.has("replace"):
 				# The toasts of the recipes the things put into the bag taught, off the view.
 				main.hud._toasts.clear()
 				for i in 3:
@@ -2464,6 +2476,29 @@ func _need_wall(feet: Vector3i) -> void:
 	var r = main.net.request(load("res://src/shared/net/protocol.gd").PLAN, ["line", feet + Vector3i(1, 0, -6), feet + Vector3i(6, 0, -6), 3, 1, false, 0])
 	await _wait_ms(1200)
 	print("need: wall drawn %s, need %s, palette %s" % [r.value, main.build.need(), main.build.palette().slice(0, 6)])
+
+
+## Replacing the material (the building UX's PR 8): stroke `s` along the room's brick wall
+## sent with planks in hand ("marked": the wall's blocks become ghosts of planks); "built":
+## then its two lower rows swapped for planks, as the action button does (Plans.build), the
+## top row still a ghost.
+func _replace_wall(mode: String, s: Dictionary) -> void:
+	# The stroke's boxes of the shot before (kept on, see build_mode) off.
+	main.controls._cursor_clock = 0.0
+	main.cursor.show_boxes([], [])
+	var r = main.net.request(load("res://src/shared/net/protocol.gd").PLAN, [s.plan, s.first, s.last, 3, 1, false, 0,
+		false, true])
+	await _wait_ms(1200)
+	var plans = main.session.plans
+	if mode == "built":
+		var block := Mat.index("materials:planks")
+		for c: Vector3i in plans.cells.keys():
+			if c.y < s.first.y + 2:
+				main.session.actions.build_cell(c, block, plans.forms.get(c, 0))
+				plans.cells.erase(c)
+				plans.changed.emit([c], "")
+		await _wait_ms(1200)
+	print("replace: %s, sent %s, %d ghost cells" % [mode, r.value, plans.cells.size()])
 
 
 func _ghost_things(mode: String, feet: Vector3i) -> void:

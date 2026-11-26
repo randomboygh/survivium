@@ -310,15 +310,19 @@ static func within_reach(who, c: Vector3i) -> bool:
 ## the ghost off the box round it (`erase`, see erase_box); only where `who` may build
 ## and a block could go (fits: in the world, not this block already, open air or water,
 ## a floor's ground), by the rules over the world `actions` (WorldActions, which holds
-## the plans: passed, not kept, so the two make no cycle). Returns how many cells changed.
+## the plans: passed, not kept, so the two make no cycle). With `replace_it` the blocks
+## in the box are marked to be rebuilt of the block held instead (replace). Returns how
+## many cells changed.
 func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thick := 1, erase_it := false,
-		form := 0, level := false) -> int:
+		form := 0, level := false, replace_it := false) -> int:
 	var item: String = who.held()
 	if too_big(kind, a, b, height, thick):
 		who.nag("plan_big", "[the_blueprint_is_too_big]")
 		return 0
 	if not within_reach(who, a) or not within_reach(who, b):
 		return 0
+	if replace_it and not erase_it:
+		return replace(actions, who, kind, a, b, height, thick)
 	var p: Vector3 = who.position
 	if erase_it:
 		# The farming mode's marks stay; the ghost things in the box go with the blocks.
@@ -405,6 +409,77 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 	if not fill.is_empty():
 		changed.emit(fill, soil)
 	return added.size() + cut.size() + fill.size()
+
+
+## Replacing the material (the build mode's «заменить», the user's idea 6 and picks,
+## 2026-11-26): in the box round shape `kind` from `a` to `b` (erase_box) every block
+## players built of another material than the block `who` holds becomes a ghost cell of
+## that block, keeping its form (a slope stays a slope, turned as it was), and the ghost
+## blocks there of another material are repainted with it (their forms kept too); natural
+## ground, trees, the earth to dig or fill and the farming marks stay. Built by the action
+## button as any ghost (build), from the bottom: once the new block is in the bag the old
+## one is knocked out with the bag's best tool for it (into the bag, as dug) and the new
+## one put in its place in the same work, so no hole is left.
+## Only where `who` may build. How many cells changed.
+func replace(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thick := 1) -> int:
+	var item: String = who.held()
+	var block := Mat.index(Items.get_item(item).get("place", ""))
+	if block < 0:
+		who.nag("plan_block", "[choose_a_block_for_the]")
+		return 0
+	var p: Vector3 = who.position
+	var added: Array = []
+	var fresh := 0
+	var full := false
+	for c in erase_box(kind, a, b, height, Vector2(p.x, p.z), thick):
+		var was: String = cells.get(c, "")
+		if was == item or is_mark(was) or is_earth(was) or was != "" and not Items.get_item(was).has("place"):
+			continue
+		if was == "" and not replaceable(actions, c, block):
+			continue
+		if actions != null and not actions.territory_allows(who, c, "build"):
+			continue
+		if was == "":
+			if cells.size() + fresh >= MAX_CELLS:
+				full = true
+				break
+			fresh += 1
+		added.append(c)
+	if full:
+		who.nag("plan_full", "[too_many_blueprints]")
+	for c: Vector3i in added:
+		if not cells.has(c) and actions != null:
+			var f: int = actions.world.form_at(c.x, c.y, c.z)
+			if f != 0:
+				forms[c] = f
+			else:
+				forms.erase(c)
+		cells[c] = item
+	if not added.is_empty():
+		changed.emit(added, item)
+	return added.size()
+
+
+## Whether the block in cell `c` may be replaced by `block` (replace): one players built
+## (not natural ground, not a tree's), of another material, with no thing in its cell.
+func replaceable(actions, c: Vector3i, block: int) -> bool:
+	if actions == null or _thing_cells.has(c):
+		return false
+	var w = actions.world
+	if not w.in_bounds(c.x, c.y, c.z) or c.y < 1:
+		return false
+	var m: int = w.get_cell(c.x, c.y, c.z)
+	return m != Mat.AIR and m != Mat.WATER and m != Mat.LEAVES and m != block and not w.is_natural(c.x, c.y, c.z) \
+			and not w.blockers.has(c) and not w.ladders.has(c) and actions.tree_of(c) == null
+
+
+## Whether ghost block `item` at cell `c` stands where a block players built of another
+## material is to be dug out first (replace); soft ground (a built heap of earth) is not:
+## the new block takes its place at once, as a floor's (build).
+func _replaced(actions, c: Vector3i, item: String) -> bool:
+	var block := Mat.index(Items.get_item(item).get("place", ""))
+	return block >= 0 and replaceable(actions, c, block) \
+			and not _soft(actions.world.get_cell(c.x, c.y, c.z))
 
 
 ## The item of the soil a dip is filled with (flattening, earthwork): what dirt gives.
@@ -760,6 +835,8 @@ func build(actions, who) -> Dictionary:
 	# The cells to dig out: those to cut, and the figure's cells in natural ground a block
 	# cannot take the place of at once (see earthwork; soft ground it can, as a floor's).
 	var to_dig := {}
+	var swap := {}
+	var missing_tool := -1
 	for c in near(who):
 		var item: String = cells[c]
 		if item == CUT:
@@ -773,6 +850,10 @@ func build(actions, who) -> Dictionary:
 		if not free and who.inventory.count(item) == 0:
 			missing = item if missing == "" else missing
 			continue
+		if _replaced(actions, c, item):
+			# A block to replace is swapped for the new one in one work, in the order the
+			# ghost is built (from the bottom), only with the new one in the bag.
+			swap[c] = true
 		ready.append(c)
 	# What is to be dug out first, from the top; then the block in hand first.
 	ready.sort_custom(func(x: Vector3i, y: Vector3i) -> bool:
@@ -802,9 +883,15 @@ func build(actions, who) -> Dictionary:
 			changed.emit([c], "")
 			continue
 		var ground := _soft(m)
-		if not ground and m != Mat.AIR and m != Mat.WATER:
+		var swapped: bool = swap.has(c) and _replaced(actions, c, item)
+		if not ground and not swapped and m != Mat.AIR and m != Mat.WATER:
 			continue
-		if not ground and not actions.can_place(who, c, w.size_y):
+		if not ground and not swapped and not actions.can_place(who, c, w.size_y):
+			continue
+		# The old block of one replaced is knocked out with the bag's best tool for it.
+		var tool: Variant = best_tool(who, m) if swapped else null
+		if swapped and tool == null:
+			missing_tool = m if missing_tool < 0 else missing_tool
 			continue
 		if not actions.territory_allows(who, c, "build"):
 			continue
@@ -812,16 +899,23 @@ func build(actions, who) -> Dictionary:
 			return {"swing": actions.IDLE_SWING}
 		if not free:
 			who.inventory.remove(item, 1)
-		if ground:
-			var back: String = Mat.RECORDS[m].item
-			# The ground taken out is dug, so it is given back even when building is free.
+		if ground or swapped:
+			var back: String = Mat.RECORDS[m].item if ground else Items.dug[m]
+			# The ground taken out is dug, so it is given back even when building is free;
+			# the block replaced goes into the bag as dug.
 			if back != "":
 				who.inventory.add(back, 1)
+		var seconds := BUILD_SWING
+		if swapped:
+			seconds += actions.cell_swing(Tools.of(tool), c)
+			if tool != "" and actions.rules.tool_wear \
+					and who.inventory.wear_tool(tool, Items.get_item(tool).get("durability", 0)):
+				who.say(Lang.line("[broke]", [Items.title(tool)]))
 		var fresh: bool = actions.build_cell(c, block, form)
 		cells.erase(c)
 		forms.erase(c)
 		changed.emit([c], "")
-		var done: Dictionary = actions.work(actions.skilled(who, "build", BUILD_SWING, 1.0 if fresh else 0.0), "reach",
+		var done: Dictionary = actions.work(actions.skilled(who, "build", seconds, 1.0 if fresh else 0.0), "reach",
 			(Vector3(c) + Vector3(0.5, 0.5, 0.5)) * CELL, block)
 		done.placed = 1
 		return done
@@ -836,6 +930,8 @@ func build(actions, who) -> Dictionary:
 			return set_down
 	if missing != "":
 		who.nag("no_block", Lang.line("[not_in_the_bag]", [Items.title(missing)]))
+	elif missing_tool >= 0:
+		who.nag("tool", Tools.why_not(Tools.of(""), missing_tool))
 	else:
 		who.nag("plan_wait", "[blueprint_first_what_to_stand]")
 	return {"swing": actions.IDLE_SWING}
