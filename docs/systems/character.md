@@ -163,10 +163,9 @@ on cells (walking on slopes, jumps, water, ice, snow, wind); the player's sprite
   steps of `STEP_MOST` 0.05 s, so a fall never passes through a floor), slopes (the pace is along the ground: the run is shortened by the rise, `SLOPE_MOST`) and steps, water and
   swimming, the bark of a trunk thicker than its cell in the cells beside and across its corners
   (`WorldData._bark_touched`, an octagon as drawn), the trunk of a standing tree drawn as pictures (its cells stop
-  nothing: `_trunk_touched` holds the middle of the feet off an oval across the view, `view_up` = the client's
-  `PixelView.up`, as wide as the bark, its front at the drawn foot, reaching back from the camera; the server, with
-  no view, a circle round the axis inside it; one the camera's turn put inside walks out: `WorldData.trunk_hold`,
-  `TreeLooks.hold_of` from look.yaml `foot`, measured by `tools/tree_feet.py`), a plant that is `solid` (a cactus: a post `SOLID_HALF` cells
+  nothing: `_trunk_touched` holds the middle of the feet off a circle round the axis as wide as the bark, the same
+  on the server, and so does a stump, which can be stood on: a body coming down from above lands on it; one inside
+  walks out: `WorldData.trunk_hold`, `TreeLooks.hold_of` from look.yaml `foot`, measured by `tools/tree_feet.py`), a plant that is `solid` (a cactus: a post `SOLID_HALF` cells
   round its root where Foliage draws it and `SOLID_HIGH` levels high, not jumped over; `Grass.solid_plant` finds
   it; `_find_posts` gathers those within `POST_REACH` columns once the body has gone a cell or `POSTS_FRESH`
   steps, so `_collides` asks only of them; one the body stands in already (`_in_plant`) lets it walk out), a leaning ladder (`_climb`: the body in the cell of a link of `WorldData.ladders`, or above the top

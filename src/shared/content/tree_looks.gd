@@ -25,17 +25,12 @@ const RULES := {"fronds": FRONDS, "hanging": HANGING, "palms": PALMS}
 ## Growth.PIECE_LOG, PIECE_FALLEN, PIECE_BROKEN.
 const PIECES := ["log", "fallen", "broken"]
 
-## How far from a trunk's axis the middle of a body's feet is held (`hold`, Body): the
-## trunk is drawn round but flat, a foot `front` pixels deep under a bark `half width`
-## pixels to each side (look.yaml `foot`, measured by tools/tree_feet.py), the same from
-## every side the camera turns to. So a body is held off an oval lying across the view:
-## its feet come up to the foot's front with FEET_FRONT pixels of their own, beside it the
-## sprite keeps FEET_SIDE pixels from the bark's middle line, and the oval reaches back
-## away from the camera DEPTH of its width (behind the trunk a body stands off it, not in
-## its picture). Without a view (the server) a circle round the axis inside the oval.
-const FEET_FRONT := 2.0
+## How far from a trunk's axis the middle of a body's feet is held (`hold`, Body): a
+## circle round the axis, the trunk's own round foot (the bark's `half width` pixels, look.yaml
+## `foot`, measured by tools/tree_feet.py) and FEET_SIDE pixels of the feet's own; the same
+## from every side, on the server too, and for the stump it leaves (the user's ask,
+## 2026-11-26: the trunk and the stump hold a body off by the stump's shape).
 const FEET_SIDE := 3.0
-const DEPTH := 0.5
 ## Pixels of the pictures a cell (16 a world unit, a cell half a unit).
 const TEXELS_CELL := 8.0
 ## The widest hold of any look (cells), so a body looks for trunks only this far round.
@@ -49,8 +44,7 @@ static var hold_most := 0.0
 ## `rule` how its leaves are lit (MODULES, or as the file's `rule` says: RULES), each
 ## look {size, variant, x, y, w, h, ax, ay, trunk, crown: [x0, z0, nx, ny, nz],
 ## cells: PackedByteArray of nx * ny * nz bits, x fastest, then y, then z, hold: cells
-## from the trunk's axis a body's feet are held across and along the view (see
-## FEET_FRONT), foot: Vector2 (look.yaml
+## from the trunk's axis a body's feet are held (see FEET_SIDE), foot: Vector2 (look.yaml
 ## `foot`: the bark's half width and the foot's front, pixels)}, and for the seasons
 ## (TreeSprites, tree.gdshader): `dry` the 7 steps of the dry leaves a tree that keeps them
 ## shows in winter and `blossom` the 7 of its spring blossom ([] none), `snow` and
@@ -133,19 +127,15 @@ static func read(s: Dictionary) -> Dictionary:
 		var foot: Array = l.get("foot", [4.0, 1.0])
 		look.foot = Vector2(float(foot[0]), float(foot[1]))
 		look.hold = hold_of(look.foot)
-		hold_most = maxf(hold_most, maxf(look.hold.x, look.hold.y + look.hold.z))
+		hold_most = maxf(hold_most, look.hold)
 		out.looks.append(look)
 	return out
 
 
-## The hold (cells, see FEET_FRONT) of a look whose foot is `foot` (half width, front:
-## pixels): the oval's half across the view, its half along it, and how far its middle
-## lies behind the axis, away from the camera (its front edge FEET_FRONT before the foot's).
-static func hold_of(foot: Vector2) -> Vector3:
-	var across := (foot.x + FEET_SIDE) / TEXELS_CELL
-	var front := (foot.y + FEET_FRONT) / TEXELS_CELL
-	var half := maxf(front, DEPTH * across)
-	return Vector3(across, half, half - front)
+## The hold (cells, see FEET_SIDE) of a look whose foot is `foot` (half width, front:
+## pixels): the radius of the circle round the axis a body's feet keep out of.
+static func hold_of(foot: Vector2) -> float:
+	return (foot.x + FEET_SIDE) / TEXELS_CELL
 
 
 ## Whether the crown of `look` has a cell at x, y, z of the tree's own frame (cells east,

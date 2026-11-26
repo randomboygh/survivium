@@ -109,8 +109,27 @@ slice, to free the far meshes.
   (`Growth.stump_look`; TreeLooks `stumps`, `stump_frames`, `wood`: the approved stump at 3 sizes, 8 turns, summer
   and winter with snow on the cut; instance colour alpha `STUMP` / `STUMP_SNOW`, `tree.gdshader` `stump_colour`:
   bark as the trees', cut wood, snow and its outline 3 bits a sun); the chunk mesher leaves its log cell undrawn.
-  A standing tree that is a stump after a chunk's rebuild falls (`TreeHits.fall`, `tree.gdshader` `falls`): its
-  picture turns over about the stump's top away from the last blow in a second, bounces and fades out.
+  A standing tree that is a stump after a chunk's rebuild falls (`TreeHits.fall`, `tree.gdshader` `falls`): it
+  turns over about the stump's top away from the last blow in a second, bounces and fades out, its own MultiMesh
+  of `1 + 2 *` modules instances (colour blue + `FALL_MINE`; the chunk's copy at the same foot until rebuilt is
+  left out). Instance 0 draws the trunk and limbs (not leaves) turned on the screen in whole pixels: each pixel
+  finds its texel by three shears (Paeth) and whole quarters undone, then the rows' squash (`fall_turn`,
+  `fall_shear`, `FALL_ROOM`). The leaves fall as modules (the user's ask): pieces `FALL_MODULE` apart (`FALL_SHAPE`:
+  squares, bricks or clumps, the user's pick clumps of 24; `fall_owner` gives a texel's module, edges jagged by
+  `FALL_JAG`), each a billboard
+  never turned nor resized that hangs on at the middle of its own leaves (found in the vertex from the frames, so a
+  module the crown's edge cuts does not hang off), that point turned with the tree and kept on the ground: in each
+  row of modules the first down stays on the ground's line, the next rest on it (`FALL_PILE`); each module falls on
+  its own clock, up to `FALL_LAG / 2` before or after the trunk (`fall_angle` is `TreeHits.fall_at` again: keep the
+  two alike; the fall's seconds come in `fall_ways` z), so they do not land all at once; lying, a module reaches
+  back toward the stump no further than its lowest leaves came down along their arc and clears the stump's side
+  (`FALL_CLEAR`, the stump's half width from the picture's foot row): a billboard stands up, so it is carried on
+  the way it falls as it comes down, and its ring draws nothing further back (the user's ask: the crown lies only
+  the way it fell, from where its bottom comes down); empty modules are
+  not drawn; each module's ring (`FALL_OVERLAP`, drawn `FALL_RING_BACK` behind) fills the gaps as they move apart;
+  lower on the screen is in front (`FALL_ORDER`). The wood it leaves (`Props.show_drops`) waits until it lands (`TreeHits.landing`,
+  `DROPS_HOLD_MS` at most). A struck tree sheds leaves of its own shape and colours (`TreeHits.LEAF_SHAPES`,
+  `particle.gdshader` `frames`/`rows`).
 - Pieces of wood lying in the woods (`Growth.piece_look`): drawn as the stumps, instance colour alpha
   `TreeSprites.PIECE`; each of a piece's 16 views (8 turns, summer and winter) is cropped to itself (a fallen trunk
   seen end on is narrow), so its instance's custom data points to its table of views in the frames atlas (two
