@@ -16,8 +16,16 @@ uniform sampler2D shape : filter_nearest, hint_default_white SRGB_HINT;
 // World units a streak's top lies upwind of its foot per unit of height:
 // rain driven by the wind leans along its fall (see Effects.rain_lean).
 uniform vec2 lean = vec2(0.0);
+// A `shape` of `frames` pictures side by side and `rows` rows of them (falling leaves, each
+// turning over as it flutters down, TreeHits): row `row` drawn, each particle starting at a
+// frame of its own (its random animation offset) and going on `flips` frames over its life.
+uniform int frames = 1;
+uniform int rows = 1;
+uniform int row = 0;
+uniform float flips = 0.0;
 
 varying vec3 world_pos;
+varying flat float frame;
 
 void vertex() {
 	// Upright: turned to the camera about its origin.
@@ -25,6 +33,7 @@ void vertex() {
 	VERTEX.xz -= lean * (VERTEX.y - MODEL_MATRIX[3].y);
 	world_pos = VERTEX;
 	VERTEX = shear(stand_tall(VERTEX, MODEL_MATRIX[3].xyz));
+	frame = frames > 1 ? mod(floor(INSTANCE_CUSTOM.z * float(frames) + INSTANCE_CUSTOM.y * flips), float(frames)) : 0.0;
 }
 
 void fragment() {
@@ -34,7 +43,7 @@ void fragment() {
 	if (sky_only > 0.5 && roofed(world_pos.xz, world_pos.y)) {
 		discard;
 	}
-	vec4 s = texture(shape, UV);
+	vec4 s = texture(shape, (UV + vec2(frame, float(row))) / vec2(float(frames), float(rows)));
 	if (s.a < 0.5) {
 		discard;
 	}

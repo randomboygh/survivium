@@ -210,14 +210,10 @@ var _col := Vector2i(1 << 30, 0)
 ## as this step began (it grew there, or the body came down on it): it does not hold the
 ## body, which walks out of it; INF for none.
 var _in_plant := Vector3.INF
-## The posts of the plants that stop a body near it (_find_posts), in cells, their ids,
-## the cell they were found round and the steps since.
-## Which way the screen's up lies in the world (x, z) for the one who sees this body move
-## (the client's camera, PixelView.up), ZERO where none looks (the server): a trunk drawn
-## as pictures holds the body off an oval across the view (_trunk_touched).
-var view_up := Vector2.ZERO
 ## Where the step being taken began (cells), INF out of a step.
 var _from := Vector3.INF
+## The posts of the plants that stop a body near it (_find_posts), in cells, their ids,
+## the cell they were found round and the steps since.
 var _posts: Array[AABB] = []
 var _post_ids: Array[String] = []
 var _posts_at := Vector3i(1 << 30, 0, 0)
@@ -810,11 +806,11 @@ func _collides(p: Vector3) -> bool:
 	return not plant.is_empty() and plant[1] != _in_plant
 
 
-## Whether the middle of the feet at `p` (cells) is in the oval a pictured tree's trunk
-## holds a body off (WorldData.trunk_hold: across view_up, reaching back away from the
-## camera; a circle round the axis without a view), at a level of the body's the trunk's cells are at: the trunk as
-## it is drawn, not the cells it takes. A body in an oval already (the camera turned the
-## oval onto it) is only kept from going deeper in.
+## Whether the middle of the feet at `p` (cells) is in the circle a pictured tree's trunk,
+## or the stump it left, holds a body off (WorldData.trunk_hold), at a level of the body's
+## the trunk's cells are at: the trunk as it is drawn, round, not the square cells it takes.
+## A body in a circle already, beside it (one grown or uprooted there), is only kept from
+## going deeper in; one coming down from over it (onto a stump) stands on its top.
 func _trunk_touched(p: Vector3) -> bool:
 	var r := TreeLooks.hold_most
 	var lo := maxi(0, floori(p.y + 0.001))
@@ -822,15 +818,24 @@ func _trunk_touched(p: Vector3) -> bool:
 	if hi < lo:
 		return false
 	var levels: int = (-1 << lo) & ~(-2 << hi)
+	var was := 0
+	if _from.is_finite():
+		var flo := maxi(0, floori(_from.y + 0.001))
+		var fhi := mini(world.size_y - 1, floori(_from.y + HEIGHT))
+		was = (-1 << flo) & ~(-2 << fhi) if fhi >= flo else 0
 	for z in range(floori(p.z - r - 0.5), floori(p.z + r - 0.5) + 1):
 		for x in range(floori(p.x - r - 0.5), floori(p.x + r - 0.5) + 1):
-			if world.log_col(x, z) & levels == 0:
+			var logs: int = world.log_col(x, z)
+			if logs & levels == 0:
 				continue
-			var hold: Vector3 = world.trunk_hold(Vector2i(x, z))
-			if hold == Vector3.ZERO:
+			var hold: float = world.trunk_hold(Vector2i(x, z))
+			if hold <= 0.0:
 				continue
-			var depth := _in_oval(Vector2(p.x - x - 0.5, p.z - z - 0.5), hold)
-			if depth < 1.0 and (not _from.is_finite() or depth < _in_oval(Vector2(_from.x - x - 0.5, _from.z - z - 0.5), hold) - 0.0001):
+			var depth := Vector2(p.x - x - 0.5, p.z - z - 0.5).length() / hold
+			if depth >= 1.0:
+				continue
+			if not _from.is_finite() or logs & was == 0 \
+					or depth < Vector2(_from.x - x - 0.5, _from.z - z - 0.5).length() / hold - 0.0001:
 				return true
 	return false
 
@@ -869,18 +874,6 @@ func _piece_touched(p: Vector3) -> bool:
 ## limbs of its crown beyond it are walked through).
 const PIECE_HOLD := 0.9
 const PIECE_TRUNK := 0.75
-
-
-## How far in the oval `hold` (TreeLooks.hold_of) offset `d` from the trunk's axis lies:
-## under 1 inside, 0 at its middle. Without a view, in a circle round the axis as far as
-## the oval's front (the server lets through all a client's view does).
-func _in_oval(d: Vector2, hold: Vector3) -> float:
-	if view_up == Vector2.ZERO:
-		var r := minf(hold.x, hold.y - hold.z)
-		return d.length_squared() / (r * r)
-	var across := d.dot(Vector2(-view_up.y, view_up.x)) / hold.x
-	var along := (d.dot(view_up) - hold.z) / hold.y
-	return across * across + along * along
 
 
 ## The plant that stops a body (Grass.solid_plant: a cactus) the body with its feet at

@@ -419,8 +419,6 @@ func _animate(dir: Vector2, speed: float, delta: float) -> void:
 ## picks its animation for the pace it went at.
 func step(delta: float, jump: bool) -> void:
 	var from := position
-	# Trunks drawn as pictures hold the body off as they are drawn in this view.
-	body.view_up = PixelView.up
 	position = body.step(position, delta, jump)
 	var went := Vector2(position.x - from.x, position.z - from.z) / CELL
 	_animate(body.move_input.limit_length(1.0), went.length() / maxf(delta, 0.001), delta)

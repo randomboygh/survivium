@@ -33,7 +33,7 @@ const SHAKE_TIME := 0.8
 ## Leaves off a crown in full leaf at one blow, more in autumn; a conifer drops a few
 ## needles. Their flight (seconds), their pull down (less the air's hold, damping) and
 ## how hard they leave the crown.
-const LEAVES_MOST := 20
+const LEAVES_MOST := 14
 const AUTUMN_MORE := 1.6
 const NEEDLES_SHARE := 0.4
 const LEAF_TIME := 3.2
@@ -41,6 +41,28 @@ const LEAF_FALL := 1.0
 const LEAF_PUSH := Vector2(0.15, 0.6)
 const LEAF_CURVE := 0.8
 const LEAF_EMITTERS := 3
+## A leaf off the axe is drawn LEAF_PX pixels across in the tree's own leaf colours (the
+## user's ask, 2026-11-26: bigger, the tree's own leaves), turning over as it falls: a frame
+## of LEAF_SHAPES each (a row a kind: broad leaves, needles; `#` the leaf, `v` its midrib or
+## shaded half, `o` its lit edge), LEAF_FLIPS frames over its flight.
+const LEAF_PX := 5
+const LEAF_FLIPS := 9.0
+const LEAF_SHAPES := [
+	[
+		[".....", ".oo#.", "o###v", ".##v.", "....."],
+		[".....", "..o#.", ".o#v.", ".#v..", "....."],
+		[".....", ".....", ".o##v", ".....", "....."],
+		[".....", ".##v.", "#vvv.", ".vv#.", "....."],
+	],
+	[
+		[".....", ".....", ".##v.", ".....", "....."],
+		[".....", "...#.", "..#..", ".v...", "....."],
+		[".....", "..#..", "..#..", "..v..", "....."],
+		[".....", ".#...", "..#..", "...v.", "....."],
+	],
+]
+## How light each mark of LEAF_SHAPES is drawn, times the leaf's colour.
+const LEAF_TONES := {"#": 0.9, "v": 0.7, "o": 1.0}
 ## How far round its trunk a crown is looked for (cells, each way).
 const CROWN_REACH := 6
 ## A felled tree drawn as a picture falls (decision 4А of the trees' redraw: away from the
@@ -53,6 +75,11 @@ const FALL_ANGLE := PI / 2.0
 const FALL_BOUNCE := 0.06
 const BOUNCE_TIME := 0.25
 const FADE_TIME := 0.4
+## How far apart the modules the crown of a falling tree is cut into are (pixels,
+## tree.gdshader's FALL_MODULE).
+const FALL_MODULE := 24.0
+## Added to a falling tree's COLOR.b (tree.gdshader FALL_MINE).
+const FALL_MINE := 512.0
 
 var game
 var fx
@@ -63,7 +90,7 @@ var _shaking := []
 ## Whether the material was last left with a shake on it.
 var _set := false
 var _emitters: Array[CPUParticles3D] = []
-## [node, foot, way (x, z), seconds since] of the trees falling.
+## [node, foot, way (x, z), seconds since, landed yet, column] of the trees falling.
 var _falling := []
 ## Column -> where the last blow on its trunk was struck from (the way it falls, `fall`).
 var _struck := {}
@@ -100,13 +127,21 @@ func fall(col: Vector2i, data: PackedFloat32Array) -> void:
 		way = Vector2.from_angle(float(hash(col) % 628) / 100.0)
 	var node := Foliage.multimesh(game.tree_mesh, game.tree_mat, true, true)
 	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	node.multimesh.instance_count = 1
-	node.multimesh.buffer = data
+	# The trunk, then the crown's modules and their rings (tree.gdshader FALL_MODULE: a grid
+	# one module wider all round), all of the same picture.
+	var tiles := (ceili(data[18] / FALL_MODULE) + 2) * (ceili(data[19] / FALL_MODULE) + 2)
+	node.multimesh.instance_count = 1 + 2 * tiles
+	var all := PackedFloat32Array()
+	var mine := data.slice(0, 20)
+	mine[14] += FALL_MINE
+	for i in 1 + 2 * tiles:
+		all.append_array(mine)
+	node.multimesh.buffer = all
 	# Lying, it reaches as far as it stood high.
 	var r := 16.0
 	node.custom_aabb = AABB(foot + Vector3(-r, -1.0, -r), Vector3(2.0 * r, r, 2.0 * r))
 	game.world_root.add_child(node)
-	_falling.append([node, foot, way.normalized(), 0.0])
+	_falling.append([node, foot, way.normalized(), 0.0, false, col])
 
 
 ## The fall's turn (radians) and fade (0..1) `t` seconds after it began.
@@ -124,6 +159,25 @@ func _end_fall(i: int) -> void:
 	var f: Array = _falling[i]
 	f[0].queue_free()
 	_falling.remove_at(i)
+	if not f[4]:
+		_landed()
+
+
+## Whether what lies in chunk `key` waits for a tree falling there to land (Props.show_drops):
+## the logs, twigs and seeds a felled tree leaves come down as it hits the ground, not as it
+## is cut (the user's ask, 2026-11-26).
+func landing(key: Vector2i) -> bool:
+	for f: Array in _falling:
+		var at: Vector2i = f[5]
+		if not f[4] and absi((at.x >> WorldData.SHIFT) - key.x) <= 2 and absi((at.y >> WorldData.SHIFT) - key.y) <= 2:
+			return true
+	return false
+
+
+## A falling tree hit the ground: what waited for it is drawn.
+func _landed() -> void:
+	if game.get("props") != null:
+		game.props.drops_rebuilt()
 
 
 func _process_falls(delta: float) -> void:
@@ -137,6 +191,9 @@ func _process_falls(delta: float) -> void:
 		_falling[i][3] += delta
 		if _falling[i][3] >= FALL_TIME + BOUNCE_TIME + FADE_TIME:
 			_end_fall(i)
+		elif _falling[i][3] >= FALL_TIME and not _falling[i][4]:
+			_falling[i][4] = true
+			_landed()
 	for i in _falling.size():
 		var f: Array = _falling[i]
 		var at := fall_at(f[3])
@@ -258,17 +315,26 @@ func _drop_leaves(col: Vector2i, species: int) -> void:
 	var n := roundi(LEAVES_MOST * amount)
 	if n < 1:
 		return
-	# The colour of the crown (Foliage, leaves.gdshader): the tree's tint by the season,
-	# toned toward grey as the leaves are.
-	var tints: Array = looks.tints
-	var c: Color = tints[hash(col) % tints.size()]
+	# The colours of the tree's own leaves (its pictures' leaf steps, the middle three; else
+	# its tint, Foliage), by the season as its crown (sky.foliage, tree.gdshader).
 	var f: Vector3 = sky.foliage
-	c = Color(c.r * f.x, c.g * f.y, c.b * f.z)
-	var grey := c.r * 0.3 + c.g * 0.55 + c.b * 0.15
-	c = Color(grey, grey, grey).lerp(c, 0.6)
+	var colours := []
+	var pics: Dictionary = looks.get("pictures", {})
+	if not pics.is_empty() and pics.get("leaves", []).size() >= 6:
+		for k in [3, 4, 5]:
+			colours.append(pics.leaves[k])
+	else:
+		var tints: Array = looks.tints
+		var c: Color = tints[hash(col) % tints.size()]
+		colours = [c.darkened(0.2), c, c.lightened(0.2)]
+	for i in colours.size():
+		var c: Color = colours[i]
+		colours[i] = Color(c.r * f.x, c.g * f.y, c.b * f.z)
 	var p := _emitter()
 	p.amount = n
-	p.color_ramp = fx._ramp([c.lightened(0.25), c, c.darkened(0.3)])
+	p.color_initial_ramp = fx._ramp(colours)
+	var mat := (p.mesh as QuadMesh).material as ShaderMaterial
+	mat.set_shader_parameter("row", 1 if needles or looks.leaves == Trees.NEEDLES else 0)
 	# Off the lower half of the crown at its edge toward the camera, drifting out toward
 	# it, so they are seen falling, not hidden behind the leaves.
 	var toward := -PixelView.up
@@ -278,13 +344,13 @@ func _drop_leaves(col: Vector2i, species: int) -> void:
 	p.emission_box_extents = Vector3((x1 - x0) * 0.35, (high + 1 - low) * 0.2, 0.1) * CELL
 	p.direction = Vector3(toward.x, -0.5, toward.y)
 	var light := clampf(maxf(sky.sky_light, sky.flash), 0.12, 1.0)
-	((p.mesh as QuadMesh).material as ShaderMaterial).set_shader_parameter("light", light)
+	mat.set_shader_parameter("light", light)
 	p.restart()
 
 
 func _emitter() -> CPUParticles3D:
 	if _emitters.size() < LEAF_EMITTERS:
-		var e: CPUParticles3D = fx._emitter(LEAVES_MOST * 2, LEAF_TIME, Vector2(2.0 * PX, 2.0 * PX), 1.0)
+		var e: CPUParticles3D = fx._emitter(LEAVES_MOST * 2, LEAF_TIME, Vector2(LEAF_PX * PX, LEAF_PX * PX), 1.0)
 		fx.remove_child(e)
 		add_child(e)
 		e.one_shot = true
@@ -301,12 +367,39 @@ func _emitter() -> CPUParticles3D:
 		# Each one curves its own way as it flutters down.
 		e.tangential_accel_min = -LEAF_CURVE
 		e.tangential_accel_max = LEAF_CURVE
-		# A leaf two pixels across, now and then one.
-		e.scale_amount_min = 0.7
-		e.scale_amount_max = 1.0
-		(e.mesh as QuadMesh).material.set_shader_parameter("sky_only", 0.0)
+		# Each its own frame to start from as it turns over (particle.gdshader).
+		e.anim_offset_min = 0.0
+		e.anim_offset_max = 1.0
+		var mat := (e.mesh as QuadMesh).material as ShaderMaterial
+		mat.set_shader_parameter("sky_only", 0.0)
+		mat.set_shader_parameter("shape", _leaf_shapes())
+		mat.set_shader_parameter("frames", LEAF_SHAPES[0].size())
+		mat.set_shader_parameter("rows", LEAF_SHAPES.size())
+		mat.set_shader_parameter("flips", LEAF_FLIPS)
 		_emitters.append(e)
 	var p := _emitters[_next]
 	_next = (_next + 1) % LEAF_EMITTERS
 	return p
 
+
+## The picture of LEAF_SHAPES: a row a kind, its frames side by side, grey by LEAF_TONES.
+static var _shapes: ImageTexture
+
+
+static func _leaf_shapes() -> ImageTexture:
+	if _shapes != null:
+		return _shapes
+	var frames: int = LEAF_SHAPES[0].size()
+	var img := Image.create_empty(frames * LEAF_PX, LEAF_SHAPES.size() * LEAF_PX, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	for r in LEAF_SHAPES.size():
+		for f in frames:
+			var rows: Array = LEAF_SHAPES[r][f]
+			for y in LEAF_PX:
+				for x in LEAF_PX:
+					var mark := str(rows[y])[x]
+					if LEAF_TONES.has(mark):
+						var t: float = LEAF_TONES[mark]
+						img.set_pixel(f * LEAF_PX + x, r * LEAF_PX + y, Color(t, t, t, 1.0))
+	_shapes = ImageTexture.create_from_image(img)
+	return _shapes

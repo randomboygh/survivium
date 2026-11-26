@@ -809,6 +809,13 @@ func show_drops(key: Vector2i, whole := false, came := false) -> void:
 		if Time.get_ticks_msec() - since < DROPS_HOLD_MS:
 			_drops_held[key] = since
 			return
+	# A felled tree's things wait for it to hit the ground (TreeHits.landing).
+	var trees = game.chunks.fx_trees()
+	if count > _drops_shown.get(key, 0) and trees != null and trees.landing(key):
+		var since: int = _drops_held.get(key, Time.get_ticks_msec())
+		if Time.get_ticks_msec() - since < DROPS_HOLD_MS:
+			_drops_held[key] = since
+			return
 	_drops_held.erase(key)
 	hide_drops(key)
 	if not game.chunks.chunk_nodes.has(key):

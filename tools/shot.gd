@@ -380,10 +380,6 @@ func _run() -> void:
 		if shot.has("walk_into"):
 			# The player walks into what stands that way (x east, y south) until it stops them.
 			var body = main.player.body
-			# As the camera the shot turns to sees it (Body.view_up).
-			var t: float = shot.get("turn", 0) * main.view.TURN_STEP
-			if "view_up" in body:
-				body.view_up = Vector2(-sin(t), -cos(t))
 			body.move_input = Vector2(shot.walk_into[0], shot.walk_into[1])
 			for i in 90:
 				main.player.position = body.step(main.player.position, 1.0 / 60.0, false)
@@ -2306,19 +2302,16 @@ func _draw_collision() -> void:
 						continue
 					var o := Vector3(x + u, 0.0, z + v) * CELL + Vector3(0.0, lift, 0.0)
 					_quad(st, o, CELL / n, CELL / n, Color(1.0, 0.1, 0.1, 0.9))
-	# The trunks drawn as pictures hold the middle of the feet off an oval round their axis
-	# (WorldData.trunk_hold, Body._trunk_touched).
+	# The trunks drawn as pictures, and their stumps, hold the middle of the feet off a circle
+	# round their axis (WorldData.trunk_hold, Body._trunk_touched).
 	for z in range(floori(p.z) - 40, floori(p.z) + 8):
 		for x in range(floori(p.x) - 6, floori(p.x) + 7):
-			var hold: Vector3 = w.trunk_hold(Vector2i(x, z)) if w.has_method("trunk_hold") else Vector3.ZERO
-			if hold == Vector3.ZERO:
+			var hold: float = w.trunk_hold(Vector2i(x, z)) if w.has_method("trunk_hold") else 0.0
+			if hold <= 0.0:
 				continue
-			var up: Vector2 = body.view_up if body.view_up != Vector2.ZERO else Vector2(0.0, -1.0)
-			var right := Vector2(-up.y, up.x)
-			var steps := maxi(16, ceili(hold.x * TAU * 8.0))
+			var steps := maxi(16, ceili(hold * TAU * 8.0))
 			for k in steps:
-				var a := TAU * k / steps
-				var d := right * cos(a) * hold.x + up * (sin(a) * hold.y + hold.z)
+				var d := Vector2.from_angle(TAU * k / steps) * hold
 				var o := Vector3(x + 0.5 + d.x - 0.5 / n, 0.0, z + 0.5 + d.y - 0.5 / n) * CELL
 				_quad(st, o + Vector3(0.0, lift, 0.0), CELL / n, CELL / n, Color(1.0, 0.1, 0.1, 0.9))
 	# The middle of the feet.

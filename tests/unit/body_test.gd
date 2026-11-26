@@ -463,19 +463,18 @@ func _test_wide_trunk() -> void:
 
 
 ## The trunk of a tree drawn as pictures holds a body off as it is drawn (TreeLooks.hold_of):
-## an oval across the view, as wide as the bark beside it, its front at the foot's front,
-## reaching back away from the camera; its cells stop nothing; without a view (the server)
-## a circle round the axis as far as the front; a body the camera's turn put in the oval
-## walks out of it.
+## a circle round its axis as wide as its foot's bark and the feet; its cells stop nothing;
+## a body put in the circle walks out of it. The stump it leaves holds a body off the same
+## circle, and one jumping onto it stands on its top.
 func _test_pictured_trunk() -> void:
 	var species := -1
 	var look := -1
 	for i in Trees.SPECIES.size():
 		var s: Dictionary = Trees.SPECIES[i]
-		if s.pictures.is_empty():
+		if s.pictures.is_empty() or s.pictures.get("stumps", []).is_empty():
 			continue
 		for j in s.pictures.looks.size():
-			if look < 0 or s.pictures.looks[j].hold.x > Trees.SPECIES[species].pictures.looks[look].hold.x:
+			if look < 0 or s.pictures.looks[j].hold > Trees.SPECIES[species].pictures.looks[look].hold:
 				species = i
 				look = j
 	if species < 0:
@@ -490,41 +489,47 @@ func _test_pictured_trunk() -> void:
 		for x in range(col.x - 14, col.x + 15):
 			w.set_cell(x, 0, z, Mat.STONE)
 	Growth.place(w, col.x, 1, col.y, species, 1.0)
-	var hold: Vector3 = w.trunk_hold(col)
-	_check(hold == s.pictures.looks[look].hold and hold.x > hold.y and hold.z > 0.0,
-		"a standing pictured tree holds a body off its look's oval: %s" % hold)
+	var hold: float = w.trunk_hold(col)
+	_check(hold == s.pictures.looks[look].hold and hold > 0.5,
+		"a standing pictured tree holds a body off its look's circle: %s" % hold)
 	var cell := WorldData.CELL
 	var axis := Vector3(col.x + 0.5, 1.0, col.y + 0.5)
-	var front := hold.y - hold.z
-	var back := hold.y + hold.z
 	var body := Body.new()
 	body.world = w
-	body.view_up = Vector2(0.0, -1.0)
-	_check(not body.blocked((axis + Vector3(0.0, 0.0, front * 1.05)) * cell), "feet come up to the trunk's foot in front, its cell stops nothing")
-	_check(body.blocked((axis + Vector3(0.0, 0.0, front * 0.9)) * cell), "feet do not go into the foot in front")
-	_check(body.blocked((axis + Vector3(0.0, 0.0, -back * 0.95)) * cell), "behind the trunk the oval reaches further back")
-	_check(not body.blocked((axis + Vector3(0.0, 0.0, -back * 1.05)) * cell), "and no further")
-	_check(body.blocked((axis + Vector3(hold.x * 0.9, 0.0, -hold.z)) * cell), "beside the trunk feet keep off its bark")
-	_check(not body.blocked((axis + Vector3(hold.x * 1.05, 0.0, -hold.z)) * cell), "beside the trunk feet come up to its bark")
-	body.view_up = Vector2(-1.0, 0.0)
-	_check(not body.blocked((axis + Vector3(front * 1.05, 0.0, 0.0)) * cell) and body.blocked((axis + Vector3(-back * 0.95, 0.0, 0.0)) * cell),
-		"the oval turns with the view")
-	body.view_up = Vector2.ZERO
-	var r := minf(hold.x, front)
-	_check(body.blocked((axis + Vector3(r * 0.9, 0.0, 0.0)) * cell) and not body.blocked((axis + Vector3(0.0, 0.0, -r * 1.05)) * cell),
-		"without a view a body is held off a circle round the axis as far as the oval's front")
-	# The camera turned: a body in front of the trunk is beside it now, in its oval.
-	body.view_up = Vector2(-1.0, 0.0)
+	for a in 8:
+		var d := Vector2.from_angle(a * PI / 4.0)
+		_check(body.blocked((axis + Vector3(d.x, 0.0, d.y) * hold * 0.9) * cell)
+			and not body.blocked((axis + Vector3(d.x, 0.0, d.y) * hold * 1.05) * cell),
+			"feet keep off the trunk's circle, the same all round (%d)" % a)
+	_check(not body.blocked((axis + Vector3(0.0, 0.0, 0.55)) * cell) == (hold < 0.55),
+		"the trunk's cell stops nothing beyond the circle")
+	# A body put in the circle walks out of it and goes no deeper.
 	body.on_ground = true
-	var at := (axis + Vector3(0.0, 0.0, front * 1.05)) * cell
+	var at := (axis + Vector3(0.0, 0.0, hold * 0.95)) * cell
 	body.move_input = Vector2(0.0, -1.0)
 	var deeper := body.step(at, 1.0 / 60.0, false)
-	_check(deeper.z >= at.z - 0.0001, "a body in the oval does not go deeper in")
+	_check(deeper.z >= at.z - 0.0001, "a body in the circle does not go deeper in")
 	body.move_input = Vector2(0.0, 1.0)
 	var out := at
 	for i in 30:
 		out = body.step(out, 1.0 / 60.0, false)
-	_check(out.z > at.z + 0.5 * cell, "a body in the oval walks out of it")
+	_check(out.z > at.z + 0.5 * cell, "a body in the circle walks out of it")
+	# Felled: the stump holds a body off the same circle, and is stood on from above.
+	Felling.fell(w, Vector3i(col.x, 2, col.y), Vector2(1.0, 0.0))
+	_check(Growth.stump_look(w, col) >= 0, "the felled tree left a stump")
+	var stump: float = w.trunk_hold(col)
+	_check(stump > 0.0 and absf(stump - hold) < 0.6, "the stump holds a body off a circle as its tree did: %s" % stump)
+	body.move_input = Vector2.ZERO
+	_check(body.blocked((axis + Vector3(stump * 0.9, 0.0, 0.0)) * cell)
+		and not body.blocked((axis + Vector3(stump * 1.05, 0.0, 0.0)) * cell)
+		and not body.blocked((axis + Vector3(0.6, 0.0, 0.0)) * cell) == (stump < 0.6),
+		"the stump stops a body by its circle, not its square cell")
+	var top := (axis + Vector3(0.0, 1.5, 0.0)) * cell
+	body.on_ground = false
+	body.velocity_y = 0.0
+	for i in 60:
+		top = body.step(top, 1.0 / 60.0, false)
+	_check(absf(top.y - 2.0 * cell) < 0.01 and body.on_ground, "a body come down on the stump stands on its top: %s" % top)
 
 
 ## A fallen trunk lying in the woods (Growth.place_piece) holds a body off its whole trunk,
