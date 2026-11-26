@@ -20,6 +20,7 @@ const Growth := preload("res://src/shared/world/growth.gd")
 const WorldCells := preload("res://src/shared/world/world_cells.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
+const PixelView := preload("res://src/client/view/pixel_view.gd")
 
 const CELL := WorldCells.CELL
 ## The atlas is at most this wide, its places even (the instance data goes as half floats
@@ -284,9 +285,28 @@ static func quad_mesh() -> ArrayMesh:
 	var m := ArrayMesh.new()
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	# The picture reaches far past the unit quad (tree.gdshader): a box as big as the
-	# tallest look, so a chunk's trees are culled by what they draw.
+	# tallest look, so a chunk's trees are culled by what they draw (see stand_box).
 	m.custom_aabb = AABB(Vector3(-6.0, -1.0, -6.0), Vector3(12.0, tallest + 1.0, 12.0))
+	quad = m
 	return m
+
+
+## The mesh quad_mesh made last (the trees' MultiMeshes draw it), null before.
+static var quad: Mesh
+
+
+## Box `box` of a part of a chunk drawing quad_mesh grown for the views the culling boxes
+## hold (PixelView.box_views): a picture stands 1/slope higher in the world under a
+## steeper camera (stand_tall), so a box only as tall as the tallest look cut the tops of
+## the trees of the chunks just south of the screen under the steeper tilts.
+static func stand_box(box: AABB) -> AABB:
+	var slope := 1.0
+	for v: Array in PixelView.box_views:
+		# The first-person view (slope 0) draws the quad as it is (stand_tall).
+		if v[2] > 0.01:
+			slope = minf(slope, v[2])
+	box.size.y += (tallest + 1.0) * (1.0 / slope - 1.0)
+	return box
 
 
 ## The trees of the chunk at x0, z0 drawn as pictures: [count, buffer] for a MultiMesh

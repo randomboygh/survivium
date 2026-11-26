@@ -489,7 +489,7 @@ func _test_pictured_trunk() -> void:
 	for z in range(col.y - 14, col.y + 15):
 		for x in range(col.x - 14, col.x + 15):
 			w.set_cell(x, 0, z, Mat.STONE)
-	Growth.place(w, col.x, 1, col.y, species, null, 1.0)
+	Growth.place(w, col.x, 1, col.y, species, 1.0)
 	var hold: Vector3 = w.trunk_hold(col)
 	_check(hold == s.pictures.looks[look].hold and hold.x > hold.y and hold.z > 0.0,
 		"a standing pictured tree holds a body off its look's oval: %s" % hold)

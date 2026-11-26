@@ -899,11 +899,9 @@ func _plant(job: Job, t: Array, again := false) -> void:
 	if t.size() > 4:
 		Growth.place_piece(world, x, hh + 1, z, species, t[4])
 		return
-	var rng := RandomNumberGenerator.new()
-	rng.seed = _hash(x, z, 3)
 	var scale := Growth.fit(species, size_y - 1 - hh)
 	if scale > 0.0:
-		job.crown = Growth.grow(world, x, hh + 1, z, species, rng, scale)
+		job.crown = Growth.grow(world, x, hh + 1, z, species, scale)
 		job.crown_at = 0
 
 

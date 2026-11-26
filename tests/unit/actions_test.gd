@@ -38,10 +38,8 @@ func _test_felling() -> void:
 	for z in 48:
 		for x in 48:
 			w.set_cell(x, 0, z, Mat.STONE)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 1
-	Growth.place(w, 15, 1, 23, Trees.first(Trees.BROAD), rng)
-	Growth.place(w, 31, 1, 23, Trees.first(Trees.BROAD), rng)
+	Growth.place(w, 15, 1, 23, Trees.first(Trees.BROAD))
+	Growth.place(w, 31, 1, 23, Trees.first(Trees.BROAD))
 	var leaves_of_second := 0
 	for z in range(14, 33):
 		for x in range(24, 41):
@@ -335,9 +333,7 @@ func _test_world_actions() -> void:
 	var placed := actions.place_at(who, Vector3i(12, 2, 10), Vector3i.UP, 40)
 	_check(placed.get("placed", 0) == 1 and w.get_cell(12, 2, 10) == Mat.STONE and who.inventory.count("resources:stone") == 2,
 		"a block is placed from the bag")
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 1
-	Growth.place(w, 15, 2, 23, Trees.first(Trees.BROAD), rng)
+	Growth.place(w, 15, 2, 23, Trees.first(Trees.BROAD))
 	who.position = Vector3(13.5, 2.0, 23.5) * WorldData.CELL
 	who.item = "tools:stone_axe"
 	var logs := w.log_col(15, 23)

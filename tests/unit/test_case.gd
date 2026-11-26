@@ -260,3 +260,21 @@ class Who extends RefCounted:
 
 	func move_to(at: Vector3) -> void:
 		position = at
+
+
+## Grows a tree of species record `s` with its trunk on cell x, y, z in the shape trees had
+## before they were drawn as pictures (a trunk of its most logs under a ball of crown
+## points) and gives the crown's points for Growth.fill: an old world's tree, for the
+## tests of its regrowth (Growth.regrow).
+static func old_tree(w, x: int, y: int, z: int, s: Dictionary) -> Array[Vector3i]:
+	var top: int = y + int(s.trunk[1]) + 2
+	for i in range(y, top):
+		w.set_cell(x, i, z, Mat.LOG)
+	var mid := (top + 2) & ~1
+	var points: Array[Vector3i] = []
+	for dy in range(-2, 3, 2):
+		for dz in range(-4, 5, 2):
+			for dx in range(-4, 5, 2):
+				if dx * dx + dz * dz + 2 * dy * dy <= 16:
+					points.append(Vector3i(x + dx, mid + dy, z + dz))
+	return points

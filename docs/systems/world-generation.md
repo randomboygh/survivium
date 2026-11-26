@@ -95,13 +95,15 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   by relief (`where`: sea, beach, rock, plateau, swamp), its top, the shares of trees and shrubs, chances;
   `Biomes.NONE` — bare grass.
 - `src/shared/content/trees.gd`, `bushes.gd` — the registries of species of trees and kinds of shrubs (the
-  mods' data). `src/shared/content/tree_looks.gd` — a species drawn as pictures (`picture: tree/look.yaml` in
+  mods' data). Every species is drawn as pictures (`picture` is required, `Trees.check`; the generators of the
+  old leaf-cluster crowns left in trees PR 6): `src/shared/content/tree_looks.gd` reads them (`picture: tree/look.yaml` in
   its `trees.yaml`, the approved drawings of `survivium-builds/trees-redraw`, made by `integration/pr1/src/`
   `export_pr1.py` + `pack_pr1.py` (the conifers `pr2/src/*_pr2.py`, the willow and the palms `pr3/src/*_pr3.py`), then `python3 tools/tree_feet.py` writes each look's `foot`: the bark's half
   width and the foot's front in pixels, what a body is held off by, see character.md): its looks (3 sizes × 2 variants), each with its frames for 8 sides, its
   trunk's height in cells and its crown's cells (`crown_has`, `to_own` for the tree's own turn).
 - `src/shared/world/growth.gd` — how a tree and a shrub grow into the world's cells: the shape of the trunk
-  and crown (`trunk_box`, `height`, `fit`; a trunk always goes up into its crown, `LOWEST_POINT`), `place` / `grow` / `fill`, `bush_fits` / `place_bush`; the
+  and crown (`trunk_box`, `height` by the looks, `fit`), `place` / `grow` / `fill`, `place_young` (a young tree
+  grown from a sapling: a short stem under a crown of one or two lattice points, drawn in leaf clusters by Foliage), `bush_fits` / `place_bush`; the
   generator plants a shrub only where there is no drop down around (`bush_level`), otherwise on a lone mound
   or at the edge of a cliff it hangs over air. The client puts a shrub on the ground under its middle
   (`Foliage.bush_foot`): if beside it was dug and under it became a slope, the shrub goes down onto the slope.
@@ -110,7 +112,7 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   `variant_of`, `turn_of` — the tree stands turned in the world), a trunk of logs exactly the look's height and
   crown points where the look's crown cells are (`_offsets`, kept in the look; a crown too small for the lattice
   gets one point over the trunk). A broadleaf look's trunk ends a cell into its crown; a conifer's goes up inside
-  its crown as far as its drawn trunk (as the old conifers' did), so felled it gives logs for all of it; the
+  its crown as far as its drawn trunk, so felled it gives logs for all of it; the
   willow's up to its dome's rim, its hanging strands' cells beginning two cells over the foot (one walks in under
   them); a palm's its drawn trunk's height, its crown the cells its leaves pass through. `standing_look` tells a standing tree from a young one (its sapling's record)
   and from a stump by the trunk's height and the leaves over its top round the crown points nearest the trunk
