@@ -1419,7 +1419,9 @@ func _run() -> void:
 				var held: Dictionary = main.controls._stroke
 				print("press: chosen %s, stroke %s, aim %s, spot %s, turn %s, face %s" % [main.build.chosen(), held.keys(),
 					held.get("aim"), held.get("spot"), held.get("shown"), held.get("face")])
-			if shot.has("press") or shot.has("lone"):
+			if shot.has("opening"):
+				await _move_opening(shot.opening, feet)
+			if shot.has("press") or shot.has("lone") or shot.has("opening"):
 				# The toasts of the recipes the things put into the bag taught, off the view.
 				main.hud._toasts.clear()
 				for i in 3:
@@ -2366,9 +2368,87 @@ func _forms_over(c: Vector3i) -> Array:
 	return out
 
 
+## A door or a window (2026-11-26, the building UX's PR 2) set by the server into the north
+## wall of the room's corner (places.build_room): `o` = [item, its wall cell from the feet
+## `feet`, the wall cell it is moved to from the feet, what is shot]: "before" as it is set
+## in; "held" pressed by a finger and carried over its new place (BuildMode._drag_opening);
+## "moved" let go there, its old place walled up again (Placed._move_opening); "taken"
+## tapped, back into the bag, ghost blocks left in its hole (Placed.take_up). The things
+## and the ghost blocks of the shots before go first.
+func _move_opening(o: Array, feet: Vector3i) -> void:
+	var sp = main.session.placed
+	var hp = main.host.player
+	for e: Dictionary in sp.things.duplicate():
+		if absi(e.cell.x - feet.x) < 14 and absi(e.cell.z - feet.z) < 14:
+			sp._remove(e)
+	main.session.plans.erase(main.session.actions, hp, main.session.plans.cells.keys())
+	if hp.inventory.room_for(o[0]) == 0:
+		hp.inventory.take_slot(hp.inventory.slots.size() - 1, 9999)
+	hp.inventory.add(o[0], 1)
+	var cell: Vector3i = feet + o[1]
+	var put: bool = sp.put_at(hp, o[0], cell, main.world.size_y, -1, false, 2)
+	for i in 40:
+		await process_frame
+	var e: Dictionary = main.placed.things[-1] if not main.placed.things.is_empty() else {}
+	print("opening: put %s, %s" % [put, e])
+	if o[3] == "before" or e.is_empty():
+		return
+	var on: Vector2 = main.view.screen_of(Placed.center(e))
+	if o[3] == "taken":
+		_finger(true, on)
+		for i in 3:
+			await process_frame
+		_finger(false, on)
+		await _wait_ms(main.build.DOUBLE_TAP_MS + 400)
+		print("opening: taken, ghost cells %s" % [main.session.plans.cells])
+		return
+	_finger(true, on)
+	await _wait_ms(main.build.HOLD_MS + 200)
+	var to: Vector3 = Vector3(feet + o[2]) + Vector3(0.5, 0.6, 1.02)
+	var end: Vector2 = main.view.screen_of(to * CELL) + Vector2(0.0, main.hud.touch_px(main.build.FINGER_LIFT))
+	for k in range(1, 9):
+		_finger_move(on.lerp(end, k / 8.0))
+		for i in 3:
+			await process_frame
+	for i in 10:
+		await process_frame
+	var held: Dictionary = main.controls._stroke
+	print("opening: held %s, aim %s, face %s, to %s, turn %s" % [held.get("moved"), held.get("aim"), held.get("face"),
+		held.get("to"), held.get("turn")])
+	if o[3] == "held":
+		return
+	_finger(false, end)
+	for i in 40:
+		await process_frame
+	var cells: Array = []
+	for c: Vector3i in sp.opening_cells({"item": e.item, "cell": e.cell, "turn": e.turn}):
+		cells.append(Mat.IDS[main.world.get_cell(c.x, c.y, c.z)])
+	print("opening: moved to %s, its old cells %s, ghost cells %s" % [sp.things[-1].cell, cells, main.session.plans.cells])
+
+
+## Frames go by until `ms` milliseconds have passed (the build mode's holds and taps go by
+## the clock, not by frames).
+func _wait_ms(ms: int) -> void:
+	var until := Time.get_ticks_msec() + ms
+	while Time.get_ticks_msec() < until:
+		await process_frame
+
+
+## A finger on a touch screen moved to `pos` (a drag; the stroke follows its emulated mouse).
+func _finger_move(pos: Vector2) -> void:
+	var ev := InputEventScreenDrag.new()
+	ev.index = 0
+	ev.position = pos
+	ev.relative = pos - _finger_at
+	Input.parse_input_event(ev)
+	_finger_at = pos
+
+
 ## Lets go the finger a shot held down (`press`) without setting its thing down: the
 ## stroke is dropped first, and what it held up with it.
 func _lift_finger() -> void:
+	if main.controls._stroke.has("prop"):
+		main.props.settle(main.controls._stroke.prop)
 	main.controls._stroke = {}
 	main.props.drop_new()
 	main.cursor.show_boxes([], [])

@@ -186,8 +186,8 @@ its cells), and is tapped there too: `Placed.center` — the middle of the occup
 the turn), not of the square.
 
 **Moving and turning** (2026-11-13, items 23–24 of the user's list). `Placed.movable`: a station, a chest,
-furniture, a sign, a fireplace move (not a door, a window, a hatch, stairs, a fence, a ladder, a campfire, a
-cross, a boundary post); `Placed.move(who, e, corner, turn)` — the request `PROP_MOVE` [cell, corner, turn]
+furniture, a sign, a fireplace move, and since 2026-11-26 a door, a window and a hatch (below; not stairs, a
+fence, a wicket, a gate, a ladder, a campfire, a cross, a boundary post); `Placed.move(who, e, corner, turn)` — the request `PROP_MOVE` [cell, corner, turn]
 (in `PACED`): the free place nearest to `corner` (`move_spot`: `_spot_at` with the thing's own cells free),
 within `Tools.PLACE_REACH`, land rights at both ends, the hands' stamina (`act("place")`); the thing is taken
 and placed anew with what it holds, burns and says, so the copies and the save get it as an ordinary thing
@@ -227,13 +227,34 @@ below. Its `melt` (0..1) is in its record and save; `Placed.melt_stage` (of `MEL
 (`melt_changed`, `Protocol.PROP_MELT`), and the client shows the stage's column. Melted through it is
 gone (`melted`: `WorldActions.leave_melted` drops its `melts_to`). It is taken up only whole (`melt_stage` 0).
 
+**Openings move with the wall mended** (the user's picks 2026-11-26, 5А and 6А; the building UX's PR 2).
+`Placed.is_opening`: a door, a window or a hatch (not a wicket or a gate). Set down with `put_at`, it cuts the
+blocks of its cells (`_opening_at`: its shut cells as high as it stands) and remembers them: `cut` in its
+record, offset from `cell` → material id (`[[x, y, z, id], …]` in the save and in `PROP`, read by
+`cut_from_list`; `{}` where it went into a gap of its size). `Placed.cut_of(e)` gives them by world cell; a door
+of a save from before (no `cut`) takes the material most of the built blocks beside and over its cells are of
+(`AROUND`), none in the open. `PROP_MOVE` [cell, the wall's cell pressed, turn, face] moves it
+(`Placed.move_opening` → `_move_opening`; the turn is found again): its new place is found as for a new one (`opening_spot` = `put_spot` with its own cells free,
+`_moving` keeps an open door out of its own way), within `PLACE_REACH`, land rights at the old cell and every new
+cell, one `act("place")`. The new cells are cut (their blocks not dropped), the cells it shared with its old
+place stay open and keep their remembered material, and its old cells are walled up again (`_mend`: a cube of
+the remembered material): the blocks just cut pay first, then those in the bag, and a cell none is left for, or
+one the player stands in, becomes a ghost block of the blueprint (`Placed.plans`, set by the session;
+`Plans.put_ghosts`, the block that builds the material: `_placer`). Blocks cut and not put back go to the bag,
+on the ground at the feet when it is full. [cell, cell, turn + 2] turns it the other way round in its own cells
+(`Placed.move`, `_flipped`); no other three-part `PROP_MOVE` moves an opening. Taken back into the bag (`take_up`) it leaves ghost blocks of its remembered blocks in its hole
+(`_leave_ghosts`); set down or moved into cells with ghost blocks, it takes their place (`Plans.drop_ghosts`;
+a ghost door of its own is the blueprint's things, PR 3 of the building UX).
+
 **Limits.** The solid parts of a thing `Placed.read_footprints` reads from its voxel model (the bundle's PNG)
 at loading the mods, without the client; a thing without a model is solid as a crate (`CRATE_BOX`).
 
 **Tests.** `tests/unit/content_test.gd` (`crafting`: the queue and the works' numbers),
 `tests/unit/actions_test.gd` (`placed`, `stairs_placed`, `furniture` — furniture, a seat and keeping,
 `snowman_melts` — melting, a save, what a snowman leaves,
-`openings` — windows, doors 2×2 and 2×3, and `tests/unit/fences_test.gd` — a fence, a wicket and gates, a
+`openings` — windows, doors 2×2 and 2×3, `move_openings` — a door and a window moved along a wall, the
+remembered blocks, the bag and ghost blocks, turned where it stands, taken back, an old save's door,
+and `tests/unit/fences_test.gd` — a fence, a wicket and gates, a
 hatch, a ladder; a fireplace, `station_flags` — a station of another class that replaces a workbench and is
 placed with a knife, a crate of 4 places, repair by a flag; `recipe_fields` — a mould in the bag is not spent
 and holds the work, a knife wears per product and breaks, a by-product by chance from the work's number),

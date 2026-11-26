@@ -397,7 +397,7 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		_take_waiting()
 		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "prop": e,
 			"from": pos, "ms": Time.get_ticks_msec(), "moved": false, "to": null, "corner": null,
-			"turn": int(e.get("turn", 0)), "shown": null, "grab": _grab(e, pos)}
+			"turn": int(e.get("turn", 0)), "shown": null, "grab": _grab(e, pos), "aim": e.cell, "face": -1}
 	var hit: Dictionary = game.controls.pick(pos)
 	if not erasing and not hit.is_empty() and game.world.is_cracked(hit.cell.x, hit.cell.y, hit.cell.z):
 		# A cracked block (building decay) tapped is mended, free, with a swing of the tool
@@ -509,8 +509,12 @@ func _aim(hit: Dictionary, item: Dictionary) -> Vector3i:
 
 
 ## Thing `e` turned a quarter where it stands (a double tap on it), and the next of its
-## kind set down turned so while the bag holds one (kept_turns).
+## kind set down turned so while the bag holds one (kept_turns); a door, a window or a
+## hatch turned the other way round in its wall, its front to the other side.
 func turn_thing(e: Dictionary) -> void:
+	if Placed.is_opening(e.item):
+		game.net.request(Protocol.PROP_MOVE, [e.cell, e.cell, (int(e.get("turn", 0)) + 2) % 4])
+		return
 	var turned := (int(e.get("turn", 0)) + 1) % 4
 	kept_turns[e.item] = turned
 	game.net.request(Protocol.PROP_MOVE, [e.cell, e.cell, turned])
@@ -604,6 +608,9 @@ func drag(s: Dictionary) -> void:
 		# A short buzz: it is taken up (the user's pick, 2026-11-26).
 		Vibration.play(game, "lift")
 		changed.emit()
+	if Placed.is_opening(e.item):
+		_drag_opening(s, e)
+		return
 	var on_it: Variant = game.controls.on_plane(_lifted(s.pos), e.cell, Vector3i.UP)
 	if on_it == null:
 		return
@@ -651,6 +658,31 @@ func _drag_new(s: Dictionary) -> void:
 	var at: Vector3i = s.spot if s.spot != null else s.aim
 	game.props.hold_new(s.put, at, found[1], out_of_wall(s.put, at, found[1]) if s.spot != null else Vector3.ZERO)
 	_frame(s.put, at, found[1], s.spot != null)
+
+
+## A door, a window or a hatch held up (stroke `s` of opening `e`): it follows the wall
+## under the finger (over it on a touch screen, _aimed) as a new one from the bag does,
+## turned into the wall's plane (Placed.opening_spot, as the server will look for it), and
+## hangs before the blocks it would cut (out_of_wall); let go, it moves there and its old
+## place is walled up again (release, Placed.move).
+func _drag_opening(s: Dictionary, e: Dictionary) -> void:
+	var hit: Dictionary = _aimed(s.pos) if game.get_viewport().get_visible_rect().has_point(s.pos) else {}
+	if hit.is_empty():
+		return
+	var aim := _aim(hit, Items.get_item(e.item))
+	var face := face_of(hit)
+	var shown := [aim, face]
+	if s.shown == shown:
+		return
+	s.shown = shown
+	s.aim = aim
+	s.face = face
+	var found: Array = game.placed.opening_spot(game.character, e, aim, face)
+	s.to = found[0]
+	s.turn = found[1]
+	var at: Vector3i = s.to if s.to != null else aim
+	game.props.hold_at(e, at, s.turn, out_of_wall(e.item, at, s.turn) if s.to != null else Vector3.ZERO)
+	_frame(e.item, at, s.turn, s.to != null)
 
 
 ## Where a door or a window `id` held up at north-west cell `at` turned `turn` is drawn
@@ -713,7 +745,9 @@ func release(s: Dictionary) -> void:
 	if s.to == null or s.to == e.cell and turn == int(e.get("turn", 0)):
 		game.props.settle(e)
 		return
-	game.net.request(Protocol.PROP_MOVE, [e.cell, s.to, turn]).then(func(moved: Variant) -> void:
+	# A door, a window or a hatch goes by the wall's cell it was held over (_drag_opening).
+	var args := [e.cell, s.aim, turn, int(s.face)] if Placed.is_opening(e.item) else [e.cell, s.to, turn]
+	game.net.request(Protocol.PROP_MOVE, args).then(func(moved: Variant) -> void:
 		if not (moved is bool and moved) and game.placed.at(e.cell) == e:
 			game.props.settle(e))
 

@@ -1004,6 +1004,38 @@ func _drop(of: Array) -> void:
 		changed.emit(gone, "")
 
 
+## Ghost blocks where blocks are missing (Placed: the hole of a door or a window taken
+## out of a wall, or moved off with too few blocks to fill its place): `of` cell -> the
+## item of the block, a cube, in each cell that has no ghost yet, as many as MAX_CELLS
+## lets. How many were added.
+func put_ghosts(of: Dictionary) -> int:
+	var by_item := {}
+	var added := 0
+	for c: Vector3i in of:
+		if cells.has(c) or cells.size() >= MAX_CELLS:
+			continue
+		cells[c] = of[c]
+		forms.erase(c)
+		if not by_item.has(of[c]):
+			by_item[of[c]] = []
+		by_item[of[c]].append(c)
+		added += 1
+	for item: String in by_item:
+		changed.emit(by_item[item], item)
+	return added
+
+
+## Takes the ghost blocks off cells `of` a thing now fills (Placed: a door or a window set
+## into a hole the blueprint was to wall up): no block goes there any more. The farming
+## mode's marks stay.
+func drop_ghosts(of: Array) -> void:
+	var gone: Array = []
+	for c in of:
+		if cells.has(c) and not is_mark(cells[c]):
+			gone.append(c)
+	_drop(gone)
+
+
 ## The ghost cells for the save and for a client joining: [[cell, item], …], with the
 ## form third where it is not a cube.
 func to_list() -> Array:

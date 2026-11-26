@@ -597,8 +597,10 @@ func _rest(e: Dictionary) -> Vector3:
 
 
 ## Holds the model of thing `e` up over the north-west cell `corner`, turned `turn` (its own
-## when -1), while the build mode drags it (BuildMode); false when it has no model of its own.
-func hold_at(e: Dictionary, corner: Vector3i, turn := -1) -> bool:
+## when -1), moved `out` cells more (a door before the wall it would be cut into,
+## BuildMode.out_of_wall), while the build mode drags it (BuildMode); false when it has no
+## model of its own.
+func hold_at(e: Dictionary, corner: Vector3i, turn := -1, out := Vector3.ZERO) -> bool:
 	var node: Node3D = _nodes.get(e.cell)
 	if node == null or not is_instance_valid(node) or not node is MeshInstance3D:
 		return false
@@ -608,7 +610,7 @@ func hold_at(e: Dictionary, corner: Vector3i, turn := -1) -> bool:
 		_turn_light(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
 	else:
 		_turn_model(node, e, int(e.get("turn", 0)) if turn < 0 else turn)
-	node.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
+	node.position = (Vector3(corner) + out) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
 	if light:
 		node.position += Vector3(0.5, 0.0, 0.5) * CELL
 	node.extra_cull_margin = CULL_MARGIN

@@ -209,7 +209,13 @@ lies around. The rules are shared (the server checks them), input and hints are 
   — the model is held up `Props.LIFT` over the free place nearest the place aimed at, on a touch screen
   `FINGER_LIFT` over the finger with the «lift» buzz as for a new thing, `Placed.move_spot` as the
   server looks for it, its cells red where it does not fit; `release` — `PROP_MOVE`, `Placed.move`, or the model
-  drops back, `Props.settle`); a double tap turns a thing (`turn_thing`) and keeps that turn for its kind
+  drops back, `Props.settle`); a door, a window or a hatch held so (`Placed.is_opening`, movable since
+  2026-11-26) follows the wall under the finger as a new one does (`_drag_opening`: `_aimed`, `_aim`, `face_of`,
+  `Placed.opening_spot`, held `out_of_wall` before the wall by `Props.hold_at`'s `out`), and let go it moves
+  there by `PROP_MOVE` [cell, the wall's cell, turn, face]: the server cuts the new cells and walls the old ones
+  up with the blocks it had cut (`Placed.move_opening`, [crafting.md](crafting.md)); tapped it goes back into
+  the bag and leaves ghost blocks in its hole, and a double tap turns it the other way round in its wall
+  (`turn_thing`: turn + 2, its kind's turn not kept); a double tap turns a thing (`turn_thing`) and keeps that turn for its kind
   (`kept_turns`): the next ones are set down turned so (`PROP_PUT_AT` with `true`, `Placed.put_spot` `kept`)
   until the bag holds none; a thing one cell big tapped with one of its kind in the hand sets the next down
   beside it (`_beside_kind`, `_beside`: the cell under the finger, else past the face the ray goes in by,
