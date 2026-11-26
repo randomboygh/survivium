@@ -155,6 +155,14 @@ const SHOTS := {
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
 	# A torch in each hand: a flame at each.
 	"torch-two": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
+	# Seen from behind: the flames burn ahead of the body and the figure hides them.
+	"torch-back": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "n"}},
+	# A tar torch, a candle and a lantern seen from behind, and from the side in the far hand.
+	"tar-torch-back": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:tar_torch", "facing": "n"}},
+	"tar-torch-far": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:tar_torch", "facing": "e"}},
+	"candle-back": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:tallow_candle", "facing": "n"}},
+	"candle-front": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:tallow_candle", "facing": "s"}},
+	"lantern-front": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:lantern", "facing": "s"}},
 	# The same with the camera tilted low and steep: the rings stay round the torch.
 	"torch-two-low": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "tilt": -4,
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},

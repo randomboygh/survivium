@@ -54,4 +54,4 @@ func look(id: String) -> Dictionary:
 				"light": item.get("light", 0.0) > 0.0, "tip": item.get("tool", "") == "rod", "trail": trail}
 	if not _pictures.has(id):
 		_pictures[id] = ItemIcons.image_of(id)
-	return {"icon": id, "picture": _pictures[id], "anim": item.anim, "trail": trail}
+	return {"icon": id, "picture": _pictures[id], "anim": item.anim, "light": item.get("light", 0.0) > 0.0, "trail": trail}
