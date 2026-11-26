@@ -140,3 +140,8 @@ One-line forms of the rules; the detail is above and in the other pages of this 
   once leaned along `view_up` (`lean_shadow`, removed 2026-11-26) lifted the feet's shadow to the shoulders with
   the camera turned east or west. Things drawn as pictures (`Props._add_sprite`, the snowman) set
   `sun_shadow_free`.
+- A picture that holds data, not colours, is imported with `process/fix_alpha_border` on (every `.import`, not
+  committed): in an RGBA8 picture each texel under alpha 20 gets the colour of the nearest texel with more
+  within 4 px, and the game (and an exported one) reads the import (`Content.picture`, `Content.live` off). The
+  trees' frames lost their bark steps by the leaves so (#881-#888); their codes under 128 are now stored 64
+  higher (`frame_code`). Keep a data texel's alpha 20 or more, or use LA8, which the import leaves alone.

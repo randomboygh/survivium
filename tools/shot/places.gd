@@ -1396,7 +1396,7 @@ func specimen(w, at: Vector3i, species: Array) -> void:
 ## -1: whichever the nearest column has), so the camera at turn 0 shows the drawing of side
 ## `turn`: for comparing them with the approved sheets.
 ## Gives where the player stands, south of the thick one, the three in the middle of the view.
-func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1) -> Vector3:
+func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1, dry := -1) -> Vector3:
 	var h: int = w.surface_y(at.x, at.z)
 	for z in range(at.z - 60, at.z + 24):
 		for x in range(at.x - 24, at.x + 24):
@@ -1413,7 +1413,8 @@ func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1) -> Ve
 	var rng := RandomNumberGenerator.new()
 	# Thick to the north, thin to the south (scales that let each size, see Growth.look_index),
 	# each on the column nearest its place of the variant and size asked (the thick one turned
-	# `turn` eighths when that is asked, -1: as the column has it). 15 and 11 cells apart: a
+	# `turn` eighths when that is asked, -1: as the column has it; `dry` 1: trees that keep
+	# their dry leaves in winter, 0: trees that go bare, -1: either). 15 and 11 cells apart: a
 	# tree's crown stays clear of the trunk of the one behind it, and the three of the tallest
 	# species (a ceiba) still fit a phone's frame; a column off the line only a little.
 	var s: Dictionary = Trees.SPECIES[kind]
@@ -1423,15 +1424,18 @@ func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1) -> Ve
 		var scale: float = [1.0, 0.8, 0.6][k]
 		var col := want
 		var found := false
-		for dz in ([0, -2] if k == 0 else [0, 2]):
-			for dx in [0, 2, -2, 4, -4]:
-				var c := want + Vector2i(dx, dz)
-				var v := Growth.variant_of(c)
-				if not found and (variant < 0 or v == variant) \
-						and Growth.look_index(s, c, scale) == (2 - k) * TreeLooks.VARIANTS + v \
-						and (turn < 0 or k > 0 or Growth.turn_of(c) == turn):
-					col = c
-					found = true
+		# The columns further off (6, 8) only when none nearer will do (`dry` asks for more).
+		for far in [false, true]:
+			for dz in ([0, -2] if k == 0 else [0, 2]):
+				for dx in ([6, -6, 8, -8] if far else [0, 2, -2, 4, -4]):
+					var c := want + Vector2i(dx, dz)
+					var v := Growth.variant_of(c)
+					if not found and (variant < 0 or v == variant) \
+							and Growth.look_index(s, c, scale) == (2 - k) * TreeLooks.VARIANTS + v \
+							and (turn < 0 or k > 0 or Growth.turn_of(c) == turn) \
+							and (dry < 0 or Foliage.goes_bare(c, kind) == (dry == 0)):
+						col = c
+						found = true
 		Growth.place(w, col.x, h, col.y, kind, rng, scale)
 		if k == 0:
 			thick = col

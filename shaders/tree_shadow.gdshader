@@ -4,7 +4,7 @@
 // tree's picture stands at its foot turned across the way its shadow falls, the side of it
 // the light looks at, so the shadow is the tree's own outline: the crown as it is drawn
 // (thinning from its edge in autumn as the picture does), the trunk from the foot, the limbs
-// of a bare or dead tree. The shadow falls where every other one does (PixelView.light_dir:
+// and twigs of a bare or dead tree, the snow on it in winter. The shadow falls where every other one does (PixelView.light_dir:
 // a unit of height to `w` over the ground, the same at every turn of the camera), so it
 // lies still while the camera turns.
 shader_type spatial;
@@ -14,6 +14,10 @@ render_mode world_vertex_coords, cull_disabled, unshaded;
 
 uniform sampler2D frames : filter_nearest;
 uniform sampler2D bare_frames : filter_nearest;
+uniform sampler2D snow_frames : filter_nearest;
+uniform ivec2 ramps_at;
+
+#include "res://shaders/tree_pictures.gdshaderinc"
 
 // How far the picture sinks along the light's ray (world units of height): its shadow on
 // the ground stays where it is, but the tree's own picture as shown, standing across the
@@ -28,6 +32,7 @@ const float SINK_SHARE = 0.75;
 varying vec2 px;
 varying flat vec4 cell;
 varying flat float kind;
+varying flat float ramp_row;
 varying flat vec2 foot_xz;
 
 void vertex() {
@@ -41,6 +46,7 @@ void vertex() {
 	float row = floor(COLOR.b / 8.0 + 0.01);
 	float own = COLOR.b - row * 8.0;
 	kind = COLOR.a;
+	ramp_row = row;
 	foot_xz = foot.xz;
 	// Where the shadow of a unit of height falls over the ground (PixelView.light_dir), from
 	// the sun as it stands in the world (sun_view is it in the view's frame).
@@ -81,9 +87,9 @@ void fragment() {
 	}
 	ivec2 t = ivec2(cell.xy + floor(px));
 	vec4 g = texelFetch(frames, t, 0);
-	int a = int(round(g.a * 255.0));
+	int a = frame_code(g);
 	// The leaves autumn and winter have taken, as tree.gdshader takes them.
-	float amount = leaves_left(kind);
+	float amount = picture_leaves(kind);
 	if (a >= 128) {
 		float rank = float((a >> 2) & 3);
 		if ((rank + hash12(g.rg * 255.0 + foot_xz * 3.1)) / 4.0 > amount) {
@@ -92,8 +98,8 @@ void fragment() {
 	} else if (a == 1 && g.r > amount - 0.08) {
 		a = 0;
 	}
-	// Where they are gone, the bare tree's wood.
-	if (a == 0) {
+	// Where they are gone, the bare tree's wood; the snow on the tree.
+	if (a == 0 && snow_on(t, int(cell.w - floor(px.y)) - 1, int(ramp_row), kind, amount) < 16384) {
 		vec4 b = texelFetch(bare_frames, t, 0);
 		if (b.r > 0.998 && b.a > 0.998) {
 			discard;

@@ -102,7 +102,10 @@ slice, to free the far meshes.
   (`Growth.standing_look`): one upright picture per tree in the chunk's `trees` MultiMesh (the last of the
   plant parts), the frame of the side the camera rests at plus the tree's own turn, from one atlas of all
   such species (`setup` at the start; frames RGBA8 hold the leaf's normal, angle and bits or the bark's
-  step under 8 suns of the day, the bare tree LA8 for autumn and winter); lit by the sun in the shader as the
+  step under 8 suns of the day, their alpha what the texel is (`frame_code`: the codes under 128 stored 64 higher,
+  as the import's `fix_alpha_border` gives a texel under alpha 20 a leaf's colour), the bare tree LA8 for autumn
+  and winter with its twigs; under the frames a ramp
+  row a species from `ramps_at`, its colours and where its snow lies, one texture unit less); lit by the sun in the shader as the
   approved drawing (bundles by normal, leaves by facing), the sun where it stands in the world seen from the side
   shown (turning the camera turns the lit side; looking toward the sun, the crown is in its shade and the bark is
   drawn a step darker, `wood_colour`). The bark also takes the sun's shadow (the shadow map, as the ground: other
@@ -119,7 +122,16 @@ slice, to free the far meshes.
   keeps its leaves, so its bare frame under a leaf holds the last two suns, and `TreeSprites` gives it the
   evergreens' year), their trunks' soft outline alpha 3; evergreens take a little of autumn's tint, as their leaf cards do. Autumn takes the leaf bundles from the crown's edge
   inward (each bundle's rank from the edge is in its frame); under half of them left, the bark is drawn from the
-  bare tree, without the crown's shade. Foliage and the trunk mesher leave such trees out;
+  bare tree, without the crown's shade. In winter a species' snow pictures (TreeLooks `snow`, and `snow_dry` for
+  the crown of the trees that keep their dry leaves; packed into the `snow` atlas, where each lies from its frames
+  in the ramp row) lie over the bare tree or the evergreen crown: a texel's two bytes say whether it is snow, its
+  soft outline or a seam and how it is lit (a ball's or a cap's normal, or a frond's two steps), in the snow's
+  6 steps (`shaders/tree_pictures.gdshaderinc`); it comes as the snow cover grows (`snow_amount`), a ball or a cap
+  from its middle out, a frond's snow from the frond up. A tree
+  keeping its dry leaves (`Foliage.KEEPS_LEAVES`) keeps its whole crown in its `dry` ramp under the snow caps; the
+  trees of the hot zones (TreeLooks `evergreen`) and the palms keep their summer crown and take no snow. In spring a
+  species with a `blossom` ramp blossoms on most of its leaves (`blossom_amount`), crosses of flowers on the lit
+  side. Foliage and the trunk mesher leave such trees out;
   young trees and stumps stay theirs. Their ground shadows are the same instances drawn a second time
   (`shaders/tree_shadow.gdshader`, a node sharing the `trees` MultiMesh, shadows only, on
   `PixelView.LAYER_SUN_CASTER`) instead of Foliage's crown discs: each picture stands at its foot turned across

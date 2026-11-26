@@ -295,7 +295,7 @@ func _run() -> void:
 		if shot.has("pictured"):
 			# North-west of the spawn, away from the others.
 			main.player.position = places.pictured(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 10),
-				shot.pictured, shot.get("variant", -1), shot.get("own_turn", -1))
+				shot.pictured, shot.get("variant", -1), shot.get("own_turn", -1), shot.get("dry", -1))
 			if shot.has("approach"):
 				# Three cells off the thick trunk that way, walking up to it until it stops them.
 				var a: float = shot.approach * PI / 4.0
