@@ -38,7 +38,11 @@ const WREATH := [
 	"..3........3..",
 ]
 
-## A feather stuck upright in the hair over the right ear, its quill in the hair.
+## A feather stuck upright in the hair over the right ear, its quill in the hair: on the
+## screen's right from behind (FEATHER), on its left from the front and the east side
+## (FEATHER_SIDE). It is the same ear in every way, so the west ways have rows of their
+## own, as seen (a mirrored east one would move it to the left ear): south-west and west
+## it is on the far side of the head, only its tip over the hair (FEATHER_TIP, FEATHER_TIP_SIDE).
 const FEATHER := [
 	"...........1..",
 	"..........12..",
@@ -51,9 +55,18 @@ const FEATHER_SIDE := [
 	"...2..........",
 	"...4..........",
 ]
+const FEATHER_TIP := [
+	"...........1..",
+	"..........12..",
+]
+const FEATHER_TIP_SIDE := [
+	"..1...........",
+	"..21..........",
+]
 
 const SHAPES := {
-	"feather": {"s": FEATHER, "se": FEATHER, "e": FEATHER_SIDE, "ne": FEATHER, "n": FEATHER},
+	"feather": {"s": FEATHER_SIDE, "se": FEATHER_SIDE, "e": FEATHER_SIDE, "ne": FEATHER, "n": FEATHER,
+		"sw": FEATHER_TIP_SIDE, "w": FEATHER_TIP, "nw": FEATHER},
 	"brim_hat": {"s": BRIM, "se": BRIM, "e": BRIM, "ne": BRIM, "n": BRIM},
 	"dome_hat": {"s": DOME, "se": DOME, "e": DOME, "ne": DOME, "n": DOME},
 	"wreath": {"s": WREATH, "se": WREATH, "e": WREATH, "ne": WREATH, "n": WREATH},
