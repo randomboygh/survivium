@@ -138,6 +138,11 @@ const PLAN_THING := "plan_thing"
 const PLAN_THING_MOVE := "plan_thing_move"
 ## Takes the ghost thing filling a cell off the blueprint: [cell] (Plans.erase_thing).
 const PLAN_THING_TAKE := "plan_thing_take"
+## Undoes the player's last change of the blueprint (the build mode's ↶, Ctrl+Z): []
+## (PlanHistory.undo: how many cells and things changed back, -1 none within reach).
+const PLAN_UNDO := "plan_undo"
+## Does the last change undone again (↷, Ctrl+Y): [] (PlanHistory.redo).
+const PLAN_REDO := "plan_redo"
 ## The build mode's action button: builds one ghost cell of the blueprint near the player,
 ## whatever the hand holds: [] (Plans.build).
 const BUILD := "build"
@@ -333,6 +338,9 @@ const PLANS := "plans"
 ## Ghost cells of the blueprint came with a block, or went: [cells, item ("" gone), the
 ## forms of the cells that came (Plans.forms_of)].
 const PLAN_CELLS := "plan_cells"
+## How many changes of the blueprint the player can undo and redo now: [undo, redo]
+## (PlanHistory; the build mode's ↶ ↷ are dimmed at 0), to that player only.
+const PLAN_HISTORY := "plan_history"
 ## A ghost thing of the blueprint was set or moved there: [Plans.thing_record].
 const GHOST_THING := "ghost_thing"
 ## The ghost thing at a north-west cell went (built, moved, taken off): [cell].

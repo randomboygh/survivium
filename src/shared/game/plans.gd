@@ -1318,6 +1318,29 @@ func put_ghosts(of: Dictionary) -> int:
 	return added
 
 
+## Sets ghost cells `of` (cell -> [the block's item, "" none; its form, 0 a cube]) as they
+## are given (PlanHistory: a step undone or done again), and tells of them. How many.
+func set_ghosts(of: Dictionary) -> int:
+	var by_item := {}
+	for c: Vector3i in of:
+		var item: String = of[c][0]
+		var form: int = of[c][1]
+		if item == "":
+			cells.erase(c)
+		else:
+			cells[c] = item
+		if form != 0 and item != "":
+			forms[c] = form
+		else:
+			forms.erase(c)
+		if not by_item.has(item):
+			by_item[item] = []
+		by_item[item].append(c)
+	for item: String in by_item:
+		changed.emit(by_item[item], item)
+	return of.size()
+
+
 ## Takes the ghost blocks off cells `of` a thing now fills (Placed: a door or a window set
 ## into a hole the blueprint was to wall up): no block goes there any more. The farming
 ## mode's marks stay.
