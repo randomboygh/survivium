@@ -147,6 +147,9 @@ varying flat vec2 info;
 varying flat vec2 shake;
 // The phase of this tree's sway (radians), -1 for one not swaying (a stump, a falling tree).
 varying flat float sway_phase;
+// How far in front of the picture the fog over it is taken from (world units, a
+// cell and a half: past a trunk two cells wide).
+const float FOG_AHEAD = 0.75;
 varying vec3 world_pos;
 varying vec3 foot_pos;
 varying vec2 light_xz;
@@ -838,7 +841,11 @@ void fragment() {
 			}
 		}
 	}
-	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
+	// The fog as at a point FOG_AHEAD in front of the picture: on its own plane, the
+	// trunk's columns (whose tops the fog takes for ground, see fog_at) lay a thin band
+	// of thicker fog up the middle of the trunk and the crown.
+	vec3 fog_pos = world_pos - vec3(view_up.x, 0.0, view_up.y) * FOG_AHEAD;
+	vec4 veiled = veil(fog_pos, depth_fade(world_pos.y));
 	float sun_part = sea_bright(world_pos.y);
 	// The drawings' colours are the ground's at noon: lit as a sprite the picture comes
 	// out brighter than the grass beside it by this much (measured on the oak, 2026-11-25).
