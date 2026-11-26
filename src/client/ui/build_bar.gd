@@ -253,7 +253,9 @@ func fit(width: float, portrait := false) -> void:
 	var one: HBoxContainer = _rows.get_child(1)
 	var across := 0.0
 	for g: Control in one.get_children() + _row2.get_children():
-		across += g.get_combined_minimum_size().x + 6
+		# A button not shown (the action button on a touch screen) takes no room.
+		if g.visible:
+			across += g.get_combined_minimum_size().x + 6
 	var two := across - 6 > width
 	var home: HBoxContainer = _row2 if two else one
 	var wide := _wide_group()

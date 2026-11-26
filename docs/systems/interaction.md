@@ -225,8 +225,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   the eyedropper (`picking`, `pick_at`, the user's picks of 2026-11-26: a panel button beside the eraser, on a
   PC the middle mouse button): the next tap takes what is there into the hand as if chosen on the palette — a
   thing set down or a ghost thing (its turn kept in `kept_turns`), else the nearest ghost block, else the block
-  hit, natural ones too (`block_item`: `Items.placed_by`, else `Items.dug`); none in the bag → `choose`'s nag;
-  it goes off after one tap, the eraser too once something is taken;
+  hit, natural ones too (`block_item`: `Items.placed_by`, else `Items.dug`); once something is taken it goes
+  off, the eraser too; nothing there or none in the bag (`choose`'s nag) → it stays on for the next tap (6Б);
   the stroke (`start_stroke`, `show_stroke` — light cells will stand, red ones are inside blocks or over a
   void, when erasing a red box and the ghost in it above blueprints; `end_stroke` — `PLAN`);
   a thing (everything that is placed: `Items.is_interior`) from the bag shows at once as the finger or the

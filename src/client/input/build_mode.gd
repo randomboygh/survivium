@@ -232,20 +232,21 @@ func set_picking(p: bool) -> void:
 ## The eyedropper (the user's picks, 2026-11-26): what the world shows at screen point `pos`
 ## into the hand in use, as if chosen on the palette: a thing set down or a ghost thing (and
 ## its turn kept for the next), else the ghost block of the blueprint nearest, else the
-## block there (natural ones too, by the item that builds that material). Without one in
-## the bag the hand stays as it was (choose's nag). The eyedropper goes off either way, and
-## the eraser too once something is taken.
+## block there (natural ones too, by the item that builds that material). Once something is
+## taken the eyedropper goes off, and the eraser too; with nothing there to take, or none of
+## it in the bag (choose's nag), it stays on for the next tap (the user's pick, 6Б).
 func pick_at(pos: Vector2) -> void:
-	picking = false
 	var got := picked_at(pos)
 	var id: String = got.get("item", "")
 	if id == "" or not builds_with(id):
-		changed.emit()
+		return
+	if game.character.inventory.count(id) <= 0:
+		choose(id)
 		return
 	if got.has("turn") and not Plans.drawn_with(id):
 		kept_turns[id] = int(got.turn)
-	if game.character.inventory.count(id) > 0:
-		erasing = false
+	picking = false
+	erasing = false
 	choose(id)
 	changed.emit()
 
