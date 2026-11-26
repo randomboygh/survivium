@@ -194,7 +194,7 @@ func _test_mods() -> void:
 	# A recipe out of grain (a hard reference to the plants bundle) and a tree that gives
 	# a cone (soft).
 	_write_file("res://content/_d/data/recipes.yaml", "- id: porridge\n  title: x\n  makes: resources:fiber\n  needs: {plants:grain: 2}\n")
-	_write_file("res://content/_d/data/trees.yaml", "- id: fir\n  title: x\n  leaves: needles\n  trunk: [1, 1]\n  crown: [2, 3, 4]\n  tints: [\"#224422\"]\n  seed: plants:cone\n")
+	_write_file("res://content/_d/data/trees.yaml", "- id: fir\n  title: x\n  leaves: needles\n  trunk: [1, 1]\n  crown: [2, 3, 4]\n  tints: [\"#224422\"]\n  seed: plants:cone\n  picture: tree/look.yaml\n")
 	# And a bush whose fruit (soft) is a record nobody has.
 	_write_file("res://content/_d/data/bushes.yaml", "- id: thorn\n  title: x\n  tint: \"#224422\"\n  cards: 3\n  rise: 0.3\n  spread: [0.2, 0.2, 0.2]\n  fruit: plants:nothing\n")
 	Content.refresh()

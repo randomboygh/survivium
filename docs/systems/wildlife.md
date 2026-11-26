@@ -221,7 +221,7 @@ sprite, holds its frame till the blow that killed it lands (a blow still in `_bl
 for the reply naming the blow, which comes after the going: `felled`, from `Controls._did`) and plays its death
 (`DEATH_FRAME` each), flashed red as that blow lands as a flinch is (`flash_step`); then it lies on the last frame, turned to the camera by the way it went, till the carcass is
 taken. One in a chunk coming in view (`came`) lay there before: dead at once. The sun's shadow is cast by the sprite with its own frame as it is drawn, skewed
-by the sun (`sprite.gdshader` `lean_shadow`: a lying body's shadow lies along it, shots `sprite-shadow-*`); for a flying one (the frames of a flyer's strokes) the shadow is the frame of the same
+by the sun (`sprite.gdshader`: a lying body's shadow lies along it, lit along it the width turns, `side_spread`, shots `sprite-shadow-*`); for a flying one (the frames of a flyer's strokes) the shadow is the frame of the same
 stroke from the row «from the front», laid flat at mid-height, with the wings across the path (`flat_shadow`,
 `shadow_uv`): the bird from above, not a profile stretched by the sun. The check is the shot `animal-shadows`.
 An example of a beast by data and a picture alone: `content/animals/sparrow/README.md`.

@@ -112,6 +112,9 @@ One-line forms of the rules; the detail is above and in the other pages of this 
 - Phone GPUs flip pixels on texel edges and geometry lines: bias, overlap (`ChunkMesher.EPS`), no walls
   under 1 px; headless shows none of it.
 - Nodes scaled 1/16 (voxel models) need `extra_cull_margin` × 16 or the shear culls them.
+- A shader that stands a picture 1/slope taller (`stand_tall`) needs its culling box that much taller for the
+  steepest of `box_views` (`TreeSprites.stand_box`); a MultiMesh's box does not follow a later change of its
+  mesh's `custom_aabb`, so grow the node's box instead.
 - Silhouettes and the player's x-ray go by the stencil values.
 - Lights with shadows add in sRGB and cost a pass; Compatibility lights a mesh with at most 32 omni
   lights; `toon_light` returns 0 where ATTENUATION is 0.
@@ -133,6 +136,15 @@ One-line forms of the rules; the detail is above and in the other pages of this 
   the browser drew no grass at all, while the desktop (32 units) and Android (Vulkan) were fine.
   `tools/lint.py` holds every shader to `MAX_SAMPLERS` (13); declare a sampler only one shader reads
   in that shader, not in `common.gdshaderinc` (`roof_map_soft` is in `world.gdshader`).
-- A wide sprite lit from behind takes its own sun shadow as a dither over its face: the shadow pass leans
-  the card (`lean_shadow`) in front of the upright one. Things drawn as pictures (`Props._add_sprite`, the
-  snowman) set `sun_shadow_free` in `sprite.gdshader`; the player's head shows the same at some turns.
+- A sprite's sun shadow cast by a card that stands off the drawn one shades the picture itself: grazed by the
+  light, points of it a little nearer the light lay a dither over the far half (a wide picture lit from behind
+  over its face). Move such a card only along the light (that keeps its shadow on the ground) and below the
+  picture: `sprite.gdshader` `lay_flat` lays the card turned by `side_spread` a pixel over the foot. The rows
+  once leaned along `view_up` (`lean_shadow`, removed 2026-11-26) lifted the feet's shadow to the shoulders with
+  the camera turned east or west. Things drawn as pictures (`Props._add_sprite`, the snowman) set
+  `sun_shadow_free`.
+- A picture that holds data, not colours, is imported with `process/fix_alpha_border` on (every `.import`, not
+  committed): in an RGBA8 picture each texel under alpha 20 gets the colour of the nearest texel with more
+  within 4 px, and the game (and an exported one) reads the import (`Content.picture`, `Content.live` off). The
+  trees' frames lost their bark steps by the leaves so (#881-#888); their codes under 128 are now stored 64
+  higher (`frame_code`). Keep a data texel's alpha 20 or more, or use LA8, which the import leaves alone.
