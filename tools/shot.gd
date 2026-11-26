@@ -214,6 +214,9 @@ func _run() -> void:
 			main.player.position = places.build_room(main.world, main.player.position)
 		if shot.get("plan", false):
 			main.player.position = places.plan(main.world, main.player.position)
+		if shot.has("ceiling"):
+			main.settings.values.build_level = 0
+			main.player.position = places.ceiling(main.world, main.player.position, shot.ceiling == "earth")
 		if shot.has("uneven"):
 			main.settings.values.build_level = 0 if shot.uneven else 1
 			main.player.position = places.uneven(main.world, main.player.position, shot.uneven, shot.get("built", false))
