@@ -1637,10 +1637,12 @@ const SHOTS := {
 ## A shot of a species drawn as pictures (places.pictured) named
 ## `pics-<tree>[-v<variant>][-t<its own turn>][-c<camera turn>][-h<time x 100>][-s<season>]
 ## [-f<autumn's leaf fall x 100>][-n<cells the player stands further north>][-a<eighths round from the
-## south the player comes to the thick trunk from, walking up to it>][-x (what stops a body drawn)][-o]`, on
+## south the player comes to the thick trunk from, walking up to it>][-x (what stops a body drawn)][-o]
+## [-d<1 trees that keep their dry leaves in winter, 0 trees that go bare>][-w<snow x 100>]`, on
 ## bare ground, the grass hidden, no interface: `pics-oak-t2-h30` is the oaks' side 2 by the morning sun,
 ## `pics-maple-s2-f60` the maples late in autumn, `pics-pine-n8` the pines with the thick one's
-## top in a phone's frame, `-o` the trees hidden to show their shadows alone. {} for another name.
+## top in a phone's frame, `pics-oak-s3-d1` oaks in winter with dry leaves under the snow, `-o` the
+## trees hidden to show their shadows alone. {} for another name.
 static func pictured(name: String) -> Dictionary:
 	if not name.begins_with("pics-"):
 		return {}
@@ -1672,6 +1674,10 @@ static func pictured(name: String) -> Dictionary:
 				shot.xray = true
 			"o":
 				shot.hide.append("chunks: trees")
+			"d":
+				shot.dry = n
+			"w":
+				shot.snow = n / 100.0
 	return shot
 
 

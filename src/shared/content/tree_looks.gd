@@ -48,8 +48,13 @@ static var hold_most := 0.0
 ## cells: PackedByteArray of nx * ny * nz bits, x fastest, then y, then z, hold: cells
 ## from the trunk's axis a body's feet are held across and along the view (see
 ## FEET_FRONT), foot: Vector2 (look.yaml
-## `foot`: the bark's half width and the foot's front, pixels)}; empty when it
-## has none or it cannot be read.
+## `foot`: the bark's half width and the foot's front, pixels)}, and for the seasons
+## (TreeSprites, tree.gdshader): `dry` the 7 steps of the dry leaves a tree that keeps them
+## shows in winter and `blossom` the 7 of its spring blossom ([] none), `snow` and
+## `snow_dry` the pictures of the snow on the tree in winter (the look it shows then: bare,
+## or the evergreen crown) and on the crown of a tree that keeps its dry leaves ("" none),
+## `evergreen` true for a tree that keeps its summer leaves all year (the hot zones'); empty
+## when it has none or it cannot be read.
 static func read(s: Dictionary) -> Dictionary:
 	var file: String = s.get("picture", "")
 	if file == "":
@@ -67,6 +72,14 @@ static func read(s: Dictionary) -> Dictionary:
 		out.leaves.append(Color(str(c)))
 	for c in data.get("bark", []):
 		out.bark.append(Color(str(c)))
+	for k in ["dry", "blossom"]:
+		out[k] = []
+		for c in data.get(k, []):
+			out[k].append(Color(str(c)))
+	for k in ["snow", "snow_dry"]:
+		var f := str(data.get(k, ""))
+		out[k] = path.get_base_dir().path_join(f) if f != "" else ""
+	out.evergreen = data.get("evergreen", false) == true
 	for l: Dictionary in data.looks:
 		var c: Array = l.crown
 		var look := {}

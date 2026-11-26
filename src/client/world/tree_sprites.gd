@@ -7,7 +7,9 @@ extends RefCounted
 ## suns of the day), not colours. Young trees, stumps and the species drawn in leaf
 ## clusters stay with Foliage and the trunk mesher.
 ##
-## Every pictured species' frames are packed into one atlas at the start (setup), so a
+## Every pictured species' frames are packed into one atlas at the start (setup), with a
+## row of ramps a species under them (the colours its steps take, RAMP_W), and its snow
+## pictures into a second (`snow`), so a
 ## chunk draws its trees in one MultiMesh: an instance per tree, its foot the origin, its
 ## colour (anchor x, anchor y, turn, what the tree does over the year as Foliage's cards'
 ## alpha) and custom data (the look's cell of turn 0 in the atlas: x, y, w, h).
@@ -24,20 +26,32 @@ const CELL := WorldCells.CELL
 ## on some GPUs: whole even numbers up to 4096 come through exactly).
 const ATLAS_W := 4096
 ## Texels of a ramp row: the leaves' 7 steps, then the bark's 4, then the rule its leaves
-## are lit by (TreeLooks.MODULES, FRONDS, HANGING or PALMS, in red: a third a rule).
-const RAMP_W := 12
+## are lit by (TreeLooks.MODULES, FRONDS, HANGING or PALMS, in red: a third a rule), the 7
+## steps of the dry leaves kept in winter (DRY_AT) and of the blossom (BLOSSOM_AT: alpha 0
+## where the species has none), and where its snow pictures lie in the snow atlas from its
+## frames in the frames atlas (SNOW_AT: the winter look's, then the dry crown's; x, y as
+## two bytes each, low first, a negative one less 65536; x 32768 where it has none).
+const RAMP_W := 28
+const DRY_AT := 12
+const BLOSSOM_AT := 19
+const SNOW_AT := 26
+const NO_SNOW := 32768
 ## Texels of the pictures a world unit (tree.gdshader's TEXELS).
 const TEXELS := 16.0
 
 ## Species index -> the place of its frames in the atlas (Vector2i), for species drawn so.
 static var places := {}
-## The atlas of the frames, of the bare trees' frames (two bytes a texel: half the
-## memory of the frames, 14 species' atlases are some 40 MB) and the ramps (a row a species).
+## The atlas of the frames (and the ramps, a row a species from `ramps_at`: one texture
+## unit less, the web has few) and of the bare trees' frames (two bytes a texel: half the
+## memory of the frames, 14 species' atlases are some 40 MB).
 static var frames: ImageTexture
 static var bare: ImageTexture
-static var ramps: ImageTexture
-## Species index -> its row in ramps.
+static var ramps_at := Vector2i.ZERO
+## Species index -> its row of ramps.
 static var ramp_rows := {}
+## The atlas of the snow on the trees (two bytes a texel, tree.gdshader's snow codes), the
+## species' snow pictures packed as the frames are.
+static var snow: ImageTexture
 ## How high over its foot the tallest look of the species drawn reaches (world units, at
 ## least the 12 of the first pictures): the height of quad_mesh's box.
 static var tallest := 12.0
@@ -60,7 +74,16 @@ static func setup() -> bool:
 			continue
 		top.convert(Image.FORMAT_RGBA8)
 		under.convert(Image.FORMAT_LA8)
-		pics.append([i, top, under])
+		var snows := []
+		for k in ["snow", "snow_dry"]:
+			var sn: Image = Content.picture(p[k]) if p.get(k, "") != "" else null
+			if sn != null and sn.get_size() != top.get_size():
+				push_warning("tree pictures: %s of %s is not the frames' size" % [k, Trees.SPECIES[i].id])
+				sn = null
+			if sn != null:
+				sn.convert(Image.FORMAT_LA8)
+			snows.append(sn)
+		pics.append([i, top, under, snows])
 		for look: Dictionary in p.looks:
 			tallest = maxf(tallest, (float(look.ay) + 1.0) / TEXELS)
 	if pics.is_empty():
@@ -68,28 +91,19 @@ static func setup() -> bool:
 		return false
 	# Shelves, tallest first.
 	pics.sort_custom(func(a: Array, b: Array) -> bool: return a[1].get_height() > b[1].get_height())
-	var x := 0
-	var y := 0
-	var shelf := 0
-	var at := []
+	var sizes := []
 	for p: Array in pics:
-		var sz: Vector2i = p[1].get_size()
-		if x + sz.x > ATLAS_W:
-			x = 0
-			y += shelf
-			shelf = 0
-		at.append(Vector2i(x, y))
-		x += (sz.x + 1) & ~1
-		shelf = maxi(shelf, (sz.y + 1) & ~1)
-	var h := y + shelf
-	var width := 0
-	for k in pics.size():
-		width = maxi(width, at[k].x + pics[k][1].get_width())
-	var a := Image.create_empty(width, h, false, Image.FORMAT_RGBA8)
+		sizes.append(p[1].get_size())
+	var at := _shelves(sizes)
+	var width: int = maxi(at.pop_back().x, RAMP_W)
+	var h: int = at.pop_back().y
+	ramps_at = Vector2i(0, h)
+	var a := Image.create_empty(width, h + ((pics.size() + 1) & ~1), false, Image.FORMAT_RGBA8)
 	# No wood: both bytes 255 (see tree.gdshader).
 	var b := Image.create_empty(width, h, false, Image.FORMAT_LA8)
 	b.fill(Color(1, 1, 1, 1))
 	var r := Image.create_empty(RAMP_W, pics.size(), false, Image.FORMAT_RGBA8)
+	r.fill(Color(0, 0, 0, 0))
 	for k in pics.size():
 		var p: Array = pics[k]
 		var sz: Vector2i = p[1].get_size()
@@ -103,17 +117,78 @@ static func setup() -> bool:
 		for j in 4:
 			r.set_pixel(7 + j, k, s.bark[mini(j, s.bark.size() - 1)])
 		r.set_pixel(11, k, Color(float(s.get("rule", 0)) / 3.0, 0.0, 0.0, 1.0))
+		for j in 7:
+			for d in [[DRY_AT, s.get("dry", [])], [BLOSSOM_AT, s.get("blossom", [])]]:
+				var cs: Array = d[1]
+				if not cs.is_empty():
+					r.set_pixel(d[0] + j, k, cs[mini(j, cs.size() - 1)])
+	_pack_snow(pics, at, r)
+	a.blit_rect(r, Rect2i(Vector2i.ZERO, r.get_size()), ramps_at)
 	frames = ImageTexture.create_from_image(a)
 	bare = ImageTexture.create_from_image(b)
-	ramps = ImageTexture.create_from_image(r)
 	return true
+
+
+## Places for pictures of `sizes` on shelves ATLAS_W wide (even places), then the height
+## and width they take (as the last two entries: (0, height), (width, 0)).
+static func _shelves(sizes: Array) -> Array:
+	var x := 0
+	var y := 0
+	var shelf := 0
+	var at := []
+	var width := 0
+	for sz: Vector2i in sizes:
+		if x + sz.x > ATLAS_W:
+			x = 0
+			y += shelf
+			shelf = 0
+		at.append(Vector2i(x, y))
+		width = maxi(width, x + sz.x)
+		x += (sz.x + 1) & ~1
+		shelf = maxi(shelf, (sz.y + 1) & ~1)
+	at.append(Vector2i(0, maxi(y + shelf, 2)))
+	at.append(Vector2i(maxi(width, 2), 0))
+	return at
+
+
+## Packs the snow pictures of `pics` (setup's: [species, frames, bare, [snow, snow_dry]]
+## at `at` in the frames atlas) into the snow atlas, writing where each lies into the ramps
+## `r` (SNOW_AT).
+static func _pack_snow(pics: Array, at: Array, r: Image) -> void:
+	var items := []
+	for k in pics.size():
+		for j in 2:
+			r.set_pixel(SNOW_AT + j, k, _offset_colour(Vector2i(NO_SNOW, 0)))
+			if pics[k][3][j] != null:
+				items.append([k, j, pics[k][3][j]])
+	items.sort_custom(func(p: Array, q: Array) -> bool: return p[2].get_height() > q[2].get_height())
+	var sizes := []
+	for it: Array in items:
+		sizes.append(it[2].get_size())
+	var places := _shelves(sizes)
+	var width: int = places.pop_back().x
+	var h: int = places.pop_back().y
+	var img := Image.create_empty(width, h, false, Image.FORMAT_LA8)
+	for n in items.size():
+		var it: Array = items[n]
+		img.blit_rect(it[2], Rect2i(Vector2i.ZERO, it[2].get_size()), places[n])
+		r.set_pixel(SNOW_AT + it[1], it[0], _offset_colour(places[n] - at[it[0]]))
+	snow = ImageTexture.create_from_image(img)
+
+
+## An offset as a ramp texel (see RAMP_W): x and y as two bytes each.
+static func _offset_colour(d: Vector2i) -> Color:
+	var x := d.x & 0xffff
+	var y := d.y & 0xffff
+	return Color8(x & 255, x >> 8, y & 255, y >> 8)
 
 
 ## Sets the atlases on `mat` (tree.gdshader, tree_shadow.gdshader).
 static func dress(mat: ShaderMaterial) -> void:
 	mat.set_shader_parameter("frames", frames)
 	mat.set_shader_parameter("bare_frames", bare)
-	mat.set_shader_parameter("ramps", ramps)
+	mat.set_shader_parameter("ramps_at", ramps_at)
+	mat.set_shader_parameter("snow_frames", snow)
 
 
 ## The quad a picture is drawn on: x across 0..1, y -1 (the lowest row, lying on the
@@ -165,8 +240,9 @@ static func build(w, x0: int, z0: int) -> Array:
 
 ## What the tree on column `col` does over the year (Foliage.year_kind), but a palm drawn
 ## so keeps all its leaves (TreeLooks.PALMS: its frames hold the leaves' light where the
-## others keep the bare tree, see tree.gdshader).
+## others keep the bare tree, see tree.gdshader), and so does a tree of the hot zones
+## (`evergreen`: no snow, no dry leaves; user 2026-11-24).
 static func _year_kind(s: Dictionary, col: Vector2i, species: int) -> float:
-	if int(s.pictures.get("rule", 0)) == TreeLooks.PALMS and not s.dead:
+	if (int(s.pictures.get("rule", 0)) == TreeLooks.PALMS or s.pictures.get("evergreen", false)) and not s.dead:
 		return Foliage.EVERGREEN
 	return Foliage.year_kind(s, hash(col), species)

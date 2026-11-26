@@ -50,10 +50,18 @@ stencil_mode write, compare_always, 3;
 
 uniform sampler2D frames : filter_nearest;
 uniform sampler2D bare_frames : filter_nearest;
-// A row a species: the leaves' 7 steps, then the bark's 4, as drawn (sRGB), then the rule
-// its leaves are lit by in red, a third a rule (0 bundles, 1 fronds, 2 hanging, 3 palms:
-// TreeLooks).
-uniform sampler2D ramps : filter_nearest;
+uniform sampler2D snow_frames : filter_nearest;
+// Where the ramps lie in the frames atlas: a row a species, the leaves' 7 steps, then the
+// bark's 4, as drawn (sRGB), then the rule its leaves are lit by in red, a third a rule (0
+// bundles, 1 fronds, 2 hanging, 3 palms: TreeLooks), the dry leaves' 7 steps (DRY_AT) and
+// the blossom's (BLOSSOM_AT), where its snow lies (SNOW_AT): TreeSprites.RAMP_W.
+uniform ivec2 ramps_at;
+// How much of the trees' blossom is out (Sky): all of it in spring.
+global uniform float blossom_amount;
+
+#include "res://shaders/tree_pictures.gdshaderinc"
+
+const int MODULES = 0;
 const int FRONDS = 1;
 const int HANGING = 2;
 const int PALMS = 3;
@@ -163,13 +171,19 @@ vec3 unocta(vec2 e) {
 }
 
 vec3 ramp(float k, float i) {
-	return texelFetch(ramps, ivec2(int(i), int(k)), 0).rgb;
+	return ramp_texel(int(k), int(i)).rgb;
 }
 
-// The colour of ramp row `k` at step `c` (0..6, quarters between two steps mixed).
-vec3 leaf_colour(float k, float c) {
+// The colour of ramp row `k` at step `c` (0..6, quarters between two steps mixed), of the
+// leaves' steps from texel `at` of the row (0; DRY_AT the dry leaves', BLOSSOM_AT the
+// blossom's).
+vec3 steps_colour(float k, float c, int at) {
 	float lo = floor(c);
-	return mix(ramp(k, lo), ramp(k, min(lo + 1.0, 6.0)), c - lo);
+	return mix(ramp(k, float(at) + lo), ramp(k, float(at) + min(lo + 1.0, 6.0)), c - lo);
+}
+
+vec3 leaf_colour(float k, float c) {
+	return steps_colour(k, c, 0);
 }
 
 // The leaves' steps (0..6) of a leaf texel `g` (alpha bits `a`) under the light L: x in
@@ -259,6 +273,54 @@ vec2 hanging_steps(vec4 g, int a, vec3 L) {
 	}
 	c = clamp(min(c, vec2(d < DP ? 5.0 : 6.0, 5.0)), 0.0, 6.0);
 	return vec2(c.x, max(c.x - 1.0, c.y));
+}
+
+// Blossom (spring, blossom_amount) on the leaves of a species that has it (its ramp row's
+// blossom steps), as spring23.py drew it: most leaves (BLOSSOM_SHARE at full bloom), each by
+// its own number (its bundle's normal and its angle), in the blossom's steps; little
+// crosses of flowers on the lit blossom: in each block of CROSS_BLOCK x CROSS_BLOCK texels of
+// the picture one place by the tree, its middle the palest step where the blossom there is
+// lit (steps 3 and 4), its 4 neighbours in blossom the next.
+const float BLOSSOM_SHARE = 0.8;
+const float CROSS_BLOCK = 5.0;
+
+bool in_blossom(vec4 g, int a, vec2 foot) {
+	return a >= 128 && (a & 3) != 2
+		&& hash12(g.rg * 255.0 + vec2(g.b * 97.0, g.b * 13.0) + foot * 1.3) < blossom_amount * BLOSSOM_SHARE;
+}
+
+bool cross_middle(ivec2 p, vec2 foot) {
+	vec2 block = floor(vec2(p) / CROSS_BLOCK);
+	vec2 at = block * CROSS_BLOCK + floor(vec2(hash12(block + foot * 0.7 + 3.0), hash12(block + foot * 0.7 + 7.0)) * CROSS_BLOCK);
+	return ivec2(at) == p;
+}
+
+// The blossom's step of texel `p` of the picture (`size`; frames texel `t`) at step `c`: a cross's
+// middle or arm takes the palest steps.
+float blossom_step(float c, ivec2 p, ivec2 size, ivec2 t, vec3 L, vec2 foot, float amount) {
+	if (cross_middle(p, foot)) {
+		return floor(c) >= 3.0 && floor(c) <= 4.0 ? 6.0 : c;
+	}
+	if (floor(c) < 2.0) {
+		return c;
+	}
+	ivec2 sides[4] = ivec2[](ivec2(1, 0), ivec2(-1, 0), ivec2(0, 1), ivec2(0, -1));
+	for (int i = 0; i < 4; i++) {
+		ivec2 q = p + sides[i];
+		if (q.x < 0 || q.y < 0 || q.x >= size.x || q.y >= size.y || !cross_middle(q, foot)) {
+			continue;
+		}
+		vec4 g = texelFetch(frames, t + sides[i], 0);
+		int a = frame_code(g);
+		if (!in_blossom(g, a, foot) || (float((a >> 2) & 3) + hash12(g.rg * 255.0 + foot * 3.1)) / 4.0 > amount) {
+			continue;
+		}
+		float cq = floor(leaf_steps(g, a, L).x);
+		if (cq >= 3.0 && cq <= 4.0) {
+			return 5.0;
+		}
+	}
+	return c;
 }
 
 // How far the sun is behind the side shown (0 in front of it .. 1 behind it), round the
@@ -378,7 +440,7 @@ void fragment() {
 	}
 	ivec2 t = ivec2(cell.xy + floor(at));
 	vec4 g = texelFetch(frames, t, 0);
-	int a = int(round(g.a * 255.0));
+	int a = frame_code(g);
 	vec2 texel = light_texel(light_xz);
 	if (cut_hides(world_pos, texel)) {
 		discard;
@@ -396,7 +458,8 @@ void fragment() {
 	// Autumn and winter take the leaves bundle by bundle from the crown's edge in, the outer
 	// ranks first and each rank's bundles in their own order: the bare tree shows through
 	// where they are gone; the dark mass inside goes a little ahead of the bundles over it.
-	float amount = leaves_left(info.y);
+	// A tree keeping its dry leaves keeps them all (picture_leaves).
+	float amount = picture_leaves(info.y);
 	if (a >= 128) {
 		float rank = float((a >> 2) & 3);
 		if ((rank + hash12(g.rg * 255.0 + foot_pos.xz * 3.1)) / 4.0 > amount) {
@@ -407,70 +470,107 @@ void fragment() {
 	}
 	vec3 col;
 	vec3 shade = vec3(-1.0);
-	// A palm trunk's soft outline is wood drawn half way to the bark's darkest.
-	bool soft = a == 3;
-	if (soft) {
-		a = 2;
-	}
-	// Once most leaves are gone the bark shows as the bare tree has it, without the
-	// crown's shade over the trunk. The bare tree's steps are the bark's where no crown
-	// shades it (`open`, see wood_colour).
-	vec4 open = g;
-	if (a == 0 || a == 2 && amount < 0.5) {
-		vec4 b = texelFetch(bare_frames, t, 0);
-		if (b.r > 0.998 && b.a > 0.998) {
-			if (a == 0) {
-				discard;
-			}
-		} else {
-			g = vec4(b.r, b.a, 0.0, 1.0);
-		}
-		open = g;
-		a = 2;
-	} else if (a == 2) {
-		vec4 b = texelFetch(bare_frames, t, 0);
-		if (b.r < 0.998 || b.a < 0.998) {
-			open = vec4(b.r, b.a, 0.0, 1.0);
-		}
-	}
-	if (a == 2) {
-		if (bayer4(texel) < trunk_through(texel, world_pos)) {
-			discard;
-		}
-		col = wood_colour(k, g, open, L, shade);
-		if (soft) {
-			col = mix(col, ramp(k, 7.0), 0.5);
-			shade = mix(shade, ramp(k, 7.0), 0.5);
-		}
-	} else {
+	// Snow in winter on what the tree shows then: over all else where it lies; a leaf under
+	// its lower edge a step darker.
+	int snow = snow_on(t, int(cell.w - floor(at.y)) - 1, int(k), info.y, amount);
+	if (snow >= 16384) {
 		if (bayer4(texel) < see_through(texel, world_pos)) {
 			discard;
 		}
-		int rule = int(round(ramp(k, 11.0).r * 3.0));
-		if (a == 1) {
-			col = ramp(k, 1.0);
-		} else if (rule == FRONDS) {
-			vec2 steps = frond_steps(g, a, L);
-			col = ramp(k, steps.x);
-			shade = ramp(k, steps.y);
-		} else if (rule == PALMS) {
-			col = palm_colour(k, g, texelFetch(bare_frames, t, 0), a, L, shade);
-		} else if (rule == HANGING) {
-			vec2 steps = hanging_steps(g, a, L);
-			col = leaf_colour(k, steps.x);
-			shade = leaf_colour(k, steps.y);
-		} else {
-			vec2 steps = leaf_steps(g, a, L);
-			col = leaf_colour(k, steps.x);
-			shade = leaf_colour(k, steps.y);
+		float s = snow_step(snow, L);
+		col = snow_colour(snow, s);
+		shade = snow_colour(snow, max(s - 1.0, 1.0));
+	} else {
+		float under_snow = snow == 1 ? 1.0 : 0.0;
+		// A palm trunk's soft outline is wood drawn half way to the bark's darkest.
+		bool soft = a == 3;
+		if (soft) {
+			a = 2;
 		}
-		// Autumn colours differ from tree to tree; evergreens hardly change (as
-		// leaves.gdshader's).
-		vec3 season = foliage_tint * (1.0 + (hash12(floor(foot_pos.xz / 3.0) + 5.0) - 0.5) * (foliage_tint - 1.0) * vec3(0.5, 0.8, 1.0));
-		season = info.y > 0.5 && info.y < 0.7 ? mix(vec3(1.0), season, 0.15) : season;
-		vec3 tint = season * (1.0 - 0.25 * wetness);
-		col *= tint;
-		shade = shade.r >= 0.0 ? shade * tint : shade;
+		// Once most leaves are gone the bark shows as the bare tree has it, without the
+		// crown's shade over the trunk. The bare tree's steps are the bark's where no crown
+		// shades it (`open`, see wood_colour).
+		vec4 open = g;
+		if (a == 0 || a == 2 && amount < 0.5) {
+			vec4 b = texelFetch(bare_frames, t, 0);
+			if (b.r > 0.998 && b.a > 0.998) {
+				if (a == 0) {
+					discard;
+				}
+			} else {
+				g = vec4(b.r, b.a, 0.0, 1.0);
+			}
+			open = g;
+			a = 2;
+		} else if (a == 2) {
+			vec4 b = texelFetch(bare_frames, t, 0);
+			if (b.r < 0.998 || b.a < 0.998) {
+				open = vec4(b.r, b.a, 0.0, 1.0);
+			}
+		}
+		if (a == 2) {
+			if (bayer4(texel) < trunk_through(texel, world_pos)) {
+				discard;
+			}
+			col = wood_colour(k, g, open, L, shade);
+			if (soft) {
+				col = mix(col, ramp(k, 7.0), 0.5);
+				shade = mix(shade, ramp(k, 7.0), 0.5);
+			}
+		} else {
+			if (bayer4(texel) < see_through(texel, world_pos)) {
+				discard;
+			}
+			int rule = int(round(ramp(k, 11.0).r * 3.0));
+			// Autumn colours differ from tree to tree; evergreens hardly change (as
+			// leaves.gdshader's).
+			vec3 season = foliage_tint * (1.0 + (hash12(floor(foot_pos.xz / 3.0) + 5.0) - 0.5) * (foliage_tint - 1.0) * vec3(0.5, 0.8, 1.0));
+			season = info.y > 0.5 && info.y < 0.7 ? mix(vec3(1.0), season, 0.15) : season;
+			vec3 tint = season * (1.0 - 0.25 * wetness);
+			vec2 steps = vec2(-1.0);
+			if (a == 1) {
+				steps = vec2(1.0);
+				col = ramp(k, 1.0);
+			} else if (rule == FRONDS) {
+				steps = frond_steps(g, a, L);
+				col = ramp(k, steps.x);
+				shade = ramp(k, steps.y);
+			} else if (rule == PALMS) {
+				col = palm_colour(k, g, texelFetch(bare_frames, t, 0), a, L, shade);
+			} else if (rule == HANGING) {
+				steps = hanging_steps(g, a, L);
+			} else {
+				steps = leaf_steps(g, a, L);
+			}
+			if (under_snow > 0.5 && steps.x >= 0.0) {
+				steps = max(steps - 1.0, 0.0);
+				if (rule == FRONDS) {
+					col = ramp(k, steps.x);
+					shade = ramp(k, steps.y);
+				}
+			}
+			if (rule == MODULES && a >= 128 && ramp_texel(int(k), BLOSSOM_AT).a > 0.5 && blossom_amount > 0.0
+					&& in_blossom(g, a, foot_pos.xz)) {
+				// In blossom: the blossom's own steps, not tinted by the season.
+				float c = blossom_step(steps.x, ivec2(floor(at)), ivec2(cell.zw), t, L, foot_pos.xz, amount);
+				col = steps_colour(k, c, BLOSSOM_AT) * (1.0 - 0.25 * wetness);
+				shade = steps_colour(k, steps.y, BLOSSOM_AT) * (1.0 - 0.25 * wetness);
+			} else {
+				if (rule == MODULES || rule == HANGING) {
+					col = leaf_colour(k, steps.x);
+					shade = leaf_colour(k, steps.y);
+				}
+				col *= tint;
+				shade = shade.r >= 0.0 ? shade * tint : shade;
+				// The dry leaves of a tree keeping them come as the others fall (leaf_amount from
+				// autumn's to winter's), in their own steps.
+				float dry = info.y > 0.95 ? clamp((0.8 - leaf_amount) / 0.25, 0.0, 1.0) : 0.0;
+				if (dry > 0.0 && steps.x >= 0.0 && ramp_texel(int(k), DRY_AT).a > 0.5) {
+					col = mix(col, steps_colour(k, steps.x, DRY_AT) * (1.0 - 0.25 * wetness), dry);
+					shade = shade.r >= 0.0 ? mix(shade, steps_colour(k, steps.y, DRY_AT) * (1.0 - 0.25 * wetness), dry) : shade;
+				}
+			}
+		}
 	}
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
 	float sun_part = sea_bright(world_pos.y);
