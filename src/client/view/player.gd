@@ -27,6 +27,11 @@ const FOAM_RIPPLE := Color(0.85, 0.93, 0.92)
 const MURKY_RIPPLE := Color(0.62, 0.65, 0.5)
 const CLEAR_TINT := [Color(0.36, 0.62, 0.6), Color(0.13, 0.29, 0.42)]
 const SWAMP_TINT := [Color(0.37, 0.43, 0.25), Color(0.2, 0.26, 0.16)]
+## How much of the water's colour the body under it takes, a texel row under the
+## surface (sprite_water.gdshader `murky`): the olive of a swamp is near the colour of
+## skin and cloth, so the body in its shallow water takes more of it to look sunk in.
+const CLEAR_SHARE := 0.45
+const SWAMP_SHARE := 0.68
 ## The shortest a work plays, in seconds, so quick placing still shows.
 const MIN_WORK := 0.2
 ## How many sheets of looks and things held are kept, so changing hands back and forth
@@ -460,6 +465,7 @@ func place_sprite() -> void:
 	var tint: Array = SWAMP_TINT if body.murk > 0 else CLEAR_TINT
 	underwater.material_override.set_shader_parameter("shallow", tint[0])
 	underwater.material_override.set_shader_parameter("deep", tint[1])
+	underwater.material_override.set_shader_parameter("murky", SWAMP_SHARE if body.murk > 0 else CLEAR_SHARE)
 	underwater.visible = drawn and line > -1000.0 and not body.in_bog
 	_find_flame()
 	# The torch is held a little towards the viewer, at the flame: as high and as far to

@@ -17,6 +17,9 @@ uniform vec4 frame_uv = vec4(0.0, 0.0, 1.0, 1.0);
 uniform float water_line = -1000.0;
 uniform vec3 shallow SRGB = vec3(0.36, 0.62, 0.6);
 uniform vec3 deep SRGB = vec3(0.13, 0.29, 0.42);
+// How much of the water's colour the body takes just under the surface (more a cell
+// deeper): murky water hides more of it than clear water, whose blue shows through.
+uniform float murky = 0.45;
 // 1 for a fish: the whole picture is under the water, the surface as far over its
 // origin as the sprite's scale along y goes past 1 (Creatures; undone here, the quad
 // keeps its height): an instance uniform reads 0 in the web build.
@@ -95,7 +98,7 @@ void fragment() {
 		float under = surface - world_pos.y;
 		float t = under > CELL ? 1.0 : 0.0;
 		vec3 water = mix(shallow, deep, 0.35 + 0.4 * t);
-		col = mix(c.rgb, water, 0.45 + 0.2 * t);
+		col = mix(c.rgb, water, murky + 0.2 * t);
 	}
 	vec4 veiled = veil(world_pos, depth_fade(world_pos.y));
 	// The share of the sun's and the sky's light that comes down this deep; light()

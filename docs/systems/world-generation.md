@@ -81,7 +81,8 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   ravines (`_ravine`) are `RAVINE_DEPTH` deep on a floor `RAVINE_FLOOR` wide and come up their sides in
   terraces of one level, by the distance from the noise's zero line (`_across`: the noise over its slope); a
   gorge (relief 1) goes down to its floor in such terraces too (`GORGE_*`); a swamp's pools and mires lie only
-  on ground at the sea's level; a hollow of a few columns two levels or more below all round, with no way out
+  on ground at the sea's level and `POOL_SHORE` cells from the water a beach lies along (a pool by the beach was
+  held by a one-column rim of sand); a hollow of a few columns two levels or more below all round, with no way out
   within `PIT_REACH` columns, rises to a level under its lowest rim (`_fill_pits`, before the banks); a
   hollow among mesas walled round by a higher tier, or the lowland ringed by mesas, rises to the lowest tier
   round it (`_mesa_wall`: eight rays to `MESA_HOLLOW` cells over the tiers of every second column, kept in
