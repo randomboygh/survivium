@@ -269,6 +269,30 @@ func _hold_to_put(main: Node) -> void:
 	var last: Dictionary = main.placed.things[main.placed.things.size() - 1]
 	_check(main.placed.things.size() == things_before + 1 and int(last.get("turn", 0)) == turned,
 		"the next thing of that kind is set down turned the same")
+	# A second finger turns a thing carried (the user's picks, 2026-11-27, 7В): a tap of it a
+	# quarter clockwise, the two fingers twisted a quarter each TWIST_STEP their way.
+	var carried := {"put": "tools:chest", "up": true, "held": true, "pos": off, "turn": 0, "kept": false}
+	var finger := func(down: Variant, at: Vector2) -> InputEvent:
+		var ev: InputEvent
+		if down == null:
+			ev = InputEventScreenDrag.new()
+		else:
+			ev = InputEventScreenTouch.new()
+			ev.pressed = down
+		ev.index = 1
+		ev.position = at
+		return ev
+	var side := Vector2(120, 0)
+	main.build.second_finger(finger.call(true, off + side), carried)
+	main.build.second_finger(finger.call(false, off + side), carried)
+	var tapped: bool = carried.turn == 1 and carried.kept and main.build.kept_turns.get("tools:chest") == 1
+	main.build.second_finger(finger.call(true, off + side), carried)
+	main.build.second_finger(finger.call(null, off + side.rotated(0.9)), carried)
+	var twisted: bool = carried.turn == 2
+	main.build.second_finger(finger.call(null, off + side.rotated(-0.1)), carried)
+	main.build.second_finger(finger.call(false, off + side.rotated(-0.1)), carried)
+	_check(tapped and twisted and carried.turn == 1 and main.build._second.is_empty(),
+		"a second finger's tap turns a thing carried a quarter, a twist turns it each way (%s)" % carried.turn)
 	# A thing one cell big tapped with its kind in the hand: the next goes beside it; with none
 	# left in the bag it is taken, and its slot chosen.
 	_check(main.build.face_in(Vector3.ZERO, Vector3(0.5, 5.0, 0.5), Vector3.DOWN) == Vector3i.UP
