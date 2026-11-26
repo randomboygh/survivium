@@ -212,6 +212,10 @@ func _rule(kind: String, args: Array) -> Variant:
 			# The turn kept for things of its kind (BuildMode.kept_turns): taken by any thing.
 			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_INT, TYPE_BOOL]) and args[2] >= 0 and args[2] < 4:
 				return placed.put_at(who, args[0], args[1], session.world.size_y, args[2], args[3])
+			# And the side of the wall's face tapped (Placed.plane_turn), -1 for none.
+			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_INT, TYPE_BOOL, TYPE_INT]) and args[2] >= 0 and args[2] < 4 \
+					and args[4] >= -1 and args[4] < 4:
+				return placed.put_at(who, args[0], args[1], session.world.size_y, args[2], args[3], args[4])
 		Protocol.LIGHT_PUT:
 			if _fit(args, [TYPE_STRING, TYPE_INT]):
 				return placed.put_light_from_bag(who, args[0], args[1])
@@ -272,6 +276,9 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.PLAN_CLEAR:
 			if _fit(args, []):
 				return session.plans.clear(actions, who)
+		Protocol.PLAN_TURN:
+			if _fit(args, [TYPE_VECTOR3I]):
+				return session.plans.turn_form(actions, who, args[0])
 		Protocol.FARM:
 			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_BOOL, TYPE_BOOL]) and args[0] in Plans.WORKS:
 				return session.plans.mark(actions, who, args[0], args[1], args[2], args[3], args[4])

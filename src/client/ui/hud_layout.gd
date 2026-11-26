@@ -58,6 +58,13 @@ func fit(rect: Rect2, turning := false, screen := Vector2.ZERO) -> void:
 	_place()
 
 
+## Screen pixels of `ui` UI pixels at the size of the touch controls: the screen's shorter
+## side over TARGET_SIDE on a phone or a tablet, whatever the interface size setting, so a
+## lift over the finger (BuildMode.FINGER_LIFT) is about the same on every phone.
+func touch_px(ui: float) -> float:
+	return ui * _screen_scale
+
+
 ## The interface's scale on a computer whose screen (or window) is `side` pixels on its
 ## shorter side, at interface size `size`: the step of PC_SCALES nearest to
 ## side / TARGET_SIDE_PC (the lower one of two as near), moved by UI_STEPS[size].

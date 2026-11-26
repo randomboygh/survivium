@@ -1142,20 +1142,33 @@ func _shape_of(item: String, turn: int) -> Dictionary:
 ## Where `who` setting thing `id` down at cell `aim` puts it (put_at): [its north-west
 ## corner, null where it has no room; its quarter turn]. `view` is the view's turn, taken
 ## by a thing that faces the camera (faces_view), or by any thing when `kept` (the turn the
-## player gave the last one of its kind, kept in the build mode). The build mode shows it
-## while a thing new from the bag is held up in the air.
-func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := false) -> Array:
+## player gave the last one of its kind, kept in the build mode). The best turn is taken by
+## itself where there is one (the user's pick, 2026-11-26, 4А): a door, a window, a wicket or
+## a gate in the plane of the wall or the fence it goes into or stands in (plane_turn; `face`,
+## the side of the face tapped, SIDES index, -1 none, settles a corner), and a thing that
+## faces the view or a ladder with its back to a wall when one is at hand (_backed); in the
+## open as before. The build mode shows it while a thing new from the bag is held up in the air.
+func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := false, face := -1) -> Array:
 	var item := Items.get_item(id)
 	var p: Vector3 = who.position / CELL
 	var turn := view if view >= 0 and (kept or faces_view(item.id)) else turn_facing(Tools.step_of(Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z)))
 	var rest := rest_of(item.id)
+	var stacked := false
 	if rest == ON_LADDER:
 		# A ladder goes on with the one under it, turned as it is.
 		for dy in [1, 2]:
 			if world.ladders.has(aim - Vector3i(0, dy, 0)) and not world.ladders.has(aim - Vector3i(0, dy - 1, 0)):
 				turn = world.ladders[aim - Vector3i(0, dy, 0)]
-	var shape := _shape_of(item.id, turn)
+				stacked = true
 	var cuts: bool = item.get("door", false) or item.get("window", false)
+	var hatch: bool = item.get("hatch", false)
+	if cuts and not hatch:
+		turn = plane_turn(aim, turn, face, p)
+	elif not stacked and (rest == ON_LADDER or faces_view(item.id)):
+		var backed := _backed(who, item.id, aim, top, turn, rest)
+		if not backed.is_empty():
+			return backed
+	var shape := _shape_of(item.id, turn)
 	# An opening is cut from the level of their feet up: never into the floor they stand on;
 	# a hatch's into the floor or the ceiling tapped.
 	var cut_from: int = floori(p.y + 0.25) if cuts else NO_CUT
@@ -1167,12 +1180,82 @@ func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := fals
 	return [spot, turn]
 
 
-## The build mode (Протокол PROP_PUT_AT): `who` sets thing `id` from the bag down at cell
-## `aim` (the cell tapped, within the reach of placing), its front to them: on the free
+## The turn of a door, a window, a wicket or a gate set down at cell `aim` (the wall's cell
+## tapped, or the cell it stands in) by one at `p` (cells): in the plane of the wall (or
+## the fence) there, its front to them. The wall runs the way that has more solid cells or
+## fences beside `aim` (a doorway left in a wall, a wall's end the opening goes on from);
+## where both ways have as many (a corner, a pillar, the open), across the face tapped
+## (`face`, the SIDES index it looks toward; -1 for none), else `turn` (as they face it).
+func plane_turn(aim: Vector3i, turn: int, face: int, p: Vector3) -> int:
+	var along_x := 0
+	var along_z := 0
+	for i in SIDES.size():
+		var c: Vector3i = aim + SIDES[i]
+		if world.is_solid(c.x, c.y, c.z) or _fences.has(c):
+			if i % 2 == 1:
+				along_x += 1
+			else:
+				along_z += 1
+	var flat_x: bool
+	if along_x != along_z:
+		flat_x = along_x > along_z
+	elif face >= 0 and face < SIDES.size():
+		# A face looking north or south is a wall running along x.
+		flat_x = face % 2 == 0
+	else:
+		return turn
+	# Turn 0 stands along the north edge of its cell, its front south (front_of).
+	if flat_x:
+		return 0 if p.z >= aim.z + 0.5 else 2
+	return 1 if p.x < aim.x + 0.5 else 3
+
+
+## [north-west cell, turn] of thing `id` set down at cell `aim` with its back to a wall
+## (put_spot): of the four turns (from `turn`, which wins a tie) the one whose spot has the
+## most solid cells right behind its back (SIDES[turn], as wall_turn has it), then the
+## fewest open ones, so a long thing lies along the wall; [] when no turn puts it against
+## one (it stands in the open: turned as before).
+func _backed(who, id: String, aim: Vector3i, top: int, turn: int, rest: int) -> Array:
+	var best: Array = []
+	var best_by := Vector2i.ZERO
+	var n := size_of(id)
+	for k in 4:
+		var t := (turn + k) % 4
+		var shape := _shape_of(id, t)
+		var spot: Variant = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, n, shape.offsets, rest, shape.high)
+		if spot == null:
+			continue
+		var by := _backing(spot, shape.offsets, t)
+		if by.x > 0 and (best.is_empty() or by.x > best_by.x or by.x == best_by.x and by.y > best_by.y):
+			best = [spot, t]
+			best_by = by
+	return best
+
+
+## How thing cells `offsets` from `spot` turned `turn` stand against a wall: (the solid
+## cells right behind its back edge, minus the open ones there).
+func _backing(spot: Vector3i, offsets: Array, turn: int) -> Vector2i:
+	var back: Vector3i = SIDES[posmod(turn, 4)]
+	var solid := 0
+	var open := 0
+	for o: Vector3i in offsets:
+		if offsets.has(o + back):
+			continue
+		var c: Vector3i = spot + o + back
+		if world.is_solid(c.x, c.y, c.z):
+			solid += 1
+		else:
+			open += 1
+	return Vector2i(solid, -open)
+
+
+## The build mode (Protocol.PROP_PUT_AT): `who` sets thing `id` from the bag down at cell
+## `aim` (the cell tapped, within the reach of placing), its front to them or turned as
+## put_spot finds best (`face`: the side of the face tapped, -1 none): on the free
 ## cells nearest it at that level (or one up or down). A door or a window cuts its
 ## opening into a wall: the blocks put there (not natural ground) where it goes are taken
 ## out and fall as if dug. True if it was set down.
-func put_at(who, id: String, aim: Vector3i, top: int, view := -1, kept := false) -> bool:
+func put_at(who, id: String, aim: Vector3i, top: int, view := -1, kept := false, face := -1) -> bool:
 	var item := Items.get_item(id)
 	if item.get("prop", "none") == "none":
 		return false
@@ -1191,7 +1274,7 @@ func put_at(who, id: String, aim: Vector3i, top: int, view := -1, kept := false)
 	if Vector2(aim.x + 0.5 - p.x, aim.z + 0.5 - p.z).length() > Tools.PLACE_REACH or absf(aim.y - p.y) > Tools.PLACE_REACH:
 		who.nag("put", "[too_far]")
 		return false
-	var found := put_spot(who, item.id, aim, top, view, kept)
+	var found := put_spot(who, item.id, aim, top, view, kept, face)
 	var spot: Variant = found[0]
 	var turn: int = found[1]
 	var rest := rest_of(item.id)

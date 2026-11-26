@@ -135,8 +135,10 @@ lies around. The rules are shared (the server checks them), input and hints are 
   float, `cell_of` reads them back), `take` /
   `take_all` (the client's copy, `Protocol.PLANS`, `PLAN_CELLS`). It is held by the session (`session.plans`),
   the hands' rules ask it through `actions.plans`; `WorldActions` is passed to `draw` / `build` as a
-  parameter, with no reference cycle. Requests: `PLAN` [kind, from, to, height, thickness, erase],
-  `PLAN_CLEAR`, `BUILD` (the action button of build mode, whatever is in the hand).
+  parameter, with no reference cycle. `turn_form` turns the ghost of a lone slope or stairs a quarter: the
+  whole column of ghost cells with forms over and under the cell (`column_of`, `formed_at`), within
+  `PLAN_REACH` and by the right «build». Requests: `PLAN` [kind, from, to, height, thickness, erase],
+  `PLAN_TURN` [cell], `PLAN_CLEAR`, `BUILD` (the action button of build mode, whatever is in the hand).
   The same holds the farm mode's marking: the values of `cells` that are `is_mark` (`TILL`, `WATER`, `REAP`
   or the id of what is sown and planted) lie on the top ground cell (`surface` looks for it in the column ±
   `FARM_UP` / `FARM_DOWN` from the level of the touch); `farm_columns` — a line along the main direction or a
@@ -182,20 +184,30 @@ lies around. The rules are shared (the server checks them), input and hints are 
   «All» / «Materials» / «Interior» are in the code but not shown yet), the shape, the kind of block (`form`:
   block, slope from below, slope from above, steps, then the three as a band, `band`, `form_index`,
   `FORM_COUNT`; only for a line, a plane and a square, `forms_drawn` — the button is off for a room; a flight rises along the stroke, a stroke of one column away from the player,
-  `turns` — «turn», the key Y; `form_of` goes into `PLAN`), the height (its own for each figure, `heights`: floor 1, line and square 3,
+  the key Y turns the next ones a quarter (`turn`, `turns`: not kept, back to 0 on entering), a double tap on
+  the ghost of one drawn turns it (`_second_ghost_tap` within `GHOST_TAP_MS`, `PLAN_TURN`, `Plans.turn_form`;
+  no «turn» button since 2026-11-26); `form_of` goes into `PLAN`), the height (its own for each figure, `heights`: floor 1, line and square 3,
   cube 5 — floor, 3 rows of walls, ceiling), the thickness, draw/erase, clear; on the action button «Build» or,
   when levelling, «Level»;
   the stroke (`start_stroke`, `show_stroke` — light cells will stand, red ones are inside blocks or over a
   void, when erasing a red box and the ghost in it above blueprints; `end_stroke` — `PLAN`);
-  a thing (everything that is placed: `Items.is_interior`) from the bag is set down where tapped as the finger
-  lifts (a stroke with `put`; `PROP_PUT_AT`, `Placed.put_at`: a door or window pressed on the side of a wall
-  with no opening knocks the blocks out, they fall as if dug; blocks below the level of the player's feet are
-  not knocked out, so a door on the floor stands on the floor); held `HOLD_MS` (or moved `DRAG_SHARE` of the
-  screen) it hangs in the air (`Props.hold_new`) over the place under the finger (`Placed.put_spot`, as the
-  server will look for it), its cells shown red only where it does not fit (2026-11-23: no body over a thing that fits), and is set down where it is let go; a touch of a placed thing
+  a thing (everything that is placed: `Items.is_interior`) from the bag shows at once as the finger or the
+  mouse presses over a surface (2026-11-26), hanging in the air (`Props.hold_new`, `_drag_new`) over the place
+  aimed at (`Placed.put_spot`, as the server will look for it, turned best: a door or window in the plane of
+  its wall by the face pressed, `face_of`, furniture with its back to a wall), its cells shown red only where
+  it does not fit (2026-11-23: no body over a thing that fits; a door or a window held into a wall hangs
+  `WALL_OUT` before its face, toward its front, `out_of_wall`: in the wall the blocks it will cut would hide
+  it); it follows the finger and is set down where it
+  is let go (a stroke with `put`; `PROP_PUT_AT` with the face, `Placed.put_at`: a door or window pressed on the
+  side of a wall with no opening knocks the blocks out, they fall as if dug; blocks below the level of the
+  player's feet are not knocked out, so a door on the floor stands on the floor); on a touch screen the place
+  aimed at is `FINGER_LIFT` over the finger (`_lifted`, `HudLayout.touch_px`: about 0.7 cm; no line is drawn
+  to it, the user's pick of 2026-11-26), and once held `HOLD_MS` (or moved `_slop`, a
+  `DRAG_SHARE` of the screen) a short buzz tells it is taken up (`Vibration` «lift»); a touch of a placed thing
   takes it back after `DOUBLE_TAP_MS` (`_tap_wait`; a second tap within that time turns it a quarter where it stands; only in this mode); a thing that moves (`Placed.movable`: a station, a chest,
   furniture, a sign, a fireplace) held the same way hangs in the air (a stroke with `prop`: `drag` each frame
-  — the model is held up `Props.LIFT` over the free place nearest under the finger, `Placed.move_spot` as the
+  — the model is held up `Props.LIFT` over the free place nearest the place aimed at, on a touch screen
+  `FINGER_LIFT` over the finger with the «lift» buzz as for a new thing, `Placed.move_spot` as the
   server looks for it, its cells red where it does not fit; `release` — `PROP_MOVE`, `Placed.move`, or the model
   drops back, `Props.settle`); a double tap turns a thing (`turn_thing`) and keeps that turn for its kind
   (`kept_turns`): the next ones are set down turned so (`PROP_PUT_AT` with `true`, `Placed.put_spot` `kept`)
@@ -222,7 +234,8 @@ lies around. The rules are shared (the server checks them), input and hints are 
   mode), its own row of buttons (`_make_panel`, `_show_panel`): work | figure, draw/erase | clear, «Work» (on PC
   only), exit.
 - `src/client/ui/build_bar.gd` — the mode's panel in place of the hotbar, in one row: buttons switched in a
-  circle (the figure — `next_kind`, next to it «level»; the kind of block — `next_form` and «turn»; the
+  circle (the figure — `next_kind`, next to it «level»; the kind of block — `next_form`, its hint telling that
+  a double tap turns a lone slope's ghost, no «turn» button since 2026-11-26; the
   figure's height and the walls' thickness — a plane has no thickness; draw/erase paired with «clear» — a
   second touch within 3 s), on PC the mode's action button (`_go`: an icon with no label, «Build» / «Work» in
   the hint, at work — paused and lit; calls `toggle_auto`, like F and the big action button on a touch

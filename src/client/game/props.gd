@@ -57,8 +57,10 @@ const HOP := 0.35
 const RENEW_MS := 300
 ## Cells a thing dragged in the build mode is held up over its ground (BuildMode).
 const LIFT := 0.3
-## A thing landing this near the player (world units) is felt (Vibration "thud").
-const THUD_NEAR := 4.0
+## A thing landing this near the player (world units) is felt (Vibration "thud"): a little
+## past Tools.PLACE_REACH (10 cells, 5 units), so whatever the player sets down is felt as it
+## lands (the user's pick of 2026-11-26: a buzz as a thing is taken up and as it is set).
+const THUD_NEAR := 5.5
 
 var game
 ## Meshes of the things on the ground by model, their vertices one triangle after
@@ -630,9 +632,10 @@ func _turn_model(node: MeshInstance3D, e: Dictionary, turn: int) -> void:
 
 
 ## A thing new from the bag held up in the air by the build mode over the north-west cell
-## `corner`, turned `turn`, before it is set down (BuildMode); false for one with no model
-## of its own (a campfire, a light). One at a time: drop_new takes it away.
-func hold_new(id: String, corner: Vector3i, turn: int) -> bool:
+## `corner`, turned `turn`, before it is set down (BuildMode), moved `out` cells more (a door
+## or a window held into a wall, drawn before its face: BuildMode.out_of_wall); false for one
+## with no model of its own (a campfire, a light). One at a time: drop_new takes it away.
+func hold_new(id: String, corner: Vector3i, turn: int, out := Vector3.ZERO) -> bool:
 	var item := Items.get_item(id)
 	var kind: String = item.get("prop", "none")
 	var probe := {"item": id, "cell": corner, "turn": turn, "lit": false}
@@ -650,7 +653,7 @@ func hold_new(id: String, corner: Vector3i, turn: int) -> bool:
 		_held_new.mesh = _model(kind, turn).build_mesh()
 		_held_new.material_override = game.low_mat if _held_new.mesh.get_aabb().end.y / 16.0 < LOW_HEIGHT else game.world_mat
 		_held_new.set_meta("key", key)
-	_held_new.position = Vector3(corner) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
+	_held_new.position = (Vector3(corner) + out) * CELL + Vector3(0.0, LIFT * CELL, 0.0)
 	return true
 
 

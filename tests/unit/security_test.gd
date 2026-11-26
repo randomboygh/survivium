@@ -171,6 +171,18 @@ func _test_requests() -> void:
 		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), "2"]) == null
 		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), 5, true]) == null
 		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), 1, 1]) == null, "a thing is not set down turned out of bounds")
+	_check(req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), 1, false, 4]) == null
+		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), 1, false, -2]) == null
+		and req._rule(Protocol.PROP_PUT_AT, ["tools:chest", Vector3i(9, 2, 9), 1, false, "2"]) == null,
+		"nor by the face of a wall that is out of bounds or no number")
+	var far_ghost := Vector3i(200, 2, 200)
+	p[0].plans.cells[far_ghost] = "materials:planks"
+	p[0].plans.forms[far_ghost] = WorldData.FORM_RAMP
+	_check(req._rule(Protocol.PLAN_TURN, ["x"]) == null and req._rule(Protocol.PLAN_TURN, []) == null
+		and req._rule(Protocol.PLAN_TURN, [far_ghost]) == 0 and p[0].plans.forms[far_ghost] == WorldData.FORM_RAMP,
+		"a ghost slope is turned only by a cell, and only within reach")
+	p[0].plans.cells.erase(far_ghost)
+	p[0].plans.forms.erase(far_ghost)
 	var far_rain: Dictionary = p[0].placed.put("tools:rain_catcher", Vector3i(30, 2, 30))
 	far_rain.water = 100.0
 	a.vitals.water = 10.0

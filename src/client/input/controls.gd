@@ -182,8 +182,9 @@ func unhandled_input(event: InputEvent) -> void:
 			KEY_B:
 				mode().leave()
 			KEY_Y:
-				if mode().on:
-					mode().turn()
+				# Turns the next lone slope or stairs drawn (the farming mode has none).
+				if game.build.on:
+					game.build.turn()
 			KEY_Z:
 				if game.session != null:
 					game.session.clock.next_season()

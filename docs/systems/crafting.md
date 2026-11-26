@@ -139,7 +139,16 @@ north, 3 — east; stored in the save and goes to the copies): the client sends 
 (`Props.view_turn`, the last arg of `PROP_PUT` and `PROP_PUT_AT`) and a station, a chest, furniture and a
 sign take it (`Placed.faces_view`, the user's ask 2026-11-13), while a door, a window, a hatch, stairs, a
 fence, a ladder and a board on a wall still face the player, as the wall or the climb needs (a request
-without the turn — a bot — faces the player too); solid and occupied are only the cells where its
+without the turn — a bot — faces the player too). In the build mode (`Placed.put_at`, `put_spot`) the best turn
+is taken by itself where there is one (the user's pick 2026-11-26): a door, a window, a wicket or a gate goes in
+the plane of the wall or the fence it is set into or stands in, its front to the player (`Placed.plane_turn`:
+the way with more solid cells or fences beside the cell tapped, so a door set into a doorway left in a wall or
+at a wall's end goes on along it; at a tie — a corner, a pillar — across the face tapped, the last arg of
+`PROP_PUT_AT`, a `Placed.SIDES` index; in the open as the player faces); a thing that faces the view and a
+ladder set down by a wall turn their back to it (`Placed._backed`: of the four turns the one whose spot has the
+most solid cells right behind its back edge, then the fewest open ones, so a bed lies along the wall; a tie
+keeps the view's or the kept turn), in the open they take the view's (or the kept) turn as before; a ladder put
+on a ladder keeps its turn. Solid and occupied are only the cells where its
 voxels are (`Placed.cells_of`), the model and boxes turn together (`Placed.turned`, `Props._model`). A ladder
 is an item with `steps`: its solid parts are boxes by quarters of a cell (`WorldData.blockers` stores an array
 for a cell), the body steps up the half-cell steps with no jump; it is placed over a void too, a tap takes it
