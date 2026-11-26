@@ -262,15 +262,14 @@ lies around. The rules are shared (the server checks them), input and hints are 
   (`Controls.ghost_thing_at`) tapped is taken off the blueprint after `DOUBLE_TAP_MS` (`PLAN_THING_TAKE`),
   tapped twice is turned (`turn_ghost`: a quarter, a door or a window the other way round), held is carried as
   a placed thing is (`_drag_ghost`, `PlanThings.hold`, `Placed.ghost_move_spot`) and let go moves there
-  (`_release_ghost`, `PLAN_THING_MOVE`); on a touch screen a tap aims right under the finger (2026-11-26: a tap set it down
-  `FINGER_LIFT` up, over a wall's top or behind it), and once carried the place
-  aimed at is `FINGER_LIFT` over the finger (`_lifted`, `HudLayout.touch_px`: about 0.7 cm; no line is drawn
-  to it, the user's pick of 2026-11-26), and once held `HOLD_MS` (or moved `_slop`, a
+  (`_release_ghost`, `PLAN_THING_MOVE`); a thing is aimed right under the finger, raised only `Props.LIFT` over the surface
+  (2026-11-26: the lift over the finger, `FINGER_LIFT`, was taken off: a tap set things down over a wall's
+  top or behind it), and once held `HOLD_MS` (or moved `_slop`, a
   `DRAG_SHARE` of the screen) a short buzz tells it is taken up (`Vibration` «lift»); a touch of a placed thing
   takes it back after `DOUBLE_TAP_MS` (`_tap_wait`; a second tap within that time turns it a quarter where it stands; only in this mode); a thing that moves (`Placed.movable`: a station, a chest,
   furniture, a sign, a fireplace) held the same way hangs in the air (a stroke with `prop`: `drag` each frame
-  — the model is held up `Props.LIFT` over the free place nearest the place aimed at, on a touch screen
-  `FINGER_LIFT` over the finger with the «lift» buzz as for a new thing, `Placed.move_spot` as the
+  — the model is held up `Props.LIFT` over the free place nearest the place under the finger, with the «lift»
+  buzz as for a new thing, `Placed.move_spot` as the
   server looks for it, its cells red where it does not fit; `release` — `PROP_MOVE`, `Placed.move`, or the model
   drops back, `Props.settle`); a door, a window or a hatch held so (`Placed.is_opening`, movable since
   2026-11-26) follows the wall under the finger as a new one does (`_drag_opening`: `_aimed`, `_aim`, `face_of`,

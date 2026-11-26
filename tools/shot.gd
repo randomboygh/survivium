@@ -1433,10 +1433,9 @@ func _run() -> void:
 				await _tap_thing(shot.tap_thing, feet)
 			if shot.has("press"):
 				# A finger pressed on a touch screen with a thing of the bag chosen (2026-11-26):
-				# [item, the world point aimed at from the feet, in cells]. The finger goes
-				# BuildMode.FINGER_LIFT under that point, so the thing shows there as in the
-				# game, over the finger (BuildMode.start_stroke, _drag_new); it is let go after
-				# the shot without setting it down.
+				# [item, the world point aimed at from the feet, in cells]. The finger presses
+				# there and the thing shows there (BuildMode.start_stroke, _drag_new); it is
+				# let go after the shot without setting it down.
 				if inv.count(shot.press[0]) == 0:
 					if inv.room_for(shot.press[0]) == 0:
 						# A slot for it: the bag of a run of shots is full by now.
@@ -1449,7 +1448,7 @@ func _run() -> void:
 				for i in 3:
 					await process_frame
 				var aim: Vector2 = main.view.screen_of((Vector3(feet) + shot.press[1]) * CELL)
-				_finger(true, aim + Vector2(0.0, main.hud.touch_px(main.build.FINGER_LIFT)))
+				_finger(true, aim)
 				for i in 20:
 					await process_frame
 				var held: Dictionary = main.controls._stroke
@@ -2414,7 +2413,11 @@ func _tap_thing(o: Array, feet: Vector3i) -> void:
 	if o.size() > 2 and o[2]:
 		hp.hands = ["materials:planks", ""]
 		hp.active = 0
-		plans.draw(acts, hp, "line", feet + Vector3i(-7, 0, -4), feet + Vector3i(-1, 0, -4), 3)
+		if o[2] is String and o[2] == "room":
+			# A ghost room round the player, the door set into its wall south, before them.
+			plans.draw(acts, hp, "square", feet + Vector3i(-4, 0, -5), feet + Vector3i(1, 0, 1), 3)
+		else:
+			plans.draw(acts, hp, "line", feet + Vector3i(-7, 0, -4), feet + Vector3i(-1, 0, -4), 3)
 	for i in 30:
 		await process_frame
 	main.build.choose(o[0])
@@ -2475,7 +2478,7 @@ func _move_opening(o: Array, feet: Vector3i) -> void:
 	_finger(true, on)
 	await _wait_ms(main.build.HOLD_MS + 200)
 	var to: Vector3 = Vector3(feet + o[2]) + Vector3(0.5, 0.6, 1.02)
-	var end: Vector2 = main.view.screen_of(to * CELL) + Vector2(0.0, main.hud.touch_px(main.build.FINGER_LIFT))
+	var end: Vector2 = main.view.screen_of(to * CELL)
 	for k in range(1, 9):
 		_finger_move(on.lerp(end, k / 8.0))
 		for i in 3:
@@ -2617,7 +2620,7 @@ func _ghost_things(mode: String, feet: Vector3i) -> void:
 			_finger(true, on)
 			await _wait_ms(main.build.HOLD_MS + 200)
 			var to: Vector3 = Vector3(t.cell + Vector3i(3, 0, 0)) + Vector3(0.5, 0.0, 0.5)
-			var end: Vector2 = main.view.screen_of(to * CELL) + Vector2(0.0, main.hud.touch_px(main.build.FINGER_LIFT))
+			var end: Vector2 = main.view.screen_of(to * CELL)
 			for k in range(1, 9):
 				_finger_move(on.lerp(end, k / 8.0))
 				for i in 3:

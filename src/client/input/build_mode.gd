@@ -17,9 +17,9 @@ extends "res://src/client/input/work_mode.gd"
 ## bag holds one; a single tap takes it once the double tap's time is over. A thing new from the bag
 ## shows at once where the finger or the mouse presses, follows it while held, and is set
 ## down where it is let go (the user's picks, 2026-11-26), turned as Placed.put_spot finds
-## best (a door in the plane of its wall, furniture with its back to one). On a touch
-## screen a thing is held FINGER_LIFT over the finger, so the finger does not hide it (no
-## line drawn to it: the user's pick, 2026-11-26); a short buzz tells it is taken up
+## best (a door in the plane of its wall, furniture with its back to one). It is aimed
+## right under the finger, raised only a little over the surface (Props.LIFT; the lift over
+## the finger was taken off, user 2026-11-26); a short buzz tells it is taken up
 ## (Vibration "lift").
 ## A slope or stairs drawn in one column rise away from the player; a double tap on the
 ## ghost of one turns it (Plans.turn_form; the panel has no turn button since 2026-11-26,
@@ -55,11 +55,6 @@ const HOLD_MS := 280
 ## How far a finger or the mouse goes before a thing is taken up sooner than HOLD_MS, a
 ## share of the screen's shorter side.
 const DRAG_SHARE := 0.025
-## How far over the finger a thing is held on a touch screen, in UI pixels at the size of
-## the touch controls (HudLayout.touch_px: a phone's shorter side is 400 of them, so 40 are
-## about 0.7 cm; the user's picks, 2026-11-26: a little under 1.3 cm, then less than 1 cm).
-## A mouse points at the place itself.
-const FINGER_LIFT := 40.0
 ## A second tap on the ghost of a slope or stairs within this many ms of the first turns
 ## them (Plans.turn_form); a single tap there draws nothing.
 const GHOST_TAP_MS := 400
@@ -681,9 +676,7 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		# does nothing.
 		if item.get("prop", "none") == "none":
 			return {}
-		# Aimed right under the finger: a tap sets it down where it was tapped (user
-		# 2026-11-26); only carried does it go FINGER_LIFT over the finger (_drag_new).
-		var aimed := _aimed(pos, _by_blueprint(chosen()), false)
+		var aimed := _aimed(pos, _by_blueprint(chosen()))
 		if aimed.is_empty():
 			return {}
 		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "put": chosen(),
@@ -761,16 +754,11 @@ func _ghost_tap(s: Dictionary) -> bool:
 
 
 ## What a thing new from the bag is aimed at for a finger or the mouse at screen point
-## `pos` (VoxelRaycast.cast's hit): on a touch screen the place FINGER_LIFT over the finger
-## (_lifted, with `lift`: while it is carried), so the finger does not hide the thing, or the
-## place under it where there the ray finds nothing; under the mouse. With `planned` the blueprint's ghost blocks are met
-## as blocks (Controls.pick_planned: a ghost thing goes onto, against or into them).
-func _aimed(pos: Vector2, planned := false, lift := true) -> Dictionary:
-	var at := _lifted(pos) if lift else pos
-	var hit: Dictionary = game.controls.pick_planned(at) if planned else game.controls.pick(at)
-	if hit.is_empty() and at != pos:
-		hit = game.controls.pick_planned(pos) if planned else game.controls.pick(pos)
-	return hit
+## `pos` (VoxelRaycast.cast's hit): the place right under it (user 2026-11-26: no lift over
+## the finger). With `planned` the blueprint's ghost blocks are met as blocks
+## (Controls.pick_planned: a ghost thing goes onto, against or into them).
+func _aimed(pos: Vector2, planned := false) -> Dictionary:
+	return game.controls.pick_planned(pos) if planned else game.controls.pick(pos)
 
 
 ## Whether thing `id` new from the bag goes into the blueprint as a ghost thing, built after
@@ -779,14 +767,6 @@ func _aimed(pos: Vector2, planned := false, lift := true) -> Dictionary:
 ## model of its own (Props.ghostly; a campfire is set down at once).
 func _by_blueprint(id: String) -> bool:
 	return int(game.settings.values.get("build_things", 0)) == 0 and Props.ghostly(id)
-
-
-## Screen point `pos` of a finger moved FINGER_LIFT up (not past the screen's top) on a
-## touch screen, `pos` itself for the mouse.
-func _lifted(pos: Vector2) -> Vector2:
-	if not game.controls.touch:
-		return pos
-	return Vector2(pos.x, maxf(0.0, pos.y - game.hud.touch_px(FINGER_LIFT)))
 
 
 ## The side (Placed.SIDES index) the face of hit `hit` (VoxelRaycast.cast) looks toward: a
@@ -941,7 +921,7 @@ func drag(s: Dictionary) -> void:
 	if Placed.is_opening(e.item):
 		_drag_opening(s, e)
 		return
-	var on_it: Variant = game.controls.on_plane(_lifted(s.pos), e.cell, Vector3i.UP)
+	var on_it: Variant = game.controls.on_plane(s.pos, e.cell, Vector3i.UP)
 	if on_it == null:
 		return
 	var corner: Vector3i = on_it - s.grab
@@ -1021,7 +1001,7 @@ func _drag_ghost(s: Dictionary) -> void:
 		at = _aim(hit, Items.get_item(t.item))
 		face = face_of(hit)
 	else:
-		var on_it: Variant = game.controls.on_plane(_lifted(s.pos), t.cell, Vector3i.UP)
+		var on_it: Variant = game.controls.on_plane(s.pos, t.cell, Vector3i.UP)
 		if on_it == null:
 			return
 		at = on_it - s.grab
