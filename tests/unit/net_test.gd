@@ -115,9 +115,7 @@ func _test_felled_tree() -> void:
 	for z in 32:
 		for x in 32:
 			w.set_cell(x, 0, z, Mat.STONE)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 1
-	Growth.place(w, 15, 1, 15, Trees.first(Trees.BROAD), rng)
+	Growth.place(w, 15, 1, 15, Trees.first(Trees.BROAD))
 	var s := Session.new(w, null, Clock.new(), Rules.of({}), Placed.new())
 	var host := LocalHost.new(s)
 	var net := host.join()

@@ -13,6 +13,8 @@ extends RefCounted
 const Mat := preload("res://src/shared/content/materials.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
+const Growth := preload("res://src/shared/world/growth.gd")
+const Trees := preload("res://src/shared/content/trees.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
 const Plants := preload("res://src/shared/content/plants.gd")
 
@@ -800,6 +802,8 @@ func _collides(p: Vector3) -> bool:
 					return true
 	if TreeLooks.hold_most > 0.0 and not world.trees.is_empty() and _trunk_touched(p):
 		return true
+	if not world.tree_pieces.is_empty() and _piece_touched(p):
+		return true
 	if _posts.is_empty():
 		return false
 	var plant := _post_touched(p, 0.0)
@@ -829,6 +833,42 @@ func _trunk_touched(p: Vector3) -> bool:
 			if depth < 1.0 and (not _from.is_finite() or depth < _in_oval(Vector2(_from.x - x - 0.5, _from.z - z - 0.5), hold) - 0.0001):
 				return true
 	return false
+
+
+## Whether the middle of the feet at `p` (cells) is within PIECE_HOLD of the line a log or
+## a fallen trunk lying in the woods lies along (Growth.piece_look, piece_dir; TreeLooks
+## `pieces` back and ahead), at the level of its log: one walks round it (the user's pick
+## 2Б, 2026-11-26). A body on it already is only kept from going nearer its line.
+func _piece_touched(p: Vector3) -> bool:
+	var lo := floori(p.y + 0.001)
+	var far := PIECE_HOLD + 14.0
+	var c := Vector2(p.x, p.z)
+	for kz in range(floori(p.z - far) >> WorldData.SHIFT, (floori(p.z + far) >> WorldData.SHIFT) + 1):
+		for kx in range(floori(p.x - far) >> WorldData.SHIFT, (floori(p.x + far) >> WorldData.SHIFT) + 1):
+			for col: Vector2i in world.tree_chunks.get(Vector2i(kx, kz), {}):
+				if not world.tree_pieces.has(col):
+					continue
+				var foot := [0]
+				var kind := Growth.piece_look(world, col, foot)
+				if kind < 0 or kind == Growth.PIECE_BROKEN or foot[0] < lo - 1 or foot[0] > floori(p.y + HEIGHT):
+					continue
+				var d: Dictionary = Trees.SPECIES[world.trees[col]].pictures.pieces[TreeLooks.PIECES[kind]]
+				var dir := Growth.piece_dir(col)
+				var o := Vector2(col) + Vector2(0.5, 0.5)
+				var a: Vector2 = o - dir * minf(float(d.back), 1.0 if kind == Growth.PIECE_FALLEN else float(d.back))
+				var b: Vector2 = o + dir * (float(d.ahead) * (PIECE_TRUNK if kind == Growth.PIECE_FALLEN else 1.0))
+				var near := Geometry2D.get_closest_point_to_segment(c, a, b).distance_to(c)
+				if near < PIECE_HOLD and (not _from.is_finite() or near < Geometry2D.get_closest_point_to_segment(
+						Vector2(_from.x, _from.z), a, b).distance_to(Vector2(_from.x, _from.z)) - 0.0001):
+					return true
+	return false
+
+
+## How near (cells) the feet's middle comes to the line of a log or fallen trunk
+## (_piece_touched), and the share of a fallen trunk's length that is its trunk (the
+## limbs of its crown beyond it are walked through).
+const PIECE_HOLD := 0.9
+const PIECE_TRUNK := 0.75
 
 
 ## How far in the oval `hold` (TreeLooks.hold_of) offset `d` from the trunk's axis lies:

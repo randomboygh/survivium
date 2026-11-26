@@ -4,7 +4,7 @@
 // tree's picture stands at its foot turned across the way its shadow falls, the side of it
 // the light looks at, so the shadow is the tree's own outline: the crown as it is drawn
 // (thinning from its edge in autumn as the picture does), the trunk from the foot, the limbs
-// of a bare or dead tree. The shadow falls where every other one does (PixelView.light_dir:
+// and twigs of a bare or dead tree, the snow on it in winter. The shadow falls where every other one does (PixelView.light_dir:
 // a unit of height to `w` over the ground, the same at every turn of the camera), so it
 // lies still while the camera turns.
 shader_type spatial;
@@ -14,6 +14,10 @@ render_mode world_vertex_coords, cull_disabled, unshaded;
 
 uniform sampler2D frames : filter_nearest;
 uniform sampler2D bare_frames : filter_nearest;
+uniform sampler2D snow_frames : filter_nearest;
+uniform ivec2 ramps_at;
+
+#include "res://shaders/tree_pictures.gdshaderinc"
 
 // How far the picture sinks along the light's ray (world units of height): its shadow on
 // the ground stays where it is, but the tree's own picture as shown, standing across the
@@ -24,10 +28,14 @@ uniform sampler2D bare_frames : filter_nearest;
 // point's height, so it stays over the ground.
 const float SINK = 0.4;
 const float SINK_SHARE = 0.75;
+// A piece of wood lying in the woods casts its shadow from its picture laid flat this high
+// over the ground (world units).
+const float PIECE_HIGH = 0.2;
 
 varying vec2 px;
 varying flat vec4 cell;
 varying flat float kind;
+varying flat float ramp_row;
 varying flat vec2 foot_xz;
 
 void vertex() {
@@ -41,6 +49,7 @@ void vertex() {
 	float row = floor(COLOR.b / 8.0 + 0.01);
 	float own = COLOR.b - row * 8.0;
 	kind = COLOR.a;
+	ramp_row = row;
 	foot_xz = foot.xz;
 	// Where the shadow of a unit of height falls over the ground (PixelView.light_dir), from
 	// the sun as it stands in the world (sun_view is it in the view's frame).
@@ -52,7 +61,22 @@ void vertex() {
 	// (as tree.gdshader picks the side shown), laid across the way the shadow falls.
 	float step_at = round(atan(-along.x, -along.y) / (PI / 4.0));
 	float side = mod(step_at + own + 16.0, 8.0);
-	cell = vec4(c.x + side * c.z, c.y, c.z, c.w);
+	bool piece = kind < -2.5;
+	if (piece) {
+		// A piece of wood lying in the woods (TreeSprites.PIECE): the view the camera shows
+		// (as tree.gdshader picks it), its cell and anchor from its table, its summer look.
+		vec2 up = rest_view.xy;
+		side = mod(round(atan(-up.x, -up.y) / (PI / 4.0)) + own + 16.0, 8.0);
+		ivec2 tb = ivec2(int(round(c.x)), int(round(c.y))) + ivec2(2 * int(side), 0);
+		ivec4 p0 = ivec4(round(texelFetch(frames, tb, 0) * 255.0));
+		ivec4 p1 = ivec4(round(texelFetch(frames, tb + ivec2(1, 0), 0) * 255.0));
+		c = vec4(float(p0.r | (p0.g << 8)), float(p0.b | (p0.a << 8)), float(p1.r), float(p1.g));
+		ax = float(p1.b);
+		ay = float(p1.a);
+		cell = c;
+	} else {
+		cell = vec4(c.x + side * c.z, c.y, c.z, c.w);
+	}
 	vec2 across = vec2(-along.y, along.x);
 	// The picture shown stands across view_up (tree.gdshader): how far behind this one, in
 	// height along the light, its farthest texel is.
@@ -68,8 +92,19 @@ void vertex() {
 	float high = rise / TEXELS;
 	vec3 p = foot + vec3(across.x, 0.0, across.y) * ((wide - ax - 0.5) / TEXELS);
 	p.y += high;
+	if (piece) {
+		// A piece lies on the ground: its picture as the camera shows it laid flat where it
+		// lies (a row up the picture a texel farther away, as the ground's rows are drawn), a
+		// little over the ground, casting its outline's shadow by it.
+		float r = q.y > 0.5 ? 0.0 : (q.y > -0.5 ? ay + 0.5 : c.w);
+		px = vec2(wide, r);
+		p = foot + vec3(right.x, 0.0, right.y) * ((wide - ax - 0.5) / TEXELS);
+		p.xz += view_up * ((ay + 0.5 - r) / TEXELS);
+		p.y += PIECE_HIGH;
+		high = 0.0;
+	}
 	VERTEX = shear(p);
-	if (IN_SHADOW_PASS) {
+	if (IN_SHADOW_PASS && !piece) {
 		vec3 to_light = normalize(INV_VIEW_MATRIX[2].xyz);
 		VERTEX -= to_light * (min(deep, SINK_SHARE * high) / max(to_light.y, 0.05));
 	}
@@ -81,10 +116,15 @@ void fragment() {
 	}
 	ivec2 t = ivec2(cell.xy + floor(px));
 	vec4 g = texelFetch(frames, t, 0);
-	int a = int(round(g.a * 255.0));
+	int a = frame_code(g);
+	// A stump (TreeSprites.STUMP) or a piece of wood (PIECE): what it shows.
+	if (kind < -0.5 && a == 0) {
+		discard;
+	}
 	// The leaves autumn and winter have taken, as tree.gdshader takes them.
-	float amount = leaves_left(kind);
-	if (a >= 128) {
+	float amount = picture_leaves(kind);
+	if (kind < -0.5) {
+	} else if (a >= 128) {
 		float rank = float((a >> 2) & 3);
 		if ((rank + hash12(g.rg * 255.0 + foot_xz * 3.1)) / 4.0 > amount) {
 			a = 0;
@@ -92,8 +132,8 @@ void fragment() {
 	} else if (a == 1 && g.r > amount - 0.08) {
 		a = 0;
 	}
-	// Where they are gone, the bare tree's wood.
-	if (a == 0) {
+	// Where they are gone, the bare tree's wood; the snow on the tree.
+	if (a == 0 && kind > -0.5 && snow_on(t, int(cell.w - floor(px.y)) - 1, int(ramp_row), kind, amount) < 16384) {
 		vec4 b = texelFetch(bare_frames, t, 0);
 		if (b.r > 0.998 && b.a > 0.998) {
 			discard;

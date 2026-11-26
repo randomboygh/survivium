@@ -54,8 +54,8 @@ static func refresh() -> void:
 		if s.leaf == "":
 			s.leaf = "needles" if s.leaves == NEEDLES else "pointed"
 		s.tiers = s.shape == "cone"
-		# A species drawn as pictures from 8 sides (TreeLooks), {} for one drawn in leaf
-		# clusters (Foliage).
+		# The species drawn as pictures from 8 sides (TreeLooks); {} when its pictures
+		# cannot be read (check says so).
 		s.pictures = TreeLooks.read(s)
 		# The slot of its blossom colour, from 1; 0 for none.
 		s.blossom_slot = 0
@@ -121,8 +121,6 @@ static func check() -> PackedStringArray:
 			out.append("trees: `%s`: girth and roots [min, max] need min not above max" % s.id)
 		if s.blossom != null and s.blossom_slot == 0:
 			out.append("trees: `%s`: more than %d species blossom, its blossom is not drawn" % [s.id, BLOSSOMS])
-		if s.tiers and s.crown[1] > s.crown[2]:
-			out.append("trees: `%s`: crown [radius, min tiers, max tiers] has min above max" % s.id)
-		if s.shape == "palm" and (s.crown[1] > s.crown[2] or s.crown[1] < 1.0):
-			out.append("trees: `%s`: crown [frond length, min fronds, max fronds] needs 1 to max fronds" % s.id)
+		if s.pictures.is_empty():
+			out.append("trees: `%s`: no pictures (`picture`, the bundle's tree/look.yaml): a grown tree is drawn only so" % s.id)
 	return out

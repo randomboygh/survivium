@@ -6,13 +6,17 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
+const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 
 
 ## Fells the tree whose trunk holds the log cell `cut`: that log and the trunk above it
 ## go, with the leaves of the crown above it (the leaves whose nearest trunk this one
 ## is), and the tree falls toward `away` (x, z), lying on the ground as logs along
 ## that line and branches and seeds where its crown lands (see WorldData.add_drop).
-## What stays below the cut is a stump, still noted as the tree. A `young` tree (a
+## What stays below the cut is a stump, still noted as the tree: of a species with stumps
+## drawn (TreeLooks `stumps`), always its foot's log and only that, cut where the axe
+## struck (decision 4А of the trees' redraw, 2026-11-24); such a stump struck down again is
+## uprooted and leaves a log (`uproot`). A `young` tree (a
 ## sapling grown small, see WorldActions.grow_fields) leaves only branches. Returns the
 ## cells made air, the cut first; empty when `cut` is no log of a noted tree. What lies
 ## is of quality `q` (Quality.by_hand_of: the axe and the chopper's skill).
@@ -22,6 +26,15 @@ static func fell(w, cut: Vector3i, away: Vector2, young := false, q := Items.NOR
 		var none: Array[Vector3i] = []
 		return none
 	var s: Dictionary = Trees.SPECIES[w.trees[at]]
+	if Growth.piece_look(w, at) >= 0:
+		return cut_piece(w, cut, s, q)
+	if not young and keeps_stump(s):
+		var y0 := cut.y
+		while w.get_cell(cut.x, y0 - 1, cut.z) == Mat.LOG:
+			y0 -= 1
+		if w.get_cell(cut.x, y0 + 1, cut.z) != Mat.LOG:
+			return uproot(w, Vector3i(cut.x, y0, cut.z), s, q)
+		cut = Vector3i(cut.x, maxi(cut.y, y0 + 1), cut.z)
 	var logs := 0
 	while w.get_cell(cut.x, cut.y + logs, cut.z) == Mat.LOG:
 		logs += 1
@@ -34,6 +47,57 @@ static func fell(w, cut: Vector3i, away: Vector2, young := false, q := Items.NOR
 		s.seed = ""
 		leaves = maxi(leaves, 120)
 	_drops(w, cut, away, s, logs, leaves, q)
+	return gone
+
+
+## Whether a tree of species `s` leaves a stump drawn as a picture when felled.
+static func keeps_stump(s: Dictionary) -> bool:
+	return not s.pictures.is_empty() and not s.pictures.get("stumps", []).is_empty()
+
+
+## Uproots the stump whose log is `cell` (its last): the cell goes and one log of the
+## species lies by it. Returns the cell made air.
+static func uproot(w, cell: Vector3i, s: Dictionary, q := Items.NORMAL_QUALITY) -> Array[Vector3i]:
+	var gone: Array[Vector3i] = [cell]
+	w.set_cell(cell.x, cell.y, cell.z, Mat.AIR)
+	w.refresh_shapes()
+	if s.log != "":
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash(cell)
+		_drop(w, s.log, Vector2(cell.x + 0.5, cell.z + 0.5) + Vector2.from_angle(rng.randf() * TAU) * 0.6,
+			rng.randf() * TAU, q)
+	return gone
+
+
+## Chops up the piece of wood lying in the column of `cell` (its log, Growth.piece_look):
+## the cell goes, and the logs and twigs its kind gives (TreeLooks `pieces`) lie along the
+## way it lay. Returns the cell made air.
+static func cut_piece(w, cell: Vector3i, s: Dictionary, q := Items.NORMAL_QUALITY) -> Array[Vector3i]:
+	var at := Vector2i(cell.x, cell.z)
+	var kind: int = w.tree_pieces[at]
+	var d: Dictionary = s.pictures.pieces[TreeLooks.PIECES[kind]]
+	var gone: Array[Vector3i] = [cell]
+	w.set_cell(cell.x, cell.y, cell.z, Mat.AIR)
+	w.tree_pieces.erase(at)
+	w.note_edit(cell.x, cell.z)
+	w.refresh_shapes()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(cell)
+	var dir := Growth.piece_dir(at)
+	var base := Vector2(cell.x + 0.5, cell.z + 0.5)
+	var along := atan2(dir.y, dir.x)
+	# Lying pieces spread their logs along their length; a broken trunk drops them by it.
+	var length: float = 0.0 if kind == Growth.PIECE_BROKEN else float(d.reach) * 0.6
+	var logs: int = d.logs if s.log != "" else 0
+	for i in logs:
+		var f := (i + 0.5) / logs
+		var p := base + dir * (length * f) + Vector2(-dir.y, dir.x) * rng.randf_range(-0.5, 0.5)
+		if kind == Growth.PIECE_BROKEN:
+			p = base + Vector2.from_angle(rng.randf() * TAU) * 0.7
+		_drop(w, s.log, p, along + rng.randf_range(-0.3, 0.3), q)
+	for i in (d.twigs if s.twig != "" else 0):
+		var p := base + dir * (rng.randf() * float(d.reach)) + Vector2(-dir.y, dir.x) * rng.randf_range(-1.5, 1.5)
+		_drop(w, s.twig, p, rng.randf() * TAU, q)
 	return gone
 
 
@@ -54,7 +118,9 @@ static func clear(w, cut: Vector3i) -> Array[Vector3i]:
 	var others: Array[Vector2i] = []
 	for tz in range((cut.z - 2 * reach) | 1, cut.z + 2 * reach + 1, 2):
 		for tx in range((cut.x - 2 * reach) | 1, cut.x + 2 * reach + 1, 2):
-			if w.trees.has(Vector2i(tx, tz)) and Vector2i(tx, tz) != at:
+			# A stump left (Growth.stump_look) holds no crown: its leaves were taken with it.
+			if w.trees.has(Vector2i(tx, tz)) and Vector2i(tx, tz) != at and w.log_col(tx, tz) != 0 \
+					and Growth.stump_look(w, Vector2i(tx, tz)) < 0:
 				others.append(Vector2i(tx, tz))
 	var above: int = w.all_bits & ~((1 << cut.y) - 1)
 	for z in range(cut.z - reach, cut.z + reach + 1):
