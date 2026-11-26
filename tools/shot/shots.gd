@@ -408,6 +408,13 @@ const SHOTS := {
 		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2]},
 	"build-lone-stairs-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2], "double_tap": true},
+	# A door tapped on a wall by a finger (2026-11-26): on the brick wall north, on a ghost wall.
+	"build-tap-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:door", Vector3(-4.5, 0.6, -6.98)]},
+	"build-tap-door-ghost": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:door", Vector3(-4.5, 0.6, -3.98), true]},
+	"build-tap-window": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:window", Vector3(-3.5, 1.5, -6.98)]},
 	"build-mode-erase": {"time": 0.4, "season": 1, "plan": true, "build_mode": "erase"},
 	"build-mode-cube": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "kind": "cube"},
 	"build-mode-interior": {"time": 0.4, "season": 1, "plan": true, "build_mode": "draw", "filter": "interior"},

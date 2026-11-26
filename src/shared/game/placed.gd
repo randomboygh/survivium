@@ -65,6 +65,9 @@ const Warmth := preload("res://src/shared/game/warmth.gd")
 const CELL := WorldData.CELL
 ## No level is cut from (`_open`): the thing goes on air only.
 const NO_CUT := 1 << 30
+## How far (cells) from the cell aimed at a door or a window looks for the wall it sticks to
+## (_wall_near).
+const WALL_SNAP := 2
 ## The campfire of the camp by the spawn of a new world (see Starts), the place to come
 ## back to after death.
 const CAMPFIRE := "core:campfire"
@@ -1221,6 +1224,11 @@ func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := fals
 				stacked = true
 	var cuts: bool = item.get("door", false) or item.get("window", false)
 	var hatch: bool = item.get("hatch", false)
+	var into_wall: bool = cuts and not hatch and not item.get("fence", false)
+	if into_wall:
+		# It sticks to the wall nearest the cell aimed at (over its top, before it, by it),
+		# a door down to the floor (user 2026-11-26).
+		aim = _wall_near(aim, floori(p.y + 0.25), item.get("door", false))
 	if cuts and not hatch:
 		turn = plane_turn(aim, turn, face, p)
 	elif not stacked and (rest == ON_LADDER or faces_view(item.id)):
@@ -1234,9 +1242,99 @@ func put_spot(who, id: String, aim: Vector3i, top: int, view := -1, kept := fals
 	if rest == IN_FLOOR:
 		cut_from = aim.y
 	_swap_fences = item.get("door", false) and item.get("fence", false)
-	var spot: Variant = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, size_of(item.id), shape.offsets, rest, shape.high, cut_from)
+	var spot: Variant
+	if into_wall and _walled(aim):
+		spot = _wall_spot(who, aim, top, size_of(item.id), shape.offsets, rest, shape.high, cut_from, item.get("door", false))
+	else:
+		spot = _spot_at(who, Vector2(aim.x + 0.5, aim.z + 0.5), aim.y, top, size_of(item.id), shape.offsets, rest, shape.high, cut_from)
 	_swap_fences = false
 	return [spot, turn]
+
+
+## Whether cell `c` is of a wall an opening is cut into: a block put there (not natural
+## ground, not water), or a ghost block of the blueprint while a ghost thing's place is looked
+## for (_ghosts).
+func _walled(c: Vector3i) -> bool:
+	if _ghosts != null and _ghosts.block_at(c):
+		return true
+	var m: int = world.get_cell(c.x, c.y, c.z)
+	return m != Mat.AIR and m != Mat.WATER and not world.is_natural(c.x, c.y, c.z)
+
+
+## The wall cell a door or a window aimed at cell `aim` goes into (put_spot): `aim` itself
+## when it is a wall's, else the wall cell nearest it (WALL_SNAP cells round it, over its top
+## or before its face); a door then goes down the wall to the level of the feet `feet` or the
+## wall's foot. `aim` where no wall is near (it stands in the open).
+func _wall_near(aim: Vector3i, feet: int, door: bool) -> Vector3i:
+	var at := aim
+	if not _walled(aim) and not _in_gap(aim):
+		var best := -1.0
+		for dy in range(-WALL_SNAP, 2):
+			for dz in range(-WALL_SNAP, WALL_SNAP + 1):
+				for dx in range(-WALL_SNAP, WALL_SNAP + 1):
+					var c := aim + Vector3i(dx, dy, dz)
+					if c.y < feet or not _walled(c):
+						continue
+					var d := float(dx * dx + dz * dz) + dy * dy * 0.5
+					if best < 0.0 or d < best:
+						best = d
+						at = c
+	if door:
+		while at.y > feet and _walled(at + Vector3i.DOWN):
+			at += Vector3i.DOWN
+	return at
+
+
+## Whether cell `c` is a gap left in a wall (a doorway): wall cells on both sides of it along
+## a row, WALL_SNAP + 1 cells at most from it.
+func _in_gap(c: Vector3i) -> bool:
+	for along: Vector3i in [Vector3i(1, 0, 0), Vector3i(0, 0, 1)]:
+		var sides := 0
+		for way in [-1, 1]:
+			for k in range(1, WALL_SNAP + 2):
+				if _walled(c + along * way * k):
+					sides += 1
+					break
+		if sides == 2:
+			return true
+	return false
+
+
+## The north-west cell of an opening `offsets` (`high` tall) set into the wall at wall cell
+## `aim` (put_spot): of the spots round it that fit (_fits, blocks at `cut_from` or higher cut
+## out), the one with the most of its cells in the wall, then for a door the lowest, then the
+## nearest. Null for none.
+func _wall_spot(who, aim: Vector3i, top: int, n: int, offsets: Array[Vector3i], rest: int, high: int, cut_from: int,
+		door: bool) -> Variant:
+	var mid := Vector2.ZERO
+	for o: Vector3i in offsets:
+		mid += Vector2(o.x, o.z) + Vector2(0.5, 0.5)
+	mid /= maxi(offsets.size(), 1)
+	var to := Vector2(aim.x + 0.5, aim.z + 0.5)
+	var best: Variant = null
+	var best_by := Vector3.ZERO
+	for dz in range(-n - 1, 3):
+		for dx in range(-n - 1, 3):
+			var c := Vector2i(aim.x + dx, aim.z + dz)
+			var far := (Vector2(c) + mid).distance_squared_to(to)
+			if far > n * n + 1.0:
+				continue
+			for dy in range(-high, 2):
+				var corner := Vector3i(c.x, aim.y + dy, c.y)
+				if not _fits(who, corner, top, offsets, rest, high, cut_from):
+					continue
+				var walled := 0
+				for o: Vector3i in offsets:
+					for k in high:
+						if _walled(corner + o + Vector3i(0, k, 0)):
+							walled += 1
+				# Most cells in the wall, then (a door) the lowest or (a window) the level aimed
+				# at, then the nearest.
+				var by := Vector3(-walled, corner.y if door else absi(dy), far)
+				if best == null or by < best_by:
+					best = corner
+					best_by = by
+	return best
 
 
 ## The turn of a door, a window, a wicket or a gate set down at cell `aim` (the wall's cell

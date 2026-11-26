@@ -64,6 +64,12 @@ var forms := {}
 var things: Array = []
 ## The ghost things by each cell they fill.
 var _thing_cells := {}
+## The ghost cell each builder built last (by the instance id of `who`): the next one built is
+## the nearest to it, so a blueprint fills one cell after another along its rows (the user's
+## ask, 2026-11-26), not jumping about as the builder moves.
+var _last_built := {}
+## The four cells beside one on its level.
+const ROW_SIDES: Array[Vector3i] = [Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 0, 1), Vector3i(0, 0, -1)]
 
 
 ## The kinds of shape (the build mode's panel): a wall along a line, a floor in a
@@ -855,13 +861,37 @@ func build(actions, who) -> Dictionary:
 			# ghost is built (from the bottom), only with the new one in the bag.
 			swap[c] = true
 		ready.append(c)
-	# What is to be dug out first, from the top; then the block in hand first.
+	# What is to be dug out first, from the top; then the block in hand first, the lowest
+	# level first; on a level one cell after another (the user's ask, 2026-11-26): the end
+	# of a row first (the fewest ghost cells beside it on its level, so a row is not split
+	# in two), the one nearest the cell built last, else nearest the builder.
+	var last: Variant = _last_built.get(who.get_instance_id())
+	var p: Vector3 = who.position / CELL
+	var from: Vector3 = Vector3(last) if last is Vector3i and Vector3(last).distance_to(p) <= Tools.PLACE_REACH else p
+	var beside := {}
+	for c in ready:
+		var n := 0
+		for d: Vector3i in ROW_SIDES:
+			var v: String = cells.get(c + d, CUT)
+			if v != CUT and not is_mark(v):
+				n += 1
+		beside[c] = n
 	ready.sort_custom(func(x: Vector3i, y: Vector3i) -> bool:
 		if to_dig.has(x) != to_dig.has(y):
 			return to_dig.has(x)
 		if to_dig.has(x):
 			return x.y > y.y
-		return cells[x] == held and cells[y] != held)
+		if (cells[x] == held) != (cells[y] == held):
+			return cells[x] == held
+		if x.y != y.y:
+			return x.y < y.y
+		if beside[x] != beside[y]:
+			return beside[x] < beside[y]
+		var dx := Vector3(x).distance_squared_to(from)
+		var dy := Vector3(y).distance_squared_to(from)
+		if dx != dy:
+			return dx < dy
+		return x < y)
 	for c in ready:
 		var item: String = cells[c]
 		if to_dig.has(c):
@@ -914,6 +944,7 @@ func build(actions, who) -> Dictionary:
 		var fresh: bool = actions.build_cell(c, block, form)
 		cells.erase(c)
 		forms.erase(c)
+		_last_built[who.get_instance_id()] = c
 		changed.emit([c], "")
 		var done: Dictionary = actions.work(actions.skilled(who, "build", seconds, 1.0 if fresh else 0.0), "reach",
 			(Vector3(c) + Vector3(0.5, 0.5, 0.5)) * CELL, block)

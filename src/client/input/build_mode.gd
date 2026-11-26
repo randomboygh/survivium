@@ -71,6 +71,9 @@ const WALL_OUT := 1.15
 ## counted again when it changes or the player has gone NEED_STEP cells, at most every
 ## CHECK_TIME.
 const NEED_STEP := 4
+## How long the blueprint and the bag must stay as they are before they are counted (the news
+## of a block built come apart: the cell, the bag).
+const NEED_SETTLE := 0.15
 
 ## The shape drawn (one of Plans.KINDS), how high its walls are (levels) and how thick
 ## (cells). Kept with the player.
@@ -112,13 +115,19 @@ var replacing := false
 ## The thing dragged now (see drag), {} for none; the ghost thing of the blueprint dragged.
 var _dragged := {}
 var _dragged_ghost := {}
-## What the blueprint near needs, item id -> how many (need), the cell it was counted from,
-## whether the blueprint changed since, and the blueprint watched.
+## What the blueprint near needs, item id -> how many (need), what the bag held of them then
+## (short_of compares the two counted together: a block built takes one from the bag and one
+## from the blueprint, and the ghosts must not blink red between the two news, user
+## 2026-11-26), the cell it was counted from, whether the blueprint or the bag changed since
+## (and how long ago: counted once both have settled), the blueprint and the bag watched.
 var _need := {}
+var _have := {}
 var _need_from := Vector3i.ZERO
 var _need_due := true
 var _need_clock := 0.0
+var _need_settle := 0.0
 var _need_of = null
+var _need_bag = null
 
 
 func to_dict() -> Dictionary:
@@ -487,7 +496,7 @@ func need() -> Dictionary:
 func short_of(id: String) -> bool:
 	if game.rules.free_build and not Items.is_interior(id):
 		return false
-	return int(_need.get(id, 0)) > game.character.inventory.count(id)
+	return int(_need.get(id, 0)) > int(_have.get(id, game.character.inventory.count(id)))
 
 
 ## The world materials of the ghost blocks the bag has too little of (short_of), for
@@ -513,8 +522,13 @@ func _count_need(delta: float) -> void:
 		_need_of.changed.connect(_on_plans_changed)
 		_need_of.thing_changed.connect(_on_plans_changed)
 		_need_due = true
+	if _need_bag != game.character.inventory:
+		_need_bag = game.character.inventory
+		_need_bag.changed.connect(_on_plans_changed)
+		_need_due = true
 	_need_clock -= delta
-	if _need_clock > 0.0:
+	_need_settle -= delta
+	if _need_clock > 0.0 or _need_due and _need_settle > 0.0:
 		return
 	var at := Vector3i((game.player.position / Plans.CELL).floor())
 	if not _need_due and maxi(absi(at.x - _need_from.x), maxi(absi(at.y - _need_from.y), absi(at.z - _need_from.z))) < NEED_STEP:
@@ -523,13 +537,19 @@ func _count_need(delta: float) -> void:
 	_need_due = false
 	_need_from = at
 	var now := count_need(game.plans, game.player.position / Plans.CELL)
-	if now != _need:
+	var have := {}
+	for id: String in now:
+		have[id] = game.character.inventory.count(id)
+	if now != _need or have != _have:
 		_need = now
+		_have = have
 		changed.emit()
 
 
+## The blueprint or the bag changed: counted again once nothing more came for NEED_SETTLE.
 func _on_plans_changed(_a = null, _b = null) -> void:
 	_need_due = true
+	_need_settle = NEED_SETTLE
 
 
 ## What blueprint `plans` needs within PLAN_REACH of point `p` (in cells), item id -> how
@@ -661,7 +681,9 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		# does nothing.
 		if item.get("prop", "none") == "none":
 			return {}
-		var aimed := _aimed(pos, _by_blueprint(chosen()))
+		# Aimed right under the finger: a tap sets it down where it was tapped (user
+		# 2026-11-26); only carried does it go FINGER_LIFT over the finger (_drag_new).
+		var aimed := _aimed(pos, _by_blueprint(chosen()), false)
 		if aimed.is_empty():
 			return {}
 		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "put": chosen(),
@@ -740,11 +762,11 @@ func _ghost_tap(s: Dictionary) -> bool:
 
 ## What a thing new from the bag is aimed at for a finger or the mouse at screen point
 ## `pos` (VoxelRaycast.cast's hit): on a touch screen the place FINGER_LIFT over the finger
-## (_lifted), so the finger does not hide the thing, or the place under it where there the
-## ray finds nothing; under the mouse. With `planned` the blueprint's ghost blocks are met
+## (_lifted, with `lift`: while it is carried), so the finger does not hide the thing, or the
+## place under it where there the ray finds nothing; under the mouse. With `planned` the blueprint's ghost blocks are met
 ## as blocks (Controls.pick_planned: a ghost thing goes onto, against or into them).
-func _aimed(pos: Vector2, planned := false) -> Dictionary:
-	var at := _lifted(pos)
+func _aimed(pos: Vector2, planned := false, lift := true) -> Dictionary:
+	var at := _lifted(pos) if lift else pos
 	var hit: Dictionary = game.controls.pick_planned(at) if planned else game.controls.pick(at)
 	if hit.is_empty() and at != pos:
 		hit = game.controls.pick_planned(pos) if planned else game.controls.pick(pos)
@@ -1044,8 +1066,8 @@ func _drag_opening(s: Dictionary, e: Dictionary) -> void:
 
 ## Where a door or a window `id` held up at north-west cell `at` turned `turn` is drawn
 ## from there, in cells: where it goes into blocks (an opening to cut into a wall) they
-## would hide it, so it hangs WALL_OUT before them, toward its front (Placed.front_of: the
-## side it was pressed from); else where it goes (Props.hold_new).
+## would hide it, so it hangs WALL_OUT before them, on the side of the wall the camera sees;
+## else where it goes (Props.hold_new).
 func out_of_wall(id: String, at: Vector3i, turn: int) -> Vector3:
 	var item := Items.get_item(id)
 	if not (item.get("door", false) or item.get("window", false)) or item.get("hatch", false):
@@ -1054,7 +1076,14 @@ func out_of_wall(id: String, at: Vector3i, turn: int) -> Vector3:
 		var c: Vector3i = at + o
 		if game.world.is_solid(c.x, c.y, c.z):
 			var f := Placed.front_of({"turn": turn})
-			return Vector3(f.x, 0.0, f.y) * WALL_OUT
+			var out := Vector3(f.x, 0.0, f.y)
+			# On the wall's side the camera sees (user 2026-11-26: it showed behind the wall).
+			var cam: Camera3D = game.get_viewport().get_camera_3d()
+			if cam != null:
+				var to_cam: Vector3 = cam.global_position - (Vector3(c) + Vector3(0.5, 0.5, 0.5)) * Placed.CELL
+				if out.dot(Vector3(to_cam.x, 0.0, to_cam.z)) < 0.0:
+					out = -out
+			return out * WALL_OUT
 	return Vector3.ZERO
 
 

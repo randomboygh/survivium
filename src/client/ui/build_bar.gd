@@ -356,11 +356,11 @@ func _show_palette() -> void:
 		s.texture = ItemIcons.of_item(id) if id != "" else null
 		var count: int = inv.count(id) if id != "" else 0
 		var needed: int = need.get(id, 0)
-		# What the bag has bottom right, what the blueprint near needs top left: cold as
-		# the ghosts, red when the bag has less (the user's picks, 2026-11-26).
+		# What the bag has bottom right, what the blueprint near needs top left: pale as the
+		# bag's count, red when the bag has less (the user's picks, 2026-11-26).
 		s.number = "×%d" % count if count > 1 or (needed > 0 and count == 0) else ""
 		s.tag = str(needed) if needed > 0 else ""
-		s.tag_color = UiStyle.DANGER if needed > 0 and b.short_of(id) else UiStyle.COLD
+		s.tag_color = UiStyle.DANGER if needed > 0 and b.short_of(id) else UiStyle.INK
 		s.inactive = id != "" and count == 0
 		s.selected = id != "" and id == held
 		s.tooltip_text = Lang.t(Items.title(id)) if id != "" else ""
