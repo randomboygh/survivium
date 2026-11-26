@@ -1754,8 +1754,8 @@ const SHOTS := {
 ## `pics-<tree>[-v<variant>][-t<its own turn>][-c<camera turn>][-h<time x 100>][-s<season>]
 ## [-f<autumn's leaf fall x 100>][-n<cells the player stands further north>][-a<eighths round from the
 ## south the player comes to the thick trunk from, walking up to it>][-x (what stops a body drawn)][-o]
-## [-d<1 trees that keep their dry leaves in winter, 0 trees that go bare>][-w<snow x 100>]`, on
-## bare ground, the grass hidden, no interface: `pics-oak-t2-h30` is the oaks' side 2 by the morning sun,
+## [-d<1 trees that keep their dry leaves in winter, 0 trees that go bare>][-w<snow x 100>][-g (grass shown)]`, on
+## bare ground, the grass hidden (unless `-g`), no interface: `pics-oak-t2-h30` is the oaks' side 2 by the morning sun,
 ## `pics-maple-s2-f60` the maples late in autumn, `pics-pine-n8` the pines with the thick one's
 ## top in a phone's frame, `pics-oak-s3-d1` oaks in winter with dry leaves under the snow, `-o` the
 ## trees hidden to show their shadows alone. {} for another name.
@@ -1790,6 +1790,9 @@ static func pictured(name: String) -> Dictionary:
 				shot.xray = true
 			"o":
 				shot.hide.append("chunks: trees")
+			"g":
+				# The grass shown (round the trees' feet).
+				shot.hide.erase("chunks: grass")
 			"d":
 				shot.dry = n
 			"w":
@@ -1799,8 +1802,8 @@ static func pictured(name: String) -> Dictionary:
 
 ## A shot of the stumps felled trees leave (TreeLooks `stumps`) named
 ## `stumps-g<group 0..2: 7 species each>[-h<time x 100>][-c<camera turn>][-s<season>][-w<snow x 100>]
-## [-f<fell: the thick tree of each row standing, felled as the shot opens, shot after f ms>]`: each
-## species a row, its thick, middle and thin stump west to east, on bare ground, the grass hidden,
+## [-f<fell: the thick tree of each row standing, felled as the shot opens, shot after f ms>][-r (grass shown)]`:
+## each species a row, its thick, middle and thin stump west to east, on bare ground, the grass hidden (unless `-r`),
 ## no interface. {} for another name.
 static func stumps(name: String) -> Dictionary:
 	if not name.begins_with("stumps-"):
@@ -1823,6 +1826,9 @@ static func stumps(name: String) -> Dictionary:
 				shot.snow = n / 100.0
 			"f":
 				shot.fell_after = n
+			"r":
+				# The grass shown (round the stumps' feet).
+				shot.hide.erase("chunks: grass")
 	return shot
 
 
