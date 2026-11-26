@@ -107,17 +107,25 @@ uniform int shake_count = 0;
 // pixels the picture is widened by while it shakes, so the crown may lean past its cell.
 const float SHAKE_RISE = 4.0;
 const float SHAKE_ROOM = 4.0;
-// The wind sways a standing tree's crown in whole pixels, as leaves.gdshader's cards: by
-// SWAY_PX plus SWAY_WIND a unit of wind (the global `wind`) to and fro, and a steady lean
-// of SWAY_LEAN a unit of the wind across the screen; nothing under SWAY_FROM over the foot,
-// in full from SWAY_FROM + SWAY_RISE up (world units), the swing running up the crown by
-// SWAY_WAVE a unit of height. The picture is widened by SWAY_ROOM pixels each side for it.
-const float SWAY_PX = 0.3;
-const float SWAY_WIND = 1.4;
+// The wind sways a standing tree's crown module by module (the user's ask, 2026-11-26: the
+// crown swayed whole, row by row, looked like ripples on water): its leaves are cut into the
+// modules a falling crown is cut into (fall_owner: clumps of FALL_MODULE), and each moves its
+// leaves as they are by whole pixels, on its own clock (SWAY_APART radians of phase apart, the
+// swing running up the crown by SWAY_WAVE a unit of height): to and fro by SWAY_PX plus
+// SWAY_WIND a unit of wind (the global `wind`), up and down by SWAY_BOB of that, and all of
+// them leaning SWAY_LEAN a unit of the wind across the screen. A module whose middle is under
+// SWAY_FROM over the foot stays, one from SWAY_FROM + SWAY_RISE up (world units) moves in
+// full. The bark never moves (the limbs and the trunk stay whole). The picture is widened by
+// SWAY_ROOM pixels each side for it.
+const float SWAY_PX = 0.5;
+const float SWAY_WIND = 1.2;
+const float SWAY_BOB = 0.35;
 const float SWAY_LEAN = 0.6;
 const float SWAY_FROM = 1.0;
-const float SWAY_RISE = 6.0;
+const float SWAY_RISE = 5.0;
 const float SWAY_WAVE = 0.25;
+const float SWAY_APART = 2.0;
+const float SWAY_SPEED = 1.3;
 const float SWAY_ROOM = 4.0;
 // Two trees whose feet are as far from the camera (in one row across the screen) draw at
 // one depth where they overlap: the depth test then takes rows of either crown in turn
@@ -294,6 +302,32 @@ bool fall_leaf(vec4 at_cell, float cut, vec2 i) {
 	}
 	int a = frame_code(texelFetch(frames, ivec2(at_cell.xy + i), 0));
 	return a != 0 && a != 2 && a != 3;
+}
+
+// The texel of the picture a standing tree shows at its pixel `at` in the wind (SWAY_*):
+// the pixel's module's leaves come from as far back as the module has moved; a pixel of bark
+// or of nothing keeps its own texel unless a leaf has come over it; a leaf's pixel left by
+// its leaves shows what has come there (nothing, or the bark next to it).
+vec2 sway_texel(vec2 at, vec4 at_cell, float foot_row, float phase, float time) {
+	vec2 me = fall_owner(at);
+	float h = (foot_row - fall_home(me).y) / TEXELS;
+	float bend = clamp((h - SWAY_FROM) / SWAY_RISE, 0.0, 1.0);
+	if (bend <= 0.0) {
+		return at;
+	}
+	float gust = SWAY_PX + length(wind) * SWAY_WIND;
+	float ph = time * SWAY_SPEED + phase - h * SWAY_WAVE + hash12(me * 2.3 + phase) * SWAY_APART;
+	vec2 across = vec2(-view_up.y, view_up.x);
+	vec2 d = vec2(sin(ph) * gust + dot(wind, across) * SWAY_LEAN, sin(ph * 1.7 + 1.3) * gust * SWAY_BOB);
+	d = round(clamp(d * bend * bend, -SWAY_ROOM, SWAY_ROOM));
+	if (d.x == 0.0 && d.y == 0.0) {
+		return at;
+	}
+	vec2 from = at - d;
+	if (fall_leaf(at_cell, 1e9, floor(from)) || fall_leaf(at_cell, 1e9, floor(at))) {
+		return from;
+	}
+	return at;
 }
 
 void vertex() {
@@ -936,13 +970,9 @@ void fragment() {
 		at.x -= round(shake.x * clamp((shake.y - px.y) / (SHAKE_RISE * TEXELS), 0.0, 1.0));
 	}
 	if (sway_phase >= 0.0) {
-		// Swayed by the wind in whole pixels, the more the higher, the swing running up.
-		float h = (shake.y - px.y) / TEXELS;
-		float bend = clamp((h - SWAY_FROM) / SWAY_RISE, 0.0, 1.0);
-		vec2 across = vec2(-view_up.y, view_up.x);
-		float swing = sin(TIME * 1.1 + sway_phase - h * SWAY_WAVE) * (SWAY_PX + length(wind) * SWAY_WIND)
-			+ dot(wind, across) * SWAY_LEAN;
-		at.x -= round(clamp(swing, -SWAY_ROOM, SWAY_ROOM) * bend * bend);
+		// Swayed by the wind module by module (SWAY_*): the pixel's module moves its leaves by
+		// whole pixels; what is not a leaf stays where it is drawn.
+		at = sway_texel(at, cell, shake.y, sway_phase, TIME);
 	}
 	if (at.x < 0.0 || at.y < 0.0 || at.x >= cell.z || at.y >= cell.w) {
 		discard;
