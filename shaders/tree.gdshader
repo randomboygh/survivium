@@ -465,26 +465,17 @@ int bark_bits(ivec2 t, bool bare, ivec2 lo, ivec2 hi) {
 	return a == 0 ? -2 : -1;
 }
 
-// Of two texels' bark steps (2 bits a sun), the lighter at each sun.
-int lightest(int a, int b) {
-	int r = 0;
-	for (int k = 0; k < 8; k++) {
-		r |= max((a >> (2 * k)) & 3, (b >> (2 * k)) & 3) << (2 * k);
-	}
-	return r;
-}
-
 ivec2 side(int i) {
 	return i == 0 ? ivec2(1, 0) : i == 1 ? ivec2(-1, 0) : i == 2 ? ivec2(0, 1) : ivec2(0, -1);
 }
 
 // How the bark of texel `t` (its steps `bits`) is drawn beside its neighbours, 8 suns at a
 // time (user 2026-11-26): x the suns it takes a halftone at (bit k: sun k), y its outline's
-// step in halves (3 bits a sun, 7: none). A texel beside a darker step of the bark is drawn half a
-// step darker, so each step steps down to the next through a halftone. A texel on the
-// picture's edge is its outline: OUTLINE_DROP halves darker than the bark inside it (the texel across
-// from the empty side, when that one is not an edge too), as the approved drawing's soft
-// outline, kept wherever the drawing left it at the bark's own step.
+// step in halves (3 bits a sun, 7: none). A texel beside a darker step of the bark is drawn
+// half a step darker, so each step steps down to the next through a halftone. A texel on the
+// picture's edge with bark inside it (across from the empty side, not an edge itself) is its
+// outline: one tone all round, OUTLINE_LOW halves up from the darkest step, whatever the
+// light (a twig all outline keeps its drawn steps).
 const int OUTLINE_LOW = 1;
 ivec2 bark_look(ivec2 t, bool bare, int bits, ivec2 lo, ivec2 hi) {
 	int n[4];
@@ -506,12 +497,10 @@ ivec2 bark_look(ivec2 t, bool bare, int bits, ivec2 lo, ivec2 hi) {
 		}
 		return ivec2(halves, 16777215);
 	}
-	// The bark inside: across from an empty side, when that one is not an edge too (the
-	// lightest of those).
-	int inside = -1;
+	// Bark inside: across from an empty side, a texel that is not an edge too.
+	bool inside = false;
 	for (int i = 0; i < 4; i++) {
-		int m = n[i ^ 1];
-		if (n[i] != -2 || m < 0) {
+		if (n[i] != -2 || n[i ^ 1] < 0) {
 			continue;
 		}
 		ivec2 q = t + side(i ^ 1);
@@ -519,14 +508,11 @@ ivec2 bark_look(ivec2 t, bool bare, int bits, ivec2 lo, ivec2 hi) {
 		for (int e = 0; e < 4; e++) {
 			inner_edge = inner_edge || bark_bits(q + side(e), bare, lo, hi) == -2;
 		}
-		if (!inner_edge) {
-			inside = inside < 0 ? m : lightest(inside, m);
-		}
+		inside = inside || !inner_edge;
 	}
 	int outline = 0;
 	for (int k = 0; k < 8; k++) {
-		// One tone all round (user 2026-11-26): the outline's step whatever the light inside.
-		int c = inside >= 0 ? OUTLINE_LOW : 2 * ((bits >> (2 * k)) & 3);
+		int c = inside ? OUTLINE_LOW : 2 * ((bits >> (2 * k)) & 3);
 		outline |= max(c, OUTLINE_LOW) << (3 * k);
 	}
 	return ivec2(0, outline);
