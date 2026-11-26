@@ -68,6 +68,49 @@ varying flat float plant_column;
 // Someone this close (world units) folds a shy plant (Plants `looks`).
 const float SHY_REACH = 0.9;
 
+// Gusts run over the plants in waves along the wind (wind_wave): crests GUST_LENGTH world
+// units apart, GUST_SPEED units a second; under a crest the tips lean downwind by
+// GUST_BEND pixels plus GUST_WIND a unit of wind (at most GUST_MAX) and catch the light,
+// GUST_LIGHT brighter at the tip.
+const float GUST_LENGTH = 8.0;
+const float GUST_SPEED = 3.2;
+const float GUST_BEND = 2.0;
+const float GUST_WIND = 1.1;
+const float GUST_MAX = 3.0;
+const float GUST_LIGHT = 0.3;
+// How hard the gust under the plant blows, 0..1, for the light on its tips.
+varying float gust;
+
+// The gusts' wave at world point `p` running along the way at angle `a`: a crest bent and
+// drifting sideways, stronger in some stretches than others, so the waves read as gusts
+// rolling over the field and not as stripes.
+float gust_along(vec2 p, float a, float time) {
+	vec2 dir = vec2(cos(a), sin(a));
+	float c = dot(p, vec2(-dir.y, dir.x));
+	float s = dot(p, dir) + sin(c * 0.23 + time * 0.31) * 1.6 + sin(c * 0.071 - time * 0.13) * 3.0;
+	float w = 0.5 + 0.5 * sin((s - time * GUST_SPEED) * (6.2831853 / GUST_LENGTH));
+	float strong = smoothstep(-0.6, 0.9, sin(c * 0.17 + s * 0.05 - time * 0.21) + 0.5 * sin(c * 0.05 + time * 0.07));
+	return w * w * (0.3 + 0.7 * strong);
+}
+
+// How hard a gust blows at world point `p`, 0..1. The waves run along the nearest of 8
+// fixed ways to the wind's, crossfaded near halfway between two: a pattern turned by
+// the wind's own angle would swing about the world's origin as the wind veers.
+float wind_wave(vec2 p, float time) {
+	float a = length(wind) > 0.05 ? atan(wind.y, wind.x) : 0.6;
+	float way = a / 0.78539816;
+	float lo = floor(way);
+	float k = smoothstep(0.35, 0.65, way - lo);
+	float g = 0.0;
+	if (k < 1.0) {
+		g += gust_along(p, lo * 0.78539816, time) * (1.0 - k);
+	}
+	if (k > 0.0) {
+		g += gust_along(p, (lo + 1.0) * 0.78539816, time) * k;
+	}
+	return g;
+}
+
 // Grass trodden down (trample.gd): a map of the ground round the player, TRAMPLE_TEXELS
 // texels a world unit, repeating every TRAMPLE_MAP: r the clock's byte (trample_now)
 // when it was trodden, g the way its tufts were pushed (one of TRAMPLE_DIRS) plus
@@ -138,11 +181,16 @@ void vertex() {
 	} else if (kind >= MOSS) {
 		tip = 0.0;
 	}
-	// Tall blades keep nearly the same phase as their neighbours, so the wind runs
-	// over a meadow in waves, and they bend farther.
-	float phase = kind == TALL ? custom.z * 1.2 : custom.z * 6.28;
+	// Each blade flutters a little on its own; the gusts (wind_wave) lay the tips
+	// downwind together as they roll over, so the wind runs over a meadow or a field of
+	// ears in waves. Tall blades bend farther.
 	float reach = kind == TALL ? 1.7 : 1.0;
-	float sway = sin(TIME * 1.6 + root.x * 0.9 + root.z * 0.5 + phase) * (0.6 + length(wind) * 1.2) * reach + wind.x * 1.5 * reach;
+	float strength = length(wind);
+	vec2 downwind = strength > 0.05 ? wind / strength : vec2(0.0);
+	float g = tip > 0.0 ? wind_wave(root.xz, TIME) : 0.0;
+	float lean = g * min(GUST_BEND + strength * GUST_WIND, GUST_MAX) * reach;
+	float sway = sin(TIME * 2.1 + root.x * 0.9 + root.z * 0.5 + custom.z * 6.28) * (0.35 + strength * 0.5) * reach
+		+ wind.x * 1.2 * reach + downwind.x * lean;
 	vec2 away = root.xz - player_pos.xz;
 	float d = length(away);
 	if (d < 0.6 && abs(root.y - player_pos.y) < 0.6) {
@@ -153,6 +201,8 @@ void vertex() {
 	vec2 trod = tip > 0.0 ? trodden(root) : vec2(0.0);
 	float lying = length(trod);
 	sway *= 1.0 - lying;
+	lean *= 1.0 - lying;
+	gust = g * (1.0 - lying) * min(1.0, tip);
 	float bend = min(tip, 1.5);
 	VERTEX.x += round(sway) / TEXELS * tip + round(trod.x * 5.0) / TEXELS * bend;
 	VERTEX.z += round(trod.y * 5.0) / TEXELS * bend;
@@ -161,7 +211,7 @@ void vertex() {
 	float up = (1.0 - UV.y) * HEIGHT;
 	VERTEX.x += heat_sway(vec3(VERTEX.x, root.y + up, VERTEX.z), root, up, TIME) / TEXELS;
 	// A wind from the north or the south lays the tips over that way a little.
-	VERTEX.z += round(wind.y * 1.2 * reach) / TEXELS * tip;
+	VERTEX.z += round(wind.y * 1.2 * reach + downwind.y * lean) / TEXELS * tip;
 	// Plants under a roof or an overhang see no snow and no rain.
 	sky = roofed(root.xz, root.y) ? 0.0 : 1.0;
 	snow_here = sky * snow_cover(root.xz, snow_amount) * (1.0 - warm_spot(root, custom.z));
@@ -313,6 +363,8 @@ void fragment() {
 		}
 	}
 	col *= 1.0 - 0.3 * sky * wetness * (1.0 - 0.7 * warm_spot(root, custom.z));
+	// Blades bent by a gust catch the light, the more toward the tip (wind_wave).
+	col *= 1.0 + GUST_LIGHT * gust * (1.0 - 0.5 * UV.y);
 	vec4 veiled = veil(vec3(root.x, root.y + (1.0 - UV.y) * HEIGHT, root.z), depth_fade(root.y));
 	// The share of the sun's and the sky's light that comes down this deep; light()
 	// undoes it for torches and fires (lamp_gain).
