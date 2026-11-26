@@ -97,6 +97,10 @@ const PROP_TAKE := "prop_take"
 const PROP_PUT_AT := "prop_put_at"
 ## The build mode moves a thing placed, or turns it where it stands: [its cell, the
 ## north-west cell it goes to, its turn 0..3] (Placed.move; what it holds goes with it).
+## A door, a window or a hatch goes along its wall: [its cell, the wall's cell pressed,
+## its turn (the server finds it again), the side of the face pressed (-1 for none)], its
+## old place filled with the blocks it had cut (Placed.move_opening); [its cell, its cell,
+## its turn + 2] turns it the other way round where it stands, and nothing else of three.
 const PROP_MOVE := "prop_move"
 ## Puts out a campfire, or lights it again or feeds it one piece of fuel: [cell, on]
 ## (Placed.put_out, Placed.feed).

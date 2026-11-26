@@ -51,7 +51,7 @@ one stack will not double it.
 | `eat`, `throw`, `wear`, `repair` | the cell's number within the bag's bounds |
 | `bag_put`, `bag_move`, `bag_all`, `sort`, `bag_destroy` | cells within bounds (and in `Inventory`), the chest within the hand's reach and by the right «chests», an open bag is not put into itself |
 | `prop_take`, `prop_open`, `prop_destroy`, `lie_in`, `sit_on` | the thing within the hand's reach, land rights |
-| `prop_move` | two cells and a turn 0..3; the thing within the hand's reach and `Placed.movable`, its new place within `Tools.PLACE_REACH` and free, land rights at both ends; **pace** — `paced` |
+| `prop_move` | two cells and a turn 0..3; the thing within the hand's reach and `Placed.movable`, its new place within `Tools.PLACE_REACH` and free, land rights at both ends; a door, a window or a hatch only with the face's side −1..3 (`Placed.move_opening`; of three parts only its own cell and its turn + 2, a turn the other way round): land rights at its old cell and each new cell it cuts, the blocks it puts back paid by those it cut or the bag's, else ghost blocks (capped by `Plans.MAX_CELLS`); **pace** — `paced` |
 | `gesture` | the name is a string from `Gestures.LIST` or ""; changes nothing in the world |
 | `sign_write`, `sign_turn` | the sign within the hand's reach, the right «build»; the text is a string of no more than `Requests.SIGN_MAX` 600, the lines are cleaned by `Protocol.clean_text` and cut to the sign (`Placed.sign_text`); **pace** — like the hands' work (`PACED`) |
 | `mend` | a `Vector3i` cell that is cracked (`WorldData.is_cracked`), within `Tools.PLACE_REACH`, the right «build» (`Decay.mend`); free, nothing is taken or given; **pace** — like the hands' work (`PACED`) |

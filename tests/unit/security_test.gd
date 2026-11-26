@@ -164,6 +164,12 @@ func _test_requests() -> void:
 		"a thing out of reach is not moved near")
 	_check(req._rule(Protocol.PROP_MOVE, [sign.cell, Vector3i(40, 2, 40), 0]) == false and not p[0].placed.at(sign.cell).is_empty(),
 		"nor a thing near moved far")
+	_check(req._rule(Protocol.PROP_MOVE, [sign.cell, sign.cell, 0, 4]) == null and req._rule(Protocol.PROP_MOVE, [sign.cell, sign.cell, 0, -2]) == null
+		and req._rule(Protocol.PROP_MOVE, [sign.cell, sign.cell, 0, "x"]) == null and req._rule(Protocol.PROP_MOVE, [sign.cell, sign.cell, 0, 1, 1]) == null,
+		"a door is not moved along a wall by a face's side out of bounds or no number")
+	var far_door: Dictionary = p[0].placed.put("tools:door", Vector3i(28, 2, 26))
+	_check(req._rule(Protocol.PROP_MOVE, [far_door.cell, Vector3i(9, 2, 9), 0, 2]) == false and not p[0].placed.at(far_door.cell).is_empty(),
+		"nor one out of reach moved near")
 	_check(req.PACED.has(Protocol.PROP_MOVE), "moving takes the hands' time")
 	_check(req._rule(Protocol.PROP_TAKE, [far_sign.cell]) == false and not p[0].placed.at(far_sign.cell).is_empty(),
 		"a thing out of reach is not taken up")

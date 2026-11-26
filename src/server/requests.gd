@@ -230,6 +230,12 @@ func _rule(kind: String, args: Array) -> Variant:
 			if _fit(args, [TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT]) and args[2] >= 0 and args[2] < 4:
 				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and placed.move(who, e, args[1], args[2])
+			# A door, a window or a hatch moved along its wall (Placed.move_opening): the wall's
+			# cell pressed, its turn (found again by the server) and the side of the face, -1 for none.
+			if _fit(args, [TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT]) and args[2] >= 0 and args[2] < 4 \
+					and args[3] >= -1 and args[3] < 4:
+				var e: Dictionary = _near(args[0])
+				return not e.is_empty() and placed.move_opening(who, e, args[1], args[3])
 		Protocol.PROP_FIRE:
 			if _fit(args, [TYPE_VECTOR3I, TYPE_BOOL]):
 				var e: Dictionary = _near(args[0])

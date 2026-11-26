@@ -318,6 +318,22 @@ const SHOTS := {
 		"touch": true, "hide": ["chunks: grass"], "press": ["tools:wooden_chair", Vector3(-6.5, 0.0, -1.5)]},
 	# The ghost of lone stairs rising away from the player (north), then tapped twice: turned
 	# a quarter (Plans.turn_form); the panel has no turn button (2026-11-26).
+	# A door and a window set into the room's north wall moved along it by a finger, and a
+	# door taken back into the bag (2026-11-26, the building UX's PR 2): "opening" = [item,
+	# its wall cell from the feet, the cell it is moved to, "before" | "held" | "moved" |
+	# "taken"] (shot.gd _move_opening).
+	"build-move-door-before": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7), "before"]},
+	"build-move-door-held": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7), "held"]},
+	"build-move-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7), "moved"]},
+	"build-move-window-before": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:window_3x2", Vector3i(-5, 1, -7), Vector3i(-4, 1, -7), "before"]},
+	"build-move-window": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:window_3x2", Vector3i(-5, 1, -7), Vector3i(-4, 1, -7), "moved"]},
+	"build-take-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "opening": ["tools:door", Vector3i(-6, 0, -7), Vector3i(-3, 0, -7), "taken"]},
 	"build-lone-stairs": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2]},
 	"build-lone-stairs-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,

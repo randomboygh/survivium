@@ -3,6 +3,7 @@ extends "res://tests/unit/test_case.gd"
 
 const Warmth := preload("res://src/shared/game/warmth.gd")
 const Trunks := preload("res://src/client/world/trunk_mesher.gd")
+const Plans := preload("res://src/shared/game/plans.gd")
 
 
 func run() -> void:
@@ -30,6 +31,7 @@ func run() -> void:
 	_test_snowman_melts()
 	_test_openings()
 	_test_best_turn()
+	_test_move_openings()
 	_test_dye_sources()
 
 
@@ -1367,6 +1369,124 @@ func _test_best_turn() -> void:
 	_check(Placed.turn_facing(Tools.step_of(Vector2(13.5 - 18.5, 21.5 - 22.5))) == 3
 		and placed.put_at(who, "tools:ladder", Vector3i(13, 1, 21), 40) and w.ladders.get(Vector3i(13, 1, 21)) == 0,
 		"a ladder by the wall leans on it whatever side the player stands: %s" % [w.ladders])
+
+
+## The build mode moves a door or a window along its wall (the user's picks, 2026-11-26,
+## 5А, 6А): it remembers the blocks it cut, and they fill its old place when it goes, those
+## just cut at the new place paying first, then the bag's, else ghost blocks of the
+## blueprint; taken back into the bag it leaves ghost blocks in its hole; turned where it
+## stands it faces the other side; one of an old save takes the blocks of the wall round it.
+func _test_move_openings() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	# A wall along x at z 20, three high, from x 8 to 30: stone, its east end (x 24 on) planks.
+	var planks := Mat.index("materials:planks")
+	_check(planks >= 0, "(planks are a material)")
+	for y in range(1, 4):
+		for x in range(8, 31):
+			w.set_cell(x, y, 20, planks if x >= 24 else Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var plans := Plans.new()
+	placed.plans = plans
+	# What the copies are told as each thing is set down (Placed.added: the record of PROP).
+	var told: Array = []
+	placed.added.connect(func(e: Dictionary) -> void: told.append(Placed.record(e)))
+	var who := Who.new()
+	who.position = Vector3(14.5, 1.0, 23.5) * WorldData.CELL
+	who.inventory.add("tools:door", 1)
+	var stone: String = Mat.IDS[Mat.STONE]
+	var stone_item: String = Mat.RECORDS[Mat.STONE].item
+	var planks_item: String = Mat.RECORDS[planks].item
+	_check(placed.put_at(who, "tools:door", Vector3i(12, 1, 20), 40, -1, false, 2), "a door is set into the wall")
+	var door: Dictionary = placed.things[-1]
+	_check(door.cell == Vector3i(12, 1, 20) and door.cut == {Vector3i.ZERO: stone, Vector3i(0, 1, 0): stone},
+		"it remembers the two blocks it cut: %s" % [door])
+	var rec := Placed.record(door)
+	var copy := Placed.new()
+	copy.world = w
+	copy.read_footprints()
+	copy.from_list([JSON.parse_string(JSON.stringify(rec))])
+	_check(rec.cut is Array and rec.cut.size() == 2 and copy.things[0].cut == door.cut,
+		"they are saved with it and read back: %s" % [rec])
+	_check(told[-1].get("cut", []).size() == 2, "and the copies are told of them as it is set down: %s" % [told[-1]])
+	var drops := func() -> int:
+		var n := 0
+		for k in w.drops:
+			n += w.drops[k].size()
+		return n
+	var dropped: int = drops.call()
+	_check(placed.move_opening(who, door, Vector3i(14, 1, 20), 2), "it is moved two cells along the wall")
+	var moved: Dictionary = placed.things[-1]
+	_check(moved.item == "tools:door" and moved.cell == Vector3i(14, 1, 20) and placed.at(Vector3i(12, 1, 20)).is_empty()
+		and moved.cut == door.cut and told[-1].get("cut", []).size() == 2,
+		"it stands there, remembering the blocks it cut there, and the copies know: %s" % [moved])
+	_check(w.get_cell(12, 1, 20) == Mat.STONE and w.get_cell(12, 2, 20) == Mat.STONE and not w.is_natural(12, 1, 20)
+		and w.get_cell(14, 1, 20) == Mat.AIR and w.get_cell(14, 2, 20) == Mat.AIR,
+		"its old place is walled up with the blocks cut at the new one")
+	_check(who.inventory.count(stone_item) == 0 and drops.call() == dropped and plans.cells.is_empty(),
+		"nothing is left over, dropped or wanted")
+	# A window three wide moved one cell: one column cut, one filled, the two between stay open.
+	who.position = Vector3(18.5, 1.0, 23.5) * WorldData.CELL
+	who.inventory.add("tools:window_3x2", 1)
+	_check(placed.put_at(who, "tools:window_3x2", Vector3i(18, 2, 20), 40, -1, false, 2), "a window three wide is set in higher up")
+	var window: Dictionary = placed.things[-1]
+	_check(window.cell == Vector3i(17, 2, 20) and window.cut.size() == 6, "it cut six blocks: %s" % [window])
+	_check(placed.move_opening(who, window, Vector3i(19, 2, 20), 2), "it is moved a cell east")
+	window = placed.things[-1]
+	_check(window.cell == Vector3i(18, 2, 20) and window.cut.size() == 6
+		and w.get_cell(17, 2, 20) == Mat.STONE and w.get_cell(17, 3, 20) == Mat.STONE
+		and w.get_cell(18, 2, 20) == Mat.AIR and w.get_cell(20, 3, 20) == Mat.AIR and w.get_cell(21, 2, 20) == Mat.STONE,
+		"the column it left is walled up, the one it came to cut: %s" % [window])
+	_check(who.inventory.count(stone_item) == 0 and plans.cells.is_empty(), "and the wall's blocks are as many as before")
+	# To the planks: the planks cut go to the bag, the stone wanted comes out of it, and a
+	# block the bag has none of left is a ghost block.
+	who.position = Vector3(22.5, 1.0, 23.5) * WorldData.CELL
+	who.inventory.add(stone_item, 1)
+	_check(placed.move_opening(who, moved, Vector3i(25, 1, 20), 2), "the door is moved into the planks")
+	door = placed.things[-1]
+	_check(door.cell == Vector3i(25, 1, 20) and door.cut == {Vector3i.ZERO: Mat.IDS[planks], Vector3i(0, 1, 0): Mat.IDS[planks]}
+		and w.get_cell(25, 1, 20) == Mat.AIR and w.get_cell(25, 2, 20) == Mat.AIR, "it cuts two planks: %s" % [door])
+	_check(w.get_cell(14, 1, 20) == Mat.STONE and who.inventory.count(stone_item) == 0, "one stone of the bag walls up its old place")
+	_check(w.get_cell(14, 2, 20) == Mat.AIR and plans.cells.get(Vector3i(14, 2, 20), "") == stone_item and plans.cells.size() == 1,
+		"the cell the bag had no stone for is a ghost block: %s" % [plans.cells])
+	_check(who.inventory.count(planks_item) == 2, "the planks go to the bag")
+	_check(placed.move_opening(who, door, Vector3i(60, 1, 20), 2) == false and placed.things[-1] == door,
+		"nor is it moved out of reach")
+	_check(placed.move(who, door, door.cell, (door.turn + 1) % 4) == false and placed.move(who, door, door.cell + Vector3i(1, 0, 0), door.turn) == false
+		and placed.things[-1] == door, "as a thing it is neither turned a quarter nor moved")
+	# Turned where it stands, the other way round: the same cells, its front to the other side.
+	_check(placed.move(who, door, door.cell, (door.turn + 2) % 4), "a door is turned where it stands")
+	var turned: Dictionary = placed.things[-1]
+	_check(turned.turn == (door.turn + 2) % 4 and placed.opening_cells(turned) == placed.opening_cells(door)
+		and turned.cut.size() == 2 and w.get_cell(25, 1, 20) == Mat.AIR and w.get_cell(24, 1, 20) == planks,
+		"it faces the other side in its own cells: %s" % [turned])
+	# Taken back into the bag, the window leaves ghost blocks in its hole.
+	_check(placed.take_up(who, window) and who.inventory.count("tools:window_3x2") == 1, "the window is taken back")
+	var ghosts := 0
+	for c: Vector3i in plans.cells:
+		if c.x >= 18 and c.x <= 20 and c.y >= 2 and plans.cells[c] == stone_item:
+			ghosts += 1
+	_check(ghosts == 6 and w.get_cell(19, 2, 20) == Mat.AIR, "its hole is six ghost blocks of stone: %s" % [plans.cells])
+	var left := plans.cells.size()
+	_check(placed.put_at(who, "tools:window_3x2", Vector3i(19, 2, 20), 40, -1, false, 2) and placed.things[-1].cell == Vector3i(18, 2, 20)
+		and plans.cells.size() == left - 6 and not plans.cells.has(Vector3i(19, 2, 20)) and placed.things[-1].cut.is_empty(),
+		"set back into its hole, it takes the ghost blocks' place, cutting nothing: %s" % [plans.cells])
+	# A door of a save from before doors remembered their blocks, in a doorway of the stone
+	# wall: it takes the wall's blocks round it; one in the open, none.
+	w.set_cell(10, 1, 20, Mat.AIR)
+	w.set_cell(10, 2, 20, Mat.AIR)
+	placed.from_list([{"item": "tools:door", "cell": [10, 1, 20]}, {"item": "tools:door", "cell": [5, 1, 5]}])
+	var old: Dictionary = placed.at(Vector3i(10, 1, 20))
+	_check(not old.has("cut") and placed.cut_of(old) == {Vector3i(10, 1, 20): stone, Vector3i(10, 2, 20): stone},
+		"an old door takes the stone of its wall: %s" % [placed.cut_of(old)])
+	_check(placed.cut_of(placed.at(Vector3i(5, 1, 5))).is_empty(), "one in the open, nothing")
+	who.position = Vector3(10.5, 1.0, 23.5) * WorldData.CELL
+	_check(placed.take_up(who, old) and plans.cells.get(Vector3i(10, 1, 20), "") == stone_item
+		and plans.cells.get(Vector3i(10, 2, 20), "") == stone_item, "taken back, it leaves ghost blocks of stone")
 
 
 ## True when a body standing at `from` (in cells) walking north for two seconds gets north

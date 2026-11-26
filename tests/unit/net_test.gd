@@ -525,7 +525,11 @@ func _test_requests() -> void:
 	_check(net.request(Protocol.PROP_OPEN, [fire_cell]).value == false, "a fire is no door")
 	_check(net.request(Protocol.PROP_MOVE, [fire_cell, fire_cell + Vector3i(0, 0, 3), 0]).value == false
 		and net.request(Protocol.PROP_MOVE, [door_cell, door_cell, 2]).value == false and placed.at(door_cell).turn == 1,
-		"a campfire and a door are not moved or turned")
+		"a campfire is not moved, nor a door turned a quarter")
+	_check(net.request(Protocol.PROP_MOVE, [door_cell, door_cell, 3]).value == true and placed.at(door_cell).turn == 3,
+		"a door is turned the other way round where it stands")
+	host.flush(net)
+	_check(copy.at(door_cell).get("turn") == 3, "and the copy is told")
 	events.clear()
 	# A wall of the blueprint drawn through the server: the ghost is told, and built.
 	a.hands = ["materials:planks", ""]

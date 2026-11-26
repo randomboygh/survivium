@@ -141,6 +141,7 @@ func _init(w, g, c: Clock, r, p) -> void:
 	territory.rules = rules
 	territory.teams = teams
 	placed.territory = territory
+	placed.plans = plans
 	placed.removed.connect(territory.thing_removed)
 	actions = WorldActions.new(world, clock, rules)
 	actions.territory = territory
