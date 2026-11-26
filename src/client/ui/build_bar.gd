@@ -52,6 +52,8 @@ var _height: Button
 var _thick: Button
 var _mode: Button
 var _clear: Button
+## The eyedropper (BuildMode.picking): the next tap on the world takes what is there.
+var _pick: Button
 ## Undo and redo of the blueprint (BuildMode.undo, redo), dimmed with nothing to do.
 var _undo: Button
 var _redo: Button
@@ -133,17 +135,20 @@ func _make_panel(panel: HBoxContainer) -> void:
 	_undo = history.get_child(0)
 	_redo = history.get_child(1)
 	panel.add_child(history)
+	# The eyedropper beside the eraser (the user's pick, 2026-11-26, 1А).
 	var marks := TabRow.split([
+		[UiStyle.icon("build_pick"), "", func() -> void: game.build.set_picking(not game.build.picking)],
 		[UiStyle.icon("build_draw"), "", func() -> void: game.build.set_erasing(not game.build.erasing)],
 		[UiStyle.icon("trash"), "[remove_all_blueprints_nearby_press]", _tap_clear],
 	])
-	_mode = marks.get_child(0)
-	_clear = marks.get_child(1)
+	_pick = marks.get_child(0)
+	_mode = marks.get_child(1)
+	_clear = marks.get_child(2)
 	panel.add_child(marks)
 	_add_go(panel)
 	var leave := TabRow.icon_button(UiStyle.icon("close"), "[leave_build_mode_b]", func() -> void: game.build.leave())
 	panel.add_child(leave)
-	for b: Button in [_shape, _flatten, _form, _undo, _redo, _mode, _clear, leave]:
+	for b: Button in [_shape, _flatten, _form, _undo, _redo, _pick, _mode, _clear, leave]:
 		b.custom_minimum_size = Vector2(BUTTON, BUTTON)
 
 
@@ -248,7 +253,9 @@ func fit(width: float, portrait := false) -> void:
 	var one: HBoxContainer = _rows.get_child(1)
 	var across := 0.0
 	for g: Control in one.get_children() + _row2.get_children():
-		across += g.get_combined_minimum_size().x + 6
+		# A button not shown (the action button on a touch screen) takes no room.
+		if g.visible:
+			across += g.get_combined_minimum_size().x + 6
 	var two := across - 6 > width
 	var home: HBoxContainer = _row2 if two else one
 	var wide := _wide_group()
@@ -305,6 +312,8 @@ func _show_panel() -> void:
 	_mode.icon = UiStyle.centred(UiStyle.icon("build_erase" if b.erasing else "build_draw"))
 	_mode.tooltip_text = "[erasing_the_blueprint_press_to]" if b.erasing else "[drawing_the_blueprint_press_to]"
 	TabRow.light(_mode, b.erasing, b.erasing)
+	_pick.tooltip_text = "[tap_a_block_or_a_thing_to]" if b.picking else "[eyedropper_takes_a_block_or_a]"
+	TabRow.light(_pick, b.picking)
 	_light_clear(_clear, _asks.armed == _clear)
 	_dim(_undo, b.undos == 0)
 	_dim(_redo, b.redos == 0)

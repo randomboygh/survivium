@@ -1109,6 +1109,18 @@ const ICONS := {
 		".w.w....",
 		"w.......",
 	],
+	# The build mode's eyedropper (BuildMode.picking): a dropper, its bulb up right, the
+	# glass below it holding a drop of colour.
+	"build_pick": [
+		"......ww",
+		".....www",
+		"....wwww",
+		"...wwww.",
+		"..wbw...",
+		".wbw....",
+		"wbw.....",
+		"ww......",
+	],
 	# How high the walls are and how thick: arrows up and down, left and right.
 	"build_height": [
 		"..w..",

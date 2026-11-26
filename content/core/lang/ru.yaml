@@ -318,6 +318,8 @@
 "[height]": "Высота"
 "[wall_thickness]": "Толщина стен"
 "[remove_all_blueprints_nearby_press]": "Убрать все чертежи рядом (нажать дважды)"
+"[eyedropper_takes_a_block_or_a]": "Пипетка: взять в руку блок или вещь из мира (на ПК — средняя кнопка мыши)"
+"[tap_a_block_or_a_thing_to]": "Тапните по блоку или вещи, чтобы взять (нажать — отмена)"
 "[undo_ctrl_z]": "Отменить (Ctrl+Z)"
 "[redo_ctrl_y]": "Повторить (Ctrl+Y)"
 "[come_closer_to_undo_that]": "Подойдите ближе, чтобы это отменить"

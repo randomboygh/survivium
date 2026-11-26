@@ -298,6 +298,30 @@ func _hold_to_put(main: Node) -> void:
 		main.build._take(step.cell)
 	await _wait_ms(300)
 	_check(main.controls.held() == "tools:stairs", "a thing taken back has its slot chosen")
+	# The eyedropper: a tap on a thing set down takes its kind into the hand, its turn kept,
+	# and goes off; a block takes the item that builds its material.
+	inv.add("tools:chest", 1)
+	await _wait_ms(200)
+	main.build.kept_turns.erase("tools:chest")
+	main.build.set_picking(true)
+	main.build.start_stroke(MOUSE_BUTTON_LEFT, main.view.screen_of(Placed.center(last)))
+	await _frames(2)
+	_check(main.controls.held() == "tools:chest" and not main.build.picking
+		and main.build.kept_turns.get("tools:chest", -1) == int(last.get("turn", 0)),
+		"the eyedropper takes a thing set down into the hand, turned as it stands")
+	# None of it in the bag: the hand stays, and the eyedropper stays on for the next tap.
+	inv.remove("tools:chest", inv.count("tools:chest"))
+	await _wait_ms(200)
+	main.build.choose("tools:stairs")
+	main.build.set_picking(true)
+	await _frames(3)
+	main.build.pick_at(main.view.screen_of(Placed.center(last)))
+	await _frames(2)
+	_check(main.controls.held() == "tools:stairs" and main.build.picking,
+		"with none in the bag the eyedropper keeps the hand and stays on")
+	main.build.set_picking(false)
+	_check(main.build.block_item(Mat.AIR) == "" and main.build.builds_with(main.build.block_item(Mat.DIRT)),
+		"the eyedropper finds the item that builds a block")
 	main.build.kept_turns["tools:big_chest"] = 2
 	await _frames(3)
 	_check(not main.build.kept_turns.has("tools:big_chest"), "a kept turn is forgotten once the bag holds none of its kind")

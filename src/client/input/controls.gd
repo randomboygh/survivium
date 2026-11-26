@@ -225,6 +225,10 @@ func unhandled_input(event: InputEvent) -> void:
 				tap(active if touch else 0, event.position, MOUSE_BUTTON_LEFT)
 			MOUSE_BUTTON_RIGHT:
 				tap(1, event.position, MOUSE_BUTTON_RIGHT)
+			MOUSE_BUTTON_MIDDLE:
+				# The build mode's eyedropper on a PC (BuildMode.pick_at).
+				if game.build.on and not game.hud.covers(event.position):
+					game.build.pick_at(event.position)
 			MOUSE_BUTTON_WHEEL_UP:
 				# From a hand not on the hotbar (-1), up goes to the last slot.
 				var at := _slot_index()
