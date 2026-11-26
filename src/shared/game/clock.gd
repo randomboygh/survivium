@@ -43,14 +43,14 @@ const SOLSTICE_YEAR := 0.375
 ## summer, autumn, winter). Strengths are 0..1: clouds is the share of the sky under
 ## clouds, rain and snow how hard it falls (in winter rain and hail fall as snow),
 ## sand blows in deserts only, fog lies on the ground (fog_depth deep, in world units:
-## up to the grass, or over the bushes and the lower trunks in a thick one), haze veils
+## up to the grass, or up to the middle of the trees in a thick one), haze veils
 ## everything in heavy rain and storms, wind adds to the gusts and lightning strikes now
 ## and then.
 const WEATHERS := [
 	{"id": "clear", "name": "[clear]", "icon": "sun", "clouds": 0.28, "chance": [4, 6, 3, 3]},
 	{"id": "cloudy", "name": "[overcast]", "icon": "cloud", "clouds": 0.75, "wind": 0.3, "chance": [3, 2, 3, 3]},
 	{"id": "fog", "name": "[fog]", "icon": "fog", "clouds": 0.5, "fog": 0.7, "fog_depth": 1.2, "chance": [2, 0.5, 3, 1]},
-	{"id": "dense_fog", "name": "[thick_fog]", "icon": "fog", "clouds": 0.6, "fog": 0.95, "fog_depth": 3.2, "chance": [0.5, 0.1, 1, 0.3]},
+	{"id": "dense_fog", "name": "[thick_fog]", "icon": "fog", "clouds": 0.6, "fog": 0.95, "fog_depth": 5.0, "chance": [0.25, 0.05, 0.5, 0.15]},
 	{"id": "rain", "name": "[rain]", "icon": "rain", "clouds": 0.8, "rain": 0.5, "wind": 0.8, "chance": [3, 2, 3, 0]},
 	{"id": "downpour", "name": "[downpour]", "icon": "rain", "clouds": 0.95, "rain": 1.0, "wind": 1.2, "haze": 0.3, "chance": [1, 1, 1.5, 0]},
 	{"id": "storm", "name": "[thunderstorm]", "icon": "storm", "clouds": 0.95, "rain": 0.9, "wind": 1.8, "haze": 0.2, "lightning": 1.0, "chance": [1, 1.5, 0.5, 0]},
@@ -65,11 +65,11 @@ const WEATHERS := [
 const CLEAR := 0
 const RAIN := 4
 ## Mornings of each kind of fog, by the season (spring, summer, autumn, winter): shares
-## of none, a light one in the low places and over water, a thick one. Still air and a
-## wet ground make it likelier (see morning_fog).
-const MORNING_FOG := [[0.35, 0.5, 0.15], [0.5, 0.42, 0.08], [0.2, 0.55, 0.25], [0.6, 0.32, 0.08]]
+## of none, a light one in the low places and over water, a thick one (up to the middle
+## of the trees, so rare). Still air and a wet ground make it likelier (see morning_fog).
+const MORNING_FOG := [[0.43, 0.5, 0.07], [0.54, 0.42, 0.04], [0.33, 0.55, 0.12], [0.64, 0.32, 0.04]]
 ## How thick and how deep (world units) each kind of morning fog is.
-const MORNING_FOG_LOOK := [Vector2.ZERO, Vector2(0.55, 0.7), Vector2(0.9, 3.0)]
+const MORNING_FOG_LOOK := [Vector2.ZERO, Vector2(0.55, 0.7), Vector2(0.9, 4.8)]
 ## Puddles fill this share a second in a downpour (less in a light rain), and dry out
 ## over this many days of the game, sooner in the summer sun, slower in the cold.
 const PUDDLE_FILL := 0.04

@@ -268,6 +268,12 @@ const BANK_SLOPE := 3
 ## A lake keeps this many cells (by the coast distance) from the sea: between them lies
 ## a strip of low shore, so a lake never opens into the shallows deeper than they are.
 const LAKE_SHORE := 16.0
+## A swamp's pools and mires keep this many cells (by the distance to water, `near` in
+## _cover_row) from the water a beach lies along: the beach (32 cells) lies at the
+## sea's level and a pool a level over it, so a pool reaching the beach was held by a
+## one-column bank of sand, a rim along the swamp. Kept back, the swamp's own wet ground
+## rises from the beach in a slope.
+const POOL_SHORE := 40.0
 ## Volcanic land (landscape 1, biome where: volcanic, see _volcanic): how slow its region
 ## noise is, the side of the grid squares that may each hold one cone, how much further
 ## inside the region a cone's middle must lie, how the cone's slope curves (a power of
@@ -1278,7 +1284,7 @@ func _cover_row(lay: Dictionary, lz: int, temp: PackedByteArray) -> void:
 			var low := height <= sea + 1
 			height = maxi(height, sea + 1 + int(soil[j] > _byte(0.4))) if low else height
 			var p := pools[j]
-			if low and (p > pool_t or (p > pool_t - mire_reach and soil[j] > mire_t)):
+			if low and near >= POOL_SHORE and (p > pool_t or (p > pool_t - mire_reach and soil[j] > mire_t)):
 				# Pools, and mires along part of their shores and in hollows of their
 				# own, all at one level, so the murky water of a pool runs into the
 				# murkier, shallow water of a mire with no step.
