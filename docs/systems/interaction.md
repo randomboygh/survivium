@@ -319,7 +319,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
   the need with the bag's count taken with it, `_have`, so the ghosts do not blink red between the news of a cell
   built and of the bag, 2026-11-26); the palette puts those items first, the most needed first, also the ones the bag has none
   of (dimmed, ×0; a tap says they are not in the bag), with the need in the cell's top left (`HotbarSlot.tag`,
-  `tag_color`: pale as the bag's count, 2026-11-26, red when `short_of`: fewer in the bag; blocks are never short when building is free)
+  `tag_color`: always pale as the bag's count, 2026-11-26; a shortage, `short_of`, tints the ghosts red; blocks are never short when building is free)
   and the need and the bag's count in the tip.
 - `src/client/input/cursor.gd` — the frame around the cells over which work will happen; `show_boxes` — whole
   cells as see-through bodies over everything (light: white, red), merged with no faces between their cells and a
