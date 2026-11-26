@@ -127,8 +127,12 @@ slice, to free the far meshes.
   the way it falls as it comes down, and its ring draws nothing further back (the user's ask: the crown lies only
   the way it fell, from where its bottom comes down); empty modules are
   not drawn; each module's ring (`FALL_OVERLAP`, drawn `FALL_RING_BACK` behind) fills the gaps as they move apart;
-  lower on the screen is in front (`FALL_ORDER`). The wood it leaves (`Props.show_drops`) waits until it lands (`TreeHits.landing`,
-  `DROPS_HOLD_MS` at most). A struck tree sheds leaves of its own shape and colours (`TreeHits.LEAF_SHAPES`,
+  lower on the screen is in front (`FALL_ORDER`). Its shadow is its first instance drawn again into the shadow maps
+  only (a child sharing its MultiMesh, `tree_shadow.gdshader` with the same `falls` uniforms): the tree's whole
+  picture standing across the light as a standing tree's, turned over about the stump's top as the tree is, kept
+  over the ground and fading as it fades; the modules and the rows under the cut cast none (the stump casts its
+  own), nor does the chunk's copy at the same foot. The wood it leaves (`Props.show_drops`) waits until it lands
+  (`TreeHits.landing`, `DROPS_HOLD_MS` at most). A struck tree sheds leaves of its own shape and colours (`TreeHits.LEAF_SHAPES`,
   `particle.gdshader` `frames`/`rows`).
 - Pieces of wood lying in the woods (`Growth.piece_look`): drawn as the stumps, instance colour alpha
   `TreeSprites.PIECE`; each of a piece's 16 views (8 turns, summer and winter) is cropped to itself (a fallen trunk

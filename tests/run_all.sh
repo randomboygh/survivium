@@ -14,7 +14,8 @@
 # uploads them); in GitHub Actions the times and results also go to the job's summary.
 # Quiet by default outside GitHub Actions: one line per check (time, exit code, counts), the
 # FAIL / SCRIPT ERROR lines of a check that did not pass, and the full logs in LOGS (default
-# logs/, which git ignores). VERBOSE=1, or GITHUB_ACTIONS, prints every full log as before.
+# logs/, which git ignores). VERBOSE=1, or GITHUB_ACTIONS, prints every full log as before,
+# and after them the failing checks' FAIL / SCRIPT ERROR lines again (`What failed:`).
 set -u
 verbose=
 if [ -n "${VERBOSE:-}" ] || [ -n "${GITHUB_ACTIONS:-}" ]; then verbose=1; fi
@@ -75,7 +76,12 @@ batch() {
 		[ -z "$verbose" ] && [ -n "$counts" ] && echo "    $counts"
 		if [ "$result" != passed ]; then
 			[ -n "${GITHUB_ACTIONS:-}" ] && echo "::error title=$n $result::$(grep -m1 -E '^FAIL|^content:|ERROR' "$out/$n.log" | head -c 300)"
-			grep -E '^FAIL' "$out/$n.log" | head -10 | sed 's/^/    /' >>"$out/fails.txt"
+			{
+				echo "$n: $result"
+				grep -E '^FAIL' "$out/$n.log" | head -10
+				grep -A2 'SCRIPT ERROR' "$out/$n.log" | head -12
+				[ "$code" = 124 ] && tail -5 "$out/$n.log"
+			} | sed 's/^/    /' >>"$out/fails.txt"
 			if [ -z "$verbose" ]; then
 				grep -E -A2 '^FAIL|SCRIPT ERROR|^content:|^ERROR' "$out/$n.log" | head -30
 				echo "    full log: ${LOGS}/$n.log"
@@ -107,6 +113,12 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
 	} >>"$GITHUB_STEP_SUMMARY"
 fi
 if [ ${#failed[@]} -gt 0 ]; then
+	# Again at the very end: printed whole, the logs after a failing check's (server_test's is
+	# ~13k lines) push its FAIL lines out of the last 5000 lines a job's log is read by.
+	if [ -n "$verbose" ] && [ -s "$out/fails.txt" ]; then
+		echo "What failed:"
+		cat "$out/fails.txt"
+	fi
 	echo "Failed: ${failed[*]}"
 	[ -n "${GITHUB_ACTIONS:-}" ] && echo "::error::Failed: ${failed[*]}"
 	exit 1
