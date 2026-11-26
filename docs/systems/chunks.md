@@ -121,7 +121,10 @@ slice, to free the far meshes.
   row a species from `ramps_at`, its colours and where its snow lies, one texture unit less); lit by the sun in the shader as the
   approved drawing (bundles by normal, leaves by facing), the sun where it stands in the world seen from the side
   shown (turning the camera turns the lit side; looking toward the sun, the crown is in its shade and the bark is
-  drawn a step darker, `wood_colour`). The bark also takes the sun's shadow (the shadow map, as the ground: other
+  drawn a step darker, `wood_colour`). The bark is drawn with halftones and an even outline, worked out from a texel's
+  four neighbours (`bark_look`): a bark texel beside a darker step takes half a step darker; a texel on the
+  picture's edge with bark inside it takes one tone all round (`OUTLINE_LOW`, half a step over the darkest),
+  whatever the light. The bark also takes the sun's shadow (the shadow map, as the ground: other
   crowns, hills) a bark step darker, never two under its own crown's drawn shade (the bare frame holds the step
   without it, `in_shade`; `sun_as` gives the sun's pass the colour the shaded step would get); the leaves and fronds
   too, a step darker but never darker than on the crown's shaded side (`leaf_steps`, `frond_steps`). A species'
