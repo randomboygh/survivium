@@ -40,8 +40,8 @@ const NEW_CELLS := 2
 ## The rows of recipes shown whole before the list scrolls.
 const ROWS := 4
 const JOB_SLOT := 24
-## The side of a dye's square in the «Краситель» row, in UI pixels.
-const DYE_SIDE := 28
+## The side of a dye's square in the «Краситель» row, in UI pixels: as a fact's chip (a tool, a station).
+const DYE_SIDE := 20
 ## What the queue's row keeps beside its cells, in UI pixels: the time and count over
 ## the progress, the pause and the two buttons to cancel.
 const QUEUE_INFO := 56
@@ -89,6 +89,8 @@ var _facts: FactChips
 ## (the picture of each shows it so); the dye picked, "" none.
 var _dye_row: VBoxContainer
 var _dye_cells: HFlowContainer
+## After «Краситель»: how much of the dye picked the bag holds (empty for its own colours).
+var _dye_count: Label
 var _dye := ""
 ## At a dye vat: the cells of the things of the bag that can be dyed (reused, by
 ## order), the bag slot of the one chosen, and the line of «Перекрасить | Отмыть».
@@ -232,7 +234,12 @@ func _ready() -> void:
 	_dye_row = VBoxContainer.new()
 	_dye_row.add_theme_constant_override("separation", 2)
 	box.add_child(_dye_row)
-	_dye_row.add_child(UiStyle.label("[dye]", UiStyle.MUTED))
+	var dye_head := HBoxContainer.new()
+	dye_head.add_theme_constant_override("separation", 6)
+	_dye_row.add_child(dye_head)
+	dye_head.add_child(UiStyle.label("[dye]", UiStyle.MUTED))
+	_dye_count = UiStyle.label()
+	dye_head.add_child(_dye_count)
 	_dye_cells = HFlowContainer.new()
 	_dye_cells.add_theme_constant_override("h_separation", 4)
 	_dye_cells.add_theme_constant_override("v_separation", 4)
@@ -545,6 +552,7 @@ func _show_dyes(r: Dictionary, had := "-") -> void:
 		var ink := UiStyle.DARK_INK if color.get_luminance() > 0.45 else Color.WHITE
 		for c in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_hover_pressed_color", "icon_focus_color"]:
 			cell.add_theme_color_override(c, ink)
+	_dye_count.text = str(inv.count(_dye)) if _dye != "" else ""
 	if _dye != "":
 		_icon.texture = ItemIcons.dyed(r.makes, _dye)
 
