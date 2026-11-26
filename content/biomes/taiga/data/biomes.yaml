@@ -15,7 +15,7 @@
   warmth: [0.2, 0.38]
   trees: {plants:spruce: 0.6, plants:fir: 0.2, plants:larch: 0.12, plants:oak: 0.05, plants:deadwood: 0.03}
   tree_chance: 0.12
-  pieces: [0.07, 0.07, 0.06]
+  pieces: [0.035, 0.035, 0.03]
   bushes: {plants:blueberry: 0.6, plants:shrub: 0.4}
   bush_sparsity: 140
   tints: {water: "#56928a"}

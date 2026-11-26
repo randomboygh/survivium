@@ -109,7 +109,7 @@ slice, to free the far meshes.
   `TreeSprites.PIECE`; each of a piece's 16 views (8 turns, summer and winter) is cropped to itself (a fallen trunk
   seen end on is narrow), so its instance's custom data points to its table of views in the frames atlas (two
   texels a view: place; w, h, anchor) that `tree.gdshader` and `tree_shadow.gdshader` read in the vertex; a sprout's
-  leaves are alpha 7 (the leaves' ramp). Its shadow is its picture stood as a low wall (`PIECE_LOW`). The kinds'
+  leaves are alpha 7 (the leaves' ramp). Its shadow is the camera's view of it laid flat over where it lies (`PIECE_HIGH` over the ground, a row a texel deep), and it takes no sun's shadow itself. The kinds'
   rows of views are packed one by one under the stumps; the frames atlas is then 4064 x 3852 (under 4096).
 - `src/client/world/tree_sprites.gd`, `shaders/tree.gdshader` — standing trees of species drawn as pictures
   (`Growth.standing_look`): one upright picture per tree in the chunk's `trees` MultiMesh (the last of the

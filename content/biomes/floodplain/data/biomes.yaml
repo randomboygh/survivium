@@ -21,7 +21,7 @@
   trees: {plants:willow: 0.5, plants:poplar: 0.3, plants:bird_cherry: 0.12, plants:oak: 0.08}
   tree_chance: 0.06
   groves: 0.18
-  pieces: [0.04, 0.03, 0.03]
+  pieces: [0.02, 0.015, 0.015]
   bushes: {plants:currant: 0.5, plants:shrub: 0.5}
   bush_sparsity: 160
   tints: {water: "#68a28c"}

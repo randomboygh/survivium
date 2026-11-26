@@ -21,7 +21,7 @@
   trees: {plants:ceiba: 0.6, plants:palm: 0.22, plants:fan_palm: 0.08, plants:oak: 0.1}
   tree_chance: 0.2
   groves: 0.32
-  pieces: [0.07, 0.07, 0.06]
+  pieces: [0.035, 0.035, 0.03]
   bushes: {plants:banana: 0.55, plants:shrub: 0.45}
   bush_sparsity: 45
   tints: {grass: "#4a8c3e", water: "#56a48c"}

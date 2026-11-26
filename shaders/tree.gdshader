@@ -585,6 +585,11 @@ void fragment() {
 		} else {
 			col = stump_colour(k, g, a, L, shade);
 		}
+		if (info.y < -2.5) {
+			// A piece of wood lying in the woods takes no sun's shadow: its own, cast from its
+			// picture laid over the ground (tree_shadow.gdshader), would fall on it.
+			shade = vec3(-1.0);
+		}
 	} else if (snow >= 16384) {
 		if (bayer4(texel) < see_through(texel, world_pos)) {
 			discard;

@@ -21,7 +21,7 @@
   trees: {plants:mangrove: 0.85, plants:palm: 0.15}
   tree_chance: 0.12
   groves: 0.22
-  pieces: [0.04, 0.03, 0.03]
+  pieces: [0.02, 0.015, 0.015]
   trees_on: [clay]
   bushes: {plants:shrub: 1.0}
   bush_sparsity: 160

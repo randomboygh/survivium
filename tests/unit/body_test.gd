@@ -12,6 +12,7 @@ func run() -> void:
 	_test_long_step()
 	_test_wide_trunk()
 	_test_pictured_trunk()
+	_test_piece_holds()
 	_test_cactus()
 	_test_ground()
 	_test_people()
@@ -524,6 +525,29 @@ func _test_pictured_trunk() -> void:
 	for i in 30:
 		out = body.step(out, 1.0 / 60.0, false)
 	_check(out.z > at.z + 0.5 * cell, "a body in the oval walks out of it")
+
+
+## A fallen trunk lying in the woods (Growth.place_piece) holds a body off its whole trunk,
+## not only its one log cell; a broken trunk holds off only its cell (the user's pick 2Б).
+func _test_piece_holds() -> void:
+	var oak := Trees.index("plants:oak")
+	if oak < 0 or not Trees.SPECIES[oak].pictures.get("pieces", {}).has("fallen"):
+		return
+	var col := Vector2i(31, 31)
+	var w := WorldData.new(48, Vector2i(col.x + 32, 64))
+	for z in range(col.y - 16, col.y + 17):
+		for x in range(col.x - 16, col.x + 17):
+			w.set_cell(x, 0, z, Mat.STONE)
+	Growth.place_piece(w, col.x, 1, col.y, oak, Growth.PIECE_FALLEN)
+	var dir := Growth.piece_dir(col)
+	var body := Body.new()
+	body.world = w
+	var on := Vector2(col) + Vector2(0.5, 0.5) + dir * 5.0
+	var off := on + Vector2(-dir.y, dir.x) * 2.0
+	_check(body.blocked(Vector3(on.x, 1.0, on.y) * WorldData.CELL), "a fallen trunk stops a body along its length")
+	_check(not body.blocked(Vector3(off.x, 1.0, off.y) * WorldData.CELL), "and not two cells beside it")
+	Felling.fell(w, Vector3i(col.x, 1, col.y), Vector2(1, 0))
+	_check(not body.blocked(Vector3(on.x, 1.0, on.y) * WorldData.CELL), "chopped up, it stops nothing")
 
 
 ## A cactus (a plant with `solid` and `pricks`) on the desert's sand stops a body round

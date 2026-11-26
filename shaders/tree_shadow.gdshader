@@ -28,9 +28,9 @@ uniform ivec2 ramps_at;
 // point's height, so it stays over the ground.
 const float SINK = 0.4;
 const float SINK_SHARE = 0.75;
-// How high the wall a piece of wood lying in the woods casts its shadow by stands, of its
-// picture's height.
-const float PIECE_LOW = 0.25;
+// A piece of wood lying in the woods casts its shadow from its picture laid flat this high
+// over the ground (world units).
+const float PIECE_HIGH = 0.2;
 
 varying vec2 px;
 varying flat vec4 cell;
@@ -63,8 +63,10 @@ void vertex() {
 	float side = mod(step_at + own + 16.0, 8.0);
 	bool piece = kind < -2.5;
 	if (piece) {
-		// A piece of wood lying in the woods (TreeSprites.PIECE): the view's own cell and
-		// anchor from its table (as tree.gdshader's), its summer look.
+		// A piece of wood lying in the woods (TreeSprites.PIECE): the view the camera shows
+		// (as tree.gdshader picks it), its cell and anchor from its table, its summer look.
+		vec2 up = rest_view.xy;
+		side = mod(round(atan(-up.x, -up.y) / (PI / 4.0)) + own + 16.0, 8.0);
 		ivec2 tb = ivec2(int(round(c.x)), int(round(c.y))) + ivec2(2 * int(side), 0);
 		ivec4 p0 = ivec4(round(texelFetch(frames, tb, 0) * 255.0));
 		ivec4 p1 = ivec4(round(texelFetch(frames, tb + ivec2(1, 0), 0) * 255.0));
@@ -83,17 +85,26 @@ void vertex() {
 	// Only the upright part (the rows under the foot's lie on the ground: the roots in
 	// front), in two: the quad's rows (TreeSprites.quad_mesh) -1, 0, 1 are its foot, its knee,
 	// where the sink reaches `deep` (SINK_SHARE of the height), and its top.
-	// A piece lies: its whole picture stands as a low wall, PIECE_LOW of its height, for a
-	// short shadow of its outline.
-	float top = piece ? c.w : ay + 0.5;
+	float top = ay + 0.5;
 	float rise = q.y < -0.5 ? 0.0 : (q.y < 0.5 ? min(deep / SINK_SHARE * TEXELS, top) : top);
 	float wide = q.x * c.z;
 	px = vec2(wide, top - rise);
-	float high = rise / TEXELS * (piece ? PIECE_LOW : 1.0);
+	float high = rise / TEXELS;
 	vec3 p = foot + vec3(across.x, 0.0, across.y) * ((wide - ax - 0.5) / TEXELS);
 	p.y += high;
+	if (piece) {
+		// A piece lies on the ground: its picture as the camera shows it laid flat where it
+		// lies (a row up the picture a texel farther away, as the ground's rows are drawn), a
+		// little over the ground, casting its outline's shadow by it.
+		float r = q.y > 0.5 ? 0.0 : (q.y > -0.5 ? ay + 0.5 : c.w);
+		px = vec2(wide, r);
+		p = foot + vec3(right.x, 0.0, right.y) * ((wide - ax - 0.5) / TEXELS);
+		p.xz += view_up * ((ay + 0.5 - r) / TEXELS);
+		p.y += PIECE_HIGH;
+		high = 0.0;
+	}
 	VERTEX = shear(p);
-	if (IN_SHADOW_PASS) {
+	if (IN_SHADOW_PASS && !piece) {
 		vec3 to_light = normalize(INV_VIEW_MATRIX[2].xyz);
 		VERTEX -= to_light * (min(deep, SINK_SHARE * high) / max(to_light.y, 0.05));
 	}

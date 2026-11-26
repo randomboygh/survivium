@@ -20,7 +20,7 @@
   trees: {plants:red_maple: 0.55, plants:maple: 0.25, plants:linden: 0.1, plants:oak: 0.06, plants:rowan: 0.04}
   tree_chance: 0.12
   groves: 0.2
-  pieces: [0.07, 0.07, 0.06]
+  pieces: [0.035, 0.035, 0.03]
   bushes: {plants:currant: 0.3, plants:raspberry: 0.3, plants:shrub: 0.4}
   bush_sparsity: 140
   color: "#b8622c"

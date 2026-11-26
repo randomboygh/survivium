@@ -19,7 +19,7 @@
   stone_below: -0.55
   trees: {plants:pine: 0.8, plants:birch: 0.1, plants:deadwood: 0.05}
   tree_chance: 0.13
-  pieces: [0.07, 0.07, 0.06]
+  pieces: [0.035, 0.035, 0.03]
   bushes: {plants:blueberry: 0.6, plants:shrub: 0.4}
   bush_sparsity: 140
   tints: {water: "#58968c"}

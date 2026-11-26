@@ -15,7 +15,7 @@
   moisture: [0.7, 1.0]
   trees: {plants:oak: 0.5, plants:linden: 0.14, plants:maple: 0.14, plants:spruce: 0.1, plants:rowan: 0.04, plants:bird_cherry: 0.04, plants:deadwood: 0.04}
   tree_chance: 0.14
-  pieces: [0.07, 0.07, 0.06]
+  pieces: [0.035, 0.035, 0.03]
   bushes: {plants:raspberry: 0.45, plants:blueberry: 0.1, plants:shrub: 0.45}
   bush_sparsity: 120
   tints: {water: "#5a9a90"}
