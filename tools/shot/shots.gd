@@ -1027,7 +1027,7 @@ const SHOTS := {
 			["animals:deer", 2, 0.0, 1, Vector2(-2.5, 4.2)], ["animals:deer", 10, 0.0, 1, Vector2(0.0, 4.2)], ["animals:deer", 14, 0.0, 1, Vector2(2.5, 4.2)],
 			["animals:deer", 19, 0.0, 1, Vector2(5.0, 4.2)], ["animals:deer", 0, 0.0, 2, Vector2(-5.0, 6.4)], ["animals:deer", 2, 0.0, 2, Vector2(-2.5, 6.4)],
 			["animals:deer", 10, 0.0, 2, Vector2(0.0, 6.4)], ["animals:deer", 14, 0.0, 2, Vector2(2.5, 6.4)], ["animals:deer", 19, 0.0, 2, Vector2(5.0, 6.4)]]},
-	# Sprite shadows cast by the sun (sprite.gdshader lean_shadow): standing and dead animals and the player at
+	# Sprite shadows cast by the sun (sprite.gdshader side_spread): standing and dead animals and the player at
 	# sunrise, in the morning, at noon and in the evening, the camera turned to face the sun, and by a wall they climb.
 	"sprite-shadow-morning": {"time": 0.32, "season": 1, "weather": "clear", "clouds": 0.0, "place": "beach", "hide": ["chunks: grass"],
 		"shadow_zoo": [
@@ -1676,10 +1676,12 @@ const SHOTS := {
 ## A shot of a species drawn as pictures (places.pictured) named
 ## `pics-<tree>[-v<variant>][-t<its own turn>][-c<camera turn>][-h<time x 100>][-s<season>]
 ## [-f<autumn's leaf fall x 100>][-n<cells the player stands further north>][-a<eighths round from the
-## south the player comes to the thick trunk from, walking up to it>][-x (what stops a body drawn)][-o]`, on
+## south the player comes to the thick trunk from, walking up to it>][-x (what stops a body drawn)][-o]
+## [-d<1 trees that keep their dry leaves in winter, 0 trees that go bare>][-w<snow x 100>]`, on
 ## bare ground, the grass hidden, no interface: `pics-oak-t2-h30` is the oaks' side 2 by the morning sun,
 ## `pics-maple-s2-f60` the maples late in autumn, `pics-pine-n8` the pines with the thick one's
-## top in a phone's frame, `-o` the trees hidden to show their shadows alone. {} for another name.
+## top in a phone's frame, `pics-oak-s3-d1` oaks in winter with dry leaves under the snow, `-o` the
+## trees hidden to show their shadows alone. {} for another name.
 static func pictured(name: String) -> Dictionary:
 	if not name.begins_with("pics-"):
 		return {}
@@ -1711,6 +1713,69 @@ static func pictured(name: String) -> Dictionary:
 				shot.xray = true
 			"o":
 				shot.hide.append("chunks: trees")
+			"d":
+				shot.dry = n
+			"w":
+				shot.snow = n / 100.0
+	return shot
+
+
+## A shot of the stumps felled trees leave (TreeLooks `stumps`) named
+## `stumps-g<group 0..2: 7 species each>[-h<time x 100>][-c<camera turn>][-s<season>][-w<snow x 100>]
+## [-f<fell: the thick tree of each row standing, felled as the shot opens, shot after f ms>]`: each
+## species a row, its thick, middle and thin stump west to east, on bare ground, the grass hidden,
+## no interface. {} for another name.
+static func stumps(name: String) -> Dictionary:
+	if not name.begins_with("stumps-"):
+		return {}
+	var parts := name.substr(7).split("-")
+	var shot := {"time": 0.42, "season": 1, "stumps": 0, "weather": "clear", "clouds": 0.0, "rays": false,
+		"fog": false, "hud": false, "hide": ["chunks: grass"], "xray": false}
+	for p in parts:
+		var n := int(p.substr(1))
+		match p[0]:
+			"g":
+				shot.stumps = n
+			"c":
+				shot.turn = n
+			"h":
+				shot.time = n / 100.0
+			"s":
+				shot.season = n
+			"w":
+				shot.snow = n / 100.0
+			"f":
+				shot.fell_after = n
+	return shot
+
+
+## A shot of the pieces of wood lying in the woods (TreeLooks `pieces`) named
+## `pieces-g<group 0..2: 7 species each>-k<kind: 0 log, 1 fallen, 2 broken>[-t<own turn 0..7>]
+## [-h<time x 100>][-c<camera turn>][-s<season>][-w<snow x 100>]`: each species a row of
+## that piece, on bare ground, the grass hidden, no interface. {} for another name.
+static func pieces(name: String) -> Dictionary:
+	if not name.begins_with("pieces-"):
+		return {}
+	var parts := name.substr(7).split("-")
+	var shot := {"time": 0.42, "season": 1, "pieces": 0, "piece_kind": 0, "piece_turn": 0, "weather": "clear",
+		"clouds": 0.0, "rays": false, "fog": false, "hud": false, "hide": ["chunks: grass"], "xray": false}
+	for p in parts:
+		var n := int(p.substr(1))
+		match p[0]:
+			"g":
+				shot.pieces = n
+			"k":
+				shot.piece_kind = n
+			"t":
+				shot.piece_turn = n
+			"c":
+				shot.turn = n
+			"h":
+				shot.time = n / 100.0
+			"s":
+				shot.season = n
+			"w":
+				shot.snow = n / 100.0
 	return shot
 
 

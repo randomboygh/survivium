@@ -5,6 +5,7 @@
   shape: umbrella
   leaf: soft
   leaves: broad
+  blossom: "#e8dc9c"
   trunk: [5, 6]
   girth: [6, 9]
   taper: 0.3

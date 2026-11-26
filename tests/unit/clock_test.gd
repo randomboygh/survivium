@@ -199,9 +199,7 @@ func _test_weather() -> void:
 	clock.next_season()
 	_check(clock.season == Clock.SPRING and clock.leaf_fall == 0.0, "and spring grows them back")
 	clock.season = Clock.AUTUMN
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 3
-	Growth.place(w, 24, 2, 24, Trees.first(Trees.BROAD), rng)
+	Growth.place(w, 24, 2, 24, Trees.first(Trees.BROAD))
 	for key: Vector2i in w.chunks:
 		w.chunks[key].final = true
 	var actions := WorldActions.new(w, clock, Rules.new())
