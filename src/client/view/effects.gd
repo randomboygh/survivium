@@ -729,8 +729,9 @@ func _blow(p: CPUParticles3D, dir: Vector2, side: float, down: float) -> void:
 	p.direction = Vector3(dir.x * side, down, dir.y * side)
 
 
-## Draws `flame` (see torch_flame) behind the picture of the body that holds it (`away`,
-## its back to the camera, the light held ahead of it), so the body hides its sparks.
+## Draws `flame` (see torch_flame) behind the picture of the body that holds it while
+## `away` (the hand holds it behind the body: seen from behind, or the far hand seen
+## from the side), so the body hides its sparks.
 func flame_behind(flame: CPUParticles3D, away: bool) -> void:
 	var mat := (flame.mesh as QuadMesh).material as ShaderMaterial
 	mat.set_shader_parameter("behind", FLAME_BEHIND if away else 0.0)
@@ -742,13 +743,13 @@ const FLAME_BEHIND := 0.3
 
 
 ## The torches' flames burn at world points `at` (where the sprite draws their
-## brightest pixels, see Player.flames_at) while `lit`; `away` while the player's back is
-## to the camera.
-func hold_flames(at: Array, lit: bool, away := false) -> void:
+## brightest pixels, see Player.flames_at) while `lit`, those of `behind` behind the
+## body (Player.flames_behind).
+func hold_flames(at: Array, lit: bool, behind: Array = []) -> void:
 	for i in torch_flames.size():
 		var flame := torch_flames[i]
 		var on: bool = lit and i < at.size() and at[i].is_finite()
-		flame_behind(flame, away)
+		flame_behind(flame, i < behind.size() and behind[i])
 		if on:
 			flame.position = at[i]
 		if flame.emitting != on:

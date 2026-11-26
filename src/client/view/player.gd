@@ -175,6 +175,8 @@ const ROD_HIGH := 1.05
 ## one: the brightest pixel of what the hand holds in the frame shown
 ## (SpriteSheet.spots); empty when none shows.
 var flames_at: Array = []
+## Whether each of flames_at is held behind the body, so the body hides it.
+var flames_behind: Array = []
 ## The vessel the body sits in (Character.riding; others' from PEOPLE), "" none: afloat it
 ## sits still in it, drawn whole over the water (the vessel is the Boats view's).
 var riding := ""
@@ -550,15 +552,18 @@ func _find_flame() -> void:
 	if spots == null:
 		if sheet.spots.is_empty():
 			flames_at = []
+			flames_behind = []
 		return
 	var size := sheet.frame_size
 	var px := 1.0 / PixelView.PIXELS_PER_UNIT
 	flames_at = []
-	for spot: Vector2i in spots:
+	flames_behind = []
+	for spot: Vector3i in spots:
 		var x: int = size.x - 1 - spot.x if f.z == 1 else spot.x
 		var across: float = (x + 0.5 - floorf(size.x / 2.0)) * px
 		var up: float = (size.y - spot.y - 0.5) * px / PixelView.slope
 		flames_at.append(sprite.global_position + Vector3(PixelView.right.x * across, up, PixelView.right.y * across))
+		flames_behind.append(spot.z == 1)
 
 
 ## The way the body faces on the screen: `facing` is a way of the world, the camera
@@ -573,12 +578,6 @@ func drawn_facing() -> String:
 		return way
 	var turn := SpriteSheet.COMPASS.find(way) / 8.0 * TAU
 	return SpriteSheet.direction_of(PixelView.screen_dir(Vector2(-sin(turn), cos(turn))))
-
-
-## True while the picture shows the back (the camera sees it from behind), where what is
-## held ahead of the body is behind it.
-func faces_away() -> bool:
-	return drawn_facing().begins_with("n")
 
 
 ## The level of the cell the feet are in.

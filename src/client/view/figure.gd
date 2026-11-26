@@ -16,8 +16,9 @@ extends RefCounted
 ## paths of the pictures of clothes worn (see dressed). `held` is {"left": thing, "right": thing, "active":
 ## "left" or "right"}, a thing being {} for an empty hand, {"sprite": the path of its
 ## sheet, "anim": the work it is used with} or {"icon": the name it is kept by,
-## "picture": its Image (null: a lump), "anim"}, and `"trail": true` for one that leaves
-## a trail as its work swings it (an item's `trail`).
+## "picture": its Image (null: a lump), "anim"}, `"trail": true` for one that leaves
+## a trail as its work swings it (an item's `trail`) and `"light": true` for one that
+## gives light (its flame burns at its brightest pixel, SpriteSheet.spots).
 
 const SpriteSheet := preload("res://src/client/view/sprite_sheet.gd")
 const Yaml := preload("res://src/shared/content/yaml.gd")
@@ -611,8 +612,8 @@ func _put_row(row: int, c0: int, c1: int) -> void:
 			strip.blit_rect(part, Rect2i(Vector2i.ZERO, size), r.position)
 	for col: int in _row_spots:
 		var spots: Array = []
-		for spot: Vector2i in _row_spots[col]:
-			spots.append(Vector2i(size.x - 1 - spot.x, spot.y) if swap else spot)
+		for spot: Vector3i in _row_spots[col]:
+			spots.append(Vector3i(size.x - 1 - spot.x, spot.y, spot.z) if swap else spot)
 		target.spots[Vector2i(col, row)] = spots
 	for col: int in _row_tips:
 		var tip: Vector2i = _row_tips[col]
@@ -694,10 +695,12 @@ func _put_things(strip: Image, src: int, front: bool, c0: int, c1: int) -> void:
 			var working: bool = right and work[0] != "" and work[0] == thing.get("anim", "")
 			var pic: Image
 			var hold: Vector2i
+			var turn := 0
 			var pic_col := 0
 			var trow_of := 0
 			if _turns.has(hand):
-				pic = _turns[hand][maxi(0, a.angle) if working else 0]
+				turn = maxi(0, a.angle) if working else 0
+				pic = _turns[hand][turn]
 				hold = pic.get_size() / 2
 				if not right:
 					pic = pic.duplicate()
@@ -728,13 +731,15 @@ func _put_things(strip: Image, src: int, front: bool, c0: int, c1: int) -> void:
 				var tip: Vector2i = at + _far[key] - frame.position + Vector2i.ONE
 				if Rect2i(Vector2i.ZERO, size).has_point(tip):
 					_row_tips[col] = tip
-			# A light burns at the brightest pixel of what gives it.
-			if thing.get("light", false) and not _turns.has(hand):
-				var key := "%s|%d|%d|%s" % [thing.sprite, pic_col, trow_of, right]
+			# A light burns at the brightest pixel of what gives it (a sheet's frame or
+			# an icon held), behind the body where the hand holds it behind.
+			if thing.get("light", false):
+				var key := "icon %s|%d|%s" % [thing.get("icon", ""), turn, right] if _turns.has(hand) \
+					else "%s|%d|%d|%s" % [thing.get("sprite", ""), pic_col, trow_of, right]
 				if not _bright.has(key):
 					_bright[key] = _brightest(pic)
 				var spot: Vector2i = at + _bright[key] - frame.position + Vector2i.ONE
 				if Rect2i(Vector2i.ZERO, size).has_point(spot):
 					if not _row_spots.has(col):
 						_row_spots[col] = []
-					_row_spots[col].append(spot)
+					_row_spots[col].append(Vector3i(spot.x, spot.y, 0 if front else 1))

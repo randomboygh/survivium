@@ -425,7 +425,7 @@ func _light_hands(delta: float) -> void:
 		for i in one.flames.size():
 			var flame: CPUParticles3D = one.flames[i]
 			var burns: bool = on and i < f.flames_at.size() and f.flames_at[i].is_finite()
-			game.effects.flame_behind(flame, f.faces_away())
+			game.effects.flame_behind(flame, i < f.flames_behind.size() and f.flames_behind[i])
 			if burns:
 				flame.position = f.flames_at[i]
 			if flame.emitting != burns:
