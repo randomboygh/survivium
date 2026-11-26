@@ -285,6 +285,13 @@ lies around. The rules are shared (the server checks them), input and hints are 
   same frame, 40 px cells, arrows and finger scrolling (`_input`), the width of the hotbar (up to 10 cells,
   in portrait up to 6: its 4 + 2 hands); the clock under its right edge (`right_edge`). There are no filters
   yet: on entering the mode `filter` = «all».
+  What the blueprint needs (2026-11-26, the building UX's PR 5): `BuildMode.need` counts the ghost cells (one
+  block of their item each, a slope too, digging none) and ghost things (one each) within `Plans.PLAN_REACH`
+  of the player (`count_need`, again when the blueprint changes or the player walks `NEED_STEP` cells, at most
+  every `CHECK_TIME`); the palette puts those items first, the most needed first, also the ones the bag has none
+  of (dimmed, ×0; a tap says they are not in the bag), with the need in the cell's top left (`HotbarSlot.tag`,
+  `tag_color`: cold blue, red when `short_of`: fewer in the bag; blocks are never short when building is free)
+  and the need and the bag's count in the tip.
 - `src/client/input/cursor.gd` — the frame around the cells over which work will happen; `show_boxes` — whole
   cells as see-through bodies over everything (light: white, red), merged with no faces between their cells and a
   light rim one pixel wide along their edges (`PlanGhost.bodies`, `plan_through.gdshader`), above the blueprint's
@@ -297,7 +304,9 @@ lies around. The rules are shared (the server checks them), input and hints are 
   `plan_through.gdshader`) and a fence a plain blue body (`plan_ghost.gd`, `plan_ghost.gdshader`); its ghost things
   as their models in the blocks' look (`plan_things.gd`, `game.plan_view.things`: `Props.model_mesh`,
   `PlanBlocks.ghost_material`; a door or a window to be cut into a built wall hangs before its face,
-  `BuildMode.out_of_wall`; `hold` / `settle` while the build mode carries one); the farm
+  `BuildMode.out_of_wall`; `hold` / `settle` while the build mode carries one); the ghosts of what the bag is short
+  of for the blueprint near (`BuildMode.short_blocks`, `short_of`) tinted `PlanBlocks.SHORT_TINT`, a soft red milder
+  than the red of digging (the shader's `ghost_short` bits by material; things get a second material); the farm
   marking — a square on the cell's top face in the colour of the work and a sign inside (furrows, a sprout, a drop,
   a cross). The blueprint is seen only in build mode, the marking only in farm mode.
 

@@ -321,6 +321,7 @@
 "[undo_ctrl_z]": "Undo (Ctrl+Z)"
 "[redo_ctrl_y]": "Redo (Ctrl+Y)"
 "[come_closer_to_undo_that]": "Come closer to undo that"
+"[the_blueprint_near_needs_the_bag_has]": "Blueprint near needs %s, the bag has %s"
 "[leave_build_mode_b]": "Leave build mode (B)"
 "[build_the_whole_blueprint_nearby]": "Build the whole blueprint nearby (F)"
 "[stop_f]": "Stop (F)"

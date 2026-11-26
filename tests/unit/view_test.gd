@@ -23,6 +23,8 @@ const CreaturesView := preload("res://src/client/game/creatures.gd")
 const RemoteWildlife := preload("res://src/client/net/remote_wildlife.gd")
 const PlanGhost := preload("res://src/client/view/plan_ghost.gd")
 const CursorScript := preload("res://src/client/input/cursor.gd")
+const BuildModeScript := preload("res://src/client/input/build_mode.gd")
+const PlansScript := preload("res://src/shared/game/plans.gd")
 
 
 ## Ground all of one material (or all sea), for AirEffects.hot_ground.
@@ -67,6 +69,7 @@ class FakeGame:
 
 func run() -> void:
 	_test_plan_bodies()
+	_test_blueprint_need()
 	_test_pixel_view()
 	_test_sprite_sheet()
 	_test_eat()
@@ -2236,6 +2239,22 @@ func _test_deer_states() -> void:
 
 ## The build mode's strokes (PlanGhost.bodies): a wall of five cells is one body, no
 ## faces between its cells and a rim only along its outer edges.
+## What the blueprint near needs (BuildMode.count_need, the palette's need): a block for each
+## ghost cell within PLAN_REACH, none for digging out or a farm mark, one for each ghost thing.
+func _test_blueprint_need() -> void:
+	var plans = PlansScript.new()
+	for x in 3:
+		plans.cells[Vector3i(x, 1, 0)] = "materials:planks"
+	plans.cells[Vector3i(0, 1, 1)] = "materials:cut_stone"
+	plans.cells[Vector3i(1, 0, 1)] = PlansScript.CUT
+	plans.cells[Vector3i(2, 0, 1)] = PlansScript.TILL
+	plans.cells[Vector3i(PlansScript.PLAN_REACH + 5, 1, 0)] = "materials:planks"
+	plans.things.append({"item": "tools:table", "cell": Vector3i(1, 1, 2), "turn": 0})
+	var need: Dictionary = BuildModeScript.count_need(plans, Vector3(0.5, 1.0, 0.5))
+	_check(need == {"materials:planks": 3, "materials:cut_stone": 1, "tools:table": 1},
+		"the blueprint near needs a block a ghost cell and a thing a ghost thing: %s" % need)
+
+
 func _test_plan_bodies() -> void:
 	var wall: Array = []
 	for x in 5:

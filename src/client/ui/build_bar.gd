@@ -333,6 +333,7 @@ func _show_palette() -> void:
 		_slots.append(s)
 	var inv = game.character.inventory
 	var held: String = b.chosen()
+	var need: Dictionary = b.need() if b.has_method("need") else {}
 	for i in _slots.size():
 		var s = _slots[i]
 		s.visible = i < shown
@@ -342,9 +343,17 @@ func _show_palette() -> void:
 		var id: String = _items[at] if at < _items.size() else ""
 		s.texture = ItemIcons.of_item(id) if id != "" else null
 		var count: int = inv.count(id) if id != "" else 0
-		s.number = "×%d" % count if count > 1 else ""
+		var needed: int = need.get(id, 0)
+		# What the bag has bottom right, what the blueprint near needs top left: cold as
+		# the ghosts, red when the bag has less (the user's picks, 2026-11-26).
+		s.number = "×%d" % count if count > 1 or (needed > 0 and count == 0) else ""
+		s.tag = str(needed) if needed > 0 else ""
+		s.tag_color = UiStyle.DANGER if needed > 0 and b.short_of(id) else UiStyle.COLD
+		s.inactive = id != "" and count == 0
 		s.selected = id != "" and id == held
 		s.tooltip_text = Lang.t(Items.title(id)) if id != "" else ""
+		if needed > 0:
+			s.tooltip_text += "\n" + Lang.f("[the_blueprint_near_needs_the_bag_has]", [needed, count])
 	if _items.is_empty():
 		_slots[0].tooltip_text = _nothing()
 
