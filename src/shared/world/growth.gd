@@ -199,6 +199,31 @@ static func standing_look(w, col: Vector2i, foot: Array = []) -> int:
 	return -1
 
 
+## The stump a felled pictured tree left in column `col` (TreeLooks `stumps`), -1 for none:
+## a species drawn as pictures with stumps, one cell of log on its foot with nothing over it
+## (Felling leaves that much; a taller stump, cut before stumps were drawn, stays in cells),
+## the foot's level in `foot`. Its size is the one the column's tree came to (look_index at
+## the full scale: a stunted tree's stump may come out a size larger).
+static func stump_look(w, col: Vector2i, foot: Array = []) -> int:
+	var species: int = w.trees.get(col, -1)
+	if species < 0 or species >= Trees.SPECIES.size():
+		return -1
+	var p: Dictionary = Trees.SPECIES[species].pictures
+	if p.is_empty() or p.get("stumps", []).is_empty():
+		return -1
+	var bits: int = w.log_col(col.x, col.y)
+	if bits == 0 or bits & (bits - 1) != 0:
+		return -1
+	var y0: int = w.level_of(bits)
+	if young_at(w, col.x, y0, col.y):
+		return -1
+	if foot.size() == 0:
+		foot.append(y0)
+	else:
+		foot[0] = y0
+	return mini(look_index(Trees.SPECIES[species], col, 1.0) / TreeLooks.VARIANTS, p.stumps.size() - 1)
+
+
 ## Of the trees ([column, species], WorldCells.pack_chunk) of a chunk saved at trees' looks
 ## `looks` (WorldCells.TREE_LOOKS) those of species drawn as pictures since later looks
 ## (TreeLooks `since`): they grew before their species was drawn so (see regrow).

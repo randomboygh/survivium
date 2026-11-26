@@ -32,6 +32,11 @@
 // leaves, so nothing shows under them); alpha 128, + 1 on the soft outline (the leaf's own
 // step drawn half way to the ramp's darkest). Alpha 3: a palm's trunk's soft outline (its
 // spikes and nubs too), the bark's steps as wood's, drawn half way to the darkest.
+// A stump's frames (its instance's colour alpha TreeSprites.STUMP, STUMP_SNOW: a row of the
+// 8 turns of summer, then the 8 of winter; export_pr5.py) hold its bark as wood (alpha 2,
+// 3 a palm's soft outline) and, 3 bits a sun in red, green, blue (sun k in bits 3k), the
+// step of its cut wood (alpha 4: the ramp row's WOOD_AT steps, 6 the resin), of the snow
+// on the cut (5: SNOW_STEPS) and of the snow's soft outline (6: half way to the darkest).
 // bare_frames: the tree without its crown in the same places (grey and alpha the bark's
 // steps as wood's red and green, both 1 where no wood), shown where autumn and winter have
 // taken its leaves.
@@ -79,6 +84,11 @@ const vec4 FRONDS_BANDS = vec4(0.8, 0.5, 0.2, -0.15);
 const float FRONDS_PALE = 0.92;
 const float FRONDS_SIDE = 0.12;
 const float TONE = 0.8;
+// Where a ramp row's stump wood lies (TreeSprites.WOOD_AT); a stump shows its winter look
+// (snow on its cut) from this much snow cover on (snow_amount: the trees' snow comes from
+// SNOW_FIRST, all of it at SNOW_FULL).
+const int WOOD_AT = 28;
+const float STUMP_WINTER = 0.3;
 // The 8 suns the bark was drawn under, in the drawing's frame (to the sun: x east, y up,
 // z south): Sky's day path at t = 0.22 + k * 0.08.
 const vec3 SUNS[8] = vec3[](
@@ -95,8 +105,19 @@ uniform int shake_count = 0;
 const float SHAKE_RISE = 4.0;
 const float SHAKE_ROOM = 4.0;
 
+// Trees falling, felled (TreeHits.fall: up to 4): the foot of the trunk (xyz) and how far
+// the tree has turned over (w, radians), the way it falls (x, z) and how far it has faded
+// out (w, 0..1, once it lies). It turns over about the stump's top, FALL_CUT over the
+// foot; the rows under that are the stump's, which stays (TreeSprites).
+uniform vec4 falls[4];
+uniform vec4 fall_ways[4];
+uniform int fall_count = 0;
+const float FALL_CUT = 0.5;
+
 varying vec2 px;
 varying flat vec4 cell;
+// How far a falling tree has faded out, -1 for a tree standing.
+varying flat float fading;
 varying flat vec2 info;
 // How far this tree's top leans now (pixels), and its foot's row in the picture.
 varying flat vec2 shake;
@@ -124,15 +145,24 @@ void vertex() {
 	vec2 up = rest_view.xy;
 	float step_at = round(atan(-up.x, -up.y) / (PI / 4.0));
 	float side = mod(step_at + own + 16.0, 8.0);
-	cell = vec4(c.x + side * c.z, c.y, c.z, c.w);
+	// A stump of a snowy place shows its winter row in the snow.
+	float winter = COLOR.a < -1.5 && snow_amount >= STUMP_WINTER ? 8.0 : 0.0;
+	cell = vec4(c.x + (side + winter) * c.z, c.y, c.z, c.w);
 	info = vec2(row, COLOR.a);
 	float lean = 0.0;
-	for (int i = 0; i < shake_count; i++) {
+	for (int i = 0; i < shake_count && COLOR.a > -0.5; i++) {
 		if (length(shakes[i].xz - foot.xz) < 0.1) {
 			lean += shakes[i].w;
 		}
 	}
 	shake = vec2(lean, ay + 0.5);
+	int fall = -1;
+	for (int i = 0; i < fall_count && COLOR.a > -0.5; i++) {
+		if (length(falls[i].xyz - foot) < 0.1) {
+			fall = i;
+		}
+	}
+	fading = fall >= 0 ? fall_ways[fall].w : -1.0;
 	float room = lean != 0.0 ? SHAKE_ROOM : 0.0;
 	// The foot on the middle of a pixel, so the picture's texels are the screen's.
 	vec2 right = vec2(-view_up.y, view_up.x);
@@ -145,9 +175,21 @@ void vertex() {
 	float rise = q.y >= 0.0 ? q.y * (ay + 0.5) : q.y * (c.w - ay - 0.5);
 	px = vec2(wide, ay + 0.5 - rise);
 	vec3 p = foot + vec3(right.x, 0.0, right.y) * (across / TEXELS);
-	if (q.y > 0.0) {
-		// Upright, kept its height in pixels at any tilt.
+	if (q.y > 0.0 || fall >= 0 && q.y > -0.5) {
+		// Upright, kept its height in pixels at any tilt (a falling tree's foot row too,
+		// turned with it).
 		p.y += rise / TEXELS;
+		if (fall >= 0) {
+			// Turned over about the stump's top toward the way it falls (Rodrigues' turn
+			// about the axis up x way, which takes up to the way).
+			vec3 way = normalize(vec3(fall_ways[fall].x, 0.0, fall_ways[fall].y));
+			vec3 axis = cross(vec3(0.0, 1.0, 0.0), way);
+			vec3 pivot = foot + vec3(0.0, FALL_CUT, 0.0);
+			vec3 v = p - pivot;
+			float a = falls[fall].w;
+			v = v * cos(a) + cross(axis, v) * sin(a) + axis * dot(axis, v) * (1.0 - cos(a));
+			p = pivot + v;
+		}
 		world_pos = p;
 		VERTEX = shear(stand_tall(p, foot));
 	} else {
@@ -407,6 +449,33 @@ vec3 wood_colour(float k, vec4 g, vec4 open, vec3 L, out vec3 shade) {
 	return mix(mix(ramp(k, 7.0 + float(s0)), ramp(k, 7.0 + float(s1)), f), shade, back);
 }
 
+// A stump's step `s` of its frames' code `a` (4 cut wood, 5 snow, 6 the snow's outline) as
+// a colour, of ramp row `k`.
+vec3 stump_step(float k, int a, int s) {
+	if (a == 4) {
+		return ramp(k, float(WOOD_AT + s));
+	}
+	vec3 c = SNOW_STEPS[min(s, 5)];
+	return a == 6 ? mix(c, SNOW_STEPS[0], 0.5) : c;
+}
+
+// A stump's colour of texel `g` (code `a`: 4..6) under the light L, as wood_colour's: the
+// two drawn suns nearest it crossfaded, a sun behind it its mirror image in front, the cut
+// then in its shade. `shade`: a step darker (the resin stays as it is).
+vec3 stump_colour(float k, vec4 g, int a, vec3 L, out vec3 shade) {
+	float back = smoothstep(SIDE_BLEND, -SIDE_BLEND, L.z);
+	L.z = abs(L.z);
+	int bits = int(round(g.r * 255.0)) | (int(round(g.g * 255.0)) << 8) | (int(round(g.b * 255.0)) << 16);
+	float f;
+	ivec2 near = nearest_suns(L, f);
+	int s0 = (bits >> (3 * near.x)) & 7;
+	int s1 = (bits >> (3 * near.y)) & 7;
+	int d0 = s0 == 6 && a == 4 ? 6 : max(s0 - 1, 0);
+	int d1 = s1 == 6 && a == 4 ? 6 : max(s1 - 1, 0);
+	shade = mix(stump_step(k, a, d0), stump_step(k, a, d1), f);
+	return mix(mix(stump_step(k, a, s0), stump_step(k, a, s1), f), shade, back);
+}
+
 // What the sun's light must be for the albedo `albedo` (linear, as light() has it) to show
 // as `shade` (as ALBEDO is written) would under the light `lit`: the base pass has drawn
 // albedo * ambient_light already. Compatibility adds the sun's pass to it in sRGB (see
@@ -438,10 +507,17 @@ void fragment() {
 	if (at.x < 0.0 || at.y < 0.0 || at.x >= cell.z || at.y >= cell.w) {
 		discard;
 	}
+	// A falling tree leaves its stump's rows behind, and fades out once it lies.
+	if (fading >= 0.0 && at.y > shake.y - FALL_CUT * TEXELS) {
+		discard;
+	}
 	ivec2 t = ivec2(cell.xy + floor(at));
 	vec4 g = texelFetch(frames, t, 0);
 	int a = frame_code(g);
 	vec2 texel = light_texel(light_xz);
+	if (fading > 0.0 && bayer4(texel) < fading) {
+		discard;
+	}
 	if (cut_hides(world_pos, texel)) {
 		discard;
 	}
@@ -472,8 +548,26 @@ void fragment() {
 	vec3 shade = vec3(-1.0);
 	// Snow in winter on what the tree shows then: over all else where it lies; a leaf under
 	// its lower edge a step darker.
-	int snow = snow_on(t, int(cell.w - floor(at.y)) - 1, int(k), info.y, amount);
-	if (snow >= 16384) {
+	int snow = info.y < -0.5 ? 0 : snow_on(t, int(cell.w - floor(at.y)) - 1, int(k), info.y, amount);
+	if (info.y < -0.5) {
+		// A stump (TreeSprites.STUMP): its bark as the trees' (no crown over it), its cut, the
+		// snow on it.
+		if (a == 0) {
+			discard;
+		}
+		if (bayer4(texel) < trunk_through(texel, world_pos)) {
+			discard;
+		}
+		if (a == 2 || a == 3) {
+			col = wood_colour(k, g, g, L, shade);
+			if (a == 3) {
+				col = mix(col, ramp(k, 7.0), 0.5);
+				shade = mix(shade, ramp(k, 7.0), 0.5);
+			}
+		} else {
+			col = stump_colour(k, g, a, L, shade);
+		}
+	} else if (snow >= 16384) {
 		if (bayer4(texel) < see_through(texel, world_pos)) {
 			discard;
 		}
