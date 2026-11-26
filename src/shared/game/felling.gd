@@ -6,6 +6,7 @@ const Mat := preload("res://src/shared/content/materials.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
+const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 
 
 ## Fells the tree whose trunk holds the log cell `cut`: that log and the trunk above it
@@ -25,6 +26,8 @@ static func fell(w, cut: Vector3i, away: Vector2, young := false, q := Items.NOR
 		var none: Array[Vector3i] = []
 		return none
 	var s: Dictionary = Trees.SPECIES[w.trees[at]]
+	if Growth.piece_look(w, at) >= 0:
+		return cut_piece(w, cut, s, q)
 	if not young and keeps_stump(s):
 		var y0 := cut.y
 		while w.get_cell(cut.x, y0 - 1, cut.z) == Mat.LOG:
@@ -63,6 +66,38 @@ static func uproot(w, cell: Vector3i, s: Dictionary, q := Items.NORMAL_QUALITY) 
 		rng.seed = hash(cell)
 		_drop(w, s.log, Vector2(cell.x + 0.5, cell.z + 0.5) + Vector2.from_angle(rng.randf() * TAU) * 0.6,
 			rng.randf() * TAU, q)
+	return gone
+
+
+## Chops up the piece of wood lying in the column of `cell` (its log, Growth.piece_look):
+## the cell goes, and the logs and twigs its kind gives (TreeLooks `pieces`) lie along the
+## way it lay. Returns the cell made air.
+static func cut_piece(w, cell: Vector3i, s: Dictionary, q := Items.NORMAL_QUALITY) -> Array[Vector3i]:
+	var at := Vector2i(cell.x, cell.z)
+	var kind: int = w.tree_pieces[at]
+	var d: Dictionary = s.pictures.pieces[TreeLooks.PIECES[kind]]
+	var gone: Array[Vector3i] = [cell]
+	w.set_cell(cell.x, cell.y, cell.z, Mat.AIR)
+	w.tree_pieces.erase(at)
+	w.note_edit(cell.x, cell.z)
+	w.refresh_shapes()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(cell)
+	var dir := Growth.piece_dir(at)
+	var base := Vector2(cell.x + 0.5, cell.z + 0.5)
+	var along := atan2(dir.y, dir.x)
+	# Lying pieces spread their logs along their length; a broken trunk drops them by it.
+	var length: float = 0.0 if kind == Growth.PIECE_BROKEN else float(d.reach) * 0.6
+	var logs: int = d.logs if s.log != "" else 0
+	for i in logs:
+		var f := (i + 0.5) / logs
+		var p := base + dir * (length * f) + Vector2(-dir.y, dir.x) * rng.randf_range(-0.5, 0.5)
+		if kind == Growth.PIECE_BROKEN:
+			p = base + Vector2.from_angle(rng.randf() * TAU) * 0.7
+		_drop(w, s.log, p, along + rng.randf_range(-0.3, 0.3), q)
+	for i in (d.twigs if s.twig != "" else 0):
+		var p := base + dir * (rng.randf() * float(d.reach)) + Vector2(-dir.y, dir.x) * rng.randf_range(-1.5, 1.5)
+		_drop(w, s.twig, p, rng.randf() * TAU, q)
 	return gone
 
 

@@ -37,6 +37,9 @@
 // 3 a palm's soft outline) and, 3 bits a sun in red, green, blue (sun k in bits 3k), the
 // step of its cut wood (alpha 4: the ramp row's WOOD_AT steps, 6 the resin), of the snow
 // on the cut (5: SNOW_STEPS) and of the snow's soft outline (6: half way to the darkest).
+// The pieces of wood lying in the woods are drawn as stumps (alpha TreeSprites.PIECE), each
+// view of its own size (its table of views, see the vertex), a sprout's leaves alpha 7 (the
+// step of the leaves' ramp; export_pieces.py).
 // bare_frames: the tree without its crown in the same places (grey and alpha the bark's
 // steps as wood's red and green, both 1 where no wood), shown where autumn and winter have
 // taken its leaves.
@@ -145,9 +148,21 @@ void vertex() {
 	vec2 up = rest_view.xy;
 	float step_at = round(atan(-up.x, -up.y) / (PI / 4.0));
 	float side = mod(step_at + own + 16.0, 8.0);
-	// A stump of a snowy place shows its winter row in the snow.
+	// A stump of a snowy place shows its winter row in the snow (so does a piece of wood).
 	float winter = COLOR.a < -1.5 && snow_amount >= STUMP_WINTER ? 8.0 : 0.0;
-	cell = vec4(c.x + (side + winter) * c.z, c.y, c.z, c.w);
+	if (COLOR.a < -2.5) {
+		// A piece of wood lying in the woods (TreeSprites.PIECE): each view its own cell
+		// and anchor, from its table of views.
+		ivec2 tb = ivec2(int(round(c.x)), int(round(c.y))) + ivec2(2 * int(side + winter), 0);
+		ivec4 p0 = ivec4(round(texelFetch(frames, tb, 0) * 255.0));
+		ivec4 p1 = ivec4(round(texelFetch(frames, tb + ivec2(1, 0), 0) * 255.0));
+		c = vec4(float(p0.r | (p0.g << 8)), float(p0.b | (p0.a << 8)), float(p1.r), float(p1.g));
+		ax = float(p1.b);
+		ay = float(p1.a);
+		cell = c;
+	} else {
+		cell = vec4(c.x + (side + winter) * c.z, c.y, c.z, c.w);
+	}
 	info = vec2(row, COLOR.a);
 	float lean = 0.0;
 	for (int i = 0; i < shake_count && COLOR.a > -0.5; i++) {
@@ -449,9 +464,12 @@ vec3 wood_colour(float k, vec4 g, vec4 open, vec3 L, out vec3 shade) {
 	return mix(mix(ramp(k, 7.0 + float(s0)), ramp(k, 7.0 + float(s1)), f), shade, back);
 }
 
-// A stump's step `s` of its frames' code `a` (4 cut wood, 5 snow, 6 the snow's outline) as
-// a colour, of ramp row `k`.
+// A stump's step `s` of its frames' code `a` (4 cut wood, 5 snow, 6 the snow's outline; 7 a
+// leaf of a broken trunk's sprout: the leaves' steps) as a colour, of ramp row `k`.
 vec3 stump_step(float k, int a, int s) {
+	if (a == 7) {
+		return ramp(k, float(min(s, 6)));
+	}
 	if (a == 4) {
 		return ramp(k, float(WOOD_AT + s));
 	}
@@ -566,6 +584,11 @@ void fragment() {
 			}
 		} else {
 			col = stump_colour(k, g, a, L, shade);
+		}
+		if (info.y < -2.5) {
+			// A piece of wood lying in the woods takes no sun's shadow: its own, cast from its
+			// picture laid over the ground (tree_shadow.gdshader), would fall on it.
+			shade = vec3(-1.0);
 		}
 	} else if (snow >= 16384) {
 		if (bayer4(texel) < see_through(texel, world_pos)) {

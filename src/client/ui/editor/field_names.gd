@@ -228,6 +228,7 @@ const NAMES := {
 	"biomes.trees": ["[field.biomes.trees]", "[field.biomes.trees.about]"],
 	"biomes.tree_chance": ["[field.biomes.tree_chance]", "[field.biomes.tree_chance.about]"],
 	"biomes.groves": ["[field.biomes.groves]", "[field.biomes.groves.about]"],
+	"biomes.pieces": ["[field.biomes.pieces]", "[field.biomes.pieces.about]"],
 	"biomes.trees_on": ["[field.biomes.trees_on]", "[field.biomes.trees_on.about]"],
 	"biomes.bushes": ["[field.biomes.bushes]", "[field.biomes.bushes.about]"],
 	"biomes.bush_sparsity": ["[field.biomes.bush_sparsity]", "[field.biomes.bush_sparsity.about]"],

@@ -1710,6 +1710,36 @@ static func stumps(name: String) -> Dictionary:
 	return shot
 
 
+## A shot of the pieces of wood lying in the woods (TreeLooks `pieces`) named
+## `pieces-g<group 0..2: 7 species each>-k<kind: 0 log, 1 fallen, 2 broken>[-t<own turn 0..7>]
+## [-h<time x 100>][-c<camera turn>][-s<season>][-w<snow x 100>]`: each species a row of
+## that piece, on bare ground, the grass hidden, no interface. {} for another name.
+static func pieces(name: String) -> Dictionary:
+	if not name.begins_with("pieces-"):
+		return {}
+	var parts := name.substr(7).split("-")
+	var shot := {"time": 0.42, "season": 1, "pieces": 0, "piece_kind": 0, "piece_turn": 0, "weather": "clear",
+		"clouds": 0.0, "rays": false, "fog": false, "hud": false, "hide": ["chunks: grass"], "xray": false}
+	for p in parts:
+		var n := int(p.substr(1))
+		match p[0]:
+			"g":
+				shot.pieces = n
+			"k":
+				shot.piece_kind = n
+			"t":
+				shot.piece_turn = n
+			"c":
+				shot.turn = n
+			"h":
+				shot.time = n / 100.0
+			"s":
+				shot.season = n
+			"w":
+				shot.snow = n / 100.0
+	return shot
+
+
 ## A shot in a wood (the heart of a biome, places.place) named
 ## `wood-<biome>[-h<time x 100>][-c<camera turn>][-s<season>][-f<autumn's leaf fall x 100>]`,
 ## under a clear sky, the grass hidden, no interface: `wood-pine_wood-h30` a pine wood by the

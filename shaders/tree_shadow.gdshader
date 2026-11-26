@@ -28,6 +28,9 @@ uniform ivec2 ramps_at;
 // point's height, so it stays over the ground.
 const float SINK = 0.4;
 const float SINK_SHARE = 0.75;
+// A piece of wood lying in the woods casts its shadow from its picture laid flat this high
+// over the ground (world units).
+const float PIECE_HIGH = 0.2;
 
 varying vec2 px;
 varying flat vec4 cell;
@@ -58,7 +61,22 @@ void vertex() {
 	// (as tree.gdshader picks the side shown), laid across the way the shadow falls.
 	float step_at = round(atan(-along.x, -along.y) / (PI / 4.0));
 	float side = mod(step_at + own + 16.0, 8.0);
-	cell = vec4(c.x + side * c.z, c.y, c.z, c.w);
+	bool piece = kind < -2.5;
+	if (piece) {
+		// A piece of wood lying in the woods (TreeSprites.PIECE): the view the camera shows
+		// (as tree.gdshader picks it), its cell and anchor from its table, its summer look.
+		vec2 up = rest_view.xy;
+		side = mod(round(atan(-up.x, -up.y) / (PI / 4.0)) + own + 16.0, 8.0);
+		ivec2 tb = ivec2(int(round(c.x)), int(round(c.y))) + ivec2(2 * int(side), 0);
+		ivec4 p0 = ivec4(round(texelFetch(frames, tb, 0) * 255.0));
+		ivec4 p1 = ivec4(round(texelFetch(frames, tb + ivec2(1, 0), 0) * 255.0));
+		c = vec4(float(p0.r | (p0.g << 8)), float(p0.b | (p0.a << 8)), float(p1.r), float(p1.g));
+		ax = float(p1.b);
+		ay = float(p1.a);
+		cell = c;
+	} else {
+		cell = vec4(c.x + side * c.z, c.y, c.z, c.w);
+	}
 	vec2 across = vec2(-along.y, along.x);
 	// The picture shown stands across view_up (tree.gdshader): how far behind this one, in
 	// height along the light, its farthest texel is.
@@ -74,8 +92,19 @@ void vertex() {
 	float high = rise / TEXELS;
 	vec3 p = foot + vec3(across.x, 0.0, across.y) * ((wide - ax - 0.5) / TEXELS);
 	p.y += high;
+	if (piece) {
+		// A piece lies on the ground: its picture as the camera shows it laid flat where it
+		// lies (a row up the picture a texel farther away, as the ground's rows are drawn), a
+		// little over the ground, casting its outline's shadow by it.
+		float r = q.y > 0.5 ? 0.0 : (q.y > -0.5 ? ay + 0.5 : c.w);
+		px = vec2(wide, r);
+		p = foot + vec3(right.x, 0.0, right.y) * ((wide - ax - 0.5) / TEXELS);
+		p.xz += view_up * ((ay + 0.5 - r) / TEXELS);
+		p.y += PIECE_HIGH;
+		high = 0.0;
+	}
 	VERTEX = shear(p);
-	if (IN_SHADOW_PASS) {
+	if (IN_SHADOW_PASS && !piece) {
 		vec3 to_light = normalize(INV_VIEW_MATRIX[2].xyz);
 		VERTEX -= to_light * (min(deep, SINK_SHARE * high) / max(to_light.y, 0.05));
 	}
@@ -88,7 +117,7 @@ void fragment() {
 	ivec2 t = ivec2(cell.xy + floor(px));
 	vec4 g = texelFetch(frames, t, 0);
 	int a = frame_code(g);
-	// A stump (TreeSprites.STUMP): what it shows.
+	// A stump (TreeSprites.STUMP) or a piece of wood (PIECE): what it shows.
 	if (kind < -0.5 && a == 0) {
 		discard;
 	}

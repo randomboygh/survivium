@@ -41,6 +41,12 @@ const WOOD_AT := 28
 ## winter's pictures (snow on its cut).
 const STUMP := -1.0
 const STUMP_SNOW := -2.0
+## A piece of wood lying in the woods (Growth.piece_look): its instance's colour alpha; its
+## custom data (0, y) is where its table of views lies in the frames atlas (PIECE_VIEWS
+## views, two texels each: x and y as two bytes each, low first; w, h, ax, ay), the 8
+## turns of summer, then the 8 of winter.
+const PIECE := -3.0
+const PIECE_VIEWS := 16
 const NO_SNOW := 32768
 ## Texels of the pictures a world unit (tree.gdshader's TEXELS).
 const TEXELS := 16.0
@@ -49,6 +55,9 @@ const TEXELS := 16.0
 static var places := {}
 ## Species index -> the place of its stumps' frames in the atlas.
 static var stump_places := {}
+## Species index -> {piece kind (Growth.PIECE_*): the row of its table of views in the
+## frames atlas (see PIECE)}.
+static var piece_tables := {}
 ## The atlas of the frames (and the ramps, a row a species from `ramps_at`: one texture
 ## unit less, the web has few) and of the bare trees' frames (two bytes a texel: half the
 ## memory of the frames, 14 species' atlases are some 40 MB).
@@ -69,6 +78,7 @@ static var tallest := 12.0
 static func setup() -> bool:
 	places.clear()
 	stump_places.clear()
+	piece_tables.clear()
 	ramp_rows.clear()
 	tallest = 12.0
 	var pics := []
@@ -95,7 +105,11 @@ static func setup() -> bool:
 		var stumps: Image = Content.picture(p.stump_frames) if p.get("stump_frames", "") != "" else null
 		if stumps != null:
 			stumps.convert(Image.FORMAT_RGBA8)
-		pics.append([i, top, under, snows, stumps])
+		var pieces: Image = Content.picture(p.piece_frames) \
+				if p.get("piece_frames", "") != "" and not p.get("pieces", {}).is_empty() else null
+		if pieces != null:
+			pieces.convert(Image.FORMAT_RGBA8)
+		pics.append([i, top, under, snows, stumps, pieces])
 		for look: Dictionary in p.looks:
 			tallest = maxf(tallest, (float(look.ay) + 1.0) / TEXELS)
 	if pics.is_empty():
@@ -114,11 +128,32 @@ static func setup() -> bool:
 	stumps.sort_custom(func(a: Array, b: Array) -> bool: return a[4].get_height() > b[4].get_height())
 	for p: Array in stumps:
 		sizes.append(p[4].get_size())
+	# Then the pieces of wood lying in the woods, a kind's row of views at a time: [species,
+	# kind, its row of pieces.png, where that row begins in it].
+	var pieces := []
+	for p: Array in pics:
+		if p[5] == null:
+			continue
+		var d: Dictionary = Trees.SPECIES[p[0]].pictures.pieces
+		for k in TreeLooks.PIECES.size():
+			if not d.has(TreeLooks.PIECES[k]):
+				continue
+			var box := Rect2i()
+			for v: Array in d[TreeLooks.PIECES[k]].views:
+				var r := Rect2i(v[0], v[1], v[2], v[3])
+				box = r if box.size == Vector2i.ZERO else box.merge(r)
+			box = box.intersection(Rect2i(Vector2i.ZERO, p[5].get_size()))
+			pieces.append([p[0], k, p[5].get_region(box), box.position])
+	pieces.sort_custom(func(a: Array, b: Array) -> bool: return a[2].get_height() > b[2].get_height())
+	for p: Array in pieces:
+		sizes.append(p[2].get_size())
 	var at := _shelves(sizes)
-	var width: int = maxi(at.pop_back().x, RAMP_W)
+	var width: int = maxi(at.pop_back().x, maxi(RAMP_W, 2 * PIECE_VIEWS))
 	var h: int = at.pop_back().y
 	ramps_at = Vector2i(0, h)
-	var a := Image.create_empty(width, h + ((pics.size() + 1) & ~1), false, Image.FORMAT_RGBA8)
+	# Under the ramps the pieces' tables of views, each on an even row.
+	var tables_at := h + ((pics.size() + 1) & ~1)
+	var a := Image.create_empty(width, tables_at + 2 * pieces.size(), false, Image.FORMAT_RGBA8)
 	# No wood: both bytes 255 (see tree.gdshader).
 	var b := Image.create_empty(width, h, false, Image.FORMAT_LA8)
 	b.fill(Color(1, 1, 1, 1))
@@ -151,6 +186,20 @@ static func setup() -> bool:
 		var to: Vector2i = at[pics.size() + n]
 		a.blit_rect(img, Rect2i(Vector2i.ZERO, img.get_size()), to)
 		stump_places[stumps[n][0]] = to
+	for n in pieces.size():
+		var pc: Array = pieces[n]
+		var img: Image = pc[2]
+		var to: Vector2i = at[pics.size() + stumps.size() + n] - pc[3]
+		a.blit_rect(img, Rect2i(Vector2i.ZERO, img.get_size()), to + pc[3])
+		var row := tables_at + 2 * n
+		var views: Array = Trees.SPECIES[pc[0]].pictures.pieces[TreeLooks.PIECES[pc[1]]].views
+		for v in PIECE_VIEWS:
+			var e: Array = views[v]
+			a.set_pixel(2 * v, row, _offset_colour(to + Vector2i(e[0], e[1])))
+			a.set_pixel(2 * v + 1, row, Color8(mini(e[2], 255), mini(e[3], 255), mini(e[4], 255), mini(e[5], 255)))
+		if not piece_tables.has(pc[0]):
+			piece_tables[pc[0]] = {}
+		piece_tables[pc[0]][pc[1]] = row
 	_pack_snow(pics, at, r)
 	a.blit_rect(r, Rect2i(Vector2i.ZERO, r.get_size()), ramps_at)
 	frames = ImageTexture.create_from_image(a)
@@ -283,6 +332,19 @@ static func build(w, x0: int, z0: int) -> Array:
 		buf.append_array([float(st.ax), float(st.ay), float(Growth.turn_of(col) + 8 * ramp_rows[species]),
 			STUMP_SNOW if s.pictures.get("stump_snow", false) else STUMP])
 		buf.append_array([float(place.x + st.x), float(place.y + st.y), float(st.w), float(st.h)])
+		count += 1
+	# The pieces of wood lying in the woods (Growth.piece_look), drawn as the stumps are.
+	for col: Vector2i in w.tree_chunks.get(WorldCells.chunk_key(x0, z0), {}):
+		var kind := Growth.piece_look(w, col, foot)
+		if kind < 0:
+			continue
+		var species: int = w.trees[col]
+		if not piece_tables.has(species) or not piece_tables[species].has(kind):
+			continue
+		var p := Vector3(col.x + 0.5, foot[0], col.y + 0.5) * CELL
+		buf.append_array([1.0, 0.0, 0.0, p.x, 0.0, 1.0, 0.0, p.y, 0.0, 0.0, 1.0, p.z])
+		buf.append_array([0.0, 0.0, float(Growth.turn_of(col) + 8 * ramp_rows[species]), PIECE])
+		buf.append_array([0.0, float(piece_tables[species][kind]), 0.0, 0.0])
 		count += 1
 	return [count, buf, standing]
 

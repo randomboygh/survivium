@@ -148,6 +148,8 @@ func _run() -> void:
 			shot = Shots.wood(shot_name)
 		if shot.is_empty():
 			shot = Shots.stumps(shot_name)
+		if shot.is_empty():
+			shot = Shots.pieces(shot_name)
 		main.session.clock.time_speed = 0.0
 		main.session.clock.season = shot.season
 		# The day, where it matters (the sea glows on some nights only, Sky.glowing_night).
@@ -299,6 +301,10 @@ func _run() -> void:
 			# North-west of the spawn, as the pictured trees.
 			main.player.position = places.stumps(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 10),
 				shot.stumps, shot.has("fell_after"))
+		if shot.has("pieces"):
+			# North-west of the spawn, as the stumps.
+			main.player.position = places.pieces(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 10),
+				shot.pieces, shot.piece_kind, shot.piece_turn)
 		if shot.has("pictured"):
 			# North-west of the spawn, away from the others.
 			main.player.position = places.pictured(main.world, Vector3i((spawn / CELL).floor()) + Vector3i(-60, 0, 10),

@@ -433,6 +433,10 @@ const SCHEMAS := {
 		"trees": {"type": "shares", "of": "ref:trees", "soft": true, "default": {}, "rel": "spawns"},
 		"tree_chance": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
 		"groves": {"type": "float", "min": 0.0, "max": 1.0, "default": 0.0},
+		# The chances of a piece of wood lying in the woods (WorldGen._pieces): a log, a fallen
+		# trunk, a broken trunk with a sprout, at one place of each Growth.PIECE_BLOCK square
+		# of cells where the biome grows trees, of one of its species.
+		"pieces": {"type": "list", "of": "float", "len": 3, "min": 0.0, "max": 1.0, "default": [0.0, 0.0, 0.0]},
 		# Grounds besides grass trees grow on here (palms on the sand of a tropical beach).
 		"trees_on": {"type": "list", "of": "enum", "values": ["dirt", "stone", "sand", "clay", "snow", "peat", "salt"], "default": []},
 		"bushes": {"type": "shares", "of": "ref:bushes", "soft": true, "default": {}, "rel": "spawns"},

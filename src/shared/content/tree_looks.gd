@@ -21,6 +21,9 @@ const FRONDS := 1
 const HANGING := 2
 const PALMS := 3
 const RULES := {"fronds": FRONDS, "hanging": HANGING, "palms": PALMS}
+## The kinds of pieces of wood lying in the woods (look.yaml `pieces`), in the order of
+## Growth.PIECE_LOG, PIECE_FALLEN, PIECE_BROKEN.
+const PIECES := ["log", "fallen", "broken"]
 
 ## How far from a trunk's axis the middle of a body's feet is held (`hold`, Body): the
 ## trunk is drawn round but flat, a foot `front` pixels deep under a bark `half width`
@@ -57,7 +60,12 @@ static var hold_most := 0.0
 ## when it has none or it cannot be read. The stump a felled tree leaves (Growth.stump_look):
 ## `stumps` its looks, one a size, {size, x, y, w, h, ax, ay} in `stump_frames` (a row of the
 ## 8 turns of summer, then the 8 of winter with snow on its cut when `stump_snow`), `wood` the
-## colours of its cut wood (6 steps, then the resin's; tree.gdshader).
+## colours of its cut wood (6 steps, then the resin's; tree.gdshader). The pieces of it lying
+## in the woods (Growth.place_piece): `pieces` by kind ("log", "fallen", "broken": the
+## order of Growth's PIECE_*), each {logs, twigs (what the axe makes of it), reach (cells it
+## lies out from its column at most), views: 16 [x, y, w, h, ax, ay] in `piece_frames`, the
+## 8 turns of summer, then the 8 of winter; back, ahead: cells it lies behind and ahead of
+## its column along its way, which hold a body off (Body._piece_touched)}.
 static func read(s: Dictionary) -> Dictionary:
 	var file: String = s.get("picture", "")
 	if file == "":
@@ -96,6 +104,24 @@ static func read(s: Dictionary) -> Dictionary:
 			for k in ["x", "y", "w", "h", "ax", "ay"]:
 				st[k] = int(l.get(k, 0))
 			out.stumps.append(st)
+	out.pieces = {}
+	var pf := str(data.get("piece_frames", ""))
+	out.piece_frames = path.get_base_dir().path_join(pf) if pf != "" else ""
+	var pieces: Variant = data.get("pieces", {})
+	for kind in PIECES:
+		var d: Variant = pieces.get(kind) if pieces is Dictionary else null
+		if not d is Dictionary or not d.get("views") is Array or d.views.size() != 16:
+			continue
+		var views := []
+		for v in d.views:
+			if v is Array and v.size() == 6:
+				views.append([int(v[0]), int(v[1]), int(v[2]), int(v[3]), int(v[4]), int(v[5])])
+		if views.size() == 16:
+			# How far it lies back and ahead along its way from its column (cells): its turn-0
+			# summer view drawn across the screen.
+			out.pieces[kind] = {"logs": int(d.get("logs", 1)), "twigs": int(d.get("twigs", 0)),
+				"reach": float(d.get("reach", 1.0)), "views": views,
+				"back": views[0][4] / TEXELS_CELL, "ahead": (views[0][2] - views[0][4]) / TEXELS_CELL}
 	for l: Dictionary in data.looks:
 		var c: Array = l.crown
 		var look := {}
