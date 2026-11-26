@@ -34,6 +34,7 @@ const WorldData := preload("res://src/shared/world/world_data.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Protocol := preload("res://src/shared/net/protocol.gd")
 const Vibration := preload("res://src/client/ui/vibration.gd")
+const Props := preload("res://src/client/game/props.gd")
 
 ## The palette's filters: everything, blocks (Tools.use_of "place"), parts of a house
 ## (Items.is_interior).
@@ -95,8 +96,9 @@ var _tap_wait := {}
 ## The turn the player last gave a thing of each kind by a double tap, by item id: the
 ## next ones are set down turned so while the bag holds one (then it is forgotten).
 var kept_turns := {}
-## The thing dragged now (see drag), {} for none.
+## The thing dragged now (see drag), {} for none; the ghost thing of the blueprint dragged.
 var _dragged := {}
+var _dragged_ghost := {}
 
 
 func to_dict() -> Dictionary:
@@ -276,7 +278,7 @@ func clear() -> void:
 func toggle_auto() -> void:
 	if auto:
 		auto = false
-	elif game.plans.cells.is_empty() or game.plans.cells.size() == game.farm.marks():
+	elif game.plans.cells.size() == game.farm.marks() and game.plans.things.is_empty():
 		game.character.nag("plan_none", "[no_blueprint_draw_one_on]")
 	elif not _has_blocks():
 		game.character.nag("no_block", "[no_blocks_in_the_bag]")
@@ -297,6 +299,10 @@ func update(delta: float) -> void:
 		# A thing new from the bag held up with no stroke on it any more goes.
 		game.cursor.show_boxes([], [])
 		game.props.drop_new()
+	if not _dragged_ghost.is_empty() and not is_same(game.controls.dragging().get("ghost_thing"), _dragged_ghost):
+		game.cursor.show_boxes([], [])
+		game.plan_view.things.settle(_dragged_ghost)
+		_dragged_ghost = {}
 	if not _dragged.is_empty() and not is_same(game.controls.dragging().get("prop"), _dragged):
 		# Held up with no finger or button on it any more (its stroke went another way):
 		# it drops back where it stands, never left hanging in the air.
@@ -308,7 +314,7 @@ func update(delta: float) -> void:
 	_check_clock -= delta
 	if _check_clock <= 0.0:
 		_check_clock = CHECK_TIME
-		if game.plans.cells.size() == game.farm.marks():
+		if game.plans.cells.size() == game.farm.marks() and game.plans.things.is_empty():
 			auto = false
 			game.hud.toast("[blueprint_built]")
 			changed.emit()
@@ -321,11 +327,15 @@ func update(delta: float) -> void:
 	game.controls.build_step()
 
 
-## Whether the bag holds a block for some ghost cell (or building is free).
+## Whether the bag holds a block for some ghost cell (or building is free), or a thing for
+## a ghost thing (taken from the bag whatever the rules).
 func _has_blocks() -> bool:
-	if game.rules.free_build:
-		return true
 	var inv = game.character.inventory
+	for t: Dictionary in game.plans.things:
+		if inv.count(t.item) > 0:
+			return true
+	if game.rules.free_build:
+		return game.plans.cells.size() > game.farm.marks()
 	var seen := {}
 	for c: Vector3i in game.plans.cells:
 		var item: String = game.plans.cells[c]
@@ -398,6 +408,18 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "prop": e,
 			"from": pos, "ms": Time.get_ticks_msec(), "moved": false, "to": null, "corner": null,
 			"turn": int(e.get("turn", 0)), "shown": null, "grab": _grab(e, pos), "aim": e.cell, "face": -1}
+	var ghost_thing: Dictionary = {} if erasing else game.controls.ghost_thing_at(pos)
+	if not ghost_thing.is_empty():
+		# A ghost thing of the blueprint is handled as a thing set down: held, it is carried
+		# (PLAN_THING_MOVE); a double tap turns it; a single tap takes it off the blueprint.
+		if not _tap_wait.is_empty() and _tap_wait.cell == ghost_thing.cell and _tap_wait.get("ghost", false):
+			_tap_wait = {}
+			turn_ghost(ghost_thing)
+			return {}
+		_take_waiting()
+		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "ghost_thing": ghost_thing,
+			"from": pos, "ms": Time.get_ticks_msec(), "moved": false, "to": null, "turn": int(ghost_thing.turn),
+			"shown": null, "grab": _grab(ghost_thing, pos), "aim": ghost_thing.cell, "face": -1}
 	var hit: Dictionary = game.controls.pick(pos)
 	if not erasing and not hit.is_empty() and game.world.is_cracked(hit.cell.x, hit.cell.y, hit.cell.z):
 		# A cracked block (building decay) tapped is mended, free, with a swing of the tool
@@ -411,7 +433,7 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		# does nothing.
 		if item.get("prop", "none") == "none":
 			return {}
-		var aimed := _aimed(pos)
+		var aimed := _aimed(pos, _by_blueprint(chosen()))
 		if aimed.is_empty():
 			return {}
 		return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false, "put": chosen(),
@@ -459,13 +481,22 @@ func _ghost_tap(s: Dictionary) -> bool:
 ## What a thing new from the bag is aimed at for a finger or the mouse at screen point
 ## `pos` (VoxelRaycast.cast's hit): on a touch screen the place FINGER_LIFT over the finger
 ## (_lifted), so the finger does not hide the thing, or the place under it where there the
-## ray finds nothing; under the mouse.
-func _aimed(pos: Vector2) -> Dictionary:
+## ray finds nothing; under the mouse. With `planned` the blueprint's ghost blocks are met
+## as blocks (Controls.pick_planned: a ghost thing goes onto, against or into them).
+func _aimed(pos: Vector2, planned := false) -> Dictionary:
 	var at := _lifted(pos)
-	var hit: Dictionary = game.controls.pick(at)
+	var hit: Dictionary = game.controls.pick_planned(at) if planned else game.controls.pick(at)
 	if hit.is_empty() and at != pos:
-		hit = game.controls.pick(pos)
+		hit = game.controls.pick_planned(pos) if planned else game.controls.pick(pos)
 	return hit
+
+
+## Whether thing `id` new from the bag goes into the blueprint as a ghost thing, built after
+## its blocks (Plans.put_thing): the setting «Вещи из сумки» (Settings `build_things`, by the
+## blueprint unless set to at once; the user's picks, 2026-11-26, 1А, 2А), for a thing with a
+## model of its own (Props.ghostly; a campfire is set down at once).
+func _by_blueprint(id: String) -> bool:
+	return int(game.settings.values.get("build_things", 0)) == 0 and Props.ghostly(id)
 
 
 ## Screen point `pos` of a finger moved FINGER_LIFT up (not past the screen's top) on a
@@ -508,6 +539,15 @@ func _aim(hit: Dictionary, item: Dictionary) -> Vector3i:
 	return cell if into_wall or into_floor else cell + hit.normal
 
 
+## Ghost thing `t` of the blueprint turned where it stands (a double tap on it): a quarter,
+## a door, a window or a hatch the other way round (Plans.move_thing).
+func turn_ghost(t: Dictionary) -> void:
+	var turned := (int(t.turn) + (2 if Placed.is_opening(t.item) else 1)) % 4
+	if not Placed.is_opening(t.item):
+		kept_turns[t.item] = turned
+	game.net.request(Protocol.PLAN_THING_MOVE, [t.cell, t.cell, turned, -1])
+
+
 ## Thing `e` turned a quarter where it stands (a double tap on it), and the next of its
 ## kind set down turned so while the bag holds one (kept_turns); a door, a window or a
 ## hatch turned the other way round in its wall, its front to the other side.
@@ -520,13 +560,18 @@ func turn_thing(e: Dictionary) -> void:
 	game.net.request(Protocol.PROP_MOVE, [e.cell, e.cell, turned])
 
 
-## The tap on a thing waiting for a second one takes the thing now (see DOUBLE_TAP_MS).
+## The tap on a thing waiting for a second one takes the thing now (see DOUBLE_TAP_MS); on
+## a ghost thing, takes it off the blueprint.
 func _take_waiting() -> void:
 	if _tap_wait.is_empty():
 		return
 	var cell: Vector3i = _tap_wait.cell
+	var ghost: bool = _tap_wait.get("ghost", false)
 	_tap_wait = {}
-	if not game.placed.at(cell).is_empty():
+	if ghost:
+		if not game.plans.thing_at(cell).is_empty():
+			game.net.request(Protocol.PLAN_THING_TAKE, [cell])
+	elif not game.placed.at(cell).is_empty():
 		_take(cell)
 
 
@@ -596,6 +641,9 @@ func drag(s: Dictionary) -> void:
 	if s.has("put"):
 		_drag_new(s)
 		return
+	if s.has("ghost_thing"):
+		_drag_ghost(s)
+		return
 	var e: Dictionary = s.prop
 	if not is_same(game.placed.at(e.cell), e):
 		# Gone or changed under the finger: what was held up drops back (update).
@@ -645,19 +693,68 @@ func _drag_new(s: Dictionary) -> void:
 		Vibration.play(game, "lift")
 	if not s.get("led", false) and s.pos.distance_to(s.from) >= _slop():
 		s.led = true
-	var hit: Dictionary = _aimed(s.pos) if s.get("led", false) and game.get_viewport().get_visible_rect().has_point(s.pos) else {}
+	# Into the blueprint (_by_blueprint) it is seen and looked for as a ghost thing.
+	var ghost := _by_blueprint(s.put)
+	var hit: Dictionary = _aimed(s.pos, ghost) if s.get("led", false) and game.get_viewport().get_visible_rect().has_point(s.pos) else {}
 	if not hit.is_empty():
 		s.aim = _aim(hit, Items.get_item(s.put))
 		s.face = face_of(hit)
-	var shown := [s.aim, s.turn, s.get("face", -1)]
+	var shown := [s.aim, s.turn, s.get("face", -1), ghost]
 	if s.shown == shown:
 		return
 	s.shown = shown
-	var found: Array = game.placed.put_spot(game.character, s.put, s.aim, game.world.size_y, s.turn, s.kept, s.get("face", -1))
+	var found: Array
+	if ghost:
+		found = game.placed.ghost_spot(game.character, game.plans, s.put, s.aim, s.turn, s.kept, s.get("face", -1))
+	else:
+		found = game.placed.put_spot(game.character, s.put, s.aim, game.world.size_y, s.turn, s.kept, s.get("face", -1))
 	s.spot = found[0]
 	var at: Vector3i = s.spot if s.spot != null else s.aim
-	game.props.hold_new(s.put, at, found[1], out_of_wall(s.put, at, found[1]) if s.spot != null else Vector3.ZERO)
+	game.props.hold_new(s.put, at, found[1], out_of_wall(s.put, at, found[1]) if s.spot != null else Vector3.ZERO,
+		game.plan_view.things.material() if ghost else null)
 	_frame(s.put, at, found[1], s.spot != null)
+
+
+## A ghost thing of the blueprint held (stroke `s` with "ghost_thing"): once held long enough
+## (_lift_due) it follows the finger as a thing set down does (drag), its place looked for in
+## the world as the blueprint will stand (Placed.ghost_move_spot); a door, a window or a hatch
+## along the wall under the finger, ghost walls too. Let go, it moves there (release).
+func _drag_ghost(s: Dictionary) -> void:
+	var t: Dictionary = s.ghost_thing
+	if not is_same(game.plans.thing_at(t.cell), t):
+		return
+	if not s.moved:
+		if not _lift_due(s):
+			return
+		s.moved = true
+		_dragged_ghost = t
+		Vibration.play(game, "lift")
+		changed.emit()
+	var at: Vector3i
+	var face := -1
+	if Placed.is_opening(t.item):
+		var hit: Dictionary = _aimed(s.pos, true) if game.get_viewport().get_visible_rect().has_point(s.pos) else {}
+		if hit.is_empty():
+			return
+		at = _aim(hit, Items.get_item(t.item))
+		face = face_of(hit)
+	else:
+		var on_it: Variant = game.controls.on_plane(_lifted(s.pos), t.cell, Vector3i.UP)
+		if on_it == null:
+			return
+		at = on_it - s.grab
+	var shown := [at, s.turn, face]
+	if s.shown == shown:
+		return
+	s.shown = shown
+	s.aim = at
+	s.face = face
+	var found: Array = game.placed.ghost_move_spot(game.character, game.plans, t, at, s.turn, face)
+	s.to = found[0]
+	s.found_turn = found[1]
+	var spot: Vector3i = s.to if s.to != null else at
+	game.plan_view.things.hold(t, spot, found[1], out_of_wall(t.item, spot, found[1]) if s.to != null else Vector3.ZERO)
+	_frame(t.item, spot, found[1], s.to != null)
 
 
 ## A door, a window or a hatch held up (stroke `s` of opening `e`): it follows the wall
@@ -725,10 +822,17 @@ func release(s: Dictionary) -> void:
 		s.up = false
 		game.props.drop_new()
 		game.cursor.show_boxes([], [])
-		game.land.expect_post(s.put)
-		game.net.request(Protocol.PROP_PUT_AT, [s.put, s.aim, s.turn, s.kept, int(s.get("face", -1))])
+		if _by_blueprint(s.put):
+			# Into the blueprint, built after its blocks (the user's picks, 2026-11-26, 2А: a tap too).
+			game.net.request(Protocol.PLAN_THING, [s.put, s.aim, s.turn, s.kept, int(s.get("face", -1))])
+		else:
+			game.land.expect_post(s.put)
+			game.net.request(Protocol.PROP_PUT_AT, [s.put, s.aim, s.turn, s.kept, int(s.get("face", -1))])
 		if was_up:
 			changed.emit()
+		return
+	if s.has("ghost_thing"):
+		_release_ghost(s)
 		return
 	var e: Dictionary = s.prop
 	_dragged = {}
@@ -750,6 +854,28 @@ func release(s: Dictionary) -> void:
 	game.net.request(Protocol.PROP_MOVE, args).then(func(moved: Variant) -> void:
 		if not (moved is bool and moved) and game.placed.at(e.cell) == e:
 			game.props.settle(e))
+
+
+## A ghost thing of the blueprint let go (stroke `s`, see _drag_ghost): carried, it is moved
+## where it hung (Protocol.PLAN_THING_MOVE; it drops back when it cannot go there); only
+## tapped, it waits for a second tap (DOUBLE_TAP_MS) and then is taken off the blueprint.
+func _release_ghost(s: Dictionary) -> void:
+	var t: Dictionary = s.ghost_thing
+	_dragged_ghost = {}
+	if not s.moved:
+		_tap_wait = {"cell": t.cell, "ms": Time.get_ticks_msec(), "ghost": true}
+		return
+	changed.emit()
+	game.cursor.show_boxes([], [])
+	game.plan_view.things.settle(t)
+	if s.to == null or not is_same(game.plans.thing_at(t.cell), t):
+		return
+	var turn: int = s.get("found_turn", s.turn)
+	if s.to == t.cell and turn == int(t.turn):
+		return
+	# A door, a window or a hatch goes by the wall's cell it was held over, as a placed one.
+	var to: Vector3i = s.aim if Placed.is_opening(t.item) else s.to
+	game.net.request(Protocol.PLAN_THING_MOVE, [t.cell, to, turn, int(s.face)])
 
 
 ## The cell a stroke begins at on the cell `hit` (VoxelRaycast.cast): the cell over the

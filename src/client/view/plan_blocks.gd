@@ -71,18 +71,27 @@ func _materials() -> bool:
 		return true
 	if game.world_mat == null:
 		return false
+	_depth = ghost_material(game.world_mat)
+	_colour = _depth.next_pass
+	return true
+
+
+## The blueprint's see-through look of what world material `world_mat` draws (its blocks
+## here, its ghost things in PlanThings): only into depth first, then its colour over that in
+## the next pass, tinted cold blue.
+static func ghost_material(world_mat: ShaderMaterial) -> ShaderMaterial:
 	var shader := ghost_shader()
-	_depth = ShaderMaterial.new()
-	_colour = ShaderMaterial.new()
-	for m: ShaderMaterial in [_depth, _colour]:
+	var depth := ShaderMaterial.new()
+	var colour := ShaderMaterial.new()
+	for m: ShaderMaterial in [depth, colour]:
 		m.shader = shader
 		for p in ["corner_shapes", "material_bits"]:
-			m.set_shader_parameter(p, game.world_mat.get_shader_parameter(p))
+			m.set_shader_parameter(p, world_mat.get_shader_parameter(p))
 		m.set_shader_parameter("ghost_tint", Color(TINT.r, TINT.g, TINT.b, TINT_SHARE))
-	_depth.set_shader_parameter("ghost_alpha", 0.0)
-	_colour.set_shader_parameter("ghost_alpha", ALPHA)
-	_depth.next_pass = _colour
-	return true
+	depth.set_shader_parameter("ghost_alpha", 0.0)
+	colour.set_shader_parameter("ghost_alpha", ALPHA)
+	depth.next_pass = colour
+	return depth
 
 
 ## The block blueprint cell `c` will be (Mat.AIR for none: ground to dig, a fence, a mark).

@@ -684,7 +684,7 @@ func _debug_rows() -> Array:
 
 
 ## The `game` tab: the language, the clock and the weather of a game of this device (set
-## by the server on one), picking up and the feel (shake, vibration).
+## by the server on one), picking up, the feel (shake, vibration) and building.
 func _game_rows() -> Array:
 	var s = game.settings
 	var clock = game.clock
@@ -726,6 +726,12 @@ func _game_rows() -> Array:
 		["[vibration]", ["[off]", "[vibration_important]", "[vibration_usual]", "[everything]"],
 			func() -> int: return int(s.values.vibration) if Vibration.supported() else -1,
 			_set_vibration, "[no_n2]", Vibration.supported],
+		# The build mode: a door, a window, furniture from the bag set into the blueprint as a
+		# ghost (built after its blocks) or set down at once (the user's pick, 2026-11-26, 2А).
+		_section("hammer", "[building]"),
+		["[things_from_the_bag]", ["[by_blueprint]", "[at_once]"],
+			func() -> int: return int(s.values.build_things),
+			func(i: int) -> void: s.set_value("build_things", i)],
 	]
 
 
