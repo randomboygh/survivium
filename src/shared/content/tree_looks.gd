@@ -54,7 +54,10 @@ static var hold_most := 0.0
 ## `snow_dry` the pictures of the snow on the tree in winter (the look it shows then: bare,
 ## or the evergreen crown) and on the crown of a tree that keeps its dry leaves ("" none),
 ## `evergreen` true for a tree that keeps its summer leaves all year (the hot zones'); empty
-## when it has none or it cannot be read.
+## when it has none or it cannot be read. The stump a felled tree leaves (Growth.stump_look):
+## `stumps` its looks, one a size, {size, x, y, w, h, ax, ay} in `stump_frames` (a row of the
+## 8 turns of summer, then the 8 of winter with snow on its cut when `stump_snow`), `wood` the
+## colours of its cut wood (6 steps, then the resin's; tree.gdshader).
 static func read(s: Dictionary) -> Dictionary:
 	var file: String = s.get("picture", "")
 	if file == "":
@@ -80,6 +83,19 @@ static func read(s: Dictionary) -> Dictionary:
 		var f := str(data.get(k, ""))
 		out[k] = path.get_base_dir().path_join(f) if f != "" else ""
 	out.evergreen = data.get("evergreen", false) == true
+	out.wood = []
+	for c in data.get("wood", []):
+		out.wood.append(Color(str(c)))
+	out.stumps = []
+	var sf := str(data.get("stump_frames", ""))
+	out.stump_frames = path.get_base_dir().path_join(sf) if sf != "" else ""
+	out.stump_snow = data.get("stump_snow", false) == true
+	for l in data.get("stumps", []):
+		if l is Dictionary:
+			var st := {"size": float(l.get("size", 0.0))}
+			for k in ["x", "y", "w", "h", "ax", "ay"]:
+				st[k] = int(l.get(k, 0))
+			out.stumps.append(st)
 	for l: Dictionary in data.looks:
 		var c: Array = l.crown
 		var look := {}

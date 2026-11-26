@@ -88,9 +88,14 @@ void fragment() {
 	ivec2 t = ivec2(cell.xy + floor(px));
 	vec4 g = texelFetch(frames, t, 0);
 	int a = frame_code(g);
+	// A stump (TreeSprites.STUMP): what it shows.
+	if (kind < -0.5 && a == 0) {
+		discard;
+	}
 	// The leaves autumn and winter have taken, as tree.gdshader takes them.
 	float amount = picture_leaves(kind);
-	if (a >= 128) {
+	if (kind < -0.5) {
+	} else if (a >= 128) {
 		float rank = float((a >> 2) & 3);
 		if ((rank + hash12(g.rg * 255.0 + foot_xz * 3.1)) / 4.0 > amount) {
 			a = 0;
@@ -99,7 +104,7 @@ void fragment() {
 		a = 0;
 	}
 	// Where they are gone, the bare tree's wood; the snow on the tree.
-	if (a == 0 && snow_on(t, int(cell.w - floor(px.y)) - 1, int(ramp_row), kind, amount) < 16384) {
+	if (a == 0 && kind > -0.5 && snow_on(t, int(cell.w - floor(px.y)) - 1, int(ramp_row), kind, amount) < 16384) {
 		vec4 b = texelFetch(bare_frames, t, 0);
 		if (b.r > 0.998 && b.a > 0.998) {
 			discard;

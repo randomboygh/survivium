@@ -13,6 +13,7 @@ const Plans := preload("res://src/shared/game/plans.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
+const Felling := preload("res://src/shared/game/felling.gd")
 const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
@@ -24,6 +25,8 @@ const CELL := 0.5
 ## the world has no edge, only the chunks generated around.
 const SEARCH := 120
 var main: Node
+## The trees `stumps` left standing to be felled in the shot (their feet).
+var felling_at := []
 ## Replaces the ground around cell `at` with test shapes for corners: a diagonal creek,
 ## a stone plateau with outer and inner corners, a channel two cells wide with a bend.
 ## A stone wall three levels high two cells south of the player, between them and
@@ -1446,6 +1449,54 @@ func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1, dry :
 	# three (behind the middle one's crown when that is tall: the shot opens no window round
 	# the player in the crowns, see Shots.pictured).
 	return (Vector3(thick.x, h, thick.y + 5) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
+## The stumps of 7 species (group `group` of the pictured species with stumps, in the
+## order of Trees.SPECIES) on flat bare ground at `at`: a species a row, north to south, its
+## thick, middle and thin stump west to east (columns whose look's size is that, see
+## Growth.stump_look). With `fell` the thick tree of each row stands (Shots: felled later).
+## Gives where the player stands, south of the middle of the rows.
+func stumps(w, at: Vector3i, group: int, fell := false) -> Vector3:
+	var h: int = w.surface_y(at.x, at.z)
+	for z in range(at.z - 50, at.z + 14):
+		for x in range(at.x - 20, at.x + 20):
+			for y in w.size_y:
+				w.set_cell(x, y, z, (Mat.GRASS if y == h - 1 else Mat.DIRT) if y < h else Mat.AIR)
+				w.set_natural(x, y, z, true)
+	for key: Vector2i in w.trees.keys():
+		if absi(key.x - at.x) < 30 and key.y - at.z > -60 and key.y - at.z < 24:
+			w.remove_tree(key.x, key.y)
+	for b: Vector3i in w.bushes.keys():
+		if absi(b.x - at.x) <= 20 and b.z - at.z >= -50 and b.z - at.z <= 14:
+			w.remove_bush(b)
+	var kinds := []
+	for i in Trees.SPECIES.size():
+		if not Trees.SPECIES[i].pictures.get("stumps", []).is_empty():
+			kinds.append(i)
+	kinds = kinds.slice(group * 7, group * 7 + 7)
+	var rng := RandomNumberGenerator.new()
+	felling_at = []
+	for r in kinds.size():
+		var s: Dictionary = Trees.SPECIES[kinds[r]]
+		for k in 3:
+			var want := Vector2i((at.x - 9 + k * 8) | 1, (at.z - 44 + r * 6) | 1)
+			var col := want
+			var found := false
+			for c in [want, want + Vector2i(2, 0), want + Vector2i(-2, 0), want + Vector2i(0, 2),
+					want + Vector2i(0, -2), want + Vector2i(2, 2), want + Vector2i(-2, 2), want + Vector2i(2, -2),
+					want + Vector2i(-2, -2)]:
+				if not found and Growth.look_index(s, c, 1.0) / TreeLooks.VARIANTS == 2 - k:
+					col = c
+					found = true
+			Growth.place(w, col.x, h, col.y, kinds[r], rng, 1.0)
+			if fell and k == 0:
+				felling_at.append(Vector3i(col.x, h, col.y))
+			else:
+				Felling.clear(w, Vector3i(col.x, h + 1, col.y))
+	for z in range(at.z - 54, at.z + 18, 8):
+		for x in range(at.x - 24, at.x + 24, 8):
+			main.chunks.on_cell_changed(Vector3i(x, h, z))
+	return (Vector3(at.x - 1, h, at.z - 23) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
 ## A flat clearing at `at` (level of the ground there) with an oak west of the player

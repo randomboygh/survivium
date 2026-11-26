@@ -13,3 +13,12 @@ looks:
   - {size: 0.68, variant: 1, x: 0, y: 220, w: 87, h: 80, ax: 43, ay: 78, foot: [4.5, 2], trunk: 6, crown: [-3, -4, 7, 8, 7, "AAAAAEAAAAAAAADgAAAAAAAA8AMAAAAAALhzAAAAAAC4czAAAAAAoGEAAAAAALADAA=="]}
   - {size: 1.00, variant: 0, x: 0, y: 300, w: 107, h: 100, ax: 54, ay: 96, foot: [11, 1], trunk: 6, crown: [-4, -5, 9, 10, 10, "AAAAAAAAAAwAAAAAAAAAAAAAOGAAAAAAAAAAAAD4wQEAAAAAAAAAAPDfFx4AAAAAAAAAwHfDeEAAAAAAAAAAzw3hAQAAAAAAAPgJBwAHAAAAAAAA8McEAAAAAAAAAADADwMAAAAAAAAAAAA+AAAAAAA="]}
   - {size: 1.00, variant: 1, x: 0, y: 400, w: 106, h: 96, ax: 53, ay: 91, foot: [10.5, 1], trunk: 7, crown: [-4, -5, 9, 9, 9, "AAAAAAAAAAQAAAAAAAAAAAAcEAAAAAAAAAAA+CAAAAAAAAAAAP4bAwAAAAAAAAC8N4YHAAAAAAAAeG8MDwAAAAAAAEAMAB4AAAAAAADAPQAAAAAAAAAAgDsAAAA="]}
+# The stump a felled tree leaves (survivium-builds/trees-redraw/integration/pr5/src/pack_pr5.py): a row a size
+# in stumps.png, 8 turns of summer then 8 of winter (stump_snow); wood = the cut wood's 6 steps and the resin.
+wood: ["#63423b", "#805950", "#976e64", "#ac8679", "#cea790", "#e7c3ab", "#e0a040"]
+stump_frames: stumps.png
+stump_snow: true
+stumps:
+  - {size: 0.42, x: 0, y: 0, w: 8, h: 10, ax: 6, ay: 7}
+  - {size: 0.68, x: 0, y: 10, w: 12, h: 14, ax: 7, ay: 12}
+  - {size: 1.00, x: 0, y: 24, w: 40, h: 28, ax: 22, ay: 24}

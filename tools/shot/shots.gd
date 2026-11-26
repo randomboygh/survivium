@@ -1681,6 +1681,35 @@ static func pictured(name: String) -> Dictionary:
 	return shot
 
 
+## A shot of the stumps felled trees leave (TreeLooks `stumps`) named
+## `stumps-g<group 0..2: 7 species each>[-h<time x 100>][-c<camera turn>][-s<season>][-w<snow x 100>]
+## [-f<fell: the thick tree of each row standing, felled as the shot opens, shot after f ms>]`: each
+## species a row, its thick, middle and thin stump west to east, on bare ground, the grass hidden,
+## no interface. {} for another name.
+static func stumps(name: String) -> Dictionary:
+	if not name.begins_with("stumps-"):
+		return {}
+	var parts := name.substr(7).split("-")
+	var shot := {"time": 0.42, "season": 1, "stumps": 0, "weather": "clear", "clouds": 0.0, "rays": false,
+		"fog": false, "hud": false, "hide": ["chunks: grass"], "xray": false}
+	for p in parts:
+		var n := int(p.substr(1))
+		match p[0]:
+			"g":
+				shot.stumps = n
+			"c":
+				shot.turn = n
+			"h":
+				shot.time = n / 100.0
+			"s":
+				shot.season = n
+			"w":
+				shot.snow = n / 100.0
+			"f":
+				shot.fell_after = n
+	return shot
+
+
 ## A shot in a wood (the heart of a biome, places.place) named
 ## `wood-<biome>[-h<time x 100>][-c<camera turn>][-s<season>][-f<autumn's leaf fall x 100>]`,
 ## under a clear sky, the grass hidden, no interface: `wood-pine_wood-h30` a pine wood by the

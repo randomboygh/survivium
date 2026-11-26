@@ -30,17 +30,25 @@ const ATLAS_W := 4096
 ## steps of the dry leaves kept in winter (DRY_AT) and of the blossom (BLOSSOM_AT: alpha 0
 ## where the species has none), and where its snow pictures lie in the snow atlas from its
 ## frames in the frames atlas (SNOW_AT: the winter look's, then the dry crown's; x, y as
-## two bytes each, low first, a negative one less 65536; x 32768 where it has none).
-const RAMP_W := 28
+## two bytes each, low first, a negative one less 65536; x 32768 where it has none), then
+## the colours of its stumps' cut wood (WOOD_AT: 6 steps, then the resin's).
+const RAMP_W := 36
 const DRY_AT := 12
 const BLOSSOM_AT := 19
 const SNOW_AT := 26
+const WOOD_AT := 28
+## What the instance's colour alpha says of a stump (tree.gdshader): a stump, a stump with
+## winter's pictures (snow on its cut).
+const STUMP := -1.0
+const STUMP_SNOW := -2.0
 const NO_SNOW := 32768
 ## Texels of the pictures a world unit (tree.gdshader's TEXELS).
 const TEXELS := 16.0
 
 ## Species index -> the place of its frames in the atlas (Vector2i), for species drawn so.
 static var places := {}
+## Species index -> the place of its stumps' frames in the atlas.
+static var stump_places := {}
 ## The atlas of the frames (and the ramps, a row a species from `ramps_at`: one texture
 ## unit less, the web has few) and of the bare trees' frames (two bytes a texel: half the
 ## memory of the frames, 14 species' atlases are some 40 MB).
@@ -60,6 +68,7 @@ static var tallest := 12.0
 ## Packs the pictured species' frames into the atlases; false when no species has any.
 static func setup() -> bool:
 	places.clear()
+	stump_places.clear()
 	ramp_rows.clear()
 	tallest = 12.0
 	var pics := []
@@ -83,7 +92,10 @@ static func setup() -> bool:
 			if sn != null:
 				sn.convert(Image.FORMAT_LA8)
 			snows.append(sn)
-		pics.append([i, top, under, snows])
+		var stumps: Image = Content.picture(p.stump_frames) if p.get("stump_frames", "") != "" else null
+		if stumps != null:
+			stumps.convert(Image.FORMAT_RGBA8)
+		pics.append([i, top, under, snows, stumps])
 		for look: Dictionary in p.looks:
 			tallest = maxf(tallest, (float(look.ay) + 1.0) / TEXELS)
 	if pics.is_empty():
@@ -94,6 +106,14 @@ static func setup() -> bool:
 	var sizes := []
 	for p: Array in pics:
 		sizes.append(p[1].get_size())
+	# The stumps' frames after all the trees' (no bare frames: the bare atlas has no wood there).
+	var stumps := []
+	for p: Array in pics:
+		if p[4] != null:
+			stumps.append(p)
+	stumps.sort_custom(func(a: Array, b: Array) -> bool: return a[4].get_height() > b[4].get_height())
+	for p: Array in stumps:
+		sizes.append(p[4].get_size())
 	var at := _shelves(sizes)
 	var width: int = maxi(at.pop_back().x, RAMP_W)
 	var h: int = at.pop_back().y
@@ -117,11 +137,20 @@ static func setup() -> bool:
 		for j in 4:
 			r.set_pixel(7 + j, k, s.bark[mini(j, s.bark.size() - 1)])
 		r.set_pixel(11, k, Color(float(s.get("rule", 0)) / 3.0, 0.0, 0.0, 1.0))
+		var wood: Array = s.get("wood", [])
+		for j in 7:
+			if not wood.is_empty():
+				r.set_pixel(WOOD_AT + j, k, wood[mini(j, wood.size() - 1)])
 		for j in 7:
 			for d in [[DRY_AT, s.get("dry", [])], [BLOSSOM_AT, s.get("blossom", [])]]:
 				var cs: Array = d[1]
 				if not cs.is_empty():
 					r.set_pixel(d[0] + j, k, cs[mini(j, cs.size() - 1)])
+	for n in stumps.size():
+		var img: Image = stumps[n][4]
+		var to: Vector2i = at[pics.size() + n]
+		a.blit_rect(img, Rect2i(Vector2i.ZERO, img.get_size()), to)
+		stump_places[stumps[n][0]] = to
 	_pack_snow(pics, at, r)
 	a.blit_rect(r, Rect2i(Vector2i.ZERO, r.get_size()), ramps_at)
 	frames = ImageTexture.create_from_image(a)
@@ -212,12 +241,14 @@ static func quad_mesh() -> ArrayMesh:
 
 
 ## The trees of the chunk at x0, z0 drawn as pictures: [count, buffer] for a MultiMesh
-## with colours and custom data (see the top).
+## with colours and custom data (see the top), then the standing trees' instances by
+## column (a felled one falls, TreeHits.fall).
 static func build(w, x0: int, z0: int) -> Array:
 	var buf := PackedFloat32Array()
 	var count := 0
+	var standing := {}
 	if frames == null:
-		return [0, buf]
+		return [0, buf, standing]
 	var foot := [0]
 	for col: Vector2i in w.tree_chunks.get(WorldCells.chunk_key(x0, z0), {}):
 		var i := Growth.standing_look(w, col, foot)
@@ -234,8 +265,26 @@ static func build(w, x0: int, z0: int) -> Array:
 		buf.append_array([float(look.ax), float(look.ay), float(Growth.turn_of(col) + 8 * ramp_rows[species]),
 			_year_kind(s, col, species)])
 		buf.append_array([float(place.x + look.x), float(place.y + look.y), float(look.w), float(look.h)])
+		standing[col] = buf.slice(count * 20, count * 20 + 20)
 		count += 1
-	return [count, buf]
+	# The stumps felled trees left (Growth.stump_look), drawn as the trees are.
+	for col: Vector2i in w.tree_chunks.get(WorldCells.chunk_key(x0, z0), {}):
+		var i := Growth.stump_look(w, col, foot)
+		if i < 0:
+			continue
+		var species: int = w.trees[col]
+		if not stump_places.has(species):
+			continue
+		var s: Dictionary = Trees.SPECIES[species]
+		var st: Dictionary = s.pictures.stumps[i]
+		var p := Vector3(col.x + 0.5, foot[0], col.y + 0.5) * CELL
+		var place: Vector2i = stump_places[species]
+		buf.append_array([1.0, 0.0, 0.0, p.x, 0.0, 1.0, 0.0, p.y, 0.0, 0.0, 1.0, p.z])
+		buf.append_array([float(st.ax), float(st.ay), float(Growth.turn_of(col) + 8 * ramp_rows[species]),
+			STUMP_SNOW if s.pictures.get("stump_snow", false) else STUMP])
+		buf.append_array([float(place.x + st.x), float(place.y + st.y), float(st.w), float(st.h)])
+		count += 1
+	return [count, buf, standing]
 
 
 ## What the tree on column `col` does over the year (Foliage.year_kind), but a palm drawn
