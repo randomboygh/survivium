@@ -83,7 +83,8 @@ slice, to free the far meshes.
   under a roof, in a ravine and behind a hill the layers are turned on instead of the slice, how they look is
   decided by the shaders, see rendering.md), the caps (`update_caps`, the level — `cap_level`), `solid`
   (`solid_map.gd`, the map of solid cells for the slice of rock in layers), `refit_boxes` for the camera's
-  turn, `on_cell_changed` / `remesh_chunk`.
+  turn and tilt (a chunk's trees' box grown by `TreeSprites.stand_box`: a picture stands 1/slope higher under a
+  steeper camera), `on_cell_changed` / `remesh_chunk`.
 - `src/client/world/chunk_mesher.gd` — the chunk's mesh by column: cells, cut corners (a top drawn in
   quarters, `MeshFaces.quarter_kind`; the half of a side by a cut corner is gone, a curved wall instead), caps
   (`build_cap`; none over a sloping top; the caps lie `CAP_SINK` below the cells' top, otherwise their

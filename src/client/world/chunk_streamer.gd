@@ -1321,6 +1321,8 @@ static func _fit_box(n: GeometryInstance3D) -> void:
 	var box := n.get_aabb()
 	if box.size == Vector3.ZERO:
 		return
+	if n is MultiMeshInstance3D and (n as MultiMeshInstance3D).multimesh.mesh == TreeSprites.quad:
+		box = TreeSprites.stand_box(box)
 	n.custom_aabb = PixelView.sheared_box(box, SWAY)
 
 

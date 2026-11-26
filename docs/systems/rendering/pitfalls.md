@@ -112,6 +112,9 @@ One-line forms of the rules; the detail is above and in the other pages of this 
 - Phone GPUs flip pixels on texel edges and geometry lines: bias, overlap (`ChunkMesher.EPS`), no walls
   under 1 px; headless shows none of it.
 - Nodes scaled 1/16 (voxel models) need `extra_cull_margin` × 16 or the shear culls them.
+- A shader that stands a picture 1/slope taller (`stand_tall`) needs its culling box that much taller for the
+  steepest of `box_views` (`TreeSprites.stand_box`); a MultiMesh's box does not follow a later change of its
+  mesh's `custom_aabb`, so grow the node's box instead.
 - Silhouettes and the player's x-ray go by the stencil values.
 - Lights with shadows add in sRGB and cost a pass; Compatibility lights a mesh with at most 32 omni
   lights; `toon_light` returns 0 where ATTENUATION is 0.

@@ -461,9 +461,7 @@ func _place_tree(cell: Vector3i, species: int, scale: float) -> void:
 	if scale <= 0.0:
 		Growth.place_young(world, cell.x, cell.y + 1, cell.z, species)
 	else:
-		var rng := RandomNumberGenerator.new()
-		rng.seed = hash(cell)
-		Growth.place(world, cell.x, cell.y + 1, cell.z, species, rng, scale)
+		Growth.place(world, cell.x, cell.y + 1, cell.z, species, scale)
 	var reach := Growth.TREE_REACH
 	for kz in range((cell.z - reach) >> WorldData.SHIFT, ((cell.z + reach) >> WorldData.SHIFT) + 1):
 		for kx in range((cell.x - reach) >> WorldData.SHIFT, ((cell.x + reach) >> WorldData.SHIFT) + 1):
