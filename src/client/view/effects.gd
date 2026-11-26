@@ -354,6 +354,9 @@ func torch_flame() -> CPUParticles3D:
 const FIRE_ENERGY := 2.1
 const FIRE_LOW := 0.2
 
+## The radius the sparks of a campfire start in, world units: about the fire's own.
+const SPARK_START := 0.4
+
 
 ## A campfire one world unit square with its north-west corner at `corner`: stones,
 ## logs, flames, sparks, smoke and a flickering light, the model drawn with `material`.
@@ -395,6 +398,9 @@ func add_campfire(corner: Vector3, material: Material, hearth := Vector3.INF) ->
 
 	var sparks := _emitter(8, 1.6, Vector2(PX, PX), 1.0)
 	sparks.position = c + Vector3(0.0, 0.3, 0.0)
+	# Start over the fire's ring of stones, not a box two units wide; the spread is the same.
+	sparks.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	sparks.emission_sphere_radius = SPARK_START
 	sparks.direction = Vector3.UP
 	sparks.spread = 35.0
 	sparks.initial_velocity_min = 0.8
@@ -723,12 +729,26 @@ func _blow(p: CPUParticles3D, dir: Vector2, side: float, down: float) -> void:
 	p.direction = Vector3(dir.x * side, down, dir.y * side)
 
 
+## Draws `flame` (see torch_flame) behind the picture of the body that holds it (`away`,
+## its back to the camera, the light held ahead of it), so the body hides its sparks.
+func flame_behind(flame: CPUParticles3D, away: bool) -> void:
+	var mat := (flame.mesh as QuadMesh).material as ShaderMaterial
+	mat.set_shader_parameter("behind", FLAME_BEHIND if away else 0.0)
+
+
+## How far behind the body's picture (world units) flames of a light held ahead of a
+## figure seen from behind are drawn: more than their spread reaches.
+const FLAME_BEHIND := 0.3
+
+
 ## The torches' flames burn at world points `at` (where the sprite draws their
-## brightest pixels, see Player.flames_at) while `lit`.
-func hold_flames(at: Array, lit: bool) -> void:
+## brightest pixels, see Player.flames_at) while `lit`; `away` while the player's back is
+## to the camera.
+func hold_flames(at: Array, lit: bool, away := false) -> void:
 	for i in torch_flames.size():
 		var flame := torch_flames[i]
 		var on: bool = lit and i < at.size() and at[i].is_finite()
+		flame_behind(flame, away)
 		if on:
 			flame.position = at[i]
 		if flame.emitting != on:

@@ -155,6 +155,8 @@ const SHOTS := {
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
 	# A torch in each hand: a flame at each.
 	"torch-two": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},
+	# Seen from behind: the flames burn ahead of the body and the figure hides them.
+	"torch-back": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "n"}},
 	# The same with the camera tilted low and steep: the rings stay round the torch.
 	"torch-two-low": {"time": 0.95, "season": 1, "moon": 0.0, "find": "meadow", "tilt": -4,
 		"hands": {"tool": "tools:torch", "other": "tools:torch", "facing": "s"}},

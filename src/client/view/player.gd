@@ -575,6 +575,12 @@ func drawn_facing() -> String:
 	return SpriteSheet.direction_of(PixelView.screen_dir(Vector2(-sin(turn), cos(turn))))
 
 
+## True while the picture shows the back (the camera sees it from behind), where what is
+## held ahead of the body is behind it.
+func faces_away() -> bool:
+	return drawn_facing().begins_with("n")
+
+
 ## The level of the cell the feet are in.
 func level() -> int:
 	return Body.level_at(position)

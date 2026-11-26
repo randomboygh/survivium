@@ -12,6 +12,9 @@ uniform float brightness = 1.0;
 uniform float sky_only = 0.0;
 // How lit the open sky is: weather is unshaded, so it dims with the night.
 uniform float light = 1.0;
+// World units this is drawn farther from the camera in depth only (a torch's flames while
+// its holder turns their back, so the body hides them); orthogonal views only.
+uniform float behind = 0.0;
 uniform sampler2D shape : filter_nearest, hint_default_white SRGB_HINT;
 // World units a streak's top lies upwind of its foot per unit of height:
 // rain driven by the wind leans along its fall (see Effects.rain_lean).
@@ -49,5 +52,8 @@ void fragment() {
 	}
 	ALBEDO = COLOR.rgb * s.rgb * brightness * light;
 	ALPHA = COLOR.a;
+	if (behind > 0.0 && PROJECTION_MATRIX[3][3] > 0.5) {
+		DEPTH = clamp(FRAGCOORD.z - PROJECTION_MATRIX[2][2] * 0.5 * behind, 0.0, 1.0);
+	}
 	COMPAT_ALBEDO
 }
