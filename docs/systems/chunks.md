@@ -125,7 +125,12 @@ slice, to free the far meshes.
   drawn a step darker, `wood_colour`). The bark is drawn with halftones and an even outline, worked out from a texel's
   four neighbours (`bark_look`): a bark texel beside a darker step takes half a step darker; a texel on the
   picture's edge with bark inside it takes one tone all round (`OUTLINE_LOW`, half a step over the darkest),
-  whatever the light. The bark also takes the sun's shadow (the shadow map, as the ground: other
+  whatever the light; a bark texel low on the picture (`BASE_RISE` over the foot) with nothing under it is the
+  drawn outline where the tree or stump meets the ground and is not drawn. A standing tree sways in the wind (the
+  global `wind`, as the leaf cards: `SWAY_*`, whole pixels, more the higher, the picture widened by `SWAY_ROOM`;
+  shots `wind-trees-breeze`, `wind-trees-storm`). Each picture is drawn up to `DEPTH_TIE` nearer the camera by its
+  foot's hash: trees in one row across the screen stand at one depth, and their overlapping crowns would otherwise
+  take turns row by row (stripes). The bark also takes the sun's shadow (the shadow map, as the ground: other
   crowns, hills) a bark step darker, never two under its own crown's drawn shade (the bare frame holds the step
   without it, `in_shade`; `sun_as` gives the sun's pass the colour the shaded step would get); the leaves and fronds
   too, a step darker but never darker than on the crown's shaded side (`leaf_steps`, `frond_steps`). A species'

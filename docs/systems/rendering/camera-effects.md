@@ -99,7 +99,10 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   from the axe; a card leans by its distance from the trunk and its height, the trunk stays) and a few leaves of
   the crown's colour drift down from its edge toward the camera (by the season's `leaf_amount`, more in
   autumn, a few needles off a conifer, none off a dead or bare tree; a pool of three emitters, off with the
-  effects). A tree gone by then (the blow that felled it) is left alone. Shots `chop-tree`, `chop-tree-autumn`,
+  effects). A strong wind (`Effects.TORN_WIND`) tears leaves off the crowns round the view in any season they
+  are in leaf (`Effects.torn`, points on up to `TORN_TREES` crowns in each tree's leaf colours, the columns
+  searched `TORN_ROWS` rows a frame; set toward the camera and as much higher, `TORN_FRONT`, so the upright
+  pictures of the trees in front do not hide them); the autumn `gale` still blows over the whole view. A tree gone by then (the blow that felled it) is left alone. Shots `chop-tree`, `chop-tree-autumn`,
   `chop-spruce`.
 - `src/client/view/air_effects.gd`, `water_effects.gd`, `nature_effects.gd` (held by `Effects.air`, `.water`,
   `.nature`, made by `Main`, stepped by `Sky`) — the small effects, each by its setting in «Эффекты» (`effects`
