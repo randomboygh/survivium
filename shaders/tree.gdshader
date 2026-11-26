@@ -443,12 +443,120 @@ int in_shade(int s, int open) {
 }
 
 
+// The bark's steps of texel `t` (2 bits a sun, as wood_colour's), of the bare frames or the
+// frames: -1 where no bark (a leaf, a stump's cut), -2 where the picture is empty (or out of
+// its cell, `lo`..`hi`).
+int bark_bits(ivec2 t, bool bare, ivec2 lo, ivec2 hi) {
+	if (t.x < lo.x || t.y < lo.y || t.x >= hi.x || t.y >= hi.y) {
+		return -2;
+	}
+	if (bare) {
+		vec4 b = texelFetch(bare_frames, t, 0);
+		if (b.r > 0.998 && b.a > 0.998) {
+			return -2;
+		}
+		return int(round(b.r * 255.0)) | (int(round(b.a * 255.0)) << 8);
+	}
+	vec4 g = texelFetch(frames, t, 0);
+	int a = frame_code(g);
+	if (a == 2 || a == 3) {
+		return int(round(g.r * 255.0)) | (int(round(g.g * 255.0)) << 8);
+	}
+	return a == 0 ? -2 : -1;
+}
+
+// Of two texels' bark steps (2 bits a sun), the lighter at each sun.
+int lightest(int a, int b) {
+	int r = 0;
+	for (int k = 0; k < 8; k++) {
+		r |= max((a >> (2 * k)) & 3, (b >> (2 * k)) & 3) << (2 * k);
+	}
+	return r;
+}
+
+ivec2 side(int i) {
+	return i == 0 ? ivec2(1, 0) : i == 1 ? ivec2(-1, 0) : i == 2 ? ivec2(0, 1) : ivec2(0, -1);
+}
+
+// How the bark of texel `t` (its steps `bits`) is drawn beside its neighbours, 8 suns at a
+// time (user 2026-11-26): x the suns it takes a halftone at (bit k: sun k), y its outline's
+// step in halves (3 bits a sun, 7: none). A texel beside a darker step of the bark is drawn half a
+// step darker, so each step steps down to the next through a halftone. A texel on the
+// picture's edge is its outline: OUTLINE_DROP halves darker than the bark inside it (the texel across
+// from the empty side, when that one is not an edge too), as the approved drawing's soft
+// outline, kept wherever the drawing left it at the bark's own step.
+const int OUTLINE_LOW = 0;
+ivec2 bark_look(ivec2 t, bool bare, int bits, ivec2 lo, ivec2 hi) {
+	int n[4];
+	bool edge = false;
+	for (int i = 0; i < 4; i++) {
+		n[i] = bark_bits(t + side(i), bare, lo, hi);
+		edge = edge || n[i] == -2;
+	}
+	if (!edge) {
+		int halves = 0;
+		for (int i = 0; i < 4; i++) {
+			if (n[i] >= 0) {
+				for (int k = 0; k < 8; k++) {
+					if (((n[i] >> (2 * k)) & 3) < ((bits >> (2 * k)) & 3)) {
+						halves |= 1 << k;
+					}
+				}
+			}
+		}
+		return ivec2(halves, 16777215);
+	}
+	// The bark inside: across from an empty side, when that one is not an edge too (the
+	// lightest of those).
+	int inside = -1;
+	for (int i = 0; i < 4; i++) {
+		int m = n[i ^ 1];
+		if (n[i] != -2 || m < 0) {
+			continue;
+		}
+		ivec2 q = t + side(i ^ 1);
+		bool inner_edge = false;
+		for (int e = 0; e < 4; e++) {
+			inner_edge = inner_edge || bark_bits(q + side(e), bare, lo, hi) == -2;
+		}
+		if (!inner_edge) {
+			inside = inside < 0 ? m : lightest(inside, m);
+		}
+	}
+	int outline = 0;
+	for (int k = 0; k < 8; k++) {
+		int c = 2 * ((bits >> (2 * k)) & 3);
+		if (inside >= 0) {
+			c = min(c, max(2 * ((inside >> (2 * k)) & 3) - 2, 0));
+		}
+		outline |= max(c, OUTLINE_LOW) << (3 * k);
+	}
+	return ivec2(0, outline);
+}
+
+// The bark's colour at step `s` (0..3, halves mixed), of ramp row `k`.
+vec3 bark_step(float k, float s) {
+	float lo = floor(s);
+	return mix(ramp(k, 7.0 + lo), ramp(k, 7.0 + min(lo + 1.0, 3.0)), s - lo);
+}
+
+// The bark's step at sun `j` (x; halves as bark_step takes them) and in a shadow (y), of
+// steps `bits`, `opens` (see wood_colour) drawn as `look` has it (bark_look).
+vec2 bark_at(int bits, int opens, ivec2 look, int j) {
+	int s = (bits >> (2 * j)) & 3;
+	float dark = float(s - in_shade(s, (opens >> (2 * j)) & 3));
+	int o = (look.y >> (3 * j)) & 7;
+	float lit = o < 7 ? 0.5 * float(o) : float(s) - 0.5 * float((look.x >> j) & 1);
+	return vec2(max(lit, 0.0), max(lit - dark, o < 7 ? 0.5 * float(OUTLINE_LOW) : 0.0));
+}
+
 // The bark's colour of wood texel `g` (red, green: 2 bits a sun) under the light L: the
 // two drawn suns nearest it, crossfaded only round the middle between them. The suns were
 // drawn on the viewer's side of the tree: a sun behind it is taken as its mirror image in
 // front, and the bark is then in its shade. `open`: the bark's steps where no crown shades
-// it (the bare tree's, see in_shade). `shade`: its colour a step darker, in a shadow.
-vec3 wood_colour(float k, vec4 g, vec4 open, vec3 L, out vec3 shade) {
+// it (the bare tree's, see in_shade). `look`: its halftones and outline (bark_look).
+// `shade`: its colour a step darker, in a shadow.
+vec3 wood_colour(float k, vec4 g, vec4 open, ivec2 look, vec3 L, out vec3 shade) {
 	float back = smoothstep(SIDE_BLEND, -SIDE_BLEND, L.z);
 	L.z = abs(L.z);
 	int bits = int(round(g.r * 255.0)) | (int(round(g.g * 255.0)) << 8);
@@ -457,11 +565,10 @@ vec3 wood_colour(float k, vec4 g, vec4 open, vec3 L, out vec3 shade) {
 	ivec2 near = nearest_suns(L, f);
 	int best = near.x;
 	int next = near.y;
-	int s0 = (bits >> (2 * best)) & 3;
-	int s1 = (bits >> (2 * next)) & 3;
-	shade = mix(ramp(k, 7.0 + float(in_shade(s0, (opens >> (2 * best)) & 3))),
-		ramp(k, 7.0 + float(in_shade(s1, (opens >> (2 * next)) & 3))), f);
-	return mix(mix(ramp(k, 7.0 + float(s0)), ramp(k, 7.0 + float(s1)), f), shade, back);
+	vec2 lit0 = bark_at(bits, opens, look, best);
+	vec2 lit1 = bark_at(bits, opens, look, next);
+	shade = mix(bark_step(k, lit0.y), bark_step(k, lit1.y), f);
+	return mix(mix(bark_step(k, lit0.x), bark_step(k, lit1.x), f), shade, back);
 }
 
 // A stump's step `s` of its frames' code `a` (4 cut wood, 5 snow, 6 the snow's outline; 7 a
@@ -577,7 +684,9 @@ void fragment() {
 			discard;
 		}
 		if (a == 2 || a == 3) {
-			col = wood_colour(k, g, g, L, shade);
+			int bits = int(round(g.r * 255.0)) | (int(round(g.g * 255.0)) << 8);
+			ivec2 lo = ivec2(cell.xy);
+			col = wood_colour(k, g, g, bark_look(t, false, bits, lo, lo + ivec2(cell.zw)), L, shade);
 			if (a == 3) {
 				col = mix(col, ramp(k, 7.0), 0.5);
 				shade = mix(shade, ramp(k, 7.0), 0.5);
@@ -608,6 +717,7 @@ void fragment() {
 		// crown's shade over the trunk. The bare tree's steps are the bark's where no crown
 		// shades it (`open`, see wood_colour).
 		vec4 open = g;
+		bool from_bare = false;
 		if (a == 0 || a == 2 && amount < 0.5) {
 			vec4 b = texelFetch(bare_frames, t, 0);
 			if (b.r > 0.998 && b.a > 0.998) {
@@ -616,6 +726,7 @@ void fragment() {
 				}
 			} else {
 				g = vec4(b.r, b.a, 0.0, 1.0);
+				from_bare = true;
 			}
 			open = g;
 			a = 2;
@@ -629,7 +740,9 @@ void fragment() {
 			if (bayer4(texel) < trunk_through(texel, world_pos)) {
 				discard;
 			}
-			col = wood_colour(k, g, open, L, shade);
+			int bits = int(round(g.r * 255.0)) | (int(round(g.g * 255.0)) << 8);
+			ivec2 lo = ivec2(cell.xy);
+			col = wood_colour(k, g, open, bark_look(t, from_bare, bits, lo, lo + ivec2(cell.zw)), L, shade);
 			if (soft) {
 				col = mix(col, ramp(k, 7.0), 0.5);
 				shade = mix(shade, ramp(k, 7.0), 0.5);
