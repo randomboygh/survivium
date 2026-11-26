@@ -61,6 +61,9 @@ vec3 compat_sun(vec3 lit, vec3 albedo) {
 // The cut of the levels the player picked by hand to look at those below (the level
 // buttons); 1000 for none. Under a roof the view opens in layers instead (layer_view).
 global uniform float cut_height;
+// The build mode's cut of the floors (ChunkStreamer.build_cut): what is built above it is
+// left out, natural ground, plants and creatures stay; 1000 for none.
+global uniform float build_cut;
 // How much darker each level under the sea's surface gets (see sea_bright): x a level
 // (the test setting «Затемнение за уровень», 12 %); y, z, w unused.
 global uniform vec4 depth_steps;
@@ -605,6 +608,12 @@ bool cut_hides(vec3 p, vec2 texel) {
 		return false;
 	}
 	return cut_dither(p.y, texel);
+}
+
+// Whether a built thing at `p` (a block set by hand, a placed thing, the blueprint's
+// ghost) is left out by the build mode's cut of the floors.
+bool above_build_cut(vec3 p) {
+	return p.y > build_cut + 0.01;
 }
 
 bool above_cut(vec3 p) {

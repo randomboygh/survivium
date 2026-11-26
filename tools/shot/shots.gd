@@ -440,6 +440,16 @@ const SHOTS := {
 	"build-lone-stairs-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2], "double_tap": true},
 	# A door tapped on a wall by a finger (2026-11-26): on the brick wall north, on a ghost wall.
+	# The build cut of the floors (2026-11-27): in a house of two floors (places.two_floors) the
+	# level buttons step by the room's height; only what is built is cut, the trees stay.
+	"build-floors-1": {"time": 0.4, "season": 1, "two_floors": true, "build_mode": "draw", "stroke": false,
+		"kind": "cube", "height": 5, "touch": true, "hide": ["chunks: grass"], "build_floor": 0},
+	"build-floors-2": {"time": 0.4, "season": 1, "two_floors": true, "build_mode": "draw", "stroke": false,
+		"kind": "cube", "height": 5, "touch": true, "hide": ["chunks: grass"], "build_floor": 1},
+	# Standing on the upper floor, the floor below looked at.
+	"build-floors-down": {"time": 0.4, "season": 1, "two_floors": true, "upper": true, "build_mode": "draw",
+		"stroke": false, "kind": "cube", "height": 5, "touch": true, "hide": ["chunks: grass"], "build_floor": -1},
+	"build-floors-off": {"time": 0.4, "season": 1, "two_floors": true, "touch": true, "hide": ["chunks: grass"]},
 	"build-tap-door": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "tap_thing": ["tools:door", Vector3(-4.75, 0.6, -6.98)]},
 	"build-tap-door-ghost": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,

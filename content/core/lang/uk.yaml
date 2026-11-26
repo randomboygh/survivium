@@ -615,6 +615,7 @@
 "[d_n2]": "%s · %d° · д. %d · %02d:%02d"
 "[cut]": "Зріз\n%d"
 "[lv]": "Рів.\n%d"
+"[floor_n]": "Поверх\n%d"
 
 # src/client/ui/hud_layout.gd
 "[w]": "В"

@@ -75,6 +75,15 @@ func shape(base: Vector3, s: Array, color: Color, packed: Vector2) -> void:
 		indices.append(start + k)
 
 
+## Sets the blue of the colours from vertex `from` on to `blue` (the faces of a built cell,
+## ChunkMesher.mark_built).
+func set_blue(from: int, blue: float) -> void:
+	for k in range(from, colors.size()):
+		var c := colors[k]
+		c.b = blue
+		colors[k] = c
+
+
 func is_empty() -> bool:
 	return verts.is_empty()
 

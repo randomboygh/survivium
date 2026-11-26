@@ -875,6 +875,19 @@ func _run() -> void:
 	_check(streamer.manual_level == (top if top < main.world.size_y - 1 else -1),
 		"the level button up stops at the top of the reach: %d of %d" % [streamer.manual_level, top])
 	streamer.reset_view_level()
+	# In the build mode the level buttons step by floors as tall as the shape drawn, and the
+	# cut leaves natural ground whole (ChunkStreamer.build_floor, the user's picks 2026-11-27).
+	main.build.on = true
+	main.build.set_height(4)
+	streamer.shift_cut(1)
+	await process_frame
+	var floor_cut: int = streamer.build_cut
+	var floors_ok: bool = streamer.build_floor == 1 and floor_cut == streamer.ground_level + 1 + main.build.height \
+		and streamer.cut_level >= main.world.size_y and not streamer.layers_on and streamer.top_level() == floor_cut
+	main.build.on = false
+	await process_frame
+	_check(floors_ok and streamer.build_floor == 0 and streamer.build_cut == -1,
+		"the build mode's level buttons cut the floors over what is built, the cut goes on leaving it (%d)" % floor_cut)
 	# The map's zoom buttons are dimmed at the ends of the zoom.
 	var map = main.hud.map_view
 	var zoom_was: int = map.zoom_index

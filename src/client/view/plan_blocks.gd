@@ -39,6 +39,12 @@ var game
 var ghost: WorldData
 ## The drawn chunks by key (Vector2i), and those to mesh again.
 var _meshes := {}
+## The tops of the blocks cut by the level cut or the build cut of the floors
+## (ChunkStreamer.top_level), by chunk as `_meshes`: white caps (ChunkMesher.build_cap) in
+## the ghost's look, so a ghost wall cut through shows where it stands as a built one's dark
+## caps do (2026-11-27). The level they are for, -1 with no cut.
+var _caps := {}
+var _cap_level := -1
 var _dirty := {}
 ## The chunk being meshed and its key.
 var _job: ChunkMesher.Job
@@ -123,6 +129,9 @@ func _reset() -> void:
 	for key: Vector2i in _meshes:
 		_meshes[key].queue_free()
 	_meshes.clear()
+	for key: Vector2i in _caps:
+		_caps[key].queue_free()
+	_caps.clear()
 	_dirty.clear()
 	_job = null
 	_put(game.plans.cells.keys())
@@ -157,8 +166,15 @@ func _process(_delta: float) -> void:
 		return
 	_show_short()
 	var at := WorldData.chunk_key(floori(game.player.position.x / CELL), floori(game.player.position.z / CELL))
+	var level := _cut_level()
+	if level != _cap_level:
+		_cap_level = level
+		for key: Vector2i in _meshes.keys() + _caps.keys():
+			_cap(key)
 	for key: Vector2i in _meshes:
 		_meshes[key].visible = absi(key.x - at.x) <= RADIUS and absi(key.y - at.y) <= RADIUS
+		if _caps.has(key):
+			_caps[key].visible = _meshes[key].visible
 	var t0 := Time.get_ticks_usec()
 	while Time.get_ticks_usec() - t0 < BUDGET and _work(at):
 		pass
@@ -209,12 +225,41 @@ func _work(at: Vector2i) -> bool:
 	return false
 
 
+## The level the blocks are cut over (ChunkStreamer.top_level), -1 for none.
+func _cut_level() -> int:
+	var top: int = game.chunks.top_level()
+	return top if top >= 0 and top < game.world.size_y - 1 else -1
+
+
+## Builds again the caps of chunk `key` of the ghost world at the cut (drops them with no
+## cut or no blocks there).
+func _cap(key: Vector2i) -> void:
+	var mesh: ArrayMesh = null
+	if _cap_level >= 0 and _meshes.has(key) and ghost.has_chunk(key):
+		mesh = ChunkMesher.build_cap(ghost, _cap_level, key.x * CHUNK, key.y * CHUNK, CHUNK, false, Color.WHITE)
+	var mi: MeshInstance3D = _caps.get(key)
+	if mesh == null:
+		if mi != null:
+			mi.queue_free()
+			_caps.erase(key)
+		return
+	if mi == null:
+		mi = MeshInstance3D.new()
+		mi.material_override = _depth
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.extra_cull_margin = 16.0
+		add_child(mi)
+		_caps[key] = mi
+	mi.mesh = mesh
+
+
 ## Shows `mesh` for chunk `key` of the ghost world (drops it when null: no blocks).
 func _show(key: Vector2i, mesh: ArrayMesh) -> void:
 	if mesh == null:
 		if _meshes.has(key):
 			_meshes[key].queue_free()
 			_meshes.erase(key)
+		_cap(key)
 		return
 	var mi: MeshInstance3D = _meshes.get(key)
 	if mi == null:
@@ -225,3 +270,4 @@ func _show(key: Vector2i, mesh: ArrayMesh) -> void:
 		add_child(mi)
 		_meshes[key] = mi
 	mi.mesh = mesh
+	_cap(key)

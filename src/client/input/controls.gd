@@ -687,6 +687,12 @@ func pick(screen_pos: Vector2) -> Dictionary:
 	var ray := _ray(screen_pos)
 	var max_level: int = mini(game.chunks.cut_level, game.world.size_y - 1)
 	var chunks = game.chunks
+	if chunks.build_cut >= 0:
+		# The build cut of the floors: what is built above it is not there, natural ground is.
+		var top: int = chunks.build_cut
+		var w = game.world
+		var built_over := func(c: Vector3i) -> bool: return c.y > top and not w.is_natural(c.x, c.y, c.z)
+		return VoxelRaycast.cast(game.world, ray[0], ray[1], 500.0, max_level, built_over)
 	if chunks.layers_on:
 		# The view in layers: a cell mostly dithered away lets the finger through to
 		# what shows behind it.
@@ -856,7 +862,7 @@ func ghost_at(pos: Vector2) -> Variant:
 	var hit := pick(pos)
 	var far := INF if hit.is_empty() else _enter(o, d, hit.cell)
 	var best: Variant = null
-	var top: int = game.chunks.cut_level
+	var top: int = game.chunks.top_level()
 	for c: Vector3i in cells:
 		if c.y > top or Plans.is_mark(cells[c]):
 			continue
@@ -880,7 +886,7 @@ func pick_planned(pos: Vector2) -> Dictionary:
 	var d: Vector3 = ray[1]
 	var far := INF if hit.is_empty() else _enter(o, d, hit.cell)
 	var best: Variant = null
-	var top: int = game.chunks.cut_level
+	var top: int = game.chunks.top_level()
 	for c: Vector3i in game.plans.cells:
 		if c.y <= top and game.plans.block_at(c):
 			var t := _enter(o, d, c)
@@ -903,7 +909,7 @@ func ghost_thing_at(pos: Vector2) -> Dictionary:
 	var hit := pick(pos)
 	var far := INF if hit.is_empty() else _enter(o, d, hit.cell)
 	var best := {}
-	var top: int = game.chunks.cut_level
+	var top: int = game.chunks.top_level()
 	for t: Dictionary in game.plans.things:
 		for c: Vector3i in t.cells:
 			if c.y > top:
@@ -928,7 +934,7 @@ func placed_at(pos: Vector2) -> Dictionary:
 	var hit := pick(pos)
 	var far := INF if hit.is_empty() else _enter(o, d, hit.cell)
 	var best := {}
-	var top: int = game.chunks.cut_level
+	var top: int = game.chunks.top_level()
 	var me: Vector3 = game.player.position + Vector3(0.0, 0.5, 0.0)
 	for e: Dictionary in game.placed.things + game.placed.lights:
 		if game.placed.center(e).distance_to(me) > WorldActions.HAND_REACH:
@@ -1058,7 +1064,7 @@ func mend(cell: Vector3i) -> bool:
 ## `normal`, below the cut (see WorldActions.place_at). Returns how many were placed.
 func place_at(center: Vector3i, normal: Vector3i) -> int:
 	_wait_reply()
-	var r = game.net.request(Protocol.PLACE, [center, normal, game.chunks.cut_level]).then(_did)
+	var r = game.net.request(Protocol.PLACE, [center, normal, game.chunks.top_level()]).then(_did)
 	return r.value.get("placed", 0) if r.done and r.value is Dictionary else 0
 
 
@@ -1071,7 +1077,7 @@ func _wait_reply() -> void:
 
 
 func _can_place(cell: Vector3i) -> bool:
-	return game.actions.can_place(game.character, cell, game.chunks.cut_level)
+	return game.actions.can_place(game.character, cell, game.chunks.top_level())
 
 
 ## The action button: works in front of the player with the hand in use (see

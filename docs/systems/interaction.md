@@ -344,7 +344,16 @@ lies around. The rules are shared (the server checks them), input and hints are 
   of for the blueprint near (`BuildMode.short_blocks`, `short_of`) tinted `PlanBlocks.SHORT_TINT`, a soft red milder
   than the red of digging (the shader's `ghost_short` bits by material; things get a second material); the farm
   marking — a square on the cell's top face in the colour of the work and a sign inside (furrows, a sprout, a drop,
-  a cross). The blueprint is seen only in build mode, the marking only in farm mode.
+  a cross). The blueprint is seen only in build mode, the marking only in farm mode. The blocks cut by the level cut
+  or the build cut of the floors show their tops at the cut (`PlanBlocks._caps`: `ChunkMesher.build_cap` of the
+  ghost world, white, in the ghost's look), as a built wall's dark caps do.
+- The build cut of the floors (2026-11-27, the building UX's PR 9): in build mode the level buttons (and Q / E)
+  step by floors as tall as the shape drawn (`ChunkStreamer.build_floor`, `build_level`: over each floor as high as
+  the cut under a roof is over the feet, anywhere in the world, `floors_range`; `can_shift`); the label reads
+  «Этаж N» (`[floor_n]`, 1 the player's floor). Only what is built is cut (`build_cut`, see
+  `docs/systems/rendering/rules.md`); natural ground, trees, plants and creatures stay. A finger passes through the
+  built cells above (`Controls.pick` skips them), and the requests that take the cut get `ChunkStreamer.top_level`.
+  Leaving build mode (or the first-person view) brings the ordinary cut back.
 
 - `src/client/game/gathering.gd` — what a touch gathers and the hint for it, picking up near the player (a
   beast's body lying is hit round its middle, `BODY_UP`, `BODY_GROW` px farther).

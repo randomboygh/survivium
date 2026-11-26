@@ -254,6 +254,15 @@ var work_us := {}
 var _whole := false
 
 var cut_level := -1
+## The build mode's cut of the floors (the level buttons in the build mode, BuildMode): how
+## many floors up (down if negative) from the player's the view looks at, a floor as tall as
+## the shape drawn (BuildMode.height); 0 for none, the ordinary cut. Only what is built is
+## cut there (ChunkMesher.BUILT_BLUE), never natural ground (the user's pick, 2026-11-26).
+var build_floor := 0
+## The level the floors are cut over (built cells above it are left out), -1 for none.
+var build_cut := -1
+## Added to cap_level() for caps over built cells only (the build cut's).
+const BUILT_CAPS := 1 << 16
 ## The solid cells round the player, for the rock the view in layers fills in.
 var solid := SolidMap.new()
 var _depth_steps := Vector4.ZERO
@@ -1503,8 +1512,12 @@ func update_cut(_delta: float) -> void:
 			manual_level = -1
 		else:
 			manual_level = maxi(manual_level, reach.x)
+	var floors := build_level(level)
 	if game.view.first_person:
 		# The eyes see what is round them: nothing cut away, no layers.
+		manual_level = -1
+	elif floors >= 0:
+		# The build cut of the floors: natural ground stays whole, no layers.
 		manual_level = -1
 	elif manual_level >= 0:
 		target = manual_level
@@ -1520,13 +1533,17 @@ func update_cut(_delta: float) -> void:
 		# nothing (a ravine running along the view) open nothing either.
 		target = hidden_by - 1
 	_update_depth()
-	var opened: bool = manual_level < 0 and target < world.size_y and not game.view.first_person
+	var opened: bool = manual_level < 0 and target < world.size_y and not game.view.first_person and floors < 0
 	# Where the automatic cut would cut the view, the layers open it instead and fill
 	# what they leave out with the rock's section, by the solid cells round the player.
 	_update_layers(opened, at)
 	if layers_on:
 		solid.update(world, px, level, pz)
 		target = world.size_y
+	if floors != build_cut:
+		build_cut = floors
+		RenderingServer.global_shader_parameter_set("build_cut", 1000.0 if floors < 0 else (floors + 1) * CELL)
+		_hide_caps()
 	cut_target = target
 	if target == cut_level:
 		return
@@ -1588,8 +1605,50 @@ func _rises_behind(x: int, level: int, z: int) -> bool:
 	return false
 
 
+## The level the build mode's cut of the floors cuts built cells over for a player standing
+## on `level`, -1 for none (out of the build mode, or on the player's own floor): as high
+## over each floor as the ordinary cut under a roof is over the feet (the floor and the
+## body's two cells show), within view_range.
+func build_level(level: int) -> int:
+	if build_floor == 0 or game.build == null or not game.build.on or game.view.first_person:
+		build_floor = 0
+		return -1
+	var reach := floors_range()
+	return clampi(level + 1 + build_floor * floor_height(), reach.x, reach.y)
+
+
+## The levels the cut of the floors may lie on: anywhere in the world (natural ground is
+## never cut, so a floor far up or down shows only what is built there).
+func floors_range() -> Vector2i:
+	return Vector2i(1, world.size_y - 2)
+
+
+## How tall a floor is for the build cut: the height of the shape drawn.
+func floor_height() -> int:
+	return maxi(1, game.build.height)
+
+
+## Whether the level buttons step by floors (in the build mode, not in first person).
+func by_floors() -> bool:
+	return game.build != null and game.build.on and not game.view.first_person
+
+
+## The highest level a built thing shows on, what the finger can touch (the cut of the
+## floors, or the ordinary cut).
+func top_level() -> int:
+	return mini(cut_level, build_cut) if build_cut >= 0 else cut_level
+
+
 func shift_cut(d: int) -> void:
 	if world == null:
+		return
+	if by_floors():
+		# A floor at a time while the next one is within reach (see build_level).
+		var reach := floors_range()
+		var next := ground_level + 1 + (build_floor + d) * floor_height()
+		if next >= reach.x and next <= reach.y or build_floor + d == 0:
+			build_floor += d
+		manual_level = -1
 		return
 	var reach := view_range()
 	# The view stays at the ends of the reach (the level button goes back to the
@@ -1629,17 +1688,34 @@ func view_range() -> Vector2i:
 ## Back to the automatic cut that follows the player.
 func reset_view_level() -> void:
 	manual_level = -1
+	build_floor = 0
+
+
+## Whether level button `d` (1 up, -1 down) has somewhere to go.
+func can_shift(d: int) -> bool:
+	if by_floors():
+		var reach := floors_range()
+		var floor_at := ground_level + 1 + (build_floor + d) * floor_height()
+		return build_floor + d == 0 or floor_at >= reach.x and floor_at <= reach.y
+	var view := view_range()
+	var next := cut_base() + d
+	return next >= view.x and next <= view.y
 
 
 func _apply_cut() -> void:
 	var h := 1000.0 if cut_level >= world.size_y else (cut_level + 1) * CELL
 	RenderingServer.global_shader_parameter_set("cut_height", h)
 	# The caps follow in update_caps, nearest chunk first; with no cut they go at once.
-	if cut_level >= world.size_y - 1:
-		for key in cap_levels:
-			cap_nodes[key].visible = false
-		cap_levels.clear()
-		_caps_ready = -1
+	if cap_level() < 0:
+		_hide_caps()
+
+
+## Hides the caps of the cut; update_caps builds them again for a new cut.
+func _hide_caps() -> void:
+	for key in cap_levels:
+		cap_nodes[key].visible = false
+	cap_levels.clear()
+	_caps_ready = -1
 
 
 ## How much darker each level under the sea's surface gets (depth_steps.x, the test
@@ -1662,7 +1738,10 @@ func _update_layers(on: bool, at: Vector3i) -> void:
 
 
 ## The level the caps of the cut lie on, -1 for none.
+## Over built cells only (the build cut of the floors), plus BUILT_CAPS.
 func cap_level() -> int:
+	if build_cut >= 0:
+		return build_cut + BUILT_CAPS if build_cut < world.size_y - 1 else -1
 	if cut_level >= world.size_y - 1:
 		return -1
 	return cut_level
@@ -1726,7 +1805,8 @@ func update_caps() -> void:
 			game.world_root.add_child(node)
 			cap_nodes[key] = node
 		game.hud.perf.mark("cut")
-		var mesh: Mesh = ChunkMesher.build_cap(world, want, key.x * CHUNK, key.y * CHUNK, CHUNK)
+		var mesh: Mesh = ChunkMesher.build_cap(world, want % BUILT_CAPS, key.x * CHUNK, key.y * CHUNK, CHUNK,
+			want >= BUILT_CAPS)
 		var kept: Dictionary = cap_cache.get(key, {})
 		if kept.size() >= CAP_KEPT:
 			kept.erase(kept.keys()[0])

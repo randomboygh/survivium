@@ -212,6 +212,8 @@ func _run() -> void:
 			main.player.position = places.furniture(main.world, main.player.position)
 		if shot.get("build_room", false):
 			main.player.position = places.build_room(main.world, main.player.position)
+		if shot.get("two_floors", false):
+			main.player.position = places.two_floors(main.world, main.player.position, shot.get("upper", false))
 		if shot.get("plan", false):
 			main.player.position = places.plan(main.world, main.player.position)
 		if shot.has("ceiling"):
@@ -1372,6 +1374,11 @@ func _run() -> void:
 					await process_frame
 			for i in 3:
 				await process_frame
+			if shot.has("build_floor"):
+				# The level buttons stepped by floors (ChunkStreamer.build_floor).
+				main.chunks.build_floor = shot.build_floor
+				for i in 30:
+					await process_frame
 			if not shot.has("flights") and shot.get("stroke", true):
 				main.build.show_stroke(s)
 				# On a touch screen the cursor goes CURSOR_TIME after the last touch: kept here,

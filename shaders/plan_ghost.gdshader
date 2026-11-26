@@ -19,7 +19,7 @@ void vertex() {
 }
 
 void fragment() {
-	if (above_cut(world_pos)) {
+	if (above_cut(world_pos) || above_build_cut(world_pos)) {
 		discard;
 	}
 	ALBEDO = COLOR.rgb;

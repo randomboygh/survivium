@@ -39,6 +39,8 @@ var out_fire := {}
 ## Where build_room stands its room, found by the first shot that wants it.
 var _room_spot := Vector3i.ZERO
 var _room_found := false
+var _house_spot := Vector3i.ZERO
+var _house_found := false
 ## The cell of the sign written in front of the player (signs).
 var sign_cell := Vector3i.ZERO
 
@@ -1069,6 +1071,50 @@ func build_room(w, at: Vector3) -> Vector3:
 		for dz in range(-24, 17, 8):
 			main.chunks.on_cell_changed(a + Vector3i(4 + dx, 0, 3 + dz))
 	return (Vector3(a + Vector3i(7, 0, 6)) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
+## A house of two floors for the build cut of the floors (2026-11-27) on flat ground near
+## `at`: two rooms of brick 9×7, each five levels high as the build mode's room (a floor of
+## planks, walls three high, a ceiling of planks), the upper one on the lower one's
+## ceiling, a doorway in each south wall, a blueprint's ghost wall on the upper floor. The
+## trees round stay (natural, never cut). Returns where the player stands: inside the
+## lower room, or the upper one (`upper`).
+func two_floors(w, at: Vector3, upper := false) -> Vector3:
+	# Found once a run, like build_room's.
+	if not _house_found:
+		_house_spot = Vector3i((flat_near(w, at) / CELL).floor())
+		_house_found = true
+	var spot := _house_spot
+	var planks: int = maxi(Mat.index("materials:planks"), Mat.STONE)
+	var brick: int = maxi(Mat.index("materials:brick"), Mat.STONE)
+	var a := spot + Vector3i(-4, 0, -5)
+	for x in range(a.x, a.x + 9):
+		for z in range(a.z, a.z + 7):
+			for y in range(a.y, a.y + 12):
+				w.set_cell(x, y, z, Mat.AIR)
+	for k in 2:
+		var y0 := a.y + 5 * k
+		for x in range(a.x, a.x + 9):
+			for z in range(a.z, a.z + 7):
+				w.set_cell(x, y0, z, planks)
+				w.set_cell(x, y0 + 4, z, planks)
+				var edge := x == a.x or x == a.x + 8 or z == a.z or z == a.z + 6
+				var door := z == a.z + 6 and x == a.x + 4
+				for y in range(y0 + 1, y0 + 4):
+					if edge and not (door and y < y0 + 3):
+						w.set_cell(x, y, z, brick)
+	var plans = main.session.plans
+	var ghost: Array = []
+	for z in range(a.z + 1, a.z + 6):
+		for y in range(a.y + 6, a.y + 9):
+			var c := Vector3i(a.x + 4, y, z)
+			plans.cells[c] = "materials:planks"
+			ghost.append(c)
+	plans.changed.emit(ghost, "materials:planks")
+	for dx in range(-16, 17, 8):
+		for dz in range(-16, 17, 8):
+			main.chunks.on_cell_changed(a + Vector3i(4 + dx, 0, 3 + dz))
+	return (Vector3(a + Vector3i(6, 6 if upper else 1, 4)) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
 ## The blueprint on flat ground near `at` (Plans): a room of planks 7×6 three levels high

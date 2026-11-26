@@ -615,6 +615,7 @@
 "[d_n2]": "%s · %d° · j. %d · %02d:%02d"
 "[cut]": "Coupe\n%d"
 "[lv]": "Niv.\n%d"
+"[floor_n]": "Étage\n%d"
 
 # src/client/ui/hud_layout.gd
 "[w]": "P"

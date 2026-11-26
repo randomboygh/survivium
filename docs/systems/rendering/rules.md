@@ -56,6 +56,13 @@ Part of [The picture](../rendering.md). The rules a change of the picture keeps.
   (`WINDOW_IN`..`WINDOW_OUT`). The shaders hide only through the shared functions of `common.gdshaderinc`:
   `above_cut` / `cut_hides` and `gone_above` (small things: grass, particles, rays — by the same ghost as the
   ground: the slice removes nothing from the surface).
+- The build cut of the floors (build mode, `ChunkStreamer.build_cut`, the global `build_cut`, 1000 for none):
+  only what is built is left out above it, at once, with no ghost: the faces of a cell the generator did not leave
+  in place (not `WorldData.WILD`) carry `ChunkMesher.BUILT_BLUE` in the vertex colour's blue (the shader takes
+  the red for it; plain tops of built and natural cells are never one quad, `PLAIN_BUILT`), and `world.gdshader`
+  discards them and the things of voxels above `build_cut` (`above_build_cut`; snow drifts stay); the plan
+  shaders too. Natural ground, trees, grass, water and sprites are not cut; the ordinary cut and the layers are
+  off meanwhile. Its caps close only built cells (`build_cap(..., built)`, `ChunkStreamer.BUILT_CAPS`).
 - The cave view is one — layers (`src/client/view/cave_layers.gd`; decision 168: the «slice of levels», the
   «cut by the camera» and the «sphere» were removed together with the setting «Cave view» `cave_mode`, saved
   old values are not read, everyone has layers). Where an automatic slice would cut the view (under a roof;
