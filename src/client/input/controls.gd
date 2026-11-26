@@ -158,6 +158,14 @@ func unhandled_input(event: InputEvent) -> void:
 		var key: int = event.physical_keycode
 		if key >= KEY_1 and key < KEY_1 + Inventory.HOTBAR:
 			select_slot(key - KEY_1)
+		# Undo and redo of the blueprint in the build mode (Ctrl+Z; Ctrl+Y, Ctrl+Shift+Z); the
+		# plain keys keep their own work.
+		if game.build.on and event.is_command_or_control_pressed() and key in [KEY_Z, KEY_Y]:
+			if key == KEY_Z and not event.shift_pressed:
+				game.build.undo()
+			else:
+				game.build.redo()
+			return
 		match key:
 			KEY_Q, KEY_PAGEDOWN:
 				game.chunks.shift_cut(-1)

@@ -3,6 +3,7 @@ extends "res://tests/unit/test_case.gd"
 ## cell from the bag with the action button, and its save.
 
 const Plans := preload("res://src/shared/game/plans.gd")
+const PlanHistory := preload("res://src/shared/game/plan_history.gd")
 const PLANKS := "materials:planks"
 
 
@@ -20,6 +21,7 @@ func run() -> void:
 	_test_turn_form()
 	_test_flatten()
 	_test_ghost_things()
+	_test_undo()
 
 
 func _test_shapes() -> void:
@@ -510,3 +512,105 @@ func _test_ghost_things() -> void:
 	who.item = PLANKS
 	_check(plans.draw(actions, who, "line", Vector3i(4, 1, 12), Vector3i(8, 1, 12), 1, 1, true) >= 1 and plans.things.is_empty(),
 		"and so does an erasing stroke over them")
+
+
+## Undo and redo of the blueprint (PlanHistory; the user's picks of 2026-11-26, 1А 2А).
+func _test_undo() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+	var placed := Placed.new()
+	placed.world = w
+	placed.read_footprints()
+	var plans := Plans.new()
+	placed.plans = plans
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	actions.plans = plans
+	var who := Builder.new()
+	who.placed = placed
+	who.position = Vector3(14.5, 1.0, 14.5) * WorldData.CELL
+	who.item = PLANKS
+	var h := PlanHistory.new(plans)
+	var step := func(work: Callable) -> Variant:
+		h.begin()
+		var out: Variant = work.call()
+		h.end()
+		return out
+	_check(h.undo(actions, who) == 0 and h.redo(actions, who) == 0, "nothing to undo or redo at first")
+	step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(10, 1, 20), Vector3i(14, 1, 20), 2))
+	_check(plans.cells.size() == 10 and h.undos.size() == 1, "a wall drawn is one step")
+	step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(30, 1, 20), Vector3i(30, 1, 20), 1, 1, true))
+	_check(h.undos.size() == 1, "a request that changed nothing is no step")
+	_check(h.undo(actions, who) == 10 and plans.cells.is_empty() and h.redos.size() == 1, "undone: its ghost goes")
+	_check(h.redo(actions, who) == 10 and plans.cells.size() == 10 and h.undos.size() == 1 and h.redos.is_empty(),
+		"redone: it comes back")
+	# Erasing part of it, undone, brings that part back.
+	step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(10, 1, 20), Vector3i(11, 1, 20), 2, 1, true))
+	_check(plans.cells.size() == 6, "(part erased)")
+	_check(h.undo(actions, who) == 4 and plans.cells.size() == 10, "an erase undone puts the ghost back")
+	_check(h.redo(actions, who) == 4 and plans.cells.size() == 6, "and redone takes it off again")
+	h.undo(actions, who)
+	# A cell built meanwhile (gone from the blueprint) and one drawn over by someone else stay.
+	plans.erase(actions, who, [Vector3i(14, 1, 20)])
+	w.set_cell(14, 1, 20, Mat.index(Items.get_item(PLANKS).place))
+	plans.cells[Vector3i(14, 2, 20)] = "materials:cobblestone"
+	_check(h.undo(actions, who) == 8 and plans.cells.size() == 1 and plans.cells.get(Vector3i(14, 2, 20)) == "materials:cobblestone",
+		"undo leaves a cell built meanwhile and one changed since: %s" % [plans.cells])
+	plans.cells.clear()
+	plans.forms.clear()
+	_check(h.redo(actions, who) == 9 and plans.cells.size() == 9, "redo puts back what is still as it was undone, not a ghost on the block built")
+	# A new step lets the undone ones go.
+	h.undo(actions, who)
+	step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(10, 1, 22), Vector3i(12, 1, 22), 1))
+	_check(h.redos.is_empty(), "a new step lets the steps undone go")
+	# At most MAX steps.
+	for i in PlanHistory.MAX + 5:
+		var x := 2 + i % 30
+		var z := 2 + 2 * (i / 30)
+		step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(x, 1, z), Vector3i(x, 1, z), 1))
+	_check(h.undos.size() == PlanHistory.MAX, "at most %d steps are kept: %d" % [PlanHistory.MAX, h.undos.size()])
+	h.undos.clear()
+	plans.cells.clear()
+	plans.forms.clear()
+	# A slope turned, undone.
+	step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(20, 1, 10), Vector3i(20, 1, 10), 1, 1, false,
+		WorldData.FORM_RAMP))
+	var slope := Vector3i(20, 1, 10)
+	var form0: int = plans.forms.get(slope, 0)
+	step.call(func() -> int: return plans.turn_form(actions, who, slope))
+	_check(form0 != 0 and plans.forms[slope] != form0, "(a slope drawn and turned)")
+	_check(h.undo(actions, who) == 1 and plans.forms[slope] == form0, "a slope's turn is undone")
+	_check(h.redo(actions, who) == 1 and plans.forms[slope] != form0, "and redone")
+	# Ghost things: a door set into a ghost wall, moved, taken off; «clear».
+	who.inventory.add("tools:door", 1)
+	who.inventory.add("tools:stool", 1)
+	step.call(func() -> int: return plans.draw(actions, who, "line", Vector3i(8, 1, 30), Vector3i(20, 1, 30), 3))
+	var wall: Dictionary = plans.cells.duplicate()
+	step.call(func() -> bool: return plans.put_thing(actions, who, "tools:door", Vector3i(12, 1, 30), -1, false, 0))
+	var door: Dictionary = plans.thing_at(Vector3i(12, 1, 30))
+	_check(not door.is_empty() and not plans.cells.has(Vector3i(12, 1, 30)), "(a ghost door in the ghost wall)")
+	_check(h.undo(actions, who) == 3 and plans.things.is_empty() and plans.cells == wall, "a ghost door undone: the wall is whole again")
+	_check(h.redo(actions, who) == 3 and plans.things.size() == 1 and not plans.cells.has(Vector3i(12, 1, 30))
+		and plans.thing_at(Vector3i(12, 2, 30)).wall.size() == 2, "redone: it is back in the wall, its wall kept")
+	door = plans.thing_at(Vector3i(12, 1, 30))
+	step.call(func() -> bool: return plans.move_thing(actions, who, door.cell, Vector3i(15, 1, 30), door.turn, 0))
+	_check(not plans.thing_at(Vector3i(15, 1, 30)).is_empty() and plans.cells.has(Vector3i(12, 1, 30)), "(moved along the wall)")
+	_check(h.undo(actions, who) > 0 and not plans.thing_at(Vector3i(12, 1, 30)).is_empty() and plans.thing_at(Vector3i(15, 1, 30)).is_empty()
+		and plans.cells.has(Vector3i(15, 1, 30)) and not plans.cells.has(Vector3i(12, 1, 30)), "a move undone puts it back where it was")
+	step.call(func() -> bool: return plans.put_thing(actions, who, "tools:stool", Vector3i(14, 1, 16)))
+	var cells_before: Dictionary = plans.cells.duplicate()
+	var things_before := plans.things.map(func(t: Dictionary) -> String: return str([t.item, t.cell, t.turn]))
+	step.call(func() -> int: return plans.clear(actions, who))
+	_check(plans.cells.is_empty() and plans.things.is_empty(), "(cleared)")
+	h.undo(actions, who)
+	var things_after := plans.things.map(func(t: Dictionary) -> String: return str([t.item, t.cell, t.turn]))
+	things_before.sort()
+	things_after.sort()
+	_check(plans.things.size() == 2 and things_after == things_before and plans.cells == cells_before,
+		"«clear» undone brings every ghost back")
+	# Out of reach: the step stays, the player is told.
+	who.position = Vector3(14.5, 1.0, 400.5) * WorldData.CELL
+	var steps := h.redos.size()
+	_check(h.redo(actions, who) == -1 and h.redos.size() == steps and who.said.any(func(s: String) -> bool: return s.contains("closer")),
+		"a step far off is not done; it waits, and the player is told")

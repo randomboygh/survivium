@@ -210,6 +210,19 @@ func _test_requests() -> void:
 		and req._rule(Protocol.PLAN_THING_TAKE, ["x"]) == null and req._rule(Protocol.PLAN_THING_TAKE, []) == null,
 		"nor moved turned or by a face out of bounds, nor by a cell that is none")
 	p[0].plans.drop_thing(ghost)
+	# Undo and redo (PlanHistory): no args, not of another player, not far off.
+	_check(req._rule(Protocol.PLAN_UNDO, [0]) == null and req._rule(Protocol.PLAN_REDO, ["x"]) == null
+		and req._rule(Protocol.PLAN_UNDO, []) == 0 and not req.PACED.has(Protocol.PLAN_UNDO),
+		"undo and redo take no args, and do nothing with nothing done")
+	var other = p[0].plans
+	req.history.begin()
+	other.cells[far_ghost] = "materials:planks"
+	other.changed.emit([far_ghost], "materials:planks")
+	req.history.end()
+	_check(req._rule(Protocol.PLAN_UNDO, []) == -1 and other.cells.has(far_ghost) and req.history.undos.size() == 1,
+		"a step out of reach is not undone")
+	other.cells.erase(far_ghost)
+	req.history.undos.clear()
 	var far_rain: Dictionary = p[0].placed.put("tools:rain_catcher", Vector3i(30, 2, 30))
 	far_rain.water = 100.0
 	a.vitals.water = 10.0

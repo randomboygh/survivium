@@ -3,7 +3,7 @@ extends RefCounted
 ## player's character (the bag, the body's state, death) and workshop, the things placed
 ## on cells, the clock and the animals, fed by the server's events (Protocol.YOU, VITALS,
 ## KNOWLEDGE, SKILLS, SHOP, SAY, MADE, DROPS, TELEPORT, KNOCK, PUSH; PROPS, PROP, PROP_GONE,
-## PROP_LIT, PROP_OPENED, PROP_FUEL, PROP_WATER, PROP_MELT, CHEST; PLANS, PLAN_CELLS, GHOST_THING, GHOST_THING_GONE (`game.plans`); CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
+## PROP_LIT, PROP_OPENED, PROP_FUEL, PROP_WATER, PROP_MELT, CHEST; PLANS, PLAN_CELLS, GHOST_THING, GHOST_THING_GONE (`game.plans`); PLAN_HISTORY (`game.build`); CLOCK; ANIMAL, ANIMAL_GONE, SNAP, STEP; PEOPLE, PERSON_GONE (the other
 ## players, `game.others`); TEAM, INVITES, MATES (`game.team`); CLAIMS, SQUARES, LAND (`game.land`); FIGHT (`game.team`); HEARD (the chat, `game.hud.chat`, and the line over the
 ## speaker's head); NOTED (the server's notices to its host, `game.hud.server_note`); over a socket the world too:
 ## CHUNK, FORGET, CELLS, CRACKS, DROPS with the list, TAKEN, into `game.world_maker` (RemoteGen),
@@ -224,6 +224,9 @@ func _on_event(kind: String, args: Variant) -> void:
 		Protocol.GHOST_THING_GONE:
 			if args is Array and args.size() == 1 and args[0] is Vector3i:
 				game.plans.take_thing_gone(args[0])
+		Protocol.PLAN_HISTORY:
+			if args is Array and args.size() == 2 and args[0] is int and args[1] is int:
+				game.build.take_history(args[0], args[1])
 		Protocol.PROP_OPENED:
 			if args is Array and args.size() == 2 and args[0] is Vector3i:
 				game.placed.take_open(args[0], bool(args[1]))

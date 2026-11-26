@@ -52,6 +52,9 @@ var _height: Button
 var _thick: Button
 var _mode: Button
 var _clear: Button
+## Undo and redo of the blueprint (BuildMode.undo, redo), dimmed with nothing to do.
+var _undo: Button
+var _redo: Button
 ## The mode's action on a PC (the touch screen's action button, F): starts the work of the
 ## whole blueprint or the marks near, a second press stops it.
 var _go: Button
@@ -122,6 +125,14 @@ func _make_panel(panel: HBoxContainer) -> void:
 	sizes.add_child(_height)
 	sizes.add_child(_thick)
 	panel.add_child(sizes)
+	# Undo and redo of the blueprint, beside the eraser (the user's pick, 2026-11-26, 2А).
+	var history := TabRow.split([
+		[UiStyle.icon("undo"), "[undo_ctrl_z]", func() -> void: game.build.undo()],
+		[UiStyle.icon("redo"), "[redo_ctrl_y]", func() -> void: game.build.redo()],
+	])
+	_undo = history.get_child(0)
+	_redo = history.get_child(1)
+	panel.add_child(history)
 	var marks := TabRow.split([
 		[UiStyle.icon("build_draw"), "", func() -> void: game.build.set_erasing(not game.build.erasing)],
 		[UiStyle.icon("trash"), "[remove_all_blueprints_nearby_press]", _tap_clear],
@@ -132,7 +143,7 @@ func _make_panel(panel: HBoxContainer) -> void:
 	_add_go(panel)
 	var leave := TabRow.icon_button(UiStyle.icon("close"), "[leave_build_mode_b]", func() -> void: game.build.leave())
 	panel.add_child(leave)
-	for b: Button in [_shape, _flatten, _form, _mode, _clear, leave]:
+	for b: Button in [_shape, _flatten, _form, _undo, _redo, _mode, _clear, leave]:
 		b.custom_minimum_size = Vector2(BUTTON, BUTTON)
 
 
@@ -295,7 +306,15 @@ func _show_panel() -> void:
 	_mode.tooltip_text = "[erasing_the_blueprint_press_to]" if b.erasing else "[drawing_the_blueprint_press_to]"
 	TabRow.light(_mode, b.erasing, b.erasing)
 	_light_clear(_clear, _asks.armed == _clear)
+	_dim(_undo, b.undos == 0)
+	_dim(_redo, b.redos == 0)
 	_show_go()
+
+
+## Dims the picture of button `b` with nothing to do, and lets it not be pressed.
+static func _dim(b: Button, off: bool) -> void:
+	b.disabled = off
+	b.add_theme_color_override("icon_disabled_color", Color(1, 1, 1, 0.35))
 
 
 ## Shows the palette anew: the mode's items, the chosen one marked.

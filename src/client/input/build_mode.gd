@@ -267,6 +267,31 @@ func next_thick() -> void:
 	changed.emit()
 
 
+## How many changes of the player's blueprint can be undone and redone (the server's
+## PlanHistory, Protocol.PLAN_HISTORY): the bar's ↶ ↷ are dimmed at 0.
+var undos := 0
+var redos := 0
+
+
+## The server told how many changes can be undone and redone.
+func take_history(u: int, r: int) -> void:
+	undos = maxi(u, 0)
+	redos = maxi(r, 0)
+	changed.emit()
+
+
+## Undoes the last change of the blueprint (↶, Ctrl+Z; PlanHistory.undo).
+func undo() -> void:
+	if undos > 0:
+		game.net.request(Protocol.PLAN_UNDO, [])
+
+
+## Does the last change undone again (↷, Ctrl+Y or Ctrl+Shift+Z).
+func redo() -> void:
+	if redos > 0:
+		game.net.request(Protocol.PLAN_REDO, [])
+
+
 ## Takes the ghost off near the player.
 func clear() -> void:
 	game.net.request(Protocol.PLAN_CLEAR, [])

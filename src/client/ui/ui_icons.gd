@@ -1046,6 +1046,27 @@ const ICONS := {
 		"wmmmmw..",
 		"wwwwww..",
 	],
+	# The build mode's undo and redo of the blueprint: a hooked arrow back and forth.
+	"undo": [
+		"..w.....",
+		".ww.....",
+		"wwwwww..",
+		".ww...w.",
+		"..w....w",
+		".......w",
+		"......w.",
+		"....ww..",
+	],
+	"redo": [
+		".....w..",
+		".....ww.",
+		"..wwwwww",
+		".w...ww.",
+		"w....w..",
+		"w.......",
+		".w......",
+		"..ww....",
+	],
 	# Drawing the blueprint (a pencil) and taking it off (an eraser).
 	"build_draw": [
 		"......ww",

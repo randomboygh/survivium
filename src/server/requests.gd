@@ -25,6 +25,7 @@ const Items := preload("res://src/shared/content/items.gd")
 const WorldActions := preload("res://src/shared/game/world_actions.gd")
 const Placed := preload("res://src/shared/game/placed.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
+const PlanHistory := preload("res://src/shared/game/plan_history.gd")
 const Gestures := preload("res://src/shared/game/gestures.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const Cheats := preload("res://src/server/cheats.gd")
@@ -47,6 +48,10 @@ const PACED := [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.GATHER, P
 	Protocol.PLANT_AT, Protocol.PROP_PUT, Protocol.PROP_PUT_AT, Protocol.PROP_MOVE, Protocol.LIGHT_PUT, Protocol.BUILD,
 	Protocol.FARM_WORK, Protocol.VESSEL_LAUNCH, Protocol.SIGN_WRITE, Protocol.SIGN_TURN, Protocol.PROP_DRINK, Protocol.MEND]
 const WORK_AHEAD := 2.0
+## The requests of the build mode that change the blueprint: each one done is a step of the
+## player's undo (`history`, PlanHistory).
+const RECORDED := [Protocol.PLAN, Protocol.PLAN_TURN, Protocol.PLAN_CLEAR, Protocol.PLAN_THING,
+	Protocol.PLAN_THING_MOVE, Protocol.PLAN_THING_TAKE]
 ## The seconds a paced request that tells no swing costs (one set down, one sown).
 const WORK_STEP := 0.25
 ## Seconds between two mods put on the server by one player (Protocol.MOD_PUT): each is
@@ -100,6 +105,8 @@ var _put_pieces := 0
 var _put_bytes := PackedByteArray()
 var _put_got := 0
 var _put_at := -INF
+## The player's undo and redo of the blueprint (PlanHistory), while they are in the world.
+var history
 var _owed := 0.0
 var _owed_at := -1.0
 
@@ -108,6 +115,7 @@ func _init(s, w, shop) -> void:
 	session = s
 	who = w
 	workshop = shop
+	history = PlanHistory.new(s.plans)
 
 
 ## Answers request `msg`: the reply message.
@@ -132,7 +140,12 @@ func _do(kind: String, args: Array) -> Variant:
 		flagged.emit("pace", "%s: %.1f s of work ahead" % [kind, _owed])
 		return {} if kind in [Protocol.DIG, Protocol.PLACE, Protocol.FRONT, Protocol.MEND] else false
 	var tool_swing: float = who.tool().get("swing", WORK_STEP) if kind == Protocol.GATHER else WORK_STEP
+	var recorded := kind in RECORDED
+	if recorded:
+		history.begin()
 	var out: Variant = _rule(kind, args)
+	if recorded:
+		history.end()
 	if out == null:
 		flagged.emit("malformed", kind)
 	if out is Dictionary and out.has("swing") and who.haste != 1.0:
@@ -285,6 +298,12 @@ func _rule(kind: String, args: Array) -> Variant:
 		Protocol.PLAN_TURN:
 			if _fit(args, [TYPE_VECTOR3I]):
 				return session.plans.turn_form(actions, who, args[0])
+		Protocol.PLAN_UNDO:
+			if _fit(args, []):
+				return history.undo(actions, who)
+		Protocol.PLAN_REDO:
+			if _fit(args, []):
+				return history.redo(actions, who)
 		Protocol.PLAN_THING:
 			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_INT, TYPE_BOOL, TYPE_INT]) and args[2] >= 0 and args[2] < 4 \
 					and args[4] >= -1 and args[4] < 4:

@@ -561,6 +561,14 @@ func _test_requests() -> void:
 	host.flush(net)
 	_check(events.any(func(e: Array) -> bool: return e[0] == Protocol.GHOST_THING_GONE and e[1][0] == ghost_cell),
 		"which the client is told")
+	# Undo and redo through the server (PlanHistory), the counts told to the client.
+	events.clear()
+	_check(net.request(Protocol.PLAN_UNDO, []).value == 1 and s.plans.things.size() == 1, "taking the ghost thing off is undone")
+	host.flush(net)
+	_check(events.any(func(e: Array) -> bool: return e[0] == Protocol.PLAN_HISTORY and e[1][1] == 1),
+		"and the client is told there is one step to redo")
+	_check(net.request(Protocol.PLAN_REDO, []).value == 1 and s.plans.things.is_empty(), "and redone")
+	_check(net.request(Protocol.PLAN_UNDO, [1]).value == null, "an undo with args is refused")
 	_check(net.request(Protocol.FARM, ["dig", g0, g0, false, false]).value == null, "a farming work of no known kind is refused")
 	_check(net.request(Protocol.FARM, ["till", g0, g0 + Vector3i(2, 0, 0), false, false]).value is int,
 		"the farming mode's marks are drawn through the server")

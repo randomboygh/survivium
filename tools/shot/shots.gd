@@ -354,6 +354,14 @@ const SHOTS := {
 		"touch": true, "hide": ["chunks: grass"], "ghosts": "dragged"},
 	"build-ghosts-moved": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "ghosts": "moved"},
+	# Undo and redo (2026-11-26, the building UX's PR 4): a ghost wall drawn, undone by the
+	# bar's ↶, done again by its ↷.
+	"build-undo-drawn": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "undo": "drawn"},
+	"build-undo-undone": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "undo": "undone"},
+	"build-undo-redone": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "undo": "redone"},
 	"build-lone-stairs": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2]},
 	"build-lone-stairs-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,

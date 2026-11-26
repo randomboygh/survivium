@@ -155,6 +155,17 @@ lies around. The rules are shared (the server checks them), input and hints are 
   an older loader skips them), told to the copies by `GHOST_THING` / `GHOST_THING_GONE`. Requests
   `PLAN_THING` [item, aim, view turn, kept, face], `PLAN_THING_MOVE` [cell, to, turn, face], `PLAN_THING_TAKE`
   [cell].
+  Undo and redo (`plan_history.gd`, the user's picks of 2026-11-26, 1А 2А): each player's request that changes
+  the blueprint (`Requests.RECORDED`: `PLAN` drawing or erasing, `PLAN_TURN`, `PLAN_CLEAR`, `PLAN_THING`,
+  `PLAN_THING_MOVE`, `PLAN_THING_TAKE`) is one step of their own history (`Requests.history`, `begin` / `end`
+  round the request: the cells it touched, from the `changed` signal, with their item and form before and after,
+  and the ghost things that went and came, from `thing_changed`), `PlanHistory.MAX` 50 steps, a new step drops the
+  steps undone; building, farm marks and things set down at once are not in it. `PLAN_UNDO` / `PLAN_REDO` []
+  put a cell back only where it is still as the step left it (a ghost built or changed by someone else meanwhile
+  stays; no ghost goes on a block built meanwhile, `_fits`), only within `PLAN_REACH` and where the player may
+  build; a step with nothing within reach stays, with a line to the player (answer -1). The link tells the
+  client the counts (`PLAN_HISTORY` [undo, redo], `BuildMode.take_history`) to dim the bar's ↶ ↷. Kept while
+  the player is in the world (a reload keeps it), not saved.
   The same holds the farm mode's marking: the values of `cells` that are `is_mark` (`TILL`, `WATER`, `REAP`
   or the id of what is sown and planted) lie on the top ground cell (`surface` looks for it in the column ±
   `FARM_UP` / `FARM_DOWN` from the level of the touch); `farm_columns` — a line along the main direction or a
