@@ -381,6 +381,15 @@ const SHOTS := {
 		"touch": true, "hide": ["chunks: grass"], "pick": true},
 	"build-pick-brick": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "pick": Vector3(-7.5, 1.5, -3.5)},
+	# Replacing the material (BuildMode.replacing, the building UX's PR 8) along the brick
+	# wall north of the room's corner, planks in hand: the stroke held (the box, the blocks to
+	# replace lit), the wall marked, its two lower rows rebuilt of planks.
+	"build-replace-stroke": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "replace",
+		"touch": true, "hide": ["chunks: grass"]},
+	"build-replace-marked": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "replace", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "replace": "marked"},
+	"build-replace-built": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "replace", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "replace": "built"},
 	"build-lone-stairs": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2]},
 	"build-lone-stairs-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,

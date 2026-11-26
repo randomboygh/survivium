@@ -21,6 +21,7 @@ func run() -> void:
 	_test_turn_form()
 	_test_flatten()
 	_test_earthwork()
+	_test_replace()
 	_test_ghost_things()
 	_test_undo()
 
@@ -463,6 +464,66 @@ func _test_earthwork() -> void:
 		Plans.shape("line", Vector3i(30, 2, 30), Vector3i(34, 2, 30), 3, Vector2.INF, 1, ramp), ramp)
 	_check(fw.cut.is_empty() and fw.dig.is_empty() and fw.fill == [Vector3i(33, 1, 30)],
 		"a flight's dips are filled, the ground over it not cut: %s" % [fw])
+
+
+## Replacing the material (the user's idea 6, 2026-11-26): a stroke over a wall players built
+## marks its blocks of another material with the block in hand, keeping their forms; natural
+## ground and blocks of that material are left; ghost blocks in the box are repainted. The
+## action button swaps an old block (to the bag) for the new one in one work, with the new one
+## in the bag and a tool for the old.
+func _test_replace() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+			w.set_natural(x, 1, z, true)
+	# The wall is of brick (knocked out with a pickaxe), replaced by planks (`fresh`).
+	var old := Mat.index("materials:brick")
+	var fresh := PLANKS
+	# A brick wall two high along z 10, x 10..13, its top east cell a ramp; a natural stone
+	# at x 14; a planks block at x 12 level 2; a ghost of brick over the wall.
+	for x in range(10, 14):
+		for y in [2, 3]:
+			w.set_cell(x, y, 10, old)
+	w.set_form(13, 3, 10, WorldData.FORM_RAMP)
+	w.set_cell(12, 2, 10, Mat.index(fresh))
+	w.set_cell(14, 2, 10, Mat.STONE)
+	w.set_natural(14, 2, 10, true)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var plans := Plans.new()
+	actions.plans = plans
+	var who := Who.new()
+	who.position = Vector3(12.5, 2.0, 12.5) * WorldData.CELL
+	who.item = fresh
+	plans.cells[Vector3i(11, 4, 10)] = "materials:brick"
+	var n := plans.draw(actions, who, "line", Vector3i(10, 2, 10), Vector3i(14, 2, 10), 3, 1, false, 0, false, true)
+	_check(n == 8 and plans.cells.get(Vector3i(10, 2, 10)) == fresh and plans.cells.get(Vector3i(13, 3, 10)) == fresh
+		and plans.cells.get(Vector3i(11, 4, 10)) == fresh and not plans.cells.has(Vector3i(12, 2, 10))
+		and not plans.cells.has(Vector3i(14, 2, 10)) and not plans.cells.has(Vector3i(10, 1, 10)),
+		"the brick blocks and the ghost are marked planks; planks, natural stone and ground left: %d %s" % [n, plans.cells])
+	_check(plans.forms.get(Vector3i(13, 3, 10)) == WorldData.FORM_RAMP and not plans.forms.has(Vector3i(10, 2, 10)),
+		"a replaced slope keeps its form: %s" % [plans.forms])
+	plans.build(actions, who)
+	_check(w.get_cell(10, 2, 10) == old, "with no planks in the bag nothing is swapped")
+	who.inventory.add(fresh, 10)
+	for i in 3:
+		plans.build(actions, who)
+	_check(w.get_cell(10, 2, 10) == old and who.inventory.count(fresh) == 9,
+		"with no tool for brick nothing is swapped (the ghost over the wall is built): %d" % who.inventory.count(fresh))
+	who.inventory.add("tools:stone_pickaxe", 1)
+	var hole := false
+	for i in 30:
+		plans.build(actions, who)
+		for x in range(10, 14):
+			hole = hole or w.get_cell(x, 2, 10) == Mat.AIR or w.get_cell(x, 3, 10) == Mat.AIR
+	_check(not hole, "each block is swapped in one work: no hole is left in the wall")
+	_check(w.get_cell(10, 2, 10) == Mat.index(fresh) and w.get_cell(13, 3, 10) == Mat.index(fresh)
+		and w.form_at(13, 3, 10) == WorldData.FORM_RAMP and w.get_cell(14, 2, 10) == Mat.STONE,
+		"the wall is rebuilt of planks, the slope a planks slope")
+	_check(who.inventory.count("materials:brick") == 7 and plans.cells.is_empty(),
+		"the old blocks went to the bag, the ghost over the wall built too: %d %s"
+		% [who.inventory.count("materials:brick"), plans.cells])
 
 
 ## Doors, windows and furniture set down by the blueprint (the user's picks, 2026-11-26,

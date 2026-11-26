@@ -136,7 +136,12 @@ lies around. The rules are shared (the server checks them), input and hints are 
   `FLAT_DOWN` levels down (a deeper one is left and the figure hangs there); a flight of slopes or stairs only
   has its dips filled, a fence takes the ground as it lies; `sort` takes it so the cells in the ground fit and
   those over soil do not hang), `draw` (draws or, with `erase`, erases the ghost in the whole box of the figure,
-  `erase_box`; with `level` the box reaches `FLAT_DOWN` under the figure but takes only the earth's ghost there, `is_earth`), `clear` (erases the ghost nearby), `build` (one cell: the
+  `erase_box`; with `level` the box reaches `FLAT_DOWN` under the figure but takes only the earth's ghost there, `is_earth`;
+  with `replace_it` — `replace`, idea 6 of 2026-11-26: in the box every block players built of another material,
+  `replaceable` — not natural, not a tree's, no thing in it, becomes a ghost of the block in the hand keeping its
+  form, and ghost blocks of another material there are repainted; `build` swaps such a block in one work, from
+  the bottom, only with the new block in the bag and a tool for the old one, `best_tool` and its wear, the old
+  block into the bag as dug, so no hole is left; soft built ground is taken in place as a floor's), `clear` (erases the ghost nearby), `build` (one cell: the
   lowest, then the nearest in reach, on any level — the view's slice does not stop one building a ceiling from
   inside a house; a block from the bag — first the one in the hand; a floor replaces soft earth and gives it
   to the bag; with no blocks — waits), `to_list` / `from_list` (saved with the world, `"plans"`; JSON keeps a cell as `"(x, y, z)"` and a form as a
@@ -145,7 +150,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
   the hands' rules ask it through `actions.plans`; `WorldActions` is passed to `draw` / `build` as a
   parameter, with no reference cycle. `turn_form` turns the ghost of a lone slope or stairs a quarter: the
   whole column of ghost cells with forms over and under the cell (`column_of`, `formed_at`), within
-  `PLAN_REACH` and by the right «build». Requests: `PLAN` [kind, from, to, height, thickness, erase, form, level (may be left out)],
+  `PLAN_REACH` and by the right «build». Requests: `PLAN` [kind, from, to, height, thickness, erase, form, level, replace (both may be left out)],
   `PLAN_TURN` [cell], `PLAN_CLEAR`, `BUILD` (the action button of build mode, whatever is in the hand).
   Ghost things (the user's picks of 2026-11-26, 1А, 2А): doors, windows, hatches and furniture drawn into the
   blueprint, `things` — records `{item, cell (north-west), turn, cells (each cell it fills,
@@ -229,6 +234,10 @@ lies around. The rules are shared (the server checks them), input and hints are 
   thing set down or a ghost thing (its turn kept in `kept_turns`), else the nearest ghost block, else the block
   hit, natural ones too (`block_item`: `Items.placed_by`, else `Items.dug`); once something is taken it goes
   off, the eraser too; nothing there or none in the bag (`choose`'s nag) → it stays on for the next tap (6Б);
+  replacing the material (`replacing`, idea 6 of 2026-11-26): the third state of the draw/erase button,
+  `next_mode` — draw → erase → replace, a paint roller, no extra button so the panel stays one row on a phone; a
+  stroke begins at the block or ghost under the finger, `_replace_stroke`, takes the box of the figure (a plane
+  for «flatten»), lights the blocks it will mark, `replaced_cells`, and sends `PLAN` with the 9th flag;
   the stroke (`start_stroke`, `show_stroke` — light cells will stand, red ones are inside blocks or over a
   void, when erasing a red box and the ghost in it above blueprints; `end_stroke` — `PLAN`);
   a thing (everything that is placed: `Items.is_interior`) from the bag shows at once as the finger or the

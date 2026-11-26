@@ -1087,6 +1087,17 @@ const ICONS := {
 		"w..w....",
 		"wwww....",
 	],
+	# Replacing the material of what is built (BuildMode.replacing): a paint roller.
+	"build_replace": [
+		"wwwwww..",
+		"wbbbbww.",
+		"wwwwww.w",
+		".......w",
+		"...wwww.",
+		"...w....",
+		"..www...",
+		"..www...",
+	],
 	# The voxel editor's tools: a bucket pouring (fill a joined patch) and a dropper
 	# (take a voxel's colour).
 	"voxel_fill": [

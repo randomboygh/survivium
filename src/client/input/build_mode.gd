@@ -105,6 +105,10 @@ var kept_turns := {}
 ## The eyedropper is on (set_picking): the next tap on the world takes what is there into
 ## the hand (pick_at) instead of drawing, then it goes off by itself.
 var picking := false
+## Strokes replace the material (next_mode, the third state of the panel's draw/erase
+## button; the user's idea 6, 2026-11-26): the blocks built in the box of the shape are
+## marked to be rebuilt of the block in hand (Plans.replace).
+var replacing := false
 ## The thing dragged now (see drag), {} for none; the ghost thing of the blueprint dragged.
 var _dragged := {}
 var _dragged_ghost := {}
@@ -190,6 +194,7 @@ func _show(shown: bool) -> void:
 ## A thing dragged is set down, one new from the bag held up goes.
 func _left() -> void:
 	picking = false
+	replacing = false
 	_take_waiting()
 	_ghost_wait = {}
 	game.props.drop_new()
@@ -221,6 +226,23 @@ func choose(id: String) -> void:
 ## The item chosen on the palette (in the hand in use).
 func chosen() -> String:
 	return game.controls.held()
+
+
+## The panel's draw/erase/replace button: drawing → erasing → replacing → drawing.
+func next_mode() -> void:
+	if replacing:
+		replacing = false
+	elif erasing:
+		erasing = false
+		replacing = true
+	else:
+		erasing = true
+	changed.emit()
+
+
+func set_erasing(e: bool) -> void:
+	replacing = false
+	super(e)
 
 
 ## Turns the eyedropper on or off (the panel's button).
@@ -562,6 +584,8 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 	if picking:
 		pick_at(pos)
 		return {}
+	if replacing:
+		return _replace_stroke(button, pos)
 	var target: Dictionary = game.gathering.target_at(pos)
 	var item := Items.get_item(chosen())
 	if target.has("prop") and not erasing and item.get("ladder", false) and Placed.is_ladder(target.prop):
@@ -661,6 +685,38 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		# second tap soon turns it (end_stroke).
 		s.ghost = ghost
 	return s
+
+
+## A stroke of replacing (`replacing`) pressed at `pos`: it begins at the block (or the
+## ghost block, when nearer) under the finger and takes the box of the shape drawn from
+## there (a plane for «выровнять»); none without a block in hand.
+func _replace_stroke(button: int, pos: Vector2) -> Dictionary:
+	if Mat.index(Items.get_item(chosen()).get("place", "")) < 0:
+		game.character.nag("plan_block", "[choose_a_block_for_the]")
+		return {}
+	var hit: Dictionary = game.controls.pick(pos)
+	var ghost: Variant = game.controls.ghost_at(pos)
+	if hit.is_empty() and ghost == null:
+		return {}
+	var first: Vector3i = ghost if ghost != null else hit.cell
+	return {"button": button, "dig": false, "pos": pos, "held": true, "pending": false,
+		"plan": "plane" if kind == "flatten" else kind, "first": first, "last": first, "normal": Vector3i.UP, "from": pos}
+
+
+## The cells stroke `s` of replacing would mark (Plans.replace, as the server finds them):
+## the blocks built and the ghost blocks of another material in its box.
+func replaced_cells(s: Dictionary) -> Array[Vector3i]:
+	var out: Array[Vector3i] = []
+	var item := chosen()
+	var block := Mat.index(Items.get_item(item).get("place", ""))
+	var p: Vector3 = game.player.position
+	for c in Plans.erase_box(s.plan, s.first, s.last, height, Vector2(p.x, p.z), thick):
+		var was: String = game.plans.cells.get(c, "")
+		if was == item or Plans.is_mark(was) or Plans.is_earth(was) or was != "" and not Items.get_item(was).has("place"):
+			continue
+		if was != "" or game.plans.replaceable(game.actions, c, block):
+			out.append(c)
+	return out
 
 
 ## Whether a tap on the ghost column at `cell` is the second of a double tap on it (the
@@ -1094,8 +1150,8 @@ func start_cell(hit: Dictionary) -> Vector3i:
 ## The cells stroke `s` covers now: the shape, or the box the ghost goes off.
 func stroke_cells(s: Dictionary) -> Array[Vector3i]:
 	var p: Vector3 = game.player.position
-	if erasing:
-		return Plans.erase_box(s.plan, s.first, s.last, height, Vector2(p.x, p.z), thick, levels())
+	if erasing or replacing:
+		return Plans.erase_box(s.plan, s.first, s.last, height, Vector2(p.x, p.z), thick, levels() and not replacing)
 	if Plans.is_fence(chosen()):
 		# A fence: one segment high and thick (Plans.draw).
 		return Plans.shape(s.plan, s.first, s.last, 1, Vector2(p.x, p.z), 1) if s.plan in ["line", "square"] else []
@@ -1113,6 +1169,10 @@ func show_stroke(s: Dictionary) -> void:
 	if cells.is_empty():
 		# Too big a shape: its corners red.
 		game.cursor.show_boxes([], [s.first, s.last])
+		return
+	if replacing:
+		# The box lit, the blocks to be replaced in it as the figure.
+		game.cursor.show_boxes(replaced_cells(s), [], cells)
 		return
 	if erasing:
 		var gone: Array[Vector3i] = []
@@ -1149,6 +1209,11 @@ func end_stroke(s: Dictionary) -> void:
 		# A tap on the ghost of a slope or stairs: nothing drawn; a second tap soon turns it.
 		game.cursor.show_boxes([], [])
 		_ghost_wait = {"cell": s.ghost, "ms": Time.get_ticks_msec()}
+		return
+	if replacing:
+		if replaced_cells(s).is_empty():
+			game.hud.toast("[nothing_to_replace_here_tap_a]")
+		game.net.request(Protocol.PLAN, [s.plan, s.first, s.last, height, thick, false, 0, false, true])
 		return
 	if not erasing and s.plan != "flatten":
 		var cells := stroke_cells(s)
