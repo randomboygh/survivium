@@ -2409,9 +2409,13 @@ func _undo_wall(mode: String, feet: Vector3i) -> void:
 	var h = main.host.link.requests.history
 	h.undos.clear()
 	h.redos.clear()
-	main.net.request(load("res://src/shared/net/protocol.gd").PLAN, ["line", feet + Vector3i(1, 0, -6), feet + Vector3i(4, 0, -6), 2, 1, false, 0])
-	for i in 20:
+	main.build.choose("materials:planks")
+	for i in 10:
 		await process_frame
+	var r = main.net.request(load("res://src/shared/net/protocol.gd").PLAN, ["line", feet + Vector3i(1, 0, -6), feet + Vector3i(4, 0, -6), 2, 1, false, 0])
+	for i in 30:
+		await process_frame
+	print("undo: wall drawn %s, held %s" % [r.value, main.host.player.held()])
 	var bar = main.hud.build_bar
 	if mode in ["undone", "redone"]:
 		bar._undo.pressed.emit()
