@@ -318,6 +318,8 @@
 "[height]": "Height"
 "[wall_thickness]": "Wall thickness"
 "[remove_all_blueprints_nearby_press]": "Remove all blueprints nearby (press twice)"
+"[eyedropper_takes_a_block_or_a]": "Eyedropper: take a block or a thing of the world into the hand (on a PC, the middle mouse button)"
+"[tap_a_block_or_a_thing_to]": "Tap a block or a thing to take it (press to cancel)"
 "[undo_ctrl_z]": "Undo (Ctrl+Z)"
 "[redo_ctrl_y]": "Redo (Ctrl+Y)"
 "[come_closer_to_undo_that]": "Come closer to undo that"

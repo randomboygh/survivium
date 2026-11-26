@@ -375,6 +375,12 @@ const SHOTS := {
 		"touch": true, "hide": ["chunks: grass"]},
 	"build-level-built": {"time": 0.4, "season": 1, "uneven": true, "built": true, "build_mode": "draw",
 		"stroke": false, "touch": true, "hide": ["chunks: grass"]},
+	# The eyedropper (BuildMode.pick_at) in a room's corner (places.build_room): on, planks in
+	# the hand; then a tap on the brick wall west took brick.
+	"build-pick-on": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "pick": true},
+	"build-pick-brick": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
+		"touch": true, "hide": ["chunks: grass"], "pick": Vector3(-7.5, 1.5, -3.5)},
 	"build-lone-stairs": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,
 		"touch": true, "hide": ["chunks: grass"], "form": 3, "lone": [3, Vector3i(-3, 0, -3), 2]},
 	"build-lone-stairs-turned": {"time": 0.4, "season": 1, "build_room": true, "build_mode": "draw", "stroke": false,

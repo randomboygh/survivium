@@ -102,6 +102,9 @@ var _tap_wait := {}
 ## The turn the player last gave a thing of each kind by a double tap, by item id: the
 ## next ones are set down turned so while the bag holds one (then it is forgotten).
 var kept_turns := {}
+## The eyedropper is on (set_picking): the next tap on the world takes what is there into
+## the hand (pick_at) instead of drawing, then it goes off by itself.
+var picking := false
 ## The thing dragged now (see drag), {} for none; the ghost thing of the blueprint dragged.
 var _dragged := {}
 var _dragged_ghost := {}
@@ -186,6 +189,7 @@ func _show(shown: bool) -> void:
 
 ## A thing dragged is set down, one new from the bag held up goes.
 func _left() -> void:
+	picking = false
 	_take_waiting()
 	_ghost_wait = {}
 	game.props.drop_new()
@@ -217,6 +221,64 @@ func choose(id: String) -> void:
 ## The item chosen on the palette (in the hand in use).
 func chosen() -> String:
 	return game.controls.held()
+
+
+## Turns the eyedropper on or off (the panel's button).
+func set_picking(p: bool) -> void:
+	picking = p
+	changed.emit()
+
+
+## The eyedropper (the user's picks, 2026-11-26): what the world shows at screen point `pos`
+## into the hand in use, as if chosen on the palette: a thing set down or a ghost thing (and
+## its turn kept for the next), else the ghost block of the blueprint nearest, else the
+## block there (natural ones too, by the item that builds that material). Without one in
+## the bag the hand stays as it was (choose's nag). The eyedropper goes off either way, and
+## the eraser too once something is taken.
+func pick_at(pos: Vector2) -> void:
+	picking = false
+	var got := picked_at(pos)
+	var id: String = got.get("item", "")
+	if id == "" or not builds_with(id):
+		changed.emit()
+		return
+	if got.has("turn") and not Plans.drawn_with(id):
+		kept_turns[id] = int(got.turn)
+	if game.character.inventory.count(id) > 0:
+		erasing = false
+	choose(id)
+	changed.emit()
+
+
+## What the eyedropper finds at screen point `pos`: {"item", and "turn" for a thing}, {} for
+## nothing to take.
+func picked_at(pos: Vector2) -> Dictionary:
+	var target: Dictionary = game.gathering.target_at(pos)
+	if target.has("prop"):
+		return {"item": target.prop.item, "turn": int(target.prop.get("turn", 0))}
+	var thing: Dictionary = game.controls.ghost_thing_at(pos)
+	if not thing.is_empty():
+		return {"item": thing.item, "turn": int(thing.turn)}
+	var ghost: Variant = game.controls.ghost_at(pos)
+	if ghost != null:
+		var planned: String = game.plans.cells.get(ghost, "")
+		if planned != Plans.CUT and not Plans.is_mark(planned):
+			return {"item": planned}
+	var hit: Dictionary = game.controls.pick(pos)
+	if hit.is_empty():
+		return {}
+	return {"item": block_item(game.world.get_cell(hit.cell.x, hit.cell.y, hit.cell.z))}
+
+
+## The item that builds material `m`: the one placing it, else the one it gives dug (grass
+## gives earth) when that builds; "" for none.
+static func block_item(m: int) -> String:
+	if m <= Mat.AIR or m >= Items.placed_by.size():
+		return ""
+	var id: String = Items.placed_by[m]
+	if id == "":
+		id = Items.dug[m]
+	return id if builds_with(id) else ""
 
 
 func set_kind(k: String) -> void:
@@ -496,6 +558,9 @@ func _has_blocks() -> bool:
 ## while it is held, {} for none): from the ground cell tapped for a plane or a box (a
 ## floor takes the place of the top ground cell), from the cell over it for the walls.
 func start_stroke(button: int, pos: Vector2) -> Dictionary:
+	if picking:
+		pick_at(pos)
+		return {}
 	var target: Dictionary = game.gathering.target_at(pos)
 	var item := Items.get_item(chosen())
 	if target.has("prop") and not erasing and item.get("ladder", false) and Placed.is_ladder(target.prop):

@@ -1370,6 +1370,19 @@ func _run() -> void:
 				await _undo_wall(shot.undo, feet)
 			if shot.has("need"):
 				await _need_wall(feet)
+			if shot.has("pick"):
+				# The eyedropper on (BuildMode.picking); with a point from the feet in cells, a
+				# finger then taps there and takes what is there into the hand (pick_at).
+				main.build.set_picking(true)
+				if shot.pick is Vector3:
+					var on: Vector2 = main.view.screen_of((Vector3(feet) + shot.pick) * CELL)
+					_finger(true, on)
+					for f in 3:
+						await process_frame
+					_finger(false, on)
+					for f in 30:
+						await process_frame
+					print("pick: chosen %s, picking %s" % [main.build.chosen(), main.build.picking])
 			if shot.has("press"):
 				# A finger pressed on a touch screen with a thing of the bag chosen (2026-11-26):
 				# [item, the world point aimed at from the feet, in cells]. The finger goes
@@ -1396,7 +1409,8 @@ func _run() -> void:
 					held.get("aim"), held.get("spot"), held.get("shown"), held.get("face")])
 			if shot.has("opening"):
 				await _move_opening(shot.opening, feet)
-			if shot.has("press") or shot.has("lone") or shot.has("opening") or shot.has("ghosts") or shot.has("undo") or shot.has("need"):
+			if shot.has("press") or shot.has("lone") or shot.has("opening") or shot.has("ghosts") or shot.has("undo") or shot.has("need") \
+					or shot.has("pick"):
 				# The toasts of the recipes the things put into the bag taught, off the view.
 				main.hud._toasts.clear()
 				for i in 3:
