@@ -98,7 +98,12 @@ slice, to free the far meshes.
   above, steps, the notch under a step of a band of stairs; a shape is described as rising to the north and turned; a face on a cell's side is not drawn
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not
   whole, `covers_side`; the cells at the shapes are candidates, `_take_forms`).
-- `src/client/world/foliage.gd` — the chunk's grass, plants and crowns as a MultiMesh, also by column.
+- `src/client/world/foliage.gd` — the chunk's grass, plants and crowns as a MultiMesh, also by column. Along
+  the foot of a pictured tree or stump standing on grass (`_foot_grass`) a row of tufts, now and then a
+  mushroom, covers the picture's lower edge: as wide as the roots drawn (look.yaml `foot`, `FOOT_SIDE` more),
+  `FOOT_STEP` pixels apart; each stands on the tree's axis and carries its place in its 4th custom float
+  (`FOOT_MARK`), and `grass.gdshader` puts it aside and a few pixels in front of the foot in the camera's
+  view, so the row is in front from every side the camera turns to.
 - Stumps and the fall (trees PR 5): a felled pictured tree always leaves its foot's log (`Felling.fell`; struck
   again, `Felling.uproot` takes it for one log in half the blows), drawn by `TreeSprites` as a picture too
   (`Growth.stump_look`; TreeLooks `stumps`, `stump_frames`, `wood`: the approved stump at 3 sizes, 8 turns, summer
