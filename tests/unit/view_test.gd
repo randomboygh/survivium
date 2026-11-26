@@ -372,6 +372,24 @@ func _test_sprite_sheet() -> void:
 	var swung := Figure.sheet(look, {"right": stick, "active": "right"}).texture.get_image()
 	_check(swung.get_region(Rect2i(chop[0] * fw, 2 * fh, fw, fh)).get_data() != swung.get_region(Rect2i(chop[2] * fw, 2 * fh, fw, fh)).get_data(),
 		"an icon swings with the hand in its work")
+	# A light held burns at the brightest pixel of what gives it (its sheet's frame or its
+	# icon: a torch, a candle, a lantern), behind the body where the hand holds it behind,
+	# so the body hides its flame (Player.flames_behind).
+	var torch := {"sprite": "res://content/tools/torch/sprites/held/torch.png", "anim": "", "light": true}
+	var lit := Figure.sheet(look, {"right": torch, "active": "right"})
+	var held_behind := {}
+	for way: String in lit.directions:
+		var at: Variant = lit.spots.get(Vector2i(0, lit.directions.find(way)))
+		held_behind[way] = at[0].z if at is Array and at.size() == 1 else -1
+	_check(held_behind.n == 1 and held_behind.w == 1 and held_behind.s == 0 and held_behind.e == 0,
+		"a torch burns behind the body seen from behind and in the far hand, before it in the near one: %s" % [held_behind])
+	var lamp := {"icon": "test:stick", "picture": icon, "anim": "", "light": true}
+	var lamp_lit := Figure.sheet(look, {"right": lamp, "active": "right"})
+	_check(lamp_lit.spots.get(Vector2i(0, lamp_lit.directions.find("s")), []).size() == 1, "a light held as an icon burns too")
+	# A sheet whose frames all stood upright put the flame of a tar torch on the head.
+	var tar := Figure.held_sheet("res://content/tools/tar_torch/sprites/held/tar_torch.png")
+	_check(tar.get_region(Rect2i(Vector2i.ZERO, cell)).get_data() != tar.get_region(Rect2i(Vector2i(0, 2) * cell, cell)).get_data(),
+		"a tar torch leans with the hand as a torch does")
 	# A blade leaves a trail in its work's frames: over the figure and its outline where the
 	# blade is in front of the body, behind them (only where the frame is empty) where the
 	# blade is behind it, as seen from behind.

@@ -12,6 +12,9 @@ uniform float brightness = 1.0;
 uniform float sky_only = 0.0;
 // How lit the open sky is: weather is unshaded, so it dims with the night.
 uniform float light = 1.0;
+// World units this is drawn farther from the camera in depth alone (the flames of a light
+// a hand holds behind the body, Effects.flame_behind, so the body hides them).
+uniform float behind = 0.0;
 uniform sampler2D shape : filter_nearest, hint_default_white SRGB_HINT;
 // World units a streak's top lies upwind of its foot per unit of height:
 // rain driven by the wind leans along its fall (see Effects.rain_lean).
@@ -34,6 +37,13 @@ void vertex() {
 	world_pos = VERTEX;
 	VERTEX = shear(stand_tall(VERTEX, MODEL_MATRIX[3].xyz));
 	frame = frames > 1 ? mod(floor(INSTANCE_CUSTOM.z * float(frames) + INSTANCE_CUSTOM.y * flips), float(frames)) : 0.0;
+	// `behind`: the clip depth of a point that much farther along the view, its place on the
+	// screen kept (an orthogonal view only). Written in every case: a shader that writes
+	// POSITION anywhere gets no position of Godot's own.
+	POSITION = PROJECTION_MATRIX * (VIEW_MATRIX * vec4(VERTEX, 1.0));
+	if (PROJECTION_MATRIX[3][3] > 0.5) {
+		POSITION.z -= PROJECTION_MATRIX[2][2] * behind * POSITION.w;
+	}
 }
 
 void fragment() {

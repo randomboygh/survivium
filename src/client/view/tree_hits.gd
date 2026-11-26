@@ -143,6 +143,16 @@ func fall(col: Vector2i, data: PackedFloat32Array) -> void:
 	var r := 16.0
 	node.custom_aabb = AABB(foot + Vector3(-r, -1.0, -r), Vector3(2.0 * r, r, 2.0 * r))
 	game.world_root.add_child(node)
+	# Its shadow: the same instances drawn by tree_shadow.gdshader into the sun's and the
+	# moon's shadow map only (as a chunk's trees), the picture turned over as it falls.
+	if game.get("tree_shadow_mat") != null:
+		var shade := MultiMeshInstance3D.new()
+		shade.multimesh = node.multimesh
+		shade.material_override = game.tree_shadow_mat
+		shade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+		shade.layers = PixelView.LAYER_SUN_CASTER
+		shade.custom_aabb = node.custom_aabb
+		node.add_child(shade)
 	_falling.append([node, foot, way.normalized(), 0.0, false, col])
 
 
@@ -202,9 +212,11 @@ func _process_falls(delta: float) -> void:
 		falls[i] = Vector4(f[1].x, f[1].y, f[1].z, at.x)
 		ways[i] = Vector4(f[2].x, f[2].y, f[3], at.y)
 	if game.tree_mat != null and (not _falling.is_empty() or _fall_set):
-		game.tree_mat.set_shader_parameter("falls", falls)
-		game.tree_mat.set_shader_parameter("fall_ways", ways)
-		game.tree_mat.set_shader_parameter("fall_count", _falling.size())
+		for mat: ShaderMaterial in [game.tree_mat, game.get("tree_shadow_mat")]:
+			if mat != null:
+				mat.set_shader_parameter("falls", falls)
+				mat.set_shader_parameter("fall_ways", ways)
+				mat.set_shader_parameter("fall_count", _falling.size())
 	_fall_set = not _falling.is_empty()
 
 
