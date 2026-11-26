@@ -280,7 +280,7 @@ func pick_at(pos: Vector2) -> void:
 ## What the eyedropper finds at screen point `pos`: {"item", and "turn" for a thing}, {} for
 ## nothing to take.
 func picked_at(pos: Vector2) -> Dictionary:
-	var target: Dictionary = game.gathering.target_at(pos)
+	var target: Dictionary = game.controls.placed_at(pos)
 	if target.has("prop"):
 		return {"item": target.prop.item, "turn": int(target.prop.get("turn", 0))}
 	var thing: Dictionary = game.controls.ghost_thing_at(pos)
@@ -601,7 +601,7 @@ func start_stroke(button: int, pos: Vector2) -> Dictionary:
 		return {}
 	if replacing:
 		return _replace_stroke(button, pos)
-	var target: Dictionary = game.gathering.target_at(pos)
+	var target: Dictionary = game.controls.placed_at(pos)
 	var item := Items.get_item(chosen())
 	if target.has("prop") and not erasing and item.get("ladder", false) and Placed.is_ladder(target.prop):
 		# A ladder tapped with a ladder goes on up from its top.

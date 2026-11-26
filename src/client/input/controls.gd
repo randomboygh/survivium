@@ -30,6 +30,7 @@ const Territory := preload("res://src/shared/game/territory.gd")
 const BuildMode := preload("res://src/client/input/build_mode.gd")
 const FarmMode := preload("res://src/client/input/farm_mode.gd")
 const Plans := preload("res://src/shared/game/plans.gd")
+const Placed := preload("res://src/shared/game/placed.gd")
 const CaveLayers := preload("res://src/client/view/cave_layers.gd")
 const Lang := preload("res://src/shared/content/lang.gd")
 const LookSwipe := preload("res://src/client/input/look_swipe.gd")
@@ -912,6 +913,34 @@ func ghost_thing_at(pos: Vector2) -> Dictionary:
 			if at <= far and at < INF:
 				far = at
 				best = t
+	return best
+
+
+## The thing set down (a placed thing or a light, within the hands' reach) under screen
+## point `pos` in the build mode: one of the cells it fills (as high as it stands, a door's
+## too) the ray enters before (or in) the cell the view meets there, not above the cut;
+## {"prop": it, "at"} or {} for none. Not by a finger's radius on the screen as gathering
+## is (Gathering.target_at): a tap beside a door does not take the door (user 2026-11-26).
+func placed_at(pos: Vector2) -> Dictionary:
+	var ray := _ray(pos)
+	var o: Vector3 = ray[0]
+	var d: Vector3 = ray[1]
+	var hit := pick(pos)
+	var far := INF if hit.is_empty() else _enter(o, d, hit.cell)
+	var best := {}
+	var top: int = game.chunks.cut_level
+	var me: Vector3 = game.player.position + Vector3(0.0, 0.5, 0.0)
+	for e: Dictionary in game.placed.things + game.placed.lights:
+		if game.placed.center(e).distance_to(me) > WorldActions.HAND_REACH:
+			continue
+		var cells: Array[Vector3i] = [e.cell] if Placed.is_light(e) else game.placed.volume_of(e.item, e.cell, int(e.get("turn", 0)))
+		for c: Vector3i in cells:
+			if c.y > top:
+				continue
+			var at := _enter(o, d, c)
+			if at <= far and at < INF:
+				far = at
+				best = {"prop": e, "at": game.placed.center(e)}
 	return best
 
 

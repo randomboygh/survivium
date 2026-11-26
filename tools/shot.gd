@@ -2464,9 +2464,26 @@ func _move_opening(o: Array, feet: Vector3i) -> void:
 		await process_frame
 	var e: Dictionary = main.placed.things[-1] if not main.placed.things.is_empty() else {}
 	print("opening: put %s, %s" % [put, e])
-	if o[3] == "before" or e.is_empty():
+	if o[3] is String and o[3] == "before" or e.is_empty():
 		return
 	var on: Vector2 = main.view.screen_of(Placed.center(e))
+	if o[3] is Array:
+		# Points beside the door (from the feet, in cells): what a finger there would take.
+		for pt: Vector3 in o[3]:
+			var by: Vector2 = main.view.screen_of((Vector3(feet) + pt) * CELL)
+			print("opening: at %s (%d px): by radius %s, by cells %s" % [pt, roundi(by.distance_to(on)),
+				main.gathering.target_at(by).has("prop"), main.controls.placed_at(by).has("prop")])
+		return
+	if o[3] is Vector3:
+		# A tap beside the door (a point from the feet in cells, user 2026-11-26): the door stays.
+		var by: Vector2 = main.view.screen_of((Vector3(feet) + o[3]) * CELL)
+		_finger(true, by)
+		for i in 3:
+			await process_frame
+		_finger(false, by)
+		await _wait_ms(main.build.DOUBLE_TAP_MS + 400)
+		print("opening: tapped beside, %d px from it; door still there: %s" % [roundi(by.distance_to(on)), not main.session.placed.at(e.cell).is_empty()])
+		return
 	if o[3] == "taken":
 		_finger(true, on)
 		for i in 3:

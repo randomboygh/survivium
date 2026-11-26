@@ -265,7 +265,9 @@ lies around. The rules are shared (the server checks them), input and hints are 
   (`_release_ghost`, `PLAN_THING_MOVE`); a thing is aimed right under the finger, raised only `Props.LIFT` over the surface
   (2026-11-26: the lift over the finger, `FINGER_LIFT`, was taken off: a tap set things down over a wall's
   top or behind it), and once held `HOLD_MS` (or moved `_slop`, a
-  `DRAG_SHARE` of the screen) a short buzz tells it is taken up (`Vibration` «lift»); a touch of a placed thing
+  `DRAG_SHARE` of the screen) a short buzz tells it is taken up (`Vibration` «lift»); a touch of a placed thing (found by
+  the cells it fills under the finger, `Controls.placed_at`, not by a finger's radius on the screen as
+  gathering finds it: a tap beside a door does not take the door, 2026-11-26)
   takes it back after `DOUBLE_TAP_MS` (`_tap_wait`; a second tap within that time turns it a quarter where it stands; only in this mode); a thing that moves (`Placed.movable`: a station, a chest,
   furniture, a sign, a fireplace) held the same way hangs in the air (a stroke with `prop`: `drag` each frame
   — the model is held up `Props.LIFT` over the free place nearest the place under the finger, with the «lift»
