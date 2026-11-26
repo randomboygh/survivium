@@ -6,6 +6,7 @@
   shape: lobed
   leaf: pointed
   leaves: broad
+  blossom: "#e2d9b6"
   trunk: [3, 4]
   girth: [9, 13]
   taper: 0.3
