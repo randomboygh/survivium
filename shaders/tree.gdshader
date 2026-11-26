@@ -485,7 +485,7 @@ ivec2 side(int i) {
 // picture's edge is its outline: OUTLINE_DROP halves darker than the bark inside it (the texel across
 // from the empty side, when that one is not an edge too), as the approved drawing's soft
 // outline, kept wherever the drawing left it at the bark's own step.
-const int OUTLINE_LOW = 0;
+const int OUTLINE_LOW = 1;
 ivec2 bark_look(ivec2 t, bool bare, int bits, ivec2 lo, ivec2 hi) {
 	int n[4];
 	bool edge = false;
@@ -525,10 +525,8 @@ ivec2 bark_look(ivec2 t, bool bare, int bits, ivec2 lo, ivec2 hi) {
 	}
 	int outline = 0;
 	for (int k = 0; k < 8; k++) {
-		int c = 2 * ((bits >> (2 * k)) & 3);
-		if (inside >= 0) {
-			c = min(c, max(2 * ((inside >> (2 * k)) & 3) - 2, 0));
-		}
+		// One tone all round (user 2026-11-26): the outline's step whatever the light inside.
+		int c = inside >= 0 ? OUTLINE_LOW : 2 * ((bits >> (2 * k)) & 3);
 		outline |= max(c, OUTLINE_LOW) << (3 * k);
 	}
 	return ivec2(0, outline);
@@ -547,7 +545,7 @@ vec2 bark_at(int bits, int opens, ivec2 look, int j) {
 	float dark = float(s - in_shade(s, (opens >> (2 * j)) & 3));
 	int o = (look.y >> (3 * j)) & 7;
 	float lit = o < 7 ? 0.5 * float(o) : float(s) - 0.5 * float((look.x >> j) & 1);
-	return vec2(max(lit, 0.0), max(lit - dark, o < 7 ? 0.5 * float(OUTLINE_LOW) : 0.0));
+	return o < 7 ? vec2(lit) : vec2(max(lit, 0.0), max(lit - dark, 0.0));
 }
 
 // The bark's colour of wood texel `g` (red, green: 2 bits a sun) under the light L: the
