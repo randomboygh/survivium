@@ -13,6 +13,10 @@ const PlanBlocks := preload("res://src/client/view/plan_blocks.gd")
 const Props := preload("res://src/client/game/props.gd")
 
 const CELL := WorldData.CELL
+## Ghost things are drawn denser and lit more than the ghost blocks (PlanBlocks.ALPHA, GLOW),
+## so a ghost door stands out of the ghost wall it is drawn into.
+const ALPHA := 0.9
+const GLOW := 0.35
 
 var game
 ## The models of the ghost things drawn, by the north-west cell of each.
@@ -34,7 +38,7 @@ func _ready() -> void:
 ## has one; null before.
 func material() -> ShaderMaterial:
 	if _material == null and game.world_mat != null:
-		_material = PlanBlocks.ghost_material(game.world_mat)
+		_material = PlanBlocks.ghost_material(game.world_mat, ALPHA, GLOW)
 	return _material
 
 
