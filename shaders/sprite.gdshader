@@ -213,6 +213,12 @@ void fragment() {
 	if (((world_pos.y < water_line || shadow_only > 0.5) && !IN_SHADOW_PASS) || (!me && above_cut(world_pos))) {
 		discard;
 	}
+	// The player standing over the build mode's cut of the floors (on a floor above the one
+	// looked at, ChunkStreamer.build_cut) is drawn see-through, every other texel left out
+	// (the user's pick, 2026-11-27).
+	if (me && !IN_SHADOW_PASS && player_pos.y > build_cut + 0.01 && bayer4(floor(screen_plane(world_pos) * TEXELS)) < 0.5) {
+		discard;
+	}
 	if (world_pos.y < water_line + 1.0 / TEXELS && !IN_SHADOW_PASS) {
 		// The ripple reaches a pixel past the body on each side; round a swimmer it
 		// splashes two more, in bits that come and go.
