@@ -214,6 +214,9 @@ func _run() -> void:
 			main.player.position = places.build_room(main.world, main.player.position)
 		if shot.get("plan", false):
 			main.player.position = places.plan(main.world, main.player.position)
+		if shot.has("uneven"):
+			main.settings.values.build_level = 0 if shot.uneven else 1
+			main.player.position = places.uneven(main.world, main.player.position, shot.uneven, shot.get("built", false))
 		if shot.get("forms", false):
 			main.player.position = places.forms(main.world, main.player.position, shot.get("only", 0))
 		if shot.get("underground", false):

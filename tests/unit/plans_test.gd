@@ -20,6 +20,7 @@ func run() -> void:
 	_test_bands()
 	_test_turn_form()
 	_test_flatten()
+	_test_earthwork()
 	_test_ghost_things()
 	_test_undo()
 
@@ -385,6 +386,83 @@ func _test_flatten() -> void:
 	who.inventory.add("tools:wooden_shovel", 1)
 	_check(Plans.best_tool(who, Mat.DIRT) == "tools:wooden_shovel", "a shovel in the bag digs it faster")
 	_check(Plans.best_tool(who, Mat.STONE) == null, "nothing in the bag digs stone")
+
+
+## A figure drawn on uneven ground with `level` levels it as «выровнять» would (the user's
+## item 11 and picks, 2026-11-26): the natural bump in its footprint over its level is dug
+## out (the figure's own cells in it are dug, then built), a dip under it down to solid
+## ground (FLAT_DOWN at most) filled with soil; ground over the figure's top stays (2Б), so it does not hang; a deeper dip is left;
+## a flight only has its dips filled; the eraser takes the earth's ghost with the figure.
+func _test_earthwork() -> void:
+	var w := WorldData.new(40, Vector2i(48, 48))
+	for z in 48:
+		for x in 48:
+			w.set_cell(x, 0, z, Mat.STONE)
+			w.set_cell(x, 1, z, Mat.DIRT)
+			w.set_natural(x, 1, z, true)
+	# Along the wall at z 10: a stone bump two high at x 11, a dip one deep at x 13, a hole
+	# deeper than FLAT_DOWN at x 15.
+	for y in [2, 3]:
+		w.set_cell(11, y, 10, Mat.STONE)
+		w.set_natural(11, y, 10, true)
+	w.set_cell(13, 1, 10, Mat.AIR)
+	for y in range(0, 2):
+		w.set_cell(15, y, 10, Mat.AIR)
+	var actions := WorldActions.new(w, {"season": 1, "day": 0}, Rules.new())
+	var plans := Plans.new()
+	actions.plans = plans
+	var who := Who.new()
+	who.position = Vector3(12.5, 2.0, 12.5) * WorldData.CELL
+	who.item = PLANKS
+	var soil: String = Mat.RECORDS[Mat.DIRT].item
+	var a := Vector3i(10, 2, 10)
+	var b := Vector3i(15, 2, 10)
+	var flat := Plans.new()
+	var as_is := flat.sort(actions, who, "line", a, Plans.shape("line", a, b, 1), Mat.index(PLANKS))
+	_check(as_is.blocked.has(Vector3i(11, 2, 10)) and as_is.hanging.has(Vector3i(13, 2, 10)),
+		"without levelling the bump blocks the wall and it hangs over the dip")
+	var n := plans.draw(actions, who, "line", a, b, 1, 1, false, 0, true)
+	_check(plans.cells.get(Vector3i(11, 2, 10)) == PLANKS and not plans.cells.has(Vector3i(11, 3, 10))
+		and plans.cells.get(Vector3i(13, 1, 10)) == soil and plans.cells.get(Vector3i(13, 2, 10)) == PLANKS
+		and not plans.cells.has(Vector3i(15, 1, 10)) and not plans.cells.has(Vector3i(15, 0, 10)) and n == 7,
+		"the wall's cell in the bump is drawn, the bump over the wall's top left (2Б), the dip filled, the deep hole left: %s" % [plans.cells])
+	var tall := plans.earthwork(actions, who, "line", a, b, Plans.shape("line", a, b, 2))
+	_check(tall.dig.has(Vector3i(11, 3, 10)) and tall.cut.is_empty(), "a wall two high digs the bump to its top")
+	var work := plans.earthwork(actions, who, "line", a, b, Plans.shape("line", a, b, 1))
+	var sorted := plans.sort(actions, who, "line", a, Plans.shape("line", a, b, 1), Mat.index(PLANKS), false, work)
+	_check(sorted.hanging.size() == 0 and sorted.blocked.size() == 0,
+		"what is drawn already is in none; nothing hangs over a filled dip: %s" % [sorted])
+	who.inventory.add(PLANKS, 6)
+	who.inventory.add(soil, 1)
+	who.inventory.add("tools:stone_pickaxe", 1)
+	for i in 20:
+		plans.build(actions, who)
+	_check(w.get_cell(11, 3, 10) == Mat.STONE and w.get_cell(11, 2, 10) == Mat.index(PLANKS)
+		and w.get_cell(13, 1, 10) == Mat.DIRT and w.get_cell(13, 2, 10) == Mat.index(PLANKS),
+		"building digs the wall's cell in the bump, fills the dip and sets the wall")
+	_check(plans.cells.keys().all(func(c: Vector3i) -> bool: return c == Vector3i(15, 2, 10)),
+		"all is built but, maybe, the cell over the deep hole: %s" % [plans.cells])
+	# A square levels the ground inside its walls too; the eraser takes the earth's ghost.
+	w.set_cell(22, 2, 22, Mat.DIRT)
+	w.set_natural(22, 2, 22, true)
+	who.position = Vector3(20.5, 2.0, 20.5) * WorldData.CELL
+	plans.draw(actions, who, "square", Vector3i(20, 2, 20), Vector3i(24, 2, 24), 1, 1, false, 0, true)
+	_check(plans.cells.get(Vector3i(22, 2, 22)) == Plans.CUT, "a square levels the ground inside its walls")
+	plans.cells[Vector3i(22, 6, 22)] = PLANKS
+	plans.draw(actions, who, "square", Vector3i(20, 2, 20), Vector3i(24, 2, 24), 1, 1, true, 0, true)
+	_check(not plans.cells.has(Vector3i(22, 2, 22)) and not plans.cells.has(Vector3i(20, 2, 20))
+		and plans.cells.get(Vector3i(22, 6, 22)) == PLANKS,
+		"the eraser takes the figure and its earthwork, a ghost block over it stays")
+	# A flight only fills: the bump at its foot is not cut.
+	w.set_cell(31, 2, 30, Mat.DIRT)
+	w.set_natural(31, 2, 30, true)
+	w.set_cell(33, 1, 30, Mat.AIR)
+	who.position = Vector3(31.5, 2.0, 31.5) * WorldData.CELL
+	var ramp := WorldData.FORM_RAMP
+	var fw := plans.earthwork(actions, who, "line", Vector3i(30, 2, 30), Vector3i(34, 2, 30),
+		Plans.shape("line", Vector3i(30, 2, 30), Vector3i(34, 2, 30), 3, Vector2.INF, 1, ramp), ramp)
+	_check(fw.cut.is_empty() and fw.dig.is_empty() and fw.fill == [Vector3i(33, 1, 30)],
+		"a flight's dips are filled, the ground over it not cut: %s" % [fw])
 
 
 ## Doors, windows and furniture set down by the blueprint (the user's picks, 2026-11-26,

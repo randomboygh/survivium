@@ -732,6 +732,11 @@ func _game_rows() -> Array:
 		["[things_from_the_bag]", ["[by_blueprint]", "[at_once]"],
 			func() -> int: return int(s.values.build_things),
 			func(i: int) -> void: s.set_value("build_things", i)],
+		# A figure drawn on uneven ground levels it, as «выровнять», or takes it as it lies
+		# (the user's picks, 2026-11-26).
+		["[ground_under_a_figure]", ["[level_it]", "[as_it_lies]"],
+			func() -> int: return int(s.values.build_level),
+			func(i: int) -> void: s.set_value("build_level", i)],
 	]
 
 

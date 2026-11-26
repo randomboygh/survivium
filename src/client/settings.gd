@@ -176,6 +176,10 @@ const DEFAULTS := {
 	# the user's picks of 2026-11-26, 2А): 0 sets its ghost into the blueprint, built after
 	# its blocks; 1 sets it down at once.
 	"build_things": 0,
+	# Whether a figure drawn in the build mode levels the uneven ground under it (BuildMode
+	# levels, Plans.earthwork; the user's picks of 2026-11-26): 0 levels it, 1 takes it as
+	# it lies.
+	"build_level": 0,
 	# Volumes in steps of Sound.STEPS (0 is off): the music, all the sounds, nature
 	# (wind, rain, water, birds) and the interface among them.
 	"music_volume": 3,
@@ -228,7 +232,7 @@ static func _index_limits() -> Dictionary:
 	var volumes := Sound.STEPS + 1
 	return {"time_speed": TIME_SPEEDS.size(), "pixel_scale": PIXEL_SIZES.size(), "fps_limit": FPS_LIMITS.size(),
 		"ui_size": Hud.UI_SIZES.size(), "control_size": Hud.CONTROL_SIZES.size(), "minimap_size": Minimap.SIDES.size(),
-		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "vibration": 4, "build_things": 2, "fire_shadows": 4, "water_fx": 3, "crt": Crt.LOOKS.size(),
+		"music_often": Music.GAPS.size(), "pickup": WorldActions.PICKUP_NONE + 1, "vibration": 4, "build_things": 2, "build_level": 2, "fire_shadows": 4, "water_fx": 3, "crt": Crt.LOOKS.size(),
 		"palette": Crt.PALETTES.size(), "retro_pixel": Crt.PIXELS.size(),
 		"layer_front_from": CaveLayers.FIRSTS.size(), "layer_front_stretch": CaveLayers.STRETCHES.size(),
 		"layer_above_from": CaveLayers.FIRSTS.size(), "layer_above_stretch": CaveLayers.STRETCHES.size(),

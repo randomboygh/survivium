@@ -283,9 +283,13 @@ func _rule(kind: String, args: Array) -> Variant:
 				var e: Dictionary = _near(args[0])
 				return not e.is_empty() and placed.turn_sign(who, e)
 		Protocol.PLAN:
-			if _fit(args, [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT, TYPE_BOOL, TYPE_INT]) \
-					and args[0] in Plans.KINDS and args[6] >= 0 and args[6] < 64:
-				return session.plans.draw(actions, who, args[0], args[1], args[2], args[3], args[4], args[5], args[6])
+			# The earthwork flag (8th) may be left out: the ground is then taken as it lies.
+			var plan_types := [TYPE_STRING, TYPE_VECTOR3I, TYPE_VECTOR3I, TYPE_INT, TYPE_INT, TYPE_BOOL, TYPE_INT]
+			if args.size() == 8:
+				plan_types.append(TYPE_BOOL)
+			if _fit(args, plan_types) and args[0] in Plans.KINDS and args[6] >= 0 and args[6] < 64:
+				return session.plans.draw(actions, who, args[0], args[1], args[2], args[3], args[4], args[5], args[6],
+					args.size() == 8 and args[7])
 		Protocol.MEND:
 			if _fit(args, [TYPE_VECTOR3I]):
 				return session.decay.mend(who, args[0])

@@ -184,6 +184,9 @@ func _test_requests() -> void:
 	var far_ghost := Vector3i(200, 2, 200)
 	p[0].plans.cells[far_ghost] = "materials:planks"
 	p[0].plans.forms[far_ghost] = WorldData.FORM_RAMP
+	_check(req._rule(Protocol.PLAN, ["line", Vector3i.ZERO, Vector3i.ZERO, 1, 1, false, 0, 1]) == null
+		and req._rule(Protocol.PLAN, ["line", Vector3i.ZERO, Vector3i.ZERO, 1, 1, false, 0, true, 0]) == null,
+		"a blueprint whose «level» is no bool, or with more arguments, is refused")
 	_check(req._rule(Protocol.PLAN_TURN, ["x"]) == null and req._rule(Protocol.PLAN_TURN, []) == null
 		and req._rule(Protocol.PLAN_TURN, [far_ghost]) == 0 and p[0].plans.forms[far_ghost] == WorldData.FORM_RAMP,
 		"a ghost slope is turned only by a cell, and only within reach")

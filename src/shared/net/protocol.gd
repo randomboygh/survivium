@@ -117,9 +117,10 @@ const SIGN_TURN := "sign_turn"
 ## Makes a gesture: [name] (Gestures.LIST; "" stops the one going, Gestures.make).
 const GESTURE := "gesture"
 ## Draws a shape of the blueprint with the block held, or takes the ghost off the box
-## round it: [kind, from, to, height, thickness, erase, form] (Plans.draw; the form of
-## the blocks, WorldData.forms: a cube, a slope or stairs and the side they rise toward,
-## and Plans.BAND for a band one block thick).
+## round it: [kind, from, to, height, thickness, erase, form, level] (Plans.draw; the form
+## of the blocks, WorldData.forms: a cube, a slope or stairs and the side they rise toward,
+## and Plans.BAND for a band one block thick; `level`, which may be left out: the uneven
+## ground under the figure is levelled with it, Plans.earthwork).
 const PLAN := "plan"
 ## Takes the blueprint's ghost off every cell near the player: [] (Plans.clear).
 const PLAN_CLEAR := "plan_clear"
