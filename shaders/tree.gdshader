@@ -130,8 +130,8 @@ const float DEPTH_TIE = 0.04;
 const float BASE_RISE = 16.0;
 
 // Trees falling, felled (TreeHits.fall: up to 4): the foot of the trunk (xyz) and how far
-// the tree has turned over (w, radians), the way it falls (x, z) and how far it has faded
-// out (w, 0..1, once it lies). It turns over about the stump's top, FALL_CUT over the
+// the tree has turned over (w, radians), the way it falls (x, y), the seconds since it began
+// to fall (z) and how far it has faded out (w, 0..1, once it lies). It turns over about the stump's top, FALL_CUT over the
 // foot; the rows under that are the stump's, which stays (TreeSprites).
 uniform vec4 falls[4];
 uniform vec4 fall_ways[4];
@@ -170,6 +170,15 @@ const float FALL_RING_BACK = 0.3;
 // modules the first down stays there, the next fall onto it and rest on it, the pile pressed
 // to FALL_PILE of how far they would have sunk in.
 const float FALL_PILE = 0.6;
+// The fall's turn over time, as TreeHits.fall_at (keep the two alike): faster and faster to
+// FALL_ANGLE in FALL_TIME seconds, then a bounce of FALL_BOUNCE back up and down in BOUNCE_TIME.
+const float FALL_TIME = 1.0;
+const float FALL_ANGLE = PI / 2.0;
+const float FALL_BOUNCE = 0.06;
+const float BOUNCE_TIME = 0.25;
+// Each module falls on its own clock, up to half of FALL_LAG seconds before or after the trunk
+// (the user's ask, 2026-11-27: not all at once), so the crown comes down a little ragged.
+const float FALL_LAG = 0.24;
 // Added to COLOR.b of a falling tree's own instances (TreeHits.FALL_MINE): the standing tree
 // its chunk still draws at the same foot until rebuilt is left out instead.
 const float FALL_MINE = 512.0;
@@ -212,13 +221,21 @@ vec2 screen_px(vec3 v) {
 	return vec2(dot(v.xz, vec2(-view_up.y, view_up.x)), -dot(v.xz, view_up)) * TEXELS;
 }
 
-// A way `v` (world units) from a falling tree's pivot turned over by fall `i` (Rodrigues'
-// turn about the axis up x way, which takes up to the way).
-vec3 fall_turned(vec3 v, int i) {
+// A way `v` (world units) from a falling tree's pivot turned over by `a` (radians) the way
+// fall `i` goes (Rodrigues' turn about the axis up x way, which takes up to the way).
+vec3 fall_turned(vec3 v, int i, float a) {
 	vec3 way = normalize(vec3(fall_ways[i].x, 0.0, fall_ways[i].y));
 	vec3 axis = cross(vec3(0.0, 1.0, 0.0), way);
-	float a = falls[i].w;
 	return v * cos(a) + cross(axis, v) * sin(a) + axis * dot(axis, v) * (1.0 - cos(a));
+}
+
+// How far a falling tree has turned over `t` seconds after it began (TreeHits.fall_at).
+float fall_angle(float t) {
+	if (t < FALL_TIME) {
+		float k = max(t, 0.0) / FALL_TIME;
+		return FALL_ANGLE * k * k;
+	}
+	return FALL_ANGLE - FALL_BOUNCE * sin(PI * min(t - FALL_TIME, BOUNCE_TIME) / BOUNCE_TIME);
 }
 
 // The screen's pixels a way `v` from a tree's foot is drawn at, standing tall as the trees.
@@ -343,8 +360,8 @@ void vertex() {
 		// How a texel's step across (mu) and down (mv) the picture goes on the screen now: a
 		// turn of the screen by `th` times rows squashed and sheared (mu turned back lies
 		// along x); the stump's top on the middle of a pixel.
-		vec2 mu = fall_px(fall_turned(vec3(right.x, 0.0, right.y) / TEXELS, fall));
-		vec2 mv = fall_px(fall_turned(vec3(0.0, -1.0 / TEXELS, 0.0), fall));
+		vec2 mu = fall_px(fall_turned(vec3(right.x, 0.0, right.y) / TEXELS, fall, falls[fall].w));
+		vec2 mv = fall_px(fall_turned(vec3(0.0, -1.0 / TEXELS, 0.0), fall, falls[fall].w));
 		float th = atan(mu.y, mu.x);
 		float k = round(th / (PI / 2.0));
 		float f = th - k * PI / 2.0;
@@ -380,10 +397,12 @@ void vertex() {
 			VERTEX = foot;
 		} else {
 			tile_mid = floor(sum.xy / sum.z);
+			// Its own moment of the fall (FALL_LAG), the same for its ring.
+			float turn = fall_angle(fall_ways[fall].z - (hash12(me * 1.37 + falls[fall].xz) - 0.5) * FALL_LAG);
 			vec3 pivot = foot + vec3(0.0, FALL_CUT, 0.0);
 			vec3 across3 = vec3(right.x, 0.0, right.y);
 			vec3 m = foot + across3 * ((tile_mid.x - ax) / TEXELS) + vec3(0.0, (ay - tile_mid.y) / TEXELS, 0.0);
-			m = pivot + fall_turned(m - pivot, fall);
+			m = pivot + fall_turned(m - pivot, fall, turn);
 			// Kept over the ground: its lowest leaves `rest` under it; sunk in by `d`, it rests
 			// on the pile of its row, as deep as the row's leaf that went deepest (`deep`: the
 			// row's leaves furthest the way it falls, looked for along lines 4 texels apart).
@@ -391,14 +410,14 @@ void vertex() {
 			float d = m.y - foot.y - rest;
 			float deep = min(d, 0.0);
 			vec3 way3 = normalize(vec3(fall_ways[fall].x, 0.0, fall_ways[fall].y));
-			float side = dot(across3, way3) * sin(falls[fall].w);
+			float side = dot(across3, way3) * sin(turn);
 			if (abs(side) > 0.001) {
 				for (float y = me.y * FALL_MODULE + 1.0; y < (me.y + 1.0) * FALL_MODULE; y += 4.0) {
 					for (float k = 0.0; k < c.z; k += 2.0) {
 						vec2 i = vec2(side > 0.0 ? c.z - 1.0 - k : k, y);
 						if (fall_leaf(cell, cut, i)) {
 							float up = (ay - i.y) / TEXELS - FALL_CUT;
-							deep = min(deep, FALL_CUT + up * cos(falls[fall].w) - (i.x - ax) / TEXELS * side);
+							deep = min(deep, FALL_CUT + up * cos(turn) - (i.x - ax) / TEXELS * side);
 							break;
 						}
 					}
@@ -427,7 +446,7 @@ void vertex() {
 			// Turned over about the stump's top toward the way it falls: the quad covers
 			// where it lies now, and the fragment finds each pixel's texel (FALL_ROOM).
 			vec3 pivot = foot + vec3(0.0, FALL_CUT, 0.0);
-			p = pivot + fall_turned(p - pivot, fall);
+			p = pivot + fall_turned(p - pivot, fall, falls[fall].w);
 		}
 		world_pos = p;
 		VERTEX = shear(stand_tall(p, foot));

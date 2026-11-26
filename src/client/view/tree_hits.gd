@@ -68,7 +68,9 @@ const CROWN_REACH := 6
 ## A felled tree drawn as a picture falls (decision 4А of the trees' redraw: away from the
 ## one who felled it, in about a second): turning over faster and faster to FALL_ANGLE in
 ## FALL_TIME, a little bounce of FALL_BOUNCE back up and down in BOUNCE_TIME, then fading out
-## in FADE_TIME (the logs and twigs lie where it fell). FALLS at once (tree.gdshader `falls`).
+## in FADE_TIME (the logs and twigs lie where it fell). FALLS at once (tree.gdshader `falls`,
+## whose `fall_angle` is fall_at's turn again: keep the two alike, for the crown's modules
+## falling each a little before or after the trunk, FALL_LAG).
 const FALLS := 4
 const FALL_TIME := 1.0
 const FALL_ANGLE := PI / 2.0
@@ -198,7 +200,7 @@ func _process_falls(delta: float) -> void:
 		var f: Array = _falling[i]
 		var at := fall_at(f[3])
 		falls[i] = Vector4(f[1].x, f[1].y, f[1].z, at.x)
-		ways[i] = Vector4(f[2].x, f[2].y, 0.0, at.y)
+		ways[i] = Vector4(f[2].x, f[2].y, f[3], at.y)
 	if game.tree_mat != null and (not _falling.is_empty() or _fall_set):
 		game.tree_mat.set_shader_parameter("falls", falls)
 		game.tree_mat.set_shader_parameter("fall_ways", ways)
