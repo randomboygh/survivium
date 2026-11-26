@@ -855,6 +855,10 @@ const SHOTS := {
 			["tools:bait", 6], ["tools:lantern", 1], ["tools:tallow_candle", 3], ["tools:tar_torch", 2],
 			["tools:waterskin_full", 1], ["tools:watering_can", 1], ["tools:trap", 1], ["tools:live_rabbit", 1],
 			["tools:ice_auger", 1], ["tools:bone_needle", 1], ["tools:leather_sling", 1], ["tools:sling_stone", 9]]},
+	# The needles: bone and the four metal ones, with the leather and cloth they sew.
+	"bag-needles": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": 0,
+		"fill": [["tools:bone_needle", 1], ["tools:copper_needle", 1], ["tools:bronze_needle", 1], ["tools:iron_needle", 1],
+			["tools:steel_needle", 1], ["materials:leather", 6], ["materials:cloth", 4], ["materials:iron_bar", 2]]},
 	# Swords, boots and the vest drawn after the second reference sheet, the fence with its side section.
 	"bag-icons5": {"time": 0.42, "season": 1, "clearing": true, "touch": true, "bag": true, "slot": 0,
 		"fill": [["tools:wooden_sword", 1], ["tools:stone_sword", 1], ["tools:copper_sword", 1], ["tools:bronze_sword", 1],
@@ -1131,6 +1135,7 @@ const SHOTS := {
 	"craft-pc": {"time": 0.42, "season": 1, "craft": true},
 	# A recipe with many facts (a stone scythe) on a narrow phone screen, and the craft tab
 	# before any recipe is known: no queue then.
+	"craft-needle": {"time": 0.42, "season": 1, "touch": true, "craft": true, "recipe": "tools:iron_needle"},
 	"craft-scythe": {"time": 0.42, "season": 1, "touch": true, "craft": true, "recipe": "tools:stone_scythe"},
 	# A fibre tunic chosen with dyes in the bag: the «Краситель» row, its own colours and each dye's, black picked.
 	"craft-dye": {"time": 0.42, "season": 1, "touch": true, "craft": true, "recipe": "tools:fiber_tunic",

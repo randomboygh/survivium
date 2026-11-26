@@ -68,7 +68,8 @@ all of them; a hand-drawn model is overwritten, so name what to redo).
   dug, chopped and fished with what is in `src/shared/content/tools.gd`); any other class (hammer) is for recipes and stations, in the world
   it is like hands. A knife (knife) in the world is also like hands, but, like a sword, it first strikes the animal in front of one (`Tools.hunts`; other hands only an animal at point-blank range),
   and in the bag it butchers carcasses (the "Butcher a carcass" recipe of the "Animals" mod asks for the class knife). A needle (needle) in the world
-  does nothing, in the bag it sews leather (a leather sling). A strike at an animal
+  does nothing, in the bag it sews leather (a leather sling); the bone one is carved with a knife, the metal ones (copper,
+  bronze, iron, steel: four from a bar) last longer and are mended with their bar. A strike at an animal
   takes the tool's `power` off it (hands — 1). A spear (spear), a sling (sling) and a bow (bow) with `range` (in cells)
   shoot: the action button — where the character looks, a touch on the ground — where it was touched; `ammo` is with what
   (one from the bag per shot; without it the weapon itself is thrown). What is shot lies where it fell. The item class `prop` is also an open word (workbench, kiln, forge, chest), and what the item does

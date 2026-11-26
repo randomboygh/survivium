@@ -6,3 +6,33 @@
   tools: [knife]
   wear: 1
   time: 3
+# Metal needles: four out of one bar, the copper and bronze ones at the workbench, the iron
+# and steel ones at the anvil (as the knives, content/tools/knife/data/recipes.yaml).
+- id: copper_needle
+  title: "[tools.recipes.copper_needle]"
+  makes: copper_needle
+  count: 4
+  needs: {materials:copper_bar: 1}
+  at: workbench
+  time: 4
+- id: bronze_needle
+  title: "[tools.recipes.bronze_needle]"
+  makes: bronze_needle
+  count: 4
+  needs: {materials:bronze_bar: 1}
+  at: workbench
+  time: 4
+- id: iron_needle
+  title: "[tools.recipes.iron_needle]"
+  makes: iron_needle
+  count: 4
+  needs: {materials:iron_bar: 1}
+  at: anvil
+  time: 4
+- id: steel_needle
+  title: "[tools.recipes.steel_needle]"
+  makes: steel_needle
+  count: 4
+  needs: {materials:steel_bar: 1}
+  at: anvil
+  time: 4

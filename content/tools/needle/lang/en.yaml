@@ -7,6 +7,15 @@
 # content/tools/needle/data/items.yaml
 "[tools.items.bone_needle]": "Bone needle"
 "[tools.items.bone_needle.about]": "Sews leather. Stays in the bag while you sew."
+"[tools.items.copper_needle]": "Copper needle"
+"[tools.items.metal_needle.about]": "Sews leather and cloth, and lasts much longer than a bone one. Stays in the bag while you sew."
+"[tools.items.bronze_needle]": "Bronze needle"
+"[tools.items.iron_needle]": "Iron needle"
+"[tools.items.steel_needle]": "Steel needle"
 
 # content/tools/needle/data/recipes.yaml
 "[tools.recipes.bone_needle]": "Bone needle"
+"[tools.recipes.copper_needle]": "Copper needle"
+"[tools.recipes.bronze_needle]": "Bronze needle"
+"[tools.recipes.iron_needle]": "Iron needle"
+"[tools.recipes.steel_needle]": "Steel needle"

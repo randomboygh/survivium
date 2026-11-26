@@ -7,6 +7,15 @@
 # content/tools/needle/data/items.yaml
 "[tools.items.bone_needle]": "Ago d'osso"
 "[tools.items.bone_needle.about]": "Cuce il cuoio. Resta nella borsa mentre cuci."
+"[tools.items.copper_needle]": "Ago di rame"
+"[tools.items.metal_needle.about]": "Cuce cuoio e stoffa e dura molto più di uno d'osso. Resta nella borsa mentre cuci."
+"[tools.items.bronze_needle]": "Ago di bronzo"
+"[tools.items.iron_needle]": "Ago di ferro"
+"[tools.items.steel_needle]": "Ago d'acciaio"
 
 # content/tools/needle/data/recipes.yaml
 "[tools.recipes.bone_needle]": "Ago d'osso"
+"[tools.recipes.copper_needle]": "Ago di rame"
+"[tools.recipes.bronze_needle]": "Ago di bronzo"
+"[tools.recipes.iron_needle]": "Ago di ferro"
+"[tools.recipes.steel_needle]": "Ago d'acciaio"
