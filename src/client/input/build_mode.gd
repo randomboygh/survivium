@@ -405,6 +405,19 @@ func short_of(id: String) -> bool:
 	return int(_need.get(id, 0)) > game.character.inventory.count(id)
 
 
+## The world materials of the ghost blocks the bag has too little of (short_of), for
+## PlanBlocks to tint; none out of the mode.
+func short_blocks() -> Array[int]:
+	var out: Array[int] = []
+	if not on:
+		return out
+	for id: String in _need:
+		var m := Mat.index(Items.get_item(id).get("place", ""))
+		if m > 0 and short_of(id):
+			out.append(m)
+	return out
+
+
 ## Counts the blueprint near again (need) when it changed or the player went NEED_STEP
 ## cells, at most every CHECK_TIME while the mode is on; the bar is told when it differs.
 func _count_need(delta: float) -> void:

@@ -11,6 +11,7 @@ extends Node3D
 const WorldData := preload("res://src/shared/world/world_data.gd")
 const PlanBlocks := preload("res://src/client/view/plan_blocks.gd")
 const Props := preload("res://src/client/game/props.gd")
+const Items := preload("res://src/shared/content/items.gd")
 
 const CELL := WorldData.CELL
 ## Ghost things are drawn denser and lit more than the ghost blocks (PlanBlocks.ALPHA, GLOW),
@@ -22,6 +23,10 @@ var game
 ## The models of the ghost things drawn, by the north-west cell of each.
 var _nodes := {}
 var _material: ShaderMaterial
+## The look of the ghost things the bag has none of for the blueprint near (BuildMode.short_of),
+## tinted PlanBlocks.SHORT_TINT, and which items were short at the last look.
+var _short_material: ShaderMaterial
+var _short := {}
 
 
 func _init(g) -> void:
@@ -40,6 +45,33 @@ func material() -> ShaderMaterial:
 	if _material == null and game.world_mat != null:
 		_material = PlanBlocks.ghost_material(game.world_mat, ALPHA, GLOW)
 	return _material
+
+
+## The look of ghost things of `item`: tinted short when the bag has too few for the blueprint near.
+func _look(item: String) -> ShaderMaterial:
+	var look := material()
+	if look == null or not _short.has(item):
+		return look
+	if _short_material == null:
+		_short_material = PlanBlocks.ghost_material(game.world_mat, ALPHA, GLOW)
+		for m: ShaderMaterial in [_short_material, _short_material.next_pass]:
+			m.set_shader_parameter("ghost_tint", Color(PlanBlocks.SHORT_TINT, PlanBlocks.TINT_SHARE))
+	return _short_material
+
+
+func _process(_delta: float) -> void:
+	var now := {}
+	if game.build != null and game.build.on:
+		for id: String in game.build.need():
+			if Items.is_interior(id) and game.build.short_of(id):
+				now[id] = true
+	if now == _short:
+		return
+	_short = now
+	for t: Dictionary in game.plans.things:
+		var node: MeshInstance3D = _nodes.get(t.cell)
+		if node != null:
+			node.material_override = _look(t.item)
 
 
 ## The whole blueprint read anew (joining, a world loaded): every ghost thing drawn again.
@@ -66,7 +98,7 @@ func _reset() -> void:
 ## Draws ghost thing `t` where it stands (one at its cell before goes).
 func _add(t: Dictionary) -> void:
 	_drop(t.cell)
-	var look := material()
+	var look := _look(t.item)
 	var mesh: Mesh = game.props.model_mesh(t.item, t.turn)
 	if mesh == null or look == null:
 		return
