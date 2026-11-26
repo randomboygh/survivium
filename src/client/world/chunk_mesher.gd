@@ -318,8 +318,10 @@ static func _column(job: Job, x: int, z: int) -> bool:
 			if fills != 0:
 				_fill_faces(solid, c, sh, cov, i, dy, dz, base)
 		elif m == Mat.LOG and Trunks.is_trunk(nb, w.trees.has(Vector2i(x, z))):
-			# A tree drawn as a picture (TreeSprites) draws its trunk itself, and its stump.
-			if Growth.standing_look(w, Vector2i(x, z)) < 0 and Growth.stump_look(w, Vector2i(x, z)) < 0:
+			# A tree drawn as a picture (TreeSprites) draws its trunk itself, its stump and
+			# the pieces of wood lying in the woods.
+			if Growth.standing_look(w, Vector2i(x, z)) < 0 and Growth.stump_look(w, Vector2i(x, z)) < 0 \
+					and Growth.piece_look(w, Vector2i(x, z)) < 0:
 				Trunks.trunk_faces(solid, w, x, y, z, nb, base, m)
 		elif sh[i] & 15 != 0 and not cov[nb[2]]:
 			var cuts := sh[i] >> 4

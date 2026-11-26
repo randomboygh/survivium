@@ -22,6 +22,15 @@ const LOWEST_POINT := 3
 const INSET := 0.72
 ## A crown point belongs to the nearest trunk within this many cells.
 const TREE_REACH := 8
+## The pieces of wood lying in the woods (WorldData.tree_pieces, TreeLooks.PIECES): a log,
+## a fallen trunk with its limbs, a broken trunk with a sprout. A piece is one log cell on
+## the ground in its column, noted as a tree of its species; its picture (TreeSprites) lies
+## along piece_dir from there.
+const PIECE_LOG := 0
+const PIECE_FALLEN := 1
+const PIECE_BROKEN := 2
+## The woods have at most one piece in each square of this many cells (WorldGen._pieces).
+const PIECE_BLOCK := 8
 ## How thick the stem of a young tree (place_young) is, in texels.
 const YOUNG_GIRTH := 2
 
@@ -209,7 +218,7 @@ static func stump_look(w, col: Vector2i, foot: Array = []) -> int:
 	if species < 0 or species >= Trees.SPECIES.size():
 		return -1
 	var p: Dictionary = Trees.SPECIES[species].pictures
-	if p.is_empty() or p.get("stumps", []).is_empty():
+	if p.is_empty() or p.get("stumps", []).is_empty() or w.tree_pieces.has(col):
 		return -1
 	var bits: int = w.log_col(col.x, col.y)
 	if bits == 0 or bits & (bits - 1) != 0:
@@ -222,6 +231,49 @@ static func stump_look(w, col: Vector2i, foot: Array = []) -> int:
 	else:
 		foot[0] = y0
 	return mini(look_index(Trees.SPECIES[species], col, 1.0) / TreeLooks.VARIANTS, p.stumps.size() - 1)
+
+
+## The piece of wood lying in column `col` (PIECE_LOG, PIECE_FALLEN, PIECE_BROKEN), -1 for
+## none: noted so (WorldData.tree_pieces), a species with that piece drawn, its one log cell
+## there with nothing over it; the level of that cell in `foot`.
+static func piece_look(w, col: Vector2i, foot: Array = []) -> int:
+	var kind: int = w.tree_pieces.get(col, -1)
+	var species: int = w.trees.get(col, -1)
+	if kind < 0 or kind >= TreeLooks.PIECES.size() or species < 0 or species >= Trees.SPECIES.size():
+		return -1
+	if not Trees.SPECIES[species].pictures.get("pieces", {}).has(TreeLooks.PIECES[kind]):
+		return -1
+	var bits: int = w.log_col(col.x, col.y)
+	if bits == 0 or bits & (bits - 1) != 0:
+		return -1
+	if foot.size() == 0:
+		foot.append(w.level_of(bits))
+	else:
+		foot[0] = w.level_of(bits)
+	return kind
+
+
+## Lays a piece of wood `kind` of `species` with its log on cell x, y, z (see piece_look).
+static func place_piece(w, x: int, y: int, z: int, species: int, kind: int) -> void:
+	w.add_tree(x, z, species)
+	w.set_cell(x, y, z, Mat.LOG)
+	w.tree_pieces[Vector2i(x, z)] = kind
+
+
+## The way (x, z) a piece lying in column `col` lies out from it: its drawing of turn 0
+## lies along its own x (east), turned in the world as a tree is (turn_of, TreeLooks.to_own).
+static func piece_dir(col: Vector2i) -> Vector2:
+	return Vector2.from_angle(turn_of(col) * PI / 4.0)
+
+
+## How far (cells) the pieces of `kind` of any species lie out from their column at most
+## (TreeLooks `reach`).
+static func piece_reach(kind: int) -> float:
+	var most := 0.0
+	for s: Dictionary in Trees.SPECIES:
+		var d: Dictionary = s.pictures.get("pieces", {}).get(TreeLooks.PIECES[kind], {})
+		most = maxf(most, float(d.get("reach", 0.0)))
+	return most
 
 
 ## Of the trees ([column, species], WorldCells.pack_chunk) of a chunk saved at trees' looks

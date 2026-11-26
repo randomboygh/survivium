@@ -2,6 +2,7 @@ extends "res://tests/unit/test_case.gd"
 ## The generator: chunks the same in any order, mountains, rivers and caves, trees and bushes.
 
 const EscapeMap := preload("res://tools/escape_map.gd")
+const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 
 
 func run() -> void:
@@ -17,6 +18,7 @@ func run() -> void:
 	_test_regrow()
 	_test_pictured()
 	_test_stumps()
+	_test_pieces()
 	_test_pictured_shadow()
 	_test_bushes()
 	_test_custom_plants()
@@ -59,7 +61,8 @@ func _test_generation() -> void:
 	for i in range(keys.size() - 1, -1, -1):
 		_ensure_stage(gen, keys[i], WorldGen.SHAPED)
 	_check(_same(gen.world, w, keys), "chunks made in another order give the same cells and shapes")
-	_check(gen.world.trees == w.trees and gen.world.bushes == w.bushes, "and the same trees and bushes")
+	_check(gen.world.trees == w.trees and gen.world.bushes == w.bushes and gen.world.tree_pieces == w.tree_pieces,
+		"and the same trees, bushes and pieces of wood")
 	# Chunks dropped far away are made again the same, with the crowns of the trees
 	# around that reach into them: a chunk of the area, a planted one beside it and
 	# one with terrain only beyond that.
@@ -560,6 +563,41 @@ func _test_stumps() -> void:
 		if gone.size() != 1 or w.log_col(col.x, col.y) != 0 or Growth.stump_look(w, col) >= 0:
 			bad.append([s.id, "uproot"])
 	_check(bad.is_empty(), "a felled tree leaves a stump, the stump is uprooted: %s" % [bad])
+
+
+func _test_pieces() -> void:
+	# A piece of wood lying in the woods (Growth.place_piece) is one log drawn as a picture
+	# (Growth.piece_look), not a stump; the axe chops it up (Felling.cut_piece): the log goes,
+	# the logs and twigs its kind gives lie by it; the record goes with a chunk's save.
+	var bad := []
+	var kinds := 0
+	for species in Trees.SPECIES.size():
+		var s: Dictionary = Trees.SPECIES[species]
+		for kind in TreeLooks.PIECES.size():
+			if not s.pictures.get("pieces", {}).has(TreeLooks.PIECES[kind]):
+				continue
+			kinds += 1
+			var col := Vector2i(25, 25)
+			var w := _pictured_ground(col)
+			Growth.place_piece(w, col.x, 1, col.y, species, kind)
+			if Growth.piece_look(w, col) != kind or Growth.stump_look(w, col) >= 0 or Growth.standing_look(w, col) >= 0:
+				bad.append([s.id, kind, "look"])
+				continue
+			var key := WorldData.chunk_key(col.x, col.y)
+			var copy := WorldData.new(48, Vector2i(col.x + 32, 64))
+			copy.unpack_chunk(w.pack_chunk(key))
+			if Growth.piece_look(copy, col) != kind:
+				bad.append([s.id, kind, "save"])
+			var gone := Felling.fell(w, Vector3i(col.x, 1, col.y), Vector2(1, 0))
+			var lying := 0
+			for k in w.drops:
+				lying += w.drops[k].size()
+			var d: Dictionary = s.pictures.pieces[TreeLooks.PIECES[kind]]
+			var want: int = (d.logs if s.log != "" else 0) + (d.twigs if s.twig != "" else 0)
+			if gone.size() != 1 or w.log_col(col.x, col.y) != 0 or Growth.piece_look(w, col) >= 0 or lying == 0 \
+					or lying > want:
+				bad.append([s.id, kind, "chop", gone.size(), lying, want])
+	_check(kinds > 0 and bad.is_empty(), "a piece of wood is drawn, kept and chopped up: %d kinds, %s" % [kinds, bad])
 
 
 func _test_pictured_shadow() -> void:

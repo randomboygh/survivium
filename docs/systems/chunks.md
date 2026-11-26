@@ -105,6 +105,12 @@ slice, to free the far meshes.
   bark as the trees', cut wood, snow and its outline 3 bits a sun); the chunk mesher leaves its log cell undrawn.
   A standing tree that is a stump after a chunk's rebuild falls (`TreeHits.fall`, `tree.gdshader` `falls`): its
   picture turns over about the stump's top away from the last blow in a second, bounces and fades out.
+- Pieces of wood lying in the woods (`Growth.piece_look`): drawn as the stumps, instance colour alpha
+  `TreeSprites.PIECE`; each of a piece's 16 views (8 turns, summer and winter) is cropped to itself (a fallen trunk
+  seen end on is narrow), so its instance's custom data points to its table of views in the frames atlas (two
+  texels a view: place; w, h, anchor) that `tree.gdshader` and `tree_shadow.gdshader` read in the vertex; a sprout's
+  leaves are alpha 7 (the leaves' ramp). Its shadow is its picture stood as a low wall (`PIECE_LOW`). The kinds'
+  rows of views are packed one by one under the stumps; the frames atlas is then 4064 x 3852 (under 4096).
 - `src/client/world/tree_sprites.gd`, `shaders/tree.gdshader` — standing trees of species drawn as pictures
   (`Growth.standing_look`): one upright picture per tree in the chunk's `trees` MultiMesh (the last of the
   plant parts), the frame of the side the camera rests at plus the tree's own turn, from one atlas of all

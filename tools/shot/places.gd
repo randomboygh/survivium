@@ -1499,6 +1499,53 @@ func stumps(w, at: Vector3i, group: int, fell := false) -> Vector3:
 	return (Vector3(at.x - 1, h, at.z - 23) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
+## The pieces of wood `kind` (Growth.PIECE_*) of 7 species (group `group` of the species
+## with that piece drawn, in the order of Trees.SPECIES) on flat bare ground at `at`: a
+## species a row, north to south, each lying turned `turn` eighths in the world (the
+## column nearest its place with that Growth.turn_of). Gives where the player stands,
+## south of the middle of the rows.
+func pieces(w, at: Vector3i, group: int, kind: int, turn: int) -> Vector3:
+	var h: int = w.surface_y(at.x, at.z)
+	for z in range(at.z - 60, at.z + 14):
+		for x in range(at.x - 30, at.x + 30):
+			for y in w.size_y:
+				w.set_cell(x, y, z, (Mat.GRASS if y == h - 1 else Mat.DIRT) if y < h else Mat.AIR)
+				w.set_natural(x, y, z, true)
+	for key: Vector2i in w.trees.keys():
+		if absi(key.x - at.x) < 40 and key.y - at.z > -70 and key.y - at.z < 24:
+			w.remove_tree(key.x, key.y)
+	for b: Vector3i in w.bushes.keys():
+		if absi(b.x - at.x) <= 30 and b.z - at.z >= -60 and b.z - at.z <= 14:
+			w.remove_bush(b)
+	var kinds := []
+	for i in Trees.SPECIES.size():
+		if Trees.SPECIES[i].pictures.get("pieces", {}).has(TreeLooks.PIECES[kind]):
+			kinds.append(i)
+	kinds = kinds.slice(group * 7, group * 7 + 7)
+	var gap := 8 if kind == Growth.PIECE_FALLEN else 6
+	for r in kinds.size():
+		var want := Vector2i((at.x - 1) | 1, (at.z - 8 - (kinds.size() - 1 - r) * gap) | 1)
+		if kind != Growth.PIECE_BROKEN:
+			# Lying from its column: its middle where the others' are.
+			var off := Growth.piece_dir(Vector2i.ZERO).rotated(turn * PI / 4.0 - Growth.turn_of(Vector2i.ZERO) * PI / 4.0) \
+					* (Growth.piece_reach(kind) * 0.4)
+			want -= Vector2i(roundi(off.x / 2.0) * 2, roundi(off.y / 2.0) * 2)
+		# The nearest column with that turn.
+		var col := want
+		var best := 1 << 30
+		for dz in range(-8, 9, 2):
+			for dx in range(-8, 9, 2):
+				var c := want + Vector2i(dx, dz)
+				if Growth.turn_of(c) == turn and dx * dx + 4 * dz * dz < best:
+					best = dx * dx + 4 * dz * dz
+					col = c
+		Growth.place_piece(w, col.x, h, col.y, kinds[r], kind)
+	for z in range(at.z - 64, at.z + 18, 8):
+		for x in range(at.x - 34, at.x + 34, 8):
+			main.chunks.on_cell_changed(Vector3i(x, h, z))
+	return (Vector3(at.x, h, at.z - 8 - 3 * gap) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
 ## A flat clearing at `at` (level of the ground there) with an oak west of the player
 ## and a spruce east of them, grown afresh each time; `fell` fells both away from the
 ## player a cell above their feet, as the axe would. With `bank` the ground behind them

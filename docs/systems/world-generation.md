@@ -118,6 +118,16 @@ on it or walks into it and throws it back (`Character._touch_hot`), and a thing 
   `pack_chunk`) grows its old trees of the species drawn as pictures since (TreeLooks `since`, 1 unless look.yaml
   says: the broadleaf trees 1, the conifers 2, the willow and the palms 3) again as their looks in its last restore steps (`Growth.outgrown` / `regrow`, `WorldGen.Job.regrow`); stumps
   and young trees stay. Not by `standing_look`: an old tree's trunk may be as high as a look's, its crown over it.
+  Pieces of wood lying in the woods (decision 5А of the trees' redraw): a log, a fallen trunk with its limbs, a broken
+  trunk with a sprout (`Growth.PIECE_LOG` / `PIECE_FALLEN` / `PIECE_BROKEN`, TreeLooks `pieces`, drawn by
+  `survivium-builds/trees-redraw/integration/pieces/src/`). One place in each `Growth.PIECE_BLOCK` (8) square of
+  cells (`WorldGen._piece_site`, a lattice column by the square's hash) has one by the biome's `pieces` chances
+  (`_piece_kind`; the woods' biomes), of one of the biome's species, on ground a tree would take (`_ground_takes`);
+  a log or a fallen trunk only on level dry ground as far as the layout reaches (`_level_way`), and no tree grows on
+  its place or within `PIECE_ROOM` cells of the way it lies (`_piece_blocks`, in `_tree_at`; the way is
+  `Growth.piece_dir`, its length the kind's largest `reach`). A piece is a candidate with a fifth field, its kind:
+  `Growth.place_piece` notes the tree, lays one log cell on the ground and the kind in `WorldData.tree_pieces` (a
+  tree record, saved with the chunk); `Growth.piece_look` tells it (a stump's look is none there).
 - `src/shared/world/test_ground.gd` — the test world, two of them (the world setting `slopes` 0 and 1, folders `test` and `test-o1`), listed last on «Load a world» in the developer mode (`WorldList.test_worlds`): sites of relief,
   biomes, plants (a garden — pens of trees of 15 cells, east of it fields of ears), «Camp», «Star cave»
   (`TestGround.STAR_*`), a two-storey brick «House» (`HOUSE_*`: walls and floors — cells from `extras`, the

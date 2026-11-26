@@ -36,6 +36,7 @@ signal made(key: Vector2i, stage: int)
 
 const Trees := preload("res://src/shared/content/trees.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
+const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 const Bushes := preload("res://src/shared/content/bushes.gd")
 ## How far a tree reaches from its trunk, so a chunk made again knows which trees of
 ## its neighbours to grow again (see Growth.place).
@@ -702,7 +703,8 @@ func _descent_air(cells: PackedByteArray, col: int, height: int, way: int) -> in
 
 ## The lattice columns of the chunk (x and z odd) that get a tree: a hash of the
 ## column against the chance of its biome, on grass above water, not beside another
-## candidate to the west or north (trunks side by side would merge into a wall).
+## candidate to the west or north (trunks side by side would merge into a wall); then the
+## pieces of wood lying in it (see _pieces), with their kind as a fifth field.
 func _tree_candidates(_key: Vector2i, lay: Dictionary) -> Array:
 	var out := []
 	var x0: int = lay.x0
@@ -717,7 +719,132 @@ func _tree_candidates(_key: Vector2i, lay: Dictionary) -> Array:
 			if species < 0 or _tree_at(lay, lx - 2, lz) >= 0 or _tree_at(lay, lx, lz - 2) >= 0:
 				continue
 			out.append([x0 + lx, z0 + lz, species, lay.heights[lz * WINDOW + lx]])
+	out.append_array(_pieces(lay))
 	return out
+
+
+## The pieces of wood lying in the woods of the chunk (Growth.place_piece): one place in
+## each Growth.PIECE_BLOCK square of cells (_piece_site) may have one, by its biome's
+## `pieces` chances (_piece_kind), on ground a tree would take there (_ground_takes), of a
+## species of the biome drawn with it; a log or a fallen trunk only where the ground it
+## lies on is level (as far as the layout reaches), the trees kept off the way it lies
+## (_piece_blocks). [x, z, species, ground height, kind] each.
+func _pieces(lay: Dictionary) -> Array:
+	var out := []
+	var cx: int = lay.x0 + MARGIN
+	var cz: int = lay.z0 + MARGIN
+	var bk := Growth.PIECE_BLOCK
+	for bz in range(floori(float(cz) / bk), floori(float(cz + CHUNK - 1) / bk) + 1):
+		for bx in range(floori(float(cx) / bk), floori(float(cx + CHUNK - 1) / bk) + 1):
+			var site := _piece_site(bx, bz)
+			if site.x < cx or site.y < cz or site.x >= cx + CHUNK or site.y >= cz + CHUNK:
+				continue
+			var lx: int = site.x - lay.x0
+			var lz: int = site.y - lay.z0
+			var j := lz * WINDOW + lx
+			var b: int = lay.biome[j]
+			var kind := _piece_kind(site, b)
+			if kind < 0 or not _ground_takes(lay, j):
+				continue
+			var species := Biomes.tree(b, _chance(site.x, site.y, 6))
+			if species < 0 or not Trees.SPECIES[species].pictures.get("pieces", {}).has(TreeLooks.PIECES[kind]):
+				continue
+			var h: int = lay.heights[j]
+			if kind != Growth.PIECE_BROKEN and not _level_way(lay, site, kind, h):
+				continue
+			out.append([site.x, site.y, species, h, kind])
+	return out
+
+
+## The place of the piece of wood of square bx, bz (Growth.PIECE_BLOCK): a lattice column
+## in it by its hash.
+func _piece_site(bx: int, bz: int) -> Vector2i:
+	var h := _hash(bx, bz, 41)
+	var n := Growth.PIECE_BLOCK / 2
+	return Vector2i(bx * Growth.PIECE_BLOCK + 1 + 2 * (h % n), bz * Growth.PIECE_BLOCK + 1 + 2 * ((h / n) % n))
+
+
+## The kind of piece of wood (Growth.PIECE_*) place `site` has under the chances of biome
+## `b` (its `pieces`), -1 for none.
+func _piece_kind(site: Vector2i, b: int) -> int:
+	var chances: Array = Biomes.of(b).get("pieces", [])
+	var roll := _chance(site.x, site.y, 43)
+	for k in chances.size():
+		roll -= float(chances[k])
+		if roll < 0.0:
+			return k
+	return -1
+
+
+## Whether a tree at column `j` of the layout would find its ground (see _tree_at).
+func _ground_takes(lay: Dictionary, j: int) -> bool:
+	var tops: PackedByteArray = lay.tops
+	var b: int = lay.biome[j]
+	return (tops[j] == Mat.GRASS or tops[j] in Biomes.tree_grounds(b, grounds)) and lay.water[j] < 0 \
+			and lay.flags[j] & (SHEER_TOP | ENTRANCE) == 0 and lay.heights[j] < size_y - 8 and lay.descent[j] <= 0
+
+
+## Whether the ground a log or a fallen trunk of `kind` at `site` lies on is all at
+## height `h` and dry, as far as the layout reaches.
+func _level_way(lay: Dictionary, site: Vector2i, kind: int, h: int) -> bool:
+	var dir := Growth.piece_dir(site)
+	var reach := _piece_reach(kind)
+	var s := -1.0
+	while s <= reach:
+		for side in [-1.0, 0.0, 1.0]:
+			var c: Vector2 = Vector2(site) + Vector2(0.5, 0.5) + dir * s + Vector2(-dir.y, dir.x) * float(side)
+			var lx := floori(c.x) - int(lay.x0)
+			var lz := floori(c.y) - int(lay.z0)
+			if lx < 0 or lz < 0 or lx >= WINDOW or lz >= WINDOW:
+				continue
+			var j := lz * WINDOW + lx
+			if lay.heights[j] != h or lay.water[j] >= 0:
+				return false
+		s += 1.0
+	return true
+
+
+## Reaches of the pieces (Growth.piece_reach) by kind, worked out once.
+var _reaches: Array = []
+
+
+func _piece_reach(kind: int) -> float:
+	if _reaches.is_empty():
+		for k in TreeLooks.PIECES.size():
+			_reaches.append(Growth.piece_reach(k))
+	return _reaches[kind]
+
+
+## Whether a tree in column x, z (biome `b`) is kept off by a piece of wood: one at its
+## place, or a log or a fallen trunk lying across it (within PIECE_ROOM cells of the way
+## it lies), by the chances of `b` (the biome round a tree is taken for the places near).
+func _piece_blocks(x: int, z: int, b: int) -> bool:
+	var chances: Array = Biomes.of(b).get("pieces", [])
+	if chances.is_empty() or float(chances[0]) + float(chances[1]) + float(chances[2]) <= 0.0:
+		return false
+	var bk := Growth.PIECE_BLOCK
+	var far := ceili(maxf(_piece_reach(Growth.PIECE_LOG), _piece_reach(Growth.PIECE_FALLEN)) + PIECE_ROOM)
+	var c := Vector2(x, z)
+	for bz in range(floori(float(z - far) / bk), floori(float(z + far) / bk) + 1):
+		for bx in range(floori(float(x - far) / bk), floori(float(x + far) / bk) + 1):
+			var site := _piece_site(bx, bz)
+			var kind := _piece_kind(site, b)
+			if kind < 0:
+				continue
+			if site == Vector2i(x, z):
+				return true
+			if kind == Growth.PIECE_BROKEN:
+				continue
+			var dir := Growth.piece_dir(site)
+			var d := c - Vector2(site)
+			var along := d.dot(dir)
+			if along >= -PIECE_ROOM and along <= _piece_reach(kind) + PIECE_ROOM and absf(d.cross(dir)) <= PIECE_ROOM:
+				return true
+	return false
+
+
+## How near (cells) the way a log or a fallen trunk lies no tree grows.
+const PIECE_ROOM := 2.0
 
 
 ## Species of the tree a lattice column wants, -1 for none: its biome's chance (more in
@@ -748,11 +875,14 @@ func _tree_at(lay: Dictionary, lx: int, lz: int) -> int:
 	var species := Biomes.tree(b, _chance(x, z, 6))
 	if species < 0 and woods and Biomes.of(b).get("tree_shares", []).is_empty():
 		species = Trees.any(_chance(x, z, 2))
+	if species >= 0 and _piece_blocks(x, z, b):
+		return -1
 	return species
 
 
 ## Grows one candidate tree of the job: [x, z, species, ground height]; its crown is
-## filled by the next steps. Chunks already SHAPED take nothing (see
+## filled by the next steps. A fifth field lays a piece of wood of that kind instead
+## (Growth.place_piece, see _pieces). Chunks already SHAPED take nothing (see
 ## WorldData.Chunk.final). `again` grows a tree that was grown before, into a
 ## neighbour made again, unless the player cut its trunk.
 func _plant(job: Job, t: Array, again := false) -> void:
@@ -765,6 +895,9 @@ func _plant(job: Job, t: Array, again := false) -> void:
 		if base != Mat.LOG or not world.trees.has(Vector2i(x, z)):
 			return
 	elif base != Mat.AIR and base != Mat.LEAVES:
+		return
+	if t.size() > 4:
+		Growth.place_piece(world, x, hh + 1, z, species, t[4])
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = _hash(x, z, 3)

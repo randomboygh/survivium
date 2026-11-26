@@ -108,8 +108,10 @@ func chop(who, cell: Vector3i) -> Dictionary:
 	chops[col] = chops.get(col, 0) + blow
 	var done := _work(skilled(who, "chop", t.swing), "", (Vector3(cell) + Vector3(0.5, 0.5, 0.5)) * CELL, Mat.LOG)
 	# No word on the hits left (the user's ask, 2026-11-08): the tree shows it falling.
-	# A stump is uprooted in half the blows its tree takes (Felling.uproot).
-	var hits: int = s.hits if Growth.stump_look(world, col) < 0 else maxi(1, ceili(s.hits / 2.0))
+	# A stump is uprooted in half the blows its tree takes (Felling.uproot), and a piece of
+	# wood lying in the woods chopped up so (Felling.cut_piece).
+	var small := Growth.stump_look(world, col) >= 0 or Growth.piece_look(world, col) >= 0
+	var hits: int = maxi(1, ceili(s.hits / 2.0)) if small else s.hits
 	if chops[col] < hits:
 		return done
 	chops.erase(col)
