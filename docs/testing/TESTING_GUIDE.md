@@ -55,7 +55,9 @@ CI runs everything all the same; the table is so as not to wait for the extra lo
 ## How to read the result
 
 - `run_all.sh` prints each check's log under the line `=== name: N s, exit code` and at the end `All passed`
-  or `Failed: …`. `exit 124` — the check did not fit its limit (`limit` in the script).
+  or `Failed: …`. `exit 124` — the check did not fit its limit (`limit` in the script). Printing whole logs (CI,
+  `VERBOSE=1`), it repeats the failing checks' `FAIL:` and `SCRIPT ERROR` lines under `What failed:` just before
+  `Failed: …`, so they are in the tail of a job's log (the GitHub API gives only its last 5000 lines).
 - A `SCRIPT ERROR` line in a log is a failure, even with code 0: a runtime error cuts off a test's function.
 - `ERROR: content: _test…` in `run_tests` and RID leaks at exit — deliberately broken data and an old
   harmless noise of the engine.

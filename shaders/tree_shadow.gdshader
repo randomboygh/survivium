@@ -6,7 +6,8 @@
 // (thinning from its edge in autumn as the picture does), the trunk from the foot, the limbs
 // and twigs of a bare or dead tree, the snow on it in winter. The shadow falls where every other one does (PixelView.light_dir:
 // a unit of height to `w` over the ground, the same at every turn of the camera), so it
-// lies still while the camera turns.
+// lies still while the camera turns. A felled tree's own MultiMesh (TreeHits.fall) is drawn
+// by it too, its picture turned over as the tree falls (`falls` below).
 shader_type spatial;
 render_mode world_vertex_coords, cull_disabled, unshaded;
 
@@ -31,12 +32,24 @@ const float SINK_SHARE = 0.75;
 // A piece of wood lying in the woods casts its shadow from its picture laid flat this high
 // over the ground (world units).
 const float PIECE_HIGH = 0.2;
+// Trees falling, felled (TreeHits.fall, the same uniforms as tree.gdshader's): the falling
+// tree's own instances (FALL_MINE added to COLOR.b) cast the shadow of its picture turned over
+// about the stump's top (FALL_CUT over the foot) as it falls, fading out as it does; only the
+// first of them (the crown's modules cast none of their own), not the stump's rows (the stump
+// casts its own). The chunk's standing copy at the same foot casts none meanwhile.
+uniform vec4 falls[4];
+uniform vec4 fall_ways[4];
+uniform int fall_count = 0;
+const float FALL_CUT = 0.5;
+const float FALL_MINE = 512.0;
 
 varying vec2 px;
 varying flat vec4 cell;
 varying flat float kind;
 varying flat float ramp_row;
 varying flat vec2 foot_xz;
+// How far a falling tree has faded out (-1 for a tree standing), and the row its stump's begin.
+varying flat vec2 fall_fade;
 
 void vertex() {
 	vec3 foot = MODEL_MATRIX[3].xyz;
@@ -46,8 +59,17 @@ void vertex() {
 	vec4 c = INSTANCE_CUSTOM;
 	float ax = COLOR.r;
 	float ay = COLOR.g;
-	float row = floor(COLOR.b / 8.0 + 0.01);
-	float own = COLOR.b - row * 8.0;
+	bool mine = COLOR.b > FALL_MINE - 0.5;
+	float b = mine ? COLOR.b - FALL_MINE : COLOR.b;
+	float row = floor(b / 8.0 + 0.01);
+	float own = b - row * 8.0;
+	int fall = -1;
+	for (int i = 0; i < fall_count && COLOR.a > -0.5; i++) {
+		if (length(falls[i].xyz - foot) < 0.1) {
+			fall = i;
+		}
+	}
+	fall_fade = vec2(fall >= 0 ? fall_ways[fall].w : -1.0, ay + 0.5 - FALL_CUT * TEXELS);
 	kind = COLOR.a;
 	ramp_row = row;
 	foot_xz = foot.xz;
@@ -55,8 +77,8 @@ void vertex() {
 	// the sun as it stands in the world (sun_view is it in the view's frame).
 	vec2 right = vec2(-view_up.y, view_up.x);
 	vec2 sun_xz = right * sun_view.x + view_up * sun_view.y;
-	vec2 falls = vec2(0.0, -1.0) - sun_xz / max(sun_view.z, 0.05);
-	vec2 along = normalize(falls);
+	vec2 cast = vec2(0.0, -1.0) - sun_xz / max(sun_view.z, 0.05);
+	vec2 along = normalize(cast);
 	// The light looks at the tree as a camera looking `along` would: the side of that step
 	// (as tree.gdshader picks the side shown), laid across the way the shadow falls.
 	float step_at = round(atan(-along.x, -along.y) / (PI / 4.0));
@@ -81,7 +103,7 @@ void vertex() {
 	// The picture shown stands across view_up (tree.gdshader): how far behind this one, in
 	// height along the light, its farthest texel is.
 	float half_w = max(ax + 0.5, c.z - ax - 0.5) / TEXELS;
-	float deep = SINK + half_w * abs(dot(right, along)) / max(length(falls), 0.05);
+	float deep = SINK + half_w * abs(dot(right, along)) / max(length(cast), 0.05);
 	// Only the upright part (the rows under the foot's lie on the ground: the roots in
 	// front), in two: the quad's rows (TreeSprites.quad_mesh) -1, 0, 1 are its foot, its knee,
 	// where the sink reaches `deep` (SINK_SHARE of the height), and its top.
@@ -103,6 +125,23 @@ void vertex() {
 		p.y += PIECE_HIGH;
 		high = 0.0;
 	}
+	if (fall >= 0) {
+		if (!mine || INSTANCE_ID > 0) {
+			p = foot;
+			high = 0.0;
+		} else {
+			// Turned over about the stump's top toward the way it falls (Rodrigues' turn about
+			// up x way), kept over the ground.
+			vec3 pivot = foot + vec3(0.0, FALL_CUT, 0.0);
+			vec3 way = normalize(vec3(fall_ways[fall].x, 0.0, fall_ways[fall].y));
+			vec3 axis = cross(vec3(0.0, 1.0, 0.0), way);
+			float a = falls[fall].w;
+			vec3 v = p - pivot;
+			p = pivot + v * cos(a) + cross(axis, v) * sin(a) + axis * dot(axis, v) * (1.0 - cos(a));
+			p.y = max(p.y, foot.y + 0.02);
+			high = p.y - foot.y;
+		}
+	}
 	VERTEX = shear(p);
 	if (IN_SHADOW_PASS && !piece) {
 		vec3 to_light = normalize(INV_VIEW_MATRIX[2].xyz);
@@ -112,6 +151,10 @@ void vertex() {
 
 void fragment() {
 	if (px.x < 0.0 || px.y < 0.0 || px.x >= cell.z || px.y >= cell.w) {
+		discard;
+	}
+	// A falling tree: not its stump's rows; faded out as it is drawn (tree.gdshader).
+	if (fall_fade.x >= 0.0 && (px.y > fall_fade.y || fall_fade.x > 0.0 && bayer4(floor(px)) < fall_fade.x)) {
 		discard;
 	}
 	ivec2 t = ivec2(cell.xy + floor(px));
