@@ -153,6 +153,13 @@ Part of [The picture](../rendering.md). Files: the view, the camera, auto qualit
   to `WISPS` pale flickering emitters wander over the murky water of swamps and bogs (`WorldCells.murk`) near
   the view; one the player comes within `SHY` of slips away fading. `Effects.puff` — the spores of a picked
   or crushed puffball (a plant's `puff`; `WorldActions.spores`, the event `spores` from a server), at once.
+- Wind over the grass (`grass.gdshader`, `wind_wave`): gusts roll over the plants in waves along the global `wind`,
+  crests `GUST_LENGTH` units apart at `GUST_SPEED` units a second, their fronts bent and stronger in stretches; under a
+  crest the tips lean downwind by `GUST_BEND` + `GUST_WIND` × the wind's length pixels (at most `GUST_MAX`, × 1.7 for tall
+  grass) and are up to `GUST_LIGHT` lighter toward the tip, so a meadow or a field of ears shows the waves from afar.
+  Each blade also flutters a little on its own clock. The waves run one of 8 fixed ways, crossfaded near halfway
+  between two (as the water's waves, never a continuous angle). Shots `wind-grass-meadow`, `wind-grass-ears`,
+  `wind-grass-storm`.
 - Curious plants (`grass.gdshader`): a custom plant with `looks` brings its other look as the second half of its
   frames; `PixelTextures.build_plants` writes a row under the plants (`looks_texel`: red shy, green night, blue
   the shift, alpha 1 for `after_rain`) and the vertex shader swaps the column — shy while the player stands within `SHY_REACH`, night
