@@ -252,6 +252,14 @@ const SHOTS := {
 		"hide": ["chunks: grass"], "frames_every": 14, "frames_ms": 400},
 	"wind-trees-storm": {"time": 0.42, "season": 1, "forest": true, "weather": "clear", "gust": 2.0, "wind": 0.0,
 		"hide": ["chunks: grass"], "frames_every": 14, "frames_ms": 400},
+	# Gusts of wind running over the grass in waves (grass.gdshader, wind_wave): a tall meadow
+	# and a field of ears in a breeze and in a storm; frames 0.25 s apart.
+	"wind-grass-meadow": {"time": 0.42, "season": 1, "find": "meadow", "weather": "clear", "gust": 0.5, "wind": 0.6,
+		"frames_every": 24, "frames_ms": 250},
+	"wind-grass-ears": {"time": 0.42, "season": 1, "find": "ears", "weather": "clear", "gust": 0.5, "wind": 0.6,
+		"frames_every": 24, "frames_ms": 250},
+	"wind-grass-storm": {"time": 0.42, "season": 1, "find": "meadow", "weather": "clear", "gust": 2.0, "wind": 0.6,
+		"frames_every": 24, "frames_ms": 250},
 	"litter-autumn": {"time": 0.42, "season": 2, "forest": true, "leaf_fall": 1.0},
 	"cave": {"time": 0.45, "season": 1, "cut": -4},
 	"underground": {"time": 0.45, "season": 1, "underground": true},
