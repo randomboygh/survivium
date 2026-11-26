@@ -13,6 +13,7 @@ extends RefCounted
 const ChunkMesher := preload("res://src/client/world/chunk_mesher.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const TreeSprites := preload("res://src/client/world/tree_sprites.gd")
+const Growth := preload("res://src/shared/world/growth.gd")
 const PixelView := preload("res://src/client/view/pixel_view.gd")
 const SolidMap := preload("res://src/client/world/solid_map.gd")
 const Mat := preload("res://src/shared/content/materials.gd")
@@ -1167,6 +1168,7 @@ func _free_chunk(key: Vector2i) -> void:
 	for node: Node in chunk_nodes[key]:
 		node.queue_free()
 	chunk_nodes.erase(key)
+	_standing.erase(key)
 	nodes_changes += 1
 	bare.erase(key)
 	plants_wait.erase(key)
@@ -1262,6 +1264,13 @@ func _apply_plants(key: Vector2i, plants: Dictionary) -> void:
 		if part[0] > 0:
 			mm.buffer = part[1]
 	var pics := TreeSprites.build(world, key.x * CHUNK, key.y * CHUNK)
+	# A standing tree gone to a stump was felled: it falls (TreeHits.fall).
+	var was: Dictionary = _standing.get(key, {})
+	if fx_trees() != null:
+		for col: Vector2i in was:
+			if not pics[2].has(col) and Growth.stump_look(world, col) >= 0:
+				fx_trees().fall(col, was[col])
+	_standing[key] = pics[2]
 	var tm: MultiMesh = nodes[PARTS.size()].multimesh
 	tm.instance_count = pics[0]
 	if pics[0] > 0:
@@ -1272,6 +1281,16 @@ func _apply_plants(key: Vector2i, plants: Dictionary) -> void:
 	if fx != null and fx.glows != null:
 		fx.glows.sea_top = (world.sea_level + 1) * CELL
 		fx.glows.set_spots(key, plants.get("glows", PackedVector3Array()))
+
+
+## The standing pictured trees of each chunk shown, as TreeSprites.build gives them.
+var _standing := {}
+
+
+## Effects' trees (TreeHits), null without effects.
+func fx_trees():
+	var fx = game.get("effects")
+	return fx.trees if fx != null and fx.get("trees") != null else null
 
 
 ## Hands the cells of chunk `key` that cast light (lava, crystals), as mesh job `jm`
@@ -1302,6 +1321,8 @@ static func _fit_box(n: GeometryInstance3D) -> void:
 	var box := n.get_aabb()
 	if box.size == Vector3.ZERO:
 		return
+	if n is MultiMeshInstance3D and (n as MultiMeshInstance3D).multimesh.mesh == TreeSprites.quad:
+		box = TreeSprites.stand_box(box)
 	n.custom_aabb = PixelView.sheared_box(box, SWAY)
 
 

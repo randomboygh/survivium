@@ -13,6 +13,7 @@ const Plans := preload("res://src/shared/game/plans.gd")
 const WorldGen := preload("res://src/shared/world/world_gen.gd")
 const Trees := preload("res://src/shared/content/trees.gd")
 const Growth := preload("res://src/shared/world/growth.gd")
+const Felling := preload("res://src/shared/game/felling.gd")
 const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 const Foliage := preload("res://src/client/world/foliage.gd")
 const Grass := preload("res://src/shared/world/grass.gd")
@@ -24,6 +25,8 @@ const CELL := 0.5
 ## the world has no edge, only the chunks generated around.
 const SEARCH := 120
 var main: Node
+## The trees `stumps` left standing to be felled in the shot (their feet).
+var felling_at := []
 ## Replaces the ground around cell `at` with test shapes for corners: a diagonal creek,
 ## a stone plateau with outer and inner corners, a channel two cells wide with a bend.
 ## A stone wall three levels high two cells south of the player, between them and
@@ -1345,17 +1348,15 @@ func grove(w, at: Vector3i) -> void:
 			k += 1
 		for dx in [-9, -7, 7, 9]:
 			Growth.place_bush(w, at.x + dx, h, at.z + 4 + absi(dx) % 3, Bushes.first(true, 1))
-		var rng := RandomNumberGenerator.new()
-		rng.seed = 3
 		# Oaks that go bare in winter and oaks that keep their leaves, in turn.
 		for i in oaks.size():
 			var x: int = (at.x + oaks[i]) | 1
 			while Foliage.goes_bare(Vector2i(x, (at.z - 8) | 1), Trees.first(Trees.BROAD)) != (i % 2 == 0):
 				x += 2
-			Growth.place(w, x, h, (at.z - 8) | 1, Trees.first(Trees.BROAD), rng)
+			Growth.place(w, x, h, (at.z - 8) | 1, Trees.first(Trees.BROAD))
 		var sizes := [0.75, 1.0, 1.2]
 		for i in spruces.size():
-			Growth.place(w, (at.x + spruces[i]) | 1, h, (at.z + 6) | 1, Trees.first(Trees.NEEDLES), rng, sizes[i])
+			Growth.place(w, (at.x + spruces[i]) | 1, h, (at.z + 6) | 1, Trees.first(Trees.NEEDLES), sizes[i])
 		for z in range(at.z - 38, at.z + 34, 8):
 			for x in range(at.x - 48, at.x + 50, 8):
 				main.chunks.on_cell_changed(Vector3i(x, h, z))
@@ -1382,11 +1383,9 @@ func orchard(w, at: Vector3i) -> void:
 	for b: Vector3i in w.bushes.keys():
 		if absi(b.x - at.x) <= span and b.z - at.z >= -30 and b.z - at.z <= 20:
 			w.remove_bush(b)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
 	var n := Trees.SPECIES.size()
 	for i in n:
-		Growth.place(w, (at.x + (i - n / 2) * 11) | 1, h, (at.z - 8) | 1, i, rng, Growth.fit(i, w.size_y - h))
+		Growth.place(w, (at.x + (i - n / 2) * 11) | 1, h, (at.z - 8) | 1, i, Growth.fit(i, w.size_y - h))
 	var k := Bushes.TYPES.size()
 	for i in k:
 		Growth.place_bush(w, at.x + (i - k / 2) * 6, h, at.z + 5 + (i % 2), i)
@@ -1414,11 +1413,9 @@ func specimen(w, at: Vector3i, species: Array) -> void:
 	for b: Vector3i in w.bushes.keys():
 		if absi(b.x - at.x) <= 40 and b.z - at.z >= -28 and b.z - at.z <= 20:
 			w.remove_bush(b)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 3
 	for i in species.size():
 		var kind := Trees.index(species[i])
-		Growth.place(w, (at.x + (i * 2 - species.size() + 1) * 11) | 1, h, (at.z - 6) | 1, kind, rng, Growth.fit(kind, w.size_y - h))
+		Growth.place(w, (at.x + (i * 2 - species.size() + 1) * 11) | 1, h, (at.z - 6) | 1, kind, Growth.fit(kind, w.size_y - h))
 	for z in range(at.z - 32, at.z + 24, 8):
 		for x in range(at.x - 44, at.x + 44, 8):
 			main.chunks.on_cell_changed(Vector3i(x, h, z))
@@ -1433,7 +1430,7 @@ func specimen(w, at: Vector3i, species: Array) -> void:
 ## -1: whichever the nearest column has), so the camera at turn 0 shows the drawing of side
 ## `turn`: for comparing them with the approved sheets.
 ## Gives where the player stands, south of the thick one, the three in the middle of the view.
-func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1) -> Vector3:
+func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1, dry := -1) -> Vector3:
 	var h: int = w.surface_y(at.x, at.z)
 	for z in range(at.z - 60, at.z + 24):
 		for x in range(at.x - 24, at.x + 24):
@@ -1447,10 +1444,10 @@ func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1) -> Ve
 		if absi(b.x - at.x) <= 24 and b.z - at.z >= -60 and b.z - at.z <= 24:
 			w.remove_bush(b)
 	var kind := Trees.index(species)
-	var rng := RandomNumberGenerator.new()
 	# Thick to the north, thin to the south (scales that let each size, see Growth.look_index),
 	# each on the column nearest its place of the variant and size asked (the thick one turned
-	# `turn` eighths when that is asked, -1: as the column has it). 15 and 11 cells apart: a
+	# `turn` eighths when that is asked, -1: as the column has it; `dry` 1: trees that keep
+	# their dry leaves in winter, 0: trees that go bare, -1: either). 15 and 11 cells apart: a
 	# tree's crown stays clear of the trunk of the one behind it, and the three of the tallest
 	# species (a ceiba) still fit a phone's frame; a column off the line only a little.
 	var s: Dictionary = Trees.SPECIES[kind]
@@ -1460,16 +1457,19 @@ func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1) -> Ve
 		var scale: float = [1.0, 0.8, 0.6][k]
 		var col := want
 		var found := false
-		for dz in ([0, -2] if k == 0 else [0, 2]):
-			for dx in [0, 2, -2, 4, -4]:
-				var c := want + Vector2i(dx, dz)
-				var v := Growth.variant_of(c)
-				if not found and (variant < 0 or v == variant) \
-						and Growth.look_index(s, c, scale) == (2 - k) * TreeLooks.VARIANTS + v \
-						and (turn < 0 or k > 0 or Growth.turn_of(c) == turn):
-					col = c
-					found = true
-		Growth.place(w, col.x, h, col.y, kind, rng, scale)
+		# The columns further off (6, 8) only when none nearer will do (`dry` asks for more).
+		for far in [false, true]:
+			for dz in ([0, -2] if k == 0 else [0, 2]):
+				for dx in ([6, -6, 8, -8] if far else [0, 2, -2, 4, -4]):
+					var c := want + Vector2i(dx, dz)
+					var v := Growth.variant_of(c)
+					if not found and (variant < 0 or v == variant) \
+							and Growth.look_index(s, c, scale) == (2 - k) * TreeLooks.VARIANTS + v \
+							and (turn < 0 or k > 0 or Growth.turn_of(c) == turn) \
+							and (dry < 0 or Foliage.goes_bare(c, kind) == (dry == 0)):
+						col = c
+						found = true
+		Growth.place(w, col.x, h, col.y, kind, scale)
 		if k == 0:
 			thick = col
 	for z in range(at.z - 64, at.z + 28, 8):
@@ -1479,6 +1479,100 @@ func pictured(w, at: Vector3i, species: String, variant := -1, turn := -1) -> Ve
 	# three (behind the middle one's crown when that is tall: the shot opens no window round
 	# the player in the crowns, see Shots.pictured).
 	return (Vector3(thick.x, h, thick.y + 5) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
+## The stumps of 7 species (group `group` of the pictured species with stumps, in the
+## order of Trees.SPECIES) on flat bare ground at `at`: a species a row, north to south, its
+## thick, middle and thin stump west to east (columns whose look's size is that, see
+## Growth.stump_look). With `fell` the thick tree of each row stands (Shots: felled later).
+## Gives where the player stands, south of the middle of the rows.
+func stumps(w, at: Vector3i, group: int, fell := false) -> Vector3:
+	var h: int = w.surface_y(at.x, at.z)
+	for z in range(at.z - 50, at.z + 14):
+		for x in range(at.x - 20, at.x + 20):
+			for y in w.size_y:
+				w.set_cell(x, y, z, (Mat.GRASS if y == h - 1 else Mat.DIRT) if y < h else Mat.AIR)
+				w.set_natural(x, y, z, true)
+	for key: Vector2i in w.trees.keys():
+		if absi(key.x - at.x) < 30 and key.y - at.z > -60 and key.y - at.z < 24:
+			w.remove_tree(key.x, key.y)
+	for b: Vector3i in w.bushes.keys():
+		if absi(b.x - at.x) <= 20 and b.z - at.z >= -50 and b.z - at.z <= 14:
+			w.remove_bush(b)
+	var kinds := []
+	for i in Trees.SPECIES.size():
+		if not Trees.SPECIES[i].pictures.get("stumps", []).is_empty():
+			kinds.append(i)
+	kinds = kinds.slice(group * 7, group * 7 + 7)
+	felling_at = []
+	for r in kinds.size():
+		var s: Dictionary = Trees.SPECIES[kinds[r]]
+		for k in 3:
+			var want := Vector2i((at.x - 9 + k * 8) | 1, (at.z - 44 + r * 6) | 1)
+			var col := want
+			var found := false
+			for c in [want, want + Vector2i(2, 0), want + Vector2i(-2, 0), want + Vector2i(0, 2),
+					want + Vector2i(0, -2), want + Vector2i(2, 2), want + Vector2i(-2, 2), want + Vector2i(2, -2),
+					want + Vector2i(-2, -2)]:
+				if not found and Growth.look_index(s, c, 1.0) / TreeLooks.VARIANTS == 2 - k:
+					col = c
+					found = true
+			Growth.place(w, col.x, h, col.y, kinds[r], 1.0)
+			if fell and k == 0:
+				felling_at.append(Vector3i(col.x, h, col.y))
+			else:
+				Felling.clear(w, Vector3i(col.x, h + 1, col.y))
+	for z in range(at.z - 54, at.z + 18, 8):
+		for x in range(at.x - 24, at.x + 24, 8):
+			main.chunks.on_cell_changed(Vector3i(x, h, z))
+	return (Vector3(at.x - 1, h, at.z - 23) + Vector3(0.5, 0.0, 0.5)) * CELL
+
+
+## The pieces of wood `kind` (Growth.PIECE_*) of 7 species (group `group` of the species
+## with that piece drawn, in the order of Trees.SPECIES) on flat bare ground at `at`: a
+## species a row, north to south, each lying turned `turn` eighths in the world (the
+## column nearest its place with that Growth.turn_of). Gives where the player stands,
+## south of the middle of the rows.
+func pieces(w, at: Vector3i, group: int, kind: int, turn: int) -> Vector3:
+	var h: int = w.surface_y(at.x, at.z)
+	for z in range(at.z - 60, at.z + 14):
+		for x in range(at.x - 30, at.x + 30):
+			for y in w.size_y:
+				w.set_cell(x, y, z, (Mat.GRASS if y == h - 1 else Mat.DIRT) if y < h else Mat.AIR)
+				w.set_natural(x, y, z, true)
+	for key: Vector2i in w.trees.keys():
+		if absi(key.x - at.x) < 40 and key.y - at.z > -70 and key.y - at.z < 24:
+			w.remove_tree(key.x, key.y)
+	for b: Vector3i in w.bushes.keys():
+		if absi(b.x - at.x) <= 30 and b.z - at.z >= -60 and b.z - at.z <= 14:
+			w.remove_bush(b)
+	var kinds := []
+	for i in Trees.SPECIES.size():
+		if Trees.SPECIES[i].pictures.get("pieces", {}).has(TreeLooks.PIECES[kind]):
+			kinds.append(i)
+	kinds = kinds.slice(group * 7, group * 7 + 7)
+	var gap := 8 if kind == Growth.PIECE_FALLEN else 6
+	for r in kinds.size():
+		var want := Vector2i((at.x - 1) | 1, (at.z - 8 - (kinds.size() - 1 - r) * gap) | 1)
+		if kind != Growth.PIECE_BROKEN:
+			# Lying from its column: its middle where the others' are.
+			var off := Growth.piece_dir(Vector2i.ZERO).rotated(turn * PI / 4.0 - Growth.turn_of(Vector2i.ZERO) * PI / 4.0) \
+					* (Growth.piece_reach(kind) * 0.4)
+			want -= Vector2i(roundi(off.x / 2.0) * 2, roundi(off.y / 2.0) * 2)
+		# The nearest column with that turn.
+		var col := want
+		var best := 1 << 30
+		for dz in range(-8, 9, 2):
+			for dx in range(-8, 9, 2):
+				var c := want + Vector2i(dx, dz)
+				if Growth.turn_of(c) == turn and dx * dx + 4 * dz * dz < best:
+					best = dx * dx + 4 * dz * dz
+					col = c
+		Growth.place_piece(w, col.x, h, col.y, kinds[r], kind)
+	for z in range(at.z - 64, at.z + 18, 8):
+		for x in range(at.x - 34, at.x + 34, 8):
+			main.chunks.on_cell_changed(Vector3i(x, h, z))
+	return (Vector3(at.x, h, at.z - 8 - 3 * gap) + Vector3(0.5, 0.0, 0.5)) * CELL
 
 
 ## A flat clearing at `at` (level of the ground there) with an oak west of the player
@@ -1504,15 +1598,13 @@ func clearing(w, at: Vector3i, fell: bool, species: Array = [], bank := false) -
 	for b: Vector3i in w.bushes.keys():
 		if absi(b.x - at.x) <= 30 and absi(b.z - at.z) <= 24:
 			w.remove_bush(b)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 5
 	var oak := Vector2i((at.x - 7) | 1, (at.z - 3) | 1)
 	var spruce := Vector2i((at.x + 7) | 1, (at.z - 3) | 1)
 	# `species` names the two trees instead, west and east (ids of trees.yaml).
 	var west := Trees.index(species[0]) if species.size() > 0 else Trees.first(Trees.BROAD)
 	var east := Trees.index(species[1]) if species.size() > 1 else Trees.first(Trees.NEEDLES)
-	Growth.place(w, oak.x, h, oak.y, west, rng, minf(1.0, Growth.fit(west, w.size_y - h)))
-	Growth.place(w, spruce.x, h, spruce.y, east, rng, minf(0.8, Growth.fit(east, w.size_y - h)))
+	Growth.place(w, oak.x, h, oak.y, west, minf(1.0, Growth.fit(west, w.size_y - h)))
+	Growth.place(w, spruce.x, h, spruce.y, east, minf(0.8, Growth.fit(east, w.size_y - h)))
 	for z in range(at.z - 28, at.z + 28, 8):
 		for x in range(at.x - 34, at.x + 34, 8):
 			main.chunks.on_cell_changed(Vector3i(x, h, z))
