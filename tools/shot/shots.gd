@@ -246,6 +246,12 @@ const SHOTS := {
 	# leaves and breaking branches, the leaves fallen under the crowns.
 	"blizzard-north": {"time": 0.45, "season": 3, "weather": "blizzard", "wind": -2.0},
 	"gale-autumn": {"time": 0.45, "season": 2, "forest": true, "weather": "storm", "wind": 0.6, "leaf_fall": 0.6, "windfall": true},
+	# The trees drawn as pictures swaying in the wind (tree.gdshader): a breeze and a storm in
+	# summer, the storm tearing leaves off the crowns (Effects.torn); frames 0.4 s apart.
+	"wind-trees-breeze": {"time": 0.42, "season": 1, "forest": true, "weather": "clear", "gust": 0.3, "wind": 0.0,
+		"hide": ["chunks: grass"], "frames_every": 14, "frames_ms": 400},
+	"wind-trees-storm": {"time": 0.42, "season": 1, "forest": true, "weather": "clear", "gust": 2.0, "wind": 0.0,
+		"hide": ["chunks: grass"], "frames_every": 14, "frames_ms": 400},
 	"litter-autumn": {"time": 0.42, "season": 2, "forest": true, "leaf_fall": 1.0},
 	"cave": {"time": 0.45, "season": 1, "cut": -4},
 	"underground": {"time": 0.45, "season": 1, "underground": true},

@@ -11,6 +11,7 @@ const PixelView := preload("res://src/client/view/pixel_view.gd")
 const VoxelModel := preload("res://src/client/view/voxel_model.gd")
 const ParticleShader := preload("res://shaders/particle.gdshader")
 const Mat := preload("res://src/shared/content/materials.gd")
+const Trees := preload("res://src/shared/content/trees.gd")
 const Items := preload("res://src/shared/content/items.gd")
 const PixelTextures := preload("res://src/client/view/pixel_textures.gd")
 const WorldData := preload("res://src/shared/world/world_data.gd")
@@ -26,6 +27,21 @@ const CELL := WorldData.CELL
 ## See _place_fireflies.
 const FIREFLY_MOVE := 4.0
 const FIREFLY_TRIES := 120
+## A strong wind tears leaves off the trees round the view (the user's ask, 2026-11-26), in
+## any season the trees are in leaf: from a wind of TORN_WIND (Clock.storm_wind), the more the
+## stronger up to TORN_FULL. They fly from the crowns of up to TORN_TREES trees near the view
+## (from columns TORN_REACH cells round it, see _place_torn), off the crowns' front, each
+## tree's leaves in its own colours.
+const TORN_WIND := 0.8
+const TORN_FULL := 2.0
+const TORN_TREES := 40
+const TORN_MOVE := 4.0
+const TORN_REACH := Vector2i(40, 56)
+const TORN_ROWS := 8
+## How far in front of its trunk (toward the camera) a crown's leaves start, as much higher
+## as keeps them where the crown is on the screen (world units), so the trees' pictures in
+## front of it do not hide them (see _place_torn).
+const TORN_FRONT := 5.0
 ## Bits flying off worked material (see burst): emitters used in turn and bits in each;
 ## their colour is the material's tint (PixelTextures.tint).
 const BURSTS := 4
@@ -114,6 +130,16 @@ var _burst_wait := []
 var leaves: CPUParticles3D
 ## Leaves an autumn gale tears off the trees, flying low and fast.
 var gale: CPUParticles3D
+## Leaves a strong wind tears off the crowns round the view (TORN_WIND), and where it took
+## them from last (the view's place, the season's tint).
+var torn: CPUParticles3D
+var _torn_home := Vector2.INF
+var _torn_tint := Vector3.ZERO
+var _torn_up := Vector2.ZERO
+## The row of columns the search for crowns has come to (past TORN_REACH.y: done), and the
+## trees found so far.
+var _torn_row := 1 << 20
+var _torn_found := []
 var pollen: CPUParticles3D
 ## Each fire: {"light": OmniLight3D, "base": float, "unit": Vector3i (the world unit it
 ## stands in), "at": Vector3 (its middle on the ground)}
@@ -261,7 +287,22 @@ func _ready() -> void:
 	pollen.gravity = Vector3.ZERO
 	pollen.emission_box_extents = Vector3(18.0, 1.5, 12.0)
 	pollen.color_ramp = _ramp([Color(1, 1, 0.85, 0.0), Color(1, 1, 0.85, 0.7), Color(1, 1, 0.85, 0.0)])
-	weather_emitters = [rain, downpour, hail, snowfall, blizzard, sand, leaves, gale]
+	torn = _emitter(240, 3.5, Vector2(3.0 * PX, 3.0 * PX), 1.0)
+	torn.emission_shape = CPUParticles3D.EMISSION_SHAPE_POINTS
+	torn.spread = 25.0
+	torn.initial_velocity_min = 2.0
+	torn.initial_velocity_max = 4.5
+	torn.gravity = Vector3(0.0, -0.5, 0.0)
+	torn.damping_min = 0.2
+	torn.damping_max = 0.5
+	torn.tangential_accel_min = -1.0
+	torn.tangential_accel_max = 1.0
+	torn.lifetime_randomness = 0.4
+	torn.scale_amount_min = 0.6
+	torn.scale_amount_max = 1.0
+	# Off the crowns, under the sky or not (the crowns are a roof to rain, roof_map).
+	(torn.mesh as QuadMesh).material.set_shader_parameter("sky_only", 0.0)
+	weather_emitters = [rain, downpour, hail, snowfall, blizzard, sand, leaves, gale, torn]
 
 	bolt_mesh = ImmediateMesh.new()
 	bolt = MeshInstance3D.new()
@@ -585,6 +626,7 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 	_blow(blizzard, dir, 1.0, -0.25)
 	_blow(sand, dir, 1.0, 0.05)
 	_blow(gale, dir, 1.0, -0.1)
+	_blow(torn, dir, 1.0, -0.15)
 	_blow(leaves, dir, 1.0, -0.4)
 	_blow(pollen, dir, 1.0, 0.2)
 	_place_fireflies(view, ground)
@@ -607,6 +649,11 @@ func update(delta: float, view: Vector2, ground: float, sky, clock, indoor: bool
 	var calm: bool = clock.rain < 0.15 and clock.snowing < 0.15 and clock.sand < 0.3 and clock.storm_wind < 1.5
 	leaves.emitting = outside and season == 2
 	gale.emitting = outside and season == 2 and wind > 0.8 and sky.leaf_amount > 0.57
+	var tearing: bool = outside and wind > TORN_WIND and sky.leaf_amount > 0.3
+	if tearing:
+		_place_torn(view, sky)
+		torn.speed_scale = 0.6 + 0.4 * clampf((wind - TORN_WIND) / (TORN_FULL - TORN_WIND), 0.0, 1.0)
+	torn.emitting = tearing and not torn.emission_points.is_empty()
 	fireflies.emitting = enabled and daylight < 0.3 and (season == 0 or season == 1) and calm \
 		and not fireflies.emission_points.is_empty()
 	pollen.emitting = outside and daylight > 0.6 and (season == 0 or season == 1) and calm
@@ -900,6 +947,85 @@ func _place_fireflies(view: Vector2, ground: float) -> void:
 		var p := Vector3((x + rng.randf()) * CELL, (y + rng.randf_range(0.5, 2.5)) * CELL, (z + rng.randf()) * CELL)
 		spots.append(p - at)
 	fireflies.emission_points = spots
+
+
+## The crowns the wind tears leaves off (torn): up to TORN_TREES trees in leaf near the view,
+## two points on each crown's front and its leaves' colour. They are looked for again when
+## the view has moved TORN_MOVE world units, the camera has turned or the season's tint has
+## changed, TORN_ROWS rows of columns a frame (the phone is slow), the old points kept meanwhile.
+func _place_torn(view: Vector2, sky) -> void:
+	if world == null:
+		return
+	var tint: Vector3 = sky.foliage
+	if _torn_row > TORN_REACH.y:
+		if _torn_home.distance_to(view) < TORN_MOVE and tint.distance_to(_torn_tint) < 0.05 \
+				and PixelView.up == _torn_up:
+			return
+		_torn_home = view
+		_torn_tint = tint
+		_torn_up = PixelView.up
+		_torn_row = -TORN_REACH.y
+		_torn_found = []
+	var c := Vector2i(floori(_torn_home.x / CELL), floori(_torn_home.y / CELL))
+	var last := mini(_torn_row + TORN_ROWS, TORN_REACH.y + 1)
+	for dz in range(_torn_row, last):
+		for dx in range(-TORN_REACH.x, TORN_REACH.x + 1):
+			var col := Vector2i(c.x + dx, c.y + dz)
+			if world.trees.has(col):
+				_torn_found.append(col)
+	_torn_row = last
+	if _torn_row <= TORN_REACH.y:
+		return
+	_torn_found.shuffle()
+	var points := PackedVector3Array()
+	var colours := PackedColorArray()
+	var at := Vector3(_torn_home.x, 0.0, _torn_home.y)
+	torn.position = at
+	var toward: Vector2 = _torn_up * TORN_FRONT
+	var rise := TORN_FRONT * PixelView.squash / maxf(PixelView.slope, 0.1)
+	for col: Vector2i in _torn_found:
+		var sp: int = world.trees[col]
+		if sp < 0 or sp >= Trees.SPECIES.size() or Trees.SPECIES[sp].dead:
+			continue
+		# The crown's cells round the trunk (a pictured tree's crown may leave its own column).
+		var bits := 0
+		for dz in range(-2, 3, 2):
+			for dx in range(-2, 3, 2):
+				bits |= world.leaf_col(col.x + dx, col.y + dz)
+		if bits == 0:
+			continue
+		var low := WorldData.level_of(bits & -bits)
+		var high := low
+		for k in range(low + 1, 63):
+			if bits & (1 << k) != 0:
+				high = k
+		var leaf: Color = _leaf_colour(sp, col)
+		for i in 2:
+			# Where the crown shows on the screen, but nearer the camera, as high over the crowns
+			# in front of it as the shear lifts that (toward the camera by TORN_FRONT, up by
+			# `rise`): the depth test takes the trees' upright pictures as standing at their
+			# trunks, so leaves at the crown's own place would be hidden by the trees in front.
+			var side: Vector2 = PixelView.right * rng.randf_range(-2.0, 2.0) - toward
+			var p := Vector3((col.x + 0.5) * CELL + side.x,
+				(low + rng.randf_range(0.3, 1.0) * (high + 1 - low)) * CELL + rise, (col.y + 0.5) * CELL + side.y)
+			points.append(p - at)
+			colours.append(Color(leaf.r * tint.x, leaf.g * tint.y, leaf.b * tint.z).lightened(rng.randf_range(0.0, 0.2)))
+		if points.size() >= 2 * TORN_TREES:
+			break
+	_torn_found = []
+	torn.emission_points = points
+	torn.emission_colors = colours
+
+
+## A leaf's colour of a tree of species `sp` at column `col`: a light step of its drawn
+## leaves (TreeLooks pictures), else one of its tints.
+func _leaf_colour(sp: int, col: Vector2i) -> Color:
+	var looks: Dictionary = Trees.SPECIES[sp]
+	var steps: Array = looks.get("pictures", {}).get("leaves", [])
+	if not steps.is_empty():
+		return steps[clampi(3 + rng.randi() % 3, 0, steps.size() - 1)]
+	var tints: Array = looks.tints
+	return tints[hash(col) % tints.size()] if not tints.is_empty() else Color(0.35, 0.5, 0.2)
 
 
 func _emitter(amount: int, lifetime: float, size: Vector2, brightness: float) -> CPUParticles3D:
