@@ -121,7 +121,11 @@ slice, to free the far meshes.
   module the crown's edge cuts does not hang off), that point turned with the tree and kept on the ground: in each
   row of modules the first down stays on the ground's line, the next rest on it (`FALL_PILE`); each module falls on
   its own clock, up to `FALL_LAG / 2` before or after the trunk (`fall_angle` is `TreeHits.fall_at` again: keep the
-  two alike; the fall's seconds come in `fall_ways` z), so they do not land all at once; empty modules are
+  two alike; the fall's seconds come in `fall_ways` z), so they do not land all at once; lying, a module reaches
+  back toward the stump no further than its lowest leaves came down along their arc and clears the stump's side
+  (`FALL_CLEAR`, the stump's half width from the picture's foot row): a billboard stands up, so it is carried on
+  the way it falls as it comes down, and its ring draws nothing further back (the user's ask: the crown lies only
+  the way it fell, from where its bottom comes down); empty modules are
   not drawn; each module's ring (`FALL_OVERLAP`, drawn `FALL_RING_BACK` behind) fills the gaps as they move apart;
   lower on the screen is in front (`FALL_ORDER`). The wood it leaves (`Props.show_drops`) waits until it lands (`TreeHits.landing`,
   `DROPS_HOLD_MS` at most). A struck tree sheds leaves of its own shape and colours (`TreeHits.LEAF_SHAPES`,

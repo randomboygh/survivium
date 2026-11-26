@@ -176,6 +176,10 @@ const float FALL_TIME = 1.0;
 const float FALL_ANGLE = PI / 2.0;
 const float FALL_BOUNCE = 0.06;
 const float BOUNCE_TIME = 0.25;
+// How far past the stump's side the leaves of a crown lying on the ground begin, at least
+// (pixels on the screen, the way it fell; each module up to FALL_JAG further, so their edge
+// there is not straight).
+const float FALL_CLEAR = 2.0;
 // Each module falls on its own clock, up to half of FALL_LAG seconds before or after the trunk
 // (the user's ask, 2026-11-27: not all at once), so the crown comes down a little ragged.
 const float FALL_LAG = 0.24;
@@ -190,7 +194,8 @@ varying flat float fading;
 // A falling tree's turn on the screen (fall_screen): the shears' tan and sin of the turn
 // left after whole quarters, the quarters, and how the turned picture's rows are squashed
 // (fall_turn), the shear of its columns along them and its columns' stretch, and the
-// stump's top on the screen (pixels).
+// stump's top on the screen (pixels). For a module of its crown, the way it falls on the
+// screen (xy) and how far back of the texel it hangs on its ring draws (z).
 varying flat vec4 fall_turn;
 varying flat vec4 fall_shear;
 varying flat vec2 info;
@@ -376,18 +381,23 @@ void vertex() {
 	} else if (tile >= 0) {
 		// A module of the crown (FALL_MODULE; the grid one module wider all round, for the
 		// leaves the jagged edges and the shapes take over the picture's edge). Its leaves
-		// (every other texel of its reach): where they hang on, the middle of them, and how
-		// far under it they reach.
+		// (every other texel of its reach): where they hang on, the middle of them, how far
+		// under it they reach, and how far back against the way the tree falls on the screen.
 		float cols = ceil(c.z / FALL_MODULE) + 2.0;
 		vec2 me = vec2(mod(float(tile), cols), floor(float(tile) / cols)) - 1.0;
 		vec2 home = fall_home(me);
 		float cut = shake.y - FALL_CUT * TEXELS;
+		vec3 way3 = normalize(vec3(fall_ways[fall].x, 0.0, fall_ways[fall].y));
+		vec2 way_px = screen_px(shear(way3));
+		vec2 ahead = normalize(way_px);
 		vec3 sum = vec3(0.0);
 		float low = 0.0;
+		float back = 0.0;
 		for (float y = -FALL_REACH; y < FALL_REACH; y += 2.0) {
 			for (float x = -FALL_REACH; x < FALL_REACH; x += 2.0) {
 				vec2 i = floor(home + vec2(x, y));
 				if (fall_leaf(cell, cut, i) && all(equal(fall_owner(i + 0.5), me))) {
+					back = sum.z < 0.5 ? dot(home - i - 0.5, ahead) : max(back, dot(home - i - 0.5, ahead));
 					sum += vec3(i + 0.5, 1.0);
 					low = max(low, i.y + 1.0);
 				}
@@ -401,15 +411,14 @@ void vertex() {
 			float turn = fall_angle(fall_ways[fall].z - (hash12(me * 1.37 + falls[fall].xz) - 0.5) * FALL_LAG);
 			vec3 pivot = foot + vec3(0.0, FALL_CUT, 0.0);
 			vec3 across3 = vec3(right.x, 0.0, right.y);
-			vec3 m = foot + across3 * ((tile_mid.x - ax) / TEXELS) + vec3(0.0, (ay - tile_mid.y) / TEXELS, 0.0);
-			m = pivot + fall_turned(m - pivot, fall, turn);
+			vec3 hung = foot + across3 * ((tile_mid.x - ax) / TEXELS) + vec3(0.0, (ay - tile_mid.y) / TEXELS, 0.0);
+			vec3 m = pivot + fall_turned(hung - pivot, fall, turn);
 			// Kept over the ground: its lowest leaves `rest` under it; sunk in by `d`, it rests
 			// on the pile of its row, as deep as the row's leaf that went deepest (`deep`: the
 			// row's leaves furthest the way it falls, looked for along lines 4 texels apart).
 			float rest = (low - tile_mid.y - 0.5) / TEXELS;
 			float d = m.y - foot.y - rest;
 			float deep = min(d, 0.0);
-			vec3 way3 = normalize(vec3(fall_ways[fall].x, 0.0, fall_ways[fall].y));
 			float side = dot(across3, way3) * sin(turn);
 			if (abs(side) > 0.001) {
 				for (float y = me.y * FALL_MODULE + 1.0; y < (me.y + 1.0) * FALL_MODULE; y += 4.0) {
@@ -424,6 +433,29 @@ void vertex() {
 				}
 			}
 			m.y = foot.y + rest + max(d, FALL_PILE * (d - deep));
+			// Lying, its leaves reach back toward the stump no further than its lowest leaves came
+			// down along their arc (the user's ask, 2026-11-27: the crown lies only the way it
+			// fell, from where its bottom comes down; FALL_CLEAR off the trunk's axis at least). A
+			// billboard stands up, so its upper leaves would lie back over the stump and past it:
+			// it is carried on the way it falls by as much (`push`), more as it comes down.
+			// The stump: as wide as the picture's foot row.
+			float stump = 0.0;
+			for (float k = 0.0; k < c.z; k += 1.0) {
+				if (frame_code(texelFetch(frames, ivec2(cell.xy + vec2(k, ay)), 0)) != 0) {
+					stump = max(stump, abs(k + 0.5 - ax));
+				}
+			}
+			vec2 foot_px = screen_px(shear(foot));
+			vec3 lying = pivot + fall_turned(hung - pivot, fall, FALL_ANGLE);
+			lying.y = max(lying.y, foot.y + rest);
+			vec3 under = pivot + fall_turned(hung - vec3(0.0, rest, 0.0) - pivot, fall, FALL_ANGLE);
+			float reach = max(dot(screen_px(shear(vec3(under.x, foot.y, under.z))) - foot_px, ahead), stump + FALL_CLEAR + hash12(me * 2.3 + 5.1) * FALL_JAG);
+			back -= dot(home - tile_mid - 0.5, ahead);
+			float push = max(reach + back - dot(screen_px(shear(stand_tall(lying, foot))) - foot_px, ahead), 0.0);
+			float down = 1.0 - cos(turn);
+			m += way3 * (push / length(way_px) * down);
+			// Its ring then draws no leaves further back than its own reach (jagged), lying.
+			fall_turn = vec4(ahead, back - FALL_JAG * 0.5 + (1.0 - down) * 4.0 * FALL_REACH, 0.0);
 			vec3 drawn = shear(stand_tall(m, foot));
 			// Its leaves as they are about the texel it hangs on (the screen's pixel there).
 			vec2 at_px = floor(screen_px(drawn)) + 0.5;
@@ -434,7 +466,7 @@ void vertex() {
 			world_pos = m;
 			// The modules lower on the screen in front (the camera looks straight down on the
 			// sheared world, so modules at one height would tie), the rings behind.
-			float depth = drawn.y + (at_px.y - screen_px(shear(foot)).y) * FALL_ORDER - tile_ring * FALL_RING_BACK;
+			float depth = drawn.y + (at_px.y - foot_px.y) * FALL_ORDER - tile_ring * FALL_RING_BACK;
 			VERTEX = vec3(xz.x, depth, xz.y);
 			fall_shear = vec4(me, at_px);
 		}
@@ -878,7 +910,8 @@ void fragment() {
 		at = tile_mid + 0.5 + floor(px) + 0.5 - fall_shear.zw;
 		bool own = all(equal(fall_owner(at), fall_shear.xy));
 		vec2 from_home = abs(at + fall_jag(at) - fall_home(fall_shear.xy));
-		if (max(from_home.x, from_home.y) > FALL_REACH + FALL_OVERLAP || own == (tile_ring > 0.5)) {
+		bool behind = tile_ring > 0.5 && dot(tile_mid + 0.5 - at - fall_jag(at), fall_turn.xy) > fall_turn.z;
+		if (max(from_home.x, from_home.y) > FALL_REACH + FALL_OVERLAP || own == (tile_ring > 0.5) || behind) {
 			discard;
 		}
 	} else if (fading >= 0.0) {
