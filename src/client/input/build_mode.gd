@@ -1029,7 +1029,7 @@ func start_cell(hit: Dictionary) -> Vector3i:
 func stroke_cells(s: Dictionary) -> Array[Vector3i]:
 	var p: Vector3 = game.player.position
 	if erasing:
-		return Plans.erase_box(s.plan, s.first, s.last, height, Vector2(p.x, p.z), thick)
+		return Plans.erase_box(s.plan, s.first, s.last, height, Vector2(p.x, p.z), thick, levels())
 	if Plans.is_fence(chosen()):
 		# A fence: one segment high and thick (Plans.draw).
 		return Plans.shape(s.plan, s.first, s.last, 1, Vector2(p.x, p.z), 1) if s.plan in ["line", "square"] else []
@@ -1050,8 +1050,12 @@ func show_stroke(s: Dictionary) -> void:
 		return
 	if erasing:
 		var gone: Array[Vector3i] = []
+		var figure := Plans.erase_box(s.plan, s.first, s.last, height, Vector2(game.player.position.x,
+			game.player.position.z), thick)
+		var ys := Vector2i(figure[0].y, figure[-1].y) if not figure.is_empty() else Vector2i.ZERO
 		for c in cells:
-			if game.plans.cells.has(c):
+			# Over and under the figure only the ghost of its earth goes (Plans.draw).
+			if game.plans.cells.has(c) and (c.y >= ys.x and c.y <= ys.y or Plans.is_earth(game.plans.cells[c])):
 				gone.append(c)
 		game.cursor.show_boxes([], gone, cells)
 		return
@@ -1066,6 +1070,9 @@ func show_stroke(s: Dictionary) -> void:
 	for c: Vector3i in sorted.fit:
 		if not sorted.hanging.has(c):
 			good.append(c)
+	# The soil a dip under the figure is filled with shows as the figure does.
+	for c: Vector3i in sorted.get("fill", []):
+		good.append(c)
 	game.cursor.show_boxes(good, bad)
 
 
@@ -1087,10 +1094,26 @@ func end_stroke(s: Dictionary) -> void:
 			game.hud.toast("[a_blueprint_cant_be_drawn]")
 		elif not sorted.hanging.is_empty():
 			game.hud.toast("[uneven_ground_nothing_under_the]")
-	game.net.request(Protocol.PLAN, [s.plan, s.first, s.last, height, thick, erasing, form_of(s.first, s.last)])
+	game.net.request(Protocol.PLAN, [s.plan, s.first, s.last, height, thick, erasing, form_of(s.first, s.last),
+		levels()])
 
 
+## Whether a figure drawn levels the uneven ground under it (Plans.earthwork): the setting
+## «Земля под фигурой» (Settings `build_level`, levelled unless set to as it is; the user's
+## picks, 2026-11-26).
+func levels() -> bool:
+	return int(game.settings.values.get("build_level", 0)) == 0
+
+
+## The cells of stroke `s` sorted (Plans.sort) with its earthwork (Plans.earthwork):
+## {"fit", "blocked", "hanging", "fill" (the soil under it)}.
 func _sorted(s: Dictionary, cells: Array[Vector3i]) -> Dictionary:
 	var block := Mat.index(Items.get_item(chosen()).get("place", ""))
-	return game.plans.sort(game.actions, game.character, s.plan, s.first, cells, block,
-		Plans.hangs_by_shape(form_of(s.first, s.last)))
+	var form := form_of(s.first, s.last)
+	var work := {}
+	if levels() and block >= 0:
+		work = game.plans.earthwork(game.actions, game.character, s.plan, s.first, s.last, cells, form)
+	var out: Dictionary = game.plans.sort(game.actions, game.character, s.plan, s.first, cells, block,
+		Plans.hangs_by_shape(form), work)
+	out.fill = work.get("fill", [])
+	return out

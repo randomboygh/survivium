@@ -250,7 +250,10 @@ static func _in_ring(x: int, z: int, lo: Vector2i, hi: Vector2i, thick: int) -> 
 
 ## The cells a stroke from `a` to `b` takes the ghost off: every cell of the box round
 ## shape `kind` (see shape), whatever ghost lies there.
-static func erase_box(kind: String, a: Vector3i, b: Vector3i, height: int, near := Vector2.INF, thick := 1) -> Array[Vector3i]:
+## With `level` (a figure drawn with its earthwork) it reaches as far as that would:
+## FLAT_DOWN levels under the figure's bottom, FLAT_UP over it.
+static func erase_box(kind: String, a: Vector3i, b: Vector3i, height: int, near := Vector2.INF, thick := 1,
+		level := false) -> Array[Vector3i]:
 	var out: Array[Vector3i] = []
 	var cells := shape(kind, a, b, height, near, thick)
 	if cells.is_empty():
@@ -263,6 +266,9 @@ static func erase_box(kind: String, a: Vector3i, b: Vector3i, height: int, near 
 	if kind == "flatten":
 		lo.y -= FLAT_DOWN - 1
 		hi.y += FLAT_UP
+	elif level:
+		hi.y = maxi(hi.y, lo.y + FLAT_UP - 1)
+		lo.y -= FLAT_DOWN
 	for x in range(lo.x, hi.x + 1):
 		for z in range(lo.z, hi.z + 1):
 			for y in range(lo.y, hi.y + 1):
@@ -307,7 +313,7 @@ static func within_reach(who, c: Vector3i) -> bool:
 ## a floor's ground), by the rules over the world `actions` (WorldActions, which holds
 ## the plans: passed, not kept, so the two make no cycle). Returns how many cells changed.
 func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thick := 1, erase_it := false,
-		form := 0) -> int:
+		form := 0, level := false) -> int:
 	var item: String = who.held()
 	if too_big(kind, a, b, height, thick):
 		who.nag("plan_big", "[the_blueprint_is_too_big]")
@@ -319,9 +325,17 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 		# The farming mode's marks stay; the ghost things in the box go with the blocks.
 		var box: Array = []
 		var things_gone := 0
-		for c in erase_box(kind, a, b, height, Vector2(p.x, p.z), thick):
-			if cells.has(c) and not is_mark(cells[c]):
+		var near := Vector2(p.x, p.z)
+		# With `level` the box reaches over and under the figure as far as its earthwork, but
+		# there takes only the ghost of the earth (CUT, soil): a floor drawn above stays.
+		var figure := erase_box(kind, a, b, height, near, thick)
+		var ys := Vector2i(figure[0].y, figure[-1].y) if not figure.is_empty() else Vector2i.ZERO
+		for c in erase_box(kind, a, b, height, near, thick, level):
+			var over := c.y < ys.x or c.y > ys.y
+			if cells.has(c) and not is_mark(cells[c]) and (not over or is_earth(cells[c])):
 				box.append(c)
+			if over:
+				continue
 			var t := thing_at(c)
 			if not t.is_empty() and (actions == null or actions.territory_allows(who, t.cell, "build")):
 				drop_thing(t)
@@ -345,23 +359,139 @@ func draw(actions, who, kind: String, a: Vector3i, b: Vector3i, height: int, thi
 	if form & 3 == 0 or kind not in FLIGHTS:
 		form = 0
 	var steps := flight(kind, a, b, height, Vector2(p.x, p.z), thick, form)
-	var sorted := sort(actions, who, kind, a, shape(kind, a, b, height, Vector2(p.x, p.z), thick, form), block,
-		hangs_by_shape(form))
+	var all := shape(kind, a, b, height, Vector2(p.x, p.z), thick, form)
+	# A fence is set on the ground as it lies; a figure of blocks levels it with `level`.
+	var work := earthwork(actions, who, kind, a, b, all, form) if level and block >= 0 else {}
+	var sorted := sort(actions, who, kind, a, all, block, hangs_by_shape(form), work)
 	var added: Array = []
+	var full := false
 	for c: Vector3i in sorted.fit:
 		if cells.size() + added.size() >= MAX_CELLS:
-			who.nag("plan_full", "[too_many_blueprints]")
+			full = true
 			break
 		added.append(c)
+	# The earth is dug out and filled in only under a figure that goes on.
+	var cut: Array = []
+	var fill: Array = []
+	if not added.is_empty():
+		for c: Vector3i in work.get("cut", []):
+			if cells.size() + added.size() + cut.size() >= MAX_CELLS:
+				full = true
+				break
+			cut.append(c)
+		for c: Vector3i in work.get("fill", []):
+			if cells.size() + added.size() + cut.size() + fill.size() >= MAX_CELLS:
+				full = true
+				break
+			fill.append(c)
+	if full:
+		who.nag("plan_full", "[too_many_blueprints]")
 	for c: Vector3i in added:
 		cells[c] = item
 		if steps.get(c, 0) != 0:
 			forms[c] = steps[c]
 		else:
 			forms.erase(c)
+	var soil := soil_item()
+	for c: Vector3i in cut:
+		cells[c] = CUT
+		forms.erase(c)
+	for c: Vector3i in fill:
+		cells[c] = soil
+		forms.erase(c)
 	if not added.is_empty():
 		changed.emit(added, item)
-	return added.size()
+	if not cut.is_empty():
+		changed.emit(cut, CUT)
+	if not fill.is_empty():
+		changed.emit(fill, soil)
+	return added.size() + cut.size() + fill.size()
+
+
+## The item of the soil a dip is filled with (flattening, earthwork): what dirt gives.
+static func soil_item() -> String:
+	return Mat.RECORDS[Mat.DIRT].item
+
+
+## Whether ghost item `v` is the earth's: a cell to dig out or soil to fill a dip with.
+static func is_earth(v: String) -> bool:
+	return v == CUT or v == soil_item()
+
+
+## The earthwork under figure `kind` drawn from `a` to `b` (its cells `all`, of `form`: see
+## shape, flight) on uneven ground, as «выровнять» would do at the figure's level (the
+## user's item 11 and picks, 2026-11-26): under its footprint (a line's columns, the whole
+## rectangle of a plane, a square, a box) the natural ground over its lowest level, FLAT_UP
+## levels high, is dug out, and the dips under it filled with soil down to solid ground
+## when it is at most FLAT_DOWN levels down (a deeper one is left and the figure hangs
+## there). A flight of slopes or stairs only has its dips filled, under each column's lowest
+## cell: a flight up a hill stays on the hill. Trees, what players built and ghost cells
+## stay; only where `who` may build. {"cut": cells to dig out (not the figure's), "dig":
+## the figure's cells in natural ground → true (its blocks go there once it is dug),
+## "fill": cells of soil, "under": the same → true}; {} with no world, or a footprint over
+## MAX_FLAT columns.
+func earthwork(actions, who, kind: String, a: Vector3i, b: Vector3i, all: Array[Vector3i], form := 0) -> Dictionary:
+	if actions == null or all.is_empty():
+		return {}
+	var w = actions.world
+	var flight_of := form & 3 != 0 and kind in FLIGHTS
+	var mine := {}
+	# Each column's level: the lowest cell of the figure there.
+	var cols := {}
+	for c in all:
+		mine[c] = true
+		var col := Vector2i(c.x, c.z)
+		cols[col] = mini(cols.get(col, c.y), c.y)
+	if not flight_of and kind in ["plane", "square", "cube"]:
+		for x in range(mini(a.x, b.x), maxi(a.x, b.x) + 1):
+			for z in range(mini(a.z, b.z), maxi(a.z, b.z) + 1):
+				cols[Vector2i(x, z)] = a.y
+	if cols.size() > MAX_FLAT:
+		return {}
+	var out := {"cut": [], "dig": {}, "fill": [], "under": {}}
+	for col: Vector2i in cols:
+		var base: int = cols[col]
+		if not flight_of:
+			for y in range(base, mini(base + FLAT_UP, w.size_y)):
+				var up := Vector3i(col.x, y, col.y)
+				if not _natural_ground(actions, up) or cells.has(up) \
+						or not actions.territory_allows(who, up, "build"):
+					continue
+				if mine.has(up):
+					out.dig[up] = true
+				else:
+					out.cut.append(up)
+		var hole: Array = []
+		var floor := false
+		for i in FLAT_DOWN + 1:
+			var down := Vector3i(col.x, base - 1 - i, col.y)
+			if down.y < 0:
+				break
+			var m: int = w.get_cell(down.x, down.y, down.z)
+			if m != Mat.AIR and m != Mat.WATER or cells.has(down):
+				floor = true
+				break
+			if i == FLAT_DOWN:
+				break
+			hole.append(down)
+		# A dip deeper than FLAT_DOWN is left: the figure hangs over it.
+		if not floor or hole.is_empty():
+			continue
+		for c: Vector3i in hole:
+			if not actions.territory_allows(who, c, "build"):
+				break
+			out.fill.append(c)
+			out.under[c] = true
+	return out
+
+
+## Whether cell `c` is natural ground a flattening digs out: not air, water or leaves, not
+## built by players, not a tree's.
+static func _natural_ground(actions, c: Vector3i) -> bool:
+	var w = actions.world
+	var m: int = w.get_cell(c.x, c.y, c.z)
+	return m != Mat.AIR and m != Mat.WATER and m != Mat.LEAVES and w.is_natural(c.x, c.y, c.z) \
+			and actions.tree_of(c) == null
 
 
 ## Flattening (the build mode's «выровнять») the rectangle from `a` to `b` to the top of
@@ -373,7 +503,7 @@ func _flatten(actions, who, a: Vector3i, b: Vector3i) -> int:
 	if actions == null:
 		return 0
 	var w = actions.world
-	var soil: String = Mat.RECORDS[Mat.DIRT].item
+	var soil := soil_item()
 	var cut: Array = []
 	var fill: Array = []
 	for c: Vector3i in shape("flatten", a, b, 1):
@@ -435,8 +565,13 @@ static func best_tool(who, m: int) -> Variant:
 ## floor buried under ground, where `who` may not build), "hanging": those of «fit»
 ## with nothing under them yet (uneven ground: a wall over a dip; none with `hangs`, an
 ## upturned flight, which hangs by its shape)}. Ghost cells there already are in none.
-## The client shows the same before the stroke ends.
-func sort(actions, who, kind: String, a: Vector3i, all: Array[Vector3i], block: int, hangs := false) -> Dictionary:
+## With the figure's earthwork `work` (see earthwork) its cells in natural ground fit (dug
+## first) and those over soil to fill do not hang. The client shows the same before the
+## stroke ends.
+func sort(actions, who, kind: String, a: Vector3i, all: Array[Vector3i], block: int, hangs := false,
+		work := {}) -> Dictionary:
+	var dig: Dictionary = work.get("dig", {})
+	var under: Dictionary = work.get("under", {})
 	var out := {"fit": [], "blocked": [], "hanging": []}
 	var mine := {}
 	# The lowest cell of the shape in each column: only those can hang (a ceiling rests
@@ -448,6 +583,9 @@ func sort(actions, who, kind: String, a: Vector3i, all: Array[Vector3i], block: 
 		lowest[col] = mini(lowest.get(col, c.y), c.y)
 	for c in all:
 		if cells.has(c):
+			continue
+		if dig.has(c):
+			out.fit.append(c)
 			continue
 		var ok := fits(actions, c, block, is_floor(kind, a, c))
 		if ok and actions != null:
@@ -465,7 +603,7 @@ func sort(actions, who, kind: String, a: Vector3i, all: Array[Vector3i], block: 
 		out.fit.append(c)
 		var down := c + Vector3i.DOWN
 		if actions != null and not hangs and lowest[Vector2i(c.x, c.z)] == c.y and not cells.has(down) \
-				and not actions.world.is_solid(down.x, down.y, down.z):
+				and not under.has(down) and not actions.world.is_solid(down.x, down.y, down.z):
 			out.hanging.append(c)
 	return out
 
@@ -617,9 +755,17 @@ func build(actions, who) -> Dictionary:
 	var held: String = who.held()
 	var missing := ""
 	var ready: Array[Vector3i] = []
+	# The cells to dig out: those to cut, and the figure's cells in natural ground a block
+	# cannot take the place of at once (see earthwork; soft ground it can, as a floor's).
+	var to_dig := {}
 	for c in near(who):
 		var item: String = cells[c]
 		if item == CUT:
+			to_dig[c] = true
+			ready.append(c)
+			continue
+		if _buried(actions, c, item):
+			to_dig[c] = true
 			ready.append(c)
 			continue
 		if not free and who.inventory.count(item) == 0:
@@ -628,15 +774,15 @@ func build(actions, who) -> Dictionary:
 		ready.append(c)
 	# What is to be dug out first, from the top; then the block in hand first.
 	ready.sort_custom(func(x: Vector3i, y: Vector3i) -> bool:
-		if (cells[x] == CUT) != (cells[y] == CUT):
-			return cells[x] == CUT
-		if cells[x] == CUT:
+		if to_dig.has(x) != to_dig.has(y):
+			return to_dig.has(x)
+		if to_dig.has(x):
 			return x.y > y.y
 		return cells[x] == held and cells[y] != held)
 	for c in ready:
 		var item: String = cells[c]
-		if item == CUT:
-			var dug := _dig_out(actions, who, c)
+		if to_dig.has(c):
+			var dug := _dig_out(actions, who, c, item != CUT)
 			if dug.is_empty():
 				continue
 			return dug
@@ -721,21 +867,35 @@ func _put_fence(actions, who, c: Vector3i, item: String, free: bool) -> Dictiona
 	return done
 
 
+## Whether ghost block `item` at cell `c` stands in natural ground to be dug out before it
+## is built (a figure's cell under its earthwork, see earthwork): ground no block takes the
+## place of at once (not soft, _soft), not a tree's.
+func _buried(actions, c: Vector3i, item: String) -> bool:
+	if not Items.get_item(item).has("place"):
+		return false
+	var w = actions.world
+	var m: int = w.get_cell(c.x, c.y, c.z)
+	return not _soft(m) and m != Mat.index(Items.get_item(item).place) and _natural_ground(actions, c)
+
+
 ## Digs ghost cell `c` to be dug out (CUT) with the tool of the bag of `who` that digs
 ## it fastest; the work done, {} when it could not be dug (no tool for it, not allowed),
-## {"swing"} when the hands are busy.
-func _dig_out(actions, who, c: Vector3i) -> Dictionary:
+## {"swing"} when the hands are busy. With `keep` (a figure's block in the ground, _buried)
+## its ghost stays, to be built once the cell is open.
+func _dig_out(actions, who, c: Vector3i, keep := false) -> Dictionary:
 	var w = actions.world
 	var m: int = w.get_cell(c.x, c.y, c.z)
 	if m == Mat.AIR or m == Mat.WATER or actions.tree_of(c) != null:
-		cells.erase(c)
-		changed.emit([c], "")
+		if not keep:
+			cells.erase(c)
+			changed.emit([c], "")
 		return {}
 	if actions.water_holds(c):
 		# Water has no physics yet: the ground it leans on stays (WorldActions.water_holds).
 		who.nag("water", "[water_holds_this_ground]")
-		cells.erase(c)
-		changed.emit([c], "")
+		if not keep:
+			cells.erase(c)
+			changed.emit([c], "")
 		return {}
 	var tool: Variant = best_tool(who, m)
 	if tool == null:
@@ -747,8 +907,9 @@ func _dig_out(actions, who, c: Vector3i) -> Dictionary:
 	var done: Dictionary = actions.dig(who, [c] as Array[Vector3i], swing, tool)
 	if done.is_empty():
 		return {"swing": actions.IDLE_SWING}
-	cells.erase(c)
-	changed.emit([c], "")
+	if not keep:
+		cells.erase(c)
+		changed.emit([c], "")
 	return done
 
 

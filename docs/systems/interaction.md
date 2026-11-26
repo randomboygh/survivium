@@ -125,8 +125,17 @@ lies around. The rules are shared (the server checks them), input and hints are 
   whole height with floor and ceiling, not less than `MIN_ROOM` = 3), thickness 1–4 — for a line rows from the
   drawer, for a square inward; all figures except levelling are placed on top of the chosen surface), `sort`
   (which cells of the figure will stand, which are inside blocks or underground — not drawn, which lower ones
-  hang over a void — uneven ground; the client shows the same), `draw` (draws or, with `erase`, erases the
-  ghost in the whole box of the figure, `erase_box`), `clear` (erases the ghost nearby), `build` (one cell: the
+  hang over a void — uneven ground; the client shows the same), `earthwork` (with `level`, the setting
+  «Ground under a figure» = «level it», `build_level` 0, the default; item 11, the user's picks of 2026-11-26: a
+  figure of blocks on uneven ground levels it as «flatten» at its level — under its footprint, a line's columns
+  or the whole rectangle of a plane, a square or a cube, natural ground over its lowest level up to `FLAT_UP` is
+  a `CUT` ghost, the figure's own cells in it stay its blocks and `build` digs them first when no block takes
+  their place at once (`_buried`, stone), dips under it are filled with soil when solid ground is at most
+  `FLAT_DOWN` levels down (a deeper one is left and the figure hangs there); a flight of slopes or stairs only
+  has its dips filled, a fence takes the ground as it lies; `sort` takes it so the cells in the ground fit and
+  those over soil do not hang), `draw` (draws or, with `erase`, erases the ghost in the whole box of the figure,
+  `erase_box`; with `level` the box reaches `FLAT_DOWN` under and `FLAT_UP` over the figure but takes only the
+  earth's ghost there, `is_earth`), `clear` (erases the ghost nearby), `build` (one cell: the
   lowest, then the nearest in reach, on any level — the view's slice does not stop one building a ceiling from
   inside a house; a block from the bag — first the one in the hand; a floor replaces soft earth and gives it
   to the bag; with no blocks — waits), `to_list` / `from_list` (saved with the world, `"plans"`; JSON keeps a cell as `"(x, y, z)"` and a form as a
@@ -135,7 +144,7 @@ lies around. The rules are shared (the server checks them), input and hints are 
   the hands' rules ask it through `actions.plans`; `WorldActions` is passed to `draw` / `build` as a
   parameter, with no reference cycle. `turn_form` turns the ghost of a lone slope or stairs a quarter: the
   whole column of ghost cells with forms over and under the cell (`column_of`, `formed_at`), within
-  `PLAN_REACH` and by the right «build». Requests: `PLAN` [kind, from, to, height, thickness, erase],
+  `PLAN_REACH` and by the right «build». Requests: `PLAN` [kind, from, to, height, thickness, erase, form, level (may be left out)],
   `PLAN_TURN` [cell], `PLAN_CLEAR`, `BUILD` (the action button of build mode, whatever is in the hand).
   Ghost things (the user's picks of 2026-11-26, 1А, 2А): doors, windows, hatches and furniture drawn into the
   blueprint, `things` — records `{item, cell (north-west), turn, cells (each cell it fills,
