@@ -1,6 +1,7 @@
 extends RefCounted
 ## Grass tufts and tree crowns for one chunk, as MultiMesh instance buffers.
-## Tufts stand on grass tops. A crown is drawn the way t3ssel8r draws his trees: leaf
+## Tufts stand on grass tops. A grown tree draws itself as pictures (TreeSprites); the
+## crowns here are the young trees' and leaves no standing tree holds. A crown is drawn the way t3ssel8r draws his trees: leaf
 ## cluster cards cover its open faces, and each card is lit with the normal of the crown
 ## at that spot (away from the middle of the leaves around it), bent toward a few large
 ## bumps, so the light falls on the crown as one mass with some big lumps instead of on
@@ -696,7 +697,7 @@ static func _broad(job: Job, w, tree: Array, trunks: Array, base: Color, first_r
 	var low: int = ys[0]
 	var top: int = ys[-1]
 	# A weeping crown is a dome of layers over the trunk with strands hanging from its
-	# rim (see _strands): the points hanging round the trunk (Growth._curtain) take no
+	# rim (see _strands): the points hanging round the trunk take no
 	# layers of their own.
 	var hang_to := low
 	var dome := 0.0
@@ -815,7 +816,7 @@ static func _strands(job: Job, at: Vector2i, middle: Vector2, r: float, y_from: 
 
 
 ## The fronds of a palm whose trunk stands on column `at`, its crown points `levels`
-## (see _crown_levels, Growth._palm): one flat round tier on the top of the trunk, as a
+## (see _crown_levels): one flat round tier on the top of the trunk, as a
 ## spruce's tier (_spruce) but alone, so no leaf hangs in the air below the crown. An
 ## outer ring of large branches as many as the fronds, each with its darker copy a cell
 ## lower (the shade of the tier), lying out to the farthest point and sinking a little

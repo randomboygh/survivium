@@ -8,7 +8,9 @@ lies around. The rules are shared (the server checks them), input and hints are 
 
 **Files**
 - `src/shared/game/felling.gd` — felling a tree: the trunk above the cut and its crown go, logs, twigs and
-  seeds lie along the line of the fall (`Felling.fell`, called by `chop`).
+  seeds lie along the line of the fall (`Felling.fell`, called by `chop`). A piece of wood lying in the woods
+  (`Growth.piece_look`) is chopped up in half its species' blows: its log cell goes, the logs and twigs its kind
+  gives (TreeLooks `pieces`: `logs`, `twigs`) lie along it (`Felling.cut_piece`).
 - `src/shared/game/world_actions.gd` — the rules of the hands: `dig` / `dig_at`, `place_at` / `can_place`,
   `chop`, `fell`, `mow` / `mow_swing`, `act_in_front`, `place_in_front`, `swing_air`, gathering from bushes
   and trees, the spring regrowth. Signals: `cell_changed`, `cells_set` (all cells of a felled tree:

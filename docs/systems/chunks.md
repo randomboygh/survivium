@@ -83,7 +83,8 @@ slice, to free the far meshes.
   under a roof, in a ravine and behind a hill the layers are turned on instead of the slice, how they look is
   decided by the shaders, see rendering.md), the caps (`update_caps`, the level — `cap_level`), `solid`
   (`solid_map.gd`, the map of solid cells for the slice of rock in layers), `refit_boxes` for the camera's
-  turn, `on_cell_changed` / `remesh_chunk`.
+  turn and tilt (a chunk's trees' box grown by `TreeSprites.stand_box`: a picture stands 1/slope higher under a
+  steeper camera), `on_cell_changed` / `remesh_chunk`.
 - `src/client/world/chunk_mesher.gd` — the chunk's mesh by column: cells, cut corners (a top drawn in
   quarters, `MeshFaces.quarter_kind`; the half of a side by a cut corner is gone, a curved wall instead), caps
   (`build_cap`; none over a sloping top; the caps lie `CAP_SINK` below the cells' top, otherwise their
@@ -98,14 +99,33 @@ slice, to free the far meshes.
   at a covering neighbour; a cube next to a shape draws a face towards it if that side of the shape is not
   whole, `covers_side`; the cells at the shapes are candidates, `_take_forms`).
 - `src/client/world/foliage.gd` — the chunk's grass, plants and crowns as a MultiMesh, also by column.
+- Stumps and the fall (trees PR 5): a felled pictured tree always leaves its foot's log (`Felling.fell`; struck
+  again, `Felling.uproot` takes it for one log in half the blows), drawn by `TreeSprites` as a picture too
+  (`Growth.stump_look`; TreeLooks `stumps`, `stump_frames`, `wood`: the approved stump at 3 sizes, 8 turns, summer
+  and winter with snow on the cut; instance colour alpha `STUMP` / `STUMP_SNOW`, `tree.gdshader` `stump_colour`:
+  bark as the trees', cut wood, snow and its outline 3 bits a sun); the chunk mesher leaves its log cell undrawn.
+  A standing tree that is a stump after a chunk's rebuild falls (`TreeHits.fall`, `tree.gdshader` `falls`): its
+  picture turns over about the stump's top away from the last blow in a second, bounces and fades out.
+- Pieces of wood lying in the woods (`Growth.piece_look`): drawn as the stumps, instance colour alpha
+  `TreeSprites.PIECE`; each of a piece's 16 views (8 turns, summer and winter) is cropped to itself (a fallen trunk
+  seen end on is narrow), so its instance's custom data points to its table of views in the frames atlas (two
+  texels a view: place; w, h, anchor) that `tree.gdshader` and `tree_shadow.gdshader` read in the vertex; a sprout's
+  leaves are alpha 7 (the leaves' ramp). Its shadow is the camera's view of it laid flat over where it lies (`PIECE_HIGH` over the ground, a row a texel deep), and it takes no sun's shadow itself. The kinds'
+  rows of views are packed one by one under the stumps; the frames atlas is then 4064 x 3852 (under 4096).
 - `src/client/world/tree_sprites.gd`, `shaders/tree.gdshader` — standing trees of species drawn as pictures
   (`Growth.standing_look`): one upright picture per tree in the chunk's `trees` MultiMesh (the last of the
   plant parts), the frame of the side the camera rests at plus the tree's own turn, from one atlas of all
   such species (`setup` at the start; frames RGBA8 hold the leaf's normal, angle and bits or the bark's
-  step under 8 suns of the day, the bare tree LA8 for autumn and winter); lit by the sun in the shader as the
+  step under 8 suns of the day, their alpha what the texel is (`frame_code`: the codes under 128 stored 64 higher,
+  as the import's `fix_alpha_border` gives a texel under alpha 20 a leaf's colour), the bare tree LA8 for autumn
+  and winter with its twigs; under the frames a ramp
+  row a species from `ramps_at`, its colours and where its snow lies, one texture unit less); lit by the sun in the shader as the
   approved drawing (bundles by normal, leaves by facing), the sun where it stands in the world seen from the side
   shown (turning the camera turns the lit side; looking toward the sun, the crown is in its shade and the bark is
-  drawn a step darker, `wood_colour`). The bark also takes the sun's shadow (the shadow map, as the ground: other
+  drawn a step darker, `wood_colour`). The bark is drawn with halftones and an even outline, worked out from a texel's
+  four neighbours (`bark_look`): a bark texel beside a darker step takes half a step darker; a texel on the
+  picture's edge with bark inside it takes one tone all round (`OUTLINE_LOW`, half a step over the darkest),
+  whatever the light. The bark also takes the sun's shadow (the shadow map, as the ground: other
   crowns, hills) a bark step darker, never two under its own crown's drawn shade (the bare frame holds the step
   without it, `in_shade`; `sun_as` gives the sun's pass the colour the shaded step would get); the leaves and fronds
   too, a step darker but never darker than on the crown's shaded side (`leaf_steps`, `frond_steps`). A species'
@@ -119,7 +139,16 @@ slice, to free the far meshes.
   keeps its leaves, so its bare frame under a leaf holds the last two suns, and `TreeSprites` gives it the
   evergreens' year), their trunks' soft outline alpha 3; evergreens take a little of autumn's tint, as their leaf cards do. Autumn takes the leaf bundles from the crown's edge
   inward (each bundle's rank from the edge is in its frame); under half of them left, the bark is drawn from the
-  bare tree, without the crown's shade. Foliage and the trunk mesher leave such trees out;
+  bare tree, without the crown's shade. In winter a species' snow pictures (TreeLooks `snow`, and `snow_dry` for
+  the crown of the trees that keep their dry leaves; packed into the `snow` atlas, where each lies from its frames
+  in the ramp row) lie over the bare tree or the evergreen crown: a texel's two bytes say whether it is snow, its
+  soft outline or a seam and how it is lit (a ball's or a cap's normal, or a frond's two steps), in the snow's
+  6 steps (`shaders/tree_pictures.gdshaderinc`); it comes as the snow cover grows (`snow_amount`), a ball or a cap
+  from its middle out, a frond's snow from the frond up. A tree
+  keeping its dry leaves (`Foliage.KEEPS_LEAVES`) keeps its whole crown in its `dry` ramp under the snow caps; the
+  trees of the hot zones (TreeLooks `evergreen`) and the palms keep their summer crown and take no snow. In spring a
+  species with a `blossom` ramp blossoms on most of its leaves (`blossom_amount`), crosses of flowers on the lit
+  side. Foliage and the trunk mesher leave such trees out;
   young trees and stumps stay theirs. Their ground shadows are the same instances drawn a second time
   (`shaders/tree_shadow.gdshader`, a node sharing the `trees` MultiMesh, shadows only, on
   `PixelView.LAYER_SUN_CASTER`) instead of Foliage's crown discs: each picture stands at its foot turned across

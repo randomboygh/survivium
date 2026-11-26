@@ -986,6 +986,8 @@
 "[field.biomes.tree_chance.about]": "Chance of a tree in a spot"
 "[field.biomes.groves]": "Groves"
 "[field.biomes.groves.about]": "How much trees gather in groves"
+"[field.biomes.pieces]": "Fallen wood"
+"[field.biomes.pieces.about]": "Chances of a log, a fallen trunk and a broken trunk lying in an 8x8 square of the woods"
 "[field.biomes.trees_on]": "Trees on"
 "[field.biomes.trees_on.about]": "Grounds besides grass trees grow on"
 "[field.biomes.bushes]": "Bushes"

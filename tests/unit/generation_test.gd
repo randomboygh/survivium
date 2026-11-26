@@ -2,6 +2,7 @@ extends "res://tests/unit/test_case.gd"
 ## The generator: chunks the same in any order, mountains, rivers and caves, trees and bushes.
 
 const EscapeMap := preload("res://tools/escape_map.gd")
+const TreeLooks := preload("res://src/shared/content/tree_looks.gd")
 
 
 func run() -> void:
@@ -16,6 +17,8 @@ func run() -> void:
 	_test_trees()
 	_test_regrow()
 	_test_pictured()
+	_test_stumps()
+	_test_pieces()
 	_test_pictured_shadow()
 	_test_bushes()
 	_test_custom_plants()
@@ -58,7 +61,8 @@ func _test_generation() -> void:
 	for i in range(keys.size() - 1, -1, -1):
 		_ensure_stage(gen, keys[i], WorldGen.SHAPED)
 	_check(_same(gen.world, w, keys), "chunks made in another order give the same cells and shapes")
-	_check(gen.world.trees == w.trees and gen.world.bushes == w.bushes, "and the same trees and bushes")
+	_check(gen.world.trees == w.trees and gen.world.bushes == w.bushes and gen.world.tree_pieces == w.tree_pieces,
+		"and the same trees, bushes and pieces of wood")
 	# Chunks dropped far away are made again the same, with the crowns of the trees
 	# around that reach into them: a chunk of the area, a planted one beside it and
 	# one with terrain only beyond that.
@@ -524,7 +528,7 @@ func _test_pictured() -> void:
 			while Growth.look_index(s, col, 1.0) != i:
 				col.x += 2
 			var w := _pictured_ground(col)
-			Growth.place(w, col.x, 1, col.y, species, null, 1.0)
+			Growth.place(w, col.x, 1, col.y, species, 1.0)
 			if Growth.standing_look(w, col) != i:
 				bad.append([s.id, i, "grown"])
 				continue
@@ -532,32 +536,89 @@ func _test_pictured() -> void:
 				if looks[j].variant != looks[i].variant or looks[j].trunk >= looks[i].trunk:
 					continue
 				w = _pictured_ground(col)
-				Growth.place(w, col.x, 1, col.y, species, null, 1.0)
+				Growth.place(w, col.x, 1, col.y, species, 1.0)
 				Felling.clear(w, Vector3i(col.x, 1 + looks[j].trunk, col.y))
 				if Growth.standing_look(w, col) >= 0:
 					bad.append([s.id, i, "stump %d" % looks[j].trunk])
 	_check(bad.is_empty(), "every look grows standing, a stump is no smaller tree: %s" % [bad])
 
 
-func _test_pictured_shadow() -> void:
-	# A tree drawn as a picture casts its picture's shadow (tree_shadow.gdshader), not
-	# Foliage's discs round its crown; a tree drawn in leaf clusters still casts those.
-	var col := Vector2i(25, 25)
-	var key := Vector2i(col.x / 16, col.y / 16) * 16
-	var cast := {}
+func _test_stumps() -> void:
+	# A pictured tree felled at its foot leaves a stump of one log drawn as a picture
+	# (Growth.stump_look); the stump felled again is uprooted: no log left, one lies by it.
+	var bad := []
 	for species in Trees.SPECIES.size():
 		var s: Dictionary = Trees.SPECIES[species]
-		var pictured: bool = not s.pictures.is_empty()
-		if s.dead or cast.has(pictured):
+		if not Felling.keeps_stump(s):
 			continue
+		var col := Vector2i(25, 25)
 		var w := _pictured_ground(col)
-		var rng := RandomNumberGenerator.new()
-		rng.seed = 7
-		Growth.place(w, col.x, 1, col.y, species, rng, 1.0)
-		var shadows: Array = Foliage.build_chunk(w, key.x, key.y, 16).shadows
-		cast[pictured] = [s.id, shadows[0]]
-	_check(not cast.has(true) or cast[true][1] == 0, "a tree drawn as a picture casts no crown discs: %s" % [cast.get(true)])
-	_check(not cast.has(false) or cast[false][1] > 0, "a tree of leaf clusters casts its crown discs: %s" % [cast.get(false)])
+		Growth.place(w, col.x, 1, col.y, species, 1.0)
+		Felling.fell(w, Vector3i(col.x, 1, col.y), Vector2(1, 0))
+		if w.get_cell(col.x, 1, col.y) != Mat.LOG or w.get_cell(col.x, 2, col.y) == Mat.LOG \
+				or Growth.stump_look(w, col) < 0 or Growth.standing_look(w, col) >= 0:
+			bad.append([s.id, "stump"])
+			continue
+		var gone := Felling.fell(w, Vector3i(col.x, 1, col.y), Vector2(1, 0))
+		if gone.size() != 1 or w.log_col(col.x, col.y) != 0 or Growth.stump_look(w, col) >= 0:
+			bad.append([s.id, "uproot"])
+	_check(bad.is_empty(), "a felled tree leaves a stump, the stump is uprooted: %s" % [bad])
+
+
+func _test_pieces() -> void:
+	# A piece of wood lying in the woods (Growth.place_piece) is one log drawn as a picture
+	# (Growth.piece_look), not a stump; the axe chops it up (Felling.cut_piece): the log goes,
+	# the logs and twigs its kind gives lie by it; the record goes with a chunk's save.
+	var bad := []
+	var kinds := 0
+	for species in Trees.SPECIES.size():
+		var s: Dictionary = Trees.SPECIES[species]
+		for kind in TreeLooks.PIECES.size():
+			if not s.pictures.get("pieces", {}).has(TreeLooks.PIECES[kind]):
+				continue
+			kinds += 1
+			var col := Vector2i(25, 25)
+			var w := _pictured_ground(col)
+			Growth.place_piece(w, col.x, 1, col.y, species, kind)
+			if Growth.piece_look(w, col) != kind or Growth.stump_look(w, col) >= 0 or Growth.standing_look(w, col) >= 0:
+				bad.append([s.id, kind, "look"])
+				continue
+			var key := WorldData.chunk_key(col.x, col.y)
+			var copy := WorldData.new(48, Vector2i(col.x + 32, 64))
+			copy.unpack_chunk(w.pack_chunk(key))
+			if Growth.piece_look(copy, col) != kind:
+				bad.append([s.id, kind, "save"])
+			var gone := Felling.fell(w, Vector3i(col.x, 1, col.y), Vector2(1, 0))
+			var lying := 0
+			for k in w.drops:
+				lying += w.drops[k].size()
+			var d: Dictionary = s.pictures.pieces[TreeLooks.PIECES[kind]]
+			var want: int = (d.logs if s.log != "" else 0) + (d.twigs if s.twig != "" else 0)
+			if gone.size() != 1 or w.log_col(col.x, col.y) != 0 or Growth.piece_look(w, col) >= 0 or lying == 0 \
+					or lying > want:
+				bad.append([s.id, kind, "chop", gone.size(), lying, want])
+	_check(kinds > 0 and bad.is_empty(), "a piece of wood is drawn, kept and chopped up: %d kinds, %s" % [kinds, bad])
+
+
+func _test_pictured_shadow() -> void:
+	# A grown tree, drawn as a picture, casts its picture's shadow (tree_shadow.gdshader),
+	# not Foliage's discs round its crown; a young tree, drawn in leaf clusters, still
+	# casts those.
+	var col := Vector2i(25, 25)
+	var key := Vector2i(col.x / 16, col.y / 16) * 16
+	var oak := Trees.index("plants:oak")
+	var sapling: String = Items.get_item("plants:acorn").get("crop", "")
+	var cast := {}
+	for young in [false, true]:
+		var w := _pictured_ground(col)
+		if young:
+			w.set_field(Vector3i(col.x, 0, col.y), [sapling, 0.0, 1.0])
+			Growth.place_young(w, col.x, 1, col.y, oak)
+		else:
+			Growth.place(w, col.x, 1, col.y, oak, 1.0)
+		cast[young] = Foliage.build_chunk(w, key.x, key.y, 16).shadows[0]
+	_check(cast[false] == 0, "a grown tree, drawn as a picture, casts no crown discs: %d" % cast[false])
+	_check(cast[true] > 0, "a young tree, drawn in leaf clusters, casts its crown discs: %d" % cast[true])
 
 
 ## A world of grass round column `col`, for one tree.
@@ -580,11 +641,9 @@ func _test_regrow() -> void:
 	for z in 32:
 		for x in 32:
 			w.set_cell(x, 0, z, Mat.GRASS)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7
 	var col := Vector2i(15, 15)
 	w.add_tree(col.x, col.y, oak)
-	var old: Array[Vector3i] = Growth._broadleaf(w, col.x, 1, col.y, Trees.SPECIES[oak], rng, 1.0)
+	var old: Array[Vector3i] = old_tree(w, col.x, 1, col.y, Trees.SPECIES[oak])
 	Growth.fill(w, old, 0, old.size())
 	var was := _leaf_cols(w, Rect2i(0, 0, 32, 32))
 	var crown := Growth.regrow(w, col, oak, 40)
@@ -600,13 +659,6 @@ func _test_regrow() -> void:
 	w.set_cell(stump.x, 2, stump.y, Mat.LOG)
 	_check(Growth.regrow(w, stump, oak, 40).is_empty() and w.get_cell(stump.x, 1, stump.y) == Mat.LOG,
 		"a stump is not grown again")
-	var plain := -1
-	for i in Trees.SPECIES.size():
-		if plain < 0 and Trees.SPECIES[i].pictures.is_empty():
-			plain = i
-	if plain >= 0:
-		_check(Growth.outgrown([[col, oak], [stump, plain]], 0).size() == 1,
-			"only trees of species drawn as pictures are grown again")
 	_test_regrow_conifer()
 
 
@@ -624,12 +676,9 @@ func _test_regrow_conifer() -> void:
 		for z in 32:
 			for x in 32:
 				w.set_cell(x, 0, z, Mat.GRASS)
-		var rng := RandomNumberGenerator.new()
-		rng.seed = 7
 		var col := Vector2i(15, 15)
 		w.add_tree(col.x, col.y, species)
-		var old: Array[Vector3i] = Growth._conifer(w, col.x, 1, col.y, s, rng, 1.0) if s.shape == "cone" \
-			else Growth._lobed(w, col.x, 1, col.y, s, rng, 1.0)
+		var old: Array[Vector3i] = old_tree(w, col.x, 1, col.y, s)
 		Growth.fill(w, old, 0, old.size())
 		var was := _leaf_cols(w, Rect2i(0, 0, 32, 32))
 		var crown := Growth.regrow(w, col, species, 48)
@@ -661,30 +710,20 @@ static func _leaf_cols(w: WorldData, r: Rect2i) -> PackedInt64Array:
 func _test_trees() -> void:
 	# Every species at every scale stays within the height it promises, so the
 	# generator can tell whether a tree fits under the top of the world.
-	var rng := RandomNumberGenerator.new()
 	var fits := true
-	var reached := []
 	for species in Trees.SPECIES.size():
 		for scale in [0.6, 0.8, 1.0, 1.3]:
 			for k in 12:
-				rng.seed = k
 				var w := WorldData.new(40, Vector2i(32, 32))
 				# On odd and even feet: the crown's points stand on even levels.
 				var foot := 1 + k % 2
-				Growth.place(w, 15, foot, 15, species, rng, scale)
+				Growth.place(w, 15, foot, 15, species, scale)
 				var top := 0
 				for c: WorldData.Chunk in w.chunks.values():
 					for col in WorldData.LAYER:
 						top = maxi(top, WorldData.top_level(c.leaf[col] | c.logs[col]))
 				fits = fits and top + 1 - foot <= Growth.height(species, scale)
-				# The trunk goes up into its crown, with no air over its top log (seen as a
-				# stump under a hanging crown, 2026-11-15). A tree drawn as pictures draws its
-				# trunk in its picture, its logs only as high as its look's trunk.
-				var trunk_top := WorldData.top_level(w.log_col(15, 15))
-				if w.get_cell(15, trunk_top + 1, 15) == Mat.AIR and Trees.SPECIES[species].pictures.is_empty():
-					reached.append([Trees.SPECIES[species].id, scale, k])
 	_check(fits, "trees stay within Growth.height")
-	_check(reached.is_empty(), "every trunk reaches up into its crown: %s" % [reached])
 	var strips := _woods()
 	var w: WorldData = strips.world
 	var kinds := {}

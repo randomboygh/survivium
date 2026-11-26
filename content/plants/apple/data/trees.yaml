@@ -7,6 +7,7 @@
   shape: round
   leaf: scales
   leaves: broad
+  blossom: "#e8c8d0"
   trunk: [2, 3]
   girth: [12, 16]
   taper: 0.4
